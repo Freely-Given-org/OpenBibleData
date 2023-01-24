@@ -1,3 +1,6 @@
+# Our VEnv
+createPages/cpVEnv/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
