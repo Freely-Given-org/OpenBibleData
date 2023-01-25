@@ -43,30 +43,46 @@ import os
 import shutil
 import logging
 
-# sys.path.append( '../../BibleOrgSys/BibleOrgSys/' )
-# import BibleOrgSysGlobals
+import sys
+sys.path.append( '../../BibleOrgSys/' )
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 
 from Bibles import preloadVersions
-from html import createChapterPages, createInterlinearPages, createParallelPages, makeTop, makeBottom
+from html import createChapterPages, createOETChapterPages, createInterlinearPages, createParallelPages, makeTop, makeBottom, createIndexPage
 
 
-LAST_MODIFIED_DATE = '2023-01-23' # by RJH
+LAST_MODIFIED_DATE = '2023-01-25' # by RJH
 SHORT_PROGRAM_NAME = "createPages"
 PROGRAM_NAME = "OpenBibleData Create Pages"
-PROGRAM_VERSION = '0.03'
+PROGRAM_VERSION = '0.05'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = True
 
 
 class State:
-    BibleVersions = ['OET-RV','OET-LV', 'SR-GNT', 'ASV','KJV', 'UHB','UGNT','ULT','UST']
-    BibleLocations = { # TODO: change all to relative GH locations
-                'OET-LV':['../../OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/',],
-                # 'ULT':['/mnt/Data/uW_dataRepos/en_ult/',],
-                # 'UST':['/mnt/Data/uW_dataRepos/en_ust/',],
+    BibleVersions = ['OET','OET-RV','OET-LV', 'SR-GNT', 'ASV','KJV', 'UHB','UGNT','ULT','UST']
+    BibleLocations = {
+                'OET-RV':['../../OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/',],
+                'OET-LV':['../../OpenEnglishTranslation--OET/translatedTexts/LiteralVersion/',],
+                # 'SR-GNT':['../../Forked/CNTR-SR/SR usfm/',],
+                # 'ASV':['../copiedBibles/English/eBible.org/ASV/',],
+                # 'KJV':['../copiedBibles/English/eBible.org/KJV/',],
+                # 'UHB':['../copiedBibles/Original/unfoldingWord.org/UHB/',],
+                # 'UGNT':['../copiedBibles/Original/unfoldingWord.org/UGNT/',],
+                # 'ULT':['../copiedBibles/English/unfoldingWord.org/ULT/',],
+                # 'UST':['../copiedBibles/English/unfoldingWord.org/UST/',],
+                }
+    booksToLoad = {
+                'OET':['MRK',],
+                'OET-RV':['MRK',],
+                'OET-LV':['MRK',],
+                'SR-GNT':['MRK',],
+                'UHB':['MRK',],
+                'UGNT':['MRK',],
+                'ULT':['FRT','MRK',],
+                'UST':['FRT','TIT',], # MRK 13:13 gives \add error (24Jan2023)
                 }
     preloadedBibles = {}
 
@@ -80,12 +96,22 @@ def createPages() -> bool:
 
     # We'll define all our settings here for now
     indexFolder = Path( '../htmlPages/' )
-    cleanHTMLfolders( indexFolder )
+    cleanHTMLFolders( indexFolder )
 
     numLoadedVersions = preloadVersions( state )
 
     # Ok, let's go do it
-    for versionName, thisBible in state.preloadedBibles.items():
+    if 'OET' in state.BibleVersions: # this is a special case
+        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Creating pages for OET…" )
+        versionFolder = indexFolder.joinpath( f'versions/OET/' )
+        createOETVersionPages( versionFolder, state.preloadedBibles['OET-RV'], state.preloadedBibles['OET-LV'], state )
+        # createInterlinearPages( indexFolder.joinpath(f'{thisBible.abbreviation}_interlinear'), thisBible, state )
+        indexHtml = '<a href="byChapter">By Chapter</a>'
+        filepath = versionFolder.joinpath( 'index.html' )
+        with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
+            indexHtmlFile.write( makeTop(1, 'site', state) + indexHtml + makeBottom(1, 'site', state) )
+        vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    {len(indexHtml):,} characters written to {filepath}" )
+    for versionAbbreviation, thisBible in state.preloadedBibles.items():
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Creating pages for {thisBible.abbreviation}…" )
         versionFolder = indexFolder.joinpath( f'versions/{thisBible.abbreviation}/' )
         createVersionPages( versionFolder, thisBible, state )
@@ -96,41 +122,34 @@ def createPages() -> bool:
             indexHtmlFile.write( makeTop(1, 'site', state) + indexHtml + makeBottom(1, 'site', state) )
         vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    {len(indexHtml):,} characters written to {filepath}" )
     createParallelPages( indexFolder.joinpath('parallel'), state )
-    createIndexPage( indexFolder, state )
+    createIndexPage( 0, indexFolder, state )
 # end of createPages.createPages
 
-def cleanHTMLfolders( folder:Path ) -> bool:
+def cleanHTMLFolders( folder:Path ) -> bool:
     """
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"cleanHTMLfolders( {folder} )")
+    fnPrint( DEBUGGING_THIS_MODULE, f"cleanHTMLFolders( {folder} )")
     try: os.unlink( folder.joinpath( 'index.html') )
     except FileNotFoundError: pass
     try: shutil.rmtree( folder.joinpath( 'versions/' ) )
     except FileNotFoundError: pass
-# end of createPages.cleanHTMLfolders
+    return True
+# end of createPages.cleanHTMLFolders
 
-def createVersionPages( folder:Path, versionName:str, state:State ) -> bool:
+def createVersionPages( folder:Path, thisBible, state:State ) -> bool:
     """
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"createVersionPages( {folder}, {versionName} )")
-    chapterFilenames = createChapterPages( folder.joinpath('byChapter'), versionName, state )
+    fnPrint( DEBUGGING_THIS_MODULE, f"createVersionPages( {folder}, {thisBible.abbreviation} )")
+    _chapterFilenames = createChapterPages( folder.joinpath('byChapter'), thisBible, state )
 # end of createPages.createVersionPages
 
-def createIndexPage( folder:Path, state:State ) -> bool:
+def createOETVersionPages( folder:Path, rvBible, lvBible, state:State ) -> bool:
     """
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"createIndexPage( {folder}, {state.BibleVersions} )")
-    html = makeTop( 0, 'site', state ) \
-            .replace( '__TITLE__', 'Open Bible Data' ) \
-            .replace( '__KEYWORDS__', 'Bible, translation, English, OET' )
-    bodyHtml = """<h1>Open Bible Data</h1>
-"""
-    html += bodyHtml + makeBottom( 0, 'site', state )
-    filepath = folder.joinpath( 'index.html' )
-    with open( filepath, 'wt', encoding='utf-8' ) as htmlFile:
-        htmlFile.write( html )
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  {len(html):,} characters written to {filepath}" )
-# end of createPages.createIndexPage
+    fnPrint( DEBUGGING_THIS_MODULE, f"createOETVersionPages( {folder}, {rvBible.abbreviation}, {lvBible.abbreviation} )")
+    _chapterFilenames = createOETChapterPages( folder.joinpath('byChapter'), rvBible, lvBible, state )
+# end of createPages.createOETVersionPages
+
 
 def briefDemo() -> None:
     """

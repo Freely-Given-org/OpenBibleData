@@ -1,14 +1,21 @@
-/* button#underlineButton { float:right; }
+button#underlineButton { float:right; }
 div.container { display:grid; column-gap:0.6em; grid-template-columns:0.85fr 1.15fr; }
-div.BibleText { } */
+/* div.BibleText { } */
 span.upLink { font-size:1.5em; font-weight:bold; }
 span.c { font-size:1.1em; color:green; }
 span.v { vertical-align:super; font-size:0.5em; color:red; }
 span.cv { vertical-align:super; font-size:0.8em; color:orange; }
+span.addedArticle { color:bisque; }
+span.addedCopula { color:pink; }
+span.addedDirectObject { color:brown; }
+span.addedExtra { color:lightGreen; }
+span.addedOwner { color:darkOrchid; }
 span.added { color:grey; }
 span.RVadded { color:dimGrey; }
 span.ul { color:darkGrey; }
 span.dom { color:Gainsboro; }
+span.schwa { font-size:0.75em; }
+span.nominaSacra { font-weight:bold; }
 span.bk { font-style:italic; }
 span.fn { vertical-align: super; font-size:0.7em; color:green; }
 span.xref { vertical-align: super; font-size:0.7em; color:blue; }
@@ -32,4 +39,4 @@ p.is1 { font-weight:bold; font-size:1.3em; }
 p.is2 { font-weight:bold; }
 p.iot { font-weight:bold; }
 p.io1 { text-indent:2em; margin-top:0.2em; margin-bottom:0.2em; }
-span.ior { font-weight:bold; } /* font-style:italic; */
+span.ior { font-weight:bold; } // font-style:italic;
