@@ -49,41 +49,92 @@ import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 
 from Bibles import preloadVersions
-from html import createChapterPages, createOETChapterPages, createInterlinearPages, createParallelPages, makeTop, makeBottom, createIndexPage
+from createChapterPages import createOETChapterPages, createChapterPages
+from createParallelPages import createParallelPages
+from createInterlinearPages import createInterlinearPages
+from html import makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-01-25' # by RJH
+LAST_MODIFIED_DATE = '2023-01-27' # by RJH
 SHORT_PROGRAM_NAME = "createPages"
 PROGRAM_NAME = "OpenBibleData Create Pages"
-PROGRAM_VERSION = '0.05'
+PROGRAM_VERSION = '0.07'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = True
 
 
 class State:
-    BibleVersions = ['OET','OET-RV','OET-LV', 'SR-GNT', 'ASV','KJV', 'UHB','UGNT','ULT','UST']
+    BibleVersions = ['OET','OET-RV','OET-LV',
+                'ULT','UST',
+                'BSB',
+                'WEB','NET','LSV','T4T',
+                'ASV','YLT','DBY','RV','KJB',
+                'TNT','Wycliffe',
+                'UHB',
+                'SR-GNT','UGNT','SBL-GNT']
+    BibleNames = {
+                'OET': 'Open English Translation (2024)',
+                'OET-RV': 'Open English Translation—Readers’ Version (2025)',
+                'OET-LV': 'Open English Translation—Literal Version (2024)',
+                'ULT': 'unfoldingWord Literal Text (2023)',
+                'UST': 'unfoldingWord Simplified Text (2023)',
+                'WEB': 'World English Bible',
+                'NET': 'New English Translation',
+                'T4T': 'Translation for Translators',
+                'ASV': 'American Standard Version (1901)',
+                'YLT': 'Youngs Literal Translation (1898)',
+                'DBY': 'Darby Translation (1890)',
+                'RV': 'Revised Version (1885)',
+                'KJB': 'King James Bible (1769)',
+                'TNT': 'Tyndale New Testament (1526)',
+                'Wycliffe': 'Wycliffe Bible (1382)',
+                'UHB': 'unfoldingWord Hebrew Bible (2022)',
+                'SR-GNT': 'Statistic Restoration Greek New Testament (2022)',
+                'UGNT': 'unfoldingWord Greek New Testament (2022)',
+                'SBL-GNT': 'Society for Biblical Literature Greek New Testament (2020???)',
+                }
     BibleLocations = {
-                'OET-RV':['../../OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/',],
-                'OET-LV':['../../OpenEnglishTranslation--OET/translatedTexts/LiteralVersion/',],
-                # 'SR-GNT':['../../Forked/CNTR-SR/SR usfm/',],
-                # 'ASV':['../copiedBibles/English/eBible.org/ASV/',],
-                # 'KJV':['../copiedBibles/English/eBible.org/KJV/',],
-                # 'UHB':['../copiedBibles/Original/unfoldingWord.org/UHB/',],
-                # 'UGNT':['../copiedBibles/Original/unfoldingWord.org/UGNT/',],
-                # 'ULT':['../copiedBibles/English/unfoldingWord.org/ULT/',],
-                # 'UST':['../copiedBibles/English/unfoldingWord.org/UST/',],
+                'OET-RV': ['../../OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/',],
+                'OET-LV': ['../../OpenEnglishTranslation--OET/intermediateTexts/auto_edited_VLT_USFM/',],
+                'ULT': ['../copiedBibles/English/unfoldingWord.org/ULT/',],
+                'UST': ['../copiedBibles/English/unfoldingWord.org/UST/',],
+                # 'BSB': ['../copiedBibles/English/OpenBible.com/BSB/',],
+                'WEB': ['../copiedBibles/English/eBible.org/WEB/',],
+                'NET': ['../copiedBibles/English/eBible.org/NET/',],
+                'LSV': ['../copiedBibles/English/eBible.org/LSV/',],
+                'T4T': ['../copiedBibles/English/eBible.org/T4T/',],
+                'ASV': ['../copiedBibles/English/eBible.org/ASV/',],
+                'YLT': ['../copiedBibles/English/eBible.org/YLT/',],
+                'DBY': ['../copiedBibles/English/eBible.org/DBY/',],
+                'RV': ['../copiedBibles/English/eBible.org/RV/',],
+                'KJB': ['../copiedBibles/English/eBible.org/KJB/',],
+                'UHB': ['../copiedBibles/Original/unfoldingWord.org/UHB/',],
+                'SR-GNT': ['../../Forked/CNTR-SR/SR usfm/',],
+                'UGNT': ['../copiedBibles/Original/unfoldingWord.org/UGNT/',],
                 }
     booksToLoad = {
                 'OET':['MRK',],
                 'OET-RV':['MRK',],
                 'OET-LV':['MRK',],
-                'SR-GNT':['MRK',],
-                'UHB':['MRK',],
-                'UGNT':['MRK',],
                 'ULT':['FRT','MRK',],
                 'UST':['FRT','TIT',], # MRK 13:13 gives \add error (24Jan2023)
+                'BSB':['MRK',],
+                'WEB':['MRK',],
+                'NET':['MRK',],
+                'LSV':['MRK',],
+                'T4T':['MRK',],
+                'ASV':['MRK',],
+                'YLT':['MRK',],
+                'DBY':['MRK',],
+                'RV':['MRK',],
+                'KJB':['MRK',],
+                'UHB':['MRK',],
+                'SR-GNT':['ALL',],
+                'UGNT':['MRK',],
                 }
+    assert len(BibleVersions)-1 >= len(BibleLocations) # OET is a pseudo-version
+    assert len(booksToLoad)-1 >= len(BibleLocations) # OET is a pseudo-version
     preloadedBibles = {}
 
 state = State()
@@ -98,11 +149,13 @@ def createPages() -> bool:
     indexFolder = Path( '../htmlPages/' )
     cleanHTMLFolders( indexFolder )
 
+    # Preload our various Bibles
     numLoadedVersions = preloadVersions( state )
+    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Preloaded {len(state.preloadedBibles)} Bible versions: {state.preloadedBibles.keys()}" )
 
-    # Ok, let's go do it
+    # Ok, let's go create some static pages
     if 'OET' in state.BibleVersions: # this is a special case
-        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Creating pages for OET…" )
+        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nCreating pages for OET…" )
         versionFolder = indexFolder.joinpath( f'versions/OET/' )
         createOETVersionPages( versionFolder, state.preloadedBibles['OET-RV'], state.preloadedBibles['OET-LV'], state )
         # createInterlinearPages( indexFolder.joinpath(f'{thisBible.abbreviation}_interlinear'), thisBible, state )
@@ -115,13 +168,31 @@ def createPages() -> bool:
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Creating pages for {thisBible.abbreviation}…" )
         versionFolder = indexFolder.joinpath( f'versions/{thisBible.abbreviation}/' )
         createVersionPages( versionFolder, thisBible, state )
-        createInterlinearPages( indexFolder.joinpath(f'{thisBible.abbreviation}_interlinear'), thisBible, state )
+        createInterlinearPages( indexFolder.joinpath('interlinear'), thisBible, state )
         indexHtml = '<a href="byChapter">By Chapter</a>'
         filepath = versionFolder.joinpath( 'index.html' )
         with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
             indexHtmlFile.write( makeTop(1, 'site', state) + indexHtml + makeBottom(1, 'site', state) )
         vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    {len(indexHtml):,} characters written to {filepath}" )
+
+    # Find our inclusive list of books
+    allBBBs = set()
+    for BBB in BibleOrgSysGlobals.loadedBibleBooksCodes:
+        for versionAbbreviation in state.BibleVersions:
+            if versionAbbreviation == 'OET': continue # OET is a pseudo version (OET-RV plus OET-LV)
+            for entry in state.booksToLoad[versionAbbreviation]:
+                if entry == BBB or entry == 'ALL':
+                    if BBB in state.preloadedBibles[versionAbbreviation]:
+                        allBBBs.add( BBB )
+    # Now put them in the proper order
+    state.allBBBs = []
+    for BBB in BibleOrgSysGlobals.loadedBibleBooksCodes:
+        if BBB in allBBBs:
+            state.allBBBs.append( BBB )
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Discovered {len(state.allBBBs)} books across {len(state.preloadedBibles)} versions: {state.allBBBs}" )
+
     createParallelPages( indexFolder.joinpath('parallel'), state )
+
     createIndexPage( 0, indexFolder, state )
 # end of createPages.createPages
 
@@ -136,19 +207,38 @@ def cleanHTMLFolders( folder:Path ) -> bool:
     return True
 # end of createPages.cleanHTMLFolders
 
-def createVersionPages( folder:Path, thisBible, state:State ) -> bool:
-    """
-    """
-    fnPrint( DEBUGGING_THIS_MODULE, f"createVersionPages( {folder}, {thisBible.abbreviation} )")
-    _chapterFilenames = createChapterPages( folder.joinpath('byChapter'), thisBible, state )
-# end of createPages.createVersionPages
-
 def createOETVersionPages( folder:Path, rvBible, lvBible, state:State ) -> bool:
     """
     """
     fnPrint( DEBUGGING_THIS_MODULE, f"createOETVersionPages( {folder}, {rvBible.abbreviation}, {lvBible.abbreviation} )")
     _chapterFilenames = createOETChapterPages( folder.joinpath('byChapter'), rvBible, lvBible, state )
+    return True
 # end of createPages.createOETVersionPages
+
+def createVersionPages( folder:Path, thisBible, state:State ) -> bool:
+    """
+    """
+    fnPrint( DEBUGGING_THIS_MODULE, f"createVersionPages( {folder}, {thisBible.abbreviation} )")
+    _chapterFilenames = createChapterPages( folder.joinpath('byChapter'), thisBible, state )
+    return True
+# end of createPages.createVersionPages
+
+def createIndexPage( level, folder:Path, state ) -> bool:
+    """
+    """
+    fnPrint( DEBUGGING_THIS_MODULE, f"createIndexPage( {level}, {folder}, {state.BibleVersions} )" )
+    html = makeTop( level, 'topIndex', state ) \
+            .replace( '__TITLE__', 'Open Bible Data' ) \
+            .replace( '__KEYWORDS__', 'Bible, translation, English, OET' )
+    bodyHtml = """<h1>Open Bible Data</h1>
+"""
+    html += bodyHtml + makeBottom( level, 'topIndex', state )
+    filepath = folder.joinpath( 'index.html' )
+    checkHtml( 'TopIndex', html )
+    with open( filepath, 'wt', encoding='utf-8' ) as htmlFile:
+        htmlFile.write( html )
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  {len(html):,} characters written to {filepath}" )
+# end of html.createIndexPage
 
 
 def briefDemo() -> None:

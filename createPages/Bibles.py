@@ -46,13 +46,14 @@ sys.path.append( '../../BibleOrgSys/' )
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 import BibleOrgSys.Formats.USFMBible as USFMBible
-from BibleOrgSys import UnknownBible, Bible
+from BibleOrgSys.Bible import Bible
+from BibleOrgSys.UnknownBible import UnknownBible
 
 
-LAST_MODIFIED_DATE = '2023-01-25' # by RJH
+LAST_MODIFIED_DATE = '2023-01-27' # by RJH
 SHORT_PROGRAM_NAME = "Bibles"
 PROGRAM_NAME = "OpenBibleData Bibles handler"
-PROGRAM_VERSION = '0.05'
+PROGRAM_VERSION = '0.07'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = True
@@ -72,8 +73,8 @@ def preloadVersions( state ) -> int:
             assert 'OET-RV' in state.BibleVersions and 'OET-LV' in state.BibleVersions, state.BibleVersions
             continue
         if versionAbbreviation in state.BibleLocations:
-            thisBible = preloadVersion( versionAbbreviation, state.BibleLocations[versionAbbreviation][0] )
-            if thisBible:
+            thisBible = preloadVersion( versionAbbreviation, state.BibleLocations[versionAbbreviation][0], state )
+            if isinstance(thisBible, Bible):
                 state.preloadedBibles[versionAbbreviation] = thisBible
         else:
             logging.critical( f"createPages preloadVersions() has no folder location to find '{versionAbbreviation}'")
@@ -81,7 +82,7 @@ def preloadVersions( state ) -> int:
     return len(state.preloadedBibles)
 # end of Bibles.preloadVersions
 
-def preloadVersion( versionAbbreviation:str, folderLocation:str ) -> Bible:
+def preloadVersion( versionAbbreviation:str, folderLocation:str, state ) -> Bible:
     """
     Loads the requested Bible into memory
         and return the Bible object.
@@ -89,48 +90,23 @@ def preloadVersion( versionAbbreviation:str, folderLocation:str ) -> Bible:
     fnPrint( DEBUGGING_THIS_MODULE, f"preloadVersion( {versionAbbreviation} )")
     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Preloading {versionAbbreviation}…" )
 
-    thisBible = USFMBible.USFMBible( folderLocation, givenAbbreviation=versionAbbreviation, encoding='utf-8' )
-    if versionAbbreviation in ('ULT','UST'):
-        thisBible.uWencoded = True # TODO: Shouldn't be required ???
-    # thisBible.preload()
-    thisBible.loadBooks()
-    # try: thisBible.loadBooks()
-    # except AssertionError: pass # might still be able to load individual books later?
-    # thisBible = UnknownBible.UnknownBible( folderLocation )
-    # if 'abbreviation' not in dir(thisBible):
-    #     thisBible.abbreviation = versionAbbreviation
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Loaded {thisBible}" )
+    if versionAbbreviation in ('BSB',): # txt file
+        unknownBible = UnknownBible( folderLocation ) # Only creates the class
+        print( f"A {unknownBible}")
+        result = unknownBible.search( autoLoad=True )
+        print( f"B {unknownBible} {result=}")
+        if result == 'None found': halt
+    else: # USFM
+        thisBible = USFMBible.USFMBible( folderLocation, givenAbbreviation=versionAbbreviation, encoding='utf-8' )
+        if versionAbbreviation in ('ULT','UST','UHB','UGNT','SR-GNT'):
+            thisBible.uWencoded = True # TODO: Shouldn't be required ???
+        if 'ALL' in state.booksToLoad[versionAbbreviation]:
+            thisBible.loadBooks()
+        else: # only load the books as we need them later
+            thisBible.preload()
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"preloadVersion() loaded {thisBible}" )
     return thisBible
 # end of Bibles.preloadVersion
-
-def fetchChapter( thisBible, BBB:str, c:str ) -> str:
-    """
-    """
-    fnPrint( DEBUGGING_THIS_MODULE, f"fetchChapter( {thisBible.abbreviation}, {BBB}, {c} )")
-
-    verseEntryList, contextList = thisBible.getContextVerseData( (BBB, str(c)) )
-    # else: # old code
-    #     verseEntryList, contextList = [], []
-    #     numVerses = thisBible.getNumVerses( BBB, c )
-    #     for v in range(0, numVerses+1 ):
-    #         refTuple = (BBB, c, v)
-    #         dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"fetchChapter() finding {refTuple}")
-    #         try:
-    #             if not verseEntryList and not contextList:
-    #                 verseEntryList, contextList = thisBible.getContextVerseData( refTuple )
-    #                 if contextList not in (['chapters'], ['chapters', 'c'],
-    #                         ['chapters', 's1', 'c'], ['chapters', 'c', 's1'], # Check why we can have both
-    #                         ['chapters', 's1', 'p', 'c']): # This is when a section crosses a chapter boundary
-    #                     logging.critical( f"fetchChapter unexpected context: {refTuple} {contextList=}")
-    #             else:
-    #                 verseEntryList.extend( thisBible.getVerseDataList( refTuple ) )
-    #         except KeyError:
-    #             logging.critical( f"No {refTuple} for {thisBible.abbreviation} (likely versification error")
-    #         # print( 'gVT', thisBible.getVerseText( refTuple ) )
-
-    # print( len(verseEntryList) )
-    return verseEntryList, contextList
-# end of Bibles.fetchChapter
 
 # The following functions are in BibleOrgSys.InternalBible
     # getNumChapters( self, BBB:str ) -> int:
@@ -158,7 +134,7 @@ def briefDemo() -> None:
     BibleOrgSysGlobals.introduceProgram( __name__, PROGRAM_NAME_VERSION, LAST_MODIFIED_DATE )
 
     # Demo the Bibles object
-    preloadVersions( ['OET-RV','OET-LV', 'ULT','UST'] )
+    preloadVersions( ['OET','OET-RV','OET-LV', 'ULT','UST'] )
 # end of Bibles.briefDemo
 
 def fullDemo() -> None:
@@ -168,7 +144,7 @@ def fullDemo() -> None:
     BibleOrgSysGlobals.introduceProgram( __name__, PROGRAM_NAME_VERSION, LAST_MODIFIED_DATE )
 
     # Demo the Bibles object
-    preloadVersions( ['OET-RV','OET-LV', 'ULT','UST'] )
+    preloadVersions( ['OET','OET-RV','OET-LV', 'ULT','UST'] )
 # end of Bibles.fullDemo
 
 if __name__ == '__main__':
