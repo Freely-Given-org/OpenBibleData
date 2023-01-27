@@ -47,6 +47,7 @@ import logging
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 
+from html import checkHtml
 
 
 LAST_MODIFIED_DATE = '2023-01-27' # by RJH
@@ -76,11 +77,11 @@ def convertUSFMMarkerListToHtml( versionAbbreviation:str, refTuple:tuple, segmen
         if marker == 's1':
             rest = '--unknown--'
             if not basicOnly:
-                html = f'{html}<div class="{marker}"><p class="{marker}">{rest}</p>\n'
+                html = f'{html}<div class="{marker}"><p class="s1">{rest}</p>\n'
             inSection = marker
         elif marker == 'p':
             if not basicOnly:
-                html = f'{html}<p class="{marker}">'
+                html = f'{html}<p class="p">'
                 inParagraph = marker
         elif segmentType == 'verse':
             if marker not in ('chapters', 'c'):
@@ -128,9 +129,11 @@ def convertUSFMMarkerListToHtml( versionAbbreviation:str, refTuple:tuple, segmen
         elif marker in ('s1','s2','s3','s4'):
             assert not inRightDiv
             if marker == 's1':
-                if not basicOnly and inSection == 's1': # Shouldn't happen
-                    logging.critical( f"Why wasn't previous s1 section closed??? {versionAbbreviation} {refTuple} {C}:{V} {inSection=} {inParagraph=} {marker}={rest}" )
-                    html = f'{html}</div><!--{marker}-->\n'
+                if inSection == 's1': # Shouldn't happen
+                    logger = logging.warning if segmentType=='verse' else logging.critical
+                    logger( f"Why wasn't previous s1 section closed??? {versionAbbreviation} {refTuple} {C}:{V} {inSection=} {inParagraph=} {marker}={rest}" )
+                    if not basicOnly:
+                        html = f'{html}</div><!--{marker}-->\n'
                     inSection = None
                 assert not inSection and not inParagraph, f"{versionAbbreviation} {refTuple} {C}:{V} {inSection=} {inParagraph=} {marker}={rest}"
             else: logging.critical( f"Section heading levels might not work yet: {versionAbbreviation} {refTuple} {C}:{V} {inSection=} {inParagraph=} {marker}={rest}" )
@@ -174,6 +177,10 @@ def convertUSFMMarkerListToHtml( versionAbbreviation:str, refTuple:tuple, segmen
                 inRightDiv = False
             if refTuple not in (('MRK',9),('JHN',8),):
                 assert not inParagraph, f"{versionAbbreviation} {refTuple} {C}:{V} {inSection=} {inParagraph=} {marker}={rest}"
+            if inParagraph:
+                if not basicOnly:
+                    html = f'{html}</p>\n'
+                inParagraph = None
             assert not rest, f"{marker}={rest}"
             if marker=='m' and inList=='ul': # refTuple==('EXO',10,11)
                 html = f'{html}</ul>\n'
@@ -184,7 +191,7 @@ def convertUSFMMarkerListToHtml( versionAbbreviation:str, refTuple:tuple, segmen
                 inParagraph = marker
         elif marker in ('¬p', '¬q1','¬q2','¬q3','¬q4', '¬m','¬mi', '¬nb', '¬pi1','¬pi2'):
             assert not rest
-            if not basicOnly and refTuple not in (('JHN',8),):
+            if not basicOnly and refTuple not in (('MRK',9),('JHN',8),):
                 assert inParagraph == marker[1:], f"{versionAbbreviation} {refTuple} {C}:{V} {inSection=} {inParagraph=} {marker=}"
             if not basicOnly:
                 html = f'{html}</p>\n'
@@ -217,26 +224,30 @@ def convertUSFMMarkerListToHtml( versionAbbreviation:str, refTuple:tuple, segmen
         elif segmentType=='chapter' and marker in ('¬c','¬chapters'): # We can ignore this
             if inSection and marker == '¬c':
                 logging.critical( f"{versionAbbreviation} {refTuple} Finished chapter inside section" )
-                html = f'{html}</div><!--s1-->\n'
+                if not basicOnly:
+                    html = f'{html}</div><!--s1-->\n'
                 inSection = None
             elif inSection and marker == '¬chapters':
                 logging.critical( f"{versionAbbreviation} {refTuple} Finished book inside section" )
-                html = f'{html}</div><!--s1-->\n'
+                if not basicOnly:
+                    html = f'{html}</div><!--s1-->\n'
                 inSection = None
             elif inParagraph and marker == '¬c':
                 logging.critical( f"{versionAbbreviation} {refTuple} Finished paragraph inside section" )
-                html = f'{html}</p>\n'
+                if not basicOnly:
+                    html = f'{html}</p>\n'
                 inParagraph = None
             assert not inSection and not inParagraph, f"{versionAbbreviation} {refTuple} {C}:{V} {inSection=} {inParagraph=} {marker}={rest}"
         elif marker not in ('v=', 'c#', '¬c', '¬chapters'): # We can ignore all of these
             unexpected_marker
-        if versionAbbreviation == 'T4T': print( f"{html=}" )
+        # if versionAbbreviation == 'SR-GNT': print( f"{html=}" )
         if '\\' in html:
             logging.critical( f"Left-over backslash in {versionAbbreviation} {refTuple} {C}:{V} '{html}'" )
             if refTuple not in (('HEB',9,12),): leftover_backslash
-    if refTuple not in (('JHN',7),):
+    if not basicOnly or refTuple not in (('JHN',7),):
         assert (not inSection or inSection=='s1') and not inParagraph and not inListEntry, f"convertUSFMMarkerListToHtml final {refTuple} {inSection=} {inParagraph=} {inList=} {inListEntry=} {marker=}"
     if inList: logging.critical( f"convertUSFMMarkerListToHtml finished with {inList} list for {refTuple}" )
+    checkHtml( f'convertUSFMMarkerListToHtml({versionAbbreviation} {refTuple} {segmentType} {basicOnly=})', html, segmentOnly=True )
     return html
 # end of usfm.convertUSFMMarkerListToHtml
 
@@ -257,11 +268,15 @@ def formatUSFMText( versionAbbreviation:str, refTuple:tuple, segmentType:str, us
     assert openCount == closeCount, f"'bd' open={openCount} close={closeCount} from '{usfmField}'"
     openCount, closeCount = usfmField.count('\\bdit '), usfmField.count('\\bdit*')
     assert openCount == closeCount, f"'bdit' open={openCount} close={closeCount} from '{usfmField}'"
+    if versionAbbreviation in ('NET',): # \\w fields seem to only now contain the English word
+        usfmField = usfmField.replace( '\\w ', '' ).replace( '\\w*', '' )
     html = usfmField.replace( '\\+', '\\') \
             .replace( '\\bdit ', '<b><i>' ).replace( '\\bdit*', '</i></b>' ) \
             .replace( '\\bd ', '<b>' ).replace( '\\bd*', '</b>' ) \
             .replace( '\\it ', '<it>' ).replace( '\\it*', '</it>' ) \
             .replace( '\\em ', '<em>' ).replace( '\\em*', '</em>' ) \
+            .replace( '\\ca ', '<span class="ca">' ).replace( '\\ca*', '</span>' ) \
+            .replace( '\\va ', '<span class="va">' ).replace( '\\va*', '</span>' ) \
             .replace( '\\sup ', '<span class="sup">' ).replace( '\\sup*', '</span>' ) \
             .replace( '\\sc ', '<span class="sc">' ).replace( '\\sc*', '</span>' ) \
             .replace( '\\no ', '<span class="no">' ).replace( '\\no*', '</span>' ) \
@@ -276,6 +291,7 @@ def formatUSFMText( versionAbbreviation:str, refTuple:tuple, segmentType:str, us
             .replace( '\\add ', '<span class="added">' ).replace( '\\add*', '</span>' )
     if refTuple not in (('HEB',9,12),):
         assert '\\' not in html, f"{versionAbbreviation=} {refTuple=} {segmentType=} '{usfmField=}' {basicOnly=} '{html}'"
+    checkHtml( f'formatUSFMText({versionAbbreviation} {refTuple} {segmentType} {basicOnly=})', html, segmentOnly=True )
     return html
 # end of usfm.formatUSFMText
 

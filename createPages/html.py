@@ -108,7 +108,7 @@ def makeTop( level:int, pageType:str, state ) -> str:
   <meta name="keywords" content="__KEYWORDS__">
   <link rel="stylesheet" type="text/css" href="{'../'*level}{cssFilename}">
 </head>
-<body>
+<body><h3>Prototype quality only—still in development</h3>
 """
     return top + makeHeader( level, pageType, state ) + '\n'
 # end of html.makeTop
@@ -171,17 +171,17 @@ def checkHtml( where:str, html:str, segmentOnly:bool=False ) -> None:
         assert html.count( '<body>' ) == 1
         assert html.count( '</body>' ) == 1
 
-    try: assert html.count( '<div' ) == html.count( '</div>' ), f"{where} {html[html.index('<div'):]}"
-    except ValueError: assert html.count( '<div' ) == html.count( '</div>' ), f"{where} {html[:html.index('</div>')+5]}"
-    try: assert html.count( '<p' ) == html.count( '</p>' ), f"{where} {html[html.index('<p'):]}"
-    except ValueError: assert html.count( '<p' ) == html.count( '</p>' ), f"{where} {html[:html.index('</p>')+4]}"
+    try: assert html.count( '<div' ) == html.count( '</div>' ), f"{where} {html.count('<div')}!={html.count('</div>')} {html[html.index('<div'):]}"
+    except ValueError: assert html.count( '<div' ) == html.count( '</div>' ), f"{where} {html.count('<div')}!={html.count('</div>')} {html[:html.index('</div>')+5]}"
+    try: assert html.count('<p ')+html.count('<p>') == html.count( '</p>' ), f"{where} {html.count('<p ')}+{html.count('<p>')}!={html.count('</p>')} {html}" # {html[html.index('<p'):]}"
+    except ValueError: assert html.count('<p ')+html.count('<p>')==html.count('</p>'), f"{where} {html.count('<p ')}+{html.count('<p>')}!={html.count('</p>')} {html[:html.index('</p>')+4]}"
     # if where not in ('UST MRK 13:13','Parallel MRK 13:13',
     #                  'UST ROM 8:27','Parallel ROM 8:27',
     #                  'UST ROM 9:1','Parallel ROM 9:1',
     #                  'UST ROM 11:19','Parallel ROM 11:19',
     #                  'UST ROM 11:31','Parallel ROM 11:31'):
-    if 'UST ' not in where and 'ULT ' not in where and 'Parallel ' not in where:
-        assert html.count( '<span' ) == html.count( '</span>' ), f"{where} {html[html.index('<span'):]}"
+    if 'UST' not in where and 'ULT' not in where and 'Parallel ' not in where:
+        assert html.count('<span')==html.count('</span>'), f"{where} {html.count('<span')}!={html.count('</span>')} {html[html.index('<span'):]}"
 
     assert html.count( '<h1' ) == html.count( '</h1>' ), html[html.index('<h1'):]
     assert html.count( '<h2' ) == html.count( '</h2>' ), html[html.index('<h2'):]

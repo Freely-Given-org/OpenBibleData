@@ -51,10 +51,10 @@ from usfm import convertUSFMMarkerListToHtml
 from html import doOET_LV_HTMLcustomisations, makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-01-26' # by RJH
+LAST_MODIFIED_DATE = '2023-01-27' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData createChapterPages functions"
-PROGRAM_VERSION = '0.06'
+PROGRAM_VERSION = '0.07'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = True
@@ -77,6 +77,7 @@ def createOETChapterPages( folder:Path, rvBible, lvBible, state ) -> List[str]:
     BBBs, filenames = [], []
     for BBB in state.booksToLoad[rvBible.abbreviation]:
         rvBible.loadBookIfNecessary( BBB )
+        lvBible.loadBookIfNecessary( BBB )
         # if not BibleOrgSysGlobals.loadedBibleBooksCodes.isNewTestament_NR( BBB ): continue # Skip all except NT for now
         if lvBible.abbreviation=='OET-LV' \
         and BBB in ('FRT','INT','NUM','SA1','SA2','CH1','EZR','NEH','JOB','SNG','JER','DAN'): continue # Too many problems for now
@@ -201,7 +202,8 @@ def createChapterPages( folder:Path, thisBible, state ) -> List[str]:
     except FileExistsError: pass # they were already there
 
     BBBs, filenames = [], []
-    for BBB in thisBible.books:
+    for BBB in state.booksToLoad[thisBible.abbreviation]:
+        thisBible.loadBookIfNecessary( BBB )
         # if not BibleOrgSysGlobals.loadedBibleBooksCodes.isNewTestament_NR( BBB ): continue # Skip all except NT for now
         if thisBible.abbreviation=='OET-LV' \
         and BBB in ('FRT','INT','NUM','SA1','SA2','CH1','EZR','NEH','JOB','SNG','JER','DAN'): continue # Too many problems for now

@@ -90,7 +90,7 @@ def preloadVersion( versionAbbreviation:str, folderLocation:str, state ) -> Bibl
     fnPrint( DEBUGGING_THIS_MODULE, f"preloadVersion( {versionAbbreviation} )")
     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Preloading {versionAbbreviation}…" )
 
-    if versionAbbreviation in ('BSB',): # txt file
+    if versionAbbreviation in ('BSB', 'SBL-GNT'): # txt file(s)
         unknownBible = UnknownBible( folderLocation ) # Only creates the class
         print( f"A {unknownBible}")
         result = unknownBible.search( autoLoad=True )

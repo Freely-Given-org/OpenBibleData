@@ -61,7 +61,7 @@ PROGRAM_NAME = "OpenBibleData Create Pages"
 PROGRAM_VERSION = '0.07'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
-DEBUGGING_THIS_MODULE = True
+DEBUGGING_THIS_MODULE = False
 
 
 class State:
@@ -112,13 +112,14 @@ class State:
                 'UHB': ['../copiedBibles/Original/unfoldingWord.org/UHB/',],
                 'SR-GNT': ['../../Forked/CNTR-SR/SR usfm/',],
                 'UGNT': ['../copiedBibles/Original/unfoldingWord.org/UGNT/',],
+                # 'SBL-GNT': ['../../Forked/SBLGNT/data/sblgnt/text/',],
                 }
     booksToLoad = {
                 'OET':['MRK',],
                 'OET-RV':['MRK',],
                 'OET-LV':['MRK',],
-                'ULT':['FRT','MRK',],
-                'UST':['FRT','TIT',], # MRK 13:13 gives \add error (24Jan2023)
+                'ULT':['FRT','MRK','TIT'],
+                'UST':['MRK','TIT',], # MRK 13:13 gives \add error (24Jan2023)
                 'BSB':['MRK',],
                 'WEB':['MRK',],
                 'NET':['MRK',],
@@ -129,9 +130,10 @@ class State:
                 'DBY':['MRK',],
                 'RV':['MRK',],
                 'KJB':['MRK',],
-                'UHB':['MRK',],
-                'SR-GNT':['ALL',],
+                'UHB':['JNA',],
+                'SR-GNT':['MRK',],
                 'UGNT':['MRK',],
+                'SBL-GNT':['MRK',],
                 }
     assert len(BibleVersions)-1 >= len(BibleLocations) # OET is a pseudo-version
     assert len(booksToLoad)-1 >= len(BibleLocations) # OET is a pseudo-version
@@ -203,6 +205,10 @@ def cleanHTMLFolders( folder:Path ) -> bool:
     try: os.unlink( folder.joinpath( 'index.html') )
     except FileNotFoundError: pass
     try: shutil.rmtree( folder.joinpath( 'versions/' ) )
+    except FileNotFoundError: pass
+    try: shutil.rmtree( folder.joinpath( 'parallel/' ) )
+    except FileNotFoundError: pass
+    try: shutil.rmtree( folder.joinpath( 'interlinear/' ) )
     except FileNotFoundError: pass
     return True
 # end of createPages.cleanHTMLFolders
