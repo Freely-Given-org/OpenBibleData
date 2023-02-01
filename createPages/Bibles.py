@@ -46,17 +46,19 @@ sys.path.append( '../../BibleOrgSys/' )
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 import BibleOrgSys.Formats.USFMBible as USFMBible
+import BibleOrgSys.Formats.CSVBible as CSVBible
+import BibleOrgSys.Formats.VPLBible as VPLBible
 from BibleOrgSys.Bible import Bible
 from BibleOrgSys.UnknownBible import UnknownBible
 
 
-LAST_MODIFIED_DATE = '2023-01-27' # by RJH
+LAST_MODIFIED_DATE = '2023-02-01' # by RJH
 SHORT_PROGRAM_NAME = "Bibles"
 PROGRAM_NAME = "OpenBibleData Bibles handler"
-PROGRAM_VERSION = '0.07'
+PROGRAM_VERSION = '0.08'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
-DEBUGGING_THIS_MODULE = True
+DEBUGGING_THIS_MODULE = False
 
 
 def preloadVersions( state ) -> int:
@@ -88,21 +90,34 @@ def preloadVersion( versionAbbreviation:str, folderLocation:str, state ) -> Bibl
         and return the Bible object.
     """
     fnPrint( DEBUGGING_THIS_MODULE, f"preloadVersion( {versionAbbreviation} )")
-    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Preloading {versionAbbreviation}…" )
 
-    if versionAbbreviation in ('BSB', 'SBL-GNT'): # txt file(s)
-        unknownBible = UnknownBible( folderLocation ) # Only creates the class
-        print( f"A {unknownBible}")
-        result = unknownBible.search( autoLoad=True )
-        print( f"B {unknownBible} {result=}")
-        if result == 'None found': halt
+    if versionAbbreviation in ('BSB',): # Single TSV .txt file
+        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Loading {versionAbbreviation} CSV/TSV Bible…" )
+        thisBible = CSVBible.CSVBible( folderLocation, givenName=state.BibleNames[versionAbbreviation],
+                                            givenAbbreviation=versionAbbreviation, encoding='iso-8859-1' )
+        thisBible.load()
+        print( f"{versionAbbreviation} loaded ({len(thisBible.books.keys())}) {thisBible.books.keys()}" )
+    elif versionAbbreviation in ('SBL-GNT',): # Multiple TSV .txt file(s)
+        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Loading {versionAbbreviation} CSV/TSV Bible…" )
+        thisBible = CSVBible.CSVBible( folderLocation, givenName=state.BibleNames[versionAbbreviation],
+                                            givenAbbreviation=versionAbbreviation, encoding='utf-8' )
+        thisBible.loadBooks() # So we can iterate through them all later
+        print( f"{versionAbbreviation} loaded ({len(thisBible.books.keys())}) {thisBible.books.keys()}" )
+    # elif versionAbbreviation in ('SBL-GNT',): # .txt file(s)
+    #     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Loading {versionAbbreviation} VPL Bible…" )
+    #     thisBible = VPLBible.VPLBible( folderLocation, givenName=state.BibleNames[versionAbbreviation],
+    #                                         givenAbbreviation=versionAbbreviation, encoding='utf-8' )
+    #     thisBible.loadBooks() # So we can iterate through them all later
+    #     print( f"{versionAbbreviation} loaded ({len(thisBible.books.keys())}) {thisBible.books.keys()}" )
     else: # USFM
-        thisBible = USFMBible.USFMBible( folderLocation, givenAbbreviation=versionAbbreviation, encoding='utf-8' )
+        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Preloading {versionAbbreviation} USFM Bible…" )
+        thisBible = USFMBible.USFMBible( folderLocation, givenAbbreviation=versionAbbreviation,
+                                            encoding='utf-8' )
         if versionAbbreviation in ('ULT','UST','UHB','UGNT','SR-GNT'):
             thisBible.uWencoded = True # TODO: Shouldn't be required ???
         if 'ALL' in state.booksToLoad[versionAbbreviation]:
-            thisBible.loadBooks()
-        else: # only load the books as we need them later
+            thisBible.loadBooks() # So we can iterate through them all later
+        else: # only load the specific books as we need them later
             thisBible.preload()
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"preloadVersion() loaded {thisBible}" )
     return thisBible

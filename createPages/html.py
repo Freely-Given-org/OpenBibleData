@@ -50,13 +50,13 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 # from Bibles import fetchChapter
 
 
-LAST_MODIFIED_DATE = '2023-01-27' # by RJH
+LAST_MODIFIED_DATE = '2023-02-01' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
-PROGRAM_VERSION = '0.07'
+PROGRAM_VERSION = '0.10'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
-DEBUGGING_THIS_MODULE = True
+DEBUGGING_THIS_MODULE = False
 
 BACKSLASH = '\\'
 NEWLINE = '\n'
@@ -68,12 +68,13 @@ def doOET_LV_HTMLcustomisations( html:str ) -> str:
     """
     """
     return html \
-            .replace( '.', '.<br>' ).replace( '?', '?<br>' ).replace( '!', '!<br>' ).replace( ':', ':<br>' ) \
-            .replace( '<span class="added">+', '<span class="addedArticle">' ) \
-            .replace( '<span class="added">=', '<span class="addedCopula">' ) \
-            .replace( '<span class="added">~', '<span class="addedDirectObject">' ) \
-            .replace( '<span class="added">>', '<span class="addedExtra">' ) \
-            .replace( '<span class="added">^', '<span class="addedOwner">' ) \
+            .replace( '.', '.<br>\n' ).replace( '?', '?<br>\n' ) \
+            .replace( '!', '!<br>\n' ).replace( ':', ':<br>\n' ) \
+            .replace( '<span class="add">+', '<span class="addArticle">' ) \
+            .replace( '<span class="add">=', '<span class="addCopula">' ) \
+            .replace( '<span class="add">~', '<span class="addDirectObject">' ) \
+            .replace( '<span class="add">>', '<span class="addExtra">' ) \
+            .replace( '<span class="add">^', '<span class="addOwner">' ) \
             .replace( '_', '<span class="ul">_</span>')
 # end of html.doOET_LV_HTMLcustomisations
 
@@ -86,6 +87,8 @@ def makeTop( level:int, pageType:str, state ) -> str:
         cssFilename = 'BibleChapter.css'
     elif pageType == 'OETChapters':
         cssFilename = 'OETChapter.css'
+    elif pageType == 'parallel':
+        cssFilename = 'ParallelVerses.css'
     else: cssFilename = 'BibleSite.css'
 
     top = f"""<!DOCTYPE html>
@@ -117,10 +120,9 @@ def makeHeader( level:int, pageType:str, state ) -> str:
     """
     """
     fnPrint( DEBUGGING_THIS_MODULE, f"makeHeader( {level}, {pageType} )" )
-    html = ''
     versionList = []
     for versionAbbreviation in state.BibleVersions:
-        versionList.append( f'''<a href="{'../'*level}versions/{BibleOrgSysGlobals.makeSafeString(versionAbbreviation)}">{versionAbbreviation}</a>''' )
+        versionList.append( f'''<a title="{state.BibleNames[versionAbbreviation]}" href="{'../'*level}versions/{BibleOrgSysGlobals.makeSafeString(versionAbbreviation)}">{versionAbbreviation}</a>''' )
     if pageType == 'parallel':
         versionList.append( 'Parallel' )
     else: # add a link for parallel
@@ -129,7 +131,17 @@ def makeHeader( level:int, pageType:str, state ) -> str:
         versionList.append( 'Interlinear' )
     else: # add a link for parallel
         versionList.append( f'''<a href="{'../'*level}interlinear/">Interlinear</a>''' )
-    return f'<div class="header">{EM_SPACE.join(versionList)}</div><!--header-->'
+    vlLen = len(versionList)
+    if vlLen > 16: # split into thirds
+        html = f'<p class="vLinks">{EM_SPACE.join(versionList[:vlLen//3])}</p>\n' \
+                f'<p class="vLinks">{EM_SPACE.join(versionList[vlLen//3:vlLen*2//3+1])}</p>' \
+                f'<p class="vLinks">{EM_SPACE.join(versionList[vlLen*2//3+1:])}</p>'
+    elif vlLen > 10: # split in half
+        html = f'<p class="vLinks">{EM_SPACE.join(versionList[:vlLen//2])}</p>\n' \
+                f'<p class="vLinks">{EM_SPACE.join(versionList[vlLen//2:])}</p>'
+    else:
+        html = f'<p class="vLinks">{EM_SPACE.join(versionList)}</p>'
+    return f'<div class="header">{html}</div><!--header-->'
 # end of html.makeHeader
 
 def makeBottom( level:int, pageType:str, state ) -> str:
@@ -144,8 +156,8 @@ def makeFooter( level:int, pageType:str, state ) -> str:
     """
     # fnPrint( DEBUGGING_THIS_MODULE, f"makeFooter()" )
     html = """<div class="footer">
-<p><small><em>Open Bible Data</em> site copyright © 2023 <a href="https://Freely-Given.org">Freely-Given.org</a></small></p>
-<p><small>For Bible data copyrights, see the licence for each displayed Bible version.</small></p>
+<p><small>Preliminary <em>Open Bible Data</em> site copyright © 2023 <a href="https://Freely-Given.org">Freely-Given.org</a></small></p>
+<p><small>For Bible data copyrights, see the licence for each displayed Bible version (not there yet!!!).</small></p>
 </div><!--footer-->
 """
     return html

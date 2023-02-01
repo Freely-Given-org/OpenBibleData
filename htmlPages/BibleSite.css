@@ -7,13 +7,13 @@ span.upLink { font-size:1.5em; font-weight:bold; }
 span.c { font-size:1.1em; color:green; }
 span.v { vertical-align:super; font-size:0.5em; color:red; }
 span.cv { vertical-align:super; font-size:0.8em; color:orange; }
-span.addedArticle { color:bisque; }
-span.addedCopula { color:pink; }
-span.addedDirectObject { color:brown; }
-span.addedExtra { color:lightGreen; }
-span.addedOwner { color:darkOrchid; }
-span.added { color:grey; }
-span.RVadded { color:dimGrey; }
+span.addArticle { color:bisque; }
+span.addCopula { color:pink; }
+span.addDirectObject { color:brown; }
+span.addExtra { color:lightGreen; }
+span.addOwner { color:darkOrchid; }
+span.add { color:grey; }
+span.RVadd { color:dimGrey; }
 span.ul { color:darkGrey; }
 span.dom { color:Gainsboro; }
 span.schwa { font-size:0.75em; }
