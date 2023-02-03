@@ -268,7 +268,7 @@ def createChapterPages( folder:Path, thisBible, state ) -> List[str]:
                 try: verseEntryList, contextList = thisBible.getContextVerseData( (BBB, str(c)) )
                 except KeyError:
                     if c == 0: continue # No chapter zero
-                    logging.critical( f"No chapter found {thisBible.abbreviation} {BBB} {c=}" )
+                    logging.critical( f"No chapter found for {thisBible.abbreviation} {BBB} {c=}" )
                     continue
                 textHtml = convertUSFMMarkerListToHtml( thisBible.abbreviation, (BBB,c), 'chapter', contextList, verseEntryList )
                 if thisBible.abbreviation == 'OET-LV':
@@ -325,7 +325,9 @@ def createChapterPages( folder:Path, thisBible, state ) -> List[str]:
         cLinks = []
         if numChapters >= 1:
             for c in range( 1, numChapters+1 ):
-                cLinks.append( f'<a href="{BBB}_C{c}.html">C{c}</a>' )
+                numVerses = thisBible.getNumVerses( BBB, c )
+                if numVerses: # make sure it's a normal chapter, e.g., in ESG book which lacks chapters 1-9
+                    cLinks.append( f'<a href="{BBB}_C{c}.html">C{c}</a>' )
         else:
             cLinks.append( f'<a href="{BBB}.html">{BBB}</a>' )
         top = makeTop( 3, 'chapters', state ) \

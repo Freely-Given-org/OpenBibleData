@@ -77,12 +77,14 @@ def createParallelPages( folder:Path, state ) -> bool:
 
     BBBLinks, BBBNextLinks = [], []
     for BBB in state.allBBBs:
-        tidyBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.tidyBBB( BBB )
-        BBBLinks.append( f'<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB)}" href="{BBB}/">{tidyBBB}</a>' )
-        BBBNextLinks.append( f'<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB)}" href="../{BBB}/">{tidyBBB}</a>' )
+        if BibleOrgSysGlobals.loadedBibleBooksCodes.isChapterVerseBook( BBB ):
+            tidyBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.tidyBBB( BBB )
+            BBBLinks.append( f'<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB)}" href="{BBB}/">{tidyBBB}</a>' )
+            BBBNextLinks.append( f'<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB)}" href="../{BBB}/">{tidyBBB}</a>' )
     for BBB in state.allBBBs:
-        BBBFolder = folder.joinpath(f'{BBB}/')
-        createParallelBookPages( BBBFolder, BBB, BBBNextLinks, state )
+        if BibleOrgSysGlobals.loadedBibleBooksCodes.isChapterVerseBook( BBB ):
+            BBBFolder = folder.joinpath(f'{BBB}/')
+            createParallelBookPages( BBBFolder, BBB, BBBNextLinks, state )
 
     # Create index page
     filename = 'index.html'
@@ -124,7 +126,7 @@ def createParallelBookPages( folder:Path, BBB:str, BBBLinks:List[str], state ) -
         numChapters = referenceBible.getNumChapters( BBB )
         if numChapters: break
     else:
-        logging.critical( f"Unable to find a valid reference Bible for {BBB}" )
+        logging.critical( f"createParallelBookPages unable to find a valid reference Bible for {BBB}" )
         return False # Need to check what FRT does
 
     vLinks = []
@@ -132,6 +134,9 @@ def createParallelBookPages( folder:Path, BBB:str, BBBLinks:List[str], state ) -
         for c in range( 1, numChapters+1 ):
             vPrint( 'Info', DEBUGGING_THIS_MODULE, f"      Creating parallel pages for {BBB} {c}…" )
             numVerses = referenceBible.getNumVerses( BBB, c )
+            if numVerses is None: # something unusual
+                logging.critical( f"createParallelBookPages: no verses found for {BBB} {c}" )
+                continue
             for v in range( 1, numVerses ):
                 leftVLink = f'<a href="C{c}_V{v-1}.html">←</a>{EM_SPACE}' if v>1 else ''
                 rightVLink = f'{EM_SPACE}<a href="C{c}_V{v+1}.html">→</a>' if v<numVerses else ''
@@ -164,13 +169,13 @@ def createParallelBookPages( folder:Path, BBB:str, BBBLinks:List[str], state ) -
 '''
                     except (KeyError, TypeError):
                         if BBB in thisBible:
-                            text = f'No {versionAbbreviation} {BBB} {c}:{v} verse available'
+                            text = f'No {versionAbbreviation} {tidyBBB} {c}:{v} verse available'
                             logging.warning( text )
                             vHtml = f'''<h3 class="cnav"><a title="{state.BibleNames[versionAbbreviation]}" href="../../versions/{versionAbbreviation}/byChapter/{BBB}_C{c}.html">{versionAbbreviation}</a></h3>
 <p class="noVerse"><small>{text}</small></p>
 '''
                         else:
-                            text = f'No {versionAbbreviation} {BBB} book available'
+                            text = f'No {versionAbbreviation} {tidyBBB} book available'
                             vHtml = f'''<h3 class="cnav">{versionAbbreviation}</h3>
 <p class="noBook"><small>{text}</small></p>
 '''

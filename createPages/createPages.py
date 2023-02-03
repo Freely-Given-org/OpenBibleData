@@ -133,31 +133,31 @@ class State:
                 # NOTE: The program will still run if some of these are commented out or removed (e.g., for a faster test)
                 'OET-RV': ['../../OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/'],
                 'OET-LV': ['../../OpenEnglishTranslation--OET/intermediateTexts/auto_edited_VLT_USFM/'],
-                # 'ULT': ['../copiedBibles/English/unfoldingWord.org/ULT/'],
-                # 'UST': ['../copiedBibles/English/unfoldingWord.org/UST/'],
-                # 'OEB': ['../copiedBibles/English/OEB/'],
-                # 'BSB': ['../copiedBibles/English/Berean.Bible/BSB/'],
+                'ULT': ['../copiedBibles/English/unfoldingWord.org/ULT/'],
+                'UST': ['../copiedBibles/English/unfoldingWord.org/UST/'],
+                'OEB': ['../copiedBibles/English/OEB/'],
+                'BSB': ['../copiedBibles/English/Berean.Bible/BSB/'],
                 'WEB': ['../copiedBibles/English/eBible.org/WEB/'],
-                # 'NET': ['../copiedBibles/English/eBible.org/NET/'],
-                # 'LSV': ['../copiedBibles/English/eBible.org/LSV/'],
-                # 'FBV': ['../copiedBibles/English/eBible.org/FBV/'],
-                # 'T4T': ['../copiedBibles/English/eBible.org/T4T/'],
-                # 'BBE': ['../copiedBibles/English/eBible.org/BBE/'],
-                # 'ASV': ['../copiedBibles/English/eBible.org/ASV/'],
-                # 'YLT': ['../copiedBibles/English/eBible.org/YLT/'],
-                # 'DBY': ['../copiedBibles/English/eBible.org/DBY/'],
-                # 'RV': ['../copiedBibles/English/eBible.org/RV/'],
-                # 'KJB': ['../copiedBibles/English/eBible.org/KJB/'],
-                # 'GNV': ['../copiedBibles/English/eBible.org/GNV/'],
-                # 'TNT': ['../copiedBibles/English/eBible.org/TNT/'],
-                # 'WYC': ['../copiedBibles/English/eBible.org/Wycliffe/'],
-                # 'JPS': ['../copiedBibles/English/eBible.org/JPS/'],
-                # 'DRA': ['../copiedBibles/English/eBible.org/DRA/'],
-                # 'BRN': ['../copiedBibles/English/eBible.org/Brenton/'],
-                # 'UHB': ['../copiedBibles/Original/unfoldingWord.org/UHB/'], # LV copy doesn't have OT yet
-                # 'SR-GNT': ['../../Forked/CNTR-SR/SR usfm/'],
-                # 'UGNT': ['../copiedBibles/Original/unfoldingWord.org/UGNT/'],
-                # 'SBL-GNT': ['../../Forked/SBLGNT/data/sblgnt/text/'],
+                'NET': ['../copiedBibles/English/eBible.org/NET/'], # Killed !
+                'LSV': ['../copiedBibles/English/eBible.org/LSV/'],
+                'FBV': ['../copiedBibles/English/eBible.org/FBV/'],
+                'T4T': ['../copiedBibles/English/eBible.org/T4T/'],
+                'BBE': ['../copiedBibles/English/eBible.org/BBE/'],
+                'ASV': ['../copiedBibles/English/eBible.org/ASV/'],
+                'YLT': ['../copiedBibles/English/eBible.org/YLT/'],
+                'DBY': ['../copiedBibles/English/eBible.org/DBY/'],
+                'RV': ['../copiedBibles/English/eBible.org/RV/'], # with deuterocanon
+                'KJB': ['../copiedBibles/English/eBible.org/KJB/'], # with deuterocanon
+                'GNV': ['../copiedBibles/English/eBible.org/GNV/'],
+                'TNT': ['../copiedBibles/English/eBible.org/TNT/'],
+                'WYC': ['../copiedBibles/English/eBible.org/Wycliffe/'],
+                'JPS': ['../copiedBibles/English/eBible.org/JPS/'],
+                'DRA': ['../copiedBibles/English/eBible.org/DRA/'],
+                'BRN': ['../copiedBibles/English/eBible.org/Brenton/'],
+                'UHB': ['../copiedBibles/Original/unfoldingWord.org/UHB/'], # LV copy doesn't have OT yet
+                'SR-GNT': ['../../Forked/CNTR-SR/SR usfm/'],
+                'UGNT': ['../copiedBibles/Original/unfoldingWord.org/UGNT/'],
+                'SBL-GNT': ['../../Forked/SBLGNT/data/sblgnt/text/'],
                 }
     booksToLoad = {
                 'OET': OET_BOOK_LIST_WITH_FRT,
@@ -243,15 +243,16 @@ def createPages() -> bool:
     # print( 'ca' in BibleOrgSysGlobals.USFMAllExpandedCharacterMarkers )
     # halt
 
-    # We'll define all our settings here for now
-    indexFolder = Path( '../htmlPagesTest/' if BibleOrgSysGlobals.debugFlag else '../htmlPages/' )
-    cleanHTMLFolders( indexFolder )
-
     # Preload our various Bibles
     numLoadedVersions = preloadVersions( state )
     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nPreloaded {len(state.preloadedBibles)} Bible versions: {state.preloadedBibles.keys()}" )
     try: os.makedirs( Path( '../htmlPages/versions/' ) )
     except FileExistsError: pass # they were already there
+
+    indexFolder = Path( '../htmlPagesTest/' if BibleOrgSysGlobals.debugFlag else '../htmlPages/' )
+    cleanHTMLFolders( indexFolder )
+
+    createIndexPage( 0, indexFolder, state )
 
     # Ok, let's go create some static pages
     if 'OET' in state.BibleVersions: # this is a special case
@@ -283,19 +284,13 @@ def createPages() -> bool:
                 if entry == BBB or entry == 'ALL':
                     if BBB in state.preloadedBibles[versionAbbreviation]:
                         allBBBs.add( BBB )
-    # Now put them in the proper order
-    state.allBBBs = []
-    for BBB in BibleOrgSysGlobals.loadedBibleBooksCodes: # Starts with the regular 66 books
-        if BBB in allBBBs:
-            if BBB in ('FRT',):
-                state.allBBBs.insert( 0, BBB ) # Insert at beginning
-            else: state.allBBBs.append( BBB ) # Append at end
+    # Now put them in the proper print order
+    state.allBBBs = BibleOrgSysGlobals.loadedBibleBooksCodes.getSequenceList( allBBBs )
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\nDiscovered {len(state.allBBBs)} books across {len(state.preloadedBibles)} versions: {state.allBBBs}" )
 
     createParallelPages( indexFolder.joinpath('parallel'), state )
-
-    createIndexPage( 0, indexFolder, state )
 # end of createPages.createPages
+
 
 def cleanHTMLFolders( folder:Path ) -> bool:
     """
