@@ -51,8 +51,8 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 from html import makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-01-26' # by RJH
-SHORT_PROGRAM_NAME = "html"
+LAST_MODIFIED_DATE = '2023-02-02' # by RJH
+SHORT_PROGRAM_NAME = "createInterlinearPages"
 PROGRAM_NAME = "OpenBibleData createInterlinearPages functions"
 PROGRAM_VERSION = '0.06'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'

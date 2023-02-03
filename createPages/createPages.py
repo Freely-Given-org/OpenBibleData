@@ -55,134 +55,172 @@ from createInterlinearPages import createInterlinearPages
 from html import makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-02-01' # by RJH
+LAST_MODIFIED_DATE = '2023-02-03' # by RJH
 SHORT_PROGRAM_NAME = "createPages"
 PROGRAM_NAME = "OpenBibleData Create Pages"
-PROGRAM_VERSION = '0.10'
+PROGRAM_VERSION = '0.12'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
-ALL_PRODUCTION_BOOKS = True # Set to false for a faster test build
+ALL_PRODUCTION_BOOKS = True # Set to False for a faster test build
 
 
 OET_BOOK_LIST = ['MRK','JHN','EPH','TIT','JN3']
 OET_BOOK_LIST_WITH_FRT = ['FRT','INT','MRK','JHN','EPH','TIT','JN3']
-NT_BOOK_LIST = ['MAT','MRK','LUK','JHN','ACT','ROM','CO1','CO2','GAL','EPH','PHP','COL',
-                'TH1','TH2','TI1','TI2','TIT','PHM','HEB','JAM','PE1','PE2','JN1','JN2','JN3','JDE','REV']
 NT_BOOK_LIST_WITH_FRT = ['FRT','MAT','MRK','LUK','JHN','ACT','ROM','CO1','CO2','GAL','EPH','PHP','COL',
                 'TH1','TH2','TI1','TI2','TIT','PHM','HEB','JAM','PE1','PE2','JN1','JN2','JN3','JDE','REV']
-OT_BOOK_LIST = ['GEN','EXO','LEV','NUM','DEU','JOS','JDG','RUT','SA1','SA2','KI1','KI2','CH1','CH2',
-                'EZR','NEH','EST','JOB','PSA','PRO','ECC','SNG','ISA','JER','LAM',
-                'EZE','DAN','HOS','JOL','AMO','OBA','JNA', 'MIC','NAH','HAB','ZEP','HAG','ZEC','MAL']
+assert len(NT_BOOK_LIST_WITH_FRT) == 27+1
 OT_BOOK_LIST_WITH_FRT = ['FRT','GEN','EXO','LEV','NUM','DEU',
                 'JOS','JDG','RUT','SA1','SA2','KI1','KI2','CH1','CH2',
                 'EZR','NEH','EST','JOB','PSA','PRO','ECC','SNG','ISA','JER','LAM',
                 'EZE','DAN','HOS','JOL','AMO','OBA','JNA', 'MIC','NAH','HAB','ZEP','HAG','ZEC','MAL']
+assert len(OT_BOOK_LIST_WITH_FRT) == 39+1
+
 
 class State:
     BibleVersions = ['OET','OET-RV','OET-LV', # NOTE: OET is a "pseudo-version" containing both OET-RV and OET-LV
                 'ULT','UST', 'OEB',
                 'BSB','ISV',
-                'WEB','NET','LSV','T4T',
-                'ASV','YLT','DBY','RV','KJB',
-                'TNT','Wycliffe',
+                'WEB','NET','LSV','FBV','T4T','BBE',
+                'ASV','YLT','DBY','RV','KJB','GNV',
+                'TNT','WYC',
+                'JPS','DRA','BRN',
                 'UHB',
                 'SR-GNT','UGNT','SBL-GNT']
+    BibleVersionDecorations = { 'OET':('<b>','</b>'),'OET-RV':('<b>','</b>'),'OET-LV':('<b>','</b>'),
+                'ULT':('',''),'UST':('',''),'OEB':('',''),
+                'BSB':('',''),'ISV':('',''),
+                'WEB':('',''),'NET':('',''),'LSV':('',''),'FBV':('',''),'T4T':('',''),'BBE':('',''),
+                'ASV':('',''),'YLT':('',''),'DBY':('',''),'RV':('',''),'KJB':('',''),'GNV':('',''),
+                'TNT':('',''),'WYC':('',''),
+                'JPS':('<small>','</small>'),'DRA':('<small>','</small>'),'BRN':('<small>','</small>'),
+                'UHB':('',''),
+                'SR-GNT':('',''),'UGNT':('<small>','</small>'),'SBL-GNT':('<small>','</small>'),
+                'Parallel':('<b>','</b>'), 'Interlinear':('<small>','</small>'),
+                }
     BibleNames = {
-                'OET': 'Open English Translation (2024)',
+                'OET': 'Open English Translation (2025)',
                 'OET-RV': 'Open English Translation—Readers’ Version (2025)',
                 'OET-LV': 'Open English Translation—Literal Version (2024)',
                 'ULT': 'unfoldingWord Literal Text (2023)',
                 'UST': 'unfoldingWord Simplified Text (2023)',
                 'OEB': 'Open English Bible (in progress)',
-                'BSB': 'Berean (something) Bible (2020)',
+                'BSB': 'Berean Study/Standard Bible (2020)',
                 'ISV': 'International Standard Version (2020?)',
-                'WEB': 'World English Bible',
-                'NET': 'New English Translation',
-                'T4T': 'Translation for Translators',
+                'WEB': 'World English Bible (2020)',
+                'NET': 'New English Translation (2016)',
+                'LSV': 'Literal Standard Version (2020)',
+                'FBV': 'Free Bible Version (2018)',
+                'T4T': 'Translation for Translators (2017)',
+                'BBE': 'Bible in Basic English (1965)',
                 'ASV': 'American Standard Version (1901)',
                 'YLT': 'Youngs Literal Translation (1898)',
                 'DBY': 'Darby Translation (1890)',
                 'RV': 'Revised Version (1885)',
                 'KJB': 'King James Bible (1769)',
+                'GNV': 'Geneva Bible (1599)',
                 'TNT': 'Tyndale New Testament (1526)',
-                'Wycliffe': 'Wycliffe Bible (1382)',
+                'WYC': 'Wycliffe Bible (1382)',
+                'JPS': 'Jewish Publication Society TaNaKH (1917)',
+                'DRA': 'Douay-Rheims American Edition (1899)',
+                'BRN' : 'Brenton Septuagint Translation (1851)',
                 'UHB': 'unfoldingWord Hebrew Bible (2022)',
                 'SR-GNT': 'Statistic Restoration Greek New Testament (2022)',
                 'UGNT': 'unfoldingWord Greek New Testament (2022)',
                 'SBL-GNT': 'Society for Biblical Literature Greek New Testament (2020???)',
                 }
     BibleLocations = {
-                'OET-RV': ['../../OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/',],
-                'OET-LV': ['../../OpenEnglishTranslation--OET/intermediateTexts/auto_edited_VLT_USFM/',],
-                'ULT': ['../copiedBibles/English/unfoldingWord.org/ULT/',],
-                'UST': ['../copiedBibles/English/unfoldingWord.org/UST/',],
-                'OEB': ['../copiedBibles/English/OEB/',],
-                'BSB': ['../copiedBibles/English/OpenBible.com/BSB/',],
-                'WEB': ['../copiedBibles/English/eBible.org/WEB/',],
-                'NET': ['../copiedBibles/English/eBible.org/NET/',],
-                'LSV': ['../copiedBibles/English/eBible.org/LSV/',],
-                'T4T': ['../copiedBibles/English/eBible.org/T4T/',],
-                'ASV': ['../copiedBibles/English/eBible.org/ASV/',],
-                'YLT': ['../copiedBibles/English/eBible.org/YLT/',],
-                'DBY': ['../copiedBibles/English/eBible.org/DBY/',],
-                'RV': ['../copiedBibles/English/eBible.org/RV/',],
-                'KJB': ['../copiedBibles/English/eBible.org/KJB/',],
-                'TNT': ['../copiedBibles/English/eBible.org/TNT/',],
-                'Wycliffe': ['../copiedBibles/English/eBible.org/Wycliffe/',],
-                'UHB': ['../copiedBibles/Original/unfoldingWord.org/UHB/',], # LV copy doesn't have OT yet
-                'SR-GNT': ['../../Forked/CNTR-SR/SR usfm/',],
-                'UGNT': ['../copiedBibles/Original/unfoldingWord.org/UGNT/',],
-                'SBL-GNT': ['../../Forked/SBLGNT/data/sblgnt/text/',],
+                # NOTE: The program will still run if some of these are commented out or removed (e.g., for a faster test)
+                'OET-RV': ['../../OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/'],
+                'OET-LV': ['../../OpenEnglishTranslation--OET/intermediateTexts/auto_edited_VLT_USFM/'],
+                # 'ULT': ['../copiedBibles/English/unfoldingWord.org/ULT/'],
+                # 'UST': ['../copiedBibles/English/unfoldingWord.org/UST/'],
+                # 'OEB': ['../copiedBibles/English/OEB/'],
+                # 'BSB': ['../copiedBibles/English/Berean.Bible/BSB/'],
+                'WEB': ['../copiedBibles/English/eBible.org/WEB/'],
+                # 'NET': ['../copiedBibles/English/eBible.org/NET/'],
+                # 'LSV': ['../copiedBibles/English/eBible.org/LSV/'],
+                # 'FBV': ['../copiedBibles/English/eBible.org/FBV/'],
+                # 'T4T': ['../copiedBibles/English/eBible.org/T4T/'],
+                # 'BBE': ['../copiedBibles/English/eBible.org/BBE/'],
+                # 'ASV': ['../copiedBibles/English/eBible.org/ASV/'],
+                # 'YLT': ['../copiedBibles/English/eBible.org/YLT/'],
+                # 'DBY': ['../copiedBibles/English/eBible.org/DBY/'],
+                # 'RV': ['../copiedBibles/English/eBible.org/RV/'],
+                # 'KJB': ['../copiedBibles/English/eBible.org/KJB/'],
+                # 'GNV': ['../copiedBibles/English/eBible.org/GNV/'],
+                # 'TNT': ['../copiedBibles/English/eBible.org/TNT/'],
+                # 'WYC': ['../copiedBibles/English/eBible.org/Wycliffe/'],
+                # 'JPS': ['../copiedBibles/English/eBible.org/JPS/'],
+                # 'DRA': ['../copiedBibles/English/eBible.org/DRA/'],
+                # 'BRN': ['../copiedBibles/English/eBible.org/Brenton/'],
+                # 'UHB': ['../copiedBibles/Original/unfoldingWord.org/UHB/'], # LV copy doesn't have OT yet
+                # 'SR-GNT': ['../../Forked/CNTR-SR/SR usfm/'],
+                # 'UGNT': ['../copiedBibles/Original/unfoldingWord.org/UGNT/'],
+                # 'SBL-GNT': ['../../Forked/SBLGNT/data/sblgnt/text/'],
                 }
     booksToLoad = {
                 'OET': OET_BOOK_LIST_WITH_FRT,
                 'OET-RV': OET_BOOK_LIST_WITH_FRT,
                 'OET-LV': OET_BOOK_LIST,
-                'ULT': ['ALL',],
-                'UST': ['ALL',], # MRK 13:13 gives \add error (24Jan2023)
-                'OEB': ['ALL',],
-                'BSB': ['ALL',],
-                'WEB': ['ALL',],
-                'NET': ['ALL',],
-                'LSV': ['ALL',],
-                'T4T': ['ALL',],
-                'ASV': ['ALL',],
-                'YLT': ['ALL',],
-                'DBY': ['ALL',],
-                'RV': ['ALL',],
-                'KJB': ['ALL',],
-                'TNT': ['ALL',],
-                'Wycliffe': ['ALL',],
-                'UHB': ['ALL',],
-                'SR-GNT': ['ALL',],
-                'UGNT': ['ALL',],
-                'SBL-GNT': ['ALL',],
+                'ULT': ['ALL'],
+                'UST': ['ALL'], # MRK 13:13 gives \add error (24Jan2023)
+                'OEB': ['ALL'],
+                'BSB': ['ALL'],
+                'WEB': ['ALL'],
+                'NET': ['ALL'],
+                'LSV': ['ALL'],
+                'FBV': ['ALL'],
+                'T4T': ['ALL'],
+                'BBE': ['ALL'],
+                'ASV': ['ALL'],
+                'YLT': ['ALL'],
+                'DBY': ['ALL'],
+                'RV': ['ALL'],
+                'KJB': ['ALL'],
+                'GNV': ['ALL'],
+                'TNT': ['ALL'],
+                'WYC': ['ALL'],
+                'JPS': ['ALL'],
+                'DRA': ['ALL'],
+                'BRN': ['ALL'],
+                'UHB': ['ALL'],
+                'SR-GNT': ['ALL'],
+                'UGNT': ['ALL'],
+                'SBL-GNT': ['ALL'],
             } if ALL_PRODUCTION_BOOKS else {
-                'OET': ['FRT','MRK',],
-                'OET-RV': ['FRT','MRK',],
-                'OET-LV': ['MRK',],
-                'ULT': ['FRT','MRK',],
-                'UST': ['MRK',], # MRK 13:13 gives \add error (24Jan2023)
-                'OEB': ['MRK',],
-                'BSB': ['MRK',],
-                'WEB': ['MRK',],
-                'NET': ['MRK',],
-                'LSV': ['MRK',],
-                'T4T': ['MRK',],
-                'ASV': ['MRK',],
-                'YLT': ['MRK',],
-                'DBY': ['MRK',],
-                'RV': ['MRK',],
-                'KJB': ['MRK',],
-                'TNT': ['MRK',],
-                'Wycliffe': ['MRK',],
-                'UHB': ['RUT',],
-                'SR-GNT': ['MRK',],
-                'UGNT': ['MRK',],
-                'SBL-GNT': ['MRK',],
+                'OET': ['FRT','MRK'],
+                'OET-RV': ['FRT','MRK'],
+                'OET-LV': ['MRK'],
+                'ULT': ['FRT','MRK'],
+                'UST': ['MRK'], # MRK 13:13 gives \add error (24Jan2023)
+                'OEB': ['MRK'],
+                'BSB': ['MRK'],
+                'WEB': ['MRK'],
+                'NET': ['MRK'],
+                'LSV': ['MRK'],
+                'FBV': ['MRK'],
+                'T4T': ['MRK'],
+                'BBE': ['MRK'],
+                'ASV': ['MRK'],
+                'YLT': ['MRK'],
+                'DBY': ['MRK'],
+                'RV': ['MRK'],
+                'KJB': ['MRK'],
+                'GNV': ['MRK'],
+                'TNT': ['MRK'],
+                'WYC': ['MRK'],
+                'JPS': ['RUT'],
+                'DRA': ['MRK'],
+                'BRN': ['RUT'],
+                'UHB': ['RUT'],
+                'SR-GNT': ['MRK'],
+                'UGNT': ['MRK'],
+                'SBL-GNT': ['MRK'],
             }
+    assert len(BibleVersionDecorations) == len(BibleVersions)+2, f"{len(BibleVersionDecorations)=} {len(BibleVersions)=}" # Adds Parallel and Interlinear
     assert len(BibleVersions)-1 >= len(BibleLocations) # OET is a pseudo-version
+    assert len(BibleNames)-1 >= len(BibleLocations) # OET is a pseudo-version
     assert len(booksToLoad)-1 >= len(BibleLocations) # OET is a pseudo-version
     preloadedBibles = {}
 # end of State class
@@ -194,6 +232,16 @@ def createPages() -> bool:
     """
     """
     fnPrint( DEBUGGING_THIS_MODULE, "createPages()")
+
+    # View some BOS tables just to check them
+    # nonCVBooks = []
+    # for BBB in BibleOrgSysGlobals.loadedBibleBooksCodes:
+    #     if not BibleOrgSysGlobals.loadedBibleBooksCodes.isChapterVerseBook( BBB ):
+    #         nonCVBooks.append( BBB )
+    # print( f"{nonCVBooks}" )
+    # print( f"{len(BibleOrgSysGlobals.USFMAllExpandedCharacterMarkers)} {BibleOrgSysGlobals.USFMAllExpandedCharacterMarkers}")
+    # print( 'ca' in BibleOrgSysGlobals.USFMAllExpandedCharacterMarkers )
+    # halt
 
     # We'll define all our settings here for now
     indexFolder = Path( '../htmlPagesTest/' if BibleOrgSysGlobals.debugFlag else '../htmlPages/' )
@@ -213,7 +261,7 @@ def createPages() -> bool:
             indexHtml = '<a href="byChapter">By Chapter</a>'
             filepath = versionFolder.joinpath( 'index.html' )
             with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
-                indexHtmlFile.write( makeTop(1, 'site', state) + indexHtml + makeBottom(1, 'site', state) )
+                indexHtmlFile.write( makeTop(2, 'site', state) + indexHtml + '\n' + makeBottom(1, 'site', state) )
             vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    {len(indexHtml):,} characters written to {filepath}" )
     for versionAbbreviation, thisBible in state.preloadedBibles.items():
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nCreating version pages for {thisBible.abbreviation}…" )
@@ -223,7 +271,7 @@ def createPages() -> bool:
             indexHtml = '<a href="byChapter">By Chapter</a>'
             filepath = versionFolder.joinpath( 'index.html' )
             with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
-                indexHtmlFile.write( makeTop(1, 'site', state) + indexHtml + makeBottom(1, 'site', state) )
+                indexHtmlFile.write( makeTop(2, 'site', state) + indexHtml + '\n' + makeBottom(1, 'site', state) )
             vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    {len(indexHtml):,} characters written to {filepath}" )
 
     # Find our inclusive list of books
@@ -287,9 +335,9 @@ def createIndexPage( level, folder:Path, state ) -> bool:
     html = makeTop( level, 'topIndex', state ) \
             .replace( '__TITLE__', 'Open Bible Data' ) \
             .replace( '__KEYWORDS__', 'Bible, translation, English, OET' )
-    bodyHtml = """<h1>Open Bible Data</h1>
+    bodyHtml = """<!--createIndexPage--><h1>Open Bible Data</h1>
 """
-    html += bodyHtml + makeBottom( level, 'topIndex', state )
+    html += bodyHtml + '\n' + makeBottom( level, 'topIndex', state )
     filepath = folder.joinpath( 'index.html' )
     checkHtml( 'TopIndex', html )
     with open( filepath, 'wt', encoding='utf-8' ) as htmlFile:

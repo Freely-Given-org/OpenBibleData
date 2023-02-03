@@ -50,10 +50,10 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 # from Bibles import fetchChapter
 
 
-LAST_MODIFIED_DATE = '2023-02-01' # by RJH
+LAST_MODIFIED_DATE = '2023-02-03' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
-PROGRAM_VERSION = '0.10'
+PROGRAM_VERSION = '0.12'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -64,10 +64,14 @@ EM_SPACE = ' '
 NARROW_NON_BREAK_SPACE = ' '
 
 
-def doOET_LV_HTMLcustomisations( html:str ) -> str:
+def do_OET_LV_HTMLcustomisations( html:str ) -> str:
     """
+    OET-LV is often formatted as a new line for each sentence.
+
+    We have to protect fields like '../C2_V2.html' from corruption.
     """
     return html \
+            .replace( '../', '~~UP~DIR~~' ).replace( '_V', '~~V' ).replace( '.html', '~~HTML~~' ) \
             .replace( '.', '.<br>\n' ).replace( '?', '?<br>\n' ) \
             .replace( '!', '!<br>\n' ).replace( ':', ':<br>\n' ) \
             .replace( '<span class="add">+', '<span class="addArticle">' ) \
@@ -75,8 +79,21 @@ def doOET_LV_HTMLcustomisations( html:str ) -> str:
             .replace( '<span class="add">~', '<span class="addDirectObject">' ) \
             .replace( '<span class="add">>', '<span class="addExtra">' ) \
             .replace( '<span class="add">^', '<span class="addOwner">' ) \
-            .replace( '_', '<span class="ul">_</span>')
-# end of html.doOET_LV_HTMLcustomisations
+            .replace( '_', '<span class="ul">_</span>') \
+            .replace( '~~UP~DIR~~', '../' ).replace( '~~V', '_V' ).replace( '~~HTML~~', '.html' )
+# end of html.do_OET_LV_HTMLcustomisations
+
+
+def do_LSV_HTMLcustomisations( html:str ) -> str:
+    """
+    LSV has lines like:
+        v 7 “\\w Blessed|strong="G3107"\\w* [\\w are|strong="G3588"\\w*] \\w they|strong="G2532"\\w* \\w whose|strong="G3739"\\w* lawless \\w acts|strong="G4160"\\w* \\w were|strong="G3588"\\w* forgiven, || \\w And|strong="G2532"\\w* \\w whose|strong="G3739"\\w* \\w sins|strong="G3900"\\w* \\w were|strong="G3588"\\w* \\w covered|strong="G1943"\\w*;
+
+    We need to change the two parallel lines to <br>.
+    """
+    return html.replace( ' || ', '<br>' ).replace( '||', '<br>' ) # Second one catches any source inconsistencies
+# end of html.do_LSV_HTMLcustomisations
+
 
 def makeTop( level:int, pageType:str, state ) -> str:
     """
@@ -91,6 +108,7 @@ def makeTop( level:int, pageType:str, state ) -> str:
         cssFilename = 'ParallelVerses.css'
     else: cssFilename = 'BibleSite.css'
 
+    topLink = '<p class="site">Open Bible Data</p>' if level==0 else f'''<p class="site"><a href="{'../'*level}">Open Bible Data</a></p>'''
     top = f"""<!DOCTYPE html>
 <html lang="en-US">
 <head>
@@ -100,8 +118,7 @@ def makeTop( level:int, pageType:str, state ) -> str:
   <meta name="keywords" content="__KEYWORDS__">
   <link rel="stylesheet" type="text/css" href="{'../'*level}OETChapter.css">
   <script src="{'../'*level}Bible.js"></script>
-</head>
-<body>
+</head><body><!--Level{level}-->{topLink}
 """ if pageType == 'OETChapters' else f"""<!DOCTYPE html>
 <html lang="en-US">
 <head>
@@ -110,8 +127,8 @@ def makeTop( level:int, pageType:str, state ) -> str:
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="keywords" content="__KEYWORDS__">
   <link rel="stylesheet" type="text/css" href="{'../'*level}{cssFilename}">
-</head>
-<body><h3>Prototype quality only—still in development</h3>
+</head><body><!--Level{level}-->{topLink}
+<h3>Prototype quality only—still in development</h3>
 """
     return top + makeHeader( level, pageType, state ) + '\n'
 # end of html.makeTop
@@ -122,25 +139,34 @@ def makeHeader( level:int, pageType:str, state ) -> str:
     fnPrint( DEBUGGING_THIS_MODULE, f"makeHeader( {level}, {pageType} )" )
     versionList = []
     for versionAbbreviation in state.BibleVersions:
-        versionList.append( f'''<a title="{state.BibleNames[versionAbbreviation]}" href="{'../'*level}versions/{BibleOrgSysGlobals.makeSafeString(versionAbbreviation)}">{versionAbbreviation}</a>''' )
+        versionList.append( f'''{state.BibleVersionDecorations[versionAbbreviation][0]}<a title="{state.BibleNames[versionAbbreviation]}" href="{'../'*level}versions/{BibleOrgSysGlobals.makeSafeString(versionAbbreviation)}">{versionAbbreviation}</a>{state.BibleVersionDecorations[versionAbbreviation][1]}''' )
     if pageType == 'parallel':
         versionList.append( 'Parallel' )
     else: # add a link for parallel
-        versionList.append( f'''<a href="{'../'*level}parallel/">Parallel</a>''' )
+        versionList.append( f'''{state.BibleVersionDecorations['Parallel'][0]}<a title="Single verse in many translations" href="{'../'*level}parallel/">Parallel</a>{state.BibleVersionDecorations['Parallel'][1]}''' )
     if pageType == 'interlinear':
         versionList.append( 'Interlinear' )
-    else: # add a link for parallel
-        versionList.append( f'''<a href="{'../'*level}interlinear/">Interlinear</a>''' )
+    else: # add a link for interlinear
+        versionList.append( f'''{state.BibleVersionDecorations['Interlinear'][0]}<a title="Not done yet" href="{'../'*level}interlinear/">Interlinear</a>{state.BibleVersionDecorations['Interlinear'][1]}''' )
     vlLen = len(versionList)
+    # if vlLen > 16: # split into thirds
+    #     html = f'<p class="vLinks">{EM_SPACE.join(versionList[:vlLen//3])}</p>\n' \
+    #             f'<p class="vLinks">{EM_SPACE.join(versionList[vlLen//3:vlLen*2//3+1])}</p>' \
+    #             f'<p class="vLinks">{EM_SPACE.join(versionList[vlLen*2//3+1:])}</p>'
+    # elif vlLen > 10: # split in half
+    #     html = f'<p class="vLinks">{EM_SPACE.join(versionList[:vlLen//2])}</p>\n' \
+    #             f'<p class="vLinks">{EM_SPACE.join(versionList[vlLen//2:])}</p>'
+    # else:
+    #     html = f'<p class="vLinks">{EM_SPACE.join(versionList)}</p>'
+    listChunks = [versionList]
     if vlLen > 16: # split into thirds
-        html = f'<p class="vLinks">{EM_SPACE.join(versionList[:vlLen//3])}</p>\n' \
-                f'<p class="vLinks">{EM_SPACE.join(versionList[vlLen//3:vlLen*2//3+1])}</p>' \
-                f'<p class="vLinks">{EM_SPACE.join(versionList[vlLen*2//3+1:])}</p>'
+        listChunks = [versionList[:vlLen//3], versionList[vlLen//3:vlLen*2//3+1], versionList[vlLen*2//3+1:]]
     elif vlLen > 10: # split in half
-        html = f'<p class="vLinks">{EM_SPACE.join(versionList[:vlLen//2])}</p>\n' \
-                f'<p class="vLinks">{EM_SPACE.join(versionList[vlLen//2:])}</p>'
-    else:
-        html = f'<p class="vLinks">{EM_SPACE.join(versionList)}</p>'
+        listChunks = [versionList[:vlLen//2], versionList[vlLen//2:]]
+    htmlChunks = []
+    for listChunk in listChunks:
+        htmlChunks.append( f'<p class="vLinks">{EM_SPACE.join(listChunk)}</p>' )
+    html = '\n'.join( htmlChunks )
     return f'<div class="header">{html}</div><!--header-->'
 # end of html.makeHeader
 
@@ -156,10 +182,9 @@ def makeFooter( level:int, pageType:str, state ) -> str:
     """
     # fnPrint( DEBUGGING_THIS_MODULE, f"makeFooter()" )
     html = """<div class="footer">
-<p><small>Preliminary <em>Open Bible Data</em> site copyright © 2023 <a href="https://Freely-Given.org">Freely-Given.org</a></small></p>
-<p><small>For Bible data copyrights, see the licence for each displayed Bible version (not there yet!!!).</small></p>
-</div><!--footer-->
-"""
+<p class="copyright"><small>Preliminary <em>Open Bible Data</em> site copyright © 2023 <a href="https://Freely-Given.org">Freely-Given.org</a></small></p>
+<p class="copyright"><small>For Bible data copyrights, see the licence for each displayed Bible version (not there yet!!!).</small></p>
+</div><!--footer-->"""
     return html
 # end of html.makeFooter
 
@@ -171,37 +196,19 @@ def checkHtml( where:str, html:str, segmentOnly:bool=False ) -> None:
     Throws an AssertError for any problems.
     """
     # fnPrint( DEBUGGING_THIS_MODULE, f"checkHtml( {where}, {len(html)} )" )
-    if segmentOnly:
-        assert html.count( '<html' ) == html.count( '</html>' ), html[html.index('<html'):]
-        assert html.count( '<head>' ) == html.count( '</head>' ), html[html.index('<head>'):]
-        assert html.count( '<body>' ) == html.count( '</body>' ), html[html.index('<body>'):]
-    else:
-        assert html.count( '<html' ) == 1
-        assert html.count( '</html>' ) == 1
-        assert html.count( '<head>' ) == 1
-        assert html.count( '</head>' ) == 1
-        assert html.count( '<body>' ) == 1
-        assert html.count( '</body>' ) == 1
 
-    try: assert html.count( '<div' ) == html.count( '</div>' ), f"{where} {html.count('<div')}!={html.count('</div>')} {html[html.index('<div'):]}"
-    except ValueError: assert html.count( '<div' ) == html.count( '</div>' ), f"{where} {html.count('<div')}!={html.count('</div>')} {html[:html.index('</div>')+5]}"
-    try: assert html.count('<p ')+html.count('<p>') == html.count( '</p>' ), f"{where} {html.count('<p ')}+{html.count('<p>')}!={html.count('</p>')} {html}" # {html[html.index('<p'):]}"
-    except ValueError: assert html.count('<p ')+html.count('<p>')==html.count('</p>'), f"{where} {html.count('<p ')}+{html.count('<p>')}!={html.count('</p>')} {html[:html.index('</p>')+4]}"
-    # if where not in ('UST MRK 13:13','Parallel MRK 13:13',
-    #                  'UST ROM 8:27','Parallel ROM 8:27',
-    #                  'UST ROM 9:1','Parallel ROM 9:1',
-    #                  'UST ROM 11:19','Parallel ROM 11:19',
-    #                  'UST ROM 11:31','Parallel ROM 11:31'):
-    if 'UST' not in where and 'ULT' not in where and 'Parallel ' not in where:
-        assert html.count('<span')==html.count('</span>'), f"{where} {html.count('<span')}!={html.count('</span>')} {html[html.index('<span'):]}"
+    for marker,startMarker in (('html','<html'),('head','<head>'),('body','<body>')):
+        if segmentOnly:
+            assert html.count( startMarker ) == html.count( f'</{marker}>' ), html[html.index(startMarker):]
+        else:
+            assert html.count( startMarker ) == 1
+            assert html.count( f'</{marker}>' ) == 1
 
-    assert html.count( '<h1' ) == html.count( '</h1>' ), html[html.index('<h1'):]
-    assert html.count( '<h2' ) == html.count( '</h2>' ), html[html.index('<h2'):]
-    assert html.count( '<h3' ) == html.count( '</h3>' ), html[html.index('<h3'):]
-
-    assert html.count( '<em>' ) == html.count( '</em>' ), html[html.index('<em>'):]
-    assert html.count( '<i>' ) == html.count( '</i>' ), html[html.index('<i>'):]
-    assert html.count( '<b>' ) == html.count( '</b>' ), html[html.index('<b>'):]
+    for marker,startMarker in (('div','<div'),('p','<p '),('h1','<h1'),('h2','<h2'),('h3','<h3'),('em','<em>'),('i','<i>'),('b','<b>'),('sup','<sup>'),('sub','<sub>')):
+        if html.count( startMarker ) != html.count( f'</{marker}>' ):
+            try: errMsg = f"Mismatched '{marker}' start and end markers {where} {segmentOnly} {html[html.index(startMarker):]}"
+            except ValueError: errMsg = f"Mismatched '{marker}' start and end markers {where} {segmentOnly} {html[:html.index(f'</{marker}>')]}"
+            logging.critical( errMsg )
 # end of html.checkHtml
 
 
