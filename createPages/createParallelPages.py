@@ -3,7 +3,7 @@
 #
 # html.py
 #
-# Module handling OpenBibleData html functions
+# Module handling OpenBibleData createParallelPages functions
 #
 # Copyright (C) 2023 Robert Hunt
 # Author: Robert Hunt <Freely.Given.org+BOS@gmail.com>
@@ -23,18 +23,7 @@
 #   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 """
-Module handling html functions.
-
-BibleOrgSys uses a three-character book code to identify books.
-    These referenceAbbreviations are nearly always represented as BBB in the program code
-            (although formally named referenceAbbreviation
-                and possibly still represented as that in some of the older code),
-        and in a sense, this is the centre of the BibleOrgSys.
-    The referenceAbbreviation/BBB always starts with a letter, and letters are always UPPERCASE
-        so 2 Corinthians is 'CO2' not '2Co' or anything.
-        This was because early versions of HTML ID fields used to need
-                to start with a letter (not a digit),
-            (and most identifiers in computer languages still require that).
+Module handling createParallelPages functions.
 """
 from gettext import gettext as _
 from typing import Dict, List, Tuple

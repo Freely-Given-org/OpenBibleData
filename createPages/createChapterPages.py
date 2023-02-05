@@ -24,17 +24,6 @@
 
 """
 Module handling createChapterPages functions.
-
-BibleOrgSys uses a three-character book code to identify books.
-    These referenceAbbreviations are nearly always represented as BBB in the program code
-            (although formally named referenceAbbreviation
-                and possibly still represented as that in some of the older code),
-        and in a sense, this is the centre of the BibleOrgSys.
-    The referenceAbbreviation/BBB always starts with a letter, and letters are always UPPERCASE
-        so 2 Corinthians is 'CO2' not '2Co' or anything.
-        This was because early versions of HTML ID fields used to need
-                to start with a letter (not a digit),
-            (and most identifiers in computer languages still require that).
 """
 from gettext import gettext as _
 from typing import Dict, List, Tuple
@@ -142,7 +131,7 @@ def createOETChapterPages( folder:Path, rvBible, lvBible, state ) -> List[str]:
                 top = makeTop( 3, 'OETChapters', f'byChapter/{filename}', state ) \
                         .replace( '__TITLE__', f'OET {tidyBBB} introduction' if c==-1 else f'OET {tidyBBB} chapter {c}' ) \
                         .replace( '__KEYWORDS__', f'Bible, OET, Open English Translation, chapter' ) \
-                        .replace( f'''<a href="{'../'*3}versions/OET">OET</a>''', 'OET' )
+                        .replace( f'''<a title="{state.BibleNames['OET']}" href="{'../'*3}versions/OET">OET</a>''', 'OET' )
                 cHtml = top + '<!--chapter page-->' \
                             + cHtml + rvHtml + lvHtml \
                             + '</div><!--container-->\n' \
@@ -162,12 +151,13 @@ def createOETChapterPages( folder:Path, rvBible, lvBible, state ) -> List[str]:
             verseEntryList, contextList = lvBible.getContextVerseData( (BBB, '-1') )
             dPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"{lvBible.abbreviation} {BBB} {verseEntryList} {contextList}" )
             cHtml += convertUSFMMarkerListToHtml( (BBB,c), 'chapter', contextList, verseEntryList )
-            filename = f'{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}_{BBB}_C{c}.html'
+            filename = f'{BBB}_C{c}.html'
             filenames.append( filename )
             filepath = folder.joinpath( filename )
             top = makeTop( 3, 'OETChapters', f'byChapter/{filename}', state ) \
                     .replace( '__TITLE__', f'{thisBible.abbreviation} {tidyBBB}' ) \
-                    .replace( '__KEYWORDS__', f'Bible, {thisBible.abbreviation}, chapter' )
+                    .replace( '__KEYWORDS__', f'Bible, {thisBible.abbreviation}, chapter' ) \
+                    .replace( f'''<a title="{state.BibleNames['OET']}" href="{'../'*3}versions/OET">OET</a>''', 'OET' )
             chtml = top + '<!--chapter page-->' + cHtml + makeBottom( 3, 'OETChapters', state )
             checkHtml( chtml )
             with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
@@ -178,7 +168,7 @@ def createOETChapterPages( folder:Path, rvBible, lvBible, state ) -> List[str]:
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, "    Creating chapter index pages for OET…" )
     BBBLinks = []
     for BBB in BBBs:
-        filename = f'OET_{BBB}.html'
+        filename = f'{BBB}.html'
         filenames.append( filename )
         filepath = folder.joinpath( filename )
         tidyBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.tidyBBB( BBB )
@@ -194,7 +184,7 @@ def createOETChapterPages( folder:Path, rvBible, lvBible, state ) -> List[str]:
         top = makeTop( 3, 'OETChapters', None, state ) \
                 .replace( '__TITLE__', f'OET {tidyBBB} chapter {c}' ) \
                 .replace( '__KEYWORDS__', f'Bible, OET, Open English Translation, chapter' ) \
-                .replace( f'''<a href="{'../'*3}versions/OET">OET</a>''', 'OET' )
+                .replace( f'''<a title="{state.BibleNames['OET']}" href="{'../'*3}versions/OET">OET</a>''', 'OET' )
         cHtml = top + f'<!--chapters indexPage--><p class="cLinks">{EM_SPACE.join( cLinks )}</p>\n' \
                     + makeBottom( 3, 'OETChapters', state )
         checkHtml( 'OETChaptersIndex', cHtml )
@@ -206,7 +196,8 @@ def createOETChapterPages( folder:Path, rvBible, lvBible, state ) -> List[str]:
     filepath = folder.joinpath( filename )
     top = makeTop( 3, 'OETChapters', None, state ) \
             .replace( '__TITLE__', f'OET Chapter View' ) \
-            .replace( '__KEYWORDS__', f'Bible, OET, Open English Translation, chapters' )
+            .replace( '__KEYWORDS__', f'Bible, OET, Open English Translation, chapters' ) \
+            .replace( f'''<a title="{state.BibleNames['OET']}" href="{'../'*3}versions/OET">OET</a>''', 'OET' )
     indexHtml = top \
                 + '<h1>OET chapter pages</h1><h2>Index of books</h2>\n' \
                 + f'<p class="bLinks">{EM_SPACE.join( BBBLinks )}</p>\n' \
@@ -262,9 +253,9 @@ def createChapterPages( folder:Path, thisBible, state ) -> List[str]:
                             else f'<a href="{BBB}_Intro.html">←</a>{EM_SPACE}' if c==1 else ''
                 rightLink = f'{EM_SPACE}<a href="{BBB}_C{c+1}.html">→</a>' if c<numChapters else ''
                 parallelLink = f'{EM_SPACE}<a href="../../../parallel/{BBB}/C{c}_V1.html">║</a>'
-                cHtml = f'''<h1>{thisBible.abbreviation} {tidyBBB} Introduction</h1>\n
+                cHtml = f'''<h1>{thisBible.abbreviation} {tidyBBB} Introduction</h1>
 <p class="cnav">{leftLink}{tidyBBB} Intro{rightLink}{parallelLink}</p>
-''' if c==-1 else f'''<h1>{thisBible.abbreviation} {tidyBBB} Chapter {c}</h1>\n
+''' if c==-1 else f'''<h1>{thisBible.abbreviation} {tidyBBB} Chapter {c}</h1>
 <p class="cnav">{leftLink}{tidyBBB} {c}{rightLink}{parallelLink}</p>
 '''
                 try: verseEntryList, contextList = thisBible.getContextVerseData( (BBB, str(c)) )
@@ -278,7 +269,6 @@ def createChapterPages( folder:Path, thisBible, state ) -> List[str]:
                 elif thisBible.abbreviation == 'LSV':
                     textHtml = do_LSV_HTMLcustomisations( textHtml )
                 cHtml = f'{cHtml}{textHtml}'
-                # filename = f'{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}_{BBB}_C{c}.html'
                 filename = f'{BBB}_Intro.html' if c==-1 else f'{BBB}_C{c}.html'
                 filenames.append( filename )
                 filepath = folder.joinpath( filename )
@@ -286,7 +276,7 @@ def createChapterPages( folder:Path, thisBible, state ) -> List[str]:
                         .replace( '__TITLE__', f'{thisBible.abbreviation} {tidyBBB} introduction'
                                         if c==-1 else f'{thisBible.abbreviation} {tidyBBB} chapter {c}' ) \
                         .replace( '__KEYWORDS__', f'Bible, {thisBible.abbreviation}, chapter' ) \
-                        .replace( f'''<a href="{'../'*3}versions/{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}">{thisBible.abbreviation}</a>''', thisBible.abbreviation )
+                        .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*3}versions/{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}">{thisBible.abbreviation}</a>''', thisBible.abbreviation )
                 cHtml = top + '<!--chapter page-->' + cHtml + '\n' + makeBottom( 3, 'chapters', state )
                 checkHtml( thisBible.abbreviation, cHtml )
                 with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
@@ -306,7 +296,8 @@ def createChapterPages( folder:Path, thisBible, state ) -> List[str]:
             filepath = folder.joinpath( filename )
             top = makeTop( 3, 'chapters', f'byChapter/{filename}', state ) \
                     .replace( '__TITLE__', f'{thisBible.abbreviation} {BBB}' ) \
-                    .replace( '__KEYWORDS__', f'Bible, {thisBible.abbreviation}, chapter' )
+                    .replace( '__KEYWORDS__', f'Bible, {thisBible.abbreviation}, chapter' ) \
+                    .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*3}versions/{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}">{thisBible.abbreviation}</a>''', thisBible.abbreviation )
             chtml = top + '<!--chapter page-->\n' + cHtml + makeBottom( 3, 'chapters', state )
             checkHtml( thisBible.abbreviation, chtml )
             with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
@@ -317,7 +308,7 @@ def createChapterPages( folder:Path, thisBible, state ) -> List[str]:
     BBBLinks = []
     for BBB in BBBs:
         tidyBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.tidyBBB( BBB )
-        filename = f'{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}_{BBB}.html'
+        filename = f'{BBB}_index.html'
         filenames.append( filename )
         filepath = folder.joinpath( filename )
         BBBLinks.append( f'<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB)}" href="{filename}">{tidyBBB}</a>' )
@@ -337,7 +328,7 @@ def createChapterPages( folder:Path, thisBible, state ) -> List[str]:
         top = makeTop( 3, 'chapters', None, state ) \
                 .replace( '__TITLE__', f'{thisBible.abbreviation} {tidyBBB}' ) \
                 .replace( '__KEYWORDS__', f'Bible, {thisBible.abbreviation}, chapter' ) \
-                .replace( f'''<a href="{'../'*3}versions/{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}">{thisBible.abbreviation}</a>''', thisBible.abbreviation )
+                .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*3}versions/{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}">{thisBible.abbreviation}</a>''', thisBible.abbreviation )
         cHtml = top + f'<!--chapters indexPage--><p class="cLinks">{EM_SPACE.join( cLinks )}</p>\n' + makeBottom(3, 'chapters', state)
         checkHtml( thisBible.abbreviation, cHtml )
         with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
@@ -349,7 +340,8 @@ def createChapterPages( folder:Path, thisBible, state ) -> List[str]:
     filepath = folder.joinpath( filename )
     top = makeTop( 3, 'chapters', None, state ) \
             .replace( '__TITLE__', f'{thisBible.abbreviation} Chapter View' ) \
-            .replace( '__KEYWORDS__', f'Bible, {thisBible.abbreviation}, chapters' )
+            .replace( '__KEYWORDS__', f'Bible, {thisBible.abbreviation}, chapters' ) \
+            .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*3}versions/{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}">{thisBible.abbreviation}</a>''', thisBible.abbreviation )
     indexHtml = top \
                 + '<h1>Chapter pages</h1><h2>Index of books</h2>\n' \
                 + f'<p class="bLinks">{EM_SPACE.join( BBBLinks )}</p>\n' \

@@ -49,6 +49,7 @@ import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 
 from Bibles import preloadVersions
+from createBookPages import createOETBookPages, createBookPages
 from createChapterPages import createOETChapterPages, createChapterPages
 from createParallelPages import createParallelPages
 from createInterlinearPages import createInterlinearPages
@@ -58,7 +59,7 @@ from html import makeTop, makeBottom, checkHtml
 LAST_MODIFIED_DATE = '2023-02-05' # by RJH
 SHORT_PROGRAM_NAME = "createPages"
 PROGRAM_NAME = "OpenBibleData Create Pages"
-PROGRAM_VERSION = '0.14'
+PROGRAM_VERSION = '0.15'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -75,6 +76,8 @@ OT_BOOK_LIST_WITH_FRT = ['FRT','GEN','EXO','LEV','NUM','DEU',
                 'EZR','NEH','EST','JOB','PSA','PRO','ECC','SNG','ISA','JER','LAM',
                 'EZE','DAN','HOS','JOL','AMO','OBA','JNA', 'MIC','NAH','HAB','ZEP','HAG','ZEC','MAL']
 assert len(OT_BOOK_LIST_WITH_FRT) == 39+1
+
+EM_SPACE = ' '
 
 
 class State:
@@ -266,21 +269,34 @@ def createPages() -> bool:
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nCreating version pages for OET…" )
         versionFolder = indexFolder.joinpath( f'versions/OET/' )
         if createOETVersionPages( versionFolder, state.preloadedBibles['OET-RV'], state.preloadedBibles['OET-LV'], state ):
-            indexHtml = '<a href="byChapter">By Chapter</a>'
+            indexHtml = f'''<p class="rem">Remember that ancient letters were meant to be read in their entirety just like modern letters. We provide a byChapter mode for convenience only, but recommend the byDocument mode for personal reading.</p>
+<p class="viewNav"><a href="byDocument">By Document</a>{EM_SPACE}<a href="byChapter">By Chapter</a></p>
+'''
             filepath = versionFolder.joinpath( 'index.html' )
+            versionName = state.BibleNames['OET']
             with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
-                indexHtmlFile.write( makeTop(2, 'site', None, state) + indexHtml + '\n' + makeBottom( 1, 'site', state ) )
+                indexHtmlFile.write( makeTop( 2, 'site', None, state ) \
+                                            .replace( '__TITLE__', f"{versionName}" ) \
+                                            .replace( '__KEYWORDS__', f"Bible, OET, {versionName}" ) \
+                                            .replace( f'''<a title="{versionName}" href="{'../'*2}versions/OET">OET</a>''', 'OET' ) \
+                                        + indexHtml + '\n' + makeBottom( 1, 'site', state ) )
             vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    {len(indexHtml):,} characters written to {filepath}" )
     for versionAbbreviation, thisBible in state.preloadedBibles.items():
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nCreating version pages for {thisBible.abbreviation}…" )
         versionFolder = indexFolder.joinpath( f'versions/{thisBible.abbreviation}/' )
         if createVersionPages( versionFolder, thisBible, state ):
             createInterlinearPages( indexFolder.joinpath('interlinear'), thisBible, state )
-            indexHtml = '<a href="byChapter">By Chapter</a>'
+            indexHtml = f'''<p class="rem">Remember that ancient letters were meant to be read in their entirety just like modern letters. We provide a byChapter mode for convenience only, but recommend the byDocument mode for personal reading.</p>
+<p class="viewNav"><a href="byDocument">By Document</a>{EM_SPACE}<a href="byChapter">By Chapter</a></p>
+'''
             filepath = versionFolder.joinpath( 'index.html' )
+            versionName = state.BibleNames[thisBible.abbreviation]
             with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
                 indexHtmlFile.write( makeTop( 2, 'site', None, state ) \
-                                        + indexHtml + '\n' + makeBottom( 1, 'site', state ) )
+                                            .replace( '__TITLE__', f'{versionName}' ) \
+                                            .replace( '__KEYWORDS__', f'Bible, {versionName}' ) \
+                                            .replace( f'''<a title="{versionName}" href="{'../'*2}versions/{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}">{thisBible.abbreviation}</a>''', thisBible.abbreviation ) \
+                                        + indexHtml + makeBottom( 1, 'site', state ) )
             vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    {len(indexHtml):,} characters written to {filepath}" )
 
     # Find our inclusive list of books
@@ -319,7 +335,9 @@ def createOETVersionPages( folder:Path, rvBible, lvBible, state:State ) -> bool:
     """
     """
     fnPrint( DEBUGGING_THIS_MODULE, f"createOETVersionPages( {folder}, {rvBible.abbreviation}, {lvBible.abbreviation} )")
-    _chapterFilenameList = createOETChapterPages( folder.joinpath('byChapter'), rvBible, lvBible, state )
+    createOETBookPages( folder.joinpath('byDocument'), rvBible, lvBible, state )
+    createOETChapterPages( folder.joinpath('byChapter'), rvBible, lvBible, state )
+    # _chapterFilenameList = createOETChapterPages( folder.joinpath('byChapter'), rvBible, lvBible, state )
     return True
 # end of createPages.createOETVersionPages
 
@@ -327,7 +345,9 @@ def createVersionPages( folder:Path, thisBible, state:State ) -> bool:
     """
     """
     fnPrint( DEBUGGING_THIS_MODULE, f"createVersionPages( {folder}, {thisBible.abbreviation} )")
-    _chapterFilenameList = createChapterPages( folder.joinpath('byChapter'), thisBible, state )
+    createBookPages( folder.joinpath('byDocument'), thisBible, state )
+    createChapterPages( folder.joinpath('byChapter'), thisBible, state )
+    # _chapterFilenameList = createChapterPages( folder.joinpath('byChapter'), thisBible, state )
     return True
 # end of createPages.createVersionPages
 

@@ -101,9 +101,9 @@ def makeTop( level:int, pageType:str, filename:Optional[str], state ) -> str:
     """
     fnPrint( DEBUGGING_THIS_MODULE, f"makeTop( {level}, {pageType} {filename} )" )
 
-    if pageType == 'chapters':
+    if pageType in ('chapters','book'):
         cssFilename = 'BibleChapter.css'
-    elif pageType == 'OETChapters':
+    elif pageType in ('OETChapters','OETbook'):
         cssFilename = 'OETChapter.css'
     elif pageType == 'parallel':
         cssFilename = 'ParallelVerses.css'

@@ -48,10 +48,10 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 from html import checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-02-04' # by RJH
+LAST_MODIFIED_DATE = '2023-02-05' # by RJH
 SHORT_PROGRAM_NAME = "usfm"
 PROGRAM_NAME = "OpenBibleData USFM to HTML functions"
-PROGRAM_VERSION = '0.13'
+PROGRAM_VERSION = '0.14'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -92,8 +92,9 @@ def convertUSFMMarkerListToHtml( versionAbbreviation:str, refTuple:tuple, segmen
             if refTuple[0] not in ('EXO','NUM') or marker!='list': Exception( f"Unexpected context for '{segmentType}': {contextList}" )
 
     C = V = None
-    BBB, C = refTuple[0], refTuple[1]
-    if len(refTuple)==3: V = refTuple[2]
+    BBB = refTuple[0]
+    if len(refTuple) > 1: C = refTuple[1]
+    if len(refTuple) > 2: V = refTuple[2]
 
     for n, entry in enumerate(markerList):
         marker = entry.getMarker()
@@ -216,14 +217,21 @@ def convertUSFMMarkerListToHtml( versionAbbreviation:str, refTuple:tuple, segmen
                 if 'OET' in versionAbbreviation:
                     assert inRightDiv, f"{versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {marker}={rest}"
                 html = f'{html}<p class="{marker}">{rest}</p>\n'
+        elif marker == 'rem': # This one can sort of be anywhere!
+            assert rest
+            assert not inRightDiv
+            if inParagraph:
+                html = f'{html}<span class="{marker}">{formatUSFMText(versionAbbreviation, refTuple, segmentType, rest, basicOnly)}</span>\n'
+            elif not basicOnly:
+                html = f'{html}<p class="{marker}">{formatUSFMText(versionAbbreviation, refTuple, segmentType, rest, basicOnly)}</p>\n'
         # The following should all have their own data and get converted to a simple <p>...</p> field
-        elif marker in ('mr','sr', 'd', 'sp', 'cp', 'qa','qc','qd', 'rem'):
+        elif marker in ('mr','sr', 'd', 'sp', 'cp', 'qa','qc','qd'):
             if not rest:
                 logging.critical( f"Expected field text {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} {marker=}" )
             if inRightDiv:
                 html = f'{html}</div><!--rightBox-->\n'
                 inRightDiv = False
-            if inParagraph and marker != 'rem': # Remarks can occur inside paragraph segments
+            if inParagraph:
                 logging.critical( f"Unexpected inParagraph {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {marker}={rest}" )
             if not basicOnly:
                 html = f'{html}<p class="{marker}">{formatUSFMText(versionAbbreviation, refTuple, segmentType, rest, basicOnly)}</p>\n'
@@ -299,12 +307,12 @@ def convertUSFMMarkerListToHtml( versionAbbreviation:str, refTuple:tuple, segmen
             assert not rest
         elif segmentType=='chapter' and marker in ('¬c','¬chapters'): # We can ignore this
             # Just do some finishing off
-            if inSection and marker == '¬c':
+            if inSection=='s1' and marker == '¬c':
                 logging.warning( f"{versionAbbreviation} {refTuple} Finished chapter inside section" )
                 if not basicOnly:
                     html = f'{html}</div><!--s1-->\n'
                 inSection = None
-            elif inSection and marker == '¬chapters':
+            elif inSection=='s1' and marker == '¬chapters':
                 logging.warning( f"{versionAbbreviation} {refTuple} Finished book inside section" )
                 if not basicOnly:
                     html = f'{html}</div><!--s1-->\n'
@@ -362,6 +370,10 @@ def convertUSFMMarkerListToHtml( versionAbbreviation:str, refTuple:tuple, segmen
         if not basicOnly:
             logging.critical( f"convertUSFMMarkerListToHtml final unclosed list {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} last {marker=}" )
         html = f'{html}</{inList}>\n'
+    if inSection in ('s1','periph'):
+        if not basicOnly:
+            logging.critical( f"convertUSFMMarkerListToHtml final unclosed '{inSection}' section {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} last {marker=}" )
+        html = f'{html}</div><!--{inSection}-->\n'
 
     # Handle all footnotes in one go (we don't check for matching \fr fields)
     footnotesCount = 0
@@ -394,9 +406,9 @@ def convertUSFMMarkerListToHtml( versionAbbreviation:str, refTuple:tuple, segmen
         fnoteMiddle = html[fContentIx:fEndIx]
         internalOpenCount = fnoteMiddle.count( '\\ft ') + fnoteMiddle.count( '\\fq ') + fnoteMiddle.count( '\\fqa ')
         if internalOpenCount > 0:
-            internalCloseCount = fnoteMiddle.count( '\\ft*') + fnoteMiddle.count( '\\fq*') + fnoteMiddle.count( '\\fqa*')
-            internalMarkerCount = internalOpenCount - internalCloseCount
-            dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"Footnote middle has {internalOpenCount=} {internalCloseCount=} {internalMarkerCount=} '{fnoteMiddle}'" )
+            # internalCloseCount = fnoteMiddle.count( '\\ft*') + fnoteMiddle.count( '\\fq*') + fnoteMiddle.count( '\\fqa*')
+            # internalMarkerCount = internalOpenCount - internalCloseCount
+            # dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"Footnote middle has {internalOpenCount=} {internalCloseCount=} {internalMarkerCount=} '{fnoteMiddle}'" )
             inSpan = None
             internalSearchStartIx = 0
             for _safetyCount2 in range( 25 ):
@@ -429,7 +441,15 @@ def convertUSFMMarkerListToHtml( versionAbbreviation:str, refTuple:tuple, segmen
                 fnoteMiddle = f'{fnoteMiddle}</span>'
             assert '\\' not in fnoteMiddle, f"{fnoteMiddle[fnoteMiddle.index(f'{BACKSLASH}x')-10:fnoteMiddle.index(f'{BACKSLASH}x')+12]}"
         dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{BBB} {fnoteMiddle=}" )
-        fnoteCaller = f'<span class="fnCaller" title="Note: {fnoteMiddle}">[<a href="#fn{footnotesCount}">fn</a>]</span>'
+        sanitisedFnoteMiddle = fnoteMiddle
+        if '"' in sanitisedFnoteMiddle or '<' in sanitisedFnoteMiddle or '>' in sanitisedFnoteMiddle:
+            sanitisedFnoteMiddle = sanitisedFnoteMiddle.replace( '</span>', '' )
+            for footnoteMarker in ('ft','xt', 'fq','fqa', 'fk','fl','fw','fp','fv'):
+                sanitisedFnoteMiddle = sanitisedFnoteMiddle.replace( f'<span class="{footnoteMarker}">', '' )
+            for charMarker in ('em','i', 'b','sup', 'sub'):
+                sanitisedFnoteMiddle = sanitisedFnoteMiddle.replace( f'<{charMarker}>', '' ).replace( f'</{charMarker}>', '' )
+        assert '"' not in sanitisedFnoteMiddle and '<' not in sanitisedFnoteMiddle and '>' not in sanitisedFnoteMiddle, f"{sanitisedFnoteMiddle=}"
+        fnoteCaller = f'<span class="fnCaller" title="Note: {sanitisedFnoteMiddle}">[<a href="#fn{footnotesCount}">fn</a>]</span>'
         fnoteRef = ''
         if frText:
             frCV = frText
@@ -460,7 +480,7 @@ def convertUSFMMarkerListToHtml( versionAbbreviation:str, refTuple:tuple, segmen
     crossReferencesCount = 0
     crossReferencesHtml = ''
     searchStartIx = 0
-    for _safetyCount in range( 99 ):
+    for _safetyCount in range( 999 if segmentType=='book' else 99 ):
         xStartIx = html.find( '\\x ', searchStartIx )
         if xStartIx == -1: break # all done
         crossReferencesCount += 1
