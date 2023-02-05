@@ -37,7 +37,7 @@ BibleOrgSys uses a three-character book code to identify books.
             (and most identifiers in computer languages still require that).
 """
 from gettext import gettext as _
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Optional
 from pathlib import Path
 import os
 import logging
@@ -50,10 +50,10 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 # from Bibles import fetchChapter
 
 
-LAST_MODIFIED_DATE = '2023-02-03' # by RJH
+LAST_MODIFIED_DATE = '2023-02-05' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
-PROGRAM_VERSION = '0.12'
+PROGRAM_VERSION = '0.14'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -95,10 +95,11 @@ def do_LSV_HTMLcustomisations( html:str ) -> str:
 # end of html.do_LSV_HTMLcustomisations
 
 
-def makeTop( level:int, pageType:str, state ) -> str:
+def makeTop( level:int, pageType:str, filename:Optional[str], state ) -> str:
     """
+    Create the very top part of an HTML page.
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"makeTop( {level}, {pageType} )" )
+    fnPrint( DEBUGGING_THIS_MODULE, f"makeTop( {level}, {pageType} {filename} )" )
 
     if pageType == 'chapters':
         cssFilename = 'BibleChapter.css'
@@ -130,16 +131,28 @@ def makeTop( level:int, pageType:str, state ) -> str:
 </head><body><!--Level{level}-->{topLink}
 <h3>Prototype quality only—still in development</h3>
 """
-    return top + makeHeader( level, pageType, state ) + '\n'
+    return top + _makeHeader( level, pageType, filename, state ) + '\n'
 # end of html.makeTop
 
-def makeHeader( level:int, pageType:str, state ) -> str:
+def _makeHeader( level:int, pageType:str, filename:Optional[str], state ) -> str:
     """
+    Create the navigation that goes before the page content.
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"makeHeader( {level}, {pageType} )" )
+    fnPrint( DEBUGGING_THIS_MODULE, f"_makeHeader( {level}, {pageType} {filename} )" )
+
+    # Add all the version abbreviations
+    #   with their style decorators
+    #   and with the more specific links if specified.
     versionList = []
     for versionAbbreviation in state.BibleVersions:
-        versionList.append( f'''{state.BibleVersionDecorations[versionAbbreviation][0]}<a title="{state.BibleNames[versionAbbreviation]}" href="{'../'*level}versions/{BibleOrgSysGlobals.makeSafeString(versionAbbreviation)}">{versionAbbreviation}</a>{state.BibleVersionDecorations[versionAbbreviation][1]}''' )
+        # TODO: This is not good because not all versions have all books
+        vLink = f"{'../'*level}versions/{BibleOrgSysGlobals.makeSafeString(versionAbbreviation)}" if not filename \
+                    else f"{'../'*level}versions/{BibleOrgSysGlobals.makeSafeString(versionAbbreviation)}/{filename}"
+        versionList.append( f'{state.BibleVersionDecorations[versionAbbreviation][0]}'
+                            f'<a title="{state.BibleNames[versionAbbreviation]}" '
+                            f'href="{vLink}">{versionAbbreviation}</a>'
+                            f'{state.BibleVersionDecorations[versionAbbreviation][1]}'
+                            )
     if pageType == 'parallel':
         versionList.append( 'Parallel' )
     else: # add a link for parallel
@@ -148,7 +161,8 @@ def makeHeader( level:int, pageType:str, state ) -> str:
         versionList.append( 'Interlinear' )
     else: # add a link for interlinear
         versionList.append( f'''{state.BibleVersionDecorations['Interlinear'][0]}<a title="Not done yet" href="{'../'*level}interlinear/">Interlinear</a>{state.BibleVersionDecorations['Interlinear'][1]}''' )
-    vlLen = len(versionList)
+
+    # vlLen = len(versionList)
     # if vlLen > 16: # split into thirds
     #     html = f'<p class="vLinks">{EM_SPACE.join(versionList[:vlLen//3])}</p>\n' \
     #             f'<p class="vLinks">{EM_SPACE.join(versionList[vlLen//3:vlLen*2//3+1])}</p>' \
@@ -157,36 +171,40 @@ def makeHeader( level:int, pageType:str, state ) -> str:
     #     html = f'<p class="vLinks">{EM_SPACE.join(versionList[:vlLen//2])}</p>\n' \
     #             f'<p class="vLinks">{EM_SPACE.join(versionList[vlLen//2:])}</p>'
     # else:
-    #     html = f'<p class="vLinks">{EM_SPACE.join(versionList)}</p>'
-    listChunks = [versionList]
-    if vlLen > 16: # split into thirds
-        listChunks = [versionList[:vlLen//3], versionList[vlLen//3:vlLen*2//3+1], versionList[vlLen*2//3+1:]]
-    elif vlLen > 10: # split in half
-        listChunks = [versionList[:vlLen//2], versionList[vlLen//2:]]
-    htmlChunks = []
-    for listChunk in listChunks:
-        htmlChunks.append( f'<p class="vLinks">{EM_SPACE.join(listChunk)}</p>' )
-    html = '\n'.join( htmlChunks )
+    html = f'<p class="workNav">{EM_SPACE.join(versionList)}</p>'
+
+    # listChunks = [versionList]
+    # if vlLen > 16: # split into thirds
+    #     listChunks = [versionList[:vlLen//3], versionList[vlLen//3:vlLen*2//3+1], versionList[vlLen*2//3+1:]]
+    # elif vlLen > 10: # split in half
+    #     listChunks = [versionList[:vlLen//2], versionList[vlLen//2:]]
+    # htmlChunks = []
+    # for listChunk in listChunks:
+    #     htmlChunks.append( f'<p class="workNav">{EM_SPACE.join(listChunk)}</p>' )
+    # html = '\n'.join( htmlChunks )
+
     return f'<div class="header">{html}</div><!--header-->'
-# end of html.makeHeader
+# end of html._makeHeader
 
 def makeBottom( level:int, pageType:str, state ) -> str:
     """
+    Create the very bottom part of an HTML page.
     """
     # fnPrint( DEBUGGING_THIS_MODULE, f"makeBottom()" )
-    return makeFooter( level, pageType, state ) + '</body></html>'
+    return _makeFooter( level, pageType, state ) + '</body></html>'
 # end of html.makeBottom
 
-def makeFooter( level:int, pageType:str, state ) -> str:
+def _makeFooter( level:int, pageType:str, state ) -> str:
     """
+    Create any links or site map that follow the main content on the page.
     """
-    # fnPrint( DEBUGGING_THIS_MODULE, f"makeFooter()" )
+    # fnPrint( DEBUGGING_THIS_MODULE, f"_makeFooter()" )
     html = """<div class="footer">
 <p class="copyright"><small>Preliminary <em>Open Bible Data</em> site copyright © 2023 <a href="https://Freely-Given.org">Freely-Given.org</a></small></p>
 <p class="copyright"><small>For Bible data copyrights, see the licence for each displayed Bible version (not there yet!!!).</small></p>
 </div><!--footer-->"""
     return html
-# end of html.makeFooter
+# end of html._makeFooter
 
 def checkHtml( where:str, html:str, segmentOnly:bool=False ) -> None:
     """
@@ -206,8 +224,8 @@ def checkHtml( where:str, html:str, segmentOnly:bool=False ) -> None:
 
     for marker,startMarker in (('div','<div'),('p','<p '),('h1','<h1'),('h2','<h2'),('h3','<h3'),('em','<em>'),('i','<i>'),('b','<b>'),('sup','<sup>'),('sub','<sub>')):
         if html.count( startMarker ) != html.count( f'</{marker}>' ):
-            try: errMsg = f"Mismatched '{marker}' start and end markers {where} {segmentOnly} {html[html.index(startMarker):]}"
-            except ValueError: errMsg = f"Mismatched '{marker}' start and end markers {where} {segmentOnly} {html[:html.index(f'</{marker}>')]}"
+            try: errMsg = f"Mismatched '{marker}' start and end markers {where} {segmentOnly} {html.count(startMarker)}!={html.count(f'</{marker}>')} {html[html.index(startMarker):]}"
+            except ValueError: errMsg = f"Mismatched '{marker}' start and end markers {where} {segmentOnly} {html.count(startMarker)}!={html.count(f'</{marker}>')} {html[:html.index(f'</{marker}>')]}"
             logging.critical( errMsg )
 # end of html.checkHtml
 

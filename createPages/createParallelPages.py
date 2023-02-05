@@ -52,10 +52,10 @@ from html import do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, \
                     makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-02-03' # by RJH
+LAST_MODIFIED_DATE = '2023-02-05' # by RJH
 SHORT_PROGRAM_NAME = "createParallelPages"
 PROGRAM_NAME = "OpenBibleData createParallelPages functions"
-PROGRAM_VERSION = '0.09'
+PROGRAM_VERSION = '0.11'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -89,7 +89,7 @@ def createParallelPages( folder:Path, state ) -> bool:
     # Create index page
     filename = 'index.html'
     filepath = folder.joinpath( filename )
-    top = makeTop( 1, 'parallel', state ) \
+    top = makeTop( 1, 'parallel', None, state ) \
             .replace( '__TITLE__', f'Parallel View' ) \
             .replace( '__KEYWORDS__', f'Bible, parallel' )
     indexHtml = top \
@@ -142,8 +142,8 @@ def createParallelBookPages( folder:Path, BBB:str, BBBLinks:List[str], state ) -
                 rightVLink = f'{EM_SPACE}<a href="C{c}_V{v+1}.html">→</a>' if v<numVerses else ''
                 leftCLink = f'<a href="C{c-1}_V1.html">◄</a>{EM_SPACE}' if c>1 else ''
                 rightCLink = f'{EM_SPACE}<a href="C{c+1}_V1.html">►</a>' if c<numChapters else ''
-                pHtml = f'''{adjBBBLinksHtml}\n<h1>Parallel {BBB} {c}:{v}</h1>
-<p class="vnav">{leftCLink}{leftVLink}{BBB} {c}:{v}{rightVLink}{rightCLink}</p>
+                pHtml = f'''{adjBBBLinksHtml}\n<h1>Parallel {tidyBBB} {c}:{v}</h1>
+<p class="vnav">{leftCLink}{leftVLink}{tidyBBB} {c}:{v}{rightVLink}{rightCLink}</p>
 '''
                 for versionAbbreviation in state.BibleVersions:
                     if versionAbbreviation == 'OET': continue # Skip this pseudo-version as we have OET-RV and OET-LV
@@ -185,10 +185,10 @@ def createParallelBookPages( folder:Path, BBB:str, BBBLinks:List[str], state ) -
                 filename = f'C{c}_V{v}.html'
                 # filenames.append( filename )
                 filepath = folder.joinpath( filename )
-                top = makeTop( 2, 'parallel', state ) \
-                        .replace( '__TITLE__', f'Parallel {BBB} {c}:{v}' ) \
-                        .replace( '__KEYWORDS__', f'Bible, {BBB}, parallel' )
-                pHtml = top + '<!--parallel verse page-->' + pHtml + makeBottom(2, 'parallel', state)
+                top = makeTop( 2, 'parallel', None, state ) \
+                        .replace( '__TITLE__', f'Parallel {tidyBBB} {c}:{v}' ) \
+                        .replace( '__KEYWORDS__', f'Bible, {tidyBBB}, parallel' )
+                pHtml = top + '<!--parallel verse page-->' + pHtml + makeBottom( 2, 'parallel', state )
                 checkHtml( f'Parallel {BBB} {c}:{v}', pHtml )
                 with open( filepath, 'wt', encoding='utf-8' ) as pHtmlFile:
                     pHtmlFile.write( pHtml )
@@ -202,12 +202,12 @@ def createParallelBookPages( folder:Path, BBB:str, BBBLinks:List[str], state ) -
     # Create index page for this book
     filename = 'index.html'
     filepath = folder.joinpath( filename )
-    top = makeTop(2, 'parallel', state) \
-            .replace( '__TITLE__', f'Parallel View for {BBB}' ) \
+    top = makeTop(2, 'parallel', None, state) \
+            .replace( '__TITLE__', f'Parallel View for {tidyBBB}' ) \
             .replace( '__KEYWORDS__', f'Bible, parallel' )
     indexHtml = f'{top}{adjBBBLinksHtml}\n' \
                 + f'<h1>{BBB} parallel verses index</h1>\n<p class="vLinks">{EM_SPACE.join( vLinks )}</p>\n' \
-                + makeBottom(2, 'parallel', state)
+                + makeBottom( 2, 'parallel', state )
     checkHtml( 'ParallelIndex', indexHtml )
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
         indexHtmlFile.write( indexHtml )

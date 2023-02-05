@@ -1,9 +1,13 @@
-/* button#underlineButton { float:right; }
-div.container { display:grid; column-gap:0.6em; grid-template-columns:0.85fr 1.15fr; }
-div.BibleText { } */
+/* Links */
+/* a:link { text-decoration: none; }
+a:visited { text-decoration: none; }
+a:hover { text-decoration: none; }
+a:active { text-decoration: none; } */
+a { text-decoration: none; }
+
 div.footer { width: 500px; height: 250px; margin: 50px; }
 
-span.upLink { font-size:1.5em; font-weight:bold; }
+/* span.upLink { font-size:1.5em; font-weight:bold; }
 span.c { font-size:1.1em; color:green; }
 span.v { vertical-align:super; font-size:0.5em; color:red; }
 span.cv { vertical-align:super; font-size:0.8em; color:orange; }
@@ -33,13 +37,13 @@ p.r { margin-top:0; margin-bottom:0; font-size:0.75em; }
 p.LVsentence { margin-top:0.2em; margin-bottom:0.2em; }
 p.p { text-indent:0.5em; margin-top:0.2em; margin-bottom:0.2em; }
 p.q1 { margin-left:1em; margin-top:0.2em; margin-bottom:0.2em; }
-p.q2 { margin-left:2em; margin-top:0.2em; margin-bottom:0.2em; }
+p.q2 { margin-left:2em; margin-top:0.2em; margin-bottom:0.2em; } */
 /* p.m {  } */
 
 /* Book intro */
-li.intro { margin-top:0.5em; margin-bottom:0.5em; }
+/* li.intro { margin-top:0.5em; margin-bottom:0.5em; }
 p.is1 { font-weight:bold; font-size:1.3em; }
 p.is2 { font-weight:bold; }
 p.iot { font-weight:bold; }
 p.io1 { text-indent:2em; margin-top:0.2em; margin-bottom:0.2em; }
-span.ior { font-weight:bold; } /* font-style:italic; */
+span.ior { font-weight:bold; } font-style:italic; */

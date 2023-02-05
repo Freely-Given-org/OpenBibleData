@@ -55,10 +55,10 @@ from createInterlinearPages import createInterlinearPages
 from html import makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-02-03' # by RJH
+LAST_MODIFIED_DATE = '2023-02-05' # by RJH
 SHORT_PROGRAM_NAME = "createPages"
 PROGRAM_NAME = "OpenBibleData Create Pages"
-PROGRAM_VERSION = '0.12'
+PROGRAM_VERSION = '0.14'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -78,7 +78,7 @@ assert len(OT_BOOK_LIST_WITH_FRT) == 39+1
 
 
 class State:
-    BibleVersions = ['OET','OET-RV','OET-LV', # NOTE: OET is a "pseudo-version" containing both OET-RV and OET-LV
+    BibleVersions = ['OET','OET-RV','OET-LV', # NOTE: OET is a "pseudo-version" containing both OET-RV and OET-LV side-by-side
                 'ULT','UST', 'OEB',
                 'BSB','ISV',
                 'WEB','NET','LSV','FBV','T4T','BBE',
@@ -95,7 +95,7 @@ class State:
                 'TNT':('',''),'WYC':('',''),
                 'JPS':('<small>','</small>'),'DRA':('<small>','</small>'),'BRN':('<small>','</small>'),
                 'UHB':('',''),
-                'SR-GNT':('',''),'UGNT':('<small>','</small>'),'SBL-GNT':('<small>','</small>'),
+                'SR-GNT':('<b>','</b>'),'UGNT':('<small>','</small>'),'SBL-GNT':('<small>','</small>'),
                 'Parallel':('<b>','</b>'), 'Interlinear':('<small>','</small>'),
                 }
     BibleNames = {
@@ -132,13 +132,13 @@ class State:
     BibleLocations = {
                 # NOTE: The program will still run if some of these are commented out or removed (e.g., for a faster test)
                 'OET-RV': ['../../OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/'],
-                'OET-LV': ['../../OpenEnglishTranslation--OET/intermediateTexts/auto_edited_VLT_USFM/'],
+                'OET-LV': ['../../OpenEnglishTranslation--OET/intermediateTexts/auto_edited_VLT_USFM/'], # No OT here yet
                 'ULT': ['../copiedBibles/English/unfoldingWord.org/ULT/'],
                 'UST': ['../copiedBibles/English/unfoldingWord.org/UST/'],
                 'OEB': ['../copiedBibles/English/OEB/'],
                 'BSB': ['../copiedBibles/English/Berean.Bible/BSB/'],
                 'WEB': ['../copiedBibles/English/eBible.org/WEB/'],
-                'NET': ['../copiedBibles/English/eBible.org/NET/'], # Killed !
+                'NET': ['../copiedBibles/English/eBible.org/NET/'],
                 'LSV': ['../copiedBibles/English/eBible.org/LSV/'],
                 'FBV': ['../copiedBibles/English/eBible.org/FBV/'],
                 'T4T': ['../copiedBibles/English/eBible.org/T4T/'],
@@ -153,8 +153,8 @@ class State:
                 'WYC': ['../copiedBibles/English/eBible.org/Wycliffe/'],
                 'JPS': ['../copiedBibles/English/eBible.org/JPS/'],
                 'DRA': ['../copiedBibles/English/eBible.org/DRA/'],
-                'BRN': ['../copiedBibles/English/eBible.org/Brenton/'],
-                'UHB': ['../copiedBibles/Original/unfoldingWord.org/UHB/'], # LV copy doesn't have OT yet
+                'BRN': ['../copiedBibles/English/eBible.org/Brenton/'], # with deuterocanon and OTH,XXA,XXB,XXC,
+                'UHB': ['../copiedBibles/Original/unfoldingWord.org/UHB/'],
                 'SR-GNT': ['../../Forked/CNTR-SR/SR usfm/'],
                 'UGNT': ['../copiedBibles/Original/unfoldingWord.org/UGNT/'],
                 'SBL-GNT': ['../../Forked/SBLGNT/data/sblgnt/text/'],
@@ -246,12 +246,19 @@ def createPages() -> bool:
     # Preload our various Bibles
     numLoadedVersions = preloadVersions( state )
     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nPreloaded {len(state.preloadedBibles)} Bible versions: {state.preloadedBibles.keys()}" )
-    try: os.makedirs( Path( '../htmlPages/versions/' ) )
-    except FileExistsError: pass # they were already there
+
+    # thisBible = state.preloadedBibles['OEB']
+    # thisBible.loadBookIfNecessary( 'EZE' )
+    # print( thisBible.getNumVerses( 'EZE', 12 ) )
+    # print( thisBible.getNumVerses( 'EZE', 21 ) )
+    # halt
+
 
     indexFolder = Path( '../htmlPagesTest/' if BibleOrgSysGlobals.debugFlag else '../htmlPages/' )
     cleanHTMLFolders( indexFolder )
 
+    try: os.makedirs( Path( '../htmlPages/versions/' ) )
+    except FileExistsError: pass # they were already there
     createIndexPage( 0, indexFolder, state )
 
     # Ok, let's go create some static pages
@@ -262,7 +269,7 @@ def createPages() -> bool:
             indexHtml = '<a href="byChapter">By Chapter</a>'
             filepath = versionFolder.joinpath( 'index.html' )
             with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
-                indexHtmlFile.write( makeTop(2, 'site', state) + indexHtml + '\n' + makeBottom(1, 'site', state) )
+                indexHtmlFile.write( makeTop(2, 'site', None, state) + indexHtml + '\n' + makeBottom( 1, 'site', state ) )
             vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    {len(indexHtml):,} characters written to {filepath}" )
     for versionAbbreviation, thisBible in state.preloadedBibles.items():
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nCreating version pages for {thisBible.abbreviation}…" )
@@ -272,7 +279,8 @@ def createPages() -> bool:
             indexHtml = '<a href="byChapter">By Chapter</a>'
             filepath = versionFolder.joinpath( 'index.html' )
             with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
-                indexHtmlFile.write( makeTop(2, 'site', state) + indexHtml + '\n' + makeBottom(1, 'site', state) )
+                indexHtmlFile.write( makeTop( 2, 'site', None, state ) \
+                                        + indexHtml + '\n' + makeBottom( 1, 'site', state ) )
             vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    {len(indexHtml):,} characters written to {filepath}" )
 
     # Find our inclusive list of books
@@ -327,7 +335,7 @@ def createIndexPage( level, folder:Path, state ) -> bool:
     """
     """
     fnPrint( DEBUGGING_THIS_MODULE, f"createIndexPage( {level}, {folder}, {state.BibleVersions} )" )
-    html = makeTop( level, 'topIndex', state ) \
+    html = makeTop( level, 'topIndex', None, state ) \
             .replace( '__TITLE__', 'Open Bible Data' ) \
             .replace( '__KEYWORDS__', 'Bible, translation, English, OET' )
     bodyHtml = """<!--createIndexPage--><h1>Open Bible Data</h1>

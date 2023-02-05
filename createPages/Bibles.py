@@ -52,10 +52,10 @@ from BibleOrgSys.Bible import Bible
 from BibleOrgSys.UnknownBible import UnknownBible
 
 
-LAST_MODIFIED_DATE = '2023-02-03' # by RJH
+LAST_MODIFIED_DATE = '2023-02-04' # by RJH
 SHORT_PROGRAM_NAME = "Bibles"
 PROGRAM_NAME = "OpenBibleData Bibles handler"
-PROGRAM_VERSION = '0.09'
+PROGRAM_VERSION = '0.10'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -102,7 +102,7 @@ def preloadVersion( versionAbbreviation:str, folderLocation:str, state ) -> Bibl
         thisBible = CSVBible.CSVBible( folderLocation, givenName=state.BibleNames[versionAbbreviation],
                                             givenAbbreviation=versionAbbreviation, encoding='utf-8' )
         thisBible.loadBooks() # So we can iterate through them all later
-        print( f"{versionAbbreviation} loaded ({len(thisBible.books.keys())}) {thisBible.books.keys()}" )
+        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} loaded ({len(thisBible.books.keys())}) {thisBible.books.keys()}" )
     # elif versionAbbreviation in ('SBL-GNT',): # .txt file(s)
     #     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Loading {versionAbbreviation} VPL Bible…" )
     #     thisBible = VPLBible.VPLBible( folderLocation, givenName=state.BibleNames[versionAbbreviation],
