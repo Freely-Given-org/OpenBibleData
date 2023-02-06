@@ -41,6 +41,7 @@ from typing import Dict, List, Tuple
 from pathlib import Path
 import os
 import shutil
+import glob
 import logging
 
 import sys
@@ -56,15 +57,17 @@ from createInterlinearPages import createInterlinearPages
 from html import makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-02-05' # by RJH
+LAST_MODIFIED_DATE = '2023-02-06' # by RJH
 SHORT_PROGRAM_NAME = "createPages"
 PROGRAM_NAME = "OpenBibleData Create Pages"
-PROGRAM_VERSION = '0.15'
+PROGRAM_VERSION = '0.16'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
 ALL_PRODUCTION_BOOKS = True # Set to False for a faster test build
 
+TEMP_BUILD_FOLDER = Path( '/tmp/OBDHtmlPages/' )
+DESTINATION_FOLDER = Path( '../htmlPagesTest/' if BibleOrgSysGlobals.debugFlag else '../htmlPages/' )
 
 OET_BOOK_LIST = ['MRK','JHN','EPH','TIT','JN3']
 OET_BOOK_LIST_WITH_FRT = ['FRT','INT','MRK','JHN','EPH','TIT','JN3']
@@ -233,41 +236,25 @@ state = State()
 
 def createPages() -> bool:
     """
+    Build all the pages in a temporary location
     """
     fnPrint( DEBUGGING_THIS_MODULE, "createPages()")
-
-    # View some BOS tables just to check them
-    # nonCVBooks = []
-    # for BBB in BibleOrgSysGlobals.loadedBibleBooksCodes:
-    #     if not BibleOrgSysGlobals.loadedBibleBooksCodes.isChapterVerseBook( BBB ):
-    #         nonCVBooks.append( BBB )
-    # print( f"{nonCVBooks}" )
-    # print( f"{len(BibleOrgSysGlobals.USFMAllExpandedCharacterMarkers)} {BibleOrgSysGlobals.USFMAllExpandedCharacterMarkers}")
-    # print( 'ca' in BibleOrgSysGlobals.USFMAllExpandedCharacterMarkers )
-    # halt
 
     # Preload our various Bibles
     numLoadedVersions = preloadVersions( state )
     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nPreloaded {len(state.preloadedBibles)} Bible versions: {state.preloadedBibles.keys()}" )
 
-    # thisBible = state.preloadedBibles['OEB']
-    # thisBible.loadBookIfNecessary( 'EZE' )
-    # print( thisBible.getNumVerses( 'EZE', 12 ) )
-    # print( thisBible.getNumVerses( 'EZE', 21 ) )
-    # halt
-
-
-    indexFolder = Path( '../htmlPagesTest/' if BibleOrgSysGlobals.debugFlag else '../htmlPages/' )
-    cleanHTMLFolders( indexFolder )
-
-    try: os.makedirs( Path( '../htmlPages/versions/' ) )
+    try: os.makedirs( TEMP_BUILD_FOLDER )
     except FileExistsError: pass # they were already there
-    createIndexPage( 0, indexFolder, state )
+    cleanHTMLFolders( TEMP_BUILD_FOLDER )
+    createIndexPage( 0, TEMP_BUILD_FOLDER, state )
 
     # Ok, let's go create some static pages
+    try: os.makedirs( TEMP_BUILD_FOLDER.joinpath( 'versions/' ) )
+    except FileExistsError: pass # they were already there
     if 'OET' in state.BibleVersions: # this is a special case
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nCreating version pages for OET…" )
-        versionFolder = indexFolder.joinpath( f'versions/OET/' )
+        versionFolder = TEMP_BUILD_FOLDER.joinpath( f'versions/OET/' )
         if createOETVersionPages( versionFolder, state.preloadedBibles['OET-RV'], state.preloadedBibles['OET-LV'], state ):
             indexHtml = f'''<p class="rem">Remember that ancient letters were meant to be read in their entirety just like modern letters. We provide a byChapter mode for convenience only, but recommend the byDocument mode for personal reading.</p>
 <p class="viewNav"><a href="byDocument">By Document</a>{EM_SPACE}<a href="byChapter">By Chapter</a></p>
@@ -283,9 +270,9 @@ def createPages() -> bool:
             vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    {len(indexHtml):,} characters written to {filepath}" )
     for versionAbbreviation, thisBible in state.preloadedBibles.items():
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nCreating version pages for {thisBible.abbreviation}…" )
-        versionFolder = indexFolder.joinpath( f'versions/{thisBible.abbreviation}/' )
+        versionFolder = TEMP_BUILD_FOLDER.joinpath( f'versions/{thisBible.abbreviation}/' )
         if createVersionPages( versionFolder, thisBible, state ):
-            createInterlinearPages( indexFolder.joinpath('interlinear'), thisBible, state )
+            createInterlinearPages( TEMP_BUILD_FOLDER.joinpath('interlinear'), thisBible, state )
             indexHtml = f'''<p class="rem">Remember that ancient letters were meant to be read in their entirety just like modern letters. We provide a byChapter mode for convenience only, but recommend the byDocument mode for personal reading.</p>
 <p class="viewNav"><a href="byDocument">By Document</a>{EM_SPACE}<a href="byChapter">By Chapter</a></p>
 '''
@@ -312,7 +299,20 @@ def createPages() -> bool:
     state.allBBBs = BibleOrgSysGlobals.loadedBibleBooksCodes.getSequenceList( allBBBs )
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\nDiscovered {len(state.allBBBs)} books across {len(state.preloadedBibles)} versions: {state.allBBBs}" )
 
-    createParallelPages( indexFolder.joinpath('parallel'), state )
+    createParallelPages( TEMP_BUILD_FOLDER.joinpath('parallel'), state )
+
+    if not BibleOrgSysGlobals.debugFlag and not DEBUGGING_THIS_MODULE:
+        # Now move the site from our temporary location to overwrite the destination location
+        cleanHTMLFolders( DESTINATION_FOLDER )
+        # Note: shutil.copy2 is the same as copy but keeps metadata like creation and modification times
+        count = 0
+        for filepath in glob.glob( f'{TEMP_BUILD_FOLDER}/*' ):
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Moving {filepath} to {DESTINATION_FOLDER}…" )
+            shutil.move( filepath, DESTINATION_FOLDER, copy_function=shutil.copy2)
+            count += 1
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Moved {count} files and folders into {DESTINATION_FOLDER}." )
+    else:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\nLeft files and folders in {TEMP_BUILD_FOLDER}." )
 # end of createPages.createPages
 
 
@@ -330,6 +330,7 @@ def cleanHTMLFolders( folder:Path ) -> bool:
     except FileNotFoundError: pass
     return True
 # end of createPages.cleanHTMLFolders
+
 
 def createOETVersionPages( folder:Path, rvBible, lvBible, state:State ) -> bool:
     """
@@ -350,6 +351,7 @@ def createVersionPages( folder:Path, thisBible, state:State ) -> bool:
     # _chapterFilenameList = createChapterPages( folder.joinpath('byChapter'), thisBible, state )
     return True
 # end of createPages.createVersionPages
+
 
 def createIndexPage( level, folder:Path, state ) -> bool:
     """

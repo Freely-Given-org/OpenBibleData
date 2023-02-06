@@ -41,13 +41,13 @@ from html import do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, \
                     makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-02-05' # by RJH
+LAST_MODIFIED_DATE = '2023-02-06' # by RJH
 SHORT_PROGRAM_NAME = "createBookPages"
 PROGRAM_NAME = "OpenBibleData createBookPages functions"
-PROGRAM_VERSION = '0.14'
+PROGRAM_VERSION = '0.15'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
-DEBUGGING_THIS_MODULE = 99
+DEBUGGING_THIS_MODULE = False
 
 BACKSLASH = '\\'
 NEWLINE = '\n'
@@ -92,15 +92,6 @@ def createOETBookPages( folder:Path, rvBible, lvBible, state ) -> List[str]:
 
         vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Creating book pages for OET {BBB}…" )
         BBBs.append( BBB )
-        # numChapters = rvBible.getNumChapters( BBB )
-        # if numChapters >= 1:
-        #     for c in range( -1, numChapters+1 ):
-        #         vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"      Creating book pages for OET {BBB} {c}…" )
-        #         leftLink = f'<a href="{BBB}_C{c-1}.html">←</a>{EM_SPACE}' if c>1 \
-        #                     else f'<a href="{BBB}_Intro.html">←</a>{EM_SPACE}' if c==1 else ''
-        #         rightLink = f'{EM_SPACE}<a href="{BBB}_C{c+1}.html">→</a>' if c<numChapters else ''
-        #         parallelLink = f'{EM_SPACE}<a href="../../../parallel/{BBB}/C{c}_V1.html">║</a>'
-# <p class="cnav">{leftLink}{tidyBBB}{rightLink}{parallelLink}</p>
         bkHtml = f'''<h1>Open English Translation {tidyBBB}</h1>
 <div class="container">
 <span> </span>
@@ -110,11 +101,6 @@ def createOETBookPages( folder:Path, rvBible, lvBible, state ) -> List[str]:
 <h2>Readers’ Version</h2>
 <h2>Literal Version</h2>
 '''
-                # try: rvVerseEntryList, rvContextList = rvBible.getContextVerseData( (BBB, str(c)) )
-                # except KeyError:
-                #     if c == 0: continue # No chapter zero
-                #     halt
-                # print( f"OET-RV {BBB} {c} got {len(rvVerseEntryList)} verse entries, {len(rvContextList)} context entries")
         rvVerseEntryList, rvContextList = rvBible.getContextVerseData( (BBB,) )
         lvVerseEntryList, lvContextList = lvBible.getContextVerseData( (BBB,) )
         rvHtml = convertUSFMMarkerListToHtml( 'OET', (BBB,), 'book', rvContextList, rvVerseEntryList )
@@ -127,7 +113,8 @@ def createOETBookPages( folder:Path, rvBible, lvBible, state ) -> List[str]:
         top = makeTop( 3, 'OETBook', f'byDocument/{filename}', state ) \
                 .replace( '__TITLE__', f'OET {tidyBBB}' ) \
                 .replace( '__KEYWORDS__', f'Bible, OET, Open English Translation, book' ) \
-                .replace( f'''<a title="{state.BibleNames['OET']}" href="{'../'*3}versions/OET/byDocument/{filename}">OET</a>''', 'OET' )
+                .replace( f'''<a title="{state.BibleNames['OET']}" href="{'../'*3}versions/OET/byDocument/{filename}">OET</a>''',
+                          f'''<a title="Up to {state.BibleNames['OET']}" href="{'../'*3}versions/OET/">↑OET</a>''' )
         bkHtml = top + '<!--book page-->' \
                     + bkHtml + rvHtml + lvHtml \
                     + '</div><!--container-->\n' \
@@ -136,56 +123,13 @@ def createOETBookPages( folder:Path, rvBible, lvBible, state ) -> List[str]:
         with open( filepath, 'wt', encoding='utf-8' ) as bkHtmlFile:
             bkHtmlFile.write( bkHtml )
         vPrint( 'Info', DEBUGGING_THIS_MODULE, f"        {len(bkHtml):,} characters written to {filepath}" )
-        # else:
-        #     # TODO: Not completely finished yet
-        #     dPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"createOETBookPages {BBB} has {numChapters} chapters!!!" )
-        #     assert BBB in ('INT','FRT',)
-        #     dPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"createOETBookPages {rvBible.books[BBB]=}" )
-        #     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"      Creating (non)chapter pages for OET {BBB} {c}…" )
-        #     # cHtml = f'<h1>{thisBible.abbreviation} {BBB} Chapter {c}</h1>\n'
-        #     # # verseEntryList, contextList = thisBible.getContextVerseData( (BBB, str(c)) )
-        #     verseEntryList, contextList = lvBible.getContextVerseData( (BBB, '-1') )
-        #     dPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"{lvBible.abbreviation} {BBB} {verseEntryList} {contextList}" )
-        #     cHtml += convertUSFMMarkerListToHtml( (BBB,c), 'book', contextList, verseEntryList )
-        #     filename = f'{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}_{BBB}_C{c}.html'
-        #     filenames.append( filename )
-        #     filepath = folder.joinpath( filename )
-        #     top = makeTop( 3, 'OETBook', f'byDocument/{filename}', state ) \
-        #             .replace( '__TITLE__', f'{thisBible.abbreviation} {tidyBBB}' ) \
-        #             .replace( '__KEYWORDS__', f'Bible, {thisBible.abbreviation}, book' )
-        #     chtml = top + '<!--book page-->' + cHtml + makeBottom( 3, 'OETBook', state )
-        #     checkHtml( chtml )
-        #     with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
-        #         cHtmlFile.write( chtml )
-        #     vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    {len(cHtml):,} characters written to {filepath}" )
-        #     halt
     # Now create index pages for each book and then an overall one
     # vPrint( 'Normal', DEBUGGING_THIS_MODULE, "    Creating book index pages for OET…" )
     BBBLinks = []
     for BBB in BBBs:
         tidyBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.tidyBBB( BBB )
         filename = f'{BBB}.html'
-    #     filenames.append( filename )
-    #     filepath = folder.joinpath( filename )
         BBBLinks.append( f'<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB)}" href="{filename}">{tidyBBB}</a>' )
-    #     numChapters = rvBible.getNumChapters( BBB )
-    #     cLinks = []
-    #     if numChapters >= 1:
-    #         for c in range( 1, numChapters+1 ):
-    #             cLinks.append( f'<a href="{BBB}_C{c}.html">C{c}</a>' )
-    #     else:
-    #         c = '0' # TODO: for now
-    #         halt
-    #     top = makeTop( 3, 'OETBook', None, state ) \
-    #             .replace( '__TITLE__', f'OET {tidyBBB}' ) \
-    #             .replace( '__KEYWORDS__', f'Bible, OET, Open English Translation, book' ) \
-    #             .replace( f'''<a href="{'../'*3}versions/OET">OET</a>''', 'OET' )
-    #     bkHtml = top + f'<!--chapters indexPage--><p class="cLinks">{EM_SPACE.join( cLinks )}</p>\n' \
-    #                 + makeBottom( 3, 'OETBook', state )
-    #     checkHtml( 'OETChaptersIndex', bkHtml )
-    #     with open( filepath, 'wt', encoding='utf-8' ) as bkHtmlFile:
-    #         bkHtmlFile.write( bkHtml )
-    #     vPrint( 'Info', DEBUGGING_THIS_MODULE, f"        {len(bkHtml):,} characters written to {filepath}" )
     filename = 'index.html'
     filenames.append( filename )
     filepath = folder.joinpath( filename )
@@ -252,7 +196,8 @@ def createBookPages( folder:Path, thisBible, state ) -> List[str]:
         top = makeTop( 3, 'book', f'byDocument/{filename}', state ) \
                 .replace( '__TITLE__', f'{thisBible.abbreviation} {tidyBBB} book' ) \
                 .replace( '__KEYWORDS__', f'Bible, {thisBible.abbreviation}, book' ) \
-                .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*3}versions/{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/byDocument/{filename}">{thisBible.abbreviation}</a>''', thisBible.abbreviation )
+                .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*3}versions/{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/byDocument/{filename}">{thisBible.abbreviation}</a>''',
+                          f'''<a title="Up to {state.BibleNames[thisBible.abbreviation]}" href="{'../'*3}versions/{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/">↑{thisBible.abbreviation}</a>''' )
         bkHtml = top + '<!--book page-->' + bkHtml + '\n' + makeBottom( 3, 'book', state )
         checkHtml( thisBible.abbreviation, bkHtml )
         with open( filepath, 'wt', encoding='utf-8' ) as bkHtmlFile:
@@ -265,28 +210,6 @@ def createBookPages( folder:Path, thisBible, state ) -> List[str]:
         tidyBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.tidyBBB( BBB )
         filename = f'{BBB}.html'
         BBBLinks.append( f'<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB)}" href="{filename}">{tidyBBB}</a>' )
-    #     try: numChapters = thisBible.getNumChapters( BBB )
-    #     except KeyError:
-    #         logging.critical( f"Can't get number of chapters for {thisBible.abbreviation} {BBB}")
-    #         continue
-    #     cLinks = []
-    #     if numChapters >= 1:
-    #         for c in range( 1, numChapters+1 ):
-    #             # dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"createBookPages getNumVerses( {thisBible.abbreviation} {BBB} {c} )")
-    #             numVerses = thisBible.getNumVerses( BBB, c )
-    #             if numVerses: # make sure it's a normal book, e.g., in ESG book which lacks chapters 1-9
-    #                 cLinks.append( f'<a href="{BBB}_C{c}.html">C{c}</a>' )
-    #     else:
-    #         cLinks.append( f'<a href="{BBB}.html">{tidyBBB}</a>' )
-    #     top = makeTop( 3, 'book', None, state ) \
-    #             .replace( '__TITLE__', f'{thisBible.abbreviation} {tidyBBB}' ) \
-    #             .replace( '__KEYWORDS__', f'Bible, {thisBible.abbreviation}, book' ) \
-    #             .replace( f'''<a href="{'../'*3}versions/{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}">{thisBible.abbreviation}</a>''', thisBible.abbreviation )
-    #     bkHtml = top + f'<!--chapters indexPage--><p class="cLinks">{EM_SPACE.join( cLinks )}</p>\n' + makeBottom(3, 'book', state)
-    #     checkHtml( thisBible.abbreviation, bkHtml )
-    #     with open( filepath, 'wt', encoding='utf-8' ) as bkHtmlFile:
-    #         bkHtmlFile.write( bkHtml )
-    #     vPrint( 'Info', DEBUGGING_THIS_MODULE, f"        {len(bkHtml):,} characters written to {filepath}" )
     # Create index page
     filename = 'index.html'
     filenames.append( filename )
