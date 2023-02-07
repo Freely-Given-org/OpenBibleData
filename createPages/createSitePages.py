@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
-# createPages.py
+# createSitePages.py
 #
-# Module handling OpenBibleData createPages functions
+# Module handling OpenBibleData createSitePages functions
 #
 # Copyright (C) 2023 Robert Hunt
 # Author: Robert Hunt <Freely.Given.org+BOS@gmail.com>
@@ -23,7 +23,7 @@
 #   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 """
-Module handling createPages functions.
+Module handling createSitePages functions.
 
 BibleOrgSys uses a three-character book code to identify books.
     These referenceAbbreviations are nearly always represented as BBB in the program code
@@ -57,17 +57,19 @@ from createInterlinearPages import createInterlinearPages
 from html import makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-02-06' # by RJH
-SHORT_PROGRAM_NAME = "createPages"
+LAST_MODIFIED_DATE = '2023-02-07' # by RJH
+SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData Create Pages"
-PROGRAM_VERSION = '0.16'
+PROGRAM_VERSION = '0.17'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
 ALL_PRODUCTION_BOOKS = True # Set to False for a faster test build
 
 TEMP_BUILD_FOLDER = Path( '/tmp/OBDHtmlPages/' )
-DESTINATION_FOLDER = Path( '../htmlPagesTest/' if BibleOrgSysGlobals.debugFlag else '../htmlPages/' )
+DESTINATION_FOLDER = Path( '../htmlPages/' )
+DEBUG_DESTINATION_FOLDER = DESTINATION_FOLDER.joinpath( 'Test/')
+
 
 OET_BOOK_LIST = ['MRK','JHN','EPH','TIT','JN3']
 OET_BOOK_LIST_WITH_FRT = ['FRT','INT','MRK','JHN','EPH','TIT','JN3']
@@ -234,11 +236,11 @@ class State:
 state = State()
 
 
-def createPages() -> bool:
+def createSitePages() -> bool:
     """
     Build all the pages in a temporary location
     """
-    fnPrint( DEBUGGING_THIS_MODULE, "createPages()")
+    fnPrint( DEBUGGING_THIS_MODULE, "createSitePages()")
 
     # Preload our various Bibles
     numLoadedVersions = preloadVersions( state )
@@ -301,19 +303,26 @@ def createPages() -> bool:
 
     createParallelPages( TEMP_BUILD_FOLDER.joinpath('parallel'), state )
 
-    if not BibleOrgSysGlobals.debugFlag and not DEBUGGING_THIS_MODULE:
-        # Now move the site from our temporary location to overwrite the destination location
-        cleanHTMLFolders( DESTINATION_FOLDER )
-        # Note: shutil.copy2 is the same as copy but keeps metadata like creation and modification times
+    # Now move the site from our temporary location to overwrite the destination location
+    destinationFolder = DEBUG_DESTINATION_FOLDER if BibleOrgSysGlobals.debugFlag or DEBUGGING_THIS_MODULE else DESTINATION_FOLDER
+    cleanHTMLFolders( destinationFolder )
+    # Note: shutil.copy2 is the same as copy but keeps metadata like creation and modification times
+    count = 0
+    for filepath in glob.glob( f'{TEMP_BUILD_FOLDER}/*' ):
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Moving {filepath} to {destinationFolder}…" )
+        shutil.move( filepath, destinationFolder, copy_function=shutil.copy2)
+        count += 1
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Moved {count} files and folders into {destinationFolder}." )
+    # else:
+    #     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\nLeft files and folders in {TEMP_BUILD_FOLDER}." )
+    if destinationFolder != DESTINATION_FOLDER:
         count = 0
-        for filepath in glob.glob( f'{TEMP_BUILD_FOLDER}/*' ):
-            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Moving {filepath} to {DESTINATION_FOLDER}…" )
-            shutil.move( filepath, DESTINATION_FOLDER, copy_function=shutil.copy2)
+        for filepath in glob.glob( f'{DESTINATION_FOLDER}/*.css' ):
+            vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Copying {filepath}…" )
+            shutil.copy2( filepath, destinationFolder )
             count += 1
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Moved {count} files and folders into {DESTINATION_FOLDER}." )
-    else:
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\nLeft files and folders in {TEMP_BUILD_FOLDER}." )
-# end of createPages.createPages
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Copied {count} stylesheets to {destinationFolder}." )
+# end of createSitePages.createSitePages
 
 
 def cleanHTMLFolders( folder:Path ) -> bool:
@@ -329,7 +338,7 @@ def cleanHTMLFolders( folder:Path ) -> bool:
     try: shutil.rmtree( folder.joinpath( 'interlinear/' ) )
     except FileNotFoundError: pass
     return True
-# end of createPages.cleanHTMLFolders
+# end of createSitePages.cleanHTMLFolders
 
 
 def createOETVersionPages( folder:Path, rvBible, lvBible, state:State ) -> bool:
@@ -340,7 +349,7 @@ def createOETVersionPages( folder:Path, rvBible, lvBible, state:State ) -> bool:
     createOETChapterPages( folder.joinpath('byChapter'), rvBible, lvBible, state )
     # _chapterFilenameList = createOETChapterPages( folder.joinpath('byChapter'), rvBible, lvBible, state )
     return True
-# end of createPages.createOETVersionPages
+# end of createSitePages.createOETVersionPages
 
 def createVersionPages( folder:Path, thisBible, state:State ) -> bool:
     """
@@ -350,7 +359,7 @@ def createVersionPages( folder:Path, thisBible, state:State ) -> bool:
     createChapterPages( folder.joinpath('byChapter'), thisBible, state )
     # _chapterFilenameList = createChapterPages( folder.joinpath('byChapter'), thisBible, state )
     return True
-# end of createPages.createVersionPages
+# end of createSitePages.createVersionPages
 
 
 def createIndexPage( level, folder:Path, state ) -> bool:
@@ -360,7 +369,10 @@ def createIndexPage( level, folder:Path, state ) -> bool:
     html = makeTop( level, 'topIndex', None, state ) \
             .replace( '__TITLE__', 'Open Bible Data' ) \
             .replace( '__KEYWORDS__', 'Bible, translation, English, OET' )
-    bodyHtml = """<!--createIndexPage--><h1>Open Bible Data</h1>
+    if BibleOrgSysGlobals.debugFlag or DEBUGGING_THIS_MODULE:
+        html = html.replace( '<body>', '<body><p><a href="../">UP TO MAIN NON-TEST SITE</a></p>')
+    bodyHtml = """<!--createIndexPage--><h1>Open Bible Data TEST</h1>
+""" if BibleOrgSysGlobals.debugFlag or DEBUGGING_THIS_MODULE else """<!--createIndexPage--><h1>Open Bible Data</h1>
 """
     html += bodyHtml + '\n' + makeBottom( level, 'topIndex', state )
     filepath = folder.joinpath( 'index.html' )
@@ -377,9 +389,9 @@ def briefDemo() -> None:
     """
     BibleOrgSysGlobals.introduceProgram( __name__, PROGRAM_NAME_VERSION, LAST_MODIFIED_DATE )
 
-    # Demo the createPages object
-    createPages()
-# end of createPages.briefDemo
+    # Demo the createSitePages object
+    createSitePages()
+# end of createSitePages.briefDemo
 
 def fullDemo() -> None:
     """
@@ -387,9 +399,9 @@ def fullDemo() -> None:
     """
     BibleOrgSysGlobals.introduceProgram( __name__, PROGRAM_NAME_VERSION, LAST_MODIFIED_DATE )
 
-    # Demo the createPages object
-    createPages()
-# end of createPages.fullDemo
+    # Demo the createSitePages object
+    createSitePages()
+# end of createSitePages.fullDemo
 
 if __name__ == '__main__':
     from multiprocessing import freeze_support
@@ -402,4 +414,4 @@ if __name__ == '__main__':
     fullDemo()
 
     BibleOrgSysGlobals.closedown( PROGRAM_NAME, PROGRAM_VERSION )
-# end of createPages.py
+# end of createSitePages.py

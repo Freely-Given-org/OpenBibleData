@@ -50,10 +50,10 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 # from Bibles import fetchChapter
 
 
-LAST_MODIFIED_DATE = '2023-02-05' # by RJH
+LAST_MODIFIED_DATE = '2023-02-07' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
-PROGRAM_VERSION = '0.14'
+PROGRAM_VERSION = '0.15'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -68,10 +68,14 @@ def do_OET_LV_HTMLcustomisations( html:str ) -> str:
     """
     OET-LV is often formatted as a new line for each sentence.
 
-    We have to protect fields like '../C2_V2.html' from corruption.
+    We have to protect fields like periods in '../C2_V2.html' from corruption
+        (and then restore them again of course).
     """
     return html \
-            .replace( '../', '~~UP~DIR~~' ).replace( '_V', '~~V' ).replace( '.html', '~~HTML~~' ) \
+            .replace( '<!--', '~~COMMENT~~' ) \
+            .replace( '../', '~~UP~DIR~~' ).replace( '_V', '~~V' ) \
+            .replace( '.html', '~~HTML~~' ).replace( 'https:', '~~HTTPS~~' ) \
+            .replace( '.org', '~~ORG~~' ).replace( 'v0.', '~~v0~~' ) \
             .replace( '.', '.<br>\n' ).replace( '?', '?<br>\n' ) \
             .replace( '!', '!<br>\n' ).replace( ':', ':<br>\n' ) \
             .replace( '<span class="add">+', '<span class="addArticle">' ) \
@@ -80,7 +84,10 @@ def do_OET_LV_HTMLcustomisations( html:str ) -> str:
             .replace( '<span class="add">>', '<span class="addExtra">' ) \
             .replace( '<span class="add">^', '<span class="addOwner">' ) \
             .replace( '_', '<span class="ul">_</span>') \
-            .replace( '~~UP~DIR~~', '../' ).replace( '~~V', '_V' ).replace( '~~HTML~~', '.html' )
+            .replace( '~~COMMENT~~', '<!--' ) \
+            .replace( '~~UP~DIR~~', '../' ).replace( '~~V', '_V' ) \
+            .replace( '~~HTML~~', '.html' ).replace( '~~HTTPS~~', 'https:' ) \
+            .replace( '~~ORG~~', '.org' ).replace( '~~v0~~', 'v0.' )
 # end of html.do_OET_LV_HTMLcustomisations
 
 
@@ -205,6 +212,29 @@ def _makeFooter( level:int, pageType:str, state ) -> str:
 </div><!--footer-->"""
     return html
 # end of html._makeFooter
+
+def removeDuplicateCVids( html:str ) -> str:
+    """
+    Where we have OET parallel RV and LV, we get doubled ids like <span class="v" id="C2V6">
+
+    This function removes the second id field in each case (which should be in the LV text).
+    """
+    startSearchIndex = 0
+    while True:
+        startIx = html.find( ' id="C', startSearchIndex )
+        if startIx == -1: break # None / no more
+        endIx = html.find( '>', startIx+6 )
+        assert endIx != -1
+        idContents = html[startIx:endIx]
+        assert 7 < len(idContents) < 14
+        idCount = html.count( idContents, startIx )
+        assert 1 <= idCount <= 2
+        if idCount == 2:
+            html = f"{html[:endIx]}{html[endIx:].replace( idContents, '', 1 )}"
+            assert html.count( idContents ) == 1
+        startSearchIndex += len( idContents )
+    return html
+# end of html.removeDuplicateCVids
 
 def checkHtml( where:str, html:str, segmentOnly:bool=False ) -> None:
     """

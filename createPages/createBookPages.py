@@ -38,13 +38,13 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 
 from usfm import convertUSFMMarkerListToHtml
 from html import do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, \
-                    makeTop, makeBottom, checkHtml
+                    makeTop, makeBottom, removeDuplicateCVids, checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-02-06' # by RJH
+LAST_MODIFIED_DATE = '2023-02-07' # by RJH
 SHORT_PROGRAM_NAME = "createBookPages"
 PROGRAM_NAME = "OpenBibleData createBookPages functions"
-PROGRAM_VERSION = '0.15'
+PROGRAM_VERSION = '0.16'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -103,23 +103,72 @@ def createOETBookPages( folder:Path, rvBible, lvBible, state ) -> List[str]:
 '''
         rvVerseEntryList, rvContextList = rvBible.getContextVerseData( (BBB,) )
         lvVerseEntryList, lvContextList = lvBible.getContextVerseData( (BBB,) )
-        rvHtml = convertUSFMMarkerListToHtml( 'OET', (BBB,), 'book', rvContextList, rvVerseEntryList )
+        rvHtml = livenIORs( convertUSFMMarkerListToHtml( 'OET', (BBB,), 'book', rvContextList, rvVerseEntryList ) )
         lvHtml = do_OET_LV_HTMLcustomisations( convertUSFMMarkerListToHtml( 'OET', (BBB,), 'book', lvContextList, lvVerseEntryList ) )
-        rvHtml = '<div class="chunkRV">' + rvHtml + '</div><!--chunkRV-->\n'
-        lvHtml = '<div class="chunkLV">' + lvHtml + '</div><!--chunkLV-->\n'
+
+        # Now we have to divide the RV and the LV into an equal number of chunks (so they mostly line up)
+        # First get the header and intro chunks
+        ixBHend = rvHtml.index( '<!--bookHeader-->\n' ) + 18
+        ixBIend = rvHtml.index( '<!--bookIntro-->\n', ixBHend ) + 17
+        rvSections = [ rvHtml[:ixBHend], rvHtml[ixBHend:ixBIend] ] + rvHtml[ixBIend:].split( '<div class="s1">' )
+        ixBHend = lvHtml.index( '<!--bookHeader-->\n' ) + 18
+        try: ixBIend = lvHtml.index( '<!--bookIntro-->\n', ixBHend ) + 17 # No intro expected in OET-LV
+        except ValueError: ixBIend = lvHtml.index( '<span id="C', ixBHend )
+        lvChunks, lvRest = [ lvHtml[:ixBHend], lvHtml[ixBHend:ixBIend] ], lvHtml[ixBIend:]
+        # Now try to match the rv sections
+        for n,rvSectionHtml in enumerate( rvSections[2:] ):
+            # print( f"\n{n}: {rvSectionHtml=}" )
+            try:
+                CclassIndex1 = rvSectionHtml.index( 'id="C' )
+                CclassIndex2 = rvSectionHtml.index( '"', CclassIndex1+4 )
+                rvStartCV = rvSectionHtml[CclassIndex1+4:CclassIndex2]
+                CclassIndex8 = rvSectionHtml.rindex( 'id="C' )
+                CclassIndex9 = rvSectionHtml.index( '"', CclassIndex8+4 )
+                rvEndCV = rvSectionHtml[CclassIndex8+4:CclassIndex9]
+                # dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"\n  {BBB} {n:,}: {rvStartCV=} {rvEndCV=}")
+            except ValueError:
+                dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  {n:,}: No Cid in {rvSectionHtml=}" )
+                rvStartCV, rvEndCV = '', 'C1'
+                # halt
+            ixEndCV = lvRest.rindex( f' id="{rvEndCV}"' )
+            try: ixNextCV = lvRest.index( f' id="C', ixEndCV+5 )
+            except ValueError: ixNextCV = len( lvRest ) - 1
+            # print( f"\n{n}: {lvRest[ixEndCV:ixNextCV+10]=}" )
+            # Find our way back to the start of the HTML marker
+            for x in range( 30 ):
+                LVindex8 = ixNextCV - x
+                if lvRest[LVindex8] == '<':
+                    break
+            else:
+                dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{lvRest[LVindex8-50:LVindex8+50]}")
+                not_far_enough
+            # print( f"\n{n}: {lvRest[ixEndCV:LVindex8]=}" )
+            lvChunks.append( lvRest[:LVindex8])
+            lvRest = lvRest[LVindex8:]
+
+        assert len(lvChunks) == len(rvSections), f"{len(lvChunks)=} {len(rvSections)=}"
+
+        # Now put all the chunks together
+        combinedHtml = ''
+        for rvSection,lvChunk in zip( rvSections, lvChunks, strict=True ):
+            if rvSection.startswith( '<div class="rightBox">' ):
+                rvSection = f'<div class="s1">{rvSection}' # This got removed above
+            combinedHtml = f'''{combinedHtml}<div class="chunkRV">{rvSection}</div><!--chunkRV-->
+<div class="chunkLV">{lvChunk}</div><!--chunkLV-->
+'''
         filename = f'{BBB}.html'
         filenames.append( filename )
         filepath = folder.joinpath( filename )
-        top = makeTop( 3, 'OETBook', f'byDocument/{filename}', state ) \
+        top = makeTop( 3, 'OETbook', f'byDocument/{filename}', state ) \
                 .replace( '__TITLE__', f'OET {tidyBBB}' ) \
                 .replace( '__KEYWORDS__', f'Bible, OET, Open English Translation, book' ) \
                 .replace( f'''<a title="{state.BibleNames['OET']}" href="{'../'*3}versions/OET/byDocument/{filename}">OET</a>''',
                           f'''<a title="Up to {state.BibleNames['OET']}" href="{'../'*3}versions/OET/">↑OET</a>''' )
         bkHtml = top + '<!--book page-->' \
-                    + bkHtml + rvHtml + lvHtml \
+                    + bkHtml + removeDuplicateCVids( combinedHtml ) \
                     + '</div><!--container-->\n' \
-                    + makeBottom( 3, 'OETBook', state )
-        checkHtml( 'OETBook', bkHtml )
+                    + makeBottom( 3, 'OETbook', state )
+        checkHtml( 'OETbook', bkHtml )
         with open( filepath, 'wt', encoding='utf-8' ) as bkHtmlFile:
             bkHtmlFile.write( bkHtml )
         vPrint( 'Info', DEBUGGING_THIS_MODULE, f"        {len(bkHtml):,} characters written to {filepath}" )
@@ -133,14 +182,14 @@ def createOETBookPages( folder:Path, rvBible, lvBible, state ) -> List[str]:
     filename = 'index.html'
     filenames.append( filename )
     filepath = folder.joinpath( filename )
-    top = makeTop( 3, 'OETBook', None, state ) \
+    top = makeTop( 3, 'OETbook', None, state ) \
             .replace( '__TITLE__', f'OET Chapter View' ) \
             .replace( '__KEYWORDS__', f'Bible, OET, Open English Translation, chapters' ) \
             .replace( f'''<a title="{state.BibleNames['OET']}" href="{'../'*3}versions/OET">OET</a>''', 'OET' )
     indexHtml = top \
                 + '<h1>OET book pages</h1><h2>Index of books</h2>\n' \
                 + f'<p class="bLinks">{EM_SPACE.join( BBBLinks )}</p>\n' \
-                + makeBottom( 3, 'OETBook', state )
+                + makeBottom( 3, 'OETbook', state )
     checkHtml( 'OETBooksIndex', indexHtml )
     with open( filepath, 'wt', encoding='utf-8' ) as bkHtmlFile:
         bkHtmlFile.write( indexHtml )
@@ -185,6 +234,7 @@ def createBookPages( folder:Path, thisBible, state ) -> List[str]:
 '''
         verseEntryList, contextList = thisBible.getContextVerseData( (BBB,) )
         textHtml = convertUSFMMarkerListToHtml( thisBible.abbreviation, (BBB,), 'book', contextList, verseEntryList )
+        textHtml = livenIORs( textHtml )
         if thisBible.abbreviation == 'OET-LV':
             textHtml = do_OET_LV_HTMLcustomisations( textHtml )
         elif thisBible.abbreviation == 'LSV':
@@ -230,6 +280,33 @@ def createBookPages( folder:Path, thisBible, state ) -> List[str]:
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createBookPages() finished processing {len(BBBs)} {thisBible.abbreviation} books: {BBBs}" )
     return filenames
 # end of createBookPages.createBookPages
+
+
+def livenIORs( bookHTML:str ) -> str:
+    """
+    """
+    assert '\\ior' not in bookHTML
+
+    searchStartIx = 0
+    while True:
+        ixSpanStart = bookHTML.find( '<span class="ior">', searchStartIx )
+        if ixSpanStart == -1: break
+        ixEnd = bookHTML.find( '</span>', ixSpanStart+18 )
+        assert ixEnd != -1
+        guts = bookHTML[ixSpanStart+18:ixEnd].replace('–','-') # Convert any en-dash to hyphen
+        # print(f"{BBB} {guts=} {bookHTML[ix-20:ix+20]} {searchStartIx=} {ixSpanStart=} {ixEnd=}")
+        startGuts = guts.split('-')[0]
+        # print(f"  Now {guts=}")
+        if ':' in startGuts:
+            assert startGuts.count(':') == 1 # We expect a single C:V at this stage
+            Cstr, Vstr = startGuts.strip().split( ':' )
+        else: Cstr, Vstr = startGuts.strip(), '1' # Only a chapter was given
+        new_guts = f'<a href="#C{Cstr}V{Vstr}">{guts}</a>'
+        bookHTML = f'{bookHTML[:ixSpanStart+18]}{new_guts}{bookHTML[ixEnd:]}'
+        searchStartIx = ixEnd + 10
+
+    return bookHTML
+# end of createBookPages.livenIORs function
 
 
 def briefDemo() -> None:

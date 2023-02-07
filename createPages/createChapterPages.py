@@ -38,13 +38,13 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 
 from usfm import convertUSFMMarkerListToHtml
 from html import do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, \
-                    makeTop, makeBottom, checkHtml
+                    makeTop, makeBottom, removeDuplicateCVids, checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-02-06' # by RJH
+LAST_MODIFIED_DATE = '2023-02-07' # by RJH
 SHORT_PROGRAM_NAME = "createChapterPages"
 PROGRAM_NAME = "OpenBibleData createChapterPages functions"
-PROGRAM_VERSION = '0.15'
+PROGRAM_VERSION = '0.16'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -125,6 +125,7 @@ def createOETChapterPages( folder:Path, rvBible, lvBible, state ) -> List[str]:
                 lvHtml = do_OET_LV_HTMLcustomisations( convertUSFMMarkerListToHtml( 'OET', (BBB,c), 'chapter', lvContextList, lvVerseEntryList ) )
                 rvHtml = '<div class="chunkRV">' + rvHtml + '</div><!--chunkRV-->\n'
                 lvHtml = '<div class="chunkLV">' + lvHtml + '</div><!--chunkLV-->\n'
+                combinedHtml = removeDuplicateCVids( f'{rvHtml}{lvHtml}' )
                 filename = f'{BBB}_Intro.html' if c==-1 else f'{BBB}_C{c}.html'
                 filenames.append( filename )
                 filepath = folder.joinpath( filename )
@@ -134,7 +135,7 @@ def createOETChapterPages( folder:Path, rvBible, lvBible, state ) -> List[str]:
                         .replace( f'''<a title="{state.BibleNames['OET']}" href="{'../'*3}versions/OET/byChapter/{filename}">OET</a>''',
                                   f'''<a title="Up to {state.BibleNames['OET']}" href="{'../'*3}versions/OET">↑OET</a>''' )
                 cHtml = top + '<!--chapter page-->' \
-                            + cHtml + rvHtml + lvHtml \
+                            + cHtml + combinedHtml \
                             + '</div><!--container-->\n' \
                             + makeBottom( 3, 'OETChapters', state )
                 checkHtml( 'OETChapterIndex', cHtml )
