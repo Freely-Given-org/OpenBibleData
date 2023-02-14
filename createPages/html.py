@@ -50,10 +50,10 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 # from Bibles import fetchChapter
 
 
-LAST_MODIFIED_DATE = '2023-02-07' # by RJH
+LAST_MODIFIED_DATE = '2023-02-15' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
-PROGRAM_VERSION = '0.15'
+PROGRAM_VERSION = '0.18'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -207,8 +207,8 @@ def _makeFooter( level:int, pageType:str, state ) -> str:
     """
     # fnPrint( DEBUGGING_THIS_MODULE, f"_makeFooter()" )
     html = """<div class="footer">
-<p class="copyright"><small>Preliminary <em>Open Bible Data</em> site copyright © 2023 <a href="https://Freely-Given.org">Freely-Given.org</a></small></p>
-<p class="copyright"><small>For Bible data copyrights, see the licence for each displayed Bible version (not there yet!!!).</small></p>
+<p class="copyright"><small><em>Open Bible Data</em> site copyright © 2023 <a href="https://Freely-Given.org">Freely-Given.org</a></small></p>
+<p class="copyright"><small>For Bible data copyrights, see the details for each displayed Bible version.</small></p>
 </div><!--footer-->"""
     return html
 # end of html._makeFooter
@@ -236,7 +236,7 @@ def removeDuplicateCVids( html:str ) -> str:
     return html
 # end of html.removeDuplicateCVids
 
-def checkHtml( where:str, html:str, segmentOnly:bool=False ) -> None:
+def checkHtml( where:str, html:str, segmentOnly:bool=False ) -> bool:
     """
     Just do some very quick and basic tests
         that our HTML makes some sense.
@@ -254,9 +254,21 @@ def checkHtml( where:str, html:str, segmentOnly:bool=False ) -> None:
 
     for marker,startMarker in (('div','<div'),('p','<p '),('h1','<h1'),('h2','<h2'),('h3','<h3'),('em','<em>'),('i','<i>'),('b','<b>'),('sup','<sup>'),('sub','<sub>')):
         if html.count( startMarker ) != html.count( f'</{marker}>' ):
-            try: errMsg = f"Mismatched '{marker}' start and end markers {where} {segmentOnly} {html.count(startMarker)}!={html.count(f'</{marker}>')} {html[html.index(startMarker):]}"
-            except ValueError: errMsg = f"Mismatched '{marker}' start and end markers {where} {segmentOnly} {html.count(startMarker)}!={html.count(f'</{marker}>')} {html[:html.index(f'</{marker}>')]}"
-            logging.critical( errMsg )
+            # try: errMsg = f"Mismatched '{marker}' start and end markers '{where}' {segmentOnly=} {html.count(startMarker)}!={html.count(f'</{marker}>')} …{html[html.index(startMarker):]}"
+            # except ValueError: errMsg = f"Mismatched '{marker}' start and end markers '{where}' {segmentOnly=} {html.count(startMarker)}!={html.count(f'</{marker}>')} {html[:html.index(f'</{marker}>')]}…"
+            # logging.critical( errMsg )
+            ixStartMarker = html.find( startMarker )
+            ixEndMarker = html.find( f'</{marker}>' )
+            ixMinStart = min( 9999999 if ixStartMarker==-1 else ixStartMarker, 9999999 if ixEndMarker==-1 else ixEndMarker )
+            ixRStartMarker = html.rfind( startMarker )
+            ixREndMarker = html.rfind( f'</{marker}>' )
+            ixMinEnd = min( ixRStartMarker, ixREndMarker )
+            logging.critical( f"Mismatched '{marker}' start and end markers '{where}' {segmentOnly=} {html.count(startMarker)}!={html.count(f'</{marker}>')}"
+                              f" {'…' if ixMinStart>0 else ''}{html[ixMinStart:ixMinEnd+5]}{'…' if ixMinEnd+5<len(html) else ''}" )
+            if DEBUGGING_THIS_MODULE: print( f"\nComplete {html=}\n")
+            return False
+
+    return True
 # end of html.checkHtml
 
 

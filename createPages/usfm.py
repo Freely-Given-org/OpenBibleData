@@ -35,9 +35,9 @@ fullDemo() -> None
 main calls fullDemo()
 """
 from gettext import gettext as _
-# from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple
 from pathlib import Path
-# import os
+import re
 import logging
 
 # sys.path.append( '../../BibleOrgSys/BibleOrgSys/' )
@@ -48,10 +48,10 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 from html import checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-02-07' # by RJH
+LAST_MODIFIED_DATE = '2023-02-15' # by RJH
 SHORT_PROGRAM_NAME = "usfm"
 PROGRAM_NAME = "OpenBibleData USFM to HTML functions"
-PROGRAM_VERSION = '0.16'
+PROGRAM_VERSION = '0.19'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -80,7 +80,7 @@ def convertUSFMMarkerListToHtml( versionAbbreviation:str, refTuple:tuple, segmen
             rest = '--unknown--'
             if not basicOnly:
                 html = f'{html}<div class="{marker}"><p class="s1">{rest}</p>\n'
-            inSection = marker
+                inSection = marker
         elif marker == 'p':
             if not basicOnly:
                 html = f'{html}<p class="p">'
@@ -199,7 +199,7 @@ def convertUSFMMarkerListToHtml( versionAbbreviation:str, refTuple:tuple, segmen
                             inRightDiv = True
                         else:
                             html = f'{html}<div class="{marker}"><p class="{marker}">{formatUSFMText(versionAbbreviation, refTuple, segmentType, rest, basicOnly)}</p>\n'
-                    inSection = marker
+                        inSection = marker
                 else: # for s2/3/4 we add a heading, but don't consider it a section
                     if not basicOnly:
                         html = f'{html}<p class="{marker}">{formatUSFMText(versionAbbreviation, refTuple, segmentType, rest, basicOnly)}</p>\n'
@@ -296,7 +296,7 @@ def convertUSFMMarkerListToHtml( versionAbbreviation:str, refTuple:tuple, segmen
                 html = f'{html}<span class="{marker}">{formatUSFMText(versionAbbreviation, refTuple, segmentType, rest, basicOnly)}</span>\n'
             elif not basicOnly:
                 html = f'{html}<p class="{marker}">{formatUSFMText(versionAbbreviation, refTuple, segmentType, rest, basicOnly)}</p>\n'
-        # The following should all have their own data and get converted to a simple <p>...</p> field
+        # The following should all have their own data and get converted to a simple <p>…</p> field
         elif marker in ('mr','sr', 'd', 'sp', 'cp', 'qa','qc','qd'):
             if not rest:
                 logging.critical( f"Expected field text {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} {marker=}" )
@@ -390,7 +390,7 @@ def convertUSFMMarkerListToHtml( versionAbbreviation:str, refTuple:tuple, segmen
             assert rest
             assert not inRightDiv
             html = f'{html}{NARROW_NON_BREAK_SPACE}{formatUSFMText(versionAbbreviation, refTuple, segmentType, rest, basicOnly)}{NARROW_NON_BREAK_SPACE}'
-        # The following should all have their own data and get converted to a simple <p>...</p> field
+        # The following should all have their own data and get converted to a simple <p>…</p> field
         elif marker in ('ip','im', 'io1','io2','io3','io4'):
             assert rest
             assert not inSection and not inParagraph, f"{versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {marker}={rest}"
@@ -417,11 +417,15 @@ def convertUSFMMarkerListToHtml( versionAbbreviation:str, refTuple:tuple, segmen
             inSection = marker
         elif marker == 'headers':
             assert not rest
+            assert segmentType != 'verse'
+            assert not basicOnly
             if not inMainDiv:
                 inMainDiv = 'bookHeader'
                 html = f'{html}<div class="{inMainDiv}">'
         elif marker == 'intro':
             assert not rest
+            assert segmentType != 'verse'
+            assert not basicOnly
             if inMainDiv == 'bookHeader':
                 html = f'{html}</div><!--{inMainDiv}-->\n'
                 inMainDiv = None
@@ -430,18 +434,23 @@ def convertUSFMMarkerListToHtml( versionAbbreviation:str, refTuple:tuple, segmen
                 html = f'{html}<div class="{inMainDiv}">'
         elif marker in ('ie', '¬intro', 'chapters'):
             assert not rest
+            assert segmentType != 'verse'
+            assert not basicOnly
             if inMainDiv:
                 html = f'{html}</div><!--{inMainDiv}-->\n'
                 inMainDiv = None
         elif marker not in ('id','usfm','ide', 'sts',
                             'h', 'toc1','toc2','toc3', '¬headers',
                             'v=', 'c#', 'cl¤', '¬c', '¬chapters'): # We can ignore all of these
-            # logging.critical( f"Unexpected '{marker}' marker at {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {rest=}" )
-            raise Exception( f"Unexpected marker {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {marker}={rest}" )
+            if versionAbbreviation=='UST' and 'ACT' in refTuple: # Bad USFM encoding at UST Act 26:29-30
+                logging.critical( f"Unexpected '{marker}' marker at {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {rest=}" )
+            else:
+                raise Exception( f"Unexpected '{marker}' marker {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {rest=}" )
         if '\\f ' not in html and '\\x ' not in html: # they're handled down below
             if '\\' in html:
                 logging.critical( f"Left-over backslash in {versionAbbreviation} '{segmentType}' {basicOnly=} {refTuple} {C}:{V} '{html}'" )
-                raise Exception( f"Left-over backslash {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} '{html}'" )
+                if versionAbbreviation!='UST' or 'MAT' not in refTuple: # UST MAT has an encoding fault in 12:20 14Feb2023
+                    raise Exception( f"Left-over backslash {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} '{html}'" )
     if inParagraph:
         if not basicOnly:
             logging.critical( f"convertUSFMMarkerListToHtml final unclosed paragraph {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} last {marker=}" )
@@ -561,7 +570,8 @@ def convertUSFMMarkerListToHtml( versionAbbreviation:str, refTuple:tuple, segmen
         searchStartIx = fEndIx + 3
     else: outer_fn_loop_needed_to_break
     if footnotesHtml:
-        checkHtml( f"{versionAbbreviation} {segmentType} {basicOnly=} {BBB} footnote {fnoteMiddle=}", footnotesHtml, segmentOnly=True )
+        if not checkHtml( f"Footnotes for {versionAbbreviation} {segmentType} {basicOnly=} {BBB} {fnoteMiddle=}", footnotesHtml, segmentOnly=True ):
+            if DEBUGGING_THIS_MODULE: halt
         html = f'{html}<hr><div class="footnotes">\n{footnotesHtml}</div><!--footnotes-->\n'
     if versionAbbreviation not in ('T4T','BRN',): # T4T ISA 33:8, BRN KI1 6:36a
         assert '\\f' not in html, f"{html[html.index(f'{BACKSLASH}f')-10:html.index(f'{BACKSLASH}f')+12]}"
@@ -584,10 +594,32 @@ def convertUSFMMarkerListToHtml( versionAbbreviation:str, refTuple:tuple, segmen
             xoText = html[xoIx+3:xtIx].strip()
         xEndIx = html.find( '\\x*', xtIx+3 )
         assert xEndIx != -1
-        xrefMiddle = html[xtIx+4:xEndIx].replace('\\xo ','').replace('\\xt ','') # Fix things like "Gen 25:9-10; \xo b \xt Gen 35:29."
-        xrefCaller = f'<span class="xrCaller" title="See also {xrefMiddle}">[<a href="#xr{crossReferencesCount}">ref</a>]</span>' # was †
+
+        # Liven the cross-references themselves
+        xrefLiveMiddle = xrefOriginalMiddle = html[xtIx+4:xEndIx]
+        xrefOriginalMiddle = xrefOriginalMiddle.replace('\\xo ','').replace('\\xt ','') # Fix things like "Gen 25:9-10; \\xo b \\xt Gen 35:29."
+        # print( f" {xrefLiveMiddle=}")
+        assert xrefLiveMiddle.count('\\xo ') == xrefLiveMiddle.count('\\xo '), f"{xrefLiveMiddle=}"
+        xrefLiveMiddle = xrefLiveMiddle.replace('\\xo ','<b>').replace('\\xt ','</b>') # Fix things like "Gen 25:9-10; \\xo b \\xt Gen 35:29."
+        # TODO: The following code does not work for one chapter books (Jude 5), additional Vs (Mrk 3:4,5), or additional CVs (Mrk 3:4; 4:5)
+        # TODO: The following code is untidy, not including combined verses in the link, e.g., Mrk 3:4-5
+        refRegEx = re.compile( '([1-3]? ?[A-Z][a-z]{0,3}) ([1-9][0-9]{0,2}):([1-9][0-9]{0,2})' )
+        reStartIx = 0
+        match = refRegEx.search( xrefLiveMiddle, reStartIx )
+        while match:
+            # print( match.groups() )
+            xB, xC, xV = match.groups()
+            xBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromText( xB )
+            xrefLiveMiddle = f'{xrefLiveMiddle[:match.start()]}<a href="{xBBB}.html#C{xC}V{xV}">{match.group()}</a>{xrefLiveMiddle[match.end():]}'
+            reStartIx = match.end() + 28 # approx number of characters that we add
+            match = refRegEx.search( xrefLiveMiddle, reStartIx )
+        # print( f"  {xrefLiveMiddle=}")
+
+        # Now create the caller and the actual xref
+        xrefCaller = f'<span class="xrCaller" title="See also {xrefOriginalMiddle}">[<a href="#xr{crossReferencesCount}">ref</a>]</span>' # was †
         xrefRef = ''
         if xoText:
+            # TODO: The following code is untidy, marking b, c, d, in bold (above), but including a in the first link (which returns to the caller)
             xrCV = xoText
             if '-' in xoText or '–' in xoText:
                 xrCV = xoText.replace('–','-').split('-',1)[0]
@@ -600,18 +632,20 @@ def convertUSFMMarkerListToHtml( versionAbbreviation:str, refTuple:tuple, segmen
                 logging.critical( f"What is CV ref for xref ref: '{xoText}'")
                 xrCV = ''
             xrefRef = f'<span class="xrRef"><a href="{xrCV}">{xoText}</a></span> '
-        xrefText = f'<p class="xr" id="xr{crossReferencesCount}">{xrefRef}<span class="xrText">{xrefMiddle}</span></p>\n'
+        xrefText = f'<p class="xr" id="xr{crossReferencesCount}">{xrefRef}<span class="xrText">{xrefLiveMiddle}</span></p>\n'
         crossReferencesHtml = f'{crossReferencesHtml}{xrefText}'
         html = f'{html[:xStartIx]}{xrefCaller}{html[xEndIx+3:]}'
         searchStartIx = xEndIx + 3
     else: outer_xr_loop_needed_to_break
     if crossReferencesHtml:
-        checkHtml( f"{versionAbbreviation} {segmentType} {basicOnly=} {BBB} xref {xrefMiddle=}", crossReferencesHtml, segmentOnly=True )
+        if not checkHtml( f"Cross-references for {versionAbbreviation} {segmentType} {basicOnly=} {BBB}", crossReferencesHtml, segmentOnly=True ):
+            if DEBUGGING_THIS_MODULE: halt
         html = f'{html}<hr><div class="crossRefs">\n{crossReferencesHtml}</div><!--crossRefs-->\n'
     if versionAbbreviation not in ('BRN',): # BRN ISA 52
         assert '\\x' not in html, f"{html[html.index(f'{BACKSLASH}x')-10:html.index(f'{BACKSLASH}x')+12]}"
 
-    checkHtml( f'convertUSFMMarkerListToHtml({versionAbbreviation} {refTuple} {segmentType} {basicOnly=})', html, segmentOnly=True )
+    if not checkHtml( f'convertUSFMMarkerListToHtml({versionAbbreviation} {refTuple} {segmentType} {basicOnly=})', html, segmentOnly=True ):
+        if DEBUGGING_THIS_MODULE: halt
     return html
 # end of usfm.convertUSFMMarkerListToHtml
 
@@ -658,7 +692,7 @@ def formatUSFMText( versionAbbreviation:str, refTuple:tuple, segmentType:str, us
             # NET from eBible.org seems to have a mix,
             #   e.g., "\\w So|strong="H6213"\\w* \\w the king\\w* \\w stayed\\w*"
             searchStartIx = 0
-            for _safetyCount in range( 199 ):
+            for _safetyCount in range( 299 ):
                 wStartIx = html.find( '\\w ', searchStartIx )
                 if wStartIx == -1: break # no more to find -- all done
                 pipeIx = html.find( '|', wStartIx+3 ) # Might be -1 if there's no more, or might be more than wEndIx if there's none in this word
@@ -671,7 +705,9 @@ def formatUSFMText( versionAbbreviation:str, refTuple:tuple, segmentType:str, us
                 word = html[wStartIx+3:wEndIx] if pipeIx==-1 else html[wStartIx+3:pipeIx]
                 html = f'{html[:wStartIx]}{word}{html[wEndIx+3:]}'
                 searchStartIx += len(word) # coz we've made the html much shorter
-            else: w_loop_needed_to_break
+            else:
+                wCount = usfmField.count( '\\w ' )
+                raise Exception( f"formatUSFMText() w loop needed to break at {versionAbbreviation} {refTuple} '{segmentType}' with ({wCount:,}) '{usfmField}'" )
             assert '\\w ' not in html, f"{html[html.index(f'{BACKSLASH}x')-10:html.index(f'{BACKSLASH}x')+12]}" # Note: can still be \\wj in text
 
     # First replace the character markers which have specific HMTL equivalents
@@ -690,8 +726,10 @@ def formatUSFMText( versionAbbreviation:str, refTuple:tuple, segmentType:str, us
         logging.critical( f"Removing ts marker in {versionAbbreviation} {refTuple} {segmentType} {basicOnly=}…")
         html = html.replace( '\\ts\\*', '' )
     if '\\f ' not in html and '\\x ' not in html:
-        assert '\\' not in html, f"{versionAbbreviation=} {refTuple=} {segmentType=} '{usfmField=}' {basicOnly=} '{html}'"
-    checkHtml( f'formatUSFMText({versionAbbreviation} {refTuple} {segmentType} {basicOnly=})', html, segmentOnly=True )
+        if versionAbbreviation!='UST' or 'MAT' not in refTuple: # UST MAT has an encoding fault in 12:20 14Feb2023
+            assert '\\' not in html, f"{versionAbbreviation=} {refTuple=} {segmentType=} '{usfmField=}' {basicOnly=} '{html}'"
+    if not checkHtml( f'formatUSFMText({versionAbbreviation} {refTuple} {segmentType} {basicOnly=})', html, segmentOnly=True ):
+        if DEBUGGING_THIS_MODULE: halt
     return html
 # end of usfm.formatUSFMText
 

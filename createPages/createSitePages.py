@@ -57,17 +57,18 @@ from createInterlinearPages import createInterlinearPages
 from html import makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-02-07' # by RJH
+LAST_MODIFIED_DATE = '2023-02-15' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData Create Pages"
-PROGRAM_VERSION = '0.17'
+PROGRAM_VERSION = '0.19'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
-DEBUGGING_THIS_MODULE = False
+DEBUGGING_THIS_MODULE = False # Adds debugging statements and writes website into Test folder if True
 ALL_PRODUCTION_BOOKS = True # Set to False for a faster test build
 
 TEMP_BUILD_FOLDER = Path( '/tmp/OBDHtmlPages/' )
 DESTINATION_FOLDER = Path( '../htmlPages/' )
+# Following (subfolder) is used if BibleOrgSysGlobals.debugFlag or DEBUGGING_THIS_MODULE
 DEBUG_DESTINATION_FOLDER = DESTINATION_FOLDER.joinpath( 'Test/')
 
 
@@ -106,37 +107,6 @@ class State:
                 'SR-GNT':('<b>','</b>'),'UGNT':('<small>','</small>'),'SBL-GNT':('<small>','</small>'),
                 'Parallel':('<b>','</b>'), 'Interlinear':('<small>','</small>'),
                 }
-    BibleNames = {
-                'OET': 'Open English Translation (2025)',
-                'OET-RV': 'Open English Translation—Readers’ Version (2025)',
-                'OET-LV': 'Open English Translation—Literal Version (2024)',
-                'ULT': 'unfoldingWord Literal Text (2023)',
-                'UST': 'unfoldingWord Simplified Text (2023)',
-                'OEB': 'Open English Bible (in progress)',
-                'BSB': 'Berean Study/Standard Bible (2020)',
-                'ISV': 'International Standard Version (2020?)',
-                'WEB': 'World English Bible (2020)',
-                'NET': 'New English Translation (2016)',
-                'LSV': 'Literal Standard Version (2020)',
-                'FBV': 'Free Bible Version (2018)',
-                'T4T': 'Translation for Translators (2017)',
-                'BBE': 'Bible in Basic English (1965)',
-                'ASV': 'American Standard Version (1901)',
-                'YLT': 'Youngs Literal Translation (1898)',
-                'DBY': 'Darby Translation (1890)',
-                'RV': 'Revised Version (1885)',
-                'KJB': 'King James Bible (1769)',
-                'GNV': 'Geneva Bible (1599)',
-                'TNT': 'Tyndale New Testament (1526)',
-                'WYC': 'Wycliffe Bible (1382)',
-                'JPS': 'Jewish Publication Society TaNaKH (1917)',
-                'DRA': 'Douay-Rheims American Edition (1899)',
-                'BRN' : 'Brenton Septuagint Translation (1851)',
-                'UHB': 'unfoldingWord Hebrew Bible (2022)',
-                'SR-GNT': 'Statistic Restoration Greek New Testament (2022)',
-                'UGNT': 'unfoldingWord Greek New Testament (2022)',
-                'SBL-GNT': 'Society for Biblical Literature Greek New Testament (2020???)',
-                }
     BibleLocations = {
                 # NOTE: The program will still run if some of these are commented out or removed (e.g., for a faster test)
                 'OET-RV': ['../../OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/'],
@@ -166,6 +136,37 @@ class State:
                 'SR-GNT': ['../../Forked/CNTR-SR/SR usfm/'],
                 'UGNT': ['../copiedBibles/Original/unfoldingWord.org/UGNT/'],
                 'SBL-GNT': ['../../Forked/SBLGNT/data/sblgnt/text/'],
+                }
+    BibleNames = {
+                'OET': 'Open English Translation (2027)',
+                'OET-RV': 'Open English Translation—Readers’ Version (2027)',
+                'OET-LV': 'Open English Translation—Literal Version (2025)',
+                'ULT': 'unfoldingWord Literal Text (2023)',
+                'UST': 'unfoldingWord Simplified Text (2023)',
+                'OEB': 'Open English Bible (in progress)',
+                'BSB': 'Berean Study/Standard Bible (2020)',
+                'ISV': 'International Standard Version (2020?)',
+                'WEB': 'World English Bible (2020)',
+                'NET': 'New English Translation (2016)',
+                'LSV': 'Literal Standard Version (2020)',
+                'FBV': 'Free Bible Version (2018)',
+                'T4T': 'Translation for Translators (2017)',
+                'BBE': 'Bible in Basic English (1965)',
+                'ASV': 'American Standard Version (1901)',
+                'YLT': 'Youngs Literal Translation (1898)',
+                'DBY': 'Darby Translation (1890)',
+                'RV': 'Revised Version (1885)',
+                'KJB': 'King James Bible (1769)',
+                'GNV': 'Geneva Bible (1599)',
+                'TNT': 'Tyndale New Testament (1526)',
+                'WYC': 'Wycliffe Bible (1382)',
+                'JPS': 'Jewish Publication Society TaNaKH (1917)',
+                'DRA': 'Douay-Rheims American Edition (1899)',
+                'BRN': 'Brenton Septuagint Translation (1851)',
+                'UHB': 'unfoldingWord Hebrew Bible (2022)',
+                'SR-GNT': 'Statistic Restoration Greek New Testament (2022)',
+                'UGNT': 'unfoldingWord Greek New Testament (2022)',
+                'SBL-GNT': 'Society for Biblical Literature Greek New Testament (2020???)',
                 }
     booksToLoad = {
                 'OET': OET_BOOK_LIST_WITH_FRT,
@@ -252,14 +253,18 @@ def createSitePages() -> bool:
     createIndexPage( 0, TEMP_BUILD_FOLDER, state )
 
     # Ok, let's go create some static pages
-    try: os.makedirs( TEMP_BUILD_FOLDER.joinpath( 'versions/' ) )
+    versionsFolder = TEMP_BUILD_FOLDER.joinpath( 'versions/' )
+    try: os.makedirs( versionsFolder )
     except FileExistsError: pass # they were already there
+    createDetailsPages( 1, versionsFolder, state )
+
+
     if 'OET' in state.BibleVersions: # this is a special case
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nCreating version pages for OET…" )
         versionFolder = TEMP_BUILD_FOLDER.joinpath( f'versions/OET/' )
         if createOETVersionPages( versionFolder, state.preloadedBibles['OET-RV'], state.preloadedBibles['OET-LV'], state ):
             indexHtml = f'''<p class="rem">Remember that ancient letters were meant to be read in their entirety just like modern letters. We provide a byChapter mode for convenience only, but recommend the byDocument mode for personal reading.</p>
-<p class="viewNav"><a href="byDocument">By Document</a>{EM_SPACE}<a href="byChapter">By Chapter</a></p>
+<p class="viewNav"><a href="byDocument">By Document</a>{EM_SPACE}<a href="byChapter">By Chapter</a>{EM_SPACE}<a href="details.html">Details</a></p>
 '''
             filepath = versionFolder.joinpath( 'index.html' )
             versionName = state.BibleNames['OET']
@@ -276,7 +281,7 @@ def createSitePages() -> bool:
         if createVersionPages( versionFolder, thisBible, state ):
             createInterlinearPages( TEMP_BUILD_FOLDER.joinpath('interlinear'), thisBible, state )
             indexHtml = f'''<p class="rem">Remember that ancient letters were meant to be read in their entirety just like modern letters. We provide a byChapter mode for convenience only, but recommend the byDocument mode for personal reading.</p>
-<p class="viewNav"><a href="byDocument">By Document</a>{EM_SPACE}<a href="byChapter">By Chapter</a></p>
+<p class="viewNav"><a href="byDocument">By Document</a>{EM_SPACE}<a href="byChapter">By Chapter</a>{EM_SPACE}<a href="details.html">Details</a></p>
 '''
             filepath = versionFolder.joinpath( 'index.html' )
             versionName = state.BibleNames[thisBible.abbreviation]
@@ -366,21 +371,144 @@ def createIndexPage( level, folder:Path, state ) -> bool:
     """
     """
     fnPrint( DEBUGGING_THIS_MODULE, f"createIndexPage( {level}, {folder}, {state.BibleVersions} )" )
+
     html = makeTop( level, 'topIndex', None, state ) \
             .replace( '__TITLE__', 'Open Bible Data' ) \
             .replace( '__KEYWORDS__', 'Bible, translation, English, OET' )
     if BibleOrgSysGlobals.debugFlag or DEBUGGING_THIS_MODULE:
-        html = html.replace( '<body>', '<body><p><a href="../">UP TO MAIN NON-TEST SITE</a></p>')
+        # NOTE: Space after p (without class) is to stop tests from failing
+        html = html.replace( '<body>', '<body><p ><a href="../">UP TO MAIN NON-TEST SITE</a></p>')
     bodyHtml = """<!--createIndexPage--><h1>Open Bible Data TEST</h1>
 """ if BibleOrgSysGlobals.debugFlag or DEBUGGING_THIS_MODULE else """<!--createIndexPage--><h1>Open Bible Data</h1>
 """
     html += bodyHtml + '\n' + makeBottom( level, 'topIndex', state )
-    filepath = folder.joinpath( 'index.html' )
     checkHtml( 'TopIndex', html )
+
+    filepath = folder.joinpath( 'index.html' )
     with open( filepath, 'wt', encoding='utf-8' ) as htmlFile:
         htmlFile.write( html )
     vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  {len(html):,} characters written to {filepath}" )
 # end of html.createIndexPage
+
+
+DETAILS_HTML = {
+    'OET': {'about': '<p>The (still unfinished) <em>Open English Translation</em> consists of a <em>Readers’ Version</em> and a <em>Literal Version</em> side by side.</p>',
+            'copyright': '<p>Copyright © 2010-2023 <a href="https://Freely-Given.org">Freely-Given.org</a>.</p>',
+            'licence': '<p>Licence (coming).</p>' },
+    'OET-RV': {'about': '<p>The (still unfinished) <em>Open English Translation Readers’ Version</em> is a new, modern-English easy-to-read translation of the Bible.</p>',
+            'copyright': '<p>Copyright © 2010-2023 <a href="https://Freely-Given.org">Freely-Given.org</a>.</p>',
+            'licence': '<p>Licence (coming).</p>' },
+    'OET-LV': {'about': '<p>The (still unfinished) <em>Open English Translation Literal Version</em> is a tool designed to give a look into what was actually written in the original Hebrew or Greek manuscripts.</p>',
+            'copyright': '<p>Copyright © 2010-2023 <a href="https://Freely-Given.org">Freely-Given.org</a>.</p>',
+            'licence': '<p>Licence (coming).</p>' },
+    'ULT': {'about': '<p>unfoldingWord Literal Text (2023).</p>',
+            'copyright': '<p>Copyright © 2022 by unfoldingWord.</p>',
+            'licence': '<p><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>' },
+    'UST': {'about': '<p>unfoldingWord Simplified Text (2023).</p>',
+            'copyright': '<p>Copyright © 2022 by unfoldingWord.</p>',
+            'licence': '<p><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>' },
+    'OEB': {'about': '<p>Open English Bible (in progress).</p>',
+            'copyright': '<p>Copyright © (coming).</p>',
+            'licence': '<p>Licence (coming).</p>' },
+    'BSB': {'about': '<p>Berean Study/Standard Bible (2020).</p>',
+            'copyright': '<p>Copyright © (coming).</p>',
+            'licence': '<p>Licence (coming).</p>' },
+    'ISV': {'about': '<p>International Standard Version (2020?).</p>',
+            'copyright': '<p>Copyright © (coming).</p>',
+            'licence': '<p>Licence (coming).</p>' },
+    'WEB': {'about': '<p>World English Bible (2020).</p>',
+            'copyright': '<p>Copyright © (coming).</p>',
+            'licence': '<p>Licence (coming).</p>' },
+    'NET': {'about': '<p>New English Translation (2016).</p>',
+            'copyright': '<p>Copyright © (coming).</p>',
+            'licence': '<p>Licence (coming).</p>' },
+    'LSV': {'about': '<p>Literal Standard Version (2020).</p>',
+            'copyright': '<p>Copyright © (coming).</p>',
+            'licence': '<p>Licence (coming).</p>' },
+    'FBV': {'about': '<p>Free Bible Version (2018).</p>',
+            'copyright': '<p>Copyright © (coming).</p>',
+            'licence': '<p>Licence (coming).</p>' },
+    'T4T': {'about': '<p>Translation for Translators (2017).</p>',
+            'copyright': '<p>Copyright © (coming).</p>',
+            'licence': '<p>Licence (coming).</p>' },
+    'BBE': {'about': '<p>Bible in Basic English (1965).</p>',
+            'copyright': '<p>Copyright © (coming).</p>',
+            'licence': '<p>Licence (coming).</p>' },
+    'ASV': {'about': '<p>American Standard Version (1901).</p>',
+            'copyright': '<p>Copyright © (coming).</p>',
+            'licence': '<p>Licence (coming).</p>' },
+    'YLT': {'about': '<p>Youngs Literal Translation (1898).</p>',
+            'copyright': '<p>Copyright © (coming).</p>',
+            'licence': '<p>Licence (coming).</p>' },
+    'DBY': {'about': '<p>Darby Translation (1890).</p>',
+            'copyright': '<p>Copyright © (coming).</p>',
+            'licence': '<p>Licence (coming).</p>' },
+    'RV': {'about': '<p>Revised Version (1885).</p>',
+            'copyright': '<p>Copyright © (coming).</p>',
+            'licence': '<p>Licence (coming).</p>' },
+    'KJB': {'about': '<p>King James Bible (1769).</p>',
+            'copyright': '<p>Copyright © (coming).</p>',
+            'licence': '<p>Licence (coming).</p>' },
+    'GNV': {'about': '<p>Geneva Bible (1599).</p>',
+            'copyright': '<p>Copyright © (coming).</p>',
+            'licence': '<p>Licence (coming).</p>' },
+    'TNT': {'about': '<p>Tyndale New Testament (1526).</p>',
+            'copyright': '<p>Copyright © (coming).</p>',
+            'licence': '<p>Licence (coming).</p>' },
+    'WYC': {'about': '<p>Wycliffe Bible (1382).</p>',
+            'copyright': '<p>Copyright © (coming).</p>',
+            'licence': '<p>Licence (coming).</p>' },
+    'JPS': {'about': '<p>Jewish Publication Society TaNaKH (1917).</p>',
+            'copyright': '<p>Copyright © (coming).</p>',
+            'licence': '<p>Licence (coming).</p>' },
+    'DRA': {'about': '<p>Douay-Rheims American Edition (1899).</p>',
+            'copyright': '<p>Copyright © (coming).</p>',
+            'licence': '<p>Licence (coming).</p>' },
+    'BRN': {'about': '<p>Brenton Septuagint Translation (1851).</p>',
+            'copyright': '<p>Copyright © (coming).</p>',
+            'licence': '<p>Licence (coming).</p>' },
+    'UHB': {'about': '<p>unfoldingWord Hebrew Bible (2022).</p>',
+            'copyright': '<p>Copyright © (coming).</p>',
+            'licence': '<p>Licence (coming).</p>' },
+    'SR-GNT': {'about': '<p>Statistic Restoration Greek New Testament (2022).</p>',
+            'copyright': '<p>Copyright © (coming).</p>',
+            'licence': '<p>Licence (coming).</p>' },
+    'UGNT': {'about': '<p>unfoldingWord Greek New Testament (2022).</p>',
+            'copyright': '<p>Copyright © (coming).</p>',
+            'licence': '<p>Licence (coming).</p>' },
+    'SBL-GNT': {'about': '<p>Society for Biblical Literature Greek New Testament (2020???).</p>',
+            'copyright': '<p>Copyright © (coming).</p>',
+            'licence': '<p>Licence (coming).</p>' },
+    }
+
+def createDetailsPages( level, folder:Path, state ) -> bool:
+    """
+    """
+    fnPrint( DEBUGGING_THIS_MODULE, f"createDetailsPages( {level}, {folder}, {state.BibleVersions} )" )
+
+    for versionAbbreviation in ['OET'] + [vA for vA in state.preloadedBibles]:
+        versionName = state.BibleNames[versionAbbreviation]
+
+        topHtml = makeTop( level+1, 'topIndex', None, state ) \
+                .replace( '__TITLE__', f'{versionName} Details' ) \
+                .replace( '__KEYWORDS__', 'Bible, details, copyright, licence' )
+        bodyHtml = f"""<!--createDetailsPages--><h1>{versionName} Details</h1>
+<h2>About</h2>{DETAILS_HTML[versionAbbreviation]['about']}
+<h2>Copyright</h2>{DETAILS_HTML[versionAbbreviation]['copyright']}
+<h2>Licence</h2>{DETAILS_HTML[versionAbbreviation]['licence']}
+"""
+        html = topHtml + bodyHtml + '\n' + makeBottom( level+1, 'topIndex', state )
+        checkHtml( f'{versionAbbreviation} details', html )
+
+        versionFolder = folder.joinpath( f'{versionAbbreviation}/' )
+        try: os.makedirs( versionFolder )
+        except FileExistsError: pass # they were already there
+
+        filepath = versionFolder.joinpath( 'details.html' )
+        with open( filepath, 'wt', encoding='utf-8' ) as htmlFile:
+            htmlFile.write( html )
+        vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  {len(html):,} characters written to {filepath}" )
+# end of html.createDetailsPages
 
 
 def briefDemo() -> None:
