@@ -41,10 +41,10 @@ from html import do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, \
                     makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-02-05' # by RJH
+LAST_MODIFIED_DATE = '2023-02-16' # by RJH
 SHORT_PROGRAM_NAME = "createParallelPages"
 PROGRAM_NAME = "OpenBibleData createParallelPages functions"
-PROGRAM_VERSION = '0.11'
+PROGRAM_VERSION = '0.13'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -126,7 +126,7 @@ def createParallelBookPages( folder:Path, BBB:str, BBBLinks:List[str], state ) -
             if numVerses is None: # something unusual
                 logging.critical( f"createParallelBookPages: no verses found for {BBB} {c}" )
                 continue
-            for v in range( 1, numVerses ):
+            for v in range( 1, numVerses+1 ):
                 leftVLink = f'<a href="C{c}_V{v-1}.html">←</a>{EM_SPACE}' if v>1 else ''
                 rightVLink = f'{EM_SPACE}<a href="C{c}_V{v+1}.html">→</a>' if v<numVerses else ''
                 leftCLink = f'<a href="C{c-1}_V1.html">◄</a>{EM_SPACE}' if c>1 else ''
@@ -153,19 +153,19 @@ def createParallelBookPages( folder:Path, BBB:str, BBBLinks:List[str], state ) -
                         elif versionAbbreviation == 'LSV':
                             textHtml = do_LSV_HTMLcustomisations( textHtml )
                         vHtml = f'''
-<h3 class="cnav"><a title="{state.BibleNames[versionAbbreviation]}" href="../../versions/{versionAbbreviation}/byChapter/{BBB}_C{c}.html">{versionAbbreviation}</a></h3>
+<h3 class="cnav"><a title="{state.BibleNames[versionAbbreviation]}" href="../../versions/{versionAbbreviation}/byChapter/{BBB}_C{c}.html">{versionAbbreviation}</a> <small>{state.BibleNames[versionAbbreviation]}</small></h3>
 {textHtml}
 '''
                     except (KeyError, TypeError):
                         if BBB in thisBible:
                             text = f'No {versionAbbreviation} {tidyBBB} {c}:{v} verse available'
                             logging.warning( text )
-                            vHtml = f'''<h3 class="cnav"><a title="{state.BibleNames[versionAbbreviation]}" href="../../versions/{versionAbbreviation}/byChapter/{BBB}_C{c}.html">{versionAbbreviation}</a></h3>
+                            vHtml = f'''<h3 class="cnav"><a title="{state.BibleNames[versionAbbreviation]}" href="../../versions/{versionAbbreviation}/byChapter/{BBB}_C{c}.html">{versionAbbreviation}</a> <small>{state.BibleNames[versionAbbreviation]}</small></h3>
 <p class="noVerse"><small>{text}</small></p>
 '''
                         else:
                             text = f'No {versionAbbreviation} {tidyBBB} book available'
-                            vHtml = f'''<h3 class="cnav">{versionAbbreviation}</h3>
+                            vHtml = f'''<h3 class="cnav">{versionAbbreviation} <small>{state.BibleNames[versionAbbreviation]}</small></h3>
 <p class="noBook"><small>{text}</small></p>
 '''
                     # dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"\n\n{pHtml=} {vHtml=}" )
@@ -175,7 +175,7 @@ def createParallelBookPages( folder:Path, BBB:str, BBBLinks:List[str], state ) -
                 # filenames.append( filename )
                 filepath = folder.joinpath( filename )
                 top = makeTop( 2, 'parallel', None, state ) \
-                        .replace( '__TITLE__', f'Parallel {tidyBBB} {c}:{v}' ) \
+                        .replace( '__TITLE__', f'{tidyBBB} {c}:{v} Parallel View' ) \
                         .replace( '__KEYWORDS__', f'Bible, {tidyBBB}, parallel' )
                 pHtml = top + '<!--parallel verse page-->' + pHtml + makeBottom( 2, 'parallel', state )
                 checkHtml( f'Parallel {BBB} {c}:{v}', pHtml )
@@ -192,7 +192,7 @@ def createParallelBookPages( folder:Path, BBB:str, BBBLinks:List[str], state ) -
     filename = 'index.html'
     filepath = folder.joinpath( filename )
     top = makeTop(2, 'parallel', None, state) \
-            .replace( '__TITLE__', f'Parallel View for {tidyBBB}' ) \
+            .replace( '__TITLE__', f'{tidyBBB} Parallel View' ) \
             .replace( '__KEYWORDS__', f'Bible, parallel' )
     indexHtml = f'{top}{adjBBBLinksHtml}\n' \
                 + f'<h1>{BBB} parallel verses index</h1>\n<p class="vLinks">{EM_SPACE.join( vLinks )}</p>\n' \
