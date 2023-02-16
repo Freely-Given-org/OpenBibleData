@@ -39,6 +39,7 @@ span.c { font-size:1.1em; color:green; }
 span.v { vertical-align:super; font-size:0.5em; color:red; }
 span.cv { vertical-align:super; font-size:0.8em; color:orange; }
 span.vp { vertical-align:super; font-size:0.5em; color:purple; }
+span.d { font-style:italic; }
 p.s1 { margin-top:0.1em; margin-bottom:0; font-weight:bold; }
 p.r { margin-top:0; margin-bottom:0; font-size:0.75em; }
 p.p { text-indent:0.5em; margin-top:0.2em; margin-bottom:0.2em; }

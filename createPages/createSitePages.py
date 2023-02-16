@@ -57,19 +57,20 @@ from createInterlinearPages import createInterlinearPages
 from html import makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-02-15' # by RJH
+LAST_MODIFIED_DATE = '2023-02-16' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData Create Pages"
-PROGRAM_VERSION = '0.19'
+PROGRAM_VERSION = '0.20'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging statements and writes website into Test folder if True
 ALL_PRODUCTION_BOOKS = True # Set to False for a faster test build
 
 TEMP_BUILD_FOLDER = Path( '/tmp/OBDHtmlPages/' )
-DESTINATION_FOLDER = Path( '../htmlPages/' )
-# Following (subfolder) is used if BibleOrgSysGlobals.debugFlag or DEBUGGING_THIS_MODULE
-DEBUG_DESTINATION_FOLDER = DESTINATION_FOLDER.joinpath( 'Test/')
+NORMAL_DESTINATION_FOLDER = Path( '../htmlPages/' )
+DEBUG_DESTINATION_FOLDER = NORMAL_DESTINATION_FOLDER.joinpath( 'Test/')
+DESTINATION_FOLDER = DEBUG_DESTINATION_FOLDER if BibleOrgSysGlobals.debugFlag or DEBUGGING_THIS_MODULE \
+                        else NORMAL_DESTINATION_FOLDER
 
 
 OET_BOOK_LIST = ['MRK','JHN','EPH','TIT','JN3']
@@ -279,7 +280,7 @@ def createSitePages() -> bool:
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nCreating version pages for {thisBible.abbreviation}…" )
         versionFolder = TEMP_BUILD_FOLDER.joinpath( f'versions/{thisBible.abbreviation}/' )
         if createVersionPages( versionFolder, thisBible, state ):
-            createInterlinearPages( TEMP_BUILD_FOLDER.joinpath('interlinear'), thisBible, state )
+            createInterlinearPages( TEMP_BUILD_FOLDER.joinpath('interlinear/'), thisBible, state )
             indexHtml = f'''<p class="rem">Remember that ancient letters were meant to be read in their entirety just like modern letters. We provide a byChapter mode for convenience only, but recommend the byDocument mode for personal reading.</p>
 <p class="viewNav"><a href="byDocument">By Document</a>{EM_SPACE}<a href="byChapter">By Chapter</a>{EM_SPACE}<a href="details.html">Details</a></p>
 '''
@@ -306,27 +307,27 @@ def createSitePages() -> bool:
     state.allBBBs = BibleOrgSysGlobals.loadedBibleBooksCodes.getSequenceList( allBBBs )
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\nDiscovered {len(state.allBBBs)} books across {len(state.preloadedBibles)} versions: {state.allBBBs}" )
 
-    createParallelPages( TEMP_BUILD_FOLDER.joinpath('parallel'), state )
+    createParallelPages( TEMP_BUILD_FOLDER.joinpath('parallel/'), state )
 
-    # Now move the site from our temporary location to overwrite the destination location
-    destinationFolder = DEBUG_DESTINATION_FOLDER if BibleOrgSysGlobals.debugFlag or DEBUGGING_THIS_MODULE else DESTINATION_FOLDER
-    cleanHTMLFolders( destinationFolder )
-    # Note: shutil.copy2 is the same as copy but keeps metadata like creation and modification times
+    # Now move the site from our temporary build location to overwrite the destination location
+    cleanHTMLFolders( DESTINATION_FOLDER )
     count = 0
-    for filepath in glob.glob( f'{TEMP_BUILD_FOLDER}/*' ):
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Moving {filepath} to {destinationFolder}…" )
-        shutil.move( filepath, destinationFolder, copy_function=shutil.copy2)
+    for fileOrFolderPath in glob.glob( f'{TEMP_BUILD_FOLDER}/*' ):
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Moving {fileOrFolderPath} to {DESTINATION_FOLDER}…" )
+        # Note: shutil.copy2 is the same as copy but keeps metadata like creation and modification times
+        shutil.move( fileOrFolderPath, DESTINATION_FOLDER, copy_function=shutil.copy2)
         count += 1
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Moved {count} files and folders into {destinationFolder}." )
-    # else:
-    #     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\nLeft files and folders in {TEMP_BUILD_FOLDER}." )
-    if destinationFolder != DESTINATION_FOLDER:
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Moved {count} folders and files into {DESTINATION_FOLDER}." )
+
+    # In DEBUG mode, we need to copy the .css files across
+    if DESTINATION_FOLDER != NORMAL_DESTINATION_FOLDER:
         count = 0
-        for filepath in glob.glob( f'{DESTINATION_FOLDER}/*.css' ):
+        for filepath in glob.glob( f'{NORMAL_DESTINATION_FOLDER}/*.css' ):
             vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Copying {filepath}…" )
-            shutil.copy2( filepath, destinationFolder )
+            # Note: shutil.copy2 is the same as copy but keeps metadata like creation and modification times
+            shutil.copy2( filepath, DESTINATION_FOLDER )
             count += 1
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Copied {count} stylesheets to {destinationFolder}." )
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Copied {count} stylesheets to {DESTINATION_FOLDER}." )
 # end of createSitePages.createSitePages
 
 
@@ -350,8 +351,8 @@ def createOETVersionPages( folder:Path, rvBible, lvBible, state:State ) -> bool:
     """
     """
     fnPrint( DEBUGGING_THIS_MODULE, f"createOETVersionPages( {folder}, {rvBible.abbreviation}, {lvBible.abbreviation} )")
-    createOETBookPages( folder.joinpath('byDocument'), rvBible, lvBible, state )
-    createOETChapterPages( folder.joinpath('byChapter'), rvBible, lvBible, state )
+    createOETBookPages( folder.joinpath('byDocument/'), rvBible, lvBible, state )
+    createOETChapterPages( folder.joinpath('byChapter/'), rvBible, lvBible, state )
     # _chapterFilenameList = createOETChapterPages( folder.joinpath('byChapter'), rvBible, lvBible, state )
     return True
 # end of createSitePages.createOETVersionPages
@@ -360,8 +361,8 @@ def createVersionPages( folder:Path, thisBible, state:State ) -> bool:
     """
     """
     fnPrint( DEBUGGING_THIS_MODULE, f"createVersionPages( {folder}, {thisBible.abbreviation} )")
-    createBookPages( folder.joinpath('byDocument'), thisBible, state )
-    createChapterPages( folder.joinpath('byChapter'), thisBible, state )
+    createBookPages( folder.joinpath('byDocument/'), thisBible, state )
+    createChapterPages( folder.joinpath('byChapter/'), thisBible, state )
     # _chapterFilenameList = createChapterPages( folder.joinpath('byChapter'), thisBible, state )
     return True
 # end of createSitePages.createVersionPages
