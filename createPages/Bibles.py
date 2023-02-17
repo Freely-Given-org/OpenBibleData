@@ -75,7 +75,7 @@ def preloadVersions( state ) -> int:
             assert 'OET-RV' in state.BibleVersions and 'OET-LV' in state.BibleVersions, state.BibleVersions
             continue
         if versionAbbreviation in state.BibleLocations:
-            thisBible = preloadVersion( versionAbbreviation, state.BibleLocations[versionAbbreviation][0], state )
+            thisBible = preloadVersion( versionAbbreviation, state.BibleLocations[versionAbbreviation], state )
             if isinstance(thisBible, Bible):
                 state.preloadedBibles[versionAbbreviation] = thisBible
         else:

@@ -41,10 +41,10 @@ from html import do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, \
                     makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-02-16' # by RJH
+LAST_MODIFIED_DATE = '2023-02-17' # by RJH
 SHORT_PROGRAM_NAME = "createParallelPages"
 PROGRAM_NAME = "OpenBibleData createParallelPages functions"
-PROGRAM_VERSION = '0.13'
+PROGRAM_VERSION = '0.14'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -136,10 +136,13 @@ def createParallelBookPages( folder:Path, BBB:str, BBBLinks:List[str], state ) -
 '''
                 for versionAbbreviation in state.BibleVersions:
                     if versionAbbreviation == 'OET': continue # Skip this pseudo-version as we have OET-RV and OET-LV
-                    if versionAbbreviation in ('UHB',) \
+                    if versionAbbreviation in ('UHB','JPS') \
                     and not BibleOrgSysGlobals.loadedBibleBooksCodes.isOldTestament_NR( BBB):
                         continue # Skip non-OT books for Hebrew
-                    if versionAbbreviation in ('SR-GNT','UGNT') \
+                    if versionAbbreviation in ('Brenton',) \
+                    and BibleOrgSysGlobals.loadedBibleBooksCodes.isNewTestament_NR( BBB):
+                        continue # Skip NT books for Brenton (it has deuterocanon)
+                    if versionAbbreviation in ('TNT', 'SR-GNT','UGNT','SBL-GNT') \
                     and not BibleOrgSysGlobals.loadedBibleBooksCodes.isNewTestament_NR( BBB):
                         continue # Skip non-NT books for Koine Greek NT
                     thisBible = state.preloadedBibles[versionAbbreviation]
@@ -153,19 +156,19 @@ def createParallelBookPages( folder:Path, BBB:str, BBBLinks:List[str], state ) -
                         elif versionAbbreviation == 'LSV':
                             textHtml = do_LSV_HTMLcustomisations( textHtml )
                         vHtml = f'''
-<h3 class="cnav"><a title="{state.BibleNames[versionAbbreviation]}" href="../../versions/{versionAbbreviation}/byChapter/{BBB}_C{c}.html">{versionAbbreviation}</a> <small>{state.BibleNames[versionAbbreviation]}</small></h3>
+<h3 class="cnav"><a title="{state.BibleNames[versionAbbreviation]}" href="../../versions/{versionAbbreviation}/byChapter/{BBB}_C{c}.html">{versionAbbreviation}</a>{EM_SPACE}<small>{state.BibleNames[versionAbbreviation]}</small></h3>
 {textHtml}
 '''
                     except (KeyError, TypeError):
                         if BBB in thisBible:
                             text = f'No {versionAbbreviation} {tidyBBB} {c}:{v} verse available'
                             logging.warning( text )
-                            vHtml = f'''<h3 class="cnav"><a title="{state.BibleNames[versionAbbreviation]}" href="../../versions/{versionAbbreviation}/byChapter/{BBB}_C{c}.html">{versionAbbreviation}</a> <small>{state.BibleNames[versionAbbreviation]}</small></h3>
+                            vHtml = f'''<h3 class="cnav"><a title="{state.BibleNames[versionAbbreviation]}" href="../../versions/{versionAbbreviation}/byChapter/{BBB}_C{c}.html">{versionAbbreviation}</a>{EM_SPACE}<small>{state.BibleNames[versionAbbreviation]}</small></h3>
 <p class="noVerse"><small>{text}</small></p>
 '''
                         else:
                             text = f'No {versionAbbreviation} {tidyBBB} book available'
-                            vHtml = f'''<h3 class="cnav">{versionAbbreviation} <small>{state.BibleNames[versionAbbreviation]}</small></h3>
+                            vHtml = f'''<h3 class="cnav">{versionAbbreviation}{EM_SPACE}<small>{state.BibleNames[versionAbbreviation]}</small></h3>
 <p class="noBook"><small>{text}</small></p>
 '''
                     # dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"\n\n{pHtml=} {vHtml=}" )

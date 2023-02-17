@@ -50,10 +50,10 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 # from Bibles import fetchChapter
 
 
-LAST_MODIFIED_DATE = '2023-02-15' # by RJH
+LAST_MODIFIED_DATE = '2023-02-17' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
-PROGRAM_VERSION = '0.18'
+PROGRAM_VERSION = '0.19'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -122,7 +122,7 @@ def makeTop( level:int, pageType:str, filename:Optional[str], state ) -> str:
 <head>
   <title>__TITLE__</title>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="user-scalable=yes, initial-scale=1, minimum-scale=1, width=device-width">
   <meta name="keywords" content="__KEYWORDS__">
   <link rel="stylesheet" type="text/css" href="{'../'*level}OETChapter.css">
   <script src="{'../'*level}Bible.js"></script>
@@ -132,7 +132,7 @@ def makeTop( level:int, pageType:str, filename:Optional[str], state ) -> str:
 <head>
   <title>__TITLE__</title>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="user-scalable=yes, initial-scale=1, minimum-scale=1, width=device-width">
   <meta name="keywords" content="__KEYWORDS__">
   <link rel="stylesheet" type="text/css" href="{'../'*level}{cssFilename}">
 </head><body><!--Level{level}-->{topLink}
@@ -253,7 +253,10 @@ def checkHtml( where:str, html:str, segmentOnly:bool=False ) -> bool:
             assert html.count( f'</{marker}>' ) == 1
 
     for marker,startMarker in (('div','<div'),('p','<p '),('h1','<h1'),('h2','<h2'),('h3','<h3'),('em','<em>'),('i','<i>'),('b','<b>'),('sup','<sup>'),('sub','<sub>')):
-        if html.count( startMarker ) != html.count( f'</{marker}>' ):
+        startCount = html.count( startMarker )
+        if startMarker.endswith( ' ' ): startCount += html.count( f'<{marker}>' )
+        endCount = html.count( f'</{marker}>' )
+        if startCount != endCount:
             # try: errMsg = f"Mismatched '{marker}' start and end markers '{where}' {segmentOnly=} {html.count(startMarker)}!={html.count(f'</{marker}>')} …{html[html.index(startMarker):]}"
             # except ValueError: errMsg = f"Mismatched '{marker}' start and end markers '{where}' {segmentOnly=} {html.count(startMarker)}!={html.count(f'</{marker}>')} {html[:html.index(f'</{marker}>')]}…"
             # logging.critical( errMsg )
@@ -263,7 +266,7 @@ def checkHtml( where:str, html:str, segmentOnly:bool=False ) -> bool:
             ixRStartMarker = html.rfind( startMarker )
             ixREndMarker = html.rfind( f'</{marker}>' )
             ixMinEnd = min( ixRStartMarker, ixREndMarker )
-            logging.critical( f"Mismatched '{marker}' start and end markers '{where}' {segmentOnly=} {html.count(startMarker)}!={html.count(f'</{marker}>')}"
+            logging.critical( f"Mismatched '{marker}' start and end markers '{where}' {segmentOnly=} {startCount}!={endCount}"
                               f" {'…' if ixMinStart>0 else ''}{html[ixMinStart:ixMinEnd+5]}{'…' if ixMinEnd+5<len(html) else ''}" )
             if DEBUGGING_THIS_MODULE: print( f"\nComplete {html=}\n")
             return False

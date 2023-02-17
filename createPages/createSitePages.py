@@ -57,10 +57,10 @@ from createInterlinearPages import createInterlinearPages
 from html import makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-02-16' # by RJH
+LAST_MODIFIED_DATE = '2023-02-17' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData Create Pages"
-PROGRAM_VERSION = '0.20'
+PROGRAM_VERSION = '0.21'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging statements and writes website into Test folder if True
@@ -92,7 +92,7 @@ class State:
                 'ULT','UST', 'OEB',
                 'BSB','ISV',
                 'WEB','NET','LSV','FBV','T4T','BBE',
-                'ASV','YLT','DBY','RV','KJB','GNV',
+                'ASV','YLT','DBY','RV','WBS','KJB','GNV',
                 'TNT','WYC',
                 'JPS','DRA','BRN',
                 'UHB',
@@ -101,7 +101,9 @@ class State:
                 'ULT':('',''),'UST':('',''),'OEB':('',''),
                 'BSB':('',''),'ISV':('',''),
                 'WEB':('',''),'NET':('',''),'LSV':('',''),'FBV':('',''),'T4T':('',''),'BBE':('',''),
-                'ASV':('',''),'YLT':('',''),'DBY':('',''),'RV':('',''),'KJB':('',''),'GNV':('',''),
+                'ASV':('',''),'YLT':('',''),'DBY':('',''),'RV':('',''),
+                'WBS':('<small>','</small>'),
+                'KJB':('',''),'GNV':('',''),
                 'TNT':('',''),'WYC':('',''),
                 'JPS':('<small>','</small>'),'DRA':('<small>','</small>'),'BRN':('<small>','</small>'),
                 'UHB':('',''),
@@ -110,33 +112,34 @@ class State:
                 }
     BibleLocations = {
                 # NOTE: The program will still run if some of these are commented out or removed (e.g., for a faster test)
-                'OET-RV': ['../../OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/'],
-                'OET-LV': ['../../OpenEnglishTranslation--OET/intermediateTexts/auto_edited_VLT_USFM/'], # No OT here yet
-                'ULT': ['../copiedBibles/English/unfoldingWord.org/ULT/'],
-                'UST': ['../copiedBibles/English/unfoldingWord.org/UST/'],
-                'OEB': ['../copiedBibles/English/OEB/'],
-                'BSB': ['../copiedBibles/English/Berean.Bible/BSB/'],
-                'WEB': ['../copiedBibles/English/eBible.org/WEB/'],
-                'NET': ['../copiedBibles/English/eBible.org/NET/'],
-                'LSV': ['../copiedBibles/English/eBible.org/LSV/'],
-                'FBV': ['../copiedBibles/English/eBible.org/FBV/'],
-                'T4T': ['../copiedBibles/English/eBible.org/T4T/'],
-                'BBE': ['../copiedBibles/English/eBible.org/BBE/'],
-                'ASV': ['../copiedBibles/English/eBible.org/ASV/'],
-                'YLT': ['../copiedBibles/English/eBible.org/YLT/'],
-                'DBY': ['../copiedBibles/English/eBible.org/DBY/'],
-                'RV': ['../copiedBibles/English/eBible.org/RV/'], # with deuterocanon
-                'KJB': ['../copiedBibles/English/eBible.org/KJB/'], # with deuterocanon
-                'GNV': ['../copiedBibles/English/eBible.org/GNV/'],
-                'TNT': ['../copiedBibles/English/eBible.org/TNT/'],
-                'WYC': ['../copiedBibles/English/eBible.org/Wycliffe/'],
-                'JPS': ['../copiedBibles/English/eBible.org/JPS/'],
-                'DRA': ['../copiedBibles/English/eBible.org/DRA/'],
-                'BRN': ['../copiedBibles/English/eBible.org/Brenton/'], # with deuterocanon and OTH,XXA,XXB,XXC,
-                'UHB': ['../copiedBibles/Original/unfoldingWord.org/UHB/'],
-                'SR-GNT': ['../../Forked/CNTR-SR/SR usfm/'],
-                'UGNT': ['../copiedBibles/Original/unfoldingWord.org/UGNT/'],
-                'SBL-GNT': ['../../Forked/SBLGNT/data/sblgnt/text/'],
+                'OET-RV': '../../OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/',
+                'OET-LV': '../../OpenEnglishTranslation--OET/intermediateTexts/auto_edited_VLT_USFM/', # No OT here yet
+                'ULT': '../copiedBibles/English/unfoldingWord.org/ULT/',
+                'UST': '../copiedBibles/English/unfoldingWord.org/UST/',
+                'OEB': '../copiedBibles/English/OEB/',
+                'BSB': '../copiedBibles/English/Berean.Bible/BSB/',
+                'WEB': '../copiedBibles/English/eBible.org/WEB/',
+                'NET': '../copiedBibles/English/eBible.org/NET/',
+                'LSV': '../copiedBibles/English/eBible.org/LSV/',
+                'FBV': '../copiedBibles/English/eBible.org/FBV/',
+                'T4T': '../copiedBibles/English/eBible.org/T4T/',
+                'BBE': '../copiedBibles/English/eBible.org/BBE/',
+                'ASV': '../copiedBibles/English/eBible.org/ASV/',
+                'YLT': '../copiedBibles/English/eBible.org/YLT/',
+                'DBY': '../copiedBibles/English/eBible.org/DBY/',
+                'RV': '../copiedBibles/English/eBible.org/RV/', # with deuterocanon
+                'WBS': '../copiedBibles/English/eBible.org/RV/',
+                'KJB': '../copiedBibles/English/eBible.org/KJB/', # with deuterocanon
+                'GNV': '../copiedBibles/English/eBible.org/GNV/',
+                'TNT': '../copiedBibles/English/eBible.org/TNT/',
+                'WYC': '../copiedBibles/English/eBible.org/Wycliffe/',
+                'JPS': '../copiedBibles/English/eBible.org/JPS/',
+                'DRA': '../copiedBibles/English/eBible.org/DRA/',
+                'BRN': '../copiedBibles/English/eBible.org/Brenton/', # with deuterocanon and OTH,XXA,XXB,XXC,
+                'UHB': '../copiedBibles/Original/unfoldingWord.org/UHB/',
+                'SR-GNT': '../../Forked/CNTR-SR/SR usfm/',
+                'UGNT': '../copiedBibles/Original/unfoldingWord.org/UGNT/',
+                'SBL-GNT': '../../Forked/SBLGNT/data/sblgnt/text/',
                 }
     BibleNames = {
                 'OET': 'Open English Translation (2027)',
@@ -157,6 +160,7 @@ class State:
                 'YLT': 'Youngs Literal Translation (1898)',
                 'DBY': 'Darby Translation (1890)',
                 'RV': 'Revised Version (1885)',
+                'WBS': 'Webster Bible (American, 1833)',
                 'KJB': 'King James Bible (1769)',
                 'GNV': 'Geneva Bible (1599)',
                 'TNT': 'Tyndale New Testament (1526)',
@@ -187,6 +191,7 @@ class State:
                 'YLT': ['ALL'],
                 'DBY': ['ALL'],
                 'RV': ['ALL'],
+                'WBS': ['ALL'],
                 'KJB': ['ALL'],
                 'GNV': ['ALL'],
                 'TNT': ['ALL'],
@@ -216,6 +221,7 @@ class State:
                 'YLT': ['MRK'],
                 'DBY': ['MRK'],
                 'RV': ['MRK'],
+                'WBS': ['MRK'],
                 'KJB': ['MRK'],
                 'GNV': ['MRK'],
                 'TNT': ['MRK'],
@@ -377,8 +383,7 @@ def createIndexPage( level, folder:Path, state ) -> bool:
             .replace( '__TITLE__', 'Open Bible Data' ) \
             .replace( '__KEYWORDS__', 'Bible, translation, English, OET' )
     if BibleOrgSysGlobals.debugFlag or DEBUGGING_THIS_MODULE:
-        # NOTE: Space after p (without class) is to stop tests from failing
-        html = html.replace( '<body>', '<body><p ><a href="../">UP TO MAIN NON-TEST SITE</a></p>')
+        html = html.replace( '<body>', '<body><p><a href="../">UP TO MAIN NON-TEST SITE</a></p>')
     bodyHtml = """<!--createIndexPage--><h1>Open Bible Data TEST</h1>
 """ if BibleOrgSysGlobals.debugFlag or DEBUGGING_THIS_MODULE else """<!--createIndexPage--><h1>Open Bible Data</h1>
 """
@@ -395,13 +400,13 @@ def createIndexPage( level, folder:Path, state ) -> bool:
 DETAILS_HTML = {
     'OET': {'about': '<p>The (still unfinished) <em>Open English Translation</em> consists of a <em>Readers’ Version</em> and a <em>Literal Version</em> side by side.</p>',
             'copyright': '<p>Copyright © 2010-2023 <a href="https://Freely-Given.org">Freely-Given.org</a>.</p>',
-            'licence': '<p>Licence (coming).</p>' },
+            'licence': '<p>Licence: (coming).</p>' },
     'OET-RV': {'about': '<p>The (still unfinished) <em>Open English Translation Readers’ Version</em> is a new, modern-English easy-to-read translation of the Bible.</p>',
             'copyright': '<p>Copyright © 2010-2023 <a href="https://Freely-Given.org">Freely-Given.org</a>.</p>',
-            'licence': '<p>Licence (coming).</p>' },
+            'licence': '<p>Licence: (coming).</p>' },
     'OET-LV': {'about': '<p>The (still unfinished) <em>Open English Translation Literal Version</em> is a tool designed to give a look into what was actually written in the original Hebrew or Greek manuscripts.</p>',
             'copyright': '<p>Copyright © 2010-2023 <a href="https://Freely-Given.org">Freely-Given.org</a>.</p>',
-            'licence': '<p>Licence (coming).</p>' },
+            'licence': '<p>Licence: (coming).</p>' },
     'ULT': {'about': '<p>unfoldingWord Literal Text (2023).</p>',
             'copyright': '<p>Copyright © 2022 by unfoldingWord.</p>',
             'licence': '<p><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>' },
@@ -410,85 +415,103 @@ DETAILS_HTML = {
             'licence': '<p><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>' },
     'OEB': {'about': '<p>Open English Bible (in progress).</p>',
             'copyright': '<p>Copyright © (coming).</p>',
-            'licence': '<p>Licence (coming).</p>' },
+            'licence': '<p>Licence: (coming).</p>' },
     'BSB': {'about': '<p>Berean Study/Standard Bible (2020).</p>',
             'copyright': '<p>Copyright © (coming).</p>',
-            'licence': '<p>Licence (coming).</p>' },
+            'licence': '<p>Licence: (coming).</p>' },
     'ISV': {'about': '<p>International Standard Version (2020?).</p>',
             'copyright': '<p>Copyright © (coming).</p>',
-            'licence': '<p>Licence (coming).</p>' },
+            'licence': '<p>Licence: (coming).</p>' },
     'WEB': {'about': '<p>World English Bible (2020).</p>',
             'copyright': '<p>Copyright © (coming).</p>',
-            'licence': '<p>Licence (coming).</p>' },
+            'licence': '<p>Licence: (coming).</p>' },
     'NET': {'about': '<p>New English Translation (2016).</p>',
             'copyright': '<p>Copyright © (coming).</p>',
-            'licence': '<p>Licence (coming).</p>' },
+            'licence': '<p>Licence: (coming).</p>' },
     'LSV': {'about': '<p>Literal Standard Version (2020).</p>',
             'copyright': '<p>Copyright © (coming).</p>',
-            'licence': '<p>Licence (coming).</p>' },
+            'licence': '<p>Licence: (coming).</p>' },
     'FBV': {'about': '<p>Free Bible Version (2018).</p>',
             'copyright': '<p>Copyright © (coming).</p>',
-            'licence': '<p>Licence (coming).</p>' },
+            'licence': '<p>Licence: (coming).</p>' },
     'T4T': {'about': '<p>Translation for Translators (2017).</p>',
             'copyright': '<p>Copyright © (coming).</p>',
-            'licence': '<p>Licence (coming).</p>' },
+            'licence': '<p>Licence: (coming).</p>' },
     'BBE': {'about': '<p>Bible in Basic English (1965).</p>',
             'copyright': '<p>Copyright © (coming).</p>',
-            'licence': '<p>Licence (coming).</p>' },
+            'licence': '<p>Licence: (coming).</p>' },
     'ASV': {'about': '<p>American Standard Version (1901).</p>',
             'copyright': '<p>Copyright © (coming).</p>',
-            'licence': '<p>Licence (coming).</p>' },
+            'licence': '<p>Licence: (coming).</p>' },
     'YLT': {'about': '<p>Youngs Literal Translation (1898).</p>',
             'copyright': '<p>Copyright © (coming).</p>',
-            'licence': '<p>Licence (coming).</p>' },
+            'licence': '<p>Licence: (coming).</p>' },
     'DBY': {'about': '<p>Darby Translation (1890).</p>',
             'copyright': '<p>Copyright © (coming).</p>',
-            'licence': '<p>Licence (coming).</p>' },
+            'licence': '<p>Licence: (coming).</p>' },
     'RV': {'about': '<p>Revised Version (1885).</p>',
             'copyright': '<p>Copyright © (coming).</p>',
-            'licence': '<p>Licence (coming).</p>' },
+            'licence': '<p>Licence: (coming).</p>' },
+    'WBS': {'about': '<p>Webster Bible (1833).</p>',
+            'copyright': '<p>Copyright © (coming).</p>',
+            'licence': '<p>Licence: (coming).</p>' },
     'KJB': {'about': '<p>King James Bible (1769).</p>',
             'copyright': '<p>Copyright © (coming).</p>',
-            'licence': '<p>Licence (coming).</p>' },
+            'licence': '<p>Licence: (coming).</p>' },
     'GNV': {'about': '<p>Geneva Bible (1599).</p>',
             'copyright': '<p>Copyright © (coming).</p>',
-            'licence': '<p>Licence (coming).</p>' },
+            'licence': '<p>Licence: (coming).</p>' },
     'TNT': {'about': '<p>Tyndale New Testament (1526).</p>',
             'copyright': '<p>Copyright © (coming).</p>',
-            'licence': '<p>Licence (coming).</p>' },
+            'licence': '<p>Licence: (coming).</p>' },
     'WYC': {'about': '<p>Wycliffe Bible (1382).</p>',
             'copyright': '<p>Copyright © (coming).</p>',
-            'licence': '<p>Licence (coming).</p>' },
+            'licence': '<p>Licence: (coming).</p>' },
     'JPS': {'about': '<p>Jewish Publication Society TaNaKH (1917).</p>',
             'copyright': '<p>Copyright © (coming).</p>',
-            'licence': '<p>Licence (coming).</p>' },
+            'licence': '<p>Licence: (coming).</p>' },
     'DRA': {'about': '<p>Douay-Rheims American Edition (1899).</p>',
             'copyright': '<p>Copyright © (coming).</p>',
-            'licence': '<p>Licence (coming).</p>' },
+            'licence': '<p>Licence: (coming).</p>' },
     'BRN': {'about': '<p>Brenton Septuagint Translation (1851).</p>',
             'copyright': '<p>Copyright © (coming).</p>',
-            'licence': '<p>Licence (coming).</p>' },
+            'licence': '<p>Licence: (coming).</p>' },
     'UHB': {'about': '<p>unfoldingWord Hebrew Bible (2022).</p>',
             'copyright': '<p>Copyright © (coming).</p>',
-            'licence': '<p>Licence (coming).</p>' },
+            'licence': '<p>Licence: (coming).</p>' },
     'SR-GNT': {'about': '<p>Statistic Restoration Greek New Testament (2022).</p>',
             'copyright': '<p>Copyright © (coming).</p>',
-            'licence': '<p>Licence (coming).</p>' },
+            'licence': '<p>Licence: (coming).</p>' },
     'UGNT': {'about': '<p>unfoldingWord Greek New Testament (2022).</p>',
             'copyright': '<p>Copyright © (coming).</p>',
-            'licence': '<p>Licence (coming).</p>' },
+            'licence': '<p>Licence: (coming).</p>' },
     'SBL-GNT': {'about': '<p>Society for Biblical Literature Greek New Testament (2020???).</p>',
             'copyright': '<p>Copyright © (coming).</p>',
-            'licence': '<p>Licence (coming).</p>' },
+            'licence': '<p>Licence: (coming).</p>' },
     }
 
-def createDetailsPages( level, folder:Path, state ) -> bool:
+def createDetailsPages( level:int, folder:Path, state ) -> bool:
     """
     """
+    global DETAILS_HTML
     fnPrint( DEBUGGING_THIS_MODULE, f"createDetailsPages( {level}, {folder}, {state.BibleVersions} )" )
 
-    for versionAbbreviation in ['OET'] + [vA for vA in state.preloadedBibles]:
+    for versionAbbreviation in ['OET'] + [versAbbrev for versAbbrev in state.preloadedBibles]:
         versionName = state.BibleNames[versionAbbreviation]
+
+        if versionAbbreviation!='OET' and 'eBible' in state.BibleLocations[versionAbbreviation]:
+            # This code scrapes info from eBible.org copr.htm files, and hence is very fragile (susceptible to upstream changes)
+            with open( os.path.join(state.BibleLocations[versionAbbreviation], 'copr.htm'), 'rt', encoding='utf-8' ) as coprFile:
+                coprText = coprFile.read()
+            ixStart = coprText.index( '''<p align="center"><a href='copyright.htm'>''' ) + 42
+            ixEnd = coprText.index( '</a>', ixStart )
+            # print( f"  {ixStart=} {ixEnd=} '{coprText[ixStart:ixEnd]}'")
+            DETAILS_HTML[versionAbbreviation]['copyright'] = \
+                DETAILS_HTML[versionAbbreviation]['copyright'].replace( '(coming)', coprText[ixStart:ixEnd] ) \
+                        .replace( '© ©', '©' ).replace( 'Copyright © Public Domain', 'Public Domain' )
+            if 'creativecommons.org/licenses/by-sa/4.0' in coprText:
+                DETAILS_HTML[versionAbbreviation]['licence'] = \
+                    DETAILS_HTML[versionAbbreviation]['licence'].replace( '(coming)', '<a href="https://CreativeCommons.org/licenses/by-sa/4.0/">Creative Commons Attribution Share-Alike license 4.0</a>' ) 
 
         topHtml = makeTop( level+1, 'topIndex', None, state ) \
                 .replace( '__TITLE__', f'{versionName} Details' ) \
