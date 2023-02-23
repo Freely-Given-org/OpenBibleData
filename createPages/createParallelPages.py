@@ -41,10 +41,10 @@ from html import do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, \
                     makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-02-17' # by RJH
+LAST_MODIFIED_DATE = '2023-02-24' # by RJH
 SHORT_PROGRAM_NAME = "createParallelPages"
 PROGRAM_NAME = "OpenBibleData createParallelPages functions"
-PROGRAM_VERSION = '0.14'
+PROGRAM_VERSION = '0.17'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -73,7 +73,7 @@ def createParallelPages( folder:Path, state ) -> bool:
     for BBB in state.allBBBs:
         if BibleOrgSysGlobals.loadedBibleBooksCodes.isChapterVerseBook( BBB ):
             BBBFolder = folder.joinpath(f'{BBB}/')
-            createParallelBookPages( BBBFolder, BBB, BBBNextLinks, state )
+            createParallelVersePagesForBook( BBBFolder, BBB, BBBNextLinks, state )
 
     # Create index page
     filename = 'index.html'
@@ -94,12 +94,12 @@ def createParallelPages( folder:Path, state ) -> bool:
     return True
 # end of html.createParallelPages
 
-def createParallelBookPages( folder:Path, BBB:str, BBBLinks:List[str], state ) -> bool:
+def createParallelVersePagesForBook( folder:Path, BBB:str, BBBLinks:List[str], state ) -> bool:
     """
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"createParallelBookPages( {folder}, {BBB}, {BBBLinks}, {state.BibleVersions} )" )
+    fnPrint( DEBUGGING_THIS_MODULE, f"createParallelVersePagesForBook( {folder}, {BBB}, {BBBLinks}, {state.BibleVersions} )" )
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createParallelBookPages {folder}, {BBB} from {len(BBBLinks)} books, {len(state.BibleVersions)} versions…" )
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createParallelVersePagesForBook {folder}, {BBB} from {len(BBBLinks)} books, {len(state.BibleVersions)} versions…" )
     try: os.makedirs( folder )
     except FileExistsError: pass # they were already there
 
@@ -115,7 +115,7 @@ def createParallelBookPages( folder:Path, BBB:str, BBBLinks:List[str], state ) -
         numChapters = referenceBible.getNumChapters( BBB )
         if numChapters: break
     else:
-        logging.critical( f"createParallelBookPages unable to find a valid reference Bible for {BBB}" )
+        logging.critical( f"createParallelVersePagesForBook unable to find a valid reference Bible for {BBB}" )
         return False # Need to check what FRT does
 
     vLinks = []
@@ -124,16 +124,16 @@ def createParallelBookPages( folder:Path, BBB:str, BBBLinks:List[str], state ) -
             vPrint( 'Info', DEBUGGING_THIS_MODULE, f"      Creating parallel pages for {BBB} {c}…" )
             numVerses = referenceBible.getNumVerses( BBB, c )
             if numVerses is None: # something unusual
-                logging.critical( f"createParallelBookPages: no verses found for {BBB} {c}" )
+                logging.critical( f"createParallelVersePagesForBook: no verses found for {BBB} {c}" )
                 continue
             for v in range( 1, numVerses+1 ):
-                leftVLink = f'<a href="C{c}_V{v-1}.html">←</a>{EM_SPACE}' if v>1 else ''
-                rightVLink = f'{EM_SPACE}<a href="C{c}_V{v+1}.html">→</a>' if v<numVerses else ''
-                leftCLink = f'<a href="C{c-1}_V1.html">◄</a>{EM_SPACE}' if c>1 else ''
-                rightCLink = f'{EM_SPACE}<a href="C{c+1}_V1.html">►</a>' if c<numChapters else ''
-                pHtml = f'''{adjBBBLinksHtml}\n<h1>Parallel {tidyBBB} {c}:{v}</h1>
-<p class="vnav">{leftCLink}{leftVLink}{tidyBBB} {c}:{v}{rightVLink}{rightCLink}</p>
-'''
+                # The following all have a __ID__ string than needs to be replaced
+                leftVLink = f'<a href="C{c}_V{v-1}.html#__ID__">←</a>{EM_SPACE}' if v>1 else ''
+                rightVLink = f'{EM_SPACE}<a href="C{c}_V{v+1}.html#__ID__">→</a>' if v<numVerses else ''
+                leftCLink = f'<a href="C{c-1}_V1.html#__ID__">◄</a>{EM_SPACE}' if c>1 else ''
+                rightCLink = f'{EM_SPACE}<a href="C{c+1}_V1.html#__ID__">►</a>' if c<numChapters else ''
+                navLinks = f'<p id="__ID__" class="vnav">{leftCLink}{leftVLink}{tidyBBB} {c}:{v}{rightVLink}{rightCLink}</p>'
+                pHtml = ''
                 for versionAbbreviation in state.BibleVersions:
                     if versionAbbreviation == 'OET': continue # Skip this pseudo-version as we have OET-RV and OET-LV
                     if versionAbbreviation in ('UHB','JPS') \
@@ -156,19 +156,19 @@ def createParallelBookPages( folder:Path, BBB:str, BBBLinks:List[str], state ) -
                         elif versionAbbreviation == 'LSV':
                             textHtml = do_LSV_HTMLcustomisations( textHtml )
                         vHtml = f'''
-<h3 class="cnav"><a title="{state.BibleNames[versionAbbreviation]}" href="../../versions/{versionAbbreviation}/byChapter/{BBB}_C{c}.html">{versionAbbreviation}</a>{EM_SPACE}<small>{state.BibleNames[versionAbbreviation]}</small></h3>
+<h3 class="workNav"><a title="{state.BibleNames[versionAbbreviation]}" href="../../versions/{versionAbbreviation}/byChapter/{BBB}_C{c}.html">{versionAbbreviation}</a>{EM_SPACE}<small>{state.BibleNames[versionAbbreviation]}</small></h3>
 {textHtml}
 '''
                     except (KeyError, TypeError):
                         if BBB in thisBible:
                             text = f'No {versionAbbreviation} {tidyBBB} {c}:{v} verse available'
                             logging.warning( text )
-                            vHtml = f'''<h3 class="cnav"><a title="{state.BibleNames[versionAbbreviation]}" href="../../versions/{versionAbbreviation}/byChapter/{BBB}_C{c}.html">{versionAbbreviation}</a>{EM_SPACE}<small>{state.BibleNames[versionAbbreviation]}</small></h3>
+                            vHtml = f'''<h3 class="workNav"><a title="{state.BibleNames[versionAbbreviation]}" href="../../versions/{versionAbbreviation}/byChapter/{BBB}_C{c}.html">{versionAbbreviation}</a>{EM_SPACE}<small>{state.BibleNames[versionAbbreviation]}</small></h3>
 <p class="noVerse"><small>{text}</small></p>
 '''
                         else:
                             text = f'No {versionAbbreviation} {tidyBBB} book available'
-                            vHtml = f'''<h3 class="cnav">{versionAbbreviation}{EM_SPACE}<small>{state.BibleNames[versionAbbreviation]}</small></h3>
+                            vHtml = f'''<h3 class="workNav">{versionAbbreviation}{EM_SPACE}<small>{state.BibleNames[versionAbbreviation]}</small></h3>
 <p class="noBook"><small>{text}</small></p>
 '''
                     # dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"\n\n{pHtml=} {vHtml=}" )
@@ -180,16 +180,21 @@ def createParallelBookPages( folder:Path, BBB:str, BBBLinks:List[str], state ) -
                 top = makeTop( 2, 'parallel', None, state ) \
                         .replace( '__TITLE__', f'{tidyBBB} {c}:{v} Parallel View' ) \
                         .replace( '__KEYWORDS__', f'Bible, {tidyBBB}, parallel' )
-                pHtml = top + '<!--parallel verse page-->' + pHtml + makeBottom( 2, 'parallel', state )
+                pHtml = top + '<!--parallel verse page-->' \
+                        + f'{adjBBBLinksHtml}\n<h1>Parallel {tidyBBB} {c}:{v}</h1>\n' \
+                        + f"{navLinks.replace('__ID__', 'CVTop' )}\n" \
+                        + pHtml \
+                        + f"\n{navLinks.replace('__ID__', 'CVBottom')}\n" \
+                        + makeBottom( 2, 'parallel', state )
                 checkHtml( f'Parallel {BBB} {c}:{v}', pHtml )
                 with open( filepath, 'wt', encoding='utf-8' ) as pHtmlFile:
                     pHtmlFile.write( pHtml )
                 vPrint( 'Info', DEBUGGING_THIS_MODULE, f"        {len(pHtml):,} characters written to {filepath}" )
                 vLinks.append( f'<a href="{filename}">{c}:{v}</a>' )
     else:
-        dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"createParallelBookPages {BBB} has {numChapters} chapters!!!" )
+        dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"createParallelVersePagesForBook {BBB} has {numChapters} chapters!!!" )
         assert BBB in ('INT','FRT',)
-        # dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"createParallelBookPages {thisBible.books[BBB]=}" )
+        # dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"createParallelVersePagesForBook {thisBible.books[BBB]=}" )
 
     # Create index page for this book
     filename = 'index.html'
@@ -205,9 +210,9 @@ def createParallelBookPages( folder:Path, BBB:str, BBBLinks:List[str], state ) -
         indexHtmlFile.write( indexHtml )
     vPrint( 'Info', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createParallelBookPages() finished processing {len(vLinks):,} BBB verses" )
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createParallelVersePagesForBook() finished processing {len(vLinks):,} BBB verses" )
     return True
-# end of html.createParallelBookPages
+# end of html.createParallelVersePagesForBook
 
 
 def briefDemo() -> None:
