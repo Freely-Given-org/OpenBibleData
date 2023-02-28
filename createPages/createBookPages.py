@@ -41,17 +41,17 @@ from html import do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, \
                     makeTop, makeBottom, removeDuplicateCVids, checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-02-07' # by RJH
+LAST_MODIFIED_DATE = '2023-03-01' # by RJH
 SHORT_PROGRAM_NAME = "createBookPages"
 PROGRAM_NAME = "OpenBibleData createBookPages functions"
-PROGRAM_VERSION = '0.16'
+PROGRAM_VERSION = '0.18'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
 
 BACKSLASH = '\\'
 NEWLINE = '\n'
-EM_SPACE = ' '
+# EM_SPACE = ' '
 NARROW_NON_BREAK_SPACE = ' '
 
 
@@ -117,7 +117,7 @@ def createOETBookPages( folder:Path, rvBible, lvBible, state ) -> List[str]:
         lvChunks, lvRest = [ lvHtml[:ixBHend], lvHtml[ixBHend:ixBIend] ], lvHtml[ixBIend:]
         # Now try to match the rv sections
         for n,rvSectionHtml in enumerate( rvSections[2:] ):
-            # print( f"\n{n}: {rvSectionHtml=}" )
+            # dPrint( 'Info', DEBUGGING_THIS_MODULE, f"\n{BBB} {n}: {rvSectionHtml=}" )
             try:
                 CclassIndex1 = rvSectionHtml.index( 'id="C' )
                 CclassIndex2 = rvSectionHtml.index( '"', CclassIndex1+4 )
@@ -127,10 +127,11 @@ def createOETBookPages( folder:Path, rvBible, lvBible, state ) -> List[str]:
                 rvEndCV = rvSectionHtml[CclassIndex8+4:CclassIndex9]
                 # dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"\n  {BBB} {n:,}: {rvStartCV=} {rvEndCV=}")
             except ValueError:
-                dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  {n:,}: No Cid in {rvSectionHtml=}" )
+                dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  {BBB} {n:,}: No Cid in {rvSectionHtml=}" )
                 rvStartCV, rvEndCV = '', 'C1'
                 # halt
-            ixEndCV = lvRest.rindex( f' id="{rvEndCV}"' )
+            # dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"""Searching for ' id="{rvEndCV}"' in '{lvRest}'""" )
+            ixEndCV = lvRest.rindex( f' id="{rvEndCV}"' ) # Versification problem if this fails
             try: ixNextCV = lvRest.index( f' id="C', ixEndCV+5 )
             except ValueError: ixNextCV = len( lvRest ) - 1
             # print( f"\n{n}: {lvRest[ixEndCV:ixNextCV+10]=}" )
@@ -171,7 +172,7 @@ def createOETBookPages( folder:Path, rvBible, lvBible, state ) -> List[str]:
         checkHtml( 'OETbook', bkHtml )
         with open( filepath, 'wt', encoding='utf-8' ) as bkHtmlFile:
             bkHtmlFile.write( bkHtml )
-        vPrint( 'Info', DEBUGGING_THIS_MODULE, f"        {len(bkHtml):,} characters written to {filepath}" )
+        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(bkHtml):,} characters written to {filepath}" )
     # Now create index pages for each book and then an overall one
     # vPrint( 'Normal', DEBUGGING_THIS_MODULE, "    Creating book index pages for OET…" )
     BBBLinks = []
@@ -188,12 +189,12 @@ def createOETBookPages( folder:Path, rvBible, lvBible, state ) -> List[str]:
             .replace( f'''<a title="{state.BibleNames['OET']}" href="{'../'*3}versions/OET">OET</a>''', 'OET' )
     indexHtml = top \
                 + '<h1>OET book pages</h1><h2>Index of books</h2>\n' \
-                + f'<p class="bLinks">{EM_SPACE.join( BBBLinks )}</p>\n' \
+                + f'''<p class="bLinks">{' '.join( BBBLinks )}</p>\n''' \
                 + makeBottom( 3, 'OETbook', state )
     checkHtml( 'OETBooksIndex', indexHtml )
     with open( filepath, 'wt', encoding='utf-8' ) as bkHtmlFile:
         bkHtmlFile.write( indexHtml )
-    vPrint( 'Info', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
+    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
 
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createOETBookPages() finished processing {len(BBBs)} OET books: {BBBs}" )
     return filenames
@@ -252,7 +253,7 @@ def createBookPages( folder:Path, thisBible, state ) -> List[str]:
         checkHtml( thisBible.abbreviation, bkHtml )
         with open( filepath, 'wt', encoding='utf-8' ) as bkHtmlFile:
             bkHtmlFile.write( bkHtml )
-        vPrint( 'Info', DEBUGGING_THIS_MODULE, f"        {len(bkHtml):,} characters written to {filepath}" )
+        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(bkHtml):,} characters written to {filepath}" )
     # Now create index pages for each book and then an overall one
     # vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Creating book index pages for {thisBible.abbreviation}…" )
     BBBLinks = []
@@ -270,12 +271,12 @@ def createBookPages( folder:Path, thisBible, state ) -> List[str]:
             .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*3}versions/{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}">{thisBible.abbreviation}</a>''', thisBible.abbreviation )
     indexHtml = top \
                 + '<h1>Book pages</h1><h2>Index of books</h2>\n' \
-                + f'<p class="bLinks">{EM_SPACE.join( BBBLinks )}</p>\n' \
+                + f'''<p class="bLinks">{' '.join( BBBLinks )}</p>\n''' \
                 + makeBottom(3, 'book', state)
     checkHtml( thisBible.abbreviation, indexHtml )
     with open( filepath, 'wt', encoding='utf-8' ) as bkHtmlFile:
         bkHtmlFile.write( indexHtml )
-    vPrint( 'Info', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
+    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
 
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createBookPages() finished processing {len(BBBs)} {thisBible.abbreviation} books: {BBBs}" )
     return filenames

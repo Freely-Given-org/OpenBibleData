@@ -48,10 +48,10 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 from html import checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-02-16' # by RJH
+LAST_MODIFIED_DATE = '2023-02-28' # by RJH
 SHORT_PROGRAM_NAME = "usfm"
 PROGRAM_NAME = "OpenBibleData USFM to HTML functions"
-PROGRAM_VERSION = '0.21'
+PROGRAM_VERSION = '0.22'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -66,7 +66,7 @@ MAX_FOOTNOTE_CHARS = 1800 # 1029 in FBV, 1688 in BRN!
 
 def convertUSFMMarkerListToHtml( versionAbbreviation:str, refTuple:tuple, segmentType:str, contextList:list, markerList:list, basicOnly:bool=False ) -> str:
     """
-    Loops through a list of USFM lines
+    Loops through the given list of USFM lines
         and converts to a HTML segment as required.
     """
     fnPrint( DEBUGGING_THIS_MODULE, f"convertUSFMMarkerListToHtml( {versionAbbreviation} {refTuple} '{segmentType}' {contextList} {markerList} )" )
@@ -448,7 +448,8 @@ def convertUSFMMarkerListToHtml( versionAbbreviation:str, refTuple:tuple, segmen
         elif marker not in ('id','usfm','ide', 'sts',
                             'h', 'toc1','toc2','toc3', '¬headers',
                             'v=', 'c#', 'cl¤', '¬c', '¬chapters'): # We can ignore all of these
-            if versionAbbreviation=='UST' and 'ACT' in refTuple: # Bad USFM encoding at UST Act 26:29-30
+            if versionAbbreviation=='UST' \
+            and ('ACT' in refTuple or 'PSA' in refTuple): # Bad USFM encoding at UST Act 26:29-30
                 logging.critical( f"Unexpected '{marker}' marker at {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {rest=}" )
             else:
                 raise Exception( f"Unexpected '{marker}' marker {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {rest=}" )
@@ -484,7 +485,7 @@ def convertUSFMMarkerListToHtml( versionAbbreviation:str, refTuple:tuple, segmen
     footnotesCount = 0
     footnotesHtml = ''
     searchStartIx = 0
-    for _safetyCount1 in range( 999 if segmentType=='book' else 199 ):
+    for _safetyCount1 in range( 2299 if segmentType=='book' else 199 ):
         fStartIx = html.find( '\\f ', searchStartIx )
         if fStartIx == -1: break # all done
         footnotesCount += 1
@@ -577,7 +578,9 @@ def convertUSFMMarkerListToHtml( versionAbbreviation:str, refTuple:tuple, segmen
         footnotesHtml = f'{footnotesHtml}{fnoteText}'
         html = f'{html[:fStartIx]}{fnoteCaller}{html[fEndIx+3:]}'
         searchStartIx = fEndIx + 3
-    else: outer_fn_loop_needed_to_break
+    else:
+        logging.critical( f"outer_fn_loop_needed_to_break {versionAbbreviation} {segmentType} {basicOnly=} {BBB} {_safetyCount1=}" )
+        outer_fn_loop_needed_to_break
     if footnotesHtml:
         if not checkHtml( f"Footnotes for {versionAbbreviation} {segmentType} {basicOnly=} {BBB} {fnoteMiddle=}", footnotesHtml, segmentOnly=True ):
             if DEBUGGING_THIS_MODULE: halt

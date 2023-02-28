@@ -46,16 +46,18 @@ sys.path.append( '../../BibleOrgSys/' )
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 import BibleOrgSys.Formats.USFMBible as USFMBible
+import BibleOrgSys.Formats.ZefaniaXMLBible as ZefaniaXMLBible
 import BibleOrgSys.Formats.CSVBible as CSVBible
+import BibleOrgSys.Formats.LEBXMLBible as LEBXMLBible
 import BibleOrgSys.Formats.VPLBible as VPLBible
 from BibleOrgSys.Bible import Bible
 from BibleOrgSys.UnknownBible import UnknownBible
 
 
-LAST_MODIFIED_DATE = '2023-02-04' # by RJH
+LAST_MODIFIED_DATE = '2023-03-01' # by RJH
 SHORT_PROGRAM_NAME = "Bibles"
 PROGRAM_NAME = "OpenBibleData Bibles handler"
-PROGRAM_VERSION = '0.10'
+PROGRAM_VERSION = '0.15'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -84,12 +86,12 @@ def preloadVersions( state ) -> int:
     return len(state.preloadedBibles)
 # end of Bibles.preloadVersions
 
-def preloadVersion( versionAbbreviation:str, folderLocation:str, state ) -> Bible:
+def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state ) -> Bible:
     """
     Loads the requested Bible into memory
         and return the Bible object.
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"preloadVersion( {versionAbbreviation} )")
+    fnPrint( DEBUGGING_THIS_MODULE, f"preloadVersion( '{versionAbbreviation}', '{folderOrFileLocation}', ... )")
 
     # if versionAbbreviation in ('BSB',): # Single TSV .txt file
     #     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Loading {versionAbbreviation} CSV/TSV Bible…" )
@@ -98,20 +100,50 @@ def preloadVersion( versionAbbreviation:str, folderLocation:str, state ) -> Bibl
     #     thisBible.load()
     #     print( f"{versionAbbreviation} loaded ({len(thisBible.books.keys())}) {thisBible.books.keys()}" )
     if versionAbbreviation in ('SBL-GNT',): # Multiple TSV .txt file(s)
-        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Loading {versionAbbreviation} CSV/TSV Bible…" )
-        thisBible = CSVBible.CSVBible( folderLocation, givenName=state.BibleNames[versionAbbreviation],
+        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Loading '{versionAbbreviation}' CSV/TSV Bible…" )
+        thisBible = CSVBible.CSVBible( folderOrFileLocation, givenName=state.BibleNames[versionAbbreviation],
                                             givenAbbreviation=versionAbbreviation, encoding='utf-8' )
         thisBible.loadBooks() # So we can iterate through them all later
-        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} loaded ({len(thisBible.books.keys())}) {thisBible.books.keys()}" )
+        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} loaded ({len(thisBible.books.keys())}) {list(thisBible.books.keys())}" )
     # elif versionAbbreviation in ('SBL-GNT',): # .txt file(s)
     #     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Loading {versionAbbreviation} VPL Bible…" )
     #     thisBible = VPLBible.VPLBible( folderLocation, givenName=state.BibleNames[versionAbbreviation],
     #                                         givenAbbreviation=versionAbbreviation, encoding='utf-8' )
     #     thisBible.loadBooks() # So we can iterate through them all later
     #     print( f"{versionAbbreviation} loaded ({len(thisBible.books.keys())}) {thisBible.books.keys()}" )
+    elif versionAbbreviation == 'LEB': # Custom XML
+        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Loading '{versionAbbreviation}' XML Bible…" )
+        thisBible = LEBXMLBible.LEBXMLBible( folderOrFileLocation, givenName=state.BibleNames[versionAbbreviation],
+                                            givenAbbreviation=versionAbbreviation, encoding='utf-8' )
+        thisBible.loadBooks() # So we can iterate through them all later
+        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} loaded ({len(thisBible.books.keys())}) {list(thisBible.books.keys())}" )
+        print( f"{thisBible.suppliedMetadata=}" )
+        print( f"{thisBible.settingsDict=}" )
+        # verseEntryList, contextList = thisBible.getContextVerseData( ('MAT', '2', '1') )
+        # print( f"Mat 2:1 {verseEntryList=} {contextList=}" )
+    elif '/TXT/' in folderOrFileLocation: # Custom VPL
+        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Loading '{versionAbbreviation}' XML Bible…" )
+        thisBible = VPLBible.VPLBible( folderOrFileLocation, givenName=state.BibleNames[versionAbbreviation],
+                                            givenAbbreviation=versionAbbreviation, encoding='utf-8' )
+        thisBible.load() # So we can iterate through them all later
+        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} loaded ({len(thisBible.books.keys())}) {list(thisBible.books.keys())}" )
+        print( f"{thisBible.suppliedMetadata=}" )
+        print( f"{thisBible.settingsDict=}" )
+        # verseEntryList, contextList = thisBible.getContextVerseData( ('MAT', '2', '1') )
+        # print( f"Mat 2:1 {verseEntryList=} {contextList=}" )
+    elif 'Zefania' in folderOrFileLocation: # Zefania XML
+        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Loading '{versionAbbreviation}' Zefania XML Bible…" )
+        thisBible = ZefaniaXMLBible.ZefaniaXMLBible( folderOrFileLocation, givenName=state.BibleNames[versionAbbreviation],
+                                            givenAbbreviation=versionAbbreviation, encoding='utf-8' )
+        thisBible.loadBooks() # So we can iterate through them all later
+        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} loaded ({len(thisBible.books.keys())}) {list(thisBible.books.keys())}" )
+        print( f"{thisBible.suppliedMetadata=}" )
+        print( f"{thisBible.settingsDict=}" )
+        # verseEntryList, contextList = thisBible.getContextVerseData( ('MAT', '2', '1') )
+        # print( f"Mat 2:1 {verseEntryList=} {contextList=}" )
     else: # USFM
-        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Preloading {versionAbbreviation} USFM Bible…" )
-        thisBible = USFMBible.USFMBible( folderLocation, givenAbbreviation=versionAbbreviation,
+        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Preloading '{versionAbbreviation}' USFM Bible…" )
+        thisBible = USFMBible.USFMBible( folderOrFileLocation, givenAbbreviation=versionAbbreviation,
                                             encoding='utf-8' )
         if versionAbbreviation in ('ULT','UST','UHB','UGNT','SR-GNT'):
             thisBible.uWencoded = True # TODO: Shouldn't be required ???

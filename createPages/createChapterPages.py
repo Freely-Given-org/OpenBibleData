@@ -41,10 +41,10 @@ from html import do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, \
                     makeTop, makeBottom, removeDuplicateCVids, checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-02-07' # by RJH
+LAST_MODIFIED_DATE = '2023-03-01' # by RJH
 SHORT_PROGRAM_NAME = "createChapterPages"
 PROGRAM_NAME = "OpenBibleData createChapterPages functions"
-PROGRAM_VERSION = '0.16'
+PROGRAM_VERSION = '0.17'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -141,7 +141,7 @@ def createOETChapterPages( folder:Path, rvBible, lvBible, state ) -> List[str]:
                 checkHtml( 'OETChapterIndex', cHtml )
                 with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
                     cHtmlFile.write( cHtml )
-                vPrint( 'Info', DEBUGGING_THIS_MODULE, f"        {len(cHtml):,} characters written to {filepath}" )
+                vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(cHtml):,} characters written to {filepath}" )
         else:
             # TODO: Not completely finished yet
             dPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"createOETChapterPages {BBB} has {numChapters} chapters!!!" )
@@ -165,7 +165,7 @@ def createOETChapterPages( folder:Path, rvBible, lvBible, state ) -> List[str]:
             checkHtml( chtml )
             with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
                 cHtmlFile.write( chtml )
-            vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    {len(cHtml):,} characters written to {filepath}" )
+            vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"    {len(cHtml):,} characters written to {filepath}" )
             halt
     # Now create index pages for each book and then an overall one
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, "    Creating chapter index pages for OET…" )
@@ -193,7 +193,7 @@ def createOETChapterPages( folder:Path, rvBible, lvBible, state ) -> List[str]:
         checkHtml( 'OETChaptersIndex', cHtml )
         with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
             cHtmlFile.write( cHtml )
-        vPrint( 'Info', DEBUGGING_THIS_MODULE, f"        {len(cHtml):,} characters written to {filepath}" )
+        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(cHtml):,} characters written to {filepath}" )
     filename = 'index.html'
     filenames.append( filename )
     filepath = folder.joinpath( filename )
@@ -208,7 +208,7 @@ def createOETChapterPages( folder:Path, rvBible, lvBible, state ) -> List[str]:
     checkHtml( 'OETBooksIndex', indexHtml )
     with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
         cHtmlFile.write( indexHtml )
-    vPrint( 'Info', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
+    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
 
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createOETChapterPages() finished processing {len(BBBs)} OET books: {BBBs}" )
     return filenames
@@ -285,7 +285,7 @@ def createChapterPages( folder:Path, thisBible, state ) -> List[str]:
                 checkHtml( thisBible.abbreviation, cHtml )
                 with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
                     cHtmlFile.write( cHtml )
-                vPrint( 'Info', DEBUGGING_THIS_MODULE, f"        {len(cHtml):,} characters written to {filepath}" )
+                vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(cHtml):,} characters written to {filepath}" )
         else: # a non-chapter book
             dPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"createChapterPages {thisBible.abbreviation} {BBB} has {numChapters} chapters!!!" )
             assert BBB in ('INT','FRT','OTH','GLS','XXA','XXB','XXC')
@@ -307,7 +307,7 @@ def createChapterPages( folder:Path, thisBible, state ) -> List[str]:
             checkHtml( thisBible.abbreviation, chtml )
             with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
                 cHtmlFile.write( chtml )
-            vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    {len(cHtml):,} characters written to {filepath}" )
+            vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"    {len(cHtml):,} characters written to {filepath}" )
     # Now create index pages for each book and then an overall one
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Creating chapter index pages for {thisBible.abbreviation}…" )
     BBBLinks = []
@@ -338,7 +338,7 @@ def createChapterPages( folder:Path, thisBible, state ) -> List[str]:
         checkHtml( thisBible.abbreviation, cHtml )
         with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
             cHtmlFile.write( cHtml )
-        vPrint( 'Info', DEBUGGING_THIS_MODULE, f"        {len(cHtml):,} characters written to {filepath}" )
+        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(cHtml):,} characters written to {filepath}" )
     # Create index page
     filename = 'index.html'
     filenames.append( filename )
@@ -354,7 +354,7 @@ def createChapterPages( folder:Path, thisBible, state ) -> List[str]:
     checkHtml( thisBible.abbreviation, indexHtml )
     with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
         cHtmlFile.write( indexHtml )
-    vPrint( 'Info', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
+    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
 
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createChapterPages() finished processing {len(BBBs)} {thisBible.abbreviation} books: {BBBs}" )
     return filenames
