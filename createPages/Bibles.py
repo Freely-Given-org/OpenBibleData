@@ -54,10 +54,10 @@ from BibleOrgSys.Bible import Bible
 from BibleOrgSys.UnknownBible import UnknownBible
 
 
-LAST_MODIFIED_DATE = '2023-03-01' # by RJH
+LAST_MODIFIED_DATE = '2023-03-03' # by RJH
 SHORT_PROGRAM_NAME = "Bibles"
 PROGRAM_NAME = "OpenBibleData Bibles handler"
-PROGRAM_VERSION = '0.15'
+PROGRAM_VERSION = '0.16'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -117,8 +117,8 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state ) -
                                             givenAbbreviation=versionAbbreviation, encoding='utf-8' )
         thisBible.loadBooks() # So we can iterate through them all later
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} loaded ({len(thisBible.books.keys())}) {list(thisBible.books.keys())}" )
-        print( f"{thisBible.suppliedMetadata=}" )
-        print( f"{thisBible.settingsDict=}" )
+        # print( f"{thisBible.suppliedMetadata=}" )
+        # print( f"{thisBible.settingsDict=}" )
         # verseEntryList, contextList = thisBible.getContextVerseData( ('MAT', '2', '1') )
         # print( f"Mat 2:1 {verseEntryList=} {contextList=}" )
     elif '/TXT/' in folderOrFileLocation: # Custom VPL
@@ -127,8 +127,8 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state ) -
                                             givenAbbreviation=versionAbbreviation, encoding='utf-8' )
         thisBible.load() # So we can iterate through them all later
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} loaded ({len(thisBible.books.keys())}) {list(thisBible.books.keys())}" )
-        print( f"{thisBible.suppliedMetadata=}" )
-        print( f"{thisBible.settingsDict=}" )
+        # print( f"{thisBible.suppliedMetadata=}" )
+        # print( f"{thisBible.settingsDict=}" )
         # verseEntryList, contextList = thisBible.getContextVerseData( ('MAT', '2', '1') )
         # print( f"Mat 2:1 {verseEntryList=} {contextList=}" )
     elif 'Zefania' in folderOrFileLocation: # Zefania XML
@@ -137,8 +137,8 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state ) -
                                             givenAbbreviation=versionAbbreviation, encoding='utf-8' )
         thisBible.loadBooks() # So we can iterate through them all later
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} loaded ({len(thisBible.books.keys())}) {list(thisBible.books.keys())}" )
-        print( f"{thisBible.suppliedMetadata=}" )
-        print( f"{thisBible.settingsDict=}" )
+        # print( f"{thisBible.suppliedMetadata=}" )
+        # print( f"{thisBible.settingsDict=}" )
         # verseEntryList, contextList = thisBible.getContextVerseData( ('MAT', '2', '1') )
         # print( f"Mat 2:1 {verseEntryList=} {contextList=}" )
     else: # USFM

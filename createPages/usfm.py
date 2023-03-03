@@ -48,10 +48,10 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 from html import checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-02-28' # by RJH
+LAST_MODIFIED_DATE = '2023-03-03' # by RJH
 SHORT_PROGRAM_NAME = "usfm"
 PROGRAM_NAME = "OpenBibleData USFM to HTML functions"
-PROGRAM_VERSION = '0.22'
+PROGRAM_VERSION = '0.25'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -61,7 +61,7 @@ NEWLINE = '\n'
 EM_SPACE = ' '
 NARROW_NON_BREAK_SPACE = ' '
 
-MAX_FOOTNOTE_CHARS = 1800 # 1029 in FBV, 1688 in BRN!
+MAX_FOOTNOTE_CHARS = 11_000 # 1029 in FBV, 1688 in BRN, 10426 in CLV JOB!
 
 
 def convertUSFMMarkerListToHtml( versionAbbreviation:str, refTuple:tuple, segmentType:str, contextList:list, markerList:list, basicOnly:bool=False ) -> str:
@@ -71,7 +71,7 @@ def convertUSFMMarkerListToHtml( versionAbbreviation:str, refTuple:tuple, segmen
     """
     fnPrint( DEBUGGING_THIS_MODULE, f"convertUSFMMarkerListToHtml( {versionAbbreviation} {refTuple} '{segmentType}' {contextList} {markerList} )" )
     dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"convertUSFMMarkerListToHtml( {versionAbbreviation} {refTuple} '{segmentType}' {contextList} {len(markerList)} )" )
-    assert segmentType in ('book','chapter','verse'), f"Unexpected {segmentType=}"
+    assert segmentType in ('book','section','chapter','verse'), f"Unexpected {segmentType=}"
 
     inMainDiv = inParagraph = inSection = inList = inListEntry = inTable = None
     inRightDiv = False
@@ -485,39 +485,40 @@ def convertUSFMMarkerListToHtml( versionAbbreviation:str, refTuple:tuple, segmen
     footnotesCount = 0
     footnotesHtml = ''
     searchStartIx = 0
-    for _safetyCount1 in range( 2299 if segmentType=='book' else 199 ):
+    for _outerSafetyCount in range( 2299 if segmentType=='book' else 199 ): # max number of footnotes in segment
         fStartIx = html.find( '\\f ', searchStartIx )
         if fStartIx == -1: break # all done
         footnotesCount += 1
         fEndIx = html.find( '\\f*', fStartIx+3 )
         assert fEndIx != -1
-        assert fStartIx+4 < fEndIx < fStartIx+MAX_FOOTNOTE_CHARS, f"Unexpected footnote size {versionAbbreviation} {segmentType} {basicOnly=} {BBB} {footnotesCount=} {fEndIx-fStartIx} {html[fStartIx:fStartIx+2*MAX_FOOTNOTE_CHARS]}"
+        assert fStartIx+4 < fEndIx < fStartIx+MAX_FOOTNOTE_CHARS, f"Unexpected footnote size {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {footnotesCount=} {fEndIx-fStartIx} {html[fStartIx:fStartIx+2*MAX_FOOTNOTE_CHARS]}"
         frIx = html.find( '\\fr ', fStartIx+3 ) # Might be absent
         fContentIx = html.find( '\\f', fStartIx+3 if frIx==-1 else frIx+3 )
         if fContentIx == fEndIx: fContentIx = -1
         if fContentIx == -1:
-            logging.critical( f"No internal footnote markers {versionAbbreviation} {segmentType} {basicOnly=} {BBB} {footnotesCount=} {html[fStartIx:fStartIx+2*MAX_FOOTNOTE_CHARS]}" )
+            logging.critical( f"No internal footnote markers {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {footnotesCount=} {html[fStartIx:fStartIx+2*MAX_FOOTNOTE_CHARS]}" )
             fContentIx = fStartIx + (5 if html[fStartIx:].startswith( '\\f + ') else 3)
         else:
             assert html[fContentIx+1:fContentIx+3] in ('ft','fq','fk','fl','fw','fp','fv'), \
-                f"Unexpected '{html[fContentIx+1:fContentIx+3]}' {versionAbbreviation} {segmentType} {basicOnly=} {BBB} {footnotesCount=} {html[fStartIx:fStartIx+2*MAX_FOOTNOTE_CHARS]}"
+                f"Unexpected '{html[fContentIx+1:fContentIx+3]}' {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {footnotesCount=} {html[fStartIx:fStartIx+2*MAX_FOOTNOTE_CHARS]}"
         assert html[fContentIx:fContentIx+3] != '\\f*'
         if fStartIx+5 > fContentIx > fStartIx+16:
-            logging.critical( f"Unexpected footnote start {versionAbbreviation} {segmentType} {basicOnly=} {BBB} {footnotesCount=} {fStartIx=} {fContentIx=} '{html[fStartIx:fStartIx+20]}'" ) # Skips ' + \\fr c:v '
+            logging.critical( f"Unexpected footnote start {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {footnotesCount=} {fStartIx=} {fContentIx=} '{html[fStartIx:fStartIx+20]}'" ) # Skips ' + \\fr c:v '
         if frIx == -1:
             frText = ''
         else: # we have one
             assert fStartIx+5 <= frIx <= fStartIx+6, f"{fStartIx=} {frIx=} '{html[fStartIx:fStartIx+20]}'" # Skips ' + '
             frText = html[frIx+3:fContentIx].strip()
         fnoteMiddle = html[fContentIx:fEndIx]
-        internalOpenCount = fnoteMiddle.count( '\\ft ') + fnoteMiddle.count( '\\fq ') + fnoteMiddle.count( '\\fqa ')
+        internalOpenCount = fnoteMiddle.count( '\\ft ') + fnoteMiddle.count( '\\fq ') + fnoteMiddle.count( '\\fqa ') + fnoteMiddle.count( '\\fk ')
+        dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"\nProcessing {versionAbbreviation} {segmentType} {refTuple} footnote from '{fnoteMiddle}'" )
         if internalOpenCount > 0:
-            # internalCloseCount = fnoteMiddle.count( '\\ft*') + fnoteMiddle.count( '\\fq*') + fnoteMiddle.count( '\\fqa*')
+            # internalCloseCount = fnoteMiddle.count( '\\ft*') + fnoteMiddle.count( '\\fq*') + fnoteMiddle.count( '\\fqa*') + fnoteMiddle.count( '\\fk*')
             # internalMarkerCount = internalOpenCount - internalCloseCount
             # dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"Footnote middle has {internalOpenCount=} {internalCloseCount=} {internalMarkerCount=} '{fnoteMiddle}'" )
             inSpan = None
             internalSearchStartIx = 0
-            for _safetyCount2 in range( 25 ):
+            for _innerSafetyCount in range( 70 ): # max number of fields in footnote -- 25 not enough for CLV
                 internalStartIx = fnoteMiddle.find( '\\', internalSearchStartIx )
                 if internalStartIx == -1: break # all done
                 dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"Found backslash at index {internalStartIx} in '{fnoteMiddle}'" )
@@ -525,10 +526,10 @@ def convertUSFMMarkerListToHtml( versionAbbreviation:str, refTuple:tuple, segmen
                 while internalStartIx + len(fMarker) < len(fnoteMiddle):
                     if fnoteMiddle[internalStartIx+len(fMarker)+1].islower():
                         fMarker = f'{fMarker}{fnoteMiddle[internalStartIx+len(fMarker)+1]}'
-                        # dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"Forming {fMarker=}" )
+                        # dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"Forming {fMarker=} from '{fnoteMiddle[internalStartIx:internalStartIx+10]}'" )
                     else: break
                 if fnoteMiddle[internalStartIx+len(fMarker)+1] == ' ': # It's an opening marker
-                    dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"Got opening {fMarker=}" )
+                    dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"Got opening {fMarker=} from '{fnoteMiddle[internalStartIx:internalStartIx+10]}'" )
                     span = f'<span class="{fMarker}">'
                     if inSpan:
                         span = f'</span>{span}'
@@ -542,11 +543,13 @@ def convertUSFMMarkerListToHtml( versionAbbreviation:str, refTuple:tuple, segmen
                     inSpan = None
                 else: unexpected_char in footnote
                 internalSearchStartIx += len(fMarker) + 2
-            else: inner_fn_loop_needed_to_break
+            else:
+                logging.critical( f"inner_fn_loop_needed_to_break {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {_innerSafetyCount=}" )
+                inner_fn_loop_needed_to_break
             if inSpan: # at end
                 fnoteMiddle = f'{fnoteMiddle}</span>'
             assert '\\' not in fnoteMiddle, f"{fnoteMiddle[fnoteMiddle.index(f'{BACKSLASH}x')-10:fnoteMiddle.index(f'{BACKSLASH}x')+12]}"
-        dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{BBB} {fnoteMiddle=}" )
+        dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} {segmentType} {refTuple} {fnoteMiddle=}" )
         sanitisedFnoteMiddle = fnoteMiddle
         if '"' in sanitisedFnoteMiddle or '<' in sanitisedFnoteMiddle or '>' in sanitisedFnoteMiddle:
             sanitisedFnoteMiddle = sanitisedFnoteMiddle.replace( '</span>', '' )
@@ -555,9 +558,9 @@ def convertUSFMMarkerListToHtml( versionAbbreviation:str, refTuple:tuple, segmen
             for charMarker in ('em','i', 'b','sup', 'sub'):
                 sanitisedFnoteMiddle = sanitisedFnoteMiddle.replace( f'<{charMarker}>', '' ).replace( f'</{charMarker}>', '' )
             if '"' in sanitisedFnoteMiddle or '<' in sanitisedFnoteMiddle or '>' in sanitisedFnoteMiddle:
-                logging.critical( f"Left-over HTML chars in {BBB} {sanitisedFnoteMiddle=}" )
+                logging.critical( f"Left-over HTML chars in {refTuple} {sanitisedFnoteMiddle=}" )
                 sanitisedFnoteMiddle = sanitisedFnoteMiddle.replace( '"', '&quot;' ).replace( '<', '&lt;' ).replace( '>', '&gt;' )
-        assert '"' not in sanitisedFnoteMiddle and '<' not in sanitisedFnoteMiddle and '>' not in sanitisedFnoteMiddle, f"Left-over HTML chars in {BBB} {sanitisedFnoteMiddle=}"
+        assert '"' not in sanitisedFnoteMiddle and '<' not in sanitisedFnoteMiddle and '>' not in sanitisedFnoteMiddle, f"Left-over HTML chars in {refTuple} {sanitisedFnoteMiddle=}"
         fnoteCaller = f'<span class="fnCaller" title="Note: {sanitisedFnoteMiddle}">[<a href="#fn{footnotesCount}">fn</a>]</span>'
         fnoteRef = ''
         if frText:
@@ -579,20 +582,22 @@ def convertUSFMMarkerListToHtml( versionAbbreviation:str, refTuple:tuple, segmen
         html = f'{html[:fStartIx]}{fnoteCaller}{html[fEndIx+3:]}'
         searchStartIx = fEndIx + 3
     else:
-        logging.critical( f"outer_fn_loop_needed_to_break {versionAbbreviation} {segmentType} {basicOnly=} {BBB} {_safetyCount1=}" )
+        logging.critical( f"outer_fn_loop_needed_to_break {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {_outerSafetyCount=}" )
         outer_fn_loop_needed_to_break
     if footnotesHtml:
-        if not checkHtml( f"Footnotes for {versionAbbreviation} {segmentType} {basicOnly=} {BBB} {fnoteMiddle=}", footnotesHtml, segmentOnly=True ):
+        if not checkHtml( f"Footnotes for {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {fnoteMiddle=}", footnotesHtml, segmentOnly=True ):
             if DEBUGGING_THIS_MODULE: halt
         html = f'{html}<hr><div class="footnotes">\n{footnotesHtml}</div><!--footnotes-->\n'
-    if versionAbbreviation not in ('T4T','BRN',): # T4T ISA 33:8, BRN KI1 6:36a
-        assert '\\f' not in html, f"{html[html.index(f'{BACKSLASH}f')-10:html.index(f'{BACKSLASH}f')+12]}"
+    # TODO: Find out why these following exceptions occur
+    if versionAbbreviation not in ('T4T','BRN','CLV'): # T4T ISA 33:8, BRN KI1 6:36a, CLV MRK 3:10 Why???
+        assert '\\f' not in html, f"{html[html.index(f'{BACKSLASH}f')-10:html.index(f'{BACKSLASH}f')+MAX_FOOTNOTE_CHARS]}"
 
     # Now handle all cross-references in one go (we don't check for matching \xo fields)
+    pathPrefix = '../byDocument/' if segmentType=='section' else ''
     crossReferencesCount = 0
     crossReferencesHtml = ''
     searchStartIx = 0
-    for _safetyCount in range( 999 if segmentType=='book' else 99 ):
+    for _safetyCount1 in range( 999 if segmentType=='book' else 99 ):
         xStartIx = html.find( '\\x ', searchStartIx )
         if xStartIx == -1: break # all done
         crossReferencesCount += 1
@@ -617,14 +622,15 @@ def convertUSFMMarkerListToHtml( versionAbbreviation:str, refTuple:tuple, segmen
         # TODO: The following code is untidy, not including combined verses in the link, e.g., Mrk 3:4-5
         refRegEx = re.compile( '([1-3]? ?[A-Z][a-z]{0,3}) ([1-9][0-9]{0,2}):([1-9][0-9]{0,2})' )
         reStartIx = 0
-        match = refRegEx.search( xrefLiveMiddle, reStartIx )
-        while match:
+        for _safetyCount2 in range( 999 if segmentType=='book' else 99 ):
+            match = refRegEx.search( xrefLiveMiddle, reStartIx )
+            if not match: break
             # print( match.groups() )
             xB, xC, xV = match.groups()
             xBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromText( xB )
-            xrefLiveMiddle = f'{xrefLiveMiddle[:match.start()]}<a href="{xBBB}.html#C{xC}V{xV}">{match.group()}</a>{xrefLiveMiddle[match.end():]}'
-            reStartIx = match.end() + 28 # approx number of characters that we add
-            match = refRegEx.search( xrefLiveMiddle, reStartIx )
+            xrefLiveMiddle = f'{xrefLiveMiddle[:match.start()]}<a href="{pathPrefix}{xBBB}.html#C{xC}V{xV}">{match.group()}</a>{xrefLiveMiddle[match.end():]}'
+            reStartIx = match.end() + 28 + len(pathPrefix) # approx number of characters that we add
+        else: inner_xr_loop_needed_to_break
         # print( f"  {xrefLiveMiddle=}")
 
         # Now create the caller and the actual xref
@@ -650,7 +656,7 @@ def convertUSFMMarkerListToHtml( versionAbbreviation:str, refTuple:tuple, segmen
         searchStartIx = xEndIx + 3
     else: outer_xr_loop_needed_to_break
     if crossReferencesHtml:
-        if not checkHtml( f"Cross-references for {versionAbbreviation} {segmentType} {basicOnly=} {BBB}", crossReferencesHtml, segmentOnly=True ):
+        if not checkHtml( f"Cross-references for {versionAbbreviation} {segmentType} {basicOnly=} {refTuple}", crossReferencesHtml, segmentOnly=True ):
             if DEBUGGING_THIS_MODULE: halt
         html = f'{html}<hr><div class="crossRefs">\n{crossReferencesHtml}</div><!--crossRefs-->\n'
     if versionAbbreviation not in ('BRN',): # BRN ISA 52

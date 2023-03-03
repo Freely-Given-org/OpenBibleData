@@ -41,18 +41,18 @@ from html import do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, \
                     makeTop, makeBottom, removeDuplicateCVids, checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-03-01' # by RJH
+LAST_MODIFIED_DATE = '2023-03-02' # by RJH
 SHORT_PROGRAM_NAME = "createChapterPages"
 PROGRAM_NAME = "OpenBibleData createChapterPages functions"
-PROGRAM_VERSION = '0.17'
+PROGRAM_VERSION = '0.18'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
 
-BACKSLASH = '\\'
-NEWLINE = '\n'
-EM_SPACE = ' '
-NARROW_NON_BREAK_SPACE = ' '
+# BACKSLASH = '\\'
+# NEWLINE = '\n'
+# EM_SPACE = ' '
+# NARROW_NON_BREAK_SPACE = ' '
 
 
 def createOETChapterPages( folder:Path, rvBible, lvBible, state ) -> List[str]:
@@ -61,7 +61,7 @@ def createOETChapterPages( folder:Path, rvBible, lvBible, state ) -> List[str]:
     """
     fnPrint( DEBUGGING_THIS_MODULE, f"createOETChapterPages( {folder}, {rvBible.abbreviation}, {lvBible.abbreviation} )" )
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createOETChapterPages( {folder}, {rvBible.abbreviation}, {lvBible.abbreviation} )" )
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createOETChapterPages( {folder}, {rvBible.abbreviation}, {lvBible.abbreviation} )…" )
     try: os.makedirs( folder )
     except FileExistsError: pass # they were already there
 
@@ -96,17 +96,19 @@ def createOETChapterPages( folder:Path, rvBible, lvBible, state ) -> List[str]:
         if numChapters >= 1:
             for c in range( -1, numChapters+1 ):
                 vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"      Creating chapter pages for OET {BBB} {c}…" )
-                leftLink = f'<a href="{BBB}_C{c-1}.html">←</a>{EM_SPACE}' if c>1 \
-                            else f'<a href="{BBB}_Intro.html">←</a>{EM_SPACE}' if c==1 else ''
-                rightLink = f'{EM_SPACE}<a href="{BBB}_C{c+1}.html">→</a>' if c<numChapters else ''
-                parallelLink = f'{EM_SPACE}<a href="../../../parallel/{BBB}/C{c}_V1.html">║</a>'
+                documentLink = f'<a href="../byDocument/{BBB}.html">{tidyBBB}</a>'
+                leftLink = f'<a href="{BBB}_C{c-1}.html">←</a> ' if c>1 \
+                            else f'<a href="{BBB}_Intro.html">←</a> ' if c==1 else ''
+                rightLink = f' <a href="{BBB}_C{c+1}.html">→</a>' if c<numChapters else ''
+                parallelLink = f' <a href="../../../parallel/{BBB}/C{c}_V1.html">║</a>'
+                detailsLink = f' <a href="../details.html">©</a>'
                 cHtml = f'''<h1>Open English Translation {tidyBBB} Introduction</h1>
-<p class="cnav">{leftLink}{tidyBBB} Intro{rightLink}{parallelLink}</p>
+<p class="cnav">{leftLink}{documentLink} Intro{rightLink}{parallelLink}{detailsLink}</p>
 <div class="container">
 <h2>Readers’ Version</h2>
 <h2>Literal Version</h2>
 ''' if c==-1 else f'''<h1>Open English Translation {tidyBBB} Chapter {c}</h1>
-<p class="cnav">{leftLink}{tidyBBB} {c}{rightLink}{parallelLink}</p>
+<p class="cnav">{leftLink}{documentLink} {c}{rightLink}{parallelLink}{detailsLink}</p>
 <div class="container">
 <span> </span>
 <div class="buttons">
@@ -188,7 +190,7 @@ def createOETChapterPages( folder:Path, rvBible, lvBible, state ) -> List[str]:
                 .replace( '__TITLE__', f'OET {tidyBBB} chapter {c}' ) \
                 .replace( '__KEYWORDS__', f'Bible, OET, Open English Translation, chapter' ) \
                 .replace( f'''<a title="{state.BibleNames['OET']}" href="{'../'*3}versions/OET">OET</a>''', 'OET' )
-        cHtml = top + f'<!--chapters indexPage--><p class="cLinks">{EM_SPACE.join( cLinks )}</p>\n' \
+        cHtml = top + f'''<!--chapters indexPage--><p class="cLinks">{' '.join( cLinks )}</p>\n''' \
                     + makeBottom( 3, 'OETChapters', state )
         checkHtml( 'OETChaptersIndex', cHtml )
         with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
@@ -203,14 +205,14 @@ def createOETChapterPages( folder:Path, rvBible, lvBible, state ) -> List[str]:
             .replace( f'''<a title="{state.BibleNames['OET']}" href="{'../'*3}versions/OET">OET</a>''', 'OET' )
     indexHtml = top \
                 + '<h1>OET chapter pages</h1><h2>Index of books</h2>\n' \
-                + f'<p class="bLinks">{EM_SPACE.join( BBBLinks )}</p>\n' \
+                + f'''<p class="bLinks">{' '.join( BBBLinks )}</p>\n''' \
                 + makeBottom( 3, 'OETChapters', state )
     checkHtml( 'OETBooksIndex', indexHtml )
     with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
         cHtmlFile.write( indexHtml )
     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createOETChapterPages() finished processing {len(BBBs)} OET books: {BBBs}" )
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createOETChapterPages() finished processing {len(BBBs)} OET books: {BBBs}." )
     return filenames
 # end of createChapterPages.createOETChapterPages
 
@@ -221,7 +223,7 @@ def createChapterPages( folder:Path, thisBible, state ) -> List[str]:
     """
     fnPrint( DEBUGGING_THIS_MODULE, f"createChapterPages( {folder}, {thisBible.abbreviation} )" )
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createChapterPages( {folder}, {thisBible.abbreviation} )" )
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createChapterPages( {folder}, {thisBible.abbreviation} )…" )
     try: os.makedirs( folder )
     except FileExistsError: pass # they were already there
 
@@ -252,14 +254,16 @@ def createChapterPages( folder:Path, thisBible, state ) -> List[str]:
         if numChapters >= 1:
             for c in range( -1, numChapters+1 ):
                 vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"      Creating chapter pages for {thisBible.abbreviation} {BBB} {c}…" )
-                leftLink = f'<a href="{BBB}_C{c-1}.html">←</a>{EM_SPACE}' if c>1 \
-                            else f'<a href="{BBB}_Intro.html">←</a>{EM_SPACE}' if c==1 else ''
-                rightLink = f'{EM_SPACE}<a href="{BBB}_C{c+1}.html">→</a>' if c<numChapters else ''
-                parallelLink = f'{EM_SPACE}<a href="../../../parallel/{BBB}/C{c}_V1.html">║</a>'
+                documentLink = f'<a href="../byDocument/{BBB}.html">{tidyBBB}</a>'
+                leftLink = f'<a href="{BBB}_C{c-1}.html">←</a> ' if c>1 \
+                            else f'<a href="{BBB}_Intro.html">←</a> ' if c==1 else ''
+                rightLink = f' <a href="{BBB}_C{c+1}.html">→</a>' if c<numChapters else ''
+                parallelLink = f' <a href="../../../parallel/{BBB}/C{c}_V1.html">║</a>'
+                detailsLink = f' <a href="../details.html">©</a>'
                 cHtml = f'''<h1>{thisBible.abbreviation} {tidyBBB} Introduction</h1>
-<p class="cnav">{leftLink}{tidyBBB} Intro{rightLink}{parallelLink}</p>
+<p class="cnav">{leftLink}{documentLink} Intro{rightLink}{parallelLink}{detailsLink}</p>
 ''' if c==-1 else f'''<h1>{thisBible.abbreviation} {tidyBBB} Chapter {c}</h1>
-<p class="cnav">{leftLink}{tidyBBB} {c}{rightLink}{parallelLink}</p>
+<p class="cnav">{leftLink}{documentLink} {c}{rightLink}{parallelLink}{detailsLink}</p>
 '''
                 try: verseEntryList, contextList = thisBible.getContextVerseData( (BBB, str(c)) )
                 except KeyError:
@@ -334,7 +338,8 @@ def createChapterPages( folder:Path, thisBible, state ) -> List[str]:
                 .replace( '__TITLE__', f'{thisBible.abbreviation} {tidyBBB}' ) \
                 .replace( '__KEYWORDS__', f'Bible, {thisBible.abbreviation}, chapter' ) \
                 .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*3}versions/{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}">{thisBible.abbreviation}</a>''', thisBible.abbreviation )
-        cHtml = top + f'<!--chapters indexPage--><p class="cLinks">{EM_SPACE.join( cLinks )}</p>\n' + makeBottom(3, 'chapters', state)
+        cHtml = top + f'''<!--chapters indexPage--><p class="cLinks">{' '.join( cLinks )}</p>\n''' \
+                        + makeBottom(3, 'chapters', state)
         checkHtml( thisBible.abbreviation, cHtml )
         with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
             cHtmlFile.write( cHtml )
@@ -349,14 +354,14 @@ def createChapterPages( folder:Path, thisBible, state ) -> List[str]:
             .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*3}versions/{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}">{thisBible.abbreviation}</a>''', thisBible.abbreviation )
     indexHtml = top \
                 + '<h1>Chapter pages</h1><h2>Index of books</h2>\n' \
-                + f'<p class="bLinks">{EM_SPACE.join( BBBLinks )}</p>\n' \
+                + f'''<p class="bLinks">{' '.join( BBBLinks )}</p>\n''' \
                 + makeBottom(3, 'chapters', state)
     checkHtml( thisBible.abbreviation, indexHtml )
     with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
         cHtmlFile.write( indexHtml )
     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createChapterPages() finished processing {len(BBBs)} {thisBible.abbreviation} books: {BBBs}" )
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createChapterPages() finished processing {len(BBBs)} {thisBible.abbreviation} books: {BBBs}…" )
     return filenames
 # end of createChapterPages.createChapterPages
 

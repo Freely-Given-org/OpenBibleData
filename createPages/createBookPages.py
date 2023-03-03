@@ -41,10 +41,10 @@ from html import do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, \
                     makeTop, makeBottom, removeDuplicateCVids, checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-03-01' # by RJH
+LAST_MODIFIED_DATE = '2023-03-02' # by RJH
 SHORT_PROGRAM_NAME = "createBookPages"
 PROGRAM_NAME = "OpenBibleData createBookPages functions"
-PROGRAM_VERSION = '0.18'
+PROGRAM_VERSION = '0.19'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -61,7 +61,7 @@ def createOETBookPages( folder:Path, rvBible, lvBible, state ) -> List[str]:
     """
     fnPrint( DEBUGGING_THIS_MODULE, f"createOETBookPages( {folder}, {rvBible.abbreviation}, {lvBible.abbreviation} )" )
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createOETBookPages( {folder}, {rvBible.abbreviation}, {lvBible.abbreviation} )" )
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createOETBookPages( {folder}, {rvBible.abbreviation}, {lvBible.abbreviation} )…" )
     try: os.makedirs( folder )
     except FileExistsError: pass # they were already there
 
@@ -103,7 +103,7 @@ def createOETBookPages( folder:Path, rvBible, lvBible, state ) -> List[str]:
 '''
         rvVerseEntryList, rvContextList = rvBible.getContextVerseData( (BBB,) )
         lvVerseEntryList, lvContextList = lvBible.getContextVerseData( (BBB,) )
-        rvHtml = livenIORs( convertUSFMMarkerListToHtml( 'OET', (BBB,), 'book', rvContextList, rvVerseEntryList ) )
+        rvHtml = livenIORs( BBB, convertUSFMMarkerListToHtml( 'OET', (BBB,), 'book', rvContextList, rvVerseEntryList ) )
         lvHtml = do_OET_LV_HTMLcustomisations( convertUSFMMarkerListToHtml( 'OET', (BBB,), 'book', lvContextList, lvVerseEntryList ) )
 
         # Now we have to divide the RV and the LV into an equal number of chunks (so they mostly line up)
@@ -173,8 +173,8 @@ def createOETBookPages( folder:Path, rvBible, lvBible, state ) -> List[str]:
         with open( filepath, 'wt', encoding='utf-8' ) as bkHtmlFile:
             bkHtmlFile.write( bkHtml )
         vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(bkHtml):,} characters written to {filepath}" )
-    # Now create index pages for each book and then an overall one
-    # vPrint( 'Normal', DEBUGGING_THIS_MODULE, "    Creating book index pages for OET…" )
+
+    # Now create an overall index
     BBBLinks = []
     for BBB in BBBs:
         tidyBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.tidyBBB( BBB )
@@ -196,18 +196,19 @@ def createOETBookPages( folder:Path, rvBible, lvBible, state ) -> List[str]:
         bkHtmlFile.write( indexHtml )
     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createOETBookPages() finished processing {len(BBBs)} OET books: {BBBs}" )
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createOETBookPages() finished processing {len(BBBs)} OET books: {BBBs}." )
     return filenames
 # end of createBookPages.createOETBookPages
 
+
 def createBookPages( folder:Path, thisBible, state ) -> List[str]:
     """
-    This creates a page for each book for all versions
-        other than 'OET' which is considerably more complex (above).
+    This creates a page for each book for all versions other than 'OET'
+                                which is considerably more complex (above).
     """
     fnPrint( DEBUGGING_THIS_MODULE, f"createBookPages( {folder}, {thisBible.abbreviation} )" )
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createBookPages( {folder}, {thisBible.abbreviation} )" )
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createBookPages( {folder}, {thisBible.abbreviation} )…" )
     try: os.makedirs( folder )
     except FileExistsError: pass # they were already there
 
@@ -218,7 +219,6 @@ def createBookPages( folder:Path, thisBible, state ) -> List[str]:
         tidyBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.tidyBBB( BBB )
         # print( f"{BBB=} {BBBsToProcess}"); print( len(BBBsToProcess) )
         if not allBooksFlag: thisBible.loadBookIfNecessary( BBB )
-        # if not BibleOrgSysGlobals.loadedBibleBooksCodes.isNewTestament_NR( BBB ): continue # Skip all except NT for now
         if thisBible.abbreviation=='OET-LV' \
         and BBB in ('FRT','INT','NUM','SA1','SA2','CH1','EZR','NEH','JOB','SNG','JER','DAN'):
             logging.critical( f"AA Skipped OET chapters difficult book: OET-LV {BBB}")
@@ -235,7 +235,7 @@ def createBookPages( folder:Path, thisBible, state ) -> List[str]:
 '''
         verseEntryList, contextList = thisBible.getContextVerseData( (BBB,) )
         textHtml = convertUSFMMarkerListToHtml( thisBible.abbreviation, (BBB,), 'book', contextList, verseEntryList )
-        textHtml = livenIORs( textHtml )
+        textHtml = livenIORs( BBB, textHtml )
         if thisBible.abbreviation == 'OET-LV':
             textHtml = do_OET_LV_HTMLcustomisations( textHtml )
         elif thisBible.abbreviation == 'LSV':
@@ -254,8 +254,8 @@ def createBookPages( folder:Path, thisBible, state ) -> List[str]:
         with open( filepath, 'wt', encoding='utf-8' ) as bkHtmlFile:
             bkHtmlFile.write( bkHtml )
         vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(bkHtml):,} characters written to {filepath}" )
-    # Now create index pages for each book and then an overall one
-    # vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Creating book index pages for {thisBible.abbreviation}…" )
+
+    # Now create an overall index
     BBBLinks = []
     for BBB in BBBs:
         tidyBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.tidyBBB( BBB )
@@ -278,18 +278,18 @@ def createBookPages( folder:Path, thisBible, state ) -> List[str]:
         bkHtmlFile.write( indexHtml )
     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createBookPages() finished processing {len(BBBs)} {thisBible.abbreviation} books: {BBBs}" )
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createBookPages() finished processing {len(BBBs)} {thisBible.abbreviation} books: {BBBs}." )
     return filenames
 # end of createBookPages.createBookPages
 
 
-def livenIORs( bookHTML:str ) -> str:
+def livenIORs( BBB:str, bookHTML:str ) -> str:
     """
     """
     assert '\\ior' not in bookHTML
 
     searchStartIx = 0
-    while True:
+    for _safetyCount in range( 15 ):
         ixSpanStart = bookHTML.find( '<span class="ior">', searchStartIx )
         if ixSpanStart == -1: break
         ixEnd = bookHTML.find( '</span>', ixSpanStart+18 )
@@ -301,10 +301,15 @@ def livenIORs( bookHTML:str ) -> str:
         if ':' in startGuts:
             assert startGuts.count(':') == 1 # We expect a single C:V at this stage
             Cstr, Vstr = startGuts.strip().split( ':' )
+        elif BibleOrgSysGlobals.loadedBibleBooksCodes.isSingleChapterBook( BBB ):
+            Cstr, Vstr = '1', startGuts.strip() # Only a verse was given
         else: Cstr, Vstr = startGuts.strip(), '1' # Only a chapter was given
         new_guts = f'<a href="#C{Cstr}V{Vstr}">{guts}</a>'
         bookHTML = f'{bookHTML[:ixSpanStart+18]}{new_guts}{bookHTML[ixEnd:]}'
-        searchStartIx = ixEnd + 10
+        searchStartIx = ixEnd + 20 # Approx number of chars that we add
+    else:
+        # logging.critical( f"inner_fn_loop_needed_to_break {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {_innerSafetyCount=}" )
+        book_liven_IOR_loop_needed_to_break
 
     return bookHTML
 # end of createBookPages.livenIORs function

@@ -50,10 +50,10 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 # from Bibles import fetchChapter
 
 
-LAST_MODIFIED_DATE = '2023-02-17' # by RJH
+LAST_MODIFIED_DATE = '2023-03-03' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
-PROGRAM_VERSION = '0.19'
+PROGRAM_VERSION = '0.21'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -71,23 +71,28 @@ def do_OET_LV_HTMLcustomisations( html:str ) -> str:
     We have to protect fields like periods in '../C2_V2.html' from corruption
         (and then restore them again of course).
     """
-    return html \
-            .replace( '<!--', '~~COMMENT~~' ) \
-            .replace( '../', '~~UP~DIR~~' ).replace( '_V', '~~V' ) \
-            .replace( '.html', '~~HTML~~' ).replace( 'https:', '~~HTTPS~~' ) \
-            .replace( '.org', '~~ORG~~' ).replace( 'v0.', '~~v0~~' ) \
-            .replace( '.', '.<br>\n' ).replace( '?', '?<br>\n' ) \
-            .replace( '!', '!<br>\n' ).replace( ':', ':<br>\n' ) \
-            .replace( '<span class="add">+', '<span class="addArticle">' ) \
-            .replace( '<span class="add">=', '<span class="addCopula">' ) \
-            .replace( '<span class="add">~', '<span class="addDirectObject">' ) \
-            .replace( '<span class="add">>', '<span class="addExtra">' ) \
-            .replace( '<span class="add">^', '<span class="addOwner">' ) \
-            .replace( '_', '<span class="ul">_</span>') \
-            .replace( '~~COMMENT~~', '<!--' ) \
-            .replace( '~~UP~DIR~~', '../' ).replace( '~~V', '_V' ) \
-            .replace( '~~HTML~~', '.html' ).replace( '~~HTTPS~~', 'https:' ) \
-            .replace( '~~ORG~~', '.org' ).replace( '~~v0~~', 'v0.' )
+    return (html \
+            # Protect fields we need to preserve
+            .replace( '<!--', '~~COMMENT~~' )
+            .replace( '../', '~~UP~DIR~~' ).replace( '_V', '~~V' )
+            .replace( '.html', '~~HTML~~' ).replace( 'https:', '~~HTTPS~~' )
+            .replace( '.org', '~~ORG~~' ).replace( 'v0.', '~~v0~~' )
+            # Each sentence starts a new line
+            .replace( '.', '.<br>\n' ).replace( '?', '?<br>\n' )
+            .replace( '!', '!<br>\n' ).replace( ':', ':<br>\n' )
+            # Adjust specialised add markers
+            .replace( '<span class="add">+', '<span class="addArticle">' )
+            .replace( '<span class="add">=', '<span class="addCopula">' )
+            .replace( '<span class="add">~', '<span class="addDirectObject">' )
+            .replace( '<span class="add">>', '<span class="addExtra">' )
+            .replace( '<span class="add">^', '<span class="addOwner">' )
+            # Put all underlines into a span (then we will have a button to hide them)
+            .replace( '_', '<span class="ul">_</span>')
+            # Now unprotect everything again
+            .replace( '~~COMMENT~~', '<!--' )
+            .replace( '~~UP~DIR~~', '../' ).replace( '~~V', '_V' )
+            .replace( '~~HTML~~', '.html' ).replace( '~~HTTPS~~', 'https:' )
+            .replace( '~~ORG~~', '.org' ).replace( '~~v0~~', 'v0.' ) )
 # end of html.do_OET_LV_HTMLcustomisations
 
 
@@ -108,9 +113,9 @@ def makeTop( level:int, pageType:str, filename:Optional[str], state ) -> str:
     """
     fnPrint( DEBUGGING_THIS_MODULE, f"makeTop( {level}, {pageType} {filename} )" )
 
-    if pageType in ('chapters','book'):
+    if pageType in ('chapters','section','book'):
         cssFilename = 'BibleChapter.css'
-    elif pageType in ('OETChapters','OETbook'):
+    elif pageType in ('OETChapters','OETSection','OETbook'):
         cssFilename = 'OETChapter.css'
     elif pageType == 'parallel':
         cssFilename = 'ParallelVerses.css'
@@ -152,6 +157,14 @@ def _makeHeader( level:int, pageType:str, filename:Optional[str], state ) -> str
     #   and with the more specific links if specified.
     versionList = []
     for versionAbbreviation in state.BibleVersions:
+        if pageType in ('section','OETSection'):
+            try:
+                thisBible = state.preloadedBibles['OET-RV' if versionAbbreviation=='OET' else versionAbbreviation]
+                if not thisBible.discoveryResults['ALL']['haveSectionHeadings']:
+                    continue # skip this one
+            except AttributeError: # no discoveryResults
+                continue
+
         # TODO: This is not good because not all versions have all books
         vLink = f"{'../'*level}versions/{BibleOrgSysGlobals.makeSafeString(versionAbbreviation)}" if not filename \
                     else f"{'../'*level}versions/{BibleOrgSysGlobals.makeSafeString(versionAbbreviation)}/{filename}"
@@ -206,9 +219,9 @@ def _makeFooter( level:int, pageType:str, state ) -> str:
     Create any links or site map that follow the main content on the page.
     """
     # fnPrint( DEBUGGING_THIS_MODULE, f"_makeFooter()" )
-    html = """<div class="footer">
+    html = f"""<div class="footer">
 <p class="copyright"><small><em>Open Bible Data</em> site copyright © 2023 <a href="https://Freely-Given.org">Freely-Given.org</a></small></p>
-<p class="copyright"><small>For Bible data copyrights, see the details for each displayed Bible version.</small></p>
+<p class="copyright"><small>For Bible data copyrights, see the <a href="{'../'*level}versions/allDetails.html">details</a> for each displayed Bible version.</small></p>
 </div><!--footer-->"""
     return html
 # end of html._makeFooter
@@ -249,7 +262,7 @@ def checkHtml( where:str, html:str, segmentOnly:bool=False ) -> bool:
         if segmentOnly:
             assert html.count( startMarker ) == html.count( f'</{marker}>' ), html[html.index(startMarker):]
         else:
-            assert html.count( startMarker ) == 1
+            assert html.count( startMarker ) == 1, f"checkHtml() found {html.count( startMarker )} '{startMarker}' markers"
             assert html.count( f'</{marker}>' ) == 1
 
     for marker,startMarker in (('div','<div'),('p','<p '),('h1','<h1'),('h2','<h2'),('h3','<h3'),('em','<em>'),('i','<i>'),('b','<b>'),('sup','<sup>'),('sub','<sub>')):
