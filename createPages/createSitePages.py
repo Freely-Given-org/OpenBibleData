@@ -54,10 +54,10 @@ from createInterlinearPages import createInterlinearPages
 from html import makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-03-03' # by RJH
+LAST_MODIFIED_DATE = '2023-03-06' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData Create Pages"
-PROGRAM_VERSION = '0.31'
+PROGRAM_VERSION = '0.32'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging statements and writes website into Test folder if True
@@ -81,7 +81,6 @@ OT_BOOK_LIST_WITH_FRT = ['FRT','GEN','EXO','LEV','NUM','DEU',
                 'EZE','DAN','HOS','JOL','AMO','OBA','JNA', 'MIC','NAH','HAB','ZEP','HAG','ZEC','MAL']
 assert len(OT_BOOK_LIST_WITH_FRT) == 39+1
 
-# EM_SPACE = ' '
 
 
 class State:
@@ -482,7 +481,7 @@ def createSitePages() -> bool:
         # Note: shutil.copy2 is the same as copy but keeps metadata like creation and modification times
         shutil.move( fileOrFolderPath, DESTINATION_FOLDER, copy_function=shutil.copy2)
         count += 1
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Moved {count} folders and files into {DESTINATION_FOLDER}." )
+    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Moved {count} folders and files into {DESTINATION_FOLDER}." )
 
     # In DEBUG mode, we need to copy the .css files across
     if DESTINATION_FOLDER != NORMAL_DESTINATION_FOLDER:
@@ -523,12 +522,13 @@ def createOETVersionPages( folder:Path, rvBible, lvBible, state:State ) -> bool:
     dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{rvBible.discoveryResults['ALL']['haveSectionHeadings']=}" )
     dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{lvBible.discoveryResults['ALL']['haveSectionHeadings']=}" )
 
-    indexHtml = f'''<p class="rem">Remember that ancient letters were meant to be read in their entirety just like modern letters. We provide a byChapter mode for convenience only, but recommend the byDocument mode for personal reading.</p>
+    versionName = state.BibleNames['OET']
+    indexHtml = f'''<h1>{versionName}</h1>
+<p class="rem">Remember that ancient letters were meant to be read in their entirety just like modern letters. We provide a byChapter mode for convenience only, but recommend the byDocument mode for personal reading.</p>
 <p class="viewNav"><a href="byDocument">By Document</a> <a href="bySection">By Section</a> <a href="byChapter">By Chapter</a> <a href="details.html">Details</a></p>
 ''' if rvBible.discoveryResults['ALL']['haveSectionHeadings'] or lvBible.discoveryResults['ALL']['haveSectionHeadings'] else f'''<p class="rem">Remember that ancient letters were meant to be read in their entirety just like modern letters. We provide a byChapter mode for convenience only, but recommend the byDocument mode for personal reading.</p>
 <p class="viewNav"><a href="byDocument">By Document</a> <a href="byChapter">By Chapter</a> <a href="details.html">Details</a></p>
 '''
-    versionName = state.BibleNames['OET']
     filepath = folder.joinpath( 'index.html' )
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
         indexHtmlFile.write( makeTop( 2, 'site', None, state ) \
@@ -549,12 +549,13 @@ def createVersionPages( folder:Path, thisBible, state:State ) -> bool:
     thisBible.discover() # Now that all required books are loaded
     dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{thisBible.discoveryResults['ALL']['haveSectionHeadings']=}" )
 
-    indexHtml = f'''<p class="rem">Remember that ancient letters were meant to be read in their entirety just like modern letters. We provide a byChapter mode for convenience only, but recommend the byDocument mode for personal reading.</p>
+    versionName = state.BibleNames[thisBible.abbreviation]
+    indexHtml = f'''<h1>{versionName}</h1>
+<p class="rem">Remember that ancient letters were meant to be read in their entirety just like modern letters. We provide a byChapter mode for convenience only, but recommend the byDocument mode for personal reading.</p>
 <p class="viewNav"><a href="byDocument">By Document</a> <a href="bySection">By Section</a> <a href="byChapter">By Chapter</a> <a href="details.html">Details</a></p>
 ''' if thisBible.discoveryResults['ALL']['haveSectionHeadings'] else f'''<p class="rem">Remember that ancient letters were meant to be read in their entirety just like modern letters. We provide a byChapter mode for convenience only, but recommend the byDocument mode for personal reading.</p>
 <p class="viewNav"><a href="byDocument">By Document</a> <a href="byChapter">By Chapter</a> <a href="details.html">Details</a></p>
 '''
-    versionName = state.BibleNames[thisBible.abbreviation]
     filepath = folder.joinpath( 'index.html' )
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
         indexHtmlFile.write( makeTop( 2, 'site', None, state ) \
@@ -575,7 +576,7 @@ def createMainIndexPages( level, folder:Path, state ) -> bool:
     fnPrint( DEBUGGING_THIS_MODULE, f"createMainIndexPage( {level}, {folder}, {state.BibleVersions} )" )
 
     # Create the very top level index file
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Creating main {'TEST ' if BibleOrgSysGlobals.debugFlag or DEBUGGING_THIS_MODULE else ''}index page for {len(state.BibleVersions)} versions…" )
+    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Creating main {'TEST ' if BibleOrgSysGlobals.debugFlag or DEBUGGING_THIS_MODULE else ''}index page for {len(state.BibleVersions)} versions…" )
     html = makeTop( level, 'topIndex', None, state ) \
             .replace( '__TITLE__', 'TEST Open Bible Data' if BibleOrgSysGlobals.debugFlag or DEBUGGING_THIS_MODULE else 'Open Bible Data') \
             .replace( '__KEYWORDS__', 'Bible, translation, English, OET' )
@@ -593,7 +594,7 @@ def createMainIndexPages( level, folder:Path, state ) -> bool:
     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  {len(html):,} characters written to {filepath}" )
 
     # Create the versions index file (in case it's needed)
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Creating versions {'TEST ' if BibleOrgSysGlobals.debugFlag or DEBUGGING_THIS_MODULE else ''}index page for {len(state.BibleVersions)} versions…" )
+    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Creating versions {'TEST ' if BibleOrgSysGlobals.debugFlag or DEBUGGING_THIS_MODULE else ''}index page for {len(state.BibleVersions)} versions…" )
     html = makeTop( level+1, 'topIndex', None, state ) \
             .replace( '__TITLE__', 'TEST Open Bible Data Versions' if BibleOrgSysGlobals.debugFlag or DEBUGGING_THIS_MODULE else 'Open Bible Data Versions') \
             .replace( '__KEYWORDS__', 'Bible, translation, English, OET' )
@@ -624,7 +625,7 @@ def createDetailsPages( level:int, versionsFolder:Path, state ) -> bool:
         plus a summary page of all the versions.
     """
     fnPrint( DEBUGGING_THIS_MODULE, f"createDetailsPages( {level}, {versionsFolder}, {state.BibleVersions} )" )
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Creating details pages for {len(state.BibleVersions)} versions…" )
+    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Creating details pages for {len(state.BibleVersions)} versions…" )
 
     allDetailsHTML = ''
     for versionAbbreviation in ['OET'] + [versAbbrev for versAbbrev in state.preloadedBibles]:

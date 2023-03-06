@@ -48,10 +48,10 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 from html import checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-03-03' # by RJH
+LAST_MODIFIED_DATE = '2023-03-05' # by RJH
 SHORT_PROGRAM_NAME = "usfm"
 PROGRAM_NAME = "OpenBibleData USFM to HTML functions"
-PROGRAM_VERSION = '0.25'
+PROGRAM_VERSION = '0.26'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -425,9 +425,10 @@ def convertUSFMMarkerListToHtml( versionAbbreviation:str, refTuple:tuple, segmen
             assert not rest
             assert segmentType != 'verse'
             assert not basicOnly
-            if not inMainDiv:
-                inMainDiv = 'bookHeader'
-                html = f'{html}<div class="{inMainDiv}">'
+            assert not inMainDiv
+            # if not inMainDiv:
+            inMainDiv = 'bookHeader'
+            html = f'{html}<div class="{inMainDiv}">'
         elif marker == 'intro':
             assert not rest
             assert segmentType != 'verse'
@@ -435,9 +436,10 @@ def convertUSFMMarkerListToHtml( versionAbbreviation:str, refTuple:tuple, segmen
             if inMainDiv == 'bookHeader':
                 html = f'{html}</div><!--{inMainDiv}-->\n'
                 inMainDiv = None
-            if not inMainDiv:
-                inMainDiv = 'bookIntro'
-                html = f'{html}<div class="{inMainDiv}">'
+            assert not inMainDiv
+            # if not inMainDiv:
+            inMainDiv = 'bookIntro'
+            html = f'{html}<div class="{inMainDiv}">'
         elif marker in ('ie', '¬intro', 'chapters'):
             assert not rest
             assert segmentType != 'verse'
@@ -477,7 +479,7 @@ def convertUSFMMarkerListToHtml( versionAbbreviation:str, refTuple:tuple, segmen
         if not basicOnly:
             logger( f"convertUSFMMarkerListToHtml final unclosed '{inSection}' section {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} last {marker=}" )
         html = f'{html}</div><!--{inSection}-->\n'
-    if inMainDiv == 'bookHeader':
+    if inMainDiv:
             logger( f"convertUSFMMarkerListToHtml final unclosed '{inMainDiv}' main section {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} last {marker=}" )
             html = f'{html}</div><!--{inMainDiv}-->\n'
 
@@ -485,7 +487,7 @@ def convertUSFMMarkerListToHtml( versionAbbreviation:str, refTuple:tuple, segmen
     footnotesCount = 0
     footnotesHtml = ''
     searchStartIx = 0
-    for _outerSafetyCount in range( 2299 if segmentType=='book' else 199 ): # max number of footnotes in segment
+    for _outerSafetyCount in range( 2299 if segmentType in ('book','section') else 200 ): # max number of footnotes in segment (more than 250 in LEB DEU 12)
         fStartIx = html.find( '\\f ', searchStartIx )
         if fStartIx == -1: break # all done
         footnotesCount += 1
@@ -553,9 +555,9 @@ def convertUSFMMarkerListToHtml( versionAbbreviation:str, refTuple:tuple, segmen
         sanitisedFnoteMiddle = fnoteMiddle
         if '"' in sanitisedFnoteMiddle or '<' in sanitisedFnoteMiddle or '>' in sanitisedFnoteMiddle:
             sanitisedFnoteMiddle = sanitisedFnoteMiddle.replace( '</span>', '' )
-            for footnoteMarker in ('ft','xt', 'fq','fqa', 'fk','fl','fw','fp','fv', 'add'):
+            for footnoteMarker in ('ft','xt', 'fq','fqa', 'fk','fl','fw','fp','fv', 'add', 'sc', 'wh','wg', 'jmp'): # These are USFM markers (and will be span classes)
                 sanitisedFnoteMiddle = sanitisedFnoteMiddle.replace( f'<span class="{footnoteMarker}">', '' )
-            for charMarker in ('em','i', 'b','sup', 'sub'):
+            for charMarker in ('em','i', 'b', 'sup','sub'): # These are HTML markers
                 sanitisedFnoteMiddle = sanitisedFnoteMiddle.replace( f'<{charMarker}>', '' ).replace( f'</{charMarker}>', '' )
             if '"' in sanitisedFnoteMiddle or '<' in sanitisedFnoteMiddle or '>' in sanitisedFnoteMiddle:
                 logging.critical( f"Left-over HTML chars in {refTuple} {sanitisedFnoteMiddle=}" )
