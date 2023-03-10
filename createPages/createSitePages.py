@@ -53,19 +53,21 @@ from createInterlinearPages import createInterlinearPages
 from html import makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-03-10' # by RJH
+LAST_MODIFIED_DATE = '2023-03-11' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData Create Pages"
-PROGRAM_VERSION = '0.34'
+PROGRAM_VERSION = '0.35'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
-DEBUGGING_THIS_MODULE = False # Adds debugging statements and writes website into Test folder if True
-ALL_PRODUCTION_BOOKS = True # Set to False only for a faster test build
+DEBUGGING_THIS_MODULE = False # Adds debugging statements
+TEST_MODE = True # Writes website into Test folder
+
+ALL_PRODUCTION_BOOKS = not TEST_MODE # Set to False only for a faster test build
 
 TEMP_BUILD_FOLDER = Path( '/tmp/OBDHtmlPages/' )
 NORMAL_DESTINATION_FOLDER = Path( '../htmlPages/' )
 DEBUG_DESTINATION_FOLDER = NORMAL_DESTINATION_FOLDER.joinpath( 'Test/')
-DESTINATION_FOLDER = DEBUG_DESTINATION_FOLDER if BibleOrgSysGlobals.debugFlag or DEBUGGING_THIS_MODULE \
+DESTINATION_FOLDER = DEBUG_DESTINATION_FOLDER if TEST_MODE or BibleOrgSysGlobals.debugFlag \
                         else NORMAL_DESTINATION_FOLDER
 
 
@@ -535,7 +537,7 @@ def createOETVersionPages( folder:Path, rvBible, lvBible, state:State ) -> bool:
     filepath = folder.joinpath( 'index.html' )
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
         indexHtmlFile.write( makeTop( 2, 'site', None, state ) \
-                                    .replace( '__TITLE__', f"{versionName}" ) \
+                                    .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{versionName}" ) \
                                     .replace( '__KEYWORDS__', f"Bible, OET, {versionName}" ) \
                                     .replace( f'''<a title="{versionName}" href="{'../'*2}versions/OET">OET</a>''', 'OET' ) \
                                 + indexHtml + '\n' + makeBottom( 1, 'site', state ) )
@@ -562,7 +564,7 @@ def createVersionPages( folder:Path, thisBible, state:State ) -> bool:
     filepath = folder.joinpath( 'index.html' )
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
         indexHtmlFile.write( makeTop( 2, 'site', None, state ) \
-                                    .replace( '__TITLE__', f'{versionName}' ) \
+                                    .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{versionName}" ) \
                                     .replace( '__KEYWORDS__', f'Bible, {versionName}' ) \
                                     .replace( f'''<a title="{versionName}" href="{'../'*2}versions/{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}">{thisBible.abbreviation}</a>''', thisBible.abbreviation ) \
                                 + indexHtml + makeBottom( 1, 'site', state ) )
@@ -643,7 +645,7 @@ def createOETWordsPages( outputFolderPath:Path, state ) -> bool:
  Strongs=<span title="Goes to Strongs dictionary"><a href="https://BibleHub.com/greek/{strongs}.htm">{extendedStrongs}</a></span><br>
   {roleField} Morphology=<b>{morphology}</b>:{moodField}{tenseField}{voiceField}{personField}{caseField}{genderField}{numberField}</p>'''
             html = makeTop( 1, 'word', None, state ) \
-                                    .replace( '__TITLE__', f'OET-LV NT Word {greek}' ) \
+                                    .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}OET-LV NT Word {greek}" ) \
                                     .replace( '__KEYWORDS__', 'Bible, word' ) \
                                     .replace( 'parallel/"', f'parallel/{BBB}/C{C}V{V}.html"' ) \
                                 + html + makeBottom( 1, 'word', state )
@@ -662,14 +664,14 @@ def createMainIndexPages( level, folder:Path, state ) -> bool:
     fnPrint( DEBUGGING_THIS_MODULE, f"createMainIndexPage( {level}, {folder}, {state.BibleVersions} )" )
 
     # Create the very top level index file
-    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Creating main {'TEST ' if BibleOrgSysGlobals.debugFlag or DEBUGGING_THIS_MODULE else ''}index page for {len(state.BibleVersions)} versions…" )
+    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Creating main {'TEST ' if TEST_MODE else ''}index page for {len(state.BibleVersions)} versions…" )
     html = makeTop( level, 'topIndex', None, state ) \
-            .replace( '__TITLE__', 'TEST Open Bible Data' if BibleOrgSysGlobals.debugFlag or DEBUGGING_THIS_MODULE else 'Open Bible Data') \
+            .replace( '__TITLE__', 'TEST Open Bible Data' if TEST_MODE else 'Open Bible Data') \
             .replace( '__KEYWORDS__', 'Bible, translation, English, OET' )
-    if BibleOrgSysGlobals.debugFlag or DEBUGGING_THIS_MODULE:
+    if TEST_MODE:
         html = html.replace( '<body>', '<body><p><a href="../">UP TO MAIN NON-TEST SITE</a></p>')
     bodyHtml = """<!--createMainIndexPage--><h1>Open Bible Data TEST</h1>
-""" if BibleOrgSysGlobals.debugFlag or DEBUGGING_THIS_MODULE else """<!--createMainIndexPage--><h1>Open Bible Data</h1>
+""" if TEST_MODE else """<!--createMainIndexPage--><h1>Open Bible Data</h1>
 """
     html += bodyHtml + f'<p><small>Last rebuilt: {date.today()}</small></p>\n' + makeBottom( level, 'topIndex', state )
     checkHtml( 'TopIndex', html )
@@ -680,14 +682,14 @@ def createMainIndexPages( level, folder:Path, state ) -> bool:
     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  {len(html):,} characters written to {filepath}" )
 
     # Create the versions index file (in case it's needed)
-    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Creating versions {'TEST ' if BibleOrgSysGlobals.debugFlag or DEBUGGING_THIS_MODULE else ''}index page for {len(state.BibleVersions)} versions…" )
+    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Creating versions {'TEST ' if TEST_MODE else ''}index page for {len(state.BibleVersions)} versions…" )
     html = makeTop( level+1, 'topIndex', None, state ) \
-            .replace( '__TITLE__', 'TEST Open Bible Data Versions' if BibleOrgSysGlobals.debugFlag or DEBUGGING_THIS_MODULE else 'Open Bible Data Versions') \
+            .replace( '__TITLE__', 'TEST Open Bible Data Versions' if TEST_MODE else 'Open Bible Data Versions') \
             .replace( '__KEYWORDS__', 'Bible, translation, English, OET' )
-    if BibleOrgSysGlobals.debugFlag or DEBUGGING_THIS_MODULE:
+    if TEST_MODE:
         html = html.replace( '<body>', '<body><p><a href="../../versions/">UP TO MAIN NON-TEST SITE</a></p>')
     bodyHtml = """<!--createVersionsIndexPage--><h1>Open Bible Data TEST Versions</h1>
-""" if BibleOrgSysGlobals.debugFlag or DEBUGGING_THIS_MODULE else """<!--createMainIndexPage--><h1>Open Bible Data Versions</h1>
+""" if TEST_MODE else """<!--createMainIndexPage--><h1>Open Bible Data Versions</h1>
 """
 
     bodyHtml = f'{bodyHtml}<p>Select one of the above Bible version abbreviations for views of entire documents (‘<i>books</i>’) or sections or chapters, or else select either of the Parallel or Interlinear verse views.</p>\n<ol>\n'
@@ -745,7 +747,7 @@ def createDetailsPages( level:int, versionsFolder:Path, state ) -> bool:
                             'Thanks to <a href="https://www.BibleSuperSearch.com/bible-downloads/">BibleSuperSearch.com</a> for supplying the source file' )
 
         topHtml = makeTop( level+1, 'details', 'details.html', state ) \
-                .replace( '__TITLE__', f'{versionName} Details' ) \
+                .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{versionName} Details" ) \
                 .replace( '__KEYWORDS__', 'Bible, details, about, copyright, licence, acknowledgements' ) \
                 .replace( f'''<a title="{state.BibleNames[versionAbbreviation]}" href="{'../'*(level+1)}versions/{BibleOrgSysGlobals.makeSafeString(versionAbbreviation)}/details.html">{versionAbbreviation}</a>''',
                             f'''<a title="Up to {state.BibleNames[versionAbbreviation]}" href="{'../'*(level+1)}versions/{BibleOrgSysGlobals.makeSafeString(versionAbbreviation)}/">↑{versionAbbreviation}</a>''' )
@@ -779,7 +781,7 @@ def createDetailsPages( level:int, versionsFolder:Path, state ) -> bool:
 
     # Make a summary page with details for all versions
     topHtml = makeTop( level, 'allDetails', 'details.html', state ) \
-            .replace( '__TITLE__', 'All Versions Details' ) \
+            .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}All Versions Details" ) \
             .replace( '__KEYWORDS__', 'Bible, details, about, copyright, licence, acknowledgements' )
             # .replace( f'''<a title="{state.BibleNames[versionAbbreviation]}" href="{'../'*(level+1)}versions/{BibleOrgSysGlobals.makeSafeString(versionAbbreviation)}/details.html">{versionAbbreviation}</a>''',
             #             f'''<a title="Up to {state.BibleNames[versionAbbreviation]}" href="{'../'*(level+1)}versions/{BibleOrgSysGlobals.makeSafeString(versionAbbreviation)}/">↑{versionAbbreviation}</a>''' )

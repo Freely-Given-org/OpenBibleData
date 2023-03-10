@@ -42,10 +42,10 @@ from html import do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, \
                     makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-03-10' # by RJH
+LAST_MODIFIED_DATE = '2023-03-11' # by RJH
 SHORT_PROGRAM_NAME = "createParallelPages"
 PROGRAM_NAME = "OpenBibleData createParallelPages functions"
-PROGRAM_VERSION = '0.20'
+PROGRAM_VERSION = '0.21'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -59,6 +59,7 @@ NARROW_NON_BREAK_SPACE = ' '
 def createParallelPages( folder:Path, state ) -> bool:
     """
     """
+    from createSitePages import TEST_MODE
     fnPrint( DEBUGGING_THIS_MODULE, f"createParallelPages( {folder}, {state.BibleVersions} )" )
 
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\ncreateParallelPages( {folder}, {state.BibleVersions} )" )
@@ -80,7 +81,7 @@ def createParallelPages( folder:Path, state ) -> bool:
     filename = 'index.html'
     filepath = folder.joinpath( filename )
     top = makeTop( 1, 'parallel', None, state ) \
-            .replace( '__TITLE__', f'Parallel View' ) \
+            .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}Parallel View" ) \
             .replace( '__KEYWORDS__', f'Bible, parallel' )
     indexHtml = top \
                 + '<h1>Parallel verse pages</h1><h2>Index of books</h2>\n' \
@@ -98,6 +99,7 @@ def createParallelPages( folder:Path, state ) -> bool:
 def createParallelVersePagesForBook( folder:Path, BBB:str, BBBLinks:List[str], state ) -> bool:
     """
     """
+    from createSitePages import TEST_MODE
     fnPrint( DEBUGGING_THIS_MODULE, f"createParallelVersePagesForBook( {folder}, {BBB}, {BBBLinks}, {state.BibleVersions} )" )
 
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createParallelVersePagesForBook {folder}, {BBB} from {len(BBBLinks)} books, {len(state.BibleVersions)} versions…" )
@@ -181,7 +183,7 @@ def createParallelVersePagesForBook( folder:Path, BBB:str, BBBLinks:List[str], s
                 # filenames.append( filename )
                 filepath = folder.joinpath( filename )
                 top = makeTop( 2, 'parallel', None, state ) \
-                        .replace( '__TITLE__', f'{tidyBBB} {c}:{v} Parallel View' ) \
+                        .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{tidyBBB} {c}:{v} Parallel View" ) \
                         .replace( '__KEYWORDS__', f'Bible, {tidyBBB}, parallel' )
                 pHtml = top + '<!--parallel verse page-->' \
                         + f'{adjBBBLinksHtml}\n<h1>Parallel {tidyBBB} {c}:{v}</h1>\n' \
@@ -203,7 +205,7 @@ def createParallelVersePagesForBook( folder:Path, BBB:str, BBBLinks:List[str], s
     filename = 'index.html'
     filepath = folder.joinpath( filename )
     top = makeTop(2, 'parallel', None, state) \
-            .replace( '__TITLE__', f'{tidyBBB} Parallel View' ) \
+            .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{tidyBBB} Parallel View" ) \
             .replace( '__KEYWORDS__', f'Bible, parallel' )
     indexHtml = f'{top}{adjBBBLinksHtml}\n' \
                 + f'<h1>{BBB} parallel verses index</h1>\n<p class="vLinks">{EM_SPACE.join( vLinks )}</p>\n' \
