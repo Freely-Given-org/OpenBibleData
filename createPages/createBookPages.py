@@ -35,16 +35,17 @@ import logging
 # import BibleOrgSysGlobals
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
+import BibleOrgSys.Formats.ESFMBible as ESFMBible
 
 from usfm import convertUSFMMarkerListToHtml
 from html import do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, \
                     makeTop, makeBottom, removeDuplicateCVids, checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-03-02' # by RJH
+LAST_MODIFIED_DATE = '2023-03-10' # by RJH
 SHORT_PROGRAM_NAME = "createBookPages"
 PROGRAM_NAME = "OpenBibleData createBookPages functions"
-PROGRAM_VERSION = '0.19'
+PROGRAM_VERSION = '0.20'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -103,6 +104,10 @@ def createOETBookPages( folder:Path, rvBible, lvBible, state ) -> List[str]:
 '''
         rvVerseEntryList, rvContextList = rvBible.getContextVerseData( (BBB,) )
         lvVerseEntryList, lvContextList = lvBible.getContextVerseData( (BBB,) )
+        if isinstance( rvBible, ESFMBible.ESFMBible ):
+            rvVerseEntryList,rvWordList = rvBible.livenESFMWordLinks( BBB, rvVerseEntryList, '../../W/{n}.htm' )
+        if isinstance( lvBible, ESFMBible.ESFMBible ):
+            lvVerseEntryList,lvWordList = lvBible.livenESFMWordLinks( BBB, lvVerseEntryList, '../../W/{n}.htm' )
         rvHtml = livenIORs( BBB, convertUSFMMarkerListToHtml( 'OET', (BBB,), 'book', rvContextList, rvVerseEntryList ) )
         lvHtml = do_OET_LV_HTMLcustomisations( convertUSFMMarkerListToHtml( 'OET', (BBB,), 'book', lvContextList, lvVerseEntryList ) )
 
@@ -234,6 +239,8 @@ def createBookPages( folder:Path, thisBible, state ) -> List[str]:
         bkHtml = f'''<h1>{thisBible.abbreviation} {tidyBBB}</h1>
 '''
         verseEntryList, contextList = thisBible.getContextVerseData( (BBB,) )
+        if isinstance( thisBible, ESFMBible.ESFMBible ):
+            verseEntryList,wordList = thisBible.livenESFMWordLinks( BBB, verseEntryList, '../../W/{n}.htm' )
         textHtml = convertUSFMMarkerListToHtml( thisBible.abbreviation, (BBB,), 'book', contextList, verseEntryList )
         textHtml = livenIORs( BBB, textHtml )
         if thisBible.abbreviation == 'OET-LV':

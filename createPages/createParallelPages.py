@@ -35,16 +35,17 @@ import logging
 # import BibleOrgSysGlobals
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
+import BibleOrgSys.Formats.ESFMBible as ESFMBible
 
 from usfm import convertUSFMMarkerListToHtml
 from html import do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, \
                     makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-03-01' # by RJH
+LAST_MODIFIED_DATE = '2023-03-10' # by RJH
 SHORT_PROGRAM_NAME = "createParallelPages"
 PROGRAM_NAME = "OpenBibleData createParallelPages functions"
-PROGRAM_VERSION = '0.18'
+PROGRAM_VERSION = '0.20'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -128,10 +129,10 @@ def createParallelVersePagesForBook( folder:Path, BBB:str, BBBLinks:List[str], s
                 continue
             for v in range( 1, numVerses+1 ):
                 # The following all have a __ID__ string than needs to be replaced
-                leftVLink = f'<a href="C{c}_V{v-1}.html#__ID__">←</a>{EM_SPACE}' if v>1 else ''
-                rightVLink = f'{EM_SPACE}<a href="C{c}_V{v+1}.html#__ID__">→</a>' if v<numVerses else ''
-                leftCLink = f'<a href="C{c-1}_V1.html#__ID__">◄</a>{EM_SPACE}' if c>1 else ''
-                rightCLink = f'{EM_SPACE}<a href="C{c+1}_V1.html#__ID__">►</a>' if c<numChapters else ''
+                leftVLink = f'<a href="C{c}V{v-1}.html#__ID__">←</a>{EM_SPACE}' if v>1 else ''
+                rightVLink = f'{EM_SPACE}<a href="C{c}V{v+1}.html#__ID__">→</a>' if v<numVerses else ''
+                leftCLink = f'<a href="C{c-1}V1.html#__ID__">◄</a>{EM_SPACE}' if c>1 else ''
+                rightCLink = f'{EM_SPACE}<a href="C{c+1}V1.html#__ID__">►</a>' if c<numChapters else ''
                 navLinks = f'<p id="__ID__" class="vnav">{leftCLink}{leftVLink}{tidyBBB} {c}:{v}{rightVLink}{rightCLink}</p>'
                 pHtml = ''
                 for versionAbbreviation in state.BibleVersions:
@@ -149,6 +150,8 @@ def createParallelVersePagesForBook( folder:Path, BBB:str, BBBLinks:List[str], s
                     thisBible.loadBookIfNecessary( BBB )
                     try:
                         verseEntryList, contextList = thisBible.getContextVerseData( (BBB, str(c), str(v)) )
+                        if isinstance( thisBible, ESFMBible.ESFMBible ):
+                            verseEntryList,wordList = thisBible.livenESFMWordLinks( BBB, verseEntryList, '../../W/{n}.htm' )
                         textHtml = convertUSFMMarkerListToHtml( versionAbbreviation, (BBB,c,v), 'verse', contextList, verseEntryList, basicOnly=True )
                         if textHtml == '◘': raise KeyError # This is an OET-RV marker to say "Not translated yet"
                         if versionAbbreviation == 'OET-LV':
@@ -174,7 +177,7 @@ def createParallelVersePagesForBook( folder:Path, BBB:str, BBBLinks:List[str], s
                     # dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"\n\n{pHtml=} {vHtml=}" )
                     checkHtml( f'{versionAbbreviation} {BBB} {c}:{v}', vHtml, segmentOnly=True )
                     pHtml = f'{pHtml}{vHtml}'
-                filename = f'C{c}_V{v}.html'
+                filename = f'C{c}V{v}.html'
                 # filenames.append( filename )
                 filepath = folder.joinpath( filename )
                 top = makeTop( 2, 'parallel', None, state ) \

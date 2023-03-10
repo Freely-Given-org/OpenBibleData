@@ -46,6 +46,7 @@ sys.path.append( '../../BibleOrgSys/' )
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 import BibleOrgSys.Formats.USFMBible as USFMBible
+import BibleOrgSys.Formats.ESFMBible as ESFMBible
 import BibleOrgSys.Formats.ZefaniaXMLBible as ZefaniaXMLBible
 import BibleOrgSys.Formats.CSVBible as CSVBible
 import BibleOrgSys.Formats.LEBXMLBible as LEBXMLBible
@@ -54,10 +55,10 @@ from BibleOrgSys.Bible import Bible
 from BibleOrgSys.UnknownBible import UnknownBible
 
 
-LAST_MODIFIED_DATE = '2023-03-03' # by RJH
+LAST_MODIFIED_DATE = '2023-03-10' # by RJH
 SHORT_PROGRAM_NAME = "Bibles"
 PROGRAM_NAME = "OpenBibleData Bibles handler"
-PROGRAM_VERSION = '0.16'
+PROGRAM_VERSION = '0.18'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -141,6 +142,16 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state ) -
         # print( f"{thisBible.settingsDict=}" )
         # verseEntryList, contextList = thisBible.getContextVerseData( ('MAT', '2', '1') )
         # print( f"Mat 2:1 {verseEntryList=} {contextList=}" )
+    elif 'ESFM' in folderOrFileLocation: # ESFM
+        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Preloading '{versionAbbreviation}' USFM Bible…" )
+        thisBible = ESFMBible.ESFMBible( folderOrFileLocation, givenAbbreviation=versionAbbreviation )
+        thisBible.loadAuxilliaryFiles = True
+        # if versionAbbreviation in ('ULT','UST','UHB','UGNT','SR-GNT'):
+        #     thisBible.uWencoded = True # TODO: Shouldn't be required ???
+        if 1 or 'ALL' in state.booksToLoad[versionAbbreviation]:
+            thisBible.loadBooks() # So we can iterate through them all later
+        else: # only load the specific books as we need them later
+            thisBible.preload()
     else: # USFM
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Preloading '{versionAbbreviation}' USFM Bible…" )
         thisBible = USFMBible.USFMBible( folderOrFileLocation, givenAbbreviation=versionAbbreviation,

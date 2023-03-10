@@ -75,7 +75,7 @@ def do_OET_LV_HTMLcustomisations( html:str ) -> str:
             # Protect fields we need to preserve
             .replace( '<!--', '~~COMMENT~~' )
             .replace( '../', '~~UP~DIR~~' ).replace( '_V', '~~V' )
-            .replace( '.html', '~~HTML~~' ).replace( 'https:', '~~HTTPS~~' )
+            .replace( '.htm', '~~HTM~~' ).replace( 'https:', '~~HTTPS~~' )
             .replace( '.org', '~~ORG~~' ).replace( 'v0.', '~~v0~~' )
             # Each sentence starts a new line
             .replace( '.', '.<br>\n' ).replace( '?', '?<br>\n' )
@@ -91,7 +91,7 @@ def do_OET_LV_HTMLcustomisations( html:str ) -> str:
             # Now unprotect everything again
             .replace( '~~COMMENT~~', '<!--' )
             .replace( '~~UP~DIR~~', '../' ).replace( '~~V', '_V' )
-            .replace( '~~HTML~~', '.html' ).replace( '~~HTTPS~~', 'https:' )
+            .replace( '~~HTM~~', '.htm' ).replace( '~~HTTPS~~', 'https:' )
             .replace( '~~ORG~~', '.org' ).replace( '~~v0~~', 'v0.' ) )
 # end of html.do_OET_LV_HTMLcustomisations
 

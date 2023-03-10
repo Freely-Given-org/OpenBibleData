@@ -48,10 +48,10 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 from html import checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-03-05' # by RJH
+LAST_MODIFIED_DATE = '2023-03-10' # by RJH
 SHORT_PROGRAM_NAME = "usfm"
 PROGRAM_NAME = "OpenBibleData USFM to HTML functions"
-PROGRAM_VERSION = '0.26'
+PROGRAM_VERSION = '0.28'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -99,7 +99,7 @@ def convertUSFMMarkerListToHtml( versionAbbreviation:str, refTuple:tuple, segmen
 
     for n, entry in enumerate(markerList):
         marker = entry.getMarker()
-        rest = entry.getText() if basicOnly else entry.getFullText()
+        rest = entry.getText()  if basicOnly and 'OET' not in versionAbbreviation else entry.getFullText() # getText() has notes removed but doesn't work with wordlink numbers in OET
         if rest:
             if 'OET' in versionAbbreviation:
                 rest = rest.replace( "'", "’" ) # Replace apostrophes
@@ -125,19 +125,19 @@ def convertUSFMMarkerListToHtml( versionAbbreviation:str, refTuple:tuple, segmen
                 # We want both verse numbers to be searchable
                 if int(V2) != int(V1)+1: # We don't handle 3+ verse reordering well yet
                     logging.critical( f" Not handling 3+ verse bridge well yet at {versionAbbreviation} {refTuple} {C}:{V}" )
-                vLink = f'<a href="../../../parallel/{BBB}/C{C}_V{V1}.html">{V1}</a>'
+                vLink = f'<a href="../../../parallel/{BBB}/C{C}V{V1}.html">{V1}</a>'
                 html = f'{html}{"" if html.endswith(">") else " "}' \
-                        + f'{f"""<span id="C{C}"></span><span class="c" id="C{C}V1">{C}</span>""" if V1=="1" else f"""<span class="v" id="C{C}V{V1}">{vLink}-</span>"""}' \
+                        + f'''{f"""<span id="C{C}"></span><span class="{'cPsa' if BBB=='PSA' else 'c'}" id="C{C}V1">{C}</span>""" if V1=="1" else f"""<span class="v" id="C{C}V{V1}">{vLink}-</span>"""}''' \
                         + f'<span class="v" id="C{C}V{V2}">{V2}{NARROW_NON_BREAK_SPACE}</span>' \
                         + (rest if rest else '≈')
             else: # it's a simple verse number
                 if segmentType != 'verse': # No need for verse numbers at all if we're only displaying one verse
                     if not V.isdigit():
                         logging.critical( f"Expected a verse number digit at {versionAbbreviation} {refTuple} {C}:{V} {rest=}" )
-                    cLink = f'<a href="../../../parallel/{BBB}/C{C}_V1.html">{C}</a>'
-                    vLink = f'<a href="../../../parallel/{BBB}/C{C}_V{V}.html">{V}</a>'
+                    cLink = f'<a href="../../../parallel/{BBB}/C{C}V1.html">{C}</a>'
+                    vLink = f'<a href="../../../parallel/{BBB}/C{C}V{V}.html">{V}</a>'
                     html = f'{html}{"" if html.endswith(">") or html.endswith("—") else " "}' \
-                            + f'{f"""<span id="C{C}"></span><span class="c" id="C{C}V1">{cLink}{NARROW_NON_BREAK_SPACE}</span>""" if V=="1" else f"""<span class="v" id="C{C}V{V}">{vLink}{NARROW_NON_BREAK_SPACE}</span>"""}'
+                            + f'''{f"""<span id="C{C}"></span><span class="{'cPsa' if BBB=='PSA' else 'c'}" id="C{C}V1">{cLink}{NARROW_NON_BREAK_SPACE}</span>""" if V=="1" else f"""<span class="v" id="C{C}V{V}">{vLink}{NARROW_NON_BREAK_SPACE}</span>"""}'''
                 # html = f'{html} <span class="v" id="C{refTuple[1]}V{V}">{V}{NARROW_NON_BREAK_SPACE}</span>'
         elif marker in ('¬v', ): # We can ignore these end markers
             assert not rest
@@ -458,7 +458,8 @@ def convertUSFMMarkerListToHtml( versionAbbreviation:str, refTuple:tuple, segmen
         if '\\f ' not in html and '\\x ' not in html: # they're handled down below
             if '\\' in html:
                 logging.critical( f"Left-over backslash in {versionAbbreviation} '{segmentType}' {basicOnly=} {refTuple} {C}:{V} '{html}'" )
-                if versionAbbreviation!='UST' or 'MAT' not in refTuple: # UST MAT has an encoding fault in 12:20 14Feb2023
+                if versionAbbreviation not in ('ULT','UST') \
+                or ('MAT' not in refTuple and 'ISA' not in refTuple): # ULT ISA and UST MAT has an encoding fault in 12:20 14Feb2023
                     raise Exception( f"Left-over backslash {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} '{html}'" )
     
     # Check for left-over unclosed segments
@@ -746,7 +747,9 @@ def formatUSFMText( versionAbbreviation:str, refTuple:tuple, segmentType:str, us
         logging.critical( f"Removing ts marker in {versionAbbreviation} {refTuple} {segmentType} {basicOnly=}…")
         html = html.replace( '\\ts\\*', '' )
     if '\\f ' not in html and '\\x ' not in html:
-        if versionAbbreviation!='UST' or 'MAT' not in refTuple: # UST MAT has an encoding fault in 12:20 14Feb2023
+        # AssertionError: versionAbbreviation='ULT' refTuple=('ISA',) segmentType='book' 'usfmField='\\w to|x-occurrence="1" x-occurrences="2"\\w* \\w dishonor|x-occurrence="1" x-occurrences="1"\\w* \\zaln-s |x-strong="H1347" x-lemma="גָּאוֹן" x-morph='' basicOnly=False 'to dishonor \zaln-s |x-strong="H1347" x-lemma="גָּאוֹן" x-morph='
+        if versionAbbreviation not in ('ULT','UST') \
+        or ('MAT' not in refTuple and 'ISA' not in refTuple): # ULT ISA and UST MAT has an encoding fault in 12:20 14Feb2023
             assert '\\' not in html, f"{versionAbbreviation=} {refTuple=} {segmentType=} '{usfmField=}' {basicOnly=} '{html}'"
     if not checkHtml( f'formatUSFMText({versionAbbreviation} {refTuple} {segmentType} {basicOnly=})', html, segmentOnly=True ):
         if DEBUGGING_THIS_MODULE: halt
