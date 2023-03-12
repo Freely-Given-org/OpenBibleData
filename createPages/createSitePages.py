@@ -43,6 +43,7 @@ import sys
 sys.path.append( '../../BibleOrgSys/' )
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
+from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39, BOOKLIST_NT27
 
 from Bibles import preloadVersions
 from createBookPages import createOETBookPages, createBookPages
@@ -50,19 +51,20 @@ from createChapterPages import createOETChapterPages, createChapterPages
 from createSectionPages import createOETSectionPages, createSectionPages
 from createParallelPages import createParallelPages
 from createInterlinearPages import createInterlinearPages
+from createWordPages import createOETGreekWordsPages
 from html import makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-03-11' # by RJH
+LAST_MODIFIED_DATE = '2023-03-12' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData Create Pages"
-PROGRAM_VERSION = '0.35'
+PROGRAM_VERSION = '0.37'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
-DEBUGGING_THIS_MODULE = False # Adds debugging statements
-TEST_MODE = True # Writes website into Test folder
+DEBUGGING_THIS_MODULE = False # Adds debugging output
+TEST_MODE = False # Writes website into Test folder
 
-ALL_PRODUCTION_BOOKS = not TEST_MODE # Set to False only for a faster test build
+ALL_PRODUCTION_BOOKS = not TEST_MODE # If set to False, only selects one book per version for a faster test build
 
 TEMP_BUILD_FOLDER = Path( '/tmp/OBDHtmlPages/' )
 NORMAL_DESTINATION_FOLDER = Path( '../htmlPages/' )
@@ -71,15 +73,11 @@ DESTINATION_FOLDER = DEBUG_DESTINATION_FOLDER if TEST_MODE or BibleOrgSysGlobals
                         else NORMAL_DESTINATION_FOLDER
 
 
-OET_BOOK_LIST = ['MRK','JHN','ACT', 'EPH','TIT', 'JN3']
-OET_BOOK_LIST_WITH_FRT = ['FRT','INT'] + OET_BOOK_LIST
-NT_BOOK_LIST_WITH_FRT = ['FRT','MAT','MRK','LUK','JHN','ACT','ROM','CO1','CO2','GAL','EPH','PHP','COL',
-                'TH1','TH2','TI1','TI2','TIT','PHM','HEB','JAM','PE1','PE2','JN1','JN2','JN3','JDE','REV']
+OET_BOOK_LIST = ('MRK','JHN','ACT', 'EPH','TIT', 'JN3')
+OET_BOOK_LIST_WITH_FRT = ('FRT','INT') + OET_BOOK_LIST
+NT_BOOK_LIST_WITH_FRT = ('FRT',) + BOOKLIST_NT27
 assert len(NT_BOOK_LIST_WITH_FRT) == 27+1
-OT_BOOK_LIST_WITH_FRT = ['FRT','GEN','EXO','LEV','NUM','DEU',
-                'JOS','JDG','RUT','SA1','SA2','KI1','KI2','CH1','CH2',
-                'EZR','NEH','EST','JOB','PSA','PRO','ECC','SNG','ISA','JER','LAM',
-                'EZE','DAN','HOS','JOL','AMO','OBA','JNA', 'MIC','NAH','HAB','ZEP','HAG','ZEC','MAL']
+OT_BOOK_LIST_WITH_FRT = ('FRT',) + BOOKLIST_OT39
 assert len(OT_BOOK_LIST_WITH_FRT) == 39+1
 
 
@@ -92,7 +90,7 @@ class State:
                 'ULT','UST', 'OEB',
                 'BSB','ISV',
                 'WEB','NET','LSV','FBV','T4T','LEB','BBE',
-                'ASV','YLT','DBY','RV','WBS','KJB','GNV','BB','CB',
+                'ASV','YLT','DBY','RV','WBS','KJB','BB','GNV','CB',
                 'TNT','WYC','CLV',
                 'JPS','DRA','BRN',
                 'UHB',
@@ -104,7 +102,7 @@ class State:
                 'WEB':('',''),'NET':('',''),'LSV':('',''),'FBV':('',''),'T4T':('',''),'LEB':('',''),'BBE':('',''),
                 'ASV':('',''),'YLT':('',''),'DBY':('',''),'RV':('',''),
                 'WBS':('<small>','</small>'),
-                'KJB':('',''),'GNV':('',''),'BB':('',''),'CB':('',''),
+                'KJB':('',''),'BB':('',''),'GNV':('',''),'CB':('',''),
                 'TNT':('',''),'WYC':('',''),'CLV':('<small>','</small>'),
                 'JPS':('<small>','</small>'),'DRA':('<small>','</small>'),'BRN':('<small>','</small>'),
                 'UHB':('',''),
@@ -137,8 +135,8 @@ class State:
                 'RV': '../copiedBibles/English/eBible.org/RV/', # with deuterocanon
                 'WBS': '../copiedBibles/English/eBible.org/RV/',
                 'KJB': '../copiedBibles/English/eBible.org/KJB/', # with deuterocanon
-                'GNV': '../copiedBibles/English/eBible.org/GNV/',
                 'BB': '/mnt/SSDs/Bibles/DataSets/BibleSuperSearch.com/v5.0/TXT/bishops.txt',
+                'GNV': '../copiedBibles/English/eBible.org/GNV/',
                 'CB': '/mnt/SSDs/Bibles/DataSets/BibleSuperSearch.com/v5.0/TXT/coverdale.txt',
                 'TNT': '../copiedBibles/English/eBible.org/TNT/',
                 'WYC': '/mnt/SSDs/Bibles/Zefania modules/SF_2009-01-20_ENG_BIBLE_WYCLIFFE_(JOHN WYCLIFFE BIBLE).xml',
@@ -174,8 +172,8 @@ class State:
                 'RV': 'Revised Version (1885)',
                 'WBS': 'Webster Bible (American, 1833)',
                 'KJB': 'King James Bible (1611-1769)',
-                'GNV': 'Geneva Bible (1557-1560,1599)',
                 'BB': 'Bishops Bible (1568,1602)',
+                'GNV': 'Geneva Bible (1557-1560,1599)',
                 'GB': 'Great Bible (1539)', # Not in OBD yet
                 'CB': 'Coverdale Bible (1535-1553)',
                 'TNT': 'Tyndale New Testament (1526)',
@@ -212,8 +210,8 @@ class State:
                 'RV': ['ALL'],
                 'WBS': ['ALL'],
                 'KJB': ['ALL'],
-                'GNV': ['ALL'],
                 'BB': ['ALL'],
+                'GNV': ['ALL'],
                 'CB': ['ALL'],
                 'TNT': ['ALL'],
                 'WYC': ['ALL'],
@@ -247,8 +245,8 @@ class State:
                 'RV': ['MRK'],
                 'WBS': ['MRK'],
                 'KJB': ['MRK'],
-                'GNV': ['MRK'],
                 'BB': ['MRK'],
+                'GNV': ['MRK'],
                 'CB': ['MRK'],
                 'TNT': ['MRK'],
                 'WYC': ['MRK'],
@@ -347,13 +345,13 @@ class State:
                 'copyright': '<p>Copyright © (coming).</p>',
                 'licence': '<p>(coming).</p>',
                 'acknowledgements': '<p>(coming).</p>' },
-        'GNV': {'about': '<p>Geneva Bible (1557-1560,1599).</p>',
-                'copyright': '<p>Copyright © (coming).</p>',
-                'licence': '<p>(coming).</p>',
-                'acknowledgements': '<p>(coming).</p>' },
         'BB': {'about': '<p>Bishops Bible (1568,1602).</p>',
                 'copyright': '<p>Copyright © (coming).</p>',
                 'licence': '<p>Public Domain.</p>',
+                'acknowledgements': '<p>(coming).</p>' },
+        'GNV': {'about': '<p>Geneva Bible (1557-1560,1599).</p>',
+                'copyright': '<p>Copyright © (coming).</p>',
+                'licence': '<p>(coming).</p>',
                 'acknowledgements': '<p>(coming).</p>' },
         'CB': {'about': '<p><a href="https://en.wikipedia.org/wiki/Coverdale_Bible">Coverdale Bible</a> (1535-1553).</p>',
                 'copyright': '<p>Copyright © Miles Coverdale.</p>',
@@ -468,7 +466,7 @@ def createSitePages() -> bool:
     createParallelPages( TEMP_BUILD_FOLDER.joinpath('parallel/'), state )
     createInterlinearPages( TEMP_BUILD_FOLDER.joinpath('interlinear/'), state )
 
-    createOETWordsPages( TEMP_BUILD_FOLDER.joinpath('W/'), state )
+    createOETGreekWordsPages( TEMP_BUILD_FOLDER.joinpath('W/'), state )
 
     createDetailsPages( 1, versionsFolder, state )
 
@@ -528,7 +526,7 @@ def createOETVersionPages( folder:Path, rvBible, lvBible, state:State ) -> bool:
     dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{lvBible.discoveryResults['ALL']['haveSectionHeadings']=}" )
 
     versionName = state.BibleNames['OET']
-    indexHtml = f'''<h1>{versionName}</h1>
+    indexHtml = f'''<h1 id="Top">{versionName}</h1>
 <p class="rem">Remember that ancient letters were meant to be read in their entirety just like modern letters. We provide a byChapter mode for convenience only, but recommend the byDocument mode for personal reading.</p>
 <p class="viewNav"><a href="byDocument">By Document</a> <a href="bySection">By Section</a> <a href="byChapter">By Chapter</a> <a href="details.html">Details</a></p>
 ''' if rvBible.discoveryResults['ALL']['haveSectionHeadings'] or lvBible.discoveryResults['ALL']['haveSectionHeadings'] else f'''<p class="rem">Remember that ancient letters were meant to be read in their entirety just like modern letters. We provide a byChapter mode for convenience only, but recommend the byDocument mode for personal reading.</p>
@@ -555,7 +553,7 @@ def createVersionPages( folder:Path, thisBible, state:State ) -> bool:
     dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{thisBible.discoveryResults['ALL']['haveSectionHeadings']=}" )
 
     versionName = state.BibleNames[thisBible.abbreviation]
-    indexHtml = f'''<h1>{versionName}</h1>
+    indexHtml = f'''<h1 id="Top">{versionName}</h1>
 <p class="rem">Remember that ancient letters were meant to be read in their entirety just like modern letters. We provide a byChapter mode for convenience only, but recommend the byDocument mode for personal reading.</p>
 <p class="viewNav"><a href="byDocument">By Document</a> <a href="bySection">By Section</a> <a href="byChapter">By Chapter</a> <a href="details.html">Details</a></p>
 ''' if thisBible.discoveryResults['ALL']['haveSectionHeadings'] else f'''<p class="rem">Remember that ancient letters were meant to be read in their entirety just like modern letters. We provide a byChapter mode for convenience only, but recommend the byDocument mode for personal reading.</p>
@@ -573,89 +571,6 @@ def createVersionPages( folder:Path, thisBible, state:State ) -> bool:
 # end of createSitePages.createVersionPages
 
 
-CNTR_BOOK_ID_MAP = {
-    'MAT':40, 'MRK':41, 'LUK':42, 'JHN':43, 'ACT':44,
-    'ROM':45, 'CO1':46, 'CO2':47, 'GAL':48, 'EPH':49, 'PHP':50, 'COL':51, 'TH1':52, 'TH2':53, 'TI1':54, 'TI2':55, 'TIT':56, 'PHM':57,
-    'HEB':58, 'JAM':58, 'PE1':60, 'PE2':61, 'JN1':62, 'JN2':63, 'JN3':64, 'JDE':65, 'REV':66}
-CNTR_ROLE_NAME_DICT = {'N':'noun', 'S':'substantive adjective', 'A':'adjective', 'E':'determiner', 'R':'pronoun',
-                  'V':'verb', 'I':'interjection', 'P':'preposition', 'D':'adverb', 'C':'conjunction', 'T':'particle'}
-CNTR_MOOD_NAME_DICT = {'I':'indicative', 'M':'imperative', 'S':'subjunctive', 
-            'O':'optative', 'N':'infinitive', 'P':'participle', 'e':'e'}
-CNTR_TENSE_NAME_DICT = {'P':'present', 'I':'imperfect', 'F':'future', 'A':'aorist', 'E':'perfect', 'L':'pluperfect', 'U':'U', 'e':'e'}
-CNTR_VOICE_NAME_DICT = {'A':'active', 'M':'middle', 'P':'passive', 'p':'p', 'm':'m', 'a':'a'}
-CNTR_PERSON_NAME_DICT = {'1':'1st', '2':'2nd', '3':'3rd', 'g':'g'}
-CNTR_CASE_NAME_DICT = {'N':'nominative', 'G':'genitive', 'D':'dative', 'A':'accusative', 'V':'vocative', 'g':'g', 'n':'n', 'a':'a', 'd':'d', 'v':'v', 'U':'U'}
-CNTR_GENDER_NAME_DICT = {'M':'masculine', 'F':'feminine', 'N':'neuter', 'm':'m', 'f':'f', 'n':'n'}
-CNTR_NUMBER_NAME_DICT = {'S':'singular', 'P':'plural', 's':'s', 'p':'p'}
-def createOETWordsPages( outputFolderPath:Path, state ) -> bool:
-    """
-    """
-    fnPrint( DEBUGGING_THIS_MODULE, f"createOETWordsPages( {outputFolderPath}, {state.BibleVersions} )" )
-
-    try: os.makedirs( outputFolderPath )
-    except FileExistsError: pass # it was already there
-
-    lvBible = state.preloadedBibles['OET-LV']
-    # print( lvBible.ESFMWordTables.keys() )
-    assert len(lvBible.ESFMWordTables) == 1
-    word_table = list(lvBible.ESFMWordTables.values())[0]
-
-    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, "\nCreating word pages for OET-LV…" )
-    columnHeaders = word_table[0]
-    dPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Word table column headers = '{columnHeaders}'" )
-    assert columnHeaders == 'Ref\tGreek\tGlossWords\tProbability\tStrongsExt\tRole\tMorphology' # If not, probably need to fix some stuff
-    for n, columns_string in enumerate( word_table[1:], start=1 ):
-        # print( n, columns_string )
-        output_filename = f'{n}.htm'
-        # dPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Got '{columns_string}' for '{output_filename}'" )
-        if columns_string: # not a blank line (esp. at end)
-            ref, greek, glossWords, probability, extendedStrongs, roleLetter, morphology = columns_string.split( '\t' )
-            if extendedStrongs == 'None': extendedStrongs = None
-            if roleLetter == 'None': roleLetter = None
-            if morphology == 'None': morphology = None
-
-            BBB, CV = ref.split( '_', 1 )
-            C, V = CV.split( ':', 1 )
-            tidyBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.tidyBBB( BBB )
-
-            strongs = extendedStrongs[:-1] if extendedStrongs else None # drop the last digit
-
-            roleField = ''
-            if roleLetter: roleField = f' Word role=<b>{CNTR_ROLE_NAME_DICT[roleLetter]}</b>'
-
-            moodField = tenseField = voiceField = personField = caseField = genderField = numberField = ''
-            if morphology:
-                assert len(morphology) == 7, f"Got {ref} '{greek}' morphology ({len(morphology)}) = '{morphology}'"
-                mood,tense,voice,person,case,gender,number = morphology
-                if mood!='.': moodField = f' mood=<b>{CNTR_MOOD_NAME_DICT[mood]}</b>'
-                if tense!='.': tenseField = f' tense=<b>{CNTR_TENSE_NAME_DICT[tense]}</b>'
-                if voice!='.': voiceField = f' voice=<b>{CNTR_VOICE_NAME_DICT[voice]}</b>'
-                if person!='.': personField = f' person=<b>{CNTR_PERSON_NAME_DICT[person]}</b>'
-                if case!='.': caseField = f' case=<b>{CNTR_CASE_NAME_DICT[case]}</b>'
-                if gender!='.': genderField = f' gender=<b>{CNTR_GENDER_NAME_DICT[gender]}</b>'
-                if number!='.': numberField = f' number=<b>{CNTR_NUMBER_NAME_DICT[number]}</b>' # or № ???
-
-            prevLink = f'<b><a href="{n-1}.htm">←</a></b> ' if n>1 else ''
-            nextLink = f' <b><a href="{n+1}.htm">→</a></b>' if n<len(word_table) else ''
-            oetLink = f'<b><a href="{BBB}.html#C{C}V{V}">Back to OET</a></b>'
-            html = f'''<h1>OET-LV Wordlink #{n}</h1>
-<p>{prevLink}{oetLink}{nextLink}</p>
-<p><span title="Goes to Statistical Restoration Greek page"><a href="https://GreekCNTR.org/collation/?{CNTR_BOOK_ID_MAP[BBB]}{C.zfill(3)}{V.zfill(3)}">SR GNT {tidyBBB} {C}:{V}</a></span>
- <b>{greek}</b> <small>originally translated to</small> ‘<b>{glossWords.replace('_','<span class="ul">_</span>')}</b>’
- Strongs=<span title="Goes to Strongs dictionary"><a href="https://BibleHub.com/greek/{strongs}.htm">{extendedStrongs}</a></span><br>
-  {roleField} Morphology=<b>{morphology}</b>:{moodField}{tenseField}{voiceField}{personField}{caseField}{genderField}{numberField}</p>'''
-            html = makeTop( 1, 'word', None, state ) \
-                                    .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}OET-LV NT Word {greek}" ) \
-                                    .replace( '__KEYWORDS__', 'Bible, word' ) \
-                                    .replace( 'parallel/"', f'parallel/{BBB}/C{C}V{V}.html"' ) \
-                                + html + makeBottom( 1, 'word', state )
-            with open( outputFolderPath.joinpath(output_filename), 'wt', encoding='utf-8' ) as html_output_file:
-                html_output_file.write( html )
-            vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  Wrote {len(html):,} characters to {output_filename}" )
-    return True
-# end of createSitePages.createOETWordsPages
-
-
 def createMainIndexPages( level, folder:Path, state ) -> bool:
     """
     Creates and saves the main index page
@@ -670,8 +585,8 @@ def createMainIndexPages( level, folder:Path, state ) -> bool:
             .replace( '__KEYWORDS__', 'Bible, translation, English, OET' )
     if TEST_MODE:
         html = html.replace( '<body>', '<body><p><a href="../">UP TO MAIN NON-TEST SITE</a></p>')
-    bodyHtml = """<!--createMainIndexPage--><h1>Open Bible Data TEST</h1>
-""" if TEST_MODE else """<!--createMainIndexPage--><h1>Open Bible Data</h1>
+    bodyHtml = """<!--createMainIndexPage--><h1 id="Top">Open Bible Data TEST</h1>
+""" if TEST_MODE else """<!--createMainIndexPage--><h1 id="Top">Open Bible Data</h1>
 """
     html += bodyHtml + f'<p><small>Last rebuilt: {date.today()}</small></p>\n' + makeBottom( level, 'topIndex', state )
     checkHtml( 'TopIndex', html )
@@ -688,8 +603,8 @@ def createMainIndexPages( level, folder:Path, state ) -> bool:
             .replace( '__KEYWORDS__', 'Bible, translation, English, OET' )
     if TEST_MODE:
         html = html.replace( '<body>', '<body><p><a href="../../versions/">UP TO MAIN NON-TEST SITE</a></p>')
-    bodyHtml = """<!--createVersionsIndexPage--><h1>Open Bible Data TEST Versions</h1>
-""" if TEST_MODE else """<!--createMainIndexPage--><h1>Open Bible Data Versions</h1>
+    bodyHtml = """<!--createVersionsIndexPage--><h1 id="Top">Open Bible Data TEST Versions</h1>
+""" if TEST_MODE else """<!--createMainIndexPage--><h1 id="Top">Open Bible Data Versions</h1>
 """
 
     bodyHtml = f'{bodyHtml}<p>Select one of the above Bible version abbreviations for views of entire documents (‘<i>books</i>’) or sections or chapters, or else select either of the Parallel or Interlinear verse views.</p>\n<ol>\n'
@@ -704,7 +619,7 @@ def createMainIndexPages( level, folder:Path, state ) -> bool:
     with open( filepath, 'wt', encoding='utf-8' ) as htmlFile:
         htmlFile.write( html )
     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  {len(html):,} characters written to {filepath}" )
-# end of html.createMainIndexPage
+# end of createSitePages.createMainIndexPage
 
 
 def createDetailsPages( level:int, versionsFolder:Path, state ) -> bool:
@@ -713,7 +628,7 @@ def createDetailsPages( level:int, versionsFolder:Path, state ) -> bool:
         plus a summary page of all the versions.
     """
     fnPrint( DEBUGGING_THIS_MODULE, f"createDetailsPages( {level}, {versionsFolder}, {state.BibleVersions} )" )
-    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Creating details pages for {len(state.BibleVersions)} versions…" )
+    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Creating {'TEST ' if TEST_MODE else ''}details pages for {len(state.BibleVersions)} versions…" )
 
     allDetailsHTML = ''
     for versionAbbreviation in ['OET'] + [versAbbrev for versAbbrev in state.preloadedBibles]:
@@ -761,7 +676,7 @@ def createDetailsPages( level:int, versionsFolder:Path, state ) -> bool:
 <h2>Licence</h2>{state.detailsHtml[versionAbbreviation]['licence']}
 <h2>Acknowledgements</h2>{state.detailsHtml[versionAbbreviation]['acknowledgements']}
 """
-        bodyHtml = f'''<!--createDetailsPages--><h1>{versionName} Details</h1>
+        bodyHtml = f'''<!--createDetailsPages--><h1 id="Top">{versionName} Details</h1>
 {detailsHtml}'''
 
         allDetailsHTML = f'''{allDetailsHTML}<h2>{versionName}</h2>
@@ -785,7 +700,7 @@ def createDetailsPages( level:int, versionsFolder:Path, state ) -> bool:
             .replace( '__KEYWORDS__', 'Bible, details, about, copyright, licence, acknowledgements' )
             # .replace( f'''<a title="{state.BibleNames[versionAbbreviation]}" href="{'../'*(level+1)}versions/{BibleOrgSysGlobals.makeSafeString(versionAbbreviation)}/details.html">{versionAbbreviation}</a>''',
             #             f'''<a title="Up to {state.BibleNames[versionAbbreviation]}" href="{'../'*(level+1)}versions/{BibleOrgSysGlobals.makeSafeString(versionAbbreviation)}/">↑{versionAbbreviation}</a>''' )
-    html = f'''{topHtml}<h1>Details for all versions</h1>
+    html = f'''{topHtml}<h1 id="Top">Details for all versions</h1>
 {allDetailsHTML}{makeBottom( level, 'allDetails', state )}'''
     checkHtml( 'AllDetails', html )
     
@@ -793,7 +708,30 @@ def createDetailsPages( level:int, versionsFolder:Path, state ) -> bool:
     with open( filepath, 'wt', encoding='utf-8' ) as htmlFile:
         htmlFile.write( html )
     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  {len(html):,} characters written to {filepath}" )
-# end of html.createDetailsPages
+# end of createSitePages.createDetailsPages
+
+
+def reorderBooksForOETVersions( givenBookList:List[str] ) -> List[str]:
+    """
+    OET needs to put JHN before MAT
+    """
+    dPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"reorderBooksForOETVersions( {type(givenBookList)} ({len(givenBookList)}) {givenBookList} )" )
+
+
+    try: ixJHN = givenBookList.index('JHN')
+    except ValueError: return givenBookList # Might not have all books included
+    try: ixFirstGospel = givenBookList.index('MAT')
+    except ValueError: ixFirstGospel = givenBookList.index('MRK')
+    if isinstance( givenBookList, tuple ):
+        givenBookList = list( givenBookList )
+    if ixFirstGospel<ixJHN:
+        # print( f"{ixFirstGospel=} {ixJHN=} {givenBookList}")
+        givenBookList.remove( 'JHN' )
+        givenBookList.insert( ixFirstGospel, 'JHN' )
+        # print( f"Returning ({len(givenBookList)}) {givenBookList}" )
+    return givenBookList
+# end of createSitePages.reorderBooksForOETVersions
+
 
 
 def briefDemo() -> None:

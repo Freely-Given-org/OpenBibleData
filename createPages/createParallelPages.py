@@ -42,10 +42,10 @@ from html import do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, \
                     makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-03-11' # by RJH
+LAST_MODIFIED_DATE = '2023-03-12' # by RJH
 SHORT_PROGRAM_NAME = "createParallelPages"
 PROGRAM_NAME = "OpenBibleData createParallelPages functions"
-PROGRAM_VERSION = '0.21'
+PROGRAM_VERSION = '0.22'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -59,7 +59,7 @@ NARROW_NON_BREAK_SPACE = ' '
 def createParallelPages( folder:Path, state ) -> bool:
     """
     """
-    from createSitePages import TEST_MODE
+    from createSitePages import TEST_MODE, reorderBooksForOETVersions
     fnPrint( DEBUGGING_THIS_MODULE, f"createParallelPages( {folder}, {state.BibleVersions} )" )
 
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\ncreateParallelPages( {folder}, {state.BibleVersions} )" )
@@ -67,12 +67,12 @@ def createParallelPages( folder:Path, state ) -> bool:
     except FileExistsError: pass # they were already there
 
     BBBLinks, BBBNextLinks = [], []
-    for BBB in state.allBBBs:
+    for BBB in reorderBooksForOETVersions( state.allBBBs ):
         if BibleOrgSysGlobals.loadedBibleBooksCodes.isChapterVerseBook( BBB ):
             tidyBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.tidyBBB( BBB )
             BBBLinks.append( f'<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB)}" href="{BBB}/">{tidyBBB}</a>' )
             BBBNextLinks.append( f'<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB)}" href="../{BBB}/">{tidyBBB}</a>' )
-    for BBB in state.allBBBs:
+    for BBB in reorderBooksForOETVersions( state.allBBBs ):
         if BibleOrgSysGlobals.loadedBibleBooksCodes.isChapterVerseBook( BBB ):
             BBBFolder = folder.joinpath(f'{BBB}/')
             createParallelVersePagesForBook( BBBFolder, BBB, BBBNextLinks, state )
@@ -84,7 +84,7 @@ def createParallelPages( folder:Path, state ) -> bool:
             .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}Parallel View" ) \
             .replace( '__KEYWORDS__', f'Bible, parallel' )
     indexHtml = top \
-                + '<h1>Parallel verse pages</h1><h2>Index of books</h2>\n' \
+                + '<h1 id="Top">Parallel verse pages</h1><h2>Index of books</h2>\n' \
                 + f'<p class="bLinks">{EM_SPACE.join( BBBLinks )}</p>\n' \
                 + makeBottom( 1, 'parallel', state )
     checkHtml( 'ParallelIndex', indexHtml )
@@ -186,7 +186,7 @@ def createParallelVersePagesForBook( folder:Path, BBB:str, BBBLinks:List[str], s
                         .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{tidyBBB} {c}:{v} Parallel View" ) \
                         .replace( '__KEYWORDS__', f'Bible, {tidyBBB}, parallel' )
                 pHtml = top + '<!--parallel verse page-->' \
-                        + f'{adjBBBLinksHtml}\n<h1>Parallel {tidyBBB} {c}:{v}</h1>\n' \
+                        + f'{adjBBBLinksHtml}\n<h1 id="Top">Parallel {tidyBBB} {c}:{v}</h1>\n' \
                         + f"{navLinks.replace('__ID__', 'CVTop' )}\n" \
                         + pHtml \
                         + f"\n{navLinks.replace('__ID__', 'CVBottom')}\n" \
@@ -208,7 +208,7 @@ def createParallelVersePagesForBook( folder:Path, BBB:str, BBBLinks:List[str], s
             .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{tidyBBB} Parallel View" ) \
             .replace( '__KEYWORDS__', f'Bible, parallel' )
     indexHtml = f'{top}{adjBBBLinksHtml}\n' \
-                + f'<h1>{BBB} parallel verses index</h1>\n<p class="vLinks">{EM_SPACE.join( vLinks )}</p>\n' \
+                + f'<h1 id="Top">{BBB} parallel verses index</h1>\n<p class="vLinks">{EM_SPACE.join( vLinks )}</p>\n' \
                 + makeBottom( 2, 'parallel', state )
     checkHtml( 'ParallelIndex', indexHtml )
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:

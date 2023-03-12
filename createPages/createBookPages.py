@@ -42,10 +42,10 @@ from html import do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, \
                     makeTop, makeBottom, removeDuplicateCVids, checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-03-11' # by RJH
+LAST_MODIFIED_DATE = '2023-03-12' # by RJH
 SHORT_PROGRAM_NAME = "createBookPages"
 PROGRAM_NAME = "OpenBibleData createBookPages functions"
-PROGRAM_VERSION = '0.21'
+PROGRAM_VERSION = '0.22'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -60,16 +60,16 @@ def createOETBookPages( folder:Path, rvBible, lvBible, state ) -> List[str]:
     """
     The OET is a pseudo-version which includes the OET-RV and OET-LV side-by-side.
     """
-    from createSitePages import TEST_MODE
+    from createSitePages import TEST_MODE, reorderBooksForOETVersions
     fnPrint( DEBUGGING_THIS_MODULE, f"createOETBookPages( {folder}, {rvBible.abbreviation}, {lvBible.abbreviation} )" )
 
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createOETBookPages( {folder}, {rvBible.abbreviation}, {lvBible.abbreviation} )…" )
     try: os.makedirs( folder )
     except FileExistsError: pass # they were already there
 
-    BBBs, filenames = [], []
     allBooksFlag = 'ALL' in state.booksToLoad[rvBible.abbreviation]
-    BBBsToProcess = rvBible.books.keys() if allBooksFlag else state.booksToLoad[rvBible.abbreviation]
+    BBBsToProcess = reorderBooksForOETVersions( rvBible.books.keys() if allBooksFlag else state.booksToLoad[rvBible.abbreviation] )
+    BBBs, filenames = [], []
     for BBB in BBBsToProcess:
         tidyBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.tidyBBB( BBB )
         # print( f"{BBB=} {BBBsToProcess}"); print( len(BBBsToProcess) )
@@ -94,7 +94,7 @@ def createOETBookPages( folder:Path, rvBible, lvBible, state ) -> List[str]:
 
         vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Creating book pages for OET {BBB}…" )
         BBBs.append( BBB )
-        bkHtml = f'''<h1>Open English Translation {tidyBBB}</h1>
+        bkHtml = f'''<h1 id="Top">Open English Translation {tidyBBB}</h1>
 <div class="container">
 <span> </span>
 <div class="buttons">
@@ -106,9 +106,9 @@ def createOETBookPages( folder:Path, rvBible, lvBible, state ) -> List[str]:
         rvVerseEntryList, rvContextList = rvBible.getContextVerseData( (BBB,) )
         lvVerseEntryList, lvContextList = lvBible.getContextVerseData( (BBB,) )
         if isinstance( rvBible, ESFMBible.ESFMBible ):
-            rvVerseEntryList,rvWordList = rvBible.livenESFMWordLinks( BBB, rvVerseEntryList, '../../W/{n}.htm' )
+            rvVerseEntryList,rvWordList = rvBible.livenESFMWordLinks( BBB, rvVerseEntryList, '../../../W/{n}.htm' )
         if isinstance( lvBible, ESFMBible.ESFMBible ):
-            lvVerseEntryList,lvWordList = lvBible.livenESFMWordLinks( BBB, lvVerseEntryList, '../../W/{n}.htm' )
+            lvVerseEntryList,lvWordList = lvBible.livenESFMWordLinks( BBB, lvVerseEntryList, '../../../W/{n}.htm' )
         rvHtml = livenIORs( BBB, convertUSFMMarkerListToHtml( 'OET', (BBB,), 'book', rvContextList, rvVerseEntryList ) )
         lvHtml = do_OET_LV_HTMLcustomisations( convertUSFMMarkerListToHtml( 'OET', (BBB,), 'book', lvContextList, lvVerseEntryList ) )
 
@@ -189,12 +189,12 @@ def createOETBookPages( folder:Path, rvBible, lvBible, state ) -> List[str]:
     filename = 'index.html'
     filenames.append( filename )
     filepath = folder.joinpath( filename )
-    top = makeTop( 3, 'OETbook', None, state ) \
-            .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}OET Chapter View" ) \
-            .replace( '__KEYWORDS__', f'Bible, OET, Open English Translation, chapters' ) \
+    top = makeTop( 3, 'OETbook', 'byDocument', state ) \
+            .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}OET Document View" ) \
+            .replace( '__KEYWORDS__', f'Bible, OET, Open English Translation' ) \
             .replace( f'''<a title="{state.BibleNames['OET']}" href="{'../'*3}versions/OET">OET</a>''', 'OET' )
     indexHtml = top \
-                + '<h1>OET book pages</h1><h2>Index of books</h2>\n' \
+                + '<h1 id="Top">OET book pages</h1><h2>Index of books</h2>\n' \
                 + f'''<p class="bLinks">{' '.join( BBBLinks )}</p>\n''' \
                 + makeBottom( 3, 'OETbook', state )
     checkHtml( 'OETBooksIndex', indexHtml )
@@ -212,16 +212,18 @@ def createBookPages( folder:Path, thisBible, state ) -> List[str]:
     This creates a page for each book for all versions other than 'OET'
                                 which is considerably more complex (above).
     """
-    from createSitePages import TEST_MODE
+    from createSitePages import TEST_MODE, reorderBooksForOETVersions
     fnPrint( DEBUGGING_THIS_MODULE, f"createBookPages( {folder}, {thisBible.abbreviation} )" )
 
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createBookPages( {folder}, {thisBible.abbreviation} )…" )
     try: os.makedirs( folder )
     except FileExistsError: pass # they were already there
 
-    BBBs, filenames = [], []
     allBooksFlag = 'ALL' in state.booksToLoad[thisBible.abbreviation]
     BBBsToProcess = thisBible.books.keys() if allBooksFlag else state.booksToLoad[thisBible.abbreviation]
+    if 'OET' in thisBible.abbreviation:
+        BBBsToProcess = reorderBooksForOETVersions( BBBsToProcess )
+    BBBs, filenames = [], []
     for BBB in BBBsToProcess:
         tidyBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.tidyBBB( BBB )
         # print( f"{BBB=} {BBBsToProcess}"); print( len(BBBsToProcess) )
@@ -238,11 +240,11 @@ def createBookPages( folder:Path, thisBible, state ) -> List[str]:
 
         vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Creating book pages for {thisBible.abbreviation} {BBB}…" )
         BBBs.append( BBB )
-        bkHtml = f'''<h1>{thisBible.abbreviation} {tidyBBB}</h1>
+        bkHtml = f'''<h1 id="Top">{thisBible.abbreviation} {tidyBBB}</h1>
 '''
         verseEntryList, contextList = thisBible.getContextVerseData( (BBB,) )
         if isinstance( thisBible, ESFMBible.ESFMBible ):
-            verseEntryList,wordList = thisBible.livenESFMWordLinks( BBB, verseEntryList, '../../W/{n}.htm' )
+            verseEntryList,wordList = thisBible.livenESFMWordLinks( BBB, verseEntryList, '../../../W/{n}.htm' )
         textHtml = convertUSFMMarkerListToHtml( thisBible.abbreviation, (BBB,), 'book', contextList, verseEntryList )
         textHtml = livenIORs( BBB, textHtml )
         if thisBible.abbreviation == 'OET-LV':
@@ -274,12 +276,12 @@ def createBookPages( folder:Path, thisBible, state ) -> List[str]:
     filename = 'index.html'
     filenames.append( filename )
     filepath = folder.joinpath( filename )
-    top = makeTop( 3, 'book', None, state ) \
+    top = makeTop( 3, 'book', 'byDocument/', state ) \
             .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{thisBible.abbreviation} Book View" ) \
             .replace( '__KEYWORDS__', f'Bible, {thisBible.abbreviation}, book' ) \
             .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*3}versions/{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}">{thisBible.abbreviation}</a>''', thisBible.abbreviation )
     indexHtml = top \
-                + '<h1>Book pages</h1><h2>Index of books</h2>\n' \
+                + f'<h1 id="Top">{thisBible.abbreviation} book pages</h1><h2>Index of books</h2>\n' \
                 + f'''<p class="bLinks">{' '.join( BBBLinks )}</p>\n''' \
                 + makeBottom(3, 'book', state)
     checkHtml( thisBible.abbreviation, indexHtml )
