@@ -45,10 +45,10 @@ from html import do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, \
                     makeTop, makeBottom, removeDuplicateCVids, checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-03-12' # by RJH
+LAST_MODIFIED_DATE = '2023-03-13' # by RJH
 SHORT_PROGRAM_NAME = "createSectionPages"
 PROGRAM_NAME = "OpenBibleData createSectionPages functions"
-PROGRAM_VERSION = '0.13'
+PROGRAM_VERSION = '0.14'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -126,7 +126,7 @@ def createOETSectionPages( folder:Path, rvBible, lvBible, state ) -> List[str]:
             endChapterLink = f'''<a href="../byChapter/{BBB}_{'Intro' if endC=='-1' else f'C{endC}'}.html">{'Intro' if endC=='-1' else endC}</a>'''
             leftLink = f'<a href="{BBB}_S{n-1}.html">←</a> ' if n>0 else ''
             rightLink = f' <a href="{BBB}_S{n+1}.html">→</a>' if n<len(bkObject._SectionIndex)-1 else ''
-            parallelLink = f' <a href="../../../parallel/{BBB}/C{startC}V{startV}.html">║</a>'
+            parallelLink = f' <a href="../../../parallel/{BBB}/C{startC}V{startV}.html#Top">║</a>'
             detailsLink = f' <a href="../details.html">©</a>'
 
             bkHtml = f'''<h1 id="Top">Open English Translation {tidyBBB} {'Intro' if startC=='-1' else startC}:{startV}</h1>
@@ -181,7 +181,7 @@ def createOETSectionPages( folder:Path, rvBible, lvBible, state ) -> List[str]:
             else:
                 loop_counter_too_small
             if isinstance( lvBible, ESFMBible.ESFMBible ):
-                verseEntryList,wordList = lvBible.livenESFMWordLinks( BBB, lvVerseEntryList, '../../../W/{n}.htm' )
+                lvVerseEntryList,wordList = lvBible.livenESFMWordLinks( BBB, lvVerseEntryList, '../../../W/{n}.htm' )
             lvHtml = convertUSFMMarkerListToHtml( lvBible.abbreviation, (BBB,startC), 'section', lvContextList, lvVerseEntryList )
             lvHtml = do_OET_LV_HTMLcustomisations( lvHtml )
             combinedHtml = f'''<div class="chunkRV">{rvHtml}</div><!--chunkRV-->
@@ -319,7 +319,7 @@ def createSectionPages( folder:Path, thisBible, state ) -> List[str]:
             endChapterLink = f'''<a href="../byChapter/{BBB}_{'Intro' if endC=='-1' else f'C{endC}'}.html">{'Intro' if endC=='-1' else endC}</a>'''
             leftLink = f'<a href="{BBB}_S{n-1}.html">←</a> ' if n>0 else ''
             rightLink = f' <a href="{BBB}_S{n+1}.html">→</a>' if n<len(bkObject._SectionIndex)-1 else ''
-            parallelLink = f' <a href="../../../parallel/{BBB}/C{startC}V{startV}.html">║</a>'
+            parallelLink = f' <a href="../../../parallel/{BBB}/C{startC}V{startV}.html#Top">║</a>'
             detailsLink = f' <a href="../details.html">©</a>'
 
             bkHtml = f'''<h1>{thisBible.abbreviation} {tidyBBB} {'Intro' if startC=='-1' else startC}:{startV}</h1>

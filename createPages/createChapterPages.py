@@ -42,10 +42,10 @@ from html import do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, \
                     makeTop, makeBottom, removeDuplicateCVids, checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-03-12' # by RJH
+LAST_MODIFIED_DATE = '2023-03-13' # by RJH
 SHORT_PROGRAM_NAME = "createChapterPages"
 PROGRAM_NAME = "OpenBibleData createChapterPages functions"
-PROGRAM_VERSION = '0.22'
+PROGRAM_VERSION = '0.23'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -102,7 +102,7 @@ def createOETChapterPages( folder:Path, rvBible, lvBible, state ) -> List[str]:
                 leftLink = f'<a href="{BBB}_C{c-1}.html">←</a> ' if c>1 \
                             else f'<a href="{BBB}_Intro.html">←</a> ' if c==1 else ''
                 rightLink = f' <a href="{BBB}_C{c+1}.html">→</a>' if c<numChapters else ''
-                parallelLink = f' <a href="../../../parallel/{BBB}/C{c}V1.html">║</a>'
+                parallelLink = f' <a href="../../../parallel/{BBB}/C{c}V1.html#Top">║</a>'
                 detailsLink = f' <a href="../details.html">©</a>'
                 cHtml = f'''<h1 id="Top">Open English Translation {tidyBBB} Introduction</h1>
 <p class="cnav">{leftLink}{documentLink} Intro{rightLink}{parallelLink}{detailsLink}</p>
@@ -207,10 +207,11 @@ def createOETChapterPages( folder:Path, rvBible, lvBible, state ) -> List[str]:
     filename = 'index.html'
     filenames.append( filename )
     filepath = folder.joinpath( filename )
-    top = makeTop( 3, 'OETChapters', None, state ) \
+    top = makeTop( 3, 'OETChapters', 'byChapter', state ) \
             .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}OET Chapter View" ) \
             .replace( '__KEYWORDS__', f'Bible, OET, Open English Translation, chapters' ) \
-            .replace( f'''<a title="{state.BibleNames['OET']}" href="{'../'*3}versions/OET">OET</a>''', 'OET' )
+            .replace( f'''<a title="{state.BibleNames['OET']}" href="{'../'*3}versions/OET/byChapter">OET</a>''',
+                      f'''<a title="{state.BibleNames['OET']}" href="{'../'*3}versions/OET">↑OET</a>''' )
     indexHtml = top \
                 + '<h1 id="Top">OET chapter pages</h1><h2>Index of books</h2>\n' \
                 + f'''<p class="bLinks">{' '.join( BBBLinks )}</p>\n''' \
@@ -269,7 +270,7 @@ def createChapterPages( folder:Path, thisBible, state ) -> List[str]:
                 leftLink = f'<a href="{BBB}_C{c-1}.html">←</a> ' if c>1 \
                             else f'<a href="{BBB}_Intro.html">←</a> ' if c==1 else ''
                 rightLink = f' <a href="{BBB}_C{c+1}.html">→</a>' if c<numChapters else ''
-                parallelLink = f' <a href="../../../parallel/{BBB}/C{c}V1.html">║</a>'
+                parallelLink = f' <a href="../../../parallel/{BBB}/C{c}V1.html#Top">║</a>'
                 detailsLink = f' <a href="../details.html">©</a>'
                 cHtml = f'''<h1 id="Top">{thisBible.abbreviation} {tidyBBB} Introduction</h1>
 <p class="cnav">{leftLink}{documentLink} Intro{rightLink}{parallelLink}{detailsLink}</p>
@@ -366,7 +367,8 @@ def createChapterPages( folder:Path, thisBible, state ) -> List[str]:
     top = makeTop( 3, 'chapters', 'byChapter', state ) \
             .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{thisBible.abbreviation} Chapter View" ) \
             .replace( '__KEYWORDS__', f'Bible, {thisBible.abbreviation}, chapters' ) \
-            .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*3}versions/{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}">{thisBible.abbreviation}</a>''', thisBible.abbreviation )
+            .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*3}versions/{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/byChapter">{thisBible.abbreviation}</a>''',
+                      f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*3}versions/{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}">↑{thisBible.abbreviation}</a>''' )
     indexHtml = top \
                 + f'<h1 id="Top">{thisBible.abbreviation} chapter pages</h1><h2>Index of books</h2>\n' \
                 + f'''<p class="bLinks">{' '.join( BBBLinks )}</p>\n''' \
