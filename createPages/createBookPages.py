@@ -73,8 +73,8 @@ def createOETBookPages( folder:Path, rvBible, lvBible, state ) -> List[str]:
     for BBB in BBBsToProcess:
         tidyBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.tidyBBB( BBB )
         # print( f"{BBB=} {BBBsToProcess}"); print( len(BBBsToProcess) )
-        if not allBooksFlag: rvBible.loadBookIfNecessary( BBB )
-        lvBible.loadBookIfNecessary( BBB )
+        # if not allBooksFlag: rvBible.loadBookIfNecessary( BBB )
+        # lvBible.loadBookIfNecessary( BBB )
 
         # TODO: Can we delete all this now???
         if lvBible.abbreviation=='OET-LV' \
@@ -228,7 +228,7 @@ def createBookPages( folder:Path, thisBible, state ) -> List[str]:
     for BBB in BBBsToProcess:
         tidyBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.tidyBBB( BBB )
         # print( f"{BBB=} {BBBsToProcess}"); print( len(BBBsToProcess) )
-        if not allBooksFlag: thisBible.loadBookIfNecessary( BBB )
+        # if not allBooksFlag: thisBible.loadBookIfNecessary( BBB )
         if thisBible.abbreviation=='OET-LV' \
         and BBB in ('FRT','INT','NUM','SA1','SA2','CH1','EZR','NEH','JOB','SNG','JER','DAN'):
             logging.critical( f"AA Skipped OET chapters difficult book: OET-LV {BBB}")

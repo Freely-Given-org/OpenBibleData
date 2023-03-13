@@ -73,8 +73,8 @@ def createOETChapterPages( folder:Path, rvBible, lvBible, state ) -> List[str]:
     for BBB in BBBsToProcess:
         tidyBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.tidyBBB( BBB )
         # print( f"{BBB=} {BBBsToProcess}"); print( len(BBBsToProcess) )
-        if not allBooksFlag: rvBible.loadBookIfNecessary( BBB )
-        lvBible.loadBookIfNecessary( BBB )
+        # if not allBooksFlag: rvBible.loadBookIfNecessary( BBB )
+        # lvBible.loadBookIfNecessary( BBB )
 
         # TODO: Can we delete all this now???
         if lvBible.abbreviation=='OET-LV' \
@@ -245,7 +245,7 @@ def createChapterPages( folder:Path, thisBible, state ) -> List[str]:
     for BBB in BBBsToProcess:
         tidyBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.tidyBBB( BBB )
         # print( f"{BBB=} {BBBsToProcess}"); print( len(BBBsToProcess) )
-        if not allBooksFlag: thisBible.loadBookIfNecessary( BBB )
+        # if not allBooksFlag: thisBible.loadBookIfNecessary( BBB )
         # if not BibleOrgSysGlobals.loadedBibleBooksCodes.isNewTestament_NR( BBB ): continue # Skip all except NT for now
         if thisBible.abbreviation=='OET-LV' \
         and BBB in ('FRT','INT','NUM','SA1','SA2','CH1','EZR','NEH','JOB','SNG','JER','DAN'):

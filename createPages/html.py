@@ -107,11 +107,11 @@ def do_LSV_HTMLcustomisations( html:str ) -> str:
 # end of html.do_LSV_HTMLcustomisations
 
 
-def makeTop( level:int, pageType:str, filename:Optional[str], state ) -> str:
+def makeTop( level:int, pageType:str, fileOrFolderName:Optional[str], state ) -> str:
     """
     Create the very top part of an HTML page.
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"makeTop( {level}, {pageType} {filename} )" )
+    fnPrint( DEBUGGING_THIS_MODULE, f"makeTop( {level}, {pageType} {fileOrFolderName} )" )
 
     if pageType in ('chapters','section','book'):
         cssFilename = 'BibleChapter.css'
@@ -143,19 +143,19 @@ def makeTop( level:int, pageType:str, filename:Optional[str], state ) -> str:
 </head><body><!--Level{level}-->{topLink}
 <h3>Prototype quality only—still in development</h3>
 """
-    return top + _makeHeader( level, pageType, filename, state ) + '\n'
+    return top + _makeHeader( level, pageType, fileOrFolderName, state ) + '\n'
 # end of html.makeTop
 
-def _makeHeader( level:int, pageType:str, filename:Optional[str], state ) -> str:
+def _makeHeader( level:int, pageType:str, fileOrFolderName:Optional[str], state ) -> str:
     """
     Create the navigation that goes before the page content.
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"_makeHeader( {level}, {pageType} {filename} )" )
+    fnPrint( DEBUGGING_THIS_MODULE, f"_makeHeader( {level}, {pageType} {fileOrFolderName} )" )
 
     # Add all the version abbreviations
     #   with their style decorators
     #   and with the more specific links if specified.
-    versionList = []
+    initialVersionList = []
     for versionAbbreviation in state.BibleVersions:
         if pageType in ('section','OETSection'):
             try:
@@ -165,22 +165,73 @@ def _makeHeader( level:int, pageType:str, filename:Optional[str], state ) -> str
             except AttributeError: # no discoveryResults
                 continue
 
-        # TODO: This is not good because not all versions have all books
-        vLink = f"{'../'*level}versions/{BibleOrgSysGlobals.makeSafeString(versionAbbreviation)}" if not filename \
-                    else f"{'../'*level}versions/{BibleOrgSysGlobals.makeSafeString(versionAbbreviation)}/{filename}"
-        versionList.append( f'{state.BibleVersionDecorations[versionAbbreviation][0]}'
+        # Note: This is not good because not all versions have all books -- we try to fix that below
+        vLink = f"{'../'*level}versions/{BibleOrgSysGlobals.makeSafeString(versionAbbreviation)}/{fileOrFolderName}" \
+                    if fileOrFolderName else \
+                f"{'../'*level}versions/{BibleOrgSysGlobals.makeSafeString(versionAbbreviation)}"
+        initialVersionList.append( f'{state.BibleVersionDecorations[versionAbbreviation][0]}'
                             f'<a title="{state.BibleNames[versionAbbreviation]}" '
                             f'href="{vLink}">{versionAbbreviation}</a>'
                             f'{state.BibleVersionDecorations[versionAbbreviation][1]}'
                             )
     if pageType == 'parallel':
-        versionList.append( 'Parallel' )
+        initialVersionList.append( 'Parallel' )
     else: # add a link for parallel
-        versionList.append( f'''{state.BibleVersionDecorations['Parallel'][0]}<a title="Single verse in many translations" href="{'../'*level}parallel/">Parallel</a>{state.BibleVersionDecorations['Parallel'][1]}''' )
+        initialVersionList.append( f'''{state.BibleVersionDecorations['Parallel'][0]}<a title="Single verse in many translations" href="{'../'*level}parallel/">Parallel</a>{state.BibleVersionDecorations['Parallel'][1]}''' )
     if pageType == 'interlinear':
-        versionList.append( 'Interlinear' )
+        initialVersionList.append( 'Interlinear' )
     else: # add a link for interlinear
-        versionList.append( f'''{state.BibleVersionDecorations['Interlinear'][0]}<a title="Not done yet" href="{'../'*level}interlinear/">Interlinear</a>{state.BibleVersionDecorations['Interlinear'][1]}''' )
+        initialVersionList.append( f'''{state.BibleVersionDecorations['Interlinear'][0]}<a title="Not done yet" href="{'../'*level}interlinear/">Interlinear</a>{state.BibleVersionDecorations['Interlinear'][1]}''' )
+
+    # This code tries to adjust links to books which aren't in a version, e.g., UHB has no NT books, SR-GNT and UGNT have no OT books
+    # It does this by redirecting the potential bad link to the next level higher.
+    # haveBBB = None
+    # if fileOrFolderName and 'allBBBs' in dir(state):
+    #     for tryBBB in state.allBBBs: # from all loaded versions
+    #         if f'{tryBBB}.' in fileOrFolderName or f'{tryBBB}_' in fileOrFolderName:
+    #             assert not haveBBB # Make sure we only found exactly one of them
+    #             haveBBB = tryBBB
+    # print( f"\n_makeHeader {level=} {pageType=} {fileOrFolderName=} {'allBBBs' in dir(state)=} {haveBBB=}")
+    # if haveBBB: # Ok, we know which book it was
+    # print( f"  {level=} {pageType=} {fileOrFolderName=} {haveBBB=}")
+    newVersionList = []
+    for n,entry in enumerate( initialVersionList ): # We loop through a copy
+        if '/parallel/' in entry or '/interlinear/' in entry:
+            newVersionList.append( entry )
+            continue # Should always be able to link to these
+        # print( f"    {n}: {entry}")
+        # if f'{haveBBB}.' in entry or f'{haveBBB}_' in entry or f'{haveBBB}/' in entry:
+        #     print( "      Should be able to link to the same book ok" )
+        #     newVersionList.append( entry )
+        #     continue
+        # print( f"      {n}: {entry} is suspicious")
+        entryBBB = None
+        for tryBBB in state.allBBBs: # from all loaded versions
+            if f'{tryBBB}.' in entry or f'{tryBBB}_' in entry or f'{tryBBB}/' in entry:
+                assert not entryBBB # Make sure we only found exactly one of them
+                entryBBB = tryBBB
+        if entryBBB:
+            startIndex = entry.index('">') + 2
+            versionAbbreviation = entry[startIndex:entry.index('<',startIndex)]
+            if versionAbbreviation == 'OET': versionAbbreviation = 'OET-RV' # We look here in this case
+            thisBible = state.preloadedBibles[versionAbbreviation]
+            if entryBBB in thisBible:
+                newVersionList.append( entry )
+                continue # Should always be able to link to these
+            dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      Might not be able to link to {pageType} {versionAbbreviation} {entry}???" )
+            replacement = ''
+            if '/' in fileOrFolderName:
+                ix = fileOrFolderName.index( '/' )
+                if ix>0 and ix<len(fileOrFolderName)-1: # The slash is in the middle -- not at the beginning or the end
+                    replacement = fileOrFolderName[:ix+1]
+                    dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"          Can we adapt {pageType} '{fileOrFolderName}' to '{replacement}'" )
+            newEntry = entry.replace( fileOrFolderName, replacement ) # Effectively links to a higher level folder
+            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"       Changed {pageType} link entry to {newEntry}")
+            newVersionList.append( newEntry )
+        else:
+            dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        Couldn't find a BBB so should be able to link ok to {pageType} {entry}" )
+            newVersionList.append( entry )
+    assert len(newVersionList) == len(initialVersionList)
 
     # vlLen = len(versionList)
     # if vlLen > 16: # split into thirds
@@ -191,7 +242,7 @@ def _makeHeader( level:int, pageType:str, filename:Optional[str], state ) -> str
     #     html = f'<p class="vLinks">{EM_SPACE.join(versionList[:vlLen//2])}</p>\n' \
     #             f'<p class="vLinks">{EM_SPACE.join(versionList[vlLen//2:])}</p>'
     # else:
-    html = f'<p class="workNav">{EM_SPACE.join(versionList)}</p>'
+    html = f'<p class="workNav">{EM_SPACE.join(newVersionList)}</p>'
 
     # listChunks = [versionList]
     # if vlLen > 16: # split into thirds

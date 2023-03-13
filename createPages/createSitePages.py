@@ -55,10 +55,10 @@ from createWordPages import createOETGreekWordsPages
 from html import makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-03-12' # by RJH
+LAST_MODIFIED_DATE = '2023-03-13' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData Create Pages"
-PROGRAM_VERSION = '0.37'
+PROGRAM_VERSION = '0.38'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
@@ -73,7 +73,7 @@ DESTINATION_FOLDER = DEBUG_DESTINATION_FOLDER if TEST_MODE or BibleOrgSysGlobals
                         else NORMAL_DESTINATION_FOLDER
 
 
-OET_BOOK_LIST = ('MRK','JHN','ACT', 'EPH','TIT', 'JN3')
+OET_BOOK_LIST = ('JHN','MRK','ACT', 'EPH','TIT', 'JN3')
 OET_BOOK_LIST_WITH_FRT = ('FRT','INT') + OET_BOOK_LIST
 NT_BOOK_LIST_WITH_FRT = ('FRT',) + BOOKLIST_NT27
 assert len(NT_BOOK_LIST_WITH_FRT) == 27+1
@@ -427,16 +427,6 @@ def createSitePages() -> bool:
     try: os.makedirs( versionsFolder )
     except FileExistsError: pass # they were already there
 
-    # Ok, let's go create some static pages
-    if 'OET' in state.BibleVersions: # this is a special case
-        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nCreating version pages for OET…" )
-        versionFolder = TEMP_BUILD_FOLDER.joinpath( f'versions/OET/' )
-        createOETVersionPages( versionFolder, state.preloadedBibles['OET-RV'], state.preloadedBibles['OET-LV'], state )
-    for versionAbbreviation, thisBible in state.preloadedBibles.items(): # doesn't include OET pseudo-translation
-        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nCreating version pages for {thisBible.abbreviation}…" )
-        versionFolder = TEMP_BUILD_FOLDER.joinpath( f'versions/{thisBible.abbreviation}/' )
-        createVersionPages( versionFolder, thisBible, state )
-
     # Find our inclusive list of books
     allBBBs = set()
     for BBB in BibleOrgSysGlobals.loadedBibleBooksCodes:
@@ -449,6 +439,16 @@ def createSitePages() -> bool:
     # Now put them in the proper print order
     state.allBBBs = BibleOrgSysGlobals.loadedBibleBooksCodes.getSequenceList( allBBBs )
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\nDiscovered {len(state.allBBBs)} books across {len(state.preloadedBibles)} versions: {state.allBBBs}" )
+
+    # Ok, let's go create some static pages
+    if 'OET' in state.BibleVersions: # this is a special case
+        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nCreating version pages for OET…" )
+        versionFolder = TEMP_BUILD_FOLDER.joinpath( f'versions/OET/' )
+        createOETVersionPages( versionFolder, state.preloadedBibles['OET-RV'], state.preloadedBibles['OET-LV'], state )
+    for versionAbbreviation, thisBible in state.preloadedBibles.items(): # doesn't include OET pseudo-translation
+        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nCreating version pages for {thisBible.abbreviation}…" )
+        versionFolder = TEMP_BUILD_FOLDER.joinpath( f'versions/{thisBible.abbreviation}/' )
+        createVersionPages( versionFolder, thisBible, state )
 
     # We do this later than the createVersionPages above
     #   because we need all versions to have all books loaded and 'discovered', i.e., analysed
@@ -529,7 +529,9 @@ def createOETVersionPages( folder:Path, rvBible, lvBible, state:State ) -> bool:
     indexHtml = f'''<h1 id="Top">{versionName}</h1>
 <p class="rem">Remember that ancient letters were meant to be read in their entirety just like modern letters. We provide a byChapter mode for convenience only, but recommend the byDocument mode for personal reading.</p>
 <p class="viewNav"><a href="byDocument">By Document</a> <a href="bySection">By Section</a> <a href="byChapter">By Chapter</a> <a href="details.html">Details</a></p>
-''' if rvBible.discoveryResults['ALL']['haveSectionHeadings'] or lvBible.discoveryResults['ALL']['haveSectionHeadings'] else f'''<p class="rem">Remember that ancient letters were meant to be read in their entirety just like modern letters. We provide a byChapter mode for convenience only, but recommend the byDocument mode for personal reading.</p>
+''' if rvBible.discoveryResults['ALL']['haveSectionHeadings'] or lvBible.discoveryResults['ALL']['haveSectionHeadings'] else \
+f'''<h1 id="Top">{versionName}</h1>
+<p class="rem">Remember that ancient letters were meant to be read in their entirety just like modern letters. We provide a byChapter mode for convenience only, but recommend the byDocument mode for personal reading.</p>
 <p class="viewNav"><a href="byDocument">By Document</a> <a href="byChapter">By Chapter</a> <a href="details.html">Details</a></p>
 '''
     filepath = folder.joinpath( 'index.html' )
@@ -556,7 +558,9 @@ def createVersionPages( folder:Path, thisBible, state:State ) -> bool:
     indexHtml = f'''<h1 id="Top">{versionName}</h1>
 <p class="rem">Remember that ancient letters were meant to be read in their entirety just like modern letters. We provide a byChapter mode for convenience only, but recommend the byDocument mode for personal reading.</p>
 <p class="viewNav"><a href="byDocument">By Document</a> <a href="bySection">By Section</a> <a href="byChapter">By Chapter</a> <a href="details.html">Details</a></p>
-''' if thisBible.discoveryResults['ALL']['haveSectionHeadings'] else f'''<p class="rem">Remember that ancient letters were meant to be read in their entirety just like modern letters. We provide a byChapter mode for convenience only, but recommend the byDocument mode for personal reading.</p>
+''' if thisBible.discoveryResults['ALL']['haveSectionHeadings'] else \
+f'''<h1 id="Top">{versionName}</h1>
+<p class="rem">Remember that ancient letters were meant to be read in their entirety just like modern letters. We provide a byChapter mode for convenience only, but recommend the byDocument mode for personal reading.</p>
 <p class="viewNav"><a href="byDocument">By Document</a> <a href="byChapter">By Chapter</a> <a href="details.html">Details</a></p>
 '''
     filepath = folder.joinpath( 'index.html' )

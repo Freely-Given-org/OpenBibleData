@@ -55,10 +55,10 @@ from BibleOrgSys.Bible import Bible
 from BibleOrgSys.UnknownBible import UnknownBible
 
 
-LAST_MODIFIED_DATE = '2023-03-10' # by RJH
+LAST_MODIFIED_DATE = '2023-03-13' # by RJH
 SHORT_PROGRAM_NAME = "Bibles"
 PROGRAM_NAME = "OpenBibleData Bibles handler"
-PROGRAM_VERSION = '0.18'
+PROGRAM_VERSION = '0.19'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -142,16 +142,19 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state ) -
         # print( f"{thisBible.settingsDict=}" )
         # verseEntryList, contextList = thisBible.getContextVerseData( ('MAT', '2', '1') )
         # print( f"Mat 2:1 {verseEntryList=} {contextList=}" )
-    elif 'ESFM' in folderOrFileLocation: # ESFM
-        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Preloading '{versionAbbreviation}' USFM Bible…" )
+    elif 'OET' in versionAbbreviation or 'ESFM' in folderOrFileLocation: # ESFM
+        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Preloading '{versionAbbreviation}' ESFM Bible…" )
         thisBible = ESFMBible.ESFMBible( folderOrFileLocation, givenAbbreviation=versionAbbreviation )
         thisBible.loadAuxilliaryFiles = True
         # if versionAbbreviation in ('ULT','UST','UHB','UGNT','SR-GNT'):
         #     thisBible.uWencoded = True # TODO: Shouldn't be required ???
-        if 1 or 'ALL' in state.booksToLoad[versionAbbreviation]:
+        if 'ALL' in state.booksToLoad[versionAbbreviation]:
             thisBible.loadBooks() # So we can iterate through them all later
-        else: # only load the specific books as we need them later
+        else: # only load the specific books as we need them
             thisBible.preload()
+            for BBB in state.booksToLoad[versionAbbreviation]:
+                thisBible.loadBookIfNecessary( BBB )
+            thisBible.lookForAuxilliaryFilenames()
     else: # USFM
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Preloading '{versionAbbreviation}' USFM Bible…" )
         thisBible = USFMBible.USFMBible( folderOrFileLocation, givenAbbreviation=versionAbbreviation,
@@ -160,8 +163,10 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state ) -
             thisBible.uWencoded = True # TODO: Shouldn't be required ???
         if 'ALL' in state.booksToLoad[versionAbbreviation]:
             thisBible.loadBooks() # So we can iterate through them all later
-        else: # only load the specific books as we need them later
+        else: # only load the specific books as we need them
             thisBible.preload()
+            for BBB in state.booksToLoad[versionAbbreviation]:
+                thisBible.loadBookIfNecessary( BBB )
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"preloadVersion() loaded {thisBible}" )
     return thisBible
 # end of Bibles.preloadVersion

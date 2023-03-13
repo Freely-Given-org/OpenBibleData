@@ -114,7 +114,7 @@ def createParallelVersePagesForBook( folder:Path, BBB:str, BBBLinks:List[str], s
     for versionAbbreviation in state.BibleVersions:
         if versionAbbreviation == 'OET': continue # that's only a "pseudo-version"!
         referenceBible = state.preloadedBibles[versionAbbreviation]
-        referenceBible.loadBookIfNecessary( BBB )
+        # referenceBible.loadBookIfNecessary( BBB )
         numChapters = referenceBible.getNumChapters( BBB )
         if numChapters: break
     else:
@@ -149,7 +149,7 @@ def createParallelVersePagesForBook( folder:Path, BBB:str, BBBLinks:List[str], s
                     and not BibleOrgSysGlobals.loadedBibleBooksCodes.isNewTestament_NR( BBB):
                         continue # Skip non-NT books for Koine Greek NT
                     thisBible = state.preloadedBibles[versionAbbreviation]
-                    thisBible.loadBookIfNecessary( BBB )
+                    # thisBible.loadBookIfNecessary( BBB )
                     try:
                         verseEntryList, contextList = thisBible.getContextVerseData( (BBB, str(c), str(v)) )
                         if isinstance( thisBible, ESFMBible.ESFMBible ):

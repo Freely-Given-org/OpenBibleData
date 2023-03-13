@@ -48,7 +48,7 @@ from html import do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, \
 LAST_MODIFIED_DATE = '2023-03-13' # by RJH
 SHORT_PROGRAM_NAME = "createSectionPages"
 PROGRAM_NAME = "OpenBibleData createSectionPages functions"
-PROGRAM_VERSION = '0.14'
+PROGRAM_VERSION = '0.15'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -211,7 +211,8 @@ def createOETSectionPages( folder:Path, rvBible, lvBible, state ) -> List[str]:
                         f'''<a title="Up to {state.BibleNames['OET']}" href="{'../'*3}versions/OET/">↑OET</a>''' )
         bkHtml = f'<h1 id="Top">Index of sections for OET {tidyBBB}</h1>\n'
         for startC,startV,_endC,_endV,sectionName,reasonName,_contextList,_verseEntryList,filename in sections:
-            bkHtml = f'''{bkHtml}<p>{'Intro' if startC=='-1' else startC}:{startV} <a href="{filename}"><b>{sectionName}</b></a> ({reasonName})</p>'''
+            reasonString = '' if reasonName=='Section heading' else f' ({reasonName})' # Suppress '(Section Heading)' appendages in the list
+            bkHtml = f'''{bkHtml}<p>{'Intro' if startC=='-1' else startC}:{startV} <a href="{filename}"><b>{sectionName}</b></a>{reasonString}</p>'''
         bkHtml = top + '<!--sections page-->' + bkHtml + '\n' + makeBottom( 3, 'OETSection', state )
         checkHtml( 'OET section', bkHtml )
         with open( filepath, 'wt', encoding='utf-8' ) as sectionHtmlFile:
@@ -355,7 +356,8 @@ def createSectionPages( folder:Path, thisBible, state ) -> List[str]:
                         f'''<a title="Up to {state.BibleNames[thisBible.abbreviation]}" href="{'../'*3}versions/{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/">↑{thisBible.abbreviation}</a>''' )
         bkHtml = f'<h1 id="Top">Index of sections for {thisBible.abbreviation} {tidyBBB}</h1>\n'
         for startC,startV,_endC,_endV,sectionName,reasonName,_contextList,_verseEntryList,filename in sections:
-            bkHtml = f'''{bkHtml}<p>{'Intro' if startC=='-1' else startC}:{startV} <a href="{filename}"><b>{sectionName}</b></a> ({reasonName})</p>'''
+            reasonString = '' if reasonName=='Section heading' else f' ({reasonName})' # Suppress '(Section Heading)' appendages in the list
+            bkHtml = f'''{bkHtml}<p>{'Intro' if startC=='-1' else startC}:{startV} <a href="{filename}"><b>{sectionName}</b></a>{reasonString}</p>'''
         bkHtml = top + '<!--sections page-->' + bkHtml + '\n' + makeBottom( 3, 'section', state )
         checkHtml( thisBible.abbreviation, bkHtml )
         with open( filepath, 'wt', encoding='utf-8' ) as sectionHtmlFile:
