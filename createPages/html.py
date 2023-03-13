@@ -50,10 +50,10 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 # from Bibles import fetchChapter
 
 
-LAST_MODIFIED_DATE = '2023-03-03' # by RJH
+LAST_MODIFIED_DATE = '2023-03-13' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
-PROGRAM_VERSION = '0.21'
+PROGRAM_VERSION = '0.22'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -184,27 +184,12 @@ def _makeHeader( level:int, pageType:str, fileOrFolderName:Optional[str], state 
         initialVersionList.append( f'''{state.BibleVersionDecorations['Interlinear'][0]}<a title="Not done yet" href="{'../'*level}interlinear/">Interlinear</a>{state.BibleVersionDecorations['Interlinear'][1]}''' )
 
     # This code tries to adjust links to books which aren't in a version, e.g., UHB has no NT books, SR-GNT and UGNT have no OT books
-    # It does this by redirecting the potential bad link to the next level higher.
-    # haveBBB = None
-    # if fileOrFolderName and 'allBBBs' in dir(state):
-    #     for tryBBB in state.allBBBs: # from all loaded versions
-    #         if f'{tryBBB}.' in fileOrFolderName or f'{tryBBB}_' in fileOrFolderName:
-    #             assert not haveBBB # Make sure we only found exactly one of them
-    #             haveBBB = tryBBB
-    # print( f"\n_makeHeader {level=} {pageType=} {fileOrFolderName=} {'allBBBs' in dir(state)=} {haveBBB=}")
-    # if haveBBB: # Ok, we know which book it was
-    # print( f"  {level=} {pageType=} {fileOrFolderName=} {haveBBB=}")
+    # It does this by adjusting the potential bad link to the next level higher.
     newVersionList = []
-    for n,entry in enumerate( initialVersionList ): # We loop through a copy
+    for entry in initialVersionList:
         if '/parallel/' in entry or '/interlinear/' in entry:
             newVersionList.append( entry )
             continue # Should always be able to link to these
-        # print( f"    {n}: {entry}")
-        # if f'{haveBBB}.' in entry or f'{haveBBB}_' in entry or f'{haveBBB}/' in entry:
-        #     print( "      Should be able to link to the same book ok" )
-        #     newVersionList.append( entry )
-        #     continue
-        # print( f"      {n}: {entry} is suspicious")
         entryBBB = None
         for tryBBB in state.allBBBs: # from all loaded versions
             if f'{tryBBB}.' in entry or f'{tryBBB}_' in entry or f'{tryBBB}/' in entry:
@@ -233,26 +218,7 @@ def _makeHeader( level:int, pageType:str, fileOrFolderName:Optional[str], state 
             newVersionList.append( entry )
     assert len(newVersionList) == len(initialVersionList)
 
-    # vlLen = len(versionList)
-    # if vlLen > 16: # split into thirds
-    #     html = f'<p class="vLinks">{EM_SPACE.join(versionList[:vlLen//3])}</p>\n' \
-    #             f'<p class="vLinks">{EM_SPACE.join(versionList[vlLen//3:vlLen*2//3+1])}</p>' \
-    #             f'<p class="vLinks">{EM_SPACE.join(versionList[vlLen*2//3+1:])}</p>'
-    # elif vlLen > 10: # split in half
-    #     html = f'<p class="vLinks">{EM_SPACE.join(versionList[:vlLen//2])}</p>\n' \
-    #             f'<p class="vLinks">{EM_SPACE.join(versionList[vlLen//2:])}</p>'
-    # else:
     html = f'<p class="workNav">{EM_SPACE.join(newVersionList)}</p>'
-
-    # listChunks = [versionList]
-    # if vlLen > 16: # split into thirds
-    #     listChunks = [versionList[:vlLen//3], versionList[vlLen//3:vlLen*2//3+1], versionList[vlLen*2//3+1:]]
-    # elif vlLen > 10: # split in half
-    #     listChunks = [versionList[:vlLen//2], versionList[vlLen//2:]]
-    # htmlChunks = []
-    # for listChunk in listChunks:
-    #     htmlChunks.append( f'<p class="workNav">{EM_SPACE.join(listChunk)}</p>' )
-    # html = '\n'.join( htmlChunks )
 
     return f'<div class="header">{html}</div><!--header-->'
 # end of html._makeHeader
