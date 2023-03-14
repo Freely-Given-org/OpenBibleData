@@ -55,10 +55,10 @@ from createWordPages import createOETGreekWordsPages
 from html import makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-03-13' # by RJH
+LAST_MODIFIED_DATE = '2023-03-14' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData Create Pages"
-PROGRAM_VERSION = '0.38'
+PROGRAM_VERSION = '0.39'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
@@ -414,6 +414,8 @@ def createSitePages() -> bool:
     Build all the pages in a temporary location
     """
     fnPrint( DEBUGGING_THIS_MODULE, "createSitePages()")
+    if TEST_MODE:
+        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nRunning in TEST MODE…" )
 
     # Preload our various Bibles
     numLoadedVersions = preloadVersions( state )
