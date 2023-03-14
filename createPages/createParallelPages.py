@@ -42,10 +42,10 @@ from html import do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, \
                     makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-03-12' # by RJH
+LAST_MODIFIED_DATE = '2023-03-14' # by RJH
 SHORT_PROGRAM_NAME = "createParallelPages"
 PROGRAM_NAME = "OpenBibleData createParallelPages functions"
-PROGRAM_VERSION = '0.22'
+PROGRAM_VERSION = '0.23'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -142,9 +142,9 @@ def createParallelVersePagesForBook( folder:Path, BBB:str, BBBLinks:List[str], s
                     if versionAbbreviation in ('UHB','JPS') \
                     and not BibleOrgSysGlobals.loadedBibleBooksCodes.isOldTestament_NR( BBB):
                         continue # Skip non-OT books for Hebrew
-                    if versionAbbreviation in ('Brenton',) \
+                    if versionAbbreviation in ('BRN','BrLXX') \
                     and BibleOrgSysGlobals.loadedBibleBooksCodes.isNewTestament_NR( BBB):
-                        continue # Skip NT books for Brenton (it has deuterocanon)
+                        continue # Skip NT books for Brenton (it has deuterocanon/apocrypha)
                     if versionAbbreviation in ('TNT', 'SR-GNT','UGNT','SBL-GNT') \
                     and not BibleOrgSysGlobals.loadedBibleBooksCodes.isNewTestament_NR( BBB):
                         continue # Skip non-NT books for Koine Greek NT
