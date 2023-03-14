@@ -43,10 +43,10 @@ from html import do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, \
                     makeTop, makeBottom, removeDuplicateCVids, checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-03-12' # by RJH
+LAST_MODIFIED_DATE = '2023-03-14' # by RJH
 SHORT_PROGRAM_NAME = "createWordPages"
 PROGRAM_NAME = "OpenBibleData createWordPages functions"
-PROGRAM_VERSION = '0.03'
+PROGRAM_VERSION = '0.04'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -73,6 +73,9 @@ CNTR_GENDER_NAME_DICT = {'M':'masculine', 'F':'feminine', 'N':'neuter', 'm':'m',
 CNTR_NUMBER_NAME_DICT = {'S':'singular', 'P':'plural', 's':'s', 'p':'p'}
 def createOETGreekWordsPages( outputFolderPath:Path, state ) -> bool:
     """
+    Make pages for all the words to link to.
+
+    Sadly, there's almost identical code in make_table_pages() in OET convert_OET-LV_to_simple_HTML.py
     """
     from createSitePages import TEST_MODE
     fnPrint( DEBUGGING_THIS_MODULE, f"createOETGreekWordsPages( {outputFolderPath}, {state.BibleVersions} )" )
@@ -120,15 +123,15 @@ def createOETGreekWordsPages( outputFolderPath:Path, state ) -> bool:
                 if case!='.': caseField = f' case=<b>{CNTR_CASE_NAME_DICT[case]}</b>'
                 if gender!='.': genderField = f' gender=<b>{CNTR_GENDER_NAME_DICT[gender]}</b>'
                 if number!='.': numberField = f' number=<b>{CNTR_NUMBER_NAME_DICT[number]}</b>' # or № ???
+            translation = '<small>(no English gloss)</small>' if glossWords=='-' else f'''English gloss=‘<b>{glossWords.replace('_','<span class="ul">_</span>')}</b>’'''
 
             prevLink = f'<b><a href="{n-1}.htm#Top">←</a></b> ' if n>1 else ''
             nextLink = f' <b><a href="{n+1}.htm#Top">→</a></b>' if n<len(word_table) else ''
             oetLink = f'<b><a href="../versions/OET/byChapter/{BBB}_C{C}.html#C{C}">↑OET {tidyBBB} Chapter {C}</a></b>'
-            translation = '<small>initially left untranslated</small>' if glossWords=='-' else f'''<small>initially translated to</small> ‘<b>{glossWords.replace('_','<span class="ul">_</span>')}</b>’'''
             html = f'''<h1 id="Top">OET-LV Wordlink #{n}</h1>
 <p>{prevLink}{oetLink}{nextLink}</p>
 <p><span title="Goes to Statistical Restoration Greek page"><a href="https://GreekCNTR.org/collation/?{CNTR_BOOK_ID_MAP[BBB]}{C.zfill(3)}{V.zfill(3)}">SR GNT {tidyBBB} {C}:{V}</a></span>
- <b>{greek}</b> ({transliterate_Greek(greek)}) {translation}
+ <b>{greek}</b> ({transliterate_Greek(greek)}) {translation}
  Strongs=<span title="Goes to Strongs dictionary"><a href="https://BibleHub.com/greek/{strongs}.htm">{extendedStrongs}</a></span><br>
  {roleField}{moodField}{tenseField}{voiceField}{personField}{caseField}{genderField}{numberField}</p>
 <p><small>Note: With the help of a companion website, these word pages enable you to click through all the way back to photographs of the original manuscripts that the <em>Open English Translation</em> New Testament is translated from.
