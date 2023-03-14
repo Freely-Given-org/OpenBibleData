@@ -58,7 +58,7 @@ from html import makeTop, makeBottom, checkHtml
 LAST_MODIFIED_DATE = '2023-03-14' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData Create Pages"
-PROGRAM_VERSION = '0.39'
+PROGRAM_VERSION = '0.40'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
@@ -92,9 +92,10 @@ class State:
                 'WEB','NET','LSV','FBV','T4T','LEB','BBE',
                 'ASV','YLT','DBY','RV','WBS','KJB','BB','GNV','CB',
                 'TNT','WYC','CLV',
-                'JPS','DRA','BRN',
-                'UHB',
-                'SR-GNT','UGNT','SBL-GNT']
+                'JPS','DRA',
+                'SR-GNT','UGNT','SBL-GNT',
+                'BRN','BrLXX', 'UHB',
+                ]
     
     BibleVersionDecorations = { 'OET':('<b>','</b>'),'OET-RV':('<b>','</b>'),'OET-LV':('<b>','</b>'),
                 'ULT':('',''),'UST':('',''),'OEB':('',''),
@@ -104,9 +105,9 @@ class State:
                 'WBS':('<small>','</small>'),
                 'KJB':('',''),'BB':('',''),'GNV':('',''),'CB':('',''),
                 'TNT':('',''),'WYC':('',''),'CLV':('<small>','</small>'),
-                'JPS':('<small>','</small>'),'DRA':('<small>','</small>'),'BRN':('<small>','</small>'),
-                'UHB':('',''),
+                'JPS':('<small>','</small>'),'DRA':('<small>','</small>'),
                 'SR-GNT':('<b>','</b>'),'UGNT':('<small>','</small>'),'SBL-GNT':('<small>','</small>'),
+                'BRN':('<small>','</small>'),'BrLXX':('',''), 'UHB':('',''),
                 'Parallel':('<b>','</b>'), 'Interlinear':('<small>','</small>'),
                 }
     
@@ -143,11 +144,12 @@ class State:
                 'CLV': '../copiedBibles/Latin/eBible.org/CLV/',
                 'JPS': '../copiedBibles/English/eBible.org/JPS/',
                 'DRA': '../copiedBibles/English/eBible.org/DRA/',
-                'BRN': '../copiedBibles/English/eBible.org/Brenton/', # with deuterocanon and OTH,XXA,XXB,XXC,
-                'UHB': '../copiedBibles/Original/unfoldingWord.org/UHB/',
                 'SR-GNT': '../../Forked/CNTR-SR/SR usfm/',
                 'UGNT': '../copiedBibles/Original/unfoldingWord.org/UGNT/',
                 'SBL-GNT': '../../Forked/SBLGNT/data/sblgnt/text/',
+                'BRN': '../copiedBibles/English/eBible.org/Brenton/', # with deuterocanon and OTH,XXA,XXB,XXC,
+                'BrLXX': '../copiedBibles/Greek/eBible.org/BrLXX/',
+                'UHB': '../copiedBibles/Original/unfoldingWord.org/UHB/',
                 }
     
     BibleNames = {
@@ -181,11 +183,12 @@ class State:
                 'CLV': 'Clementine Vulgate (Latin, 1592)',
                 'JPS': 'Jewish Publication Society TaNaKH (1917)',
                 'DRA': 'Douay-Rheims American Edition (1899)',
-                'BRN': 'Brenton Septuagint Translation (1851)',
-                'UHB': 'unfoldingWord Hebrew Bible (2022)',
                 'SR-GNT': 'Statistical Restoration Greek New Testament (2022)',
                 'UGNT': 'unfoldingWord Greek New Testament (2022)',
                 'SBL-GNT': 'Society for Biblical Literature Greek New Testament (2020???)',
+                'BRN': 'Brenton Septuagint Translation (1851)',
+                'BrLXX': '(Brenton’s) Ancient Greek translation of the Hebrew Scriptures (~250 BC)',
+                'UHB': 'unfoldingWord Hebrew Bible (2022)',
                 }
     
     booksToLoad = {
@@ -218,11 +221,12 @@ class State:
                 'CLV': ['ALL'],
                 'JPS': ['ALL'],
                 'DRA': ['ALL'],
-                'BRN': ['ALL'],
-                'UHB': ['ALL'],
                 'SR-GNT': ['ALL'],
                 'UGNT': ['ALL'],
                 'SBL-GNT': ['ALL'],
+                'BRN': ['ALL'],
+                'BrLXX': ['ALL'],
+                'UHB': ['ALL'],
             } if ALL_PRODUCTION_BOOKS else {
                 'OET': ['FRT','MRK'],
                 'OET-RV': ['FRT','MRK'],
@@ -253,11 +257,12 @@ class State:
                 'CLV': ['MRK'],
                 'JPS': ['RUT'],
                 'DRA': ['MRK'],
-                'BRN': ['RUT'],
-                'UHB': ['RUT'],
                 'SR-GNT': ['MRK'],
                 'UGNT': ['MRK'],
                 'SBL-GNT': ['MRK'],
+                'BRN': ['RUT'],
+                'BrLXX': ['RUT'],
+                'UHB': ['RUT'],
             }
 
     detailsHtml = {
@@ -377,14 +382,6 @@ class State:
                 'copyright': '<p>Copyright © (coming).</p>',
                 'licence': '<p>(coming).</p>',
                 'acknowledgements': '<p>(coming).</p>' },
-        'BRN': {'about': '<p>Brenton Septuagint Translation (1851).</p>',
-                'copyright': '<p>Copyright © (coming).</p>',
-                'licence': '<p>(coming).</p>',
-                'acknowledgements': '<p>(coming).</p>' },
-        'UHB': {'about': '<p>unfoldingWord Hebrew Bible (2022).</p>',
-                'copyright': '<p>Copyright © (coming).</p>',
-                'licence': '<p>(coming).</p>',
-                'acknowledgements': '<p>(coming).</p>' },
         'SR-GNT': {'about': '<p>Statistical Restoration Greek New Testament (2022).</p>',
                 'copyright': '<p>Copyright © 2022 by Alan Bunning.</p>',
                 'licence': '<p><a href="https://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution 4.0 International License</a>.</p>',
@@ -394,6 +391,18 @@ class State:
                 'licence': '<p>(coming).</p>',
                 'acknowledgements': '<p>(coming).</p>' },
         'SBL-GNT': {'about': '<p>Society for Biblical Literature Greek New Testament (2020???).</p>',
+                'copyright': '<p>Copyright © (coming).</p>',
+                'licence': '<p>(coming).</p>',
+                'acknowledgements': '<p>(coming).</p>' },
+        'BRN': {'about': '<p>Sir Lancelot C. L. Brenton’s 1851 translation of the ancient Greek Septuagint (LXX) translation of the Hebrew scriptures.</p>',
+                'copyright': '<p>Copyright © (coming).</p>',
+                'licence': '<p>(coming).</p>',
+                'acknowledgements': '<p>(coming).</p>' },
+        'BrLXX': {'about': '<p>μετάφραση των εβδομήκοντα: Ancient Greek translation of the Hebrew Scriptures (~250 BC) compiled by Sir Lancelot C. L. Brenton.</p>',
+                'copyright': '<p>Copyright © (coming).</p>',
+                'licence': '<p>(coming).</p>',
+                'acknowledgements': '<p>(coming).</p>' },
+        'UHB': {'about': '<p>unfoldingWord Hebrew Bible (2022).</p>',
                 'copyright': '<p>Copyright © (coming).</p>',
                 'licence': '<p>(coming).</p>',
                 'acknowledgements': '<p>(coming).</p>' },
