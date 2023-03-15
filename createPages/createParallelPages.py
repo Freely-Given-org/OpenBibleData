@@ -42,10 +42,10 @@ from html import do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, \
                     makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-03-14' # by RJH
+LAST_MODIFIED_DATE = '2023-03-15' # by RJH
 SHORT_PROGRAM_NAME = "createParallelPages"
 PROGRAM_NAME = "OpenBibleData createParallelPages functions"
-PROGRAM_VERSION = '0.23'
+PROGRAM_VERSION = '0.24'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -123,6 +123,7 @@ def createParallelVersePagesForBook( folder:Path, BBB:str, BBBLinks:List[str], s
 
     vLinks = []
     if numChapters >= 1:
+        lastNumVerses = 0
         for c in range( 1, numChapters+1 ):
             vPrint( 'Info', DEBUGGING_THIS_MODULE, f"      Creating parallel pages for {BBB} {c}…" )
             numVerses = referenceBible.getNumVerses( BBB, c )
@@ -131,8 +132,12 @@ def createParallelVersePagesForBook( folder:Path, BBB:str, BBBLinks:List[str], s
                 continue
             for v in range( 1, numVerses+1 ):
                 # The following all have a __ID__ string than needs to be replaced
-                leftVLink = f'<a href="C{c}V{v-1}.html#__ID__">←</a>{EM_SPACE}' if v>1 else ''
-                rightVLink = f'{EM_SPACE}<a href="C{c}V{v+1}.html#__ID__">→</a>' if v<numVerses else ''
+                leftVLink = f'<a href="C{c}V{v-1}.html#__ID__">←</a>{EM_SPACE}' if v>1 \
+                        else f'<a href="C{c-1}V{lastNumVerses}.html#__ID__">←</a>{EM_SPACE}' if c>1 \
+                        else ''
+                rightVLink = f'{EM_SPACE}<a href="C{c}V{v+1}.html#__ID__">→</a>' if v<numVerses \
+                        else f'{EM_SPACE}<a href="C{c+1}V1.html#__ID__">→</a>' if c<numChapters \
+                        else ''
                 leftCLink = f'<a href="C{c-1}V1.html#__ID__">◄</a>{EM_SPACE}' if c>1 else ''
                 rightCLink = f'{EM_SPACE}<a href="C{c+1}V1.html#__ID__">►</a>' if c<numChapters else ''
                 navLinks = f'<p id="__ID__" class="vnav">{leftCLink}{leftVLink}{tidyBBB} {c}:{v}{rightVLink}{rightCLink}</p>'
@@ -196,6 +201,7 @@ def createParallelVersePagesForBook( folder:Path, BBB:str, BBBLinks:List[str], s
                     pHtmlFile.write( pHtml )
                 vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(pHtml):,} characters written to {filepath}" )
                 vLinks.append( f'<a href="{filename}">{c}:{v}</a>' )
+            lastNumVerses = numVerses # for the previous chapter
     else:
         dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"createParallelVersePagesForBook {BBB} has {numChapters} chapters!!!" )
         assert BBB in ('INT','FRT',)
