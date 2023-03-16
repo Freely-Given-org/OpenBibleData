@@ -45,7 +45,7 @@ from html import do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, \
 LAST_MODIFIED_DATE = '2023-03-16' # by RJH
 SHORT_PROGRAM_NAME = "createParallelPages"
 PROGRAM_NAME = "OpenBibleData createParallelPages functions"
-PROGRAM_VERSION = '0.26'
+PROGRAM_VERSION = '0.27'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -85,7 +85,7 @@ def createParallelPages( folder:Path, state ) -> bool:
             .replace( '__KEYWORDS__', f'Bible, parallel' )
     indexHtml = top \
                 + '<h1 id="Top">Parallel verse pages</h1><h2>Index of books</h2>\n' \
-                + f'<p class="bLinks">{EM_SPACE.join( BBBLinks )}</p>\n' \
+                + f'''<p class="bLinks">{' '.join( BBBLinks )}</p>\n''' \
                 + makeBottom( 1, 'parallel', state )
     checkHtml( 'ParallelIndex', indexHtml )
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
@@ -98,6 +98,8 @@ def createParallelPages( folder:Path, state ) -> bool:
 
 def createParallelVersePagesForBook( folder:Path, BBB:str, BBBLinks:List[str], state ) -> bool:
     """
+    Create a page for every Bible verse
+        displaying the verse for every available version.
     """
     from createSitePages import TEST_MODE
     fnPrint( DEBUGGING_THIS_MODULE, f"createParallelVersePagesForBook( {folder}, {BBB}, {BBBLinks}, {state.BibleVersions} )" )
@@ -109,7 +111,7 @@ def createParallelVersePagesForBook( folder:Path, BBB:str, BBBLinks:List[str], s
     # We don't want the book link for this book to be a recursive link, so remove <a> marking
     tidyBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.tidyBBB( BBB )
     tidyBbb = BibleOrgSysGlobals.loadedBibleBooksCodes.tidyBBB( BBB, titleCase=True )
-    adjBBBLinksHtml = EM_SPACE.join(BBBLinks).replace( f'<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB)}" href="../{BBB}/">{tidyBBB}</a>', tidyBBB )
+    adjBBBLinksHtml = ' '.join(BBBLinks).replace( f'<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB)}" href="../{BBB}/">{tidyBBB}</a>', tidyBBB )
 
     numChapters = None
     for versionAbbreviation in state.BibleVersions:
@@ -213,11 +215,12 @@ def createParallelVersePagesForBook( folder:Path, BBB:str, BBBLinks:List[str], s
             .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{tidyBBB} Parallel View" ) \
             .replace( '__KEYWORDS__', f'Bible, parallel' )
     # For Psalms, we don't list every single verse
-    ourLinks = f'''<h1 id="Top">{BBB} parallel songs index</h1>
+    ourLinks = f'''<h1 id="Top">{tidyBBB} parallel songs index</h1>
 <p class="cLinks">{EM_SPACE.join( [f'<a href="C{ps}V1.html">Ps{ps}</a>' for ps in range(1,numChapters+1)] )}</p>''' \
-                if BBB=='PSA' else f'''<p class="cLinks">{EM_SPACE.join( [f'<a href="C{chp}V1.html">C{chp}</a>' for chp in range(1,numChapters+1)] )}</p>
-<h1 id="Top">{BBB} parallel verses index</h1>
-<p class="vLinks">{EM_SPACE.join( vLinks )}</p>'''
+                if BBB=='PSA' else \
+f'''<p class="cLinks">{tidyBbb} {' '.join( [f'<a href="C{chp}V1.html">C{chp}</a>' for chp in range(1,numChapters+1)] )}</p>
+<h1 id="Top">{tidyBBB} parallel verses index</h1>
+<p class="vLinks">{' '.join( vLinks )}</p>'''
     indexHtml = f'{top}{adjBBBLinksHtml}\n{ourLinks}\n' \
                 + makeBottom( 2, 'parallel', state )
     checkHtml( 'ParallelIndex', indexHtml )

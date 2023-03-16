@@ -45,10 +45,10 @@ from html import do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, \
                     makeTop, makeBottom, removeDuplicateCVids, checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-03-13' # by RJH
+LAST_MODIFIED_DATE = '2023-03-16' # by RJH
 SHORT_PROGRAM_NAME = "createSectionPages"
 PROGRAM_NAME = "OpenBibleData createSectionPages functions"
-PROGRAM_VERSION = '0.15'
+PROGRAM_VERSION = '0.16'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -140,6 +140,8 @@ def createOETSectionPages( folder:Path, rvBible, lvBible, state ) -> List[str]:
 <h2>Readers’ Version</h2>
 <h2>Literal Version</h2>
 '''
+            if isinstance( rvBible, ESFMBible.ESFMBible ):
+                rvVerseEntryList,_wordList = rvBible.livenESFMWordLinks( BBB, rvVerseEntryList, '../../../W/{n}.htm' )
             rvHtml = convertUSFMMarkerListToHtml( rvBible.abbreviation, (BBB,startC), 'section', rvContextList, rvVerseEntryList )
             rvHtml = livenIORs( BBB, rvHtml, sections )
             # Get the info for the first LV verse
@@ -181,7 +183,7 @@ def createOETSectionPages( folder:Path, rvBible, lvBible, state ) -> List[str]:
             else:
                 loop_counter_too_small
             if isinstance( lvBible, ESFMBible.ESFMBible ):
-                lvVerseEntryList,wordList = lvBible.livenESFMWordLinks( BBB, lvVerseEntryList, '../../../W/{n}.htm' )
+                lvVerseEntryList,_wordList = lvBible.livenESFMWordLinks( BBB, lvVerseEntryList, '../../../W/{n}.htm' )
             lvHtml = convertUSFMMarkerListToHtml( lvBible.abbreviation, (BBB,startC), 'section', lvContextList, lvVerseEntryList )
             lvHtml = do_OET_LV_HTMLcustomisations( lvHtml )
             combinedHtml = f'''<div class="chunkRV">{rvHtml}</div><!--chunkRV-->

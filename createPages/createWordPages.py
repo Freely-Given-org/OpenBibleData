@@ -43,10 +43,10 @@ from html import do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, \
                     makeTop, makeBottom, removeDuplicateCVids, checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-03-14' # by RJH
+LAST_MODIFIED_DATE = '2023-03-16' # by RJH
 SHORT_PROGRAM_NAME = "createWordPages"
 PROGRAM_NAME = "OpenBibleData createWordPages functions"
-PROGRAM_VERSION = '0.04'
+PROGRAM_VERSION = '0.05'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -91,13 +91,13 @@ def createOETGreekWordsPages( outputFolderPath:Path, state ) -> bool:
     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nCreating {'TEST ' if TEST_MODE else ''}word pages for OET-LV…" )
     columnHeaders = word_table[0]
     dPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Word table column headers = '{columnHeaders}'" )
-    assert columnHeaders == 'Ref\tGreek\tGlossWords\tProbability\tStrongsExt\tRole\tMorphology' # If not, probably need to fix some stuff
+    assert columnHeaders == 'Ref\tGreek\tGlossWords\tGlossCaps\tProbability\tStrongsExt\tRole\tMorphology' # If not, probably need to fix some stuff
     for n, columns_string in enumerate( word_table[1:], start=1 ):
         # print( n, columns_string )
         output_filename = f'{n}.htm'
         # dPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Got '{columns_string}' for '{output_filename}'" )
         if columns_string: # not a blank line (esp. at end)
-            ref, greek, glossWords, probability, extendedStrongs, roleLetter, morphology = columns_string.split( '\t' )
+            ref, greek, glossWords, glossCaps, probability, extendedStrongs, roleLetter, morphology = columns_string.split( '\t' )
             if extendedStrongs == 'None': extendedStrongs = None
             if roleLetter == 'None': roleLetter = None
             if morphology == 'None': morphology = None
