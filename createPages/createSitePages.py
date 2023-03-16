@@ -55,10 +55,10 @@ from createWordPages import createOETGreekWordsPages
 from html import makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-03-14' # by RJH
+LAST_MODIFIED_DATE = '2023-03-15' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData Create Pages"
-PROGRAM_VERSION = '0.40'
+PROGRAM_VERSION = '0.41'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
@@ -90,9 +90,8 @@ class State:
                 'ULT','UST', 'OEB',
                 'BSB','ISV',
                 'WEB','NET','LSV','FBV','T4T','LEB','BBE',
-                'ASV','YLT','DBY','RV','WBS','KJB','BB','GNV','CB',
+                'JPS','ASV','DRA','YLT','DBY','RV','WBS','KJB','BB','GNV','CB',
                 'TNT','WYC','CLV',
-                'JPS','DRA',
                 'SR-GNT','UGNT','SBL-GNT',
                 'BRN','BrLXX', 'UHB',
                 ]
@@ -101,11 +100,10 @@ class State:
                 'ULT':('',''),'UST':('',''),'OEB':('',''),
                 'BSB':('',''),'ISV':('',''),
                 'WEB':('',''),'NET':('',''),'LSV':('',''),'FBV':('',''),'T4T':('',''),'LEB':('',''),'BBE':('',''),
-                'ASV':('',''),'YLT':('',''),'DBY':('',''),'RV':('',''),
+                'JPS':('<small>','</small>'),'ASV':('',''),'DRA':('<small>','</small>'),'YLT':('',''),'DBY':('',''),'RV':('',''),
                 'WBS':('<small>','</small>'),
                 'KJB':('',''),'BB':('',''),'GNV':('',''),'CB':('',''),
                 'TNT':('',''),'WYC':('',''),'CLV':('<small>','</small>'),
-                'JPS':('<small>','</small>'),'DRA':('<small>','</small>'),
                 'SR-GNT':('<b>','</b>'),'UGNT':('<small>','</small>'),'SBL-GNT':('<small>','</small>'),
                 'BRN':('<small>','</small>'),'BrLXX':('',''), 'UHB':('',''),
                 'Parallel':('<b>','</b>'), 'Interlinear':('<small>','</small>'),
@@ -130,7 +128,9 @@ class State:
                 'T4T': '../copiedBibles/English/eBible.org/T4T/',
                 'LEB': '../copiedBibles/English/LogosBibleSoftware/LEB/LEB.xml', # not OSIS
                 'BBE': '../copiedBibles/English/eBible.org/BBE/',
+                'JPS': '../copiedBibles/English/eBible.org/JPS/',
                 'ASV': '../copiedBibles/English/eBible.org/ASV/',
+                'DRA': '../copiedBibles/English/eBible.org/DRA/',
                 'YLT': '../copiedBibles/English/eBible.org/YLT/',
                 'DBY': '../copiedBibles/English/eBible.org/DBY/',
                 'RV': '../copiedBibles/English/eBible.org/RV/', # with deuterocanon
@@ -142,8 +142,6 @@ class State:
                 'TNT': '../copiedBibles/English/eBible.org/TNT/',
                 'WYC': '/mnt/SSDs/Bibles/Zefania modules/SF_2009-01-20_ENG_BIBLE_WYCLIFFE_(JOHN WYCLIFFE BIBLE).xml',
                 'CLV': '../copiedBibles/Latin/eBible.org/CLV/',
-                'JPS': '../copiedBibles/English/eBible.org/JPS/',
-                'DRA': '../copiedBibles/English/eBible.org/DRA/',
                 'SR-GNT': '../../Forked/CNTR-SR/SR usfm/',
                 'UGNT': '../copiedBibles/Original/unfoldingWord.org/UGNT/',
                 'SBL-GNT': '../../Forked/SBLGNT/data/sblgnt/text/',
@@ -168,7 +166,9 @@ class State:
                 'T4T': 'Translation for Translators (2017)',
                 'LEB': 'Lexham English Bible (2010,2012)',
                 'BBE': 'Bible in Basic English (1965)',
+                'JPS': 'Jewish Publication Society TaNaKH (1917)',
                 'ASV': 'American Standard Version (1901)',
+                'DRA': 'Douay-Rheims American Edition (1899)',
                 'YLT': 'Youngs Literal Translation (1898)',
                 'DBY': 'Darby Translation (1890)',
                 'RV': 'Revised Version (1885)',
@@ -181,8 +181,6 @@ class State:
                 'TNT': 'Tyndale New Testament (1526)',
                 'WYC': 'Wycliffe Bible (1382)',
                 'CLV': 'Clementine Vulgate (Latin, 1592)',
-                'JPS': 'Jewish Publication Society TaNaKH (1917)',
-                'DRA': 'Douay-Rheims American Edition (1899)',
                 'SR-GNT': 'Statistical Restoration Greek New Testament (2022)',
                 'UGNT': 'unfoldingWord Greek New Testament (2022)',
                 'SBL-GNT': 'Society for Biblical Literature Greek New Testament (2020???)',
@@ -207,7 +205,9 @@ class State:
                 'T4T': ['ALL'],
                 'LEB': ['ALL'],
                 'BBE': ['ALL'],
+                'JPS': ['ALL'],
                 'ASV': ['ALL'],
+                'DRA': ['ALL'],
                 'YLT': ['ALL'],
                 'DBY': ['ALL'],
                 'RV': ['ALL'],
@@ -219,8 +219,6 @@ class State:
                 'TNT': ['ALL'],
                 'WYC': ['ALL'],
                 'CLV': ['ALL'],
-                'JPS': ['ALL'],
-                'DRA': ['ALL'],
                 'SR-GNT': ['ALL'],
                 'UGNT': ['ALL'],
                 'SBL-GNT': ['ALL'],
@@ -243,7 +241,9 @@ class State:
                 'T4T': ['MRK'],
                 'LEB': ['MRK'],
                 'BBE': ['MRK'],
+                'JPS': ['RUT'],
                 'ASV': ['MRK'],
+                'DRA': ['MRK'],
                 'YLT': ['MRK'],
                 'DBY': ['MRK'],
                 'RV': ['MRK'],
@@ -255,8 +255,6 @@ class State:
                 'TNT': ['MRK'],
                 'WYC': ['MRK'],
                 'CLV': ['MRK'],
-                'JPS': ['RUT'],
-                'DRA': ['MRK'],
                 'SR-GNT': ['MRK'],
                 'UGNT': ['MRK'],
                 'SBL-GNT': ['MRK'],
@@ -326,7 +324,15 @@ class State:
                 'copyright': '<p>Copyright © (coming).</p>',
                 'licence': '<p>(coming).</p>',
                 'acknowledgements': '<p>(coming).</p>' },
+        'JPS': {'about': '<p>Jewish Publication Society TaNaKH (1917).</p>',
+                'copyright': '<p>Copyright © (coming).</p>',
+                'licence': '<p>(coming).</p>',
+                'acknowledgements': '<p>(coming).</p>' },
         'ASV': {'about': '<p>American Standard Version (1901).</p>',
+                'copyright': '<p>Copyright © (coming).</p>',
+                'licence': '<p>(coming).</p>',
+                'acknowledgements': '<p>(coming).</p>' },
+        'DRA': {'about': '<p>Douay-Rheims American Edition (1899).</p>',
                 'copyright': '<p>Copyright © (coming).</p>',
                 'licence': '<p>(coming).</p>',
                 'acknowledgements': '<p>(coming).</p>' },
@@ -371,14 +377,6 @@ class State:
                 'licence': '<p>(coming).</p>',
                 'acknowledgements': '<p>(coming).</p>' },
         'CLV': {'about': '<p><a href="https://en.wikipedia.org/wiki/Sixto-Clementine_Vulgate">Clementine Vulgate Bible</a> (Latin, 1592).</p>',
-                'copyright': '<p>Copyright © (coming).</p>',
-                'licence': '<p>(coming).</p>',
-                'acknowledgements': '<p>(coming).</p>' },
-        'JPS': {'about': '<p>Jewish Publication Society TaNaKH (1917).</p>',
-                'copyright': '<p>Copyright © (coming).</p>',
-                'licence': '<p>(coming).</p>',
-                'acknowledgements': '<p>(coming).</p>' },
-        'DRA': {'about': '<p>Douay-Rheims American Edition (1899).</p>',
                 'copyright': '<p>Copyright © (coming).</p>',
                 'licence': '<p>(coming).</p>',
                 'acknowledgements': '<p>(coming).</p>' },

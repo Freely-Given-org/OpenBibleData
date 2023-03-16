@@ -135,9 +135,9 @@ def createOETGreekWordsPages( outputFolderPath:Path, state ) -> bool:
  Strongs=<span title="Goes to Strongs dictionary"><a href="https://BibleHub.com/greek/{strongs}.htm">{extendedStrongs}</a></span><br>
  {roleField}{moodField}{tenseField}{voiceField}{personField}{caseField}{genderField}{numberField}</p>
 <p><small>Note: With the help of a companion website, these word pages enable you to click through all the way back to photographs of the original manuscripts that the <em>Open English Translation</em> New Testament is translated from.
-If you go to the <em>Statistical Restoration</em> Greek page (by clicking on the Bible reference above), from there you can click on the original manuscript numbers (e.g., 𝔓1, 01, 02, etc.) in the <i>Witness</i> column there, to see their transcription of the original Greek page.
+If you go to the <em>Statistical Restoration</em> Greek page (by clicking on the SR Bible reference above), from there you can click on the original manuscript numbers (e.g., 𝔓1, 01, 02, etc.) in the <i>Witness</i> column there, to see their transcription of the original Greek page.
 From there, you can click on the 🔍 magnifying glass icon to view a photograph of the actual leaf of the codex.
-This is all part of the commitment of the <em>Open English Translation</em> team to be transparent about all levels of the Bible translation process.</small></p>'''
+This is all part of the commitment of the <em>Open English Translation</em> team to be transparent about all levels of the Bible translation process right back to the original manuscripts.</small></p>'''
             html = makeTop( 1, 'word', None, state ) \
                                     .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}OET-LV NT Word {greek}" ) \
                                     .replace( '__KEYWORDS__', 'Bible, word' ) \
