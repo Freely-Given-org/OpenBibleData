@@ -41,6 +41,7 @@ from typing import Dict, List, Tuple, Optional
 from pathlib import Path
 import os
 import logging
+from datetime import datetime
 
 # sys.path.append( '../../BibleOrgSys/BibleOrgSys/' )
 # import BibleOrgSysGlobals
@@ -50,10 +51,10 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 # from Bibles import fetchChapter
 
 
-LAST_MODIFIED_DATE = '2023-03-13' # by RJH
+LAST_MODIFIED_DATE = '2023-03-17' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
-PROGRAM_VERSION = '0.22'
+PROGRAM_VERSION = '0.24'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -111,6 +112,7 @@ def makeTop( level:int, pageType:str, fileOrFolderName:Optional[str], state ) ->
     """
     Create the very top part of an HTML page.
     """
+    from createSitePages import TEST_MODE
     fnPrint( DEBUGGING_THIS_MODULE, f"makeTop( {level}, {pageType} {fileOrFolderName} )" )
 
     if pageType in ('chapters','section','book'):
@@ -119,9 +121,14 @@ def makeTop( level:int, pageType:str, fileOrFolderName:Optional[str], state ) ->
         cssFilename = 'OETChapter.css'
     elif pageType == 'parallel':
         cssFilename = 'ParallelVerses.css'
+    elif pageType == 'word':
+        cssFilename = 'BibleWord.css'
     else: cssFilename = 'BibleSite.css'
 
-    topLink = '<p class="site">Open Bible Data</p>' if level==0 else f'''<p class="site"><a href="{'../'*level}">Open Bible Data</a></p>'''
+    if TEST_MODE:
+        topLink = '<p class="site">TEST Open Bible Data</p>' if level==0 else f'''<p class="site"><a href="{'../'*level}">TEST Open Bible Data</a></p>'''
+    else:
+        topLink = '<p class="site">Open Bible Data</p>' if level==0 else f'''<p class="site"><a href="{'../'*level}">Open Bible Data</a></p>'''
     top = f"""<!DOCTYPE html>
 <html lang="en-US">
 <head>
@@ -132,7 +139,7 @@ def makeTop( level:int, pageType:str, fileOrFolderName:Optional[str], state ) ->
   <link rel="stylesheet" type="text/css" href="{'../'*level}OETChapter.css">
   <script src="{'../'*level}Bible.js"></script>
 </head><body><!--Level{level}-->{topLink}
-""" if pageType == 'OETChapters' else f"""<!DOCTYPE html>
+""" if 'OET' in pageType else f"""<!DOCTYPE html>
 <html lang="en-US">
 <head>
   <title>__TITLE__</title>
@@ -235,9 +242,10 @@ def _makeFooter( level:int, pageType:str, state ) -> str:
     """
     Create any links or site map that follow the main content on the page.
     """
+    from createSitePages import TEST_MODE
     # fnPrint( DEBUGGING_THIS_MODULE, f"_makeFooter()" )
     html = f"""<div class="footer">
-<p class="copyright"><small><em>Open Bible Data</em> site copyright © 2023 <a href="https://Freely-Given.org">Freely-Given.org</a></small></p>
+<p class="copyright"><small><em>{'TEST ' if TEST_MODE else ''}Open Bible Data</em> site copyright © 2023 <a href="https://Freely-Given.org">Freely-Given.org</a>{datetime.now().strftime(' (Page created: %Y-%M-%d %H:%M)') if TEST_MODE else ''}</small></p>
 <p class="copyright"><small>For Bible data copyrights, see the <a href="{'../'*level}versions/allDetails.html">details</a> for each displayed Bible version.</small></p>
 </div><!--footer-->"""
     return html

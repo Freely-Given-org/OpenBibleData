@@ -43,16 +43,16 @@ from html import do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, \
                     makeTop, makeBottom, removeDuplicateCVids, checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-03-16' # by RJH
+LAST_MODIFIED_DATE = '2023-03-17' # by RJH
 SHORT_PROGRAM_NAME = "createWordPages"
 PROGRAM_NAME = "OpenBibleData createWordPages functions"
-PROGRAM_VERSION = '0.05'
+PROGRAM_VERSION = '0.08'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
 
 # BACKSLASH = '\\'
-# NEWLINE = '\n'
+NEWLINE = '\n'
 # EM_SPACE = ' '
 # NARROW_NON_BREAK_SPACE = ' '
 
@@ -109,7 +109,13 @@ def createOETGreekWordsPages( outputFolderPath:Path, state ) -> bool:
             strongs = extendedStrongs[:-1] if extendedStrongs else None # drop the last digit
 
             roleField = ''
-            if roleLetter: roleField = f' Word role=<b>{CNTR_ROLE_NAME_DICT[roleLetter]}</b>'
+            if roleLetter:
+                roleName = CNTR_ROLE_NAME_DICT[roleLetter]
+                if roleName=='noun' and 'U' in glossCaps:
+                    roleName = 'proper noun'
+                roleField = f' Word role=<b>{roleName}</b>'
+
+            probabilityField = f'<small>(P={probability})</small> ' if probability else ''
 
             morphologyField = moodField = tenseField = voiceField = personField = caseField = genderField = numberField = ''
             if morphology:
@@ -124,20 +130,21 @@ def createOETGreekWordsPages( outputFolderPath:Path, state ) -> bool:
                 if gender!='.': genderField = f' gender=<b>{CNTR_GENDER_NAME_DICT[gender]}</b>'
                 if number!='.': numberField = f' number=<b>{CNTR_NUMBER_NAME_DICT[number]}</b>' # or № ???
             translation = '<small>(no English gloss)</small>' if glossWords=='-' else f'''English gloss=‘<b>{glossWords.replace('_','<span class="ul">_</span>')}</b>’'''
+            capsField = f' <small>(Caps={glossCaps})</small>' if glossCaps else ''
 
             prevLink = f'<b><a href="{n-1}.htm#Top">←</a></b> ' if n>1 else ''
             nextLink = f' <b><a href="{n+1}.htm#Top">→</a></b>' if n<len(word_table) else ''
             oetLink = f'<b><a href="../versions/OET/byChapter/{BBB}_C{C}.html#C{C}">↑OET {tidyBBB} Chapter {C}</a></b>'
-            html = f'''<h1 id="Top">OET-LV Wordlink #{n}</h1>
+            html = f'''{'' if probability else '<div class="unusedWord">'}<h1 id="Top">OET Wordlink #{n}{'' if probability else ' <small>(Unused variant)</small>'}</h1>
 <p>{prevLink}{oetLink}{nextLink}</p>
 <p><span title="Goes to Statistical Restoration Greek page"><a href="https://GreekCNTR.org/collation/?{CNTR_BOOK_ID_MAP[BBB]}{C.zfill(3)}{V.zfill(3)}">SR GNT {tidyBBB} {C}:{V}</a></span>
- <b>{greek}</b> ({transliterate_Greek(greek)}) {translation}
+ {probabilityField if TEST_MODE else ''}<b>{greek}</b> ({transliterate_Greek(greek)}) {translation}{capsField if TEST_MODE else ''}
  Strongs=<span title="Goes to Strongs dictionary"><a href="https://BibleHub.com/greek/{strongs}.htm">{extendedStrongs}</a></span><br>
  {roleField}{moodField}{tenseField}{voiceField}{personField}{caseField}{genderField}{numberField}</p>
 <p><small>Note: With the help of a companion website, these word pages enable you to click through all the way back to photographs of the original manuscripts that the <em>Open English Translation</em> New Testament is translated from.
 If you go to the <em>Statistical Restoration</em> Greek page (by clicking on the SR Bible reference above), from there you can click on the original manuscript numbers (e.g., 𝔓1, 01, 02, etc.) in the <i>Witness</i> column there, to see their transcription of the original Greek page.
 From there, you can click on the 🔍 magnifying glass icon to view a photograph of the actual leaf of the codex.
-This is all part of the commitment of the <em>Open English Translation</em> team to be transparent about all levels of the Bible translation process right back to the original manuscripts.</small></p>'''
+This is all part of the commitment of the <em>Open English Translation</em> team to be transparent about all levels of the Bible translation process right back to the original manuscripts.</small></p>{'' if probability else f'{NEWLINE}</div><!--unusedWord-->'}'''
             html = makeTop( 1, 'word', None, state ) \
                                     .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}OET-LV NT Word {greek}" ) \
                                     .replace( '__KEYWORDS__', 'Bible, word' ) \

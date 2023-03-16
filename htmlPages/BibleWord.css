@@ -1,0 +1,11 @@
+/* button#underlineButton { float:right; }
+div.container { display:grid; column-gap:0.6em; grid-template-columns:0.85fr 1.15fr; }
+div.BibleText { } */
+/* div.footer { width: 500px; height: 250px; margin: 50px; }
+div.rightBox { float:right; width:35%; border:3px solid #73AD21; padding:0.2em; } */
+
+div.unusedWord { color:grey; }
+
+a { text-decoration: none; }
+p.cnav { text-align:center; font-size:1.8em; }
+p.vnav { text-align:center; font-size:1.8em; }
