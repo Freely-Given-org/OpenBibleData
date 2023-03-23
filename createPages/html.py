@@ -51,18 +51,18 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 # from Bibles import fetchChapter
 
 
-LAST_MODIFIED_DATE = '2023-03-17' # by RJH
+LAST_MODIFIED_DATE = '2023-03-23' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
-PROGRAM_VERSION = '0.24'
+PROGRAM_VERSION = '0.26'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
 
-BACKSLASH = '\\'
-NEWLINE = '\n'
-EM_SPACE = ' '
-NARROW_NON_BREAK_SPACE = ' '
+# BACKSLASH = '\\'
+# NEWLINE = '\n'
+# EM_SPACE = ' '
+# NARROW_NON_BREAK_SPACE = ' '
 
 
 def do_OET_LV_HTMLcustomisations( html:str ) -> str:
@@ -126,9 +126,9 @@ def makeTop( level:int, pageType:str, fileOrFolderName:Optional[str], state ) ->
     else: cssFilename = 'BibleSite.css'
 
     if TEST_MODE:
-        topLink = '<p class="site">TEST Open Bible Data</p>' if level==0 else f'''<p class="site"><a href="{'../'*level}">TEST Open Bible Data</a></p>'''
+        topLink = '<p class="site">TEST Open Bible Data Home</p>' if level==0 else f'''<p class="site"><a href="{'../'*level}">TEST Open Bible Data Home</a></p>'''
     else:
-        topLink = '<p class="site">Open Bible Data</p>' if level==0 else f'''<p class="site"><a href="{'../'*level}">Open Bible Data</a></p>'''
+        topLink = '<p class="site">Open Bible Data Home</p>' if level==0 else f'''<p class="site"><a href="{'../'*level}">Open Bible Data Home</a></p>'''
     top = f"""<!DOCTYPE html>
 <html lang="en-US">
 <head>
@@ -225,7 +225,7 @@ def _makeHeader( level:int, pageType:str, fileOrFolderName:Optional[str], state 
             newVersionList.append( entry )
     assert len(newVersionList) == len(initialVersionList)
 
-    html = f'<p class="workNav">{EM_SPACE.join(newVersionList)}</p>'
+    html = f'''<p class="workNav">{' '.join(newVersionList)}</p>'''
 
     return f'<div class="header">{html}</div><!--header-->'
 # end of html._makeHeader
@@ -245,7 +245,7 @@ def _makeFooter( level:int, pageType:str, state ) -> str:
     from createSitePages import TEST_MODE
     # fnPrint( DEBUGGING_THIS_MODULE, f"_makeFooter()" )
     html = f"""<div class="footer">
-<p class="copyright"><small><em>{'TEST ' if TEST_MODE else ''}Open Bible Data</em> site copyright © 2023 <a href="https://Freely-Given.org">Freely-Given.org</a>{datetime.now().strftime(' (Page created: %Y-%M-%d %H:%M)') if TEST_MODE else ''}</small></p>
+<p class="copyright"><small><em>{'TEST ' if TEST_MODE else ''}Open Bible Data</em> site copyright © 2023 <a href="https://Freely-Given.org">Freely-Given.org</a>{datetime.now().strftime(' (Page created: %Y-%m-%d %H:%M)') if TEST_MODE else ''}</small></p>
 <p class="copyright"><small>For Bible data copyrights, see the <a href="{'../'*level}versions/allDetails.html">details</a> for each displayed Bible version.</small></p>
 </div><!--footer-->"""
     return html

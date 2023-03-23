@@ -42,10 +42,10 @@ from html import do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, \
                     makeTop, makeBottom, removeDuplicateCVids, checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-03-13' # by RJH
+LAST_MODIFIED_DATE = '2023-03-23' # by RJH
 SHORT_PROGRAM_NAME = "createChapterPages"
 PROGRAM_NAME = "OpenBibleData createChapterPages functions"
-PROGRAM_VERSION = '0.23'
+PROGRAM_VERSION = '0.26'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -95,15 +95,26 @@ def createOETChapterPages( folder:Path, rvBible, lvBible, state ) -> List[str]:
         vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Creating chapter pages for OET {BBB}…" )
         BBBs.append( BBB )
         numChapters = rvBible.getNumChapters( BBB )
+        assert rvBible.getNumVerses( BBB, '-1' ) # OET always has intro
+        assert not rvBible.getNumVerses( BBB, '0' ) # OET has no chapter zero
         if numChapters >= 1:
             for c in range( -1, numChapters+1 ):
                 vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"      Creating chapter pages for OET {BBB} {c}…" )
-                documentLink = f'<a href="../byDocument/{BBB}.html">{tidyBBB}</a>'
-                leftLink = f'<a href="{BBB}_C{c-1}.html">←</a> ' if c>1 \
-                            else f'<a href="{BBB}_Intro.html">←</a> ' if c==1 else ''
-                rightLink = f' <a href="{BBB}_C{c+1}.html">→</a>' if c<numChapters else ''
-                parallelLink = f' <a href="../../../parallel/{BBB}/C{c}V1.html#Top">║</a>'
-                detailsLink = f' <a href="../details.html">©</a>'
+                documentLink = f'<a title="Whole document view" href="../byDocument/{BBB}.html">{tidyBBB}</a>'
+                if c == -1: # Intro
+                    leftLink = ''
+                    rightLink = f' <a title="Next chapter" href="{BBB}_C1.html">→</a>' if c<numChapters else ''
+                elif c == 0:
+                    continue
+                elif c == 1:
+                    leftLink = f'<a title="Book introduction" href="{BBB}_Intro.html">←</a> '
+                    rightLink = f' <a title="Next chapter" href="{BBB}_C{c+1}.html">→</a>' if c<numChapters else ''
+                else: # c > 1
+                    assert c > 1
+                    leftLink = f'<a title="Previous chapter" href="{BBB}_C{c-1}.html">←</a> '
+                    rightLink = f' <a title="Next chapter" href="{BBB}_C{c+1}.html">→</a>' if c<numChapters else ''
+                parallelLink = f''' <a title="Parallel verse view" href="../../../parallel/{BBB}/C{'1' if c==-1 else c}V1.html#Top">║</a>'''
+                detailsLink = f' <a title="Show details about this work" href="../details.html">©</a>'
                 cHtml = f'''<h1 id="Top">Open English Translation {tidyBBB} Introduction</h1>
 <p class="cnav">{leftLink}{documentLink} Intro{rightLink}{parallelLink}{detailsLink}</p>
 <div class="container">
@@ -121,15 +132,16 @@ def createOETChapterPages( folder:Path, rvBible, lvBible, state ) -> List[str]:
 '''
                 try: rvVerseEntryList, rvContextList = rvBible.getContextVerseData( (BBB, str(c)) )
                 except KeyError:
-                    if c == 0: continue # No chapter zero
-                    halt
+                    if c == 0: continue # Usually no chapter zero
+                    logging.critical( f"No chapter found for {rvBible.abbreviation} {BBB} {c=}" )
+                    halt # continue
                 if isinstance( rvBible, ESFMBible.ESFMBible ):
                     rvVerseEntryList,rvWordList = rvBible.livenESFMWordLinks( BBB, rvVerseEntryList, '../../../W/{n}.htm' )
                 # print( f"OET-RV {BBB} {c} got {len(rvVerseEntryList)} verse entries, {len(rvContextList)} context entries")
                 lvVerseEntryList, lvContextList = lvBible.getContextVerseData( (BBB, str(c)) )
                 if isinstance( lvBible, ESFMBible.ESFMBible ):
                     lvVerseEntryList,lvWordList = lvBible.livenESFMWordLinks( BBB, lvVerseEntryList, '../../../W/{n}.htm' )
-                rvHtml = convertUSFMMarkerListToHtml( 'OET', (BBB,c), 'chapter', rvContextList, rvVerseEntryList )
+                rvHtml = livenIORs( BBB, convertUSFMMarkerListToHtml( 'OET', (BBB,c), 'chapter', rvContextList, rvVerseEntryList ), numChapters )
                 lvHtml = do_OET_LV_HTMLcustomisations( convertUSFMMarkerListToHtml( 'OET', (BBB,c), 'chapter', lvContextList, lvVerseEntryList ) )
                 rvHtml = '<div class="chunkRV">' + rvHtml + '</div><!--chunkRV-->\n'
                 lvHtml = '<div class="chunkLV">' + lvHtml + '</div><!--chunkLV-->\n'
@@ -189,12 +201,14 @@ def createOETChapterPages( folder:Path, rvBible, lvBible, state ) -> List[str]:
         numChapters = rvBible.getNumChapters( BBB )
         cLinks = []
         if numChapters >= 1:
+            if rvBible.discoveryResults[BBB]['haveIntroductoryText']:
+                cLinks.append( f'<a href="{BBB}_Intro.html">Intro</a>' )
             for c in range( 1, numChapters+1 ):
                 cLinks.append( f'<a href="{BBB}_C{c}.html">C{c}</a>' )
         else:
             c = '0' # TODO: for now
             halt
-        top = makeTop( 3, 'OETChapters', None, state ) \
+        top = makeTop( 3, 'OETChapters', 'byChapter/', state ) \
                 .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}OET {tidyBBB} chapter {c}" ) \
                 .replace( '__KEYWORDS__', f'Bible, OET, Open English Translation, chapter' ) \
                 .replace( f'''<a title="{state.BibleNames['OET']}" href="{'../'*3}versions/OET">OET</a>''', 'OET' )
@@ -263,15 +277,33 @@ def createChapterPages( folder:Path, thisBible, state ) -> List[str]:
         except KeyError:
             logging.critical( f"Can't get number of chapters for {thisBible.abbreviation} {BBB}")
             continue
+        haveBookIntro = thisBible.getNumVerses( BBB, '-1' )
+        haveChapterZero = thisBible.getNumVerses( BBB, '0' )
         if numChapters >= 1:
             for c in range( -1, numChapters+1 ):
+                try: numVerses = thisBible.getNumVerses( BBB, c )
+                except KeyError:
+                    logging.critical( f"Can't get number of verses for {thisBible.abbreviation} {BBB} {c}")
+                    continue
                 vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"      Creating chapter pages for {thisBible.abbreviation} {BBB} {c}…" )
-                documentLink = f'<a href="../byDocument/{BBB}.html">{tidyBBB}</a>'
-                leftLink = f'<a href="{BBB}_C{c-1}.html">←</a> ' if c>1 \
-                            else f'<a href="{BBB}_Intro.html">←</a> ' if c==1 else ''
-                rightLink = f' <a href="{BBB}_C{c+1}.html">→</a>' if c<numChapters else ''
-                parallelLink = f' <a href="../../../parallel/{BBB}/C{c}V1.html#Top">║</a>'
-                detailsLink = f' <a href="../details.html">©</a>'
+                documentLink = f'<a title="Whole document view" href="../byDocument/{BBB}.html">{tidyBBB}</a>'
+                if c == -1:
+                    leftLink = ''
+                    rightLink = f' <a title="Next chapter" href="{BBB}_C{0 if haveChapterZero else 1}.html">→</a>'
+                elif c == 0:
+                    leftLink = f'<a title="Book introduction" href="{BBB}_Intro.html">←</a> ' if haveBookIntro else ''
+                    rightLink = f' <a title="Next chapter" href="{BBB}_C1.html">→</a>'
+                elif c == 1:
+                    leftLink = f'<a title="Previous chapter" href="{BBB}_C0.html">←</a> ' if haveChapterZero \
+                            else f'<a title="Book introduction" href="{BBB}_Intro.html">←</a> ' if haveBookIntro \
+                            else ''
+                    rightLink = f' <a title="Next chapter" href="{BBB}_C{c+1}.html">→</a>' if c<numChapters else ''
+                else: # c > 1
+                    assert c > 1
+                    leftLink = f'<a title="Previous chapter" href="{BBB}_C{c-1}.html">←</a> '
+                    rightLink = f' <a title="Next chapter" href="{BBB}_C{c+1}.html">→</a>' if c<numChapters else ''
+                parallelLink = f''' <a title="Parallel verse view" href="../../../parallel/{BBB}/C{'1' if c==-1 else c}V1.html#Top">║</a>'''
+                detailsLink = f' <a title="Show details about this work" href="../details.html">©</a>'
                 cHtml = f'''<h1 id="Top">{thisBible.abbreviation} {tidyBBB} Introduction</h1>
 <p class="cnav">{leftLink}{documentLink} Intro{rightLink}{parallelLink}{detailsLink}</p>
 ''' if c==-1 else f'''<h1 id="Top">{thisBible.abbreviation} {tidyBBB} Chapter {c}</h1>
@@ -279,12 +311,13 @@ def createChapterPages( folder:Path, thisBible, state ) -> List[str]:
 '''
                 try: verseEntryList, contextList = thisBible.getContextVerseData( (BBB, str(c)) )
                 except KeyError:
-                    if c == 0: continue # No chapter zero
+                    if c == 0: continue # Usually no chapter zero
                     logging.critical( f"No chapter found for {thisBible.abbreviation} {BBB} {c=}" )
                     continue
                 if isinstance( thisBible, ESFMBible.ESFMBible ):
                     verseEntryList,wordList = thisBible.livenESFMWordLinks( BBB, verseEntryList, '../../../W/{n}.htm' )
                 textHtml = convertUSFMMarkerListToHtml( thisBible.abbreviation, (BBB,c), 'chapter', contextList, verseEntryList )
+                textHtml = livenIORs( BBB, textHtml, numChapters )
                 if thisBible.abbreviation == 'OET-LV':
                     textHtml = do_OET_LV_HTMLcustomisations( textHtml )
                 elif thisBible.abbreviation == 'LSV':
@@ -343,6 +376,8 @@ def createChapterPages( folder:Path, thisBible, state ) -> List[str]:
             continue
         cLinks = []
         if numChapters >= 1:
+            if thisBible.discoveryResults[BBB]['haveIntroductoryText']:
+                cLinks.append( f'<a href="{BBB}_Intro.html">Intro</a>' )
             for c in range( 1, numChapters+1 ):
                 # dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"createChapterPages getNumVerses( {thisBible.abbreviation} {BBB} {c} )")
                 numVerses = thisBible.getNumVerses( BBB, c )
@@ -350,7 +385,7 @@ def createChapterPages( folder:Path, thisBible, state ) -> List[str]:
                     cLinks.append( f'<a href="{BBB}_C{c}.html">C{c}</a>' )
         else:
             cLinks.append( f'<a href="{BBB}.html">{tidyBBB}</a>' )
-        top = makeTop( 3, 'chapters', None, state ) \
+        top = makeTop( 3, 'chapters', 'byChapter/', state ) \
                 .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{thisBible.abbreviation} {tidyBBB}" ) \
                 .replace( '__KEYWORDS__', f'Bible, {thisBible.abbreviation}, chapter' ) \
                 .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*3}versions/{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}">{thisBible.abbreviation}</a>''', thisBible.abbreviation )
@@ -381,6 +416,42 @@ def createChapterPages( folder:Path, thisBible, state ) -> List[str]:
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createChapterPages() finished processing {len(BBBs)} {thisBible.abbreviation} books: {BBBs}…" )
     return filenames
 # end of createChapterPages.createChapterPages
+
+
+def livenIORs( BBB:str, chapterHTML:str, numChapters:int ) -> str:
+    """
+    We have to find which chapter each starting reference is in.
+    """
+    assert '\\ior' not in chapterHTML
+
+    searchStartIx = 0
+    for _safetyCount1 in range( 15 ):
+        # First find each link
+        ixSpanStart = chapterHTML.find( '<span class="ior">', searchStartIx ) # Length of this string is 18 chars (used below)
+        if ixSpanStart == -1: break
+        ixEnd = chapterHTML.find( '</span>', ixSpanStart+18 )
+        assert ixEnd != -1
+        guts = chapterHTML[ixSpanStart+18:ixEnd].replace('–','-') # Convert any en-dash to hyphen
+        # print(f"{BBB} {guts=} {bookHTML[ix-20:ix+20]} {searchStartIx=} {ixSpanStart=} {ixEnd=}")
+        startGuts = guts.split('-')[0]
+        # print(f"  Now {guts=}")
+        if ':' in startGuts:
+            assert startGuts.count(':') == 1 # We expect a single C:V at this stage
+            Cstr, Vstr = startGuts.strip().split( ':' )
+        elif BibleOrgSysGlobals.loadedBibleBooksCodes.isSingleChapterBook( BBB ):
+            Cstr, Vstr = '1', startGuts.strip() # Only a verse was given
+        else: Cstr, Vstr = startGuts.strip(), '1' # Only a chapter was given
+
+        # Now liven the link
+        new_guts = f'<a href="{BBB}_C{Cstr}.html#C{Cstr}V{Vstr}">{guts}</a>'
+        chapterHTML = f'{chapterHTML[:ixSpanStart+18]}{new_guts}{chapterHTML[ixEnd:]}'
+        searchStartIx = ixEnd + 31 # Approx number of chars that we add
+    else:
+        # logging.critical( f"inner_fn_loop_needed_to_break {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {_innerSafetyCount=}" )
+        section_liven_IOR_loop_needed_to_break
+
+    return chapterHTML
+# end of createChapterPages.livenIORs function
 
 
 def briefDemo() -> None:

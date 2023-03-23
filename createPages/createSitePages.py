@@ -45,6 +45,9 @@ import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39, BOOKLIST_NT27
 
+sys.path.append( '../../BibleTransliterations/Python/' )
+from BibleTransliterations import load_transliteration_table
+
 from Bibles import preloadVersions
 from createBookPages import createOETBookPages, createBookPages
 from createChapterPages import createOETChapterPages, createChapterPages
@@ -55,10 +58,10 @@ from createWordPages import createOETGreekWordsPages
 from html import makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-03-15' # by RJH
+LAST_MODIFIED_DATE = '2023-03-23' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData Create Pages"
-PROGRAM_VERSION = '0.41'
+PROGRAM_VERSION = '0.43'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
@@ -73,7 +76,7 @@ DESTINATION_FOLDER = DEBUG_DESTINATION_FOLDER if TEST_MODE or BibleOrgSysGlobals
                         else NORMAL_DESTINATION_FOLDER
 
 
-OET_BOOK_LIST = ('JHN','MRK','ACT', 'EPH','TIT', 'JN3')
+OET_BOOK_LIST = ('JHN','MRK','ACT', 'EPH','TIT', 'JN1','JN3')
 OET_BOOK_LIST_WITH_FRT = ('FRT','INT') + OET_BOOK_LIST
 NT_BOOK_LIST_WITH_FRT = ('FRT',) + BOOKLIST_NT27
 assert len(NT_BOOK_LIST_WITH_FRT) == 27+1
@@ -421,8 +424,7 @@ def createSitePages() -> bool:
     Build all the pages in a temporary location
     """
     fnPrint( DEBUGGING_THIS_MODULE, "createSitePages()")
-    if TEST_MODE:
-        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nRunning in TEST MODE…" )
+    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"createSitePages() running in {'TEST' if TEST_MODE else 'production'} mode with {'all production books' if ALL_PRODUCTION_BOOKS else 'reduced books being loaded'} for {len(state.BibleLocations):,} Bible versions…" )
 
     # Preload our various Bibles
     numLoadedVersions = preloadVersions( state )
@@ -448,6 +450,9 @@ def createSitePages() -> bool:
     # Now put them in the proper print order
     state.allBBBs = BibleOrgSysGlobals.loadedBibleBooksCodes.getSequenceList( allBBBs )
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\nDiscovered {len(state.allBBBs)} books across {len(state.preloadedBibles)} versions: {state.allBBBs}" )
+
+    load_transliteration_table( 'Greek' )
+    load_transliteration_table( 'Hebrew' )
 
     # Ok, let's go create some static pages
     if 'OET' in state.BibleVersions: # this is a special case
@@ -528,11 +533,11 @@ def createOETVersionPages( folder:Path, rvBible, lvBible, state:State ) -> bool:
     """
     fnPrint( DEBUGGING_THIS_MODULE, f"createOETVersionPages( {folder}, {rvBible.abbreviation}, {lvBible.abbreviation} )")
     createOETBookPages( folder.joinpath('byDocument/'), rvBible, lvBible, state )
-    createOETChapterPages( folder.joinpath('byChapter/'), rvBible, lvBible, state )
     rvBible.discover() # Now that all required books are loaded
     lvBible.discover() #     ..ditto..
     dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{rvBible.discoveryResults['ALL']['haveSectionHeadings']=}" )
     dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{lvBible.discoveryResults['ALL']['haveSectionHeadings']=}" )
+    createOETChapterPages( folder.joinpath('byChapter/'), rvBible, lvBible, state )
 
     versionName = state.BibleNames['OET']
     indexHtml = f'''<h1 id="Top">{versionName}</h1>
@@ -559,9 +564,9 @@ def createVersionPages( folder:Path, thisBible, state:State ) -> bool:
     """
     fnPrint( DEBUGGING_THIS_MODULE, f"createVersionPages( {folder}, {thisBible.abbreviation} )")
     createBookPages( folder.joinpath('byDocument/'), thisBible, state )
-    createChapterPages( folder.joinpath('byChapter/'), thisBible, state )
     thisBible.discover() # Now that all required books are loaded
     dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{thisBible.discoveryResults['ALL']['haveSectionHeadings']=}" )
+    createChapterPages( folder.joinpath('byChapter/'), thisBible, state )
 
     versionName = state.BibleNames[thisBible.abbreviation]
     indexHtml = f'''<h1 id="Top">{versionName}</h1>
@@ -594,12 +599,12 @@ def createMainIndexPages( level, folder:Path, state ) -> bool:
     # Create the very top level index file
     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Creating main {'TEST ' if TEST_MODE else ''}index page for {len(state.BibleVersions)} versions…" )
     html = makeTop( level, 'topIndex', None, state ) \
-            .replace( '__TITLE__', 'TEST Open Bible Data' if TEST_MODE else 'Open Bible Data') \
+            .replace( '__TITLE__', 'TEST Open Bible Data Home' if TEST_MODE else 'Open Bible Data Home') \
             .replace( '__KEYWORDS__', 'Bible, translation, English, OET' )
     if TEST_MODE:
         html = html.replace( '<body>', '<body><p><a href="../">UP TO MAIN NON-TEST SITE</a></p>')
-    bodyHtml = """<!--createMainIndexPage--><h1 id="Top">Open Bible Data TEST</h1>
-""" if TEST_MODE else """<!--createMainIndexPage--><h1 id="Top">Open Bible Data</h1>
+    bodyHtml = """<!--createMainIndexPage--><h1 id="Top">Open Bible Data Home TEST</h1>
+""" if TEST_MODE else """<!--createMainIndexPage--><h1 id="Top">Open Bible Data Home</h1>
 """
     html += bodyHtml + f'<p><small>Last rebuilt: {date.today()}</small></p>\n' + makeBottom( level, 'topIndex', state )
     checkHtml( 'TopIndex', html )

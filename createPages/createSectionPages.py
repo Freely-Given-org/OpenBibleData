@@ -45,10 +45,10 @@ from html import do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, \
                     makeTop, makeBottom, removeDuplicateCVids, checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-03-16' # by RJH
+LAST_MODIFIED_DATE = '2023-03-23' # by RJH
 SHORT_PROGRAM_NAME = "createSectionPages"
 PROGRAM_NAME = "OpenBibleData createSectionPages functions"
-PROGRAM_VERSION = '0.16'
+PROGRAM_VERSION = '0.19'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -121,17 +121,17 @@ def createOETSectionPages( folder:Path, rvBible, lvBible, state ) -> List[str]:
         # Now, make the actual pages
         vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Creating section pages for OET {BBB}…" )
         for n, (startC,startV,endC,endV,sectionName,reasonName,rvContextList,rvVerseEntryList,filename) in enumerate( sections ):
-            documentLink = f'<a href="../byDocument/{BBB}.html">{tidyBBB}</a>'
-            startChapterLink = f'''<a href="../byChapter/{BBB}_{'Intro' if startC=='-1' else f'C{startC}'}.html">{'Intro' if startC=='-1' else startC}</a>'''
-            endChapterLink = f'''<a href="../byChapter/{BBB}_{'Intro' if endC=='-1' else f'C{endC}'}.html">{'Intro' if endC=='-1' else endC}</a>'''
-            leftLink = f'<a href="{BBB}_S{n-1}.html">←</a> ' if n>0 else ''
-            rightLink = f' <a href="{BBB}_S{n+1}.html">→</a>' if n<len(bkObject._SectionIndex)-1 else ''
-            parallelLink = f' <a href="../../../parallel/{BBB}/C{startC}V{startV}.html#Top">║</a>'
-            detailsLink = f' <a href="../details.html">©</a>'
+            documentLink = f'<a title="Whole document view" href="../byDocument/{BBB}.html">{tidyBBB}</a>'
+            startChapterLink = f'''<a title="Chapter view" href="../byChapter/{BBB}_{'Intro' if startC=='-1' else f'C{startC}'}.html">{'Intro' if startC=='-1' else startC}</a>'''
+            endChapterLink = f'''<a title="Chapter view" href="../byChapter/{BBB}_{'Intro' if endC=='-1' else f'C{endC}'}.html">{'Intro' if endC=='-1' else endC}</a>'''
+            leftLink = f'<a title="Previous section" href="{BBB}_S{n-1}.html">←</a> ' if n>0 else ''
+            rightLink = f' <a title="Next section" href="{BBB}_S{n+1}.html">→</a>' if n<len(bkObject._SectionIndex)-1 else ''
+            parallelLink = f''' <a title="Parallel verse view" href="../../../parallel/{BBB}/C{'1' if startC=='-1' else startC}V{startV}.html#Top">║</a>'''
+            detailsLink = f' <a title="Show details about this work" href="../details.html">©</a>'
 
             bkHtml = f'''<h1 id="Top">Open English Translation {tidyBBB} {'Intro' if startC=='-1' else startC}:{startV}</h1>
 <h1>{sectionName}</h1>
-<p class="cnav">{leftLink}{documentLink} {startChapterLink}:{startV}–{endChapterLink}:{endV}{rightLink}{parallelLink}{detailsLink}</p>
+<p class="snav">{leftLink}{documentLink} {startChapterLink}:{startV}–{endChapterLink}:{endV}{rightLink}{parallelLink}{detailsLink}</p>
 <div class="container">
 <span> </span>
 <div class="buttons">
@@ -317,17 +317,17 @@ def createSectionPages( folder:Path, thisBible, state ) -> List[str]:
         # Now, make the actual pages
         vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Creating section pages for {thisBible.abbreviation} {BBB}…" )
         for n, (startC,startV,endC,endV,sectionName,reasonName,contextList,verseEntryList,filename) in enumerate( sections ):
-            documentLink = f'<a href="../byDocument/{BBB}.html">{tidyBBB}</a>'
-            startChapterLink = f'''<a href="../byChapter/{BBB}_{'Intro' if startC=='-1' else f'C{startC}'}.html">{'Intro' if startC=='-1' else startC}</a>'''
-            endChapterLink = f'''<a href="../byChapter/{BBB}_{'Intro' if endC=='-1' else f'C{endC}'}.html">{'Intro' if endC=='-1' else endC}</a>'''
-            leftLink = f'<a href="{BBB}_S{n-1}.html">←</a> ' if n>0 else ''
-            rightLink = f' <a href="{BBB}_S{n+1}.html">→</a>' if n<len(bkObject._SectionIndex)-1 else ''
-            parallelLink = f' <a href="../../../parallel/{BBB}/C{startC}V{startV}.html#Top">║</a>'
-            detailsLink = f' <a href="../details.html">©</a>'
+            documentLink = f'<a title="Whole document view" href="../byDocument/{BBB}.html">{tidyBBB}</a>'
+            startChapterLink = f'''<a title="Chapter view" href="../byChapter/{BBB}_{'Intro' if startC=='-1' else f'C{startC}'}.html">{'Intro' if startC=='-1' else startC}</a>'''
+            endChapterLink = f'''<a title="Chapter view" href="../byChapter/{BBB}_{'Intro' if endC=='-1' else f'C{endC}'}.html">{'Intro' if endC=='-1' else endC}</a>'''
+            leftLink = f'<a title="Previous section" href="{BBB}_S{n-1}.html">←</a> ' if n>0 else ''
+            rightLink = f' <a title="Next section" href="{BBB}_S{n+1}.html">→</a>' if n<len(bkObject._SectionIndex)-1 else ''
+            parallelLink = f''' <a title="Parallel verse view" href="../../../parallel/{BBB}/C{'1' if startC=='-1' else startC}V{startV}.html#Top">║</a>'''
+            detailsLink = f' <a title="Show details about this work" href="../details.html">©</a>'
 
             bkHtml = f'''<h1>{thisBible.abbreviation} {tidyBBB} {'Intro' if startC=='-1' else startC}:{startV}</h1>
 <h1>{sectionName}</h1>
-<p class="cnav">{leftLink}{documentLink} {startChapterLink}:{startV}–{endChapterLink}:{endV}{rightLink}{parallelLink}{detailsLink}</p>
+<p class="snav">{leftLink}{documentLink} {startChapterLink}:{startV}–{endChapterLink}:{endV}{rightLink}{parallelLink}{detailsLink}</p>
 '''
             textHtml = convertUSFMMarkerListToHtml( thisBible.abbreviation, (BBB,startC), 'section', contextList, verseEntryList )
             textHtml = livenIORs( BBB, textHtml, sections )
@@ -403,7 +403,7 @@ def livenIORs( BBB:str, sectionHTML:str, bookSections:List ) -> str:
     searchStartIx = 0
     for _safetyCount1 in range( 15 ):
         # First find each link
-        ixSpanStart = sectionHTML.find( '<span class="ior">', searchStartIx )
+        ixSpanStart = sectionHTML.find( '<span class="ior">', searchStartIx ) # Length of this string is 18 chars (used below)
         if ixSpanStart == -1: break
         ixEnd = sectionHTML.find( '</span>', ixSpanStart+18 )
         assert ixEnd != -1

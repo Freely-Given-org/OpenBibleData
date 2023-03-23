@@ -303,7 +303,7 @@ def livenIORs( BBB:str, bookHTML:str ) -> str:
 
     searchStartIx = 0
     for _safetyCount in range( 15 ):
-        ixSpanStart = bookHTML.find( '<span class="ior">', searchStartIx )
+        ixSpanStart = bookHTML.find( '<span class="ior">', searchStartIx ) # Length of this string is 18 chars (used below)
         if ixSpanStart == -1: break
         ixEnd = bookHTML.find( '</span>', ixSpanStart+18 )
         assert ixEnd != -1

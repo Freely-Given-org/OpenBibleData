@@ -12,6 +12,7 @@ a:visited { text-decoration: none; }
 a:hover { text-decoration: none; }
 a:active { text-decoration: none; } */
 a { text-decoration: none; }
+p.snav { text-align:center; font-size:1.8em; }
 p.cnav { text-align:center; font-size:1.8em; }
 /* .cnav a { text-decoration: none; } */
 p.vnav { text-align:center; font-size:1.8em; }

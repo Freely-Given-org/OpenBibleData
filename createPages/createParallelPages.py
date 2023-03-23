@@ -31,21 +31,23 @@ from pathlib import Path
 import os
 import logging
 
-# sys.path.append( '../../BibleOrgSys/BibleOrgSys/' )
-# import BibleOrgSysGlobals
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 import BibleOrgSys.Formats.ESFMBible as ESFMBible
+
+import sys
+sys.path.append( '../../BibleTransliterations/Python/' )
+from BibleTransliterations import transliterate_Greek, transliterate_Hebrew
 
 from usfm import convertUSFMMarkerListToHtml
 from html import do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, \
                     makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-03-16' # by RJH
+LAST_MODIFIED_DATE = '2023-03-23' # by RJH
 SHORT_PROGRAM_NAME = "createParallelPages"
 PROGRAM_NAME = "OpenBibleData createParallelPages functions"
-PROGRAM_VERSION = '0.27'
+PROGRAM_VERSION = '0.28'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -135,13 +137,13 @@ def createParallelVersePagesForBook( folder:Path, BBB:str, BBBLinks:List[str], s
                 continue
             for v in range( 1, numVerses+1 ):
                 # The following all have a __ID__ string than needs to be replaced
-                leftVLink = f'<a href="C{c}V{v-1}.html#__ID__">←</a>{EM_SPACE}' if v>1 \
-                        else f'<a href="C{c-1}V{lastNumVerses}.html#__ID__">↨</a>{EM_SPACE}' if c>1 \
+                leftVLink = f'<a title="Go to previous verse" href="C{c}V{v-1}.html#__ID__">←</a>{EM_SPACE}' if v>1 \
+                        else f'<a title="Go to last verse of previous chapter" href="C{c-1}V{lastNumVerses}.html#__ID__">↨</a>{EM_SPACE}' if c>1 \
                         else ''
-                rightVLink = f'{EM_SPACE}<a href="C{c}V{v+1}.html#__ID__">→</a>' if v<numVerses else ''
-                leftCLink = f'<a href="C{c-1}V1.html#__ID__">◄</a>{EM_SPACE}' if c>1 else ''
-                rightCLink = f'{EM_SPACE}<a href="C{c+1}V1.html#__ID__">►</a>' if c<numChapters else ''
-                navLinks = f'<p id="__ID__" class="vnav">{leftCLink}{leftVLink}{tidyBbb} {c}:{v}{rightVLink}{rightCLink}</p>'
+                rightVLink = f'{EM_SPACE}<a title="Go to next verse" href="C{c}V{v+1}.html#__ID__">→</a>' if v<numVerses else ''
+                leftCLink = f'<a title="Go to previous chapter" href="C{c-1}V1.html#__ID__">◄</a>{EM_SPACE}' if c>1 else ''
+                rightCLink = f'{EM_SPACE}<a title="Go to next chapter" href="C{c+1}V1.html#__ID__">►</a>' if c<numChapters else ''
+                navLinks = f'<p id="__ID__" class="vnav">{leftCLink}{leftVLink}{tidyBbb} {c}:{v} <a title="Go to __WHERE__ of page" href="#CV__WHERE__">__ARROW__</a>{rightVLink}{rightCLink}</p>'
                 pHtml = ''
                 for versionAbbreviation in state.BibleVersions:
                     if versionAbbreviation == 'OET': continue # Skip this pseudo-version as we have OET-RV and OET-LV
@@ -166,6 +168,14 @@ def createParallelVersePagesForBook( folder:Path, BBB:str, BBBLinks:List[str], s
                             textHtml = do_OET_LV_HTMLcustomisations( textHtml )
                         elif versionAbbreviation == 'LSV':
                             textHtml = do_LSV_HTMLcustomisations( textHtml )
+                        elif versionAbbreviation in ('UHB',):
+                            # print( f"{versionAbbreviation} {BBB} {c}:{v} {textHtml=}")
+                            textHtml = f'{textHtml}<br>({transliterate_Hebrew(textHtml)})'
+                            # print( textHtml)
+                        elif versionAbbreviation in ('SR-GNT','UGNT','SBL-GNT','BrLXX'):
+                            # print( f"{versionAbbreviation} {BBB} {c}:{v} {textHtml=}")
+                            textHtml = f'{textHtml}<br>({transliterate_Greek(textHtml)})'
+                            # print( textHtml)
                         vHtml = f'''
 <h3 class="workNav"><a title="{state.BibleNames[versionAbbreviation]}" href="../../versions/{versionAbbreviation}/byChapter/{BBB}_C{c}.html">{versionAbbreviation}</a>{EM_SPACE}<small>{state.BibleNames[versionAbbreviation]}</small></h3>
 {textHtml}
@@ -193,15 +203,15 @@ def createParallelVersePagesForBook( folder:Path, BBB:str, BBBLinks:List[str], s
                         .replace( '__KEYWORDS__', f'Bible, {tidyBBB}, parallel' )
                 pHtml = top + '<!--parallel verse page-->' \
                         + f'{adjBBBLinksHtml}\n<h1 id="Top">Parallel {tidyBBB} {c}:{v}</h1>\n' \
-                        + f"{navLinks.replace('__ID__', 'CVTop' )}\n" \
+                        + f"{navLinks.replace('__ID__','CVTop').replace('__ARROW__','↓').replace('__WHERE__','Bottom')}\n" \
                         + pHtml \
-                        + f"\n{navLinks.replace('__ID__', 'CVBottom')}\n" \
+                        + f"\n{navLinks.replace('__ID__','CVBottom').replace('__ARROW__','↑').replace('__WHERE__','Top')}\n" \
                         + makeBottom( 2, 'parallel', state )
                 checkHtml( f'Parallel {BBB} {c}:{v}', pHtml )
                 with open( filepath, 'wt', encoding='utf-8' ) as pHtmlFile:
                     pHtmlFile.write( pHtml )
                 vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(pHtml):,} characters written to {filepath}" )
-                vLinks.append( f'<a href="{filename}">{c}:{v}</a>' )
+                vLinks.append( f'<a title="Go to parallel verse page" href="{filename}">{c}:{v}</a>' )
             lastNumVerses = numVerses # for the previous chapter
     else:
         dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"createParallelVersePagesForBook {BBB} has {numChapters} chapters!!!" )
@@ -216,9 +226,9 @@ def createParallelVersePagesForBook( folder:Path, BBB:str, BBBLinks:List[str], s
             .replace( '__KEYWORDS__', f'Bible, parallel' )
     # For Psalms, we don't list every single verse
     ourLinks = f'''<h1 id="Top">{tidyBBB} parallel songs index</h1>
-<p class="cLinks">{EM_SPACE.join( [f'<a href="C{ps}V1.html">Ps{ps}</a>' for ps in range(1,numChapters+1)] )}</p>''' \
+<p class="cLinks">{EM_SPACE.join( [f'<a title="Go to parallel verse page" href="C{ps}V1.html">Ps{ps}</a>' for ps in range(1,numChapters+1)] )}</p>''' \
                 if BBB=='PSA' else \
-f'''<p class="cLinks">{tidyBbb} {' '.join( [f'<a href="C{chp}V1.html">C{chp}</a>' for chp in range(1,numChapters+1)] )}</p>
+f'''<p class="cLinks">{tidyBbb} {' '.join( [f'<a title="Go to parallel verse page" href="C{chp}V1.html">C{chp}</a>' for chp in range(1,numChapters+1)] )}</p>
 <h1 id="Top">{tidyBBB} parallel verses index</h1>
 <p class="vLinks">{' '.join( vLinks )}</p>'''
     indexHtml = f'{top}{adjBBBLinksHtml}\n{ourLinks}\n' \
