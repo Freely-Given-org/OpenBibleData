@@ -44,10 +44,10 @@ from html import do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, \
                     makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-03-23' # by RJH
+LAST_MODIFIED_DATE = '2023-03-27' # by RJH
 SHORT_PROGRAM_NAME = "createParallelPages"
 PROGRAM_NAME = "OpenBibleData createParallelPages functions"
-PROGRAM_VERSION = '0.28'
+PROGRAM_VERSION = '0.29'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -176,6 +176,16 @@ def createParallelVersePagesForBook( folder:Path, BBB:str, BBBLinks:List[str], s
                             # print( f"{versionAbbreviation} {BBB} {c}:{v} {textHtml=}")
                             textHtml = f'{textHtml}<br>({transliterate_Greek(textHtml)})'
                             # print( textHtml)
+                        elif versionAbbreviation == 'WEB': # assuming WEB comes BEFORE WMB
+                            textHtmlWEB = textHtml # Save it
+                        elif versionAbbreviation == 'WMB': # assuming WEB comes BEFORE WMB
+                            if textHtml == textHtmlWEB:
+                                print( f"Skipping parallel for WMB {BBB} {c}:{v} because same as WEB" )
+                                continue
+                            else:
+                                print( f"Using parallel for WMB {BBB} {c}:{v} because different from WEB:" )
+                                print( f"  {textHtmlWEB=}" )
+                                print( f"     {textHtml=}" )
                         vHtml = f'''
 <h3 class="workNav"><a title="{state.BibleNames[versionAbbreviation]}" href="../../versions/{versionAbbreviation}/byChapter/{BBB}_C{c}.html">{versionAbbreviation}</a>{EM_SPACE}<small>{state.BibleNames[versionAbbreviation]}</small></h3>
 {textHtml}
@@ -238,7 +248,7 @@ f'''<p class="cLinks">{tidyBbb} {' '.join( [f'<a title="Go to parallel verse
         indexHtmlFile.write( indexHtml )
     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createParallelVersePagesForBook() finished processing {len(vLinks):,} BBB verses." )
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createParallelVersePagesForBook() finished processing {len(vLinks):,} {BBB} verses." )
     return True
 # end of html.createParallelVersePagesForBook
 

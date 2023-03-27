@@ -13,6 +13,7 @@ span.v { vertical-align:super; font-size:0.5em; color:red; }
 span.cv { vertical-align:super; font-size:0.8em; color:orange; }
 span.vp { vertical-align:super; font-size:0.5em; color:purple; }
 span.addArticle { color:bisque; }
+span.unusedArticle { color:lavender; }
 span.addCopula { color:pink; }
 span.addDirectObject { color:brown; }
 span.addExtra { color:lightGreen; }

@@ -52,8 +52,12 @@ p.d { font-style:italic; }
 p.p { text-indent:0.5em; margin-top:0.2em; margin-bottom:0.2em; }
 p.q1 { margin-left:1em; margin-top:0.2em; margin-bottom:0.2em; }
 p.q2 { margin-left:2em; margin-top:0.2em; margin-bottom:0.2em; }
-/* p.m {  } */
+p.pm { margin-top:0.2em; margin-bottom:0.2em; }
+p.pmo { margin-left:1em; margin-top:0.2em; margin-bottom:0.2em; }
+p.pmc { margin-top:0.2em; margin-bottom:0.2em; }
+p.pmr { margin-top:0.2em; margin-bottom:0.2em; }
 span.addArticle { color:bisque; }
+span.unusedArticle { color:lavender; }
 span.addCopula { color:pink; }
 span.addDirectObject { color:brown; }
 span.addExtra { color:lightGreen; }

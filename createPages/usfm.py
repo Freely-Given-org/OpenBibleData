@@ -48,10 +48,10 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 from html import checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-03-10' # by RJH
+LAST_MODIFIED_DATE = '2023-03-26' # by RJH
 SHORT_PROGRAM_NAME = "usfm"
 PROGRAM_NAME = "OpenBibleData USFM to HTML functions"
-PROGRAM_VERSION = '0.28'
+PROGRAM_VERSION = '0.29'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -142,7 +142,7 @@ def convertUSFMMarkerListToHtml( versionAbbreviation:str, refTuple:tuple, segmen
         elif marker in ('¬v', ): # We can ignore these end markers
             assert not rest
         elif marker in ('p', 'q1','q2','q3','q4', 'm','mi', 'nb',
-                            'pi1','pi2', 'pc','pm','pmo','po','pr', 'qm1','qm2', 'qr', 'cls'):
+                            'pi1','pi2', 'pc','pm','pmc','pmo','po','pr', 'qm1','qm2', 'qr', 'cls'):
             assert not rest, f"Unexpected rest {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {marker}={rest}"
             if inMainDiv: # this can happen in INT module
                 html = f'{html}</div><!--{inMainDiv}-->\n'
@@ -166,7 +166,7 @@ def convertUSFMMarkerListToHtml( versionAbbreviation:str, refTuple:tuple, segmen
                 html = f'{html}<p class="{marker}">'
                 inParagraph = marker
         elif marker in ('¬p', '¬q1','¬q2','¬q3','¬q4', '¬m','¬mi', '¬nb',
-                            '¬pi1','¬pi2', '¬pc','¬pm','¬pmo','¬po','¬pr', '¬qm1','¬qm2', '¬qr', '¬cls'):
+                            '¬pi1','¬pi2', '¬pc','¬pm','¬pmc','¬pmo','¬po','¬pr', '¬qm1','¬qm2', '¬qr', '¬cls'):
             assert not rest
             if inParagraph and inParagraph != marker[1:]:
                 logging.critical( f"Closing wrong paragraph {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {marker=}" )

@@ -83,6 +83,7 @@ def do_OET_LV_HTMLcustomisations( html:str ) -> str:
             .replace( '!', '!<br>\n' ).replace( ':', ':<br>\n' )
             # Adjust specialised add markers
             .replace( '<span class="add">+', '<span class="addArticle">' )
+            .replace( '<span class="add">-', '<span class="unusedArticle">' )
             .replace( '<span class="add">=', '<span class="addCopula">' )
             .replace( '<span class="add">~', '<span class="addDirectObject">' )
             .replace( '<span class="add">>', '<span class="addExtra">' )

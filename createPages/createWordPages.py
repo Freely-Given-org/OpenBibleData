@@ -30,6 +30,8 @@ from typing import Dict, List, Tuple
 from pathlib import Path
 import os
 from collections import defaultdict
+import re
+import json
 import logging
 
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
@@ -43,10 +45,10 @@ from BibleTransliterations import transliterate_Greek
 from html import makeTop, makeBottom
 
 
-LAST_MODIFIED_DATE = '2023-03-24' # by RJH
+LAST_MODIFIED_DATE = '2023-03-27' # by RJH
 SHORT_PROGRAM_NAME = "createWordPages"
 PROGRAM_NAME = "OpenBibleData createWordPages functions"
-PROGRAM_VERSION = '0.13'
+PROGRAM_VERSION = '0.20'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -55,6 +57,11 @@ DEBUGGING_THIS_MODULE = False
 NEWLINE = '\n'
 # EM_SPACE = ' '
 # NARROW_NON_BREAK_SPACE = ' '
+
+
+project_folderpath = Path(__file__).parent.parent # Find folders relative to this module
+FG_folderpath = project_folderpath.parent # Path to find parallel Freely-Given.org repos
+THEOGRAPHIC_INPUT_FOLDER_PATH = FG_folderpath.joinpath( 'Bible_speaker_identification/outsideSources/TheographicBibleData/derivedFiles/' )
 
 
 CNTR_BOOK_ID_MAP = {
@@ -114,7 +121,7 @@ def createOETGreekWordsPages( outputFolderPath:Path, state ) -> bool:
 
             BBB, CVW = ref.split( '_', 1 )
             C, VW = CVW.split( ':', 1 )
-            V, W = VW.split( ':', 1 )
+            V, W = VW.split( 'w', 1 )
             tidyBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.tidyBBB( BBB )
 
             strongs = extendedStrongs[:-1] if extendedStrongs else None # drop the last digit
@@ -150,9 +157,9 @@ def createOETGreekWordsPages( outputFolderPath:Path, state ) -> bool:
                     prefix, tag = semanticTag[0], semanticTag[1:]
                     # print( f"{BBB} {C}:{V} '{semanticTag}' from {tagsStr=}" )
                     if prefix == 'P':
-                        semanticExtras = f'''{semanticExtras}{' ' if semanticExtras else ''}Person={tag}'''
+                        semanticExtras = f'''{semanticExtras}{' ' if semanticExtras else ''}Person=<a href="P_{tag}.html">{tag}</a>'''
                     elif prefix == 'L':
-                        semanticExtras = f'''{semanticExtras}{' ' if semanticExtras else ''}Location={tag}'''
+                        semanticExtras = f'''{semanticExtras}{' ' if semanticExtras else ''}Location=<a href="L_{tag}.html">{tag}</a>'''
                     elif prefix == 'Y':
                         year = tag
                         semanticExtras = f'''{semanticExtras}{' ' if semanticExtras else ''}Year={year}{' AD' if int(year)>0 else ''}'''
@@ -163,21 +170,22 @@ def createOETGreekWordsPages( outputFolderPath:Path, state ) -> bool:
                     elif prefix == 'G':
                         semanticExtras = f'''{semanticExtras}{' ' if semanticExtras else ''}Group={tag}'''
                     elif prefix == 'F':
-                        semanticExtras = f'''{semanticExtras}{' ' if semanticExtras else ''}Referred to from <a href="{tag}.htm">Word #{tag}</a>'''
+                        semanticExtras = f'''{semanticExtras}{' ' if semanticExtras else ''}Referred to from <a title="Go to referent word" href="{tag}.htm">Word #{tag}</a>'''
                     elif prefix == 'R':
-                        semanticExtras = f'''{semanticExtras}{' ' if semanticExtras else ''}Refers to <a href="{tag}.htm">Word #{tag}</a>'''
+                        semanticExtras = f'''{semanticExtras}{' ' if semanticExtras else ''}Refers to <a title="Go to referred word" href="{tag}.htm">Word #{tag}</a>'''
                     else:
                         logging.critical( f"Unknown '{prefix}' word tag in {n}: {columns_string}")
                         unknownTag
 
-            prevLink = f'<b><a href="{n-1}.htm#Top">←</a></b> ' if n>1 else ''
-            nextLink = f' <b><a href="{n+1}.htm#Top">→</a></b>' if n<len(word_table) else ''
-            oetLink = f'<b><a href="../versions/OET/byChapter/{BBB}_C{C}.html#C{C}">↑OET {tidyBBB} Chapter {C}</a></b>'
+            prevLink = f'<b><a title="Previous word" href="{n-1}.htm#Top">←</a></b> ' if n>1 else ''
+            nextLink = f' <b><a title="Next word" href="{n+1}.htm#Top">→</a></b>' if n<len(word_table) else ''
+            oetLink = f'<b><a title="View whole chapter" href="../versions/OET/byChapter/{BBB}_C{C}.html#C{C}">↑OET {tidyBBB} Chapter {C}</a></b>'
+            parallelLink = f' <b><a title="View verse in many versions" href="../parallel/{BBB}/C{C}V{V}.html">║</a></b>'
             html = f'''{'' if probability else '<div class="unusedWord">'}<h1 id="Top">OET Wordlink #{n}{'' if probability else ' <small>(Unused Greek word variant)</small>'}</h1>
-<p>{prevLink}{oetLink}{nextLink}</p>
-<p><span title="Goes to Statistical Restoration Greek page"><a href="https://GreekCNTR.org/collation/?{CNTR_BOOK_ID_MAP[BBB]}{C.zfill(3)}{V.zfill(3)}">SR GNT {tidyBBB} {C}:{V}</a></span>
+<p class="pnav">{prevLink}{oetLink}{parallelLink}{nextLink}</p>
+<p><a title="Go to Statistical Restoration Greek page" href="https://GreekCNTR.org/collation/?{CNTR_BOOK_ID_MAP[BBB]}{C.zfill(3)}{V.zfill(3)}">SR GNT {tidyBBB} {C}:{V}</a>
  {probabilityField if TEST_MODE else ''}<b>{greek}</b> ({transliterate_Greek(greek)}) {translation}{capsField if TEST_MODE else ''}
- Strongs=<span title="Goes to Strongs dictionary"><a href="https://BibleHub.com/greek/{strongs}.htm">{extendedStrongs}</a></span><br>
+ Strongs=<a title="Goes to Strongs dictionary" href="https://BibleHub.com/greek/{strongs}.htm">{extendedStrongs}</a><br>
  {roleField}{moodField}{tenseField}{voiceField}{personField}{caseField}{genderField}{numberField}{f'<br>  {semanticExtras}' if semanticExtras else ''}</p>
 <p><small>Note: With the help of a companion website, these word pages enable you to click through all the way back to photographs of the original manuscripts that the <em>Open English Translation</em> New Testament is translated from.
 If you go to the <em>Statistical Restoration</em> Greek page (by clicking on the SR Bible reference above), from there you can click on the original manuscript numbers (e.g., 𝔓1, 01, 02, etc.) in the <i>Witness</i> column there, to see their transcription of the original Greek page.
@@ -197,7 +205,8 @@ This is all part of the commitment of the <em>Open English Translation</em> team
                     if other_count == 0:
                         html = f'{html}\n<h2>Other uses ({len(thisWordNumberList)-1:,}) of {greek} {morphology} in the NT</h2>'
                     translation = '<small>(no English gloss)</small>' if oGlossWords=='-' else f'''English gloss=‘<b>{oGlossWords.replace('_','<span class="ul">_</span>')}</b>’'''
-                    html = f'{html}\n<p><a href="{oBBB}.html#C{oC}V{oV}">OET {oTidyBBB} {oC}:{oV}</a> {translation} <a href="https://GreekCNTR.org/collation/?{CNTR_BOOK_ID_MAP[oBBB]}{oC.zfill(3)}{oV.zfill(3)}">SR GNT {oTidyBBB} {oC}:{oV} word {oW}</a>'
+                    html = f'''{html}\n<p><a title="View OET {oTidyBBB} text" href="{oBBB}.html#C{oC}V{oV}">OET {oTidyBBB} {oC}:{oV}</a> {translation}
+ <a title="Go to Statistical Restoration Greek page" href="https://GreekCNTR.org/collation/?{CNTR_BOOK_ID_MAP[oBBB]}{oC.zfill(3)}{oV.zfill(3)}">SR GNT {oTidyBBB} {oC}:{oV} word {oW}</a>'''
                     other_count += 1
                     if other_count >= 120:
                         html = f'{html}\n<p>({len(thisWordNumberList)-other_count-1:,} more examples not listed)</p>'
@@ -213,8 +222,154 @@ This is all part of the commitment of the <em>Open English Translation</em> team
                 html_output_file.write( html )
             vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  Wrote {len(html):,} characters to {output_filename}" )
             
+    make_person_pages( outputFolderPath, state )
+    make_location_pages( outputFolderPath, state )
+
     return True
 # end of createWordPages.createOETGreekWordsPages
+
+
+def make_person_pages( outputFolderPath:Path, state ) -> int:
+    """
+    Make pages for all the words to link to.
+
+    There's almost identical code in createOETGreekWordsPages() in OpenBibleData createWordPages.py (sadly)
+    """
+    from createSitePages import TEST_MODE
+    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Making person pages…" )
+
+    with open( THEOGRAPHIC_INPUT_FOLDER_PATH.joinpath( 'normalised_People.json' ), 'rb' ) as people_file:
+        peopleDict = json.load( people_file )
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Loaded {len(peopleDict):,} person entries." )
+
+    # Firstly, make a list of all the keys
+    peopleKeys = []
+    for personKey in peopleDict:
+        if personKey == '__HEADERS__': continue
+        if personKey == '__COLUMN_HEADERS__': continue
+        peopleKeys.append( personKey )
+
+    # Now make a page for each person
+    for n,(personKey,entry) in enumerate( peopleDict.items() ):
+        if personKey == '__HEADERS__': continue
+        if personKey == '__COLUMN_HEADERS__': continue
+
+        previousLink = f'''<a title="Previous person" href="P_{peopleKeys[n-3][1:]}.html">←</a>''' if n>3 else ''
+        nextLink = f'''<a title="Next person" href="P_{peopleKeys[n-1][1:]}.html">→</a>''' if n<len(peopleDict)-1 else ''
+
+        personName = entry['displayTitle']
+        bornStr = f"Born: {entry['birthYear']}" if entry['birthYear'] else ''
+        diedStr = f"Died: {entry['deathYear']}" if entry['deathYear'] else ''
+
+        bodyHtml = f'''<h1>{personName.replace( "'", '’' )}</h1>
+<p>{livenMD(entry['dictText'])}</p>
+<p>{entry['gender']}{f' {bornStr}' if bornStr else ''}{f' {diedStr}' if diedStr else ''}</p>'''
+
+        # Now put it all together       
+        output_filename = f"{personKey[0]}_{personKey[1:]}.html"
+        html = f'''{makeTop( 1, 'person', None, state )
+                                    .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{personName}" )
+                                    .replace( '__KEYWORDS__', 'Bible, word' )
+                                    }
+<p>{previousLink} {nextLink}</p>
+{bodyHtml}
+<p><small>Grateful thanks to <a href="https://Viz.Bible">Viz.Bible</a> for this data.</small></p>
+{makeBottom( 1, 'person', state )}'''
+        with open( outputFolderPath.joinpath(output_filename), 'wt', encoding='utf-8' ) as html_output_file:
+            html_output_file.write( html )
+        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  Wrote {len(html):,} characters to {output_filename}" )
+# end of createWordPages.make_person_pages function
+
+
+def make_location_pages( outputFolderPath:Path, state ) -> int:
+    """
+    Make pages for all the words to link to.
+
+    There's almost identical code in createOETGreekWordsPages() in OpenBibleData createWordPages.py (sadly)
+    """
+    from createSitePages import TEST_MODE
+    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Making location pages…" )
+
+    with open( THEOGRAPHIC_INPUT_FOLDER_PATH.joinpath( 'normalised_Places.json' ), 'rb' ) as locations_file:
+        locationsDict = json.load( locations_file )
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Loaded {len(locationsDict):,} location entries." )
+
+    # Firstly, make a list of all the keys
+    placeKeys = []
+    for placeKey in locationsDict:
+        if placeKey == '__HEADERS__': continue
+        if placeKey == '__COLUMN_HEADERS__': continue
+        placeKeys.append( placeKey )
+
+    # Now make a page for each location
+    for n,(placeKey,entry) in enumerate( locationsDict.items() ):
+        if placeKey == '__HEADERS__': continue
+        if placeKey == '__COLUMN_HEADERS__': continue
+
+        previousLink = f'''<a title="Previous location" href="L_{placeKeys[n-3][1:]}.html">←</a>''' if n>3 else ''
+        nextLink = f'''<a title="Next location" href="L_{placeKeys[n-1][1:]}.html">→</a>''' if n<len(locationsDict)-1 else ''
+
+        placeName = entry['displayTitle']
+        commentStr = f" {entry['comment']}" if entry['comment'] else ''
+
+        bodyHtml = f'''<h1>{placeName.replace( "'", '’' )}</h1>
+<p>{livenMD(entry['dictText'])}</p>
+<p>{entry['featureType']}{f"/{entry['featureSubType']}" if entry['featureSubType'] else ''}{f' {commentStr}' if commentStr else ''}</p>
+<p>KJB=‘{entry['kjvName']}’ ESV=‘{entry['esvName']}’</p>'''
+
+        # Now put it all together       
+        output_filename = f"{placeKey[0]}_{placeKey[1:]}.html"
+        html = f'''{makeTop( 1, 'location', None, state )
+                                    .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{placeName}" )
+                                    .replace( '__KEYWORDS__', 'Bible, word' )
+                                    }
+<p>{previousLink} {nextLink}</p>
+{bodyHtml}
+<p><small>Grateful thanks to <a href="https://Viz.Bible">Viz.Bible</a> for this data.</small></p>
+{makeBottom( 1, 'location', state )}'''
+        with open( outputFolderPath.joinpath(output_filename), 'wt', encoding='utf-8' ) as html_output_file:
+            html_output_file.write( html )
+        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  Wrote {len(html):,} characters to {output_filename}" )
+# end of createWordPages.make_location_pages function
+
+
+mdLinkRegex = re.compile( '\\[(.+?)\\]\\((.+?)\\)' )
+def livenMD( mdText:str ) -> str:
+    """
+    Take markdown style links like '[Gen. 35:16](/gen#Gen.35.16)'
+        and convert to HTML links.
+    """
+    fnPrint( DEBUGGING_THIS_MODULE, f"livenMD( {mdText[:140]}… )" )
+
+    # Firstly, try to improve the overall formatting
+    mdText = mdText.replace( '\n\n', '</p><p>' ).replace( '\n', '<br>' )
+    mdText = mdText.replace( "'", '’' ) # Improve apostrophes
+
+    # Now liven links
+    count = 0
+    searchStartIndex = 0
+    while True: # Look for links that we could maybe liven
+        match = mdLinkRegex.search( mdText, searchStartIndex )
+        if not match:
+            break
+        dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  {match=} {match.groups()=}" )
+        readableRef, mdLinkTarget = match.group(1), match.group(2)
+        mdLinkTarget = mdLinkTarget.split( '#', 1 )[1]
+        if mdLinkTarget.count( '.' ) == 2: # Then it's almost certainly an OSIS B/C/V ref
+            OSISBkCode, C, V = mdLinkTarget.split( '.' )
+            BBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromOSISAbbreviation( OSISBkCode )
+            ourLinkTarget = f'{BBB}.html#C{C}V{V}'
+        else:
+            assert mdLinkTarget.count( '.' ) == 1 # Then it's almost certainly an OSIS B/C ref
+            OSISBkCode, C = mdLinkTarget.split( '.' )
+            BBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromOSISAbbreviation( OSISBkCode )
+            ourLinkTarget = f'{BBB}.html#C{C}'
+        ourLink = f'<a href="{ourLinkTarget}">{readableRef}</a>'
+        mdText = f'''{mdText[:match.start()]}{ourLink}{mdText[match.end():]}'''
+        searchStartIndex = match.end() + 10 # We've added at least that many characters
+        count += 1
+    return mdText
+# end of createWordPages.livenMD function
 
 
 

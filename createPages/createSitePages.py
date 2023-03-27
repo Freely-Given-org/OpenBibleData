@@ -58,10 +58,10 @@ from createWordPages import createOETGreekWordsPages
 from html import makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-03-23' # by RJH
+LAST_MODIFIED_DATE = '2023-03-27' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData Create Pages"
-PROGRAM_VERSION = '0.43'
+PROGRAM_VERSION = '0.44'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
@@ -92,7 +92,7 @@ class State:
     BibleVersions = ['OET','OET-RV','OET-LV', # NOTE: OET is a "pseudo-version" containing both OET-RV and OET-LV side-by-side
                 'ULT','UST', 'OEB',
                 'BSB','ISV',
-                'WEB','NET','LSV','FBV','T4T','LEB','BBE',
+                'WEB','WMB','NET','LSV','FBV','T4T','LEB','BBE',
                 'JPS','ASV','DRA','YLT','DBY','RV','WBS','KJB','BB','GNV','CB',
                 'TNT','WYC','CLV',
                 'SR-GNT','UGNT','SBL-GNT',
@@ -102,7 +102,7 @@ class State:
     BibleVersionDecorations = { 'OET':('<b>','</b>'),'OET-RV':('<b>','</b>'),'OET-LV':('<b>','</b>'),
                 'ULT':('',''),'UST':('',''),'OEB':('',''),
                 'BSB':('',''),'ISV':('',''),
-                'WEB':('',''),'NET':('',''),'LSV':('',''),'FBV':('',''),'T4T':('',''),'LEB':('',''),'BBE':('',''),
+                'WEB':('',''),'WMB':('',''),'NET':('',''),'LSV':('',''),'FBV':('',''),'T4T':('',''),'LEB':('',''),'BBE':('',''),
                 'JPS':('<small>','</small>'),'ASV':('',''),'DRA':('<small>','</small>'),'YLT':('',''),'DBY':('',''),'RV':('',''),
                 'WBS':('<small>','</small>'),
                 'KJB':('',''),'BB':('',''),'GNV':('',''),'CB':('',''),
@@ -125,6 +125,7 @@ class State:
                 'BSB': '../copiedBibles/English/Berean.Bible/BSB/',
                 #'ISV': '',
                 'WEB': '../copiedBibles/English/eBible.org/WEB/',
+                'WMB': '../copiedBibles/English/eBible.org/WMB/',
                 'NET': '../copiedBibles/English/eBible.org/NET/',
                 'LSV': '../copiedBibles/English/eBible.org/LSV/',
                 'FBV': '../copiedBibles/English/eBible.org/FBV/',
@@ -162,7 +163,8 @@ class State:
                 'OEB': 'Open English Bible (in progress)',
                 'BSB': 'Berean Study/Standard Bible (2020)',
                 'ISV': 'International Standard Version (2020?)',
-                'WEB': 'World English Bible (2020)',
+                'WEB': 'World English Bible (2023)',
+                'WMB': 'World Messianic Bible (2023) / Hebrew Names Version (HNV)',
                 'NET': 'New English Translation (2016)',
                 'LSV': 'Literal Standard Version (2020)',
                 'FBV': 'Free Bible Version (2018)',
@@ -202,6 +204,7 @@ class State:
                 'BSB': ['ALL'],
                 'ISV': ['ALL'],
                 'WEB': ['ALL'],
+                'WMB': ['ALL'],
                 'NET': ['ALL'],
                 'LSV': ['ALL'],
                 'FBV': ['ALL'],
@@ -238,6 +241,7 @@ class State:
                 'BSB': ['MRK'],
                 'ISV': ['MRK'],
                 'WEB': ['MRK'],
+                'WMB': ['MRK'],
                 'NET': ['MRK'],
                 'LSV': ['MRK'],
                 'FBV': ['MRK'],
@@ -267,15 +271,18 @@ class State:
             }
 
     detailsHtml = {
-        'OET': {'about': '<p>The (still unfinished) <em>Open English Translation</em> consists of a <em>Readers’ Version</em> and a <em>Literal Version</em> side by side.</p>',
+        'OET': {'about': '''<p>The (still unfinished) <em>Open English Translation</em> consists of a <em>Readers’ Version</em> and a <em>Literal Version</em> side by side.
+You can read more about the design of the OET <a href="https://openenglishtranslation.bible/design/overview">here</a>.</p>''',
                 'copyright': '<p>Copyright © 2010-2023 <a href="https://Freely-Given.org">Freely-Given.org</a>.</p>',
                 'licence': '<p>(coming).</p>',
                 'acknowledgements': '<p>Thanks to <a href="https://Freely-Given.org/">Freely-Given.org</a> for creating this exciting, new Bible translation which is viewable from <a href="https://OpenEnglishTranslation.Bible">OpenEnglishTranslation.Bible</a>.</p>' },
-        'OET-RV': {'about': '<p>The (still unfinished) <em>Open English Translation Readers’ Version</em> is a new, modern-English easy-to-read translation of the Bible.</p>',
+        'OET-RV': {'about': '''<p>The (still unfinished) <em>Open English Translation Readers’ Version</em> is a new, modern-English easy-to-read translation of the Bible.
+You can read more about the design of the OET-RV <a href="https://openenglishtranslation.bible/design/readers-version">here</a>.</p>''',
                 'copyright': '<p>Copyright © 2010-2023 <a href="https://Freely-Given.org">Freely-Given.org</a>.</p>',
                 'licence': '<p>(coming).</p>',
                 'acknowledgements': '<p>Thanks to <a href="https://Freely-Given.org/">Freely-Given.org</a> for creating this exciting, new Bible translation which is viewable from <a href="https://OpenEnglishTranslation.Bible">OpenEnglishTranslation.Bible</a>.</p>' },
-        'OET-LV': {'about': '<p>The (still unfinished) <em>Open English Translation Literal Version</em> is a tool designed to give a look into what was actually written in the original Hebrew or Greek manuscripts.</p>',
+        'OET-LV': {'about': '''<p>The (still unfinished) <em>Open English Translation Literal Version</em> is a tool designed to give a look into what was actually written in the original Hebrew or Greek manuscripts.
+You can read more about the design of the OET-LV <a href="https://openenglishtranslation.bible/design/literal-version">here</a>.</p>''',
                 'copyright': '<p>Copyright © 2010-2023 <a href="https://Freely-Given.org">Freely-Given.org</a>.</p>',
                 'licence': '<p>(coming).</p>',
                 'acknowledgements': '<p>Thanks to <a href="https://Freely-Given.org/">Freely-Given.org</a> for creating this exciting, new Bible translation which is viewable from <a href="https://OpenEnglishTranslation.Bible">OpenEnglishTranslation.Bible</a>.</p>' },
@@ -299,7 +306,11 @@ class State:
                 'copyright': '<p>Copyright © (coming).</p>',
                 'licence': '<p>(coming).</p>',
                 'acknowledgements': '<p>(coming).</p>' },
-        'WEB': {'about': '<p>World English Bible (2020).</p>',
+        'WEB': {'about': '<p>World English Bible (2023).</p>',
+                'copyright': '<p>Copyright © (coming).</p>',
+                'licence': '<p>(coming).</p>',
+                'acknowledgements': '<p>(coming).</p>' },
+        'WMB': {'about': '<p>World Messianic Bible (2023) also known as the HNV: Hebrew Names Version.</p>',
                 'copyright': '<p>Copyright © (coming).</p>',
                 'licence': '<p>(coming).</p>',
                 'acknowledgements': '<p>(coming).</p>' },
