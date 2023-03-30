@@ -6,7 +6,7 @@
 # Module handling OpenBibleData createSitePages functions
 #
 # Copyright (C) 2023 Robert Hunt
-# Author: Robert Hunt <Freely.Given.org+BOS@gmail.com>
+# Author: Robert Hunt <Freely.Given.org+OBD@gmail.com>
 # License: See gpl-3.0.txt
 #
 #   This program is free software: you can redistribute it and/or modify
@@ -27,6 +27,7 @@ Module handling createSitePages functions.
 
 Creates the OpenBibleData site with
         Whole document ("book") pages
+        Section pages
         Whole chapter pages
         Parallel verse pages
 and more pages to come hopefully.
@@ -58,10 +59,10 @@ from createWordPages import createOETGreekWordsPages
 from html import makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-03-27' # by RJH
+LAST_MODIFIED_DATE = '2023-03-30' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData Create Pages"
-PROGRAM_VERSION = '0.44'
+PROGRAM_VERSION = '0.46'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
@@ -76,7 +77,7 @@ DESTINATION_FOLDER = DEBUG_DESTINATION_FOLDER if TEST_MODE or BibleOrgSysGlobals
                         else NORMAL_DESTINATION_FOLDER
 
 
-OET_BOOK_LIST = ('JHN','MRK','ACT', 'EPH','TIT', 'JN1','JN3')
+OET_BOOK_LIST = ('JHN','MRK','ACT', 'EPH','TI1','TIT', 'JN1','JN2','JN3', 'JDE')
 OET_BOOK_LIST_WITH_FRT = ('FRT','INT') + OET_BOOK_LIST
 NT_BOOK_LIST_WITH_FRT = ('FRT',) + BOOKLIST_NT27
 assert len(NT_BOOK_LIST_WITH_FRT) == 27+1
@@ -92,22 +93,22 @@ class State:
     BibleVersions = ['OET','OET-RV','OET-LV', # NOTE: OET is a "pseudo-version" containing both OET-RV and OET-LV side-by-side
                 'ULT','UST', 'OEB',
                 'BSB','ISV',
-                'WEB','WMB','NET','LSV','FBV','T4T','LEB','BBE',
+                'WEB','WMB','NET','LSV','FBV','TCNT','T4T','LEB','BBE',
                 'JPS','ASV','DRA','YLT','DBY','RV','WBS','KJB','BB','GNV','CB',
                 'TNT','WYC','CLV',
-                'SR-GNT','UGNT','SBL-GNT',
+                'SR-GNT','UGNT','SBL-GNT','TC-GNT',
                 'BRN','BrLXX', 'UHB',
                 ]
     
     BibleVersionDecorations = { 'OET':('<b>','</b>'),'OET-RV':('<b>','</b>'),'OET-LV':('<b>','</b>'),
                 'ULT':('',''),'UST':('',''),'OEB':('',''),
                 'BSB':('',''),'ISV':('',''),
-                'WEB':('',''),'WMB':('',''),'NET':('',''),'LSV':('',''),'FBV':('',''),'T4T':('',''),'LEB':('',''),'BBE':('',''),
+                'WEB':('',''),'WMB':('',''),'NET':('',''),'LSV':('',''),'FBV':('',''),'TCNT':('<small>','</small>'),'T4T':('',''),'LEB':('',''),'BBE':('',''),
                 'JPS':('<small>','</small>'),'ASV':('',''),'DRA':('<small>','</small>'),'YLT':('',''),'DBY':('',''),'RV':('',''),
                 'WBS':('<small>','</small>'),
                 'KJB':('',''),'BB':('',''),'GNV':('',''),'CB':('',''),
                 'TNT':('',''),'WYC':('',''),'CLV':('<small>','</small>'),
-                'SR-GNT':('<b>','</b>'),'UGNT':('<small>','</small>'),'SBL-GNT':('<small>','</small>'),
+                'SR-GNT':('<b>','</b>'),'UGNT':('<small>','</small>'),'SBL-GNT':('<small>','</small>'),'TC-GNT':('<small>','</small>'),
                 'BRN':('<small>','</small>'),'BrLXX':('',''), 'UHB':('',''),
                 'Parallel':('<b>','</b>'), 'Interlinear':('<small>','</small>'),
                 }
@@ -129,6 +130,7 @@ class State:
                 'NET': '../copiedBibles/English/eBible.org/NET/',
                 'LSV': '../copiedBibles/English/eBible.org/LSV/',
                 'FBV': '../copiedBibles/English/eBible.org/FBV/',
+                'TCNT': '../copiedBibles/English/eBible.org/TCNT/',
                 'T4T': '../copiedBibles/English/eBible.org/T4T/',
                 'LEB': '../copiedBibles/English/LogosBibleSoftware/LEB/LEB.xml', # not OSIS
                 'BBE': '../copiedBibles/English/eBible.org/BBE/',
@@ -149,6 +151,7 @@ class State:
                 'SR-GNT': '../../Forked/CNTR-SR/SR usfm/',
                 'UGNT': '../copiedBibles/Original/unfoldingWord.org/UGNT/',
                 'SBL-GNT': '../../Forked/SBLGNT/data/sblgnt/text/',
+                'TC-GNT': '../copiedBibles/Greek/eBible.org/TC-GNT/',
                 'BRN': '../copiedBibles/English/eBible.org/Brenton/', # with deuterocanon and OTH,XXA,XXB,XXC,
                 'BrLXX': '../copiedBibles/Greek/eBible.org/BrLXX/',
                 'UHB': '../copiedBibles/Original/unfoldingWord.org/UHB/',
@@ -168,6 +171,7 @@ class State:
                 'NET': 'New English Translation (2016)',
                 'LSV': 'Literal Standard Version (2020)',
                 'FBV': 'Free Bible Version (2018)',
+                'TCNT': 'Text-Critical New Testament (2022, Byzantine)',
                 'T4T': 'Translation for Translators (2017)',
                 'LEB': 'Lexham English Bible (2010,2012)',
                 'BBE': 'Bible in Basic English (1965)',
@@ -178,7 +182,7 @@ class State:
                 'DBY': 'Darby Translation (1890)',
                 'RV': 'Revised Version (1885)',
                 'WBS': 'Webster Bible (American, 1833)',
-                'KJB': 'King James Bible (1611-1769)',
+                'KJB': 'King James Bible (1769)',
                 'BB': 'Bishops Bible (1568,1602)',
                 'GNV': 'Geneva Bible (1557-1560,1599)',
                 'GB': 'Great Bible (1539)', # Not in OBD yet
@@ -189,6 +193,7 @@ class State:
                 'SR-GNT': 'Statistical Restoration Greek New Testament (2022)',
                 'UGNT': 'unfoldingWord Greek New Testament (2022)',
                 'SBL-GNT': 'Society for Biblical Literature Greek New Testament (2020???)',
+                'TC-GNT': 'Text-Critical Greek New Testament (2010, Byzantine)',
                 'BRN': 'Brenton Septuagint Translation (1851)',
                 'BrLXX': '(Brenton’s) Ancient Greek translation of the Hebrew Scriptures (~250 BC)',
                 'UHB': 'unfoldingWord Hebrew Bible (2022)',
@@ -208,6 +213,7 @@ class State:
                 'NET': ['ALL'],
                 'LSV': ['ALL'],
                 'FBV': ['ALL'],
+                'TCNT': ['ALL'],
                 'T4T': ['ALL'],
                 'LEB': ['ALL'],
                 'BBE': ['ALL'],
@@ -228,6 +234,7 @@ class State:
                 'SR-GNT': ['ALL'],
                 'UGNT': ['ALL'],
                 'SBL-GNT': ['ALL'],
+                'TC-GNT': ['ALL'],
                 'BRN': ['ALL'],
                 'BrLXX': ['ALL'],
                 'UHB': ['ALL'],
@@ -245,6 +252,7 @@ class State:
                 'NET': ['MRK'],
                 'LSV': ['MRK'],
                 'FBV': ['MRK'],
+                'TCNT': ['MRK'],
                 'T4T': ['MRK'],
                 'LEB': ['MRK'],
                 'BBE': ['MRK'],
@@ -265,6 +273,7 @@ class State:
                 'SR-GNT': ['MRK'],
                 'UGNT': ['MRK'],
                 'SBL-GNT': ['MRK'],
+                'TC-GNT': ['MRK'],
                 'BRN': ['RUT'],
                 'BrLXX': ['RUT'],
                 'UHB': ['RUT'],
@@ -326,7 +335,16 @@ You can read more about the design of the OET-LV <a href="https://openenglishtra
                 'copyright': '<p>Copyright © (coming).</p>',
                 'licence': '<p>(coming).</p>',
                 'acknowledgements': '<p>(coming).</p>' },
+        'TCNT': {'about': '''<p>Text-Critical New Testament: Byzantine Text Version (2022) from their own Byzantine-priority Greek New Testament.</p>
+<p>Adam Boyd released the Byzantine Text Version in 2022. It is based on the Robinson-Pierpont third edition (RP2018). Boyd describes it as following the “‘optimal equivalence’ philosophy of translation, employing a literary style that is reminiscent of the Tyndale-King James legacy while flowing smoothly and naturally in modern English.” He added: “On the literal to dynamic scale, I would put it somewhere between ESV and CSB (but closer to ESV).”</p>''',
+                'copyright': '<p>Copyright © (coming).</p>',
+                'licence': '<p>(coming).</p>',
+                'acknowledgements': '<p>(coming).</p>' },
         'T4T': {'about': '<p>Translation for Translators (2017).</p>',
+                'copyright': '<p>Copyright © (coming).</p>',
+                'licence': '<p>(coming).</p>',
+                'acknowledgements': '<p>(coming).</p>' },
+        'TCNT': {'about': '<p>Translation for Translators (2022) from a Byzantine tradition Greek New Testament.</p>',
                 'copyright': '<p>Copyright © (coming).</p>',
                 'licence': '<p>(coming).</p>',
                 'acknowledgements': '<p>(coming).</p>' },
@@ -403,6 +421,11 @@ You can read more about the design of the OET-LV <a href="https://openenglishtra
                 'licence': '<p>(coming).</p>',
                 'acknowledgements': '<p>(coming).</p>' },
         'SBL-GNT': {'about': '<p>Society for Biblical Literature Greek New Testament (2020???).</p>',
+                'copyright': '<p>Copyright © (coming).</p>',
+                'licence': '<p>(coming).</p>',
+                'acknowledgements': '<p>(coming).</p>' },
+        'TC-GNT': {'about': '''<p>Text-Critical Greek New Testament (2010) based on Robinson/Pierpont Byzantine priority GNT (RP2018).</p>
+''',
                 'copyright': '<p>Copyright © (coming).</p>',
                 'licence': '<p>(coming).</p>',
                 'acknowledgements': '<p>(coming).</p>' },
@@ -509,7 +532,7 @@ def createSitePages() -> bool:
         count += 1
     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Moved {count} folders and files into {DESTINATION_FOLDER}." )
 
-    # In DEBUG mode, we need to copy the .css files across
+    # In DEBUG mode, we need to copy the .css files and Bible.js across
     if DESTINATION_FOLDER != NORMAL_DESTINATION_FOLDER:
         count = 0
         for filepath in glob.glob( f'{NORMAL_DESTINATION_FOLDER}/*.css' ):
@@ -517,7 +540,9 @@ def createSitePages() -> bool:
             # Note: shutil.copy2 is the same as copy but keeps metadata like creation and modification times
             shutil.copy2( filepath, DESTINATION_FOLDER )
             count += 1
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Copied {count} stylesheets to {DESTINATION_FOLDER}." )
+        shutil.copy2( f'{NORMAL_DESTINATION_FOLDER}/Bible.js', DESTINATION_FOLDER )
+        count += 1
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Copied {count} stylesheets and scripts to {DESTINATION_FOLDER}." )
 # end of createSitePages.createSitePages
 
 
@@ -561,7 +586,7 @@ f'''<h1 id="Top">{versionName}</h1>
 '''
     filepath = folder.joinpath( 'index.html' )
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
-        indexHtmlFile.write( makeTop( 2, 'site', None, state ) \
+        indexHtmlFile.write( makeTop( 2, None, 'site', None, state ) \
                                     .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{versionName}" ) \
                                     .replace( '__KEYWORDS__', f"Bible, OET, {versionName}" ) \
                                     .replace( f'''<a title="{versionName}" href="{'../'*2}versions/OET">OET</a>''', 'OET' ) \
@@ -590,7 +615,7 @@ f'''<h1 id="Top">{versionName}</h1>
 '''
     filepath = folder.joinpath( 'index.html' )
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
-        indexHtmlFile.write( makeTop( 2, 'site', None, state ) \
+        indexHtmlFile.write( makeTop( 2, None, 'site', None, state ) \
                                     .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{versionName}" ) \
                                     .replace( '__KEYWORDS__', f'Bible, {versionName}' ) \
                                     .replace( f'''<a title="{versionName}" href="{'../'*2}versions/{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}">{thisBible.abbreviation}</a>''', thisBible.abbreviation ) \
@@ -609,7 +634,7 @@ def createMainIndexPages( level, folder:Path, state ) -> bool:
 
     # Create the very top level index file
     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Creating main {'TEST ' if TEST_MODE else ''}index page for {len(state.BibleVersions)} versions…" )
-    html = makeTop( level, 'topIndex', None, state ) \
+    html = makeTop( level, None, 'topIndex', None, state ) \
             .replace( '__TITLE__', 'TEST Open Bible Data Home' if TEST_MODE else 'Open Bible Data Home') \
             .replace( '__KEYWORDS__', 'Bible, translation, English, OET' )
     if TEST_MODE:
@@ -627,7 +652,7 @@ def createMainIndexPages( level, folder:Path, state ) -> bool:
 
     # Create the versions index file (in case it's needed)
     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Creating versions {'TEST ' if TEST_MODE else ''}index page for {len(state.BibleVersions)} versions…" )
-    html = makeTop( level+1, 'topIndex', None, state ) \
+    html = makeTop( level+1, None, 'topIndex', None, state ) \
             .replace( '__TITLE__', 'TEST Open Bible Data Versions' if TEST_MODE else 'Open Bible Data Versions') \
             .replace( '__KEYWORDS__', 'Bible, translation, English, OET' )
     if TEST_MODE:
@@ -690,7 +715,7 @@ def createDetailsPages( level:int, versionsFolder:Path, state ) -> bool:
                         state.detailsHtml[versionAbbreviation]['acknowledgements'].replace( '(coming)',
                             'Thanks to <a href="https://www.BibleSuperSearch.com/bible-downloads/">BibleSuperSearch.com</a> for supplying the source file' )
 
-        topHtml = makeTop( level+1, 'details', 'details.html', state ) \
+        topHtml = makeTop( level+1, None, 'details', 'details.html', state ) \
                 .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{versionName} Details" ) \
                 .replace( '__KEYWORDS__', 'Bible, details, about, copyright, licence, acknowledgements' ) \
                 .replace( f'''<a title="{state.BibleNames[versionAbbreviation]}" href="{'../'*(level+1)}versions/{BibleOrgSysGlobals.makeSafeString(versionAbbreviation)}/details.html">{versionAbbreviation}</a>''',
@@ -700,15 +725,17 @@ def createDetailsPages( level:int, versionsFolder:Path, state ) -> bool:
 <p>See key and more information <a href="byDocument/FRT.html">here</a>.</p>
 ''' if versionAbbreviation == 'T4T' else ''
 
-        detailsHtml = f"""{extraHTML}<h2>About</h2>{state.detailsHtml[versionAbbreviation]['about']}
+        detailsHtml = f"""{extraHTML}<h2>About the {versionAbbreviation}</h2>{state.detailsHtml[versionAbbreviation]['about']}
 <h2>Copyright</h2>{state.detailsHtml[versionAbbreviation]['copyright']}
 <h2>Licence</h2>{state.detailsHtml[versionAbbreviation]['licence']}
 <h2>Acknowledgements</h2>{state.detailsHtml[versionAbbreviation]['acknowledgements']}
 """
         bodyHtml = f'''<!--createDetailsPages--><h1 id="Top">{versionName} Details</h1>
-{detailsHtml}'''
+{detailsHtml}
+<p>See details for ALL included versions <a title="All versions’ details" href="../allDetails.html">here</a>.</p>
+'''
 
-        allDetailsHTML = f'''{allDetailsHTML}<h2>{versionName}</h2>
+        allDetailsHTML = f'''{allDetailsHTML}{'<hr>' if allDetailsHTML else ''}<h2>{versionName}</h2>
 {detailsHtml.replace('h2','h3')}'''
 
         html = f"{topHtml}{bodyHtml}{makeBottom( level+1, 'details', state )}"
@@ -724,7 +751,7 @@ def createDetailsPages( level:int, versionsFolder:Path, state ) -> bool:
         vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  {len(html):,} characters written to {filepath}" )
 
     # Make a summary page with details for all versions
-    topHtml = makeTop( level, 'allDetails', 'details.html', state ) \
+    topHtml = makeTop( level, None, 'allDetails', 'details.html', state ) \
             .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}All Versions Details" ) \
             .replace( '__KEYWORDS__', 'Bible, details, about, copyright, licence, acknowledgements' )
             # .replace( f'''<a title="{state.BibleNames[versionAbbreviation]}" href="{'../'*(level+1)}versions/{BibleOrgSysGlobals.makeSafeString(versionAbbreviation)}/details.html">{versionAbbreviation}</a>''',

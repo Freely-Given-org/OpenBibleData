@@ -6,7 +6,7 @@
 # Module handling OpenBibleData createBookPages functions
 #
 # Copyright (C) 2023 Robert Hunt
-# Author: Robert Hunt <Freely.Given.org+BOS@gmail.com>
+# Author: Robert Hunt <Freely.Given.org+OBD@gmail.com>
 # License: See gpl-3.0.txt
 #
 #   This program is free software: you can redistribute it and/or modify
@@ -42,10 +42,10 @@ from html import do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, \
                     makeTop, makeBottom, removeDuplicateCVids, checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-03-13' # by RJH
+LAST_MODIFIED_DATE = '2023-03-30' # by RJH
 SHORT_PROGRAM_NAME = "createBookPages"
 PROGRAM_NAME = "OpenBibleData createBookPages functions"
-PROGRAM_VERSION = '0.23'
+PROGRAM_VERSION = '0.24'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -166,16 +166,16 @@ def createOETBookPages( folder:Path, rvBible, lvBible, state ) -> List[str]:
         filename = f'{BBB}.html'
         filenames.append( filename )
         filepath = folder.joinpath( filename )
-        top = makeTop( 3, 'OETbook', f'byDocument/{filename}', state ) \
+        top = makeTop( 3, 'OET', 'book', f'byDocument/{filename}', state ) \
                 .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}OET {tidyBBB}" ) \
                 .replace( '__KEYWORDS__', f'Bible, OET, Open English Translation, book' ) \
                 .replace( f'''<a title="{state.BibleNames['OET']}" href="{'../'*3}versions/OET/byDocument/{filename}">OET</a>''',
                           f'''<a title="Up to {state.BibleNames['OET']}" href="{'../'*3}versions/OET/">↑OET</a>''' )
         bkHtml = top + '<!--book page-->' \
-                    + bkHtml + removeDuplicateCVids( combinedHtml ) \
+                    + bkHtml + removeDuplicateCVids( BBB, combinedHtml ) \
                     + '</div><!--container-->\n' \
-                    + makeBottom( 3, 'OETbook', state )
-        checkHtml( 'OETbook', bkHtml )
+                    + makeBottom( 3, 'book', state )
+        checkHtml( 'book', bkHtml )
         with open( filepath, 'wt', encoding='utf-8' ) as bkHtmlFile:
             bkHtmlFile.write( bkHtml )
         vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(bkHtml):,} characters written to {filepath}" )
@@ -189,7 +189,7 @@ def createOETBookPages( folder:Path, rvBible, lvBible, state ) -> List[str]:
     filename = 'index.html'
     filenames.append( filename )
     filepath = folder.joinpath( filename )
-    top = makeTop( 3, 'OETbook', 'byDocument', state ) \
+    top = makeTop( 3, 'OET', 'book', 'byDocument', state ) \
             .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}OET Document View" ) \
             .replace( '__KEYWORDS__', f'Bible, OET, Open English Translation' ) \
             .replace( f'''<a title="{state.BibleNames['OET']}" href="{'../'*3}versions/OET/byDocument">OET</a>''',
@@ -197,7 +197,7 @@ def createOETBookPages( folder:Path, rvBible, lvBible, state ) -> List[str]:
     indexHtml = top \
                 + '<h1 id="Top">OET book pages</h1><h2>Index of books</h2>\n' \
                 + f'''<p class="bLinks">{' '.join( BBBLinks )}</p>\n''' \
-                + makeBottom( 3, 'OETbook', state )
+                + makeBottom( 3, 'book', state )
     checkHtml( 'OETBooksIndex', indexHtml )
     with open( filepath, 'wt', encoding='utf-8' ) as bkHtmlFile:
         bkHtmlFile.write( indexHtml )
@@ -256,7 +256,7 @@ def createBookPages( folder:Path, thisBible, state ) -> List[str]:
         filename = f'{BBB}.html'
         filenames.append( filename )
         filepath = folder.joinpath( filename )
-        top = makeTop( 3, 'book', f'byDocument/{filename}', state ) \
+        top = makeTop( 3, thisBible.abbreviation, 'book', f'byDocument/{filename}', state ) \
                 .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{thisBible.abbreviation} {tidyBBB} book" ) \
                 .replace( '__KEYWORDS__', f'Bible, {thisBible.abbreviation}, book' ) \
                 .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*3}versions/{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/byDocument/{filename}">{thisBible.abbreviation}</a>''',
@@ -277,7 +277,7 @@ def createBookPages( folder:Path, thisBible, state ) -> List[str]:
     filename = 'index.html'
     filenames.append( filename )
     filepath = folder.joinpath( filename )
-    top = makeTop( 3, 'book', 'byDocument', state ) \
+    top = makeTop( 3, thisBible.abbreviation, 'book', 'byDocument', state ) \
             .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{thisBible.abbreviation} Book View" ) \
             .replace( '__KEYWORDS__', f'Bible, {thisBible.abbreviation}, book' ) \
             .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*3}versions/{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/byDocument">{thisBible.abbreviation}</a>''',
@@ -317,7 +317,7 @@ def livenIORs( BBB:str, bookHTML:str ) -> str:
         elif BibleOrgSysGlobals.loadedBibleBooksCodes.isSingleChapterBook( BBB ):
             Cstr, Vstr = '1', startGuts.strip() # Only a verse was given
         else: Cstr, Vstr = startGuts.strip(), '1' # Only a chapter was given
-        new_guts = f'<a href="#C{Cstr}V{Vstr}">{guts}</a>'
+        new_guts = f'<a title="Jump down to reference" href="#C{Cstr}V{Vstr}">{guts}</a>'
         bookHTML = f'{bookHTML[:ixSpanStart+18]}{new_guts}{bookHTML[ixEnd:]}'
         searchStartIx = ixEnd + 20 # Approx number of chars that we add
     else:

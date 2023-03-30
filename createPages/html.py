@@ -6,7 +6,7 @@
 # Module handling OpenBibleData html functions
 #
 # Copyright (C) 2023 Robert Hunt
-# Author: Robert Hunt <Freely.Given.org+BOS@gmail.com>
+# Author: Robert Hunt <Freely.Given.org+OBD@gmail.com>
 # License: See gpl-3.0.txt
 #
 #   This program is free software: you can redistribute it and/or modify
@@ -42,6 +42,7 @@ from pathlib import Path
 import os
 import logging
 from datetime import datetime
+import re
 
 # sys.path.append( '../../BibleOrgSys/BibleOrgSys/' )
 # import BibleOrgSysGlobals
@@ -51,20 +52,21 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 # from Bibles import fetchChapter
 
 
-LAST_MODIFIED_DATE = '2023-03-23' # by RJH
+LAST_MODIFIED_DATE = '2023-03-30' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
-PROGRAM_VERSION = '0.26'
+PROGRAM_VERSION = '0.30'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
 
 # BACKSLASH = '\\'
-# NEWLINE = '\n'
+NEWLINE = '\n'
 # EM_SPACE = ' '
 # NARROW_NON_BREAK_SPACE = ' '
 
 
+timeRegex = re.compile( '[0-9][0-9]:[0-9][0-9]' )
 def do_OET_LV_HTMLcustomisations( html:str ) -> str:
     """
     OET-LV is often formatted as a new line for each sentence.
@@ -72,6 +74,17 @@ def do_OET_LV_HTMLcustomisations( html:str ) -> str:
     We have to protect fields like periods in '../C2_V2.html' from corruption
         (and then restore them again of course).
     """
+    # Preserve the colon in times like 12:30
+    searchStartIndex = 0
+    while True: # Look for links that we could maybe liven
+        match = timeRegex.search( html, searchStartIndex )
+        if not match:
+            break
+        guts = match.group(0) # Entire match
+        assert len(guts)==5 and guts.count(':')==1
+        html = f'''{html[:match.start()]}{guts.replace(':','~~COLON~~',1)}{html[match.end():]}'''
+        searchStartIndex = match.end() + 8 # We've added that many characters
+
     return (html \
             # Protect fields we need to preserve
             .replace( '<!--', '~~COMMENT~~' )
@@ -94,7 +107,9 @@ def do_OET_LV_HTMLcustomisations( html:str ) -> str:
             .replace( '~~COMMENT~~', '<!--' )
             .replace( '~~UP~DIR~~', '../' ).replace( '~~V', '_V' )
             .replace( '~~HTM~~', '.htm' ).replace( '~~HTTPS~~', 'https:' )
-            .replace( '~~ORG~~', '.org' ).replace( '~~v0~~', 'v0.' ) )
+            .replace( '~~ORG~~', '.org' ).replace( '~~v0~~', 'v0.' )
+            .replace( '~~COLON~~', ':' )
+            )
 # end of html.do_OET_LV_HTMLcustomisations
 
 
@@ -109,20 +124,23 @@ def do_LSV_HTMLcustomisations( html:str ) -> str:
 # end of html.do_LSV_HTMLcustomisations
 
 
-def makeTop( level:int, pageType:str, fileOrFolderName:Optional[str], state ) -> str:
+KNOWN_PAGE_TYPES = ('site', 'topIndex', 'details', 'allDetails',
+                    'book','chapter','section',
+                    'parallel',
+                    'word','person','location')
+def makeTop( level:int, versionAbbreviation:str, pageType:str, fileOrFolderName:Optional[str], state ) -> str:
     """
     Create the very top part of an HTML page.
     """
     from createSitePages import TEST_MODE
-    fnPrint( DEBUGGING_THIS_MODULE, f"makeTop( {level}, {pageType} {fileOrFolderName} )" )
+    fnPrint( DEBUGGING_THIS_MODULE, f"makeTop( {level}, {versionAbbreviation}, {pageType}, {fileOrFolderName} )" )
+    assert pageType in KNOWN_PAGE_TYPES, f"{level=} {versionAbbreviation=} {pageType=}"
 
-    if pageType in ('chapters','section','book'):
-        cssFilename = 'BibleChapter.css'
-    elif pageType in ('OETChapters','OETSection','OETbook'):
-        cssFilename = 'OETChapter.css'
+    if pageType in ('chapter','section','book'):
+        cssFilename = 'OETChapter.css' if 'OET' in versionAbbreviation else 'BibleChapter.css'
     elif pageType == 'parallel':
         cssFilename = 'ParallelVerses.css'
-    elif pageType == 'word':
+    elif pageType in ('word', 'person','location'):
         cssFilename = 'BibleWord.css'
     else: cssFilename = 'BibleSite.css'
 
@@ -151,36 +169,36 @@ def makeTop( level:int, pageType:str, fileOrFolderName:Optional[str], state ) ->
 </head><body><!--Level{level}-->{topLink}
 <h3>Prototype quality only—still in development</h3>
 """
-    return top + _makeHeader( level, pageType, fileOrFolderName, state ) + '\n'
+    return top + _makeHeader( level, versionAbbreviation, pageType, fileOrFolderName, state ) + '\n'
 # end of html.makeTop
 
-def _makeHeader( level:int, pageType:str, fileOrFolderName:Optional[str], state ) -> str:
+def _makeHeader( level:int, versionAbbreviation:str, pageType:str, fileOrFolderName:Optional[str], state ) -> str:
     """
     Create the navigation that goes before the page content.
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"_makeHeader( {level}, {pageType} {fileOrFolderName} )" )
+    fnPrint( DEBUGGING_THIS_MODULE, f"_makeHeader( {level}, {versionAbbreviation}, {pageType}, {fileOrFolderName} )" )
 
     # Add all the version abbreviations
     #   with their style decorators
     #   and with the more specific links if specified.
     initialVersionList = []
-    for versionAbbreviation in state.BibleVersions:
-        if pageType in ('section','OETSection'):
+    for thisVersionAbbreviation in state.BibleVersions:
+        if pageType in ('section','section'):
             try:
-                thisBible = state.preloadedBibles['OET-RV' if versionAbbreviation=='OET' else versionAbbreviation]
+                thisBible = state.preloadedBibles['OET-RV' if thisVersionAbbreviation=='OET' else thisVersionAbbreviation]
                 if not thisBible.discoveryResults['ALL']['haveSectionHeadings']:
                     continue # skip this one
             except AttributeError: # no discoveryResults
                 continue
 
         # Note: This is not good because not all versions have all books -- we try to fix that below
-        vLink = f"{'../'*level}versions/{BibleOrgSysGlobals.makeSafeString(versionAbbreviation)}/{fileOrFolderName}" \
+        vLink = f"{'../'*level}versions/{BibleOrgSysGlobals.makeSafeString(thisVersionAbbreviation)}/{fileOrFolderName}" \
                     if fileOrFolderName else \
-                f"{'../'*level}versions/{BibleOrgSysGlobals.makeSafeString(versionAbbreviation)}"
-        initialVersionList.append( f'{state.BibleVersionDecorations[versionAbbreviation][0]}'
-                            f'<a title="{state.BibleNames[versionAbbreviation]}" '
-                            f'href="{vLink}">{versionAbbreviation}</a>'
-                            f'{state.BibleVersionDecorations[versionAbbreviation][1]}'
+                f"{'../'*level}versions/{BibleOrgSysGlobals.makeSafeString(thisVersionAbbreviation)}"
+        initialVersionList.append( f'{state.BibleVersionDecorations[thisVersionAbbreviation][0]}'
+                            f'<a title="{state.BibleNames[thisVersionAbbreviation]}" '
+                            f'href="{vLink}">{thisVersionAbbreviation}</a>'
+                            f'{state.BibleVersionDecorations[thisVersionAbbreviation][1]}'
                             )
     if pageType == 'parallel':
         initialVersionList.append( 'Parallel' )
@@ -205,13 +223,13 @@ def _makeHeader( level:int, pageType:str, fileOrFolderName:Optional[str], state 
                 entryBBB = tryBBB
         if entryBBB:
             startIndex = entry.index('">') + 2
-            versionAbbreviation = entry[startIndex:entry.index('<',startIndex)]
-            if versionAbbreviation == 'OET': versionAbbreviation = 'OET-RV' # We look here in this case
-            thisBible = state.preloadedBibles[versionAbbreviation]
+            thisVersionAbbreviation = entry[startIndex:entry.index('<',startIndex)]
+            if thisVersionAbbreviation == 'OET': thisVersionAbbreviation = 'OET-RV' # We look here in this case
+            thisBible = state.preloadedBibles[thisVersionAbbreviation]
             if entryBBB in thisBible:
                 newVersionList.append( entry )
                 continue # Should always be able to link to these
-            dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      Might not be able to link to {pageType} {versionAbbreviation} {entry}???" )
+            dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      Might not be able to link to {pageType} {thisVersionAbbreviation} {entry}???" )
             replacement = ''
             if '/' in fileOrFolderName:
                 ix = fileOrFolderName.index( '/' )
@@ -225,10 +243,21 @@ def _makeHeader( level:int, pageType:str, fileOrFolderName:Optional[str], state 
             dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        Couldn't find a BBB so should be able to link ok to {pageType} {entry}" )
             newVersionList.append( entry )
     assert len(newVersionList) == len(initialVersionList)
+    versionHtml = f'''<p class="workNav">{' '.join(newVersionList)}</p>'''
 
-    html = f'''<p class="workNav">{' '.join(newVersionList)}</p>'''
+    viewLinks = []
+    if not versionAbbreviation: versionAbbreviation = 'OET'
+    if pageType != 'book':
+        viewLinks.append( f'''<a title="View entire document" href="{'../'*level}/versions/{versionAbbreviation}/byDocument/">By Document</a>''' )
+    if pageType != 'section':
+        viewLinks.append( f'''<a title="View section" href="{'../'*level}/versions/{versionAbbreviation}/bySection/">By Section</a>''' )
+    if pageType != 'chapter':
+        viewLinks.append( f'''<a title="View chapter" href="{'../'*level}/versions/{versionAbbreviation}/byChapter/">By Chapter</a>''' )
+    if pageType != 'details':
+        viewLinks.append( f'''<a title="View chapter" href="{'../'*level}/versions/{versionAbbreviation}/details.html">Details</a>''' )
+    viewHtml = f'''<p class="viewNav">{' '.join(viewLinks)}</p>''' if viewLinks else ''
 
-    return f'<div class="header">{html}</div><!--header-->'
+    return f'''<div class="header">{versionHtml}{NEWLINE if viewHtml else ''}{viewHtml}</div><!--header-->'''
 # end of html._makeHeader
 
 def makeBottom( level:int, pageType:str, state ) -> str:
@@ -236,6 +265,8 @@ def makeBottom( level:int, pageType:str, state ) -> str:
     Create the very bottom part of an HTML page.
     """
     # fnPrint( DEBUGGING_THIS_MODULE, f"makeBottom()" )
+    assert pageType in KNOWN_PAGE_TYPES, f"{level=} {pageType=}"
+
     return _makeFooter( level, pageType, state ) + '</body></html>'
 # end of html.makeBottom
 
@@ -252,7 +283,7 @@ def _makeFooter( level:int, pageType:str, state ) -> str:
     return html
 # end of html._makeFooter
 
-def removeDuplicateCVids( html:str ) -> str:
+def removeDuplicateCVids( BBB:str, html:str ) -> str:
     """
     Where we have OET parallel RV and LV, we get doubled ids like <span class="v" id="C2V6">
 
@@ -267,7 +298,7 @@ def removeDuplicateCVids( html:str ) -> str:
         idContents = html[startIx:endIx]
         assert 7 < len(idContents) < 14
         idCount = html.count( idContents, startIx )
-        assert 1 <= idCount <= 2
+        assert 1 <= idCount <= 2, f"{BBB} {idContents=} {idCount=} {html}"
         if idCount == 2:
             html = f"{html[:endIx]}{html[endIx:].replace( idContents, '', 1 )}"
             assert html.count( idContents ) == 1

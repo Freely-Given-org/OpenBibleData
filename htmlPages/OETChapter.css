@@ -15,7 +15,7 @@ span.upLink { font-size:1.5em; font-weight:bold; }
 a:visited { text-decoration: none; }
 a:hover { text-decoration: none; }
 a:active { text-decoration: none; } */
-a { text-decoration: none; }
+a { color:inherit; text-decoration: none; }
 /* .container a { text-decoration: none; } */
 p.snav { text-align:center; font-size:1.8em; }
 p.cnav { text-align:center; font-size:1.8em; }

@@ -6,7 +6,7 @@
 # Module handling OpenBibleData createWordPages functions
 #
 # Copyright (C) 2023 Robert Hunt
-# Author: Robert Hunt <Freely.Given.org+BOS@gmail.com>
+# Author: Robert Hunt <Freely.Given.org+OBD@gmail.com>
 # License: See gpl-3.0.txt
 #
 #   This program is free software: you can redistribute it and/or modify
@@ -45,10 +45,10 @@ from BibleTransliterations import transliterate_Greek
 from html import makeTop, makeBottom
 
 
-LAST_MODIFIED_DATE = '2023-03-27' # by RJH
+LAST_MODIFIED_DATE = '2023-03-30' # by RJH
 SHORT_PROGRAM_NAME = "createWordPages"
 PROGRAM_NAME = "OpenBibleData createWordPages functions"
-PROGRAM_VERSION = '0.20'
+PROGRAM_VERSION = '0.22'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -157,9 +157,9 @@ def createOETGreekWordsPages( outputFolderPath:Path, state ) -> bool:
                     prefix, tag = semanticTag[0], semanticTag[1:]
                     # print( f"{BBB} {C}:{V} '{semanticTag}' from {tagsStr=}" )
                     if prefix == 'P':
-                        semanticExtras = f'''{semanticExtras}{' ' if semanticExtras else ''}Person=<a href="P_{tag}.html">{tag}</a>'''
+                        semanticExtras = f'''{semanticExtras}{' ' if semanticExtras else ''}Person=<a title="View person details" href="P_{tag}.html">{tag}</a>'''
                     elif prefix == 'L':
-                        semanticExtras = f'''{semanticExtras}{' ' if semanticExtras else ''}Location=<a href="L_{tag}.html">{tag}</a>'''
+                        semanticExtras = f'''{semanticExtras}{' ' if semanticExtras else ''}Location=<a title="View place details" href="L_{tag}.html">{tag}</a>'''
                     elif prefix == 'Y':
                         year = tag
                         semanticExtras = f'''{semanticExtras}{' ' if semanticExtras else ''}Year={year}{' AD' if int(year)>0 else ''}'''
@@ -203,7 +203,7 @@ This is all part of the commitment of the <em>Open English Translation</em> team
                     oV, oW = oVW.split( 'w', 1 )
                     oTidyBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.tidyBBB( oBBB )
                     if other_count == 0:
-                        html = f'{html}\n<h2>Other uses ({len(thisWordNumberList)-1:,}) of {greek} {morphology} in the NT</h2>'
+                        html = f'{html}\n<h2>Other uses ({len(thisWordNumberList)-1:,}) of {greek} <small>{morphology}</small> in the NT</h2>'
                     translation = '<small>(no English gloss)</small>' if oGlossWords=='-' else f'''English gloss=‘<b>{oGlossWords.replace('_','<span class="ul">_</span>')}</b>’'''
                     html = f'''{html}\n<p><a title="View OET {oTidyBBB} text" href="{oBBB}.html#C{oC}V{oV}">OET {oTidyBBB} {oC}:{oV}</a> {translation}
  <a title="Go to Statistical Restoration Greek page" href="https://GreekCNTR.org/collation/?{CNTR_BOOK_ID_MAP[oBBB]}{oC.zfill(3)}{oV.zfill(3)}">SR GNT {oTidyBBB} {oC}:{oV} word {oW}</a>'''
@@ -213,7 +213,7 @@ This is all part of the commitment of the <em>Open English Translation</em> team
                         break
                             
             # Now put it all together       
-            html = makeTop( 1, 'word', None, state ) \
+            html = makeTop( 1, None, 'word', None, state ) \
                                     .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}OET-LV NT Word {greek}" ) \
                                     .replace( '__KEYWORDS__', 'Bible, word' ) \
                                     .replace( 'parallel/"', f'parallel/{BBB}/C{C}V{V}.html"' ) \
@@ -267,13 +267,13 @@ def make_person_pages( outputFolderPath:Path, state ) -> int:
 
         # Now put it all together       
         output_filename = f"{personKey[0]}_{personKey[1:]}.html"
-        html = f'''{makeTop( 1, 'person', None, state )
+        html = f'''{makeTop( 1, None, 'person', None, state )
                                     .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{personName}" )
                                     .replace( '__KEYWORDS__', 'Bible, word' )
                                     }
 <p>{previousLink} {nextLink}</p>
 {bodyHtml}
-<p><small>Grateful thanks to <a href="https://Viz.Bible">Viz.Bible</a> for this data.</small></p>
+<p><small>Grateful thanks to <a href="https://Viz.Bible">Viz.Bible</a> for these links and this data.</small></p>
 {makeBottom( 1, 'person', state )}'''
         with open( outputFolderPath.joinpath(output_filename), 'wt', encoding='utf-8' ) as html_output_file:
             html_output_file.write( html )
@@ -319,13 +319,13 @@ def make_location_pages( outputFolderPath:Path, state ) -> int:
 
         # Now put it all together       
         output_filename = f"{placeKey[0]}_{placeKey[1:]}.html"
-        html = f'''{makeTop( 1, 'location', None, state )
+        html = f'''{makeTop( 1, None, 'location', None, state )
                                     .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{placeName}" )
                                     .replace( '__KEYWORDS__', 'Bible, word' )
                                     }
 <p>{previousLink} {nextLink}</p>
 {bodyHtml}
-<p><small>Grateful thanks to <a href="https://Viz.Bible">Viz.Bible</a> for this data.</small></p>
+<p><small>Grateful thanks to <a href="https://Viz.Bible">Viz.Bible</a> for these links and this data.</small></p>
 {makeBottom( 1, 'location', state )}'''
         with open( outputFolderPath.joinpath(output_filename), 'wt', encoding='utf-8' ) as html_output_file:
             html_output_file.write( html )
@@ -358,13 +358,13 @@ def livenMD( mdText:str ) -> str:
         if mdLinkTarget.count( '.' ) == 2: # Then it's almost certainly an OSIS B/C/V ref
             OSISBkCode, C, V = mdLinkTarget.split( '.' )
             BBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromOSISAbbreviation( OSISBkCode )
-            ourLinkTarget = f'{BBB}.html#C{C}V{V}'
+            ourLinkTarget = f'../versions/OET/byChapter/{BBB}_C{C}.html#C{C}V{V}'
         else:
             assert mdLinkTarget.count( '.' ) == 1 # Then it's almost certainly an OSIS B/C ref
             OSISBkCode, C = mdLinkTarget.split( '.' )
             BBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromOSISAbbreviation( OSISBkCode )
             ourLinkTarget = f'{BBB}.html#C{C}'
-        ourLink = f'<a href="{ourLinkTarget}">{readableRef}</a>'
+        ourLink = f'<a title="View OET reference" href="{ourLinkTarget}">{readableRef}</a>'
         mdText = f'''{mdText[:match.start()]}{ourLink}{mdText[match.end():]}'''
         searchStartIndex = match.end() + 10 # We've added at least that many characters
         count += 1

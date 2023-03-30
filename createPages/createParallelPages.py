@@ -6,7 +6,7 @@
 # Module handling OpenBibleData createParallelPages functions
 #
 # Copyright (C) 2023 Robert Hunt
-# Author: Robert Hunt <Freely.Given.org+BOS@gmail.com>
+# Author: Robert Hunt <Freely.Given.org+OBD@gmail.com>
 # License: See gpl-3.0.txt
 #
 #   This program is free software: you can redistribute it and/or modify
@@ -44,10 +44,10 @@ from html import do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, \
                     makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-03-27' # by RJH
+LAST_MODIFIED_DATE = '2023-03-30' # by RJH
 SHORT_PROGRAM_NAME = "createParallelPages"
 PROGRAM_NAME = "OpenBibleData createParallelPages functions"
-PROGRAM_VERSION = '0.29'
+PROGRAM_VERSION = '0.32'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -82,7 +82,7 @@ def createParallelPages( folder:Path, state ) -> bool:
     # Create index page
     filename = 'index.html'
     filepath = folder.joinpath( filename )
-    top = makeTop( 1, 'parallel', None, state ) \
+    top = makeTop( 1, None, 'parallel', None, state ) \
             .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}Parallel View" ) \
             .replace( '__KEYWORDS__', f'Bible, parallel' )
     indexHtml = top \
@@ -153,7 +153,7 @@ def createParallelVersePagesForBook( folder:Path, BBB:str, BBBLinks:List[str], s
                     if versionAbbreviation in ('BRN','BrLXX') \
                     and BibleOrgSysGlobals.loadedBibleBooksCodes.isNewTestament_NR( BBB):
                         continue # Skip NT books for Brenton (it has deuterocanon/apocrypha)
-                    if versionAbbreviation in ('TNT', 'SR-GNT','UGNT','SBL-GNT') \
+                    if versionAbbreviation in ('TCNT','TNT', 'SR-GNT','UGNT','SBL-GNT','TC-GNT') \
                     and not BibleOrgSysGlobals.loadedBibleBooksCodes.isNewTestament_NR( BBB):
                         continue # Skip non-NT books for Koine Greek NT
                     thisBible = state.preloadedBibles[versionAbbreviation]
@@ -163,19 +163,14 @@ def createParallelVersePagesForBook( folder:Path, BBB:str, BBBLinks:List[str], s
                         if isinstance( thisBible, ESFMBible.ESFMBible ):
                             verseEntryList,wordList = thisBible.livenESFMWordLinks( BBB, verseEntryList, '../../W/{n}.htm' )
                         textHtml = convertUSFMMarkerListToHtml( versionAbbreviation, (BBB,c,v), 'verse', contextList, verseEntryList, basicOnly=True )
+                        while textHtml.startswith( '<br>' ): # BSB and OEB seems particularly bad with blank lines
+                            textHtml = textHtml[4:]
+                        while textHtml.endswith( '<br>' ): # LEB also
+                            textHtml = textHtml[:-4]
                         if textHtml == '◘': raise KeyError # This is an OET-RV marker to say "Not translated yet"
+
                         if versionAbbreviation == 'OET-LV':
                             textHtml = do_OET_LV_HTMLcustomisations( textHtml )
-                        elif versionAbbreviation == 'LSV':
-                            textHtml = do_LSV_HTMLcustomisations( textHtml )
-                        elif versionAbbreviation in ('UHB',):
-                            # print( f"{versionAbbreviation} {BBB} {c}:{v} {textHtml=}")
-                            textHtml = f'{textHtml}<br>({transliterate_Hebrew(textHtml)})'
-                            # print( textHtml)
-                        elif versionAbbreviation in ('SR-GNT','UGNT','SBL-GNT','BrLXX'):
-                            # print( f"{versionAbbreviation} {BBB} {c}:{v} {textHtml=}")
-                            textHtml = f'{textHtml}<br>({transliterate_Greek(textHtml)})'
-                            # print( textHtml)
                         elif versionAbbreviation == 'WEB': # assuming WEB comes BEFORE WMB
                             textHtmlWEB = textHtml # Save it
                         elif versionAbbreviation == 'WMB': # assuming WEB comes BEFORE WMB
@@ -186,21 +181,36 @@ def createParallelVersePagesForBook( folder:Path, BBB:str, BBBLinks:List[str], s
                                 print( f"Using parallel for WMB {BBB} {c}:{v} because different from WEB:" )
                                 print( f"  {textHtmlWEB=}" )
                                 print( f"     {textHtml=}" )
+                        elif versionAbbreviation == 'LSV':
+                            textHtml = do_LSV_HTMLcustomisations( textHtml )
+                        elif versionAbbreviation in ('WYC','TNT','CB','GNV','BB','KJB'):
+                            if (modernisedTextHtml:=moderniseEnglishWords(textHtml)) != textHtml: # only show it if it changed
+                                textHtml = f'{textHtml}<br>  ({modernisedTextHtml})'
+                        elif versionAbbreviation in ('CLV',):
+                            if (adjustedTextHtml:=adjustLatin(textHtml)) != textHtml: # only show it if it changed
+                                textHtml = f'{textHtml}<br>  ({adjustedTextHtml})'
+                        elif versionAbbreviation in ('SR-GNT','UGNT','SBL-GNT','TC-GNT','BrLXX'):
+                            # print( f"{versionAbbreviation} {BBB} {c}:{v} {textHtml=}")
+                            textHtml = f'{textHtml}<br>  ({transliterate_Greek(textHtml)})'
+                            # print( textHtml)
+                        elif versionAbbreviation in ('UHB',):
+                            # print( f"{versionAbbreviation} {BBB} {c}:{v} {textHtml=}")
+                            textHtml = f'{textHtml}<br>  ({transliterate_Hebrew(textHtml)})'
+                            # print( textHtml)
                         vHtml = f'''
-<h3 class="workNav"><a title="{state.BibleNames[versionAbbreviation]}" href="../../versions/{versionAbbreviation}/byChapter/{BBB}_C{c}.html">{versionAbbreviation}</a>{EM_SPACE}<small>{state.BibleNames[versionAbbreviation]}</small></h3>
-{textHtml}
+<p><span class="workNav"><a title="View {state.BibleNames['OET']} chapter" href="../../versions/OET/byChapter/{BBB}_C{c}.html">OET</a> (<a title="{state.BibleNames['OET-RV']}" href="../../versions/OET-RV/byChapter/{BBB}_C{c}.html">OET-RV</a>)</span> {textHtml}</p>
+''' if versionAbbreviation=='OET-RV' else f'''
+<p><span class="workNav"><a title="View {state.BibleNames[versionAbbreviation]} chapter" href="../../versions/{versionAbbreviation}/byChapter/{BBB}_C{c}.html">{versionAbbreviation}</a></span> {textHtml}</p>
 '''
                     except (KeyError, TypeError):
                         if BBB in thisBible:
                             text = f'No {versionAbbreviation} {tidyBBB} {c}:{v} verse available'
                             logging.warning( text )
-                            vHtml = f'''<h3 class="workNav"><a title="{state.BibleNames[versionAbbreviation]}" href="../../versions/{versionAbbreviation}/byChapter/{BBB}_C{c}.html">{versionAbbreviation}</a>{EM_SPACE}<small>{state.BibleNames[versionAbbreviation]}</small></h3>
-<p class="noVerse"><small>{text}</small></p>
+                            vHtml = f'''<p><span class="workNav"><a title="{state.BibleNames[versionAbbreviation]}" href="../../versions/{versionAbbreviation}/byChapter/{BBB}_C{c}.html">{versionAbbreviation}</a></span> <span class="noVerse"><small>{text}</small></span></p>
 '''
                         else:
                             text = f'No {versionAbbreviation} {tidyBBB} book available'
-                            vHtml = f'''<h3 class="workNav">{versionAbbreviation}{EM_SPACE}<small>{state.BibleNames[versionAbbreviation]}</small></h3>
-<p class="noBook"><small>{text}</small></p>
+                            vHtml = f'''<p><span class="workNav">{versionAbbreviation}</span> <span class="noBook"><small>{text}</small></span></p>
 '''
                     # dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"\n\n{pHtml=} {vHtml=}" )
                     checkHtml( f'{versionAbbreviation} {BBB} {c}:{v}', vHtml, segmentOnly=True )
@@ -208,7 +218,7 @@ def createParallelVersePagesForBook( folder:Path, BBB:str, BBBLinks:List[str], s
                 filename = f'C{c}V{v}.html'
                 # filenames.append( filename )
                 filepath = folder.joinpath( filename )
-                top = makeTop( 2, 'parallel', None, state ) \
+                top = makeTop( 2, None, 'parallel', None, state ) \
                         .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{tidyBBB} {c}:{v} Parallel View" ) \
                         .replace( '__KEYWORDS__', f'Bible, {tidyBBB}, parallel' )
                 pHtml = top + '<!--parallel verse page-->' \
@@ -231,7 +241,7 @@ def createParallelVersePagesForBook( folder:Path, BBB:str, BBBLinks:List[str], s
     # Create index page for this book
     filename = 'index.html'
     filepath = folder.joinpath( filename )
-    top = makeTop(2, 'parallel', None, state) \
+    top = makeTop(2, None, 'parallel', None, state) \
             .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{tidyBBB} Parallel View" ) \
             .replace( '__KEYWORDS__', f'Bible, parallel' )
     # For Psalms, we don't list every single verse
@@ -251,6 +261,115 @@ f'''<p class="cLinks">{tidyBbb} {' '.join( [f'<a title="Go to parallel verse
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createParallelVersePagesForBook() finished processing {len(vLinks):,} {BBB} verses." )
     return True
 # end of html.createParallelVersePagesForBook
+
+
+def moderniseEnglishWords( html:str ) -> bool:
+    """
+    Convert ancient spellings to modern ones.
+    """
+    fnPrint( DEBUGGING_THIS_MODULE, f"moderniseEnglishWords( ({len(html)}) )" )
+
+    for oldWords,newWord in ( # Place longer words first,
+                              #     use space before to prevent accidental matches since we're only doing string matches
+            ((' abideth',),' abides'), ((' aftir',),' after'), ((' agayne','againe'),' again'),
+                ((' aloone',),' alone'),
+                (('amased',),'amazed'),
+                ((' aryse',),' arise'),
+                (('astonnied',),'astonished'),
+                ((' aungel',),' angel'),
+            ((' beesti',),' beast'), ((' beed ',' bedde '),' bed '), ((' bifor',),' before'),
+                    (('bigynnyng','beginnynge','begynnynge','begynnyng'),'beginning'), ((' beleue',' beleeue',' beleve'),' believe'),
+                    ((' bisidis',),' beside'),
+                ((' bryngyng',),' bringing'),
+            ((' cam ',' camen '),' came '), ((' certayne',),' certain'),
+                (('Crist',),'Christ'),
+                ((' comynge',),' coming'), ((' coulde','coude'),' could'), ((' cuntree',),' country'),
+            ((' daies',' dayes'),' days'),
+                ((' deliuered',),' delivered'), ((' deseert',),' desert'),
+                ((' dore',),' door'), ((' doue',),' dove'), ((' downe',),' down'), ((' dwelleth',),' dwells'), ((' dwellynge',),' dwelling'),
+            ((' entred',' entride'),' entered'),
+            ((' feith','fayth'),' faith'),
+                ((' felowe',),' fellow'), ((' feawe ',' fewe '),' few '),
+                ((' fisscheris','fisshers','fysshers'),' fishers'),
+                ((' folowed',),' followed'), ((' folowe',' folow'),' follow'), (('Folowe','Folow'),'Follow'),
+                    (('forgeven','foryouun','forgeuen','forgiuen'),'forgiven'), ((' forgiue ',' foryyue ',' forgeve ',' forgeue '),' forgive '), ((' foorth',),' forth'),
+                    ((' fourtie',' fourtye'),' forty'), ((' foure',' fower'),' four'),
+                (('fulfillid','fulfylled'),'fulfilled'),
+            (('Galile,',),'Galilee,'), ((' goost',),' ghost'), ((' gospell',),' gospel'), (('Gospell',),'Gospel'),
+            ((' hadde ',),' had '), ((' hande',' honde',' hoond'),' hand'), ((' hauynge',),' having'),
+                ((' hee ',),' he '), ((' hertis',' hertes',' heartes'),' hearts'), ((' heauen',),' heaven'),
+                ((' hym ',),' him '),((' hym,',),' him,'),((' hym.',),' him.'),((' hym;',),' him;'),
+                ((' housse ',' hous '),' house '),
+            (('immediatly',),'immediately'),
+            # (('Jhesus',),'Jesus'),(('Jhesu ',),'Jesu '), (('Joon',),'John'),
+            ((' kingdome',' kyngdoom',' kyngdome'),' kingdom'),
+                ((' knowe ',),' know '),
+            ((' laye',),' lay'), ((' lyke',),' like'),
+            ((' maad',),' made'), ((' maye ',),' may '),
+                (('ministred','mynistred','mynystriden'),'ministered'),
+                ((' moch',),' much'), 
+            ((' nettes','nettis'),' nets'), ((' nyyti',),' night'),
+            ((' ouer',),' over'), ((' awne ',' owne '),' own '),
+            ((' passide',),' passed'), ((' penaunce',),' penance'), (('perceiued','perceaved'),'perceived'),
+                ((' puple',),' people'), 
+                (('praysed',),'praised'), ((' prechide',),' preached'), ((' preachyng',),' preaching'),
+            ((' receave',),' receive'), (('reasonyng','reasoninge'),'reasoning'),
+                ((' ryse ',),' rise '),
+                ((' roofe',' rofe'),' roof'), ((' roume',),' room'),
+            ((' seide',' sayde',' saide'),' said'), ((' sayinge',),' saying'),(('Sathanas','Sathan'),'Satan'), ((' sawe ',),' saw '),
+                ((' scribis',' scrybes'),' scribes'),
+                ((' seyn',),' seen'),
+                ((' schal',),' shall'),
+                ((' sicke ',' sijk '),' sick '),  ((' sinnes','synnes'),' sins'), ((' syttyng',),' sitting'),
+                ((' summe ',),' some '), ((' sonne ',' sone '),' son '), (('Sonne ',),'Son '),
+                ((' speake',),' speak'), ((' spirite',' sprete'),' spirit'),
+                ((' soch ',),' such '),
+                (('synagoge',),'syngagogue'),
+            ((' takun',),' taken'), ((' tauyte',),' taught'),
+                (('temptid',),'tempted'),
+                ((' hem ',),' them '), ((' thei ',),' they '),
+                    ((' thingis',),' things'), ((' thenkynge',),' thinking'), ((' thynke',' thenken'),' think'),
+                ((' tyme',),' time'),
+                ((' toke ',),' took '),
+            (('vncovered','vncouered'),'uncovered'),
+            ((' vnto',),' unto'), ((' vp ',),' up '),((' vp,',),' up,'),((' vp.',),' up.'), ((' vpon',),' upon'), ((' vs ',),' us '),((' vs,',),' us,'),((' vs.',),' us.'), 
+            ((' walke ',),' walk '), ((' watir',),' water'), (('widdred','wythred','wythered'),'withered'), ((' wente',),' went'),
+                ((' whanne ',),' when '), ((' whiche ',),' which '),
+                ((' wilde ',' wylde '),' wild '), ((' wyll ',' wil '),' will '),
+            (('Iesus',),'Yesus'),(('Iesu ',),'Yesu '), (('Iohn','Ihon'),'Yohn'),
+                ((' ye ',' yee '),' you_all '), ((' thi ',' thy '),' your '), ((' youre ',' thy '),' your(pl) '),
+
+            ((' xl ',),' 40 '),
+
+            ((' & ',),' and '),
+
+            # Pairs of words
+            (('Hooli Goost',),'Holy Ghost'),
+            (('the see ',),'the sea '),
+
+            # Two words into one
+            ((' in to ',),' into '),
+            ((' for euer',),' forever'),
+            (('strayght waye',),'straightway'),
+            ((' youre selues',),' yourselves'),
+
+            # One word into two
+            ((' shalbe ',),' shall be '),
+            ):
+        for oldWord in oldWords:
+            html = html.replace( oldWord, newWord )
+
+    return html
+# end of html.moderniseEnglishWords
+
+def adjustLatin( html:str ) -> bool:
+    """
+    Convert ancient Latin spellings to modern ones.
+    """
+    fnPrint( DEBUGGING_THIS_MODULE, f"adjustLatin( ({len(html)}) )" )
+
+    return html.replace('j','y').replace('J','Y')
+# end of html.adjustLatin
 
 
 def briefDemo() -> None:
