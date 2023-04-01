@@ -44,10 +44,10 @@ from html import do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, \
                     makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-03-30' # by RJH
+LAST_MODIFIED_DATE = '2023-03-31' # by RJH
 SHORT_PROGRAM_NAME = "createParallelPages"
 PROGRAM_NAME = "OpenBibleData createParallelPages functions"
-PROGRAM_VERSION = '0.32'
+PROGRAM_VERSION = '0.33'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -162,7 +162,7 @@ def createParallelVersePagesForBook( folder:Path, BBB:str, BBBLinks:List[str], s
                         verseEntryList, contextList = thisBible.getContextVerseData( (BBB, str(c), str(v)) )
                         if isinstance( thisBible, ESFMBible.ESFMBible ):
                             verseEntryList,wordList = thisBible.livenESFMWordLinks( BBB, verseEntryList, '../../W/{n}.htm' )
-                        textHtml = convertUSFMMarkerListToHtml( versionAbbreviation, (BBB,c,v), 'verse', contextList, verseEntryList, basicOnly=True )
+                        textHtml = convertUSFMMarkerListToHtml( versionAbbreviation, (BBB,c,v), 'verse', contextList, verseEntryList, basicOnly=True, state=state )
                         while textHtml.startswith( '<br>' ): # BSB and OEB seems particularly bad with blank lines
                             textHtml = textHtml[4:]
                         while textHtml.endswith( '<br>' ): # LEB also
