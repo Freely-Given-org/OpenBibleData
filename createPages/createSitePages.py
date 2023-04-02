@@ -59,14 +59,14 @@ from createWordPages import createOETGreekWordsPages
 from html import makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-03-30' # by RJH
+LAST_MODIFIED_DATE = '2023-03-31' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData Create Pages"
-PROGRAM_VERSION = '0.46'
+PROGRAM_VERSION = '0.47'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
-TEST_MODE = False # Writes website into Test folder
+TEST_MODE = True # Writes website into Test folder
 
 ALL_PRODUCTION_BOOKS = not TEST_MODE # If set to False, only selects one book per version for a faster test build
 
@@ -448,6 +448,7 @@ You can read more about the design of the OET-LV <a href="https://openenglishtra
     assert len(BibleNames)-1 >= len(BibleLocations) # OET is a pseudo-version
     assert len(booksToLoad)-1 >= len(BibleLocations) # OET is a pseudo-version
     preloadedBibles = {}
+    sectionLists = {}
 # end of State class
 
 state = State()

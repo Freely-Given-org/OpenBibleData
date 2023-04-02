@@ -42,10 +42,10 @@ from html import do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, \
                     makeTop, makeBottom, removeDuplicateCVids, checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-03-30' # by RJH
+LAST_MODIFIED_DATE = '2023-03-31' # by RJH
 SHORT_PROGRAM_NAME = "createChapterPages"
 PROGRAM_NAME = "OpenBibleData createChapterPages functions"
-PROGRAM_VERSION = '0.27'
+PROGRAM_VERSION = '0.28'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -141,8 +141,9 @@ def createOETChapterPages( folder:Path, rvBible, lvBible, state ) -> List[str]:
                 lvVerseEntryList, lvContextList = lvBible.getContextVerseData( (BBB, str(c)) )
                 if isinstance( lvBible, ESFMBible.ESFMBible ):
                     lvVerseEntryList,lvWordList = lvBible.livenESFMWordLinks( BBB, lvVerseEntryList, '../../../W/{n}.htm' )
-                rvHtml = livenIORs( BBB, convertUSFMMarkerListToHtml( 'OET', (BBB,c), 'chapter', rvContextList, rvVerseEntryList ), numChapters )
-                lvHtml = do_OET_LV_HTMLcustomisations( convertUSFMMarkerListToHtml( 'OET', (BBB,c), 'chapter', lvContextList, lvVerseEntryList ) )
+                # rvHtml = livenIORs( BBB, convertUSFMMarkerListToHtml( 'OET', (BBB,c), 'chapter', rvContextList, rvVerseEntryList ), numChapters )
+                rvHtml = convertUSFMMarkerListToHtml( 'OET', (BBB,c), 'chapter', rvContextList, rvVerseEntryList, basicOnly=False, state=state )
+                lvHtml = do_OET_LV_HTMLcustomisations( convertUSFMMarkerListToHtml( 'OET', (BBB,c), 'chapter', lvContextList, lvVerseEntryList, basicOnly=False, state=state ) )
                 rvHtml = '<div class="chunkRV">' + rvHtml + '</div><!--chunkRV-->\n'
                 lvHtml = '<div class="chunkLV">' + lvHtml + '</div><!--chunkLV-->\n'
                 combinedHtml = removeDuplicateCVids( BBB, f'{rvHtml}{lvHtml}' )
@@ -174,7 +175,7 @@ def createOETChapterPages( folder:Path, rvBible, lvBible, state ) -> List[str]:
             if isinstance( lvBible, ESFMBible.ESFMBible ):
                 verseEntryList,lvWordList = lvBible.livenESFMWordLinks( BBB, verseEntryList, '../../../W/{n}.htm' )
             dPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"{lvBible.abbreviation} {BBB} {verseEntryList} {contextList}" )
-            cHtml += convertUSFMMarkerListToHtml( (BBB,c), 'chapter', contextList, verseEntryList )
+            cHtml += convertUSFMMarkerListToHtml( (BBB,c), 'chapter', contextList, verseEntryList, basicOnly=False, state=state )
             filename = f'{BBB}_C{c}.html'
             filenames.append( filename )
             filepath = folder.joinpath( filename )
@@ -316,8 +317,8 @@ def createChapterPages( folder:Path, thisBible, state ) -> List[str]:
                     continue
                 if isinstance( thisBible, ESFMBible.ESFMBible ):
                     verseEntryList,wordList = thisBible.livenESFMWordLinks( BBB, verseEntryList, '../../../W/{n}.htm' )
-                textHtml = convertUSFMMarkerListToHtml( thisBible.abbreviation, (BBB,c), 'chapter', contextList, verseEntryList )
-                textHtml = livenIORs( BBB, textHtml, numChapters )
+                textHtml = convertUSFMMarkerListToHtml( thisBible.abbreviation, (BBB,c), 'chapter', contextList, verseEntryList, basicOnly=False, state=state )
+                # textHtml = livenIORs( BBB, textHtml, numChapters )
                 if thisBible.abbreviation == 'OET-LV':
                     textHtml = do_OET_LV_HTMLcustomisations( textHtml )
                 elif thisBible.abbreviation == 'LSV':
@@ -347,7 +348,7 @@ def createChapterPages( folder:Path, thisBible, state ) -> List[str]:
             if isinstance( thisBible, ESFMBible.ESFMBible ):
                 verseEntryList,wordList = thisBible.livenESFMWordLinks( BBB, verseEntryList, '../../../W/{n}.htm' )
             dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{thisBible.abbreviation} {BBB} {verseEntryList} {contextList}" )
-            cHtml += convertUSFMMarkerListToHtml( thisBible.abbreviation, (BBB,'-1'), 'chapter', contextList, verseEntryList )
+            cHtml += convertUSFMMarkerListToHtml( thisBible.abbreviation, (BBB,'-1'), 'chapter', contextList, verseEntryList, basicOnly=False, state=state )
             filename = f'{BBB}.html'
             filenames.append( filename )
             filepath = folder.joinpath( filename )
@@ -418,40 +419,40 @@ def createChapterPages( folder:Path, thisBible, state ) -> List[str]:
 # end of createChapterPages.createChapterPages
 
 
-def livenIORs( BBB:str, chapterHTML:str, numChapters:int ) -> str:
-    """
-    We have to find which chapter each starting reference is in.
-    """
-    assert '\\ior' not in chapterHTML
+# def livenIORs( BBB:str, chapterHTML:str, numChapters:int ) -> str:
+#     """
+#     We have to find which chapter each starting reference is in.
+#     """
+#     assert '\\ior' not in chapterHTML
 
-    searchStartIx = 0
-    for _safetyCount1 in range( 15 ):
-        # First find each link
-        ixSpanStart = chapterHTML.find( '<span class="ior">', searchStartIx ) # Length of this string is 18 chars (used below)
-        if ixSpanStart == -1: break
-        ixEnd = chapterHTML.find( '</span>', ixSpanStart+18 )
-        assert ixEnd != -1
-        guts = chapterHTML[ixSpanStart+18:ixEnd].replace('–','-') # Convert any en-dash to hyphen
-        # print(f"{BBB} {guts=} {bookHTML[ix-20:ix+20]} {searchStartIx=} {ixSpanStart=} {ixEnd=}")
-        startGuts = guts.split('-')[0]
-        # print(f"  Now {guts=}")
-        if ':' in startGuts:
-            assert startGuts.count(':') == 1 # We expect a single C:V at this stage
-            Cstr, Vstr = startGuts.strip().split( ':' )
-        elif BibleOrgSysGlobals.loadedBibleBooksCodes.isSingleChapterBook( BBB ):
-            Cstr, Vstr = '1', startGuts.strip() # Only a verse was given
-        else: Cstr, Vstr = startGuts.strip(), '1' # Only a chapter was given
+#     searchStartIx = 0
+#     for _safetyCount1 in range( 15 ):
+#         # First find each link
+#         ixSpanStart = chapterHTML.find( '<span class="ior">', searchStartIx ) # Length of this string is 18 chars (used below)
+#         if ixSpanStart == -1: break
+#         ixEnd = chapterHTML.find( '</span>', ixSpanStart+18 )
+#         assert ixEnd != -1
+#         guts = chapterHTML[ixSpanStart+18:ixEnd].replace('–','-') # Convert any en-dash to hyphen
+#         # print(f"{BBB} {guts=} {bookHTML[ix-20:ix+20]} {searchStartIx=} {ixSpanStart=} {ixEnd=}")
+#         startGuts = guts.split('-')[0]
+#         # print(f"  Now {guts=}")
+#         if ':' in startGuts:
+#             assert startGuts.count(':') == 1 # We expect a single C:V at this stage
+#             Cstr, Vstr = startGuts.strip().split( ':' )
+#         elif BibleOrgSysGlobals.loadedBibleBooksCodes.isSingleChapterBook( BBB ):
+#             Cstr, Vstr = '1', startGuts.strip() # Only a verse was given
+#         else: Cstr, Vstr = startGuts.strip(), '1' # Only a chapter was given
 
-        # Now liven the link
-        new_guts = f'<a title="Jump to chapter page with reference" href="{BBB}_C{Cstr}.html#C{Cstr}V{Vstr}">{guts}</a>'
-        chapterHTML = f'{chapterHTML[:ixSpanStart+18]}{new_guts}{chapterHTML[ixEnd:]}'
-        searchStartIx = ixEnd + 31 # Approx number of chars that we add
-    else:
-        # logging.critical( f"inner_fn_loop_needed_to_break {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {_innerSafetyCount=}" )
-        section_liven_IOR_loop_needed_to_break
+#         # Now liven the link
+#         new_guts = f'<a title="Jump to chapter page with reference" href="{BBB}_C{Cstr}.html#C{Cstr}V{Vstr}">{guts}</a>'
+#         chapterHTML = f'{chapterHTML[:ixSpanStart+18]}{new_guts}{chapterHTML[ixEnd:]}'
+#         searchStartIx = ixEnd + 31 # Approx number of chars that we add
+#     else:
+#         # logging.critical( f"inner_fn_loop_needed_to_break {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {_innerSafetyCount=}" )
+#         section_liven_IOR_loop_needed_to_break
 
-    return chapterHTML
-# end of createChapterPages.livenIORs function
+#     return chapterHTML
+# # end of createChapterPages.livenIORs function
 
 
 def briefDemo() -> None:

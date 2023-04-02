@@ -45,10 +45,10 @@ from html import do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, \
                     makeTop, makeBottom, removeDuplicateCVids, checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-03-30' # by RJH
+LAST_MODIFIED_DATE = '2023-03-31' # by RJH
 SHORT_PROGRAM_NAME = "createSectionPages"
 PROGRAM_NAME = "OpenBibleData createSectionPages functions"
-PROGRAM_VERSION = '0.21'
+PROGRAM_VERSION = '0.22'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -142,8 +142,8 @@ def createOETSectionPages( folder:Path, rvBible, lvBible, state ) -> List[str]:
 '''
             if isinstance( rvBible, ESFMBible.ESFMBible ):
                 rvVerseEntryList,_wordList = rvBible.livenESFMWordLinks( BBB, rvVerseEntryList, '../../../W/{n}.htm' )
-            rvHtml = convertUSFMMarkerListToHtml( rvBible.abbreviation, (BBB,startC), 'section', rvContextList, rvVerseEntryList )
-            rvHtml = livenIORs( BBB, rvHtml, sections )
+            rvHtml = convertUSFMMarkerListToHtml( rvBible.abbreviation, (BBB,startC), 'section', rvContextList, rvVerseEntryList, basicOnly=False, state=state )
+            # rvHtml = livenIORs( BBB, rvHtml, sections )
             # Get the info for the first LV verse
             try:
                 lvVerseEntryList, lvContextList = lvBible.getContextVerseData( (BBB, startC, startV) )
@@ -184,7 +184,7 @@ def createOETSectionPages( folder:Path, rvBible, lvBible, state ) -> List[str]:
                 loop_counter_too_small
             if isinstance( lvBible, ESFMBible.ESFMBible ):
                 lvVerseEntryList,_wordList = lvBible.livenESFMWordLinks( BBB, lvVerseEntryList, '../../../W/{n}.htm' )
-            lvHtml = convertUSFMMarkerListToHtml( lvBible.abbreviation, (BBB,startC), 'section', lvContextList, lvVerseEntryList )
+            lvHtml = convertUSFMMarkerListToHtml( lvBible.abbreviation, (BBB,startC), 'section', lvContextList, lvVerseEntryList, basicOnly=False, state=state )
             lvHtml = do_OET_LV_HTMLcustomisations( lvHtml )
             combinedHtml = f'''<div class="chunkRV">{rvHtml}</div><!--chunkRV-->
 <div class="chunkLV">{lvHtml}</div><!--chunkLV-->
@@ -302,7 +302,7 @@ def createSectionPages( folder:Path, thisBible, state ) -> List[str]:
         # First, get our list of sections
         BBBs.append( BBB )
         bkObject = thisBible[BBB]
-        sections = []
+        sectionList = []
         for n,(startCV, sectionIndexEntry) in enumerate( bkObject._SectionIndex.items() ):
             # dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{thisBible.abbreviation} {NEWLINE*2}createSectionPages {n}: {BBB}_{startC}:{startV} {type(sectionIndexEntry)} ({len(sectionIndexEntry)}) {sectionIndexEntry=}" )
             sectionName, reasonMarker = sectionIndexEntry.getSectionNameReason()
@@ -312,11 +312,12 @@ def createSectionPages( folder:Path, thisBible, state ) -> List[str]:
             endC,endV = sectionIndexEntry.getEndCV()
             verseEntryList, contextList = bkObject._SectionIndex.getSectionEntriesWithContext( startCV )
             filename = f'{BBB}_S{n}.html'
-            sections.append( (startC,startV,endC,endV,sectionName,reasonName,contextList,verseEntryList,filename) )
+            sectionList.append( (startC,startV,endC,endV,sectionName,reasonName,contextList,verseEntryList,filename) )
+        state.sectionsList[thisBible.abbreviation] = sectionList
 
         # Now, make the actual pages
         vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Creating section pages for {thisBible.abbreviation} {BBB}…" )
-        for n, (startC,startV,endC,endV,sectionName,reasonName,contextList,verseEntryList,filename) in enumerate( sections ):
+        for n, (startC,startV,endC,endV,sectionName,reasonName,contextList,verseEntryList,filename) in enumerate( sectionList ):
             documentLink = f'<a title="Whole document view" href="../byDocument/{BBB}.html">{tidyBBB}</a>'
             startChapterLink = f'''<a title="Chapter view" href="../byChapter/{BBB}_{'Intro' if startC=='-1' else f'C{startC}'}.html">{'Intro' if startC=='-1' else startC}</a>'''
             endChapterLink = f'''<a title="Chapter view" href="../byChapter/{BBB}_{'Intro' if endC=='-1' else f'C{endC}'}.html">{'Intro' if endC=='-1' else endC}</a>'''
@@ -329,8 +330,8 @@ def createSectionPages( folder:Path, thisBible, state ) -> List[str]:
 <p class="snav">{leftLink}{documentLink} {startChapterLink}:{startV}–{endChapterLink}:{endV}{rightLink}{parallelLink}{detailsLink}</p>
 <h1>{sectionName}</h1>
 '''
-            textHtml = convertUSFMMarkerListToHtml( thisBible.abbreviation, (BBB,startC), 'section', contextList, verseEntryList )
-            textHtml = livenIORs( BBB, textHtml, sections )
+            textHtml = convertUSFMMarkerListToHtml( thisBible.abbreviation, (BBB,startC), 'section', contextList, verseEntryList, basicOnly=False, state=state )
+            # textHtml = livenIORs( BBB, textHtml, sections )
             if thisBible.abbreviation == 'OET-LV':
                 textHtml = do_OET_LV_HTMLcustomisations( textHtml )
             elif thisBible.abbreviation == 'LSV':
@@ -357,7 +358,7 @@ def createSectionPages( folder:Path, thisBible, state ) -> List[str]:
                 .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*3}versions/{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/bySection/{filename}">{thisBible.abbreviation}</a>''',
                         f'''<a title="Up to {state.BibleNames[thisBible.abbreviation]}" href="{'../'*3}versions/{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/">↑{thisBible.abbreviation}</a>''' )
         bkHtml = f'<h1 id="Top">Index of sections for {thisBible.abbreviation} {tidyBBB}</h1>\n'
-        for startC,startV,_endC,_endV,sectionName,reasonName,_contextList,_verseEntryList,filename in sections:
+        for startC,startV,_endC,_endV,sectionName,reasonName,_contextList,_verseEntryList,filename in sectionList:
             reasonString = '' if reasonName=='Section heading' and not TEST_MODE else f' ({reasonName})' # Suppress '(Section Heading)' appendages in the list
             bkHtml = f'''{bkHtml}<p><a title="View section" href="{filename}">{'Intro' if startC=='-1' else startC}:{startV} <b>{sectionName}</b>{reasonString}</a></p>'''
         bkHtml = top + '<!--sections page-->' + bkHtml + '\n' + makeBottom( 3, 'section', state )
@@ -394,51 +395,51 @@ def createSectionPages( folder:Path, thisBible, state ) -> List[str]:
 # end of createSectionPages.createSectionPages
 
 
-def livenIORs( BBB:str, sectionHTML:str, bookSections:List ) -> str:
-    """
-    We have to find which section each starting reference is in.
-    """
-    assert '\\ior' not in sectionHTML
+# def livenIORs( BBB:str, sectionHTML:str, bookSections:List ) -> str:
+#     """
+#     We have to find which section each starting reference is in.
+#     """
+#     assert '\\ior' not in sectionHTML
 
-    searchStartIx = 0
-    for _safetyCount1 in range( 15 ):
-        # First find each link
-        ixSpanStart = sectionHTML.find( '<span class="ior">', searchStartIx ) # Length of this string is 18 chars (used below)
-        if ixSpanStart == -1: break
-        ixEnd = sectionHTML.find( '</span>', ixSpanStart+18 )
-        assert ixEnd != -1
-        guts = sectionHTML[ixSpanStart+18:ixEnd].replace('–','-') # Convert any en-dash to hyphen
-        # print(f"{BBB} {guts=} {bookHTML[ix-20:ix+20]} {searchStartIx=} {ixSpanStart=} {ixEnd=}")
-        startGuts = guts.split('-')[0]
-        # print(f"  Now {guts=}")
-        if ':' in startGuts:
-            assert startGuts.count(':') == 1 # We expect a single C:V at this stage
-            Cstr, Vstr = startGuts.strip().split( ':' )
-        elif BibleOrgSysGlobals.loadedBibleBooksCodes.isSingleChapterBook( BBB ):
-            Cstr, Vstr = '1', startGuts.strip() # Only a verse was given
-        else: Cstr, Vstr = startGuts.strip(), '1' # Only a chapter was given
+#     searchStartIx = 0
+#     for _safetyCount1 in range( 15 ):
+#         # First find each link
+#         ixSpanStart = sectionHTML.find( '<span class="ior">', searchStartIx ) # Length of this string is 18 chars (used below)
+#         if ixSpanStart == -1: break
+#         ixEnd = sectionHTML.find( '</span>', ixSpanStart+18 )
+#         assert ixEnd != -1
+#         guts = sectionHTML[ixSpanStart+18:ixEnd].replace('–','-') # Convert any en-dash to hyphen
+#         # print(f"{BBB} {guts=} {bookHTML[ix-20:ix+20]} {searchStartIx=} {ixSpanStart=} {ixEnd=}")
+#         startGuts = guts.split('-')[0]
+#         # print(f"  Now {guts=}")
+#         if ':' in startGuts:
+#             assert startGuts.count(':') == 1 # We expect a single C:V at this stage
+#             Cstr, Vstr = startGuts.strip().split( ':' )
+#         elif BibleOrgSysGlobals.loadedBibleBooksCodes.isSingleChapterBook( BBB ):
+#             Cstr, Vstr = '1', startGuts.strip() # Only a verse was given
+#         else: Cstr, Vstr = startGuts.strip(), '1' # Only a chapter was given
 
-        # Now find which section that IOR starts in
-        for n, (startC,startV,endC,endV,sectionName,reasonName,contextList,verseEntryList,filename) in enumerate( bookSections ):
-            if startC==Cstr and endC==Cstr:
-                try:
-                    if int(startV) <= int(Vstr) <= int(endV): # It's in here
-                        break
-                except ValueError: pass # but it might be the one we want???
-        else:
-            logging.critical( f"unable_to_find_IOR for {BBB} {Cstr}:{Vstr} {[f'{startC}:{startV}--{endC}:{endV}' for startC,startV,endC,endV,sectionName,reasonName,contextList,verseEntryList,filename in bookSections]}" )
-            unable_to_find_IOR # Need to write more code
+#         # Now find which section that IOR starts in
+#         for n, (startC,startV,endC,endV,sectionName,reasonName,contextList,verseEntryList,filename) in enumerate( bookSections ):
+#             if startC==Cstr and endC==Cstr:
+#                 try:
+#                     if int(startV) <= int(Vstr) <= int(endV): # It's in here
+#                         break
+#                 except ValueError: pass # but it might be the one we want???
+#         else:
+#             logging.critical( f"unable_to_find_IOR for {BBB} {Cstr}:{Vstr} {[f'{startC}:{startV}--{endC}:{endV}' for startC,startV,endC,endV,sectionName,reasonName,contextList,verseEntryList,filename in bookSections]}" )
+#             unable_to_find_IOR # Need to write more code
 
-        # Now liven the link
-        new_guts = f'<a title="Jump to section page with reference" href="{BBB}_S{n}.html">{guts}</a>'
-        sectionHTML = f'{sectionHTML[:ixSpanStart+18]}{new_guts}{sectionHTML[ixEnd:]}'
-        searchStartIx = ixEnd + 26 # Approx number of chars that we add
-    else:
-        # logging.critical( f"inner_fn_loop_needed_to_break {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {_innerSafetyCount=}" )
-        section_liven_IOR_loop_needed_to_break
+#         # Now liven the link
+#         new_guts = f'<a title="Jump to section page with reference" href="{BBB}_S{n}.html">{guts}</a>'
+#         sectionHTML = f'{sectionHTML[:ixSpanStart+18]}{new_guts}{sectionHTML[ixEnd:]}'
+#         searchStartIx = ixEnd + 26 # Approx number of chars that we add
+#     else:
+#         # logging.critical( f"inner_fn_loop_needed_to_break {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {_innerSafetyCount=}" )
+#         section_liven_IOR_loop_needed_to_break
 
-    return sectionHTML
-# end of createSectionPages.livenIORs function
+#     return sectionHTML
+# # end of createSectionPages.livenIORs function
 
 
 def briefDemo() -> None:

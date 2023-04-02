@@ -48,10 +48,10 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 from html import checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-03-30' # by RJH
+LAST_MODIFIED_DATE = '2023-04-02' # by RJH
 SHORT_PROGRAM_NAME = "usfm"
 PROGRAM_NAME = "OpenBibleData USFM to HTML functions"
-PROGRAM_VERSION = '0.31'
+PROGRAM_VERSION = '0.33'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -65,7 +65,7 @@ NON_BREAK_SPACE = ' ' # NBSP
 MAX_FOOTNOTE_CHARS = 11_000 # 1029 in FBV, 1688 in BRN, 10426 in CLV JOB!
 
 
-def convertUSFMMarkerListToHtml( versionAbbreviation:str, refTuple:tuple, segmentType:str, contextList:list, markerList:list, basicOnly:bool=False ) -> str:
+def convertUSFMMarkerListToHtml( versionAbbreviation:str, refTuple:tuple, segmentType:str, contextList:list, markerList:list, basicOnly:bool, state ) -> str:
     """
     Loops through the given list of USFM lines
         and converts to a HTML segment as required.
@@ -414,7 +414,12 @@ def convertUSFMMarkerListToHtml( versionAbbreviation:str, refTuple:tuple, segmen
         elif marker in ('ip','ipi','ipq','ipr', 'im','imi','imq', 'iq1','iq2','iq3', 'io1','io2','io3','io4'):
             assert rest
             assert not inSection and not inParagraph, f"{versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {marker}={rest}"
-            html = f'{html}<p class="{marker}">{formatUSFMText( versionAbbreviation, refTuple, segmentType, rest, basicOnly )}</p>\n'
+            introHtml = formatUSFMText( versionAbbreviation, refTuple, segmentType, rest, basicOnly )
+            if marker in ('io1','io2','io3','io4'):
+                introHtml = livenIORs( segmentType, introHtml )
+            else:
+                introHtml = livenIntroductionLinks( versionAbbreviation, refTuple, segmentType, introHtml )
+            html = f'{html}<p class="{marker}">{introHtml}</p>\n'
         elif marker in ('iot',):
             assert rest
             assert not inSection and not inParagraph, f"{versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {marker}={rest}"
@@ -776,6 +781,83 @@ def formatUSFMText( versionAbbreviation:str, refTuple:tuple, segmentType:str, us
         if DEBUGGING_THIS_MODULE: halt
     return html
 # end of usfm.formatUSFMText
+
+
+def livenIntroductionLinks( versionAbbreviation:str, refTuple:tuple, segmentType:str, introHtml:str, state ) -> str:
+    """
+    Liven general links in the introduction, e.g., 'was named Mary (Acts 12:12)' or 'accompanied Peter (1 Peter 5:13)'
+        or 'about Jesus the messiah (Acts 12:25, 13:13).'
+    """
+    fnPrint( DEBUGGING_THIS_MODULE, f"livenIntroductionLinks( {versionAbbreviation}, {refTuple}, {segmentType}, '{introHtml}' )" )
+    dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"livenIntroductionLinks( {versionAbbreviation}, {refTuple}, {segmentType}, '{introHtml}' )" )
+    assert '\\ior' not in introHtml
+    assert 'class="ior"' not in introHtml
+
+    BBB = refTuple[0]
+
+    return introHtml
+# end of usfm.livenIntroductionLinks
+
+
+def livenIORs( versionAbbreviation:str, refTuple:tuple, segmentType:str, ioLineHtml:str, state ) -> str:
+    """
+    Given some html, search for <span class="ior"> (these are usually in introduction \\iot lines)
+        and liven those IOR links.
+    """
+    fnPrint( DEBUGGING_THIS_MODULE, f"livenIORs( {versionAbbreviation}, {refTuple}, {segmentType}, '{ioLineHtml}' )" )
+    dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"livenIORs( {versionAbbreviation}, {refTuple}, {segmentType}, '{ioLineHtml}' )" )
+    assert '\\ior' not in ioLineHtml
+    assert 'class="ior"' not in ioLineHtml
+
+    BBB = refTuple[0]
+
+    searchStartIx = 0
+    for _safetyCount in range( 15 ):
+        ixSpanStart = ioLineHtml.find( '<span class="ior">', searchStartIx ) # Length of this string is 18 chars (used below)
+        if ixSpanStart == -1: break
+        ixEnd = ioLineHtml.find( '</span>', ixSpanStart+18 )
+        assert ixEnd != -1
+        guts = ioLineHtml[ixSpanStart+18:ixEnd].replace('–','-') # Convert any en-dash to hyphen
+        # print(f"{BBB} {guts=} {bookHTML[ix-20:ix+20]} {searchStartIx=} {ixSpanStart=} {ixEnd=}")
+        startGuts = guts.split('-')[0]
+        # print(f"  Now {guts=}")
+        if ':' in startGuts:
+            assert startGuts.count(':') == 1 # We expect a single C:V at this stage
+            Cstr, Vstr = startGuts.strip().split( ':' )
+        elif BibleOrgSysGlobals.loadedBibleBooksCodes.isSingleChapterBook( BBB ):
+            Cstr, Vstr = '1', startGuts.strip() # Only a verse was given
+        else: Cstr, Vstr = startGuts.strip(), '1' # Only a chapter was given
+        if segmentType == 'book':
+            new_guts = f'<a title="Jump down to reference" href="#C{Cstr}V{Vstr}">{guts}</a>'
+            # searchStartIx = ixEnd + 20 # Approx number of chars that we add
+        elif segmentType == 'chapter':
+            new_guts = f'<a title="Jump to chapter page with reference" href="{BBB}_C{Cstr}.html#C{Cstr}V{Vstr}">{guts}</a>'
+            # searchStartIx = ixEnd + 31 # Approx number of chars that we add
+        elif segmentType == 'section':
+            # Now find which section that IOR starts in
+            for n, (startC,startV,endC,endV,sectionName,reasonName,contextList,verseEntryList,filename) in enumerate( state.sectionsList[versionAbbreviation] ):
+                if startC==Cstr and endC==Cstr:
+                    try:
+                        if int(startV) <= int(Vstr) <= int(endV): # It's in here
+                            break
+                    except ValueError: pass # but it might be the one we want???
+            else:
+                logging.critical( f"unable_to_find_IOR for {BBB} {Cstr}:{Vstr} {[f'{startC}:{startV}--{endC}:{endV}' for startC,startV,endC,endV,sectionName,reasonName,contextList,verseEntryList,filename in bookSections]}" )
+                unable_to_find_IOR # Need to write more code
+            new_guts = f'<a title="Jump to section page with reference" href="{BBB}_S{n}.html">{guts}</a>'
+            # searchStartIx = ixEnd + 26 # Approx number of chars that we add
+        else:
+            dPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"livenIORs( {versionAbbreviation}, {refTuple}, {segmentType}, '{ioLineHtml}' )" )
+            ooops
+
+        ioLineHtml = f'{ioLineHtml[:ixSpanStart+18]}{new_guts}{ioLineHtml[ixEnd:]}'
+        searchStartIx = ixEnd + len(new_guts) - len(guts) # Approx number of chars that we add
+    else:
+        # logging.critical( f"inner_fn_loop_needed_to_break {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {_innerSafetyCount=}" )
+        usfm_liven_IOR_loop_needed_to_break
+
+    return ioLineHtml
+# end of usfm.livenIORs function
 
 
 def briefDemo() -> None:

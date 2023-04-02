@@ -42,10 +42,10 @@ from html import do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, \
                     makeTop, makeBottom, removeDuplicateCVids, checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-03-30' # by RJH
+LAST_MODIFIED_DATE = '2023-03-31' # by RJH
 SHORT_PROGRAM_NAME = "createBookPages"
 PROGRAM_NAME = "OpenBibleData createBookPages functions"
-PROGRAM_VERSION = '0.24'
+PROGRAM_VERSION = '0.25'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -109,8 +109,8 @@ def createOETBookPages( folder:Path, rvBible, lvBible, state ) -> List[str]:
             rvVerseEntryList,rvWordList = rvBible.livenESFMWordLinks( BBB, rvVerseEntryList, '../../../W/{n}.htm' )
         if isinstance( lvBible, ESFMBible.ESFMBible ):
             lvVerseEntryList,lvWordList = lvBible.livenESFMWordLinks( BBB, lvVerseEntryList, '../../../W/{n}.htm' )
-        rvHtml = livenIORs( BBB, convertUSFMMarkerListToHtml( 'OET', (BBB,), 'book', rvContextList, rvVerseEntryList ) )
-        lvHtml = do_OET_LV_HTMLcustomisations( convertUSFMMarkerListToHtml( 'OET', (BBB,), 'book', lvContextList, lvVerseEntryList ) )
+        rvHtml = convertUSFMMarkerListToHtml( 'OET', (BBB,), 'book', rvContextList, rvVerseEntryList, basicOnly=False, state=state )
+        lvHtml = do_OET_LV_HTMLcustomisations( convertUSFMMarkerListToHtml( 'OET', (BBB,), 'book', lvContextList, lvVerseEntryList, basicOnly=False, state=state ) )
 
         # Now we have to divide the RV and the LV into an equal number of chunks (so they mostly line up)
         # First get the header and intro chunks
@@ -246,8 +246,8 @@ def createBookPages( folder:Path, thisBible, state ) -> List[str]:
         verseEntryList, contextList = thisBible.getContextVerseData( (BBB,) )
         if isinstance( thisBible, ESFMBible.ESFMBible ):
             verseEntryList,wordList = thisBible.livenESFMWordLinks( BBB, verseEntryList, '../../../W/{n}.htm' )
-        textHtml = convertUSFMMarkerListToHtml( thisBible.abbreviation, (BBB,), 'book', contextList, verseEntryList )
-        textHtml = livenIORs( BBB, textHtml )
+        textHtml = convertUSFMMarkerListToHtml( thisBible.abbreviation, (BBB,), 'book', contextList, verseEntryList, basicOnly=False, state=state )
+        # textHtml = livenIORs( BBB, textHtml )
         if thisBible.abbreviation == 'OET-LV':
             textHtml = do_OET_LV_HTMLcustomisations( textHtml )
         elif thisBible.abbreviation == 'LSV':
@@ -296,36 +296,36 @@ def createBookPages( folder:Path, thisBible, state ) -> List[str]:
 # end of createBookPages.createBookPages
 
 
-def livenIORs( BBB:str, bookHTML:str ) -> str:
-    """
-    """
-    assert '\\ior' not in bookHTML
+# def livenIORs( BBB:str, bookHTML:str ) -> str:
+#     """
+#     """
+#     assert '\\ior' not in bookHTML
 
-    searchStartIx = 0
-    for _safetyCount in range( 15 ):
-        ixSpanStart = bookHTML.find( '<span class="ior">', searchStartIx ) # Length of this string is 18 chars (used below)
-        if ixSpanStart == -1: break
-        ixEnd = bookHTML.find( '</span>', ixSpanStart+18 )
-        assert ixEnd != -1
-        guts = bookHTML[ixSpanStart+18:ixEnd].replace('–','-') # Convert any en-dash to hyphen
-        # print(f"{BBB} {guts=} {bookHTML[ix-20:ix+20]} {searchStartIx=} {ixSpanStart=} {ixEnd=}")
-        startGuts = guts.split('-')[0]
-        # print(f"  Now {guts=}")
-        if ':' in startGuts:
-            assert startGuts.count(':') == 1 # We expect a single C:V at this stage
-            Cstr, Vstr = startGuts.strip().split( ':' )
-        elif BibleOrgSysGlobals.loadedBibleBooksCodes.isSingleChapterBook( BBB ):
-            Cstr, Vstr = '1', startGuts.strip() # Only a verse was given
-        else: Cstr, Vstr = startGuts.strip(), '1' # Only a chapter was given
-        new_guts = f'<a title="Jump down to reference" href="#C{Cstr}V{Vstr}">{guts}</a>'
-        bookHTML = f'{bookHTML[:ixSpanStart+18]}{new_guts}{bookHTML[ixEnd:]}'
-        searchStartIx = ixEnd + 20 # Approx number of chars that we add
-    else:
-        # logging.critical( f"inner_fn_loop_needed_to_break {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {_innerSafetyCount=}" )
-        book_liven_IOR_loop_needed_to_break
+#     searchStartIx = 0
+#     for _safetyCount in range( 15 ):
+#         ixSpanStart = bookHTML.find( '<span class="ior">', searchStartIx ) # Length of this string is 18 chars (used below)
+#         if ixSpanStart == -1: break
+#         ixEnd = bookHTML.find( '</span>', ixSpanStart+18 )
+#         assert ixEnd != -1
+#         guts = bookHTML[ixSpanStart+18:ixEnd].replace('–','-') # Convert any en-dash to hyphen
+#         # print(f"{BBB} {guts=} {bookHTML[ix-20:ix+20]} {searchStartIx=} {ixSpanStart=} {ixEnd=}")
+#         startGuts = guts.split('-')[0]
+#         # print(f"  Now {guts=}")
+#         if ':' in startGuts:
+#             assert startGuts.count(':') == 1 # We expect a single C:V at this stage
+#             Cstr, Vstr = startGuts.strip().split( ':' )
+#         elif BibleOrgSysGlobals.loadedBibleBooksCodes.isSingleChapterBook( BBB ):
+#             Cstr, Vstr = '1', startGuts.strip() # Only a verse was given
+#         else: Cstr, Vstr = startGuts.strip(), '1' # Only a chapter was given
+#         new_guts = f'<a title="Jump down to reference" href="#C{Cstr}V{Vstr}">{guts}</a>'
+#         bookHTML = f'{bookHTML[:ixSpanStart+18]}{new_guts}{bookHTML[ixEnd:]}'
+#         searchStartIx = ixEnd + 20 # Approx number of chars that we add
+#     else:
+#         # logging.critical( f"inner_fn_loop_needed_to_break {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {_innerSafetyCount=}" )
+#         book_liven_IOR_loop_needed_to_break
 
-    return bookHTML
-# end of createBookPages.livenIORs function
+#     return bookHTML
+# # end of createBookPages.livenIORs function
 
 
 def briefDemo() -> None:
