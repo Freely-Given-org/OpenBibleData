@@ -40,14 +40,14 @@ sys.path.append( '../../BibleTransliterations/Python/' )
 from BibleTransliterations import transliterate_Greek, transliterate_Hebrew
 
 from usfm import convertUSFMMarkerListToHtml
-from html import do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, \
+from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, \
                     makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-04-02' # by RJH
+LAST_MODIFIED_DATE = '2023-04-04' # by RJH
 SHORT_PROGRAM_NAME = "createParallelPages"
 PROGRAM_NAME = "OpenBibleData createParallelPages functions"
-PROGRAM_VERSION = '0.33'
+PROGRAM_VERSION = '0.34'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -169,18 +169,20 @@ def createParallelVersePagesForBook( folder:Path, BBB:str, BBBLinks:List[str], s
                             textHtml = textHtml[:-4]
                         if textHtml == '◘': raise KeyError # This is an OET-RV marker to say "Not translated yet"
 
-                        if versionAbbreviation == 'OET-LV':
+                        if versionAbbreviation == 'OET-RV':
+                            textHtml = do_OET_RV_HTMLcustomisations( textHtml )
+                        elif versionAbbreviation == 'OET-LV':
                             textHtml = do_OET_LV_HTMLcustomisations( textHtml )
                         elif versionAbbreviation == 'WEB': # assuming WEB comes BEFORE WMB
                             textHtmlWEB = textHtml # Save it
                         elif versionAbbreviation == 'WMB': # assuming WEB comes BEFORE WMB
                             if textHtml == textHtmlWEB:
-                                print( f"Skipping parallel for WMB {BBB} {c}:{v} because same as WEB" )
+                                # print( f"Skipping parallel for WMB {BBB} {c}:{v} because same as WEB" )
                                 continue
-                            else:
-                                print( f"Using parallel for WMB {BBB} {c}:{v} because different from WEB:" )
-                                print( f"  {textHtmlWEB=}" )
-                                print( f"     {textHtml=}" )
+                            # else:
+                            #     print( f"Using parallel for WMB {BBB} {c}:{v} because different from WEB:" )
+                            #     print( f"  {textHtmlWEB=}" )
+                            #     print( f"     {textHtml=}" )
                         elif versionAbbreviation == 'LSV':
                             textHtml = do_LSV_HTMLcustomisations( textHtml )
                         elif versionAbbreviation in ('WYC','TNT','CB','GNV','BB','KJB'):

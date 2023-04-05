@@ -38,14 +38,14 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 import BibleOrgSys.Formats.ESFMBible as ESFMBible
 
 from usfm import convertUSFMMarkerListToHtml
-from html import do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, \
+from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, \
                     makeTop, makeBottom, removeDuplicateCVids, checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-03-31' # by RJH
+LAST_MODIFIED_DATE = '2023-04-04' # by RJH
 SHORT_PROGRAM_NAME = "createBookPages"
 PROGRAM_NAME = "OpenBibleData createBookPages functions"
-PROGRAM_VERSION = '0.25'
+PROGRAM_VERSION = '0.26'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -109,7 +109,7 @@ def createOETBookPages( folder:Path, rvBible, lvBible, state ) -> List[str]:
             rvVerseEntryList,rvWordList = rvBible.livenESFMWordLinks( BBB, rvVerseEntryList, '../../../W/{n}.htm' )
         if isinstance( lvBible, ESFMBible.ESFMBible ):
             lvVerseEntryList,lvWordList = lvBible.livenESFMWordLinks( BBB, lvVerseEntryList, '../../../W/{n}.htm' )
-        rvHtml = convertUSFMMarkerListToHtml( 'OET', (BBB,), 'book', rvContextList, rvVerseEntryList, basicOnly=False, state=state )
+        rvHtml = do_OET_RV_HTMLcustomisations( convertUSFMMarkerListToHtml( 'OET', (BBB,), 'book', rvContextList, rvVerseEntryList, basicOnly=False, state=state ) )
         lvHtml = do_OET_LV_HTMLcustomisations( convertUSFMMarkerListToHtml( 'OET', (BBB,), 'book', lvContextList, lvVerseEntryList, basicOnly=False, state=state ) )
 
         # Now we have to divide the RV and the LV into an equal number of chunks (so they mostly line up)
@@ -248,7 +248,9 @@ def createBookPages( folder:Path, thisBible, state ) -> List[str]:
             verseEntryList,wordList = thisBible.livenESFMWordLinks( BBB, verseEntryList, '../../../W/{n}.htm' )
         textHtml = convertUSFMMarkerListToHtml( thisBible.abbreviation, (BBB,), 'book', contextList, verseEntryList, basicOnly=False, state=state )
         # textHtml = livenIORs( BBB, textHtml )
-        if thisBible.abbreviation == 'OET-LV':
+        if thisBible.abbreviation == 'OET-RV':
+            textHtml = do_OET_RV_HTMLcustomisations( textHtml )
+        elif thisBible.abbreviation == 'OET-LV':
             textHtml = do_OET_LV_HTMLcustomisations( textHtml )
         elif thisBible.abbreviation == 'LSV':
             textHtml = do_LSV_HTMLcustomisations( textHtml )

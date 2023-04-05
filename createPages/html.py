@@ -52,10 +52,10 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 # from Bibles import fetchChapter
 
 
-LAST_MODIFIED_DATE = '2023-03-30' # by RJH
+LAST_MODIFIED_DATE = '2023-04-05' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
-PROGRAM_VERSION = '0.30'
+PROGRAM_VERSION = '0.32'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -65,8 +65,31 @@ NEWLINE = '\n'
 # EM_SPACE = ' '
 # NARROW_NON_BREAK_SPACE = ' '
 
-
 timeRegex = re.compile( '[0-9][0-9]:[0-9][0-9]' )
+
+
+def do_OET_RV_HTMLcustomisations( html:str ) -> str:
+    """
+    OET-RV is formatted in paragraphs.
+    """
+    # # Preserve the colon in times like 12:30
+    # searchStartIndex = 0
+    # while True: # Look for links that we could maybe liven
+    #     match = timeRegex.search( html, searchStartIndex )
+    #     if not match:
+    #         break
+    #     guts = match.group(0) # Entire match
+    #     assert len(guts)==5 and guts.count(':')==1
+    #     html = f'''{html[:match.start()]}{guts.replace(':','~~COLON~~',1)}{html[match.end():]}'''
+    #     searchStartIndex = match.end() + 8 # We've added that many characters
+
+    return (html \
+            # Adjust specialised add markers
+            .replace( '<span class="add">', '<span class="RVadd">' )
+            )
+# end of html.do_OET_RV_HTMLcustomisations
+
+
 def do_OET_LV_HTMLcustomisations( html:str ) -> str:
     """
     OET-LV is often formatted as a new line for each sentence.
@@ -90,7 +113,8 @@ def do_OET_LV_HTMLcustomisations( html:str ) -> str:
             .replace( '<!--', '~~COMMENT~~' )
             .replace( '../', '~~UP~DIR~~' ).replace( '_V', '~~V' )
             .replace( '.htm', '~~HTM~~' ).replace( 'https:', '~~HTTPS~~' )
-            .replace( '.org', '~~ORG~~' ).replace( 'v0.', '~~v0~~' )
+            .replace( '.org', '~~ORG~~' ).replace( '.tsv', '~~TSV~~' )
+            .replace( 'v0.', '~~v0~~' )
             # Each sentence starts a new line
             .replace( '.', '.<br>\n' ).replace( '?', '?<br>\n' )
             .replace( '!', '!<br>\n' ).replace( ':', ':<br>\n' )
@@ -107,7 +131,8 @@ def do_OET_LV_HTMLcustomisations( html:str ) -> str:
             .replace( '~~COMMENT~~', '<!--' )
             .replace( '~~UP~DIR~~', '../' ).replace( '~~V', '_V' )
             .replace( '~~HTM~~', '.htm' ).replace( '~~HTTPS~~', 'https:' )
-            .replace( '~~ORG~~', '.org' ).replace( '~~v0~~', 'v0.' )
+            .replace( '~~ORG~~', '.org' ).replace( '~~TSV~~', '.tsv' )
+            .replace( '~~v0~~', 'v0.' )
             .replace( '~~COLON~~', ':' )
             )
 # end of html.do_OET_LV_HTMLcustomisations

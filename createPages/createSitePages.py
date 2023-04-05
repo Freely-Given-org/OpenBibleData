@@ -59,14 +59,14 @@ from createWordPages import createOETGreekWordsPages
 from html import makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-03-31' # by RJH
+LAST_MODIFIED_DATE = '2023-04-04' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData Create Pages"
-PROGRAM_VERSION = '0.47'
+PROGRAM_VERSION = '0.48'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
-TEST_MODE = True # Writes website into Test folder
+TEST_MODE = False # Writes website into Test folder
 
 ALL_PRODUCTION_BOOKS = not TEST_MODE # If set to False, only selects one book per version for a faster test build
 
@@ -77,7 +77,7 @@ DESTINATION_FOLDER = DEBUG_DESTINATION_FOLDER if TEST_MODE or BibleOrgSysGlobals
                         else NORMAL_DESTINATION_FOLDER
 
 
-OET_BOOK_LIST = ('JHN','MRK','ACT', 'EPH','TI1','TIT', 'JN1','JN2','JN3', 'JDE')
+OET_BOOK_LIST = ('JHN','MRK','ACT', 'EPH','TI1','TI2','TIT', 'JN1','JN2','JN3', 'JDE')
 OET_BOOK_LIST_WITH_FRT = ('FRT','INT') + OET_BOOK_LIST
 NT_BOOK_LIST_WITH_FRT = ('FRT',) + BOOKLIST_NT27
 assert len(NT_BOOK_LIST_WITH_FRT) == 27+1
@@ -204,7 +204,7 @@ class State:
                 'OET-RV': OET_BOOK_LIST_WITH_FRT,
                 'OET-LV': OET_BOOK_LIST,
                 'ULT': ['ALL'],
-                'UST': ['ALL'], # MRK 13:13 gives \add error (24Jan2023)
+                'UST': ['ALL'], # MRK 13:13 gives \\add error (24Jan2023)
                 'OEB': ['ALL'],
                 'BSB': ['ALL'],
                 'ISV': ['ALL'],
@@ -243,7 +243,7 @@ class State:
                 'OET-RV': ['FRT','MRK'],
                 'OET-LV': ['MRK'],
                 'ULT': ['FRT','MRK'],
-                'UST': ['MRK'], # MRK 13:13 gives \add error (24Jan2023)
+                'UST': ['MRK'], # MRK 13:13 gives \\add error (24Jan2023)
                 'OEB': ['MRK'],
                 'BSB': ['MRK'],
                 'ISV': ['MRK'],
@@ -448,7 +448,7 @@ You can read more about the design of the OET-LV <a href="https://openenglishtra
     assert len(BibleNames)-1 >= len(BibleLocations) # OET is a pseudo-version
     assert len(booksToLoad)-1 >= len(BibleLocations) # OET is a pseudo-version
     preloadedBibles = {}
-    sectionLists = {}
+    sectionsLists = {}
 # end of State class
 
 state = State()
