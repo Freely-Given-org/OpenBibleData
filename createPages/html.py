@@ -52,10 +52,10 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 # from Bibles import fetchChapter
 
 
-LAST_MODIFIED_DATE = '2023-04-05' # by RJH
+LAST_MODIFIED_DATE = '2023-04-06' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
-PROGRAM_VERSION = '0.32'
+PROGRAM_VERSION = '0.33'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -94,7 +94,7 @@ def do_OET_LV_HTMLcustomisations( html:str ) -> str:
     """
     OET-LV is often formatted as a new line for each sentence.
 
-    We have to protect fields like periods in '../C2_V2.html' from corruption
+    We have to protect fields like periods in '../C2_V2.htm' from corruption
         (and then restore them again of course).
     """
     # Preserve the colon in times like 12:30
@@ -152,7 +152,7 @@ def do_LSV_HTMLcustomisations( html:str ) -> str:
 KNOWN_PAGE_TYPES = ('site', 'topIndex', 'details', 'allDetails',
                     'book','chapter','section',
                     'parallel',
-                    'word','person','location')
+                    'word','lemma', 'person','location')
 def makeTop( level:int, versionAbbreviation:str, pageType:str, fileOrFolderName:Optional[str], state ) -> str:
     """
     Create the very top part of an HTML page.
@@ -165,7 +165,7 @@ def makeTop( level:int, versionAbbreviation:str, pageType:str, fileOrFolderName:
         cssFilename = 'OETChapter.css' if 'OET' in versionAbbreviation else 'BibleChapter.css'
     elif pageType == 'parallel':
         cssFilename = 'ParallelVerses.css'
-    elif pageType in ('word', 'person','location'):
+    elif pageType in ('word','lemma', 'person','location'):
         cssFilename = 'BibleWord.css'
     else: cssFilename = 'BibleSite.css'
 
@@ -217,9 +217,9 @@ def _makeHeader( level:int, versionAbbreviation:str, pageType:str, fileOrFolderN
                 continue
 
         # Note: This is not good because not all versions have all books -- we try to fix that below
-        vLink = f"{'../'*level}versions/{BibleOrgSysGlobals.makeSafeString(thisVersionAbbreviation)}/{fileOrFolderName}" \
+        vLink = f"{'../'*level}{BibleOrgSysGlobals.makeSafeString(thisVersionAbbreviation)}/{fileOrFolderName}" \
                     if fileOrFolderName else \
-                f"{'../'*level}versions/{BibleOrgSysGlobals.makeSafeString(thisVersionAbbreviation)}"
+                f"{'../'*level}{BibleOrgSysGlobals.makeSafeString(thisVersionAbbreviation)}"
         initialVersionList.append( f'{state.BibleVersionDecorations[thisVersionAbbreviation][0]}'
                             f'<a title="{state.BibleNames[thisVersionAbbreviation]}" '
                             f'href="{vLink}">{thisVersionAbbreviation}</a>'
@@ -228,17 +228,17 @@ def _makeHeader( level:int, versionAbbreviation:str, pageType:str, fileOrFolderN
     if pageType == 'parallel':
         initialVersionList.append( 'Parallel' )
     else: # add a link for parallel
-        initialVersionList.append( f'''{state.BibleVersionDecorations['Parallel'][0]}<a title="Single verse in many translations" href="{'../'*level}parallel/">Parallel</a>{state.BibleVersionDecorations['Parallel'][1]}''' )
+        initialVersionList.append( f'''{state.BibleVersionDecorations['Parallel'][0]}<a title="Single verse in many translations" href="{'../'*level}pa/">Parallel</a>{state.BibleVersionDecorations['Parallel'][1]}''' )
     if pageType == 'interlinear':
         initialVersionList.append( 'Interlinear' )
     else: # add a link for interlinear
-        initialVersionList.append( f'''{state.BibleVersionDecorations['Interlinear'][0]}<a title="Not done yet" href="{'../'*level}interlinear/">Interlinear</a>{state.BibleVersionDecorations['Interlinear'][1]}''' )
+        initialVersionList.append( f'''{state.BibleVersionDecorations['Interlinear'][0]}<a title="Not done yet" href="{'../'*level}il/">Interlinear</a>{state.BibleVersionDecorations['Interlinear'][1]}''' )
 
     # This code tries to adjust links to books which aren't in a version, e.g., UHB has no NT books, SR-GNT and UGNT have no OT books
     # It does this by adjusting the potential bad link to the next level higher.
     newVersionList = []
     for entry in initialVersionList:
-        if '/parallel/' in entry or '/interlinear/' in entry:
+        if '/pa/' in entry or '/il/' in entry:
             newVersionList.append( entry )
             continue # Should always be able to link to these
         entryBBB = None
@@ -271,15 +271,16 @@ def _makeHeader( level:int, versionAbbreviation:str, pageType:str, fileOrFolderN
     versionHtml = f'''<p class="workNav">{' '.join(newVersionList)}</p>'''
 
     viewLinks = []
-    if not versionAbbreviation: versionAbbreviation = 'OET'
-    if pageType != 'book':
-        viewLinks.append( f'''<a title="View entire document" href="{'../'*level}/versions/{versionAbbreviation}/byDocument/">By Document</a>''' )
-    if pageType != 'section':
-        viewLinks.append( f'''<a title="View section" href="{'../'*level}/versions/{versionAbbreviation}/bySection/">By Section</a>''' )
-    if pageType != 'chapter':
-        viewLinks.append( f'''<a title="View chapter" href="{'../'*level}/versions/{versionAbbreviation}/byChapter/">By Chapter</a>''' )
-    if pageType != 'details':
-        viewLinks.append( f'''<a title="View chapter" href="{'../'*level}/versions/{versionAbbreviation}/details.html">Details</a>''' )
+    if pageType in ('book','section','chapter','details'):
+        if not versionAbbreviation: versionAbbreviation = 'OET'
+        if pageType != 'book':
+            viewLinks.append( f'''<a title="View entire document" href="{'../'*level}{versionAbbreviation}/byDoc/">By Document</a>''' )
+        if pageType != 'section':
+            viewLinks.append( f'''<a title="View section" href="{'../'*level}{versionAbbreviation}/bySec/">By Section</a>''' )
+        if pageType != 'chapter':
+            viewLinks.append( f'''<a title="View chapter" href="{'../'*level}{versionAbbreviation}/byC/">By Chapter</a>''' )
+        if pageType != 'details':
+            viewLinks.append( f'''<a title="View chapter" href="{'../'*level}{versionAbbreviation}/details.htm">Details</a>''' )
     viewHtml = f'''<p class="viewNav">{' '.join(viewLinks)}</p>''' if viewLinks else ''
 
     return f'''<div class="header">{versionHtml}{NEWLINE if viewHtml else ''}{viewHtml}</div><!--header-->'''
@@ -303,7 +304,7 @@ def _makeFooter( level:int, pageType:str, state ) -> str:
     # fnPrint( DEBUGGING_THIS_MODULE, f"_makeFooter()" )
     html = f"""<div class="footer">
 <p class="copyright"><small><em>{'TEST ' if TEST_MODE else ''}Open Bible Data</em> site copyright © 2023 <a href="https://Freely-Given.org">Freely-Given.org</a>{datetime.now().strftime(' (Page created: %Y-%m-%d %H:%M)') if TEST_MODE else ''}</small></p>
-<p class="copyright"><small>For Bible data copyrights, see the <a href="{'../'*level}versions/allDetails.html">details</a> for each displayed Bible version.</small></p>
+<p class="copyright"><small>For Bible data copyrights, see the <a href="{'../'*level}allDetails.htm">details</a> for each displayed Bible version.</small></p>
 </div><!--footer-->"""
     return html
 # end of html._makeFooter

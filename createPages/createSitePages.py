@@ -55,14 +55,14 @@ from createChapterPages import createOETChapterPages, createChapterPages
 from createSectionPages import createOETSectionPages, createSectionPages
 from createParallelPages import createParallelPages
 from createInterlinearPages import createInterlinearPages
-from createWordPages import createOETGreekWordsPages
+from createOETReferencePages import createOETReferencePages
 from html import makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-04-04' # by RJH
+LAST_MODIFIED_DATE = '2023-04-07' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData Create Pages"
-PROGRAM_VERSION = '0.48'
+PROGRAM_VERSION = '0.49'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
@@ -239,9 +239,9 @@ class State:
                 'BrLXX': ['ALL'],
                 'UHB': ['ALL'],
             } if ALL_PRODUCTION_BOOKS else {
-                'OET': ['FRT','MRK'],
-                'OET-RV': ['FRT','MRK'],
-                'OET-LV': ['MRK'],
+                'OET': ['FRT','MRK','TI1'],
+                'OET-RV': ['FRT','MRK','TI1'],
+                'OET-LV': ['MRK','TI1'],
                 'ULT': ['FRT','MRK'],
                 'UST': ['MRK'], # MRK 13:13 gives \\add error (24Jan2023)
                 'OEB': ['MRK'],
@@ -461,17 +461,14 @@ def createSitePages() -> bool:
     fnPrint( DEBUGGING_THIS_MODULE, "createSitePages()")
     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"createSitePages() running in {'TEST' if TEST_MODE else 'production'} mode with {'all production books' if ALL_PRODUCTION_BOOKS else 'reduced books being loaded'} for {len(state.BibleLocations):,} Bible versions…" )
 
+    try: os.makedirs( TEMP_BUILD_FOLDER )
+    except FileExistsError:
+        assert os.path.isdir( TEMP_BUILD_FOLDER )
+        cleanHTMLFolders( TEMP_BUILD_FOLDER, state )
+
     # Preload our various Bibles
     numLoadedVersions = preloadVersions( state )
     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nPreloaded {len(state.preloadedBibles)} Bible versions: {state.preloadedBibles.keys()}" )
-
-    try: os.makedirs( TEMP_BUILD_FOLDER )
-    except FileExistsError: pass # they were already there
-    cleanHTMLFolders( TEMP_BUILD_FOLDER )
-
-    versionsFolder = TEMP_BUILD_FOLDER.joinpath( 'versions/' )
-    try: os.makedirs( versionsFolder )
-    except FileExistsError: pass # they were already there
 
     # Find our inclusive list of books
     allBBBs = set()
@@ -492,11 +489,11 @@ def createSitePages() -> bool:
     # Ok, let's go create some static pages
     if 'OET' in state.BibleVersions: # this is a special case
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nCreating version pages for OET…" )
-        versionFolder = TEMP_BUILD_FOLDER.joinpath( f'versions/OET/' )
+        versionFolder = TEMP_BUILD_FOLDER.joinpath( f'OET/' )
         createOETVersionPages( versionFolder, state.preloadedBibles['OET-RV'], state.preloadedBibles['OET-LV'], state )
     for versionAbbreviation, thisBible in state.preloadedBibles.items(): # doesn't include OET pseudo-translation
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nCreating version pages for {thisBible.abbreviation}…" )
-        versionFolder = TEMP_BUILD_FOLDER.joinpath( f'versions/{thisBible.abbreviation}/' )
+        versionFolder = TEMP_BUILD_FOLDER.joinpath( f'{thisBible.abbreviation}/' )
         createVersionPages( versionFolder, thisBible, state )
 
     # We do this later than the createVersionPages above
@@ -505,33 +502,36 @@ def createSitePages() -> bool:
     if 'OET' in state.BibleVersions: # this is a special case
         rvBible, lvBible = state.preloadedBibles['OET-RV'], state.preloadedBibles['OET-LV']
         if rvBible.discoveryResults['ALL']['haveSectionHeadings'] or lvBible.discoveryResults['ALL']['haveSectionHeadings']:
-            versionFolder = TEMP_BUILD_FOLDER.joinpath( f'versions/OET/' )
-            createOETSectionPages( versionFolder.joinpath('bySection/'), rvBible, lvBible, state )
+            versionFolder = TEMP_BUILD_FOLDER.joinpath( f'OET/' )
+            createOETSectionPages( versionFolder.joinpath('bySec/'), rvBible, lvBible, state )
     for versionAbbreviation, thisBible in state.preloadedBibles.items(): # doesn't include OET pseudo-translation
         if thisBible.discoveryResults['ALL']['haveSectionHeadings']:
-            versionFolder = TEMP_BUILD_FOLDER.joinpath( f'versions/{thisBible.abbreviation}/' )
-            createSectionPages( versionFolder.joinpath('bySection/'), thisBible, state )
+            versionFolder = TEMP_BUILD_FOLDER.joinpath( f'{thisBible.abbreviation}/' )
+            createSectionPages( versionFolder.joinpath('bySec/'), thisBible, state )
 
-    createParallelPages( TEMP_BUILD_FOLDER.joinpath('parallel/'), state )
-    createInterlinearPages( TEMP_BUILD_FOLDER.joinpath('interlinear/'), state )
+    createParallelPages( TEMP_BUILD_FOLDER.joinpath('pa/'), state )
+    createInterlinearPages( TEMP_BUILD_FOLDER.joinpath('il/'), state )
 
-    createOETGreekWordsPages( TEMP_BUILD_FOLDER.joinpath('W/'), state )
+    createOETReferencePages( TEMP_BUILD_FOLDER.joinpath('rf/'), state )
 
-    createDetailsPages( 1, versionsFolder, state )
+    createDetailsPages( 0, TEMP_BUILD_FOLDER, state )
 
     createMainIndexPages( 0, TEMP_BUILD_FOLDER, state )
 
-    # Now move the site from our temporary build location to overwrite the destination location
-    try: os.makedirs( DESTINATION_FOLDER )
+    # Clean away any existing folders so we can copy in the newly built stuff
+    try: os.makedirs( f'{DESTINATION_FOLDER}/' )
     except FileExistsError: # they were already there
-        cleanHTMLFolders( DESTINATION_FOLDER )
+        assert os.path.isdir( DESTINATION_FOLDER )
+        cleanHTMLFolders( DESTINATION_FOLDER, state )
+
+    # Now move the site from our temporary build location to overwrite the destination location
     count = 0
     for fileOrFolderPath in glob.glob( f'{TEMP_BUILD_FOLDER}/*' ):
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Moving {fileOrFolderPath} to {DESTINATION_FOLDER}…" )
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Moving {fileOrFolderPath} to {DESTINATION_FOLDER}/…" )
         # Note: shutil.copy2 is the same as copy but keeps metadata like creation and modification times
-        shutil.move( fileOrFolderPath, DESTINATION_FOLDER, copy_function=shutil.copy2)
+        shutil.move( fileOrFolderPath, f'{DESTINATION_FOLDER}/', copy_function=shutil.copy2)
         count += 1
-    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Moved {count} folders and files into {DESTINATION_FOLDER}." )
+    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Moved {count} folders and files into {DESTINATION_FOLDER}/." )
 
     # In DEBUG mode, we need to copy the .css files and Bible.js across
     if DESTINATION_FOLDER != NORMAL_DESTINATION_FOLDER:
@@ -543,24 +543,29 @@ def createSitePages() -> bool:
             count += 1
         shutil.copy2( f'{NORMAL_DESTINATION_FOLDER}/Bible.js', DESTINATION_FOLDER )
         count += 1
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Copied {count} stylesheets and scripts to {DESTINATION_FOLDER}." )
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Copied {count} stylesheets and scripts to {DESTINATION_FOLDER}/." )
 # end of createSitePages.createSitePages
 
 
-def cleanHTMLFolders( folder:Path ) -> bool:
+def cleanHTMLFolders( folder:Path, state ) -> bool:
     """
     """
     fnPrint( DEBUGGING_THIS_MODULE, f"cleanHTMLFolders( {folder} )")
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Cleaning away any existing folders at {folder}…")
+
     try: os.unlink( folder.joinpath( 'index.html' ) )
     except FileNotFoundError: pass
-    try: shutil.rmtree( folder.joinpath( 'versions/' ) )
+    try: os.unlink( folder.joinpath( 'allDetails.htm' ) )
     except FileNotFoundError: pass
-    try: shutil.rmtree( folder.joinpath( 'parallel/' ) )
+    try: shutil.rmtree( folder.joinpath( 'pa/' ) )
     except FileNotFoundError: pass
-    try: shutil.rmtree( folder.joinpath( 'interlinear/' ) )
+    try: shutil.rmtree( folder.joinpath( 'il/' ) )
     except FileNotFoundError: pass
-    try: shutil.rmtree( folder.joinpath( 'W/' ) )
+    try: shutil.rmtree( folder.joinpath( 'rf/' ) )
     except FileNotFoundError: pass
+    for versionAbbreviation in state.BibleVersions:
+        try: shutil.rmtree( folder.joinpath( f'{versionAbbreviation}/' ) )
+        except FileNotFoundError: pass
     return True
 # end of createSitePages.cleanHTMLFolders
 
@@ -569,28 +574,28 @@ def createOETVersionPages( folder:Path, rvBible, lvBible, state:State ) -> bool:
     """
     """
     fnPrint( DEBUGGING_THIS_MODULE, f"createOETVersionPages( {folder}, {rvBible.abbreviation}, {lvBible.abbreviation} )")
-    createOETBookPages( folder.joinpath('byDocument/'), rvBible, lvBible, state )
+    createOETBookPages( folder.joinpath('byDoc/'), rvBible, lvBible, state )
     rvBible.discover() # Now that all required books are loaded
     lvBible.discover() #     ..ditto..
     dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{rvBible.discoveryResults['ALL']['haveSectionHeadings']=}" )
     dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{lvBible.discoveryResults['ALL']['haveSectionHeadings']=}" )
-    createOETChapterPages( folder.joinpath('byChapter/'), rvBible, lvBible, state )
+    createOETChapterPages( folder.joinpath('byC/'), rvBible, lvBible, state )
 
     versionName = state.BibleNames['OET']
     indexHtml = f'''<h1 id="Top">{versionName}</h1>
-<p class="rem">Remember that ancient letters were meant to be read in their entirety just like modern letters. We provide a byChapter mode for convenience only, but recommend the byDocument mode for personal reading.</p>
-<p class="viewNav"><a href="byDocument">By Document</a> <a href="bySection">By Section</a> <a href="byChapter">By Chapter</a> <a href="details.html">Details</a></p>
+<p class="rem">Remember that ancient letters were meant to be read in their entirety just like modern letters. We provide a byC mode for convenience only, but recommend the byDoc mode for personal reading.</p>
+<p class="viewNav"><a href="byDoc">By Document</a> <a href="bySec">By Section</a> <a href="byC">By Chapter</a> <a href="details.htm">Details</a></p>
 ''' if rvBible.discoveryResults['ALL']['haveSectionHeadings'] or lvBible.discoveryResults['ALL']['haveSectionHeadings'] else \
 f'''<h1 id="Top">{versionName}</h1>
-<p class="rem">Remember that ancient letters were meant to be read in their entirety just like modern letters. We provide a byChapter mode for convenience only, but recommend the byDocument mode for personal reading.</p>
-<p class="viewNav"><a href="byDocument">By Document</a> <a href="byChapter">By Chapter</a> <a href="details.html">Details</a></p>
+<p class="rem">Remember that ancient letters were meant to be read in their entirety just like modern letters. We provide a byC mode for convenience only, but recommend the byDoc mode for personal reading.</p>
+<p class="viewNav"><a href="byDoc">By Document</a> <a href="byC">By Chapter</a> <a href="details.htm">Details</a></p>
 '''
-    filepath = folder.joinpath( 'index.html' )
+    filepath = folder.joinpath( 'index.htm' )
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
         indexHtmlFile.write( makeTop( 2, None, 'site', None, state ) \
                                     .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{versionName}" ) \
                                     .replace( '__KEYWORDS__', f"Bible, OET, {versionName}" ) \
-                                    .replace( f'''<a title="{versionName}" href="{'../'*2}versions/OET">OET</a>''', 'OET' ) \
+                                    .replace( f'''<a title="{versionName}" href="{'../'*2}OET">OET</a>''', 'OET' ) \
                                 + indexHtml + '\n' + makeBottom( 1, 'site', state ) )
     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"    {len(indexHtml):,} characters written to {filepath}" )
     return True
@@ -600,26 +605,26 @@ def createVersionPages( folder:Path, thisBible, state:State ) -> bool:
     """
     """
     fnPrint( DEBUGGING_THIS_MODULE, f"createVersionPages( {folder}, {thisBible.abbreviation} )")
-    createBookPages( folder.joinpath('byDocument/'), thisBible, state )
+    createBookPages( folder.joinpath('byDoc/'), thisBible, state )
     thisBible.discover() # Now that all required books are loaded
     dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{thisBible.discoveryResults['ALL']['haveSectionHeadings']=}" )
-    createChapterPages( folder.joinpath('byChapter/'), thisBible, state )
+    createChapterPages( folder.joinpath('byC/'), thisBible, state )
 
     versionName = state.BibleNames[thisBible.abbreviation]
     indexHtml = f'''<h1 id="Top">{versionName}</h1>
-<p class="rem">Remember that ancient letters were meant to be read in their entirety just like modern letters. We provide a byChapter mode for convenience only, but recommend the byDocument mode for personal reading.</p>
-<p class="viewNav"><a href="byDocument">By Document</a> <a href="bySection">By Section</a> <a href="byChapter">By Chapter</a> <a href="details.html">Details</a></p>
+<p class="rem">Remember that ancient letters were meant to be read in their entirety just like modern letters. We provide a byC mode for convenience only, but recommend the byDoc mode for personal reading.</p>
+<p class="viewNav"><a href="byDoc">By Document</a> <a href="bySec">By Section</a> <a href="byC">By Chapter</a> <a href="details.htm">Details</a></p>
 ''' if thisBible.discoveryResults['ALL']['haveSectionHeadings'] else \
 f'''<h1 id="Top">{versionName}</h1>
-<p class="rem">Remember that ancient letters were meant to be read in their entirety just like modern letters. We provide a byChapter mode for convenience only, but recommend the byDocument mode for personal reading.</p>
-<p class="viewNav"><a href="byDocument">By Document</a> <a href="byChapter">By Chapter</a> <a href="details.html">Details</a></p>
+<p class="rem">Remember that ancient letters were meant to be read in their entirety just like modern letters. We provide a byC mode for convenience only, but recommend the byDoc mode for personal reading.</p>
+<p class="viewNav"><a href="byDoc">By Document</a> <a href="byC">By Chapter</a> <a href="details.htm">Details</a></p>
 '''
-    filepath = folder.joinpath( 'index.html' )
+    filepath = folder.joinpath( 'index.htm' )
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
         indexHtmlFile.write( makeTop( 2, None, 'site', None, state ) \
                                     .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{versionName}" ) \
                                     .replace( '__KEYWORDS__', f'Bible, {versionName}' ) \
-                                    .replace( f'''<a title="{versionName}" href="{'../'*2}versions/{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}">{thisBible.abbreviation}</a>''', thisBible.abbreviation ) \
+                                    .replace( f'''<a title="{versionName}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}">{thisBible.abbreviation}</a>''', thisBible.abbreviation ) \
                                 + indexHtml + makeBottom( 1, 'site', state ) )
     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"    {len(indexHtml):,} characters written to {filepath}" )
     return True
@@ -646,34 +651,34 @@ def createMainIndexPages( level, folder:Path, state ) -> bool:
     html += bodyHtml + f'<p><small>Last rebuilt: {date.today()}</small></p>\n' + makeBottom( level, 'topIndex', state )
     checkHtml( 'TopIndex', html )
 
-    filepath = folder.joinpath( 'index.html' )
+    filepath = folder.joinpath( 'index.html' ) # The only file that uses .html
     with open( filepath, 'wt', encoding='utf-8' ) as htmlFile:
         htmlFile.write( html )
     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  {len(html):,} characters written to {filepath}" )
 
-    # Create the versions index file (in case it's needed)
-    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Creating versions {'TEST ' if TEST_MODE else ''}index page for {len(state.BibleVersions)} versions…" )
-    html = makeTop( level+1, None, 'topIndex', None, state ) \
-            .replace( '__TITLE__', 'TEST Open Bible Data Versions' if TEST_MODE else 'Open Bible Data Versions') \
-            .replace( '__KEYWORDS__', 'Bible, translation, English, OET' )
-    if TEST_MODE:
-        html = html.replace( '<body>', '<body><p><a href="../../versions/">UP TO MAIN NON-TEST SITE</a></p>')
-    bodyHtml = """<!--createVersionsIndexPage--><h1 id="Top">Open Bible Data TEST Versions</h1>
-""" if TEST_MODE else """<!--createMainIndexPage--><h1 id="Top">Open Bible Data Versions</h1>
-"""
+#     # Create the versions index file (in case it's needed)
+#     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Creating versions {'TEST ' if TEST_MODE else ''}index page for {len(state.BibleVersions)} versions…" )
+#     html = makeTop( level+1, None, 'topIndex', None, state ) \
+#             .replace( '__TITLE__', 'TEST Open Bible Data Versions' if TEST_MODE else 'Open Bible Data Versions') \
+#             .replace( '__KEYWORDS__', 'Bible, translation, English, OET' )
+#     if TEST_MODE:
+#         html = html.replace( '<body>', '<body><p><a href="../../">UP TO MAIN NON-TEST SITE</a></p>')
+#     bodyHtml = """<!--createVersionsIndexPage--><h1 id="Top">Open Bible Data TEST Versions</h1>
+# """ if TEST_MODE else """<!--createMainIndexPage--><h1 id="Top">Open Bible Data Versions</h1>
+# """
 
-    bodyHtml = f'{bodyHtml}<p>Select one of the above Bible version abbreviations for views of entire documents (‘<i>books</i>’) or sections or chapters, or else select either of the Parallel or Interlinear verse views.</p>\n<ol>\n'
-    for versionAbbreviation in state.BibleVersions:
-        bodyHtml = f'{bodyHtml}<li><b>{versionAbbreviation}</b>: {state.BibleNames[versionAbbreviation]}</li>\n'
-    bodyHtml = f'{bodyHtml}</ol>\n'
+#     bodyHtml = f'{bodyHtml}<p>Select one of the above Bible version abbreviations for views of entire documents (‘<i>books</i>’) or sections or chapters, or else select either of the Parallel or Interlinear verse views.</p>\n<ol>\n'
+#     for versionAbbreviation in state.BibleVersions:
+#         bodyHtml = f'{bodyHtml}<li><b>{versionAbbreviation}</b>: {state.BibleNames[versionAbbreviation]}</li>\n'
+#     bodyHtml = f'{bodyHtml}</ol>\n'
 
-    html += bodyHtml + f'<p><small>Last rebuilt: {date.today()}</small></p>\n' + makeBottom( level, 'topIndex', state )
-    checkHtml( 'VersionIndex', html )
+#     html += bodyHtml + f'<p><small>Last rebuilt: {date.today()}</small></p>\n' + makeBottom( level, 'topIndex', state )
+#     checkHtml( 'VersionIndex', html )
 
-    filepath = folder.joinpath( 'versions/', 'index.html' )
-    with open( filepath, 'wt', encoding='utf-8' ) as htmlFile:
-        htmlFile.write( html )
-    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  {len(html):,} characters written to {filepath}" )
+#     filepath = folder.joinpath( 'index.htm' )
+#     with open( filepath, 'wt', encoding='utf-8' ) as htmlFile:
+#         htmlFile.write( html )
+#     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  {len(html):,} characters written to {filepath}" )
 # end of createSitePages.createMainIndexPage
 
 
@@ -683,13 +688,13 @@ def createDetailsPages( level:int, versionsFolder:Path, state ) -> bool:
         plus a summary page of all the versions.
     """
     fnPrint( DEBUGGING_THIS_MODULE, f"createDetailsPages( {level}, {versionsFolder}, {state.BibleVersions} )" )
-    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Creating {'TEST ' if TEST_MODE else ''}details pages for {len(state.BibleVersions)} versions…" )
+    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nCreating {'TEST ' if TEST_MODE else ''}details pages for {len(state.BibleVersions)} versions…" )
 
     allDetailsHTML = ''
     for versionAbbreviation in ['OET'] + [versAbbrev for versAbbrev in state.preloadedBibles]:
         versionName = state.BibleNames[versionAbbreviation]
 
-        if versionAbbreviation != 'OET': # it doesn't have a BibleLocation
+        if versionAbbreviation != 'OET': # (OET doesn't have a BibleLocation)
             if 'eBible' in state.BibleLocations[versionAbbreviation]:
                 # This code scrapes info from eBible.org copr.htm files, and hence is very fragile (susceptible to upstream changes)
                 with open( os.path.join(state.BibleLocations[versionAbbreviation], 'copr.htm'), 'rt', encoding='utf-8' ) as coprFile:
@@ -716,14 +721,14 @@ def createDetailsPages( level:int, versionsFolder:Path, state ) -> bool:
                         state.detailsHtml[versionAbbreviation]['acknowledgements'].replace( '(coming)',
                             'Thanks to <a href="https://www.BibleSuperSearch.com/bible-downloads/">BibleSuperSearch.com</a> for supplying the source file' )
 
-        topHtml = makeTop( level+1, None, 'details', 'details.html', state ) \
+        topHtml = makeTop( level+1, versionAbbreviation, 'details', 'details.htm', state ) \
                 .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{versionName} Details" ) \
                 .replace( '__KEYWORDS__', 'Bible, details, about, copyright, licence, acknowledgements' ) \
-                .replace( f'''<a title="{state.BibleNames[versionAbbreviation]}" href="{'../'*(level+1)}versions/{BibleOrgSysGlobals.makeSafeString(versionAbbreviation)}/details.html">{versionAbbreviation}</a>''',
-                            f'''<a title="Up to {state.BibleNames[versionAbbreviation]}" href="{'../'*(level+1)}versions/{BibleOrgSysGlobals.makeSafeString(versionAbbreviation)}/">↑{versionAbbreviation}</a>''' )
+                .replace( f'''<a title="{state.BibleNames[versionAbbreviation]}" href="{'../'*(level+1)}{BibleOrgSysGlobals.makeSafeString(versionAbbreviation)}/details.htm">{versionAbbreviation}</a>''',
+                            f'''<a title="Up to {state.BibleNames[versionAbbreviation]}" href="{'../'*(level+1)}{BibleOrgSysGlobals.makeSafeString(versionAbbreviation)}/">↑{versionAbbreviation}</a>''' )
         
         extraHTML = '''<h2>Key to Abbreviations</h2>
-<p>See key and more information <a href="byDocument/FRT.html">here</a>.</p>
+<p>See key and more information <a href="byDoc/FRT.htm">here</a>.</p>
 ''' if versionAbbreviation == 'T4T' else ''
 
         detailsHtml = f"""{extraHTML}<h2>About the {versionAbbreviation}</h2>{state.detailsHtml[versionAbbreviation]['about']}
@@ -733,7 +738,7 @@ def createDetailsPages( level:int, versionsFolder:Path, state ) -> bool:
 """
         bodyHtml = f'''<!--createDetailsPages--><h1 id="Top">{versionName} Details</h1>
 {detailsHtml}
-<p>See details for ALL included versions <a title="All versions’ details" href="../allDetails.html">here</a>.</p>
+<p>See details for ALL included versions <a title="All versions’ details" href="../allDetails.htm">here</a>.</p>
 '''
 
         allDetailsHTML = f'''{allDetailsHTML}{'<hr>' if allDetailsHTML else ''}<h2>{versionName}</h2>
@@ -746,22 +751,22 @@ def createDetailsPages( level:int, versionsFolder:Path, state ) -> bool:
         try: os.makedirs( versionFolder )
         except FileExistsError: pass # they were already there
 
-        filepath = versionFolder.joinpath( 'details.html' )
+        filepath = versionFolder.joinpath( 'details.htm' )
         with open( filepath, 'wt', encoding='utf-8' ) as htmlFile:
             htmlFile.write( html )
         vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  {len(html):,} characters written to {filepath}" )
 
     # Make a summary page with details for all versions
-    topHtml = makeTop( level, None, 'allDetails', 'details.html', state ) \
+    topHtml = makeTop( level, None, 'allDetails', 'details.htm', state ) \
             .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}All Versions Details" ) \
             .replace( '__KEYWORDS__', 'Bible, details, about, copyright, licence, acknowledgements' )
-            # .replace( f'''<a title="{state.BibleNames[versionAbbreviation]}" href="{'../'*(level+1)}versions/{BibleOrgSysGlobals.makeSafeString(versionAbbreviation)}/details.html">{versionAbbreviation}</a>''',
-            #             f'''<a title="Up to {state.BibleNames[versionAbbreviation]}" href="{'../'*(level+1)}versions/{BibleOrgSysGlobals.makeSafeString(versionAbbreviation)}/">↑{versionAbbreviation}</a>''' )
+            # .replace( f'''<a title="{state.BibleNames[versionAbbreviation]}" href="{'../'*(level+1)}{BibleOrgSysGlobals.makeSafeString(versionAbbreviation)}/details.htm">{versionAbbreviation}</a>''',
+            #             f'''<a title="Up to {state.BibleNames[versionAbbreviation]}" href="{'../'*(level+1)}{BibleOrgSysGlobals.makeSafeString(versionAbbreviation)}/">↑{versionAbbreviation}</a>''' )
     html = f'''{topHtml}<h1 id="Top">Details for all versions</h1>
 {allDetailsHTML}{makeBottom( level, 'allDetails', state )}'''
     checkHtml( 'AllDetails', html )
     
-    filepath = versionsFolder.joinpath( 'allDetails.html' )
+    filepath = versionsFolder.joinpath( 'allDetails.htm' )
     with open( filepath, 'wt', encoding='utf-8' ) as htmlFile:
         htmlFile.write( html )
     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  {len(html):,} characters written to {filepath}" )

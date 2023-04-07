@@ -47,14 +47,15 @@ import logging
 # import BibleOrgSysGlobals
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, dPrint
+from BibleOrgSys.Internals.InternalBibleInternals import getLeadingInt
 
 from html import checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-04-04' # by RJH
+LAST_MODIFIED_DATE = '2023-04-07' # by RJH
 SHORT_PROGRAM_NAME = "usfm"
 PROGRAM_NAME = "OpenBibleData USFM to HTML functions"
-PROGRAM_VERSION = '0.35'
+PROGRAM_VERSION = '0.38'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -129,7 +130,7 @@ def convertUSFMMarkerListToHtml( versionAbbreviation:str, refTuple:tuple, segmen
                 # We want both verse numbers to be searchable
                 if int(V2) != int(V1)+1: # We don't handle 3+ verse reordering well yet
                     logging.critical( f" Not handling 3+ verse bridge well yet at {versionAbbreviation} {refTuple} {C}:{V}" )
-                vLink = f'<a title="Go to verse in parallel view" href="../../../parallel/{BBB}/C{C}V{V1}.html">{V1}</a>'
+                vLink = f'<a title="Go to verse in parallel view" href="../../pa/{BBB}/C{C}V{V1}.htm">{V1}</a>'
                 html = f'{html}{"" if html.endswith(">") else " "}' \
                         + f'''{f"""<span id="C{C}"></span><span class="{'cPsa' if BBB=='PSA' else 'c'}" id="C{C}V1">{C}</span>""" if V1=="1" else f"""<span class="v" id="C{C}V{V1}">{vLink}-</span>"""}''' \
                         + f'<span class="v" id="C{C}V{V2}">{V2}{NARROW_NON_BREAK_SPACE}</span>' \
@@ -138,8 +139,8 @@ def convertUSFMMarkerListToHtml( versionAbbreviation:str, refTuple:tuple, segmen
                 if segmentType != 'verse': # No need for verse numbers at all if we're only displaying one verse
                     if not V.isdigit():
                         logging.critical( f"Expected a verse number digit at {versionAbbreviation} {refTuple} {C}:{V} {rest=}" )
-                    cLink = f'<a title="Go to verse in parallel view" href="../../../parallel/{BBB}/C{C}V1.html">{C}</a>'
-                    vLink = f'<a title="Go to verse in parallel view" href="../../../parallel/{BBB}/C{C}V{V}.html">{V}</a>'
+                    cLink = f'<a title="Go to verse in parallel view" href="../../pa/{BBB}/C{C}V1.htm">{C}</a>'
+                    vLink = f'<a title="Go to verse in parallel view" href="../../pa/{BBB}/C{C}V{V}.htm">{V}</a>'
                     html = f'{html}{"" if html.endswith(">") or html.endswith("—") else " "}' \
                             + f'''{f"""<span id="C{C}"></span><span class="{'cPsa' if BBB=='PSA' else 'c'}" id="C{C}V1">{cLink}{NARROW_NON_BREAK_SPACE}</span>""" if V=="1" else f"""<span class="v" id="C{C}V{V}">{vLink}{NARROW_NON_BREAK_SPACE}</span>"""}'''
                 # html = f'{html} <span class="v" id="C{refTuple[1]}V{V}">{V}{NARROW_NON_BREAK_SPACE}</span>'
@@ -623,7 +624,7 @@ def convertUSFMMarkerListToHtml( versionAbbreviation:str, refTuple:tuple, segmen
         assert '\\f' not in html, f"{html[html.index(f'{BACKSLASH}f')-10:html.index(f'{BACKSLASH}f')+MAX_FOOTNOTE_CHARS]}"
 
     # Now handle all cross-references in one go (we don't check for matching \xo fields)
-    pathPrefix = '' if segmentType=='chapter' else '../byChapter/'
+    pathPrefix = '' if segmentType=='chapter' else '../byC/'
     crossReferencesCount = 0
     crossReferencesHtml = ''
     searchStartIx = 0
@@ -658,7 +659,7 @@ def convertUSFMMarkerListToHtml( versionAbbreviation:str, refTuple:tuple, segmen
             # print( match.groups() )
             xB, xC, xV = match.groups()
             xBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromText( xB )
-            xrefLiveMiddle = f'{xrefLiveMiddle[:match.start()]}<a title="View cross reference" href="{pathPrefix}{xBBB}_C{xC}.html#C{xC}V{xV}">{match.group()}</a>{xrefLiveMiddle[match.end():]}'
+            xrefLiveMiddle = f'{xrefLiveMiddle[:match.start()]}<a title="View cross reference" href="{pathPrefix}{xBBB}_C{xC}.htm#C{xC}V{xV}">{match.group()}</a>{xrefLiveMiddle[match.end():]}'
             reStartIx = match.end() + 55 + len(pathPrefix) # approx number of characters that we add
         else:
             logging.critical( f"Inner xref loop needed to break for {versionAbbreviation} {segmentType} {basicOnly=} {refTuple}" )
@@ -810,28 +811,37 @@ def livenIntroductionLinks( versionAbbreviation:str, refTuple:tuple, segmentType
         if not match: break
         guts = match.group(0)[1:-1] # Remove the parentheses or other surrounding chars
         preChar, refB, refC, refV, refRest, postChar = match.groups()
-        dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Got {versionAbbreviation} intro ref CV match with '{preChar}' '{guts}' '{postChar}' -> {match.groups()=}" )
+        dPrint( 'Info', DEBUGGING_THIS_MODULE, f"Got {versionAbbreviation} intro ref CV match with '{preChar}' '{guts}' '{postChar}' -> {match.groups()=}" )
         refBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromText( refB )
         if segmentType == 'book':
-            newGuts = f'<a title="Go to reference document" href="{refBBB}.html#C{refC}V{refV}">{guts}</a>'
+            newGuts = f'<a title="Go to reference document" href="{refBBB}.htm#C{refC}V{refV}">{guts}</a>'
         elif segmentType == 'chapter':
-            newGuts = f'<a title="Go to reference chapter" href="{refBBB}_C{refC}.html#C{refC}V{refV}">{guts}</a>'
+            newGuts = f'<a title="Go to reference chapter" href="{refBBB}_C{refC}.htm#C{refC}V{refV}">{guts}</a>'
         elif segmentType == 'section':
             try: # Now find which section that reference starts in
                 # print( f"{state.sectionsLists[versionAbbreviation][refBBB]=}" )
+                intV = getLeadingInt(refV)
+                found = False
                 for n, (startC,startV,endC,endV,sectionName,reasonName,contextList,verseEntryList,filename) in enumerate( state.sectionsLists[versionAbbreviation][refBBB] ):
                     if startC==refC and endC==refC:
-                        try:
-                            if int(startV) <= int(refV) <= int(endV): # It's in here
-                                break
-                        except ValueError: pass # but it might be the one we want???
+                        if getLeadingInt(startV) <= intV <= getLeadingInt(endV): # It's in this single chapter
+                            found = True
+                            break
+                    elif startC==refC and intV>=getLeadingInt(startV): # It's in the first chapter
+                        found = True
+                        break
+                    elif endC==refC and intV<=getLeadingInt(endV): # It's in the second chapter
+                        found = True
+                        break
+                if found:
+                    newGuts = f'<a title="Go to to section page with reference" href="{refBBB}_S{n}.htm">{guts}</a>'
                 else:
-                    logging.critical( f"unable_to_find_reference for {refBBB} {refC}:{refV} {[f'{startC}:{startV}--{endC}:{endV}' for startC,startV,endC,endV,sectionName,reasonName,contextList,verseEntryList,filename in state.sectionsLists[versionAbbreviation]]}" )
+                    logging.critical( f"unable_to_find_reference for {refBBB} {refC}:{refV} {[f'{startC}:{startV}…{endC}:{endV}' for startC,startV,endC,endV,sectionName,reasonName,contextList,verseEntryList,filename in state.sectionsLists[versionAbbreviation]]}" )
+                    newGuts = guts # Can't make a link
                     unable_to_find_reference # Need to write more code
-                newGuts = f'<a title="Go to to section page with reference" href="{refBBB}_S{n}.html">{guts}</a>'
             except KeyError:
                 logging.critical( f"livenIORs for {versionAbbreviation}, {refTuple}, {segmentType} can't find section list for {ourBBB}" )
-                newGuts = guts
+                newGuts = guts # Can't make a link
         else:
             dPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"livenIntroductionLinks( {versionAbbreviation}, {refTuple}, {segmentType}, '{introHtml}' )" )
             ooopsie
@@ -846,26 +856,36 @@ def livenIntroductionLinks( versionAbbreviation:str, refTuple:tuple, segmentType
         if not match: break
         guts = match.group(0)[1:-1] # Remove the parentheses or other surrounding chars
         preChar, refC, refV, refRest, postChar = match.groups()
-        dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Got {versionAbbreviation} intro ref CV match with '{preChar}' '{guts}' '{postChar}' -> {match.groups()=}" )
+        dPrint( 'Info', DEBUGGING_THIS_MODULE, f"Got {versionAbbreviation} intro ref CV match with '{preChar}' '{guts}' '{postChar}' -> {match.groups()=}" )
+        logging.critical( f"Assuming '{guts}' ref in {ourBBB} intro is a self-reference BUT THIS IS QUITE LIKELY WRONG" )
         if segmentType == 'book':
             newGuts = f'<a title="Jump down to reference" href="#C{refC}V{refV}">{guts}</a>'
         elif segmentType == 'chapter':
-            newGuts = f'<a title="Jump to chapter page with reference" href="{ourBBB}_C{refC}.html#C{refC}V{refV}">{guts}</a>'
+            newGuts = f'<a title="Jump to chapter page with reference" href="{ourBBB}_C{refC}.htm#C{refC}V{refV}">{guts}</a>'
         elif segmentType == 'section':
             try: # Now find which section that reference starts in
+                intV = getLeadingInt(refV)
+                found = False
                 for n, (startC,startV,endC,endV,sectionName,reasonName,contextList,verseEntryList,filename) in enumerate( state.sectionsLists[versionAbbreviation][ourBBB] ):
                     if startC==refC and endC==refC:
-                        try:
-                            if int(startV) <= int(refV) <= int(endV): # It's in here
-                                break
-                        except ValueError: pass # but it might be the one we want???
+                        if getLeadingInt(startV) <= intV <= getLeadingInt(endV): # It's in this single chapter
+                            found = True
+                            break
+                    elif startC==refC and intV>=getLeadingInt(startV): # It's in the first chapter
+                        found = True
+                        break
+                    elif endC==refC and intV<=getLeadingInt(endV): # It's in the second chapter
+                        found = True
+                        break
+                if found:
+                    newGuts = f'<a title="Jump to section page with reference" href="{ourBBB}_S{n}.htm">{guts}</a>'
                 else:
-                    logging.critical( f"unable_to_find_reference for {refBBB} {refC}:{refV} {[f'{startC}:{startV}--{endC}:{endV}' for startC,startV,endC,endV,sectionName,reasonName,contextList,verseEntryList,filename in state.sectionsLists[versionAbbreviation]]}" )
-                    unable_to_find_reference # Need to write more code
-                newGuts = f'<a title="Jump to section page with reference" href="{ourBBB}_S{n}.html">{guts}</a>'
+                    logging.critical( f"PROBABLY WRONGLY GUESSED BOOK: unable_to_find_reference for {ourBBB=} {refC}:{refV} {[f'{startC}:{startV}…{endC}:{endV}' for startC,startV,endC,endV,sectionName,reasonName,contextList,verseEntryList,filename in state.sectionsLists[versionAbbreviation][ourBBB]]}" )
+                    newGuts = guts # Can't make a link
+                    # unable_to_find_reference # Need to write more code
             except KeyError:
                 logging.critical( f"livenIORs for {versionAbbreviation}, {refTuple}, {segmentType} can't find section list for {ourBBB}" )
-                newGuts = guts
+                newGuts = guts # Can't make a link
         else:
             dPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"livenIntroductionLinks( {versionAbbreviation}, {refTuple}, {segmentType}, '{introHtml}' )" )
             ooopsie
@@ -906,22 +926,32 @@ def livenIORs( versionAbbreviation:str, refTuple:tuple, segmentType:str, ioLineH
         if segmentType == 'book':
             newGuts = f'<a title="Jump down to reference" href="#C{Cstr}V{Vstr}">{guts}</a>'
         elif segmentType == 'chapter':
-            newGuts = f'<a title="Jump to chapter page with reference" href="{ourBBB}_C{Cstr}.html#C{Cstr}V{Vstr}">{guts}</a>'
+            newGuts = f'<a title="Jump to chapter page with reference" href="{ourBBB}_C{Cstr}.htm#C{Cstr}V{Vstr}">{guts}</a>'
         elif segmentType == 'section':
             try: # Now find which section that IOR starts in
+                intV = getLeadingInt(Vstr)
+                found = False
                 for n, (startC,startV,endC,endV,sectionName,reasonName,contextList,verseEntryList,filename) in enumerate( state.sectionsLists[versionAbbreviation][ourBBB] ):
                     if startC==Cstr and endC==Cstr:
-                        try:
-                            if int(startV) <= int(Vstr) <= int(endV): # It's in here
-                                break
-                        except ValueError: pass # but it might be the one we want???
+                        # print( f"Single chapter {startC}=={Cstr}=={endC} {getLeadingInt(startV)=} {intV=} {getLeadingInt(endV)=}")
+                        if getLeadingInt(startV) <= intV <= getLeadingInt(endV): # It's in this single chapter
+                            found = True
+                            break
+                    elif startC==Cstr and intV>=getLeadingInt(startV): # It's in the first chapter
+                        found = True
+                        break
+                    elif endC==Cstr and intV<=getLeadingInt(endV): # It's in the second chapter
+                        found = True
+                        break
+                if found:
+                    newGuts = f'<a title="Jump to section page with reference" href="{ourBBB}_S{n}.htm">{guts}</a>'
                 else:
-                    logging.critical( f"unable_to_find_IOR for {ourBBB} {Cstr}:{Vstr} {[f'{startC}:{startV}--{endC}:{endV}' for startC,startV,endC,endV,sectionName,reasonName,contextList,verseEntryList,filename in state.sectionsLists[versionAbbreviation]]}" )
-                    unable_to_find_IOR # Need to write more code
-                newGuts = f'<a title="Jump to section page with reference" href="{ourBBB}_S{n}.html">{guts}</a>'
+                    logging.critical( f"unable_to_find_IOR for {ourBBB} {Cstr}:{Vstr} {[f'{startC}:{startV}…{endC}:{endV}' for startC,startV,endC,endV,sectionName,reasonName,contextList,verseEntryList,filename in state.sectionsLists[versionAbbreviation][ourBBB]]}" )
+                    newGuts = guts # Can't make a link
+                    unable_to_find_reference # Need to write more code
             except KeyError:
                 logging.critical( f"livenIORs for {versionAbbreviation}, {refTuple}, {segmentType} can't find section list for {ourBBB}" )
-                newGuts = guts
+                newGuts = guts # Can't make a link
         else:
             dPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"livenIORs( {versionAbbreviation}, {refTuple}, {segmentType}, '{ioLineHtml}' )" )
             ooops
