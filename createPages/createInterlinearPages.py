@@ -51,24 +51,24 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 from html import makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-03-03' # by RJH
+LAST_MODIFIED_DATE = '2023-04-08' # by RJH
 SHORT_PROGRAM_NAME = "createInterlinearPages"
 PROGRAM_NAME = "OpenBibleData createInterlinearPages functions"
-PROGRAM_VERSION = '0.08'
+PROGRAM_VERSION = '0.09'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
 
-BACKSLASH = '\\'
-NEWLINE = '\n'
-EM_SPACE = ' '
-NARROW_NON_BREAK_SPACE = ' '
+# BACKSLASH = '\\'
+# NEWLINE = '\n'
+# EM_SPACE = ' '
+# NARROW_NON_BREAK_SPACE = ' '
 
 
-def createInterlinearPages( folder:Path, state ) -> bool:
+def createInterlinearPages( level:int, folder:Path, state ) -> bool:
     """
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"createInterlinearPages( {folder}, ... )" )
+    fnPrint( DEBUGGING_THIS_MODULE, f"createInterlinearPages( {level}, {folder}, ... )" )
     try: os.makedirs( folder )
     except FileExistsError: pass # they were already there
 

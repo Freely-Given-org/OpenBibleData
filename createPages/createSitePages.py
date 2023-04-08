@@ -59,10 +59,10 @@ from createOETReferencePages import createOETReferencePages
 from html import makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-04-07' # by RJH
+LAST_MODIFIED_DATE = '2023-04-08' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData Create Pages"
-PROGRAM_VERSION = '0.49'
+PROGRAM_VERSION = '0.50'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
@@ -490,11 +490,11 @@ def createSitePages() -> bool:
     if 'OET' in state.BibleVersions: # this is a special case
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nCreating version pages for OET…" )
         versionFolder = TEMP_BUILD_FOLDER.joinpath( f'OET/' )
-        createOETVersionPages( versionFolder, state.preloadedBibles['OET-RV'], state.preloadedBibles['OET-LV'], state )
+        createOETVersionPages( 1, versionFolder, state.preloadedBibles['OET-RV'], state.preloadedBibles['OET-LV'], state )
     for versionAbbreviation, thisBible in state.preloadedBibles.items(): # doesn't include OET pseudo-translation
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nCreating version pages for {thisBible.abbreviation}…" )
         versionFolder = TEMP_BUILD_FOLDER.joinpath( f'{thisBible.abbreviation}/' )
-        createVersionPages( versionFolder, thisBible, state )
+        createVersionPages( 1, versionFolder, thisBible, state )
 
     # We do this later than the createVersionPages above
     #   because we need all versions to have all books loaded and 'discovered', i.e., analysed
@@ -503,16 +503,16 @@ def createSitePages() -> bool:
         rvBible, lvBible = state.preloadedBibles['OET-RV'], state.preloadedBibles['OET-LV']
         if rvBible.discoveryResults['ALL']['haveSectionHeadings'] or lvBible.discoveryResults['ALL']['haveSectionHeadings']:
             versionFolder = TEMP_BUILD_FOLDER.joinpath( f'OET/' )
-            createOETSectionPages( versionFolder.joinpath('bySec/'), rvBible, lvBible, state )
+            createOETSectionPages( 2, versionFolder.joinpath('bySec/'), rvBible, lvBible, state )
     for versionAbbreviation, thisBible in state.preloadedBibles.items(): # doesn't include OET pseudo-translation
         if thisBible.discoveryResults['ALL']['haveSectionHeadings']:
             versionFolder = TEMP_BUILD_FOLDER.joinpath( f'{thisBible.abbreviation}/' )
-            createSectionPages( versionFolder.joinpath('bySec/'), thisBible, state )
+            createSectionPages( 2, versionFolder.joinpath('bySec/'), thisBible, state )
 
-    createParallelPages( TEMP_BUILD_FOLDER.joinpath('pa/'), state )
-    createInterlinearPages( TEMP_BUILD_FOLDER.joinpath('il/'), state )
+    createParallelPages( 1, TEMP_BUILD_FOLDER.joinpath('pa/'), state )
+    createInterlinearPages( 1, TEMP_BUILD_FOLDER.joinpath('il/'), state )
 
-    createOETReferencePages( TEMP_BUILD_FOLDER.joinpath('rf/'), state )
+    createOETReferencePages( 1, TEMP_BUILD_FOLDER.joinpath('rf/'), state )
 
     createDetailsPages( 0, TEMP_BUILD_FOLDER, state )
 
@@ -570,16 +570,16 @@ def cleanHTMLFolders( folder:Path, state ) -> bool:
 # end of createSitePages.cleanHTMLFolders
 
 
-def createOETVersionPages( folder:Path, rvBible, lvBible, state:State ) -> bool:
+def createOETVersionPages( level:int, folder:Path, rvBible, lvBible, state:State ) -> bool:
     """
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"createOETVersionPages( {folder}, {rvBible.abbreviation}, {lvBible.abbreviation} )")
-    createOETBookPages( folder.joinpath('byDoc/'), rvBible, lvBible, state )
+    fnPrint( DEBUGGING_THIS_MODULE, f"createOETVersionPages( {level}, {folder}, {rvBible.abbreviation}, {lvBible.abbreviation} )")
+    createOETBookPages( level+1, folder.joinpath('byDoc/'), rvBible, lvBible, state )
     rvBible.discover() # Now that all required books are loaded
     lvBible.discover() #     ..ditto..
     dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{rvBible.discoveryResults['ALL']['haveSectionHeadings']=}" )
     dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{lvBible.discoveryResults['ALL']['haveSectionHeadings']=}" )
-    createOETChapterPages( folder.joinpath('byC/'), rvBible, lvBible, state )
+    createOETChapterPages( level+1, folder.joinpath('byC/'), rvBible, lvBible, state )
 
     versionName = state.BibleNames['OET']
     indexHtml = f'''<h1 id="Top">{versionName}</h1>
@@ -592,23 +592,23 @@ f'''<h1 id="Top">{versionName}</h1>
 '''
     filepath = folder.joinpath( 'index.htm' )
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
-        indexHtmlFile.write( makeTop( 2, None, 'site', None, state ) \
+        indexHtmlFile.write( makeTop( level, None, 'site', None, state ) \
                                     .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{versionName}" ) \
                                     .replace( '__KEYWORDS__', f"Bible, OET, {versionName}" ) \
-                                    .replace( f'''<a title="{versionName}" href="{'../'*2}OET">OET</a>''', 'OET' ) \
-                                + indexHtml + '\n' + makeBottom( 1, 'site', state ) )
+                                    .replace( f'''<a title="{versionName}" href="{'../'*level}OET">OET</a>''', 'OET' ) \
+                                + indexHtml + '\n' + makeBottom( level, 'site', state ) )
     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"    {len(indexHtml):,} characters written to {filepath}" )
     return True
 # end of createSitePages.createOETVersionPages
 
-def createVersionPages( folder:Path, thisBible, state:State ) -> bool:
+def createVersionPages( level:int, folder:Path, thisBible, state:State ) -> bool:
     """
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"createVersionPages( {folder}, {thisBible.abbreviation} )")
-    createBookPages( folder.joinpath('byDoc/'), thisBible, state )
+    fnPrint( DEBUGGING_THIS_MODULE, f"createVersionPages( {level}, {folder}, {thisBible.abbreviation} )")
+    createBookPages( level+1, folder.joinpath('byDoc/'), thisBible, state )
     thisBible.discover() # Now that all required books are loaded
     dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{thisBible.discoveryResults['ALL']['haveSectionHeadings']=}" )
-    createChapterPages( folder.joinpath('byC/'), thisBible, state )
+    createChapterPages( level+1, folder.joinpath('byC/'), thisBible, state )
 
     versionName = state.BibleNames[thisBible.abbreviation]
     indexHtml = f'''<h1 id="Top">{versionName}</h1>
@@ -621,11 +621,11 @@ f'''<h1 id="Top">{versionName}</h1>
 '''
     filepath = folder.joinpath( 'index.htm' )
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
-        indexHtmlFile.write( makeTop( 2, None, 'site', None, state ) \
+        indexHtmlFile.write( makeTop( level, None, 'site', None, state ) \
                                     .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{versionName}" ) \
                                     .replace( '__KEYWORDS__', f'Bible, {versionName}' ) \
-                                    .replace( f'''<a title="{versionName}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}">{thisBible.abbreviation}</a>''', thisBible.abbreviation ) \
-                                + indexHtml + makeBottom( 1, 'site', state ) )
+                                    .replace( f'''<a title="{versionName}" href="{'../'*level}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}">{thisBible.abbreviation}</a>''', thisBible.abbreviation ) \
+                                + indexHtml + makeBottom( level, 'site', state ) )
     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"    {len(indexHtml):,} characters written to {filepath}" )
     return True
 # end of createSitePages.createVersionPages

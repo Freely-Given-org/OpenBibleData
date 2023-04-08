@@ -46,7 +46,7 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_
 from createOETReferencePages import livenOETWordLinks
 
 
-LAST_MODIFIED_DATE = '2023-04-07' # by RJH
+LAST_MODIFIED_DATE = '2023-04-08' # by RJH
 SHORT_PROGRAM_NAME = "createSectionPages"
 PROGRAM_NAME = "OpenBibleData createSectionPages functions"
 PROGRAM_VERSION = '0.26'
@@ -64,12 +64,12 @@ REASON_NAME_DICT = { 'Headers':'Headers', 'is1':'Introduction section heading',
                      'ms1':'Main section', 'ms1/s1':'Main section with section heading' }
 
 
-def createOETSectionPages( folder:Path, rvBible, lvBible, state ) -> List[str]:
+def createOETSectionPages( level:int, folder:Path, rvBible, lvBible, state ) -> List[str]:
     """
     The OET is a pseudo-version which includes the OET-RV and OET-LV side-by-side.
     """
     from createSitePages import TEST_MODE, reorderBooksForOETVersions
-    fnPrint( DEBUGGING_THIS_MODULE, f"createOETSectionPages( {folder}, {rvBible.abbreviation}, {lvBible.abbreviation} )" )
+    fnPrint( DEBUGGING_THIS_MODULE, f"createOETSectionPages( {level}, {folder}, {rvBible.abbreviation}, {lvBible.abbreviation} )" )
     assert rvBible.discoveryResults['ALL']['haveSectionHeadings']
     assert not lvBible.discoveryResults['ALL']['haveSectionHeadings']
     rvBible.makeSectionIndex() # These aren't made automatically
@@ -163,7 +163,7 @@ def createOETSectionPages( folder:Path, rvBible, lvBible, state ) -> List[str]:
 <h2>Literal Version</h2>
 '''
             if isinstance( rvBible, ESFMBible.ESFMBible ):
-                rvVerseEntryList = livenOETWordLinks( rvBible, BBB, rvVerseEntryList, '../../rf/W/{n}.htm' )
+                rvVerseEntryList = livenOETWordLinks( rvBible, BBB, rvVerseEntryList, f"{'../'*level}rf/W/{{n}}.htm" )
             rvHtml = convertUSFMMarkerListToHtml( rvBible.abbreviation, (BBB,startC), 'section', rvContextList, rvVerseEntryList, basicOnly=False, state=state )
             rvHtml = do_OET_RV_HTMLcustomisations( rvHtml )
             # rvHtml = livenIORs( BBB, rvHtml, sections )
@@ -206,22 +206,22 @@ def createOETSectionPages( folder:Path, rvBible, lvBible, state ) -> List[str]:
             else:
                 loop_counter_too_small
             if isinstance( lvBible, ESFMBible.ESFMBible ):
-                lvVerseEntryList = livenOETWordLinks( lvBible, BBB, lvVerseEntryList, '../../rf/W/{n}.htm' )
+                lvVerseEntryList = livenOETWordLinks( lvBible, BBB, lvVerseEntryList, f"{'../'*level}rf/W/{{n}}.htm" )
             lvHtml = convertUSFMMarkerListToHtml( lvBible.abbreviation, (BBB,startC), 'section', lvContextList, lvVerseEntryList, basicOnly=False, state=state )
             lvHtml = do_OET_LV_HTMLcustomisations( lvHtml )
             combinedHtml = f'''<div class="chunkRV">{rvHtml}</div><!--chunkRV-->
 <div class="chunkLV">{lvHtml}</div><!--chunkLV-->
 '''
             filepath = folder.joinpath( filename )
-            top = makeTop( 2, 'OET', 'section', f'bySec/{BBB}.htm', state ) \
+            top = makeTop( level, 'OET', 'section', f'bySec/{BBB}.htm', state ) \
                     .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}OET {tidyBBB} section" ) \
                     .replace( '__KEYWORDS__', f'Bible, OET, section' ) \
-                    .replace( f'''<a title="{state.BibleNames['OET']}" href="{'../'*2}OET/bySec/{filename}">OET</a>''',
-                            f'''<a title="Up to {state.BibleNames['OET']}" href="{'../'*2}OET/">↑OET</a>''' )
+                    .replace( f'''<a title="{state.BibleNames['OET']}" href="{'../'*level}OET/bySec/{filename}">OET</a>''',
+                            f'''<a title="Up to {state.BibleNames['OET']}" href="{'../'*level}OET/">↑OET</a>''' )
             bkHtml = top + '<!--section page-->' \
                     + bkHtml + removeDuplicateCVids( BBB, combinedHtml ) \
                     + '</div><!--container-->\n' \
-                    + makeBottom( 2, 'section', state )
+                    + makeBottom( level, 'section', state )
             checkHtml( rvBible.abbreviation, bkHtml )
             with open( filepath, 'wt', encoding='utf-8' ) as sectionHtmlFile:
                 sectionHtmlFile.write( bkHtml )
@@ -229,7 +229,7 @@ def createOETSectionPages( folder:Path, rvBible, lvBible, state ) -> List[str]:
         # Now make the section index file for this book
         filename = f'{BBB}.htm'
         filepath = folder.joinpath( filename )
-        top = makeTop( 2, 'OET', 'section', f'bySec/{filename}', state ) \
+        top = makeTop( level, 'OET', 'section', f'bySec/{filename}', state ) \
                 .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}OET {tidyBBB} sections" ) \
                 .replace( '__KEYWORDS__', f'Bible, OET, sections' ) \
                 .replace( f'''<a title="{state.BibleNames['OET']}" href="{'../'*2}OET/bySec/{filename}">OET</a>''',
@@ -238,7 +238,7 @@ def createOETSectionPages( folder:Path, rvBible, lvBible, state ) -> List[str]:
         for startC,startV,_endC,_endV,sectionName,reasonName,_contextList,_verseEntryList,filename in state.sectionsLists['OET-RV'][BBB]:
             reasonString = '' if reasonName=='Section heading' and not TEST_MODE else f' ({reasonName})' # Suppress '(Section Heading)' appendages in the list
             bkHtml = f'''{bkHtml}<p><a title="View section" href="{filename}">{'Intro' if startC=='-1' else startC}:{startV} <b>{sectionName}</b>{reasonString}</a></p>'''
-        bkHtml = top + '<!--sections page-->' + bkHtml + '\n' + makeBottom( 2, 'section', state )
+        bkHtml = top + '<!--sections page-->' + bkHtml + '\n' + makeBottom( level, 'section', state )
         checkHtml( 'OET section', bkHtml )
         with open( filepath, 'wt', encoding='utf-8' ) as sectionHtmlFile:
             sectionHtmlFile.write( bkHtml )
@@ -254,14 +254,14 @@ def createOETSectionPages( folder:Path, rvBible, lvBible, state ) -> List[str]:
     filename = 'index.htm'
     # filenames.append( filename )
     filepath = folder.joinpath( filename )
-    top = makeTop( 2, 'OET', 'section', 'bySec/', state ) \
+    top = makeTop( level, 'OET', 'section', 'bySec/', state ) \
             .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}OET Sections View" ) \
             .replace( '__KEYWORDS__', f'Bible, OET, sections, books' ) \
             .replace( f'''<a title="{state.BibleNames['OET']}" href="{'../'*2}OET">OET</a>''', 'OET' )
     indexHtml = top \
                 + '<h1 id="Top">OET section pages</h1><h2>Index of OET books</h2>\n' \
                 + f'''<p class="bLinks">{' '.join( BBBLinks )}</p>\n''' \
-                + makeBottom( 2, 'section', state)
+                + makeBottom( level, 'section', state)
     checkHtml( 'OET sections', indexHtml )
     with open( filepath, 'wt', encoding='utf-8' ) as sectionHtmlFile:
         sectionHtmlFile.write( indexHtml )
@@ -271,17 +271,17 @@ def createOETSectionPages( folder:Path, rvBible, lvBible, state ) -> List[str]:
 # end of createSectionPages.createOETSectionPages
 
 
-def createSectionPages( folder:Path, thisBible, state ) -> List[str]:
+def createSectionPages( level:int, folder:Path, thisBible, state ) -> List[str]:
     """
     This creates a page for each section for all versions other than 'OET'
                                 which is considerably more complex (above).
     """
     from createSitePages import TEST_MODE, reorderBooksForOETVersions
-    fnPrint( DEBUGGING_THIS_MODULE, f"createSectionPages( {folder}, {thisBible.abbreviation} )" )
+    fnPrint( DEBUGGING_THIS_MODULE, f"createSectionPages( {level}, {folder}, {thisBible.abbreviation} )" )
     assert thisBible.discoveryResults['ALL']['haveSectionHeadings']
     thisBible.makeSectionIndex() # These aren't made automatically
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createSectionPages( {folder}, {thisBible.abbreviation} )…" )
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createSectionPages( {level}, {folder}, {thisBible.abbreviation} )…" )
     try: os.makedirs( folder )
     except FileExistsError: pass # they were already there
 
@@ -337,13 +337,13 @@ def createSectionPages( folder:Path, thisBible, state ) -> List[str]:
             vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"No section headings in {thisBible.abbreviation} {BBB} -- skipping section pages" )
             filename = f'{BBB}.htm'
             filepath = folder.joinpath( filename )
-            top = makeTop( 2, thisBible.abbreviation, 'section', f'bySec/{filename}', state ) \
+            top = makeTop( level, thisBible.abbreviation, 'section', f'bySec/{filename}', state ) \
                     .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{thisBible.abbreviation} {tidyBBB} sections" ) \
                     .replace( '__KEYWORDS__', f'Bible, {thisBible.abbreviation}, sections' ) \
-                    .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/bySec/{filename}">{thisBible.abbreviation}</a>''',
-                            f'''<a title="Up to {state.BibleNames[thisBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/">↑{thisBible.abbreviation}</a>''' )
+                    .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*level}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/bySec/{filename}">{thisBible.abbreviation}</a>''',
+                            f'''<a title="Up to {state.BibleNames[thisBible.abbreviation]}" href="{'../'*level}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/">↑{thisBible.abbreviation}</a>''' )
             bkHtml = f'<h1 id="Top">{thisBible.abbreviation} {tidyBBB} has NO section headings</h1>\n'
-            bkHtml = top + '<!--no sections page-->' + bkHtml + '\n' + makeBottom( 2, 'section', state )
+            bkHtml = top + '<!--no sections page-->' + bkHtml + '\n' + makeBottom( level, 'section', state )
             checkHtml( thisBible.abbreviation, bkHtml )
             with open( filepath, 'wt', encoding='utf-8' ) as sectionHtmlFile:
                 sectionHtmlFile.write( bkHtml )
@@ -391,12 +391,12 @@ def createSectionPages( folder:Path, thisBible, state ) -> List[str]:
             bkHtml = f'{bkHtml}{textHtml}'
 
             filepath = folder.joinpath( filename )
-            top = makeTop( 2, thisBible.abbreviation, 'section', f'bySec/{BBB}.htm', state ) \
+            top = makeTop( level, thisBible.abbreviation, 'section', f'bySec/{BBB}.htm', state ) \
                     .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{thisBible.abbreviation} {tidyBBB} section" ) \
                     .replace( '__KEYWORDS__', f'Bible, {thisBible.abbreviation}, section' ) \
                     .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/bySec/{filename}">{thisBible.abbreviation}</a>''',
                             f'''<a title="Up to {state.BibleNames[thisBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/">↑{thisBible.abbreviation}</a>''' )
-            bkHtml = top + '<!--section page-->' + bkHtml + makeBottom( 2, 'section', state )
+            bkHtml = top + '<!--section page-->' + bkHtml + makeBottom( level, 'section', state )
             checkHtml( thisBible.abbreviation, bkHtml )
             with open( filepath, 'wt', encoding='utf-8' ) as sectionHtmlFile:
                 sectionHtmlFile.write( bkHtml )
@@ -404,7 +404,7 @@ def createSectionPages( folder:Path, thisBible, state ) -> List[str]:
         # Now make the section index file for this book
         filename = f'{BBB}.htm'
         filepath = folder.joinpath( filename )
-        top = makeTop( 2, thisBible.abbreviation, 'section', f'bySec/{filename}', state ) \
+        top = makeTop( level, thisBible.abbreviation, 'section', f'bySec/{filename}', state ) \
                 .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{thisBible.abbreviation} {tidyBBB} sections" ) \
                 .replace( '__KEYWORDS__', f'Bible, {thisBible.abbreviation}, sections' ) \
                 .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/bySec/{filename}">{thisBible.abbreviation}</a>''',
@@ -413,7 +413,7 @@ def createSectionPages( folder:Path, thisBible, state ) -> List[str]:
         for startC,startV,_endC,_endV,sectionName,reasonName,_contextList,_verseEntryList,filename in state.sectionsLists[thisBible.abbreviation][BBB]:
             reasonString = '' if reasonName=='Section heading' and not TEST_MODE else f' ({reasonName})' # Suppress '(Section Heading)' appendages in the list
             bkHtml = f'''{bkHtml}<p><a title="View section" href="{filename}">{'Intro' if startC=='-1' else startC}:{startV} <b>{sectionName}</b>{reasonString}</a></p>'''
-        bkHtml = top + '<!--sections page-->' + bkHtml + '\n' + makeBottom( 2, 'section', state )
+        bkHtml = top + '<!--sections page-->' + bkHtml + '\n' + makeBottom( level, 'section', state )
         checkHtml( thisBible.abbreviation, bkHtml )
         with open( filepath, 'wt', encoding='utf-8' ) as sectionHtmlFile:
             sectionHtmlFile.write( bkHtml )
@@ -429,14 +429,14 @@ def createSectionPages( folder:Path, thisBible, state ) -> List[str]:
     filename = 'index.htm'
     # filenames.append( filename )
     filepath = folder.joinpath( filename )
-    top = makeTop( 2, thisBible.abbreviation, 'section', 'bySec/', state ) \
+    top = makeTop( level, thisBible.abbreviation, 'section', 'bySec/', state ) \
             .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{thisBible.abbreviation} Sections View" ) \
             .replace( '__KEYWORDS__', f'Bible, {thisBible.abbreviation}, sections, books' ) \
             .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}">{thisBible.abbreviation}</a>''', thisBible.abbreviation )
     indexHtml = top \
                 + f'<h1 id="Top">{thisBible.abbreviation} section pages</h1><h2>Index of {thisBible.abbreviation} books</h2>\n' \
                 + f'''<p class="bLinks">{' '.join( BBBLinks )}</p>\n''' \
-                + makeBottom( 2, 'section', state)
+                + makeBottom( level, 'section', state)
     checkHtml( thisBible.abbreviation, indexHtml )
     with open( filepath, 'wt', encoding='utf-8' ) as sectionHtmlFile:
         sectionHtmlFile.write( indexHtml )
@@ -446,52 +446,6 @@ def createSectionPages( folder:Path, thisBible, state ) -> List[str]:
     # return filenames
 # end of createSectionPages.createSectionPages
 
-
-# def livenIORs( BBB:str, sectionHTML:str, bookSections:List ) -> str:
-#     """
-#     We have to find which section each starting reference is in.
-#     """
-#     assert '\\ior' not in sectionHTML
-
-#     searchStartIx = 0
-#     for _safetyCount1 in range( 15 ):
-#         # First find each link
-#         ixSpanStart = sectionHTML.find( '<span class="ior">', searchStartIx ) # Length of this string is 18 chars (used below)
-#         if ixSpanStart == -1: break
-#         ixEnd = sectionHTML.find( '</span>', ixSpanStart+18 )
-#         assert ixEnd != -1
-#         guts = sectionHTML[ixSpanStart+18:ixEnd].replace('–','-') # Convert any en-dash to hyphen
-#         # print(f"{BBB} {guts=} {bookHTML[ix-20:ix+20]} {searchStartIx=} {ixSpanStart=} {ixEnd=}")
-#         startGuts = guts.split('-')[0]
-#         # print(f"  Now {guts=}")
-#         if ':' in startGuts:
-#             assert startGuts.count(':') == 1 # We expect a single C:V at this stage
-#             Cstr, Vstr = startGuts.strip().split( ':' )
-#         elif BibleOrgSysGlobals.loadedBibleBooksCodes.isSingleChapterBook( BBB ):
-#             Cstr, Vstr = '1', startGuts.strip() # Only a verse was given
-#         else: Cstr, Vstr = startGuts.strip(), '1' # Only a chapter was given
-
-#         # Now find which section that IOR starts in
-#         for n, (startC,startV,endC,endV,sectionName,reasonName,contextList,verseEntryList,filename) in enumerate( bookSections ):
-#             if startC==Cstr and endC==Cstr:
-#                 try:
-#                     if int(startV) <= int(Vstr) <= int(endV): # It's in here
-#                         break
-#                 except ValueError: pass # but it might be the one we want???
-#         else:
-#             logging.critical( f"unable_to_find_IOR for {BBB} {Cstr}:{Vstr} {[f'{startC}:{startV}--{endC}:{endV}' for startC,startV,endC,endV,sectionName,reasonName,contextList,verseEntryList,filename in bookSections]}" )
-#             unable_to_find_IOR # Need to write more code
-
-#         # Now liven the link
-#         new_guts = f'<a title="Jump to section page with reference" href="{BBB}_S{n}.htm">{guts}</a>'
-#         sectionHTML = f'{sectionHTML[:ixSpanStart+18]}{new_guts}{sectionHTML[ixEnd:]}'
-#         searchStartIx = ixEnd + 26 # Approx number of chars that we add
-#     else:
-#         # logging.critical( f"inner_fn_loop_needed_to_break {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {_innerSafetyCount=}" )
-#         section_liven_IOR_loop_needed_to_break
-
-#     return sectionHTML
-# # end of createSectionPages.livenIORs function
 
 
 def briefDemo() -> None:

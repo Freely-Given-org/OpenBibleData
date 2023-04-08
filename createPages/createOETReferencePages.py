@@ -46,10 +46,10 @@ from BibleTransliterations import transliterate_Greek
 from html import makeTop, makeBottom
 
 
-LAST_MODIFIED_DATE = '2023-04-07' # by RJH
+LAST_MODIFIED_DATE = '2023-04-09' # by RJH
 SHORT_PROGRAM_NAME = "createOETReferencePages"
 PROGRAM_NAME = "OpenBibleData createOETReferencePages functions"
-PROGRAM_VERSION = '0.25'
+PROGRAM_VERSION = '0.26'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -79,14 +79,14 @@ CNTR_PERSON_NAME_DICT = {'1':'1st', '2':'2nd', '3':'3rd', 'g':'g'}
 CNTR_CASE_NAME_DICT = {'N':'nominative', 'G':'genitive', 'D':'dative', 'A':'accusative', 'V':'vocative', 'g':'g', 'n':'n', 'a':'a', 'd':'d', 'v':'v', 'U':'U'}
 CNTR_GENDER_NAME_DICT = {'M':'masculine', 'F':'feminine', 'N':'neuter', 'm':'m', 'f':'f', 'n':'n'}
 CNTR_NUMBER_NAME_DICT = {'S':'singular', 'P':'plural', 's':'s', 'p':'p'}
-def createOETReferencePages( outputFolderPath:Path, state ) -> bool:
+def createOETReferencePages( level:int, outputFolderPath:Path, state ) -> bool:
     """
     Make pages for all the words and lemmas to link to.
 
     Sadly, there's almost identical code in make_table_pages() in OET convert_OET-LV_to_simple_HTML.py
     """
     from createSitePages import TEST_MODE
-    fnPrint( DEBUGGING_THIS_MODULE, f"createOETReferencePages( {outputFolderPath}, {state.BibleVersions} )" )
+    fnPrint( DEBUGGING_THIS_MODULE, f"createOETReferencePages( {level}, {outputFolderPath}, {state.BibleVersions} )" )
 
     try: os.makedirs( outputFolderPath )
     except FileExistsError: pass # it was already there
@@ -130,18 +130,18 @@ def createOETReferencePages( outputFolderPath:Path, state ) -> bool:
                 state.OETRefData['formGlossesDict'][formMorph2Tuple].add( glossWords )
                 state.OETRefData['lemmaGlossesDict'][lemma].add( glossWords )
 
-    make_word_pages( outputFolderPath.joinpath( 'W/' ), state )
-    make_Greek_lemma_pages( outputFolderPath.joinpath( 'G/' ), state )
+    make_word_pages( level+1, outputFolderPath.joinpath( 'W/' ), state )
+    make_Greek_lemma_pages( level+1, outputFolderPath.joinpath( 'G/' ), state )
 
-    make_person_pages( outputFolderPath.joinpath( 'P/' ), state )
-    make_location_pages( outputFolderPath.joinpath( 'L/' ), state )
+    make_person_pages( level+1, outputFolderPath.joinpath( 'P/' ), state )
+    make_location_pages( level+1, outputFolderPath.joinpath( 'L/' ), state )
 
     del state.OETRefData # No longer needed
     return True
 # end of createOETReferencePages.createOETReferencePages
 
 
-def make_word_pages( outputFolderPath:Path, state ) -> None:
+def make_word_pages( level:int, outputFolderPath:Path, state ) -> None:
     """
     """
     from createSitePages import TEST_MODE
@@ -280,18 +280,18 @@ This is all part of the commitment of the <em>Open English Translation</em> team
                         html = f'''{html}\n<p>The various word forms of the root word (lemma) ‘{lemmaLink}’ have {len(lemmaGlossesList):,} different glosses: {', '.join(lemmaGlossesList)}.</p>'''
                             
             # Now put it all together       
-            html = makeTop( 2, None, 'word', None, state ) \
+            html = makeTop( level, None, 'word', None, state ) \
                                     .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}NT Word ‘{greek}’" ) \
                                     .replace( '__KEYWORDS__', 'Bible, word' ) \
                                     .replace( 'pa/"', f'pa/{BBB}/C{C}V{V}.htm"' ) \
-                                + html + makeBottom( 2, 'word', state )
+                                + html + makeBottom( level, 'word', state )
             with open( outputFolderPath.joinpath(output_filename), 'wt', encoding='utf-8' ) as html_output_file:
                 html_output_file.write( html )
             vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  Wrote {len(html):,} characters to {output_filename}" )
 # end of createOETReferencePages.make_word_pages
 
 
-def make_Greek_lemma_pages( outputFolderPath:Path, state ) -> None:
+def make_Greek_lemma_pages( level:int, outputFolderPath:Path, state ) -> None:
     """
     """
     from createSitePages import TEST_MODE
@@ -341,17 +341,17 @@ def make_Greek_lemma_pages( outputFolderPath:Path, state ) -> None:
                 #     break
 
         # Now put it all together       
-        html = makeTop( 2, None, 'lemma', None, state ) \
+        html = makeTop( level, None, 'lemma', None, state ) \
                                 .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}Greek lemma ‘{lemma}’" ) \
                                 .replace( '__KEYWORDS__', 'Bible, word' ) \
-                            + html + makeBottom( 2, 'lemma', state )
+                            + html + makeBottom( level, 'lemma', state )
         with open( outputFolderPath.joinpath(output_filename), 'wt', encoding='utf-8' ) as html_output_file:
             html_output_file.write( html )
         vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  Wrote {len(html):,} characters to {output_filename}" )
 # end of createOETReferencePages.make_Greek_lemma_pages
 
 
-def make_person_pages( outputFolderPath:Path, state ) -> int:
+def make_person_pages( level:int, outputFolderPath:Path, state ) -> int:
     """
     Make pages for all the words to link to.
 
@@ -392,21 +392,21 @@ def make_person_pages( outputFolderPath:Path, state ) -> int:
 
         # Now put it all together       
         output_filename = f"{personKey[1:]}.htm"
-        html = f'''{makeTop( 2, None, 'person', None, state )
+        html = f'''{makeTop( level, None, 'person', None, state )
                                     .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{personName}" )
                                     .replace( '__KEYWORDS__', 'Bible, word' )
                                     }
 <p>{previousLink} {nextLink}</p>
 {bodyHtml}
 <p><small>Grateful thanks to <a href="https://Viz.Bible">Viz.Bible</a> for these links and this data.</small></p>
-{makeBottom( 2, 'person', state )}'''
+{makeBottom( level, 'person', state )}'''
         with open( outputFolderPath.joinpath(output_filename), 'wt', encoding='utf-8' ) as html_output_file:
             html_output_file.write( html )
         vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  Wrote {len(html):,} characters to {output_filename}" )
 # end of createOETReferencePages.make_person_pages function
 
 
-def make_location_pages( outputFolderPath:Path, state ) -> int:
+def make_location_pages( level:int, outputFolderPath:Path, state ) -> int:
     """
     Make pages for all the words to link to.
 
@@ -447,14 +447,14 @@ def make_location_pages( outputFolderPath:Path, state ) -> int:
 
         # Now put it all together       
         output_filename = f"{placeKey[1:]}.htm"
-        html = f'''{makeTop( 2, None, 'location', None, state )
+        html = f'''{makeTop( level, None, 'location', None, state )
                                     .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{placeName}" )
                                     .replace( '__KEYWORDS__', 'Bible, word' )
                                     }
 <p>{previousLink} {nextLink}</p>
 {bodyHtml}
 <p><small>Grateful thanks to <a href="https://Viz.Bible">Viz.Bible</a> for these links and this data.</small></p>
-{makeBottom( 2, 'location', state )}'''
+{makeBottom( level, 'location', state )}'''
         with open( outputFolderPath.joinpath(output_filename), 'wt', encoding='utf-8' ) as html_output_file:
             html_output_file.write( html )
         vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  Wrote {len(html):,} characters to {output_filename}" )
@@ -504,6 +504,9 @@ def livenMD( mdText:str ) -> str:
 linkedWordTitleRegex = re.compile( '="§(.+?)§"' ) # We inserted those § markers in our titleTemplate above
 def livenOETWordLinks( bibleObject:ESFMBible, BBB:str, givenEntryList:InternalBibleEntryList, hrefTemplate:str ) -> InternalBibleEntryList:
     """
+    Livens ESFM wordlinks in the OET versions (i.e., the words with ¦ numbers suffixed to them).
+
+    Then add the transliteration to the title="§«Greek»§" popup.
     """
     # Liven the word links using the BOS function
     revisedEntryList, _wordList = bibleObject.livenESFMWordLinks( BBB, givenEntryList, hrefTemplate, '§«Greek»§' )

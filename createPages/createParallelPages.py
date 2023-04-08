@@ -45,10 +45,10 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_
 from createOETReferencePages import livenOETWordLinks
 
 
-LAST_MODIFIED_DATE = '2023-04-07' # by RJH
+LAST_MODIFIED_DATE = '2023-04-08' # by RJH
 SHORT_PROGRAM_NAME = "createParallelPages"
 PROGRAM_NAME = "OpenBibleData createParallelPages functions"
-PROGRAM_VERSION = '0.36'
+PROGRAM_VERSION = '0.37'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -59,11 +59,11 @@ EM_SPACE = ' '
 NARROW_NON_BREAK_SPACE = ' '
 
 
-def createParallelPages( folder:Path, state ) -> bool:
+def createParallelPages( level:int, folder:Path, state ) -> bool:
     """
     """
     from createSitePages import TEST_MODE, reorderBooksForOETVersions
-    fnPrint( DEBUGGING_THIS_MODULE, f"createParallelPages( {folder}, {state.BibleVersions} )" )
+    fnPrint( DEBUGGING_THIS_MODULE, f"createParallelPages( {level}, {folder}, {state.BibleVersions} )" )
 
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\ncreateParallelPages( {folder}, {state.BibleVersions} )" )
     try: os.makedirs( folder )
@@ -78,18 +78,18 @@ def createParallelPages( folder:Path, state ) -> bool:
     for BBB in reorderBooksForOETVersions( state.allBBBs ):
         if BibleOrgSysGlobals.loadedBibleBooksCodes.isChapterVerseBook( BBB ):
             BBBFolder = folder.joinpath(f'{BBB}/')
-            createParallelVersePagesForBook( BBBFolder, BBB, BBBNextLinks, state )
+            createParallelVersePagesForBook( level+1, BBBFolder, BBB, BBBNextLinks, state )
 
     # Create index page
     filename = 'index.htm'
     filepath = folder.joinpath( filename )
-    top = makeTop( 1, None, 'parallel', None, state ) \
+    top = makeTop( level, None, 'parallel', None, state ) \
             .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}Parallel View" ) \
             .replace( '__KEYWORDS__', f'Bible, parallel' )
     indexHtml = top \
                 + '<h1 id="Top">Parallel verse pages</h1><h2>Index of books</h2>\n' \
                 + f'''<p class="bLinks">{' '.join( BBBLinks )}</p>\n''' \
-                + makeBottom( 1, 'parallel', state )
+                + makeBottom( level, 'parallel', state )
     checkHtml( 'ParallelIndex', indexHtml )
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
         indexHtmlFile.write( indexHtml )
@@ -99,15 +99,15 @@ def createParallelPages( folder:Path, state ) -> bool:
     return True
 # end of html.createParallelPages
 
-def createParallelVersePagesForBook( folder:Path, BBB:str, BBBLinks:List[str], state ) -> bool:
+def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:List[str], state ) -> bool:
     """
     Create a page for every Bible verse
         displaying the verse for every available version.
     """
     from createSitePages import TEST_MODE
-    fnPrint( DEBUGGING_THIS_MODULE, f"createParallelVersePagesForBook( {folder}, {BBB}, {BBBLinks}, {state.BibleVersions} )" )
+    fnPrint( DEBUGGING_THIS_MODULE, f"createParallelVersePagesForBook( {level}, {folder}, {BBB}, {BBBLinks}, {state.BibleVersions} )" )
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createParallelVersePagesForBook {folder}, {BBB} from {len(BBBLinks)} books, {len(state.BibleVersions)} versions…" )
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createParallelVersePagesForBook {level}, {folder}, {BBB} from {len(BBBLinks)} books, {len(state.BibleVersions)} versions…" )
     try: os.makedirs( folder )
     except FileExistsError: pass # they were already there
 
@@ -162,7 +162,7 @@ def createParallelVersePagesForBook( folder:Path, BBB:str, BBBLinks:List[str], s
                     try:
                         verseEntryList, contextList = thisBible.getContextVerseData( (BBB, str(c), str(v)) )
                         if isinstance( thisBible, ESFMBible.ESFMBible ):
-                            verseEntryList = livenOETWordLinks( thisBible, BBB, verseEntryList, '../../rf/W/{n}.htm' )
+                            verseEntryList = livenOETWordLinks( thisBible, BBB, verseEntryList, f"{'../'*level}rf/W/{{n}}.htm" )
                         textHtml = convertUSFMMarkerListToHtml( versionAbbreviation, (BBB,c,v), 'verse', contextList, verseEntryList, basicOnly=True, state=state )
                         while textHtml.startswith( '<br>' ): # BSB and OEB seems particularly bad with blank lines
                             textHtml = textHtml[4:]
@@ -221,7 +221,7 @@ def createParallelVersePagesForBook( folder:Path, BBB:str, BBBLinks:List[str], s
                 filename = f'C{c}V{v}.htm'
                 # filenames.append( filename )
                 filepath = folder.joinpath( filename )
-                top = makeTop( 2, None, 'parallel', None, state ) \
+                top = makeTop( level, None, 'parallel', None, state ) \
                         .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{tidyBBB} {c}:{v} Parallel View" ) \
                         .replace( '__KEYWORDS__', f'Bible, {tidyBBB}, parallel' )
                 pHtml = top + '<!--parallel verse page-->' \
@@ -229,7 +229,7 @@ def createParallelVersePagesForBook( folder:Path, BBB:str, BBBLinks:List[str], s
                         + f"{navLinks.replace('__ID__','CVTop').replace('__ARROW__','↓').replace('__WHERE__','Bottom')}\n" \
                         + pHtml \
                         + f"\n{navLinks.replace('__ID__','CVBottom').replace('__ARROW__','↑').replace('__WHERE__','Top')}\n" \
-                        + makeBottom( 2, 'parallel', state )
+                        + makeBottom( level, 'parallel', state )
                 checkHtml( f'Parallel {BBB} {c}:{v}', pHtml )
                 with open( filepath, 'wt', encoding='utf-8' ) as pHtmlFile:
                     pHtmlFile.write( pHtml )
@@ -244,7 +244,7 @@ def createParallelVersePagesForBook( folder:Path, BBB:str, BBBLinks:List[str], s
     # Create index page for this book
     filename = 'index.htm'
     filepath = folder.joinpath( filename )
-    top = makeTop(2, None, 'parallel', None, state) \
+    top = makeTop( level, None, 'parallel', None, state) \
             .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{tidyBBB} Parallel View" ) \
             .replace( '__KEYWORDS__', f'Bible, parallel' )
     # For Psalms, we don't list every single verse
@@ -255,7 +255,7 @@ f'''<p class="cLinks">{tidyBbb} {' '.join( [f'<a title="Go to parallel verse
 <h1 id="Top">{tidyBBB} parallel verses index</h1>
 <p class="vLinks">{' '.join( vLinks )}</p>'''
     indexHtml = f'{top}{adjBBBLinksHtml}\n{ourLinks}\n' \
-                + makeBottom( 2, 'parallel', state )
+                + makeBottom( level, 'parallel', state )
     checkHtml( 'ParallelIndex', indexHtml )
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
         indexHtmlFile.write( indexHtml )
