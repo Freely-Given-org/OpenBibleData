@@ -46,10 +46,10 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_
 from createOETReferencePages import livenOETWordLinks
 
 
-LAST_MODIFIED_DATE = '2023-04-08' # by RJH
+LAST_MODIFIED_DATE = '2023-04-09' # by RJH
 SHORT_PROGRAM_NAME = "createSectionPages"
 PROGRAM_NAME = "OpenBibleData createSectionPages functions"
-PROGRAM_VERSION = '0.26'
+PROGRAM_VERSION = '0.27'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -163,7 +163,7 @@ def createOETSectionPages( level:int, folder:Path, rvBible, lvBible, state ) -> 
 <h2>Literal Version</h2>
 '''
             if isinstance( rvBible, ESFMBible.ESFMBible ):
-                rvVerseEntryList = livenOETWordLinks( rvBible, BBB, rvVerseEntryList, f"{'../'*level}rf/W/{{n}}.htm" )
+                rvVerseEntryList = livenOETWordLinks( rvBible, BBB, rvVerseEntryList, f"{'../'*level}rf/W/{{n}}.htm", state )
             rvHtml = convertUSFMMarkerListToHtml( rvBible.abbreviation, (BBB,startC), 'section', rvContextList, rvVerseEntryList, basicOnly=False, state=state )
             rvHtml = do_OET_RV_HTMLcustomisations( rvHtml )
             # rvHtml = livenIORs( BBB, rvHtml, sections )
@@ -206,7 +206,7 @@ def createOETSectionPages( level:int, folder:Path, rvBible, lvBible, state ) -> 
             else:
                 loop_counter_too_small
             if isinstance( lvBible, ESFMBible.ESFMBible ):
-                lvVerseEntryList = livenOETWordLinks( lvBible, BBB, lvVerseEntryList, f"{'../'*level}rf/W/{{n}}.htm" )
+                lvVerseEntryList = livenOETWordLinks( lvBible, BBB, lvVerseEntryList, f"{'../'*level}rf/W/{{n}}.htm", state )
             lvHtml = convertUSFMMarkerListToHtml( lvBible.abbreviation, (BBB,startC), 'section', lvContextList, lvVerseEntryList, basicOnly=False, state=state )
             lvHtml = do_OET_LV_HTMLcustomisations( lvHtml )
             combinedHtml = f'''<div class="chunkRV">{rvHtml}</div><!--chunkRV-->

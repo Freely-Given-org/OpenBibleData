@@ -43,10 +43,10 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_
 from createOETReferencePages import livenOETWordLinks
 
 
-LAST_MODIFIED_DATE = '2023-04-08' # by RJH
+LAST_MODIFIED_DATE = '2023-04-09' # by RJH
 SHORT_PROGRAM_NAME = "createBookPages"
 PROGRAM_NAME = "OpenBibleData createBookPages functions"
-PROGRAM_VERSION = '0.29'
+PROGRAM_VERSION = '0.30'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -107,9 +107,9 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state ) -> Lis
         rvVerseEntryList, rvContextList = rvBible.getContextVerseData( (BBB,) )
         lvVerseEntryList, lvContextList = lvBible.getContextVerseData( (BBB,) )
         if isinstance( rvBible, ESFMBible.ESFMBible ):
-            rvVerseEntryList = livenOETWordLinks( rvBible, BBB, rvVerseEntryList, f"{'../'*level}rf/W/{{n}}.htm" )
+            rvVerseEntryList = livenOETWordLinks( rvBible, BBB, rvVerseEntryList, f"{'../'*level}rf/W/{{n}}.htm", state )
         if isinstance( lvBible, ESFMBible.ESFMBible ):
-            lvVerseEntryList = livenOETWordLinks( lvBible, BBB, lvVerseEntryList, f"{'../'*level}rf/W/{{n}}.htm" )
+            lvVerseEntryList = livenOETWordLinks( lvBible, BBB, lvVerseEntryList, f"{'../'*level}rf/W/{{n}}.htm", state )
         rvHtml = do_OET_RV_HTMLcustomisations( convertUSFMMarkerListToHtml( 'OET', (BBB,), 'book', rvContextList, rvVerseEntryList, basicOnly=False, state=state ) )
         lvHtml = do_OET_LV_HTMLcustomisations( convertUSFMMarkerListToHtml( 'OET', (BBB,), 'book', lvContextList, lvVerseEntryList, basicOnly=False, state=state ) )
 
@@ -246,7 +246,7 @@ def createBookPages( level:int, folder:Path, thisBible, state ) -> List[str]:
 '''
         verseEntryList, contextList = thisBible.getContextVerseData( (BBB,) )
         if isinstance( thisBible, ESFMBible.ESFMBible ):
-            verseEntryList = livenOETWordLinks( thisBible, BBB, verseEntryList, f"{'../'*level}rf/W/{{n}}.htm" )
+            verseEntryList = livenOETWordLinks( thisBible, BBB, verseEntryList, f"{'../'*level}rf/W/{{n}}.htm", state )
         textHtml = convertUSFMMarkerListToHtml( thisBible.abbreviation, (BBB,), 'book', contextList, verseEntryList, basicOnly=False, state=state )
         # textHtml = livenIORs( BBB, textHtml )
         if thisBible.abbreviation == 'OET-RV':

@@ -91,16 +91,7 @@ def createOETReferencePages( level:int, outputFolderPath:Path, state ) -> bool:
     try: os.makedirs( outputFolderPath )
     except FileExistsError: pass # it was already there
 
-    state.OETRefData = {} # This is where we will store all our temporary ref data
-
-    lvBible = state.preloadedBibles['OET-LV']
-    # print( lvBible.ESFMWordTables.keys() )
-    assert len(lvBible.ESFMWordTables) == 1
-    state.OETRefData['word_table'] = list(lvBible.ESFMWordTables.values())[0]
     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nCreating {'TEST ' if TEST_MODE else ''}reference pages for OET…" )
-    columnHeaders = state.OETRefData['word_table'][0]
-    dPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Word table column headers = '{columnHeaders}'" )
-    assert columnHeaders == 'Ref\tGreek\tLemma\tGlossWords\tGlossCaps\tProbability\tStrongsExt\tRole\tMorphology\tTags' # If not, probably need to fix some stuff
 
     # First make a list of each place the same Greek word (and matching morphology) is used
     # NOTE: The word table has Matthew at the beginning (whereas the OET places John at the beginning) so we do JHN first
@@ -502,7 +493,8 @@ def livenMD( mdText:str ) -> str:
 
 
 linkedWordTitleRegex = re.compile( '="§(.+?)§"' ) # We inserted those § markers in our titleTemplate above
-def livenOETWordLinks( bibleObject:ESFMBible, BBB:str, givenEntryList:InternalBibleEntryList, hrefTemplate:str ) -> InternalBibleEntryList:
+linkedWordNumberRegex = re.compile( '/W/([1-9][0-9]{0,5}).htm' )
+def livenOETWordLinks( bibleObject:ESFMBible, BBB:str, givenEntryList:InternalBibleEntryList, hrefTemplate:str, state ) -> InternalBibleEntryList:
     """
     Livens ESFM wordlinks in the OET versions (i.e., the words with ¦ numbers suffixed to them).
 
@@ -523,14 +515,23 @@ def livenOETWordLinks( bibleObject:ESFMBible, BBB:str, givenEntryList:InternalBi
         searchStartIndex = 0
         count = 0
         while True:
-            match = linkedWordTitleRegex.search( originalText, searchStartIndex )
-            if not match:
+            titleMatch = linkedWordTitleRegex.search( originalText, searchStartIndex )
+            if not titleMatch:
                 break
             # print( f"createOETReferencePages {BBB} word match 1='{match.group(1)}' all='{originalText[match.start():match.end()]}'" )
-            greekWord = match.group(1)
+            greekWord = titleMatch.group(1)
             transliteratedWord = transliterate_Greek( greekWord )
-            originalText = f'''{originalText[:match.start()]}="{greekWord} ({transliteratedWord})"{originalText[match.end():]}'''
-            searchStartIndex = match.end() + len(transliteratedWord) + 1 # We've added at least that many characters
+
+            wordnumberMatch = linkedWordNumberRegex.search( originalText, titleMatch.end()+4 ) # After the following href
+            assert wordnumberMatch
+            wordNumber = int( wordnumberMatch.group(1) )
+            wordRow = state.OETRefData['word_table'][wordNumber]
+            lemma = wordRow.split('\t')[2]
+
+            newTitleGuts = f'''="{greekWord} ({transliteratedWord}){'' if lemma==transliteratedWord else f" from {lemma}"}"'''
+            originalText = f'''{originalText[:titleMatch.start()]}{newTitleGuts}{originalText[titleMatch.end():]}'''
+
+            searchStartIndex = wordnumberMatch.end() + len(newTitleGuts) - len(greekWord) - 5 # We've added at least that many characters
             count += 1
         if count > 0:
             # print( f"  Now '{originalText}'")

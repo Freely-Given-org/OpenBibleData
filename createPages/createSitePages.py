@@ -59,14 +59,14 @@ from createOETReferencePages import createOETReferencePages
 from html import makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-04-08' # by RJH
+LAST_MODIFIED_DATE = '2023-04-09' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData Create Pages"
-PROGRAM_VERSION = '0.50'
+PROGRAM_VERSION = '0.51'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
-TEST_MODE = False # Writes website into Test folder
+TEST_MODE = False # Writes website into Test subfolder
 
 ALL_PRODUCTION_BOOKS = not TEST_MODE # If set to False, only selects one book per version for a faster test build
 
@@ -470,6 +470,21 @@ def createSitePages() -> bool:
     numLoadedVersions = preloadVersions( state )
     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nPreloaded {len(state.preloadedBibles)} Bible versions: {state.preloadedBibles.keys()}" )
 
+    # Load our OET worddata table
+    state.OETRefData = {} # This is where we will store all our temporary ref data
+    lvBible = state.preloadedBibles['OET-LV']
+    assert len(lvBible.ESFMWordTables) == 1
+    wordFileName = list(lvBible.ESFMWordTables.keys())[0]
+    assert wordFileName.endswith( '.tsv' )
+    if lvBible.ESFMWordTables[wordFileName] is None:
+        lvBible.loadESFMWordFile( wordFileName )
+    state.OETRefData['word_table'] = list(lvBible.ESFMWordTables.values())[0]
+    columnHeaders = state.OETRefData['word_table'][0]
+    assert columnHeaders == 'Ref\tGreek\tLemma\tGlossWords\tGlossCaps\tProbability\tStrongsExt\tRole\tMorphology\tTags' # If not, probably need to fix some stuff
+
+    load_transliteration_table( 'Greek' )
+    load_transliteration_table( 'Hebrew' )
+
     # Find our inclusive list of books
     allBBBs = set()
     for BBB in BibleOrgSysGlobals.loadedBibleBooksCodes:
@@ -482,9 +497,6 @@ def createSitePages() -> bool:
     # Now put them in the proper print order
     state.allBBBs = BibleOrgSysGlobals.loadedBibleBooksCodes.getSequenceList( allBBBs )
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\nDiscovered {len(state.allBBBs)} books across {len(state.preloadedBibles)} versions: {state.allBBBs}" )
-
-    load_transliteration_table( 'Greek' )
-    load_transliteration_table( 'Hebrew' )
 
     # Ok, let's go create some static pages
     if 'OET' in state.BibleVersions: # this is a special case
