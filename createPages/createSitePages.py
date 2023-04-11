@@ -59,10 +59,10 @@ from createOETReferencePages import createOETReferencePages
 from html import makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-04-09' # by RJH
+LAST_MODIFIED_DATE = '2023-04-10' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData Create Pages"
-PROGRAM_VERSION = '0.51'
+PROGRAM_VERSION = '0.52'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
@@ -110,7 +110,7 @@ class State:
                 'TNT':('',''),'WYC':('',''),'CLV':('<small>','</small>'),
                 'SR-GNT':('<b>','</b>'),'UGNT':('<small>','</small>'),'SBL-GNT':('<small>','</small>'),'TC-GNT':('<small>','</small>'),
                 'BRN':('<small>','</small>'),'BrLXX':('',''), 'UHB':('',''),
-                'Parallel':('<b>','</b>'), 'Interlinear':('<small>','</small>'),
+                'Parallel':('<b>','</b>'), 'Interlinear':('<b>','</b>'),
                 }
     
                 ## 'LEB': '../copiedBibles/English/LogosBibleSoftware/LEB/LEB.osis.xml', # OSIS
@@ -156,6 +156,7 @@ class State:
                 'BrLXX': '../copiedBibles/Greek/eBible.org/BrLXX/',
                 'UHB': '../copiedBibles/Original/unfoldingWord.org/UHB/',
                 }
+    if not TEST_MODE: assert len(BibleLocations) >= 36, len(BibleLocations)
     
     BibleNames = {
                 'OET': 'Open English Translation (2027)',
@@ -239,9 +240,9 @@ class State:
                 'BrLXX': ['ALL'],
                 'UHB': ['ALL'],
             } if ALL_PRODUCTION_BOOKS else {
-                'OET': ['FRT','MRK','TI1'],
-                'OET-RV': ['FRT','MRK','TI1'],
-                'OET-LV': ['MRK','TI1'],
+                'OET': ['FRT','MRK'],
+                'OET-RV': ['FRT','MRK'],
+                'OET-LV': ['MRK'],
                 'ULT': ['FRT','MRK'],
                 'UST': ['MRK'], # MRK 13:13 gives \\add error (24Jan2023)
                 'OEB': ['MRK'],
@@ -674,7 +675,7 @@ def createMainIndexPages( level, folder:Path, state ) -> bool:
 #             .replace( '__TITLE__', 'TEST Open Bible Data Versions' if TEST_MODE else 'Open Bible Data Versions') \
 #             .replace( '__KEYWORDS__', 'Bible, translation, English, OET' )
 #     if TEST_MODE:
-#         html = html.replace( '<body>', '<body><p><a href="../../">UP TO MAIN NON-TEST SITE</a></p>')
+#         html = html.replace( '<body>', '<body><p><a href="{'../'*level}">UP TO MAIN NON-TEST SITE</a></p>')
 #     bodyHtml = """<!--createVersionsIndexPage--><h1 id="Top">Open Bible Data TEST Versions</h1>
 # """ if TEST_MODE else """<!--createMainIndexPage--><h1 id="Top">Open Bible Data Versions</h1>
 # """

@@ -189,27 +189,27 @@ def make_word_pages( level:int, outputFolderPath:Path, state ) -> None:
             semanticExtras = ''
             if tagsStr:
                 for semanticTag in tagsStr.split( ';' ):
-                    prefix, tag = semanticTag[0], semanticTag[1:]
+                    tagPrefix, tag = semanticTag[0], semanticTag[1:]
                     # print( f"{BBB} {C}:{V} '{semanticTag}' from {tagsStr=}" )
-                    if prefix == 'P':
+                    if tagPrefix == 'P':
                         semanticExtras = f'''{semanticExtras}{' ' if semanticExtras else ''}Person=<a title="View person details" href="../P/{tag}.htm">{tag}</a>'''
-                    elif prefix == 'L':
+                    elif tagPrefix == 'L':
                         semanticExtras = f'''{semanticExtras}{' ' if semanticExtras else ''}Location=<a title="View place details" href="../L/{tag}.htm">{tag}</a>'''
-                    elif prefix == 'Y':
+                    elif tagPrefix == 'Y':
                         year = tag
                         semanticExtras = f'''{semanticExtras}{' ' if semanticExtras else ''}Year={year}{' AD' if int(year)>0 else ''}'''
-                    elif prefix == 'T':
+                    elif tagPrefix == 'T':
                         semanticExtras = f'''{semanticExtras}{' ' if semanticExtras else ''}TimeSeries={tag}'''
-                    elif prefix == 'E':
+                    elif tagPrefix == 'E':
                         semanticExtras = f'''{semanticExtras}{' ' if semanticExtras else ''}Event={tag}'''
-                    elif prefix == 'G':
+                    elif tagPrefix == 'G':
                         semanticExtras = f'''{semanticExtras}{' ' if semanticExtras else ''}Group={tag}'''
-                    elif prefix == 'F':
+                    elif tagPrefix == 'F':
                         semanticExtras = f'''{semanticExtras}{' ' if semanticExtras else ''}Referred to from <a title="Go to referent word" href="{tag}.htm">Word #{tag}</a>'''
-                    elif prefix == 'R':
+                    elif tagPrefix == 'R':
                         semanticExtras = f'''{semanticExtras}{' ' if semanticExtras else ''}Refers to <a title="Go to referred word" href="{tag}.htm">Word #{tag}</a>'''
                     else:
-                        logging.critical( f"Unknown '{prefix}' word tag in {n}: {columns_string}")
+                        logging.critical( f"Unknown '{tagPrefix}' word tag in {n}: {columns_string}")
                         unknownTag
             lemmaLink = f'<a title="View Greek root word" href="../G/{lemma}.htm">{lemma}</a>'
             lemmaGlossesList = sorted( state.OETRefData['lemmaGlossesDict'][lemma] )
@@ -217,10 +217,11 @@ def make_word_pages( level:int, outputFolderPath:Path, state ) -> None:
 
             prevLink = f'<b><a title="Previous word" href="{n-1}.htm#Top">←</a></b> ' if n>1 else ''
             nextLink = f' <b><a title="Next word" href="{n+1}.htm#Top">→</a></b>' if n<len(state.OETRefData['word_table']) else ''
-            oetLink = f' <a title="View whole chapter" href="../../OET/byC/{BBB}_C{C}.htm#C{C}">{tidyBbb}{NARROW_NON_BREAK_SPACE}{C}</a>'
-            parallelLink = f' <b><a title="View verse in many versions" href="../../pa/{BBB}/C{C}V{V}.htm">║</a></b>'
+            oetLink = f''' <a title="View whole chapter" href="{'../'*level}OET/byC/{BBB}_C{C}.htm#C{C}">{tidyBbb}{NARROW_NON_BREAK_SPACE}{C}</a>'''
+            parallelLink = f''' <b><a title="View verse in many versions" href="{'../'*level}pa/{BBB}/C{C}V{V}.htm">║</a></b>'''
+            interlinearLink = f''' <b><a title="View verse in many versions" href="{'../'*level}il/{BBB}/C{C}V{V}.htm">═</a></b>'''
             html = f'''{'' if probability else '<div class="unusedWord">'}<h1 id="Top">OET Wordlink #{n}{'' if probability else ' <small>(Unused Greek word variant)</small>'}</h1>
-<p class="pnav">{prevLink}<b>{greek}</b>{nextLink}{oetLink}{parallelLink}</p>
+<p class="pnav">{prevLink}<b>{greek}</b>{nextLink}{oetLink}{parallelLink}{interlinearLink}</p>
 <p><a title="Go to Statistical Restoration Greek page" href="https://GreekCNTR.org/collation/?{CNTR_BOOK_ID_MAP[BBB]}{C.zfill(3)}{V.zfill(3)}">SR GNT {tidyBBB} {C}:{V}</a>
  {probabilityField if TEST_MODE else ''}<b>{greek}</b> ({transliterate_Greek(greek)}) {translation}{capsField if TEST_MODE else ''}
  Strongs=<a title="Goes to Strongs dictionary" href="https://BibleHub.com/greek/{strongs}.htm">{extendedStrongs}</a> <small>Lemma={lemmaLink}</small><br>
@@ -261,7 +262,7 @@ This is all part of the commitment of the <em>Open English Translation</em> team
                         oTidyBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.tidyBBB( oBBB )
                         # if other_count == 0:
                         translation = '<small>(no English gloss here)</small>' if oGlossWords=='-' else f'''English gloss=‘<b>{oGlossWords.replace('_','<span class="ul">_</span>')}</b>’'''
-                        html = f'''{html}\n<p><a title="View OET {oTidyBBB} text" href="../../OET/byC/{oBBB}_C{oC}.htm#C{oC}V{oV}">OET {oTidyBBB} {oC}:{oV}</a> {translation}
+                        html = f'''{html}\n<p><a title="View OET {oTidyBBB} text" href="{'../'*level}OET/byC/{oBBB}_C{oC}.htm#C{oC}V{oV}">OET {oTidyBBB} {oC}:{oV}</a> {translation}
  <a title="Go to Statistical Restoration Greek page" href="https://GreekCNTR.org/collation/?{CNTR_BOOK_ID_MAP[oBBB]}{oC.zfill(3)}{oV.zfill(3)}">SR GNT {oTidyBBB} {oC}:{oV} word {oW}</a>'''
                         # other_count += 1
                         # if other_count >= 120:
@@ -324,7 +325,7 @@ def make_Greek_lemma_pages( level:int, outputFolderPath:Path, state ) -> None:
                 oTidyBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.tidyBBB( oBBB )
                 # if other_count == 0:
                 translation = '<small>(no English gloss here)</small>' if oGlossWords=='-' else f'''English gloss=‘<b>{oGlossWords.replace('_','<span class="ul">_</span>')}</b>’'''
-                html = f'''{html}\n<p><a title="View OET {oTidyBBB} text" href="../../OET/byC/{oBBB}_C{oC}.htm#C{oC}V{oV}">OET {oTidyBBB} {oC}:{oV}</a> Greek word=<b><a title="Go to word page" href="../W/{oN}.htm">{oGreek}</a></b> ({transliterate_Greek(oGreek)}) <small>Morphology={oMorphology}</small> {translation}
+                html = f'''{html}\n<p><a title="View OET {oTidyBBB} text" href="{'../'*level}OET/byC/{oBBB}_C{oC}.htm#C{oC}V{oV}">OET {oTidyBBB} {oC}:{oV}</a> Greek word=<b><a title="Go to word page" href="../W/{oN}.htm">{oGreek}</a></b> ({transliterate_Greek(oGreek)}) <small>Morphology={oMorphology}</small> {translation}
  <a title="Go to Statistical Restoration Greek page" href="https://GreekCNTR.org/collation/?{CNTR_BOOK_ID_MAP[oBBB]}{oC.zfill(3)}{oV.zfill(3)}">SR GNT {oTidyBBB} {oC}:{oV} word {oW}</a>'''
                 # other_count += 1
                 # if other_count >= 120:
@@ -378,7 +379,7 @@ def make_person_pages( level:int, outputFolderPath:Path, state ) -> int:
         diedStr = f"Died: {entry['deathYear']}" if entry['deathYear'] else ''
 
         bodyHtml = f'''<h1>{personName.replace( "'", '’' )}</h1>
-<p>{livenMD(entry['dictText'])}</p>
+<p>{livenMD(level, entry['dictText'])}</p>
 <p>{entry['gender']}{f' {bornStr}' if bornStr else ''}{f' {diedStr}' if diedStr else ''}</p>'''
 
         # Now put it all together       
@@ -432,7 +433,7 @@ def make_location_pages( level:int, outputFolderPath:Path, state ) -> int:
         commentStr = f" {entry['comment']}" if entry['comment'] else ''
 
         bodyHtml = f'''<h1>{placeName.replace( "'", '’' )}</h1>
-<p>{livenMD(entry['dictText'])}</p>
+<p>{livenMD(level, entry['dictText'])}</p>
 <p>{entry['featureType']}{f"/{entry['featureSubType']}" if entry['featureSubType'] else ''}{f' {commentStr}' if commentStr else ''}</p>
 <p>KJB=‘{entry['kjvName']}’ ESV=‘{entry['esvName']}’</p>'''
 
@@ -453,13 +454,13 @@ def make_location_pages( level:int, outputFolderPath:Path, state ) -> int:
 
 
 mdLinkRegex = re.compile( '\\[(.+?)\\]\\((.+?)\\)' )
-def livenMD( mdText:str ) -> str:
+def livenMD( level:int, mdText:str ) -> str:
     """
     Take markdown style links like '[Gen. 35:16](/gen#Gen.35.16)'
         from person and location pages
         and convert them to HTML links.
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"livenMD( {mdText[:140]}… )" )
+    fnPrint( DEBUGGING_THIS_MODULE, f"livenMD( {level}, {mdText[:140]}… )" )
 
     # Firstly, try to improve the overall formatting
     mdText = mdText.replace( '\n\n', '</p><p>' ).replace( '\n', '<br>' )
@@ -478,7 +479,7 @@ def livenMD( mdText:str ) -> str:
         if mdLinkTarget.count( '.' ) == 2: # Then it's almost certainly an OSIS B/C/V ref
             OSISBkCode, C, V = mdLinkTarget.split( '.' )
             BBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromOSISAbbreviation( OSISBkCode )
-            ourLinkTarget = f'../../OET/byC/{BBB}_C{C}.htm#C{C}V{V}'
+            ourLinkTarget = f"{'../'*level}OET/byC/{BBB}_C{C}.htm#C{C}V{V}"
         else:
             assert mdLinkTarget.count( '.' ) == 1 # Then it's almost certainly an OSIS B/C ref
             OSISBkCode, C = mdLinkTarget.split( '.' )

@@ -25,7 +25,7 @@
 """
 Module handling usfm to html functions.
 
-convertUSFMMarkerListToHtml( versionAbbreviation:str, refTuple:tuple, segmentType:str,
+convertUSFMMarkerListToHtml( level:str, versionAbbreviation:str, refTuple:tuple, segmentType:str,
                         contextList:list, markerList:list, basicOnly:bool=False ) -> str
 formatUSFMText( versionAbbreviation:str, refTuple:tuple, segmentType:str,
                                                     usfmField, basicOnly=False ) -> str
@@ -52,10 +52,10 @@ from BibleOrgSys.Internals.InternalBibleInternals import getLeadingInt
 from html import checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-04-07' # by RJH
+LAST_MODIFIED_DATE = '2023-04-10' # by RJH
 SHORT_PROGRAM_NAME = "usfm"
 PROGRAM_NAME = "OpenBibleData USFM to HTML functions"
-PROGRAM_VERSION = '0.38'
+PROGRAM_VERSION = '0.39'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -69,7 +69,7 @@ NON_BREAK_SPACE = ' ' # NBSP
 MAX_FOOTNOTE_CHARS = 11_000 # 1029 in FBV, 1688 in BRN, 10426 in CLV JOB!
 
 
-def convertUSFMMarkerListToHtml( versionAbbreviation:str, refTuple:tuple, segmentType:str, contextList:list, markerList:list, basicOnly:bool, state ) -> str:
+def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tuple, segmentType:str, contextList:list, markerList:list, basicOnly:bool, state ) -> str:
     """
     Loops through the given list of USFM lines
         and converts to a HTML segment as required.
@@ -104,7 +104,7 @@ def convertUSFMMarkerListToHtml( versionAbbreviation:str, refTuple:tuple, segmen
 
     for n, entry in enumerate(markerList):
         marker = entry.getMarker()
-        rest = entry.getText()  if basicOnly and 'OET' not in versionAbbreviation else entry.getFullText() # getText() has notes removed but doesn't work with wordlink numbers in OET
+        rest = entry.getText() if basicOnly and 'OET' not in versionAbbreviation else entry.getFullText() # getText() has notes removed but doesn't work with wordlink numbers in OET
         if rest:
             if 'OET' in versionAbbreviation:
                 rest = rest.replace( "'", "’" ) # Replace apostrophes
@@ -130,7 +130,7 @@ def convertUSFMMarkerListToHtml( versionAbbreviation:str, refTuple:tuple, segmen
                 # We want both verse numbers to be searchable
                 if int(V2) != int(V1)+1: # We don't handle 3+ verse reordering well yet
                     logging.critical( f" Not handling 3+ verse bridge well yet at {versionAbbreviation} {refTuple} {C}:{V}" )
-                vLink = f'<a title="Go to verse in parallel view" href="../../pa/{BBB}/C{C}V{V1}.htm">{V1}</a>'
+                vLink = f'''<a title="Go to verse in parallel view" href="{'../'*level}pa/{BBB}/C{C}V{V1}.htm">{V1}</a>'''
                 html = f'{html}{"" if html.endswith(">") else " "}' \
                         + f'''{f"""<span id="C{C}"></span><span class="{'cPsa' if BBB=='PSA' else 'c'}" id="C{C}V1">{C}</span>""" if V1=="1" else f"""<span class="v" id="C{C}V{V1}">{vLink}-</span>"""}''' \
                         + f'<span class="v" id="C{C}V{V2}">{V2}{NARROW_NON_BREAK_SPACE}</span>' \
@@ -139,8 +139,8 @@ def convertUSFMMarkerListToHtml( versionAbbreviation:str, refTuple:tuple, segmen
                 if segmentType != 'verse': # No need for verse numbers at all if we're only displaying one verse
                     if not V.isdigit():
                         logging.critical( f"Expected a verse number digit at {versionAbbreviation} {refTuple} {C}:{V} {rest=}" )
-                    cLink = f'<a title="Go to verse in parallel view" href="../../pa/{BBB}/C{C}V1.htm">{C}</a>'
-                    vLink = f'<a title="Go to verse in parallel view" href="../../pa/{BBB}/C{C}V{V}.htm">{V}</a>'
+                    cLink = f'''<a title="Go to verse in parallel view" href="{'../'*level}pa/{BBB}/C{C}V1.htm">{C}</a>'''
+                    vLink = f'''<a title="Go to verse in parallel view" href="{'../'*level}pa/{BBB}/C{C}V{V}.htm">{V}</a>'''
                     html = f'{html}{"" if html.endswith(">") or html.endswith("—") else " "}' \
                             + f'''{f"""<span id="C{C}"></span><span class="{'cPsa' if BBB=='PSA' else 'c'}" id="C{C}V1">{cLink}{NARROW_NON_BREAK_SPACE}</span>""" if V=="1" else f"""<span class="v" id="C{C}V{V}">{vLink}{NARROW_NON_BREAK_SPACE}</span>"""}'''
                 # html = f'{html} <span class="v" id="C{refTuple[1]}V{V}">{V}{NARROW_NON_BREAK_SPACE}</span>'
@@ -694,6 +694,14 @@ def convertUSFMMarkerListToHtml( versionAbbreviation:str, refTuple:tuple, segmen
         html = f'{html}<hr><div class="crossRefs">\n{crossReferencesHtml}</div><!--crossRefs-->\n'
     if versionAbbreviation not in ('BRN',): # BRN ISA 52
         assert '\\x' not in html, f"{html[html.index(f'{BACKSLASH}x')-10:html.index(f'{BACKSLASH}x')+12]}"
+
+    if basicOnly: # remove leading, trailing, and internal blank lines
+        while '<br><br>' in html:
+            html = html.replace( '<br><br>', '<br>')
+        while html.startswith( '<br>' ): # BSB and OEB seems particularly bad with blank lines
+            html = html[4:]
+        while html.endswith( '<br>' ): # LEB also
+            html = html[:-4]
 
     if not checkHtml( f'convertUSFMMarkerListToHtml({versionAbbreviation} {refTuple} {segmentType} {basicOnly=})', html, segmentOnly=True ):
         if DEBUGGING_THIS_MODULE: halt

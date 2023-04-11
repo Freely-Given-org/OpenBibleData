@@ -46,10 +46,10 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_
 from createOETReferencePages import livenOETWordLinks
 
 
-LAST_MODIFIED_DATE = '2023-04-09' # by RJH
+LAST_MODIFIED_DATE = '2023-04-10' # by RJH
 SHORT_PROGRAM_NAME = "createSectionPages"
 PROGRAM_NAME = "OpenBibleData createSectionPages functions"
-PROGRAM_VERSION = '0.27'
+PROGRAM_VERSION = '0.28'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -148,11 +148,12 @@ def createOETSectionPages( level:int, folder:Path, rvBible, lvBible, state ) -> 
             endChapterLink = f'''<a title="Chapter view" href="../byC/{BBB}_{'Intro' if endC=='-1' else f'C{endC}'}.htm">{'Intro' if endC=='-1' else endC}</a>'''
             leftLink = f'<a title="Previous section" href="{BBB}_S{n-1}.htm">←</a> ' if n>0 else ''
             rightLink = f' <a title="Next section" href="{BBB}_S{n+1}.htm">→</a>' if n<len(bkObject._SectionIndex)-1 else ''
-            parallelLink = f''' <a title="Parallel verse view" href="../../pa/{BBB}/C{'1' if startC=='-1' else startC}V{startV}.htm#Top">║</a>'''
+            parallelLink = f''' <a title="Parallel verse view" href="{'../'*level}pa/{BBB}/C{'1' if startC=='-1' else startC}V{startV}.htm#Top">║</a>'''
+            interlinearLink = f''' <a title="Interlinear verse view" href="{'../'*level}il/{BBB}/C{'1' if startC=='-1' else startC}V{startV}.htm#Top">═</a>'''
             detailsLink = f' <a title="Show details about this work" href="../details.htm">©</a>'
 
             bkHtml = f'''<h1 id="Top">Open English Translation {tidyBBB} {'Intro' if startC=='-1' else startC}:{startV}</h1>
-<p class="snav">{leftLink}{documentLink} {startChapterLink}:{startV}–{endChapterLink}:{endV}{rightLink}{parallelLink}{detailsLink}</p>
+<p class="snav">{leftLink}{documentLink} {startChapterLink}:{startV}–{endChapterLink}:{endV}{rightLink}{parallelLink}{interlinearLink}{detailsLink}</p>
 <h1>{sectionName}</h1>
 <div class="container">
 <span> </span>
@@ -164,7 +165,7 @@ def createOETSectionPages( level:int, folder:Path, rvBible, lvBible, state ) -> 
 '''
             if isinstance( rvBible, ESFMBible.ESFMBible ):
                 rvVerseEntryList = livenOETWordLinks( rvBible, BBB, rvVerseEntryList, f"{'../'*level}rf/W/{{n}}.htm", state )
-            rvHtml = convertUSFMMarkerListToHtml( rvBible.abbreviation, (BBB,startC), 'section', rvContextList, rvVerseEntryList, basicOnly=False, state=state )
+            rvHtml = convertUSFMMarkerListToHtml( level, rvBible.abbreviation, (BBB,startC), 'section', rvContextList, rvVerseEntryList, basicOnly=False, state=state )
             rvHtml = do_OET_RV_HTMLcustomisations( rvHtml )
             # rvHtml = livenIORs( BBB, rvHtml, sections )
             # Get the info for the first LV verse
@@ -207,7 +208,7 @@ def createOETSectionPages( level:int, folder:Path, rvBible, lvBible, state ) -> 
                 loop_counter_too_small
             if isinstance( lvBible, ESFMBible.ESFMBible ):
                 lvVerseEntryList = livenOETWordLinks( lvBible, BBB, lvVerseEntryList, f"{'../'*level}rf/W/{{n}}.htm", state )
-            lvHtml = convertUSFMMarkerListToHtml( lvBible.abbreviation, (BBB,startC), 'section', lvContextList, lvVerseEntryList, basicOnly=False, state=state )
+            lvHtml = convertUSFMMarkerListToHtml( level, lvBible.abbreviation, (BBB,startC), 'section', lvContextList, lvVerseEntryList, basicOnly=False, state=state )
             lvHtml = do_OET_LV_HTMLcustomisations( lvHtml )
             combinedHtml = f'''<div class="chunkRV">{rvHtml}</div><!--chunkRV-->
 <div class="chunkLV">{lvHtml}</div><!--chunkLV-->
@@ -373,14 +374,15 @@ def createSectionPages( level:int, folder:Path, thisBible, state ) -> List[str]:
             endChapterLink = f'''<a title="Chapter view" href="../byC/{BBB}_{'Intro' if endC=='-1' else f'C{endC}'}.htm">{'Intro' if endC=='-1' else endC}</a>'''
             leftLink = f'<a title="Previous section" href="{BBB}_S{n-1}.htm">←</a> ' if n>0 else ''
             rightLink = f' <a title="Next section" href="{BBB}_S{n+1}.htm">→</a>' if n<len(bkObject._SectionIndex)-1 else ''
-            parallelLink = f''' <a title="Parallel verse view" href="../../pa/{BBB}/C{'1' if startC=='-1' else startC}V{startV}.htm#Top">║</a>'''
+            parallelLink = f''' <a title="Parallel verse view" href="{'../'*level}pa/{BBB}/C{'1' if startC=='-1' else startC}V{startV}.htm#Top">║</a>'''
+            interlinearLink = f''' <a title="Interlinear verse view" href="{'../'*level}il/{BBB}/C{'1' if startC=='-1' else startC}V{startV}.htm#Top">═</a>'''
             detailsLink = f' <a title="Show details about this work" href="../details.htm">©</a>'
 
             bkHtml = f'''<h1>{thisBible.abbreviation} {tidyBBB} {'Intro' if startC=='-1' else startC}:{startV}</h1>
-<p class="snav">{leftLink}{documentLink} {startChapterLink}:{startV}–{endChapterLink}:{endV}{rightLink}{parallelLink}{detailsLink}</p>
+<p class="snav">{leftLink}{documentLink} {startChapterLink}:{startV}–{endChapterLink}:{endV}{rightLink}{parallelLink}{interlinearLink}{detailsLink}</p>
 <h1>{sectionName}</h1>
 '''
-            textHtml = convertUSFMMarkerListToHtml( thisBible.abbreviation, (BBB,startC), 'section', contextList, verseEntryList, basicOnly=False, state=state )
+            textHtml = convertUSFMMarkerListToHtml( level, thisBible.abbreviation, (BBB,startC), 'section', contextList, verseEntryList, basicOnly=False, state=state )
             # textHtml = livenIORs( BBB, textHtml, sections )
             if thisBible.abbreviation == 'OET-RV':
                 textHtml = do_OET_RV_HTMLcustomisations( textHtml )

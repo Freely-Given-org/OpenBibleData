@@ -52,10 +52,10 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 # from Bibles import fetchChapter
 
 
-LAST_MODIFIED_DATE = '2023-04-06' # by RJH
+LAST_MODIFIED_DATE = '2023-04-09' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
-PROGRAM_VERSION = '0.33'
+PROGRAM_VERSION = '0.34'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -151,7 +151,7 @@ def do_LSV_HTMLcustomisations( html:str ) -> str:
 
 KNOWN_PAGE_TYPES = ('site', 'topIndex', 'details', 'allDetails',
                     'book','chapter','section',
-                    'parallel',
+                    'parallel','interlinear',
                     'word','lemma', 'person','location')
 def makeTop( level:int, versionAbbreviation:str, pageType:str, fileOrFolderName:Optional[str], state ) -> str:
     """
@@ -165,6 +165,8 @@ def makeTop( level:int, versionAbbreviation:str, pageType:str, fileOrFolderName:
         cssFilename = 'OETChapter.css' if 'OET' in versionAbbreviation else 'BibleChapter.css'
     elif pageType == 'parallel':
         cssFilename = 'ParallelVerses.css'
+    elif pageType == 'interlinear':
+        cssFilename = 'InterlinearVerse.css'
     elif pageType in ('word','lemma', 'person','location'):
         cssFilename = 'BibleWord.css'
     else: cssFilename = 'BibleSite.css'
@@ -232,7 +234,7 @@ def _makeHeader( level:int, versionAbbreviation:str, pageType:str, fileOrFolderN
     if pageType == 'interlinear':
         initialVersionList.append( 'Interlinear' )
     else: # add a link for interlinear
-        initialVersionList.append( f'''{state.BibleVersionDecorations['Interlinear'][0]}<a title="Not done yet" href="{'../'*level}il/">Interlinear</a>{state.BibleVersionDecorations['Interlinear'][1]}''' )
+        initialVersionList.append( f'''{state.BibleVersionDecorations['Interlinear'][0]}<a title="Single verse in interlinear view" href="{'../'*level}il/">Interlinear</a>{state.BibleVersionDecorations['Interlinear'][1]}''' )
 
     # This code tries to adjust links to books which aren't in a version, e.g., UHB has no NT books, SR-GNT and UGNT have no OT books
     # It does this by adjusting the potential bad link to the next level higher.
