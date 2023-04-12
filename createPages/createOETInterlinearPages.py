@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
-# createInterlinearPages.py
+# createOETInterlinearPages.py
 #
-# Module handling OpenBibleData createInterlinearPages functions
+# Module handling OpenBibleData createOETInterlinearPages functions
 #
 # Copyright (C) 2023 Robert Hunt
 # Author: Robert Hunt <Freely.Given.org+OBD@gmail.com>
@@ -23,7 +23,7 @@
 #   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 """
-Module handling createInterlinearPages functions.
+Module handling createOETInterlinearPages functions.
 
 BibleOrgSys uses a three-character book code to identify books.
     These referenceAbbreviations are nearly always represented as BBB in the program code
@@ -47,6 +47,7 @@ from collections import defaultdict
 # import BibleOrgSysGlobals
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
+from BibleOrgSys.Internals.InternalBibleInternals import getLeadingInt
 import BibleOrgSys.Formats.ESFMBible as ESFMBible
 
 import sys
@@ -54,15 +55,15 @@ sys.path.append( '../../BibleTransliterations/Python/' )
 from BibleTransliterations import transliterate_Greek, transliterate_Hebrew
 
 from usfm import convertUSFMMarkerListToHtml
-from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, \
+from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
                     makeTop, makeBottom, checkHtml
 from createOETReferencePages import CNTR_BOOK_ID_MAP, livenOETWordLinks
 
 
-LAST_MODIFIED_DATE = '2023-04-11' # by RJH
-SHORT_PROGRAM_NAME = "createInterlinearPages"
-PROGRAM_NAME = "OpenBibleData createInterlinearPages functions"
-PROGRAM_VERSION = '0.12'
+LAST_MODIFIED_DATE = '2023-04-12' # by RJH
+SHORT_PROGRAM_NAME = "createOETInterlinearPages"
+PROGRAM_NAME = "OpenBibleData createOETInterlinearPages functions"
+PROGRAM_VERSION = '0.14'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -73,26 +74,28 @@ EM_SPACE = ' '
 NARROW_NON_BREAK_SPACE = ' '
 
 
-def createInterlinearPages( level:int, folder:Path, state ) -> bool:
+def createOETInterlinearPages( level:int, folder:Path, state ) -> bool:
     """
     """
     from createSitePages import TEST_MODE, reorderBooksForOETVersions
-    fnPrint( DEBUGGING_THIS_MODULE, f"createInterlinearPages( {level}, {folder}, ... )" )
+    fnPrint( DEBUGGING_THIS_MODULE, f"createOETInterlinearPages( {level}, {folder}, ... )" )
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\ncreateInterlinearPages( {level}, {folder}, {state.BibleVersions} )" )
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\ncreateOETInterlinearPages( {level}, {folder}, {state.BibleVersions} )" )
     try: os.makedirs( folder )
     except FileExistsError: pass # they were already there
 
+    # Prepare the book links
     BBBLinks, BBBNextLinks = [], []
-    for BBB in reorderBooksForOETVersions( state.allBBBs ):
+    for BBB in state.booksToLoad['OET']:
         if BibleOrgSysGlobals.loadedBibleBooksCodes.isChapterVerseBook( BBB ):
             tidyBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.tidyBBB( BBB )
             BBBLinks.append( f'<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB)}" href="{BBB}/">{tidyBBB}</a>' )
             BBBNextLinks.append( f'<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB)}" href="../{BBB}/">{tidyBBB}</a>' )
-    for BBB in reorderBooksForOETVersions( state.allBBBs ):
+
+    # Now create the actual interlinear pages
+    for BBB in state.booksToLoad['OET']:
         if BibleOrgSysGlobals.loadedBibleBooksCodes.isChapterVerseBook( BBB ):
-            BBBFolder = folder.joinpath(f'{BBB}/')
-            createInterlinearVersePagesForBook( level+1, BBBFolder, BBB, BBBNextLinks, state )
+            createOETInterlinearVersePagesForBook( level+1, folder.joinpath(f'{BBB}/'), BBB, BBBNextLinks, state )
 
     # Create index page
     filename = 'index.htm'
@@ -109,20 +112,20 @@ def createInterlinearPages( level:int, folder:Path, state ) -> bool:
         indexHtmlFile.write( indexHtml )
     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createInterlinearPages() finished processing {len(state.allBBBs)} books: {state.allBBBs}" )
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createOETInterlinearPages() finished processing {len(state.allBBBs)} books: {state.allBBBs}" )
     return True
-# end of createInterlinearPages.createInterlinearPages
+# end of createOETInterlinearPages.createOETInterlinearPages
 
 
-def createInterlinearVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:List[str], state ) -> bool:
+def createOETInterlinearVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:List[str], state ) -> bool:
     """
     Create a page for every Bible verse
         displaying the interlinear verses.
     """
     from createSitePages import TEST_MODE
-    fnPrint( DEBUGGING_THIS_MODULE, f"createInterlinearVersePagesForBook( {level}, {folder}, {BBB}, {BBBLinks}, {state.BibleVersions} )" )
+    fnPrint( DEBUGGING_THIS_MODULE, f"createOETInterlinearVersePagesForBook( {level}, {folder}, {BBB}, {BBBLinks}, {state.BibleVersions} )" )
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createInterlinearVersePagesForBook {level}, {folder}, {BBB} from {len(BBBLinks)} books, {len(state.BibleVersions)} versions…" )
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createOETInterlinearVersePagesForBook {level}, {folder}, {BBB} from {len(BBBLinks)} books, {len(state.BibleVersions)} versions…" )
     try: os.makedirs( folder )
     except FileExistsError: pass # they were already there
 
@@ -139,7 +142,7 @@ def createInterlinearVersePagesForBook( level:int, folder:Path, BBB:str, BBBLink
         numChapters = referenceBible.getNumChapters( BBB )
         if numChapters: break
     else:
-        logging.critical( f"createInterlinearVersePagesForBook unable to find a valid reference Bible for {BBB}" )
+        logging.critical( f"createOETInterlinearVersePagesForBook unable to find a valid reference Bible for {BBB}" )
         return False # Need to check what FRT does
 
     vLinks = []
@@ -149,7 +152,7 @@ def createInterlinearVersePagesForBook( level:int, folder:Path, BBB:str, BBBLink
             vPrint( 'Info', DEBUGGING_THIS_MODULE, f"      Creating interlinear pages for {BBB} {c}…" )
             numVerses = referenceBible.getNumVerses( BBB, c )
             if numVerses is None: # something unusual
-                logging.critical( f"createInterlinearVersePagesForBook: no verses found for {BBB} {c}" )
+                logging.critical( f"createOETInterlinearVersePagesForBook: no verses found for {BBB} {c}" )
                 continue
             for v in range( 1, numVerses+1 ):
                 # The following all have a __ID__ string than needs to be replaced
@@ -161,7 +164,7 @@ def createInterlinearVersePagesForBook( level:int, folder:Path, BBB:str, BBBLink
                 rightCLink = f' <a title="Go to next chapter" href="C{c+1}V1.htm#__ID__">►</a>' if c<numChapters else ''
                 parallelLink = f''' <a title="Parallel verse view" href="{'../'*level}pa/{BBB}/C{c}V{v}.htm#Top">║</a>'''
                 navLinks = f'<p id="__ID__" class="vnav">{leftCLink}{leftVLink}{tidyBbb} {c}:{v} <a title="Go to __WHERE__ of page" href="#CV__WHERE__">__ARROW__</a>{rightVLink}{rightCLink}{parallelLink}</p>'
-                iHtml = createInterlinearVersePage( level, BBB, c, v, state )
+                iHtml = createOETInterlinearVersePage( level, BBB, c, v, state )
                 filename = f'C{c}V{v}.htm'
                 # filenames.append( filename )
                 filepath = folder.joinpath( filename )
@@ -182,9 +185,9 @@ def createInterlinearVersePagesForBook( level:int, folder:Path, BBB:str, BBBLink
                 vLinks.append( f'<a title="Go to interlinear verse page" href="{filename}">{c}:{v}</a>' )
             lastNumVerses = numVerses # for the previous chapter
     else:
-        dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"createInterlinearVersePagesForBook {BBB} has {numChapters} chapters!!!" )
+        dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"createOETInterlinearVersePagesForBook {BBB} has {numChapters} chapters!!!" )
         assert BBB in ('INT','FRT',)
-        # dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"createInterlinearVersePagesForBook {thisBible.books[BBB]=}" )
+        # dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"createOETInterlinearVersePagesForBook {thisBible.books[BBB]=}" )
 
     # Create index page for this book
     filename = 'index.htm'
@@ -206,19 +209,19 @@ f'''<p class="cLinks">{tidyBbb} {' '.join( [f'<a title="Go to interlinear ve
         indexHtmlFile.write( indexHtml )
     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createInterlinearVersePagesForBook() finished processing {len(vLinks):,} {BBB} verses." )
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createOETInterlinearVersePagesForBook() finished processing {len(vLinks):,} {BBB} verses." )
     return True
-# end of html.createInterlinearVersePagesForBook
+# end of html.createOETInterlinearVersePagesForBook
 
 
-def createInterlinearVersePage( level:int, BBB:str, c:int, v:int, state ) -> str:
+def createOETInterlinearVersePage( level:int, BBB:str, c:int, v:int, state ) -> str:
     """
     Create an interlinear page for the Bible verse.
     """
     from createSitePages import TEST_MODE
-    fnPrint( DEBUGGING_THIS_MODULE, f"createInterlinearVersePage( {level}, {BBB} {c}:{v}, … )" )
+    fnPrint( DEBUGGING_THIS_MODULE, f"createOETInterlinearVersePage( {level}, {BBB} {c}:{v}, … )" )
 
-    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"createInterlinearVersePage {level}, {BBB} {c}:{v}, …" )
+    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"createOETInterlinearVersePage {level}, {BBB} {c}:{v}, …" )
 
     # We don't want the book link for this book to be a recursive link, so remove <a> marking
     tidyBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.tidyBBB( BBB )
@@ -229,17 +232,20 @@ def createInterlinearVersePage( level:int, BBB:str, c:int, v:int, state ) -> str
     wordTable = state.OETRefData['word_table']
 
     html = '<h2>Greek word order <small>(including variants)</small></h2><div class=interlinear><ol class=verse>'
-    iHtml = ''
     try:
-        lvVerseEntryList, _lvContextList = lvBible.getContextVerseData( (BBB, str(c), str(v)) )
+        lvVerseEntryList, lvContextList = lvBible.getContextVerseData( (BBB, str(c), str(v)) )
+        livenedLvVerseEntryList = livenOETWordLinks( lvBible, BBB, lvVerseEntryList, f"{'../'*level}rf/W/{{n}}.htm", state )
+        lvTextHtml = convertUSFMMarkerListToHtml( level, 'OET-LV', (BBB,c,v), 'verse', lvContextList, livenedLvVerseEntryList, basicOnly=True, state=state )
+        lvTextHtml = do_OET_LV_HTMLcustomisations( lvTextHtml )
+        lvHtml = f'''<p class="LV"><span class="workNav"><a title="View {state.BibleNames['OET']} chapter" href="{'../'*level}OET/byC/{BBB}_C{c}.htm">OET</a> (<a title="{state.BibleNames['OET-LV']}" href="{'../'*level}OET-LV/byC/{BBB}_C{c}.htm">OET-LV</a>)</span> {lvTextHtml}</p>'''
         # rvVerseEntryList, _rvContextList = rvBible.getContextVerseData( (BBB, str(c), str(v)) )
     except (KeyError, TypeError):
         if BBB in lvBible and BBB in rvBible:
             warningText = f'No OET {tidyBBB} {c}:{v} verse available'
-            iHtml = f'''<p><span class="workNav"><a title="{state.BibleNames['OET']}" href="{'../'*level}OET/byC/{BBB}_C{c}.htm">OET</a></span> <span class="noVerse"><small>{warningText}</small></span></p>'''
+            lvHtml = f'''<p><span class="workNav"><a title="{state.BibleNames['OET']}" href="{'../'*level}OET/byC/{BBB}_C{c}.htm">OET</a></span> <span class="noVerse"><small>{warningText}</small></span></p>'''
         else:
             warningText = f'No OET {tidyBBB} book available'
-            iHtml = f'''<p><span class="workNav">OET</span> <span class="noBook"><small>{warningText}</small></span></p>'''
+            lvHtml = f'''<p><span class="workNav">OET</span> <span class="noBook"><small>{warningText}</small></span></p>'''
         logging.critical( warningText )
         lvVerseEntryList = []
 
@@ -250,11 +256,15 @@ def createInterlinearVersePage( level:int, BBB:str, c:int, v:int, state ) -> str
     for lvVerseEntry in lvVerseEntryList:
         text = lvVerseEntry.getFullText()
         if not text or '¦' not in text: continue # no interest to us here
+        # if BBB=='LUK' and c==11 and v>=30: print( f"{BBB} {c}:{v} {text=}" )
+        # Remove sentence punctuation, break "chosen/messiah"
+        #   then split into words
         EnglishWordList += text.replace(',','').replace('.','').replace(':','').replace('?','') \
-                            .replace('/','').replace(')','').replace('˲','') \
                             .replace('\\add ','').replace('\\add*','') \
                             .replace('\\nd ','').replace('\\nd*','') \
-                            .replace('_',' ').replace('  ',' ') \
+                            .replace('\\sup ','<sup>').replace('\\sup*','</sup>') \
+                            .replace('/messiah¦', ' messiah¦') \
+                            .replace('_',' ').replace('   ',' ').replace('  ',' ') \
                             .strip().split( ' ' )
         # print( f"Found {BBB} {c}:{v} {lvVerseEntry=}" )
         ixMarker = text.index( '¦' )
@@ -266,8 +276,9 @@ def createInterlinearVersePage( level:int, BBB:str, c:int, v:int, state ) -> str
         break
 
     # print( f"Found {BBB} {c}:{v} ({len(EnglishWordList)}) {EnglishWordList=}" )
+    iHtml = ''
     if wordNumberStr: # Now we have a word number from the correct verse
-        firstWordNumber = int( wordNumberStr )
+        firstWordNumber = getLeadingInt( wordNumberStr )
         rowStr = wordTable[firstWordNumber]
         #  0    1      2      3           4          5            6           7     8           9
         # 'Ref\tGreek\tLemma\tGlossWords\tGlossCaps\tProbability\tStrongsExt\tRole\tMorphology\tTags'
@@ -283,28 +294,38 @@ def createInterlinearVersePage( level:int, BBB:str, c:int, v:int, state ) -> str
         EnglishWordDict = defaultdict( list )
         for extendedWord in EnglishWordList:
             if not extendedWord:
-                logging.critical( f"{BBB} {c}:{v} why did we get a zero-length word in {EnglishWordList}???" )
+                logging.critical( f"OET-LV{BBB} {c}:{v} why did we get a zero-length word in {EnglishWordList}???" )
                 continue
             try: word,numberStr = extendedWord.split( '¦' )
             except ValueError:
-                logging.critical( f"{BBB} {c}:{v} word/number split failed on '{extendedWord}'" )
-            number = int( numberStr )
-            EnglishWordDict[number].append( word )
+                logging.critical( f"OET-LV {BBB} {c}:{v} word/number split failed on '{extendedWord}'" )
+                print( f"OET-LV {BBB} {c}:{v} {text=} {EnglishWordList=}")
+            try:
+                number = getLeadingInt( numberStr )
+                if number < 1 or number >= len(wordTable):
+                    logging.critical( f"OET-LV {BBB} {c}:{v} word/number out of range from '{extendedWord}'" )
+                    print( f"OET-LV {BBB} {c}:{v} {text=} {EnglishWordList=}")
+                else:
+                    EnglishWordDict[number].append( word )
+            except UnboundLocalError: # numberStr wasn't declared
+                pass
 
         # Display the interlinear blocks
-        GreekList = ['''<li><ol class="word">
+        GreekList = ['''<li><ol class="titles">
 <li lang="el">Greek word</li>
 <li lang="el_LEMMA">Greek lemma</li>
 <li lang="en_TRANS"><b>OET-LV words</b></li>
 <li lang="en_STRONGS">Strongs</li>
 <li lang="en_MORPH">Role/Morphology</li>
 <li lang="en_GLOSS">SR Gloss</li>
-<li><small>CAPS codes</small></li>
-<li><small>Confidence</small></li>
-<li>OET tags</li>
-<li>OET word #</li>
+<li lang="en_CAPS">CAPS codes</li>
+<li lang="en_PERCENT">Confidence</li>
+<li lang="en_TAGS">OET tags</li>
+<li lang="en_WORDNUM">OET word #</li>
 </ol></li>''']
         for wordNumber in range( firstWordNumber, firstWordNumber+999 ):
+            if wordNumber >= len(wordTable): # must be in one of the last verses of Rev
+                break
             rowStr = wordTable[wordNumber]
             if not rowStr.startswith( f'{BBB}_{c}:{v}w' ): # gone into the next verse
                 break
@@ -326,10 +347,10 @@ def createInterlinearVersePage( level:int, BBB:str, c:int, v:int, state ) -> str
 <li lang="en_STRONGS"><a href="https://BibleHub.com/greek/{row[6][:-1]}.htm">{row[6]}</a></li>
 <li lang="en_MORPH">{row[7]}{row[8]}</li>
 <li lang="en_GLOSS">{row[3]}</li>
-<li><small>{row[4] if row[4] else '-'}</small></li>
-<li><small>{row[5]+'%' if row[5] else 'V'}</small></li>
-<li><small>{tagsHtml}</small></li>
-<li><small><a title="View word details" href="{'../'*level}rf/W/{wordNumber}.htm">{wordNumber}</a></small></li>
+<li lang="en_CAPS">{row[4] if row[4] else '-'}</li>
+<li lang="en_PERCENT">{row[5]+'%' if row[5] else 'V'}</li>
+<li lang="en_TAGS">{tagsHtml}</li>
+<li lang="en_WORDNUM"><a title="View word details" href="{'../'*level}rf/W/{wordNumber}.htm">{wordNumber}</a></li>
 </ol></li>''' )
         iHtml = f'{iHtml}{NEWLINE.join( GreekList )}'
 
@@ -340,8 +361,7 @@ def createInterlinearVersePage( level:int, BBB:str, c:int, v:int, state ) -> str
             rvVerseEntryList = livenOETWordLinks( lvBible, BBB, rvVerseEntryList, f"{'../'*level}rf/W/{{n}}.htm", state )
         rvTextHtml = convertUSFMMarkerListToHtml( level, 'OET-RV', (BBB,c,v), 'verse', rvContextList, rvVerseEntryList, basicOnly=True, state=state )
         rvTextHtml = do_OET_RV_HTMLcustomisations( rvTextHtml )
-
-        rvHtml = f'''<p><span class="workNav"><a title="View {state.BibleNames['OET']} chapter" href="{'../'*level}OET/byC/{BBB}_C{c}.htm">OET</a> (<a title="{state.BibleNames['OET-RV']}" href="{'../'*level}OET-RV/byC/{BBB}_C{c}.htm">OET-RV</a>)</span> {rvTextHtml}</p>'''
+        rvHtml = f'''<p class="RV"><span class="workNav"><a title="View {state.BibleNames['OET']} chapter" href="{'../'*level}OET/byC/{BBB}_C{c}.htm">OET</a> (<a title="{state.BibleNames['OET-RV']}" href="{'../'*level}OET-RV/byC/{BBB}_C{c}.htm">OET-RV</a>)</span> {rvTextHtml}</p>'''
     except (KeyError, TypeError):
         if BBB in rvBible:
             warningText = f'No OET-RV {tidyBBB} {c}:{v} verse available'
@@ -352,24 +372,26 @@ def createInterlinearVersePage( level:int, BBB:str, c:int, v:int, state ) -> str
         logging.critical( warningText )
 
     html = f'''{html}{iHtml}</ol></div><!--interlinear-->
+{lvHtml}
 {rvHtml}
-<p><b>Acknowledgements</b>: The Greek text, lemmas, morphology, and English gloss <small>(6th line)</small> are all thanks to the <a href="https://GreekCNTR.org/collation/index.htm?{CNTR_BOOK_ID_MAP[BBB]}{str(c).zfill(3)}{str(v).zfill(3)}">SR-GNT</a>.</p>
+{f'<p><b>Acknowledgements</b>: The SR Greek text, lemmas, morphology, and English gloss <small>(6th line)</small> are all thanks to the <a href="https://GreekCNTR.org/collation/index.htm?{CNTR_BOOK_ID_MAP[BBB]}{str(c).zfill(3)}{str(v).zfill(3)}">SR-GNT</a>.</p>' if BibleOrgSysGlobals.loadedBibleBooksCodes.isNewTestament_NR( BBB ) else ''}
 <h2>OET-LV English word order (‘Reverse’ interlinear)</h2><div class=interlinear><ol class=verse>'''
 
     # Now create the reverseInterlinear
     riHtml = ''
-    reverseList = ['''<li><ol class="word">
+    reverseList = ['''<li><ol class="titles">
 <li lang="en_TRANS"><b>OET-LV words</b></li>
 <li lang="en_STRONGS">Strongs</li>
 <li lang="el">Greek word</li>
 <li lang="el_LEMMA">Greek lemma</li>
 <li lang="en_MORPH">Role/Morphology</li>
 <li lang="en_GLOSS">SR Gloss</li>
-<li><small>CAPS codes</small></li>
-<li><small>Confidence</small></li>
-<li>OET tags</li>
-<li>OET word #</li>
+<li lang="en_CAPS">CAPS codes</li>
+<li lang="en_PERCENT">Confidence</li>
+<li lang="en_TAGS">OET tags</li>
+<li lang="en_WORDNUM">OET word #</li>
 </ol></li>''']
+    lastWordNumber = None
     for extendedWord in EnglishWordList:
         if not extendedWord:
             logging.critical( f"{BBB} {c}:{v} why did we get a zero-length word in {EnglishWordList}???" )
@@ -377,43 +399,49 @@ def createInterlinearVersePage( level:int, BBB:str, c:int, v:int, state ) -> str
         try: word,numberStr = extendedWord.split( '¦' )
         except ValueError:
             logging.critical( f"{BBB} {c}:{v} word/number split failed on '{extendedWord}'" )
-        wordNumber = int( numberStr )
+        wordNumber = getLeadingInt( numberStr )
 
-        # Display the reverse interlinear blocks
-        rowStr = wordTable[wordNumber]
-        assert rowStr.startswith( f'{BBB}_{c}:{v}w' )
-        row = rowStr.split( '\t' )
-        if row[9]:
-            tags = row[9].split( ';' )
-            for t,tag in enumerate( tags ):
-                tagPrefix, tag = tag[0], tag[1:]
-                if tagPrefix == 'P':
-                    tags[t] = f'''Person=<a title="View person details" href="{'../'*level}rf/P/{tag}.htm">{tag}</a>'''
-                elif tagPrefix == 'L':
-                    tags[t] = f'''Location=<a title="View place details" href="{'../'*level}rf/L/{tag}.htm">{tag}</a>'''
-            tagsHtml = '; '.join( tags )
-        else: tagsHtml = '-'
-        reverseList.append( f'''<li><ol class="word">
+        if wordNumber == lastWordNumber: # Put into the last cell
+            lastEntry = reverseList.pop()
+            reverseList.append( lastEntry.replace('</b></li>', f' {word}</b></li>', 1) )
+        else:
+            # Display the reverse interlinear blocks
+            rowStr = wordTable[wordNumber]
+            assert rowStr.startswith( f'{BBB}_{c}:{v}w' )
+            row = rowStr.split( '\t' )
+            if row[9]:
+                tags = row[9].split( ';' )
+                for t,tag in enumerate( tags ):
+                    tagPrefix, tag = tag[0], tag[1:]
+                    if tagPrefix == 'P':
+                        tags[t] = f'''Person=<a title="View person details" href="{'../'*level}rf/P/{tag}.htm">{tag}</a>'''
+                    elif tagPrefix == 'L':
+                        tags[t] = f'''Location=<a title="View place details" href="{'../'*level}rf/L/{tag}.htm">{tag}</a>'''
+                tagsHtml = '; '.join( tags )
+            else: tagsHtml = '-'
+            reverseList.append( f'''<li><ol class="word">
 <li lang="en_TRANS"><b>{word}</b></li>
 <li lang="en_STRONGS"><a href="https://BibleHub.com/greek/{row[6][:-1]}.htm">{row[6]}</a></li>
 <li lang="el">{row[1]}</li>
 <li lang="el_LEMMA">{row[2]}</li>
 <li lang="en_MORPH">{row[7]}{row[8]}</li>
 <li lang="en_GLOSS">{row[3]}</li>
-<li><small>{row[4] if row[4] else '-'}</small></li>
-<li><small>{row[5]+'%' if row[5] else 'V'}</small></li>
-<li><small>{tagsHtml}</small></li>
-<li><small><a title="View word details" href="{'../'*level}rf/W/{wordNumber}.htm">{wordNumber}</a></small></li>
+<li lang="en_CAPS">{row[4] if row[4] else '-'}</li>
+<li lang="en_PERCENT">{row[5]+'%' if row[5] else 'V'}</li>
+<li lang="en_TAGS">{tagsHtml}</li>
+<li lang="en_WORDNUM"><a title="View word details" href="{'../'*level}rf/W/{wordNumber}.htm">{wordNumber}</a></li>
 </ol></li>''' )
+        lastWordNumber = wordNumber
     riHtml = f'{riHtml}{NEWLINE.join( reverseList )}'
 
 
     html = f'''{html}{riHtml}</ol></div><!--interlinear-->
+{lvHtml}
 {rvHtml}'''
     # dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\n\n{iHtml=}" )
     checkHtml( f'Interlinear {BBB} {c}:{v}', html, segmentOnly=True )
     return html
-# end of html.createInterlinearVersePage
+# end of html.createOETInterlinearVersePage
 
 
 
@@ -423,9 +451,9 @@ def briefDemo() -> None:
     """
     BibleOrgSysGlobals.introduceProgram( __name__, PROGRAM_NAME_VERSION, LAST_MODIFIED_DATE )
 
-    # Demo the createInterlinearPages object
+    # Demo the createOETInterlinearPages object
     pass
-# end of createInterlinearPages.briefDemo
+# end of createOETInterlinearPages.briefDemo
 
 def fullDemo() -> None:
     """
@@ -433,9 +461,9 @@ def fullDemo() -> None:
     """
     BibleOrgSysGlobals.introduceProgram( __name__, PROGRAM_NAME_VERSION, LAST_MODIFIED_DATE )
 
-    # Demo the createInterlinearPages object
+    # Demo the createOETInterlinearPages object
     pass
-# end of createInterlinearPages.fullDemo
+# end of createOETInterlinearPages.fullDemo
 
 if __name__ == '__main__':
     from multiprocessing import freeze_support
@@ -448,4 +476,4 @@ if __name__ == '__main__':
     fullDemo()
 
     BibleOrgSysGlobals.closedown( PROGRAM_NAME, PROGRAM_VERSION )
-# end of createInterlinearPages.py
+# end of createOETInterlinearPages.py

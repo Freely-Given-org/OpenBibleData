@@ -54,15 +54,15 @@ from createBookPages import createOETBookPages, createBookPages
 from createChapterPages import createOETChapterPages, createChapterPages
 from createSectionPages import createOETSectionPages, createSectionPages
 from createParallelPages import createParallelPages
-from createInterlinearPages import createInterlinearPages
+from createOETInterlinearPages import createOETInterlinearPages
 from createOETReferencePages import createOETReferencePages
 from html import makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-04-10' # by RJH
+LAST_MODIFIED_DATE = '2023-04-12' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData Create Pages"
-PROGRAM_VERSION = '0.52'
+PROGRAM_VERSION = '0.53'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
@@ -124,7 +124,7 @@ class State:
                 'UST': '../copiedBibles/English/unfoldingWord.org/UST/',
                 'OEB': '../copiedBibles/English/OEB/',
                 'BSB': '../copiedBibles/English/Berean.Bible/BSB/',
-                #'ISV': '',
+                # 'ISV': '',
                 'WEB': '../copiedBibles/English/eBible.org/WEB/',
                 'WMB': '../copiedBibles/English/eBible.org/WMB/',
                 'NET': '../copiedBibles/English/eBible.org/NET/',
@@ -522,8 +522,10 @@ def createSitePages() -> bool:
             versionFolder = TEMP_BUILD_FOLDER.joinpath( f'{thisBible.abbreviation}/' )
             createSectionPages( 2, versionFolder.joinpath('bySec/'), thisBible, state )
 
+    # TODO: We could use multiprocessing to do all these at once
+    #   (except that state is quite huge with all preloaded versions and hence expensive to pickle)
     createParallelPages( 1, TEMP_BUILD_FOLDER.joinpath('pa/'), state )
-    createInterlinearPages( 1, TEMP_BUILD_FOLDER.joinpath('il/'), state )
+    createOETInterlinearPages( 1, TEMP_BUILD_FOLDER.joinpath('il/'), state )
 
     createOETReferencePages( 1, TEMP_BUILD_FOLDER.joinpath('rf/'), state )
 
@@ -531,6 +533,7 @@ def createSitePages() -> bool:
 
     createMainIndexPages( 0, TEMP_BUILD_FOLDER, state )
 
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\n{TEMP_BUILD_FOLDER} is {getFolderSize(TEMP_BUILD_FOLDER)//1_000_000:,} MB" )
     # Clean away any existing folders so we can copy in the newly built stuff
     try: os.makedirs( f'{DESTINATION_FOLDER}/' )
     except FileExistsError: # they were already there
@@ -566,7 +569,7 @@ def cleanHTMLFolders( folder:Path, state ) -> bool:
     fnPrint( DEBUGGING_THIS_MODULE, f"cleanHTMLFolders( {folder} )")
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Cleaning away any existing folders at {folder}…")
 
-    try: os.unlink( folder.joinpath( 'index.html' ) )
+    try: os.unlink( folder.joinpath( 'index.htm' ) )
     except FileNotFoundError: pass
     try: os.unlink( folder.joinpath( 'allDetails.htm' ) )
     except FileNotFoundError: pass
@@ -664,7 +667,7 @@ def createMainIndexPages( level, folder:Path, state ) -> bool:
     html += bodyHtml + f'<p><small>Last rebuilt: {date.today()}</small></p>\n' + makeBottom( level, 'topIndex', state )
     checkHtml( 'TopIndex', html )
 
-    filepath = folder.joinpath( 'index.html' ) # The only file that uses .html
+    filepath = folder.joinpath( 'index.htm' )
     with open( filepath, 'wt', encoding='utf-8' ) as htmlFile:
         htmlFile.write( html )
     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  {len(html):,} characters written to {filepath}" )
@@ -807,6 +810,19 @@ def reorderBooksForOETVersions( givenBookList:List[str] ) -> List[str]:
     return givenBookList
 # end of createSitePages.reorderBooksForOETVersions
 
+def getFolderSize( start_path='.' ) -> int:
+    """
+    Adapted from https://stackoverflow.com/questions/1392413/calculating-a-directorys-size-using-python
+    """
+    total_size = 0
+    for dirpath, dirnames, filenames in os.walk(start_path):
+        for f in filenames:
+            fp = os.path.join(dirpath, f)
+            # skip if it is symbolic link
+            if not os.path.islink(fp):
+                total_size += os.path.getsize(fp)
+    return total_size
+# end of createSitePages.getFolderSize
 
 
 def briefDemo() -> None:
