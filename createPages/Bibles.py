@@ -37,9 +37,10 @@ BibleOrgSys uses a three-character book code to identify books.
             (and most identifiers in computer languages still require that).
 """
 from gettext import gettext as _
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Optional
 from pathlib import Path
 import logging
+import re
 
 import sys
 sys.path.append( '../../BibleOrgSys/' )
@@ -51,14 +52,22 @@ import BibleOrgSys.Formats.ZefaniaXMLBible as ZefaniaXMLBible
 import BibleOrgSys.Formats.CSVBible as CSVBible
 import BibleOrgSys.Formats.LEBXMLBible as LEBXMLBible
 import BibleOrgSys.Formats.VPLBible as VPLBible
+import BibleOrgSys.Formats.uWNotesBible as uWNotesBible
 from BibleOrgSys.Bible import Bible
-from BibleOrgSys.UnknownBible import UnknownBible
+from BibleOrgSys.Internals.InternalBibleInternals import getLeadingInt
+
+import sys
+sys.path.append( '../../BibleTransliterations/Python/' )
+from BibleTransliterations import transliterate_Greek, transliterate_Hebrew
+
+from html import checkHtml
+from OETHandlers import findLVQuote
 
 
-LAST_MODIFIED_DATE = '2023-03-13' # by RJH
+LAST_MODIFIED_DATE = '2023-04-16' # by RJH
 SHORT_PROGRAM_NAME = "Bibles"
 PROGRAM_NAME = "OpenBibleData Bibles handler"
-PROGRAM_VERSION = '0.19'
+PROGRAM_VERSION = '0.23'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -188,6 +197,165 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state ) -
 #     """
 #     yield '1'
 #     yield '2'
+
+
+def preloadUwTranslationNotes( state ) -> None:
+    """
+    Load the unfoldingWord translation notes from the TSV files
+        but masquerade them into an internal pseudo-Bible
+        that can be accessed by B/C/V.
+    """
+    fnPrint( DEBUGGING_THIS_MODULE, "preloadUwTranslationNotes( ... )")
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Preloading uW translation notes…" )
+
+    state.TNBible = uWNotesBible.uWNotesBible( '../copiedBibles/English/unfoldingWord.org/TN/', givenName='TranslationNotes',
+                                        givenAbbreviation='TN', encoding='utf-8' )
+    state.TNBible.loadBooks() # So we can iterate through them all later
+
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"preloadUwTranslationNotes() loaded uW translation notes." )
+# end of Bibles.preloadUwTranslationNotes
+
+
+taRegEx = re.compile( 'rc://\\*/ta/man/translate/' )
+def formatTranslationNotes( level:int, BBB, C:str, V:str, segmentType:str, state ) -> str: # html
+    """
+    A typical entry with two notes looks like this (blank lines added):
+        0/ v = '8'
+
+        1/ m = ''
+        2/ p~ = 'rc://*/ta/man/translate/figs-go'
+        3/ ¬m = ''
+        4/ q1 = ''
+        5/ p~ = 'ἐξελθοῦσαι'
+        6/ ¬q1 = ''
+        7/ p = ''
+        8/ p~ = 'Your language may say “come” rather than **gone** … natural. Alternate translation: “having come out”'
+        9/ ¬p = ''
+
+        10/ m = ''
+        11/ p~ = 'rc://*/ta/man/translate/figs-abstractnouns'
+        12/ ¬m = ''
+        13/ q1 = ''
+        14/ p~ = 'εἶχεν γὰρ αὐτὰς τρόμος καὶ ἔκστασις'
+        15/ ¬q1 = ''
+        16/ p = ''
+        17/ p~ = 'If your language does not use an abstract noun for… “for they were greatly amazed, and they trembled”'
+        18/ ¬p = ''
+
+        19/ m = ''
+    Note the superfluous final empty m field
+
+    TODO: Get the English quote (ULT, OET-LV???) from the Greek words
+    """
+    fnPrint( DEBUGGING_THIS_MODULE, f"formatTranslationNotes( {BBB}, {C}:{V}, {segmentType=} )")
+    assert segmentType in ('parallel','interlinear')
+
+    try:
+        verseEntryList, contextList = state.TNBible.getContextVerseData( (BBB, C, V) )
+    except (KeyError, TypeError): # TypeError is if None is returned
+        logging.warning( f"uW TNs have no notes for {BBB} {C}:{V}")
+        return ''
+    # print( f"{BBB} {C}:{V} {verseEntryList=}" )
+
+    NT = BibleOrgSysGlobals.loadedBibleBooksCodes.isNewTestament_NR( BBB )
+    # opposite = 'interlinear' if segmentType=='parallel' else 'parallel'
+    # oppositeFolder = 'il' if segmentType=='parallel' else 'pa'
+
+    # We tried this, but think it's better to customise our own HTML
+    # tnHtml = convertUSFMMarkerListToHtml( level, 'TN', (BBB,C,V), 'notes', contextList, verseEntryList, basicOnly=True, state=state )
+
+    tnHtml = ''
+    lastMarker = None
+    noteCount = 0
+    occurrenceNumber = 1
+    for entry in verseEntryList:
+        marker, rest = entry.getMarker(), entry.getText()
+        if marker.startswith( '¬' ): assert not rest; continue # end markers not needed here
+        if marker in ('c','c#'):
+            assert rest
+            # print( f"TN {BBB} {C}:{V} ignored {marker}='{rest}'" )
+            continue # not used here
+        dPrint( 'Never', DEBUGGING_THIS_MODULE, f"TN {BBB} {C}:{V} {marker}='{rest}'")
+        assert rest == entry.getFullText().rstrip(), f"TN {BBB} {C}:{V} {marker}='{rest}' ft='{entry.getFullText()}'" # Just checking that we're not missing anything here
+        assert marker in ('v','m','q1','p','pi1','p~',), marker # We expect a very limited subset
+        if marker == 'v':
+            if rest!=V and '-' not in rest:
+                logging.critical( f"Why did TN {BBB} {C}:{V} get {marker}='{rest}' from {verseEntryList=}?" )
+                # Doesn't seem that we usually need to display this but we will here in case something is wrong
+                tnHtml = f'''{' ' if tnHtml else ''}{tnHtml}<span class="v">{V} </span>'''
+            # assert rest==V or '-' in rest, f"TN {BBB} {C}:{V} {marker}='{rest}' from {verseEntryList=}"
+        elif marker == 'p~': # This has the text
+            if lastMarker == 'm':  # TA reference
+                assert rest
+                if rest.startswith( 'rc://*/ta/man/translate/' ):
+                    noteName = rest[24:]
+                else:
+                    noteName = rest
+                    logging.error( f"Missing ResourceContainer path in TA note: {BBB} {C}:{V} '{noteName}'" )
+                betterNoteName = noteName.replace( 'figs-', 'figures-of-speech / ' )
+                # print( f"{noteName=} {betterNoteName=}")
+                noteCount += 1
+                tnHtml = f'{tnHtml}<p class="TARef"><b>Note {noteCount} topic</b>: <a title="View uW TA article" href="https://Door43.org/u/unfoldingWord/en_ta/master/03-translate.html#{noteName}">{betterNoteName}</a></p>\n'
+                occurrenceNumber = 1
+            elif lastMarker == 'pi1': # Occurrence number
+                assert rest
+                if rest!='-1' and not rest.isdigit():
+                    logging.critical( f"getContextVerseData ({BBB}, {C}, {V}) has unexpected {lastMarker=} {marker=} {rest=}" )
+                # assert rest.isdigit() or rest=='-1', f"getContextVerseData ({BBB}, {C}, {V}) has unexpected {marker=} {rest=}" # Jhn 12:15 or 16???
+                occurrenceNumber = getLeadingInt(rest) # Shouldn't be necessary but uW stuff isn't well checked/validated
+            elif lastMarker == 'q1': # An original language quote
+                assert rest
+                lvQuoteHtml = findLVQuote( level, BBB, C, V, occurrenceNumber, rest, state )
+                tnHtml = f'''{tnHtml}<p class="OL">{'' if occurrenceNumber==1 else f'(Occurrence {occurrenceNumber}) '}{rest}<br>{lvQuoteHtml if lvQuoteHtml else f'({transliterate_Greek(rest)})' if NT else f'({transliterate_Hebrew(rest)})'}</p>'''
+            elif lastMarker == 'p': # This is the actual note
+                while '**' in rest:
+                    rest = rest.replace( '**', '<b>', 1 ).replace( '**', '</b>', 1 )
+                # Add our own little bit of bolding
+                rest = rest.replace( 'Alternate translation:', '<b>Alternate translation</b>:' )
+                tnHtml = f'''{tnHtml}<p class="TN{'1' if lastMarker=='pi1' else ''}">{rest}</p>\n'''
+            else:
+                logging.critical( f"getContextVerseDataA ({BBB}, {C}, {V}) has unhandled {marker=} {rest=} {lastMarker=}")
+        elif marker in ('m','q1','p','pi1'):
+            assert not rest # Just ignore these markers (but they influence lastMarker)
+        else:
+            logging.critical( f"getContextVerseDataB ({BBB}, {C}, {V}) has unhandled {marker=} {rest=} {lastMarker=}")
+        lastMarker = marker
+
+    # if not BibleOrgSysGlobals.loadedBibleBooksCodes.isNewTestament_NR( BBB ): continue # Skip all except NT for now
+
+
+    # # Liven the TA link
+    # searchStartIndex = 0
+    # for _safetyCount in range( 20 ):
+    #     match = taRegEx.search( tnHtml, searchStartIndex )
+    #     if not match: break
+    #     brIx = tnHtml.index( '<br>', match.end() )
+    #     noteName = tnHtml[match.start()+24:brIx]
+    #     tnHtml = f'{tnHtml[:match.start()]}<a title="View uW TA article" href="https://Door43.org/u/unfoldingWord/en_ta/master/03-translate.html#{noteName}">{noteName}</a>{tnHtml[brIx:]}'
+    #     searchStartIndex = brIx + 4
+    # else: loop_range_needs_increasing
+
+    # # Apply markdown formatting
+    # while '**' in tnHtml:
+    #     tnHtml = tnHtml.replace( '**', '<b>', 1 ).replace( '**', '</b>', 1 )
+    # # Add our own little bit of bolding
+    # tnHtml = tnHtml.replace( 'Alternate translation:', '<b>Alternate translation</b>:' )
+
+    checkHtml( f'TN {BBB} {C}:{V}', tnHtml, segmentOnly=True )
+    return tnHtml
+# end of Bibles.formatTranslationNotes
+
+
+def tidyBBB( BBB:str, titleCase:Optional[bool]=False ) -> str:
+    """
+    Our customised version of tidyBBB
+    """
+    newBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.tidyBBB( BBB, titleCase=titleCase )
+    if newBBB == 'JAM': return 'JAC'
+    if newBBB == 'Jam': return 'Jac'
+    return newBBB
+# end of Bibles.tidyBBB
+
 
 
 def briefDemo() -> None:

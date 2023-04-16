@@ -38,15 +38,16 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 import BibleOrgSys.Formats.ESFMBible as ESFMBible
 
 from usfm import convertUSFMMarkerListToHtml
+from Bibles import tidyBBB
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, \
                     makeTop, makeBottom, removeDuplicateCVids, checkHtml
 from createOETReferencePages import livenOETWordLinks
 
 
-LAST_MODIFIED_DATE = '2023-04-09' # by RJH
+LAST_MODIFIED_DATE = '2023-04-13' # by RJH
 SHORT_PROGRAM_NAME = "createBookPages"
 PROGRAM_NAME = "OpenBibleData createBookPages functions"
-PROGRAM_VERSION = '0.30'
+PROGRAM_VERSION = '0.31'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -72,7 +73,7 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state ) -> Lis
     BBBsToProcess = reorderBooksForOETVersions( rvBible.books.keys() if allBooksFlag else state.booksToLoad[rvBible.abbreviation] )
     BBBs, filenames = [], []
     for BBB in BBBsToProcess:
-        tidyBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.tidyBBB( BBB )
+        ourTidyBBB = tidyBBB( BBB )
         # print( f"{BBB=} {BBBsToProcess}"); print( len(BBBsToProcess) )
         # if not allBooksFlag: rvBible.loadBookIfNecessary( BBB )
         # lvBible.loadBookIfNecessary( BBB )
@@ -95,7 +96,8 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state ) -> Lis
 
         vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Creating book pages for OET {BBB}…" )
         BBBs.append( BBB )
-        bkHtml = f'''<h1 id="Top">Open English Translation {tidyBBB}</h1>
+        bkHtml = f'''<h1 id="Top">Open English Translation {ourTidyBBB}</h1>
+<p class="rem">This is still a very early look into the unfinished text of the <em>Open English Translation</em> of the Bible. Please double-check the text in advance before using in public.</p>
 <div class="container">
 <span> </span>
 <div class="buttons">
@@ -168,11 +170,11 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state ) -> Lis
         filenames.append( filename )
         filepath = folder.joinpath( filename )
         top = makeTop( level, 'OET', 'book', f'byDoc/{filename}', state ) \
-                .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}OET {tidyBBB}" ) \
+                .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}OET {ourTidyBBB}" ) \
                 .replace( '__KEYWORDS__', f'Bible, OET, Open English Translation, book' ) \
                 .replace( f'''<a title="{state.BibleNames['OET']}" href="{'../'*level}OET/byDoc/{filename}">OET</a>''',
                           f'''<a title="Up to {state.BibleNames['OET']}" href="{'../'*level}OET/">↑OET</a>''' )
-        bkHtml = top + '<!--book page-->' \
+        bkHtml = f'''{top}<!--book page-->''' \
                     + bkHtml + removeDuplicateCVids( BBB, combinedHtml ) \
                     + '</div><!--container-->\n' \
                     + makeBottom( level, 'book', state )
@@ -184,9 +186,9 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state ) -> Lis
     # Now create an overall index
     BBBLinks = []
     for BBB in BBBs:
-        tidyBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.tidyBBB( BBB )
+        ourTidyBBB = tidyBBB( BBB )
         filename = f'{BBB}.htm'
-        BBBLinks.append( f'<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB)}" href="{filename}">{tidyBBB}</a>' )
+        BBBLinks.append( f'''<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB).replace('James','Jacob/James')}" href="{filename}">{ourTidyBBB}</a>''' )
     filename = 'index.htm'
     filenames.append( filename )
     filepath = folder.joinpath( filename )
@@ -227,7 +229,7 @@ def createBookPages( level:int, folder:Path, thisBible, state ) -> List[str]:
         BBBsToProcess = reorderBooksForOETVersions( BBBsToProcess )
     BBBs, filenames = [], []
     for BBB in BBBsToProcess:
-        tidyBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.tidyBBB( BBB )
+        ourTidyBBB = tidyBBB( BBB )
         # print( f"{BBB=} {BBBsToProcess}"); print( len(BBBsToProcess) )
         # if not allBooksFlag: thisBible.loadBookIfNecessary( BBB )
         if thisBible.abbreviation=='OET-LV' \
@@ -242,7 +244,8 @@ def createBookPages( level:int, folder:Path, thisBible, state ) -> List[str]:
 
         vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Creating book pages for {thisBible.abbreviation} {BBB}…" )
         BBBs.append( BBB )
-        bkHtml = f'''<h1 id="Top">{thisBible.abbreviation} {tidyBBB}</h1>
+        bkHtml = f'''<h1 id="Top">{thisBible.abbreviation} {ourTidyBBB}</h1>
+{'<p class="rem">This is still a very early look into the unfinished text of the <em>Open English Translation</em> of the Bible. Please double-check the text in advance before using in public.</p>' if 'OET' in thisBible.abbreviation else ''}
 '''
         verseEntryList, contextList = thisBible.getContextVerseData( (BBB,) )
         if isinstance( thisBible, ESFMBible.ESFMBible ):
@@ -260,7 +263,7 @@ def createBookPages( level:int, folder:Path, thisBible, state ) -> List[str]:
         filenames.append( filename )
         filepath = folder.joinpath( filename )
         top = makeTop( level, thisBible.abbreviation, 'book', f'byDoc/{filename}', state ) \
-                .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{thisBible.abbreviation} {tidyBBB} book" ) \
+                .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{thisBible.abbreviation} {ourTidyBBB} book" ) \
                 .replace( '__KEYWORDS__', f'Bible, {thisBible.abbreviation}, book' ) \
                 .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*level}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/byDoc/{filename}">{thisBible.abbreviation}</a>''',
                           f'''<a title="Up to {state.BibleNames[thisBible.abbreviation]}" href="{'../'*level}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/">↑{thisBible.abbreviation}</a>''' )
@@ -273,9 +276,9 @@ def createBookPages( level:int, folder:Path, thisBible, state ) -> List[str]:
     # Now create an overall index
     BBBLinks = []
     for BBB in BBBs:
-        tidyBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.tidyBBB( BBB )
+        ourTidyBBB = tidyBBB( BBB )
         filename = f'{BBB}.htm'
-        BBBLinks.append( f'<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB)}" href="{filename}">{tidyBBB}</a>' )
+        BBBLinks.append( f'<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB)}" href="{filename}">{ourTidyBBB}</a>' )
     # Create index page
     filename = 'index.htm'
     filenames.append( filename )

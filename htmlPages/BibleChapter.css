@@ -28,6 +28,8 @@ p.rem { font-size:0.8em; color:grey; }
 
 /* Book intro USFM */
 li.intro { margin-top:0.5em; margin-bottom:0.5em; }
+p.imt1 { text-align:center; font-size:1.8em; }
+p.imt2 { text-align:center; font-size:1.3em; }
 p.is1 { font-weight:bold; font-size:1.3em; }
 p.is2 { font-weight:bold; }
 p.iot { font-weight:bold; }

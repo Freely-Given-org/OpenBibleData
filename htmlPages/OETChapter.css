@@ -33,6 +33,8 @@ p.rem { font-size:0.8em; color:grey; }
 
 /* Book intro USFM */
 li.intro { margin-top:0.5em; margin-bottom:0.5em; }
+p.imt1 { text-align:center; font-size:1.8em; }
+p.imt2 { text-align:center; font-size:1.3em; }
 p.is1 { font-weight:bold; font-size:1.3em; }
 p.is2 { font-weight:bold; }
 p.iot { font-weight:bold; }
@@ -45,6 +47,7 @@ span.c { font-size:1.1em; color:green; }
 span.cPsa { font-size:1.6em; font-weight:bold; color:green; }
 span.v { vertical-align:super; font-size:0.5em; color:red; }
 span.cv { vertical-align:super; font-size:0.8em; color:orange; }
+span.s1cv { vertical-align:super; font-size:0.8em; color:pink; }
 span.vp { vertical-align:super; font-size:0.5em; color:purple; }
 p.s1 { margin-top:0.1em; margin-bottom:0; font-weight:bold; }
 p.r { margin-top:0; margin-bottom:0; font-size:0.75em; }

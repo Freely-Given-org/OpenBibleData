@@ -49,7 +49,7 @@ from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39, BOOKLIST_NT27
 sys.path.append( '../../BibleTransliterations/Python/' )
 from BibleTransliterations import load_transliteration_table
 
-from Bibles import preloadVersions
+from Bibles import preloadVersions, preloadUwTranslationNotes
 from createBookPages import createOETBookPages, createBookPages
 from createChapterPages import createOETChapterPages, createChapterPages
 from createSectionPages import createOETSectionPages, createSectionPages
@@ -59,14 +59,14 @@ from createOETReferencePages import createOETReferencePages
 from html import makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-04-12' # by RJH
+LAST_MODIFIED_DATE = '2023-04-14' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData Create Pages"
-PROGRAM_VERSION = '0.53'
+PROGRAM_VERSION = '0.55'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
-DEBUGGING_THIS_MODULE = False # Adds debugging output
-TEST_MODE = False # Writes website into Test subfolder
+DEBUGGING_THIS_MODULE = True # Adds debugging output
+TEST_MODE = True # Writes website into Test subfolder
 
 ALL_PRODUCTION_BOOKS = not TEST_MODE # If set to False, only selects one book per version for a faster test build
 
@@ -77,7 +77,7 @@ DESTINATION_FOLDER = DEBUG_DESTINATION_FOLDER if TEST_MODE or BibleOrgSysGlobals
                         else NORMAL_DESTINATION_FOLDER
 
 
-OET_BOOK_LIST = ('JHN','MRK','ACT', 'EPH','TI1','TI2','TIT', 'JN1','JN2','JN3', 'JDE')
+OET_BOOK_LIST = ('JHN','MRK','ACT', 'EPH','TI1','TI2','TIT', 'JAM', 'JN1','JN2','JN3', 'JDE')
 OET_BOOK_LIST_WITH_FRT = ('FRT','INT') + OET_BOOK_LIST
 NT_BOOK_LIST_WITH_FRT = ('FRT',) + BOOKLIST_NT27
 assert len(NT_BOOK_LIST_WITH_FRT) == 27+1
@@ -159,8 +159,8 @@ class State:
     if not TEST_MODE: assert len(BibleLocations) >= 36, len(BibleLocations)
     
     BibleNames = {
-                'OET': 'Open English Translation (2027)',
-                'OET-RV': 'Open English Translation—Readers’ Version (2027)',
+                'OET': 'Open English Translation (2030)',
+                'OET-RV': 'Open English Translation—Readers’ Version (2030)',
                 'OET-LV': 'Open English Translation—Literal Version (2025)',
                 'ULT': 'unfoldingWord Literal Text (2023)',
                 'UST': 'unfoldingWord Simplified Text (2023)',
@@ -284,26 +284,26 @@ class State:
         'OET': {'about': '''<p>The (still unfinished) <em>Open English Translation</em> consists of a <em>Readers’ Version</em> and a <em>Literal Version</em> side by side.
 You can read more about the design of the OET <a href="https://openenglishtranslation.bible/design/overview">here</a>.</p>''',
                 'copyright': '<p>Copyright © 2010-2023 <a href="https://Freely-Given.org">Freely-Given.org</a>.</p>',
-                'licence': '<p>(coming).</p>',
+                'licence': '<p><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
                 'acknowledgements': '<p>Thanks to <a href="https://Freely-Given.org/">Freely-Given.org</a> for creating this exciting, new Bible translation which is viewable from <a href="https://OpenEnglishTranslation.Bible">OpenEnglishTranslation.Bible</a>.</p>' },
         'OET-RV': {'about': '''<p>The (still unfinished) <em>Open English Translation Readers’ Version</em> is a new, modern-English easy-to-read translation of the Bible.
 You can read more about the design of the OET-RV <a href="https://openenglishtranslation.bible/design/readers-version">here</a>.</p>''',
                 'copyright': '<p>Copyright © 2010-2023 <a href="https://Freely-Given.org">Freely-Given.org</a>.</p>',
-                'licence': '<p>(coming).</p>',
+                'licence': '<p><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
                 'acknowledgements': '<p>Thanks to <a href="https://Freely-Given.org/">Freely-Given.org</a> for creating this exciting, new Bible translation which is viewable from <a href="https://OpenEnglishTranslation.Bible">OpenEnglishTranslation.Bible</a>.</p>' },
         'OET-LV': {'about': '''<p>The (still unfinished) <em>Open English Translation Literal Version</em> is a tool designed to give a look into what was actually written in the original Hebrew or Greek manuscripts.
 You can read more about the design of the OET-LV <a href="https://openenglishtranslation.bible/design/literal-version">here</a>.</p>''',
                 'copyright': '<p>Copyright © 2010-2023 <a href="https://Freely-Given.org">Freely-Given.org</a>.</p>',
-                'licence': '<p>(coming).</p>',
+                'licence': '<p><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
                 'acknowledgements': '<p>Thanks to <a href="https://Freely-Given.org/">Freely-Given.org</a> for creating this exciting, new Bible translation which is viewable from <a href="https://OpenEnglishTranslation.Bible">OpenEnglishTranslation.Bible</a>.</p>' },
         'ULT': {'about': '<p>unfoldingWord Literal Text (2023).</p>',
                 'copyright': '<p>Copyright © 2022 by unfoldingWord.</p>',
                 'licence': '<p><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
-                'acknowledgements': '<p>(coming).</p>' },
+                'acknowledgements': '<p>Thanks to <a href="https://www.unfoldingword.org/">unfoldingWord</a> for creating this Bible translation which is designed to be a tool for Bible translators.</p>' },
         'UST': {'about': '<p>unfoldingWord Simplified Text (2023).</p>',
                 'copyright': '<p>Copyright © 2022 by unfoldingWord.</p>',
                 'licence': '<p><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
-                'acknowledgements': '<p>(coming).</p>' },
+                'acknowledgements': '<p>Thanks to <a href="https://www.unfoldingword.org/">unfoldingWord</a> for creating this specialised Bible translation which is designed to be a tool for Bible translators.</p>' },
         'OEB': {'about': '<p>Open English Bible (in progress).</p>',
                 'copyright': '<p>Copyright © (coming).</p>',
                 'licence': '<p>(coming).</p>',
@@ -470,6 +470,7 @@ def createSitePages() -> bool:
     # Preload our various Bibles
     numLoadedVersions = preloadVersions( state )
     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nPreloaded {len(state.preloadedBibles)} Bible versions: {state.preloadedBibles.keys()}" )
+    preloadUwTranslationNotes( state )
 
     # Load our OET worddata table
     state.OETRefData = {} # This is where we will store all our temporary ref data
@@ -753,7 +754,7 @@ def createDetailsPages( level:int, versionsFolder:Path, state ) -> bool:
 <h2>Acknowledgements</h2>{state.detailsHtml[versionAbbreviation]['acknowledgements']}
 """
         bodyHtml = f'''<!--createDetailsPages--><h1 id="Top">{versionName} Details</h1>
-{detailsHtml}
+{detailsHtml}<hr>
 <p>See details for ALL included versions <a title="All versions’ details" href="../allDetails.htm">here</a>.</p>
 '''
 
