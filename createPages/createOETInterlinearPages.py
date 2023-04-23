@@ -61,10 +61,10 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
 from createOETReferencePages import CNTR_BOOK_ID_MAP, livenOETWordLinks
 
 
-LAST_MODIFIED_DATE = '2023-04-16' # by RJH
+LAST_MODIFIED_DATE = '2023-04-21' # by RJH
 SHORT_PROGRAM_NAME = "createOETInterlinearPages"
 PROGRAM_NAME = "OpenBibleData createOETInterlinearPages functions"
-PROGRAM_VERSION = '0.15'
+PROGRAM_VERSION = '0.16'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -106,7 +106,7 @@ def createOETInterlinearPages( level:int, folder:Path, state ) -> bool:
             .replace( '__KEYWORDS__', f'Bible, interlinear' )
     indexHtml = top \
                 + '<h1 id="Top">OET interlinear verse pages</h1><h2>Index of books</h2>\n' \
-                + f'''<p class="bLinks">{' '.join( BBBLinks )}</p>\n''' \
+                + f'''<p class="bkLst">{' '.join( BBBLinks )}</p>\n''' \
                 + makeBottom( level, 'interlinear', state )
     checkHtml( 'InterlinearIndex', indexHtml )
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
@@ -164,7 +164,7 @@ def createOETInterlinearVersePagesForBook( level:int, folder:Path, BBB:str, BBBL
                 leftCLink = f'<a title="Go to previous chapter" href="C{c-1}V1.htm#__ID__">◄</a> ' if c>1 else ''
                 rightCLink = f' <a title="Go to next chapter" href="C{c+1}V1.htm#__ID__">►</a>' if c<numChapters else ''
                 parallelLink = f''' <a title="Parallel verse view" href="{'../'*level}pa/{BBB}/C{c}V{v}.htm#Top">║</a>'''
-                navLinks = f'<p id="__ID__" class="vnav">{leftCLink}{leftVLink}{ourTidyBbb} {c}:{v} <a title="Go to __WHERE__ of page" href="#CV__WHERE__">__ARROW__</a>{rightVLink}{rightCLink}{parallelLink}</p>'
+                navLinks = f'<p id="__ID__" class="vNav">{leftCLink}{leftVLink}{ourTidyBbb} {c}:{v} <a title="Go to __WHERE__ of page" href="#CV__WHERE__">__ARROW__</a>{rightVLink}{rightCLink}{parallelLink}</p>'
                 iHtml = createOETInterlinearVersePage( level, BBB, c, v, state )
                 filename = f'C{c}V{v}.htm'
                 # filenames.append( filename )
@@ -238,28 +238,28 @@ def createOETInterlinearVersePage( level:int, BBB:str, c:int, v:int, state ) -> 
         lvVerseEntryList, lvContextList = lvBible.getContextVerseData( (BBB, C, V) )
         livenedLvVerseEntryList = livenOETWordLinks( lvBible, BBB, lvVerseEntryList, f"{'../'*level}rf/W/{{n}}.htm", state )
         lvTextHtml = do_OET_LV_HTMLcustomisations( convertUSFMMarkerListToHtml( level, 'OET-LV', (BBB,c,v), 'verse', lvContextList, livenedLvVerseEntryList, basicOnly=True, state=state ) )
-        lvHtml = f'''<div class="LV"><p class="LV"><span class="workNav"><a title="View {state.BibleNames['OET']} chapter" href="{'../'*level}OET/byC/{BBB}_C{c}.htm">OET</a> (<a title="{state.BibleNames['OET-LV']}" href="{'../'*level}OET-LV/byC/{BBB}_C{c}.htm">OET-LV</a>)</span> {lvTextHtml}</p></div><!--LV-->'''
+        lvHtml = f'''<div class="LV"><p class="LV"><span class="wrkName"><a title="View {state.BibleNames['OET']} chapter" href="{'../'*level}OET/byC/{BBB}_C{c}.htm">OET</a> (<a title="{state.BibleNames['OET-LV']}" href="{'../'*level}OET-LV/byC/{BBB}_C{c}.htm">OET-LV</a>)</span> {lvTextHtml}</p></div><!--LV-->'''
     except (KeyError, TypeError):
         if BBB in lvBible and BBB in rvBible:
             warningText = f'No OET-LV {ourTidyBBB} {c}:{v} verse available'
-            lvHtml = f'''<p><span class="workNav"><a title="{state.BibleNames['OET']}" href="{'../'*level}OET/byC/{BBB}_C{c}.htm">OET-LV</a></span> <span class="noVerse"><small>{warningText}</small></span></p>'''
+            lvHtml = f'''<p><span class="wrkName"><a title="{state.BibleNames['OET']}" href="{'../'*level}OET/byC/{BBB}_C{c}.htm">OET-LV</a></span> <span class="noVerse"><small>{warningText}</small></span></p>'''
         else:
             warningText = f'No OET-LV {ourTidyBBB} book available'
-            lvHtml = f'''<p><span class="workNav">OET-LV</span> <span class="noBook"><small>{warningText}</small></span></p>'''
+            lvHtml = f'''<p><span class="wrkName">OET-LV</span> <span class="noBook"><small>{warningText}</small></span></p>'''
         logging.critical( warningText )
         lvVerseEntryList = []
     try:
         rvVerseEntryList, rvContextList = rvBible.getContextVerseData( (BBB, C, V) )
         livenedRvVerseEntryList = livenOETWordLinks( lvBible, BBB, rvVerseEntryList, f"{'../'*level}rf/W/{{n}}.htm", state )
         rvTextHtml = do_OET_RV_HTMLcustomisations( convertUSFMMarkerListToHtml( level, 'OET-RV', (BBB,c,v), 'verse', rvContextList, livenedRvVerseEntryList, basicOnly=True, state=state ) )
-        rvHtml = f'''<div class="RV"><p class="RV"><span class="workNav"><a title="View {state.BibleNames['OET']} chapter" href="{'../'*level}OET/byC/{BBB}_C{c}.htm">OET</a> (<a title="{state.BibleNames['OET-RV']}" href="{'../'*level}OET-RV/byC/{BBB}_C{c}.htm">OET-RV</a>)</span> {rvTextHtml}</p></div><!--RV-->'''
+        rvHtml = f'''<div class="RV"><p class="RV"><span class="wrkName"><a title="View {state.BibleNames['OET']} chapter" href="{'../'*level}OET/byC/{BBB}_C{c}.htm">OET</a> (<a title="{state.BibleNames['OET-RV']}" href="{'../'*level}OET-RV/byC/{BBB}_C{c}.htm">OET-RV</a>)</span> {rvTextHtml}</p></div><!--RV-->'''
     except (KeyError, TypeError):
         if BBB in rvBible:
             warningText = f'No OET-RV {ourTidyBBB} {c}:{v} verse available'
-            rvHtml = f'''<p><span class="workNav"><a title="{state.BibleNames['OET']}" href="{'../'*level}OET/byC/{BBB}_C{c}.htm">OET-RV</a></span> <span class="noVerse"><small>{warningText}</small></span></p>'''
+            rvHtml = f'''<p><span class="wrkName"><a title="{state.BibleNames['OET']}" href="{'../'*level}OET/byC/{BBB}_C{c}.htm">OET-RV</a></span> <span class="noVerse"><small>{warningText}</small></span></p>'''
         else:
             warningText = f'No OET-RV {ourTidyBBB} book available'
-            rvHtml = f'''<p><span class="workNav">OET-RV</span> <span class="noBook"><small>{warningText}</small></span></p>'''
+            rvHtml = f'''<p><span class="wrkName">OET-RV</span> <span class="noBook"><small>{warningText}</small></span></p>'''
         logging.critical( warningText )
         rvVerseEntryList = []
     tnHtml = formatTranslationNotes( level, BBB, C, V, 'interlinear', state )
@@ -272,7 +272,7 @@ def createOETInterlinearVersePage( level:int, BBB:str, c:int, v:int, state ) -> 
     for lvVerseEntry in lvVerseEntryList:
         text = lvVerseEntry.getFullText()
         if not text or '¦' not in text: continue # no interest to us here
-        # if BBB=='LUK' and c==11 and v>=30: print( f"{BBB} {c}:{v} {text=}" )
+
         # Remove sentence punctuation, break "chosen/messiah"
         #   then split into words
         lvEnglishWordList += text.replace(',','').replace('.','').replace(':','').replace('?','') \
@@ -295,7 +295,7 @@ def createOETInterlinearVersePage( level:int, BBB:str, c:int, v:int, state ) -> 
     for rvVerseEntry in rvVerseEntryList:
         text = rvVerseEntry.getFullText()
         if not text or '¦' not in text: continue # no interest to us here
-        # if BBB=='LUK' and c==11 and v>=30: print( f"{BBB} {c}:{v} {text=}" )
+        
         # Remove sentence punctuation,
         #   then split into words
         rvEnglishWordList += text.replace(',','').replace('.','').replace(':','').replace('?','') \
@@ -314,12 +314,12 @@ def createOETInterlinearVersePage( level:int, BBB:str, c:int, v:int, state ) -> 
         try: word,numberStr = extendedWord.split( '¦' )
         except ValueError:
             logging.critical( f"OET-LV {BBB} {c}:{v} word/number split failed on '{extendedWord}'" )
-            print( f"OET-LV {BBB} {c}:{v} {text=} {lvEnglishWordList=}")
+            # print( f"OET-LV {BBB} {c}:{v} {text=} {lvEnglishWordList=}")
             continue
         number = getLeadingInt( numberStr )
         if number < 1 or number >= len(wordTable):
             logging.critical( f"OET-LV {BBB} {c}:{v} word/number out of range from '{extendedWord}'" )
-            print( f"OET-LV {BBB} {c}:{v} {text=} {lvEnglishWordList=}")
+            # print( f"OET-LV {BBB} {c}:{v} {text=} {lvEnglishWordList=}")
         else:
             lvEnglishWordDict[number].append( word )
     rvEnglishWordDict = defaultdict( list )
@@ -335,7 +335,7 @@ def createOETInterlinearVersePage( level:int, BBB:str, c:int, v:int, state ) -> 
         number = getLeadingInt( numberStr )
         if number < 1 or number >= len(wordTable):
             logging.critical( f"OET-RV {BBB} {c}:{v} word/number out of range from '{extendedWord}'" )
-            print( f"OET-RV {BBB} {c}:{v} {text=} {rvEnglishWordList=}")
+            # print( f"OET-RV {BBB} {c}:{v} {text=} {rvEnglishWordList=}")
         else:
             rvEnglishWordDict[number].append( word )
 

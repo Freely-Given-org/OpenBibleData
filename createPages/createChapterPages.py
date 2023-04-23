@@ -44,10 +44,10 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_
 from createOETReferencePages import livenOETWordLinks
 
 
-LAST_MODIFIED_DATE = '2023-04-13' # by RJH
+LAST_MODIFIED_DATE = '2023-04-22' # by RJH
 SHORT_PROGRAM_NAME = "createChapterPages"
 PROGRAM_NAME = "OpenBibleData createChapterPages functions"
-PROGRAM_VERSION = '0.35'
+PROGRAM_VERSION = '0.36'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -117,15 +117,15 @@ def createOETChapterPages( level:int, folder:Path, rvBible, lvBible, state ) -> 
                     rightLink = f' <a title="Next chapter" href="{BBB}_C{c+1}.htm">→</a>' if c<numChapters else ''
                 parallelLink = f''' <a title="Parallel verse view" href="{'../'*level}pa/{BBB}/C{'1' if c==-1 else c}V1.htm#Top">║</a>'''
                 interlinearLink = f''' <a title="Interlinear verse view" href="{'../'*level}il/{BBB}/C{'1' if c==-1 else c}V1.htm#Top">═</a>''' if BBB in state.booksToLoad['OET'] else ''
-                detailsLink = f''' <a title="Show details about this work" href="{'../'*level}details.htm">©</a>'''
+                detailsLink = f''' <a title="Show details about this work" href="{'../'*(level-1)}details.htm">©</a>'''
                 cHtml = f'''<h1 id="Top">Open English Translation {ourTidyBBB} Introduction</h1>
-<p class="cnav">{leftLink}{documentLink} Intro{rightLink}{parallelLink}{interlinearLink}{detailsLink}</p>
+<p class="cNav">{leftLink}{documentLink} Intro{rightLink}{parallelLink}{interlinearLink}{detailsLink}</p>
 <p class="rem">This is still a very early look into the unfinished text of the <em>Open English Translation</em> of the Bible. Please double-check the text in advance before using in public.</p>
 <div class="container">
 <h2>Readers’ Version</h2>
 <h2>Literal Version</h2>
 ''' if c==-1 else f'''<h1 id="Top">Open English Translation {ourTidyBBB} Chapter {c}</h1>
-<p class="cnav">{leftLink}{documentLink} {c}{rightLink}{parallelLink}{interlinearLink}{detailsLink}</p>
+<p class="cNav">{leftLink}{documentLink} {c}{rightLink}{parallelLink}{interlinearLink}{detailsLink}</p>
 <p class="rem">This is still a very early look into the unfinished text of the <em>Open English Translation</em> of the Bible. Please double-check the text in advance before using in public.</p>
 <div class="container">
 <span> </span>
@@ -234,7 +234,7 @@ def createOETChapterPages( level:int, folder:Path, rvBible, lvBible, state ) -> 
                       f'''<a title="{state.BibleNames['OET']}" href="{'../'*level}OET">↑OET</a>''' )
     indexHtml = top \
                 + '<h1 id="Top">OET chapter pages</h1><h2>Index of books</h2>\n' \
-                + f'''<p class="bLinks">{' '.join( BBBLinks )}</p>\n''' \
+                + f'''<p class="bkLst">{' '.join( BBBLinks )}</p>\n''' \
                 + makeBottom( level, 'chapter', state )
     checkHtml( 'OETBooksIndex', indexHtml )
     with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
@@ -310,12 +310,12 @@ def createChapterPages( level:int, folder:Path, thisBible, state ) -> List[str]:
                     rightLink = f' <a title="Next chapter" href="{BBB}_C{c+1}.htm">→</a>' if c<numChapters else ''
                 parallelLink = f''' <a title="Parallel verse view" href="{'../'*level}pa/{BBB}/C{'1' if c==-1 else c}V1.htm#Top">║</a>'''
                 interlinearLink = f''' <a title="Interlinear verse view" href="{'../'*level}il/{BBB}/C{'1' if c==-1 else c}V1.htm#Top">═</a>''' if BBB in state.booksToLoad['OET'] else ''
-                detailsLink = f''' <a title="Show details about this work" href="{'../'*level}details.htm">©</a>'''
+                detailsLink = f''' <a title="Show details about this work" href="{'../'*(level-1)}details.htm">©</a>'''
                 cHtml = f'''<h1 id="Top">{thisBible.abbreviation} {ourTidyBBB} Introduction</h1>
-<p class="cnav">{leftLink}{documentLink} Intro{rightLink}{parallelLink}{interlinearLink}{detailsLink}</p>
+<p class="cNav">{leftLink}{documentLink} Intro{rightLink}{parallelLink}{interlinearLink}{detailsLink}</p>
 {'<p class="rem">This is still a very early look into the unfinished text of the <em>Open English Translation</em> of the Bible. Please double-check the text in advance before using in public.</p>' if 'OET' in thisBible.abbreviation else ''}
 ''' if c==-1 else f'''<h1 id="Top">{thisBible.abbreviation} {ourTidyBBB} Chapter {c}</h1>
-<p class="cnav">{leftLink}{documentLink} {c}{rightLink}{parallelLink}{interlinearLink}{detailsLink}</p>
+<p class="cNav">{leftLink}{documentLink} {c}{rightLink}{parallelLink}{interlinearLink}{detailsLink}</p>
 {'<p class="rem">This is still a very early look into the unfinished text of the <em>Open English Translation</em> of the Bible. Please double-check the text in advance before using in public.</p>' if 'OET' in thisBible.abbreviation else ''}
 '''
                 try: verseEntryList, contextList = thisBible.getContextVerseData( (BBB, str(c)) )
@@ -417,7 +417,7 @@ def createChapterPages( level:int, folder:Path, thisBible, state ) -> List[str]:
                       f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*level}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}">↑{thisBible.abbreviation}</a>''' )
     indexHtml = top \
                 + f'<h1 id="Top">{thisBible.abbreviation} chapter pages</h1><h2>Index of books</h2>\n' \
-                + f'''<p class="bLinks">{' '.join( BBBLinks )}</p>\n''' \
+                + f'''<p class="bkLst">{' '.join( BBBLinks )}</p>\n''' \
                 + makeBottom( level, 'chapter', state)
     checkHtml( thisBible.abbreviation, indexHtml )
     with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:

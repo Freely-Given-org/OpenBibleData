@@ -65,8 +65,8 @@ PROGRAM_NAME = "OpenBibleData Create Pages"
 PROGRAM_VERSION = '0.55'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
-DEBUGGING_THIS_MODULE = True # Adds debugging output
-TEST_MODE = True # Writes website into Test subfolder
+DEBUGGING_THIS_MODULE = False # Adds debugging output
+TEST_MODE = False # Writes website into Test subfolder
 
 ALL_PRODUCTION_BOOKS = not TEST_MODE # If set to False, only selects one book per version for a faster test build
 
@@ -77,8 +77,8 @@ DESTINATION_FOLDER = DEBUG_DESTINATION_FOLDER if TEST_MODE or BibleOrgSysGlobals
                         else NORMAL_DESTINATION_FOLDER
 
 
-OET_BOOK_LIST = ('JHN','MRK','ACT', 'EPH','TI1','TI2','TIT', 'JAM', 'JN1','JN2','JN3', 'JDE')
-OET_BOOK_LIST_WITH_FRT = ('FRT','INT') + OET_BOOK_LIST
+OET_BOOK_LIST = ('JHN','MRK','ACT', 'GAL','EPH', 'TI1','TI2','TIT', 'JAM', 'JN1','JN2','JN3', 'JDE')
+OET_BOOK_LIST_WITH_FRT = ('FRT',) + OET_BOOK_LIST # 'INT'
 NT_BOOK_LIST_WITH_FRT = ('FRT',) + BOOKLIST_NT27
 assert len(NT_BOOK_LIST_WITH_FRT) == 27+1
 OT_BOOK_LIST_WITH_FRT = ('FRT',) + BOOKLIST_OT39
@@ -601,11 +601,11 @@ def createOETVersionPages( level:int, folder:Path, rvBible, lvBible, state:State
     versionName = state.BibleNames['OET']
     indexHtml = f'''<h1 id="Top">{versionName}</h1>
 <p class="rem">Remember that ancient letters were meant to be read in their entirety just like modern letters. We provide a byC mode for convenience only, but recommend the byDoc mode for personal reading.</p>
-<p class="viewNav"><a href="byDoc">By Document</a> <a href="bySec">By Section</a> <a href="byC">By Chapter</a> <a href="details.htm">Details</a></p>
+<p class="viewLst"><a href="byDoc">By Document</a> <a href="bySec">By Section</a> <a href="byC">By Chapter</a> <a href="details.htm">Details</a></p>
 ''' if rvBible.discoveryResults['ALL']['haveSectionHeadings'] or lvBible.discoveryResults['ALL']['haveSectionHeadings'] else \
 f'''<h1 id="Top">{versionName}</h1>
 <p class="rem">Remember that ancient letters were meant to be read in their entirety just like modern letters. We provide a byC mode for convenience only, but recommend the byDoc mode for personal reading.</p>
-<p class="viewNav"><a href="byDoc">By Document</a> <a href="byC">By Chapter</a> <a href="details.htm">Details</a></p>
+<p class="viewLst"><a href="byDoc">By Document</a> <a href="byC">By Chapter</a> <a href="details.htm">Details</a></p>
 '''
     filepath = folder.joinpath( 'index.htm' )
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
@@ -630,11 +630,11 @@ def createVersionPages( level:int, folder:Path, thisBible, state:State ) -> bool
     versionName = state.BibleNames[thisBible.abbreviation]
     indexHtml = f'''<h1 id="Top">{versionName}</h1>
 <p class="rem">Remember that ancient letters were meant to be read in their entirety just like modern letters. We provide a byC mode for convenience only, but recommend the byDoc mode for personal reading.</p>
-<p class="viewNav"><a href="byDoc">By Document</a> <a href="bySec">By Section</a> <a href="byC">By Chapter</a> <a href="details.htm">Details</a></p>
+<p class="viewLst"><a href="byDoc">By Document</a> <a href="bySec">By Section</a> <a href="byC">By Chapter</a> <a href="details.htm">Details</a></p>
 ''' if thisBible.discoveryResults['ALL']['haveSectionHeadings'] else \
 f'''<h1 id="Top">{versionName}</h1>
 <p class="rem">Remember that ancient letters were meant to be read in their entirety just like modern letters. We provide a byC mode for convenience only, but recommend the byDoc mode for personal reading.</p>
-<p class="viewNav"><a href="byDoc">By Document</a> <a href="byC">By Chapter</a> <a href="details.htm">Details</a></p>
+<p class="viewLst"><a href="byDoc">By Document</a> <a href="byC">By Chapter</a> <a href="details.htm">Details</a></p>
 '''
     filepath = folder.joinpath( 'index.htm' )
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:

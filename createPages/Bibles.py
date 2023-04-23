@@ -64,10 +64,10 @@ from html import checkHtml
 from OETHandlers import findLVQuote
 
 
-LAST_MODIFIED_DATE = '2023-04-16' # by RJH
+LAST_MODIFIED_DATE = '2023-04-23' # by RJH
 SHORT_PROGRAM_NAME = "Bibles"
 PROGRAM_NAME = "OpenBibleData Bibles handler"
-PROGRAM_VERSION = '0.23'
+PROGRAM_VERSION = '0.24'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -306,7 +306,8 @@ def formatTranslationNotes( level:int, BBB, C:str, V:str, segmentType:str, state
             elif lastMarker == 'q1': # An original language quote
                 assert rest
                 lvQuoteHtml = findLVQuote( level, BBB, C, V, occurrenceNumber, rest, state )
-                tnHtml = f'''{tnHtml}<p class="OL">{'' if occurrenceNumber==1 else f'(Occurrence {occurrenceNumber}) '}{rest}<br>{lvQuoteHtml if lvQuoteHtml else f'({transliterate_Greek(rest)})' if NT else f'({transliterate_Hebrew(rest)})'}</p>'''
+                tnHtml = f'''{tnHtml}<p class="OL">{'' if occurrenceNumber==1 else f'(Occurrence {occurrenceNumber}) '}{rest}</p>
+<p class="Trans">{lvQuoteHtml if lvQuoteHtml else f'({transliterate_Greek(rest)})' if NT else f'({transliterate_Hebrew(rest)})'}</p>'''
             elif lastMarker == 'p': # This is the actual note
                 while '**' in rest:
                     rest = rest.replace( '**', '<b>', 1 ).replace( '**', '</b>', 1 )

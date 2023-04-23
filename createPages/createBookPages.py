@@ -44,10 +44,10 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_
 from createOETReferencePages import livenOETWordLinks
 
 
-LAST_MODIFIED_DATE = '2023-04-13' # by RJH
+LAST_MODIFIED_DATE = '2023-04-21' # by RJH
 SHORT_PROGRAM_NAME = "createBookPages"
 PROGRAM_NAME = "OpenBibleData createBookPages functions"
-PROGRAM_VERSION = '0.31'
+PROGRAM_VERSION = '0.32'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -136,7 +136,7 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state ) -> Lis
                 rvEndCV = rvSectionHtml[CclassIndex8+4:CclassIndex9]
                 # dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"\n  {BBB} {n:,}: {rvStartCV=} {rvEndCV=}")
             except ValueError:
-                dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  {BBB} {n:,}: No Cid in {rvSectionHtml=}" )
+                dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createOETBookPages {BBB} {n:,}: No Cid in {rvSectionHtml=}" )
                 rvStartCV, rvEndCV = '', 'C1'
                 # halt
             # dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"""Searching for ' id="{rvEndCV}"' in '{lvRest}'""" )
@@ -199,7 +199,7 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state ) -> Lis
                       f'''<a title="{state.BibleNames['OET']}" href="{'../'*level}OET">↑OET</a>''' )
     indexHtml = top \
                 + '<h1 id="Top">OET book pages</h1><h2>Index of books</h2>\n' \
-                + f'''<p class="bLinks">{' '.join( BBBLinks )}</p>\n''' \
+                + f'''<p class="bkLst">{' '.join( BBBLinks )}</p>\n''' \
                 + makeBottom( level, 'book', state )
     checkHtml( 'OETBooksIndex', indexHtml )
     with open( filepath, 'wt', encoding='utf-8' ) as bkHtmlFile:
@@ -290,7 +290,7 @@ def createBookPages( level:int, folder:Path, thisBible, state ) -> List[str]:
                       f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*level}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}">↑{thisBible.abbreviation}</a>''' )
     indexHtml = top \
                 + f'<h1 id="Top">{thisBible.abbreviation} book pages</h1><h2>Index of books</h2>\n' \
-                + f'''<p class="bLinks">{' '.join( BBBLinks )}</p>\n''' \
+                + f'''<p class="bkLst">{' '.join( BBBLinks )}</p>\n''' \
                 + makeBottom( level, 'book', state)
     checkHtml( thisBible.abbreviation, indexHtml )
     with open( filepath, 'wt', encoding='utf-8' ) as bkHtmlFile:

@@ -12,10 +12,15 @@ a:visited { text-decoration: none; }
 a:hover { text-decoration: none; }
 a:active { text-decoration: none; } */
 a { text-decoration: none; }
-p.cnav { text-align:center; font-size:1.8em; }
-/* .cnav a { text-decoration: none; } */
-p.vnav { text-align:center; font-size:1.8em; }
-/* .vnav a { text-decoration: none; }
+
+p.wrkLst { background-color:#904471; color:98a9d4; }
+.wrkLst a { text-decoration:none; color:white; }
+p.viewLst {background-color:#93598A; color:98a9d4; }
+.viewLst a { text-decoration:none; color:white; }
+p.cNav { text-align:center; font-size:1.8em; }
+/* .cNav a { text-decoration: none; } */
+p.vNav { text-align:center; font-size:1.8em; }
+/* .vNav a { text-decoration: none; }
 .footnotes a { text-decoration: none; }
 .crossRefs a { text-decoration: none; } */
 
@@ -47,7 +52,9 @@ p.p { text-indent:0.5em; margin-top:0.2em; margin-bottom:0.2em; }
 p.q1 { margin-left:1em; margin-top:0.2em; margin-bottom:0.2em; }
 p.q2 { margin-left:2em; margin-top:0.2em; margin-bottom:0.2em; }
 /* p.m {  } */
+span.nominaSacra { font-weight:bold; }
 span.add { color:grey; }
+span.wj { color:saddlebrown; }
 
 /* Notes USFM */
 p.fn { margin-top:0.2em; margin-bottom:0.2em; font-size:0.75em; }

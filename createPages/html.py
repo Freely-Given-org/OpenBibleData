@@ -52,10 +52,10 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 # from Bibles import fetchChapter
 
 
-LAST_MODIFIED_DATE = '2023-04-11' # by RJH
+LAST_MODIFIED_DATE = '2023-04-21' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
-PROGRAM_VERSION = '0.35'
+PROGRAM_VERSION = '0.36'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -153,9 +153,11 @@ KNOWN_PAGE_TYPES = ('site', 'topIndex', 'details', 'allDetails',
                     'book','chapter','section',
                     'parallel','interlinear',
                     'word','lemma', 'person','location')
-def makeTop( level:int, versionAbbreviation:str, pageType:str, fileOrFolderName:Optional[str], state ) -> str:
+def makeTop( level:int, versionAbbreviation:Optional[str], pageType:str, fileOrFolderName:Optional[str], state ) -> str:
     """
     Create the very top part of an HTML page.
+
+    Note: versionAbbreviation can be None for interlinear and word pages, etc.
     """
     from createSitePages import TEST_MODE
     fnPrint( DEBUGGING_THIS_MODULE, f"makeTop( {level}, {versionAbbreviation}, {pageType}, {fileOrFolderName} )" )
@@ -185,7 +187,7 @@ def makeTop( level:int, versionAbbreviation:str, pageType:str, fileOrFolderName:
   <link rel="stylesheet" type="text/css" href="{'../'*level}OETChapter.css">
   <script src="{'../'*level}Bible.js"></script>
 </head><body><!--Level{level}-->{topLink}
-""" if 'OET' in pageType else f"""<!DOCTYPE html>
+""" if versionAbbreviation and 'OET' in versionAbbreviation else f"""<!DOCTYPE html>
 <html lang="en-US">
 <head>
   <title>__TITLE__</title>
@@ -194,7 +196,7 @@ def makeTop( level:int, versionAbbreviation:str, pageType:str, fileOrFolderName:
   <meta name="keywords" content="__KEYWORDS__">
   <link rel="stylesheet" type="text/css" href="{'../'*level}{cssFilename}">
 </head><body><!--Level{level}-->{topLink}
-<h3>Prototype quality only—still in development</h3>
+<h3>Demonstration version—prototype quality only—still in development</h3>
 """
     return top + _makeHeader( level, versionAbbreviation, pageType, fileOrFolderName, state ) + '\n'
 # end of html.makeTop
@@ -270,7 +272,7 @@ def _makeHeader( level:int, versionAbbreviation:str, pageType:str, fileOrFolderN
             dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        Couldn't find a BBB so should be able to link ok to {pageType} {entry}" )
             newVersionList.append( entry )
     assert len(newVersionList) == len(initialVersionList)
-    versionHtml = f'''<p class="workNav">{' '.join(newVersionList)}</p>'''
+    versionHtml = f'''<p class="wrkLst">{' '.join(newVersionList)}</p>'''
 
     viewLinks = []
     if pageType in ('book','section','chapter','details'):
@@ -283,7 +285,7 @@ def _makeHeader( level:int, versionAbbreviation:str, pageType:str, fileOrFolderN
             viewLinks.append( f'''<a title="View chapter" href="{'../'*level}{versionAbbreviation}/byC/">By Chapter</a>''' )
         if pageType != 'details':
             viewLinks.append( f'''<a title="View chapter" href="{'../'*level}{versionAbbreviation}/details.htm">Details</a>''' )
-    viewHtml = f'''<p class="viewNav">{' '.join(viewLinks)}</p>''' if viewLinks else ''
+    viewHtml = f'''<p class="viewLst">{' '.join(viewLinks)}</p>''' if viewLinks else ''
 
     return f'''<div class="header">{versionHtml}{NEWLINE if viewHtml else ''}{viewHtml}</div><!--header-->'''
 # end of html._makeHeader
@@ -366,7 +368,7 @@ def checkHtml( where:str, html:str, segmentOnly:bool=False ) -> bool:
             ixMinEnd = min( ixRStartMarker, ixREndMarker )
             logging.critical( f"Mismatched '{marker}' start and end markers '{where}' {segmentOnly=} {startCount}!={endCount}"
                               f" {'…' if ixMinStart>0 else ''}{html[ixMinStart:ixMinEnd+5]}{'…' if ixMinEnd+5<len(html) else ''}" )
-            if DEBUGGING_THIS_MODULE: print( f"\nComplete {html=}\n")
+            if DEBUGGING_THIS_MODULE: print( f"\ncheckHtml: complete {html=}\n")
             return False
 
     return True

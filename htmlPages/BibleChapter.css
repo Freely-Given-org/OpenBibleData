@@ -12,11 +12,17 @@ a:visited { text-decoration: none; }
 a:hover { text-decoration: none; }
 a:active { text-decoration: none; } */
 a { text-decoration: none; }
-p.snav { text-align:center; font-size:1.8em; }
-p.cnav { text-align:center; font-size:1.8em; }
-/* .cnav a { text-decoration: none; } */
-p.vnav { text-align:center; font-size:1.8em; }
-/* .vnav a { text-decoration: none; }
+
+p.wrkLst { background-color:#904471; color:98a9d4; }
+.wrkLst a { text-decoration:none; color:white; }
+p.viewLst {background-color:#93598A; color:98a9d4; }
+.viewLst a { text-decoration:none; color:white; }
+p.bkLst {background-color:#F9F871 }
+p.secNav { text-align:center; font-size:1.8em; }
+p.cNav { text-align:center; font-size:1.8em; background-color:#98a9d4;}
+/* .cNav a { text-decoration: none; } */
+p.vNav { text-align:center; font-size:1.8em; }
+/* .vNav a { text-decoration: none; }
 .footnotes a { text-decoration: none; }
 .crossRefs a { text-decoration: none; } */
 
@@ -55,6 +61,7 @@ p.pmc { margin-top:0.2em; margin-bottom:0.2em; }
 p.pmr { margin-top:0.2em; margin-bottom:0.2em; }
 span.add { color:grey; }
 span.rem { font-size:0.8em; color:grey; }
+span.wj { color:saddlebrown; }
 
 /* Notes USFM */
 p.fn { margin-top:0.2em; margin-bottom:0.2em; font-size:0.75em; }

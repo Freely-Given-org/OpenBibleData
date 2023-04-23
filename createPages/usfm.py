@@ -52,10 +52,10 @@ from BibleOrgSys.Internals.InternalBibleInternals import getLeadingInt
 from html import checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-04-16' # by RJH
+LAST_MODIFIED_DATE = '2023-04-23' # by RJH
 SHORT_PROGRAM_NAME = "usfm"
 PROGRAM_NAME = "OpenBibleData USFM to HTML functions"
-PROGRAM_VERSION = '0.41'
+PROGRAM_VERSION = '0.42'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -484,9 +484,9 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                 raise Exception( f"Unexpected '{marker}' marker {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {rest=}" )
         if '\\f ' not in html and '\\x ' not in html: # they're handled down below
             if '\\' in html:
-                logging.critical( f"Left-over backslash in {versionAbbreviation} '{segmentType}' {basicOnly=} {refTuple} {C}:{V} '{html}'" )
+                logging.critical( f"Left-over backslash in {versionAbbreviation} '{segmentType}' {basicOnly=} {refTuple} {C}:{V} '{html if len(html)<4000 else f'{html[:2000]} ....... {html[-2000:]}'}'" )
                 if versionAbbreviation not in ('ULT','UST') \
-                or ('MAT' not in refTuple and 'ISA' not in refTuple): # ULT ISA and UST MAT has an encoding fault in 12:20 14Feb2023
+                or ('MAT' not in refTuple and 'PSA' not in refTuple and 'ISA' not in refTuple): # ULT ISA and UST MAT has an encoding fault in 12:20 14Feb2023
                     raise Exception( f"Left-over backslash {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} '{html}'" )
     
     # Check for left-over unclosed segments
@@ -706,6 +706,8 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
         while html.endswith( '<br>' ): # LEB also
             html = html[:-4]
 
+    if versionAbbreviation != 'UST': # uW stuff has too many USFM encoding errors
+        assert 'strong="' not in html, f"{level=} '{versionAbbreviation}' {refTuple} {segmentType=} {len(contextList)=} {len(markerList)=} {basicOnly=} '{html if len(html)<4000 else f'{html[:2000]} ....... {html[-2000:]}'}'"
     if not checkHtml( f'convertUSFMMarkerListToHtml({versionAbbreviation} {refTuple} {segmentType} {basicOnly=})', html, segmentOnly=True ):
         if DEBUGGING_THIS_MODULE: halt
     return html
@@ -745,32 +747,38 @@ def formatUSFMText( versionAbbreviation:str, refTuple:tuple, segmentType:str, us
         else: fig_loop_needed_to_break
 
     # Handle \\w markers (mostly only occur if basicOnly is false)
-    if '\\w ' in usfmField:
+    if '\\w ' in usfmField or '\\+w ' in usfmField:
         # if versionAbbreviation in ('NET',): # \\w fields in NET seem to now only contain the English word
             # assert '|' not in usfmField, f"Found pipe {versionAbbreviation=} {refTuple=} {segmentType=} '{usfmField=}' {basicOnly=} '{html}'"
         if '|' not in usfmField:
-            usfmField = usfmField.replace( '\\w ', '' ).replace( '\\w*', '' )
+            usfmField = usfmField.replace( '\\w ', '' ).replace( '\\w*', '' ) \
+                                 .replace( '\\+w ', '' ).replace( '\\+w*', '' )
         else: # Fields like \\w of|x-occurrence="1" x-occurrences="3"\\w* for ULT/UST, WEB has strongs
             # NET from eBible.org seems to have a mix,
             #   e.g., "\\w So|strong="H6213"\\w* \\w the king\\w* \\w stayed\\w*"
             searchStartIx = 0
             for _safetyCount in range( 299 ):
-                wStartIx = html.find( '\\w ', searchStartIx )
-                if wStartIx == -1: break # no more to find -- all done
-                pipeIx = html.find( '|', wStartIx+3 ) # Might be -1 if there's no more, or might be more than wEndIx if there's none in this word
-                wEndIx = html.find( '\\w*', wStartIx+3 )
+                searchString = '\\w '
+                wStartIx = html.find( searchString, searchStartIx )
+                if wStartIx == -1:
+                    searchString = '\\+w '
+                    wStartIx = html.find( searchString, searchStartIx )
+                if wStartIx == -1: # still
+                    break # no more to find -- all done
+                pipeIx = html.find( '|', wStartIx+len(searchString) ) # Might be -1 if there's no more, or might be more than wEndIx if there's none in this word
+                wEndIx = html.find( f'{searchString[:-1]}*', wStartIx+len(searchString) )
                 assert wEndIx != -1
                 if pipeIx > wEndIx: # then it must be in the next word!
                     pipeIx = -1 # so just act as if there wasn't one :)
                 if pipeIx != -1:
-                    assert wStartIx+3 < pipeIx < wEndIx, f"{searchStartIx=} {wStartIx=} {pipeIx=} {wEndIx=}"
-                word = html[wStartIx+3:wEndIx] if pipeIx==-1 else html[wStartIx+3:pipeIx]
-                html = f'{html[:wStartIx]}{word}{html[wEndIx+3:]}'
+                    assert wStartIx+len(searchString) < pipeIx < wEndIx, f"{searchStartIx=} {wStartIx=} {pipeIx=} {wEndIx=}"
+                word = html[wStartIx+len(searchString):wEndIx] if pipeIx==-1 else html[wStartIx+len(searchString):pipeIx]
+                html = f'{html[:wStartIx]}{word}{html[wEndIx+len(searchString):]}'
                 searchStartIx += len(word) # coz we've made the html much shorter
             else:
-                wCount = usfmField.count( '\\w ' )
+                wCount = usfmField.count( '\\w ' ) + usfmField.count( '\\+w ' )
                 raise Exception( f"formatUSFMText() w loop needed to break at {versionAbbreviation} {refTuple} '{segmentType}' with ({wCount:,}) '{usfmField}'" )
-            assert '\\w ' not in html, f"{html[html.index(f'{BACKSLASH}x')-10:html.index(f'{BACKSLASH}x')+12]}" # Note: can still be \\wj in text
+            assert '\\w ' not in html and '\\+w ' not in html, f"{html[html.index(f'{BACKSLASH}x')-10:html.index(f'{BACKSLASH}x')+12]}" # Note: can still be \\wj in text
 
     # First replace the character markers which have specific HMTL equivalents
     html = html \
@@ -784,6 +792,8 @@ def formatUSFMText( versionAbbreviation:str, refTuple:tuple, segmentType:str, us
         html = html.replace( f'\\{charMarker} ', f'<span class="{charMarker}">' ).replace( f'\\{charMarker}*', '</span>' )
 
     # Final checking
+    if versionAbbreviation != 'UST': # uW stuff has too many USFM encoding errors
+        assert 'strong="' not in html, f"'{versionAbbreviation}' {refTuple} {segmentType=} {basicOnly=} {usfmField=}\n  html='{html if len(html)<4000 else f'{html[:2000]} ....... {html[-2000:]}'}'"
     if '\\ts\\*' in html:
         logging.critical( f"Removing ts marker in {versionAbbreviation} {refTuple} {segmentType} {basicOnly=}…")
         html = html.replace( '\\ts\\*', '' )
@@ -791,7 +801,7 @@ def formatUSFMText( versionAbbreviation:str, refTuple:tuple, segmentType:str, us
         # AssertionError: versionAbbreviation='ULT' refTuple=('ISA',) segmentType='book' 'usfmField='\\w to|x-occurrence="1" x-occurrences="2"\\w* \\w dishonor|x-occurrence="1" x-occurrences="1"\\w* \\zaln-s |x-strong="H1347" x-lemma="גָּאוֹן" x-morph='' basicOnly=False 'to dishonor \zaln-s |x-strong="H1347" x-lemma="גָּאוֹן" x-morph='
         if (versionAbbreviation not in ('TCNT','TC-GNT') or 'INT' not in refTuple) \
         and (versionAbbreviation not in ('ULT','UST') \
-        or ('MAT' not in refTuple and 'ISA' not in refTuple)): # ULT ISA and UST MAT has an encoding fault in 12:20 14Feb2023
+        or ('MAT' not in refTuple and 'PSA' not in refTuple and 'ISA' not in refTuple)): # ULT ISA and UST MAT has an encoding fault in 12:20 14Feb2023
             assert '\\' not in html, f"{versionAbbreviation=} {refTuple=} {segmentType=} '{usfmField=}' {basicOnly=} '{html}'"
     if not checkHtml( f'formatUSFMText({versionAbbreviation} {refTuple} {segmentType} {basicOnly=})', html, segmentOnly=True ):
         if DEBUGGING_THIS_MODULE: halt
