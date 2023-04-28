@@ -59,10 +59,10 @@ from createOETReferencePages import createOETReferencePages
 from html import makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-04-14' # by RJH
+LAST_MODIFIED_DATE = '2023-04-28' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData Create Pages"
-PROGRAM_VERSION = '0.55'
+PROGRAM_VERSION = '0.57'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
@@ -90,7 +90,8 @@ class State:
     """
     A place to store some of the global stuff that needs to be passed around.
     """
-    BibleVersions = ['OET','OET-RV','OET-LV', # NOTE: OET is a "pseudo-version" containing both OET-RV and OET-LV side-by-side
+    BibleVersions = ['OET', # NOTE: OET is a "pseudo-version" containing both OET-RV and OET-LV side-by-side and handled separately in many places
+                'OET-RV','OET-LV',
                 'ULT','UST', 'OEB',
                 'BSB','ISV',
                 'WEB','WMB','NET','LSV','FBV','TCNT','T4T','LEB','BBE',
@@ -162,8 +163,8 @@ class State:
                 'OET': 'Open English Translation (2030)',
                 'OET-RV': 'Open English Translation—Readers’ Version (2030)',
                 'OET-LV': 'Open English Translation—Literal Version (2025)',
-                'ULT': 'unfoldingWord Literal Text (2023)',
-                'UST': 'unfoldingWord Simplified Text (2023)',
+                'ULT': 'unfoldingWord® Literal Text (2023)',
+                'UST': 'unfoldingWord® Simplified Text (2023)',
                 'OEB': 'Open English Bible (in progress)',
                 'BSB': 'Berean Study/Standard Bible (2020)',
                 'ISV': 'International Standard Version (2020?)',
@@ -192,12 +193,13 @@ class State:
                 'WYC': 'Wycliffe Bible (1382)',
                 'CLV': 'Clementine Vulgate (Latin, 1592)',
                 'SR-GNT': 'Statistical Restoration Greek New Testament (2022)',
-                'UGNT': 'unfoldingWord Greek New Testament (2022)',
+                'UGNT': 'unfoldingWord® Greek New Testament (2022)',
                 'SBL-GNT': 'Society for Biblical Literature Greek New Testament (2020???)',
                 'TC-GNT': 'Text-Critical Greek New Testament (2010, Byzantine)',
                 'BRN': 'Brenton Septuagint Translation (1851)',
                 'BrLXX': '(Brenton’s) Ancient Greek translation of the Hebrew Scriptures (~250 BC)',
-                'UHB': 'unfoldingWord Hebrew Bible (2022)',
+                'UHB': 'unfoldingWord® Hebrew Bible (2022)',
+                'TN': 'unfoldingWord® Translation Notes (2023)',
                 }
     
     booksToLoad = {
@@ -243,8 +245,8 @@ class State:
                 'OET': ['FRT','MRK'],
                 'OET-RV': ['FRT','MRK'],
                 'OET-LV': ['MRK'],
-                'ULT': ['FRT','MRK'],
-                'UST': ['MRK'], # MRK 13:13 gives \\add error (24Jan2023)
+                'ULT': ['FRT','RUT','MRK'],
+                'UST': ['RUT','MRK'], # MRK 13:13 gives \\add error (24Jan2023)
                 'OEB': ['MRK'],
                 'BSB': ['MRK'],
                 'ISV': ['MRK'],
@@ -270,7 +272,7 @@ class State:
                 'CB': ['MRK'],
                 'TNT': ['MRK'],
                 'WYC': ['MRK'],
-                'CLV': ['MRK'],
+                'CLV': ['RUT','MRK'],
                 'SR-GNT': ['MRK'],
                 'UGNT': ['MRK'],
                 'SBL-GNT': ['MRK'],
@@ -282,36 +284,36 @@ class State:
 
     detailsHtml = {
         'OET': {'about': '''<p>The (still unfinished) <em>Open English Translation</em> consists of a <em>Readers’ Version</em> and a <em>Literal Version</em> side by side.
-You can read more about the design of the OET <a href="https://openenglishtranslation.bible/design/overview">here</a>.</p>''',
+You can read more about the design of the OET <a href="https://OpenEnglishTranslation.Bible/Design/Overview">here</a>.</p>''',
                 'copyright': '<p>Copyright © 2010-2023 <a href="https://Freely-Given.org">Freely-Given.org</a>.</p>',
                 'licence': '<p><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
                 'acknowledgements': '<p>Thanks to <a href="https://Freely-Given.org/">Freely-Given.org</a> for creating this exciting, new Bible translation which is viewable from <a href="https://OpenEnglishTranslation.Bible">OpenEnglishTranslation.Bible</a>.</p>' },
         'OET-RV': {'about': '''<p>The (still unfinished) <em>Open English Translation Readers’ Version</em> is a new, modern-English easy-to-read translation of the Bible.
-You can read more about the design of the OET-RV <a href="https://openenglishtranslation.bible/design/readers-version">here</a>.</p>''',
+You can read more about the design of the OET-RV <a href="https://OpenEnglishTranslation.Bible/Design/ReadersVersion">here</a>.</p>''',
                 'copyright': '<p>Copyright © 2010-2023 <a href="https://Freely-Given.org">Freely-Given.org</a>.</p>',
                 'licence': '<p><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
                 'acknowledgements': '<p>Thanks to <a href="https://Freely-Given.org/">Freely-Given.org</a> for creating this exciting, new Bible translation which is viewable from <a href="https://OpenEnglishTranslation.Bible">OpenEnglishTranslation.Bible</a>.</p>' },
         'OET-LV': {'about': '''<p>The (still unfinished) <em>Open English Translation Literal Version</em> is a tool designed to give a look into what was actually written in the original Hebrew or Greek manuscripts.
-You can read more about the design of the OET-LV <a href="https://openenglishtranslation.bible/design/literal-version">here</a>.</p>''',
+You can read more about the design of the OET-LV <a href="https://OpenEnglishTranslation.Bible/Design/LiteralVersion">here</a>.</p>''',
                 'copyright': '<p>Copyright © 2010-2023 <a href="https://Freely-Given.org">Freely-Given.org</a>.</p>',
                 'licence': '<p><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
                 'acknowledgements': '<p>Thanks to <a href="https://Freely-Given.org/">Freely-Given.org</a> for creating this exciting, new Bible translation which is viewable from <a href="https://OpenEnglishTranslation.Bible">OpenEnglishTranslation.Bible</a>.</p>' },
-        'ULT': {'about': '<p>unfoldingWord Literal Text (2023).</p>',
+        'ULT': {'about': '<p>unfoldingWord® Literal Text (2023).</p>',
                 'copyright': '<p>Copyright © 2022 by unfoldingWord.</p>',
                 'licence': '<p><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
                 'acknowledgements': '<p>Thanks to <a href="https://www.unfoldingword.org/">unfoldingWord</a> for creating this Bible translation which is designed to be a tool for Bible translators.</p>' },
-        'UST': {'about': '<p>unfoldingWord Simplified Text (2023).</p>',
+        'UST': {'about': '<p>unfoldingWord® Simplified Text (2023).</p>',
                 'copyright': '<p>Copyright © 2022 by unfoldingWord.</p>',
                 'licence': '<p><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
                 'acknowledgements': '<p>Thanks to <a href="https://www.unfoldingword.org/">unfoldingWord</a> for creating this specialised Bible translation which is designed to be a tool for Bible translators.</p>' },
         'OEB': {'about': '<p>Open English Bible (in progress).</p>',
-                'copyright': '<p>Copyright © (coming).</p>',
-                'licence': '<p>(coming).</p>',
-                'acknowledgements': '<p>(coming).</p>' },
+                'copyright': '<p>Copyright © 2010-2021 Russell Allen.</p>',
+                'licence': '<p><a href="http://creativecommons.org/publicdomain/zero/1.0/">Creative Commons Zero licence</a>.</p>',
+                'acknowledgements': '<p>Thanks to <a href="https://openenglishbible.org/">Russell Allen and team</a> for generously providing <a href="https://github.com/openenglishbible/Open-English-Bible">this English translation</a>.</p>' },
         'BSB': {'about': '<p>Berean Study/Standard Bible (2020).</p>',
-                'copyright': '<p>Copyright © (coming).</p>',
-                'licence': '<p>(coming).</p>',
-                'acknowledgements': '<p>(coming).</p>' },
+                'copyright': '<p>Copyright © 2016, 2020 by Bible Hub. Used by Permission. All Rights Reserved Worldwide.</p>',
+                'licence': '<p>The Berean Bible text is <a href="https://berean.bible/terms.htm">free to use</a> in any electronic form to promote the reading, learning, and understanding of the Holy Bible as the Word of God.</p>',
+                'acknowledgements': '<p>Thanks to <a href="https://biblehub.com/">BibleHub</a> for the <a href="https://berean.bible/">BSB</a>.</p>' },
         'ISV': {'about': '<p>International Standard Version (2020?).</p>',
                 'copyright': '<p>Copyright © (coming).</p>',
                 'licence': '<p>(coming).</p>',
@@ -326,33 +328,29 @@ You can read more about the design of the OET-LV <a href="https://openenglishtra
                 'acknowledgements': '<p>(coming).</p>' },
         'NET': {'about': '<p>New English Translation (2016).</p>',
                 'copyright': '<p>Copyright © (coming).</p>',
-                'licence': '<p>(coming).</p>',
+                'licence': '<p><a href="https://bible.org/downloads">Free</a> (without their notes).</p>',
                 'acknowledgements': '<p>(coming).</p>' },
         'LSV': {'about': '<p>Literal Standard Version (2020).</p>',
                 'copyright': '<p>Copyright © (coming).</p>',
-                'licence': '<p>(coming).</p>',
+                'licence': '<p><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
                 'acknowledgements': '<p>(coming).</p>' },
         'FBV': {'about': '<p>Free Bible Version (2018).</p>',
                 'copyright': '<p>Copyright © (coming).</p>',
-                'licence': '<p>(coming).</p>',
-                'acknowledgements': '<p>(coming).</p>' },
+                'licence': '<p><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
+                'acknowledgements': '<p>Thanks to <a href="http://www.freebibleversion.org/">Free Bible Ministry</a> for this translation. (coming).</p>' },
         'TCNT': {'about': '''<p>Text-Critical New Testament: Byzantine Text Version (2022) from their own Byzantine-priority Greek New Testament.</p>
 <p>Adam Boyd released the Byzantine Text Version in 2022. It is based on the Robinson-Pierpont third edition (RP2018). Boyd describes it as following the “‘optimal equivalence’ philosophy of translation, employing a literary style that is reminiscent of the Tyndale-King James legacy while flowing smoothly and naturally in modern English.” He added: “On the literal to dynamic scale, I would put it somewhere between ESV and CSB (but closer to ESV).”</p>''',
                 'copyright': '<p>Copyright © (coming).</p>',
-                'licence': '<p>(coming).</p>',
-                'acknowledgements': '<p>(coming).</p>' },
+                'licence': '<p><a href="https://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution 4.0 International License</a>.</p>',
+                'acknowledgements': '<p>Thanks to <a href="https://byzantinetext.com/study/translations/">ByzantineText.com</a> for this work. (coming).</p>' },
         'T4T': {'about': '<p>Translation for Translators (2017).</p>',
                 'copyright': '<p>Copyright © (coming).</p>',
-                'licence': '<p>(coming).</p>',
-                'acknowledgements': '<p>(coming).</p>' },
-        'TCNT': {'about': '<p>Translation for Translators (2022) from a Byzantine tradition Greek New Testament.</p>',
-                'copyright': '<p>Copyright © (coming).</p>',
-                'licence': '<p>(coming).</p>',
-                'acknowledgements': '<p>(coming).</p>' },
+                'licence': '<p><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a> as per <a href="https://ebible.org/t4t/copyright.htm">here</a>.</p>',
+                'acknowledgements': '<p>Thanks to the late <a href="https://tahlequah.hartfuneralhome.net/obituary/Ellis-Deibler">Ellis Deibler</a> for his work in preparing this specialised text to be used as a Bible translation tool. (coming).</p>' },
         'LEB': {'about': '<p>Lexham English Bible (2010,2012).</p>',
-                'copyright': '<p>Copyright © (coming).</p>',
-                'licence': '<p>You can give away the Lexham English Bible, but you can’t sell it on its own. If the LEB comprises less than 25% of the content of a larger work, you can sell it as part of that work.</p>',
-                'acknowledgements': '<p>Thanks to Logos Bible Software for supplying a XML file.</p>' },
+                'copyright': '<p>Copyright © 2012 <a href="http://www.logos.com/">Logos Bible Software</a>. Lexham is a registered trademark of <a href="http://www.logos.com/">Logos Bible Software</a>.</p>',
+                'licence': '<p>You can give away the <a href="https://lexhampress.com/LEB-License">Lexham English Bible</a>, but you can’t sell it on its own. If the LEB comprises less than 25% of the content of a larger work, you can sell it as part of that work.</p>',
+                'acknowledgements': '<p>Thanks to <a href="http://www.logos.com/">Logos Bible Software</a> for supplying a XML file.</p>' },
         'BBE': {'about': '<p>Bible in Basic English (1965).</p>',
                 'copyright': '<p>Copyright © (coming).</p>',
                 'licence': '<p>(coming).</p>',
@@ -390,7 +388,7 @@ You can read more about the design of the OET-LV <a href="https://openenglishtra
                 'licence': '<p>(coming).</p>',
                 'acknowledgements': '<p>(coming).</p>' },
         'BB': {'about': '<p>Bishops Bible (1568,1602).</p>',
-                'copyright': '<p>Copyright © (coming).</p>',
+                'copyright': '<p>Public Domain.</p>',
                 'licence': '<p>Public Domain.</p>',
                 'acknowledgements': '<p>(coming).</p>' },
         'GNV': {'about': '<p>Geneva Bible (1557-1560,1599).</p>',
@@ -398,7 +396,7 @@ You can read more about the design of the OET-LV <a href="https://openenglishtra
                 'licence': '<p>(coming).</p>',
                 'acknowledgements': '<p>(coming).</p>' },
         'CB': {'about': '<p><a href="https://en.wikipedia.org/wiki/Coverdale_Bible">Coverdale Bible</a> (1535-1553).</p>',
-                'copyright': '<p>Copyright © Miles Coverdale.</p>',
+                'copyright': '<p>Public Domain.</p>',
                 'licence': '<p>Public Domain.</p>',
                 'acknowledgements': '<p>(coming).</p>' },
         'TNT': {'about': '<p>Tyndale New Testament (1526).</p>',
@@ -406,9 +404,9 @@ You can read more about the design of the OET-LV <a href="https://openenglishtra
                 'licence': '<p>(coming).</p>',
                 'acknowledgements': '<p>(coming).</p>' },
         'WYC': {'about': '<p><a href="https://en.wikipedia.org/wiki/Wycliffe%27s_Bible">Wycliffe Bible</a> (1382).</p>',
-                'copyright': '<p>Copyright © (coming).</p>',
-                'licence': '<p>(coming).</p>',
-                'acknowledgements': '<p>(coming).</p>' },
+                'copyright': '<p>Public Domain.</p>',
+                'licence': '<p>Public Domain.</p>',
+                'acknowledgements': '<p>The entire English-speaking world is indebted to John Wycliffe for his brave work to make the Bible available in the language of the common people at a time when priests insisted that the Bible was only valid in Latin.</p>' },
         'CLV': {'about': '<p><a href="https://en.wikipedia.org/wiki/Sixto-Clementine_Vulgate">Clementine Vulgate Bible</a> (Latin, 1592).</p>',
                 'copyright': '<p>Copyright © (coming).</p>',
                 'licence': '<p>(coming).</p>',
@@ -417,16 +415,15 @@ You can read more about the design of the OET-LV <a href="https://openenglishtra
                 'copyright': '<p>Copyright © 2022 by Alan Bunning.</p>',
                 'licence': '<p><a href="https://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution 4.0 International License</a>.</p>',
                 'acknowledgements': '<p>Grateful thanks to Dr. Alan Bunning who founded the <a href="https://greekcntr.org">Center for New Testament Restoration</a> and gave around twenty years of his free time (plus a few full-time years at the end) to make this new, high-quality Greek New Testament freely available.</p>' },
-        'UGNT': {'about': '<p>unfoldingWord Greek New Testament (2022).</p>',
-                'copyright': '<p>Copyright © (coming).</p>',
-                'licence': '<p>(coming).</p>',
-                'acknowledgements': '<p>(coming).</p>' },
-        'SBL-GNT': {'about': '<p>Society for Biblical Literature Greek New Testament (2020???).</p>',
-                'copyright': '<p>Copyright © (coming).</p>',
-                'licence': '<p>(coming).</p>',
-                'acknowledgements': '<p>(coming).</p>' },
-        'TC-GNT': {'about': '''<p>Text-Critical Greek New Testament (2010) based on Robinson/Pierpont Byzantine priority GNT (RP2018).</p>
-''',
+        'UGNT': {'about': '<p>unfoldingWord® Greek New Testament (2022).</p>',
+                'copyright': '<p>Copyright © 2022 by unfoldingWord.</p>',
+                'licence': '<p><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
+                'acknowledgements': '<p>Thanks to <a href="https://www.unfoldingword.org/">unfoldingWord</a> for creating <a href="https://git.door43.org/unfoldingWord/el-x-koine_ugnt">this GNT</a> from the <a href="https://github.com/Center-for-New-Testament-Restoration/BHP">Bunnings Heuristic Prototype GNT</a>.</p>' },
+        'SBL-GNT': {'about': '<p>Society for Biblical Literature Greek New Testament (2023).</p>',
+                'copyright': '<p>Copyright © 2010 by the Society of Biblical Literature and <a href="http://www.logos.com/">Logos Bible Software</a>.</p>',
+                'licence': '<p><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
+                'acknowledgements': '<p>Thanks to <a href="https://sblgnt.com/">SBL</a> and <a href="https://www.logos.com/">Logos Bible Software</a> for supplying <a href="https://github.com/LogosBible/SBLGNT/">this GNT</a>.</p>' },
+        'TC-GNT': {'about': '<p>Text-Critical Greek New Testament (2010) based on Robinson/Pierpont Byzantine priority GNT (RP2018).</p>',
                 'copyright': '<p>Copyright © (coming).</p>',
                 'licence': '<p>(coming).</p>',
                 'acknowledgements': '<p>(coming).</p>' },
@@ -438,10 +435,14 @@ You can read more about the design of the OET-LV <a href="https://openenglishtra
                 'copyright': '<p>Copyright © (coming).</p>',
                 'licence': '<p>(coming).</p>',
                 'acknowledgements': '<p>(coming).</p>' },
-        'UHB': {'about': '<p>unfoldingWord Hebrew Bible (2022).</p>',
-                'copyright': '<p>Copyright © (coming).</p>',
-                'licence': '<p>(coming).</p>',
-                'acknowledgements': '<p>(coming).</p>' },
+        'UHB': {'about': '<p>unfoldingWord® Hebrew Bible (2022).</p>',
+                'copyright': '<p>Copyright © 2022 by unfoldingWord.</p>',
+                'licence': '<p><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
+                'acknowledgements': '<p>Thanks to <a href="https://www.unfoldingword.org/">unfoldingWord</a> for creating <a href="https://git.door43.org/unfoldingWord/hbo_uhb">this HB</a> from the <a href="https://hb.openscriptures.org/">OSHB</a>.</p>' },
+        'TN': {'about': '<p>unfoldingWord® Translation Notes (2023).</p>',
+                'copyright': '<p>Copyright © 2022 by unfoldingWord.</p>',
+                'licence': '<p><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
+                'acknowledgements': '<p>Thanks to <a href="https://www.unfoldingword.org/">unfoldingWord</a> for creating <a href="https://git.door43.org/unfoldingWord/en_tn">these notes</a> to assist Bible translators.</p>' },
     }
 
     assert len(BibleVersionDecorations) == len(BibleVersions)+2, f"{len(BibleVersionDecorations)=} {len(BibleVersions)=}" # Adds Parallel and Interlinear
@@ -580,7 +581,7 @@ def cleanHTMLFolders( folder:Path, state ) -> bool:
     except FileNotFoundError: pass
     try: shutil.rmtree( folder.joinpath( 'rf/' ) )
     except FileNotFoundError: pass
-    for versionAbbreviation in state.BibleVersions:
+    for versionAbbreviation in state.BibleVersions + ['TN']:
         try: shutil.rmtree( folder.joinpath( f'{versionAbbreviation}/' ) )
         except FileNotFoundError: pass
     return True
@@ -708,10 +709,10 @@ def createDetailsPages( level:int, versionsFolder:Path, state ) -> bool:
     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nCreating {'TEST ' if TEST_MODE else ''}details pages for {len(state.BibleVersions)} versions…" )
 
     allDetailsHTML = ''
-    for versionAbbreviation in ['OET'] + [versAbbrev for versAbbrev in state.preloadedBibles]:
-        versionName = state.BibleNames[versionAbbreviation]
+    for versionAbbreviation in ['OET'] + [versAbbrev for versAbbrev in state.preloadedBibles] + ['TN']:
+        versionName =  state.BibleNames[versionAbbreviation]
 
-        if versionAbbreviation != 'OET': # (OET doesn't have a BibleLocation)
+        if versionAbbreviation not in ('OET','TN'): # (These don't have a BibleLocation)
             if 'eBible' in state.BibleLocations[versionAbbreviation]:
                 # This code scrapes info from eBible.org copr.htm files, and hence is very fragile (susceptible to upstream changes)
                 with open( os.path.join(state.BibleLocations[versionAbbreviation], 'copr.htm'), 'rt', encoding='utf-8' ) as coprFile:

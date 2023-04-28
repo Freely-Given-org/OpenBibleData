@@ -10,9 +10,10 @@ a { text-decoration: none; }
 
 p.wrkLst { background-color:#904471; color:98a9d4; }
 .wrkLst a { text-decoration:none; color:white; }
-p.viewLst {background-color:#93598A; color:98a9d4; }
+p.viewLst {background-color:#936EA1; color:98a9d4; }
 .viewLst a { text-decoration:none; color:white; }
 /* p.viewLst { text-align:center; font-size:1.8em; } */
-p.cNav { text-align:center; font-size:1.8em; }
+
+p.cNav { text-align:center; font-size:1.8em; background-color:#98a9d4; }
 p.vNav { text-align:center; font-size:1.8em; }
 p.pnav { text-align:center; font-size:1.8em; }

@@ -52,10 +52,10 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 # from Bibles import fetchChapter
 
 
-LAST_MODIFIED_DATE = '2023-04-21' # by RJH
+LAST_MODIFIED_DATE = '2023-04-27' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
-PROGRAM_VERSION = '0.36'
+PROGRAM_VERSION = '0.37'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -157,7 +157,7 @@ def makeTop( level:int, versionAbbreviation:Optional[str], pageType:str, fileOrF
     """
     Create the very top part of an HTML page.
 
-    Note: versionAbbreviation can be None for interlinear and word pages, etc.
+    Note: versionAbbreviation can be None for parallel, interlinear and word pages, etc.
     """
     from createSitePages import TEST_MODE
     fnPrint( DEBUGGING_THIS_MODULE, f"makeTop( {level}, {versionAbbreviation}, {pageType}, {fileOrFolderName} )" )
@@ -204,6 +204,8 @@ def makeTop( level:int, versionAbbreviation:Optional[str], pageType:str, fileOrF
 def _makeHeader( level:int, versionAbbreviation:str, pageType:str, fileOrFolderName:Optional[str], state ) -> str:
     """
     Create the navigation that goes before the page content.
+
+    Note: versionAbbreviation can be None for parallel, interlinear and word pages, etc.
     """
     fnPrint( DEBUGGING_THIS_MODULE, f"_makeHeader( {level}, {versionAbbreviation}, {pageType}, {fileOrFolderName} )" )
 
@@ -242,6 +244,8 @@ def _makeHeader( level:int, versionAbbreviation:str, pageType:str, fileOrFolderN
     # It does this by adjusting the potential bad link to the next level higher.
     newVersionList = []
     for entry in initialVersionList:
+        # if pageType == 'parallel':
+        #     print( f"  _makeHeader processing {entry=} ({level=} {versionAbbreviation=} {pageType=} {fileOrFolderName=})" )
         if '/pa/' in entry or '/il/' in entry:
             newVersionList.append( entry )
             continue # Should always be able to link to these
@@ -256,6 +260,7 @@ def _makeHeader( level:int, versionAbbreviation:str, pageType:str, fileOrFolderN
             if thisVersionAbbreviation == 'OET': thisVersionAbbreviation = 'OET-RV' # We look here in this case
             thisBible = state.preloadedBibles[thisVersionAbbreviation]
             if entryBBB in thisBible:
+                # if pageType == 'parallel': print( f"    Appended {thisVersionAbbreviation} {entryBBB} as is (from {entry})")
                 newVersionList.append( entry )
                 continue # Should always be able to link to these
             dPrint( 'Info', DEBUGGING_THIS_MODULE, f"      Might not be able to link to {pageType} {thisVersionAbbreviation} {entry}???" )
@@ -273,6 +278,9 @@ def _makeHeader( level:int, versionAbbreviation:str, pageType:str, fileOrFolderN
             newVersionList.append( entry )
     assert len(newVersionList) == len(initialVersionList)
     versionHtml = f'''<p class="wrkLst">{' '.join(newVersionList)}</p>'''
+    # if pageType == 'parallel':
+    #     print( f"    {newVersionList=}" )
+    #     halt
 
     viewLinks = []
     if pageType in ('book','section','chapter','details'):

@@ -44,10 +44,10 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_
 from createOETReferencePages import livenOETWordLinks
 
 
-LAST_MODIFIED_DATE = '2023-04-22' # by RJH
+LAST_MODIFIED_DATE = '2023-04-28' # by RJH
 SHORT_PROGRAM_NAME = "createChapterPages"
 PROGRAM_NAME = "OpenBibleData createChapterPages functions"
-PROGRAM_VERSION = '0.36'
+PROGRAM_VERSION = '0.38'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -105,27 +105,28 @@ def createOETChapterPages( level:int, folder:Path, rvBible, lvBible, state ) -> 
                 documentLink = f'<a title="Whole document view" href="../byDoc/{BBB}.htm">{ourTidyBBB}</a>'
                 if c == -1: # Intro
                     leftLink = ''
-                    rightLink = f' <a title="Next chapter" href="{BBB}_C1.htm">→</a>' if c<numChapters else ''
+                    rightLink = f' <a title="Next chapter" href="{BBB}_C1.htm">►</a>' if c<numChapters else ''
                 elif c == 0:
                     continue
                 elif c == 1:
-                    leftLink = f'<a title="Book introduction" href="{BBB}_Intro.htm">←</a> '
-                    rightLink = f' <a title="Next chapter" href="{BBB}_C{c+1}.htm">→</a>' if c<numChapters else ''
+                    leftLink = f'<a title="Book introduction" href="{BBB}_Intro.htm">◄</a> '
+                    rightLink = f' <a title="Next chapter" href="{BBB}_C{c+1}.htm">►</a>' if c<numChapters else ''
                 else: # c > 1
                     assert c > 1
-                    leftLink = f'<a title="Previous chapter" href="{BBB}_C{c-1}.htm">←</a> '
-                    rightLink = f' <a title="Next chapter" href="{BBB}_C{c+1}.htm">→</a>' if c<numChapters else ''
+                    leftLink = f'<a title="Previous chapter" href="{BBB}_C{c-1}.htm">◄</a> '
+                    rightLink = f' <a title="Next chapter" href="{BBB}_C{c+1}.htm">►</a>' if c<numChapters else ''
                 parallelLink = f''' <a title="Parallel verse view" href="{'../'*level}pa/{BBB}/C{'1' if c==-1 else c}V1.htm#Top">║</a>'''
                 interlinearLink = f''' <a title="Interlinear verse view" href="{'../'*level}il/{BBB}/C{'1' if c==-1 else c}V1.htm#Top">═</a>''' if BBB in state.booksToLoad['OET'] else ''
                 detailsLink = f''' <a title="Show details about this work" href="{'../'*(level-1)}details.htm">©</a>'''
+                cNav = f'<p class="cNav">{leftLink}{documentLink} {"Intro" if c==-1 else c}{rightLink}{parallelLink}{interlinearLink}{detailsLink}</p>'
                 cHtml = f'''<h1 id="Top">Open English Translation {ourTidyBBB} Introduction</h1>
-<p class="cNav">{leftLink}{documentLink} Intro{rightLink}{parallelLink}{interlinearLink}{detailsLink}</p>
+{cNav}
 <p class="rem">This is still a very early look into the unfinished text of the <em>Open English Translation</em> of the Bible. Please double-check the text in advance before using in public.</p>
 <div class="container">
 <h2>Readers’ Version</h2>
 <h2>Literal Version</h2>
 ''' if c==-1 else f'''<h1 id="Top">Open English Translation {ourTidyBBB} Chapter {c}</h1>
-<p class="cNav">{leftLink}{documentLink} {c}{rightLink}{parallelLink}{interlinearLink}{detailsLink}</p>
+{cNav}
 <p class="rem">This is still a very early look into the unfinished text of the <em>Open English Translation</em> of the Bible. Please double-check the text in advance before using in public.</p>
 <div class="container">
 <span> </span>
@@ -160,10 +161,7 @@ def createOETChapterPages( level:int, folder:Path, rvBible, lvBible, state ) -> 
                         .replace( '__KEYWORDS__', f'Bible, OET, Open English Translation, chapter' ) \
                         .replace( f'''<a title="{state.BibleNames['OET']}" href="{'../'*level}OET/byC/{filename}">OET</a>''',
                                   f'''<a title="Up to {state.BibleNames['OET']}" href="{'../'*level}OET">↑OET</a>''' )
-                cHtml = top + '<!--chapter page-->' \
-                            + cHtml + combinedHtml \
-                            + '</div><!--container-->\n' \
-                            + makeBottom( level, 'chapter', state )
+                cHtml = f"{top}<!--chapter page-->{cHtml}{combinedHtml}</div><!--container-->\n{cNav}\n{makeBottom( level, 'chapter', state )}"
                 checkHtml( 'OETChapterIndex', cHtml )
                 with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
                     cHtmlFile.write( cHtml )
@@ -295,27 +293,28 @@ def createChapterPages( level:int, folder:Path, thisBible, state ) -> List[str]:
                 documentLink = f'<a title="Whole document view" href="../byDoc/{BBB}.htm">{ourTidyBBB}</a>'
                 if c == -1:
                     leftLink = ''
-                    rightLink = f' <a title="Next chapter" href="{BBB}_C{0 if haveChapterZero else 1}.htm">→</a>'
+                    rightLink = f' <a title="Next chapter" href="{BBB}_C{0 if haveChapterZero else 1}.htm">►</a>'
                 elif c == 0:
-                    leftLink = f'<a title="Book introduction" href="{BBB}_Intro.htm">←</a> ' if haveBookIntro else ''
-                    rightLink = f' <a title="Next chapter" href="{BBB}_C1.htm">→</a>'
+                    leftLink = f'<a title="Book introduction" href="{BBB}_Intro.htm">◄</a> ' if haveBookIntro else ''
+                    rightLink = f' <a title="Next chapter" href="{BBB}_C1.htm">►</a>'
                 elif c == 1:
-                    leftLink = f'<a title="Previous chapter" href="{BBB}_C0.htm">←</a> ' if haveChapterZero \
-                            else f'<a title="Book introduction" href="{BBB}_Intro.htm">←</a> ' if haveBookIntro \
+                    leftLink = f'<a title="Previous chapter" href="{BBB}_C0.htm">◄</a> ' if haveChapterZero \
+                            else f'<a title="Book introduction" href="{BBB}_Intro.htm">◄</a> ' if haveBookIntro \
                             else ''
-                    rightLink = f' <a title="Next chapter" href="{BBB}_C{c+1}.htm">→</a>' if c<numChapters else ''
+                    rightLink = f' <a title="Next chapter" href="{BBB}_C{c+1}.htm">►</a>' if c<numChapters else ''
                 else: # c > 1
                     assert c > 1
-                    leftLink = f'<a title="Previous chapter" href="{BBB}_C{c-1}.htm">←</a> '
-                    rightLink = f' <a title="Next chapter" href="{BBB}_C{c+1}.htm">→</a>' if c<numChapters else ''
+                    leftLink = f'<a title="Previous chapter" href="{BBB}_C{c-1}.htm">◄</a> '
+                    rightLink = f' <a title="Next chapter" href="{BBB}_C{c+1}.htm">►</a>' if c<numChapters else ''
                 parallelLink = f''' <a title="Parallel verse view" href="{'../'*level}pa/{BBB}/C{'1' if c==-1 else c}V1.htm#Top">║</a>'''
                 interlinearLink = f''' <a title="Interlinear verse view" href="{'../'*level}il/{BBB}/C{'1' if c==-1 else c}V1.htm#Top">═</a>''' if BBB in state.booksToLoad['OET'] else ''
                 detailsLink = f''' <a title="Show details about this work" href="{'../'*(level-1)}details.htm">©</a>'''
+                cNav = f'<p class="cNav">{leftLink}{documentLink} {"Intro" if c==-1 else c}{rightLink}{parallelLink}{interlinearLink}{detailsLink}</p>'
                 cHtml = f'''<h1 id="Top">{thisBible.abbreviation} {ourTidyBBB} Introduction</h1>
-<p class="cNav">{leftLink}{documentLink} Intro{rightLink}{parallelLink}{interlinearLink}{detailsLink}</p>
+{cNav}
 {'<p class="rem">This is still a very early look into the unfinished text of the <em>Open English Translation</em> of the Bible. Please double-check the text in advance before using in public.</p>' if 'OET' in thisBible.abbreviation else ''}
 ''' if c==-1 else f'''<h1 id="Top">{thisBible.abbreviation} {ourTidyBBB} Chapter {c}</h1>
-<p class="cNav">{leftLink}{documentLink} {c}{rightLink}{parallelLink}{interlinearLink}{detailsLink}</p>
+{cNav}
 {'<p class="rem">This is still a very early look into the unfinished text of the <em>Open English Translation</em> of the Bible. Please double-check the text in advance before using in public.</p>' if 'OET' in thisBible.abbreviation else ''}
 '''
                 try: verseEntryList, contextList = thisBible.getContextVerseData( (BBB, str(c)) )
@@ -343,7 +342,7 @@ def createChapterPages( level:int, folder:Path, thisBible, state ) -> List[str]:
                         .replace( '__KEYWORDS__', f'Bible, {thisBible.abbreviation}, chapter' ) \
                         .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*level}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/byC/{filename}">{thisBible.abbreviation}</a>''',
                                   f'''<a title="Up to {state.BibleNames[thisBible.abbreviation]}" href="{'../'*level}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/">↑{thisBible.abbreviation}</a>''' )
-                cHtml = top + '<!--chapter page-->' + cHtml + '\n' + makeBottom( level, 'chapter', state )
+                cHtml = f"{top}<!--chapter page-->{cHtml}\n{cNav}\n{makeBottom( level, 'chapter', state )}"
                 checkHtml( thisBible.abbreviation, cHtml )
                 with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
                     cHtmlFile.write( cHtml )
@@ -367,7 +366,7 @@ def createChapterPages( level:int, folder:Path, thisBible, state ) -> List[str]:
                     .replace( '__KEYWORDS__', f'Bible, {thisBible.abbreviation}, chapter' ) \
                     .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*level}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/byC/{filename}">{thisBible.abbreviation}</a>''',
                               f'''<a title="Up to {state.BibleNames[thisBible.abbreviation]}" href="{'../'*level}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/">↑{thisBible.abbreviation}</a>''' )
-            chtml = top + '<!--chapter page-->\n' + cHtml + makeBottom( level, 'chapter', state )
+            chtml = f"{top}<!--chapter page-->\n{cHtml}\n{makeBottom( level, 'chapter', state )}"
             checkHtml( thisBible.abbreviation, chtml )
             with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
                 cHtmlFile.write( chtml )

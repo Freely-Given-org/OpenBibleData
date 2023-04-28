@@ -46,10 +46,10 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_
 from createOETReferencePages import livenOETWordLinks
 
 
-LAST_MODIFIED_DATE = '2023-04-19' # by RJH
+LAST_MODIFIED_DATE = '2023-04-28' # by RJH
 SHORT_PROGRAM_NAME = "createParallelPages"
 PROGRAM_NAME = "OpenBibleData createParallelPages functions"
-PROGRAM_VERSION = '0.52'
+PROGRAM_VERSION = '0.55'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -90,10 +90,9 @@ def createParallelPages( level:int, folder:Path, state ) -> bool:
     top = makeTop( level, None, 'parallel', None, state ) \
             .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}Parallel View" ) \
             .replace( '__KEYWORDS__', f'Bible, parallel' )
-    indexHtml = top \
-                + '<h1 id="Top">Parallel verse pages</h1><h2>Index of books</h2>\n' \
-                + f'''<p class="bkLst">{' '.join( BBBLinks )}</p>\n''' \
-                + makeBottom( level, 'parallel', state )
+    indexHtml = f'''{top}<h1 id="Top">Parallel verse pages</h1><h2>Index of books</h2>
+<p class="bkLst">{' '.join( BBBLinks )}</p>
+{makeBottom( level, 'parallel', state )}'''
     checkHtml( 'ParallelIndex', indexHtml )
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
         indexHtmlFile.write( indexHtml )
@@ -102,6 +101,9 @@ def createParallelPages( level:int, folder:Path, state ) -> bool:
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createParallelPages() finished processing {len(state.allBBBs)} books: {state.allBBBs}" )
     return True
 # end of html.createParallelPages
+
+class MissingBookError( Exception ): pass
+class UntranslatedVerseError( Exception ): pass
 
 def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:List[str], state ) -> bool:
     """
@@ -124,8 +126,9 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
     for versionAbbreviation in state.BibleVersions:
         if versionAbbreviation == 'OET': continue # that's only a "pseudo-version"!
         referenceBible = state.preloadedBibles[versionAbbreviation]
+        if BBB not in referenceBible: continue # don't want to force loading the book
         # referenceBible.loadBookIfNecessary( BBB )
-        numChapters = referenceBible.getNumChapters( BBB )
+        numChapters = referenceBible.getNumChapters( BBB ) # Causes the book to be loaded if not already
         if numChapters: break
     else:
         logging.critical( f"createParallelVersePagesForBook unable to find a valid reference Bible for {BBB}" )
@@ -151,8 +154,10 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                 leftCLink = f'<a title="Go to previous chapter" href="C{c-1}V1.htm#__ID__">◄</a>{EM_SPACE}' if c>1 else ''
                 rightCLink = f'{EM_SPACE}<a title="Go to next chapter" href="C{c+1}V1.htm#__ID__">►</a>' if c<numChapters else ''
                 interlinearLink = f''' <a title="Interlinear verse view" href="{'../'*level}il/{BBB}/C{C}V{V}.htm#Top">═</a>''' if BBB in state.booksToLoad['OET'] else ''
-                navLinks = f'<p id="__ID__" class="vNav">{leftCLink}{leftVLink}{ourTidyBbb} {C}:{V} <a title="Go to __WHERE__ of page" href="#CV__WHERE__">__ARROW__</a>{rightVLink}{rightCLink}{interlinearLink}</p>'
+                detailsLink = f''' <a title="Show details about these works" href="{'../'*(level)}allDetails.htm">©</a>'''
+                navLinks = f'<p id="__ID__" class="vNav">{leftCLink}{leftVLink}{ourTidyBbb} {C}:{V} <a title="Go to __WHERE__ of page" href="#CV__WHERE__">__ARROW__</a>{rightVLink}{rightCLink}{interlinearLink}{detailsLink}</p>'
                 pHtml = ''
+                print( f"PP-BB-33 {BBB} {state.preloadedBibles['OET-RV']}" )
                 for versionAbbreviation in state.BibleVersions:
                     if versionAbbreviation == 'OET': continue # Skip this pseudo-version as we have OET-RV and OET-LV
                     if versionAbbreviation in ('UHB','JPS') \
@@ -167,11 +172,12 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                     thisBible = state.preloadedBibles[versionAbbreviation]
                     # thisBible.loadBookIfNecessary( BBB )
                     try:
+                        if BBB not in thisBible: raise MissingBookError # Requested book is not in this Bible
                         verseEntryList, contextList = thisBible.getContextVerseData( (BBB, C, V) )
                         if isinstance( thisBible, ESFMBible.ESFMBible ):
                             verseEntryList = livenOETWordLinks( thisBible, BBB, verseEntryList, f"{'../'*level}rf/W/{{n}}.htm", state )
                         textHtml = convertUSFMMarkerListToHtml( level, versionAbbreviation, (BBB,c,v), 'verse', contextList, verseEntryList, basicOnly=True, state=state )
-                        if textHtml == '◘': raise KeyError # This is an OET-RV marker to say "Not translated yet"
+                        if textHtml == '◘': raise UntranslatedVerseError
 
                         if versionAbbreviation == 'OET-RV':
                             textHtml = do_OET_RV_HTMLcustomisations( textHtml )
@@ -225,8 +231,28 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
 ''' if versionAbbreviation=='OET-RV' else f'''
 <p><span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation]} chapter" href="{'../'*level}{versionAbbreviation}/byC/{BBB}_C{C}.htm">{versionAbbreviation}</a></span> {textHtml}</p>
 '''
-                    except (KeyError, TypeError):
+                    except MissingBookError:
+                        assert BBB not in thisBible
+                        warningText = f'No {versionAbbreviation} {ourTidyBBB} book available'
+                        vHtml = f'''<p><span class="wrkName">{versionAbbreviation}</span> <span class="noBook"><small>{warningText}</small></span></p>
+'''
+                        logging.warning( warningText )
+                    except UntranslatedVerseError:
+                        assert versionAbbreviation == 'OET-RV'
+                        assert BBB in thisBible
                         if BBB in thisBible:
+                            # print( f"No verse inB {versionAbbreviation} {BBB} in {thisBible}"); halt
+                            warningText = f'No {versionAbbreviation} {ourTidyBBB} {C}:{V} verse available'
+                            vHtml = f'''<p><span class="wrkName"><a title="{state.BibleNames[versionAbbreviation]}" href="{'../'*level}{versionAbbreviation}/byC/{BBB}_C{C}.htm">{versionAbbreviation}</a></span> <span class="noVerse"><small>{warningText}</small></span></p>
+'''
+                        else:
+                            warningText = f'No {versionAbbreviation} {ourTidyBBB} book available'
+                            vHtml = f'''<p><span class="wrkName">{versionAbbreviation}</span> <span class="noBook"><small>{warningText}</small></span></p>
+'''
+                        logging.warning( warningText )
+                    except KeyError:
+                        if BBB in thisBible:
+                            # print( f"No verse inKT {versionAbbreviation} {BBB} in {thisBible}"); halt
                             warningText = f'No {versionAbbreviation} {ourTidyBBB} {C}:{V} verse available'
                             vHtml = f'''<p><span class="wrkName"><a title="{state.BibleNames[versionAbbreviation]}" href="{'../'*level}{versionAbbreviation}/byC/{BBB}_C{C}.htm">{versionAbbreviation}</a></span> <span class="noVerse"><small>{warningText}</small></span></p>
 '''
@@ -251,12 +277,13 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                         .replace( '__KEYWORDS__', f'Bible, {ourTidyBBB}, parallel' )
                 if BBB in state.booksToLoad['OET']:
                     top = top.replace( f'''href="{'../'*level}il/"''', f'''href="{'../'*level}il/{BBB}/C{C}V{V}.htm"''')
-                pHtml = top + '<!--parallel verse page-->' \
-                        + f'{adjBBBLinksHtml}\n<h1 id="Top">Parallel {ourTidyBBB} {C}:{V}</h1>\n' \
-                        + f"{navLinks.replace('__ID__','CVTop').replace('__ARROW__','↓').replace('__WHERE__','Bottom')}\n" \
-                        + pHtml \
-                        + f"\n{navLinks.replace('__ID__','CVBottom').replace('__ARROW__','↑').replace('__WHERE__','Top')}\n" \
-                        + makeBottom( level, 'parallel', state )
+                pHtml = f'''{top}<!--parallel verse page-->
+<p class="bkLst">{adjBBBLinksHtml}</p>
+<h1 id="Top">Parallel {ourTidyBBB} {C}:{V}</h1>
+{navLinks.replace('__ID__','CVTop').replace('__ARROW__','↓').replace('__WHERE__','bottom')}
+{pHtml}
+{navLinks.replace('__ID__','CVBottom').replace('__ARROW__','↑').replace('__WHERE__','top')}
+{makeBottom( level, 'parallel', state )}'''
                 checkHtml( f'Parallel {BBB} {C}:{V}', pHtml )
                 with open( filepath, 'wt', encoding='utf-8' ) as pHtmlFile:
                     pHtmlFile.write( pHtml )
@@ -281,8 +308,9 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
 f'''<p class="cLinks">{ourTidyBbb if ourTidyBbb!='Jac' else 'Jacob/James'} {' '.join( [f'<a title="Go to parallel verse page" href="C{chp}V1.htm">C{chp}</a>' for chp in range(1,numChapters+1)] )}</p>
 <h1 id="Top">{ourTidyBBB} parallel verses index</h1>
 <p class="vLinks">{' '.join( vLinks )}</p>'''
-    indexHtml = f'{top}{adjBBBLinksHtml}\n{ourLinks}\n' \
-                + makeBottom( level, 'parallel', state )
+    indexHtml = f'''{top}{adjBBBLinksHtml}
+{ourLinks}
+{makeBottom( level, 'parallel', state )}'''
     checkHtml( 'ParallelIndex', indexHtml )
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
         indexHtmlFile.write( indexHtml )
@@ -304,21 +332,22 @@ def moderniseEnglishWords( html:str ) -> bool:
             ((' abideth',),' abides'), ((' accorde ',' acorde '),' accord '), ((' aftir',),' after'), ((' agayne','againe'),' again'),
                 ((' alle ',),' all '),(('Alle ',),'All '), ((' aloone',),' alone'),
                 (('amased',),'amazed'),
-                (('answerede','aunswered'),'answered'),
+                (('answerede','aunswered'),'answered'), ((' ony ',),' any '),
                 ((' aryse',),' arise'),
                 (('astonnied',),'astonished'),
                 ((' aungel',),' angel'),
-            ((' beesti',),' beast'), ((' beed ',' bedde '),' bed '), ((' bifor',),' before'),
-                    (('bigynnyng','beginnynge','begynnynge','begynnyng'),'beginning'), ((' beleue',' beleeue',' beleve'),' believe'),
+            (('baptysed',),'baptised'), (('baptisynge',),'baptising'), (('baptisme','baptyme'),'baptism'),
+                ((' beesti',),' beast'), ((' beed ',' bedde '),' bed '), ((' bifor',),' before'), ((' behinde',),' behind'), (('Bethlehe ','Bethleem ','Bethlee '),'Bethlehem '),
+                (('bigynnyng','beginnynge','begynnynge','begynnyng'),'beginning'), ((' beleue',' beleeue',' beleve'),' believe'),
                     ((' bisidis',),' beside'),
                 (('britheren',),'brethren'), ((' bryngyng',),' bringing'),
                 ((' brent',),' burnt'),
-            ((' cam ',' camen '),' came '), ((' certayne',),' certain'),
-                (('chymney',),'chimney'),
+            ((' cam ',' camen '),' came '), ((' certayne',' certein'),' certain'),
+                (('chyldren',),'children'), (('chymney',),'chimney'), (('chirche',),'church'), (('Churche ',),'Church '),
                 (('Crist',),'Christ'),
-                ((' comynge',),' coming'), (('contynued',),'continued'),(('contynuynge',),'continuing'), ((' coulde','coude'),' could'), ((' cuntree',),' country'),
+                ((' comynge',),' coming'), (('contynued',),'continued'),(('contynuynge',),'continuing'), ((' coulde','coude'),' could'), ((' cuntree',' cuntrey',' cuntrei'),' country'),
             ((' daies',' dayes'),' days'),
-                ((' deliuered',),' delivered'), ((' deseert',),' desert'),
+                ((' deliuered',),' delivered'), ((' deseert',),' desert'),  ((' desirith',' desyreth',' desireth'),' desires'),
                 (('disciplis',),'disciples'),
                 ((' dore',),' door'), ((' doue',),' dove'), ((' downe',),' down'), ((' dwelleth',),' dwells'), ((' dwellynge',),' dwelling'),
             (('edificacioun',),'edification'), (('edyfyinge','edifyenge'),'edifying'),
@@ -334,21 +363,22 @@ def moderniseEnglishWords( html:str ) -> bool:
             (('Galile,',),'Galilee,'), ((' goost',),' ghost'),
                 ((' geve ',' geue ',' giue '),' give '),
                 ((' goe ',' goo '),' go '), ((' gospell',),' gospel'), (('Gospell',),'Gospel'),
-            ((' hadde ',),' had '), ((' hande',' honde',' hoond'),' hand'), ((' hauynge',),' having'),
+            ((' hadde ',),' had '), ((' hande',' honde',' hoond'),' hand'), ((' haue ',),' have '), ((' hauynge',' havynge','hauing'),' having'),
                 ((' hee ',),' he '), ((' hearde',' herde'),' heard'), ((' hertis',' hertes',' heartes'),' hearts'), ((' heauen',),' heaven'), ((' hede ',' heede '),' heed '), ((' hir ',),' her '),
                 ((' hym ',),' him '),((' hym,',),' him,'),((' hym.',),' him.'),((' hym;',),' him;'),((' hym:',),' him:'),
                     ((' hise ',),' his '),
-                ((' houres',),' hours'), ((' housse ',' hous '),' house '),
+                (('honeste','honestye','honestie'),'honesty'), ((' houres',),' hours'), ((' housse ',' hous '),' house '), ((' hou ',' howe '),' how '),
+                ((' hungur',),' hunger'), (('husbande','hosebonde'),'husband'),
             (('Y ',),'I '),
-                ((' yf ',),' if '),
+                ((' yf ',),' if '), (('Yf ',),'If '),
                 (('immediatly',),'immediately'),
             ((' iudge',),' judge'),(('Iudge','Ivdge'),'Judge'),
             # (('Jhesus',),'Jesus'),(('Jhesu ',),'Jesu '), (('Joon',),'John'),
             ((' kingdome',' kyngdoom',' kyngdome'),' kingdom'), ((' kyng',),' king'),
                 ((' knowe',),' know'),
-            ((' laye',),' lay'),
+            ((' lande ',' londe '),' land '), ((' laye ',),' lay '),
                 ((' lyght',' liyt'),' light'), ((' lyke',' lijk'),' like'),
-                ((' loued',' louyde'),' loved'),
+                (('Lorde',),'Lord'),(('LORDE',),'LORD'), ((' loued',' louyde'),' loved'),
             ((' maad',),' made'), ((' maye ',),' may '),
                 ((' mesure',),' measure'),
                 (('ministred','mynistred','mynystriden'),'ministered'),
@@ -358,25 +388,27 @@ def moderniseEnglishWords( html:str ) -> bool:
             ((' oure ',),' our '), ((' ouer',),' over'), ((' awne ',' owne '),' own '),
             ((' passide',),' passed'), (('penaunce',),'penance'), (('perceiued','perceaved'),'perceived'),
                 ((' puple',),' people'),
+                ((' pylgrym',),' pilgrim'),
                 (('praysed',),'praised'), (('preier',),'prayer'),
                     (('prechide',),'preached'), (('preachyng',),'preaching'),
             ((' reise',),' raise'),
-                ((' receave',),' receive'), (('reasonyng','reasoninge'),'reasoning'),
+                ((' receave',),' receive'), (('remayned',),'remained'), (('repentaunce',),'repentance'), (('reasonyng','reasoninge'),'reasoning'),
                 ((' ryse ',),' rise '),
                 ((' roofe',' rofe'),' roof'), ((' roume',),' room'),
-            ((' seide',' sayde',' saide'),' said'), (('Sathanas','Sathan'),'Satan'), ((' sawe ',),' saw '),
-                    ((' seith ',),' says '),
+                (('ruleth','rueleth'),'rules'),
+            ((' saaf',),' safe'), ((' seiden',' seide',' sayde',' saide'),' said'), (('Sathanas','Sathan'),'Satan'), ((' sawe ',),' saw '),
+                    ((' sayege',),' saying'), ((' seith ',),' says '),
                 ((' scribis',' scrybes'),' scribes'),
                 ((' seyn',),' seen'),
                 ((' schal ',' shal '),' shall '),
                 ((' sicke ',' sijk '),' sick '),((' sicke,',' sijk,'),' sick,'),((' sicke.',' sijk.'),' sick.'),
                     ((' sinnes','synnes'),' sins'), ((' sistir',),' sister'), ((' syttyng',),' sitting'),
                 ((' slepe',),' sleep'), ((' slepith',),' sleeps'),
-                ((' summe ',),' some '), ((' sonne ',' sone '),' son '), (('Sonne ',),'Son '),
+                ((' summe ',),' some '), ((' sonnes',' sones'),' sons'), ((' sonne ',' sone '),' son '), (('Sonne ',),'Son '), ((' soiourne',),' sojourn'),
                 ((' speake',),' speak'), ((' spirite',' sprete'),' spirit'),
                 ((' styll',),' still'), ((' stoone',),' stone'), (('stumbleth','stombleth','stomblith'),'stumbles'),
-                ((' souyten',),' sought'), ((' sounde',),' sound'),
-                ((' soch ',),' such '), (('supplicacion',),'supplication'),
+                ((' souyten',),' sought'), ((' sounde',),' sound'), (('souereynes',),'sovereigns'),
+                (('subiection',),'subjection'), ((' soch ',),' such '), (('supplicacion',),'supplication'),
                 (('synagoge',),'syngagogue'),
             ((' takun',),' taken'), ((' tauyte',),' taught'),
                 (('temptid',),'tempted'),
@@ -386,15 +418,15 @@ def moderniseEnglishWords( html:str ) -> bool:
                     ((' thingis',),' things'), ((' thenkynge',),' thinking'), ((' thynke',' thenken'),' think'),
                 ((' tyme',),' time'),
                 ((' toke ',),' took '),
-                ((' twolue','twelue'),' twelve'), ((' twei',),' two'),
-            (('vncerteyn',),'uncertain'), (('vncovered','vncouered'),'uncovered'),
+                ((' twolue','twelue'),' twelve'), ((' twei ',' twey '),' two '),
+            (('vncerteyn',),'uncertain'), (('vncovered','vncouered'),'uncovered'), ((' vnder',),' under'),
                 ((' vnto',),' unto'), ((' vp ',),' up '),((' vp,',),' up,'),((' vp.',),' up.'), ((' vpon',),' upon'), ((' vs ',),' us '),((' vs,',),' us,'),((' vs.',),' us.'),
             ((' voyce',' vois'),' voice'),
             ((' walke ',),' walk '), ((' watir',),' water'), ((' watris',),' waters'), (('widdred','wythred','wythered'),'withered'), ((' wente',),' went'),
-                ((' whanne ',),' when '), ((' whanne ',' wha '),' when '), ((' whiche ',),' which '),
-                ((' wilde ',' wylde '),' wild '), ((' wyll ',' wil '),' will '),
-                ((' wymmen','wemen'),' women'), ((' worlde',),' world'),
-            (('Iesus',),'Yesus'),(('Iesu ',),'Yesu '), (('Iewes ','Jewis '),'Yews '), (('Iohn','Ihon'),'Yohn'), (('Iudea','Judee'),'Yudea'),
+                ((' whanne ',' whan '),' when '), ((' whanne ',' wha '),' when '), ((' whiche ',),' which '),
+                (('wyldernes','wildernesse','wyldernesse'),'wilderness'), ((' wyfe ',' wijf '),' wife '), ((' wilde ',' wylde '),' wild '), ((' wyll ',' wil '),' will '),
+                ((' wymmen','wemen'),' women'), ((' worde ',),' word '), ((' worke ',' werk '),' work '), ((' worlde',),' world'),
+            (('Iesus',),'Yesus'),(('Iesu ',),'Yesu '), (('Iewes ','Jewis '),'Yews '), (('Iohn','Ihon','Joon'),'Yohn'), (('Iuda','Juda'),'Yudah'),  (('Iudea','Judee'),'Yudea'),
                 ((' ye ',' yee '),' you_all '), ((' thi ',' thy '),' your '), ((' youre ',' thy '),' your(pl) '),
 
             ((' xl ',),' 40 '),

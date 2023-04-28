@@ -61,10 +61,10 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
 from createOETReferencePages import CNTR_BOOK_ID_MAP, livenOETWordLinks
 
 
-LAST_MODIFIED_DATE = '2023-04-21' # by RJH
+LAST_MODIFIED_DATE = '2023-04-28' # by RJH
 SHORT_PROGRAM_NAME = "createOETInterlinearPages"
 PROGRAM_NAME = "OpenBibleData createOETInterlinearPages functions"
-PROGRAM_VERSION = '0.16'
+PROGRAM_VERSION = '0.18'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -164,7 +164,8 @@ def createOETInterlinearVersePagesForBook( level:int, folder:Path, BBB:str, BBBL
                 leftCLink = f'<a title="Go to previous chapter" href="C{c-1}V1.htm#__ID__">◄</a> ' if c>1 else ''
                 rightCLink = f' <a title="Go to next chapter" href="C{c+1}V1.htm#__ID__">►</a>' if c<numChapters else ''
                 parallelLink = f''' <a title="Parallel verse view" href="{'../'*level}pa/{BBB}/C{c}V{v}.htm#Top">║</a>'''
-                navLinks = f'<p id="__ID__" class="vNav">{leftCLink}{leftVLink}{ourTidyBbb} {c}:{v} <a title="Go to __WHERE__ of page" href="#CV__WHERE__">__ARROW__</a>{rightVLink}{rightCLink}{parallelLink}</p>'
+                detailsLink = f''' <a title="Show details about the OET" href="{'../'*(level)}OET/details.htm">©</a>'''
+                navLinks = f'<p id="__ID__" class="vNav">{leftCLink}{leftVLink}{ourTidyBbb} {c}:{v} <a title="Go to __WHERE__ of page" href="#CV__WHERE__">__ARROW__</a>{rightVLink}{rightCLink}{parallelLink}{detailsLink}</p>'
                 iHtml = createOETInterlinearVersePage( level, BBB, c, v, state )
                 filename = f'C{c}V{v}.htm'
                 # filenames.append( filename )
@@ -174,10 +175,10 @@ def createOETInterlinearVersePagesForBook( level:int, folder:Path, BBB:str, BBBL
                         .replace( '__KEYWORDS__', f'Bible, {ourTidyBBB}, interlinear' ) \
                         .replace( f'''href="{'../'*level}pa/"''', f'''href="{'../'*level}pa/{BBB}/C{c}V{v}.htm"''')
                 iHtml = top + '<!--interlinear verse page-->' \
-                        + f'{adjBBBLinksHtml}\n<h1 id="Top">OET interlinear {ourTidyBBB} {c}:{v}</h1>\n' \
-                        + f"{navLinks.replace('__ID__','CVTop').replace('__ARROW__','↓').replace('__WHERE__','Bottom')}\n" \
+                        + f'<p class="bkLst">{adjBBBLinksHtml}</p>\n<h1 id="Top">OET interlinear {ourTidyBBB} {c}:{v}</h1>\n' \
+                        + f"{navLinks.replace('__ID__','CVTop').replace('__ARROW__','↓').replace('__WHERE__','bottom')}\n" \
                         + iHtml \
-                        + f"\n{navLinks.replace('__ID__','CVBottom').replace('__ARROW__','↑').replace('__WHERE__','Top')}\n" \
+                        + f"\n{navLinks.replace('__ID__','CVBottom').replace('__ARROW__','↑').replace('__WHERE__','top')}\n" \
                         + makeBottom( level, 'interlinear', state )
                 checkHtml( f'Interlinear {BBB} {c}:{v}', iHtml )
                 with open( filepath, 'wt', encoding='utf-8' ) as iHtmlFile:

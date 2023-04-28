@@ -5,6 +5,11 @@ a:hover { text-decoration: none; }
 a:active { text-decoration: none; } */
 a { text-decoration: none; }
 
+p.wrkLst { background-color:#904471; color:98a9d4; }
+.wrkLst a { text-decoration:none; color:white; }
+p.viewLst {background-color:#936EA1; color:98a9d4; }
+.viewLst a { text-decoration:none; color:white; }
+
 div.footer { width: 500px; height: 250px; margin: 50px; }
 
 p.rem { font-size:0.8em; color:grey; }
