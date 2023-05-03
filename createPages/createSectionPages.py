@@ -42,12 +42,12 @@ import BibleOrgSys.Formats.ESFMBible as ESFMBible
 
 from usfm import convertUSFMMarkerListToHtml
 from Bibles import tidyBBB
-from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, \
+from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
                     makeTop, makeBottom, removeDuplicateCVids, checkHtml
 from createOETReferencePages import livenOETWordLinks
 
 
-LAST_MODIFIED_DATE = '2023-04-22' # by RJH
+LAST_MODIFIED_DATE = '2023-05-04' # by RJH
 SHORT_PROGRAM_NAME = "createSectionPages"
 PROGRAM_NAME = "OpenBibleData createSectionPages functions"
 PROGRAM_VERSION = '0.32'
@@ -393,6 +393,8 @@ def createSectionPages( level:int, folder:Path, thisBible, state ) -> List[str]:
                 textHtml = do_OET_LV_HTMLcustomisations( textHtml )
             elif thisBible.abbreviation == 'LSV':
                 textHtml = do_LSV_HTMLcustomisations( textHtml )
+            elif thisBible.abbreviation == 'T4T':
+                textHtml = do_T4T_HTMLcustomisations( textHtml )
             sectionHtml = f'{sectionHtml}{textHtml}'
 
             filepath = folder.joinpath( filename )

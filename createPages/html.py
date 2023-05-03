@@ -52,10 +52,10 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 # from Bibles import fetchChapter
 
 
-LAST_MODIFIED_DATE = '2023-04-27' # by RJH
+LAST_MODIFIED_DATE = '2023-05-04' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
-PROGRAM_VERSION = '0.37'
+PROGRAM_VERSION = '0.38'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -147,6 +147,40 @@ def do_LSV_HTMLcustomisations( html:str ) -> str:
     """
     return html.replace( ' || ', '<br>' ).replace( '||', '<br>' ) # Second one catches any source inconsistencies
 # end of html.do_LSV_HTMLcustomisations
+
+
+def do_T4T_HTMLcustomisations( html:str ) -> str:
+    """
+    T4T has:
+        We have tried to indicate the beginning of an alternative by a ‘◄’ and the ending of each alternative by a ‘►’. 
+        We have identified the different figures of speech where each occurs in the text, but these symbols are hidden in the data-file.
+            [APO] = apostrophe
+            [CHI] = chiasmus
+            [DOU] = doublet
+            [EUP] = euphemism
+            [HEN] = hendiadys
+            [HYP] = hyperbole
+            [IDM] = idiom
+            [IRO] = irony
+            [LIT] = litotes
+            [MET] = metaphor
+            [MTY] = metonymy
+            [PRS] = personification
+            [RHQ] = rhetorical question
+            [SIM] = simile
+            [SYM] = symbol
+            [SAR] = sarcasm
+            [SYN] = synecdoche
+            [TRI] = triple
+    """
+    for FoS,fosType in ( ('APO','apostrophe'), ('CHI','chiasmus'), ('DOU','doublet'), ('EUP','euphemism'),
+                         ('HEN','hendiadys'), ('HYP','hyperbole'), ('IDM','idiom'), ('IRO','irony'), ('LIT','litotes'),
+                         ('MET','metaphor'), ('MTY','metonymy'), ('PRS','personification'), ('RHQ','rhetorical question'),
+                         ('SIM','simile'), ('SYM','symbol'), ('SAR','sarcasm'), ('SYN','synecdoche'), ('TRI','triple') ):
+        fullFoS = f'[{FoS}]'
+        html = html.replace( fullFoS, f'<span class="FoS" title="{fosType} (figure of speech)">{fullFoS}</span>' )
+    return html.replace( '◄', '<span title="alternative translation">◄</span>' )
+# end of html.do_T4T_HTMLcustomisations
 
 
 KNOWN_PAGE_TYPES = ('site', 'topIndex', 'details', 'allDetails',

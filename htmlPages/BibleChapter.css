@@ -63,6 +63,7 @@ p.pmr { margin-top:0.2em; margin-bottom:0.2em; }
 span.add { color:grey; }
 span.rem { font-size:0.8em; color:grey; }
 span.wj { color:saddlebrown; }
+span.FoS { color:mediumvioletred; }
 
 /* Notes USFM */
 p.fn { margin-top:0.2em; margin-bottom:0.2em; font-size:0.75em; }

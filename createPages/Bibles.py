@@ -64,10 +64,10 @@ from html import checkHtml
 from OETHandlers import findLVQuote
 
 
-LAST_MODIFIED_DATE = '2023-04-23' # by RJH
+LAST_MODIFIED_DATE = '2023-05-03' # by RJH
 SHORT_PROGRAM_NAME = "Bibles"
 PROGRAM_NAME = "OpenBibleData Bibles handler"
-PROGRAM_VERSION = '0.24'
+PROGRAM_VERSION = '0.26'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -217,6 +217,7 @@ def preloadUwTranslationNotes( state ) -> None:
 
 
 taRegEx = re.compile( 'rc://\\*/ta/man/translate/' )
+markdownLinkRegex = re.compile( '\\[(.*?)\\]\\((.*?)\\)' )
 def formatTranslationNotes( level:int, BBB, C:str, V:str, segmentType:str, state ) -> str: # html
     """
     A typical entry with two notes looks like this (blank lines added):
@@ -305,10 +306,54 @@ def formatTranslationNotes( level:int, BBB, C:str, V:str, segmentType:str, state
                 occurrenceNumber = getLeadingInt(rest) # Shouldn't be necessary but uW stuff isn't well checked/validated
             elif lastMarker == 'q1': # An original language quote
                 assert rest
-                lvQuoteHtml = findLVQuote( level, BBB, C, V, occurrenceNumber, rest, state )
-                tnHtml = f'''{tnHtml}<p class="OL">{'' if occurrenceNumber==1 else f'(Occurrence {occurrenceNumber}) '}{rest}</p>
+                if rest.startswith( 'Connecting Statement' ):
+                    assert occurrenceNumber == 0
+                    tnHtml = f'{tnHtml}<p class="Gram">{rest}</p>'
+                else: # assume it's an original language quote
+                    # if BBB!='JHN' and C!='11' and V!='45': # Jn 11:45 and Exo 1:15, etc.
+                    #     assert occurrenceNumber != 0, f"TN {BBB} {C}:{V} {occurrenceNumber=} {marker}='{rest}'"
+                    if occurrenceNumber == 0:
+                        logging.critical( f"TN occurrenceNumber is zero with {BBB} {C}:{V} '{rest}'" )
+                    lvQuoteHtml = findLVQuote( level, BBB, C, V, occurrenceNumber, rest, state ).replace(' & ',' <small>&</small> ')
+                    tnHtml = f'''{tnHtml}<p class="OL">{'' if occurrenceNumber==1 else f'(Occurrence {occurrenceNumber}) '}{rest.replace(' & ',' <small>&</small> ')}</p>
 <p class="Trans">{lvQuoteHtml if lvQuoteHtml else f'({transliterate_Greek(rest)})' if NT else f'({transliterate_Hebrew(rest)})'}</p>'''
-            elif lastMarker == 'p': # This is the actual note
+            elif lastMarker == 'p': # This is the actual note (which can have markdown formatting)
+                # Replace markdown links with something more readable
+                searchStartIndex = 0
+                for _safetyCount in range( 10 ):
+                    match = markdownLinkRegex.search( rest, searchStartIndex )
+                    if not match: break
+                    # print( f"getContextVerseData found markdown link {BBB} {C}:{V} {match=} {match.groups()=}" )
+                    newLink = match.group(1)
+                    if match.group(2).startswith( '../' ) and match.group(2).endswith( '.md' ):
+                        linkTarget = match.group(2)[3:-3]
+                        if linkTarget.endswith('/'): linkTarget = linkTarget[:-1] # Mistake in TN Rom 2:2
+                        # print( f"  Have scripture link {BBB} {C}:{V} {match.group(1)=} {linkTarget=}")
+                        if linkTarget == 'front/intro':
+                            pass # TODO: We're being lazy here -- where do we find a book intro?
+                        elif linkTarget.count('/') == 2:
+                            lUUU, lC, lV = linkTarget.split( '/' ) # Something like '1TI' '01' '77'
+                            lC = int(lC)
+                            try: lV = int(lV)
+                            except ValueError:
+                                if lV.startswith('.'): lV = int(lV[1:])
+                            lBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromUSFMAbbreviation( lUUU )
+                            newLink = f'<a href="../{lBBB}/C{lC}V{lV}.htm#Top">{match.group(1)}</a>'
+                        elif linkTarget.count('/') == 1:
+                            lC, lV = linkTarget.split( '/' ) # Something like '01' '17'
+                            lC = int(lC)
+                            try: lV = int(lV)
+                            except ValueError: # TN EXO 4:20 has badly formatted link
+                                if lV.startswith('.'): lV = int(lV[1:])
+                            newLink = f'<a href="C{lC}V{lV}.htm#Top">{match.group(1)}</a>'
+                        else:
+                            logging.critical( f"getContextVerseData ({BBB}, {C}, {V}) has unhandled markdown reference in '{rest}'" )
+                    else:
+                        logging.critical( f"getContextVerseData ({BBB}, {C}, {V}) has unhandled markdown link in '{rest}'" )
+                    rest = f'{rest[:match.start()]}{newLink}{rest[match.end():]}'
+                    # print( f"  {BBB} {C}:{V} with {newLink=}, now {rest=}" )
+                    searchStartIndex = match.start() + len(newLink)
+                else: need_to_increase_max_loop_count
                 while '**' in rest:
                     rest = rest.replace( '**', '<b>', 1 ).replace( '**', '</b>', 1 )
                 # Add our own little bit of bolding

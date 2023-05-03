@@ -39,15 +39,15 @@ import BibleOrgSys.Formats.ESFMBible as ESFMBible
 
 from usfm import convertUSFMMarkerListToHtml
 from Bibles import tidyBBB
-from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, \
+from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
                     makeTop, makeBottom, removeDuplicateCVids, checkHtml
 from createOETReferencePages import livenOETWordLinks
 
 
-LAST_MODIFIED_DATE = '2023-04-28' # by RJH
+LAST_MODIFIED_DATE = '2023-05-04' # by RJH
 SHORT_PROGRAM_NAME = "createChapterPages"
 PROGRAM_NAME = "OpenBibleData createChapterPages functions"
-PROGRAM_VERSION = '0.38'
+PROGRAM_VERSION = '0.39'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -58,14 +58,16 @@ DEBUGGING_THIS_MODULE = False
 # NARROW_NON_BREAK_SPACE = ' '
 
 
-def createOETChapterPages( level:int, folder:Path, rvBible, lvBible, state ) -> List[str]:
+def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, state ) -> List[str]:
     """
     The OET is a pseudo-version which includes the OET-RV and OET-LV side-by-side.
+
+    (The actual OET-RV and OET-LV are processed by the regular function below.)
     """
     from createSitePages import TEST_MODE, reorderBooksForOETVersions
-    fnPrint( DEBUGGING_THIS_MODULE, f"createOETChapterPages( {level}, {folder}, {rvBible.abbreviation}, {lvBible.abbreviation} )" )
+    fnPrint( DEBUGGING_THIS_MODULE, f"createOETSideBySideChapterPages( {level}, {folder}, {rvBible.abbreviation}, {lvBible.abbreviation} )" )
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createOETChapterPages( {level}, {folder}, {rvBible.abbreviation}, {lvBible.abbreviation} )…" )
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createOETSideBySideChapterPages( {level}, {folder}, {rvBible.abbreviation}, {lvBible.abbreviation} )…" )
     try: os.makedirs( folder )
     except FileExistsError: pass # they were already there
 
@@ -168,9 +170,9 @@ def createOETChapterPages( level:int, folder:Path, rvBible, lvBible, state ) -> 
                 vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(cHtml):,} characters written to {filepath}" )
         else:
             # TODO: Not completely finished yet
-            dPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"createOETChapterPages {BBB} has {numChapters} chapters!!!" )
+            dPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"createOETSideBySideChapterPages {BBB} has {numChapters} chapters!!!" )
             assert BBB in ('INT','FRT',)
-            dPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"createOETChapterPages {rvBible.books[BBB]=}" )
+            dPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"createOETSideBySideChapterPages {rvBible.books[BBB]=}" )
             vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"      Creating (non)chapter pages for OET {BBB} {c}…" )
             # cHtml = f'<h1>{thisBible.abbreviation} {BBB} Chapter {c}</h1>\n'
             # # verseEntryList, contextList = thisBible.getContextVerseData( (BBB, str(c)) )
@@ -239,9 +241,9 @@ def createOETChapterPages( level:int, folder:Path, rvBible, lvBible, state ) -> 
         cHtmlFile.write( indexHtml )
     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createOETChapterPages() finished processing {len(BBBs)} OET books: {BBBs}." )
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createOETSideBySideChapterPages() finished processing {len(BBBs)} OET books: {BBBs}." )
     return filenames
-# end of createChapterPages.createOETChapterPages
+# end of createChapterPages.createOETSideBySideChapterPages
 
 def createChapterPages( level:int, folder:Path, thisBible, state ) -> List[str]:
     """
@@ -332,6 +334,8 @@ def createChapterPages( level:int, folder:Path, thisBible, state ) -> List[str]:
                     textHtml = do_OET_LV_HTMLcustomisations( textHtml )
                 elif thisBible.abbreviation == 'LSV':
                     textHtml = do_LSV_HTMLcustomisations( textHtml )
+                elif thisBible.abbreviation == 'T4T':
+                    textHtml = do_T4T_HTMLcustomisations( textHtml )
                 cHtml = f'{cHtml}{textHtml}'
                 filename = f'{BBB}_Intro.htm' if c==-1 else f'{BBB}_C{c}.htm'
                 filenames.append( filename )

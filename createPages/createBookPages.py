@@ -39,15 +39,15 @@ import BibleOrgSys.Formats.ESFMBible as ESFMBible
 
 from usfm import convertUSFMMarkerListToHtml
 from Bibles import tidyBBB
-from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, \
+from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
                     makeTop, makeBottom, removeDuplicateCVids, checkHtml
 from createOETReferencePages import livenOETWordLinks
 
 
-LAST_MODIFIED_DATE = '2023-04-21' # by RJH
+LAST_MODIFIED_DATE = '2023-05-04' # by RJH
 SHORT_PROGRAM_NAME = "createBookPages"
 PROGRAM_NAME = "OpenBibleData createBookPages functions"
-PROGRAM_VERSION = '0.32'
+PROGRAM_VERSION = '0.33'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -258,6 +258,8 @@ def createBookPages( level:int, folder:Path, thisBible, state ) -> List[str]:
             textHtml = do_OET_LV_HTMLcustomisations( textHtml )
         elif thisBible.abbreviation == 'LSV':
             textHtml = do_LSV_HTMLcustomisations( textHtml )
+        elif thisBible.abbreviation == 'T4T':
+            textHtml = do_T4T_HTMLcustomisations( textHtml )
         bkHtml = f'{bkHtml}{textHtml}'
         filename = f'{BBB}.htm'
         filenames.append( filename )

@@ -57,6 +57,12 @@ p.q2 { margin-left:2em; margin-top:0.2em; margin-bottom:0.2em; }
 span.nominaSacra { font-weight:bold; }
 span.add { color:grey; }
 span.wj { color:saddlebrown; }
+span.FoS { color:mediumvioletred; }
+
+/* uW TNs */
+p.OL { margin-bottom:0; color:indigo; }
+p.Trans { margin-top:0; color:saddlebrown; }
+p.Gram { font-style:italic; }
 
 /* Notes USFM */
 p.fn { margin-top:0.2em; margin-bottom:0.2em; font-size:0.75em; }
