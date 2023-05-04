@@ -75,6 +75,7 @@ DEBUGGING_THIS_MODULE = False
 
 def preloadVersions( state ) -> int:
     """
+    Note this has a side-effect of removing unused entries from state.BibleVersions.
     """
     fnPrint( DEBUGGING_THIS_MODULE, f"preloadVersions( {state.BibleVersions} )")
     # from html import makeTop, makeBottom

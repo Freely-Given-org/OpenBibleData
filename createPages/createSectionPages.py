@@ -50,7 +50,7 @@ from createOETReferencePages import livenOETWordLinks
 LAST_MODIFIED_DATE = '2023-05-04' # by RJH
 SHORT_PROGRAM_NAME = "createSectionPages"
 PROGRAM_NAME = "OpenBibleData createSectionPages functions"
-PROGRAM_VERSION = '0.32'
+PROGRAM_VERSION = '0.33'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -92,6 +92,7 @@ def createOETSectionPages( level:int, folder:Path, rvBible, lvBible, state ) -> 
         for n,(startCV, sectionIndexEntry) in enumerate( bkObject._SectionIndex.items() ):
             # dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"OET {NEWLINE*2}createSectionPages {n}: {BBB}_{startC}:{startV} {type(sectionIndexEntry)} ({len(sectionIndexEntry)}) {sectionIndexEntry=}" )
             sectionName, reasonMarker = sectionIndexEntry.getSectionNameReason()
+            sectionName = sectionName.replace( "'", "’" ) # Replace apostrophes
             dPrint( 'Verbose', DEBUGGING_THIS_MODULE,  f"{sectionName=} {reasonMarker=}" )
             reasonName = REASON_NAME_DICT[reasonMarker]
             startC,startV = startCV
@@ -310,11 +311,15 @@ def createSectionPages( level:int, folder:Path, thisBible, state ) -> List[str]:
         for n,(startCV, sectionIndexEntry) in enumerate( bkObject._SectionIndex.items() ):
             # dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{thisBible.abbreviation} {NEWLINE*2}createSectionPages {n}: {BBB}_{startC}:{startV} {type(sectionIndexEntry)} ({len(sectionIndexEntry)}) {sectionIndexEntry=}" )
             sectionName, reasonMarker = sectionIndexEntry.getSectionNameReason()
+            if 'OET' in thisBible.abbreviation:
+                sectionName = sectionName.replace( "'", "’" ) # Replace apostrophes
             dPrint( 'Verbose', DEBUGGING_THIS_MODULE,  f"{sectionName=} {reasonMarker=}" )
             reasonName = REASON_NAME_DICT[reasonMarker]
             startC,startV = startCV
             endC,endV = sectionIndexEntry.getEndCV()
             verseEntryList, contextList = bkObject._SectionIndex.getSectionEntriesWithContext( startCV )
+            if isinstance( thisBible, ESFMBible.ESFMBible ):
+                verseEntryList = livenOETWordLinks( thisBible, BBB, verseEntryList, f"{'../'*level}rf/W/{{n}}.htm", state )
             filename = f'{BBB}_S{n}.htm'
             state.sectionsLists[thisBible.abbreviation][BBB].append( (startC,startV,endC,endV,sectionName,reasonName,contextList,verseEntryList,filename) )
 

@@ -55,7 +55,7 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 LAST_MODIFIED_DATE = '2023-05-04' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
-PROGRAM_VERSION = '0.38'
+PROGRAM_VERSION = '0.39'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -66,6 +66,250 @@ NEWLINE = '\n'
 # NARROW_NON_BREAK_SPACE = ' '
 
 timeRegex = re.compile( '[0-9][0-9]:[0-9][0-9]' )
+
+KNOWN_PAGE_TYPES = ('site', 'topIndex', 'details', 'allDetails',
+                    'book','chapter','section',
+                    'parallel','interlinear',
+                    'word','lemma', 'person','location',
+                    'about')
+def makeTop( level:int, versionAbbreviation:Optional[str], pageType:str, fileOrFolderName:Optional[str], state ) -> str:
+    """
+    Create the very top part of an HTML page.
+
+    Note: versionAbbreviation can be None for parallel, interlinear and word pages, etc.
+    """
+    from createSitePages import TEST_MODE
+    fnPrint( DEBUGGING_THIS_MODULE, f"makeTop( {level}, {versionAbbreviation}, {pageType}, {fileOrFolderName} )" )
+    assert pageType in KNOWN_PAGE_TYPES, f"{level=} {versionAbbreviation=} {pageType=}"
+
+    if pageType in ('chapter','section','book'):
+        cssFilename = 'OETChapter.css' if 'OET' in versionAbbreviation else 'BibleChapter.css'
+    elif pageType == 'parallel':
+        cssFilename = 'ParallelVerses.css'
+    elif pageType == 'interlinear':
+        cssFilename = 'InterlinearVerse.css'
+    elif pageType in ('word','lemma', 'person','location'):
+        cssFilename = 'BibleWord.css'
+    else: cssFilename = 'BibleSite.css'
+
+    aboutLink = 'About' if pageType=='about' else f'''<a href="{'../'*level}about.htm">About</a>'''
+    if TEST_MODE:
+        topLink = f'<p class="site">TEST Open Bible Data Home {aboutLink}</p>' if pageType=='topIndex' \
+            else f'''<p class="site"><a href="{'../'*level}">TEST Open Bible Data Home</a> {aboutLink}</p>'''
+    else:
+        topLink = f'<p class="site">Open Bible Data Home {aboutLink}</p>' if pageType=='topIndex' \
+            else f'''<p class="site"><a href="{'../'*level}">Open Bible Data Home</a> {aboutLink}</p>'''
+    top = f"""<!DOCTYPE html>
+<html lang="en-US">
+<head>
+  <title>__TITLE__</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="user-scalable=yes, initial-scale=1, minimum-scale=1, width=device-width">
+  <meta name="keywords" content="__KEYWORDS__">
+  <link rel="stylesheet" type="text/css" href="{'../'*level}OETChapter.css">
+  <script src="{'../'*level}Bible.js"></script>
+</head><body><!--Level{level}-->{topLink}
+""" if versionAbbreviation and 'OET' in versionAbbreviation else f"""<!DOCTYPE html>
+<html lang="en-US">
+<head>
+  <title>__TITLE__</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="user-scalable=yes, initial-scale=1, minimum-scale=1, width=device-width">
+  <meta name="keywords" content="__KEYWORDS__">
+  <link rel="stylesheet" type="text/css" href="{'../'*level}{cssFilename}">
+</head><body><!--Level{level}-->{topLink}
+<h3>Demonstration version—prototype quality only—still in development</h3>
+"""
+    return top + _makeHeader( level, versionAbbreviation, pageType, fileOrFolderName, state ) + '\n'
+# end of html.makeTop
+
+def _makeHeader( level:int, versionAbbreviation:str, pageType:str, fileOrFolderName:Optional[str], state ) -> str:
+    """
+    Create the navigation that goes before the page content.
+
+    Note: versionAbbreviation can be None for parallel, interlinear and word pages, etc.
+    """
+    fnPrint( DEBUGGING_THIS_MODULE, f"_makeHeader( {level}, {versionAbbreviation}, {pageType}, {fileOrFolderName} )" )
+
+    # Add all the version abbreviations
+    #   with their style decorators
+    #   and with the more specific links if specified.
+    initialVersionList = []
+    for thisVersionAbbreviation in state.BibleVersions:
+        if pageType in ('section','section'):
+            try:
+                thisBible = state.preloadedBibles['OET-RV' if thisVersionAbbreviation=='OET' else thisVersionAbbreviation]
+                if not thisBible.discoveryResults['ALL']['haveSectionHeadings']:
+                    continue # skip this one
+            except AttributeError: # no discoveryResults
+                continue
+
+        # Note: This is not good because not all versions have all books -- we try to fix that below
+        vLink = f"{'../'*level}{BibleOrgSysGlobals.makeSafeString(thisVersionAbbreviation)}/{fileOrFolderName}" \
+                    if fileOrFolderName else \
+                f"{'../'*level}{BibleOrgSysGlobals.makeSafeString(thisVersionAbbreviation)}"
+        initialVersionList.append( f'{state.BibleVersionDecorations[thisVersionAbbreviation][0]}'
+                            f'<a title="{state.BibleNames[thisVersionAbbreviation]}" '
+                            f'href="{vLink}">{thisVersionAbbreviation}</a>'
+                            f'{state.BibleVersionDecorations[thisVersionAbbreviation][1]}'
+                            )
+    if pageType == 'parallel':
+        initialVersionList.append( 'Parallel' )
+    else: # add a link for parallel
+        initialVersionList.append( f'''{state.BibleVersionDecorations['Parallel'][0]}<a title="Single verse in many translations" href="{'../'*level}pa/">Parallel</a>{state.BibleVersionDecorations['Parallel'][1]}''' )
+    if pageType == 'interlinear':
+        initialVersionList.append( 'Interlinear' )
+    else: # add a link for interlinear
+        initialVersionList.append( f'''{state.BibleVersionDecorations['Interlinear'][0]}<a title="Single verse in interlinear view" href="{'../'*level}il/">Interlinear</a>{state.BibleVersionDecorations['Interlinear'][1]}''' )
+    # Moved to top line
+    # if pageType == 'about':
+    #     initialVersionList.append( 'About' )
+    # else: # add a link for about page
+    #     initialVersionList.append( f'''<a title="About OBD" href="{'../'*level}about.htm">About</a>''' )
+
+    # This code tries to adjust links to books which aren't in a version, e.g., UHB has no NT books, SR-GNT and UGNT have no OT books
+    # It does this by adjusting the potential bad link to the next level higher.
+    newVersionList = []
+    for entry in initialVersionList:
+        # if pageType == 'parallel':
+        #     print( f"  _makeHeader processing {entry=} ({level=} {versionAbbreviation=} {pageType=} {fileOrFolderName=})" )
+        if '/pa/' in entry or '/il/' in entry:
+            newVersionList.append( entry )
+            continue # Should always be able to link to these
+        entryBBB = None
+        for tryBBB in state.allBBBs: # from all loaded versions
+            if f'{tryBBB}.' in entry or f'{tryBBB}_' in entry or f'{tryBBB}/' in entry:
+                assert not entryBBB # Make sure we only found exactly one of them
+                entryBBB = tryBBB
+        if entryBBB:
+            startIndex = entry.index('">') + 2
+            thisVersionAbbreviation = entry[startIndex:entry.index('<',startIndex)]
+            if thisVersionAbbreviation == 'OET': thisVersionAbbreviation = 'OET-RV' # We look here in this case
+            thisBible = state.preloadedBibles[thisVersionAbbreviation]
+            if entryBBB in thisBible:
+                # if pageType == 'parallel': print( f"    Appended {thisVersionAbbreviation} {entryBBB} as is (from {entry})")
+                newVersionList.append( entry )
+                continue # Should always be able to link to these
+            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"      Might not be able to link to {pageType} {thisVersionAbbreviation} {entry}???" )
+            replacement = ''
+            if '/' in fileOrFolderName:
+                ix = fileOrFolderName.index( '/' )
+                if ix>0 and ix<len(fileOrFolderName)-1: # The slash is in the middle -- not at the beginning or the end
+                    replacement = fileOrFolderName[:ix+1]
+                    dPrint( 'Info', DEBUGGING_THIS_MODULE, f"          Can we adapt {pageType} '{fileOrFolderName}' to '{replacement}'" )
+            newEntry = entry.replace( fileOrFolderName, replacement ) # Effectively links to a higher level folder
+            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"       Changed {pageType} link entry to {newEntry}")
+            newVersionList.append( newEntry )
+        else:
+            dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        Couldn't find a BBB so should be able to link ok to {pageType} {entry}" )
+            newVersionList.append( entry )
+    assert len(newVersionList) == len(initialVersionList)
+    versionHtml = f'''<p class="wrkLst">{' '.join(newVersionList)}</p>'''
+    # if pageType == 'parallel':
+    #     print( f"    {newVersionList=}" )
+    #     halt
+
+    viewLinks = []
+    if pageType in ('book','section','chapter','details') and versionAbbreviation!='TN':
+        if not versionAbbreviation: versionAbbreviation = 'OET'
+        viewLinks.append( versionAbbreviation )
+        if pageType != 'book':
+            viewLinks.append( f'''<a title="View entire document" href="{'../'*level}{versionAbbreviation}/byDoc/">By Document</a>''' )
+        # if pageType != 'section':
+        if state.preloadedBibles['OET-RV' if versionAbbreviation=='OET' else versionAbbreviation].discoveryResults['ALL']['haveSectionHeadings']:
+            viewLinks.append( f'''<a title="View section" href="{'../'*level}{versionAbbreviation}/bySec/">By Section</a>''' )
+        # if pageType != 'chapter':
+        viewLinks.append( f'''<a title="View chapter" href="{'../'*level}{versionAbbreviation}/byC/">By Chapter</a>''' )
+        if pageType != 'details':
+            viewLinks.append( f'''<a title="View chapter" href="{'../'*level}{versionAbbreviation}/details.htm">Details</a>''' )
+    viewHtml = f'''<p class="viewLst">{' '.join(viewLinks)}</p>''' if viewLinks else ''
+
+    return f'''<div class="header">{versionHtml}{NEWLINE if viewHtml else ''}{viewHtml}</div><!--header-->'''
+# end of html._makeHeader
+
+def makeBottom( level:int, pageType:str, state ) -> str:
+    """
+    Create the very bottom part of an HTML page.
+    """
+    # fnPrint( DEBUGGING_THIS_MODULE, f"makeBottom()" )
+    assert pageType in KNOWN_PAGE_TYPES, f"{level=} {pageType=}"
+
+    return _makeFooter( level, pageType, state ) + '</body></html>'
+# end of html.makeBottom
+
+def _makeFooter( level:int, pageType:str, state ) -> str:
+    """
+    Create any links or site map that follow the main content on the page.
+    """
+    from createSitePages import TEST_MODE
+    # fnPrint( DEBUGGING_THIS_MODULE, f"_makeFooter()" )
+    html = f"""<div class="footer">
+<p class="copyright"><small><em>{'TEST ' if TEST_MODE else ''}Open Bible Data</em> site copyright © 2023 <a href="https://Freely-Given.org">Freely-Given.org</a>{datetime.now().strftime(' (Page created: %Y-%m-%d %H:%M)') if TEST_MODE else ''}</small></p>
+<p class="copyright"><small>For Bible data copyrights, see the <a href="{'../'*level}allDetails.htm">details</a> for each displayed Bible version.</small></p>
+</div><!--footer-->"""
+    return html
+# end of html._makeFooter
+
+def removeDuplicateCVids( BBB:str, html:str ) -> str:
+    """
+    Where we have OET parallel RV and LV, we get doubled ids like <span class="v" id="C2V6">
+
+    This function removes the second id field in each case (which should be in the LV text).
+    """
+    startSearchIndex = 0
+    while True:
+        startIx = html.find( ' id="C', startSearchIndex )
+        if startIx == -1: break # None / no more
+        endIx = html.find( '>', startIx+6 )
+        assert endIx != -1
+        idContents = html[startIx:endIx]
+        assert 7 < len(idContents) < 14
+        idCount = html.count( idContents, startIx )
+        assert 1 <= idCount <= 2, f"{BBB} {idContents=} {idCount=} {html}"
+        if idCount == 2:
+            html = f"{html[:endIx]}{html[endIx:].replace( idContents, '', 1 )}"
+            assert html.count( idContents ) == 1
+        startSearchIndex += len( idContents )
+    return html
+# end of html.removeDuplicateCVids
+
+def checkHtml( where:str, html:str, segmentOnly:bool=False ) -> bool:
+    """
+    Just do some very quick and basic tests
+        that our HTML makes some sense.
+
+    Throws an AssertError for any problems.
+    """
+    # fnPrint( DEBUGGING_THIS_MODULE, f"checkHtml( {where}, {len(html)} )" )
+
+    for marker,startMarker in (('html','<html'),('head','<head>'),('body','<body>')):
+        if segmentOnly:
+            assert html.count( startMarker ) == html.count( f'</{marker}>' ), html[html.index(startMarker):]
+        else:
+            assert html.count( startMarker ) == 1, f"checkHtml() found {html.count( startMarker )} '{startMarker}' markers"
+            assert html.count( f'</{marker}>' ) == 1
+
+    for marker,startMarker in (('div','<div'),('p','<p '),('h1','<h1'),('h2','<h2'),('h3','<h3'),('em','<em>'),('i','<i>'),('b','<b>'),('sup','<sup>'),('sub','<sub>')):
+        startCount = html.count( startMarker )
+        if startMarker.endswith( ' ' ): startCount += html.count( f'<{marker}>' )
+        endCount = html.count( f'</{marker}>' )
+        if startCount != endCount:
+            # try: errMsg = f"Mismatched '{marker}' start and end markers '{where}' {segmentOnly=} {html.count(startMarker)}!={html.count(f'</{marker}>')} …{html[html.index(startMarker):]}"
+            # except ValueError: errMsg = f"Mismatched '{marker}' start and end markers '{where}' {segmentOnly=} {html.count(startMarker)}!={html.count(f'</{marker}>')} {html[:html.index(f'</{marker}>')]}…"
+            # logging.critical( errMsg )
+            ixStartMarker = html.find( startMarker )
+            ixEndMarker = html.find( f'</{marker}>' )
+            ixMinStart = min( 9999999 if ixStartMarker==-1 else ixStartMarker, 9999999 if ixEndMarker==-1 else ixEndMarker )
+            ixRStartMarker = html.rfind( startMarker )
+            ixREndMarker = html.rfind( f'</{marker}>' )
+            ixMinEnd = min( ixRStartMarker, ixREndMarker )
+            logging.critical( f"Mismatched '{marker}' start and end markers '{where}' {segmentOnly=} {startCount}!={endCount}"
+                              f" {'…' if ixMinStart>0 else ''}{html[ixMinStart:ixMinEnd+5]}{'…' if ixMinEnd+5<len(html) else ''}" )
+            if DEBUGGING_THIS_MODULE: print( f"\ncheckHtml: complete {html=}\n")
+            return False
+
+    return True
+# end of html.checkHtml
 
 
 def do_OET_RV_HTMLcustomisations( html:str ) -> str:
@@ -181,240 +425,6 @@ def do_T4T_HTMLcustomisations( html:str ) -> str:
         html = html.replace( fullFoS, f'<span class="FoS" title="{fosType} (figure of speech)">{fullFoS}</span>' )
     return html.replace( '◄', '<span title="alternative translation">◄</span>' )
 # end of html.do_T4T_HTMLcustomisations
-
-
-KNOWN_PAGE_TYPES = ('site', 'topIndex', 'details', 'allDetails',
-                    'book','chapter','section',
-                    'parallel','interlinear',
-                    'word','lemma', 'person','location')
-def makeTop( level:int, versionAbbreviation:Optional[str], pageType:str, fileOrFolderName:Optional[str], state ) -> str:
-    """
-    Create the very top part of an HTML page.
-
-    Note: versionAbbreviation can be None for parallel, interlinear and word pages, etc.
-    """
-    from createSitePages import TEST_MODE
-    fnPrint( DEBUGGING_THIS_MODULE, f"makeTop( {level}, {versionAbbreviation}, {pageType}, {fileOrFolderName} )" )
-    assert pageType in KNOWN_PAGE_TYPES, f"{level=} {versionAbbreviation=} {pageType=}"
-
-    if pageType in ('chapter','section','book'):
-        cssFilename = 'OETChapter.css' if 'OET' in versionAbbreviation else 'BibleChapter.css'
-    elif pageType == 'parallel':
-        cssFilename = 'ParallelVerses.css'
-    elif pageType == 'interlinear':
-        cssFilename = 'InterlinearVerse.css'
-    elif pageType in ('word','lemma', 'person','location'):
-        cssFilename = 'BibleWord.css'
-    else: cssFilename = 'BibleSite.css'
-
-    if TEST_MODE:
-        topLink = '<p class="site">TEST Open Bible Data Home</p>' if level==0 else f'''<p class="site"><a href="{'../'*level}">TEST Open Bible Data Home</a></p>'''
-    else:
-        topLink = '<p class="site">Open Bible Data Home</p>' if level==0 else f'''<p class="site"><a href="{'../'*level}">Open Bible Data Home</a></p>'''
-    top = f"""<!DOCTYPE html>
-<html lang="en-US">
-<head>
-  <title>__TITLE__</title>
-  <meta charset="utf-8">
-  <meta name="viewport" content="user-scalable=yes, initial-scale=1, minimum-scale=1, width=device-width">
-  <meta name="keywords" content="__KEYWORDS__">
-  <link rel="stylesheet" type="text/css" href="{'../'*level}OETChapter.css">
-  <script src="{'../'*level}Bible.js"></script>
-</head><body><!--Level{level}-->{topLink}
-""" if versionAbbreviation and 'OET' in versionAbbreviation else f"""<!DOCTYPE html>
-<html lang="en-US">
-<head>
-  <title>__TITLE__</title>
-  <meta charset="utf-8">
-  <meta name="viewport" content="user-scalable=yes, initial-scale=1, minimum-scale=1, width=device-width">
-  <meta name="keywords" content="__KEYWORDS__">
-  <link rel="stylesheet" type="text/css" href="{'../'*level}{cssFilename}">
-</head><body><!--Level{level}-->{topLink}
-<h3>Demonstration version—prototype quality only—still in development</h3>
-"""
-    return top + _makeHeader( level, versionAbbreviation, pageType, fileOrFolderName, state ) + '\n'
-# end of html.makeTop
-
-def _makeHeader( level:int, versionAbbreviation:str, pageType:str, fileOrFolderName:Optional[str], state ) -> str:
-    """
-    Create the navigation that goes before the page content.
-
-    Note: versionAbbreviation can be None for parallel, interlinear and word pages, etc.
-    """
-    fnPrint( DEBUGGING_THIS_MODULE, f"_makeHeader( {level}, {versionAbbreviation}, {pageType}, {fileOrFolderName} )" )
-
-    # Add all the version abbreviations
-    #   with their style decorators
-    #   and with the more specific links if specified.
-    initialVersionList = []
-    for thisVersionAbbreviation in state.BibleVersions:
-        if pageType in ('section','section'):
-            try:
-                thisBible = state.preloadedBibles['OET-RV' if thisVersionAbbreviation=='OET' else thisVersionAbbreviation]
-                if not thisBible.discoveryResults['ALL']['haveSectionHeadings']:
-                    continue # skip this one
-            except AttributeError: # no discoveryResults
-                continue
-
-        # Note: This is not good because not all versions have all books -- we try to fix that below
-        vLink = f"{'../'*level}{BibleOrgSysGlobals.makeSafeString(thisVersionAbbreviation)}/{fileOrFolderName}" \
-                    if fileOrFolderName else \
-                f"{'../'*level}{BibleOrgSysGlobals.makeSafeString(thisVersionAbbreviation)}"
-        initialVersionList.append( f'{state.BibleVersionDecorations[thisVersionAbbreviation][0]}'
-                            f'<a title="{state.BibleNames[thisVersionAbbreviation]}" '
-                            f'href="{vLink}">{thisVersionAbbreviation}</a>'
-                            f'{state.BibleVersionDecorations[thisVersionAbbreviation][1]}'
-                            )
-    if pageType == 'parallel':
-        initialVersionList.append( 'Parallel' )
-    else: # add a link for parallel
-        initialVersionList.append( f'''{state.BibleVersionDecorations['Parallel'][0]}<a title="Single verse in many translations" href="{'../'*level}pa/">Parallel</a>{state.BibleVersionDecorations['Parallel'][1]}''' )
-    if pageType == 'interlinear':
-        initialVersionList.append( 'Interlinear' )
-    else: # add a link for interlinear
-        initialVersionList.append( f'''{state.BibleVersionDecorations['Interlinear'][0]}<a title="Single verse in interlinear view" href="{'../'*level}il/">Interlinear</a>{state.BibleVersionDecorations['Interlinear'][1]}''' )
-
-    # This code tries to adjust links to books which aren't in a version, e.g., UHB has no NT books, SR-GNT and UGNT have no OT books
-    # It does this by adjusting the potential bad link to the next level higher.
-    newVersionList = []
-    for entry in initialVersionList:
-        # if pageType == 'parallel':
-        #     print( f"  _makeHeader processing {entry=} ({level=} {versionAbbreviation=} {pageType=} {fileOrFolderName=})" )
-        if '/pa/' in entry or '/il/' in entry:
-            newVersionList.append( entry )
-            continue # Should always be able to link to these
-        entryBBB = None
-        for tryBBB in state.allBBBs: # from all loaded versions
-            if f'{tryBBB}.' in entry or f'{tryBBB}_' in entry or f'{tryBBB}/' in entry:
-                assert not entryBBB # Make sure we only found exactly one of them
-                entryBBB = tryBBB
-        if entryBBB:
-            startIndex = entry.index('">') + 2
-            thisVersionAbbreviation = entry[startIndex:entry.index('<',startIndex)]
-            if thisVersionAbbreviation == 'OET': thisVersionAbbreviation = 'OET-RV' # We look here in this case
-            thisBible = state.preloadedBibles[thisVersionAbbreviation]
-            if entryBBB in thisBible:
-                # if pageType == 'parallel': print( f"    Appended {thisVersionAbbreviation} {entryBBB} as is (from {entry})")
-                newVersionList.append( entry )
-                continue # Should always be able to link to these
-            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"      Might not be able to link to {pageType} {thisVersionAbbreviation} {entry}???" )
-            replacement = ''
-            if '/' in fileOrFolderName:
-                ix = fileOrFolderName.index( '/' )
-                if ix>0 and ix<len(fileOrFolderName)-1: # The slash is in the middle -- not at the beginning or the end
-                    replacement = fileOrFolderName[:ix+1]
-                    dPrint( 'Info', DEBUGGING_THIS_MODULE, f"          Can we adapt {pageType} '{fileOrFolderName}' to '{replacement}'" )
-            newEntry = entry.replace( fileOrFolderName, replacement ) # Effectively links to a higher level folder
-            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"       Changed {pageType} link entry to {newEntry}")
-            newVersionList.append( newEntry )
-        else:
-            dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        Couldn't find a BBB so should be able to link ok to {pageType} {entry}" )
-            newVersionList.append( entry )
-    assert len(newVersionList) == len(initialVersionList)
-    versionHtml = f'''<p class="wrkLst">{' '.join(newVersionList)}</p>'''
-    # if pageType == 'parallel':
-    #     print( f"    {newVersionList=}" )
-    #     halt
-
-    viewLinks = []
-    if pageType in ('book','section','chapter','details'):
-        if not versionAbbreviation: versionAbbreviation = 'OET'
-        if pageType != 'book':
-            viewLinks.append( f'''<a title="View entire document" href="{'../'*level}{versionAbbreviation}/byDoc/">By Document</a>''' )
-        if pageType != 'section':
-            viewLinks.append( f'''<a title="View section" href="{'../'*level}{versionAbbreviation}/bySec/">By Section</a>''' )
-        if pageType != 'chapter':
-            viewLinks.append( f'''<a title="View chapter" href="{'../'*level}{versionAbbreviation}/byC/">By Chapter</a>''' )
-        if pageType != 'details':
-            viewLinks.append( f'''<a title="View chapter" href="{'../'*level}{versionAbbreviation}/details.htm">Details</a>''' )
-    viewHtml = f'''<p class="viewLst">{' '.join(viewLinks)}</p>''' if viewLinks else ''
-
-    return f'''<div class="header">{versionHtml}{NEWLINE if viewHtml else ''}{viewHtml}</div><!--header-->'''
-# end of html._makeHeader
-
-def makeBottom( level:int, pageType:str, state ) -> str:
-    """
-    Create the very bottom part of an HTML page.
-    """
-    # fnPrint( DEBUGGING_THIS_MODULE, f"makeBottom()" )
-    assert pageType in KNOWN_PAGE_TYPES, f"{level=} {pageType=}"
-
-    return _makeFooter( level, pageType, state ) + '</body></html>'
-# end of html.makeBottom
-
-def _makeFooter( level:int, pageType:str, state ) -> str:
-    """
-    Create any links or site map that follow the main content on the page.
-    """
-    from createSitePages import TEST_MODE
-    # fnPrint( DEBUGGING_THIS_MODULE, f"_makeFooter()" )
-    html = f"""<div class="footer">
-<p class="copyright"><small><em>{'TEST ' if TEST_MODE else ''}Open Bible Data</em> site copyright © 2023 <a href="https://Freely-Given.org">Freely-Given.org</a>{datetime.now().strftime(' (Page created: %Y-%m-%d %H:%M)') if TEST_MODE else ''}</small></p>
-<p class="copyright"><small>For Bible data copyrights, see the <a href="{'../'*level}allDetails.htm">details</a> for each displayed Bible version.</small></p>
-</div><!--footer-->"""
-    return html
-# end of html._makeFooter
-
-def removeDuplicateCVids( BBB:str, html:str ) -> str:
-    """
-    Where we have OET parallel RV and LV, we get doubled ids like <span class="v" id="C2V6">
-
-    This function removes the second id field in each case (which should be in the LV text).
-    """
-    startSearchIndex = 0
-    while True:
-        startIx = html.find( ' id="C', startSearchIndex )
-        if startIx == -1: break # None / no more
-        endIx = html.find( '>', startIx+6 )
-        assert endIx != -1
-        idContents = html[startIx:endIx]
-        assert 7 < len(idContents) < 14
-        idCount = html.count( idContents, startIx )
-        assert 1 <= idCount <= 2, f"{BBB} {idContents=} {idCount=} {html}"
-        if idCount == 2:
-            html = f"{html[:endIx]}{html[endIx:].replace( idContents, '', 1 )}"
-            assert html.count( idContents ) == 1
-        startSearchIndex += len( idContents )
-    return html
-# end of html.removeDuplicateCVids
-
-def checkHtml( where:str, html:str, segmentOnly:bool=False ) -> bool:
-    """
-    Just do some very quick and basic tests
-        that our HTML makes some sense.
-
-    Throws an AssertError for any problems.
-    """
-    # fnPrint( DEBUGGING_THIS_MODULE, f"checkHtml( {where}, {len(html)} )" )
-
-    for marker,startMarker in (('html','<html'),('head','<head>'),('body','<body>')):
-        if segmentOnly:
-            assert html.count( startMarker ) == html.count( f'</{marker}>' ), html[html.index(startMarker):]
-        else:
-            assert html.count( startMarker ) == 1, f"checkHtml() found {html.count( startMarker )} '{startMarker}' markers"
-            assert html.count( f'</{marker}>' ) == 1
-
-    for marker,startMarker in (('div','<div'),('p','<p '),('h1','<h1'),('h2','<h2'),('h3','<h3'),('em','<em>'),('i','<i>'),('b','<b>'),('sup','<sup>'),('sub','<sub>')):
-        startCount = html.count( startMarker )
-        if startMarker.endswith( ' ' ): startCount += html.count( f'<{marker}>' )
-        endCount = html.count( f'</{marker}>' )
-        if startCount != endCount:
-            # try: errMsg = f"Mismatched '{marker}' start and end markers '{where}' {segmentOnly=} {html.count(startMarker)}!={html.count(f'</{marker}>')} …{html[html.index(startMarker):]}"
-            # except ValueError: errMsg = f"Mismatched '{marker}' start and end markers '{where}' {segmentOnly=} {html.count(startMarker)}!={html.count(f'</{marker}>')} {html[:html.index(f'</{marker}>')]}…"
-            # logging.critical( errMsg )
-            ixStartMarker = html.find( startMarker )
-            ixEndMarker = html.find( f'</{marker}>' )
-            ixMinStart = min( 9999999 if ixStartMarker==-1 else ixStartMarker, 9999999 if ixEndMarker==-1 else ixEndMarker )
-            ixRStartMarker = html.rfind( startMarker )
-            ixREndMarker = html.rfind( f'</{marker}>' )
-            ixMinEnd = min( ixRStartMarker, ixREndMarker )
-            logging.critical( f"Mismatched '{marker}' start and end markers '{where}' {segmentOnly=} {startCount}!={endCount}"
-                              f" {'…' if ixMinStart>0 else ''}{html[ixMinStart:ixMinEnd+5]}{'…' if ixMinEnd+5<len(html) else ''}" )
-            if DEBUGGING_THIS_MODULE: print( f"\ncheckHtml: complete {html=}\n")
-            return False
-
-    return True
-# end of html.checkHtml
 
 
 def briefDemo() -> None:

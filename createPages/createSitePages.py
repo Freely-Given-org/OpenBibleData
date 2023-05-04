@@ -26,11 +26,14 @@
 Module handling createSitePages functions.
 
 Creates the OpenBibleData site with
-        Whole document ("book") pages
-        Section pages
-        Whole chapter pages
-        Parallel verse pages
+    Whole document ("book") pages
+    Section pages
+    Whole chapter pages
+    Parallel verse pages
 and more pages to come hopefully.
+
+CHANGELOG:
+    2023-05-04 Added 'About OBD' page
 """
 from gettext import gettext as _
 from typing import Dict, List, Tuple
@@ -59,10 +62,10 @@ from createOETReferencePages import createOETReferencePages
 from html import makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-05-04' # by RJH
+LAST_MODIFIED_DATE = '2023-05-05' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData Create Pages"
-PROGRAM_VERSION = '0.58'
+PROGRAM_VERSION = '0.60'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
@@ -100,6 +103,9 @@ class State:
                 'SR-GNT','UGNT','SBL-GNT','TC-GNT',
                 'BRN','BrLXX', 'UHB',
                 ]
+    # NOTE: The above list has entries deleted by preloadBibles() if they fail to load
+    #           (often because we temporarily remove the BibleLocation below)
+    allBibleVersions = BibleVersions[:] # Keep a copy with the full list
     
     BibleVersionDecorations = { 'OET':('<b>','</b>'),'OET-RV':('<b>','</b>'),'OET-LV':('<b>','</b>'),
                 'ULT':('',''),'UST':('',''),'OEB':('',''),
@@ -503,10 +509,14 @@ def createSitePages() -> bool:
 
     # Ok, let's go create some static pages
     if 'OET' in state.BibleVersions: # this is a special case
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\nDoing discovery on OET…" )
+        state.preloadedBibles['OET-RV'].discover() # Now that all required books are loaded
+        state.preloadedBibles['OET-LV'].discover() #     ..ditto..
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nCreating version pages for OET…" )
         versionFolder = TEMP_BUILD_FOLDER.joinpath( f'OET/' )
         createOETVersionPages( 1, versionFolder, state.preloadedBibles['OET-RV'], state.preloadedBibles['OET-LV'], state )
     for versionAbbreviation, thisBible in state.preloadedBibles.items(): # doesn't include OET pseudo-translation
+        thisBible.discover() # Now that all required books are loaded
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nCreating version pages for {thisBible.abbreviation}…" )
         versionFolder = TEMP_BUILD_FOLDER.joinpath( f'{thisBible.abbreviation}/' )
         createVersionPages( 1, versionFolder, thisBible, state )
@@ -532,10 +542,12 @@ def createSitePages() -> bool:
     createOETReferencePages( 1, TEMP_BUILD_FOLDER.joinpath('rf/'), state )
 
     createDetailsPages( 0, TEMP_BUILD_FOLDER, state )
+    createAboutPage( 0, TEMP_BUILD_FOLDER, state )
 
     createMainIndexPages( 0, TEMP_BUILD_FOLDER, state )
 
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\n{TEMP_BUILD_FOLDER} is {getFolderSize(TEMP_BUILD_FOLDER)//1_000_000:,} MB" )
+
     # Clean away any existing folders so we can copy in the newly built stuff
     try: os.makedirs( f'{DESTINATION_FOLDER}/' )
     except FileExistsError: # they were already there
@@ -543,13 +555,14 @@ def createSitePages() -> bool:
         cleanHTMLFolders( DESTINATION_FOLDER, state )
 
     # Now move the site from our temporary build location to overwrite the destination location
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Moving files and folders from {TEMP_BUILD_FOLDER}/ to {DESTINATION_FOLDER}/…" )
     count = 0
     for fileOrFolderPath in glob.glob( f'{TEMP_BUILD_FOLDER}/*' ):
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Moving {fileOrFolderPath} to {DESTINATION_FOLDER}/…" )
+        vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Moving {fileOrFolderPath} to {DESTINATION_FOLDER}/…" )
         # Note: shutil.copy2 is the same as copy but keeps metadata like creation and modification times
         shutil.move( fileOrFolderPath, f'{DESTINATION_FOLDER}/', copy_function=shutil.copy2)
         count += 1
-    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Moved {count} folders and files into {DESTINATION_FOLDER}/." )
+    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Moved {count} folders and files into {DESTINATION_FOLDER}/." )
 
     # In DEBUG mode, we need to copy the .css files and Bible.js across
     if DESTINATION_FOLDER != NORMAL_DESTINATION_FOLDER:
@@ -561,7 +574,7 @@ def createSitePages() -> bool:
             count += 1
         shutil.copy2( f'{NORMAL_DESTINATION_FOLDER}/Bible.js', DESTINATION_FOLDER )
         count += 1
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Copied {count} stylesheets and scripts to {DESTINATION_FOLDER}/." )
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Copied {count} stylesheets and scripts into {DESTINATION_FOLDER}/." )
 # end of createSitePages.createSitePages
 
 
@@ -569,11 +582,13 @@ def cleanHTMLFolders( folder:Path, state ) -> bool:
     """
     """
     fnPrint( DEBUGGING_THIS_MODULE, f"cleanHTMLFolders( {folder} )")
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Cleaning away any existing folders at {folder}…")
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Cleaning away any existing folders at {folder}/…")
 
     try: os.unlink( folder.joinpath( 'index.htm' ) )
     except FileNotFoundError: pass
     try: os.unlink( folder.joinpath( 'allDetails.htm' ) )
+    except FileNotFoundError: pass
+    try: os.unlink( folder.joinpath( 'about.htm' ) )
     except FileNotFoundError: pass
     try: shutil.rmtree( folder.joinpath( 'pa/' ) )
     except FileNotFoundError: pass
@@ -581,7 +596,8 @@ def cleanHTMLFolders( folder:Path, state ) -> bool:
     except FileNotFoundError: pass
     try: shutil.rmtree( folder.joinpath( 'rf/' ) )
     except FileNotFoundError: pass
-    for versionAbbreviation in state.BibleVersions + ['TN']:
+    for versionAbbreviation in state.allBibleVersions + ['TN']:
+        vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Removing tree at {folder.joinpath( f'{versionAbbreviation}/' )}/…")
         try: shutil.rmtree( folder.joinpath( f'{versionAbbreviation}/' ) )
         except FileNotFoundError: pass
     return True
@@ -593,19 +609,17 @@ def createOETVersionPages( level:int, folder:Path, rvBible, lvBible, state:State
     """
     fnPrint( DEBUGGING_THIS_MODULE, f"createOETVersionPages( {level}, {folder}, {rvBible.abbreviation}, {lvBible.abbreviation} )")
     createOETBookPages( level+1, folder.joinpath('byDoc/'), rvBible, lvBible, state )
-    rvBible.discover() # Now that all required books are loaded
-    lvBible.discover() #     ..ditto..
     dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{rvBible.discoveryResults['ALL']['haveSectionHeadings']=}" )
     dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{lvBible.discoveryResults['ALL']['haveSectionHeadings']=}" )
     createOETSideBySideChapterPages( level+1, folder.joinpath('byC/'), rvBible, lvBible, state )
 
     versionName = state.BibleNames['OET']
     indexHtml = f'''<h1 id="Top">{versionName}</h1>
-<p class="rem">Remember that ancient letters were meant to be read in their entirety just like modern letters. We provide a byC mode for convenience only, but recommend the byDoc mode for personal reading.</p>
+<p class="rem">Remember that ancient letters were meant to be read in their entirety just like modern letters. We provide a byChapter mode for convenience only, but recommend the byDocument mode for personal reading.</p>
 <p class="viewLst"><a href="byDoc">By Document</a> <a href="bySec">By Section</a> <a href="byC">By Chapter</a> <a href="details.htm">Details</a></p>
 ''' if rvBible.discoveryResults['ALL']['haveSectionHeadings'] or lvBible.discoveryResults['ALL']['haveSectionHeadings'] else \
 f'''<h1 id="Top">{versionName}</h1>
-<p class="rem">Remember that ancient letters were meant to be read in their entirety just like modern letters. We provide a byC mode for convenience only, but recommend the byDoc mode for personal reading.</p>
+<p class="rem">Remember that ancient letters were meant to be read in their entirety just like modern letters. We provide a byChapter mode for convenience only, but recommend the byDocument mode for personal reading.</p>
 <p class="viewLst"><a href="byDoc">By Document</a> <a href="byC">By Chapter</a> <a href="details.htm">Details</a></p>
 '''
     filepath = folder.joinpath( 'index.htm' )
@@ -624,17 +638,16 @@ def createVersionPages( level:int, folder:Path, thisBible, state:State ) -> bool
     """
     fnPrint( DEBUGGING_THIS_MODULE, f"createVersionPages( {level}, {folder}, {thisBible.abbreviation} )")
     createBookPages( level+1, folder.joinpath('byDoc/'), thisBible, state )
-    thisBible.discover() # Now that all required books are loaded
     dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{thisBible.discoveryResults['ALL']['haveSectionHeadings']=}" )
     createChapterPages( level+1, folder.joinpath('byC/'), thisBible, state )
 
     versionName = state.BibleNames[thisBible.abbreviation]
     indexHtml = f'''<h1 id="Top">{versionName}</h1>
-<p class="rem">Remember that ancient letters were meant to be read in their entirety just like modern letters. We provide a byC mode for convenience only, but recommend the byDoc mode for personal reading.</p>
+<p class="rem">Remember that ancient letters were meant to be read in their entirety just like modern letters. We provide a byChapter mode for convenience only, but recommend the byDocument mode for personal reading.</p>
 <p class="viewLst"><a href="byDoc">By Document</a> <a href="bySec">By Section</a> <a href="byC">By Chapter</a> <a href="details.htm">Details</a></p>
 ''' if thisBible.discoveryResults['ALL']['haveSectionHeadings'] else \
 f'''<h1 id="Top">{versionName}</h1>
-<p class="rem">Remember that ancient letters were meant to be read in their entirety just like modern letters. We provide a byC mode for convenience only, but recommend the byDoc mode for personal reading.</p>
+<p class="rem">Remember that ancient letters were meant to be read in their entirety just like modern letters. We provide a byChapter mode for convenience only, but recommend the byDocument mode for personal reading.</p>
 <p class="viewLst"><a href="byDoc">By Document</a> <a href="byC">By Chapter</a> <a href="details.htm">Details</a></p>
 '''
     filepath = folder.joinpath( 'index.htm' )
@@ -700,12 +713,12 @@ def createMainIndexPages( level, folder:Path, state ) -> bool:
 # end of createSitePages.createMainIndexPage
 
 
-def createDetailsPages( level:int, versionsFolder:Path, state ) -> bool:
+def createDetailsPages( level:int, buildFolder:Path, state ) -> bool:
     """
     Creates and saves details (copyright, licence, etc.) pages for each version
         plus a summary page of all the versions.
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"createDetailsPages( {level}, {versionsFolder}, {state.BibleVersions} )" )
+    fnPrint( DEBUGGING_THIS_MODULE, f"createDetailsPages( {level}, {buildFolder}, {state.BibleVersions} )" )
     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nCreating {'TEST ' if TEST_MODE else ''}details pages for {len(state.BibleVersions)} versions…" )
 
     allDetailsHTML = ''
@@ -765,7 +778,7 @@ def createDetailsPages( level:int, versionsFolder:Path, state ) -> bool:
         html = f"{topHtml}{bodyHtml}{makeBottom( level+1, 'details', state )}"
         checkHtml( f'{versionAbbreviation} details', html )
 
-        versionFolder = versionsFolder.joinpath( f'{versionAbbreviation}/' )
+        versionFolder = buildFolder.joinpath( f'{versionAbbreviation}/' )
         try: os.makedirs( versionFolder )
         except FileExistsError: pass # they were already there
 
@@ -784,11 +797,59 @@ def createDetailsPages( level:int, versionsFolder:Path, state ) -> bool:
 {allDetailsHTML}{makeBottom( level, 'allDetails', state )}'''
     checkHtml( 'AllDetails', html )
     
-    filepath = versionsFolder.joinpath( 'allDetails.htm' )
+    filepath = buildFolder.joinpath( 'allDetails.htm' )
     with open( filepath, 'wt', encoding='utf-8' ) as htmlFile:
         htmlFile.write( html )
     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  {len(html):,} characters written to {filepath}" )
 # end of createSitePages.createDetailsPages
+
+
+def createAboutPage( level:int, buildFolder:Path, state ) -> bool:
+    """
+    Creates and saves the About OBD page.
+    """
+    fnPrint( DEBUGGING_THIS_MODULE, f"createAboutPage( {level}, {buildFolder}, {state.BibleVersions} )" )
+    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nCreating {'TEST ' if TEST_MODE else ''}about page…" )
+
+    aboutHTML = '''<h1 id="Top">About Open Bible Data</h1>
+<p>Open Bible Data (OBD) is a large set of static webpages created for several main reasons:</p>
+<ol>
+<li>As a way to <b>showcase the <em>Open English Translation</em></b> of the Bible which is designed to be read with the <em>Readers’ Version</em> and the very <em>Literal Version</em> side-by-side.
+    (Most existing Bible apps don’t allow for this.)
+    Also, the <em>OET</em> renames some Bible ‘books’ and places them into a different order,
+        and in the future, also plans to modernise terminology like ‘Old Testament’ and ‘New Testament’.</li>
+<li>To <b>showcase how <em>OET-RV</em> section headings are formatted</b> so as not to break the flow of the text.
+    Section headings are available as a help to the reader, but were not in the original manuscripts,
+        and the original flow of the text was not designed to be arbitrarily divided into sections.</li>
+<li>To promote other open-licenced Bible translations, including those developed as resources for Bible translators themselves. We believe that God’s Message should be freely available to all.</li>
+<li>As a way to <b>showcase open-licenced Bible datasets</b>.
+    Hence every word in the <em>OET-LV</em> is linked to the Greek word that they are translated from.
+    In addition, most pronouns like ‘he’ or ‘she’ are linked to the earlier referrents in the text.</li>
+<li>We try to <b>downplay chapter and verse divisions</b>, and encourage readers to read narratives as narratives and letters as letters—would
+        you take a letter or email from your mother, draw lines through it to divide it into random sections/chapters,
+        and then read different sections on different days?
+</ol>
+<p>We would welcome any others who would like to contribute open datasets or code to this endeavour.
+    Please contact us at <b>Freely</b> dot <b>Given</b> dot <b>org</b> at <b>gmail</b> dot <b>com</b>.</p>
+<p>Acknowledgement: The overall design of the site was influenced by <a href="https://BibleHub.com/">BibleHub.com</a> which has many features that we like
+        and possibly many overlapping goals.</p>
+<p>These pages are created by a Python program that takes the open-licenced resources and combines them in different ways on different pages.
+    The program is still being developed, and hence this site (or this part of the site), is still at the prototype stage,
+        especially with respect to navigation around the pages which is still unfinished.</p>
+<p>The source code for the Python program can be found at <a href="https://github.com/Freely-Given-org/OpenBibleData">GitHub.com/Freely-Given-org/OpenBibleData</a>.
+    You can also advise us of any errors by clicking on <em>New issue</em> <a href="https://github.com/Freely-Given-org/OpenBibleData/issues">here</a> and telling us the problem.</p>
+'''
+    topHtml = makeTop( level, None, 'about', None, state ) \
+                .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}About OBD" ) \
+                .replace( '__KEYWORDS__', 'Bible, about, OBD' )
+    html = f'''{topHtml}{aboutHTML}{makeBottom( level, 'about', state )}'''
+    checkHtml( 'About', html )
+    
+    filepath = buildFolder.joinpath( 'about.htm' )
+    with open( filepath, 'wt', encoding='utf-8' ) as htmlFile:
+        htmlFile.write( html )
+    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  {len(html):,} characters written to {filepath}" )
+# end of createSitePages.createAboutPage
 
 
 def reorderBooksForOETVersions( givenBookList:List[str] ) -> List[str]:

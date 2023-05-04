@@ -52,10 +52,10 @@ from BibleOrgSys.Internals.InternalBibleInternals import getLeadingInt
 from html import checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-04-27' # by RJH
+LAST_MODIFIED_DATE = '2023-05-04' # by RJH
 SHORT_PROGRAM_NAME = "usfm"
 PROGRAM_NAME = "OpenBibleData USFM to HTML functions"
-PROGRAM_VERSION = '0.42'
+PROGRAM_VERSION = '0.43'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -239,7 +239,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                 html = f'{html}<p class="{marker}">{rest}</p>\n'
         elif marker == 'c':
             # if segmentType == 'chapter':
-            C = rest.strip() # Play safe
+            C, V = rest.strip(), '0' # Play safe
             # html = f'{html}<span class="{marker}" id="C{C}">{C}{NARROW_NON_BREAK_SPACE}</span>'
         elif marker in ('mt1','mt2','mt3','mt4'):
             assert rest
