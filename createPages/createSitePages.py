@@ -65,7 +65,7 @@ from html import makeTop, makeBottom, checkHtml
 LAST_MODIFIED_DATE = '2023-05-05' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData Create Pages"
-PROGRAM_VERSION = '0.60'
+PROGRAM_VERSION = '0.61'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
@@ -544,7 +544,9 @@ def createSitePages() -> bool:
     createDetailsPages( 0, TEMP_BUILD_FOLDER, state )
     createAboutPage( 0, TEMP_BUILD_FOLDER, state )
 
-    createMainIndexPages( 0, TEMP_BUILD_FOLDER, state )
+    createMainIndexPage( 0, TEMP_BUILD_FOLDER, state )
+
+    state.preloadedBibles = None # Reduce memory use now
 
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\n{TEMP_BUILD_FOLDER} is {getFolderSize(TEMP_BUILD_FOLDER)//1_000_000:,} MB" )
 
@@ -660,57 +662,6 @@ f'''<h1 id="Top">{versionName}</h1>
     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"    {len(indexHtml):,} characters written to {filepath}" )
     return True
 # end of createSitePages.createVersionPages
-
-
-def createMainIndexPages( level, folder:Path, state ) -> bool:
-    """
-    Creates and saves the main index page
-        and the versions index page.
-    """
-    fnPrint( DEBUGGING_THIS_MODULE, f"createMainIndexPage( {level}, {folder}, {state.BibleVersions} )" )
-
-    # Create the very top level index file
-    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Creating main {'TEST ' if TEST_MODE else ''}index page for {len(state.BibleVersions)} versions…" )
-    html = makeTop( level, None, 'topIndex', None, state ) \
-            .replace( '__TITLE__', 'TEST Open Bible Data Home' if TEST_MODE else 'Open Bible Data Home') \
-            .replace( '__KEYWORDS__', 'Bible, translation, English, OET' )
-    if TEST_MODE:
-        html = html.replace( '<body>', '<body><p><a href="../">UP TO MAIN NON-TEST SITE</a></p>')
-    bodyHtml = """<!--createMainIndexPage--><h1 id="Top">Open Bible Data Home TEST</h1>
-""" if TEST_MODE else """<!--createMainIndexPage--><h1 id="Top">Open Bible Data Home</h1>
-"""
-    html += bodyHtml + f'<p><small>Last rebuilt: {date.today()}</small></p>\n' + makeBottom( level, 'topIndex', state )
-    checkHtml( 'TopIndex', html )
-
-    filepath = folder.joinpath( 'index.htm' )
-    with open( filepath, 'wt', encoding='utf-8' ) as htmlFile:
-        htmlFile.write( html )
-    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  {len(html):,} characters written to {filepath}" )
-
-#     # Create the versions index file (in case it's needed)
-#     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Creating versions {'TEST ' if TEST_MODE else ''}index page for {len(state.BibleVersions)} versions…" )
-#     html = makeTop( level+1, None, 'topIndex', None, state ) \
-#             .replace( '__TITLE__', 'TEST Open Bible Data Versions' if TEST_MODE else 'Open Bible Data Versions') \
-#             .replace( '__KEYWORDS__', 'Bible, translation, English, OET' )
-#     if TEST_MODE:
-#         html = html.replace( '<body>', '<body><p><a href="{'../'*level}">UP TO MAIN NON-TEST SITE</a></p>')
-#     bodyHtml = """<!--createVersionsIndexPage--><h1 id="Top">Open Bible Data TEST Versions</h1>
-# """ if TEST_MODE else """<!--createMainIndexPage--><h1 id="Top">Open Bible Data Versions</h1>
-# """
-
-#     bodyHtml = f'{bodyHtml}<p>Select one of the above Bible version abbreviations for views of entire documents (‘<i>books</i>’) or sections or chapters, or else select either of the Parallel or Interlinear verse views.</p>\n<ol>\n'
-#     for versionAbbreviation in state.BibleVersions:
-#         bodyHtml = f'{bodyHtml}<li><b>{versionAbbreviation}</b>: {state.BibleNames[versionAbbreviation]}</li>\n'
-#     bodyHtml = f'{bodyHtml}</ol>\n'
-
-#     html += bodyHtml + f'<p><small>Last rebuilt: {date.today()}</small></p>\n' + makeBottom( level, 'topIndex', state )
-#     checkHtml( 'VersionIndex', html )
-
-#     filepath = folder.joinpath( 'index.htm' )
-#     with open( filepath, 'wt', encoding='utf-8' ) as htmlFile:
-#         htmlFile.write( html )
-#     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  {len(html):,} characters written to {filepath}" )
-# end of createSitePages.createMainIndexPage
 
 
 def createDetailsPages( level:int, buildFolder:Path, state ) -> bool:
@@ -842,7 +793,7 @@ def createAboutPage( level:int, buildFolder:Path, state ) -> bool:
     topHtml = makeTop( level, None, 'about', None, state ) \
                 .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}About OBD" ) \
                 .replace( '__KEYWORDS__', 'Bible, about, OBD' )
-    html = f'''{topHtml}{aboutHTML}{makeBottom( level, 'about', state )}'''
+    html = f'''{topHtml}{aboutHTML}<p><small>Last rebuilt: {date.today()}</small></p>{makeBottom( level, 'about', state )}'''
     checkHtml( 'About', html )
     
     filepath = buildFolder.joinpath( 'about.htm' )
@@ -850,6 +801,61 @@ def createAboutPage( level:int, buildFolder:Path, state ) -> bool:
         htmlFile.write( html )
     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  {len(html):,} characters written to {filepath}" )
 # end of createSitePages.createAboutPage
+
+
+def createMainIndexPage( level, folder:Path, state ) -> bool:
+    """
+    Creates and saves the main index page.
+    """
+    fnPrint( DEBUGGING_THIS_MODULE, f"createMainIndexPage( {level}, {folder}, {state.BibleVersions} )" )
+
+    # Create the very top level index file
+    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Creating main {'TEST ' if TEST_MODE else ''}index page for {len(state.BibleVersions)} versions…" )
+    html = makeTop( level, None, 'topIndex', None, state ) \
+            .replace( '__TITLE__', 'TEST Open Bible Data Home' if TEST_MODE else 'Open Bible Data Home') \
+            .replace( '__KEYWORDS__', 'Bible, translation, English, OET' )
+    if TEST_MODE:
+        html = html.replace( '<body>', '<body><p><a href="../">UP TO MAIN NON-TEST SITE</a></p>')
+    bodyHtml = """<!--createMainIndexPage--><h1 id="Top">Open Bible Data Home TEST</h1>
+""" if TEST_MODE else """<!--createMainIndexPage--><h1 id="Top">Open Bible Data Home</h1>
+"""
+    html = f'''{html}{bodyHtml}
+<p>Welcome to this <em>Open Bible Data</em> site created to share God’s fantastic message with everyone,
+    and with a special interest in helping Bible translators around the world.</p>
+<p>Choose a version above to view by document or by section or chapter, or else the parallel or interlinear verse views.</p>
+<p><small>Last rebuilt: {date.today()}</small></p>
+{makeBottom( level, 'topIndex', state )}'''
+    checkHtml( 'TopIndex', html )
+
+    filepath = folder.joinpath( 'index.htm' )
+    with open( filepath, 'wt', encoding='utf-8' ) as htmlFile:
+        htmlFile.write( html )
+    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  {len(html):,} characters written to {filepath}" )
+
+#     # Create the versions index file (in case it's needed)
+#     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Creating versions {'TEST ' if TEST_MODE else ''}index page for {len(state.BibleVersions)} versions…" )
+#     html = makeTop( level+1, None, 'topIndex', None, state ) \
+#             .replace( '__TITLE__', 'TEST Open Bible Data Versions' if TEST_MODE else 'Open Bible Data Versions') \
+#             .replace( '__KEYWORDS__', 'Bible, translation, English, OET' )
+#     if TEST_MODE:
+#         html = html.replace( '<body>', '<body><p><a href="{'../'*level}">UP TO MAIN NON-TEST SITE</a></p>')
+#     bodyHtml = """<!--createVersionsIndexPage--><h1 id="Top">Open Bible Data TEST Versions</h1>
+# """ if TEST_MODE else """<!--createMainIndexPage--><h1 id="Top">Open Bible Data Versions</h1>
+# """
+
+#     bodyHtml = f'{bodyHtml}<p>Select one of the above Bible version abbreviations for views of entire documents (‘<i>books</i>’) or sections or chapters, or else select either of the Parallel or Interlinear verse views.</p>\n<ol>\n'
+#     for versionAbbreviation in state.BibleVersions:
+#         bodyHtml = f'{bodyHtml}<li><b>{versionAbbreviation}</b>: {state.BibleNames[versionAbbreviation]}</li>\n'
+#     bodyHtml = f'{bodyHtml}</ol>\n'
+
+#     html += bodyHtml + f'<p><small>Last rebuilt: {date.today()}</small></p>\n' + makeBottom( level, 'topIndex', state )
+#     checkHtml( 'VersionIndex', html )
+
+#     filepath = folder.joinpath( 'index.htm' )
+#     with open( filepath, 'wt', encoding='utf-8' ) as htmlFile:
+#         htmlFile.write( html )
+#     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  {len(html):,} characters written to {filepath}" )
+# end of createSitePages.createMainIndexPage
 
 
 def reorderBooksForOETVersions( givenBookList:List[str] ) -> List[str]:

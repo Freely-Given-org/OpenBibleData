@@ -52,10 +52,10 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 # from Bibles import fetchChapter
 
 
-LAST_MODIFIED_DATE = '2023-05-04' # by RJH
+LAST_MODIFIED_DATE = '2023-05-05' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
-PROGRAM_VERSION = '0.39'
+PROGRAM_VERSION = '0.40'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -94,11 +94,11 @@ def makeTop( level:int, versionAbbreviation:Optional[str], pageType:str, fileOrF
 
     aboutLink = 'About' if pageType=='about' else f'''<a href="{'../'*level}about.htm">About</a>'''
     if TEST_MODE:
-        topLink = f'<p class="site">TEST Open Bible Data Home {aboutLink}</p>' if pageType=='topIndex' \
-            else f'''<p class="site"><a href="{'../'*level}">TEST Open Bible Data Home</a> {aboutLink}</p>'''
+        topLink = f'<p class="site">TEST Open Bible Data Home  {aboutLink}</p>' if pageType=='topIndex' \
+            else f'''<p class="site"><a href="{'index.htm' if level==0 else '../'*level}">TEST Open Bible Data Home</a>  {aboutLink}</p>'''
     else:
-        topLink = f'<p class="site">Open Bible Data Home {aboutLink}</p>' if pageType=='topIndex' \
-            else f'''<p class="site"><a href="{'../'*level}">Open Bible Data Home</a> {aboutLink}</p>'''
+        topLink = f'<p class="site">Open Bible Data Home  {aboutLink}</p>' if pageType=='topIndex' \
+            else f'''<p class="site"><a href="{'index.htm' if level==0 else '../'*level}">Open Bible Data Home</a>  {aboutLink}</p>'''
     top = f"""<!DOCTYPE html>
 <html lang="en-US">
 <head>
@@ -161,7 +161,7 @@ def _makeHeader( level:int, versionAbbreviation:str, pageType:str, fileOrFolderN
         initialVersionList.append( 'Interlinear' )
     else: # add a link for interlinear
         initialVersionList.append( f'''{state.BibleVersionDecorations['Interlinear'][0]}<a title="Single verse in interlinear view" href="{'../'*level}il/">Interlinear</a>{state.BibleVersionDecorations['Interlinear'][1]}''' )
-    # Moved to top line
+    # Moved to top line in makeTop above
     # if pageType == 'about':
     #     initialVersionList.append( 'About' )
     # else: # add a link for about page
