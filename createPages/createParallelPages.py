@@ -415,7 +415,7 @@ def moderniseEnglishWords( html:str ) -> bool:
             ((' onely ',' `oon '),' only '), ((' oure ',),' our '), ((' ouer',),' over'), ((' awne ',' owne '),' own '),
             ((' parablis',),' parables'), ((' passide',),' passed'), ((' pacience',),' patience'),
                 (('penaunce',),'penance'), ((' puple',' pople'),' people'), (('perceiued','perceaved'),'perceived'), ((' perische',' perisshe',' perishe'),' perish'),
-                ((' pearced',),' pierced'), ((' pylgrym',),' pilgrim'),
+                ((' peaces',' peeces',' peces'),' pieces'), ((' pearced',),' pierced'), ((' pylgrym',),' pilgrim'),
                 ((' pleside',' plesid'),' pleased'),
                 (('praysed',),'praised'), (('preyeden',),'prayed'), (('preier',),'prayer'),
                     (('prechide','prechid'),'preached'), (('preachyng','prechynge','preachinge'),'preaching'), (('preche ',),'preach '),
