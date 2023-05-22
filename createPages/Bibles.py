@@ -64,10 +64,10 @@ from html import checkHtml
 from OETHandlers import findLVQuote
 
 
-LAST_MODIFIED_DATE = '2023-05-03' # by RJH
+LAST_MODIFIED_DATE = '2023-05-21' # by RJH
 SHORT_PROGRAM_NAME = "Bibles"
 PROGRAM_NAME = "OpenBibleData Bibles handler"
-PROGRAM_VERSION = '0.26'
+PROGRAM_VERSION = '0.27'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -359,6 +359,7 @@ def formatTranslationNotes( level:int, BBB, C:str, V:str, segmentType:str, state
                     rest = rest.replace( '**', '<b>', 1 ).replace( '**', '</b>', 1 )
                 # Add our own little bit of bolding
                 rest = rest.replace( 'Alternate translation:', '<b>Alternate translation</b>:' )
+                rest = rest.replace( '{', '<span class="add">' ).replace( '}', '</span>' ) # TN "add" markers
                 tnHtml = f'''{tnHtml}<p class="TN{'1' if lastMarker=='pi1' else ''}">{rest}</p>\n'''
             else:
                 logging.critical( f"getContextVerseDataA ({BBB}, {C}, {V}) has unhandled {marker=} {rest=} {lastMarker=}")
