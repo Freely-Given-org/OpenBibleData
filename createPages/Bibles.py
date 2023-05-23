@@ -64,10 +64,10 @@ from html import checkHtml
 from OETHandlers import findLVQuote
 
 
-LAST_MODIFIED_DATE = '2023-05-21' # by RJH
+LAST_MODIFIED_DATE = '2023-05-22' # by RJH
 SHORT_PROGRAM_NAME = "Bibles"
 PROGRAM_NAME = "OpenBibleData Bibles handler"
-PROGRAM_VERSION = '0.27'
+PROGRAM_VERSION = '0.28'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -217,7 +217,8 @@ def preloadUwTranslationNotes( state ) -> None:
 # end of Bibles.preloadUwTranslationNotes
 
 
-taRegEx = re.compile( 'rc://\\*/ta/man/translate/' )
+# taRegEx = re.compile( 'rc://\\*/ta/man/translate/' )
+twRegEx = re.compile( 'rc://\\*/tw/dict/bible/names/(.+?)[ .,)]' )
 markdownLinkRegex = re.compile( '\\[(.*?)\\]\\((.*?)\\)' )
 def formatTranslationNotes( level:int, BBB, C:str, V:str, segmentType:str, state ) -> str: # html
     """
@@ -319,6 +320,15 @@ def formatTranslationNotes( level:int, BBB, C:str, V:str, segmentType:str, state
                     tnHtml = f'''{tnHtml}<p class="OL">{'' if occurrenceNumber==1 else f'(Occurrence {occurrenceNumber}) '}{rest.replace(' & ',' <small>&</small> ')}</p>
 <p class="Trans">{lvQuoteHtml if lvQuoteHtml else f'({transliterate_Greek(rest)})' if NT else f'({transliterate_Hebrew(rest)})'}</p>'''
             elif lastMarker == 'p': # This is the actual note (which can have markdown formatting)
+                # Liven any TW links (e.g., JHN 1:40)
+                searchStartIndex = 0
+                for _safetyCount in range( 5 ):
+                    match = twRegEx.search( tnHtml, searchStartIndex )
+                    if not match: break
+                    noteName = match.group(1)
+                    tnHtml = f'{tnHtml[:match.start()]}<a title="View uW TW article" href="https://Door43.org/u/unfoldingWord/en_tw/master/names.html#{noteName}">{noteName}</a>{tnHtml[match.end():]}'
+                    searchStartIndex = match.end() + 10 # Approx number of added characters
+                else: tw_loop_range_needs_increasing
                 # Replace markdown links with something more readable
                 searchStartIndex = 0
                 for _safetyCount in range( 10 ):
