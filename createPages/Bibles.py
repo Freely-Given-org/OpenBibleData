@@ -369,7 +369,7 @@ def formatTranslationNotes( level:int, BBB, C:str, V:str, segmentType:str, state
                     rest = rest.replace( '**', '<b>', 1 ).replace( '**', '</b>', 1 )
                 # Add our own little bit of bolding
                 rest = rest.replace( 'Alternate translation:', '<b>Alternate translation</b>:' )
-                rest = rest.replace( '{', '<span class="add">' ).replace( '}', '</span>' ) # TN "add" markers
+                rest = rest.replace( '{', '<span class="add">' ).replace( '}', '</span>' ) # TN "add" markers, e.g., MRK 6:11
                 tnHtml = f'''{tnHtml}<p class="TN{'1' if lastMarker=='pi1' else ''}">{rest}</p>\n'''
             else:
                 logging.critical( f"getContextVerseDataA ({BBB}, {C}, {V}) has unhandled {marker=} {rest=} {lastMarker=}")
