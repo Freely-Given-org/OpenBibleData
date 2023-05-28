@@ -64,13 +64,15 @@ from html import checkHtml
 from OETHandlers import findLVQuote
 
 
-LAST_MODIFIED_DATE = '2023-05-22' # by RJH
+LAST_MODIFIED_DATE = '2023-05-29' # by RJH
 SHORT_PROGRAM_NAME = "Bibles"
 PROGRAM_NAME = "OpenBibleData Bibles handler"
-PROGRAM_VERSION = '0.28'
+PROGRAM_VERSION = '0.30'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
+
+NEW_LINE = '\n'
 
 
 def preloadVersions( state ) -> int:
@@ -207,19 +209,23 @@ def preloadUwTranslationNotes( state ) -> None:
         that can be accessed by B/C/V.
     """
     fnPrint( DEBUGGING_THIS_MODULE, "preloadUwTranslationNotes( ... )")
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Preloading uW translation notes…" )
 
-    state.TNBible = uWNotesBible.uWNotesBible( '../copiedBibles/English/unfoldingWord.org/TN/', givenName='TranslationNotes',
-                                        givenAbbreviation='TN', encoding='utf-8' )
-    state.TNBible.loadBooks() # So we can iterate through them all later
-
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"preloadUwTranslationNotes() loaded uW translation notes." )
+    versionAbbreviation = 'TN'
+    if versionAbbreviation in state.BibleLocations:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Preloading uW translation notes…" )
+        state.TNBible = uWNotesBible.uWNotesBible( state.BibleLocations[versionAbbreviation], givenName='TranslationNotes',
+                                            givenAbbreviation='TN', encoding='utf-8' )
+        state.TNBible.loadBooks() # So we can iterate through them all later
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"preloadUwTranslationNotes() loaded uW translation notes." )
 # end of Bibles.preloadUwTranslationNotes
 
 
-# taRegEx = re.compile( 'rc://\\*/ta/man/translate/' )
-twRegEx = re.compile( 'rc://\\*/tw/dict/bible/names/(.+?)[ .,)]' )
+taMDLinkRegEx = re.compile( '\\[\\[rc://([^/]+?)/ta/man/(translate|checking)/(.+?)\\]\\]' )
+taOtherLinkRegEx = re.compile( 'rc://([^/]+?)/ta/man/(translate|checking)/(.+?)[ ,.:;)\\]]' ) # Includes the following character after the link
+twMDLinkRegEx = re.compile( '\\[\\[rc://([^/]+?)/tw/dict/bible/(names|kt|other)/(.+?)\\]\\]' )
+twOtherLinkRegEx = re.compile( 'rc://([^/]+?)/tw/dict/bible/(names|kt|other)/(.+?)[ ,.:;)\\]]' ) # Includes the following character after the link
 markdownLinkRegex = re.compile( '\\[(.*?)\\]\\((.*?)\\)' )
+NOTE_FILENAME_DICT = {'translate':'03-translate', 'checking':'04-checking'}
 def formatTranslationNotes( level:int, BBB, C:str, V:str, segmentType:str, state ) -> str: # html
     """
     A typical entry with two notes looks like this (blank lines added):
@@ -279,34 +285,50 @@ def formatTranslationNotes( level:int, BBB, C:str, V:str, segmentType:str, state
             # print( f"TN {BBB} {C}:{V} ignored {marker}='{rest}'" )
             continue # not used here
         dPrint( 'Never', DEBUGGING_THIS_MODULE, f"TN {BBB} {C}:{V} {marker}='{rest}'")
+        if rest is None:
+            dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Skipped TN {BBB} {C}:{V} {marker}='{rest}'")
+            lastMarker = marker
+            continue
         assert rest == entry.getFullText().rstrip(), f"TN {BBB} {C}:{V} {marker}='{rest}' ft='{entry.getFullText()}'" # Just checking that we're not missing anything here
-        assert marker in ('v','m','q1','p','pi1','p~',), marker # We expect a very limited subset
+        assert marker in ('v', 'm','q1','p','pi1', 'p~', 'im','iq1','ip','ipi'), f"Unexpected marker TN {BBB} {C}:{V} {marker}='{rest}' ({lastMarker=})" # We expect a very limited subset
+
         if marker == 'v':
             if rest!=V and '-' not in rest:
                 logging.critical( f"Why did TN {BBB} {C}:{V} get {marker}='{rest}' from {verseEntryList=}?" )
                 # Doesn't seem that we usually need to display this but we will here in case something is wrong
                 tnHtml = f'''{' ' if tnHtml else ''}{tnHtml}<span class="v">{V} </span>'''
             # assert rest==V or '-' in rest, f"TN {BBB} {C}:{V} {marker}='{rest}' from {verseEntryList=}"
+
         elif marker == 'p~': # This has the text
-            if lastMarker == 'm':  # TA reference
+            if lastMarker in ('m','im'):  # TA reference
                 assert rest
                 if rest.startswith( 'rc://*/ta/man/translate/' ):
                     noteName = rest[24:]
+                    noteFile = '03-translate'
+                elif rest.startswith( 'rc://en/ta/man/translate/' ):
+                    noteName = rest[25:]
+                    noteFile = '03-translate'
+                elif rest.startswith( 'rc://*/ta/man/checking/' ):
+                    noteName = rest[23:]
+                    noteFile = '04-checking'
                 else:
                     noteName = rest
-                    logging.error( f"Missing ResourceContainer path in TA note: {BBB} {C}:{V} '{noteName}'" )
+                    noteFile = '03-translate'
+                    logging.critical( f"Missing ResourceContainer path in TA note: {BBB} {C}:{V} '{noteName}'" )
                 betterNoteName = noteName.replace( 'figs-', 'figures-of-speech / ' )
                 # print( f"{noteName=} {betterNoteName=}")
                 noteCount += 1
-                tnHtml = f'{tnHtml}<p class="TARef"><b>Note {noteCount} topic</b>: <a title="View uW TA article" href="https://Door43.org/u/unfoldingWord/en_ta/master/03-translate.html#{noteName}">{betterNoteName}</a></p>\n'
+                tnHtml = f'{tnHtml}<p class="TARef"><b>Note {noteCount} topic</b>: <a title="View uW TA article" href="https://Door43.org/u/unfoldingWord/en_ta/master/{noteFile}.html#{noteName}">{betterNoteName}</a></p>\n'
                 occurrenceNumber = 1
-            elif lastMarker == 'pi1': # Occurrence number
+
+            elif lastMarker in ('pi1','ipi'): # Occurrence number
                 assert rest
                 if rest!='-1' and not rest.isdigit():
                     logging.critical( f"getContextVerseData ({BBB}, {C}, {V}) has unexpected {lastMarker=} {marker=} {rest=}" )
                 # assert rest.isdigit() or rest=='-1', f"getContextVerseData ({BBB}, {C}, {V}) has unexpected {marker=} {rest=}" # Jhn 12:15 or 16???
                 occurrenceNumber = getLeadingInt(rest) # Shouldn't be necessary but uW stuff isn't well checked/validated
-            elif lastMarker == 'q1': # An original language quote
+
+            elif lastMarker in ('q1','iq1'): # An original language quote
                 assert rest
                 if rest.startswith( 'Connecting Statement' ):
                     assert occurrenceNumber == 0
@@ -319,22 +341,54 @@ def formatTranslationNotes( level:int, BBB, C:str, V:str, segmentType:str, state
                     lvQuoteHtml = findLVQuote( level, BBB, C, V, occurrenceNumber, rest, state ).replace(' & ',' <small>&</small> ')
                     tnHtml = f'''{tnHtml}<p class="OL">{'' if occurrenceNumber==1 else f'(Occurrence {occurrenceNumber}) '}{rest.replace(' & ',' <small>&</small> ')}</p>
 <p class="Trans">{lvQuoteHtml if lvQuoteHtml else f'({transliterate_Greek(rest)})' if NT else f'({transliterate_Hebrew(rest)})'}</p>'''
-            elif lastMarker == 'p': # This is the actual note (which can have markdown formatting)
-                # Liven any TW links (e.g., JHN 1:40)
+
+            elif lastMarker in ('p','ip'): # This is the actual note (which can have markdown formatting)
+                # Liven any TA markdown [[links]] (especially in book or chapter introductions)
                 searchStartIndex = 0
-                for _safetyCount in range( 5 ):
-                    match = twRegEx.search( tnHtml, searchStartIndex )
+                for _safetyCount in range( 10 ): # 6 wasn't enough for MAT (6?), 9 wasn't enough for REV (1?)
+                    match = taMDLinkRegEx.search( rest, searchStartIndex )
                     if not match: break
-                    noteName = match.group(1)
-                    tnHtml = f'{tnHtml[:match.start()]}<a title="View uW TW article" href="https://Door43.org/u/unfoldingWord/en_tw/master/names.html#{noteName}">{noteName}</a>{tnHtml[match.end():]}'
+                    assert match.group(1) in ('*','en') # Language code
+                    noteClass, noteName = match.group(2), match.group(3)
+                    rest = f'{rest[:match.start()]}<a title="View uW TA article" href="https://Door43.org/u/unfoldingWord/en_ta/master/{NOTE_FILENAME_DICT[noteClass]}.html#{noteName}">{noteName}</a>{rest[match.end():]}'
                     searchStartIndex = match.end() + 10 # Approx number of added characters
-                else: tw_loop_range_needs_increasing
+                else: tn_ta_loop1_range_needs_increasing
+                # Liven any TA non-markdown links (especially in book or chapter introductions, e.g., Tit 1:0)
+                searchStartIndex = 0
+                for _safetyCount in range( 3 ): # 2 wasn't enough for ZEP (3:21?)
+                    match = taOtherLinkRegEx.search( rest, searchStartIndex )
+                    if not match: break
+                    assert match.group(1) in ('*','en') # Language code
+                    noteClass, noteName = match.group(2), match.group(3)
+                    rest = f'{rest[:match.start()]}<a title="View uW TA article" href="https://Door43.org/u/unfoldingWord/en_ta/master/{NOTE_FILENAME_DICT[noteClass]}.html#{noteName}">{noteName}</a>{rest[match.end()-1:]}'
+                    searchStartIndex = match.end() + 10 # Approx number of added characters
+                else: tn_ta_loop2_range_needs_increasing
+                # Liven any TW markdown [[links]] (e.g., JHN 1:40)
+                searchStartIndex = 0
+                for _safetyCount in range( 9 ): # 8 isn't enough for Job (41?)
+                    match = twMDLinkRegEx.search( rest, searchStartIndex )
+                    if not match: break
+                    assert match.group(1) in ('*','en') # Language code
+                    noteClass, noteName = match.group(2), match.group(3)
+                    rest = f'{rest[:match.start()]}<a title="View uW TW article" href="https://Door43.org/u/unfoldingWord/en_tw/master/{noteClass}.html#{noteName}">{noteName}</a>{rest[match.end():]}'
+                    searchStartIndex = match.end() + 10 # Approx number of added characters
+                else: tn_tw_loop1_range_needs_increasing
+                # Liven any TW non-markdown links (e.g., JHN 1:6)
+                searchStartIndex = 0
+                for _safetyCount in range( 2 ):
+                    match = twOtherLinkRegEx.search( rest, searchStartIndex )
+                    if not match: break
+                    assert match.group(1) in ('*','en') # Language code
+                    noteClass, noteName = match.group(2), match.group(3)
+                    rest = f'{rest[:match.start()]}<a title="View uW TW article" href="https://Door43.org/u/unfoldingWord/en_tw/master/{noteClass}.html#{noteName}">{noteName}</a>{rest[match.end()-1:]}'
+                    searchStartIndex = match.end() + 10 # Approx number of added characters
+                else: tn_tw_loop2_range_needs_increasing
                 # Replace markdown links with something more readable
                 searchStartIndex = 0
-                for _safetyCount in range( 10 ):
+                for _safetyCount in range( 46 ): # 45 wasn't enough for EXO 15:0
                     match = markdownLinkRegex.search( rest, searchStartIndex )
                     if not match: break
-                    # print( f"getContextVerseData found markdown link {BBB} {C}:{V} {match=} {match.groups()=}" )
+                    # print( f"{_safetyCount} getContextVerseData found TN markdown link {BBB} {C}:{V} {match=} {match.groups()=}" )
                     newLink = match.group(1)
                     if match.group(2).startswith( '../' ) and match.group(2).endswith( '.md' ):
                         linkTarget = match.group(2)[3:-3]
@@ -358,25 +412,45 @@ def formatTranslationNotes( level:int, BBB, C:str, V:str, segmentType:str, state
                                 if lV.startswith('.'): lV = int(lV[1:])
                             newLink = f'<a href="C{lC}V{lV}.htm#Top">{match.group(1)}</a>'
                         else:
-                            logging.critical( f"getContextVerseData ({BBB}, {C}, {V}) has unhandled markdown reference in '{rest}'" )
+                            logging.critical( f"formatTranslationNotes ({BBB}, {C}, {V}) has unhandled markdown reference in '{rest}'" )
                     else:
-                        logging.critical( f"getContextVerseData ({BBB}, {C}, {V}) has unhandled markdown link in '{rest}'" )
+                        logging.critical( f"formatTranslationNotes ({BBB}, {C}, {V}) has unhandled markdown link in '{rest}'" )
                     rest = f'{rest[:match.start()]}{newLink}{rest[match.end():]}'
                     # print( f"  {BBB} {C}:{V} with {newLink=}, now {rest=}" )
                     searchStartIndex = match.start() + len(newLink)
-                else: need_to_increase_max_loop_count
+                else:
+                    logging.critical( f"getContextVerseData found excess TN markdown links in {_safetyCount} {BBB} {C}:{V} {rest=}" )
+                    need_to_increase_max_MDLink_loop_count
+                if BBB not in ('HAG','MAT'): # uW Hag 1:0, Mat 27:0 have formatting problems
+                    assert 'rc://' not in rest, f"TN {BBB} {C}:{V} {lastMarker=} {marker}='{rest}'"
                 while '**' in rest:
                     rest = rest.replace( '**', '<b>', 1 ).replace( '**', '</b>', 1 )
                 # Add our own little bit of bolding
-                rest = rest.replace( 'Alternate translation:', '<b>Alternate translation</b>:' )
-                rest = rest.replace( '{', '<span class="add">' ).replace( '}', '</span>' ) # TN "add" markers, e.g., MRK 6:11
-                tnHtml = f'''{tnHtml}<p class="TN{'1' if lastMarker=='pi1' else ''}">{rest}</p>\n'''
+                rest = ( rest.replace( 'Alternate translation:', '<b>Alternate translation</b>:' )
+                            .replace( '{', '<span class="add">' ).replace( '}', '</span>' ) # TN uses braces {} for "add" markers, e.g., GEN 13:8, MRK 6:11
+                            .replace( '\\n\\n\\n', '\\n<br>\\n' ) # e.g., Ruth 2:intro (probable mistake)
+                            .replace( '\\n', '\n' ) ) # Unescape TSV newlines
+                if BBB not in ('EXO','PSA','ROM'): # uW TN Exo 4:0, Psa 4:0, Rom 16:24 have formatting problems
+                    assert '\\' not in rest, f"TN {BBB} {C}:{V} {lastMarker=} {marker}='{rest}'"
+                newRestLines = []
+                for line in rest.split( '\n' ):
+                    if line.startswith( '# '):
+                        line = f'<h1>{line[2:]}</h1>'
+                    elif line.startswith( '## '):
+                        line = f'<h2>{line[3:]}</h2>'
+                    elif line.startswith( '### '):
+                        line = f'<h3>{line[4:]}</h3>'
+                    elif line.startswith( '#### '):
+                        line = f'<h4>{line[5:]}</h4>'
+                    newRestLines.append( line )
+                tnHtml = f'''{tnHtml}<p class="TN{'1' if lastMarker=='pi1' else ''}">{NEW_LINE.join(newRestLines)}</p>\n'''
+
             else:
-                logging.critical( f"getContextVerseDataA ({BBB}, {C}, {V}) has unhandled {marker=} {rest=} {lastMarker=}")
+                logging.critical( f"formatTranslationNotesA ({BBB}, {C}, {V}) has unhandled {marker=} {rest=} {lastMarker=}")
         elif marker in ('m','q1','p','pi1'):
             assert not rest # Just ignore these markers (but they influence lastMarker)
         else:
-            logging.critical( f"getContextVerseDataB ({BBB}, {C}, {V}) has unhandled {marker=} {rest=} {lastMarker=}")
+            logging.critical( f"formatTranslationNotesB ({BBB}, {C}, {V}) has unhandled {marker=} {rest=} {lastMarker=}")
         lastMarker = marker
 
     # if not BibleOrgSysGlobals.loadedBibleBooksCodes.isNewTestament_NR( BBB ): continue # Skip all except NT for now
@@ -399,6 +473,8 @@ def formatTranslationNotes( level:int, BBB, C:str, V:str, segmentType:str, state
     # # Add our own little bit of bolding
     # tnHtml = tnHtml.replace( 'Alternate translation:', '<b>Alternate translation</b>:' )
 
+    if BBB not in ('LEV','HAG','MAT'): # We have a problem at Lev 1:3, Hag 1:0, Mat 27:0
+        assert 'rc://' not in tnHtml, f"TN {BBB} {C}:{V} {tnHtml=}"
     checkHtml( f'TN {BBB} {C}:{V}', tnHtml, segmentOnly=True )
     return tnHtml
 # end of Bibles.formatTranslationNotes

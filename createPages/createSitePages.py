@@ -62,10 +62,10 @@ from createOETReferencePages import createOETReferencePages
 from html import makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-05-05' # by RJH
+LAST_MODIFIED_DATE = '2023-05-29' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData Create Pages"
-PROGRAM_VERSION = '0.61'
+PROGRAM_VERSION = '0.62'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
@@ -162,6 +162,8 @@ class State:
                 'BRN': '../copiedBibles/English/eBible.org/Brenton/', # with deuterocanon and OTH,XXA,XXB,XXC,
                 'BrLXX': '../copiedBibles/Greek/eBible.org/BrLXX/',
                 'UHB': '../copiedBibles/Original/unfoldingWord.org/UHB/',
+                # NOTE: TN is a special case
+                'TN': '../copiedBibles/English/unfoldingWord.org/TN/',
                 }
     if not TEST_MODE: assert len(BibleLocations) >= 36, len(BibleLocations)
     
@@ -188,7 +190,7 @@ class State:
                 'DRA': 'Douay-Rheims American Edition (1899)',
                 'YLT': 'Youngs Literal Translation (1898)',
                 'DBY': 'Darby Translation (1890)',
-                'RV': 'Revised Version (1885)',
+                'RV': 'English Revised Version (1885)',
                 'WBS': 'Webster Bible (American, 1833)',
                 'KJB': 'King James Bible (1769)',
                 'BB': 'Bishops Bible (1568,1602)',
@@ -381,7 +383,8 @@ You can read more about the design of the OET-LV <a href="https://OpenEnglishTra
                 'copyright': '<p>Copyright © (coming).</p>',
                 'licence': '<p>(coming).</p>',
                 'acknowledgements': '<p>(coming).</p>' },
-        'RV': {'about': '<p>Revised Version (1885).</p>',
+        'RV': {'about': '''<p>The English Revised Version (1885) was an officially authorised revision of the King James Bible.
+                            (See <a href="https://en.wikipedia.org/wiki/Revised_Version">Wikipedia entry</a>.)</p>''',
                 'copyright': '<p>Copyright © (coming).</p>',
                 'licence': '<p>(coming).</p>',
                 'acknowledgements': '<p>(coming).</p>' },
@@ -782,8 +785,9 @@ def createAboutPage( level:int, buildFolder:Path, state ) -> bool:
 </ol>
 <p>We would welcome any others who would like to contribute open datasets or code to this endeavour.
     Please contact us at <b>Freely</b> dot <b>Given</b> dot <b>org</b> at <b>gmail</b> dot <b>com</b>.</p>
-<p>Acknowledgement: The overall design of the site was influenced by <a href="https://BibleHub.com/">BibleHub.com</a> which has many features that we like
-        and possibly many overlapping goals.</p>
+<p>Acknowledgement: The overall design of the site was influenced by <a href="https://BibleHub.com/">BibleHub.com</a>
+        and their <a href="https://OpenBible.com/">OpenBible.com</a> which have many features that we like
+        and likely many overlapping goals.</p>
 <p>These pages are created by a Python program that takes the open-licenced resources and combines them in different ways on different pages.
     The program is still being developed, and hence this site (or this part of the site), is still at the prototype stage,
         especially with respect to navigation around the pages which is still unfinished.</p>

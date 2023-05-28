@@ -37,7 +37,7 @@ import logging
 # import BibleOrgSysGlobals
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
-from BibleOrgSys.Internals.InternalBibleInternals import getLeadingInt
+from BibleOrgSys.Internals.InternalBibleInternals import InternalBibleEntryList, getLeadingInt
 import BibleOrgSys.Formats.ESFMBible as ESFMBible
 
 from usfm import convertUSFMMarkerListToHtml
@@ -190,6 +190,7 @@ def createOETSectionPages( level:int, folder:Path, rvBible, lvBible, state ) -> 
                 # dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Adding {C}:{V}" )
                 try:
                     thisVerseEntryList = lvBible.getVerseDataList( (BBB, str(C), str(V) ) )
+                    assert isinstance( thisVerseEntryList, InternalBibleEntryList )
                 except KeyError:
                     if startC == '-1': # This is expected, because LV doesn't have intros, so endV will be excessive
                         assert endC == '-1'
@@ -203,6 +204,7 @@ def createOETSectionPages( level:int, folder:Path, rvBible, lvBible, state ) -> 
                                 V = 0
                                 # Try again with the first verse of the next chapter
                                 thisVerseEntryList = lvBible.getVerseDataList( (BBB, str(C), str(V) ) )
+                                assert isinstance( thisVerseEntryList, InternalBibleEntryList )
                             else: raise KeyError
                         else: raise KeyError
                 lvVerseEntryList += thisVerseEntryList
