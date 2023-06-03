@@ -53,6 +53,7 @@ import BibleOrgSys.Formats.CSVBible as CSVBible
 import BibleOrgSys.Formats.LEBXMLBible as LEBXMLBible
 import BibleOrgSys.Formats.VPLBible as VPLBible
 import BibleOrgSys.Formats.uWNotesBible as uWNotesBible
+import BibleOrgSys.Formats.TyndaleNotesBible as TyndaleNotesBible
 from BibleOrgSys.Bible import Bible
 from BibleOrgSys.Internals.InternalBibleInternals import getLeadingInt
 
@@ -64,10 +65,10 @@ from html import checkHtml
 from OETHandlers import findLVQuote
 
 
-LAST_MODIFIED_DATE = '2023-05-29' # by RJH
+LAST_MODIFIED_DATE = '2023-06-01' # by RJH
 SHORT_PROGRAM_NAME = "Bibles"
 PROGRAM_NAME = "OpenBibleData Bibles handler"
-PROGRAM_VERSION = '0.30'
+PROGRAM_VERSION = '0.32'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -112,12 +113,16 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state ) -
     #                                         givenAbbreviation=versionAbbreviation, encoding='iso-8859-1' )
     #     thisBible.load()
     #     print( f"{versionAbbreviation} loaded ({len(thisBible.books.keys())}) {thisBible.books.keys()}" )
-    if versionAbbreviation in ('SBL-GNT',): # Multiple TSV .txt file(s)
+    if versionAbbreviation in ('BLB','SBL-GNT'): # Single (BLB) or multiple (SBL-GNT) TSV .txt file(s)
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Loading '{versionAbbreviation}' CSV/TSV Bible…" )
         thisBible = CSVBible.CSVBible( folderOrFileLocation, givenName=state.BibleNames[versionAbbreviation],
                                             givenAbbreviation=versionAbbreviation, encoding='utf-8' )
         thisBible.loadBooks() # So we can iterate through them all later
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} loaded ({len(thisBible.books.keys())}) {list(thisBible.books.keys())}" )
+        # print( f"{thisBible.suppliedMetadata=}" )
+        # print( f"{thisBible.settingsDict=}" )
+        # verseEntryList, contextList = thisBible.getContextVerseData( ('MRK', '10', '45') )
+        # print( f"Mrk 10:45 {verseEntryList=} {contextList=}" )
     # elif versionAbbreviation in ('SBL-GNT',): # .txt file(s)
     #     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Loading {versionAbbreviation} VPL Bible…" )
     #     thisBible = VPLBible.VPLBible( folderLocation, givenName=state.BibleNames[versionAbbreviation],
@@ -135,15 +140,15 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state ) -
         # verseEntryList, contextList = thisBible.getContextVerseData( ('MAT', '2', '1') )
         # print( f"Mat 2:1 {verseEntryList=} {contextList=}" )
     elif '/TXT/' in folderOrFileLocation: # Custom VPL
-        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Loading '{versionAbbreviation}' XML Bible…" )
+        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Loading '{versionAbbreviation}' VPL Bible…" )
         thisBible = VPLBible.VPLBible( folderOrFileLocation, givenName=state.BibleNames[versionAbbreviation],
                                             givenAbbreviation=versionAbbreviation, encoding='utf-8' )
         thisBible.load() # So we can iterate through them all later
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} loaded ({len(thisBible.books.keys())}) {list(thisBible.books.keys())}" )
         # print( f"{thisBible.suppliedMetadata=}" )
         # print( f"{thisBible.settingsDict=}" )
-        # verseEntryList, contextList = thisBible.getContextVerseData( ('MAT', '2', '1') )
-        # print( f"Mat 2:1 {verseEntryList=} {contextList=}" )
+        # verseEntryList, contextList = thisBible.getContextVerseData( ('MRK', '1', '1') )
+        # print( f"Mrk 1:1 {verseEntryList=} {contextList=}" )
     elif 'Zefania' in folderOrFileLocation: # Zefania XML
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Loading '{versionAbbreviation}' Zefania XML Bible…" )
         thisBible = ZefaniaXMLBible.ZefaniaXMLBible( folderOrFileLocation, givenName=state.BibleNames[versionAbbreviation],
@@ -167,6 +172,16 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state ) -
             for BBB in state.booksToLoad[versionAbbreviation]:
                 thisBible.loadBookIfNecessary( BBB )
             thisBible.lookForAuxilliaryFilenames()
+    elif versionAbbreviation == 'UTN':
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Preloading uW translation notes…" )
+        thisBible = uWNotesBible.uWNotesBible( state.BibleLocations[versionAbbreviation], givenName='uWTranslationNotes',
+                                            givenAbbreviation='UTN', encoding='utf-8' )
+        thisBible.loadBooks() # So we can iterate through them all later
+    elif versionAbbreviation == 'TSN':
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Preloading Tyndale study notes…" )
+        thisBible = TyndaleNotesBible.TyndaleNotesBible( state.BibleLocations[versionAbbreviation], givenName='TyndaleStudyNotes',
+                                            givenAbbreviation='TSN', encoding='utf-8' )
+        thisBible.loadBooks() # So we can iterate through them all later
     else: # USFM
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Preloading '{versionAbbreviation}' USFM Bible…" )
         thisBible = USFMBible.USFMBible( folderOrFileLocation, givenAbbreviation=versionAbbreviation,
@@ -202,22 +217,22 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state ) -
 #     yield '2'
 
 
-def preloadUwTranslationNotes( state ) -> None:
-    """
-    Load the unfoldingWord translation notes from the TSV files
-        but masquerade them into an internal pseudo-Bible
-        that can be accessed by B/C/V.
-    """
-    fnPrint( DEBUGGING_THIS_MODULE, "preloadUwTranslationNotes( ... )")
+# def preloadUwTranslationNotes( state ) -> None:
+#     """
+#     Load the unfoldingWord translation notes from the TSV files
+#         but masquerade them into an internal pseudo-Bible
+#         that can be accessed by B/C/V.
+#     """
+#     fnPrint( DEBUGGING_THIS_MODULE, "preloadUwTranslationNotes( ... )")
 
-    versionAbbreviation = 'TN'
-    if versionAbbreviation in state.BibleLocations:
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Preloading uW translation notes…" )
-        state.TNBible = uWNotesBible.uWNotesBible( state.BibleLocations[versionAbbreviation], givenName='TranslationNotes',
-                                            givenAbbreviation='TN', encoding='utf-8' )
-        state.TNBible.loadBooks() # So we can iterate through them all later
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"preloadUwTranslationNotes() loaded uW translation notes." )
-# end of Bibles.preloadUwTranslationNotes
+#     versionAbbreviation = 'UTN'
+#     if versionAbbreviation in state.BibleLocations:
+#         vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Preloading uW translation notes…" )
+#         state.UTNBible = uWNotesBible.uWNotesBible( state.BibleLocations[versionAbbreviation], givenName='TranslationNotes',
+#                                             givenAbbreviation='UTN', encoding='utf-8' )
+#         state.UTNBible.loadBooks() # So we can iterate through them all later
+#         vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"preloadUwTranslationNotes() loaded uW translation notes." )
+# # end of Bibles.preloadUwTranslationNotes
 
 
 taMDLinkRegEx = re.compile( '\\[\\[rc://([^/]+?)/ta/man/(translate|checking)/(.+?)\\]\\]' )
@@ -226,7 +241,7 @@ twMDLinkRegEx = re.compile( '\\[\\[rc://([^/]+?)/tw/dict/bible/(names|kt|other)/
 twOtherLinkRegEx = re.compile( 'rc://([^/]+?)/tw/dict/bible/(names|kt|other)/(.+?)[ ,.:;)\\]]' ) # Includes the following character after the link
 markdownLinkRegex = re.compile( '\\[(.*?)\\]\\((.*?)\\)' )
 NOTE_FILENAME_DICT = {'translate':'03-translate', 'checking':'04-checking'}
-def formatTranslationNotes( level:int, BBB, C:str, V:str, segmentType:str, state ) -> str: # html
+def formatUnfoldingWordTranslationNotes( level:int, BBB, C:str, V:str, segmentType:str, state ) -> str: # html
     """
     A typical entry with two notes looks like this (blank lines added):
         0/ v = '8'
@@ -256,11 +271,11 @@ def formatTranslationNotes( level:int, BBB, C:str, V:str, segmentType:str, state
 
     TODO: Get the English quote (ULT, OET-LV???) from the Greek words
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"formatTranslationNotes( {BBB}, {C}:{V}, {segmentType=} )")
+    fnPrint( DEBUGGING_THIS_MODULE, f"formatUnfoldingWordTranslationNotes( {BBB}, {C}:{V}, {segmentType=} )")
     assert segmentType in ('parallel','interlinear')
 
     try:
-        verseEntryList, contextList = state.TNBible.getContextVerseData( (BBB, C, V) )
+        verseEntryList, contextList = state.preloadedBibles['UTN'].getContextVerseData( (BBB, C, V), strict=False, complete=True )
     except (KeyError, TypeError): # TypeError is if None is returned
         logging.warning( f"uW TNs have no notes for {BBB} {C}:{V}")
         return ''
@@ -271,7 +286,7 @@ def formatTranslationNotes( level:int, BBB, C:str, V:str, segmentType:str, state
     # oppositeFolder = 'il' if segmentType=='parallel' else 'pa'
 
     # We tried this, but think it's better to customise our own HTML
-    # tnHtml = convertUSFMMarkerListToHtml( level, 'TN', (BBB,C,V), 'notes', contextList, verseEntryList, basicOnly=True, state=state )
+    # tnHtml = convertUSFMMarkerListToHtml( level, 'UTN', (BBB,C,V), 'notes', contextList, verseEntryList, basicOnly=True, state=state )
 
     tnHtml = ''
     lastMarker = None
@@ -398,6 +413,10 @@ def formatTranslationNotes( level:int, BBB, C:str, V:str, segmentType:str, state
                             pass # TODO: We're being lazy here -- where do we find a book intro?
                         elif linkTarget.count('/') == 2:
                             lUUU, lC, lV = linkTarget.split( '/' ) # Something like '1TI' '01' '77'
+                            # Deal with book encoding issues in the uW notes
+                            if lUUU == 'i1kg': lUUU = '1Ki' # UTN Mat 17:0
+                            elif lUUU.lower() == '2kg': lUUU = '2Ki'
+                            assert len(lUUU) == 3, f"{lUUU=} {lC=} {lV=} {linkTarget=} from {BBB} {C}:{V} '{rest}'"
                             lC = int(lC)
                             try: lV = int(lV)
                             except ValueError:
@@ -412,9 +431,9 @@ def formatTranslationNotes( level:int, BBB, C:str, V:str, segmentType:str, state
                                 if lV.startswith('.'): lV = int(lV[1:])
                             newLink = f'<a href="C{lC}V{lV}.htm#Top">{match.group(1)}</a>'
                         else:
-                            logging.critical( f"formatTranslationNotes ({BBB}, {C}, {V}) has unhandled markdown reference in '{rest}'" )
+                            logging.critical( f"formatUnfoldingWordTranslationNotes ({BBB}, {C}, {V}) has unhandled markdown reference in '{rest}'" )
                     else:
-                        logging.critical( f"formatTranslationNotes ({BBB}, {C}, {V}) has unhandled markdown link in '{rest}'" )
+                        logging.critical( f"formatUnfoldingWordTranslationNotes ({BBB}, {C}, {V}) has unhandled markdown link in '{rest}'" )
                     rest = f'{rest[:match.start()]}{newLink}{rest[match.end():]}'
                     # print( f"  {BBB} {C}:{V} with {newLink=}, now {rest=}" )
                     searchStartIndex = match.start() + len(newLink)
@@ -430,7 +449,7 @@ def formatTranslationNotes( level:int, BBB, C:str, V:str, segmentType:str, state
                             .replace( '{', '<span class="add">' ).replace( '}', '</span>' ) # TN uses braces {} for "add" markers, e.g., GEN 13:8, MRK 6:11
                             .replace( '\\n\\n\\n', '\\n<br>\\n' ) # e.g., Ruth 2:intro (probable mistake)
                             .replace( '\\n', '\n' ) ) # Unescape TSV newlines
-                if BBB not in ('EXO','PSA','ROM'): # uW TN Exo 4:0, Psa 4:0, Rom 16:24 have formatting problems
+                if BBB not in ('EXO','PSA','ROM','CO1'): # uW TN Exo 4:0, Psa 4:0, Rom 16:24, 1Co 15:23 have formatting problems
                     assert '\\' not in rest, f"TN {BBB} {C}:{V} {lastMarker=} {marker}='{rest}'"
                 newRestLines = []
                 for line in rest.split( '\n' ):
@@ -446,11 +465,11 @@ def formatTranslationNotes( level:int, BBB, C:str, V:str, segmentType:str, state
                 tnHtml = f'''{tnHtml}<p class="TN{'1' if lastMarker=='pi1' else ''}">{NEW_LINE.join(newRestLines)}</p>\n'''
 
             else:
-                logging.critical( f"formatTranslationNotesA ({BBB}, {C}, {V}) has unhandled {marker=} {rest=} {lastMarker=}")
+                logging.critical( f"formatUnfoldingWordTranslationNotesA ({BBB}, {C}, {V}) has unhandled {marker=} {rest=} {lastMarker=}")
         elif marker in ('m','q1','p','pi1'):
             assert not rest # Just ignore these markers (but they influence lastMarker)
         else:
-            logging.critical( f"formatTranslationNotesB ({BBB}, {C}, {V}) has unhandled {marker=} {rest=} {lastMarker=}")
+            logging.critical( f"formatUnfoldingWordTranslationNotesB ({BBB}, {C}, {V}) has unhandled {marker=} {rest=} {lastMarker=}")
         lastMarker = marker
 
     # if not BibleOrgSysGlobals.loadedBibleBooksCodes.isNewTestament_NR( BBB ): continue # Skip all except NT for now
@@ -477,7 +496,42 @@ def formatTranslationNotes( level:int, BBB, C:str, V:str, segmentType:str, state
         assert 'rc://' not in tnHtml, f"TN {BBB} {C}:{V} {tnHtml=}"
     checkHtml( f'TN {BBB} {C}:{V}', tnHtml, segmentOnly=True )
     return tnHtml
-# end of Bibles.formatTranslationNotes
+# end of Bibles.formatUnfoldingWordTranslationNotes
+
+
+def formatTyndaleStudyNotes( level:int, BBB, C:str, V:str, segmentType:str, state ) -> str: # html
+    """
+    """
+    fnPrint( 1 or DEBUGGING_THIS_MODULE, f"formatTyndaleStudyNotes( {BBB}, {C}:{V}, {segmentType=} )")
+    assert segmentType in ('parallel','interlinear')
+
+    try:
+        verseEntryList, _contextList = state.preloadedBibles['TSN'].getContextVerseData( (BBB, C, V), strict=False, complete=True )
+    except (KeyError, TypeError): # TypeError is if None is returned
+        logging.critical( f"Tyndale have no study notesA for {BBB} {C}:{V}")
+        return ''
+    # if not verseEntryList:
+    #     logging.warning( f"Tyndale have no study notesB for {BBB} {C}:{V}")
+    #     return ''
+
+    # if BBB=='MRK' and C=='4' and V=='25':
+    #     print( f"{BBB} {C}:{V} {verseEntryList=} {_contextList=}" )
+
+    snHtml = ''
+    for entry in verseEntryList:
+        marker, rest = entry.getMarker(), entry.getText()
+        if marker.startswith( '¬' ): assert not rest; continue # end markers not needed here
+        # if marker == 'v':
+        #     if '-' in rest: # It's often a verse range
+        #         snHtml = f'{snHtml}<p class="TSNv">Verses {rest}</p>'
+        if marker == 'v~':
+            rest = rest.replace( '•', '<br>•' )
+            snHtml = f'{snHtml}<p class="TSN">{rest}</p>'
+    
+    checkHtml( f'SN {BBB} {C}:{V}', snHtml, segmentOnly=True )
+    # if BBB=='RUT' and C=='1' and V=='4': halt
+    return snHtml
+# end of Bibles.formatTyndaleStudyNotes
 
 
 def tidyBBB( BBB:str, titleCase:Optional[bool]=False ) -> str:

@@ -34,6 +34,8 @@ and more pages to come hopefully.
 
 CHANGELOG:
     2023-05-04 Added 'About OBD' page
+    2023-05-31 Added BLB
+    2023-06-01 Added TSN
 """
 from gettext import gettext as _
 from typing import Dict, List, Tuple
@@ -52,7 +54,7 @@ from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39, BOOKLIST_NT27
 sys.path.append( '../../BibleTransliterations/Python/' )
 from BibleTransliterations import load_transliteration_table
 
-from Bibles import preloadVersions, preloadUwTranslationNotes
+from Bibles import preloadVersions #, preloadUwTranslationNotes
 from createBookPages import createOETBookPages, createBookPages
 from createChapterPages import createOETSideBySideChapterPages, createChapterPages
 from createSectionPages import createOETSectionPages, createSectionPages
@@ -62,16 +64,16 @@ from createOETReferencePages import createOETReferencePages
 from html import makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-05-29' # by RJH
+LAST_MODIFIED_DATE = '2023-06-02' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData Create Pages"
-PROGRAM_VERSION = '0.62'
+PROGRAM_VERSION = '0.63'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
-TEST_MODE = False # Writes website into Test subfolder
+TEST_MODE = True # Writes website into Test subfolder
 
-ALL_PRODUCTION_BOOKS = not TEST_MODE # If set to False, only selects one book per version for a faster test build
+ALL_PRODUCTION_BOOKS = 1 or not TEST_MODE # If set to False, only selects one book per version for a faster test build
 
 TEMP_BUILD_FOLDER = Path( '/tmp/OBDHtmlPages/' )
 NORMAL_DESTINATION_FOLDER = Path( '../htmlPages/' )
@@ -95,21 +97,25 @@ class State:
     """
     BibleVersions = ['OET', # NOTE: OET is a "pseudo-version" containing both OET-RV and OET-LV side-by-side and handled separately in many places
                 'OET-RV','OET-LV',
-                'ULT','UST', 'OEB',
-                'BSB','ISV',
+                'ULT','UST',
+                'BSB','BLB',
+                'OEB','ISV',
                 'WEB','WMB','NET','LSV','FBV','TCNT','T4T','LEB','BBE',
                 'JPS','ASV','DRA','YLT','DBY','RV','WBS','KJB','BB','GNV','CB',
                 'TNT','WYC','CLV',
                 'SR-GNT','UGNT','SBL-GNT','TC-GNT',
                 'BRN','BrLXX', 'UHB',
+                # NOTES:
+                'TSN','UTN',
                 ]
     # NOTE: The above list has entries deleted by preloadBibles() if they fail to load
     #           (often because we temporarily remove the BibleLocation below)
     allBibleVersions = BibleVersions[:] # Keep a copy with the full list
     
     BibleVersionDecorations = { 'OET':('<b>','</b>'),'OET-RV':('<b>','</b>'),'OET-LV':('<b>','</b>'),
-                'ULT':('',''),'UST':('',''),'OEB':('',''),
-                'BSB':('',''),'ISV':('',''),
+                'ULT':('',''),'UST':('',''),
+                'BSB':('',''),'BLB':('',''),
+                'OEB':('',''),'ISV':('',''),
                 'WEB':('',''),'WMB':('',''),'NET':('',''),'LSV':('',''),'FBV':('',''),'TCNT':('<small>','</small>'),'T4T':('',''),'LEB':('',''),'BBE':('',''),
                 'JPS':('<small>','</small>'),'ASV':('',''),'DRA':('<small>','</small>'),'YLT':('',''),'DBY':('',''),'RV':('',''),
                 'WBS':('<small>','</small>'),
@@ -118,6 +124,8 @@ class State:
                 'SR-GNT':('<b>','</b>'),'UGNT':('<small>','</small>'),'SBL-GNT':('<small>','</small>'),'TC-GNT':('<small>','</small>'),
                 'BRN':('<small>','</small>'),'BrLXX':('',''), 'UHB':('',''),
                 'Parallel':('<b>','</b>'), 'Interlinear':('<b>','</b>'),
+                # NOTES:
+                'TSN':('',''),'UTN':('',''),
                 }
     
                 ## 'LEB': '../copiedBibles/English/LogosBibleSoftware/LEB/LEB.osis.xml', # OSIS
@@ -127,43 +135,45 @@ class State:
                 'OET-LV': '../../OpenEnglishTranslation--OET/intermediateTexts/auto_edited_VLT_ESFM/', # No OT here yet
                 # NOTE: The program will still run if some of these below are commented out or removed
                 # (e.g., this can be done quickly for a faster test)
-                'ULT': '../copiedBibles/English/unfoldingWord.org/ULT/',
-                'UST': '../copiedBibles/English/unfoldingWord.org/UST/',
-                'OEB': '../copiedBibles/English/OEB/',
-                'BSB': '../copiedBibles/English/Berean.Bible/BSB/',
+                # 'ULT': '../copiedBibles/English/unfoldingWord.org/ULT/',
+                # 'UST': '../copiedBibles/English/unfoldingWord.org/UST/',
+                # 'BSB': '../copiedBibles/English/Berean.Bible/BSB/',
+                # 'BLB': '../copiedBibles/English/Berean.Bible/BLB/blb.modified.txt', # NT only so far
+                # 'OEB': '../copiedBibles/English/OEB/',
                 # 'ISV': '',
                 'WEB': '../copiedBibles/English/eBible.org/WEB/',
-                'WMB': '../copiedBibles/English/eBible.org/WMB/',
-                'NET': '../copiedBibles/English/eBible.org/NET/',
-                'LSV': '../copiedBibles/English/eBible.org/LSV/',
-                'FBV': '../copiedBibles/English/eBible.org/FBV/',
-                'TCNT': '../copiedBibles/English/eBible.org/TCNT/',
-                'T4T': '../copiedBibles/English/eBible.org/T4T/',
-                'LEB': '../copiedBibles/English/LogosBibleSoftware/LEB/LEB.xml', # not OSIS
-                'BBE': '../copiedBibles/English/eBible.org/BBE/',
-                'JPS': '../copiedBibles/English/eBible.org/JPS/',
-                'ASV': '../copiedBibles/English/eBible.org/ASV/',
-                'DRA': '../copiedBibles/English/eBible.org/DRA/',
-                'YLT': '../copiedBibles/English/eBible.org/YLT/',
-                'DBY': '../copiedBibles/English/eBible.org/DBY/',
-                'RV': '../copiedBibles/English/eBible.org/RV/', # with deuterocanon
-                'WBS': '../copiedBibles/English/eBible.org/RV/',
-                'KJB': '../copiedBibles/English/eBible.org/KJB/', # with deuterocanon
-                'BB': '/mnt/SSDs/Bibles/DataSets/BibleSuperSearch.com/v5.0/TXT/bishops.txt',
-                'GNV': '../copiedBibles/English/eBible.org/GNV/',
-                'CB': '/mnt/SSDs/Bibles/DataSets/BibleSuperSearch.com/v5.0/TXT/coverdale.txt',
-                'TNT': '../copiedBibles/English/eBible.org/TNT/',
-                'WYC': '/mnt/SSDs/Bibles/Zefania modules/SF_2009-01-20_ENG_BIBLE_WYCLIFFE_(JOHN WYCLIFFE BIBLE).xml',
-                'CLV': '../copiedBibles/Latin/eBible.org/CLV/',
-                'SR-GNT': '../../Forked/CNTR-SR/SR usfm/',
-                'UGNT': '../copiedBibles/Original/unfoldingWord.org/UGNT/',
-                'SBL-GNT': '../../Forked/SBLGNT/data/sblgnt/text/',
-                'TC-GNT': '../copiedBibles/Greek/eBible.org/TC-GNT/',
-                'BRN': '../copiedBibles/English/eBible.org/Brenton/', # with deuterocanon and OTH,XXA,XXB,XXC,
-                'BrLXX': '../copiedBibles/Greek/eBible.org/BrLXX/',
-                'UHB': '../copiedBibles/Original/unfoldingWord.org/UHB/',
-                # NOTE: TN is a special case
-                'TN': '../copiedBibles/English/unfoldingWord.org/TN/',
+                # 'WMB': '../copiedBibles/English/eBible.org/WMB/',
+                # 'NET': '../copiedBibles/English/eBible.org/NET/',
+                # 'LSV': '../copiedBibles/English/eBible.org/LSV/',
+                # 'FBV': '../copiedBibles/English/eBible.org/FBV/',
+                # 'TCNT': '../copiedBibles/English/eBible.org/TCNT/',
+                # 'T4T': '../copiedBibles/English/eBible.org/T4T/',
+                # 'LEB': '../copiedBibles/English/LogosBibleSoftware/LEB/LEB.xml', # not OSIS
+                # 'BBE': '../copiedBibles/English/eBible.org/BBE/',
+                # 'JPS': '../copiedBibles/English/eBible.org/JPS/',
+                # 'ASV': '../copiedBibles/English/eBible.org/ASV/',
+                # 'DRA': '../copiedBibles/English/eBible.org/DRA/',
+                # 'YLT': '../copiedBibles/English/eBible.org/YLT/',
+                # 'DBY': '../copiedBibles/English/eBible.org/DBY/',
+                # 'RV': '../copiedBibles/English/eBible.org/RV/', # with deuterocanon
+                # 'WBS': '../copiedBibles/English/eBible.org/RV/',
+                # 'KJB': '../copiedBibles/English/eBible.org/KJB/', # with deuterocanon
+                # 'BB': '/mnt/SSDs/Bibles/DataSets/BibleSuperSearch.com/v5.0/TXT/bishops.txt',
+                # 'GNV': '../copiedBibles/English/eBible.org/GNV/',
+                # 'CB': '/mnt/SSDs/Bibles/DataSets/BibleSuperSearch.com/v5.0/TXT/coverdale.txt',
+                # 'TNT': '../copiedBibles/English/eBible.org/TNT/',
+                # 'WYC': '/mnt/SSDs/Bibles/Zefania modules/SF_2009-01-20_ENG_BIBLE_WYCLIFFE_(JOHN WYCLIFFE BIBLE).xml',
+                # 'CLV': '../copiedBibles/Latin/eBible.org/CLV/',
+                # 'SR-GNT': '../../Forked/CNTR-SR/SR usfm/',
+                # 'UGNT': '../copiedBibles/Original/unfoldingWord.org/UGNT/',
+                # 'SBL-GNT': '../../Forked/SBLGNT/data/sblgnt/text/',
+                # 'TC-GNT': '../copiedBibles/Greek/eBible.org/TC-GNT/',
+                # 'BRN': '../copiedBibles/English/eBible.org/Brenton/', # with deuterocanon and OTH,XXA,XXB,XXC,
+                # 'BrLXX': '../copiedBibles/Greek/eBible.org/BrLXX/',
+                # 'UHB': '../copiedBibles/Original/unfoldingWord.org/UHB/',
+                # NOTE: Notes are special cases (skipped in many parts of the program)
+                'TSN': '../copiedBibles/English/Tyndale/OSN/',
+                'UTN': '../copiedBibles/English/unfoldingWord.org/UTN/',
                 }
     if not TEST_MODE: assert len(BibleLocations) >= 36, len(BibleLocations)
     
@@ -173,8 +183,9 @@ class State:
                 'OET-LV': 'Open English Translation—Literal Version (2025)',
                 'ULT': 'unfoldingWord® Literal Text (2023)',
                 'UST': 'unfoldingWord® Simplified Text (2023)',
-                'OEB': 'Open English Bible (in progress)',
                 'BSB': 'Berean Study/Standard Bible (2020)',
+                'BLB': 'Berean Literal Bible NT (2022)',
+                'OEB': 'Open English Bible (in progress)',
                 'ISV': 'International Standard Version (2020?)',
                 'WEB': 'World English Bible (2023)',
                 'WMB': 'World Messianic Bible (2023) / Hebrew Names Version (HNV)',
@@ -207,7 +218,8 @@ class State:
                 'BRN': 'Brenton Septuagint Translation (1851)',
                 'BrLXX': '(Brenton’s) Ancient Greek translation of the Hebrew Scriptures (~250 BC)',
                 'UHB': 'unfoldingWord® Hebrew Bible (2022)',
-                'TN': 'unfoldingWord® Translation Notes (2023)',
+                'TSN': 'Tyndale Study Notes (2022)',
+                'UTN': 'unfoldingWord® Translation Notes (2023)',
                 }
     
     booksToLoad = {
@@ -216,8 +228,9 @@ class State:
                 'OET-LV': OET_BOOK_LIST,
                 'ULT': ['ALL'],
                 'UST': ['ALL'], # MRK 13:13 gives \\add error (24Jan2023)
-                'OEB': ['ALL'],
                 'BSB': ['ALL'],
+                'BLB': ['NT'],
+                'OEB': ['ALL'],
                 'ISV': ['ALL'],
                 'WEB': ['ALL'],
                 'WMB': ['ALL'],
@@ -249,14 +262,18 @@ class State:
                 'BRN': ['ALL'],
                 'BrLXX': ['ALL'],
                 'UHB': ['ALL'],
+                # NOTES:
+                'TSN': ['ALL'],
+                'UTN': ['ALL'],
             } if ALL_PRODUCTION_BOOKS else {
                 'OET': ['FRT','MRK'],
                 'OET-RV': ['FRT','MRK'],
                 'OET-LV': ['MRK'],
                 'ULT': ['FRT','RUT','MRK'],
                 'UST': ['RUT','MRK'], # MRK 13:13 gives \\add error (24Jan2023)
-                'OEB': ['MRK'],
                 'BSB': ['MRK'],
+                'BLB': ['MRK'],
+                'OEB': ['MRK'],
                 'ISV': ['MRK'],
                 'WEB': ['MRK'],
                 'WMB': ['MRK'],
@@ -288,14 +305,17 @@ class State:
                 'BRN': ['RUT'],
                 'BrLXX': ['RUT'],
                 'UHB': ['RUT'],
+                # NOTES:
+                'TSN': ['RUT','MRK'],
+                'UTN': ['RUT','MRK'],
             }
 
     detailsHtml = {
-        'OET': {'about': '''<p>The (still unfinished) <em>Open English Translation</em> consists of a <em>Readers’ Version</em> and a <em>Literal Version</em> side by side.
+        'OET': {'about': '''<p>The (still unfinished) <em>Open English Translation</em> consists of a <em>Readers’ Version</em> and a <em>Literal Version</em> side-by-side.
 You can read more about the design of the OET <a href="https://OpenEnglishTranslation.Bible/Design/Overview">here</a>.</p>''',
                 'copyright': '<p>Copyright © 2010-2023 <a href="https://Freely-Given.org">Freely-Given.org</a>.</p>',
                 'licence': '<p><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
-                'acknowledgements': '<p>Thanks to <a href="https://Freely-Given.org/">Freely-Given.org</a> for creating this exciting, new Bible translation which is viewable from <a href="https://OpenEnglishTranslation.Bible">OpenEnglishTranslation.Bible</a>.</p>' },
+                'acknowledgements': '<p>Thanks to <a href="https://Freely-Given.org/">Freely-Given.org</a> for creating this exciting, radical, new Bible translation which is viewable from <a href="https://OpenEnglishTranslation.Bible">OpenEnglishTranslation.Bible</a>.</p>' },
         'OET-RV': {'about': '''<p>The (still unfinished) <em>Open English Translation Readers’ Version</em> is a new, modern-English easy-to-read translation of the Bible.
 You can read more about the design of the OET-RV <a href="https://OpenEnglishTranslation.Bible/Design/ReadersVersion">here</a>.</p>''',
                 'copyright': '<p>Copyright © 2010-2023 <a href="https://Freely-Given.org">Freely-Given.org</a>.</p>',
@@ -306,22 +326,26 @@ You can read more about the design of the OET-LV <a href="https://OpenEnglishTra
                 'copyright': '<p>Copyright © 2010-2023 <a href="https://Freely-Given.org">Freely-Given.org</a>.</p>',
                 'licence': '<p><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
                 'acknowledgements': '<p>Thanks to <a href="https://Freely-Given.org/">Freely-Given.org</a> for creating this exciting, new Bible translation which is viewable from <a href="https://OpenEnglishTranslation.Bible">OpenEnglishTranslation.Bible</a>.</p>' },
-        'ULT': {'about': '<p>unfoldingWord® Literal Text (2023).</p>',
+        'ULT': {'about': '<p>unfoldingWord® Literal Text (2023) and derived from the 1901 ASV.</p>',
                 'copyright': '<p>Copyright © 2022 by unfoldingWord.</p>',
                 'licence': '<p><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
                 'acknowledgements': '<p>Thanks to <a href="https://www.unfoldingword.org/">unfoldingWord</a> for creating this Bible translation which is designed to be a tool for Bible translators.</p>' },
-        'UST': {'about': '<p>unfoldingWord® Simplified Text (2023).</p>',
+        'UST': {'about': '<p>unfoldingWord® Simplified Text (2023). The UST has all passive constructions changed to active forms, and all idioms replaced with their English meanings.</p>',
                 'copyright': '<p>Copyright © 2022 by unfoldingWord.</p>',
                 'licence': '<p><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
                 'acknowledgements': '<p>Thanks to <a href="https://www.unfoldingword.org/">unfoldingWord</a> for creating this specialised Bible translation which is designed to be a tool for Bible translators.</p>' },
+        'BSB': {'about': '<p>Berean Standard Bible (2020).</p>',
+                'copyright': '<p>Copyright © 2016, 2020 by Bible Hub. Used by Permission. All Rights Reserved Worldwide.</p>',
+                'licence': '<p>The Berean Bible text is <a href="https://berean.bible/terms.htm">free to use</a> in any electronic form to promote the reading, learning, and understanding of the Holy Bible as the Word of God.</p>',
+                'acknowledgements': '<p>Thanks to <a href="https://biblehub.com/">BibleHub</a> for the <a href="https://berean.bible/">BSB</a>.</p>' },
+        'BLB': {'about': '<p>Berean Literal Bible (2022).</p>',
+                'copyright': '<p>Copyright © 2022 by Bible Hub. Used by Permission. All Rights Reserved Worldwide.</p>',
+                'licence': '<p>The Berean Bible text is <a href="https://berean.bible/terms.htm">free to use</a> in any electronic form to promote the reading, learning, and understanding of the Holy Bible as the Word of God.</p>',
+                'acknowledgements': '<p>Thanks to <a href="https://biblehub.com/">BibleHub</a> for the <a href="https://berean.bible/">BLB</a>.</p>' },
         'OEB': {'about': '<p>Open English Bible (in progress).</p>',
                 'copyright': '<p>Copyright © 2010-2021 Russell Allen.</p>',
                 'licence': '<p><a href="http://creativecommons.org/publicdomain/zero/1.0/">Creative Commons Zero licence</a>.</p>',
                 'acknowledgements': '<p>Thanks to <a href="https://openenglishbible.org/">Russell Allen and team</a> for generously providing <a href="https://github.com/openenglishbible/Open-English-Bible">this English translation</a>.</p>' },
-        'BSB': {'about': '<p>Berean Study/Standard Bible (2020).</p>',
-                'copyright': '<p>Copyright © 2016, 2020 by Bible Hub. Used by Permission. All Rights Reserved Worldwide.</p>',
-                'licence': '<p>The Berean Bible text is <a href="https://berean.bible/terms.htm">free to use</a> in any electronic form to promote the reading, learning, and understanding of the Holy Bible as the Word of God.</p>',
-                'acknowledgements': '<p>Thanks to <a href="https://biblehub.com/">BibleHub</a> for the <a href="https://berean.bible/">BSB</a>.</p>' },
         'ISV': {'about': '<p>International Standard Version (2020?).</p>',
                 'copyright': '<p>Copyright © (coming).</p>',
                 'licence': '<p>(coming).</p>',
@@ -448,7 +472,11 @@ You can read more about the design of the OET-LV <a href="https://OpenEnglishTra
                 'copyright': '<p>Copyright © 2022 by unfoldingWord.</p>',
                 'licence': '<p><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
                 'acknowledgements': '<p>Thanks to <a href="https://www.unfoldingword.org/">unfoldingWord</a> for creating <a href="https://git.door43.org/unfoldingWord/hbo_uhb">this HB</a> from the <a href="https://hb.openscriptures.org/">OSHB</a>.</p>' },
-        'TN': {'about': '<p>unfoldingWord® Translation Notes (2023).</p>',
+        'TSN': {'about': '<p>Tyndale Open Study Notes (2022).</p>',
+                'copyright': '<p>Copyright © 2022 by Tyndale House Publishers.</p>',
+                'licence': '<p><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
+                'acknowledgements': '<p>Thanks to <a href="https://TyndaleOpenResources.com/">Tyndale House Publishers</a> for their generous open-licensing of these Bible study and related notes.</p>' },
+        'UTN': {'about': '<p>unfoldingWord® Translation Notes (2023).</p>',
                 'copyright': '<p>Copyright © 2022 by unfoldingWord.</p>',
                 'licence': '<p><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
                 'acknowledgements': '<p>Thanks to <a href="https://www.unfoldingword.org/">unfoldingWord</a> for creating <a href="https://git.door43.org/unfoldingWord/en_tn">these notes</a> to assist Bible translators.</p>' },
@@ -480,7 +508,7 @@ def createSitePages() -> bool:
     # Preload our various Bibles
     numLoadedVersions = preloadVersions( state )
     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nPreloaded {len(state.preloadedBibles)} Bible versions: {state.preloadedBibles.keys()}" )
-    preloadUwTranslationNotes( state )
+    # preloadUwTranslationNotes( state )
 
     # Load our OET worddata table
     state.OETRefData = {} # This is where we will store all our temporary ref data
@@ -520,9 +548,10 @@ def createSitePages() -> bool:
         createOETVersionPages( 1, versionFolder, state.preloadedBibles['OET-RV'], state.preloadedBibles['OET-LV'], state )
     for versionAbbreviation, thisBible in state.preloadedBibles.items(): # doesn't include OET pseudo-translation
         thisBible.discover() # Now that all required books are loaded
-        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nCreating version pages for {thisBible.abbreviation}…" )
-        versionFolder = TEMP_BUILD_FOLDER.joinpath( f'{thisBible.abbreviation}/' )
-        createVersionPages( 1, versionFolder, thisBible, state )
+        if versionAbbreviation not in ('TSN','UTN'): # We don't make separate notes pages
+            vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nCreating version pages for {thisBible.abbreviation}…" )
+            versionFolder = TEMP_BUILD_FOLDER.joinpath( f'{thisBible.abbreviation}/' )
+            createVersionPages( 1, versionFolder, thisBible, state )
 
     # We do this later than the createVersionPages above
     #   because we need all versions to have all books loaded and 'discovered', i.e., analysed
@@ -533,9 +562,10 @@ def createSitePages() -> bool:
             versionFolder = TEMP_BUILD_FOLDER.joinpath( f'OET/' )
             createOETSectionPages( 2, versionFolder.joinpath('bySec/'), rvBible, lvBible, state )
     for versionAbbreviation, thisBible in state.preloadedBibles.items(): # doesn't include OET pseudo-translation
-        if thisBible.discoveryResults['ALL']['haveSectionHeadings']:
-            versionFolder = TEMP_BUILD_FOLDER.joinpath( f'{thisBible.abbreviation}/' )
-            createSectionPages( 2, versionFolder.joinpath('bySec/'), thisBible, state )
+        if versionAbbreviation not in ('TSN','UTN'): # We don't make separate notes pages
+            if thisBible.discoveryResults['ALL']['haveSectionHeadings']:
+                versionFolder = TEMP_BUILD_FOLDER.joinpath( f'{thisBible.abbreviation}/' )
+                createSectionPages( 2, versionFolder.joinpath('bySec/'), thisBible, state )
 
     # TODO: We could use multiprocessing to do all these at once
     #   (except that state is quite huge with all preloaded versions and hence expensive to pickle)
@@ -601,7 +631,7 @@ def cleanHTMLFolders( folder:Path, state ) -> bool:
     except FileNotFoundError: pass
     try: shutil.rmtree( folder.joinpath( 'rf/' ) )
     except FileNotFoundError: pass
-    for versionAbbreviation in state.allBibleVersions + ['TN']:
+    for versionAbbreviation in state.allBibleVersions + ['UTN','TSN']:
         vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Removing tree at {folder.joinpath( f'{versionAbbreviation}/' )}/…")
         try: shutil.rmtree( folder.joinpath( f'{versionAbbreviation}/' ) )
         except FileNotFoundError: pass
@@ -676,10 +706,10 @@ def createDetailsPages( level:int, buildFolder:Path, state ) -> bool:
     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nCreating {'TEST ' if TEST_MODE else ''}details pages for {len(state.BibleVersions)} versions…" )
 
     allDetailsHTML = ''
-    for versionAbbreviation in ['OET'] + [versAbbrev for versAbbrev in state.preloadedBibles] + ['TN']:
+    for versionAbbreviation in ['OET'] + [versAbbrev for versAbbrev in state.preloadedBibles] + ['UTN','TSN']:
         versionName =  state.BibleNames[versionAbbreviation]
 
-        if versionAbbreviation not in ('OET','TN'): # (These don't have a BibleLocation)
+        if versionAbbreviation not in ('OET',): # (These don't have a BibleLocation)
             if 'eBible' in state.BibleLocations[versionAbbreviation]:
                 # This code scrapes info from eBible.org copr.htm files, and hence is very fragile (susceptible to upstream changes)
                 with open( os.path.join(state.BibleLocations[versionAbbreviation], 'copr.htm'), 'rt', encoding='utf-8' ) as coprFile:

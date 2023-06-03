@@ -55,7 +55,7 @@ sys.path.append( '../../BibleTransliterations/Python/' )
 from BibleTransliterations import transliterate_Greek, transliterate_Hebrew
 
 from usfm import convertUSFMMarkerListToHtml
-from Bibles import formatTranslationNotes, tidyBBB
+from Bibles import formatUnfoldingWordTranslationNotes, tidyBBB
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
                     makeTop, makeBottom, checkHtml
 from createOETReferencePages import CNTR_BOOK_ID_MAP, livenOETWordLinks
@@ -263,7 +263,7 @@ def createOETInterlinearVersePage( level:int, BBB:str, c:int, v:int, state ) -> 
             rvHtml = f'''<p><span class="wrkName">OET-RV</span> <span class="noBook"><small>{warningText}</small></span></p>'''
         logging.critical( warningText )
         rvVerseEntryList = []
-    tnHtml = formatTranslationNotes( level, BBB, C, V, 'interlinear', state )
+    tnHtml = formatUnfoldingWordTranslationNotes( level, BBB, C, V, 'interlinear', state )
     if tnHtml: tnHtml = f'<div class="TN"><b>uW Translation Notes</b>: {tnHtml}</div><!--end of TN-->\n'
 
     # We need to find where this BCV is in the wordtable

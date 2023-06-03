@@ -59,6 +59,11 @@ span.add { color:grey; }
 span.wj { color:saddlebrown; }
 span.FoS { color:mediumvioletred; }
 
+/* Tyndale SNs */
+span.sn-excerpt { font-family: Arial, Helvetica, sans-serif; color: saddleBrown; }
+span.ital { font-style:italic; }
+span.hebrew { color: orange; }
+span.greek { color: darkgreen; }
 /* uW TNs */
 p.OL { margin-bottom:0; color:indigo; }
 p.Trans { margin-top:0; color:saddlebrown; }

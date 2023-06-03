@@ -47,10 +47,10 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_
 from createOETReferencePages import livenOETWordLinks
 
 
-LAST_MODIFIED_DATE = '2023-05-04' # by RJH
+LAST_MODIFIED_DATE = '2023-05-31' # by RJH
 SHORT_PROGRAM_NAME = "createSectionPages"
 PROGRAM_NAME = "OpenBibleData createSectionPages functions"
-PROGRAM_VERSION = '0.33'
+PROGRAM_VERSION = '0.34'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -291,8 +291,10 @@ def createSectionPages( level:int, folder:Path, thisBible, state ) -> List[str]:
     try: os.makedirs( folder )
     except FileExistsError: pass # they were already there
 
-    allBooksFlag = 'ALL' in state.booksToLoad[thisBible.abbreviation]
-    BBBsToProcess = thisBible.books.keys() if allBooksFlag else state.booksToLoad[thisBible.abbreviation]
+    thisBibleBooksToLoad = state.booksToLoad[thisBible.abbreviation]
+    BBBsToProcess = thisBible.books.keys() if thisBibleBooksToLoad==['ALL'] \
+                else BOOKLIST_NT27 if thisBibleBooksToLoad==['NT'] \
+                else thisBibleBooksToLoad
     if 'OET' in thisBible.abbreviation:
         BBBsToProcess = reorderBooksForOETVersions( BBBsToProcess )
 
@@ -303,8 +305,7 @@ def createSectionPages( level:int, folder:Path, thisBible, state ) -> List[str]:
         and BBB in ('FRT','INT','NUM','SA1','SA2','CH1','EZR','NEH','JOB','SNG','JER','DAN'):
             logging.critical( f"AA Skipped OET sections difficult book: OET-LV {BBB}")
             continue # Too many problems for now
-        if thisBible.abbreviation in state.booksToLoad \
-        and 'ALL' not in state.booksToLoad[thisBible.abbreviation] \
+        if thisBibleBooksToLoad not in (['ALL'],['NT']) \
         and BBB not in state.booksToLoad[thisBible.abbreviation]:
             logging.critical( f"VV Skipped sections difficult book: {thisBible.abbreviation} {BBB}")
             continue # Only create pages for the requested books

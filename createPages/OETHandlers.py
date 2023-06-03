@@ -72,8 +72,8 @@ def findLVQuote( level:int, BBB:str, C:str, V:str, occurrenceNumber:int, origina
 
     Note also that the SR-GNT might have ˚ nomina sacra marks in it, e.g., ˚Ἰησοῦ ˚Χριστοῦ, Υἱοῦ ˚Θεοῦ
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"formatTranslationNotes( {level=}, {BBB} {C}:{V}, {occurrenceNumber=} {originalQuote=}, … )")
-    dPrint( 'Info', DEBUGGING_THIS_MODULE, f"formatTranslationNotes( {level=}, {BBB} {C}:{V}, {occurrenceNumber=} {originalQuote=}, … )")
+    fnPrint( DEBUGGING_THIS_MODULE, f"formatUnfoldingWordTranslationNotes( {level=}, {BBB} {C}:{V}, {occurrenceNumber=} {originalQuote=}, … )")
+    dPrint( 'Info', DEBUGGING_THIS_MODULE, f"formatUnfoldingWordTranslationNotes( {level=}, {BBB} {C}:{V}, {occurrenceNumber=} {originalQuote=}, … )")
     currentOccurrenceNumber = occurrenceNumber
 
     try:

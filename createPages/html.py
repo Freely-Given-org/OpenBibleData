@@ -52,10 +52,10 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 # from Bibles import fetchChapter
 
 
-LAST_MODIFIED_DATE = '2023-05-05' # by RJH
+LAST_MODIFIED_DATE = '2023-06-01' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
-PROGRAM_VERSION = '0.40'
+PROGRAM_VERSION = '0.41'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -136,6 +136,8 @@ def _makeHeader( level:int, versionAbbreviation:str, pageType:str, fileOrFolderN
     #   and with the more specific links if specified.
     initialVersionList = []
     for thisVersionAbbreviation in state.BibleVersions:
+        if thisVersionAbbreviation in ('TSN','UTN'): # Skip notes
+            continue
         if pageType in ('section','section'):
             try:
                 thisBible = state.preloadedBibles['OET-RV' if thisVersionAbbreviation=='OET' else thisVersionAbbreviation]
@@ -210,7 +212,8 @@ def _makeHeader( level:int, versionAbbreviation:str, pageType:str, fileOrFolderN
     #     halt
 
     viewLinks = []
-    if pageType in ('book','section','chapter','details') and versionAbbreviation!='TN':
+    if pageType in ('book','section','chapter','details') \
+    and versionAbbreviation not in ('TSN','UTN'):
         if not versionAbbreviation: versionAbbreviation = 'OET'
         viewLinks.append( versionAbbreviation )
         if pageType != 'book':
