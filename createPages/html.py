@@ -48,14 +48,15 @@ import re
 # import BibleOrgSysGlobals
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
+from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39, BOOKLIST_NT27
 
 # from Bibles import fetchChapter
 
 
-LAST_MODIFIED_DATE = '2023-06-01' # by RJH
+LAST_MODIFIED_DATE = '2023-06-03' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
-PROGRAM_VERSION = '0.41'
+PROGRAM_VERSION = '0.42'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -230,6 +231,35 @@ def _makeHeader( level:int, versionAbbreviation:str, pageType:str, fileOrFolderN
     return f'''<div class="header">{versionHtml}{NEWLINE if viewHtml else ''}{viewHtml}</div><!--header-->'''
 # end of html._makeHeader
 
+
+def makeBookNavListParagraph( linksList:List[str], state ) -> str:
+    """
+    """
+    newList = []
+    for aLink in linksList:
+        # print( f"{aLink=}")
+        ixStart = aLink.index( '>' ) + 1
+        ixEnd = aLink.index( '<', ixStart )
+        displayText = aLink[ixStart:ixEnd]
+        # print( f"  {aLink=} {displayText=}")
+        assert len(displayText) == 3 # it should be a tidyBBB
+        BBB = 'JAM' if displayText=='JAC' else 'PS2' if displayText=='2PS' else BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromText( displayText )
+        # print( f"   {aLink=} {displayText=} {BBB=}")
+        assert BBB
+        newALink = f'{aLink[:ixStart]}{displayText}{aLink[ixEnd:]}'
+        if BBB in BOOKLIST_OT39:
+            newALink = f'<span class="OT">{newALink}</span>'
+        elif BBB in BOOKLIST_NT27:
+            newALink = f'<span class="NT">{newALink}</span>'
+        else: # DC book
+            newALink = f'<span class="DC">{newALink}</span>'
+        # print( f"    {aLink=} {displayText=} {BBB=} {newALink=}")
+        newList.append( newALink )
+
+    return f'''<p class="bkLst">{' '.join( newList )}</p>'''
+# end of html.makeBookNavListParagraph
+
+
 def makeBottom( level:int, pageType:str, state ) -> str:
     """
     Create the very bottom part of an HTML page.
@@ -247,7 +277,8 @@ def _makeFooter( level:int, pageType:str, state ) -> str:
     from createSitePages import TEST_MODE
     # fnPrint( DEBUGGING_THIS_MODULE, f"_makeFooter()" )
     html = f"""<div class="footer">
-<p class="copyright"><small><em>{'TEST ' if TEST_MODE else ''}Open Bible Data</em> site copyright © 2023 <a href="https://Freely-Given.org">Freely-Given.org</a>{datetime.now().strftime(' (Page created: %Y-%m-%d %H:%M)') if TEST_MODE else ''}</small></p>
+<p class="copyright"><small><em>{'TEST ' if TEST_MODE else ''}Open Bible Data</em> site copyright © 2023 <a href="https://Freely-Given.org">Freely-Given.org</a>
+<br>Python source code for creating these static pages is available <a href="https://GitHub.com/Freely-Given-org/OpenBibleData">here</a> under an <a href="https://GitHub.com/Freely-Given-org/OpenBibleData/blob/main/LICENSE">open licence</a>.{datetime.now().strftime('<br> (Page created: %Y-%m-%d %H:%M)') if TEST_MODE else ''}</small></p>
 <p class="copyright"><small>For Bible data copyrights, see the <a href="{'../'*level}allDetails.htm">details</a> for each displayed Bible version.</small></p>
 </div><!--footer-->"""
     return html

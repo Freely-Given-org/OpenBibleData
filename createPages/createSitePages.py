@@ -64,16 +64,16 @@ from createOETReferencePages import createOETReferencePages
 from html import makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-06-02' # by RJH
+LAST_MODIFIED_DATE = '2023-06-06' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData Create Pages"
-PROGRAM_VERSION = '0.63'
+PROGRAM_VERSION = '0.64'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
-TEST_MODE = True # Writes website into Test subfolder
+TEST_MODE = False # Writes website into Test subfolder
 
-ALL_PRODUCTION_BOOKS = 1 or not TEST_MODE # If set to False, only selects one book per version for a faster test build
+ALL_PRODUCTION_BOOKS = not TEST_MODE # If set to False, only selects one book per version for a faster test build
 
 TEMP_BUILD_FOLDER = Path( '/tmp/OBDHtmlPages/' )
 NORMAL_DESTINATION_FOLDER = Path( '../htmlPages/' )
@@ -81,13 +81,15 @@ DEBUG_DESTINATION_FOLDER = NORMAL_DESTINATION_FOLDER.joinpath( 'Test/')
 DESTINATION_FOLDER = DEBUG_DESTINATION_FOLDER if TEST_MODE or BibleOrgSysGlobals.debugFlag \
                         else NORMAL_DESTINATION_FOLDER
 
-
 OET_BOOK_LIST = ('JHN','MRK','ACT', 'EPH', 'TI1','TI2','TIT', 'JAM', 'JN1','JN2','JN3', 'JDE')
 OET_BOOK_LIST_WITH_FRT = ('FRT',) + OET_BOOK_LIST # 'INT'
 NT_BOOK_LIST_WITH_FRT = ('FRT',) + BOOKLIST_NT27
 assert len(NT_BOOK_LIST_WITH_FRT) == 27+1
 OT_BOOK_LIST_WITH_FRT = ('FRT',) + BOOKLIST_OT39
 assert len(OT_BOOK_LIST_WITH_FRT) == 39+1
+
+# The version to link to when the OET doesn't have that book (yet)
+ALTERNATIVE_VERSION = 'WEB' # Should be a version with all books present
 
 
 
@@ -135,43 +137,43 @@ class State:
                 'OET-LV': '../../OpenEnglishTranslation--OET/intermediateTexts/auto_edited_VLT_ESFM/', # No OT here yet
                 # NOTE: The program will still run if some of these below are commented out or removed
                 # (e.g., this can be done quickly for a faster test)
-                # 'ULT': '../copiedBibles/English/unfoldingWord.org/ULT/',
-                # 'UST': '../copiedBibles/English/unfoldingWord.org/UST/',
-                # 'BSB': '../copiedBibles/English/Berean.Bible/BSB/',
-                # 'BLB': '../copiedBibles/English/Berean.Bible/BLB/blb.modified.txt', # NT only so far
-                # 'OEB': '../copiedBibles/English/OEB/',
+                'ULT': '../copiedBibles/English/unfoldingWord.org/ULT/',
+                'UST': '../copiedBibles/English/unfoldingWord.org/UST/',
+                'BSB': '../copiedBibles/English/Berean.Bible/BSB/',
+                'BLB': '../copiedBibles/English/Berean.Bible/BLB/blb.modified.txt', # NT only so far
+                'OEB': '../copiedBibles/English/OEB/',
                 # 'ISV': '',
                 'WEB': '../copiedBibles/English/eBible.org/WEB/',
-                # 'WMB': '../copiedBibles/English/eBible.org/WMB/',
-                # 'NET': '../copiedBibles/English/eBible.org/NET/',
-                # 'LSV': '../copiedBibles/English/eBible.org/LSV/',
-                # 'FBV': '../copiedBibles/English/eBible.org/FBV/',
-                # 'TCNT': '../copiedBibles/English/eBible.org/TCNT/',
-                # 'T4T': '../copiedBibles/English/eBible.org/T4T/',
-                # 'LEB': '../copiedBibles/English/LogosBibleSoftware/LEB/LEB.xml', # not OSIS
-                # 'BBE': '../copiedBibles/English/eBible.org/BBE/',
-                # 'JPS': '../copiedBibles/English/eBible.org/JPS/',
-                # 'ASV': '../copiedBibles/English/eBible.org/ASV/',
-                # 'DRA': '../copiedBibles/English/eBible.org/DRA/',
-                # 'YLT': '../copiedBibles/English/eBible.org/YLT/',
-                # 'DBY': '../copiedBibles/English/eBible.org/DBY/',
-                # 'RV': '../copiedBibles/English/eBible.org/RV/', # with deuterocanon
-                # 'WBS': '../copiedBibles/English/eBible.org/RV/',
-                # 'KJB': '../copiedBibles/English/eBible.org/KJB/', # with deuterocanon
-                # 'BB': '/mnt/SSDs/Bibles/DataSets/BibleSuperSearch.com/v5.0/TXT/bishops.txt',
-                # 'GNV': '../copiedBibles/English/eBible.org/GNV/',
-                # 'CB': '/mnt/SSDs/Bibles/DataSets/BibleSuperSearch.com/v5.0/TXT/coverdale.txt',
-                # 'TNT': '../copiedBibles/English/eBible.org/TNT/',
-                # 'WYC': '/mnt/SSDs/Bibles/Zefania modules/SF_2009-01-20_ENG_BIBLE_WYCLIFFE_(JOHN WYCLIFFE BIBLE).xml',
-                # 'CLV': '../copiedBibles/Latin/eBible.org/CLV/',
-                # 'SR-GNT': '../../Forked/CNTR-SR/SR usfm/',
-                # 'UGNT': '../copiedBibles/Original/unfoldingWord.org/UGNT/',
-                # 'SBL-GNT': '../../Forked/SBLGNT/data/sblgnt/text/',
-                # 'TC-GNT': '../copiedBibles/Greek/eBible.org/TC-GNT/',
-                # 'BRN': '../copiedBibles/English/eBible.org/Brenton/', # with deuterocanon and OTH,XXA,XXB,XXC,
-                # 'BrLXX': '../copiedBibles/Greek/eBible.org/BrLXX/',
-                # 'UHB': '../copiedBibles/Original/unfoldingWord.org/UHB/',
-                # NOTE: Notes are special cases (skipped in many parts of the program)
+                'WMB': '../copiedBibles/English/eBible.org/WMB/',
+                'NET': '../copiedBibles/English/eBible.org/NET/',
+                'LSV': '../copiedBibles/English/eBible.org/LSV/',
+                'FBV': '../copiedBibles/English/eBible.org/FBV/',
+                'TCNT': '../copiedBibles/English/eBible.org/TCNT/',
+                'T4T': '../copiedBibles/English/eBible.org/T4T/',
+                'LEB': '../copiedBibles/English/LogosBibleSoftware/LEB/LEB.xml', # not OSIS
+                'BBE': '../copiedBibles/English/eBible.org/BBE/',
+                'JPS': '../copiedBibles/English/eBible.org/JPS/',
+                'ASV': '../copiedBibles/English/eBible.org/ASV/',
+                'DRA': '../copiedBibles/English/eBible.org/DRA/',
+                'YLT': '../copiedBibles/English/eBible.org/YLT/',
+                'DBY': '../copiedBibles/English/eBible.org/DBY/',
+                'RV': '../copiedBibles/English/eBible.org/RV/', # with deuterocanon
+                'WBS': '../copiedBibles/English/eBible.org/RV/',
+                'KJB': '../copiedBibles/English/eBible.org/KJB/', # with deuterocanon
+                'BB': '/mnt/SSDs/Bibles/DataSets/BibleSuperSearch.com/v5.0/TXT/bishops.txt',
+                'GNV': '../copiedBibles/English/eBible.org/GNV/',
+                'CB': '/mnt/SSDs/Bibles/DataSets/BibleSuperSearch.com/v5.0/TXT/coverdale.txt',
+                'TNT': '../copiedBibles/English/eBible.org/TNT/',
+                'WYC': '/mnt/SSDs/Bibles/Zefania modules/SF_2009-01-20_ENG_BIBLE_WYCLIFFE_(JOHN WYCLIFFE BIBLE).xml',
+                'CLV': '../copiedBibles/Latin/eBible.org/CLV/',
+                'SR-GNT': '../../Forked/CNTR-SR/SR usfm/',
+                'UGNT': '../copiedBibles/Original/unfoldingWord.org/UGNT/',
+                'SBL-GNT': '../../Forked/SBLGNT/data/sblgnt/text/',
+                'TC-GNT': '../copiedBibles/Greek/eBible.org/TC-GNT/',
+                'BRN': '../copiedBibles/English/eBible.org/Brenton/', # with deuterocanon and OTH,XXA,XXB,XXC,
+                'BrLXX': '../copiedBibles/Greek/eBible.org/BrLXX/',
+                'UHB': '../copiedBibles/Original/unfoldingWord.org/UHB/',
+                # NOTE: Notes are special cases here at the end (skipped in many parts of the program)
                 'TSN': '../copiedBibles/English/Tyndale/OSN/',
                 'UTN': '../copiedBibles/English/unfoldingWord.org/UTN/',
                 }

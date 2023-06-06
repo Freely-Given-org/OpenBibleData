@@ -10,6 +10,14 @@ p.wrkLst { background-color:#904471; color:98a9d4; }
 p.viewLst {background-color:#936EA1; color:98a9d4; }
 .viewLst a { text-decoration:none; color:white; }
 
+/* For bkList class */
+span.OT { color: saddlebrown; }
+.OT a { text-decoration:none; }
+span.NT { color: darkgreen; }
+.NT a { text-decoration:none; }
+span.DC { color: orange; font-size: smaller; }
+.DC a { text-decoration:none; }
+
 div.footer { width: 500px; height: 250px; margin: 50px; }
 
 p.rem { font-size:0.8em; color:grey; }

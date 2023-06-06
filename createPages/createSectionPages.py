@@ -43,14 +43,14 @@ import BibleOrgSys.Formats.ESFMBible as ESFMBible
 from usfm import convertUSFMMarkerListToHtml
 from Bibles import tidyBBB
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
-                    makeTop, makeBottom, removeDuplicateCVids, checkHtml
+                    makeTop, makeBottom, makeBookNavListParagraph, removeDuplicateCVids, checkHtml
 from createOETReferencePages import livenOETWordLinks
 
 
-LAST_MODIFIED_DATE = '2023-05-31' # by RJH
+LAST_MODIFIED_DATE = '2023-06-06' # by RJH
 SHORT_PROGRAM_NAME = "createSectionPages"
 PROGRAM_NAME = "OpenBibleData createSectionPages functions"
-PROGRAM_VERSION = '0.34'
+PROGRAM_VERSION = '0.35'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -266,7 +266,7 @@ def createOETSectionPages( level:int, folder:Path, rvBible, lvBible, state ) -> 
             .replace( f'''<a title="{state.BibleNames['OET']}" href="{'../'*2}OET">OET</a>''', 'OET' )
     indexHtml = top \
                 + '<h1 id="Top">OET section pages</h1><h2>Index of OET books</h2>\n' \
-                + f'''<p class="bkLst">{' '.join( BBBLinks )}</p>\n''' \
+                + f'''{makeBookNavListParagraph(BBBLinks, state)}\n''' \
                 + makeBottom( level, 'section', state)
     checkHtml( 'OET sections', indexHtml )
     with open( filepath, 'wt', encoding='utf-8' ) as sectionHtmlFile:
@@ -450,7 +450,7 @@ def createSectionPages( level:int, folder:Path, thisBible, state ) -> List[str]:
             .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}">{thisBible.abbreviation}</a>''', thisBible.abbreviation )
     indexHtml = top \
                 + f'<h1 id="Top">{thisBible.abbreviation} section pages</h1><h2>Index of {thisBible.abbreviation} books</h2>\n' \
-                + f'''<p class="bkLst">{' '.join( BBBLinks )}</p>\n''' \
+                + f'''{makeBookNavListParagraph(BBBLinks, state)}\n''' \
                 + makeBottom( level, 'section', state)
     checkHtml( thisBible.abbreviation, indexHtml )
     with open( filepath, 'wt', encoding='utf-8' ) as sectionHtmlFile:

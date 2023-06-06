@@ -55,16 +55,16 @@ sys.path.append( '../../BibleTransliterations/Python/' )
 from BibleTransliterations import transliterate_Greek, transliterate_Hebrew
 
 from usfm import convertUSFMMarkerListToHtml
-from Bibles import formatUnfoldingWordTranslationNotes, tidyBBB
+from Bibles import formatUnfoldingWordTranslationNotes, formatTyndaleStudyNotes, tidyBBB
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
-                    makeTop, makeBottom, checkHtml
+                    makeTop, makeBottom, makeBookNavListParagraph, checkHtml
 from createOETReferencePages import CNTR_BOOK_ID_MAP, livenOETWordLinks
 
 
-LAST_MODIFIED_DATE = '2023-05-28' # by RJH
+LAST_MODIFIED_DATE = '2023-06-06' # by RJH
 SHORT_PROGRAM_NAME = "createOETInterlinearPages"
 PROGRAM_NAME = "OpenBibleData createOETInterlinearPages functions"
-PROGRAM_VERSION = '0.20'
+PROGRAM_VERSION = '0.22'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -106,7 +106,7 @@ def createOETInterlinearPages( level:int, folder:Path, state ) -> bool:
             .replace( '__KEYWORDS__', f'Bible, interlinear' )
     indexHtml = top \
                 + '<h1 id="Top">OET interlinear verse pages</h1><h2>Index of books</h2>\n' \
-                + f'''<p class="bkLst">{' '.join( BBBLinks )}</p>\n''' \
+                + f'''{makeBookNavListParagraph(BBBLinks, state)}\n''' \
                 + makeBottom( level, 'interlinear', state )
     checkHtml( 'InterlinearIndex', indexHtml )
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
@@ -133,7 +133,8 @@ def createOETInterlinearVersePagesForBook( level:int, folder:Path, BBB:str, BBBL
     # We don't want the book link for this book to be a recursive link, so remove <a> marking
     ourTidyBBB = tidyBBB( BBB )
     ourTidyBbb = tidyBBB( BBB, titleCase=True )
-    adjBBBLinksHtml = ' '.join(BBBLinks).replace( f'''<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB).replace('James','Jacob/James')}" href="../{BBB}/">{ourTidyBBB}</a>''', ourTidyBBB )
+    adjBBBLinksHtml = makeBookNavListParagraph(BBBLinks, state) \
+            .replace( f'''<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB).replace('James','Jacob/James')}" href="../{BBB}/">{ourTidyBBB}</a>''', ourTidyBBB )
 
     numChapters = None
     for versionAbbreviation in state.BibleVersions:
@@ -175,7 +176,7 @@ def createOETInterlinearVersePagesForBook( level:int, folder:Path, BBB:str, BBBL
                         .replace( '__KEYWORDS__', f'Bible, {ourTidyBBB}, interlinear' ) \
                         .replace( f'''href="{'../'*level}pa/"''', f'''href="{'../'*level}pa/{BBB}/C{c}V{v}.htm"''')
                 iHtml = top + '<!--interlinear verse page-->' \
-                        + f'<p class="bkLst">{adjBBBLinksHtml}</p>\n<h1 id="Top">OET interlinear {ourTidyBBB} {c}:{v}</h1>\n' \
+                        + f'{adjBBBLinksHtml}\n<h1 id="Top">OET interlinear {ourTidyBBB} {c}:{v}</h1>\n' \
                         + f"{navLinks.replace('__ID__','Top').replace('__ARROW__','↓').replace('__LINK__','Bottom').replace('__WHERE__','bottom')}\n" \
                         + iHtml \
                         + f"\n{navLinks.replace('__ID__','Bottom').replace('__ARROW__','↑').replace('__LINK__','Top').replace('__WHERE__','top')}\n" \
@@ -263,8 +264,11 @@ def createOETInterlinearVersePage( level:int, BBB:str, c:int, v:int, state ) -> 
             rvHtml = f'''<p><span class="wrkName">OET-RV</span> <span class="noBook"><small>{warningText}</small></span></p>'''
         logging.critical( warningText )
         rvVerseEntryList = []
-    tnHtml = formatUnfoldingWordTranslationNotes( level, BBB, C, V, 'interlinear', state )
-    if tnHtml: tnHtml = f'<div class="TN"><b>uW Translation Notes</b>: {tnHtml}</div><!--end of TN-->\n'
+    # Handle (uW) translation notes and (Tyndale) study notes
+    utnHtml = formatUnfoldingWordTranslationNotes( level, BBB, C, V, 'interlinear', state )
+    if utnHtml: utnHtml = f'<div class="UTN"><b>uW Translation Notes</b>: {utnHtml}</div><!--end of UTN-->\n'
+    tsnHtml = formatTyndaleStudyNotes( level, BBB, C, V, 'parallel', state )
+    if tsnHtml: tsnHtml = f'<div class="TSN">TSN <b>Tyndale Study Notes</b>: {tsnHtml}</div><!--end of TSN-->\n'
 
     # We need to find where this BCV is in the wordtable
     # Rather than go thru the entire table, find any wordnumber in the verse, then work back from there
@@ -407,7 +411,9 @@ def createOETInterlinearVersePage( level:int, BBB:str, c:int, v:int, state ) -> 
     html = f'''{html}{iHtml}</ol></div><!--interlinear-->
 {lvHtml}
 {rvHtml}
-{tnHtml}<h2>OET-LV English word order (‘Reverse’ interlinear)</h2><div class=interlinear><ol class=verse>'''
+{utnHtml}
+{tsnHtml}
+<h2>OET-LV English word order (‘reverse’ interlinear)</h2><div class=interlinear><ol class=verse>'''
 
     # Now create the reverseInterlinear
     riHtml = ''

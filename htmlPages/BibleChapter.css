@@ -19,6 +19,15 @@ p.viewLst {background-color:#936EA1; color:98a9d4; }
 .viewLst a { text-decoration:none; color:white; }
 p.bkLst {background-color:#F9F871 }
 
+/* For bkList class */
+span.OT { color: saddlebrown; }
+.OT a { text-decoration:none; }
+span.NT { color: darkgreen; }
+.NT a { text-decoration:none; }
+span.DC { color: orange; font-size: smaller; }
+.DC a { text-decoration:none; }
+
+
 p.secNav { text-align:center; font-size:1.8em; }
 p.cNav { text-align:center; font-size:1.8em; background-color:#98a9d4; }
 /* .cNav a { text-decoration: none; } */

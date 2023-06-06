@@ -41,14 +41,14 @@ import BibleOrgSys.Formats.ESFMBible as ESFMBible
 from usfm import convertUSFMMarkerListToHtml
 from Bibles import tidyBBB
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
-                    makeTop, makeBottom, removeDuplicateCVids, checkHtml
+                    makeTop, makeBottom, makeBookNavListParagraph, removeDuplicateCVids, checkHtml
 from createOETReferencePages import livenOETWordLinks
 
 
-LAST_MODIFIED_DATE = '2023-05-31' # by RJH
+LAST_MODIFIED_DATE = '2023-06-06' # by RJH
 SHORT_PROGRAM_NAME = "createChapterPages"
 PROGRAM_NAME = "OpenBibleData createChapterPages functions"
-PROGRAM_VERSION = '0.41'
+PROGRAM_VERSION = '0.42'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -235,7 +235,7 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
                       f'''<a title="{state.BibleNames['OET']}" href="{'../'*level}OET">↑OET</a>''' )
     indexHtml = top \
                 + '<h1 id="Top">OET chapter pages</h1><h2>Index of books</h2>\n' \
-                + f'''<p class="bkLst">{' '.join( BBBLinks )}</p>\n''' \
+                + f'''{makeBookNavListParagraph(BBBLinks, state)}\n''' \
                 + makeBottom( level, 'chapter', state )
     checkHtml( 'OETBooksIndex', indexHtml )
     with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
@@ -422,7 +422,7 @@ def createChapterPages( level:int, folder:Path, thisBible, state ) -> List[str]:
                       f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*level}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}">↑{thisBible.abbreviation}</a>''' )
     indexHtml = top \
                 + f'<h1 id="Top">{thisBible.abbreviation} chapter pages</h1><h2>Index of books</h2>\n' \
-                + f'''<p class="bkLst">{' '.join( BBBLinks )}</p>\n''' \
+                + f'''{makeBookNavListParagraph(BBBLinks, state)}\n''' \
                 + makeBottom( level, 'chapter', state)
     checkHtml( thisBible.abbreviation, indexHtml )
     with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:

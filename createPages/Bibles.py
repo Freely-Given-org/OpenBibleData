@@ -65,15 +65,16 @@ from html import checkHtml
 from OETHandlers import findLVQuote
 
 
-LAST_MODIFIED_DATE = '2023-06-01' # by RJH
+LAST_MODIFIED_DATE = '2023-06-06' # by RJH
 SHORT_PROGRAM_NAME = "Bibles"
 PROGRAM_NAME = "OpenBibleData Bibles handler"
-PROGRAM_VERSION = '0.32'
+PROGRAM_VERSION = '0.35'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
 
 NEW_LINE = '\n'
+
 
 
 def preloadVersions( state ) -> int:
@@ -494,15 +495,18 @@ def formatUnfoldingWordTranslationNotes( level:int, BBB, C:str, V:str, segmentTy
 
     if BBB not in ('LEV','HAG','MAT'): # We have a problem at Lev 1:3, Hag 1:0, Mat 27:0
         assert 'rc://' not in tnHtml, f"TN {BBB} {C}:{V} {tnHtml=}"
-    checkHtml( f'TN {BBB} {C}:{V}', tnHtml, segmentOnly=True )
+    checkHtml( f'UTN {BBB} {C}:{V}', tnHtml, segmentOnly=True )
     return tnHtml
 # end of Bibles.formatUnfoldingWordTranslationNotes
 
 
 def formatTyndaleStudyNotes( level:int, BBB, C:str, V:str, segmentType:str, state ) -> str: # html
     """
+    These are mostly HTML encoded inside USFM fields.
     """
-    fnPrint( 1 or DEBUGGING_THIS_MODULE, f"formatTyndaleStudyNotes( {BBB}, {C}:{V}, {segmentType=} )")
+    from createSitePages import ALTERNATIVE_VERSION
+    
+    fnPrint( DEBUGGING_THIS_MODULE, f"formatTyndaleStudyNotes( {BBB}, {C}:{V}, {segmentType=} )")
     assert segmentType in ('parallel','interlinear')
 
     try:
@@ -513,9 +517,6 @@ def formatTyndaleStudyNotes( level:int, BBB, C:str, V:str, segmentType:str, stat
     # if not verseEntryList:
     #     logging.warning( f"Tyndale have no study notesB for {BBB} {C}:{V}")
     #     return ''
-
-    # if BBB=='MRK' and C=='4' and V=='25':
-    #     print( f"{BBB} {C}:{V} {verseEntryList=} {_contextList=}" )
 
     snHtml = ''
     for entry in verseEntryList:
@@ -528,7 +529,48 @@ def formatTyndaleStudyNotes( level:int, BBB, C:str, V:str, segmentType:str, stat
             rest = rest.replace( '•', '<br>•' )
             snHtml = f'{snHtml}<p class="TSN">{rest}</p>'
     
-    checkHtml( f'SN {BBB} {C}:{V}', snHtml, segmentOnly=True )
+    # Fix their links like '<a href="?bref=Mark.4.14-20">4:14-20</a>'
+    # Doesn't yet handle links like '(see “<a href="?item=FollowingJesus_ThemeNote_Filament">Following Jesus</a>” Theme Note)'
+    searchStartIndex = 0
+    for _safetyCount in range( 54 ): # 50 wasn't enough for ACT 9:2
+        ixStart = snHtml.find( 'href="?bref=', searchStartIndex )
+        if ixStart == -1: # none/no more found
+            break
+        ixCloseQuote = snHtml.find( '"', ixStart+12 )
+        assert ixCloseQuote != -1
+        tyndaleLinkPart = snHtml[ixStart+12:ixCloseQuote]
+        # print( f"TSN {BBB} {C}:{V} {tyndaleLinkPart=}" )
+        if 'Filament' in tyndaleLinkPart: # e.g., in GEN 48:14 '2Chr.28.12_StudyNote_Filament'
+            logging.critical( f"Ignoring Filament link in TSN {BBB} {C}:{V} {tyndaleLinkPart=}" )
+            searchStartIndex = ixCloseQuote + 6
+            continue
+        if '-' in tyndaleLinkPart: # then it's a verse range
+            tyndaleLinkPart = tyndaleLinkPart.split('-')[0]
+            tBkCode, tC, tV = tyndaleLinkPart.split( '.' )
+            if tBkCode.endswith('Thes'):
+                tBkCode += 's' # TODO: getBBBFromText should handle '1Thes'
+            assert tC.isdigit()
+            assert tV.isdigit()
+            tBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromText( tBkCode )
+            assert tBBB
+            linkVersion = 'OET' if tBBB in state.booksToLoad['OET'] else ALTERNATIVE_VERSION
+            ourNewLink = f"{'../'*level}{linkVersion}/byC/{tBBB}_C{tC}.htm#C{tC}V{tV}" # Because it's a range, we link to the chapter page
+            # print( f"   {ourNewLink=}" )
+        else: # no hyphen so it's not a range
+            tBkCode, tC, tV = tyndaleLinkPart.split( '.' )
+            if tBkCode.endswith('Thes'):
+                tBkCode += 's' # TODO: getBBBFromText should handle '1Thes'
+            assert tC.isdigit()
+            assert tV.isdigit()
+            tBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromText( tBkCode )
+            assert tBBB
+            ourNewLink = f'../{tBBB}/C{tC}V{tV}.htm#Top' # we link to the parallel verse page
+            # print( f"   {ourNewLink=}" )
+        snHtml = f'''{snHtml[:ixStart+6]}{ourNewLink}{snHtml[ixCloseQuote:]}'''
+        searchStartIndex = ixCloseQuote + 6
+    else: need_to_increase_TSN_bref_loop_counter
+
+    checkHtml( f'TSN {BBB} {C}:{V}', snHtml, segmentOnly=True )
     # if BBB=='RUT' and C=='1' and V=='4': halt
     return snHtml
 # end of Bibles.formatTyndaleStudyNotes
