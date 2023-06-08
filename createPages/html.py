@@ -137,7 +137,7 @@ def _makeHeader( level:int, versionAbbreviation:str, pageType:str, fileOrFolderN
     #   and with the more specific links if specified.
     initialVersionList = []
     for thisVersionAbbreviation in state.BibleVersions:
-        if thisVersionAbbreviation in ('TSN','UTN'): # Skip notes
+        if thisVersionAbbreviation in ('TSN','TTN','UTN'): # Skip notes
             continue
         if pageType in ('section','section'):
             try:
@@ -214,7 +214,7 @@ def _makeHeader( level:int, versionAbbreviation:str, pageType:str, fileOrFolderN
 
     viewLinks = []
     if pageType in ('book','section','chapter','details') \
-    and versionAbbreviation not in ('TSN','UTN'):
+    and versionAbbreviation not in ('TSN','TTN','UTN'):
         if not versionAbbreviation: versionAbbreviation = 'OET'
         viewLinks.append( versionAbbreviation )
         if pageType != 'book':

@@ -13,11 +13,17 @@ a:hover { text-decoration: none; }
 a:active { text-decoration: none; } */
 a { text-decoration: none; }
 
+/* Navigational lists at top of page */
 p.wrkLst { background-color:#904471; color:98a9d4; }
 .wrkLst a { text-decoration:none; color:white; }
 p.viewLst {background-color:#936EA1; color:98a9d4; }
 .viewLst a { text-decoration:none; color:white; }
-p.bkLst {background-color:#F9F871 }
+p.bkLst {background-color:#F9F871; }
+.bkLst a { color:inherit; text-decoration:none; }
+p.chLst {background-color:paleGreen; }
+.chLst a { text-decoration:none; }
+p.vsLst {background-color:mistyRose; }
+.vsLst a { text-decoration:none; }
 
 /* For bkList class */
 span.OT { color: saddlebrown; }
@@ -27,6 +33,7 @@ span.NT { color: darkgreen; }
 span.DC { color: orange; font-size: smaller; }
 .DC a { text-decoration:none; }
 
+/* Navs are the ones with arrows */
 p.cNav { text-align:center; font-size:1.8em; background-color:#98a9d4; }
 /* .cNav a { text-decoration: none; } */
 p.vNav { text-align:center; font-size:1.8em; }
@@ -72,6 +79,9 @@ span.sn-excerpt { font-family: Arial, Helvetica, sans-serif; color: saddleBrown;
 span.ital { font-style:italic; }
 span.hebrew { color: orange; }
 span.greek { color: darkgreen; }
+/* Tyndale TNs */
+p.theme-title { font-weight:bold; }
+p.theme-refs-title { font-weight:bold; }
 /* uW TNs */
 p.OL { margin-bottom:0; color:indigo; }
 p.Trans { margin-top:0; color:saddlebrown; }

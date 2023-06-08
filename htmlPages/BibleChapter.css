@@ -1,3 +1,5 @@
+/* Also used for sections */
+
 /* button#underlineButton { float:right; }
 div.container { display:grid; column-gap:0.6em; grid-template-columns:0.85fr 1.15fr; }
 div.BibleText { } */
@@ -13,11 +15,17 @@ a:hover { text-decoration: none; }
 a:active { text-decoration: none; } */
 a { text-decoration: none; }
 
+/* Navigational lists at top of page */
 p.wrkLst { background-color:#904471; color:98a9d4; }
 .wrkLst a { text-decoration:none; color:white; }
 p.viewLst {background-color:#936EA1; color:98a9d4; }
 .viewLst a { text-decoration:none; color:white; }
-p.bkLst {background-color:#F9F871 }
+p.bkLst {background-color:#F9F871; }
+.bkLst a { color:inherit; text-decoration:none; }
+p.chLst {background-color:paleGreen; }
+.chLst a { text-decoration:none; }
+p.vsLst {background-color:mistyRose; }
+.vsLst a { text-decoration:none; }
 
 /* For bkList class */
 span.OT { color: saddlebrown; }
@@ -27,7 +35,7 @@ span.NT { color: darkgreen; }
 span.DC { color: orange; font-size: smaller; }
 .DC a { text-decoration:none; }
 
-
+/* Navs are the ones with arrows */
 p.secNav { text-align:center; font-size:1.8em; }
 p.cNav { text-align:center; font-size:1.8em; background-color:#98a9d4; }
 /* .cNav a { text-decoration: none; } */
