@@ -378,14 +378,14 @@ def formatTyndaleBookIntro( abbrev:str, level:int, BBB:str, segmentType:str, sta
     # print( f'{abbrev} {BBB} Intro {html=}' )
 
     # Fix their links like '<a href="?bref=Mark.4.14-20">4:14-20</a>'
-    bHtml = fixTyndaleBRefs( level, bHtml, state )
+    bHtml = fixTyndaleBRefs( abbrev, level, BBB, bHtml, state )
 
     checkHtml( f'{abbrev} {BBB}', bHtml, segmentOnly=True )
     return bHtml
 # end of Bibles.formatTyndaleBookIntro
 
 
-def formatTyndaleNotes( abbrev:str, level:int, BBB, C:str, V:str, segmentType:str, state ) -> str: # html
+def formatTyndaleNotes( abbrev:str, level:int, BBB:str, C:str, V:str, segmentType:str, state ) -> str: # html
     """
     These are mostly HTML encoded inside USFM fields.
     """
@@ -455,7 +455,7 @@ def formatTyndaleNotes( abbrev:str, level:int, BBB, C:str, V:str, segmentType:st
         lastMarker = marker
 
     # Fix their links like '<a href="?bref=Mark.4.14-20">4:14-20</a>'
-    nHtml = fixTyndaleBRefs( level, nHtml, state )
+    nHtml = fixTyndaleBRefs( abbrev, level, BBB, nHtml, state )
 
     checkHtml( f'{abbrev} {BBB} {C}:{V}', nHtml, segmentOnly=True )
     # if abbrev=='TTN' and BBB=='MRK' and C=='1' and V=='14': halt
@@ -463,12 +463,12 @@ def formatTyndaleNotes( abbrev:str, level:int, BBB, C:str, V:str, segmentType:st
 # end of Bibles.formatTyndaleNotes
 
 
-def fixTyndaleBRefs( level:int, html:str, state ) -> str:
+def fixTyndaleBRefs( abbrev:str, level:int, BBB:str, html:str, state ) -> str:
     """
     """
     from createSitePages import ALTERNATIVE_VERSION
 
-    fnPrint( DEBUGGING_THIS_MODULE, f"fixTyndaleBRefs( {level}, {html}, ... )")
+    fnPrint( DEBUGGING_THIS_MODULE, f"fixTyndaleBRefs( {abbrev}, {level}, {html}, ... )")
 
     # Fix their links like '<a href="?bref=Mark.4.14-20">4:14-20</a>'
     # Doesn't yet handle links like '(see “<a href="?item=FollowingJesus_ThemeNote_Filament">Following Jesus</a>” Theme Note)'
