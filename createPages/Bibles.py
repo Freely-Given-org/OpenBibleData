@@ -42,6 +42,7 @@ from typing import Dict, List, Tuple, Optional
 import os.path
 import logging
 import re
+from xml.etree.ElementTree import ElementTree, ParseError
 
 import sys
 sys.path.append( '../../BibleOrgSys/' )
@@ -66,10 +67,10 @@ from html import checkHtml
 from OETHandlers import findLVQuote
 
 
-LAST_MODIFIED_DATE = '2023-06-08' # by RJH
+LAST_MODIFIED_DATE = '2023-06-13' # by RJH
 SHORT_PROGRAM_NAME = "Bibles"
 PROGRAM_NAME = "OpenBibleData Bibles handler"
-PROGRAM_VERSION = '0.41'
+PROGRAM_VERSION = '0.42'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -185,6 +186,12 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state ) -
         # We sneak in some extra loads here
         vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Preloading Tyndale theme notes from {sourceFolder}…" )
         sourceFilename = 'ThemeNotes.xml'
+        thisExtraAbbreviation = 'TBI'
+        bookIntroTable = loadTyndaleBookIntrosXML( os.path.join( sourceFolder, sourceFilename ) )
+
+        state.preloadedBibles[thisExtraAbbreviation] = bookIntroTable
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Preloading Tyndale theme notes from {sourceFolder}…" )
+        sourceFilename = 'ThemeNotes.xml'
         thisExtraAbbreviation = 'TTN'
         thisBible = TyndaleNotesBible.TyndaleNotesBible( os.path.join( sourceFolder, sourceFilename ), givenName='TyndaleThemeNotes',
                                             givenAbbreviation=thisExtraAbbreviation, encoding='utf-8' )
@@ -232,22 +239,128 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state ) -
 #     yield '2'
 
 
-# def preloadUwTranslationNotes( state ) -> None:
-#     """
-#     Load the unfoldingWord translation notes from the TSV files
-#         but masquerade them into an internal pseudo-Bible
-#         that can be accessed by B/C/V.
-#     """
-#     fnPrint( DEBUGGING_THIS_MODULE, "preloadUwTranslationNotes( ... )")
+def loadTyndaleBookIntrosXML( XML_filepath ) -> dict:
+    """
+    Load the Tyndale book intros from the XML file
+    """
+    fnPrint( DEBUGGING_THIS_MODULE, f"loadTyndaleBookIntrosXML( {XML_filepath} )")
 
-#     versionAbbreviation = 'UTN'
-#     if versionAbbreviation in state.BibleLocations:
-#         vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Preloading uW translation notes…" )
-#         state.UTNBible = uWNotesBible.uWNotesBible( state.BibleLocations[versionAbbreviation], givenName='TranslationNotes',
-#                                             givenAbbreviation='UTN', encoding='utf-8' )
-#         state.UTNBible.loadBooks() # So we can iterate through them all later
-#         vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"preloadUwTranslationNotes() loaded uW translation notes." )
-# # end of Bibles.preloadUwTranslationNotes
+    introDict = {}
+    loadErrors:List[str] = []
+    XMLTree = ElementTree().parse( XML_filepath )
+
+    if XMLTree.tag == 'items':
+        topLocation = 'TBI file'
+        BibleOrgSysGlobals.checkXMLNoText( XMLTree, topLocation, '4f6h', loadErrors )
+        BibleOrgSysGlobals.checkXMLNoTail( XMLTree, topLocation, '1wk8', loadErrors )
+        # Process the attributes first
+        for attrib,value in XMLTree.items():
+            if attrib == 'release':
+                releaseVersion = value
+            else:
+                logging.warning( "fv6g Unprocessed {} attribute ({}) in {}".format( attrib, value, topLocation ) )
+                loadErrors.append( "Unprocessed {} attribute ({}) in {} (fv6g)".format( attrib, value, topLocation ) )
+                if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.haltOnXMLWarning: halt
+        assert releaseVersion == '1.25'
+
+        for element in XMLTree:
+            location = f"{topLocation}-{element.tag}"
+            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"{element} {element.text=}" )
+            BibleOrgSysGlobals.checkXMLNoTail( element, location, '1wk8', loadErrors )
+            assert element.tag == 'item'
+            # Process the attributes first
+            name = None
+            for attrib,value in element.items():
+                if attrib == 'name':
+                    name = value
+                elif attrib == 'typename':
+                    assert value == 'BookIntro', f"{name=} {value=}"
+                elif attrib == 'product':
+                    assert value == 'TyndaleOpenStudyNotes'
+                else:
+                    logging.warning( "fv6g Unprocessed {} attribute ({}) in {}".format( attrib, value, topLocation ) )
+                    loadErrors.append( "Unprocessed {} attribute ({}) in {} (fv6g)".format( attrib, value, topLocation ) )
+                    if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.haltOnXMLWarning: halt
+            assert name
+
+            # Now work thru each item
+            stateCounter = 0
+            title = None
+            thisEntry = ''
+            for subelement in element:
+                dPrint( 'Info', DEBUGGING_THIS_MODULE, f"{subelement} {subelement.text=}" )
+                sublocation = f"{location}-{subelement.tag}"
+                BibleOrgSysGlobals.checkXMLNoAttributes( subelement, sublocation, '1wk8', loadErrors )
+                BibleOrgSysGlobals.checkXMLNoTail( subelement, sublocation, '1wk8', loadErrors )
+                if stateCounter == 0:
+                    assert subelement.tag == 'title'
+                    title = subelement.text
+                    assert title
+                    stateCounter += 1
+                elif stateCounter == 1:
+                    assert subelement.tag == 'refs'
+                    refs = subelement.text
+                    assert refs
+                    assert '-' in ref
+                    # assert refs == ref, f"{refs=} {ref=}" # Hmmh, not sure why some differ e.g., Gen.4.25-26 vs Gen.4.25-5.32
+                    firstRef = refs.split('-')[0]
+                    assert firstRef.count('.') == 2
+                    OSISBkCode, firstC, firstVs = firstRef.split( '.' )
+                    if OSISBkCode.endswith('Thes'):
+                        OSISBkCode += 's' # TODO: getBBBFromText should handle '1Thes'
+                    BBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromText( OSISBkCode )
+                    stateCounter += 1
+                elif stateCounter == 2:
+                    assert subelement.tag == 'body'
+                    BibleOrgSysGlobals.checkXMLNoText( subelement, sublocation, '1wk8', loadErrors )
+                    BibleOrgSysGlobals.checkXMLNoAttributes( subelement, sublocation, '1wk8', loadErrors )
+                    pCount = 0
+                    for bodyelement in subelement:
+                        bodyLocation = f'{sublocation}-{bodyelement.tag}-{pCount}'
+                        # print( f"{bodyelement} {bodyelement.text=}")
+                        assert bodyelement.tag == 'p'
+                        # Process the attributes first
+                        pClass = ts = None
+                        for attrib,value in bodyelement.items():
+                            if attrib == 'class':
+                                pClass = value
+                                assert pClass.startswith('intro-')
+                                assert pClass in ('intro-overview','intro-h1','intro-body-fl','intro-body','intro-body-fl-sp'), f"{refs} {pClass=} {bodyLocation}"
+                            else:
+                                logging.warning( "fv6g Unprocessed {} attribute ({}) in {}".format( attrib, value, bodyLocation ) )
+                                loadErrors.append( "Unprocessed {} attribute ({}) in {} (fv6g)".format( attrib, value, bodyLocation ) )
+                                if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.haltOnXMLWarning: halt
+                        # So we want to extract this as an HTML paragraph
+                        htmlSegment = BibleOrgSysGlobals.getFlattenedXML( bodyelement, bodyLocation )
+                        assert '\\' not in htmlSegment
+                        thisEntry = f"{thisEntry}{NEW_LINE if thisEntry else ''}{htmlSegment}"
+                        pCount += 1
+                    stateCounter += 1
+                else: halt
+            if thisEntry:
+                introDict[BBB] = thisEntry
+
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"loadTyndaleBookIntrosXML() loaded {len(introDict):,} book intros." )
+    return introDict
+# end of Bibles.loadTyndaleBookIntrosXML
+
+
+def formatTyndaleBookIntro( level:int, BBB:str, segmentType:str, state ) -> str:
+    """
+    """
+    fnPrint( DEBUGGING_THIS_MODULE, f"formatTyndaleBookIntro( {BBB}, ... )")
+    assert segmentType == 'parallel'
+
+    if 'TBI' not in state.preloadedBibles:
+        logging.critical( 'No Tyndale book intros loaded' )
+        return ''
+    if BBB not in state.preloadedBibles['TBI']:
+        logging.critical( f'No Tyndale book intro for {BBB}' )
+        return ''
+
+    html = state.preloadedBibles['TBI']['BBB']
+    return html
+# end of Bibles.formatTyndaleBookIntro
 
 
 taMDLinkRegEx = re.compile( '\\[\\[rc://([^/]+?)/ta/man/(translate|checking)/(.+?)\\]\\]' )
@@ -256,7 +369,7 @@ twMDLinkRegEx = re.compile( '\\[\\[rc://([^/]+?)/tw/dict/bible/(names|kt|other)/
 twOtherLinkRegEx = re.compile( 'rc://([^/]+?)/tw/dict/bible/(names|kt|other)/(.+?)[ ,.:;)\\]]' ) # Includes the following character after the link
 markdownLinkRegex = re.compile( '\\[(.*?)\\]\\((.*?)\\)' )
 NOTE_FILENAME_DICT = {'translate':'03-translate', 'checking':'04-checking'}
-def formatUnfoldingWordTranslationNotes( level:int, BBB, C:str, V:str, segmentType:str, state ) -> str: # html
+def formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segmentType:str, state ) -> str: # html
     """
     A typical entry with two notes looks like this (blank lines added):
         0/ v = '8'
@@ -519,7 +632,7 @@ def formatTyndaleNotes( abbrev:str, level:int, BBB, C:str, V:str, segmentType:st
     These are mostly HTML encoded inside USFM fields.
     """
     from createSitePages import ALTERNATIVE_VERSION
-    
+
     fnPrint( DEBUGGING_THIS_MODULE, f"formatTyndaleNotes( {BBB}, {C}:{V}, {segmentType=} )")
     assert abbrev in ('TSN','TTN')
     assert segmentType in ('parallel','interlinear')
@@ -584,7 +697,7 @@ def formatTyndaleNotes( abbrev:str, level:int, BBB, C:str, V:str, segmentType:st
             dPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"{abbrev} {BBB} {C}:{V} {marker}={rest}" )
             unknown_Tyndale_notes_marker
         lastMarker = marker
-    
+
     # Fix their links like '<a href="?bref=Mark.4.14-20">4:14-20</a>'
     # Doesn't yet handle links like '(see “<a href="?item=FollowingJesus_ThemeNote_Filament">Following Jesus</a>” Theme Note)'
     searchStartIndex = 0

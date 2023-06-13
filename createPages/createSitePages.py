@@ -113,7 +113,7 @@ class State:
     # NOTE: The above list has entries deleted by preloadBibles() if they fail to load
     #           (often because we temporarily remove the BibleLocation below)
     allBibleVersions = BibleVersions[:] # Keep a copy with the full list
-    
+
     BibleVersionDecorations = { 'OET':('<b>','</b>'),'OET-RV':('<b>','</b>'),'OET-LV':('<b>','</b>'),
                 'ULT':('',''),'UST':('',''),
                 'BSB':('',''),'BLB':('',''),
@@ -129,7 +129,7 @@ class State:
                 # NOTES:
                 'TSN':('',''),'UTN':('',''),
                 }
-    
+
                 ## 'LEB': '../copiedBibles/English/LogosBibleSoftware/LEB/LEB.osis.xml', # OSIS
                 ## 'WYC': '../copiedBibles/English/eBible.org/Wycliffe/',
     BibleLocations = {
@@ -177,8 +177,7 @@ class State:
                 'TSN': '../copiedBibles/English/Tyndale/OSN/',
                 'UTN': '../copiedBibles/English/unfoldingWord.org/UTN/',
                 }
-    if not TEST_MODE: assert len(BibleLocations) >= 36, len(BibleLocations)
-    
+
     BibleNames = {
                 'OET': 'Open English Translation (2030)',
                 'OET-RV': 'Open English Translation—Readers’ Version (2030)',
@@ -223,7 +222,7 @@ class State:
                 'TSN': 'Tyndale Study Notes (2022)',
                 'UTN': 'unfoldingWord® Translation Notes (2023)',
                 }
-    
+
     booksToLoad = {
                 'OET': OET_BOOK_LIST_WITH_FRT,
                 'OET-RV': OET_BOOK_LIST_WITH_FRT,
@@ -484,10 +483,14 @@ You can read more about the design of the OET-LV <a href="https://OpenEnglishTra
                 'acknowledgements': '<p>Thanks to <a href="https://www.unfoldingword.org/">unfoldingWord</a> for creating <a href="https://git.door43.org/unfoldingWord/en_tn">these notes</a> to assist Bible translators.</p>' },
     }
 
+    if not TEST_MODE: assert len(BibleLocations) >= 39, len(BibleLocations)
+    for versionLocation in BibleLocations.values():
+        assert versionLocation.startswith('../copiedBibles/') or versionLocation.startswith('../../OpenEnglishTranslation--OET/')
     assert len(BibleVersionDecorations) == len(BibleVersions)+2, f"{len(BibleVersionDecorations)=} {len(BibleVersions)=}" # Adds Parallel and Interlinear
     assert len(BibleVersions)-1 >= len(BibleLocations) # OET is a pseudo-version
     assert len(BibleNames)-1 >= len(BibleLocations) # OET is a pseudo-version
     assert len(booksToLoad)-1 >= len(BibleLocations) # OET is a pseudo-version
+
     preloadedBibles = {}
     sectionsLists = {}
 # end of State class
@@ -746,7 +749,7 @@ def createDetailsPages( level:int, buildFolder:Path, state ) -> bool:
                 .replace( '__KEYWORDS__', 'Bible, details, about, copyright, licence, acknowledgements' ) \
                 .replace( f'''<a title="{state.BibleNames[versionAbbreviation]}" href="{'../'*(level+1)}{BibleOrgSysGlobals.makeSafeString(versionAbbreviation)}/details.htm">{versionAbbreviation}</a>''',
                             f'''<a title="Up to {state.BibleNames[versionAbbreviation]}" href="{'../'*(level+1)}{BibleOrgSysGlobals.makeSafeString(versionAbbreviation)}/">↑{versionAbbreviation}</a>''' )
-        
+
         extraHTML = '''<h2>Key to Abbreviations</h2>
 <p>See key and more information <a href="byDoc/FRT.htm">here</a>.</p>
 ''' if versionAbbreviation == 'T4T' else ''
@@ -785,7 +788,7 @@ def createDetailsPages( level:int, buildFolder:Path, state ) -> bool:
     html = f'''{topHtml}<h1 id="Top">Details for all versions</h1>
 {allDetailsHTML}{makeBottom( level, 'allDetails', state )}'''
     checkHtml( 'AllDetails', html )
-    
+
     filepath = buildFolder.joinpath( 'allDetails.htm' )
     with open( filepath, 'wt', encoding='utf-8' ) as htmlFile:
         htmlFile.write( html )
@@ -834,7 +837,7 @@ def createAboutPage( level:int, buildFolder:Path, state ) -> bool:
                 .replace( '__KEYWORDS__', 'Bible, about, OBD' )
     html = f'''{topHtml}{aboutHTML}<p><small>Last rebuilt: {date.today()}</small></p>{makeBottom( level, 'about', state )}'''
     checkHtml( 'About', html )
-    
+
     filepath = buildFolder.joinpath( 'about.htm' )
     with open( filepath, 'wt', encoding='utf-8' ) as htmlFile:
         htmlFile.write( html )

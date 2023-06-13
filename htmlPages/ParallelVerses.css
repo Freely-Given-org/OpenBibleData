@@ -47,14 +47,14 @@ p.mt1 { text-align:center; font-size:1.8em; }
 p.mt2 { text-align:center; font-size:1.3em; }
 p.rem { font-size:0.8em; color:grey; }
 
-/* Book intro USFM
+/* Book intro USFM */
 li.intro { margin-top:0.5em; margin-bottom:0.5em; }
 p.is1 { font-weight:bold; font-size:1.3em; }
 p.is2 { font-weight:bold; }
 p.iot { font-weight:bold; }
 p.io1 { text-indent:2em; margin-top:0.2em; margin-bottom:0.2em; }
 span.ior { font-weight:bold; }
-span.bk { font-style:italic; } */
+span.bk { font-style:italic; }
 
 /* Chapters USFM */
 span.c { font-size:1.1em; color:green; }
