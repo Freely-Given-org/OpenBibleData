@@ -70,7 +70,7 @@ from OETHandlers import findLVQuote
 LAST_MODIFIED_DATE = '2023-06-13' # by RJH
 SHORT_PROGRAM_NAME = "Bibles"
 PROGRAM_NAME = "OpenBibleData Bibles handler"
-PROGRAM_VERSION = '0.42'
+PROGRAM_VERSION = '0.43'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -374,9 +374,14 @@ def formatTyndaleBookIntro( abbrev:str, level:int, BBB:str, segmentType:str, sta
         logging.critical( f'No Tyndale book intro for {abbrev} {BBB}' )
         return ''
 
-    html = sourceDict[BBB]
-    print( f'{abbrev} {BBB} Intro {html=}' )
-    return html
+    bHtml = sourceDict[BBB]
+    # print( f'{abbrev} {BBB} Intro {html=}' )
+
+    # Fix their links like '<a href="?bref=Mark.4.14-20">4:14-20</a>'
+    bHtml = fixTyndaleBRefs( bHtml )
+
+    checkHtml( f'{abbrev} {BBB}', bHtml, segmentOnly=True )
+    return bHtml
 # end of Bibles.formatTyndaleBookIntro
 
 
@@ -452,16 +457,30 @@ def formatTyndaleNotes( abbrev:str, level:int, BBB, C:str, V:str, segmentType:st
         lastMarker = marker
 
     # Fix their links like '<a href="?bref=Mark.4.14-20">4:14-20</a>'
+    nHtml = fixTyndaleBRefs( nHtml )
+
+    checkHtml( f'{abbrev} {BBB} {C}:{V}', nHtml, segmentOnly=True )
+    # if abbrev=='TTN' and BBB=='MRK' and C=='1' and V=='14': halt
+    return nHtml
+# end of Bibles.formatTyndaleNotes
+
+
+def fixTyndaleBRefs( html:str ) -> str:
+    """
+    """
+    fnPrint( DEBUGGING_THIS_MODULE, f"fixTyndaleBRefs( {html} )")
+
+    # Fix their links like '<a href="?bref=Mark.4.14-20">4:14-20</a>'
     # Doesn't yet handle links like '(see “<a href="?item=FollowingJesus_ThemeNote_Filament">Following Jesus</a>” Theme Note)'
     searchStartIndex = 0
     for _safetyCount in range( 150 ): # 54 was enough for TSN ACT 9:2
         # but 110 not for TTN MRK 4:35, 120 not for Josh 13:1, 140 for Psa 97:2
-        ixStart = nHtml.find( 'href="?bref=', searchStartIndex )
+        ixStart = html.find( 'href="?bref=', searchStartIndex )
         if ixStart == -1: # none/no more found
             break
-        ixCloseQuote = nHtml.find( '"', ixStart+12 )
+        ixCloseQuote = html.find( '"', ixStart+12 )
         assert ixCloseQuote != -1
-        tyndaleLinkPart = nHtml[ixStart+12:ixCloseQuote]
+        tyndaleLinkPart = html[ixStart+12:ixCloseQuote]
         # print( f"{abbrev} {BBB} {C}:{V} {tyndaleLinkPart=}" )
         if 'Filament' in tyndaleLinkPart: # e.g., in GEN 48:14 '2Chr.28.12_StudyNote_Filament'
             logging.critical( f"Ignoring Filament link in {abbrev} {BBB} {C}:{V} {tyndaleLinkPart=}" )
@@ -490,14 +509,12 @@ def formatTyndaleNotes( abbrev:str, level:int, BBB, C:str, V:str, segmentType:st
             assert tBBB
             ourNewLink = f'../{tBBB}/C{tC}V{tV}.htm#Top' # we link to the parallel verse page
             # print( f"   {ourNewLink=}" )
-        nHtml = f'''{nHtml[:ixStart+6]}{ourNewLink}{nHtml[ixCloseQuote:]}'''
+        html = f'''{html[:ixStart+6]}{ourNewLink}{html[ixCloseQuote:]}'''
         searchStartIndex = ixCloseQuote + 6
-    else: need_to_increase_Tyndale_notes_bref_loop_counter
+    else: need_to_increase_Tyndale_bref_loop_counter
 
-    checkHtml( f'{abbrev} {BBB} {C}:{V}', nHtml, segmentOnly=True )
-    # if abbrev=='TTN' and BBB=='MRK' and C=='1' and V=='14': halt
-    return nHtml
-# end of Bibles.formatTyndaleNotes
+    return html
+# end of Bibles.fixTyndaleBRefs
 
 
 taMDLinkRegEx = re.compile( '\\[\\[rc://([^/]+?)/ta/man/(translate|checking)/(.+?)\\]\\]' )

@@ -49,7 +49,7 @@ from createOETReferencePages import livenOETWordLinks
 LAST_MODIFIED_DATE = '2023-06-13' # by RJH
 SHORT_PROGRAM_NAME = "createParallelPages"
 PROGRAM_NAME = "OpenBibleData createParallelPages functions"
-PROGRAM_VERSION = '0.64'
+PROGRAM_VERSION = '0.65'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
