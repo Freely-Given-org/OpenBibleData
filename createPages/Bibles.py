@@ -103,11 +103,13 @@ def preloadVersions( state ) -> int:
     return len(state.preloadedBibles)
 # end of Bibles.preloadVersions
 
+TyndaleBookIntrosDict, TyndaleBookIntroSummariesDict = {}, {}
 def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state ) -> Bible:
     """
     Loads the requested Bible into memory
         and return the Bible object.
     """
+    global TyndaleBookIntrosDict, TyndaleBookIntroSummariesDict
     fnPrint( DEBUGGING_THIS_MODULE, f"preloadVersion( '{versionAbbreviation}', '{folderOrFileLocation}', ... )")
 
     # if versionAbbreviation in ('BSB',): # Single TSV .txt file
@@ -187,7 +189,11 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state ) -
         vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Preloading Tyndale book intros from {sourceFolder}…" )
         sourceFilename = 'BookIntros.xml'
         thisExtraAbbreviation = 'TBI'
-        loadTyndaleBookIntrosXML( os.path.join( sourceFolder, sourceFilename ) )
+        TyndaleBookIntrosDict = loadTyndaleBookIntrosXML( thisExtraAbbreviation, os.path.join( sourceFolder, sourceFilename ) )
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Preloading Tyndale book intro summaries from {sourceFolder}…" )
+        sourceFilename = 'BookIntroSummaries.xml'
+        thisExtraAbbreviation = 'TBIS'
+        TyndaleBookIntroSummariesDict = loadTyndaleBookIntrosXML( thisExtraAbbreviation, os.path.join( sourceFolder, sourceFilename ) )
 
         vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Preloading Tyndale theme notes from {sourceFolder}…" )
         sourceFilename = 'ThemeNotes.xml'
@@ -238,13 +244,13 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state ) -
 #     yield '2'
 
 
-TyndaleIntroDict = {}
-def loadTyndaleBookIntrosXML( XML_filepath ) -> None:
+def loadTyndaleBookIntrosXML( abbrev:str, XML_filepath ) -> Dict[str,str]:
     """
-    Load the Tyndale book intros from the XML file
+    Load the Tyndale book intros or book intro summaries from the XML file
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"loadTyndaleBookIntrosXML( {XML_filepath} )")
+    fnPrint( DEBUGGING_THIS_MODULE, f"loadTyndaleBookIntrosXML( {abbrev}, {XML_filepath} )")
 
+    dataDict = {}
     loadErrors:List[str] = []
     XMLTree = ElementTree().parse( XML_filepath )
 
@@ -319,48 +325,179 @@ def loadTyndaleBookIntrosXML( XML_filepath ) -> None:
                         # print( f"{bodyelement} {bodyelement.text=}")
                         assert bodyelement.tag == 'p'
                         # Process the attributes first
-                        pClass = ts = None
+                        pClass = None
                         for attrib,value in bodyelement.items():
                             if attrib == 'class':
                                 pClass = value
                                 assert pClass.startswith('intro-')
-                                assert pClass in ('intro-overview','intro-h1','intro-body-fl','intro-body','intro-body-fl-sp',
-                                   'intro-list','intro-list-sp','intro-list-sp',
-                                   'intro-poetry-1-sp','intro-poetry-2',
-                                   'intro-extract'), f"{refs} {pClass=} {bodyLocation}"
+                                classList = ('intro-overview','intro-h1','intro-body-fl','intro-body','intro-body-fl-sp',
+                                        'intro-list','intro-list-sp','intro-list-sp',
+                                        'intro-poetry-1-sp','intro-poetry-2',
+                                        'intro-extract') if abbrev=='TBI' \
+                                    else ('intro-title','intro-sidebar-h1','intro-sidebar-body-fl')
+                                assert pClass in classList, f"{refs} {pClass=} {bodyLocation}"
                             else:
                                 logging.warning( "fv6g Unprocessed {} attribute ({}) in {}".format( attrib, value, bodyLocation ) )
                                 loadErrors.append( "Unprocessed {} attribute ({}) in {} (fv6g)".format( attrib, value, bodyLocation ) )
                                 if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.haltOnXMLWarning: halt
                         # So we want to extract this as an HTML paragraph
                         htmlSegment = BibleOrgSysGlobals.getFlattenedXML( bodyelement, bodyLocation ) \
-				.replace( '<a href="  \?', '<a href="?') # Fix encoding mistake in 1 Tim
+				                                                .replace( '<a href="  \?', '<a href="?') # Fix encoding mistake in 1 Tim
                         assert '\\' not in htmlSegment, f"{BBB} {pCount=} {htmlSegment=}"
+                        theirClass = None
+                        if htmlSegment.startswith( '<class="'): # e.g., <class="theme-list">The new covenant....
+                            ixClose = htmlSegment.index( '">', 10 )
+                            theirClass = htmlSegment[8:ixClose]
+                            htmlSegment = htmlSegment[ixClose+2:]
+                        assert theirClass.startswith('intro-')
+                        htmlSegment = f'<p class="{theirClass}">{htmlSegment}</p>'
                         thisEntry = f"{thisEntry}{NEW_LINE if thisEntry else ''}{htmlSegment}"
                         pCount += 1
                     stateCounter += 1
                 else: halt
             if thisEntry:
-                TyndaleIntroDict[BBB] = thisEntry
+                dataDict[BBB] = thisEntry
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"loadTyndaleBookIntrosXML() loaded {len(TyndaleIntroDict):,} book intros." )
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"loadTyndaleBookIntrosXML() loaded {len(dataDict):,} {abbrev} book intros." )
+    return dataDict
 # end of Bibles.loadTyndaleBookIntrosXML
 
 
-def formatTyndaleBookIntro( level:int, BBB:str, segmentType:str, state ) -> str:
+def formatTyndaleBookIntro( abbrev:str, level:int, BBB:str, segmentType:str, state ) -> str:
     """
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"formatTyndaleBookIntro( {BBB}, ... )")
+    fnPrint( DEBUGGING_THIS_MODULE, f"formatTyndaleBookIntro( {abbrev}, {BBB}, ... )")
     assert segmentType == 'parallel'
 
-    if BBB not in TyndaleIntroDict:
-        logging.critical( f'No Tyndale book intro for {BBB}' )
+    sourceDict = {'TBI':TyndaleBookIntrosDict, 'TBIS':TyndaleBookIntroSummariesDict}[abbrev]
+    if BBB not in sourceDict:
+        logging.critical( f'No Tyndale book intro for {abbrev} {BBB}' )
         return ''
 
-    html = TyndaleIntroDict[BBB]
-    print( f'{BBB} Intro {html=}' )
+    html = sourceDict[BBB]
+    print( f'{abbrev} {BBB} Intro {html=}' )
     return html
 # end of Bibles.formatTyndaleBookIntro
+
+
+def formatTyndaleNotes( abbrev:str, level:int, BBB, C:str, V:str, segmentType:str, state ) -> str: # html
+    """
+    These are mostly HTML encoded inside USFM fields.
+    """
+    from createSitePages import ALTERNATIVE_VERSION
+
+    fnPrint( DEBUGGING_THIS_MODULE, f"formatTyndaleNotes( {BBB}, {C}:{V}, {segmentType=} )")
+    assert abbrev in ('TSN','TTN')
+    assert segmentType in ('parallel','interlinear')
+
+    try:
+        verseEntryList, _contextList = state.preloadedBibles[abbrev].getContextVerseData( (BBB, C, V), strict=False, complete=True )
+    except (KeyError, TypeError): # TypeError is if None is returned
+        logging.warning( f"Tyndale have no notes for {abbrev} {BBB} {C}:{V}")
+        return ''
+
+    nHtml = ''
+    lastMarker = None
+    for entry in verseEntryList:
+        marker, rest = entry.getMarker(), entry.getText()
+        # dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"{abbrev} {BBB} {C}:{V} {marker}='{rest}'" )
+        if marker in ('¬v','¬c','¬p','¬pi1','¬pi2','¬li1','¬chapters'):
+            assert not rest; continue # most end markers not needed here
+        # if marker == 'v':
+        #     if '-' in rest: # It's often a verse range
+        #         snHtml = f'{snHtml}<p class="TSNv">Verses {rest}</p>'
+        if marker == 'v~':
+            assert rest
+            assert abbrev == 'TSN'
+            rest = rest.replace( '•', '<br>•' )
+            nHtml = f'{nHtml}<p class="{abbrev}">{rest}</p>'
+        elif marker in ('s1','s2','s3'): # These have the text in the same entry
+            assert rest
+            assert abbrev == 'TTN'
+            theirClass = None
+            if rest.startswith( '<class="'): # e.g., <class="theme-list">The new covenant....
+                ixClose = rest.index( '">', 10 )
+                theirClass = rest[8:ixClose]
+                rest = rest[ixClose+2:]
+            if marker=='s1' and not theirClass: theirClass = 'theme-title'
+            nHtml = f'{nHtml}\n<p class="{theirClass if theirClass else marker}">{rest}</p>'
+        elif marker in ('p','pi1','pi2','li1'): # These have the text in the next entry
+            assert not rest
+            if marker!='li1': assert abbrev == 'TTN'
+            # will be saved as lastMarker for later use
+        elif marker == 'p~':
+            assert rest
+            theirClass = None
+            if rest.startswith( '<class="'): # e.g., <class="theme-list">The new covenant....
+                ixClose = rest.index( '">', 10 )
+                theirClass = rest[8:ixClose]
+                rest = rest[ixClose+2:]
+            nHtml = f'{nHtml}\n<li>{rest}</li>' if lastMarker=='li1' \
+                        else f'{nHtml}\n<p class="{theirClass if theirClass else lastMarker}">{rest}</p>'
+        elif marker == 'b':
+            assert not rest
+            assert abbrev == 'TTN'
+            nHtml = f'{nHtml}\n<br>'
+        elif marker == 'list':
+            assert not rest
+            # assert abbrev == 'TTN'
+            nHtml = f'{nHtml}\n<ol>'
+        elif marker == '¬list':
+            assert not rest
+            # assert abbrev == 'TTN'
+            nHtml = f'{nHtml}</ol>'
+        elif marker not in ('id','usfm','ide','intro','c','c#','c~','v','v='):
+            dPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"{abbrev} {BBB} {C}:{V} {marker}={rest}" )
+            unknown_Tyndale_notes_marker
+        lastMarker = marker
+
+    # Fix their links like '<a href="?bref=Mark.4.14-20">4:14-20</a>'
+    # Doesn't yet handle links like '(see “<a href="?item=FollowingJesus_ThemeNote_Filament">Following Jesus</a>” Theme Note)'
+    searchStartIndex = 0
+    for _safetyCount in range( 150 ): # 54 was enough for TSN ACT 9:2
+        # but 110 not for TTN MRK 4:35, 120 not for Josh 13:1, 140 for Psa 97:2
+        ixStart = nHtml.find( 'href="?bref=', searchStartIndex )
+        if ixStart == -1: # none/no more found
+            break
+        ixCloseQuote = nHtml.find( '"', ixStart+12 )
+        assert ixCloseQuote != -1
+        tyndaleLinkPart = nHtml[ixStart+12:ixCloseQuote]
+        # print( f"{abbrev} {BBB} {C}:{V} {tyndaleLinkPart=}" )
+        if 'Filament' in tyndaleLinkPart: # e.g., in GEN 48:14 '2Chr.28.12_StudyNote_Filament'
+            logging.critical( f"Ignoring Filament link in {abbrev} {BBB} {C}:{V} {tyndaleLinkPart=}" )
+            searchStartIndex = ixCloseQuote + 6
+            continue
+        if '-' in tyndaleLinkPart: # then it's a verse range
+            if tyndaleLinkPart == 'Deut.31:30-32.44': tyndaleLinkPart = 'Deut.31.30-32.44' # Fix TTN encoding error in Psa 71:22
+            tyndaleLinkPart = tyndaleLinkPart.split('-')[0]
+            tBkCode, tC, tV = tyndaleLinkPart.split( '.' )
+            if tBkCode.endswith('Thes'):
+                tBkCode += 's' # TODO: getBBBFromText should handle '1Thes'
+            assert tC.isdigit()
+            assert tV.isdigit()
+            tBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromText( tBkCode )
+            assert tBBB
+            linkVersion = 'OET' if tBBB in state.booksToLoad['OET'] else ALTERNATIVE_VERSION
+            ourNewLink = f"{'../'*level}{linkVersion}/byC/{tBBB}_C{tC}.htm#C{tC}V{tV}" # Because it's a range, we link to the chapter page
+            # print( f"   {ourNewLink=}" )
+        else: # no hyphen so it's not a range
+            tBkCode, tC, tV = tyndaleLinkPart.split( '.' )
+            if tBkCode.endswith('Thes'):
+                tBkCode += 's' # TODO: getBBBFromText should handle '1Thes'
+            assert tC.isdigit()
+            assert tV.isdigit()
+            tBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromText( tBkCode )
+            assert tBBB
+            ourNewLink = f'../{tBBB}/C{tC}V{tV}.htm#Top' # we link to the parallel verse page
+            # print( f"   {ourNewLink=}" )
+        nHtml = f'''{nHtml[:ixStart+6]}{ourNewLink}{nHtml[ixCloseQuote:]}'''
+        searchStartIndex = ixCloseQuote + 6
+    else: need_to_increase_Tyndale_notes_bref_loop_counter
+
+    checkHtml( f'{abbrev} {BBB} {C}:{V}', nHtml, segmentOnly=True )
+    # if abbrev=='TTN' and BBB=='MRK' and C=='1' and V=='14': halt
+    return nHtml
+# end of Bibles.formatTyndaleNotes
 
 
 taMDLinkRegEx = re.compile( '\\[\\[rc://([^/]+?)/ta/man/(translate|checking)/(.+?)\\]\\]' )
@@ -625,126 +762,6 @@ def formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segme
     checkHtml( f'UTN {BBB} {C}:{V}', tnHtml, segmentOnly=True )
     return tnHtml
 # end of Bibles.formatUnfoldingWordTranslationNotes
-
-
-def formatTyndaleNotes( abbrev:str, level:int, BBB, C:str, V:str, segmentType:str, state ) -> str: # html
-    """
-    These are mostly HTML encoded inside USFM fields.
-    """
-    from createSitePages import ALTERNATIVE_VERSION
-
-    fnPrint( DEBUGGING_THIS_MODULE, f"formatTyndaleNotes( {BBB}, {C}:{V}, {segmentType=} )")
-    assert abbrev in ('TSN','TTN')
-    assert segmentType in ('parallel','interlinear')
-
-    try:
-        verseEntryList, _contextList = state.preloadedBibles[abbrev].getContextVerseData( (BBB, C, V), strict=False, complete=True )
-    except (KeyError, TypeError): # TypeError is if None is returned
-        logging.warning( f"Tyndale have no notes for {abbrev} {BBB} {C}:{V}")
-        return ''
-
-    nHtml = ''
-    lastMarker = None
-    for entry in verseEntryList:
-        marker, rest = entry.getMarker(), entry.getText()
-        # dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"{abbrev} {BBB} {C}:{V} {marker}='{rest}'" )
-        if marker in ('¬v','¬c','¬p','¬pi1','¬pi2','¬li1','¬chapters'):
-            assert not rest; continue # most end markers not needed here
-        # if marker == 'v':
-        #     if '-' in rest: # It's often a verse range
-        #         snHtml = f'{snHtml}<p class="TSNv">Verses {rest}</p>'
-        if marker == 'v~':
-            assert rest
-            assert abbrev == 'TSN'
-            rest = rest.replace( '•', '<br>•' )
-            nHtml = f'{nHtml}<p class="{abbrev}">{rest}</p>'
-        elif marker in ('s1','s2','s3'): # These have the text in the same entry
-            assert rest
-            assert abbrev == 'TTN'
-            theirClass = None
-            if rest.startswith( '<class="'): # e.g., <class="theme-list">The new covenant....
-                ixClose = rest.index( '">', 10 )
-                theirClass = rest[8:ixClose]
-                rest = rest[ixClose+2:]
-            if marker=='s1' and not theirClass: theirClass = 'theme-title'
-            nHtml = f'{nHtml}\n<p class="{theirClass if theirClass else marker}">{rest}</p>'
-        elif marker in ('p','pi1','pi2','li1'): # These have the text in the next entry
-            assert not rest
-            if marker!='li1': assert abbrev == 'TTN'
-            # will be saved as lastMarker for later use
-        elif marker == 'p~':
-            assert rest
-            theirClass = None
-            if rest.startswith( '<class="'): # e.g., <class="theme-list">The new covenant....
-                ixClose = rest.index( '">', 10 )
-                theirClass = rest[8:ixClose]
-                rest = rest[ixClose+2:]
-            nHtml = f'{nHtml}\n<li>{rest}</li>' if lastMarker=='li1' \
-                        else f'{nHtml}\n<p class="{theirClass if theirClass else lastMarker}">{rest}</p>'
-        elif marker == 'b':
-            assert not rest
-            assert abbrev == 'TTN'
-            nHtml = f'{nHtml}\n<br>'
-        elif marker == 'list':
-            assert not rest
-            # assert abbrev == 'TTN'
-            nHtml = f'{nHtml}\n<ol>'
-        elif marker == '¬list':
-            assert not rest
-            # assert abbrev == 'TTN'
-            nHtml = f'{nHtml}</ol>'
-        elif marker not in ('id','usfm','ide','intro','c','c#','c~','v','v='):
-            dPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"{abbrev} {BBB} {C}:{V} {marker}={rest}" )
-            unknown_Tyndale_notes_marker
-        lastMarker = marker
-
-    # Fix their links like '<a href="?bref=Mark.4.14-20">4:14-20</a>'
-    # Doesn't yet handle links like '(see “<a href="?item=FollowingJesus_ThemeNote_Filament">Following Jesus</a>” Theme Note)'
-    searchStartIndex = 0
-    for _safetyCount in range( 150 ): # 54 was enough for TSN ACT 9:2
-        # but 110 not for TTN MRK 4:35, 120 not for Josh 13:1, 140 for Psa 97:2
-        ixStart = nHtml.find( 'href="?bref=', searchStartIndex )
-        if ixStart == -1: # none/no more found
-            break
-        ixCloseQuote = nHtml.find( '"', ixStart+12 )
-        assert ixCloseQuote != -1
-        tyndaleLinkPart = nHtml[ixStart+12:ixCloseQuote]
-        # print( f"{abbrev} {BBB} {C}:{V} {tyndaleLinkPart=}" )
-        if 'Filament' in tyndaleLinkPart: # e.g., in GEN 48:14 '2Chr.28.12_StudyNote_Filament'
-            logging.critical( f"Ignoring Filament link in {abbrev} {BBB} {C}:{V} {tyndaleLinkPart=}" )
-            searchStartIndex = ixCloseQuote + 6
-            continue
-        if '-' in tyndaleLinkPart: # then it's a verse range
-            if tyndaleLinkPart == 'Deut.31:30-32.44': tyndaleLinkPart = 'Deut.31.30-32.44' # Fix TTN encoding error in Psa 71:22
-            tyndaleLinkPart = tyndaleLinkPart.split('-')[0]
-            tBkCode, tC, tV = tyndaleLinkPart.split( '.' )
-            if tBkCode.endswith('Thes'):
-                tBkCode += 's' # TODO: getBBBFromText should handle '1Thes'
-            assert tC.isdigit()
-            assert tV.isdigit()
-            tBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromText( tBkCode )
-            assert tBBB
-            linkVersion = 'OET' if tBBB in state.booksToLoad['OET'] else ALTERNATIVE_VERSION
-            ourNewLink = f"{'../'*level}{linkVersion}/byC/{tBBB}_C{tC}.htm#C{tC}V{tV}" # Because it's a range, we link to the chapter page
-            # print( f"   {ourNewLink=}" )
-        else: # no hyphen so it's not a range
-            tBkCode, tC, tV = tyndaleLinkPart.split( '.' )
-            if tBkCode.endswith('Thes'):
-                tBkCode += 's' # TODO: getBBBFromText should handle '1Thes'
-            assert tC.isdigit()
-            assert tV.isdigit()
-            tBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromText( tBkCode )
-            assert tBBB
-            ourNewLink = f'../{tBBB}/C{tC}V{tV}.htm#Top' # we link to the parallel verse page
-            # print( f"   {ourNewLink=}" )
-        nHtml = f'''{nHtml[:ixStart+6]}{ourNewLink}{nHtml[ixCloseQuote:]}'''
-        searchStartIndex = ixCloseQuote + 6
-    else: need_to_increase_Tyndale_notes_bref_loop_counter
-
-    checkHtml( f'{abbrev} {BBB} {C}:{V}', nHtml, segmentOnly=True )
-    # if abbrev=='TTN' and BBB=='MRK' and C=='1' and V=='14': halt
-    return nHtml
-# end of Bibles.formatTyndaleNotes
 
 
 def tidyBBB( BBB:str, titleCase:Optional[bool]=False ) -> str:

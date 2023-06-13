@@ -164,7 +164,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                         else ''
                 interlinearLink = f''' <a title="Interlinear verse view" href="{'../'*level}il/{BBB}/C{C}V{V}.htm#Top">═</a>''' if BBB in state.booksToLoad['OET'] else ''
                 detailsLink = f''' <a title="Show details about these works" href="{'../'*(level)}allDetails.htm">©</a>'''
-                navLinks = f'<p id="__ID__" class="vNav">{leftCLink}{leftVLink}{ourTidyBbb} Book Introduction <a title="Go to __WHERE__ of page" href="#__LINK__">__ARROW__</a>{rightVLink}{rightCLink}{interlinearLink}{detailsLink}</p>' if c==-1 \
+                navLinks = f'<p id="__ID__" class="vNav">{leftCLink}{leftVLink}{ourTidyBbb} Book Introductions <a title="Go to __WHERE__ of page" href="#__LINK__">__ARROW__</a>{rightVLink}{rightCLink}{interlinearLink}{detailsLink}</p>' if c==-1 \
                         else f'<p id="__ID__" class="vNav">{leftCLink}{leftVLink}{introLink}{ourTidyBbb} {C}:{V} <a title="Go to __WHERE__ of page" href="#__LINK__">__ARROW__</a>{rightVLink}{rightCLink}{interlinearLink}{detailsLink}</p>'
                 pHtml = ''
                 for versionAbbreviation in state.BibleVersions:
@@ -304,9 +304,14 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                         checkHtml( f'{versionAbbreviation} {BBB} {C}:{V}', vHtml, segmentOnly=True )
                         pHtml = f'{pHtml}{vHtml}'
 
-                if c == -1: # Handle Tyndale book intros
-                    tbiHtml = formatTyndaleBookIntro( level, BBB, 'parallel', state )
+                if c == -1: # Handle Tyndale book intro summaries and book intros
+                    tbisHtml = formatTyndaleBookIntro( 'TBIS', level, BBB, 'parallel', state )
+                    if tbisHtml:
+                        tbisHtml = f'''<div id="TBIS" class="parallelTBI"><a id="Go to TSN copyright page" href="{'../'*level}TSN/details.htm">TSN</a> <b>Tyndale Book Intro Summary</b>: {tbisHtml}</div><!--end of TBI-->\n'''
+                        pHtml = f'{pHtml}{tbisHtml}'
+                    tbiHtml = formatTyndaleBookIntro( 'TBI', level, BBB, 'parallel', state )
                     if tbiHtml:
+                        tbiHtml = f'''<div id="TBI" class="parallelTBI"><a id="Go to TSN copyright page" href="{'../'*level}TSN/details.htm">TSN</a> <b>Tyndale Book Intro</b>: {tbiHtml}</div><!--end of TBI-->\n'''
                         pHtml = f'{pHtml}{tbiHtml}'
 
                 # Handle Tyndale open study notes and theme notes
