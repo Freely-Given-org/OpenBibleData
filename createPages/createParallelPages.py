@@ -307,11 +307,11 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                 if c == -1: # Handle Tyndale book intro summaries and book intros
                     tbisHtml = formatTyndaleBookIntro( 'TBIS', level, BBB, 'parallel', state )
                     if tbisHtml:
-                        tbisHtml = f'''<div id="TBIS" class="parallelTBI"><a id="Go to TSN copyright page" href="{'../'*level}TSN/details.htm">TSN</a> <b>Tyndale Book Intro Summary</b>: {tbisHtml}</div><!--end of TBI-->\n'''
+                        tbisHtml = f'''<div id="TBIS" class="parallelTBI"><a id="Go to TSN copyright page" href="{'../'*level}TSN/details.htm">TBIS</a> <b>Tyndale Book Intro Summary</b>: {tbisHtml}</div><!--end of TBI-->\n'''
                         pHtml = f'{pHtml}{tbisHtml}'
                     tbiHtml = formatTyndaleBookIntro( 'TBI', level, BBB, 'parallel', state )
                     if tbiHtml:
-                        tbiHtml = f'''<div id="TBI" class="parallelTBI"><a id="Go to TSN copyright page" href="{'../'*level}TSN/details.htm">TSN</a> <b>Tyndale Book Intro</b>: {tbiHtml}</div><!--end of TBI-->\n'''
+                        tbiHtml = f'''<div id="TBI" class="parallelTBI"><a id="Go to TSN copyright page" href="{'../'*level}TSN/details.htm">TBI</a> <b>Tyndale Book Intro</b>: {tbiHtml}</div><!--end of TBI-->\n'''
                         pHtml = f'{pHtml}{tbiHtml}'
 
                 # Handle Tyndale open study notes and theme notes

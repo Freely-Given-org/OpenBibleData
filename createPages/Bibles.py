@@ -279,7 +279,7 @@ def loadTyndaleBookIntrosXML( abbrev:str, XML_filepath ) -> Dict[str,str]:
                 if attrib == 'name':
                     name = value
                 elif attrib == 'typename':
-                    assert value == 'BookIntro', f"{name=} {value=}"
+                    assert value == 'BookIntro' if abbrev=='TBI' else 'BookIntroSummary', f"{name=} {value=}"
                 elif attrib == 'product':
                     assert value == 'TyndaleOpenStudyNotes'
                 else:
