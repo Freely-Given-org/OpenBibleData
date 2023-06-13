@@ -184,12 +184,11 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state ) -
         sourceFolder = state.BibleLocations[versionAbbreviation]
 
         # We sneak in some extra loads here
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Preloading Tyndale theme notes from {sourceFolder}…" )
-        sourceFilename = 'ThemeNotes.xml'
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Preloading Tyndale book intros from {sourceFolder}…" )
+        sourceFilename = 'BookIntros.xml'
         thisExtraAbbreviation = 'TBI'
-        bookIntroTable = loadTyndaleBookIntrosXML( os.path.join( sourceFolder, sourceFilename ) )
+        loadTyndaleBookIntrosXML( os.path.join( sourceFolder, sourceFilename ) )
 
-        state.preloadedBibles[thisExtraAbbreviation] = bookIntroTable
         vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Preloading Tyndale theme notes from {sourceFolder}…" )
         sourceFilename = 'ThemeNotes.xml'
         thisExtraAbbreviation = 'TTN'
@@ -239,13 +238,13 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state ) -
 #     yield '2'
 
 
-def loadTyndaleBookIntrosXML( XML_filepath ) -> dict:
+TyndaleIntroDict = {}
+def loadTyndaleBookIntrosXML( XML_filepath ) -> None:
     """
     Load the Tyndale book intros from the XML file
     """
     fnPrint( DEBUGGING_THIS_MODULE, f"loadTyndaleBookIntrosXML( {XML_filepath} )")
 
-    introDict = {}
     loadErrors:List[str] = []
     XMLTree = ElementTree().parse( XML_filepath )
 
@@ -301,7 +300,7 @@ def loadTyndaleBookIntrosXML( XML_filepath ) -> dict:
                     assert subelement.tag == 'refs'
                     refs = subelement.text
                     assert refs
-                    assert '-' in ref
+                    assert '-' in refs
                     # assert refs == ref, f"{refs=} {ref=}" # Hmmh, not sure why some differ e.g., Gen.4.25-26 vs Gen.4.25-5.32
                     firstRef = refs.split('-')[0]
                     assert firstRef.count('.') == 2
@@ -325,23 +324,26 @@ def loadTyndaleBookIntrosXML( XML_filepath ) -> dict:
                             if attrib == 'class':
                                 pClass = value
                                 assert pClass.startswith('intro-')
-                                assert pClass in ('intro-overview','intro-h1','intro-body-fl','intro-body','intro-body-fl-sp'), f"{refs} {pClass=} {bodyLocation}"
+                                assert pClass in ('intro-overview','intro-h1','intro-body-fl','intro-body','intro-body-fl-sp',
+                                   'intro-list','intro-list-sp','intro-list-sp',
+                                   'intro-poetry-1-sp','intro-poetry-2',
+                                   'intro-extract'), f"{refs} {pClass=} {bodyLocation}"
                             else:
                                 logging.warning( "fv6g Unprocessed {} attribute ({}) in {}".format( attrib, value, bodyLocation ) )
                                 loadErrors.append( "Unprocessed {} attribute ({}) in {} (fv6g)".format( attrib, value, bodyLocation ) )
                                 if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.haltOnXMLWarning: halt
                         # So we want to extract this as an HTML paragraph
-                        htmlSegment = BibleOrgSysGlobals.getFlattenedXML( bodyelement, bodyLocation )
-                        assert '\\' not in htmlSegment
+                        htmlSegment = BibleOrgSysGlobals.getFlattenedXML( bodyelement, bodyLocation ) \
+				.replace( '<a href="  \?', '<a href="?') # Fix encoding mistake in 1 Tim
+                        assert '\\' not in htmlSegment, f"{BBB} {pCount=} {htmlSegment=}"
                         thisEntry = f"{thisEntry}{NEW_LINE if thisEntry else ''}{htmlSegment}"
                         pCount += 1
                     stateCounter += 1
                 else: halt
             if thisEntry:
-                introDict[BBB] = thisEntry
+                TyndaleIntroDict[BBB] = thisEntry
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"loadTyndaleBookIntrosXML() loaded {len(introDict):,} book intros." )
-    return introDict
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"loadTyndaleBookIntrosXML() loaded {len(TyndaleIntroDict):,} book intros." )
 # end of Bibles.loadTyndaleBookIntrosXML
 
 
@@ -351,14 +353,12 @@ def formatTyndaleBookIntro( level:int, BBB:str, segmentType:str, state ) -> str:
     fnPrint( DEBUGGING_THIS_MODULE, f"formatTyndaleBookIntro( {BBB}, ... )")
     assert segmentType == 'parallel'
 
-    if 'TBI' not in state.preloadedBibles:
-        logging.critical( 'No Tyndale book intros loaded' )
-        return ''
-    if BBB not in state.preloadedBibles['TBI']:
+    if BBB not in TyndaleIntroDict:
         logging.critical( f'No Tyndale book intro for {BBB}' )
         return ''
 
-    html = state.preloadedBibles['TBI']['BBB']
+    html = TyndaleIntroDict[BBB]
+    print( f'{BBB} Intro {html=}' )
     return html
 # end of Bibles.formatTyndaleBookIntro
 

@@ -306,6 +306,8 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
 
                 if c == -1: # Handle Tyndale book intros
                     tbiHtml = formatTyndaleBookIntro( level, BBB, 'parallel', state )
+                    if tbiHtml:
+                        pHtml = f'{pHtml}{tbiHtml}'
 
                 # Handle Tyndale open study notes and theme notes
                 tsnHtml = formatTyndaleNotes( 'TSN', level, BBB, C, V, 'parallel', state )
@@ -566,7 +568,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
             ((' nexte',),' next'),
         ((' nyy ',' nye '),' nigh/near '),((' nyy.',' nye.'),' nigh/near.'), ((' nyyti',),' night'),
         ((' ner ',),' nor '), (('northwarde',),'northward'),
-            (('nothinge','nothyng'),' nothing'),
+            (('nothinge','nothyng'),'nothing'),
         (('Nowe ',),'Now '),
         (('numbred',),'numbered'),(('noumbre','nombre','nomber'),'number'),
     ((' oyle ',),' oil '),((' oyle,',),' oil,'),
@@ -671,7 +673,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
             ((' wyfe',' wijf'),' wife'),
                 ((' wilde ',' wylde '),' wild '), ((' wyll ',' wyl ',' wille ',' wil ',' wole '),' will '),((' wyll,',' wil,',' wole,'),' will,'),
                 ((' wyndis',' wyndes',' windes'),' winds'), ((' wengis',' wynges'),' wings'),
-                (('withouten',),'without'), (('witnessyng',),'witnessing'),((' wytnesse ',' witnesse ',' witnes '),' witness '),
+                (('withouten ',),'without '), (('witnessyng',),'witnessing'),((' wytnesse ',' witnesse ',' witnes '),' witness '),
             (('wyssdome','wysedome','wysdome','wisedome'),'wisdom'),  ((' wi ',' wt '),' with '), (('widdred','wythred','wythered'),'withered'), ((' wyues',),' wives'),
         ((' womman',),' woman'), ((' wymmen',' wemen'),' women'),
             (('wondriden','wondride'),'wondered'),
