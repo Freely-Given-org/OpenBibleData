@@ -70,7 +70,7 @@ from OETHandlers import findLVQuote
 LAST_MODIFIED_DATE = '2023-06-14' # by RJH
 SHORT_PROGRAM_NAME = "Bibles"
 PROGRAM_NAME = "OpenBibleData Bibles handler"
-PROGRAM_VERSION = '0.45'
+PROGRAM_VERSION = '0.46'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -482,7 +482,7 @@ def fixTyndaleBRefs( abbrev:str, level:int, BBB:str, C:str, V:str, html:str, sta
     # Fix their links like '<a href="?bref=Mark.4.14-20">4:14-20</a>'
     # Doesn't yet handle links like '(see “<a href="?item=FollowingJesus_ThemeNote_Filament">Following Jesus</a>” Theme Note)'
     searchStartIndex = 0
-    for _safetyCount in range( 290 ): # 54 was enough for TSN ACT 9:2
+    for _safetyCount in range( 280 ): # 54 was enough for TSN ACT 9:2
         # but 110 not for TTN MRK 4:35, 120 not for Josh 13:1, 140 for Psa 97:2, 200 for book intros
         ixStart = html.find( 'href="?bref=', searchStartIndex )
         if ixStart == -1: # none/no more found
@@ -498,12 +498,15 @@ def fixTyndaleBRefs( abbrev:str, level:int, BBB:str, C:str, V:str, html:str, sta
         if '-' in tyndaleLinkPart: # then it's a verse range
             if tyndaleLinkPart == 'Deut.31:30-32.44': tyndaleLinkPart = 'Deut.31.30-32.44' # Fix TTN encoding error in Psa 71:22
             tyndaleLinkPart = tyndaleLinkPart.split('-')[0]
+            tyndaleLinkPart = tyndaleLinkPart.split(',')[0] # Might also be a list (in the dict entries at least)
             tBkCode, tC, tV = tyndaleLinkPart.split( '.' )
             if tBkCode.endswith('Thes'):
                 tBkCode += 's' # TODO: getBBBFromText should handle '1Thes'
             assert tC.isdigit()
-            assert tV.isdigit()
+            assert tV.isdigit(), f"'{abbrev}' {level=} {BBB} {C}:{V} {tBkCode=} {tC=} {tV=}"
             tBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromText( tBkCode )
+            if not tBBB:
+                if tBkCode=='Tb': tBBB = 'TOB'
             assert tBBB
             linkVersion = 'OET' if tBBB in state.booksToLoad['OET'] else ALTERNATIVE_VERSION
             ourNewLink = f"{'../'*level}{linkVersion}/byC/{tBBB}_C{tC}.htm#C{tC}V{tV}" # Because it's a range, we link to the chapter page
@@ -516,6 +519,8 @@ def fixTyndaleBRefs( abbrev:str, level:int, BBB:str, C:str, V:str, html:str, sta
             assert tC.isdigit()
             assert tV.isdigit()
             tBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromText( tBkCode )
+            if not tBBB:
+                if tBkCode=='Tb': tBBB = 'TOB'
             assert tBBB
             linkVersion = 'OET' if tBBB in state.booksToLoad['OET'] else ALTERNATIVE_VERSION
             ourNewLink = f"{'../'*level}{linkVersion}/byC/{tBBB}_C{tC}.htm#C{tC}V{tV}" # Because it's a list, we link to the chapter page
@@ -527,7 +532,9 @@ def fixTyndaleBRefs( abbrev:str, level:int, BBB:str, C:str, V:str, html:str, sta
             assert tC.isdigit()
             assert tV.isdigit(), f"'{abbrev}' {level=} {BBB} {C}:{V} {tBkCode=} {tC=} {tV=}"
             tBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromText( tBkCode )
-            assert tBBB
+            if not tBBB:
+                if tBkCode=='Tb': tBBB = 'TOB'
+            assert tBBB, f"'{abbrev}' {level=} {BBB} {C}:{V} {tBkCode=} {tC=} {tV=}"
             ourNewLink = f'../{tBBB}/C{tC}V{tV}.htm#Top' # we link to the parallel verse page
             # print( f"   {ourNewLink=}" )
         html = f'''{html[:ixStart+6]}{ourNewLink}{html[ixCloseQuote:]}'''

@@ -268,13 +268,14 @@ def createTyndaleDictPages( level:int, outputFolderPath, state ) -> bool:
 
         # Fix their links like '<a href="?bref=Mark.4.14-20">4:14-20</a>'
         adjustedArticle = fixTyndaleBRefs( 'TOBD', level, articleName, '', '', article, state )
+        adjustedArticle = fixTyndaleItemRefs( 'TOBD', level, articleName, adjustedArticle, state )
 
         filename = f'{articleName}.htm'
         filepath = outputFolderPath.joinpath( filename )
         top = makeTop( level, None, 'dictionary', None, state ) \
                 .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}Dictionary Article" ) \
                 .replace( '__KEYWORDS__', f'Bible, dictionary, {articleName}' )
-        articleHtml = f'''{top}<h1 id="Top">Tyndale Open Bible Dictionary</h1><h2>{articleName}</h2>
+        articleHtml = f'''{top}<h1>Tyndale Open Bible Dictionary <a title="Show details" href="{'../'*(level)}allDetails.htm#TOBD">©</a></h1><h2 id="Top">{articleName}</h2>
 {adjustedArticle}
 {makeBottom( level, 'dictionary', state )}'''
         checkHtml( 'DictionaryArticle', articleHtml )
@@ -291,7 +292,7 @@ def createTyndaleDictPages( level:int, outputFolderPath, state ) -> bool:
         top = makeTop( level, None, 'dictionary', None, state ) \
                 .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}Dictionary" ) \
                 .replace( '__KEYWORDS__', f'Bible, dictionary' )
-        letterIndexHtml = f'''{top}<h1 id="Top">Tyndale Open Bible Dictionary</h1><h2>Index for dictionary letter '{letter}'</h2>
+        letterIndexHtml = f'''{top}<h1>Tyndale Open Bible Dictionary</h1><h2 id="Top">Index for dictionary letter '{letter}'</h2>
 {' '.join(articleLinkList)}
 {makeBottom( level, 'dictionary', state )}'''
         checkHtml( 'DictionaryLetterIndex', letterIndexHtml )
@@ -315,6 +316,42 @@ def createTyndaleDictPages( level:int, outputFolderPath, state ) -> bool:
     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
     return True
 # end of Dict.createTyndaleDictPages
+
+
+def fixTyndaleItemRefs( abbrev:str, level:int, articleName:str, html:str, state ) -> str:
+    """
+    Most of the parameters are for info messages only
+    """
+    from createSitePages import ALTERNATIVE_VERSION
+
+    fnPrint( DEBUGGING_THIS_MODULE, f"fixTyndaleItemRefs( {abbrev}, {level}, {articleName} {html}, ... )")
+
+    # Fix their links like '<a href="?item=MarriageMarriageCustoms_Article_TyndaleOpenBibleDictionary">Marriage, Marriage Customs</a>'
+    # Doesn't yet handle links like '(see “<a href="?item=FollowingJesus_ThemeNote_Filament">Following Jesus</a>” Theme Note)'
+    searchStartIndex = 0
+    for _safetyCount in range( 5 ):
+        ixStart = html.find( 'href="?item=', searchStartIndex )
+        if ixStart == -1: # none/no more found
+            break
+        ixCloseQuote = html.find( '"', ixStart+12 )
+        assert ixCloseQuote != -1
+        tyndaleLinkPart = html[ixStart+12:ixCloseQuote]
+        # print( f"{abbrev} {BBB} {C}:{V} {tyndaleLinkPart=}" )
+        # if 'Filament' in tyndaleLinkPart: # e.g., in GEN 48:14 '2Chr.28.12_StudyNote_Filament'
+        #     logging.critical( f"Ignoring Filament link in {abbrev} {articleName} {tyndaleLinkPart=}" )
+        #     searchStartIndex = ixCloseQuote + 6
+        #     continue
+        assert tyndaleLinkPart.endswith( '_Article_TyndaleOpenBibleDictionary' ), f"{abbrev} {level} '{articleName}' {tyndaleLinkPart=}"
+        tyndaleLinkPart = tyndaleLinkPart[:-35]
+        print( f"{tyndaleLinkPart=}" )
+        ourNewLink = f"{tyndaleLinkPart}.htm"
+        print( f"   {ourNewLink=}" )
+        html = f'''{html[:ixStart+6]}{ourNewLink}{html[ixCloseQuote:]}'''
+        searchStartIndex = ixCloseQuote + 6
+    else: need_to_increase_Tyndale_item_loop_counter
+
+    return html
+# end of Bibles.fixTyndaleItemRefs
 
 
 
