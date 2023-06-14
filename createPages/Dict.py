@@ -329,7 +329,7 @@ def fixTyndaleItemRefs( abbrev:str, level:int, articleName:str, html:str, state 
     # Fix their links like '<a href="?item=MarriageMarriageCustoms_Article_TyndaleOpenBibleDictionary">Marriage, Marriage Customs</a>'
     # Doesn't yet handle links like '(see “<a href="?item=FollowingJesus_ThemeNote_Filament">Following Jesus</a>” Theme Note)'
     searchStartIndex = 0
-    for _safetyCount in range( 5 ):
+    for _safetyCount in range( 20 ): # 5 was too few
         ixStart = html.find( 'href="?item=', searchStartIndex )
         if ixStart == -1: # none/no more found
             break
@@ -341,10 +341,14 @@ def fixTyndaleItemRefs( abbrev:str, level:int, articleName:str, html:str, state 
         #     logging.critical( f"Ignoring Filament link in {abbrev} {articleName} {tyndaleLinkPart=}" )
         #     searchStartIndex = ixCloseQuote + 6
         #     continue
-        assert tyndaleLinkPart.endswith( '_Article_TyndaleOpenBibleDictionary' ), f"{abbrev} {level} '{articleName}' {tyndaleLinkPart=}"
-        tyndaleLinkPart = tyndaleLinkPart[:-35]
+        assert tyndaleLinkPart.endswith( '_TyndaleOpenBibleDictionary' ), f"{abbrev} {level} '{articleName}' {tyndaleLinkPart=}"
+        tyndaleLinkPart = tyndaleLinkPart[:-27]
         print( f"{tyndaleLinkPart=}" )
-        ourNewLink = f"{tyndaleLinkPart}.htm"
+        assert tyndaleLinkPart.count('_') == 1
+        assert tyndaleLinkPart.endswith( '_Article' ) or tyndaleLinkPart.endswith( '_Textbox' ), f"{abbrev} {level} '{articleName}' {tyndaleLinkPart=}"
+        tyndaleName, tyndaleType = tyndaleLinkPart.split( '_' )
+        print( f"{tyndaleName=} {tyndaleType=}" )
+        ourNewLink = f"{tyndaleName}.htm"
         print( f"   {ourNewLink=}" )
         html = f'''{html[:ixStart+6]}{ourNewLink}{html[ixCloseQuote:]}'''
         searchStartIndex = ixCloseQuote + 6
