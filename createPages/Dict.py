@@ -57,7 +57,7 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 LAST_MODIFIED_DATE = '2023-06-14' # by RJH
 SHORT_PROGRAM_NAME = "Dictionary"
 PROGRAM_NAME = "OpenBibleData Dictionary handler"
-PROGRAM_VERSION = '0.02'
+PROGRAM_VERSION = '0.03'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -123,7 +123,7 @@ def loadDictLetterXML( letter:str, folderpath ) -> None:
                     name = value
                 elif attrib == 'typename':
                     typeName = value
-                    assert typeName in ('DictionaryLetter','Articles'), f"{name=} {typeName=}"
+                    assert typeName in ('DictionaryLetter','Article'), f"{name=} {typeName=}"
                 elif attrib == 'product':
                     assert value in ('TyndaleOpenBibleDictionary','TyndaleBibleDict') # Sad inconsistency
                 else:
@@ -168,7 +168,7 @@ def loadDictLetterXML( letter:str, folderpath ) -> None:
                 #         assert name
                 #         assert typeName
             else:
-                assert typeName == 'Articles'
+                assert typeName == 'Article'
                 # Now work thru each item
                 stateCounter = 0
                 title = None
@@ -187,33 +187,54 @@ def loadDictLetterXML( letter:str, folderpath ) -> None:
                         assert subelement.tag == 'body'
                         BibleOrgSysGlobals.checkXMLNoText( subelement, sublocation, '1wk8', loadErrors )
                         BibleOrgSysGlobals.checkXMLNoAttributes( subelement, sublocation, '1wk8', loadErrors )
-                        pCount = 0
+                        partCount = 0
                         for bodyelement in subelement:
-                            bodyLocation = f'{sublocation}-{bodyelement.tag}-{pCount}'
+                            bodyLocation = f'{sublocation}-{bodyelement.tag}-{partCount}'
+                            BibleOrgSysGlobals.checkXMLNoTail( bodyelement, bodylocation, '1wk8', loadErrors )
                             # print( f"{bodyelement} {bodyelement.text=}")
-                            assert bodyelement.tag == 'p'
-                            # Process the attributes first
-                            pClass = None
-                            for attrib,value in bodyelement.items():
-                                if attrib == 'class':
-                                    pClass = value
-                                    assert pClass in ('h1','h2','fl','list','list-text'), f"{name} {pClass=} {bodyLocation}"
-                                else:
-                                    logging.warning( "fv6g Unprocessed {} attribute ({}) in {}".format( attrib, value, bodyLocation ) )
-                                    loadErrors.append( "Unprocessed {} attribute ({}) in {} (fv6g)".format( attrib, value, bodyLocation ) )
-                                    if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.haltOnXMLWarning: halt
-                            # So we want to extract this as an HTML paragraph
-                            htmlSegment = BibleOrgSysGlobals.getFlattenedXML( bodyelement, bodyLocation ) \
-                                                                    .replace( '<a href="  \?', '<a href="?') # Fix encoding mistake in 1 Tim
-                            assert '\\' not in htmlSegment, f"{name} {pCount=} {htmlSegment=}"
-                            theirClass = None
-                            if htmlSegment.startswith( '<class="'): # e.g., <class="theme-list">The new covenant....
-                                ixClose = htmlSegment.index( '">', 10 )
-                                theirClass = htmlSegment[8:ixClose]
-                                htmlSegment = htmlSegment[ixClose+2:]
-                            htmlSegment = f'<p class="{theirClass}">{htmlSegment}</p>'
-                            thisEntry = f"{thisEntry}{NEW_LINE if thisEntry else ''}{htmlSegment}"
-                            pCount += 1
+                            assert bodyelement.tag in ('p','include_items'), f'{title=} {partCount=} {bodyelement.tag=} {bodyLocation=}'
+                            if bodyelement.tag == 'p':
+                                # Process the attributes first
+                                pClass = None
+                                for attrib,value in bodyelement.items():
+                                    if attrib == 'class':
+                                        pClass = value
+                                        assert pClass in ('h1','h2','fl','list','list-text'), f"{name} {pClass=} {bodyLocation}"
+                                    else:
+                                        logging.warning( "fv6g Unprocessed {} attribute ({}) in {}".format( attrib, value, bodyLocation ) )
+                                        loadErrors.append( "Unprocessed {} attribute ({}) in {} (fv6g)".format( attrib, value, bodyLocation ) )
+                                        if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.haltOnXMLWarning: halt
+                                # So we want to extract this as an HTML paragraph
+                                htmlSegment = BibleOrgSysGlobals.getFlattenedXML( bodyelement, bodyLocation )
+                                                                        # .replace( '<a href="  \?', '<a href="?') # Fix encoding mistake in 1 Tim
+                                assert '\\' not in htmlSegment, f"{name} {partCount=} {htmlSegment=}"
+                                theirClass = None
+                                if htmlSegment.startswith( '<class="'): # e.g., <class="theme-list">The new covenant....
+                                    ixClose = htmlSegment.index( '">', 10 )
+                                    theirClass = htmlSegment[8:ixClose]
+                                    htmlSegment = htmlSegment[ixClose+2:]
+                                htmlSegment = f'<p class="{theirClass}">{htmlSegment}</p>'
+                                thisEntry = f"{thisEntry}{NEW_LINE if thisEntry else ''}{htmlSegment}"
+                            elif bodyelement.tag == 'include_items':
+                                BibleOrgSysGlobals.checkXMLNoText( bodyelement, bodylocation, '1wk8', loadErrors )
+                                BibleOrgSysGlobals.checkXMLNoSubelements( bodyelement, bodylocation, '1wk8', loadErrors )
+                                # Process the attributes first
+                                iiSrc = iiName = None
+                                for attrib,value in bodyelement.items():
+                                    if attrib == 'src':
+                                        iiSrc = value
+                                        assert iiSrc == '../Textboxes/Textboxes.xml'
+                                    elif attrib == 'name':
+                                        iiName = value # Name of a textbox item entry
+                                    else:
+                                        logging.warning( "fv6g Unprocessed {} attribute ({}) in {}".format( attrib, value, bodyLocation ) )
+                                        loadErrors.append( "Unprocessed {} attribute ({}) in {} (fv6g)".format( attrib, value, bodyLocation ) )
+                                        if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.haltOnXMLWarning: halt
+                                # So we want to save this as an XML paragraph to insert textbox later
+                                htmlSegment = f'<include_items src="../Textboxes/Textboxes.xml" name="{iiName}"/>'
+                                thisEntry = f"{thisEntry}{NEW_LINE if thisEntry else ''}{htmlSegment}"
+                            else: halt
+                            partCount += 1
                         stateCounter += 1
                     else: halt
                 if thisEntry:
