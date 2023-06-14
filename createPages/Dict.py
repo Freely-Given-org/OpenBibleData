@@ -51,13 +51,12 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 # from BibleOrgSys.Internals.InternalBibleInternals import getLeadingInt
 
 from html import makeTop, makeBottom, checkHtml
-from Bible import fixTyndaleBRefs
 
 
 LAST_MODIFIED_DATE = '2023-06-14' # by RJH
 SHORT_PROGRAM_NAME = "Dictionary"
 PROGRAM_NAME = "OpenBibleData Dictionary handler"
-PROGRAM_VERSION = '0.08'
+PROGRAM_VERSION = '0.09'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -255,6 +254,8 @@ def createTyndaleDictPages( level:int, outputFolderPath, state ) -> bool:
     """
     """
     from createSitePages import TEST_MODE
+    from Bibles import fixTyndaleBRefs
+
     fnPrint( DEBUGGING_THIS_MODULE, f"createTyndaleDictPages( '{level}', '{outputFolderPath}', ... )")
 
     vPrint( 'Info', DEBUGGING_THIS_MODULE, f"\nCreating Tyndale Bible Dict pages…" )
