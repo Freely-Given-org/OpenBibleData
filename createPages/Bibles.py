@@ -471,13 +471,13 @@ def formatTyndaleNotes( abbrev:str, level:int, BBB:str, C:str, V:str, segmentTyp
 # end of Bibles.formatTyndaleNotes
 
 
-def fixTyndaleBRefs( abbrev:str, level:int, BBB:str, C:str, V:str, html:str, state ) -> str:
+def fixTyndaleBRefs( abbrev:str, level:int, BBBorArticleName:str, C:str, V:str, html:str, state ) -> str:
     """
     Most of the parameters are for info messages only
     """
     from createSitePages import ALTERNATIVE_VERSION
 
-    fnPrint( DEBUGGING_THIS_MODULE, f"fixTyndaleBRefs( {abbrev}, {level}, {BBB} {C}:{V} {html}, ... )")
+    fnPrint( DEBUGGING_THIS_MODULE, f"fixTyndaleBRefs( {abbrev}, {level}, {BBBorArticleName} {C}:{V} {html}, ... )")
 
     # Fix their links like '<a href="?bref=Mark.4.14-20">4:14-20</a>'
     # Doesn't yet handle links like '(see “<a href="?item=FollowingJesus_ThemeNote_Filament">Following Jesus</a>” Theme Note)'
@@ -490,9 +490,11 @@ def fixTyndaleBRefs( abbrev:str, level:int, BBB:str, C:str, V:str, html:str, sta
         ixCloseQuote = html.find( '"', ixStart+12 )
         assert ixCloseQuote != -1
         tyndaleLinkPart = html[ixStart+12:ixCloseQuote]
-        # print( f"{abbrev} {BBB} {C}:{V} {tyndaleLinkPart=}" )
+        if not tyndaleLinkPart and BBBorArticleName=='AlTaschith':
+            tyndaleLinkPart = 'Ps.58.1-2' # Fix encoding error
+        print( f"{abbrev} {BBBorArticleName} {C}:{V} {tyndaleLinkPart=}" )
         if 'Filament' in tyndaleLinkPart: # e.g., in GEN 48:14 '2Chr.28.12_StudyNote_Filament'
-            logging.critical( f"Ignoring Filament link in {abbrev} {BBB} {C}:{V} {tyndaleLinkPart=}" )
+            logging.critical( f"Ignoring Filament link in {abbrev} {BBBorArticleName} {C}:{V} {tyndaleLinkPart=}" )
             searchStartIndex = ixCloseQuote + 6
             continue
         if '-' in tyndaleLinkPart: # then it's a verse range
@@ -503,7 +505,7 @@ def fixTyndaleBRefs( abbrev:str, level:int, BBB:str, C:str, V:str, html:str, sta
             if tBkCode.endswith('Thes'):
                 tBkCode += 's' # TODO: getBBBFromText should handle '1Thes'
             assert tC.isdigit()
-            assert tV.isdigit(), f"'{abbrev}' {level=} {BBB} {C}:{V} {tBkCode=} {tC=} {tV=}"
+            assert tV.isdigit(), f"'{abbrev}' {level=} {BBBorArticleName} {C}:{V} {tBkCode=} {tC=} {tV=}"
             tBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromText( tBkCode )
             if not tBBB:
                 if tBkCode=='Tb': tBBB = 'TOB'
@@ -530,11 +532,11 @@ def fixTyndaleBRefs( abbrev:str, level:int, BBB:str, C:str, V:str, html:str, sta
             if tBkCode.endswith('Thes'):
                 tBkCode += 's' # TODO: getBBBFromText should handle '1Thes'
             assert tC.isdigit()
-            assert tV.isdigit(), f"'{abbrev}' {level=} {BBB} {C}:{V} {tBkCode=} {tC=} {tV=}"
+            assert tV.isdigit(), f"'{abbrev}' {level=} {BBBorArticleName} {C}:{V} {tBkCode=} {tC=} {tV=}"
             tBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromText( tBkCode )
             if not tBBB:
                 if tBkCode=='Tb': tBBB = 'TOB'
-            assert tBBB, f"'{abbrev}' {level=} {BBB} {C}:{V} {tBkCode=} {tC=} {tV=}"
+            assert tBBB, f"'{abbrev}' {level=} {BBBorArticleName} {C}:{V} {tBkCode=} {tC=} {tV=}"
             ourNewLink = f'../{tBBB}/C{tC}V{tV}.htm#Top' # we link to the parallel verse page
             # print( f"   {ourNewLink=}" )
         html = f'''{html[:ixStart+6]}{ourNewLink}{html[ixCloseQuote:]}'''

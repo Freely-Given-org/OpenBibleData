@@ -160,12 +160,12 @@ class State:
                 # 'DBY': '../copiedBibles/English/eBible.org/DBY/',
                 # 'RV': '../copiedBibles/English/eBible.org/RV/', # with deuterocanon
                 # 'WBS': '../copiedBibles/English/eBible.org/RV/',
-                'KJB': '../copiedBibles/English/eBible.org/KJB/', # with deuterocanon
-                'BB': '/mnt/SSDs/Bibles/DataSets/BibleSuperSearch.com/v5.0/TXT/bishops.txt',
-                'GNV': '../copiedBibles/English/eBible.org/GNV/',
-                'CB': '/mnt/SSDs/Bibles/DataSets/BibleSuperSearch.com/v5.0/TXT/coverdale.txt',
-                'TNT': '../copiedBibles/English/eBible.org/TNT/',
-                'WYC': '/mnt/SSDs/Bibles/Zefania modules/SF_2009-01-20_ENG_BIBLE_WYCLIFFE_(JOHN WYCLIFFE BIBLE).xml',
+                # 'KJB': '../copiedBibles/English/eBible.org/KJB/', # with deuterocanon
+                # 'BB': '/mnt/SSDs/Bibles/DataSets/BibleSuperSearch.com/v5.0/TXT/bishops.txt',
+                # 'GNV': '../copiedBibles/English/eBible.org/GNV/',
+                # 'CB': '/mnt/SSDs/Bibles/DataSets/BibleSuperSearch.com/v5.0/TXT/coverdale.txt',
+                # 'TNT': '../copiedBibles/English/eBible.org/TNT/',
+                # 'WYC': '/mnt/SSDs/Bibles/Zefania modules/SF_2009-01-20_ENG_BIBLE_WYCLIFFE_(JOHN WYCLIFFE BIBLE).xml',
                 # 'CLV': '../copiedBibles/Latin/eBible.org/CLV/',
                 # 'SR-GNT': '../../Forked/CNTR-SR/SR usfm/',
                 # 'UGNT': '../copiedBibles/Original/unfoldingWord.org/UGNT/',
@@ -578,13 +578,14 @@ def createSitePages() -> bool:
                 versionFolder = TEMP_BUILD_FOLDER.joinpath( f'{thisBible.abbreviation}/' )
                 createSectionPages( 2, versionFolder.joinpath('bySec/'), thisBible, state )
 
+    createTyndaleDictPages( 1, TEMP_BUILD_FOLDER.joinpath('di/'), state )
     # TODO: We could use multiprocessing to do all these at once
     #   (except that state is quite huge with all preloaded versions and hence expensive to pickle)
     createParallelPages( 1, TEMP_BUILD_FOLDER.joinpath('pa/'), state )
     createOETInterlinearPages( 1, TEMP_BUILD_FOLDER.joinpath('il/'), state )
 
     createOETReferencePages( 1, TEMP_BUILD_FOLDER.joinpath('rf/'), state )
-    createTyndaleDictPages( 1, TEMP_BUILD_FOLDER.joinpath('di/'), state )
+    # createTyndaleDictPages( 1, TEMP_BUILD_FOLDER.joinpath('di/'), state )
 
     createDetailsPages( 0, TEMP_BUILD_FOLDER, state )
     createAboutPage( 0, TEMP_BUILD_FOLDER, state )
