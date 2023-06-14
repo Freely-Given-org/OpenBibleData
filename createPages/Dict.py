@@ -51,13 +51,13 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 # from BibleOrgSys.Internals.InternalBibleInternals import getLeadingInt
 
 from html import makeTop, makeBottom, checkHtml
-# from OETHandlers import findLVQuote
+from Bible import fixTyndaleBRefs
 
 
 LAST_MODIFIED_DATE = '2023-06-14' # by RJH
 SHORT_PROGRAM_NAME = "Dictionary"
 PROGRAM_NAME = "OpenBibleData Dictionary handler"
-PROGRAM_VERSION = '0.05'
+PROGRAM_VERSION = '0.08'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -263,14 +263,18 @@ def createTyndaleDictPages( level:int, outputFolderPath, state ) -> bool:
     except FileExistsError: pass # it was already there
 
     for articleName,article in TOBDData['Articles'].items():
-        print( f"Making article page for '{articleName}'…" )
+        # print( f"Making article page for '{articleName}'…" )
+
+        # Fix their links like '<a href="?bref=Mark.4.14-20">4:14-20</a>'
+        adjustedArticle = fixTyndaleBRefs( abbrev, level, articleName, '', '', article, state )
+
         filename = f'{articleName}.htm'
         filepath = outputFolderPath.joinpath( filename )
         top = makeTop( level, None, 'dictionary', None, state ) \
                 .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}Dictionary Article" ) \
                 .replace( '__KEYWORDS__', f'Bible, dictionary, {articleName}' )
         articleHtml = f'''{top}<h1 id="Top">Tyndale Open Bible Dictionary</h1><h2>{articleName}</h2>
-{article}
+{adjustedArticle}
 {makeBottom( level, 'dictionary', state )}'''
         checkHtml( 'DictionaryArticle', articleHtml )
         with open( filepath, 'wt', encoding='utf-8' ) as articleHtmlFile:
@@ -280,7 +284,7 @@ def createTyndaleDictPages( level:int, outputFolderPath, state ) -> bool:
     # Make letter index pages
     for letter,articleList in TOBDData['Letters'].items():
         print( f"Making letter summary page for '{letter}'…" )
-        articleLinkList = [f'<a title="Go to article" href="{articleName}.htm">{articleName}</a>' for articleName in TOBDData['Articles']]
+        articleLinkList = [f'<a title="Go to article" href="{articleName}.htm">{articleName}</a>' for articleName in articleList]
         filename = f'{letter}_index.htm'
         filepath = outputFolderPath.joinpath( filename )
         top = makeTop( level, None, 'dictionary', None, state ) \
