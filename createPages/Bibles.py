@@ -65,12 +65,13 @@ from BibleTransliterations import transliterate_Greek, transliterate_Hebrew
 
 from html import checkHtml
 from OETHandlers import findLVQuote
+from Dict import loadTyndaleOpenBibleDictXML
 
 
-LAST_MODIFIED_DATE = '2023-06-13' # by RJH
+LAST_MODIFIED_DATE = '2023-06-14' # by RJH
 SHORT_PROGRAM_NAME = "Bibles"
 PROGRAM_NAME = "OpenBibleData Bibles handler"
-PROGRAM_VERSION = '0.43'
+PROGRAM_VERSION = '0.44'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -182,7 +183,7 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state ) -
         thisBible = uWNotesBible.uWNotesBible( state.BibleLocations[versionAbbreviation], givenName='uWTranslationNotes',
                                             givenAbbreviation='UTN', encoding='utf-8' )
         thisBible.loadBooks() # So we can iterate through them all later
-    elif versionAbbreviation == 'TSN':
+    elif versionAbbreviation == 'TOSN': # We use this to also load non-Bible (non-B/C/V) stuff like Tyndale open Bible dictionary and book intros
         sourceFolder = state.BibleLocations[versionAbbreviation]
 
         # We sneak in some extra loads here
@@ -194,6 +195,9 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state ) -
         sourceFilename = 'BookIntroSummaries.xml'
         thisExtraAbbreviation = 'TBIS'
         TyndaleBookIntroSummariesDict = loadTyndaleBookIntrosXML( thisExtraAbbreviation, os.path.join( sourceFolder, sourceFilename ) )
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Preloading Tyndale Open Bible Dictionary from {sourceFolder}…" )
+        thisExtraAbbreviation = 'TOBD'
+        TyndaleBookIntrosDict = loadTyndaleOpenBibleDictXML( thisExtraAbbreviation, os.path.join( sourceFolder, '../OBD/' ) )
 
         vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Preloading Tyndale theme notes from {sourceFolder}…" )
         sourceFilename = 'ThemeNotes.xml'
@@ -207,7 +211,7 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state ) -
         vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Preloading Tyndale study notes from {sourceFolder}…" )
         sourceFilename = 'StudyNotes.xml'
         thisBible = TyndaleNotesBible.TyndaleNotesBible( os.path.join( sourceFolder, sourceFilename ), givenName='TyndaleStudyNotes',
-                                            givenAbbreviation='TSN', encoding='utf-8' )
+                                            givenAbbreviation='TOSN', encoding='utf-8' )
         thisBible.loadBooks() # So we can iterate through them all later
     else: # USFM
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Preloading '{versionAbbreviation}' USFM Bible…" )
@@ -378,7 +382,7 @@ def formatTyndaleBookIntro( abbrev:str, level:int, BBB:str, segmentType:str, sta
     # print( f'{abbrev} {BBB} Intro {html=}' )
 
     # Fix their links like '<a href="?bref=Mark.4.14-20">4:14-20</a>'
-    bHtml = fixTyndaleBRefs( abbrev, level, BBB, bHtml, state )
+    bHtml = fixTyndaleBRefs( abbrev, level, BBB, "-1", "0", bHtml, state )
 
     checkHtml( f'{abbrev} {BBB}', bHtml, segmentOnly=True )
     return bHtml
@@ -390,7 +394,7 @@ def formatTyndaleNotes( abbrev:str, level:int, BBB:str, C:str, V:str, segmentTyp
     These are mostly HTML encoded inside USFM fields.
     """
     fnPrint( DEBUGGING_THIS_MODULE, f"formatTyndaleNotes( {BBB}, {C}:{V}, {segmentType=} )")
-    assert abbrev in ('TSN','TTN')
+    assert abbrev in ('TOSN','TTN')
     assert segmentType in ('parallel','interlinear')
 
     try:
@@ -411,7 +415,7 @@ def formatTyndaleNotes( abbrev:str, level:int, BBB:str, C:str, V:str, segmentTyp
         #         snHtml = f'{snHtml}<p class="TSNv">Verses {rest}</p>'
         if marker == 'v~':
             assert rest
-            assert abbrev == 'TSN'
+            assert abbrev == 'TOSN'
             rest = rest.replace( '•', '<br>•' )
             nHtml = f'{nHtml}<p class="{abbrev}">{rest}</p>'
         elif marker in ('s1','s2','s3'): # These have the text in the same entry
@@ -455,7 +459,7 @@ def formatTyndaleNotes( abbrev:str, level:int, BBB:str, C:str, V:str, segmentTyp
         lastMarker = marker
 
     # Fix their links like '<a href="?bref=Mark.4.14-20">4:14-20</a>'
-    nHtml = fixTyndaleBRefs( abbrev, level, BBB, nHtml, state )
+    nHtml = fixTyndaleBRefs( abbrev, level, BBB, C, V, nHtml, state )
 
     checkHtml( f'{abbrev} {BBB} {C}:{V}', nHtml, segmentOnly=True )
     # if abbrev=='TTN' and BBB=='MRK' and C=='1' and V=='14': halt
@@ -463,7 +467,7 @@ def formatTyndaleNotes( abbrev:str, level:int, BBB:str, C:str, V:str, segmentTyp
 # end of Bibles.formatTyndaleNotes
 
 
-def fixTyndaleBRefs( abbrev:str, level:int, BBB:str, html:str, state ) -> str:
+def fixTyndaleBRefs( abbrev:str, level:int, BBB:str, C:str, V:str, html:str, state ) -> str:
     """
     """
     from createSitePages import ALTERNATIVE_VERSION
@@ -473,8 +477,8 @@ def fixTyndaleBRefs( abbrev:str, level:int, BBB:str, html:str, state ) -> str:
     # Fix their links like '<a href="?bref=Mark.4.14-20">4:14-20</a>'
     # Doesn't yet handle links like '(see “<a href="?item=FollowingJesus_ThemeNote_Filament">Following Jesus</a>” Theme Note)'
     searchStartIndex = 0
-    for _safetyCount in range( 150 ): # 54 was enough for TSN ACT 9:2
-        # but 110 not for TTN MRK 4:35, 120 not for Josh 13:1, 140 for Psa 97:2
+    for _safetyCount in range( 300 ): # 54 was enough for TSN ACT 9:2
+        # but 110 not for TTN MRK 4:35, 120 not for Josh 13:1, 140 for Psa 97:2, 200 for book intros
         ixStart = html.find( 'href="?bref=', searchStartIndex )
         if ixStart == -1: # none/no more found
             break

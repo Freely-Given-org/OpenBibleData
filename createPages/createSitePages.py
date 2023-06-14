@@ -64,14 +64,14 @@ from createOETReferencePages import createOETReferencePages
 from html import makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-06-07' # by RJH
+LAST_MODIFIED_DATE = '2023-06-14' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData Create Pages"
-PROGRAM_VERSION = '0.65'
+PROGRAM_VERSION = '0.66'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
-TEST_MODE = False # Writes website into Test subfolder
+TEST_MODE = True # Writes website into Test subfolder
 
 ALL_PRODUCTION_BOOKS = not TEST_MODE # If set to False, only selects one book per version for a faster test build
 
@@ -108,7 +108,7 @@ class State:
                 'SR-GNT','UGNT','SBL-GNT','TC-GNT',
                 'BRN','BrLXX', 'UHB',
                 # NOTES:
-                'TSN','UTN',
+                'TOSN','UTN',
                 ]
     # NOTE: The above list has entries deleted by preloadBibles() if they fail to load
     #           (often because we temporarily remove the BibleLocation below)
@@ -125,9 +125,9 @@ class State:
                 'TNT':('',''),'WYC':('',''),'CLV':('<small>','</small>'),
                 'SR-GNT':('<b>','</b>'),'UGNT':('<small>','</small>'),'SBL-GNT':('<small>','</small>'),'TC-GNT':('<small>','</small>'),
                 'BRN':('<small>','</small>'),'BrLXX':('',''), 'UHB':('',''),
-                'Parallel':('<b>','</b>'), 'Interlinear':('<b>','</b>'),
+                'Parallel':('<b>','</b>'), 'Interlinear':('<b>','</b>'), 'Dictionary':('<b>','</b>'),
                 # NOTES:
-                'TSN':('',''),'UTN':('',''),
+                'TOSN':('',''),'UTN':('',''),
                 }
 
                 ## 'LEB': '../copiedBibles/English/LogosBibleSoftware/LEB/LEB.osis.xml', # OSIS
@@ -173,8 +173,8 @@ class State:
                 'BRN': '../copiedBibles/English/eBible.org/Brenton/', # with deuterocanon and OTH,XXA,XXB,XXC,
                 'BrLXX': '../copiedBibles/Greek/eBible.org/BrLXX/',
                 'UHB': '../copiedBibles/Original/unfoldingWord.org/UHB/',
-                # NOTE: Notes are special cases here at the end (skipped in many parts of the program)
-                'TSN': '../copiedBibles/English/Tyndale/OSN/',
+                # NOTE: Dictionary and notes are special cases here at the end (skipped in many parts of the program)
+                'TOSN': '../copiedBibles/English/Tyndale/OSN/',
                 'UTN': '../copiedBibles/English/unfoldingWord.org/UTN/',
                 }
 
@@ -219,7 +219,7 @@ class State:
                 'BRN': 'Brenton Septuagint Translation (1851)',
                 'BrLXX': '(Brenton’s) Ancient Greek translation of the Hebrew Scriptures (~250 BC)',
                 'UHB': 'unfoldingWord® Hebrew Bible (2022)',
-                'TSN': 'Tyndale Study Notes (2022)',
+                'TOSN': 'Tyndale Study Notes (2022)',
                 'UTN': 'unfoldingWord® Translation Notes (2023)',
                 }
 
@@ -264,7 +264,7 @@ class State:
                 'BrLXX': ['ALL'],
                 'UHB': ['ALL'],
                 # NOTES:
-                'TSN': ['ALL'],
+                'TOSN': ['ALL'],
                 'UTN': ['ALL'],
             } if ALL_PRODUCTION_BOOKS else {
                 'OET': ['FRT','MRK'],
@@ -307,7 +307,7 @@ class State:
                 'BrLXX': ['RUT'],
                 'UHB': ['RUT'],
                 # NOTES:
-                'TSN': ['RUT','MRK'],
+                'TOSN': ['RUT','MRK'],
                 'UTN': ['RUT','MRK'],
             }
 
@@ -473,10 +473,14 @@ You can read more about the design of the OET-LV <a href="https://OpenEnglishTra
                 'copyright': '<p>Copyright © 2022 by unfoldingWord.</p>',
                 'licence': '<p><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
                 'acknowledgements': '<p>Thanks to <a href="https://www.unfoldingword.org/">unfoldingWord</a> for creating <a href="https://git.door43.org/unfoldingWord/hbo_uhb">this HB</a> from the <a href="https://hb.openscriptures.org/">OSHB</a>.</p>' },
-        'TSN': {'about': '<p>Tyndale Open Study Notes (2022).</p>',
+        'TOSN': {'about': '<p>Tyndale Open Study Notes (2022).</p>',
                 'copyright': '<p>Copyright © 2022 by Tyndale House Publishers.</p>',
                 'licence': '<p><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
                 'acknowledgements': '<p>Thanks to <a href="https://TyndaleOpenResources.com/">Tyndale House Publishers</a> for their generous open-licensing of these Bible study and related notes.</p>' },
+        'TOBD': {'about': '<p>Tyndale Open Bible Dictionary (2023).</p>',
+                'copyright': '<p>Copyright © 2023 by Tyndale House Publishers.</p>',
+                'licence': '<p><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
+                'acknowledgements': '<p>Thanks to <a href="https://TyndaleOpenResources.com/">Tyndale House Publishers</a> for their generous open-licensing of this Bible dictionary.</p>' },
         'UTN': {'about': '<p>unfoldingWord® Translation Notes (2023).</p>',
                 'copyright': '<p>Copyright © 2022 by unfoldingWord.</p>',
                 'licence': '<p><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
@@ -554,7 +558,7 @@ def createSitePages() -> bool:
         createOETVersionPages( 1, versionFolder, state.preloadedBibles['OET-RV'], state.preloadedBibles['OET-LV'], state )
     for versionAbbreviation, thisBible in state.preloadedBibles.items(): # doesn't include OET pseudo-translation
         thisBible.discover() # Now that all required books are loaded
-        if versionAbbreviation not in ('TSN','TTN','UTN'): # We don't make separate notes pages
+        if versionAbbreviation not in ('TOSN','TTN','UTN'): # We don't make separate notes pages
             vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nCreating version pages for {thisBible.abbreviation}…" )
             versionFolder = TEMP_BUILD_FOLDER.joinpath( f'{thisBible.abbreviation}/' )
             createVersionPages( 1, versionFolder, thisBible, state )
@@ -568,7 +572,7 @@ def createSitePages() -> bool:
             versionFolder = TEMP_BUILD_FOLDER.joinpath( f'OET/' )
             createOETSectionPages( 2, versionFolder.joinpath('bySec/'), rvBible, lvBible, state )
     for versionAbbreviation, thisBible in state.preloadedBibles.items(): # doesn't include OET pseudo-translation
-        if versionAbbreviation not in ('TSN','TTN','UTN'): # We don't make separate notes pages
+        if versionAbbreviation not in ('TOSN','TTN','UTN'): # We don't make separate notes pages
             if thisBible.discoveryResults['ALL']['haveSectionHeadings']:
                 versionFolder = TEMP_BUILD_FOLDER.joinpath( f'{thisBible.abbreviation}/' )
                 createSectionPages( 2, versionFolder.joinpath('bySec/'), thisBible, state )
@@ -637,7 +641,7 @@ def cleanHTMLFolders( folder:Path, state ) -> bool:
     except FileNotFoundError: pass
     try: shutil.rmtree( folder.joinpath( 'rf/' ) )
     except FileNotFoundError: pass
-    for versionAbbreviation in state.allBibleVersions + ['UTN','TSN']:
+    for versionAbbreviation in state.allBibleVersions + ['UTN','TOSN']:
         vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Removing tree at {folder.joinpath( f'{versionAbbreviation}/' )}/…")
         try: shutil.rmtree( folder.joinpath( f'{versionAbbreviation}/' ) )
         except FileNotFoundError: pass

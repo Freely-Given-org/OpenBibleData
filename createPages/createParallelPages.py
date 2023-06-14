@@ -46,10 +46,10 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_
 from createOETReferencePages import livenOETWordLinks
 
 
-LAST_MODIFIED_DATE = '2023-06-13' # by RJH
+LAST_MODIFIED_DATE = '2023-06-14' # by RJH
 SHORT_PROGRAM_NAME = "createParallelPages"
 PROGRAM_NAME = "OpenBibleData createParallelPages functions"
-PROGRAM_VERSION = '0.65'
+PROGRAM_VERSION = '0.66'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -159,9 +159,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                 rightCLink = f' <a title="Go to first chapter" href="C1V1.htm#__ID__">►</a>' if c==-1 \
                         else f' <a title="Go to next chapter" href="C{c+1}V1.htm#__ID__">►</a>' if c<numChapters \
                         else ''
-                introLink = '<a title="Go to book intro" href="Intro.htm#__ID__">B</a> ' if v==0 \
-                        else f'<a title="Go to chapter intro" href="C{c}V0.htm#__ID__">I</a> ' if v==1 \
-                        else ''
+                introLink = f'''<a title="Go to book intro" href="Intro.htm#__ID__">B</a> {f'<a title="Go to chapter intro" href="C{c}V0.htm#__ID__">I</a> ' if c!=-1 else ''}'''
                 interlinearLink = f''' <a title="Interlinear verse view" href="{'../'*level}il/{BBB}/C{C}V{V}.htm#Top">═</a>''' if BBB in state.booksToLoad['OET'] else ''
                 detailsLink = f''' <a title="Show details about these works" href="{'../'*(level)}allDetails.htm">©</a>'''
                 navLinks = f'<p id="__ID__" class="vNav">{leftCLink}{leftVLink}{ourTidyBbb} Book Introductions <a title="Go to __WHERE__ of page" href="#__LINK__">__ARROW__</a>{rightVLink}{rightCLink}{interlinearLink}{detailsLink}</p>' if c==-1 \
@@ -178,7 +176,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                     if versionAbbreviation in ('TCNT','TNT', 'SR-GNT','UGNT','SBL-GNT','TC-GNT') \
                     and not BibleOrgSysGlobals.loadedBibleBooksCodes.isNewTestament_NR( BBB):
                         continue # Skip non-NT books for Koine Greek NT
-                    if versionAbbreviation in ('TSN','TTN','UTN'):
+                    if versionAbbreviation in ('TOSN','TTN','UTN'):
                         continue # We handle the notes separately at the end
 
                     thisBible = state.preloadedBibles[versionAbbreviation]
@@ -315,7 +313,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                         pHtml = f'{pHtml}{tbiHtml}'
 
                 # Handle Tyndale open study notes and theme notes
-                tsnHtml = formatTyndaleNotes( 'TSN', level, BBB, C, V, 'parallel', state )
+                tsnHtml = formatTyndaleNotes( 'TOSN', level, BBB, C, V, 'parallel', state )
                 if tsnHtml:
                     tsnHtml = f'''<div id="TSN" class="parallelTSN"><a id="Go to TSN copyright page" href="{'../'*level}TSN/details.htm">TSN</a> <b>Tyndale Study Notes</b>: {tsnHtml}</div><!--end of TSN-->\n'''
                     pHtml = f'{pHtml}{tsnHtml}'
@@ -389,6 +387,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
                      #     since we're only doing string matches (but they're case sensitive)
     # Pairs of words
     ((' a boot',),' a boat'),
+    ((' a none ',),' anon '),
     (('at euen ','at even ',),'at evening '),(('when euen ','when even '),'when evening '),(('when the euen ','when the even '),'when the evening '),
     (('fro God',),'from God'),
     (('get bred',),'get bread'),
@@ -596,7 +595,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
         ((' oure ',),' our '),
         ((' ouer',),' over'),
         ((' awne ',' owne '),' own '),
-    ((' parablis',),' parables'), ((' parties',' parts'),' parts/region'),
+    ((' parablis',),' parables'), ((' parts',' parties'),' parts/region'),
             ((' passide',),' passed'),((' passe ',),' pass '),((' passe?',),' pass?'),((' passe:',),' pass:'), ((' pacience',),' patience'),
         (('penaunce',),'penance'),
             (('puplis',),'peoples'),((' puple',' pople'),' people'),

@@ -53,10 +53,10 @@ from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39, BOOKLIST_NT27
 # from Bibles import fetchChapter
 
 
-LAST_MODIFIED_DATE = '2023-06-03' # by RJH
+LAST_MODIFIED_DATE = '2023-06-14' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
-PROGRAM_VERSION = '0.42'
+PROGRAM_VERSION = '0.43'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -70,7 +70,7 @@ timeRegex = re.compile( '[0-9][0-9]:[0-9][0-9]' )
 
 KNOWN_PAGE_TYPES = ('site', 'topIndex', 'details', 'allDetails',
                     'book','chapter','section',
-                    'parallel','interlinear',
+                    'parallel','interlinear','dictionary',
                     'word','lemma', 'person','location',
                     'about')
 def makeTop( level:int, versionAbbreviation:Optional[str], pageType:str, fileOrFolderName:Optional[str], state ) -> str:
@@ -137,7 +137,7 @@ def _makeHeader( level:int, versionAbbreviation:str, pageType:str, fileOrFolderN
     #   and with the more specific links if specified.
     initialVersionList = []
     for thisVersionAbbreviation in state.BibleVersions:
-        if thisVersionAbbreviation in ('TSN','TTN','UTN'): # Skip notes
+        if thisVersionAbbreviation in ('TOSN','TTN','UTN'): # Skip notes
             continue
         if pageType in ('section','section'):
             try:
@@ -164,6 +164,10 @@ def _makeHeader( level:int, versionAbbreviation:str, pageType:str, fileOrFolderN
         initialVersionList.append( 'Interlinear' )
     else: # add a link for interlinear
         initialVersionList.append( f'''{state.BibleVersionDecorations['Interlinear'][0]}<a title="Single verse in interlinear view" href="{'../'*level}il/">Interlinear</a>{state.BibleVersionDecorations['Interlinear'][1]}''' )
+    if pageType == 'dictionary':
+        initialVersionList.append( 'Dictionary' )
+    else: # add a link for dictionary
+        initialVersionList.append( f'''{state.BibleVersionDecorations['Dictionary'][0]}<a title="Dictionary index" href="{'../'*level}il/">Dictionary</a>{state.BibleVersionDecorations['Dictionary'][1]}''' )
     # Moved to top line in makeTop above
     # if pageType == 'about':
     #     initialVersionList.append( 'About' )
@@ -214,7 +218,7 @@ def _makeHeader( level:int, versionAbbreviation:str, pageType:str, fileOrFolderN
 
     viewLinks = []
     if pageType in ('book','section','chapter','details') \
-    and versionAbbreviation not in ('TSN','TTN','UTN'):
+    and versionAbbreviation not in ('TOSN','TTN','UTN'):
         if not versionAbbreviation: versionAbbreviation = 'OET'
         viewLinks.append( versionAbbreviation )
         if pageType != 'book':
@@ -430,7 +434,7 @@ def do_LSV_HTMLcustomisations( html:str ) -> str:
 def do_T4T_HTMLcustomisations( html:str ) -> str:
     """
     T4T has:
-        We have tried to indicate the beginning of an alternative by a ‘◄’ and the ending of each alternative by a ‘►’. 
+        We have tried to indicate the beginning of an alternative by a ‘◄’ and the ending of each alternative by a ‘►’.
         We have identified the different figures of speech where each occurs in the text, but these symbols are hidden in the data-file.
             [APO] = apostrophe
             [CHI] = chiasmus

@@ -267,7 +267,7 @@ def createOETInterlinearVersePage( level:int, BBB:str, c:int, v:int, state ) -> 
     # Handle (uW) translation notes and (Tyndale) study notes
     utnHtml = formatUnfoldingWordTranslationNotes( level, BBB, C, V, 'interlinear', state )
     if utnHtml: utnHtml = f'<div class="UTN"><b>uW Translation Notes</b>: {utnHtml}</div><!--end of UTN-->\n'
-    tsnHtml = formatTyndaleNotes( 'TSN', level, BBB, C, V, 'parallel', state )
+    tsnHtml = formatTyndaleNotes( 'TOSN', level, BBB, C, V, 'parallel', state )
     if tsnHtml: tsnHtml = f'<div class="TSN">TSN <b>Tyndale Study Notes</b>: {tsnHtml}</div><!--end of TSN-->\n'
 
     # We need to find where this BCV is in the wordtable
@@ -300,7 +300,7 @@ def createOETInterlinearVersePage( level:int, BBB:str, c:int, v:int, state ) -> 
     for rvVerseEntry in rvVerseEntryList:
         text = rvVerseEntry.getFullText()
         if not text or '¦' not in text: continue # no interest to us here
-        
+
         # Remove sentence punctuation,
         #   then split into words
         rvEnglishWordList += text.replace(',','').replace('.','').replace(':','').replace('?','') \
