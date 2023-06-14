@@ -92,6 +92,8 @@ def makeTop( level:int, versionAbbreviation:Optional[str], pageType:str, fileOrF
         cssFilename = 'InterlinearVerse.css'
     elif pageType in ('word','lemma', 'person','location'):
         cssFilename = 'BibleWord.css'
+    elif pageType in ('dictionaryMainIndex','dictionaryLetterIndex', 'dictionaryEntry'):
+        cssFilename = 'BibleDict.css'
     else: cssFilename = 'BibleSite.css'
 
     aboutLink = 'About' if pageType=='about' else f'''<a href="{'../'*level}about.htm">About</a>'''

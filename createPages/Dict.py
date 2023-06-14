@@ -56,7 +56,7 @@ from html import makeTop, makeBottom, checkHtml
 LAST_MODIFIED_DATE = '2023-06-14' # by RJH
 SHORT_PROGRAM_NAME = "Dictionary"
 PROGRAM_NAME = "OpenBibleData Dictionary handler"
-PROGRAM_VERSION = '0.10'
+PROGRAM_VERSION = '0.15'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -212,7 +212,7 @@ def loadDictLetterXML( letter:str, folderpath ) -> None:
                                 htmlSegment = BibleOrgSysGlobals.getFlattenedXML( bodyelement, bodyLocation )
                                                                         # .replace( '<a href="  \?', '<a href="?') # Fix encoding mistake in 1 Tim
                                 assert '\\' not in htmlSegment, f"{name} {partCount=} {htmlSegment=}"
-                                theirClass = None
+                                theirClass = 'next'
                                 if htmlSegment.startswith( '<class="'): # e.g., <class="theme-list">The new covenant....
                                     ixClose = htmlSegment.index( '">', 10 )
                                     theirClass = htmlSegment[8:ixClose]
@@ -275,7 +275,7 @@ def createTyndaleDictPages( level:int, outputFolderPath, state ) -> bool:
         top = makeTop( level, None, 'dictionaryEntry', None, state ) \
                 .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}Dictionary Article" ) \
                 .replace( '__KEYWORDS__', f'Bible, dictionary, {articleName}' )
-        articleHtml = f'''{top}<h1>Tyndale Open Bible Dictionary <a title="Show details" href="{'../'*(level)}allDetails.htm#TOBD">©</a></h1><h2 id="Top">{articleName}</h2>
+        articleHtml = f'''{top}<h1>Tyndale Open Bible Dictionary</h1><h2 id="Top">{articleName} <a title="Show details" href="{'../'*(level)}allDetails.htm#TOBD">©</a></h2>
 {adjustedArticle}
 {makeBottom( level, 'dictionaryEntry', state )}'''
         checkHtml( 'DictionaryArticle', articleHtml )
@@ -292,7 +292,7 @@ def createTyndaleDictPages( level:int, outputFolderPath, state ) -> bool:
         top = makeTop( level, None, 'dictionaryLetterIndex', None, state ) \
                 .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}Dictionary" ) \
                 .replace( '__KEYWORDS__', f'Bible, dictionary' )
-        letterIndexHtml = f'''{top}<h1>Tyndale Open Bible Dictionary</h1><h2 id="Top">Index for dictionary letter '{letter}'</h2>
+        letterIndexHtml = f'''{top}<h1>Tyndale Open Bible Dictionary</h1><h2 id="Top">Index for dictionary letter '{letter}' <a title="Show details" href="{'../'*(level)}allDetails.htm#TOBD">©</a></h2>
 {' '.join(articleLinkList)}
 {makeBottom( level, 'dictionaryLetterIndex', state )}'''
         checkHtml( 'DictionaryLetterIndex', letterIndexHtml )
@@ -307,7 +307,7 @@ def createTyndaleDictPages( level:int, outputFolderPath, state ) -> bool:
     top = makeTop( level, None, 'dictionaryMainIndex', None, state ) \
             .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}Dictionary" ) \
             .replace( '__KEYWORDS__', f'Bible, dictionary' )
-    indexHtml = f'''{top}<h1 id="Top">Tyndale Open Bible Dictionary</h1><h2>Index of dictionary letters</h2>
+    indexHtml = f'''{top}<h1 id="Top">Tyndale Open Bible Dictionary</h1><h2>Index of dictionary letters <a title="Show details" href="{'../'*(level)}allDetails.htm#TOBD">©</a></h2>
 {' '.join(letterLinkList)}
 {makeBottom( level, 'dictionaryMainIndex', state )}'''
     checkHtml( 'DictionaryIndex', indexHtml )
