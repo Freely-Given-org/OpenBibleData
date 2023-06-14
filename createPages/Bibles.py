@@ -497,6 +497,7 @@ def fixTyndaleBRefs( abbrev:str, level:int, BBBorArticleName:str, C:str, V:str, 
             logging.critical( f"Ignoring Filament link in {abbrev} {BBBorArticleName} {C}:{V} {tyndaleLinkPart=}" )
             searchStartIndex = ixCloseQuote + 6
             continue
+        tyndaleLinkPart = tyndaleLinkPart.replace( '–', '-' ) # Convert en-dash to hyphen, esp. for TOBD HoseaBookof : tyndaleLinkPart='Deut.27.9–29.29'
         if '-' in tyndaleLinkPart: # then it's a verse range
             if tyndaleLinkPart == 'Deut.31:30-32.44': tyndaleLinkPart = 'Deut.31.30-32.44' # Fix TTN encoding error in Psa 71:22
             tyndaleLinkPart = tyndaleLinkPart.split('-')[0]
@@ -505,7 +506,8 @@ def fixTyndaleBRefs( abbrev:str, level:int, BBBorArticleName:str, C:str, V:str, 
             if tBkCode.endswith('Thes'):
                 tBkCode += 's' # TODO: getBBBFromText should handle '1Thes'
             assert tC.isdigit()
-            assert tV.isdigit(), f"'{abbrev}' {level=} {BBBorArticleName} {C}:{V} {tBkCode=} {tC=} {tV=}"
+            tV = getLeadingInt( tV ) # in case there's an a or b or something
+            # assert tV.isdigit(), f"'{abbrev}' {level=} {BBBorArticleName} {C}:{V} {tBkCode=} {tC=} {tV=}"
             tBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromText( tBkCode )
             if not tBBB:
                 if tBkCode=='Tb': tBBB = 'TOB'
@@ -532,7 +534,8 @@ def fixTyndaleBRefs( abbrev:str, level:int, BBBorArticleName:str, C:str, V:str, 
             if tBkCode.endswith('Thes'):
                 tBkCode += 's' # TODO: getBBBFromText should handle '1Thes'
             assert tC.isdigit()
-            assert tV.isdigit(), f"'{abbrev}' {level=} {BBBorArticleName} {C}:{V} {tBkCode=} {tC=} {tV=}"
+            tV = getLeadingInt( tV ) # in case there's an a or b or something
+            # assert tV.isdigit(), f"'{abbrev}' {level=} {BBBorArticleName} {C}:{V} {tBkCode=} {tC=} {tV=}"
             tBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromText( tBkCode )
             if not tBBB:
                 if tBkCode=='Tb': tBBB = 'TOB'
