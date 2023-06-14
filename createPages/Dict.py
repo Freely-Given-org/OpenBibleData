@@ -329,7 +329,7 @@ def fixTyndaleItemRefs( abbrev:str, level:int, articleName:str, html:str, state 
     # Fix their links like '<a href="?item=MarriageMarriageCustoms_Article_TyndaleOpenBibleDictionary">Marriage, Marriage Customs</a>'
     # Doesn't yet handle links like '(see “<a href="?item=FollowingJesus_ThemeNote_Filament">Following Jesus</a>” Theme Note)'
     searchStartIndex = 0
-    for _safetyCount in range( 20 ): # 5 was too few
+    for _safetyCount in range( 18 ): # 5 was too few
         ixStart = html.find( 'href="?item=', searchStartIndex )
         if ixStart == -1: # none/no more found
             break

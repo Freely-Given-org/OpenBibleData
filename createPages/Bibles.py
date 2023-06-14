@@ -482,7 +482,7 @@ def fixTyndaleBRefs( abbrev:str, level:int, BBBorArticleName:str, C:str, V:str, 
     # Fix their links like '<a href="?bref=Mark.4.14-20">4:14-20</a>'
     # Doesn't yet handle links like '(see “<a href="?item=FollowingJesus_ThemeNote_Filament">Following Jesus</a>” Theme Note)'
     searchStartIndex = 0
-    for _safetyCount in range( 900 ): # 54 was enough for TSN ACT 9:2
+    for _safetyCount in range( 890 ): # 54 was enough for TSN ACT 9:2
         # but 110 not for TTN MRK 4:35, 120 not for Josh 13:1, 140 for Psa 97:2, 200 for book intros, 800 for "Animals"
         ixStart = html.find( 'href="?bref=', searchStartIndex )
         if ixStart == -1: # none/no more found
@@ -528,6 +528,17 @@ def fixTyndaleBRefs( abbrev:str, level:int, BBBorArticleName:str, C:str, V:str, 
             assert tBBB
             linkVersion = 'OET' if tBBB in state.booksToLoad['OET'] else ALTERNATIVE_VERSION
             ourNewLink = f"{'../'*level}{linkVersion}/byC/{tBBB}_C{tC}.htm#C{tC}V{tV}" # Because it's a list, we link to the chapter page
+            # print( f"   {ourNewLink=}" )
+        elif tyndaleLinkPart.count( '.' ) == 1: # it's a chapter
+            tBkCode, tC = tyndaleLinkPart.split( '.' )
+            if tBkCode.endswith('Thes'):
+                tBkCode += 's' # TODO: getBBBFromText should handle '1Thes'
+            assert tC.isdigit()
+            tBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromText( tBkCode )
+            if not tBBB:
+                if tBkCode=='Tb': tBBB = 'TOB'
+            assert tBBB, f"'{abbrev}' {level=} {BBBorArticleName} {C}:{V} {tBkCode=} {tC=}"
+            ourNewLink = f"{'../'*level}{linkVersion}/byC/{tBBB}_C{tC}.htm#C{tC}V1" # Because it's a chapter, we link to the chapter page
             # print( f"   {ourNewLink=}" )
         else: # no hyphen or comma so it's not a range or list
             tBkCode, tC, tV = tyndaleLinkPart.split( '.' )
