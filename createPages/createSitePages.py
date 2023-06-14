@@ -646,7 +646,7 @@ def cleanHTMLFolders( folder:Path, state ) -> bool:
     except FileNotFoundError: pass
     try: shutil.rmtree( folder.joinpath( 'di/' ) )
     except FileNotFoundError: pass
-    for versionAbbreviation in state.allBibleVersions + ['UTN','TOSN']:
+    for versionAbbreviation in state.allBibleVersions + ['UTN','TOSN','TOBD']:
         vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Removing tree at {folder.joinpath( f'{versionAbbreviation}/' )}/…")
         try: shutil.rmtree( folder.joinpath( f'{versionAbbreviation}/' ) )
         except FileNotFoundError: pass

@@ -513,7 +513,7 @@ def fixTyndaleBRefs( abbrev:str, level:int, BBBorArticleName:str, C:str, V:str, 
                 if tBkCode=='Tb': tBBB = 'TOB'
             assert tBBB
             linkVersion = 'OET' if tBBB in state.booksToLoad['OET'] else ALTERNATIVE_VERSION
-            ourNewLink = f"{'../'*level}{linkVersion}/byC/{tBBB}_C{tC}.htm#C{tC}V{tV}" # Because it's a range, we link to the chapter page
+            ourNewLink = f'''{'../'*level}{linkVersion}/byC/{tBBB}_C{tC}.htm#C{tC}V{tV}''' # Because it's a range, we link to the chapter page
             # print( f"   {ourNewLink=}" )
         elif ',' in tyndaleLinkPart: # then it's a verse list (only found in dictionary entries)
             tyndaleLinkPart = tyndaleLinkPart.split(',')[0]
@@ -527,7 +527,7 @@ def fixTyndaleBRefs( abbrev:str, level:int, BBBorArticleName:str, C:str, V:str, 
                 if tBkCode=='Tb': tBBB = 'TOB'
             assert tBBB
             linkVersion = 'OET' if tBBB in state.booksToLoad['OET'] else ALTERNATIVE_VERSION
-            ourNewLink = f"{'../'*level}{linkVersion}/byC/{tBBB}_C{tC}.htm#C{tC}V{tV}" # Because it's a list, we link to the chapter page
+            ourNewLink = f'''{'../'*level}{linkVersion}/byC/{tBBB}_C{tC}.htm#C{tC}V{tV}''' # Because it's a list, we link to the chapter page
             # print( f"   {ourNewLink=}" )
         elif tyndaleLinkPart.count( '.' ) == 1: # it's a chapter
             tBkCode, tC = tyndaleLinkPart.split( '.' )
@@ -538,7 +538,7 @@ def fixTyndaleBRefs( abbrev:str, level:int, BBBorArticleName:str, C:str, V:str, 
             if not tBBB:
                 if tBkCode=='Tb': tBBB = 'TOB'
             assert tBBB, f"'{abbrev}' {level=} {BBBorArticleName} {C}:{V} {tBkCode=} {tC=}"
-            ourNewLink = f"{'../'*level}{linkVersion}/byC/{tBBB}_C{tC}.htm#C{tC}V1" # Because it's a chapter, we link to the chapter page
+            ourNewLink = f'''{'../'*level}{linkVersion}/byC/{tBBB}_C{tC}.htm#C{tC}V1''' # Because it's a chapter, we link to the chapter page
             # print( f"   {ourNewLink=}" )
         else: # no hyphen or comma so it's not a range or list
             tBkCode, tC, tV = tyndaleLinkPart.split( '.' )
@@ -551,7 +551,7 @@ def fixTyndaleBRefs( abbrev:str, level:int, BBBorArticleName:str, C:str, V:str, 
             if not tBBB:
                 if tBkCode=='Tb': tBBB = 'TOB'
             assert tBBB, f"'{abbrev}' {level=} {BBBorArticleName} {C}:{V} {tBkCode=} {tC=} {tV=}"
-            ourNewLink = f'../{tBBB}/C{tC}V{tV}.htm#Top' # we link to the parallel verse page
+            ourNewLink = f'''{'../'*level}pa/{tBBB}/C{tC}V{tV}.htm#Top''' # we link to the parallel verse page
             # print( f"   {ourNewLink=}" )
         html = f'''{html[:ixStart+6]}{ourNewLink}{html[ixCloseQuote:]}'''
         searchStartIndex = ixStart + 8
