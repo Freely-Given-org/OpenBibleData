@@ -57,7 +57,7 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 LAST_MODIFIED_DATE = '2023-06-14' # by RJH
 SHORT_PROGRAM_NAME = "Dictionary"
 PROGRAM_NAME = "OpenBibleData Dictionary handler"
-PROGRAM_VERSION = '0.04'
+PROGRAM_VERSION = '0.05'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -199,7 +199,9 @@ def loadDictLetterXML( letter:str, folderpath ) -> None:
                                 for attrib,value in bodyelement.items():
                                     if attrib == 'class':
                                         pClass = value
-                                        assert pClass in ('h1','h2','fl','list','list-text','list-space'), f"{name} {pClass=} {bodyLocation}"
+                                        assert pClass in ('h1','h2','h3','h4',
+                                                          'fl','list','list-text','list-space',
+                                                          'h2-preview','preview-list-first','preview-list'), f"{name} {pClass=} {bodyLocation}"
                                     else:
                                         logging.warning( "fv6g Unprocessed {} attribute ({}) in {}".format( attrib, value, bodyLocation ) )
                                         loadErrors.append( "Unprocessed {} attribute ({}) in {} (fv6g)".format( attrib, value, bodyLocation ) )
@@ -223,7 +225,7 @@ def loadDictLetterXML( letter:str, folderpath ) -> None:
                                 for attrib,value in bodyelement.items():
                                     if attrib == 'src':
                                         iiSrc = value
-                                        assert iiSrc in ('../Textboxes/Textboxes.xml''../Maps/Maps.xml','../Pictures/Pictures.xml','../Charts/Charts.xml'), f"{title=} {iiSrc=}"
+                                        assert iiSrc in ('../Textboxes/Textboxes.xml','../Maps/Maps.xml','../Pictures/Pictures.xml','../Charts/Charts.xml'), f"{title=} {iiSrc=}"
                                     elif attrib == 'name':
                                         iiName = value # Name of a textbox item entry
                                     else:
