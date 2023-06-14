@@ -57,7 +57,7 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 LAST_MODIFIED_DATE = '2023-06-14' # by RJH
 SHORT_PROGRAM_NAME = "Dictionary"
 PROGRAM_NAME = "OpenBibleData Dictionary handler"
-PROGRAM_VERSION = '0.03'
+PROGRAM_VERSION = '0.04'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -190,7 +190,7 @@ def loadDictLetterXML( letter:str, folderpath ) -> None:
                         partCount = 0
                         for bodyelement in subelement:
                             bodyLocation = f'{sublocation}-{bodyelement.tag}-{partCount}'
-                            BibleOrgSysGlobals.checkXMLNoTail( bodyelement, bodylocation, '1wk8', loadErrors )
+                            BibleOrgSysGlobals.checkXMLNoTail( bodyelement, bodyLocation, '1wk8', loadErrors )
                             # print( f"{bodyelement} {bodyelement.text=}")
                             assert bodyelement.tag in ('p','include_items'), f'{title=} {partCount=} {bodyelement.tag=} {bodyLocation=}'
                             if bodyelement.tag == 'p':
@@ -199,7 +199,7 @@ def loadDictLetterXML( letter:str, folderpath ) -> None:
                                 for attrib,value in bodyelement.items():
                                     if attrib == 'class':
                                         pClass = value
-                                        assert pClass in ('h1','h2','fl','list','list-text'), f"{name} {pClass=} {bodyLocation}"
+                                        assert pClass in ('h1','h2','fl','list','list-text','list-space'), f"{name} {pClass=} {bodyLocation}"
                                     else:
                                         logging.warning( "fv6g Unprocessed {} attribute ({}) in {}".format( attrib, value, bodyLocation ) )
                                         loadErrors.append( "Unprocessed {} attribute ({}) in {} (fv6g)".format( attrib, value, bodyLocation ) )
@@ -216,23 +216,24 @@ def loadDictLetterXML( letter:str, folderpath ) -> None:
                                 htmlSegment = f'<p class="{theirClass}">{htmlSegment}</p>'
                                 thisEntry = f"{thisEntry}{NEW_LINE if thisEntry else ''}{htmlSegment}"
                             elif bodyelement.tag == 'include_items':
-                                BibleOrgSysGlobals.checkXMLNoText( bodyelement, bodylocation, '1wk8', loadErrors )
-                                BibleOrgSysGlobals.checkXMLNoSubelements( bodyelement, bodylocation, '1wk8', loadErrors )
+                                BibleOrgSysGlobals.checkXMLNoText( bodyelement, bodyLocation, '1wk8', loadErrors )
+                                BibleOrgSysGlobals.checkXMLNoSubelements( bodyelement, bodyLocation, '1wk8', loadErrors )
                                 # Process the attributes first
                                 iiSrc = iiName = None
                                 for attrib,value in bodyelement.items():
                                     if attrib == 'src':
                                         iiSrc = value
-                                        assert iiSrc == '../Textboxes/Textboxes.xml'
+                                        assert iiSrc in ('../Textboxes/Textboxes.xml''../Maps/Maps.xml','../Pictures/Pictures.xml','../Charts/Charts.xml'), f"{title=} {iiSrc=}"
                                     elif attrib == 'name':
                                         iiName = value # Name of a textbox item entry
                                     else:
                                         logging.warning( "fv6g Unprocessed {} attribute ({}) in {}".format( attrib, value, bodyLocation ) )
                                         loadErrors.append( "Unprocessed {} attribute ({}) in {} (fv6g)".format( attrib, value, bodyLocation ) )
                                         if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.haltOnXMLWarning: halt
-                                # So we want to save this as an XML paragraph to insert textbox later
-                                htmlSegment = f'<include_items src="../Textboxes/Textboxes.xml" name="{iiName}"/>'
-                                thisEntry = f"{thisEntry}{NEW_LINE if thisEntry else ''}{htmlSegment}"
+                                if 'Textbox' in iiSrc or 'Map' in iiSrc: # They don't supply pictures or charts so might as well discard those here for now
+                                    # So we want to save this as an XML paragraph to insert textbox later
+                                    htmlSegment = f'<include_items src="{iiSrc}" name="{iiName}"/>'
+                                    thisEntry = f"{thisEntry}{NEW_LINE if thisEntry else ''}{htmlSegment}"
                             else: halt
                             partCount += 1
                         stateCounter += 1
