@@ -251,18 +251,21 @@ def loadDictLetterXML( letter:str, folderpath ) -> None:
 # end of Dict.loadDictLetterXML
 
 
-def createTyndaleDictPages( level:int, folderPath, state ) -> bool:
+def createTyndaleDictPages( level:int, outputFolderPath, state ) -> bool:
     """
     """
     from createSitePages import TEST_MODE
-    fnPrint( DEBUGGING_THIS_MODULE, f"createTyndaleDictPages( '{level}', '{folderPath}', ... )")
+    fnPrint( DEBUGGING_THIS_MODULE, f"createTyndaleDictPages( '{level}', '{outputFolderPath}', ... )")
 
     vPrint( 'Info', DEBUGGING_THIS_MODULE, f"\nCreating Tyndale Bible Dict pages…" )
 
-    for articleName,article in TOBDData['Articles'].entries():
+    try: os.makedirs( outputFolderPath )
+    except FileExistsError: pass # it was already there
+
+    for articleName,article in TOBDData['Articles'].items():
         print( f"Making article page for '{articleName}'…" )
         filename = f'{articleName}.htm'
-        filepath = folderPath.joinpath( filename )
+        filepath = outputFolderPath.joinpath( filename )
         top = makeTop( level, None, 'dictionary', None, state ) \
                 .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}Dictionary Article" ) \
                 .replace( '__KEYWORDS__', f'Bible, dictionary, {articleName}' )
@@ -275,11 +278,11 @@ def createTyndaleDictPages( level:int, folderPath, state ) -> bool:
         vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(articleHtml):,} characters written to {filepath}" )
 
     # Make letter index pages
-    for letter,articleList in TOBDData['Letters'].entries():
+    for letter,articleList in TOBDData['Letters'].items():
         print( f"Making letter summary page for '{letter}'…" )
         articleLinkList = [f'<a title="Go to article" href="{articleName}.htm">{articleName}</a>' for articleName in TOBDData['Articles']]
         filename = f'{letter}_index.htm'
-        filepath = folderPath.joinpath( filename )
+        filepath = outputFolderPath.joinpath( filename )
         top = makeTop( level, None, 'dictionary', None, state ) \
                 .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}Dictionary" ) \
                 .replace( '__KEYWORDS__', f'Bible, dictionary' )
@@ -292,9 +295,9 @@ def createTyndaleDictPages( level:int, folderPath, state ) -> bool:
         vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(letterIndexHtml):,} characters written to {filepath}" )
 
     # Make overall index
-    letterLinkList = [f'<a title="Go to index page for letter '{l}'" href="{l}_index.htm">{l}</a>' for l in TOBDData['Letters']]
+    letterLinkList = [f'''<a title="Go to index page for letter '{l}'" href="{l}_index.htm">{l}</a>''' for l in TOBDData['Letters']]
     filename = 'index.htm'
-    filepath = folderPath.joinpath( filename )
+    filepath = outputFolderPath.joinpath( filename )
     top = makeTop( level, None, 'dictionary', None, state ) \
             .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}Dictionary" ) \
             .replace( '__KEYWORDS__', f'Bible, dictionary' )
