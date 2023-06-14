@@ -56,7 +56,7 @@ from html import makeTop, makeBottom, checkHtml
 LAST_MODIFIED_DATE = '2023-06-14' # by RJH
 SHORT_PROGRAM_NAME = "Dictionary"
 PROGRAM_NAME = "OpenBibleData Dictionary handler"
-PROGRAM_VERSION = '0.09'
+PROGRAM_VERSION = '0.10'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -258,16 +258,16 @@ def createTyndaleDictPages( level:int, outputFolderPath, state ) -> bool:
 
     fnPrint( DEBUGGING_THIS_MODULE, f"createTyndaleDictPages( '{level}', '{outputFolderPath}', ... )")
 
-    vPrint( 'Info', DEBUGGING_THIS_MODULE, f"\nCreating Tyndale Bible Dict pages…" )
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\nCreating Tyndale Bible Dict pages…" )
 
     try: os.makedirs( outputFolderPath )
     except FileExistsError: pass # it was already there
 
     for articleName,article in TOBDData['Articles'].items():
-        # print( f"Making article page for '{articleName}'…" )
+        dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"Making article page for '{articleName}'…" )
 
         # Fix their links like '<a href="?bref=Mark.4.14-20">4:14-20</a>'
-        adjustedArticle = fixTyndaleBRefs( abbrev, level, articleName, '', '', article, state )
+        adjustedArticle = fixTyndaleBRefs( 'TOBD', level, articleName, '', '', article, state )
 
         filename = f'{articleName}.htm'
         filepath = outputFolderPath.joinpath( filename )
@@ -284,7 +284,7 @@ def createTyndaleDictPages( level:int, outputFolderPath, state ) -> bool:
 
     # Make letter index pages
     for letter,articleList in TOBDData['Letters'].items():
-        print( f"Making letter summary page for '{letter}'…" )
+        dPrint( 'Info', DEBUGGING_THIS_MODULE, f"Making letter summary page for '{letter}'…" )
         articleLinkList = [f'<a title="Go to article" href="{articleName}.htm">{articleName}</a>' for articleName in articleList]
         filename = f'{letter}_index.htm'
         filepath = outputFolderPath.joinpath( filename )

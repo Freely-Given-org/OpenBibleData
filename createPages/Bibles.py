@@ -65,13 +65,12 @@ from BibleTransliterations import transliterate_Greek, transliterate_Hebrew
 
 from html import checkHtml
 from OETHandlers import findLVQuote
-from Dict import loadTyndaleOpenBibleDictXML
 
 
 LAST_MODIFIED_DATE = '2023-06-14' # by RJH
 SHORT_PROGRAM_NAME = "Bibles"
 PROGRAM_NAME = "OpenBibleData Bibles handler"
-PROGRAM_VERSION = '0.44'
+PROGRAM_VERSION = '0.45'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -110,7 +109,9 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state ) -
     Loads the requested Bible into memory
         and return the Bible object.
     """
+    from Dict import loadTyndaleOpenBibleDictXML
     global TyndaleBookIntrosDict, TyndaleBookIntroSummariesDict
+
     fnPrint( DEBUGGING_THIS_MODULE, f"preloadVersion( '{versionAbbreviation}', '{folderOrFileLocation}', ... )")
 
     # if versionAbbreviation in ('BSB',): # Single TSV .txt file
@@ -472,6 +473,7 @@ def formatTyndaleNotes( abbrev:str, level:int, BBB:str, C:str, V:str, segmentTyp
 
 def fixTyndaleBRefs( abbrev:str, level:int, BBB:str, C:str, V:str, html:str, state ) -> str:
     """
+    Most of the parameters are for info messages only
     """
     from createSitePages import ALTERNATIVE_VERSION
 
@@ -480,7 +482,7 @@ def fixTyndaleBRefs( abbrev:str, level:int, BBB:str, C:str, V:str, html:str, sta
     # Fix their links like '<a href="?bref=Mark.4.14-20">4:14-20</a>'
     # Doesn't yet handle links like '(see “<a href="?item=FollowingJesus_ThemeNote_Filament">Following Jesus</a>” Theme Note)'
     searchStartIndex = 0
-    for _safetyCount in range( 300 ): # 54 was enough for TSN ACT 9:2
+    for _safetyCount in range( 290 ): # 54 was enough for TSN ACT 9:2
         # but 110 not for TTN MRK 4:35, 120 not for Josh 13:1, 140 for Psa 97:2, 200 for book intros
         ixStart = html.find( 'href="?bref=', searchStartIndex )
         if ixStart == -1: # none/no more found
@@ -506,12 +508,24 @@ def fixTyndaleBRefs( abbrev:str, level:int, BBB:str, C:str, V:str, html:str, sta
             linkVersion = 'OET' if tBBB in state.booksToLoad['OET'] else ALTERNATIVE_VERSION
             ourNewLink = f"{'../'*level}{linkVersion}/byC/{tBBB}_C{tC}.htm#C{tC}V{tV}" # Because it's a range, we link to the chapter page
             # print( f"   {ourNewLink=}" )
-        else: # no hyphen so it's not a range
+        elif ',' in tyndaleLinkPart: # then it's a verse list (only found in dictionary entries)
+            tyndaleLinkPart = tyndaleLinkPart.split(',')[0]
             tBkCode, tC, tV = tyndaleLinkPart.split( '.' )
             if tBkCode.endswith('Thes'):
                 tBkCode += 's' # TODO: getBBBFromText should handle '1Thes'
             assert tC.isdigit()
             assert tV.isdigit()
+            tBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromText( tBkCode )
+            assert tBBB
+            linkVersion = 'OET' if tBBB in state.booksToLoad['OET'] else ALTERNATIVE_VERSION
+            ourNewLink = f"{'../'*level}{linkVersion}/byC/{tBBB}_C{tC}.htm#C{tC}V{tV}" # Because it's a list, we link to the chapter page
+            # print( f"   {ourNewLink=}" )
+        else: # no hyphen or comma so it's not a range or list
+            tBkCode, tC, tV = tyndaleLinkPart.split( '.' )
+            if tBkCode.endswith('Thes'):
+                tBkCode += 's' # TODO: getBBBFromText should handle '1Thes'
+            assert tC.isdigit()
+            assert tV.isdigit(), f"'{abbrev}' {level=} {BBB} {C}:{V} {tBkCode=} {tC=} {tV=}"
             tBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromText( tBkCode )
             assert tBBB
             ourNewLink = f'../{tBBB}/C{tC}V{tV}.htm#Top' # we link to the parallel verse page
