@@ -272,12 +272,12 @@ def createTyndaleDictPages( level:int, outputFolderPath, state ) -> bool:
 
         filename = f'{articleName}.htm'
         filepath = outputFolderPath.joinpath( filename )
-        top = makeTop( level, None, 'dictionary', None, state ) \
+        top = makeTop( level, None, 'dictionaryEntry', None, state ) \
                 .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}Dictionary Article" ) \
                 .replace( '__KEYWORDS__', f'Bible, dictionary, {articleName}' )
         articleHtml = f'''{top}<h1>Tyndale Open Bible Dictionary <a title="Show details" href="{'../'*(level)}allDetails.htm#TOBD">©</a></h1><h2 id="Top">{articleName}</h2>
 {adjustedArticle}
-{makeBottom( level, 'dictionary', state )}'''
+{makeBottom( level, 'dictionaryEntry', state )}'''
         checkHtml( 'DictionaryArticle', articleHtml )
         with open( filepath, 'wt', encoding='utf-8' ) as articleHtmlFile:
             articleHtmlFile.write( articleHtml )
@@ -289,12 +289,12 @@ def createTyndaleDictPages( level:int, outputFolderPath, state ) -> bool:
         articleLinkList = [f'<a title="Go to article" href="{articleName}.htm">{articleName}</a>' for articleName in articleList]
         filename = f'{letter}_index.htm'
         filepath = outputFolderPath.joinpath( filename )
-        top = makeTop( level, None, 'dictionary', None, state ) \
+        top = makeTop( level, None, 'dictionaryLetterIndex', None, state ) \
                 .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}Dictionary" ) \
                 .replace( '__KEYWORDS__', f'Bible, dictionary' )
         letterIndexHtml = f'''{top}<h1>Tyndale Open Bible Dictionary</h1><h2 id="Top">Index for dictionary letter '{letter}'</h2>
 {' '.join(articleLinkList)}
-{makeBottom( level, 'dictionary', state )}'''
+{makeBottom( level, 'dictionaryLetterIndex', state )}'''
         checkHtml( 'DictionaryLetterIndex', letterIndexHtml )
         with open( filepath, 'wt', encoding='utf-8' ) as letterIndexHtmlFile:
             letterIndexHtmlFile.write( letterIndexHtml )
@@ -304,12 +304,12 @@ def createTyndaleDictPages( level:int, outputFolderPath, state ) -> bool:
     letterLinkList = [f'''<a title="Go to index page for letter '{l}'" href="{l}_index.htm">{l}</a>''' for l in TOBDData['Letters']]
     filename = 'index.htm'
     filepath = outputFolderPath.joinpath( filename )
-    top = makeTop( level, None, 'dictionary', None, state ) \
+    top = makeTop( level, None, 'dictionaryMainIndex', None, state ) \
             .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}Dictionary" ) \
             .replace( '__KEYWORDS__', f'Bible, dictionary' )
     indexHtml = f'''{top}<h1 id="Top">Tyndale Open Bible Dictionary</h1><h2>Index of dictionary letters</h2>
 {' '.join(letterLinkList)}
-{makeBottom( level, 'dictionary', state )}'''
+{makeBottom( level, 'dictionaryMainIndex', state )}'''
     checkHtml( 'DictionaryIndex', indexHtml )
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
         indexHtmlFile.write( indexHtml )

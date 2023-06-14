@@ -56,7 +56,7 @@ from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39, BOOKLIST_NT27
 LAST_MODIFIED_DATE = '2023-06-14' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
-PROGRAM_VERSION = '0.43'
+PROGRAM_VERSION = '0.44'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -70,7 +70,8 @@ timeRegex = re.compile( '[0-9][0-9]:[0-9][0-9]' )
 
 KNOWN_PAGE_TYPES = ('site', 'topIndex', 'details', 'allDetails',
                     'book','chapter','section',
-                    'parallel','interlinear','dictionary',
+                    'parallel','interlinear',
+                    'dictionaryMainIndex','dictionaryLetterIndex','dictionaryEntry'
                     'word','lemma', 'person','location',
                     'about')
 def makeTop( level:int, versionAbbreviation:Optional[str], pageType:str, fileOrFolderName:Optional[str], state ) -> str:
@@ -164,7 +165,7 @@ def _makeHeader( level:int, versionAbbreviation:str, pageType:str, fileOrFolderN
         initialVersionList.append( 'Interlinear' )
     else: # add a link for interlinear
         initialVersionList.append( f'''{state.BibleVersionDecorations['Interlinear'][0]}<a title="Single verse in interlinear view" href="{'../'*level}il/">Interlinear</a>{state.BibleVersionDecorations['Interlinear'][1]}''' )
-    if pageType == 'dictionary':
+    if pageType == 'dictionaryMainIndex':
         initialVersionList.append( 'Dictionary' )
     else: # add a link for dictionary
         initialVersionList.append( f'''{state.BibleVersionDecorations['Dictionary'][0]}<a title="Dictionary index" href="{'../'*level}di/">Dictionary</a>{state.BibleVersionDecorations['Dictionary'][1]}''' )
