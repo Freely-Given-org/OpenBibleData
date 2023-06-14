@@ -482,7 +482,7 @@ def fixTyndaleBRefs( abbrev:str, level:int, BBBorArticleName:str, C:str, V:str, 
     # Fix their links like '<a href="?bref=Mark.4.14-20">4:14-20</a>'
     # Doesn't yet handle links like '(see “<a href="?item=FollowingJesus_ThemeNote_Filament">Following Jesus</a>” Theme Note)'
     searchStartIndex = 0
-    for _safetyCount in range( 880 ): # 54 was enough for TSN ACT 9:2
+    for _safetyCount in range( 870 ): # 54 was enough for TSN ACT 9:2
         # but 110 not for TTN MRK 4:35, 120 not for Josh 13:1, 140 for Psa 97:2, 200 for book intros, 800 for "Animals"
         ixStart = html.find( 'href="?bref=', searchStartIndex )
         if ixStart == -1: # none/no more found
@@ -554,7 +554,7 @@ def fixTyndaleBRefs( abbrev:str, level:int, BBBorArticleName:str, C:str, V:str, 
             ourNewLink = f'../{tBBB}/C{tC}V{tV}.htm#Top' # we link to the parallel verse page
             # print( f"   {ourNewLink=}" )
         html = f'''{html[:ixStart+6]}{ourNewLink}{html[ixCloseQuote:]}'''
-        searchStartIndex = ixCloseQuote + 6
+        searchStartIndex = ixStart + 8
     else: need_to_increase_Tyndale_bref_loop_counter
 
     return html

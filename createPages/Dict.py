@@ -351,7 +351,7 @@ def fixTyndaleItemRefs( abbrev:str, level:int, articleName:str, html:str, state 
         ourNewLink = f"{tyndaleName}.htm"
         print( f"   {ourNewLink=}" )
         html = f'''{html[:ixStart+6]}{ourNewLink}{html[ixCloseQuote:]}'''
-        searchStartIndex = ixCloseQuote + 6
+        searchStartIndex = ixStart + 10
     else: need_to_increase_Tyndale_item_loop_counter
 
     return html

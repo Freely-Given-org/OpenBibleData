@@ -221,7 +221,7 @@ class State:
                 'BrLXX': '(Brenton’s) Ancient Greek translation of the Hebrew Scriptures (~250 BC)',
                 'UHB': 'unfoldingWord® Hebrew Bible (2022)',
                 'TOSN': 'Tyndale Open Study Notes (2022)',
-                'TOBD': 'Tyndale Open Bible Dictionary (2023))',
+                'TOBD': 'Tyndale Open Bible Dictionary (2023)',
                 'UTN': 'unfoldingWord® Translation Notes (2023)',
                 }
 
@@ -579,14 +579,13 @@ def createSitePages() -> bool:
                 versionFolder = TEMP_BUILD_FOLDER.joinpath( f'{thisBible.abbreviation}/' )
                 createSectionPages( 2, versionFolder.joinpath('bySec/'), thisBible, state )
 
-    createTyndaleDictPages( 1, TEMP_BUILD_FOLDER.joinpath('di/'), state )
     # TODO: We could use multiprocessing to do all these at once
     #   (except that state is quite huge with all preloaded versions and hence expensive to pickle)
     createParallelPages( 1, TEMP_BUILD_FOLDER.joinpath('pa/'), state )
     createOETInterlinearPages( 1, TEMP_BUILD_FOLDER.joinpath('il/'), state )
 
     createOETReferencePages( 1, TEMP_BUILD_FOLDER.joinpath('rf/'), state )
-    # createTyndaleDictPages( 1, TEMP_BUILD_FOLDER.joinpath('di/'), state )
+    createTyndaleDictPages( 1, TEMP_BUILD_FOLDER.joinpath('di/'), state )
 
     createDetailsPages( 0, TEMP_BUILD_FOLDER, state )
     createAboutPage( 0, TEMP_BUILD_FOLDER, state )
@@ -728,7 +727,7 @@ def createDetailsPages( level:int, buildFolder:Path, state ) -> bool:
 
         versionName =  state.BibleNames[versionAbbreviation]
 
-        if versionAbbreviation not in ('OET',): # (These don't have a BibleLocation)
+        if versionAbbreviation not in ('OET','TOBD'): # (These don't have a BibleLocation)
             if 'eBible' in state.BibleLocations[versionAbbreviation]:
                 # This code scrapes info from eBible.org copr.htm files, and hence is very fragile (susceptible to upstream changes)
                 with open( os.path.join(state.BibleLocations[versionAbbreviation], 'copr.htm'), 'rt', encoding='utf-8' ) as coprFile:
@@ -775,7 +774,7 @@ def createDetailsPages( level:int, buildFolder:Path, state ) -> bool:
 <p>See details for ALL included versions <a title="All versions’ details" href="../allDetails.htm">here</a>.</p>
 '''
 
-        allDetailsHTML = f'''{allDetailsHTML}{'<hr>' if allDetailsHTML else ''}<h2>{versionName}</h2>
+        allDetailsHTML = f'''{allDetailsHTML}{'<hr>' if allDetailsHTML else ''}<h2 id="{versionAbbreviation}">{versionName}</h2>
 {detailsHtml.replace('h2','h3')}'''
 
         html = f"{topHtml}{bodyHtml}{makeBottom( level+1, 'details', state )}"

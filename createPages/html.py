@@ -71,7 +71,7 @@ timeRegex = re.compile( '[0-9][0-9]:[0-9][0-9]' )
 KNOWN_PAGE_TYPES = ('site', 'topIndex', 'details', 'allDetails',
                     'book','chapter','section',
                     'parallel','interlinear',
-                    'dictionaryMainIndex','dictionaryLetterIndex','dictionaryEntry'
+                    'dictionaryMainIndex','dictionaryLetterIndex','dictionaryEntry',
                     'word','lemma', 'person','location',
                     'about')
 def makeTop( level:int, versionAbbreviation:Optional[str], pageType:str, fileOrFolderName:Optional[str], state ) -> str:
@@ -219,7 +219,7 @@ def _makeHeader( level:int, versionAbbreviation:str, pageType:str, fileOrFolderN
 
     viewLinks = []
     if pageType in ('book','section','chapter','details') \
-    and versionAbbreviation not in ('TOSN','TTN','UTN'):
+    and versionAbbreviation not in ('TOSN','TTN','TOBD','UTN'):
         if not versionAbbreviation: versionAbbreviation = 'OET'
         viewLinks.append( versionAbbreviation )
         if pageType != 'book':
