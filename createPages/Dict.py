@@ -199,9 +199,12 @@ def loadDictLetterXML( letter:str, folderpath ) -> None:
                                 for attrib,value in bodyelement.items():
                                     if attrib == 'class':
                                         pClass = value
-                                        assert pClass in ('h1','h2','h3','h4',
-                                                          'fl','list','list-text','list-space',
-                                                          'h2-preview','preview-list-first','preview-list'), f"{name} {pClass=} {bodyLocation}"
+                                        assert pClass in ('h1','h2','h3','h4','h5', 'sp',
+                                                          'fl','list','list-text','list-space','list-text-fl','list-0','list-1',
+                                                          'h2-preview','preview-list-first','preview-list','preview-list-1','preview-text',
+                                                          'h2-list',
+                                                          'extract','extract-fl-space','extract-fl',
+                                                          'poetry-1-sp','poetry-1','poetry-2','poetry-3'), f"{name} {pClass=} {bodyLocation}"
                                     else:
                                         logging.warning( "fv6g Unprocessed {} attribute ({}) in {}".format( attrib, value, bodyLocation ) )
                                         loadErrors.append( "Unprocessed {} attribute ({}) in {} (fv6g)".format( attrib, value, bodyLocation ) )

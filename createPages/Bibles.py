@@ -370,6 +370,8 @@ def loadTyndaleBookIntrosXML( abbrev:str, XML_filepath ) -> Dict[str,str]:
 def formatTyndaleBookIntro( abbrev:str, level:int, BBB:str, segmentType:str, state ) -> str:
     """
     """
+    global TyndaleBookIntrosDict, TyndaleBookIntroSummariesDict
+
     fnPrint( DEBUGGING_THIS_MODULE, f"formatTyndaleBookIntro( {abbrev}, {BBB}, ... )")
     assert segmentType == 'parallel'
 

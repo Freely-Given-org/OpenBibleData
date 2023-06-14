@@ -717,7 +717,7 @@ def createDetailsPages( level:int, buildFolder:Path, state ) -> bool:
 
     allDetailsHTML = ''
     for versionAbbreviation in ['OET'] + [versAbbrev for versAbbrev in state.preloadedBibles]:
-        if versionAbbreviation == 'TTN': # we only need the one for TSN I think
+        if versionAbbreviation == 'TTN': # we only need the one for TOSN I think
             continue
 
         versionName =  state.BibleNames[versionAbbreviation]
