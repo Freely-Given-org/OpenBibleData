@@ -50,7 +50,7 @@ import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 # from BibleOrgSys.Internals.InternalBibleInternals import getLeadingInt
 
-# from html import checkHtml
+from html import makeTop, makeBottom, checkHtml
 # from OETHandlers import findLVQuote
 
 
@@ -89,7 +89,7 @@ def loadDictLetterXML( letter:str, folderpath ) -> None:
     global TOBDData
     fnPrint( DEBUGGING_THIS_MODULE, f"loadDictLetterXML( '{letter}', '{folderpath}', ... )")
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Preloading Tyndale Open Bible Dictionary '{letter}' from {folderpath}…" )
+    vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Preloading Tyndale Open Bible Dictionary '{letter}' from {folderpath}…" )
     XML_filepath = os.path.join( folderpath, 'Articles/', f'{letter}.xml')
 
     dataDict = {}
@@ -247,8 +247,66 @@ def loadDictLetterXML( letter:str, folderpath ) -> None:
                     TOBDData['Letters'][letter].append( name )
                     TOBDData['Articles'][name] = thisEntry
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    loadDictLetterXML() loaded {len(TOBDData['Letters'][letter]):,} '{letter}' dict entries." )
+    vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    loadDictLetterXML() loaded {len(TOBDData['Letters'][letter]):,} '{letter}' dict entries." )
 # end of Dict.loadDictLetterXML
+
+
+def createTyndaleDictPages( level:int, folderPath, state ) -> bool:
+    """
+    """
+    from createSitePages import TEST_MODE
+    fnPrint( DEBUGGING_THIS_MODULE, f"createTyndaleDictPages( '{level}', '{folderPath}', ... )")
+
+    vPrint( 'Info', DEBUGGING_THIS_MODULE, f"\nCreating Tyndale Bible Dict pages…" )
+
+    for articleName,article in TOBDData['Articles'].entries():
+        print( f"Making article page for '{articleName}'…" )
+        filename = f'{articleName}.htm'
+        filepath = folderPath.joinpath( filename )
+        top = makeTop( level, None, 'dictionary', None, state ) \
+                .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}Dictionary Article" ) \
+                .replace( '__KEYWORDS__', f'Bible, dictionary, {articleName}' )
+        articleHtml = f'''{top}<h1 id="Top">Tyndale Open Bible Dictionary</h1><h2>{articleName}</h2>
+{article}
+{makeBottom( level, 'dictionary', state )}'''
+        checkHtml( 'DictionaryArticle', articleHtml )
+        with open( filepath, 'wt', encoding='utf-8' ) as articleHtmlFile:
+            articleHtmlFile.write( articleHtml )
+        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(articleHtml):,} characters written to {filepath}" )
+
+    # Make letter index pages
+    for letter,articleList in TOBDData['Letters'].entries():
+        print( f"Making letter summary page for '{letter}'…" )
+        articleLinkList = [f'<a title="Go to article" href="{articleName}.htm">{articleName}</a>' for articleName in TOBDData['Articles']]
+        filename = f'{letter}_index.htm'
+        filepath = folderPath.joinpath( filename )
+        top = makeTop( level, None, 'dictionary', None, state ) \
+                .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}Dictionary" ) \
+                .replace( '__KEYWORDS__', f'Bible, dictionary' )
+        letterIndexHtml = f'''{top}<h1 id="Top">Tyndale Open Bible Dictionary</h1><h2>Index for dictionary letter '{letter}'</h2>
+{' '.join(articleLinkList)}
+{makeBottom( level, 'dictionary', state )}'''
+        checkHtml( 'DictionaryLetterIndex', letterIndexHtml )
+        with open( filepath, 'wt', encoding='utf-8' ) as letterIndexHtmlFile:
+            letterIndexHtmlFile.write( letterIndexHtml )
+        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(letterIndexHtml):,} characters written to {filepath}" )
+
+    # Make overall index
+    letterLinkList = [f'<a title="Go to index page for letter '{l}'" href="{l}_index.htm">{l}</a>' for l in TOBDData['Letters']]
+    filename = 'index.htm'
+    filepath = folderPath.joinpath( filename )
+    top = makeTop( level, None, 'dictionary', None, state ) \
+            .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}Dictionary" ) \
+            .replace( '__KEYWORDS__', f'Bible, dictionary' )
+    indexHtml = f'''{top}<h1 id="Top">Tyndale Open Bible Dictionary</h1><h2>Index of dictionary letters</h2>
+{' '.join(letterLinkList)}
+{makeBottom( level, 'dictionary', state )}'''
+    checkHtml( 'DictionaryIndex', indexHtml )
+    with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
+        indexHtmlFile.write( indexHtml )
+    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
+    return True
+# end of Dict.createTyndaleDictPages
 
 
 

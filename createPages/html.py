@@ -167,7 +167,7 @@ def _makeHeader( level:int, versionAbbreviation:str, pageType:str, fileOrFolderN
     if pageType == 'dictionary':
         initialVersionList.append( 'Dictionary' )
     else: # add a link for dictionary
-        initialVersionList.append( f'''{state.BibleVersionDecorations['Dictionary'][0]}<a title="Dictionary index" href="{'../'*level}il/">Dictionary</a>{state.BibleVersionDecorations['Dictionary'][1]}''' )
+        initialVersionList.append( f'''{state.BibleVersionDecorations['Dictionary'][0]}<a title="Dictionary index" href="{'../'*level}di/">Dictionary</a>{state.BibleVersionDecorations['Dictionary'][1]}''' )
     # Moved to top line in makeTop above
     # if pageType == 'about':
     #     initialVersionList.append( 'About' )

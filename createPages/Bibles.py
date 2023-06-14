@@ -197,7 +197,7 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state ) -
         TyndaleBookIntroSummariesDict = loadTyndaleBookIntrosXML( thisExtraAbbreviation, os.path.join( sourceFolder, sourceFilename ) )
         vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Preloading Tyndale Open Bible Dictionary from {sourceFolder}…" )
         thisExtraAbbreviation = 'TOBD'
-        TyndaleBookIntrosDict = loadTyndaleOpenBibleDictXML( thisExtraAbbreviation, os.path.join( sourceFolder, '../OBD/' ) )
+        loadTyndaleOpenBibleDictXML( thisExtraAbbreviation, os.path.join( sourceFolder, '../OBD/' ) )
 
         vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Preloading Tyndale theme notes from {sourceFolder}…" )
         sourceFilename = 'ThemeNotes.xml'
@@ -373,6 +373,7 @@ def formatTyndaleBookIntro( abbrev:str, level:int, BBB:str, segmentType:str, sta
     global TyndaleBookIntrosDict, TyndaleBookIntroSummariesDict
 
     fnPrint( DEBUGGING_THIS_MODULE, f"formatTyndaleBookIntro( {abbrev}, {BBB}, ... )")
+    assert abbrev in ('TBI','TBIS')
     assert segmentType == 'parallel'
 
     sourceDict = {'TBI':TyndaleBookIntrosDict, 'TBIS':TyndaleBookIntroSummariesDict}[abbrev]

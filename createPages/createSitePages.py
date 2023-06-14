@@ -61,13 +61,14 @@ from createSectionPages import createOETSectionPages, createSectionPages
 from createParallelPages import createParallelPages
 from createOETInterlinearPages import createOETInterlinearPages
 from createOETReferencePages import createOETReferencePages
+from Dict import createTyndaleDictPages
 from html import makeTop, makeBottom, checkHtml
 
 
 LAST_MODIFIED_DATE = '2023-06-14' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData Create Pages"
-PROGRAM_VERSION = '0.66'
+PROGRAM_VERSION = '0.67'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
@@ -583,6 +584,7 @@ def createSitePages() -> bool:
     createOETInterlinearPages( 1, TEMP_BUILD_FOLDER.joinpath('il/'), state )
 
     createOETReferencePages( 1, TEMP_BUILD_FOLDER.joinpath('rf/'), state )
+    createTyndaleDictPages( 1, TEMP_BUILD_FOLDER.joinpath('di/'), state )
 
     createDetailsPages( 0, TEMP_BUILD_FOLDER, state )
     createAboutPage( 0, TEMP_BUILD_FOLDER, state )
