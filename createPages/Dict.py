@@ -55,7 +55,7 @@ from html import makeTop, makeBottom, checkHtml
 LAST_MODIFIED_DATE = '2023-06-15' # by RJH
 SHORT_PROGRAM_NAME = "Dictionary"
 PROGRAM_NAME = "OpenBibleData Dictionary handler"
-PROGRAM_VERSION = '0.21'
+PROGRAM_VERSION = '0.22'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -392,7 +392,7 @@ def createTyndaleDictPages( level:int, outputFolderPath, state ) -> bool:
     for j,(letter,articleList) in enumerate( TOBDData['Letters'].items() ):
         dPrint( 'Info', DEBUGGING_THIS_MODULE, f"Making letter summary page for '{letter}'…" )
         leftLink = f'''<a title="Go to previous letter" href="index_{letterList[j-1]}.htm#__ID__">←</a> ''' if j>0 else ''
-        rightLink = f'''<a title="Go to next letter" href="index_{letterList[j+1]}.htm#__ID__">←</a> ''' if j<len(letterList)-1 else ''
+        rightLink = f''' <a title="Go to next letter" href="index_{letterList[j+1]}.htm#__ID__">→</a>''' if j<len(letterList)-1 else ''
         navLinks = f'<p id="__ID__" class="dNav">{leftLink}<a title="Go up to main index" href="index.htm#__ID__">Index</a>{rightLink}</p>'
         articleLinkHtml = ''
         for articleLinkName,articleDisplayName in articleList:
@@ -440,7 +440,7 @@ def createTyndaleDictPages( level:int, outputFolderPath, state ) -> bool:
             .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}Dictionary Index" ) \
             .replace( '__KEYWORDS__', f'Bible, dictionary' )
     indexHtml = f'''{top}<h1 id="Top">Tyndale Open Bible Dictionary <small><a title="Show details" href="{'../'*(level)}allDetails.htm#TOBD">©</a></small></h1>
-<p><a id="Go to dict intro" href="intro.htm">Introduction</a></p>
+<p class="dNav"><a id="Go to dict intro" href="intro.htm">Introduction</a></p>
 <h2>Index of dictionary letters</h2>
 {' '.join(letterLinkList)}
 {makeBottom( level, 'dictionaryMainIndex', state )}'''
