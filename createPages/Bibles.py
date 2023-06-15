@@ -67,10 +67,10 @@ from html import checkHtml
 from OETHandlers import findLVQuote
 
 
-LAST_MODIFIED_DATE = '2023-06-14' # by RJH
+LAST_MODIFIED_DATE = '2023-06-15' # by RJH
 SHORT_PROGRAM_NAME = "Bibles"
 PROGRAM_NAME = "OpenBibleData Bibles handler"
-PROGRAM_VERSION = '0.46'
+PROGRAM_VERSION = '0.47'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -492,7 +492,7 @@ def fixTyndaleBRefs( abbrev:str, level:int, BBBorArticleName:str, C:str, V:str, 
         tyndaleLinkPart = html[ixStart+12:ixCloseQuote]
         if not tyndaleLinkPart and BBBorArticleName=='AlTaschith':
             tyndaleLinkPart = 'Ps.58.1-2' # Fix encoding error
-        print( f"{abbrev} {BBBorArticleName} {C}:{V} {tyndaleLinkPart=}" )
+        # print( f"{abbrev} {BBBorArticleName} {C}:{V} {tyndaleLinkPart=}" )
         if 'Filament' in tyndaleLinkPart: # e.g., in GEN 48:14 '2Chr.28.12_StudyNote_Filament'
             logging.critical( f"Ignoring Filament link in {abbrev} {BBBorArticleName} {C}:{V} {tyndaleLinkPart=}" )
             searchStartIndex = ixCloseQuote + 6

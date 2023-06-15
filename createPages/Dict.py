@@ -55,7 +55,7 @@ from html import makeTop, makeBottom, checkHtml
 LAST_MODIFIED_DATE = '2023-06-15' # by RJH
 SHORT_PROGRAM_NAME = "Dictionary"
 PROGRAM_NAME = "OpenBibleData Dictionary handler"
-PROGRAM_VERSION = '0.20'
+PROGRAM_VERSION = '0.21'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -170,12 +170,13 @@ def loadTyndaleOpenBibleDictXML( abbrev:str, folderpath ) -> None:
                             htmlSegment = BibleOrgSysGlobals.getFlattenedXML( bodyelement, bodyLocation )
                                                                     # .replace( '<a href="  \?', '<a href="?') # Fix encoding mistake in 1 Tim
                             assert '\\' not in htmlSegment, f"Intro {partCount=} {htmlSegment=}"
+                            htmlSegment = f'<table>{htmlSegment}</table>'
                             thisEntry = f"{thisEntry}{NEW_LINE if thisEntry else ''}{htmlSegment}"
                         else: halt
                         partCount += 1
                     stateCounter += 1
                 else: halt
-            print( f"Intro {thisEntry=}" )
+            # print( f"Intro {thisEntry=}" )
             TOBDData['Intro'] = thisEntry
 # end of Dict.loadTyndaleOpenBibleDictXML
 
