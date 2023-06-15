@@ -76,8 +76,106 @@ def loadTyndaleOpenBibleDictXML( abbrev:str, folderpath ) -> None:
     for letter in 'ABCDEFGHIJKLMNOPQRSTUVWXZ': # Y is ommitted
         if letter=='X': letter = 'XY'
         loadDictLetterXML( letter, folderpath )
-
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  loadTyndaleOpenBibleDictXML() loaded {len(TOBDData['Letters']):,} letter sets with {len(TOBDData['Articles']):,} total articles." )
+
+    # Now load the introduction
+    vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Preloading Tyndale Open Bible Dictionary introduction from {folderpath}…" )
+    XML_filepath = os.path.join( folderpath, '_INTRODUCTION.xml')
+
+    loadErrors:List[str] = []
+    XMLTree = ElementTree().parse( XML_filepath )
+
+    if XMLTree.tag == 'items':
+        topLocation = f'TOBD intro'
+        BibleOrgSysGlobals.checkXMLNoText( XMLTree, topLocation, '4f6h', loadErrors )
+        BibleOrgSysGlobals.checkXMLNoTail( XMLTree, topLocation, '1wk8', loadErrors )
+        # Process the attributes first
+        for attrib,value in XMLTree.items():
+            if attrib == 'release':
+                releaseVersion = value
+            else:
+                logging.warning( "fv6g Unprocessed {} attribute ({}) in {}".format( attrib, value, topLocation ) )
+                loadErrors.append( "Unprocessed {} attribute ({}) in {} (fv6g)".format( attrib, value, topLocation ) )
+                if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.haltOnXMLWarning: halt
+        assert releaseVersion == '1.6'
+
+        for element in XMLTree:
+            location = f"{topLocation}-{element.tag}"
+            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"{element} {element.text=}" )
+            BibleOrgSysGlobals.checkXMLNoTail( element, location, '1wk8', loadErrors )
+            assert element.tag == 'item'
+            # Process the attributes first
+            for attrib,value in element.items():
+                if attrib == 'typename':
+                    assert value == 'FrontMatter'
+                elif attrib == 'name':
+                    assert value == 'Introduction'
+                elif attrib == 'product':
+                    assert value == 'TyndaleOpenBibleDictionary'
+                else:
+                    logging.warning( "fv6g Unprocessed {} attribute ({}) in {}".format( attrib, value, location ) )
+                    loadErrors.append( "Unprocessed {} attribute ({}) in {} (fv6g)".format( attrib, value, location ) )
+                    if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.haltOnXMLWarning: halt
+            stateCounter = 0
+            title = None
+            thisEntry = ''
+            for subelement in element:
+                dPrint( 'Info', DEBUGGING_THIS_MODULE, f"{subelement} {subelement.text=}" )
+                sublocation = f"{location}-{subelement.tag}"
+                BibleOrgSysGlobals.checkXMLNoAttributes( subelement, sublocation, '1wk8', loadErrors )
+                BibleOrgSysGlobals.checkXMLNoTail( subelement, sublocation, '1wk8', loadErrors )
+                if stateCounter == 0:
+                    assert subelement.tag == 'title'
+                    title = subelement.text
+                    assert title
+                    stateCounter += 1
+                elif stateCounter == 1:
+                    assert subelement.tag == 'body'
+                    BibleOrgSysGlobals.checkXMLNoText( subelement, sublocation, '1wk8', loadErrors )
+                    BibleOrgSysGlobals.checkXMLNoAttributes( subelement, sublocation, '1wk8', loadErrors )
+                    partCount = 0
+                    for bodyelement in subelement:
+                        bodyLocation = f'{sublocation}-{bodyelement.tag}-{partCount}'
+                        BibleOrgSysGlobals.checkXMLNoTail( bodyelement, bodyLocation, '1wk8', loadErrors )
+                        # print( f"{bodyelement} {bodyelement.text=}")
+                        assert bodyelement.tag in ('p','include_items'), f'{title=} {partCount=} {bodyelement.tag=} {bodyLocation=}'
+                        if bodyelement.tag == 'p':
+                            # Process the attributes first
+                            pClass = None
+                            for attrib,value in bodyelement.items():
+                                if attrib == 'class':
+                                    pClass = value
+                                    assert pClass in ('h1','h2','h3', 'fl',
+                                                        'list','list-space',
+                                                        'contributor'), f"Intro {pClass=} {bodyLocation}"
+                                else:
+                                    logging.warning( "fv6g Unprocessed {} attribute ({}) in {}".format( attrib, value, bodyLocation ) )
+                                    loadErrors.append( "Unprocessed {} attribute ({}) in {} (fv6g)".format( attrib, value, bodyLocation ) )
+                                    if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.haltOnXMLWarning: halt
+                            # So we want to extract this as an HTML paragraph
+                            htmlSegment = BibleOrgSysGlobals.getFlattenedXML( bodyelement, bodyLocation )
+                                                                    # .replace( '<a href="  \?', '<a href="?') # Fix encoding mistake in 1 Tim
+                            assert '\\' not in htmlSegment, f"Intro {partCount=} {htmlSegment=}"
+                            theirClass = 'next'
+                            if htmlSegment.startswith( '<class="'): # e.g., <class="theme-list">The new covenant....
+                                ixClose = htmlSegment.index( '">', 10 )
+                                theirClass = htmlSegment[8:ixClose]
+                                htmlSegment = htmlSegment[ixClose+2:]
+                            htmlSegment = f'<p class="{theirClass}">{htmlSegment}</p>'
+                            thisEntry = f"{thisEntry}{NEW_LINE if thisEntry else ''}{htmlSegment}"
+                        elif bodyelement.tag == 'table':
+                            BibleOrgSysGlobals.checkXMLNoAttributes( bodyelement, bodyLocation, '1wk8', loadErrors )
+                            BibleOrgSysGlobals.checkXMLNoText( bodyelement, bodyLocation, '1wk8', loadErrors )
+                            # So we want to extract this as an HTML paragraph
+                            htmlSegment = BibleOrgSysGlobals.getFlattenedXML( bodyelement, bodyLocation )
+                                                                    # .replace( '<a href="  \?', '<a href="?') # Fix encoding mistake in 1 Tim
+                            assert '\\' not in htmlSegment, f"Intro {partCount=} {htmlSegment=}"
+                            thisEntry = f"{thisEntry}{NEW_LINE if thisEntry else ''}{htmlSegment}"
+                        else: halt
+                        partCount += 1
+                    stateCounter += 1
+                else: halt
+
 # end of Dict.loadTyndaleOpenBibleDictXML
 
 
@@ -90,7 +188,6 @@ def loadDictLetterXML( letter:str, folderpath ) -> None:
     vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Preloading Tyndale Open Bible Dictionary '{letter}' from {folderpath}…" )
     XML_filepath = os.path.join( folderpath, 'Articles/', f'{letter}.xml')
 
-    dataDict = {}
     loadErrors:List[str] = []
     XMLTree = ElementTree().parse( XML_filepath )
 
@@ -117,16 +214,16 @@ def loadDictLetterXML( letter:str, folderpath ) -> None:
             # Process the attributes first
             name = typeName = None
             for attrib,value in element.items():
-                if attrib == 'name':
-                    name = value
-                elif attrib == 'typename':
+                if attrib == 'typename':
                     typeName = value
                     assert typeName in ('DictionaryLetter','Article'), f"{name=} {typeName=}"
+                elif attrib == 'name':
+                    name = value
                 elif attrib == 'product':
                     assert value in ('TyndaleOpenBibleDictionary','TyndaleBibleDict') # Sad inconsistency
                 else:
-                    logging.warning( "fv6g Unprocessed {} attribute ({}) in {}".format( attrib, value, topLocation ) )
-                    loadErrors.append( "Unprocessed {} attribute ({}) in {} (fv6g)".format( attrib, value, topLocation ) )
+                    logging.warning( "fv6g Unprocessed {} attribute ({}) in {}".format( attrib, value, location ) )
+                    loadErrors.append( "Unprocessed {} attribute ({}) in {} (fv6g)".format( attrib, value, location ) )
                     if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.haltOnXMLWarning: halt
             assert name
             assert typeName
@@ -262,20 +359,20 @@ def createTyndaleDictPages( level:int, outputFolderPath, state ) -> bool:
     try: os.makedirs( outputFolderPath )
     except FileExistsError: pass # it was already there
 
-    for articleName,article in TOBDData['Articles'].items():
-        dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"Making article page for '{articleName}'…" )
+    for articleLinkName,article in TOBDData['Articles'].items():
+        dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"Making article page for '{articleLinkName}'…" )
 
-        # Fix their links like '<a href="?bref=Mark.4.14-20">4:14-20</a>'
-        adjustedArticle = fixTyndaleBRefs( 'TOBD', level, articleName, '', '', article, state )
-        adjustedArticle = fixTyndaleItemRefs( 'TOBD', level, articleName, adjustedArticle, state )
+        # Liven their links like '<a href="?bref=Mark.4.14-20">4:14-20</a>'
+        adjustedArticle = fixTyndaleBRefs( 'TOBD', level, articleLinkName, '', '', article, state )
+        adjustedArticle = fixTyndaleItemRefs( 'TOBD', level, articleLinkName, adjustedArticle, state )
 
-        filename = f'{articleName}.htm'
+        filename = f'{articleLinkName}.htm'
         filepath = outputFolderPath.joinpath( filename )
         top = makeTop( level, None, 'dictionaryEntry', None, state ) \
                 .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}Dictionary Article" ) \
-                .replace( '__KEYWORDS__', f'Bible, dictionary, {articleName}' )
+                .replace( '__KEYWORDS__', f'Bible, dictionary, {articleLinkName}' )
+# <h2 id="Top">{articleLinkName}</h2>
         articleHtml = f'''{top}<h1>Tyndale Open Bible Dictionary <small><a title="Show details" href="{'../'*(level)}allDetails.htm#TOBD">©</a></small></h1>
-<h2 id="Top">{articleName}</h2>
 {adjustedArticle}
 {makeBottom( level, 'dictionaryEntry', state )}'''
         checkHtml( 'DictionaryArticle', articleHtml )
@@ -286,13 +383,13 @@ def createTyndaleDictPages( level:int, outputFolderPath, state ) -> bool:
     # Make letter index pages
     for letter,articleList in TOBDData['Letters'].items():
         dPrint( 'Info', DEBUGGING_THIS_MODULE, f"Making letter summary page for '{letter}'…" )
-        # articleLinkList = [f'<a title="Go to article" href="{articleName}.htm">{articleDisplayName}</a>' for articleName,articleDisplayName in articleList]
+        # articleLinkList = [f'<a title="Go to article" href="{articleLinkName}.htm">{articleDisplayName}</a>' for articleLinkName,articleDisplayName in articleList]
         articleLinkHtml = ''
-        for articleName,articleDisplayName in articleList:
-            articleLink = f'<a title="Go to article" href="{articleName}.htm">{articleDisplayName}</a>'
-            firstLetters = articleName[:2]
+        for articleLinkName,articleDisplayName in articleList:
+            articleLink = f'<a title="Go to article" href="{articleLinkName}.htm">{articleDisplayName}</a>'
+            firstLetters = articleLinkName[:2]
             if articleLinkHtml:
-                articleLinkHtml = f'''{articleLinkHtml}{' ' if firstLetters==lastFirstLetters else '\n<br>'}{articleLink}'''
+                articleLinkHtml = f'''{articleLinkHtml}{' ' if firstLetters==lastFirstLetters else f'{NEW_LINE}<br>'}{articleLink}'''
             else: # first entry
                 articleLinkHtml = articleLink
             lastFirstLetters = firstLetters
@@ -330,13 +427,13 @@ def createTyndaleDictPages( level:int, outputFolderPath, state ) -> bool:
 # end of Dict.createTyndaleDictPages
 
 
-def fixTyndaleItemRefs( abbrev:str, level:int, articleName:str, html:str, state ) -> str:
+def fixTyndaleItemRefs( abbrev:str, level:int, articleLinkName:str, html:str, state ) -> str:
     """
     Most of the parameters are for info messages only
     """
     from createSitePages import ALTERNATIVE_VERSION
 
-    fnPrint( DEBUGGING_THIS_MODULE, f"fixTyndaleItemRefs( {abbrev}, {level}, {articleName} {html}, ... )")
+    fnPrint( DEBUGGING_THIS_MODULE, f"fixTyndaleItemRefs( {abbrev}, {level}, {articleLinkName} {html}, ... )")
 
     # Fix their links like '<a href="?item=MarriageMarriageCustoms_Article_TyndaleOpenBibleDictionary">Marriage, Marriage Customs</a>'
     # Doesn't yet handle links like '(see “<a href="?item=FollowingJesus_ThemeNote_Filament">Following Jesus</a>” Theme Note)'
@@ -350,14 +447,14 @@ def fixTyndaleItemRefs( abbrev:str, level:int, articleName:str, html:str, state 
         tyndaleLinkPart = html[ixStart+12:ixCloseQuote]
         # print( f"{abbrev} {BBB} {C}:{V} {tyndaleLinkPart=}" )
         # if 'Filament' in tyndaleLinkPart: # e.g., in GEN 48:14 '2Chr.28.12_StudyNote_Filament'
-        #     logging.critical( f"Ignoring Filament link in {abbrev} {articleName} {tyndaleLinkPart=}" )
+        #     logging.critical( f"Ignoring Filament link in {abbrev} {articleLinkName} {tyndaleLinkPart=}" )
         #     searchStartIndex = ixCloseQuote + 6
         #     continue
-        assert tyndaleLinkPart.endswith( '_TyndaleOpenBibleDictionary' ), f"{abbrev} {level} '{articleName}' {tyndaleLinkPart=}"
+        assert tyndaleLinkPart.endswith( '_TyndaleOpenBibleDictionary' ), f"{abbrev} {level} '{articleLinkName}' {tyndaleLinkPart=}"
         tyndaleLinkPart = tyndaleLinkPart[:-27]
         # print( f"{tyndaleLinkPart=}" )
         assert tyndaleLinkPart.count('_') == 1
-        assert tyndaleLinkPart.endswith( '_Article' ) or tyndaleLinkPart.endswith( '_Textbox' ) or tyndaleLinkPart.endswith( '_Map' ), f"{abbrev} {level} '{articleName}' {tyndaleLinkPart=}"
+        assert tyndaleLinkPart.endswith( '_Article' ) or tyndaleLinkPart.endswith( '_Textbox' ) or tyndaleLinkPart.endswith( '_Map' ), f"{abbrev} {level} '{articleLinkName}' {tyndaleLinkPart=}"
         tyndaleName, tyndaleType = tyndaleLinkPart.split( '_' )
         # print( f"{tyndaleName=} {tyndaleType=}" )
         ourNewLink = f"{tyndaleName}.htm"
