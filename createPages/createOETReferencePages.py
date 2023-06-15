@@ -72,7 +72,7 @@ CNTR_BOOK_ID_MAP = {
     'HEB':58, 'JAM':58, 'PE1':60, 'PE2':61, 'JN1':62, 'JN2':63, 'JN3':64, 'JDE':65, 'REV':66}
 CNTR_ROLE_NAME_DICT = {'N':'noun', 'S':'substantive adjective', 'A':'adjective', 'E':'determiner/case-marker', 'R':'pronoun',
                   'V':'verb', 'I':'interjection', 'P':'preposition', 'D':'adverb', 'C':'conjunction', 'T':'particle'}
-CNTR_MOOD_NAME_DICT = {'I':'indicative', 'M':'imperative', 'S':'subjunctive', 
+CNTR_MOOD_NAME_DICT = {'I':'indicative', 'M':'imperative', 'S':'subjunctive',
             'O':'optative', 'N':'infinitive', 'P':'participle', 'e':'e'}
 CNTR_TENSE_NAME_DICT = {'P':'present', 'I':'imperfect', 'F':'future', 'A':'aorist', 'E':'perfect', 'L':'pluperfect', 'U':'U', 'e':'e'}
 CNTR_VOICE_NAME_DICT = {'A':'active', 'M':'middle', 'P':'passive', 'p':'p', 'm':'m', 'a':'a'}
@@ -222,7 +222,7 @@ def make_word_pages( level:int, outputFolderPath:Path, state ) -> None:
             parallelLink = f''' <b><a title="View verse in many versions" href="{'../'*level}pa/{BBB}/C{C}V{V}.htm">║</a></b>'''
             interlinearLink = f''' <b><a title="View verse in many versions" href="{'../'*level}il/{BBB}/C{C}V{V}.htm">═</a></b>''' if BBB in state.booksToLoad['OET'] else ''
             html = f'''{'' if probability else '<div class="unusedWord">'}<h1 id="Top">OET Wordlink #{n}{'' if probability else ' <small>(Unused Greek word variant)</small>'}</h1>
-<p class="pnav">{prevLink}<b>{greek}</b>{nextLink}{oetLink}{parallelLink}{interlinearLink}</p>
+<p class="pNav">{prevLink}<b>{greek}</b>{nextLink}{oetLink}{parallelLink}{interlinearLink}</p>
 <p><a title="Go to Statistical Restoration Greek page" href="https://GreekCNTR.org/collation/?{CNTR_BOOK_ID_MAP[BBB]}{C.zfill(3)}{V.zfill(3)}">SR GNT {ourTidyBBB} {C}:{V}</a>
  {probabilityField if TEST_MODE else ''}<b>{greek}</b> ({transliterate_Greek(greek)}) {translation}{capsField if TEST_MODE else ''}
  Strongs=<a title="Goes to Strongs dictionary" href="https://BibleHub.com/greek/{strongs}.htm">{extendedStrongs}</a> <small>Lemma={lemmaLink}</small><br>
@@ -273,8 +273,8 @@ if oBBB in state.preloadedBibles['OET-RV'] else f'''{html}\n<p>OET {oTidyBBB} {o
                         #     break
                     if len(lemmaGlossesList) > len(wordGlossesList):
                         html = f'''{html}\n<p>The various word forms of the root word (lemma) ‘{lemmaLink}’ have {len(lemmaGlossesList):,} different glosses: {', '.join(lemmaGlossesList)}.</p>'''
-                            
-            # Now put it all together       
+
+            # Now put it all together
             html = makeTop( level, None, 'word', None, state ) \
                                     .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}NT Word ‘{greek}’" ) \
                                     .replace( '__KEYWORDS__', 'Bible, word' ) \
@@ -311,7 +311,7 @@ def make_Greek_lemma_pages( level:int, outputFolderPath:Path, state ) -> None:
         prevLink = f'<b><a title="Previous lemma" href="{lemmaList[ll-1]}.htm#Top">←</a></b> ' if ll>0 else ''
         nextLink = f' <b><a title="Next lemma" href="{lemmaList[ll+1]}.htm#Top">→</a></b>' if ll<len(lemmaList)-1 else ''
         html = f'''<h1 id="Top">Greek root word (lemma) ‘{lemma}’</h1>
-<p class="pnav">{prevLink}<b>{lemma}</b>{nextLink}</p>
+<p class="pNav">{prevLink}<b>{lemma}</b>{nextLink}</p>
 <p>This root form (lemma) is used in {len(lemmaFormsList):,} different forms in the NT: {', '.join([f'<a title="View Greek word form" href="../W/{getFirstWordNumber(grk,morph)}.htm">{grk}</a> <small>({morph})</small>' for grk,morph in lemmaFormsList])}.</p>
 <p>It is glossed in {len(lemmaGlossesList):,} different ways: {', '.join(lemmaGlossesList)}.</p>
 '''
@@ -335,7 +335,7 @@ def make_Greek_lemma_pages( level:int, outputFolderPath:Path, state ) -> None:
                 #     html = f'{html}\n<p>({len(thisWordNumberList)-other_count-1:,} more examples not listed)</p>'
                 #     break
 
-        # Now put it all together       
+        # Now put it all together
         html = makeTop( level, None, 'lemma', None, state ) \
                                 .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}Greek lemma ‘{lemma}’" ) \
                                 .replace( '__KEYWORDS__', 'Bible, word' ) \
@@ -385,7 +385,7 @@ def make_person_pages( level:int, outputFolderPath:Path, state ) -> int:
 <p>{livenMD(level, entry['dictText'])}</p>
 <p>{entry['gender']}{f' {bornStr}' if bornStr else ''}{f' {diedStr}' if diedStr else ''}</p>'''
 
-        # Now put it all together       
+        # Now put it all together
         output_filename = f"{personKey[1:]}.htm"
         html = f'''{makeTop( level, None, 'person', None, state )
                                     .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{personName}" )
@@ -440,7 +440,7 @@ def make_location_pages( level:int, outputFolderPath:Path, state ) -> int:
 <p>{entry['featureType']}{f"/{entry['featureSubType']}" if entry['featureSubType'] else ''}{f' {commentStr}' if commentStr else ''}</p>
 <p>KJB=‘{entry['kjvName']}’ ESV=‘{entry['esvName']}’</p>'''
 
-        # Now put it all together       
+        # Now put it all together
         output_filename = f"{placeKey[1:]}.htm"
         html = f'''{makeTop( level, None, 'location', None, state )
                                     .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{placeName}" )

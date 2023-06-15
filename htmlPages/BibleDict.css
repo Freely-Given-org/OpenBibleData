@@ -23,7 +23,8 @@ p.vsLst {background-color:mistyRose; }
 /* Navs are the ones with arrows */
 p.cNav { text-align:center; font-size:1.8em; background-color:#98a9d4; }
 p.vNav { text-align:center; font-size:1.8em; }
-p.pnav { text-align:center; font-size:1.8em; }
+p.pNav { text-align:center; font-size:1.8em; }
+p.dNav { text-align:center; font-size:1.8em; }
 
 p.h1 { font-weight:bold; font-size:1.8em; }
 p.h2 { font-weight:bold; font-size:1.5em; }

@@ -361,8 +361,12 @@ def createTyndaleDictPages( level:int, outputFolderPath, state ) -> bool:
     try: os.makedirs( outputFolderPath )
     except FileExistsError: pass # it was already there
 
-    for articleLinkName,article in TOBDData['Articles'].items():
+    articleList = [a for a in TOBDData['Articles']]
+    for j,(articleLinkName,article) in enumerate( TOBDData['Articles'].items() ):
         dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"Making article page for '{articleLinkName}'…" )
+        leftLink = f'''<a title="Go to previous article" href="{articleList[j-1]}.htm#__ID__">←</a> ''' if j>0 else ''
+        rightLink = f'''<a title="Go to next article" href="{articleList[j+1]}.htm#__ID__">←</a> ''' if j<len(articleList)-1 else ''
+        navLinks = f'<p id="__ID__" class="dNav">{leftLink}<a title="Go up to main index" href="index.htm#__ID__">Index</a>{rightLink}</p>'
 
         # Liven their links like '<a href="?bref=Mark.4.14-20">4:14-20</a>'
         adjustedArticle = fixTyndaleBRefs( 'TOBD', level, articleLinkName, '', '', article, state )
@@ -375,6 +379,7 @@ def createTyndaleDictPages( level:int, outputFolderPath, state ) -> bool:
                 .replace( '__KEYWORDS__', f'Bible, dictionary, {articleLinkName}' )
 # <h2 id="Top">{articleLinkName}</h2>
         articleHtml = f'''{top}<h1>Tyndale Open Bible Dictionary <small><a title="Show details" href="{'../'*(level)}allDetails.htm#TOBD">©</a></small></h1>
+{navLinks.replace('__ID__','Top')}
 {adjustedArticle}
 {makeBottom( level, 'dictionaryEntry', state )}'''
         checkHtml( 'DictionaryArticle', articleHtml )
@@ -383,9 +388,12 @@ def createTyndaleDictPages( level:int, outputFolderPath, state ) -> bool:
         vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(articleHtml):,} characters written to {filepath}" )
 
     # Make letter index pages
-    for letter,articleList in TOBDData['Letters'].items():
+    letterList = [l for l in TOBDData['Letters']]
+    for j,(letter,articleList) in enumerate( TOBDData['Letters'].items() ):
         dPrint( 'Info', DEBUGGING_THIS_MODULE, f"Making letter summary page for '{letter}'…" )
-        # articleLinkList = [f'<a title="Go to article" href="{articleLinkName}.htm">{articleDisplayName}</a>' for articleLinkName,articleDisplayName in articleList]
+        leftLink = f'''<a title="Go to previous letter" href="index_{letterList[j-1]}.htm#__ID__">←</a> ''' if j>0 else ''
+        rightLink = f'''<a title="Go to next letter" href="index_{letterList[j+1]}.htm#__ID__">←</a> ''' if j<len(letterList)-1 else ''
+        navLinks = f'<p id="__ID__" class="dNav">{leftLink}<a title="Go up to main index" href="index.htm#__ID__">Index</a>{rightLink}</p>'
         articleLinkHtml = ''
         for articleLinkName,articleDisplayName in articleList:
             articleLink = f'<a title="Go to article" href="{articleLinkName}.htm">{articleDisplayName}</a>'
@@ -400,8 +408,8 @@ def createTyndaleDictPages( level:int, outputFolderPath, state ) -> bool:
         top = makeTop( level, None, 'dictionaryLetterIndex', None, state ) \
                 .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}Dictionary Index Letter" ) \
                 .replace( '__KEYWORDS__', f'Bible, dictionary' )
-#{' '.join(articleLinkList)}
         letterIndexHtml = f'''{top}<h1>Tyndale Open Bible Dictionary <small><a title="Show details" href="{'../'*(level)}allDetails.htm#TOBD">©</a></small></h1>
+{navLinks.replace('__ID__','Top')}
 <h2 id="Top">Index for dictionary letter '{letter}'</h2>
 {articleLinkHtml}
 {makeBottom( level, 'dictionaryLetterIndex', state )}'''
