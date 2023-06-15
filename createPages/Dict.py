@@ -55,7 +55,7 @@ from html import makeTop, makeBottom, checkHtml
 LAST_MODIFIED_DATE = '2023-06-15' # by RJH
 SHORT_PROGRAM_NAME = "Dictionary"
 PROGRAM_NAME = "OpenBibleData Dictionary handler"
-PROGRAM_VERSION = '0.23'
+PROGRAM_VERSION = '0.24'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -428,7 +428,7 @@ def createTyndaleDictPages( level:int, outputFolderPath, state ) -> bool:
     top = makeTop( level, None, 'dictionaryIntro', None, state ) \
             .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}Dictionary Introduction" ) \
             .replace( '__KEYWORDS__', f'Bible, dictionary, introduction' )
-    introHtml = f'''{top}<h1 id="Top">Tyndale Open Bible Dictionary <small><a title="Show details" href="{'../'*(level)}allDetails.htm#TOBD">©</a></small></h1>
+    introHtml = f'''{top}<h1 id="Top">Tyndale Open Bible Dictionary <small>{detailsLink}</small></h1>
 {TOBDData['Intro']}
 {makeBottom( level, 'dictionaryIntro', state )}'''
     checkHtml( 'DictionaryIntro', introHtml )
