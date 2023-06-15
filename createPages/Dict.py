@@ -3,7 +3,7 @@
 #
 # Dict.py
 #
-# Module handling OpenBibleData Dictionary functions
+# Module handling OpenBibleData Bible Dictionary functions
 #
 # Copyright (C) 2023 Robert Hunt
 # Author: Robert Hunt <Freely.Given.org+OBD@gmail.com>
@@ -23,7 +23,7 @@
 #   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 """
-Module handling Bibles functions.
+Module handling Bible Dictionary functions.
 
 BibleOrgSys uses a three-character book code to identify books.
     These referenceAbbreviations are nearly always represented as BBB in the program code
@@ -48,15 +48,14 @@ import sys
 sys.path.append( '../../BibleOrgSys/' )
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
-# from BibleOrgSys.Internals.InternalBibleInternals import getLeadingInt
 
 from html import makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-06-14' # by RJH
+LAST_MODIFIED_DATE = '2023-06-15' # by RJH
 SHORT_PROGRAM_NAME = "Dictionary"
 PROGRAM_NAME = "OpenBibleData Dictionary handler"
-PROGRAM_VERSION = '0.15'
+PROGRAM_VERSION = '0.20'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -243,7 +242,7 @@ def loadDictLetterXML( letter:str, folderpath ) -> None:
                         stateCounter += 1
                     else: halt
                 if thisEntry:
-                    TOBDData['Letters'][letter].append( name )
+                    TOBDData['Letters'][letter].append( (name,title) )
                     TOBDData['Articles'][name] = thisEntry
 
     vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    loadDictLetterXML() loaded {len(TOBDData['Letters'][letter]):,} '{letter}' dict entries." )
@@ -275,7 +274,8 @@ def createTyndaleDictPages( level:int, outputFolderPath, state ) -> bool:
         top = makeTop( level, None, 'dictionaryEntry', None, state ) \
                 .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}Dictionary Article" ) \
                 .replace( '__KEYWORDS__', f'Bible, dictionary, {articleName}' )
-        articleHtml = f'''{top}<h1>Tyndale Open Bible Dictionary</h1><h2 id="Top">{articleName} <a title="Show details" href="{'../'*(level)}allDetails.htm#TOBD">©</a></h2>
+        articleHtml = f'''{top}<h1>Tyndale Open Bible Dictionary <small><a title="Show details" href="{'../'*(level)}allDetails.htm#TOBD">©</a></small></h1>
+<h2 id="Top">{articleName}</h2>
 {adjustedArticle}
 {makeBottom( level, 'dictionaryEntry', state )}'''
         checkHtml( 'DictionaryArticle', articleHtml )
@@ -286,14 +286,25 @@ def createTyndaleDictPages( level:int, outputFolderPath, state ) -> bool:
     # Make letter index pages
     for letter,articleList in TOBDData['Letters'].items():
         dPrint( 'Info', DEBUGGING_THIS_MODULE, f"Making letter summary page for '{letter}'…" )
-        articleLinkList = [f'<a title="Go to article" href="{articleName}.htm">{articleName}</a>' for articleName in articleList]
+        # articleLinkList = [f'<a title="Go to article" href="{articleName}.htm">{articleDisplayName}</a>' for articleName,articleDisplayName in articleList]
+        articleLinkHtml = ''
+        for articleName,articleDisplayName in articleList:
+            articleLink = f'<a title="Go to article" href="{articleName}.htm">{articleDisplayName}</a>'
+            firstLetters = articleName[:2]
+            if articleLinkHtml:
+                articleLinkHtml = f'''{articleLinkHtml}{' ' if firstLetters==lastFirstLetters else '\n<br>'}{articleLink}'''
+            else: # first entry
+                articleLinkHtml = articleLink
+            lastFirstLetters = firstLetters
         filename = f'{letter}_index.htm'
         filepath = outputFolderPath.joinpath( filename )
         top = makeTop( level, None, 'dictionaryLetterIndex', None, state ) \
                 .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}Dictionary" ) \
                 .replace( '__KEYWORDS__', f'Bible, dictionary' )
-        letterIndexHtml = f'''{top}<h1>Tyndale Open Bible Dictionary</h1><h2 id="Top">Index for dictionary letter '{letter}' <a title="Show details" href="{'../'*(level)}allDetails.htm#TOBD">©</a></h2>
-{' '.join(articleLinkList)}
+#{' '.join(articleLinkList)}
+        letterIndexHtml = f'''{top}<h1>Tyndale Open Bible Dictionary <small><a title="Show details" href="{'../'*(level)}allDetails.htm#TOBD">©</a></small></h1>
+<h2 id="Top">Index for dictionary letter '{letter}'</h2>
+{articleLinkHtml}
 {makeBottom( level, 'dictionaryLetterIndex', state )}'''
         checkHtml( 'DictionaryLetterIndex', letterIndexHtml )
         with open( filepath, 'wt', encoding='utf-8' ) as letterIndexHtmlFile:
@@ -307,7 +318,8 @@ def createTyndaleDictPages( level:int, outputFolderPath, state ) -> bool:
     top = makeTop( level, None, 'dictionaryMainIndex', None, state ) \
             .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}Dictionary" ) \
             .replace( '__KEYWORDS__', f'Bible, dictionary' )
-    indexHtml = f'''{top}<h1 id="Top">Tyndale Open Bible Dictionary</h1><h2>Index of dictionary letters <a title="Show details" href="{'../'*(level)}allDetails.htm#TOBD">©</a></h2>
+    indexHtml = f'''{top}<h1 id="Top">Tyndale Open Bible Dictionary <small><a title="Show details" href="{'../'*(level)}allDetails.htm#TOBD">©</a></small></h1>
+<h2>Index of dictionary letters</h2>
 {' '.join(letterLinkList)}
 {makeBottom( level, 'dictionaryMainIndex', state )}'''
     checkHtml( 'DictionaryIndex', indexHtml )
@@ -343,13 +355,13 @@ def fixTyndaleItemRefs( abbrev:str, level:int, articleName:str, html:str, state 
         #     continue
         assert tyndaleLinkPart.endswith( '_TyndaleOpenBibleDictionary' ), f"{abbrev} {level} '{articleName}' {tyndaleLinkPart=}"
         tyndaleLinkPart = tyndaleLinkPart[:-27]
-        print( f"{tyndaleLinkPart=}" )
+        # print( f"{tyndaleLinkPart=}" )
         assert tyndaleLinkPart.count('_') == 1
         assert tyndaleLinkPart.endswith( '_Article' ) or tyndaleLinkPart.endswith( '_Textbox' ) or tyndaleLinkPart.endswith( '_Map' ), f"{abbrev} {level} '{articleName}' {tyndaleLinkPart=}"
         tyndaleName, tyndaleType = tyndaleLinkPart.split( '_' )
-        print( f"{tyndaleName=} {tyndaleType=}" )
+        # print( f"{tyndaleName=} {tyndaleType=}" )
         ourNewLink = f"{tyndaleName}.htm"
-        print( f"   {ourNewLink=}" )
+        # print( f"   {ourNewLink=}" )
         html = f'''{html[:ixStart+6]}{ourNewLink}{html[ixCloseQuote:]}'''
         searchStartIndex = ixStart + 10
     else: need_to_increase_Tyndale_item_loop_counter
