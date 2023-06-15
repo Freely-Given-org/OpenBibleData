@@ -53,10 +53,10 @@ from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39, BOOKLIST_NT27
 # from Bibles import fetchChapter
 
 
-LAST_MODIFIED_DATE = '2023-06-14' # by RJH
+LAST_MODIFIED_DATE = '2023-06-15' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
-PROGRAM_VERSION = '0.44'
+PROGRAM_VERSION = '0.45'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -71,7 +71,7 @@ timeRegex = re.compile( '[0-9][0-9]:[0-9][0-9]' )
 KNOWN_PAGE_TYPES = ('site', 'topIndex', 'details', 'allDetails',
                     'book','chapter','section',
                     'parallel','interlinear',
-                    'dictionaryMainIndex','dictionaryLetterIndex','dictionaryEntry',
+                    'dictionaryMainIndex','dictionaryLetterIndex','dictionaryEntry','dictionaryIntro',
                     'word','lemma', 'person','location',
                     'about')
 def makeTop( level:int, versionAbbreviation:Optional[str], pageType:str, fileOrFolderName:Optional[str], state ) -> str:
@@ -92,7 +92,7 @@ def makeTop( level:int, versionAbbreviation:Optional[str], pageType:str, fileOrF
         cssFilename = 'InterlinearVerse.css'
     elif pageType in ('word','lemma', 'person','location'):
         cssFilename = 'BibleWord.css'
-    elif pageType in ('dictionaryMainIndex','dictionaryLetterIndex', 'dictionaryEntry'):
+    elif pageType in ('dictionaryMainIndex','dictionaryLetterIndex', 'dictionaryEntry','dictionaryIntro'):
         cssFilename = 'BibleDict.css'
     else: cssFilename = 'BibleSite.css'
 

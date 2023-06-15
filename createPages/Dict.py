@@ -138,7 +138,7 @@ def loadTyndaleOpenBibleDictXML( abbrev:str, folderpath ) -> None:
                         bodyLocation = f'{sublocation}-{bodyelement.tag}-{partCount}'
                         BibleOrgSysGlobals.checkXMLNoTail( bodyelement, bodyLocation, '1wk8', loadErrors )
                         # print( f"{bodyelement} {bodyelement.text=}")
-                        assert bodyelement.tag in ('p','include_items'), f'{title=} {partCount=} {bodyelement.tag=} {bodyLocation=}'
+                        assert bodyelement.tag in ('p','table'), f'{title=} {partCount=} {bodyelement.tag=} {bodyLocation=}'
                         if bodyelement.tag == 'p':
                             # Process the attributes first
                             pClass = None
@@ -175,7 +175,8 @@ def loadTyndaleOpenBibleDictXML( abbrev:str, folderpath ) -> None:
                         partCount += 1
                     stateCounter += 1
                 else: halt
-
+            print( f"Intro {thisEntry=}" )
+            TOBDData['Intro'] = thisEntry
 # end of Dict.loadTyndaleOpenBibleDictXML
 
 
@@ -393,10 +394,10 @@ def createTyndaleDictPages( level:int, outputFolderPath, state ) -> bool:
             else: # first entry
                 articleLinkHtml = articleLink
             lastFirstLetters = firstLetters
-        filename = f'{letter}_index.htm'
+        filename = f'index_{letter}.htm'
         filepath = outputFolderPath.joinpath( filename )
         top = makeTop( level, None, 'dictionaryLetterIndex', None, state ) \
-                .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}Dictionary" ) \
+                .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}Dictionary Index Letter" ) \
                 .replace( '__KEYWORDS__', f'Bible, dictionary' )
 #{' '.join(articleLinkList)}
         letterIndexHtml = f'''{top}<h1>Tyndale Open Bible Dictionary <small><a title="Show details" href="{'../'*(level)}allDetails.htm#TOBD">©</a></small></h1>
@@ -408,14 +409,29 @@ def createTyndaleDictPages( level:int, outputFolderPath, state ) -> bool:
             letterIndexHtmlFile.write( letterIndexHtml )
         vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(letterIndexHtml):,} characters written to {filepath}" )
 
+    # Make intro page
+    filename = 'intro.htm'
+    filepath = outputFolderPath.joinpath( filename )
+    top = makeTop( level, None, 'dictionaryIntro', None, state ) \
+            .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}Dictionary Introduction" ) \
+            .replace( '__KEYWORDS__', f'Bible, dictionary, introduction' )
+    introHtml = f'''{top}<h1 id="Top">Tyndale Open Bible Dictionary <small><a title="Show details" href="{'../'*(level)}allDetails.htm#TOBD">©</a></small></h1>
+{TOBDData['Intro']}
+{makeBottom( level, 'dictionaryIntro', state )}'''
+    checkHtml( 'DictionaryIntro', introHtml )
+    with open( filepath, 'wt', encoding='utf-8' ) as introHtmlFile:
+        introHtmlFile.write( introHtml )
+    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(introHtml):,} characters written to {filepath}" )
+
     # Make overall index
-    letterLinkList = [f'''<a title="Go to index page for letter '{l}'" href="{l}_index.htm">{l}</a>''' for l in TOBDData['Letters']]
+    letterLinkList = [f'''<a title="Go to index page for letter '{l}'" href="index_{l}.htm">{l}</a>''' for l in TOBDData['Letters']]
     filename = 'index.htm'
     filepath = outputFolderPath.joinpath( filename )
     top = makeTop( level, None, 'dictionaryMainIndex', None, state ) \
-            .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}Dictionary" ) \
+            .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}Dictionary Index" ) \
             .replace( '__KEYWORDS__', f'Bible, dictionary' )
     indexHtml = f'''{top}<h1 id="Top">Tyndale Open Bible Dictionary <small><a title="Show details" href="{'../'*(level)}allDetails.htm#TOBD">©</a></small></h1>
+<p><a id="Go to dict intro" href="intro.htm">Introduction</a></p>
 <h2>Index of dictionary letters</h2>
 {' '.join(letterLinkList)}
 {makeBottom( level, 'dictionaryMainIndex', state )}'''
