@@ -639,14 +639,20 @@ def livenTyndaleTextboxRefs( abbrev:str, level:int, articleLinkName:str, html:st
         try: textboxData = TOBDData['Textboxes'][textboxName]
         except KeyError: # there's a systematic error in the data
             fixed = False
-            if 'S' in textboxName:
-                ixS = textboxName.index( 'S', 1 )
-                if ixS > 0 and textboxName[ixS+1].isupper():
-                    textboxName = f'{textboxName[:ixS]}s{textboxName[ixS+1:]}' # Convert things like AbrahamSBosom to a lowercase s
+            ixS = textboxName.index( 'S', 1 )
+            if ixS > 0 and textboxName[ixS+1].isupper():
+                textboxName = f'{textboxName[:ixS]}s{textboxName[ixS+1:]}' # Convert things like AbrahamSBosom to a lowercase s and AntilegomenaTheBooksThatDidnTMakeIt to lowercase T
+                textboxData = TOBDData['Textboxes'][textboxName]
+                fixed = True
+            if not fixed:
+                ixT = textboxName.index( 'T', 1 )
+                if ixT > 0 and textboxName[ixT+1].isupper():
+                    textboxName = f'{textboxName[:ixT]}t{textboxName[ixT+1:]}' # Convert things like AbrahamSBosom to a lowercase s and AntilegomenaTheBooksThatDidnTMakeIt to lowercase T
                     textboxData = TOBDData['Textboxes'][textboxName]
                     fixed = True
             if not fixed:
                 logging.critical( f"livenTyndaleTextboxRefs failed to find a textbox for '{textboxName}'" )
+                searchStartIndex = ixStart + 50
                 continue
         ourNewLink = f'''<div class="Textbox">{textboxData}</div><!--end of Textbox-->'''
         print( f"   {ourNewLink=}" )
