@@ -483,9 +483,9 @@ def createTyndaleDictPages( level:int, outputFolderPath, state ) -> bool:
         navLinks = f'<p id="__ID__" class="dNav">{leftLink}{indexLink} {introLink}{rightLink} {detailsLink}</p>'
 
         # Liven their links like '<a href="?bref=Mark.4.14-20">4:14-20</a>'
-        adjustedArticle = fixTyndaleBRefs( 'TOBD', level, articleLinkName, '', '', article, state )
+        adjustedArticle = livenTyndaleTextboxRefs( 'TOBD', level, articleLinkName, article, state )
+        adjustedArticle = fixTyndaleBRefs( 'TOBD', level, articleLinkName, '', '', adjustedArticle, state )
         adjustedArticle = fixTyndaleItemRefs( 'TOBD', level, articleLinkName, adjustedArticle, state )
-        adjustedArticle = livenTyndaleTextboxRefs( 'TOBD', level, articleLinkName, adjustedArticle, state )
 
         filename = f'{articleLinkName}.htm'
         filepath = outputFolderPath.joinpath( filename )
@@ -635,19 +635,19 @@ def livenTyndaleTextboxRefs( abbrev:str, level:int, articleLinkName:str, html:st
         ixCloseQuote = html.find( '"', ixStart+54 )
         assert ixCloseQuote != -1
         textboxName = html[ixStart+54:ixCloseQuote].replace( 'AbrahamSBosom', 'AbrahamsBosom' )
-        print( f"{textboxName=}" )
+        # print( f"{textboxName=}" )
         try: textboxData = TOBDData['Textboxes'][textboxName]
         except KeyError: # there's a systematic error in the data
             fixed = False
-            ixS = textboxName.index( 'S', 1 )
+            ixS = textboxName.find( 'S', 1 )
             if ixS > 0 and textboxName[ixS+1].isupper():
-                textboxName = f'{textboxName[:ixS]}s{textboxName[ixS+1:]}' # Convert things like AbrahamSBosom to a lowercase s and AntilegomenaTheBooksThatDidnTMakeIt to lowercase T
+                textboxName = f'{textboxName[:ixS]}s{textboxName[ixS+1:]}' # Convert things like AbrahamSBosom to a lowercase s
                 textboxData = TOBDData['Textboxes'][textboxName]
                 fixed = True
             if not fixed:
-                ixT = textboxName.index( 'T', 1 )
+                ixT = textboxName.find( 'T', 1 )
                 if ixT > 0 and textboxName[ixT+1].isupper():
-                    textboxName = f'{textboxName[:ixT]}t{textboxName[ixT+1:]}' # Convert things like AbrahamSBosom to a lowercase s and AntilegomenaTheBooksThatDidnTMakeIt to lowercase T
+                    textboxName = f'{textboxName[:ixT]}t{textboxName[ixT+1:]}' # Convert things like AntilegomenaTheBooksThatDidnTMakeIt to lowercase t
                     textboxData = TOBDData['Textboxes'][textboxName]
                     fixed = True
             if not fixed:
@@ -655,7 +655,7 @@ def livenTyndaleTextboxRefs( abbrev:str, level:int, articleLinkName:str, html:st
                 searchStartIndex = ixStart + 50
                 continue
         ourNewLink = f'''<div class="Textbox">{textboxData}</div><!--end of Textbox-->'''
-        print( f"   {ourNewLink=}" )
+        # print( f"   {ourNewLink=}" )
         html = f'''{html[:ixStart]}{ourNewLink}{html[ixCloseQuote+3:]}'''
         searchStartIndex = ixStart + 10
     else: need_to_increase_Tyndale_textbox_loop_counter

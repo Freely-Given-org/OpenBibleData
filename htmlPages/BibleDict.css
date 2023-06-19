@@ -4,7 +4,7 @@ div.BibleText { } */
 /* div.footer { width: 500px; height: 250px; margin: 50px; }
 div.rightBox { float:right; width:35%; border:3px solid #73AD21; padding:0.2em; } */
 
-div.Textbox { display: inline-flex; flex-direction: column; }
+div.Textbox { display: flex; flex-direction: column; border: 1px solid black; }
 
 a { text-decoration: none; }
 
