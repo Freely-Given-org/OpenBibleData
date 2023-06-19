@@ -218,7 +218,7 @@ def loadTyndaleOpenBibleDictXML( abbrev:str, folderpath ) -> None:
                 elif attrib == 'product':
                     assert value == 'TyndaleOpenBibleDictionary'
                 elif attrib == 'name':
-                    assert name = value
+                    name = value
                 else:
                     logging.warning( "fv6g Unprocessed {} attribute ({}) in {}".format( attrib, value, location ) )
                     loadErrors.append( "Unprocessed {} attribute ({}) in {} (fv6g)".format( attrib, value, location ) )
@@ -436,10 +436,12 @@ def loadDictLetterXML( letter:str, folderpath ) -> None:
                                         if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.haltOnXMLWarning: halt
                                 if 'Textbox' in iiSrc:
                                     assert iiSrc == '../Textboxes/Textboxes.xml'
-                                    htmlSegment = f'''<div class="Textbox>{TOBDData['Textboxes'][iiName]}</div><!--end of Textbox-->'''
+                                    # So we want to save this as an XML paragraph to insert textbox later
+                                    htmlSegment = f'<include_items src="{iiSrc}" name="{iiName}"/>'
                                     thisEntry = f"{thisEntry}{NEW_LINE if thisEntry else ''}{htmlSegment}"
                                 elif 'Map' in iiSrc:
-                                    # So we want to save this as an XML paragraph to insert textbox later
+                                    assert iiSrc == '../Maps/Maps.xml'
+                                    # So we want to save this as an XML paragraph to insert map later
                                     htmlSegment = f'<include_items src="{iiSrc}" name="{iiName}"/>'
                                     thisEntry = f"{thisEntry}{NEW_LINE if thisEntry else ''}{htmlSegment}"
                                 else: # They don't supply pictures or charts so might as well discard those here for now
@@ -483,6 +485,7 @@ def createTyndaleDictPages( level:int, outputFolderPath, state ) -> bool:
         # Liven their links like '<a href="?bref=Mark.4.14-20">4:14-20</a>'
         adjustedArticle = fixTyndaleBRefs( 'TOBD', level, articleLinkName, '', '', article, state )
         adjustedArticle = fixTyndaleItemRefs( 'TOBD', level, articleLinkName, adjustedArticle, state )
+        adjustedArticle = livenTyndaleTextboxRefs( 'TOBD', level, articleLinkName, adjustedArticle, state )
 
         filename = f'{articleLinkName}.htm'
         filepath = outputFolderPath.joinpath( filename )
@@ -571,6 +574,8 @@ even though it was originally designed to supplement the <i>New Living Translati
 def fixTyndaleItemRefs( abbrev:str, level:int, articleLinkName:str, html:str, state ) -> str:
     """
     Most of the parameters are for info messages only
+
+    Livens links between articles
     """
     from createSitePages import ALTERNATIVE_VERSION
 
@@ -606,6 +611,39 @@ def fixTyndaleItemRefs( abbrev:str, level:int, articleLinkName:str, html:str, st
 
     return html
 # end of Bibles.fixTyndaleItemRefs
+
+
+
+def livenTyndaleTextboxRefs( abbrev:str, level:int, articleLinkName:str, html:str, state ) -> str:
+    """
+    Most of the parameters are for info messages only
+
+    Convert
+        htmlSegment = f'<include_items src="{iiSrc}" name="{iiName}"/>'
+    to
+        htmlSegment = f'''<div class="Textbox>{TOBDData['Textboxes'][iiName]}</div><!--end of Textbox-->'''
+    """
+    from createSitePages import ALTERNATIVE_VERSION
+
+    fnPrint( DEBUGGING_THIS_MODULE, f"livenTyndaleTextboxRefs( {abbrev}, {level}, {articleLinkName} {html}, ... )")
+
+    searchStartIndex = 0
+    for _safetyCount in range( 5 ): # xx was too few
+        ixStart = html.find( '<include_items src="../Textboxes/Textboxes.xml" name="', searchStartIndex )
+        if ixStart == -1: # none/no more found
+            break
+        ixCloseQuote = html.find( '"', ixStart+54 )
+        assert ixCloseQuote != -1
+        textboxName = html[ixStart+54:ixCloseQuote]
+        print( f"{textboxName=}" )
+        ourNewLink = f'''<div class="Textbox">{TOBDData['Textboxes'][textboxName]}</div><!--end of Textbox-->'''
+        print( f"   {ourNewLink=}" )
+        html = f'''{html[:ixStart]}{ourNewLink}{html[ixCloseQuote+3:]}'''
+        searchStartIndex = ixStart + 10
+    else: need_to_increase_Tyndale_textbox_loop_counter
+
+    return html
+# end of Bibles.livenTyndaleTextboxRefs
 
 
 
