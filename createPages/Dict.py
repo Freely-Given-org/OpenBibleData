@@ -254,8 +254,8 @@ def loadTyndaleOpenBibleDictXML( abbrev:str, folderpath ) -> None:
                             for attrib,value in bodyelement.items():
                                 if attrib == 'class':
                                     pClass = value
-                                    assert pClass in ('h1','box-h2','box-h2-poetic', 'sp',
-                                                        'box-first',
+                                    assert pClass in ('h1','box-h2','box-h2-poetic', 'sp','fl',
+                                                        'box-first','box-extract',
                                                         'poetry-1','poetry-1-sp','poetry-2',
                                                         'list'), f"Textbox {pClass=} {bodyLocation}"
                                 else:
@@ -277,7 +277,7 @@ def loadTyndaleOpenBibleDictXML( abbrev:str, folderpath ) -> None:
                         partCount += 1
                     stateCounter += 1
                 else: halt
-            print( f"Textbox {thisEntry=}" )
+            # print( f"Textbox {thisEntry=}" )
             TOBDData['Textboxes'][name] = thisEntry
     vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Loaded Tyndale Open Bible Dictionary {len(TOBDData['Textboxes']):,} textboxes from {folderpath}." )
 # end of Dict.loadTyndaleOpenBibleDictXML
@@ -634,9 +634,21 @@ def livenTyndaleTextboxRefs( abbrev:str, level:int, articleLinkName:str, html:st
             break
         ixCloseQuote = html.find( '"', ixStart+54 )
         assert ixCloseQuote != -1
-        textboxName = html[ixStart+54:ixCloseQuote]
+        textboxName = html[ixStart+54:ixCloseQuote].replace( 'AbrahamSBosom', 'AbrahamsBosom' )
         print( f"{textboxName=}" )
-        ourNewLink = f'''<div class="Textbox">{TOBDData['Textboxes'][textboxName]}</div><!--end of Textbox-->'''
+        try: textboxData = TOBDData['Textboxes'][textboxName]
+        except KeyError: # there's a systematic error in the data
+            fixed = False
+            if 'S' in textboxName:
+                ixS = textboxName.index( 'S', 1 )
+                if ixS > 0 and textboxName[ixS+1].isupper():
+                    textboxName = f'{textboxName[:ixS]}s{textboxName[ixS+1:]}' # Convert things like AbrahamSBosom to a lowercase s
+                    textboxData = TOBDData['Textboxes'][textboxName]
+                    fixed = True
+            if not fixed:
+                logging.critical( f"livenTyndaleTextboxRefs failed to find a textbox for '{textboxName}'" )
+                continue
+        ourNewLink = f'''<div class="Textbox">{textboxData}</div><!--end of Textbox-->'''
         print( f"   {ourNewLink=}" )
         html = f'''{html[:ixStart]}{ourNewLink}{html[ixCloseQuote+3:]}'''
         searchStartIndex = ixStart + 10

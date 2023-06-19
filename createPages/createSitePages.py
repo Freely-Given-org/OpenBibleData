@@ -581,11 +581,11 @@ def createSitePages() -> bool:
 
     # TODO: We could use multiprocessing to do all these at once
     #   (except that state is quite huge with all preloaded versions and hence expensive to pickle)
+    createTyndaleDictPages( 1, TEMP_BUILD_FOLDER.joinpath('di/'), state )
     createParallelPages( 1, TEMP_BUILD_FOLDER.joinpath('pa/'), state )
     createOETInterlinearPages( 1, TEMP_BUILD_FOLDER.joinpath('il/'), state )
 
     createOETReferencePages( 1, TEMP_BUILD_FOLDER.joinpath('rf/'), state )
-    createTyndaleDictPages( 1, TEMP_BUILD_FOLDER.joinpath('di/'), state )
 
     createDetailsPages( 0, TEMP_BUILD_FOLDER, state )
     createAboutPage( 0, TEMP_BUILD_FOLDER, state )
