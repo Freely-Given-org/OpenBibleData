@@ -41,7 +41,7 @@ from typing import Dict, List, Tuple, Optional
 # from pathlib import Path
 import os.path
 import logging
-import re
+# import re
 from xml.etree.ElementTree import ElementTree, ParseError
 
 import sys
@@ -52,10 +52,10 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 from html import makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-06-18' # by RJH
+LAST_MODIFIED_DATE = '2023-06-19' # by RJH
 SHORT_PROGRAM_NAME = "Dictionary"
 PROGRAM_NAME = "OpenBibleData Dictionary handler"
-PROGRAM_VERSION = '0.26'
+PROGRAM_VERSION = '0.27'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -480,7 +480,7 @@ def createTyndaleDictPages( level:int, outputFolderPath, state ) -> bool:
         dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"Making article page for '{articleLinkName}'…" )
         leftLink = f'''<a title="Go to previous article" href="{articleList[j-1]}.htm#__ID__">←</a> ''' if j>0 else ''
         rightLink = f''' <a title="Go to next article" href="{articleList[j+1]}.htm#__ID__">→</a>''' if j<len(articleList)-1 else ''
-        navLinks = f'<p id="__ID__" class="dNav">{leftLink}{indexLink} {introLink}{rightLink} {detailsLink}</p>'
+        navLinks = f'<p id="__ID__" class="dNav">{leftLink}{indexLink}{rightLink} {introLink} {detailsLink}</p>'
 
         # Liven their links like '<a href="?bref=Mark.4.14-20">4:14-20</a>'
         adjustedArticle = livenTyndaleTextboxRefs( 'TOBD', level, articleLinkName, article, state )
