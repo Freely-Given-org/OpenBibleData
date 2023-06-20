@@ -786,7 +786,7 @@ def livenTyndaleMapRefs( abbrev:str, level:int, articleLinkName:str, html:str, s
         mapName = html[ixStart+44:ixCloseQuote].replace( 'TheDeathofMoses', 'TheDeathOfMoses' ) \
                     .replace( 'TheSevenChurchesofRevelation', 'TheSevenChurchesOfRevelation' ).replace( 'UroftheChaldeans', 'UrOfTheChaldeans' )
         print( f"{articleLinkName=} {mapName=}" )
-        mapData = TOBDData['Maps'][mapName].replace( 'src="artfiles/', 'src="xxx' ).replace( '.pdf"', '.pdf-1.png"' )
+        mapData = TOBDData['Maps'][mapName].replace( 'src="artfiles/', 'src="' ).replace( '.pdf"', '.pdf-1.png"' ).replace( '></img>', '/>' )
         print( f"{articleLinkName} {mapData=}" )
         ourNewLink = f'''<div class="Mapbox">{mapData}</div><!--end of Mapbox-->'''
         print( f"   {ourNewLink=}" )
