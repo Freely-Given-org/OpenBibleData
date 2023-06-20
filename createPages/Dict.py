@@ -370,7 +370,7 @@ def loadTyndaleOpenBibleDictXML( abbrev:str, folderpath ) -> None:
                         partCount += 1
                     stateCounter += 1
                 else: halt
-            print( f"Map {thisEntry=}" )
+            # print( f"Map {thisEntry=}" )
             TOBDData['Maps'][name] = thisEntry
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Loaded Tyndale Open Bible Dictionary {len(TOBDData['Maps']):,} maps from {folderpath}." )
 # end of Dict.loadTyndaleOpenBibleDictXML
@@ -723,14 +723,14 @@ def livenTyndaleTextboxRefs( abbrev:str, level:int, articleLinkName:str, html:st
     fnPrint( DEBUGGING_THIS_MODULE, f"livenTyndaleTextboxRefs( {abbrev}, {level}, {articleLinkName} {html}, ... )")
 
     searchStartIndex = 0
-    for _safetyCount in range( 3 ): # xx was too few
+    for _safetyCount in range( 3 ): # 2 was too few
         ixStart = html.find( '<include_items src="../Textboxes/Textboxes.xml" name="', searchStartIndex )
         if ixStart == -1: # none/no more found
             break
         ixCloseQuote = html.find( '"', ixStart+54 )
         assert ixCloseQuote != -1
         textboxName = html[ixStart+54:ixCloseQuote].replace( 'AbrahamSBosom', 'AbrahamsBosom' )
-        # print( f"{textboxName=}" )
+        # print( f"{articleLinkName=} {textboxName=}" )
         try: textboxData = TOBDData['Textboxes'][textboxName]
         except KeyError: # there's a systematic error in the data
             fixed = False
@@ -773,21 +773,21 @@ def livenTyndaleMapRefs( abbrev:str, level:int, articleLinkName:str, html:str, s
     fnPrint( DEBUGGING_THIS_MODULE, f"livenTyndaleMapRefs( {abbrev}, {level}, {articleLinkName} {html}, ... )")
 
     searchStartIndex = 0
-    for _safetyCount in range( 2 ): # xx was too few
+    for _safetyCount in range( 5 ): # 4 was too few
         ixStart = html.find( '<include_items src="../Maps/Maps.xml" name="', searchStartIndex )
         if ixStart == -1: # none/no more found
             break
         ixCloseQuote = html.find( '"', ixStart+44 )
         assert ixCloseQuote != -1
-        mapName = html[ixStart+44:ixCloseQuote]
-        print( f"{mapName=}" )
+        mapName = html[ixStart+44:ixCloseQuote].replace( 'TheDeathofMoses', 'TheDeathOfMoses' ).replace( 'TheSevenChurchesofRevelation', 'TheSevenChurchesOfRevelation' )
+        print( f"{articleLinkName=} {mapName=}" )
         mapData = TOBDData['Maps'][mapName]
-        print( f"{mapData=}" )
+        print( f"{articleLinkName} {mapData=}" )
         ourNewLink = f'''<div class="Mapbox">{mapData}</div><!--end of Mapbox-->'''
         print( f"   {ourNewLink=}" )
         html = f'''{html[:ixStart]}{ourNewLink}{html[ixCloseQuote+3:]}'''
         searchStartIndex = ixStart + 10
-    else: need_to_increase_Tyndale_textbox_loop_counter
+    else: need_to_increase_Tyndale_map_loop_counter
 
     return html
 # end of Bibles.livenTyndaleMapRefs

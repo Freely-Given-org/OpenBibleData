@@ -174,9 +174,9 @@ class State:
                 # 'BRN': '../copiedBibles/English/eBible.org/Brenton/', # with deuterocanon and OTH,XXA,XXB,XXC,
                 # 'BrLXX': '../copiedBibles/Greek/eBible.org/BrLXX/',
                 # 'UHB': '../copiedBibles/Original/unfoldingWord.org/UHB/',
-                # # NOTE: Dictionary and notes are special cases here at the end (skipped in many parts of the program)
-                # 'TOSN': '../copiedBibles/English/Tyndale/OSN/',
-                # 'UTN': '../copiedBibles/English/unfoldingWord.org/UTN/',
+                # NOTE: Dictionary and notes are special cases here at the end (skipped in many parts of the program)
+                'TOSN': '../copiedBibles/English/Tyndale/OSN/',
+                'UTN': '../copiedBibles/English/unfoldingWord.org/UTN/',
                 }
 
     BibleNames = {
