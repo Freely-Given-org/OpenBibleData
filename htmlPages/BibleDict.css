@@ -6,6 +6,8 @@ div.rightBox { float:right; width:35%; border:3px solid #73AD21; padding:0.2em; 
 
 div.Textbox { display:flex; width:50%; flex-direction:column; border:2px solid black;
     background-color:LightYellow; padding-left:0.4em; padding-right:0.3em; float:right; }
+div.Mapbox { display:flex; width:50%; flex-direction:column; border:2px solid black;
+        padding-left:0.3em; padding-right:0.3em; float:right; }
 
 a { text-decoration: none; }
 

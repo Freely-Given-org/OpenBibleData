@@ -52,10 +52,10 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 from html import makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-06-19' # by RJH
+LAST_MODIFIED_DATE = '2023-06-20' # by RJH
 SHORT_PROGRAM_NAME = "Dictionary"
 PROGRAM_NAME = "OpenBibleData Dictionary handler"
-PROGRAM_VERSION = '0.27'
+PROGRAM_VERSION = '0.30'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -69,11 +69,9 @@ def loadTyndaleOpenBibleDictXML( abbrev:str, folderpath ) -> None:
     """
     global TOBDData
     fnPrint( DEBUGGING_THIS_MODULE, f"loadTyndaleOpenBibleDictXML( '{abbrev}', '{folderpath}', ... )")
+    TOBDData['Letters'], TOBDData['Articles'], TOBDData['Textboxes'], TOBDData['Maps'] = {}, {}, {}, {}
 
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Preloading Tyndale Open Bible Dictionary from {folderpath}…" )
-    TOBDData['Letters'] = {}
-    TOBDData['Articles'] = {}
-    TOBDData['Textboxes'] = {}
     for letter in 'ABCDEFGHIJKLMNOPQRSTUVWXZ': # Y is ommitted
         if letter=='X': letter = 'XY'
         loadDictLetterXML( letter, folderpath )
@@ -191,7 +189,7 @@ def loadTyndaleOpenBibleDictXML( abbrev:str, folderpath ) -> None:
     XMLTree = ElementTree().parse( XML_filepath )
 
     if XMLTree.tag == 'items':
-        topLocation = f'TOBD intro'
+        topLocation = f'TOBD textboxes'
         BibleOrgSysGlobals.checkXMLNoText( XMLTree, topLocation, '4f6h', loadErrors )
         BibleOrgSysGlobals.checkXMLNoTail( XMLTree, topLocation, '1wk8', loadErrors )
         # Process the attributes first
@@ -247,7 +245,7 @@ def loadTyndaleOpenBibleDictXML( abbrev:str, folderpath ) -> None:
                         bodyLocation = f'{sublocation}-{bodyelement.tag}-{partCount}'
                         BibleOrgSysGlobals.checkXMLNoTail( bodyelement, bodyLocation, '1wk8', loadErrors )
                         # print( f"{bodyelement} {bodyelement.text=}")
-                        assert bodyelement.tag in ('p','table'), f'{title=} {partCount=} {bodyelement.tag=} {bodyLocation=}'
+                        assert bodyelement.tag == 'p', f'{title=} {partCount=} {bodyelement.tag=} {bodyLocation=}'
                         if bodyelement.tag == 'p':
                             # Process the attributes first
                             pClass = None
@@ -265,7 +263,7 @@ def loadTyndaleOpenBibleDictXML( abbrev:str, folderpath ) -> None:
                             # So we want to extract this as an HTML paragraph
                             htmlSegment = BibleOrgSysGlobals.getFlattenedXML( bodyelement, bodyLocation )
                                                                     # .replace( '<a href="  \?', '<a href="?') # Fix encoding mistake in 1 Tim
-                            assert '\\' not in htmlSegment, f"Intro {partCount=} {htmlSegment=}"
+                            assert '\\' not in htmlSegment, f"Textbox {partCount=} {htmlSegment=}"
                             theirClass = 'next'
                             if htmlSegment.startswith( '<class="'): # e.g., <class="theme-list">The new covenant....
                                 ixClose = htmlSegment.index( '">', 10 )
@@ -279,7 +277,102 @@ def loadTyndaleOpenBibleDictXML( abbrev:str, folderpath ) -> None:
                 else: halt
             # print( f"Textbox {thisEntry=}" )
             TOBDData['Textboxes'][name] = thisEntry
-    vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Loaded Tyndale Open Bible Dictionary {len(TOBDData['Textboxes']):,} textboxes from {folderpath}." )
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Loaded Tyndale Open Bible Dictionary {len(TOBDData['Textboxes']):,} textboxes from {folderpath}." )
+
+    # Now load the maps
+    vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Preloading Tyndale Open Bible Dictionary maps from {folderpath}…" )
+    XML_filepath = os.path.join( folderpath, 'Maps/', 'Maps.xml' )
+
+    loadErrors:List[str] = []
+    XMLTree = ElementTree().parse( XML_filepath )
+
+    if XMLTree.tag == 'items':
+        topLocation = f'TOBD maps'
+        BibleOrgSysGlobals.checkXMLNoText( XMLTree, topLocation, '4f6h', loadErrors )
+        BibleOrgSysGlobals.checkXMLNoTail( XMLTree, topLocation, '1wk8', loadErrors )
+        # Process the attributes first
+        for attrib,value in XMLTree.items():
+            if attrib == 'release':
+                releaseVersion = value
+            else:
+                logging.warning( "fv6g Unprocessed {} attribute ({}) in {}".format( attrib, value, topLocation ) )
+                loadErrors.append( "Unprocessed {} attribute ({}) in {} (fv6g)".format( attrib, value, topLocation ) )
+                if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.haltOnXMLWarning: halt
+        assert releaseVersion == '1.6'
+
+        for element in XMLTree:
+            location = f"{topLocation}-{element.tag}"
+            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"{element} {element.text=}" )
+            BibleOrgSysGlobals.checkXMLNoText( element, location, '1wk8', loadErrors )
+            BibleOrgSysGlobals.checkXMLNoTail( element, location, '1wk8', loadErrors )
+            assert element.tag == 'item'
+            # Process the attributes first
+            name = None
+            for attrib,value in element.items():
+                if attrib == 'typename':
+                    assert value == 'Map'
+                elif attrib == 'product':
+                    assert value == 'TyndaleOpenBibleDictionary'
+                elif attrib == 'name':
+                    name = value
+                else:
+                    logging.warning( "fv6g Unprocessed {} attribute ({}) in {}".format( attrib, value, location ) )
+                    loadErrors.append( "Unprocessed {} attribute ({}) in {} (fv6g)".format( attrib, value, location ) )
+                    if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.haltOnXMLWarning: halt
+            assert name
+
+            stateCounter = 0
+            title = None
+            thisEntry = ''
+            for subelement in element:
+                dPrint( 'Info', DEBUGGING_THIS_MODULE, f"{subelement} {subelement.text=}" )
+                sublocation = f"{location}-{subelement.tag}"
+                BibleOrgSysGlobals.checkXMLNoAttributes( subelement, sublocation, '1wk8', loadErrors )
+                BibleOrgSysGlobals.checkXMLNoTail( subelement, sublocation, '1wk8', loadErrors )
+                if stateCounter == 0:
+                    assert subelement.tag == 'title'
+                    title = subelement.text
+                    assert title
+                    stateCounter += 1
+                elif stateCounter == 1:
+                    assert subelement.tag == 'body'
+                    BibleOrgSysGlobals.checkXMLNoText( subelement, sublocation, '1wk8', loadErrors )
+                    BibleOrgSysGlobals.checkXMLNoAttributes( subelement, sublocation, '1wk8', loadErrors )
+                    partCount = 0
+                    for bodyelement in subelement:
+                        bodyLocation = f'{sublocation}-{bodyelement.tag}-{partCount}'
+                        BibleOrgSysGlobals.checkXMLNoTail( bodyelement, bodyLocation, '1wk8', loadErrors )
+                        # print( f"{bodyelement} {bodyelement.text=}")
+                        assert bodyelement.tag == 'p', f'{title=} {partCount=} {bodyelement.tag=} {bodyLocation=}'
+                        if bodyelement.tag == 'p':
+                            # Process the attributes first
+                            pClass = None
+                            for attrib,value in bodyelement.items():
+                                if attrib == 'class':
+                                    pClass = value
+                                    assert pClass in ('artfile','caption-head','caption-text'), f"Textbox {pClass=} {bodyLocation}"
+                                else:
+                                    logging.warning( "fv6g Unprocessed {} attribute ({}) in {}".format( attrib, value, bodyLocation ) )
+                                    loadErrors.append( "Unprocessed {} attribute ({}) in {} (fv6g)".format( attrib, value, bodyLocation ) )
+                                    if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.haltOnXMLWarning: halt
+                            # So we want to extract this as an HTML paragraph
+                            htmlSegment = BibleOrgSysGlobals.getFlattenedXML( bodyelement, bodyLocation )
+                                                                    # .replace( '<a href="  \?', '<a href="?') # Fix encoding mistake in 1 Tim
+                            assert '\\' not in htmlSegment, f"Map {partCount=} {htmlSegment=}"
+                            theirClass = 'next'
+                            if htmlSegment.startswith( '<class="'): # e.g., <class="theme-list">The new covenant....
+                                ixClose = htmlSegment.index( '">', 10 )
+                                theirClass = htmlSegment[8:ixClose]
+                                htmlSegment = htmlSegment[ixClose+2:]
+                            htmlSegment = f'<p class="{theirClass}">{htmlSegment}</p>'
+                            thisEntry = f"{thisEntry}{NEW_LINE if thisEntry else ''}{htmlSegment}"
+                        else: halt
+                        partCount += 1
+                    stateCounter += 1
+                else: halt
+            print( f"Map {thisEntry=}" )
+            TOBDData['Maps'][name] = thisEntry
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Loaded Tyndale Open Bible Dictionary {len(TOBDData['Maps']):,} maps from {folderpath}." )
 # end of Dict.loadTyndaleOpenBibleDictXML
 
 
@@ -484,6 +577,8 @@ def createTyndaleDictPages( level:int, outputFolderPath, state ) -> bool:
 
         # Liven their links like '<a href="?bref=Mark.4.14-20">4:14-20</a>'
         adjustedArticle = livenTyndaleTextboxRefs( 'TOBD', level, articleLinkName, article, state )
+        adjustedArticle = livenTyndaleMapRefs( 'TOBD', level, articleLinkName, article, state )
+        # The textboxes must be inserted before the next two lines
         adjustedArticle = fixTyndaleBRefs( 'TOBD', level, articleLinkName, '', '', adjustedArticle, state )
         adjustedArticle = fixTyndaleItemRefs( 'TOBD', level, articleLinkName, adjustedArticle, state )
 
@@ -628,7 +723,7 @@ def livenTyndaleTextboxRefs( abbrev:str, level:int, articleLinkName:str, html:st
     fnPrint( DEBUGGING_THIS_MODULE, f"livenTyndaleTextboxRefs( {abbrev}, {level}, {articleLinkName} {html}, ... )")
 
     searchStartIndex = 0
-    for _safetyCount in range( 5 ): # xx was too few
+    for _safetyCount in range( 3 ): # xx was too few
         ixStart = html.find( '<include_items src="../Textboxes/Textboxes.xml" name="', searchStartIndex )
         if ixStart == -1: # none/no more found
             break
@@ -662,6 +757,40 @@ def livenTyndaleTextboxRefs( abbrev:str, level:int, articleLinkName:str, html:st
 
     return html
 # end of Bibles.livenTyndaleTextboxRefs
+
+
+def livenTyndaleMapRefs( abbrev:str, level:int, articleLinkName:str, html:str, state ) -> str:
+    """
+    Most of the parameters are for info messages only
+
+    Convert
+        htmlSegment = f'<include_items src="{iiSrc}" name="{iiName}"/>'
+    to
+        htmlSegment = f'''<div class="Textbox>{TOBDData['Textboxes'][iiName]}</div><!--end of Textbox-->'''
+    """
+    from createSitePages import ALTERNATIVE_VERSION
+
+    fnPrint( DEBUGGING_THIS_MODULE, f"livenTyndaleMapRefs( {abbrev}, {level}, {articleLinkName} {html}, ... )")
+
+    searchStartIndex = 0
+    for _safetyCount in range( 2 ): # xx was too few
+        ixStart = html.find( '<include_items src="../Maps/Maps.xml" name="', searchStartIndex )
+        if ixStart == -1: # none/no more found
+            break
+        ixCloseQuote = html.find( '"', ixStart+44 )
+        assert ixCloseQuote != -1
+        mapName = html[ixStart+44:ixCloseQuote]
+        print( f"{mapName=}" )
+        mapData = TOBDData['Maps'][mapName]
+        print( f"{mapData=}" )
+        ourNewLink = f'''<div class="Mapbox">{mapData}</div><!--end of Mapbox-->'''
+        print( f"   {ourNewLink=}" )
+        html = f'''{html[:ixStart]}{ourNewLink}{html[ixCloseQuote+3:]}'''
+        searchStartIndex = ixStart + 10
+    else: need_to_increase_Tyndale_textbox_loop_counter
+
+    return html
+# end of Bibles.livenTyndaleMapRefs
 
 
 
