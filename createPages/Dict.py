@@ -55,7 +55,7 @@ from html import makeTop, makeBottom, checkHtml
 LAST_MODIFIED_DATE = '2023-06-20' # by RJH
 SHORT_PROGRAM_NAME = "Dictionary"
 PROGRAM_NAME = "OpenBibleData Dictionary handler"
-PROGRAM_VERSION = '0.30'
+PROGRAM_VERSION = '0.31'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -578,13 +578,15 @@ def createTyndaleDictPages( level:int, outputFolderPath, state ) -> bool:
         dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"Making article page for '{articleLinkName}'…" )
         leftLink = f'''<a title="Go to previous article" href="{articleList[j-1]}.htm#__ID__">←</a> ''' if j>0 else ''
         rightLink = f''' <a title="Go to next article" href="{articleList[j+1]}.htm#__ID__">→</a>''' if j<len(articleList)-1 else ''
-        navLinks = f'<p id="__ID__" class="dNav">{leftLink}{indexLink}{rightLink} {introLink} {detailsLink}</p>'
+        navLinks = f'<p id="__ID__" class="dNav">{introLink} {leftLink}{indexLink}{rightLink} {detailsLink}</p>'
 
         article = livenTyndaleTextboxRefs( 'TOBD', level, articleLinkName, article, state )
         article = livenTyndaleMapRefs( 'TOBD', level, articleLinkName, article, state )
         # The textboxes must be inserted before the next two lines so the brefs in the textboxes get fixed
         article = fixTyndaleBRefs( 'TOBD', level, articleLinkName, '', '', article, state ) # Liven their links like '<a href="?bref=Mark.4.14-20">4:14-20</a>'
         article = fixTyndaleItemRefs( 'TOBD', level, articleLinkName, article, state )
+
+        article = article.replace( 'kjv', '<small>KJB</small>' ).replace( 'nlt', '<small>NLT</small>' )
 
         filename = f'{articleLinkName}.htm'
         filepath = outputFolderPath.joinpath( filename )
