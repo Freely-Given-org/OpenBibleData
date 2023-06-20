@@ -787,11 +787,11 @@ def livenTyndaleMapRefs( abbrev:str, level:int, articleLinkName:str, html:str, s
         assert ixCloseQuote != -1
         mapName = html[ixStart+44:ixCloseQuote].replace( 'TheDeathofMoses', 'TheDeathOfMoses' ) \
                     .replace( 'TheSevenChurchesofRevelation', 'TheSevenChurchesOfRevelation' ).replace( 'UroftheChaldeans', 'UrOfTheChaldeans' )
-        print( f"{articleLinkName=} {mapName=}" )
+        # print( f"{articleLinkName=} {mapName=}" )
         mapData = TOBDData['Maps'][mapName].replace( 'src="artfiles/', 'src="' ).replace( '.pdf"', '.pdf-1.png"' ).replace( '></img>', '/>' )
-        print( f"{articleLinkName} {mapData=}" )
+        # print( f"{articleLinkName} {mapData=}" )
         ourNewLink = f'''<div class="Mapbox">{mapData}</div><!--end of Mapbox-->'''
-        print( f"   {ourNewLink=}" )
+        # print( f"   {ourNewLink=}" )
         html = f'''{html[:ixStart]}{ourNewLink}{html[ixCloseQuote+3:]}'''
         searchStartIndex = ixStart + 10
     else: need_to_increase_Tyndale_map_loop_counter
