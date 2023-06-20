@@ -138,42 +138,42 @@ class State:
                 'OET-LV': '../../OpenEnglishTranslation--OET/intermediateTexts/auto_edited_VLT_ESFM/', # No OT here yet
                 # NOTE: The program will still run if some of these below are commented out or removed
                 # (e.g., this can be done quickly for a faster test)
-                # 'ULT': '../copiedBibles/English/unfoldingWord.org/ULT/',
-                # 'UST': '../copiedBibles/English/unfoldingWord.org/UST/',
-                # 'BSB': '../copiedBibles/English/Berean.Bible/BSB/',
-                # 'BLB': '../copiedBibles/English/Berean.Bible/BLB/blb.modified.txt', # NT only so far
-                # 'OEB': '../copiedBibles/English/OEB/',
-                # # 'ISV': '',
-                # 'WEB': '../copiedBibles/English/eBible.org/WEB/',
-                # 'WMB': '../copiedBibles/English/eBible.org/WMB/',
-                # 'NET': '../copiedBibles/English/eBible.org/NET/',
-                # 'LSV': '../copiedBibles/English/eBible.org/LSV/',
-                # 'FBV': '../copiedBibles/English/eBible.org/FBV/',
-                # 'TCNT': '../copiedBibles/English/eBible.org/TCNT/',
-                # 'T4T': '../copiedBibles/English/eBible.org/T4T/',
-                # 'LEB': '../copiedBibles/English/LogosBibleSoftware/LEB/LEB.xml', # not OSIS
-                # 'BBE': '../copiedBibles/English/eBible.org/BBE/',
-                # 'JPS': '../copiedBibles/English/eBible.org/JPS/',
-                # 'ASV': '../copiedBibles/English/eBible.org/ASV/',
-                # 'DRA': '../copiedBibles/English/eBible.org/DRA/',
-                # 'YLT': '../copiedBibles/English/eBible.org/YLT/',
-                # 'DBY': '../copiedBibles/English/eBible.org/DBY/',
-                # 'RV': '../copiedBibles/English/eBible.org/RV/', # with deuterocanon
-                # 'WBS': '../copiedBibles/English/eBible.org/RV/',
-                # 'KJB': '../copiedBibles/English/eBible.org/KJB/', # with deuterocanon
-                # 'BB': '/mnt/SSDs/Bibles/DataSets/BibleSuperSearch.com/v5.0/TXT/bishops.txt',
-                # 'GNV': '../copiedBibles/English/eBible.org/GNV/',
-                # 'CB': '/mnt/SSDs/Bibles/DataSets/BibleSuperSearch.com/v5.0/TXT/coverdale.txt',
-                # 'TNT': '../copiedBibles/English/eBible.org/TNT/',
-                # 'WYC': '/mnt/SSDs/Bibles/Zefania modules/SF_2009-01-20_ENG_BIBLE_WYCLIFFE_(JOHN WYCLIFFE BIBLE).xml',
-                # 'CLV': '../copiedBibles/Latin/eBible.org/CLV/',
-                # 'SR-GNT': '../../Forked/CNTR-SR/SR usfm/',
-                # 'UGNT': '../copiedBibles/Original/unfoldingWord.org/UGNT/',
-                # 'SBL-GNT': '../../Forked/SBLGNT/data/sblgnt/text/',
-                # 'TC-GNT': '../copiedBibles/Greek/eBible.org/TC-GNT/',
-                # 'BRN': '../copiedBibles/English/eBible.org/Brenton/', # with deuterocanon and OTH,XXA,XXB,XXC,
-                # 'BrLXX': '../copiedBibles/Greek/eBible.org/BrLXX/',
-                # 'UHB': '../copiedBibles/Original/unfoldingWord.org/UHB/',
+                'ULT': '../copiedBibles/English/unfoldingWord.org/ULT/',
+                'UST': '../copiedBibles/English/unfoldingWord.org/UST/',
+                'BSB': '../copiedBibles/English/Berean.Bible/BSB/',
+                'BLB': '../copiedBibles/English/Berean.Bible/BLB/blb.modified.txt', # NT only so far
+                'OEB': '../copiedBibles/English/OEB/',
+                # 'ISV': '',
+                'WEB': '../copiedBibles/English/eBible.org/WEB/',
+                'WMB': '../copiedBibles/English/eBible.org/WMB/',
+                'NET': '../copiedBibles/English/eBible.org/NET/',
+                'LSV': '../copiedBibles/English/eBible.org/LSV/',
+                'FBV': '../copiedBibles/English/eBible.org/FBV/',
+                'TCNT': '../copiedBibles/English/eBible.org/TCNT/',
+                'T4T': '../copiedBibles/English/eBible.org/T4T/',
+                'LEB': '../copiedBibles/English/LogosBibleSoftware/LEB/LEB.xml', # not OSIS
+                'BBE': '../copiedBibles/English/eBible.org/BBE/',
+                'JPS': '../copiedBibles/English/eBible.org/JPS/',
+                'ASV': '../copiedBibles/English/eBible.org/ASV/',
+                'DRA': '../copiedBibles/English/eBible.org/DRA/',
+                'YLT': '../copiedBibles/English/eBible.org/YLT/',
+                'DBY': '../copiedBibles/English/eBible.org/DBY/',
+                'RV': '../copiedBibles/English/eBible.org/RV/', # with deuterocanon
+                'WBS': '../copiedBibles/English/eBible.org/RV/',
+                'KJB': '../copiedBibles/English/eBible.org/KJB/', # with deuterocanon
+                'BB': '/mnt/SSDs/Bibles/DataSets/BibleSuperSearch.com/v5.0/TXT/bishops.txt',
+                'GNV': '../copiedBibles/English/eBible.org/GNV/',
+                'CB': '/mnt/SSDs/Bibles/DataSets/BibleSuperSearch.com/v5.0/TXT/coverdale.txt',
+                'TNT': '../copiedBibles/English/eBible.org/TNT/',
+                'WYC': '/mnt/SSDs/Bibles/Zefania modules/SF_2009-01-20_ENG_BIBLE_WYCLIFFE_(JOHN WYCLIFFE BIBLE).xml',
+                'CLV': '../copiedBibles/Latin/eBible.org/CLV/',
+                'SR-GNT': '../../Forked/CNTR-SR/SR usfm/',
+                'UGNT': '../copiedBibles/Original/unfoldingWord.org/UGNT/',
+                'SBL-GNT': '../../Forked/SBLGNT/data/sblgnt/text/',
+                'TC-GNT': '../copiedBibles/Greek/eBible.org/TC-GNT/',
+                'BRN': '../copiedBibles/English/eBible.org/Brenton/', # with deuterocanon and OTH,XXA,XXB,XXC,
+                'BrLXX': '../copiedBibles/Greek/eBible.org/BrLXX/',
+                'UHB': '../copiedBibles/Original/unfoldingWord.org/UHB/',
                 # NOTE: Dictionary and notes are special cases here at the end (skipped in many parts of the program)
                 'TOSN': '../copiedBibles/English/Tyndale/OSN/',
                 'UTN': '../copiedBibles/English/unfoldingWord.org/UTN/',
@@ -611,7 +611,19 @@ def createSitePages() -> bool:
         # Note: shutil.copy2 is the same as copy but keeps metadata like creation and modification times
         shutil.move( fileOrFolderPath, f'{DESTINATION_FOLDER}/', copy_function=shutil.copy2)
         count += 1
-    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Moved {count} folders and files into {DESTINATION_FOLDER}/." )
+    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Moved {count:,} folders and files into {DESTINATION_FOLDER}/." )
+
+    # We also need to copy the TOBD maps across
+    TOBDmapSourceFolder = os.path.join( state.BibleLocations['TOSN'], '../OBD/Maps/artfiles/' )
+    TOBDmapDestinationFolder = os.path.join( DESTINATION_FOLDER, 'di/' )
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Copy TOBD maps from {TOBDmapSourceFolder}/ to {TOBDmapDestinationFolder}/…" )
+    count = 0
+    for imgFilepath in glob.glob( f'{TOBDmapFolder}/*.png' ):
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Copying {imgFilepath} to {TOBDmapDestinationFolder}/…" )
+        # Note: shutil.copy2 is the same as copy but keeps metadata like creation and modification times
+        shutil.copy2( imgFilepath, f'{TOBDmapDestinationFolder}/' )
+        count += 1
+    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Copied {count:,} maps into {TOBDmapDestinationFolder}/." )
 
     # In DEBUG mode, we need to copy the .css files and Bible.js across
     if DESTINATION_FOLDER != NORMAL_DESTINATION_FOLDER:
@@ -623,7 +635,7 @@ def createSitePages() -> bool:
             count += 1
         shutil.copy2( f'{NORMAL_DESTINATION_FOLDER}/Bible.js', DESTINATION_FOLDER )
         count += 1
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Copied {count} stylesheets and scripts into {DESTINATION_FOLDER}/." )
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Copied {count:,} stylesheets and scripts into {DESTINATION_FOLDER}/." )
 # end of createSitePages.createSitePages
 
 

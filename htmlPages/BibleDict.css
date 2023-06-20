@@ -35,6 +35,8 @@ p.h3 { font-weight:bold; font-size:1.3em; }
 p.h4 { font-weight:bold; font-size:1.2em; }
 p.h5 { font-weight:bold; font-size:1.1em; }
 
+p.caption-head { font-weight:bold; font-size:1.1em; }
+
 span.sn-excerpt { font-family: Arial, Helvetica, sans-serif; color: saddleBrown; }
 span.ital { font-style:italic; }
 span.hebrew { color: orange; }

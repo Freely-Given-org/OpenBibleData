@@ -178,6 +178,7 @@ def loadTyndaleOpenBibleDictXML( abbrev:str, folderpath ) -> None:
                     stateCounter += 1
                 else: halt
             # print( f"Intro {thisEntry=}" )
+            assert 'Intro' not in TOBDData
             TOBDData['Intro'] = thisEntry
 
 
@@ -276,6 +277,7 @@ def loadTyndaleOpenBibleDictXML( abbrev:str, folderpath ) -> None:
                     stateCounter += 1
                 else: halt
             # print( f"Textbox {thisEntry=}" )
+            assert name not in TOBDData['Textboxes']
             TOBDData['Textboxes'][name] = thisEntry
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Loaded Tyndale Open Bible Dictionary {len(TOBDData['Textboxes']):,} textboxes from {folderpath}." )
 
@@ -371,6 +373,7 @@ def loadTyndaleOpenBibleDictXML( abbrev:str, folderpath ) -> None:
                     stateCounter += 1
                 else: halt
             # print( f"Map {thisEntry=}" )
+            assert name not in TOBDData['Maps']
             TOBDData['Maps'][name] = thisEntry
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Loaded Tyndale Open Bible Dictionary {len(TOBDData['Maps']):,} maps from {folderpath}." )
 # end of Dict.loadTyndaleOpenBibleDictXML
@@ -402,6 +405,7 @@ def loadDictLetterXML( letter:str, folderpath ) -> None:
                 if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.haltOnXMLWarning: halt
         assert releaseVersion == '1.6'
 
+        assert letter not in TOBDData['Letters']
         TOBDData['Letters'][letter] = []
         for element in XMLTree:
             location = f"{topLocation}-{element.tag}"
@@ -545,6 +549,7 @@ def loadDictLetterXML( letter:str, folderpath ) -> None:
                     else: halt
                 if thisEntry:
                     TOBDData['Letters'][letter].append( (name,title) )
+                    assert name not in TOBDData['Articles']
                     TOBDData['Articles'][name] = thisEntry
 
     vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    loadDictLetterXML() loaded {len(TOBDData['Letters'][letter]):,} '{letter}' dict entries." )
@@ -575,12 +580,11 @@ def createTyndaleDictPages( level:int, outputFolderPath, state ) -> bool:
         rightLink = f''' <a title="Go to next article" href="{articleList[j+1]}.htm#__ID__">→</a>''' if j<len(articleList)-1 else ''
         navLinks = f'<p id="__ID__" class="dNav">{leftLink}{indexLink}{rightLink} {introLink} {detailsLink}</p>'
 
-        # Liven their links like '<a href="?bref=Mark.4.14-20">4:14-20</a>'
-        adjustedArticle = livenTyndaleTextboxRefs( 'TOBD', level, articleLinkName, article, state )
-        adjustedArticle = livenTyndaleMapRefs( 'TOBD', level, articleLinkName, article, state )
-        # The textboxes must be inserted before the next two lines
-        adjustedArticle = fixTyndaleBRefs( 'TOBD', level, articleLinkName, '', '', adjustedArticle, state )
-        adjustedArticle = fixTyndaleItemRefs( 'TOBD', level, articleLinkName, adjustedArticle, state )
+        article = livenTyndaleTextboxRefs( 'TOBD', level, articleLinkName, article, state )
+        article = livenTyndaleMapRefs( 'TOBD', level, articleLinkName, article, state )
+        # The textboxes must be inserted before the next two lines so the brefs in the textboxes get fixed
+        article = fixTyndaleBRefs( 'TOBD', level, articleLinkName, '', '', article, state ) # Liven their links like '<a href="?bref=Mark.4.14-20">4:14-20</a>'
+        article = fixTyndaleItemRefs( 'TOBD', level, articleLinkName, article, state )
 
         filename = f'{articleLinkName}.htm'
         filepath = outputFolderPath.joinpath( filename )
@@ -590,7 +594,7 @@ def createTyndaleDictPages( level:int, outputFolderPath, state ) -> bool:
 # <h2 id="Top">{articleLinkName}</h2>
         articleHtml = f'''{top}<h1>Tyndale Open Bible Dictionary</h1>
 {navLinks.replace('__ID__','Top')}
-{adjustedArticle}
+{article}
 {makeBottom( level, 'dictionaryEntry', state )}'''
         checkHtml( 'DictionaryArticle', articleHtml )
         with open( filepath, 'wt', encoding='utf-8' ) as articleHtmlFile:
@@ -779,9 +783,10 @@ def livenTyndaleMapRefs( abbrev:str, level:int, articleLinkName:str, html:str, s
             break
         ixCloseQuote = html.find( '"', ixStart+44 )
         assert ixCloseQuote != -1
-        mapName = html[ixStart+44:ixCloseQuote].replace( 'TheDeathofMoses', 'TheDeathOfMoses' ).replace( 'TheSevenChurchesofRevelation', 'TheSevenChurchesOfRevelation' )
+        mapName = html[ixStart+44:ixCloseQuote].replace( 'TheDeathofMoses', 'TheDeathOfMoses' ) \
+                    .replace( 'TheSevenChurchesofRevelation', 'TheSevenChurchesOfRevelation' ).replace( 'UroftheChaldeans', 'UrOfTheChaldeans' )
         print( f"{articleLinkName=} {mapName=}" )
-        mapData = TOBDData['Maps'][mapName]
+        mapData = TOBDData['Maps'][mapName].replace( 'src="artfiles/', 'src="xxx' ).replace( '.pdf"', '.pdf-1.png"' )
         print( f"{articleLinkName} {mapData=}" )
         ourNewLink = f'''<div class="Mapbox">{mapData}</div><!--end of Mapbox-->'''
         print( f"   {ourNewLink=}" )
