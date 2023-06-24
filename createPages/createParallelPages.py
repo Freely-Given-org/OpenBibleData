@@ -185,7 +185,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                     if '_verses.tsv' in state.BibleLocations[versionAbbreviation]: # then thisBible is NOT a Bible object, but a dict
                         ourRef = (BBB, C, V)
                         try:
-                            vHtml =  f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName"><a title="Go to copyright info" href="{'../'*level}allDetails.htm#{versionAbbreviation}">{versionAbbreviation}</a></span> {thisBible[ourRef]}</p>
+                            vHtml =  f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName"><a title="Go to {versionAbbreviation} copyright info" href="{'../'*level}allDetails.htm#{versionAbbreviation}">{versionAbbreviation}</a></span> {thisBible[ourRef]}</p>
 '''
                         except KeyError:
                             vHtml = None # We display nothing at all for these versions that only have a few selected verses

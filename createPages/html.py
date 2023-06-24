@@ -142,6 +142,8 @@ def _makeHeader( level:int, versionAbbreviation:str, pageType:str, fileOrFolderN
     for thisVersionAbbreviation in state.BibleVersions:
         if thisVersionAbbreviation in ('TOSN','TTN','UTN'): # Skip notes
             continue
+        if versionAbbreviation in state.BibleLocations and '_verses.tsv' in state.BibleLocations[versionAbbreviation]: # Skip selected-verses-only versions
+            continue
         if pageType in ('section','section'):
             try:
                 thisBible = state.preloadedBibles['OET-RV' if thisVersionAbbreviation=='OET' else thisVersionAbbreviation]
@@ -222,7 +224,7 @@ def _makeHeader( level:int, versionAbbreviation:str, pageType:str, fileOrFolderN
     viewLinks = []
     if pageType in ('book','section','chapter','details') \
     and versionAbbreviation not in ('TOSN','TTN','TOBD','UTN') \
-    and (versionAbbreviation not in state.BibleLocations or '_verses.tsv' not in state.BibleLocations[versionAbbreviation]):
+    and not (versionAbbreviation not in state.BibleLocations or '_verses.tsv' in state.BibleLocations[versionAbbreviation]):
         if not versionAbbreviation: versionAbbreviation = 'OET'
         viewLinks.append( versionAbbreviation )
         if pageType != 'book':
