@@ -145,40 +145,40 @@ class State:
                 '2ND': '../copiedBibles/English/2ND_verses.tsv',
                 '1ST': '../copiedBibles/English/1ST_verses.tsv',
                 'NIV': '../copiedBibles/English/NIV_verses.tsv',
-                # 'BSB': '../copiedBibles/English/Berean.Bible/BSB/',
-                # 'BLB': '../copiedBibles/English/Berean.Bible/BLB/blb.modified.txt', # NT only so far
-                # 'OEB': '../copiedBibles/English/OEB/',
-                # # 'ISV': '',
-                # 'WEB': '../copiedBibles/English/eBible.org/WEB/',
-                # 'WMB': '../copiedBibles/English/eBible.org/WMB/',
-                # 'NET': '../copiedBibles/English/eBible.org/NET/',
-                # 'LSV': '../copiedBibles/English/eBible.org/LSV/',
-                # 'FBV': '../copiedBibles/English/eBible.org/FBV/',
-                # 'TCNT': '../copiedBibles/English/eBible.org/TCNT/',
-                # 'T4T': '../copiedBibles/English/eBible.org/T4T/',
-                # 'LEB': '../copiedBibles/English/LogosBibleSoftware/LEB/LEB.xml', # not OSIS
-                # 'BBE': '../copiedBibles/English/eBible.org/BBE/',
-                # 'JPS': '../copiedBibles/English/eBible.org/JPS/',
-                # 'ASV': '../copiedBibles/English/eBible.org/ASV/',
-                # 'DRA': '../copiedBibles/English/eBible.org/DRA/',
-                # 'YLT': '../copiedBibles/English/eBible.org/YLT/',
-                # 'DBY': '../copiedBibles/English/eBible.org/DBY/',
-                # 'RV': '../copiedBibles/English/eBible.org/RV/', # with deuterocanon
-                # 'WBS': '../copiedBibles/English/eBible.org/RV/',
-                # 'KJB': '../copiedBibles/English/eBible.org/KJB/', # with deuterocanon
-                # 'BB': '/mnt/SSDs/Bibles/DataSets/BibleSuperSearch.com/v5.0/TXT/bishops.txt',
-                # 'GNV': '../copiedBibles/English/eBible.org/GNV/',
-                # 'CB': '/mnt/SSDs/Bibles/DataSets/BibleSuperSearch.com/v5.0/TXT/coverdale.txt',
-                # 'TNT': '../copiedBibles/English/eBible.org/TNT/',
-                # 'WYC': '/mnt/SSDs/Bibles/Zefania modules/SF_2009-01-20_ENG_BIBLE_WYCLIFFE_(JOHN WYCLIFFE BIBLE).xml',
-                # 'CLV': '../copiedBibles/Latin/eBible.org/CLV/',
-                # 'SR-GNT': '../../Forked/CNTR-SR/SR usfm/',
-                # 'UGNT': '../copiedBibles/Original/unfoldingWord.org/UGNT/',
-                # 'SBL-GNT': '../../Forked/SBLGNT/data/sblgnt/text/',
-                # 'TC-GNT': '../copiedBibles/Greek/eBible.org/TC-GNT/',
-                # 'BRN': '../copiedBibles/English/eBible.org/Brenton/', # with deuterocanon and OTH,XXA,XXB,XXC,
-                # 'BrLXX': '../copiedBibles/Greek/eBible.org/BrLXX/',
-                # 'UHB': '../copiedBibles/Original/unfoldingWord.org/UHB/',
+                'BSB': '../copiedBibles/English/Berean.Bible/BSB/',
+                'BLB': '../copiedBibles/English/Berean.Bible/BLB/blb.modified.txt', # NT only so far
+                'OEB': '../copiedBibles/English/OEB/',
+                # 'ISV': '',
+                'WEB': '../copiedBibles/English/eBible.org/WEB/',
+                'WMB': '../copiedBibles/English/eBible.org/WMB/',
+                'NET': '../copiedBibles/English/eBible.org/NET/',
+                'LSV': '../copiedBibles/English/eBible.org/LSV/',
+                'FBV': '../copiedBibles/English/eBible.org/FBV/',
+                'TCNT': '../copiedBibles/English/eBible.org/TCNT/',
+                'T4T': '../copiedBibles/English/eBible.org/T4T/',
+                'LEB': '../copiedBibles/English/LogosBibleSoftware/LEB/LEB.xml', # not OSIS
+                'BBE': '../copiedBibles/English/eBible.org/BBE/',
+                'JPS': '../copiedBibles/English/eBible.org/JPS/',
+                'ASV': '../copiedBibles/English/eBible.org/ASV/',
+                'DRA': '../copiedBibles/English/eBible.org/DRA/',
+                'YLT': '../copiedBibles/English/eBible.org/YLT/',
+                'DBY': '../copiedBibles/English/eBible.org/DBY/',
+                'RV': '../copiedBibles/English/eBible.org/RV/', # with deuterocanon
+                'WBS': '../copiedBibles/English/eBible.org/RV/',
+                'KJB': '../copiedBibles/English/eBible.org/KJB/', # with deuterocanon
+                'BB': '/mnt/SSDs/Bibles/DataSets/BibleSuperSearch.com/v5.0/TXT/bishops.txt',
+                'GNV': '../copiedBibles/English/eBible.org/GNV/',
+                'CB': '/mnt/SSDs/Bibles/DataSets/BibleSuperSearch.com/v5.0/TXT/coverdale.txt',
+                'TNT': '../copiedBibles/English/eBible.org/TNT/',
+                'WYC': '/mnt/SSDs/Bibles/Zefania modules/SF_2009-01-20_ENG_BIBLE_WYCLIFFE_(JOHN WYCLIFFE BIBLE).xml',
+                'CLV': '../copiedBibles/Latin/eBible.org/CLV/',
+                'SR-GNT': '../../Forked/CNTR-SR/SR usfm/',
+                'UGNT': '../copiedBibles/Original/unfoldingWord.org/UGNT/',
+                'SBL-GNT': '../../Forked/SBLGNT/data/sblgnt/text/',
+                'TC-GNT': '../copiedBibles/Greek/eBible.org/TC-GNT/',
+                'BRN': '../copiedBibles/English/eBible.org/Brenton/', # with deuterocanon and OTH,XXA,XXB,XXC,
+                'BrLXX': '../copiedBibles/Greek/eBible.org/BrLXX/',
+                'UHB': '../copiedBibles/Original/unfoldingWord.org/UHB/',
                 # NOTE: Dictionary and notes are special cases here at the end (skipped in many parts of the program)
                 'TOSN': '../copiedBibles/English/Tyndale/OSN/',
                 'UTN': '../copiedBibles/English/unfoldingWord.org/UTN/',
@@ -568,7 +568,8 @@ def createSitePages() -> bool:
     for BBB in BibleOrgSysGlobals.loadedBibleBooksCodes:
         for versionAbbreviation in state.BibleVersions:
             if versionAbbreviation == 'OET': continue # OET is a pseudo version (OET-RV plus OET-LV)
-            if '_verses.tsv' in state.BibleLocations[versionAbbreviation]: continue # We don't worry about these few selected verses here
+            if versionAbbreviation not in ('TTN',) \
+            and '_verses.tsv' in state.BibleLocations[versionAbbreviation]: continue # We don't worry about these few selected verses here
             for entry in state.booksToLoad[versionAbbreviation]:
                 if entry == BBB or entry == 'ALL':
                     if BBB in state.preloadedBibles[versionAbbreviation]:
@@ -586,7 +587,8 @@ def createSitePages() -> bool:
         versionFolder = TEMP_BUILD_FOLDER.joinpath( f'OET/' )
         createOETVersionPages( 1, versionFolder, state.preloadedBibles['OET-RV'], state.preloadedBibles['OET-LV'], state )
     for versionAbbreviation, thisBible in state.preloadedBibles.items(): # doesn't include OET pseudo-translation
-        if '_verses.tsv' in state.BibleLocations[versionAbbreviation]: continue # We don't worry about these few selected verses here
+        if versionAbbreviation not in ('TTN',) \
+        and '_verses.tsv' in state.BibleLocations[versionAbbreviation]: continue # We don't worry about these few selected verses here
         thisBible.discover() # Now that all required books are loaded
         if versionAbbreviation not in ('TOSN','TTN','UTN'): # We don't make separate notes pages
             vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nCreating {'TEST ' if TEST_MODE else ''}version pages for {thisBible.abbreviation}…" )
@@ -602,7 +604,8 @@ def createSitePages() -> bool:
             versionFolder = TEMP_BUILD_FOLDER.joinpath( f'OET/' )
             createOETSectionPages( 2, versionFolder.joinpath('bySec/'), rvBible, lvBible, state )
     for versionAbbreviation, thisBible in state.preloadedBibles.items(): # doesn't include OET pseudo-translation
-        if '_verses.tsv' in state.BibleLocations[versionAbbreviation]: continue # We don't worry about these few selected verses here
+        if versionAbbreviation not in ('TTN',) \
+        and '_verses.tsv' in state.BibleLocations[versionAbbreviation]: continue # We don't worry about these few selected verses here
         if versionAbbreviation not in ('TOSN','TTN','UTN'): # We don't make separate notes pages
             if thisBible.discoveryResults['ALL']['haveSectionHeadings']:
                 versionFolder = TEMP_BUILD_FOLDER.joinpath( f'{thisBible.abbreviation}/' )

@@ -101,7 +101,7 @@ def preloadVersions( state ) -> int:
             else:
                 halt # preloadVersion failed
         else:
-            logging.critical( f"createPages preloadVersions() has no folder location to find '{versionAbbreviation}'")
+            logging.critical( f"createPages preloadVersions() has no folder location to find '{versionAbbreviation}'" )
             state.BibleVersions.remove( versionAbbreviation )
     return len(state.preloadedBibles)
 # end of Bibles.preloadVersions
@@ -235,7 +235,7 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state ) -
             thisBible.preload()
             for BBB in state.booksToLoad[versionAbbreviation]:
                 thisBible.loadBookIfNecessary( BBB )
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"preloadVersion() loaded {thisBible}" )
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"preloadVersion() loaded {len(thisBible):,} {versionAbbreviation} verses" if '_verses.tsv' in folderOrFileLocation else f"preloadVersion() loaded {thisBible}" )
     return thisBible
 # end of Bibles.preloadVersion
 
@@ -336,7 +336,7 @@ def loadTyndaleBookIntrosXML( abbrev:str, XML_filepath ) -> Dict[str,str]:
                     pCount = 0
                     for bodyelement in subelement:
                         bodyLocation = f'{sublocation}-{bodyelement.tag}-{pCount}'
-                        # print( f"{bodyelement} {bodyelement.text=}")
+                        # print( f"{bodyelement} {bodyelement.text=}" )
                         assert bodyelement.tag == 'p'
                         # Process the attributes first
                         pClass = None
@@ -382,7 +382,7 @@ def formatTyndaleBookIntro( abbrev:str, level:int, BBB:str, segmentType:str, sta
     """
     global TyndaleBookIntrosDict, TyndaleBookIntroSummariesDict
 
-    fnPrint( DEBUGGING_THIS_MODULE, f"formatTyndaleBookIntro( {abbrev}, {BBB}, … )")
+    fnPrint( DEBUGGING_THIS_MODULE, f"formatTyndaleBookIntro( {abbrev}, {BBB}, … )" )
     assert abbrev in ('TBI','TBIS')
     assert segmentType == 'parallel'
 
@@ -413,7 +413,7 @@ def formatTyndaleNotes( abbrev:str, level:int, BBB:str, C:str, V:str, segmentTyp
     try:
         verseEntryList, _contextList = state.preloadedBibles[abbrev].getContextVerseData( (BBB, C, V), strict=False, complete=True )
     except (KeyError, TypeError): # TypeError is if None is returned
-        logging.warning( f"Tyndale have no notes for {abbrev} {BBB} {C}:{V}")
+        logging.warning( f"Tyndale have no notes for {abbrev} {BBB} {C}:{V}" )
         return ''
 
     nHtml = ''
@@ -612,7 +612,7 @@ def formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segme
     try:
         verseEntryList, contextList = state.preloadedBibles['UTN'].getContextVerseData( (BBB, C, V), strict=False, complete=True )
     except (KeyError, TypeError): # TypeError is if None is returned
-        logging.warning( f"uW TNs have no notes for {BBB} {C}:{V}")
+        logging.warning( f"uW TNs have no notes for {BBB} {C}:{V}" )
         return ''
     # print( f"{BBB} {C}:{V} {verseEntryList=}" )
 
@@ -666,7 +666,7 @@ def formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segme
                     noteFile = '03-translate'
                     logging.critical( f"Missing ResourceContainer path in TA note: {BBB} {C}:{V} '{noteName}'" )
                 betterNoteName = noteName.replace( 'figs-', 'figures-of-speech / ' )
-                # print( f"{noteName=} {betterNoteName=}")
+                # print( f"{noteName=} {betterNoteName=}" )
                 noteCount += 1
                 tnHtml = f'{tnHtml}<p class="TARef"><b>Note {noteCount} topic</b>: <a title="View uW TA article" href="https://Door43.org/u/unfoldingWord/en_ta/master/{noteFile}.html#{noteName}">{betterNoteName}</a></p>\n'
                 occurrenceNumber = 1
@@ -743,7 +743,7 @@ def formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segme
                     if match.group(2).startswith( '../' ) and match.group(2).endswith( '.md' ):
                         linkTarget = match.group(2)[3:-3]
                         if linkTarget.endswith('/'): linkTarget = linkTarget[:-1] # Mistake in TN Rom 2:2
-                        # print( f"  Have scripture link {BBB} {C}:{V} {match.group(1)=} {linkTarget=}")
+                        # print( f"  Have scripture link {BBB} {C}:{V} {match.group(1)=} {linkTarget=}" )
                         if linkTarget == 'front/intro':
                             pass # TODO: We're being lazy here -- where do we find a book intro?
                         elif linkTarget.count('/') == 2:
@@ -800,11 +800,11 @@ def formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segme
                 tnHtml = f'''{tnHtml}<p class="TN{'1' if lastMarker=='pi1' else ''}">{NEW_LINE.join(newRestLines)}</p>\n'''
 
             else:
-                logging.critical( f"formatUnfoldingWordTranslationNotesA ({BBB}, {C}, {V}) has unhandled {marker=} {rest=} {lastMarker=}")
+                logging.critical( f"formatUnfoldingWordTranslationNotesA ({BBB}, {C}, {V}) has unhandled {marker=} {rest=} {lastMarker=}" )
         elif marker in ('m','q1','p','pi1'):
             assert not rest # Just ignore these markers (but they influence lastMarker)
         else:
-            logging.critical( f"formatUnfoldingWordTranslationNotesB ({BBB}, {C}, {V}) has unhandled {marker=} {rest=} {lastMarker=}")
+            logging.critical( f"formatUnfoldingWordTranslationNotesB ({BBB}, {C}, {V}) has unhandled {marker=} {rest=} {lastMarker=}" )
         lastMarker = marker
 
     # if not BibleOrgSysGlobals.loadedBibleBooksCodes.isNewTestament_NR( BBB ): continue # Skip all except NT for now
@@ -845,7 +845,7 @@ def loadSelectedVerses( fileLocation, givenName:str, givenAbbreviation:str, enco
     with open ( fileLocation, 'rt', encoding=encoding ) as tsv_file:
         for j,line in enumerate( tsv_file ):
             line = line.rstrip( '\n' )
-            print( f"{j}: {line}")
+            # print( f"{j}: {line}" )
             if j == 0:
                 assert line == 'Reference\tVerseText'
             else:
@@ -857,7 +857,7 @@ def loadSelectedVerses( fileLocation, givenName:str, givenAbbreviation:str, enco
                 assert verseText
                 verseTable[ourRef] = verseText
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  loadSelectedVerses() loaded {len(verseTable):,} {givenAbbreviation} verse entries from {fileLocation}." )
+    vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  loadSelectedVerses() loaded {len(verseTable):,} {givenAbbreviation} verse entries from {fileLocation}." )
     return verseTable
 # end of Bibles.loadSelectedVerses
 
