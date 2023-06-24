@@ -135,31 +135,31 @@ def _makeHeader( level:int, versionAbbreviation:str, pageType:str, fileOrFolderN
     """
     fnPrint( DEBUGGING_THIS_MODULE, f"_makeHeader( {level}, {versionAbbreviation}, {pageType}, {fileOrFolderName} )" )
 
-    # Add all the version abbreviations
+    # Add all the version abbreviations (except for the selected-verses-only verses)
     #   with their style decorators
     #   and with the more specific links if specified.
     initialVersionList = []
-    for thisVersionAbbreviation in state.BibleVersions:
-        if thisVersionAbbreviation in ('TOSN','TTN','UTN'): # Skip notes
+    for loopVersionAbbreviation in state.BibleVersions:
+        if loopVersionAbbreviation in ('TOSN','TTN','UTN'): # Skip notes
             continue
-        if versionAbbreviation in state.BibleLocations and '_verses.tsv' in state.BibleLocations[versionAbbreviation]: # Skip selected-verses-only versions
+        if loopVersionAbbreviation in state.BibleLocations and '_verses.tsv' in state.BibleLocations[loopVersionAbbreviation]: # Skip selected-verses-only versions
             continue
         if pageType in ('section','section'):
             try:
-                thisBible = state.preloadedBibles['OET-RV' if thisVersionAbbreviation=='OET' else thisVersionAbbreviation]
+                thisBible = state.preloadedBibles['OET-RV' if loopVersionAbbreviation=='OET' else loopVersionAbbreviation]
                 if not thisBible.discoveryResults['ALL']['haveSectionHeadings']:
                     continue # skip this one
             except AttributeError: # no discoveryResults
                 continue
 
         # Note: This is not good because not all versions have all books -- we try to fix that below
-        vLink = f"{'../'*level}{BibleOrgSysGlobals.makeSafeString(thisVersionAbbreviation)}/{fileOrFolderName}" \
+        vLink = f"{'../'*level}{BibleOrgSysGlobals.makeSafeString(loopVersionAbbreviation)}/{fileOrFolderName}" \
                     if fileOrFolderName else \
-                f"{'../'*level}{BibleOrgSysGlobals.makeSafeString(thisVersionAbbreviation)}"
-        initialVersionList.append( f'{state.BibleVersionDecorations[thisVersionAbbreviation][0]}'
-                            f'<a title="{state.BibleNames[thisVersionAbbreviation]}" '
-                            f'href="{vLink}">{thisVersionAbbreviation}</a>'
-                            f'{state.BibleVersionDecorations[thisVersionAbbreviation][1]}'
+                f"{'../'*level}{BibleOrgSysGlobals.makeSafeString(loopVersionAbbreviation)}"
+        initialVersionList.append( f'{state.BibleVersionDecorations[loopVersionAbbreviation][0]}'
+                            f'<a title="{state.BibleNames[loopVersionAbbreviation]}" '
+                            f'href="{vLink}">{loopVersionAbbreviation}</a>'
+                            f'{state.BibleVersionDecorations[loopVersionAbbreviation][1]}'
                             )
     if pageType == 'parallel':
         initialVersionList.append( 'Parallel' )
@@ -195,14 +195,14 @@ def _makeHeader( level:int, versionAbbreviation:str, pageType:str, fileOrFolderN
                 entryBBB = tryBBB
         if entryBBB:
             startIndex = entry.index('">') + 2
-            thisVersionAbbreviation = entry[startIndex:entry.index('<',startIndex)]
-            if thisVersionAbbreviation == 'OET': thisVersionAbbreviation = 'OET-RV' # We look here in this case
-            thisBible = state.preloadedBibles[thisVersionAbbreviation]
+            loopVersionAbbreviation = entry[startIndex:entry.index('<',startIndex)]
+            if loopVersionAbbreviation == 'OET': loopVersionAbbreviation = 'OET-RV' # We look here in this case
+            thisBible = state.preloadedBibles[loopVersionAbbreviation]
             if entryBBB in thisBible:
                 # if pageType == 'parallel': print( f"    Appended {thisVersionAbbreviation} {entryBBB} as is (from {entry})")
                 newVersionList.append( entry )
                 continue # Should always be able to link to these
-            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"      Might not be able to link to {pageType} {thisVersionAbbreviation} {entry}???" )
+            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"      Might not be able to link to {pageType} {loopVersionAbbreviation} {entry}???" )
             replacement = ''
             if '/' in fileOrFolderName:
                 ix = fileOrFolderName.index( '/' )
