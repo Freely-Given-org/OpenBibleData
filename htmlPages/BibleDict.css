@@ -35,7 +35,7 @@ p.h5 { font-weight:bold; font-size:1.1em; }
 
 /* Map box */
 div.Mapbox { display:flex; width:50%; flex-direction:column; border:2px solid black;
-    background-color:cornsilk; padding-left:0.3em; padding-right:0.3em; float:right; }
+    background-color:lightCyan; padding-left:0.3em; padding-right:0.3em; float:right; }
 img { width:100%; object-fit:contain; }
 p.caption-head { margin-top:0.2em; margin-bottom:0.1em; font-weight:bold; font-size:1.1em; }
 

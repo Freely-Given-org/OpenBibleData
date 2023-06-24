@@ -67,10 +67,10 @@ from html import checkHtml
 from OETHandlers import findLVQuote
 
 
-LAST_MODIFIED_DATE = '2023-06-15' # by RJH
+LAST_MODIFIED_DATE = '2023-06-24' # by RJH
 SHORT_PROGRAM_NAME = "Bibles"
 PROGRAM_NAME = "OpenBibleData Bibles handler"
-PROGRAM_VERSION = '0.47'
+PROGRAM_VERSION = '0.49'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -83,7 +83,7 @@ def preloadVersions( state ) -> int:
     """
     Note this has a side-effect of removing unused entries from state.BibleVersions.
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"preloadVersions( {state.BibleVersions} )")
+    fnPrint( DEBUGGING_THIS_MODULE, f"preloadVersions( {state.BibleVersions} )" )
     # from html import makeTop, makeBottom
 
     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Preloading {state.BibleVersions}…" )
@@ -95,8 +95,11 @@ def preloadVersions( state ) -> int:
             continue
         if versionAbbreviation in state.BibleLocations:
             thisBible = preloadVersion( versionAbbreviation, state.BibleLocations[versionAbbreviation], state )
-            if isinstance(thisBible, Bible):
+            if isinstance(thisBible, Bible) \
+            or '_verses.tsv' in state.BibleLocations[versionAbbreviation]:
                 state.preloadedBibles[versionAbbreviation] = thisBible
+            else:
+                halt # preloadVersion failed
         else:
             logging.critical( f"createPages preloadVersions() has no folder location to find '{versionAbbreviation}'")
             state.BibleVersions.remove( versionAbbreviation )
@@ -112,7 +115,7 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state ) -
     from Dict import loadTyndaleOpenBibleDictXML
     global TyndaleBookIntrosDict, TyndaleBookIntroSummariesDict
 
-    fnPrint( DEBUGGING_THIS_MODULE, f"preloadVersion( '{versionAbbreviation}', '{folderOrFileLocation}', ... )")
+    fnPrint( DEBUGGING_THIS_MODULE, f"preloadVersion( '{versionAbbreviation}', '{folderOrFileLocation}', … )" )
 
     # if versionAbbreviation in ('BSB',): # Single TSV .txt file
     #     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Loading {versionAbbreviation} CSV/TSV Bible…" )
@@ -214,6 +217,12 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state ) -
         thisBible = TyndaleNotesBible.TyndaleNotesBible( os.path.join( sourceFolder, sourceFilename ), givenName='TyndaleStudyNotes',
                                             givenAbbreviation='TOSN', encoding='utf-8' )
         thisBible.loadBooks() # So we can iterate through them all later
+    elif '_verses.tsv' in folderOrFileLocation: # small numbers of sample verses
+        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Loading '{versionAbbreviation}' sample verses…" )
+        thisBible = loadSelectedVerses( folderOrFileLocation, givenName=state.BibleNames[versionAbbreviation],
+                                            givenAbbreviation=versionAbbreviation, encoding='utf-8' )
+        # NOTE: thisBible is NOT a Bible object here!!!
+        # vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} loaded ({len(thisBible.books.keys())}) {list(thisBible.books.keys())}" )
     else: # USFM
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Preloading '{versionAbbreviation}' USFM Bible…" )
         thisBible = USFMBible.USFMBible( folderOrFileLocation, givenAbbreviation=versionAbbreviation,
@@ -253,7 +262,7 @@ def loadTyndaleBookIntrosXML( abbrev:str, XML_filepath ) -> Dict[str,str]:
     """
     Load the Tyndale book intros or book intro summaries from the XML file
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"loadTyndaleBookIntrosXML( {abbrev}, {XML_filepath} )")
+    fnPrint( DEBUGGING_THIS_MODULE, f"loadTyndaleBookIntrosXML( {abbrev}, {XML_filepath} )" )
 
     dataDict = {}
     loadErrors:List[str] = []
@@ -350,7 +359,7 @@ def loadTyndaleBookIntrosXML( abbrev:str, XML_filepath ) -> Dict[str,str]:
 				                                                .replace( '<a href="  \?', '<a href="?') # Fix encoding mistake in 1 Tim
                         assert '\\' not in htmlSegment, f"{BBB} {pCount=} {htmlSegment=}"
                         theirClass = None
-                        if htmlSegment.startswith( '<class="'): # e.g., <class="theme-list">The new covenant....
+                        if htmlSegment.startswith( '<class="'): # e.g., <class="theme-list">The new covenant…
                             ixClose = htmlSegment.index( '">', 10 )
                             theirClass = htmlSegment[8:ixClose]
                             htmlSegment = htmlSegment[ixClose+2:]
@@ -373,7 +382,7 @@ def formatTyndaleBookIntro( abbrev:str, level:int, BBB:str, segmentType:str, sta
     """
     global TyndaleBookIntrosDict, TyndaleBookIntroSummariesDict
 
-    fnPrint( DEBUGGING_THIS_MODULE, f"formatTyndaleBookIntro( {abbrev}, {BBB}, ... )")
+    fnPrint( DEBUGGING_THIS_MODULE, f"formatTyndaleBookIntro( {abbrev}, {BBB}, … )")
     assert abbrev in ('TBI','TBIS')
     assert segmentType == 'parallel'
 
@@ -397,7 +406,7 @@ def formatTyndaleNotes( abbrev:str, level:int, BBB:str, C:str, V:str, segmentTyp
     """
     These are mostly HTML encoded inside USFM fields.
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"formatTyndaleNotes( {BBB}, {C}:{V}, {segmentType=} )")
+    fnPrint( DEBUGGING_THIS_MODULE, f"formatTyndaleNotes( {BBB}, {C}:{V}, {segmentType=} )" )
     assert abbrev in ('TOSN','TTN')
     assert segmentType in ('parallel','interlinear')
 
@@ -426,7 +435,7 @@ def formatTyndaleNotes( abbrev:str, level:int, BBB:str, C:str, V:str, segmentTyp
             assert rest
             assert abbrev == 'TTN'
             theirClass = None
-            if rest.startswith( '<class="'): # e.g., <class="theme-list">The new covenant....
+            if rest.startswith( '<class="'): # e.g., <class="theme-list">The new covenant…
                 ixClose = rest.index( '">', 10 )
                 theirClass = rest[8:ixClose]
                 rest = rest[ixClose+2:]
@@ -439,7 +448,7 @@ def formatTyndaleNotes( abbrev:str, level:int, BBB:str, C:str, V:str, segmentTyp
         elif marker == 'p~':
             assert rest
             theirClass = None
-            if rest.startswith( '<class="'): # e.g., <class="theme-list">The new covenant....
+            if rest.startswith( '<class="'): # e.g., <class="theme-list">The new covenant…
                 ixClose = rest.index( '">', 10 )
                 theirClass = rest[8:ixClose]
                 rest = rest[ixClose+2:]
@@ -477,7 +486,7 @@ def fixTyndaleBRefs( abbrev:str, level:int, BBBorArticleName:str, C:str, V:str, 
     """
     from createSitePages import ALTERNATIVE_VERSION
 
-    fnPrint( DEBUGGING_THIS_MODULE, f"fixTyndaleBRefs( {abbrev}, {level}, {BBBorArticleName} {C}:{V} {html}, ... )")
+    fnPrint( DEBUGGING_THIS_MODULE, f"fixTyndaleBRefs( {abbrev}, {level}, {BBBorArticleName} {C}:{V} {html}, … )" )
 
     # Fix their links like '<a href="?bref=Mark.4.14-20">4:14-20</a>'
     # Doesn't yet handle links like '(see “<a href="?item=FollowingJesus_ThemeNote_Filament">Following Jesus</a>” Theme Note)'
@@ -597,7 +606,7 @@ def formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segme
 
     TODO: Get the English quote (ULT, OET-LV???) from the Greek words
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"formatUnfoldingWordTranslationNotes( {BBB}, {C}:{V}, {segmentType=} )")
+    fnPrint( DEBUGGING_THIS_MODULE, f"formatUnfoldingWordTranslationNotes( {BBB}, {C}:{V}, {segmentType=} )" )
     assert segmentType in ('parallel','interlinear')
 
     try:
@@ -625,9 +634,9 @@ def formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segme
             assert rest
             # print( f"TN {BBB} {C}:{V} ignored {marker}='{rest}'" )
             continue # not used here
-        dPrint( 'Never', DEBUGGING_THIS_MODULE, f"TN {BBB} {C}:{V} {marker}='{rest}'")
+        dPrint( 'Never', DEBUGGING_THIS_MODULE, f"TN {BBB} {C}:{V} {marker}='{rest}'" )
         if rest is None:
-            dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Skipped TN {BBB} {C}:{V} {marker}='{rest}'")
+            dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Skipped TN {BBB} {C}:{V} {marker}='{rest}'" )
             lastMarker = marker
             continue
         assert rest == entry.getFullText().rstrip(), f"TN {BBB} {C}:{V} {marker}='{rest}' ft='{entry.getFullText()}'" # Just checking that we're not missing anything here
@@ -823,6 +832,34 @@ def formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segme
     checkHtml( f'UTN {BBB} {C}:{V}', tnHtml, segmentOnly=True )
     return tnHtml
 # end of Bibles.formatUnfoldingWordTranslationNotes
+
+
+def loadSelectedVerses( fileLocation, givenName:str, givenAbbreviation:str, encoding='utf-8' ) -> Bible:
+    """
+    Our customised version of tidyBBB
+    """
+    fnPrint( DEBUGGING_THIS_MODULE, f"loadSelectedVerses( {fileLocation}, {givenName}, {givenAbbreviation}, {encoding} )" )
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\nloadSelectedVerses() loading {givenAbbreviation} ({givenName}) verse entries from {fileLocation}…" )
+
+    verseTable = {}
+    with open ( fileLocation, 'rt', encoding=encoding ) as tsv_file:
+        for j,line in enumerate( tsv_file ):
+            line = line.rstrip( '\n' )
+            print( f"{j}: {line}")
+            if j == 0:
+                assert line == 'Reference\tVerseText'
+            else:
+                ref,verseText = line.split( '\t' )
+                BBB, CV = ref.split( '_' )
+                C, V = CV.split( ':' )
+                ourRef = (BBB,C,V)
+                assert ourRef not in verseTable
+                assert verseText
+                verseTable[ourRef] = verseText
+
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  loadSelectedVerses() loaded {len(verseTable):,} {givenAbbreviation} verse entries from {fileLocation}." )
+    return verseTable
+# end of Bibles.loadSelectedVerses
 
 
 def tidyBBB( BBB:str, titleCase:Optional[bool]=False ) -> str:

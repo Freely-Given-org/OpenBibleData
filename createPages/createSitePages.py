@@ -65,10 +65,10 @@ from Dict import createTyndaleDictPages
 from html import makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-06-15' # by RJH
+LAST_MODIFIED_DATE = '2023-06-24' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData Create Pages"
-PROGRAM_VERSION = '0.68'
+PROGRAM_VERSION = '0.69'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
@@ -82,7 +82,7 @@ DEBUG_DESTINATION_FOLDER = NORMAL_DESTINATION_FOLDER.joinpath( 'Test/')
 DESTINATION_FOLDER = DEBUG_DESTINATION_FOLDER if TEST_MODE or BibleOrgSysGlobals.debugFlag \
                         else NORMAL_DESTINATION_FOLDER
 
-OET_BOOK_LIST = ('JHN','MRK','ACT', 'EPH', 'TI1','TI2','TIT', 'JAM', 'JN1','JN2','JN3', 'JDE')
+OET_BOOK_LIST = ('JHN','MRK','ACT', 'GAL','EPH', 'TI1','TI2','TIT', 'JAM', 'JN1','JN2','JN3', 'JDE')
 OET_BOOK_LIST_WITH_FRT = ('FRT',) + OET_BOOK_LIST # 'INT'
 NT_BOOK_LIST_WITH_FRT = ('FRT',) + BOOKLIST_NT27
 assert len(NT_BOOK_LIST_WITH_FRT) == 27+1
@@ -101,6 +101,7 @@ class State:
     BibleVersions = ['OET', # NOTE: OET is a "pseudo-version" containing both OET-RV and OET-LV side-by-side and handled separately in many places
                 'OET-RV','OET-LV',
                 'ULT','UST',
+                '2ND','NIV',
                 'BSB','BLB',
                 'OEB','ISV',
                 'WEB','WMB','NET','LSV','FBV','TCNT','T4T','LEB','BBE',
@@ -117,6 +118,7 @@ class State:
 
     BibleVersionDecorations = { 'OET':('<b>','</b>'),'OET-RV':('<b>','</b>'),'OET-LV':('<b>','</b>'),
                 'ULT':('',''),'UST':('',''),
+                '2ND':('<small>','</small>'),'1ST':('<small>','</small>'),'NIV':('<small>','</small>'),
                 'BSB':('',''),'BLB':('',''),
                 'OEB':('',''),'ISV':('',''),
                 'WEB':('',''),'WMB':('',''),'NET':('',''),'LSV':('',''),'FBV':('',''),'TCNT':('<small>','</small>'),'T4T':('',''),'LEB':('',''),'BBE':('',''),
@@ -140,6 +142,9 @@ class State:
                 # (e.g., this can be done quickly for a faster test)
                 'ULT': '../copiedBibles/English/unfoldingWord.org/ULT/',
                 'UST': '../copiedBibles/English/unfoldingWord.org/UST/',
+                '2ND': '../copiedBibles/English/2ND_verses.tsv',
+                '1ST': '../copiedBibles/English/1ST_verses.tsv',
+                'NIV': '../copiedBibles/English/NIV_verses.tsv',
                 'BSB': '../copiedBibles/English/Berean.Bible/BSB/',
                 'BLB': '../copiedBibles/English/Berean.Bible/BLB/blb.modified.txt', # NT only so far
                 'OEB': '../copiedBibles/English/OEB/',
@@ -185,6 +190,9 @@ class State:
                 'OET-LV': 'Open English Translation—Literal Version (2025)',
                 'ULT': 'unfoldingWord® Literal Text (2023)',
                 'UST': 'unfoldingWord® Simplified Text (2023)',
+                '2ND': 'The Second Testament (2023)',
+                '1ST': 'The First Testament (2018)',
+                'NIV': 'New International Version (2011)',
                 'BSB': 'Berean Study/Standard Bible (2020)',
                 'BLB': 'Berean Literal Bible NT (2022)',
                 'OEB': 'Open English Bible (in progress)',
@@ -231,6 +239,9 @@ class State:
                 'OET-LV': OET_BOOK_LIST,
                 'ULT': ['ALL'],
                 'UST': ['ALL'], # MRK 13:13 gives \\add error (24Jan2023)
+                '2ND': ['ALL'],
+                '1ST': ['ALL'],
+                'NIV': ['ALL'],
                 'BSB': ['ALL'],
                 'BLB': ['NT'],
                 'OEB': ['ALL'],
@@ -274,6 +285,9 @@ class State:
                 'OET-LV': ['MRK'],
                 'ULT': ['FRT','RUT','MRK'],
                 'UST': ['RUT','MRK'], # MRK 13:13 gives \\add error (24Jan2023)
+                '2ND': ['MRK'],
+                '1ST': ['MRK'],
+                'NIV': ['MRK'],
                 'BSB': ['MRK'],
                 'BLB': ['MRK'],
                 'OEB': ['MRK'],
@@ -337,6 +351,18 @@ You can read more about the design of the OET-LV <a href="https://OpenEnglishTra
                 'copyright': '<p>Copyright © 2022 by unfoldingWord.</p>',
                 'licence': '<p><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
                 'acknowledgements': '<p>Thanks to <a href="https://www.unfoldingword.org/">unfoldingWord</a> for creating this specialised Bible translation which is designed to be a tool for Bible translators.</p>' },
+        '2ND': {'about': '<p>The Second Testament (2023) by Scot McKnight.</p>',
+                'copyright': '<p>Copyright © 2023 by IVP Academic. Used by Permission. All Rights Reserved Worldwide.</p>',
+                'licence': '<p>Up to 300 verses may be used.</p>',
+                'acknowledgements': '<p></p>' },
+        '1ST': {'about': '<p>The First Testament (2018) by John Goldingay.</p>',
+                'copyright': '<p>Copyright © 2018 by IVP Academic. Used by Permission. All Rights Reserved Worldwide.</p>',
+                'licence': '<p>Up to 300 verses may be used.</p>',
+                'acknowledgements': '<p></p>' },
+        'NIV': {'about': '<p>New International Version (2011).</p>',
+                'copyright': '<p>Scripture quotations taken from The Holy Bible, New International Version® NIV®. Copyright © 1973, 1978, 1984, 2011 by Biblica, Inc.™ Used by permission. All rights reserved worldwide.</p>',
+                'licence': '<p>Up to 500 verses may be used.</p>',
+                'acknowledgements': '<p></p>' },
         'BSB': {'about': '<p>Berean Standard Bible (2020).</p>',
                 'copyright': '<p>Copyright © 2016, 2020 by Bible Hub. Used by Permission. All Rights Reserved Worldwide.</p>',
                 'licence': '<p>The Berean Bible text is <a href="https://berean.bible/terms.htm">free to use</a> in any electronic form to promote the reading, learning, and understanding of the Holy Bible as the Word of God.</p>',
@@ -542,6 +568,7 @@ def createSitePages() -> bool:
     for BBB in BibleOrgSysGlobals.loadedBibleBooksCodes:
         for versionAbbreviation in state.BibleVersions:
             if versionAbbreviation == 'OET': continue # OET is a pseudo version (OET-RV plus OET-LV)
+            if '_verses.tsv' in state.BibleLocations[versionAbbreviation]: continue # We don't worry about these few selected verses here
             for entry in state.booksToLoad[versionAbbreviation]:
                 if entry == BBB or entry == 'ALL':
                     if BBB in state.preloadedBibles[versionAbbreviation]:
@@ -559,6 +586,7 @@ def createSitePages() -> bool:
         versionFolder = TEMP_BUILD_FOLDER.joinpath( f'OET/' )
         createOETVersionPages( 1, versionFolder, state.preloadedBibles['OET-RV'], state.preloadedBibles['OET-LV'], state )
     for versionAbbreviation, thisBible in state.preloadedBibles.items(): # doesn't include OET pseudo-translation
+        if '_verses.tsv' in state.BibleLocations[versionAbbreviation]: continue # We don't worry about these few selected verses here
         thisBible.discover() # Now that all required books are loaded
         if versionAbbreviation not in ('TOSN','TTN','UTN'): # We don't make separate notes pages
             vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nCreating {'TEST ' if TEST_MODE else ''}version pages for {thisBible.abbreviation}…" )
@@ -574,6 +602,7 @@ def createSitePages() -> bool:
             versionFolder = TEMP_BUILD_FOLDER.joinpath( f'OET/' )
             createOETSectionPages( 2, versionFolder.joinpath('bySec/'), rvBible, lvBible, state )
     for versionAbbreviation, thisBible in state.preloadedBibles.items(): # doesn't include OET pseudo-translation
+        if '_verses.tsv' in state.BibleLocations[versionAbbreviation]: continue # We don't worry about these few selected verses here
         if versionAbbreviation not in ('TOSN','TTN','UTN'): # We don't make separate notes pages
             if thisBible.discoveryResults['ALL']['haveSectionHeadings']:
                 versionFolder = TEMP_BUILD_FOLDER.joinpath( f'{thisBible.abbreviation}/' )
