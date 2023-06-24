@@ -46,10 +46,10 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_
 from createOETReferencePages import livenOETWordLinks
 
 
-LAST_MODIFIED_DATE = '2023-06-15' # by RJH
+LAST_MODIFIED_DATE = '2023-06-24' # by RJH
 SHORT_PROGRAM_NAME = "createParallelPages"
 PROGRAM_NAME = "OpenBibleData createParallelPages functions"
-PROGRAM_VERSION = '0.67'
+PROGRAM_VERSION = '0.68'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -182,120 +182,128 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                     thisBible = state.preloadedBibles[versionAbbreviation]
                     # thisBible.loadBookIfNecessary( BBB )
                     textHtml = None
-                    try:
-                        if BBB not in thisBible: raise MissingBookError # Requested book is not in this Bible
-                        # NOTE: For the book intro, we fetch the whole lot in one go (not line by line)
-                        verseEntryList, contextList = thisBible.getContextVerseData( (BBB, C) if c==-1 else (BBB, C, V) )
-                        if isinstance( thisBible, ESFMBible.ESFMBible ):
-                            verseEntryList = livenOETWordLinks( thisBible, BBB, verseEntryList, f"{'../'*level}rf/W/{{n}}.htm", state )
-                        textHtml = convertUSFMMarkerListToHtml( level, versionAbbreviation, (BBB,C,V), 'verse', contextList, verseEntryList, basicOnly=(c!=-1), state=state )
-                        if textHtml == '◘': raise UntranslatedVerseError
-
-                        if versionAbbreviation == 'OET-RV':
-                            textHtml = do_OET_RV_HTMLcustomisations( textHtml )
-                        elif versionAbbreviation == 'OET-LV':
-                            textHtml = do_OET_LV_HTMLcustomisations( textHtml )
-                        elif versionAbbreviation == 'WEB': # assuming WEB comes BEFORE WMB
-                            textHtmlWEB = textHtml # Save it
-                        elif versionAbbreviation == 'WMB': # assuming WEB comes BEFORE WMB
-                            if textHtml == textHtmlWEB:
-                                # print( f"Skipping parallel for WMB {BBB} {C}:{V} because same as WEB" )
-                                continue
-                            # else:
-                            #     print( f"Using parallel for WMB {BBB} {C}:{V} because different from WEB:" )
-                            #     print( f"  {textHtmlWEB=}" )
-                            #     print( f"     {textHtml=}" )
-                        elif versionAbbreviation == 'LSV':
-                            textHtml = do_LSV_HTMLcustomisations( textHtml )
-                        elif versionAbbreviation == 'T4T':
-                            textHtml = do_T4T_HTMLcustomisations( textHtml )
-                        elif versionAbbreviation in ('WYC','TNT','CB','GNV','BB','KJB'):
-                            modernisedTextHtml = moderniseEnglishWords( textHtml )
-                            if versionAbbreviation in ('WYC','TNT'):
-                                modernisedTextHtml = modernisedTextHtml.replace( 'J', 'Y' ).replace( 'Ie', 'Ye' ).replace( 'Io', 'Yo' )
-                            if modernisedTextHtml != textHtml: # only show it if it changed
-                                textHtml = f'{textHtml}<br>  ({modernisedTextHtml})'
-                        elif versionAbbreviation in ('CLV',):
-                            if (adjustedTextHtml:=adjustLatin(textHtml)) != textHtml: # only show it if it changed
-                                textHtml = f'{textHtml}<br>  ({adjustedTextHtml})'
-                        elif versionAbbreviation in ('SR-GNT','UGNT','SBL-GNT','TC-GNT','BrLXX'):
-                            # print( f"{versionAbbreviation} {BBB} {C}:{V} {textHtml=}")
-                            transcription = transliterate_Greek(textHtml)
-                            if 'Ah' in transcription or ' ah' in transcription or transcription.startswith('ah') \
-                            or 'Eh' in transcription or ' eh' in transcription or transcription.startswith('eh') \
-                            or 'Oh' in transcription or ' oh' in transcription or transcription.startswith('oh') \
-                            or 'Uh' in transcription or ' uh' in transcription or transcription.startswith('uh'):
-                                print( f"{versionAbbreviation} {BBB} {C}:{V} {transcription=} from '{textHtml}'")
-                                bad_greek_transcription
-                            if versionAbbreviation == 'SR-GNT': # for the transcription, bolden nomina sacra words
-                                searchStartIndex = 0
-                                while '˚' in transcription:
-                                    ixNS = transcription.index( '˚', searchStartIndex )
-                                    ixComma = transcription.find( ',', ixNS+1 )
-                                    if ixComma == -1: ixComma = 9999
-                                    ixPeriod = transcription.find( '.', ixNS+1 )
-                                    if ixPeriod == -1: ixPeriod = 9999
-                                    ixSpace = transcription.find( ' ', ixNS+1 )
-                                    if ixSpace == -1: ixSpace = 9999
-                                    ixEnd = min( ixComma, ixPeriod, ixSpace, len(transcription) )
-                                    transcription = f'''{transcription[:ixNS]}<span class="nominaSacra">{transcription[ixNS+1:ixEnd]}</span>{transcription[ixEnd:]}'''
-                                    searchStartIndex = ixEnd
-                                # print( f"Now {transcription=}" )
-                                # if '<span' in transcription: halt
-                            textHtml = f'{textHtml}<br>  ({transcription})'
-                            # print( textHtml)
-                        elif versionAbbreviation in ('UHB',):
-                            # print( f"{versionAbbreviation} {BBB} {C}:{V} {textHtml=}")
-                            textHtml = f'{textHtml}<br>  ({transliterate_Hebrew(textHtml)})'
-                            # print( textHtml)
-                        if textHtml:
-                            vHtml = f'''
-<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName"><a title="View {state.BibleNames['OET']} chapter" href="{'../'*level}OET/byC/{BBB}_C{C}.htm">OET</a> (<a title="{state.BibleNames['OET-RV']}" href="{'../'*level}OET-RV/byC/{BBB}_C{C}.htm">OET-RV</a>)</span> {textHtml}</p>
-''' if versionAbbreviation=='OET-RV' else f'''
-<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation]} chapter" href="{'../'*level}{versionAbbreviation}/byC/{BBB}_C{C}.htm">{versionAbbreviation}</a></span> {textHtml}</p>
+                    if '_verses.tsv' in state.BibleLocations[versionAbbreviation]: # then thisBible is NOT a Bible object, but a dict
+                        ourRef = (BBB, C, V)
+                        try:
+                            vHtml =  f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName">{versionAbbreviation}</span> {thisBible[ourRef]}</p>
 '''
-                        else: # no textHtml -- can include verses that are not in the OET-LV
-                            if c==-1 or v==0: # For these edge cases, we don't want the version abbreviation appearing
+                        except KeyError:
+                            vHtml = None # We display nothing at all for these versions that only have a few selected verses
+                    else: # should be a Bible object
+                        try:
+                            if BBB not in thisBible: raise MissingBookError # Requested book is not in this Bible
+                            # NOTE: For the book intro, we fetch the whole lot in one go (not line by line)
+                            verseEntryList, contextList = thisBible.getContextVerseData( (BBB, C) if c==-1 else (BBB, C, V) )
+                            if isinstance( thisBible, ESFMBible.ESFMBible ):
+                                verseEntryList = livenOETWordLinks( thisBible, BBB, verseEntryList, f"{'../'*level}rf/W/{{n}}.htm", state )
+                            textHtml = convertUSFMMarkerListToHtml( level, versionAbbreviation, (BBB,C,V), 'verse', contextList, verseEntryList, basicOnly=(c!=-1), state=state )
+                            if textHtml == '◘': raise UntranslatedVerseError
+
+                            if versionAbbreviation == 'OET-RV':
+                                textHtml = do_OET_RV_HTMLcustomisations( textHtml )
+                            elif versionAbbreviation == 'OET-LV':
+                                textHtml = do_OET_LV_HTMLcustomisations( textHtml )
+                            elif versionAbbreviation == 'WEB': # assuming WEB comes BEFORE WMB
+                                textHtmlWEB = textHtml # Save it
+                            elif versionAbbreviation == 'WMB': # assuming WEB comes BEFORE WMB
+                                if textHtml == textHtmlWEB:
+                                    # print( f"Skipping parallel for WMB {BBB} {C}:{V} because same as WEB" )
+                                    continue
+                                # else:
+                                #     print( f"Using parallel for WMB {BBB} {C}:{V} because different from WEB:" )
+                                #     print( f"  {textHtmlWEB=}" )
+                                #     print( f"     {textHtml=}" )
+                            elif versionAbbreviation == 'LSV':
+                                textHtml = do_LSV_HTMLcustomisations( textHtml )
+                            elif versionAbbreviation == 'T4T':
+                                textHtml = do_T4T_HTMLcustomisations( textHtml )
+                            elif versionAbbreviation in ('WYC','TNT','CB','GNV','BB','KJB'):
+                                modernisedTextHtml = moderniseEnglishWords( textHtml )
+                                if versionAbbreviation in ('WYC','TNT'):
+                                    modernisedTextHtml = modernisedTextHtml.replace( 'J', 'Y' ).replace( 'Ie', 'Ye' ).replace( 'Io', 'Yo' )
+                                if modernisedTextHtml != textHtml: # only show it if it changed
+                                    textHtml = f'{textHtml}<br>  ({modernisedTextHtml})'
+                            elif versionAbbreviation in ('CLV',):
+                                if (adjustedTextHtml:=adjustLatin(textHtml)) != textHtml: # only show it if it changed
+                                    textHtml = f'{textHtml}<br>  ({adjustedTextHtml})'
+                            elif versionAbbreviation in ('SR-GNT','UGNT','SBL-GNT','TC-GNT','BrLXX'):
+                                # print( f"{versionAbbreviation} {BBB} {C}:{V} {textHtml=}")
+                                transcription = transliterate_Greek(textHtml)
+                                if 'Ah' in transcription or ' ah' in transcription or transcription.startswith('ah') \
+                                or 'Eh' in transcription or ' eh' in transcription or transcription.startswith('eh') \
+                                or 'Oh' in transcription or ' oh' in transcription or transcription.startswith('oh') \
+                                or 'Uh' in transcription or ' uh' in transcription or transcription.startswith('uh'):
+                                    print( f"{versionAbbreviation} {BBB} {C}:{V} {transcription=} from '{textHtml}'")
+                                    bad_greek_transcription
+                                if versionAbbreviation == 'SR-GNT': # for the transcription, bolden nomina sacra words
+                                    searchStartIndex = 0
+                                    while '˚' in transcription:
+                                        ixNS = transcription.index( '˚', searchStartIndex )
+                                        ixComma = transcription.find( ',', ixNS+1 )
+                                        if ixComma == -1: ixComma = 9999
+                                        ixPeriod = transcription.find( '.', ixNS+1 )
+                                        if ixPeriod == -1: ixPeriod = 9999
+                                        ixSpace = transcription.find( ' ', ixNS+1 )
+                                        if ixSpace == -1: ixSpace = 9999
+                                        ixEnd = min( ixComma, ixPeriod, ixSpace, len(transcription) )
+                                        transcription = f'''{transcription[:ixNS]}<span class="nominaSacra">{transcription[ixNS+1:ixEnd]}</span>{transcription[ixEnd:]}'''
+                                        searchStartIndex = ixEnd
+                                    # print( f"Now {transcription=}" )
+                                    # if '<span' in transcription: halt
+                                textHtml = f'{textHtml}<br>  ({transcription})'
+                                # print( textHtml)
+                            elif versionAbbreviation in ('UHB',):
+                                # print( f"{versionAbbreviation} {BBB} {C}:{V} {textHtml=}")
+                                textHtml = f'{textHtml}<br>  ({transliterate_Hebrew(textHtml)})'
+                                # print( textHtml)
+                            if textHtml:
+                                vHtml = f'''
+    <p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName"><a title="View {state.BibleNames['OET']} chapter" href="{'../'*level}OET/byC/{BBB}_C{C}.htm">OET</a> (<a title="{state.BibleNames['OET-RV']}" href="{'../'*level}OET-RV/byC/{BBB}_C{C}.htm">OET-RV</a>)</span> {textHtml}</p>
+    ''' if versionAbbreviation=='OET-RV' else f'''
+    <p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation]} chapter" href="{'../'*level}{versionAbbreviation}/byC/{BBB}_C{C}.htm">{versionAbbreviation}</a></span> {textHtml}</p>
+    '''
+                            else: # no textHtml -- can include verses that are not in the OET-LV
+                                if c==-1 or v==0: # For these edge cases, we don't want the version abbreviation appearing
+                                    vHtml = ''
+
+                        except MissingBookError:
+                            assert not textHtml, f"{versionAbbreviation} {BBB} {C}:{V} {verseEntryList=} {textHtml=}"
+                            assert BBB not in thisBible
+                            warningText = f'No {versionAbbreviation} {ourTidyBBB} book available'
+                            vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName">{versionAbbreviation}</span> <span class="noBook"><small>{warningText}</small></span></p>
+    '''
+                            logging.warning( warningText )
+
+                        except UntranslatedVerseError:
+                            assert textHtml == '◘'
+                            assert versionAbbreviation == 'OET-RV'
+                            assert BBB in thisBible
+                            if BBB in thisBible:
+                                # print( f"No verse inB {versionAbbreviation} {BBB} in {thisBible}"); halt
+                                warningText = f'No {versionAbbreviation} {ourTidyBBB} {C}:{V} verse available'
+                                vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName"><a title="{state.BibleNames[versionAbbreviation]}" href="{'../'*level}{versionAbbreviation}/byC/{BBB}_C{C}.htm">{versionAbbreviation}</a></span> <span class="noVerse"><small>{warningText}</small></span></p>
+    '''
+                            else:
+                                warningText = f'No {versionAbbreviation} {ourTidyBBB} book available'
+                                vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName">{versionAbbreviation}</span> <span class="noBook"><small>{warningText}</small></span></p>
+    '''
+                            logging.warning( warningText )
+
+                        except KeyError:
+                            assert not textHtml, f"{versionAbbreviation} {BBB} {C}:{V} {verseEntryList=} {textHtml=}"
+                            if c==-1 or v==0:
                                 vHtml = ''
-
-                    except MissingBookError:
-                        assert not textHtml, f"{versionAbbreviation} {BBB} {C}:{V} {verseEntryList=} {textHtml=}"
-                        assert BBB not in thisBible
-                        warningText = f'No {versionAbbreviation} {ourTidyBBB} book available'
-                        vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName">{versionAbbreviation}</span> <span class="noBook"><small>{warningText}</small></span></p>
-'''
-                        logging.warning( warningText )
-
-                    except UntranslatedVerseError:
-                        assert textHtml == '◘'
-                        assert versionAbbreviation == 'OET-RV'
-                        assert BBB in thisBible
-                        if BBB in thisBible:
-                            # print( f"No verse inB {versionAbbreviation} {BBB} in {thisBible}"); halt
-                            warningText = f'No {versionAbbreviation} {ourTidyBBB} {C}:{V} verse available'
-                            vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName"><a title="{state.BibleNames[versionAbbreviation]}" href="{'../'*level}{versionAbbreviation}/byC/{BBB}_C{C}.htm">{versionAbbreviation}</a></span> <span class="noVerse"><small>{warningText}</small></span></p>
-'''
-                        else:
-                            warningText = f'No {versionAbbreviation} {ourTidyBBB} book available'
-                            vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName">{versionAbbreviation}</span> <span class="noBook"><small>{warningText}</small></span></p>
-'''
-                        logging.warning( warningText )
-
-                    except KeyError:
-                        assert not textHtml, f"{versionAbbreviation} {BBB} {C}:{V} {verseEntryList=} {textHtml=}"
-                        if c==-1 or v==0:
-                            vHtml = ''
-                        elif BBB in thisBible:
-                            # print( f"No verse inKT {versionAbbreviation} {BBB} in {thisBible}"); halt
-                            warningText = f'No {versionAbbreviation} {ourTidyBBB} {C}:{V} verse available'
-                            vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName"><a title="{state.BibleNames[versionAbbreviation]}" href="{'../'*level}{versionAbbreviation}/byC/{BBB}_C{C}.htm">{versionAbbreviation}</a></span> <span class="noVerse"><small>{warningText}</small></span></p>
-'''
-                            logging.warning( warningText )
-                        else:
-                            warningText = f'No {versionAbbreviation} {ourTidyBBB} book available'
-                            vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName">{versionAbbreviation}</span> <span class="noBook"><small>{warningText}</small></span></p>
-'''
-                            logging.warning( warningText )
+                            elif BBB in thisBible:
+                                # print( f"No verse inKT {versionAbbreviation} {BBB} in {thisBible}"); halt
+                                warningText = f'No {versionAbbreviation} {ourTidyBBB} {C}:{V} verse available'
+                                vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName"><a title="{state.BibleNames[versionAbbreviation]}" href="{'../'*level}{versionAbbreviation}/byC/{BBB}_C{C}.htm">{versionAbbreviation}</a></span> <span class="noVerse"><small>{warningText}</small></span></p>
+    '''
+                                logging.warning( warningText )
+                            else:
+                                warningText = f'No {versionAbbreviation} {ourTidyBBB} book available'
+                                vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName">{versionAbbreviation}</span> <span class="noBook"><small>{warningText}</small></span></p>
+    '''
+                                logging.warning( warningText )
 
                     if vHtml:
                         # dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"\n\n{pHtml=} {vHtml=}" )
