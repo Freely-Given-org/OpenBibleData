@@ -53,10 +53,10 @@ from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39, BOOKLIST_NT27
 # from Bibles import fetchChapter
 
 
-LAST_MODIFIED_DATE = '2023-06-15' # by RJH
+LAST_MODIFIED_DATE = '2023-06-24' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
-PROGRAM_VERSION = '0.45'
+PROGRAM_VERSION = '0.46'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -221,7 +221,8 @@ def _makeHeader( level:int, versionAbbreviation:str, pageType:str, fileOrFolderN
 
     viewLinks = []
     if pageType in ('book','section','chapter','details') \
-    and versionAbbreviation not in ('TOSN','TTN','TOBD','UTN'):
+    and versionAbbreviation not in ('TOSN','TTN','TOBD','UTN') \
+    and '_verses.tsv' not in state.BibleLocations[versionAbbreviation]:
         if not versionAbbreviation: versionAbbreviation = 'OET'
         viewLinks.append( versionAbbreviation )
         if pageType != 'book':
