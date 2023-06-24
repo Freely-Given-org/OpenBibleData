@@ -222,7 +222,7 @@ def _makeHeader( level:int, versionAbbreviation:str, pageType:str, fileOrFolderN
     viewLinks = []
     if pageType in ('book','section','chapter','details') \
     and versionAbbreviation not in ('TOSN','TTN','TOBD','UTN') \
-    and '_verses.tsv' not in state.BibleLocations[versionAbbreviation]:
+    and (versionAbbreviation not in state.BibleLocations or '_verses.tsv' not in state.BibleLocations[versionAbbreviation]):
         if not versionAbbreviation: versionAbbreviation = 'OET'
         viewLinks.append( versionAbbreviation )
         if pageType != 'book':
