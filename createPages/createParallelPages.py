@@ -185,7 +185,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                     if '_verses.tsv' in state.BibleLocations[versionAbbreviation]: # then thisBible is NOT a Bible object, but a dict
                         ourRef = (BBB, C, V)
                         try:
-                            vHtml =  f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName">{versionAbbreviation}</span> {thisBible[ourRef]}</p>
+                            vHtml =  f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName"><a title="Go to copyright info" href="{'../'*level}allDetails.htm#{versionAbbreviation}">{versionAbbreviation}</a></span> {thisBible[ourRef]}</p>
 '''
                         except KeyError:
                             vHtml = None # We display nothing at all for these versions that only have a few selected verses
@@ -313,26 +313,26 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                 if c == -1: # Handle Tyndale book intro summaries and book intros
                     tbisHtml = formatTyndaleBookIntro( 'TBIS', level, BBB, 'parallel', state )
                     if tbisHtml:
-                        tbisHtml = f'''<div id="TBIS" class="parallelTBI"><a id="Go to TSN copyright page" href="{'../'*level}TSN/details.htm">TBIS</a> <b>Tyndale Book Intro Summary</b>: {tbisHtml}</div><!--end of TBI-->\n'''
+                        tbisHtml = f'''<div id="TBIS" class="parallelTBI"><a title="Go to TSN copyright page" href="{'../'*level}TSN/details.htm">TBIS</a> <b>Tyndale Book Intro Summary</b>: {tbisHtml}</div><!--end of TBI-->\n'''
                         pHtml = f'{pHtml}{tbisHtml}'
                     tbiHtml = formatTyndaleBookIntro( 'TBI', level, BBB, 'parallel', state )
                     if tbiHtml:
-                        tbiHtml = f'''<div id="TBI" class="parallelTBI"><a id="Go to TSN copyright page" href="{'../'*level}TSN/details.htm">TBI</a> <b>Tyndale Book Intro</b>: {tbiHtml}</div><!--end of TBI-->\n'''
+                        tbiHtml = f'''<div id="TBI" class="parallelTBI"><a title="Go to TSN copyright page" href="{'../'*level}TSN/details.htm">TBI</a> <b>Tyndale Book Intro</b>: {tbiHtml}</div><!--end of TBI-->\n'''
                         pHtml = f'{pHtml}{tbiHtml}'
 
                 # Handle Tyndale open study notes and theme notes
                 tsnHtml = formatTyndaleNotes( 'TOSN', level, BBB, C, V, 'parallel', state )
                 if tsnHtml:
-                    tsnHtml = f'''<div id="TSN" class="parallelTSN"><a id="Go to TSN copyright page" href="{'../'*level}TSN/details.htm">TSN</a> <b>Tyndale Study Notes</b>: {tsnHtml}</div><!--end of TSN-->\n'''
+                    tsnHtml = f'''<div id="TSN" class="parallelTSN"><a title="Go to TSN copyright page" href="{'../'*level}TSN/details.htm">TSN</a> <b>Tyndale Study Notes</b>: {tsnHtml}</div><!--end of TSN-->\n'''
                     pHtml = f'{pHtml}{tsnHtml}'
                 ttnHtml = formatTyndaleNotes( 'TTN', level, BBB, C, V, 'parallel', state )
                 if ttnHtml:
-                    ttnHtml = f'''<div id="TTN" class="parallelTTN"><a id="Go to TSN copyright page" href="{'../'*level}TSN/details.htm">TTN</a> <b>Tyndale Theme Notes</b>: {ttnHtml}</div><!--end of TTN-->\n'''
+                    ttnHtml = f'''<div id="TTN" class="parallelTTN"><a title="Go to TSN copyright page" href="{'../'*level}TSN/details.htm">TTN</a> <b>Tyndale Theme Notes</b>: {ttnHtml}</div><!--end of TTN-->\n'''
                     pHtml = f'{pHtml}{ttnHtml}'
                 # Handle uW translation notes
                 utnHtml = formatUnfoldingWordTranslationNotes( level, BBB, C, V, 'parallel', state )
                 if utnHtml:
-                    utnHtml = f'''<div id="UTN" class="parallelUTN"><a id="Go to UTN copyright page" href="{'../'*level}UTN/details.htm">UTN</a> <b>uW Translation Notes</b>: {utnHtml}</div><!--end of UTN-->\n'''
+                    utnHtml = f'''<div id="UTN" class="parallelUTN"><a title="Go to UTN copyright page" href="{'../'*level}UTN/details.htm">UTN</a> <b>uW Translation Notes</b>: {utnHtml}</div><!--end of UTN-->\n'''
                     pHtml = f'{pHtml}{utnHtml}'
 
                 filename = 'Intro.htm' if c==-1 else f'C{C}V{V}.htm'

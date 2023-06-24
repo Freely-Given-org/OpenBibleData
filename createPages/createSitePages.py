@@ -361,7 +361,7 @@ You can read more about the design of the OET-LV <a href="https://OpenEnglishTra
                 'acknowledgements': '<p></p>' },
         'NIV': {'about': '<p>New International Version (2011).</p>',
                 'copyright': '<p>Scripture quotations taken from The Holy Bible, New International Version® NIV®. Copyright © 1973, 1978, 1984, 2011 by Biblica, Inc.™ Used by permission. All rights reserved worldwide.</p>',
-                'licence': '<p>Up to 500 verses may be used.</p>',
+                'licence': '<p>The NIV® text may be quoted in any form (written, visual, electronic or audio), up to and inclusive of five hundred (500) verses without the express written permission of the publisher, providing the verses quoted do not amount to a complete book of the Bible nor do the verses quoted account for twenty-five percent (25%) or more of the total text of the work in which they are quoted.</p>',
                 'acknowledgements': '<p></p>' },
         'BSB': {'about': '<p>Berean Standard Bible (2020).</p>',
                 'copyright': '<p>Copyright © 2016, 2020 by Bible Hub. Used by Permission. All Rights Reserved Worldwide.</p>',
