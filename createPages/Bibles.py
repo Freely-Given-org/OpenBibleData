@@ -850,6 +850,8 @@ def loadSelectedVerses( fileLocation, givenName:str, givenAbbreviation:str, enco
                 assert line == 'Reference\tVerseText'
             else:
                 ref,verseText = line.split( '\t' )
+                assert ref.strip() == ref
+                assert verseText.strip() == verseText
                 BBB, CV = ref.split( '_' )
                 C, V = CV.split( ':' )
                 ourRef = (BBB,C,V)
