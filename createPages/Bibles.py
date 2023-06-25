@@ -96,7 +96,7 @@ def preloadVersions( state ) -> int:
         if versionAbbreviation in state.BibleLocations:
             thisBible = preloadVersion( versionAbbreviation, state.BibleLocations[versionAbbreviation], state )
             if isinstance(thisBible, Bible) \
-            or '_verses.tsv' in state.BibleLocations[versionAbbreviation]:
+            or versionAbbreviation in state.selectedVersesOnlyVersions:
                 state.preloadedBibles[versionAbbreviation] = thisBible
             else:
                 halt # preloadVersion failed
@@ -217,7 +217,7 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state ) -
         thisBible = TyndaleNotesBible.TyndaleNotesBible( os.path.join( sourceFolder, sourceFilename ), givenName='TyndaleStudyNotes',
                                             givenAbbreviation='TOSN', encoding='utf-8' )
         thisBible.loadBooks() # So we can iterate through them all later
-    elif '_verses.tsv' in folderOrFileLocation: # small numbers of sample verses
+    elif versionAbbreviation in state.selectedVersesOnlyVersions: # small numbers of sample verses
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Loading '{versionAbbreviation}' sample verses…" )
         thisBible = loadSelectedVerses( folderOrFileLocation, givenName=state.BibleNames[versionAbbreviation],
                                             givenAbbreviation=versionAbbreviation, encoding='utf-8' )
@@ -235,7 +235,7 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state ) -
             thisBible.preload()
             for BBB in state.booksToLoad[versionAbbreviation]:
                 thisBible.loadBookIfNecessary( BBB )
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"preloadVersion() loaded {len(thisBible):,} {versionAbbreviation} verses" if '_verses.tsv' in folderOrFileLocation else f"preloadVersion() loaded {thisBible}" )
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"preloadVersion() loaded {len(thisBible):,} {versionAbbreviation} verses" if versionAbbreviation in state.selectedVersesOnlyVersions else f"preloadVersion() loaded {thisBible}" )
     return thisBible
 # end of Bibles.preloadVersion
 

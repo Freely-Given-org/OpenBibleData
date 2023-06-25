@@ -182,7 +182,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                     thisBible = state.preloadedBibles[versionAbbreviation]
                     # thisBible.loadBookIfNecessary( BBB )
                     textHtml = None
-                    if '_verses.tsv' in state.BibleLocations[versionAbbreviation]: # then thisBible is NOT a Bible object, but a dict
+                    if versionAbbreviation in state.selectedVersesOnlyVersions: # then thisBible is NOT a Bible object, but a dict
                         ourRef = (BBB,C,V)
                         try:
                             vHtml = thisBible[ourRef].replace( '\\wj ', '<p class="wj">' ).replace( '\\wj*', '</p>' )

@@ -142,7 +142,7 @@ def _makeHeader( level:int, versionAbbreviation:str, pageType:str, fileOrFolderN
     for loopVersionAbbreviation in state.BibleVersions:
         if loopVersionAbbreviation in ('TOSN','TTN','UTN'): # Skip notes
             continue
-        if loopVersionAbbreviation in state.BibleLocations and '_verses.tsv' in state.BibleLocations[loopVersionAbbreviation]: # Skip selected-verses-only versions
+        if loopVersionAbbreviation in state.selectedVersesOnlyVersions: # Skip selected-verses-only versions
             continue
         if pageType in ('section','section'):
             try:

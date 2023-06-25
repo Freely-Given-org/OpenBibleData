@@ -98,6 +98,7 @@ class State:
     """
     A place to store some of the global stuff that needs to be passed around.
     """
+    # This first one specifies the order in which everything is processed
     BibleVersions = ['OET', # NOTE: OET is a "pseudo-version" containing both OET-RV and OET-LV side-by-side and handled separately in many places
                 'OET-RV','OET-LV',
                 'ULT','UST',
@@ -117,12 +118,15 @@ class State:
     #           (often because we temporarily remove the BibleLocation below)
     allBibleVersions = BibleVersions[:] # Keep a copy with the full list
 
+    # Specific short lists
+    auxilliaryVersions = ['OET','TTN','TOBD'] # These ones don't have their own Bible locations at all
+    selectedVersesOnlyVersions = ['NLT','NIV','ESV','NASB','2ND','1ST'] # These ones have .tsv sources (and don't produce Bible objects)
+
     # NOTE: We don't display the versions with only selected verses, so don't need decorations for them
     BibleVersionDecorations = { 'OET':('<b>','</b>'),'OET-RV':('<b>','</b>'),'OET-LV':('<b>','</b>'),
                 'ULT':('',''),'UST':('',''),
                 'BSB':('',''),'BLB':('',''),
                 'OEB':('',''),'ISV':('',''),
-                # '2ND':('<small>','</small>'),'1ST':('<small>','</small>'),'NIV':('<small>','</small>'),
                 'WEB':('',''),'WMB':('',''),'NET':('',''),'LSV':('',''),'FBV':('',''),'TCNT':('<small>','</small>'),'T4T':('',''),'LEB':('',''),'BBE':('',''),
                 'JPS':('<small>','</small>'),'ASV':('',''),'DRA':('<small>','</small>'),'YLT':('',''),'DBY':('',''),'RV':('',''),
                 'WBS':('<small>','</small>'),
@@ -546,8 +550,9 @@ You can read more about the design of the OET-LV <a href="https://OpenEnglishTra
         assert versionLocation.startswith('../copiedBibles/') \
             or versionLocation.startswith('../../OpenEnglishTranslation--OET/') \
             or versionLocation.startswith('../../Forked/') \
-            or versionLocation.startswith('/mnt/SSDs/Bibles/DataSets/')
-    assert len(BibleVersionDecorations) == len(BibleVersions)+3-6, f"{len(BibleVersionDecorations)=} {len(BibleVersions)=}"
+            or versionLocation.startswith('/mnt/SSDs/Bibles/'), f"{versionLocation=}"
+    assert len(BibleVersionDecorations) == len(BibleVersions)+len(auxilliaryVersions)-len(selectedVersesOnlyVersions), \
+                                        f"{len(BibleVersionDecorations)=} {len(BibleVersions)=}"
         # Above adds Parallel and Interlinear and Dictionary but subtracts selected-verses-only version
     assert len(BibleVersions)-1 >= len(BibleLocations) # OET is a pseudo-version
     assert len(BibleNames)-1 >= len(BibleLocations) # OET is a pseudo-version
@@ -598,7 +603,7 @@ def createSitePages() -> bool:
         for versionAbbreviation in state.BibleVersions:
             if versionAbbreviation == 'OET': continue # OET is a pseudo version (OET-RV plus OET-LV)
             if versionAbbreviation not in ('TTN',) \
-            and '_verses.tsv' in state.BibleLocations[versionAbbreviation]: continue # We don't worry about these few selected verses here
+            and versionAbbreviation in state.selectedVersesOnlyVersions: continue # We don't worry about these few selected verses here
             for entry in state.booksToLoad[versionAbbreviation]:
                 if entry == BBB or entry == 'ALL':
                     if BBB in state.preloadedBibles[versionAbbreviation]:
@@ -617,7 +622,7 @@ def createSitePages() -> bool:
         createOETVersionPages( 1, versionFolder, state.preloadedBibles['OET-RV'], state.preloadedBibles['OET-LV'], state )
     for versionAbbreviation, thisBible in state.preloadedBibles.items(): # doesn't include OET pseudo-translation
         if versionAbbreviation not in ('TTN',) \
-        and '_verses.tsv' in state.BibleLocations[versionAbbreviation]: continue # We don't worry about these few selected verses here
+        and versionAbbreviation in state.selectedVersesOnlyVersions: continue # We don't worry about these few selected verses here
         thisBible.discover() # Now that all required books are loaded
         if versionAbbreviation not in ('TOSN','TTN','UTN'): # We don't make separate notes pages
             vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nCreating {'TEST ' if TEST_MODE else ''}version pages for {thisBible.abbreviation}…" )
@@ -634,7 +639,7 @@ def createSitePages() -> bool:
             createOETSectionPages( 2, versionFolder.joinpath('bySec/'), rvBible, lvBible, state )
     for versionAbbreviation, thisBible in state.preloadedBibles.items(): # doesn't include OET pseudo-translation
         if versionAbbreviation not in ('TTN',) \
-        and '_verses.tsv' in state.BibleLocations[versionAbbreviation]: continue # We don't worry about these few selected verses here
+        and versionAbbreviation in state.selectedVersesOnlyVersions: continue # We don't worry about these few selected verses here
         if versionAbbreviation not in ('TOSN','TTN','UTN'): # We don't make separate notes pages
             if thisBible.discoveryResults['ALL']['haveSectionHeadings']:
                 versionFolder = TEMP_BUILD_FOLDER.joinpath( f'{thisBible.abbreviation}/' )
