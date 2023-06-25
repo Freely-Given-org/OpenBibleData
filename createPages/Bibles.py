@@ -67,10 +67,10 @@ from html import checkHtml
 from OETHandlers import findLVQuote
 
 
-LAST_MODIFIED_DATE = '2023-06-24' # by RJH
+LAST_MODIFIED_DATE = '2023-06-25' # by RJH
 SHORT_PROGRAM_NAME = "Bibles"
 PROGRAM_NAME = "OpenBibleData Bibles handler"
-PROGRAM_VERSION = '0.49'
+PROGRAM_VERSION = '0.50'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -851,7 +851,7 @@ def loadSelectedVerses( fileLocation, givenName:str, givenAbbreviation:str, enco
             else:
                 ref,verseText = line.split( '\t' )
                 assert ref.strip() == ref
-                assert verseText.strip() == verseText
+                assert verseText.strip() == verseText, f"{givenAbbreviation} {j} {ref=} '{verseText[:6]}…{verseText[-6:]}'"
                 BBB, CV = ref.split( '_' )
                 C, V = CV.split( ':' )
                 ourRef = (BBB,C,V)

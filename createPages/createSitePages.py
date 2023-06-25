@@ -65,10 +65,10 @@ from Dict import createTyndaleDictPages
 from html import makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-06-24' # by RJH
+LAST_MODIFIED_DATE = '2023-06-25' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData Create Pages"
-PROGRAM_VERSION = '0.69'
+PROGRAM_VERSION = '0.70'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
@@ -117,6 +117,7 @@ class State:
     #           (often because we temporarily remove the BibleLocation below)
     allBibleVersions = BibleVersions[:] # Keep a copy with the full list
 
+    # NOTE: We don't display the versions with only selected verses, so don't need decorations for them
     BibleVersionDecorations = { 'OET':('<b>','</b>'),'OET-RV':('<b>','</b>'),'OET-LV':('<b>','</b>'),
                 'ULT':('',''),'UST':('',''),
                 'BSB':('',''),'BLB':('',''),
@@ -290,9 +291,9 @@ class State:
                 'TOSN': ['ALL'],
                 'UTN': ['ALL'],
             } if ALL_PRODUCTION_BOOKS else {
-                'OET': ['FRT','MAT'],
-                'OET-RV': ['FRT','MAT'],
-                'OET-LV': ['MAT'],
+                'OET': ['FRT','MRK'],
+                'OET-RV': ['FRT','MRK'],
+                'OET-LV': ['MRK'],
                 'ULT': ['FRT','RUT','MRK'],
                 'UST': ['RUT','MRK'], # MRK 13:13 gives \\add error (24Jan2023)
                 'BSB': ['MRK'],
@@ -540,11 +541,14 @@ You can read more about the design of the OET-LV <a href="https://OpenEnglishTra
                 'acknowledgements': '<p>Thanks to <a href="https://www.unfoldingword.org/">unfoldingWord</a> for creating <a href="https://git.door43.org/unfoldingWord/en_tn">these notes</a> to assist Bible translators.</p>' },
     }
 
-    if not TEST_MODE: assert len(BibleLocations) >= 42, len(BibleLocations)
+    if not TEST_MODE: assert len(BibleLocations) >= 45, len(BibleLocations)
     for versionLocation in BibleLocations.values():
-        # assert versionLocation.startswith('../copiedBibles/') or versionLocation.startswith('../../OpenEnglishTranslation--OET/')
-        pass
-    assert len(BibleVersionDecorations) == len(BibleVersions)+3, f"{len(BibleVersionDecorations)=} {len(BibleVersions)=}" # Adds Parallel and Interlinear and Dictionary
+        assert versionLocation.startswith('../copiedBibles/') \
+            or versionLocation.startswith('../../OpenEnglishTranslation--OET/') \
+            or versionLocation.startswith('../../Forked/') \
+            or versionLocation.startswith('/mnt/SSDs/Bibles/DataSets/')
+    assert len(BibleVersionDecorations) == len(BibleVersions)+3-6, f"{len(BibleVersionDecorations)=} {len(BibleVersions)=}"
+        # Above adds Parallel and Interlinear and Dictionary but subtracts selected-verses-only version
     assert len(BibleVersions)-1 >= len(BibleLocations) # OET is a pseudo-version
     assert len(BibleNames)-1 >= len(BibleLocations) # OET is a pseudo-version
     assert len(booksToLoad)-1 >= len(BibleLocations) # OET is a pseudo-version

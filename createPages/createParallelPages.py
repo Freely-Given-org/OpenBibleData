@@ -185,7 +185,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                     if '_verses.tsv' in state.BibleLocations[versionAbbreviation]: # then thisBible is NOT a Bible object, but a dict
                         ourRef = (BBB,C,V)
                         try:
-                            vHtml = convertUSFMMarkerListToHtml( level, versionAbbreviation, ourRef, 'verse', [], [('p~',thisBible[ourRef])], basicOnly=(c!=-1), state=state )
+                            vHtml = thisBible[ourRef].replace( '\\wj ', '<p class="wj">' ).replace( '\\wj*', '</p>' )
                             vHtml =  f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName"><a title="Go to {versionAbbreviation} copyright info" href="{'../'*level}allDetails.htm#{versionAbbreviation}">{versionAbbreviation}</a></span> {vHtml}</p>
 '''
                         except KeyError:
