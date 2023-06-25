@@ -119,8 +119,8 @@ class State:
     allBibleVersions = BibleVersions[:] # Keep a copy with the full list
 
     # Specific short lists
-    auxilliaryVersions = ['OET','TTN','TOBD'] # These ones don't have their own Bible locations at all
-    selectedVersesOnlyVersions = ['NLT','NIV','ESV','NASB','2ND','1ST'] # These ones have .tsv sources (and don't produce Bible objects)
+    auxilliaryVersions = ('OET','TTN','TOBD') # These ones don't have their own Bible locations at all
+    selectedVersesOnlyVersions = ('NLT','NIV','ESV','NASB','2ND','1ST') # These ones have .tsv sources (and don't produce Bible objects)
 
     # NOTE: We don't display the versions with only selected verses, so don't need decorations for them
     BibleVersionDecorations = { 'OET':('<b>','</b>'),'OET-RV':('<b>','</b>'),'OET-LV':('<b>','</b>'),
@@ -371,11 +371,11 @@ You can read more about the design of the OET-LV <a href="https://OpenEnglishTra
                 'acknowledgements': '<p>Thanks to <a href="https://www.unfoldingword.org/">unfoldingWord</a> for creating this specialised Bible translation which is designed to be a tool for Bible translators.</p>' },
         'BSB': {'about': '<p>Berean Standard Bible (2020).</p>',
                 'copyright': '<p>Copyright © 2016, 2020 by Bible Hub. Used by Permission. All Rights Reserved Worldwide.</p>',
-                'licence': '<p>The Berean Bible text is <a href="https://berean.bible/terms.htm">free to use</a> in any electronic form to promote the reading, learning, and understanding of the Holy Bible as the Word of God.</p>',
+                'licence': '<p>The Berean Bible text is <a href="https://berean.bible/terms.htm#Top">free to use</a> in any electronic form to promote the reading, learning, and understanding of the Holy Bible as the Word of God.</p>',
                 'acknowledgements': '<p>Thanks to <a href="https://biblehub.com/">BibleHub</a> for the <a href="https://berean.bible/">BSB</a>.</p>' },
         'BLB': {'about': '<p>Berean Literal Bible (2022).</p>',
                 'copyright': '<p>Copyright © 2022 by Bible Hub. Used by Permission. All Rights Reserved Worldwide.</p>',
-                'licence': '<p>The Berean Bible text is <a href="https://berean.bible/terms.htm">free to use</a> in any electronic form to promote the reading, learning, and understanding of the Holy Bible as the Word of God.</p>',
+                'licence': '<p>The Berean Bible text is <a href="https://berean.bible/terms.htm#Top">free to use</a> in any electronic form to promote the reading, learning, and understanding of the Holy Bible as the Word of God.</p>',
                 'acknowledgements': '<p>Thanks to <a href="https://biblehub.com/">BibleHub</a> for the <a href="https://berean.bible/">BLB</a>.</p>' },
         'OEB': {'about': '<p>Open English Bible (in progress).</p>',
                 'copyright': '<p>Copyright © 2010-2021 Russell Allen.</p>',
@@ -401,11 +401,11 @@ You can read more about the design of the OET-LV <a href="https://OpenEnglishTra
                 'copyright': '<p>Scripture taken from the NEW AMERICAN STANDARD BIBLE, © Copyright The Lockman Foundation 1960, 1962, 1963, 1968, 1971, 1972, 1973, 1975, 1977, 1995. Used by permission.</p>',
                 'licence': '<p>The text of the New American Standard Bible® may be quoted and/or reprinted up to and inclusive of five hundred (500) verses without express written permission of The Lockman Foundation, providing that the verses do not amount to a complete book of the Bible nor do the verses quoted account for more than 25% of the total work in which they are quoted.</p>',
                 'acknowledgements': '<p></p>' },
-        '2ND': {'about': '<p>The Second Testament (2023) by Scot McKnight.</p>',
+        '2ND': {'about': '<p>The Second Testament: A new translation (2023) by Scot McKnight.</p>',
                 'copyright': '<p>Copyright © 2023 by IVP Academic. Used by Permission. All Rights Reserved Worldwide.</p>',
                 'licence': '<p>Up to 300 verses may be used.</p>',
                 'acknowledgements': '<p></p>' },
-        '1ST': {'about': '<p>The First Testament (2018) by John Goldingay.</p>',
+        '1ST': {'about': '<p>The First Testament: A new translation (2018) by John Goldingay.</p>',
                 'copyright': '<p>Copyright © 2018 by IVP Academic. Used by Permission. All Rights Reserved Worldwide.</p>',
                 'licence': '<p>Up to 300 verses may be used.</p>',
                 'acknowledgements': '<p></p>' },
@@ -436,7 +436,7 @@ You can read more about the design of the OET-LV <a href="https://OpenEnglishTra
                 'acknowledgements': '<p>Thanks to <a href="https://byzantinetext.com/study/translations/">ByzantineText.com</a> for this work. (coming).</p>' },
         'T4T': {'about': '<p>Translation for Translators (2017).</p>',
                 'copyright': '<p>Copyright © (coming).</p>',
-                'licence': '<p><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a> as per <a href="https://ebible.org/t4t/copyright.htm">here</a>.</p>',
+                'licence': '<p><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a> as per <a href="https://ebible.org/t4t/copyright.htm#Top">here</a>.</p>',
                 'acknowledgements': '<p>Thanks to the late <a href="https://tahlequah.hartfuneralhome.net/obituary/Ellis-Deibler">Ellis Deibler</a> for his work in preparing this specialised text to be used as a Bible translation tool. (coming).</p>' },
         'LEB': {'about': '<p>Lexham English Bible (2010,2012).</p>',
                 'copyright': '<p>Copyright © 2012 <a href="http://www.logos.com/">Logos Bible Software</a>. Lexham is a registered trademark of <a href="http://www.logos.com/">Logos Bible Software</a>.</p>',
@@ -744,11 +744,11 @@ def createOETVersionPages( level:int, folder:Path, rvBible, lvBible, state:State
     versionName = state.BibleNames['OET']
     indexHtml = f'''<h1 id="Top">{versionName}</h1>
 <p class="rem">Remember that ancient letters were meant to be read in their entirety just like modern letters. We provide a byChapter mode for convenience only, but recommend the byDocument mode for personal reading.</p>
-<p class="viewLst"><a href="byDoc">By Document</a> <a href="bySec">By Section</a> <a href="byC">By Chapter</a> <a href="details.htm">Details</a></p>
+<p class="viewLst"><a href="byDoc">By Document</a> <a href="bySec">By Section</a> <a href="byC">By Chapter</a> <a href="details.htm#Top">Details</a></p>
 ''' if rvBible.discoveryResults['ALL']['haveSectionHeadings'] or lvBible.discoveryResults['ALL']['haveSectionHeadings'] else \
 f'''<h1 id="Top">{versionName}</h1>
 <p class="rem">Remember that ancient letters were meant to be read in their entirety just like modern letters. We provide a byChapter mode for convenience only, but recommend the byDocument mode for personal reading.</p>
-<p class="viewLst"><a href="byDoc">By Document</a> <a href="byC">By Chapter</a> <a href="details.htm">Details</a></p>
+<p class="viewLst"><a href="byDoc">By Document</a> <a href="byC">By Chapter</a> <a href="details.htm#Top">Details</a></p>
 '''
     filepath = folder.joinpath( 'index.htm' )
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
@@ -772,11 +772,11 @@ def createVersionPages( level:int, folder:Path, thisBible, state:State ) -> bool
     versionName = state.BibleNames[thisBible.abbreviation]
     indexHtml = f'''<h1 id="Top">{versionName}</h1>
 <p class="rem">Remember that ancient letters were meant to be read in their entirety just like modern letters. We provide a byChapter mode for convenience only, but recommend the byDocument mode for personal reading.</p>
-<p class="viewLst"><a href="byDoc">By Document</a> <a href="bySec">By Section</a> <a href="byC">By Chapter</a> <a href="details.htm">Details</a></p>
+<p class="viewLst"><a href="byDoc">By Document</a> <a href="bySec">By Section</a> <a href="byC">By Chapter</a> <a href="details.htm#Top">Details</a></p>
 ''' if thisBible.discoveryResults['ALL']['haveSectionHeadings'] else \
 f'''<h1 id="Top">{versionName}</h1>
 <p class="rem">Remember that ancient letters were meant to be read in their entirety just like modern letters. We provide a byChapter mode for convenience only, but recommend the byDocument mode for personal reading.</p>
-<p class="viewLst"><a href="byDoc">By Document</a> <a href="byC">By Chapter</a> <a href="details.htm">Details</a></p>
+<p class="viewLst"><a href="byDoc">By Document</a> <a href="byC">By Chapter</a> <a href="details.htm#Top">Details</a></p>
 '''
     filepath = folder.joinpath( 'index.htm' )
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
@@ -835,11 +835,11 @@ def createDetailsPages( level:int, buildFolder:Path, state ) -> bool:
         topHtml = makeTop( level+1, versionAbbreviation, 'details', 'details.htm', state ) \
                 .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{versionName} Details" ) \
                 .replace( '__KEYWORDS__', 'Bible, details, about, copyright, licence, acknowledgements' ) \
-                .replace( f'''<a title="{state.BibleNames[versionAbbreviation]}" href="{'../'*(level+1)}{BibleOrgSysGlobals.makeSafeString(versionAbbreviation)}/details.htm">{versionAbbreviation}</a>''',
+                .replace( f'''<a title="{state.BibleNames[versionAbbreviation]}" href="{'../'*(level+1)}{BibleOrgSysGlobals.makeSafeString(versionAbbreviation)}/details.htm#Top">{versionAbbreviation}</a>''',
                             f'''<a title="Up to {state.BibleNames[versionAbbreviation]}" href="{'../'*(level+1)}{BibleOrgSysGlobals.makeSafeString(versionAbbreviation)}/">↑{versionAbbreviation}</a>''' )
 
         extraHTML = '''<h2>Key to Abbreviations</h2>
-<p>See key and more information <a href="byDoc/FRT.htm">here</a>.</p>
+<p>See key and more information <a href="byDoc/FRT.htm#Top">here</a>.</p>
 ''' if versionAbbreviation == 'T4T' else ''
 
         detailsHtml = f"""{extraHTML}<h2>About the {versionAbbreviation}</h2>{state.detailsHtml[versionAbbreviation]['about']}
@@ -849,7 +849,7 @@ def createDetailsPages( level:int, buildFolder:Path, state ) -> bool:
 """
         bodyHtml = f'''<!--createDetailsPages--><h1 id="Top">{versionName} Details</h1>
 {detailsHtml}<hr>
-<p>See details for ALL included versions <a title="All versions’ details" href="../allDetails.htm">here</a>.</p>
+<p>See details for ALL included versions <a title="All versions’ details" href="../allDetails.htm#Top">here</a>.</p>
 '''
 
         allDetailsHTML = f'''{allDetailsHTML}{'<hr>' if allDetailsHTML else ''}<h2 id="{versionAbbreviation}">{versionName}</h2>
@@ -871,7 +871,7 @@ def createDetailsPages( level:int, buildFolder:Path, state ) -> bool:
     topHtml = makeTop( level, None, 'allDetails', 'details.htm', state ) \
             .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}All Versions Details" ) \
             .replace( '__KEYWORDS__', 'Bible, details, about, copyright, licence, acknowledgements' )
-            # .replace( f'''<a title="{state.BibleNames[versionAbbreviation]}" href="{'../'*(level+1)}{BibleOrgSysGlobals.makeSafeString(versionAbbreviation)}/details.htm">{versionAbbreviation}</a>''',
+            # .replace( f'''<a title="{state.BibleNames[versionAbbreviation]}" href="{'../'*(level+1)}{BibleOrgSysGlobals.makeSafeString(versionAbbreviation)}/details.htm#Top">{versionAbbreviation}</a>''',
             #             f'''<a title="Up to {state.BibleNames[versionAbbreviation]}" href="{'../'*(level+1)}{BibleOrgSysGlobals.makeSafeString(versionAbbreviation)}/">↑{versionAbbreviation}</a>''' )
     html = f'''{topHtml}<h1 id="Top">Details for all versions</h1>
 {allDetailsHTML}{makeBottom( level, 'allDetails', state )}'''
@@ -905,6 +905,10 @@ def createAboutPage( level:int, buildFolder:Path, state ) -> bool:
 <li>As a way to <b>showcase open-licenced Bible datasets</b>.
     Hence every word in the <em>OET-LV</em> is linked to the Greek word that they are translated from.
     In addition, most pronouns like ‘he’ or ‘she’ are linked to the earlier referrents in the text.</li>
+<li>For the comparison and evaluation of the history and quality and distinctives of various Bible translations.
+    So on the parallel verse pages, you can track Biblical wording right from the Biblical Hebrew or Greek (near the bottom of the page),
+        up through the Latin and then Wycliffe's and Tyndale's early English translations,
+        then right up through more modern translations all the way up to the OET at the top.</li>
 <li>We try to <b>downplay chapter and verse divisions</b>, and encourage readers to read narratives as narratives and letters as letters—would
         you take a letter or email from your mother, draw lines through it to divide it into random sections/chapters,
         and then read different sections on different days?
@@ -913,10 +917,10 @@ def createAboutPage( level:int, buildFolder:Path, state ) -> bool:
     Please contact us at <b>Freely</b> dot <b>Given</b> dot <b>org</b> at <b>gmail</b> dot <b>com</b>.</p>
 <p>Acknowledgement: The overall design of the site was influenced by <a href="https://BibleHub.com/">BibleHub.com</a>
         and their <a href="https://OpenBible.com/">OpenBible.com</a> which have many features that we like
-        and likely many overlapping goals.</p>
+        (and likely many overlapping goals).</p>
 <p>These pages are created by a Python program that takes the open-licenced resources and combines them in different ways on different pages.
     The program is still being developed, and hence this site (or this part of the site), is still at the prototype stage,
-        especially with respect to navigation around the pages which is still unfinished.</p>
+        especially with respect to navigation around the pages which is still being improved.</p>
 <p>The source code for the Python program can be found at <a href="https://github.com/Freely-Given-org/OpenBibleData">GitHub.com/Freely-Given-org/OpenBibleData</a>.
     You can also advise us of any errors by clicking on <em>New issue</em> <a href="https://github.com/Freely-Given-org/OpenBibleData/issues">here</a> and telling us the problem.</p>
 '''

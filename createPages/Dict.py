@@ -612,7 +612,7 @@ def createTyndaleDictPages( level:int, outputFolderPath, state ) -> bool:
         navLinks = f'<p id="__ID__" class="dNav">{leftLink}{indexLink} {introLink}{rightLink} {detailsLink}</p>'
         articleLinkHtml = ''
         for articleLinkName,articleDisplayName in articleList:
-            articleLink = f'<a title="Go to article" href="{articleLinkName}.htm">{articleDisplayName}</a>'
+            articleLink = f'<a title="Go to article" href="{articleLinkName}.htm#Top">{articleDisplayName}</a>'
             firstLetters = articleLinkName[:2]
             if articleLinkHtml:
                 articleLinkHtml = f'''{articleLinkHtml}{' ' if firstLetters==lastFirstLetters else f'{NEW_LINE}<br>'}{articleLink}'''
@@ -651,14 +651,14 @@ even though it was originally designed to supplement the <i>New Living Translati
     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(introHtml):,} characters written to {filepath}" )
 
     # Make overall index
-    letterLinkList = [f'''<a title="Go to index page for letter '{l}'" href="index_{l}.htm">{l}</a>''' for l in TOBDData['Letters']]
+    letterLinkList = [f'''<a title="Go to index page for letter '{l}'" href="index_{l}.htm#Top">{l}</a>''' for l in TOBDData['Letters']]
     filename = 'index.htm'
     filepath = outputFolderPath.joinpath( filename )
     top = makeTop( level, None, 'dictionaryMainIndex', None, state ) \
             .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}Dictionary Index" ) \
             .replace( '__KEYWORDS__', f'Bible, dictionary' )
     indexHtml = f'''{top}<h1 id="Top">Tyndale Open Bible Dictionary <small>{detailsLink}</small></h1>
-<p class="dNav"><a id="Go to dict intro" href="intro.htm">Introduction</a></p>
+<p class="dNav"><a id="Go to dict intro" href="intro.htm#Top">Introduction</a></p>
 <h2>Index of dictionary letters</h2>
 {' '.join(letterLinkList)}
 {makeBottom( level, 'dictionaryMainIndex', state )}'''
@@ -704,7 +704,7 @@ def fixTyndaleItemRefs( abbrev:str, level:int, articleLinkName:str, html:str, st
         assert tyndaleLinkPart.endswith( '_Article' ) or tyndaleLinkPart.endswith( '_Textbox' ) or tyndaleLinkPart.endswith( '_Map' ), f"{abbrev} {level} '{articleLinkName}' {tyndaleLinkPart=}"
         tyndaleName, tyndaleType = tyndaleLinkPart.split( '_' )
         # print( f"{tyndaleName=} {tyndaleType=}" )
-        ourNewLink = f"{tyndaleName}.htm"
+        ourNewLink = f"{tyndaleName}.htm#Top"
         # print( f"   {ourNewLink=}" )
         html = f'''{html[:ixStart+6]}{ourNewLink}{html[ixCloseQuote:]}'''
         searchStartIndex = ixStart + 10

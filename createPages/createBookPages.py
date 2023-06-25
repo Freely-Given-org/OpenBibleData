@@ -110,9 +110,9 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state ) -> Lis
         rvVerseEntryList, rvContextList = rvBible.getContextVerseData( (BBB,) )
         lvVerseEntryList, lvContextList = lvBible.getContextVerseData( (BBB,) )
         if isinstance( rvBible, ESFMBible.ESFMBible ):
-            rvVerseEntryList = livenOETWordLinks( rvBible, BBB, rvVerseEntryList, f"{'../'*level}rf/W/{{n}}.htm", state )
+            rvVerseEntryList = livenOETWordLinks( rvBible, BBB, rvVerseEntryList, f"{'../'*level}rf/W/{{n}}.htm#Top", state )
         if isinstance( lvBible, ESFMBible.ESFMBible ):
-            lvVerseEntryList = livenOETWordLinks( lvBible, BBB, lvVerseEntryList, f"{'../'*level}rf/W/{{n}}.htm", state )
+            lvVerseEntryList = livenOETWordLinks( lvBible, BBB, lvVerseEntryList, f"{'../'*level}rf/W/{{n}}.htm#Top", state )
         rvHtml = do_OET_RV_HTMLcustomisations( convertUSFMMarkerListToHtml( level, 'OET', (BBB,), 'book', rvContextList, rvVerseEntryList, basicOnly=False, state=state ) )
         lvHtml = do_OET_LV_HTMLcustomisations( convertUSFMMarkerListToHtml( level, 'OET', (BBB,), 'book', lvContextList, lvVerseEntryList, basicOnly=False, state=state ) )
 
@@ -173,7 +173,7 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state ) -> Lis
         top = makeTop( level, 'OET', 'book', f'byDoc/{filename}', state ) \
                 .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}OET {ourTidyBBB}" ) \
                 .replace( '__KEYWORDS__', f'Bible, OET, Open English Translation, book' ) \
-                .replace( f'''<a title="{state.BibleNames['OET']}" href="{'../'*level}OET/byDoc/{filename}">OET</a>''',
+                .replace( f'''<a title="{state.BibleNames['OET']}" href="{'../'*level}OET/byDoc/{filename}#Top">OET</a>''',
                           f'''<a title="Up to {state.BibleNames['OET']}" href="{'../'*level}OET/">↑OET</a>''' )
         bkHtml = f'''{top}<!--book page-->''' \
                     + bkHtml + removeDuplicateCVids( BBB, combinedHtml ) \
@@ -189,7 +189,7 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state ) -> Lis
     for BBB in BBBs:
         ourTidyBBB = tidyBBB( BBB )
         filename = f'{BBB}.htm'
-        BBBLinks.append( f'''<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB).replace('James','Jacob/James')}" href="{filename}">{ourTidyBBB}</a>''' )
+        BBBLinks.append( f'''<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB).replace('James','Jacob/James')}" href="{filename}#Top">{ourTidyBBB}</a>''' )
     filename = 'index.htm'
     filenames.append( filename )
     filepath = folder.joinpath( filename )
@@ -230,7 +230,7 @@ def createBookPages( level:int, folder:Path, thisBible, state ) -> List[str]:
                 else thisBibleBooksToLoad
     if 'OET' in thisBible.abbreviation:
         BBBsToProcess = reorderBooksForOETVersions( BBBsToProcess )
-    
+
     BBBs, filenames = [], []
     for BBB in BBBsToProcess:
         ourTidyBBB = tidyBBB( BBB )
@@ -252,7 +252,7 @@ def createBookPages( level:int, folder:Path, thisBible, state ) -> List[str]:
 '''
         verseEntryList, contextList = thisBible.getContextVerseData( (BBB,) )
         if isinstance( thisBible, ESFMBible.ESFMBible ):
-            verseEntryList = livenOETWordLinks( thisBible, BBB, verseEntryList, f"{'../'*level}rf/W/{{n}}.htm", state )
+            verseEntryList = livenOETWordLinks( thisBible, BBB, verseEntryList, f"{'../'*level}rf/W/{{n}}.htm#Top", state )
         textHtml = convertUSFMMarkerListToHtml( level, thisBible.abbreviation, (BBB,), 'book', contextList, verseEntryList, basicOnly=False, state=state )
         # textHtml = livenIORs( BBB, textHtml )
         if thisBible.abbreviation == 'OET-RV':
@@ -270,7 +270,7 @@ def createBookPages( level:int, folder:Path, thisBible, state ) -> List[str]:
         top = makeTop( level, thisBible.abbreviation, 'book', f'byDoc/{filename}', state ) \
                 .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{thisBible.abbreviation} {ourTidyBBB} book" ) \
                 .replace( '__KEYWORDS__', f'Bible, {thisBible.abbreviation}, book' ) \
-                .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*level}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/byDoc/{filename}">{thisBible.abbreviation}</a>''',
+                .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*level}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/byDoc/{filename}#Top">{thisBible.abbreviation}</a>''',
                           f'''<a title="Up to {state.BibleNames[thisBible.abbreviation]}" href="{'../'*level}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/">↑{thisBible.abbreviation}</a>''' )
         bkHtml = top + '<!--book page-->' + bkHtml + '\n' + makeBottom( level, 'book', state )
         checkHtml( thisBible.abbreviation, bkHtml )
@@ -283,7 +283,7 @@ def createBookPages( level:int, folder:Path, thisBible, state ) -> List[str]:
     for BBB in BBBs:
         ourTidyBBB = tidyBBB( BBB )
         filename = f'{BBB}.htm'
-        BBBLinks.append( f'<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB)}" href="{filename}">{ourTidyBBB}</a>' )
+        BBBLinks.append( f'<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB)}" href="{filename}#Top">{ourTidyBBB}</a>' )
     # Create index page
     filename = 'index.htm'
     filenames.append( filename )

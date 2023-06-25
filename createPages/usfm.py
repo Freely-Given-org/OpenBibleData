@@ -134,7 +134,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                 # We want both verse numbers to be searchable
                 if int(V2) != int(V1)+1: # We don't handle 3+ verse reordering well yet
                     logging.critical( f" Not handling 3+ verse bridge well yet at {versionAbbreviation} {refTuple} {C}:{V}" )
-                vLink = f'''<a title="Go to verse in parallel view" href="{'../'*level}pa/{BBB}/C{C}V{V1}.htm">{V1}</a>'''
+                vLink = f'''<a title="Go to verse in parallel view" href="{'../'*level}pa/{BBB}/C{C}V{V1}.htm#Top">{V1}</a>'''
                 html = f'{html}{"" if html.endswith(">") else " "}' \
                         + f'''{f"""<span id="C{C}"></span><span class="{'cPsa' if BBB=='PSA' else 'c'}" id="C{C}V1">{C}</span>""" if V1=="1" else f"""<span class="v" id="C{C}V{V1}">{vLink}-</span>"""}''' \
                         + f'<span class="v" id="C{C}V{V2}">{V2}{NARROW_NON_BREAK_SPACE}</span>' \
@@ -143,8 +143,8 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                 if segmentType != 'verse': # No need for verse numbers at all if we're only displaying one verse
                     if not V.isdigit():
                         logging.critical( f"Expected a verse number digit at {versionAbbreviation} {refTuple} {C}:{V} {rest=}" )
-                    cLink = f'''<a title="Go to verse in parallel view" href="{'../'*level}pa/{BBB}/C{C}V1.htm">{C}</a>'''
-                    vLink = f'''<a title="Go to verse in parallel view" href="{'../'*level}pa/{BBB}/C{C}V{V}.htm">{V}</a>'''
+                    cLink = f'''<a title="Go to verse in parallel view" href="{'../'*level}pa/{BBB}/C{C}V1.htm#Top">{C}</a>'''
+                    vLink = f'''<a title="Go to verse in parallel view" href="{'../'*level}pa/{BBB}/C{C}V{V}.htm#Top">{V}</a>'''
                     html = f'{html}{"" if html.endswith(">") or html.endswith("—") else " "}' \
                             + f'''{f"""<span id="C{C}"></span><span class="{'cPsa' if BBB=='PSA' else 'c'}" id="C{C}V1">{cLink}{NARROW_NON_BREAK_SPACE}</span>""" if V=="1" else f"""<span class="v" id="C{C}V{V}">{vLink}{NARROW_NON_BREAK_SPACE}</span>"""}'''
                 # html = f'{html} <span class="v" id="C{refTuple[1]}V{V}">{V}{NARROW_NON_BREAK_SPACE}</span>'
@@ -495,7 +495,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                 if versionAbbreviation not in ('ULT','UST') \
                 or ('GEN' not in refTuple and 'MAT' not in refTuple and 'PSA' not in refTuple and 'ISA' not in refTuple and 'JER' not in refTuple and 'DEU' not in refTuple): # ULT Gen 14:21, ISA and UST MAT has an encoding fault in 12:20 14Feb2023
                     raise Exception( f"Left-over backslash {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} '{html}'" )
-    
+
     # Check for left-over unclosed segments
     logger = logging.critical if segmentType=='book' else logging.warning
     if inParagraph:
@@ -806,7 +806,7 @@ def formatUSFMText( versionAbbreviation:str, refTuple:tuple, segmentType:str, us
                                     found = True
                                     break
                             if found:
-                                newLink = f'<a title="Go to to section page with reference" href="{ourBBB}_S{n}.htm">{jmpDisplay}</a>'
+                                newLink = f'<a title="Go to to section page with reference" href="{ourBBB}_S{n}.htm#Top">{jmpDisplay}</a>'
                             else:
                                 logging.critical( f"unable_to_find_reference for {ourBBB} {refC}:{refV} {[f'{startC}:{startV}…{endC}:{endV}' for startC,startV,endC,endV,sectionName,reasonName,contextList,verseEntryList,filename in state.sectionsLists[versionAbbreviation]]}" )
                                 newLink = jmpDisplay # Can't make a link
@@ -939,7 +939,7 @@ def livenIntroductionLinks( versionAbbreviation:str, refTuple:tuple, segmentType
                         found = True
                         break
                 if found:
-                    newGuts = f'<a title="Go to to section page with reference" href="{refBBB}_S{n}.htm">{guts}</a>'
+                    newGuts = f'<a title="Go to to section page with reference" href="{refBBB}_S{n}.htm#Top">{guts}</a>'
                 else:
                     logging.critical( f"unable_to_find_reference for {refBBB} {refC}:{refV} {[f'{startC}:{startV}…{endC}:{endV}' for startC,startV,endC,endV,sectionName,reasonName,contextList,verseEntryList,filename in state.sectionsLists[versionAbbreviation]]}" )
                     newGuts = guts # Can't make a link
@@ -988,7 +988,7 @@ def livenIntroductionLinks( versionAbbreviation:str, refTuple:tuple, segmentType
                         found = True
                         break
                 if found:
-                    newGuts = f'<a title="Jump to section page with reference" href="{ourBBB}_S{n}.htm">{guts}</a>'
+                    newGuts = f'<a title="Jump to section page with reference" href="{ourBBB}_S{n}.htm#Top">{guts}</a>'
                 else:
                     logging.critical( f"PROBABLY WRONGLY GUESSED BOOK: unable_to_find_reference for {ourBBB=} {refC}:{refV} {[f'{startC}:{startV}…{endC}:{endV}' for startC,startV,endC,endV,sectionName,reasonName,contextList,verseEntryList,filename in state.sectionsLists[versionAbbreviation][ourBBB]]}" )
                     newGuts = guts # Can't make a link
@@ -1059,7 +1059,7 @@ def livenIORs( versionAbbreviation:str, refTuple:tuple, segmentType:str, ioLineH
                         found = True
                         break
                 if found:
-                    newGuts = f'<a title="Jump to section page with reference" href="{ourBBB}_S{n}.htm">{guts}</a>'
+                    newGuts = f'<a title="Jump to section page with reference" href="{ourBBB}_S{n}.htm#Top">{guts}</a>'
                 else:
                     logging.critical( f"unable_to_find_IOR for {ourBBB} {Cstr}:{Vstr} {[f'{startC}:{startV}…{endC}:{endV}' for startC,startV,endC,endV,sectionName,reasonName,contextList,verseEntryList,filename in state.sectionsLists[versionAbbreviation][ourBBB]]}" )
                     newGuts = guts # Can't make a link

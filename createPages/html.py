@@ -96,7 +96,7 @@ def makeTop( level:int, versionAbbreviation:Optional[str], pageType:str, fileOrF
         cssFilename = 'BibleDict.css'
     else: cssFilename = 'BibleSite.css'
 
-    aboutLink = 'About' if pageType=='about' else f'''<a href="{'../'*level}about.htm">About</a>'''
+    aboutLink = 'About' if pageType=='about' else f'''<a href="{'../'*level}about.htm#Top">About</a>'''
     if TEST_MODE:
         topLink = f'<p class="site">TEST Open Bible Data Home  {aboutLink}</p>' if pageType=='topIndex' \
             else f'''<p class="site"><a href="{'index.htm' if level==0 else '../'*level}">TEST Open Bible Data Home</a>  {aboutLink}</p>'''
@@ -120,7 +120,7 @@ def makeTop( level:int, versionAbbreviation:Optional[str], pageType:str, fileOrF
   <meta charset="utf-8">
   <meta name="viewport" content="user-scalable=yes, initial-scale=1, minimum-scale=1, width=device-width">
   <meta name="keywords" content="__KEYWORDS__">
-  <link rel="stylesheet" type="text/css" href="{'../'*level}{cssFilename}">
+  <link rel="stylesheet" type="text/css" href="{'../'*level}{cssfilename}#Top">
 </head><body><!--Level{level}-->{topLink}
 <h3>Demonstration version—prototype quality only—still in development</h3>
 """
@@ -177,7 +177,7 @@ def _makeHeader( level:int, versionAbbreviation:str, pageType:str, fileOrFolderN
     # if pageType == 'about':
     #     initialVersionList.append( 'About' )
     # else: # add a link for about page
-    #     initialVersionList.append( f'''<a title="About OBD" href="{'../'*level}about.htm">About</a>''' )
+    #     initialVersionList.append( f'''<a title="About OBD" href="{'../'*level}about.htm#Top">About</a>''' )
 
     # This code tries to adjust links to books which aren't in a version, e.g., UHB has no NT books, SR-GNT and UGNT have no OT books
     # It does this by adjusting the potential bad link to the next level higher.
@@ -235,7 +235,7 @@ def _makeHeader( level:int, versionAbbreviation:str, pageType:str, fileOrFolderN
         # if pageType != 'chapter':
         viewLinks.append( f'''<a title="View chapter" href="{'../'*level}{versionAbbreviation}/byC/">By Chapter</a>''' )
         if pageType != 'details':
-            viewLinks.append( f'''<a title="View chapter" href="{'../'*level}{versionAbbreviation}/details.htm">Details</a>''' )
+            viewLinks.append( f'''<a title="View chapter" href="{'../'*level}{versionAbbreviation}/details.htm#Top">Details</a>''' )
     viewHtml = f'''<p class="viewLst">{' '.join(viewLinks)}</p>''' if viewLinks else ''
 
     return f'''<div class="header">{versionHtml}{NEWLINE if viewHtml else ''}{viewHtml}</div><!--header-->'''
@@ -289,7 +289,7 @@ def _makeFooter( level:int, pageType:str, state ) -> str:
     html = f"""<div class="footer">
 <p class="copyright"><small><em>{'TEST ' if TEST_MODE else ''}Open Bible Data</em> site copyright © 2023 <a href="https://Freely-Given.org">Freely-Given.org</a>
 <br>Python source code for creating these static pages is available <a href="https://GitHub.com/Freely-Given-org/OpenBibleData">here</a> under an <a href="https://GitHub.com/Freely-Given-org/OpenBibleData/blob/main/LICENSE">open licence</a>.{datetime.now().strftime('<br> (Page created: %Y-%m-%d %H:%M)') if TEST_MODE else ''}</small></p>
-<p class="copyright"><small>For Bible data copyrights, see the <a href="{'../'*level}allDetails.htm">details</a> for each displayed Bible version.</small></p>
+<p class="copyright"><small>For Bible data copyrights, see the <a href="{'../'*level}allDetails.htm#Top">details</a> for each displayed Bible version.</small></p>
 </div><!--footer-->"""
     return html
 # end of html._makeFooter

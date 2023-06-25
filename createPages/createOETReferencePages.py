@@ -193,9 +193,9 @@ def make_word_pages( level:int, outputFolderPath:Path, state ) -> None:
                     tagPrefix, tag = semanticTag[0], semanticTag[1:]
                     # print( f"{BBB} {C}:{V} '{semanticTag}' from {tagsStr=}" )
                     if tagPrefix == 'P':
-                        semanticExtras = f'''{semanticExtras}{' ' if semanticExtras else ''}Person=<a title="View person details" href="../P/{tag}.htm">{tag}</a>'''
+                        semanticExtras = f'''{semanticExtras}{' ' if semanticExtras else ''}Person=<a title="View person details" href="../P/{tag}.htm#Top">{tag}</a>'''
                     elif tagPrefix == 'L':
-                        semanticExtras = f'''{semanticExtras}{' ' if semanticExtras else ''}Location=<a title="View place details" href="../L/{tag}.htm">{tag}</a>'''
+                        semanticExtras = f'''{semanticExtras}{' ' if semanticExtras else ''}Location=<a title="View place details" href="../L/{tag}.htm#Top">{tag}</a>'''
                     elif tagPrefix == 'Y':
                         year = tag
                         semanticExtras = f'''{semanticExtras}{' ' if semanticExtras else ''}Year={year}{' AD' if int(year)>0 else ''}'''
@@ -206,26 +206,26 @@ def make_word_pages( level:int, outputFolderPath:Path, state ) -> None:
                     elif tagPrefix == 'G':
                         semanticExtras = f'''{semanticExtras}{' ' if semanticExtras else ''}Group={tag}'''
                     elif tagPrefix == 'F':
-                        semanticExtras = f'''{semanticExtras}{' ' if semanticExtras else ''}Referred to from <a title="Go to referent word" href="{tag}.htm">Word #{tag}</a>'''
+                        semanticExtras = f'''{semanticExtras}{' ' if semanticExtras else ''}Referred to from <a title="Go to referent word" href="{tag}.htm#Top">Word #{tag}</a>'''
                     elif tagPrefix == 'R':
-                        semanticExtras = f'''{semanticExtras}{' ' if semanticExtras else ''}Refers to <a title="Go to referred word" href="{tag}.htm">Word #{tag}</a>'''
+                        semanticExtras = f'''{semanticExtras}{' ' if semanticExtras else ''}Refers to <a title="Go to referred word" href="{tag}.htm#Top">Word #{tag}</a>'''
                     else:
                         logging.critical( f"Unknown '{tagPrefix}' word tag in {n}: {columns_string}")
                         unknownTag
-            lemmaLink = f'<a title="View Greek root word" href="../G/{lemma}.htm">{lemma}</a>'
+            lemmaLink = f'<a title="View Greek root word" href="../G/{lemma}.htm#Top">{lemma}</a>'
             lemmaGlossesList = sorted( state.OETRefData['lemmaGlossesDict'][lemma] )
             wordGlossesList = sorted( state.OETRefData['formGlossesDict'][(greek,morphology)] )
 
             prevLink = f'<b><a title="Previous word" href="{n-1}.htm#Top">←</a></b> ' if n>1 else ''
             nextLink = f' <b><a title="Next word" href="{n+1}.htm#Top">→</a></b>' if n<len(state.OETRefData['word_table']) else ''
             oetLink = f''' <a title="View whole chapter" href="{'../'*level}OET/byC/{BBB}_C{C}.htm#C{C}">{ourTidyBbb}{NARROW_NON_BREAK_SPACE}{C}</a>'''
-            parallelLink = f''' <b><a title="View verse in many versions" href="{'../'*level}pa/{BBB}/C{C}V{V}.htm">║</a></b>'''
-            interlinearLink = f''' <b><a title="View verse in many versions" href="{'../'*level}il/{BBB}/C{C}V{V}.htm">═</a></b>''' if BBB in state.booksToLoad['OET'] else ''
+            parallelLink = f''' <b><a title="View verse in many versions" href="{'../'*level}pa/{BBB}/C{C}V{V}.htm#Top">║</a></b>'''
+            interlinearLink = f''' <b><a title="View verse in many versions" href="{'../'*level}il/{BBB}/C{C}V{V}.htm#Top">═</a></b>''' if BBB in state.booksToLoad['OET'] else ''
             html = f'''{'' if probability else '<div class="unusedWord">'}<h1 id="Top">OET Wordlink #{n}{'' if probability else ' <small>(Unused Greek word variant)</small>'}</h1>
 <p class="pNav">{prevLink}<b>{greek}</b>{nextLink}{oetLink}{parallelLink}{interlinearLink}</p>
 <p><a title="Go to Statistical Restoration Greek page" href="https://GreekCNTR.org/collation/?{CNTR_BOOK_ID_MAP[BBB]}{C.zfill(3)}{V.zfill(3)}">SR GNT {ourTidyBBB} {C}:{V}</a>
  {probabilityField if TEST_MODE else ''}<b>{greek}</b> ({transliterate_Greek(greek)}) {translation}{capsField if TEST_MODE else ''}
- Strongs=<a title="Goes to Strongs dictionary" href="https://BibleHub.com/greek/{strongs}.htm">{extendedStrongs}</a> <small>Lemma={lemmaLink}</small><br>
+ Strongs=<a title="Goes to Strongs dictionary" href="https://BibleHub.com/greek/{strongs}.htm#Top">{extendedStrongs}</a> <small>Lemma={lemmaLink}</small><br>
  {roleField}{moodField}{tenseField}{voiceField}{personField}{caseField}{genderField}{numberField}{f'<br>  {semanticExtras}' if semanticExtras else ''}</p>
 <p><small>Note: With the help of a companion website, these word pages enable you to click through all the way back to photographs of the original manuscripts that the <em>Open English Translation</em> New Testament is translated from.
 If you go to the <em>Statistical Restoration</em> Greek page (by clicking on the SR Bible reference above), from there you can click on the original manuscript numbers (e.g., 𝔓1, 01, 02, etc.) in the <i>Witness</i> column there, to see their transcription of the original Greek page.
@@ -278,7 +278,7 @@ if oBBB in state.preloadedBibles['OET-RV'] else f'''{html}\n<p>OET {oTidyBBB} {o
             html = makeTop( level, None, 'word', None, state ) \
                                     .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}NT Word ‘{greek}’" ) \
                                     .replace( '__KEYWORDS__', 'Bible, word' ) \
-                                    .replace( 'pa/"', f'pa/{BBB}/C{C}V{V}.htm"' ) \
+                                    .replace( 'pa/"', f'pa/{BBB}/C{C}V{V}.htm#Top"' ) \
                                 + html + makeBottom( level, 'word', state )
             with open( outputFolderPath.joinpath(output_filename), 'wt', encoding='utf-8' ) as html_output_file:
                 html_output_file.write( html )
@@ -312,7 +312,7 @@ def make_Greek_lemma_pages( level:int, outputFolderPath:Path, state ) -> None:
         nextLink = f' <b><a title="Next lemma" href="{lemmaList[ll+1]}.htm#Top">→</a></b>' if ll<len(lemmaList)-1 else ''
         html = f'''<h1 id="Top">Greek root word (lemma) ‘{lemma}’</h1>
 <p class="pNav">{prevLink}<b>{lemma}</b>{nextLink}</p>
-<p>This root form (lemma) is used in {len(lemmaFormsList):,} different forms in the NT: {', '.join([f'<a title="View Greek word form" href="../W/{getFirstWordNumber(grk,morph)}.htm">{grk}</a> <small>({morph})</small>' for grk,morph in lemmaFormsList])}.</p>
+<p>This root form (lemma) is used in {len(lemmaFormsList):,} different forms in the NT: {', '.join([f'<a title="View Greek word form" href="../W/{getFirstWordNumber(grk,morph)}.htm#Top">{grk}</a> <small>({morph})</small>' for grk,morph in lemmaFormsList])}.</p>
 <p>It is glossed in {len(lemmaGlossesList):,} different ways: {', '.join(lemmaGlossesList)}.</p>
 '''
 
@@ -328,7 +328,7 @@ def make_Greek_lemma_pages( level:int, outputFolderPath:Path, state ) -> None:
                 oTidyBBB = tidyBBB( oBBB )
                 # if other_count == 0:
                 translation = '<small>(no English gloss here)</small>' if oGlossWords=='-' else f'''English gloss=‘<b>{oGlossWords.replace('_','<span class="ul">_</span>')}</b>’'''
-                html = f'''{html}\n<p><a title="View OET {oTidyBBB} text" href="{'../'*level}OET/byC/{oBBB}_C{oC}.htm#C{oC}V{oV}">OET {oTidyBBB} {oC}:{oV}</a> Greek word=<b><a title="Go to word page" href="../W/{oN}.htm">{oGreek}</a></b> ({transliterate_Greek(oGreek)}) <small>Morphology={oMorphology}</small> {translation}
+                html = f'''{html}\n<p><a title="View OET {oTidyBBB} text" href="{'../'*level}OET/byC/{oBBB}_C{oC}.htm#C{oC}V{oV}">OET {oTidyBBB} {oC}:{oV}</a> Greek word=<b><a title="Go to word page" href="../W/{oN}.htm#Top">{oGreek}</a></b> ({transliterate_Greek(oGreek)}) <small>Morphology={oMorphology}</small> {translation}
  <a title="Go to Statistical Restoration Greek page" href="https://GreekCNTR.org/collation/?{CNTR_BOOK_ID_MAP[oBBB]}{oC.zfill(3)}{oV.zfill(3)}">SR GNT {oTidyBBB} {oC}:{oV} word {oW}</a>'''
                 # other_count += 1
                 # if other_count >= 120:
@@ -374,8 +374,8 @@ def make_person_pages( level:int, outputFolderPath:Path, state ) -> int:
         if personKey == '__HEADERS__': continue
         if personKey == '__COLUMN_HEADERS__': continue
 
-        previousLink = f'''<a title="Previous person" href="{peopleKeys[n-3][1:]}.htm">←</a>''' if n>3 else ''
-        nextLink = f'''<a title="Next person" href="{peopleKeys[n-1][1:]}.htm">→</a>''' if n<len(peopleDict)-1 else ''
+        previousLink = f'''<a title="Previous person" href="{peopleKeys[n-3][1:]}.htm#Top">←</a>''' if n>3 else ''
+        nextLink = f'''<a title="Next person" href="{peopleKeys[n-1][1:]}.htm#Top">→</a>''' if n<len(peopleDict)-1 else ''
 
         personName = entry['displayTitle']
         bornStr = f"Born: {entry['birthYear']}" if entry['birthYear'] else ''
@@ -386,7 +386,7 @@ def make_person_pages( level:int, outputFolderPath:Path, state ) -> int:
 <p>{entry['gender']}{f' {bornStr}' if bornStr else ''}{f' {diedStr}' if diedStr else ''}</p>'''
 
         # Now put it all together
-        output_filename = f"{personKey[1:]}.htm"
+        output_filename = f"{personKey[1:]}.htm#Top"
         html = f'''{makeTop( level, None, 'person', None, state )
                                     .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{personName}" )
                                     .replace( '__KEYWORDS__', 'Bible, word' )
@@ -429,8 +429,8 @@ def make_location_pages( level:int, outputFolderPath:Path, state ) -> int:
         if placeKey == '__HEADERS__': continue
         if placeKey == '__COLUMN_HEADERS__': continue
 
-        previousLink = f'''<a title="Previous location" href="{placeKeys[n-3][1:]}.htm">←</a>''' if n>3 else ''
-        nextLink = f'''<a title="Next location" href="{placeKeys[n-1][1:]}.htm">→</a>''' if n<len(locationsDict)-1 else ''
+        previousLink = f'''<a title="Previous location" href="{placeKeys[n-3][1:]}.htm#Top">←</a>''' if n>3 else ''
+        nextLink = f'''<a title="Next location" href="{placeKeys[n-1][1:]}.htm#Top">→</a>''' if n<len(locationsDict)-1 else ''
 
         placeName = entry['displayTitle']
         commentStr = f" {entry['comment']}" if entry['comment'] else ''
@@ -441,7 +441,7 @@ def make_location_pages( level:int, outputFolderPath:Path, state ) -> int:
 <p>KJB=‘{entry['kjvName']}’ ESV=‘{entry['esvName']}’</p>'''
 
         # Now put it all together
-        output_filename = f"{placeKey[1:]}.htm"
+        output_filename = f"{placeKey[1:]}.htm#Top"
         html = f'''{makeTop( level, None, 'location', None, state )
                                     .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{placeName}" )
                                     .replace( '__KEYWORDS__', 'Bible, word' )
