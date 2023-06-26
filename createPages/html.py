@@ -56,7 +56,7 @@ from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39, BOOKLIST_NT27
 LAST_MODIFIED_DATE = '2023-06-25' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
-PROGRAM_VERSION = '0.47'
+PROGRAM_VERSION = '0.48'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -120,7 +120,7 @@ def makeTop( level:int, versionAbbreviation:Optional[str], pageType:str, fileOrF
   <meta charset="utf-8">
   <meta name="viewport" content="user-scalable=yes, initial-scale=1, minimum-scale=1, width=device-width">
   <meta name="keywords" content="__KEYWORDS__">
-  <link rel="stylesheet" type="text/css" href="{'../'*level}{cssfilename}#Top">
+  <link rel="stylesheet" type="text/css" href="{'../'*level}{cssFilename}">
 </head><body><!--Level{level}-->{topLink}
 <h3>Demonstration version—prototype quality only—still in development</h3>
 """

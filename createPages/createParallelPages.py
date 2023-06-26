@@ -46,7 +46,7 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_
 from createOETReferencePages import livenOETWordLinks
 
 
-LAST_MODIFIED_DATE = '2023-06-25' # by RJH
+LAST_MODIFIED_DATE = '2023-06-26' # by RJH
 SHORT_PROGRAM_NAME = "createParallelPages"
 PROGRAM_NAME = "OpenBibleData createParallelPages functions"
 PROGRAM_VERSION = '0.69'
@@ -251,7 +251,8 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                                         searchStartIndex = ixEnd
                                     # print( f"Now {transcription=}" )
                                     # if '<span' in transcription: halt
-                                textHtml = f'{textHtml}<br>  ({transcription})'
+                                if transcription:
+                                    textHtml = f'{textHtml}<br>  ({transcription})'
                                 # print( textHtml)
                             elif versionAbbreviation in ('UHB',):
                                 # print( f"{versionAbbreviation} {BBB} {C}:{V} {textHtml=}")

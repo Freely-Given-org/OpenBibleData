@@ -105,7 +105,7 @@ class State:
                 'BSB','BLB',
                 'OEB','ISV',
                 'NLT','NIV','ESV','NASB',
-                '2ND','1ST',
+                '2DT','1ST',
                 'WEB','WMB','NET','LSV','FBV','TCNT','T4T','LEB','BBE',
                 'JPS','ASV','DRA','YLT','DBY','RV','WBS','KJB','BB','GNV','CB',
                 'TNT','WYC','CLV',
@@ -120,7 +120,7 @@ class State:
 
     # Specific short lists
     auxilliaryVersions = ('OET','TTN','TOBD') # These ones don't have their own Bible locations at all
-    selectedVersesOnlyVersions = ('NLT','NIV','ESV','NASB','2ND','1ST') # These ones have .tsv sources (and don't produce Bible objects)
+    selectedVersesOnlyVersions = ('NLT','NIV','ESV','NASB','2DT','1ST') # These ones have .tsv sources (and don't produce Bible objects)
 
     # NOTE: We don't display the versions with only selected verses, so don't need decorations for them
     BibleVersionDecorations = { 'OET':('<b>','</b>'),'OET-RV':('<b>','</b>'),'OET-LV':('<b>','</b>'),
@@ -156,7 +156,7 @@ class State:
                 'NIV': '../copiedBibles/English/NIV_verses.tsv',
                 'ESV': '../copiedBibles/English/ESV_verses.tsv',
                 'NASB': '../copiedBibles/English/NASB_verses.tsv',
-                '2ND': '../copiedBibles/English/2ND_verses.tsv',
+                '2DT': '../copiedBibles/English/2DT_verses.tsv',
                 '1ST': '../copiedBibles/English/1ST_verses.tsv',
                 'WEB': '../copiedBibles/English/eBible.org/WEB/',
                 'WMB': '../copiedBibles/English/eBible.org/WMB/',
@@ -207,7 +207,7 @@ class State:
                 'NIV': 'New International Version (2011)',
                 'ESV': 'English Standard Version (2001)',
                 'NASB': 'New American Standard Bible (1995)',
-                '2ND': 'The Second Testament (2023)',
+                '2DT': 'The Second Testament (2023)',
                 '1ST': 'The First Testament (2018)',
                 'WEB': 'World English Bible (2023)',
                 'WMB': 'World Messianic Bible (2023) / Hebrew Names Version (HNV)',
@@ -259,7 +259,7 @@ class State:
                 'NIV': ['ALL'],
                 'ESV': ['ALL'],
                 'NASB': ['ALL'],
-                '2ND': ['ALL'],
+                '2DT': ['ALL'],
                 '1ST': ['ALL'],
                 'WEB': ['ALL'],
                 'WMB': ['ALL'],
@@ -308,7 +308,7 @@ class State:
                 'NIV': ['MRK'],
                 'ESV': ['MRK'],
                 'NASB': ['MRK'],
-                '2ND': ['MRK'],
+                '2DT': ['MRK'],
                 '1ST': ['MRK'],
                 'WEB': ['MRK'],
                 'WMB': ['MRK'],
@@ -401,7 +401,7 @@ You can read more about the design of the OET-LV <a href="https://OpenEnglishTra
                 'copyright': '<p>Scripture taken from the NEW AMERICAN STANDARD BIBLE, © Copyright The Lockman Foundation 1960, 1962, 1963, 1968, 1971, 1972, 1973, 1975, 1977, 1995. Used by permission.</p>',
                 'licence': '<p>The text of the New American Standard Bible® may be quoted and/or reprinted up to and inclusive of five hundred (500) verses without express written permission of The Lockman Foundation, providing that the verses do not amount to a complete book of the Bible nor do the verses quoted account for more than 25% of the total work in which they are quoted.</p>',
                 'acknowledgements': '<p></p>' },
-        '2ND': {'about': '<p>The Second Testament: A new translation (2023) by Scot McKnight.</p>',
+        '2DT': {'about': '<p>The Second Testament: A new translation (2023) by Scot McKnight.</p>',
                 'copyright': '<p>Copyright © 2023 by IVP Academic. Used by Permission. All Rights Reserved Worldwide.</p>',
                 'licence': '<p>Up to 300 verses may be used.</p>',
                 'acknowledgements': '<p></p>' },
