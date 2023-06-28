@@ -52,10 +52,10 @@ from BibleOrgSys.Internals.InternalBibleInternals import getLeadingInt
 from html import checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-06-08' # by RJH
+LAST_MODIFIED_DATE = '2023-06-28' # by RJH
 SHORT_PROGRAM_NAME = "usfm"
 PROGRAM_NAME = "OpenBibleData USFM to HTML functions"
-PROGRAM_VERSION = '0.47'
+PROGRAM_VERSION = '0.48'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -721,6 +721,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
 # end of usfm.convertUSFMMarkerListToHtml
 
 
+OUR_CHARACTER_MARKER_LIST = BibleOrgSysGlobals.USFMAllExpandedCharacterMarkers + ['untr']
 def formatUSFMText( versionAbbreviation:str, refTuple:tuple, segmentType:str, usfmField:str, basicOnly:bool, state ) -> str:
     """
     Handles character formatting inside USFM lines.
@@ -729,7 +730,7 @@ def formatUSFMText( versionAbbreviation:str, refTuple:tuple, segmentType:str, us
     """
     fnPrint( DEBUGGING_THIS_MODULE, f"formatUSFMText( {versionAbbreviation}, {refTuple}, {segmentType}, {usfmField}, {basicOnly=} )" )
     dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"formatUSFMText( {versionAbbreviation}, {refTuple}, {segmentType}, {usfmField}, {basicOnly=} )" )
-    for charMarker in BibleOrgSysGlobals.USFMAllExpandedCharacterMarkers + ['fig']:
+    for charMarker in OUR_CHARACTER_MARKER_LIST + ['fig']:
         openCount, closeCount = usfmField.count( f'\\{charMarker} ' ), usfmField.count( f'\\{charMarker}*' )
         if openCount != closeCount:
             logging.critical( f"Mismatched USFM character markers: '{charMarker}' open={openCount} close={closeCount} from {versionAbbreviation} {refTuple} '{usfmField}'" )
@@ -867,7 +868,7 @@ def formatUSFMText( versionAbbreviation:str, refTuple:tuple, segmentType:str, us
             .replace( '\\em ', '<em>' ).replace( '\\em*', '</em>' ) \
             .replace( '\\sup ', '<sup>' ).replace( '\\sup*', '</sup>' )
     # Now replace all the other character markers into HTML spans, e.g., \\add \\nd \\bk
-    for charMarker in BibleOrgSysGlobals.USFMAllExpandedCharacterMarkers:
+    for charMarker in OUR_CHARACTER_MARKER_LIST:
         html = html.replace( f'\\{charMarker} ', f'<span class="{charMarker}">' ).replace( f'\\{charMarker}*', '</span>' )
 
     # Final checking
