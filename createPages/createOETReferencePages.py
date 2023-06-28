@@ -497,7 +497,7 @@ def livenMD( level:int, mdText:str ) -> str:
 
 
 linkedWordTitleRegex = re.compile( '="§(.+?)§"' ) # We inserted those § markers in our titleTemplate above
-linkedWordNumberRegex = re.compile( '/W/([1-9][0-9]{0,5}).htm' )
+linkedWordNumberRegex = re.compile( '/W/([1-9][0-9]{0,5}).htm' ) # /W/ is the words folder
 def livenOETWordLinks( bibleObject:ESFMBible, BBB:str, givenEntryList:InternalBibleEntryList, hrefTemplate:str, state ) -> InternalBibleEntryList:
     """
     Livens ESFM wordlinks in the OET versions (i.e., the words with ¦ numbers suffixed to them).

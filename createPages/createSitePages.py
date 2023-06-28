@@ -65,10 +65,10 @@ from Dict import createTyndaleDictPages
 from html import makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-06-25' # by RJH
+LAST_MODIFIED_DATE = '2023-06-28' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData Create Pages"
-PROGRAM_VERSION = '0.70'
+PROGRAM_VERSION = '0.71'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
@@ -82,7 +82,7 @@ DEBUG_DESTINATION_FOLDER = NORMAL_DESTINATION_FOLDER.joinpath( 'Test/')
 DESTINATION_FOLDER = DEBUG_DESTINATION_FOLDER if TEST_MODE or BibleOrgSysGlobals.debugFlag \
                         else NORMAL_DESTINATION_FOLDER
 
-OET_BOOK_LIST = ('JHN','MRK','ACT', 'GAL','EPH', 'TI1','TI2','TIT', 'JAM', 'JN1','JN2','JN3', 'JDE')
+OET_BOOK_LIST = ('JHN','MAT','MRK', 'ACT', 'GAL','EPH', 'TI1','TI2','TIT', 'JAM', 'JN1','JN2','JN3', 'JDE')
 OET_BOOK_LIST_WITH_FRT = ('FRT',) + OET_BOOK_LIST # 'INT'
 NT_BOOK_LIST_WITH_FRT = ('FRT',) + BOOKLIST_NT27
 assert len(NT_BOOK_LIST_WITH_FRT) == 27+1
@@ -105,7 +105,7 @@ class State:
                 'BSB','BLB',
                 'OEB','ISV',
                 'NLT','NIV','ESV','NASB',
-                '2DT','1ST',
+                '2DT','1ST','TPT',
                 'WEB','WMB','NET','LSV','FBV','TCNT','T4T','LEB','BBE',
                 'JPS','ASV','DRA','YLT','DBY','RV','WBS','KJB','BB','GNV','CB',
                 'TNT','WYC','CLV',
@@ -120,7 +120,8 @@ class State:
 
     # Specific short lists
     auxilliaryVersions = ('OET','TTN','TOBD') # These ones don't have their own Bible locations at all
-    selectedVersesOnlyVersions = ('NLT','NIV','ESV','NASB','2DT','1ST') # These ones have .tsv sources (and don't produce Bible objects)
+    selectedVersesOnlyVersions = ('NLT','NIV','ESV','NASB','2DT','1ST','TPT') # These ones have .tsv sources (and don't produce Bible objects)
+    numAllowedSelectedVerses   = ( 500,  500,  500,   500,  300,  300,  250 ) # Order must match above list
 
     # NOTE: We don't display the versions with only selected verses, so don't need decorations for them
     BibleVersionDecorations = { 'OET':('<b>','</b>'),'OET-RV':('<b>','</b>'),'OET-LV':('<b>','</b>'),
@@ -158,6 +159,7 @@ class State:
                 'NASB': '../copiedBibles/English/NASB_verses.tsv',
                 '2DT': '../copiedBibles/English/2DT_verses.tsv',
                 '1ST': '../copiedBibles/English/1ST_verses.tsv',
+                'TPT': '../copiedBibles/English/TPT_verses.tsv',
                 'WEB': '../copiedBibles/English/eBible.org/WEB/',
                 'WMB': '../copiedBibles/English/eBible.org/WMB/',
                 'NET': '../copiedBibles/English/eBible.org/NET/',
@@ -209,6 +211,7 @@ class State:
                 'NASB': 'New American Standard Bible (1995)',
                 '2DT': 'The Second Testament (2023)',
                 '1ST': 'The First Testament (2018)',
+                'TPT': 'The Passion Translation (2017)',
                 'WEB': 'World English Bible (2023)',
                 'WMB': 'World Messianic Bible (2023) / Hebrew Names Version (HNV)',
                 'NET': 'New English Translation (2016)',
@@ -261,6 +264,7 @@ class State:
                 'NASB': ['ALL'],
                 '2DT': ['ALL'],
                 '1ST': ['ALL'],
+                'TPT': ['ALL'],
                 'WEB': ['ALL'],
                 'WMB': ['ALL'],
                 'NET': ['ALL'],
@@ -310,6 +314,7 @@ class State:
                 'NASB': ['MRK'],
                 '2DT': ['MRK'],
                 '1ST': ['MRK'],
+                'TPT': ['MRK'],
                 'WEB': ['MRK'],
                 'WMB': ['MRK'],
                 'NET': ['MRK'],
@@ -409,6 +414,10 @@ You can read more about the design of the OET-LV <a href="https://OpenEnglishTra
                 'copyright': '<p>Copyright © 2018 by IVP Academic. Used by Permission. All Rights Reserved Worldwide.</p>',
                 'licence': '<p>Up to 300 verses may be used.</p>',
                 'acknowledgements': '<p></p>' },
+        'TPT': {'about': '<p>The Passion Translation (2017) by Brian Simmons.</p>',
+                'copyright': '<p>Scripture quotations marked TPT are from The Passion Translation®. Copyright © 2017, 2018, 2020 by Passion & Fire Ministries, Inc. Used by permission. All rights reserved. ThePassionTranslation.com.</p>',
+                'licence': '<p>Up to 250 verses may be used.</p>',
+                'acknowledgements': '<p>A few selected verses included here for reference purposes only—this is not a recommended as a reliable Bible translation.</p>' },
         'WEB': {'about': '<p>World English Bible (2023).</p>',
                 'copyright': '<p>Copyright © (coming).</p>',
                 'licence': '<p>(coming).</p>',
@@ -545,7 +554,7 @@ You can read more about the design of the OET-LV <a href="https://OpenEnglishTra
                 'acknowledgements': '<p>Thanks to <a href="https://www.unfoldingword.org/">unfoldingWord</a> for creating <a href="https://git.door43.org/unfoldingWord/en_tn">these notes</a> to assist Bible translators.</p>' },
     }
 
-    if not TEST_MODE: assert len(BibleLocations) >= 45, len(BibleLocations)
+    if not TEST_MODE: assert len(BibleLocations) >= 46, len(BibleLocations)
     for versionLocation in BibleLocations.values():
         assert versionLocation.startswith('../copiedBibles/') \
             or versionLocation.startswith('../../OpenEnglishTranslation--OET/') \

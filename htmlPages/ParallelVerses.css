@@ -69,10 +69,13 @@ p.p { text-indent:0.5em; margin-top:0.2em; margin-bottom:0.2em; }
 p.q1 { margin-left:1em; margin-top:0.2em; margin-bottom:0.2em; }
 p.q2 { margin-left:2em; margin-top:0.2em; margin-bottom:0.2em; }
 /* p.m {  } */
+
 span.nominaSacra { font-weight:bold; }
+span.nd { font-weight:bold; }
 span.add { color:grey; }
 span.wj { color:saddlebrown; }
 span.FoS { color:mediumvioletred; }
+span.untr { background-color:ivory; color:yellowGreen; }
 
 /* Tyndale Book Intro Summaries */
 p.intro-title { text-align:center; font-size:1.8em; }
