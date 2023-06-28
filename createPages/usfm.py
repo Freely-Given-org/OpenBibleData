@@ -721,7 +721,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
 # end of usfm.convertUSFMMarkerListToHtml
 
 
-OUR_CHARACTER_MARKER_LIST = BibleOrgSysGlobals.USFMAllExpandedCharacterMarkers + ['untr']
+ourCharacterMarkerList =
 def formatUSFMText( versionAbbreviation:str, refTuple:tuple, segmentType:str, usfmField:str, basicOnly:bool, state ) -> str:
     """
     Handles character formatting inside USFM lines.
@@ -730,7 +730,7 @@ def formatUSFMText( versionAbbreviation:str, refTuple:tuple, segmentType:str, us
     """
     fnPrint( DEBUGGING_THIS_MODULE, f"formatUSFMText( {versionAbbreviation}, {refTuple}, {segmentType}, {usfmField}, {basicOnly=} )" )
     dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"formatUSFMText( {versionAbbreviation}, {refTuple}, {segmentType}, {usfmField}, {basicOnly=} )" )
-    for charMarker in OUR_CHARACTER_MARKER_LIST + ['fig']:
+    for charMarker in BibleOrgSysGlobals.USFMAllExpandedCharacterMarkers + ['untr','fig']:
         openCount, closeCount = usfmField.count( f'\\{charMarker} ' ), usfmField.count( f'\\{charMarker}*' )
         if openCount != closeCount:
             logging.critical( f"Mismatched USFM character markers: '{charMarker}' open={openCount} close={closeCount} from {versionAbbreviation} {refTuple} '{usfmField}'" )
@@ -868,7 +868,7 @@ def formatUSFMText( versionAbbreviation:str, refTuple:tuple, segmentType:str, us
             .replace( '\\em ', '<em>' ).replace( '\\em*', '</em>' ) \
             .replace( '\\sup ', '<sup>' ).replace( '\\sup*', '</sup>' )
     # Now replace all the other character markers into HTML spans, e.g., \\add \\nd \\bk
-    for charMarker in OUR_CHARACTER_MARKER_LIST:
+    for charMarker in BibleOrgSysGlobals.USFMAllExpandedCharacterMarkers + ['untr']:
         html = html.replace( f'\\{charMarker} ', f'<span class="{charMarker}">' ).replace( f'\\{charMarker}*', '</span>' )
 
     # Final checking
