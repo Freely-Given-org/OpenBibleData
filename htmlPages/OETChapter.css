@@ -90,6 +90,7 @@ span.addDirectObject { color:brown; }
 span.addExtra { color:lightGreen; }
 span.addOwner { color:darkOrchid; }
 span.add { color:grey; }
+span.untr { background-color:ivory; color:yellowGreen; font-variant-position:sub; }
 
 span.ul { color:darkGrey; }
 span.RVadd { color:dimGrey; }
