@@ -721,7 +721,6 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
 # end of usfm.convertUSFMMarkerListToHtml
 
 
-ourCharacterMarkerList =
 def formatUSFMText( versionAbbreviation:str, refTuple:tuple, segmentType:str, usfmField:str, basicOnly:bool, state ) -> str:
     """
     Handles character formatting inside USFM lines.

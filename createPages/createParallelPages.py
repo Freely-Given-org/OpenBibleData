@@ -44,12 +44,13 @@ from Bibles import formatTyndaleBookIntro, formatUnfoldingWordTranslationNotes, 
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
                     makeTop, makeBottom, makeBookNavListParagraph, checkHtml
 from createOETReferencePages import livenOETWordLinks
+from selectedVersesVersions import fillSelectedVerses
 
 
-LAST_MODIFIED_DATE = '2023-06-27' # by RJH
+LAST_MODIFIED_DATE = '2023-06-29' # by RJH
 SHORT_PROGRAM_NAME = "createParallelPages"
 PROGRAM_NAME = "OpenBibleData createParallelPages functions"
-PROGRAM_VERSION = '0.69'
+PROGRAM_VERSION = '0.70'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -69,6 +70,8 @@ def createParallelPages( level:int, folder:Path, state ) -> bool:
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\ncreateParallelPages( {level}, {folder}, {state.BibleVersions} )" )
     try: os.makedirs( folder )
     except FileExistsError: pass # they were already there
+
+    fillSelectedVerses( state )
 
     # Prepare the book links
     BBBLinks, BBBNextLinks = [], []
