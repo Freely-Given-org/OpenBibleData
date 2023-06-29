@@ -63,9 +63,10 @@ from createOETInterlinearPages import createOETInterlinearPages
 from createOETReferencePages import createOETReferencePages
 from Dict import createTyndaleDictPages
 from html import makeTop, makeBottom, checkHtml
+from selectedVersesVersions import fillSelectedVerses
 
 
-LAST_MODIFIED_DATE = '2023-06-28' # by RJH
+LAST_MODIFIED_DATE = '2023-06-29' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData Create Pages"
 PROGRAM_VERSION = '0.71'
@@ -590,6 +591,7 @@ def createSitePages() -> bool:
     numLoadedVersions = preloadVersions( state )
     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nPreloaded {len(state.preloadedBibles)} Bible versions: {state.preloadedBibles.keys()}" )
     # preloadUwTranslationNotes( state )
+    fillSelectedVerses( state )
 
     # Load our OET worddata table
     state.OETRefData = {} # This is where we will store all our temporary ref data

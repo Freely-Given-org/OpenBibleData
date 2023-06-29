@@ -870,6 +870,18 @@ def formatUSFMText( versionAbbreviation:str, refTuple:tuple, segmentType:str, us
     for charMarker in BibleOrgSysGlobals.USFMAllExpandedCharacterMarkers + ['untr']:
         html = html.replace( f'\\{charMarker} ', f'<span class="{charMarker}">' ).replace( f'\\{charMarker}*', '</span>' )
 
+    # Append "untranslated" to titles/popup-boxes for untranslated words
+    count = 0
+    searchStartIndex = 0
+    for _safetyCount in range( 1000 ):
+        ix = html.find( '<span class="untr"><span title="', searchStartIndex )
+        if ix == -1: break # all done
+        ixEnd = html.index( '" href=', ix+32 )
+        html = f'{html[:ixEnd]} (untranslated){html[ixEnd:]}'
+        count += 1
+        searchStartIndex = ixEnd + 5
+    else: need_to_increase_loop_count_for_untranslated_words
+
     # Final checking
     if versionAbbreviation not in ('UST','ULT'): # uW stuff has too many USFM encoding errors and inconsistencies
         assert 'strong="' not in html, f"'{versionAbbreviation}' {refTuple} {segmentType=} {basicOnly=} {usfmField=}\n  html='{html if len(html)<4000 else f'{html[:2000]} ....... {html[-2000:]}'}'"

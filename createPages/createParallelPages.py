@@ -44,7 +44,6 @@ from Bibles import formatTyndaleBookIntro, formatUnfoldingWordTranslationNotes, 
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
                     makeTop, makeBottom, makeBookNavListParagraph, checkHtml
 from createOETReferencePages import livenOETWordLinks
-from selectedVersesVersions import fillSelectedVerses
 
 
 LAST_MODIFIED_DATE = '2023-06-29' # by RJH
@@ -70,8 +69,6 @@ def createParallelPages( level:int, folder:Path, state ) -> bool:
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\ncreateParallelPages( {level}, {folder}, {state.BibleVersions} )" )
     try: os.makedirs( folder )
     except FileExistsError: pass # they were already there
-
-    fillSelectedVerses( state )
 
     # Prepare the book links
     BBBLinks, BBBNextLinks = [], []
@@ -456,7 +453,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
             (('behelde','biheeld'),'beheld'), ((' behinde',' bihynde',' behynde'),' behind'), ((' biholdinge',),' beholding'),((' biholde',),' behold'), ((' bihoueth',),' behoves'),
             (('bileueden','beleeued','beleued','beleved'),'believed'), ((' bileueth',' beleueth',' beleeueth'),' believes'), ((' beleue',' beleeue',' beleve',' bileue'),' believe'),
             ((' berith',),' beareth'),
-            ((' biseche',),' beseech/implore'), ((' bisidis',),' beside'),
+            (('besechyng','beseeching'),'beseeching/imploring'),((' biseche',' beseech'),' beseech/implore'), ((' bisidis',),' beside'),
             (('Bethlehe ','Bethleem ','Bethlee '),'Bethlehem '), (('bitraiede','betraied'),'betrayed'), ((' bitwixe',' betweene',' betwene'),' between'),
             ((' beyonde',' biyende'),' beyond'),
         (('  byde ',),' bide/stay '), ((' bynde',),' bind'),
@@ -467,11 +464,11 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
         (('buyldynges','buildynges','bildyngis'),'buildings'),(('buyldinge',),'building'), ((' brent',),' burnt'), ((' busynesse',' busynes',' busines'),' business'),(('businesss',),'business'),
         ((' bi ',),' by '),
     ((' clepide',' clepid'),' called'),((' cal ',),' call '),
-            ((' cam ',' camen '),' came '),((' cam,',' camen,'),' came,'), (('Captaine',),'Captain'),
+            ((' cam ',' camen '),' came '),((' cam,',' camen,'),' came,'), (('Captaine','Captayne'),'Captain'),
             (('carpeter',),'carpenter'),
             ((' castynge',' castyng',' castinge'),' casting'), (('casteles',),'castles'),
             ((' cattell',' catel'),' cattle'),
-        ((' certayne',' certein'),' certain'),
+        (('centurien',),'centurion'), ((' certayne',' certein'),' certain'),
         (('cheynes','chaines'),'chains'), (('chaunced','chaunsed'),'chanced'), (('chastisith','chasteneth'),'chastens/disciplines'),
             ((' cheife ',' chefe '),' chief '), (('chyldren',),'children'), (('chymney',),'chimney'),
             ((' chese ',),' choose '), (('chosun',),'chosen'),
@@ -521,7 +518,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
             ((' eate ',' ete '),' eat '),((' eate,',' ete,'),' eat,'),((' eate.',' ete.'),' eat.'),((' eate:',' ete:'),' eat:'),((' eate;',' ete;'),' eat;'),
         (('edificacioun',),'edification'), (('edyfyinge','edifyenge'),'edifying'),
         (('Elias','Helyas'),'Elias/Elijah'),(('Helie','Elie'),'Elye/Elijah'),
-        ((' ende ',),' end '), (('ynough','inough'),'enough'), ((' entred',' entriden',' entride'),' entered'),
+        ((' ende ',),' end '), (('ynough','inough'),'enough'), ((' entred',' entriden',' entride',' entrid'),' entered'),
         (('Eastwarde',),'Eastward'),(('eastwarde',),'eastward'),
         (('Euen ',),'Even '),((' euen ',),' even '), ((' euenyng',),' evening'),((' euentid ',),' eventide/evening '), (('everlastinge','euerlastynge','euerlastyng','euerlastinge','euerlasting'),'everlasting'), ((' euery',),' every'), ((' euer ',),' ever '), ((' yuelis',),' evils'),((' evyll',' euell',' euill',' euyll'),' evil'),
         ((' exercyse ',),' exercise '),
@@ -777,6 +774,7 @@ def adjustLatin( html:str ) -> bool:
 
     return html.replace('j','y').replace('J','Y')
 # end of html.adjustLatin
+
 
 
 def briefDemo() -> None:
