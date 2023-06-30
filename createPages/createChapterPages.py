@@ -204,7 +204,7 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
         filenames.append( filename )
         filepath = folder.joinpath( filename )
         ourTidyBBB = tidyBBB( BBB )
-        BBBLinks.append( f'''<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB).replace('James','Jacob/James')}" href="{filename}#Top">{ourTidyBBB}</a>''' )
+        BBBLinks.append( f'''<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB).replace('James','Jacob/(James)')}" href="{filename}#Top">{ourTidyBBB}</a>''' )
         numChapters = rvBible.getNumChapters( BBB )
         cLinks = []
         if numChapters >= 1:

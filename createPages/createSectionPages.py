@@ -255,7 +255,7 @@ def createOETSectionPages( level:int, folder:Path, rvBible, lvBible, state ) -> 
     for BBB in BBBs:
         ourTidyBBB = tidyBBB( BBB )
         filename = f'{BBB}.htm'
-        BBBLinks.append( f'''<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB).replace('James','Jacob/James')}" href="{filename}#Top">{ourTidyBBB}</a>''' )
+        BBBLinks.append( f'''<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB).replace('James','Jacob/(James)')}" href="{filename}#Top">{ourTidyBBB}</a>''' )
     # Create index page
     filename = 'index.htm'
     # filenames.append( filename )

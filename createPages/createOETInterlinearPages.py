@@ -90,8 +90,8 @@ def createOETInterlinearPages( level:int, folder:Path, state ) -> bool:
     for BBB in state.booksToLoad['OET']:
         if BibleOrgSysGlobals.loadedBibleBooksCodes.isChapterVerseBook( BBB ):
             ourTidyBBB = tidyBBB( BBB )
-            BBBLinks.append( f'''<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB).replace('James','Jacob/James')}" href="{BBB}/">{ourTidyBBB}</a>''' )
-            BBBNextLinks.append( f'''<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB).replace('James','Jacob/James')}" href="../{BBB}/">{ourTidyBBB}</a>''' )
+            BBBLinks.append( f'''<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB).replace('James','Jacob/(James)')}" href="{BBB}/">{ourTidyBBB}</a>''' )
+            BBBNextLinks.append( f'''<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB).replace('James','Jacob/(James)')}" href="../{BBB}/">{ourTidyBBB}</a>''' )
 
     # Now create the actual interlinear pages
     for BBB in state.booksToLoad['OET']:
@@ -134,7 +134,7 @@ def createOETInterlinearVersePagesForBook( level:int, folder:Path, BBB:str, BBBL
     ourTidyBBB = tidyBBB( BBB )
     ourTidyBbb = tidyBBB( BBB, titleCase=True )
     adjBBBLinksHtml = makeBookNavListParagraph(BBBLinks, state) \
-            .replace( f'''<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB).replace('James','Jacob/James')}" href="../{BBB}/">{ourTidyBBB}</a>''', ourTidyBBB )
+            .replace( f'''<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB).replace('James','Jacob/(James)')}" href="../{BBB}/">{ourTidyBBB}</a>''', ourTidyBBB )
 
     numChapters = None
     for versionAbbreviation in state.BibleVersions:
@@ -202,7 +202,7 @@ def createOETInterlinearVersePagesForBook( level:int, folder:Path, BBB:str, BBBL
     ourLinks = f'''<h1 id="Top">OET {ourTidyBBB} interlinear songs index</h1>
 <p class="chLst">{EM_SPACE.join( [f'<a title="Go to interlinear verse page" href="C{ps}V1.htm#Top">Ps{ps}</a>' for ps in range(1,numChapters+1)] )}</p>''' \
                 if BBB=='PSA' else \
-f'''<p class="chLst">{ourTidyBbb if ourTidyBbb!='Jac' else 'Jacob/James'} {' '.join( [f'<a title="Go to interlinear verse page" href="C{chp}V1.htm#Top">C{chp}</a>' for chp in range(1,numChapters+1)] )}</p>
+f'''<p class="chLst">{ourTidyBbb if ourTidyBbb!='Jac' else 'Jacob/(James)'} {' '.join( [f'<a title="Go to interlinear verse page" href="C{chp}V1.htm#Top">C{chp}</a>' for chp in range(1,numChapters+1)] )}</p>
 <h1 id="Top">OET {ourTidyBBB} interlinear verses index</h1>
 <p class="vsLst">{' '.join( vLinks )}</p>'''
     indexHtml = f'{top}{adjBBBLinksHtml}\n{ourLinks}\n' \

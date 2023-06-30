@@ -46,7 +46,7 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_
 from createOETReferencePages import livenOETWordLinks
 
 
-LAST_MODIFIED_DATE = '2023-06-29' # by RJH
+LAST_MODIFIED_DATE = '2023-06-30' # by RJH
 SHORT_PROGRAM_NAME = "createParallelPages"
 PROGRAM_NAME = "OpenBibleData createParallelPages functions"
 PROGRAM_VERSION = '0.70'
@@ -75,8 +75,8 @@ def createParallelPages( level:int, folder:Path, state ) -> bool:
     for BBB in reorderBooksForOETVersions( state.allBBBs ):
         if BibleOrgSysGlobals.loadedBibleBooksCodes.isChapterVerseBook( BBB ):
             ourTidyBBB = tidyBBB( BBB )
-            BBBLinks.append( f'''<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB).replace('James','Jacob/James')}" href="{BBB}/">{ourTidyBBB}</a>''' )
-            BBBNextLinks.append( f'''<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB).replace('James','Jacob/James')}" href="../{BBB}/">{ourTidyBBB}</a>''' )
+            BBBLinks.append( f'''<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB).replace('James','Jacob/(James)')}" href="{BBB}/">{ourTidyBBB}</a>''' )
+            BBBNextLinks.append( f'''<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB).replace('James','Jacob/(James)')}" href="../{BBB}/">{ourTidyBBB}</a>''' )
 
     # Now create the actual parallel pages
     for BBB in reorderBooksForOETVersions( state.allBBBs ):
@@ -121,7 +121,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
     ourTidyBBB = tidyBBB( BBB )
     ourTidyBbb = tidyBBB( BBB, titleCase=True )
     adjBBBLinksHtml = makeBookNavListParagraph(BBBLinks, state) \
-            .replace( f'''<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB).replace('James','Jacob/James')}" href="../{BBB}/">{ourTidyBBB}</a>''', ourTidyBBB )
+            .replace( f'''<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB).replace('James','Jacob/(James)')}" href="../{BBB}/">{ourTidyBBB}</a>''', ourTidyBBB )
 
     numChapters = None
     for versionAbbreviation in state.BibleVersions:
@@ -376,7 +376,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
     ourLinks = f'''<h1 id="Top">{ourTidyBBB} parallel songs index</h1>
 <p class="chLst">{EM_SPACE.join( introLinks + [f'<a title="Go to parallel verse page" href="C{ps}V1.htm#Top">Ps{ps}</a>' for ps in range(1,numChapters+1)] )}</p>''' \
                 if BBB=='PSA' else \
-f'''<p class="chLst">{ourTidyBbb if ourTidyBbb!='Jac' else 'Jacob/James'} {' '.join( introLinks + [f'<a title="Go to parallel verse page" href="C{chp}V1.htm#Top">C{chp}</a>' for chp in range(1,numChapters+1)] )}</p>
+f'''<p class="chLst">{ourTidyBbb if ourTidyBbb!='Jac' else 'Jacob/(James)'} {' '.join( introLinks + [f'<a title="Go to parallel verse page" href="C{chp}V1.htm#Top">C{chp}</a>' for chp in range(1,numChapters+1)] )}</p>
 <h1 id="Top">{ourTidyBBB} parallel verses index</h1>
 <p class="vsLst">{' '.join( vLinks )}</p>'''
     indexHtml = f'''{top}{adjBBBLinksHtml}
@@ -410,6 +410,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
     (('with greet',),'with great'),
 
     # Two words into one
+    (('a fore honde','afore hand','aforehande'),'aforehand'),
     ((' in deede ',' in dede '),' indeed '),
     ((' for o ',),' into '),
     ((' for euer',),' forever'),
@@ -435,7 +436,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
         ((' agaynst',' ayens'),' against'), ((' agayne',' againe'),' again'),(('Againe',),'Again'),
         ((' aliaunt',),' alien/foreigner'), ((' aliue',' alyue',' alyve'),' alive'), ((' alle ',' al '),' all '),(('Alle ',),'All '), ((' aloone',),' alone'), ((' altare',' aulter',' auter'),' altar'),
         (('amased',),'amazed'), ((' amede',),' amend'), ((' amonge',' amoge'),' among'),
-        (('Andrewe',),'Andrew'), ((' aungel',),' angel'), (('annoynted',),'annointed'),(('Annoynted',),'Annointed'),
+        (('Andrewe',),'Andrew'), ((' aungel',),' angel'), (('annoynted',),'annointed'),(('Annoynted',),'Annointed'),((' annoynt',' anoynte',' anoynt'),' annoint'),
             ((' anoon ',' anone ',' anon '),' anon/immediately '), (('Anothir',),'Another'),
             (('answerden','answerede','answeride','aunswered'),'answered'),((' aunswere ',' answere '),' answer '), ((' ony ',' eny '),' any '),
         (('apostlis',),'apostles'), (('appearynge','apperynge','apperinge','appearyng'),'appearing'), (('appoynte','apoynte'),'appoint'),
@@ -458,10 +459,12 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
             ((' beyonde',' biyende'),' beyond'),
         (('  byde ',),' bide/stay '), ((' bynde',),' bind'),
         (('blesside',),'blessed'), (('bloude','bloud'),'blood'),
-        ((' borun ',' borne '),' born '),((' borun,',' borne,'),' born,'), ((' bosome ',' bosum '),' bosom '), ((' bothe ',),' both '),((' boundun ',' bounde '),' bound '),
+        ((' boddy ',' bodi '),' body '), ((' borun ',' borne '),' born '),((' borun,',' borne,'),' born,'), ((' bosome ',' bosum '),' bosom '), ((' bothe ',),' both '),((' boundun ',' bounde '),' bound '),
         ((' braunches',),' branches'),((' braunch',' braunche'),' branch'),
             (('britheren',),'brethren/brothers'),(('brithre.',),'brethren/brothers.'), ((' bryde',),' bride'), ((' bryngyng',),' bringing'),
-        (('buyldynges','buildynges','bildyngis'),'buildings'),(('buyldinge',),'building'), ((' brent',),' burnt'), ((' busynesse',' busynes',' busines'),' business'),(('businesss',),'business'),
+        (('buyldynges','buildynges','bildyngis'),'buildings'),(('buyldinge',),'building'),
+            ((' buriall',),' burial'),((' buryinge',' biriyng'),' burying'), ((' brent',),' burnt'),
+            ((' busynesse',' busynes',' busines'),' business'),(('businesss',),'business'),
         ((' bi ',),' by '),
     ((' clepide',' clepid'),' called'),((' cal ',),' call '),
             ((' cam ',' camen '),' came '),((' cam,',' camen,'),' came,'), (('Captaine','Captayne'),'Captain'),
@@ -549,7 +552,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
         (('Graunte ','Graunt '),'Grant '),((' graunt ',' graut '),' grant '),
             ((' gretter',),' greater'),((' greate ',' grete '),' great '),
             (('grounde',),'ground'), (('grutchyng',),'groutching/grudging'),
-    ((' hadden ',' hadde '),' had '), ((' heeris',),' hairs'),
+    ((' hadden ',' hadde '),' had '),((' hadde;',),' had;'), ((' heeris',),' hairs'),
             ((' handes',' hondes',' hoondis'),' hands'),((' hande',' honde',' hoond'),' hand'),
             ((' haue ',),' have '), ((' hauynge',' havynge',' hauyng',' hauing'),' having'),
         ((' hee ',),' he '),
@@ -644,7 +647,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
             ((' sette ',),' set '),
             ((' seuene ',' seuen ',' seue '),' seven '),
         ((' schal ',' shal ',' schulen '),' shall '),
-            ((' sche ',' shee '),' she '), ((' scheep ',' sheepe ',' shepe '),' sheep '),((' scheep,',' sheepe,',' shepe,'),' sheep,'), (('scheepherdis',),'shepherds'),
+            (('Sche ',),'She '),((' sche ',' shee '),' she '), ((' scheep ',' sheepe ',' shepe '),' sheep '),((' scheep,',' sheepe,',' shepe,'),' sheep,'), (('scheepherdis',),'shepherds'),
             (('schyneth','shyneth'),'shineth/shines'), ((' shyppe',' shippe'),' ship'),
             ((' shue',),' shoe'),((' schoo.',),' shoe.'), ((' shoore',),' shore'), (('shouldest',),'should'),((' schulden ',' schulde ',' shulde ',' shuld ',' shoulde '),' should '), (('schewide','shewed'),'showed'),((' schewe ',' shewe '),' show '),
         ((' sicke ',' sijk '),' sick '),((' sicke,',' sijk,'),' sick,'),((' sicke.',' sijk.'),' sick.'),
@@ -746,10 +749,12 @@ for someOldWords,newWord in ENGLISH_WORD_MAP:
         assert someOldWord not in oldWords, f"duplicate oldWord: {someOldWord=} ({newWord=})"
         if someOldWords[0].startswith(' ') or newWord.startswith(' '): assert someOldWord.startswith(' '), f"Mismatched leading space: {someOldWords[0]=} {someOldWord=} {newWord=}"
         if someOldWords[0].endswith(' ') or newWord.endswith(' '): assert someOldWord.endswith(' '), f"Mismatched trailing space: {someOldWords[0]=} {someOldWord=} {newWord=}"
+        assert '  ' not in someOldWord
         oldWords.append( someOldWord)
     assert newWord not in newWords, f"{newWord=}"
     if someOldWords[0].startswith(' '): assert newWord.startswith(' '), f"Mismatched leading space:  {someOldWords} {newWord=}"
     if someOldWords[0].endswith(' '): assert newWord.endswith(' '), f"Mismatched trailing space: {someOldWords} {newWord=}"
+    assert '  ' not in newWord
     newWords.append( newWord )
 del oldWords, newWords
 

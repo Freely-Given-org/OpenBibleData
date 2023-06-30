@@ -189,7 +189,7 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state ) -> Lis
     for BBB in BBBs:
         ourTidyBBB = tidyBBB( BBB )
         filename = f'{BBB}.htm'
-        BBBLinks.append( f'''<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB).replace('James','Jacob/James')}" href="{filename}#Top">{ourTidyBBB}</a>''' )
+        BBBLinks.append( f'''<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB).replace('James','Jacob/(James)')}" href="{filename}#Top">{ourTidyBBB}</a>''' )
     filename = 'index.htm'
     filenames.append( filename )
     filepath = folder.joinpath( filename )
