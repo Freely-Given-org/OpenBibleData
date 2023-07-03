@@ -235,7 +235,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                                 or 'Oh' in transcription or ' oh' in transcription or transcription.startswith('oh') \
                                 or 'Uh' in transcription or ' uh' in transcription or transcription.startswith('uh'):
                                     print( f"{versionAbbreviation} {BBB} {C}:{V} {transcription=} from '{textHtml}'")
-                                    bad_greek_transcription
+                                    halt_on_bad_greek_transcription
                                 if versionAbbreviation == 'SR-GNT': # for the transcription, bolden nomina sacra words
                                     searchStartIndex = 0
                                     while '˚' in transcription:
@@ -748,7 +748,9 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
     ((' & ',),' and '),
     )
 oldWords, newWords = [], []
-for someOldWords,newWord in ENGLISH_WORD_MAP:
+for wordMapEntry in ENGLISH_WORD_MAP:
+    assert len(wordMapEntry) == 2, f"{wordMapEntry}"
+    someOldWords,newWord = wordMapEntry
     for someOldWord in someOldWords:
         assert someOldWord not in oldWords, f"duplicate oldWord: {someOldWord=} ({newWord=})"
         if someOldWords[0].startswith(' ') or newWord.startswith(' '): assert someOldWord.startswith(' '), f"Mismatched leading space: {someOldWords[0]=} {someOldWord=} {newWord=}"
