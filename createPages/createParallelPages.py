@@ -46,7 +46,7 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_
 from createOETReferencePages import livenOETWordLinks
 
 
-LAST_MODIFIED_DATE = '2023-07-03' # by RJH
+LAST_MODIFIED_DATE = '2023-07-04' # by RJH
 SHORT_PROGRAM_NAME = "createParallelPages"
 PROGRAM_NAME = "OpenBibleData createParallelPages functions"
 PROGRAM_VERSION = '0.71'
@@ -348,7 +348,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                 pHtml = f'''{top}<!--parallel verse page-->
 {adjBBBLinksHtml}
 <h1>Parallel {ourTidyBBB} {'Intro' if c==-1 else f'{C}:{V}'}</h1>
-<p class="rem">Note: This view shows ‘verses’ which are not natural language units and hence sometimes on a part of a sentence will be visible. This view is only designed for comparing different translations. Click on the version abbreviation to see the verse in its context.</p>
+<p class="rem">Note: This view shows ‘verses’ which are not natural language units and hence sometimes only part of a sentence will be visible. This view is only designed for doing comparisons of different translations. Click on the version abbreviation to see the verse in more of its context.</p>
 {navLinks.replace('__ID__','Top').replace('__ARROW__','↓').replace('__LINK__','Bottom').replace('__WHERE__','bottom')}
 {pHtml}
 {navLinks.replace('__ID__','Bottom').replace('__ARROW__','↑').replace('__LINK__','Top').replace('__WHERE__','top')}
@@ -435,7 +435,11 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
         ((' accorde ',' acorde '),' accord '), (('knoulechide',),'acknowledged'),
          ((' afrayed',),' afraid'), ((' aftir',),' after'),(('Aftir',),'After'),
         ((' agaynst',' ayens'),' against'), ((' agayne',' againe'),' again'),(('Againe',),'Again'),
-        ((' aliaunt',),' alien/foreigner'), ((' aliue',' alyue',' alyve'),' alive'), ((' alle ',' al '),' all '),(('Alle ',),'All '), ((' aloone',),' alone'), ((' altare',' aulter',' auter'),' altar'),
+        ((' aliaunt',),' alien/foreigner'), ((' aliue',' alyue',' alyve'),' alive'),
+            ((' alle ',' al '),' all '),(('Alle ',),'All '),
+            ((' aloone',),' alone'),
+            ((' altare',' aulter',' auter'),' altar'),
+            ((' alwayes',' alwaies',' allwaie'),' always'),
         (('amased',),'amazed'), ((' amede',),' amend'), ((' amonge',' amoge'),' among'),
         (('Andrewe',),'Andrew'), ((' aungel',),' angel'), (('annoynted',),'annointed'),(('Annoynted',),'Annointed'),((' annoynt',' anoynte',' anoynt'),' annoint'),
             ((' anoon ',' anone ',' anon '),' anon/immediately '), (('Anothir',),'Another'),
@@ -524,7 +528,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
         (('Elias','Helyas'),'Elias/Elijah'),(('Helie','Elie'),'Elye/Elijah'),
         ((' ende ',),' end '), (('ynough','inough'),'enough'), ((' entred',' entriden',' entride',' entrid'),' entered'),
         (('Eastwarde',),'Eastward'),(('eastwarde',),'eastward'),
-        (('Euen ',),'Even '),((' euen ',),' even '), ((' euenyng',),' evening'),((' euentid ',),' eventide/evening '), (('everlastinge','euerlastynge','euerlastyng','euerlastinge','euerlasting'),'everlasting'), ((' euery',),' every'), ((' euer ',),' ever '), ((' yuelis',),' evils'),((' evyll',' euell',' euill',' euyll'),' evil'),
+        (('Euen ',),'Even '),((' euen ',),' even '), ((' euenyng',),' evening'),((' euentid ',),' eventide/evening '), (('everlastinge','euerlastynge','euerlastyng','euerlastinge','euerlasting'),'everlasting'), ((' euermore',),' evermore'), ((' euery',),' every'), ((' euer ',),' ever '), ((' yuelis',),' evils'),((' evyll',' euell',' euill',' euyll'),' evil'),
         ((' exercyse ',),' exercise '),
     ((' failinge',),' failing'), ((' faynte ',' faynt '),' faint '), ((' feith',' fayth'),' faith'),
             ((' farre ',),' far '),((' farre.',' fer'),' far.'),
@@ -559,7 +563,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
         ((' hee ',),' he '),
         ((' helide',),' healed'), ((' hearde',' herden',' herde',' herd'),' heard'),((' herynge',' hearinge',' hering'),' hearing'),((' heareth',' herith'),' hears'),((' heare',' heere'),' hear'),
             ((' hertis',' hertes',' heartes'),' hearts'), ((' heauens',' heuenes'),' heavens'), ((' heauen',' heuene',' heven'),' heaven'),
-            (('Ebrews','Ebrues','Hebrues','Hebrewes'),'Hebrews'), ((' hede ',' heede '),' heed '), ((' hir ',),' her '),((' hir,',),' her,'),((' hir.',),' her.'), (('hirdmen','hyrdmen','heardmen','herdmen'),'herdsmen'), (('Herode ','Eroude '),'Herod '),
+            (('Ebrews','Ebrues','Hebrues','Hebrewes'),'Hebrews'), ((' hede ',' heede '),' heed '), ((' hir ',),' her '),((' hir,',),' her,'),((' hir.',),' her.'),((' hir;',),' her;'), (('hirdmen','hyrdmen','heardmen','herdmen'),'herdsmen'), (('Herode ','Eroude '),'Herod '),
         ((' hiyeste',' hiyest'),' highest'),((' hye ',' hie '),' high '),
             ((' hym ',),' him '),((' hym,',),' him,'),((' hym.',),' him.'),((' hym;',),' him;'),((' hym:',),' him:'),((' hym?',),' him?'), (('himselfe',),'himself'),
             ((' hiryd',' hyred'),' hired'), ((' hise ',' hys '),' his '),
@@ -677,7 +681,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
             (('strayght',),'straight'), (('straunger',),'stranger'),(('straunge ',),'strange '), ((' strijf ',' stryfe '),' strife '),((' stryuynge',' stryuyng',' stryvinge',' striuing'),' striving'), (('stumbleth','stombleth','stomblith'),'stumbles'),
         (('subiection','subieccion'),'subjection'),((' suget',),' subject'), (('substaunce',),'substance'),
             ((' soch ',' suche ',' siche '),' such '),
-            ((('suffrith',),'suffereth/suffers'),(' suffride',),' suffered'),((' suffre ',),' suffer '), (('suffysed','suffised'),'sufficed'),
+            (('suffrith',),'suffereth/suffers'),((' suffride',),' suffered'),(('Suffre ',),'Suffer '),((' suffre ',),' suffer '), (('suffysed','suffised'),'sufficed'),
             (('Sommer',),'Summer'),((' sommer ',' somer '),' summer '),
             (('supplicacion',),'supplication'),
         (('synagoge',),'synagogue'),
@@ -711,8 +715,12 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
     (('walkynge','walkinge'),'walking'),((' walke ',),' walk '),
              ((' warres',),' wars'),((' warre ',),' war '),
              ((' watred',),' watered'),((' watris',),' waters'),((' watir',),' water'), ((' waye ',' weie ',' weye '),' way '),((' waye.',' weie.',' weye.'),' way.'),((' waye:',' weie:',' weye:'),' way:'),
-        ((' wee ',),' we '), ((' weryed',' weried'),' wearied'),((' weery',' wery'),' weary'), ((' wente ',' wete ',' yede '),' went '), ((' weren ',),' were '), (('westwarde',),'westward'),
-         (('whatsoeuer',),'whatsoever'),(('Whatsoeuer',),'Whatsoever'), ((' whanne ',' whan '),' when '), ((' whethir',),' whether'), ((' whiche ',),' which '),
+        ((' wee ',),' we '),
+            ((' weryed',' weried'),' wearied'),((' weery',' wery'),' weary'),
+            ((' wel ',),' well '),
+            ((' wente ',' wete ',' yede '),' went '),
+            ((' weren ',),' were '), (('westwarde',),'westward'),
+        (('whatsoeuer',),'whatsoever'),(('Whatsoeuer',),'Whatsoever'), ((' whanne ',' whan '),' when '), ((' whethir',),' whether'), ((' whiche ',),' which '),
             ((' whoale',),' whole'), ((' whome',),' whom'), (('whosoeuer',),'whosoever'),
         ((' wickid',),' wicked'),
             (('widewis','wyddowes','widowes'),'widows'), (('wyldernesse','wildirnesse','wyldernes','wildernesse'),'wilderness'), (('wildernes ',),'wilderness '),(('wildernes:',),'wilderness:'),
@@ -729,6 +737,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
             (('worschipide','worshypped'),'worshipped'),
             ((' worthie',' worthi'),' worthy'),
             (('Woulde ','Wolde '),'Would '),((' woldist ',' woldest ',' woulde ',' wolde '),' would '),
+        (('wrouyt','wrought'),'wrought/done'),
     (('Iames',),'Yames'),
             ((' yeres',),' years'),((' yeer',' yeare'),' year'),
                 (('Ierusalem','Hierusalem'),'Yerusalem'),
