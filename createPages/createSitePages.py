@@ -66,14 +66,14 @@ from html import makeTop, makeBottom, checkHtml
 from selectedVersesVersions import fillSelectedVerses
 
 
-LAST_MODIFIED_DATE = '2023-06-29' # by RJH
+LAST_MODIFIED_DATE = '2023-07-05' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData Create Pages"
 PROGRAM_VERSION = '0.71'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
-TEST_MODE = False # Writes website into Test subfolder
+TEST_MODE = True # Writes website into Test subfolder
 
 ALL_PRODUCTION_BOOKS = not TEST_MODE # If set to False, only selects one book per version for a faster test build
 
@@ -104,10 +104,10 @@ class State:
                 'OET-RV','OET-LV',
                 'ULT','UST',
                 'BSB','BLB',
-                'OEB','ISV',
+                'OEB','ISV','CSV',
                 'NLT','NIV','ESV','NASB',
                 '2DT','1ST','TPT',
-                'WEB','WMB','NET','LSV','FBV','TCNT','T4T','LEB','BBE',
+                'WEB','WMB','NET','LSV','FBV','TCNT','T4T','LEB','NRSV','NKJV','BBE',
                 'JPS','ASV','DRA','YLT','DBY','RV','WBS','KJB','BB','GNV','CB',
                 'TNT','WYC','CLV',
                 'SR-GNT','UGNT','SBL-GNT','TC-GNT',
@@ -121,8 +121,8 @@ class State:
 
     # Specific short lists
     auxilliaryVersions = ('OET','TTN','TOBD') # These ones don't have their own Bible locations at all
-    selectedVersesOnlyVersions = ('NLT','NIV','ESV','NASB','2DT','1ST','TPT') # These ones have .tsv sources (and don't produce Bible objects)
-    numAllowedSelectedVerses   = ( 500,  500,  500,   500,  300,  300,  250 ) # Order must match above list
+    selectedVersesOnlyVersions = ('CSB','NLT','NIV','ESV','NASB','2DT','1ST','TPT','NRSV','NKJV') # These ones have .tsv sources (and don't produce Bible objects)
+    numAllowedSelectedVerses   = (   5,  500,  500,  500,   500,  300,  300,  250,     5,     5 ) # Order must match above list
 
     # NOTE: We don't display the versions with only selected verses, so don't need decorations for them
     BibleVersionDecorations = { 'OET':('<b>','</b>'),'OET-RV':('<b>','</b>'),'OET-LV':('<b>','</b>'),
@@ -154,6 +154,7 @@ class State:
                 'BLB': '../copiedBibles/English/Berean.Bible/BLB/blb.modified.txt', # NT only so far
                 'OEB': '../copiedBibles/English/OEB/',
                 # 'ISV': '',
+                'CSB': '../copiedBibles/English/CSB_verses.tsv',
                 'NLT': '../copiedBibles/English/NLT_verses.tsv',
                 'NIV': '../copiedBibles/English/NIV_verses.tsv',
                 'ESV': '../copiedBibles/English/ESV_verses.tsv',
@@ -169,6 +170,8 @@ class State:
                 'TCNT': '../copiedBibles/English/eBible.org/TCNT/',
                 'T4T': '../copiedBibles/English/eBible.org/T4T/',
                 'LEB': '../copiedBibles/English/LogosBibleSoftware/LEB/LEB.xml', # not OSIS
+                'NRSV': '../copiedBibles/English/NRSV_verses.tsv',
+                'NKJV': '../copiedBibles/English/NKJV_verses.tsv',
                 'BBE': '../copiedBibles/English/eBible.org/BBE/',
                 'JPS': '../copiedBibles/English/eBible.org/JPS/',
                 'ASV': '../copiedBibles/English/eBible.org/ASV/',
@@ -206,6 +209,7 @@ class State:
                 'BLB': 'Berean Literal Bible NT (2022)',
                 'OEB': 'Open English Bible (in progress)',
                 'ISV': 'International Standard Version (2020?)',
+                'CSB': 'Christian Standard Bible (2017)',
                 'NLT': 'New Living Translation (2015)',
                 'NIV': 'New International Version (2011)',
                 'ESV': 'English Standard Version (2001)',
@@ -221,6 +225,8 @@ class State:
                 'TCNT': 'Text-Critical New Testament (2022, Byzantine)',
                 'T4T': 'Translation for Translators (2017)',
                 'LEB': 'Lexham English Bible (2010,2012)',
+                'NRSV': 'New Revised Standard Version (1989)',
+                'NKJV': 'New King James Version (1982)',
                 'BBE': 'Bible in Basic English (1965)',
                 'JPS': 'Jewish Publication Society TaNaKH (1917)',
                 'ASV': 'American Standard Version (1901)',
@@ -259,6 +265,7 @@ class State:
                 'BLB': ['NT'],
                 'OEB': ['ALL'],
                 'ISV': ['ALL'],
+                'CSB': ['ALL'],
                 'NLT': ['ALL'],
                 'NIV': ['ALL'],
                 'ESV': ['ALL'],
@@ -274,6 +281,8 @@ class State:
                 'TCNT': ['ALL'],
                 'T4T': ['ALL'],
                 'LEB': ['ALL'],
+                'NRSV': ['ALL'],
+                'NKJV': ['ALL'],
                 'BBE': ['ALL'],
                 'JPS': ['ALL'],
                 'ASV': ['ALL'],
@@ -309,6 +318,7 @@ class State:
                 'BLB': ['MRK'],
                 'OEB': ['MRK'],
                 'ISV': ['MRK'],
+                'CSB': ['MRK'],
                 'NLT': ['MRK'],
                 'NIV': ['MRK'],
                 'ESV': ['MRK'],
@@ -324,6 +334,8 @@ class State:
                 'TCNT': ['MRK'],
                 'T4T': ['MRK'],
                 'LEB': ['MRK'],
+                'NRSV': ['MRK'],
+                'NKJV': ['MRK'],
                 'BBE': ['MRK'],
                 'JPS': ['RUT'],
                 'ASV': ['MRK'],
@@ -391,6 +403,10 @@ You can read more about the design of the OET-LV <a href="https://OpenEnglishTra
                 'copyright': '<p>Copyright © (coming).</p>',
                 'licence': '<p>(coming).</p>',
                 'acknowledgements': '<p>(coming).</p>' },
+        'CSB': {'about': '<p>(Holmes) Christian Standard Bible (2017).</p>',
+                'copyright': '<p>Copyright © (coming).</p>',
+                'licence': '<p>(coming).</p>',
+                'acknowledgements': '<p>(coming).</p>' },
         'NLT': {'about': '<p>New Living Translation (2015).</p>',
                 'copyright': '<p>Holy Bible, New Living Translation, copyright © 1996, 2004, 2015 by Tyndale House Foundation. Used by permission of Tyndale House Publishers. All rights reserved.</p>',
                 'licence': '<p>five hundred (500) verses without the express written permission of the publisher, providing the verses quoted do not amount to a complete book of the Bible nor do the verses quoted account for twenty-five percent (25%) or more of the total text of the work in which they are quoted.</p>',
@@ -452,6 +468,14 @@ You can read more about the design of the OET-LV <a href="https://OpenEnglishTra
                 'copyright': '<p>Copyright © 2012 <a href="http://www.logos.com/">Logos Bible Software</a>. Lexham is a registered trademark of <a href="http://www.logos.com/">Logos Bible Software</a>.</p>',
                 'licence': '<p>You can give away the <a href="https://lexhampress.com/LEB-License">Lexham English Bible</a>, but you can’t sell it on its own. If the LEB comprises less than 25% of the content of a larger work, you can sell it as part of that work.</p>',
                 'acknowledgements': '<p>Thanks to <a href="http://www.logos.com/">Logos Bible Software</a> for supplying a XML file.</p>' },
+        'NRSV': {'about': '<p>New Revised Standard Version (1989).</p>',
+                'copyright': '<p>Copyright © (coming).</p>',
+                'licence': '<p>(coming).</p>',
+                'acknowledgements': '<p>(coming).</p>' },
+        'NKJV': {'about': '<p>New King James Version (1979).</p>',
+                'copyright': '<p>Copyright © (coming).</p>',
+                'licence': '<p>(coming).</p>',
+                'acknowledgements': '<p>(coming).</p>' },
         'BBE': {'about': '<p>Bible in Basic English (1965).</p>',
                 'copyright': '<p>Copyright © (coming).</p>',
                 'licence': '<p>(coming).</p>',

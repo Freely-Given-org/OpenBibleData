@@ -46,7 +46,7 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_
 from createOETReferencePages import livenOETWordLinks
 
 
-LAST_MODIFIED_DATE = '2023-07-04' # by RJH
+LAST_MODIFIED_DATE = '2023-07-05' # by RJH
 SHORT_PROGRAM_NAME = "createParallelPages"
 PROGRAM_NAME = "OpenBibleData createParallelPages functions"
 PROGRAM_VERSION = '0.71'
@@ -441,7 +441,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
             ((' altare',' aulter',' auter'),' altar'),
             ((' alwayes',' alwaies',' allwaie'),' always'),
         (('amased',),'amazed'), ((' amede',),' amend'), ((' amonge',' amoge'),' among'),
-        (('Andrewe',),'Andrew'), ((' aungel',),' angel'), (('annoynted',),'annointed'),(('Annoynted',),'Annointed'),((' annoynt',' anoynte',' anoynt'),' annoint'),
+        (('Andrewe',),'Andrew'), ((' aungel',),' angel'), (('annoynted',),'anointed'),(('Annoynted',),'Anointed'),((' annoynt',' anoynte',' anoynt'),' anoint'),
             ((' anoon ',' anone ',' anon '),' anon/immediately '), (('Anothir',),'Another'),
             (('answerden','answerede','answeride','aunswered'),'answered'),((' aunswere ',' answere '),' answer '), ((' ony ',' eny '),' any '),
         (('apostlis',),'apostles'), (('appearynge','apperynge','apperinge','appearyng'),'appearing'), (('appoynte','apoynte'),'appoint'),
@@ -636,7 +636,9 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
         ((' realme',' rewme'),' realm'), (('reasonyng','reasoninge'),'reasoning'),
             ((' resseyueth',' receaveth',' receaueth',' receiueth'),' receives'),((' resseyueden',' receaved',' receaued',' receiued'),' received'),((' resseyue',' receave',' receaue',' receiue'),' receive'), (('recompence',),'recompense'), ((' recorde ',),' record '),
             ((' raygne ',),' reign '),
-            (('remayned',),'remained'), (('remyssion','remissioun'),'remission'), (('repentaunce',),'repentance'), (('resurreccion',),'resurrection'),
+            (('remayned',),'remained'), (('remembrance',),'remembraunce'), (('remyssion','remissioun'),'remission'),
+            (('repentaunce',),'repentance'),
+            (('resurreccion',),'resurrection'),
         ((' riche ',),' rich '), ((' ryght ',' riyt '),' right '), ((' ryghteous',),' righteous'), ((' ryse ',),' rise '),
         ((' rodde ',),' rod/staff '),((' rodde:',),' rod/staff:'), ((' roofe',' rofe'),' roof'), ((' roume',),' room'), ((' roote',' rote'),' root'),
             ((' roos ',),' rose '),
@@ -696,7 +698,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
             ((' thyne ',' thine '),' thine/your '), ((' thinges',' thingis',' thynges'),' things'),((' thinge',' thyng'),' thing'), ((' thenkynge',),' thinking'), ((' thynke',' thenken'),' think'),
                 ((' thridde',' thyrde',' thirde'),' third'), ((' thyrst',),' thirst'),
             (('thwong',),'thong'), ((' thou ',),' thou/you '), (('thousynde','thousande'),'thousand'),
-            ((' trone ',),' throne '), (('thorow ',),'through '), (('throwen',),'thrown'),
+            ((' trone ',),' throne '), (('thorowout',),'throughout'), (('thorow ',),'through '), (('throwen',),'thrown'),
             (('thundryng',),'thundering'), (('thounder','thonder'),'thunder'),
         ((' tydynges',' tidynges',' tydinges',' tydings'),' tidings/news'),(('Tydinges',),'Tidings'), ((' tyme',),' time'),
         (('togidir','togidere','togedder'),'together'), ((' tokene ',),' token '), ((' toke ',),' took '), ((' townes',' tounes'),' towns'),
