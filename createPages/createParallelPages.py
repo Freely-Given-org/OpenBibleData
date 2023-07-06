@@ -396,7 +396,7 @@ f'''<p class="chLst">{ourTidyBbb if ourTidyBbb!='Jac' else 'Jacob/(James)'} {'
 ENGLISH_WORD_MAP = ( # Place longer words first,
                      #     use space before to prevent accidental partial-word matches
                      #     since we're only doing string matches (but they're case sensitive)
-    # Pairs of words
+    # Pairs of words (two words to two words)
     ((' a boot',),' a boat'),
     ((' a none ',),' anon '),
     (('at euen ','at even ',),'at evening '),(('when euen ','when even '),'when evening '),(('when the euen ','when the even '),'when the evening '),
@@ -407,11 +407,10 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
     (('righte hade','right honde','riythalf'),'right hand'),
     (('sche felde ',),'she fell '),
     (('the see ',),'the sea '),
-    ((' to geder',' to gidir'),' together'),
     (('we han ',),'we have '),
     (('with greet',),'with great'),
 
-    # Two words into one
+    # Two words into one word
     (('a fore honde','afore hand','aforehande'),'aforehand'),
     ((' in deede ',' in dede '),' indeed '),
     ((' for o ',),' into '),
@@ -420,7 +419,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
     ((' hym silf',' hym selfe',' him selfe'),' himself'),
     (('strayght waye','streight waye'),'straightway'),
     (('thy selfe','thi silf','yi self'),'thyself/yourself'),
-    ((' to gedder',),' together'),
+    ((' to gedder',' to geder',' to gidir'),' together'),
     (('with outen',),'without'),
     (('youre selues',),'yourselves'),
 
