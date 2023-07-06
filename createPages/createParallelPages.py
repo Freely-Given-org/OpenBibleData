@@ -46,7 +46,7 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_
 from createOETReferencePages import livenOETWordLinks
 
 
-LAST_MODIFIED_DATE = '2023-07-05' # by RJH
+LAST_MODIFIED_DATE = '2023-07-06' # by RJH
 SHORT_PROGRAM_NAME = "createParallelPages"
 PROGRAM_NAME = "OpenBibleData createParallelPages functions"
 PROGRAM_VERSION = '0.71'
@@ -185,7 +185,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                     if versionAbbreviation in state.selectedVersesOnlyVersions: # then thisBible is NOT a Bible object, but a dict
                         ourRef = (BBB,C,V)
                         try:
-                            vHtml = thisBible[ourRef].replace( '\\wj ', '<p class="wj">' ).replace( '\\wj*', '</p>' )
+                            vHtml = thisBible[ourRef].replace( '\\wj ', '<span class="wj">' ).replace( '\\wj*', '</span>' )
                             vHtml =  f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName"><a title="Go to {versionAbbreviation} copyright info" href="{'../'*level}allDetails.htm#{versionAbbreviation}">{versionAbbreviation}</a></span> {vHtml}</p>
 '''
                         except KeyError:
@@ -407,6 +407,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
     (('righte hade','right honde','riythalf'),'right hand'),
     (('sche felde ',),'she fell '),
     (('the see ',),'the sea '),
+    ((' to geder',' to gidir'),' together'),
     (('we han ',),'we have '),
     (('with greet',),'with great'),
 
@@ -515,7 +516,9 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
             (('doctryne',),'doctrine'),
             ((' doist ',),' doest '),
             ((' don ',),' done '),((' don,',),' done,'),((' don.',),' done.'),
-            ((' doores',' dores'),' doors'),((' dore',),' door'), ((' doue',),' dove'), ((' downe',' doune',' doun'),' down'),
+            ((' doores',' dores'),' doors'),((' doore',' dore'),' door'),
+            ((' doue',),' dove'),
+            ((' downe',' doune',' doun'),' down'),
         (('dredde',),'dreaded'), ((' dryncke',' drynke', ' drinke'),' drink'), ((' driueth',' driveth'),' drives'), ((' driue',' dryue'),' drive'),
             ((' drave',' droue'),' drove'), ((' drie ',),' dry '),
         ((' duste ',),' dust '),
@@ -548,7 +551,10 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
         ((' gobetis',),' fragments'), ((' fre ',),' free '),((' fre.',),' free.'), ((' freli',),' freely'),
             ((' freend',' frende'),' friend'), (('Fro ',),'From '),
         ((' ful ',),' full '), (('fulfillid','fulfylled'),'fulfilled'), ((' fornace',),' furnace'),
-    (('Galile ',),'Galilee '),(('Galile,',),'Galilee,'), ((' garmente',),' garment'), (('gadirid',),'gathered'),((' gadere ',' gaddre ',' geder '),' gather '), ((' yaf ',' gaue '),' gave '),
+    (('Galile ',),'Galilee '),(('Galile,',),'Galilee,'),
+            ((' garmente',),' garment'),
+            ((' yate',),' gate'), (('gadirid','gadered'),'gathered'),((' gadere ',' gaddre ',' geder '),' gather '),
+            ((' yaf ',' gaue '),' gave '),
         ((' goost',),' ghost'),
         ((' geve ',' geue ',' giue ',' yyue '),' give '),((' geve,',' geue,',' giue,',' yyue,'),' give,'), ((' geven',' giuen',' geuen',' youun', ' youe'),' given'),
         ((' girdil',' gerdyll',' gerdell'),' girdle'),
@@ -597,7 +603,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
         ((' meate ',),' meat '), (('meekenes','mekenes','meknes'),'meekness'), ((' mendynge',' mendyng',' mendinge'),' mending'), ((' mesure',),' measure'), ((' `metis ',' metis '),' meats '),
         ((' myddil',),' middle'), ((' myghty',' mightie',' miyti'),' mighty'),((' myyte',' myght'),' might'), ((' myndes',' mindes'),' minds'),((' mynde ',),' mind '), ((' myne ',),' mine '), (('ministred','mynistred','mynystriden'),'ministered'),((' mynyster',' mynister'),' minister'),
         ((' mony',),' money'), (('Moreouer','Morouer'),'Moreover/What\'s_more'), ((' moder ',' modir '),' mother '), ((' moute ',),' mount '), ((' mowe ',),' more '),
-        ((' myche',' moche',' moch'),' much'),
+        ((' myche',' moche',' moch',' muche'),' much'),
     ((' naciouns',),' nations'), ((' natiue',),' native'),
         ((' neere ',' neare '),' near '),((' neere.',' neare.'),' near.'),((' neere:',' neare:'),' near:'),
             ((' nedes',),' needs'), ((' nether',),' neither'),(('(nether',),'(neither'), ((' nettes',' nettis'),' nets'),
@@ -640,7 +646,8 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
             (('repentaunce',),'repentance'),
             (('resurreccion',),'resurrection'),
         ((' riche ',),' rich '), ((' ryght ',' riyt '),' right '), ((' ryghteous',),' righteous'), ((' ryse ',),' rise '),
-        ((' rodde ',),' rod/staff '),((' rodde:',),' rod/staff:'), ((' roofe',' rofe'),' roof'), ((' roume',),' room'), ((' roote',' rote'),' root'),
+        ((' rodde ',),' rod/staff '),((' rodde:',),' rod/staff:'),
+            ((' roofe',' rofe'),' roof'), ((' roume',' rowme'),' room'), ((' roote',' rote'),' root'),
             ((' roos ',),' rose '),
         (('ruleth','rueleth'),'rules'), ((' rulars',),' rulers'),
     (('Sabbathes',),'Sabbaths'),((' sabatys',),' sabbaths'),(('Sabboth','Saboth'),'Sabbath'),((' sabat',' saboth'),' sabbath'), (('Saduceis','Saduces','Sadduces'),'Sadducees'), ((' saaf',),' safe'), ((' seiden',' seide',' sayde',' sayd',' saide'),' said'),
@@ -676,6 +683,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
             ((' souyten',),' sought'), ((' sounde',),' sound'), (('southwarde',),'southward'), (('souereynes',),'sovereigns'),
         (('speakynge','spekynge','speakinge','spekinge','speakyng'),'speaking'),((' spekith',' speaketh'),' speaks'),((' speake',),' speak'),
             ((' spyed',),' spied'), ((' spirite',' sprete'),' spirit'),
+            ((' spak ',),' spoke '),
         ((' staffe ',),' staff '), ((' stande ',),' stand '),
             (('Steppe ',),'Step '),
             ((' styll',),' still'),
