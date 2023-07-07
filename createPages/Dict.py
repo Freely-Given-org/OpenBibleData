@@ -55,7 +55,7 @@ from html import makeTop, makeBottom, checkHtml
 LAST_MODIFIED_DATE = '2023-07-07' # by RJH
 SHORT_PROGRAM_NAME = "Dictionary"
 PROGRAM_NAME = "OpenBibleData Dictionary handler"
-PROGRAM_VERSION = '0.32'
+PROGRAM_VERSION = '0.33'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -749,7 +749,7 @@ def livenTyndaleTextboxRefs( abbrev:str, level:int, articleLinkName:str, html:st
                 if textboxName[ixS+1].isupper():
                     textboxName = f'{textboxName[:ixS]}s{textboxName[ixS+1:]}' # Convert things like AbrahamSBosom to a lowercase s
                     textboxData = TOBDData['Textboxes'][textboxName]
-                    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Fixed S {articleLinkName=} {textboxName=}")
+                    vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Fixed S {articleLinkName=} {textboxName=}")
                     fixed = True
                     break
                 sSearchStartIndex = ixS + 1
@@ -763,13 +763,12 @@ def livenTyndaleTextboxRefs( abbrev:str, level:int, articleLinkName:str, html:st
                     if textboxName[ixT+1].isupper():
                         textboxName = f'{textboxName[:ixT]}t{textboxName[ixT+1:]}' # Convert things like AntilegomenaTheBooksThatDidnTMakeIt to lowercase t
                         textboxData = TOBDData['Textboxes'][textboxName]
-                        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Fixed T {articleLinkName=} {textboxName=}")
+                        vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Fixed T {articleLinkName=} {textboxName=}")
                         fixed = True
                     tSearchStartIndex = ixT + 1
                 else: tSearch_needs_more_loops
             if not fixed:
                 logging.critical( f"livenTyndaleTextboxRefs failed to find a textbox for {articleLinkName} '{textboxName}'" )
-                halt
                 tbSearchStartIndex = ixStart + 50
                 continue
         ourNewLink = f'''<div class="Textbox">{textboxData}</div><!--end of Textbox-->'''
