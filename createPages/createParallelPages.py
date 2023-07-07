@@ -46,7 +46,7 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_
 from createOETReferencePages import livenOETWordLinks
 
 
-LAST_MODIFIED_DATE = '2023-07-06' # by RJH
+LAST_MODIFIED_DATE = '2023-07-07' # by RJH
 SHORT_PROGRAM_NAME = "createParallelPages"
 PROGRAM_NAME = "OpenBibleData createParallelPages functions"
 PROGRAM_VERSION = '0.71'
@@ -460,7 +460,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
             (('bileueden','beleeued','beleued','beleved'),'believed'), ((' bileueth',' beleueth',' beleeueth'),' believes'), ((' beleue',' beleeue',' beleve',' bileue'),' believe'),
             ((' berith',),' beareth'),
             (('besechyng','beseeching'),'beseeching/imploring'),((' biseche',' beseech'),' beseech/implore'), ((' bisidis',),' beside'),
-            (('Bethlehe ','Bethleem ','Bethlee '),'Bethlehem '), (('bitraiede','betraied'),'betrayed'), ((' bitwixe',' betweene',' betwene'),' between'),
+            (('Bethlehe ','Bethleem ','Bethlee '),'Bethlehem '), (('bitraiede','betraied'),'betrayed'),(('bitraye ','betraye '),'betray '), ((' bitwixe',' betweene',' betwene'),' between'),
             ((' beyonde',' biyende'),' beyond'),
         ((' byde ',),' bide/stay '), ((' bynde',),' bind'),
         (('Blessid ',),'Blessed '),(('blesside',),'blessed'), (('bloude','bloud'),'blood'),
@@ -490,7 +490,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
                 ((' coumfortour',),' comforter'),
                 (('commaundementes','commandementes','commandements'),'commandments'),(('commaundement','comaundement','commandement'),'commandment'),(('comaundide','commaunded'),'commanded'), ((' comyn',),' common'),
                 (('companye',),'company'), (('comprehendiden',),'comprehended'),
-            (('confessioun',),'confession'), (('congregacion',),'congregation'), (('consolacion',),'consolation'), (('contynued',),'continued'),(('contynuynge',),'continuing'),
+            (('confessioun',),'confession'), (('congregacion',),'congregation'), (('consolacion',),'consolation'), (('contynued',),'continued'),(('contynuynge',),'continuing'), (('conueniently','coueniently'),'conveniently'),
             ((' coulde',' coude'),' could'), ((' cuntree',' countrey',' cuntrey',' cuntrei',' countre',' cuntre'),' country'),
         ((' criede',),' cried'), (('coroun ','croune ','crowne ',),'crown '),
         ((' cuppe',),' cup'),
@@ -557,7 +557,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
         ((' goost',),' ghost'),
         ((' geve ',' geue ',' giue ',' yyue '),' give '),((' geve,',' geue,',' giue,',' yyue,'),' give,'), ((' geven',' giuen',' geuen',' youun', ' youe'),' given'),
         ((' girdil',' gerdyll',' gerdell'),' girdle'),
-        ((' glorie',),' glory'),
+        ((' gladde ',),' glad '), ((' glorie',),' glory'),
         ((' goe ',' goo '),' go '), ((' golde ',),' gold '),((' golde.',),' gold.'), ((' goon ',),' gone '), ((' gospell',),' gospel'), (('Gospell',),'Gospel'),
         (('Graunte ','Graunt '),'Grant '),((' graunt ',' graut '),' grant '),
             ((' gretter',),' greater'),((' greate ',' grete '),' great '),
@@ -641,7 +641,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
         ((' realme',' rewme'),' realm'), (('reasonyng','reasoninge'),'reasoning'),
             ((' resseyueth',' receaveth',' receaueth',' receiueth'),' receives'),((' resseyueden',' receaved',' receaued',' receiued'),' received'),((' resseyue',' receave',' receaue',' receiue'),' receive'), (('recompence',),'recompense'), ((' recorde ',),' record '),
             ((' raygne ',),' reign '),
-            (('remayned',),'remained'), (('remembrance',),'remembraunce'), (('remyssion','remissioun'),'remission'),
+            (('remayned',),'remained'), (('remembraunce',),'remembrance'), (('remyssion','remissioun'),'remission'),
             (('repentaunce',),'repentance'),
             (('resurreccion',),'resurrection'),
         ((' riche ',),' rich '), ((' ryght ',' riyt '),' right '), ((' ryghteous',),' righteous'), ((' ryse ',),' rise '),
