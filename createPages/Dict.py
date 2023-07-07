@@ -729,9 +729,9 @@ def livenTyndaleTextboxRefs( abbrev:str, level:int, articleLinkName:str, html:st
     fnPrint( DEBUGGING_THIS_MODULE, f"livenTyndaleTextboxRefs( {abbrev}, {level}, {articleLinkName} {html}, ... )")
 
     # Fails on AntilegomenaTheBooksThatDidnTMakeIt
-    searchStartIndex = 0
-    for _safetyCount in range( 3 ): # 2 was too few
-        ixStart = html.find( '<include_items src="../Textboxes/Textboxes.xml" name="', searchStartIndex )
+    tbSearchStartIndex = 0
+    for _safetyCount1 in range( 3 ): # 2 was too few
+        ixStart = html.find( '<include_items src="../Textboxes/Textboxes.xml" name="', tbSearchStartIndex )
         if ixStart == -1: # none/no more found
             break
         ixCloseQuote = html.find( '"', ixStart+54 )
@@ -741,27 +741,41 @@ def livenTyndaleTextboxRefs( abbrev:str, level:int, articleLinkName:str, html:st
         try: textboxData = TOBDData['Textboxes'][textboxName]
         except KeyError: # there's a systematic error in the data
             fixed = False
-            ixS = textboxName.find( 'S', 1 )
-            if ixS > 0 and textboxName[ixS+1].isupper():
-                textboxName = f'{textboxName[:ixS]}s{textboxName[ixS+1:]}' # Convert things like AbrahamSBosom to a lowercase s
-                textboxData = TOBDData['Textboxes'][textboxName]
-                print( f"  Fixed S {articleLinkName=} {textboxName=}")
-                fixed = True
-            if not fixed:
-                ixT = textboxName.find( 'T', 1 )
-                if ixT > 0 and textboxName[ixT+1].isupper():
-                    textboxName = f'{textboxName[:ixT]}t{textboxName[ixT+1:]}' # Convert things like AntilegomenaTheBooksThatDidnTMakeIt to lowercase t
+            # Find a S that should be lowercase, e.g., AbrahamSBosom
+            sSearchStartIndex = 1
+            for _safetyCount2 in range( 3 ):
+                ixS = textboxName.find( 'S', sSearchStartIndex )
+                if ixS == -1: break
+                if textboxName[ixS+1].isupper():
+                    textboxName = f'{textboxName[:ixS]}s{textboxName[ixS+1:]}' # Convert things like AbrahamSBosom to a lowercase s
                     textboxData = TOBDData['Textboxes'][textboxName]
-                    print( f"  Fixed T {articleLinkName=} {textboxName=}")
+                    print( f"  Fixed S {articleLinkName=} {textboxName=}")
                     fixed = True
+                    break
+                sSearchStartIndex = ixS + 1
+            else: sSearch_needs_more_loops
+            if not fixed:
+                # Find a T that should be lowercase, e.g., DidnTMake
+                tSearchStartIndex = 1
+                for _safetyCount3 in range( 3 ):
+                    ixT = textboxName.find( 'T', tSearchStartIndex )
+                    if ixT == -1: break
+                    if textboxName[ixT+1].isupper():
+                        textboxName = f'{textboxName[:ixT]}t{textboxName[ixT+1:]}' # Convert things like AntilegomenaTheBooksThatDidnTMakeIt to lowercase t
+                        textboxData = TOBDData['Textboxes'][textboxName]
+                        print( f"  Fixed T {articleLinkName=} {textboxName=}")
+                        fixed = True
+                    tSearchStartIndex = ixT + 1
+                else: tSearch_needs_more_loops
             if not fixed:
                 logging.critical( f"livenTyndaleTextboxRefs failed to find a textbox for {articleLinkName} '{textboxName}'" )
-                searchStartIndex = ixStart + 50
+                halt
+                tbSearchStartIndex = ixStart + 50
                 continue
         ourNewLink = f'''<div class="Textbox">{textboxData}</div><!--end of Textbox-->'''
         # print( f"   {ourNewLink=}" )
         html = f'''{html[:ixStart]}{ourNewLink}{html[ixCloseQuote+3:]}'''
-        searchStartIndex = ixStart + 10
+        tbSearchStartIndex = ixStart + 10
     else: need_to_increase_Tyndale_textbox_loop_counter
 
     return html
