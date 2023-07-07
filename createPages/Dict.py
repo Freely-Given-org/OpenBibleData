@@ -52,10 +52,10 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 from html import makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-06-20' # by RJH
+LAST_MODIFIED_DATE = '2023-07-07' # by RJH
 SHORT_PROGRAM_NAME = "Dictionary"
 PROGRAM_NAME = "OpenBibleData Dictionary handler"
-PROGRAM_VERSION = '0.31'
+PROGRAM_VERSION = '0.32'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -737,7 +737,7 @@ def livenTyndaleTextboxRefs( abbrev:str, level:int, articleLinkName:str, html:st
         ixCloseQuote = html.find( '"', ixStart+54 )
         assert ixCloseQuote != -1
         textboxName = html[ixStart+54:ixCloseQuote].replace( 'AbrahamSBosom', 'AbrahamsBosom' )
-        print( f"{articleLinkName=} {textboxName=}" )
+        # print( f"  {articleLinkName=} {textboxName=}" )
         try: textboxData = TOBDData['Textboxes'][textboxName]
         except KeyError: # there's a systematic error in the data
             fixed = False
@@ -749,7 +749,7 @@ def livenTyndaleTextboxRefs( abbrev:str, level:int, articleLinkName:str, html:st
                 if textboxName[ixS+1].isupper():
                     textboxName = f'{textboxName[:ixS]}s{textboxName[ixS+1:]}' # Convert things like AbrahamSBosom to a lowercase s
                     textboxData = TOBDData['Textboxes'][textboxName]
-                    print( f"  Fixed S {articleLinkName=} {textboxName=}")
+                    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Fixed S {articleLinkName=} {textboxName=}")
                     fixed = True
                     break
                 sSearchStartIndex = ixS + 1
@@ -757,13 +757,13 @@ def livenTyndaleTextboxRefs( abbrev:str, level:int, articleLinkName:str, html:st
             if not fixed:
                 # Find a T that should be lowercase, e.g., DidnTMake
                 tSearchStartIndex = 1
-                for _safetyCount3 in range( 3 ):
+                for _safetyCount3 in range( 4 ):
                     ixT = textboxName.find( 'T', tSearchStartIndex )
                     if ixT == -1: break
                     if textboxName[ixT+1].isupper():
                         textboxName = f'{textboxName[:ixT]}t{textboxName[ixT+1:]}' # Convert things like AntilegomenaTheBooksThatDidnTMakeIt to lowercase t
                         textboxData = TOBDData['Textboxes'][textboxName]
-                        print( f"  Fixed T {articleLinkName=} {textboxName=}")
+                        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Fixed T {articleLinkName=} {textboxName=}")
                         fixed = True
                     tSearchStartIndex = ixT + 1
                 else: tSearch_needs_more_loops
