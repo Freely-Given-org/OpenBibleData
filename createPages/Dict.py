@@ -728,6 +728,7 @@ def livenTyndaleTextboxRefs( abbrev:str, level:int, articleLinkName:str, html:st
 
     fnPrint( DEBUGGING_THIS_MODULE, f"livenTyndaleTextboxRefs( {abbrev}, {level}, {articleLinkName} {html}, ... )")
 
+    # Fails on AntilegomenaTheBooksThatDidnTMakeIt
     searchStartIndex = 0
     for _safetyCount in range( 3 ): # 2 was too few
         ixStart = html.find( '<include_items src="../Textboxes/Textboxes.xml" name="', searchStartIndex )
@@ -736,7 +737,7 @@ def livenTyndaleTextboxRefs( abbrev:str, level:int, articleLinkName:str, html:st
         ixCloseQuote = html.find( '"', ixStart+54 )
         assert ixCloseQuote != -1
         textboxName = html[ixStart+54:ixCloseQuote].replace( 'AbrahamSBosom', 'AbrahamsBosom' )
-        # print( f"{articleLinkName=} {textboxName=}" )
+        print( f"{articleLinkName=} {textboxName=}" )
         try: textboxData = TOBDData['Textboxes'][textboxName]
         except KeyError: # there's a systematic error in the data
             fixed = False
@@ -744,15 +745,17 @@ def livenTyndaleTextboxRefs( abbrev:str, level:int, articleLinkName:str, html:st
             if ixS > 0 and textboxName[ixS+1].isupper():
                 textboxName = f'{textboxName[:ixS]}s{textboxName[ixS+1:]}' # Convert things like AbrahamSBosom to a lowercase s
                 textboxData = TOBDData['Textboxes'][textboxName]
+                print( f"  Fixed S {articleLinkName=} {textboxName=}")
                 fixed = True
             if not fixed:
                 ixT = textboxName.find( 'T', 1 )
                 if ixT > 0 and textboxName[ixT+1].isupper():
                     textboxName = f'{textboxName[:ixT]}t{textboxName[ixT+1:]}' # Convert things like AntilegomenaTheBooksThatDidnTMakeIt to lowercase t
                     textboxData = TOBDData['Textboxes'][textboxName]
+                    print( f"  Fixed T {articleLinkName=} {textboxName=}")
                     fixed = True
             if not fixed:
-                logging.critical( f"livenTyndaleTextboxRefs failed to find a textbox for '{textboxName}'" )
+                logging.critical( f"livenTyndaleTextboxRefs failed to find a textbox for {articleLinkName} '{textboxName}'" )
                 searchStartIndex = ixStart + 50
                 continue
         ourNewLink = f'''<div class="Textbox">{textboxData}</div><!--end of Textbox-->'''
