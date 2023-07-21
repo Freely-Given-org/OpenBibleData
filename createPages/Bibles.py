@@ -35,6 +35,9 @@ BibleOrgSys uses a three-character book code to identify books.
         This was because early versions of HTML ID fields used to need
                 to start with a letter (not a digit),
             (and most identifiers in computer languages still require that).
+
+CHANGELOG:
+    2023-07-19 Fix '<class="sn-text">' bug
 """
 from gettext import gettext as _
 from typing import Dict, List, Tuple, Optional
@@ -67,10 +70,10 @@ from html import checkHtml
 from OETHandlers import findLVQuote
 
 
-LAST_MODIFIED_DATE = '2023-06-25' # by RJH
+LAST_MODIFIED_DATE = '2023-07-20' # by RJH
 SHORT_PROGRAM_NAME = "Bibles"
 PROGRAM_NAME = "OpenBibleData Bibles handler"
-PROGRAM_VERSION = '0.50'
+PROGRAM_VERSION = '0.51'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -430,7 +433,14 @@ def formatTyndaleNotes( abbrev:str, level:int, BBB:str, C:str, V:str, segmentTyp
             assert rest
             assert abbrev == 'TOSN'
             rest = rest.replace( '•', '<br>•' )
-            nHtml = f'{nHtml}<p class="{abbrev}">{rest}</p>'
+            theirClass = None
+            if rest.startswith( '<class="'): # e.g., <class="theme-list">The new covenant…
+                ixClose = rest.index( '">', 10 )
+                theirClass = rest[8:ixClose]
+                rest = rest[ixClose+2:]
+            rest = rest.replace( ' <class="sn-text">', '</p>\n<p class="sn-text">')
+                        # .replace( '<class="sn-text">', '</p>\n<p class="sn-text">') 
+            nHtml = f'{nHtml}<p class="{theirClass if theirClass else abbrev}">{rest}</p>'
         elif marker in ('s1','s2','s3'): # These have the text in the same entry
             assert rest
             assert abbrev == 'TTN'
@@ -469,6 +479,7 @@ def formatTyndaleNotes( abbrev:str, level:int, BBB:str, C:str, V:str, segmentTyp
         elif marker not in ('id','usfm','ide','intro','c','c#','c~','v','v='):
             dPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"{abbrev} {BBB} {C}:{V} {marker}={rest}" )
             unknown_Tyndale_notes_marker
+        assert '<class=' not in nHtml, f"{marker=} {rest=} {lastMarker=} {nHtml=}"
         lastMarker = marker
 
     # Fix their links like '<a href="?bref=Mark.4.14-20">4:14-20</a>'

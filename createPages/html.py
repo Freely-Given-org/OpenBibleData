@@ -35,6 +35,9 @@ BibleOrgSys uses a three-character book code to identify books.
         This was because early versions of HTML ID fields used to need
                 to start with a letter (not a digit),
             (and most identifiers in computer languages still require that).
+
+CHANGELOG:
+    2023-07-20 Handled removal of #Vv navigation links to section pages (already had #CcVv)
 """
 from gettext import gettext as _
 from typing import Dict, List, Tuple, Optional
@@ -53,10 +56,10 @@ from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39, BOOKLIST_NT27
 # from Bibles import fetchChapter
 
 
-LAST_MODIFIED_DATE = '2023-06-25' # by RJH
+LAST_MODIFIED_DATE = '2023-07-20' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
-PROGRAM_VERSION = '0.48'
+PROGRAM_VERSION = '0.49'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -296,22 +299,29 @@ def _makeFooter( level:int, pageType:str, state ) -> str:
 
 def removeDuplicateCVids( BBB:str, html:str ) -> str:
     """
-    Where we have OET parallel RV and LV, we get doubled ids like <span class="v" id="C2V6">
+    Where we have OET parallel RV and LV, we get doubled ids like <span id="V6"></span><span class="v" id="C2V6">
 
     This function removes the second id field in each case (which should be in the LV text).
     """
     startSearchIndex = 0
     while True:
-        startIx = html.find( ' id="C', startSearchIndex )
-        if startIx == -1: break # None / no more
-        endIx = html.find( '>', startIx+6 )
+        startVIx = html.find( ' id="V', startSearchIndex )
+        if startVIx == -1: startVIx = 999_999
+        startCIx = html.find( ' id="C', startSearchIndex )
+        if startCIx == -1: startCIx = 999_999
+        startIx = min( startVIx, startCIx )
+        if startIx == 999_999: break # None / no more
+        endIx = html.find( '>', startIx+6 ) # The end of the first id field found -- any duplicates will be AFTER this
         assert endIx != -1
         idContents = html[startIx:endIx]
-        assert 7 < len(idContents) < 14
+        assert 7 < len(idContents) < 14, f"{idContents=} {len(idContents)=}"
         idCount = html.count( idContents, startIx )
-        assert 1 <= idCount <= 2, f"{BBB} {idContents=} {idCount=} {html}"
-        if idCount == 2:
-            html = f"{html[:endIx]}{html[endIx:].replace( idContents, '', 1 )}"
+        if startIx == startCIx:
+            assert 1 <= idCount <= 2, f"{BBB} {idContents=} {idCount=} {html}"
+        else: # for #V entries, in large multi-chapter sections there can be several
+            assert 1 <= idCount <= 5, f"{BBB} {idContents=} {idCount=} {html}"
+        if idCount > 1:
+            html = f"{html[:endIx]}{html[endIx:].replace( idContents, '' )}"
             assert html.count( idContents ) == 1
         startSearchIndex += len( idContents )
     return html

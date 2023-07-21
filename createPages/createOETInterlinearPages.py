@@ -35,6 +35,9 @@ BibleOrgSys uses a three-character book code to identify books.
         This was because early versions of HTML ID fields used to need
                 to start with a letter (not a digit),
             (and most identifiers in computer languages still require that).
+
+CHANGELOG:
+    2023-07-19 Fixed untr marker detection
 """
 from gettext import gettext as _
 from typing import Dict, List, Tuple
@@ -61,10 +64,10 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
 from createOETReferencePages import CNTR_BOOK_ID_MAP, livenOETWordLinks
 
 
-LAST_MODIFIED_DATE = '2023-07-07' # by RJH
+LAST_MODIFIED_DATE = '2023-07-19' # by RJH
 SHORT_PROGRAM_NAME = "createOETInterlinearPages"
 PROGRAM_NAME = "OpenBibleData createOETInterlinearPages functions"
-PROGRAM_VERSION = '0.31'
+PROGRAM_VERSION = '0.32'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -284,6 +287,7 @@ def createOETInterlinearVersePage( level:int, BBB:str, c:int, v:int, state ) -> 
                             .replace('\\add ','').replace('\\add*','') \
                             .replace('\\nd ','').replace('\\nd*','') \
                             .replace('\\sup ','<sup>').replace('\\sup*','</sup>') \
+                            .replace('\\untr ','').replace('\\untr*','') \
                             .replace('/messiah¦', ' messiah¦') \
                             .replace('_',' ').replace('   ',' ').replace('  ',' ') \
                             .strip().split( ' ' )
@@ -307,7 +311,6 @@ def createOETInterlinearVersePage( level:int, BBB:str, c:int, v:int, state ) -> 
                             .replace('\\add ','').replace('\\add*','') \
                             .replace('\\nd ','').replace('\\nd*','') \
                             .replace('\\sup ','<sup>').replace('\\sup*','</sup>') \
-                            .replace('\\untr ','').replace('\\untr*','') \
                             .replace('_',' ').replace('   ',' ').replace('  ',' ') \
                             .strip().split( ' ' )
 

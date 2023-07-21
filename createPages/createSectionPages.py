@@ -161,7 +161,7 @@ def createOETSectionPages( level:int, folder:Path, rvBible, lvBible, state ) -> 
 <div class="container">
 <span> </span>
 <div class="buttons">
-    <button type="button" id="underlineButton" onclick="hide_show_underlines()">Hide underlines</button>
+    <button type="button" id="marksButton" onclick="hide_show_marks()">Hide marks</button>
 </div><!--buttons-->
 <h2>Readers’ Version</h2>
 <h2>Literal Version</h2>
