@@ -37,6 +37,7 @@ CHANGELOG:
     2023-05-31 Added BLB
     2023-06-01 Added TSN
     2023-07-19 Converted versions dictkeys to list for nicer display
+    2023-07-30 Added selected verses from some other versions
 """
 from gettext import gettext as _
 from typing import Dict, List, Tuple
@@ -67,10 +68,10 @@ from html import makeTop, makeBottom, checkHtml
 from selectedVersesVersions import fillSelectedVerses
 
 
-LAST_MODIFIED_DATE = '2023-07-19' # by RJH
+LAST_MODIFIED_DATE = '2023-07-30' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData Create Pages"
-PROGRAM_VERSION = '0.72'
+PROGRAM_VERSION = '0.73'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
@@ -106,7 +107,7 @@ class State:
                 'ULT','UST',
                 'BSB','BLB',
                 'OEB','ISV','CSV',
-                'NLT','NIV','ESV','NASB',
+                'NLT','NIV','ESV','NASB','LSB',
                 '2DT','1ST','TPT',
                 'WEB','WMB','NET','LSV','FBV','TCNT','T4T','LEB','NRSV','NKJV','BBE',
                 'JPS','ASV','DRA','YLT','DBY','RV','WBS','KJB','BB','GNV','CB',
@@ -122,8 +123,9 @@ class State:
 
     # Specific short lists
     auxilliaryVersions = ('OET','TTN','TOBD') # These ones don't have their own Bible locations at all
-    selectedVersesOnlyVersions = ('CSB','NLT','NIV','ESV','NASB','2DT','1ST','TPT','NRSV','NKJV') # These ones have .tsv sources (and don't produce Bible objects)
-    numAllowedSelectedVerses   = (   5,  500,  500,  500,   500,  300,  300,  250,     5,     5 ) # Order must match above list
+    selectedVersesOnlyVersions = ('CSB','NLT','NIV','ESV','NASB','LSB','2DT','1ST','TPT','NRSV','NKJV' ) # These ones have .tsv sources (and don't produce Bible objects)
+    numAllowedSelectedVerses   = (    5,  500,  500,  500,   500,    20, 300,  300,  250,     5,     5 ) # Order must match above list
+    assert len(numAllowedSelectedVerses) == len(selectedVersesOnlyVersions)
 
     # NOTE: We don't display the versions with only selected verses, so don't need decorations for them
     BibleVersionDecorations = { 'OET':('<b>','</b>'),'OET-RV':('<b>','</b>'),'OET-LV':('<b>','</b>'),
@@ -160,6 +162,7 @@ class State:
                 'NIV': '../copiedBibles/English/NIV_verses.tsv',
                 'ESV': '../copiedBibles/English/ESV_verses.tsv',
                 'NASB': '../copiedBibles/English/NASB_verses.tsv',
+                'LSB': '../copiedBibles/English/LSB_verses.tsv',
                 '2DT': '../copiedBibles/English/2DT_verses.tsv',
                 '1ST': '../copiedBibles/English/1ST_verses.tsv',
                 'TPT': '../copiedBibles/English/TPT_verses.tsv',
@@ -215,6 +218,7 @@ class State:
                 'NIV': 'New International Version (2011)',
                 'ESV': 'English Standard Version (2001)',
                 'NASB': 'New American Standard Bible (1995)',
+                'LSB': 'Legacy Standard Bible (2021)',
                 '2DT': 'The Second Testament (2023)',
                 '1ST': 'The First Testament (2018)',
                 'TPT': 'The Passion Translation (2017)',
@@ -271,6 +275,7 @@ class State:
                 'NIV': ['ALL'],
                 'ESV': ['ALL'],
                 'NASB': ['ALL'],
+                'LSB': ['ALL'],
                 '2DT': ['ALL'],
                 '1ST': ['ALL'],
                 'TPT': ['ALL'],
@@ -324,6 +329,7 @@ class State:
                 'NIV': ['MRK'],
                 'ESV': ['MRK'],
                 'NASB': ['MRK'],
+                'LSB': ['MRK'],
                 '2DT': ['MRK'],
                 '1ST': ['MRK'],
                 'TPT': ['MRK'],
@@ -420,9 +426,13 @@ You can read more about the design of the OET-LV <a href="https://OpenEnglishTra
                 'copyright': '<p>Scripture quotations are from the ESV® Bible (The Holy Bible, English Standard Version®), copyright © 2001 by Crossway Bibles, a publishing ministry of Good News Publishers. Used by permission. All rights reserved.</p>',
                 'licence': '<p>The ESV text may be quoted (in written, visual, or electronic form) up to and inclusive of five hundred (500) verses without express written permission of the publisher, providing that the verses quoted do not amount to a complete book of the Bible nor do the verses quoted account for twenty-five (25%) percent or more of the total text of the work in which they are quoted.</p>',
                 'acknowledgements': '<p></p>' },
-        'NASB': {'about': '<p>New American Standard Bible (1995).</p>',
+        'NASB': {'about': '<p>New American Standard Bible (1995): A revision of the American Standard Version (ASV) incorporating information from the Dead Sea Scrolls.</p>',
                 'copyright': '<p>Scripture taken from the NEW AMERICAN STANDARD BIBLE, © Copyright The Lockman Foundation 1960, 1962, 1963, 1968, 1971, 1972, 1973, 1975, 1977, 1995. Used by permission.</p>',
                 'licence': '<p>The text of the New American Standard Bible® may be quoted and/or reprinted up to and inclusive of five hundred (500) verses without express written permission of The Lockman Foundation, providing that the verses do not amount to a complete book of the Bible nor do the verses quoted account for more than 25% of the total work in which they are quoted.</p>',
+                'acknowledgements': '<p></p>' },
+        'LSB': {'about': '<p>Legacy Standard Bible (2021): A revision of the 1995 New American Standard Bible (NASB) completed in October 2021.</p>',
+                'copyright': '<p>Copyright © 2021 by The Lockman Foundation. All Rights Reserved.</p>',
+                'licence': '<p>Up to ??? verses may be used.</p>',
                 'acknowledgements': '<p></p>' },
         '2DT': {'about': '<p>The Second Testament: A new translation (2023) by Scot McKnight.</p>',
                 'copyright': '<p>Copyright © 2023 by IVP Academic. Used by Permission. All Rights Reserved Worldwide.</p>',

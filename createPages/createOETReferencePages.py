@@ -24,6 +24,9 @@
 
 """
 Module handling createOETReferencePages functions.
+
+CHANGELOG:
+    2023-07-30 Show first 40 word & lemma entries even if there's over 100 (didn't use to display any of them)
 """
 from gettext import gettext as _
 from typing import Dict, List, Tuple
@@ -47,10 +50,10 @@ from html import makeTop, makeBottom
 from Bibles import tidyBBB
 
 
-LAST_MODIFIED_DATE = '2023-04-27' # by RJH
+LAST_MODIFIED_DATE = '2023-07-30' # by RJH
 SHORT_PROGRAM_NAME = "createOETReferencePages"
 PROGRAM_NAME = "OpenBibleData createOETReferencePages functions"
-PROGRAM_VERSION = '0.28'
+PROGRAM_VERSION = '0.30'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -225,7 +228,7 @@ def make_word_pages( level:int, outputFolderPath:Path, state ) -> None:
 <p class="pNav">{prevLink}<b>{greek}</b>{nextLink}{oetLink}{parallelLink}{interlinearLink}</p>
 <p><a title="Go to Statistical Restoration Greek page" href="https://GreekCNTR.org/collation/?{CNTR_BOOK_ID_MAP[BBB]}{C.zfill(3)}{V.zfill(3)}">SR GNT {ourTidyBBB} {C}:{V}</a>
  {probabilityField if TEST_MODE else ''}<b>{greek}</b> ({transliterate_Greek(greek)}) {translation}{capsField if TEST_MODE else ''}
- Strongs=<a title="Goes to Strongs dictionary" href="https://BibleHub.com/greek/{strongs}.htm#Top">{extendedStrongs}</a> <small>Lemma={lemmaLink}</small><br>
+ Strongs=<a title="Goes to Strongs dictionary" href="https://BibleHub.com/greek/{strongs}.htm">{extendedStrongs}</a> <small>Lemma={lemmaLink}</small><br>
  {roleField}{moodField}{tenseField}{voiceField}{personField}{caseField}{genderField}{numberField}{f'<br>  {semanticExtras}' if semanticExtras else ''}</p>
 <p><small>Note: With the help of a companion website, these word pages enable you to click through all the way back to photographs of the original manuscripts that the <em>Open English Translation</em> New Testament is translated from.
 If you go to the <em>Statistical Restoration</em> Greek page (by clicking on the SR Bible reference above), from there you can click on the original manuscript numbers (e.g., 𝔓1, 01, 02, etc.) in the <i>Witness</i> column there, to see their transcription of the original Greek page.
@@ -236,15 +239,15 @@ This is all part of the commitment of the <em>Open English Translation</em> team
                 # other_count = 0
                 thisWordNumberList = state.OETRefData['formUsageDict'][(greek,morphology)]
                 if len(thisWordNumberList) > 100: # too many to list
-                    html = f'{html}\n<h2>Too many other uses ({len(thisWordNumberList)-1:,}) to list of word form {greek} <small>({morphology})</small> in the NT</h2>'
+                    maxWordsToShow = 40
+                    html = f'{html}\n<h2>Showing the first {maxWordsToShow} out of ({len(thisWordNumberList)-1:,}) uses of word form {greek} <small>({morphology})</small> in the NT</h2>'
                     if len(wordGlossesList)>1:
                         html = f'''{html}\n<p>The word form ‘{greek}’ <small>({morphology})</small> has {len(wordGlossesList):,} different glosses: {', '.join(wordGlossesList)}.</p>'''
                     else:
                         assert wordGlossesList == [glossWords], f"{wordGlossesList}  vs {[glossWords]}"
                         html = f'{html}\n<p>The word form ‘{greek}’ <small>({morphology})</small> is always and only glossed as ‘{glossWords}’.</p>'
-                    if len(lemmaGlossesList) > len(wordGlossesList):
-                        html = f'''{html}\n<p>The various word forms of the root word (lemma) ‘{lemmaLink}’ have {len(lemmaGlossesList):,} different glosses: {', '.join(lemmaGlossesList)}.</p>'''
                 else: # we can list all uses of the word
+                    maxWordsToShow = 100
                     if len(thisWordNumberList) == 1:
                         html = f'{html}\n<h2>Only use of word form {greek} <small>({morphology})</small> in the NT</h2>'
                     else:
@@ -254,25 +257,28 @@ This is all part of the commitment of the <em>Open English Translation</em> team
                     else:
                         assert wordGlossesList == [glossWords], f"{wordGlossesList}  vs {[glossWords]}"
                         html = f'{html}\n<p>The word form ‘{greek}’ <small>({morphology})</small> is always and only glossed as ‘{glossWords}’.</p>'
-                    for oN in thisWordNumberList:
-                        if oN==n: continue # don't duplicate the word we're making the page for
-                        oWordRef, _oGreek, _oLemma, oGlossWords, _oGlossCaps,_oProbability, _oExtendedStrongs, _oRoleLetter, _oMorphology, _oTagsStr = state.OETRefData['word_table'][oN].split( '\t' )
-                        oBBB, oCVW = oWordRef.split( '_', 1 )
-                        oC, oVW = oCVW.split( ':', 1 )
-                        oV, oW = oVW.split( 'w', 1 )
-                        oTidyBBB = tidyBBB( oBBB )
-                        # if other_count == 0:
-                        translation = '<small>(no English gloss here)</small>' if oGlossWords=='-' else f'''English gloss=‘<b>{oGlossWords.replace('_','<span class="ul">_</span>')}</b>’'''
-                        html = f'''{html}\n<p><a title="View OET {oTidyBBB} text" href="{'../'*level}OET/byC/{oBBB}_C{oC}.htm#C{oC}V{oV}">OET {oTidyBBB} {oC}:{oV}</a> {translation}
+                displayCounter = 0 # Don't use enumerate on the next line, because there is a condition inside the loop
+                for oN in thisWordNumberList:
+                    if oN==n: continue # don't duplicate the word we're making the page for
+                    oWordRef, _oGreek, _oLemma, oGlossWords, _oGlossCaps,_oProbability, _oExtendedStrongs, _oRoleLetter, _oMorphology, _oTagsStr = state.OETRefData['word_table'][oN].split( '\t' )
+                    oBBB, oCVW = oWordRef.split( '_', 1 )
+                    oC, oVW = oCVW.split( ':', 1 )
+                    oV, oW = oVW.split( 'w', 1 )
+                    oTidyBBB = tidyBBB( oBBB )
+                    # if other_count == 0:
+                    translation = '<small>(no English gloss here)</small>' if oGlossWords=='-' else f'''English gloss=‘<b>{oGlossWords.replace('_','<span class="ul">_</span>')}</b>’'''
+                    html = f'''{html}\n<p><a title="View OET {oTidyBBB} text" href="{'../'*level}OET/byC/{oBBB}_C{oC}.htm#C{oC}V{oV}">OET {oTidyBBB} {oC}:{oV}</a> {translation}
  <a title="Go to Statistical Restoration Greek page" href="https://GreekCNTR.org/collation/?{CNTR_BOOK_ID_MAP[oBBB]}{oC.zfill(3)}{oV.zfill(3)}">SR GNT {oTidyBBB} {oC}:{oV} word {oW}</a>''' \
 if oBBB in state.preloadedBibles['OET-RV'] else f'''{html}\n<p>OET {oTidyBBB} {oC}:{oV} {translation}
  <a title="Go to Statistical Restoration Greek page" href="https://GreekCNTR.org/collation/?{CNTR_BOOK_ID_MAP[oBBB]}{oC.zfill(3)}{oV.zfill(3)}">SR GNT {oTidyBBB} {oC}:{oV} word {oW}</a>'''
-                        # other_count += 1
-                        # if other_count >= 120:
-                        #     html = f'{html}\n<p>({len(thisWordNumberList)-other_count-1:,} more examples not listed)</p>'
-                        #     break
-                    if len(lemmaGlossesList) > len(wordGlossesList):
-                        html = f'''{html}\n<p>The various word forms of the root word (lemma) ‘{lemmaLink}’ have {len(lemmaGlossesList):,} different glosses: {', '.join(lemmaGlossesList)}.</p>'''
+                    # other_count += 1
+                    # if other_count >= 120:
+                    #     html = f'{html}\n<p>({len(thisWordNumberList)-other_count-1:,} more examples not listed)</p>'
+                    #     break
+                    displayCounter += 1
+                    if displayCounter >= maxWordsToShow: break
+                if len(lemmaGlossesList) > len(wordGlossesList):
+                    html = f'''{html}\n<p>The various word forms of the root word (lemma) ‘{lemmaLink}’ have {len(lemmaGlossesList):,} different glosses: {', '.join(lemmaGlossesList)}.</p>'''
 
             # Now put it all together
             html = makeTop( level, None, 'word', None, state ) \
@@ -317,23 +323,26 @@ def make_Greek_lemma_pages( level:int, outputFolderPath:Path, state ) -> None:
 '''
 
         if len(lemmaRowsList) > 100: # too many to list
-            html = f'{html}\n<h2>Too many uses ({len(lemmaRowsList)-1:,}) to list of Greek root word (lemma) ‘{lemma}’ in the NT</h2>'
+            maxWordsToShow = 40
+            html = f'{html}\n<h2>Showing the first {maxWordsToShow} out of ({len(lemmaRowsList)-1:,}) uses of Greek root word (lemma) ‘{lemma}’ in the NT</h2>'
         else: # we can list all uses of the word
+            maxWordsToShow = 100
             html = f'''{html}\n<h2>Have {len(lemmaRowsList):,} {'use' if len(lemmaRowsList)==1 else 'uses'} of Greek root word (lemma) ‘{lemma}’ in the NT</h2>'''
-            for oN in lemmaRowsList:
-                oWordRef, oGreek, oLemma, oGlossWords, oGlossCaps,oProbability, oExtendedStrongs, oRoleLetter, oMorphology, oTagsStr = state.OETRefData['word_table'][oN].split( '\t' )
-                oBBB, oCVW = oWordRef.split( '_', 1 )
-                oC, oVW = oCVW.split( ':', 1 )
-                oV, oW = oVW.split( 'w', 1 )
-                oTidyBBB = tidyBBB( oBBB )
-                # if other_count == 0:
-                translation = '<small>(no English gloss here)</small>' if oGlossWords=='-' else f'''English gloss=‘<b>{oGlossWords.replace('_','<span class="ul">_</span>')}</b>’'''
-                html = f'''{html}\n<p><a title="View OET {oTidyBBB} text" href="{'../'*level}OET/byC/{oBBB}_C{oC}.htm#C{oC}V{oV}">OET {oTidyBBB} {oC}:{oV}</a> Greek word=<b><a title="Go to word page" href="../W/{oN}.htm#Top">{oGreek}</a></b> ({transliterate_Greek(oGreek)}) <small>Morphology={oMorphology}</small> {translation}
+        for displayCounter,oN in enumerate( lemmaRowsList, start=1 ):
+            oWordRef, oGreek, oLemma, oGlossWords, oGlossCaps,oProbability, oExtendedStrongs, oRoleLetter, oMorphology, oTagsStr = state.OETRefData['word_table'][oN].split( '\t' )
+            oBBB, oCVW = oWordRef.split( '_', 1 )
+            oC, oVW = oCVW.split( ':', 1 )
+            oV, oW = oVW.split( 'w', 1 )
+            oTidyBBB = tidyBBB( oBBB )
+            # if other_count == 0:
+            translation = '<small>(no English gloss here)</small>' if oGlossWords=='-' else f'''English gloss=‘<b>{oGlossWords.replace('_','<span class="ul">_</span>')}</b>’'''
+            html = f'''{html}\n<p><a title="View OET {oTidyBBB} text" href="{'../'*level}OET/byC/{oBBB}_C{oC}.htm#C{oC}V{oV}">OET {oTidyBBB} {oC}:{oV}</a> Greek word=<b><a title="Go to word page" href="../W/{oN}.htm#Top">{oGreek}</a></b> ({transliterate_Greek(oGreek)}) <small>Morphology={oMorphology}</small> {translation}
  <a title="Go to Statistical Restoration Greek page" href="https://GreekCNTR.org/collation/?{CNTR_BOOK_ID_MAP[oBBB]}{oC.zfill(3)}{oV.zfill(3)}">SR GNT {oTidyBBB} {oC}:{oV} word {oW}</a>'''
-                # other_count += 1
-                # if other_count >= 120:
-                #     html = f'{html}\n<p>({len(thisWordNumberList)-other_count-1:,} more examples not listed)</p>'
-                #     break
+            # other_count += 1
+            # if other_count >= 120:
+            #     html = f'{html}\n<p>({len(thisWordNumberList)-other_count-1:,} more examples not listed)</p>'
+            #     break
+            if displayCounter >= maxWordsToShow: break
 
         # Now put it all together
         html = makeTop( level, None, 'lemma', None, state ) \

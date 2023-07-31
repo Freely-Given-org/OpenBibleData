@@ -1,0 +1,231 @@
+div.footer { width: 500px; height: 250px; margin: 50px; }
+
+span.upLink { font-size:1.5em; font-weight:bold; }
+
+/* Links */
+/* a:link { text-decoration:none; }
+a:visited { text-decoration:none; }
+a:hover { text-decoration:none; }
+a:active { text-decoration:none; } */
+a { text-decoration:none; }
+
+/* Navigational lists at top of page */
+p.wrkLst { background-color:#904471; color:98a9d4; }
+.wrkLst a { text-decoration:none; color:white; }
+p.viewLst {background-color:#936EA1; color:98a9d4; }
+.viewLst a { text-decoration:none; color:white; }
+p.bkLst {background-color:#F9F871; }
+.bkLst a { color:inherit; text-decoration:none; }
+p.chLst {background-color:paleGreen; }
+.chLst a { text-decoration:none; }
+p.vsLst {background-color:mistyRose; }
+.vsLst a { text-decoration:none; }
+
+/* For bkList class */
+span.OT { color: saddlebrown; }
+.OT a { text-decoration:none; }
+span.NT { color: darkgreen; }
+.NT a { text-decoration:none; }
+span.DC { color: orange; font-size: smaller; }
+.DC a { text-decoration:none; }
+
+/* Navs are the ones with arrows */
+p.cNav { text-align:center; font-size:1.8em; background-color:#98a9d4; }
+/* .cNav a { text-decoration:none; } */
+p.vNav { text-align:center; font-size:1.8em; }
+/* .vNav a { text-decoration:none; }
+.footnotes a { text-decoration:none; }
+.crossRefs a { text-decoration:none; } */
+
+/* Header USFM */
+p.h { font-weight:bold; }
+p.mt1 { text-align:center; font-size:1.8em; }
+p.mt2 { text-align:center; font-size:1.3em; }
+p.rem { font-size:0.8em; color:grey; }
+
+/* Book intro USFM
+li.intro { margin-top:0.5em; margin-bottom:0.5em; }
+p.is1 { font-weight:bold; font-size:1.3em; }
+p.is2 { font-weight:bold; }
+p.iot { font-weight:bold; }
+p.io1 { text-indent:2em; margin-top:0.2em; margin-bottom:0.2em; }
+span.ior { font-weight:bold; }
+span.bk { font-style:italic; } */
+
+/* Chapters USFM */
+span.c { font-size:1.1em; color:green; }
+span.cPsa { font-size:1.6em; font-weight:bold; color:green; }
+span.v { vertical-align:super; font-size:0.5em; color:red; }
+span.cv { vertical-align:super; font-size:0.8em; color:orange; }
+span.vp { vertical-align:super; font-size:0.5em; color:purple; }
+span.d { font-style:italic; }
+p.s1 { margin-top:0.1em; margin-bottom:0; font-weight:bold; }
+p.r { margin-top:0; margin-bottom:0; font-size:0.75em; }
+p.p { text-indent:0.5em; margin-top:0.2em; margin-bottom:0.2em; }
+p.q1 { margin-left:1em; margin-top:0.2em; margin-bottom:0.2em; }
+p.q2 { margin-left:2em; margin-top:0.2em; margin-bottom:0.2em; }
+/* p.m {  } */
+span.add { color:grey; }
+span.wj { color:saddlebrown; }
+
+/* Notes USFM */
+p.fn { margin-top:0.2em; margin-bottom:0.2em; font-size:0.75em; }
+p.xr { margin-top:0.2em; margin-bottom:0.2em; font-size:0.75em; }
+span.fnCaller { vertical-align: super; font-size:0.7em; color:green; }
+span.enCaller { vertical-align: super; font-size:0.7em; color:green; }
+span.xrCaller { vertical-align: super; font-size:0.7em; color:blue; }
+span.fnRef { font-weight:bold; }
+span.xrRef { font-weight:bold; }
+/* span.fnText { } */
+/* span.xrText { } */
+
+body { background-color: powderblue; }
+table, th, td { border: 1px solid black; border-collapse: collapse; }
+table tr:nth-child(even) { background-color: #eee; }
+table tr:nth-child(odd) { background-color: #fff; }
+table th { color: white; background-color: black; }
+th, td { padding: 15px; text-align: center; }
+
+div.interlinear {
+    background: hsla(55, 99%, 80%, 50);
+    padding: 5px;
+    overflow: auto;
+    margin: 1em 0;
+}
+div.TN {
+    background: hsla(55, 99%, 80%, 50);
+    padding: 5px;
+    overflow: auto;
+    margin: 1em 0;
+}
+div.LV {
+    background: hsla(55, 99%, 80%, 50);
+    padding: 5px;
+    overflow: auto;
+    margin: 1em 0;
+}
+div.RV {
+    background: hsla(55, 99%, 80%, 50);
+    padding: 5px;
+    overflow: auto;
+    margin: 1em 0;
+}
+
+/* p.LV {
+    background: hsla(55, 99%, 80%, 50);
+    padding: 5px;
+    overflow: auto;
+    margin: 1em 0;
+}
+p.RV {
+    background: hsla(55, 99%, 80%, 50);
+    padding: 5px;
+    overflow: auto;
+    margin: 1em 0;
+} */
+
+ol {
+    list-style-type:none;
+}
+ol.verse {
+    display: inline;
+}
+ol.verse li[lang=he]{
+    font-family: NotoSans, sans-serif;
+    font-weight: bold;
+}
+ol.verse li[lang=el]{
+    font-weight: bold;
+}
+ol.verse li[lang=en]{
+    font-weight: bold;
+}
+ol.verse li[lang=he_LEMMA]{
+    color: gray;
+}
+ol.verse li[lang=el_LEMMA]{
+    color: gray;
+}
+/* ol.verse li[lang=en_LEMMA]{
+}
+ol.verse li[lang=TRANS]{
+} */
+ol.verse li[lang=en_TRANS]{
+    font-family: "Times New Roman", Times, serif;
+    font-size: 120%;
+}
+/* ol.verse li[lang=en_TRANS2]{
+    font-family: "Times New Roman", Times, serif;
+    color: maroon;
+} */
+ol.verse li[lang=en_GLOSS]{
+    color: darkOrange;
+    font-family: "Times New Roman", Times, serif;
+}
+
+ol.verse li[lang=en_STRONGS]{
+    font-family: monospace, "Courier New", Courier;
+    font-size: 70%;
+    color: green;
+}
+ol.verse li[lang=en_STRONGS] a:link {
+    color: green;
+    text-decoration:none;
+}
+ol.verse li[lang=en_STRONGS] a:hover {
+    text-decoration: underline;
+}
+
+ol.verse li[lang=en_MORPH]{
+    font-family: monospace, "Courier New", Courier;
+    font-size: 60%;
+    color: orange;
+}
+
+ol.verse li[lang=en_CAPS]{
+    font-size: 60%;
+}
+ol.verse li[lang=en_PERCENT]{
+    color: olive;
+    font-size: 60%;
+}
+ol.verse li[lang=en_TAGS]{
+    font-size: 60%;
+    color: saddleBrown;
+}
+
+ol.verse li[lang=en_WORDNUM]{
+    font-size: 60%;
+}
+ol.verse li[lang=en_WORDNUM] a:link {
+    color: dodgerBlue;
+    text-decoration:none;
+}
+ol.verse li[lang=en_WORDNUM] a:hover {
+    text-decoration: underline;
+}
+
+ol.titles {
+    padding: .5em;
+    margin-bottom: .5em;
+    background: gold;
+    float: left;
+    border: 1px dotted #ccc;
+    display: inline-block;
+}
+ol.word {
+    padding: .5em;
+    margin-bottom: .5em;
+    background: white;
+    float: left;
+    border: 1px dotted #ccc;
+    display: inline-block;
+}
+ol.variant {
+    padding: .5em;
+    margin-bottom: .5em;
+    background: LightGray;
+    float: left;
+    border: 1px dotted #ccc;
+    display: inline-block;
+}

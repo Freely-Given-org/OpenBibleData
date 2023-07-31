@@ -64,10 +64,10 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
 from createOETReferencePages import CNTR_BOOK_ID_MAP, livenOETWordLinks
 
 
-LAST_MODIFIED_DATE = '2023-07-19' # by RJH
+LAST_MODIFIED_DATE = '2023-07-30' # by RJH
 SHORT_PROGRAM_NAME = "createOETInterlinearPages"
 PROGRAM_NAME = "OpenBibleData createOETInterlinearPages functions"
-PROGRAM_VERSION = '0.32'
+PROGRAM_VERSION = '0.33'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -401,7 +401,7 @@ def createOETInterlinearVersePage( level:int, BBB:str, c:int, v:int, state ) -> 
 <li lang="el_LEMMA">{row[2]}</li>
 <li lang="en_TRANS"><b>{' '.join(lvEnglishWordDict[wordNumber]) if lvEnglishWordDict[wordNumber] else '-'}</b></li>
 <li lang="en_TRANS"><b>{' '.join(rvEnglishWordDict[wordNumber]) if rvEnglishWordDict[wordNumber] else '-'}</b></li>
-<li lang="en_STRONGS"><a href="https://BibleHub.com/greek/{row[6][:-1]}.htm#Top">{row[6]}</a></li>
+<li lang="en_STRONGS"><a href="https://BibleHub.com/greek/{row[6][:-1]}.htm">{row[6]}</a></li>
 <li lang="en_MORPH">{row[7]}{row[8]}</li>
 <li lang="en_GLOSS">{row[3]}</li>
 <li lang="en_CAPS">{row[4] if row[4] else '-'}</li>
@@ -466,7 +466,7 @@ def createOETInterlinearVersePage( level:int, BBB:str, c:int, v:int, state ) -> 
             reverseList.append( f'''<li><ol class="word">
 <li lang="en_TRANS"><b>{word}</b></li>
 <li lang="en_TRANS"><b>{' '.join(rvEnglishWordDict[wordNumber]) if rvEnglishWordDict[wordNumber] else '-'}</b></li>
-<li lang="en_STRONGS"><a href="https://BibleHub.com/greek/{row[6][:-1]}.htm#Top">{row[6]}</a></li>
+<li lang="en_STRONGS"><a href="https://BibleHub.com/greek/{row[6][:-1]}.htm">{row[6]}</a></li>
 <li lang="el">{row[1]}</li>
 <li lang="el_LEMMA">{row[2]}</li>
 <li lang="en_MORPH">{row[7]}{row[8]}</li>
