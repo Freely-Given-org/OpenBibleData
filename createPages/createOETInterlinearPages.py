@@ -64,10 +64,10 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
 from createOETReferencePages import CNTR_BOOK_ID_MAP, livenOETWordLinks
 
 
-LAST_MODIFIED_DATE = '2023-07-30' # by RJH
+LAST_MODIFIED_DATE = '2023-08-01' # by RJH
 SHORT_PROGRAM_NAME = "createOETInterlinearPages"
 PROGRAM_NAME = "OpenBibleData createOETInterlinearPages functions"
-PROGRAM_VERSION = '0.33'
+PROGRAM_VERSION = '0.34'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -107,10 +107,12 @@ def createOETInterlinearPages( level:int, folder:Path, state ) -> bool:
     top = makeTop( level, None, 'interlinear', None, state ) \
             .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}Interlinear View" ) \
             .replace( '__KEYWORDS__', f'Bible, interlinear' )
-    indexHtml = top \
-                + '<h1 id="Top">OET interlinear verse pages</h1><h2>Index of books</h2>\n' \
-                + f'''{makeBookNavListParagraph(BBBLinks, state)}\n''' \
-                + makeBottom( level, 'interlinear', state )
+    indexHtml = f'''{top}
+<h1 id="Top">OET interlinear verse pages</h1>
+<p>These pages show single OET verses with each Greek word aligned with the English word(s) that it was translated to, along with any translation notes and study notes for the verse. Finally, there's a <em>Reverse Interlinear</em> with the same information but in English word order.</p>
+<h2>Index of books</h2>
+{makeBookNavListParagraph(BBBLinks, state)}
+{makeBottom( level, 'interlinear', state )}'''
     checkHtml( 'InterlinearIndex', indexHtml )
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
         indexHtmlFile.write( indexHtml )
@@ -483,7 +485,7 @@ def createOETInterlinearVersePage( level:int, BBB:str, c:int, v:int, state ) -> 
     html = f'''{html}{riHtml}</ol></div><!--interlinear-->
 {lvHtml}
 {rvHtml}
-<p><small><b>Note</b>: The OET-RV is still only a first draft, and only a few words have been (mostly automatically) matched to the Greek words that they’re translated from.</small></p>
+<p><small><b>Note</b>: The OET-RV is still only a first draft, and so far only a few words have been (mostly automatically) matched to the Greek words that they’re translated from.</small></p>
 {f'<p><b>Acknowledgements</b>: The SR Greek text, lemmas, morphology, and English gloss <small>(7th line)</small> are all thanks to the <a href="https://GreekCNTR.org/collation/index.htm?{CNTR_BOOK_ID_MAP[BBB]}{C.zfill(3)}{V.zfill(3)}">SR-GNT</a>.</p>' if BibleOrgSysGlobals.loadedBibleBooksCodes.isNewTestament_NR( BBB ) else ''}'''
     # dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\n\n{iHtml=}" )
     checkHtml( f'Interlinear {BBB} {c}:{v}', html, segmentOnly=True )

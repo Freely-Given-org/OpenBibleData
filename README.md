@@ -10,8 +10,8 @@ This consists of two main components:
 The copied Bibles are not committed yet.
 
 The preliminary static website can currently be viewed (in an iFrame) at
-[OpenEnglishTranslation.Bible/](https://OpenEnglishTranslation.Bible/) at the <em>Reader</em> link
-or directly at [Freely-Given.org/OBD/](https://Freely-Given.org/OBD/).
+[OpenEnglishTranslation.Bible](https://OpenEnglishTranslation.Bible/) at the <em>Reader</em> link
+or directly at [Freely-Given.org/OBD](https://Freely-Given.org/OBD/).
 
 Currently the static website is approx 3 GB.
 

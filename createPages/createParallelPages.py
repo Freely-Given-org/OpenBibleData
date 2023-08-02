@@ -49,7 +49,7 @@ from createOETReferencePages import livenOETWordLinks
 LAST_MODIFIED_DATE = '2023-08-01' # by RJH
 SHORT_PROGRAM_NAME = "createParallelPages"
 PROGRAM_NAME = "OpenBibleData createParallelPages functions"
-PROGRAM_VERSION = '0.71'
+PROGRAM_VERSION = '0.72'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -90,7 +90,9 @@ def createParallelPages( level:int, folder:Path, state ) -> bool:
     top = makeTop( level, None, 'parallel', None, state ) \
             .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}Parallel View" ) \
             .replace( '__KEYWORDS__', f'Bible, parallel' )
-    indexHtml = f'''{top}<h1 id="Top">Parallel verse pages</h1><h2>Index of books</h2>
+    indexHtml = f'''{top}<h1 id="Top">Parallel verse pages</h1>
+<p>Each page only contains a single verse with minimal formatting, but displays it in a large number of different versions. Study notes, theme notes, and translation notes will also be displayed, although not every verse has these.</p>
+<h2>Index of books</h2>
 {makeBookNavListParagraph(BBBLinks, state)}
 {makeBottom( level, 'parallel', state )}'''
     checkHtml( 'ParallelIndex', indexHtml )
@@ -600,7 +602,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
             ((' lande ',' londe ',' lond ',' lode '),' land '),((' lande,',' londe,',' lond,'),' land,'),((' lande.',' londe.',' lond.'),' land.'),((' lande;',' londe;',' lond;'),' land;'),
             ((' laye ',),' lay '), ((' layed',' layde',' leiden', ' leyd',' layd'),' laid'),
             ((' leeueful',' laufull',' lawfull'),' lawful'), (('Lawe.',),'Law.'),((' lawe ',),' law '),((' lawe,',),' law,'),((' lawe.',),' law.'),
-        ((' leaue ',' leue '),' leave '), ((' lyfte ',),' left '), (('learnyng','learninge','lernynge'),'learning'),((' learne ',' lerne '),' learn '),(('Learne ','Lerne '),'Learn '), ((' leeues',' leaues',' leves'),' leaves'), ((' leeue ',),' leave '),
+        (('learnyng','learninge','lernynge'),'learning'),((' learne ',' lerne '),' learn '),(('Learne ','Lerne '),'Learn '), ((' leeues',' leaues',' leves'),' leaves'), ((' leeue ',' leaue ',' leue '),' leave '),
             ((' ledde ',),' led '),
             ((' leften',' leeft',' lefte'),' left'),
             (('Leuite',),'Levite'),
