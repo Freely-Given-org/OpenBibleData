@@ -40,6 +40,9 @@ main calls fullDemo()
 CHANGELOG:
     2023-07-19 Added #Vv navigation links to chapter pages (already had #CcVv)
     2023-07-20 Added #Vv navigation links to section pages (already had #CcVv)
+    2023-08-07 Handle extra optional section headings
+    2023-08-10 Handle multi-level lists properly
+    2023-08-14 Added #Vv navigation links to single chapter books (already had #CcVv)
 """
 from gettext import gettext as _
 from typing import Tuple
@@ -56,10 +59,10 @@ from BibleOrgSys.Internals.InternalBibleInternals import getLeadingInt
 from html import checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-07-20' # by RJH
+LAST_MODIFIED_DATE = '2023-08-15' # by RJH
 SHORT_PROGRAM_NAME = "usfm"
 PROGRAM_NAME = "OpenBibleData USFM to HTML functions"
-PROGRAM_VERSION = '0.50'
+PROGRAM_VERSION = '0.54'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -109,8 +112,9 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
     if len(refTuple) > 2:
         V = refTuple[2]
         assert isinstance(V, str), f"{refTuple=}"
+    isSingleChapterBook = BibleOrgSysGlobals.loadedBibleBooksCodes.isSingleChapterBook( BBB )
 
-    for n, entry in enumerate(markerList):
+    for n, entry in enumerate( markerList ):
         marker = entry.getMarker()
         rest = entry.getText() if basicOnly and 'OET' not in versionAbbreviation else entry.getFullText() # getText() has notes removed but doesn't work with wordlink numbers in OET
         if rest:
@@ -118,7 +122,8 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                 rest = rest.replace( "'", "’" ) # Replace apostrophes
             elif versionAbbreviation in ('ULT','UST'):
                 rest = rest.replace( '{', '\\add ' ).replace( '}', '\\add*' ) # Replace UST braces
-        dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{n} {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V}: {marker}={rest}" )
+        # dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"{n} {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V}: {marker}={rest}" )
+        # dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  {inList=} {inListEntry=}" )
         # dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{marker} '{rest=}' '{entry.getCleanText()=}' '{entry.getFullText()=}'  '{entry.getOriginalText()=}'  extras={entry.getExtras()}" )
         # We try to put these in order of probability
         if marker in ('p~','v~'): # This has the actual verse text
@@ -141,7 +146,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                 vLink = f'''<a title="Go to verse in parallel view" href="{'../'*level}pa/{BBB}/C{C}V{V1}.htm#Top">{V1}</a>'''
                 html = f'{html}{"" if html.endswith(">") else " "}' \
                         + f'''{f"""<span id="C{C}"></span><span class="{'cPsa' if BBB=='PSA' else 'c'}" id="C{C}V1">{C}</span>""" if V1=="1" else f"""<span class="v" id="C{C}V{V1}">{vLink}-</span>"""}''' \
-                        + (f'<span id="V{V1}"></span><span id="V{V2}"></span>' if segmentType in ('chapter','section') else '') \
+                        + (f'<span id="V{V1}"></span><span id="V{V2}"></span>' if segmentType in ('chapter','section') or isSingleChapterBook else '') \
                         + f'<span class="v" id="C{C}V{V2}">{V2}{NARROW_NON_BREAK_SPACE}</span>' \
                         + (rest if rest else '≈')
             else: # it's a simple verse number
@@ -151,7 +156,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                     cLink = f'''<a title="Go to verse in parallel view" href="{'../'*level}pa/{BBB}/C{C}V1.htm#Top">{C}</a>'''
                     vLink = f'''<a title="Go to verse in parallel view" href="{'../'*level}pa/{BBB}/C{C}V{V}.htm#Top">{V}</a>'''
                     html = f'{html}{"" if html.endswith(">") or html.endswith("—") else " "}' \
-                            + (f'<span id="V{V}"></span>' if segmentType in ('chapter','section') else '') \
+                            + (f'<span id="V{V}"></span>' if segmentType in ('chapter','section') or isSingleChapterBook else '') \
                             + f'''{f"""<span id="C{C}"></span><span class="{'cPsa' if BBB=='PSA' else 'c'}" id="C{C}V1">{cLink}{NARROW_NON_BREAK_SPACE}</span>""" if V=="1"
                                    else f"""<span class="v" id="C{C}V{V}">{vLink}{NARROW_NON_BREAK_SPACE}</span>"""}'''
                 # html = f'{html} <span class="v" id="C{refTuple[1]}V{V}">{V}{NARROW_NON_BREAK_SPACE}</span>'
@@ -175,10 +180,18 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                 html = f'{html}</inTable>\n'
                 inTable = None
             # TODO: Shouldn't this apply to all markers???
-            if marker=='m' and inList=='ul': # refTuple==('EXO',10,11)
-                html = f'{html}</ul>\n'
-                inList = None
+            if inList: # refTuple==('EXO',10,11)
                 # dPrint( 'Verbose', DEBUGGING_THIS_MODULE, versionAbbreviation , refTuple)
+                inListMarker, inListDepth = inList.split( '_', 1 )
+                inListDepth = int( inListDepth )
+                while inListDepth > 0:
+                    if inListDepth>1 and inListEntry:
+                        if inListEntry == True:
+                            html = f'{html}</li>\n'
+                            inListEntry = None
+                    html = f'{html}</{inListMarker}>\n'
+                    inListDepth -= 1
+                inList = None
             if basicOnly:
                 if html: html = f'{html}<br>' # Just start the new paragraph on a new line
             else: # not basicOnly
@@ -202,7 +215,15 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                 inTable = None
             if inList:
                 logging.critical( f"List should have been closed already {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} {marker=}" )
-                html = f'{html}</{inList}>\n'
+                inListMarker, inListDepth = inList.split( '_', 1 )
+                inListDepth = int( inListDepth )
+                while inListDepth > 0:
+                    if inListDepth > 1:
+                        if inListEntry == True:
+                            html = f'{html}</li>\n'
+                            inListEntry = None
+                    html = f'{html}</{inListMarker}>\n'
+                    inListDepth -= 1
                 inList = None
             if inSection == 'periph': # We don't put s1 in sections here
                 html = f'{html}<p class="{marker}">{formatUSFMText(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state)}</p>\n'
@@ -283,21 +304,33 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
             assert rest
             # if not rest:
             #     logging.critical( f"Expected heading text {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} {marker=}" )
+            assert not inRightDiv
             if inMainDiv == 'bookHeader':
+                    assert not inTable and not inList and not inParagraph
                     html = f'{html}</div><!--{inMainDiv}-->\n'
                     inMainDiv = None
-            if not inMainDiv:
-                inMainDiv = 'bookIntro'
-                html = f'{html}<div class="{inMainDiv}">'
-            assert not inRightDiv
             if inTable:
                 logging.critical( f"Table should have been closed already {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inTable=} {inListEntry=} {marker=}" )
                 html = f'{html}</inTable>\n'
                 inTable = None
             if inList:
                 logging.critical( f"List should have been closed already {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} {marker=}" )
-                html = f'{html}</{inList}>\n'
+                inListMarker, inListDepth = inList.split( '_', 1 )
+                inListDepth = int( inListDepth )
+                while inListDepth > 0:
+                    if inListDepth > 1:
+                        if inListEntry == True:
+                            html = f'{html}</li>\n'
+                            inListEntry = None
+                    html = f'{html}</{inListMarker}>\n'
+                    inListDepth -= 1
                 inList = None
+            if inParagraph:
+                html = f'{html}</p>\n'
+                inParagraph = None
+            if not inMainDiv:
+                inMainDiv = 'bookIntro'
+                html = f'{html}<div class="{inMainDiv}">'
             if inSection == 'periph': # We don't put s1 in sections here
                 html = f'{html}<p class="{marker}">{formatUSFMText(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state)}</p>\n'
             else: # not in periph
@@ -325,11 +358,42 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                         html = f'{html}<p class="{marker}">{formatUSFMText(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state)}</p>\n'
         elif marker == 'rem': # This one can sort of be anywhere!
             assert rest
-            assert not inRightDiv
-            if inParagraph:
-                html = f'{html}<span class="{marker}">{formatUSFMText(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state)}</span>\n'
-            elif not basicOnly:
-                html = f'{html}<p class="{marker}">{formatUSFMText(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state)}</p>\n'
+            if rest.startswith( '/' ):
+                if inRightDiv:
+                    assert not inParagraph
+                    given_marker = rest[1:].split( ' ', 1 )[0]
+                    assert given_marker in ('s1','s2','s3','r','d')
+                    marker = f"extra_{given_marker}" # Sets the html <p> class below
+                    rest = rest[len(given_marker)+2:] # Drop the '/marker ' from the displayed portion
+                    if not basicOnly:
+                        html = f'{html}<p class="{marker}">{formatUSFMText(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state)}</p>\n'
+                else: # it's probably a section marker added at a different spot
+                    given_marker = rest[1:].split( ' ', 1 )[0]
+                    assert given_marker in ('s1','s2','s3','r','d')
+                    marker = f"alt_{given_marker}" # Sets the html <p> class below
+                    rest = rest[len(given_marker)+2:] # Drop the '/marker ' from the displayed portion
+                    # NOTE: inParagraph is not necessarily helpful here, because we might already be at the end of the paragraph
+                    for offset in range( 1, 8 ):
+                        try: nextMarker = markerList[n+offset].getMarker()
+                        except IndexError: # at end of the book or chapter or verse -- no next marker
+                            nextMarker = '¬p' # so it's certain to end any open paragraph
+                            break
+                        if nextMarker!='rem' and nextMarker!='¬v': break
+                    if not inParagraph \
+                    or nextMarker in ('p','m','¬p'):
+                        if inParagraph:
+                            html = f'{html}</p>\n'
+                            inParagraph = None
+                        if not basicOnly:
+                            html = f'{html}<p class="{marker}">{formatUSFMText(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state)}</p>\n'
+                    else:
+                        print( f"{BBB} {C}:{V} {inParagraph=} {nextMarker=} has UNUSED INFLOW ALTERNATIVE {given_marker}={rest}")
+            else:
+                assert not inRightDiv
+                if inParagraph:
+                    html = f'{html}<span class="{marker}">{formatUSFMText(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state)}</span>\n'
+                elif not basicOnly:
+                    html = f'{html}<p class="{marker}">{formatUSFMText(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state)}</p>\n'
         # The following should all have their own data and get converted to a simple <p>…</p> field
         elif marker in ('mr','sr', 'd', 'sp', 'cp', 'qa','qc','qd'):
             if not rest:
@@ -347,28 +411,65 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
         elif marker in ('b','ib'):
             html = f'{html}<br>'
         elif marker in ('list','ilist'):
+            # NOTE: BibleOrgSys only creates one list/¬list pair, even if it contains embedded li2 entries
+            #   so we have to handle that
             assert not rest
             assert not inList, f"inList {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} {marker=}"
             html = f'{html}<ul>\n'
-            inList = 'ul'
+            inList = 'ul_1'
         elif marker in ('¬list','¬ilist'):
             assert not rest
             if not basicOnly and not inList:
                 logging.critical( f"Not inList A {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} {marker=}" )
             if inList:
-                html = f'{html}</{inList}>{rest}'
+                inListMarker, inListDepth = inList.split( '_', 1 )
+                inListDepth = int( inListDepth )
+                while inListDepth > 0:
+                    if inListDepth > 1:
+                        if inListEntry == True:
+                            html = f'{html}</li>\n'
+                            inListEntry = None
+                    html = f'{html}</{inListMarker}>\n'
+                    inListDepth -= 1
                 inList = None
         elif marker in ('li1','li2','li3','li4', 'ili1','ili2','ili3','ili4'):
+            markerListLevel = int( marker[-1] )
+            assert 1 <= markerListLevel <= 4
+            currentListLevel = 0 if inList is None else int( inList[-1] )
+            assert 0 <= currentListLevel <= 4
             if not basicOnly:
-                if not inList:
+                if markerListLevel > currentListLevel:
                     logging.critical( f"Not inList B {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} {marker}={rest}" )
-                    inList = 'ul'
-                    html = f'{html}<{inList}>\n'
-            if inListEntry:
+                    if markerListLevel == currentListLevel + 1: # it's one level up
+                        if markerListLevel > 1:
+                            assert not inListEntry
+                            if html.endswith( '</li>\n' ):
+                                html = f'{html[:-6]}\n' # Open the last li entry back up
+                                inListEntry = True
+                    else: # it's more than one level up
+                        assert markerListLevel > currentListLevel + 1
+                        if markerListLevel > 1:
+                            assert not inListEntry
+                            if html.endswith( '</li>\n' ):
+                                html = f'{html[:-6]}\n' # Open the last li entry back up
+                                inListEntry = True
+                        currentListLevel += 1
+                        html = f"{html}{' '*currentListLevel}<ul>\n"
+                    html = f"{html}{' '*(markerListLevel-1)}<ul>\n"
+                    inList = f'ul_{currentListLevel+1}'
+                elif markerListLevel < currentListLevel:
+                    if markerListLevel < currentListLevel - 1: # it's more than one level down
+                        html = f'{html}</ul>\n'
+                        currentListLevel -= 1
+                    assert markerListLevel == currentListLevel - 1, f"{markerListLevel=} {currentListLevel=} {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} {marker}={rest}"
+                    logging.critical( f"Not inList C {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} {marker}={rest}" )
+                    html = f'{html}</ul>\n'
+                    inList = f'ul_{currentListLevel-1}'
+            if isinstance( inListEntry, str ):
                 logging.critical( f"already inListEntry {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} {marker}={rest}" )
                 html = f'{html}</li>\n'
                 inListEntry = None
-            html = f'{html}<li>{formatUSFMText( versionAbbreviation, refTuple, segmentType, rest, basicOnly, state )}'
+            html = f"{html}{' '*markerListLevel}<li>{formatUSFMText( versionAbbreviation, refTuple, segmentType, rest, basicOnly, state )}"
             inListEntry = marker
         elif marker in ('¬li1','¬li2','¬li3','¬li4', '¬ili1','¬ili2','¬ili3','¬ili4'):
             assert not rest
@@ -404,7 +505,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
         elif marker in ('ms1','ms2','ms3','ms4'):
             if inParagraph:
                 logging.critical( f"Why still in paragraph {versionAbbreviation} '{segmentType}' {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {marker}={rest}" )
-                html = f'{html}</{inParagraph}>\n'
+                html = f'{html}</p>\n'
                 inParagraph = None
             if inSection:
                 logging.critical( f"Why still in section {versionAbbreviation} '{segmentType}' {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {marker}={rest}" )
@@ -476,7 +577,10 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                 html = f'{html}</div><!--{inMainDiv}-->\n'
                 inMainDiv = None
             assert not inMainDiv
-            # if not inMainDiv:
+            assert not inTable and not inList
+            if inParagraph:
+                html = f'{html}</p>\n'
+                inParagraph = None
             inMainDiv = 'bookIntro'
             html = f'{html}<div class="{inMainDiv}">'
         elif marker in ('ie', '¬intro', 'chapters'):
@@ -520,7 +624,15 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
     if inList:
         if not basicOnly:
             logger( f"convertUSFMMarkerListToHtml final unclosed list {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} last {marker=}" )
-        html = f'{html}</{inList}>\n'
+        inListMarker, inListDepth = inList.split( '_', 1 )
+        inListDepth = int( inListDepth )
+        while inListDepth > 0:
+            if inListDepth > 1:
+                if inListEntry == True:
+                    html = f'{html}</li>\n'
+                    inListEntry = None
+            html = f'{html}</{inListMarker}>\n'
+            inListDepth -= 1
     if inSection in ('s1','periph'):
         if not basicOnly:
             logger( f"convertUSFMMarkerListToHtml final unclosed '{inSection}' section {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} last {marker=}" )
@@ -1035,6 +1147,7 @@ def livenIORs( versionAbbreviation:str, refTuple:tuple, segmentType:str, ioLineH
     assert '\\ior' not in ioLineHtml
 
     ourBBB = refTuple[0]
+    isSingleChapterBook = BibleOrgSysGlobals.loadedBibleBooksCodes.isSingleChapterBook( ourBBB )
 
     searchStartIx = 0
     for _safetyCount in range( 15 ):
@@ -1049,7 +1162,7 @@ def livenIORs( versionAbbreviation:str, refTuple:tuple, segmentType:str, ioLineH
         if ':' in startGuts:
             assert startGuts.count(':') == 1 # We expect a single C:V at this stage
             Cstr, Vstr = startGuts.strip().split( ':' )
-        elif BibleOrgSysGlobals.loadedBibleBooksCodes.isSingleChapterBook( ourBBB ):
+        elif isSingleChapterBook:
             Cstr, Vstr = '1', startGuts.strip() # Only a verse was given
         else: Cstr, Vstr = startGuts.strip(), '1' # Only a chapter was given
         if segmentType == 'book':

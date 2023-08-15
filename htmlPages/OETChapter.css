@@ -66,6 +66,20 @@ p.io1 { text-indent:2em; margin-top:0.2em; margin-bottom:0.2em; }
 span.ior { font-weight:bold; } /* font-style:italic; */
 span.bk { font-style:italic; }
 
+/* Section headings list */
+p.sectionHeading { }
+p.alternateHeading { margin-top:0.2em; margin-bottom:0.1em; margin-left:1em; font-size:0.8em; color:grey; }
+/* span.added_s1 { text-align:right; font-size:0.8em; color:grey; font-weight:bold; }
+span.added_r { text-align:right; font-size:0.8em; color:grey; } */
+p.alt_s1 { margin-top:0.1em; margin-bottom:0; text-align:right; font-size:0.6em; color:silver; font-weight:bold; }
+p.alt_r { margin-top:0.1em; margin-bottom:0; text-align:right; font-size:0.5em; color:silver; }
+
+/* Inside box */
+p.s1 { margin-top:0.1em; margin-bottom:0; font-weight:bold; }
+p.extra_s1 { margin-top:0.1em; margin-bottom:0; text-align:right; font-size:0.7em; color:grey; font-weight:bold; }
+p.extra_r { margin-top:0.1em; margin-bottom:0; text-align:right; font-size:0.6em; color:grey; }
+p.r { margin-top:0; margin-bottom:0; font-size:0.75em; }
+
 /* Chapters USFM */
 span.c { font-size:1.1em; color:green; }
 span.cPsa { font-size:1.6em; font-weight:bold; color:green; }
@@ -73,8 +87,6 @@ span.v { vertical-align:super; font-size:0.5em; color:red; }
 span.cv { vertical-align:super; font-size:0.8em; color:orange; }
 span.s1cv { vertical-align:super; font-size:0.8em; color:pink; }
 span.vp { vertical-align:super; font-size:0.5em; color:purple; }
-p.s1 { margin-top:0.1em; margin-bottom:0; font-weight:bold; }
-p.r { margin-top:0; margin-bottom:0; font-size:0.75em; }
 p.d { font-style:italic; }
 p.p { text-indent:0.5em; margin-top:0.2em; margin-bottom:0.2em; }
 p.q1 { margin-left:1em; margin-top:0.2em; margin-bottom:0.2em; }

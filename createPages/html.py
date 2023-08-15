@@ -38,6 +38,7 @@ BibleOrgSys uses a three-character book code to identify books.
 
 CHANGELOG:
     2023-07-20 Handled removal of #Vv navigation links to section pages (already had #CcVv)
+    2023-08-07 Handle four-letter tidyBBBs
 """
 from gettext import gettext as _
 from typing import Dict, List, Tuple, Optional
@@ -56,10 +57,10 @@ from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39, BOOKLIST_NT27
 # from Bibles import fetchChapter
 
 
-LAST_MODIFIED_DATE = '2023-07-20' # by RJH
+LAST_MODIFIED_DATE = '2023-08-07' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
-PROGRAM_VERSION = '0.49'
+PROGRAM_VERSION = '0.50'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -255,7 +256,7 @@ def makeBookNavListParagraph( linksList:List[str], state ) -> str:
         ixEnd = aLink.index( '<', ixStart )
         displayText = aLink[ixStart:ixEnd]
         # print( f"  {aLink=} {displayText=}")
-        assert len(displayText) == 3 # it should be a tidyBBB
+        assert 3 <= len(displayText) <= 4 # it should be a tidyBBB
         BBB = 'JAM' if displayText=='JAC' else 'PS2' if displayText=='2PS' else BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromText( displayText )
         # print( f"   {aLink=} {displayText=} {BBB=}")
         assert BBB

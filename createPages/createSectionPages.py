@@ -26,12 +26,16 @@
 Module handling createSectionPages functions.
 
 Assumes that all books are already loaded.
+
+CHANGELOG:
+    2023-08-07 Handle additional ESFM section headings, etc.
 """
 from gettext import gettext as _
 from typing import Dict, List, Tuple
 from pathlib import Path
 import os
 import logging
+from collections import defaultdict
 
 # sys.path.append( '../../BibleOrgSys/BibleOrgSys/' )
 # import BibleOrgSysGlobals
@@ -47,10 +51,10 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_
 from createOETReferencePages import livenOETWordLinks
 
 
-LAST_MODIFIED_DATE = '2023-06-06' # by RJH
+LAST_MODIFIED_DATE = '2023-08-10' # by RJH
 SHORT_PROGRAM_NAME = "createSectionPages"
 PROGRAM_NAME = "OpenBibleData createSectionPages functions"
-PROGRAM_VERSION = '0.35'
+PROGRAM_VERSION = '0.37'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -82,24 +86,78 @@ def createOETSectionPages( level:int, folder:Path, rvBible, lvBible, state ) -> 
     BBBsToProcess = reorderBooksForOETVersions( rvBible.books.keys() if allBooksFlag else state.booksToLoad[rvBible.abbreviation] )
 
     # Firstly make our list of section headings
+    #   The BibleOrgSys section index already contains a list of sections
     state.sectionsLists = {}
     state.sectionsLists['OET-RV'] = {}
     for BBB in BBBsToProcess:
+        # Firstly, make a list of additional section headings
+        additionalSectionHeadingsDict = defaultdict( list )
+        rvVerseEntryList, _rvContextList = rvBible.getContextVerseData( (BBB,) )
+        C = V = '0'
+        for n, entry in enumerate( rvVerseEntryList ):
+            marker = entry.getMarker()
+            if marker not in ('c','v','rem'): continue
+            rest = entry.getText()
+            if marker == 'c': C, V = rest, '0'
+            elif marker == 'v': V = rest
+            elif marker == 'rem':
+                if not rest.startswith( '/' ): continue
+                given_marker = rest[1:].split( ' ', 1 )[0]
+                assert given_marker in ('s1','r','s2','s3','d')
+                rest = rest[len(given_marker)+2:] # Drop the '/marker ' from the displayed portion
+                plusOneV = str( getLeadingInt(V) + 1 ) # Also handles verse ranges
+                additionalSectionHeadingsDict[(C,plusOneV)].append( (given_marker,rest) )
+        # if additionalSectionHeadingsDict: print( f"HERE1 {BBB} {additionalSectionHeadingsDict}" )
+
         if not rvBible[BBB]._SectionIndex: # no sections in this book, e.g., FRT
             continue
+
         bkObject = rvBible[BBB]
         state.sectionsLists['OET-RV'][BBB] = []
         for n,(startCV, sectionIndexEntry) in enumerate( bkObject._SectionIndex.items() ):
-            # dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"OET {NEWLINE*2}createSectionPages {n}: {BBB}_{startC}:{startV} {type(sectionIndexEntry)} ({len(sectionIndexEntry)}) {sectionIndexEntry=}" )
+            startC,startV = startCV
+            # if additionalSectionHeadingsDict: print( f"{startCV=} {startC}:{startV}" )
+            endC,endV = sectionIndexEntry.getEndCV()
+            # if additionalSectionHeadingsDict: print( f"End {endC}:{endV}" )
+            if additionalSectionHeadingsDict:
+                # print( f"{startCV=} {startC}:{startV} {sectionIndexEntry=}" )
+                intStartC, intStartV = int(startC), getLeadingInt(startV)
+            if additionalSectionHeadingsDict:
+                # dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"OET {NEWLINE*2}createSectionPages {n}: {BBB}_{startC}:{startV} {type(sectionIndexEntry)} {sectionIndexEntry=}" )
+                # Insert any additional section headings BEFORE this one
+                for (c,v),additionalFieldList in additionalSectionHeadingsDict.copy().items():
+                    # print( f"{c}:{v} {additionalFieldList}" )
+                    if int(c) < intStartC \
+                    or c==startC and int(v) < intStartV:
+                        for additionalMarker,additionalFieldText in additionalFieldList:
+                            if additionalMarker in ('s1','s2','s3'):
+                                additionalMarkerName = { 's1':'section heading', 's2':'2nd level section heading' }[additionalMarker]
+                                # NOTE: word 'Alternate ' is searched for below
+                                state.sectionsLists['OET-RV'][BBB].append( (c,v,'?','?',additionalFieldText,f'Alternate {additionalMarkerName}',[],[],filename) )
+                            else: print( f"Ignored additional \{additionalMarker} at {BBB} {c}:{v}" )
+                        del additionalSectionHeadingsDict[(c,v)]
             sectionName, reasonMarker = sectionIndexEntry.getSectionNameReason()
             sectionName = sectionName.replace( "'", "’" ) # Replace apostrophes
-            dPrint( 'Verbose', DEBUGGING_THIS_MODULE,  f"{sectionName=} {reasonMarker=}" )
-            reasonName = REASON_NAME_DICT[reasonMarker]
-            startC,startV = startCV
-            endC,endV = sectionIndexEntry.getEndCV()
-            rvVerseEntryList, rvContextList = bkObject._SectionIndex.getSectionEntriesWithContext( startCV )
             filename = f'{BBB}_S{n}.htm'
+            # if additionalSectionHeadingsDict:
+            #     dPrint( 'Verbose', DEBUGGING_THIS_MODULE,  f"{sectionName=} {reasonMarker=}" )
+            reasonName = REASON_NAME_DICT[reasonMarker]
+            rvVerseEntryList, rvContextList = bkObject._SectionIndex.getSectionEntriesWithContext( startCV )
             state.sectionsLists['OET-RV'][BBB].append( (startC,startV,endC,endV,sectionName,reasonName,rvContextList,rvVerseEntryList,filename) )
+        if additionalSectionHeadingsDict:
+            print( f"{BBB} didn't use {additionalSectionHeadingsDict=}")
+        # Handle left-over additions
+        for (c,v),additionalFieldList in additionalSectionHeadingsDict.copy().items():
+            # print( f"{c}:{v} {additionalFieldList}" )
+            for additionalMarker,additionalFieldText in additionalFieldList:
+                additionalMarkerName = { 's1':'section heading', 'r':'section cross-reference' }[additionalMarker]
+                # NOTE: word 'Alternate ' is searched for below
+                state.sectionsLists['OET-RV'][BBB].append( (c,v,'?','?',additionalFieldText,f'Alternate {additionalMarkerName}',[],[],filename) )
+            del additionalSectionHeadingsDict[(c,v)]
+        if additionalSectionHeadingsDict:
+            print( f"{BBB} didn't use {additionalSectionHeadingsDict=}")
+            halt
+
 
     # Now, make the actual pages
     BBBs = []
@@ -144,7 +202,13 @@ def createOETSectionPages( level:int, folder:Path, rvBible, lvBible, state ) -> 
 
         # Now, make the actual pages
         vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Creating section pages for OET {BBB}…" )
-        for n, (startC,startV,endC,endV,sectionName,reasonName,rvContextList,rvVerseEntryList,filename) in enumerate( state.sectionsLists['OET-RV'][BBB] ):
+        numExtrasSkipped = 0
+        for n1, (startC,startV,endC,endV,sectionName,reasonName,rvContextList,rvVerseEntryList,filename) in enumerate( state.sectionsLists['OET-RV'][BBB] ):
+            if endC == '?': # Then these are the additional headings
+                assert endV == '?'
+                numExtrasSkipped += 1
+                continue
+            n = n1 - numExtrasSkipped
             documentLink = f'<a title="Whole document view" href="../byDoc/{BBB}.htm#Top">{ourTidyBBB}</a>'
             startChapterLink = f'''<a title="Chapter view" href="../byC/{BBB}_{'Intro' if startC=='-1' else f'C{startC}'}.htm#Top">{'Intro' if startC=='-1' else startC}</a>'''
             endChapterLink = f'''<a title="Chapter view" href="../byC/{BBB}_{'Intro' if endC=='-1' else f'C{endC}'}.htm#Top">{'Intro' if endC=='-1' else endC}</a>'''
@@ -232,6 +296,7 @@ def createOETSectionPages( level:int, folder:Path, rvBible, lvBible, state ) -> 
             with open( filepath, 'wt', encoding='utf-8' ) as sectionHtmlFile:
                 sectionHtmlFile.write( sectionHtml )
             vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(sectionHtml):,} characters written to {filepath}" )
+
         # Now make the section index file for this book
         filename = f'{BBB}.htm'
         filepath = folder.joinpath( filename )
@@ -242,15 +307,17 @@ def createOETSectionPages( level:int, folder:Path, rvBible, lvBible, state ) -> 
                         f'''<a title="Up to {state.BibleNames['OET']}" href="{'../'*2}OET/">↑OET</a>''' )
         sectionHtml = f'<h1 id="Top">Index of sections for OET {ourTidyBBB}</h1>\n'
         for startC,startV,_endC,_endV,sectionName,reasonName,_contextList,_verseEntryList,filename in state.sectionsLists['OET-RV'][BBB]:
+            # print( f"HERE8 {BBB} {startC}:{startV} {_endC}:{endV} '{sectionName=}' '{reasonName=}' '{filename=}'" )
             reasonString = '' if reasonName=='Section heading' and not TEST_MODE else f' ({reasonName})' # Suppress '(Section Heading)' appendages in the list
-            sectionHtml = f'''{sectionHtml}<p><a title="View section" href="{filename}#Top">{'Intro' if startC=='-1' else startC}:{startV} <b>{sectionName}</b>{reasonString}</a></p>'''
+            # NOTE: word 'Alternate ' is defined above at start of main loop
+            sectionHtml = f'''{sectionHtml}<p class="{'alternateHeading' if reasonName.startswith('Alternate ') else 'sectionHeading'}"><a title="View section" href="{filename}#Top">{'Intro' if startC=='-1' else startC}:{startV} <b>{sectionName}</b>{reasonString}</a></p>'''
         sectionHtml = top + '<!--sections page-->' + sectionHtml + '\n' + makeBottom( level, 'section', state )
         checkHtml( 'OET section', sectionHtml )
         with open( filepath, 'wt', encoding='utf-8' ) as sectionHtmlFile:
             sectionHtmlFile.write( sectionHtml )
         vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(sectionHtml):,} characters written to {filepath}" )
 
-    # Now an overall index for sections
+    # Now a single overall index page for sections
     BBBLinks = []
     for BBB in BBBs:
         ourTidyBBB = tidyBBB( BBB )

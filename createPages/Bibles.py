@@ -38,6 +38,7 @@ BibleOrgSys uses a three-character book code to identify books.
 
 CHANGELOG:
     2023-07-19 Fix '<class="sn-text">' bug
+    2023-08-07 Add allowFourChars to our customised version of tidyBBB
 """
 from gettext import gettext as _
 from typing import Dict, List, Tuple, Optional
@@ -847,7 +848,6 @@ def formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segme
 
 def loadSelectedVerses( fileLocation, givenName:str, givenAbbreviation:str, encoding='utf-8' ) -> Bible:
     """
-    Our customised version of tidyBBB
     """
     fnPrint( DEBUGGING_THIS_MODULE, f"loadSelectedVerses( {fileLocation}, {givenName}, {givenAbbreviation}, {encoding} )" )
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\nloadSelectedVerses() loading {givenAbbreviation} ({givenName}) verse entries from {fileLocation}…" )
@@ -875,13 +875,14 @@ def loadSelectedVerses( fileLocation, givenName:str, givenAbbreviation:str, enco
 # end of Bibles.loadSelectedVerses
 
 
-def tidyBBB( BBB:str, titleCase:Optional[bool]=False ) -> str:
+def tidyBBB( BBB:str, titleCase:Optional[bool]=False, allowFourChars:Optional[bool]=True ) -> str:
     """
     Our customised version of tidyBBB
     """
-    newBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.tidyBBB( BBB, titleCase=titleCase )
+    newBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.tidyBBB( BBB, titleCase=titleCase, allowFourChars=allowFourChars )
     if newBBB == 'JAM': return 'JAC'
     if newBBB == 'Jam': return 'Jac'
+    if newBBB == 'ACTS': return 'ACTs'
     return newBBB
 # end of Bibles.tidyBBB
 

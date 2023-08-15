@@ -68,10 +68,10 @@ from html import makeTop, makeBottom, checkHtml
 from selectedVersesVersions import fillSelectedVerses
 
 
-LAST_MODIFIED_DATE = '2023-07-30' # by RJH
+LAST_MODIFIED_DATE = '2023-08-07' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData Create Pages"
-PROGRAM_VERSION = '0.73'
+PROGRAM_VERSION = '0.75'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
@@ -85,7 +85,7 @@ DEBUG_DESTINATION_FOLDER = NORMAL_DESTINATION_FOLDER.joinpath( 'Test/')
 DESTINATION_FOLDER = DEBUG_DESTINATION_FOLDER if TEST_MODE or BibleOrgSysGlobals.debugFlag \
                         else NORMAL_DESTINATION_FOLDER
 
-OET_BOOK_LIST = ('JHN','MAT','MRK','LUK','ACT', 'GAL','EPH', 'TI1','TI2','TIT', 'JAM', 'JN1','JN2','JN3', 'JDE')
+OET_BOOK_LIST = ('JHN','MRK','MAT','LUK','ACT', 'GAL','EPH', 'TI1','TI2','TIT', 'JAM', 'JN1','JN2','JN3', 'JDE')
 OET_BOOK_LIST_WITH_FRT = ('FRT',) + OET_BOOK_LIST # 'INT'
 NT_BOOK_LIST_WITH_FRT = ('FRT',) + BOOKLIST_NT27
 assert len(NT_BOOK_LIST_WITH_FRT) == 27+1
@@ -590,7 +590,7 @@ You can read more about the design of the OET-LV <a href="https://OpenEnglishTra
                 'acknowledgements': '<p>Thanks to <a href="https://www.unfoldingword.org/">unfoldingWord</a> for creating <a href="https://git.door43.org/unfoldingWord/en_tn">these notes</a> to assist Bible translators.</p>' },
     }
 
-    if not TEST_MODE: assert len(BibleLocations) >= 46, len(BibleLocations)
+    if not TEST_MODE: assert len(BibleLocations) >= 50, len(BibleLocations)
     for versionLocation in BibleLocations.values():
         assert versionLocation.startswith('../copiedBibles/') \
             or versionLocation.startswith('../../OpenEnglishTranslation--OET/') \
@@ -961,9 +961,10 @@ def createAboutPage( level:int, buildFolder:Path, state ) -> bool:
 </ol>
 <p>We would welcome any others who would like to contribute open datasets or code to this endeavour.
     Please contact us at <b>Freely</b> dot <b>Given</b> dot <b>org</b> at <b>gmail</b> dot <b>com</b>.</p>
-<p>Acknowledgement: The overall design of the site was influenced by <a href="https://BibleHub.com/">BibleHub.com</a>
+<p><b>Acknowledgement</b>: The overall design of the site was influenced by <a href="https://BibleHub.com/">BibleHub.com</a>
         and their <a href="https://OpenBible.com/">OpenBible.com</a> which have many features that we like
         (and likely many overlapping goals).</p>
+<h3>Technical details</h3>
 <p>These pages are created by a Python program that takes the open-licenced resources and combines them in different ways on different pages.
     The program is still being developed, and hence this site (or this part of the site), is still at the prototype stage,
         especially with respect to navigation around the pages which is still being improved.</p>
