@@ -52,10 +52,10 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 from html import makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-08-01' # by RJH
+LAST_MODIFIED_DATE = '2023-08-16' # by RJH
 SHORT_PROGRAM_NAME = "Dictionary"
 PROGRAM_NAME = "OpenBibleData Dictionary handler"
-PROGRAM_VERSION = '0.34'
+PROGRAM_VERSION = '0.35'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -640,7 +640,7 @@ def createTyndaleDictPages( level:int, outputFolderPath, state ) -> bool:
     top = makeTop( level, None, 'dictionaryIntro', None, state ) \
             .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}Dictionary Introduction" ) \
             .replace( '__KEYWORDS__', f'Bible, dictionary, introduction' )
-    introHtml = f'''{top}<p><b>Note</b>: The Tyndale Open Bible Dictionary is included on this site because it contains a wealth of useful information,
+    introHtml = f'''{top}<p class="note"><b>Note</b>: The Tyndale Open Bible Dictionary is included on this site because it contains a wealth of useful information,
 even though it was originally designed to supplement the <i>New Living Translation</i>, not our <em>Open English Translation</em>.</p>
 <h1 id="Top">Tyndale Open Bible Dictionary <small>{detailsLink}</small></h1>
 {TOBDData['Intro']}
@@ -659,7 +659,7 @@ even though it was originally designed to supplement the <i>New Living Translati
             .replace( '__KEYWORDS__', f'Bible, dictionary' )
 # <p class="dNav"><a id="Go to dict intro" href="intro.htm#Top">Introduction</a></p>
     indexHtml = f'''{top}<h1 id="Top">Tyndale Open Bible Dictionary <small>{detailsLink}</small></h1>
-<p>This is a comprehensive Bible dictionary with articles for each Bible ‘book’ as well as for significant people and places and terms. (Read the <a id="Go to dict intro" href="intro.htm#Top">full introduction</a> for more details.)</p>
+<p class="note">This is a comprehensive Bible dictionary with articles for each Bible ‘book’ as well as for significant people and places and terms. (Read the <a id="Go to dict intro" href="intro.htm#Top">full introduction</a> for more details.)</p>
 <h2>Index of dictionary letters</h2>
 {' '.join(letterLinkList)}
 {makeBottom( level, 'dictionaryMainIndex', state )}'''

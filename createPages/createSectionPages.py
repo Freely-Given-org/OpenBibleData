@@ -29,6 +29,7 @@ Assumes that all books are already loaded.
 
 CHANGELOG:
     2023-08-07 Handle additional ESFM section headings, etc.
+    2023-08-18 Handle additional section headings separated by semicolons
 """
 from gettext import gettext as _
 from typing import Dict, List, Tuple
@@ -51,10 +52,10 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_
 from createOETReferencePages import livenOETWordLinks
 
 
-LAST_MODIFIED_DATE = '2023-08-10' # by RJH
+LAST_MODIFIED_DATE = '2023-08-18' # by RJH
 SHORT_PROGRAM_NAME = "createSectionPages"
 PROGRAM_NAME = "OpenBibleData createSectionPages functions"
-PROGRAM_VERSION = '0.37'
+PROGRAM_VERSION = '0.39'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -106,7 +107,8 @@ def createOETSectionPages( level:int, folder:Path, rvBible, lvBible, state ) -> 
                 assert given_marker in ('s1','r','s2','s3','d')
                 rest = rest[len(given_marker)+2:] # Drop the '/marker ' from the displayed portion
                 plusOneV = str( getLeadingInt(V) + 1 ) # Also handles verse ranges
-                additionalSectionHeadingsDict[(C,plusOneV)].append( (given_marker,rest) )
+                for sectionChunk in rest.split( '; ' ):
+                    additionalSectionHeadingsDict[(C,plusOneV)].append( (given_marker,sectionChunk) )
         # if additionalSectionHeadingsDict: print( f"HERE1 {BBB} {additionalSectionHeadingsDict}" )
 
         if not rvBible[BBB]._SectionIndex: # no sections in this book, e.g., FRT
@@ -494,7 +496,7 @@ def createSectionPages( level:int, folder:Path, thisBible, state ) -> List[str]:
         sectionHtml = f'<h1 id="Top">Index of sections for {thisBible.abbreviation} {ourTidyBBB}</h1>\n'
         for startC,startV,_endC,_endV,sectionName,reasonName,_contextList,_verseEntryList,filename in state.sectionsLists[thisBible.abbreviation][BBB]:
             reasonString = '' if reasonName=='Section heading' and not TEST_MODE else f' ({reasonName})' # Suppress '(Section Heading)' appendages in the list
-            sectionHtml = f'''{sectionHtml}<p><a title="View section" href="{filename}#Top">{'Intro' if startC=='-1' else startC}:{startV} <b>{sectionName}</b>{reasonString}</a></p>'''
+            sectionHtml = f'''{sectionHtml}<p class="sectionIndex"><a title="View section" href="{filename}#Top">{'Intro' if startC=='-1' else startC}:{startV} <b>{sectionName}</b>{reasonString}</a></p>'''
         sectionHtml = top + '<!--sections page-->' + sectionHtml + '\n' + makeBottom( level, 'section', state )
         checkHtml( thisBible.abbreviation, sectionHtml )
         with open( filepath, 'wt', encoding='utf-8' ) as sectionHtmlFile:

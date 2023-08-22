@@ -24,3 +24,12 @@ p.vsLst {background-color:mistyRose; }
 p.cNav { text-align:center; font-size:1.8em; background-color:#98a9d4; }
 p.vNav { text-align:center; font-size:1.8em; }
 p.pNav { text-align:center; font-size:1.8em; }
+
+p.wordLine { text-indent:1em; margin-top:0.2em; margin-bottom:0.2em; font-size:0.9em; }
+p.lemmaLine { text-indent:1em; margin-top:0.2em; margin-bottom:0.2em; font-size:0.9em; }
+
+span.glossPre { color:lightGreen; }
+span.glossHelper { color:grey; }
+span.glossPost { color:brown; }
+
+span.ul { color:darkGrey; }

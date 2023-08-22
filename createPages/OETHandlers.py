@@ -35,6 +35,9 @@ BibleOrgSys uses a three-character book code to identify books.
         This was because early versions of HTML ID fields used to need
                 to start with a letter (not a digit),
             (and most identifiers in computer languages still require that).
+
+CHANGELOG:
+    2023-08-22 Change some logging from critical to errors
 """
 from gettext import gettext as _
 from typing import Dict, List, Tuple, Optional
@@ -54,10 +57,10 @@ sys.path.append( '../../BibleTransliterations/Python/' )
 # from html import checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-05-05' # by RJH
+LAST_MODIFIED_DATE = '2023-08-22' # by RJH
 SHORT_PROGRAM_NAME = "OETHandlers"
 PROGRAM_NAME = "OpenBibleData OET handler"
-PROGRAM_VERSION = '0.21'
+PROGRAM_VERSION = '0.22'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -194,7 +197,7 @@ def findLVQuote( level:int, BBB:str, C:str, V:str, occurrenceNumber:int, origina
                     matchStart = len(ourWords) # Convert to index of these words
                 ourWords.append( row[1] )
             lvEnglishWords.append( f"(Some words not found in SR-GNT: {' '.join( ourWords )})" )
-            logging.critical( f"findLVQuote unable to match {BBB}_{C}:{V} '{originalQuote}' {occurrenceNumber=} {currentOccurrenceNumber=} {inGap=}\n  {olWords=}  {olIndex=}\n  {ourWords=} {matchStart=}" )
+            logging.error( f"findLVQuote unable to match {BBB}_{C}:{V} '{originalQuote}' {occurrenceNumber=} {currentOccurrenceNumber=} {inGap=}\n  {olWords=}  {olIndex=}\n  {ourWords=} {matchStart=}" )
             # if BBB not in ('MRK',) or C not in ('1',) or V not in ('5','8','14'):
             #     halt
 
@@ -202,7 +205,7 @@ def findLVQuote( level:int, BBB:str, C:str, V:str, occurrenceNumber:int, origina
         # checkHtml( f'LV {BBB} {C}:{V}', html, segmentOnly=True )
         return html
     else:
-        logging.critical( f"findLVQuote: OET-LV can't find a starting word number for {BBB} {C}:{V}")
+        logging.error( f"findLVQuote: OET-LV can't find a starting word number for {BBB} {C}:{V}")
         return ''
 # end of OETHandlers.findLVQuote
 

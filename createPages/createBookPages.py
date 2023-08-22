@@ -97,7 +97,13 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state ) -> Lis
 
         vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Creating book pages for OET {BBB}…" )
         BBBs.append( BBB )
-        bkHtml = f'''<h1 id="Top">Open English Translation {ourTidyBBB}</h1>
+
+        iBkList = ['index'] + ( state.booksToLoad[rvBible.abbreviation] if len(state.booksToLoad[rvBible.abbreviation])<len(state.booksToLoad[lvBible.abbreviation]) else state.booksToLoad[lvBible.abbreviation] )
+        bkIx = iBkList.index( BBB )
+        bkPrevNav = f'''<a title="Go to {'book index' if bkIx==1 else 'previous book'}" href="{iBkList[bkIx-1]}.htm#Top">◄</a> ''' if bkIx>0 else ''
+        bkNextNav = f' <a title="Go to next book" href="{iBkList[bkIx+1]}.htm#Top">►</a>' if bkIx<len(iBkList)-1 else ''
+
+        bkHtml = f'''<p class="bkNav">{bkPrevNav}<span class="bkHead" id="Top">Open English Translation {ourTidyBBB}</span>{bkNextNav}</p>
 <p class="rem">This is still a very early look into the unfinished text of the <em>Open English Translation</em> of the Bible. Please double-check the text in advance before using in public.</p>
 <div class="container">
 <span> </span>
@@ -144,18 +150,22 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state ) -> Lis
             ixEndCV = lvRest.rindex( f' id="{rvEndCV}"' ) # Versification problem if this fails
             try: ixNextCV = lvRest.index( f' id="C', ixEndCV+5 )
             except ValueError: ixNextCV = len( lvRest ) - 1
-            # print( f"\n{n}: {lvRest[ixEndCV:ixNextCV+10]=}" )
+            # print( f"\n{BBB} {n}: {lvRest[ixEndCV:ixNextCV]=} {lvRest[ixNextCV:ixNextCV+10]=}" )
             # Find our way back to the start of the HTML marker
             for x in range( 30 ):
-                LVindex8 = ixNextCV - x
-                if lvRest[LVindex8] == '<':
+                lvIndex8 = ixNextCV - x
+                if lvRest[lvIndex8] == '<':
                     break
             else:
-                dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{lvRest[LVindex8-50:LVindex8+50]}")
+                dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{lvRest[lvIndex8-50:lvIndex8+50]}")
                 not_far_enough
-            # print( f"\n{n}: {lvRest[ixEndCV:LVindex8]=}" )
-            lvChunks.append( lvRest[:LVindex8])
-            lvRest = lvRest[LVindex8:]
+            # print( f"\n{n}: {lvRest[ixEndCV:lvIndex8]=}" )
+            lvEndIx = lvIndex8
+            if lvRest[lvEndIx:].startswith( '</span>'): # Occurs at end of MRK (perhaps because of missing SR verses in ending) -- not sure if in other places
+                print( f"\nNOTE: Fixed end of chunk in OET {BBB}!!!" )
+                lvEndIx = ixNextCV
+            lvChunks.append( lvRest[:lvEndIx])
+            lvRest = lvRest[lvEndIx:]
 
         assert len(lvChunks) == len(rvSections), f"{len(lvChunks)=} {len(rvSections)=}"
 
@@ -247,7 +257,17 @@ def createBookPages( level:int, folder:Path, thisBible, state ) -> List[str]:
 
         vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Creating book pages for {thisBible.abbreviation} {BBB}…" )
         BBBs.append( BBB )
-        bkHtml = f'''<h1 id="Top">{thisBible.abbreviation} {ourTidyBBB}</h1>
+
+        iBkList = ['index'] + state.booksToLoad[thisBible.abbreviation]
+        try: # May give ValueError if this book doesn't not occur in this translation
+            bkIx = iBkList.index( BBB )
+            bkPrevNav = f'''<a title="Go to {'book index' if bkIx==1 else 'previous book'}" href="{iBkList[bkIx-1]}.htm#Top">◄</a> ''' if bkIx>0 else ''
+            bkNextNav = f' <a title="Go to next book" href="{iBkList[bkIx+1]}.htm#Top">►</a>' if bkIx<len(iBkList)-1 else ''
+        except ValueError: # this BBB wasn't there in the list for this work
+            bkPrevNav = f'''<a title="Go to book index" href="index.htm#Top">◄</a> '''
+            bkNextNav = f' <a title="Go to first existing book" href="{iBkList[1]}.htm#Top">►</a>'
+
+        bkHtml = f'''<p class="bkNav">{bkPrevNav}<span class="bkHead" id="Top">{thisBible.abbreviation} {ourTidyBBB}</span>{bkNextNav}</p>
 {'<p class="rem">This is still a very early look into the unfinished text of the <em>Open English Translation</em> of the Bible. Please double-check the text in advance before using in public.</p>' if 'OET' in thisBible.abbreviation else ''}
 '''
         verseEntryList, contextList = thisBible.getContextVerseData( (BBB,) )

@@ -39,6 +39,8 @@ BibleOrgSys uses a three-character book code to identify books.
 CHANGELOG:
     2023-07-20 Handled removal of #Vv navigation links to section pages (already had #CcVv)
     2023-08-07 Handle four-letter tidyBBBs
+    2023-08-16 Improve byDocument navigation
+    2023-08-22 Make removeDuplicateCVids work for larger books
 """
 from gettext import gettext as _
 from typing import Dict, List, Tuple, Optional
@@ -57,10 +59,10 @@ from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39, BOOKLIST_NT27
 # from Bibles import fetchChapter
 
 
-LAST_MODIFIED_DATE = '2023-08-07' # by RJH
+LAST_MODIFIED_DATE = '2023-08-22' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
-PROGRAM_VERSION = '0.50'
+PROGRAM_VERSION = '0.52'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -231,8 +233,8 @@ def _makeHeader( level:int, versionAbbreviation:str, pageType:str, fileOrFolderN
     and versionAbbreviation not in state.selectedVersesOnlyVersions:
         if not versionAbbreviation: versionAbbreviation = 'OET'
         viewLinks.append( versionAbbreviation )
-        if pageType != 'book':
-            viewLinks.append( f'''<a title="View entire document" href="{'../'*level}{versionAbbreviation}/byDoc/">By Document</a>''' )
+        # if pageType != 'book':
+        viewLinks.append( f'''<a title="View entire document" href="{'../'*level}{versionAbbreviation}/byDoc/">By Document</a>''' )
         # if pageType != 'section':
         if state.preloadedBibles['OET-RV' if versionAbbreviation=='OET' else versionAbbreviation].discoveryResults['ALL']['haveSectionHeadings']:
             viewLinks.append( f'''<a title="View section" href="{'../'*level}{versionAbbreviation}/bySec/">By Section</a>''' )
@@ -304,14 +306,16 @@ def removeDuplicateCVids( BBB:str, html:str ) -> str:
 
     This function removes the second id field in each case (which should be in the LV text).
     """
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Removing Duplicate CV & V IDs for {BBB}…" )
+    
     startSearchIndex = 0
     while True:
         startVIx = html.find( ' id="V', startSearchIndex )
-        if startVIx == -1: startVIx = 999_999
+        if startVIx == -1: startVIx = 99_999_999
         startCIx = html.find( ' id="C', startSearchIndex )
-        if startCIx == -1: startCIx = 999_999
+        if startCIx == -1: startCIx = 99_999_999
         startIx = min( startVIx, startCIx )
-        if startIx == 999_999: break # None / no more
+        if startIx == 99_999_999: break # None / no more
         endIx = html.find( '>', startIx+6 ) # The end of the first id field found -- any duplicates will be AFTER this
         assert endIx != -1
         idContents = html[startIx:endIx]

@@ -64,10 +64,10 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
 from createOETReferencePages import CNTR_BOOK_ID_MAP, livenOETWordLinks
 
 
-LAST_MODIFIED_DATE = '2023-08-01' # by RJH
+LAST_MODIFIED_DATE = '2023-08-16' # by RJH
 SHORT_PROGRAM_NAME = "createOETInterlinearPages"
 PROGRAM_NAME = "OpenBibleData createOETInterlinearPages functions"
-PROGRAM_VERSION = '0.34'
+PROGRAM_VERSION = '0.35'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -109,7 +109,7 @@ def createOETInterlinearPages( level:int, folder:Path, state ) -> bool:
             .replace( '__KEYWORDS__', f'Bible, interlinear' )
     indexHtml = f'''{top}
 <h1 id="Top">OET interlinear verse pages</h1>
-<p>These pages show single OET verses with each Greek word aligned with the English word(s) that it was translated to, along with any translation notes and study notes for the verse. Finally, there's a <em>Reverse Interlinear</em> with the same information but in English word order.</p>
+<p class="note">These pages show single OET verses with each Greek word aligned with the English word(s) that it was translated to, along with any translation notes and study notes for the verse. Finally, there's a <em>Reverse Interlinear</em> with the same information but in English word order.</p>
 <h2>Index of books</h2>
 {makeBookNavListParagraph(BBBLinks, state)}
 {makeBottom( level, 'interlinear', state )}'''
@@ -249,10 +249,10 @@ def createOETInterlinearVersePage( level:int, BBB:str, c:int, v:int, state ) -> 
     except (KeyError, TypeError):
         if BBB in lvBible and BBB in rvBible:
             warningText = f'No OET-LV {ourTidyBBB} {c}:{v} verse available'
-            lvHtml = f'''<p><span class="wrkName"><a title="{state.BibleNames['OET']}" href="{'../'*level}OET/byC/{BBB}_C{c}.htm#Top">OET-LV</a></span> <span class="noVerse"><small>{warningText}</small></span></p>'''
+            lvHtml = f'''<p class="ilNote"><span class="wrkName"><a title="{state.BibleNames['OET']}" href="{'../'*level}OET/byC/{BBB}_C{c}.htm#Top">OET-LV</a></span> <span class="noVerse"><small>{warningText}</small></span></p>'''
         else:
             warningText = f'No OET-LV {ourTidyBBB} book available'
-            lvHtml = f'''<p><span class="wrkName">OET-LV</span> <span class="noBook"><small>{warningText}</small></span></p>'''
+            lvHtml = f'''<p class="ilNote"><span class="wrkName">OET-LV</span> <span class="noBook"><small>{warningText}</small></span></p>'''
         logging.critical( warningText )
         lvVerseEntryList = []
     try:
@@ -263,10 +263,10 @@ def createOETInterlinearVersePage( level:int, BBB:str, c:int, v:int, state ) -> 
     except (KeyError, TypeError):
         if BBB in rvBible:
             warningText = f'No OET-RV {ourTidyBBB} {c}:{v} verse available'
-            rvHtml = f'''<p><span class="wrkName"><a title="{state.BibleNames['OET']}" href="{'../'*level}OET/byC/{BBB}_C{c}.htm#Top">OET-RV</a></span> <span class="noVerse"><small>{warningText}</small></span></p>'''
+            rvHtml = f'''<p class="ilNote"><span class="wrkName"><a title="{state.BibleNames['OET']}" href="{'../'*level}OET/byC/{BBB}_C{c}.htm#Top">OET-RV</a></span> <span class="noVerse"><small>{warningText}</small></span></p>'''
         else:
             warningText = f'No OET-RV {ourTidyBBB} book available'
-            rvHtml = f'''<p><span class="wrkName">OET-RV</span> <span class="noBook"><small>{warningText}</small></span></p>'''
+            rvHtml = f'''< class="ilNote"><span class="wrkName">OET-RV</span> <span class="noBook"><small>{warningText}</small></span></p>'''
         logging.critical( warningText )
         rvVerseEntryList = []
     # Handle (uW) translation notes and (Tyndale) study notes
@@ -485,8 +485,8 @@ def createOETInterlinearVersePage( level:int, BBB:str, c:int, v:int, state ) -> 
     html = f'''{html}{riHtml}</ol></div><!--interlinear-->
 {lvHtml}
 {rvHtml}
-<p><small><b>Note</b>: The OET-RV is still only a first draft, and so far only a few words have been (mostly automatically) matched to the Greek words that they’re translated from.</small></p>
-{f'<p><b>Acknowledgements</b>: The SR Greek text, lemmas, morphology, and English gloss <small>(7th line)</small> are all thanks to the <a href="https://GreekCNTR.org/collation/index.htm?{CNTR_BOOK_ID_MAP[BBB]}{C.zfill(3)}{V.zfill(3)}">SR-GNT</a>.</p>' if BibleOrgSysGlobals.loadedBibleBooksCodes.isNewTestament_NR( BBB ) else ''}'''
+<p class="note"><small><b>Note</b>: The OET-RV is still only a first draft, and so far only a few words have been (mostly automatically) matched to the Greek words that they’re translated from.</small></p>
+{f'<p class="thanks"><b>Acknowledgements</b>: The SR Greek text, lemmas, morphology, and English gloss <small>(7th line)</small> are all thanks to the <a href="https://GreekCNTR.org/collation/index.htm?{CNTR_BOOK_ID_MAP[BBB]}{C.zfill(3)}{V.zfill(3)}">SR-GNT</a>.</p>' if BibleOrgSysGlobals.loadedBibleBooksCodes.isNewTestament_NR( BBB ) else ''}'''
     # dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\n\n{iHtml=}" )
     checkHtml( f'Interlinear {BBB} {c}:{v}', html, segmentOnly=True )
     return html

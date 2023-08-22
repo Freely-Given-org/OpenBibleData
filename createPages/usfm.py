@@ -43,6 +43,8 @@ CHANGELOG:
     2023-08-07 Handle extra optional section headings
     2023-08-10 Handle multi-level lists properly
     2023-08-14 Added #Vv navigation links to single chapter books (already had #CcVv)
+    2023-08-16 Render id field like a rem
+    2023-08-18 Handle additional section headings separated by semicolons
 """
 from gettext import gettext as _
 from typing import Tuple
@@ -59,10 +61,10 @@ from BibleOrgSys.Internals.InternalBibleInternals import getLeadingInt
 from html import checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-08-15' # by RJH
+LAST_MODIFIED_DATE = '2023-08-18' # by RJH
 SHORT_PROGRAM_NAME = "usfm"
 PROGRAM_NAME = "OpenBibleData USFM to HTML functions"
-PROGRAM_VERSION = '0.54'
+PROGRAM_VERSION = '0.56'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -356,7 +358,8 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                 else: # for s2/3/4 we add a heading, but don't consider it a section
                     if not basicOnly:
                         html = f'{html}<p class="{marker}">{formatUSFMText(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state)}</p>\n'
-        elif marker == 'rem': # This one can sort of be anywhere!
+        # We also treat the id field exactly like a rem field
+        elif marker in ('rem','id'): # rem's can sort of be anywhere!
             assert rest
             if rest.startswith( '/' ):
                 if inRightDiv:
@@ -366,7 +369,8 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                     marker = f"extra_{given_marker}" # Sets the html <p> class below
                     rest = rest[len(given_marker)+2:] # Drop the '/marker ' from the displayed portion
                     if not basicOnly:
-                        html = f'{html}<p class="{marker}">{formatUSFMText(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state)}</p>\n'
+                        for sectionChunk in rest.split( '; ' ):
+                            html = f'{html}<p class="{marker}">{formatUSFMText(versionAbbreviation, refTuple, segmentType, sectionChunk, basicOnly, state)}</p>\n'
                 else: # it's probably a section marker added at a different spot
                     given_marker = rest[1:].split( ' ', 1 )[0]
                     assert given_marker in ('s1','s2','s3','r','d')
@@ -385,7 +389,8 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                             html = f'{html}</p>\n'
                             inParagraph = None
                         if not basicOnly:
-                            html = f'{html}<p class="{marker}">{formatUSFMText(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state)}</p>\n'
+                            for sectionChunk in rest.split( '; ' ):
+                                html = f'{html}<p class="{marker}">{formatUSFMText(versionAbbreviation, refTuple, segmentType, sectionChunk, basicOnly, state)}</p>\n'
                     else:
                         print( f"{BBB} {C}:{V} {inParagraph=} {nextMarker=} has UNUSED INFLOW ALTERNATIVE {given_marker}={rest}")
             else:
@@ -591,7 +596,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
             if inMainDiv:
                 html = f'{html}</div><!--{inMainDiv}-->\n'
                 inMainDiv = None
-        elif marker not in ('id','usfm','ide', 'sts',
+        elif marker not in ('usfm','ide', 'sts',
                             'h', 'toc1','toc2','toc3', '¬headers',
                             'v=', 'c#', 'cl¤', '¬c', '¬chapters'): # We can ignore all of these
             if versionAbbreviation in ('ULT','UST'):
