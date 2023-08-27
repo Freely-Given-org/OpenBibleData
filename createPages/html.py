@@ -305,30 +305,33 @@ def removeDuplicateCVids( BBB:str, html:str ) -> str:
     Where we have OET parallel RV and LV, we get doubled ids like <span id="V6"></span><span class="v" id="C2V6">
 
     This function removes the second id field in each case (which should be in the LV text).
+
+    Assert statements are disabled because this function can be quite slow for an entire OET book
     """
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Removing Duplicate CV & V IDs for {BBB}…" )
+    # vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Removing duplicate IDs (#CV & #V) for {BBB} ({len(html):,} chars)…" )
     
-    startSearchIndex = 0
+    # startSearchIndex = 0
+    endIx = 0
     while True:
-        startVIx = html.find( ' id="V', startSearchIndex )
+        startVIx = html.find( ' id="V', endIx )
         if startVIx == -1: startVIx = 99_999_999
-        startCIx = html.find( ' id="C', startSearchIndex )
+        startCIx = html.find( ' id="C', endIx )
         if startCIx == -1: startCIx = 99_999_999
         startIx = min( startVIx, startCIx )
         if startIx == 99_999_999: break # None / no more
-        endIx = html.find( '>', startIx+6 ) # The end of the first id field found -- any duplicates will be AFTER this
-        assert endIx != -1
+        endIx = html.find( '>', startIx+8 ) # The end of the first id field found -- any duplicates will be AFTER this
+        # assert endIx != -1
         idContents = html[startIx:endIx]
-        assert 7 < len(idContents) < 14, f"{idContents=} {len(idContents)=}"
+        # assert 7 < len(idContents) < 14, f"{idContents=} {len(idContents)=}"
         idCount = html.count( idContents, startIx )
-        if startIx == startCIx:
-            assert 1 <= idCount <= 2, f"{BBB} {idContents=} {idCount=} {html}"
-        else: # for #V entries, in large multi-chapter sections there can be several
-            assert 1 <= idCount <= 5, f"{BBB} {idContents=} {idCount=} {html}"
+        # if startIx == startCIx:
+        #     assert 1 <= idCount <= 2, f"{BBB} {idContents=} {idCount=} {html}"
+        # else: # for #V entries, in large multi-chapter sections there can be several
+        #     assert 1 <= idCount <= 5, f"{BBB} {idContents=} {idCount=} {html}"
         if idCount > 1:
             html = f"{html[:endIx]}{html[endIx:].replace( idContents, '' )}"
-            assert html.count( idContents ) == 1
-        startSearchIndex += len( idContents )
+            # assert html.count( idContents ) == 1
+        # startSearchIndex = endIx # += len( idContents )
     return html
 # end of html.removeDuplicateCVids
 

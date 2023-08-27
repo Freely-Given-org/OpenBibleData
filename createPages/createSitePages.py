@@ -86,7 +86,7 @@ DEBUG_DESTINATION_FOLDER = NORMAL_DESTINATION_FOLDER.joinpath( 'Test/')
 DESTINATION_FOLDER = DEBUG_DESTINATION_FOLDER if TEST_MODE or BibleOrgSysGlobals.debugFlag \
                         else NORMAL_DESTINATION_FOLDER
 
-OET_BOOK_LIST = ['JHN','MRK','MAT','LUK','ACT', 'GAL','EPH', 'TI1','TI2','TIT','PHM', 'JAM', 'PE1','PE2', 'JN1','JN2','JN3', 'JDE']
+OET_BOOK_LIST = ['JHN','MRK','MAT','LUK','ACT', 'GAL','EPH','PHP', 'TI1','TI2','TIT','PHM', 'JAM', 'PE1','PE2', 'JN1','JN2','JN3', 'JDE']
 OET_BOOK_LIST_WITH_FRT = ['FRT'] + OET_BOOK_LIST # 'INT'
 NT_BOOK_LIST_WITH_FRT = ['FRT'] + BOOKLIST_NT27
 assert len(NT_BOOK_LIST_WITH_FRT) == 27+1
@@ -599,7 +599,7 @@ You can read more about the design of the OET-LV <a href="https://OpenEnglishTra
                 'acknowledgements': '<p class="acknwldg">Thanks to <a href="https://www.unfoldingword.org/">unfoldingWord</a> for creating <a href="https://git.door43.org/unfoldingWord/en_tn">these notes</a> to assist Bible translators.</p>' },
     }
 
-    if not TEST_MODE: assert len(BibleLocations) >= 50, len(BibleLocations)
+    if not TEST_MODE: assert len(BibleLocations) >= 51, len(BibleLocations)
     for versionLocation in BibleLocations.values():
         assert versionLocation.startswith('../copiedBibles/') \
             or versionLocation.startswith('../../OpenEnglishTranslation--OET/') \

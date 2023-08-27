@@ -2,7 +2,7 @@
 
 button#marksButton { float:right; }
 div.container { display:grid; column-gap:0.6em; grid-template-columns:0.85fr 1.15fr; }
-/* div.BibleText { } */
+div.chunkLV { font-size: 0.9em; }
 div.footer { width: 500px; height: 250px; margin: 50px; }
 
 div.footer { width: 500px; height: 250px; margin: 50px; }
@@ -56,7 +56,7 @@ p.h { font-weight:bold; }
 p.mt1 { text-align:center; font-size:1.8em; }
 p.mt2 { text-align:center; font-size:1.3em; }
 p.id, p.rem { font-size:0.8em; color:grey; }
-p.id ~ p.rem, p.rem ~ p.rem { margin-top:-0.5em; }
+p.id + p.rem, p.rem + p.rem { margin-top:-1.1em; }
 
 /* Book intro USFM */
 li.intro { margin-top:0.5em; margin-bottom:0.5em; }
@@ -70,9 +70,9 @@ span.ior { font-weight:bold; } /* font-style:italic; */
 span.bk { font-style:italic; }
 
 /* Section headings list */
-p.sectionHeading { }
-p.alternateHeading { margin-top:0.2em; margin-bottom:0.1em; margin-left:1em; font-size:0.8em; color:grey; }
-p.sectionHeading ~ p.alternateHeading { margin-top:-1em; }
+/* p.sectionHeading { } */
+p.alternateHeading { margin-top:0.1em; margin-bottom:0.1em; margin-left:1em; font-size:0.8em; color:grey; }
+p.sectionHeading + p.alternateHeading { margin-top:-1.2em; }
 p.alt_s1 { margin-top:0.1em; margin-bottom:0; text-align:right; font-size:0.6em; color:silver; font-weight:bold; }
 p.alt_r { margin-top:0.1em; margin-bottom:0; text-align:right; font-size:0.5em; color:silver; }
 
@@ -104,7 +104,7 @@ span.addDirectObject { color:brown; }
 span.addExtra { color:lightGreen; }
 span.addOwner { color:darkOrchid; }
 span.add { color:grey; }
-span.untr { background-color:ivory; color:yellowGreen; font-variant-position:sub; }
+span.untr { font-size:0.8em; color:grey; text-decoration:line-through; }
 
 span.ul { color:darkGrey; }
 span.RVadd { color:dimGrey; }

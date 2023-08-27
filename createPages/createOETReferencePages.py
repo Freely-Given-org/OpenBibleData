@@ -52,10 +52,10 @@ from html import makeTop, makeBottom
 from Bibles import tidyBBB
 
 
-LAST_MODIFIED_DATE = '2023-08-16' # by RJH
+LAST_MODIFIED_DATE = '2023-08-27' # by RJH
 SHORT_PROGRAM_NAME = "createOETReferencePages"
 PROGRAM_NAME = "OpenBibleData createOETReferencePages functions"
-PROGRAM_VERSION = '0.33'
+PROGRAM_VERSION = '0.34'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -432,7 +432,7 @@ def make_person_pages( level:int, outputFolderPath:Path, state ) -> int:
 <p class="personGender">{entry['gender']}{f' {bornStr}' if bornStr else ''}{f' {diedStr}' if diedStr else ''}</p>'''
 
         # Now put it all together
-        output_filename = f"{personKey[1:]}.htm#Top"
+        output_filename = f"{personKey[1:]}.htm"
         html = f'''{makeTop( level, None, 'person', None, state )
                                     .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{personName}" )
                                     .replace( '__KEYWORDS__', 'Bible, word' )
@@ -487,7 +487,7 @@ def make_location_pages( level:int, outputFolderPath:Path, state ) -> int:
 <p class="locationVersions">KJB=‘{entry['kjvName']}’ ESV=‘{entry['esvName']}’</p>'''
 
         # Now put it all together
-        output_filename = f"{placeKey[1:]}.htm#Top"
+        output_filename = f"{placeKey[1:]}.htm"
         html = f'''{makeTop( level, None, 'location', None, state )
                                     .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{placeName}" )
                                     .replace( '__KEYWORDS__', 'Bible, word' )

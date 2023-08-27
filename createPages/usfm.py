@@ -45,6 +45,8 @@ CHANGELOG:
     2023-08-14 Added #Vv navigation links to single chapter books (already had #CcVv)
     2023-08-16 Render id field like a rem
     2023-08-18 Handle additional section headings separated by semicolons
+    2023-08-23 Disable display of additional section headings in header boxes and in text
+    2023-08-25 Fix missing spaces before verse numbers in OET-RV
 """
 from gettext import gettext as _
 from typing import Tuple
@@ -61,10 +63,10 @@ from BibleOrgSys.Internals.InternalBibleInternals import getLeadingInt
 from html import checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-08-18' # by RJH
+LAST_MODIFIED_DATE = '2023-08-25' # by RJH
 SHORT_PROGRAM_NAME = "usfm"
 PROGRAM_NAME = "OpenBibleData USFM to HTML functions"
-PROGRAM_VERSION = '0.56'
+PROGRAM_VERSION = '0.58'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -157,7 +159,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                         logging.critical( f"Expected a verse number digit at {versionAbbreviation} {refTuple} {C}:{V} {rest=}" )
                     cLink = f'''<a title="Go to verse in parallel view" href="{'../'*level}pa/{BBB}/C{C}V1.htm#Top">{C}</a>'''
                     vLink = f'''<a title="Go to verse in parallel view" href="{'../'*level}pa/{BBB}/C{C}V{V}.htm#Top">{V}</a>'''
-                    html = f'{html}{"" if html.endswith(">") or html.endswith("—") else " "}' \
+                    html = f'{html}{"" if html.endswith("—") else " "}' \
                             + (f'<span id="V{V}"></span>' if segmentType in ('chapter','section') or isSingleChapterBook else '') \
                             + f'''{f"""<span id="C{C}"></span><span class="{'cPsa' if BBB=='PSA' else 'c'}" id="C{C}V1">{cLink}{NARROW_NON_BREAK_SPACE}</span>""" if V=="1"
                                    else f"""<span class="v" id="C{C}V{V}">{vLink}{NARROW_NON_BREAK_SPACE}</span>"""}'''
@@ -366,33 +368,35 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                     assert not inParagraph
                     given_marker = rest[1:].split( ' ', 1 )[0]
                     assert given_marker in ('s1','s2','s3','r','d')
-                    marker = f"extra_{given_marker}" # Sets the html <p> class below
-                    rest = rest[len(given_marker)+2:] # Drop the '/marker ' from the displayed portion
-                    if not basicOnly:
-                        for sectionChunk in rest.split( '; ' ):
-                            html = f'{html}<p class="{marker}">{formatUSFMText(versionAbbreviation, refTuple, segmentType, sectionChunk, basicOnly, state)}</p>\n'
+                    # NOTE: the following lines were disabled 23Aug2023
+                    # marker = f"extra_{given_marker}" # Sets the html <p> class below
+                    # rest = rest[len(given_marker)+2:] # Drop the '/marker ' from the displayed portion
+                    # if not basicOnly:
+                    #     for sectionChunk in rest.split( '; ' ):
+                    #         html = f'{html}<p class="{marker}">{formatUSFMText(versionAbbreviation, refTuple, segmentType, sectionChunk, basicOnly, state)}</p>\n'
                 else: # it's probably a section marker added at a different spot
                     given_marker = rest[1:].split( ' ', 1 )[0]
                     assert given_marker in ('s1','s2','s3','r','d')
-                    marker = f"alt_{given_marker}" # Sets the html <p> class below
-                    rest = rest[len(given_marker)+2:] # Drop the '/marker ' from the displayed portion
-                    # NOTE: inParagraph is not necessarily helpful here, because we might already be at the end of the paragraph
-                    for offset in range( 1, 8 ):
-                        try: nextMarker = markerList[n+offset].getMarker()
-                        except IndexError: # at end of the book or chapter or verse -- no next marker
-                            nextMarker = '¬p' # so it's certain to end any open paragraph
-                            break
-                        if nextMarker!='rem' and nextMarker!='¬v': break
-                    if not inParagraph \
-                    or nextMarker in ('p','m','¬p'):
-                        if inParagraph:
-                            html = f'{html}</p>\n'
-                            inParagraph = None
-                        if not basicOnly:
-                            for sectionChunk in rest.split( '; ' ):
-                                html = f'{html}<p class="{marker}">{formatUSFMText(versionAbbreviation, refTuple, segmentType, sectionChunk, basicOnly, state)}</p>\n'
-                    else:
-                        print( f"{BBB} {C}:{V} {inParagraph=} {nextMarker=} has UNUSED INFLOW ALTERNATIVE {given_marker}={rest}")
+                    # NOTE: the following lines were disabled 23Aug2023
+                    # marker = f"alt_{given_marker}" # Sets the html <p> class below
+                    # rest = rest[len(given_marker)+2:] # Drop the '/marker ' from the displayed portion
+                    # # NOTE: inParagraph is not necessarily helpful here, because we might already be at the end of the paragraph
+                    # for offset in range( 1, 8 ):
+                    #     try: nextMarker = markerList[n+offset].getMarker()
+                    #     except IndexError: # at end of the book or chapter or verse -- no next marker
+                    #         nextMarker = '¬p' # so it's certain to end any open paragraph
+                    #         break
+                    #     if nextMarker!='rem' and nextMarker!='¬v': break
+                    # if not inParagraph \
+                    # or nextMarker in ('p','m','¬p'):
+                    #     if inParagraph:
+                    #         html = f'{html}</p>\n'
+                    #         inParagraph = None
+                    #     if not basicOnly:
+                    #         for sectionChunk in rest.split( '; ' ):
+                    #             html = f'{html}<p class="{marker}">{formatUSFMText(versionAbbreviation, refTuple, segmentType, sectionChunk, basicOnly, state)}</p>\n'
+                    # else:
+                    #     print( f"{BBB} {C}:{V} {inParagraph=} {nextMarker=} has UNUSED INFLOW ALTERNATIVE {given_marker}={rest}")
             else:
                 assert not inRightDiv
                 if inParagraph:
