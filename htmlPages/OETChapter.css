@@ -33,6 +33,8 @@ p.vsLst {background-color:mistyRose; }
 .vsLst a { text-decoration:none; }
 
 /* For bkList class */
+span.XX { color: purple; }
+.XX a { text-decoration:none; }
 span.OT { color: saddlebrown; }
 .OT a { color:inherit; text-decoration:none; }
 span.NT { color: darkgreen; }
@@ -111,6 +113,7 @@ span.RVadd { color:dimGrey; }
 span.dom { color:Gainsboro; }
 span.schwa { font-size:0.75em; }
 span.nominaSacra { font-weight:bold; }
+span.nd { font-weight:bold; }
 
 /* Notes USFM */
 p.fn { margin-top:0.2em; margin-bottom:0.2em; font-size:0.75em; }

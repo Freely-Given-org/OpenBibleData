@@ -18,6 +18,8 @@ p.vsLst {background-color:mistyRose; }
 .vsLst a { text-decoration:none; }
 
 /* For bkList class */
+span.XX { color: purple; }
+.XX a { text-decoration:none; }
 span.OT { color: saddlebrown; }
 .OT a { text-decoration:none; }
 span.NT { color: darkgreen; }

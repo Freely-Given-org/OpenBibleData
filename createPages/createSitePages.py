@@ -26,7 +26,7 @@
 Module handling createSitePages functions.
 
 Creates the OpenBibleData site with
-    Whole document ("book") pages
+    Whole document (‘book’) pages
     Section pages
     Whole chapter pages
     Parallel verse pages
@@ -39,6 +39,9 @@ CHANGELOG:
     2023-07-19 Converted versions dictkeys to list for nicer display
     2023-07-30 Added selected verses from some other versions
     2023-08-16 Added PHM and put MRK between JHN and MAT
+    2023-08-30 Added PHP for RV
+    2023-08-31 Added COL for RV
+    2023-09-06 Added list of selected versions on details pages (in TEST mode only)
 """
 from gettext import gettext as _
 from typing import Dict, List, Tuple
@@ -57,7 +60,7 @@ from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39, BOOKLIST_NT27
 sys.path.append( '../../BibleTransliterations/Python/' )
 from BibleTransliterations import load_transliteration_table
 
-from Bibles import preloadVersions #, preloadUwTranslationNotes
+from Bibles import preloadVersions, tidyBBB #, preloadUwTranslationNotes
 from createBookPages import createOETBookPages, createBookPages
 from createChapterPages import createOETSideBySideChapterPages, createChapterPages
 from createSectionPages import createOETSectionPages, createSectionPages
@@ -66,13 +69,13 @@ from createOETInterlinearPages import createOETInterlinearPages
 from createOETReferencePages import createOETReferencePages
 from Dict import createTyndaleDictPages
 from html import makeTop, makeBottom, checkHtml
-from selectedVersesVersions import fillSelectedVerses
+# from selectedVersesVersions import fillSelectedVerses
 
 
-LAST_MODIFIED_DATE = '2023-08-17' # by RJH
+LAST_MODIFIED_DATE = '2023-09-06' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData Create Pages"
-PROGRAM_VERSION = '0.77'
+PROGRAM_VERSION = '0.79'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
@@ -86,7 +89,7 @@ DEBUG_DESTINATION_FOLDER = NORMAL_DESTINATION_FOLDER.joinpath( 'Test/')
 DESTINATION_FOLDER = DEBUG_DESTINATION_FOLDER if TEST_MODE or BibleOrgSysGlobals.debugFlag \
                         else NORMAL_DESTINATION_FOLDER
 
-OET_BOOK_LIST = ['JHN','MRK','MAT','LUK','ACT', 'GAL','EPH','PHP', 'TI1','TI2','TIT','PHM', 'JAM', 'PE1','PE2', 'JN1','JN2','JN3', 'JDE']
+OET_BOOK_LIST = ['JHN','MRK','MAT','LUK','ACT', 'GAL','EPH','PHP','COL', 'TH1','TI1','TI2','TIT','PHM', 'JAM', 'PE1','PE2', 'JN1','JN2','JN3', 'JDE']
 OET_BOOK_LIST_WITH_FRT = ['FRT'] + OET_BOOK_LIST # 'INT'
 NT_BOOK_LIST_WITH_FRT = ['FRT'] + BOOKLIST_NT27
 assert len(NT_BOOK_LIST_WITH_FRT) == 27+1
@@ -125,7 +128,7 @@ class State:
     # Specific short lists
     auxilliaryVersions = ('OET','TTN','TOBD') # These ones don't have their own Bible locations at all
     selectedVersesOnlyVersions = ('CSB','NLT','NIV','CEV','ESV','NASB','LSB','2DT','1ST','TPT','NRSV','NKJV' ) # These ones have .tsv sources (and don't produce Bible objects)
-    numAllowedSelectedVerses   = (    5,  500,  500,  500,  500,   500,    20, 300,  300,  250,     5,     5 ) # Order must match above list
+    numAllowedSelectedVerses   = (  100,  500,  500,  500,  500,   500,    20, 300,  300,  250,   100,   100 ) # Order must match above list
     assert len(numAllowedSelectedVerses) == len(selectedVersesOnlyVersions)
 
     # NOTE: We don't display the versions with only selected verses, so don't need decorations for them
@@ -635,7 +638,7 @@ def createSitePages() -> bool:
     numLoadedVersions = preloadVersions( state )
     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nPreloaded {len(state.preloadedBibles)} Bible versions: {list(state.preloadedBibles.keys())}" )
     # preloadUwTranslationNotes( state )
-    fillSelectedVerses( state )
+    # fillSelectedVerses( state )
 
     # Load our OET worddata table
     state.OETRefData = {} # This is where we will store all our temporary ref data
@@ -897,11 +900,22 @@ def createDetailsPages( level:int, buildFolder:Path, state ) -> bool:
 <p class="note">See key and more information <a href="byDoc/FRT.htm#Top">here</a>.</p>
 ''' if versionAbbreviation == 'T4T' else ''
 
-        detailsHtml = f"""{extraHTML}<h2>About the {versionAbbreviation}</h2>{state.detailsHtml[versionAbbreviation]['about']}
+        detailsHtml = f'''{extraHTML}<h2>About the {versionAbbreviation}</h2>{state.detailsHtml[versionAbbreviation]['about']}
 <h2>Copyright</h2>{state.detailsHtml[versionAbbreviation]['copyright']}
 <h2>Licence</h2>{state.detailsHtml[versionAbbreviation]['licence']}
 <h2>Acknowledgements</h2>{state.detailsHtml[versionAbbreviation]['acknowledgements']}
-"""
+'''
+        if TEST_MODE and versionAbbreviation in state.selectedVersesOnlyVersions:
+            # Add a list of links to verses containing this version
+            selectedVerseLinksList = [f'<a href="../pa/{BBB}/C{C}V{V}.htm#Top">{tidyBBB( BBB, titleCase=True )} {C}:{V}</a>' for BBB,C,V in state.preloadedBibles[versionAbbreviation]]
+        #     for BBB,C,V in state.preloadedBibles[versionAbbreviation]:
+        #         ourTidyBBB = tidyBBB( BBB, titleCase=True )
+        #         selectedVerseLinksList.append( f'<a href="../pa/{BBB}/C{C}V{V}.htm#Top">{tidyBBB( BBB, titleCase=True )} {C}:{V}</a>' )
+            detailsHtml = f'''{detailsHtml}<h2>Available selections</h2>
+<p class="rem">The following parallel verse pages feature this version:</p>
+<p class="selectedLinks">{' '.join(selectedVerseLinksList)}</p>
+'''
+
         bodyHtml = f'''<!--createDetailsPages--><h1 id="Top">{versionName} Details</h1>
 {detailsHtml}<hr>
 <p class="note">See details for ALL included versions <a title="All versions’ details" href="../allDetails.htm#Top">here</a>.</p>

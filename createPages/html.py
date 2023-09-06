@@ -41,6 +41,7 @@ CHANGELOG:
     2023-08-07 Handle four-letter tidyBBBs
     2023-08-16 Improve byDocument navigation
     2023-08-22 Make removeDuplicateCVids work for larger books
+    2023-08-30 Separate extra books in bkLst paragraph
 """
 from gettext import gettext as _
 from typing import Dict, List, Tuple, Optional
@@ -59,10 +60,10 @@ from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39, BOOKLIST_NT27
 # from Bibles import fetchChapter
 
 
-LAST_MODIFIED_DATE = '2023-08-22' # by RJH
+LAST_MODIFIED_DATE = '2023-08-30' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
-PROGRAM_VERSION = '0.52'
+PROGRAM_VERSION = '0.53'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -263,7 +264,9 @@ def makeBookNavListParagraph( linksList:List[str], state ) -> str:
         # print( f"   {aLink=} {displayText=} {BBB=}")
         assert BBB
         newALink = f'{aLink[:ixStart]}{displayText}{aLink[ixEnd:]}'
-        if BBB in BOOKLIST_OT39:
+        if BBB in ('INT','FRT','OTH','GLS','XXA','XXB','XXC'):
+            newALink = f'<span class="XX">{newALink}</span>'
+        elif BBB in BOOKLIST_OT39:
             newALink = f'<span class="OT">{newALink}</span>'
         elif BBB in BOOKLIST_NT27:
             newALink = f'<span class="NT">{newALink}</span>'

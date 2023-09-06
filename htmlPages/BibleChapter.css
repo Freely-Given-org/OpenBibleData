@@ -28,6 +28,8 @@ p.vsLst {background-color:mistyRose; }
 .vsLst a { text-decoration:none; }
 
 /* For bkList class */
+span.XX { color: purple; }
+.XX a { text-decoration:none; }
 span.OT { color: saddlebrown; }
 .OT a { text-decoration:none; }
 span.NT { color: darkgreen; }
@@ -83,6 +85,7 @@ p.pmr { margin-top:0.2em; margin-bottom:0.2em; }
 span.add { color:grey; }
 span.rem { font-size:0.8em; color:grey; }
 span.wj { color:saddlebrown; }
+span.sig { font-family:cursive; }
 span.FoS { color:mediumvioletred; }
 
 /* Notes USFM */

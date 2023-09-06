@@ -22,6 +22,8 @@ p.vsLst {background-color:mistyRose; }
 .vsLst a { text-decoration:none; }
 
 /* For bkList class */
+span.XX { color: purple; }
+.XX a { text-decoration:none; }
 span.OT { color: saddlebrown; }
 .OT a { text-decoration:none; }
 span.NT { color: darkgreen; }
@@ -67,6 +69,7 @@ p.q2 { margin-left:2em; margin-top:0.2em; margin-bottom:0.2em; }
 /* p.m {  } */
 span.add { color:grey; }
 span.wj { color:saddlebrown; }
+span.sig { font-family:cursive; }
 
 /* Notes USFM */
 p.fn { margin-top:0.2em; margin-bottom:0.2em; font-size:0.75em; }
