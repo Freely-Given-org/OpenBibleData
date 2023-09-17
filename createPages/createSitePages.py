@@ -89,7 +89,7 @@ DEBUG_DESTINATION_FOLDER = NORMAL_DESTINATION_FOLDER.joinpath( 'Test/')
 DESTINATION_FOLDER = DEBUG_DESTINATION_FOLDER if TEST_MODE or BibleOrgSysGlobals.debugFlag \
                         else NORMAL_DESTINATION_FOLDER
 
-OET_BOOK_LIST = ['JHN','MRK','MAT','LUK','ACT', 'GAL','EPH','PHP','COL', 'TH1','TI1','TI2','TIT','PHM', 'JAM', 'PE1','PE2', 'JN1','JN2','JN3', 'JDE']
+OET_BOOK_LIST = ['JHN','MRK','MAT','LUK','ACT', 'GAL','EPH','PHP','COL', 'TH1','TH2','TI1','TI2','TIT','PHM', 'JAM', 'PE1','PE2', 'JN1','JN2','JN3', 'JDE']
 OET_BOOK_LIST_WITH_FRT = ['FRT'] + OET_BOOK_LIST # 'INT'
 NT_BOOK_LIST_WITH_FRT = ['FRT'] + BOOKLIST_NT27
 assert len(NT_BOOK_LIST_WITH_FRT) == 27+1
@@ -127,8 +127,9 @@ class State:
 
     # Specific short lists
     auxilliaryVersions = ('OET','TTN','TOBD') # These ones don't have their own Bible locations at all
+    # The following three lines are also in selectedVersesVersions.py
     selectedVersesOnlyVersions = ('CSB','NLT','NIV','CEV','ESV','NASB','LSB','2DT','1ST','TPT','NRSV','NKJV' ) # These ones have .tsv sources (and don't produce Bible objects)
-    numAllowedSelectedVerses   = (  100,  500,  500,  500,  500,   500,    20, 300,  300,  250,   100,   100 ) # Order must match above list
+    numAllowedSelectedVerses   = (  300,  500,  500,  500,  500,   500,  300, 300,  300,  250,   300,   300 ) # Order must match above list
     assert len(numAllowedSelectedVerses) == len(selectedVersesOnlyVersions)
 
     # NOTE: We don't display the versions with only selected verses, so don't need decorations for them
