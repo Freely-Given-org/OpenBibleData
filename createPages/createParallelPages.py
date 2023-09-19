@@ -43,13 +43,13 @@ from usfm import convertUSFMMarkerListToHtml
 from Bibles import formatTyndaleBookIntro, formatUnfoldingWordTranslationNotes, formatTyndaleNotes, tidyBBB
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
                     makeTop, makeBottom, makeBookNavListParagraph, checkHtml
-from createOETReferencePages import livenOETWordLinks
+from createOETReferencePages import CNTR_BOOK_ID_MAP, livenOETWordLinks
 
 
-LAST_MODIFIED_DATE = '2023-09-15' # by RJH
+LAST_MODIFIED_DATE = '2023-09-19' # by RJH
 SHORT_PROGRAM_NAME = "createParallelPages"
 PROGRAM_NAME = "OpenBibleData createParallelPages functions"
-PROGRAM_VERSION = '0.74'
+PROGRAM_VERSION = '0.75'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -253,6 +253,9 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                                         searchStartIndex = ixEnd
                                     # print( f"Now {transcription=}" )
                                     # if '<span' in transcription: halt
+                                # Make the entire SR verse text a link to the collation page
+                                collationHref = f'https://GreekCNTR.org/collation/?{CNTR_BOOK_ID_MAP[BBB]}{C.zfill(3)}{V.zfill(3)}'
+                                textHtml = f'<a title="Go to the GreekCNTR collation page" href="{collationHref}">{textHtml}</a>'
                                 if transcription:
                                     textHtml = f'{textHtml}<br>  ({transcription})'
                                 # print( textHtml)
@@ -466,7 +469,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
         ((' bee ',),' be '), ((' bearinge',' beringe',' berynge'),' bearing'),((' beare ',' bere '),' bear '), (('beastes','beestes','beestis'),'beasts'),((' beesti',),' beast'), ((' beed ',' bedde '),' bed '), ((' bene ',' ben '),' been '), ((' bifore',' bifor'),' before'),
             ((' beganne',' begane',' bigunnen',' bigan'),' began'), ((' bigat ',' begate '),' begat '), (('bigynnyng','beginnynge','begynnynge','begynnyng'),'beginning'), (('bigetun ','begotte '),'begotten '),
             (('behelde','biheeld'),'beheld'), ((' behinde',' bihynde',' behynde'),' behind'), ((' biholdinge',),' beholding'),(('Biholde','Beholde'),'Behold'),((' biholdist ',' biholde ', ' beholde '),' behold '),((' beholde,',),' behold,'), ((' bihoueth',),' behoves'),
-            (('bileueden','beleeued','beleued','beleved'),'believed'), ((' bileueth',' beleueth',' beleeueth'),' believes'), ((' beleue',' beleeue',' beleve',' bileue'),' believe'),
+            (('bileueden','beleeued','beleued','beleved'),'believed'), ((' bileueth',' beleueth',' beleeueth'),' believes'), (('Bileue ','Beleeue ','Beleue ','Beleve '),'Believe '),((' beleue',' beleeue',' beleve',' bileue'),' believe'),
             ((' berith',),' beareth'),
             (('besechyng','beseeching'),'beseeching/imploring'),((' biseche',' beseech'),' beseech/implore'), ((' bisidis',),' beside'),
             (('Bethlehe ','Bethleem ','Bethlee '),'Bethlehem '), (('bitraiede','betraied'),'betrayed'),(('bitraye ','betraye ','betraie '),'betray '), ((' bitwixe',' betweene',' betwene'),' between'),
@@ -551,6 +554,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
             ((' etynge',),' eating'),((' eate ',' ete '),' eat '),((' eate,',' ete,'),' eat,'),((' eate.',' ete.'),' eat.'),((' eate:',' ete:'),' eat:'),((' eate;',' ete;'),' eat;'),
         (('edificacioun',),'edification'), (('edyfyinge','edifyenge'),'edifying'),
         (('Elias','Helyas'),'Elias/Elijah'),(('Helie','Elie'),'Elye/Elijah'),
+            ((' els ',),' else '),((' els,',),' else,'),
         (('Emperoure',),'Emperor'),((' emperoure',),' emperor'),
         ((' ende ',),' end '), (('ynough','inough'),'enough'), ((' entred',' entriden',' entride',' entrid'),' entered'),
         (('Eastwarde',),'Eastward'),(('eastwarde',),'eastward'),
@@ -598,7 +602,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
             ((' haue ',),' have '), ((' hauynge',' havynge',' hauyng',' hauing'),' having'),
         ((' hee ',),' he '),
             ((' helide',' heelid'),' healed'), ((' hearde',' herden',' herde',' herd'),' heard'),((' herynge',' hearinge',' hering'),' hearing'),((' heareth',' herith'),' hears'),((' heare',' heere'),' hear'),
-                (('Heythen',),'Heathen'),((' hethene',),' heathen'), 
+                (('Heythen',),'Heathen'),((' hethene',),' heathen'),
                 ((' hertis',' hertes',' heartes'),' hearts'), ((' heauens',' heuenes'),' heavens'), ((' heauen',' heuene',' heven'),' heaven'),
             (('Ebrews','Ebrues','Hebrues','Hebrewes'),'Hebrews'),
             ((' hede ',' heede '),' heed '),
@@ -623,7 +627,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
             ((' lande ',' londe ',' lond ',' lode '),' land '),((' lande,',' londe,',' lond,'),' land,'),((' lande.',' londe.',' lond.'),' land.'),((' lande;',' londe;',' lond;'),' land;'),
             ((' laye ',),' lay '), ((' layed',' layde',' leiden', ' leyd',' layd'),' laid'),
             ((' leeueful',' laufull',' lawfull'),' lawful'), (('Lawe.',),'Law.'),((' lawe ',),' law '),((' lawe,',),' law,'),((' lawe.',),' law.'),
-        (('learnyng','learninge','lernynge'),'learning'),((' learne ',' lerne '),' learn '),(('Learne ','Lerne '),'Learn '), ((' leeues',' leaues',' leves'),' leaves'), ((' leeue ',' leaue ',' leue '),' leave '),
+        (('learnyng','learninge','lernynge'),'learning'),((' learne ',' lerne '),' learn '),(('Learne ','Lerne '),'Learn '), ((' leest',),' least'), ((' leeues',' leaues',' leves'),' leaves'), ((' leeue ',' leaue ',' leue '),' leave '),
             ((' ledde ',),' led '),
             ((' leften',' leeft',' lefte'),' left'),
             (('Leuite',),'Levite'),
