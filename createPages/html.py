@@ -42,6 +42,7 @@ CHANGELOG:
     2023-08-16 Improve byDocument navigation
     2023-08-22 Make removeDuplicateCVids work for larger books
     2023-08-30 Separate extra books in bkLst paragraph
+    2023-09-25 Added search
 """
 from gettext import gettext as _
 from typing import Dict, List, Tuple, Optional
@@ -60,10 +61,10 @@ from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39, BOOKLIST_NT27
 # from Bibles import fetchChapter
 
 
-LAST_MODIFIED_DATE = '2023-08-30' # by RJH
+LAST_MODIFIED_DATE = '2023-09-25' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
-PROGRAM_VERSION = '0.53'
+PROGRAM_VERSION = '0.54'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -77,10 +78,10 @@ timeRegex = re.compile( '[0-9][0-9]:[0-9][0-9]' )
 
 KNOWN_PAGE_TYPES = ('site', 'topIndex', 'details', 'allDetails',
                     'book','chapter','section',
-                    'parallel','interlinear',
+                    'parallel', 'interlinear',
                     'dictionaryMainIndex','dictionaryLetterIndex','dictionaryEntry','dictionaryIntro',
                     'word','lemma', 'person','location',
-                    'about')
+                    'search', 'about')
 def makeTop( level:int, versionAbbreviation:Optional[str], pageType:str, fileOrFolderName:Optional[str], state ) -> str:
     """
     Create the very top part of an HTML page.
@@ -180,6 +181,10 @@ def _makeHeader( level:int, versionAbbreviation:str, pageType:str, fileOrFolderN
         initialVersionList.append( 'Dictionary' )
     else: # add a link for dictionary
         initialVersionList.append( f'''{state.BibleVersionDecorations['Dictionary'][0]}<a title="Dictionary index" href="{'../'*level}di/">Dictionary</a>{state.BibleVersionDecorations['Dictionary'][1]}''' )
+    if pageType == 'search':
+        initialVersionList.append( 'Search' )
+    else: # add a link for dictionary
+        initialVersionList.append( f'''{state.BibleVersionDecorations['Search'][0]}<a title="Dictionary index" href="{'../'*level}search.htm">Search</a>{state.BibleVersionDecorations['Search'][1]}''' )
     # Moved to top line in makeTop above
     # if pageType == 'about':
     #     initialVersionList.append( 'About' )

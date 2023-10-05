@@ -47,6 +47,7 @@ CHANGELOG:
     2023-08-18 Handle additional section headings separated by semicolons
     2023-08-23 Disable display of additional section headings in header boxes and in text
     2023-08-25 Fix missing spaces before verse numbers in OET-RV
+    2023-09-23 Link to missing verses page
 """
 from gettext import gettext as _
 from typing import Tuple
@@ -63,10 +64,10 @@ from BibleOrgSys.Internals.InternalBibleInternals import getLeadingInt
 from html import checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-08-25' # by RJH
+LAST_MODIFIED_DATE = '2023-09-25' # by RJH
 SHORT_PROGRAM_NAME = "usfm"
 PROGRAM_NAME = "OpenBibleData USFM to HTML functions"
-PROGRAM_VERSION = '0.58'
+PROGRAM_VERSION = '0.59'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -152,7 +153,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                         + f'''{f"""<span id="C{C}"></span><span class="{'cPsa' if BBB=='PSA' else 'c'}" id="C{C}V1">{C}</span>""" if V1=="1" else f"""<span class="v" id="C{C}V{V1}">{vLink}-</span>"""}''' \
                         + (f'<span id="V{V1}"></span><span id="V{V2}"></span>' if segmentType in ('chapter','section') or isSingleChapterBook else '') \
                         + f'<span class="v" id="C{C}V{V2}">{V2}{NARROW_NON_BREAK_SPACE}</span>' \
-                        + (rest if rest else '≈')
+                        + (rest if rest else '=≈=')
             else: # it's a simple verse number
                 if segmentType != 'verse': # No need for verse numbers at all if we're only displaying one verse
                     if not V.isdigit():
@@ -613,7 +614,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
             if '\\' in html:
                 logging.critical( f"Left-over backslash in {versionAbbreviation} '{segmentType}' {basicOnly=} {refTuple} {C}:{V} '{html if len(html)<4000 else f'{html[:2000]} ....... {html[-2000:]}'}'" )
                 if versionAbbreviation not in ('ULT','UST') \
-                or ('GEN' not in refTuple and 'MAT' not in refTuple and 'PSA' not in refTuple and 'ISA' not in refTuple and 'JER' not in refTuple and 'DEU' not in refTuple): # ULT Gen 14:21, ISA and UST MAT has an encoding fault in 12:20 14Feb2023
+                or ('GEN' not in refTuple and 'MAT' not in refTuple and 'PSA' not in refTuple and 'ISA' not in refTuple and 'JER' not in refTuple and 'DEU' not in refTuple and 'JOB' not in refTuple and 'SNG' not in refTuple): # ULT Gen 14:21, ISA and UST MAT has an encoding fault in 12:20 14Feb2023
                     raise Exception( f"Left-over backslash {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} '{html}'" )
 
     # Check for left-over unclosed segments
@@ -841,6 +842,9 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
         while html.endswith( '<br>' ): # LEB also
             html = html[:-4]
 
+    if 'OET' in versionAbbreviation:
+        html = html.replace( '≈', f'''<a title="Go to missing verses pages" href="{'../'*level}OET/missingVerse.htm">≈</a>''' )
+
     if versionAbbreviation not in ('ULT','UST'): # uW stuff has too many USFM encoding errors
         assert 'strong="' not in html, f"{level=} '{versionAbbreviation}' {refTuple} {segmentType=} {len(contextList)=} {len(markerList)=} {basicOnly=} '{html if len(html)<4000 else f'{html[:2000]} ....... {html[-2000:]}'}'"
     if not checkHtml( f'convertUSFMMarkerListToHtml({versionAbbreviation} {refTuple} {segmentType} {basicOnly=})', html, segmentOnly=True ):
@@ -1020,7 +1024,7 @@ def formatUSFMText( versionAbbreviation:str, refTuple:tuple, segmentType:str, us
         # AssertionError: versionAbbreviation='ULT' refTuple=('ISA',) segmentType='book' 'usfmField='\\w to|x-occurrence="1" x-occurrences="2"\\w* \\w dishonor|x-occurrence="1" x-occurrences="1"\\w* \\zaln-s |x-strong="H1347" x-lemma="גָּאוֹן" x-morph='' basicOnly=False 'to dishonor \zaln-s |x-strong="H1347" x-lemma="גָּאוֹן" x-morph='
         if (versionAbbreviation not in ('TCNT','TC-GNT') or 'INT' not in refTuple) \
         and (versionAbbreviation not in ('ULT','UST') \
-            or ('GEN' not in refTuple and 'MAT' not in refTuple and 'PSA' not in refTuple and 'ISA' not in refTuple and 'JER' not in refTuple and 'DEU' not in refTuple)): # ULT Gen 14:20, ISA and UST MAT has an encoding fault in 12:20 14Feb2023
+            or ('GEN' not in refTuple and 'MAT' not in refTuple and 'PSA' not in refTuple and 'ISA' not in refTuple and 'JER' not in refTuple and 'DEU' not in refTuple and 'JOB' not in refTuple and 'SNG' not in refTuple)): # ULT Gen 14:20, ISA and UST MAT has an encoding fault in 12:20 14Feb2023
             assert '\\' not in html, f"{versionAbbreviation=} {refTuple=} {segmentType=} '{usfmField=}' {basicOnly=} '{html}'"
     if not checkHtml( f'formatUSFMText({versionAbbreviation} {refTuple} {segmentType} {basicOnly=})', html, segmentOnly=True ):
         if DEBUGGING_THIS_MODULE: halt

@@ -42,6 +42,7 @@ CHANGELOG:
     2023-08-30 Added PHP for RV
     2023-08-31 Added COL for RV
     2023-09-06 Added list of selected versions on details pages (in TEST mode only)
+    2023-09-25 Added search page
 """
 from gettext import gettext as _
 from typing import Dict, List, Tuple
@@ -72,16 +73,17 @@ from html import makeTop, makeBottom, checkHtml
 # from selectedVersesVersions import fillSelectedVerses
 
 
-LAST_MODIFIED_DATE = '2023-09-06' # by RJH
+LAST_MODIFIED_DATE = '2023-10-06' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData Create Pages"
-PROGRAM_VERSION = '0.79'
+PROGRAM_VERSION = '0.83'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
-TEST_MODE = True # Writes website into Test subfolder
 
+TEST_MODE = True # Writes website into Test subfolder
 ALL_PRODUCTION_BOOKS = not TEST_MODE # If set to False, only selects one book per version for a faster test build
+UPDATE_ACTUAL_SITE_WHEN_BUILT = True # The pages are initially built in a tmp folder so need to be copied to the final destination
 
 TEMP_BUILD_FOLDER = Path( '/tmp/OBDHtmlPages/' )
 NORMAL_DESTINATION_FOLDER = Path( '../htmlPages/' )
@@ -89,7 +91,7 @@ DEBUG_DESTINATION_FOLDER = NORMAL_DESTINATION_FOLDER.joinpath( 'Test/')
 DESTINATION_FOLDER = DEBUG_DESTINATION_FOLDER if TEST_MODE or BibleOrgSysGlobals.debugFlag \
                         else NORMAL_DESTINATION_FOLDER
 
-OET_BOOK_LIST = ['JHN','MRK','MAT','LUK','ACT', 'GAL','EPH','PHP','COL', 'TH1','TH2','TI1','TI2','TIT','PHM', 'JAM', 'PE1','PE2', 'JN1','JN2','JN3', 'JDE']
+OET_BOOK_LIST = ['JHN','MRK','MAT','LUK','ACT', 'ROM', 'GAL','EPH','PHP','COL', 'TH1','TH2','TI1','TI2','TIT','PHM', 'JAM', 'PE1','PE2', 'JN1','JN2','JN3', 'JDE']
 OET_BOOK_LIST_WITH_FRT = ['FRT'] + OET_BOOK_LIST # 'INT'
 NT_BOOK_LIST_WITH_FRT = ['FRT'] + BOOKLIST_NT27
 assert len(NT_BOOK_LIST_WITH_FRT) == 27+1
@@ -99,6 +101,7 @@ assert len(OT_BOOK_LIST_WITH_FRT) == 39+1
 # The version to link to when the OET doesn't have that book (yet)
 ALTERNATIVE_VERSION = 'WEB' # Should be a version with all books present
 
+NEWLINE = '\n'
 
 
 class State:
@@ -112,7 +115,7 @@ class State:
                 'BSB','BLB',
                 'OEB','ISV','CSB','NLT',
                 'NIV','CEV','ESV','NASB','LSB',
-                '2DT','1ST','TPT',
+                'JQT','2DT','1ST','TPT',
                 'WEB','WMB','NET','LSV','FBV','TCNT','T4T','LEB','NRSV','NKJV','BBE',
                 'JPS','ASV','DRA','YLT','DBY','RV','WBS','KJB','BB','GNV','CB',
                 'TNT','WYC','CLV',
@@ -128,8 +131,8 @@ class State:
     # Specific short lists
     auxilliaryVersions = ('OET','TTN','TOBD') # These ones don't have their own Bible locations at all
     # The following three lines are also in selectedVersesVersions.py
-    selectedVersesOnlyVersions = ('CSB','NLT','NIV','CEV','ESV','NASB','LSB','2DT','1ST','TPT','NRSV','NKJV' ) # These ones have .tsv sources (and don't produce Bible objects)
-    numAllowedSelectedVerses   = (  300,  500,  500,  500,  500,   500,  300, 300,  300,  250,   300,   300 ) # Order must match above list
+    selectedVersesOnlyVersions = ('CSB','NLT','NIV','CEV','ESV','NASB','LSB','JQT','2DT','1ST','TPT','NRSV','NKJV' ) # These ones have .tsv sources (and don't produce Bible objects)
+    numAllowedSelectedVerses   = (  300,  500,  500,  500,  500,   500,  300,   20, 300,  300,  250,   300,   300 ) # Order must match above list
     assert len(numAllowedSelectedVerses) == len(selectedVersesOnlyVersions)
 
     # NOTE: We don't display the versions with only selected verses, so don't need decorations for them
@@ -144,7 +147,7 @@ class State:
                 'TNT':('',''),'WYC':('',''),'CLV':('<small>','</small>'),
                 'SR-GNT':('<b>','</b>'),'UGNT':('<small>','</small>'),'SBL-GNT':('<small>','</small>'),'TC-GNT':('<small>','</small>'),
                 'BRN':('<small>','</small>'),'BrLXX':('',''), 'UHB':('',''),
-                'Parallel':('<b>','</b>'), 'Interlinear':('<b>','</b>'), 'Dictionary':('<b>','</b>'),
+                'Parallel':('<b>','</b>'), 'Interlinear':('<b>','</b>'), 'Dictionary':('<b>','</b>'), 'Search':('<b>','</b>'),
                 # NOTES:
                 'TOSN':('',''),'UTN':('',''),
                 }
@@ -169,6 +172,7 @@ class State:
                 'ESV': '../copiedBibles/English/ESV_verses.tsv',
                 'NASB': '../copiedBibles/English/NASB_verses.tsv',
                 'LSB': '../copiedBibles/English/LSB_verses.tsv',
+                'JQT': '../copiedBibles/English/JQT_verses.tsv',
                 '2DT': '../copiedBibles/English/2DT_verses.tsv',
                 '1ST': '../copiedBibles/English/1ST_verses.tsv',
                 'TPT': '../copiedBibles/English/TPT_verses.tsv',
@@ -226,6 +230,7 @@ class State:
                 'ESV': 'English Standard Version (2001)',
                 'NASB': 'New American Standard Bible (1995)',
                 'LSB': 'Legacy Standard Bible (2021)',
+                'JQT': 'James Quiggle Translation New Testament (2023)',
                 '2DT': 'The Second Testament (2023)',
                 '1ST': 'The First Testament (2018)',
                 'TPT': 'The Passion Translation (2017)',
@@ -284,6 +289,7 @@ class State:
                 'ESV': ['ALL'],
                 'NASB': ['ALL'],
                 'LSB': ['ALL'],
+                'JQT': ['ALL'],
                 '2DT': ['ALL'],
                 '1ST': ['ALL'],
                 'TPT': ['ALL'],
@@ -339,6 +345,7 @@ class State:
                 'ESV': ['MRK'],
                 'NASB': ['MRK'],
                 'LSB': ['MRK'],
+                'JQT': ['MRK'],
                 '2DT': ['MRK'],
                 '1ST': ['MRK'],
                 'TPT': ['MRK'],
@@ -446,6 +453,10 @@ You can read more about the design of the OET-LV <a href="https://OpenEnglishTra
         'LSB': {'about': '<p class="about">Legacy Standard Bible (2021): A revision of the 1995 New American Standard Bible (NASB) completed in October 2021.</p>',
                 'copyright': '<p class="copyright">Copyright © 2021 by The Lockman Foundation. All Rights Reserved.</p>',
                 'licence': '<p class="licence">Up to ??? verses may be used.</p>',
+                'acknowledgements': '<p class="acknwldg"></p>' },
+        'JQT': {'about': '<p class="about">James Quiggle Translation New Testament (2023).</p>',
+                'copyright': '<p class="copyright">Translated and published by James D. Quiggle, copyright 2023.</p>',
+                'licence': '<p class="licence">Limited to twenty verses.</p>',
                 'acknowledgements': '<p class="acknwldg"></p>' },
         '2DT': {'about': '<p class="about">The Second Testament: A new translation (2023) by Scot McKnight.</p>',
                 'copyright': '<p class="copyright">Copyright © 2023 by IVP Academic. Used by Permission. All Rights Reserved Worldwide.</p>',
@@ -609,8 +620,9 @@ You can read more about the design of the OET-LV <a href="https://OpenEnglishTra
             or versionLocation.startswith('../../OpenEnglishTranslation--OET/') \
             or versionLocation.startswith('../../Forked/') \
             or versionLocation.startswith('/mnt/SSDs/Bibles/'), f"{versionLocation=}"
-    assert len(BibleVersionDecorations) == len(BibleVersions)+len(auxilliaryVersions)-len(selectedVersesOnlyVersions), \
-                                        f"{len(BibleVersionDecorations)=} {len(BibleVersions)=}"
+    # +4 is for paralle, interlinear, dictionary, search
+    assert len(BibleVersionDecorations) == len(BibleVersions) - len(selectedVersesOnlyVersions) + 4, \
+        f"{len(BibleVersionDecorations)=} {len(BibleVersions)=} {len(selectedVersesOnlyVersions)=} sum={len(BibleVersions)+4-len(selectedVersesOnlyVersions)}"
         # Above adds Parallel and Interlinear and Dictionary but subtracts selected-verses-only version
     assert len(BibleVersions)-1 >= len(BibleLocations) # OET is a pseudo-version
     assert len(BibleNames)-1 >= len(BibleLocations) # OET is a pseudo-version
@@ -679,6 +691,7 @@ def createSitePages() -> bool:
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nCreating {'TEST ' if TEST_MODE else ''}version pages for OET…" )
         versionFolder = TEMP_BUILD_FOLDER.joinpath( f'OET/' )
         createOETVersionPages( 1, versionFolder, state.preloadedBibles['OET-RV'], state.preloadedBibles['OET-LV'], state )
+        createOETMissingVersePage( 1, versionFolder )
     for versionAbbreviation, thisBible in state.preloadedBibles.items(): # doesn't include OET pseudo-translation
         if versionAbbreviation not in ('TTN',) \
         and versionAbbreviation in state.selectedVersesOnlyVersions: continue # We don't worry about these few selected verses here
@@ -713,6 +726,7 @@ def createSitePages() -> bool:
     createOETReferencePages( 1, TEMP_BUILD_FOLDER.joinpath('rf/'), state )
 
     createDetailsPages( 0, TEMP_BUILD_FOLDER, state )
+    createSearchPage( 0, TEMP_BUILD_FOLDER, state )
     createAboutPage( 0, TEMP_BUILD_FOLDER, state )
 
     createMainIndexPage( 0, TEMP_BUILD_FOLDER, state )
@@ -727,39 +741,42 @@ def createSitePages() -> bool:
         assert os.path.isdir( DESTINATION_FOLDER )
         cleanHTMLFolders( DESTINATION_FOLDER, state )
 
-    # Now move the site from our temporary build location to overwrite the destination location
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Moving files and folders from {TEMP_BUILD_FOLDER}/ to {DESTINATION_FOLDER}/…" )
-    count = 0
-    for fileOrFolderPath in glob.glob( f'{TEMP_BUILD_FOLDER}/*' ):
-        vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Moving {fileOrFolderPath} to {DESTINATION_FOLDER}/…" )
-        # Note: shutil.copy2 is the same as copy but keeps metadata like creation and modification times
-        shutil.move( fileOrFolderPath, f'{DESTINATION_FOLDER}/', copy_function=shutil.copy2)
-        count += 1
-    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Moved {count:,} folders and files into {DESTINATION_FOLDER}/." )
-
-    # We also need to copy the TOBD maps across
-    TOBDmapSourceFolder = os.path.join( state.BibleLocations['TOSN'], '../OBD/Maps/artfiles/' )
-    TOBDmapDestinationFolder = DESTINATION_FOLDER.joinpath( 'di/' )
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Copying TOBD maps from {TOBDmapSourceFolder} to {TOBDmapDestinationFolder}/…" )
-    count = 0
-    for imgFilepath in glob.glob( f'{TOBDmapSourceFolder}/*.png' ):
-        vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Copying {imgFilepath} to {TOBDmapDestinationFolder}/…" )
-        # Note: shutil.copy2 is the same as copy but keeps metadata like creation and modification times
-        shutil.copy2( imgFilepath, f'{TOBDmapDestinationFolder}/' )
-        count += 1
-    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Copied {count:,} maps into {TOBDmapDestinationFolder}/." )
-
-    # In DEBUG mode, we need to copy the .css files and Bible.js across
-    if DESTINATION_FOLDER != NORMAL_DESTINATION_FOLDER:
+    if UPDATE_ACTUAL_SITE_WHEN_BUILT:
+        # Now move the site from our temporary build location to overwrite the destination location
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Moving files and folders from {TEMP_BUILD_FOLDER}/ to {DESTINATION_FOLDER}/…" )
         count = 0
-        for filepath in glob.glob( f'{NORMAL_DESTINATION_FOLDER}/*.css' ):
-            vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Copying {filepath}…" )
+        for fileOrFolderPath in glob.glob( f'{TEMP_BUILD_FOLDER}/*' ):
+            vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Moving {fileOrFolderPath} to {DESTINATION_FOLDER}/…" )
             # Note: shutil.copy2 is the same as copy but keeps metadata like creation and modification times
-            shutil.copy2( filepath, DESTINATION_FOLDER )
+            shutil.move( fileOrFolderPath, f'{DESTINATION_FOLDER}/', copy_function=shutil.copy2)
             count += 1
-        shutil.copy2( f'{NORMAL_DESTINATION_FOLDER}/Bible.js', DESTINATION_FOLDER )
-        count += 1
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Copied {count:,} stylesheets and scripts into {DESTINATION_FOLDER}/." )
+        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Moved {count:,} folders and files into {DESTINATION_FOLDER}/." )
+
+        # We also need to copy the TOBD maps across
+        TOBDmapSourceFolder = os.path.join( state.BibleLocations['TOSN'], '../OBD/Maps/artfiles/' )
+        TOBDmapDestinationFolder = DESTINATION_FOLDER.joinpath( 'di/' )
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Copying TOBD maps from {TOBDmapSourceFolder} to {TOBDmapDestinationFolder}/…" )
+        count = 0
+        for imgFilepath in glob.glob( f'{TOBDmapSourceFolder}/*.png' ):
+            vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Copying {imgFilepath} to {TOBDmapDestinationFolder}/…" )
+            # Note: shutil.copy2 is the same as copy but keeps metadata like creation and modification times
+            shutil.copy2( imgFilepath, f'{TOBDmapDestinationFolder}/' )
+            count += 1
+        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Copied {count:,} maps into {TOBDmapDestinationFolder}/." )
+
+        # In DEBUG mode, we need to copy the .css files and Bible.js across
+        if DESTINATION_FOLDER != NORMAL_DESTINATION_FOLDER:
+            count = 0
+            for filepath in glob.glob( f'{NORMAL_DESTINATION_FOLDER}/*.css' ):
+                vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Copying {filepath}…" )
+                # Note: shutil.copy2 is the same as copy but keeps metadata like creation and modification times
+                shutil.copy2( filepath, DESTINATION_FOLDER )
+                count += 1
+                shutil.copy2( f'{NORMAL_DESTINATION_FOLDER}/Bible.js', DESTINATION_FOLDER )
+                count += 1
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Copied {count:,} stylesheets and scripts into {DESTINATION_FOLDER}/." )
+
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f'''\nNOW RUN "npx pagefind --glob "{{OET,pa}}/**/*.{{htm}}" --site ../htmlPages{'/Test' if TEST_MODE else ''}/" to create search index!''' )
 # end of createSitePages.createSitePages
 
 
@@ -774,6 +791,8 @@ def cleanHTMLFolders( folder:Path, state ) -> bool:
     try: os.unlink( folder.joinpath( 'allDetails.htm' ) )
     except FileNotFoundError: pass
     try: os.unlink( folder.joinpath( 'about.htm' ) )
+    except FileNotFoundError: pass
+    try: os.unlink( folder.joinpath( 'search.htm' ) )
     except FileNotFoundError: pass
     try: shutil.rmtree( folder.joinpath( 'pa/' ) )
     except FileNotFoundError: pass
@@ -847,6 +866,40 @@ f'''<h1 id="Top">{versionName}</h1>
     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"    {len(indexHtml):,} characters written to {filepath}" )
     return True
 # end of createSitePages.createVersionPages
+
+
+def createOETMissingVersePage( level:int, buildFolder:Path ) -> bool:
+    """
+    """
+    textHtml = '''<h1>OET Missing Verse page</h1>
+<p class="missingVerses">The <em>Open English Translation Readers’ Version</em> uses the <b>≈</b> symbol
+to indicate places where we intentionally did not include the translation of an entire verse.
+This is not because we’re trying to trying to hide anything that was in the original scriptures,
+but rather it’s because the majority of scholars believe that the verse was added later by a scribe
+and most likely was not written by the original author of the book or letter.</p>
+<p class="missingVerses">It’s clear that the oldest copies of the manuscripts that we have, are not the originals which were first dictated by their authors,
+but rather they’re copies made over the next few centuries.
+Often, the copyists wanted to fix errors which they believed earlier copyists may have made,
+or add additional information that they thought would help the reader.
+And then of course, some of them introduced accidental errors of their own,
+especially in the New Testament era where scribes often were not professionals.</p>
+<p class="missingVerses"><small>Note: The back button should return you to your previous page.</small></p>
+<p class="missingVerses">Here is a list of the verses that we didn’t include:</p>
+<ul>
+<li><a href="byC/MRK_C15.htm#V28">Mark 15:28</a>: and the scripture was fulfilled which says, He was counted as one of the lawless ones. (<a href="byC/ISA_C53.htm#V12">Isa 53:12</a>)</li>
+<li>More to come…</li>
+</ul>
+'''
+    filepath = buildFolder.joinpath( 'missingVerse.htm' )
+    with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
+        indexHtmlFile.write( makeTop( level, None, 'site', None, state ) \
+                                    .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}OET Missing Verses" ) \
+                                    .replace( '__KEYWORDS__', 'Bible, OET, missing, verses' ) \
+                                    .replace( f'''<a title="OET" href="{'../'*level}OET">OET</a>''', 'OET' ) \
+                                + textHtml + makeBottom( level, 'site', state ) )
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    {len(textHtml):,} characters written to {filepath}" )
+    return True
+# end of createSitePages.createOETMissingVersePage
 
 
 def createDetailsPages( level:int, buildFolder:Path, state ) -> bool:
@@ -944,6 +997,8 @@ def createDetailsPages( level:int, buildFolder:Path, state ) -> bool:
             # .replace( f'''<a title="{state.BibleNames[versionAbbreviation]}" href="{'../'*(level+1)}{BibleOrgSysGlobals.makeSafeString(versionAbbreviation)}/details.htm#Top">{versionAbbreviation}</a>''',
             #             f'''<a title="Up to {state.BibleNames[versionAbbreviation]}" href="{'../'*(level+1)}{BibleOrgSysGlobals.makeSafeString(versionAbbreviation)}/">↑{versionAbbreviation}</a>''' )
     html = f'''{topHtml}<h1 id="Top">Details for all versions</h1>
+<p class="note">If you are the copyright owner of a Bible translation and would like to see it listed on this site,
+  please contact us at <b>Freely</b> dot <b>Given</b> dot <b>org</b> (at) <b>gmail</b> dot <b>com</b>.</p>
 {allDetailsHTML}{makeBottom( level, 'allDetails', state )}'''
     checkHtml( 'AllDetails', html )
 
@@ -954,12 +1009,47 @@ def createDetailsPages( level:int, buildFolder:Path, state ) -> bool:
 # end of createSitePages.createDetailsPages
 
 
+def createSearchPage( level:int, buildFolder:Path, state ) -> bool:
+    """
+    Creates and saves the OBD search page.
+
+    We use https://pagefind.app/
+    """
+    fnPrint( DEBUGGING_THIS_MODULE, f"createSearchPage( {level}, {buildFolder}, {state.BibleVersions} )" )
+    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nCreating {'TEST ' if TEST_MODE else ''}search page…" )
+
+    searchHTML = f'''<h1 id="Top">Search Open Bible Data</h1>
+<p class="note">Searching should find English and Latin words, plus Hebrew and Greek words and their English transliterations.</p>
+{('<p class="note">Note that only limited Bible books are indexed on these TEST pages.</p>'+NEWLINE) if TEST_MODE else ''}<div id="search"></div>
+<script>
+    window.addEventListener('DOMContentLoaded', (event) => {{
+        new PagefindUI({{ element: "#search", showSubResults: false }});
+    }});
+</script>
+'''
+    topHtml = makeTop( level, None, 'search', None, state ) \
+                .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}Search OBD" ) \
+                .replace( '__KEYWORDS__', 'Bible, search, OBD' ) \
+                .replace( '</head>', '''  <link rel="stylesheet" href="pagefind/pagefind-ui.css">
+  <script src="pagefind/pagefind-ui.js"></script>
+</head>''')
+    html = f'''{topHtml}{searchHTML}<p class="note">Search functionality is provided thanks to <a href="https://Pagefind.app/">Pagefind</a>.</p>
+<p class="note"><small>Last rebuilt: {date.today()}</small></p>{makeBottom( level, 'search', state )}'''
+    checkHtml( 'Search', html )
+
+    filepath = buildFolder.joinpath( 'search.htm' )
+    with open( filepath, 'wt', encoding='utf-8' ) as htmlFile:
+        htmlFile.write( html )
+    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  {len(html):,} characters written to {filepath}" )
+# end of createSitePages.createSearchPage
+
+
 def createAboutPage( level:int, buildFolder:Path, state ) -> bool:
     """
     Creates and saves the About OBD page.
     """
     fnPrint( DEBUGGING_THIS_MODULE, f"createAboutPage( {level}, {buildFolder}, {state.BibleVersions} )" )
-    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nCreating {'TEST ' if TEST_MODE else ''}about page…" )
+    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Creating {'TEST ' if TEST_MODE else ''}about page…" )
 
     aboutHTML = '''<h1 id="Top">About Open Bible Data</h1>
 <p class="about">Open Bible Data (OBD) is a large set of static webpages created for several main reasons:</p>
@@ -967,24 +1057,41 @@ def createAboutPage( level:int, buildFolder:Path, state ) -> bool:
 <li>As a way to <b>showcase the <em>Open English Translation</em></b> of the Bible which is designed to be read with the <em>Readers’ Version</em> and the very <em>Literal Version</em> side-by-side.
     (Most existing Bible apps don’t allow for this.)
     Also, the <em>OET</em> renames some Bible ‘books’ and places them into a different order,
-        and in the future, also plans to modernise terminology like ‘Old Testament’ and ‘New Testament’.</li>
+        and even modernises terminology like ‘Old Testament’ and ‘New Testament’
+            with ‘The Hebrew Scriptures’ and ‘The Messianic Update’.</li>
 <li>To <b>showcase how <em>OET-RV</em> section headings are formatted</b> so as not to break the flow of the text.
     Section headings are available as a help to the reader, but were not in the original manuscripts,
         and the original flow of the text was not designed to be arbitrarily divided into sections.</li>
-<li>To promote other open-licenced Bible translations, including those developed as resources for Bible translators themselves. We believe that God’s Message should be freely available to all.</li>
+<li>To <b>promote other open-licenced Bible translations</b>, including those developed as resources for Bible translators themselves. We believe that God’s Message should be freely available to all.</li>
 <li>As a way to <b>showcase open-licenced Bible datasets</b>.
     Hence every word in the <em>OET-LV</em> is linked to the Greek word that they are translated from.
     In addition, most pronouns like ‘he’ or ‘she’ are linked to the earlier referrents in the text.</li>
-<li>For the comparison and evaluation of the history and quality and distinctives of various Bible translations.
+<li>For the <b>comparison and evaluation of the history and quality and distinctives of various Bible translations</b>.
     So on the parallel verse pages, you can track Biblical wording right from the Biblical Hebrew or Greek (near the bottom of the page),
         up through the Latin and then Wycliffe's and Tyndale's early English translations,
         then right up through more modern translations all the way up to the OET at the top.</li>
 <li>We try to <b>downplay chapter and verse divisions</b>, and encourage readers to read narratives as narratives and letters as letters—would
         you take a letter or email from your mother, draw lines through it to divide it into random sections/chapters,
-        and then read different sections on different days?
+        and then read different sections on different days?</li>
 </ol>
+<p class="about">You might especially note the following features:</p>
+<ul>
+<li>Our <b>Parallel view</b> shows individual <em>OET</em> verses at the top,
+        but if you're interested in English Bible translation history,
+        go to the bottom of the page (and then scroll up through any Study Notes) until you find the original language (Hebrew or Greek) versions.
+    Then work your way upwards, through the Latin to the Wycliffe and Tyndale translations,
+        and then other early English translations until you see that English spelling becomes standardised by the 1769 KJB.
+    As you work upwards in chronological order, it's fascinating to see two things:
+    <ol>
+    <li>how spelling in early English books was phonetic (sounding out the words) and quite variable
+            <small>(and so we try to help you with a conversion to modern English in parentheses)</small>, and</li>
+    <li>how translators often reused phrases from earlier English translations, but sometimes chose to disagree.</li>
+    </ol></li>
+<li>Our <b>Interlinear view</b> shows word-for-word interlinear and reverse-interlinear views.</li>
+<li>Our <b>Search page</b> allows you to search for English, Latin, Hebrew, and Greek words.</li>
+</ul>
 <p class="about">We would welcome any others who would like to contribute open datasets or code to this endeavour.
-    Please contact us at <b>Freely</b> dot <b>Given</b> dot <b>org</b> at <b>gmail</b> dot <b>com</b>.</p>
+    Please contact us at <b>Freely</b> dot <b>Given</b> dot <b>org</b> (at) <b>gmail</b> dot <b>com</b>.</p>
 <p class="about"><b>Acknowledgement</b>: The overall design of the site was influenced by <a href="https://BibleHub.com/">BibleHub.com</a>
         and their <a href="https://OpenBible.com/">OpenBible.com</a> which have many features that we like
         (and likely many overlapping goals).</p>
@@ -992,6 +1099,8 @@ def createAboutPage( level:int, buildFolder:Path, state ) -> bool:
 <p class="about">These pages are created by a Python program that takes the open-licenced resources and combines them in different ways on different pages.
     The program is still being developed, and hence this site (or this part of the site), is still at the prototype stage,
         especially with respect to navigation around the pages which is still being improved.</p>
+<p class="about">If you are the copyright owner of a Bible translation and would like to see it listed on this site,
+        please contact us at <b>Freely</b> dot <b>Given</b> dot <b>org</b> (at) <b>gmail</b> dot <b>com</b>.</p>
 <p class="about">The source code for the Python program can be found at <a href="https://github.com/Freely-Given-org/OpenBibleData">GitHub.com/Freely-Given-org/OpenBibleData</a>.
     You can also advise us of any errors by clicking on <em>New issue</em> <a href="https://github.com/Freely-Given-org/OpenBibleData/issues">here</a> and telling us the problem.</p>
 '''
