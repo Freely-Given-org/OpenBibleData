@@ -43,6 +43,7 @@ CHANGELOG:
     2023-08-22 Make removeDuplicateCVids work for larger books
     2023-08-30 Separate extra books in bkLst paragraph
     2023-09-25 Added search
+    2023-10-10 Improved OET-LV customisations to be more selective and efficient
 """
 from gettext import gettext as _
 from typing import Dict, List, Tuple, Optional
@@ -61,10 +62,10 @@ from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39, BOOKLIST_NT27
 # from Bibles import fetchChapter
 
 
-LAST_MODIFIED_DATE = '2023-09-25' # by RJH
+LAST_MODIFIED_DATE = '2023-10-10' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
-PROGRAM_VERSION = '0.54'
+PROGRAM_VERSION = '0.56'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -74,7 +75,6 @@ NEWLINE = '\n'
 # EM_SPACE = ' '
 # NARROW_NON_BREAK_SPACE = ' '
 
-timeRegex = re.compile( '[0-9][0-9]:[0-9][0-9]' )
 
 KNOWN_PAGE_TYPES = ('site', 'topIndex', 'details', 'allDetails',
                     'book','chapter','section',
@@ -150,7 +150,7 @@ def _makeHeader( level:int, versionAbbreviation:str, pageType:str, fileOrFolderN
     for loopVersionAbbreviation in state.BibleVersions:
         if loopVersionAbbreviation in ('TOSN','TTN','UTN'): # Skip notes
             continue
-        if loopVersionAbbreviation in state.selectedVersesOnlyVersions: # Skip selected-verses-only versions
+        if loopVersionAbbreviation in state.versionsWithoutTheirOwnPages: # Skip versions without their own pages
             continue
         if pageType in ('section','section'):
             try:
@@ -236,7 +236,7 @@ def _makeHeader( level:int, versionAbbreviation:str, pageType:str, fileOrFolderN
     viewLinks = []
     if pageType in ('book','section','chapter','details') \
     and versionAbbreviation not in ('TOSN','TTN','TOBD','UTN') \
-    and versionAbbreviation not in state.selectedVersesOnlyVersions:
+    and versionAbbreviation not in state.versionsWithoutTheirOwnPages:
         if not versionAbbreviation: versionAbbreviation = 'OET'
         viewLinks.append( versionAbbreviation )
         # if pageType != 'book':
@@ -386,17 +386,6 @@ def do_OET_RV_HTMLcustomisations( html:str ) -> str:
     """
     OET-RV is formatted in paragraphs.
     """
-    # # Preserve the colon in times like 12:30
-    # searchStartIndex = 0
-    # while True: # Look for links that we could maybe liven
-    #     match = timeRegex.search( html, searchStartIndex )
-    #     if not match:
-    #         break
-    #     guts = match.group(0) # Entire match
-    #     assert len(guts)==5 and guts.count(':')==1
-    #     html = f'''{html[:match.start()]}{guts.replace(':','~~COLON~~',1)}{html[match.end():]}'''
-    #     searchStartIndex = match.end() + 8 # We've added that many characters
-
     return (html \
             # Adjust specialised add markers
             .replace( '<span class="add">', '<span class="RVadd">' )
@@ -404,6 +393,7 @@ def do_OET_RV_HTMLcustomisations( html:str ) -> str:
 # end of html.do_OET_RV_HTMLcustomisations
 
 
+digitPunctDigitRegex = re.compile( '[0-9][:.][0-9]' )
 def do_OET_LV_HTMLcustomisations( html:str ) -> str:
     """
     OET-LV is often formatted as a new line for each sentence.
@@ -411,25 +401,26 @@ def do_OET_LV_HTMLcustomisations( html:str ) -> str:
     We have to protect fields like periods in '../C2_V2.htm' from corruption
         (and then restore them again of course).
     """
-    # Preserve the colon in times like 12:30
+    # Preserve the colon in times like 12:30 and in C:V and v0.1 fields
     searchStartIndex = 0
     while True: # Look for links that we could maybe liven
-        match = timeRegex.search( html, searchStartIndex )
+        match = digitPunctDigitRegex.search( html, searchStartIndex )
         if not match:
             break
         guts = match.group(0) # Entire match
-        assert len(guts)==5 and guts.count(':')==1
-        html = f'''{html[:match.start()]}{guts.replace(':','~~COLON~~',1)}{html[match.end():]}'''
+        assert len(guts)==3 and (guts.count(':') + guts.count('.'))==1
+        html = f'''{html[:match.start()]}{guts.replace(':','~~COLON~~',1).replace('.','~~PERIOD~~',1)}{html[match.end():]}'''
         searchStartIndex = match.end() + 8 # We've added that many characters
 
-    return (html \
+    html = (html \
             # Protect fields we need to preserve
-            .replace( '<!--', '~~COMMENT~~' )
-            .replace( '../', '~~UP~DIR~~' ).replace( '_V', '~~V' )
-            .replace( '.htm', '~~HTM~~' ).replace( 'https:', '~~HTTPS~~' )
-            .replace( '.org', '~~ORG~~' ).replace( '.tsv', '~~TSV~~' )
-            .replace( 'v0.', '~~v0~~' )
-            # Each sentence starts a new line
+            .replace( '<!--', '~~COMMENT~~' ).replace( '_V', '~~V' )
+            .replace( '../', '~~PERIOD~~~~PERIOD~~/' )
+            .replace( '.htm', '~~PERIOD~~htm' ).replace( 'https:', 'https~~COLON~~' )
+            .replace( '.org', '~~PERIOD~~org' ).replace( '.tsv', '~~PERIOD~~tsv' )
+            # .replace( 'v0.', 'v0~~PERIOD~~' )
+            .replace( '.\\f*', '~~PERIOD~~\\f*' ).replace( 'Note:', 'Note~~COLON~~').replace( '."', '~~PERIOD~~"' ) # These last two are inside the footnote callers
+            # Make each sentence start a new line
             .replace( '.', '.<br>\n' ).replace( '?', '?<br>\n' )
             .replace( '!', '!<br>\n' ).replace( ':', ':<br>\n' )
             # Adjust specialised add markers
@@ -439,16 +430,13 @@ def do_OET_LV_HTMLcustomisations( html:str ) -> str:
             .replace( '<span class="add">~', '<span class="addDirectObject">' )
             .replace( '<span class="add">>', '<span class="addExtra">' )
             .replace( '<span class="add">^', '<span class="addOwner">' )
-            # Put all underlines into a span (then we will have a button to hide them)
+            # Put all underlines into a span with a class (then we will have a button to hide them)
             .replace( '_', '<span class="ul">_</span>')
             # Now unprotect everything again
-            .replace( '~~COMMENT~~', '<!--' )
-            .replace( '~~UP~DIR~~', '../' ).replace( '~~V', '_V' )
-            .replace( '~~HTM~~', '.htm' ).replace( '~~HTTPS~~', 'https:' )
-            .replace( '~~ORG~~', '.org' ).replace( '~~TSV~~', '.tsv' )
-            .replace( '~~v0~~', 'v0.' )
-            .replace( '~~COLON~~', ':' )
+            .replace( '~~COMMENT~~', '<!--' ).replace( '~~V', '_V' )
+            .replace( '~~COLON~~', ':' ).replace( '~~PERIOD~~', '.' )
             )
+    return html
 # end of html.do_OET_LV_HTMLcustomisations
 
 

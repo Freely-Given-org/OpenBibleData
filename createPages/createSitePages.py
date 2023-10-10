@@ -43,6 +43,7 @@ CHANGELOG:
     2023-08-31 Added COL for RV
     2023-09-06 Added list of selected versions on details pages (in TEST mode only)
     2023-09-25 Added search page
+    2023-10-10 Added German Luther 1545 Bible
 """
 from gettext import gettext as _
 from typing import Dict, List, Tuple
@@ -73,10 +74,10 @@ from html import makeTop, makeBottom, checkHtml
 # from selectedVersesVersions import fillSelectedVerses
 
 
-LAST_MODIFIED_DATE = '2023-10-06' # by RJH
+LAST_MODIFIED_DATE = '2023-10-10' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData Create Pages"
-PROGRAM_VERSION = '0.83'
+PROGRAM_VERSION = '0.84'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
@@ -118,7 +119,8 @@ class State:
                 'JQT','2DT','1ST','TPT',
                 'WEB','WMB','NET','LSV','FBV','TCNT','T4T','LEB','NRSV','NKJV','BBE',
                 'JPS','ASV','DRA','YLT','DBY','RV','WBS','KJB','BB','GNV','CB',
-                'TNT','WYC','CLV',
+                'TNT','WYC',
+                'LUT','CLV',
                 'SR-GNT','UGNT','SBL-GNT','TC-GNT',
                 'BRN','BrLXX', 'UHB',
                 # NOTES:
@@ -134,8 +136,9 @@ class State:
     selectedVersesOnlyVersions = ('CSB','NLT','NIV','CEV','ESV','NASB','LSB','JQT','2DT','1ST','TPT','NRSV','NKJV' ) # These ones have .tsv sources (and don't produce Bible objects)
     numAllowedSelectedVerses   = (  300,  500,  500,  500,  500,   500,  300,   20, 300,  300,  250,   300,   300 ) # Order must match above list
     assert len(numAllowedSelectedVerses) == len(selectedVersesOnlyVersions)
+    versionsWithoutTheirOwnPages = selectedVersesOnlyVersions + ('LUT','CLV', 'UGNT','SBL-GNT','TC-GNT', 'BRN','BrLXX')
 
-    # NOTE: We don't display the versions with only selected verses, so don't need decorations for them
+    # NOTE: We don't display the versionsWithoutTheirOwnPages, so don't need decorations for them
     BibleVersionDecorations = { 'OET':('<b>','</b>'),'OET-RV':('<b>','</b>'),'OET-LV':('<b>','</b>'),
                 'ULT':('',''),'UST':('',''),
                 'BSB':('',''),'BLB':('',''),
@@ -144,9 +147,10 @@ class State:
                 'JPS':('<small>','</small>'),'ASV':('',''),'DRA':('<small>','</small>'),'YLT':('',''),'DBY':('',''),'RV':('',''),
                 'WBS':('<small>','</small>'),
                 'KJB':('',''),'BB':('',''),'GNV':('',''),'CB':('',''),
-                'TNT':('',''),'WYC':('',''),'CLV':('<small>','</small>'),
-                'SR-GNT':('<b>','</b>'),'UGNT':('<small>','</small>'),'SBL-GNT':('<small>','</small>'),'TC-GNT':('<small>','</small>'),
-                'BRN':('<small>','</small>'),'BrLXX':('',''), 'UHB':('',''),
+                'TNT':('',''),'WYC':('',''), #'CLV':('<small>','</small>'),
+                'SR-GNT':('<b>','</b>'), # 'UGNT':('<small>','</small>'),'SBL-GNT':('<small>','</small>'),'TC-GNT':('<small>','</small>'),
+                # 'BRN':('<small>','</small>'),'BrLXX':('',''),
+                'UHB':('',''),
                 'Parallel':('<b>','</b>'), 'Interlinear':('<b>','</b>'), 'Dictionary':('<b>','</b>'), 'Search':('<b>','</b>'),
                 # NOTES:
                 'TOSN':('',''),'UTN':('',''),
@@ -200,6 +204,7 @@ class State:
                 'CB': '/mnt/SSDs/Bibles/DataSets/BibleSuperSearch.com/v5.0/TXT/coverdale.txt',
                 'TNT': '../copiedBibles/English/eBible.org/TNT/',
                 'WYC': '/mnt/SSDs/Bibles/Zefania modules/SF_2009-01-20_ENG_BIBLE_WYCLIFFE_(JOHN WYCLIFFE BIBLE).xml',
+                'LUT': '../copiedBibles/German/Zefania/LUT1545/SF_2009-01-20_GER_LUTH1545STR_(LUTHER 1545 MIT STRONGS).xml',
                 'CLV': '../copiedBibles/Latin/eBible.org/CLV/',
                 'SR-GNT': '../../Forked/CNTR-SR/SR usfm/',
                 'UGNT': '../copiedBibles/Original/unfoldingWord.org/UGNT/',
@@ -259,6 +264,7 @@ class State:
                 'CB': 'Coverdale Bible (1535-1553)',
                 'TNT': 'Tyndale New Testament (1526)',
                 'WYC': 'Wycliffe Bible (1382)',
+                'LUT': 'Luther Bible (1545)',
                 'CLV': 'Clementine Vulgate (Latin, 1592)',
                 'SR-GNT': 'Statistical Restoration Greek New Testament (2022)',
                 'UGNT': 'unfoldingWord® Greek New Testament (2022)',
@@ -317,6 +323,7 @@ class State:
                 'CB': ['ALL'],
                 'TNT': ['ALL'],
                 'WYC': ['ALL'],
+                'LUT': ['ALL'],
                 'CLV': ['ALL'],
                 'SR-GNT': ['ALL'],
                 'UGNT': ['ALL'],
@@ -373,6 +380,7 @@ class State:
                 'CB': ['MRK'],
                 'TNT': ['MRK'],
                 'WYC': ['MRK'],
+                'LUT': ['MRK'],
                 'CLV': ['RUT','MRK'],
                 'SR-GNT': ['MRK'],
                 'UGNT': ['MRK'],
@@ -567,7 +575,11 @@ You can read more about the design of the OET-LV <a href="https://OpenEnglishTra
         'WYC': {'about': '<p class="about"><a href="https://en.wikipedia.org/wiki/Wycliffe%27s_Bible">Wycliffe Bible</a> (1382).</p>',
                 'copyright': '<p class="copyright">Public Domain.</p>',
                 'licence': '<p class="licence">Public Domain.</p>',
-                'acknowledgements': '<p class="acknwldg">The entire English-speaking world is indebted to John Wycliffe for his brave work to make the Bible available in the language of the common people at a time when priests insisted that the Bible was only valid in Latin.</p>' },
+                'acknowledgements': '<p class="acknwldg">The entire English-speaking world is indebted to <a href="https://en.wikipedia.org/wiki/John_Wycliffe">John Wycliffe</a> for his brave work to make the Bible available in the language of the common people at a time when priests insisted that the Bible was only valid in Latin.</p>' },
+        'LUT': {'about': '<p class="about"><a href="https://en.wikipedia.org/wiki/Luther_Bible">Luther’s German Bible</a> (1545).</p>',
+                'copyright': '<p class="copyright">Public Domain.</p>',
+                'licence': '<p class="licence">Public Domain.</p>',
+                'acknowledgements': '<p class="acknwldg">The entire German-speaking world is indebted to <a href="https://en.wikipedia.org/wiki/Martin_Luther">Martin Luther</a> for his brave work to make the Bible available in the language of the common people at a time when priests insisted that the Bible was only valid in Latin.</p>' },
         'CLV': {'about': '<p class="about"><a href="https://en.wikipedia.org/wiki/Sixto-Clementine_Vulgate">Clementine Vulgate Bible</a> (Latin, 1592).</p>',
                 'copyright': '<p class="copyright">Copyright © (coming).</p>',
                 'licence': '<p class="licence">(coming).</p>',
@@ -621,8 +633,8 @@ You can read more about the design of the OET-LV <a href="https://OpenEnglishTra
             or versionLocation.startswith('../../Forked/') \
             or versionLocation.startswith('/mnt/SSDs/Bibles/'), f"{versionLocation=}"
     # +4 is for paralle, interlinear, dictionary, search
-    assert len(BibleVersionDecorations) == len(BibleVersions) - len(selectedVersesOnlyVersions) + 4, \
-        f"{len(BibleVersionDecorations)=} {len(BibleVersions)=} {len(selectedVersesOnlyVersions)=} sum={len(BibleVersions)+4-len(selectedVersesOnlyVersions)}"
+    assert len(BibleVersionDecorations) == len(BibleVersions) - len(versionsWithoutTheirOwnPages) + 4, \
+        f"{len(BibleVersionDecorations)=} {len(BibleVersions)=} {len(versionsWithoutTheirOwnPages)=} sum={len(BibleVersions)+4-len(versionsWithoutTheirOwnPages)}"
         # Above adds Parallel and Interlinear and Dictionary but subtracts selected-verses-only version
     assert len(BibleVersions)-1 >= len(BibleLocations) # OET is a pseudo-version
     assert len(BibleNames)-1 >= len(BibleLocations) # OET is a pseudo-version
@@ -674,7 +686,7 @@ def createSitePages() -> bool:
         for versionAbbreviation in state.BibleVersions:
             if versionAbbreviation == 'OET': continue # OET is a pseudo version (OET-RV plus OET-LV)
             if versionAbbreviation not in ('TTN',) \
-            and versionAbbreviation in state.selectedVersesOnlyVersions: continue # We don't worry about these few selected verses here
+            and versionAbbreviation in state.versionsWithoutTheirOwnPages: continue # We don't worry about these few selected verses here
             for entry in state.booksToLoad[versionAbbreviation]:
                 if entry == BBB or entry == 'ALL':
                     if BBB in state.preloadedBibles[versionAbbreviation]:
@@ -694,7 +706,7 @@ def createSitePages() -> bool:
         createOETMissingVersePage( 1, versionFolder )
     for versionAbbreviation, thisBible in state.preloadedBibles.items(): # doesn't include OET pseudo-translation
         if versionAbbreviation not in ('TTN',) \
-        and versionAbbreviation in state.selectedVersesOnlyVersions: continue # We don't worry about these few selected verses here
+        and versionAbbreviation in state.versionsWithoutTheirOwnPages: continue # We don't worry about these few selected verses here
         thisBible.discover() # Now that all required books are loaded
         if versionAbbreviation not in ('TOSN','TTN','UTN'): # We don't make separate notes pages
             vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nCreating {'TEST ' if TEST_MODE else ''}version pages for {thisBible.abbreviation}…" )
@@ -711,7 +723,7 @@ def createSitePages() -> bool:
             createOETSectionPages( 2, versionFolder.joinpath('bySec/'), rvBible, lvBible, state )
     for versionAbbreviation, thisBible in state.preloadedBibles.items(): # doesn't include OET pseudo-translation
         if versionAbbreviation not in ('TTN',) \
-        and versionAbbreviation in state.selectedVersesOnlyVersions: continue # We don't worry about these few selected verses here
+        and versionAbbreviation in state.versionsWithoutTheirOwnPages: continue # We don't worry about these few selected verses here
         if versionAbbreviation not in ('TOSN','TTN','UTN'): # We don't make separate notes pages
             if thisBible.discoveryResults['ALL']['haveSectionHeadings']:
                 versionFolder = TEMP_BUILD_FOLDER.joinpath( f'{thisBible.abbreviation}/' )

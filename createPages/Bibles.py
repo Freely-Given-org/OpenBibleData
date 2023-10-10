@@ -39,6 +39,7 @@ BibleOrgSys uses a three-character book code to identify books.
 CHANGELOG:
     2023-07-19 Fix '<class="sn-text">' bug
     2023-08-07 Add allowFourChars to our customised version of tidyBBB
+    2023-10-09 Fix a few more uW tN markdown link references
 """
 from gettext import gettext as _
 from typing import Dict, List, Tuple, Optional
@@ -71,10 +72,10 @@ from html import checkHtml
 from OETHandlers import findLVQuote
 
 
-LAST_MODIFIED_DATE = '2023-08-30' # by RJH
+LAST_MODIFIED_DATE = '2023-10-09' # by RJH
 SHORT_PROGRAM_NAME = "Bibles"
 PROGRAM_NAME = "OpenBibleData Bibles handler"
-PROGRAM_VERSION = '0.53'
+PROGRAM_VERSION = '0.54'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -753,6 +754,7 @@ def formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segme
                     # print( f"{_safetyCount} getContextVerseData found TN markdown link {BBB} {C}:{V} {match=} {match.groups()=}" )
                     newLink = match.group(1)
                     if match.group(2).startswith( '../' ) and match.group(2).endswith( '.md' ):
+                        # Probably something like: [13:20](../13/20.md)
                         linkTarget = match.group(2)[3:-3]
                         if linkTarget.endswith('/'): linkTarget = linkTarget[:-1] # Mistake in TN Rom 2:2
                         # print( f"  Have scripture link {BBB} {C}:{V} {match.group(1)=} {linkTarget=}" )
@@ -778,8 +780,21 @@ def formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segme
                                 if lV.startswith('.'): lV = int(lV[1:])
                             newLink = f'<a href="C{lC}V{lV}.htm#Top">{match.group(1)}</a>'
                         else:
-                            logging.critical( f"formatUnfoldingWordTranslationNotes ({BBB}, {C}, {V}) has unhandled markdown reference in '{rest}'" )
+                            print( f"{_safetyCount} getContextVerseData found TN markdown link {BBB} {C}:{V} {match=} {match.groups()=}" )
+                            logging.critical( f"formatUnfoldingWordTranslationNotes1 ({BBB}, {C}, {V}) has unhandled markdown reference in '{rest}'" )
+                    elif match.group(2).startswith( './' ) and match.group(2).endswith( '.md' ):
+                        # Probably something like: [Mark 14:22–25](./22.md)
+                        linkTarget = match.group(2)[2:-3]
+                        # print( f"  Have scripture link {BBB} {C}:{V} {match.group(1)=} {linkTarget=}" )
+                        if linkTarget.count('/') == 0:
+                            lV = linkTarget
+                            newLink = f'<a href="C{C}V{lV}.htm#Top">{match.group(1)}</a>'
+                        else:
+                            print( f"{_safetyCount} getContextVerseData found TN markdown link {BBB} {C}:{V} {match=} {match.groups()=}" )
+                            logging.critical( f"formatUnfoldingWordTranslationNotes2 ({BBB}, {C}, {V}) has unhandled markdown reference in '{rest}'" )
                     else:
+                        # e.g., From Ruth 3:9: [2:20](../02/20/zu5f)
+                        print( f"{_safetyCount} getContextVerseData found TN markdown link {BBB} {C}:{V} {match=} {match.groups()=}" )
                         logging.critical( f"formatUnfoldingWordTranslationNotes ({BBB}, {C}, {V}) has unhandled markdown link in '{rest}'" )
                     rest = f'{rest[:match.start()]}{newLink}{rest[match.end():]}'
                     # print( f"  {BBB} {C}:{V} with {newLink=}, now {rest=}" )
