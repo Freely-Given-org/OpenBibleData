@@ -170,10 +170,11 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state ) -
                                             givenAbbreviation=versionAbbreviation, encoding='utf-8' )
         thisBible.loadBooks() # So we can iterate through them all later
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} loaded ({len(thisBible.books.keys())}) {list(thisBible.books.keys())}" )
-        # print( f"{thisBible.suppliedMetadata=}" )
-        # print( f"{thisBible.settingsDict=}" )
+        # print( f"{versionAbbreviation} {thisBible.suppliedMetadata=}" )
+        # print( f"{versionAbbreviation} {thisBible.settingsDict=}" )
         # verseEntryList, contextList = thisBible.getContextVerseData( ('MAT', '2', '1') )
-        # print( f"Mat 2:1 {verseEntryList=} {contextList=}" )
+        # print( f"{versionAbbreviation} Mat 2:1 {verseEntryList=} {contextList=}" )
+        # if versionAbbreviation=='LUT': halt
     elif 'OET' in versionAbbreviation or 'ESFM' in folderOrFileLocation: # ESFM
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Preloading '{versionAbbreviation}' ESFM Bible…" )
         thisBible = ESFMBible.ESFMBible( folderOrFileLocation, givenAbbreviation=versionAbbreviation )

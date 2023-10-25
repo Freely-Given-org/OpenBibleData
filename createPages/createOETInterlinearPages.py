@@ -38,8 +38,9 @@ BibleOrgSys uses a three-character book code to identify books.
 
 CHANGELOG:
     2023-07-19 Fixed untr marker detection
+    2023-10-25 Make use of word table index
 """
-from gettext import gettext as _
+# from gettext import gettext as _
 from typing import Dict, List, Tuple
 from pathlib import Path
 import os
@@ -51,23 +52,19 @@ from collections import defaultdict
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 from BibleOrgSys.Internals.InternalBibleInternals import getLeadingInt
-import BibleOrgSys.Formats.ESFMBible as ESFMBible
-
-import sys
-sys.path.append( '../../BibleTransliterations/Python/' )
-from BibleTransliterations import transliterate_Greek, transliterate_Hebrew
 
 from usfm import convertUSFMMarkerListToHtml
 from Bibles import formatUnfoldingWordTranslationNotes, formatTyndaleNotes, tidyBBB
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
                     makeTop, makeBottom, makeBookNavListParagraph, checkHtml
-from createOETReferencePages import CNTR_BOOK_ID_MAP, livenOETWordLinks
+from createOETReferencePages import CNTR_BOOK_ID_MAP
+from OETHandlers import livenOETWordLinks
 
 
-LAST_MODIFIED_DATE = '2023-08-16' # by RJH
+LAST_MODIFIED_DATE = '2023-10-25' # by RJH
 SHORT_PROGRAM_NAME = "createOETInterlinearPages"
 PROGRAM_NAME = "OpenBibleData createOETInterlinearPages functions"
-PROGRAM_VERSION = '0.35'
+PROGRAM_VERSION = '0.38'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -353,17 +350,19 @@ def createOETInterlinearVersePage( level:int, BBB:str, c:int, v:int, state ) -> 
     # print( f"Found {BBB} {c}:{v} ({len(EnglishWordList)}) {EnglishWordList=}" )
     iHtml = ''
     if wordNumberStr: # Now we have a word number from the correct verse
-        firstWordNumber = getLeadingInt( wordNumberStr )
-        rowStr = wordTable[firstWordNumber]
-        #  0    1      2      3           4          5            6           7     8           9
-        # 'Ref\tGreek\tLemma\tGlossWords\tGlossCaps\tProbability\tStrongsExt\tRole\tMorphology\tTags'
-        assert rowStr.startswith( f'{BBB}_{c}:{v}w' )
-        # Search backwards through the word-table until we find the first word number still in the verse (includes variants)
-        while firstWordNumber > 1:
-            firstWordNumber -= 1
-            if not wordTable[firstWordNumber].startswith( f'{BBB}_{c}:{v}w' ):
-                firstWordNumber += 1 # We went too far
-                break
+        firstWordNumber,lastWordNumber = state.OETRefData['word_table_index'][f'{BBB}_{C}:{V}']
+        # firstWordNumber = getLeadingInt( wordNumberStr )
+        # rowStr = wordTable[firstWordNumber]
+        # #  0    1      2      3           4          5            6           7     8           9
+        # # 'Ref\tGreekWord\tSRLemma\tGreekLemma\tGlossWords\tGlossCaps\tProbability\tStrongsExt\tRole\tMorphology\tTags'
+        # assert rowStr.startswith( f'{BBB}_{c}:{v}w' )
+        # # Search backwards through the word-table until we find the first word number still in the verse (includes variants)
+        # while firstWordNumber > 1:
+        #     firstWordNumber -= 1
+        #     if not wordTable[firstWordNumber].startswith( f'{BBB}_{c}:{v}w' ):
+        #         firstWordNumber += 1 # We went too far
+        #         break
+        # assert firstWordNumber == state.OETRefData['word_table_index'][f'{BBB}_{c}:{v}'][0], f"{wordNumberStr=} {firstWordNumber=} {state.OETRefData['word_table_index'][f'{BBB}_{c}:{v}']=}"
 
         # Display the interlinear blocks
         GreekList = ['''<li><ol class="titles">
@@ -379,17 +378,18 @@ def createOETInterlinearVersePage( level:int, BBB:str, c:int, v:int, state ) -> 
 <li lang="en_TAGS">OET tags</li>
 <li lang="en_WORDNUM">OET word #</li>
 </ol></li>''']
-        for wordNumber in range( firstWordNumber, firstWordNumber+999 ):
-            if wordNumber >= len(wordTable): # we must be in one of the last verses of Rev
-                break
+        for wordNumber in range( firstWordNumber, lastWordNumber+1 ):
+            # if wordNumber >= len(wordTable): # we must be in one of the last verses of Rev
+            #     break
             rowStr = wordTable[wordNumber]
-            if not rowStr.startswith( f'{BBB}_{c}:{v}w' ): # gone into the next verse
-                break
+            assert rowStr.startswith( f'{BBB}_{c}:{v}w' )
+            # if not rowStr.startswith( f'{BBB}_{c}:{v}w' ): # gone into the next verse
+            #     break
             row = rowStr.split( '\t' )
-            #  0    1      2      3           4          5            6           7     8           9
-            # 'Ref\tGreek\tLemma\tGlossWords\tGlossCaps\tProbability\tStrongsExt\tRole\tMorphology\tTags'
-            if row[9]:
-                tags = row[9].split( ';' )
+            #  0    1          2        3           4           5          6            7           8     9           10
+            # 'Ref\tGreekWord\tSRLemma\tGreekLemma\tGlossWords\tGlossCaps\tProbability\tStrongsExt\tRole\tMorphology\tTags'
+            if row[10]:
+                tags = row[10].split( ';' )
                 for t,tag in enumerate( tags ):
                     tagPrefix, tag = tag[0], tag[1:]
                     if tagPrefix == 'P':
@@ -398,16 +398,16 @@ def createOETInterlinearVersePage( level:int, BBB:str, c:int, v:int, state ) -> 
                         tags[t] = f'''Location=<a title="View place details" href="{'../'*level}rf/L/{tag}.htm#Top">{tag}</a>'''
                 tagsHtml = '; '.join( tags )
             else: tagsHtml = '-'
-            GreekList.append( f'''<li><ol class="{'word' if row[5] else 'variant'}">
+            GreekList.append( f'''<li><ol class="{'word' if row[6] else 'variant'}">
 <li lang="el">{row[1]}</li>
 <li lang="el_LEMMA">{row[2]}</li>
 <li lang="en_TRANS"><b>{' '.join(lvEnglishWordDict[wordNumber]) if lvEnglishWordDict[wordNumber] else '-'}</b></li>
 <li lang="en_TRANS"><b>{' '.join(rvEnglishWordDict[wordNumber]) if rvEnglishWordDict[wordNumber] else '-'}</b></li>
-<li lang="en_STRONGS"><a href="https://BibleHub.com/greek/{row[6][:-1]}.htm">{row[6]}</a></li>
-<li lang="en_MORPH">{row[7]}{row[8]}</li>
-<li lang="en_GLOSS">{row[3]}</li>
-<li lang="en_CAPS">{row[4] if row[4] else '-'}</li>
-<li lang="en_PERCENT">{row[5]+'%' if row[5] else 'V'}</li>
+<li lang="en_STRONGS"><a href="https://BibleHub.com/greek/{row[7][:-1]}.htm">{row[7]}</a></li>
+<li lang="en_MORPH">{row[8]}{row[9]}</li>
+<li lang="en_GLOSS">{row[4]}</li>
+<li lang="en_CAPS">{row[5] if row[5] else '-'}</li>
+<li lang="en_PERCENT">{row[6]+'%' if row[6] else 'V'}</li>
 <li lang="en_TAGS">{tagsHtml}</li>
 <li lang="en_WORDNUM"><a title="View word details" href="{'../'*level}rf/W/{wordNumber}.htm#Top">{wordNumber}</a></li>
 </ol></li>''' )
@@ -455,8 +455,8 @@ def createOETInterlinearVersePage( level:int, BBB:str, c:int, v:int, state ) -> 
             rowStr = wordTable[wordNumber]
             assert rowStr.startswith( f'{BBB}_{c}:{v}w' )
             row = rowStr.split( '\t' )
-            if row[9]:
-                tags = row[9].split( ';' )
+            if row[10]:
+                tags = row[10].split( ';' )
                 for t,tag in enumerate( tags ):
                     tagPrefix, tag = tag[0], tag[1:]
                     if tagPrefix == 'P':
@@ -486,7 +486,7 @@ def createOETInterlinearVersePage( level:int, BBB:str, c:int, v:int, state ) -> 
 {lvHtml}
 {rvHtml}
 <p class="note"><small><b>Note</b>: The OET-RV is still only a first draft, and so far only a few words have been (mostly automatically) matched to the Greek words that they’re translated from.</small></p>
-{f'<p class="thanks"><b>Acknowledgements</b>: The SR Greek text, lemmas, morphology, and English gloss <small>(7th line)</small> are all thanks to the <a href="https://GreekCNTR.org/collation/index.htm?{CNTR_BOOK_ID_MAP[BBB]}{C.zfill(3)}{V.zfill(3)}">SR-GNT</a>.</p>' if BibleOrgSysGlobals.loadedBibleBooksCodes.isNewTestament_NR( BBB ) else ''}'''
+{f'<p class="thanks"><b>Acknowledgements</b>: The SR Greek text, lemmas, morphology, and English gloss <small>(7th line)</small> are all thanks to the <a href="https://GreekCNTR.org/collation/index.htm?v={CNTR_BOOK_ID_MAP[BBB]}{C.zfill(3)}{V.zfill(3)}">SR-GNT</a>.</p>' if BibleOrgSysGlobals.loadedBibleBooksCodes.isNewTestament_NR( BBB ) else ''}'''
     # dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\n\n{iHtml=}" )
     checkHtml( f'Interlinear {BBB} {c}:{v}', html, segmentOnly=True )
     return html

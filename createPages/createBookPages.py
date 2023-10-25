@@ -45,7 +45,7 @@ from usfm import convertUSFMMarkerListToHtml
 from Bibles import tidyBBB
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
                     makeTop, makeBottom, makeBookNavListParagraph, removeDuplicateCVids, checkHtml
-from createOETReferencePages import livenOETWordLinks
+from OETHandlers import livenOETWordLinks
 
 
 LAST_MODIFIED_DATE = '2023-08-30' # by RJH
@@ -160,7 +160,12 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state ) -> Lis
         if isinstance( lvBible, ESFMBible.ESFMBible ):
             lvVerseEntryList = livenOETWordLinks( lvBible, BBB, lvVerseEntryList, f"{'../'*level}rf/W/{{n}}.htm#Top", state )
         rvHtml = do_OET_RV_HTMLcustomisations( convertUSFMMarkerListToHtml( level, 'OET', (BBB,), 'book', rvContextList, rvVerseEntryList, basicOnly=False, state=state ) )
-        lvHtml = do_OET_LV_HTMLcustomisations( convertUSFMMarkerListToHtml( level, 'OET', (BBB,), 'book', lvContextList, lvVerseEntryList, basicOnly=False, state=state ) )
+        tempLVHtml = convertUSFMMarkerListToHtml( level, 'OET', (BBB,), 'book', lvContextList, lvVerseEntryList, basicOnly=False, state=state )
+        if '+' in tempLVHtml: print( f"PLUS {tempLVHtml[max(0,tempLVHtml.index('+')-20):tempLVHtml.index('+')+80]}" )
+        if '^' in tempLVHtml: print( f"HAT {tempLVHtml[max(0,tempLVHtml.index('^')-20):tempLVHtml.index('^')+80]}" )
+        if '~' in tempLVHtml: print( f"SQUIG {tempLVHtml[max(0,tempLVHtml.index('~')-20):tempLVHtml.index('~')+80]}" )
+        lvHtml = do_OET_LV_HTMLcustomisations( tempLVHtml )
+        # lvHtml = do_OET_LV_HTMLcustomisations( convertUSFMMarkerListToHtml( level, 'OET', (BBB,), 'book', lvContextList, lvVerseEntryList, basicOnly=False, state=state ) )
 
         # Now we have to divide the RV and the LV into an equal number of chunks (so they mostly line up)
         # First get the header and intro chunks

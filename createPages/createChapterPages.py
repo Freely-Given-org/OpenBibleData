@@ -48,7 +48,7 @@ from usfm import convertUSFMMarkerListToHtml
 from Bibles import tidyBBB
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
                     makeTop, makeBottom, makeBookNavListParagraph, removeDuplicateCVids, checkHtml
-from createOETReferencePages import livenOETWordLinks
+from OETHandlers import livenOETWordLinks
 
 
 LAST_MODIFIED_DATE = '2023-08-30' # by RJH

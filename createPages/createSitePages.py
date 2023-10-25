@@ -43,7 +43,10 @@ CHANGELOG:
     2023-08-31 Added COL for RV
     2023-09-06 Added list of selected versions on details pages (in TEST mode only)
     2023-09-25 Added search page
+    2023-10-01 Added ROM for RV
     2023-10-10 Added German Luther 1545 Bible
+    2023-10-20 Added CO2 for RV
+    2023-10-24 Creates a BCV index into the OET-LV word table
 """
 from gettext import gettext as _
 from typing import Dict, List, Tuple
@@ -74,16 +77,17 @@ from html import makeTop, makeBottom, checkHtml
 # from selectedVersesVersions import fillSelectedVerses
 
 
-LAST_MODIFIED_DATE = '2023-10-10' # by RJH
+LAST_MODIFIED_DATE = '2023-10-24' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData Create Pages"
-PROGRAM_VERSION = '0.84'
+PROGRAM_VERSION = '0.86'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
 
 TEST_MODE = True # Writes website into Test subfolder
 ALL_PRODUCTION_BOOKS = not TEST_MODE # If set to False, only selects one book per version for a faster test build
+ALL_TEST_REFERENCE_PAGES = False # If in Test mode, make all word/lemma pages, or just the relevant ones
 UPDATE_ACTUAL_SITE_WHEN_BUILT = True # The pages are initially built in a tmp folder so need to be copied to the final destination
 
 TEMP_BUILD_FOLDER = Path( '/tmp/OBDHtmlPages/' )
@@ -92,7 +96,7 @@ DEBUG_DESTINATION_FOLDER = NORMAL_DESTINATION_FOLDER.joinpath( 'Test/')
 DESTINATION_FOLDER = DEBUG_DESTINATION_FOLDER if TEST_MODE or BibleOrgSysGlobals.debugFlag \
                         else NORMAL_DESTINATION_FOLDER
 
-OET_BOOK_LIST = ['JHN','MRK','MAT','LUK','ACT', 'ROM', 'GAL','EPH','PHP','COL', 'TH1','TH2','TI1','TI2','TIT','PHM', 'JAM', 'PE1','PE2', 'JN1','JN2','JN3', 'JDE']
+OET_BOOK_LIST = ['JHN','MRK','MAT','LUK','ACT', 'ROM','CO2', 'GAL','EPH','PHP','COL', 'TH1','TH2','TI1','TI2','TIT','PHM', 'JAM', 'PE1','PE2', 'JN1','JN2','JN3', 'JDE']
 OET_BOOK_LIST_WITH_FRT = ['FRT'] + OET_BOOK_LIST # 'INT'
 NT_BOOK_LIST_WITH_FRT = ['FRT'] + BOOKLIST_NT27
 assert len(NT_BOOK_LIST_WITH_FRT) == 27+1
@@ -161,6 +165,7 @@ class State:
     BibleLocations = {
                 'OET-RV': '../../OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/',
                 'OET-LV': '../../OpenEnglishTranslation--OET/intermediateTexts/auto_edited_VLT_ESFM/', # No OT here yet
+                'SR-GNT': '../../Forked/CNTR-SR/SR usfm/', # We moved this up in the list because it's now compulsory
                 # NOTE: The program will still run if some of these below are commented out or removed
                 # (e.g., this can be done quickly for a faster test)
                 'ULT': '../copiedBibles/English/unfoldingWord.org/ULT/',
@@ -206,7 +211,6 @@ class State:
                 'WYC': '/mnt/SSDs/Bibles/Zefania modules/SF_2009-01-20_ENG_BIBLE_WYCLIFFE_(JOHN WYCLIFFE BIBLE).xml',
                 'LUT': '../copiedBibles/German/Zefania/LUT1545/SF_2009-01-20_GER_LUTH1545STR_(LUTHER 1545 MIT STRONGS).xml',
                 'CLV': '../copiedBibles/Latin/eBible.org/CLV/',
-                'SR-GNT': '../../Forked/CNTR-SR/SR usfm/',
                 'UGNT': '../copiedBibles/Original/unfoldingWord.org/UGNT/',
                 'SBL-GNT': '../../Forked/SBLGNT/data/sblgnt/text/',
                 'TC-GNT': '../copiedBibles/Greek/eBible.org/TC-GNT/',
@@ -396,26 +400,28 @@ class State:
 
     detailsHtml = {
         'OET': {'about': '''<p class="about">The (still unfinished) <em>Open English Translation</em> consists of a <em>Readers’ Version</em> and a <em>Literal Version</em> side-by-side.
-You can read more about the design of the OET <a href="https://OpenEnglishTranslation.Bible/Design/Overview">here</a>.</p>''',
+You can read more about the design of the <em>OET</em> <a href="https://OpenEnglishTranslation.Bible/Design/Overview">here</a>.</p>''',
                 'copyright': '<p class="copyright">Copyright © 2010-2023 <a href="https://Freely-Given.org">Freely-Given.org</a>.</p>',
                 'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
                 'acknowledgements': '<p class="acknwldg">Thanks to <a href="https://Freely-Given.org/">Freely-Given.org</a> for creating this exciting, radical, new Bible translation which is viewable from <a href="https://OpenEnglishTranslation.Bible">OpenEnglishTranslation.Bible</a>.</p>' },
         'OET-RV': {'about': '''<p class="about">The (still unfinished) <em>Open English Translation Readers’ Version</em> is a new, modern-English easy-to-read translation of the Bible.
-You can read more about the design of the OET-RV <a href="https://OpenEnglishTranslation.Bible/Design/ReadersVersion">here</a>.</p>''',
+You can read more about the design of the <em>OET-RV</em> <a href="https://OpenEnglishTranslation.Bible/Design/ReadersVersion">here</a>.</p>''',
                 'copyright': '<p class="copyright">Copyright © 2010-2023 <a href="https://Freely-Given.org">Freely-Given.org</a>.</p>',
                 'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
                 'acknowledgements': '<p class="acknwldg">Thanks to <a href="https://Freely-Given.org/">Freely-Given.org</a> for creating this exciting, new Bible translation which is viewable from <a href="https://OpenEnglishTranslation.Bible">OpenEnglishTranslation.Bible</a>.</p>' },
         'OET-LV': {'about': '''<p class="about">The (still unfinished) <em>Open English Translation Literal Version</em> is a tool designed to give a look into what was actually written in the original Hebrew or Greek manuscripts.
-You can read more about the design of the OET-LV <a href="https://OpenEnglishTranslation.Bible/Design/LiteralVersion">here</a>.</p>''',
+You can read more about the design of the <em>OET-LV</em> <a href="https://OpenEnglishTranslation.Bible/Design/LiteralVersion">here</a>.</p>''',
                 'copyright': '<p class="copyright">Copyright © 2010-2023 <a href="https://Freely-Given.org">Freely-Given.org</a>.</p>',
                 'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
-                'acknowledgements': '<p class="acknwldg">Thanks to <a href="https://Freely-Given.org/">Freely-Given.org</a> for creating this exciting, new Bible translation which is viewable from <a href="https://OpenEnglishTranslation.Bible">OpenEnglishTranslation.Bible</a>.</p>' },
+                'acknowledgements': '''<p class="acknwldg">Thanks to <a href="https://Freely-Given.org/">Freely-Given.org</a> for creating this exciting, new Bible translation which is viewable from <a href="https://OpenEnglishTranslation.Bible">OpenEnglishTranslation.Bible</a>.
+We are very grateful to Dr. Alan Bunning of the <a href="https://GreekCNTR.org">Center for New Testament Restoration</a> whose many years of hard work this <em>OET-LV</em> is based on.
+We’re also grateful to the <a href="https://www.Biblica.com/clear/">Biblica Clear Bible team</a> who provide the pronoun referential information as part of their <a href="https://GitHub.com/Clear-Bible/macula-greek">Macula Greek</a> project.</p>''' },
         'ULT': {'about': '<p class="about">unfoldingWord® Literal Text (2023) and derived from the 1901 ASV.</p>',
-                'copyright': '<p class="copyright">Copyright © 2022 by unfoldingWord.</p>',
+                'copyright': '<p class="copyright">Copyright © 2023 by unfoldingWord.</p>',
                 'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
                 'acknowledgements': '<p class="acknwldg">Thanks to <a href="https://www.unfoldingword.org/">unfoldingWord</a> for creating this Bible translation which is designed to be a tool for Bible translators.</p>' },
         'UST': {'about': '<p class="about">unfoldingWord® Simplified Text (2023). The UST has all passive constructions changed to active forms, and all idioms replaced with their English meanings.</p>',
-                'copyright': '<p class="copyright">Copyright © 2022 by unfoldingWord.</p>',
+                'copyright': '<p class="copyright">Copyright © 2023 by unfoldingWord.</p>',
                 'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
                 'acknowledgements': '<p class="acknwldg">Thanks to <a href="https://www.unfoldingword.org/">unfoldingWord</a> for creating this specialised Bible translation which is designed to be a tool for Bible translators.</p>' },
         'BSB': {'about': '<p class="about">Berean Standard Bible (2020).</p>',
@@ -587,7 +593,7 @@ You can read more about the design of the OET-LV <a href="https://OpenEnglishTra
         'SR-GNT': {'about': '<p class="about">Statistical Restoration Greek New Testament (2022).</p>',
                 'copyright': '<p class="copyright">Copyright © 2022 by Alan Bunning.</p>',
                 'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution 4.0 International License</a>.</p>',
-                'acknowledgements': '<p class="acknwldg">Grateful thanks to Dr. Alan Bunning who founded the <a href="https://greekcntr.org">Center for New Testament Restoration</a> and gave around twenty years of his free time (plus a few full-time years at the end) to make this new, high-quality Greek New Testament freely available.</p>' },
+                'acknowledgements': '<p class="acknwldg">Grateful thanks to Dr. Alan Bunning who founded the <a href="https://GreekCNTR.org">Center for New Testament Restoration</a> and gave around twenty years of his free time (plus a few full-time years at the end) to make this new, high-quality Greek New Testament freely available.</p>' },
         'UGNT': {'about': '<p class="about">unfoldingWord® Greek New Testament (2022).</p>',
                 'copyright': '<p class="copyright">Copyright © 2022 by unfoldingWord.</p>',
                 'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
@@ -675,7 +681,21 @@ def createSitePages() -> bool:
         lvBible.loadESFMWordFile( wordFileName )
     state.OETRefData['word_table'] = list(lvBible.ESFMWordTables.values())[0]
     columnHeaders = state.OETRefData['word_table'][0]
-    assert columnHeaders == 'Ref\tGreek\tLemma\tGlossWords\tGlossCaps\tProbability\tStrongsExt\tRole\tMorphology\tTags' # If not, probably need to fix some stuff
+    assert columnHeaders == 'Ref\tGreekWord\tSRLemma\tGreekLemma\tGlossWords\tGlossCaps\tProbability\tStrongsExt\tRole\tMorphology\tTags' # If not, probably need to fix some stuff
+
+    # Make a BCV index to the OET word table
+    state.OETRefData['word_table_index'] = {}
+    lastBCVref = None
+    startIx = 1
+    for n, columns_string in enumerate( state.OETRefData['word_table'][1:], start=1 ):
+        wordRef = columns_string.split( '\t', 1 )[0] # Something like 'MAT_1:1w1'
+        BCVref = wordRef.split( 'w', 1 )[0] # Something like 'MAT_1:1'
+        if BCVref != lastBCVref:
+            if lastBCVref is not None:
+                state.OETRefData['word_table_index'][lastBCVref] = (startIx,n-1)
+            startIx = n
+            lastBCVref = BCVref
+    state.OETRefData['word_table_index'][lastBCVref] = (startIx,n) # Save the final one
 
     load_transliteration_table( 'Greek' )
     load_transliteration_table( 'Hebrew' )
@@ -776,7 +796,7 @@ def createSitePages() -> bool:
             count += 1
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Copied {count:,} maps into {TOBDmapDestinationFolder}/." )
 
-        # In DEBUG mode, we need to copy the .css files and Bible.js across
+        # In TEST mode, we need to copy the .css files and Bible.js across
         if DESTINATION_FOLDER != NORMAL_DESTINATION_FOLDER:
             count = 0
             for filepath in glob.glob( f'{NORMAL_DESTINATION_FOLDER}/*.css' ):
@@ -788,7 +808,7 @@ def createSitePages() -> bool:
                 count += 1
             vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Copied {count:,} stylesheets and scripts into {DESTINATION_FOLDER}/." )
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f'''\nNOW RUN "npx pagefind --glob "{{OET,pa}}/**/*.{{htm}}" --site ../htmlPages{'/Test' if TEST_MODE else ''}/" to create search index!''' )
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f'''\nNOW RUN "npx pagefind --glob "{{OET,pa}}/**/*.{{htm}}" --site ../htmlPages{'/Test' if TEST_MODE else ''}/" to create search index!''' )
 # end of createSitePages.createSitePages
 
 
@@ -1009,7 +1029,7 @@ def createDetailsPages( level:int, buildFolder:Path, state ) -> bool:
             # .replace( f'''<a title="{state.BibleNames[versionAbbreviation]}" href="{'../'*(level+1)}{BibleOrgSysGlobals.makeSafeString(versionAbbreviation)}/details.htm#Top">{versionAbbreviation}</a>''',
             #             f'''<a title="Up to {state.BibleNames[versionAbbreviation]}" href="{'../'*(level+1)}{BibleOrgSysGlobals.makeSafeString(versionAbbreviation)}/">↑{versionAbbreviation}</a>''' )
     html = f'''{topHtml}<h1 id="Top">Details for all versions</h1>
-<p class="note">If you are the copyright owner of a Bible translation and would like to see it listed on this site,
+<p class="note">If you’re the copyright owner of a Bible translation and would like to see it listed on this site,
   please contact us at <b>Freely</b> dot <b>Given</b> dot <b>org</b> (at) <b>gmail</b> dot <b>com</b>.</p>
 {allDetailsHTML}{makeBottom( level, 'allDetails', state )}'''
     checkHtml( 'AllDetails', html )

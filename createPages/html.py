@@ -62,7 +62,7 @@ from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39, BOOKLIST_NT27
 # from Bibles import fetchChapter
 
 
-LAST_MODIFIED_DATE = '2023-10-10' # by RJH
+LAST_MODIFIED_DATE = '2023-10-20' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
 PROGRAM_VERSION = '0.56'
@@ -436,6 +436,9 @@ def do_OET_LV_HTMLcustomisations( html:str ) -> str:
             .replace( '~~COMMENT~~', '<!--' ).replace( '~~V', '_V' )
             .replace( '~~COLON~~', ':' ).replace( '~~PERIOD~~', '.' )
             )
+    # assert '+' not in html, f"{html[html.index('+')-20:html.index('+')+30]}"
+    # assert '^' not in html, f"{html[html.index('^')-20:html.index('^')+30]}"
+    # assert '<span class="add">' not in html, f'''{html[html.index('<span class="add">')-20:html.index('<span class="add">')+50]}'''
     return html
 # end of html.do_OET_LV_HTMLcustomisations
 

@@ -24,6 +24,10 @@
 
 """
 Module handling createParallelPages functions.
+
+CHANGELOG:
+    2023-10-23 Move SR-GNT up so it's under OET-LV
+    2023-10-25 Add word numbers to SR-GNT words
 """
 from gettext import gettext as _
 from typing import Dict, List, Tuple
@@ -43,13 +47,14 @@ from usfm import convertUSFMMarkerListToHtml
 from Bibles import formatTyndaleBookIntro, formatUnfoldingWordTranslationNotes, formatTyndaleNotes, tidyBBB
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
                     makeTop, makeBottom, makeBookNavListParagraph, checkHtml
-from createOETReferencePages import CNTR_BOOK_ID_MAP, livenOETWordLinks
+from createOETReferencePages import CNTR_BOOK_ID_MAP
+from OETHandlers import livenOETWordLinks
 
 
-LAST_MODIFIED_DATE = '2023-10-09' # by RJH
+LAST_MODIFIED_DATE = '2023-10-25' # by RJH
 SHORT_PROGRAM_NAME = "createParallelPages"
 PROGRAM_NAME = "OpenBibleData createParallelPages functions"
-PROGRAM_VERSION = '0.77'
+PROGRAM_VERSION = '0.80'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -119,6 +124,9 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
     try: os.makedirs( folder )
     except FileExistsError: pass # they were already there
 
+    # Move SR-GNT up after OET-RV and OET-LV
+    parallelVersions = state.BibleVersions[:]; parallelVersions.remove('SR-GNT'); parallelVersions.insert( 3, 'SR-GNT' )
+
     # We don't want the book link for this book to be a recursive link, so remove <a> marking
     ourTidyBBB = tidyBBB( BBB )
     ourTidyBbb = tidyBBB( BBB, titleCase=True )
@@ -126,7 +134,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
             .replace( f'''<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB).replace('James','Jacob/(James)')}" href="../{BBB}/">{ourTidyBBB}</a>''', ourTidyBBB )
 
     numChapters = None
-    for versionAbbreviation in state.BibleVersions:
+    for versionAbbreviation in parallelVersions: # Our adjusted order
         if versionAbbreviation == 'OET': continue # that's only a "pseudo-version"!
         referenceBible = state.preloadedBibles[versionAbbreviation]
         if BBB not in referenceBible: continue # don't want to force loading the book
@@ -167,7 +175,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                 navLinks = f'<p id="__ID__" class="vNav">{leftCLink}{leftVLink}{ourTidyBbb} Book Introductions <a title="Go to __WHERE__ of page" href="#__LINK__">__ARROW__</a>{rightVLink}{rightCLink}{interlinearLink}{detailsLink}</p>' if c==-1 \
                         else f'<p id="__ID__" class="vNav">{introLink}{leftCLink}{leftVLink}{ourTidyBbb} {C}:{V} <a title="Go to __WHERE__ of page" href="#__LINK__">__ARROW__</a>{rightVLink}{rightCLink}{interlinearLink}{detailsLink}</p>'
                 pHtml = ''
-                for versionAbbreviation in state.BibleVersions:
+                for versionAbbreviation in parallelVersions: # our adjusted order
                     if versionAbbreviation == 'OET': continue # Skip this pseudo-version as we have OET-RV and OET-LV
                     if versionAbbreviation in ('UHB','JPS') \
                     and not BibleOrgSysGlobals.loadedBibleBooksCodes.isOldTestament_NR( BBB):
@@ -235,36 +243,35 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                                     modernisedTextHtml = modernisedTextHtml.replace( 'J', 'Y' ).replace( 'Ie', 'Ye' ).replace( 'Io', 'Yo' )
                                 if modernisedTextHtml != textHtml: # only show it if it changed
                                     textHtml = f'{textHtml}<br>  ({modernisedTextHtml})'
+                            elif versionAbbreviation == 'LUT':
+                                if (adjustedTextHtml:=translateGerman(textHtml)) != textHtml: # only show it if it changed
+                                    textHtml = f'{textHtml}<br>  ({adjustedTextHtml})'
                             elif versionAbbreviation in ('CLV',):
                                 if (adjustedTextHtml:=adjustLatin(textHtml)) != textHtml: # only show it if it changed
                                     textHtml = f'{textHtml}<br>  ({adjustedTextHtml})'
-                            elif versionAbbreviation in ('SR-GNT','UGNT','SBL-GNT','TC-GNT','BrLXX'):
-                                # print( f"{versionAbbreviation} {BBB} {C}:{V} {textHtml=}")
+                            elif versionAbbreviation == 'SR-GNT':
+                                if C!='-1' and V!='0' and textHtml:
+                                    # print( f"{BBB} {C}:{V} SR-GNT {verseEntryList=} {textHtml=} {transcription=}" )
+                                    if '<' in textHtml or '>' in textHtml or '=' in textHtml or '"' in textHtml:
+                                        if '<br>' not in textHtml: # Some verses have a sentence break
+                                            halt # Have some unexpected fields in SR-GNT textHtml
+                                    textHtml = brightenSRGNT( BBB, C, V, textHtml, verseEntryList, state )
+                                transcription = transliterate_Greek(textHtml) # Colourisation and nomina sacra gets carried through
+                                if 'Ah' in transcription or ' ah' in transcription or transcription.startswith('ah') \
+                                or 'Eh' in transcription or ' eh' in transcription or transcription.startswith('eh') \
+                                or 'Oh' in transcription or ' oh' in transcription or transcription.startswith('oh') \
+                                or 'Uh' in transcription or ' uh' in transcription or transcription.startswith('uh'):
+                                    raise ValueError( f"Bad Greek transcription for {versionAbbreviation} {BBB} {C}:{V} {transcription=} from '{textHtml}'" )
+                                # Add an extra link to the CNTR collation page
+                                collationHref = f'https://GreekCNTR.org/collation/?v={CNTR_BOOK_ID_MAP[BBB]}{C.zfill(3)}{V.zfill(3)}'
+                                textHtml = f'{textHtml}<br> (<a title="Go to the GreekCNTR collation page" href="{collationHref}">SR-GNT</a> {transcription})'
+                            elif versionAbbreviation in ('UGNT','SBL-GNT','TC-GNT','BrLXX'):
                                 transcription = transliterate_Greek(textHtml)
                                 if 'Ah' in transcription or ' ah' in transcription or transcription.startswith('ah') \
                                 or 'Eh' in transcription or ' eh' in transcription or transcription.startswith('eh') \
                                 or 'Oh' in transcription or ' oh' in transcription or transcription.startswith('oh') \
                                 or 'Uh' in transcription or ' uh' in transcription or transcription.startswith('uh'):
-                                    print( f"{versionAbbreviation} {BBB} {C}:{V} {transcription=} from '{textHtml}'")
-                                    halt_on_bad_greek_transcription
-                                if versionAbbreviation == 'SR-GNT': # for the transcription, bolden nomina sacra words
-                                    searchStartIndex = 0
-                                    while '˚' in transcription:
-                                        ixNS = transcription.index( '˚', searchStartIndex )
-                                        ixComma = transcription.find( ',', ixNS+1 )
-                                        if ixComma == -1: ixComma = 9999
-                                        ixPeriod = transcription.find( '.', ixNS+1 )
-                                        if ixPeriod == -1: ixPeriod = 9999
-                                        ixSpace = transcription.find( ' ', ixNS+1 )
-                                        if ixSpace == -1: ixSpace = 9999
-                                        ixEnd = min( ixComma, ixPeriod, ixSpace, len(transcription) )
-                                        transcription = f'''{transcription[:ixNS]}<span class="nominaSacra">{transcription[ixNS+1:ixEnd]}</span>{transcription[ixEnd:]}'''
-                                        searchStartIndex = ixEnd
-                                    # print( f"Now {transcription=}" )
-                                    # if '<span' in transcription: halt
-                                    # Make the entire SR verse text a link to the collation page
-                                    collationHref = f'https://GreekCNTR.org/collation/?{CNTR_BOOK_ID_MAP[BBB]}{C.zfill(3)}{V.zfill(3)}'
-                                    textHtml = f'<a title="Go to the GreekCNTR collation page" href="{collationHref}">{textHtml}</a>'
+                                    raise ValueError( f"Bad Greek transcription for {versionAbbreviation} {BBB} {C}:{V} {transcription=} from '{textHtml}'" )
                                 if transcription:
                                     textHtml = f'{textHtml}<br>  ({transcription})'
                                 # print( textHtml)
@@ -365,6 +372,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
 {adjBBBLinksHtml}
 <h1>Parallel {ourTidyBBB} {'Intro' if c==-1 else f'{C}:{V}'}</h1>
 <p class="rem">Note: This view shows ‘verses’ which are not natural language units and hence sometimes only part of a sentence will be visible. This view is only designed for doing comparisons of different translations. Click on the version abbreviation to see the verse in more of its context.</p>
+<p class="rem">Key: Light-green: Nominative case / Subject, Pink: Accusative case / Object, Yellow: Dative case / Indirect object, Orange: Genitive case / Possession.</p>
 {navLinks.replace('__ID__','Top').replace('__ARROW__','↓').replace('__LINK__','Bottom').replace('__WHERE__','bottom')}
 {pHtml}
 {navLinks.replace('__ID__','Bottom').replace('__ARROW__','↑').replace('__LINK__','Top').replace('__WHERE__','top')}
@@ -409,6 +417,108 @@ f'''<p class="chLst">{ourTidyBbb if ourTidyBbb!='Jac' else 'Jacob/(James)'} {'
 # end of html.createParallelVersePagesForBook
 
 
+def brightenSRGNT( BBB, C, V, textHtml, verseEntryList, state ) -> str:
+    """
+    Take the SR-GNT text (which includes punctuation and might also include <br> characters)
+        and make the role participants
+    """
+    # dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"brightenSRGNT( {BBB} {C}:{V} {textHtml}, {verseEntryList}, … )…" )
+
+    punctuatedGrkWords = textHtml.replace( '<br>', ' ').split( ' ' )
+    strippedGrkWords = [punctuatedGrkWord.lstrip( '“‘˚(' ).rstrip( '.,?!:”’·;)–…' ) for punctuatedGrkWord in punctuatedGrkWords]
+    # print( f"  gW {grkWords=}" )
+
+    # Match Greek words to word numbers
+    firstWordNumber,lastWordNumber = state.OETRefData['word_table_index'][f'{BBB}_{C}:{V}']
+    currentWordNumber = firstWordNumber
+    grkWordNumbers = []
+    for strippedGrkWord in strippedGrkWords:
+        # print( f"  {BBB} {C}:{V} {strippedGrkWord=} {currentWordNumber=} from ({firstWordNumber},{lastWordNumber})" )
+        ref, greekWord, SRLemma, _GrkLemma, glossWordsStr, glossCaps, probability, extendedStrongs, roleLetter, morphology, tagsStr = state.OETRefData['word_table'][currentWordNumber].split( '\t' )
+        while not probability and currentWordNumber < lastWordNumber:
+            currentWordNumber += 1
+            ref, greekWord, SRLemma, _GrkLemma, glossWordsStr, glossCaps, probability, extendedStrongs, roleLetter, morphology, tagsStr = state.OETRefData['word_table'][currentWordNumber].split( '\t' )
+        assert probability
+        if not greekWord.startswith('κρ') and not greekWord.startswith('μακρ') and not greekWord.startswith('γενν'): # Seems there were some spelling changes
+            # and greekWord not in ('κράββατον','κράββατόν'):
+            if greekWord.lower() != strippedGrkWord.lower():
+                logging.critical( f"Unable to find word number for {BBB} {C}:{V} {currentWordNumber=} {greekWord=} {strippedGrkWord=} {len(punctuatedGrkWords)=} {len(grkWordNumbers)=}" )
+                break # We failed to match -- it's not critical so we'll just stop here (meaning we won't have all the word numbers for this verse)
+            # assert greekWord.lower() == strippedGrkWord.lower(), f"{BBB} {C}:{V} {currentWordNumber=} {greekWord=} {strippedGrkWord=} {len(punctuatedGrkWords)=} {grkWordNumbers=}"
+        grkWordNumbers.append( currentWordNumber )    
+        assert currentWordNumber <= lastWordNumber
+        currentWordNumber += 1
+    if len(grkWordNumbers) != len(punctuatedGrkWords):
+        logging.critical( f"brighten SR-GNT was unable to find word numbers for all words for {BBB} {C}:{V} (got {len(grkWordNumbers)} out of {len(punctuatedGrkWords)})" )
+
+    # TODO: Not totally sure that we need these extras from https://github.com/Center-for-New-Testament-Restoration/SR files
+    #           now that we have the word numbers for the Greek words
+    allExtras = None
+    for verseEntry in verseEntryList:
+        # print( f"    vE {verseEntry=}" )
+        marker, extras = verseEntry.getMarker(), verseEntry.getExtras()
+        if extras: # Extras contain the info we need, like: ww @ 4 = 'Ἀρχὴ|lemma="ἀρχή" x-koine="αρχη" x-strong="G07460" x-morph="Gr,N,....NFS"'
+            # print( f"      ME {marker=} {extras=}" )
+            if allExtras is None:
+                allExtras = list( extras )
+            else: allExtras += list( extras )
+
+    if allExtras:
+        # Find each word in textHtml, find the word info in allExtras, and then update textHtml with more classes
+        searchStartIndex = wordNumberIndex = extraIndexOffset = 0
+        for _safetyCount1 in range( len(punctuatedGrkWords)+1 ):
+            rawGrkWord = punctuatedGrkWords[wordNumberIndex]
+            ix = textHtml.index( rawGrkWord, searchStartIndex )
+            # print( f"  aE {wordNumberIndex=} {rawGrkWord=} {searchStartIndex=} {ix=} {extraIndexOffset=}")
+            assert ix != -1
+            simpleGrkWord = rawGrkWord.lstrip( '“‘˚(' )
+            ix += len(rawGrkWord) - len(simpleGrkWord) # Adjust for removal of any leading punctuation
+            simpleGrkWord = simpleGrkWord.rstrip( '.,?!:”’·;)–…' )
+            assert simpleGrkWord.isalpha(), f"{simpleGrkWord=}"
+            attribDict = {}
+            for _safetyCount2 in range( 4 ):
+                extraEntry = allExtras[wordNumberIndex+extraIndexOffset]
+                # print( f"     {textHtml[ix:ix+20]=}… {extraEntry=}")
+                extraType, extraText = extraEntry.getType(), extraEntry.getText()
+                # print( f"       TyTxClTx {extraType=} {extraText=} {extraEntry.getCleanText()=}")
+                if extraType != 'ww': extraIndexOffset += 1; continue # it could be a footnote or something
+                if extraText.startswith( f'{simpleGrkWord}|' ):
+                    extraText = extraText[len(simpleGrkWord)+1:] # Remove the word that we've just confirmed, left with something like 'lemma="ἁμαρτία" x-koine="αμαρτιασ" x-strong="G02660" x-morph="Gr,N,....AFP"'
+                    for chunk in extraText.split( ' ' ):
+                        fieldName, fieldValue = chunk.split( '=', 1 )
+                        fieldValue = fieldValue.strip( '"' )
+                        if fieldName.startswith( 'x-' ): fieldName = fieldName[2:]
+                        if fieldName == 'morph':
+                            assert fieldValue.startswith( 'Gr,' )
+                            attribDict['role'] = fieldValue[3]
+                            fieldValue = fieldValue[5:] # Get only the morph bit
+                            assert len(fieldValue) == 7
+                        elif fieldName == 'strong':
+                            assert fieldValue[0] == 'G', f"{fieldValue=}"
+                            fieldValue = fieldValue[1:] # Get only the numerical bit
+                        # print( f"     {simpleGrkWord} {fieldName}='{fieldValue}'" )
+                        attribDict[fieldName] = fieldValue
+                    break
+                print( f"Oops!!! {simpleGrkWord=} {extraText=}"); halt
+            else: need_to_increase_count2_for_brightenSRGNT
+            # print( f"    {attribDict=}" )
+            try:
+                wordLink = f'../../rf/W/{grkWordNumbers[_safetyCount1]}.htm#Top' # We'd prefer to link to our own word pages
+            except IndexError:
+                wordLink = f'''https://BibleHub.com/greek/{attribDict['strong'][:-1]}.htm''' # default to BibleHub by Strongs number if we don't know the word number
+            textHtml = f'''{textHtml[:ix-1]}<b>˚<a title="{attribDict['role']}-{attribDict['morph']}" href="{wordLink}"><span class="case{'U' if attribDict['morph'][4]=='.' else attribDict['morph'][4]}">{simpleGrkWord}</span></a></b>{textHtml[ix+len(simpleGrkWord):]}''' \
+                        if '˚' in rawGrkWord else \
+                        f'''{textHtml[:ix]}<a title="{attribDict['role']}-{attribDict['morph']}" href="{wordLink}"><span class="case{'U' if attribDict['morph'][4]=='.' else attribDict['morph'][4]}">{simpleGrkWord}</span></a>{textHtml[ix+len(simpleGrkWord):]}'''
+            wordNumberIndex += 1
+            if wordNumberIndex >= len(punctuatedGrkWords):
+                break
+            searchStartIndex = ix + len(simpleGrkWord)
+        else: need_to_increase_count1_for_brightenSRGNT
+
+    return textHtml
+# end of html.brightenSRGNT
+
+
 ENGLISH_WORD_MAP = ( # Place longer words first,
                      #     use space before to prevent accidental partial-word matches
                      #     since we're only doing string matches (but they're case sensitive)
@@ -433,6 +543,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
     # Two words into one word
     (('a fore honde','afore hand','aforehande'),'aforehand'),
     ((' all wayes ',),' always '),
+    ((' any thyng',' eny thinge',' any thing'),' anything'),
     ((' can not ',),' cannot '),
     (('even tyde',),'eventide/evening'),
     (('fare wel ',),'farewell '),
@@ -443,6 +554,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
     ((' her selfe',' her self',' hir selfe',' hir self'),' herself'),
     ((' hym silf',' hym selfe',' him selfe'),' himself'),
     ((' it selfe',' it self',' it silfe',' it silf',),' itself'),
+    ((' lyke wyse',),' likewise'),
     (('money chaungeris','money chaungers'),'moneychangers'),
     (('sea syde','sea side'),'seaside'),
     (('strayght waye','streight waye'),'straightway'),
@@ -477,7 +589,8 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
             ((' aungel',),' angel'), ((' angwische',),' anguish'),
             (('anoyntiden','anointide','annoynted','anoynted'),'anointed'),(('Annoynted',),'Anointed'),((' annoynt',' anoynte',' anoynt'),' anoint'),
                 ((' anoon ',' anone ',' anon '),' anon/immediately '), (('Anothir',),'Another'),((' anothir',),' another'),
-            (('answerden','answerede','answerde','answeride','aunswered'),'answered'),((' aunswere ',' answere '),' answer '), ((' ony ',' eny '),' any '),
+            (('answerden','answerede','answerde','answeride','aunswered'),'answered'),((' aunswere ',' answere '),' answer '),
+            ((' ony ',' eny '),' any '), (('enythinge',),'anything'),
         (('apostlis',),'apostles'),
             (('appearaunce',),'appearance'),(('appearynge','apperynge','apperinge','appearyng'),'appearing'), (('appoynte','apoynte'),'appoint'),
         (('archaungel',),'archangel'), ((' aryse',),' arise'),(('Aryse ',),'Arise '), ((' arte ',),' art '),
@@ -485,6 +598,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
             (('astonnied','astonied','astonnyed','astonyed'),'astonished'), (('astromyenes',),'astronomers'),
         ((' eeten,',' eten,'),' ate,'), ((' athyrst',),' athirst'), ((' attayne ',' attaine '),' attain '),
         (('aucthoritie','auctoritie','authoritie','auctorite'),'authority'),
+        ((' auoyded',),' avoided'),
         ((' awaye',' awei'),' away'),
     ((' backe ',),' back '), (('baptysed','baptisid'),'baptised'), (('baptisynge','baptisyng'),'baptising'), (('baptisme','baptyme','baptym'),'baptism'), ((' baptyse',),' baptise'),
             (('basskettes','baskettes'),'baskets'), (('bastardes',),'bastards'),
@@ -500,7 +614,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
             ((' berith',),' beareth'),
             (('beseeching','besechyng'),'beseeching/imploring'),(('biseche ','beseech '),'beseech/implore '),(('biseche,','beseech,'),'beseech/implore,'), ((' besydes',),' besides'),((' bisidis',),' beside'),
             (('Bethanie ','Bethania ','Bethanye ','Betanye '),'Bethany '), (('Bethlehe ','Bethleem ','Bethlee '),'Bethlehem '), (('bitraiede','betraied'),'betrayed'),(('bitraye ','betraye ','betraie '),'betray '), ((' betere ',),' better '), ((' bitwixe',' betweene',' betwene'),' between'),
-            ((' beyonde',' biyende'),' beyond'),
+            ((' beyonde',' biyende',' biyondis'),' beyond'),
         ((' byd ',),' bid '), ((' byde ',),' bide/stay '), ((' bynde',),' bind'), ((' birthe',),' birth'),
         (('Blessid ',),'Blessed '),(('blesside','blissid'),'blessed'),
             (('blynde','blynd','blinde'),'blind'),
@@ -532,7 +646,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
             (('centurien',),'centurion'),
             ((' certayne',' certein',' certaine'),' certain'),
         (('cheynes','chaines'),'chains'), (('chamber','chaumber','chambre'),'chamber/room'), (('chaunced','chaunsed'),'chanced'), (('chaungeris',),'changers'), (('chastisith','chasteneth'),'chastens/disciplines'),
-            ((' cheife ',' chefe '),' chief '), (('chyldren',),'children'), (('chymney',),'chimney'),
+            ((' cheife ',' chefe '),' chief '), (('chyldren',),'children'),(('chylde,','childe,'),'child,'), (('chymney',),'chimney'),
             ((' chese ',),' choose '), (('chosun',),'chosen'),
             (('chirche',),'church'),(('Churche ',),'Church '),(('Churche,',),'Church,'),
             (('Christe','Crist'),'Christ'),
@@ -549,7 +663,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
                 (('companye',),'company'), (('comprehendiden',),'comprehended'),
             (('conseyue ',),'conceive '), (('confessioun',),'confession'), (('congregacion',),'congregation'), (('consyderest','considerest'),'consider'), (('consolacion',),'consolation'), (('contynued',),'continued'),(('contynuynge',),'continuing'), (('conueniently','coueniently'),'conveniently'),
             ((' corne ',),' corn '),
-            ((' coulde',' coude'),' could'), ((' cuntree',' countrey',' cuntrey',' cuntrei',' countre',' cuntre'),' country'),
+            ((' coulde',' coude'),' could'), ((' councill',' councell',' counsell'),' council'), ((' cuntree',' countrey',' cuntrey',' cuntrei',' countre',' cuntre'),' country'),
             ((' couered',),' covered'),
         ((' crieden',' criede',' cryed'),' cried'), (('crepell',),'crippled'),
             ((' crokid',),' crooked'), (('coroun ','croune ','crowne ',),'crown '), ((' crye ',' crie '),' cry '),((' crye,',' crie,'),' cry,'),
@@ -571,8 +685,8 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
                 ((' despysed',' dispiside'),' despised'),((' despyse ',' dispise '),' despise '),
                 ((' distriede',),' destroyed'),((' distrie ',' destroye ',' distroye '),' destroy '),
             ((' deuelis',' devylles',' deuils',' deuyls'),' devils'),((' devyll',' deuell',' deuyll'),' devil'),
-        ((' dyd ',' dide '),' did '),
-            ((' dyeth ',' dieth '),' dieth/dies '), ((' dieden ',),' died '),
+        ((' dyd ',' dide '),' did '),((' dide,',),' did,'),
+            ((' dyeth ',' dieth '),' dieth/dies '), ((' dieden ',),' died '),((' diede,',),' died,'),
             ((' discerne:',),' discern:'), (('disciplis',),'disciples'), (('disdayned',),'disdained'),(('disdaine ',),'disdain '),
                 ((' dyvers',' diuers'),' diverse/various'), (('devided','deuided','deuyded'),'divided'), (('devorsement','deuorcemet','diuorcement'),'divorcement'),
         ((' doe ',),' do '),((' doe?',),' do?'),
@@ -617,7 +731,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
             ((' flyght ',),' flight '),
             (('flockis',),'flocks'), (('flowith ','floweth '),'floweth/flows '),
         ((' foale ',),' foal '),
-            ((' foold ',),' fold '), (('folowed','folewiden'),'followed'), ((' folowe',' folow',' suen'),' follow'), (('Folowe','Folow'),'Follow'),
+            ((' foold ',),' fold '), ((' folowed',' folewiden',' suede'),' followed'), ((' folowe',' folow',' suen'),' follow'), (('Folowe','Folow'),'Follow'),
             ((' foote ',' fote '),' foot '),
             (('forgeven','foryouun','forgeuen','forgiuen'),'forgiven'), ((' forgiue ',' foryyue ',' forgeve ',' forgeue '),' forgive '),
                 ((' fornicacion',),' fornication'),
@@ -629,7 +743,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
         ((' ful ',),' full '), (('fulfillid','fulfylled'),'fulfilled'), ((' fornace',),' furnace'),
     (('Galile ',),'Galilee '),(('Galile,',),'Galilee,'), ((' galoun',),' gallon'),
             ((' garmentes',' garmetes'),' garments'),((' garmente ',),' garment '),
-            ((' yate',),' gate'), (('gadirid','gaderid','gadered'),'gathered'),((' gadere ',' gaddre ',' geder '),' gather '),
+            ((' yate',),' gate'), (('gadirid','gaderid','gadered','gaddred'),'gathered'),((' gadere ',' gaddre ',' geder '),' gather '),
             ((' yaf ',' gaue '),' gave '),
         (('generacioun','generacion'),'generation'),((' gentyls',),' gentiles'),
         ((' goost',),' ghost'),
@@ -654,12 +768,12 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
             ((' hath ',),' hath/has '),
             (('Haue ',),'Have '),((' haue ',),' have '), ((' havinge',' hauinge',' hauing',' hauynge',' havynge',' hauyng'),' having'),
         ((' hee ',),' he '),
-            ((' helide',' heelid'),' healed'), ((' hearde',' herden',' herde',' herd'),' heard'),((' herynge',' hearinge',' hering'),' hearing'),((' heareth',' herith'),' hears'),((' heare',' heere'),' hear'),
+            ((' helide',' heelid'),' healed'), ((' hearde',' herden',' herde',' herd'),' heard'),((' herynge',' hearinge',' heringe',' hering'),' hearing'),((' heareth',' herith'),' hears'),((' heare',' heere'),' hear'),
                 (('Heythen',),'Heathen'),((' hethene',),' heathen'),
                 ((' hertis',' hertes',' heartes'),' hearts'),((' herte ',' hert '),' heart '), ((' heauens',' heuenes'),' heavens'), ((' heauen',' heuene',' heven'),' heaven'),
             (('Ebrews','Ebrues','Hebrues','Hebrewes'),'Hebrews'),
             ((' hede ',' heede '),' heed '),
-            ((' helle ',),' hell '),
+            ((' helde ',),' held '), ((' helle ',),' hell '), ((' helpe ',),' help '),
             ((' hir ',' hyr '),' her '),((' hir,',),' her,'),((' hir.',),' her.'),((' hir;',),' her;'), (('hirdmen','hyrdmen','heardmen','herdmen'),'herdsmen'), (('Erodians',),'Herodians'),(('Herodes',),"Herod's"),(('Herode ','Eroude '),'Herod '), (('Eroude,',),'Herod,'),
         ((' hidde ',),' hid '),
             ((' hiyeste',' hiyest'),' highest'),((' hye ',' hie ',' hiy '),' high '),
@@ -674,7 +788,9 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
         ((' hungren',),' hungering'),((' hungride',' hungred',' hugred'),' hungered'),((' hungur',' honger'),' hunger'), (('husbande','hosebonde'),'husband'),
         ((' hypocrisie',' ypocrisye'),' hypocrisy'),
     (('Y ',),'I '),((' Y ',),' I '),((' Y;',),' I;'),
-        (('Yf ',),'If '),((' yf ',),' if '), ((' ymage ',),' image '), (('Ys ',),'Is '),((' ys ',),' is '), (('Yt ',),'It '),((' yt ',),' it '),
+        ((' Yd',),' Id'),
+        (('Yf ',),'If '),((' yf ',),' if '), ((' ymage ',),' image '), (('Ys ',),'Is '),((' ys ',),' is '), ((' yssue',),' issue'),
+        (('Yt ',),'It '),((' yt ',),' it '),
         (('encreased',),'increased'), (('indignacioun',),'indignation'), ((' inheret ',' inherite '),' inherit '), (('interpretacion',),'interpretation'),(('interprete ',),'interpret '),
         (('immediatelye','immediatly'),'immediately'),
     (('Iorney',),'Journey'),(('iourney',),'journey'),
@@ -684,9 +800,10 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
         ((' killiden',' kylled',' kyllid'),' killed'),
             (('kingdome','kyngdoom','kyngdome','kyngdom'),'kingdom'), ((' kynges',' kyngis'),' kings'),((' kynge ',' kyng '),' king '),((' kynge,',' kyng,'),' king,'),((' kynge.',' kyng.'),' king.'), ((' kynnysmen',),' kinsmen'), ((' kynne',),' kin'),
             ((' kiste ',' kyssed '),' kissed '),
-        (('knewest','knewen','knewe'),'knew'), (('knowyng',),'knowing'), (('Knowe',),'Know'),((' knowe',' knowun',' woot'),' know'),
+        (('knewest','knewen','knewe'),'knew'), (('knowyng',),'knowing'), (('knowne','knowun','knowen'),'known'), (('Knowe',),'Know'),((' knowe',' woot'),' know'),
     ((' labor',),' labour'), ((' lomb ',' lambe ',' labe '),' lamb '),(('Lambe',),'Lamb'), ((' lastynge',),' lasting'),
             ((' lande ',' londe ',' lond ',' lode '),' land '),((' lande,',' londe,',' lond,'),' land,'),((' loond.',' lande.',' londe.',' lond.'),' land.'),((' lande;',' londe;',' lond;'),' land;'),
+            ((' laste ',),' last '),
             ((' laye ',),' lay '), ((' layed',' layde',' leiden', ' leyd',' layd'),' laid'),
             ((' leeueful',' leueful',' laufull',' lawfull'),' lawful'), (('Lawe.',),'Law.'),((' lawe ',),' law '),((' lawe,',),' law,'),((' lawe.',),' law.'),
         (('ledith','ledeth'),'leadeth/leads'), (('learnyng','learninge','lernynge'),'learning'),((' learne ',' lerne '),' learn '),(('Learne ','Lerne '),'Learn '), ((' leest',),' least'), ((' leeues',' leaues',' leves'),' leaves'), ((' leeue ',' leaue ',' leue ',' leve '),' leave '),
@@ -851,7 +968,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
             ((' stockis',),' stocks'), ((' stoonys',),' stones'),((' stoone',' stoon'),' stone'), ((' stoode ',' stoden ',' stode '),' stood '), ((' stoupe',' stowpe'),' stoop'),
             (('strayght',),'straight'), (('straunger',),'stranger'),(('straunge ',),'strange '), ((' strewiden ',' strawed ',' strowed '),' strewed '), ((' strijf ',' stryfe '),' strife '),((' stryuynge',' stryuyng',' stryvinge',' striuing'),' striving'), (('stumbleth','stombleth','stomblith'),'stumbles'),
         (('subiection','subieccion'),'subjection'),((' suget',),' subject'), (('substaunce',),'substance'),
-            ((' soch ',' suche ',' siche '),' such '),
+            ((' soch ',' suche ',' siche '),' such '), ((' soucke ',' sucke '),' suck '),
             (('suffrith',),'suffereth/suffers'),((' suffride',' suffred'),' suffered'),(('Suffre ',),'Suffer '),((' suffre ',),' suffer '), (('suffysed','suffised'),'sufficed'),
             (('Sommer',),'Summer'),((' sommer ',' somer '),' summer '),
             (('superscripcion',),'superscription'), (('supplicacion',),'supplication'),
@@ -926,7 +1043,8 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
             ((' withynne',),' within'),((' wi ',' wt '),' with '), (('widdred','wythred','wythered','wyddred'),'withered'),
                 (('withouten ',),'without '), (('witnessyng',),'witnessing'),((' wytnesse ',' witnesse ',' witnes '),' witness '),
             ((' wyues',),' wives'),
-        ((' womman',),' woman'), ((' wombe',),' womb'), ((' wymmen',' wemen'),' women'),
+        (('Woo ','Wo '),'Woe '),((' wo ',),' woe '),
+            ((' womman',),' woman'), ((' wombe',),' womb'), ((' wymmen',' wemen'),' women'),
             (('wondriden','wondride'),'wondered'),
             ((' worde',),' word'), ((' workes',' werkis'),' works'),((' worche ',' worke ',' werke ',' werk '),' work '),((' worke,',' werk,'),' work,'),((' worche.',),' work.'), ((' worlde',),' world'), ((' worme ',),' worm '), (('worschipide','worshypped'),'worshipped'), ((' worthie',' worthi'),' worthy'),
             (('Woulde ','Wolde '),'Would '),((' woldist ',' woldest ',' woulde ',' wolde '),' would '),
@@ -941,7 +1059,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
         (('Iohn','Ihon','Joon'),'Yohn'),
             (('Iordane ','Iordan ','Iorden ','Iorda ','Jordan '),'Yordan '),(('Iordane,','Iordan,','Iorden,','Iorda,','Jordan,'),'Yordan,'),
             (('Ioses','Joses'),'Yoses'),
-        (('Iudas','Ivdas','Judas'),'Yudas'), (('Iuda','Juda'),'Yudah'), (('Iudea','Judee'',Judaea'),'Yudea'), (('Iude',),'Yude'), (('Iury','Iurie'),'Yury/Yudea'),
+        (('Iudas','Ivdas','Judas'),'Yudas'), (('Iuda','Juda'),'Yudah'), (('Iudea','Judee'',Judaea'),'Yudea'), (('Iude',),'Yude'), (('Iury','Iurie'),'Yury/Yudea'), (('Iewry',),'Yewry'),
     (('Zebedeus ','zebede ','Zebede '),'Zebedee '), (('Zebedeus,','zebede,','Zebede,'),'Zebedee,'),
 
     # Roman numerals
@@ -987,6 +1105,38 @@ def moderniseEnglishWords( html:str ) -> bool:
 
     return html
 # end of html.moderniseEnglishWords
+
+
+GERMAN_WORD_MAP = (
+    ('Aber ','But '), (' alle ',' all '), (' auch.',' also.'), (' aus ',' from '),
+    (' das ',' the '),('Der ','The '),(' der ',' the '),(' des ',' the '),(' die ',' the '), 
+        ('Du ','You '),
+    (' eine ',' one '),
+    ('Gottes ','God’s '), (' große ',' great '),
+    (' ihm ',' him '),(' ihm.',' him.'), (' ihn ',' him '),
+    ('JEsus','Yesus'), ('J','Y'),
+        ('Jüngern ','disciples '),
+    (' kamen ',' came '),
+    (' machten',' make'),('Meer.','sea.'), (' mit ',' with '),
+    (' nicht ',' not '),
+    ('Samen ','seed '), (' sieben ',' seven '), ('Sohn!','son!'),(' sprach ',' spoke '),
+    ('Und ','And '),(' und ',' and '),
+    (' viel ',' many '), ('Volks ','people '), (' von ',' from '),
+    ('Weib ','woman '), (' wenn ',' when '),
+    (' zu ',' to '), ('Zuletzt ','Finally '),
+    )
+def translateGerman( html:str ) -> bool:
+    """
+    Convert ancient spellings to modern ones.
+    """
+    fnPrint( DEBUGGING_THIS_MODULE, f"translateGerman( ({len(html)}) )" )
+
+    for GermanWord,EnglishWord in GERMAN_WORD_MAP:
+        html = html.replace( GermanWord, EnglishWord )
+
+    return html
+# end of html.translateGerman
+
 
 def adjustLatin( html:str ) -> bool:
     """

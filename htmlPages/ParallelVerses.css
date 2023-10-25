@@ -112,3 +112,9 @@ span.fnRef { font-weight:bold; }
 span.xrRef { font-weight:bold; }
 /* span.fnText { } */
 /* span.xrText { } */
+
+/* SR-GNT cases */
+span.caseN { background-color:lightgreen; }
+span.caseA { background-color:pink; }
+span.caseG { background-color:orange; }
+span.caseD { background-color:yellow; }

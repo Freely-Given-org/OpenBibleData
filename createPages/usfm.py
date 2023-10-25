@@ -48,6 +48,7 @@ CHANGELOG:
     2023-08-23 Disable display of additional section headings in header boxes and in text
     2023-08-25 Fix missing spaces before verse numbers in OET-RV
     2023-09-23 Link to missing verses page
+    2023-10-13 Give error if unable to find xref book
 """
 from gettext import gettext as _
 from typing import Tuple
@@ -64,10 +65,10 @@ from BibleOrgSys.Internals.InternalBibleInternals import getLeadingInt
 from html import checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-09-25' # by RJH
+LAST_MODIFIED_DATE = '2023-10-13' # by RJH
 SHORT_PROGRAM_NAME = "usfm"
 PROGRAM_NAME = "OpenBibleData USFM to HTML functions"
-PROGRAM_VERSION = '0.59'
+PROGRAM_VERSION = '0.60'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -797,7 +798,17 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
             if not match: break
             # print( match.groups() )
             xB, xC, xV = match.groups()
+            # For books without a book number like 1 Cor, the regex may capture an extra space before the book abbreviation
+            xB = xB.lstrip().replace('Yoel','Joel').replace('Yob','Job')
+            assert ' ' not in xB, f"{match.groups()}"
+            assert xC.isdigit(), f"{match.groups()}"
+            assert xV.isdigit(), f"{match.groups()}"
             xBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromText( xB )
+            if BBB:
+                assert int(xC) <= BibleOrgSysGlobals.loadedBibleBooksCodes.getMaxChapters( xBBB ), f"{match.groups()}"
+            else:
+                logging.critical( f"Failed to find xref book from '{xB}' in {match.groups()} for {versionAbbreviation} {segmentType} {basicOnly=} {refTuple}")
+                halt
             xrefLiveMiddle = f'{xrefLiveMiddle[:match.start()]}<a title="View cross reference" href="{pathPrefix}{xBBB}_C{xC}.htm#C{xC}V{xV}">{match.group()}</a>{xrefLiveMiddle[match.end():]}'
             reStartIx = match.end() + 55 + len(pathPrefix) # approx number of characters that we add
         else:
