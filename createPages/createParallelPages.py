@@ -51,10 +51,10 @@ from createOETReferencePages import CNTR_BOOK_ID_MAP
 from OETHandlers import livenOETWordLinks
 
 
-LAST_MODIFIED_DATE = '2023-10-25' # by RJH
+LAST_MODIFIED_DATE = '2023-10-30' # by RJH
 SHORT_PROGRAM_NAME = "createParallelPages"
 PROGRAM_NAME = "OpenBibleData createParallelPages functions"
-PROGRAM_VERSION = '0.80'
+PROGRAM_VERSION = '0.81'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -174,7 +174,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                 detailsLink = f''' <a title="Show details about these works" href="{'../'*(level)}allDetails.htm#Top">©</a>'''
                 navLinks = f'<p id="__ID__" class="vNav">{leftCLink}{leftVLink}{ourTidyBbb} Book Introductions <a title="Go to __WHERE__ of page" href="#__LINK__">__ARROW__</a>{rightVLink}{rightCLink}{interlinearLink}{detailsLink}</p>' if c==-1 \
                         else f'<p id="__ID__" class="vNav">{introLink}{leftCLink}{leftVLink}{ourTidyBbb} {C}:{V} <a title="Go to __WHERE__ of page" href="#__LINK__">__ARROW__</a>{rightVLink}{rightCLink}{interlinearLink}{detailsLink}</p>'
-                pHtml = ''
+                parallelHtml = ''
                 for versionAbbreviation in parallelVersions: # our adjusted order
                     if versionAbbreviation == 'OET': continue # Skip this pseudo-version as we have OET-RV and OET-LV
                     if versionAbbreviation in ('UHB','JPS') \
@@ -280,12 +280,9 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                                 textHtml = f'{textHtml}<br>  ({transliterate_Hebrew(textHtml)})'
                                 # print( textHtml)
                             if textHtml:
-                                vHtml = f'''
-    <p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName"><a title="View {state.BibleNames['OET']} chapter" href="{'../'*level}OET/byC/{BBB}_C{C}.htm#Top">OET</a> (<a title="View {state.BibleNames['OET-RV']} chapter" href="{'../'*level}OET-RV/byC/{BBB}_C{C}.htm#Top">OET-RV</a>)</span> {textHtml}</p>
-    ''' if versionAbbreviation=='OET-RV' else f'''
-    <p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation]} chapter (translated from the Latin)" href="{'../'*level}{versionAbbreviation}/byC/{BBB}_C{C}.htm#Top">{versionAbbreviation}</a></span> {textHtml}</p>
-    ''' if versionAbbreviation=='WYC' else f'''
-    <p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation]} chapter" href="{'../'*level}{versionAbbreviation}/byC/{BBB}_C{C}.htm#Top">{versionAbbreviation}</a></span> {textHtml}</p>
+                                vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName"><a title="View {state.BibleNames['OET']} chapter" href="{'../'*level}OET/byC/{BBB}_C{C}.htm#Top">OET</a> (<a title="View {state.BibleNames['OET-RV']} chapter" href="{'../'*level}OET-RV/byC/{BBB}_C{C}.htm#Top">OET-RV</a>)</span> {textHtml}</p>
+    ''' if versionAbbreviation=='OET-RV' else f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation]} chapter (translated from the Latin)" href="{'../'*level}{versionAbbreviation}/byC/{BBB}_C{C}.htm#Top">{versionAbbreviation}</a></span> {textHtml}</p>
+    ''' if versionAbbreviation=='WYC' else f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation]} chapter" href="{'../'*level}{versionAbbreviation}/byC/{BBB}_C{C}.htm#Top">{versionAbbreviation}</a></span> {textHtml}</p>
     '''
                             else: # no textHtml -- can include verses that are not in the OET-LV
                                 if c==-1 or v==0: # For these edge cases, we don't want the version abbreviation appearing
@@ -333,32 +330,32 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                     if vHtml:
                         # dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"\n\n{pHtml=} {vHtml=}" )
                         checkHtml( f'{versionAbbreviation} {BBB} {C}:{V}', vHtml, segmentOnly=True )
-                        pHtml = f'{pHtml}{vHtml}'
+                        parallelHtml = f'{parallelHtml}{vHtml}'
 
                 if c == -1: # Handle Tyndale book intro summaries and book intros
                     tbisHtml = formatTyndaleBookIntro( 'TBIS', level, BBB, 'parallel', state )
                     if tbisHtml:
                         tbisHtml = f'''<div id="TBIS" class="parallelTBI"><a title="Go to TSN copyright page" href="{'../'*level}TSN/details.htm#Top">TBIS</a> <b>Tyndale Book Intro Summary</b>: {tbisHtml}</div><!--end of TBI-->\n'''
-                        pHtml = f'{pHtml}{tbisHtml}'
+                        parallelHtml = f'{parallelHtml}{tbisHtml}'
                     tbiHtml = formatTyndaleBookIntro( 'TBI', level, BBB, 'parallel', state )
                     if tbiHtml:
                         tbiHtml = f'''<div id="TBI" class="parallelTBI"><a title="Go to TSN copyright page" href="{'../'*level}TSN/details.htm#Top">TBI</a> <b>Tyndale Book Intro</b>: {tbiHtml}</div><!--end of TBI-->\n'''
-                        pHtml = f'{pHtml}{tbiHtml}'
+                        parallelHtml = f'{parallelHtml}{tbiHtml}'
 
                 # Handle Tyndale open study notes and theme notes
                 tsnHtml = formatTyndaleNotes( 'TOSN', level, BBB, C, V, 'parallel', state )
                 if tsnHtml:
                     tsnHtml = f'''<div id="TSN" class="parallelTSN"><a title="Go to TSN copyright page" href="{'../'*level}TSN/details.htm#Top">TSN</a> <b>Tyndale Study Notes</b>: {tsnHtml}</div><!--end of TSN-->\n'''
-                    pHtml = f'{pHtml}{tsnHtml}'
+                    parallelHtml = f'{parallelHtml}{tsnHtml}'
                 ttnHtml = formatTyndaleNotes( 'TTN', level, BBB, C, V, 'parallel', state )
                 if ttnHtml:
                     ttnHtml = f'''<div id="TTN" class="parallelTTN"><a title="Go to TSN copyright page" href="{'../'*level}TSN/details.htm#Top">TTN</a> <b>Tyndale Theme Notes</b>: {ttnHtml}</div><!--end of TTN-->\n'''
-                    pHtml = f'{pHtml}{ttnHtml}'
+                    parallelHtml = f'{parallelHtml}{ttnHtml}'
                 # Handle uW translation notes
                 utnHtml = formatUnfoldingWordTranslationNotes( level, BBB, C, V, 'parallel', state )
                 if utnHtml:
                     utnHtml = f'''<div id="UTN" class="parallelUTN"><a title="Go to UTN copyright page" href="{'../'*level}UTN/details.htm#Top">UTN</a> <b>uW Translation Notes</b>: {utnHtml}</div><!--end of UTN-->\n'''
-                    pHtml = f'{pHtml}{utnHtml}'
+                    parallelHtml = f'{parallelHtml}{utnHtml}'
 
                 filename = 'Intro.htm' if c==-1 else f'C{C}V{V}.htm'
                 # filenames.append( filename )
@@ -368,19 +365,19 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                         .replace( '__KEYWORDS__', f'Bible, {ourTidyBBB}, parallel' )
                 if BBB in state.booksToLoad['OET']:
                     top = top.replace( f'''href="{'../'*level}il/"''', f'''href="{'../'*level}il/{BBB}/C{C}V{V}.htm#Top"''')
-                pHtml = f'''{top}<!--parallel verse page-->
+                parallelHtml = f'''{top}<!--parallel verse page-->
 {adjBBBLinksHtml}
 <h1>Parallel {ourTidyBBB} {'Intro' if c==-1 else f'{C}:{V}'}</h1>
 <p class="rem">Note: This view shows ‘verses’ which are not natural language units and hence sometimes only part of a sentence will be visible. This view is only designed for doing comparisons of different translations. Click on the version abbreviation to see the verse in more of its context.</p>
 <p class="rem">Key: Light-green: Nominative case / Subject, Pink: Accusative case / Object, Yellow: Dative case / Indirect object, Orange: Genitive case / Possession.</p>
 {navLinks.replace('__ID__','Top').replace('__ARROW__','↓').replace('__LINK__','Bottom').replace('__WHERE__','bottom')}
-{pHtml}
+{parallelHtml}
 {navLinks.replace('__ID__','Bottom').replace('__ARROW__','↑').replace('__LINK__','Top').replace('__WHERE__','top')}
 {makeBottom( level, 'parallel', state )}'''
-                checkHtml( f'Parallel {BBB} {C}:{V}', pHtml )
+                checkHtml( f'Parallel {BBB} {C}:{V}', parallelHtml )
                 with open( filepath, 'wt', encoding='utf-8' ) as pHtmlFile:
-                    pHtmlFile.write( pHtml )
-                vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(pHtml):,} characters written to {filepath}" )
+                    pHtmlFile.write( parallelHtml )
+                vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(parallelHtml):,} characters written to {filepath}" )
                 vLinks.append( f'<a title="Go to parallel verse page" href="{filename}#Top">{C}:{V}</a>' )
                 if c == -1: # then we're doing the book intro
                     break # no need to loop -- we handle the entire intro in one go
@@ -506,9 +503,10 @@ def brightenSRGNT( BBB, C, V, textHtml, verseEntryList, state ) -> str:
                 wordLink = f'../../rf/W/{grkWordNumbers[_safetyCount1]}.htm#Top' # We'd prefer to link to our own word pages
             except IndexError:
                 wordLink = f'''https://BibleHub.com/greek/{attribDict['strong'][:-1]}.htm''' # default to BibleHub by Strongs number if we don't know the word number
-            textHtml = f'''{textHtml[:ix-1]}<b>˚<a title="{attribDict['role']}-{attribDict['morph']}" href="{wordLink}"><span class="case{'U' if attribDict['morph'][4]=='.' else attribDict['morph'][4]}">{simpleGrkWord}</span></a></b>{textHtml[ix+len(simpleGrkWord):]}''' \
+            caseClassHtml = '' if attribDict['morph'][4]=='.' else f'''class="case{attribDict['morph'][4]}" ''' # Has a trailing space
+            textHtml = f'''{textHtml[:ix-1]}<b>˚<a title="{attribDict['role']}-{attribDict['morph']}" {caseClassHtml}href="{wordLink}">{simpleGrkWord}</a></b>{textHtml[ix+len(simpleGrkWord):]}''' \
                         if '˚' in rawGrkWord else \
-                        f'''{textHtml[:ix]}<a title="{attribDict['role']}-{attribDict['morph']}" href="{wordLink}"><span class="case{'U' if attribDict['morph'][4]=='.' else attribDict['morph'][4]}">{simpleGrkWord}</span></a>{textHtml[ix+len(simpleGrkWord):]}'''
+                        f'''{textHtml[:ix]}<a title="{attribDict['role']}-{attribDict['morph']}" {caseClassHtml}href="{wordLink}">{simpleGrkWord}</a>{textHtml[ix+len(simpleGrkWord):]}'''
             wordNumberIndex += 1
             if wordNumberIndex >= len(punctuatedGrkWords):
                 break

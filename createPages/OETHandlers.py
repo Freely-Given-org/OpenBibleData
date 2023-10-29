@@ -59,10 +59,10 @@ sys.path.append( '../../BibleTransliterations/Python/' )
 from BibleTransliterations import transliterate_Greek
 
 
-LAST_MODIFIED_DATE = '2023-10-25' # by RJH
+LAST_MODIFIED_DATE = '2023-10-30' # by RJH
 SHORT_PROGRAM_NAME = "OETHandlers"
 PROGRAM_NAME = "OpenBibleData OET handler"
-PROGRAM_VERSION = '0.25'
+PROGRAM_VERSION = '0.30'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -265,15 +265,22 @@ def livenOETWordLinks( bibleObject:ESFMBible, BBB:str, givenEntryList:InternalBi
             _ref, _greekWord, SRLemma, _GrkLemma, _glossWordsStr, _glossCaps, _probability, _extendedStrongs, _roleLetter, morphology, _tagsStr = wordRow.split( '\t' )
 
             # Do colourisation
-            if morphology[4] != '.':
-                # print( f"    {originalText[wordnumberMatch.end():]=}")
-                wordStartIx = originalText.index( '>', wordnumberMatch.end()+5 ) + 1 # Allow for '#Top"' plus '>'
-                wordEndIx = originalText.index( '<', wordStartIx + 1 )
-                # print( f"  Found {BBB} word '{originalText[wordStartIx:wordEndIx]}'")
-                originalText = f'''{originalText[:wordStartIx]}<span class="case{morphology[4]}">{originalText[wordStartIx:wordEndIx]}</span>{originalText[wordEndIx:]}'''
-                # print( f"    Now '{originalText[wordnumberMatch.end():]}'")
+            if morphology[4] != '.': # Add a clase to the anchor for the English word
+                # print( f"    livenOETWordLinks {originalText[wordnumberMatch.end():]=}")
+                assert originalText[wordnumberMatch.end():].startswith( '#Top">' )
+                anchorEndIx = originalText.index( '>', wordnumberMatch.end()+5 ) # Allow for '#Top"'
+                assert originalText[anchorEndIx] == '>'
+                originalText = f'''{originalText[:anchorEndIx]} class="case{morphology[4]}"{originalText[anchorEndIx:]}'''
+                # print( f"    livenOETWordLinks now '{originalText[wordnumberMatch.end():]}'")
                 colourisationsAdded += 1
-                
+                # # Old Code puts a new span inside the anchor containing the English word
+                # print( f"    livenOETWordLinks {originalText[wordnumberMatch.end():]=}")
+                # wordStartIx = originalText.index( '>', wordnumberMatch.end()+5 ) + 1 # Allow for '#Top"' plus '>'
+                # wordEndIx = originalText.index( '<', wordStartIx + 1 )
+                # print( f"  livenOETWordLinks found {BBB} word '{originalText[wordStartIx:wordEndIx]}'")
+                # originalText = f'''{originalText[:wordStartIx]}<span class="case{morphology[4]}">{originalText[wordStartIx:wordEndIx]}</span>{originalText[wordEndIx:]}'''
+                # print( f"    livenOETWordLinks now '{originalText[wordnumberMatch.end():]}'")
+                # colourisationsAdded += 1
 
             newTitleGuts = f'''="{greekWord} ({transliteratedWord}){'' if SRLemma==transliteratedWord else f" from {SRLemma}"}"'''
             originalText = f'''{originalText[:titleMatch.start()]}{newTitleGuts}{originalText[titleMatch.end():]}'''

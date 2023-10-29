@@ -113,8 +113,8 @@ span.xrRef { font-weight:bold; }
 /* span.fnText { } */
 /* span.xrText { } */
 
-/* SR-GNT cases */
-span.caseN { background-color:lightgreen; }
-span.caseA { background-color:pink; }
-span.caseG { background-color:orange; }
-span.caseD { background-color:yellow; }
+/* SR-GNT cases (also used for OET-RV and OET-LV) */
+.caseN { background-color:lightgreen; }
+.caseA { background-color:pink; }
+.caseG { background-color:orange; }
+.caseD { background-color:yellow; }

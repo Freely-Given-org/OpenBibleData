@@ -52,10 +52,10 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_
 from OETHandlers import livenOETWordLinks
 
 
-LAST_MODIFIED_DATE = '2023-10-10' # by RJH
+LAST_MODIFIED_DATE = '2023-10-25' # by RJH
 SHORT_PROGRAM_NAME = "createSectionPages"
 PROGRAM_NAME = "OpenBibleData createSectionPages functions"
-PROGRAM_VERSION = '0.41'
+PROGRAM_VERSION = '0.42'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -136,7 +136,7 @@ def createOETSectionPages( level:int, folder:Path, rvBible, lvBible, state ) -> 
                                 additionalMarkerName = { 's1':'section heading', 's2':'2nd level section heading' }[additionalMarker]
                                 # NOTE: word 'Alternate ' is searched for below
                                 state.sectionsLists['OET-RV'][BBB].append( (c,v,'?','?',additionalFieldText,f'Alternate {additionalMarkerName}',[],[],filename) )
-                            else: print( f"createOETSectionPages ignored additional \{additionalMarker} at {BBB} {c}:{v}" )
+                            else: vPrint( 'Info', DEBUGGING_THIS_MODULE, f"createOETSectionPages ignored additional \{additionalMarker} at {BBB} {c}:{v}" )
                         del additionalSectionHeadingsDict[(c,v)]
             sectionName, reasonMarker = sectionIndexEntry.getSectionNameReason()
             sectionName = sectionName.replace( "'", "’" ) # Replace apostrophes
@@ -147,7 +147,7 @@ def createOETSectionPages( level:int, folder:Path, rvBible, lvBible, state ) -> 
             rvVerseEntryList, rvContextList = bkObject._SectionIndex.getSectionEntriesWithContext( startCV )
             state.sectionsLists['OET-RV'][BBB].append( (startC,startV,endC,endV,sectionName,reasonName,rvContextList,rvVerseEntryList,filename) )
         if additionalSectionHeadingsDict:
-            print( f"{BBB} didn't use {additionalSectionHeadingsDict=}")
+            vPrint( 'Info', DEBUGGING_THIS_MODULE, f"{BBB} didn't use {additionalSectionHeadingsDict=}")
         # Handle left-over additions
         for (c,v),additionalFieldList in additionalSectionHeadingsDict.copy().items():
             # print( f"{c}:{v} {additionalFieldList}" )
@@ -157,7 +157,7 @@ def createOETSectionPages( level:int, folder:Path, rvBible, lvBible, state ) -> 
                 state.sectionsLists['OET-RV'][BBB].append( (c,v,'?','?',additionalFieldText,f'Alternate {additionalMarkerName}',[],[],filename) )
             del additionalSectionHeadingsDict[(c,v)]
         if additionalSectionHeadingsDict:
-            print( f"{BBB} didn't use {additionalSectionHeadingsDict=}")
+            vPrint( 'Info', DEBUGGING_THIS_MODULE, f"{BBB} didn't use {additionalSectionHeadingsDict=}")
             halt
 
 
