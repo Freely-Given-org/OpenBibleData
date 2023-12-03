@@ -59,7 +59,7 @@ sys.path.append( '../../BibleTransliterations/Python/' )
 from BibleTransliterations import transliterate_Greek
 
 
-LAST_MODIFIED_DATE = '2023-10-30' # by RJH
+LAST_MODIFIED_DATE = '2023-11-20' # by RJH
 SHORT_PROGRAM_NAME = "OETHandlers"
 PROGRAM_NAME = "OpenBibleData OET handler"
 PROGRAM_VERSION = '0.30'
@@ -290,9 +290,9 @@ def livenOETWordLinks( bibleObject:ESFMBible, BBB:str, givenEntryList:InternalBi
         if transliterationsAdded > 0 or colourisationsAdded > 0:
             # print( f"  Now '{originalText}'")
             if transliterationsAdded > 0:
-                vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Added {transliterationsAdded:,} {bibleObject.abbreviation} {BBB} transliterations to Greek titles." )
+                vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Added {transliterationsAdded:,} {bibleObject.abbreviation} {BBB} transliterations to Greek titles." )
             if colourisationsAdded > 0:
-                vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Added {colourisationsAdded:,} {bibleObject.abbreviation} {BBB} colourisations to Greek words." )
+                vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Added {colourisationsAdded:,} {bibleObject.abbreviation} {BBB} colourisations to Greek words." )
             # adjText, cleanText, extras = _processLineFix( self, C:str,V:str, originalMarker:str, text:str, fixErrors:List[str] )
             # newEntry = InternalBibleEntry( entry.getMarker(), entry.getOriginalMarker(), entry.getAdjustedText(), entry.getCleanText(), entry.getExtras(), originalText )
             # Since we messed up many of the fields, set them to blank/null entries so that the old/wrong/outdated values can't be accidentally used

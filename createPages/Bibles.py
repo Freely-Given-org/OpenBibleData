@@ -72,10 +72,10 @@ from html import checkHtml
 from OETHandlers import findLVQuote
 
 
-LAST_MODIFIED_DATE = '2023-10-09' # by RJH
+LAST_MODIFIED_DATE = '2023-11-20' # by RJH
 SHORT_PROGRAM_NAME = "Bibles"
 PROGRAM_NAME = "OpenBibleData Bibles handler"
-PROGRAM_VERSION = '0.54'
+PROGRAM_VERSION = '0.55'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -864,9 +864,12 @@ def formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segme
 
 def loadSelectedVerses( fileLocation, givenName:str, givenAbbreviation:str, encoding='utf-8' ) -> Bible:
     """
+    These are loaded from simple two-column TSV files
+        with reference and verse text.
     """
     fnPrint( DEBUGGING_THIS_MODULE, f"loadSelectedVerses( {fileLocation}, {givenName}, {givenAbbreviation}, {encoding} )" )
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  loadSelectedVerses() loading {givenAbbreviation} ({givenName}) verse entries from {fileLocation}…" )
+    # assert givenAbbreviation in state.selectedVersesOnlyVersions
 
     verseTable = {}
     with open ( fileLocation, 'rt', encoding=encoding ) as tsv_file:
@@ -884,7 +887,7 @@ def loadSelectedVerses( fileLocation, givenName:str, givenAbbreviation:str, enco
                 ourRef = (BBB,C,V)
                 assert ourRef not in verseTable
                 assert verseText
-                verseTable[ourRef] = verseText
+                verseTable[ourRef] = verseText.replace('\\n','\n').replace('\\\\','\\') # See https://en.wikipedia.org/wiki/Tab-separated_values
 
     vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    loadSelectedVerses() loaded {len(verseTable):,} {givenAbbreviation} verse entries from {fileLocation}." )
     return verseTable
