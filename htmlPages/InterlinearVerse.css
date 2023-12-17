@@ -1,4 +1,4 @@
-div.footer { width: 500px; height: 250px; margin: 50px; }
+div.footer { width:500px; height:250px; margin:50px; }
 
 span.upLink { font-size:1.5em; font-weight:bold; }
 
@@ -22,13 +22,13 @@ p.vsLst {background-color:mistyRose; }
 .vsLst a { text-decoration:none; }
 
 /* For bkList class */
-span.XX { color: purple; }
+span.XX { color:purple; }
 .XX a { text-decoration:none; }
-span.OT { color: saddlebrown; }
+span.OT { color:saddlebrown; }
 .OT a { text-decoration:none; }
-span.NT { color: darkgreen; }
+span.NT { color:darkgreen; }
 .NT a { text-decoration:none; }
-span.DC { color: orange; font-size: smaller; }
+span.DC { color:orange; font-size:smaller; }
 .DC a { text-decoration:none; }
 
 /* Navs are the ones with arrows */
@@ -75,161 +75,161 @@ span.sig { font-family:cursive; }
 /* Notes USFM */
 p.fn { margin-top:0.2em; margin-bottom:0.2em; font-size:0.75em; }
 p.xr { margin-top:0.2em; margin-bottom:0.2em; font-size:0.75em; }
-span.fnCaller { vertical-align: super; font-size:0.7em; color:green; }
-span.enCaller { vertical-align: super; font-size:0.7em; color:green; }
-span.xrCaller { vertical-align: super; font-size:0.7em; color:blue; }
+span.fnCaller { vertical-align:super; font-size:0.7em; color:green; }
+span.enCaller { vertical-align:super; font-size:0.7em; color:green; }
+span.xrCaller { vertical-align:super; font-size:0.7em; color:blue; }
 span.fnRef { font-weight:bold; }
 span.xrRef { font-weight:bold; }
 /* span.fnText { } */
 /* span.xrText { } */
 
-body { background-color: powderblue; }
-table, th, td { border: 1px solid black; border-collapse: collapse; }
-table tr:nth-child(even) { background-color: #eee; }
-table tr:nth-child(odd) { background-color: #fff; }
-table th { color: white; background-color: black; }
-th, td { padding: 15px; text-align: center; }
+body { background-color:powderblue; }
+table, th, td { border:1px solid black; border-collapse:collapse; }
+table tr:nth-child(even) { background-color:#eee; }
+table tr:nth-child(odd) { background-color:#fff; }
+table th { color:white; background-color:black; }
+th, td { padding:15px; text-align:center; }
 
 div.interlinear {
-    background: hsla(55, 99%, 80%, 50);
-    padding: 5px;
-    overflow: auto;
-    margin: 1em 0;
+    background:hsla(55, 99%, 80%, 50);
+    padding:5px;
+    overflow:auto;
+    margin:1em 0;
 }
 div.TN {
-    background: hsla(55, 99%, 80%, 50);
-    padding: 5px;
-    overflow: auto;
-    margin: 1em 0;
+    background:hsla(55, 99%, 80%, 50);
+    padding:5px;
+    overflow:auto;
+    margin:1em 0;
 }
 div.LV {
-    background: hsla(55, 99%, 80%, 50);
-    padding: 5px;
-    overflow: auto;
-    margin: 1em 0;
+    background:hsla(55, 99%, 80%, 50);
+    padding:5px;
+    overflow:auto;
+    margin:1em 0;
 }
 div.RV {
-    background: hsla(55, 99%, 80%, 50);
-    padding: 5px;
-    overflow: auto;
-    margin: 1em 0;
+    background:hsla(55, 99%, 80%, 50);
+    padding:5px;
+    overflow:auto;
+    margin:1em 0;
 }
 
 /* p.LV {
-    background: hsla(55, 99%, 80%, 50);
-    padding: 5px;
-    overflow: auto;
-    margin: 1em 0;
+    background:hsla(55, 99%, 80%, 50);
+    padding:5px;
+    overflow:auto;
+    margin:1em 0;
 }
 p.RV {
-    background: hsla(55, 99%, 80%, 50);
-    padding: 5px;
-    overflow: auto;
-    margin: 1em 0;
+    background:hsla(55, 99%, 80%, 50);
+    padding:5px;
+    overflow:auto;
+    margin:1em 0;
 } */
 
 ol {
     list-style-type:none;
 }
 ol.verse {
-    display: inline;
+    display:inline;
 }
 ol.verse li[lang=he]{
-    font-family: NotoSans, sans-serif;
-    font-weight: bold;
+    font-family:NotoSans, sans-serif;
+    font-weight:bold;
 }
 ol.verse li[lang=el]{
-    font-weight: bold;
+    font-weight:bold;
 }
 ol.verse li[lang=en]{
-    font-weight: bold;
+    font-weight:bold;
 }
 ol.verse li[lang=he_LEMMA]{
-    color: gray;
+    color:gray;
 }
 ol.verse li[lang=el_LEMMA]{
-    color: gray;
+    color:gray;
 }
 /* ol.verse li[lang=en_LEMMA]{
 }
 ol.verse li[lang=TRANS]{
 } */
 ol.verse li[lang=en_TRANS]{
-    font-family: "Times New Roman", Times, serif;
-    font-size: 120%;
+    font-family:"Times New Roman", Times, serif;
+    font-size:120%;
 }
 /* ol.verse li[lang=en_TRANS2]{
-    font-family: "Times New Roman", Times, serif;
-    color: maroon;
+    font-family:"Times New Roman", Times, serif;
+    color:maroon;
 } */
 ol.verse li[lang=en_GLOSS]{
-    color: darkOrange;
-    font-family: "Times New Roman", Times, serif;
+    color:darkOrange;
+    font-family:"Times New Roman", Times, serif;
 }
 
 ol.verse li[lang=en_STRONGS]{
-    font-family: monospace, "Courier New", Courier;
-    font-size: 70%;
-    color: green;
+    font-family:monospace, "Courier New", Courier;
+    font-size:70%;
+    color:green;
 }
 ol.verse li[lang=en_STRONGS] a:link {
-    color: green;
+    color:green;
     text-decoration:none;
 }
 ol.verse li[lang=en_STRONGS] a:hover {
-    text-decoration: underline;
+    text-decoration:underline;
 }
 
 ol.verse li[lang=en_MORPH]{
-    font-family: monospace, "Courier New", Courier;
-    font-size: 60%;
-    color: orange;
+    font-family:monospace, "Courier New", Courier;
+    font-size:60%;
+    color:orange;
 }
 
 ol.verse li[lang=en_CAPS]{
-    font-size: 60%;
+    font-size:60%;
 }
 ol.verse li[lang=en_PERCENT]{
-    color: olive;
-    font-size: 60%;
+    color:olive;
+    font-size:60%;
 }
 ol.verse li[lang=en_TAGS]{
-    font-size: 60%;
-    color: saddleBrown;
+    font-size:60%;
+    color:saddleBrown;
 }
 
 ol.verse li[lang=en_WORDNUM]{
-    font-size: 60%;
+    font-size:60%;
 }
 ol.verse li[lang=en_WORDNUM] a:link {
-    color: dodgerBlue;
+    color:dodgerBlue;
     text-decoration:none;
 }
 ol.verse li[lang=en_WORDNUM] a:hover {
-    text-decoration: underline;
+    text-decoration:underline;
 }
 
 ol.titles {
-    padding: .5em;
-    margin-bottom: .5em;
-    background: gold;
-    float: left;
-    border: 1px dotted #ccc;
-    display: inline-block;
+    padding:.5em;
+    margin-bottom:.5em;
+    background:gold;
+    float:left;
+    border:1px dotted #ccc;
+    display:inline-block;
 }
 ol.word {
-    padding: .5em;
-    margin-bottom: .5em;
-    background: white;
-    float: left;
-    border: 1px dotted #ccc;
-    display: inline-block;
+    padding:.5em;
+    margin-bottom:.5em;
+    background:white;
+    float:left;
+    border:1px dotted #ccc;
+    display:inline-block;
 }
 ol.variant {
-    padding: .5em;
-    margin-bottom: .5em;
-    background: LightGray;
-    float: left;
-    border: 1px dotted #ccc;
-    display: inline-block;
+    padding:.5em;
+    margin-bottom:.5em;
+    background:LightGray;
+    float:left;
+    border:1px dotted #ccc;
+    display:inline-block;
 }

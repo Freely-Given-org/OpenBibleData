@@ -54,7 +54,7 @@ from html import makeTop, makeBottom
 from Bibles import tidyBBB
 
 
-LAST_MODIFIED_DATE = '2023-10-22' # by RJH
+LAST_MODIFIED_DATE = '2023-12-14' # by RJH
 SHORT_PROGRAM_NAME = "createOETReferencePages"
 PROGRAM_NAME = "OpenBibleData createOETReferencePages functions"
 PROGRAM_VERSION = '0.47'
@@ -187,9 +187,10 @@ def createOETReferencePages( level:int, outputFolderPath:Path, state ) -> bool:
     state.OETRefData['lemmaFormsDict'] = defaultdict(set)
     state.OETRefData['formGlossesDict'], state.OETRefData['lemmaGlossesDict'] = defaultdict(set), defaultdict(set)
     state.OETRefData['glossWordDict'] = defaultdict(list)
+    state.OETRefData['lemmaGreekDict'] = {}
     for n, columns_string in enumerate( state.OETRefData['word_table'][1:], start=1 ):
         if columns_string.startswith( 'JHN' ):
-            _ref, greekWord, SRLemma, _GrkLemma, glossWordsStr, _glossCaps,probability, _extendedStrongs, roleLetter, morphology, _tagsStr = columns_string.split( '\t' )
+            _ref, greekWord, SRLemma, GrkLemma, glossWordsStr, _glossCaps, probability, _extendedStrongs, roleLetter, morphology, _tagsStr = columns_string.split( '\t' )
             if probability:
                 formattedGlossWords = formatSpansGlossWords( glossWordsStr )
                 formMorph3Tuple = (greekWord, roleLetter, None if morphology=='None' else morphology)
@@ -202,10 +203,15 @@ def createOETReferencePages( level:int, outputFolderPath:Path, state ) -> bool:
                     if '/' not in someGlossWord and '˱' not in someGlossWord and '‹' not in someGlossWord: # We only want the main words
                         assert n not in state.OETRefData['glossWordDict'][someGlossWord]
                         state.OETRefData['glossWordDict'][someGlossWord].append( n )
+                if SRLemma in state.OETRefData['lemmaGreekDict']:
+                    # assert state.OETRefData['lemmaGreekDict'][SRLemma] == GrkLemma, f"{n=} {_ref} {SRLemma=} {GrkLemma=} {state.OETRefData['lemmaGreekDict'][SRLemma]=}"
+                    if state.OETRefData['lemmaGreekDict'][SRLemma] != GrkLemma:
+                        dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"    {n=} {_ref} {SRLemma=} {GrkLemma=} {state.OETRefData['lemmaGreekDict'][SRLemma]=}" )
+                state.OETRefData['lemmaGreekDict'][SRLemma] = GrkLemma
         elif state.OETRefData['formUsageDict']: break # Must have already finished John
     for n, columns_string in enumerate( state.OETRefData['word_table'][1:], start=1 ):
         if columns_string.startswith( 'MRK' ):
-            _ref, greekWord, SRLemma, _GrkLemma, glossWordsStr, _glossCaps,probability, _extendedStrongs, roleLetter, morphology, _tagsStr = columns_string.split( '\t' )
+            _ref, greekWord, SRLemma, GrkLemma, glossWordsStr, _glossCaps, probability, _extendedStrongs, roleLetter, morphology, _tagsStr = columns_string.split( '\t' )
             if probability:
                 formattedGlossWords = formatSpansGlossWords( glossWordsStr )
                 formMorph3Tuple = (greekWord, roleLetter, None if morphology=='None' else morphology)
@@ -218,10 +224,15 @@ def createOETReferencePages( level:int, outputFolderPath:Path, state ) -> bool:
                     if '/' not in someGlossWord and '˱' not in someGlossWord and '‹' not in someGlossWord: # We only want the main words
                         assert n not in state.OETRefData['glossWordDict'][someGlossWord]
                         state.OETRefData['glossWordDict'][someGlossWord].append( n )
+                if SRLemma in state.OETRefData['lemmaGreekDict']:
+                    # assert state.OETRefData['lemmaGreekDict'][SRLemma] == GrkLemma, f"{n=} {_ref} {SRLemma=} {GrkLemma=} {state.OETRefData['lemmaGreekDict'][SRLemma]=}"
+                    if state.OETRefData['lemmaGreekDict'][SRLemma] != GrkLemma:
+                        dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"    {n=} {_ref} {SRLemma=} {GrkLemma=} {state.OETRefData['lemmaGreekDict'][SRLemma]=}" )
+                state.OETRefData['lemmaGreekDict'][SRLemma] = GrkLemma
         elif columns_string.startswith( 'LUK' ): break # Must have already finished Mark
     for n, columns_string in enumerate( state.OETRefData['word_table'][1:], start=1 ):
         if not columns_string.startswith( 'JHN' ) and not columns_string.startswith( 'MRK' ):
-            _ref, greekWord, SRLemma, _GrkLemma, glossWordsStr, _glossCaps,probability, _extendedStrongs, roleLetter, morphology, _tagsStr = columns_string.split( '\t' )
+            _ref, greekWord, SRLemma, GrkLemma, glossWordsStr, _glossCaps, probability, _extendedStrongs, roleLetter, morphology, _tagsStr = columns_string.split( '\t' )
             if probability:
                 formattedGlossWords = formatSpansGlossWords( glossWordsStr )
                 formMorph3Tuple = (greekWord, roleLetter, None if morphology=='None' else morphology)
@@ -234,6 +245,11 @@ def createOETReferencePages( level:int, outputFolderPath:Path, state ) -> bool:
                     if '/' not in someGlossWord and '˱' not in someGlossWord and '‹' not in someGlossWord: # We only want the main words
                         assert n not in state.OETRefData['glossWordDict'][someGlossWord]
                         state.OETRefData['glossWordDict'][someGlossWord].append( n )
+                if SRLemma in state.OETRefData['lemmaGreekDict']:
+                    # assert state.OETRefData['lemmaGreekDict'][SRLemma] == GrkLemma, f"{n=} {_ref} {SRLemma=} {GrkLemma=} {state.OETRefData['lemmaGreekDict'][SRLemma]=}"
+                    if state.OETRefData['lemmaGreekDict'][SRLemma] != GrkLemma:
+                        dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"    {n=} {_ref} {SRLemma=} {GrkLemma=} {state.OETRefData['lemmaGreekDict'][SRLemma]=}" )
+                state.OETRefData['lemmaGreekDict'][SRLemma] = GrkLemma
 
     make_Greek_word_pages( level+1, outputFolderPath.joinpath( 'W/' ), state )
     make_Greek_lemma_pages( level+1, outputFolderPath.joinpath( 'G/' ), state )
@@ -438,7 +454,7 @@ This is all part of the commitment of the <em>Open English Translation</em> team
                 # other_count = 0
                 thisWordNumberList = state.OETRefData['formUsageDict'][(greekWord,roleLetter,morphology)]
                 if len(thisWordNumberList) > 100: # too many to list
-                    maxWordsToShow = 40
+                    maxWordsToShow = 50
                     html = f'{html}\n<h2>Showing the first {maxWordsToShow} out of ({len(thisWordNumberList)-1:,}) uses of identical word form {greekWord} <small>({tidyRoleMorphology})</small> in the Greek originals</h2>'
                     if len(wordGlossesList)>1:
                         html = f'''{html}\n<p class="summary">The word form ‘{greekWord}’ <small>({tidyRoleMorphology})</small> has {len(wordGlossesList):,} different glosses: ‘<b>{"</b>’, ‘<b>".join(wordGlossesList)}</b>’.</p>'''
@@ -558,11 +574,12 @@ f''' <a title="Go to Statistical Restoration Greek page" href="https://GreekCN
                         html = f'''{html}\n{NEWLINE.join(extraHTMLList)}'''
 
             # Now put it all together
-            html = makeTop( level, None, 'word', None, state ) \
-                                    .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}Greek word ‘{greekWord}’" ) \
-                                    .replace( '__KEYWORDS__', 'Bible, word' ) \
-                                    .replace( 'pa/"', f'pa/{BBB}/C{C}V{V}.htm#Top"' ) \
-                                + html + makeBottom( level, 'word', state )
+            top = makeTop( level, None, 'word', None, state ) \
+                            .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}Greek word ‘{greekWord}’" ) \
+                            .replace( '__KEYWORDS__', 'Bible, word' ) \
+                            .replace( 'pa/"', f'pa/{BBB}/C{C}V{V}.htm#Top"' )
+            html = f'''{top}{html}
+{makeBottom( level, 'word', state )}'''
             with open( outputFolderPath.joinpath(output_filename), 'wt', encoding='utf-8' ) as html_output_file:
                 html_output_file.write( html )
             vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"      Wrote {len(html):,} characters to {output_filename}" )
@@ -589,6 +606,7 @@ def make_Greek_lemma_pages( level:int, outputFolderPath:Path, state ) -> None:
     # Now make a page for each Greek lemma (including the variants not used in the translation)
     for ll, lemma in enumerate( lemmaList ):
         # print( ll, lemma )
+        grkLemma = state.OETRefData['lemmaGreekDict'][lemma]
         lemmaRowsList = state.OETRefData['lemmaDict'][lemma]
         lemmaFormsList = sorted( state.OETRefData['lemmaFormsDict'][lemma] )
         lemmaGlossesList = sorted( state.OETRefData['lemmaGlossesDict'][lemma] )
@@ -598,9 +616,9 @@ def make_Greek_lemma_pages( level:int, outputFolderPath:Path, state ) -> None:
 
         prevLink = f'<b><a title="Previous lemma" href="{lemmaList[ll-1]}.htm#Top">←</a></b> ' if ll>0 else ''
         nextLink = f' <b><a title="Next lemma" href="{lemmaList[ll+1]}.htm#Top">→</a></b>' if ll<len(lemmaList)-1 else ''
-        html = f'''<h1 id="Top">Greek root word <small>(lemma)</small> ‘{lemma}’</h1>
+        html = f'''<h1 id="Top">Greek root word <small>(lemma)</small> ‘{grkLemma}’ ({lemma})</h1>
 <p class="pNav">{prevLink}<b>{lemma}</b>{nextLink}</p>
-<p class="summary">This root form (lemma) is used in {len(lemmaFormsList):,} different forms in the Greek originals: {', '.join([f'<a title="View Greek word form" href="../W/{getFirstWordNumber(grk,roleLetter,morph)}.htm#Top">{grk}</a> <small>({roleLetter}-{morph[4:] if morph.startswith("....") else morph})</small>' for grk,roleLetter,morph in lemmaFormsList])}.</p>
+<p class="summary">This root form (lemma) ‘{grkLemma}’ is used in {len(lemmaFormsList):,} different forms in the Greek originals: {', '.join([f'<a title="View Greek word form" href="../W/{getFirstWordNumber(grk,roleLetter,morph)}.htm#Top">{grk}</a> <small>({roleLetter}-{morph[4:] if morph.startswith("....") else morph})</small>' for grk,roleLetter,morph in lemmaFormsList])}.</p>
 <p class="summary">It is glossed in {len(lemmaGlossesList):,}{'' if len(lemmaGlossesList)==1 else ' different'} way{'' if len(lemmaGlossesList)==1 else 's'}: ‘<b>{"</b>’, ‘<b>".join(lemmaGlossesList)}</b>’.</p>
 '''
 
@@ -616,7 +634,7 @@ def make_Greek_lemma_pages( level:int, outputFolderPath:Path, state ) -> None:
             # oRoleLetter remains set to the last value added to the set (which is the only value if len(oRoleSet)==1)
 
             if len(thisLemmaRowsList) > 100: # too many to list
-                maxWordsToShow = 40
+                maxWordsToShow = 50
                 lemmaHTML = f"<h2>Showing the first {maxWordsToShow} out of ({len(thisLemmaRowsList)-1:,}) uses of Greek root word <small>(lemma)</small> ‘{thisLemmaStr}’ {f'<small>({CNTR_ROLE_NAME_DICT[oRoleLetter]})</small> ' if len(oRoleSet)==1 else ''}in the Greek originals</h2>"
             else: # we can list all uses of the word
                 maxWordsToShow = 100
@@ -674,10 +692,11 @@ def make_Greek_lemma_pages( level:int, outputFolderPath:Path, state ) -> None:
         #     print( f"Got {this_extended_lemma_list=}" )
 
         # Now put it all together
-        html = makeTop( level, None, 'lemma', None, state ) \
-                                .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}Greek lemma ‘{lemma}’" ) \
-                                .replace( '__KEYWORDS__', 'Bible, word' ) \
-                            + html + makeBottom( level, 'lemma', state )
+        top = makeTop( level, None, 'lemma', None, state ) \
+                        .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}Greek lemma ‘{lemma}’" ) \
+                        .replace( '__KEYWORDS__', 'Bible, word' )
+        html = f'''{top}{html}
+{makeBottom( level, 'lemma', state )}'''
         with open( outputFolderPath.joinpath(output_filename), 'wt', encoding='utf-8' ) as html_output_file:
             html_output_file.write( html )
         vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  Wrote {len(html):,} characters to {output_filename}" )

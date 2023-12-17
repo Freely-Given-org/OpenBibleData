@@ -61,10 +61,10 @@ from createOETReferencePages import CNTR_BOOK_ID_MAP
 from OETHandlers import livenOETWordLinks
 
 
-LAST_MODIFIED_DATE = '2023-10-25' # by RJH
+LAST_MODIFIED_DATE = '2023-12-14' # by RJH
 SHORT_PROGRAM_NAME = "createOETInterlinearPages"
 PROGRAM_NAME = "OpenBibleData createOETInterlinearPages functions"
-PROGRAM_VERSION = '0.38'
+PROGRAM_VERSION = '0.39'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -106,9 +106,9 @@ def createOETInterlinearPages( level:int, folder:Path, state ) -> bool:
             .replace( '__KEYWORDS__', f'Bible, interlinear' )
     indexHtml = f'''{top}
 <h1 id="Top">OET interlinear verse pages</h1>
-<p class="note">These pages show single OET verses with each Greek word aligned with the English word(s) that it was translated to, along with any translation notes and study notes for the verse. Finally, there's a <em>Reverse Interlinear</em> with the same information but in English word order.</p>
+<p class="note">These pages show single OET verses with each Greek word aligned with the English word(s) that it was translated to, along with any translation notes and study notes for the verse. Finally, at the bottom of each page there's a <em>Reverse Interlinear</em> with the same information but in English word order.</p>
 <h2>Index of books</h2>
-{makeBookNavListParagraph(BBBLinks, state)}
+{makeBookNavListParagraph(BBBLinks, 'Interlinear', state)}
 {makeBottom( level, 'interlinear', state )}'''
     checkHtml( 'InterlinearIndex', indexHtml )
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
@@ -135,7 +135,7 @@ def createOETInterlinearVersePagesForBook( level:int, folder:Path, BBB:str, BBBL
     # We don't want the book link for this book to be a recursive link, so remove <a> marking
     ourTidyBBB = tidyBBB( BBB )
     ourTidyBbb = tidyBBB( BBB, titleCase=True )
-    adjBBBLinksHtml = makeBookNavListParagraph(BBBLinks, state) \
+    adjBBBLinksHtml = makeBookNavListParagraph(BBBLinks, 'Interlinear', state) \
             .replace( f'''<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB).replace('James','Jacob/(James)')}" href="../{BBB}/">{ourTidyBBB}</a>''', ourTidyBBB )
 
     numChapters = None
@@ -177,12 +177,13 @@ def createOETInterlinearVersePagesForBook( level:int, folder:Path, BBB:str, BBBL
                         .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{ourTidyBBB} {c}:{v} Interlinear View" ) \
                         .replace( '__KEYWORDS__', f'Bible, {ourTidyBBB}, interlinear' ) \
                         .replace( f'''href="{'../'*level}pa/"''', f'''href="{'../'*level}pa/{BBB}/C{c}V{v}.htm#Top"''')
-                iHtml = top + '<!--interlinear verse page-->' \
-                        + f'{adjBBBLinksHtml}\n<h1 id="Top">OET interlinear {ourTidyBBB} {c}:{v}</h1>\n' \
-                        + f"{navLinks.replace('__ID__','Top').replace('__ARROW__','↓').replace('__LINK__','Bottom').replace('__WHERE__','bottom')}\n" \
-                        + iHtml \
-                        + f"\n{navLinks.replace('__ID__','Bottom').replace('__ARROW__','↑').replace('__LINK__','Top').replace('__WHERE__','top')}\n" \
-                        + makeBottom( level, 'interlinear', state )
+                iHtml = f'''{top}<!--interlinear verse page-->
+{adjBBBLinksHtml}
+<h1 id="Top">OET interlinear {ourTidyBBB} {c}:{v}</h1>
+{navLinks.replace('__ID__','Top').replace('__ARROW__','↓').replace('__LINK__','Bottom').replace('__WHERE__','bottom')}
+{iHtml}
+{navLinks.replace('__ID__','Bottom').replace('__ARROW__','↑').replace('__LINK__','Top').replace('__WHERE__','top')}
+{makeBottom( level, 'interlinear', state )}'''
                 checkHtml( f'Interlinear {BBB} {c}:{v}', iHtml )
                 with open( filepath, 'wt', encoding='utf-8' ) as iHtmlFile:
                     iHtmlFile.write( iHtml )
@@ -207,8 +208,9 @@ def createOETInterlinearVersePagesForBook( level:int, folder:Path, BBB:str, BBBL
 f'''<p class="chLst">{ourTidyBbb if ourTidyBbb!='Jac' else 'Jacob/(James)'} {' '.join( [f'<a title="Go to interlinear verse page" href="C{chp}V1.htm#Top">C{chp}</a>' for chp in range(1,numChapters+1)] )}</p>
 <h1 id="Top">OET {ourTidyBBB} interlinear verses index</h1>
 <p class="vsLst">{' '.join( vLinks )}</p>'''
-    indexHtml = f'{top}{adjBBBLinksHtml}\n{ourLinks}\n' \
-                + makeBottom( level, 'interlinear', state )
+    indexHtml = f'''{top}{adjBBBLinksHtml}
+{ourLinks}
+{makeBottom( level, 'interlinear', state )}'''
     checkHtml( 'InterlinearIndex', indexHtml )
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
         indexHtmlFile.write( indexHtml )
@@ -419,7 +421,7 @@ def createOETInterlinearVersePage( level:int, BBB:str, c:int, v:int, state ) -> 
 {rvHtml}
 {utnHtml}
 {tsnHtml}
-<h2>OET-LV English word order (‘reverse’ interlinear)</h2><div class=interlinear><ol class=verse>'''
+<h2>OET-LV English word order (‘Reverse’ interlinear)</h2><div class=interlinear><ol class=verse>'''
 
     # Now create the reverseInterlinear
     riHtml = ''

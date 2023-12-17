@@ -52,10 +52,10 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 from html import makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-08-16' # by RJH
+LAST_MODIFIED_DATE = '2023-12-14' # by RJH
 SHORT_PROGRAM_NAME = "Dictionary"
 PROGRAM_NAME = "OpenBibleData Dictionary handler"
-PROGRAM_VERSION = '0.35'
+PROGRAM_VERSION = '0.36'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -573,6 +573,10 @@ def createTyndaleDictPages( level:int, outputFolderPath, state ) -> bool:
     introLink = '<a title="Go to dict introduction" href="intro.htm#__ID__">Intro</a>'
     detailsLink = f'''<a title="Show details" href="{'../'*(level)}allDetails.htm#TOBD">©</a>'''
 
+    letterLinkList = [f'''<a title="Go to index page for letter '{l}'" href="index_{l}.htm#Top">{l}</a>''' for l in TOBDData['Letters']]
+    lettersParagraph = f'''<p class="dctLtrs">{' '.join(letterLinkList)}</p>'''
+
+    # Make dictionary article pages
     articleList = [a for a in TOBDData['Articles']]
     for j,(articleLinkName,article) in enumerate( TOBDData['Articles'].items() ):
         dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"Making article page for '{articleLinkName}'…" )
@@ -594,7 +598,9 @@ def createTyndaleDictPages( level:int, outputFolderPath, state ) -> bool:
                 .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}Dictionary Article" ) \
                 .replace( '__KEYWORDS__', f'Bible, dictionary, {articleLinkName}' )
 # <h2 id="Top">{articleLinkName}</h2>
-        articleHtml = f'''{top}<h1>Tyndale Open Bible Dictionary</h1>
+        articleHtml = f'''{top}
+{lettersParagraph}
+<h1>Tyndale Open Bible Dictionary</h1>
 {navLinks.replace('__ID__','Top')}
 {article}
 {makeBottom( level, 'dictionaryEntry', state )}'''
@@ -624,7 +630,9 @@ def createTyndaleDictPages( level:int, outputFolderPath, state ) -> bool:
         top = makeTop( level, None, 'dictionaryLetterIndex', None, state ) \
                 .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}Dictionary Index Letter" ) \
                 .replace( '__KEYWORDS__', f'Bible, dictionary' )
-        letterIndexHtml = f'''{top}<h1>Tyndale Open Bible Dictionary</h1>
+        letterIndexHtml = f'''{top}
+{lettersParagraph}
+<h1>Tyndale Open Bible Dictionary</h1>
 {navLinks.replace('__ID__','Top')}
 <h2 id="Top">Index for dictionary letter '{letter}'</h2>
 {articleLinkHtml}
@@ -651,17 +659,17 @@ even though it was originally designed to supplement the <i>New Living Translati
     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(introHtml):,} characters written to {filepath}" )
 
     # Make overall index
-    letterLinkList = [f'''<a title="Go to index page for letter '{l}'" href="index_{l}.htm#Top">{l}</a>''' for l in TOBDData['Letters']]
     filename = 'index.htm'
     filepath = outputFolderPath.joinpath( filename )
     top = makeTop( level, None, 'dictionaryMainIndex', None, state ) \
             .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}Dictionary Index" ) \
             .replace( '__KEYWORDS__', f'Bible, dictionary' )
 # <p class="dNav"><a id="Go to dict intro" href="intro.htm#Top">Introduction</a></p>
-    indexHtml = f'''{top}<h1 id="Top">Tyndale Open Bible Dictionary <small>{detailsLink}</small></h1>
+    indexHtml = f'''{top}
+<h1 id="Top">Tyndale Open Bible Dictionary <small>{detailsLink}</small></h1>
 <p class="note">This is a comprehensive Bible dictionary with articles for each Bible ‘book’ as well as for significant people and places and terms. (Read the <a id="Go to dict intro" href="intro.htm#Top">full introduction</a> for more details.)</p>
 <h2>Index of dictionary letters</h2>
-{' '.join(letterLinkList)}
+{lettersParagraph}
 {makeBottom( level, 'dictionaryMainIndex', state )}'''
     checkHtml( 'DictionaryIndex', indexHtml )
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:

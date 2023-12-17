@@ -28,6 +28,8 @@ Module handling createParallelPages functions.
 CHANGELOG:
     2023-10-23 Move SR-GNT up so it's under OET-LV
     2023-10-25 Add word numbers to SR-GNT words
+    2023-12-15 Improve SR-GNT colorisation and add colourisation for other GNTs that differ
+    2023-12-16 Fix bad links to version that don't have their own pages
 """
 from gettext import gettext as _
 from typing import Dict, List, Tuple
@@ -38,6 +40,7 @@ import logging
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 import BibleOrgSys.Formats.ESFMBible as ESFMBible
+import BibleOrgSys.OriginalLanguages.Greek as Greek
 
 import sys
 sys.path.append( '../../BibleTransliterations/Python/' )
@@ -51,10 +54,10 @@ from createOETReferencePages import CNTR_BOOK_ID_MAP
 from OETHandlers import livenOETWordLinks
 
 
-LAST_MODIFIED_DATE = '2023-11-20' # by RJH
+LAST_MODIFIED_DATE = '2023-12-16' # by RJH
 SHORT_PROGRAM_NAME = "createParallelPages"
 PROGRAM_NAME = "OpenBibleData createParallelPages functions"
-PROGRAM_VERSION = '0.81'
+PROGRAM_VERSION = '0.83'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -96,9 +99,11 @@ def createParallelPages( level:int, folder:Path, state ) -> bool:
             .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}Parallel View" ) \
             .replace( '__KEYWORDS__', f'Bible, parallel' )
     indexHtml = f'''{top}<h1 id="Top">Parallel verse pages</h1>
-<p class="note">Each page only contains a single verse with minimal formatting, but displays it in a large number of different versions. Study notes, theme notes, and translation notes will also be displayed, although not every verse has these.</p>
+<p class="note">Each page only contains a single verse with minimal formatting, but displays it in a large number of different versions to enable analysis of different translation decisions. Study notes, theme notes, and translation notes will also be displayed, although not every verse has these.</p>
+<p class="note">Generally the older versions are nearer the bottom, and so reading from the bottom to the top can show how many English vocabulary and punctuation decisions propagated from one version to another.</p>
 <h2>Index of books</h2>
-{makeBookNavListParagraph(BBBLinks, state)}
+{makeBookNavListParagraph(BBBLinks, 'Parallel', state)}
+<p class="note"><small>Note: We would like to display more English Bible versions on these parallel pages to assist Bible translation research, but copyright restrictions from the commercial Bible industry and refusals from publishers greatly limit this. (See the <a href="https://SellingJesus.org/graphics">Selling Jesus</a> website for more information on this problem.)</small></p>
 {makeBottom( level, 'parallel', state )}'''
     checkHtml( 'ParallelIndex', indexHtml )
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
@@ -107,7 +112,7 @@ def createParallelPages( level:int, folder:Path, state ) -> bool:
 
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createParallelPages() finished processing {len(state.allBBBs)} books: {state.allBBBs}" )
     return True
-# end of html.createParallelPages
+# end of createParallelPages.createParallelPages
 
 class MissingBookError( Exception ): pass
 class UntranslatedVerseError( Exception ): pass
@@ -130,7 +135,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
     # We don't want the book link for this book to be a recursive link, so remove <a> marking
     ourTidyBBB = tidyBBB( BBB )
     ourTidyBbb = tidyBBB( BBB, titleCase=True )
-    adjBBBLinksHtml = makeBookNavListParagraph(BBBLinks, state) \
+    adjBBBLinksHtml = makeBookNavListParagraph(BBBLinks, 'Parallel', state) \
             .replace( f'''<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB).replace('James','Jacob/(James)')}" href="../{BBB}/">{ourTidyBBB}</a>''', ourTidyBBB )
 
     numChapters = None
@@ -144,6 +149,10 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
     else:
         logging.critical( f"createParallelVersePagesForBook unable to find a valid reference Bible for {BBB}" )
         return False # Need to check what FRT does
+    introLinks = [ '<a title="Go to parallel intro page" href="Intro.htm#Top">Intro</a>' ]
+    cLinksPar = f'''<p class="chLst">{EM_SPACE.join( introLinks + [f'<a title="Go to parallel verse page" href="C{ps}V1.htm#Top">Ps{ps}</a>' for ps in range(1,numChapters+1)] )}</p>''' \
+        if BBB=='PSA' else \
+            f'''<p class="chLst">{ourTidyBbb if ourTidyBbb!='Jac' else 'Jacob/(James)'} {' '.join( introLinks + [f'<a title="Go to parallel verse page" href="C{chp}V1.htm#Top">C{chp}</a>' for chp in range(1,numChapters+1)] )}</p>'''
 
     vLinks = []
     if numChapters >= 1:
@@ -157,6 +166,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                 continue
             for v in range( 0, numVerses+1 ):
                 V = str( v )
+                greekWords = {}; haveGreekDifference = False
                 # The following all have a __ID__ string than needs to be replaced
                 introLink = f'''<a title="Go to book intro" href="Intro.htm#__ID__">B</a> {f'<a title="Go to chapter intro" href="C{c}V0.htm#__ID__">I</a> ' if c!=-1 else ''}'''
                 leftVLink = f'<a title="Go to previous verse" href="C{C}V{v-1}.htm#__ID__">←</a> ' if v>1 \
@@ -214,6 +224,18 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                             if BBB not in thisBible: raise MissingBookError # Requested book is not in this Bible
                             # NOTE: For the book intro, we fetch the whole lot in one go (not line by line)
                             verseEntryList, contextList = thisBible.getContextVerseData( (BBB, C) if c==-1 else (BBB, C, V) )
+                            if 'GNT' in versionAbbreviation:
+                                plainGreekText = getPlainText( verseEntryList )
+                                if versionAbbreviation == 'SBL-GNT': plainGreekText = plainGreekText.replace('1','').replace('2','') # 1 Cor 12:10
+                                greekWords[versionAbbreviation] = plainGreekText
+                                greekWords[f'{versionAbbreviation}_NoPunct'] = removeGreekPunctuation(  greekWords[versionAbbreviation] )
+                                greekClass = Greek.Greek( greekWords[f'{versionAbbreviation}_NoPunct'] )
+                                try:
+                                    greekWords[f'{versionAbbreviation}_NoAccents'] = greekClass.removeAccents()
+                                except Exception as exc:
+                                    print( f"\n{BBB} {C}:{V} {versionAbbreviation}\n{greekWords[f'{versionAbbreviation}_NoPunct']=}" )
+                                    raise exc
+                                # print( f"\n{BBB} {C}:{V} {versionAbbreviation}\n{greekWords[f'{versionAbbreviation}_NoPunct']=}\n{greekWords[f'{versionAbbreviation}_NoAccents']=}" )
                             if isinstance( thisBible, ESFMBible.ESFMBible ):
                                 verseEntryList = livenOETWordLinks( thisBible, BBB, verseEntryList, f"{'../'*level}rf/W/{{n}}.htm#Top", state )
                             textHtml = convertUSFMMarkerListToHtml( level, versionAbbreviation, (BBB,C,V), 'verse', contextList, verseEntryList, basicOnly=(c!=-1), state=state )
@@ -273,7 +295,8 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                                     raise ValueError( f"Bad Greek transcription for {versionAbbreviation} {BBB} {C}:{V} {transcription=} from '{textHtml}'" )
                                 # Add an extra link to the CNTR collation page
                                 collationHref = f'https://GreekCNTR.org/collation/?v={CNTR_BOOK_ID_MAP[BBB]}{C.zfill(3)}{V.zfill(3)}'
-                                textHtml = f'{textHtml}<br> (<a title="Go to the GreekCNTR collation page" href="{collationHref}">SR-GNT</a> {transcription})'
+                                textHtml = f'''{textHtml}<br> (<a title="Go to the GreekCNTR collation page" href="{collationHref}">SR-GNT</a> {transcription})
+<p class="note"><b>Key</b>: <span class="greekVrb">yellow</span>:verbs, <span class="greekNom">light-green</span>:nominative, <span class="greekAcc">orange</span>:accusative, <span class="greekGen">pink</span>:genitive, <span class="greekDat">cyan</span>:dative, <span class="greekVoc">magenta</span>:vocative, <span class="greekNeg">red</span>:negative.</p>'''
                             elif versionAbbreviation in ('UGNT','SBL-GNT','TC-GNT','BrLXX'):
                                 transcription = transliterate_Greek(textHtml)
                                 if 'Ah' in transcription or ' ah' in transcription or transcription.startswith('ah') \
@@ -283,26 +306,46 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                                     raise ValueError( f"Bad Greek transcription for {versionAbbreviation} {BBB} {C}:{V} {transcription=} from '{textHtml}'" )
                                 if transcription:
                                     textHtml = f'{textHtml}<br>  ({transcription})'
-                                # print( textHtml)
                             elif versionAbbreviation in ('UHB',):
                                 # print( f"{versionAbbreviation} {BBB} {C}:{V} {textHtml=}")
                                 textHtml = f'{textHtml}<br>  ({transliterate_Hebrew(textHtml)})'
-                                # print( textHtml)
                             if textHtml:
-                                vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName"><a title="View {state.BibleNames['OET']} chapter" href="{'../'*level}OET/byC/{BBB}_C{C}.htm#Top">OET</a> (<a title="View {state.BibleNames['OET-RV']} chapter" href="{'../'*level}OET-RV/byC/{BBB}_C{C}.htm#Top">OET-RV</a>)</span> {textHtml}</p>
-    ''' if versionAbbreviation=='OET-RV' else f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation]} chapter (translated from the Latin)" href="{'../'*level}{versionAbbreviation}/byC/{BBB}_C{C}.htm#Top">{versionAbbreviation}</a></span> {textHtml}</p>
-    ''' if versionAbbreviation=='WYC' else f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation]} chapter" href="{'../'*level}{versionAbbreviation}/byC/{BBB}_C{C}.htm#Top">{versionAbbreviation}</a></span> {textHtml}</p>
-    '''
+                                if versionAbbreviation in ('UGNT','SBL-GNT','TC-GNT') \
+                                and 'SR-GNT' in greekWords and greekWords[versionAbbreviation]!=greekWords['SR-GNT']:
+                                    # Here we colour the workname to show critical GNT texts that differ in someway from the SR-GNT
+                                    # print( f"\n{versionAbbreviation}\n{versionAbbreviation}='{greekWords[versionAbbreviation]}'\nSR-GNT='{greekWords['SR-GNT']}'" )
+                                    if greekWords[f'{versionAbbreviation}_NoPunct'] == greekWords['SR-GNT_NoPunct']:
+                                        spanClassName = 'wrkNameDiffPunct'
+                                    elif greekWords[f'{versionAbbreviation}_NoAccents'] == greekWords['SR-GNT_NoAccents']:
+                                        spanClassName = 'wrkNameDiffAccents'
+                                    else: spanClassName = 'wrkNameDiffText'
+                                    versionNameLink = f'''{'../'*level}{versionAbbreviation}/details.htm#Top''' if versionAbbreviation in state.versionsWithoutTheirOwnPages else f'''{'../'*level}{versionAbbreviation}/byC/{BBB}_C{C}.htm#Top'''
+                                    vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="{spanClassName}"><a title="View {state.BibleNames[versionAbbreviation]} chapter" href="{versionNameLink}">{versionAbbreviation}</a></span> {textHtml}</p>
+'''
+                                    haveGreekDifference = True
+                                elif versionAbbreviation=='OET-RV':
+                                    vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName"><a title="View {state.BibleNames['OET']} chapter" href="{'../'*level}OET/byC/{BBB}_C{C}.htm#Top">OET</a> (<a title="View {state.BibleNames['OET-RV']} chapter" href="{'../'*level}OET-RV/byC/{BBB}_C{C}.htm#Top">OET-RV</a>)</span> {textHtml}</p>
+'''                                    
+                                elif versionAbbreviation=='WYC':
+                                    versionNameLink = f'''{'../'*level}{versionAbbreviation}/details.htm#Top''' if versionAbbreviation in state.versionsWithoutTheirOwnPages else f'''{'../'*level}{versionAbbreviation}/byC/{BBB}_C{C}.htm#Top'''
+                                    vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation]} chapter (translated from the Latin)" href="{versionNameLink}">{versionAbbreviation}</a></span> {textHtml}</p>
+'''
+                                else:
+                                    versionNameLink = f'''{'../'*level}{versionAbbreviation}/details.htm#Top''' if versionAbbreviation in state.versionsWithoutTheirOwnPages else f'''{'../'*level}{versionAbbreviation}/byC/{BBB}_C{C}.htm#Top'''
+                                    vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation]} chapter" href="{versionNameLink}">{versionAbbreviation}</a></span> {textHtml}</p>
+'''
                             else: # no textHtml -- can include verses that are not in the OET-LV
                                 if c==-1 or v==0: # For these edge cases, we don't want the version abbreviation appearing
                                     vHtml = ''
+                            if haveGreekDifference and versionAbbreviation=='TC-GNT':
+                                vHtml = f'{vHtml}<p class="note"><b>Key for above GNTs</b>: <span class="wrkNameDiffPunct">yellow</span>:punctuation differs, <span class="wrkNameDiffAccents">orange</span>:accents differ, <span class="wrkNameDiffText">red</span>:words differ (from our <b>SR-GNT</b> base).</p>'
 
                         except MissingBookError:
                             assert not textHtml, f"{versionAbbreviation} {BBB} {C}:{V} {verseEntryList=} {textHtml=}"
                             assert BBB not in thisBible
                             warningText = f'No {versionAbbreviation} {ourTidyBBB} book available'
                             vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName">{versionAbbreviation}</span> <span class="noBook"><small>{warningText}</small></span></p>
-    '''
+'''
                             logging.warning( warningText )
 
                         except UntranslatedVerseError:
@@ -313,11 +356,11 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                                 # print( f"No verse inB {versionAbbreviation} {BBB} in {thisBible}"); halt
                                 warningText = f'No {versionAbbreviation} {ourTidyBBB} {C}:{V} verse available'
                                 vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName"><a title="{state.BibleNames[versionAbbreviation]}" href="{'../'*level}{versionAbbreviation}/byC/{BBB}_C{C}.htm#Top">{versionAbbreviation}</a></span> <span class="noVerse"><small>{warningText}</small></span></p>
-    '''
+'''
                             else:
                                 warningText = f'No {versionAbbreviation} {ourTidyBBB} book available'
                                 vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName">{versionAbbreviation}</span> <span class="noBook"><small>{warningText}</small></span></p>
-    '''
+'''
                             logging.warning( warningText )
 
                         except KeyError:
@@ -327,13 +370,14 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                             elif BBB in thisBible:
                                 # print( f"No verse inKT {versionAbbreviation} {BBB} in {thisBible}"); halt
                                 warningText = f'No {versionAbbreviation} {ourTidyBBB} {C}:{V} verse available'
-                                vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName"><a title="{state.BibleNames[versionAbbreviation]}" href="{'../'*level}{versionAbbreviation}/byC/{BBB}_C{C}.htm#Top">{versionAbbreviation}</a></span> <span class="noVerse"><small>{warningText}</small></span></p>
-    '''
+                                versionNameLink = f'''{'../'*level}{versionAbbreviation}/details.htm#Top''' if versionAbbreviation in state.versionsWithoutTheirOwnPages else f'''{'../'*level}{versionAbbreviation}/byC/{BBB}_C{C}.htm#Top'''
+                                vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName"><a title="{state.BibleNames[versionAbbreviation]}" href="{versionNameLink}">{versionAbbreviation}</a></span> <span class="noVerse"><small>{warningText}</small></span></p>
+'''
                                 logging.warning( warningText )
                             else:
                                 warningText = f'No {versionAbbreviation} {ourTidyBBB} book available'
                                 vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName">{versionAbbreviation}</span> <span class="noBook"><small>{warningText}</small></span></p>
-    '''
+'''
                                 logging.warning( warningText )
 
                     if vHtml:
@@ -376,6 +420,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                     top = top.replace( f'''href="{'../'*level}il/"''', f'''href="{'../'*level}il/{BBB}/C{C}V{V}.htm#Top"''')
                 parallelHtml = f'''{top}<!--parallel verse page-->
 {adjBBBLinksHtml}
+{cLinksPar}
 <h1>Parallel {ourTidyBBB} {'Intro' if c==-1 else f'{C}:{V}'}</h1>
 <p class="rem">Note: This view shows ‘verses’ which are not natural language units and hence sometimes only part of a sentence will be visible. This view is only designed for doing comparisons of different translations. Click on the version abbreviation to see the verse in more of its context.</p>
 <p class="rem">Key: Light-green: Nominative case / Subject, Pink: Accusative case / Object, Yellow: Dative case / Indirect object, Orange: Genitive case / Possession.</p>
@@ -403,15 +448,11 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
             .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{ourTidyBBB} Parallel View" ) \
             .replace( '__KEYWORDS__', f'Bible, parallel' )
     # For Psalms, we don't list every single verse
-    introLinks = [ '<a title="Go to parallel intro page" href="Intro.htm#Top">Intro</a>' ]
-    ourLinks = f'''<h1 id="Top">{ourTidyBBB} parallel songs index</h1>
-<p class="chLst">{EM_SPACE.join( introLinks + [f'<a title="Go to parallel verse page" href="C{ps}V1.htm#Top">Ps{ps}</a>' for ps in range(1,numChapters+1)] )}</p>''' \
-                if BBB=='PSA' else \
-f'''<p class="chLst">{ourTidyBbb if ourTidyBbb!='Jac' else 'Jacob/(James)'} {' '.join( introLinks + [f'<a title="Go to parallel verse page" href="C{chp}V1.htm#Top">C{chp}</a>' for chp in range(1,numChapters+1)] )}</p>
-<h1 id="Top">{ourTidyBBB} parallel verses index</h1>
-<p class="vsLst">{' '.join( vLinks )}</p>'''
     indexHtml = f'''{top}{adjBBBLinksHtml}
-{ourLinks}
+{f'<h1 id="Top">{ourTidyBBB} parallel songs index</h1>' if BBB=='PSA' else ''}
+{cLinksPar}
+{f'<h1 id="Top">{ourTidyBBB} parallel verses index</h1>' if BBB!='PSA' else ''}
+{f'<p class="vsLst">{" ".join( vLinks )}</p>' if BBB!='PSA' else ''}
 {makeBottom( level, 'parallel', state )}'''
     checkHtml( 'ParallelIndex', indexHtml )
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
@@ -420,9 +461,49 @@ f'''<p class="chLst">{ourTidyBbb if ourTidyBbb!='Jac' else 'Jacob/(James)'} {'
 
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createParallelVersePagesForBook() finished processing {len(vLinks):,} {BBB} verses." )
     return True
-# end of html.createParallelVersePagesForBook
+# end of createParallelPages.createParallelVersePagesForBook
 
 
+def getPlainText( givenVerseEntryList ) -> str:
+    """
+    Takes a verseEntryList and converts it to a string of plain text words.
+
+    Used to compare critical Greek versions.
+    """
+    plainTextStringBits = []
+    for entry in givenVerseEntryList:
+        # print( entry )
+        marker, cleanText = entry.getMarker(), entry.getCleanText()
+        # print( f"{marker=} {cleanText=}")
+        if marker in ('v~','p~'):
+            plainTextStringBits.append( cleanText )
+
+    return ' '.join( plainTextStringBits )
+# end of createParallelPages.getPlainText
+
+
+def removeGreekPunctuation( greekText:str ) -> str:
+    """
+    Converts to lowercase and removes punctuation used in any Greek version.
+
+    Used to compare critical Greek versions.
+    """
+    return ( greekText.lower()
+                .replace(',','').replace('.','').replace('!','') # English punctuation marks
+                .replace('?','').replace(';','') # English and Greek question marks
+                .replace(';','').replace('·','').replace('·','').replace(':','') # English and Greek semicolons and colon
+                .replace('(','').replace(')','').replace('[','').replace(']','') # Parentheses and square brackets
+                .replace('“','').replace('”','').replace('‘','').replace('’','') # Double and single typographic quotation marks
+                .replace('⸀','').replace('⸂','').replace('⸃','').replace('⸁','').replace('⸄','').replace('⸅','').replace('⟦','').replace('⟧','')
+                .replace('ʼ','')
+                .replace('˚','') # Used by SR-GNT to mark Nomina Sacra
+                .replace('—',' ').replace('–',' ').replace('…',' ') # Em and en dashes and ellipsis are converted to spaces
+                .replace('   ',' ').replace('  ',' ') # Clean up spaces
+            .strip() )
+# end of createParallelPages.removeGreekPunctuation
+
+
+GREEK_CASE_CLASS_DICT = { 'N':'Nom','n':'Nom', 'G':'Gen','g':'Gen', 'A':'Acc','a':'Acc', 'D':'Dat','d':'Dat', 'V':'Voc','v':'Voc', }
 def brightenSRGNT( BBB, C, V, textHtml, verseEntryList, state ) -> str:
     """
     Take the SR-GNT text (which includes punctuation and might also include <br> characters)
@@ -512,7 +593,18 @@ def brightenSRGNT( BBB, C, V, textHtml, verseEntryList, state ) -> str:
                 wordLink = f'../../rf/W/{grkWordNumbers[_safetyCount1]}.htm#Top' # We'd prefer to link to our own word pages
             except IndexError:
                 wordLink = f'''https://BibleHub.com/greek/{attribDict['strong'][:-1]}.htm''' # default to BibleHub by Strongs number if we don't know the word number
-            caseClassHtml = '' if attribDict['morph'][4]=='.' else f'''class="case{attribDict['morph'][4]}" ''' # Has a trailing space
+            if attribDict['role'] == 'V':
+                caseClassName = 'greekVrb'
+            elif attribDict['strong'] == '37560': # Greek 'οὐ' (ou) 'not'
+                caseClassName = 'greekNeg'
+            elif attribDict['morph'][4] != '.':
+                try:
+                    caseClassName = f'''greek{GREEK_CASE_CLASS_DICT[attribDict['morph'][4]]}'''
+                except KeyError:
+                    print( f"{BBB} {C}:{V} {currentWordNumber=} {rawGrkWord=} {simpleGrkWord=} {attribDict=}" )
+                    raise KeyError
+            else: caseClassName = None
+            caseClassHtml = '' if not caseClassName else f'''class="{caseClassName}" ''' # Has a trailing space
             textHtml = f'''{textHtml[:ix-1]}<b>˚<a title="{attribDict['role']}-{attribDict['morph']}" {caseClassHtml}href="{wordLink}">{simpleGrkWord}</a></b>{textHtml[ix+len(simpleGrkWord):]}''' \
                         if '˚' in rawGrkWord else \
                         f'''{textHtml[:ix]}<a title="{attribDict['role']}-{attribDict['morph']}" {caseClassHtml}href="{wordLink}">{simpleGrkWord}</a>{textHtml[ix+len(simpleGrkWord):]}'''
@@ -523,7 +615,7 @@ def brightenSRGNT( BBB, C, V, textHtml, verseEntryList, state ) -> str:
         else: need_to_increase_count1_for_brightenSRGNT
 
     return textHtml
-# end of html.brightenSRGNT
+# end of createParallelPages.brightenSRGNT
 
 
 ENGLISH_WORD_MAP = ( # Place longer words first,
@@ -1114,11 +1206,11 @@ def moderniseEnglishWords( html:str ) -> bool:
             html = html.replace( oldWord, newWord )
 
     return html
-# end of html.moderniseEnglishWords
+# end of createParallelPages.moderniseEnglishWords
 
 
 GERMAN_WORD_MAP = (
-    ('Aber ','But '), (' alle ',' all '), (' auch.',' also.'), (' aus ',' from '),
+    ('Aber ','But '), (' alle ',' all '), (' auch.',' also.'), (' aus ',' out of '),
     ('Blut','blood'),
     (' das ',' the '),('Der ','The '),(' der ',' the '),(' des ',' the '),(' die ',' the '),
         (' drei',' three'),
@@ -1128,12 +1220,13 @@ GERMAN_WORD_MAP = (
     (' ihm ',' him '),(' ihm.',' him.'), (' ihn ',' him '),
     ('JEsus','Yesus'), ('J','Y'),
         ('Jüngern ','disciples '),
-    (' kamen ',' came '),
+    (' kamen ',' came '),(' kam ',' came '),
     (' machten',' make'),('Meer.','sea.'), (' mit ',' with '), ('. Morgan','. Morning'),('Morgan','morning'),
     ('Nacht ','night '), (' nicht ',' not '),
-    ('Samen ','seed '), (' sieben ',' seven '), (' sind ',' are '), ('Sohn!','son!'), ('Sonne','sun'), (' sprach ',' spoke '),
+    ('Samen ','seed '), (' sein ',' his '),(' seine ',' his '), (' sieben ',' seven '), (' sind ',' are '), ('Sohn!','son!'), ('Sonne','sun'), (' sprach ',' spoke '),
     ('Und ','And '),(' und ',' and '),
-    (' viel ',' many '), ('Volks','people'), (' von ',' from '),
+    ('Vaterland','fatherland/homeland'),
+        (' viel ',' many '), ('Volks','people'), (' von ',' from '),
     ('Wasser','water'), ('Weib ','woman '), (' wenn ',' when '),
     (' zu ',' to '), ('Zuletzt ','Finally '),
     )
@@ -1147,7 +1240,7 @@ def translateGerman( html:str ) -> bool:
         html = html.replace( GermanWord, EnglishWord )
 
     return html
-# end of html.translateGerman
+# end of createParallelPages.translateGerman
 
 
 def adjustLatin( html:str ) -> bool:
@@ -1158,7 +1251,7 @@ def adjustLatin( html:str ) -> bool:
 
     return html.replace('j','y').replace('J','Y') \
                 .replace('Yhes','Jhes') # Change this one back again -- 'Jhesus' -- was maybe more like French J ???
-# end of html.adjustLatin
+# end of createParallelPages.adjustLatin
 
 
 
@@ -1170,7 +1263,7 @@ def briefDemo() -> None:
 
     # Demo the html object
     pass
-# end of html.briefDemo
+# end of createParallelPages.briefDemo
 
 def fullDemo() -> None:
     """
@@ -1180,7 +1273,7 @@ def fullDemo() -> None:
 
     # Demo the html object
     pass
-# end of html.fullDemo
+# end of createParallelPages.fullDemo
 
 if __name__ == '__main__':
     from multiprocessing import freeze_support
@@ -1193,4 +1286,4 @@ if __name__ == '__main__':
     fullDemo()
 
     BibleOrgSysGlobals.closedown( PROGRAM_NAME, PROGRAM_VERSION )
-# end of html.py
+# end of createParallelPages.py

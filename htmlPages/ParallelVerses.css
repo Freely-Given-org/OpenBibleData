@@ -1,17 +1,17 @@
 /* button#marksButton { float:right; }
 div.container { display:grid; column-gap:0.6em; grid-template-columns:0.85fr 1.15fr; }
 div.BibleText { } */
-div.footer { width: 500px; height: 250px; margin: 50px; }
+div.footer { width:500px; height:250px; margin:50px; }
 div.rightBox { float:right; width:35%; border:3px solid #73AD21; padding:0.2em; }
 
 span.upLink { font-size:1.5em; font-weight:bold; }
 
 /* Links */
-/* a:link { text-decoration: none; }
-a:visited { text-decoration: none; }
-a:hover { text-decoration: none; }
-a:active { text-decoration: none; } */
-a { text-decoration: none; }
+/* a:link { text-decoration:none; }
+a:visited { text-decoration:none; }
+a:hover { text-decoration:none; }
+a:active { text-decoration:none; } */
+a { text-decoration:none; }
 
 /* Navigational lists at top of page */
 p.wrkLst { background-color:#904471; color:98a9d4; }
@@ -26,22 +26,22 @@ p.vsLst {background-color:mistyRose; }
 .vsLst a { text-decoration:none; }
 
 /* For bkList class */
-span.XX { color: purple; }
+span.XX { color:purple; }
 .XX a { text-decoration:none; }
-span.OT { color: saddlebrown; }
+span.OT { color:saddlebrown; }
 .OT a { text-decoration:none; }
-span.NT { color: darkgreen; }
+span.NT { color:darkgreen; }
 .NT a { text-decoration:none; }
-span.DC { color: orange; font-size: smaller; }
+span.DC { color:orange; font-size:smaller; }
 .DC a { text-decoration:none; }
 
 /* Navs are the ones with arrows */
 p.cNav { text-align:center; font-size:1.8em; background-color:#98a9d4; }
-/* .cNav a { text-decoration: none; } */
+/* .cNav a { text-decoration:none; } */
 p.vNav { text-align:center; font-size:1.8em; }
-/* .vNav a { text-decoration: none; }
-.footnotes a { text-decoration: none; }
-.crossRefs a { text-decoration: none; } */
+/* .vNav a { text-decoration:none; }
+.footnotes a { text-decoration:none; }
+.crossRefs a { text-decoration:none; } */
 
 /* Header USFM */
 p.h { font-weight:bold; }
@@ -90,10 +90,10 @@ p.intro-sidebar-h1 { font-weight:bold; }
 p.intro-h1 { font-weight:bold; }
 
 /* Tyndale SNs */
-span.sn-excerpt { font-family: Arial, Helvetica, sans-serif; color: saddleBrown; }
+span.sn-excerpt { font-family:Arial, Helvetica, sans-serif; color:saddleBrown; }
 span.ital { font-style:italic; }
-span.hebrew { color: orange; }
-span.greek { color: darkgreen; }
+span.hebrew { color:orange; }
+span.greek { color:darkgreen; }
 /* Tyndale TNs */
 p.theme-title { font-weight:bold; }
 p.theme-refs-title { font-weight:bold; }
@@ -105,16 +105,26 @@ p.Gram { font-style:italic; }
 /* Notes USFM */
 p.fn { margin-top:0.2em; margin-bottom:0.2em; font-size:0.75em; }
 p.xr { margin-top:0.2em; margin-bottom:0.2em; font-size:0.75em; }
-span.fnCaller { vertical-align: super; font-size:0.7em; color:green; }
-span.enCaller { vertical-align: super; font-size:0.7em; color:green; }
-span.xrCaller { vertical-align: super; font-size:0.7em; color:blue; }
+span.fnCaller { vertical-align:super; font-size:0.7em; color:green; }
+span.enCaller { vertical-align:super; font-size:0.7em; color:green; }
+span.xrCaller { vertical-align:super; font-size:0.7em; color:blue; }
 span.fnRef { font-weight:bold; }
 span.xrRef { font-weight:bold; }
 /* span.fnText { } */
 /* span.xrText { } */
 
 /* SR-GNT cases (also used for OET-RV and OET-LV) */
-.caseN { background-color:lightgreen; }
-.caseA { background-color:pink; }
-.caseG { background-color:orange; }
-.caseD { background-color:yellow; }
+/* Used in <a> fields and in spans */
+.greekNom { background-color:lightgreen; }
+.greekAcc { background-color:orange; }
+.greekGen { background-color:pink; }
+.greekDat { background-color:cyan; }
+.greekVoc { background-color:magenta; }
+.greekVrb { background-color:yellow; }
+.greekNeg { background-color:red; }
+
+/* Other GNT classes */
+/* span.wrkName { } */
+span.wrkNameDiffPunct { background-color:yellow; }
+span.wrkNameDiffAccents { background-color:orange; }
+span.wrkNameDiffText { background-color:red; }

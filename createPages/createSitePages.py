@@ -77,7 +77,7 @@ from html import makeTop, makeBottom, checkHtml
 # from selectedVersesVersions import fillSelectedVerses
 
 
-LAST_MODIFIED_DATE = '2023-10-24' # by RJH
+LAST_MODIFIED_DATE = '2023-12-16' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData Create Pages"
 PROGRAM_VERSION = '0.86'
@@ -85,7 +85,7 @@ PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
 
-TEST_MODE = True # Writes website into Test subfolder
+TEST_MODE = False # Writes website into Test subfolder
 ALL_PRODUCTION_BOOKS = not TEST_MODE # If set to False, only selects one book per version for a faster test build
 ALL_TEST_REFERENCE_PAGES = False # If in Test mode, make all word/lemma pages, or just the relevant ones
 UPDATE_ACTUAL_SITE_WHEN_BUILT = True # The pages are initially built in a tmp folder so need to be copied to the final destination
@@ -605,7 +605,7 @@ We’re also grateful to the <a href="https://www.Biblica.com/clear/">Biblica Cl
         'TC-GNT': {'about': '<p class="about">Text-Critical Greek New Testament (2010) based on Robinson/Pierpont Byzantine priority GNT (RP2018).</p>',
                 'copyright': '<p class="copyright">Copyright © (coming).</p>',
                 'licence': '<p class="licence">(coming).</p>',
-                'acknowledgements': '<p class="acknwldg">(coming).</p>' },
+                'acknowledgements': '<p class="acknwldg">Thanks to <a href="https://eBible.org/Scriptures/details.php?id=grctcgnt">eBible.org</a> for supplying the USFM files.</p>' },
         'BRN': {'about': '<p class="about">Sir Lancelot C. L. Brenton’s 1851 translation of the ancient Greek Septuagint (LXX) translation of the Hebrew scriptures.</p>',
                 'copyright': '<p class="copyright">Copyright © (coming).</p>',
                 'licence': '<p class="licence">(coming).</p>',
@@ -700,7 +700,7 @@ def createSitePages() -> bool:
     load_transliteration_table( 'Greek' )
     load_transliteration_table( 'Hebrew' )
 
-    # Find our inclusive list of books
+    # Determine our inclusive list of books for all versions
     allBBBs = set()
     for BBB in BibleOrgSysGlobals.loadedBibleBooksCodes:
         for versionAbbreviation in state.BibleVersions:
@@ -714,6 +714,28 @@ def createSitePages() -> bool:
     # Now put them in the proper print order
     state.allBBBs = BibleOrgSysGlobals.loadedBibleBooksCodes.getSequenceList( allBBBs )
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\nDiscovered {len(state.allBBBs)} books across {len(state.preloadedBibles)} versions: {state.allBBBs}" )
+
+    # Determine our list of books to process for each version
+    # state.BBBsToProcess, state.BBBLinks = {}, {}
+    # for versionAbbreviation in state.BibleVersions:
+    #     if versionAbbreviation == 'OET': continue # This isn't a real version
+    #     thisBible = state.preloadedBibles[versionAbbreviation]
+    #     thisBibleBooksToLoad = state.booksToLoad[versionAbbreviation]
+    #     state.BBBsToProcess[versionAbbreviation] = thisBible.books.keys() if thisBibleBooksToLoad==['ALL'] \
+    # TODO: Above line gives error: thisBible 'dict' object has no attribute 'books'
+    #                 else BOOKLIST_NT27 if thisBibleBooksToLoad==['NT'] \
+    #                 else thisBibleBooksToLoad
+    #     if 'OET' in versionAbbreviation:
+    #         state.BBBsToProcess[versionAbbreviation] = reorderBooksForOETVersions( state.BBBsToProcess[versionAbbreviation] )
+    #     state.BBBLinks[versionAbbreviation] = []
+    #     for BBB in state.BBBsToProcess[versionAbbreviation]:
+    #         if BBB=='FRT' \
+    #         or 'ALL' in thisBibleBooksToLoad \
+    #         or BBB in thisBibleBooksToLoad:
+    #             filename = f'{BBB}.htm'
+    #             ourTidyBBB = tidyBBB( BBB )
+    #             state.BBBLinks[versionAbbreviation].append( f'''<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB).replace('James','Jacob/(James)')}" href="{filename}#Top">{ourTidyBBB}</a>''' )
+    # TODO: None of the above state fields are being used yet
 
     # Ok, let's go create some static pages
     if 'OET' in state.BibleVersions: # this is a special case
@@ -853,26 +875,29 @@ def createOETVersionPages( level:int, folder:Path, rvBible, lvBible, state:State
 
     versionName = state.BibleNames['OET']
     indexHtml = f'''<h1 id="Top">{versionName}</h1>
-<p class="rem">Remember that ancient letters were meant to be read in their entirety just like modern letters. We provide a byChapter mode for convenience only, but recommend the byDocument mode for personal reading.</p>
-<p class="viewLst"><a href="byDoc">By Document</a> <a href="bySec">By Section</a> <a href="byC">By Chapter</a> <a href="details.htm#Top">Details</a></p>
+<p class="rem">Remember that ancient letters were meant to be read in their entirety just like modern letters. We provide a byChapter mode for convenience only, but mostly recommend the byDocument mode for personal reading.</p>
+<p class="viewLst">OET <a href="byDoc">By Document</a> <a href="bySec">By Section</a> <a href="byC">By Chapter</a> <a href="details.htm#Top">Details</a></p>
 ''' if rvBible.discoveryResults['ALL']['haveSectionHeadings'] or lvBible.discoveryResults['ALL']['haveSectionHeadings'] else \
 f'''<h1 id="Top">{versionName}</h1>
-<p class="rem">Remember that ancient letters were meant to be read in their entirety just like modern letters. We provide a byChapter mode for convenience only, but recommend the byDocument mode for personal reading.</p>
-<p class="viewLst"><a href="byDoc">By Document</a> <a href="byC">By Chapter</a> <a href="details.htm#Top">Details</a></p>
+<p class="rem">Remember that ancient letters were meant to be read in their entirety just like modern letters. We provide a byChapter mode for convenience only, but mostly recommend the byDocument mode for personal reading.</p>
+<p class="viewLst">OET <a href="byDoc">By Document</a> <a href="byC">By Chapter</a> <a href="details.htm#Top">Details</a></p>
 '''
+    top = makeTop( level, None, 'site', None, state ) \
+                    .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{versionName}" ) \
+                    .replace( '__KEYWORDS__', f"Bible, OET, {versionName}" ) \
+                    .replace( f'''<a title="{versionName}" href="{'../'*level}OET">OET</a>''', 'OET' )
     filepath = folder.joinpath( 'index.htm' )
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
-        indexHtmlFile.write( makeTop( level, None, 'site', None, state ) \
-                                    .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{versionName}" ) \
-                                    .replace( '__KEYWORDS__', f"Bible, OET, {versionName}" ) \
-                                    .replace( f'''<a title="{versionName}" href="{'../'*level}OET">OET</a>''', 'OET' ) \
-                                + indexHtml + '\n' + makeBottom( level, 'site', state ) )
+        indexHtmlFile.write( f'''{top}{indexHtml}
+{makeBottom( level, 'site', state )}''' )
     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"    {len(indexHtml):,} characters written to {filepath}" )
     return True
 # end of createSitePages.createOETVersionPages
 
 def createVersionPages( level:int, folder:Path, thisBible, state:State ) -> bool:
     """
+    Create a page for the given Bible version
+        that then allows the user to choose by document/section/chapter or display version details
     """
     fnPrint( DEBUGGING_THIS_MODULE, f"createVersionPages( {level}, {folder}, {thisBible.abbreviation} )")
     createBookPages( level+1, folder.joinpath('byDoc/'), thisBible, state )
@@ -881,20 +906,20 @@ def createVersionPages( level:int, folder:Path, thisBible, state:State ) -> bool
 
     versionName = state.BibleNames[thisBible.abbreviation]
     indexHtml = f'''<h1 id="Top">{versionName}</h1>
-<p class="rem">Remember that ancient letters were meant to be read in their entirety just like modern letters. We provide a byChapter mode for convenience only, but recommend the byDocument mode for personal reading.</p>
-<p class="viewLst"><a href="byDoc">By Document</a> <a href="bySec">By Section</a> <a href="byC">By Chapter</a> <a href="details.htm#Top">Details</a></p>
+<p class="rem">Remember that ancient letters were meant to be read in their entirety just like modern letters. We provide a byChapter mode for convenience only, but mostly recommend the byDocument mode for personal reading.</p>
+<p class="viewLst">{thisBible.abbreviation} <a href="byDoc">By Document</a> <a href="bySec">By Section</a> <a href="byC">By Chapter</a> <a href="details.htm#Top">Details</a></p>
 ''' if thisBible.discoveryResults['ALL']['haveSectionHeadings'] else \
 f'''<h1 id="Top">{versionName}</h1>
-<p class="rem">Remember that ancient letters were meant to be read in their entirety just like modern letters. We provide a byChapter mode for convenience only, but recommend the byDocument mode for personal reading.</p>
-<p class="viewLst"><a href="byDoc">By Document</a> <a href="byC">By Chapter</a> <a href="details.htm#Top">Details</a></p>
+<p class="rem">Remember that ancient letters were meant to be read in their entirety just like modern letters. We provide a byChapter mode for convenience only, but mostly recommend the byDocument mode for personal reading.</p>
+<p class="viewLst">{thisBible.abbreviation} <a href="byDoc">By Document</a> <a href="byC">By Chapter</a> <a href="details.htm#Top">Details</a></p>
 '''
+    top = makeTop( level, None, 'site', None, state ) \
+                    .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{versionName}" ) \
+                    .replace( '__KEYWORDS__', f'Bible, {versionName}' ) \
+                    .replace( f'''<a title="{versionName}" href="{'../'*level}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}">{thisBible.abbreviation}</a>''', thisBible.abbreviation )
     filepath = folder.joinpath( 'index.htm' )
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
-        indexHtmlFile.write( makeTop( level, None, 'site', None, state ) \
-                                    .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{versionName}" ) \
-                                    .replace( '__KEYWORDS__', f'Bible, {versionName}' ) \
-                                    .replace( f'''<a title="{versionName}" href="{'../'*level}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}">{thisBible.abbreviation}</a>''', thisBible.abbreviation ) \
-                                + indexHtml + makeBottom( level, 'site', state ) )
+        indexHtmlFile.write( f'''{top}{indexHtml}{makeBottom( level, 'site', state )}''' )
     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"    {len(indexHtml):,} characters written to {filepath}" )
     return True
 # end of createSitePages.createVersionPages
@@ -922,13 +947,13 @@ especially in the New Testament era where scribes often were not professionals.<
 <li>More to come…</li>
 </ul>
 '''
+    top = makeTop( level, None, 'site', None, state ) \
+                    .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}OET Missing Verses" ) \
+                    .replace( '__KEYWORDS__', 'Bible, OET, missing, verses' ) \
+                    .replace( f'''<a title="OET" href="{'../'*level}OET">OET</a>''', 'OET' )
     filepath = buildFolder.joinpath( 'missingVerse.htm' )
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
-        indexHtmlFile.write( makeTop( level, None, 'site', None, state ) \
-                                    .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}OET Missing Verses" ) \
-                                    .replace( '__KEYWORDS__', 'Bible, OET, missing, verses' ) \
-                                    .replace( f'''<a title="OET" href="{'../'*level}OET">OET</a>''', 'OET' ) \
-                                + textHtml + makeBottom( level, 'site', state ) )
+        indexHtmlFile.write( f'''{top}{textHtml}{makeBottom( level, 'site', state )}''' )
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    {len(textHtml):,} characters written to {filepath}" )
     return True
 # end of createSitePages.createOETMissingVersePage
@@ -1168,7 +1193,8 @@ def createMainIndexPage( level, folder:Path, state ) -> bool:
     html = f'''{html}{bodyHtml}
 <p class="note">Welcome to this <em>Open Bible Data</em> site created to share God’s fantastic message with everyone,
     and with a special interest in helping Bible translators around the world.</p>
-<p class="note">Choose a version above to view by document or by section or chapter, or else the parallel or interlinear verse views.</p>
+<p class="note">Choose a version above to view <b>by document</b> or <b>by section</b> or <b>chapter</b>, or else the <b>parallel</b> or <b>interlinear verse</b> views.</p>
+<p class="note">The <b>Dictionary</b> link takes you to the <i>Tyndale Bible Dictionary</i>, and the <b>Search</b> link allows you to find words within the Bible text.</p>
 <p class="note"><small>Last rebuilt: {date.today()}</small></p>
 {makeBottom( level, 'topIndex', state )}'''
     checkHtml( 'TopIndex', html )

@@ -39,6 +39,7 @@ BibleOrgSys uses a three-character book code to identify books.
 CHANGELOG:
     2023-08-22 Change some logging from critical to errors
     2023-10-25 Make use of word table index; add colourisation of OET words
+    2023-12-15 Improve colorisation of OET words
 """
 # from gettext import gettext as _
 from typing import Dict, List, Tuple, Optional
@@ -59,10 +60,10 @@ sys.path.append( '../../BibleTransliterations/Python/' )
 from BibleTransliterations import transliterate_Greek
 
 
-LAST_MODIFIED_DATE = '2023-11-20' # by RJH
+LAST_MODIFIED_DATE = '2023-12-15' # by RJH
 SHORT_PROGRAM_NAME = "OETHandlers"
 PROGRAM_NAME = "OpenBibleData OET handler"
-PROGRAM_VERSION = '0.30'
+PROGRAM_VERSION = '0.31'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -223,6 +224,8 @@ def livenOETWordLinks( bibleObject:ESFMBible, BBB:str, givenEntryList:InternalBi
 
     Then add the transliteration to the title="§«GreekWord»§" popup.
     """
+    from createParallelPages import GREEK_CASE_CLASS_DICT
+
     # Liven the word links using the BibleOrgSys function
     revisedEntryList = bibleObject.livenESFMWordLinks( BBB, givenEntryList, linkTemplate=hrefTemplate, titleTemplate='§«GreekWord»§' )[0]
     # We get something back like:
@@ -262,15 +265,23 @@ def livenOETWordLinks( bibleObject:ESFMBible, BBB:str, givenEntryList:InternalBi
             wordNumber = int( wordnumberMatch.group(1) )
             wordRow = state.OETRefData['word_table'][wordNumber]
             SRLemma = wordRow.split( '\t' )[2]
-            _ref, _greekWord, SRLemma, _GrkLemma, _glossWordsStr, _glossCaps, _probability, _extendedStrongs, _roleLetter, morphology, _tagsStr = wordRow.split( '\t' )
+            _ref, _greekWord, SRLemma, _GrkLemma, _glossWordsStr, _glossCaps, _probability, extendedStrongs, roleLetter, morphology, _tagsStr = wordRow.split( '\t' )
 
             # Do colourisation
-            if morphology[4] != '.': # Add a clase to the anchor for the English word
+            if roleLetter == 'V':
+                caseClassName = 'greekVrb'
+            elif extendedStrongs == '37560': # Greek 'οὐ' (ou) 'not'
+                caseClassName = 'greekNeg'
+            elif morphology[4] != '.':
+                caseClassName = f'''greek{GREEK_CASE_CLASS_DICT[morphology[4]]}'''
+            else: caseClassName = None
+
+            if caseClassName: # Add a clase to the anchor for the English word
                 # print( f"    livenOETWordLinks {originalText[wordnumberMatch.end():]=}")
                 assert originalText[wordnumberMatch.end():].startswith( '#Top">' )
                 anchorEndIx = originalText.index( '>', wordnumberMatch.end()+5 ) # Allow for '#Top"'
                 assert originalText[anchorEndIx] == '>'
-                originalText = f'''{originalText[:anchorEndIx]} class="case{morphology[4]}"{originalText[anchorEndIx:]}'''
+                originalText = f'''{originalText[:anchorEndIx]} class="{caseClassName}"{originalText[anchorEndIx:]}'''
                 # print( f"    livenOETWordLinks now '{originalText[wordnumberMatch.end():]}'")
                 colourisationsAdded += 1
                 # # Old Code puts a new span inside the anchor containing the English word

@@ -48,10 +48,10 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_
 from OETHandlers import livenOETWordLinks
 
 
-LAST_MODIFIED_DATE = '2023-08-30' # by RJH
+LAST_MODIFIED_DATE = '2023-12-16' # by RJH
 SHORT_PROGRAM_NAME = "createBookPages"
 PROGRAM_NAME = "OpenBibleData createBookPages functions"
-PROGRAM_VERSION = '0.40'
+PROGRAM_VERSION = '0.41'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -123,7 +123,8 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state ) -> Lis
                     .replace( '__KEYWORDS__', f'Bible, {rvBible.abbreviation}, book' ) \
                     .replace( f'''<a title="{state.BibleNames[rvBible.abbreviation]}" href="{'../'*level}{BibleOrgSysGlobals.makeSafeString(rvBible.abbreviation)}/byDoc/{filename}#Top">{rvBible.abbreviation}</a>''',
                             f'''<a title="Up to {state.BibleNames[rvBible.abbreviation]}" href="{'../'*level}{BibleOrgSysGlobals.makeSafeString(rvBible.abbreviation)}/">↑{rvBible.abbreviation}</a>''' )
-            bkHtml = top + '<!--book page-->' + bkHtml + '\n' + makeBottom( level, 'book', state )
+            bkHtml = f'''{top}<!--book page-->{bkHtml}
+{makeBottom( level, 'book', state )}'''
             checkHtml( rvBible.abbreviation, bkHtml )
             with open( filepath, 'wt', encoding='utf-8' ) as bkHtmlFile:
                 bkHtmlFile.write( bkHtml )
@@ -146,13 +147,13 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state ) -> Lis
         bkHtml = f'''<p class="bkNav">{bkPrevNav}<span class="bkHead" id="Top">Open English Translation {ourTidyBBB}</span>{bkNextNav}</p>
 <p class="rem">This is still a very early look into the unfinished text of the <em>Open English Translation</em> of the Bible. Please double-check the text in advance before using in public.</p>
 <div class="container">
-<span> </span>
-<div class="buttons">
-    <button type="button" id="marksButton" onclick="hide_show_marks()">Hide marks</button>
-</div><!--buttons-->
 <h2>Readers’ Version</h2>
-<h2>Literal Version</h2>
-  '''
+<h2>Literal Version <button type="button" id="marksButton" onclick="hide_show_marks()">Hide marks</button></h2>
+'''
+# <span> </span>
+# <div class="buttons">
+#     <button type="button" id="marksButton" onclick="hide_show_marks()">Hide marks</button>
+# </div><!--buttons-->
         rvVerseEntryList, rvContextList = rvBible.getContextVerseData( (BBB,) )
         lvVerseEntryList, lvContextList = lvBible.getContextVerseData( (BBB,) )
         if isinstance( rvBible, ESFMBible.ESFMBible ):
@@ -208,8 +209,13 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state ) -> Lis
             lvEndIx = lvIndex8
             if lvRest[lvEndIx:].startswith( '</span>'): # Occurs at end of MRK (perhaps because of missing SR verses in ending) -- not sure if in other places
                 print( f"\nNOTE: Fixed end of chunk in OET {BBB}!!!" )
-                lvEndIx = ixNextCV
-            lvChunks.append( lvRest[:lvEndIx])
+                lvEndIx = ixNextCV + 1
+            lvChunk = lvRest[:lvEndIx]
+            # Make sure that our split was at a sensible place
+            rsLvChunk = lvChunk.rstrip()
+            assert rsLvChunk[-1]=='>' \
+            or (rsLvChunk[-2]=='>' and rsLvChunk[-1] in '.,'), f"{n=} {lvChunk[-8:]=}"
+            lvChunks.append( lvChunk )
             lvRest = lvRest[lvEndIx:]
 
         assert len(lvChunks) == len(rvSections), f"{len(lvChunks)=} {len(rvSections)=}"
@@ -231,10 +237,9 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state ) -> Lis
                 .replace( '__KEYWORDS__', f'Bible, OET, Open English Translation, book' ) \
                 .replace( f'''<a title="{state.BibleNames['OET']}" href="{'../'*level}OET/byDoc/{filename}#Top">OET</a>''',
                           f'''<a title="Up to {state.BibleNames['OET']}" href="{'../'*level}OET/">↑OET</a>''' )
-        bkHtml = f'''{top}<!--book page-->''' \
-                    + bkHtml + removeDuplicateCVids( BBB, combinedHtml ) \
-                    + '</div><!--container-->\n' \
-                    + makeBottom( level, 'book', state )
+        bkHtml = f'''{top}<!--book page-->
+{bkHtml}{removeDuplicateCVids( BBB, combinedHtml )}</div><!--container-->
+{makeBottom( level, 'book', state )}'''
         checkHtml( 'book', bkHtml )
         with open( filepath, 'wt', encoding='utf-8' ) as bkHtmlFile:
             bkHtmlFile.write( bkHtml )
@@ -249,10 +254,11 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state ) -> Lis
             .replace( '__KEYWORDS__', f'Bible, OET, Open English Translation' ) \
             .replace( f'''<a title="{state.BibleNames['OET']}" href="{'../'*level}OET/byDoc">OET</a>''',
                       f'''<a title="{state.BibleNames['OET']}" href="{'../'*level}OET">↑OET</a>''' )
-    indexHtml = top \
-                + '<h1 id="Top">OET book pages</h1><h2>Index of books</h2>\n' \
-                + f'''{makeBookNavListParagraph(BBBLinks, state)}\n''' \
-                + makeBottom( level, 'book', state )
+    indexHtml = f'''{top}
+<h1 id="Top">OET book pages</h1>
+<h2>Index of books</h2>
+{makeBookNavListParagraph(BBBLinks, 'OET', state)}
+{makeBottom( level, 'book', state )}'''
     checkHtml( 'OETBooksIndex', indexHtml )
     with open( filepath, 'wt', encoding='utf-8' ) as bkHtmlFile:
         bkHtmlFile.write( indexHtml )
@@ -334,7 +340,8 @@ def createBookPages( level:int, folder:Path, thisBible, state ) -> List[str]:
                 .replace( '__KEYWORDS__', f'Bible, {thisBible.abbreviation}, book' ) \
                 .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*level}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/byDoc/{filename}#Top">{thisBible.abbreviation}</a>''',
                           f'''<a title="Up to {state.BibleNames[thisBible.abbreviation]}" href="{'../'*level}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/">↑{thisBible.abbreviation}</a>''' )
-        bkHtml = top + '<!--book page-->' + bkHtml + '\n' + makeBottom( level, 'book', state )
+        bkHtml = f'''{top}<!--book page-->{bkHtml}
+{makeBottom( level, 'book', state )}'''
         checkHtml( thisBible.abbreviation, bkHtml )
         with open( filepath, 'wt', encoding='utf-8' ) as bkHtmlFile:
             bkHtmlFile.write( bkHtml )
@@ -349,10 +356,11 @@ def createBookPages( level:int, folder:Path, thisBible, state ) -> List[str]:
             .replace( '__KEYWORDS__', f'Bible, {thisBible.abbreviation}, book' ) \
             .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*level}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/byDoc">{thisBible.abbreviation}</a>''',
                       f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*level}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}">↑{thisBible.abbreviation}</a>''' )
-    indexHtml = top \
-                + f'<h1 id="Top">{thisBible.abbreviation} book pages</h1><h2>Index of books</h2>\n' \
-                + f'''{makeBookNavListParagraph(BBBLinks, state)}\n''' \
-                + makeBottom( level, 'book', state)
+    indexHtml = f'''{top}
+<h1 id="Top">{thisBible.abbreviation} book pages</h1>
+<h2>Index of books</h2>
+{makeBookNavListParagraph(BBBLinks, thisBible.abbreviation, state)}
+{makeBottom( level, 'book', state)}'''
     checkHtml( thisBible.abbreviation, indexHtml )
     with open( filepath, 'wt', encoding='utf-8' ) as bkHtmlFile:
         bkHtmlFile.write( indexHtml )

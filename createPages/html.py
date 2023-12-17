@@ -62,10 +62,10 @@ from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39, BOOKLIST_NT27
 # from Bibles import fetchChapter
 
 
-LAST_MODIFIED_DATE = '2023-10-20' # by RJH
+LAST_MODIFIED_DATE = '2023-12-13' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
-PROGRAM_VERSION = '0.56'
+PROGRAM_VERSION = '0.57'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -132,7 +132,8 @@ def makeTop( level:int, versionAbbreviation:Optional[str], pageType:str, fileOrF
 </head><body><!--Level{level}-->{topLink}
 <h3>Demonstration version—prototype quality only—still in development</h3>
 """
-    return top + _makeHeader( level, versionAbbreviation, pageType, fileOrFolderName, state ) + '\n'
+    return f'''{top}{_makeHeader( level, versionAbbreviation, pageType, fileOrFolderName, state )}
+'''
 # end of html.makeTop
 
 def _makeHeader( level:int, versionAbbreviation:str, pageType:str, fileOrFolderName:Optional[str], state ) -> str:
@@ -184,7 +185,7 @@ def _makeHeader( level:int, versionAbbreviation:str, pageType:str, fileOrFolderN
     if pageType == 'search':
         initialVersionList.append( 'Search' )
     else: # add a link for dictionary
-        initialVersionList.append( f'''{state.BibleVersionDecorations['Search'][0]}<a title="Dictionary index" href="{'../'*level}search.htm">Search</a>{state.BibleVersionDecorations['Search'][1]}''' )
+        initialVersionList.append( f'''{state.BibleVersionDecorations['Search'][0]}<a title="Find Bible words" href="{'../'*level}search.htm">Search</a>{state.BibleVersionDecorations['Search'][1]}''' )
     # Moved to top line in makeTop above
     # if pageType == 'about':
     #     initialVersionList.append( 'About' )
@@ -238,26 +239,28 @@ def _makeHeader( level:int, versionAbbreviation:str, pageType:str, fileOrFolderN
     and versionAbbreviation not in ('TOSN','TTN','TOBD','UTN') \
     and versionAbbreviation not in state.versionsWithoutTheirOwnPages:
         if not versionAbbreviation: versionAbbreviation = 'OET'
-        viewLinks.append( versionAbbreviation )
-        # if pageType != 'book':
-        viewLinks.append( f'''<a title="View entire document" href="{'../'*level}{versionAbbreviation}/byDoc/">By Document</a>''' )
-        # if pageType != 'section':
+        viewLinks.append( f'''<a title="Select a different version" href="{'../'*level}">{versionAbbreviation}</a>''' )
+        viewLinks.append( f'''<a title="View entire document" href="{'../'*level}{versionAbbreviation}/byDoc/">By Document</a>'''
+                            if pageType!='book' else 'By Document' )
         if state.preloadedBibles['OET-RV' if versionAbbreviation=='OET' else versionAbbreviation].discoveryResults['ALL']['haveSectionHeadings']:
-            viewLinks.append( f'''<a title="View section" href="{'../'*level}{versionAbbreviation}/bySec/">By Section</a>''' )
-        # if pageType != 'chapter':
-        viewLinks.append( f'''<a title="View chapter" href="{'../'*level}{versionAbbreviation}/byC/">By Chapter</a>''' )
-        if pageType != 'details':
-            viewLinks.append( f'''<a title="View chapter" href="{'../'*level}{versionAbbreviation}/details.htm#Top">Details</a>''' )
+            viewLinks.append( f'''<a title="View section" href="{'../'*level}{versionAbbreviation}/bySec/">By Section</a>'''
+                            if pageType!='section' else 'By Section' )
+        viewLinks.append( f'''<a title="View chapter" href="{'../'*level}{versionAbbreviation}/byC/">By Chapter</a>'''
+                            if pageType!='chapter' else 'By Chapter' )
+        viewLinks.append( f'''<a title="View version details" href="{'../'*level}{versionAbbreviation}/details.htm#Top">Details</a>'''
+                            if pageType!='details' else 'Details' )
     viewHtml = f'''<p class="viewLst">{' '.join(viewLinks)}</p>''' if viewLinks else ''
 
     return f'''<div class="header">{versionHtml}{NEWLINE if viewHtml else ''}{viewHtml}</div><!--header-->'''
 # end of html._makeHeader
 
 
-def makeBookNavListParagraph( linksList:List[str], state ) -> str:
+def makeBookNavListParagraph( linksList:List[str], abbrev:str, state ) -> str:
     """
+    Create a 'bkLst' paragraph with the book abbreviation links
+        preceded by the work abbreviation (non-link) if specified.
     """
-    newList = []
+    newList = [abbrev] if abbrev else []
     for aLink in linksList:
         # print( f"{aLink=}")
         ixStart = aLink.index( '>' ) + 1

@@ -1,13 +1,13 @@
 /* button#marksButton { float:right; }
 div.container { display:grid; column-gap:0.6em; grid-template-columns:0.85fr 1.15fr; }
 div.BibleText { } */
-/* div.footer { width: 500px; height: 250px; margin: 50px; }
+/* div.footer { width:500px; height:250px; margin:50px; }
 div.rightBox { float:right; width:35%; border:3px solid #73AD21; padding:0.2em; } */
 
 div.Textbox { display:flex; width:50%; flex-direction:column; border:2px solid black;
     background-color:lightYellow; padding-left:0.4em; padding-right:0.3em; float:right; }
 
-a { text-decoration: none; }
+a { text-decoration:none; }
 
 /* Navigational lists at top of page */
 p.wrkLst { background-color:#904471; color:98a9d4; }
@@ -39,8 +39,8 @@ div.Mapbox { display:flex; width:50%; flex-direction:column; border:2px solid bl
 img { width:100%; object-fit:contain; }
 p.caption-head { margin-top:0.2em; margin-bottom:0.1em; font-weight:bold; font-size:1.1em; }
 
-span.sn-excerpt { font-family: Arial, Helvetica, sans-serif; color: saddleBrown; }
+span.sn-excerpt { font-family:Arial, Helvetica, sans-serif; color:saddleBrown; }
 span.ital { font-style:italic; }
-span.hebrew { color: orange; }
-span.greek { color: darkgreen; }
-span.era { color: cornflowerblue; }
+span.hebrew { color:orange; }
+span.greek { color:darkgreen; }
+span.era { color:cornflowerblue; }

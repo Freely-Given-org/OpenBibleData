@@ -1,9 +1,9 @@
 /* Links */
-/* a:link { text-decoration: none; }
-a:visited { text-decoration: none; }
-a:hover { text-decoration: none; }
-a:active { text-decoration: none; } */
-a { text-decoration: none; }
+/* a:link { text-decoration:none; }
+a:visited { text-decoration:none; }
+a:hover { text-decoration:none; }
+a:active { text-decoration:none; } */
+a { text-decoration:none; }
 
 /* Navigational lists at top of page */
 p.wrkLst { background-color:#904471; color:98a9d4; }
@@ -18,15 +18,15 @@ p.vsLst {background-color:mistyRose; }
 .vsLst a { text-decoration:none; }
 
 /* For bkList class */
-span.XX { color: purple; }
+span.XX { color:purple; }
 .XX a { text-decoration:none; }
-span.OT { color: saddlebrown; }
+span.OT { color:saddlebrown; }
 .OT a { text-decoration:none; }
-span.NT { color: darkgreen; }
+span.NT { color:darkgreen; }
 .NT a { text-decoration:none; }
-span.DC { color: orange; font-size: smaller; }
+span.DC { color:orange; font-size:smaller; }
 .DC a { text-decoration:none; }
 
-div.footer { width: 500px; height: 250px; margin: 50px; }
+div.footer { width:500px; height:250px; margin:50px; }
 
 p.rem { font-size:0.8em; color:grey; }

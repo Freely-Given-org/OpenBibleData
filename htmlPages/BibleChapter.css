@@ -3,17 +3,17 @@
 /* button#marksButton { float:right; }
 div.container { display:grid; column-gap:0.6em; grid-template-columns:0.85fr 1.15fr; }
 div.BibleText { } */
-div.footer { width: 500px; height: 250px; margin: 50px; }
+div.footer { width:500px; height:250px; margin:50px; }
 div.rightBox { float:right; width:35%; border:3px solid #73AD21; padding:0.2em; }
 
 span.upLink { font-size:1.5em; font-weight:bold; }
 
 /* Links */
-/* a:link { text-decoration: none; }
-a:visited { text-decoration: none; }
-a:hover { text-decoration: none; }
-a:active { text-decoration: none; } */
-a { text-decoration: none; }
+/* a:link { text-decoration:none; }
+a:visited { text-decoration:none; }
+a:hover { text-decoration:none; }
+a:active { text-decoration:none; } */
+a { color:inherit; text-decoration:none; }
 
 /* Navigational lists at top of page */
 p.wrkLst { background-color:#904471; color:98a9d4; }
@@ -28,13 +28,13 @@ p.vsLst {background-color:mistyRose; }
 .vsLst a { text-decoration:none; }
 
 /* For bkList class */
-span.XX { color: purple; }
+span.XX { color:purple; }
 .XX a { text-decoration:none; }
-span.OT { color: saddlebrown; }
+span.OT { color:saddlebrown; }
 .OT a { text-decoration:none; }
-span.NT { color: darkgreen; }
+span.NT { color:darkgreen; }
 .NT a { text-decoration:none; }
-span.DC { color: orange; font-size: smaller; }
+span.DC { color:orange; font-size:smaller; }
 .DC a { text-decoration:none; }
 
 /* Navs are the ones with arrows */
@@ -42,11 +42,11 @@ p.bkNav { text-align:center; font-size:2em; }
 /* span.bkHead { } */
 p.secNav { text-align:center; font-size:1.8em; }
 p.cNav { text-align:center; font-size:1.8em; background-color:#98a9d4; }
-/* .cNav a { text-decoration: none; } */
+/* .cNav a { text-decoration:none; } */
 p.vNav { text-align:center; font-size:1.8em; }
-/* .vNav a { text-decoration: none; }
-.footnotes a { text-decoration: none; }
-.crossRefs a { text-decoration: none; } */
+/* .vNav a { text-decoration:none; }
+.footnotes a { text-decoration:none; }
+.crossRefs a { text-decoration:none; } */
 
 /* Header USFM */
 p.h { font-weight:bold; }
@@ -65,6 +65,9 @@ p.iot { font-weight:bold; }
 p.io1 { text-indent:2em; margin-top:0.2em; margin-bottom:0.2em; }
 span.ior { font-weight:bold; } /* font-style:italic; */
 span.bk { font-style:italic; }
+
+/* Section headings list */
+/* p.sectionHeading { } */
 
 /* Chapters USFM */
 span.c { font-size:1.1em; color:green; }
@@ -91,9 +94,9 @@ span.FoS { color:mediumvioletred; }
 /* Notes USFM */
 p.fn { margin-top:0.2em; margin-bottom:0.2em; font-size:0.75em; }
 p.xr { margin-top:0.2em; margin-bottom:0.2em; font-size:0.75em; }
-span.fnCaller { vertical-align: super; font-size:0.7em; color:green; }
-span.enCaller { vertical-align: super; font-size:0.7em; color:green; }
-span.xrCaller { vertical-align: super; font-size:0.7em; color:blue; }
+span.fnCaller { vertical-align:super; font-size:0.7em; color:green; }
+span.enCaller { vertical-align:super; font-size:0.7em; color:green; }
+span.xrCaller { vertical-align:super; font-size:0.7em; color:blue; }
 span.fnRef { font-weight:bold; }
 span.xrRef { font-weight:bold; }
 /* span.fnText { } */
