@@ -92,7 +92,7 @@ def createOETSectionPages( level:int, folder:Path, rvBible, lvBible, state ) -> 
             filename = f'{BBB}.htm'
             ourTidyBBB = tidyBBB( BBB )
             BBBLinks.append( f'''<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB).replace('James','Jacob/(James)')}" href="{filename}#Top">{ourTidyBBB}</a>''' )
-    navListParagraph = makeBookNavListParagraph(BBBLinks, 'OET', state)
+    navListParagraph = makeBookNavListParagraph(state.BBBLinks['OET-RV'], 'OET', state)
 
     # Firstly make our list of section headings
     #   The BibleOrgSys section index already contains a list of sections
@@ -381,7 +381,7 @@ def createSectionPages( level:int, folder:Path, thisBible, state ) -> List[str]:
             filename = f'{BBB}.htm'
             ourTidyBBB = tidyBBB( BBB )
             BBBLinks.append( f'''<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB).replace('James','Jacob/(James)')}" href="{filename}#Top">{ourTidyBBB}</a>''' )
-    navListParagraph = makeBookNavListParagraph(BBBLinks, thisBible.abbreviation, state)
+    navListParagraph = makeBookNavListParagraph(state.BBBLinks[thisBible.abbreviation], thisBible.abbreviation, state)
 
     # Firstly make our list of section headings
     state.sectionsLists[thisBible.abbreviation] = {}

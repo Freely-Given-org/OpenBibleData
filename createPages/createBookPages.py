@@ -27,6 +27,7 @@ Module handling createBookPages functions.
 
 CHANGELOG:
     2023-08-30 Added FRT processing for RV
+    2023-12-21 Keep book selection line at top of page
 """
 from gettext import gettext as _
 from typing import Dict, List, Tuple
@@ -48,10 +49,10 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_
 from OETHandlers import livenOETWordLinks
 
 
-LAST_MODIFIED_DATE = '2023-12-16' # by RJH
+LAST_MODIFIED_DATE = '2023-12-21' # by RJH
 SHORT_PROGRAM_NAME = "createBookPages"
 PROGRAM_NAME = "OpenBibleData createBookPages functions"
-PROGRAM_VERSION = '0.41'
+PROGRAM_VERSION = '0.42'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -123,7 +124,9 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state ) -> Lis
                     .replace( '__KEYWORDS__', f'Bible, {rvBible.abbreviation}, book' ) \
                     .replace( f'''<a title="{state.BibleNames[rvBible.abbreviation]}" href="{'../'*level}{BibleOrgSysGlobals.makeSafeString(rvBible.abbreviation)}/byDoc/{filename}#Top">{rvBible.abbreviation}</a>''',
                             f'''<a title="Up to {state.BibleNames[rvBible.abbreviation]}" href="{'../'*level}{BibleOrgSysGlobals.makeSafeString(rvBible.abbreviation)}/">↑{rvBible.abbreviation}</a>''' )
-            bkHtml = f'''{top}<!--book page-->{bkHtml}
+            bkHtml = f'''{top}<!--book page-->
+{makeBookNavListParagraph(state.BBBLinks['OET-RV'], 'OET', state)}
+{bkHtml}
 {makeBottom( level, 'book', state )}'''
             checkHtml( rvBible.abbreviation, bkHtml )
             with open( filepath, 'wt', encoding='utf-8' ) as bkHtmlFile:
@@ -238,6 +241,7 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state ) -> Lis
                 .replace( f'''<a title="{state.BibleNames['OET']}" href="{'../'*level}OET/byDoc/{filename}#Top">OET</a>''',
                           f'''<a title="Up to {state.BibleNames['OET']}" href="{'../'*level}OET/">↑OET</a>''' )
         bkHtml = f'''{top}<!--book page-->
+{makeBookNavListParagraph(state.BBBLinks['OET-RV'], 'OET', state)}
 {bkHtml}{removeDuplicateCVids( BBB, combinedHtml )}</div><!--container-->
 {makeBottom( level, 'book', state )}'''
         checkHtml( 'book', bkHtml )
@@ -257,7 +261,7 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state ) -> Lis
     indexHtml = f'''{top}
 <h1 id="Top">OET book pages</h1>
 <h2>Index of books</h2>
-{makeBookNavListParagraph(BBBLinks, 'OET', state)}
+{makeBookNavListParagraph(state.BBBLinks['OET-RV'], 'OET', state)}
 {makeBottom( level, 'book', state )}'''
     checkHtml( 'OETBooksIndex', indexHtml )
     with open( filepath, 'wt', encoding='utf-8' ) as bkHtmlFile:
@@ -340,7 +344,9 @@ def createBookPages( level:int, folder:Path, thisBible, state ) -> List[str]:
                 .replace( '__KEYWORDS__', f'Bible, {thisBible.abbreviation}, book' ) \
                 .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*level}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/byDoc/{filename}#Top">{thisBible.abbreviation}</a>''',
                           f'''<a title="Up to {state.BibleNames[thisBible.abbreviation]}" href="{'../'*level}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/">↑{thisBible.abbreviation}</a>''' )
-        bkHtml = f'''{top}<!--book page-->{bkHtml}
+        bkHtml = f'''{top}<!--book page-->
+{makeBookNavListParagraph(state.BBBLinks[thisBible.abbreviation], thisBible.abbreviation, state)}
+{bkHtml}
 {makeBottom( level, 'book', state )}'''
         checkHtml( thisBible.abbreviation, bkHtml )
         with open( filepath, 'wt', encoding='utf-8' ) as bkHtmlFile:
@@ -359,7 +365,7 @@ def createBookPages( level:int, folder:Path, thisBible, state ) -> List[str]:
     indexHtml = f'''{top}
 <h1 id="Top">{thisBible.abbreviation} book pages</h1>
 <h2>Index of books</h2>
-{makeBookNavListParagraph(BBBLinks, thisBible.abbreviation, state)}
+{makeBookNavListParagraph(state.BBBLinks[thisBible.abbreviation], thisBible.abbreviation, state)}
 {makeBottom( level, 'book', state)}'''
     checkHtml( thisBible.abbreviation, indexHtml )
     with open( filepath, 'wt', encoding='utf-8' ) as bkHtmlFile:

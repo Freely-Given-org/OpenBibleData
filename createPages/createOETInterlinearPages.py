@@ -108,7 +108,7 @@ def createOETInterlinearPages( level:int, folder:Path, state ) -> bool:
 <h1 id="Top">OET interlinear verse pages</h1>
 <p class="note">These pages show single OET verses with each Greek word aligned with the English word(s) that it was translated to, along with any translation notes and study notes for the verse. Finally, at the bottom of each page there's a <em>Reverse Interlinear</em> with the same information but in English word order.</p>
 <h2>Index of books</h2>
-{makeBookNavListParagraph(BBBLinks, 'Interlinear', state)}
+{makeBookNavListParagraph(state.BBBLinks['OET-RV'], 'Interlinear', state)}
 {makeBottom( level, 'interlinear', state )}'''
     checkHtml( 'InterlinearIndex', indexHtml )
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
@@ -135,7 +135,7 @@ def createOETInterlinearVersePagesForBook( level:int, folder:Path, BBB:str, BBBL
     # We don't want the book link for this book to be a recursive link, so remove <a> marking
     ourTidyBBB = tidyBBB( BBB )
     ourTidyBbb = tidyBBB( BBB, titleCase=True )
-    adjBBBLinksHtml = makeBookNavListParagraph(BBBLinks, 'Interlinear', state) \
+    adjBBBLinksHtml = makeBookNavListParagraph(state.BBBLinks['OET-RV'], 'Interlinear', state) \
             .replace( f'''<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB).replace('James','Jacob/(James)')}" href="../{BBB}/">{ourTidyBBB}</a>''', ourTidyBBB )
 
     numChapters = None

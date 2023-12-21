@@ -162,7 +162,8 @@ def _makeHeader( level:int, versionAbbreviation:str, pageType:str, fileOrFolderN
                 continue
 
         # Note: This is not good because not all versions have all books -- we try to fix that below
-        vLink = f"{'../'*level}{BibleOrgSysGlobals.makeSafeString(loopVersionAbbreviation)}/{fileOrFolderName}" \
+        vLink = '../'*level if loopVersionAbbreviation == versionAbbreviation else \
+                f"{'../'*level}{BibleOrgSysGlobals.makeSafeString(loopVersionAbbreviation)}/{fileOrFolderName}" \
                     if fileOrFolderName else \
                 f"{'../'*level}{BibleOrgSysGlobals.makeSafeString(loopVersionAbbreviation)}"
         initialVersionList.append( f'{state.BibleVersionDecorations[loopVersionAbbreviation][0]}'

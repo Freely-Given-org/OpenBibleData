@@ -77,10 +77,10 @@ from html import makeTop, makeBottom, checkHtml
 # from selectedVersesVersions import fillSelectedVerses
 
 
-LAST_MODIFIED_DATE = '2023-12-16' # by RJH
+LAST_MODIFIED_DATE = '2023-12-21' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData Create Pages"
-PROGRAM_VERSION = '0.86'
+PROGRAM_VERSION = '0.87'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
@@ -716,26 +716,25 @@ def createSitePages() -> bool:
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\nDiscovered {len(state.allBBBs)} books across {len(state.preloadedBibles)} versions: {state.allBBBs}" )
 
     # Determine our list of books to process for each version
-    # state.BBBsToProcess, state.BBBLinks = {}, {}
-    # for versionAbbreviation in state.BibleVersions:
-    #     if versionAbbreviation == 'OET': continue # This isn't a real version
-    #     thisBible = state.preloadedBibles[versionAbbreviation]
-    #     thisBibleBooksToLoad = state.booksToLoad[versionAbbreviation]
-    #     state.BBBsToProcess[versionAbbreviation] = thisBible.books.keys() if thisBibleBooksToLoad==['ALL'] \
-    # TODO: Above line gives error: thisBible 'dict' object has no attribute 'books'
-    #                 else BOOKLIST_NT27 if thisBibleBooksToLoad==['NT'] \
-    #                 else thisBibleBooksToLoad
-    #     if 'OET' in versionAbbreviation:
-    #         state.BBBsToProcess[versionAbbreviation] = reorderBooksForOETVersions( state.BBBsToProcess[versionAbbreviation] )
-    #     state.BBBLinks[versionAbbreviation] = []
-    #     for BBB in state.BBBsToProcess[versionAbbreviation]:
-    #         if BBB=='FRT' \
-    #         or 'ALL' in thisBibleBooksToLoad \
-    #         or BBB in thisBibleBooksToLoad:
-    #             filename = f'{BBB}.htm'
-    #             ourTidyBBB = tidyBBB( BBB )
-    #             state.BBBLinks[versionAbbreviation].append( f'''<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB).replace('James','Jacob/(James)')}" href="{filename}#Top">{ourTidyBBB}</a>''' )
-    # TODO: None of the above state fields are being used yet
+    state.BBBsToProcess, state.BBBLinks = {}, {}
+    for versionAbbreviation in state.BibleVersions:
+        if versionAbbreviation == 'OET': continue # This isn't a real version
+        thisBible = state.preloadedBibles[versionAbbreviation]
+        thisBibleBooksToLoad = state.booksToLoad[versionAbbreviation]
+        print( f'{versionAbbreviation}: {thisBible=} {thisBibleBooksToLoad=}' )
+        state.BBBsToProcess[versionAbbreviation] = thisBible.books.keys() if thisBibleBooksToLoad==['ALL'] \
+                    else BOOKLIST_NT27 if thisBibleBooksToLoad==['NT'] \
+                    else thisBibleBooksToLoad
+        if 'OET' in versionAbbreviation:
+            state.BBBsToProcess[versionAbbreviation] = reorderBooksForOETVersions( state.BBBsToProcess[versionAbbreviation] )
+        state.BBBLinks[versionAbbreviation] = []
+        for BBB in state.BBBsToProcess[versionAbbreviation]:
+            if BBB=='FRT' \
+            or 'ALL' in thisBibleBooksToLoad \
+            or BBB in thisBibleBooksToLoad:
+                filename = f'{BBB}.htm'
+                ourTidyBBB = tidyBBB( BBB )
+                state.BBBLinks[versionAbbreviation].append( f'''<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB).replace('James','Jacob/(James)')}" href="{filename}#Top">{ourTidyBBB}</a>''' )
 
     # Ok, let's go create some static pages
     if 'OET' in state.BibleVersions: # this is a special case

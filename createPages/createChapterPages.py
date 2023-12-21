@@ -210,7 +210,7 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
                         .replace( f'''<a title="{state.BibleNames['OET']}" href="{'../'*level}OET/byC/{filename}#Top">OET</a>''',
                                   f'''<a title="Up to {state.BibleNames['OET']}" href="{'../'*level}OET">↑OET</a>''' )
                 cHtml = f'''{top}<!--chapter page-->
-{makeBookNavListParagraph(BBBLinks, 'OET', state)}
+{makeBookNavListParagraph(state.BBBLinks['OET-RV'], 'OET', state)}
 {cLinksPar}
 {cHtml}{combinedHtml}</div><!--container-->
 {cNav}
@@ -253,7 +253,8 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
 
         # Now create an index page for this book
         vPrint( 'Normal', DEBUGGING_THIS_MODULE, "    Creating chapter index page for OET {BBB}…" )
-        filename = f'{BBB}_index.htm' if numChapters>0 else f'{BBB}.htm' # for FRT, etc.
+        # filename = f'{BBB}_index.htm' if numChapters>0 else f'{BBB}.htm' # for FRT, etc.
+        filename = f'{BBB}.htm'
         filenames.append( filename )
         filepath = folder.joinpath( filename )
         BBBLinks.append( f'''<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB).replace('James','Jacob/(James)')}" href="{filename}#Top">{ourTidyBBB}</a>''' )
@@ -263,7 +264,7 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
                 .replace( '__KEYWORDS__', f'Bible, OET, Open English Translation, chapter' ) \
                 .replace( f'''<a title="{state.BibleNames['OET']}" href="{'../'*level}OET">OET</a>''', 'OET' )
         cHtml = f'''{top}<!--chapters indexPage-->
-{makeBookNavListParagraph(BBBLinks, 'OET', state)}
+{makeBookNavListParagraph(state.BBBLinks['OET-RV'], 'OET', state)}
 {cLinksPar}
 {makeBottom( level, 'chapter', state )}'''
         checkHtml( 'OETChaptersIndex', cHtml )
@@ -283,7 +284,7 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
     indexHtml = f'''{top}
 <h1 id="Top">OET chapter pages</h1>
 <h2>Index of books</h2>
-{makeBookNavListParagraph(BBBLinks, 'OET', state)}
+{makeBookNavListParagraph(state.BBBLinks['OET-RV'], 'OET', state)}
 {makeBottom( level, 'chapter', state )}'''
     checkHtml( 'OETBooksIndex', indexHtml )
     with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
@@ -456,7 +457,8 @@ def createChapterPages( level:int, folder:Path, thisBible, state ) -> List[str]:
 
         # Now create an index page for this book
         vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Creating chapter index page for {thisBible.abbreviation} {BBB}…" )
-        filename = f'{BBB}_index.htm' if numChapters>0 else f'{BBB}.htm' # for FRT, etc.
+        # filename = f'{BBB}_index.htm' if numChapters>0 else f'{BBB}.htm' # for FRT, etc.
+        filename = f'{BBB}.htm'
         filenames.append( filename )
         filepath = folder.joinpath( filename )
         BBBLinks.append( f'<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB)}" href="{filename}#Top">{ourTidyBBB}</a>' )
@@ -484,7 +486,7 @@ def createChapterPages( level:int, folder:Path, thisBible, state ) -> List[str]:
     indexHtml = f'''{top}
 <h1 id="Top">{thisBible.abbreviation} chapter pages</h1>
 <h2>Index of books</h2>
-{makeBookNavListParagraph(BBBLinks, thisBible.abbreviation, state)}
+{makeBookNavListParagraph(state.BBBLinks[thisBible.abbreviation], thisBible.abbreviation, state)}
 {makeBottom( level, 'chapter', state)}'''
     checkHtml( thisBible.abbreviation, indexHtml )
     with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:

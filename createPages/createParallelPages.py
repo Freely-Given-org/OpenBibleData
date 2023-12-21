@@ -102,7 +102,7 @@ def createParallelPages( level:int, folder:Path, state ) -> bool:
 <p class="note">Each page only contains a single verse with minimal formatting, but displays it in a large number of different versions to enable analysis of different translation decisions. Study notes, theme notes, and translation notes will also be displayed, although not every verse has these.</p>
 <p class="note">Generally the older versions are nearer the bottom, and so reading from the bottom to the top can show how many English vocabulary and punctuation decisions propagated from one version to another.</p>
 <h2>Index of books</h2>
-{makeBookNavListParagraph(BBBLinks, 'Parallel', state)}
+{makeBookNavListParagraph(state.BBBLinks['OET-RV'], 'Parallel', state)}
 <p class="note"><small>Note: We would like to display more English Bible versions on these parallel pages to assist Bible translation research, but copyright restrictions from the commercial Bible industry and refusals from publishers greatly limit this. (See the <a href="https://SellingJesus.org/graphics">Selling Jesus</a> website for more information on this problem.)</small></p>
 {makeBottom( level, 'parallel', state )}'''
     checkHtml( 'ParallelIndex', indexHtml )
@@ -135,7 +135,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
     # We don't want the book link for this book to be a recursive link, so remove <a> marking
     ourTidyBBB = tidyBBB( BBB )
     ourTidyBbb = tidyBBB( BBB, titleCase=True )
-    adjBBBLinksHtml = makeBookNavListParagraph(BBBLinks, 'Parallel', state) \
+    adjBBBLinksHtml = makeBookNavListParagraph(state.BBBLinks['OET-RV'], 'Parallel', state) \
             .replace( f'''<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB).replace('James','Jacob/(James)')}" href="../{BBB}/">{ourTidyBBB}</a>''', ourTidyBBB )
 
     numChapters = None
@@ -296,7 +296,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                                 # Add an extra link to the CNTR collation page
                                 collationHref = f'https://GreekCNTR.org/collation/?v={CNTR_BOOK_ID_MAP[BBB]}{C.zfill(3)}{V.zfill(3)}'
                                 textHtml = f'''{textHtml}<br> (<a title="Go to the GreekCNTR collation page" href="{collationHref}">SR-GNT</a> {transcription})
-<p class="note"><b>Key</b>: <span class="greekVrb">yellow</span>:verbs, <span class="greekNom">light-green</span>:nominative, <span class="greekAcc">orange</span>:accusative, <span class="greekGen">pink</span>:genitive, <span class="greekDat">cyan</span>:dative, <span class="greekVoc">magenta</span>:vocative, <span class="greekNeg">red</span>:negative.</p>'''
+<p class="note"><b>Key</b>: <span class="greekVrb">yellow</span>:verbs, <span class="greekNom">light-green</span>:nominative, <span class="greekAcc">orange</span>:accusative, <span class="greekGen">pink</span>:genitive, <span class="greekDat">cyan</span>:dative, <span class="greekVoc">magenta</span>:vocative, <span class="greekNeg">red</span>:negative. <small>Note: Aligning of the OET-RV to the LV is done by some temporary software, hence it's incomplete and may occasionally be wrong.</small></p>'''
                             elif versionAbbreviation in ('UGNT','SBL-GNT','TC-GNT','BrLXX'):
                                 transcription = transliterate_Greek(textHtml)
                                 if 'Ah' in transcription or ' ah' in transcription or transcription.startswith('ah') \
