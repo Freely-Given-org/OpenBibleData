@@ -62,10 +62,10 @@ from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39, BOOKLIST_NT27
 # from Bibles import fetchChapter
 
 
-LAST_MODIFIED_DATE = '2023-12-13' # by RJH
+LAST_MODIFIED_DATE = '2023-12-22' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
-PROGRAM_VERSION = '0.57'
+PROGRAM_VERSION = '0.58'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -264,6 +264,7 @@ def makeBookNavListParagraph( linksList:List[str], abbrev:str, state ) -> str:
     newList = [abbrev] if abbrev else []
     for aLink in linksList:
         # print( f"{aLink=}")
+        if '>FRT<' in aLink and abbrev in ('Parallel','Interlinear'): continue # Don't include this
         ixStart = aLink.index( '>' ) + 1
         ixEnd = aLink.index( '<', ixStart )
         displayText = aLink[ixStart:ixEnd]

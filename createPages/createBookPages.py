@@ -76,7 +76,7 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state ) -> Lis
 
     allBooksFlag = 'ALL' in state.booksToLoad[rvBible.abbreviation]
     BBBsToProcess = reorderBooksForOETVersions( rvBible.books.keys() if allBooksFlag else state.booksToLoad[rvBible.abbreviation] )
-    BBBs, filenames, BBBLinks = [], [], []
+    BBBs, filenames = [], []
     for BBB in BBBsToProcess:
         ourTidyBBB = tidyBBB( BBB )
         # print( f"{BBB=} {BBBsToProcess}"); print( len(BBBsToProcess) )
@@ -117,7 +117,7 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state ) -> Lis
             bkHtml = f'{bkHtml}{textHtml}'
             filename = f'{BBB}.htm'
             filenames.append( filename )
-            BBBLinks.append( f'''<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB)}" href="{filename}#Top">{ourTidyBBB}</a>''' )
+            # BBBLinks.append( f'''<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB)}" href="{filename}#Top">{ourTidyBBB}</a>''' )
             filepath = folder.joinpath( filename )
             top = makeTop( level, rvBible.abbreviation, 'book', f'byDoc/{filename}', state ) \
                     .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{rvBible.abbreviation} {ourTidyBBB} book" ) \
@@ -181,7 +181,7 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state ) -> Lis
         except ValueError: ixBIend = lvHtml.index( '<span id="C', ixBHend )
         lvChunks, lvRest = [ lvHtml[:ixBHend], lvHtml[ixBHend:ixBIend] ], lvHtml[ixBIend:]
         # Now try to match the rv sections
-        for n,rvSectionHtml in enumerate( rvSections[2:] ):
+        for n,rvSectionHtml in enumerate( rvSections[2:] ): # continuing on AFTER the introduction
             # dPrint( 'Info', DEBUGGING_THIS_MODULE, f"\n{BBB} {n}: {rvSectionHtml=}" )
             try:
                 CclassIndex1 = rvSectionHtml.index( 'id="C' )
@@ -233,7 +233,7 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state ) -> Lis
 '''
         filename = f'{BBB}.htm'
         filenames.append( filename )
-        BBBLinks.append( f'''<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB).replace('James','Jacob/(James)')}" href="{filename}#Top">{ourTidyBBB}</a>''' )
+        # BBBLinks.append( f'''<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB).replace('James','Jacob/(James)')}" href="{filename}#Top">{ourTidyBBB}</a>''' )
         filepath = folder.joinpath( filename )
         top = makeTop( level, 'OET', 'book', f'byDoc/{filename}', state ) \
                 .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}OET {ourTidyBBB}" ) \
@@ -292,7 +292,7 @@ def createBookPages( level:int, folder:Path, thisBible, state ) -> List[str]:
     if 'OET' in thisBible.abbreviation:
         BBBsToProcess = reorderBooksForOETVersions( BBBsToProcess )
 
-    BBBs, filenames, BBBLinks = [], [], []
+    BBBs, filenames = [], []
     for BBB in BBBsToProcess:
         ourTidyBBB = tidyBBB( BBB )
         # print( f"{BBB=} {BBBsToProcess}"); print( len(BBBsToProcess) )
@@ -337,7 +337,7 @@ def createBookPages( level:int, folder:Path, thisBible, state ) -> List[str]:
         bkHtml = f'{bkHtml}{textHtml}'
         filename = f'{BBB}.htm'
         filenames.append( filename )
-        BBBLinks.append( f'<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB)}" href="{filename}#Top">{ourTidyBBB}</a>' )
+        # BBBLinks.append( f'<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB)}" href="{filename}#Top">{ourTidyBBB}</a>' )
         filepath = folder.joinpath( filename )
         top = makeTop( level, thisBible.abbreviation, 'book', f'byDoc/{filename}', state ) \
                 .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{thisBible.abbreviation} {ourTidyBBB} book" ) \

@@ -54,10 +54,10 @@ from html import makeTop, makeBottom
 from Bibles import tidyBBB
 
 
-LAST_MODIFIED_DATE = '2023-12-14' # by RJH
+LAST_MODIFIED_DATE = '2023-12-22' # by RJH
 SHORT_PROGRAM_NAME = "createOETReferencePages"
 PROGRAM_NAME = "OpenBibleData createOETReferencePages functions"
-PROGRAM_VERSION = '0.47'
+PROGRAM_VERSION = '0.48'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -618,7 +618,7 @@ def make_Greek_lemma_pages( level:int, outputFolderPath:Path, state ) -> None:
         nextLink = f' <b><a title="Next lemma" href="{lemmaList[ll+1]}.htm#Top">→</a></b>' if ll<len(lemmaList)-1 else ''
         html = f'''<h1 id="Top">Greek root word <small>(lemma)</small> ‘{grkLemma}’ ({lemma})</h1>
 <p class="pNav">{prevLink}<b>{lemma}</b>{nextLink}</p>
-<p class="summary">This root form (lemma) ‘{grkLemma}’ is used in {len(lemmaFormsList):,} different forms in the Greek originals: {', '.join([f'<a title="View Greek word form" href="../W/{getFirstWordNumber(grk,roleLetter,morph)}.htm#Top">{grk}</a> <small>({roleLetter}-{morph[4:] if morph.startswith("....") else morph})</small>' for grk,roleLetter,morph in lemmaFormsList])}.</p>
+<p class="summary">This root form (lemma) ‘{grkLemma}’ is used in {len(lemmaFormsList):,} different form{'' if len(lemmaFormsList)==1 else 's'} in the Greek originals: {', '.join([f'<a title="View Greek word form" href="../W/{getFirstWordNumber(grk,roleLetter,morph)}.htm#Top">{grk}</a> <small>({roleLetter}-{morph[4:] if morph.startswith("....") else morph})</small>' for grk,roleLetter,morph in lemmaFormsList])}.</p>
 <p class="summary">It is glossed in {len(lemmaGlossesList):,}{'' if len(lemmaGlossesList)==1 else ' different'} way{'' if len(lemmaGlossesList)==1 else 's'}: ‘<b>{"</b>’, ‘<b>".join(lemmaGlossesList)}</b>’.</p>
 '''
 

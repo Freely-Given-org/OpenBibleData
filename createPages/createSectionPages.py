@@ -27,12 +27,22 @@ Module handling createSectionPages functions.
 
 Assumes that all books are already loaded.
 
+createOETSectionPages( level:int, folder:Path, rvBible, lvBible, state ) -> List[str]
+createSectionPages( level:int, folder:Path, thisBible, state ) -> List[str]
+findSectionNumber( versionAbbreviation:str, refBBB:str, refC:str, refV:str, state ) -> Optional[int]
+livenSectionReferences( versionAbbreviation:str, refTuple:tuple, segmentType:str,
+                                                sectionReferenceText:str, state ) -> str
+briefDemo() -> None
+fullDemo() -> None
+main calls fullDemo()
+
 CHANGELOG:
     2023-08-07 Handle additional ESFM section headings, etc.
     2023-08-18 Handle additional section headings separated by semicolons
+    2023-12-24 Added findSectionNumber() and livenSectionReferences() functions
 """
 from gettext import gettext as _
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Optional
 from pathlib import Path
 import os
 import logging
@@ -52,10 +62,10 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_
 from OETHandlers import livenOETWordLinks
 
 
-LAST_MODIFIED_DATE = '2023-12-14' # by RJH
+LAST_MODIFIED_DATE = '2023-12-25' # by RJH
 SHORT_PROGRAM_NAME = "createSectionPages"
 PROGRAM_NAME = "OpenBibleData createSectionPages functions"
-PROGRAM_VERSION = '0.43'
+PROGRAM_VERSION = '0.44'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -84,14 +94,14 @@ def createOETSectionPages( level:int, folder:Path, rvBible, lvBible, state ) -> 
     except FileExistsError: pass # they were already there
 
     BBBsToProcess = reorderBooksForOETVersions( rvBible.books.keys() if 'ALL' in state.booksToLoad[rvBible.abbreviation] else state.booksToLoad[rvBible.abbreviation] )
-    BBBLinks = []
-    for BBB in BBBsToProcess:
-        if BBB=='FRT' \
-        or 'ALL' in state.booksToLoad[lvBible.abbreviation] \
-        or BBB in state.booksToLoad[lvBible.abbreviation]:
-            filename = f'{BBB}.htm'
-            ourTidyBBB = tidyBBB( BBB )
-            BBBLinks.append( f'''<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB).replace('James','Jacob/(James)')}" href="{filename}#Top">{ourTidyBBB}</a>''' )
+    # BBBLinks = []
+    # for BBB in BBBsToProcess:
+    #     if BBB=='FRT' \
+    #     or 'ALL' in state.booksToLoad[lvBible.abbreviation] \
+    #     or BBB in state.booksToLoad[lvBible.abbreviation]:
+    #         filename = f'{BBB}.htm'
+    #         ourTidyBBB = tidyBBB( BBB )
+    #         BBBLinks.append( f'''<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB).replace('James','Jacob/(James)')}" href="{filename}#Top">{ourTidyBBB}</a>''' )
     navListParagraph = makeBookNavListParagraph(state.BBBLinks['OET-RV'], 'OET', state)
 
     # Firstly make our list of section headings
@@ -99,7 +109,7 @@ def createOETSectionPages( level:int, folder:Path, rvBible, lvBible, state ) -> 
     state.sectionsLists = {}
     state.sectionsLists['OET-RV'] = {}
     for BBB in BBBsToProcess:
-        # Firstly, make a list of additional section headings
+        # Firstly, make a list of additional section headings (\\rem s1 fields in OET-RV)
         additionalSectionHeadingsDict = defaultdict( list )
         rvVerseEntryList, _rvContextList = rvBible.getContextVerseData( (BBB,) )
         C = V = '0'
@@ -143,7 +153,7 @@ def createOETSectionPages( level:int, folder:Path, rvBible, lvBible, state ) -> 
                             if additionalMarker in ('s1','s2','s3'):
                                 additionalMarkerName = { 's1':'section heading', 's2':'2nd level section heading' }[additionalMarker]
                                 # NOTE: word 'Alternate ' is searched for below
-                                state.sectionsLists['OET-RV'][BBB].append( (c,v,'?','?',additionalFieldText,f'Alternate {additionalMarkerName}',[],[],filename) )
+                                state.sectionsLists['OET-RV'][BBB].append( (n,c,v,'?','?',additionalFieldText,f'Alternate {additionalMarkerName}',[],[],filename) )
                             else: vPrint( 'Info', DEBUGGING_THIS_MODULE, f"createOETSectionPages ignored additional \{additionalMarker} at {BBB} {c}:{v}" )
                         del additionalSectionHeadingsDict[(c,v)]
             sectionName, reasonMarker = sectionIndexEntry.getSectionNameReason()
@@ -153,7 +163,7 @@ def createOETSectionPages( level:int, folder:Path, rvBible, lvBible, state ) -> 
             #     dPrint( 'Verbose', DEBUGGING_THIS_MODULE,  f"{sectionName=} {reasonMarker=}" )
             reasonName = REASON_NAME_DICT[reasonMarker]
             rvVerseEntryList, rvContextList = bkObject._SectionIndex.getSectionEntriesWithContext( startCV )
-            state.sectionsLists['OET-RV'][BBB].append( (startC,startV,endC,endV,sectionName,reasonName,rvContextList,rvVerseEntryList,filename) )
+            state.sectionsLists['OET-RV'][BBB].append( (n,startC,startV,endC,endV,sectionName,reasonName,rvContextList,rvVerseEntryList,filename) )
         if additionalSectionHeadingsDict:
             vPrint( 'Info', DEBUGGING_THIS_MODULE, f"{BBB} didn't use {additionalSectionHeadingsDict=}")
         # Handle left-over additions
@@ -161,12 +171,13 @@ def createOETSectionPages( level:int, folder:Path, rvBible, lvBible, state ) -> 
             # print( f"{c}:{v} {additionalFieldList}" )
             for additionalMarker,additionalFieldText in additionalFieldList:
                 additionalMarkerName = { 's1':'section heading', 'r':'section cross-reference' }[additionalMarker]
-                # NOTE: word 'Alternate ' is searched for below
-                state.sectionsLists['OET-RV'][BBB].append( (c,v,'?','?',additionalFieldText,f'Alternate {additionalMarkerName}',[],[],filename) )
+                # NOTE: word 'Alternate ' is searched for below and in findSectionNumber()
+                state.sectionsLists['OET-RV'][BBB].append( (n,c,v,'?','?',additionalFieldText,f'Alternate {additionalMarkerName}',[],[],filename) )
             del additionalSectionHeadingsDict[(c,v)]
         if additionalSectionHeadingsDict:
             vPrint( 'Info', DEBUGGING_THIS_MODULE, f"{BBB} didn't use {additionalSectionHeadingsDict=}")
             halt
+        assert len(state.sectionsLists['OET-RV'][BBB]) >= len(bkObject._SectionIndex), f"{BBB}: {len(state.sectionsLists['OET-RV'][BBB])=} {len(bkObject._SectionIndex)=}"
 
 
     # Now, make the actual section pages
@@ -197,6 +208,7 @@ def createOETSectionPages( level:int, folder:Path, rvBible, lvBible, state ) -> 
 
         # # First, get our list of sections
         BBBs.append( BBB )
+        numBBBSections = len(rvBible[BBB]._SectionIndex)
         # bkObject = rvBible[BBB]
         # state.sectionsLists['OET-RV'][BBB] = []
         # for n,(startCV, sectionIndexEntry) in enumerate( bkObject._SectionIndex.items() ):
@@ -212,18 +224,18 @@ def createOETSectionPages( level:int, folder:Path, rvBible, lvBible, state ) -> 
 
         # Now, make the actual section pages
         vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Creating section pages for OET {BBB}…" )
-        numExtrasSkipped = 0
-        for n1, (startC,startV,endC,endV,sectionName,reasonName,rvContextList,rvVerseEntryList,filename) in enumerate( state.sectionsLists['OET-RV'][BBB] ):
-            if endC == '?': # Then these are the additional headings
+        # numExtrasSkipped = 0
+        for n,startC,startV,endC,endV,sectionName,reasonName,rvContextList,rvVerseEntryList,filename in state.sectionsLists['OET-RV'][BBB]:
+            if endC == '?': # Then these are the additional/alternative headings
                 assert endV == '?'
-                numExtrasSkipped += 1
+                # numExtrasSkipped += 1
                 continue
-            n = n1 - numExtrasSkipped
+            # n2 = n1 - numExtrasSkipped
             documentLink = f'<a title="Whole document view" href="../byDoc/{BBB}.htm#Top">{ourTidyBBB}</a>'
             startChapterLink = f'''<a title="Chapter view" href="../byC/{BBB}_{'Intro' if startC=='-1' else f'C{startC}'}.htm#Top">{'Intro' if startC=='-1' else startC}</a>'''
             endChapterLink = f'''<a title="Chapter view" href="../byC/{BBB}_{'Intro' if endC=='-1' else f'C{endC}'}.htm#Top">{'Intro' if endC=='-1' else endC}</a>'''
             leftLink = f'<a title="Previous section" href="{BBB}_S{n-1}.htm#Top">←</a> ' if n>0 else ''
-            rightLink = f' <a title="Next section" href="{BBB}_S{n+1}.htm#Top">→</a>' if n<len(bkObject._SectionIndex)-1 else ''
+            rightLink = f' <a title="Next section" href="{BBB}_S{n+1}.htm#Top">→</a>' if n<numBBBSections-1 else ''
             parallelLink = f''' <a title="Parallel verse view" href="{'../'*level}pa/{BBB}/C{'1' if startC=='-1' else startC}V{startV}.htm#Top">║</a>'''
             interlinearLink = f''' <a title="Interlinear verse view" href="{'../'*level}il/{BBB}/C{'1' if startC=='-1' else startC}V{startV}.htm#Top">═</a>''' if BBB in state.booksToLoad['OET'] else ''
             detailsLink = f''' <a title="Show details about this work" href="{'../'*(level-1)}details.htm#Top">©</a>'''
@@ -317,7 +329,7 @@ def createOETSectionPages( level:int, folder:Path, rvBible, lvBible, state ) -> 
                 .replace( f'''<a title="{state.BibleNames['OET']}" href="{'../'*2}OET/bySec/{filename}#Top">OET</a>''',
                         f'''<a title="Up to {state.BibleNames['OET']}" href="{'../'*2}OET/">↑OET</a>''' )
         sectionHtml = f'<h1 id="Top">Index of sections for OET {ourTidyBBB}</h1>\n'
-        for startC,startV,_endC,_endV,sectionName,reasonName,_contextList,_verseEntryList,filename in state.sectionsLists['OET-RV'][BBB]:
+        for _nnn,startC,startV,_endC,_endV,sectionName,reasonName,_contextList,_verseEntryList,filename in state.sectionsLists['OET-RV'][BBB]:
             # print( f"HERE8 {BBB} {startC}:{startV} {_endC}:{endV} '{sectionName=}' '{reasonName=}' '{filename=}'" )
             reasonString = '' if reasonName=='Section heading' and not TEST_MODE else f' ({reasonName})' # Suppress '(Section Heading)' appendages in the list
             # NOTE: word 'Alternate ' is defined above at start of main loop
@@ -355,13 +367,14 @@ def createOETSectionPages( level:int, folder:Path, rvBible, lvBible, state ) -> 
 
 def createSectionPages( level:int, folder:Path, thisBible, state ) -> List[str]:
     """
-    This creates a page for each section for all versions other than 'OET'
+    This creates a page for each section for all versions other than 'OET' (dual columns)
                                 which is considerably more complex (above).
     """
     from createSitePages import TEST_MODE, reorderBooksForOETVersions
     fnPrint( DEBUGGING_THIS_MODULE, f"createSectionPages( {level}, {folder}, {thisBible.abbreviation} )" )
+    assert thisBible.abbreviation != 'OET'
     assert thisBible.discoveryResults['ALL']['haveSectionHeadings']
-    thisBible.makeSectionIndex() # These aren't made automatically
+    thisBible.makeSectionIndex() # These aren't made automatically by BibleOrgSys
 
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createSectionPages( {level}, {folder}, {thisBible.abbreviation} )…" )
     try: os.makedirs( folder )
@@ -373,43 +386,46 @@ def createSectionPages( level:int, folder:Path, thisBible, state ) -> List[str]:
                 else thisBibleBooksToLoad
     if 'OET' in thisBible.abbreviation:
         BBBsToProcess = reorderBooksForOETVersions( BBBsToProcess )
-    BBBLinks = []
-    for BBB in BBBsToProcess:
-        if BBB=='FRT' \
-        or 'ALL' in thisBibleBooksToLoad \
-        or BBB in thisBibleBooksToLoad:
-            filename = f'{BBB}.htm'
-            ourTidyBBB = tidyBBB( BBB )
-            BBBLinks.append( f'''<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB).replace('James','Jacob/(James)')}" href="{filename}#Top">{ourTidyBBB}</a>''' )
+    # BBBLinks = []
+    # for BBB in BBBsToProcess:
+    #     if BBB=='FRT' \
+    #     or 'ALL' in thisBibleBooksToLoad \
+    #     or BBB in thisBibleBooksToLoad:
+    #         filename = f'{BBB}.htm'
+    #         ourTidyBBB = tidyBBB( BBB )
+    #         BBBLinks.append( f'''<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB).replace('James','Jacob/(James)')}" href="{filename}#Top">{ourTidyBBB}</a>''' )
     navListParagraph = makeBookNavListParagraph(state.BBBLinks[thisBible.abbreviation], thisBible.abbreviation, state)
 
     # Firstly make our list of section headings
-    state.sectionsLists[thisBible.abbreviation] = {}
-    for BBB in BBBsToProcess:
-        if thisBible.abbreviation=='OET-LV' \
-        and BBB in ('FRT','INT','NUM','SA1','SA2','CH1','EZR','NEH','JOB','SNG','JER','DAN'):
-            logging.critical( f"AA Skipped OET sections difficult book: OET-LV {BBB}")
-            continue # Too many problems for now
-        if thisBibleBooksToLoad not in (['ALL'],['NT']) \
-        and BBB not in state.booksToLoad[thisBible.abbreviation]:
-            logging.critical( f"VV Skipped sections difficult book: {thisBible.abbreviation} {BBB}")
-            continue # Only create pages for the requested books
-        bkObject = thisBible[BBB]
-        state.sectionsLists[thisBible.abbreviation][BBB] = []
-        for n,(startCV, sectionIndexEntry) in enumerate( bkObject._SectionIndex.items() ):
-            # dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{thisBible.abbreviation} {NEWLINE*2}createSectionPages {n}: {BBB}_{startC}:{startV} {type(sectionIndexEntry)} ({len(sectionIndexEntry)}) {sectionIndexEntry=}" )
-            sectionName, reasonMarker = sectionIndexEntry.getSectionNameReason()
-            if 'OET' in thisBible.abbreviation:
-                sectionName = sectionName.replace( "'", "’" ) # Replace apostrophes
-            dPrint( 'Verbose', DEBUGGING_THIS_MODULE,  f"{sectionName=} {reasonMarker=}" )
-            reasonName = REASON_NAME_DICT[reasonMarker]
-            startC,startV = startCV
-            endC,endV = sectionIndexEntry.getEndCV()
-            verseEntryList, contextList = bkObject._SectionIndex.getSectionEntriesWithContext( startCV )
-            if isinstance( thisBible, ESFMBible.ESFMBible ):
-                verseEntryList = livenOETWordLinks( thisBible, BBB, verseEntryList, f"{'../'*level}rf/W/{{n}}.htm#Top", state )
-            filename = f'{BBB}_S{n}.htm'
-            state.sectionsLists[thisBible.abbreviation][BBB].append( (startC,startV,endC,endV,sectionName,reasonName,contextList,verseEntryList,filename) )
+    if thisBible.abbreviation != 'OET-RV': # that's been done already in the above function
+        assert thisBible.abbreviation not in state.sectionsLists, f"{thisBible.abbreviation=} {state.sectionsLists.keys()=}"
+        state.sectionsLists[thisBible.abbreviation] = {}
+        for BBB in BBBsToProcess:
+            if thisBible.abbreviation=='OET-LV' \
+            and BBB in ('FRT','INT','NUM','SA1','SA2','CH1','EZR','NEH','JOB','SNG','JER','DAN'):
+                logging.critical( f"AA Skipped OET sections difficult book: OET-LV {BBB}")
+                continue # Too many problems for now
+            if thisBibleBooksToLoad not in (['ALL'],['NT']) \
+            and BBB not in state.booksToLoad[thisBible.abbreviation]:
+                logging.critical( f"VV Skipped sections difficult book: {thisBible.abbreviation} {BBB}")
+                continue # Only create pages for the requested books
+            bkObject = thisBible[BBB]
+            state.sectionsLists[thisBible.abbreviation][BBB] = []
+            for n,(startCV, sectionIndexEntry) in enumerate( bkObject._SectionIndex.items() ):
+                # dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{thisBible.abbreviation} {NEWLINE*2}createSectionPages {n}: {BBB}_{startC}:{startV} {type(sectionIndexEntry)} ({len(sectionIndexEntry)}) {sectionIndexEntry=}" )
+                sectionName, reasonMarker = sectionIndexEntry.getSectionNameReason()
+                if 'OET' in thisBible.abbreviation:
+                    sectionName = sectionName.replace( "'", "’" ) # Replace apostrophes
+                dPrint( 'Verbose', DEBUGGING_THIS_MODULE,  f"{sectionName=} {reasonMarker=}" )
+                reasonName = REASON_NAME_DICT[reasonMarker]
+                startC,startV = startCV
+                endC,endV = sectionIndexEntry.getEndCV()
+                verseEntryList, contextList = bkObject._SectionIndex.getSectionEntriesWithContext( startCV )
+                if isinstance( thisBible, ESFMBible.ESFMBible ):
+                    verseEntryList = livenOETWordLinks( thisBible, BBB, verseEntryList, f"{'../'*level}rf/W/{{n}}.htm#Top", state )
+                filename = f'{BBB}_S{n}.htm'
+                state.sectionsLists[thisBible.abbreviation][BBB].append( (n,startC,startV,endC,endV,sectionName,reasonName,contextList,verseEntryList,filename) )
+            assert len(state.sectionsLists[thisBible.abbreviation][BBB]) >= len(bkObject._SectionIndex)
 
     # Now, make the actual pages
     BBBs = []
@@ -451,6 +467,7 @@ def createSectionPages( level:int, folder:Path, thisBible, state ) -> List[str]:
 
         # First, get our list of sections
         BBBs.append( BBB )
+        numBBBSections = len(thisBible[BBB]._SectionIndex)
         # bkObject = thisBible[BBB]
         # state.sectionsLists[thisBible.abbreviation][BBB] = []
         # for n,(startCV, sectionIndexEntry) in enumerate( bkObject._SectionIndex.items() ):
@@ -466,12 +483,16 @@ def createSectionPages( level:int, folder:Path, thisBible, state ) -> List[str]:
 
         # Now, make the actual pages
         vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Creating section pages for {thisBible.abbreviation} {BBB}…" )
-        for n, (startC,startV,endC,endV,sectionName,reasonName,contextList,verseEntryList,filename) in enumerate( state.sectionsLists[thisBible.abbreviation][BBB] ):
+        for n,startC,startV,endC,endV,sectionName,reasonName,contextList,verseEntryList,filename in state.sectionsLists[thisBible.abbreviation][BBB]:
+            if endC == '?': # Then these are the OET-RV additional/alternative headings
+                assert thisBible.abbreviation == 'OET-RV'
+                assert endV == '?'
+                continue
             documentLink = f'<a title="Whole document view" href="../byDoc/{BBB}.htm#Top">{ourTidyBBB}</a>'
             startChapterLink = f'''<a title="Chapter view" href="../byC/{BBB}_{'Intro' if startC=='-1' else f'C{startC}'}.htm#Top">{'Intro' if startC=='-1' else startC}</a>'''
             endChapterLink = f'''<a title="Chapter view" href="../byC/{BBB}_{'Intro' if endC=='-1' else f'C{endC}'}.htm#Top">{'Intro' if endC=='-1' else endC}</a>'''
             leftLink = f'<a title="Previous section" href="{BBB}_S{n-1}.htm#Top">←</a> ' if n>0 else ''
-            rightLink = f' <a title="Next section" href="{BBB}_S{n+1}.htm#Top">→</a>' if n<len(bkObject._SectionIndex)-1 else ''
+            rightLink = f' <a title="Next section" href="{BBB}_S{n+1}.htm#Top">→</a>' if n<numBBBSections-1 else ''
             parallelLink = f''' <a title="Parallel verse view" href="{'../'*level}pa/{BBB}/C{'1' if startC=='-1' else startC}V{startV}.htm#Top">║</a>'''
             interlinearLink = f''' <a title="Interlinear verse view" href="{'../'*level}il/{BBB}/C{'1' if startC=='-1' else startC}V{startV}.htm#Top">═</a>''' if BBB in state.booksToLoad['OET'] else ''
             detailsLink = f''' <a title="Show details about this work" href="{'../'*(level-1)}details.htm#Top">©</a>'''
@@ -481,6 +502,8 @@ def createSectionPages( level:int, folder:Path, thisBible, state ) -> List[str]:
 {'<p class="rem">This is still a very early look into the unfinished text of the <em>Open English Translation</em> of the Bible. Please double-check the text in advance before using in public.</p>' if 'OET' in thisBible.abbreviation else ''}
 <h1>{sectionName}</h1>
 '''
+            if isinstance( thisBible, ESFMBible.ESFMBible ): # e.g., OET-RV
+                verseEntryList = livenOETWordLinks( thisBible, BBB, verseEntryList, f"{'../'*level}rf/W/{{n}}.htm#Top", state )
             textHtml = convertUSFMMarkerListToHtml( level, thisBible.abbreviation, (BBB,startC), 'section', contextList, verseEntryList, basicOnly=False, state=state )
             # textHtml = livenIORs( BBB, textHtml, sections )
             if thisBible.abbreviation == 'OET-RV':
@@ -507,6 +530,7 @@ def createSectionPages( level:int, folder:Path, thisBible, state ) -> List[str]:
             with open( filepath, 'wt', encoding='utf-8' ) as sectionHtmlFile:
                 sectionHtmlFile.write( sectionHtml )
             vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(sectionHtml):,} characters written to {filepath}" )
+
         # Now make the section index file for this book
         filename = f'{BBB}.htm'
         filepath = folder.joinpath( filename )
@@ -516,9 +540,11 @@ def createSectionPages( level:int, folder:Path, thisBible, state ) -> List[str]:
                 .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/bySec/{filename}#Top">{thisBible.abbreviation}</a>''',
                         f'''<a title="Up to {state.BibleNames[thisBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/">↑{thisBible.abbreviation}</a>''' )
         sectionHtml = f'<h1 id="Top">Index of sections for {thisBible.abbreviation} {ourTidyBBB}</h1>\n'
-        for startC,startV,_endC,_endV,sectionName,reasonName,_contextList,_verseEntryList,filename in state.sectionsLists[thisBible.abbreviation][BBB]:
+        for _nnn,startC,startV,_endC,_endV,sectionName,reasonName,_contextList,_verseEntryList,filename in state.sectionsLists[thisBible.abbreviation][BBB]:
             reasonString = '' if reasonName=='Section heading' and not TEST_MODE else f' ({reasonName})' # Suppress '(Section Heading)' appendages in the list
-            sectionHtml = f'''{sectionHtml}<p class="sectionHeading"><a title="View section" href="{filename}#Top">{'Intro' if startC=='-1' else startC}:{startV} <b>{sectionName}</b>{reasonString}</a></p>\n'''
+            # NOTE: word 'Alternate ' is defined in the above OET function at start of main loop
+            sectionHtml = f'''{sectionHtml}<p class="{'alternateHeading' if reasonName.startswith('Alternate ') else 'sectionHeading'}"><a title="View section" href="{filename}#Top">{'Intro' if startC=='-1' else startC}:{startV} <b>{sectionName}</b>{reasonString}</a></p>\n'''
+            # sectionHtml = f'''{sectionHtml}<p class="sectionHeading"><a title="View section" href="{filename}#Top">{'Intro' if startC=='-1' else startC}:{startV} <b>{sectionName}</b>{reasonString}</a></p>\n'''
         sectionHtml = f'''{top}<!--sections page-->
 {navListParagraph}
 {sectionHtml}
@@ -549,6 +575,139 @@ def createSectionPages( level:int, folder:Path, thisBible, state ) -> List[str]:
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createSectionPages() finished processing {len(BBBs)} {thisBible.abbreviation} books: {BBBs}." )
     # return filenames
 # end of createSectionPages.createSectionPages
+
+
+def findSectionNumber( versionAbbreviation:str, refBBB:str, refC:str, refV:str, state ) -> Optional[int]:
+    """
+    """
+    fnPrint( DEBUGGING_THIS_MODULE, f"findSectionNumber( {versionAbbreviation}, {refBBB} {refC}:{refV} )" )
+
+    if not refBBB: return None # Can't do anything without a valid BBB
+    if refBBB not in state.sectionsLists[versionAbbreviation]: return None # No section headings for this book
+
+    intRefV = getLeadingInt( refV )
+
+    for n,startC,startV,endC,endV,_sectionName,reasonName,_contextList,_verseEntryList,_filename in state.sectionsLists[versionAbbreviation][refBBB]:
+        if reasonName.startswith( 'Alternate ' ): continue # ignore these ones
+
+        # print( f"  findSectionNumber {versionAbbreviation} {state.sectionsLists[versionAbbreviation][refBBB][n]}")
+        if startC==refC and endC==refC:
+            if getLeadingInt(startV) <= intRefV <= getLeadingInt(endV): # It's in this single chapter
+                return n
+        elif startC==refC and intRefV>=getLeadingInt(startV): # It's in the first chapter
+            return n
+        elif endC==refC and intRefV<=getLeadingInt(endV): # It's in the second chapter
+            return n
+
+    return None
+# end of createSectionPages.findSectionNumber
+
+
+def livenSectionReferences( versionAbbreviation:str, refTuple:tuple, segmentType:str, sectionReferenceText:str, state ) -> str:
+    """
+    Given some text (from USFM \\r field),
+        convert the list of references (often enclosed in parenthesis) into live links
+
+    NOTE: We remove any spaces after commas, which means we can't necessarily restore them exactly the same
+    """
+    fnPrint( DEBUGGING_THIS_MODULE, f"livenSectionReferences( {versionAbbreviation}, {refTuple}, {segmentType}, '{sectionReferenceText}' )" )
+    dPrint( 'Info', DEBUGGING_THIS_MODULE, f"livenSectionReferences( {versionAbbreviation}, {refTuple}, {segmentType}, '{sectionReferenceText}' )…" )
+    assert '\\' not in sectionReferenceText
+
+    # ourBBB = refTuple[0]
+
+    # Remove enclosing parentheses if any, e.g., in '(Luk. 3:23-38)'
+    enclosedByParenthesis = sectionReferenceText[0]=='(' and sectionReferenceText[-1]==')'
+    if enclosedByParenthesis: sectionReferenceText = sectionReferenceText[1:-1]
+
+    # Tokenise
+    # NOTE: We remove any spaces after commas, which means we can't necessarily restore them exactly the same
+    tokens = sectionReferenceText.replace(';',',,').replace(', ',',').split( ',' )
+
+    def livenSectionReferencesDigits( versionAbbreviation:str, refTuple:tuple, segmentType:str, refBBB:str, sectionReferenceDigitsText:str, state ) -> str:
+        """
+        """
+        fnPrint( DEBUGGING_THIS_MODULE, f"livenSectionReferencesDigits( {versionAbbreviation}, {refTuple}, {segmentType}, {refBBB}, '{sectionReferenceDigitsText}' )" )
+        dPrint( 'Info', DEBUGGING_THIS_MODULE, f"livenSectionReferencesDigits( {versionAbbreviation}, {refTuple}, {segmentType}, {refBBB} '{sectionReferenceDigitsText}' )…" )
+        assert len(refBBB) == 3
+        assert ' ' not in sectionReferenceDigitsText and ',' not in sectionReferenceDigitsText and ';' not in sectionReferenceDigitsText
+
+        isSingleChapterBook = BibleOrgSysGlobals.loadedBibleBooksCodes.isSingleChapterBook( refBBB )
+
+        # The link will always be to the beginning of a span
+        if '-' in sectionReferenceDigitsText or '–' in sectionReferenceDigitsText or '—' in sectionReferenceDigitsText:
+            # so throw away anything after the beginning of the reference
+            sectionReferenceDigitsText = sectionReferenceDigitsText.replace('–','-').replace('—','-').split( '-' )[0]
+
+        # sectionReferenceLink = ''
+        if sectionReferenceDigitsText.count( ':' ) == 1:
+            refC,refV = sectionReferenceDigitsText.split( ':' )
+            # assert segmentType in ('book','chapter','section')
+            if segmentType == 'book':
+                sectionReferenceLink = f'{refBBB}.htm#C{refC}V{refV}' 
+            elif segmentType == 'chapter':
+                sectionReferenceLink = f'{refBBB}_C{refC}.htm#V{refV}' 
+            elif segmentType == 'section':
+                print( f"{state.sectionsLists[versionAbbreviation]}")
+                sectionNumber = findSectionNumber( versionAbbreviation, refBBB, refC, refV, state )
+                sectionReferenceLink = f'{refBBB}_S{sectionNumber}.htm#V{refV}'
+                print( f"  {sectionNumber=} {sectionReferenceLink=}")
+            else: not_a_book_or_chapter_or_section
+        else:
+            logging.critical( f"Not one colon from livenSectionReferencesDigits( {versionAbbreviation}, {refTuple}, {segmentType}, {refBBB} '{sectionReferenceDigitsText}' )" )
+            sectionReferenceLink = sectionReferenceDigitsText
+
+        dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  livenSectionReferences( {versionAbbreviation}, {refTuple}, {segmentType}, '{sectionReferenceText}' ) about to return {sectionReferenceLink=}" )
+        return sectionReferenceLink
+    # end of usfm.livenSectionReferences.livenSectionReferencesDigits function
+        
+    sectionReferenceHtml = ''
+    currentBBB = None
+    for n,token in enumerate( tokens ):
+        dPrint( 'Info', DEBUGGING_THIS_MODULE, f" livenSectionReferences( {versionAbbreviation}, {refTuple}, {segmentType}, '{sectionReferenceText}' ) processing {n}: {token=}…" )
+        if not token: # then the previous one was ended by a semi-colon
+            # Usually this means a change of book or chapter
+            pass # We don't actually need to do anything here
+        elif token.startswith('1 ') or token.startswith('2 ') or token.startswith('3 ') \
+          or token.startswith('I ') or token.startswith('II ') or token.startswith('III ') \
+          or token.startswith('Song '):
+            # Then we expect the token to start with something like '1 Cor.'
+            assert token.count( ' ') >= 2
+            bookAbbrev, rest = token.rsplit( ' ', 1 )
+            currentBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromText( bookAbbrev )
+            if currentBBB is None:
+                logging.critical( f"livenSectionReferences1 was unable to find a book for '{token}' from '{sectionReferenceText}'" )
+                liveLink = None
+            else:
+                liveLink = livenSectionReferencesDigits( versionAbbreviation, refTuple, segmentType, currentBBB, rest, state )
+            tokenSectionReferenceHtml = f'<a href="{liveLink}">{token}</a>' \
+                if liveLink and ('ALL' in state.booksToLoad[versionAbbreviation] or currentBBB in state.booksToLoad[versionAbbreviation]) \
+                else token
+            delimiter = '' if not sectionReferenceHtml else ', ' if n<2 or token[n-1] else '; '
+            sectionReferenceHtml = f'{sectionReferenceHtml}{delimiter}{tokenSectionReferenceHtml}'
+        elif (currentBBB is None or token[0].isalpha()) \
+        and token.count(' ') == 1:
+            # Then we expect the token to start with a bookname abbreviation
+            # assert token.count( ' ' ) == 1, f"livenSectionReferences expected exactly one space in {versionAbbreviation}, {refTuple}, {segmentType}, '{token}' from '{sectionReferenceText}'"
+            bookAbbrev, rest = token.split( ' ' ) # Assumes only one space
+            if bookAbbrev[-1] == '.': bookAbbrev = bookAbbrev[:-1] # Not sure why the below function fails on '1 Cor.'
+            currentBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromText( bookAbbrev )
+            if currentBBB is None:
+                logging.critical( f"livenSectionReferences2 was unable to find a book for '{token}' from '{sectionReferenceText}'" )
+                liveLink = None
+            else:
+                liveLink = livenSectionReferencesDigits( versionAbbreviation, refTuple, segmentType, currentBBB, rest, state )
+            tokenSectionReferenceHtml = f'<a href="{liveLink}">{token}</a>' \
+                if liveLink and ('ALL' in state.booksToLoad[versionAbbreviation] or currentBBB in state.booksToLoad[versionAbbreviation]) \
+                else token
+            delimiter = '' if not sectionReferenceHtml else ', ' if n<2 or token[n-1] else '; '
+            sectionReferenceHtml = f'{sectionReferenceHtml}{delimiter}{tokenSectionReferenceHtml}'
+        else:
+            logging.critical( f"livenSectionReferences was unable to parse '{token}' from {versionAbbreviation} {refTuple} {segmentType} '{sectionReferenceText}'" )
+
+    dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  livenSectionReferences( {versionAbbreviation}, {refTuple}, {segmentType}, '{sectionReferenceText}' ) about to return {sectionReferenceHtml=}" )
+    return f'({sectionReferenceHtml})' if enclosedByParenthesis else sectionReferenceHtml 
+# end of usfm.livenSectionReferences function
 
 
 

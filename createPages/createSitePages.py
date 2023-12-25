@@ -77,15 +77,15 @@ from html import makeTop, makeBottom, checkHtml
 # from selectedVersesVersions import fillSelectedVerses
 
 
-LAST_MODIFIED_DATE = '2023-12-21' # by RJH
+LAST_MODIFIED_DATE = '2023-12-25' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData Create Pages"
-PROGRAM_VERSION = '0.87'
+PROGRAM_VERSION = '0.88'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
 
-TEST_MODE = False # Writes website into Test subfolder
+TEST_MODE = True # Writes website into Test subfolder
 ALL_PRODUCTION_BOOKS = not TEST_MODE # If set to False, only selects one book per version for a faster test build
 ALL_TEST_REFERENCE_PAGES = False # If in Test mode, make all word/lemma pages, or just the relevant ones
 UPDATE_ACTUAL_SITE_WHEN_BUILT = True # The pages are initially built in a tmp folder so need to be copied to the final destination
@@ -96,7 +96,7 @@ DEBUG_DESTINATION_FOLDER = NORMAL_DESTINATION_FOLDER.joinpath( 'Test/')
 DESTINATION_FOLDER = DEBUG_DESTINATION_FOLDER if TEST_MODE or BibleOrgSysGlobals.debugFlag \
                         else NORMAL_DESTINATION_FOLDER
 
-OET_BOOK_LIST = ['JHN','MRK','MAT','LUK','ACT', 'ROM','CO2', 'GAL','EPH','PHP','COL', 'TH1','TH2','TI1','TI2','TIT','PHM', 'JAM', 'PE1','PE2', 'JN1','JN2','JN3', 'JDE']
+OET_BOOK_LIST = ['JHN','MRK','MAT','LUK','ACT', 'ROM','CO2', 'GAL','EPH','PHP','COL', 'TH1','TH2','TI1','TI2','TIT','PHM', 'HEB', 'JAM', 'PE1','PE2', 'JN1','JN2','JN3', 'JDE']
 OET_BOOK_LIST_WITH_FRT = ['FRT'] + OET_BOOK_LIST # 'INT'
 NT_BOOK_LIST_WITH_FRT = ['FRT'] + BOOKLIST_NT27
 assert len(NT_BOOK_LIST_WITH_FRT) == 27+1
@@ -173,7 +173,7 @@ class State:
                 'BSB': '../copiedBibles/English/Berean.Bible/BSB/',
                 'BLB': '../copiedBibles/English/Berean.Bible/BLB/blb.modified.txt', # NT only so far
                 'OEB': '../copiedBibles/English/OEB/',
-                # 'ISV': '',
+                # # 'ISV': '',
                 'CSB': '../copiedBibles/English/CSB_verses.tsv',
                 'NLT': '../copiedBibles/English/NLT_verses.tsv',
                 'NIV': '../copiedBibles/English/NIV_verses.tsv',
@@ -400,17 +400,17 @@ class State:
 
     detailsHtml = {
         'OET': {'about': '''<p class="about">The (still unfinished) <em>Open English Translation</em> consists of a <em>Readers’ Version</em> and a <em>Literal Version</em> side-by-side.
-You can read more about the design of the <em>OET</em> <a href="https://OpenEnglishTranslation.Bible/Design/Overview">here</a>.</p>''',
+You can read more about the design of the <em>OET</em> at <a href="https://OpenEnglishTranslation.Bible/Design/Overview">OpenEnglishTranslation.Bible/Design/Overview</a>.</p>''',
                 'copyright': '<p class="copyright">Copyright © 2010-2023 <a href="https://Freely-Given.org">Freely-Given.org</a>.</p>',
                 'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
                 'acknowledgements': '<p class="acknwldg">Thanks to <a href="https://Freely-Given.org/">Freely-Given.org</a> for creating this exciting, radical, new Bible translation which is viewable from <a href="https://OpenEnglishTranslation.Bible">OpenEnglishTranslation.Bible</a>.</p>' },
         'OET-RV': {'about': '''<p class="about">The (still unfinished) <em>Open English Translation Readers’ Version</em> is a new, modern-English easy-to-read translation of the Bible.
-You can read more about the design of the <em>OET-RV</em> <a href="https://OpenEnglishTranslation.Bible/Design/ReadersVersion">here</a>.</p>''',
+You can read more about the design of the <em>OET-RV</em> at <a href="https://OpenEnglishTranslation.Bible/Design/ReadersVersion">OpenEnglishTranslation.Bible/Design/ReadersVersion</a>.</p>''',
                 'copyright': '<p class="copyright">Copyright © 2010-2023 <a href="https://Freely-Given.org">Freely-Given.org</a>.</p>',
                 'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
                 'acknowledgements': '<p class="acknwldg">Thanks to <a href="https://Freely-Given.org/">Freely-Given.org</a> for creating this exciting, new Bible translation which is viewable from <a href="https://OpenEnglishTranslation.Bible">OpenEnglishTranslation.Bible</a>.</p>' },
         'OET-LV': {'about': '''<p class="about">The (still unfinished) <em>Open English Translation Literal Version</em> is a tool designed to give a look into what was actually written in the original Hebrew or Greek manuscripts.
-You can read more about the design of the <em>OET-LV</em> <a href="https://OpenEnglishTranslation.Bible/Design/LiteralVersion">here</a>.</p>''',
+You can read more about the design of the <em>OET-LV</em> at <a href="https://OpenEnglishTranslation.Bible/Design/LiteralVersion">OpenEnglishTranslation.Bible/Design/LiteralVersion</a>.</p>''',
                 'copyright': '<p class="copyright">Copyright © 2010-2023 <a href="https://Freely-Given.org">Freely-Given.org</a>.</p>',
                 'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
                 'acknowledgements': '''<p class="acknwldg">Thanks to <a href="https://Freely-Given.org/">Freely-Given.org</a> for creating this exciting, new Bible translation which is viewable from <a href="https://OpenEnglishTranslation.Bible">OpenEnglishTranslation.Bible</a>.
@@ -722,19 +722,28 @@ def createSitePages() -> bool:
         thisBible = state.preloadedBibles[versionAbbreviation]
         thisBibleBooksToLoad = state.booksToLoad[versionAbbreviation]
         print( f'{versionAbbreviation}: {thisBible=} {thisBibleBooksToLoad=}' )
-        state.BBBsToProcess[versionAbbreviation] = thisBible.books.keys() if thisBibleBooksToLoad==['ALL'] \
+        # if versionAbbreviation in state.selectedVersesOnlyVersions:
+        #     state.BBBsToProcess[versionAbbreviation] = []
+        #     assert isinstance( thisBible, dict )
+        #     for BBB,_C,_V in thisBible: # a dict with keys like ('REV', '1', '3')
+        #         if BBB not in state.BBBsToProcess[versionAbbreviation]:
+        #             state.BBBsToProcess[versionAbbreviation].append( BBB )
+        # else: # not selectedVersesOnlyVersions
+        if versionAbbreviation not in state.selectedVersesOnlyVersions:
+            state.BBBsToProcess[versionAbbreviation] = thisBible.books.keys() if thisBibleBooksToLoad==['ALL'] \
                     else BOOKLIST_NT27 if thisBibleBooksToLoad==['NT'] \
                     else thisBibleBooksToLoad
-        if 'OET' in versionAbbreviation:
-            state.BBBsToProcess[versionAbbreviation] = reorderBooksForOETVersions( state.BBBsToProcess[versionAbbreviation] )
-        state.BBBLinks[versionAbbreviation] = []
-        for BBB in state.BBBsToProcess[versionAbbreviation]:
-            if BBB=='FRT' \
-            or 'ALL' in thisBibleBooksToLoad \
-            or BBB in thisBibleBooksToLoad:
-                filename = f'{BBB}.htm'
-                ourTidyBBB = tidyBBB( BBB )
-                state.BBBLinks[versionAbbreviation].append( f'''<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB).replace('James','Jacob/(James)')}" href="{filename}#Top">{ourTidyBBB}</a>''' )
+            if 'OET' in versionAbbreviation:
+                state.BBBsToProcess[versionAbbreviation] = reorderBooksForOETVersions( state.BBBsToProcess[versionAbbreviation] )
+            state.BBBLinks[versionAbbreviation] = []
+            for BBB in state.BBBsToProcess[versionAbbreviation]:
+                # We include FRT here if there is one, but it will be excluded later where irrelevant
+                if BBB=='FRT' \
+                or 'ALL' in thisBibleBooksToLoad \
+                or BBB in thisBibleBooksToLoad:
+                    filename = f'{BBB}.htm'
+                    ourTidyBBB = tidyBBB( BBB )
+                    state.BBBLinks[versionAbbreviation].append( f'''<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB).replace('James','Jacob/(James)')}" href="{filename}#Top">{ourTidyBBB}</a>''' )
 
     # Ok, let's go create some static pages
     if 'OET' in state.BibleVersions: # this is a special case
@@ -788,13 +797,13 @@ def createSitePages() -> bool:
 
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\n{TEMP_BUILD_FOLDER} is {getFolderSize(TEMP_BUILD_FOLDER)//1_000_000:,} MB" )
 
-    # Clean away any existing folders so we can copy in the newly built stuff
-    try: os.makedirs( f'{DESTINATION_FOLDER}/' )
-    except FileExistsError: # they were already there
-        assert os.path.isdir( DESTINATION_FOLDER )
-        cleanHTMLFolders( DESTINATION_FOLDER, state )
-
     if UPDATE_ACTUAL_SITE_WHEN_BUILT:
+        # Clean away any existing folders so we can copy in the newly built stuff
+        try: os.makedirs( f'{DESTINATION_FOLDER}/' )
+        except FileExistsError: # they were already there
+            assert os.path.isdir( DESTINATION_FOLDER )
+            cleanHTMLFolders( DESTINATION_FOLDER, state )
+
         # Now move the site from our temporary build location to overwrite the destination location
         vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Moving files and folders from {TEMP_BUILD_FOLDER}/ to {DESTINATION_FOLDER}/…" )
         count = 0
@@ -830,6 +839,8 @@ def createSitePages() -> bool:
             vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Copied {count:,} stylesheets and scripts into {DESTINATION_FOLDER}/." )
 
         vPrint( 'Normal', DEBUGGING_THIS_MODULE, f'''\nNOW RUN "npx pagefind --glob "{{OET,pa}}/**/*.{{htm}}" --site ../htmlPages{'/Test' if TEST_MODE else ''}/" to create search index!''' )
+    else:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"NOT UPDATING the actual {'TEST ' if TEST_MODE else ''}site (as requested)." )
 # end of createSitePages.createSitePages
 
 
