@@ -93,6 +93,7 @@ span.s1cv { vertical-align:super; font-size:0.8em; color:pink; }
 span.vp { vertical-align:super; font-size:0.5em; color:purple; }
 p.d { font-style:italic; }
 p.p { text-indent:0.5em; margin-top:0.2em; margin-bottom:0.2em; }
+p.m { margin-top:0.2em; margin-bottom:0.2em; }
 p.q1 { margin-left:1em; margin-top:0.2em; margin-bottom:0.2em; }
 p.q2 { margin-left:2em; margin-top:0.2em; margin-bottom:0.2em; }
 p.pm { margin-top:0.2em; margin-bottom:0.2em; }

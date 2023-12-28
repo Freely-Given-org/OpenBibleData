@@ -321,10 +321,9 @@ def removeDuplicateCVids( BBB:str, html:str ) -> str:
 
     Assert statements are disabled because this function can be quite slow for an entire OET book
     """
-    # vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Removing duplicate IDs (#CV & #V) for {BBB} ({len(html):,} chars)…" )
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Removing duplicate IDs (#CV & #V) for {BBB} ({len(html):,} chars)…" )
     
-    # startSearchIndex = 0
-    endIx = 0
+    endIx = 0 # This is where we start searching
     while True:
         startVIx = html.find( ' id="V', endIx )
         if startVIx == -1: startVIx = 99_999_999
@@ -335,16 +334,16 @@ def removeDuplicateCVids( BBB:str, html:str ) -> str:
         endIx = html.find( '>', startIx+8 ) # The end of the first id field found -- any duplicates will be AFTER this
         # assert endIx != -1
         idContents = html[startIx:endIx]
+        # print( f"    {startIx} {idContents=}")
         # assert 7 < len(idContents) < 14, f"{idContents=} {len(idContents)=}"
-        idCount = html.count( idContents, startIx )
+        # idCount = html.count( idContents, startIx ) # It's quicker if we don't do this
         # if startIx == startCIx:
         #     assert 1 <= idCount <= 2, f"{BBB} {idContents=} {idCount=} {html}"
         # else: # for #V entries, in large multi-chapter sections there can be several
         #     assert 1 <= idCount <= 5, f"{BBB} {idContents=} {idCount=} {html}"
-        if idCount > 1:
-            html = f"{html[:endIx]}{html[endIx:].replace( idContents, '' )}"
+        # if idCount > 1:
+        html = f"{html[:endIx]}{html[endIx:].replace( idContents, '' )}"
             # assert html.count( idContents ) == 1
-        # startSearchIndex = endIx # += len( idContents )
     return html
 # end of html.removeDuplicateCVids
 

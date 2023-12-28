@@ -97,7 +97,7 @@ def createParallelPages( level:int, folder:Path, state ) -> bool:
     filepath = folder.joinpath( filename )
     top = makeTop( level, None, 'parallel', None, state ) \
             .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}Parallel View" ) \
-            .replace( '__KEYWORDS__', f'Bible, parallel' )
+            .replace( '__KEYWORDS__', 'Bible, parallel' )
     indexHtml = f'''{top}<h1 id="Top">Parallel verse pages</h1>
 <p class="note">Each page only contains a single verse with minimal formatting, but displays it in a large number of different versions to enable analysis of different translation decisions. Study notes, theme notes, and translation notes will also be displayed, although not every verse has these.</p>
 <p class="note">Generally the older versions are nearer the bottom, and so reading from the bottom to the top can show how many English vocabulary and punctuation decisions propagated from one version to another.</p>
@@ -418,7 +418,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                 filepath = BBBFolder.joinpath( filename )
                 top = makeTop( BBBLevel, None, 'parallel', None, state ) \
                         .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{ourTidyBBB} {C}:{V} Parallel View" ) \
-                        .replace( '__KEYWORDS__', f'Bible, {ourTidyBBB}, parallel' )
+                        .replace( '__KEYWORDS__', f'Bible, parallel, {ourTidyBBB}' )
                 if BBB in state.booksToLoad['OET']:
                     top = top.replace( f'''href="{'../'*BBBLevel}il/"''', f'''href="{'../'*BBBLevel}il/{BBB}/C{C}V{V}.htm#Top"''')
                 parallelHtml = f'''{top}<!--parallel verse page-->
@@ -449,7 +449,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
     filepath1 = BBBFolder.joinpath( filename1 )
     top = makeTop( BBBLevel, None, 'parallel', None, state) \
             .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{ourTidyBBB} Parallel View" ) \
-            .replace( '__KEYWORDS__', f'Bible, parallel' )
+            .replace( '__KEYWORDS__', 'Bible, parallel' )
     # For Psalms, we don't list every single verse
     indexHtml = f'''{top}{adjBBBLinksHtml}
 {f'<h1 id="Top">{ourTidyBBB} parallel songs index</h1>' if BBB=='PSA' else ''}
@@ -470,7 +470,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
     filepath2 = folder.joinpath( filename2 )
     top = makeTop( level, None, 'parallel', None, state) \
             .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{ourTidyBBB} Parallel View" ) \
-            .replace( '__KEYWORDS__', f'Bible, parallel' )
+            .replace( '__KEYWORDS__', 'Bible, parallel' )
     # For Psalms, we don't list every single verse
     indexHtml = f'''{top}{adjBBBLinksHtml}
 {f'<h1 id="Top">{ourTidyBBB} parallel songs index</h1>' if BBB=='PSA' else ''}
@@ -733,7 +733,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
             ((' bifore',' bifor'),' before'),
             ((' beganne',' begane',' bigunnen',' bigan'),' began'), ((' bigat ',' begate '),' begat '), ((' beggere',' begger'),' beggar'), ((' beggide',),' begged'), (('bigynnyng','beginnynge','begynnynge','begynnyng','begynninge'),'beginning'), (('bigetun ','begotte '),'begotten '),
             (('behelde','biheeld'),'beheld'), ((' behinde',' bihynde',' behynde'),' behind'), ((' biholdinge',),' beholding'),(('Biholde','Beholde'),'Behold'),((' biholdist ',' biholde ', ' beholde '),' behold '),((' beholde,',),' behold,'), ((' bihoueth',),' behoves'),
-            (('bileueden','beleeued','beleued','beleved'),'believed'), ((' bileueth',' beleueth',' beleeueth'),' believes'), (('Bileue ','Beleeue ','Beleue ','Beleve '),'Believe '),((' beleue',' beleeue',' beleve',' bileue'),' believe'), ((' belonge ',),' belong '),
+            (('bileueden','beleeued','beleued','beleved'),'believed'), ((' bileueth',' beleueth',' beleeueth'),' believes'), (('Bileue ','Beleeue ','Beleue ','Beleve '),'Believe '),((' beleue',' beleeue',' beleve',' bileue'),' believe'), ((' belonge ',),' belong '), ((' beloued',' beloven'),' beloved'),
             ((' berith',),' beareth'),
             (('beseeching','besechyng'),'beseeching/imploring'),(('biseche ','beseech '),'beseech/implore '),(('biseche,','beseech,'),'beseech/implore,'), ((' besydes',),' besides'),((' bisidis',),' beside'),
             (('Bethanie ','Bethania ','Bethanye ','Betanye '),'Bethany '), (('Bethlehe ','Bethleem ','Bethlee '),'Bethlehem '), (('bitraiede','betraied'),'betrayed'),(('bitraye ','betraye ','betraie '),'betray '), ((' betere ',),' better '), ((' bitwixe',' betweene',' betwene'),' between'),
@@ -796,7 +796,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
             (('douytris','doughters'),'daughters'),
             (('Daiud',),'David'),
             ((' daies',' dayes'),' days'), ((' daye ',' daie ',' dai '),' day '),((' daye,',' daie,',' dai,'),' day,'),((' daye.',' daie.',' dai.'),' day.'),((' daye:',' daie:',' dai:'),' day:'),
-        ((' dekenes',),' deacons'), ((' deed',),' dead'), (('Deare ',),'Dear '),(('deare ',),'dear '), ((' deeth',' deth',' derth'),' death'),
+        ((' dekenes',),' deacons'), ((' deed',),' dead'), (('Deare ',),'Dear '),((' deare ',' dere '),' dear '), ((' deeth',' deth',' derth'),' death'),
             (('disseyve','disceaue','deceave','deceiue'),'deceive'),
             ((' degre ',),' degree '),
             ((' delyte',),' delight'), (('delyuerauce','deliueraunce','deliuerance'),'deliverance'),((' deliuered',),' delivered'),((' delyuer ',' deliuer '),' deliver '),
@@ -830,7 +830,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
             ((' etynge',),' eating'),((' eate ',' ete '),' eat '),((' eate,',' ete,'),' eat,'),((' eate.',' ete.'),' eat.'),((' eate:',' ete:'),' eat:'),((' eate;',' ete;'),' eat;'),
         (('edificacioun',),'edification'), (('edyfyinge','edifyenge'),'edifying'),
         (('Egipte ',),'Egypt '),(('Egipt,',),'Egypt,'),
-        (('Elias','Helyas'),'Elias/Elijah'),(('Helie','Elie'),'Elye/Elijah'),
+        ((' eldere ',),' elder '), (('Elias','Helyas'),'Elias/Elijah'),(('Helie','Elie'),'Elye/Elijah'),
             ((' els ',),' else '),((' els,',),' else,'),
         (('Emperours',),'Emperors'),((' emperours',),' emperors'),(('Emperoure',),'Emperor'),((' emperoure',),' emperor'),
         ((' ende ',),' end '), (('ynough','inough'),'enough'), ((' entred',' entriden',' entride',' entrid'),' entered'),((' entereth',' entreth'),' entereth/enters'),((' entre ',),' enter '),
@@ -866,7 +866,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
         ((' gobetis',),' fragments'), ((' fre ',),' free '),((' fre.',),' free.'), ((' freli',),' freely'),
             ((' freend',' frende'),' friend'), (('Fro ',),'From '),((' fro ',),' from '), ((' fruyt ',' frute ',' fruite '),' fruit '),
         ((' ful ',),' full '), (('fulfillid','fulfylled'),'fulfilled'), ((' fornace',),' furnace'),
-    (('Galile ',),'Galilee '),(('Galile,',),'Galilee,'), ((' galoun',),' gallon'),
+    (('Gayus',),'Gaius'), (('Galile ',),'Galilee '),(('Galile,',),'Galilee,'), ((' galoun',),' gallon'),
             ((' garmentes',' garmetes'),' garments'),((' garmente ',),' garment '),
             ((' yate',),' gate'), (('gadirid','gaderid','gadered','gaddred'),'gathered'),((' gadere ',' gaddre ',' geder '),' gather '),
             ((' yaf ',' gaue '),' gave '),
@@ -1235,23 +1235,25 @@ def moderniseEnglishWords( html:str ) -> bool:
 
 GERMAN_WORD_MAP = (
     ('Aber ','But '), (' alle ',' all '), (' auch.',' also.'), (' aus ',' out of '),
+        ('Älteste','elder'),
     ('Blut','blood'),
     (' das ',' the '),('Der ','The '),(' der ',' the '),(' des ',' the '),(' die ',' the '),
         (' drei',' three'),
         ('Du ','You '),
     (' eine ',' one '),
-    ('Geist','spirit'), ('Gottes ','God’s '), (' große ',' great '),
-    (' ihm ',' him '),(' ihm.',' him.'), (' ihn ',' him '),
+    ('Gajus','Gaius'), ('Geist','spirit'), ('Gottes ','God’s '), (' große ',' great '),
+    (' ich ',' I '),(' ihm ',' him '),(' ihm.',' him.'), (' ihn ',' him '),
     ('JEsus','Yesus'), ('J','Y'),
         ('Jüngern ','disciples '),
     (' kamen ',' came '),(' kam ',' came '),
+    ('Lieben ','loved (one) '), (' liebhabe ',' love '),
     (' machten',' make'),('Meer.','sea.'), (' mit ',' with '), ('. Morgan','. Morning'),('Morgan','morning'),
     ('Nacht ','night '), (' nicht ',' not '),
     ('Samen ','seed '), (' sein ',' his '),(' seine ',' his '), (' sieben ',' seven '), (' sind ',' are '), ('Sohn!','son!'), ('Sonne','sun'), (' sprach ',' spoke '),
     ('Und ','And '),(' und ',' and '),
     ('Vaterland','fatherland/homeland'),
         (' viel ',' many '), ('Volks','people'), (' von ',' from '),
-    ('Wasser','water'), ('Weib ','woman '), (' wenn ',' when '),
+    ('Wahrheit','truth'), ('Wasser','water'), ('Weib ','woman '), (' wenn ',' when '),
     (' zu ',' to '), ('Zuletzt ','Finally '),
     )
 def translateGerman( html:str ) -> bool:

@@ -54,10 +54,10 @@ from html import makeTop, makeBottom
 from Bibles import tidyBBB
 
 
-LAST_MODIFIED_DATE = '2023-12-22' # by RJH
+LAST_MODIFIED_DATE = '2023-12-28' # by RJH
 SHORT_PROGRAM_NAME = "createOETReferencePages"
 PROGRAM_NAME = "OpenBibleData createOETReferencePages functions"
-PROGRAM_VERSION = '0.48'
+PROGRAM_VERSION = '0.51'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -87,6 +87,315 @@ CNTR_PERSON_NAME_DICT = {'1':'1st', '2':'2nd', '3':'3rd', 'g':'g'}
 CNTR_CASE_NAME_DICT = {'N':'nominative', 'G':'genitive', 'D':'dative', 'A':'accusative', 'V':'vocative', 'g':'gen', 'n':'nom', 'a':'acc', 'd':'dat', 'v':'voc', 'U':'U'}
 CNTR_GENDER_NAME_DICT = {'M':'masculine', 'F':'feminine', 'N':'neuter', 'm':'masc', 'f':'fem', 'n':'neu'}
 CNTR_NUMBER_NAME_DICT = {'S':'singular', 'P':'plural', 's':'sg', 'p':'pl'}
+CNTR_MORPHOLOGY_NAME_DICT = { 'AFP':'accusative,feminine,plural', 'AFS':'accusative,feminine,singular',
+                                    'AMP':'accusative,masculine,plural', 'AMS':'accusative,masculine,singular',
+                                    'ANP':'accusative,neuter,plural', 'ANS':'accusative,neuter,singular',
+                                'DFP':'dative,feminine,plural', 'DFS':'dative,feminine,singular',
+                                    'DMP':'dative,masculine,plural', 'DMS':'dative,masculine,singular',
+                                    'DNP':'dative,neuter,plural', 'DNS':'dative,neuter,singular',
+                                'GFP':'genitive,feminine,plural', 'GFS':'genitive,feminine,singular',
+                                    'GMP':'genitive,masculine,plural', 'GMS':'genitive,masculine,singular',
+                                    'GNP':'genitive,neuter,plural', 'GNS':'genitive,neuter,singular',
+                                'NFP':'nominative,feminine,plural', 'NFS':'nominative,feminine,singular', 'NMP':'nominative,masculine,plural', 'NMS':'nominative,masculine,singular', 'NNP':'nominative,neuter,plural', 'NNS':'nominative,neuter,singular',
+                                'VFP':'vocative,feminine,plural', 'VFS':'vocative,feminine,singular',
+                                    'VMP':'vocative,masculine,plural', 'VMS':'vocative,masculine,singular',
+                                    'VNP':'vocative,neuter,plural', 'VNS':'vocative,neuter,singular',
+                            '...1A.P':'1st person,accusative,plural', '...1A.S':'1st person,accusative,singular',
+                                    '...1AFP':'1st person,accusative,feminine,plural', '...1AFS':'1st person,accusative,feminine,singular',
+                                    '...1AMP':'1st person,accusative,masculine,plural', '...1AMS':'1st person,accusative,masculine,singular',
+                                    '...1ANP':'1st person,accusative,neuter,plural', '...1ANS':'1st person,accusative,neuter,singular',
+                                '...1D.P':'1st person,dative,plural', '...1D.S':'1st person,dative,singular',
+                                    '...1DFP':'1st person,dative,feminine,plural', '...1DFS':'1st person,dative,feminine,singular',
+                                    '...1DMP':'1st person,dative,masculine,plural', '...1DMS':'1st person,dative,masculine,singular',
+                                    '...1DNP':'1st person,dative,neuter,plural', '...1DNS':'1st person,dative,neuter,singular',
+                                    '...1G.P':'1st person,genitive,plural', '...1G.S':'1st person,genitive,singular',
+                                        '...1GFP':'1st person,genitive,feminine,plural', '...1GFS':'1st person,genitive,feminine,singular',
+                                        '...1GMP':'1st person,genitive,masculine,plural', '...1GMS':'1st person,genitive,masculine,singular',
+                                        '...1GNP':'1st person,genitive,neuter,plural',
+                                '...1N.P':'1st person,nominative,plural', '...1N.S':'1st person,nominative,singular',
+                                        '...1NFS':'1st person,nominative,feminine,singular',
+                                        '...1NMP':'1st person,nominative,masculine,plural', '...1NMS':'1st person,nominative,masculine,singular',
+                                        '...1NNP':'1st person,nominative,neuter,plural', '...1NNS':'1st person,nominative,neuter,singular',
+                            '...2A.S':'2nd person,accusative,singular', '...2A.P':'2nd person,accusative,plural',
+                                    '...2AFP':'2nd person,accusative,feminine,plural', '...2AFS':'2nd person,accusative,feminine,singular',
+                                    '...2AMP':'2nd person,accusative,masculine,plural', '...2AMS':'2nd person,accusative,masculine,singular',
+                                    '...2ANP':'2nd person,accusative,neuter,plural', '...2ANS':'2nd person,accusative,neuter,singular',
+                                '...2D.P':'2nd person,dative,plural', '...2D.S':'2nd person,dative,singular',
+                                    '...2DFP':'2nd person,dative,feminine,plural', '...2DFS':'2nd person,dative,feminine,singular',
+                                    '...2DMP':'2nd person,dative,masculine,plural', '...2DMS':'2nd person,dative,masculine,singular',
+                                    '...2DNS':'2nd person,dative,neuter,singular',
+                                '...2G.P':'2nd person,genitive,plural', '...2G.S':'2nd person,genitive,singular',
+                                    '...2GFS':'2nd person,genitive,feminine,singular',
+                                    '...2GMP':'2nd person,genitive,masculine,plural', '...2GMS':'2nd person,genitive,masculine,singular',
+                                '...2N.P':'2nd person,nominative,plural', '...2N.S':'2nd person,nominative,singular',
+                                    '...2NFP':'2nd person,nominative,feminine,plural',
+                                    '...2NMP':'2nd person,nominative,masculine,plural', '...2NMS':'2nd person,nominative,masculine,singular',
+                                    '...2NNP':'2nd person,nominative,neuter,plural', '...2NNS':'2nd person,nominative,meuter,singular',
+                                '...2VFP':'2nd person,vocative,feminine,plural', '...2VFS':'2nd person,vocative,feminine,singular',
+                                '...2VMP':'2nd person,vocative,masculine,plural', '...2VMS':'2nd person,vocative,masculine,singular',
+                                '...2VNP':'2nd person,vocative,neuter,plural', '...2VNS':'2nd person,vocative,neuter,singular',
+                            '...3AFP':'3rd person,accusative,feminine,plural', '...3AFS':'3rd person,accusative,feminine,singular',
+                                    '...3AMP':'3rd person,accusative,masculine,plural', '...3AMS':'3rd person,accusative,masculine,singular',
+                                    '...3ANP':'3rd person,accusative,neuter,plural', '...3ANS':'3rd person,accusative,neuter,singular',
+                                    '...3DFP':'3rd person,dative,feminine,plural', '...3DFS':'3rd person,dative,feminine,singular',
+                                    '...3DMP':'3rd person,dative,masculine,plural', '...3DMS':'3rd person,dative,masculine,singular',
+                                    '...3DNP':'3rd person,dative,neuter,plural', '...3DNS':'3rd person,dative,neuter,singular',
+                                    '...3GFP':'3rd person,genitive,feminine,plural', '...3GFS':'3rd person,genitive,feminine,singular',
+                                    '...3GMP':'3rd person,genitive,masculine,plural', '...3GMS':'3rd person,genitive,masculine,singular',
+                                    '...3GNP':'3rd person,genitive,neuter,plural', '...3GNS':'3rd person,genitive,neuter,singular',
+                                    '...3NFS':'3rd person,nominative,feminine,singular',
+                                    '...3NMP':'3rd person,nominative,masculine,plural', '...3NMS':'3rd person,nominative,masculine,singular',
+                                    '...3NNS':'3rd person,nominative,neuter,singular',
+                                'IAA1..P':'indicative,aorist,active,1st person plural', 'IAA1..S':'indicative,aorist,active,1st person singular',
+                                            'IAA2..P':'indicative,aorist,active,2nd person plural', 'IAA2..S':'indicative,aorist,active,2nd person singular',
+                                            'IAA3..P':'indicative,aorist,active,3rd person plural', 'IAA3..S':'indicative,aorist,active,3rd person singular',
+                                        'IAM1..P':'indicative,aorist,middle,1st person plural', 'IAM1..S':'indicative,aorist,middle,1st person singular',
+                                            'IAM2..P':'indicative,aorist,middle,2nd person plural', 'IAM2..S':'indicative,aorist,middle,2nd person singular',
+                                            'IAM3..P':'indicative,aorist,middle,3rd person plural', 'IAM3..S':'indicative,aorist,middle,3rd person singular',
+                                        'IAP1..P':'indicative,aorist,passive,1st person plural', 'IAP1..S':'indicative,aorist,passive,1st person singular',
+                                            'IAP2..P':'indicative,aorist,passive,2nd person plural', 'IAP2..S':'indicative,aorist,passive,2nd person singular',
+                                            'IAP3..P':'indicative,aorist,passive,3rd person plural', 'IAP3..S':'indicative,aorist,passive,3rd person singular',
+                                    'IEA1..P':'indicative,perfect,active,1st person plural', 'IEA1..S':'indicative,perfect,active,1st person singular',
+                                        'IEA2..P':'indicative,perfect,active,2nd person plural', 'IEA2..S':'indicative,perfect,active,2nd person singular',
+                                        'IEA3..P':'indicative,perfect,active,3rd person plural', 'IEA3..S':'indicative,perfect,active,3rd person singular',
+                                    'IEM1..P':'indicative,perfect,middle,1st person plural', 'IEM1..S':'indicative,perfect,middle,1st person singular',
+                                        'IEM2..P':'indicative,perfect,middle,2nd person plural', 'IEM2..S':'indicative,perfect,middle,2nd person singular',
+                                        'IEM3..P':'indicative,perfect,middle,3rd person plural', 'IEM3..S':'indicative,perfect,middle,3rd person singular',
+                                    'IEP1..P':'indicative,perfect,passive,1st person plural', 'IEP1..S':'indicative,perfect,passive,1st person singular',
+                                        'IEP2..P':'indicative,perfect,passive,2nd person plural', 'IEP2..S':'indicative,perfect,passive,2nd person singular',
+                                        'IEP3..P':'indicative,perfect,passive,3rd person plural', 'IEP3..S':'indicative,perfect,passive,3rd person singular',
+                                    'IFA1..P':'indicative,future,active,1st person plural', 'IFA1..S':'indicative,future,active,1st person singular',
+                                        'IFA2..P':'indicative,future,active,2nd person plural', 'IFA2..S':'indicative,future,active,2nd person singular',
+                                        'IFA3..P':'indicative,future,active,3rd person plural', 'IFA3..S':'indicative,future,active,3rd person singular',
+                                    'IFM1..P':'indicative,future,middle,1st person plural', 'IFM1..S':'indicative,future,middle,1st person singular',
+                                        'IFM2..P':'indicative,future,middle,2nd person plural', 'IFM2..S':'indicative,future,middle,2nd person singular',
+                                        'IFM3..P':'indicative,future,middle,3rd person plural', 'IFM3..S':'indicative,future,middle,3rd person singular',
+                                    'IFP1..P':'indicative,future,passive,1st person plural', 'IFP1..S':'indicative,future,passive,1st person singular',
+                                        'IFP2..P':'indicative,future,passive,2nd person plural', 'IFP2..S':'indicative,future,passive,2nd person singular',
+                                        'IFP3..P':'indicative,future,passive,3rd person plural', 'IFP3..S':'indicative,future,passive,3rd person singular',
+                                    'IIA1..P':'indicative,imperfect,active,1st person plural', 'IIA1..S':'indicative,imperfect,active,1st person singular',
+                                        'IIA2..P':'indicative,imperfect,active,2nd person plural', 'IIA2..S':'indicative,imperfect,active,2nd person singular',
+                                        'IIA3..P':'indicative,imperfect,active,3rd person plural', 'IIA3..S':'indicative,imperfect,active,3rd person singular',
+                                        'IIM1..P':'indicative,imperfect,middle,1st person plural', 'IIM1..S':'indicative,imperfect,middle,1st person singular',
+                                            'IIM2..P':'indicative,imperfect,middle,2nd person plural', 'IIM2..S':'indicative,imperfect,middle,2nd person singular',
+                                            'IIM3..P':'indicative,imperfect,middle,3rd person plural', 'IIM3..S':'indicative,imperfect,middle,3rd person singular',
+                                        'IIP1..P':'indicative,imperfect,passive,1st person plural', 'IIP1..S':'indicative,imperfect,passive,1st person singular',
+                                            'IIP2..P':'indicative,imperfect,passive,2nd person plural',
+                                            'IIP3..P':'indicative,imperfect,passive,3rd person plural', 'IIP3..S':'indicative,imperfect,passive,3rd person singular',
+                                    'ILA1..P':'indicative,pluperfect,active,1st person plural', 'ILA1..S':'indicative,pluperfect,active,1st person singular',
+                                        'ILA2..P':'indicative,pluperfect,active,2nd person plural', 'ILA2..S':'indicative,pluperfect,active,2nd person singular',
+                                        'ILA3..P':'indicative,pluperfect,active,3rd person plural', 'ILA3..S':'indicative,pluperfect,active,3rd person singular',
+                                    'ILM3..P':'indicative,pluperfect,middle,3rd person plural', 'ILM3..S':'indicative,pluperfect,middle,3rd person singular',
+                                    'ILP3..S':'indicative,pluperfect,passive,3rd person singular',
+                                    'IPA1..P':'indicative,present,active,1st person plural', 'IPA1..S':'indicative,present,active,1st person singular',
+                                        'IPA2..P':'indicative,present,active,2nd person plural', 'IPA2..S':'indicative,present,active,2nd person singular',
+                                        'IPA3..P':'indicative,present,active,3rd person plural', 'IPA3..S':'indicative,present,active,3rd person singular',
+                                    'IPM1..P':'indicative,present,middle,1st person plural', 'IPM1..S':'indicative,present,middle,1st person singular',
+                                        'IPM2..P':'indicative,present,middle,2nd person plural', 'IPM2..S':'indicative,present,middle,2nd person singular',
+                                        'IPM3..P':'indicative,present,middle,3rd person plural', 'IPM3..S':'indicative,present,middle,3rd person singular',
+                                    'IPP1..P':'indicative,present,passive,1st person plural', 'IPP1..S':'indicative,present,passive,1st person singular',
+                                        'IPP2..P':'indicative,present,passive,2nd person plural', 'IPP2..S':'indicative,present,passive,2nd person singular',
+                                        'IPP3..P':'indicative,present,passive,3rd person plural', 'IPP3..S':'indicative,present,passive,3rd person singular',
+                                    'IUA3..P':'indicative,UNKNOWN,active,3rd person plural',
+                                    'IUM3..P':'indicative,UNKNOWN,middle,3rd person plural',
+                                'MAA2..P':'imperative,aorist,active,2nd person plural', 'MAA2..S':'imperative,aorist,active,2nd person singular',
+                                    'MAA3..P':'imperative,aorist,active,3rd person plural', 'MAA3..S':'imperative,aorist,active,3rd person singular',
+                                'MAM2..P':'imperative,aorist,middle,2nd person plural', 'MAM2..S':'imperative,aorist,middle,2nd person singular',
+                                    'MAM3..P':'imperative,aorist,middle,3rd person plural', 'MAM3..S':'imperative,aorist,middle,3rd person singular',
+                                'MAP2..P':'imperative,aorist,passive,2nd person plural', 'MAP2..S':'imperative,aorist,passive,2nd person singular',
+                                    'MAP3..P':'imperative,aorist,passive,3rd person plural', 'MAP3..S':'imperative,aorist,passive,3rd person singular',
+                                'MEA2..P':'imperative,perfect,active,2nd person plural',
+                                    'MEA3..S':'imperative,perfect,active,3rd person singular',
+                                'MEP2..P':'imperative,perfect,passive,2nd person plural', 'MEP2..S':'imperative,perfect,passive,2nd person singular',
+                                'MPA2..P':'imperative,present,active,2nd person plural', 'MPA2..S':'imperative,present,active,2nd person singular',
+                                    'MPA3..P':'imperative,present,active,3rd person plural', 'MPA3..S':'imperative,present,active,3rd person singular',
+                                'MPM2..P':'imperative,present,middle,2nd person plural', 'MPM2..S':'imperative,present,middle,2nd person singular',
+                                    'MPM3..P':'imperative,present,middle,3rd person plural', 'MPM3..S':'imperative,present,middle,3rd person singular',
+                                'MPP2..P':'imperative,present,passive,2nd person plural', 'MPP2..S':'imperative,present,passive,2nd person singular',
+                                    'MPP3..P':'imperative,present,passive,3rd person plural', 'MPP3..S':'imperative,present,passive,3rd person singular',
+                                'NAA....':'infinitive,aorist,active', 'NAM....':'infinitive,aorist,middle', 'NAP....':'infinitive,aorist,passive',
+                                    'NEA....':'infinitive,perfect,active', 'NEM....':'infinitive,perfect,middle', 'NEP....':'infinitive,perfect,passive',
+                                    'NFA....':'infinitive,future,active', 'NFM....':'infinitive,future,middle', 'NFP....':'infinitive,future,passive',
+                                    'NPA....':'infinitive,present,active', 'NPM....':'infinitive,present,middle', 'NPP....':'infinitive,present,passive',
+                                'OAA3..P':'optative,aorist,active,3rd person plural', 'OAA3..S':'optative,aorist,active,3rd person singular',
+                                'OAM1..S':'optative,aorist,middle,1st person singular',
+                                    'OAM2..P':'optative,aorist,middle,2nd person plural',
+                                    'OAM3..S':'optative,aorist,middle,3rd person singular',
+                                'OAP3..S':'optative,aorist,passive,3rd person singular',
+                                'OFA3..S':'optative,future,active,3rd person singular',
+                                'OPA2..P':'optative,present,active,2nd person plural', 'OPA2..S':'optative,present,active,2nd person singular',
+                                    'OPA3..P':'optative,present,active,3rd person plural', 'OPA3..S':'optative,present,active,3rd person singular',
+                                'OPM1..S':'optative,present,middle,1st person singular',
+                                    'OPM3..P':'optative,present,middle,3rd person plural', 'OPM3..S':'optative,present,middle,3rd person singular',
+                                'PAA.AFP':'participle,aorist,active,accusative,feminine,plural', 'PAA.AFS':'participle,aorist,active,accusative,feminine,singular',
+                                    'PAA.AMP':'participle,aorist,active,accusative,masculine,plural', 'PAA.AMS':'participle,aorist,active,accusative,masculine,singular',
+                                    'PAA.ANP':'participle,aorist,active,accusative,neuter,plural', 'PAA.ANS':'participle,aorist,active,accusative,neuter,singular',
+                                    'PAA.DFP':'participle,aorist,active,dative,feminine,plural', 'PAA.DFS':'participle,aorist,active,dative,feminine,singular',
+                                    'PAA.DMP':'participle,aorist,active,dative,masculine,plural', 'PAA.DMS':'participle,aorist,active,dative,masculine,singular',
+                                    'PAA.DNS':'participle,aorist,active,dative,neuter,singular',
+                                    'PAA.GFS':'participle,aorist,active,genitive,feminine,singular',
+                                    'PAA.GMP':'participle,aorist,active,genitive,masculine,plural', 'PAA.GMS':'participle,aorist,active,genitive,masculine,singular',
+                                    'PAA.GNP':'participle,aorist,active,genitive,neuter,plural', 'PAA.GNS':'participle,aorist,active,genitive,neuter,singular',
+                                    'PAA.NFP':'participle,aorist,active,nominative,feminine,plural', 'PAA.NFS':'participle,aorist,active,nominative,feminine,singular',
+                                    'PAA.NMP':'participle,aorist,active,nominative,masculine,plural', 'PAA.NMS':'participle,aorist,active,nominative,masculine,singular',
+                                    'PAA.NNP':'participle,aorist,active,nominative,neuter,plural', 'PAA.NNS':'participle,aorist,active,nominative,neuter,singular',
+                                'PAM.AFS':'participle,aorist,middle,accusative,feminine,singular',
+                                    'PAM.AMP':'participle,aorist,middle,accusative,masculine,plural', 'PAM.AMS':'participle,aorist,middle,accusative,masculine,singular',
+                                    'PAM.ANP':'participle,aorist,middle,accusative,neuter,plural', 'PAM.ANS':'participle,aorist,middle,accusative,neuter,singular',
+                                    'PAM.DMP':'participle,aorist,middle,dative,masculine,plural',
+                                    'PAM.DNP':'participle,aorist,middle,dative,neuter,plural',
+                                    'PAM.GFP':'participle,aorist,middle,genitive,feminine,plural', 'PAM.GFS':'participle,aorist,middle,genitive,feminine,singular',
+                                    'PAM.GMP':'participle,aorist,middle,genitive,masculine,plural', 'PAM.GMS':'participle,aorist,middle,genitive,masculine,singular',
+                                    'PAM.GNP':'participle,aorist,middle,genitive,neuter,plural', 'PAM.GNS':'participle,aorist,middle,genitive,neuter,singular',
+                                    'PAM.NFP':'participle,aorist,middle,nominative,feminine,plural', 'PAM.NFS':'participle,aorist,middle,nominative,feminine,singular',
+                                    'PAM.NMP':'participle,aorist,middle,nominative,masculine,plural', 'PAM.NMS':'participle,aorist,middle,nominative,masculine,singular',
+                                    'PAM.NNS':'participle,aorist,middle,nominative,neuter,singular',
+                                'PAP.AFS':'participle,aorist,passive,accusative,feminine,singular',
+                                    'PAP.AMP':'participle,aorist,passive,accusative,masculine,plural', 'PAP.AMS':'participle,aorist,passive,accusative,masculine,singular',
+                                    'PAP.ANP':'participle,aorist,passive,accusative,neuter,plural', 'PAP.ANS':'participle,aorist,passive,accusative,neuter,singular',
+                                    'PAP.DFP':'participle,aorist,passive,dative,feminine,plural', 'PAP.DFS':'participle,aorist,passive,dative,feminine,singular',
+                                    'PAP.DMS':'participle,aorist,passive,dative,masculine,singular',
+                                    'PAP.DNP':'participle,aorist,passive,dative,neuter,plural', 'PAP.DNS':'participle,aorist,passive,dative,neuter,singular',
+                                    'PAP.GFP':'participle,aorist,passive,genitive,feminine,plural', 'PAP.GFS':'participle,aorist,passive,genitive,feminine,singular',
+                                    'PAP.GMP':'participle,aorist,passive,genitive,masculine,plural', 'PAP.GMS':'participle,aorist,passive,genitive,masculine,singular',
+                                    'PAP.GNP':'participle,aorist,passive,genitive,neuter,plural', 'PAP.GNS':'participle,aorist,passive,genitive,neuter,singular',
+                                    'PAP.NFP':'participle,aorist,passive,nominative,feminine,plural', 'PAP.NFS':'participle,aorist,passive,nominative,feminine,singular',
+                                    'PAP.NMP':'participle,aorist,passive,nominative,masculine,plural', 'PAP.NMS':'participle,aorist,passive,nominative,masculine,singular',
+                                    'PAP.NNP':'participle,aorist,passive,nominative,neuter,plural', 'PAP.NNS':'participle,aorist,passive,nominative,neuter,singular',
+                                'PEA.AFS':'participle,perfect,active,accusative,feminine,singular',
+                                    'PEA.AMP':'participle,perfect,active,accusative,masculine,plural', 'PEA.AMS':'participle,perfect,active,accusative,masculine,singular',
+                                    'PEA.ANP':'participle,perfect,active,accusative,neuter,plural', 'PEA.ANS':'participle,perfect,active,accusative,neuter,singular',
+                                    'PEA.DFP':'participle,perfect,active,dative,feminine,plural',
+                                    'PEA.DMP':'participle,perfect,active,dative,masculine,plural', 'PEA.DMS':'participle,perfect,active,dative,masculine,singular',
+                                    'PEA.DNS':'participle,perfect,active,dative,neuter,singular',
+                                    'PEA.GFS':'participle,perfect,active,genitive,feminine,singular',
+                                    'PEA.GMP':'participle,perfect,active,genitive,masculine,plural', 'PEA.GMS':'participle,perfect,active,genitive,masculine,singular',
+                                    'PEA.GNP':'participle,perfect,active,genitive,neuter,plural',
+                                    'PEA.NFP':'participle,perfect,active,nominative,feminine,plural', 'PEA.NFS':'participle,perfect,active,nominative,feminine,singular',
+                                    'PEA.NMP':'participle,perfect,active,nominative,masculine,plural', 'PEA.NMS':'participle,perfect,active,nominative,masculine,singular',
+                                    'PEA.NNP':'participle,perfect,active,nominative,neuter,plural', 'PEA.NNS':'participle,perfect,active,nominative,neuter,singular',
+                                'PEM.AFS':'participle,perfect,middle,accusative,feminine,singular',
+                                    'PEM.AMP':'participle,perfect,middle,accusative,masculine,plural', 'PEM.AMS':'participle,perfect,middle,accusative,masculine,singular',
+                                    'PEM.ANS':'participle,perfect,middle,accusative,neuter,singular',
+                                    'PEM.DFP':'participle,perfect,middle,dative,feminine,plural',
+                                    'PEM.DMP':'participle,perfect,middle,dative,masculine,plural', 'PEM.DMS':'participle,perfect,middle,dative,masculine,singular',
+                                    'PEM.DNS':'participle,perfect,middle,dative,neuter,singular',
+                                    'PEM.GFS':'participle,perfect,middle,genitive,feminine,singular',
+                                    'PEM.GMP':'participle,perfect,middle,genitive,masculine,plural',
+                                    'PEM.GNP':'participle,perfect,middle,genitive,neuter,plural',
+                                    'PEM.NFS':'participle,perfect,middle,nominative,feminine,singular',
+                                    'PEM.NMP':'participle,perfect,middle,nominative,masculine,plural', 'PEM.NMS':'participle,perfect,middle,nominative,masculine,singular',
+                                'PEP.AFP':'participle,perfect,passive,accusative,feminine,plural', 'PEP.AFS':'participle,perfect,passive,accusative,feminine,singular',
+                                    'PEP.AMS':'participle,perfect,passive,accusative,masculine,singular', 'PEP.AMP':'participle,perfect,passive,accusative,masculine,plural',
+                                    'PEP.ANP':'participle,perfect,passive,accusative,neuter,plural', 'PEP.ANS':'participle,perfect,passive,accusative,neuter,singular',
+                                    'PEP.DFS':'participle,perfect,passive,dative,feminine,singular',
+                                    'PEP.DNP':'participle,perfect,passive,dative,neuter,plural', 'PEP.DNS':'participle,perfect,passive,dative,neuter,singular',
+                                    'PEP.DMP':'participle,perfect,passive,dative,masculine,plural', 'PEP.DMS':'participle,perfect,passive,dative,masculine,singular',
+                                    'PEP.GFP':'participle,perfect,passive,genitive,feminine,plural', 'PEP.GFS':'participle,perfect,passive,genitive,feminine,singular',
+                                    'PEP.GMP':'participle,perfect,passive,genitive,masculine,plural', 'PEP.GMS':'participle,perfect,passive,genitive,masculine,singular',
+                                    'PEP.GNP':'participle,perfect,passive,genitive,neuter,plural', 'PEP.GNS':'participle,perfect,passive,genitive,neuter,singular',
+                                    'PEP.NFP':'participle,perfect,passive,nominative,feminine,plural', 'PEP.NFS':'participle,perfect,passive,nominative,feminine,singular',
+                                    'PEP.NMP':'participle,perfect,passive,nominative,masculine,plural', 'PEP.NMS':'participle,perfect,passive,nominative,masculine,singular',
+                                    'PEP.NNP':'participle,perfect,passive,nominative,neuter,plural', 'PEP.NNS':'participle,perfect,passive,nominative,neuter,singular',
+                                    'PEP.VFS':'participle,perfect,passive,vocative,feminine,singular',
+                                    'PEP.VMP':'participle,perfect,passive,vocative,masculine,plural', 'PEP.VMS':'participle,perfect,passive,vocative,masculine,singular',
+                                    'PEP.VNS':'participle,perfect,passive,vocative,neuter,singular',
+                                'PFA.AMP':'participle,future,active,accusative,masculine,plural', 'PFA.AMS':'participle,future,active,accusative,masculine,singular',
+                                    'PFA.ANP':'participle,future,active,accusative,neuter,plural',
+                                    'PFA.GMP':'participle,future,active,genitive,masculine,plural',
+                                    'PFA.NMP':'participle,future,active,nominative,masculine,plural', 'PFA.NMS':'participle,future,active,nominative,masculine,singular',
+                                'PFM.AMP':'participle,future,middle,accusative,masculine,plural', 'PFM.AMS':'participle,future,middle,accusative,masculine,singular',
+                                    'PFM.ANP':'participle,future,middle,accusative,neuter,plural', 'PFM.ANS':'participle,future,middle,accusative,neuter,singular',
+                                    'PFM.NMP':'participle,future,middle,nominative,masculine,plural', 'PFM.NMS':'participle,future,middle,nominative,masculine,singular',
+                                'PFP.GNP':'participle,future,passive,genitive,neuter,plural',
+                                'PPA.AFP':'participle,present,active,accusative,feminine,plural', 'PPA.AFS':'participle,present,active,accusative,feminine,singular',
+                                    'PPA.AMP':'participle,present,active,accusative,masculine,plural', 'PPA.AMS':'participle,present,active,accusative,masculine,singular',
+                                    'PPA.ANP':'participle,present,active,accusative,neuter,plural', 'PPA.ANS':'participle,present,active,accusative,neuter,singular',
+                                    'PPA.DFP':'participle,present,active,dative,feminine,plural', 'PPA.DFS':'participle,present,active,dative,feminine,singular',
+                                    'PPA.DMP':'participle,present,active,dative,masculine,plural', 'PPA.DMS':'participle,present,active,dative,masculine,singular',
+                                    'PPA.DNP':'participle,present,active,dative,neuter,plural', 'PPA.DNS':'participle,present,active,dative,neuter,singular',
+                                    'PPA.GFP':'participle,present,active,genitive,feminine,plural', 'PPA.GFS':'participle,present,active,genitive,feminine,singular',
+                                        'PPA.GMP':'participle,present,active,genitive,masculine,plural', 'PPA.GMS':'participle,present,active,genitive,masculine,singular',
+                                        'PPA.GNP':'participle,present,active,genitive,neuter,plural', 'PPA.GNS':'participle,present,active,genitive,neuter,singular',
+                                    'PPA.NFP':'participle,present,active,nominative,feminine,plural', 'PPA.NFS':'participle,present,active,nominative,feminine,singular',
+                                    'PPA.NMP':'participle,present,active,nominative,masculine,plural', 'PPA.NMS':'participle,present,active,nominative,masculine,singular',
+                                    'PPA.NNP':'participle,present,active,nominative,neuter,plural', 'PPA.NNS':'participle,present,active,nominative,neuter,singular',
+                                    'PPA.VFS':'participle,present,active,vocative,feminine,singular',
+                                    'PPA.VMP':'participle,present,active,vocative,masculine,plural', 'PPA.VMS':'participle,present,active,vocative,masculine,singular',
+                                'PPM.AFP':'participle,present,middle,accusative,feminine,plural', 'PPM.AFS':'participle,present,middle,accusative,feminine,singular',
+                                    'PPM.AMP':'participle,present,middle,accusative,masculine,plural', 'PPM.AMS':'participle,present,middle,accusative,masculine,singular',
+                                    'PPM.ANP':'participle,present,middle,accusative,neuter,plural', 'PPM.ANS':'participle,present,middle,accusative,neuter,singular',
+                                    'PPM.DFP':'participle,present,middle,dative,feminine,plural', 'PPM.DFS':'participle,present,middle,dative,feminine,singular',
+                                    'PPM.DMP':'participle,present,middle,dative,masculine,plural', 'PPM.DMS':'participle,present,middle,dative,masculine,singular',
+                                    'PPM.DNP':'participle,present,middle,dative,neuter,plural', 'PPM.DNS':'participle,present,middle,dative,neuter,singular',
+                                    'PPM.GFP':'participle,present,middle,genitive,feminine,plural', 'PPM.GFS':'participle,present,middle,genitive,feminine,singular',
+                                    'PPM.GMP':'participle,present,middle,genitive,masculine,plural', 'PPM.GMS':'participle,present,middle,genitive,masculine,singular',
+                                    'PPM.GNP':'participle,present,middle,genitive,neuter,plural', 'PPM.GNS':'participle,present,middle,genitive,neuter,singular',
+                                    'PPM.NFP':'participle,present,middle,nominative,feminine,plural', 'PPM.NFS':'participle,present,middle,nominative,feminine,singular',
+                                    'PPM.NMP':'participle,present,middle,nominative,masculine,plural', 'PPM.NMS':'participle,present,middle,nominative,masculine,singular',
+                                    'PPM.NNP':'participle,present,middle,nominative,neuter,plural', 'PPM.NNS':'participle,present,middle,nominative,neuter,singular',
+                                    'PPM.VMP':'participle,present,middle,vocative,masculine,plural', 'PPM.VMS':'participle,present,middle,vocative,masculine,singular',
+                                'PPP.AFP':'participle,present,passive,accusative,feminine,plural', 'PPP.AFS':'participle,present,passive,accusative,feminine,singular',
+                                    'PPP.AMP':'participle,present,passive,accusative,masculine,plural', 'PPP.AMS':'participle,present,passive,accusative,masculine,singular',
+                                    'PPP.ANP':'participle,present,passive,accusative,neuter,plural', 'PPP.ANS':'participle,present,passive,accusative,neuter,singular',
+                                    'PPP.DFS':'participle,present,passive,dative,feminine,singular',
+                                    'PPP.DMP':'participle,present,passive,dative,masculine,plural', 'PPP.DMS':'participle,present,passive,dative,masculine,singular',
+                                    'PPP.DNP':'participle,present,passive,dative,neuter,plural', 'PPP.DNS':'participle,present,passive,dative,neuter,singular',
+                                    'PPP.GFS':'participle,present,passive,genitive,feminine,singular',
+                                    'PPP.GMP':'participle,present,passive,genitive,masculine,plural', 'PPP.GMS':'participle,present,passive,genitive,masculine,singular',
+                                    'PPP.GNP':'participle,present,passive,genitive,neuter,plural', 'PPP.GNS':'participle,present,passive,genitive,neuter,singular',
+                                    'PPP.NFP':'participle,present,passive,nominative,feminine,plural', 'PPP.NFS':'participle,present,passive,nominative,feminine,singular',
+                                    'PPP.NMP':'participle,present,passive,nominative,masculine,plural', 'PPP.NMS':'participle,present,passive,nominative,masculine,singular',
+                                    'PPP.NNP':'participle,present,passive,nominative,neuter,plural', 'PPP.NNS':'participle,present,passive,nominative,neuter,singular',
+                                'SAA1..P':'subjunctive,aorist,active,1st person plural', 'SAA1..S':'subjunctive,aorist,active,1st person singular',
+                                'SAA2..P':'subjunctive,aorist,active,2nd person plural', 'SAA2..S':'subjunctive,aorist,active,2nd person singular',
+                                'SAA3..P':'subjunctive,aorist,active,3rd person plural', 'SAA3..S':'subjunctive,aorist,active,3rd person singular',
+                                'SAM1..P':'subjunctive,aorist,middle,1st person plural', 'SAM1..S':'subjunctive,aorist,middle,1st person singular',
+                                    'SAM2..P':'subjunctive,aorist,middle,2nd person plural', 'SAM2..S':'subjunctive,aorist,middle,2nd person singular',
+                                    'SAM3..P':'subjunctive,aorist,middle,3rd person plural', 'SAM3..S':'subjunctive,aorist,middle,3rd person singular',
+                                'SAP1..P':'subjunctive,aorist,passive,1st person plural', 'SAP1..S':'subjunctive,aorist,passive,1st person singular',
+                                    'SAP2..P':'subjunctive,aorist,passive,2nd person plural', 'SAP2..S':'subjunctive,aorist,passive,2nd person singular',
+                                    'SAP3..P':'subjunctive,aorist,passive,3rd person plural', 'SAP3..S':'subjunctive,aorist,passive,3rd person singular',
+                                'SEA1..P':'subjunctive,perfect,active,1st person plural', 'SEA1..S':'subjunctive,perfect,active,1st person singular',
+                                    'SEA2..S':'subjunctive,perfect,active,2nd person singular',
+                                    'SEA3..P':'subjunctive,perfect,active,3rd person plural',
+                                'SPA1..P':'subjunctive,present,active,1st person plural', 'SPA1..S':'subjunctive,present,active,1st person singular',
+                                    'SPA2..P':'subjunctive,present,active,2nd person plural', 'SPA2..S':'subjunctive,present,active,2nd person singular',
+                                    'SPA3..P':'subjunctive,present,active,3rd person plural', 'SPA3..S':'subjunctive,present,active,3rd person singular',
+                                'SPM1..P':'subjunctive,present,middle,1st person plural', 'SPM1..S':'subjunctive,present,middle,1st person singular',
+                                    'SPM2..P':'subjunctive,present,middle,2nd person plural', 'SPM2..S':'subjunctive,present,middle,2nd person singular',
+                                    'SPM3..P':'subjunctive,present,middle,3rd person plural', 'SPM3..S':'subjunctive,present,middle,3rd person singular',
+                                'SPP1..P':'subjunctive,present,passive,1st person plural', 'SPP1..S':'subjunctive,present,passive,1st person singular',
+                                    'SPP2..P':'subjunctive,present,passive,2nd person plural',
+                                    'SPP3..P':'subjunctive,present,passive,3rd person plural', 'SPP3..S':'subjunctive,present,passive,3rd person singular',
+                                }
+for morphologyCode,morphologyDescription in CNTR_MORPHOLOGY_NAME_DICT.items():
+    if '1' in morphologyCode: assert '1st person,' in morphologyDescription or '1st person ' in morphologyDescription, f"{morphologyCode=}"
+    if '2' in morphologyCode: assert '2nd person,' in morphologyDescription or '2nd person ' in morphologyDescription
+    if '3' in morphologyCode: assert '3rd person,' in morphologyDescription or '3rd person ' in morphologyDescription
+    if '.S' in morphologyCode: assert ',singular' in morphologyDescription or ' singular' in morphologyDescription
+    if '.P' in morphologyCode: assert ',plural' in morphologyDescription or ' plural' in morphologyDescription
+    if morphologyCode.startswith('I'): assert morphologyDescription.startswith('indicative,')
+    if morphologyCode.startswith('M'): assert morphologyDescription.startswith('imperative,')
+    if morphologyCode.startswith('N') and len(morphologyCode)>3: assert morphologyDescription.startswith('infinitive,')
+    if morphologyCode.startswith('P'): assert morphologyDescription.startswith('participle,')
+    if 'aorist' in morphologyDescription: assert 'A' in morphologyCode, f"{morphologyCode=}"
+    if 'imperfect' in morphologyDescription: assert 'I' in morphologyCode, f"{morphologyCode=}"
+    if 'imperative' in morphologyDescription: assert morphologyCode.startswith('M'), f"{morphologyCode=}"
+    if 'infinitive' in morphologyDescription: assert morphologyCode.startswith('N'), f"{morphologyCode=}"
+    if ',perfect' in morphologyDescription: assert 'E' in morphologyCode, f"{morphologyCode=}"
+    if 'present' in morphologyDescription: assert 'P' in morphologyCode
+    if 'nominative,' in morphologyDescription: assert 'N' in morphologyCode, f"{morphologyCode=}"
+    if 'accusative,' in morphologyDescription: assert 'A' in morphologyCode, f"{morphologyCode=}"
+    if 'dative,' in morphologyDescription: assert 'D' in morphologyCode, f"{morphologyCode=}"
+    if 'genitive,' in morphologyDescription: assert 'G' in morphologyCode, f"{morphologyCode=}"
+    if 'vocative,' in morphologyDescription: assert 'V' in morphologyCode, f"{morphologyCode=}"
+    if ',feminine' in morphologyDescription: assert 'F' in morphologyCode, f"{morphologyCode=}"
+    if ',masculine' in morphologyDescription: assert 'M' in morphologyCode, f"{morphologyCode=}"
+    if ',neuter' in morphologyDescription: assert 'N' in morphologyCode, f"{morphologyCode=}"
+    if morphologyCode.endswith('S'): assert morphologyDescription.endswith(',singular') or morphologyDescription.endswith(' singular')
+    if morphologyCode.endswith('P'): assert morphologyDescription.endswith(',plural') or morphologyDescription.endswith(' plural')
+    assert list(CNTR_MORPHOLOGY_NAME_DICT.values()).count(morphologyDescription) == 1, f"{morphologyDescription=}"
 # See https://www.publiconsulting.com/wordpress/ancientgreek/chapter/16-prepositions/ for a concise list
 KNOWN_GREEK_PREFIXES = ('a','amfi','ana','anti','apo',
             'dia','eis','ek','en','epi','ex',
@@ -95,6 +404,10 @@ KNOWN_GREEK_PREFIXES = ('a','amfi','ana','anti','apo',
             'sun') # In the LEMMA character set
 
 SIMILAR_GLOSS_WORDS_TABLE = [
+    # Each line (tuple) contains two tuples:
+    #   The first is a list of words for existing glosses
+    #   The second is a list of other glosses to also display as synonyms
+    # NOTE: Reversals are not automatic -- they have to be manually entered
     (('ancestor','ancestors'),('patriarch','patriarchs','elders',)),
     (('anger',),('wrath',)),
     (('barley',),('grain','wheat')),
@@ -127,6 +440,7 @@ SIMILAR_GLOSS_WORDS_TABLE = [
     (('mind','minds'),('heart','hearts')),
     (('mouth','mouths'),('lips','lip','tongue')),
     (('pagan','pagans'),('Gentile','Gentiles','Greeks')),
+    (('patriach','patriarchs'),('ancestor','ancestors','elders')),
     (('purity',),('holiness',)),
     (('remnant',),('remainder','few')),
     (('reward','rewards'),('gift','gifts')),
@@ -146,6 +460,7 @@ SIMILAR_GLOSS_WORDS_TABLE = [
     (('wealth',),('riches',)),
     (('weep','weeps'),('cry','cries')),
     (('wheat',),('grain','barley')),
+    (('whence',),('therefore','accordingly','consequently')),
     (('worldly',),('fleshly',)),
     (('wrath',),('anger',)),
     ]
@@ -294,7 +609,7 @@ def formatContextSpansGlossWords( rowNum:int, state ) -> str:
         fWordRef, _fGreekWord, _fSRLemma, _fGrkLemma, fGlossWords, _fGlossCaps, fProbability, _fExtendedStrongs, _fRoleLetter, _fMorphology, _fTagsStr = state.OETRefData['word_table'][fN].split( '\t' )
         if not fWordRef.startswith( fOriginalBCV ): break # Stay in this verse
         # print( f"{fWordRef} {fProbability=} {fGlossWords=}" )
-        if fProbability is 'None': fProbability = None
+        if fProbability == 'None': fProbability = None
         if fProbability and fGlossWords[0]!='¬':
             glossWordsList.insert( 0, formatSpansGlossWords(fGlossWords) )
             rowCount += 1
@@ -306,7 +621,7 @@ def formatContextSpansGlossWords( rowNum:int, state ) -> str:
         fWordRef, _fGreekWord, _fSRLemma, _fGrkLemma, fGlossWords, _fGlossCaps, fProbability, _fExtendedStrongs, _fRoleLetter, _fMorphology, _fTagsStr = state.OETRefData['word_table'][fN].split( '\t' )
         if not fWordRef.startswith( fOriginalBCV ): break # Stay in this verse
         # print( f"{fWordRef} {fProbability=} {fGlossWords=}" )
-        if fProbability is 'None': fProbability = None
+        if fProbability == 'None': fProbability = None
         if fProbability and fGlossWords[0]!='¬':
             glossWordsList.append( formatSpansGlossWords(fGlossWords) )
             rowCount += 1
@@ -329,6 +644,7 @@ def make_Greek_word_pages( level:int, outputFolderPath:Path, state ) -> None:
     numWordPagesMade = 0
     for n, columns_string in enumerate( state.OETRefData['word_table'][1:], start=1 ):
         # print( n, columns_string )
+        usedRoleLetters, usedMorphologies = set(), set()
         output_filename = f'{n}.htm'
         # dPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Got '{columns_string}' for '{output_filename}'" )
         if columns_string: # not a blank line (esp. at end)
@@ -360,6 +676,7 @@ def make_Greek_word_pages( level:int, outputFolderPath:Path, state ) -> None:
                 if roleName=='noun' and 'U' in glossCaps:
                     roleName = 'proper noun'
                 roleField = f' Word role=<b>{roleName}</b>'
+                usedRoleLetters.add( roleLetter )
 
             nominaSacraField = 'Marked with <b>Nomina Sacra</b>' if 'N' in glossCaps else ''
 
@@ -380,6 +697,7 @@ def make_Greek_word_pages( level:int, outputFolderPath:Path, state ) -> None:
                 if case!='.': caseField = f' case=<b>{CNTR_CASE_NAME_DICT[case]}</b>'
                 if gender!='.': genderField = f' gender=<b>{CNTR_GENDER_NAME_DICT[gender]}</b>'
                 if number!='.': numberField = f' number=<b>{CNTR_NUMBER_NAME_DICT[number]}</b>' # or № ???
+                if tidyMorphology != '...': usedMorphologies.add( tidyMorphology )
             else:
                 tidyRoleMorphology = roleLetter
             translation = '<small>(no English gloss here)</small>' if glossWordsStr=='-' else f'''‘{formattedContextGlossWords.replace('_','<span class="ul">_</span>')}’'''
@@ -535,7 +853,7 @@ f''' {translation} <a title="Go to Statistical Restoration Greek page" href=
                         # print( f'''    {n} {ref} {greekWord} '{mainGlossWord}' {f'{similarWord=} ' if similarWord!=mainGlossWord else ''}({len(nList)}) {nList[:8]=}{'…' if len(nList)>8 else ''}''' )
                         if len(nList) > 1:
                             if similarWord==mainGlossWord: assert n in nList
-                            if len(nList)>400: print( f"EXCESSIVE {len(nList):,} entries for '{mainGlossWord}'")
+                            if len(nList)>400: print( f"EXCESSIVE {len(nList):,} entries for '{mainGlossWord}' from {similarWord=}")
                             for thisN in nList:
                                 if thisN == n: continue # That's the current word row
                                 eWordRef, eGreekWord, eSRLemma, _eGrkLemma, eGlossWordsStr, _eGlossCaps, _eProbability, _eExtendedStrongs, eRoleLetter, eMorphology, _eTagsStr = state.OETRefData['word_table'][thisN].split( '\t' )
@@ -555,6 +873,8 @@ f''' {translation} <a title="Go to Statistical Restoration Greek page" href=
                                         assert len(eMorphology) == 7, f"Got {eWordRef} '{eGreekWord}' morphology ({len(eMorphology)}) = '{eMorphology}'"
                                         eTidyMorphology = eMorphology[4:] if eMorphology.startswith('....') else eMorphology
                                         eTidyRoleMorphology = f'{eRoleLetter}-{eTidyMorphology}'
+                                        usedRoleLetters.add( eRoleLetter )
+                                        if eTidyMorphology != '...': usedMorphologies.add( eTidyMorphology )
                                     else:
                                         eTidyRoleMorphology = eRoleLetter
                                     extraHTMLList.append( f'''<p class="wordLine"><a title="View OET {eTidyBBB} text" href="{'../'*level}OET/byC/{eBBB}_C{eC}.htm#C{eC}V{eV}">{eTidyBBB} {eC}:{eV}</a>'''
@@ -570,8 +890,19 @@ f''' <a title="Go to Statistical Restoration Greek page" href="https://GreekCN
                     if extraHTMLList:
                         html = f'''{html}\n<h2 class="otherGreek">Greek words ({len(extraHTMLList):,}) other than {greekWord} <small>({tidyRoleMorphology})</small> with a gloss related to ‘{mainGlossWord}’</h2>'''
                         if len(extraHTMLList) > 10:
-                            html = f'''{html}\n<p class="summary">Have {len(extraWordSet):,} other words{f" ({', '.join(extraWordSet)})" if len(extraWordSet)<30 else ''} with {len(extraLemmaSet):,} lemmas altogether ({', '.join(sorted(extraLemmaSet))})</p>'''
+                            html = f'''{html}\n<p class="summary">Have {len(extraWordSet):,} other words{f" ({', '.join(extraWordSet)})" if len(extraWordSet)<30 else ''} with {len(extraLemmaSet):,} lemma{'' if len(extraLemmaSet)==1 else 's'} altogether ({', '.join(sorted(extraLemmaSet))})</p>'''
                         html = f'''{html}\n{NEWLINE.join(extraHTMLList)}'''
+
+            if usedRoleLetters or usedMorphologies: # Add a key at the bottom
+                keyHtml = '<p class="key" id="Bottom"><small><b>Key</b>:'
+                for usedRoleLetter in sorted( usedRoleLetters ):
+                    keyHtml = f'{keyHtml} <b>{usedRoleLetter}</b>={CNTR_ROLE_NAME_DICT[usedRoleLetter]}'
+                for usedMorphology in sorted( usedMorphologies ):
+                    try:
+                        keyHtml = f"{keyHtml} <b>{usedMorphology}</b>={CNTR_MORPHOLOGY_NAME_DICT[usedMorphology.upper()]}"
+                    except KeyError:
+                        print( f"Missing {usedMorphology=}")
+                keyHtml = f'{keyHtml}</small></p>'
 
             # Now put it all together
             top = makeTop( level, None, 'word', None, state ) \
@@ -579,6 +910,7 @@ f''' <a title="Go to Statistical Restoration Greek page" href="https://GreekCN
                             .replace( '__KEYWORDS__', 'Bible, word' ) \
                             .replace( 'pa/"', f'pa/{BBB}/C{C}V{V}.htm#Top"' )
             html = f'''{top}{html}
+{keyHtml}
 {makeBottom( level, 'word', state )}'''
             with open( outputFolderPath.joinpath(output_filename), 'wt', encoding='utf-8' ) as html_output_file:
                 html_output_file.write( html )

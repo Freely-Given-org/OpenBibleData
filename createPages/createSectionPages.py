@@ -62,10 +62,10 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_
 from OETHandlers import livenOETWordLinks
 
 
-LAST_MODIFIED_DATE = '2023-12-25' # by RJH
+LAST_MODIFIED_DATE = '2023-12-28' # by RJH
 SHORT_PROGRAM_NAME = "createSectionPages"
 PROGRAM_NAME = "OpenBibleData createSectionPages functions"
-PROGRAM_VERSION = '0.44'
+PROGRAM_VERSION = '0.46'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -307,7 +307,7 @@ def createOETSectionPages( level:int, folder:Path, rvBible, lvBible, state ) -> 
             filepath = folder.joinpath( filename )
             top = makeTop( level, 'OET', 'section', f'bySec/{BBB}.htm', state ) \
                     .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}OET {ourTidyBBB} section" ) \
-                    .replace( '__KEYWORDS__', f'Bible, OET, section' ) \
+                    .replace( '__KEYWORDS__', f'Bible, OET, section, {ourTidyBBB}' ) \
                     .replace( f'''<a title="{state.BibleNames['OET']}" href="{'../'*level}OET/bySec/{filename}#Top">OET</a>''',
                             f'''<a title="Up to {state.BibleNames['OET']}" href="{'../'*level}OET/">↑OET</a>''' )
             sectionHtml = f'''{top}<!--section page-->
@@ -325,7 +325,7 @@ def createOETSectionPages( level:int, folder:Path, rvBible, lvBible, state ) -> 
         filepath = folder.joinpath( filename )
         top = makeTop( level, 'OET', 'section', f'bySec/{filename}', state ) \
                 .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}OET {ourTidyBBB} sections" ) \
-                .replace( '__KEYWORDS__', f'Bible, OET, sections' ) \
+                .replace( '__KEYWORDS__', f'Bible, OET, sections, {ourTidyBBB}' ) \
                 .replace( f'''<a title="{state.BibleNames['OET']}" href="{'../'*2}OET/bySec/{filename}#Top">OET</a>''',
                         f'''<a title="Up to {state.BibleNames['OET']}" href="{'../'*2}OET/">↑OET</a>''' )
         sectionHtml = f'<h1 id="Top">Index of sections for OET {ourTidyBBB}</h1>\n'
@@ -349,7 +349,7 @@ def createOETSectionPages( level:int, folder:Path, rvBible, lvBible, state ) -> 
     filepath = folder.joinpath( filename )
     top = makeTop( level, 'OET', 'section', 'bySec/', state ) \
             .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}OET Sections View" ) \
-            .replace( '__KEYWORDS__', f'Bible, OET, sections, books' ) \
+            .replace( '__KEYWORDS__', 'Bible, OET, sections, books' ) \
             .replace( f'''<a title="{state.BibleNames['OET']}" href="{'../'*2}OET">OET</a>''', 'OET' )
     indexHtml = f'''{top}
 <h1 id="Top">OET section pages</h1>
@@ -451,7 +451,7 @@ def createSectionPages( level:int, folder:Path, thisBible, state ) -> List[str]:
             filepath = folder.joinpath( filename )
             top = makeTop( level, thisBible.abbreviation, 'section', f'bySec/{filename}', state ) \
                     .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{thisBible.abbreviation} {ourTidyBBB} sections" ) \
-                    .replace( '__KEYWORDS__', f'Bible, {thisBible.abbreviation}, sections' ) \
+                    .replace( '__KEYWORDS__', f'Bible, {thisBible.abbreviation}, sections, {ourTidyBBB}' ) \
                     .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*level}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/bySec/{filename}#Top">{thisBible.abbreviation}</a>''',
                             f'''<a title="Up to {state.BibleNames[thisBible.abbreviation]}" href="{'../'*level}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/">↑{thisBible.abbreviation}</a>''' )
             sectionHtml = f'<h1 id="Top">{thisBible.abbreviation} {ourTidyBBB} has NO section headings</h1>\n'
@@ -519,7 +519,7 @@ def createSectionPages( level:int, folder:Path, thisBible, state ) -> List[str]:
             filepath = folder.joinpath( filename )
             top = makeTop( level, thisBible.abbreviation, 'section', f'bySec/{BBB}.htm', state ) \
                     .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{thisBible.abbreviation} {ourTidyBBB} section" ) \
-                    .replace( '__KEYWORDS__', f'Bible, {thisBible.abbreviation}, section' ) \
+                    .replace( '__KEYWORDS__', f'Bible, {thisBible.abbreviation}, section, {ourTidyBBB}' ) \
                     .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/bySec/{filename}#Top">{thisBible.abbreviation}</a>''',
                             f'''<a title="Up to {state.BibleNames[thisBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/">↑{thisBible.abbreviation}</a>''' )
             sectionHtml = f'''{top}<!--section page-->
@@ -536,7 +536,7 @@ def createSectionPages( level:int, folder:Path, thisBible, state ) -> List[str]:
         filepath = folder.joinpath( filename )
         top = makeTop( level, thisBible.abbreviation, 'section', f'bySec/{filename}', state ) \
                 .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{thisBible.abbreviation} {ourTidyBBB} sections" ) \
-                .replace( '__KEYWORDS__', f'Bible, {thisBible.abbreviation}, sections' ) \
+                .replace( '__KEYWORDS__', f'Bible, {thisBible.abbreviation}, sections, {ourTidyBBB}' ) \
                 .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/bySec/{filename}#Top">{thisBible.abbreviation}</a>''',
                         f'''<a title="Up to {state.BibleNames[thisBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/">↑{thisBible.abbreviation}</a>''' )
         sectionHtml = f'<h1 id="Top">Index of sections for {thisBible.abbreviation} {ourTidyBBB}</h1>\n'
@@ -648,10 +648,10 @@ def livenSectionReferences( versionAbbreviation:str, refTuple:tuple, segmentType
             elif segmentType == 'chapter':
                 sectionReferenceLink = f'{refBBB}_C{refC}.htm#V{refV}' 
             elif segmentType == 'section':
-                print( f"{state.sectionsLists[versionAbbreviation]}")
+                # print( f"{state.sectionsLists[versionAbbreviation]}")
                 sectionNumber = findSectionNumber( versionAbbreviation, refBBB, refC, refV, state )
                 sectionReferenceLink = f'{refBBB}_S{sectionNumber}.htm#V{refV}'
-                print( f"  {sectionNumber=} {sectionReferenceLink=}")
+                # print( f"  {sectionNumber=} {sectionReferenceLink=}")
             else: not_a_book_or_chapter_or_section
         else:
             logging.critical( f"Not one colon from livenSectionReferencesDigits( {versionAbbreviation}, {refTuple}, {segmentType}, {refBBB} '{sectionReferenceDigitsText}' )" )

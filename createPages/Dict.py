@@ -52,10 +52,10 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 from html import makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-12-14' # by RJH
+LAST_MODIFIED_DATE = '2023-12-26' # by RJH
 SHORT_PROGRAM_NAME = "Dictionary"
 PROGRAM_NAME = "OpenBibleData Dictionary handler"
-PROGRAM_VERSION = '0.36'
+PROGRAM_VERSION = '0.37'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -629,7 +629,7 @@ def createTyndaleDictPages( level:int, outputFolderPath, state ) -> bool:
         filepath = outputFolderPath.joinpath( filename )
         top = makeTop( level, None, 'dictionaryLetterIndex', None, state ) \
                 .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}Dictionary Index Letter" ) \
-                .replace( '__KEYWORDS__', f'Bible, dictionary' )
+                .replace( '__KEYWORDS__', 'Bible, dictionary' )
         letterIndexHtml = f'''{top}
 {lettersParagraph}
 <h1>Tyndale Open Bible Dictionary</h1>
@@ -647,7 +647,7 @@ def createTyndaleDictPages( level:int, outputFolderPath, state ) -> bool:
     filepath = outputFolderPath.joinpath( filename )
     top = makeTop( level, None, 'dictionaryIntro', None, state ) \
             .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}Dictionary Introduction" ) \
-            .replace( '__KEYWORDS__', f'Bible, dictionary, introduction' )
+            .replace( '__KEYWORDS__', 'Bible, dictionary, introduction' )
     introHtml = f'''{top}<p class="note"><b>Note</b>: The Tyndale Open Bible Dictionary is included on this site because it contains a wealth of useful information,
 even though it was originally designed to supplement the <i>New Living Translation</i>, not our <em>Open English Translation</em>.</p>
 <h1 id="Top">Tyndale Open Bible Dictionary <small>{detailsLink}</small></h1>
@@ -663,7 +663,7 @@ even though it was originally designed to supplement the <i>New Living Translati
     filepath = outputFolderPath.joinpath( filename )
     top = makeTop( level, None, 'dictionaryMainIndex', None, state ) \
             .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}Dictionary Index" ) \
-            .replace( '__KEYWORDS__', f'Bible, dictionary' )
+            .replace( '__KEYWORDS__', 'Bible, dictionary' )
 # <p class="dNav"><a id="Go to dict intro" href="intro.htm#Top">Introduction</a></p>
     indexHtml = f'''{top}
 <h1 id="Top">Tyndale Open Bible Dictionary <small>{detailsLink}</small></h1>

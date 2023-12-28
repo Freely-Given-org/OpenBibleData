@@ -31,6 +31,7 @@ CHANGELOG:
     2023-08-29 Also display chapter links at bottom of chapter pages
     2023-08-30 Added FRT processing for RV
     2023-12-22 Broke OET chapters correctly into chunks by section for proper alignment
+    2023-12-28 Fix bug where duplicate HTML IDs weren't being removed from chapters
 """
 from gettext import gettext as _
 from typing import Dict, List, Tuple
@@ -52,10 +53,10 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_
 from OETHandlers import livenOETWordLinks
 
 
-LAST_MODIFIED_DATE = '2023-12-22' # by RJH
+LAST_MODIFIED_DATE = '2023-12-28' # by RJH
 SHORT_PROGRAM_NAME = "createChapterPages"
 PROGRAM_NAME = "OpenBibleData createChapterPages functions"
-PROGRAM_VERSION = '0.52'
+PROGRAM_VERSION = '0.53'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -111,7 +112,7 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
             filepath = folder.joinpath( filename )
             top = makeTop( level, rvBible.abbreviation, 'chapter', f'byC/{filename}', state ) \
                     .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{rvBible.abbreviation} {BBB}" ) \
-                    .replace( '__KEYWORDS__', f'Bible, {rvBible.abbreviation}, chapter' ) \
+                    .replace( '__KEYWORDS__', f'Bible, {rvBible.abbreviation}, front matter, chapter, {ourTidyBBB}' ) \
                     .replace( f'''<a title="{state.BibleNames[rvBible.abbreviation]}" href="{'../'*level}{BibleOrgSysGlobals.makeSafeString(rvBible.abbreviation)}/byC/{filename}#Top">{rvBible.abbreviation}</a>''',
                               f'''<a title="Up to {state.BibleNames[rvBible.abbreviation]}" href="{'../'*level}{BibleOrgSysGlobals.makeSafeString(rvBible.abbreviation)}/">↑{rvBible.abbreviation}</a>''' )
             chapterHtml = f'''{top}<!--chapter page-->
@@ -199,7 +200,7 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
                 if c < 1:
                     rvHtml = f'''<div class="chunkRV">{rvHtml}</div><!--chunkRV-->\n'''
                     lvHtml = f'''<div class="chunkLV">{lvHtml}</div><!--chunkLV-->\n'''
-                    combinedHtml = removeDuplicateCVids( BBB, f'{rvHtml}{lvHtml}' )
+                    combinedHtml = f'{rvHtml}{lvHtml}'
                 else: # we have a normal chapter
                     # Now we have to divide the RV and the LV into an equal number of chunks (so they mostly line up)
                     rvSections = rvHtml.split( '<div class="s1">' )
@@ -268,13 +269,13 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
                 filepath = folder.joinpath( filename )
                 top = makeTop( level, 'OET', 'chapter', f'byC/{filename}', state ) \
                         .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}OET {ourTidyBBB} introduction" if c==-1 else f"{'TEST ' if TEST_MODE else ''}OET {ourTidyBBB} chapter {c}" ) \
-                        .replace( '__KEYWORDS__', f'Bible, OET, Open English Translation, chapter' ) \
+                        .replace( '__KEYWORDS__', f'Bible, OET, Open English Translation, chapter, {ourTidyBBB}' ) \
                         .replace( f'''<a title="{state.BibleNames['OET']}" href="{'../'*level}OET/byC/{filename}#Top">OET</a>''',
                                   f'''<a title="Up to {state.BibleNames['OET']}" href="{'../'*level}OET">↑OET</a>''' )
                 chapterHtml = f'''{top}<!--chapter page-->
 {makeBookNavListParagraph(state.BBBLinks['OET-RV'], 'OET', state)}
 {cLinksPar}
-{chapterHtml}{combinedHtml}</div><!--container-->
+{chapterHtml}{removeDuplicateCVids( BBB, combinedHtml )}</div><!--container-->
 {cNav}
 {cLinksPar}
 {makeBottom( level, 'chapter', state )}'''
@@ -300,7 +301,7 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
             filepath = folder.joinpath( filename )
             top = makeTop( level, 'OET', 'chapter', f'byC/{filename}', state ) \
                     .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{thisBible.abbreviation} {ourTidyBBB}" ) \
-                    .replace( '__KEYWORDS__', f'Bible, {thisBible.abbreviation}, chapter' ) \
+                    .replace( '__KEYWORDS__', f'Bible, {thisBible.abbreviation}, chapter, {ourTidyBBB}' ) \
                     .replace( f'''<a title="{state.BibleNames['OET']}" href="{'../'*level}OET/byC/{filename}#Top">OET</a>''',
                                 f'''<a title="Up to {state.BibleNames['OET']}" href="{'../'*level}OET">↑OET</a>''' )
             chapterHtml = f'''{top}<!--chapter page-->
@@ -323,7 +324,7 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
         # numChapters = rvBible.getNumChapters( BBB )
         top = makeTop( level, 'OET', 'chapter', 'byC/', state ) \
                 .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}OET {ourTidyBBB}" ) \
-                .replace( '__KEYWORDS__', f'Bible, OET, Open English Translation, chapter' ) \
+                .replace( '__KEYWORDS__', f'Bible, OET, Open English Translation, chapter, {ourTidyBBB}' ) \
                 .replace( f'''<a title="{state.BibleNames['OET']}" href="{'../'*level}OET">OET</a>''', 'OET' )
         chapterHtml = f'''{top}<!--chapters indexPage-->
 {makeBookNavListParagraph(state.BBBLinks['OET-RV'], 'OET', state)}
@@ -340,7 +341,7 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
     filepath = folder.joinpath( filename )
     top = makeTop( level, 'OET', 'chapter', 'byC', state ) \
             .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}OET Chapter View" ) \
-            .replace( '__KEYWORDS__', f'Bible, OET, Open English Translation, chapters' ) \
+            .replace( '__KEYWORDS__', 'Bible, OET, Open English Translation, chapters' ) \
             .replace( f'''<a title="{state.BibleNames['OET']}" href="{'../'*level}OET/byC">OET</a>''',
                       f'''<a title="{state.BibleNames['OET']}" href="{'../'*level}OET">↑OET</a>''' )
     indexHtml = f'''{top}
@@ -477,7 +478,7 @@ def createChapterPages( level:int, folder:Path, thisBible, state ) -> List[str]:
                 top = makeTop( level, thisBible.abbreviation, 'chapter', f'byC/{filename}', state ) \
                         .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{thisBible.abbreviation} {ourTidyBBB} introduction"
                                         if c==-1 else f"{'TEST ' if TEST_MODE else ''}{thisBible.abbreviation} {ourTidyBBB} chapter {c}" ) \
-                        .replace( '__KEYWORDS__', f'Bible, {thisBible.abbreviation}, chapter' ) \
+                        .replace( '__KEYWORDS__', f'Bible, {thisBible.abbreviation}, chapter, {ourTidyBBB}' ) \
                         .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*level}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/byC/{filename}#Top">{thisBible.abbreviation}</a>''',
                                   f'''<a title="Up to {state.BibleNames[thisBible.abbreviation]}" href="{'../'*level}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/">↑{thisBible.abbreviation}</a>''' )
                 chapterHtml = f'''{top}<!--chapter page-->
@@ -506,7 +507,7 @@ def createChapterPages( level:int, folder:Path, thisBible, state ) -> List[str]:
             filepath = folder.joinpath( filename )
             top = makeTop( level, thisBible.abbreviation, 'chapter', f'byC/{filename}', state ) \
                     .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{thisBible.abbreviation} {BBB}" ) \
-                    .replace( '__KEYWORDS__', f'Bible, {thisBible.abbreviation}, chapter' ) \
+                    .replace( '__KEYWORDS__', f'Bible, {thisBible.abbreviation}, chapter, {ourTidyBBB}' ) \
                     .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*level}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/byC/{filename}#Top">{thisBible.abbreviation}</a>''',
                               f'''<a title="Up to {state.BibleNames[thisBible.abbreviation]}" href="{'../'*level}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/">↑{thisBible.abbreviation}</a>''' )
             chapterHtml = f'''{top}<!--chapter page-->
@@ -526,7 +527,7 @@ def createChapterPages( level:int, folder:Path, thisBible, state ) -> List[str]:
         # BBBLinks.append( f'<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB)}" href="{filename}#Top">{ourTidyBBB}</a>' )
         top = makeTop( level, thisBible.abbreviation, 'chapter', 'byC/', state ) \
                 .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{thisBible.abbreviation} {ourTidyBBB}" ) \
-                .replace( '__KEYWORDS__', f'Bible, {thisBible.abbreviation}, chapter' ) \
+                .replace( '__KEYWORDS__', f'Bible, {thisBible.abbreviation}, chapter, {ourTidyBBB}' ) \
                 .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*level}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}">{thisBible.abbreviation}</a>''', thisBible.abbreviation )
         chapterHtml = f'''{top}<!--chapters indexPage-->
 {cLinksPar}

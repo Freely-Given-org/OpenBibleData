@@ -77,7 +77,7 @@ from html import makeTop, makeBottom, checkHtml
 # from selectedVersesVersions import fillSelectedVerses
 
 
-LAST_MODIFIED_DATE = '2023-12-25' # by RJH
+LAST_MODIFIED_DATE = '2023-12-26' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData Create Pages"
 PROGRAM_VERSION = '0.88'
@@ -85,7 +85,7 @@ PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
 
-TEST_MODE = True # Writes website into Test subfolder
+TEST_MODE = False # Writes website into Test subfolder
 ALL_PRODUCTION_BOOKS = not TEST_MODE # If set to False, only selects one book per version for a faster test build
 ALL_TEST_REFERENCE_PAGES = False # If in Test mode, make all word/lemma pages, or just the relevant ones
 UPDATE_ACTUAL_SITE_WHEN_BUILT = True # The pages are initially built in a tmp folder so need to be copied to the final destination
@@ -894,7 +894,7 @@ f'''<h1 id="Top">{versionName}</h1>
 '''
     top = makeTop( level, None, 'site', None, state ) \
                     .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{versionName}" ) \
-                    .replace( '__KEYWORDS__', f"Bible, OET, {versionName}" ) \
+                    .replace( '__KEYWORDS__', f'Bible, OET, {versionName}' ) \
                     .replace( f'''<a title="{versionName}" href="{'../'*level}OET">OET</a>''', 'OET' )
     filepath = folder.joinpath( 'index.htm' )
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
@@ -1101,7 +1101,7 @@ def createSearchPage( level:int, buildFolder:Path, state ) -> bool:
   <script src="pagefind/pagefind-ui.js"></script>
 </head>''')
     html = f'''{topHtml}{searchHTML}<p class="note">Search functionality is provided thanks to <a href="https://Pagefind.app/">Pagefind</a>.</p>
-<p class="note"><small>Last rebuilt: {date.today()}</small></p>{makeBottom( level, 'search', state )}'''
+<p class="note"><small>OBD pages last rebuilt: {date.today()}</small></p>{makeBottom( level, 'search', state )}'''
     checkHtml( 'Search', html )
 
     filepath = buildFolder.joinpath( 'search.htm' )
