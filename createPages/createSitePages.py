@@ -5,7 +5,7 @@
 #
 # Module handling OpenBibleData createSitePages functions
 #
-# Copyright (C) 2023 Robert Hunt
+# Copyright (C) 2023-2024 Robert Hunt
 # Author: Robert Hunt <Freely.Given.org+OBD@gmail.com>
 # License: See gpl-3.0.txt
 #
@@ -47,6 +47,8 @@ CHANGELOG:
     2023-10-10 Added German Luther 1545 Bible
     2023-10-20 Added CO2 for RV
     2023-10-24 Creates a BCV index into the OET-LV word table
+    2023-12-29 Started adding OET OT
+    2024-01-02 Make sure all HTML folders contain an index file
 """
 from gettext import gettext as _
 from typing import Dict, List, Tuple
@@ -77,15 +79,15 @@ from html import makeTop, makeBottom, checkHtml
 # from selectedVersesVersions import fillSelectedVerses
 
 
-LAST_MODIFIED_DATE = '2023-12-26' # by RJH
+LAST_MODIFIED_DATE = '2024-01-02' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData Create Pages"
-PROGRAM_VERSION = '0.88'
+PROGRAM_VERSION = '0.90'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
 
-TEST_MODE = False # Writes website into Test subfolder
+TEST_MODE = True # Writes website into Test subfolder
 ALL_PRODUCTION_BOOKS = not TEST_MODE # If set to False, only selects one book per version for a faster test build
 ALL_TEST_REFERENCE_PAGES = False # If in Test mode, make all word/lemma pages, or just the relevant ones
 UPDATE_ACTUAL_SITE_WHEN_BUILT = True # The pages are initially built in a tmp folder so need to be copied to the final destination
@@ -96,7 +98,7 @@ DEBUG_DESTINATION_FOLDER = NORMAL_DESTINATION_FOLDER.joinpath( 'Test/')
 DESTINATION_FOLDER = DEBUG_DESTINATION_FOLDER if TEST_MODE or BibleOrgSysGlobals.debugFlag \
                         else NORMAL_DESTINATION_FOLDER
 
-OET_BOOK_LIST = ['JHN','MRK','MAT','LUK','ACT', 'ROM','CO2', 'GAL','EPH','PHP','COL', 'TH1','TH2','TI1','TI2','TIT','PHM', 'HEB', 'JAM', 'PE1','PE2', 'JN1','JN2','JN3', 'JDE']
+OET_BOOK_LIST = ['JNA', 'JHN','MRK','MAT','LUK','ACT', 'ROM','CO2', 'GAL','EPH','PHP','COL', 'TH1','TH2','TI1','TI2','TIT','PHM', 'HEB', 'JAM', 'PE1','PE2', 'JN1','JN2','JN3', 'JDE']
 OET_BOOK_LIST_WITH_FRT = ['FRT'] + OET_BOOK_LIST # 'INT'
 NT_BOOK_LIST_WITH_FRT = ['FRT'] + BOOKLIST_NT27
 assert len(NT_BOOK_LIST_WITH_FRT) == 27+1
@@ -140,7 +142,7 @@ class State:
     selectedVersesOnlyVersions = ('CSB','NLT','NIV','CEV','ESV','NASB','LSB','JQT','2DT','1ST','TPT','NRSV','NKJV' ) # These ones have .tsv sources (and don't produce Bible objects)
     numAllowedSelectedVerses   = (  300,  500,  500,  500,  500,   500,  300,   20, 300,  300,  250,   300,   300 ) # Order must match above list
     assert len(numAllowedSelectedVerses) == len(selectedVersesOnlyVersions)
-    versionsWithoutTheirOwnPages = selectedVersesOnlyVersions + ('LUT','CLV', 'UGNT','SBL-GNT','TC-GNT', 'BRN','BrLXX')
+    versionsWithoutTheirOwnPages = selectedVersesOnlyVersions + ('LUT','CLV', 'UGNT','SBL-GNT','TC-GNT', 'BRN','BrLXX', 'TOSN','TTN','UTN')
 
     # NOTE: We don't display the versionsWithoutTheirOwnPages, so don't need decorations for them
     BibleVersionDecorations = { 'OET':('<b>','</b>'),'OET-RV':('<b>','</b>'),'OET-LV':('<b>','</b>'),
@@ -164,8 +166,10 @@ class State:
                 ## 'WYC': '../copiedBibles/English/eBible.org/Wycliffe/',
     BibleLocations = {
                 'OET-RV': '../../OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/',
-                'OET-LV': '../../OpenEnglishTranslation--OET/intermediateTexts/auto_edited_VLT_ESFM/', # No OT here yet
-                'SR-GNT': '../../Forked/CNTR-SR/SR usfm/', # We moved this up in the list because it's now compulsory
+                'OET-LV-OT': '../../OpenEnglishTranslation--OET/intermediateTexts/auto_edited_OT_USFM/', # Not ESFM yet
+                'OET-LV-NT': '../../OpenEnglishTranslation--OET/intermediateTexts/auto_edited_VLT_ESFM/', # No OT here
+                'SR-GNT': '../../Forked/CNTR-SR/SR usfm/', # We moved these up in the list because they're now compulsory
+                'UHB': '../copiedBibles/Original/unfoldingWord.org/UHB/',
                 # NOTE: The program will still run if some of these below are commented out or removed
                 # (e.g., this can be done quickly for a faster test)
                 'ULT': '../copiedBibles/English/unfoldingWord.org/ULT/',
@@ -216,9 +220,8 @@ class State:
                 'TC-GNT': '../copiedBibles/Greek/eBible.org/TC-GNT/',
                 'BRN': '../copiedBibles/English/eBible.org/Brenton/', # with deuterocanon and OTH,XXA,XXB,XXC,
                 'BrLXX': '../copiedBibles/Greek/eBible.org/BrLXX/',
-                'UHB': '../copiedBibles/Original/unfoldingWord.org/UHB/',
                 # NOTE: Dictionary and notes are special cases here at the end (skipped in many parts of the program)
-                'TOSN': '../copiedBibles/English/Tyndale/OSN/',
+                'TOSN': '../copiedBibles/English/Tyndale/OSN/', # This one also loads TTN (Tyndale Theme Notes)
                 'UTN': '../copiedBibles/English/unfoldingWord.org/UTN/',
                 }
 
@@ -340,78 +343,78 @@ class State:
                 'TOSN': ['ALL'],
                 'UTN': ['ALL'],
             } if ALL_PRODUCTION_BOOKS else {
-                'OET': ['FRT','MRK'],
-                'OET-RV': ['FRT','MRK'],
-                'OET-LV': ['MRK'],
-                'ULT': ['FRT','RUT','MRK'],
-                'UST': ['RUT','MRK'], # MRK 13:13 gives \\add error (24Jan2023)
-                'BSB': ['MRK'],
-                'BLB': ['MRK'],
-                'OEB': ['MRK'],
-                'ISV': ['MRK'],
-                'CSB': ['MRK'],
-                'NLT': ['MRK'],
-                'NIV': ['MRK'],
-                'CEV': ['MRK'],
-                'ESV': ['MRK'],
-                'NASB': ['MRK'],
-                'LSB': ['MRK'],
-                'JQT': ['MRK'],
-                '2DT': ['MRK'],
-                '1ST': ['MRK'],
-                'TPT': ['MRK'],
-                'WEB': ['MRK'],
-                'WMB': ['MRK'],
-                'NET': ['MRK'],
-                'LSV': ['MRK'],
-                'FBV': ['MRK'],
-                'TCNT': ['MRK'],
-                'T4T': ['MRK'],
-                'LEB': ['MRK'],
-                'NRSV': ['MRK'],
-                'NKJV': ['MRK'],
-                'BBE': ['MRK'],
-                'JPS': ['RUT'],
-                'ASV': ['MRK'],
-                'DRA': ['MRK'],
-                'YLT': ['MRK'],
-                'DBY': ['MRK'],
-                'RV': ['MRK'],
-                'WBS': ['MRK'],
-                'KJB': ['MRK'],
-                'BB': ['MRK'],
-                'GNV': ['MRK'],
-                'CB': ['MRK'],
-                'TNT': ['MRK'],
-                'WYC': ['MRK'],
-                'LUT': ['MRK'],
-                'CLV': ['RUT','MRK'],
+                'OET': ['FRT','JNA','MRK'],
+                'OET-RV': ['FRT','JNA','MRK'],
+                'OET-LV': ['JNA','MRK'],
+                'ULT': ['FRT','RUT','JNA','MRK'],
+                'UST': ['RUT','JNA','MRK'], # MRK 13:13 gives \\add error (24Jan2023)
+                'BSB': ['JNA','MRK'],
+                'BLB': ['MRK'], # NT only
+                'OEB': ['JNA','MRK'],
+                'ISV': ['JNA','MRK'],
+                'CSB': ['JNA','MRK'],
+                'NLT': ['JNA','MRK'],
+                'NIV': ['JNA','MRK'],
+                'CEV': ['JNA','MRK'],
+                'ESV': ['JNA','MRK'],
+                'NASB': ['JNA','MRK'],
+                'LSB': ['JNA','MRK'],
+                'JQT': ['JNA','MRK'],
+                '2DT': ['JNA','MRK'],
+                '1ST': ['JNA','MRK'],
+                'TPT': ['JNA','MRK'],
+                'WEB': ['JNA','MRK'],
+                'WMB': ['JNA','MRK'],
+                'NET': ['JNA','MRK'],
+                'LSV': ['JNA','MRK'],
+                'FBV': ['JNA','MRK'],
+                'TCNT': ['MRK'], # NT only
+                'T4T': ['JNA','MRK'],
+                'LEB': ['JNA','MRK'],
+                'NRSV': ['JNA','MRK'],
+                'NKJV': ['JNA','MRK'],
+                'BBE': ['JNA','MRK'],
+                'JPS': ['RUT','JNA'],
+                'ASV': ['JNA','MRK'],
+                'DRA': ['JNA','MRK'],
+                'YLT': ['JNA','MRK'],
+                'DBY': ['JNA','MRK'],
+                'RV': ['JNA','MRK'],
+                'WBS': ['JNA','MRK'],
+                'KJB': ['JNA','MRK'],
+                'BB': ['JNA','MRK'],
+                'GNV': ['JNA','MRK'],
+                'CB': ['JNA','MRK'],
+                'TNT': ['MRK'], # NT only
+                'WYC': ['JNA','MRK'],
+                'LUT': ['JNA','MRK'],
+                'CLV': ['RUT','JNA','MRK'],
                 'SR-GNT': ['MRK'],
                 'UGNT': ['MRK'],
                 'SBL-GNT': ['MRK'],
                 'TC-GNT': ['MRK'],
-                'BRN': ['RUT'],
-                'BrLXX': ['RUT'],
-                'UHB': ['RUT'],
+                'BRN': ['RUT','JNA'],
+                'BrLXX': ['RUT','JNA'],
+                'UHB': ['RUT','JNA'],
                 # NOTES:
-                'TOSN': ['RUT','MRK'],
-                'UTN': ['RUT','MRK'],
+                'TOSN': ['RUT','JNA','MRK'],
+                'UTN': ['RUT','JNA','MRK'],
             }
 
     detailsHtml = {
         'OET': {'about': '''<p class="about">The (still unfinished) <em>Open English Translation</em> consists of a <em>Readers’ Version</em> and a <em>Literal Version</em> side-by-side.
 You can read more about the design of the <em>OET</em> at <a href="https://OpenEnglishTranslation.Bible/Design/Overview">OpenEnglishTranslation.Bible/Design/Overview</a>.</p>''',
-                'copyright': '<p class="copyright">Copyright © 2010-2023 <a href="https://Freely-Given.org">Freely-Given.org</a>.</p>',
+                'copyright': '<p class="copyright">Copyright © 2010-2024 <a href="https://Freely-Given.org">Freely-Given.org</a>.</p>',
                 'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
                 'acknowledgements': '<p class="acknwldg">Thanks to <a href="https://Freely-Given.org/">Freely-Given.org</a> for creating this exciting, radical, new Bible translation which is viewable from <a href="https://OpenEnglishTranslation.Bible">OpenEnglishTranslation.Bible</a>.</p>' },
         'OET-RV': {'about': '''<p class="about">The (still unfinished) <em>Open English Translation Readers’ Version</em> is a new, modern-English easy-to-read translation of the Bible.
 You can read more about the design of the <em>OET-RV</em> at <a href="https://OpenEnglishTranslation.Bible/Design/ReadersVersion">OpenEnglishTranslation.Bible/Design/ReadersVersion</a>.</p>''',
-                'copyright': '<p class="copyright">Copyright © 2010-2023 <a href="https://Freely-Given.org">Freely-Given.org</a>.</p>',
+                'copyright': '<p class="copyright">Copyright © 2010-2024 <a href="https://Freely-Given.org">Freely-Given.org</a>.</p>',
                 'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
                 'acknowledgements': '<p class="acknwldg">Thanks to <a href="https://Freely-Given.org/">Freely-Given.org</a> for creating this exciting, new Bible translation which is viewable from <a href="https://OpenEnglishTranslation.Bible">OpenEnglishTranslation.Bible</a>.</p>' },
         'OET-LV': {'about': '''<p class="about">The (still unfinished) <em>Open English Translation Literal Version</em> is a tool designed to give a look into what was actually written in the original Hebrew or Greek manuscripts.
 You can read more about the design of the <em>OET-LV</em> at <a href="https://OpenEnglishTranslation.Bible/Design/LiteralVersion">OpenEnglishTranslation.Bible/Design/LiteralVersion</a>.</p>''',
-                'copyright': '<p class="copyright">Copyright © 2010-2023 <a href="https://Freely-Given.org">Freely-Given.org</a>.</p>',
+                'copyright': '<p class="copyright">Copyright © 2010-2024 <a href="https://Freely-Given.org">Freely-Given.org</a>.</p>',
                 'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
                 'acknowledgements': '''<p class="acknwldg">Thanks to <a href="https://Freely-Given.org/">Freely-Given.org</a> for creating this exciting, new Bible translation which is viewable from <a href="https://OpenEnglishTranslation.Bible">OpenEnglishTranslation.Bible</a>.
 We are very grateful to Dr. Alan Bunning of the <a href="https://GreekCNTR.org">Center for New Testament Restoration</a> whose many years of hard work this <em>OET-LV</em> is based on.
@@ -638,10 +641,10 @@ We’re also grateful to the <a href="https://www.Biblica.com/clear/">Biblica Cl
             or versionLocation.startswith('../../OpenEnglishTranslation--OET/') \
             or versionLocation.startswith('../../Forked/') \
             or versionLocation.startswith('/mnt/SSDs/Bibles/'), f"{versionLocation=}"
-    # +4 is for paralle, interlinear, dictionary, search
-    assert len(BibleVersionDecorations) == len(BibleVersions) - len(versionsWithoutTheirOwnPages) + 4, \
-        f"{len(BibleVersionDecorations)=} {len(BibleVersions)=} {len(versionsWithoutTheirOwnPages)=} sum={len(BibleVersions)+4-len(versionsWithoutTheirOwnPages)}"
-        # Above adds Parallel and Interlinear and Dictionary but subtracts selected-verses-only version
+    # +4 is for parallel, interlinear, dictionary, search
+    assert len(BibleVersionDecorations) == len(BibleVersions) + len(auxilliaryVersions) + 4 - len(versionsWithoutTheirOwnPages), \
+        f"{len(BibleVersionDecorations)=} {len(BibleVersions)=} {len(auxilliaryVersions)=} {len(versionsWithoutTheirOwnPages)=} sum={len(BibleVersions)+len(auxilliaryVersions)+4-len(versionsWithoutTheirOwnPages)}"
+        # Above adds Parallel and Interlinear and Dictionary but subtracts selected-verses-only versions and TTN
     assert len(BibleVersions)-1 >= len(BibleLocations) # OET is a pseudo-version
     assert len(BibleNames)-1 >= len(BibleLocations) # OET is a pseudo-version
     assert len(booksToLoad)-1 >= len(BibleLocations) # OET is a pseudo-version
@@ -705,8 +708,9 @@ def createSitePages() -> bool:
     for BBB in BibleOrgSysGlobals.loadedBibleBooksCodes:
         for versionAbbreviation in state.BibleVersions:
             if versionAbbreviation == 'OET': continue # OET is a pseudo version (OET-RV plus OET-LV)
-            if versionAbbreviation not in ('TTN',) \
-            and versionAbbreviation in state.versionsWithoutTheirOwnPages: continue # We don't worry about these few selected verses here
+            # if versionAbbreviation not in ('TTN',) \
+            if versionAbbreviation in state.versionsWithoutTheirOwnPages:
+                continue # We don't worry about these few selected verses here
             for entry in state.booksToLoad[versionAbbreviation]:
                 if entry == BBB or entry == 'ALL':
                     if BBB in state.preloadedBibles[versionAbbreviation]:
@@ -755,10 +759,24 @@ def createSitePages() -> bool:
         createOETVersionPages( 1, versionFolder, state.preloadedBibles['OET-RV'], state.preloadedBibles['OET-LV'], state )
         createOETMissingVersePage( 1, versionFolder )
     for versionAbbreviation, thisBible in state.preloadedBibles.items(): # doesn't include OET pseudo-translation
-        if versionAbbreviation not in ('TTN',) \
-        and versionAbbreviation in state.versionsWithoutTheirOwnPages: continue # We don't worry about these few selected verses here
-        thisBible.discover() # Now that all required books are loaded
-        if versionAbbreviation not in ('TOSN','TTN','UTN'): # We don't make separate notes pages
+        # if versionAbbreviation not in ('TTN',) \
+        if versionAbbreviation in state.versionsWithoutTheirOwnPages:
+            if versionAbbreviation == 'TTN': continue # These ones don't even have a folder
+            # We just write a very bland index page here
+            versionName = state.BibleNames[versionAbbreviation]
+            indexHtml = f'<h1 id="Top">{versionName}</h1>\n'
+            top = makeTop( 1, None, 'site', None, state ) \
+                            .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{versionName}" ) \
+                            .replace( '__KEYWORDS__', f'Bible, {versionAbbreviation}, {versionName}' )
+            folder = TEMP_BUILD_FOLDER.joinpath( f'{versionAbbreviation}/' )
+            os.makedirs( folder )
+            filepath = folder.joinpath( 'index.htm' )
+            with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
+                indexHtmlFile.write( f'''{top}{indexHtml}\n<p class="note"><a href="details.htm">See copyright details.</p>\n{makeBottom( 1, 'site', state )}''' )
+            vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"    {len(indexHtml):,} characters written to {filepath}" )
+        else:
+            thisBible.discover() # Now that all required books are loaded
+        # if versionAbbreviation not in ('TOSN','TTN','UTN'): # We don't make separate notes pages
             vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nCreating {'TEST ' if TEST_MODE else ''}version pages for {thisBible.abbreviation}…" )
             versionFolder = TEMP_BUILD_FOLDER.joinpath( f'{thisBible.abbreviation}/' )
             createVersionPages( 1, versionFolder, thisBible, state )
@@ -781,11 +799,11 @@ def createSitePages() -> bool:
 
     # TODO: We could use multiprocessing to do all these at once
     #   (except that state is quite huge with all preloaded versions and hence expensive to pickle)
-    createParallelPages( 1, TEMP_BUILD_FOLDER.joinpath('pa/'), state )
+    createParallelPages( 1, TEMP_BUILD_FOLDER.joinpath('par/'), state )
     createOETInterlinearPages( 1, TEMP_BUILD_FOLDER.joinpath('il/'), state )
 
-    createTyndaleDictPages( 1, TEMP_BUILD_FOLDER.joinpath('di/'), state )
-    createOETReferencePages( 1, TEMP_BUILD_FOLDER.joinpath('rf/'), state )
+    createTyndaleDictPages( 1, TEMP_BUILD_FOLDER.joinpath('dct/'), state )
+    createOETReferencePages( 1, TEMP_BUILD_FOLDER.joinpath('ref/'), state )
 
     createDetailsPages( 0, TEMP_BUILD_FOLDER, state )
     createSearchPage( 0, TEMP_BUILD_FOLDER, state )
@@ -816,7 +834,7 @@ def createSitePages() -> bool:
 
         # We also need to copy the TOBD maps across
         TOBDmapSourceFolder = os.path.join( state.BibleLocations['TOSN'], '../OBD/Maps/artfiles/' )
-        TOBDmapDestinationFolder = DESTINATION_FOLDER.joinpath( 'di/' )
+        TOBDmapDestinationFolder = DESTINATION_FOLDER.joinpath( 'dct/' )
         vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Copying TOBD maps from {TOBDmapSourceFolder} to {TOBDmapDestinationFolder}/…" )
         count = 0
         for imgFilepath in glob.glob( f'{TOBDmapSourceFolder}/*.png' ):
@@ -838,7 +856,7 @@ def createSitePages() -> bool:
                 count += 1
             vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Copied {count:,} stylesheets and scripts into {DESTINATION_FOLDER}/." )
 
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f'''\nNOW RUN "npx pagefind --glob "{{OET,pa}}/**/*.{{htm}}" --site ../htmlPages{'/Test' if TEST_MODE else ''}/" to create search index!''' )
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f'''\nNOW RUN "npx pagefind --glob "{{OET,par,ref}}/**/*.{{htm}}" --site ../htmlPages{'/Test' if TEST_MODE else ''}/" to create search index!''' )
     else:
         vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"NOT UPDATING the actual {'TEST ' if TEST_MODE else ''}site (as requested)." )
 # end of createSitePages.createSitePages
@@ -858,13 +876,13 @@ def cleanHTMLFolders( folder:Path, state ) -> bool:
     except FileNotFoundError: pass
     try: os.unlink( folder.joinpath( 'search.htm' ) )
     except FileNotFoundError: pass
-    try: shutil.rmtree( folder.joinpath( 'pa/' ) )
+    try: shutil.rmtree( folder.joinpath( 'par/' ) )
     except FileNotFoundError: pass
     try: shutil.rmtree( folder.joinpath( 'il/' ) )
     except FileNotFoundError: pass
-    try: shutil.rmtree( folder.joinpath( 'rf/' ) )
+    try: shutil.rmtree( folder.joinpath( 'ref/' ) )
     except FileNotFoundError: pass
-    try: shutil.rmtree( folder.joinpath( 'di/' ) )
+    try: shutil.rmtree( folder.joinpath( 'dct/' ) )
     except FileNotFoundError: pass
     for versionAbbreviation in state.allBibleVersions + ['UTN','TOSN','TOBD']:
         vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Removing tree at {folder.joinpath( f'{versionAbbreviation}/' )}/…")
@@ -984,7 +1002,7 @@ def createDetailsPages( level:int, buildFolder:Path, state ) -> bool:
 
         versionName =  state.BibleNames[versionAbbreviation]
 
-        if versionAbbreviation not in ('OET','TOBD'): # (These don't have a BibleLocation)
+        if 'OET' not in versionAbbreviation and versionAbbreviation not in ('TOBD',): # (These don't have a BibleLocation)
             if 'eBible' in state.BibleLocations[versionAbbreviation]:
                 # This code scrapes info from eBible.org copr.htm files, and hence is very fragile (susceptible to upstream changes)
                 with open( os.path.join(state.BibleLocations[versionAbbreviation], 'copr.htm'), 'rt', encoding='utf-8' ) as coprFile:
@@ -1028,10 +1046,10 @@ def createDetailsPages( level:int, buildFolder:Path, state ) -> bool:
 '''
         if TEST_MODE and versionAbbreviation in state.selectedVersesOnlyVersions:
             # Add a list of links to verses containing this version
-            selectedVerseLinksList = [f'<a href="../pa/{BBB}/C{C}V{V}.htm#Top">{tidyBBB( BBB, titleCase=True )} {C}:{V}</a>' for BBB,C,V in state.preloadedBibles[versionAbbreviation]]
+            selectedVerseLinksList = [f'<a href="../par/{BBB}/C{C}V{V}.htm#Top">{tidyBBB( BBB, titleCase=True )} {C}:{V}</a>' for BBB,C,V in state.preloadedBibles[versionAbbreviation]]
         #     for BBB,C,V in state.preloadedBibles[versionAbbreviation]:
         #         ourTidyBBB = tidyBBB( BBB, titleCase=True )
-        #         selectedVerseLinksList.append( f'<a href="../pa/{BBB}/C{C}V{V}.htm#Top">{tidyBBB( BBB, titleCase=True )} {C}:{V}</a>' )
+        #         selectedVerseLinksList.append( f'<a href="../par/{BBB}/C{C}V{V}.htm#Top">{tidyBBB( BBB, titleCase=True )} {C}:{V}</a>' )
             detailsHtml = f'''{detailsHtml}<h2>Available selections</h2>
 <p class="rem">The following parallel verse pages feature this version:</p>
 <p class="selectedLinks">{' '.join(selectedVerseLinksList)}</p>

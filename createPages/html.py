@@ -5,7 +5,7 @@
 #
 # Module handling OpenBibleData html functions
 #
-# Copyright (C) 2023 Robert Hunt
+# Copyright (C) 2023-2024 Robert Hunt
 # Author: Robert Hunt <Freely.Given.org+OBD@gmail.com>
 # License: See gpl-3.0.txt
 #
@@ -62,10 +62,10 @@ from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39, BOOKLIST_NT27
 # from Bibles import fetchChapter
 
 
-LAST_MODIFIED_DATE = '2023-12-22' # by RJH
+LAST_MODIFIED_DATE = '2024-01-02' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
-PROGRAM_VERSION = '0.58'
+PROGRAM_VERSION = '0.59'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -81,6 +81,7 @@ KNOWN_PAGE_TYPES = ('site', 'topIndex', 'details', 'allDetails',
                     'parallel', 'interlinear',
                     'dictionaryMainIndex','dictionaryLetterIndex','dictionaryEntry','dictionaryIntro',
                     'word','lemma', 'person','location',
+                    'wordIndex','lemmaIndex', 'personIndex','locationIndex', 'referenceIndex',
                     'search', 'about')
 def makeTop( level:int, versionAbbreviation:Optional[str], pageType:str, fileOrFolderName:Optional[str], state ) -> str:
     """
@@ -174,7 +175,7 @@ def _makeHeader( level:int, versionAbbreviation:str, pageType:str, fileOrFolderN
     if pageType == 'parallel':
         initialVersionList.append( 'Parallel' )
     else: # add a link for parallel
-        initialVersionList.append( f'''{state.BibleVersionDecorations['Parallel'][0]}<a title="Single verse in many translations" href="{'../'*level}pa/">Parallel</a>{state.BibleVersionDecorations['Parallel'][1]}''' )
+        initialVersionList.append( f'''{state.BibleVersionDecorations['Parallel'][0]}<a title="Single verse in many translations" href="{'../'*level}par/">Parallel</a>{state.BibleVersionDecorations['Parallel'][1]}''' )
     if pageType == 'interlinear':
         initialVersionList.append( 'Interlinear' )
     else: # add a link for interlinear
@@ -182,7 +183,7 @@ def _makeHeader( level:int, versionAbbreviation:str, pageType:str, fileOrFolderN
     if pageType == 'dictionaryMainIndex':
         initialVersionList.append( 'Dictionary' )
     else: # add a link for dictionary
-        initialVersionList.append( f'''{state.BibleVersionDecorations['Dictionary'][0]}<a title="Dictionary index" href="{'../'*level}di/">Dictionary</a>{state.BibleVersionDecorations['Dictionary'][1]}''' )
+        initialVersionList.append( f'''{state.BibleVersionDecorations['Dictionary'][0]}<a title="Dictionary index" href="{'../'*level}dct/">Dictionary</a>{state.BibleVersionDecorations['Dictionary'][1]}''' )
     if pageType == 'search':
         initialVersionList.append( 'Search' )
     else: # add a link for dictionary
@@ -199,7 +200,7 @@ def _makeHeader( level:int, versionAbbreviation:str, pageType:str, fileOrFolderN
     for entry in initialVersionList:
         # if pageType == 'parallel':
         #     print( f"  _makeHeader processing {entry=} ({level=} {versionAbbreviation=} {pageType=} {fileOrFolderName=})" )
-        if '/pa/' in entry or '/il/' in entry:
+        if '/par/' in entry or '/il/' in entry:
             newVersionList.append( entry )
             continue # Should always be able to link to these
         entryBBB = None
@@ -306,7 +307,7 @@ def _makeFooter( level:int, pageType:str, state ) -> str:
     from createSitePages import TEST_MODE
     # fnPrint( DEBUGGING_THIS_MODULE, f"_makeFooter()" )
     html = f"""<div class="footer">
-<p class="copyright"><small><em>{'TEST ' if TEST_MODE else ''}Open Bible Data</em> site copyright © 2023 <a href="https://Freely-Given.org">Freely-Given.org</a>
+<p class="copyright"><small><em>{'TEST ' if TEST_MODE else ''}Open Bible Data</em> site copyright © 2023-2024 <a href="https://Freely-Given.org">Freely-Given.org</a>
 <br>Python source code for creating these static pages is available <a href="https://GitHub.com/Freely-Given-org/OpenBibleData">here</a> under an <a href="https://GitHub.com/Freely-Given-org/OpenBibleData/blob/main/LICENSE">open licence</a>.{datetime.now().strftime('<br> (Page created: %Y-%m-%d %H:%M)') if TEST_MODE else ''}</small></p>
 <p class="copyright"><small>For Bible data copyrights, see the <a href="{'../'*level}allDetails.htm#Top">details</a> for each displayed Bible version.</small></p>
 </div><!--footer-->"""
@@ -439,6 +440,9 @@ def do_OET_LV_HTMLcustomisations( html:str ) -> str:
             # Now unprotect everything again
             .replace( '~~COMMENT~~', '<!--' ).replace( '~~V', '_V' )
             .replace( '~~COLON~~', ':' ).replace( '~~PERIOD~~', '.' )
+            # For OT
+            # TODO: Not sure that this is the best place to do these
+            .replace( ' DOM ',' <span class="dom">DOM</span> ')
             )
     # assert '+' not in html, f"{html[html.index('+')-20:html.index('+')+30]}"
     # assert '^' not in html, f"{html[html.index('^')-20:html.index('^')+30]}"

@@ -103,7 +103,7 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
             chapterHtml = f'<h1 id="Top">{rvBible.abbreviation} {BBB}</h1>\n'
             verseEntryList, contextList = rvBible.getContextVerseData( (BBB, '-1') )
             if isinstance( rvBible, ESFMBible.ESFMBible ):
-                verseEntryList = livenOETWordLinks( rvBible, BBB, verseEntryList, f"{'../'*level}rf/W/{{n}}.htm#Top", state )
+                verseEntryList = livenOETWordLinks( rvBible, BBB, verseEntryList, f"{'../'*level}ref/GrkWrd/{{n}}.htm#Top", state )
             dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{rvBible.abbreviation} {BBB} {verseEntryList} {contextList}" )
             chapterHtml = f'''{chapterHtml}{convertUSFMMarkerListToHtml( level, rvBible.abbreviation, (BBB,'-1'), 'chapter', contextList, verseEntryList, basicOnly=False, state=state )}'''
             filename = f'{BBB}.htm'
@@ -161,7 +161,7 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
                     assert c > 1
                     leftLink = f'<a title="Previous chapter" href="{BBB}_C{c-1}.htm#Top">◄</a> '
                     rightLink = f' <a title="Next chapter" href="{BBB}_C{c+1}.htm#Top">►</a>' if c<numChapters else ''
-                parallelLink = f''' <a title="Parallel verse view" href="{'../'*level}pa/{BBB}/C{'1' if c==-1 else c}V1.htm#Top">║</a>'''
+                parallelLink = f''' <a title="Parallel verse view" href="{'../'*level}par/{BBB}/C{'1' if c==-1 else c}V1.htm#Top">║</a>'''
                 interlinearLink = f''' <a title="Interlinear verse view" href="{'../'*level}il/{BBB}/C{'1' if c==-1 else c}V1.htm#Top">═</a>''' if BBB in state.booksToLoad['OET'] else ''
                 detailsLink = f''' <a title="Show details about this work" href="{'../'*(level-1)}details.htm#Top">©</a>'''
                 cNav = f'<p class="cNav">{leftLink}{documentLink} {"Intro" if c==-1 else c}{rightLink}{parallelLink}{interlinearLink}{detailsLink}</p>'
@@ -188,11 +188,11 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
                     logging.critical( f"No chapter found for {rvBible.abbreviation} {BBB} {c=}" )
                     halt # continue
                 if isinstance( rvBible, ESFMBible.ESFMBible ):
-                    rvVerseEntryList = livenOETWordLinks( rvBible, BBB, rvVerseEntryList, f"{'../'*level}rf/W/{{n}}.htm#Top", state )
+                    rvVerseEntryList = livenOETWordLinks( rvBible, BBB, rvVerseEntryList, f"{'../'*level}ref/GrkWrd/{{n}}.htm#Top", state )
                 # print( f"OET-RV {BBB} {c} got {len(rvVerseEntryList)} verse entries, {len(rvContextList)} context entries")
                 lvVerseEntryList, lvContextList = lvBible.getContextVerseData( (BBB, str(c)) )
                 if isinstance( lvBible, ESFMBible.ESFMBible ):
-                    lvVerseEntryList = livenOETWordLinks( lvBible, BBB, lvVerseEntryList, f"{'../'*level}rf/W/{{n}}.htm#Top", state )
+                    lvVerseEntryList = livenOETWordLinks( lvBible, BBB, lvVerseEntryList, f"{'../'*level}ref/GrkWrd/{{n}}.htm#Top", state )
                 # rvHtml = livenIORs( BBB, convertUSFMMarkerListToHtml( 'OET', (BBB,c), 'chapter', rvContextList, rvVerseEntryList ), numChapters )
                 rvHtml = do_OET_RV_HTMLcustomisations( convertUSFMMarkerListToHtml( level, 'OET', (BBB,str(c)), 'chapter', rvContextList, rvVerseEntryList, basicOnly=False, state=state ) )
                 lvHtml = do_OET_LV_HTMLcustomisations( convertUSFMMarkerListToHtml( level, 'OET', (BBB,str(c)), 'chapter', lvContextList, lvVerseEntryList, basicOnly=False, state=state ) )
@@ -293,7 +293,7 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
             # # verseEntryList, contextList = thisBible.getContextVerseData( (BBB, str(c)) )
             verseEntryList, contextList = lvBible.getContextVerseData( (BBB, '-1') )
             if isinstance( lvBible, ESFMBible.ESFMBible ):
-                verseEntryList = livenOETWordLinks( lvBible, BBB, verseEntryList, f"{'../'*level}rf/W/{{n}}.htm#Top", state )
+                verseEntryList = livenOETWordLinks( lvBible, BBB, verseEntryList, f"{'../'*level}ref/GrkWrd/{{n}}.htm#Top", state )
             dPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"{lvBible.abbreviation} {BBB} {verseEntryList} {contextList}" )
             chapterHtml = f'''{chapterHtml}{convertUSFMMarkerListToHtml( level, (BBB,str(c)), 'chapter', contextList, verseEntryList, basicOnly=False, state=state )}'''
             filename = f'{BBB}_C{c}.htm'
@@ -438,7 +438,7 @@ def createChapterPages( level:int, folder:Path, thisBible, state ) -> List[str]:
                     leftLink = f'<a title="Previous chapter" href="{BBB}_C{c-1}.htm#Top">◄</a> '
                     rightLink = f' <a title="Next chapter" href="{BBB}_C{c+1}.htm#Top">►</a>' if c<numChapters else ''
                 documentLink = f'<a title="Whole document view" href="../byDoc/{BBB}.htm#Top">{ourTidyBBB}</a>'
-                parallelLink = f''' <a title="Parallel verse view" href="{'../'*level}pa/{BBB}/C{'1' if c==-1 else c}V1.htm#Top">║</a>'''
+                parallelLink = f''' <a title="Parallel verse view" href="{'../'*level}par/{BBB}/C{'1' if c==-1 else c}V1.htm#Top">║</a>'''
                 interlinearLink = f''' <a title="Interlinear verse view" href="{'../'*level}il/{BBB}/C{'1' if c==-1 else c}V1.htm#Top">═</a>''' if BBB in state.booksToLoad['OET'] else ''
                 detailsLink = f''' <a title="Show details about this work" href="{'../'*(level-1)}details.htm#Top">©</a>'''
                 cNav = f'<p class="cNav">{oetLink}{leftLink}{documentLink} {"Intro" if c==-1 else c}{rightLink}{parallelLink}{interlinearLink}{detailsLink}</p>'
@@ -460,7 +460,7 @@ def createChapterPages( level:int, folder:Path, thisBible, state ) -> List[str]:
                     logging.critical( f"No chapter found for {thisBible.abbreviation} {BBB} {c=}" )
                     continue
                 if isinstance( thisBible, ESFMBible.ESFMBible ): # e.g., OET-RV and OET-LV
-                    verseEntryList = livenOETWordLinks( thisBible, BBB, verseEntryList, f"{'../'*level}rf/W/{{n}}.htm#Top", state )
+                    verseEntryList = livenOETWordLinks( thisBible, BBB, verseEntryList, f"{'../'*level}ref/GrkWrd/{{n}}.htm#Top", state )
                 textHtml = convertUSFMMarkerListToHtml( level, thisBible.abbreviation, (BBB,str(c)), 'chapter', contextList, verseEntryList, basicOnly=False, state=state )
                 # textHtml = livenIORs( BBB, textHtml, numChapters )
                 if thisBible.abbreviation == 'OET-RV':
@@ -499,7 +499,7 @@ def createChapterPages( level:int, folder:Path, thisBible, state ) -> List[str]:
             chapterHtml = f'<h1 id="Top">{thisBible.abbreviation} {BBB}</h1>\n'
             verseEntryList, contextList = thisBible.getContextVerseData( (BBB, '-1') )
             if isinstance( thisBible, ESFMBible.ESFMBible ):
-                verseEntryList = livenOETWordLinks( thisBible, BBB, verseEntryList, f"{'../'*level}rf/W/{{n}}.htm#Top", state )
+                verseEntryList = livenOETWordLinks( thisBible, BBB, verseEntryList, f"{'../'*level}ref/GrkWrd/{{n}}.htm#Top", state )
             dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{thisBible.abbreviation} {BBB} {verseEntryList} {contextList}" )
             chapterHtml = f'''{chapterHtml}{convertUSFMMarkerListToHtml( level, thisBible.abbreviation, (BBB,'-1'), 'chapter', contextList, verseEntryList, basicOnly=False, state=state )}'''
             filename = f'{BBB}.htm'

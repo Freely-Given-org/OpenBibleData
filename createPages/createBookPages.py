@@ -110,7 +110,7 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state ) -> Lis
 '''
             verseEntryList, contextList = rvBible.getContextVerseData( (BBB,) )
             if isinstance( rvBible, ESFMBible.ESFMBible ):
-                verseEntryList = livenOETWordLinks( rvBible, BBB, verseEntryList, f"{'../'*level}rf/W/{{n}}.htm#Top", state )
+                verseEntryList = livenOETWordLinks( rvBible, BBB, verseEntryList, f"{'../'*level}ref/GrkWrd/{{n}}.htm#Top", state )
             textHtml = convertUSFMMarkerListToHtml( level, rvBible.abbreviation, (BBB,), 'book', contextList, verseEntryList, basicOnly=False, state=state )
             # textHtml = livenIORs( BBB, textHtml )
             textHtml = do_OET_RV_HTMLcustomisations( textHtml )
@@ -160,9 +160,9 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state ) -> Lis
         rvVerseEntryList, rvContextList = rvBible.getContextVerseData( (BBB,) )
         lvVerseEntryList, lvContextList = lvBible.getContextVerseData( (BBB,) )
         if isinstance( rvBible, ESFMBible.ESFMBible ):
-            rvVerseEntryList = livenOETWordLinks( rvBible, BBB, rvVerseEntryList, f"{'../'*level}rf/W/{{n}}.htm#Top", state )
+            rvVerseEntryList = livenOETWordLinks( rvBible, BBB, rvVerseEntryList, f"{'../'*level}ref/GrkWrd/{{n}}.htm#Top", state )
         if isinstance( lvBible, ESFMBible.ESFMBible ):
-            lvVerseEntryList = livenOETWordLinks( lvBible, BBB, lvVerseEntryList, f"{'../'*level}rf/W/{{n}}.htm#Top", state )
+            lvVerseEntryList = livenOETWordLinks( lvBible, BBB, lvVerseEntryList, f"{'../'*level}ref/GrkWrd/{{n}}.htm#Top", state )
         rvHtml = do_OET_RV_HTMLcustomisations( convertUSFMMarkerListToHtml( level, 'OET', (BBB,), 'book', rvContextList, rvVerseEntryList, basicOnly=False, state=state ) )
         tempLVHtml = convertUSFMMarkerListToHtml( level, 'OET', (BBB,), 'book', lvContextList, lvVerseEntryList, basicOnly=False, state=state )
         if '+' in tempLVHtml: print( f"PLUS {tempLVHtml[max(0,tempLVHtml.index('+')-20):tempLVHtml.index('+')+80]}" )
@@ -195,7 +195,7 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state ) -> Lis
                 dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createOETBookPages {BBB} {n:,}: No Cid in {rvSectionHtml=}" )
                 rvStartCV, rvEndCV = '', 'C1'
                 # halt
-            # dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"""Searching for ' id="{rvEndCV}"' in '{lvRest}'""" )
+            dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"""\nSearching for ' id="{rvEndCV}"' in '{lvRest}'""" )
             ixEndCV = lvRest.rindex( f' id="{rvEndCV}"' ) # Versification problem if this fails
             try: ixNextCV = lvRest.index( f' id="C', ixEndCV+5 )
             except ValueError: ixNextCV = len( lvRest ) - 1
@@ -216,8 +216,10 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state ) -> Lis
             lvChunk = lvRest[:lvEndIx]
             # Make sure that our split was at a sensible place
             rsLvChunk = lvChunk.rstrip()
+            # Fails on JNA n=4 rvStartCV='C4' rvEndCV='C4V11' lvChunk[-8:]='eat(fs).'
             assert rsLvChunk[-1]=='>' \
-            or (rsLvChunk[-2]=='>' and rsLvChunk[-1] in '.,'), f"{n=} {lvChunk[-8:]=}"
+            or (rsLvChunk[-2]=='>' and rsLvChunk[-1] in '.,') \
+            or (BBB=='JNA' and rsLvChunk[-1]=='.'), f"{BBB} {n=} {rvStartCV=} {rvEndCV=} {lvChunk[-8:]=}"
             lvChunks.append( lvChunk )
             lvRest = lvRest[lvEndIx:]
 
@@ -323,7 +325,7 @@ def createBookPages( level:int, folder:Path, thisBible, state ) -> List[str]:
 '''
         verseEntryList, contextList = thisBible.getContextVerseData( (BBB,) )
         if isinstance( thisBible, ESFMBible.ESFMBible ):
-            verseEntryList = livenOETWordLinks( thisBible, BBB, verseEntryList, f"{'../'*level}rf/W/{{n}}.htm#Top", state )
+            verseEntryList = livenOETWordLinks( thisBible, BBB, verseEntryList, f"{'../'*level}ref/GrkWrd/{{n}}.htm#Top", state )
         textHtml = convertUSFMMarkerListToHtml( level, thisBible.abbreviation, (BBB,), 'book', contextList, verseEntryList, basicOnly=False, state=state )
         # textHtml = livenIORs( BBB, textHtml )
         if thisBible.abbreviation == 'OET-RV':

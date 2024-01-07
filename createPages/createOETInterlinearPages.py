@@ -168,7 +168,7 @@ def createOETInterlinearVersePagesForBook( level:int, folder:Path, BBB:str, BBBL
                 rightVLink = f' <a title="Go to next verse" href="C{c}V{v+1}.htm#__ID__">→</a>' if v<numVerses else ''
                 leftCLink = f'<a title="Go to previous chapter" href="C{c-1}V1.htm#__ID__">◄</a> ' if c>1 else ''
                 rightCLink = f' <a title="Go to next chapter" href="C{c+1}V1.htm#__ID__">►</a>' if c<numChapters else ''
-                parallelLink = f''' <a title="Parallel verse view" href="{'../'*BBBLevel}pa/{BBB}/C{c}V{v}.htm#Top">║</a>'''
+                parallelLink = f''' <a title="Parallel verse view" href="{'../'*BBBLevel}par/{BBB}/C{c}V{v}.htm#Top">║</a>'''
                 detailsLink = f''' <a title="Show details about the OET" href="{'../'*(BBBLevel)}OET/details.htm#Top">©</a>'''
                 navLinks = f'<p id="__ID__" class="vNav">{leftCLink}{leftVLink}{ourTidyBbb} {c}:{v} <a title="Go to __WHERE__ of page" href="#__LINK__">__ARROW__</a>{rightVLink}{rightCLink}{parallelLink}{detailsLink}</p>'
                 iHtml = createOETInterlinearVersePage( BBBLevel, BBB, c, v, state )
@@ -178,7 +178,7 @@ def createOETInterlinearVersePagesForBook( level:int, folder:Path, BBB:str, BBBL
                 top = makeTop( BBBLevel, None, 'interlinear', None, state ) \
                         .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{ourTidyBBB} {c}:{v} Interlinear View" ) \
                         .replace( '__KEYWORDS__', f'Bible, interlinear, {ourTidyBBB}' ) \
-                        .replace( f'''href="{'../'*BBBLevel}pa/"''', f'''href="{'../'*BBBLevel}pa/{BBB}/C{c}V{v}.htm#Top"''')
+                        .replace( f'''href="{'../'*BBBLevel}par/"''', f'''href="{'../'*BBBLevel}par/{BBB}/C{c}V{v}.htm#Top"''')
                 iHtml = f'''{top}<!--interlinear verse page-->
 {adjBBBLinksHtml}
 <h1 id="Top">OET interlinear {ourTidyBBB} {c}:{v}</h1>
@@ -268,7 +268,7 @@ def createOETInterlinearVersePage( level:int, BBB:str, c:int, v:int, state ) -> 
     html = '<h2>SR Greek word order <small>(including unused variants)</small></h2><div class=interlinear><ol class=verse>'
     try:
         lvVerseEntryList, lvContextList = lvBible.getContextVerseData( (BBB, C, V) )
-        livenedLvVerseEntryList = livenOETWordLinks( lvBible, BBB, lvVerseEntryList, f"{'../'*level}rf/W/{{n}}.htm#Top", state )
+        livenedLvVerseEntryList = livenOETWordLinks( lvBible, BBB, lvVerseEntryList, f"{'../'*level}ref/GrkWrd/{{n}}.htm#Top", state )
         lvTextHtml = do_OET_LV_HTMLcustomisations( convertUSFMMarkerListToHtml( level, 'OET-LV', (BBB,C,V), 'verse', lvContextList, livenedLvVerseEntryList, basicOnly=True, state=state ) )
         lvHtml = f'''<div class="LV"><p class="LV"><span class="wrkName"><a title="View {state.BibleNames['OET']} chapter" href="{'../'*level}OET/byC/{BBB}_C{c}.htm#Top">OET</a> (<a title="{state.BibleNames['OET-LV']}" href="{'../'*level}OET-LV/byC/{BBB}_C{c}.htm#Top">OET-LV</a>)</span> {lvTextHtml}</p></div><!--LV-->'''
     except (KeyError, TypeError):
@@ -282,7 +282,7 @@ def createOETInterlinearVersePage( level:int, BBB:str, c:int, v:int, state ) -> 
         lvVerseEntryList = []
     try:
         rvVerseEntryList, rvContextList = rvBible.getContextVerseData( (BBB, C, V) )
-        livenedRvVerseEntryList = livenOETWordLinks( lvBible, BBB, rvVerseEntryList, f"{'../'*level}rf/W/{{n}}.htm#Top", state )
+        livenedRvVerseEntryList = livenOETWordLinks( lvBible, BBB, rvVerseEntryList, f"{'../'*level}ref/GrkWrd/{{n}}.htm#Top", state )
         rvTextHtml = do_OET_RV_HTMLcustomisations( convertUSFMMarkerListToHtml( level, 'OET-RV', (BBB,C,V), 'verse', rvContextList, livenedRvVerseEntryList, basicOnly=True, state=state ) )
         rvHtml = f'''<div class="RV"><p class="RV"><span class="wrkName"><a title="View {state.BibleNames['OET']} chapter" href="{'../'*level}OET/byC/{BBB}_C{c}.htm#Top">OET</a> (<a title="{state.BibleNames['OET-RV']}" href="{'../'*level}OET-RV/byC/{BBB}_C{c}.htm#Top">OET-RV</a>)</span> {rvTextHtml}</p></div><!--RV-->'''
     except (KeyError, TypeError):
@@ -421,9 +421,9 @@ def createOETInterlinearVersePage( level:int, BBB:str, c:int, v:int, state ) -> 
                 for t,tag in enumerate( tags ):
                     tagPrefix, tag = tag[0], tag[1:]
                     if tagPrefix == 'P':
-                        tags[t] = f'''Person=<a title="View person details" href="{'../'*level}rf/P/{tag}.htm#Top">{tag}</a>'''
+                        tags[t] = f'''Person=<a title="View person details" href="{'../'*level}ref/Per/{tag}.htm#Top">{tag}</a>'''
                     elif tagPrefix == 'L':
-                        tags[t] = f'''Location=<a title="View place details" href="{'../'*level}rf/L/{tag}.htm#Top">{tag}</a>'''
+                        tags[t] = f'''Location=<a title="View place details" href="{'../'*level}ref/Loc/{tag}.htm#Top">{tag}</a>'''
                 tagsHtml = '; '.join( tags )
             else: tagsHtml = '-'
             GreekList.append( f'''<li><ol class="{'word' if row[6] else 'variant'}">
@@ -437,7 +437,7 @@ def createOETInterlinearVersePage( level:int, BBB:str, c:int, v:int, state ) -> 
 <li lang="en_CAPS">{row[5] if row[5] else '-'}</li>
 <li lang="en_PERCENT">{row[6]+'%' if row[6] else 'V'}</li>
 <li lang="en_TAGS">{tagsHtml}</li>
-<li lang="en_WORDNUM"><a title="View word details" href="{'../'*level}rf/W/{wordNumber}.htm#Top">{wordNumber}</a></li>
+<li lang="en_WORDNUM"><a title="View word details" href="{'../'*level}ref/GrkWrd/{wordNumber}.htm#Top">{wordNumber}</a></li>
 </ol></li>''' )
         iHtml = f'{iHtml}{NEWLINE.join( GreekList )}'
 
@@ -488,9 +488,9 @@ def createOETInterlinearVersePage( level:int, BBB:str, c:int, v:int, state ) -> 
                 for t,tag in enumerate( tags ):
                     tagPrefix, tag = tag[0], tag[1:]
                     if tagPrefix == 'P':
-                        tags[t] = f'''Person=<a title="View person details" href="{'../'*level}rf/P/{tag}.htm#Top">{tag}</a>'''
+                        tags[t] = f'''Person=<a title="View person details" href="{'../'*level}ref/Per/{tag}.htm#Top">{tag}</a>'''
                     elif tagPrefix == 'L':
-                        tags[t] = f'''Location=<a title="View place details" href="{'../'*level}rf/L/{tag}.htm#Top">{tag}</a>'''
+                        tags[t] = f'''Location=<a title="View place details" href="{'../'*level}ref/Loc/{tag}.htm#Top">{tag}</a>'''
                 tagsHtml = '; '.join( tags )
             else: tagsHtml = '-'
             reverseList.append( f'''<li><ol class="word">
@@ -504,7 +504,7 @@ def createOETInterlinearVersePage( level:int, BBB:str, c:int, v:int, state ) -> 
 <li lang="en_CAPS">{row[4] if row[4] else '-'}</li>
 <li lang="en_PERCENT">{row[5]+'%' if row[5] else 'V'}</li>
 <li lang="en_TAGS">{tagsHtml}</li>
-<li lang="en_WORDNUM"><a title="View word details" href="{'../'*level}rf/W/{wordNumber}.htm#Top">{wordNumber}</a></li>
+<li lang="en_WORDNUM"><a title="View word details" href="{'../'*level}ref/GrkWrd/{wordNumber}.htm#Top">{wordNumber}</a></li>
 </ol></li>''' )
         lastWordNumber = wordNumber
     riHtml = f'{riHtml}{NEWLINE.join( reverseList )}'

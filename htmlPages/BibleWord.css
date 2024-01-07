@@ -21,6 +21,7 @@ p.pNav { text-align:center; font-size:1.8em; }
 
 p.wordLine { text-indent:1em; margin-top:0.2em; margin-bottom:0.2em; font-size:0.9em; }
 p.lemmaLine { text-indent:1em; margin-top:0.2em; margin-bottom:0.2em; font-size:0.9em; }
+p.key { background-color:seaShell; font-size:0.8em; }
 
 span.glossPre { color:lightGreen; }
 span.glossHelper { color:grey; }

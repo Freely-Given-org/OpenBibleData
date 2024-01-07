@@ -70,6 +70,8 @@ p.q1 { margin-left:1em; margin-top:0.2em; margin-bottom:0.2em; }
 p.q2 { margin-left:2em; margin-top:0.2em; margin-bottom:0.2em; }
 /* p.m {  } */
 
+p.key { background-color:seaShell; font-size:0.8em; }
+
 span.nominaSacra { font-weight:bold; }
 span.nd { font-weight:bold; }
 span.add { color:grey; }

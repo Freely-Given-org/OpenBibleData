@@ -111,7 +111,7 @@ span.untr { font-size:0.8em; color:grey; text-decoration:line-through; }
 
 span.ul { color:darkGrey; }
 span.RVadd { color:dimGrey; }
-span.dom { color:Gainsboro; }
+span.dom { color:Gainsboro; font-size:0.75em; }
 span.schwa { font-size:0.75em; }
 span.nominaSacra { font-weight:bold; }
 span.nd { font-weight:bold; }

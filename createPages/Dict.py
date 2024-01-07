@@ -37,12 +37,10 @@ BibleOrgSys uses a three-character book code to identify books.
             (and most identifiers in computer languages still require that).
 """
 from gettext import gettext as _
-from typing import Dict, List, Tuple, Optional
-# from pathlib import Path
+from typing import List
 import os.path
 import logging
-# import re
-from xml.etree.ElementTree import ElementTree, ParseError
+from xml.etree.ElementTree import ElementTree
 
 import sys
 sys.path.append( '../../BibleOrgSys/' )
@@ -52,10 +50,10 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 from html import makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-12-26' # by RJH
+LAST_MODIFIED_DATE = '2023-12-29' # by RJH
 SHORT_PROGRAM_NAME = "Dictionary"
 PROGRAM_NAME = "OpenBibleData Dictionary handler"
-PROGRAM_VERSION = '0.37'
+PROGRAM_VERSION = '0.38'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -588,7 +586,7 @@ def createTyndaleDictPages( level:int, outputFolderPath, state ) -> bool:
         article = livenTyndaleMapRefs( 'TOBD', level, articleLinkName, article, state )
         # The textboxes must be inserted before the next two lines so the brefs in the textboxes get fixed
         article = fixTyndaleBRefs( 'TOBD', level, articleLinkName, '', '', article, state ) # Liven their links like '<a href="?bref=Mark.4.14-20">4:14-20</a>'
-        article = fixTyndaleItemRefs( 'TOBD', level, articleLinkName, article, state )
+        article = fixTyndaleDictItemRefs( 'TOBD', level, articleLinkName, article, state )
 
         article = article.replace( 'kjv', '<small>KJB</small>' ).replace( 'nlt', '<small>NLT</small>' )
 
@@ -681,7 +679,7 @@ even though it was originally designed to supplement the <i>New Living Translati
 # end of Dict.createTyndaleDictPages
 
 
-def fixTyndaleItemRefs( abbrev:str, level:int, articleLinkName:str, html:str, state ) -> str:
+def fixTyndaleDictItemRefs( abbrev:str, level:int, articleLinkName:str, html:str, state ) -> str:
     """
     Most of the parameters are for info messages only
 
@@ -689,10 +687,9 @@ def fixTyndaleItemRefs( abbrev:str, level:int, articleLinkName:str, html:str, st
     """
     from createSitePages import ALTERNATIVE_VERSION
 
-    fnPrint( DEBUGGING_THIS_MODULE, f"fixTyndaleItemRefs( {abbrev}, {level}, {articleLinkName} {html}, ... )")
+    fnPrint( DEBUGGING_THIS_MODULE, f"fixTyndaleDictItemRefs( {abbrev}, {level}, {articleLinkName} {html}, ... )")
 
     # Fix their links like '<a href="?item=MarriageMarriageCustoms_Article_TyndaleOpenBibleDictionary">Marriage, Marriage Customs</a>'
-    # Doesn't yet handle links like '(see “<a href="?item=FollowingJesus_ThemeNote_Filament">Following Jesus</a>” Theme Note)'
     searchStartIndex = 0
     for _safetyCount in range( 25 ): # 19 was too few
         ixStart = html.find( 'href="?item=', searchStartIndex )
@@ -702,10 +699,6 @@ def fixTyndaleItemRefs( abbrev:str, level:int, articleLinkName:str, html:str, st
         assert ixCloseQuote != -1
         tyndaleLinkPart = html[ixStart+12:ixCloseQuote]
         # print( f"{abbrev} {BBB} {C}:{V} {tyndaleLinkPart=}" )
-        # if 'Filament' in tyndaleLinkPart: # e.g., in GEN 48:14 '2Chr.28.12_StudyNote_Filament'
-        #     logging.critical( f"Ignoring Filament link in {abbrev} {articleLinkName} {tyndaleLinkPart=}" )
-        #     searchStartIndex = ixCloseQuote + 6
-        #     continue
         assert tyndaleLinkPart.endswith( '_TyndaleOpenBibleDictionary' ), f"{abbrev} {level} '{articleLinkName}' {tyndaleLinkPart=}"
         tyndaleLinkPart = tyndaleLinkPart[:-27]
         # print( f"{tyndaleLinkPart=}" )
@@ -720,7 +713,7 @@ def fixTyndaleItemRefs( abbrev:str, level:int, articleLinkName:str, html:str, st
     else: need_to_increase_Tyndale_item_loop_counter
 
     return html
-# end of Bibles.fixTyndaleItemRefs
+# end of Bibles.fixTyndaleDictItemRefs
 
 
 

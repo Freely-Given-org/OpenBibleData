@@ -40,6 +40,7 @@ CHANGELOG:
     2023-07-19 Fix '<class="sn-text">' bug
     2023-08-07 Add allowFourChars to our customised version of tidyBBB
     2023-10-09 Fix a few more uW tN markdown link references
+    2023-12-29 Started adding OET OT
 """
 from gettext import gettext as _
 from typing import Dict, List, Tuple, Optional
@@ -72,10 +73,10 @@ from html import checkHtml
 from OETHandlers import findLVQuote
 
 
-LAST_MODIFIED_DATE = '2023-11-20' # by RJH
+LAST_MODIFIED_DATE = '2023-12-29' # by RJH
 SHORT_PROGRAM_NAME = "Bibles"
 PROGRAM_NAME = "OpenBibleData Bibles handler"
-PROGRAM_VERSION = '0.55'
+PROGRAM_VERSION = '0.56'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -97,8 +98,29 @@ def preloadVersions( state ) -> int:
         if versionAbbreviation == 'OET':
             # This is a combination of two translations, so nothing to load here
             assert 'OET-RV' in state.BibleVersions and 'OET-LV' in state.BibleVersions, state.BibleVersions
-            continue
-        if versionAbbreviation in state.BibleLocations:
+        elif versionAbbreviation == 'OET-LV':
+            # Load the OT and NT from separate folders, and then combine them into one ESFM Bible object
+            thisBible = preloadVersion( versionAbbreviation, state.BibleLocations['OET-LV-OT'], state )
+            assert isinstance( thisBible, ESFMBible.ESFMBible )
+            thisBibleNT = preloadVersion( versionAbbreviation, state.BibleLocations['OET-LV-NT'], state )
+            assert isinstance( thisBibleNT, ESFMBible.ESFMBible )
+            # print( f"{len(thisBible)=} {len(thisBibleNT)=}" )
+            for bookObject in thisBibleNT:
+                # print( type(bookObject), bookObject.BBB )
+                assert bookObject.BBB not in thisBible.books
+                thisBible.books[bookObject.BBB] = bookObject
+            # print( f"{len(thisBible)=}" )
+            # print( f"{len(thisBible.ESFMWordTables)=}" )
+            for wordTableID,wordTable in thisBibleNT.ESFMWordTables.items():
+                # print( f"{wordTableID=} {type(wordTable)=}")
+                thisBible.ESFMWordTables[wordTableID] = wordTable
+            # print( f"{len(thisBible.ESFMWordTables)=}" )
+            # For now, use the NT sourceFolder so that the NT word file will load
+            # NOTE: This means that we lose the OT sourceFolder (so possibly should save it somewhere)
+            # TODO: What will we do in the future when we have both OT and NT word files ???
+            thisBible.sourceFolder = thisBibleNT.sourceFolder
+            state.preloadedBibles[versionAbbreviation] = thisBible
+        elif versionAbbreviation in state.BibleLocations:
             thisBible = preloadVersion( versionAbbreviation, state.BibleLocations[versionAbbreviation], state )
             if isinstance(thisBible, Bible) \
             or versionAbbreviation in state.selectedVersesOnlyVersions:
@@ -107,6 +129,7 @@ def preloadVersions( state ) -> int:
                 halt # preloadVersion failed
         else:
             logging.critical( f"createPages preloadVersions() has no folder location to find '{versionAbbreviation}'" )
+            assert 'OET' not in versionAbbreviation
             state.BibleVersions.remove( versionAbbreviation )
     return len(state.preloadedBibles)
 # end of Bibles.preloadVersions
@@ -410,7 +433,7 @@ def formatTyndaleBookIntro( abbrev:str, level:int, BBB:str, segmentType:str, sta
 
 def formatTyndaleNotes( abbrev:str, level:int, BBB:str, C:str, V:str, segmentType:str, state ) -> str: # html
     """
-    These are mostly HTML encoded inside USFM fields.
+    These are mostly HTML now artificially encoded inside USFM fields.
     """
     fnPrint( DEBUGGING_THIS_MODULE, f"formatTyndaleNotes( {BBB}, {C}:{V}, {segmentType=} )" )
     assert abbrev in ('TOSN','TTN')
@@ -574,7 +597,7 @@ def fixTyndaleBRefs( abbrev:str, level:int, BBBorArticleName:str, C:str, V:str, 
             if not tBBB:
                 if tBkCode=='Tb': tBBB = 'TOB'
             assert tBBB, f"'{abbrev}' {level=} {BBBorArticleName} {C}:{V} {tBkCode=} {tC=} {tV=}"
-            ourNewLink = f'''{'../'*level}pa/{tBBB}/C{tC}V{tV}.htm#Top''' # we link to the parallel verse page
+            ourNewLink = f'''{'../'*level}par/{tBBB}/C{tC}V{tV}.htm#Top''' # we link to the parallel verse page
             # print( f"   {ourNewLink=}" )
         html = f'''{html[:ixStart+6]}{ourNewLink}{html[ixCloseQuote:]}'''
         searchStartIndex = ixStart + 8

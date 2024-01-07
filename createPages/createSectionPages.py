@@ -236,7 +236,7 @@ def createOETSectionPages( level:int, folder:Path, rvBible, lvBible, state ) -> 
             endChapterLink = f'''<a title="Chapter view" href="../byC/{BBB}_{'Intro' if endC=='-1' else f'C{endC}'}.htm#Top">{'Intro' if endC=='-1' else endC}</a>'''
             leftLink = f'<a title="Previous section" href="{BBB}_S{n-1}.htm#Top">←</a> ' if n>0 else ''
             rightLink = f' <a title="Next section" href="{BBB}_S{n+1}.htm#Top">→</a>' if n<numBBBSections-1 else ''
-            parallelLink = f''' <a title="Parallel verse view" href="{'../'*level}pa/{BBB}/C{'1' if startC=='-1' else startC}V{startV}.htm#Top">║</a>'''
+            parallelLink = f''' <a title="Parallel verse view" href="{'../'*level}par/{BBB}/C{'1' if startC=='-1' else startC}V{startV}.htm#Top">║</a>'''
             interlinearLink = f''' <a title="Interlinear verse view" href="{'../'*level}il/{BBB}/C{'1' if startC=='-1' else startC}V{startV}.htm#Top">═</a>''' if BBB in state.booksToLoad['OET'] else ''
             detailsLink = f''' <a title="Show details about this work" href="{'../'*(level-1)}details.htm#Top">©</a>'''
 
@@ -253,7 +253,7 @@ def createOETSectionPages( level:int, folder:Path, rvBible, lvBible, state ) -> 
 #     <button type="button" id="marksButton" onclick="hide_show_marks()">Hide marks</button>
 # </div><!--buttons-->
             if isinstance( rvBible, ESFMBible.ESFMBible ):
-                rvVerseEntryList = livenOETWordLinks( rvBible, BBB, rvVerseEntryList, f"{'../'*level}rf/W/{{n}}.htm#Top", state )
+                rvVerseEntryList = livenOETWordLinks( rvBible, BBB, rvVerseEntryList, f"{'../'*level}ref/GrkWrd/{{n}}.htm#Top", state )
             rvHtml = convertUSFMMarkerListToHtml( level, rvBible.abbreviation, (BBB,startC, startV), 'section', rvContextList, rvVerseEntryList, basicOnly=False, state=state )
             rvHtml = do_OET_RV_HTMLcustomisations( rvHtml )
             # rvHtml = livenIORs( BBB, rvHtml, sections )
@@ -298,7 +298,7 @@ def createOETSectionPages( level:int, folder:Path, rvBible, lvBible, state ) -> 
             else:
                 loop_counter_too_small
             if isinstance( lvBible, ESFMBible.ESFMBible ):
-                lvVerseEntryList = livenOETWordLinks( lvBible, BBB, lvVerseEntryList, f"{'../'*level}rf/W/{{n}}.htm#Top", state )
+                lvVerseEntryList = livenOETWordLinks( lvBible, BBB, lvVerseEntryList, f"{'../'*level}ref/GrkWrd/{{n}}.htm#Top", state )
             lvHtml = convertUSFMMarkerListToHtml( level, lvBible.abbreviation, (BBB,startC), 'section', lvContextList, lvVerseEntryList, basicOnly=False, state=state )
             lvHtml = do_OET_LV_HTMLcustomisations( lvHtml )
             combinedHtml = f'''<div class="chunkRV">{rvHtml}</div><!--chunkRV-->
@@ -422,7 +422,7 @@ def createSectionPages( level:int, folder:Path, thisBible, state ) -> List[str]:
                 endC,endV = sectionIndexEntry.getEndCV()
                 verseEntryList, contextList = bkObject._SectionIndex.getSectionEntriesWithContext( startCV )
                 if isinstance( thisBible, ESFMBible.ESFMBible ):
-                    verseEntryList = livenOETWordLinks( thisBible, BBB, verseEntryList, f"{'../'*level}rf/W/{{n}}.htm#Top", state )
+                    verseEntryList = livenOETWordLinks( thisBible, BBB, verseEntryList, f"{'../'*level}ref/GrkWrd/{{n}}.htm#Top", state )
                 filename = f'{BBB}_S{n}.htm'
                 state.sectionsLists[thisBible.abbreviation][BBB].append( (n,startC,startV,endC,endV,sectionName,reasonName,contextList,verseEntryList,filename) )
             assert len(state.sectionsLists[thisBible.abbreviation][BBB]) >= len(bkObject._SectionIndex)
@@ -493,7 +493,7 @@ def createSectionPages( level:int, folder:Path, thisBible, state ) -> List[str]:
             endChapterLink = f'''<a title="Chapter view" href="../byC/{BBB}_{'Intro' if endC=='-1' else f'C{endC}'}.htm#Top">{'Intro' if endC=='-1' else endC}</a>'''
             leftLink = f'<a title="Previous section" href="{BBB}_S{n-1}.htm#Top">←</a> ' if n>0 else ''
             rightLink = f' <a title="Next section" href="{BBB}_S{n+1}.htm#Top">→</a>' if n<numBBBSections-1 else ''
-            parallelLink = f''' <a title="Parallel verse view" href="{'../'*level}pa/{BBB}/C{'1' if startC=='-1' else startC}V{startV}.htm#Top">║</a>'''
+            parallelLink = f''' <a title="Parallel verse view" href="{'../'*level}par/{BBB}/C{'1' if startC=='-1' else startC}V{startV}.htm#Top">║</a>'''
             interlinearLink = f''' <a title="Interlinear verse view" href="{'../'*level}il/{BBB}/C{'1' if startC=='-1' else startC}V{startV}.htm#Top">═</a>''' if BBB in state.booksToLoad['OET'] else ''
             detailsLink = f''' <a title="Show details about this work" href="{'../'*(level-1)}details.htm#Top">©</a>'''
 
@@ -503,7 +503,7 @@ def createSectionPages( level:int, folder:Path, thisBible, state ) -> List[str]:
 <h1>{sectionName}</h1>
 '''
             if isinstance( thisBible, ESFMBible.ESFMBible ): # e.g., OET-RV
-                verseEntryList = livenOETWordLinks( thisBible, BBB, verseEntryList, f"{'../'*level}rf/W/{{n}}.htm#Top", state )
+                verseEntryList = livenOETWordLinks( thisBible, BBB, verseEntryList, f"{'../'*level}ref/GrkWrd/{{n}}.htm#Top", state )
             textHtml = convertUSFMMarkerListToHtml( level, thisBible.abbreviation, (BBB,startC), 'section', contextList, verseEntryList, basicOnly=False, state=state )
             # textHtml = livenIORs( BBB, textHtml, sections )
             if thisBible.abbreviation == 'OET-RV':

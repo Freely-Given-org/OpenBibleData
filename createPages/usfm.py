@@ -151,7 +151,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                 # We want both verse numbers to be searchable
                 if int(V2) != int(V1)+1: # We don't handle 3+ verse reordering well yet
                     logging.critical( f" Not handling 3+ verse bridge well yet at {versionAbbreviation} {refTuple} {C}:{V}" )
-                vLink = f'''<a title="Go to verse in parallel view" href="{'../'*level}pa/{BBB}/C{C}V{V1}.htm#Top">{V1}</a>'''
+                vLink = f'''<a title="Go to verse in parallel view" href="{'../'*level}par/{BBB}/C{C}V{V1}.htm#Top">{V1}</a>'''
                 html = f'{html}{"" if html.endswith(">") else " "}' \
                         + f'''{f"""<span id="C{C}"></span><span class="{'cPsa' if BBB=='PSA' else 'c'}" id="C{C}V1">{C}</span>""" if V1=="1" else f"""<span class="v" id="C{C}V{V1}">{vLink}-</span>"""}''' \
                         + (f'<span id="V{V1}"></span><span id="V{V2}"></span>' if segmentType in ('chapter','section') or isSingleChapterBook else '') \
@@ -161,8 +161,8 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                 if segmentType != 'verse': # No need for verse numbers at all if we're only displaying one verse
                     if not V.isdigit():
                         logging.critical( f"Expected a verse number digit at {versionAbbreviation} {refTuple} {C}:{V} {rest=}" )
-                    cLink = f'''<a title="Go to verse in parallel view" href="{'../'*level}pa/{BBB}/C{C}V1.htm#Top">{C}</a>'''
-                    vLink = f'''<a title="Go to verse in parallel view" href="{'../'*level}pa/{BBB}/C{C}V{V}.htm#Top">{V}</a>'''
+                    cLink = f'''<a title="Go to verse in parallel view" href="{'../'*level}par/{BBB}/C{C}V1.htm#Top">{C}</a>'''
+                    vLink = f'''<a title="Go to verse in parallel view" href="{'../'*level}par/{BBB}/C{C}V{V}.htm#Top">{V}</a>'''
                     html = f'{html}{"" if html.endswith("—") else " "}' \
                             + (f'<span id="V{V}"></span>' if segmentType in ('chapter','section') or isSingleChapterBook else '') \
                             + f'''{f"""<span id="C{C}"></span><span class="{'cPsa' if BBB=='PSA' else 'c'}" id="C{C}V1">{cLink}{NARROW_NON_BREAK_SPACE}</span>""" if V=="1"
