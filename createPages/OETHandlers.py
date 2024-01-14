@@ -5,7 +5,7 @@
 #
 # Module handling OpenBibleData OETHandlers functions
 #
-# Copyright (C) 2023 Robert Hunt
+# Copyright (C) 2023-2024 Robert Hunt
 # Author: Robert Hunt <Freely.Given.org+OBD@gmail.com>
 # License: See gpl-3.0.txt
 #
@@ -60,10 +60,10 @@ sys.path.append( '../../BibleTransliterations/Python/' )
 from BibleTransliterations import transliterate_Greek
 
 
-LAST_MODIFIED_DATE = '2023-12-15' # by RJH
+LAST_MODIFIED_DATE = '2024-01-11' # by RJH
 SHORT_PROGRAM_NAME = "OETHandlers"
 PROGRAM_NAME = "OpenBibleData OET handler"
-PROGRAM_VERSION = '0.31'
+PROGRAM_VERSION = '0.32'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -224,7 +224,7 @@ def livenOETWordLinks( bibleObject:ESFMBible, BBB:str, givenEntryList:InternalBi
 
     Then add the transliteration to the title="§«GreekWord»§" popup.
     """
-    from createParallelPages import GREEK_CASE_CLASS_DICT
+    from createParallelVersePages import GREEK_CASE_CLASS_DICT
 
     # Liven the word links using the BibleOrgSys function
     revisedEntryList = bibleObject.livenESFMWordLinks( BBB, givenEntryList, linkTemplate=hrefTemplate, titleTemplate='§«GreekWord»§' )[0]
@@ -272,7 +272,8 @@ def livenOETWordLinks( bibleObject:ESFMBible, BBB:str, givenEntryList:InternalBi
                 caseClassName = 'greekVrb'
             elif extendedStrongs == '37560': # Greek 'οὐ' (ou) 'not'
                 caseClassName = 'greekNeg'
-            elif morphology[4] != '.':
+            # TODO: Need to find where collation table is imported and change 'None' to None there (and then fix this again)
+            elif morphology!='None' and morphology[4] != '.': # Two words in table have morphology of 'None' Jhn 5:27 w2
                 caseClassName = f'''greek{GREEK_CASE_CLASS_DICT[morphology[4]]}'''
             else: caseClassName = None
 

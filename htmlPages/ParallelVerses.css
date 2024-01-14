@@ -79,7 +79,7 @@ span.RVadd { color:dimGrey; }
 span.wj { color:saddlebrown; }
 span.sig { font-family:cursive; }
 span.FoS { color:mediumvioletred; }
-span.untr { background-color:ivory; color:yellowGreen; font-variant-position:sub; }
+span.untr { font-size:0.8em; color:grey; text-decoration:line-through; }
 
 /* Tyndale Book Intro Summaries */
 p.intro-title { text-align:center; font-size:1.8em; }

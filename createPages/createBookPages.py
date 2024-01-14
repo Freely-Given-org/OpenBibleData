@@ -5,7 +5,7 @@
 #
 # Module handling OpenBibleData createBookPages functions
 #
-# Copyright (C) 2023 Robert Hunt
+# Copyright (C) 2023-2024 Robert Hunt
 # Author: Robert Hunt <Freely.Given.org+OBD@gmail.com>
 # License: See gpl-3.0.txt
 #
@@ -28,6 +28,7 @@ Module handling createBookPages functions.
 CHANGELOG:
     2023-08-30 Added FRT processing for RV
     2023-12-21 Keep book selection line at top of page
+    2024-01-08 Fixed bug when moving to previous/next books for 'ALL' books
 """
 from gettext import gettext as _
 from typing import Dict, List, Tuple
@@ -49,10 +50,10 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_
 from OETHandlers import livenOETWordLinks
 
 
-LAST_MODIFIED_DATE = '2023-12-26' # by RJH
+LAST_MODIFIED_DATE = '2024-01-11' # by RJH
 SHORT_PROGRAM_NAME = "createBookPages"
 PROGRAM_NAME = "OpenBibleData createBookPages functions"
-PROGRAM_VERSION = '0.43'
+PROGRAM_VERSION = '0.45'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -76,7 +77,14 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state ) -> Lis
 
     allBooksFlag = 'ALL' in state.booksToLoad[rvBible.abbreviation]
     BBBsToProcess = reorderBooksForOETVersions( rvBible.books.keys() if allBooksFlag else state.booksToLoad[rvBible.abbreviation] )
-    BBBs, filenames = [], []
+    # iBkList1 = ['index'] + ( list(state.preloadedBibles[rvBible.abbreviation].books.keys()) 
+    #                         if len(state.preloadedBibles[rvBible.abbreviation].books)<len(state.preloadedBibles[lvBible.abbreviation].books)
+    #                         else list(state.preloadedBibles[lvBible.abbreviation].books.keys()) )
+    # assert iBkList == BBBsToProcess
+    # print( f"OET {BBBsToProcess=} {iBkList=}" )
+    iBkList = ['index'] + BBBsToProcess
+
+    processedBBBs, processedFilenames = [], []
     for BBB in BBBsToProcess:
         ourTidyBBB = tidyBBB( BBB )
         # print( f"{BBB=} {BBBsToProcess}"); print( len(BBBsToProcess) )
@@ -95,8 +103,8 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state ) -> Lis
             continue # Only create pages for the requested RV books
         if BBB == 'FRT': # We want this, even though the LV doesn't (yet?) have any FRT
             vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Creating book page for OET {BBB}…" )
-            BBBs.append( BBB )
-            iBkList = ['index'] + state.booksToLoad[rvBible.abbreviation]
+            processedBBBs.append( BBB )
+            # iBkList = ['index'] + state.booksToLoad[rvBible.abbreviation]
             try: # May give ValueError if this book doesn't not occur in this translation
                 bkIx = iBkList.index( BBB )
                 bkPrevNav = f'''<a title="Go to {'book index' if bkIx==1 else 'previous book'}" href="{iBkList[bkIx-1]}.htm#Top">◄</a> ''' if bkIx>0 else ''
@@ -116,7 +124,7 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state ) -> Lis
             textHtml = do_OET_RV_HTMLcustomisations( textHtml )
             bkHtml = f'{bkHtml}{textHtml}'
             filename = f'{BBB}.htm'
-            filenames.append( filename )
+            processedFilenames.append( filename )
             # BBBLinks.append( f'''<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB)}" href="{filename}#Top">{ourTidyBBB}</a>''' )
             filepath = folder.joinpath( filename )
             top = makeTop( level, rvBible.abbreviation, 'book', f'byDoc/{filename}', state ) \
@@ -140,9 +148,8 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state ) -> Lis
             continue # Only create pages for the requested LV books
 
         vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Creating book pages for OET {BBB}…" )
-        BBBs.append( BBB )
+        processedBBBs.append( BBB )
 
-        iBkList = ['index'] + ( state.booksToLoad[rvBible.abbreviation] if len(state.booksToLoad[rvBible.abbreviation])<len(state.booksToLoad[lvBible.abbreviation]) else state.booksToLoad[lvBible.abbreviation] )
         bkIx = iBkList.index( BBB )
         bkPrevNav = f'''<a title="Go to {'book index' if bkIx==1 else 'previous book'}" href="{iBkList[bkIx-1]}.htm#Top">◄</a> ''' if bkIx>0 else ''
         bkNextNav = f' <a title="Go to next book" href="{iBkList[bkIx+1]}.htm#Top">►</a>' if bkIx<len(iBkList)-1 else ''
@@ -219,7 +226,7 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state ) -> Lis
             # Fails on JNA n=4 rvStartCV='C4' rvEndCV='C4V11' lvChunk[-8:]='eat(fs).'
             assert rsLvChunk[-1]=='>' \
             or (rsLvChunk[-2]=='>' and rsLvChunk[-1] in '.,') \
-            or (BBB=='JNA' and rsLvChunk[-1]=='.'), f"{BBB} {n=} {rvStartCV=} {rvEndCV=} {lvChunk[-8:]=}"
+            or (BBB in ('RUT','JNA') and rsLvChunk[-1]=='.'), f"{BBB} {n=} {rvStartCV=} {rvEndCV=} {lvChunk[-8:]=}"
             lvChunks.append( lvChunk )
             lvRest = lvRest[lvEndIx:]
 
@@ -234,7 +241,7 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state ) -> Lis
 <div class="chunkLV">{lvChunk}</div><!--chunkLV-->
 '''
         filename = f'{BBB}.htm'
-        filenames.append( filename )
+        processedFilenames.append( filename )
         # BBBLinks.append( f'''<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB).replace('James','Jacob/(James)')}" href="{filename}#Top">{ourTidyBBB}</a>''' )
         filepath = folder.joinpath( filename )
         top = makeTop( level, 'OET', 'book', f'byDoc/{filename}', state ) \
@@ -253,7 +260,7 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state ) -> Lis
 
     # Now create an overall index page
     filename = 'index.htm'
-    filenames.append( filename )
+    processedFilenames.append( filename )
     filepath = folder.joinpath( filename )
     top = makeTop( level, 'OET', 'book', 'byDoc', state ) \
             .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}OET Document View" ) \
@@ -270,8 +277,8 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state ) -> Lis
         bkHtmlFile.write( indexHtml )
     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createOETBookPages() finished processing {len(BBBs)} OET books: {BBBs}." )
-    return filenames
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createOETBookPages() finished processing {len(processedBBBs)} OET books: {processedBBBs}." )
+    return processedFilenames
 # end of createBookPages.createOETBookPages
 
 
@@ -293,8 +300,10 @@ def createBookPages( level:int, folder:Path, thisBible, state ) -> List[str]:
                 else thisBibleBooksToLoad
     if 'OET' in thisBible.abbreviation:
         BBBsToProcess = reorderBooksForOETVersions( BBBsToProcess )
+    iBkList = ['index'] + list( state.preloadedBibles[thisBible.abbreviation].books.keys() )
+    # print( f"{thisBible.abbreviation=} {BBBsToProcess=} {iBkList=}" )
 
-    BBBs, filenames = [], []
+    processedBBBs, processedFilenames = [], []
     for BBB in BBBsToProcess:
         ourTidyBBB = tidyBBB( BBB )
         # print( f"{BBB=} {BBBsToProcess}"); print( len(BBBsToProcess) )
@@ -309,9 +318,8 @@ def createBookPages( level:int, folder:Path, thisBible, state ) -> List[str]:
             continue # Only create pages for the requested books
 
         vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Creating book pages for {thisBible.abbreviation} {BBB}…" )
-        BBBs.append( BBB )
+        processedBBBs.append( BBB )
 
-        iBkList = ['index'] + state.booksToLoad[thisBible.abbreviation]
         try: # May give ValueError if this book doesn't not occur in this translation
             bkIx = iBkList.index( BBB )
             bkPrevNav = f'''<a title="Go to {'book index' if bkIx==1 else 'previous book'}" href="{iBkList[bkIx-1]}.htm#Top">◄</a> ''' if bkIx>0 else ''
@@ -338,7 +346,7 @@ def createBookPages( level:int, folder:Path, thisBible, state ) -> List[str]:
             textHtml = do_T4T_HTMLcustomisations( textHtml )
         bkHtml = f'{bkHtml}{textHtml}'
         filename = f'{BBB}.htm'
-        filenames.append( filename )
+        processedFilenames.append( filename )
         # BBBLinks.append( f'<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB)}" href="{filename}#Top">{ourTidyBBB}</a>' )
         filepath = folder.joinpath( filename )
         top = makeTop( level, thisBible.abbreviation, 'book', f'byDoc/{filename}', state ) \
@@ -357,7 +365,7 @@ def createBookPages( level:int, folder:Path, thisBible, state ) -> List[str]:
 
     # Now create an overall index page
     filename = 'index.htm'
-    filenames.append( filename )
+    processedFilenames.append( filename )
     filepath = folder.joinpath( filename )
     top = makeTop( level, thisBible.abbreviation, 'book', 'byDoc', state ) \
             .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{thisBible.abbreviation} Book View" ) \
@@ -374,8 +382,8 @@ def createBookPages( level:int, folder:Path, thisBible, state ) -> List[str]:
         bkHtmlFile.write( indexHtml )
     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createBookPages() finished processing {len(BBBs)} {thisBible.abbreviation} books: {BBBs}." )
-    return filenames
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createBookPages() finished processing {len(processedBBBs)} {thisBible.abbreviation} books: {processedBBBs}." )
+    return processedFilenames
 # end of createBookPages.createBookPages
 
 

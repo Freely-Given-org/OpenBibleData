@@ -5,7 +5,7 @@
 #
 # Module handling OpenBibleData createOETInterlinearPages functions
 #
-# Copyright (C) 2023 Robert Hunt
+# Copyright (C) 2023-2024 Robert Hunt
 # Author: Robert Hunt <Freely.Given.org+OBD@gmail.com>
 # License: See gpl-3.0.txt
 #
@@ -39,6 +39,7 @@ BibleOrgSys uses a three-character book code to identify books.
 CHANGELOG:
     2023-07-19 Fixed untr marker detection
     2023-10-25 Make use of word table index
+    2024-01-07 Add chapter bar at top
 """
 # from gettext import gettext as _
 from typing import Dict, List, Tuple
@@ -61,10 +62,10 @@ from createOETReferencePages import CNTR_BOOK_ID_MAP
 from OETHandlers import livenOETWordLinks
 
 
-LAST_MODIFIED_DATE = '2023-12-26' # by RJH
+LAST_MODIFIED_DATE = '2024-01-11' # by RJH
 SHORT_PROGRAM_NAME = "createOETInterlinearPages"
 PROGRAM_NAME = "OpenBibleData createOETInterlinearPages functions"
-PROGRAM_VERSION = '0.41'
+PROGRAM_VERSION = '0.43'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -80,6 +81,7 @@ def createOETInterlinearPages( level:int, folder:Path, state ) -> bool:
     """
     from createSitePages import TEST_MODE, reorderBooksForOETVersions
     fnPrint( DEBUGGING_THIS_MODULE, f"createOETInterlinearPages( {level}, {folder}, ... )" )
+    assert level == 1
 
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\ncreateOETInterlinearPages( {level}, {folder}, {state.BibleVersions} )" )
     try: os.makedirs( folder )
@@ -108,9 +110,9 @@ def createOETInterlinearPages( level:int, folder:Path, state ) -> bool:
 <h1 id="Top">OET interlinear verse pages</h1>
 <p class="note">These pages show single OET verses with each Greek word aligned with the English word(s) that it was translated to, along with any translation notes and study notes for the verse. Finally, at the bottom of each page there's a <em>Reverse Interlinear</em> with the same information but in English word order.</p>
 <h2>Index of books</h2>
-{makeBookNavListParagraph(state.BBBLinks['OET-RV'], 'Interlinear', state)}
+{makeBookNavListParagraph(state.BBBLinks['OET-RV'], 'interlinearIndex', state)}
 {makeBottom( level, 'interlinear', state )}'''
-    checkHtml( 'InterlinearIndex', indexHtml )
+    checkHtml( 'interlinearIndex', indexHtml )
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
         indexHtmlFile.write( indexHtml )
     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
@@ -127,6 +129,7 @@ def createOETInterlinearVersePagesForBook( level:int, folder:Path, BBB:str, BBBL
     """
     from createSitePages import TEST_MODE
     fnPrint( DEBUGGING_THIS_MODULE, f"createOETInterlinearVersePagesForBook( {level}, {folder}, {BBB}, {BBBLinks}, {state.BibleVersions} )" )
+    assert level == 1
     BBBFolder = folder.joinpath(f'{BBB}/')
     BBBLevel = level + 1
 
@@ -150,6 +153,10 @@ def createOETInterlinearVersePagesForBook( level:int, folder:Path, BBB:str, BBBL
     else:
         logging.critical( f"createOETInterlinearVersePagesForBook unable to find a valid reference Bible for {BBB}" )
         return False # Need to check what FRT does
+    chapterLinks = []
+    cLinksPar = f'''<p class="chLst">{EM_SPACE.join( chapterLinks + [f'<a title="Go to interlinear verse page" href="C{ps}V1.htm#Top">Ps{ps}</a>' for ps in range(1,numChapters+1)] )}</p>''' \
+        if BBB=='PSA' else \
+            f'''<p class="chLst">{ourTidyBbb if ourTidyBbb!='Jac' else 'Jacob/(James)'} {' '.join( chapterLinks + [f'<a title="Go to interlinear verse page" href="C{chp}V1.htm#Top">C{chp}</a>' for chp in range(1,numChapters+1)] )}</p>'''
 
     vLinks = []
     if numChapters >= 1:
@@ -181,6 +188,7 @@ def createOETInterlinearVersePagesForBook( level:int, folder:Path, BBB:str, BBBL
                         .replace( f'''href="{'../'*BBBLevel}par/"''', f'''href="{'../'*BBBLevel}par/{BBB}/C{c}V{v}.htm#Top"''')
                 iHtml = f'''{top}<!--interlinear verse page-->
 {adjBBBLinksHtml}
+{cLinksPar}
 <h1 id="Top">OET interlinear {ourTidyBBB} {c}:{v}</h1>
 {navLinks.replace('__ID__','Top').replace('__ARROW__','↓').replace('__LINK__','Bottom').replace('__WHERE__','bottom')}
 {iHtml}
@@ -213,7 +221,7 @@ f'''<p class="chLst">{ourTidyBbb if ourTidyBbb!='Jac' else 'Jacob/(James)'} {'
     indexHtml = f'''{top}{adjBBBLinksHtml}
 {ourLinks}
 {makeBottom( BBBLevel, 'interlinear', state )}'''
-    checkHtml( 'InterlinearIndex', indexHtml )
+    checkHtml( 'interlinearIndex', indexHtml )
     with open( filepath1, 'wt', encoding='utf-8' ) as indexHtmlFile:
         indexHtmlFile.write( indexHtml )
     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath1}" )
@@ -237,7 +245,7 @@ f'''<p class="chLst">{ourTidyBbb if ourTidyBbb!='Jac' else 'Jacob/(James)'} {'
     indexHtml = f'''{top}{adjBBBLinksHtml}
 {ourLinks}
 {makeBottom( level, 'interlinear', state )}'''
-    checkHtml( 'InterlinearIndex', indexHtml )
+    checkHtml( 'interlinearIndex', indexHtml )
     with open( filepath2, 'wt', encoding='utf-8' ) as indexHtmlFile:
         indexHtmlFile.write( indexHtml )
     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath2}" )
@@ -297,7 +305,7 @@ def createOETInterlinearVersePage( level:int, BBB:str, c:int, v:int, state ) -> 
     # Handle (uW) translation notes and (Tyndale) study notes
     utnHtml = formatUnfoldingWordTranslationNotes( level, BBB, C, V, 'interlinear', state )
     if utnHtml: utnHtml = f'<div class="UTN"><b>uW Translation Notes</b>: {utnHtml}</div><!--end of UTN-->\n'
-    tsnHtml = formatTyndaleNotes( 'TOSN', level, BBB, C, V, 'parallel', state )
+    tsnHtml = formatTyndaleNotes( 'TOSN', level, BBB, C, V, 'interlinear', state )
     if tsnHtml: tsnHtml = f'<div class="TSN">TSN <b>Tyndale Study Notes</b>: {tsnHtml}</div><!--end of TSN-->\n'
 
     # We need to find where this BCV is in the wordtable

@@ -62,10 +62,10 @@ from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39, BOOKLIST_NT27
 # from Bibles import fetchChapter
 
 
-LAST_MODIFIED_DATE = '2024-01-02' # by RJH
+LAST_MODIFIED_DATE = '2024-01-14' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
-PROGRAM_VERSION = '0.59'
+PROGRAM_VERSION = '0.61'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -78,7 +78,7 @@ NEWLINE = '\n'
 
 KNOWN_PAGE_TYPES = ('site', 'topIndex', 'details', 'allDetails',
                     'book','chapter','section',
-                    'parallel', 'interlinear',
+                    'synopticPassage', 'parallelVerse', 'interlinearVerse',
                     'dictionaryMainIndex','dictionaryLetterIndex','dictionaryEntry','dictionaryIntro',
                     'word','lemma', 'person','location',
                     'wordIndex','lemmaIndex', 'personIndex','locationIndex', 'referenceIndex',
@@ -86,6 +86,8 @@ KNOWN_PAGE_TYPES = ('site', 'topIndex', 'details', 'allDetails',
 def makeTop( level:int, versionAbbreviation:Optional[str], pageType:str, fileOrFolderName:Optional[str], state ) -> str:
     """
     Create the very top part of an HTML page.
+
+    This is the HTML <head> segment, including assigning the correct CSS stylesheet.
 
     Note: versionAbbreviation can be None for parallel, interlinear and word pages, etc.
     """
@@ -95,9 +97,11 @@ def makeTop( level:int, versionAbbreviation:Optional[str], pageType:str, fileOrF
 
     if pageType in ('chapter','section','book'):
         cssFilename = 'OETChapter.css' if 'OET' in versionAbbreviation else 'BibleChapter.css'
-    elif pageType == 'parallel':
+    elif pageType == 'synopticPassage':
+        cssFilename = 'SynopticPassage.css'
+    elif pageType == 'parallelVerse':
         cssFilename = 'ParallelVerses.css'
-    elif pageType == 'interlinear':
+    elif pageType == 'interlinearVerse':
         cssFilename = 'InterlinearVerse.css'
     elif pageType in ('word','lemma', 'person','location'):
         cssFilename = 'BibleWord.css'
@@ -141,6 +145,9 @@ def _makeHeader( level:int, versionAbbreviation:str, pageType:str, fileOrFolderN
     """
     Create the navigation that goes before the page content.
 
+    This includes the list of versions, and possibly the "ByDocument/BySection" bar as well.
+        (It doesn't include book, chapter, or verse selector bars.)
+
     Note: versionAbbreviation can be None for parallel, interlinear and word pages, etc.
     """
     fnPrint( DEBUGGING_THIS_MODULE, f"_makeHeader( {level}, {versionAbbreviation}, {pageType}, {fileOrFolderName} )" )
@@ -172,11 +179,15 @@ def _makeHeader( level:int, versionAbbreviation:str, pageType:str, fileOrFolderN
                             f'href="{vLink}">{loopVersionAbbreviation}</a>'
                             f'{state.BibleVersionDecorations[loopVersionAbbreviation][1]}'
                             )
-    if pageType == 'parallel':
+    if pageType == 'synopticPassage':
+        initialVersionList.append( 'Synoptic' )
+    else: # add a link for parallel
+        initialVersionList.append( f'''{state.BibleVersionDecorations['Synoptic'][0]}<a title="Single verse in many translations" href="{'../'*level}syn/">Synoptic</a>{state.BibleVersionDecorations['Parallel'][1]}''' )
+    if pageType == 'parallelVerse':
         initialVersionList.append( 'Parallel' )
     else: # add a link for parallel
         initialVersionList.append( f'''{state.BibleVersionDecorations['Parallel'][0]}<a title="Single verse in many translations" href="{'../'*level}par/">Parallel</a>{state.BibleVersionDecorations['Parallel'][1]}''' )
-    if pageType == 'interlinear':
+    if pageType == 'interlinearVerse':
         initialVersionList.append( 'Interlinear' )
     else: # add a link for interlinear
         initialVersionList.append( f'''{state.BibleVersionDecorations['Interlinear'][0]}<a title="Single verse in interlinear view" href="{'../'*level}il/">Interlinear</a>{state.BibleVersionDecorations['Interlinear'][1]}''' )
@@ -257,24 +268,37 @@ def _makeHeader( level:int, versionAbbreviation:str, pageType:str, fileOrFolderN
 # end of html._makeHeader
 
 
-def makeBookNavListParagraph( linksList:List[str], abbrev:str, state ) -> str:
+HTML_PLUS_LIST = ['synopticPassage','parallelVerse','interlinearVerse', 'synopticIndex','parallelIndex','interlinearIndex']
+OET_HTML_PLUS_LIST = ['OET'] + HTML_PLUS_LIST
+def makeBookNavListParagraph( linksList:List[str], workAbbrevPlus:str, state ) -> str:
     """
     Create a 'bkLst' paragraph with the book abbreviation links
         preceded by the work abbreviation (non-link) if specified.
+
+    linksList contains links like '<a title="Generic front matter" href="FRT.htm#Top">FRT</a>', '<a title="Jonah" href="JNA.htm#Top">JNA</a>', '<a title="Mark" href="MRK.htm#Top">MARK</a>'
     """
-    newList = [abbrev] if abbrev else []
+    fnPrint( DEBUGGING_THIS_MODULE, f"makeBookNavListParagraph( {linksList}, {workAbbrevPlus}, ... )" )
+    assert workAbbrevPlus in state.preloadedBibles \
+        or workAbbrevPlus in OET_HTML_PLUS_LIST, workAbbrevPlus
+
+    newList = [workAbbrevPlus] if workAbbrevPlus else []
     for aLink in linksList:
         # print( f"{aLink=}")
-        if '>FRT<' in aLink and abbrev in ('Parallel','Interlinear'): continue # Don't include this
-        ixStart = aLink.index( '>' ) + 1
-        ixEnd = aLink.index( '<', ixStart )
-        displayText = aLink[ixStart:ixEnd]
+        if '>FRT<' in aLink and workAbbrevPlus in HTML_PLUS_LIST: continue # Don't include this
+        if workAbbrevPlus in HTML_PLUS_LIST:
+            ixHrefStart = aLink.index( 'href="' ) + 6
+            ixHrefEnd = aLink.index( '.htm', ixHrefStart )
+            hrefText = aLink[ixHrefStart:ixHrefEnd]
+            aLink = f'''{aLink[:ixHrefStart]}{'' if 'Index' in workAbbrevPlus else '../'}{hrefText}/C1V1{aLink[ixHrefEnd:]}'''
+        ixDisplayLinkStart = aLink.index( '>' ) + 1
+        ixDisplayLinkEnd = aLink.index( '<', ixDisplayLinkStart )
+        displayText = aLink[ixDisplayLinkStart:ixDisplayLinkEnd]
         # print( f"  {aLink=} {displayText=}")
         assert 3 <= len(displayText) <= 4 # it should be a tidyBBB
         BBB = 'JAM' if displayText=='JAC' else 'PS2' if displayText=='2PS' else BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromText( displayText )
         # print( f"   {aLink=} {displayText=} {BBB=}")
         assert BBB
-        newALink = f'{aLink[:ixStart]}{displayText}{aLink[ixEnd:]}'
+        newALink = f'{aLink[:ixDisplayLinkStart]}{displayText}{aLink[ixDisplayLinkEnd:]}'
         if BBB in ('INT','FRT','OTH','GLS','XXA','XXB','XXC'):
             newALink = f'<span class="XX">{newALink}</span>'
         elif BBB in BOOKLIST_OT39:
