@@ -5,7 +5,7 @@
 #
 # Module handling OpenBibleData USFM to HTML functions
 #
-# Copyright (C) 2023 Robert Hunt
+# Copyright (C) 2023-2024 Robert Hunt
 # Author: Robert Hunt <Freely.Given.org+OBD@gmail.com>
 # License: See gpl-3.0.txt
 #
@@ -51,6 +51,7 @@ CHANGELOG:
     2023-10-13 Give error if unable to find xref book
     2023-12-24 Add code to liven section references ( livenSectionReferences() )
                 Change to use findSectionNumber() function
+    2024-01-17 Add special handling for '\\nd LORD\\nd*'
 """
 from gettext import gettext as _
 import re
@@ -65,10 +66,10 @@ from BibleOrgSys.Internals.InternalBibleInternals import getLeadingInt
 from html import checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-12-24' # by RJH
+LAST_MODIFIED_DATE = '2024-01-18' # by RJH
 SHORT_PROGRAM_NAME = "usfm"
 PROGRAM_NAME = "OpenBibleData USFM to HTML functions"
-PROGRAM_VERSION = '0.61'
+PROGRAM_VERSION = '0.63'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -91,7 +92,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
 
     fnPrint( DEBUGGING_THIS_MODULE, f"convertUSFMMarkerListToHtml( {versionAbbreviation} {refTuple} '{segmentType}' {contextList} {markerList} )" )
     dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"convertUSFMMarkerListToHtml( {versionAbbreviation} {refTuple} '{segmentType}' {contextList} {len(markerList)} )" )
-    assert segmentType in ('book','section','chapter','verse'), f"Unexpected {segmentType=}"
+    assert segmentType in ('book','section','chapter','verse','parallelPassage'), f"Unexpected {segmentType=}"
 
     inMainDiv = inParagraph = inSection = inList = inListEntry = inTable = None
     inRightDiv = False
@@ -850,7 +851,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
 
     if basicOnly: # remove leading, trailing, and internal blank lines
         while '<br><br>' in html:
-            html = html.replace( '<br><br>', '<br>')
+            html = html.replace( '<br><br>', '<br>' )
         while html.startswith( '<br>' ): # BSB and OEB seems particularly bad with blank lines
             html = html[4:]
         while html.endswith( '<br>' ): # LEB also
@@ -1017,6 +1018,8 @@ def formatUSFMText( versionAbbreviation:str, refTuple:tuple, segmentType:str, us
             .replace( '\\it ', '<i>' ).replace( '\\it*', '</i>' ) \
             .replace( '\\em ', '<em>' ).replace( '\\em*', '</em>' ) \
             .replace( '\\sup ', '<sup>' ).replace( '\\sup*', '</sup>' )
+    # Special handling for '\\nd LORD\\nd*' (this is also in createParallelVersePages)
+    html = html.replace( '\\nd LORD\\nd*', '\\nd L<span style="font-size:.75em;">ORD</span>\\nd*' )
     # Now replace all the other character markers into HTML spans, e.g., \\add \\nd \\bk
     for charMarker in BibleOrgSysGlobals.USFMAllExpandedCharacterMarkers + ['untr']:
         html = html.replace( f'\\{charMarker} ', f'<span class="{charMarker}">' ).replace( f'\\{charMarker}*', '</span>' )
@@ -1091,7 +1094,7 @@ def livenIntroductionLinks( versionAbbreviation:str, refTuple:tuple, segmentType
             assert refTuple[1] == '-1', f"{refTuple=}"
             # print( f"{versionAbbreviation}, {refTuple}, {refBBB=} {refC=} {refV=} {guts=}" )
             newGuts = f'<a title="Go to reference verse" href="C{refC}V{refV}.htm#Top">{guts}</a>'
-        elif segmentType == 'section':
+        elif segmentType in ('section','parallelPassage'):
             if 1:
             # try: # Now find which section that reference starts in
                 # print( f"{state.sectionsLists[versionAbbreviation][refBBB]=}" )
@@ -1150,7 +1153,7 @@ def livenIntroductionLinks( versionAbbreviation:str, refTuple:tuple, segmentType
             assert refTuple[1] == '-1', f"{refTuple=}"
             # print( f"{versionAbbreviation}, {refTuple}, {refBBB=} {refC=} {refV=} {guts=}" )
             newGuts = f'<a title="Go to reference verse" href="C{refC}V{refV}.htm#Top">{guts}</a>'
-        elif segmentType == 'section':
+        elif segmentType in ('section','parallelPassage'):
             if 1:
             # try: # Now find which section that reference starts in
                 n = findSectionNumber( versionAbbreviation, ourBBB, refC, refV, state )
@@ -1225,7 +1228,7 @@ def livenIORs( versionAbbreviation:str, refTuple:tuple, segmentType:str, ioLineH
             assert refTuple[1] == '-1', f"{refTuple=}"
             # print( f"{versionAbbreviation}, {refTuple}, {refBBB=} {refC=} {refV=} {guts=}" )
             newGuts = f'<a title="Go to reference verse" href="C{Cstr}V{Vstr}.htm#Top">{guts}</a>'
-        elif segmentType == 'section':
+        elif segmentType in ('section','parallelPassage'):
             if 1:
             # try: # Now find which section that IOR starts in
                 n = findSectionNumber( versionAbbreviation, ourBBB, Cstr, Vstr, state )

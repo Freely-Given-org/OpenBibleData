@@ -55,7 +55,7 @@ from createOETReferencePages import CNTR_BOOK_ID_MAP
 from OETHandlers import livenOETWordLinks
 
 
-LAST_MODIFIED_DATE = '2024-01-11' # by RJH
+LAST_MODIFIED_DATE = '2024-01-15' # by RJH
 SHORT_PROGRAM_NAME = "createParallelVersePages"
 PROGRAM_NAME = "OpenBibleData createParallelVersePages functions"
 PROGRAM_VERSION = '0.85'
@@ -108,6 +108,7 @@ def createParallelVersePages( level:int, folder:Path, state ) -> bool:
 <p class="note"><small>Note: We would like to display more English Bible versions on these parallel pages to assist Bible translation research, but copyright restrictions from the commercial Bible industry and refusals from publishers greatly limit this. (See the <a href="https://SellingJesus.org/graphics">Selling Jesus</a> website for more information on this problem.)</small></p>
 {makeBottom( level, 'parallelVerse', state )}'''
     checkHtml( 'parallelIndex', indexHtml )
+    assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
         indexHtmlFile.write( indexHtml )
     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
@@ -187,7 +188,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                 rightCLink = f' <a title="Go to first chapter" href="C1V1.htm#__ID__">►</a>' if c==-1 \
                         else f' <a title="Go to next chapter" href="C{c+1}V1.htm#__ID__">►</a>' if c<numChapters \
                         else ''
-                interlinearLink = f''' <a title="Interlinear verse view" href="{'../'*BBBLevel}il/{BBB}/C{C}V{V}.htm#Top">═</a>''' if BBB in state.booksToLoad['OET'] else ''
+                interlinearLink = f''' <a title="Interlinear verse view" href="{'../'*BBBLevel}ilr/{BBB}/C{C}V{V}.htm#Top">═</a>''' if BBB in state.booksToLoad['OET'] else ''
                 detailsLink = f''' <a title="Show details about these works" href="{'../'*(BBBLevel)}allDetails.htm#Top">©</a>'''
                 navLinks = f'<p id="__ID__" class="vNav">{leftCLink}{leftVLink}{ourTidyBbb} Book Introductions <a title="Go to __WHERE__ of page" href="#__LINK__">__ARROW__</a>{rightVLink}{rightCLink}{interlinearLink}{detailsLink}</p>' if c==-1 \
                         else f'<p id="__ID__" class="vNav">{introLink}{leftCLink}{leftVLink}{ourTidyBbb} {C}:{V} <a title="Go to __WHERE__ of page" href="#__LINK__">__ARROW__</a>{rightVLink}{rightCLink}{interlinearLink}{detailsLink}</p>'
@@ -215,12 +216,16 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                                 .removeprefix( '\\p ' ).replace( '\\p ', '\n' ) \
                                 .removeprefix( '\\p ' ).replace( '\\q1 ', '\n' ) \
                                 .replace( '\n\n', '\n' )
+                            # if versionAbbreviation=='CSB' and BBB=='RUT' and 'ORD' in verseText: print( f"{versionAbbreviation} {BBB} {C}:{V} {verseText=}" )
                             vHtml = verseText \
-                                .replace( '\n', '<br>' ) \
                                 .replace( '\\it ', '<i>' ).replace( '\\it*', '</i>' ) \
                                 .replace( '\\em ', '<em>' ).replace( '\\em*', '</em>' ) \
                                 .replace( '\\add ', '<span class="add">' ).replace( '\\add*', '</span>' ) \
-                                .replace( '\\wj ', '<span class="wj">' ).replace( '\\wj*', '</span>' )
+                                .replace( '\\nd LORD\\nd*', '\\nd L<span style="font-size:.75em;">ORD</span>\\nd*' ) \
+                                    .replace( '\\nd ', '<span class="nd">' ).replace( '\\nd*', '</span>' ) \
+                                .replace( '\\wj ', '<span class="wj">' ).replace( '\\wj*', '</span>' ) \
+                                .replace( '\n', '<br>' )
+                            # if versionAbbreviation=='CSB' and BBB=='RUT' and C=='2' and 'ORD' in verseText: print( f"{versionAbbreviation} {BBB} {C}:{V} {vHtml=}" ); halt
                             assert '\\' not in vHtml, f"{versionAbbreviation} {BBB} {C}:{V} {vHtml=}"
                             vHtml =  f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName"><a title="Go to {versionAbbreviation} copyright info" href="{'../'*BBBLevel}allDetails.htm#{versionAbbreviation}">{versionAbbreviation}</a></span> {vHtml}</p>
 '''
@@ -428,7 +433,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                         .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{ourTidyBBB} {C}:{V} Parallel View" ) \
                         .replace( '__KEYWORDS__', f'Bible, parallel, {ourTidyBBB}' )
                 if BBB in state.booksToLoad['OET']:
-                    top = top.replace( f'''href="{'../'*BBBLevel}il/"''', f'''href="{'../'*BBBLevel}il/{BBB}/C{C}V{V}.htm#Top"''')
+                    top = top.replace( f'''href="{'../'*BBBLevel}ilr/"''', f'''href="{'../'*BBBLevel}ilr/{BBB}/C{C}V{V}.htm#Top"''')
                 parallelHtml = f'''{top}<!--parallel verse page-->
 {adjBBBLinksHtml}
 {cLinksPar}
@@ -439,6 +444,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
 {navLinks.replace('__ID__','Bottom').replace('__ARROW__','↑').replace('__LINK__','Top').replace('__WHERE__','top')}
 {makeBottom( BBBLevel, 'parallelVerse', state )}'''
                 checkHtml( f'Parallel {BBB} {C}:{V}', parallelHtml )
+                assert not filepath.is_file() # Check that we're not overwriting anything
                 with open( filepath, 'wt', encoding='utf-8' ) as pHtmlFile:
                     pHtmlFile.write( parallelHtml )
                 vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(parallelHtml):,} characters written to {filepath}" )
@@ -762,7 +768,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
             (('Bethanie ','Bethania ','Bethanye ','Betanye '),'Bethany '), (('Bethlehe ','Bethleem ','Bethlee '),'Bethlehem '), (('bitraiede','betraied'),'betrayed'),(('bitraye ','betraye ','betraie '),'betray '), ((' betere ',),' better '), ((' bitwixe',' betweene',' betwene'),' between'),
             ((' beyonde',' biyende',' biyondis'),' beyond'),
         ((' byd ',),' bid '), ((' byde ',),' bide/stay '), ((' bynde',),' bind'), ((' birthe',),' birth'),
-        (('Blessid ',),'Blessed '),(('blesside','blissid'),'blessed'),
+        (('Blessid ',),'Blessed '),(('blesside','blissid'),'blessed'), (('blessynge',),'blessing'),
             (('blynde','blynd','blinde'),'blind'),
             (('bloude','bloud'),'blood'),
         ((' bootys',),' boats'),
@@ -833,7 +839,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
                 ((' distriede',),' destroyed'),((' distrie ',' destroye ',' distroye '),' destroy '),
             ((' deuelis',' devylles',' deuils',' deuyls'),' devils'),((' devyll',' deuell',' deuyll'),' devil'),
         ((' dyd ',' dide '),' did '),((' dide,',),' did,'),
-            ((' dyeth ',' dieth '),' dieth/dies '), ((' dieden ',),' died '),((' diede,',),' died,'),
+            ((' dyeth ',' dieth '),' dieth/dies '), ((' dieden ',' dyed '),' died '),((' diede,',),' died,'),
             ((' discerne:',),' discern:'), (('disciplis',),'disciples'), (('disdayned',),'disdained'),(('disdaine ',),'disdain '),
                 ((' dyvers',' diuers'),' diverse/various'), (('devided','deuided','deuyded'),'divided'), (('devorsement','deuorcemet','diuorcement'),'divorcement'),
         ((' doe ',),' do '),((' doe?',),' do?'),
@@ -949,7 +955,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
         (('iudgement','iudgment'),'judgement'),((' iugis',),' judges'),((' iudge',' iuge'),' judge'),(('Iudge','Ivdge'),'Judge'), ((' iust ',),' just '),
     ((' keperis',),' keepers'),((' keepeth',' kepith',' kepeth'),' keepeth/keeps'),((' keepe',' kepe'),' keep'), ((' keyes',' keies'),' keys'),
         ((' killiden',' kylled',' kyllid'),' killed'),
-            (('kingdome','kyngdoom','kyngdome','kyngdom'),'kingdom'), ((' kynges',' kyngis'),' kings'),((' kynge ',' kyng '),' king '),((' kynge,',' kyng,'),' king,'),((' kynge.',' kyng.'),' king.'), ((' kynnysmen',),' kinsmen'), ((' kynne',),' kin'),((' kyn,',),' kin,'),
+            (('kingdome','kyngdoom','kyngdome','kyngdom'),'kingdom'), ((' kynges',' kyngis'),' kings'),((' kynge ',' kyng '),' king '),((' kynge,',' kyng,'),' king,'),((' kynge.',' kyng.'),' king.'), ((' kynysman',' kynsman'),' kinsman'),((' kynnysmen',),' kinsmen'), ((' kynne',),' kin'),((' kyn,',),' kin,'),
             ((' kiste ',' kyssed '),' kissed '),
         (('knewest','knewen','knewe'),'knew'), (('knowyng',),'knowing'), (('knowne','knowun','knowen'),'known'), (('Knowe',),'Know'),((' knowe',' woot'),' know'),
     ((' labor',),' labour'), ((' lomb ',' lambe ',' labe '),' lamb '),(('Lambe',),'Lamb'), ((' lastynge',),' lasting'),
@@ -977,7 +983,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
     ((' maad',),' made'),
             ((' maymed',),' maimed'),
             ((' makynge',),' making'),((' makere ',),' maker '),
-            ((' mannus',),' man\'s'),((' ma ',),' man '), ((' maner',),' manner'), ((' manye ',),' many '),
+            ((' mannus',),' man\'s'),((' ma ',),' man '), ((' manere',' maner'),' manner'), ((' manye ',),' many '),
             ((' mariage',),' marriage'), (('marueyled','marueiled','merveled','marueled','merveyled','marveled'),'marvelled'), (('Maryes',),"Mary's/Maria's"),(('Marye','Marie'),'Mary/Maria'),
             (('Maister','Maistir'),'Master'),((' maister',),' master'),
             ((' mayest',' mayst'),' mayest/may'),((' maye ',' maie '),' may '),((' maye.',),' may.'),(('Maye ',),'May '),
@@ -998,7 +1004,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
             ((' mountayne',' mountaine'),' mountain'), ((' moute ',),' mount '), ((' mornen ',' mourne ',' morne '),' mourn '),((' mornen,',' mourne,',' morne,'),' mourn,'),((' mornen:',' mourne:',' morne:'),' mourn:'),
             ((' moued',),' moved'),
         ((' myche',' moche',' moch',' muche'),' much'), (('murthurers',),'murderers'),(('murthurer',),'murderer'),
-    ((' naciouns',' nacions'),' nations'), ((' natiue',),' native'),
+    (('Naomy','Naemi'),'Naomi'), ((' naciouns',' nacions'),' nations'), ((' natiue',),' native'),
         ((' neere ',' neare '),' near '),((' neere.',' neare.'),' near.'),((' neere:',' neare:'),' near:'),
             ((' nedeful',),' needful'),((' nedes',),' needs'),((' neede ',' neade ',' nede '),' need '),
             ((' neiyboris',' neghboures',' neghbours',' neyghbours'),' neighbours'), (('Nether ',),'Neither '),((' nether',' nethir'),' neither'),(('(nether',),'(neither'),
@@ -1052,6 +1058,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
             ((' pourses',),' purses'), (('Sue ',),'Pursue '),
             ((' putteth ',),' putteth/puts '),
     (('quenchid','queched'),'quenched'),
+        (('quike',),'quick/alive'),
     (('Rabi',),'Rabbi'), ((' raysed',),' raised'),((' reise',' reyse',' rayse'),' raise'),
         ((' redi ',),' ready '), ((' realme',' rewme'),' realm'), (('reasonyng','reasoninge'),'reasoning'),
             ((' resseyueth',' receaveth',' receaueth',' receiueth'),' receives'),((' resseyueden',' receaved',' receaued',' receiued'),' received'),((' resseyue',' receave',' receaue',' receiue'),' receive'), (('recompence',),'recompense'), ((' recorde ',),' record '), (('recouering',),'recovering'),
@@ -1266,7 +1273,7 @@ def moderniseEnglishWords( html:str ) -> bool:
 GERMAN_WORD_MAP = (
     ('Aber ','But '),
         (' Arche ',' ark '),
-        (' alle ',' all '),
+        (' alle ',' all '),(' allen ',' all '),
         (' auch.',' also.'), (' aus ',' out of '), (' auf ',' on '),(' aufs ',' onto '),
     ('Älteste','elder'),
     ('Befehl','command'), ('Blut','blood'),
@@ -1285,15 +1292,16 @@ GERMAN_WORD_MAP = (
         ('Jüngern ','disciples '),
     (' kamen ',' came '),(' kam ',' came '),
         (' kommen ',' coming '),
-    ('Lieben ','loved (one) '), (' liebhabe ',' love '), (' ließ ',' let '),
+    ('Lieben ','loved (one) '), (' liebhabe ',' love '), (' ließ ',' let '),(' ließen ',' leave/let '),
     (' machten',' make'), ('Meer ','sea '),('Meer.','sea.'), (' mit ',' with '), ('. Morgan','. Morning'),('Morgan','morning'),
-    ('Nacht ','night '), (' nicht ',' not '),
-    ('Samen ','seed '),
+    ('Nacht ','night '), ('Naemi ','Naomi '), (' nicht ',' not '),
+    ('Samen ','seed/seeds '),('Samen.','seed/seeds.'),
         ('Schiff','ship'),
         (' sein ',' his '),(' seine ',' his '),
         (' sieben ',' seven '), (' sind ',' are '),
         ('Sohn!','son!'), ('Sonne','sun'),
         (' sprach ',' spoke '),
+        (' starb ',' died '),
     ('Und ','And '),(' und ',' and '), ('Ungewitter','storm'),
     ('Vaterland','fatherland/homeland'),
         (' viel ',' many '), ('Volks','people'), (' von ',' from '),

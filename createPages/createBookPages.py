@@ -50,10 +50,10 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_
 from OETHandlers import livenOETWordLinks
 
 
-LAST_MODIFIED_DATE = '2024-01-11' # by RJH
+LAST_MODIFIED_DATE = '2024-01-15' # by RJH
 SHORT_PROGRAM_NAME = "createBookPages"
 PROGRAM_NAME = "OpenBibleData createBookPages functions"
-PROGRAM_VERSION = '0.45'
+PROGRAM_VERSION = '0.46'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -137,6 +137,7 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state ) -> Lis
 {bkHtml}
 {makeBottom( level, 'book', state )}'''
             checkHtml( rvBible.abbreviation, bkHtml )
+            assert not filepath.is_file() # Check that we're not overwriting anything
             with open( filepath, 'wt', encoding='utf-8' ) as bkHtmlFile:
                 bkHtmlFile.write( bkHtml )
             vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(bkHtml):,} characters written to {filepath}" )
@@ -156,7 +157,7 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state ) -> Lis
 
         bkHtml = f'''<p class="bkNav">{bkPrevNav}<span class="bkHead" id="Top">Open English Translation {ourTidyBBB}</span>{bkNextNav}</p>
 <p class="rem">This is still a very early look into the unfinished text of the <em>Open English Translation</em> of the Bible. Please double-check the text in advance before using in public.</p>
-<div class="container">
+<div class="RVLVcontainer">
 <h2>Readers’ Version</h2>
 <h2>Literal Version <button type="button" id="marksButton" onclick="hide_show_marks()">Hide marks</button></h2>
 '''
@@ -251,9 +252,10 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state ) -> Lis
                           f'''<a title="Up to {state.BibleNames['OET']}" href="{'../'*level}OET/">↑OET</a>''' )
         bkHtml = f'''{top}<!--book page-->
 {makeBookNavListParagraph(state.BBBLinks['OET-RV'], 'OET', state)}
-{bkHtml}{removeDuplicateCVids( BBB, combinedHtml )}</div><!--container-->
+{bkHtml}{removeDuplicateCVids( BBB, combinedHtml )}</div><!--RVLVcontainer-->
 {makeBottom( level, 'book', state )}'''
         checkHtml( 'book', bkHtml )
+        assert not filepath.is_file() # Check that we're not overwriting anything
         with open( filepath, 'wt', encoding='utf-8' ) as bkHtmlFile:
             bkHtmlFile.write( bkHtml )
         vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(bkHtml):,} characters written to {filepath}" )
@@ -273,6 +275,7 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state ) -> Lis
 {makeBookNavListParagraph(state.BBBLinks['OET-RV'], 'OET', state)}
 {makeBottom( level, 'book', state )}'''
     checkHtml( 'OETBooksIndex', indexHtml )
+    assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as bkHtmlFile:
         bkHtmlFile.write( indexHtml )
     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
@@ -359,6 +362,7 @@ def createBookPages( level:int, folder:Path, thisBible, state ) -> List[str]:
 {bkHtml}
 {makeBottom( level, 'book', state )}'''
         checkHtml( thisBible.abbreviation, bkHtml )
+        assert not filepath.is_file() # Check that we're not overwriting anything
         with open( filepath, 'wt', encoding='utf-8' ) as bkHtmlFile:
             bkHtmlFile.write( bkHtml )
         vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(bkHtml):,} characters written to {filepath}" )
@@ -378,6 +382,7 @@ def createBookPages( level:int, folder:Path, thisBible, state ) -> List[str]:
 {makeBookNavListParagraph(state.BBBLinks[thisBible.abbreviation], thisBible.abbreviation, state)}
 {makeBottom( level, 'book', state)}'''
     checkHtml( thisBible.abbreviation, indexHtml )
+    assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as bkHtmlFile:
         bkHtmlFile.write( indexHtml )
     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )

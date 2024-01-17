@@ -1,3 +1,5 @@
+/* Also used for sections and documents */
+
 div.footer { width:500px; height:250px; margin:50px; }
 div.rightBox { float:right; width:35%; border:3px solid #73AD21; padding:0.2em; }
 
@@ -8,7 +10,7 @@ span.upLink { font-size:1.5em; font-weight:bold; }
 a:visited { text-decoration:none; }
 a:hover { text-decoration:none; }
 a:active { text-decoration:none; } */
-a { text-decoration:none; }
+a { color:inherit; text-decoration:none; }
 
 /* Navigational lists at top of page */
 p.wrkLst { background-color:#904471; color:98a9d4; }
@@ -33,6 +35,9 @@ span.DC { color:orange; font-size:smaller; }
 .DC a { text-decoration:none; }
 
 /* Navs are the ones with arrows */
+p.bkNav { text-align:center; font-size:2em; }
+/* span.bkHead { } */
+p.secNav { text-align:center; font-size:1.8em; }
 p.cNav { text-align:center; font-size:1.8em; background-color:#98a9d4; }
 /* .cNav a { text-decoration:none; } */
 p.vNav { text-align:center; font-size:1.8em; }
@@ -45,16 +50,21 @@ p.h { font-weight:bold; }
 p.mt1 { text-align:center; font-size:1.8em; }
 p.mt2 { text-align:center; font-size:1.3em; }
 p.mt1 + p.mt2, p.mt2 + p.mt1 { margin-top:-0.5em; }
-p.rem { font-size:0.8em; color:grey; }
+p.id, p.rem { font-size:0.8em; color:grey; }
 
-/* Our book intro USFM */
+/* Book intro USFM */
 li.intro { margin-top:0.5em; margin-bottom:0.5em; }
+p.imt1 { text-align:center; font-size:1.8em; }
+p.imt2 { text-align:center; font-size:1.3em; }
 p.is1 { font-weight:bold; font-size:1.3em; }
 p.is2 { font-weight:bold; }
 p.iot { font-weight:bold; }
 p.io1 { text-indent:2em; margin-top:0.2em; margin-bottom:0.2em; }
-span.ior { font-weight:bold; }
+span.ior { font-weight:bold; } /* font-style:italic; */
 span.bk { font-style:italic; }
+
+/* Section headings list */
+/* p.sectionHeading { } */
 
 /* Chapters USFM */
 span.c { font-size:1.1em; color:green; }
@@ -62,44 +72,22 @@ span.cPsa { font-size:1.6em; font-weight:bold; color:green; }
 span.v { vertical-align:super; font-size:0.5em; color:red; }
 span.cv { vertical-align:super; font-size:0.8em; color:orange; }
 span.vp { vertical-align:super; font-size:0.5em; color:purple; }
-span.d { font-style:italic; }
 p.s1 { margin-top:0.1em; margin-bottom:0; font-weight:bold; }
 p.r { margin-top:0; margin-bottom:0; font-size:0.75em; }
+p.d { font-style:italic; }
 p.p { text-indent:0.5em; margin-top:0.2em; margin-bottom:0.2em; }
+p.m { margin-top:0.2em; margin-bottom:0.2em; }
 p.q1 { margin-left:1em; margin-top:0.2em; margin-bottom:0.2em; }
 p.q2 { margin-left:2em; margin-top:0.2em; margin-bottom:0.2em; }
-/* p.m {  } */
-
-p.key { background-color:seaShell; font-size:0.8em; }
-
-span.nominaSacra { font-weight:bold; }
-/* span.nd { font-weight:bold; } */
+p.pm { margin-top:0.2em; margin-bottom:0.2em; }
+p.pmo { margin-left:1em; margin-top:0.2em; margin-bottom:0.2em; }
+p.pmc { margin-top:0.2em; margin-bottom:0.2em; }
+p.pmr { margin-top:0.2em; margin-bottom:0.2em; }
 span.add { color:grey; }
-span.RVadd { color:dimGrey; }
+span.rem { font-size:0.8em; color:grey; }
 span.wj { color:saddlebrown; }
 span.sig { font-family:cursive; }
 span.FoS { color:mediumvioletred; }
-span.untr { font-size:0.8em; color:grey; text-decoration:line-through; }
-
-/* Tyndale Book Intro Summaries */
-p.intro-title { text-align:center; font-size:1.8em; }
-p.intro-sidebar-h1 { font-weight:bold; }
-
-/* Tyndale Book Intros */
-p.intro-h1 { font-weight:bold; }
-
-/* Tyndale SNs */
-span.sn-excerpt { font-family:Arial, Helvetica, sans-serif; color:saddleBrown; }
-span.ital { font-style:italic; }
-span.hebrew { color:orange; }
-span.greek { color:darkgreen; }
-/* Tyndale TNs */
-p.theme-title { font-weight:bold; }
-p.theme-refs-title { font-weight:bold; }
-/* uW TNs */
-p.OL { margin-bottom:0; color:indigo; }
-p.Trans { margin-top:0; color:saddlebrown; }
-p.Gram { font-style:italic; }
 
 /* Notes USFM */
 p.fn { margin-top:0.2em; margin-bottom:0.2em; font-size:0.75em; }
@@ -111,19 +99,3 @@ span.fnRef { font-weight:bold; }
 span.xrRef { font-weight:bold; }
 /* span.fnText { } */
 /* span.xrText { } */
-
-/* SR-GNT cases (also used for OET-RV and OET-LV) */
-/* Used in <a> fields and in spans */
-.greekNom { background-color:lightgreen; }
-.greekAcc { background-color:orange; }
-.greekGen { background-color:pink; }
-.greekDat { background-color:cyan; }
-.greekVoc { background-color:magenta; }
-.greekVrb { background-color:yellow; }
-.greekNeg { background-color:red; }
-
-/* Other GNT classes */
-/* span.wrkName { } */
-span.wrkNameDiffPunct { background-color:yellow; }
-span.wrkNameDiffAccents { background-color:orange; }
-span.wrkNameDiffText { background-color:red; }

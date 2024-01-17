@@ -1,0 +1,30 @@
+div.unusedWord { color:grey; }
+
+a { text-decoration:none; }
+
+/* Navigational lists at top of page */
+p.wrkLst { background-color:#904471; color:98a9d4; }
+.wrkLst a { text-decoration:none; color:white; }
+p.viewLst {background-color:#936EA1; color:98a9d4; }
+.viewLst a { text-decoration:none; color:white; }
+p.bkLst {background-color:#F9F871; }
+.bkLst a { color:inherit; text-decoration:none; }
+p.chLst {background-color:paleGreen; }
+.chLst a { text-decoration:none; }
+p.vsLst {background-color:mistyRose; }
+.vsLst a { text-decoration:none; }
+
+/* Navs are the ones with arrows */
+p.cNav { text-align:center; font-size:1.8em; background-color:#98a9d4; }
+p.vNav { text-align:center; font-size:1.8em; }
+p.pNav { text-align:center; font-size:1.8em; }
+
+p.wordLine { text-indent:1em; margin-top:0.2em; margin-bottom:0.2em; font-size:0.9em; }
+p.lemmaLine { text-indent:1em; margin-top:0.2em; margin-bottom:0.2em; font-size:0.9em; }
+p.key { background-color:seaShell; font-size:0.8em; }
+
+span.glossPre { color:lightGreen; }
+span.glossHelper { color:grey; }
+span.glossPost { color:brown; }
+
+span.ul { color:darkGrey; }

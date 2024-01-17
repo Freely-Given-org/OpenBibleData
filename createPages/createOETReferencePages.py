@@ -56,7 +56,7 @@ from html import makeTop, makeBottom, checkHtml
 from Bibles import tidyBBB
 
 
-LAST_MODIFIED_DATE = '2024-01-03' # by RJH
+LAST_MODIFIED_DATE = '2024-01-15' # by RJH
 SHORT_PROGRAM_NAME = "createOETReferencePages"
 PROGRAM_NAME = "OpenBibleData createOETReferencePages functions"
 PROGRAM_VERSION = '0.53'
@@ -641,6 +641,7 @@ def createOETReferencePages( level:int, outputFolderPath:Path, state ) -> bool:
 <p class="note"><a href="Loc/">Bible locations pages</a></p>
 {makeBottom( level, 'referenceIndex', state )}'''
     checkHtml( 'referenceIndex', indexHtml )
+    assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
         indexHtmlFile.write( indexHtml )
     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
@@ -830,7 +831,7 @@ def make_Greek_word_pages( level:int, outputFolderPath:Path, state ) -> None:
             nextLink = f' <b><a title="Next word" href="{nextN}.htm#Top">→</a></b>' if nextN else ''
             oetLink = f''' <a title="View whole chapter" href="{'../'*level}OET/byC/{BBB}_C{C}.htm#C{C}">{ourTidyBbb}{NARROW_NON_BREAK_SPACE}{C}</a>'''
             parallelLink = f''' <b><a title="View verse in many parallel versions" href="{'../'*level}par/{BBB}/C{C}V{V}.htm#Top">║</a></b>'''
-            interlinearLink = f''' <b><a title="View interlinear verse word-by-word" href="{'../'*level}il/{BBB}/C{C}V{V}.htm#Top">═</a></b>''' if BBB in state.booksToLoad['OET'] else ''
+            interlinearLink = f''' <b><a title="View interlinear verse word-by-word" href="{'../'*level}ilr/{BBB}/C{C}V{V}.htm#Top">═</a></b>''' if BBB in state.booksToLoad['OET'] else ''
             wordsHtml = f'''{'' if probability else '<div class="unusedWord">'}<h2>Open English Translation (OET)</h2>\n<h1 id="Top">Wordlink #{n}{'' if probability else ' <small>(Unused Greek word variant)</small>'}</h1>
 <p class="pNav">{prevLink}<b>{greekWord}</b> <a href="index.htm">↑</a>{nextLink}{oetLink}{parallelLink}{interlinearLink}</p>
 <p class="link"><a title="Go to Statistical Restoration Greek page" href="https://GreekCNTR.org/collation/?v={CNTR_BOOK_ID_MAP[BBB]}{C.zfill(3)}{V.zfill(3)}">SR GNT {ourTidyBBB} {C}:{V}</a>
@@ -998,6 +999,7 @@ f''' <a title="Go to Statistical Restoration Greek page" href="https://GreekCN
 <p class="note">{' '.join(sorted(wordLinks))}</p>
 {makeBottom( level, 'wordIndex', state )}'''
     checkHtml( 'wordIndex', indexHtml )
+    assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
         indexHtmlFile.write( indexHtml )
     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
@@ -1204,6 +1206,7 @@ def make_Greek_lemma_pages( level:int, outputFolderPath:Path, state ) -> None:
 <p class="note">{' '.join(sorted(lemmaLinks))}</p>
 {makeBottom( level, 'lemmaIndex', state )}'''
     checkHtml( 'lemmaIndex', indexHtml )
+    assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
         indexHtmlFile.write( indexHtml )
     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
@@ -1286,6 +1289,7 @@ def make_person_pages( level:int, outputFolderPath:Path, state ) -> int:
 <p class="note">{' '.join(personLinks)}</p>
 {makeBottom( level, 'personIndex', state )}'''
     checkHtml( 'personIndex', indexHtml )
+    assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
         indexHtmlFile.write( indexHtml )
     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
@@ -1367,6 +1371,7 @@ def make_location_pages( level:int, outputFolderPath:Path, state ) -> int:
 <p class="note">{' '.join(locationLinks)}</p>
 {makeBottom( level, 'locationIndex', state )}'''
     checkHtml( 'locationIndex', indexHtml )
+    assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
         indexHtmlFile.write( indexHtml )
     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )

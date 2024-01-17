@@ -5,7 +5,7 @@
 #
 # Module handling OpenBibleData Bible Dictionary functions
 #
-# Copyright (C) 2023 Robert Hunt
+# Copyright (C) 2023-2024 Robert Hunt
 # Author: Robert Hunt <Freely.Given.org+OBD@gmail.com>
 # License: See gpl-3.0.txt
 #
@@ -50,10 +50,10 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 from html import makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2023-12-29' # by RJH
+LAST_MODIFIED_DATE = '2024-01-15' # by RJH
 SHORT_PROGRAM_NAME = "Dictionary"
 PROGRAM_NAME = "OpenBibleData Dictionary handler"
-PROGRAM_VERSION = '0.38'
+PROGRAM_VERSION = '0.39'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -603,6 +603,7 @@ def createTyndaleDictPages( level:int, outputFolderPath, state ) -> bool:
 {article}
 {makeBottom( level, 'dictionaryEntry', state )}'''
         checkHtml( 'DictionaryArticle', articleHtml )
+        assert not filepath.is_file() # Check that we're not overwriting anything
         with open( filepath, 'wt', encoding='utf-8' ) as articleHtmlFile:
             articleHtmlFile.write( articleHtml )
         vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(articleHtml):,} characters written to {filepath}" )
@@ -636,6 +637,7 @@ def createTyndaleDictPages( level:int, outputFolderPath, state ) -> bool:
 {articleLinkHtml}
 {makeBottom( level, 'dictionaryLetterIndex', state )}'''
         checkHtml( 'DictionaryLetterIndex', letterIndexHtml )
+        assert not filepath.is_file() # Check that we're not overwriting anything
         with open( filepath, 'wt', encoding='utf-8' ) as letterIndexHtmlFile:
             letterIndexHtmlFile.write( letterIndexHtml )
         vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(letterIndexHtml):,} characters written to {filepath}" )
@@ -652,6 +654,7 @@ even though it was originally designed to supplement the <i>New Living Translati
 {TOBDData['Intro']}
 {makeBottom( level, 'dictionaryIntro', state )}'''
     checkHtml( 'DictionaryIntro', introHtml )
+    assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as introHtmlFile:
         introHtmlFile.write( introHtml )
     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(introHtml):,} characters written to {filepath}" )
@@ -670,6 +673,7 @@ even though it was originally designed to supplement the <i>New Living Translati
 {lettersParagraph}
 {makeBottom( level, 'dictionaryMainIndex', state )}'''
     checkHtml( 'DictionaryIndex', indexHtml )
+    assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
         indexHtmlFile.write( indexHtml )
     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )

@@ -72,7 +72,7 @@ from Bibles import preloadVersions, tidyBBB #, preloadUwTranslationNotes
 from createBookPages import createOETBookPages, createBookPages
 from createChapterPages import createOETSideBySideChapterPages, createChapterPages
 from createSectionPages import createOETSectionPages, createSectionPages
-from createSynopticPassagePages import createSynopticPassagePages
+from createParallelPassagePages import createParallelPassagePages
 from createParallelVersePages import createParallelVersePages
 from createOETInterlinearPages import createOETInterlinearPages
 from createOETReferencePages import createOETReferencePages
@@ -81,17 +81,17 @@ from html import makeTop, makeBottom, checkHtml
 # from selectedVersesVersions import fillSelectedVerses
 
 
-LAST_MODIFIED_DATE = '2024-01-14' # by RJH
+LAST_MODIFIED_DATE = '2024-01-17' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData Create Pages"
-PROGRAM_VERSION = '0.92'
+PROGRAM_VERSION = '0.93'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
 
-TEST_MODE = True # Writes website into Test subfolder
+TEST_MODE = False # Writes website into Test subfolder
 ALL_PRODUCTION_BOOKS = not TEST_MODE # If set to False, only selects one book per version for a faster test build
-ALL_TEST_REFERENCE_PAGES = False # If in Test mode, make all word/lemma pages, or just the relevant ones
+ALL_TEST_REFERENCE_PAGES = False # If in Test mode, make ALL word/lemma pages, or just the RELEVANT ones
 UPDATE_ACTUAL_SITE_WHEN_BUILT = True # The pages are initially built in a tmp folder so need to be copied to the final destination
 
 TEMP_BUILD_FOLDER = Path( '/tmp/OBDHtmlPages/' )
@@ -100,7 +100,7 @@ DEBUG_DESTINATION_FOLDER = NORMAL_DESTINATION_FOLDER.joinpath( 'Test/')
 DESTINATION_FOLDER = DEBUG_DESTINATION_FOLDER if TEST_MODE or BibleOrgSysGlobals.debugFlag \
                         else NORMAL_DESTINATION_FOLDER
 
-OET_LV_BOOK_LIST = ['RUT','JNA'] + BOOKLIST_NT27
+OET_LV_BOOK_LIST = (['RUT','JNA'] + BOOKLIST_NT27) if TEST_MODE else BOOKLIST_NT27
 OET_RV_BOOK_LIST = ['RUT','JNA', 'JHN','MRK','MAT','LUK','ACT', 'ROM','CO2', 'GAL','EPH','PHP','COL', 'TH1','TH2','TI1','TI2','TIT','PHM', 'HEB', 'JAM', 'PE1','PE2', 'JN1','JN2','JN3', 'JDE']
 # TODO: What about 'INT' ?
 OET_RV_BOOK_LIST_WITH_FRT = ['FRT'] + OET_RV_BOOK_LIST
@@ -114,7 +114,7 @@ ALTERNATIVE_VERSION = 'WEB' # Should be a version with all books present
 
 NEWLINE = '\n'
 
-NUM_EXTRA_MODES = 5 # Synoptic, parallel and interlinear verses, dictionary, and search
+NUM_EXTRA_MODES = 5 # Connected, parallel and interlinear verses, dictionary, and search
 
 
 class State:
@@ -163,7 +163,7 @@ class State:
                 'SR-GNT':('<b>','</b>'), # 'UGNT':('<small>','</small>'),'SBL-GNT':('<small>','</small>'),'TC-GNT':('<small>','</small>'),
                 # 'BRN':('<small>','</small>'),'BrLXX':('',''),
                 'UHB':('<b>','</b>'),
-                'Synoptic':('<b>','</b>'), 'Parallel':('<b>','</b>'), 'Interlinear':('<b>','</b>'), 'Dictionary':('<b>','</b>'), 'Search':('<b>','</b>'),
+                'Connected':('<b>','</b>'), 'Parallel':('<b>','</b>'), 'Interlinear':('<b>','</b>'), 'Dictionary':('<b>','</b>'), 'Search':('<b>','</b>'),
                 # NOTES:
                 'TOSN':('',''),'UTN':('',''),
                 }
@@ -178,54 +178,54 @@ class State:
                 'UHB': '../copiedBibles/Original/unfoldingWord.org/UHB/',
                 # NOTE: The program will still run if some of these below are commented out or removed
                 # (e.g., this can be done quickly for a faster test)
-                # 'ULT': '../copiedBibles/English/unfoldingWord.org/ULT/',
-                # 'UST': '../copiedBibles/English/unfoldingWord.org/UST/',
-                # 'BSB': '../copiedBibles/English/Berean.Bible/BSB/',
-                # 'BLB': '../copiedBibles/English/Berean.Bible/BLB/blb.modified.txt', # NT only so far
-                # 'OEB': '../copiedBibles/English/OEB/',
-                # # # 'ISV': '',
-                # 'CSB': '../copiedBibles/English/CSB_verses.tsv',
-                # 'NLT': '../copiedBibles/English/NLT_verses.tsv',
-                # 'NIV': '../copiedBibles/English/NIV_verses.tsv',
-                # 'CEV': '../copiedBibles/English/CEV_verses.tsv',
-                # 'ESV': '../copiedBibles/English/ESV_verses.tsv',
-                # 'NASB': '../copiedBibles/English/NASB_verses.tsv',
-                # 'LSB': '../copiedBibles/English/LSB_verses.tsv',
-                # 'JQT': '../copiedBibles/English/JQT_verses.tsv',
-                # '2DT': '../copiedBibles/English/2DT_verses.tsv',
-                # '1ST': '../copiedBibles/English/1ST_verses.tsv',
-                # 'TPT': '../copiedBibles/English/TPT_verses.tsv',
-                # 'WEB': '../copiedBibles/English/eBible.org/WEB/',
-                # 'WMB': '../copiedBibles/English/eBible.org/WMB/',
-                # 'NET': '../copiedBibles/English/eBible.org/NET/',
-                # 'LSV': '../copiedBibles/English/eBible.org/LSV/',
-                # 'FBV': '../copiedBibles/English/eBible.org/FBV/',
-                # 'TCNT': '../copiedBibles/English/eBible.org/TCNT/',
-                # 'T4T': '../copiedBibles/English/eBible.org/T4T/',
-                # 'LEB': '../copiedBibles/English/LogosBibleSoftware/LEB/LEB.xml', # not OSIS
-                # 'NRSV': '../copiedBibles/English/NRSV_verses.tsv',
-                # 'NKJV': '../copiedBibles/English/NKJV_verses.tsv',
-                # 'BBE': '../copiedBibles/English/eBible.org/BBE/',
-                # 'JPS': '../copiedBibles/English/eBible.org/JPS/',
-                # 'ASV': '../copiedBibles/English/eBible.org/ASV/',
-                # 'DRA': '../copiedBibles/English/eBible.org/DRA/',
-                # 'YLT': '../copiedBibles/English/eBible.org/YLT/',
-                # 'DBY': '../copiedBibles/English/eBible.org/DBY/',
-                # 'RV': '../copiedBibles/English/eBible.org/RV/', # with deuterocanon
-                # 'WBS': '../copiedBibles/English/eBible.org/RV/',
-                # 'KJB': '../copiedBibles/English/eBible.org/KJB/', # with deuterocanon
-                # 'BB': '/mnt/SSDs/Bibles/DataSets/BibleSuperSearch.com/v5.0/TXT/bishops.txt',
-                # 'GNV': '../copiedBibles/English/eBible.org/GNV/',
-                # 'CB': '/mnt/SSDs/Bibles/DataSets/BibleSuperSearch.com/v5.0/TXT/coverdale.txt',
-                # 'TNT': '../copiedBibles/English/eBible.org/TNT/',
-                # 'WYC': '/mnt/SSDs/Bibles/Zefania modules/SF_2009-01-20_ENG_BIBLE_WYCLIFFE_(JOHN WYCLIFFE BIBLE).xml',
-                # 'LUT': '../copiedBibles/German/Zefania/LUT1545/SF_2009-01-20_GER_LUTH1545STR_(LUTHER 1545 MIT STRONGS).xml',
-                # 'CLV': '../copiedBibles/Latin/eBible.org/CLV/',
-                # 'UGNT': '../copiedBibles/Original/unfoldingWord.org/UGNT/',
-                # 'SBL-GNT': '../../Forked/SBLGNT/data/sblgnt/text/',
-                # 'TC-GNT': '../copiedBibles/Greek/eBible.org/TC-GNT/',
-                # 'BRN': '../copiedBibles/English/eBible.org/Brenton/', # with deuterocanon and OTH,XXA,XXB,XXC,
-                # 'BrLXX': '../copiedBibles/Greek/eBible.org/BrLXX/',
+                'ULT': '../copiedBibles/English/unfoldingWord.org/ULT/',
+                'UST': '../copiedBibles/English/unfoldingWord.org/UST/',
+                'BSB': '../copiedBibles/English/Berean.Bible/BSB/',
+                'BLB': '../copiedBibles/English/Berean.Bible/BLB/blb.modified.txt', # NT only so far
+                'OEB': '../copiedBibles/English/OEB/',
+                # # 'ISV': '',
+                'CSB': '../copiedBibles/English/CSB_verses.tsv',
+                'NLT': '../copiedBibles/English/NLT_verses.tsv',
+                'NIV': '../copiedBibles/English/NIV_verses.tsv',
+                'CEV': '../copiedBibles/English/CEV_verses.tsv',
+                'ESV': '../copiedBibles/English/ESV_verses.tsv',
+                'NASB': '../copiedBibles/English/NASB_verses.tsv',
+                'LSB': '../copiedBibles/English/LSB_verses.tsv',
+                'JQT': '../copiedBibles/English/JQT_verses.tsv',
+                '2DT': '../copiedBibles/English/2DT_verses.tsv',
+                '1ST': '../copiedBibles/English/1ST_verses.tsv',
+                'TPT': '../copiedBibles/English/TPT_verses.tsv',
+                'WEB': '../copiedBibles/English/eBible.org/WEB/',
+                'WMB': '../copiedBibles/English/eBible.org/WMB/',
+                'NET': '../copiedBibles/English/eBible.org/NET/',
+                'LSV': '../copiedBibles/English/eBible.org/LSV/',
+                'FBV': '../copiedBibles/English/eBible.org/FBV/',
+                'TCNT': '../copiedBibles/English/eBible.org/TCNT/',
+                'T4T': '../copiedBibles/English/eBible.org/T4T/',
+                'LEB': '../copiedBibles/English/LogosBibleSoftware/LEB/LEB.xml', # not OSIS
+                'NRSV': '../copiedBibles/English/NRSV_verses.tsv',
+                'NKJV': '../copiedBibles/English/NKJV_verses.tsv',
+                'BBE': '../copiedBibles/English/eBible.org/BBE/',
+                'JPS': '../copiedBibles/English/eBible.org/JPS/',
+                'ASV': '../copiedBibles/English/eBible.org/ASV/',
+                'DRA': '../copiedBibles/English/eBible.org/DRA/',
+                'YLT': '../copiedBibles/English/eBible.org/YLT/',
+                'DBY': '../copiedBibles/English/eBible.org/DBY/',
+                'RV': '../copiedBibles/English/eBible.org/RV/', # with deuterocanon
+                'WBS': '../copiedBibles/English/eBible.org/RV/',
+                'KJB': '../copiedBibles/English/eBible.org/KJB/', # with deuterocanon
+                'BB': '/mnt/SSDs/Bibles/DataSets/BibleSuperSearch.com/v5.0/TXT/bishops.txt',
+                'GNV': '../copiedBibles/English/eBible.org/GNV/',
+                'CB': '/mnt/SSDs/Bibles/DataSets/BibleSuperSearch.com/v5.0/TXT/coverdale.txt',
+                'TNT': '../copiedBibles/English/eBible.org/TNT/',
+                'WYC': '/mnt/SSDs/Bibles/Zefania modules/SF_2009-01-20_ENG_BIBLE_WYCLIFFE_(JOHN WYCLIFFE BIBLE).xml',
+                'LUT': '../copiedBibles/German/Zefania/LUT1545/SF_2009-01-20_GER_LUTH1545STR_(LUTHER 1545 MIT STRONGS).xml',
+                'CLV': '../copiedBibles/Latin/eBible.org/CLV/',
+                'UGNT': '../copiedBibles/Original/unfoldingWord.org/UGNT/',
+                'SBL-GNT': '../../Forked/SBLGNT/data/sblgnt/text/',
+                'TC-GNT': '../copiedBibles/Greek/eBible.org/TC-GNT/',
+                'BRN': '../copiedBibles/English/eBible.org/Brenton/', # with deuterocanon and OTH,XXA,XXB,XXC,
+                'BrLXX': '../copiedBibles/Greek/eBible.org/BrLXX/',
                 # NOTE: Dictionary and notes are special cases here at the end (skipped in many parts of the program)
                 'TOSN': '../copiedBibles/English/Tyndale/OSN/', # This one also loads TTN (Tyndale Theme Notes)
                 'UTN': '../copiedBibles/English/unfoldingWord.org/UTN/',
@@ -776,6 +776,7 @@ def createSitePages() -> bool:
             folder = TEMP_BUILD_FOLDER.joinpath( f'{versionAbbreviation}/' )
             os.makedirs( folder )
             filepath = folder.joinpath( 'index.htm' )
+            assert not filepath.is_file() # Check that we're not overwriting anything
             with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
                 indexHtmlFile.write( f'''{top}{indexHtml}\n<p class="note"><a href="details.htm">See copyright details.</p>\n{makeBottom( 1, 'site', state )}''' )
             vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"    {len(indexHtml):,} characters written to {filepath}" )
@@ -804,9 +805,9 @@ def createSitePages() -> bool:
 
     # TODO: We could use multiprocessing to do all these at once
     #   (except that state is quite huge with all preloaded versions and hence expensive to pickle)
-    createSynopticPassagePages( 1, TEMP_BUILD_FOLDER.joinpath('syn/'), state )
+    createParallelPassagePages( 1, TEMP_BUILD_FOLDER.joinpath('con/'), state )
     createParallelVersePages( 1, TEMP_BUILD_FOLDER.joinpath('par/'), state )
-    createOETInterlinearPages( 1, TEMP_BUILD_FOLDER.joinpath('il/'), state )
+    createOETInterlinearPages( 1, TEMP_BUILD_FOLDER.joinpath('ilr/'), state )
 
     createTyndaleDictPages( 1, TEMP_BUILD_FOLDER.joinpath('dct/'), state )
     createOETReferencePages( 1, TEMP_BUILD_FOLDER.joinpath('ref/'), state )
@@ -850,17 +851,16 @@ def createSitePages() -> bool:
             count += 1
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Copied {count:,} maps into {TOBDmapDestinationFolder}/." )
 
-        # In TEST mode, we need to copy the .css files and Bible.js across
-        if DESTINATION_FOLDER != NORMAL_DESTINATION_FOLDER:
-            count = 0
-            for filepath in glob.glob( f'{NORMAL_DESTINATION_FOLDER}/*.css' ):
-                vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Copying {filepath}…" )
-                # Note: shutil.copy2 is the same as copy but keeps metadata like creation and modification times
-                shutil.copy2( filepath, DESTINATION_FOLDER )
-                count += 1
-                shutil.copy2( f'{NORMAL_DESTINATION_FOLDER}/Bible.js', DESTINATION_FOLDER )
-                count += 1
-            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Copied {count:,} stylesheets and scripts into {DESTINATION_FOLDER}/." )
+        # We need to copy the .css files and Bible.js across
+        count = 0
+        for filepath in glob.glob( '*.css' ):
+            vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Copying {filepath}…" )
+            # Note: shutil.copy2 is the same as copy but keeps metadata like creation and modification times
+            shutil.copy2( filepath, DESTINATION_FOLDER )
+            count += 1
+        shutil.copy2( 'Bible.js', DESTINATION_FOLDER )
+        count += 1
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Copied {count:,} stylesheets and scripts into {DESTINATION_FOLDER}/." )
 
         vPrint( 'Normal', DEBUGGING_THIS_MODULE, f'''\nNOW RUN "npx pagefind --glob "{{OET,par,ref}}/**/*.{{htm}}" --site ../htmlPages{'/Test' if TEST_MODE else ''}/" to create search index!''' )
     else:
@@ -882,11 +882,11 @@ def cleanHTMLFolders( folder:Path, state ) -> bool:
     except FileNotFoundError: pass
     try: os.unlink( folder.joinpath( 'search.htm' ) )
     except FileNotFoundError: pass
-    try: shutil.rmtree( folder.joinpath( 'syn/' ) )
+    try: shutil.rmtree( folder.joinpath( 'con/' ) )
     except FileNotFoundError: pass
     try: shutil.rmtree( folder.joinpath( 'par/' ) )
     except FileNotFoundError: pass
-    try: shutil.rmtree( folder.joinpath( 'il/' ) )
+    try: shutil.rmtree( folder.joinpath( 'ilr/' ) )
     except FileNotFoundError: pass
     try: shutil.rmtree( folder.joinpath( 'ref/' ) )
     except FileNotFoundError: pass
@@ -923,6 +923,7 @@ f'''<h1 id="Top">{versionName}</h1>
                     .replace( '__KEYWORDS__', f'Bible, OET, {versionName}' ) \
                     .replace( f'''<a title="{versionName}" href="{'../'*level}OET">OET</a>''', 'OET' )
     filepath = folder.joinpath( 'index.htm' )
+    assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
         indexHtmlFile.write( f'''{top}{indexHtml}
 {makeBottom( level, 'site', state )}''' )
@@ -954,6 +955,7 @@ f'''<h1 id="Top">{versionName}</h1>
                     .replace( '__KEYWORDS__', f'Bible, {versionName}' ) \
                     .replace( f'''<a title="{versionName}" href="{'../'*level}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}">{thisBible.abbreviation}</a>''', thisBible.abbreviation )
     filepath = folder.joinpath( 'index.htm' )
+    assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
         indexHtmlFile.write( f'''{top}{indexHtml}{makeBottom( level, 'site', state )}''' )
     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"    {len(indexHtml):,} characters written to {filepath}" )
@@ -988,6 +990,7 @@ especially in the New Testament era where scribes often were not professionals.<
                     .replace( '__KEYWORDS__', 'Bible, OET, missing, verses' ) \
                     .replace( f'''<a title="OET" href="{'../'*level}OET">OET</a>''', 'OET' )
     filepath = buildFolder.joinpath( 'missingVerse.htm' )
+    assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
         indexHtmlFile.write( f'''{top}{textHtml}{makeBottom( level, 'site', state )}''' )
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    {len(textHtml):,} characters written to {filepath}" )
@@ -1079,6 +1082,7 @@ def createDetailsPages( level:int, buildFolder:Path, state ) -> bool:
         except FileExistsError: pass # they were already there
 
         filepath = versionFolder.joinpath( 'details.htm' )
+        assert not filepath.is_file() # Check that we're not overwriting anything
         with open( filepath, 'wt', encoding='utf-8' ) as htmlFile:
             htmlFile.write( html )
         vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  {len(html):,} characters written to {filepath}" )
@@ -1096,6 +1100,7 @@ def createDetailsPages( level:int, buildFolder:Path, state ) -> bool:
     checkHtml( 'AllDetails', html )
 
     filepath = buildFolder.joinpath( 'allDetails.htm' )
+    assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as htmlFile:
         htmlFile.write( html )
     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  {len(html):,} characters written to {filepath}" )
@@ -1131,6 +1136,7 @@ def createSearchPage( level:int, buildFolder:Path, state ) -> bool:
     checkHtml( 'Search', html )
 
     filepath = buildFolder.joinpath( 'search.htm' )
+    assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as htmlFile:
         htmlFile.write( html )
     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  {len(html):,} characters written to {filepath}" )
@@ -1204,6 +1210,7 @@ def createAboutPage( level:int, buildFolder:Path, state ) -> bool:
     checkHtml( 'About', html )
 
     filepath = buildFolder.joinpath( 'about.htm' )
+    assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as htmlFile:
         htmlFile.write( html )
     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  {len(html):,} characters written to {filepath}" )
@@ -1236,6 +1243,7 @@ def createMainIndexPage( level, folder:Path, state ) -> bool:
     checkHtml( 'TopIndex', html )
 
     filepath = folder.joinpath( 'index.htm' )
+    assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as htmlFile:
         htmlFile.write( html )
     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  {len(html):,} characters written to {filepath}" )
@@ -1260,6 +1268,7 @@ def createMainIndexPage( level, folder:Path, state ) -> bool:
 #     checkHtml( 'VersionIndex', html )
 
 #     filepath = folder.joinpath( 'index.htm' )
+        # assert not filepath.is_file() # Check that we're not overwriting anything
 #     with open( filepath, 'wt', encoding='utf-8' ) as htmlFile:
 #         htmlFile.write( html )
 #     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  {len(html):,} characters written to {filepath}" )

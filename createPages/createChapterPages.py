@@ -5,7 +5,7 @@
 #
 # Module handling OpenBibleData createChapterPages functions
 #
-# Copyright (C) 2023 Robert Hunt
+# Copyright (C) 2023-2024 Robert Hunt
 # Author: Robert Hunt <Freely.Given.org+OBD@gmail.com>
 # License: See gpl-3.0.txt
 #
@@ -53,10 +53,10 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_
 from OETHandlers import livenOETWordLinks
 
 
-LAST_MODIFIED_DATE = '2023-12-28' # by RJH
+LAST_MODIFIED_DATE = '2024-01-15' # by RJH
 SHORT_PROGRAM_NAME = "createChapterPages"
 PROGRAM_NAME = "OpenBibleData createChapterPages functions"
-PROGRAM_VERSION = '0.53'
+PROGRAM_VERSION = '0.54'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -119,6 +119,7 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
 {chapterHtml}
 {makeBottom( level, 'chapter', state )}'''
             checkHtml( rvBible.abbreviation, chapterHtml )
+            assert not filepath.is_file() # Check that we're not overwriting anything
             with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
                 cHtmlFile.write( chapterHtml )
             vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"    {len(chapterHtml):,} characters written to {filepath}" )
@@ -162,19 +163,19 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
                     leftLink = f'<a title="Previous chapter" href="{BBB}_C{c-1}.htm#Top">◄</a> '
                     rightLink = f' <a title="Next chapter" href="{BBB}_C{c+1}.htm#Top">►</a>' if c<numChapters else ''
                 parallelLink = f''' <a title="Parallel verse view" href="{'../'*level}par/{BBB}/C{'1' if c==-1 else c}V1.htm#Top">║</a>'''
-                interlinearLink = f''' <a title="Interlinear verse view" href="{'../'*level}il/{BBB}/C{'1' if c==-1 else c}V1.htm#Top">═</a>''' if BBB in state.booksToLoad['OET'] else ''
+                interlinearLink = f''' <a title="Interlinear verse view" href="{'../'*level}ilr/{BBB}/C{'1' if c==-1 else c}V1.htm#Top">═</a>''' if BBB in state.booksToLoad['OET'] else ''
                 detailsLink = f''' <a title="Show details about this work" href="{'../'*(level-1)}details.htm#Top">©</a>'''
                 cNav = f'<p class="cNav">{leftLink}{documentLink} {"Intro" if c==-1 else c}{rightLink}{parallelLink}{interlinearLink}{detailsLink}</p>'
                 chapterHtml = f'''<h1 id="Top">Open English Translation {ourTidyBBB} Introduction</h1>
 {cNav}
 <p class="rem">This is still a very early look into the unfinished text of the <em>Open English Translation</em> of the Bible. Please double-check the text in advance before using in public.</p>
-<div class="container">
+<div class="RVLVcontainer">
 <h2><a title="View just the Readers’ Version" href="{'../'*level}OET-RV/byC/{BBB}_Intro.htm#Top">Readers’ Version</a></h2>
 <h2><a title="View just the Literal Version" href="{'../'*level}OET-LV/byC/{BBB}_Intro.htm#Top">Literal Version</a></h2>
 ''' if c==-1 else f'''<h1 id="Top">Open English Translation {ourTidyBBB} Chapter {c}</h1>
 {cNav}
 <p class="rem">This is still a very early look into the unfinished text of the <em>Open English Translation</em> of the Bible. Please double-check the text in advance before using in public.</p>
-<div class="container">
+<div class="RVLVcontainer">
 <h2><a title="View just the Readers’ Version" href="{'../'*level}OET-RV/byC/{BBB}_C{c}.htm#Top">Readers’ Version</a></h2>
 <h2><a title="View just the Literal Version" href="{'../'*level}OET-LV/byC/{BBB}_C{c}.htm#Top">Literal Version</a> <button type="button" id="marksButton" onclick="hide_show_marks()">Hide marks</button></h2>
 '''
@@ -275,11 +276,12 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
                 chapterHtml = f'''{top}<!--chapter page-->
 {makeBookNavListParagraph(state.BBBLinks['OET-RV'], 'OET', state)}
 {cLinksPar}
-{chapterHtml}{removeDuplicateCVids( BBB, combinedHtml )}</div><!--container-->
+{chapterHtml}{removeDuplicateCVids( BBB, combinedHtml )}</div><!--RVLVcontainer-->
 {cNav}
 {cLinksPar}
 {makeBottom( level, 'chapter', state )}'''
                 checkHtml( 'OETChapterIndex', chapterHtml )
+                assert not filepath.is_file() # Check that we're not overwriting anything
                 with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
                     cHtmlFile.write( chapterHtml )
                 vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(chapterHtml):,} characters written to {filepath}" )
@@ -309,13 +311,14 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
 {chapterHtml}
 {makeBottom( level, 'chapter', state )}'''
             checkHtml( chapterHtml )
+            assert not filepath.is_file() # Check that we're not overwriting anything
             with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
                 cHtmlFile.write( chapterHtml )
             vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"    {len(chapterHtml):,} characters written to {filepath}" )
             halt
 
         # Now create an index page for this book
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, "    Creating chapter index page for OET {BBB}…" )
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Creating chapter index page for OET {BBB}…" )
         # filename = f'{BBB}_index.htm' if numChapters>0 else f'{BBB}.htm' # for FRT, etc.
         filename = f'{BBB}.htm'
         filenames.append( filename )
@@ -331,6 +334,7 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
 {cLinksPar}
 {makeBottom( level, 'chapter', state )}'''
         checkHtml( 'OETChaptersIndex', chapterHtml )
+        assert not filepath.is_file() # Check that we're not overwriting anything
         with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
             cHtmlFile.write( chapterHtml )
         vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(chapterHtml):,} characters written to {filepath}" )
@@ -350,6 +354,7 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
 {makeBookNavListParagraph(state.BBBLinks['OET-RV'], 'OET', state)}
 {makeBottom( level, 'chapter', state )}'''
     checkHtml( 'OETBooksIndex', indexHtml )
+    assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
         cHtmlFile.write( indexHtml )
     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
@@ -439,7 +444,7 @@ def createChapterPages( level:int, folder:Path, thisBible, state ) -> List[str]:
                     rightLink = f' <a title="Next chapter" href="{BBB}_C{c+1}.htm#Top">►</a>' if c<numChapters else ''
                 documentLink = f'<a title="Whole document view" href="../byDoc/{BBB}.htm#Top">{ourTidyBBB}</a>'
                 parallelLink = f''' <a title="Parallel verse view" href="{'../'*level}par/{BBB}/C{'1' if c==-1 else c}V1.htm#Top">║</a>'''
-                interlinearLink = f''' <a title="Interlinear verse view" href="{'../'*level}il/{BBB}/C{'1' if c==-1 else c}V1.htm#Top">═</a>''' if BBB in state.booksToLoad['OET'] else ''
+                interlinearLink = f''' <a title="Interlinear verse view" href="{'../'*level}ilr/{BBB}/C{'1' if c==-1 else c}V1.htm#Top">═</a>''' if BBB in state.booksToLoad['OET'] else ''
                 detailsLink = f''' <a title="Show details about this work" href="{'../'*(level-1)}details.htm#Top">©</a>'''
                 cNav = f'<p class="cNav">{oetLink}{leftLink}{documentLink} {"Intro" if c==-1 else c}{rightLink}{parallelLink}{interlinearLink}{detailsLink}</p>'
                 chapterHtml = f'''<h1 id="Top">{thisBible.abbreviation} {ourTidyBBB} Introduction</h1>
@@ -488,6 +493,7 @@ def createChapterPages( level:int, folder:Path, thisBible, state ) -> List[str]:
 {cLinksPar}
 {makeBottom( level, 'chapter', state )}'''
                 checkHtml( thisBible.abbreviation, chapterHtml )
+                assert not filepath.is_file() # Check that we're not overwriting anything
                 with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
                     cHtmlFile.write( chapterHtml )
                 vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(chapterHtml):,} characters written to {filepath}" )
@@ -514,28 +520,30 @@ def createChapterPages( level:int, folder:Path, thisBible, state ) -> List[str]:
 {chapterHtml}
 {makeBottom( level, 'chapter', state )}'''
             checkHtml( thisBible.abbreviation, chapterHtml )
+            assert not filepath.is_file() # Check that we're not overwriting anything
             with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
                 cHtmlFile.write( chapterHtml )
             vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"    {len(chapterHtml):,} characters written to {filepath}" )
 
-        # Now create an index page for this book
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Creating chapter index page for {thisBible.abbreviation} {BBB}…" )
-        # filename = f'{BBB}_index.htm' if numChapters>0 else f'{BBB}.htm' # for FRT, etc.
-        filename = f'{BBB}.htm'
-        filenames.append( filename )
-        filepath = folder.joinpath( filename )
-        # BBBLinks.append( f'<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB)}" href="{filename}#Top">{ourTidyBBB}</a>' )
-        top = makeTop( level, thisBible.abbreviation, 'chapter', 'byC/', state ) \
-                .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{thisBible.abbreviation} {ourTidyBBB}" ) \
-                .replace( '__KEYWORDS__', f'Bible, {thisBible.abbreviation}, chapter, {ourTidyBBB}' ) \
-                .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*level}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}">{thisBible.abbreviation}</a>''', thisBible.abbreviation )
-        chapterHtml = f'''{top}<!--chapters indexPage-->
+        if BBB != 'FRT': # Now create an index page for this book
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Creating chapter index page for {thisBible.abbreviation} {BBB}…" )
+            # filename = f'{BBB}_index.htm' if numChapters>0 else f'{BBB}.htm' # for FRT, etc.
+            filename = f'{BBB}.htm'
+            filenames.append( filename )
+            filepath = folder.joinpath( filename )
+            # BBBLinks.append( f'<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB)}" href="{filename}#Top">{ourTidyBBB}</a>' )
+            top = makeTop( level, thisBible.abbreviation, 'chapter', 'byC/', state ) \
+                    .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{thisBible.abbreviation} {ourTidyBBB}" ) \
+                    .replace( '__KEYWORDS__', f'Bible, {thisBible.abbreviation}, chapter, {ourTidyBBB}' ) \
+                    .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*level}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}">{thisBible.abbreviation}</a>''', thisBible.abbreviation )
+            chapterHtml = f'''{top}<!--chapters indexPage-->
 {cLinksPar}
 {makeBottom( level, 'chapter', state )}'''
-        checkHtml( thisBible.abbreviation, chapterHtml )
-        with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
-            cHtmlFile.write( chapterHtml )
-        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(chapterHtml):,} characters written to {filepath}" )
+            checkHtml( thisBible.abbreviation, chapterHtml )
+            assert not filepath.is_file() # Check that we're not overwriting anything
+            with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
+                cHtmlFile.write( chapterHtml )
+            vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(chapterHtml):,} characters written to {filepath}" )
 
     # Create overall chapter index page
     filename = 'index.htm'
@@ -552,6 +560,7 @@ def createChapterPages( level:int, folder:Path, thisBible, state ) -> List[str]:
 {makeBookNavListParagraph(state.BBBLinks[thisBible.abbreviation], thisBible.abbreviation, state)}
 {makeBottom( level, 'chapter', state)}'''
     checkHtml( thisBible.abbreviation, indexHtml )
+    assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
         cHtmlFile.write( indexHtml )
     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )

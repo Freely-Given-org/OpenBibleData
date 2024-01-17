@@ -5,7 +5,7 @@
 #
 # Module handling OpenBibleData Bibles functions
 #
-# Copyright (C) 2023 Robert Hunt
+# Copyright (C) 2023-2024 Robert Hunt
 # Author: Robert Hunt <Freely.Given.org+OBD@gmail.com>
 # License: See gpl-3.0.txt
 #
@@ -41,6 +41,7 @@ CHANGELOG:
     2023-08-07 Add allowFourChars to our customised version of tidyBBB
     2023-10-09 Fix a few more uW tN markdown link references
     2023-12-29 Started adding OET OT
+    2024-01-18 Try to handle backslashes better in TSV (text) Bibles
 """
 from gettext import gettext as _
 from typing import Dict, List, Tuple, Optional
@@ -73,10 +74,10 @@ from html import checkHtml
 from OETHandlers import findLVQuote
 
 
-LAST_MODIFIED_DATE = '2023-12-29' # by RJH
+LAST_MODIFIED_DATE = '2024-01-18' # by RJH
 SHORT_PROGRAM_NAME = "Bibles"
 PROGRAM_NAME = "OpenBibleData Bibles handler"
-PROGRAM_VERSION = '0.56'
+PROGRAM_VERSION = '0.58'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -413,7 +414,7 @@ def formatTyndaleBookIntro( abbrev:str, level:int, BBB:str, segmentType:str, sta
 
     fnPrint( DEBUGGING_THIS_MODULE, f"formatTyndaleBookIntro( {abbrev}, {BBB}, … )" )
     assert abbrev in ('TBI','TBIS')
-    assert segmentType == 'parallel'
+    assert segmentType == 'parallelVerse'
 
     sourceDict = {'TBI':TyndaleBookIntrosDict, 'TBIS':TyndaleBookIntroSummariesDict}[abbrev]
     if BBB not in sourceDict:
@@ -437,7 +438,7 @@ def formatTyndaleNotes( abbrev:str, level:int, BBB:str, C:str, V:str, segmentTyp
     """
     fnPrint( DEBUGGING_THIS_MODULE, f"formatTyndaleNotes( {BBB}, {C}:{V}, {segmentType=} )" )
     assert abbrev in ('TOSN','TTN')
-    assert segmentType in ('parallel','interlinear')
+    assert segmentType in ('parallelVerse','interlinearVerse')
 
     try:
         verseEntryList, _contextList = state.preloadedBibles[abbrev].getContextVerseData( (BBB, C, V), strict=False, complete=True )
@@ -644,7 +645,7 @@ def formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segme
     TODO: Get the English quote (ULT, OET-LV???) from the Greek words
     """
     fnPrint( DEBUGGING_THIS_MODULE, f"formatUnfoldingWordTranslationNotes( {BBB}, {C}:{V}, {segmentType=} )" )
-    assert segmentType in ('parallel','interlinear')
+    assert segmentType in ('parallelVerse','interlinearVerse')
 
     try:
         verseEntryList, contextList = state.preloadedBibles['UTN'].getContextVerseData( (BBB, C, V), strict=False, complete=True )
@@ -654,8 +655,8 @@ def formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segme
     # print( f"{BBB} {C}:{V} {verseEntryList=}" )
 
     NT = BibleOrgSysGlobals.loadedBibleBooksCodes.isNewTestament_NR( BBB )
-    # opposite = 'interlinear' if segmentType=='parallel' else 'parallel'
-    # oppositeFolder = 'il' if segmentType=='parallel' else 'pa'
+    # opposite = 'interlinear' if segmentType=='parallelVerse' else 'parallelVerse'
+    # oppositeFolder = 'il' if segmentType=='parallelVerse' else 'pa'
 
     # We tried this, but think it's better to customise our own HTML
     # tnHtml = convertUSFMMarkerListToHtml( level, 'UTN', (BBB,C,V), 'notes', contextList, verseEntryList, basicOnly=True, state=state )
@@ -910,7 +911,10 @@ def loadSelectedVerses( fileLocation, givenName:str, givenAbbreviation:str, enco
                 ourRef = (BBB,C,V)
                 assert ourRef not in verseTable
                 assert verseText
-                verseTable[ourRef] = verseText.replace('\\n','\n').replace('\\\\','\\') # See https://en.wikipedia.org/wiki/Tab-separated_values
+                # TODO: How should this really work (distinguish \\n from \\nd)???
+                verseTable[ourRef] = ( verseText.replace('\\\\nd','__ND__')
+                                        .replace('\\n','\n').replace('\\\\','\\') # See https://en.wikipedia.org/wiki/Tab-separated_values
+                                        .replace('__ND__','\\nd') )
 
     vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    loadSelectedVerses() loaded {len(verseTable):,} {givenAbbreviation} verse entries from {fileLocation}." )
     return verseTable

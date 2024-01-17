@@ -62,10 +62,10 @@ from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39, BOOKLIST_NT27
 # from Bibles import fetchChapter
 
 
-LAST_MODIFIED_DATE = '2024-01-14' # by RJH
+LAST_MODIFIED_DATE = '2024-01-15' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
-PROGRAM_VERSION = '0.61'
+PROGRAM_VERSION = '0.62'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -77,8 +77,8 @@ NEWLINE = '\n'
 
 
 KNOWN_PAGE_TYPES = ('site', 'topIndex', 'details', 'allDetails',
-                    'book','chapter','section',
-                    'synopticPassage', 'parallelVerse', 'interlinearVerse',
+                    'book','chapter','section', 'sectionIndex',
+                    'parallelPassage','parallelSectionIndex', 'parallelVerse', 'interlinearVerse',
                     'dictionaryMainIndex','dictionaryLetterIndex','dictionaryEntry','dictionaryIntro',
                     'word','lemma', 'person','location',
                     'wordIndex','lemmaIndex', 'personIndex','locationIndex', 'referenceIndex',
@@ -97,17 +97,21 @@ def makeTop( level:int, versionAbbreviation:Optional[str], pageType:str, fileOrF
 
     if pageType in ('chapter','section','book'):
         cssFilename = 'OETChapter.css' if 'OET' in versionAbbreviation else 'BibleChapter.css'
-    elif pageType == 'synopticPassage':
-        cssFilename = 'SynopticPassage.css'
+    elif pageType == 'parallelPassage':
+        cssFilename = 'ParallelPassages.css'
     elif pageType == 'parallelVerse':
         cssFilename = 'ParallelVerses.css'
     elif pageType == 'interlinearVerse':
         cssFilename = 'InterlinearVerse.css'
     elif pageType in ('word','lemma', 'person','location'):
         cssFilename = 'BibleWord.css'
-    elif pageType in ('dictionaryMainIndex','dictionaryLetterIndex', 'dictionaryEntry','dictionaryIntro'):
+    elif pageType in ('dictionaryLetterIndex', 'dictionaryEntry','dictionaryIntro'):
         cssFilename = 'BibleDict.css'
-    else: cssFilename = 'BibleSite.css'
+    elif pageType in ('site', 'details','allDetails', 'search', 'about', 'topIndex',
+                      'sectionIndex','parallelSectionIndex', 'dictionaryMainIndex',
+                      'wordIndex','lemmaIndex','personIndex','locationIndex','referenceIndex' ):
+        cssFilename = 'BibleSite.css'
+    else: unexpected_page_type
 
     aboutLink = 'About' if pageType=='about' else f'''<a href="{'../'*level}about.htm#Top">About</a>'''
     if TEST_MODE:
@@ -123,7 +127,7 @@ def makeTop( level:int, versionAbbreviation:Optional[str], pageType:str, fileOrF
   <meta charset="utf-8">
   <meta name="viewport" content="user-scalable=yes, initial-scale=1, minimum-scale=1, width=device-width">
   <meta name="keywords" content="__KEYWORDS__">
-  <link rel="stylesheet" type="text/css" href="{'../'*level}OETChapter.css">
+  <link rel="stylesheet" type="text/css" href="{'../'*level}{cssFilename}">
   <script src="{'../'*level}Bible.js"></script>
 </head><body><!--Level{level}-->{topLink}
 """ if versionAbbreviation and 'OET' in versionAbbreviation else f"""<!DOCTYPE html>
@@ -179,18 +183,18 @@ def _makeHeader( level:int, versionAbbreviation:str, pageType:str, fileOrFolderN
                             f'href="{vLink}">{loopVersionAbbreviation}</a>'
                             f'{state.BibleVersionDecorations[loopVersionAbbreviation][1]}'
                             )
-    if pageType == 'synopticPassage':
-        initialVersionList.append( 'Synoptic' )
+    if pageType == 'parallelPassage':
+        initialVersionList.append( 'Connected' )
     else: # add a link for parallel
-        initialVersionList.append( f'''{state.BibleVersionDecorations['Synoptic'][0]}<a title="Single verse in many translations" href="{'../'*level}syn/">Synoptic</a>{state.BibleVersionDecorations['Parallel'][1]}''' )
+        initialVersionList.append( f'''{state.BibleVersionDecorations['Connected'][0]}<a title="Single OET-RV section with parallel verses from other books" href="{'../'*level}con/">Connected</a>{state.BibleVersionDecorations['Parallel'][1]}''' )
     if pageType == 'parallelVerse':
         initialVersionList.append( 'Parallel' )
     else: # add a link for parallel
-        initialVersionList.append( f'''{state.BibleVersionDecorations['Parallel'][0]}<a title="Single verse in many translations" href="{'../'*level}par/">Parallel</a>{state.BibleVersionDecorations['Parallel'][1]}''' )
+        initialVersionList.append( f'''{state.BibleVersionDecorations['Parallel'][0]}<a title="Single verse in many different translations" href="{'../'*level}par/">Parallel</a>{state.BibleVersionDecorations['Parallel'][1]}''' )
     if pageType == 'interlinearVerse':
         initialVersionList.append( 'Interlinear' )
     else: # add a link for interlinear
-        initialVersionList.append( f'''{state.BibleVersionDecorations['Interlinear'][0]}<a title="Single verse in interlinear view" href="{'../'*level}il/">Interlinear</a>{state.BibleVersionDecorations['Interlinear'][1]}''' )
+        initialVersionList.append( f'''{state.BibleVersionDecorations['Interlinear'][0]}<a title="Single verse in interlinear word view" href="{'../'*level}ilr/">Interlinear</a>{state.BibleVersionDecorations['Interlinear'][1]}''' )
     if pageType == 'dictionaryMainIndex':
         initialVersionList.append( 'Dictionary' )
     else: # add a link for dictionary
@@ -209,9 +213,9 @@ def _makeHeader( level:int, versionAbbreviation:str, pageType:str, fileOrFolderN
     # It does this by adjusting the potential bad link to the next level higher.
     newVersionList = []
     for entry in initialVersionList:
-        # if pageType == 'parallel':
+        # if pageType == 'parallelVerse':
         #     print( f"  _makeHeader processing {entry=} ({level=} {versionAbbreviation=} {pageType=} {fileOrFolderName=})" )
-        if '/par/' in entry or '/il/' in entry:
+        if '/par/' in entry or '/ilr/' in entry:
             newVersionList.append( entry )
             continue # Should always be able to link to these
         entryBBB = None
@@ -225,7 +229,7 @@ def _makeHeader( level:int, versionAbbreviation:str, pageType:str, fileOrFolderN
             if loopVersionAbbreviation == 'OET': loopVersionAbbreviation = 'OET-RV' # We look here in this case
             thisBible = state.preloadedBibles[loopVersionAbbreviation]
             if entryBBB in thisBible:
-                # if pageType == 'parallel': print( f"    Appended {thisVersionAbbreviation} {entryBBB} as is (from {entry})")
+                # if pageType == 'parallelVerse': print( f"    Appended {thisVersionAbbreviation} {entryBBB} as is (from {entry})")
                 newVersionList.append( entry )
                 continue # Should always be able to link to these
             dPrint( 'Info', DEBUGGING_THIS_MODULE, f"      Might not be able to link to {pageType} {loopVersionAbbreviation} {entry}???" )
@@ -243,7 +247,7 @@ def _makeHeader( level:int, versionAbbreviation:str, pageType:str, fileOrFolderN
             newVersionList.append( entry )
     assert len(newVersionList) == len(initialVersionList)
     versionHtml = f'''<p class="wrkLst">{' '.join(newVersionList)}</p>'''
-    # if pageType == 'parallel':
+    # if pageType == 'parallelVerse':
     #     print( f"    {newVersionList=}" )
     #     halt
 
@@ -268,7 +272,7 @@ def _makeHeader( level:int, versionAbbreviation:str, pageType:str, fileOrFolderN
 # end of html._makeHeader
 
 
-HTML_PLUS_LIST = ['synopticPassage','parallelVerse','interlinearVerse', 'synopticIndex','parallelIndex','interlinearIndex']
+HTML_PLUS_LIST = ['parallelVerse','interlinearVerse', 'parallelIndex','interlinearIndex']
 OET_HTML_PLUS_LIST = ['OET'] + HTML_PLUS_LIST
 def makeBookNavListParagraph( linksList:List[str], workAbbrevPlus:str, state ) -> str:
     """

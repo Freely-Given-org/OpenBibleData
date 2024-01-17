@@ -1,7 +1,8 @@
 /* Also used for OET sections and documents */
 
-div.container { display:grid; column-gap:0.6em; grid-template-columns:0.85fr 1.15fr; } /* to be removed */
-div.RVLVcontainer { display:grid; column-gap:0.6em; grid-template-columns:0.85fr 1.15fr; }
+div.container2 { display:grid; column-gap:0.6em; grid-template-columns:0.5fr 0.5fr; }
+div.container3 { display:grid; column-gap:0.5em; grid-template-columns:0.33fr 0.33fr 0.33fr; }
+div.container4 { display:grid; column-gap:0.4em; grid-template-columns:0.25fr 0.25fr 0.25fr 0.25fr; }
 div.chunkLV { font-size:0.9em; }
 div.footer { width:500px; height:250px; margin:50px; }
 
@@ -90,6 +91,7 @@ span.c { font-size:1.1em; color:green; }
 span.cPsa { font-size:1.6em; font-weight:bold; color:green; }
 span.v { vertical-align:super; font-size:0.5em; color:red; }
 span.cv { vertical-align:super; font-size:0.8em; color:orange; }
+span.parCV { vertical-align:super; font-size:0.8em; font-weight:bold; }
 span.s1cv { vertical-align:super; font-size:0.8em; color:pink; }
 span.vp { vertical-align:super; font-size:0.5em; color:purple; }
 p.d { font-style:italic; }
