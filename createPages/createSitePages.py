@@ -81,7 +81,7 @@ from html import makeTop, makeBottom, checkHtml
 # from selectedVersesVersions import fillSelectedVerses
 
 
-LAST_MODIFIED_DATE = '2024-01-17' # by RJH
+LAST_MODIFIED_DATE = '2024-01-20' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData Create Pages"
 PROGRAM_VERSION = '0.93'
@@ -114,7 +114,7 @@ ALTERNATIVE_VERSION = 'WEB' # Should be a version with all books present
 
 NEWLINE = '\n'
 
-NUM_EXTRA_MODES = 5 # Connected, parallel and interlinear verses, dictionary, and search
+NUM_EXTRA_MODES = 5 # Related, parallel and interlinear verses, dictionary, and search
 
 
 class State:
@@ -163,7 +163,7 @@ class State:
                 'SR-GNT':('<b>','</b>'), # 'UGNT':('<small>','</small>'),'SBL-GNT':('<small>','</small>'),'TC-GNT':('<small>','</small>'),
                 # 'BRN':('<small>','</small>'),'BrLXX':('',''),
                 'UHB':('<b>','</b>'),
-                'Connected':('<b>','</b>'), 'Parallel':('<b>','</b>'), 'Interlinear':('<b>','</b>'), 'Dictionary':('<b>','</b>'), 'Search':('<b>','</b>'),
+                'Related':('<b>','</b>'), 'Parallel':('<b>','</b>'), 'Interlinear':('<b>','</b>'), 'Dictionary':('<b>','</b>'), 'Search':('<b>','</b>'),
                 # NOTES:
                 'TOSN':('',''),'UTN':('',''),
                 }
@@ -805,7 +805,7 @@ def createSitePages() -> bool:
 
     # TODO: We could use multiprocessing to do all these at once
     #   (except that state is quite huge with all preloaded versions and hence expensive to pickle)
-    createParallelPassagePages( 1, TEMP_BUILD_FOLDER.joinpath('con/'), state )
+    createParallelPassagePages( 1, TEMP_BUILD_FOLDER.joinpath('rel/'), state )
     createParallelVersePages( 1, TEMP_BUILD_FOLDER.joinpath('par/'), state )
     createOETInterlinearPages( 1, TEMP_BUILD_FOLDER.joinpath('ilr/'), state )
 
@@ -882,7 +882,7 @@ def cleanHTMLFolders( folder:Path, state ) -> bool:
     except FileNotFoundError: pass
     try: os.unlink( folder.joinpath( 'search.htm' ) )
     except FileNotFoundError: pass
-    try: shutil.rmtree( folder.joinpath( 'con/' ) )
+    try: shutil.rmtree( folder.joinpath( 'rel/' ) )
     except FileNotFoundError: pass
     try: shutil.rmtree( folder.joinpath( 'par/' ) )
     except FileNotFoundError: pass

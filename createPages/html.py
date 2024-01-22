@@ -62,10 +62,10 @@ from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39, BOOKLIST_NT27
 # from Bibles import fetchChapter
 
 
-LAST_MODIFIED_DATE = '2024-01-15' # by RJH
+LAST_MODIFIED_DATE = '2024-01-20' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
-PROGRAM_VERSION = '0.62'
+PROGRAM_VERSION = '0.63'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -184,9 +184,9 @@ def _makeHeader( level:int, versionAbbreviation:str, pageType:str, fileOrFolderN
                             f'{state.BibleVersionDecorations[loopVersionAbbreviation][1]}'
                             )
     if pageType == 'parallelPassage':
-        initialVersionList.append( 'Connected' )
+        initialVersionList.append( 'Related' )
     else: # add a link for parallel
-        initialVersionList.append( f'''{state.BibleVersionDecorations['Connected'][0]}<a title="Single OET-RV section with parallel verses from other books" href="{'../'*level}con/">Connected</a>{state.BibleVersionDecorations['Parallel'][1]}''' )
+        initialVersionList.append( f'''{state.BibleVersionDecorations['Related'][0]}<a title="Single OET-RV section with related verses from other books" href="{'../'*level}rel/">Related</a>{state.BibleVersionDecorations['Related'][1]}''' )
     if pageType == 'parallelVerse':
         initialVersionList.append( 'Parallel' )
     else: # add a link for parallel
@@ -351,7 +351,7 @@ def removeDuplicateCVids( BBB:str, html:str ) -> str:
     Assert statements are disabled because this function can be quite slow for an entire OET book
     """
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Removing duplicate IDs (#CV & #V) for {BBB} ({len(html):,} chars)…" )
-    
+
     endIx = 0 # This is where we start searching
     while True:
         startVIx = html.find( ' id="V', endIx )
