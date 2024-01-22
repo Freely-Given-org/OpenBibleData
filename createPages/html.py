@@ -350,7 +350,7 @@ def removeDuplicateCVids( BBB:str, html:str ) -> str:
 
     Assert statements are disabled because this function can be quite slow for an entire OET book
     """
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Removing duplicate IDs (#CV & #V) for {BBB} ({len(html):,} chars)…" )
+    vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Removing duplicate IDs (#CV & #V) for {BBB} ({len(html):,} chars)…" )
     
     endIx = 0 # This is where we start searching
     while True:

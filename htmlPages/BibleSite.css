@@ -30,3 +30,8 @@ span.DC { color:orange; font-size:smaller; }
 div.footer { width:500px; height:250px; margin:50px; }
 
 p.rem { font-size:0.8em; color:grey; }
+
+/* Section headings list */
+/* p.sectionHeading { } */
+p.alternateHeading { margin-top:0.1em; margin-bottom:0.1em; margin-left:1em; font-size:0.8em; color:grey; }
+p.sectionHeading + p.alternateHeading { margin-top:-1.2em; }

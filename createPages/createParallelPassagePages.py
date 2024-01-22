@@ -48,10 +48,10 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
 from OETHandlers import livenOETWordLinks
 
 
-LAST_MODIFIED_DATE = '2024-01-15' # by RJH
+LAST_MODIFIED_DATE = '2024-01-19' # by RJH
 SHORT_PROGRAM_NAME = "createParallelPassagePages"
 PROGRAM_NAME = "OpenBibleData createParallelPassagePages functions"
-PROGRAM_VERSION = '0.04'
+PROGRAM_VERSION = '0.05'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -223,7 +223,7 @@ def createSynopticSectionPassagePagesForBook( level:int, folder:Path, thisBible,
     # Now, make the actual pages
     vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Creating synoptic section pages for {thisBible.abbreviation} {BBB}…" )
     usedParallels = []
-    for n,startC,startV,endC,endV,sectionName,reasonName,contextList,verseEntryList,filename in state.sectionsLists[thisBible.abbreviation][BBB]:
+    for n,startC,startV,endC,endV,sectionName,reasonName,contextList,verseEntryList,sFilename in state.sectionsLists[thisBible.abbreviation][BBB]:
         if endC == '?': # Then these are the OET-RV additional/alternative headings
             assert thisBible.abbreviation == 'OET-RV'
             assert endV == '?'
@@ -357,11 +357,11 @@ def createSynopticSectionPassagePagesForBook( level:int, folder:Path, thisBible,
             synopticSectionHtml = f'''{synopticSectionHtml}\n<div class="chunkRV">{htmlChunk}</div><!--chunkRV-->'''
         synopticSectionHtml = f'''{synopticSectionHtml}\n</div><!--{containerClassname}-->'''
 
-        filepath = BBBFolder.joinpath( filename )
+        filepath = BBBFolder.joinpath( sFilename )
         top = makeTop( BBBLevel, thisBible.abbreviation, 'parallelPassage', f'con/{BBB}.htm', state ) \
                 .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{thisBible.abbreviation} {ourTidyBBB} section" ) \
                 .replace( '__KEYWORDS__', f'Bible, {thisBible.abbreviation}, synoptic, parallel, {ourTidyBBB}' ) \
-                .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/con/{filename}#Top">{thisBible.abbreviation}</a>''',
+                .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/con/{sFilename}#Top">{thisBible.abbreviation}</a>''',
                         f'''<a title="Up to {state.BibleNames[thisBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/">↑{thisBible.abbreviation}</a>''' )
         synopticSectionHtml = f'''{top}<!--synoptic section page-->
 {navBookListParagraph}
@@ -375,19 +375,19 @@ def createSynopticSectionPassagePagesForBook( level:int, folder:Path, thisBible,
 
     # Create index page for this book
     # Now make the section index file for this book
-    filename = 'index.htm'
-    filepath = BBBFolder.joinpath( filename )
-    top = makeTop( BBBLevel, thisBible.abbreviation, 'parallelSectionIndex', f'con/{filename}', state ) \
+    sFilename = 'index.htm'
+    filepath = BBBFolder.joinpath( sFilename )
+    top = makeTop( BBBLevel, thisBible.abbreviation, 'parallelSectionIndex', f'con/{sFilename}', state ) \
             .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{thisBible.abbreviation} {ourTidyBBB} sections" ) \
             .replace( '__KEYWORDS__', f'Bible, {thisBible.abbreviation}, sections, {ourTidyBBB}' ) \
-            .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/con/{filename}#Top">{thisBible.abbreviation}</a>''',
+            .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/con/{sFilename}#Top">{thisBible.abbreviation}</a>''',
                     f'''<a title="Up to {state.BibleNames[thisBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/">↑{thisBible.abbreviation}</a>''' )
     synopticSectionHtml = f'<h1 id="Top">Index of parallel sections for {thisBible.abbreviation} {ourTidyBBB}</h1>\n'
-    for _nnn,startC,startV,_endC,_endV,sectionName,reasonName,_contextList,_verseEntryList,filename in state.sectionsLists[thisBible.abbreviation][BBB]:
+    for _nnn,startC,startV,_endC,_endV,sectionName,reasonName,_contextList,_verseEntryList,sFilename in state.sectionsLists[thisBible.abbreviation][BBB]:
         if (startC,startV) not in usedParallels: continue # Only make the index for sections that we made pages for
         reasonString = '' if reasonName=='Section heading' and not TEST_MODE else f' ({reasonName})' # Suppress '(Section Heading)' appendages in the list
         # NOTE: word 'Alternate ' is defined in the above OET function at start of main loop
-        synopticSectionHtml = f'''{synopticSectionHtml}<p class="{'alternateHeading' if reasonName.startswith('Alternate ') else 'sectionHeading'}"><a title="View section" href="{filename}#Top">{'Intro' if startC=='-1' else startC}:{startV} <b>{sectionName}</b>{reasonString}</a></p>\n'''
+        synopticSectionHtml = f'''{synopticSectionHtml}<p class="{'alternateHeading' if reasonName.startswith('Alternate ') else 'sectionHeading'}"><a title="View section" href="{sFilename}#Top">{'Intro' if startC=='-1' else startC}:{startV} <b>{sectionName}</b>{reasonString}</a></p>\n'''
         # sectionHtml = f'''{sectionHtml}<p class="sectionHeading"><a title="View section" href="{filename}#Top">{'Intro' if startC=='-1' else startC}:{startV} <b>{sectionName}</b>{reasonString}</a></p>\n'''
     synopticSectionHtml = f'''{top}<!--sections page-->
 {navBookListParagraph}
@@ -402,17 +402,17 @@ def createSynopticSectionPassagePagesForBook( level:int, folder:Path, thisBible,
     # Write a second copy of the index page up a level
     filename2 = f'{BBB}.htm'
     filepath2 = folder.joinpath( filename2 )
-    top = makeTop( level, thisBible.abbreviation, 'parallelSectionIndex', f'con/{filename}', state ) \
+    top = makeTop( level, thisBible.abbreviation, 'parallelSectionIndex', f'con/{sFilename}', state ) \
             .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{thisBible.abbreviation} {ourTidyBBB} sections" ) \
             .replace( '__KEYWORDS__', f'Bible, {thisBible.abbreviation}, sections, {ourTidyBBB}' ) \
-            .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/con/{filename}#Top">{thisBible.abbreviation}</a>''',
+            .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/con/{sFilename}#Top">{thisBible.abbreviation}</a>''',
                     f'''<a title="Up to {state.BibleNames[thisBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/">↑{thisBible.abbreviation}</a>''' )
     synopticSectionHtml = f'<h1 id="Top">Index of parallel sections for {thisBible.abbreviation} {ourTidyBBB}</h1>\n'
-    for _nnn,startC,startV,_endC,_endV,sectionName,reasonName,_contextList,_verseEntryList,filename in state.sectionsLists[thisBible.abbreviation][BBB]:
+    for _nnn,startC,startV,_endC,_endV,sectionName,reasonName,_contextList,_verseEntryList,sFilename in state.sectionsLists[thisBible.abbreviation][BBB]:
         if (startC,startV) not in usedParallels: continue # Only make the index for sections that we made pages for
         reasonString = '' if reasonName=='Section heading' and not TEST_MODE else f' ({reasonName})' # Suppress '(Section Heading)' appendages in the list
         # NOTE: word 'Alternate ' is defined in the above OET function at start of main loop
-        synopticSectionHtml = f'''{synopticSectionHtml}<p class="{'alternateHeading' if reasonName.startswith('Alternate ') else 'sectionHeading'}"><a title="View section" href="{filename}#Top">{'Intro' if startC=='-1' else startC}:{startV} <b>{sectionName}</b>{reasonString}</a></p>\n'''
+        synopticSectionHtml = f'''{synopticSectionHtml}<p class="{'alternateHeading' if reasonName.startswith('Alternate ') else 'sectionHeading'}"><a title="View section" href="{BBB}/{sFilename}#Top">{'Intro' if startC=='-1' else startC}:{startV} <b>{sectionName}</b>{reasonString}</a></p>\n'''
         # sectionHtml = f'''{sectionHtml}<p class="sectionHeading"><a title="View section" href="{filename}#Top">{'Intro' if startC=='-1' else startC}:{startV} <b>{sectionName}</b>{reasonString}</a></p>\n'''
     synopticSectionHtml = f'''{top}<!--sections page-->
 {navBookListParagraph}

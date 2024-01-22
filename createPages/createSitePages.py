@@ -100,8 +100,8 @@ DEBUG_DESTINATION_FOLDER = NORMAL_DESTINATION_FOLDER.joinpath( 'Test/')
 DESTINATION_FOLDER = DEBUG_DESTINATION_FOLDER if TEST_MODE or BibleOrgSysGlobals.debugFlag \
                         else NORMAL_DESTINATION_FOLDER
 
-OET_LV_BOOK_LIST = (['RUT','JNA'] + BOOKLIST_NT27) if TEST_MODE else BOOKLIST_NT27
-OET_RV_BOOK_LIST = ['RUT','JNA', 'JHN','MRK','MAT','LUK','ACT', 'ROM','CO2', 'GAL','EPH','PHP','COL', 'TH1','TH2','TI1','TI2','TIT','PHM', 'HEB', 'JAM', 'PE1','PE2', 'JN1','JN2','JN3', 'JDE']
+OET_LV_BOOK_LIST = ['RUT','JNA','EST'] + BOOKLIST_NT27
+OET_RV_BOOK_LIST = ['RUT','JNA','EST', 'JHN','MRK','MAT','LUK','ACT', 'ROM','CO2', 'GAL','EPH','PHP','COL', 'TH1','TH2','TI1','TI2','TIT','PHM', 'HEB', 'JAM', 'PE1','PE2', 'JN1','JN2','JN3', 'JDE']
 # TODO: What about 'INT' ?
 OET_RV_BOOK_LIST_WITH_FRT = ['FRT'] + OET_RV_BOOK_LIST
 # NT_BOOK_LIST_WITH_FRT = ['FRT'] + BOOKLIST_NT27
@@ -682,7 +682,7 @@ def createSitePages() -> bool:
     # Load our OET worddata table
     state.OETRefData = {} # This is where we will store all our temporary ref data
     lvBible = state.preloadedBibles['OET-LV']
-    assert len(lvBible.ESFMWordTables) == 1
+    assert len(lvBible.ESFMWordTables) == 1, f"{len(lvBible.ESFMWordTables)=}" # TODO: Why did this fail
     wordFileName = list(lvBible.ESFMWordTables.keys())[0]
     assert wordFileName.endswith( '.tsv' )
     if lvBible.ESFMWordTables[wordFileName] is None:

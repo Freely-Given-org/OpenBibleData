@@ -32,6 +32,7 @@ CHANGELOG:
     2023-08-30 Added FRT processing for RV
     2023-12-22 Broke OET chapters correctly into chunks by section for proper alignment
     2023-12-28 Fix bug where duplicate HTML IDs weren't being removed from chapters
+    2024-01-18 Fix bug with overwritten GLS 'chapter' page (e.g., in WEB)
 """
 from gettext import gettext as _
 from typing import Dict, List, Tuple
@@ -53,10 +54,10 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_
 from OETHandlers import livenOETWordLinks
 
 
-LAST_MODIFIED_DATE = '2024-01-15' # by RJH
+LAST_MODIFIED_DATE = '2024-01-18' # by RJH
 SHORT_PROGRAM_NAME = "createChapterPages"
 PROGRAM_NAME = "OpenBibleData createChapterPages functions"
-PROGRAM_VERSION = '0.54'
+PROGRAM_VERSION = '0.55'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -497,6 +498,27 @@ def createChapterPages( level:int, folder:Path, thisBible, state ) -> List[str]:
                 with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
                     cHtmlFile.write( chapterHtml )
                 vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(chapterHtml):,} characters written to {filepath}" )
+
+            # Now create an index page for this book
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Creating chapter index page for {thisBible.abbreviation} {BBB}…" )
+            # filename = f'{BBB}_index.htm' if numChapters>0 else f'{BBB}.htm' # for FRT, etc.
+            filename = f'{BBB}.htm'
+            filenames.append( filename )
+            filepath = folder.joinpath( filename )
+            # BBBLinks.append( f'<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB)}" href="{filename}#Top">{ourTidyBBB}</a>' )
+            top = makeTop( level, thisBible.abbreviation, 'chapter', 'byC/', state ) \
+                    .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{thisBible.abbreviation} {ourTidyBBB}" ) \
+                    .replace( '__KEYWORDS__', f'Bible, {thisBible.abbreviation}, chapter, {ourTidyBBB}' ) \
+                    .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*level}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}">{thisBible.abbreviation}</a>''', thisBible.abbreviation )
+            chapterHtml = f'''{top}<!--chapters indexPage-->
+{cLinksPar}
+{makeBottom( level, 'chapter', state )}'''
+            checkHtml( thisBible.abbreviation, chapterHtml )
+            assert not filepath.is_file(), f"createChapterPages {thisBible.abbreviation} {BBB}: {filepath=} {BBBsToProcess=} {thisBibleBooksToLoad=}" # Check that we're not overwriting anything
+            with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
+                cHtmlFile.write( chapterHtml )
+            vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(chapterHtml):,} characters written to {filepath}" )
+
         else: # a non-chapter book
             dPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"createChapterPages {thisBible.abbreviation} {BBB} has {numChapters} chapters!!!" )
             assert BBB in ('INT','FRT','OTH','GLS','XXA','XXB','XXC')
@@ -524,26 +546,6 @@ def createChapterPages( level:int, folder:Path, thisBible, state ) -> List[str]:
             with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
                 cHtmlFile.write( chapterHtml )
             vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"    {len(chapterHtml):,} characters written to {filepath}" )
-
-        if BBB != 'FRT': # Now create an index page for this book
-            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Creating chapter index page for {thisBible.abbreviation} {BBB}…" )
-            # filename = f'{BBB}_index.htm' if numChapters>0 else f'{BBB}.htm' # for FRT, etc.
-            filename = f'{BBB}.htm'
-            filenames.append( filename )
-            filepath = folder.joinpath( filename )
-            # BBBLinks.append( f'<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB)}" href="{filename}#Top">{ourTidyBBB}</a>' )
-            top = makeTop( level, thisBible.abbreviation, 'chapter', 'byC/', state ) \
-                    .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{thisBible.abbreviation} {ourTidyBBB}" ) \
-                    .replace( '__KEYWORDS__', f'Bible, {thisBible.abbreviation}, chapter, {ourTidyBBB}' ) \
-                    .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*level}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}">{thisBible.abbreviation}</a>''', thisBible.abbreviation )
-            chapterHtml = f'''{top}<!--chapters indexPage-->
-{cLinksPar}
-{makeBottom( level, 'chapter', state )}'''
-            checkHtml( thisBible.abbreviation, chapterHtml )
-            assert not filepath.is_file() # Check that we're not overwriting anything
-            with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
-                cHtmlFile.write( chapterHtml )
-            vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(chapterHtml):,} characters written to {filepath}" )
 
     # Create overall chapter index page
     filename = 'index.htm'
