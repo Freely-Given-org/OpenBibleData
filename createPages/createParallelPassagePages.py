@@ -357,11 +357,19 @@ def createSynopticSectionPassagePagesForBook( level:int, folder:Path, thisBible,
             synopticSectionHtml = f'''{synopticSectionHtml}\n<div class="chunkRV">{htmlChunk}</div><!--chunkRV-->'''
         synopticSectionHtml = f'''{synopticSectionHtml}\n</div><!--{containerClassname}-->'''
 
+<<<<<<< HEAD
         filepath = BBBFolder.joinpath( sFilename )
         top = makeTop( BBBLevel, thisBible.abbreviation, 'parallelPassage', f'con/{BBB}.htm', state ) \
                 .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{thisBible.abbreviation} {ourTidyBBB} section" ) \
                 .replace( '__KEYWORDS__', f'Bible, {thisBible.abbreviation}, synoptic, parallel, {ourTidyBBB}' ) \
                 .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/con/{sFilename}#Top">{thisBible.abbreviation}</a>''',
+=======
+        filepath = BBBFolder.joinpath( filename )
+        top = makeTop( BBBLevel, thisBible.abbreviation, 'parallelPassage', f'rel/{BBB}.htm', state ) \
+                .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{thisBible.abbreviation} {ourTidyBBB} section" ) \
+                .replace( '__KEYWORDS__', f'Bible, {thisBible.abbreviation}, synoptic, parallel, {ourTidyBBB}' ) \
+                .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/rel/{filename}#Top">{thisBible.abbreviation}</a>''',
+>>>>>>> f024d79b7631d354313af298c95b6d4cc56483cc
                         f'''<a title="Up to {state.BibleNames[thisBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/">↑{thisBible.abbreviation}</a>''' )
         synopticSectionHtml = f'''{top}<!--synoptic section page-->
 {navBookListParagraph}
@@ -375,12 +383,21 @@ def createSynopticSectionPassagePagesForBook( level:int, folder:Path, thisBible,
 
     # Create index page for this book
     # Now make the section index file for this book
+<<<<<<< HEAD
     sFilename = 'index.htm'
     filepath = BBBFolder.joinpath( sFilename )
     top = makeTop( BBBLevel, thisBible.abbreviation, 'parallelSectionIndex', f'con/{sFilename}', state ) \
             .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{thisBible.abbreviation} {ourTidyBBB} sections" ) \
             .replace( '__KEYWORDS__', f'Bible, {thisBible.abbreviation}, sections, {ourTidyBBB}' ) \
             .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/con/{sFilename}#Top">{thisBible.abbreviation}</a>''',
+=======
+    filename = 'index.htm'
+    filepath = BBBFolder.joinpath( filename )
+    top = makeTop( BBBLevel, thisBible.abbreviation, 'parallelSectionIndex', f'rel/{filename}', state ) \
+            .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{thisBible.abbreviation} {ourTidyBBB} sections" ) \
+            .replace( '__KEYWORDS__', f'Bible, {thisBible.abbreviation}, sections, {ourTidyBBB}' ) \
+            .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/rel/{filename}#Top">{thisBible.abbreviation}</a>''',
+>>>>>>> f024d79b7631d354313af298c95b6d4cc56483cc
                     f'''<a title="Up to {state.BibleNames[thisBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/">↑{thisBible.abbreviation}</a>''' )
     synopticSectionHtml = f'<h1 id="Top">Index of parallel sections for {thisBible.abbreviation} {ourTidyBBB}</h1>\n'
     for _nnn,startC,startV,_endC,_endV,sectionName,reasonName,_contextList,_verseEntryList,sFilename in state.sectionsLists[thisBible.abbreviation][BBB]:
@@ -402,10 +419,17 @@ def createSynopticSectionPassagePagesForBook( level:int, folder:Path, thisBible,
     # Write a second copy of the index page up a level
     filename2 = f'{BBB}.htm'
     filepath2 = folder.joinpath( filename2 )
+<<<<<<< HEAD
     top = makeTop( level, thisBible.abbreviation, 'parallelSectionIndex', f'con/{sFilename}', state ) \
             .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{thisBible.abbreviation} {ourTidyBBB} sections" ) \
             .replace( '__KEYWORDS__', f'Bible, {thisBible.abbreviation}, sections, {ourTidyBBB}' ) \
             .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/con/{sFilename}#Top">{thisBible.abbreviation}</a>''',
+=======
+    top = makeTop( level, thisBible.abbreviation, 'parallelSectionIndex', f'rel/{filename}', state ) \
+            .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{thisBible.abbreviation} {ourTidyBBB} sections" ) \
+            .replace( '__KEYWORDS__', f'Bible, {thisBible.abbreviation}, sections, {ourTidyBBB}' ) \
+            .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/rel/{filename}#Top">{thisBible.abbreviation}</a>''',
+>>>>>>> f024d79b7631d354313af298c95b6d4cc56483cc
                     f'''<a title="Up to {state.BibleNames[thisBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/">↑{thisBible.abbreviation}</a>''' )
     synopticSectionHtml = f'<h1 id="Top">Index of parallel sections for {thisBible.abbreviation} {ourTidyBBB}</h1>\n'
     for _nnn,startC,startV,_endC,_endV,sectionName,reasonName,_contextList,_verseEntryList,sFilename in state.sectionsLists[thisBible.abbreviation][BBB]:
