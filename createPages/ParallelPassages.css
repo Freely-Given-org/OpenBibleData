@@ -3,6 +3,7 @@
 div.container2 { display:grid; column-gap:0.6em; grid-template-columns:0.5fr 0.5fr; }
 div.container3 { display:grid; column-gap:0.5em; grid-template-columns:0.33fr 0.33fr 0.33fr; }
 div.container4 { display:grid; column-gap:0.4em; grid-template-columns:0.25fr 0.25fr 0.25fr 0.25fr; }
+div.container5 { display:grid; column-gap:0.4em; grid-template-columns:0.2fr 0.2fr 0.2fr 0.2fr 0.2fr; }
 div.chunkLV { font-size:0.9em; }
 div.footer { width:500px; height:250px; margin:50px; }
 

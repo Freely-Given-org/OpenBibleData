@@ -23,18 +23,28 @@
 #   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 """
-Module handling Bibles functions.
+Module handling Bibles functions for OpenBibleData package.
 
-BibleOrgSys uses a three-character book code to identify books.
-    These referenceAbbreviations are nearly always represented as BBB in the program code
-            (although formally named referenceAbbreviation
-                and possibly still represented as that in some of the older code),
-        and in a sense, this is the centre of the BibleOrgSys.
-    The referenceAbbreviation/BBB always starts with a letter, and letters are always UPPERCASE
-        so 2 Corinthians is 'CO2' not '2Co' or anything.
-        This was because early versions of HTML ID fields used to need
-                to start with a letter (not a digit),
-            (and most identifiers in computer languages still require that).
+
+preloadVersions( state ) -> int
+preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state ) -> Bible
+
+loadTyndaleBookIntrosXML( abbrev:str, XML_filepath ) -> Dict[str,str]
+formatTyndaleBookIntro( abbrev:str, level:int, BBB:str, segmentType:str, state ) -> str
+formatTyndaleNotes( abbrev:str, level:int, BBB:str, C:str, V:str, segmentType:str, state ) -> str # html
+fixTyndaleBRefs( abbrev:str, level:int, BBBorArticleName:str, C:str, V:str, html:str, state ) -> str
+
+formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segmentType:str, state ) -> str # html
+
+loadSelectedVersesFile( fileLocation, givenName:str, givenAbbreviation:str, encoding='utf-8' ) -> Bible
+
+tidyBBB( BBB:str, titleCase:Optional[bool]=False, allowFourChars:Optional[bool]=True ) -> str
+
+getVerseDataListForReference( givenRefString:str, thisBible:Bible, lastBBB:Optional[str]=None, lastC:Optional[str]=None ) -> Tuple[str,str,InternalBibleEntryList,List[str]]
+
+briefDemo() -> None
+fullDemo() -> None
+
 
 CHANGELOG:
     2023-07-19 Fix '<class="sn-text">' bug
@@ -64,7 +74,7 @@ import BibleOrgSys.Formats.VPLBible as VPLBible
 import BibleOrgSys.Formats.uWNotesBible as uWNotesBible
 import BibleOrgSys.Formats.TyndaleNotesBible as TyndaleNotesBible
 from BibleOrgSys.Bible import Bible
-from BibleOrgSys.Internals.InternalBibleInternals import getLeadingInt
+from BibleOrgSys.Internals.InternalBibleInternals import InternalBibleEntryList, getLeadingInt
 
 import sys
 sys.path.append( '../../BibleTransliterations/Python/' )
@@ -249,7 +259,7 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state ) -
         thisBible.loadBooks() # So we can iterate through them all later
     elif versionAbbreviation in state.selectedVersesOnlyVersions: # small numbers of sample verses
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Loading '{versionAbbreviation}' sample verses…" )
-        thisBible = loadSelectedVerses( folderOrFileLocation, givenName=state.BibleNames[versionAbbreviation],
+        thisBible = loadSelectedVersesFile( folderOrFileLocation, givenName=state.BibleNames[versionAbbreviation],
                                             givenAbbreviation=versionAbbreviation, encoding='utf-8' )
         # NOTE: thisBible is NOT a Bible object here!!!
         # vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} loaded ({len(thisBible.books.keys())}) {list(thisBible.books.keys())}" )
@@ -886,13 +896,13 @@ def formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segme
 # end of Bibles.formatUnfoldingWordTranslationNotes
 
 
-def loadSelectedVerses( fileLocation, givenName:str, givenAbbreviation:str, encoding='utf-8' ) -> Bible:
+def loadSelectedVersesFile( fileLocation, givenName:str, givenAbbreviation:str, encoding='utf-8' ) -> Bible:
     """
     These are loaded from simple two-column TSV files
         with reference and verse text.
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"loadSelectedVerses( {fileLocation}, {givenName}, {givenAbbreviation}, {encoding} )" )
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  loadSelectedVerses() loading {givenAbbreviation} ({givenName}) verse entries from {fileLocation}…" )
+    fnPrint( DEBUGGING_THIS_MODULE, f"loadSelectedVersesFile( {fileLocation}, {givenName}, {givenAbbreviation}, {encoding} )" )
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  loadSelectedVersesFile() loading {givenAbbreviation} ({givenName}) verse entries from {fileLocation}…" )
     # assert givenAbbreviation in state.selectedVersesOnlyVersions
 
     verseTable = {}
@@ -916,9 +926,9 @@ def loadSelectedVerses( fileLocation, givenName:str, givenAbbreviation:str, enco
                                         .replace('\\n','\n').replace('\\\\','\\') # See https://en.wikipedia.org/wiki/Tab-separated_values
                                         .replace('__ND__','\\nd') )
 
-    vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    loadSelectedVerses() loaded {len(verseTable):,} {givenAbbreviation} verse entries from {fileLocation}." )
+    vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    loadSelectedVersesFile() loaded {len(verseTable):,} {givenAbbreviation} verse entries from {fileLocation}." )
     return verseTable
-# end of Bibles.loadSelectedVerses
+# end of Bibles.loadSelectedVersesFile
 
 
 def tidyBBB( BBB:str, titleCase:Optional[bool]=False, allowFourChars:Optional[bool]=True ) -> str:
@@ -933,6 +943,110 @@ def tidyBBB( BBB:str, titleCase:Optional[bool]=False, allowFourChars:Optional[bo
 # end of Bibles.tidyBBB
 
 
+def getVerseDataListForReference( givenRefString:str, thisBible:Bible, lastBBB:Optional[str]=None, lastC:Optional[str]=None ) -> Tuple[str,str,InternalBibleEntryList,List[str]]:
+    """
+    If a reference doesn't contain a book name abbreviation, we might need to use the (optional) lastBBB parameter (and lastC for verse lists)
+
+    Returns verseEntryList and contextList.
+    """
+    print( f"getVerseDataListForReference( {givenRefString}, {thisBible.abbreviation}, {lastBBB=}, {lastC=} )" )
+    # TODO: Most of this next block of code should really be in BibleOrgSys
+    adjRefString = givenRefString.replace( ' (LXX)', '' )
+    if ' ' not in adjRefString: adjRefString = f'{lastBBB} {adjRefString}'
+    refBits = adjRefString.split( ' ' )
+    bookAbbreviation, srCVpart = (refBits[0],refBits[1:]) if len(refBits[0])>1 else (f'{refBits[0]} {refBits[1]}', refBits[2:])
+    bookAbbreviation = bookAbbreviation.rstrip( '.' )
+    srBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromText( bookAbbreviation )
+    if srBBB is None and bookAbbreviation[0].isdigit() and (':' in bookAbbreviation or '-' in bookAbbreviation): # or bookAbbreviation.isdigit() might need to be added
+        # It must be another reference in the same book
+        srBBB = lastBBB
+        assert not srCVpart
+        srCVpart = [refBits]
+    if srBBB is None and thisBible.abbreviation=='OET-RV' and bookAbbreviation[0]=='Y':
+        srBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromText( f'J{bookAbbreviation[1:]}' ) # Convert Yoel back to Joel, etc.
+    assert srBBB, f"getVerseDataListForReference {givenRefString=} can't get BBB from {bookAbbreviation=} {srCVpart=}"
+    assert isinstance( srCVpart, list ) and len(srCVpart)==1 and isinstance( srCVpart[0], str ), f"{srBBB} {srCVpart=} from {givenRefString=}"
+    srCVpart = srCVpart[0]
+
+    verseEntryList, contextList = InternalBibleEntryList(), None
+    try:
+        if ',' in srCVpart:
+            if srCVpart.count(':')==1 and srCVpart.count(',')==1 and srCVpart.count('-')==2: # Could be something like '18:13-14,19-24'
+                part1, part2 = srCVpart.split( ',' )
+                assert part1.count(':')==1 and part1.count('-')==1 and part2.count('-')==1
+                part1a, srEndV = part1.split( '-' )
+                srStartC, srStartV = part1a.split( ':' )
+                assert srStartC.isdigit() and srStartV.isdigit() and srEndV.isdigit()
+                verseEntryList, contextList = thisBible.getContextVerseDataRange( (srBBB,srStartC,srStartV), (srBBB,srStartC,srEndV) )
+                srStartV, srEndV = part2.split( ':' )
+                assert srStartV.isdigit() and srEndV.isdigit()
+                thisVerseEntryList, _contextList = thisBible.getContextVerseDataRange( (srBBB,srStartC,srStartV), (srBBB,srStartC,srEndV) )
+                verseEntryList += thisVerseEntryList
+            elif '-' in srCVpart: # comma plus hyphen: expect a verse range
+                part1, part2 = srCVpart.split( '-' )
+                assert ',' not in part1
+                if ':' in part1 and ':' not in part2:
+                    srStartC, srStartV = part1.split( ':' )
+                    assert srStartC.isdigit() and srStartV.isdigit()
+                    part2Parts = part2.replace( ', ',',' ).split( ',' )
+                    verseEntryList, contextList = thisBible.getContextVerseDataRange( (srBBB,srStartC,srStartV), (srBBB,srStartC,part2Parts[-1]) )
+                else: noColon1a
+            else: # comma but no hyphen: expect a verse list of two or more verses
+                if ':' in srCVpart:
+                    srStartC, srVpart = srCVpart.split( ':' )
+                    assert srStartC.isdigit()
+                    srVs = srVpart.split( ',' )
+                    for srStartV in srVpart.split( ',' ):
+                        assert srStartV.isdigit()
+                        thisVerseEntryList, thisContextList = thisBible.getContextVerseData( (srBBB,srStartC) if srStartC=='-1' else (srBBB,srStartC,srStartV) )
+                        verseEntryList += thisVerseEntryList
+                        if contextList is None: contextList = thisContextList # Keep the first one
+                else: noColon3a
+        else: # no commas
+            if '-' in srCVpart: # no commas, hyphen: expect a verse range
+                part1, part2 = srCVpart.split( '-' )
+                if ':' not in srCVpart: # it must just be two verse numbers
+                    assert srStartC.isdigit() # From previous loop
+                    srStartV, srEndV = part1, part2
+                    assert srStartV.isdigit() and srEndV.isdigit()
+                    verseEntryList, contextList = thisBible.getContextVerseDataRange( (srBBB,srStartC,srStartV), (srBBB,srStartC,srEndV) )
+                elif ':' in part1 and ':' not in part2:
+                    srStartC, srStartV = part1.split( ':' )
+                    srStartV = str( getLeadingInt( srStartV ) )
+                    srEndV = str( getLeadingInt( part2 ) )
+                    assert srStartC.isdigit() and srStartV.isdigit() and srEndV.isdigit()
+                    verseEntryList, contextList = thisBible.getContextVerseDataRange( (srBBB,srStartC,srStartV), (srBBB,srStartC,srEndV), strict=False )
+                elif ':' in part1 and ':' in part2:
+                    logging.warning( f"Expected en-dash (not hyphen) in {givenRefString=} section cross-reference {srBBB} {srCVpart}" )
+                    halt
+                    srStartC, srStartV = part1.split( ':' )
+                    srStartV = str( getLeadingInt( srStartV ) )
+                    srEndC, srEndV = part2.split( ':' )
+                    srEndV = str( getLeadingInt( srEndV ) )
+                    assert srStartC.isdigit() and srStartV.isdigit() and srEndC.isdigit() and srEndV.isdigit()
+                    verseEntryList, contextList = thisBible.getContextVerseDataRange( (srBBB,srStartC,srStartV), (srBBB,srStartC,srEndV), strict=False )
+                else: noColon1b
+            elif '–' in srCVpart: # no commas, but have en-dash: expect a chapter range
+                part1, part2 = srCVpart.split( '–' )
+                if ':' in part1 and ':' in part2:
+                    srStartC, srStartV = part1.split( ':' )
+                    srEndC, srEndV = part2.split( ':' )
+                    assert srStartC.isdigit() and srStartV.isdigit()
+                    assert srEndC.isdigit() and srEndV.isdigit()
+                    verseEntryList, contextList = thisBible.getContextVerseDataRange( (srBBB,srStartC,srStartV), (srBBB,srEndC,srEndV) )
+                else: noColon2b
+            else: # no hyphen or en-dash
+                if ':' in srCVpart:
+                    srStartC, srVpart = srCVpart.split( ':' )
+                    assert srStartC.isdigit()
+                    srStartV = str( getLeadingInt(srVpart) )
+                    verseEntryList, contextList = thisBible.getContextVerseData( (srBBB,srStartC) if srStartC=='-1' else (srBBB,srStartC,srStartV) )
+                else: noColon3b
+    except KeyError: # if can't find any verseEntries
+        logging.critical( f"getVerseDataListForReference {givenRefString=} was unable to find {srBBB} {srStartC}:{srStartV} from {givenRefString=}" )
+
+    return srBBB, srStartC, verseEntryList, contextList
+# end of Bibles.getVerseDataListForReference
 
 def briefDemo() -> None:
     """

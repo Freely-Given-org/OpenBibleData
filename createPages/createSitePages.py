@@ -68,7 +68,7 @@ from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39, BOOKLIST_NT27
 sys.path.append( '../../BibleTransliterations/Python/' )
 from BibleTransliterations import load_transliteration_table
 
-from Bibles import preloadVersions, tidyBBB #, preloadUwTranslationNotes
+from Bibles import preloadVersions, tidyBBB
 from createBookPages import createOETBookPages, createBookPages
 from createChapterPages import createOETSideBySideChapterPages, createChapterPages
 from createSectionPages import createOETSectionPages, createSectionPages
@@ -78,10 +78,9 @@ from createOETInterlinearPages import createOETInterlinearPages
 from createOETReferencePages import createOETReferencePages
 from Dict import createTyndaleDictPages
 from html import makeTop, makeBottom, checkHtml
-# from selectedVersesVersions import fillSelectedVerses
 
 
-LAST_MODIFIED_DATE = '2024-01-20' # by RJH
+LAST_MODIFIED_DATE = '2024-01-25' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData Create Pages"
 PROGRAM_VERSION = '0.93'

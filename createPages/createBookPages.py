@@ -50,10 +50,10 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_
 from OETHandlers import livenOETWordLinks
 
 
-LAST_MODIFIED_DATE = '2024-01-15' # by RJH
+LAST_MODIFIED_DATE = '2024-01-23' # by RJH
 SHORT_PROGRAM_NAME = "createBookPages"
 PROGRAM_NAME = "OpenBibleData createBookPages functions"
-PROGRAM_VERSION = '0.46'
+PROGRAM_VERSION = '0.47'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -227,7 +227,7 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state ) -> Lis
             # Fails on JNA n=4 rvStartCV='C4' rvEndCV='C4V11' lvChunk[-8:]='eat(fs).'
             assert rsLvChunk[-1]=='>' \
             or (rsLvChunk[-2]=='>' and rsLvChunk[-1] in '.,') \
-            or (BBB in ('RUT','JNA') and rsLvChunk[-1]=='.'), f"{BBB} {n=} {rvStartCV=} {rvEndCV=} {lvChunk[-8:]=}"
+            or (BBB in ('RUT','JNA','EST') and rsLvChunk[-1]=='.'), f"{BBB} {n=} {rvStartCV=} {rvEndCV=} {lvChunk[-8:]=}"
             lvChunks.append( lvChunk )
             lvRest = lvRest[lvEndIx:]
 

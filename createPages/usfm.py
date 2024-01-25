@@ -23,7 +23,7 @@
 #   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 """
-Module handling usfm to html functions.
+Module handling usfm to html functions for OpenBibleData package.
 
 convertUSFMMarkerListToHtml( level:str, versionAbbreviation:str, refTuple:tuple, segmentType:str,
                         contextList:list, markerList:list, basicOnly:bool=False ) -> str
@@ -51,7 +51,7 @@ CHANGELOG:
     2023-10-13 Give error if unable to find xref book
     2023-12-24 Add code to liven section references ( livenSectionReferences() )
                 Change to use findSectionNumber() function
-    2024-01-17 Add special handling for '\\nd LORD\\nd*'
+    2024-01-17 Add special handling for OT '\\nd LORD\\nd*' and convert \\nd to nominaSacra span in NT
 """
 from gettext import gettext as _
 import re
@@ -62,14 +62,15 @@ import logging
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, dPrint, vPrint
 from BibleOrgSys.Internals.InternalBibleInternals import getLeadingInt
+from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_NT27
 
 from html import checkHtml
 
 
-LAST_MODIFIED_DATE = '2024-01-18' # by RJH
+LAST_MODIFIED_DATE = '2024-01-25' # by RJH
 SHORT_PROGRAM_NAME = "usfm"
 PROGRAM_NAME = "OpenBibleData USFM to HTML functions"
-PROGRAM_VERSION = '0.63'
+PROGRAM_VERSION = '0.65'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -92,7 +93,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
 
     fnPrint( DEBUGGING_THIS_MODULE, f"convertUSFMMarkerListToHtml( {versionAbbreviation} {refTuple} '{segmentType}' {contextList} {markerList} )" )
     dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"convertUSFMMarkerListToHtml( {versionAbbreviation} {refTuple} '{segmentType}' {contextList} {len(markerList)} )" )
-    assert segmentType in ('book','section','chapter','verse','parallelPassage'), f"Unexpected {segmentType=}"
+    assert segmentType in ('book','section','chapter','verse','relatedPassage'), f"Unexpected {segmentType=}"
 
     inMainDiv = inParagraph = inSection = inList = inListEntry = inTable = None
     inRightDiv = False
@@ -874,6 +875,8 @@ def formatUSFMText( versionAbbreviation:str, refTuple:tuple, segmentType:str, us
     Handles character formatting inside USFM lines.
 
     This includes \\fig and \\jmp
+
+    Automatically changes \\nd to Nomina Sacra for OET NT books
     """
     from createSectionPages import findSectionNumber
     fnPrint( DEBUGGING_THIS_MODULE, f"formatUSFMText( {versionAbbreviation}, {refTuple}, {segmentType}, {usfmField}, {basicOnly=} )" )
@@ -938,14 +941,14 @@ def formatUSFMText( versionAbbreviation:str, refTuple:tuple, segmentType:str, us
                         # dPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"formatUSFMText( {versionAbbreviation}, {refTuple}, {segmentType}, '{introHtml}' )" )
                         # print( f"{versionAbbreviation}, {refTuple}, {ourBBB=} {refC=} {refV=} {jmpDisplay=}" )
                         newLink = f'<a title="Go to internal jump link reference verse" href="C{refC}V{refV}.htm#Top">{jmpDisplay}</a>'
-                    elif segmentType == 'section':
+                    elif segmentType in ('section','relatedPassage'):
                         if 1:
                         # try: # Now find which section that reference starts in
                             # print( f"{state.sectionsLists[versionAbbreviation][ourBBB]=}" )
                             n = findSectionNumber( versionAbbreviation, ourBBB, refC, refV, state )
                             # intV = getLeadingInt( refV )
                             # found = False
-                            # for n, (startC,startV,endC,endV,sectionName,reasonName,contextList,verseEntryList,filename) in enumerate( state.sectionsLists[versionAbbreviation][ourBBB] ):
+                            # for n, (startC,startV,endC,endV,sectionName,reasonName,contextList,verseEntryList,sFilename) in enumerate( state.sectionsLists[versionAbbreviation][ourBBB] ):
                             #     if startC==refC and endC==refC:
                             #         if getLeadingInt(startV) <= intV <= getLeadingInt(endV): # It's in this single chapter
                             #             found = True
@@ -960,7 +963,7 @@ def formatUSFMText( versionAbbreviation:str, refTuple:tuple, segmentType:str, us
                             if n is not None:
                                 newLink = f'<a title="Go to to section page with reference" href="{ourBBB}_S{n}.htm#Top">{jmpDisplay}</a>'
                             else:
-                                logging.critical( f"unable_to_find_reference for {ourBBB} {refC}:{refV} {[f'{startC}:{startV}…{endC}:{endV}' for startC,startV,endC,endV,sectionName,reasonName,contextList,verseEntryList,filename in state.sectionsLists[versionAbbreviation]]}" )
+                                logging.critical( f"unable_to_find_reference for {ourBBB} {refC}:{refV} {[f'{startC}:{startV}…{endC}:{endV}' for startC,startV,endC,endV,sectionName,reasonName,contextList,verseEntryList,sFilename in state.sectionsLists[versionAbbreviation]]}" )
                                 newLink = jmpDisplay # Can't make a link
                                 unable_to_find_reference # Need to write more code
                         # except KeyError:
@@ -1018,11 +1021,14 @@ def formatUSFMText( versionAbbreviation:str, refTuple:tuple, segmentType:str, us
             .replace( '\\it ', '<i>' ).replace( '\\it*', '</i>' ) \
             .replace( '\\em ', '<em>' ).replace( '\\em*', '</em>' ) \
             .replace( '\\sup ', '<sup>' ).replace( '\\sup*', '</sup>' )
-    # Special handling for '\\nd LORD\\nd*' (this is also in createParallelVersePages)
+    # Special handling for OT '\\nd LORD\\nd*' (this is also in createParallelVersePages)
     html = html.replace( '\\nd LORD\\nd*', '\\nd L<span style="font-size:.75em;">ORD</span>\\nd*' )
     # Now replace all the other character markers into HTML spans, e.g., \\add \\nd \\bk
     for charMarker in BibleOrgSysGlobals.USFMAllExpandedCharacterMarkers + ['untr']:
-        html = html.replace( f'\\{charMarker} ', f'<span class="{charMarker}">' ).replace( f'\\{charMarker}*', '</span>' )
+        if charMarker=='nd' and 'OET' in versionAbbreviation and ourBBB in BOOKLIST_NT27:
+            html = html.replace( '\\nd ', '<span class="nominaSacra">' ).replace( '\\nd*', '</span>' )
+        else:
+            html = html.replace( f'\\{charMarker} ', f'<span class="{charMarker}">' ).replace( f'\\{charMarker}*', '</span>' )
 
     if 'OET' in versionAbbreviation: # Append "untranslated" to titles/popup-boxes for untranslated words in OET-LV
         # count = 0
@@ -1094,14 +1100,14 @@ def livenIntroductionLinks( versionAbbreviation:str, refTuple:tuple, segmentType
             assert refTuple[1] == '-1', f"{refTuple=}"
             # print( f"{versionAbbreviation}, {refTuple}, {refBBB=} {refC=} {refV=} {guts=}" )
             newGuts = f'<a title="Go to reference verse" href="C{refC}V{refV}.htm#Top">{guts}</a>'
-        elif segmentType in ('section','parallelPassage'):
+        elif segmentType in ('section','relatedPassage'):
             if 1:
             # try: # Now find which section that reference starts in
                 # print( f"{state.sectionsLists[versionAbbreviation][refBBB]=}" )
                 n = findSectionNumber( versionAbbreviation, refBBB, refC, refV, state )
                 # intV = getLeadingInt(refV)
                 # found = False
-                # for n, (startC,startV,endC,endV,sectionName,reasonName,contextList,verseEntryList,filename) in enumerate( state.sectionsLists[versionAbbreviation][refBBB] ):
+                # for n, (startC,startV,endC,endV,sectionName,reasonName,contextList,verseEntryList,sFilename) in enumerate( state.sectionsLists[versionAbbreviation][refBBB] ):
                 #     if startC==refC and endC==refC:
                 #         if getLeadingInt(startV) <= intV <= getLeadingInt(endV): # It's in this single chapter
                 #             found = True
@@ -1117,7 +1123,7 @@ def livenIntroductionLinks( versionAbbreviation:str, refTuple:tuple, segmentType
                     newGuts = f'<a title="Go to to section page with reference" href="{refBBB}_S{n}.htm#Top">{guts}</a>'
                 else:
                     logging.critical( f"unable_to_find_reference for {versionAbbreviation} {refBBB} {refC}:{refV}" )
-                    # logging.critical( f"   {[f'{startC}:{startV}…{endC}:{endV}' for startC,startV,endC,endV,_sectionName,_reasonName,_contextList,_verseEntryList,_filename in state.sectionsLists[versionAbbreviation][refBBB]]}" )
+                    # logging.critical( f"   {[f'{startC}:{startV}…{endC}:{endV}' for startC,startV,endC,endV,_sectionName,_reasonName,_contextList,_verseEntryList,_sFilename in state.sectionsLists[versionAbbreviation][refBBB]]}" )
                     # for n, something in enumerate( state.sectionsLists[versionAbbreviation][refBBB] ):
                     #     logging.critical( f"  {n}: {something}")
                     #     assert isinstance( something, tuple )
@@ -1143,7 +1149,7 @@ def livenIntroductionLinks( versionAbbreviation:str, refTuple:tuple, segmentType
         guts = match.group(0)[1:-1] # Remove the parentheses or other surrounding chars
         preChar, refC, refV, refRest, postChar = match.groups()
         dPrint( 'Info', DEBUGGING_THIS_MODULE, f"Got {versionAbbreviation} intro ref CV match with '{preChar}' '{guts}' '{postChar}' -> {match.groups()=}" )
-        logging.critical( f"Assuming '{guts}' ref in {ourBBB} intro is a self-reference BUT THIS IS QUITE LIKELY WRONG" )
+        logging.critical( f"Assuming '{guts}' ref in {ourBBB} intro is a self-reference BUT THIS COULD EASILY BE WRONG" )
         if segmentType == 'book':
             newGuts = f'<a title="Jump down to reference" href="#C{refC}V{refV}">{guts}</a>'
         elif segmentType == 'chapter':
@@ -1153,13 +1159,13 @@ def livenIntroductionLinks( versionAbbreviation:str, refTuple:tuple, segmentType
             assert refTuple[1] == '-1', f"{refTuple=}"
             # print( f"{versionAbbreviation}, {refTuple}, {refBBB=} {refC=} {refV=} {guts=}" )
             newGuts = f'<a title="Go to reference verse" href="C{refC}V{refV}.htm#Top">{guts}</a>'
-        elif segmentType in ('section','parallelPassage'):
+        elif segmentType in ('section','relatedPassage'):
             if 1:
             # try: # Now find which section that reference starts in
                 n = findSectionNumber( versionAbbreviation, ourBBB, refC, refV, state )
                 # intV = getLeadingInt(refV)
                 # found = False
-                # for n, (startC,startV,endC,endV,sectionName,reasonName,contextList,verseEntryList,filename) in enumerate( state.sectionsLists[versionAbbreviation][ourBBB] ):
+                # for n, (startC,startV,endC,endV,sectionName,reasonName,contextList,verseEntryList,sFilename) in enumerate( state.sectionsLists[versionAbbreviation][ourBBB] ):
                 #     if startC==refC and endC==refC:
                 #         if getLeadingInt(startV) <= intV <= getLeadingInt(endV): # It's in this single chapter
                 #             found = True
@@ -1174,7 +1180,7 @@ def livenIntroductionLinks( versionAbbreviation:str, refTuple:tuple, segmentType
                 if n is not None:
                     newGuts = f'<a title="Jump to section page with reference" href="{ourBBB}_S{n}.htm#Top">{guts}</a>'
                 else:
-                    logging.critical( f"PROBABLY WRONGLY GUESSED BOOK: unable_to_find_reference for {ourBBB=} {refC}:{refV} {[f'{startC}:{startV}…{endC}:{endV}' for startC,startV,endC,endV,sectionName,reasonName,contextList,verseEntryList,filename in state.sectionsLists[versionAbbreviation][ourBBB]]}" )
+                    logging.critical( f"PROBABLY WRONGLY GUESSED BOOK: unable_to_find_reference for {ourBBB=} {refC}:{refV} {[f'{startC}:{startV}…{endC}:{endV}' for startC,startV,endC,endV,sectionName,reasonName,contextList,verseEntryList,sFilename in state.sectionsLists[versionAbbreviation][ourBBB]]}" )
                     newGuts = guts # Can't make a link
                     # unable_to_find_reference # Need to write more code
             # except KeyError:
@@ -1228,13 +1234,13 @@ def livenIORs( versionAbbreviation:str, refTuple:tuple, segmentType:str, ioLineH
             assert refTuple[1] == '-1', f"{refTuple=}"
             # print( f"{versionAbbreviation}, {refTuple}, {refBBB=} {refC=} {refV=} {guts=}" )
             newGuts = f'<a title="Go to reference verse" href="C{Cstr}V{Vstr}.htm#Top">{guts}</a>'
-        elif segmentType in ('section','parallelPassage'):
+        elif segmentType in ('section','relatedPassage'):
             if 1:
             # try: # Now find which section that IOR starts in
                 n = findSectionNumber( versionAbbreviation, ourBBB, Cstr, Vstr, state )
                 # intV = getLeadingInt(Vstr)
                 # found = False
-                # for n, (startC,startV,endC,endV,sectionName,reasonName,contextList,verseEntryList,filename) in enumerate( state.sectionsLists[versionAbbreviation][ourBBB] ):
+                # for n, (startC,startV,endC,endV,sectionName,reasonName,contextList,verseEntryList,sFilename) in enumerate( state.sectionsLists[versionAbbreviation][ourBBB] ):
                 #     if startC==Cstr and endC==Cstr:
                 #         # print( f"Single chapter {startC}=={Cstr}=={endC} {getLeadingInt(startV)=} {intV=} {getLeadingInt(endV)=}")
                 #         if getLeadingInt(startV) <= intV <= getLeadingInt(endV): # It's in this single chapter
@@ -1250,7 +1256,7 @@ def livenIORs( versionAbbreviation:str, refTuple:tuple, segmentType:str, ioLineH
                 if n is not None:
                     newGuts = f'<a title="Jump to section page with reference" href="{ourBBB}_S{n}.htm#Top">{guts}</a>'
                 else:
-                    logging.critical( f"unable_to_find_IOR for {ourBBB} {Cstr}:{Vstr} {[f'{startC}:{startV}…{endC}:{endV}' for startC,startV,endC,endV,sectionName,reasonName,contextList,verseEntryList,filename in state.sectionsLists[versionAbbreviation][ourBBB]]}" )
+                    logging.critical( f"unable_to_find_IOR for {ourBBB} {Cstr}:{Vstr} {[f'{startC}:{startV}…{endC}:{endV}' for startC,startV,endC,endV,sectionName,reasonName,contextList,verseEntryList,sFilename in state.sectionsLists[versionAbbreviation][ourBBB]]}" )
                     newGuts = guts # Can't make a link
                     unable_to_find_reference # Need to write more code
             # except KeyError:

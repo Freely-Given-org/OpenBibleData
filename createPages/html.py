@@ -62,10 +62,10 @@ from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39, BOOKLIST_NT27
 # from Bibles import fetchChapter
 
 
-LAST_MODIFIED_DATE = '2024-01-20' # by RJH
+LAST_MODIFIED_DATE = '2024-01-23' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
-PROGRAM_VERSION = '0.63'
+PROGRAM_VERSION = '0.64'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -78,12 +78,12 @@ NEWLINE = '\n'
 
 KNOWN_PAGE_TYPES = ('site', 'topIndex', 'details', 'allDetails',
                     'book','chapter','section', 'sectionIndex',
-                    'parallelPassage','parallelSectionIndex', 'parallelVerse', 'interlinearVerse',
+                    'relatedPassage','relatedSectionIndex', 'parallelVerse', 'interlinearVerse',
                     'dictionaryMainIndex','dictionaryLetterIndex','dictionaryEntry','dictionaryIntro',
                     'word','lemma', 'person','location',
                     'wordIndex','lemmaIndex', 'personIndex','locationIndex', 'referenceIndex',
                     'search', 'about')
-def makeTop( level:int, versionAbbreviation:Optional[str], pageType:str, fileOrFolderName:Optional[str], state ) -> str:
+def makeTop( level:int, versionAbbreviation:Optional[str], pageType:str, versionSpecificFileOrFolderName:Optional[str], state ) -> str:
     """
     Create the very top part of an HTML page.
 
@@ -92,12 +92,12 @@ def makeTop( level:int, versionAbbreviation:Optional[str], pageType:str, fileOrF
     Note: versionAbbreviation can be None for parallel, interlinear and word pages, etc.
     """
     from createSitePages import TEST_MODE
-    fnPrint( DEBUGGING_THIS_MODULE, f"makeTop( {level}, {versionAbbreviation}, {pageType}, {fileOrFolderName} )" )
+    fnPrint( DEBUGGING_THIS_MODULE, f"makeTop( {level}, {versionAbbreviation}, {pageType}, {versionSpecificFileOrFolderName} )" )
     assert pageType in KNOWN_PAGE_TYPES, f"{level=} {versionAbbreviation=} {pageType=}"
 
     if pageType in ('chapter','section','book'):
         cssFilename = 'OETChapter.css' if 'OET' in versionAbbreviation else 'BibleChapter.css'
-    elif pageType == 'parallelPassage':
+    elif pageType == 'relatedPassage':
         cssFilename = 'ParallelPassages.css'
     elif pageType == 'parallelVerse':
         cssFilename = 'ParallelVerses.css'
@@ -108,7 +108,7 @@ def makeTop( level:int, versionAbbreviation:Optional[str], pageType:str, fileOrF
     elif pageType in ('dictionaryLetterIndex', 'dictionaryEntry','dictionaryIntro'):
         cssFilename = 'BibleDict.css'
     elif pageType in ('site', 'details','allDetails', 'search', 'about', 'topIndex',
-                      'sectionIndex','parallelSectionIndex', 'dictionaryMainIndex',
+                      'sectionIndex','relatedSectionIndex', 'dictionaryMainIndex',
                       'wordIndex','lemmaIndex','personIndex','locationIndex','referenceIndex' ):
         cssFilename = 'BibleSite.css'
     else: unexpected_page_type
@@ -141,11 +141,11 @@ def makeTop( level:int, versionAbbreviation:Optional[str], pageType:str, fileOrF
 </head><body><!--Level{level}-->{topLink}
 <h3>Demonstration version—prototype quality only—still in development</h3>
 """
-    return f'''{top}{_makeHeader( level, versionAbbreviation, pageType, fileOrFolderName, state )}
+    return f'''{top}{_makeHeader( level, versionAbbreviation, pageType, versionSpecificFileOrFolderName, state )}
 '''
 # end of html.makeTop
 
-def _makeHeader( level:int, versionAbbreviation:str, pageType:str, fileOrFolderName:Optional[str], state ) -> str:
+def _makeHeader( level:int, versionAbbreviation:str, pageType:str, versionSpecificFileOrFolderName:Optional[str], state ) -> str:
     """
     Create the navigation that goes before the page content.
 
@@ -154,7 +154,7 @@ def _makeHeader( level:int, versionAbbreviation:str, pageType:str, fileOrFolderN
 
     Note: versionAbbreviation can be None for parallel, interlinear and word pages, etc.
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"_makeHeader( {level}, {versionAbbreviation}, {pageType}, {fileOrFolderName} )" )
+    fnPrint( DEBUGGING_THIS_MODULE, f"_makeHeader( {level}, {versionAbbreviation}, {pageType}, {versionSpecificFileOrFolderName} )" )
 
     # Add all the version abbreviations (except for the selected-verses-only verses)
     #   with their style decorators
@@ -175,15 +175,15 @@ def _makeHeader( level:int, versionAbbreviation:str, pageType:str, fileOrFolderN
 
         # Note: This is not good because not all versions have all books -- we try to fix that below
         vLink = '../'*level if loopVersionAbbreviation == versionAbbreviation else \
-                f"{'../'*level}{BibleOrgSysGlobals.makeSafeString(loopVersionAbbreviation)}/{fileOrFolderName}" \
-                    if fileOrFolderName else \
+                f"{'../'*level}{BibleOrgSysGlobals.makeSafeString(loopVersionAbbreviation)}/{versionSpecificFileOrFolderName}" \
+                    if versionSpecificFileOrFolderName else \
                 f"{'../'*level}{BibleOrgSysGlobals.makeSafeString(loopVersionAbbreviation)}"
         initialVersionList.append( f'{state.BibleVersionDecorations[loopVersionAbbreviation][0]}'
                             f'<a title="{state.BibleNames[loopVersionAbbreviation]}" '
                             f'href="{vLink}">{loopVersionAbbreviation}</a>'
                             f'{state.BibleVersionDecorations[loopVersionAbbreviation][1]}'
                             )
-    if pageType == 'parallelPassage':
+    if pageType == 'relatedPassage':
         initialVersionList.append( 'Related' )
     else: # add a link for parallel
         initialVersionList.append( f'''{state.BibleVersionDecorations['Related'][0]}<a title="Single OET-RV section with related verses from other books" href="{'../'*level}rel/">Related</a>{state.BibleVersionDecorations['Related'][1]}''' )
@@ -234,12 +234,12 @@ def _makeHeader( level:int, versionAbbreviation:str, pageType:str, fileOrFolderN
                 continue # Should always be able to link to these
             dPrint( 'Info', DEBUGGING_THIS_MODULE, f"      Might not be able to link to {pageType} {loopVersionAbbreviation} {entry}???" )
             replacement = ''
-            if '/' in fileOrFolderName:
-                ix = fileOrFolderName.index( '/' )
-                if ix>0 and ix<len(fileOrFolderName)-1: # The slash is in the middle -- not at the beginning or the end
-                    replacement = fileOrFolderName[:ix+1]
-                    dPrint( 'Info', DEBUGGING_THIS_MODULE, f"          Can we adapt {pageType} '{fileOrFolderName}' to '{replacement}'" )
-            newEntry = entry.replace( fileOrFolderName, replacement ) # Effectively links to a higher level folder
+            if '/' in versionSpecificFileOrFolderName:
+                ix = versionSpecificFileOrFolderName.index( '/' )
+                if ix>0 and ix<len(versionSpecificFileOrFolderName)-1: # The slash is in the middle -- not at the beginning or the end
+                    replacement = versionSpecificFileOrFolderName[:ix+1]
+                    dPrint( 'Info', DEBUGGING_THIS_MODULE, f"          Can we adapt {pageType} '{versionSpecificFileOrFolderName}' to '{replacement}'" )
+            newEntry = entry.replace( versionSpecificFileOrFolderName, replacement ) # Effectively links to a higher level folder
             dPrint( 'Info', DEBUGGING_THIS_MODULE, f"       Changed {pageType} link entry to {newEntry}")
             newVersionList.append( newEntry )
         else:
@@ -283,13 +283,15 @@ def makeBookNavListParagraph( linksList:List[str], workAbbrevPlus:str, state ) -
     """
     fnPrint( DEBUGGING_THIS_MODULE, f"makeBookNavListParagraph( {linksList}, {workAbbrevPlus}, ... )" )
     assert workAbbrevPlus in state.preloadedBibles \
-        or workAbbrevPlus in OET_HTML_PLUS_LIST, workAbbrevPlus
+        or workAbbrevPlus in OET_HTML_PLUS_LIST \
+        or workAbbrevPlus == 'Related OET-RV', workAbbrevPlus
 
     newList = [workAbbrevPlus] if workAbbrevPlus else []
     for aLink in linksList:
         # print( f"{aLink=}")
         if '>FRT<' in aLink and workAbbrevPlus in HTML_PLUS_LIST: continue # Don't include this
-        if workAbbrevPlus in HTML_PLUS_LIST:
+        if workAbbrevPlus in HTML_PLUS_LIST: # they're all byVerse options
+            # Make the versionAbbreviation links go to 1:1 for the selected book
             ixHrefStart = aLink.index( 'href="' ) + 6
             ixHrefEnd = aLink.index( '.htm', ixHrefStart )
             hrefText = aLink[ixHrefStart:ixHrefEnd]
