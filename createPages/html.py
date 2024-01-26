@@ -62,10 +62,10 @@ from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39, BOOKLIST_NT27
 # from Bibles import fetchChapter
 
 
-LAST_MODIFIED_DATE = '2024-01-23' # by RJH
+LAST_MODIFIED_DATE = '2024-01-26' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
-PROGRAM_VERSION = '0.64'
+PROGRAM_VERSION = '0.65'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -154,12 +154,13 @@ def _makeHeader( level:int, versionAbbreviation:str, pageType:str, versionSpecif
 
     Note: versionAbbreviation can be None for parallel, interlinear and word pages, etc.
     """
+    from createSitePages import TEST_MODE
     fnPrint( DEBUGGING_THIS_MODULE, f"_makeHeader( {level}, {versionAbbreviation}, {pageType}, {versionSpecificFileOrFolderName} )" )
 
     # Add all the version abbreviations (except for the selected-verses-only verses)
     #   with their style decorators
     #   and with the more specific links if specified.
-    initialVersionList = []
+    initialVersionList = ['TEST'] if TEST_MODE else []
     for loopVersionAbbreviation in state.BibleVersions:
         if loopVersionAbbreviation in ('TOSN','TTN','UTN'): # Skip notes
             continue
@@ -251,7 +252,7 @@ def _makeHeader( level:int, versionAbbreviation:str, pageType:str, versionSpecif
     #     print( f"    {newVersionList=}" )
     #     halt
 
-    viewLinks = []
+    viewLinks = ['TEST'] if TEST_MODE else []
     if pageType in ('book','section','chapter','details') \
     and versionAbbreviation not in ('TOSN','TTN','TOBD','UTN') \
     and versionAbbreviation not in state.versionsWithoutTheirOwnPages:
@@ -281,12 +282,13 @@ def makeBookNavListParagraph( linksList:List[str], workAbbrevPlus:str, state ) -
 
     linksList contains links like '<a title="Generic front matter" href="FRT.htm#Top">FRT</a>', '<a title="Jonah" href="JNA.htm#Top">JNA</a>', '<a title="Mark" href="MRK.htm#Top">MARK</a>'
     """
+    from createSitePages import TEST_MODE
     fnPrint( DEBUGGING_THIS_MODULE, f"makeBookNavListParagraph( {linksList}, {workAbbrevPlus}, ... )" )
     assert workAbbrevPlus in state.preloadedBibles \
         or workAbbrevPlus in OET_HTML_PLUS_LIST \
         or workAbbrevPlus == 'Related OET-RV', workAbbrevPlus
 
-    newList = [workAbbrevPlus] if workAbbrevPlus else []
+    newList = (['TEST',workAbbrevPlus] if TEST_MODE else [workAbbrevPlus]) if workAbbrevPlus else (['TEST'] if TEST_MODE else [])
     for aLink in linksList:
         # print( f"{aLink=}")
         if '>FRT<' in aLink and workAbbrevPlus in HTML_PLUS_LIST: continue # Don't include this

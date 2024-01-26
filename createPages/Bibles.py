@@ -84,10 +84,10 @@ from html import checkHtml
 from OETHandlers import findLVQuote
 
 
-LAST_MODIFIED_DATE = '2024-01-18' # by RJH
+LAST_MODIFIED_DATE = '2024-01-26' # by RJH
 SHORT_PROGRAM_NAME = "Bibles"
 PROGRAM_NAME = "OpenBibleData Bibles handler"
-PROGRAM_VERSION = '0.58'
+PROGRAM_VERSION = '0.59'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -451,7 +451,7 @@ def formatTyndaleNotes( abbrev:str, level:int, BBB:str, C:str, V:str, segmentTyp
     assert segmentType in ('parallelVerse','interlinearVerse')
 
     try:
-        verseEntryList, _contextList = state.preloadedBibles[abbrev].getContextVerseData( (BBB, C, V), strict=False, complete=True )
+        verseEntryList = state.preloadedBibles[abbrev].getVerseDataList( (BBB, C, V), strict=False, complete=True )
     except (KeyError, TypeError): # TypeError is if None is returned
         logging.warning( f"Tyndale have no notes for {abbrev} {BBB} {C}:{V}" )
         return ''
@@ -658,7 +658,7 @@ def formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segme
     assert segmentType in ('parallelVerse','interlinearVerse')
 
     try:
-        verseEntryList, contextList = state.preloadedBibles['UTN'].getContextVerseData( (BBB, C, V), strict=False, complete=True )
+        verseEntryList = state.preloadedBibles['UTN'].getVerseDataList( (BBB, C, V), strict=False, complete=True )
     except (KeyError, TypeError): # TypeError is if None is returned
         logging.warning( f"uW TNs have no notes for {BBB} {C}:{V}" )
         return ''
@@ -952,100 +952,152 @@ def getVerseDataListForReference( givenRefString:str, thisBible:Bible, lastBBB:O
     print( f"getVerseDataListForReference( {givenRefString}, {thisBible.abbreviation}, {lastBBB=}, {lastC=} )" )
     # TODO: Most of this next block of code should really be in BibleOrgSys
     adjRefString = givenRefString.replace( ' (LXX)', '' )
+    if '(' in adjRefString and ')' in adjRefString: # Remove xref comment
+        assert adjRefString.count('(')==1 and adjRefString.count(')')==1
+        adjRefString = f"{adjRefString[:adjRefString.index('(')]}{adjRefString[adjRefString.index(')')+1:]}".strip()
+        print( f"{givenRefString=} {adjRefString=}")
     if ' ' not in adjRefString: adjRefString = f'{lastBBB} {adjRefString}'
     refBits = adjRefString.split( ' ' )
-    bookAbbreviation, srCVpart = (refBits[0],refBits[1:]) if len(refBits[0])>1 else (f'{refBits[0]} {refBits[1]}', refBits[2:])
+    bookAbbreviation, refCVpart = (refBits[0],refBits[1:]) if len(refBits[0])>1 else (f'{refBits[0]} {refBits[1]}', refBits[2:])
     bookAbbreviation = bookAbbreviation.rstrip( '.' )
-    srBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromText( bookAbbreviation )
-    if srBBB is None and bookAbbreviation[0].isdigit() and (':' in bookAbbreviation or '-' in bookAbbreviation): # or bookAbbreviation.isdigit() might need to be added
-        # It must be another reference in the same book
-        srBBB = lastBBB
-        assert not srCVpart
-        srCVpart = [refBits]
-    if srBBB is None and thisBible.abbreviation=='OET-RV' and bookAbbreviation[0]=='Y':
-        srBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromText( f'J{bookAbbreviation[1:]}' ) # Convert Yoel back to Joel, etc.
-    assert srBBB, f"getVerseDataListForReference {givenRefString=} can't get BBB from {bookAbbreviation=} {srCVpart=}"
-    assert isinstance( srCVpart, list ) and len(srCVpart)==1 and isinstance( srCVpart[0], str ), f"{srBBB} {srCVpart=} from {givenRefString=}"
-    srCVpart = srCVpart[0]
+    refBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromText( bookAbbreviation )
+    if refBBB is None:
+        if thisBible.abbreviation=='OET-RV' and bookAbbreviation[0]=='Y':
+            refBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromText( f'J{bookAbbreviation[1:]}' ) # Convert Yoel back to Joel, etc.
+            print( f"{bookAbbreviation=} {refCVpart=} {refBBB=}" )
+        elif bookAbbreviation[0].isdigit() and (':' in bookAbbreviation or '-' in bookAbbreviation): # or bookAbbreviation.isdigit() might need to be added
+            # It must be another reference in the same book
+            refBBB = lastBBB
+            assert not refCVpart
+            refCVpart = [refBits]
+    # if refBBB is None and thisBible.abbreviation=='OET-RV' and bookAbbreviation[0]=='Y':
+    #     refBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromText( f'J{bookAbbreviation[1:]}' ) # Convert Yoel back to Joel, etc.
+    #     print( f"{bookAbbreviation=} {refCVpart=} {refBBB=}" )
+    assert refBBB, f"getVerseDataListForReference {givenRefString=} can't get BBB from {bookAbbreviation=} {refCVpart=}"
+    refIsSingleChapterBook = BibleOrgSysGlobals.loadedBibleBooksCodes.isSingleChapterBook( refBBB )
+    # Special case to handle xref crossing books: '1Sam 16:1–1Ki 2:11'
+    if len(refCVpart) > 1: # ['16:1–1Ki', '2:11']
+        assert len(refCVpart) == 2
+        if refCVpart[0].endswith( '1Ki' ):
+            refCVpart = [f'{refCVpart[0]} {refCVpart[1]}'] # Put it back together again (and handle properly below)
+    assert isinstance( refCVpart, list ) and len(refCVpart)==1 and isinstance( refCVpart[0], str ), f"{refBBB} {refCVpart=} from {givenRefString=}"
+    refCVpart = refCVpart[0]
 
     verseEntryList, contextList = InternalBibleEntryList(), None
     try:
-        if ',' in srCVpart:
-            if srCVpart.count(':')==1 and srCVpart.count(',')==1 and srCVpart.count('-')==2: # Could be something like '18:13-14,19-24'
-                part1, part2 = srCVpart.split( ',' )
+        if ',' in refCVpart:
+            if refCVpart.count(':')==1 and refCVpart.count(',')==1 and refCVpart.count('-')==2: # Could be something like '18:13-14,19-24'
+                part1, part2 = refCVpart.split( ',' )
                 assert part1.count(':')==1 and part1.count('-')==1 and part2.count('-')==1
-                part1a, srEndV = part1.split( '-' )
-                srStartC, srStartV = part1a.split( ':' )
-                assert srStartC.isdigit() and srStartV.isdigit() and srEndV.isdigit()
-                verseEntryList, contextList = thisBible.getContextVerseDataRange( (srBBB,srStartC,srStartV), (srBBB,srStartC,srEndV) )
-                srStartV, srEndV = part2.split( ':' )
-                assert srStartV.isdigit() and srEndV.isdigit()
-                thisVerseEntryList, _contextList = thisBible.getContextVerseDataRange( (srBBB,srStartC,srStartV), (srBBB,srStartC,srEndV) )
+                part1a, refEndV = part1.split( '-' )
+                refStartC, refStartV = part1a.split( ':' )
+                assert refStartC.isdigit() and refStartV.isdigit() and refEndV.isdigit()
+                verseEntryList, contextList = thisBible.getContextVerseDataRange( (refBBB,refStartC,refStartV), (refBBB,refStartC,refEndV) )
+                refStartV, refEndV = part2.split( '-' )
+                assert refStartV.isdigit() and refEndV.isdigit()
+                thisVerseEntryList, _contextList = thisBible.getContextVerseDataRange( (refBBB,refStartC,refStartV), (refBBB,refStartC,refEndV) )
                 verseEntryList += thisVerseEntryList
-            elif '-' in srCVpart: # comma plus hyphen: expect a verse range
-                part1, part2 = srCVpart.split( '-' )
-                assert ',' not in part1
-                if ':' in part1 and ':' not in part2:
-                    srStartC, srStartV = part1.split( ':' )
-                    assert srStartC.isdigit() and srStartV.isdigit()
+            elif '-' in refCVpart: # comma plus hyphen: expect a verse range
+                part1, part2 = refCVpart.split( '-' )
+                assert ':' in part1
+                if ':' not in part2 and ',' in part2: # Something like 19:5-9,17
+                    assert ',' not in part1
+                    refStartC, refStartV = part1.split( ':' )
+                    assert refStartC.isdigit() and refStartV.isdigit()
                     part2Parts = part2.replace( ', ',',' ).split( ',' )
-                    verseEntryList, contextList = thisBible.getContextVerseDataRange( (srBBB,srStartC,srStartV), (srBBB,srStartC,part2Parts[-1]) )
-                else: noColon1a
+                    verseEntryList, contextList = thisBible.getContextVerseDataRange( (refBBB,refStartC,refStartV), (refBBB,refStartC,part2Parts[-1]) )
+                elif ',' in part1 and ':' not in part2 and ',' not in part2: # Something like 19:5,9-17
+                    part1, part2 = refCVpart.split( ',' )
+                    assert ':' in part1
+                    if '-' not in part1 and '-' in part2:
+                        refStartC,refStartV = part1.split( ':' )
+                        assert refStartC.isdigit() and refStartV.isdigit()
+                        print( f"{refBBB} {refStartC}:{refStartV}")
+                        verseEntryList, contextList = thisBible.getContextVerseData( (refBBB,refStartC,refStartV) )
+                        refStartV2, refEndV = part2.split( '-' )
+                        assert refStartV2.isdigit() and refEndV.isdigit()
+                        print( f"{refBBB} {refStartC}:{refStartV2}-{refEndV}")
+                        thisVerseEntryList, _contextList = thisBible.getContextVerseDataRange( (refBBB,refStartC,refStartV2), (refBBB,refStartC,refEndV) )
+                        verseEntryList += thisVerseEntryList
+                    else: unknownCommaRef1a
+                else: unknownCommaRef1
             else: # comma but no hyphen: expect a verse list of two or more verses
-                if ':' in srCVpart:
-                    srStartC, srVpart = srCVpart.split( ':' )
-                    assert srStartC.isdigit()
-                    srVs = srVpart.split( ',' )
-                    for srStartV in srVpart.split( ',' ):
-                        assert srStartV.isdigit()
-                        thisVerseEntryList, thisContextList = thisBible.getContextVerseData( (srBBB,srStartC) if srStartC=='-1' else (srBBB,srStartC,srStartV) )
+                if ':' in refCVpart:
+                    refStartC, refVpart = refCVpart.split( ':' )
+                    assert refStartC.isdigit()
+                    for refStartV in refVpart.split( ',' ):
+                        assert refStartV.isdigit()
+                        thisVerseEntryList, thisContextList = thisBible.getContextVerseData( (refBBB,refStartC) if refStartC=='-1' else (refBBB,refStartC,refStartV) )
                         verseEntryList += thisVerseEntryList
                         if contextList is None: contextList = thisContextList # Keep the first one
                 else: noColon3a
         else: # no commas
-            if '-' in srCVpart: # no commas, hyphen: expect a verse range
-                part1, part2 = srCVpart.split( '-' )
-                if ':' not in srCVpart: # it must just be two verse numbers
-                    assert srStartC.isdigit() # From previous loop
-                    srStartV, srEndV = part1, part2
-                    assert srStartV.isdigit() and srEndV.isdigit()
-                    verseEntryList, contextList = thisBible.getContextVerseDataRange( (srBBB,srStartC,srStartV), (srBBB,srStartC,srEndV) )
+            if '-' in refCVpart: # no commas, hyphen: expect a verse range
+                part1, part2 = refCVpart.split( '-' )
+                if ':' not in refCVpart: # it must just be two verse numbers
+                    if refIsSingleChapterBook:
+                        refStartC = '1'
+                    else: # not a single chapter book
+                        assert refStartC.isdigit() # From previous loop
+                    refStartV, refEndV = part1, part2
+                    assert refStartV.isdigit() and refEndV.isdigit()
+                    verseEntryList, contextList = thisBible.getContextVerseDataRange( (refBBB,refStartC,refStartV), (refBBB,refStartC,refEndV) )
                 elif ':' in part1 and ':' not in part2:
-                    srStartC, srStartV = part1.split( ':' )
-                    srStartV = str( getLeadingInt( srStartV ) )
-                    srEndV = str( getLeadingInt( part2 ) )
-                    assert srStartC.isdigit() and srStartV.isdigit() and srEndV.isdigit()
-                    verseEntryList, contextList = thisBible.getContextVerseDataRange( (srBBB,srStartC,srStartV), (srBBB,srStartC,srEndV), strict=False )
+                    refStartC, refStartV = part1.split( ':' )
+                    refStartV = str( getLeadingInt( refStartV ) )
+                    refEndV = str( getLeadingInt( part2 ) )
+                    assert refStartC.isdigit() and refStartV.isdigit() and refEndV.isdigit()
+                    verseEntryList, contextList = thisBible.getContextVerseDataRange( (refBBB,refStartC,refStartV), (refBBB,refStartC,refEndV), strict=False )
                 elif ':' in part1 and ':' in part2:
-                    logging.warning( f"Expected en-dash (not hyphen) in {givenRefString=} section cross-reference {srBBB} {srCVpart}" )
+                    logging.critical( f"Expected en-dash (not hyphen) in {givenRefString=} section cross-reference {refBBB} {refCVpart}" )
                     halt
-                    srStartC, srStartV = part1.split( ':' )
-                    srStartV = str( getLeadingInt( srStartV ) )
-                    srEndC, srEndV = part2.split( ':' )
-                    srEndV = str( getLeadingInt( srEndV ) )
-                    assert srStartC.isdigit() and srStartV.isdigit() and srEndC.isdigit() and srEndV.isdigit()
-                    verseEntryList, contextList = thisBible.getContextVerseDataRange( (srBBB,srStartC,srStartV), (srBBB,srStartC,srEndV), strict=False )
+                    refStartC, refStartV = part1.split( ':' )
+                    refStartV = str( getLeadingInt( refStartV ) )
+                    refEndC, refEndV = part2.split( ':' )
+                    refEndV = str( getLeadingInt( refEndV ) )
+                    assert refStartC.isdigit() and refStartV.isdigit() and refEndC.isdigit() and refEndV.isdigit()
+                    verseEntryList, contextList = thisBible.getContextVerseDataRange( (refBBB,refStartC,refStartV), (refBBB,refStartC,refEndV), strict=False )
                 else: noColon1b
-            elif '–' in srCVpart: # no commas, but have en-dash: expect a chapter range
-                part1, part2 = srCVpart.split( '–' )
+            elif '–' in refCVpart: # no commas, but have en-dash: expect a chapter (or rarely, a book) range
+                part1, part2 = refCVpart.split( '–' )
                 if ':' in part1 and ':' in part2:
-                    srStartC, srStartV = part1.split( ':' )
-                    srEndC, srEndV = part2.split( ':' )
-                    assert srStartC.isdigit() and srStartV.isdigit()
-                    assert srEndC.isdigit() and srEndV.isdigit()
-                    verseEntryList, contextList = thisBible.getContextVerseDataRange( (srBBB,srStartC,srStartV), (srBBB,srEndC,srEndV) )
+                    refStartC, refStartV = part1.split( ':' )
+                    assert refStartC.isdigit() and refStartV.isdigit()
+                    refEndC, refEndV = part2.split( ':' )
+                    assert refEndV.isdigit()
+                    if refEndC.isdigit(): # Must have been a chapter range
+                        verseEntryList, contextList = thisBible.getContextVerseDataRange( (refBBB,refStartC,refStartV), (refBBB,refEndC,refEndV) )
+                    else: # might be a book range like '1Sam 16:1–1Ki 2:11'
+                        bookAbbreviation2, refEndC = refEndC.split( ' ' )
+                        refBBB2 = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromText( bookAbbreviation2 )
+                        if refBBB2 is None and thisBible.abbreviation=='OET-RV' and bookAbbreviation2[0]=='Y':
+                            refBBB2 = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromText( f'J{bookAbbreviation2[1:]}' ) # Convert Yoel back to Joel, etc.
+                            print( f"{bookAbbreviation2=} {refCVpart=} {refBBB2=}" )
+                        assert refBBB2, f"getVerseDataListForReference {givenRefString=} can't get BBB2 from {bookAbbreviation2=} {refCVpart=}"
+                        verseEntryList, contextList = thisBible.getContextVerseDataRange( (refBBB,refStartC,refStartV), (refBBB2,refEndC,refEndV) )
+                elif ':' not in refCVpart: # might be a chapter range, e.g., Num 22–24
+                    assert not refIsSingleChapterBook
+                    refStartC, refFinalC = refCVpart.split( '–' ) # en-dash
+                    assert refStartC.isdigit() and refFinalC.isdigit()
+                    verseEntryList, contextList = thisBible.getContextVerseData( (refBBB,refStartC) )
+                    for refC in range( int(refStartC)+1, int(refFinalC)+1 ):
+                        verseEntryList += thisBible.getVerseDataList( (refBBB,str(refC)) )
                 else: noColon2b
-            else: # no hyphen or en-dash
-                if ':' in srCVpart:
-                    srStartC, srVpart = srCVpart.split( ':' )
-                    assert srStartC.isdigit()
-                    srStartV = str( getLeadingInt(srVpart) )
-                    verseEntryList, contextList = thisBible.getContextVerseData( (srBBB,srStartC) if srStartC=='-1' else (srBBB,srStartC,srStartV) )
+            else: # no comma, hyphen or en-dash
+                if ':' in refCVpart:
+                    refStartC, refVpart = refCVpart.split( ':' )
+                    assert refStartC.isdigit()
+                    refStartV = str( getLeadingInt(refVpart) )
+                    verseEntryList, contextList = thisBible.getContextVerseData( (refBBB,refStartC) if refStartC=='-1' else (refBBB,refStartC,refStartV) )
+                elif refIsSingleChapterBook:
+                    refStartC, refStartV = '1', refCVpart
+                    assert refStartV.isdigit()
+                    verseEntryList, contextList = thisBible.getContextVerseData( (refBBB,refStartC,refStartV) )
                 else: noColon3b
     except KeyError: # if can't find any verseEntries
-        logging.critical( f"getVerseDataListForReference {givenRefString=} was unable to find {srBBB} {srStartC}:{srStartV} from {givenRefString=}" )
+        logging.critical( f"getVerseDataListForReference {givenRefString=} was unable to find {refBBB} {refStartC}:{refStartV} from {givenRefString=}" )
 
-    return srBBB, srStartC, verseEntryList, contextList
+    return refBBB, refStartC, verseEntryList, contextList
 # end of Bibles.getVerseDataListForReference
 
 def briefDemo() -> None:

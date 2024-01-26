@@ -383,7 +383,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                     #         html = f'{html}<p class="{marker}">{formatUSFMText(versionAbbreviation, refTuple, segmentType, sectionChunk, basicOnly, state)}</p>\n'
                 else: # it's probably a section marker added at a different spot
                     given_marker = rest[1:].split( ' ', 1 )[0]
-                    assert given_marker in ('s1','s2','s3','r','d')
+                    assert given_marker in ('s1','s2','s3','r','d','qa')
                     # NOTE: the following lines were disabled 23Aug2023
                     # marker = f"alt_{given_marker}" # Sets the html <p> class below
                     # rest = rest[len(given_marker)+2:] # Drop the '/marker ' from the displayed portion
@@ -556,7 +556,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                 introHtml = livenIntroductionLinks( versionAbbreviation, refTuple, segmentType, introHtml, state )
             html = f'{html}<p class="{marker}">{introHtml}</p>\n'
         elif marker in ('iot',):
-            assert rest
+            assert rest, f"{versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {marker}='{rest}'"
             assert not inSection and not inParagraph, f"{versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {marker}={rest}"
             html = f'{html}<div class="{marker}"><p class="{marker}">{formatUSFMText( versionAbbreviation, refTuple, segmentType, rest, basicOnly, state )}</p>\n'
         elif marker in ('¬iot',):

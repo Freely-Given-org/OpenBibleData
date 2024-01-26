@@ -48,10 +48,10 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
 from OETHandlers import livenOETWordLinks
 
 
-LAST_MODIFIED_DATE = '2024-01-25' # by RJH
+LAST_MODIFIED_DATE = '2024-01-26' # by RJH
 SHORT_PROGRAM_NAME = "createParallelPassagePages"
 PROGRAM_NAME = "OpenBibleData createParallelPassagePages functions"
-PROGRAM_VERSION = '0.08'
+PROGRAM_VERSION = '0.10'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = 99
@@ -274,8 +274,8 @@ def createSynopticSectionPassagePagesForBook( level:int, folder:Path, thisBible,
 <h1>{sectionName}</h1>
 '''
         if isinstance( thisBible, ESFMBible.ESFMBible ): # e.g., OET-RV
-            verseEntryList = livenOETWordLinks( thisBible, BBB, verseEntryList, f"{'../'*level}ref/GrkWrd/{{n}}.htm#Top", state )
-        textHtml = convertUSFMMarkerListToHtml( level, thisBible.abbreviation, (BBB,startC), 'relatedPassage', contextList, verseEntryList, basicOnly=False, state=state )
+            verseEntryList = livenOETWordLinks( thisBible, BBB, verseEntryList, f"{'../'*BBBLevel}ref/GrkWrd/{{n}}.htm#Top", state )
+        textHtml = convertUSFMMarkerListToHtml( BBBLevel, thisBible.abbreviation, (BBB,startC), 'relatedPassage', contextList, verseEntryList, basicOnly=False, state=state )
         # textHtml = livenIORs( BBB, textHtml, sections )
         if thisBible.abbreviation == 'OET-RV':
             textHtml = do_OET_RV_HTMLcustomisations( textHtml )
@@ -397,7 +397,7 @@ def createSynopticSectionPassagePagesForBook( level:int, folder:Path, thisBible,
         synopticSectionHtml = f'''{top}<!--synoptic section page-->
 {navBookListParagraph}
 {removeDuplicateCVids( BBB, synopticSectionHtml )}
-{makeBottom( level, 'relatedPassage', state )}'''
+{makeBottom( BBBLevel, 'relatedPassage', state )}'''
         checkHtml( thisBible.abbreviation, synopticSectionHtml )
         assert not filepath.is_file() # Check that we're not overwriting anything
         with open( filepath, 'wt', encoding='utf-8' ) as sectionHtmlFile:
@@ -423,7 +423,7 @@ def createSynopticSectionPassagePagesForBook( level:int, folder:Path, thisBible,
     synopticSectionIndexHtml = f'''{top}<!--sections page-->
 {navBookListParagraph}
 {synopticSectionIndexHtml}
-{makeBottom( level, 'relatedSectionIndex', state )}'''
+{makeBottom( BBBLevel, 'relatedSectionIndex', state )}'''
     checkHtml( thisBible.abbreviation, synopticSectionIndexHtml )
     assert not filepath1.is_file() # Check that we're not overwriting anything
     with open( filepath1, 'wt', encoding='utf-8' ) as sectionHtmlFile:
@@ -559,9 +559,9 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
         endChapterLink = f'''<a title="Chapter view" href="../byC/{BBB}_{'Intro' if endC=='-1' else f'C{endC}'}.htm#Top">{'Intro' if endC=='-1' else endC}</a>'''
         leftLink = f'<a title="Previous section" href="{BBB}_S{n-1}.htm#Top">←</a> ' if n>0 else ''
         rightLink = f' <a title="Next section" href="{BBB}_S{n+1}.htm#Top">→</a>' if n<numBBBSections-1 else ''
-        parallelLink = f''' <a title="Parallel verse view" href="{'../'*level}par/{BBB}/C{'1' if startC=='-1' else startC}V{startV}.htm#Top">║</a>'''
-        interlinearLink = f''' <a title="Interlinear verse view" href="{'../'*level}ilr/{BBB}/C{'1' if startC=='-1' else startC}V{startV}.htm#Top">═</a>''' if BBB in state.booksToLoad['OET'] else ''
-        detailsLink = f''' <a title="Show details about this work" href="{'../'*(level-1)}details.htm#Top">©</a>'''
+        parallelLink = f''' <a title="Parallel verse view" href="{'../'*BBBLevel}par/{BBB}/C{'1' if startC=='-1' else startC}V{startV}.htm#Top">║</a>'''
+        interlinearLink = f''' <a title="Interlinear verse view" href="{'../'*BBBLevel}ilr/{BBB}/C{'1' if startC=='-1' else startC}V{startV}.htm#Top">═</a>''' if BBB in state.booksToLoad['OET'] else ''
+        detailsLink = f''' <a title="Show details about this work" href="{'../'*(BBBLevel)}OET-RV/details.htm#Top">©</a>'''
 
         crossReferencedSectionHtml = f'''<h1><span title="{state.BibleNames[thisBible.abbreviation]}">{thisBible.abbreviation}</span> by cross-referenced section {ourTidyBBB} {'Intro' if startC=='-1' else startC}:{startV}</h1>
 <p class="secNav">{leftLink}{documentLink} {startChapterLink}:{startV}–{endChapterLink}:{endV}{rightLink}{parallelLink}{interlinearLink}{detailsLink}</p>
@@ -569,8 +569,8 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
 <h1>{sectionName}</h1>
 '''
         if isinstance( thisBible, ESFMBible.ESFMBible ): # e.g., OET-RV
-            verseEntryList = livenOETWordLinks( thisBible, BBB, verseEntryList, f"{'../'*level}ref/GrkWrd/{{n}}.htm#Top", state )
-        textHtml = convertUSFMMarkerListToHtml( level, thisBible.abbreviation, (BBB,startC), 'relatedPassage', contextList, verseEntryList, basicOnly=False, state=state )
+            verseEntryList = livenOETWordLinks( thisBible, BBB, verseEntryList, f"{'../'*BBBLevel}ref/GrkWrd/{{n}}.htm#Top", state )
+        textHtml = convertUSFMMarkerListToHtml( BBBLevel, thisBible.abbreviation, (BBB,startC), 'relatedPassage', contextList, verseEntryList, basicOnly=False, state=state )
         # textHtml = livenIORs( BBB, textHtml, sections )
         if thisBible.abbreviation == 'OET-RV':
             textHtml = do_OET_RV_HTMLcustomisations( textHtml )
@@ -682,8 +682,8 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
                     else: need_to_increase_safety_count2
 
             if isinstance( thisBible, ESFMBible.ESFMBible ): # e.g., OET-RV
-                verseEntryList = livenOETWordLinks( thisBible, srBBB, verseEntryList, f"{'../'*level}ref/GrkWrd/{{n}}.htm#Top", state )
-            textHtml = convertUSFMMarkerListToHtml( level, thisBible.abbreviation, (srBBB,srStartC), 'relatedPassage', contextList, verseEntryList, basicOnly=False, state=state )
+                verseEntryList = livenOETWordLinks( thisBible, srBBB, verseEntryList, f"{'../'*BBBLevel}ref/GrkWrd/{{n}}.htm#Top", state )
+            textHtml = convertUSFMMarkerListToHtml( BBBLevel, thisBible.abbreviation, (srBBB,srStartC), 'relatedPassage', contextList, verseEntryList, basicOnly=False, state=state )
             # textHtml = livenIORs( BBB, textHtml, sections )
             if thisBible.abbreviation == 'OET-RV':
                 textHtml = do_OET_RV_HTMLcustomisations( textHtml )
@@ -705,12 +705,25 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
             crossReferencedSectionHtml = f'''{crossReferencedSectionHtml}\n<div class="chunkRV">{htmlChunk}</div><!--chunkRV-->'''
         crossReferencedSectionHtml = f'''{crossReferencedSectionHtml}\n</div><!--{containerClassname}-->'''
 
-        # Now list all the combined cross-references
+        # Now list all the combined cross-references with their passages
         xrefHtml = ''
         if collectedVerseCrossReferences:
-            print( f"({len(collectedVerseCrossReferences)}) {collectedVerseCrossReferences=}" )
+            print( f"  {BBB} {startC}:{startV} collectedVerseCrossReferences = ({len(collectedVerseCrossReferences)}) {collectedVerseCrossReferences}" )
             splitUpCollectedVerseCrossReferences = []
             for collectedVerseCrossReference in collectedVerseCrossReferences:
+                if not splitUpCollectedVerseCrossReferences \
+                and not (collectedVerseCrossReference[1]==' ' and collectedVerseCrossReference[0] in '123'):
+                    # This is the first crossReference but doesn't start with something like '3 Jn'
+                    firstPart = collectedVerseCrossReference.split( ' ')[0]
+                    attemptedBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromText( firstPart )
+                    print( f"    {collectedVerseCrossReference=} {firstPart=} {attemptedBBB=}" )
+                    if attemptedBBB is None and thisBible.abbreviation=='OET-RV' and firstPart[0]=='Y':
+                        # Maybe we need to convert something like Yoel to Joel
+                        attemptedBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromText( f'J{firstPart[1:]}' )
+                    if attemptedBBB is None:
+                        # If might be an internal reference to this same book
+                        #   so prepend this book code
+                        collectedVerseCrossReference = f'{BBB} {collectedVerseCrossReference}'
                 try:
                     splitUpCollectedVerseCrossReferences += collectedVerseCrossReference.split( '; ' )
                 except ValueError: # No semicolon
@@ -720,9 +733,9 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
             lastXrefBBB = lastXrefC = None
             for collectedVerseCrossReference in splitUpCollectedVerseCrossReferences:
                 if collectedVerseCrossReference not in doneCrossReferences:
-                    if collectedVerseCrossReference[1]==' ' and collectedVerseCrossReference[0] in 'abcde':
+                    if collectedVerseCrossReference[1]==' ' and collectedVerseCrossReference[0] in 'abcdef':
                         collectedVerseCrossReference = collectedVerseCrossReference[2:]
-                    elif collectedVerseCrossReference.startswith('\\xo ') and collectedVerseCrossReference[4] in 'abcde' and collectedVerseCrossReference[5:].startswith(' \\xt '):
+                    elif collectedVerseCrossReference.startswith('\\xo ') and collectedVerseCrossReference[4] in 'abcdef' and collectedVerseCrossReference[5:].startswith(' \\xt '):
                         collectedVerseCrossReference = collectedVerseCrossReference[10:]
                     if collectedVerseCrossReference[-1] == '.':
                         collectedVerseCrossReference = collectedVerseCrossReference[:-1]
@@ -730,8 +743,8 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
                     lastXrefBBB, lastXrefC, verseEntryList, contextList = getVerseDataListForReference( collectedVerseCrossReference, thisBible, lastXrefBBB, lastXrefC )
                     if verseEntryList:
                         if isinstance( thisBible, ESFMBible.ESFMBible ): # e.g., OET-RV
-                            verseEntryList = livenOETWordLinks( thisBible, lastXrefBBB, verseEntryList, f"{'../'*level}ref/GrkWrd/{{n}}.htm#Top", state )
-                        textHtml = convertUSFMMarkerListToHtml( level, thisBible.abbreviation, (lastXrefBBB,lastXrefC), 'relatedPassage', contextList, verseEntryList, basicOnly=False, state=state )
+                            verseEntryList = livenOETWordLinks( thisBible, lastXrefBBB, verseEntryList, f"{'../'*BBBLevel}ref/GrkWrd/{{n}}.htm#Top", state )
+                        textHtml = convertUSFMMarkerListToHtml( BBBLevel, thisBible.abbreviation, (lastXrefBBB,lastXrefC), 'relatedPassage', contextList, verseEntryList, basicOnly=False, state=state )
                         # textHtml = livenIORs( BBB, textHtml, sections )
                         if thisBible.abbreviation == 'OET-RV':
                             textHtml = do_OET_RV_HTMLcustomisations( textHtml )
@@ -755,9 +768,9 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
                         f'''<a title="Up to {state.BibleNames[thisBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/">↑{thisBible.abbreviation}</a>''' )
         crossReferencedSectionHtml = f'''{top}<!--cross-reference section page-->
 {navBookListParagraph}
-{removeDuplicateCVids( BBB, crossReferencedSectionHtml )}
-{xrefHtml}
-{makeBottom( level, 'relatedPassage', state )}'''
+{removeDuplicateCVids( BBB, crossReferencedSectionHtml ).replace( '../byC/', '../../OET/byC/' )}
+{xrefHtml.replace( '../byC/', '../../OET/byC/' )}
+{makeBottom( BBBLevel, 'relatedPassage', state )}'''
         checkHtml( thisBible.abbreviation, crossReferencedSectionHtml )
         assert not filepath.is_file(), f"{filepath=}" # Check that we're not overwriting anything
         with open( filepath, 'wt', encoding='utf-8' ) as sectionHtmlFile:
@@ -783,7 +796,7 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
     crossReferencedSectionIndexHtml = f'''{top}<!--sections page-->
 {navBookListParagraph}
 {crossReferencedSectionIndexHtml}
-{makeBottom( level, 'relatedSectionIndex', state )}'''
+{makeBottom( BBBLevel, 'relatedSectionIndex', state )}'''
     checkHtml( thisBible.abbreviation, crossReferencedSectionIndexHtml )
     assert not filepath1.is_file() # Check that we're not overwriting anything
     with open( filepath1, 'wt', encoding='utf-8' ) as sectionHtmlFile:
