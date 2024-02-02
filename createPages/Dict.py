@@ -25,35 +25,29 @@
 """
 Module handling Bible Dictionary functions.
 
-BibleOrgSys uses a three-character book code to identify books.
-    These referenceAbbreviations are nearly always represented as BBB in the program code
-            (although formally named referenceAbbreviation
-                and possibly still represented as that in some of the older code),
-        and in a sense, this is the centre of the BibleOrgSys.
-    The referenceAbbreviation/BBB always starts with a letter, and letters are always UPPERCASE
-        so 2 Corinthians is 'CO2' not '2Co' or anything.
-        This was because early versions of HTML ID fields used to need
-                to start with a letter (not a digit),
-            (and most identifiers in computer languages still require that).
+CHANGELOG:
+    2024-01-30 Load UBS Dictionary of Greek New Testament
 """
 from gettext import gettext as _
 from typing import List
 import os.path
 import logging
 from xml.etree.ElementTree import ElementTree
+import json
 
 import sys
 sys.path.append( '../../BibleOrgSys/' )
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 
+from settings import State, TEST_MODE, ALTERNATIVE_VERSION
 from html import makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2024-01-15' # by RJH
+LAST_MODIFIED_DATE = '2024-02-02' # by RJH
 SHORT_PROGRAM_NAME = "Dictionary"
 PROGRAM_NAME = "OpenBibleData Dictionary handler"
-PROGRAM_VERSION = '0.39'
+PROGRAM_VERSION = '0.43'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -554,10 +548,9 @@ def loadDictLetterXML( letter:str, folderpath ) -> None:
 # end of Dict.loadDictLetterXML
 
 
-def createTyndaleDictPages( level:int, outputFolderPath, state ) -> bool:
+def createTyndaleDictPages( level:int, outputFolderPath, state:State ) -> bool:
     """
     """
-    from createSitePages import TEST_MODE
     from Bibles import fixTyndaleBRefs
 
     fnPrint( DEBUGGING_THIS_MODULE, f"createTyndaleDictPages( '{level}', '{outputFolderPath}', ... )")
@@ -569,7 +562,8 @@ def createTyndaleDictPages( level:int, outputFolderPath, state ) -> bool:
 
     indexLink = '<a title="Go up to main index" href="index.htm#__ID__">Index</a>'
     introLink = '<a title="Go to dict introduction" href="intro.htm#__ID__">Intro</a>'
-    detailsLink = f'''<a title="Show details" href="{'../'*(level)}allDetails.htm#TOBD">©</a>'''
+    TOBD_detailsLink = f'''<a title="Show details" href="{'../'*(level)}allDetails.htm#TOBD">©</a>'''
+    UBS_detailsLink = f'''<a title="Show details" href="{'../'*(level)}UBS/details.htm">©</a>'''
 
     letterLinkList = [f'''<a title="Go to index page for letter '{l}'" href="index_{l}.htm#Top">{l}</a>''' for l in TOBDData['Letters']]
     lettersParagraph = f'''<p class="dctLtrs">{' '.join(letterLinkList)}</p>'''
@@ -580,7 +574,7 @@ def createTyndaleDictPages( level:int, outputFolderPath, state ) -> bool:
         dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"Making article page for '{articleLinkName}'…" )
         leftLink = f'''<a title="Go to previous article" href="{articleList[j-1]}.htm#__ID__">←</a> ''' if j>0 else ''
         rightLink = f''' <a title="Go to next article" href="{articleList[j+1]}.htm#__ID__">→</a>''' if j<len(articleList)-1 else ''
-        navLinks = f'<p id="__ID__" class="dNav">{introLink} {leftLink}{indexLink}{rightLink} {detailsLink}</p>'
+        navLinks = f'<p id="__ID__" class="dNav">{introLink} {leftLink}{indexLink}{rightLink} {TOBD_detailsLink}</p>'
 
         article = livenTyndaleTextboxRefs( 'TOBD', level, articleLinkName, article, state )
         article = livenTyndaleMapRefs( 'TOBD', level, articleLinkName, article, state )
@@ -598,7 +592,7 @@ def createTyndaleDictPages( level:int, outputFolderPath, state ) -> bool:
 # <h2 id="Top">{articleLinkName}</h2>
         articleHtml = f'''{top}
 {lettersParagraph}
-<h1>Tyndale Open Bible Dictionary</h1>
+<h1>{'TEST ' if TEST_MODE else ''}Tyndale Open Bible Dictionary</h1>
 {navLinks.replace('__ID__','Top')}
 {article}
 {makeBottom( level, 'dictionaryEntry', state )}'''
@@ -614,7 +608,7 @@ def createTyndaleDictPages( level:int, outputFolderPath, state ) -> bool:
         dPrint( 'Info', DEBUGGING_THIS_MODULE, f"Making letter summary page for '{letter}'…" )
         leftLink = f'''<a title="Go to previous letter" href="index_{letterList[j-1]}.htm#__ID__">←</a> ''' if j>0 else ''
         rightLink = f''' <a title="Go to next letter" href="index_{letterList[j+1]}.htm#__ID__">→</a>''' if j<len(letterList)-1 else ''
-        navLinks = f'<p id="__ID__" class="dNav">{leftLink}{indexLink} {introLink}{rightLink} {detailsLink}</p>'
+        navLinks = f'<p id="__ID__" class="dNav">{leftLink}{indexLink} {introLink}{rightLink} {TOBD_detailsLink}</p>'
         articleLinkHtml = ''
         for articleLinkName,articleDisplayName in articleList:
             articleLink = f'<a title="Go to article" href="{articleLinkName}.htm#Top">{articleDisplayName}</a>'
@@ -631,7 +625,7 @@ def createTyndaleDictPages( level:int, outputFolderPath, state ) -> bool:
                 .replace( '__KEYWORDS__', 'Bible, dictionary' )
         letterIndexHtml = f'''{top}
 {lettersParagraph}
-<h1>Tyndale Open Bible Dictionary</h1>
+<h1>{'TEST ' if TEST_MODE else ''}Tyndale Open Bible Dictionary</h1>
 {navLinks.replace('__ID__','Top')}
 <h2 id="Top">Index for dictionary letter '{letter}'</h2>
 {articleLinkHtml}
@@ -650,7 +644,7 @@ def createTyndaleDictPages( level:int, outputFolderPath, state ) -> bool:
             .replace( '__KEYWORDS__', 'Bible, dictionary, introduction' )
     introHtml = f'''{top}<p class="note"><b>Note</b>: The Tyndale Open Bible Dictionary is included on this site because it contains a wealth of useful information,
 even though it was originally designed to supplement the <i>New Living Translation</i>, not our <em>Open English Translation</em>.</p>
-<h1 id="Top">Tyndale Open Bible Dictionary <small>{detailsLink}</small></h1>
+<h1 id="Top">Tyndale Open Bible Dictionary <small>{TOBD_detailsLink}</small></h1>
 {TOBDData['Intro']}
 {makeBottom( level, 'dictionaryIntro', state )}'''
     checkHtml( 'DictionaryIntro', introHtml )
@@ -667,10 +661,15 @@ even though it was originally designed to supplement the <i>New Living Translati
             .replace( '__KEYWORDS__', 'Bible, dictionary' )
 # <p class="dNav"><a id="Go to dict intro" href="intro.htm#Top">Introduction</a></p>
     indexHtml = f'''{top}
-<h1 id="Top">Tyndale Open Bible Dictionary <small>{detailsLink}</small></h1>
+<h1 id="Top">Tyndale Open Bible Dictionary <small>{TOBD_detailsLink}</small></h1>
 <p class="note">This is a comprehensive Bible dictionary with articles for each Bible ‘book’ as well as for significant people and places and terms. (Read the <a id="Go to dict intro" href="intro.htm#Top">full introduction</a> for more details.)</p>
+<p class="note">Note that some of the comments refer specifically to the ‘New Living Translation’ (which we don’t have permission to display on this site), but many of the articles are generally applicable, even to <b>OET</b> issues.</p>
 <h2>Index of dictionary letters</h2>
 {lettersParagraph}
+<h1>UBS Dictionary of New Testament Greek <small>{UBS_detailsLink}</small></h1>
+<p class="note">This isn’t fully formatted and implemented yet, but something might be visible <a href="{'../'*(level)}UBS/">here</a>.</p>
+<h1>UBS Dictionary of Biblical Hebrew <small>{UBS_detailsLink}</small></h1>
+<p class="note">Coming...</p>
 {makeBottom( level, 'dictionaryMainIndex', state )}'''
     checkHtml( 'DictionaryIndex', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
@@ -683,14 +682,12 @@ even though it was originally designed to supplement the <i>New Living Translati
 # end of Dict.createTyndaleDictPages
 
 
-def fixTyndaleDictItemRefs( abbrev:str, level:int, articleLinkName:str, html:str, state ) -> str:
+def fixTyndaleDictItemRefs( abbrev:str, level:int, articleLinkName:str, html:str, state:State ) -> str:
     """
     Most of the parameters are for info messages only
 
     Livens links between articles
     """
-    from createSitePages import ALTERNATIVE_VERSION
-
     fnPrint( DEBUGGING_THIS_MODULE, f"fixTyndaleDictItemRefs( {abbrev}, {level}, {articleLinkName} {html}, ... )")
 
     # Fix their links like '<a href="?item=MarriageMarriageCustoms_Article_TyndaleOpenBibleDictionary">Marriage, Marriage Customs</a>'
@@ -721,7 +718,7 @@ def fixTyndaleDictItemRefs( abbrev:str, level:int, articleLinkName:str, html:str
 
 
 
-def livenTyndaleTextboxRefs( abbrev:str, level:int, articleLinkName:str, html:str, state ) -> str:
+def livenTyndaleTextboxRefs( abbrev:str, level:int, articleLinkName:str, html:str, state:State ) -> str:
     """
     Most of the parameters are for info messages only
 
@@ -730,8 +727,6 @@ def livenTyndaleTextboxRefs( abbrev:str, level:int, articleLinkName:str, html:st
     to
         htmlSegment = f'''<div class="Textbox>{TOBDData['Textboxes'][iiName]}</div><!--end of Textbox-->'''
     """
-    from createSitePages import ALTERNATIVE_VERSION
-
     fnPrint( DEBUGGING_THIS_MODULE, f"livenTyndaleTextboxRefs( {abbrev}, {level}, {articleLinkName} {html}, ... )")
 
     # Fails on AntilegomenaTheBooksThatDidnTMakeIt
@@ -787,7 +782,7 @@ def livenTyndaleTextboxRefs( abbrev:str, level:int, articleLinkName:str, html:st
 # end of Bibles.livenTyndaleTextboxRefs
 
 
-def livenTyndaleMapRefs( abbrev:str, level:int, articleLinkName:str, html:str, state ) -> str:
+def livenTyndaleMapRefs( abbrev:str, level:int, articleLinkName:str, html:str, state:State ) -> str:
     """
     Most of the parameters are for info messages only
 
@@ -796,8 +791,6 @@ def livenTyndaleMapRefs( abbrev:str, level:int, articleLinkName:str, html:str, s
     to
         htmlSegment = f'''<div class="Textbox>{TOBDData['Textboxes'][iiName]}</div><!--end of Textbox-->'''
     """
-    from createSitePages import ALTERNATIVE_VERSION
-
     fnPrint( DEBUGGING_THIS_MODULE, f"livenTyndaleMapRefs( {abbrev}, {level}, {articleLinkName} {html}, ... )")
 
     searchStartIndex = 0
@@ -821,6 +814,193 @@ def livenTyndaleMapRefs( abbrev:str, level:int, articleLinkName:str, html:str, s
     return html
 # end of Bibles.livenTyndaleMapRefs
 
+
+USB_GNT_DATA = []
+USB_GNT_ID_INDEX, USB_GNT_LEMMA_INDEX = {}, {}
+def loadAndIndexUBSGreekDictJSON( abbrev:str, folderpath ) -> None:
+    """
+    """
+    global USB_GNT_DATA, USB_GNT_ID_INDEX, USB_GNT_LEMMA_INDEX
+    # print( f"loadAndIndexUBSGreekDictJSON( '{abbrev}', {type(folderpath)} {folderpath=}, ... )" )
+    fnPrint( DEBUGGING_THIS_MODULE, f"loadAndIndexUBSGreekDictJSON( '{abbrev}', '{folderpath}', ... )")
+
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Preloading UBS Dictionary of the Greek New Testament from {folderpath}…" )
+    filepath = os.path.join( folderpath, 'UBSGreekNTDic-v1.0-en.JSON')
+    # print( f"{filepath=}" )
+    with open( filepath, 'rt', encoding='utf-8' ) as json_file:
+        tempList = json.load(json_file)
+
+    # Something like
+    # UGD entry 0/5507: tempList[0]={'MainId': '000001000000000', 'Lemma': 'α', 'Version': '0', 'HasAramaic': False, 'InLXX': False, 'AlphaPos': 'α', 'StrongCodes': [], 'Authors': [], 'AlternateLemmas': [], 'MainLinks': [], 'Notes': [], 'Localizations': None, 'Dates': None, 'ContributorNote': '', 'BaseForms': [{'BaseFormID': '000001001000000', 'PartsOfSpeech': ['noun-name, n.'], 'Inflections': [{'Lemma': 'α', 'BaseFormIndex': 1, 'Form': '', 'Realizations': [], 'Comments': [{'LanguageCode': 'en', 'Meaning': 'indeclinable'}, {'LanguageCode': 'zhT', 'Meaning': '無語尾變化'}]}], 'Constructs': None, 'Etymologies': None, 'RelatedLemmas': None, 'RelatedNames': None, 'MeaningsOfName': None, 'CrossReferences': None, 'BaseFormLinks': [], 'LEXMeanings': [{'LEXID': '000001001001000', 'LEXIsBiblicalTerm': 'Y', 'LEXEntryCode': '60.46', 'LEXIndent': 0, 'LEXDomains': ['Number'], 'LEXSubDomains': ['First, Second, Third, Etc. [Ordinals]'], 'LEXForms': None, 'LEXValencies': None, 'LEXCollocations': None, 'LEXSynonyms': None, 'LEXAntonyms': None, 'LEXCrossReferences': None, 'LEXSenses': [{'LanguageCode': 'en', 'LastEdited': '2021-05-24 13:06:09', 'LastEditedBy': '', 'DefinitionLong': '', 'DefinitionShort': 'first in a series involving time, space, or set', 'Glosses': ['first'], 'Comments': 'Occurring only in titles of NT writings: πρὸς Κορινθίους α ‘First Letter to the Corinthians’; Ἰωάννου α ‘First Epistle of John.’'}], 'LEXIllustrations': None, 'LEXReferences': ['04600100000000', '05200100000000', '05400100000000', '06000100000000', '06200100000000'], 'LEXLinks': None, 'LEXImages': None, 'LEXVideos': [], 'LEXCoordinates': None, 'LEXCoreDomains': None, 'CONMeanings': None}]}]}
+    # UGD entry 1/5507: tempList[1]={'MainId': '000002000000000', 'Lemma': 'Ἀαρών', 'Version': '0', 'HasAramaic': False, 'InLXX': False, 'AlphaPos': 'α', 'StrongCodes': ['G0002'], 'Authors': [], 'AlternateLemmas': [], 'MainLinks': [], 'Notes': [], 'Localizations': None, 'Dates': None, 'ContributorNote': '', 'BaseForms': [{'BaseFormID': '000002001000000', 'PartsOfSpeech': ['noun-name, m.'], 'Inflections': [{'Lemma': 'Ἀαρών', 'BaseFormIndex': 1, 'Form': '', 'Realizations': [], 'Comments': [{'LanguageCode': 'en', 'Meaning': 'indeclinable'}, {'LanguageCode': 'zhT', 'Meaning': '無語尾變化'}]}], 'Constructs': None, 'Etymologies': None, 'RelatedLemmas': None, 'RelatedNames': None, 'MeaningsOfName': None, 'CrossReferences': None, 'BaseFormLinks': [], 'LEXMeanings': [{'LEXID': '000002001001000', 'LEXIsBiblicalTerm': 'M', 'LEXEntryCode': '93.1', 'LEXIndent': 0, 'LEXDomains': ['Names of Persons and Places'], 'LEXSubDomains': ['Persons'], 'LEXForms': None, 'LEXValencies': None, 'LEXCollocations': None, 'LEXSynonyms': None, 'LEXAntonyms': None, 'LEXCrossReferences': None, 'LEXSenses': [{'LanguageCode': 'en', 'LastEdited': '2021-05-24 13:08:56', 'LastEditedBy': '', 'DefinitionLong': '', 'DefinitionShort': 'the elder brother of Moses and Israel’s first high priest', 'Glosses': ['Aaron'], 'Comments': ''}], 'LEXIllustrations': None, 'LEXReferences': ['04200100500044', '04400704000006', '05800500400030', '05800701100062', '05800900400044'], 'LEXLinks': None, 'LEXImages': None, 'LEXVideos': [], 'LEXCoordinates': None, 'LEXCoreDomains': None, 'CONMeanings': None}]}]}
+    # UGD entry -1/5507: tempList[-1]={'MainId': '005507000000000', 'Lemma': 'ὠφέλιμος', 'Version': '0', 'HasAramaic': False, 'InLXX': False, 'AlphaPos': 'ω', 'StrongCodes': ['G5624'], 'Authors': [], 'AlternateLemmas': [], 'MainLinks': [], 'Notes': [], 'Localizations': None, 'Dates': None, 'ContributorNote': '', 'BaseForms': [{'BaseFormID': '005507001000000', 'PartsOfSpeech': ['adjc.'], 'Inflections': [{'Lemma': 'ὠφέλιμος', 'BaseFormIndex': 1, 'Form': '', 'Realizations': ['-ον'], 'Comments': []}], 'Constructs': None, 'Etymologies': None, 'RelatedLemmas': [{'Word': 'ὠφελέω', 'Meanings': []}], 'RelatedNames': None, 'MeaningsOfName': None, 'CrossReferences': None, 'BaseFormLinks': [], 'LEXMeanings': [{'LEXID': '005507001001000', 'LEXIsBiblicalTerm': 'Y', 'LEXEntryCode': '65.40', 'LEXIndent': 0, 'LEXDomains': ['Value'], 'LEXSubDomains': ['Advantageous, Not Advantageous'], 'LEXForms': None, 'LEXValencies': None, 'LEXCollocations': None, 'LEXSynonyms': None, 'LEXAntonyms': None, 'LEXCrossReferences': None, 'LEXSenses': [{'LanguageCode': 'en', 'LastEdited': '2022-06-13 14:12:01', 'LastEditedBy': '', 'DefinitionLong': '', 'DefinitionShort': 'pertaining to a benefit to be derived from some ob ject, event, or state', 'Glosses': ['advantage', 'benefit', 'beneficial'], 'Comments': 'In a number of languages the equivalent of ‘benefit’ or ‘beneficial’ is often ‘that which helps.’ Accordingly, in {S:05400400800028} one may render ἡ γὰρ σωματικὴ γυμνασία πρὸς ὀλίγον ἐστὶν ὠφέλιμος as ‘physical exercise helps to a small extent’ or ‘if one exercises one’s body, that helps a little.’'}], 'LEXIllustrations': None, 'LEXReferences': ['05400400800016', '05400400800028', '05500301600010', '05600300800044'], 'LEXLinks': None, 'LEXImages': None, 'LEXVideos': [], 'LEXCoordinates': None, 'LEXCoreDomains': None, 'CONMeanings': None}]}]}
+    # print( f"{abbrev} entry 0/{len(tempList)}: {tempList[0]=}")
+    # print( f"{abbrev} entry 1/{len(tempList)}: {tempList[1]=}")
+    # print( f"{abbrev} entry -1/{len(tempList)}: {tempList[-1]=}")
+
+    # Index and remove Chinese comments at the same time
+    USB_GNT_DATA = []
+    for n,entry in enumerate( tempList ):
+        # print( f"\n\n{n}: {entry}")
+        assert entry['MainId'] not in USB_GNT_ID_INDEX
+        assert entry['Lemma'] not in USB_GNT_LEMMA_INDEX
+        USB_GNT_ID_INDEX[entry['MainId']] = USB_GNT_LEMMA_INDEX['Lemma'] = n
+        for b, baseForm in enumerate( entry['BaseForms'] ):
+            # print( f"  {b}: {type(baseForm)} {baseForm=}" )
+            if baseForm['Inflections']:
+                for i, inflection in enumerate( baseForm['Inflections']):
+                    # print( f"    {i}: {type(inflection)} {inflection=}" )
+                    for c, comment in enumerate( inflection['Comments'][:]): # Use a copy coz we're going to delete stuff
+                        # print( f"      {c}: {type(comment)} {comment=}" )
+                        if comment['LanguageCode'] == 'zhT':
+                            # print( f"        Deleting {c}: {type(comment)} {comment=}" )
+                            inflection['Comments'].pop( c )
+                            # print( f"  {n}: {entry}")
+        USB_GNT_DATA.append( entry )
+    del tempList
+
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  loadAndIndexUBSGreekDictJSON() loaded {len(USB_GNT_DATA):,} GNT Dictionary entries." )
+# end of Bibles.loadAndIndexUBSGreekDictJSON
+
+
+USB_HEB_DOMAIN_DATA, USB_HEB_DATA = [], []
+USB_HEB_ID_INDEX, USB_HEB_LEMMA_INDEX = {}, {}
+def loadAndIndexUBSHebrewDictJSON( abbrev:str, folderpath ) -> None:
+    """
+    """
+    global USB_HEB_DOMAIN_DATA, USB_HEB_DATA, USB_HEB_ID_INDEX, USB_HEB_LEMMA_INDEX
+    # print( f"loadAndIndexUBSHebrewDictJSON( '{abbrev}', {type(folderpath)} {folderpath=}, ... )" )
+    fnPrint( DEBUGGING_THIS_MODULE, f"loadAndIndexUBSHebrewDictJSON( '{abbrev}', '{folderpath}', ... )")
+
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Preloading UBS Dictionary of the Biblical Hebrew from {folderpath}…" )
+    filepath = os.path.join( folderpath, 'UBSHebrewDicLexicalDomains-v0.9.1-en.JSON')
+    # print( f"{filepath=}" )
+    with open( filepath, 'rt', encoding='utf-8' ) as json_file:
+        USB_HEB_DOMAIN_DATA = json.load(json_file)
+
+    # Something like
+    # UHD domain entry 0/417: USB_HEB_DOMAIN_DATA[0]={'SemanticDomainLocalizations': [{'LanguageCode': 'en', 'Label': 'Objects', 'Description': 'All animate and inanimate entities, both natural and supernatural', 'Opposite': '', 'Comment': ''}], 'Level': 1, 'Prototype': '', 'Reference': '', 'Code': '001', 'HasSubDomains': True, 'Entries': []}
+    # UHD domain entry 1/417: USB_HEB_DOMAIN_DATA[1]={'SemanticDomainLocalizations': [{'LanguageCode': 'en', 'Label': 'Beings', 'Description': 'All living beings, whether natural or supernatural', 'Opposite': '', 'Comment': ''}], 'Level': 2, 'Prototype': '', 'Reference': '', 'Code': '001001', 'HasSubDomains': True, 'Entries': []}
+    # UHD domain entry -1/417: USB_HEB_DOMAIN_DATA[-1]={'SemanticDomainLocalizations': [{'LanguageCode': 'en', 'Label': 'Timers', 'Description': '', 'Opposite': '', 'Comment': ''}], 'Level': 2, 'Prototype': '', 'Reference': '', 'Code': '004009', 'HasSubDomains': False, 'Entries': []}
+    # print( f"{abbrev} domain entry 0/{len(USB_HEB_DOMAIN_DATA)}: {USB_HEB_DOMAIN_DATA[0]=}")
+    # print( f"{abbrev} domain entry 1/{len(USB_HEB_DOMAIN_DATA)}: {USB_HEB_DOMAIN_DATA[1]=}")
+    # print( f"{abbrev} domain entry -1/{len(USB_HEB_DOMAIN_DATA)}: {USB_HEB_DOMAIN_DATA[-1]=}")
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  loadAndIndexUBSHebrewDictJSON() loaded {len(USB_HEB_DOMAIN_DATA):,} HEB Domain entries." )
+
+    filepath = os.path.join( folderpath, 'UBSHebrewDic-v0.9.1-en.JSON')
+    # print( f"{filepath=}" )
+    with open( filepath, 'rt', encoding='utf-8' ) as json_file:
+        tempList = json.load(json_file)
+
+    # Something like
+    # UHD entry 0/7223: tempList[0]={'MainId': '000001000000000', 'Lemma': 'אֵב', 'Version': '5', 'HasAramaic': True, 'InLXX': False, 'AlphaPos': 'א', 'StrongCodes': ['H0003', 'A0004'], 'Authors': ['Reinier de Blois'], 'Contributors': [], 'AlternateLemmas': [], 'MainLinks': [], 'Notes': [], 'Localizations': None, 'Dates': None, 'ContributorNote': '', 'BaseForms': [{'BaseFormID': '000001001000000', 'PartsOfSpeech': ['nsm'], 'Inflections': None, 'Constructs': None, 'Etymologies': None, 'RelatedLemmas': [{'Word': '', 'Meanings': []}], 'RelatedNames': None, 'MeaningsOfName': None, 'CrossReferences': None, 'BaseFormLinks': [], 'LEXMeanings': [{'LEXID': '000001001001000', 'LEXIsBiblicalTerm': 'M', 'LEXEntryCode': '', 'LEXIndent': 0, 'LEXDomains': [{'DomainCode': '001003', 'DomainSource': None, 'DomainSourceCode': None, 'Domain': 'Vegetation'}], 'LEXSubDomains': None, 'LEXForms': None, 'LEXValencies': None, 'LEXCollocations': None, 'LEXSynonyms': None, 'LEXAntonyms': None, 'LEXCrossReferences': None, 'LEXSenses': [{'LanguageCode': 'en', 'LastEdited': '2020-05-18 16:00:24', 'LastEditedBy': '', 'DefinitionLong': '', 'DefinitionShort': '= part of a plant or tree that is typically surrounded by brightly colored petals and will eventually develop into a fruit', 'Glosses': ['blossom', 'flower'], 'Comments': ''}], 'LEXIllustrations': None, 'LEXReferences': ['02200601100016'], 'LEXLinks': None, 'LEXImages': None, 'LEXVideos': [], 'LEXCoordinates': None, 'LEXCoreDomains': [{'DomainCode': '125', 'DomainSource': None, 'DomainSourceCode': None, 'Domain': 'Plant'}], 'CONMeanings': None}, {'LEXID': '000001001002000', 'LEXIsBiblicalTerm': 'M', 'LEXEntryCode': '', 'LEXIndent': 0, 'LEXDomains': [{'DomainCode': '002001001057', 'DomainSource': 'Vegetation', 'DomainSourceCode': '001003', 'Domain': 'Stage'}], 'LEXSubDomains': None, 'LEXForms': None, 'LEXValencies': None, 'LEXCollocations': ['בְּאֵב'], 'LEXSynonyms': None, 'LEXAntonyms': None, 'LEXCrossReferences': None, 'LEXSenses': [{'LanguageCode': 'en', 'LastEdited': '2017-03-19 12:46:16', 'LastEditedBy': '', 'DefinitionLong': '', 'DefinitionShort': '= state in which a plant or tree has developed blossoms', 'Glosses': ['blossom'], 'Comments': ''}], 'LEXIllustrations': None, 'LEXReferences': ['01800801200006'], 'LEXLinks': None, 'LEXImages': None, 'LEXVideos': [], 'LEXCoordinates': None, 'LEXCoreDomains': [{'DomainCode': '125', 'DomainSource': None, 'DomainSourceCode': None, 'Domain': 'Plant'}], 'CONMeanings': None}, {'LEXID': '000001001003000', 'LEXIsBiblicalTerm': 'M', 'LEXEntryCode': '', 'LEXIndent': 0, 'LEXDomains': [{'DomainCode': '001004003004', 'DomainSource': 'Vegetation', 'DomainSourceCode': '001003', 'Domain': 'Fruits'}], 'LEXSubDomains': None, 'LEXForms': None, 'LEXValencies': None, 'LEXCollocations': None, 'LEXSynonyms': None, 'LEXAntonyms': None, 'LEXCrossReferences': None, 'LEXSenses': [{'LanguageCode': 'en', 'LastEdited': '2020-05-18 16:00:24', 'LastEditedBy': '', 'DefinitionLong': '', 'DefinitionShort': '= part of a plant or tree that carries the seed and is often edible', 'Glosses': ['fruit'], 'Comments': ''}], 'LEXIllustrations': None, 'LEXReferences': ['02700400900008', '02700401100032', '02700401800010'], 'LEXLinks': None, 'LEXImages': None, 'LEXVideos': [], 'LEXCoordinates': None, 'LEXCoreDomains': [{'DomainCode': '125', 'DomainSource': None, 'DomainSourceCode': None, 'Domain': 'Plant'}], 'CONMeanings': None}]}]}
+    # UHD entry 1/7223: tempList[1]={'MainId': '000002000000000', 'Lemma': 'אַב', 'Version': '5', 'HasAramaic': True, 'InLXX': False, 'AlphaPos': 'א', 'StrongCodes': ['A0002'], 'Authors': ['Reinier de Blois'], 'Contributors': [], 'AlternateLemmas': [], 'MainLinks': [], 'Notes': [], 'Localizations': None, 'Dates': None, 'ContributorNote': '', 'BaseForms': [{'BaseFormID': '000002001000000', 'PartsOfSpeech': ['nsm'], 'Inflections': None, 'Constructs': None, 'Etymologies': None, 'RelatedLemmas': None, 'RelatedNames': None, 'MeaningsOfName': None, 'CrossReferences': None, 'BaseFormLinks': [], 'LEXMeanings': [{'LEXID': '000002001001000', 'LEXIsBiblicalTerm': 'M', 'LEXEntryCode': '', 'LEXIndent': 0, 'LEXDomains': [{'DomainCode': '001001002003012', 'DomainSource': None, 'DomainSourceCode': None, 'Domain': 'Relatives'}], 'LEXSubDomains': None, 'LEXForms': None, 'LEXValencies': None, 'LEXCollocations': None, 'LEXSynonyms': None, 'LEXAntonyms': None, 'LEXCrossReferences': None, 'LEXSenses': [{'LanguageCode': 'en', 'LastEdited': '2017-12-31 13:15:24', 'LastEditedBy': '', 'DefinitionLong': '', 'DefinitionShort': '= direct male progenitor; ► who normally provides protection, care, instruction, and discipline; ≈ is usually regarded with respect and associated with wisdom, security, and comfort', 'Glosses': ['father'], 'Comments': ''}], 'LEXIllustrations': None, 'LEXReferences': ['02700500200032', '02700501100026', '02700501100054', '02700501100068', '02700501300052', '02700501800034'], 'LEXLinks': None, 'LEXImages': None, 'LEXVideos': [], 'LEXCoordinates': None, 'LEXCoreDomains': [{'DomainCode': '062', 'DomainSource': None, 'DomainSourceCode': None, 'Domain': 'Family'}, {'DomainCode': '121', 'DomainSource': None, 'DomainSourceCode': None, 'Domain': 'Parenthood'}, {'DomainCode': '129', 'DomainSource': None, 'DomainSourceCode': None, 'Domain': 'Posterity'}], 'CONMeanings': None}, {'LEXID': '000002001002000', 'LEXIsBiblicalTerm': 'M', 'LEXEntryCode': '', 'LEXIndent': 0, 'LEXDomains': [{'DomainCode': '001001002003012', 'DomainSource': None, 'DomainSourceCode': None, 'Domain': 'Relatives'}], 'LEXSubDomains': None, 'LEXForms': None, 'LEXValencies': None, 'LEXCollocations': None, 'LEXSynonyms': None, 'LEXAntonyms': None, 'LEXCrossReferences': None, 'LEXSenses': [{'LanguageCode': 'en', 'LastEdited': '2017-12-31 13:15:24', 'LastEditedBy': '', 'DefinitionLong': '', 'DefinitionShort': '= indirect male progenitor', 'Glosses': ['forefather', 'ancestor'], 'Comments': ''}], 'LEXIllustrations': None, 'LEXReferences': ['01500401500014', '01500501200010', '02700202300006'], 'LEXLinks': None, 'LEXImages': None, 'LEXVideos': [], 'LEXCoordinates': None, 'LEXCoreDomains': [{'DomainCode': '129', 'DomainSource': None, 'DomainSourceCode': None, 'Domain': 'Posterity'}], 'CONMeanings': None}]}]}
+    # UHD entry -1/7223: tempList[-1]={'MainId': '007965000000000', 'Lemma': 'תַּתְּנַי', 'Version': '4', 'HasAramaic': True, 'InLXX': False, 'AlphaPos': 'ת', 'StrongCodes': ['A8674'], 'Authors': ['Reinier de Blois'], 'Contributors': [], 'AlternateLemmas': [], 'MainLinks': [], 'Notes': [], 'Localizations': None, 'Dates': None, 'ContributorNote': '', 'BaseForms': [{'BaseFormID': '007965001000000', 'PartsOfSpeech': ['np'], 'Inflections': None, 'Constructs': None, 'Etymologies': None, 'RelatedLemmas': None, 'RelatedNames': None, 'MeaningsOfName': None, 'CrossReferences': None, 'BaseFormLinks': [], 'LEXMeanings': [{'LEXID': '007965001001000', 'LEXIsBiblicalTerm': 'Y', 'LEXEntryCode': '', 'LEXIndent': 0, 'LEXDomains': [{'DomainCode': '003001007', 'DomainSource': None, 'DomainSourceCode': None, 'Domain': 'Names of People'}], 'LEXSubDomains': None, 'LEXForms': None, 'LEXValencies': None, 'LEXCollocations': None, 'LEXSynonyms': None, 'LEXAntonyms': None, 'LEXCrossReferences': None, 'LEXSenses': [{'LanguageCode': 'en', 'LastEdited': '2020-09-18 13:26:15', 'LastEditedBy': '', 'DefinitionLong': '', 'DefinitionShort': '= man; ► governor of the province west of the {L:Euphrates<SDBH:פְּרָת>} during the Persian empire', 'Glosses': ['Tattenai'], 'Comments': ''}], 'LEXIllustrations': None, 'LEXReferences': ['01500500300010', '01500500600010', '01500600600004', '01500601300004'], 'LEXLinks': None, 'LEXImages': None, 'LEXVideos': [], 'LEXCoordinates': None, 'LEXCoreDomains': None, 'CONMeanings': None}]}]}
+    # print( f"{abbrev} entry 0/{len(tempList)}: {tempList[0]=}")
+    # print( f"{abbrev} entry 1/{len(tempList)}: {tempList[1]=}")
+    # print( f"{abbrev} entry -1/{len(tempList)}: {tempList[-1]=}")
+
+    # Index and remove Chinese comments at the same time
+    USB_HEB_DATA = []
+    for n,entry in enumerate( tempList ):
+        # print( f"\n\n{n}: {entry}")
+        assert entry['MainId'] not in USB_HEB_ID_INDEX
+        assert entry['Lemma'] not in USB_HEB_LEMMA_INDEX
+        USB_HEB_ID_INDEX[entry['MainId']] = USB_HEB_LEMMA_INDEX['Lemma'] = n
+        for b, baseForm in enumerate( entry['BaseForms'] ):
+            # print( f"  {b}: {type(baseForm)} {baseForm=}" )
+            if baseForm['Inflections']:
+                for i, inflection in enumerate( baseForm['Inflections']):
+                    # print( f"    {i}: {type(inflection)} {inflection=}" )
+                    for c, comment in enumerate( inflection['Comments'][:]): # Use a copy coz we're going to delete stuff
+                        # print( f"      {c}: {type(comment)} {comment=}" )
+                        if comment['LanguageCode'] == 'zhT':
+                            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"        Deleting {c}: {type(comment)} {comment=}" )
+                            inflection['Comments'].pop( c )
+                            # print( f"  {n}: {entry}")
+        USB_HEB_DATA.append( entry )
+    del tempList
+
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  loadAndIndexUBSHebrewDictJSON() loaded {len(USB_HEB_DATA):,} HEB Dictionary entries." )
+# end of Bibles.loadAndIndexUBSHebrewDictJSON
+
+
+def createUBSDictionaryPages( level, outputFolderPath, state:State ) -> None:
+    """
+    """
+    global USB_GNT_DATA, USB_GNT_ID_INDEX, USB_GNT_LEMMA_INDEX
+    fnPrint( DEBUGGING_THIS_MODULE, f"createUBSDictionaryPages( {level}, '{outputFolderPath}', ... )")
+
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, "\nCreating UBS Greek Bible Dict pages…" )
+
+    try: os.makedirs( outputFolderPath )
+    except FileExistsError: pass # it was already there
+
+    # Start with the UBS Dictionary of GNT
+    indexLink = '<a title="Go up to main index" href="index.htm#__ID__">Index</a>'
+    introLink = '<a title="Go to dict introduction" href="intro.htm#__ID__">Intro</a>'
+    detailsLink = f'''<a title="Show details" href="{'../'*(level)}allDetails.htm#UBS">©</a>'''
+
+    # Make dictionary article pages
+    lemmaList = [a['Lemma'] for a in USB_GNT_DATA]
+    for e,entry in enumerate( USB_GNT_DATA ): # each entry is a dict
+        lemma = entry['Lemma']
+        dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"Making article page for '{lemma}'…" )
+        leftLink = f'''<a title="Go to previous article" href="{lemmaList[e-1]}.htm#__ID__">←</a> ''' if e>0 else ''
+        rightLink = f''' <a title="Go to next article" href="{lemmaList[e+1]}.htm#__ID__">→</a>''' if e<len(lemmaList)-1 else ''
+        navLinks = f'<p id="__ID__" class="dNav">{introLink} {leftLink}{indexLink}{rightLink} {detailsLink}</p>'
+
+        entryHtml = f'<h2>{lemma}</h2>\n'
+        for key,data in entry.items():
+            if data is None or data=='' or data==[]: continue # Don't display blank stuff
+            if key == 'Lemma': continue # Already used that
+            if key == 'BaseForms':
+                entryHtml = f'''{entryHtml}<p class="GDict"><b>{key}</b>:</p><ol>\n'''
+                for bf,bfEntry in enumerate( data ):
+                    bfEntryHtml = ''
+                    for bfKey,bfData in bfEntry.items():
+                        if bfData is None or bfData=='' or bfData==[]: continue # Don't display blank stuff
+                        if bfKey in ('Inflections','LEXMeanings'):
+                            bfEntryHtml = f'''{bfEntryHtml}<p class="GDict"><b>{bfKey}</b>:</p><ol>\n'''
+                            for lm,lmEntry in enumerate( bfData ):
+                                lmEntryHtml = ''
+                                for lmKey,lmData in lmEntry.items():
+                                    if lmData is None or lmData=='' or lmData==[]: continue # Don't display blank stuff
+                                    if lmKey == 'LEXSenses':
+                                        lmEntryHtml = f'''{lmEntryHtml}<p class="GDict"><b>{lmKey}</b>:</p><ol>\n'''
+                                        for ls,lsEntry in enumerate( lmData ):
+                                            lsEntryHtml = ''
+                                            for lsKey,lsData in lsEntry.items():
+                                                if lsData is None or lsData=='' or lsData==[]: continue # Don't display blank stuff
+                                                lsEntryHtml = f'''{lsEntryHtml}<p class="GDict"><b>{lsKey}</b>: {lsData[0] if isinstance(lsData, list) and len(lsData)==1 else lsData}</p>\n'''
+                                            lmEntryHtml = f'''{lmEntryHtml}<li class="GDict">{lsEntryHtml}</li>\n'''
+                                        lmEntryHtml = f'''{lmEntryHtml}</ol>\n'''
+                                    else:
+                                        lmEntryHtml = f'''{lmEntryHtml}<p class="GDict"><b>{lmKey}</b>: {lmData[0] if isinstance(lmData, list) and len(lmData)==1 else lmData}</p>\n'''
+                                bfEntryHtml = f'''{bfEntryHtml}<li class="GDict">{lmEntryHtml}</li>\n'''
+                            bfEntryHtml = f'''{bfEntryHtml}</ol>\n'''
+                        else:
+                            bfEntryHtml = f'''{bfEntryHtml}<p class="GDict"><b>{bfKey}</b>: {bfData[0] if isinstance(bfData, list) and len(bfData)==1 else bfData}</p>\n'''
+                    entryHtml = f'''{entryHtml}<li class="GDict">{bfEntryHtml}</li>\n'''
+                entryHtml = f'''{entryHtml}</ol>\n'''
+            else:
+                entryHtml = f'''{entryHtml}<p class="GDict"><b>{key}</b>: {data[0] if isinstance(data, list) and len(data)==1 else data}</p>\n'''
+
+        filepath = outputFolderPath.joinpath( f"{entry['Lemma']}.htm" )
+        top = makeTop( level, None, 'dictionaryEntry', None, state ) \
+                .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}UBS Greek Dictionary Article" ) \
+                .replace( '__KEYWORDS__', f'Bible, dictionary, {lemma}' )
+        articleHtml = f'''{top}
+<h1>{'TEST ' if TEST_MODE else ''}UBS Dictionary of the Greek New Testament</h1>
+{navLinks.replace('__ID__','Top')}
+{entryHtml}
+{makeBottom( level, 'dictionaryEntry', state )}'''
+        checkHtml( 'DictionaryArticle', articleHtml )
+        assert not filepath.is_file() # Check that we're not overwriting anything
+        with open( filepath, 'wt', encoding='utf-8' ) as articleHtmlFile:
+            articleHtmlFile.write( articleHtml )
+        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(articleHtml):,} characters written to {filepath}" )
+# end of Bibles.createUBSDictionaryPages
 
 
 def briefDemo() -> None:

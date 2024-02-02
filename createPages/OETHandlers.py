@@ -59,17 +59,19 @@ import sys
 sys.path.append( '../../BibleTransliterations/Python/' )
 from BibleTransliterations import transliterate_Greek
 
+from settings import State
 
-LAST_MODIFIED_DATE = '2024-01-11' # by RJH
+
+LAST_MODIFIED_DATE = '2024-02-01' # by RJH
 SHORT_PROGRAM_NAME = "OETHandlers"
 PROGRAM_NAME = "OpenBibleData OET handler"
-PROGRAM_VERSION = '0.32'
+PROGRAM_VERSION = '0.33'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
 
 
-def findLVQuote( level:int, BBB:str, C:str, V:str, occurrenceNumber:int, originalQuote:str, state ) -> str: # html
+def findLVQuote( level:int, BBB:str, C:str, V:str, occurrenceNumber:int, originalQuote:str, state:State ) -> str: # html
     """
     Given an original language (Heb/Grk) quote,
         find the OET-LV English words that match the OL words.
@@ -218,7 +220,7 @@ def findLVQuote( level:int, BBB:str, C:str, V:str, occurrenceNumber:int, origina
 
 linkedWordTitleRegex = re.compile( '="§(.+?)§"' ) # We inserted those § markers in our titleTemplate above
 linkedWordNumberRegex = re.compile( '/GrkWrd/([1-9][0-9]{0,5}).htm' ) # /GrkWrd/ is the words folder
-def livenOETWordLinks( bibleObject:ESFMBible, BBB:str, givenEntryList:InternalBibleEntryList, hrefTemplate:str, state ) -> InternalBibleEntryList:
+def livenOETWordLinks( bibleObject:ESFMBible, BBB:str, givenEntryList:InternalBibleEntryList, hrefTemplate:str, state:State ) -> InternalBibleEntryList:
     """
     Livens ESFM wordlinks in the OET versions (i.e., the words with ¦ numbers suffixed to them).
 

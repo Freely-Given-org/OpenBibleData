@@ -68,6 +68,8 @@ from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39, BOOKLIST_NT27
 sys.path.append( '../../BibleTransliterations/Python/' )
 from BibleTransliterations import load_transliteration_table
 
+from settings import State, state, reorderBooksForOETVersions, TEST_MODE, \
+    TEMP_BUILD_FOLDER, ALL_PRODUCTION_BOOKS, UPDATE_ACTUAL_SITE_WHEN_BUILT, DESTINATION_FOLDER
 from Bibles import preloadVersions, tidyBBB
 from createBookPages import createOETBookPages, createBookPages
 from createChapterPages import createOETSideBySideChapterPages, createChapterPages
@@ -76,601 +78,32 @@ from createParallelPassagePages import createParallelPassagePages
 from createParallelVersePages import createParallelVersePages
 from createOETInterlinearPages import createOETInterlinearPages
 from createOETReferencePages import createOETReferencePages
-from Dict import createTyndaleDictPages
+from Dict import createTyndaleDictPages, createUBSDictionaryPages
 from html import makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2024-01-25' # by RJH
+LAST_MODIFIED_DATE = '2024-02-02' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData Create Pages"
-PROGRAM_VERSION = '0.93'
+PROGRAM_VERSION = '0.94'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
 
-TEST_MODE = True # Writes website into Test subfolder
-ALL_PRODUCTION_BOOKS = not TEST_MODE # If set to False, only selects one book per version for a faster test build
-ALL_TEST_REFERENCE_PAGES = False # If in Test mode, make ALL word/lemma pages, or just the RELEVANT ones
-UPDATE_ACTUAL_SITE_WHEN_BUILT = True # The pages are initially built in a tmp folder so need to be copied to the final destination
-
-TEMP_BUILD_FOLDER = Path( '/tmp/OBDHtmlPages/' )
-NORMAL_DESTINATION_FOLDER = Path( '../htmlPages/' )
-DEBUG_DESTINATION_FOLDER = NORMAL_DESTINATION_FOLDER.joinpath( 'Test/')
-DESTINATION_FOLDER = DEBUG_DESTINATION_FOLDER if TEST_MODE or BibleOrgSysGlobals.debugFlag \
-                        else NORMAL_DESTINATION_FOLDER
-
-OET_LV_BOOK_LIST = ['RUT','JNA','EST'] + BOOKLIST_NT27
-OET_RV_BOOK_LIST = ['RUT','JNA','EST', 'JHN','MRK','MAT','LUK','ACT', 'ROM','CO2', 'GAL','EPH','PHP','COL', 'TH1','TH2','TI1','TI2','TIT','PHM', 'HEB', 'JAM', 'PE1','PE2', 'JN1','JN2','JN3', 'JDE']
-# TODO: What about 'INT' ?
-OET_RV_BOOK_LIST_WITH_FRT = ['FRT'] + OET_RV_BOOK_LIST
-# NT_BOOK_LIST_WITH_FRT = ['FRT'] + BOOKLIST_NT27
-# assert len(NT_BOOK_LIST_WITH_FRT) == 27+1
-# OT_BOOK_LIST_WITH_FRT = ['FRT'] + BOOKLIST_OT39
-# assert len(OT_BOOK_LIST_WITH_FRT) == 39+1
-
-# The version to link to when the OET doesn't have that book (yet)
-ALTERNATIVE_VERSION = 'WEB' # Should be a version with all books present
-
 NEWLINE = '\n'
 
-NUM_EXTRA_MODES = 5 # Related, parallel and interlinear verses, dictionary, and search
 
-
-class State:
-    """
-    A place to store some of the global stuff that needs to be passed around.
-    """
-    # This first one specifies the order in which everything is processed
-    BibleVersions = ['OET', # NOTE: OET is a "pseudo-version" containing both OET-RV and OET-LV side-by-side and handled separately in many places
-                'OET-RV','OET-LV',
-                'ULT','UST',
-                'BSB','BLB',
-                'OEB','ISV','CSB','NLT',
-                'NIV','CEV','ESV','NASB','LSB',
-                'JQT','2DT','1ST','TPT',
-                'WEB','WMB','NET','LSV','FBV','TCNT','T4T','LEB','NRSV','NKJV','BBE',
-                'JPS','ASV','DRA','YLT','DBY','RV','WBS','KJB','BB','GNV','CB',
-                'TNT','WYC',
-                'LUT','CLV',
-                'SR-GNT','UGNT','SBL-GNT','TC-GNT',
-                'BRN','BrLXX', 'UHB',
-                # NOTES:
-                'TOSN','UTN',
-                ]
-    # NOTE: The above list has entries deleted by preloadBibles() if they fail to load
-    #           (often because we temporarily remove the BibleLocation below)
-    allBibleVersions = BibleVersions[:] # Keep a copy with the full list
-
-    # Specific short lists
-    auxilliaryVersions = ('OET','TTN','TOBD') # These ones don't have their own Bible locations at all
-    # The following three lines are also in selectedVersesVersions.py
-    selectedVersesOnlyVersions = ('CSB','NLT','NIV','CEV','ESV','NASB','LSB','JQT','2DT','1ST','TPT','NRSV','NKJV' ) # These ones have .tsv sources (and don't produce Bible objects)
-    numAllowedSelectedVerses   = (  300,  500,  500,  500,  500,   500, 1000,   20, 300,  300,  250,   300,   300 ) # Order must match above list
-    assert len(numAllowedSelectedVerses) == len(selectedVersesOnlyVersions)
-    versionsWithoutTheirOwnPages = selectedVersesOnlyVersions + ('LUT','CLV', 'UGNT','SBL-GNT','TC-GNT', 'BRN','BrLXX', 'TOSN','TTN','UTN')
-
-    # NOTE: We don't display the versionsWithoutTheirOwnPages, so don't need decorations for them
-    BibleVersionDecorations = { 'OET':('<b>','</b>'),'OET-RV':('<b>','</b>'),'OET-LV':('<b>','</b>'),
-                'ULT':('',''),'UST':('',''),
-                'BSB':('',''),'BLB':('',''),
-                'OEB':('',''),'ISV':('',''),
-                'WEB':('',''),'WMB':('',''),'NET':('',''),'LSV':('',''),'FBV':('',''),'TCNT':('<small>','</small>'),'T4T':('',''),'LEB':('',''),'BBE':('',''),
-                'JPS':('<small>','</small>'),'ASV':('',''),'DRA':('<small>','</small>'),'YLT':('',''),'DBY':('',''),'RV':('',''),
-                'WBS':('<small>','</small>'),
-                'KJB':('',''),'BB':('',''),'GNV':('',''),'CB':('',''),
-                'TNT':('',''),'WYC':('',''), #'CLV':('<small>','</small>'),
-                'SR-GNT':('<b>','</b>'), # 'UGNT':('<small>','</small>'),'SBL-GNT':('<small>','</small>'),'TC-GNT':('<small>','</small>'),
-                # 'BRN':('<small>','</small>'),'BrLXX':('',''),
-                'UHB':('<b>','</b>'),
-                'Related':('<b>','</b>'), 'Parallel':('<b>','</b>'), 'Interlinear':('<b>','</b>'), 'Dictionary':('<b>','</b>'), 'Search':('<b>','</b>'),
-                # NOTES:
-                'TOSN':('',''),'UTN':('',''),
-                }
-
-                ## 'LEB': '../copiedBibles/English/LogosBibleSoftware/LEB/LEB.osis.xml', # OSIS
-                ## 'WYC': '../copiedBibles/English/eBible.org/Wycliffe/',
-    BibleLocations = {
-                'OET-RV': '../../OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/',
-                'OET-LV-OT': '../../OpenEnglishTranslation--OET/intermediateTexts/auto_edited_OT_USFM/', # Not ESFM yet
-                'OET-LV-NT': '../../OpenEnglishTranslation--OET/intermediateTexts/auto_edited_VLT_ESFM/', # No OT here
-                'SR-GNT': '../../Forked/CNTR-SR/SR usfm/', # We moved these up in the list because they're now compulsory
-                'UHB': '../copiedBibles/Original/unfoldingWord.org/UHB/',
-                # NOTE: The program will still run if some of these below are commented out or removed
-                # (e.g., this can be done quickly for a faster test)
-                'ULT': '../copiedBibles/English/unfoldingWord.org/ULT/',
-                'UST': '../copiedBibles/English/unfoldingWord.org/UST/',
-                'BSB': '../copiedBibles/English/Berean.Bible/BSB/',
-                'BLB': '../copiedBibles/English/Berean.Bible/BLB/blb.modified.txt', # NT only so far
-                'OEB': '../copiedBibles/English/OEB/',
-                # # 'ISV': '',
-                'CSB': '../copiedBibles/English/CSB_verses.tsv',
-                'NLT': '../copiedBibles/English/NLT_verses.tsv',
-                'NIV': '../copiedBibles/English/NIV_verses.tsv',
-                'CEV': '../copiedBibles/English/CEV_verses.tsv',
-                'ESV': '../copiedBibles/English/ESV_verses.tsv',
-                'NASB': '../copiedBibles/English/NASB_verses.tsv',
-                'LSB': '../copiedBibles/English/LSB_verses.tsv',
-                'JQT': '../copiedBibles/English/JQT_verses.tsv',
-                '2DT': '../copiedBibles/English/2DT_verses.tsv',
-                '1ST': '../copiedBibles/English/1ST_verses.tsv',
-                'TPT': '../copiedBibles/English/TPT_verses.tsv',
-                'WEB': '../copiedBibles/English/eBible.org/WEB/',
-                'WMB': '../copiedBibles/English/eBible.org/WMB/',
-                'NET': '../copiedBibles/English/eBible.org/NET/',
-                'LSV': '../copiedBibles/English/eBible.org/LSV/',
-                'FBV': '../copiedBibles/English/eBible.org/FBV/',
-                'TCNT': '../copiedBibles/English/eBible.org/TCNT/',
-                'T4T': '../copiedBibles/English/eBible.org/T4T/',
-                'LEB': '../copiedBibles/English/LogosBibleSoftware/LEB/LEB.xml', # not OSIS
-                'NRSV': '../copiedBibles/English/NRSV_verses.tsv',
-                'NKJV': '../copiedBibles/English/NKJV_verses.tsv',
-                'BBE': '../copiedBibles/English/eBible.org/BBE/',
-                'JPS': '../copiedBibles/English/eBible.org/JPS/',
-                'ASV': '../copiedBibles/English/eBible.org/ASV/',
-                'DRA': '../copiedBibles/English/eBible.org/DRA/',
-                'YLT': '../copiedBibles/English/eBible.org/YLT/',
-                'DBY': '../copiedBibles/English/eBible.org/DBY/',
-                'RV': '../copiedBibles/English/eBible.org/RV/', # with deuterocanon
-                'WBS': '../copiedBibles/English/eBible.org/RV/',
-                'KJB': '../copiedBibles/English/eBible.org/KJB/', # with deuterocanon
-                'BB': '/mnt/SSDs/Bibles/DataSets/BibleSuperSearch.com/v5.0/TXT/bishops.txt',
-                'GNV': '../copiedBibles/English/eBible.org/GNV/',
-                'CB': '/mnt/SSDs/Bibles/DataSets/BibleSuperSearch.com/v5.0/TXT/coverdale.txt',
-                'TNT': '../copiedBibles/English/eBible.org/TNT/',
-                'WYC': '/mnt/SSDs/Bibles/Zefania modules/SF_2009-01-20_ENG_BIBLE_WYCLIFFE_(JOHN WYCLIFFE BIBLE).xml',
-                'LUT': '../copiedBibles/German/Zefania/LUT1545/SF_2009-01-20_GER_LUTH1545STR_(LUTHER 1545 MIT STRONGS).xml',
-                'CLV': '../copiedBibles/Latin/eBible.org/CLV/',
-                'UGNT': '../copiedBibles/Original/unfoldingWord.org/UGNT/',
-                'SBL-GNT': '../../Forked/SBLGNT/data/sblgnt/text/',
-                'TC-GNT': '../copiedBibles/Greek/eBible.org/TC-GNT/',
-                'BRN': '../copiedBibles/English/eBible.org/Brenton/', # with deuterocanon and OTH,XXA,XXB,XXC,
-                'BrLXX': '../copiedBibles/Greek/eBible.org/BrLXX/',
-                # NOTE: Dictionary and notes are special cases here at the end (skipped in many parts of the program)
-                'TOSN': '../copiedBibles/English/Tyndale/OSN/', # This one also loads TTN (Tyndale Theme Notes)
-                'UTN': '../copiedBibles/English/unfoldingWord.org/UTN/',
-                }
-
-    BibleNames = {
-                'OET': 'Open English Translation (2030)',
-                'OET-RV': 'Open English Translation—Readers’ Version (2030)',
-                'OET-LV': 'Open English Translation—Literal Version (2025)',
-                'ULT': 'unfoldingWord® Literal Text (2023)',
-                'UST': 'unfoldingWord® Simplified Text (2023)',
-                'BSB': 'Berean Study/Standard Bible (2020)',
-                'BLB': 'Berean Literal Bible NT (2022)',
-                'OEB': 'Open English Bible (in progress)',
-                'ISV': 'International Standard Version (2020?)',
-                'CSB': 'Christian Standard Bible (2017)',
-                'NLT': 'New Living Translation (2015)',
-                'NIV': 'New International Version (2011)',
-                'CEV': 'Contemporary English Version (2006)',
-                'ESV': 'English Standard Version (2001)',
-                'NASB': 'New American Standard Bible (1995)',
-                'LSB': 'Legacy Standard Bible (2021)',
-                'JQT': 'James Quiggle Translation New Testament (2023)',
-                '2DT': 'The Second Testament (2023)',
-                '1ST': 'The First Testament (2018)',
-                'TPT': 'The Passion Translation (2017)',
-                'WEB': 'World English Bible (2023)',
-                'WMB': 'World Messianic Bible (2023) / Hebrew Names Version (HNV)',
-                'NET': 'New English Translation (2016)',
-                'LSV': 'Literal Standard Version (2020)',
-                'FBV': 'Free Bible Version (2018)',
-                'TCNT': 'Text-Critical New Testament (2022, Byzantine)',
-                'T4T': 'Translation for Translators (2017)',
-                'LEB': 'Lexham English Bible (2010,2012)',
-                'NRSV': 'New Revised Standard Version (1989)',
-                'NKJV': 'New King James Version (1982)',
-                'BBE': 'Bible in Basic English (1965)',
-                'JPS': 'Jewish Publication Society TaNaKH (1917)',
-                'ASV': 'American Standard Version (1901)',
-                'DRA': 'Douay-Rheims American Edition (1899)',
-                'YLT': 'Youngs Literal Translation (1898)',
-                'DBY': 'Darby Translation (1890)',
-                'RV': 'English Revised Version (1885)',
-                'WBS': 'Webster Bible (American, 1833)',
-                'KJB': 'King James Bible (1769)',
-                'BB': 'Bishops Bible (1568,1602)',
-                'GNV': 'Geneva Bible (1557-1560,1599)',
-                'GB': 'Great Bible (1539)', # Not in OBD yet
-                'CB': 'Coverdale Bible (1535-1553)',
-                'TNT': 'Tyndale New Testament (1526)',
-                'WYC': 'Wycliffe Bible (1382)',
-                'LUT': 'Luther Bible (1545)',
-                'CLV': 'Clementine Vulgate (Latin, 1592)',
-                'SR-GNT': 'Statistical Restoration Greek New Testament (2022)',
-                'UGNT': 'unfoldingWord® Greek New Testament (2022)',
-                'SBL-GNT': 'Society for Biblical Literature Greek New Testament (2020???)',
-                'TC-GNT': 'Text-Critical Greek New Testament (2010, Byzantine)',
-                'BRN': 'Brenton Septuagint Translation (1851)',
-                'BrLXX': '(Brenton’s) Ancient Greek translation of the Hebrew Scriptures (~250 BC)',
-                'UHB': 'unfoldingWord® Hebrew Bible (2022)',
-                'TOSN': 'Tyndale Open Study Notes (2022)',
-                'TOBD': 'Tyndale Open Bible Dictionary (2023)',
-                'UTN': 'unfoldingWord® Translation Notes (2023)',
-                }
-
-    booksToLoad = {
-                'OET': OET_RV_BOOK_LIST_WITH_FRT,
-                'OET-RV': OET_RV_BOOK_LIST_WITH_FRT,
-                'OET-LV': OET_LV_BOOK_LIST,
-                'ULT': ['ALL'],
-                'UST': ['ALL'], # MRK 13:13 gives \\add error (24Jan2023)
-                'BSB': ['ALL'],
-                'BLB': ['NT'],
-                'OEB': ['ALL'],
-                'ISV': ['ALL'],
-                'CSB': ['ALL'],
-                'NLT': ['ALL'],
-                'NIV': ['ALL'],
-                'CEV': ['ALL'],
-                'ESV': ['ALL'],
-                'NASB': ['ALL'],
-                'LSB': ['ALL'],
-                'JQT': ['ALL'],
-                '2DT': ['ALL'],
-                '1ST': ['ALL'],
-                'TPT': ['ALL'],
-                'WEB': ['ALL'],
-                'WMB': ['ALL'],
-                'NET': ['ALL'],
-                'LSV': ['ALL'],
-                'FBV': ['ALL'],
-                'TCNT': ['ALL'],
-                'T4T': ['ALL'],
-                'LEB': ['ALL'],
-                'NRSV': ['ALL'],
-                'NKJV': ['ALL'],
-                'BBE': ['ALL'],
-                'JPS': ['ALL'],
-                'ASV': ['ALL'],
-                'DRA': ['ALL'],
-                'YLT': ['ALL'],
-                'DBY': ['ALL'],
-                'RV': ['ALL'],
-                'WBS': ['ALL'],
-                'KJB': ['ALL'],
-                'BB': ['ALL'],
-                'GNV': ['ALL'],
-                'CB': ['ALL'],
-                'TNT': ['ALL'],
-                'WYC': ['ALL'],
-                'LUT': ['ALL'],
-                'CLV': ['ALL'],
-                'SR-GNT': ['ALL'],
-                'UGNT': ['ALL'],
-                'SBL-GNT': ['ALL'],
-                'TC-GNT': ['ALL'],
-                'BRN': ['ALL'],
-                'BrLXX': ['ALL'],
-                'UHB': ['ALL'],
-                # NOTES:
-                'TOSN': ['ALL'],
-                'UTN': ['ALL'],
-            } if ALL_PRODUCTION_BOOKS else {
-                'OET': ['FRT','RUT','JNA','MRK'],
-                'OET-RV': ['FRT','RUT','JNA','MRK'],
-                'OET-LV': ['RUT','JNA','MRK'],
-                'ULT': ['FRT','RUT','JNA','MRK'],
-                'UST': ['RUT','JNA','MRK'], # MRK 13:13 gives \\add error (24Jan2023)
-                'BSB': ['RUT','JNA','MRK'],
-                'BLB': ['MRK'], # NT only
-                'OEB': ['RUT','JNA','MRK'],
-                'ISV': ['RUT','JNA','MRK'],
-                'CSB': ['RUT','JNA','MRK'],
-                'NLT': ['RUT','JNA','MRK'],
-                'NIV': ['RUT','JNA','MRK'],
-                'CEV': ['RUT','JNA','MRK'],
-                'ESV': ['RUT','JNA','MRK'],
-                'NASB': ['RUT','JNA','MRK'],
-                'LSB': ['RUT','JNA','MRK'],
-                'JQT': ['RUT','JNA','MRK'],
-                '2DT': ['RUT','JNA','MRK'],
-                '1ST': ['RUT','JNA','MRK'],
-                'TPT': ['RUT','JNA','MRK'],
-                'WEB': ['RUT','JNA','MRK'],
-                'WMB': ['RUT','JNA','MRK'],
-                'NET': ['RUT','JNA','MRK'],
-                'LSV': ['RUT','JNA','MRK'],
-                'FBV': ['RUT','JNA','MRK'],
-                'TCNT': ['MRK'], # NT only
-                'T4T': ['RUT','JNA','MRK'],
-                'LEB': ['RUT','JNA','MRK'],
-                'NRSV': ['RUT','JNA','MRK'],
-                'NKJV': ['RUT','JNA','MRK'],
-                'BBE': ['RUT','JNA','MRK'],
-                'JPS': ['RUT','JNA'],
-                'ASV': ['RUT','JNA','MRK'],
-                'DRA': ['RUT','JNA','MRK'],
-                'YLT': ['RUT','JNA','MRK'],
-                'DBY': ['RUT','JNA','MRK'],
-                'RV': ['RUT','JNA','MRK'],
-                'WBS': ['RUT','JNA','MRK'],
-                'KJB': ['RUT','JNA','MRK'],
-                'BB': ['RUT','JNA','MRK'],
-                'GNV': ['RUT','JNA','MRK'],
-                'CB': ['RUT','JNA','MRK'],
-                'TNT': ['MRK'], # NT only
-                'WYC': ['RUT','JNA','MRK'],
-                'LUT': ['RUT','JNA','MRK'],
-                'CLV': ['RUT','JNA','MRK'],
-                'SR-GNT': ['MRK'], # NT only
-                'UGNT': ['MRK'], # NT only
-                'SBL-GNT': ['MRK'], # NT only
-                'TC-GNT': ['MRK'], # NT only
-                'BRN': ['RUT','JNA'], # OT only
-                'BrLXX': ['RUT','JNA'], # OT only
-                'UHB': ['RUT','JNA'], # OT only
-                # NOTES:
-                'TOSN': ['RUT','JNA','MRK'],
-                'UTN': ['RUT','JNA','MRK'],
-            }
-
-    detailsHtml = {
-        'OET': {'about': '''<p class="about">The (still unfinished) <em>Open English Translation</em> consists of a <em>Readers’ Version</em> and a <em>Literal Version</em> side-by-side.
-You can read more about the design of the <em>OET</em> at <a href="https://OpenEnglishTranslation.Bible/Design/Overview">OpenEnglishTranslation.Bible/Design/Overview</a>.</p>''',
-                'copyright': '<p class="copyright">Copyright © 2010-2024 <a href="https://Freely-Given.org">Freely-Given.org</a>.</p>',
-                'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
-                'acknowledgements': '<p class="acknwldg">Thanks to <a href="https://Freely-Given.org/">Freely-Given.org</a> for creating this exciting, radical, new Bible translation which is viewable from <a href="https://OpenEnglishTranslation.Bible">OpenEnglishTranslation.Bible</a>.</p>' },
-        'OET-RV': {'about': '''<p class="about">The (still unfinished) <em>Open English Translation Readers’ Version</em> is a new, modern-English easy-to-read translation of the Bible.
-You can read more about the design of the <em>OET-RV</em> at <a href="https://OpenEnglishTranslation.Bible/Design/ReadersVersion">OpenEnglishTranslation.Bible/Design/ReadersVersion</a>.</p>''',
-                'copyright': '<p class="copyright">Copyright © 2010-2024 <a href="https://Freely-Given.org">Freely-Given.org</a>.</p>',
-                'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
-                'acknowledgements': '<p class="acknwldg">Thanks to <a href="https://Freely-Given.org/">Freely-Given.org</a> for creating this exciting, new Bible translation which is viewable from <a href="https://OpenEnglishTranslation.Bible">OpenEnglishTranslation.Bible</a>.</p>' },
-        'OET-LV': {'about': '''<p class="about">The (still unfinished) <em>Open English Translation Literal Version</em> is a tool designed to give a look into what was actually written in the original Hebrew or Greek manuscripts.
-You can read more about the design of the <em>OET-LV</em> at <a href="https://OpenEnglishTranslation.Bible/Design/LiteralVersion">OpenEnglishTranslation.Bible/Design/LiteralVersion</a>.</p>''',
-                'copyright': '<p class="copyright">Copyright © 2010-2024 <a href="https://Freely-Given.org">Freely-Given.org</a>.</p>',
-                'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
-                'acknowledgements': '''<p class="acknwldg">Thanks to <a href="https://Freely-Given.org/">Freely-Given.org</a> for creating this exciting, new Bible translation which is viewable from <a href="https://OpenEnglishTranslation.Bible">OpenEnglishTranslation.Bible</a>.
-We are very grateful to Dr. Alan Bunning of the <a href="https://GreekCNTR.org">Center for New Testament Restoration</a> whose many years of hard work this <em>OET-LV</em> is based on.
-We’re also grateful to the <a href="https://www.Biblica.com/clear/">Biblica Clear Bible team</a> who provide the pronoun referential information as part of their <a href="https://GitHub.com/Clear-Bible/macula-greek">Macula Greek</a> project.</p>''' },
-        'ULT': {'about': '<p class="about">unfoldingWord® Literal Text (2023) and derived from the 1901 ASV.</p>',
-                'copyright': '<p class="copyright">Copyright © 2023 by unfoldingWord.</p>',
-                'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
-                'acknowledgements': '<p class="acknwldg">Thanks to <a href="https://www.unfoldingword.org/">unfoldingWord</a> for creating this Bible translation which is designed to be a tool for Bible translators.</p>' },
-        'UST': {'about': '<p class="about">unfoldingWord® Simplified Text (2023). The UST has all passive constructions changed to active forms, and all idioms replaced with their English meanings.</p>',
-                'copyright': '<p class="copyright">Copyright © 2023 by unfoldingWord.</p>',
-                'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
-                'acknowledgements': '<p class="acknwldg">Thanks to <a href="https://www.unfoldingword.org/">unfoldingWord</a> for creating this specialised Bible translation which is designed to be a tool for Bible translators.</p>' },
-        'BSB': {'about': '<p class="about">Berean Standard Bible (2020).</p>',
-                'copyright': '<p class="copyright">Copyright © 2016, 2020 by Bible Hub. Used by Permission. All Rights Reserved Worldwide.</p>',
-                'licence': '<p class="licence">The Berean Bible text is <a href="https://berean.bible/terms.htm#Top">free to use</a> in any electronic form to promote the reading, learning, and understanding of the Holy Bible as the Word of God.</p>',
-                'acknowledgements': '<p class="acknwldg">Thanks to <a href="https://biblehub.com/">BibleHub</a> for the <a href="https://berean.bible/">BSB</a>.</p>' },
-        'BLB': {'about': '<p class="about">Berean Literal Bible (2022).</p>',
-                'copyright': '<p class="copyright">Copyright © 2022 by Bible Hub. Used by Permission. All Rights Reserved Worldwide.</p>',
-                'licence': '<p class="licence">The Berean Bible text is <a href="https://berean.bible/terms.htm#Top">free to use</a> in any electronic form to promote the reading, learning, and understanding of the Holy Bible as the Word of God.</p>',
-                'acknowledgements': '<p class="acknwldg">Thanks to <a href="https://biblehub.com/">BibleHub</a> for the <a href="https://berean.bible/">BLB</a>.</p>' },
-        'OEB': {'about': '<p class="about">Open English Bible (in progress).</p>',
-                'copyright': '<p class="copyright">Copyright © 2010-2021 Russell Allen.</p>',
-                'licence': '<p class="licence"><a href="http://creativecommons.org/publicdomain/zero/1.0/">Creative Commons Zero licence</a>.</p>',
-                'acknowledgements': '<p class="acknwldg">Thanks to <a href="https://openenglishbible.org/">Russell Allen and team</a> for generously providing <a href="https://github.com/openenglishbible/Open-English-Bible">this English translation</a>.</p>' },
-        'ISV': {'about': '<p class="about">International Standard Version (2020?).</p>',
-                'copyright': '<p class="copyright">Copyright © (coming).</p>',
-                'licence': '<p class="licence">(coming).</p>',
-                'acknowledgements': '<p class="acknwldg">(coming).</p>' },
-        'CSB': {'about': '<p class="about">(Holmes) Christian Standard Bible (2017).</p>',
-                'copyright': '<p class="copyright">Copyright © (coming).</p>',
-                'licence': '<p class="licence">(coming).</p>',
-                'acknowledgements': '<p class="acknwldg">(coming).</p>' },
-        'NLT': {'about': '<p class="about">New Living Translation (2015).</p>',
-                'copyright': '<p class="copyright">Holy Bible, New Living Translation, copyright © 1996, 2004, 2015 by Tyndale House Foundation. Used by permission of Tyndale House Publishers. All rights reserved.</p>',
-                'licence': '<p class="licence">five hundred (500) verses without the express written permission of the publisher, providing the verses quoted do not amount to a complete book of the Bible nor do the verses quoted account for twenty-five percent (25%) or more of the total text of the work in which they are quoted.</p>',
-                'acknowledgements': '<p class="acknwldg"></p>' },
-        'NIV': {'about': '<p class="about">New International Version (2011).</p>',
-                'copyright': '<p class="copyright">Scripture quotations taken from The Holy Bible, New International Version® NIV®. Copyright © 1973, 1978, 1984, 2011 by Biblica, Inc.™ Used by permission. All rights reserved worldwide.</p>',
-                'licence': '<p class="licence">The NIV® text may be quoted in any form (written, visual, electronic or audio), up to and inclusive of five hundred (500) verses without the express written permission of the publisher, providing the verses quoted do not amount to a complete book of the Bible nor do the verses quoted account for twenty-five percent (25%) or more of the total text of the work in which they are quoted.</p>',
-                'acknowledgements': '<p class="acknwldg"></p>' },
-        'CEV': {'about': '<p class="about">Contemporary English Version, Second Edition (2006).</p>',
-                'copyright': '<p class="copyright">Scripture quotations marked (CEV) are from the Contemporary English Version Copyright © 1991, 1992, 1995 by American Bible Society. Used by Permission.</p>',
-                'licence': '<p class="licence">Text from the Contemporary English Version (CEV) may be quoted in any form (written, visual, electronic or audio) up to and inclusive of five hundred (500) verses without written permission, providing the verses quoted do not amount to 50% of a complete book of the Bible nor do the verses account for twenty-five percent (25%) or more of the total text of the work in which they are quoted and the work is available for non-commercial use.</p>',
-                'acknowledgements': '<p class="acknwldg"></p>' },
-        'ESV': {'about': '<p class="about">English Standard Version (2001).</p>',
-                'copyright': '<p class="copyright">Scripture quotations are from the ESV® Bible (The Holy Bible, English Standard Version®), copyright © 2001 by Crossway Bibles, a publishing ministry of Good News Publishers. Used by permission. All rights reserved.</p>',
-                'licence': '<p class="licence">The ESV text may be quoted (in written, visual, or electronic form) up to and inclusive of five hundred (500) verses without express written permission of the publisher, providing that the verses quoted do not amount to a complete book of the Bible nor do the verses quoted account for twenty-five (25%) percent or more of the total text of the work in which they are quoted.</p>',
-                'acknowledgements': '<p class="acknwldg"></p>' },
-        'NASB': {'about': '<p class="about">New American Standard Bible (1995): A revision of the American Standard Version (ASV) incorporating information from the Dead Sea Scrolls.</p>',
-                'copyright': '<p class="copyright">Scripture taken from the NEW AMERICAN STANDARD BIBLE, © Copyright The Lockman Foundation 1960, 1962, 1963, 1968, 1971, 1972, 1973, 1975, 1977, 1995. Used by permission.</p>',
-                'licence': '<p class="licence">The text of the New American Standard Bible® may be quoted and/or reprinted up to and inclusive of five hundred (500) verses without express written permission of The Lockman Foundation, providing that the verses do not amount to a complete book of the Bible nor do the verses quoted account for more than 25% of the total work in which they are quoted.</p>',
-                'acknowledgements': '<p class="acknwldg"></p>' },
-        'LSB': {'about': '<p class="about"><a href="https://LSBible.org/">Legacy Standard Bible</a> (2021): A revision of the 1995 New American Standard Bible (NASB) completed in October 2021.</p>',
-                'copyright': '<p class="copyright">Copyright © 2021 by The Lockman Foundation. All Rights Reserved.</p>',
-                'licence': '<p class="licence">The text of the LSB® (Legacy Standard Bible®) may be quoted in any form (written, visual, electronic, or audio) up to and inclusive of one thousand (1,000) verses providing the verses do not amount to a complete book of the Bible, nor do the verses quoted account for more than 50% of the total text of the work in which they are quoted, nor may more than 1,000 verses be stored in an electronic retrieval system. <small>(Downloaded from <a href="https://LSBible.org/permission-to-quote-the-lsb/">LSBible.org/permission-to-quote-the-lsb/</a> January 2024)</small></p>',
-                'acknowledgements': '<p class="acknwldg"></p>' },
-        'JQT': {'about': '<p class="about">James Quiggle Translation New Testament (2023).</p>',
-                'copyright': '<p class="copyright">Translated and published by James D. Quiggle, copyright 2023.</p>',
-                'licence': '<p class="licence">Limited to twenty verses.</p>',
-                'acknowledgements': '<p class="acknwldg"></p>' },
-        '2DT': {'about': '<p class="about">The Second Testament: A new translation (2023) by Scot McKnight.</p>',
-                'copyright': '<p class="copyright">Copyright © 2023 by IVP Academic. Used by Permission. All Rights Reserved Worldwide.</p>',
-                'licence': '<p class="licence">Up to 300 verses may be used.</p>',
-                'acknowledgements': '<p class="acknwldg"></p>' },
-        '1ST': {'about': '<p class="about">The First Testament: A new translation (2018) by John Goldingay.</p>',
-                'copyright': '<p class="copyright">Copyright © 2018 by IVP Academic. Used by Permission. All Rights Reserved Worldwide.</p>',
-                'licence': '<p class="licence">Up to 300 verses may be used.</p>',
-                'acknowledgements': '<p class="acknwldg"></p>' },
-        'TPT': {'about': '<p class="about">The Passion Translation (2017) by Brian Simmons.</p>',
-                'copyright': '<p class="copyright">Scripture quotations marked TPT are from The Passion Translation®. Copyright © 2017, 2018, 2020 by Passion & Fire Ministries, Inc. Used by permission. All rights reserved. ThePassionTranslation.com.</p>',
-                'licence': '<p class="licence">Up to 250 verses may be used.</p>',
-                'acknowledgements': '<p class="acknwldg">A few selected verses included here for reference purposes only—this is not a recommended as a reliable Bible translation.</p>' },
-        'WEB': {'about': '<p class="about">World English Bible (2023).</p>',
-                'copyright': '<p class="copyright">Copyright © (coming).</p>',
-                'licence': '<p class="licence">(coming).</p>',
-                'acknowledgements': '<p class="acknwldg">(coming).</p>' },
-        'WMB': {'about': '<p class="about">World Messianic Bible (2023) also known as the HNV: Hebrew Names Version.</p>',
-                'copyright': '<p class="copyright">Copyright © (coming).</p>',
-                'licence': '<p class="licence">(coming).</p>',
-                'acknowledgements': '<p class="acknwldg">(coming).</p>' },
-        'NET': {'about': '<p class="about">New English Translation (2016).</p>',
-                'copyright': '<p class="copyright">Copyright © (coming).</p>',
-                'licence': '<p class="licence"><a href="https://bible.org/downloads">Free</a> (without their notes).</p>',
-                'acknowledgements': '<p class="acknwldg">(coming).</p>' },
-        'LSV': {'about': '<p class="about">Literal Standard Version (2020).</p>',
-                'copyright': '<p class="copyright">Copyright © (coming).</p>',
-                'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
-                'acknowledgements': '<p class="acknwldg">(coming).</p>' },
-        'FBV': {'about': '<p class="about">Free Bible Version (2018).</p>',
-                'copyright': '<p class="copyright">Copyright © (coming).</p>',
-                'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
-                'acknowledgements': '<p class="acknwldg">Thanks to <a href="http://www.freebibleversion.org/">Free Bible Ministry</a> for this translation. (coming).</p>' },
-        'TCNT': {'about': '''<p class="about">Text-Critical New Testament: Byzantine Text Version (2022) from their own Byzantine-priority Greek New Testament.</p>
-<p class="about">Adam Boyd released the Byzantine Text Version in 2022. It is based on the Robinson-Pierpont third edition (RP2018). Boyd describes it as following the “‘optimal equivalence’ philosophy of translation, employing a literary style that is reminiscent of the Tyndale-King James legacy while flowing smoothly and naturally in modern English.” He added: “On the literal to dynamic scale, I would put it somewhere between ESV and CSB (but closer to ESV).”</p>''',
-                'copyright': '<p class="copyright">Copyright © (coming).</p>',
-                'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution 4.0 International License</a>.</p>',
-                'acknowledgements': '<p class="acknwldg">Thanks to <a href="https://byzantinetext.com/study/translations/">ByzantineText.com</a> for this work. (coming).</p>' },
-        'T4T': {'about': '<p class="about">Translation for Translators (2017).</p>',
-                'copyright': '<p class="copyright">Copyright © (coming).</p>',
-                'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a> as per <a href="https://ebible.org/t4t/copyright.htm#Top">here</a>.</p>',
-                'acknowledgements': '<p class="acknwldg">Thanks to the late <a href="https://tahlequah.hartfuneralhome.net/obituary/Ellis-Deibler">Ellis Deibler</a> for his work in preparing this specialised text to be used as a Bible translation tool. (coming).</p>' },
-        'LEB': {'about': '<p class="about">Lexham English Bible (2010,2012).</p>',
-                'copyright': '<p class="copyright">Copyright © 2012 <a href="http://www.logos.com/">Logos Bible Software</a>. Lexham is a registered trademark of <a href="http://www.logos.com/">Logos Bible Software</a>.</p>',
-                'licence': '<p class="licence">You can give away the <a href="https://lexhampress.com/LEB-License">Lexham English Bible</a>, but you can’t sell it on its own. If the LEB comprises less than 25% of the content of a larger work, you can sell it as part of that work.</p>',
-                'acknowledgements': '<p class="acknwldg">Thanks to <a href="http://www.logos.com/">Logos Bible Software</a> for supplying a XML file.</p>' },
-        'NRSV': {'about': '<p class="about">New Revised Standard Version (1989).</p>',
-                'copyright': '<p class="copyright">Copyright © (coming).</p>',
-                'licence': '<p class="licence">(coming).</p>',
-                'acknowledgements': '<p class="acknwldg">(coming).</p>' },
-        'NKJV': {'about': '<p class="about">New King James Version (1979).</p>',
-                'copyright': '<p class="copyright">Copyright © (coming).</p>',
-                'licence': '<p class="licence">(coming).</p>',
-                'acknowledgements': '<p class="acknwldg">(coming).</p>' },
-        'BBE': {'about': '<p class="about">Bible in Basic English (1965).</p>',
-                'copyright': '<p class="copyright">Copyright © (coming).</p>',
-                'licence': '<p class="licence">(coming).</p>',
-                'acknowledgements': '<p class="acknwldg">(coming).</p>' },
-        'JPS': {'about': '<p class="about">Jewish Publication Society TaNaKH (1917).</p>',
-                'copyright': '<p class="copyright">Copyright © (coming).</p>',
-                'licence': '<p class="licence">(coming).</p>',
-                'acknowledgements': '<p class="acknwldg">(coming).</p>' },
-        'ASV': {'about': '<p class="about">American Standard Version (1901).</p>',
-                'copyright': '<p class="copyright">Copyright © (coming).</p>',
-                'licence': '<p class="licence">(coming).</p>',
-                'acknowledgements': '<p class="acknwldg">(coming).</p>' },
-        'DRA': {'about': '<p class="about">Douay-Rheims American Edition (1899).</p>',
-                'copyright': '<p class="copyright">Copyright © (coming).</p>',
-                'licence': '<p class="licence">(coming).</p>',
-                'acknowledgements': '<p class="acknwldg">(coming).</p>' },
-        'YLT': {'about': '<p class="about">Youngs Literal Translation (1898).</p>',
-                'copyright': '<p class="copyright">Copyright © (coming).</p>',
-                'licence': '<p class="licence">(coming).</p>',
-                'acknowledgements': '<p class="acknwldg">(coming).</p>' },
-        'DBY': {'about': '<p class="about">Darby Translation (1890).</p>',
-                'copyright': '<p class="copyright">Copyright © (coming).</p>',
-                'licence': '<p class="licence">(coming).</p>',
-                'acknowledgements': '<p class="acknwldg">(coming).</p>' },
-        'RV': {'about': '''<p class="about">The English Revised Version (1885) was an officially authorised revision of the King James Bible.
-                            (See <a href="https://en.wikipedia.org/wiki/Revised_Version">Wikipedia entry</a>.)</p>''',
-                'copyright': '<p class="copyright">Copyright © (coming).</p>',
-                'licence': '<p class="licence">(coming).</p>',
-                'acknowledgements': '<p class="acknwldg">(coming).</p>' },
-        'WBS': {'about': '<p class="about">Webster Bible (1833).</p>',
-                'copyright': '<p class="copyright">Copyright © (coming).</p>',
-                'licence': '<p class="licence">(coming).</p>',
-                'acknowledgements': '<p class="acknwldg">(coming).</p>' },
-        'KJB': {'about': '<p class="about">King James Bible (1611-1769).</p>',
-                'copyright': '<p class="copyright">Copyright © (coming).</p>',
-                'licence': '<p class="licence">(coming).</p>',
-                'acknowledgements': '<p class="acknwldg">(coming).</p>' },
-        'BB': {'about': '<p class="about">Bishops Bible (1568,1602).</p>',
-                'copyright': '<p class="copyright">Public Domain.</p>',
-                'licence': '<p class="licence">Public Domain.</p>',
-                'acknowledgements': '<p class="acknwldg">(coming).</p>' },
-        'GNV': {'about': '<p class="about">Geneva Bible (1557-1560,1599).</p>',
-                'copyright': '<p class="copyright">Copyright © (coming).</p>',
-                'licence': '<p class="licence">(coming).</p>',
-                'acknowledgements': '<p class="acknwldg">(coming).</p>' },
-        'CB': {'about': '<p class="about"><a href="https://en.wikipedia.org/wiki/Coverdale_Bible">Coverdale Bible</a> (1535-1553).</p>',
-                'copyright': '<p class="copyright">Public Domain.</p>',
-                'licence': '<p class="licence">Public Domain.</p>',
-                'acknowledgements': '<p class="acknwldg">(coming).</p>' },
-        'TNT': {'about': '<p class="about">Tyndale New Testament (1526).</p>',
-                'copyright': '<p class="copyright">Copyright © (coming).</p>',
-                'licence': '<p class="licence">(coming).</p>',
-                'acknowledgements': '<p class="acknwldg">(coming).</p>' },
-        'WYC': {'about': '<p class="about"><a href="https://en.wikipedia.org/wiki/Wycliffe%27s_Bible">Wycliffe Bible</a> (1382).</p>',
-                'copyright': '<p class="copyright">Public Domain.</p>',
-                'licence': '<p class="licence">Public Domain.</p>',
-                'acknowledgements': '<p class="acknwldg">The entire English-speaking world is indebted to <a href="https://en.wikipedia.org/wiki/John_Wycliffe">John Wycliffe</a> for his brave work to make the Bible available in the language of the common people at a time when priests insisted that the Bible was only valid in Latin.</p>' },
-        'LUT': {'about': '<p class="about"><a href="https://en.wikipedia.org/wiki/Luther_Bible">Luther’s German Bible</a> (1545).</p>',
-                'copyright': '<p class="copyright">Public Domain.</p>',
-                'licence': '<p class="licence">Public Domain.</p>',
-                'acknowledgements': '<p class="acknwldg">The entire German-speaking world is indebted to <a href="https://en.wikipedia.org/wiki/Martin_Luther">Martin Luther</a> for his brave work to make the Bible available in the language of the common people at a time when priests insisted that the Bible was only valid in Latin.</p>' },
-        'CLV': {'about': '<p class="about"><a href="https://en.wikipedia.org/wiki/Sixto-Clementine_Vulgate">Clementine Vulgate Bible</a> (Latin, 1592).</p>',
-                'copyright': '<p class="copyright">Copyright © (coming).</p>',
-                'licence': '<p class="licence">(coming).</p>',
-                'acknowledgements': '<p class="acknwldg">(coming).</p>' },
-        'SR-GNT': {'about': '<p class="about">Statistical Restoration Greek New Testament (2022).</p>',
-                'copyright': '<p class="copyright">Copyright © 2022 by Alan Bunning.</p>',
-                'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution 4.0 International License</a>.</p>',
-                'acknowledgements': '<p class="acknwldg">Grateful thanks to Dr. Alan Bunning who founded the <a href="https://GreekCNTR.org">Center for New Testament Restoration</a> and gave around twenty years of his free time (plus a few full-time years at the end) to make this new, high-quality Greek New Testament freely available.</p>' },
-        'UGNT': {'about': '<p class="about">unfoldingWord® Greek New Testament (2022).</p>',
-                'copyright': '<p class="copyright">Copyright © 2022 by unfoldingWord.</p>',
-                'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
-                'acknowledgements': '<p class="acknwldg">Thanks to <a href="https://www.unfoldingword.org/">unfoldingWord</a> for creating <a href="https://git.door43.org/unfoldingWord/el-x-koine_ugnt">this GNT</a> from the <a href="https://github.com/Center-for-New-Testament-Restoration/BHP">Bunnings Heuristic Prototype GNT</a>.</p>' },
-        'SBL-GNT': {'about': '<p class="about">Society for Biblical Literature Greek New Testament (2023).</p>',
-                'copyright': '<p class="copyright">Copyright © 2010 by the Society of Biblical Literature and <a href="http://www.logos.com/">Logos Bible Software</a>.</p>',
-                'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
-                'acknowledgements': '<p class="acknwldg">Thanks to <a href="https://sblgnt.com/">SBL</a> and <a href="https://www.logos.com/">Logos Bible Software</a> for supplying <a href="https://github.com/LogosBible/SBLGNT/">this GNT</a>.</p>' },
-        'TC-GNT': {'about': '<p class="about">Text-Critical Greek New Testament (2010) based on Robinson/Pierpont Byzantine priority GNT (RP2018).</p>',
-                'copyright': '<p class="copyright">Copyright © (coming).</p>',
-                'licence': '<p class="licence">(coming).</p>',
-                'acknowledgements': '<p class="acknwldg">Thanks to <a href="https://eBible.org/Scriptures/details.php?id=grctcgnt">eBible.org</a> for supplying the USFM files.</p>' },
-        'BRN': {'about': '<p class="about">Sir Lancelot C. L. Brenton’s 1851 translation of the ancient Greek Septuagint (LXX) translation of the Hebrew scriptures.</p>',
-                'copyright': '<p class="copyright">Copyright © (coming).</p>',
-                'licence': '<p class="licence">(coming).</p>',
-                'acknowledgements': '<p class="acknwldg">(coming).</p>' },
-        'BrLXX': {'about': '<p class="about">μετάφραση των εβδομήκοντα: Ancient Greek translation of the Hebrew Scriptures (~250 BC) compiled by Sir Lancelot C. L. Brenton.</p>',
-                'copyright': '<p class="copyright">Copyright © (coming).</p>',
-                'licence': '<p class="licence">(coming).</p>',
-                'acknowledgements': '<p class="acknwldg">(coming).</p>' },
-        'UHB': {'about': '<p class="about">unfoldingWord® Hebrew Bible (2022).</p>',
-                'copyright': '<p class="copyright">Copyright © 2022 by unfoldingWord.</p>',
-                'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
-                'acknowledgements': '<p class="acknwldg">Thanks to <a href="https://www.unfoldingword.org/">unfoldingWord</a> for creating <a href="https://git.door43.org/unfoldingWord/hbo_uhb">this HB</a> from the <a href="https://hb.openscriptures.org/">OSHB</a>.</p>' },
-        'TOSN': {'about': '<p class="about">Tyndale Open Study Notes (2022).</p>',
-                'copyright': '<p class="copyright">Copyright © 2022 by Tyndale House Publishers.</p>',
-                'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
-                'acknowledgements': '<p class="acknwldg">Thanks to <a href="https://TyndaleOpenResources.com/">Tyndale House Publishers</a> for their generous open-licensing of these Bible study and related notes.</p>' },
-        'TOBD': {'about': '<p class="about">Tyndale Open Bible Dictionary (2023).</p>',
-                'copyright': '<p class="copyright">Copyright © 2023 by Tyndale House Publishers.</p>',
-                'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
-                'acknowledgements': '<p class="acknwldg">Thanks to <a href="https://TyndaleOpenResources.com/">Tyndale House Publishers</a> for their generous open-licensing of this Bible dictionary.</p>' },
-        'UTN': {'about': '<p class="about">unfoldingWord® Translation Notes (2023).</p>',
-                'copyright': '<p class="copyright">Copyright © 2022 by unfoldingWord.</p>',
-                'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
-                'acknowledgements': '<p class="acknwldg">Thanks to <a href="https://www.unfoldingword.org/">unfoldingWord</a> for creating <a href="https://git.door43.org/unfoldingWord/en_tn">these notes</a> to assist Bible translators.</p>' },
-    }
-
-    if not TEST_MODE: assert len(BibleLocations) >= 51, len(BibleLocations)
-    for versionLocation in BibleLocations.values():
-        assert versionLocation.startswith('../copiedBibles/') \
-            or versionLocation.startswith('../../OpenEnglishTranslation--OET/') \
-            or versionLocation.startswith('../../Forked/') \
-            or versionLocation.startswith('/mnt/SSDs/Bibles/'), f"{versionLocation=}"
-    assert len(BibleVersionDecorations) == len(BibleVersions) + len(auxilliaryVersions) + NUM_EXTRA_MODES - len(versionsWithoutTheirOwnPages), \
-        f"{len(BibleVersionDecorations)=} {len(BibleVersions)=} {len(auxilliaryVersions)=} {len(versionsWithoutTheirOwnPages)=} sum={len(BibleVersions)+len(auxilliaryVersions)+4-len(versionsWithoutTheirOwnPages)}"
-        # Above adds Parallel and Interlinear and Dictionary but subtracts selected-verses-only versions and TTN
-    assert len(BibleVersions)-1 >= len(BibleLocations) # OET is a pseudo-version
-    assert len(BibleNames)-1 >= len(BibleLocations) # OET is a pseudo-version
-    assert len(booksToLoad)-1 >= len(BibleLocations) # OET is a pseudo-version
-
-    preloadedBibles = {}
-    sectionsLists = {}
-# end of State class
-
-state = State()
-
-
-def createSitePages() -> bool:
+def _createSitePages() -> bool:
     """
     Build all the pages in a temporary location
     """
-    fnPrint( DEBUGGING_THIS_MODULE, "createSitePages()")
-    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"createSitePages() running in {'TEST' if TEST_MODE else 'production'} mode with {'all production books' if ALL_PRODUCTION_BOOKS else 'reduced books being loaded'} for {len(state.BibleLocations):,} Bible versions…" )
+    fnPrint( DEBUGGING_THIS_MODULE, "_createSitePages()")
+    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"_createSitePages() running in {'TEST' if TEST_MODE else 'production'} mode with {'all production books' if ALL_PRODUCTION_BOOKS else 'reduced books being loaded'} for {len(state.BibleLocations):,} Bible versions…" )
 
     try: os.makedirs( TEMP_BUILD_FOLDER )
     except FileExistsError:
         assert os.path.isdir( TEMP_BUILD_FOLDER )
-        cleanHTMLFolders( TEMP_BUILD_FOLDER, state )
+        _cleanHTMLFolders( TEMP_BUILD_FOLDER, state )
 
     # Preload our various Bibles
     numLoadedVersions = preloadVersions( state )
@@ -760,8 +193,8 @@ def createSitePages() -> bool:
         state.preloadedBibles['OET-LV'].discover() #     ..ditto..
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nCreating {'TEST ' if TEST_MODE else ''}version pages for OET…" )
         versionFolder = TEMP_BUILD_FOLDER.joinpath( f'OET/' )
-        createOETVersionPages( 1, versionFolder, state.preloadedBibles['OET-RV'], state.preloadedBibles['OET-LV'], state )
-        createOETMissingVersePage( 1, versionFolder )
+        _createOETVersionPages( 1, versionFolder, state.preloadedBibles['OET-RV'], state.preloadedBibles['OET-LV'], state )
+        _createOETMissingVersePage( 1, versionFolder )
     for versionAbbreviation, thisBible in state.preloadedBibles.items(): # doesn't include OET pseudo-translation
         # if versionAbbreviation not in ('TTN',) \
         if versionAbbreviation in state.versionsWithoutTheirOwnPages:
@@ -784,9 +217,9 @@ def createSitePages() -> bool:
         # if versionAbbreviation not in ('TOSN','TTN','UTN'): # We don't make separate notes pages
             vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nCreating {'TEST ' if TEST_MODE else ''}version pages for {thisBible.abbreviation}…" )
             versionFolder = TEMP_BUILD_FOLDER.joinpath( f'{thisBible.abbreviation}/' )
-            createVersionPages( 1, versionFolder, thisBible, state )
+            _createVersionPages( 1, versionFolder, thisBible, state )
 
-    # We do this later than the createVersionPages above
+    # We do this later than the _createVersionPages above
     #   because we need all versions to have all books loaded and 'discovered', i.e., analysed
     #   so we know in advance which versions have section headings
     if 'OET' in state.BibleVersions: # this is a special case
@@ -808,25 +241,26 @@ def createSitePages() -> bool:
     createParallelVersePages( 1, TEMP_BUILD_FOLDER.joinpath('par/'), state )
     createOETInterlinearPages( 1, TEMP_BUILD_FOLDER.joinpath('ilr/'), state )
 
+    createUBSDictionaryPages( 1, TEMP_BUILD_FOLDER.joinpath('UBS/'), state )
     createTyndaleDictPages( 1, TEMP_BUILD_FOLDER.joinpath('dct/'), state )
     createOETReferencePages( 1, TEMP_BUILD_FOLDER.joinpath('ref/'), state )
 
-    createDetailsPages( 0, TEMP_BUILD_FOLDER, state )
-    createSearchPage( 0, TEMP_BUILD_FOLDER, state )
-    createAboutPage( 0, TEMP_BUILD_FOLDER, state )
+    _createDetailsPages( 0, TEMP_BUILD_FOLDER, state )
+    _createSearchPage( 0, TEMP_BUILD_FOLDER, state )
+    _createAboutPage( 0, TEMP_BUILD_FOLDER, state )
 
-    createMainIndexPage( 0, TEMP_BUILD_FOLDER, state )
+    _createMainIndexPage( 0, TEMP_BUILD_FOLDER, state )
 
     state.preloadedBibles = None # Reduce memory use now
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\n{TEMP_BUILD_FOLDER} is {getFolderSize(TEMP_BUILD_FOLDER)//1_000_000:,} MB" )
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\n{TEMP_BUILD_FOLDER} is {_getFolderSize(TEMP_BUILD_FOLDER)//1_000_000:,} MB" )
 
     if UPDATE_ACTUAL_SITE_WHEN_BUILT:
         # Clean away any existing folders so we can copy in the newly built stuff
         try: os.makedirs( f'{DESTINATION_FOLDER}/' )
         except FileExistsError: # they were already there
             assert os.path.isdir( DESTINATION_FOLDER )
-            cleanHTMLFolders( DESTINATION_FOLDER, state )
+            _cleanHTMLFolders( DESTINATION_FOLDER, state )
 
         # Now move the site from our temporary build location to overwrite the destination location
         vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Moving files and folders from {TEMP_BUILD_FOLDER}/ to {DESTINATION_FOLDER}/…" )
@@ -861,16 +295,16 @@ def createSitePages() -> bool:
         count += 1
         vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Copied {count:,} stylesheets and scripts into {DESTINATION_FOLDER}/." )
 
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f'''\nNOW RUN "npx pagefind --glob "{{OET,par,ref}}/**/*.{{htm}}" --site ../htmlPages{'/Test' if TEST_MODE else ''}/" to create search index!''' )
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f'''\nNOW RUN "npx pagefind --glob "{{OET,par}}/**/*.{{htm}}" --site ../htmlPages{'/Test' if TEST_MODE else ''}/" to create search index!''' )
     else:
         vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"NOT UPDATING the actual {'TEST ' if TEST_MODE else ''}site (as requested)." )
-# end of createSitePages.createSitePages
+# end of createSitePages._createSitePages
 
 
-def cleanHTMLFolders( folder:Path, state ) -> bool:
+def _cleanHTMLFolders( folder:Path, state:State ) -> bool:
     """
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"cleanHTMLFolders( {folder} )")
+    fnPrint( DEBUGGING_THIS_MODULE, f"_cleanHTMLFolders( {folder} )")
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Cleaning away any existing folders at {folder}/…")
 
     try: os.unlink( folder.joinpath( 'index.htm' ) )
@@ -891,18 +325,20 @@ def cleanHTMLFolders( folder:Path, state ) -> bool:
     except FileNotFoundError: pass
     try: shutil.rmtree( folder.joinpath( 'dct/' ) )
     except FileNotFoundError: pass
+    try: shutil.rmtree( folder.joinpath( 'UBS/' ) )
+    except FileNotFoundError: pass
     for versionAbbreviation in state.allBibleVersions + ['UTN','TOSN','TOBD']:
         vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Removing tree at {folder.joinpath( f'{versionAbbreviation}/' )}/…")
         try: shutil.rmtree( folder.joinpath( f'{versionAbbreviation}/' ) )
         except FileNotFoundError: pass
     return True
-# end of createSitePages.cleanHTMLFolders
+# end of createSitePages._cleanHTMLFolders
 
 
-def createOETVersionPages( level:int, folder:Path, rvBible, lvBible, state:State ) -> bool:
+def _createOETVersionPages( level:int, folder:Path, rvBible, lvBible, state:State ) -> bool:
     """
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"createOETVersionPages( {level}, {folder}, {rvBible.abbreviation}, {lvBible.abbreviation} )")
+    fnPrint( DEBUGGING_THIS_MODULE, f"_createOETVersionPages( {level}, {folder}, {rvBible.abbreviation}, {lvBible.abbreviation} )")
     createOETBookPages( level+1, folder.joinpath('byDoc/'), rvBible, lvBible, state )
     dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{rvBible.discoveryResults['ALL']['haveSectionHeadings']=}" )
     dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{lvBible.discoveryResults['ALL']['haveSectionHeadings']=}" )
@@ -928,14 +364,14 @@ f'''<h1 id="Top">{versionName}</h1>
 {makeBottom( level, 'site', state )}''' )
     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"    {len(indexHtml):,} characters written to {filepath}" )
     return True
-# end of createSitePages.createOETVersionPages
+# end of createSitePages._createOETVersionPages
 
-def createVersionPages( level:int, folder:Path, thisBible, state:State ) -> bool:
+def _createVersionPages( level:int, folder:Path, thisBible, state:State ) -> bool:
     """
     Create a page for the given Bible version
         that then allows the user to choose by document/section/chapter or display version details
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"createVersionPages( {level}, {folder}, {thisBible.abbreviation} )")
+    fnPrint( DEBUGGING_THIS_MODULE, f"_createVersionPages( {level}, {folder}, {thisBible.abbreviation} )")
     createBookPages( level+1, folder.joinpath('byDoc/'), thisBible, state )
     dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{thisBible.discoveryResults['ALL']['haveSectionHeadings']=}" )
     createChapterPages( level+1, folder.joinpath('byC/'), thisBible, state )
@@ -959,10 +395,10 @@ f'''<h1 id="Top">{versionName}</h1>
         indexHtmlFile.write( f'''{top}{indexHtml}{makeBottom( level, 'site', state )}''' )
     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"    {len(indexHtml):,} characters written to {filepath}" )
     return True
-# end of createSitePages.createVersionPages
+# end of createSitePages._createVersionPages
 
 
-def createOETMissingVersePage( level:int, buildFolder:Path ) -> bool:
+def _createOETMissingVersePage( level:int, buildFolder:Path ) -> bool:
     """
     """
     textHtml = '''<h1>OET Missing Verse page</h1>
@@ -994,50 +430,52 @@ especially in the New Testament era where scribes often were not professionals.<
         indexHtmlFile.write( f'''{top}{textHtml}{makeBottom( level, 'site', state )}''' )
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    {len(textHtml):,} characters written to {filepath}" )
     return True
-# end of createSitePages.createOETMissingVersePage
+# end of createSitePages._createOETMissingVersePage
 
 
-def createDetailsPages( level:int, buildFolder:Path, state ) -> bool:
+def _createDetailsPages( level:int, buildFolder:Path, state:State ) -> bool:
     """
     Creates and saves details (copyright, licence, etc.) pages for each version
         plus a summary page of all the versions.
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"createDetailsPages( {level}, {buildFolder}, {state.BibleVersions} )" )
+    fnPrint( DEBUGGING_THIS_MODULE, f"_createDetailsPages( {level}, {buildFolder}, {state.BibleVersions} )" )
     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nCreating {'TEST ' if TEST_MODE else ''}details pages for {len(state.BibleVersions)} versions…" )
 
     allDetailsHTML = ''
-    for versionAbbreviation in ['OET'] + [versAbbrev for versAbbrev in state.preloadedBibles]:
+    for versionAbbreviation in ['OET'] + [versAbbrev for versAbbrev in state.preloadedBibles] + ['UBS']:
         if versionAbbreviation == 'TTN': # we only need the one for TOSN I think
             versionAbbreviation = 'TOBD' # Put this one in instead
 
         versionName =  state.BibleNames[versionAbbreviation]
 
         if 'OET' not in versionAbbreviation and versionAbbreviation not in ('TOBD',): # (These don't have a BibleLocation)
-            if 'eBible' in state.BibleLocations[versionAbbreviation]:
-                # This code scrapes info from eBible.org copr.htm files, and hence is very fragile (susceptible to upstream changes)
-                with open( os.path.join(state.BibleLocations[versionAbbreviation], 'copr.htm'), 'rt', encoding='utf-8' ) as coprFile:
-                        fullCoprText = coprFile.read()
-                ixStart = fullCoprText.index( '''<p align="center"><a href='copyright.htm'>''' ) + 42
-                ixEnd = fullCoprText.index( '</a>', ixStart )
-                actualCoprText = fullCoprText[ixStart:ixEnd]
-                # print( f"  {ixStart=} {ixEnd=} '{actualCoprText}'")
-                state.detailsHtml[versionAbbreviation]['copyright'] = \
-                        state.detailsHtml[versionAbbreviation]['copyright'].replace( '(coming)', actualCoprText ) \
-                                .replace( '© ©', '©' ).replace( 'Copyright © Public Domain', 'Public Domain' )
-                if 'Public Domain' in actualCoprText:
-                        state.detailsHtml[versionAbbreviation]['licence'] = \
-                        state.detailsHtml[versionAbbreviation]['licence'].replace( '(coming)', 'Public Domain' )
-                elif 'creativecommons.org/licenses/by-sa/4.0' in actualCoprText:
-                        state.detailsHtml[versionAbbreviation]['licence'] = \
-                        state.detailsHtml[versionAbbreviation]['licence'].replace( '(coming)', '<a href="https://CreativeCommons.org/licenses/by-sa/4.0/">Creative Commons Attribution Share-Alike license 4.0</a>' )
-                else: dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Unrecognised eBible {versionAbbreviation} copyright: '{actualCoprText}'")
-                state.detailsHtml[versionAbbreviation]['acknowledgements'] = \
-                        state.detailsHtml[versionAbbreviation]['acknowledgements'].replace( '(coming)',
-                            'Thanks to <a href="https://eBible.org/Scriptures/">eBible.org</a> for supplying the USFM files' )
-            elif '/TXT/' in state.BibleLocations[versionAbbreviation]:
-                state.detailsHtml[versionAbbreviation]['acknowledgements'] = \
-                        state.detailsHtml[versionAbbreviation]['acknowledgements'].replace( '(coming)',
-                            'Thanks to <a href="https://www.BibleSuperSearch.com/bible-downloads/">BibleSuperSearch.com</a> for supplying the source file' )
+            if versionAbbreviation in state.BibleLocations:
+                # Do some preparation for creating the details pages
+                if 'eBible' in state.BibleLocations[versionAbbreviation]:
+                    # This code scrapes info from eBible.org copr.htm files, and hence is very fragile (susceptible to upstream changes)
+                    with open( os.path.join(state.BibleLocations[versionAbbreviation], 'copr.htm'), 'rt', encoding='utf-8' ) as coprFile:
+                            fullCoprText = coprFile.read()
+                    ixStart = fullCoprText.index( '''<p align="center"><a href='copyright.htm'>''' ) + 42
+                    ixEnd = fullCoprText.index( '</a>', ixStart )
+                    actualCoprText = fullCoprText[ixStart:ixEnd]
+                    # print( f"  {ixStart=} {ixEnd=} '{actualCoprText}'")
+                    state.detailsHtml[versionAbbreviation]['copyright'] = \
+                            state.detailsHtml[versionAbbreviation]['copyright'].replace( '(coming)', actualCoprText ) \
+                                    .replace( '© ©', '©' ).replace( 'Copyright © Public Domain', 'Public Domain' )
+                    if 'Public Domain' in actualCoprText:
+                            state.detailsHtml[versionAbbreviation]['licence'] = \
+                            state.detailsHtml[versionAbbreviation]['licence'].replace( '(coming)', 'Public Domain' )
+                    elif 'creativecommons.org/licenses/by-sa/4.0' in actualCoprText:
+                            state.detailsHtml[versionAbbreviation]['licence'] = \
+                            state.detailsHtml[versionAbbreviation]['licence'].replace( '(coming)', '<a href="https://CreativeCommons.org/licenses/by-sa/4.0/">Creative Commons Attribution Share-Alike license 4.0</a>' )
+                    else: dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Unrecognised eBible {versionAbbreviation} copyright: '{actualCoprText}'")
+                    state.detailsHtml[versionAbbreviation]['acknowledgements'] = \
+                            state.detailsHtml[versionAbbreviation]['acknowledgements'].replace( '(coming)',
+                                'Thanks to <a href="https://eBible.org/Scriptures/">eBible.org</a> for supplying the USFM files' )
+                elif '/TXT/' in state.BibleLocations[versionAbbreviation]:
+                    state.detailsHtml[versionAbbreviation]['acknowledgements'] = \
+                            state.detailsHtml[versionAbbreviation]['acknowledgements'].replace( '(coming)',
+                                'Thanks to <a href="https://www.BibleSuperSearch.com/bible-downloads/">BibleSuperSearch.com</a> for supplying the source file' )
 
         topHtml = makeTop( level+1, versionAbbreviation, 'details', 'details.htm', state ) \
                 .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{versionName} Details" ) \
@@ -1065,12 +503,12 @@ def createDetailsPages( level:int, buildFolder:Path, state ) -> bool:
 <p class="selectedLinks">{' '.join(selectedVerseLinksList)}</p>
 '''
 
-        bodyHtml = f'''<!--createDetailsPages--><h1 id="Top">{versionName} Details</h1>
-{detailsHtml}<hr>
-<p class="note">See details for ALL included versions <a title="All versions’ details" href="../allDetails.htm#Top">here</a>.</p>
+        bodyHtml = f'''<!--_createDetailsPages--><h1 id="Top">{versionName} Details</h1>
+{detailsHtml}<hr style="width:40%;margin-left:0;margin-top: 0.3em">
+<p class="note">See details for ALL included translations and reference materials <a title="All versions’ details" href="../allDetails.htm#Top">here</a>.</p>
 '''
 
-        allDetailsHTML = f'''{allDetailsHTML}{'<hr>' if allDetailsHTML else ''}<h2 id="{versionAbbreviation}">{versionName}</h2>
+        allDetailsHTML = f'''{allDetailsHTML}{'<hr style="width:40%;margin-left:0;margin-top: 0.3em">' if allDetailsHTML else ''}<h2 id="{versionAbbreviation}">{versionName}</h2>
 {detailsHtml.replace('h2','h3')}'''
 
         html = f"{topHtml}{bodyHtml}{makeBottom( level+1, 'details', state )}"
@@ -1103,16 +541,16 @@ def createDetailsPages( level:int, buildFolder:Path, state ) -> bool:
     with open( filepath, 'wt', encoding='utf-8' ) as htmlFile:
         htmlFile.write( html )
     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  {len(html):,} characters written to {filepath}" )
-# end of createSitePages.createDetailsPages
+# end of createSitePages._createDetailsPages
 
 
-def createSearchPage( level:int, buildFolder:Path, state ) -> bool:
+def _createSearchPage( level:int, buildFolder:Path, state:State ) -> bool:
     """
     Creates and saves the OBD search page.
 
     We use https://pagefind.app/
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"createSearchPage( {level}, {buildFolder}, {state.BibleVersions} )" )
+    fnPrint( DEBUGGING_THIS_MODULE, f"_createSearchPage( {level}, {buildFolder}, {state.BibleVersions} )" )
     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nCreating {'TEST ' if TEST_MODE else ''}search page…" )
 
     searchHTML = f'''<h1 id="Top">Search Open Bible Data</h1>
@@ -1139,14 +577,14 @@ def createSearchPage( level:int, buildFolder:Path, state ) -> bool:
     with open( filepath, 'wt', encoding='utf-8' ) as htmlFile:
         htmlFile.write( html )
     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  {len(html):,} characters written to {filepath}" )
-# end of createSitePages.createSearchPage
+# end of createSitePages._createSearchPage
 
 
-def createAboutPage( level:int, buildFolder:Path, state ) -> bool:
+def _createAboutPage( level:int, buildFolder:Path, state:State ) -> bool:
     """
     Creates and saves the About OBD page.
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"createAboutPage( {level}, {buildFolder}, {state.BibleVersions} )" )
+    fnPrint( DEBUGGING_THIS_MODULE, f"_createAboutPage( {level}, {buildFolder}, {state.BibleVersions} )" )
     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Creating {'TEST ' if TEST_MODE else ''}about page…" )
 
     aboutHTML = '''<h1 id="Top">About Open Bible Data</h1>
@@ -1165,31 +603,37 @@ def createAboutPage( level:int, buildFolder:Path, state ) -> bool:
     Hence every word in the <em>OET-LV</em> is linked to the Greek word that they are translated from.
     In addition, most pronouns like ‘he’ or ‘she’ are linked to the earlier referrents in the text.</li>
 <li>For the <b>comparison and evaluation of the history and quality and distinctives of various Bible translations</b>.
-    So on the parallel verse pages, you can track Biblical wording right from the Biblical Hebrew or Greek (near the bottom of the page),
-        up through the Latin and then Wycliffe's and Tyndale's early English translations,
-        then right up through more modern translations all the way up to the OET at the top.</li>
+    So on the parallel verse pages, you can track Biblical wording right from the Biblical Hebrew or Greek,
+        then up through the Latin (near the bottom of the page) and then Wycliffe’s and Tyndale’s early English translations,
+        then right up through more modern translations all the way back up to the <em>OET</em> at the top.</li>
 <li>We try to <b>downplay chapter and verse divisions</b>, and encourage readers to read narratives as narratives and letters as letters—would
         you take a letter or email from your mother, draw lines through it to divide it into random sections/chapters,
         and then read different sections on different days?</li>
 </ol>
 <p class="about">You might especially note the following features:</p>
 <ul>
-<li>Our <b>Parallel view</b> shows individual <em>OET</em> verses at the top,
-        but if you're interested in English Bible translation history,
+<li>Our <b>Related passage view</b> shows the <em>OET-RV</em> by section,
+        along with any other parallel or related sections,
+        and then with all the cross-references expanded underneath that.</li>
+<li>Our <b>Parallel verse view</b> shows individual <em>OET</em> verses at the top,
+        but if you’re interested in English Bible translation history,
         go to the bottom of the page (and then scroll up through any Study Notes) until you find the original language (Hebrew or Greek) versions.
     Then work your way upwards, through the Latin to the Wycliffe and Tyndale translations,
-        and then other early English translations until you see that English spelling becomes standardised by the 1769 KJB.
-    As you work upwards in chronological order, it's fascinating to see two things:
+        and then other early English translations until you see that English spelling becomes standardised with the proliferation of mass-produced books by the time of the 1769 revision of the KJB.
+    As you work upwards in chronological order, it’s fascinating to see two things:
     <ol>
     <li>how spelling in early English books was phonetic (sounding out the words) and quite variable
             <small>(and so we try to help you with a conversion to modern English in parentheses)</small>, and</li>
-    <li>how translators often reused phrases from earlier English translations, but sometimes chose to disagree.</li>
+    <li>how translators often reused phrases from earlier English translations, but other times chose to disagree.</li>
     </ol></li>
-<li>Our <b>Interlinear view</b> shows word-for-word interlinear and reverse-interlinear views.</li>
+<li>Our <b>Interlinear verse view</b> shows word-for-word interlinear and reverse-interlinear views of the <em>OET</em> and the original languages.</li>
 <li>Our <b>Search page</b> allows you to search for English, Latin, Hebrew, and Greek words.</li>
 </ul>
 <p class="about">We would welcome any others who would like to contribute open datasets or code to this endeavour.
     Please contact us at <b>Freely</b> dot <b>Given</b> dot <b>org</b> (at) <b>gmail</b> dot <b>com</b>.</p>
+<p class="about">You’ll possibly notice that not many large, commercial Bibles are included in these pages because of their strict control of their texts.
+    We highly recommend that our readers find better translations that are more influenced by discipleship priorities, and less by finances.
+    <small>(See <a href="https://SellingJesus.org/">SellingJesus.org</a> if you want to learn more about commercialism of Christian publications.)</p>
 <p class="about"><b>Acknowledgement</b>: The overall design of the site was influenced by <a href="https://BibleHub.com/">BibleHub.com</a>
         and their <a href="https://OpenBible.com/">OpenBible.com</a> which have many features that we like
         (and likely many overlapping goals).</p>
@@ -1197,9 +641,11 @@ def createAboutPage( level:int, buildFolder:Path, state ) -> bool:
 <p class="about">These pages are created by a Python program that takes the open-licenced resources and combines them in different ways on different pages.
     The program is still being developed, and hence this site (or this part of the site), is still at the prototype stage,
         especially with respect to navigation around the pages which is still being improved.</p>
-<p class="about">If you are the copyright owner of a Bible translation and would like to see it listed on this site,
+<p class="about">Also, several Bible ‘books’ are not yet included because no draft of the <em>OET</em> is available,
+    so you might find some dead links, i.e., “Page Not Found” errors, that will eventually be fixed.</p>
+<p class="about">If you are the copyright owner of a Bible translation or a relevant dataset and would like to see it listed on this site,
         please contact us at <b>Freely</b> dot <b>Given</b> dot <b>org</b> (at) <b>gmail</b> dot <b>com</b>.</p>
-<p class="about">The source code for the Python program can be found at <a href="https://github.com/Freely-Given-org/OpenBibleData">GitHub.com/Freely-Given-org/OpenBibleData</a>.
+<p class="about">The source code for the Python program that produces these pages can be found at <a href="https://github.com/Freely-Given-org/OpenBibleData">GitHub.com/Freely-Given-org/OpenBibleData</a>.
     You can also advise us of any errors by clicking on <em>New issue</em> <a href="https://github.com/Freely-Given-org/OpenBibleData/issues">here</a> and telling us the problem.</p>
 '''
     topHtml = makeTop( level, None, 'about', None, state ) \
@@ -1213,14 +659,14 @@ def createAboutPage( level:int, buildFolder:Path, state ) -> bool:
     with open( filepath, 'wt', encoding='utf-8' ) as htmlFile:
         htmlFile.write( html )
     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  {len(html):,} characters written to {filepath}" )
-# end of createSitePages.createAboutPage
+# end of createSitePages._createAboutPage
 
 
-def createMainIndexPage( level, folder:Path, state ) -> bool:
+def _createMainIndexPage( level, folder:Path, state:State ) -> bool:
     """
     Creates and saves the main index page.
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"createMainIndexPage( {level}, {folder}, {state.BibleVersions} )" )
+    fnPrint( DEBUGGING_THIS_MODULE, f"_createMainIndexPage( {level}, {folder}, {state.BibleVersions} )" )
 
     # Create the very top level index file
     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Creating main {'TEST ' if TEST_MODE else ''}index page for {len(state.BibleVersions)} versions…" )
@@ -1229,14 +675,18 @@ def createMainIndexPage( level, folder:Path, state ) -> bool:
             .replace( '__KEYWORDS__', 'Bible, translation, English, OET' )
     if TEST_MODE:
         html = html.replace( '<body>', '<body><p class="note"><a href="../">UP TO MAIN NON-TEST SITE</a></p>')
-    bodyHtml = """<!--createMainIndexPage--><h1 id="Top">Open Bible Data Home TEST</h1>
-""" if TEST_MODE else """<!--createMainIndexPage--><h1 id="Top">Open Bible Data Home</h1>
+    bodyHtml = """<!--_createMainIndexPage--><h1 id="Top">Open Bible Data Home TEST</h1>
+""" if TEST_MODE else """<!--_createMainIndexPage--><h1 id="Top">Open Bible Data Home</h1>
 """
     html = f'''{html}{bodyHtml}
 <p class="note">Welcome to this <em>Open Bible Data</em> site created to share God’s fantastic message with everyone,
     and with a special interest in helping Bible translators around the world.</p>
-<p class="note">Choose a version above to view <b>by document</b> or <b>by section</b> or <b>chapter</b>, or else the <b>parallel</b> or <b>interlinear verse</b> views.</p>
-<p class="note">The <b>Dictionary</b> link takes you to the <i>Tyndale Bible Dictionary</i>, and the <b>Search</b> link allows you to find words within the Bible text.</p>
+<p class="note">Choose a version abbreviation above to view Bible ‘books’ <b>by document</b> or <b>by section</b> or <b>by chapter</b>.</p>
+<p class="note">The <b><a href="rel/">related</a></b> option shows OET-RV sections with any parallel or related content (especially in the ‘Messiah accounts’: John, Mark, Matthew, and Luke), as well as listing out all of the cross-references.</p>
+<p class="note">For individual ‘verses’ you can see the OET-RV with the OET-LV underneath it, plus many other different translations, plus some translation notes in the <b><a href="par/">parallel</a> verse</b> view.</p>
+<p class="note">The <b><a href="ilr/">interlinear</a> verse</b> view shows the OET-RV and OET-LV aligned with the original Hebrew or Greek words (including a ‘reverse interlinear’).</p>
+<p class="note">The <b><a href="dct/">dictionary</a></b> link takes you to the <i>Tyndale Bible Dictionary</i>, with UBS dictionaries also coming...</p>
+<p class="note">The <b><a href="search.htm">Search</a></b> link allows you to find English words (from a range of versions), or even Greek/Hebrew words, within the Bible text.</p>
 <p class="note"><small>Last rebuilt: {date.today()}</small></p>
 {makeBottom( level, 'topIndex', state )}'''
     checkHtml( 'TopIndex', html )
@@ -1255,7 +705,7 @@ def createMainIndexPage( level, folder:Path, state ) -> bool:
 #     if TEST_MODE:
 #         html = html.replace( '<body>', '<body><p class="index"><a href="{'../'*level}">UP TO MAIN NON-TEST SITE</a></p>')
 #     bodyHtml = """<!--createVersionsIndexPage--><h1 id="Top">Open Bible Data TEST Versions</h1>
-# """ if TEST_MODE else """<!--createMainIndexPage--><h1 id="Top">Open Bible Data Versions</h1>
+# """ if TEST_MODE else """<!--_createMainIndexPage--><h1 id="Top">Open Bible Data Versions</h1>
 # """
 
 #     bodyHtml = f'{bodyHtml}<p class="index">Select one of the above Bible version abbreviations for views of entire documents (‘<i>books</i>’) or sections or chapters, or else select either of the Parallel or Interlinear verse views.</p>\n<ol>\n'
@@ -1271,33 +721,10 @@ def createMainIndexPage( level, folder:Path, state ) -> bool:
 #     with open( filepath, 'wt', encoding='utf-8' ) as htmlFile:
 #         htmlFile.write( html )
 #     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  {len(html):,} characters written to {filepath}" )
-# end of createSitePages.createMainIndexPage
+# end of createSitePages._createMainIndexPage
 
 
-def reorderBooksForOETVersions( givenBookList:List[str] ) -> List[str]:
-    """
-    OET needs to put JHN and MRK before MAT
-    """
-    dPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"reorderBooksForOETVersions( {type(givenBookList)} ({len(givenBookList)}) {givenBookList} )" )
-
-
-    try: ixJHN = givenBookList.index('JHN')
-    except ValueError: return givenBookList # Might not have all books included
-    try: ixFirstGospel = givenBookList.index('MAT')
-    except ValueError: ixFirstGospel = givenBookList.index('MRK')
-    if isinstance( givenBookList, tuple ):
-        givenBookList = list( givenBookList )
-    if ixFirstGospel<ixJHN:
-        # print( f"{ixFirstGospel=} {ixJHN=} {givenBookList}")
-        givenBookList.remove( 'JHN' )
-        givenBookList.remove( 'MRK' )
-        givenBookList.insert( ixFirstGospel, 'MRK' )
-        givenBookList.insert( ixFirstGospel, 'JHN' )
-        # print( f"Returning ({len(givenBookList)}) {givenBookList}" )
-    return givenBookList
-# end of createSitePages.reorderBooksForOETVersions
-
-def getFolderSize( start_path='.' ) -> int:
+def _getFolderSize( start_path='.' ) -> int:
     """
     Adapted from https://stackoverflow.com/questions/1392413/calculating-a-directorys-size-using-python
     """
@@ -1309,7 +736,7 @@ def getFolderSize( start_path='.' ) -> int:
             if not os.path.islink(fp):
                 total_size += os.path.getsize(fp)
     return total_size
-# end of createSitePages.getFolderSize
+# end of createSitePages._getFolderSize
 
 
 def briefDemo() -> None:
@@ -1319,7 +746,7 @@ def briefDemo() -> None:
     BibleOrgSysGlobals.introduceProgram( __name__, PROGRAM_NAME_VERSION, LAST_MODIFIED_DATE )
 
     # Demo the createSitePages object
-    createSitePages()
+    _createSitePages()
 # end of createSitePages.briefDemo
 
 def fullDemo() -> None:
@@ -1329,7 +756,7 @@ def fullDemo() -> None:
     BibleOrgSysGlobals.introduceProgram( __name__, PROGRAM_NAME_VERSION, LAST_MODIFIED_DATE )
 
     # Demo the createSitePages object
-    createSitePages()
+    _createSitePages()
 # end of createSitePages.fullDemo
 
 if __name__ == '__main__':

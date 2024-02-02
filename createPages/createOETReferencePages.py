@@ -52,14 +52,15 @@ import sys
 sys.path.append( '../../BibleTransliterations/Python/' )
 from BibleTransliterations import transliterate_Greek
 
+from settings import State, TEST_MODE, ALL_TEST_REFERENCE_PAGES
 from html import makeTop, makeBottom, checkHtml
 from Bibles import tidyBBB
 
 
-LAST_MODIFIED_DATE = '2024-01-15' # by RJH
+LAST_MODIFIED_DATE = '2024-02-01' # by RJH
 SHORT_PROGRAM_NAME = "createOETReferencePages"
 PROGRAM_NAME = "OpenBibleData createOETReferencePages functions"
-PROGRAM_VERSION = '0.53'
+PROGRAM_VERSION = '0.56'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -534,13 +535,12 @@ for firstWords,contrastiveWords in CONTRASTIVE_GLOSS_WORDS_TABLE:
 
 
 
-def createOETReferencePages( level:int, outputFolderPath:Path, state ) -> bool:
+def createOETReferencePages( level:int, outputFolderPath:Path, state:State ) -> bool:
     """
     Make pages for all the words and lemmas to link to.
 
     Sadly, there's almost identical code in make_table_pages() in OET convert_OET-LV_to_simple_HTML.py
     """
-    from createSitePages import TEST_MODE
     fnPrint( DEBUGGING_THIS_MODULE, f"createOETReferencePages( {level}, {outputFolderPath}, {state.BibleVersions} )" )
 
     try: os.makedirs( outputFolderPath )
@@ -664,7 +664,7 @@ def formatSpansGlossWords( glossWords:str ) -> str:
 
 
 NUM_BEFORE_AND_AFTER = 3
-def formatContextSpansGlossWords( rowNum:int, state ) -> str:
+def formatContextSpansGlossWords( rowNum:int, state:State ) -> str:
     """
     Get this and previous gloss words in context.
 
@@ -704,10 +704,9 @@ def formatContextSpansGlossWords( rowNum:int, state ) -> str:
 # end of createOETReferencePages.formatSpansGlossWords
 
 
-def make_Greek_word_pages( level:int, outputFolderPath:Path, state ) -> None:
+def make_Greek_word_pages( level:int, outputFolderPath:Path, state:State ) -> None:
     """
     """
-    from createSitePages import TEST_MODE, ALL_TEST_REFERENCE_PAGES
     fnPrint( DEBUGGING_THIS_MODULE, f"make_Greek_word_pages( {outputFolderPath}, {state.BibleVersions} )" )
     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"    Checking {len(state.OETRefData['word_table'])-1:,} word pages…" )
 
@@ -918,7 +917,8 @@ f''' {translation} <a title="Go to Statistical Restoration Greek page" href=
                         # print( f'''    {n} {ref} {greekWord} '{mainGlossWord}' {f'{similarWord=} ' if similarWord!=mainGlossWord else ''}({len(nList)}) {nList[:8]=}{'…' if len(nList)>8 else ''}''' )
                         if len(nList) > 1:
                             if similarWord==mainGlossWord: assert n in nList
-                            if len(nList)>400: print( f"EXCESSIVE {len(nList):,} entries for '{mainGlossWord}' from {similarWord=}")
+                            if len(nList)>400:
+                                dPrint( 'Info', DEBUGGING_THIS_MODULE, f"EXCESSIVE {len(nList):,} entries for '{mainGlossWord}' from {similarWord=}")
                             for thisN in nList:
                                 if thisN == n: continue # That's the current word row
                                 eWordRef, eGreekWord, eSRLemma, _eGrkLemma, eGlossWordsStr, _eGlossCaps, _eProbability, _eExtendedStrongs, eRoleLetter, eMorphology, _eTagsStr = state.OETRefData['word_table'][thisN].split( '\t' )
@@ -966,7 +966,7 @@ f''' <a title="Go to Statistical Restoration Greek page" href="https://GreekCN
                     try:
                         keyHtml = f"{keyHtml} <b>{usedMorphology}</b>={CNTR_MORPHOLOGY_NAME_DICT[usedMorphology.upper()]}"
                     except KeyError:
-                        print( f"Missing {usedMorphology=}")
+                        logging.warning( f"make_Greek_word_pages: Missing {usedMorphology=}")
                 keyHtml = f'{keyHtml}</p>'
 
             # Now put it all together
@@ -1006,13 +1006,12 @@ f''' <a title="Go to Statistical Restoration Greek page" href="https://GreekCN
 # end of createOETReferencePages.make_Greek_word_pages
 
 
-def make_Greek_lemma_pages( level:int, outputFolderPath:Path, state ) -> None:
+def make_Greek_lemma_pages( level:int, outputFolderPath:Path, state:State ) -> None:
     """
     These end up in OBD/ref/GrkLem/abc.htm
 
     TODO: Add related lemma info (not just prefixed ones, but adding synonyms, etc.)
     """
-    from createSitePages import TEST_MODE
     fnPrint( DEBUGGING_THIS_MODULE, f"make_Greek_lemma_pages( {outputFolderPath}, {state.BibleVersions} )" )
     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Making {len(state.OETRefData['lemmaDict']):,} lemma pages…" )
 
@@ -1176,7 +1175,7 @@ def make_Greek_lemma_pages( level:int, outputFolderPath:Path, state ) -> None:
                 try:
                     keyHtml = f"{keyHtml} <b>{usedMorphology}</b>={CNTR_MORPHOLOGY_NAME_DICT[usedMorphology.upper()]}"
                 except KeyError:
-                    print( f"Missing {usedMorphology=}")
+                    logging.warning( f"Missing {usedMorphology=}")
             keyHtml = f'{keyHtml}</p>'
 
         # Now put it all together
@@ -1213,13 +1212,12 @@ def make_Greek_lemma_pages( level:int, outputFolderPath:Path, state ) -> None:
 # end of createOETReferencePages.make_Greek_lemma_pages
 
 
-def make_person_pages( level:int, outputFolderPath:Path, state ) -> int:
+def make_person_pages( level:int, outputFolderPath:Path, state:State ) -> int:
     """
     Make pages for all the words to link to.
 
     There's almost identical code in createOETReferencePages() in OpenBibleData createOETReferencePages.py (sadly)
     """
-    from createSitePages import TEST_MODE
     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Making person pages…" )
 
     try: os.makedirs( outputFolderPath )
@@ -1296,13 +1294,12 @@ def make_person_pages( level:int, outputFolderPath:Path, state ) -> int:
 # end of createOETReferencePages.make_person_pages function
 
 
-def make_location_pages( level:int, outputFolderPath:Path, state ) -> int:
+def make_location_pages( level:int, outputFolderPath:Path, state:State ) -> int:
     """
     Make pages for all the words to link to.
 
     There's almost identical code in createOETReferencePages() in OpenBibleData createOETReferencePages.py (sadly)
     """
-    from createSitePages import TEST_MODE
     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Making location pages…" )
 
     try: os.makedirs( outputFolderPath )

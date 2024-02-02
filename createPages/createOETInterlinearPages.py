@@ -54,6 +54,7 @@ import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 from BibleOrgSys.Internals.InternalBibleInternals import getLeadingInt
 
+from settings import State, TEST_MODE
 from usfm import convertUSFMMarkerListToHtml
 from Bibles import formatUnfoldingWordTranslationNotes, formatTyndaleNotes, tidyBBB
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
@@ -62,10 +63,10 @@ from createOETReferencePages import CNTR_BOOK_ID_MAP
 from OETHandlers import livenOETWordLinks
 
 
-LAST_MODIFIED_DATE = '2024-01-15' # by RJH
+LAST_MODIFIED_DATE = '2024-02-01' # by RJH
 SHORT_PROGRAM_NAME = "createOETInterlinearPages"
 PROGRAM_NAME = "OpenBibleData createOETInterlinearPages functions"
-PROGRAM_VERSION = '0.43'
+PROGRAM_VERSION = '0.44'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -76,10 +77,9 @@ EM_SPACE = ' '
 NARROW_NON_BREAK_SPACE = ' '
 
 
-def createOETInterlinearPages( level:int, folder:Path, state ) -> bool:
+def createOETInterlinearPages( level:int, folder:Path, state:State ) -> bool:
     """
     """
-    from createSitePages import TEST_MODE, reorderBooksForOETVersions
     fnPrint( DEBUGGING_THIS_MODULE, f"createOETInterlinearPages( {level}, {folder}, ... )" )
     assert level == 1
 
@@ -123,18 +123,17 @@ def createOETInterlinearPages( level:int, folder:Path, state ) -> bool:
 # end of createOETInterlinearPages.createOETInterlinearPages
 
 
-def createOETInterlinearVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:List[str], state ) -> bool:
+def createOETInterlinearVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:List[str], state:State ) -> bool:
     """
     Create a page for every Bible verse
         displaying the interlinear verses.
     """
-    from createSitePages import TEST_MODE
     fnPrint( DEBUGGING_THIS_MODULE, f"createOETInterlinearVersePagesForBook( {level}, {folder}, {BBB}, {BBBLinks}, {state.BibleVersions} )" )
     assert level == 1
     BBBFolder = folder.joinpath(f'{BBB}/')
     BBBLevel = level + 1
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createOETInterlinearVersePagesForBook {BBBLevel}, {BBBFolder}, {BBB} from {len(BBBLinks)} books, {len(state.BibleVersions)} versions…" )
+    vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  createOETInterlinearVersePagesForBook {BBBLevel}, {BBBFolder}, {BBB} from {len(BBBLinks)} books, {len(state.BibleVersions)} versions…" )
     try: os.makedirs( BBBFolder )
     except FileExistsError: pass # they were already there
 
@@ -252,16 +251,15 @@ f'''<p class="chLst">{ourTidyBbb if ourTidyBbb!='Jac' else 'Jacob/(James)'} {'
         indexHtmlFile.write( indexHtml )
     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath2}" )
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createOETInterlinearVersePagesForBook() finished processing {len(vLinks):,} {BBB} verses." )
+    vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  createOETInterlinearVersePagesForBook() finished processing {len(vLinks):,} {BBB} verses." )
     return True
 # end of html.createOETInterlinearVersePagesForBook
 
 
-def createOETInterlinearVersePage( level:int, BBB:str, c:int, v:int, state ) -> str:
+def createOETInterlinearVersePage( level:int, BBB:str, c:int, v:int, state:State ) -> str:
     """
     Create an interlinear page for the Bible verse.
     """
-    from createSitePages import TEST_MODE
     fnPrint( DEBUGGING_THIS_MODULE, f"createOETInterlinearVersePage( {level}, {BBB} {c}:{v}, … )" )
 
     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"createOETInterlinearVersePage {level}, {BBB} {c}:{v}, …" )

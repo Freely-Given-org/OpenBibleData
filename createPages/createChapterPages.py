@@ -47,6 +47,7 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39, BOOKLIST_NT27
 import BibleOrgSys.Formats.ESFMBible as ESFMBible
 
+from settings import State, TEST_MODE, reorderBooksForOETVersions
 from usfm import convertUSFMMarkerListToHtml
 from Bibles import tidyBBB
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
@@ -54,23 +55,22 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_
 from OETHandlers import livenOETWordLinks
 
 
-LAST_MODIFIED_DATE = '2024-01-18' # by RJH
+LAST_MODIFIED_DATE = '2024-02-01' # by RJH
 SHORT_PROGRAM_NAME = "createChapterPages"
 PROGRAM_NAME = "OpenBibleData createChapterPages functions"
-PROGRAM_VERSION = '0.55'
+PROGRAM_VERSION = '0.56'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
 
 
 
-def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, state ) -> List[str]:
+def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, state:State ) -> List[str]:
     """
     The OET is a pseudo-version which includes the OET-RV and OET-LV side-by-side.
 
     (The actual OET-RV and OET-LV are processed by the regular function below.)
     """
-    from createSitePages import TEST_MODE, reorderBooksForOETVersions
     fnPrint( DEBUGGING_THIS_MODULE, f"createOETSideBySideChapterPages( {level}, {folder}, {rvBible.abbreviation}, {lvBible.abbreviation} )" )
 
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createOETSideBySideChapterPages( {level}, {folder}, {rvBible.abbreviation}, {lvBible.abbreviation} )…" )
@@ -178,12 +178,8 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
 <p class="rem">This is still a very early look into the unfinished text of the <em>Open English Translation</em> of the Bible. Please double-check the text in advance before using in public.</p>
 <div class="RVLVcontainer">
 <h2><a title="View just the Readers’ Version" href="{'../'*level}OET-RV/byC/{BBB}_C{c}.htm#Top">Readers’ Version</a></h2>
-<h2><a title="View just the Literal Version" href="{'../'*level}OET-LV/byC/{BBB}_C{c}.htm#Top">Literal Version</a> <button type="button" id="marksButton" onclick="hide_show_marks()">Hide marks</button></h2>
+<h2><a title="View just the Literal Version" href="{'../'*level}OET-LV/byC/{BBB}_C{c}.htm#Top">Literal Version</a> <button type="button" id="marksButton" title="Hide/Show underline and strike-throughs" onclick="hide_show_marks()">Hide marks</button></h2>
 '''
-# <span> </span>
-# <div class="buttons">
-#     <button type="button" id="marksButton" onclick="hide_show_marks()">Hide marks</button>
-# </div><!--buttons-->
                 try: rvVerseEntryList, rvContextList = rvBible.getContextVerseData( (BBB, str(c)) )
                 except KeyError:
                     if c == 0: continue # Usually no chapter zero
@@ -365,12 +361,11 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
 # end of createChapterPages.createOETSideBySideChapterPages
 
 
-def createChapterPages( level:int, folder:Path, thisBible, state ) -> List[str]:
+def createChapterPages( level:int, folder:Path, thisBible, state:State ) -> List[str]:
     """
     This creates a page for each chapter for all versions
         other than 'OET' which is considerably more complex (above).
     """
-    from createSitePages import TEST_MODE, reorderBooksForOETVersions
     fnPrint( DEBUGGING_THIS_MODULE, f"createChapterPages( {level}, {folder}, {thisBible.abbreviation} )" )
 
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createChapterPages( {level}, {folder}, {thisBible.abbreviation} )…" )
@@ -457,7 +452,7 @@ def createChapterPages( level:int, folder:Path, thisBible, state ) -> List[str]:
 '''
                 if thisBible.abbreviation == 'OET-LV':
                     chapterHtml = f'''{chapterHtml}<div class="buttons">
-    <button type="button" id="marksButton" onclick="hide_show_marks()">Hide marks</button>
+    <button type="button" id="marksButton" title="Hide/Show underline and strike-throughs" onclick="hide_show_marks()">Hide marks</button>
 </div><!--buttons-->
 '''
                 try: verseEntryList, contextList = thisBible.getContextVerseData( (BBB, str(c)) )
@@ -514,7 +509,7 @@ def createChapterPages( level:int, folder:Path, thisBible, state ) -> List[str]:
 {cLinksPar}
 {makeBottom( level, 'chapter', state )}'''
             checkHtml( thisBible.abbreviation, chapterHtml )
-            assert not filepath.is_file(), f"createChapterPages {thisBible.abbreviation} {BBB}: {filepath=} {BBBsToProcess=} {thisBibleBooksToLoad=}" # Check that we're not overwriting anything
+            assert not filepath.is_file() # Check that we're not overwriting anything
             with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
                 cHtmlFile.write( chapterHtml )
             vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(chapterHtml):,} characters written to {filepath}" )

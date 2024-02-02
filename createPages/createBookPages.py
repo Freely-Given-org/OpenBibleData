@@ -43,6 +43,7 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39, BOOKLIST_NT27
 import BibleOrgSys.Formats.ESFMBible as ESFMBible
 
+from settings import State, TEST_MODE, reorderBooksForOETVersions
 from usfm import convertUSFMMarkerListToHtml
 from Bibles import tidyBBB
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
@@ -50,10 +51,10 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_
 from OETHandlers import livenOETWordLinks
 
 
-LAST_MODIFIED_DATE = '2024-01-23' # by RJH
+LAST_MODIFIED_DATE = '2024-02-01' # by RJH
 SHORT_PROGRAM_NAME = "createBookPages"
 PROGRAM_NAME = "OpenBibleData createBookPages functions"
-PROGRAM_VERSION = '0.47'
+PROGRAM_VERSION = '0.48'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -64,11 +65,10 @@ NEWLINE = '\n'
 NARROW_NON_BREAK_SPACE = ' '
 
 
-def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state ) -> List[str]:
+def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) -> List[str]:
     """
     The OET is a pseudo-version which includes the OET-RV and OET-LV side-by-side.
     """
-    from createSitePages import TEST_MODE, reorderBooksForOETVersions
     fnPrint( DEBUGGING_THIS_MODULE, f"createOETBookPages( {level}, {folder}, {rvBible.abbreviation}, {lvBible.abbreviation} )" )
 
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createOETBookPages( {level}, {folder}, {rvBible.abbreviation}, {lvBible.abbreviation} )…" )
@@ -159,12 +159,8 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state ) -> Lis
 <p class="rem">This is still a very early look into the unfinished text of the <em>Open English Translation</em> of the Bible. Please double-check the text in advance before using in public.</p>
 <div class="RVLVcontainer">
 <h2>Readers’ Version</h2>
-<h2>Literal Version <button type="button" id="marksButton" onclick="hide_show_marks()">Hide marks</button></h2>
+<h2>Literal Version <button type="button" id="marksButton" title="Hide/Show underline and strike-throughs" onclick="hide_show_marks()">Hide marks</button></h2>
 '''
-# <span> </span>
-# <div class="buttons">
-#     <button type="button" id="marksButton" onclick="hide_show_marks()">Hide marks</button>
-# </div><!--buttons-->
         rvVerseEntryList, rvContextList = rvBible.getContextVerseData( (BBB,) )
         lvVerseEntryList, lvContextList = lvBible.getContextVerseData( (BBB,) )
         if isinstance( rvBible, ESFMBible.ESFMBible ):
@@ -219,7 +215,7 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state ) -> Lis
             # print( f"\n{n}: {lvRest[ixEndCV:lvIndex8]=}" )
             lvEndIx = lvIndex8
             if lvRest[lvEndIx:].startswith( '</span>'): # Occurs at end of MRK (perhaps because of missing SR verses in ending) -- not sure if in other places
-                print( f"\nNOTE: Fixed end of chunk in OET {BBB}!!!" )
+                dPrint( 'Info', DEBUGGING_THIS_MODULE, f"\nNOTE: Fixed end of chunk in OET {BBB}!!!" )
                 lvEndIx = ixNextCV + 1
             lvChunk = lvRest[:lvEndIx]
             # Make sure that our split was at a sensible place
@@ -285,12 +281,11 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state ) -> Lis
 # end of createBookPages.createOETBookPages
 
 
-def createBookPages( level:int, folder:Path, thisBible, state ) -> List[str]:
+def createBookPages( level:int, folder:Path, thisBible, state:State ) -> List[str]:
     """
     This creates a page for each book for all versions other than 'OET'
                                 which is considerably more complex (above).
     """
-    from createSitePages import TEST_MODE, reorderBooksForOETVersions
     fnPrint( DEBUGGING_THIS_MODULE, f"createBookPages( {level}, {folder}, {thisBible.abbreviation} )" )
 
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createBookPages( {level}, {folder}, {thisBible.abbreviation} )…" )

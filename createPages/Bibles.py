@@ -26,15 +26,15 @@
 Module handling Bibles functions for OpenBibleData package.
 
 
-preloadVersions( state ) -> int
-preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state ) -> Bible
+preloadVersions( state:State ) -> int
+preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:State ) -> Bible
 
 loadTyndaleBookIntrosXML( abbrev:str, XML_filepath ) -> Dict[str,str]
-formatTyndaleBookIntro( abbrev:str, level:int, BBB:str, segmentType:str, state ) -> str
-formatTyndaleNotes( abbrev:str, level:int, BBB:str, C:str, V:str, segmentType:str, state ) -> str # html
-fixTyndaleBRefs( abbrev:str, level:int, BBBorArticleName:str, C:str, V:str, html:str, state ) -> str
+formatTyndaleBookIntro( abbrev:str, level:int, BBB:str, segmentType:str, state:State ) -> str
+formatTyndaleNotes( abbrev:str, level:int, BBB:str, C:str, V:str, segmentType:str, state:State ) -> str # html
+fixTyndaleBRefs( abbrev:str, level:int, BBBorArticleName:str, C:str, V:str, html:str, state:State ) -> str
 
-formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segmentType:str, state ) -> str # html
+formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segmentType:str, state:State ) -> str # html
 
 loadSelectedVersesFile( fileLocation, givenName:str, givenAbbreviation:str, encoding='utf-8' ) -> Bible
 
@@ -80,14 +80,16 @@ import sys
 sys.path.append( '../../BibleTransliterations/Python/' )
 from BibleTransliterations import transliterate_Greek, transliterate_Hebrew
 
+from settings import State, ALTERNATIVE_VERSION
 from html import checkHtml
 from OETHandlers import findLVQuote
+from Dict import loadAndIndexUBSGreekDictJSON, loadAndIndexUBSHebrewDictJSON
 
 
-LAST_MODIFIED_DATE = '2024-01-26' # by RJH
+LAST_MODIFIED_DATE = '2024-02-02' # by RJH
 SHORT_PROGRAM_NAME = "Bibles"
 PROGRAM_NAME = "OpenBibleData Bibles handler"
-PROGRAM_VERSION = '0.59'
+PROGRAM_VERSION = '0.61'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -96,12 +98,11 @@ NEW_LINE = '\n'
 
 
 
-def preloadVersions( state ) -> int:
+def preloadVersions( state:State ) -> int:
     """
     Note this has a side-effect of removing unused entries from state.BibleVersions.
     """
     fnPrint( DEBUGGING_THIS_MODULE, f"preloadVersions( {state.BibleVersions} )" )
-    # from html import makeTop, makeBottom
 
     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Preloading {state.BibleVersions}…" )
 
@@ -146,7 +147,7 @@ def preloadVersions( state ) -> int:
 # end of Bibles.preloadVersions
 
 TyndaleBookIntrosDict, TyndaleBookIntroSummariesDict = {}, {}
-def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state ) -> Bible:
+def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:State ) -> Bible:
     """
     Loads the requested Bible into memory
         and return the Bible object.
@@ -227,7 +228,8 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state ) -
         thisBible = uWNotesBible.uWNotesBible( state.BibleLocations[versionAbbreviation], givenName='uWTranslationNotes',
                                             givenAbbreviation='UTN', encoding='utf-8' )
         thisBible.loadBooks() # So we can iterate through them all later
-    elif versionAbbreviation == 'TOSN': # We use this to also load non-Bible (non-B/C/V) stuff like Tyndale open Bible dictionary and book intros
+    elif versionAbbreviation == 'TOSN': # We use this to also load non-Bible (non-B/C/V) stuff
+        #   like Tyndale open Bible dictionary and book intros and UBS dictionaries
         sourceFolder = state.BibleLocations[versionAbbreviation]
 
         # We sneak in some extra loads here
@@ -257,8 +259,11 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state ) -
         thisBible = TyndaleNotesBible.TyndaleNotesBible( os.path.join( sourceFolder, sourceFilename ), givenName='TyndaleStudyNotes',
                                             givenAbbreviation='TOSN', encoding='utf-8' )
         thisBible.loadBooks() # So we can iterate through them all later
+
+        loadAndIndexUBSGreekDictJSON( 'UGD', '../../Forked/ubs-open-license/dictionaries/greek/JSON' )
+        loadAndIndexUBSHebrewDictJSON( 'UHD', '../../Forked/ubs-open-license/dictionaries/hebrew/JSON' )
     elif versionAbbreviation in state.selectedVersesOnlyVersions: # small numbers of sample verses
-        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Loading '{versionAbbreviation}' sample verses…" )
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Loading '{versionAbbreviation}' sample verses…" )
         thisBible = loadSelectedVersesFile( folderOrFileLocation, givenName=state.BibleNames[versionAbbreviation],
                                             givenAbbreviation=versionAbbreviation, encoding='utf-8' )
         # NOTE: thisBible is NOT a Bible object here!!!
@@ -396,7 +401,7 @@ def loadTyndaleBookIntrosXML( abbrev:str, XML_filepath ) -> Dict[str,str]:
                                 if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.haltOnXMLWarning: halt
                         # So we want to extract this as an HTML paragraph
                         htmlSegment = BibleOrgSysGlobals.getFlattenedXML( bodyelement, bodyLocation ) \
-				                                                .replace( '<a href="  \?', '<a href="?') # Fix encoding mistake in 1 Tim
+				                                                .replace( '<a href="  \\?', '<a href="?') # Fix encoding mistake in 1 Tim
                         assert '\\' not in htmlSegment, f"{BBB} {pCount=} {htmlSegment=}"
                         theirClass = None
                         if htmlSegment.startswith( '<class="'): # e.g., <class="theme-list">The new covenant…
@@ -417,7 +422,7 @@ def loadTyndaleBookIntrosXML( abbrev:str, XML_filepath ) -> Dict[str,str]:
 # end of Bibles.loadTyndaleBookIntrosXML
 
 
-def formatTyndaleBookIntro( abbrev:str, level:int, BBB:str, segmentType:str, state ) -> str:
+def formatTyndaleBookIntro( abbrev:str, level:int, BBB:str, segmentType:str, state:State ) -> str:
     """
     """
     global TyndaleBookIntrosDict, TyndaleBookIntroSummariesDict
@@ -442,18 +447,21 @@ def formatTyndaleBookIntro( abbrev:str, level:int, BBB:str, segmentType:str, sta
 # end of Bibles.formatTyndaleBookIntro
 
 
-def formatTyndaleNotes( abbrev:str, level:int, BBB:str, C:str, V:str, segmentType:str, state ) -> str: # html
+def formatTyndaleNotes( abbrev:str, level:int, BBB:str, C:str, V:str, segmentType:str, state:State ) -> str: # html
     """
     These are mostly HTML now artificially encoded inside USFM fields.
     """
     fnPrint( DEBUGGING_THIS_MODULE, f"formatTyndaleNotes( {BBB}, {C}:{V}, {segmentType=} )" )
     assert abbrev in ('TOSN','TTN')
     assert segmentType in ('parallelVerse','interlinearVerse')
-
+    
     try:
-        verseEntryList = state.preloadedBibles[abbrev].getVerseDataList( (BBB, C, V), strict=False, complete=True )
-    except (KeyError, TypeError): # TypeError is if None is returned
+        verseEntryList = state.preloadedBibles[abbrev].getVerseDataList( (BBB, C, V) )
+    except KeyError:
         logging.warning( f"Tyndale have no notes for {abbrev} {BBB} {C}:{V}" )
+        return ''
+    if not verseEntryList: # can be None
+        logging.warning( f"Tyndale has no notes for {abbrev} {BBB} {C}:{V}" )
         return ''
 
     nHtml = ''
@@ -528,12 +536,10 @@ def formatTyndaleNotes( abbrev:str, level:int, BBB:str, C:str, V:str, segmentTyp
 # end of Bibles.formatTyndaleNotes
 
 
-def fixTyndaleBRefs( abbrev:str, level:int, BBBorArticleName:str, C:str, V:str, html:str, state ) -> str:
+def fixTyndaleBRefs( abbrev:str, level:int, BBBorArticleName:str, C:str, V:str, html:str, state:State ) -> str:
     """
     Most of the parameters are for info messages only
     """
-    from createSitePages import ALTERNATIVE_VERSION
-
     fnPrint( DEBUGGING_THIS_MODULE, f"fixTyndaleBRefs( {abbrev}, {level}, {BBBorArticleName} {C}:{V} {html}, … )" )
 
     # Fix their links like '<a href="?bref=Mark.4.14-20">4:14-20</a>'
@@ -624,7 +630,7 @@ twMDLinkRegEx = re.compile( '\\[\\[rc://([^/]+?)/tw/dict/bible/(names|kt|other)/
 twOtherLinkRegEx = re.compile( 'rc://([^/]+?)/tw/dict/bible/(names|kt|other)/(.+?)[ ,.:;)\\]]' ) # Includes the following character after the link
 markdownLinkRegex = re.compile( '\\[(.*?)\\]\\((.*?)\\)' )
 NOTE_FILENAME_DICT = {'translate':'03-translate', 'checking':'04-checking'}
-def formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segmentType:str, state ) -> str: # html
+def formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segmentType:str, state:State ) -> str: # html
     """
     A typical entry with two notes looks like this (blank lines added):
         0/ v = '8'
@@ -658,11 +664,13 @@ def formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segme
     assert segmentType in ('parallelVerse','interlinearVerse')
 
     try:
-        verseEntryList = state.preloadedBibles['UTN'].getVerseDataList( (BBB, C, V), strict=False, complete=True )
-    except (KeyError, TypeError): # TypeError is if None is returned
+        verseEntryList = state.preloadedBibles['UTN'].getVerseDataList( (BBB, C, V) )
+    except KeyError:
         logging.warning( f"uW TNs have no notes for {BBB} {C}:{V}" )
         return ''
-    # print( f"{BBB} {C}:{V} {verseEntryList=}" )
+    if not verseEntryList: # can be None
+        logging.warning( f"uW TNs has no notes for {BBB} {C}:{V}" )
+        return ''
 
     NT = BibleOrgSysGlobals.loadedBibleBooksCodes.isNewTestament_NR( BBB )
     # opposite = 'interlinear' if segmentType=='parallelVerse' else 'parallelVerse'
@@ -786,13 +794,13 @@ def formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segme
                 for _safetyCount in range( 46 ): # 45 wasn't enough for EXO 15:0
                     match = markdownLinkRegex.search( rest, searchStartIndex )
                     if not match: break
-                    # print( f"{_safetyCount} getContextVerseData found TN markdown link {BBB} {C}:{V} {match=} {match.groups()=}" )
+                    # dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"{_safetyCount} getContextVerseData found TN markdown link {BBB} {C}:{V} {match=} {match.groups()=}" )
                     newLink = match.group(1)
                     if match.group(2).startswith( '../' ) and match.group(2).endswith( '.md' ):
                         # Probably something like: [13:20](../13/20.md)
                         linkTarget = match.group(2)[3:-3]
                         if linkTarget.endswith('/'): linkTarget = linkTarget[:-1] # Mistake in TN Rom 2:2
-                        # print( f"  Have scripture link {BBB} {C}:{V} {match.group(1)=} {linkTarget=}" )
+                        # dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Have scripture link {BBB} {C}:{V} {match.group(1)=} {linkTarget=}" )
                         if linkTarget == 'front/intro':
                             pass # TODO: We're being lazy here -- where do we find a book intro?
                         elif linkTarget.count('/') == 2:
@@ -815,7 +823,7 @@ def formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segme
                                 if lV.startswith('.'): lV = int(lV[1:])
                             newLink = f'<a href="C{lC}V{lV}.htm#Top">{match.group(1)}</a>'
                         else:
-                            print( f"{_safetyCount} getContextVerseData found TN markdown link {BBB} {C}:{V} {match=} {match.groups()=}" )
+                            # dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"{_safetyCount} getContextVerseData found TN markdown link {BBB} {C}:{V} {match=} {match.groups()=}" )
                             logging.critical( f"formatUnfoldingWordTranslationNotes1 ({BBB}, {C}, {V}) has unhandled markdown reference in '{rest}'" )
                     elif match.group(2).startswith( './' ) and match.group(2).endswith( '.md' ):
                         # Probably something like: [Mark 14:22–25](./22.md)
@@ -825,14 +833,14 @@ def formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segme
                             lV = linkTarget
                             newLink = f'<a href="C{C}V{lV}.htm#Top">{match.group(1)}</a>'
                         else:
-                            print( f"{_safetyCount} getContextVerseData found TN markdown link {BBB} {C}:{V} {match=} {match.groups()=}" )
+                            # dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"{_safetyCount} getContextVerseData found TN markdown link {BBB} {C}:{V} {match=} {match.groups()=}" )
                             logging.critical( f"formatUnfoldingWordTranslationNotes2 ({BBB}, {C}, {V}) has unhandled markdown reference in '{rest}'" )
                     else:
                         # e.g., From Ruth 3:9: [2:20](../02/20/zu5f)
-                        print( f"{_safetyCount} getContextVerseData found TN markdown link {BBB} {C}:{V} {match=} {match.groups()=}" )
+                        # dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"{_safetyCount} getContextVerseData found TN markdown link {BBB} {C}:{V} {match=} {match.groups()=}" )
                         logging.critical( f"formatUnfoldingWordTranslationNotes ({BBB}, {C}, {V}) has unhandled markdown link in '{rest}'" )
                     rest = f'{rest[:match.start()]}{newLink}{rest[match.end():]}'
-                    # print( f"  {BBB} {C}:{V} with {newLink=}, now {rest=}" )
+                    # dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  {BBB} {C}:{V} with {newLink=}, now {rest=}" )
                     searchStartIndex = match.start() + len(newLink)
                 else:
                     logging.critical( f"getContextVerseData found excess TN markdown links in {_safetyCount} {BBB} {C}:{V} {rest=}" )
@@ -949,13 +957,14 @@ def getVerseDataListForReference( givenRefString:str, thisBible:Bible, lastBBB:O
 
     Returns verseEntryList and contextList.
     """
-    print( f"getVerseDataListForReference( {givenRefString}, {thisBible.abbreviation}, {lastBBB=}, {lastC=} )" )
+    fnPrint( DEBUGGING_THIS_MODULE, f"getVerseDataListForReference( {givenRefString}, {thisBible.abbreviation}, {lastBBB=}, {lastC=} )" )
+
     # TODO: Most of this next block of code should really be in BibleOrgSys
     adjRefString = givenRefString.replace( ' (LXX)', '' )
     if '(' in adjRefString and ')' in adjRefString: # Remove xref comment
         assert adjRefString.count('(')==1 and adjRefString.count(')')==1
         adjRefString = f"{adjRefString[:adjRefString.index('(')]}{adjRefString[adjRefString.index(')')+1:]}".strip()
-        print( f"{givenRefString=} {adjRefString=}")
+        dPrint( 'Info', DEBUGGING_THIS_MODULE, f"{givenRefString=} {adjRefString=}")
     if ' ' not in adjRefString: adjRefString = f'{lastBBB} {adjRefString}'
     refBits = adjRefString.split( ' ' )
     bookAbbreviation, refCVpart = (refBits[0],refBits[1:]) if len(refBits[0])>1 else (f'{refBits[0]} {refBits[1]}', refBits[2:])
@@ -964,7 +973,7 @@ def getVerseDataListForReference( givenRefString:str, thisBible:Bible, lastBBB:O
     if refBBB is None:
         if thisBible.abbreviation=='OET-RV' and bookAbbreviation[0]=='Y':
             refBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromText( f'J{bookAbbreviation[1:]}' ) # Convert Yoel back to Joel, etc.
-            print( f"{bookAbbreviation=} {refCVpart=} {refBBB=}" )
+            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"{bookAbbreviation=} {refCVpart=} {refBBB=}" )
         elif bookAbbreviation[0].isdigit() and (':' in bookAbbreviation or '-' in bookAbbreviation): # or bookAbbreviation.isdigit() might need to be added
             # It must be another reference in the same book
             refBBB = lastBBB
@@ -976,10 +985,12 @@ def getVerseDataListForReference( givenRefString:str, thisBible:Bible, lastBBB:O
     assert refBBB, f"getVerseDataListForReference {givenRefString=} can't get BBB from {bookAbbreviation=} {refCVpart=}"
     refIsSingleChapterBook = BibleOrgSysGlobals.loadedBibleBooksCodes.isSingleChapterBook( refBBB )
     # Special case to handle xref crossing books: '1Sam 16:1–1Ki 2:11'
-    if len(refCVpart) > 1: # ['16:1–1Ki', '2:11']
+    if len(refCVpart) > 1: # ['16:1–1Ki', '2:11'] or ['59', 'header']
         assert len(refCVpart) == 2
         if refCVpart[0].endswith( '1Ki' ):
             refCVpart = [f'{refCVpart[0]} {refCVpart[1]}'] # Put it back together again (and handle properly below)
+        elif refBBB=='PSA' and ':' not in refCVpart[0] and refCVpart[1] in ('header',):
+            refCVpart = [f'{refCVpart[0]}:0']
     assert isinstance( refCVpart, list ) and len(refCVpart)==1 and isinstance( refCVpart[0], str ), f"{refBBB} {refCVpart=} from {givenRefString=}"
     refCVpart = refCVpart[0]
 
@@ -1012,11 +1023,11 @@ def getVerseDataListForReference( givenRefString:str, thisBible:Bible, lastBBB:O
                     if '-' not in part1 and '-' in part2:
                         refStartC,refStartV = part1.split( ':' )
                         assert refStartC.isdigit() and refStartV.isdigit()
-                        print( f"{refBBB} {refStartC}:{refStartV}")
+                        dPrint( 'Info', DEBUGGING_THIS_MODULE, f"{refBBB} {refStartC}:{refStartV}")
                         verseEntryList, contextList = thisBible.getContextVerseData( (refBBB,refStartC,refStartV) )
                         refStartV2, refEndV = part2.split( '-' )
                         assert refStartV2.isdigit() and refEndV.isdigit()
-                        print( f"{refBBB} {refStartC}:{refStartV2}-{refEndV}")
+                        dPrint( 'Info', DEBUGGING_THIS_MODULE, f"{refBBB} {refStartC}:{refStartV2}-{refEndV}")
                         thisVerseEntryList, _contextList = thisBible.getContextVerseDataRange( (refBBB,refStartC,refStartV2), (refBBB,refStartC,refEndV) )
                         verseEntryList += thisVerseEntryList
                     else: unknownCommaRef1a
@@ -1072,7 +1083,7 @@ def getVerseDataListForReference( givenRefString:str, thisBible:Bible, lastBBB:O
                         refBBB2 = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromText( bookAbbreviation2 )
                         if refBBB2 is None and thisBible.abbreviation=='OET-RV' and bookAbbreviation2[0]=='Y':
                             refBBB2 = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromText( f'J{bookAbbreviation2[1:]}' ) # Convert Yoel back to Joel, etc.
-                            print( f"{bookAbbreviation2=} {refCVpart=} {refBBB2=}" )
+                            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"{bookAbbreviation2=} {refCVpart=} {refBBB2=}" )
                         assert refBBB2, f"getVerseDataListForReference {givenRefString=} can't get BBB2 from {bookAbbreviation2=} {refCVpart=}"
                         verseEntryList, contextList = thisBible.getContextVerseDataRange( (refBBB,refStartC,refStartV), (refBBB2,refEndC,refEndV) )
                 elif ':' not in refCVpart: # might be a chapter range, e.g., Num 22–24
@@ -1093,7 +1104,8 @@ def getVerseDataListForReference( givenRefString:str, thisBible:Bible, lastBBB:O
                     refStartC, refStartV = '1', refCVpart
                     assert refStartV.isdigit()
                     verseEntryList, contextList = thisBible.getContextVerseData( (refBBB,refStartC,refStartV) )
-                else: noColon3b
+                else: # not a single chapter book, and has no colon
+                    noColon3b
     except KeyError: # if can't find any verseEntries
         logging.critical( f"getVerseDataListForReference {givenRefString=} was unable to find {refBBB} {refStartC}:{refStartV} from {givenRefString=}" )
 

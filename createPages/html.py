@@ -44,6 +44,7 @@ CHANGELOG:
     2023-08-30 Separate extra books in bkLst paragraph
     2023-09-25 Added search
     2023-10-10 Improved OET-LV customisations to be more selective and efficient
+    2024-01-25 Added support for 'Related' sections mode
 """
 from gettext import gettext as _
 from typing import Dict, List, Tuple, Optional
@@ -59,13 +60,13 @@ import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39, BOOKLIST_NT27
 
-# from Bibles import fetchChapter
+from settings import State, TEST_MODE
 
 
-LAST_MODIFIED_DATE = '2024-01-26' # by RJH
+LAST_MODIFIED_DATE = '2024-02-01' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
-PROGRAM_VERSION = '0.65'
+PROGRAM_VERSION = '0.67'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -83,7 +84,7 @@ KNOWN_PAGE_TYPES = ('site', 'topIndex', 'details', 'allDetails',
                     'word','lemma', 'person','location',
                     'wordIndex','lemmaIndex', 'personIndex','locationIndex', 'referenceIndex',
                     'search', 'about')
-def makeTop( level:int, versionAbbreviation:Optional[str], pageType:str, versionSpecificFileOrFolderName:Optional[str], state ) -> str:
+def makeTop( level:int, versionAbbreviation:Optional[str], pageType:str, versionSpecificFileOrFolderName:Optional[str], state:State ) -> str:
     """
     Create the very top part of an HTML page.
 
@@ -91,7 +92,6 @@ def makeTop( level:int, versionAbbreviation:Optional[str], pageType:str, version
 
     Note: versionAbbreviation can be None for parallel, interlinear and word pages, etc.
     """
-    from createSitePages import TEST_MODE
     fnPrint( DEBUGGING_THIS_MODULE, f"makeTop( {level}, {versionAbbreviation}, {pageType}, {versionSpecificFileOrFolderName} )" )
     assert pageType in KNOWN_PAGE_TYPES, f"{level=} {versionAbbreviation=} {pageType=}"
 
@@ -129,8 +129,10 @@ def makeTop( level:int, versionAbbreviation:Optional[str], pageType:str, version
   <meta name="keywords" content="__KEYWORDS__">
   <link rel="stylesheet" type="text/css" href="{'../'*level}{cssFilename}">
   <script src="{'../'*level}Bible.js"></script>
-</head><body><!--Level{level}-->{topLink}
-""" if versionAbbreviation and 'OET' in versionAbbreviation else f"""<!DOCTYPE html>
+</head>
+<body><!--Level{level}-->{topLink}
+""" if (versionAbbreviation and 'OET' in versionAbbreviation) or pageType=='parallelVerse' \
+else f"""<!DOCTYPE html>
 <html lang="en-US">
 <head>
   <title>__TITLE__</title>
@@ -138,14 +140,15 @@ def makeTop( level:int, versionAbbreviation:Optional[str], pageType:str, version
   <meta name="viewport" content="user-scalable=yes, initial-scale=1, minimum-scale=1, width=device-width">
   <meta name="keywords" content="__KEYWORDS__">
   <link rel="stylesheet" type="text/css" href="{'../'*level}{cssFilename}">
-</head><body><!--Level{level}-->{topLink}
+</head>
+<body><!--Level{level}-->{topLink}
 <h3>Demonstration version—prototype quality only—still in development</h3>
 """
     return f'''{top}{_makeHeader( level, versionAbbreviation, pageType, versionSpecificFileOrFolderName, state )}
 '''
 # end of html.makeTop
 
-def _makeHeader( level:int, versionAbbreviation:str, pageType:str, versionSpecificFileOrFolderName:Optional[str], state ) -> str:
+def _makeHeader( level:int, versionAbbreviation:str, pageType:str, versionSpecificFileOrFolderName:Optional[str], state:State ) -> str:
     """
     Create the navigation that goes before the page content.
 
@@ -154,7 +157,6 @@ def _makeHeader( level:int, versionAbbreviation:str, pageType:str, versionSpecif
 
     Note: versionAbbreviation can be None for parallel, interlinear and word pages, etc.
     """
-    from createSitePages import TEST_MODE
     fnPrint( DEBUGGING_THIS_MODULE, f"_makeHeader( {level}, {versionAbbreviation}, {pageType}, {versionSpecificFileOrFolderName} )" )
 
     # Add all the version abbreviations (except for the selected-verses-only verses)
@@ -184,7 +186,7 @@ def _makeHeader( level:int, versionAbbreviation:str, pageType:str, versionSpecif
                             f'href="{vLink}">{loopVersionAbbreviation}</a>'
                             f'{state.BibleVersionDecorations[loopVersionAbbreviation][1]}'
                             )
-    if pageType == 'relatedPassage':
+    if pageType in ('relatedPassage','relatedSectionIndex'):
         initialVersionList.append( 'Related' )
     else: # add a link for parallel
         initialVersionList.append( f'''{state.BibleVersionDecorations['Related'][0]}<a title="Single OET-RV section with related verses from other books" href="{'../'*level}rel/">Related</a>{state.BibleVersionDecorations['Related'][1]}''' )
@@ -254,7 +256,7 @@ def _makeHeader( level:int, versionAbbreviation:str, pageType:str, versionSpecif
 
     viewLinks = ['TEST'] if TEST_MODE else []
     if pageType in ('book','section','chapter','details') \
-    and versionAbbreviation not in ('TOSN','TTN','TOBD','UTN') \
+    and versionAbbreviation not in ('TOSN','TTN','TOBD','UTN','UBS') \
     and versionAbbreviation not in state.versionsWithoutTheirOwnPages:
         if not versionAbbreviation: versionAbbreviation = 'OET'
         viewLinks.append( f'''<a title="Select a different version" href="{'../'*level}">{versionAbbreviation}</a>''' )
@@ -275,14 +277,13 @@ def _makeHeader( level:int, versionAbbreviation:str, pageType:str, versionSpecif
 
 HTML_PLUS_LIST = ['parallelVerse','interlinearVerse', 'parallelIndex','interlinearIndex']
 OET_HTML_PLUS_LIST = ['OET'] + HTML_PLUS_LIST
-def makeBookNavListParagraph( linksList:List[str], workAbbrevPlus:str, state ) -> str:
+def makeBookNavListParagraph( linksList:List[str], workAbbrevPlus:str, state:State ) -> str:
     """
     Create a 'bkLst' paragraph with the book abbreviation links
         preceded by the work abbreviation (non-link) if specified.
 
     linksList contains links like '<a title="Generic front matter" href="FRT.htm#Top">FRT</a>', '<a title="Jonah" href="JNA.htm#Top">JNA</a>', '<a title="Mark" href="MRK.htm#Top">MARK</a>'
     """
-    from createSitePages import TEST_MODE
     fnPrint( DEBUGGING_THIS_MODULE, f"makeBookNavListParagraph( {linksList}, {workAbbrevPlus}, ... )" )
     assert workAbbrevPlus in state.preloadedBibles \
         or workAbbrevPlus in OET_HTML_PLUS_LIST \
@@ -322,7 +323,7 @@ def makeBookNavListParagraph( linksList:List[str], workAbbrevPlus:str, state ) -
 # end of html.makeBookNavListParagraph
 
 
-def makeBottom( level:int, pageType:str, state ) -> str:
+def makeBottom( level:int, pageType:str, state:State ) -> str:
     """
     Create the very bottom part of an HTML page.
     """
@@ -332,11 +333,10 @@ def makeBottom( level:int, pageType:str, state ) -> str:
     return _makeFooter( level, pageType, state ) + '</body></html>'
 # end of html.makeBottom
 
-def _makeFooter( level:int, pageType:str, state ) -> str:
+def _makeFooter( level:int, pageType:str, state:State ) -> str:
     """
     Create any links or site map that follow the main content on the page.
     """
-    from createSitePages import TEST_MODE
     # fnPrint( DEBUGGING_THIS_MODULE, f"_makeFooter()" )
     html = f"""<div class="footer">
 <p class="copyright"><small><em>{'TEST ' if TEST_MODE else ''}Open Bible Data</em> site copyright © 2023-2024 <a href="https://Freely-Given.org">Freely-Given.org</a>

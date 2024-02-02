@@ -31,3 +31,16 @@ function hide_show_marks() {
         btn.textContent = 'Hide marks';
     }
 }
+
+function hide_show_fields() {
+    // console.log('hide_show_fields()');
+    // let btn = document.getElementById('fieldsButton');
+    let divs = document.getElementsByClassName('hideables');
+    console.assert(divs.length === 1); // We only expect one
+    let div = divs[0];
+    // console.log(`div.style.display=${div.style.display}`);
+    if (div.style.display==='' || div.style.display==='revert')
+        div.style.display = 'none';
+    else
+        div.style.display = 'revert';
+}
