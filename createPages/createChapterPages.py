@@ -47,7 +47,7 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39, BOOKLIST_NT27
 import BibleOrgSys.Formats.ESFMBible as ESFMBible
 
-from settings import State, TEST_MODE, reorderBooksForOETVersions
+from settings import State, TEST_MODE, reorderBooksForOETVersions, UNFINISHED_WARNING_PARAGRAPH, JAMES_NOTE_PARAGRAPH
 from usfm import convertUSFMMarkerListToHtml
 from Bibles import tidyBBB
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
@@ -55,10 +55,10 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_
 from OETHandlers import livenOETWordLinks
 
 
-LAST_MODIFIED_DATE = '2024-02-01' # by RJH
+LAST_MODIFIED_DATE = '2024-02-04' # by RJH
 SHORT_PROGRAM_NAME = "createChapterPages"
 PROGRAM_NAME = "OpenBibleData createChapterPages functions"
-PROGRAM_VERSION = '0.56'
+PROGRAM_VERSION = '0.57'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -77,13 +77,18 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
     try: os.makedirs( folder )
     except FileExistsError: pass # they were already there
 
-    allBooksFlag = 'ALL' in state.booksToLoad[rvBible.abbreviation]
-    BBBsToProcess = reorderBooksForOETVersions( rvBible.books.keys() if allBooksFlag else state.booksToLoad[rvBible.abbreviation] )
+    # allBooksFlag = 'ALL' in state.booksToLoad[rvBible.abbreviation]
+    # BBBsToProcess = reorderBooksForOETVersions( rvBible.books.keys() if allBooksFlag else state.booksToLoad[rvBible.abbreviation] )
+    # rvBooks = rvBible.books.keys() if 'ALL' in state.booksToLoad[rvBible.abbreviation] else state.booksToLoad[rvBible.abbreviation]
+    # lvBooks = lvBible.books.keys() if 'ALL' in state.booksToLoad[lvBible.abbreviation] else state.booksToLoad[lvBible.abbreviation]
+    # BBBsToProcess = reorderBooksForOETVersions( [rvKey for rvKey in rvBooks if rvKey in lvBooks] )
+    navBookListParagraph = makeBookNavListParagraph(state.BBBLinks['OET'], 'OET', state)
+
     BBBs, filenames = [], []
-    for BBB in BBBsToProcess:
+    for BBB in state.BBBsToProcess['OET']:
         vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Creating chapter pages for OET {BBB}…" )
         ourTidyBBB = tidyBBB( BBB )
-        # print( f"{BBB=} {BBBsToProcess}"); print( len(BBBsToProcess) )
+        # print( f"{BBB=} {BBBsToProcess}"); print( len(state.BBBsToProcess[thisBible.abbreviation]) )
         # if not allBooksFlag: rvBible.loadBookIfNecessary( BBB )
         # lvBible.loadBookIfNecessary( BBB )
 
@@ -169,13 +174,13 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
                 cNav = f'<p class="cNav">{leftLink}{documentLink} {"Intro" if c==-1 else c}{rightLink}{parallelLink}{interlinearLink}{detailsLink}</p>'
                 chapterHtml = f'''<h1 id="Top">Open English Translation {ourTidyBBB} Introduction</h1>
 {cNav}
-<p class="rem">This is still a very early look into the unfinished text of the <em>Open English Translation</em> of the Bible. Please double-check the text in advance before using in public.</p>
+{UNFINISHED_WARNING_PARAGRAPH}
 <div class="RVLVcontainer">
 <h2><a title="View just the Readers’ Version" href="{'../'*level}OET-RV/byC/{BBB}_Intro.htm#Top">Readers’ Version</a></h2>
 <h2><a title="View just the Literal Version" href="{'../'*level}OET-LV/byC/{BBB}_Intro.htm#Top">Literal Version</a></h2>
 ''' if c==-1 else f'''<h1 id="Top">Open English Translation {ourTidyBBB} Chapter {c}</h1>
 {cNav}
-<p class="rem">This is still a very early look into the unfinished text of the <em>Open English Translation</em> of the Bible. Please double-check the text in advance before using in public.</p>
+{UNFINISHED_WARNING_PARAGRAPH}
 <div class="RVLVcontainer">
 <h2><a title="View just the Readers’ Version" href="{'../'*level}OET-RV/byC/{BBB}_C{c}.htm#Top">Readers’ Version</a></h2>
 <h2><a title="View just the Literal Version" href="{'../'*level}OET-LV/byC/{BBB}_C{c}.htm#Top">Literal Version</a> <button type="button" id="marksButton" title="Hide/Show underline and strike-throughs" onclick="hide_show_marks()">Hide marks</button></h2>
@@ -271,7 +276,7 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
                         .replace( f'''<a title="{state.BibleNames['OET']}" href="{'../'*level}OET/byC/{filename}#Top">OET</a>''',
                                   f'''<a title="Up to {state.BibleNames['OET']}" href="{'../'*level}OET">↑OET</a>''' )
                 chapterHtml = f'''{top}<!--chapter page-->
-{makeBookNavListParagraph(state.BBBLinks['OET-RV'], 'OET', state)}
+{navBookListParagraph}
 {cLinksPar}
 {chapterHtml}{removeDuplicateCVids( BBB, combinedHtml )}</div><!--RVLVcontainer-->
 {cNav}
@@ -327,7 +332,7 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
                 .replace( '__KEYWORDS__', f'Bible, OET, Open English Translation, chapter, {ourTidyBBB}' ) \
                 .replace( f'''<a title="{state.BibleNames['OET']}" href="{'../'*level}OET">OET</a>''', 'OET' )
         chapterHtml = f'''{top}<!--chapters indexPage-->
-{makeBookNavListParagraph(state.BBBLinks['OET-RV'], 'OET', state)}
+{navBookListParagraph}
 {cLinksPar}
 {makeBottom( level, 'chapter', state )}'''
         checkHtml( 'OETChaptersIndex', chapterHtml )
@@ -340,7 +345,7 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
     filename = 'index.htm'
     filenames.append( filename )
     filepath = folder.joinpath( filename )
-    top = makeTop( level, 'OET', 'chapter', 'byC', state ) \
+    top = makeTop( level, 'OET', 'chapterIndex', 'byC', state ) \
             .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}OET Chapter View" ) \
             .replace( '__KEYWORDS__', 'Bible, OET, Open English Translation, chapters' ) \
             .replace( f'''<a title="{state.BibleNames['OET']}" href="{'../'*level}OET/byC">OET</a>''',
@@ -348,8 +353,8 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
     indexHtml = f'''{top}
 <h1 id="Top">OET chapter pages</h1>
 <h2>Index of books</h2>
-{makeBookNavListParagraph(state.BBBLinks['OET-RV'], 'OET', state)}
-{makeBottom( level, 'chapter', state )}'''
+{navBookListParagraph}
+{makeBottom( level, 'chapterIndex', state )}'''
     checkHtml( 'OETBooksIndex', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
@@ -373,15 +378,17 @@ def createChapterPages( level:int, folder:Path, thisBible, state:State ) -> List
     except FileExistsError: pass # they were already there
 
     thisBibleBooksToLoad = state.booksToLoad[thisBible.abbreviation]
-    BBBsToProcess = thisBible.books.keys() if thisBibleBooksToLoad==['ALL'] \
-                else BOOKLIST_NT27 if thisBibleBooksToLoad==['NT'] \
-                else thisBibleBooksToLoad
-    if 'OET' in thisBible.abbreviation:
-        BBBsToProcess = reorderBooksForOETVersions( BBBsToProcess )
+    # BBBsToProcess = thisBible.books.keys() if thisBibleBooksToLoad==['ALL'] \
+    #             else BOOKLIST_NT27 if thisBibleBooksToLoad==['NT'] \
+    #             else thisBibleBooksToLoad
+    # if 'OET' in thisBible.abbreviation:
+    #     BBBsToProcess = reorderBooksForOETVersions( BBBsToProcess )
+    navBookListParagraph = makeBookNavListParagraph( state.BBBLinks[thisBible.abbreviation], thisBible.abbreviation, state )
+
     BBBs, filenames = [], []
-    for BBB in BBBsToProcess:
+    for BBB in state.BBBsToProcess[thisBible.abbreviation]:
         vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Creating chapter pages for {thisBible.abbreviation} {BBB}…" )
-        # print( f"{BBB=} {BBBsToProcess}"); print( len(BBBsToProcess) )
+        # print( f"{BBB=} {state.BBBsToProcess[thisBible.abbreviation]}"); print( len(state.BBBsToProcess[thisBible.abbreviation]) )
         # if not allBooksFlag: thisBible.loadBookIfNecessary( BBB )
         # if not BibleOrgSysGlobals.loadedBibleBooksCodes.isNewTestament_NR( BBB ): continue # Skip all except NT for now
         if thisBible.abbreviation=='OET-LV' \
@@ -445,10 +452,12 @@ def createChapterPages( level:int, folder:Path, thisBible, state:State ) -> List
                 cNav = f'<p class="cNav">{oetLink}{leftLink}{documentLink} {"Intro" if c==-1 else c}{rightLink}{parallelLink}{interlinearLink}{detailsLink}</p>'
                 chapterHtml = f'''<h1 id="Top">{thisBible.abbreviation} {ourTidyBBB} Introduction</h1>
 {cNav}
-{'<p class="rem">This is still a very early look into the unfinished text of the <em>Open English Translation</em> of the Bible. Please double-check the text in advance before using in public.</p>' if 'OET' in thisBible.abbreviation else ''}
+{JAMES_NOTE_PARAGRAPH if 'OET' in thisBible.abbreviation and BBB=='JAM' else ''}
+{UNFINISHED_WARNING_PARAGRAPH if 'OET' in thisBible.abbreviation else ''}
 ''' if c==-1 else f'''<h1 id="Top">{thisBible.abbreviation} {ourTidyBBB} Chapter {c}</h1>
 {cNav}
-{'<p class="rem">This is still a very early look into the unfinished text of the <em>Open English Translation</em> of the Bible. Please double-check the text in advance before using in public.</p>' if 'OET' in thisBible.abbreviation else ''}
+{JAMES_NOTE_PARAGRAPH if 'OET' in thisBible.abbreviation and BBB=='JAM' else ''}
+{UNFINISHED_WARNING_PARAGRAPH if 'OET' in thisBible.abbreviation else ''}
 '''
                 if thisBible.abbreviation == 'OET-LV':
                     chapterHtml = f'''{chapterHtml}<div class="buttons">
@@ -546,7 +555,7 @@ def createChapterPages( level:int, folder:Path, thisBible, state:State ) -> List
     filename = 'index.htm'
     filenames.append( filename )
     filepath = folder.joinpath( filename )
-    top = makeTop( level, thisBible.abbreviation, 'chapter', 'byC', state ) \
+    top = makeTop( level, thisBible.abbreviation, 'chapterIndex', 'byC', state ) \
             .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{thisBible.abbreviation} Chapter View" ) \
             .replace( '__KEYWORDS__', f'Bible, {thisBible.abbreviation}, chapters' ) \
             .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*level}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/byC">{thisBible.abbreviation}</a>''',
@@ -554,8 +563,8 @@ def createChapterPages( level:int, folder:Path, thisBible, state:State ) -> List
     indexHtml = f'''{top}
 <h1 id="Top">{thisBible.abbreviation} chapter pages</h1>
 <h2>Index of books</h2>
-{makeBookNavListParagraph(state.BBBLinks[thisBible.abbreviation], thisBible.abbreviation, state)}
-{makeBottom( level, 'chapter', state)}'''
+{navBookListParagraph}
+{makeBottom( level, 'chapterIndex', state)}'''
     checkHtml( thisBible.abbreviation, indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:

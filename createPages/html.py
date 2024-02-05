@@ -63,10 +63,10 @@ from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39, BOOKLIST_NT27
 from settings import State, TEST_MODE
 
 
-LAST_MODIFIED_DATE = '2024-02-01' # by RJH
+LAST_MODIFIED_DATE = '2024-02-04' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
-PROGRAM_VERSION = '0.67'
+PROGRAM_VERSION = '0.68'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -78,7 +78,7 @@ NEWLINE = '\n'
 
 
 KNOWN_PAGE_TYPES = ('site', 'topIndex', 'details', 'allDetails',
-                    'book','chapter','section', 'sectionIndex',
+                    'book','bookIndex', 'chapter','chapterIndex', 'section','sectionIndex',
                     'relatedPassage','relatedSectionIndex', 'parallelVerse', 'interlinearVerse',
                     'dictionaryMainIndex','dictionaryLetterIndex','dictionaryEntry','dictionaryIntro',
                     'word','lemma', 'person','location',
@@ -108,7 +108,8 @@ def makeTop( level:int, versionAbbreviation:Optional[str], pageType:str, version
     elif pageType in ('dictionaryLetterIndex', 'dictionaryEntry','dictionaryIntro'):
         cssFilename = 'BibleDict.css'
     elif pageType in ('site', 'details','allDetails', 'search', 'about', 'topIndex',
-                      'sectionIndex','relatedSectionIndex', 'dictionaryMainIndex',
+                      'bookIndex','chapterIndex','sectionIndex',
+                      'relatedSectionIndex', 'dictionaryMainIndex',
                       'wordIndex','lemmaIndex','personIndex','locationIndex','referenceIndex' ):
         cssFilename = 'BibleSite.css'
     else: unexpected_page_type
@@ -254,19 +255,21 @@ def _makeHeader( level:int, versionAbbreviation:str, pageType:str, versionSpecif
     #     print( f"    {newVersionList=}" )
     #     halt
 
-    viewLinks = ['TEST'] if TEST_MODE else []
-    if pageType in ('book','section','chapter','details') \
+    viewLinks = []
+    if pageType in ('book','section','chapter', 'details',
+                    'bookIndex','sectionIndex','chapterIndex') \
     and versionAbbreviation not in ('TOSN','TTN','TOBD','UTN','UBS') \
     and versionAbbreviation not in state.versionsWithoutTheirOwnPages:
+        if TEST_MODE: viewLinks.append( 'TEST' )
         if not versionAbbreviation: versionAbbreviation = 'OET'
         viewLinks.append( f'''<a title="Select a different version" href="{'../'*level}">{versionAbbreviation}</a>''' )
         viewLinks.append( f'''<a title="View entire document" href="{'../'*level}{versionAbbreviation}/byDoc/">By Document</a>'''
-                            if pageType!='book' else 'By Document' )
+                            if 'book' not in pageType else 'By Document' )
         if state.preloadedBibles['OET-RV' if versionAbbreviation=='OET' else versionAbbreviation].discoveryResults['ALL']['haveSectionHeadings']:
             viewLinks.append( f'''<a title="View section" href="{'../'*level}{versionAbbreviation}/bySec/">By Section</a>'''
-                            if pageType!='section' else 'By Section' )
+                            if 'section' not in pageType else 'By Section' )
         viewLinks.append( f'''<a title="View chapter" href="{'../'*level}{versionAbbreviation}/byC/">By Chapter</a>'''
-                            if pageType!='chapter' else 'By Chapter' )
+                            if 'chapter' not in pageType else 'By Chapter' )
         viewLinks.append( f'''<a title="View version details" href="{'../'*level}{versionAbbreviation}/details.htm#Top">Details</a>'''
                             if pageType!='details' else 'Details' )
     viewHtml = f'''<p class="viewLst">{' '.join(viewLinks)}</p>''' if viewLinks else ''
@@ -304,7 +307,7 @@ def makeBookNavListParagraph( linksList:List[str], workAbbrevPlus:str, state:Sta
         displayText = aLink[ixDisplayLinkStart:ixDisplayLinkEnd]
         # print( f"  {aLink=} {displayText=}")
         assert 3 <= len(displayText) <= 4 # it should be a tidyBBB
-        BBB = 'JAM' if displayText=='JAC' else 'PS2' if displayText=='2PS' else BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromText( displayText )
+        BBB = 'JAM' if displayText=='YAC' else 'PS2' if displayText=='2PS' else BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromText( displayText )
         # print( f"   {aLink=} {displayText=} {BBB=}")
         assert BBB
         newALink = f'{aLink[:ixDisplayLinkStart]}{displayText}{aLink[ixDisplayLinkEnd:]}'

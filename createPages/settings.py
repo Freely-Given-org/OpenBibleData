@@ -70,7 +70,10 @@ TEST_NT_BOOK_LIST = ['MRK','REV']
 TEST_BOOK_LIST = TEST_OT_BOOK_LIST + TEST_NT_BOOK_LIST
 
 OET_LV_BOOK_LIST = ['RUT','JNA','EST'] + BOOKLIST_NT27
-OET_RV_BOOK_LIST = ['RUT','JNA','EST', 'JHN','MRK','MAT','LUK','ACT', 'ROM','CO2', 'GAL','EPH','PHP','COL', 'TH1','TH2','TI1','TI2','TIT','PHM', 'HEB', 'JAM', 'PE1','PE2', 'JN1','JN2','JN3', 'JDE']
+OET_RV_BOOK_LIST = ['RUT','JNA','EST'] + (
+    ['JHN','MRK','MAT','LUK','ACT', 'ROM','CO1','CO2', 'GAL','EPH','PHP','COL', 'TH1','TH2','TI1','TI2','TIT','PHM', 'HEB', 'JAM', 'PE1','PE2', 'JN1','JN2','JN3', 'JDE', 'REV']
+    if TEST_MODE else
+    ['JHN','MRK','MAT','LUK','ACT', 'ROM','CO2', 'GAL','EPH','PHP','COL', 'TH1','TH2','TI1','TI2','TIT','PHM', 'HEB', 'JAM', 'PE1','PE2', 'JN1','JN2','JN3', 'JDE'] )
 # TODO: What about 'INT' ?
 OET_RV_BOOK_LIST_WITH_FRT = ['FRT'] + OET_RV_BOOK_LIST
 # NT_BOOK_LIST_WITH_FRT = ['FRT'] + BOOKLIST_NT27
@@ -82,6 +85,16 @@ OET_RV_BOOK_LIST_WITH_FRT = ['FRT'] + OET_RV_BOOK_LIST
 ALTERNATIVE_VERSION = 'WEB' # Should be a version with all books present
 
 NUM_EXTRA_MODES = 5 # Related, parallel and interlinear verses, dictionary, and search
+
+UNFINISHED_WARNING_TEXT = 'This is still a very early look into the unfinished text of the <em>Open English Translation</em> of the Bible. Please double-check the text in advance before using in public.'
+UNFINISHED_WARNING_PARAGRAPH = f'<p class="rem">{UNFINISHED_WARNING_TEXT}</p>'
+
+JAMES_NOTE_TEXT = 'Note that the <em>OET</em> uses ‘Yacob’ for ‘The Letter of Jacob’ (wrongly called ‘James’ in older Bibles).'
+JAMES_NOTE_PARAGRAPH = f'<p class="rem">{JAMES_NOTE_TEXT}</p>'
+
+BY_DOCUMENT_TEXT = 'Remember that ancient letters were meant to be read in their entirety, just like modern letters. We provide a byChapter mode for convenience only, but mostly recommend the byDocument and bySection modes for personal reading.'
+BY_DOCUMENT_PARAGRAPH = f'<p class="rem">{BY_DOCUMENT_TEXT}</p>'
+
 
 
 class State:

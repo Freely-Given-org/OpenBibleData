@@ -944,8 +944,8 @@ def tidyBBB( BBB:str, titleCase:Optional[bool]=False, allowFourChars:Optional[bo
     Our customised version of tidyBBB
     """
     newBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.tidyBBB( BBB, titleCase=titleCase, allowFourChars=allowFourChars )
-    if newBBB == 'JAM': return 'JAC'
-    if newBBB == 'Jam': return 'Jac'
+    if newBBB == 'JAM': return 'YAC'
+    if newBBB == 'Jam': return 'Yac'
     if newBBB == 'ACTS': return 'ACTs'
     return newBBB
 # end of Bibles.tidyBBB

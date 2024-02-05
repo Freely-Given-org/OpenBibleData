@@ -39,7 +39,7 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 import BibleOrgSys.Formats.ESFMBible as ESFMBible
 from BibleOrgSys.Internals.InternalBibleInternals import InternalBibleEntryList, getLeadingInt
 
-from settings import State, TEST_MODE, reorderBooksForOETVersions
+from settings import State, TEST_MODE, reorderBooksForOETVersions, UNFINISHED_WARNING_PARAGRAPH, JAMES_NOTE_PARAGRAPH
 from usfm import convertUSFMMarkerListToHtml
 from Bibles import tidyBBB, getVerseDataListForReference
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
@@ -49,10 +49,10 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
 from OETHandlers import livenOETWordLinks
 
 
-LAST_MODIFIED_DATE = '2024-02-02' # by RJH
+LAST_MODIFIED_DATE = '2024-02-04' # by RJH
 SHORT_PROGRAM_NAME = "createParallelPassagePages"
 PROGRAM_NAME = "OpenBibleData createParallelPassagePages functions"
-PROGRAM_VERSION = '0.15'
+PROGRAM_VERSION = '0.16'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -248,7 +248,7 @@ def createParallelPassagePages( level:int, folder:Path, state:State ) -> bool:
 #     # introLinks = [ '<a title="Go to synoptic intro page" href="Intro.htm#Top">Intro</a>' ]
 #     # cLinksPar = f'''<p class="chLst">{EM_SPACE.join( introLinks + [f'<a title="Go to synoptic verse page" href="C{ps}V1.htm#Top">Ps{ps}</a>' for ps in range(1,numChapters+1)] )}</p>''' \
 #     #     if BBB=='PSA' else \
-#     #         f'''<p class="chLst">{ourTidyBbb if ourTidyBbb!='Jac' else 'Jacob/(James)'} {' '.join( introLinks + [f'<a title="Go to synoptic verse page" href="C{chp}V1.htm#Top">C{chp}</a>' for chp in range(1,numChapters+1)] )}</p>'''
+#     #         f'''<p class="chLst">{ourTidyBbb if ourTidyBbb!='Yac' else 'Yacob/(James)'} {' '.join( introLinks + [f'<a title="Go to synoptic verse page" href="C{chp}V1.htm#Top">C{chp}</a>' for chp in range(1,numChapters+1)] )}</p>'''
 
 #     # Now, make the actual pages
 #     vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Creating synoptic section pages for {thisBible.abbreviation} {BBB}…" )
@@ -269,7 +269,7 @@ def createParallelPassagePages( level:int, folder:Path, state:State ) -> bool:
 
 #         synopticSectionHtml = f'''<h1><span title="{state.BibleNames[thisBible.abbreviation]}">{thisBible.abbreviation}</span> by synoptic section {ourTidyBBB} {'Intro' if startC=='-1' else startC}:{startV}</h1>
 # <p class="secNav">{leftLink}{documentLink} {startChapterLink}:{startV}–{endChapterLink}:{endV}{rightLink}{parallelLink}{interlinearLink}{detailsLink}</p>
-# {'<p class="rem">This is still a very early look into the unfinished text of the <em>Open English Translation</em> of the Bible. Please double-check the text in advance before using in public.</p>' if 'OET' in thisBible.abbreviation else ''}
+# {UNFINISHED_WARNING_PARAGRAPH if 'OET' in thisBible.abbreviation else ''}
 # <h1>{sectionName}</h1>
 # '''
 #         if isinstance( thisBible, ESFMBible.ESFMBible ): # e.g., OET-RV
@@ -578,7 +578,8 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
 
         crossReferencedSectionHtml = f'''<h1 id="Top"><span title="{state.BibleNames[thisBible.abbreviation]}">{thisBible.abbreviation}</span> by cross-referenced section {ourTidyBBB} {'Intro' if startC=='-1' else startC}:{startV}</h1>
 <p class="secNav">{sectionIndexLink}{leftLink}{documentLink} {startChapterLink}:{startV}–{endChapterLink}:{endV}{rightLink}{parallelLink}{interlinearLink}{detailsLink}</p>
-{'<p class="rem">This is still a very early look into the unfinished text of the <em>Open English Translation</em> of the Bible. Please double-check the text in advance before using in public.</p>' if 'OET' in thisBible.abbreviation else ''}
+{JAMES_NOTE_PARAGRAPH if 'OET' in thisBible.abbreviation and BBB=='JAM' else ''}
+{UNFINISHED_WARNING_PARAGRAPH if 'OET' in thisBible.abbreviation else ''}
 <h1>{'TEST ' if TEST_MODE else ''}{sectionName}</h1>
 '''
         if isinstance( thisBible, ESFMBible.ESFMBible ): # e.g., OET-RV

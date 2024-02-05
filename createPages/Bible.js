@@ -1,12 +1,8 @@
 function hide_show_marks() {
-    // console.log('hide_show_marks()');
     classes_to_adjust = ['ul', 'dom', 'untr']; //
-    // ul_colours = ['darkGrey'];
     let btn = document.getElementById('marksButton');
-    if (btn.textContent == 'Hide marks') {
-        // console.log('It was hide');
+    if (btn.textContent === 'Hide marks') {
         for (let cl of classes_to_adjust) {
-            // console.log(`  Hiding ${cl}`);
             let elements_to_adjust = document.getElementsByClassName(cl);
             for (let i=0; i<elements_to_adjust.length; i++) {
                 if (cl == 'ul') elements_to_adjust[i].style.color = 'white'; // We don't want to lose the space
@@ -17,9 +13,7 @@ function hide_show_marks() {
         }
         btn.textContent = 'Show marks';
     } else {
-        // console.log('It was show');
         for (let cl of classes_to_adjust) {
-            // console.log(`  Hiding ${cl}`);
             let elements_to_adjust = document.getElementsByClassName(cl);
             for (let i=0; i<elements_to_adjust.length; i++) {
                 if (cl == 'ul') elements_to_adjust[i].style.color = 'darkGrey'; // Should match the span.ul color in the CSS
@@ -33,14 +27,33 @@ function hide_show_marks() {
 }
 
 function hide_show_fields() {
-    // console.log('hide_show_fields()');
-    // let btn = document.getElementById('fieldsButton');
     let divs = document.getElementsByClassName('hideables');
     console.assert(divs.length === 1); // We only expect one
     let div = divs[0];
-    // console.log(`div.style.display=${div.style.display}`);
     if (div.style.display==='' || div.style.display==='revert')
         div.style.display = 'none';
     else
         div.style.display = 'revert';
+}
+
+function hide_show_colours() {
+    classes_to_adjust = ['.greekNom', '.greekAcc', '.greekGen', '.greekDat', '.greekVoc', '.greekVrb', '.greekNeg'];
+    let btn = document.getElementById('coloursButton');
+    if (btn.style.backgroundColor === 'orange') {
+        btn.style.backgroundColor = null;
+        for (let cl of classes_to_adjust) {
+            var elements = document.querySelectorAll(cl);
+            for(var i=0; i<elements.length; i++){
+                elements[i].style.backgroundColor = null; // Seems to make it use the CSS again
+            }
+        }
+    } else { // it wasn't already coloured
+        btn.style.backgroundColor = 'orange';
+        for (let cl of classes_to_adjust) {
+            var elements = document.querySelectorAll(cl);
+            for(var i=0; i<elements.length; i++){
+                elements[i].style.backgroundColor = 'white'; // What if we wanted a dark mode ???
+            }
+        }
+    }
 }

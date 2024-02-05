@@ -43,7 +43,7 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39, BOOKLIST_NT27
 import BibleOrgSys.Formats.ESFMBible as ESFMBible
 
-from settings import State, TEST_MODE, reorderBooksForOETVersions
+from settings import State, TEST_MODE, reorderBooksForOETVersions, UNFINISHED_WARNING_PARAGRAPH, JAMES_NOTE_PARAGRAPH
 from usfm import convertUSFMMarkerListToHtml
 from Bibles import tidyBBB
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
@@ -51,10 +51,10 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_
 from OETHandlers import livenOETWordLinks
 
 
-LAST_MODIFIED_DATE = '2024-02-01' # by RJH
+LAST_MODIFIED_DATE = '2024-02-04' # by RJH
 SHORT_PROGRAM_NAME = "createBookPages"
 PROGRAM_NAME = "OpenBibleData createBookPages functions"
-PROGRAM_VERSION = '0.48'
+PROGRAM_VERSION = '0.49'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -75,19 +75,23 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
     try: os.makedirs( folder )
     except FileExistsError: pass # they were already there
 
-    allBooksFlag = 'ALL' in state.booksToLoad[rvBible.abbreviation]
-    BBBsToProcess = reorderBooksForOETVersions( rvBible.books.keys() if allBooksFlag else state.booksToLoad[rvBible.abbreviation] )
+    # allBooksFlag = 'ALL' in state.booksToLoad[rvBible.abbreviation]
+    # rvBooks = rvBible.books.keys() if 'ALL' in state.booksToLoad[rvBible.abbreviation] else state.booksToLoad[rvBible.abbreviation]
+    # lvBooks = lvBible.books.keys() if 'ALL' in state.booksToLoad[lvBible.abbreviation] else state.booksToLoad[lvBible.abbreviation]
+    # BBBsToProcess = reorderBooksForOETVersions( [rvKey for rvKey in rvBooks if rvKey in lvBooks] )
+    # print( f"{rvBooks=} {lvBooks=} {BBBsToProcess=}" ); halt
     # iBkList1 = ['index'] + ( list(state.preloadedBibles[rvBible.abbreviation].books.keys()) 
     #                         if len(state.preloadedBibles[rvBible.abbreviation].books)<len(state.preloadedBibles[lvBible.abbreviation].books)
     #                         else list(state.preloadedBibles[lvBible.abbreviation].books.keys()) )
     # assert iBkList == BBBsToProcess
     # print( f"OET {BBBsToProcess=} {iBkList=}" )
-    iBkList = ['index'] + BBBsToProcess
+    iBkList = ['index'] + state.BBBsToProcess['OET']
+    navBookListParagraph = makeBookNavListParagraph(state.BBBLinks['OET'], 'OET', state)
 
     processedBBBs, processedFilenames = [], []
-    for BBB in BBBsToProcess:
+    for BBB in state.BBBsToProcess['OET']:
         ourTidyBBB = tidyBBB( BBB )
-        # print( f"{BBB=} {BBBsToProcess}"); print( len(BBBsToProcess) )
+        # print( f"{BBB=} {BBBsToProcess}"); print( len(state.BBBsToProcess[thisBible.abbreviation]) )
         # if not allBooksFlag: rvBible.loadBookIfNecessary( BBB )
         # lvBible.loadBookIfNecessary( BBB )
 
@@ -114,7 +118,8 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
                 bkNextNav = f' <a title="Go to first existing book" href="{iBkList[1]}.htm#Top">►</a>'
 
             bkHtml = f'''<p class="bkNav">{bkPrevNav}<span class="bkHead" id="Top">{rvBible.abbreviation} {ourTidyBBB}</span>{bkNextNav}</p>
-<p class="rem">This is still a very early look into the unfinished text of the <em>Open English Translation</em> of the Bible. Please double-check the text in advance before using in public.</p>
+{JAMES_NOTE_PARAGRAPH}
+{UNFINISHED_WARNING_PARAGRAPH}
 '''
             verseEntryList, contextList = rvBible.getContextVerseData( (BBB,) )
             if isinstance( rvBible, ESFMBible.ESFMBible ):
@@ -133,7 +138,7 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
                     .replace( f'''<a title="{state.BibleNames[rvBible.abbreviation]}" href="{'../'*level}{BibleOrgSysGlobals.makeSafeString(rvBible.abbreviation)}/byDoc/{filename}#Top">{rvBible.abbreviation}</a>''',
                             f'''<a title="Up to {state.BibleNames[rvBible.abbreviation]}" href="{'../'*level}{BibleOrgSysGlobals.makeSafeString(rvBible.abbreviation)}/">↑{rvBible.abbreviation}</a>''' )
             bkHtml = f'''{top}<!--book page-->
-{makeBookNavListParagraph(state.BBBLinks['OET-RV'], 'OET', state)}
+{navBookListParagraph}
 {bkHtml}
 {makeBottom( level, 'book', state )}'''
             checkHtml( rvBible.abbreviation, bkHtml )
@@ -156,7 +161,8 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
         bkNextNav = f' <a title="Go to next book" href="{iBkList[bkIx+1]}.htm#Top">►</a>' if bkIx<len(iBkList)-1 else ''
 
         bkHtml = f'''<p class="bkNav">{bkPrevNav}<span class="bkHead" id="Top">Open English Translation {ourTidyBBB}</span>{bkNextNav}</p>
-<p class="rem">This is still a very early look into the unfinished text of the <em>Open English Translation</em> of the Bible. Please double-check the text in advance before using in public.</p>
+{JAMES_NOTE_PARAGRAPH if BBB=='JAM' else ''}
+{UNFINISHED_WARNING_PARAGRAPH}
 <div class="RVLVcontainer">
 <h2>Readers’ Version</h2>
 <h2>Literal Version <button type="button" id="marksButton" title="Hide/Show underline and strike-throughs" onclick="hide_show_marks()">Hide marks</button></h2>
@@ -247,7 +253,7 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
                 .replace( f'''<a title="{state.BibleNames['OET']}" href="{'../'*level}OET/byDoc/{filename}#Top">OET</a>''',
                           f'''<a title="Up to {state.BibleNames['OET']}" href="{'../'*level}OET/">↑OET</a>''' )
         bkHtml = f'''{top}<!--book page-->
-{makeBookNavListParagraph(state.BBBLinks['OET-RV'], 'OET', state)}
+{navBookListParagraph}
 {bkHtml}{removeDuplicateCVids( BBB, combinedHtml )}</div><!--RVLVcontainer-->
 {makeBottom( level, 'book', state )}'''
         checkHtml( 'book', bkHtml )
@@ -260,7 +266,7 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
     filename = 'index.htm'
     processedFilenames.append( filename )
     filepath = folder.joinpath( filename )
-    top = makeTop( level, 'OET', 'book', 'byDoc', state ) \
+    top = makeTop( level, 'OET', 'bookIndex', 'byDoc', state ) \
             .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}OET Document View" ) \
             .replace( '__KEYWORDS__', 'Bible, OET, Open English Translation, book, document' ) \
             .replace( f'''<a title="{state.BibleNames['OET']}" href="{'../'*level}OET/byDoc">OET</a>''',
@@ -268,8 +274,8 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
     indexHtml = f'''{top}
 <h1 id="Top">OET book pages</h1>
 <h2>Index of books</h2>
-{makeBookNavListParagraph(state.BBBLinks['OET-RV'], 'OET', state)}
-{makeBottom( level, 'book', state )}'''
+{navBookListParagraph}
+{makeBottom( level, 'bookIndex', state )}'''
     checkHtml( 'OETBooksIndex', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as bkHtmlFile:
@@ -293,18 +299,19 @@ def createBookPages( level:int, folder:Path, thisBible, state:State ) -> List[st
     except FileExistsError: pass # they were already there
 
     thisBibleBooksToLoad = state.booksToLoad[thisBible.abbreviation]
-    BBBsToProcess = thisBible.books.keys() if thisBibleBooksToLoad==['ALL'] \
-                else BOOKLIST_NT27 if thisBibleBooksToLoad==['NT'] \
-                else thisBibleBooksToLoad
-    if 'OET' in thisBible.abbreviation:
-        BBBsToProcess = reorderBooksForOETVersions( BBBsToProcess )
+    # BBBsToProcess = thisBible.books.keys() if thisBibleBooksToLoad==['ALL'] \
+    #             else BOOKLIST_NT27 if thisBibleBooksToLoad==['NT'] \
+    #             else thisBibleBooksToLoad
+    # if 'OET' in thisBible.abbreviation:
+    #     BBBsToProcess = reorderBooksForOETVersions( BBBsToProcess )
     iBkList = ['index'] + list( state.preloadedBibles[thisBible.abbreviation].books.keys() )
     # print( f"{thisBible.abbreviation=} {BBBsToProcess=} {iBkList=}" )
+    navBookListParagraph = makeBookNavListParagraph( state.BBBLinks[thisBible.abbreviation], thisBible.abbreviation, state )
 
     processedBBBs, processedFilenames = [], []
-    for BBB in BBBsToProcess:
+    for BBB in state.BBBsToProcess[thisBible.abbreviation]:
         ourTidyBBB = tidyBBB( BBB )
-        # print( f"{BBB=} {BBBsToProcess}"); print( len(BBBsToProcess) )
+        # print( f"{BBB=} {state.BBBsToProcess[thisBible.abbreviation]}"); print( len(BBBsToProcess) )
         # if not allBooksFlag: thisBible.loadBookIfNecessary( BBB )
         if thisBible.abbreviation=='OET-LV' \
         and BBB in ('FRT','INT','NUM','SA1','SA2','CH1','EZR','NEH','JOB','SNG','JER','DAN'):
@@ -327,7 +334,8 @@ def createBookPages( level:int, folder:Path, thisBible, state:State ) -> List[st
             bkNextNav = f' <a title="Go to first existing book" href="{iBkList[1]}.htm#Top">►</a>'
 
         bkHtml = f'''<p class="bkNav">{bkPrevNav}<span class="bkHead" id="Top">{thisBible.abbreviation} {ourTidyBBB}</span>{bkNextNav}</p>
-{'<p class="rem">This is still a very early look into the unfinished text of the <em>Open English Translation</em> of the Bible. Please double-check the text in advance before using in public.</p>' if 'OET' in thisBible.abbreviation else ''}
+{JAMES_NOTE_PARAGRAPH if 'OET' in thisBible.abbreviation and BBB=='JAM' else ''}
+{UNFINISHED_WARNING_PARAGRAPH if 'OET' in thisBible.abbreviation else ''}
 '''
         verseEntryList, contextList = thisBible.getContextVerseData( (BBB,) )
         if isinstance( thisBible, ESFMBible.ESFMBible ):
@@ -353,7 +361,7 @@ def createBookPages( level:int, folder:Path, thisBible, state:State ) -> List[st
                 .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*level}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/byDoc/{filename}#Top">{thisBible.abbreviation}</a>''',
                           f'''<a title="Up to {state.BibleNames[thisBible.abbreviation]}" href="{'../'*level}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/">↑{thisBible.abbreviation}</a>''' )
         bkHtml = f'''{top}<!--book page-->
-{makeBookNavListParagraph(state.BBBLinks[thisBible.abbreviation], thisBible.abbreviation, state)}
+{navBookListParagraph}
 {bkHtml}
 {makeBottom( level, 'book', state )}'''
         checkHtml( thisBible.abbreviation, bkHtml )
@@ -366,7 +374,7 @@ def createBookPages( level:int, folder:Path, thisBible, state:State ) -> List[st
     filename = 'index.htm'
     processedFilenames.append( filename )
     filepath = folder.joinpath( filename )
-    top = makeTop( level, thisBible.abbreviation, 'book', 'byDoc', state ) \
+    top = makeTop( level, thisBible.abbreviation, 'bookIndex', 'byDoc', state ) \
             .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{thisBible.abbreviation} Book View" ) \
             .replace( '__KEYWORDS__', f'Bible, {thisBible.abbreviation}, book, document' ) \
             .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*level}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/byDoc">{thisBible.abbreviation}</a>''',
@@ -374,8 +382,8 @@ def createBookPages( level:int, folder:Path, thisBible, state:State ) -> List[st
     indexHtml = f'''{top}
 <h1 id="Top">{thisBible.abbreviation} book pages</h1>
 <h2>Index of books</h2>
-{makeBookNavListParagraph(state.BBBLinks[thisBible.abbreviation], thisBible.abbreviation, state)}
-{makeBottom( level, 'book', state)}'''
+{navBookListParagraph}
+{makeBottom( level, 'bookIndex', state)}'''
     checkHtml( thisBible.abbreviation, indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as bkHtmlFile:

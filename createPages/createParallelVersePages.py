@@ -32,6 +32,7 @@ CHANGELOG:
     2023-12-16 Fix bad links to version that don't have their own pages
     2024-01-08 Place UHB up higher on parallel pages
     2024-02-01 Add hide fields button
+    2024-02-05 Add hide colours button
 """
 from gettext import gettext as _
 from typing import Tuple, List
@@ -57,10 +58,10 @@ from createOETReferencePages import CNTR_BOOK_ID_MAP
 from OETHandlers import livenOETWordLinks
 
 
-LAST_MODIFIED_DATE = '2024-02-02' # by RJH
+LAST_MODIFIED_DATE = '2024-02-05' # by RJH
 SHORT_PROGRAM_NAME = "createParallelVersePages"
 PROGRAM_NAME = "OpenBibleData createParallelVersePages functions"
-PROGRAM_VERSION = '0.86'
+PROGRAM_VERSION = '0.87'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -160,7 +161,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
     introLinks = [ '<a title="Go to parallel intro page" href="Intro.htm#Top">Intro</a>' ]
     cLinksPar = f'''<p class="chLst">{EM_SPACE.join( introLinks + [f'<a title="Go to parallel verse page" href="C{ps}V1.htm#Top">Ps{ps}</a>' for ps in range(1,numChapters+1)] )}</p>''' \
         if BBB=='PSA' else \
-            f'''<p class="chLst">{ourTidyBbb if ourTidyBbb!='Jac' else 'Jacob/(James)'} {' '.join( introLinks + [f'<a title="Go to parallel verse page" href="C{chp}V1.htm#Top">C{chp}</a>' for chp in range(1,numChapters+1)] )}</p>'''
+            f'''<p class="chLst">{ourTidyBbb if ourTidyBbb!='Yac' else 'Yacob/(James)'} {' '.join( introLinks + [f'<a title="Go to parallel verse page" href="C{chp}V1.htm#Top">C{chp}</a>' for chp in range(1,numChapters+1)] )}</p>'''
 
     vLinks = []
     detailsLink = f''' <a title="Show details about these works" href="{'../'*(BBBLevel)}allDetails.htm#Top">©</a>'''
@@ -233,7 +234,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                                 .replace( '\n', '<br>' )
                             # if versionAbbreviation=='CSB' and BBB=='RUT' and C=='2' and 'ORD' in verseText: print( f"{versionAbbreviation} {BBB} {C}:{V} {vHtml=}" ); halt
                             assert '\\' not in vHtml, f"{versionAbbreviation} {BBB} {C}:{V} {vHtml=}"
-                            vHtml =  f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName"><a title="Go to {versionAbbreviation} copyright info" href="{'../'*BBBLevel}allDetails.htm#{versionAbbreviation}">{versionAbbreviation}</a></span> {vHtml}</p>
+                            vHtml =  f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName"><a title="Go to {state.BibleNames[versionAbbreviation]} copyright info" href="{'../'*BBBLevel}allDetails.htm#{versionAbbreviation}">{versionAbbreviation}</a></span> {vHtml}</p>
 '''
                         except KeyError:
                             vHtml = None # We display nothing at all for these versions that only have a few selected verses
@@ -315,7 +316,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                                 collationHref = f'https://GreekCNTR.org/collation/?v={CNTR_BOOK_ID_MAP[BBB]}{C.zfill(3)}{V.zfill(3)}'
                                 try:
                                     # NOTE: We close the previous paragraph, but leave the key paragraph open
-                                    keysHtml = f'''</p><p class="key"><b>Key</b>: {', '.join(keysHtmlList)}.\n<br><small>Note: Aligning of the OET-RV to the LV is done by some temporary software, hence the OET-RV alignments are incomplete (and may occasionally be wrong).</small>'''
+                                    keysHtml = f'''</p><p class="key"><b>Key</b>: <button type="button" id="coloursButton" title="Hide/Show grammatical colours above" onclick="hide_show_colours()">C</button> {', '.join(keysHtmlList)}.\n<br><small>Note: Aligning of the OET-RV to the LV is done by some temporary software, hence the OET-RV alignments are incomplete (and may occasionally be wrong).</small>'''
                                 except UnboundLocalError:
                                     keysHtml = ''
                                 textHtml = f'''{textHtml}\n<br> (<a title="Go to the GreekCNTR collation page" href="{collationHref}">SR-GNT</a> {transcription})
@@ -876,9 +877,9 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
         ((' eldere ',),' elder '), (('Elias','Helyas'),'Elias/Elijah'),(('Helie','Elie'),'Elye/Elijah'),
             ((' els ',),' else '),((' els,',),' else,'),
         (('Emperours',),'Emperors'),((' emperours',),' emperors'),(('Emperoure',),'Emperor'),((' emperoure',),' emperor'),
-        ((' ende ',),' end '), (('ynough','inough'),'enough'), ((' entred',' entriden',' entride',' entrid'),' entered'),((' entereth',' entreth'),' entereth/enters'),((' entre ',),' enter '),
+        ((' ende ',),' end '),((' ende,',),' end,'), (('ynough','inough'),'enough'), ((' entred',' entriden',' entride',' entrid'),' entered'),((' entereth',' entreth'),' entereth/enters'),((' entre ',),' enter '),
         (('Hester',),'Esther'),
-        (('Euen ',),'Even '),((' euen ',),' even '), ((' euenyng',' euening'),' evening'),((' euentid ',),' eventide/evening '),
+        (('Euen ',),'Even '),((' euen ',),' even '), ((' euenyng',' euening'),' evening'),((' euentid ',),' eventide/evening '), (('euen ',),'even '), # At beginning of sentence
             (('everlastinge','euerlastynge','euerlastyng','euerlastinge','euerlasting'),'everlasting'), ((' eueremore',' euermore'),' evermore'), (('Euery',),'Every'),((' euery',),' every'), ((' euer ',),' ever '),
         ((' yuelis',),' evils'),((' evyll',' euell',' euill',' euyll'),' evil'),
         (('excedyngly','exceadingly','exceedyngly'),'exceedingly'), ((' excepte ',),' except '), ((' exercyse ',),' exercise '),
@@ -1014,7 +1015,10 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
             ((' myndes',' mindes'),' minds'),((' mynde',),' mind'), ((' myne ',' myn '),' mine '), (('ministred','mynistred','mynystriden'),'ministered'),((' mynyster',' mynister'),' minister'),
             ((' myracles',),' miracles'),
         ((' mony',),' money'), ((' monethe',' moneth'),' month'),
-            (('Mardochee','Mardocheus'),'Mordecai'), (('Moreouer','Morouer'),'Moreover/What\'s_more'),(('morouer',),'moreover/what\'s_more'), ((' moare ',' mowe '),' more '), ((' morninge',' mornynge',' mornyng',' morewtid'),' morning'), ((' morowe',' morow'),' morrow'),
+            (('Mardochee','Mardocheus'),'Mordecai'),
+                (('Moreouer','Morouer'),'Moreover/What\'s_more'),(('morouer',),'moreover/what\'s_more'), ((' moare ',' mowe '),' more '),
+                ((' morninge',' mornynge',' mornyng',' morewtid',' morewe'),' morning'),
+                ((' morowe',' morow'),' morrow'),
             (('Moises','Moyses'),'Moses'),
             ((' moder ',' modir '),' mother '),
             ((' mountayne',' mountaine'),' mountain'), ((' moute ',),' mount '), ((' mornen ',' mourne ',' morne '),' mourn '),((' mornen,',' mourne,',' morne,'),' mourn,'),((' mornen:',' mourne:',' morne:'),' mourn:'),
@@ -1042,7 +1046,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
         (('Othere','Othir','Wother'),'Other'),((' othere ',),' other '),
         ((' oure ',),' our '),
             ((' outwarde',),' outward'), ((' oute.',),' out.'),
-        ((' ouer',),' over'),
+        ((' ouer ',),' over '), (('ouercommeth','ouercometh'),'overcometh/overcomes'), ((' ouercome',),' overcome'),
         ((' awne ',' owne '),' own '),
     ((' parablis',),' parables'), ((' partynge',),' parting'), ((' parts',' parties'),' parts/region'),
             (('Passeouer','Passouer'),'Passover'),((' passiden',' passide'),' passed'),((' passynge',),' passing'),((' passe ',),' pass '),((' passe?',),' pass?'),((' passe:',),' pass:'),
@@ -1063,7 +1067,10 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
         (('playnely','playnly','plainely'),'plainly'), ((' playne ',' plaine '),' plain '),
             ((' pleside',' plesid'),' pleased'), ((' plente ',),' plenty '),
             ((' plucke ',),' pluck '),
-        ((' poole ',),' pool '), ((' poore ',' povre ',' pore '),' poor '), (('possessyoun',),'possession'),(('possesse ',),'possess '), ((' powdir',),' powder'),
+        ((' poole ',),' pool '), ((' poore ',' povre ',' pore '),' poor '),
+            (('possessyoun',),'possession'),(('possesse ',),'possess '),
+            ((' pottere',),' potter'),
+            ((' powdir',),' powder'),
         (('praysed',),'praised'), (('preyeden','preiede','praied'),'prayed'),(('preier',),'prayer'),(('preyng',),'praying'),((' preye ',' praye '),' pray '),
             (('prechiden','prechide','prechid'),'preached'), (('preachyng','prechynge','preachinge'),'preaching'), (('preche ','preache '),'preach '), (('preuent',),'prevent'),
             (('preestis','prestis','prestes','priestes'),'priests'),(('Priestes','Prestes'),'Priests'),(('prieste','preste','prest',),'priest'), (('princis','prynces'),'princes'),
@@ -1077,7 +1084,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
         (('quike',),'quick/alive'),
     (('Rabi',),'Rabbi'), ((' raysed',),' raised'),((' reise',' reyse',' rayse'),' raise'),
         ((' redi ',),' ready '), ((' realme',' rewme'),' realm'), (('reasonyng','reasoninge'),'reasoning'),
-            ((' resseyueth',' receaveth',' receaueth',' receiueth'),' receives'),((' resseyueden',' receaved',' receaued',' receiued'),' received'),((' resseyue',' receave',' receaue',' receiue'),' receive'), (('recompence',),'recompense'), ((' recorde ',),' record '), (('recouering',),'recovering'),
+            ((' resseyueth',' receaveth',' receaueth',' receiueth'),' receives'),((' resseyueden',' resseyuede',' receaved',' receaued',' receiued'),' received'),((' resseyue',' receave',' receaue',' receiue'),' receive'), (('recompence',),'recompense'), ((' recorde ',),' record '), (('recouering',),'recovering'),
             (('refrayne ',),'refrain '),
             (('regardest',),'regard'),
             ((' raygne ',),' reign '),
@@ -1140,7 +1147,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
             ((' spyed',),' spied'), ((' spirite',' sprete'),' spirit'), (('spotil','spetil','spettle'),'spittle'),
             ((' spak ',),' spoke '),
             ((' sprede ',' spred '),' spread '),
-        ((' staffe ',),' staff '), ((' stondith',),' standeth/stands'),((' stande ',' stonde '),' stand '),((' stonde.',),' stand.'),
+        ((' staffe ',),' staff '), ((' stondith',),' standeth/stands'),((' stande ',' stonde '),' stand '),((' stonde.',),' stand.'), ((' starre',),' star'),
             (('Steppe ',),'Step '),
             ((' styll',),' still'),
             ((' stockis',),' stocks'), ((' stoonys',),' stones'),((' stoone',' stoon'),' stone'), ((' stoode ',' stoden ',' stode '),' stood '), ((' stoupe',' stowpe'),' stoop'),
@@ -1308,10 +1315,10 @@ GERMAN_WORD_MAP = (
         (' ein ',' a '),(' eine ',' one '),(' einen ',' a '),
         ('Evangeliums','gospel'),
     ('Gajus','Gaius'),
-        ('Geist','spirit'),
+        (' geben ',' give '), ('Geist','spirit'),
         ('Glauben','faith'),
         ('Gottes','God’s'), (' große ',' great '),(' großen',' great'),
-    (' habe ',' have '), (' habt ',' have '), ('Hauses','houses'),
+    (' habe ',' have '),(' habe;',' have;'), (' habt ',' have '), ('Hauses','houses'),
         ('Himmel','heaven'),
     (' ich ',' I '),
         (' ihm ',' him '),(' ihm.',' him.'), (' ihn ',' him '),
@@ -1324,7 +1331,7 @@ GERMAN_WORD_MAP = (
     ('Lieben ','loved (one) '), (' liebhabe ',' love '), (' Liebe ',' love '), (' ließ ',' let '),(' ließen ',' leave/let '),
     (' machten',' make'),
         ('Meer ','sea '),('Meer.','sea.'),
-        (' meinen ',' my '), (' mit ',' with '),
+        (' meinem ',' my '),(' meinen ',' my '), (' mit ',' with '),
         ('. Morgan','. Morning'),('Morgan','morning'),
     ('Nacht ','night '), ('Naemi ','Naomi '),
         (' nicht ',' not '),
@@ -1337,7 +1344,7 @@ GERMAN_WORD_MAP = (
         (' sprach ',' spoke '),
         (' starb ',' died '),
     ('Und ','And '),(' und ',' and '), ('Ungewitter','storm'),
-    ('Vaterland','fatherland/homeland'),
+    ('Vaterland','fatherland/homeland'), ('Vater ','father '),
         ('verlässest','leave'),
         (' viel ',' many '), ('Volks','people'), (' von ',' from '),
     ('Wahrheit','truth'), ('Wasser','water'),

@@ -69,7 +69,7 @@ sys.path.append( '../../BibleTransliterations/Python/' )
 from BibleTransliterations import load_transliteration_table
 
 from settings import State, state, reorderBooksForOETVersions, TEST_MODE, \
-    TEMP_BUILD_FOLDER, ALL_PRODUCTION_BOOKS, UPDATE_ACTUAL_SITE_WHEN_BUILT, DESTINATION_FOLDER
+    TEMP_BUILD_FOLDER, ALL_PRODUCTION_BOOKS, UPDATE_ACTUAL_SITE_WHEN_BUILT, DESTINATION_FOLDER, BY_DOCUMENT_PARAGRAPH
 from Bibles import preloadVersions, tidyBBB
 from createBookPages import createOETBookPages, createBookPages
 from createChapterPages import createOETSideBySideChapterPages, createChapterPages
@@ -82,7 +82,7 @@ from Dict import createTyndaleDictPages, createUBSDictionaryPages
 from html import makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2024-02-02' # by RJH
+LAST_MODIFIED_DATE = '2024-02-04' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData Create Pages"
 PROGRAM_VERSION = '0.94'
@@ -159,32 +159,44 @@ def _createSitePages() -> bool:
     # Determine our list of books to process for each version
     state.BBBsToProcess, state.BBBLinks = {}, {}
     for versionAbbreviation in state.BibleVersions:
-        if versionAbbreviation == 'OET': continue # This isn't a real version
-        thisBible = state.preloadedBibles[versionAbbreviation]
-        thisBibleBooksToLoad = state.booksToLoad[versionAbbreviation]
-        print( f'{versionAbbreviation}: {thisBible=} {thisBibleBooksToLoad=}' )
-        # if versionAbbreviation in state.selectedVersesOnlyVersions:
-        #     state.BBBsToProcess[versionAbbreviation] = []
-        #     assert isinstance( thisBible, dict )
-        #     for BBB,_C,_V in thisBible: # a dict with keys like ('REV', '1', '3')
-        #         if BBB not in state.BBBsToProcess[versionAbbreviation]:
-        #             state.BBBsToProcess[versionAbbreviation].append( BBB )
-        # else: # not selectedVersesOnlyVersions
-        if versionAbbreviation not in state.selectedVersesOnlyVersions:
-            state.BBBsToProcess[versionAbbreviation] = thisBible.books.keys() if thisBibleBooksToLoad==['ALL'] \
-                    else BOOKLIST_NT27 if thisBibleBooksToLoad==['NT'] \
-                    else thisBibleBooksToLoad
-            if 'OET' in versionAbbreviation:
-                state.BBBsToProcess[versionAbbreviation] = reorderBooksForOETVersions( state.BBBsToProcess[versionAbbreviation] )
-            state.BBBLinks[versionAbbreviation] = []
-            for BBB in state.BBBsToProcess[versionAbbreviation]:
-                # We include FRT here if there is one, but it will be excluded later where irrelevant
-                if BBB=='FRT' \
-                or 'ALL' in thisBibleBooksToLoad \
-                or BBB in thisBibleBooksToLoad:
-                    filename = f'{BBB}.htm'
-                    ourTidyBBB = tidyBBB( BBB )
-                    state.BBBLinks[versionAbbreviation].append( f'''<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB).replace('James','Jacob/(James)')}" href="{filename}#Top">{ourTidyBBB}</a>''' )
+        # if versionAbbreviation == 'OET': continue # This isn't a real version
+        if versionAbbreviation == 'OET': # This isn't a real version
+            lvBible = state.preloadedBibles['OET-LV']
+            rvBible = state.preloadedBibles['OET-RV']
+            rvBooks = rvBible.books.keys() if 'ALL' in state.booksToLoad[rvBible.abbreviation] else state.booksToLoad[rvBible.abbreviation]
+            lvBooks = lvBible.books.keys() if 'ALL' in state.booksToLoad[lvBible.abbreviation] else state.booksToLoad[lvBible.abbreviation]
+            state.BBBsToProcess['OET'] = reorderBooksForOETVersions( [rvKey for rvKey in rvBooks if rvKey in lvBooks] )
+            state.BBBLinks['OET'] = []
+            for BBB in state.BBBsToProcess['OET']:
+                filename = f'{BBB}.htm'
+                ourTidyBBB = tidyBBB( BBB )
+                state.BBBLinks['OET'].append( f'''<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB).replace('James','Jacob/(James)')}" href="{filename}#Top">{ourTidyBBB}</a>''' )
+        else: # not OET
+            thisBible = state.preloadedBibles[versionAbbreviation]
+            thisBibleBooksToLoad = state.booksToLoad[versionAbbreviation]
+            print( f'{versionAbbreviation}: {thisBible=} {thisBibleBooksToLoad=}' )
+            # if versionAbbreviation in state.selectedVersesOnlyVersions:
+            #     state.BBBsToProcess[versionAbbreviation] = []
+            #     assert isinstance( thisBible, dict )
+            #     for BBB,_C,_V in thisBible: # a dict with keys like ('REV', '1', '3')
+            #         if BBB not in state.BBBsToProcess[versionAbbreviation]:
+            #             state.BBBsToProcess[versionAbbreviation].append( BBB )
+            # else: # not selectedVersesOnlyVersions
+            if versionAbbreviation not in state.selectedVersesOnlyVersions:
+                state.BBBsToProcess[versionAbbreviation] = thisBible.books.keys() if thisBibleBooksToLoad==['ALL'] \
+                        else BOOKLIST_NT27 if thisBibleBooksToLoad==['NT'] \
+                        else thisBibleBooksToLoad
+                if 'OET' in versionAbbreviation:
+                    state.BBBsToProcess[versionAbbreviation] = reorderBooksForOETVersions( state.BBBsToProcess[versionAbbreviation] )
+                state.BBBLinks[versionAbbreviation] = []
+                for BBB in state.BBBsToProcess[versionAbbreviation]:
+                    # We include FRT here if there is one, but it will be excluded later where irrelevant
+                    if BBB=='FRT' \
+                    or 'ALL' in thisBibleBooksToLoad \
+                    or BBB in thisBibleBooksToLoad:
+                        filename = f'{BBB}.htm'
+                        ourTidyBBB = tidyBBB( BBB )
+                        state.BBBLinks[versionAbbreviation].append( f'''<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB).replace('James','Jacob/(James)')}" href="{filename}#Top">{ourTidyBBB}</a>''' )
 
     # Ok, let's go create some static pages
     if 'OET' in state.BibleVersions: # this is a special case
@@ -346,11 +358,11 @@ def _createOETVersionPages( level:int, folder:Path, rvBible, lvBible, state:Stat
 
     versionName = state.BibleNames['OET']
     indexHtml = f'''<h1 id="Top">{versionName}</h1>
-<p class="rem">Remember that ancient letters were meant to be read in their entirety just like modern letters. We provide a byChapter mode for convenience only, but mostly recommend the byDocument mode for personal reading.</p>
+{BY_DOCUMENT_PARAGRAPH}
 <p class="viewLst">OET <a href="byDoc">By Document</a> <a href="bySec">By Section</a> <a href="byC">By Chapter</a> <a href="details.htm#Top">Details</a></p>
 ''' if rvBible.discoveryResults['ALL']['haveSectionHeadings'] or lvBible.discoveryResults['ALL']['haveSectionHeadings'] else \
 f'''<h1 id="Top">{versionName}</h1>
-<p class="rem">Remember that ancient letters were meant to be read in their entirety just like modern letters. We provide a byChapter mode for convenience only, but mostly recommend the byDocument mode for personal reading.</p>
+{BY_DOCUMENT_PARAGRAPH}
 <p class="viewLst">OET <a href="byDoc">By Document</a> <a href="byC">By Chapter</a> <a href="details.htm#Top">Details</a></p>
 '''
     top = makeTop( level, None, 'site', None, state ) \
@@ -378,11 +390,11 @@ def _createVersionPages( level:int, folder:Path, thisBible, state:State ) -> boo
 
     versionName = state.BibleNames[thisBible.abbreviation]
     indexHtml = f'''<h1 id="Top">{versionName}</h1>
-<p class="rem">Remember that ancient letters were meant to be read in their entirety just like modern letters. We provide a byChapter mode for convenience only, but mostly recommend the byDocument mode for personal reading.</p>
+{BY_DOCUMENT_PARAGRAPH}
 <p class="viewLst">{thisBible.abbreviation} <a href="byDoc">By Document</a> <a href="bySec">By Section</a> <a href="byC">By Chapter</a> <a href="details.htm#Top">Details</a></p>
 ''' if thisBible.discoveryResults['ALL']['haveSectionHeadings'] else \
 f'''<h1 id="Top">{versionName}</h1>
-<p class="rem">Remember that ancient letters were meant to be read in their entirety just like modern letters. We provide a byChapter mode for convenience only, but mostly recommend the byDocument mode for personal reading.</p>
+{BY_DOCUMENT_PARAGRAPH}
 <p class="viewLst">{thisBible.abbreviation} <a href="byDoc">By Document</a> <a href="byC">By Chapter</a> <a href="details.htm#Top">Details</a></p>
 '''
     top = makeTop( level, None, 'site', None, state ) \
@@ -630,7 +642,9 @@ def _createAboutPage( level:int, buildFolder:Path, state:State ) -> bool:
 <li>Our <b>Search page</b> allows you to search for English, Latin, Hebrew, and Greek words.</li>
 </ul>
 <p class="about">We would welcome any others who would like to contribute open datasets or code to this endeavour.
-    Please contact us at <b>Freely</b> dot <b>Given</b> dot <b>org</b> (at) <b>gmail</b> dot <b>com</b>.</p>
+    Please contact us at <b>Freely</b> dot <b>Given</b> dot <b>org</b> (at) <b>gmail</b> dot <b>com</b>.
+    We consider this OBD project to be part of the very first stage of contributing to the development of an open-licensed Bible-study app
+        to rival the commercial ones (like ‘Logos’ -- not the plural of ‘logo’).</p>
 <p class="about">You’ll possibly notice that not many large, commercial Bibles are included in these pages because of their strict control of their texts.
     We highly recommend that our readers find better translations that are more influenced by discipleship priorities, and less by finances.
     <small>(See <a href="https://SellingJesus.org/">SellingJesus.org</a> if you want to learn more about commercialism of Christian publications.)</p>
@@ -682,10 +696,10 @@ def _createMainIndexPage( level, folder:Path, state:State ) -> bool:
 <p class="note">Welcome to this <em>Open Bible Data</em> site created to share God’s fantastic message with everyone,
     and with a special interest in helping Bible translators around the world.</p>
 <p class="note">Choose a version abbreviation above to view Bible ‘books’ <b>by document</b> or <b>by section</b> or <b>by chapter</b>.</p>
-<p class="note">The <b><a href="rel/">related</a></b> option shows OET-RV sections with any parallel or related content (especially in the ‘Messiah accounts’: John, Mark, Matthew, and Luke), as well as listing out all of the cross-references.</p>
-<p class="note">For individual ‘verses’ you can see the OET-RV with the OET-LV underneath it, plus many other different translations, plus some translation notes in the <b><a href="par/">parallel</a> verse</b> view.</p>
-<p class="note">The <b><a href="ilr/">interlinear</a> verse</b> view shows the OET-RV and OET-LV aligned with the original Hebrew or Greek words (including a ‘reverse interlinear’).</p>
-<p class="note">The <b><a href="dct/">dictionary</a></b> link takes you to the <i>Tyndale Bible Dictionary</i>, with UBS dictionaries also coming...</p>
+<p class="note">The <b><a href="rel/">Related</a> passage</b> option shows OET-RV sections with any parallel or related content (especially in the ‘Messiah accounts’: John, Mark, Matthew, and Luke), as well as listing out all of the cross-references.</p>
+<p class="note">For individual ‘verses’ you can see the OET-RV with the OET-LV underneath it, plus many other different translations, plus some translation notes in the <b><a href="par/">Parallel</a> verse</b> view.</p>
+<p class="note">The <b><a href="ilr/">Interlinear</a> verse</b> view shows the OET-RV and OET-LV aligned with the original Hebrew or Greek words (including a ‘reverse interlinear’).</p>
+<p class="note">The <b><a href="dct/">Dictionary</a></b> link takes you to the <i>Tyndale Bible Dictionary</i>, with UBS dictionaries also coming...</p>
 <p class="note">The <b><a href="search.htm">Search</a></b> link allows you to find English words (from a range of versions), or even Greek/Hebrew words, within the Bible text.</p>
 <p class="note"><small>Last rebuilt: {date.today()}</small></p>
 {makeBottom( level, 'topIndex', state )}'''

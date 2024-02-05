@@ -118,9 +118,9 @@ span.xrRef { font-weight:bold; }
 .greekAcc { background-color:orange; }
 .greekGen { background-color:pink; }
 .greekDat { background-color:cyan; }
-.greekVoc { background-color:magenta; }
+.greekVoc { background-color:orchid; }
 .greekVrb { background-color:yellow; }
-.greekNeg { background-color:red; }
+.greekNeg { background-color:crimson; }
 
 /* Other GNT classes */
 /* span.wrkName { } */
