@@ -58,7 +58,7 @@ from createOETReferencePages import CNTR_BOOK_ID_MAP
 from OETHandlers import livenOETWordLinks
 
 
-LAST_MODIFIED_DATE = '2024-02-05' # by RJH
+LAST_MODIFIED_DATE = '2024-02-07' # by RJH
 SHORT_PROGRAM_NAME = "createParallelVersePages"
 PROGRAM_NAME = "OpenBibleData createParallelVersePages functions"
 PROGRAM_VERSION = '0.87'
@@ -832,7 +832,8 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
             ((' coulde',' coude'),' could'), ((' councill',' councell',' counsell'),' council'), ((' cuntree',' countrey',' cuntrey',' cuntrei',' countre',' cuntre'),' country'),
             ((' couered',),' covered'),
         ((' crieden',' criede',' cryed'),' cried'), (('crepell',),'crippled'),
-            ((' crokid',),' crooked'), (('coroun ','croune ','crowne ',),'crown '), ((' crye ',' crie '),' cry '),((' crye,',' crie,'),' cry,'),
+            ((' crokid',),' crooked'), ((' crosse ',' cros '),' cross '),((' crosse,',),' cross,'), (('coroun ','croune ','crowne ',),'crown '),
+            ((' crye ',' crie '),' cry '),((' crye,',' crie,'),' cry,'),
         ((' cuppe',),' cup'),
     ((' dayly',' daylie'),' daily'),
             ((' daunger ',),' danger '),
@@ -900,8 +901,8 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
             ((' flyght ',),' flight '),
             (('flockis',),'flocks'), (('flowith ','floweth '),'floweth/flows '),
         ((' foale ',),' foal '),
-            ((' foold ',),' fold '), ((' folkis',),' folks/people'), ((' folowed',' folewiden',' suede'),' followed'), ((' folowe',' folow',' suen'),' follow'), (('Folowe','Folow'),'Follow'),
-            ((' foote ',' fote '),' foot '),
+            ((' foold ',),' fold '), ((' folkis',),' folks/people'), ((' folowed',' folewiden',' suede'),' followed'), ((' folowe',' folow',' suen'),' follow'), (('Folowe','Folow'),'Follow'), ((' foli ',),' folly '),
+            (('foolishnesse','folishnes'),'foolishness'), ((' foote ',' fote '),' foot '),
             (('forgeven','foryouun','forgeuen','forgiuen'),'forgiven'), ((' forgiue ',' foryyue ',' forgeve ',' forgeue '),' forgive '),
                 ((' fornicacion',),' fornication'),
                 ((' forsooke',' forsoke',),' forsook'),((' foorth',' forthe'),' forth'),

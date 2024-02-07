@@ -8,7 +8,7 @@ span.upLink { font-size:1.5em; font-weight:bold; }
 a:visited { text-decoration:none; }
 a:hover { text-decoration:none; }
 a:active { text-decoration:none; } */
-a { text-decoration:none; }
+a { color:inherit; text-decoration:none; }
 
 /* Navigational lists at top of page */
 p.wrkLst { background-color:#904471; color:98a9d4; }
@@ -26,11 +26,11 @@ p.vsLst {background-color:mistyRose; }
 span.XX { color:purple; }
 .XX a { text-decoration:none; }
 span.OT { color:saddlebrown; }
-.OT a { text-decoration:none; }
+.OT a { color:inherit; text-decoration:none; }
 span.NT { color:darkgreen; }
-.NT a { text-decoration:none; }
+.NT a { color:inherit; text-decoration:none; }
 span.DC { color:orange; font-size:smaller; }
-.DC a { text-decoration:none; }
+.DC a { color:inherit; text-decoration:none; }
 
 /* Navs are the ones with arrows */
 p.cNav { text-align:center; font-size:1.8em; background-color:#98a9d4; }

@@ -35,6 +35,7 @@ CHANGELOG:
     2023-10-16 Add other Greek words with similar glosses
     2023-12-31 Appended a key to word and lemma pages with roles and morphology abbreviations
     2024-01-03 Added other Greek lemmas with similar glosses
+    2024-02-06 Remove some of the unnecessary static text on word and lemma pages
 """
 from gettext import gettext as _
 from typing import Dict, List, Tuple
@@ -57,10 +58,10 @@ from html import makeTop, makeBottom, checkHtml
 from Bibles import tidyBBB
 
 
-LAST_MODIFIED_DATE = '2024-02-01' # by RJH
+LAST_MODIFIED_DATE = '2024-02-06' # by RJH
 SHORT_PROGRAM_NAME = "createOETReferencePages"
 PROGRAM_NAME = "OpenBibleData createOETReferencePages functions"
-PROGRAM_VERSION = '0.56'
+PROGRAM_VERSION = '0.57'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -422,7 +423,7 @@ SIMILAR_GLOSS_WORDS_TABLE = [
     # Each line (tuple) contains two tuples:
     #   The first is a list of words for existing glosses
     #   The second is a list of other glosses to also display as synonyms
-    # NOTE: The glosses are the VLT glosses -- not our adjusted OET-LV glosses
+    # NOTE: The glosses are the original VLT glosses -- not our adjusted OET-LV glosses
     # NOTE: Reversals are not automatic -- they have to be manually entered
     (('ancestor','ancestors'),('patriarch','patriarchs','elders')),
     (('anger',),('wrath',)),
@@ -449,7 +450,7 @@ SIMILAR_GLOSS_WORDS_TABLE = [
     (('grain',),('wheat','barley')),
     (('heart','hearts'),('mind','minds')),
     (('holiness',),('purity',)),
-    (('house_servant','house_servants'),('servant','servants','slave','slaves')),
+    (('house_servant','house_servants'),('servant','servants','attendant','attendants','slave','slaves')),
     (('illuminate','illuminated','illuminating'),('light','enlighten','enlightened','enlightening')),
     (('immediately',),('suddenly',)),
     (('Jesus',),('Joshua','Yeshua')),
@@ -474,9 +475,9 @@ SIMILAR_GLOSS_WORDS_TABLE = [
     (('Satan',),('devil',)),
     (('scroll','scrolls'),('book','books','scipture','scriptures')),
     (('seed',),('sperm',)),
-    (('servant','servants'),('slave','slaves','house_servant','house_servants')),
+    (('servant','servants'),('slave','slaves','house_servant','house_servants','attendant','attendants')),
     (('ship','ships'),('boat','boats')),
-    (('slave','slaves'),('servant','house_servant','servants','house_servants')),
+    (('slave','slaves'),('servant','house_servant','servants','house_servants','attendant','attendants')),
     (('son','sons'),('child','children')),
     (('sperm',),('seed',)),
     (('suddenly',),('immediately',)),
@@ -835,7 +836,7 @@ def make_Greek_word_pages( level:int, outputFolderPath:Path, state:State ) -> No
 <p class="pNav">{prevLink}<b>{greekWord}</b> <a href="index.htm">↑</a>{nextLink}{oetLink}{parallelLink}{interlinearLink}</p>
 <p class="link"><a title="Go to Statistical Restoration Greek page" href="https://GreekCNTR.org/collation/?v={CNTR_BOOK_ID_MAP[BBB]}{C.zfill(3)}{V.zfill(3)}">SR GNT {ourTidyBBB} {C}:{V}</a>
  {probabilityField if TEST_MODE else ''}<b>{greekWord}</b> ({transliterate_Greek(greekWord)}) {translation}{capsField if TEST_MODE else ''}
- Strongs=<a title="Goes to Strongs dictionary" href="https://BibleHub.com/greek/{strongs}.htm">{extendedStrongs}</a> <small>Lemma={lemmaLink}</small><br>
+ Strongs=<a title="Goes to Strongs dictionary" href="https://BibleHub.com/greek/{strongs}.htm">{extendedStrongs}</a> Lemma=<b>{lemmaLink}</b><br>
  {roleField}{moodField}{tenseField}{voiceField}{personField}{caseField}{genderField}{numberField}{f'<br>  {semanticExtras}' if semanticExtras else ''}</p>
 <p class="note"><small>Note: With the help of a companion website, these word pages enable you to click through all the way back to photographs of the original manuscripts that the <em>Open English Translation</em> New Testament is translated from.
 If you go to the <em>Statistical Restoration</em> Greek page (by clicking on the SR Bible reference above), from there you can click on the original manuscript numbers (e.g., 𝔓1, 01, 02, etc.) in the <i>Witness</i> column there, to see their transcription of the original Greek page.
@@ -943,7 +944,7 @@ f''' {translation} <a title="Go to Statistical Restoration Greek page" href=
                                     else:
                                         eTidyRoleMorphology = eRoleLetter
                                     extraHTMLList.append( f'''<p class="wordLine"><a title="View OET {eTidyBBB} text" href="{'../'*level}OET/byC/{eBBB}_C{eC}.htm#C{eC}V{eV}">{eTidyBBB} {eC}:{eV}</a>'''
-f''' ‘{eGreekPossibleLink}’ <small>({eTidyRoleMorphology})</small>{f' Lemma={eLemmaLink}' if eLemmaLink else ''}'''
+f''' <b>{eGreekPossibleLink}</b> ({transliterate_Greek(eGreekWord)}) <small>{eTidyRoleMorphology}</small>{f' Lemma={eLemmaLink}' if eLemmaLink else ''}'''
 f''' ‘{eFormattedContextGlossWords}’'''
 f''' <a title="Go to Statistical Restoration Greek page" href="https://GreekCNTR.org/collation/?v={CNTR_BOOK_ID_MAP[eBBB]}{eC.zfill(3)}{eV.zfill(3)}">SR GNT {eTidyBBB} {eC}:{eV} word {eW}</a></p>'''
                                         if not TEST_MODE or eBBB in state.preloadedBibles['OET-RV'] else
@@ -1079,8 +1080,8 @@ def make_Greek_lemma_pages( level:int, outputFolderPath:Path, state:State ) -> N
                                     else f'{oTidyBBB} {oC}:{oV}'
                 oGreekWordLink = f'<a title="Go to word page" href="../GrkWrd/{oN}.htm#Top">{oGreekWord}</a>' if not TEST_MODE or oBBB in state.preloadedBibles['OET-RV'] else oGreekWord
                 translation = '<small>(no English gloss here)</small>' if oGlossWords=='-' else f'''‘{oFormattedContextGlossWords.replace('_','<span class="ul">_</span>')}’'''
-                lemmaHTML = f'''{lemmaHTML}\n<p class="lemmaLine">{oOETLink} Greek word=<b>{oGreekWordLink}</b> ({transliterate_Greek(oGreekWord)})''' \
-                    f"{f' {CNTR_ROLE_NAME_DICT[oRoleLetter].title()}' if len(oRoleSet)>1 else ''} <small>Morphology={oTidyMorphology}</small>" \
+                lemmaHTML = f'''{lemmaHTML}\n<p class="lemmaLine">{oOETLink} <b>{oGreekWordLink}</b> ({transliterate_Greek(oGreekWord)})''' \
+                    f"{f' {CNTR_ROLE_NAME_DICT[oRoleLetter].title()}' if len(oRoleSet)>1 else ''} {oTidyMorphology}" \
                     f''' {translation} <a title="Go to Statistical Restoration Greek page" href="https://GreekCNTR.org/collation/?v={CNTR_BOOK_ID_MAP[oBBB]}{oC.zfill(3)}{oV.zfill(3)}">SR GNT {oTidyBBB} {oC}:{oV} word {oW}</a></p>'''
                 # other_count += 1
                 # if other_count >= 120:
@@ -1089,6 +1090,7 @@ def make_Greek_lemma_pages( level:int, outputFolderPath:Path, state:State ) -> N
                 if displayCounter >= maxWordsToShow: break
             return lemmaHTML
         # end of createOETReferencePages.make_Greek_lemma_pages.makeLemmaHTML
+
         lemmasHtml = f"{lemmasHtml}\n{makeLemmaHTML(lemma, lemmaRowsList)}"
 
         # Consider related lemmas, e.g., with or without prefix
