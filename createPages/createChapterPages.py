@@ -49,7 +49,7 @@ import BibleOrgSys.Formats.ESFMBible as ESFMBible
 
 from settings import State, TEST_MODE, reorderBooksForOETVersions, UNFINISHED_WARNING_PARAGRAPH, JAMES_NOTE_PARAGRAPH
 from usfm import convertUSFMMarkerListToHtml
-from Bibles import tidyBBB
+from Bibles import getOurTidyBBB
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
                     makeTop, makeBottom, makeBookNavListParagraph, removeDuplicateCVids, checkHtml
 from OETHandlers import livenOETWordLinks
@@ -87,7 +87,7 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
     BBBs, filenames = [], []
     for BBB in state.BBBsToProcess['OET']:
         vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Creating chapter pages for OET {BBB}…" )
-        ourTidyBBB = tidyBBB( BBB )
+        ourTidyBBB = getOurTidyBBB( BBB )
         # print( f"{BBB=} {BBBsToProcess}"); print( len(state.BBBsToProcess[thisBible.abbreviation]) )
         # if not allBooksFlag: rvBible.loadBookIfNecessary( BBB )
         # lvBible.loadBookIfNecessary( BBB )
@@ -401,7 +401,7 @@ def createChapterPages( level:int, folder:Path, thisBible, state:State ) -> List
             continue # Only create pages for the requested books
 
         BBBs.append( BBB )
-        ourTidyBBB = tidyBBB( BBB )
+        ourTidyBBB = getOurTidyBBB( BBB )
         try: numChapters = thisBible.getNumChapters( BBB )
         except KeyError:
             logging.critical( f"Can't get number of chapters for {thisBible.abbreviation} {BBB}")

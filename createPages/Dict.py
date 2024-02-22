@@ -27,6 +27,7 @@ Module handling Bible Dictionary functions.
 
 CHANGELOG:
     2024-01-30 Load UBS Dictionary of Greek New Testament
+    2024-02-22 Load UBS Dictionary of Biblical Hebrew
 """
 from gettext import gettext as _
 from typing import List
@@ -44,10 +45,10 @@ from settings import State, TEST_MODE, ALTERNATIVE_VERSION
 from html import makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2024-02-02' # by RJH
+LAST_MODIFIED_DATE = '2024-02-22' # by RJH
 SHORT_PROGRAM_NAME = "Dictionary"
 PROGRAM_NAME = "OpenBibleData Dictionary handler"
-PROGRAM_VERSION = '0.43'
+PROGRAM_VERSION = '0.44'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -88,7 +89,7 @@ def loadTyndaleOpenBibleDictXML( abbrev:str, folderpath ) -> None:
             else:
                 logging.warning( "fv6g Unprocessed {} attribute ({}) in {}".format( attrib, value, topLocation ) )
                 loadErrors.append( "Unprocessed {} attribute ({}) in {} (fv6g)".format( attrib, value, topLocation ) )
-                if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.haltOnXMLWarning: halt
+                if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.errorOnXMLWarning: halt
         assert releaseVersion == '1.6'
 
         for element in XMLTree:
@@ -108,7 +109,7 @@ def loadTyndaleOpenBibleDictXML( abbrev:str, folderpath ) -> None:
                 else:
                     logging.warning( "fv6g Unprocessed {} attribute ({}) in {}".format( attrib, value, location ) )
                     loadErrors.append( "Unprocessed {} attribute ({}) in {} (fv6g)".format( attrib, value, location ) )
-                    if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.haltOnXMLWarning: halt
+                    if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.errorOnXMLWarning: halt
             stateCounter = 0
             title = None
             thisEntry = ''
@@ -144,7 +145,7 @@ def loadTyndaleOpenBibleDictXML( abbrev:str, folderpath ) -> None:
                                 else:
                                     logging.warning( "fv6g Unprocessed {} attribute ({}) in {}".format( attrib, value, bodyLocation ) )
                                     loadErrors.append( "Unprocessed {} attribute ({}) in {} (fv6g)".format( attrib, value, bodyLocation ) )
-                                    if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.haltOnXMLWarning: halt
+                                    if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.errorOnXMLWarning: halt
                             # So we want to extract this as an HTML paragraph
                             htmlSegment = BibleOrgSysGlobals.getFlattenedXML( bodyelement, bodyLocation )
                                                                     # .replace( '<a href="  \?', '<a href="?') # Fix encoding mistake in 1 Tim
@@ -192,7 +193,7 @@ def loadTyndaleOpenBibleDictXML( abbrev:str, folderpath ) -> None:
             else:
                 logging.warning( "fv6g Unprocessed {} attribute ({}) in {}".format( attrib, value, topLocation ) )
                 loadErrors.append( "Unprocessed {} attribute ({}) in {} (fv6g)".format( attrib, value, topLocation ) )
-                if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.haltOnXMLWarning: halt
+                if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.errorOnXMLWarning: halt
         assert releaseVersion == '1.6'
 
         for element in XMLTree:
@@ -213,7 +214,7 @@ def loadTyndaleOpenBibleDictXML( abbrev:str, folderpath ) -> None:
                 else:
                     logging.warning( "fv6g Unprocessed {} attribute ({}) in {}".format( attrib, value, location ) )
                     loadErrors.append( "Unprocessed {} attribute ({}) in {} (fv6g)".format( attrib, value, location ) )
-                    if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.haltOnXMLWarning: halt
+                    if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.errorOnXMLWarning: halt
             assert name
 
             stateCounter = 0
@@ -252,7 +253,7 @@ def loadTyndaleOpenBibleDictXML( abbrev:str, folderpath ) -> None:
                                 else:
                                     logging.warning( "fv6g Unprocessed {} attribute ({}) in {}".format( attrib, value, bodyLocation ) )
                                     loadErrors.append( "Unprocessed {} attribute ({}) in {} (fv6g)".format( attrib, value, bodyLocation ) )
-                                    if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.haltOnXMLWarning: halt
+                                    if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.errorOnXMLWarning: halt
                             # So we want to extract this as an HTML paragraph
                             htmlSegment = BibleOrgSysGlobals.getFlattenedXML( bodyelement, bodyLocation )
                                                                     # .replace( '<a href="  \?', '<a href="?') # Fix encoding mistake in 1 Tim
@@ -291,7 +292,7 @@ def loadTyndaleOpenBibleDictXML( abbrev:str, folderpath ) -> None:
             else:
                 logging.warning( "fv6g Unprocessed {} attribute ({}) in {}".format( attrib, value, topLocation ) )
                 loadErrors.append( "Unprocessed {} attribute ({}) in {} (fv6g)".format( attrib, value, topLocation ) )
-                if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.haltOnXMLWarning: halt
+                if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.errorOnXMLWarning: halt
         assert releaseVersion == '1.6'
 
         for element in XMLTree:
@@ -312,7 +313,7 @@ def loadTyndaleOpenBibleDictXML( abbrev:str, folderpath ) -> None:
                 else:
                     logging.warning( "fv6g Unprocessed {} attribute ({}) in {}".format( attrib, value, location ) )
                     loadErrors.append( "Unprocessed {} attribute ({}) in {} (fv6g)".format( attrib, value, location ) )
-                    if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.haltOnXMLWarning: halt
+                    if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.errorOnXMLWarning: halt
             assert name
 
             stateCounter = 0
@@ -348,7 +349,7 @@ def loadTyndaleOpenBibleDictXML( abbrev:str, folderpath ) -> None:
                                 else:
                                     logging.warning( "fv6g Unprocessed {} attribute ({}) in {}".format( attrib, value, bodyLocation ) )
                                     loadErrors.append( "Unprocessed {} attribute ({}) in {} (fv6g)".format( attrib, value, bodyLocation ) )
-                                    if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.haltOnXMLWarning: halt
+                                    if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.errorOnXMLWarning: halt
                             # So we want to extract this as an HTML paragraph
                             htmlSegment = BibleOrgSysGlobals.getFlattenedXML( bodyelement, bodyLocation )
                                                                     # .replace( '<a href="  \?', '<a href="?') # Fix encoding mistake in 1 Tim
@@ -394,7 +395,7 @@ def loadDictLetterXML( letter:str, folderpath ) -> None:
             else:
                 logging.warning( "fv6g Unprocessed {} attribute ({}) in {}".format( attrib, value, topLocation ) )
                 loadErrors.append( "Unprocessed {} attribute ({}) in {} (fv6g)".format( attrib, value, topLocation ) )
-                if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.haltOnXMLWarning: halt
+                if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.errorOnXMLWarning: halt
         assert releaseVersion == '1.6'
 
         assert letter not in TOBDData['Letters']
@@ -417,7 +418,7 @@ def loadDictLetterXML( letter:str, folderpath ) -> None:
                 else:
                     logging.warning( "fv6g Unprocessed {} attribute ({}) in {}".format( attrib, value, location ) )
                     loadErrors.append( "Unprocessed {} attribute ({}) in {} (fv6g)".format( attrib, value, location ) )
-                    if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.haltOnXMLWarning: halt
+                    if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.errorOnXMLWarning: halt
             assert name
             assert typeName
 
@@ -452,7 +453,7 @@ def loadDictLetterXML( letter:str, folderpath ) -> None:
                 #             else:
                 #                 logging.warning( "fv6g Unprocessed {} attribute ({}) in {}".format( attrib, value, topLocation ) )
                 #                 loadErrors.append( "Unprocessed {} attribute ({}) in {} (fv6g)".format( attrib, value, topLocation ) )
-                #                 if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.haltOnXMLWarning: halt
+                #                 if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.errorOnXMLWarning: halt
                 #         assert name
                 #         assert typeName
             else:
@@ -496,7 +497,7 @@ def loadDictLetterXML( letter:str, folderpath ) -> None:
                                     else:
                                         logging.warning( "fv6g Unprocessed {} attribute ({}) in {}".format( attrib, value, bodyLocation ) )
                                         loadErrors.append( "Unprocessed {} attribute ({}) in {} (fv6g)".format( attrib, value, bodyLocation ) )
-                                        if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.haltOnXMLWarning: halt
+                                        if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.errorOnXMLWarning: halt
                                 # So we want to extract this as an HTML paragraph
                                 htmlSegment = BibleOrgSysGlobals.getFlattenedXML( bodyelement, bodyLocation )
                                                                         # .replace( '<a href="  \?', '<a href="?') # Fix encoding mistake in 1 Tim
@@ -522,7 +523,7 @@ def loadDictLetterXML( letter:str, folderpath ) -> None:
                                     else:
                                         logging.warning( "fv6g Unprocessed {} attribute ({}) in {}".format( attrib, value, bodyLocation ) )
                                         loadErrors.append( "Unprocessed {} attribute ({}) in {} (fv6g)".format( attrib, value, bodyLocation ) )
-                                        if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.haltOnXMLWarning: halt
+                                        if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.errorOnXMLWarning: halt
                                 if 'Textbox' in iiSrc:
                                     assert iiSrc == '../Textboxes/Textboxes.xml'
                                     # So we want to save this as an XML paragraph to insert textbox later
@@ -667,9 +668,9 @@ even though it was originally designed to supplement the <i>New Living Translati
 <h2>Index of dictionary letters</h2>
 {lettersParagraph}
 <h1>UBS Dictionary of New Testament Greek <small>{UBS_detailsLink}</small></h1>
-<p class="note">This isn’t fully formatted and implemented yet, but something might be visible <a href="{'../'*(level)}UBS/">here</a>.</p>
+<p class="note">This isn’t fully formatted and implemented yet, but something might be visible <a href="{'../'*(level)}UBS/Grk/">here</a>.</p>
 <h1>UBS Dictionary of Biblical Hebrew <small>{UBS_detailsLink}</small></h1>
-<p class="note">Coming...</p>
+<p class="note">This isn’t fully formatted and implemented yet, but something might be visible <a href="{'../'*(level)}UBS/Heb/">here</a>.</p>
 {makeBottom( level, 'dictionaryMainIndex', state )}'''
     checkHtml( 'DictionaryIndex', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
@@ -928,15 +929,53 @@ def loadAndIndexUBSHebrewDictJSON( abbrev:str, folderpath ) -> None:
 def createUBSDictionaryPages( level, outputFolderPath, state:State ) -> None:
     """
     """
-    global USB_GNT_DATA, USB_GNT_ID_INDEX, USB_GNT_LEMMA_INDEX
     fnPrint( DEBUGGING_THIS_MODULE, f"createUBSDictionaryPages( {level}, '{outputFolderPath}', ... )")
+
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, "\nCreating UBS Dict pages…" )
+
+    try: os.makedirs( outputFolderPath )
+    except FileExistsError: pass # it was already there
+
+    createUBSHebrewDictionaryPages( level+1, outputFolderPath.joinpath( 'Heb/'), state )
+    createUBSGreekDictionaryPages ( level+1, outputFolderPath.joinpath( 'Grk/'), state )
+# end of Bibles.createUBSDictionaryPages
+
+
+BOOK_NUM_TABLE = { '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', 
+                  '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '066':'REV', }
+def getLexReferencesHtmlList( level, lexRefs ) -> List[str]:
+    """
+    """
+    from Bibles import getOurTidyBBB
+
+    lexRefsHtmlList = []
+    for fullLexRef in lexRefs:
+        # print( f"{fullLexRef=}")
+        lexRef, lexRefExtra = fullLexRef[0:14], fullLexRef[14:]
+        assert len(lexRef) == 14
+        assert lexRef.isdigit()
+        bkNum, C, V, last5Digits = int(lexRef[0:3]), int(lexRef[3:6]), int(lexRef[6:9]), lexRef[9:]
+        BBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromReferenceNumber( bkNum )
+        ourTidyBBB = getOurTidyBBB( BBB )
+        # TODO: We're not yet using last5Digits, e.g., '00046', or lexRefExtra, e.g., '{N:001}'
+        lexLink = f'''<a href="{'../'*level}par/{BBB}/C{C}V{V}.htm#Top">{ourTidyBBB} {C}:{V}</a>'''
+        lexRefsHtmlList.append( f'''{lexLink}''' )
+
+    return lexRefsHtmlList
+# end of Bibles.getLexReferencesHtmlList
+
+
+def createUBSGreekDictionaryPages( level, outputFolderPath, state:State ) -> None:
+    """
+    """
+    global USB_GNT_DATA, USB_GNT_ID_INDEX, USB_GNT_LEMMA_INDEX
+    fnPrint( DEBUGGING_THIS_MODULE, f"createUBSGreekDictionaryPages( {level}, '{outputFolderPath}', ... )")
 
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, "\nCreating UBS Greek Bible Dict pages…" )
 
     try: os.makedirs( outputFolderPath )
     except FileExistsError: pass # it was already there
 
-    # Start with the UBS Dictionary of GNT
     indexLink = '<a title="Go up to main index" href="index.htm#__ID__">Index</a>'
     introLink = '<a title="Go to dict introduction" href="intro.htm#__ID__">Intro</a>'
     detailsLink = f'''<a title="Show details" href="{'../'*(level)}allDetails.htm#UBS">©</a>'''
@@ -975,6 +1014,8 @@ def createUBSDictionaryPages( level, outputFolderPath, state:State ) -> None:
                                                 lsEntryHtml = f'''{lsEntryHtml}<p class="GDict"><b>{lsKey}</b>: {lsData[0] if isinstance(lsData, list) and len(lsData)==1 else lsData}</p>\n'''
                                             lmEntryHtml = f'''{lmEntryHtml}<li class="GDict">{lsEntryHtml}</li>\n'''
                                         lmEntryHtml = f'''{lmEntryHtml}</ol>\n'''
+                                    elif lmKey == 'LEXReferences':
+                                        lmEntryHtml = f'''{lmEntryHtml}<p class="GDict"><b>LEXReferences</b>: {', '.join(getLexReferencesHtmlList(level, lmData))}</p>\n'''
                                     else:
                                         lmEntryHtml = f'''{lmEntryHtml}<p class="GDict"><b>{lmKey}</b>: {lmData[0] if isinstance(lmData, list) and len(lmData)==1 else lmData}</p>\n'''
                                 bfEntryHtml = f'''{bfEntryHtml}<li class="GDict">{lmEntryHtml}</li>\n'''
@@ -1000,7 +1041,87 @@ def createUBSDictionaryPages( level, outputFolderPath, state:State ) -> None:
         with open( filepath, 'wt', encoding='utf-8' ) as articleHtmlFile:
             articleHtmlFile.write( articleHtml )
         vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(articleHtml):,} characters written to {filepath}" )
-# end of Bibles.createUBSDictionaryPages
+# end of Bibles.createUBSGreekDictionaryPages
+
+
+def createUBSHebrewDictionaryPages( level, outputFolderPath, state:State ) -> None:
+    """
+    """
+    global USB_HEB_DOMAIN_DATA, USB_HEB_DATA, USB_HEB_ID_INDEX, USB_HEB_LEMMA_INDEX
+
+    fnPrint( DEBUGGING_THIS_MODULE, f"createUBSHebrewDictionaryPages( {level}, '{outputFolderPath}', ... )")
+
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, "\nCreating UBS Hebrew Bible Dict pages…" )
+
+    try: os.makedirs( outputFolderPath )
+    except FileExistsError: pass # it was already there
+
+    indexLink = '<a title="Go up to main index" href="index.htm#__ID__">Index</a>'
+    introLink = '<a title="Go to dict introduction" href="intro.htm#__ID__">Intro</a>'
+    detailsLink = f'''<a title="Show details" href="{'../'*(level)}allDetails.htm#UBS">©</a>'''
+
+    # Make dictionary article pages
+    lemmaList = [a['Lemma'] for a in USB_HEB_DATA]
+    for e,entry in enumerate( USB_HEB_DATA ): # each entry is a dict
+        lemma = entry['Lemma']
+        dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"Making article page for '{lemma}'…" )
+        leftLink = f'''<a title="Go to previous article" href="{lemmaList[e-1]}.htm#__ID__">←</a> ''' if e>0 else ''
+        rightLink = f''' <a title="Go to next article" href="{lemmaList[e+1]}.htm#__ID__">→</a>''' if e<len(lemmaList)-1 else ''
+        navLinks = f'<p id="__ID__" class="dNav">{introLink} {leftLink}{indexLink}{rightLink} {detailsLink}</p>'
+
+        entryHtml = f'<h2>{lemma}</h2>\n'
+        for key,data in entry.items():
+            if data is None or data=='' or data==[]: continue # Don't display blank stuff
+            if key == 'Lemma': continue # Already used that
+            if key == 'BaseForms':
+                entryHtml = f'''{entryHtml}<p class="HDict"><b>{key}</b>:</p><ol>\n'''
+                for bf,bfEntry in enumerate( data ):
+                    bfEntryHtml = ''
+                    for bfKey,bfData in bfEntry.items():
+                        if bfData is None or bfData=='' or bfData==[]: continue # Don't display blank stuff
+                        if bfKey in ('Inflections','LEXMeanings'):
+                            bfEntryHtml = f'''{bfEntryHtml}<p class="HDict"><b>{bfKey}</b>:</p><ol>\n'''
+                            for lm,lmEntry in enumerate( bfData ):
+                                lmEntryHtml = ''
+                                for lmKey,lmData in lmEntry.items():
+                                    if lmData is None or lmData=='' or lmData==[]: continue # Don't display blank stuff
+                                    if lmKey == 'LEXSenses':
+                                        lmEntryHtml = f'''{lmEntryHtml}<p class="HDict"><b>{lmKey}</b>:</p><ol>\n'''
+                                        for ls,lsEntry in enumerate( lmData ):
+                                            lsEntryHtml = ''
+                                            for lsKey,lsData in lsEntry.items():
+                                                if lsData is None or lsData=='' or lsData==[]: continue # Don't display blank stuff
+                                                lsEntryHtml = f'''{lsEntryHtml}<p class="HDict"><b>{lsKey}</b>: {lsData[0] if isinstance(lsData, list) and len(lsData)==1 else lsData}</p>\n'''
+                                            lmEntryHtml = f'''{lmEntryHtml}<li class="HDict">{lsEntryHtml}</li>\n'''
+                                        lmEntryHtml = f'''{lmEntryHtml}</ol>\n'''
+                                    elif lmKey == 'LEXReferences':
+                                        lmEntryHtml = f'''{lmEntryHtml}<p class="HDict"><b>LEXReferences</b>: {', '.join(getLexReferencesHtmlList(level, lmData))}</p>\n'''
+                                    else:
+                                        lmEntryHtml = f'''{lmEntryHtml}<p class="HDict"><b>{lmKey}</b>: {lmData[0] if isinstance(lmData, list) and len(lmData)==1 else lmData}</p>\n'''
+                                bfEntryHtml = f'''{bfEntryHtml}<li class="HDict">{lmEntryHtml}</li>\n'''
+                            bfEntryHtml = f'''{bfEntryHtml}</ol>\n'''
+                        else:
+                            bfEntryHtml = f'''{bfEntryHtml}<p class="HDict"><b>{bfKey}</b>: {bfData[0] if isinstance(bfData, list) and len(bfData)==1 else bfData}</p>\n'''
+                    entryHtml = f'''{entryHtml}<li class="HDict">{bfEntryHtml}</li>\n'''
+                entryHtml = f'''{entryHtml}</ol>\n'''
+            else:
+                entryHtml = f'''{entryHtml}<p class="HDict"><b>{key}</b>: {data[0] if isinstance(data, list) and len(data)==1 else data}</p>\n'''
+
+        filepath = outputFolderPath.joinpath( f"{entry['Lemma']}.htm" )
+        top = makeTop( level, None, 'dictionaryEntry', None, state ) \
+                .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}UBS Hebrew Dictionary Article" ) \
+                .replace( '__KEYWORDS__', f'Bible, dictionary, {lemma}' )
+        articleHtml = f'''{top}
+<h1>{'TEST ' if TEST_MODE else ''}UBS Dictionary of the Hebrew New Testament</h1>
+{navLinks.replace('__ID__','Top')}
+{entryHtml}
+{makeBottom( level, 'dictionaryEntry', state )}'''
+        checkHtml( 'DictionaryArticle', articleHtml )
+        assert not filepath.is_file() # Check that we're not overwriting anything
+        with open( filepath, 'wt', encoding='utf-8' ) as articleHtmlFile:
+            articleHtmlFile.write( articleHtml )
+        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(articleHtml):,} characters written to {filepath}" )
+# end of Bibles.createUBSHebrewDictionaryPages
 
 
 def briefDemo() -> None:

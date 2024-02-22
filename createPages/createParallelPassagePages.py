@@ -41,7 +41,7 @@ from BibleOrgSys.Internals.InternalBibleInternals import InternalBibleEntryList,
 
 from settings import State, TEST_MODE, reorderBooksForOETVersions, UNFINISHED_WARNING_PARAGRAPH, JAMES_NOTE_PARAGRAPH
 from usfm import convertUSFMMarkerListToHtml
-from Bibles import tidyBBB, getVerseDataListForReference
+from Bibles import getOurTidyBBB, getVerseDataListForReference
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
                     do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
                     removeDuplicateCVids, \
@@ -90,7 +90,7 @@ def createParallelPassagePages( level:int, folder:Path, state:State ) -> bool:
     #     for BBB in reorderBooksForOETVersions( state.allBBBs ):
     #         if BBB in PARALLEL_VERSE_TABLE or not ONLY_MAKE_PAGES_WHICH_HAVE_PARALLELS:
     #             availableRelatedBBBs.append( BBB )
-    #             ourTidyBBB = tidyBBB( BBB )
+    #             ourTidyBBB = getOurTidyBBB( BBB )
     #             availableRelatedBBBLinks.append( f'''<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB).replace('James','Jacob/(James)')}" href="{BBB}/">{ourTidyBBB}</a>''' )
     #     # Now create the actual synoptic pages
     #     for BBB in reorderBooksForOETVersions( state.allBBBs ):
@@ -115,12 +115,12 @@ def createParallelPassagePages( level:int, folder:Path, state:State ) -> bool:
             for entry in verseEntryList:
                 if entry.getMarker() == 'r':
                     availableRelatedBBBs.append( BBB )
-                    ourTidyBBB = tidyBBB( BBB )
+                    ourTidyBBB = getOurTidyBBB( BBB )
                     availableRelatedBBBLinks.append( f'''<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB).replace('James','Jacob/(James)')}" href="{BBB}/">{ourTidyBBB}</a>''' )
                     break
         else: # make pages for all books, even ones without section cross-references
             availableRelatedBBBs.append( BBB )
-            ourTidyBBB = tidyBBB( BBB )
+            ourTidyBBB = getOurTidyBBB( BBB )
             availableRelatedBBBLinks.append( f'''<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB).replace('James','Jacob/(James)')}" href="{BBB}/">{ourTidyBBB}</a>''' )
     # Now create the actual section-reference pages
     for BBB in reorderBooksForOETVersions( state.allBBBs ):
@@ -234,8 +234,8 @@ def createParallelPassagePages( level:int, folder:Path, state:State ) -> bool:
 #     except FileExistsError: pass # they were already there
 
 #     # We don't want the book link for this book to be a recursive link, so remove <a> marking
-#     ourTidyBBB = tidyBBB( BBB )
-#     ourTidyBbb = tidyBBB( BBB, titleCase=True )
+#     ourTidyBBB = getOurTidyBBB( BBB )
+#     ourTidyBbb = getOurTidyBBB( BBB, titleCase=True )
 #     adjBBBLinksHtml = makeBookNavListParagraph(BBBLinks, 'OET-RV', state) \
 #             .replace( f'''<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB).replace('James','Jacob/(James)')}" href="../{BBB}/">{ourTidyBBB}</a>''', ourTidyBBB )
 #     numBBBSections = len( thisBible[BBB]._SectionIndex )
@@ -475,8 +475,8 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
     except FileExistsError: pass # they were already there
 
     # We don't want the book link for this book to be a recursive link, so remove <a> marking
-    ourTidyBBB = tidyBBB( BBB )
-    ourTidyBbb = tidyBBB( BBB, titleCase=True )
+    ourTidyBBB = getOurTidyBBB( BBB )
+    ourTidyBbb = getOurTidyBBB( BBB, titleCase=True )
     adjBBBLinksHtml = makeBookNavListParagraph(BBBLinks, 'OET-RV', state) \
             .replace( f'''<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB).replace('James','Jacob/(James)')}" href="../{BBB}/">{ourTidyBBB}</a>''', ourTidyBBB )
     numBBBSections = len( thisBible[BBB]._SectionIndex )
@@ -603,7 +603,7 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
         nextXrFnLetter = 'b'
         for srBBB,srCVpart in zip( crossReferencesBBBList, crossReferencesCVList, strict=True ):
             dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"{BBB} {startC}:{startV} {srBBB=} {srCVpart=}")
-            srTidyBbb = tidyBBB( srBBB, titleCase=True, allowFourChars=True )
+            srTidyBbb = getOurTidyBBB( srBBB, titleCase=True, allowFourChars=True )
 
             # TODO: Most of this next block of code should really be in BibleOrgSys
             if srCVpart.count(':')==1 and srCVpart.count(',')==1 and srCVpart.count('-')==2:

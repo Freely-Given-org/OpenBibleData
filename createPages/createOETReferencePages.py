@@ -53,15 +53,15 @@ import sys
 sys.path.append( '../../BibleTransliterations/Python/' )
 from BibleTransliterations import transliterate_Greek
 
-from settings import State, TEST_MODE, ALL_TEST_REFERENCE_PAGES
+from settings import State, TEST_MODE, ALL_TEST_REFERENCE_PAGES, SITE_NAME
 from html import makeTop, makeBottom, checkHtml
-from Bibles import tidyBBB
+from Bibles import getOurTidyBBB
 
 
-LAST_MODIFIED_DATE = '2024-02-06' # by RJH
+LAST_MODIFIED_DATE = '2024-02-20' # by RJH
 SHORT_PROGRAM_NAME = "createOETReferencePages"
 PROGRAM_NAME = "OpenBibleData createOETReferencePages functions"
-PROGRAM_VERSION = '0.57'
+PROGRAM_VERSION = '0.58'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -434,7 +434,7 @@ SIMILAR_GLOSS_WORDS_TABLE = [
     (('chief_priest','chief_priests'),('priest','priests')),
     (('child','children'),('son','sons','daughter','daughters')),
     (('clean',),('moral','permissible','pure','unclean')),
-    (('cry','cries'),('weep','weeps')),
+    (('cry','cries','crying','cried'),('weep','weeps','weeping','weeped','mourn','mourns','mourning','mourned')),
     (('daughter','daughters'),('child','children')),
     (('devil',),('Satan',)),
     (('disbelief',),('unbelief','disbelieve')),
@@ -461,6 +461,7 @@ SIMILAR_GLOSS_WORDS_TABLE = [
     (('light','lights'),('lamp','lamps')),
     (('lip','lips'),('mouth','mouths')),
     (('mind','minds'),('heart','hearts')),
+    (('mourn','mourns','mourning','mourned'),('weep','weeps','weeping','weeped','cry','cries','crying','cried')),
     (('mouth','mouths'),('lips','lip','tongue')),
     (('pagan','pagans'),('Gentile','Gentiles','Greeks')),
     (('path','paths'),('way','ways','road','roads')),
@@ -486,7 +487,7 @@ SIMILAR_GLOSS_WORDS_TABLE = [
     (('way','ways'),('path','paths','road','roads')),
     (('week','weeks'),('Sabbath','Sabbaths')),
     (('wealth',),('riches',)),
-    (('weep','weeps'),('cry','cries')),
+    (('weep','weeps''weeping','weeped'),('cry','cries','crying','cried','mourn','mourns','mourning','mourned')),
     (('wheat',),('grain','barley')),
     (('whence',),('therefore','accordingly','consequently')),
     (('worldly',),('fleshly',)),
@@ -513,10 +514,9 @@ CONTRASTIVE_GLOSS_WORDS_TABLE = [
     #   The second is a list of other glosses to also display as antonyms
     # NOTE: The glosses are the VLT glosses -- not our adjusted OET-LV glosses
     # NOTE: Reversals are not automatic -- they have to be manually entered
-    (('sprinkle','sprinkled','sprinkling'),('baptize','baptized','baptizing')),
-    (('baptize','baptized','baptizing'),('sprinkle','sprinkled','sprinkling')),
-    (('dark','darkness'),('light',)),
-    (('light',),('dark','darkness')),
+    (('sprinkle','sprinkled','sprinkling'),('baptize','baptized','baptizing')), (('baptize','baptized','baptizing'),('sprinkle','sprinkled','sprinkling')),
+    (('dark','darkness'),('light',)), (('light',),('dark','darkness')),
+    (('sexual_intercourse',),('homosexuals',)), (('homosexuals',),('sexual_intercourse',)), # both based on lemma koitē
     ]
 CONTRASTIVE_GLOSS_WORDS_DICT = {} # We create this dict at load time as we check the above table
 for firstWords,contrastiveWords in CONTRASTIVE_GLOSS_WORDS_TABLE:
@@ -635,7 +635,7 @@ def createOETReferencePages( level:int, outputFolderPath:Path, state:State ) -> 
             .replace( '__KEYWORDS__', 'Bible, reference' )
     indexHtml = f'''{top}
 <h1 id="Top">Reference Pages</h1>
-<h2>Open Bible Data</h2>
+<h2>{SITE_NAME}</h2>
 <p class="note"><a href="GrkWrd/">Greek words pages</a></p>
 <p class="note"><a href="GrkLem/">Greek lemmas pages</a></p>
 <p class="note"><a href="Per/">Bible people pages</a></p>
@@ -740,8 +740,8 @@ def make_Greek_word_pages( level:int, outputFolderPath:Path, state:State ) -> No
                 continue # In some test modes, we only make the relevant word pages
             C, VW = CVW.split( ':', 1 )
             V, W = VW.split( 'w', 1 )
-            ourTidyBBB = tidyBBB( BBB )
-            ourTidyBbb = tidyBBB( BBB, titleCase=True )
+            ourTidyBBB = getOurTidyBBB( BBB )
+            ourTidyBbb = getOurTidyBBB( BBB, titleCase=True )
 
             strongs = extendedStrongs[:-1] if extendedStrongs else None # drop the last digit
 
@@ -880,7 +880,7 @@ This is all part of the commitment of the <em>Open English Translation</em> team
                     oBBB, oCVW = oWordRef.split( '_', 1 )
                     oC, oVW = oCVW.split( ':', 1 )
                     oV, oW = oVW.split( 'w', 1 )
-                    oTidyBBB = tidyBBB( oBBB )
+                    oTidyBBB = getOurTidyBBB( oBBB )
                     # if other_count == 0:
                     translation = '<small>(no English gloss here)</small>' if oGlossWords=='-' else f'''‘{oFormattedContextGlossWords.replace('_','<span class="ul">_</span>')}’'''
                     wordsHtml = f'''{wordsHtml}\n<p class="wordLine"><a title="View OET {oTidyBBB} text" href="{'../'*level}OET/byC/{oBBB}_C{oC}.htm#C{oC}V{oV}">{oTidyBBB} {oC}:{oV}</a>''' \
@@ -929,7 +929,7 @@ f''' {translation} <a title="Go to Statistical Restoration Greek page" href=
                                     eBBB, eCVW = eWordRef.split( '_', 1 )
                                     eC, eVW = eCVW.split( ':', 1 )
                                     eV, eW = eVW.split( 'w', 1 )
-                                    eTidyBBB = tidyBBB( eBBB )
+                                    eTidyBBB = getOurTidyBBB( eBBB )
 
                                     eGreekPossibleLink = f'<a title="Go to word page" href="{thisN}.htm#Top">{eGreekWord}</a>' if ALL_TEST_REFERENCE_PAGES or eBBB in state.preloadedBibles['OET-RV'] else eGreekWord
                                     eLemmaLink = f'<a title="View Greek root word" href="../GrkLem/{eSRLemma}.htm#Top">{eSRLemma}</a>' if eSRLemma!=SRLemma else ''
@@ -1070,7 +1070,7 @@ def make_Greek_lemma_pages( level:int, outputFolderPath:Path, state:State ) -> N
                 oBBB, oCVW = oWordRef.split( '_', 1 )
                 oC, oVW = oCVW.split( ':', 1 )
                 oV, oW = oVW.split( 'w', 1 )
-                oTidyBBB = tidyBBB( oBBB )
+                oTidyBBB = getOurTidyBBB( oBBB )
                 oTidyMorphology = oMorphology[4:] if oMorphology.startswith('....') else oMorphology
                 usedRoleLetters.add( oRoleLetter )
                 if oTidyMorphology != '...': usedMorphologies.add( oTidyMorphology )

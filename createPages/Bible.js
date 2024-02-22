@@ -36,6 +36,33 @@ function hide_show_fields() {
         div.style.display = 'revert';
 }
 
+function hide_show_transliterations() {
+    classes_to_adjust = ['SR-GNT_trans','UGNT_trans','SBL-GNT_trans','TC-GNT_trans','BrLXX_trans','UHB_trans',
+                            'WYC_mod','TNT_mod','CB_mod','GNV_mod','BB_mod','KJB_mod',
+                            'LUT_trans','CLV_trans'];
+    let topBtn = document.getElementById('TopTransliterationsButton');
+    let btmBtn = document.getElementById('BottomTransliterationsButton');
+    if (topBtn.textContent === 'ⱦ') {
+        topBtn.textContent = 't'; btmBtn.textContent = 't';
+        topBtn.title = 'Show transliterations, etc.'; btmBtn.title = 'Show transliterations, etc.';
+        for (let cl of classes_to_adjust) {
+            let elements_to_adjust = document.getElementsByClassName(cl);
+            for (let i=0; i<elements_to_adjust.length; i++) {
+                elements_to_adjust[i].style.display = 'none';
+                }
+            }
+    } else {
+        topBtn.textContent = 'ⱦ'; btmBtn.textContent = 'ⱦ';
+        topBtn.title = 'Hide transliterations, etc.'; btmBtn.title = 'Hide transliterations, etc.';
+        for (let cl of classes_to_adjust) {
+            let elements_to_adjust = document.getElementsByClassName(cl);
+            for (let i=0; i<elements_to_adjust.length; i++) {
+                elements_to_adjust[i].style.display = 'revert';
+                }
+            }
+    }
+}
+
 function hide_show_colours() {
     classes_to_adjust = ['.greekNom', '.greekAcc', '.greekGen', '.greekDat', '.greekVoc', '.greekVrb', '.greekNeg'];
     let btn = document.getElementById('coloursButton');

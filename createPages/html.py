@@ -60,13 +60,13 @@ import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39, BOOKLIST_NT27
 
-from settings import State, TEST_MODE
+from settings import State, TEST_MODE, SITE_NAME
 
 
-LAST_MODIFIED_DATE = '2024-02-04' # by RJH
+LAST_MODIFIED_DATE = '2024-02-22' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
-PROGRAM_VERSION = '0.68'
+PROGRAM_VERSION = '0.69'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -116,11 +116,11 @@ def makeTop( level:int, versionAbbreviation:Optional[str], pageType:str, version
 
     aboutLink = 'About' if pageType=='about' else f'''<a href="{'../'*level}about.htm#Top">About</a>'''
     if TEST_MODE:
-        topLink = f'<p class="site">TEST Open Bible Data Home  {aboutLink}</p>' if pageType=='topIndex' \
-            else f'''<p class="site"><a href="{'index.htm' if level==0 else '../'*level}">TEST Open Bible Data Home</a>  {aboutLink}</p>'''
+        topLink = f'<p class="site">TEST {SITE_NAME} Home  {aboutLink}</p>' if pageType=='topIndex' \
+            else f'''<p class="site"><a href="{'index.htm' if level==0 else '../'*level}">TEST {SITE_NAME} Home</a>  {aboutLink}</p>'''
     else:
-        topLink = f'<p class="site">Open Bible Data Home  {aboutLink}</p>' if pageType=='topIndex' \
-            else f'''<p class="site"><a href="{'index.htm' if level==0 else '../'*level}">Open Bible Data Home</a>  {aboutLink}</p>'''
+        topLink = f'<p class="site">{SITE_NAME} Home  {aboutLink}</p>' if pageType=='topIndex' \
+            else f'''<p class="site"><a href="{'index.htm' if level==0 else '../'*level}">{SITE_NAME} Home</a>  {aboutLink}</p>'''
     top = f"""<!DOCTYPE html>
 <html lang="en-US">
 <head>
@@ -307,9 +307,10 @@ def makeBookNavListParagraph( linksList:List[str], workAbbrevPlus:str, state:Sta
         displayText = aLink[ixDisplayLinkStart:ixDisplayLinkEnd]
         # print( f"  {aLink=} {displayText=}")
         assert 3 <= len(displayText) <= 4 # it should be a tidyBBB
-        BBB = 'JAM' if displayText=='YAC' else 'PS2' if displayText=='2PS' else BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromText( displayText )
+        BBB = 'JAM' if displayText=='YAC' else 'JUD' if displayText=='YUD' else 'PS2' if displayText=='2PS' \
+                else BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromText( displayText )
         # print( f"   {aLink=} {displayText=} {BBB=}")
-        assert BBB
+        assert BBB, f"{displayText=}"
         newALink = f'{aLink[:ixDisplayLinkStart]}{displayText}{aLink[ixDisplayLinkEnd:]}'
         if BBB in ('INT','FRT','OTH','GLS','XXA','XXB','XXC'):
             newALink = f'<span class="XX">{newALink}</span>'
@@ -342,9 +343,10 @@ def _makeFooter( level:int, pageType:str, state:State ) -> str:
     """
     # fnPrint( DEBUGGING_THIS_MODULE, f"_makeFooter()" )
     html = f"""<div class="footer">
-<p class="copyright"><small><em>{'TEST ' if TEST_MODE else ''}Open Bible Data</em> site copyright © 2023-2024 <a href="https://Freely-Given.org">Freely-Given.org</a>
+<p class="copyright"><small><em>{'TEST ' if TEST_MODE else ''}{SITE_NAME}</em> site copyright © 2023-2024 <a href="https://Freely-Given.org">Freely-Given.org</a>.
 <br>Python source code for creating these static pages is available <a href="https://GitHub.com/Freely-Given-org/OpenBibleData">here</a> under an <a href="https://GitHub.com/Freely-Given-org/OpenBibleData/blob/main/LICENSE">open licence</a>.{datetime.now().strftime('<br> (Page created: %Y-%m-%d %H:%M)') if TEST_MODE else ''}</small></p>
 <p class="copyright"><small>For Bible data copyrights, see the <a href="{'../'*level}allDetails.htm#Top">details</a> for each displayed Bible version.</small></p>
+<p class="note"><small>The <em>Open English Translation (OET)</em> main site is at <a href="https://OpenEnglishTranslation.Bible">OpenEnglishTranslation.Bible</a>.</small></p>
 </div><!--footer-->"""
     return html
 # end of html._makeFooter

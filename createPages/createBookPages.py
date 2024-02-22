@@ -45,16 +45,16 @@ import BibleOrgSys.Formats.ESFMBible as ESFMBible
 
 from settings import State, TEST_MODE, reorderBooksForOETVersions, UNFINISHED_WARNING_PARAGRAPH, JAMES_NOTE_PARAGRAPH
 from usfm import convertUSFMMarkerListToHtml
-from Bibles import tidyBBB
+from Bibles import getOurTidyBBB
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
                     makeTop, makeBottom, makeBookNavListParagraph, removeDuplicateCVids, checkHtml
 from OETHandlers import livenOETWordLinks
 
 
-LAST_MODIFIED_DATE = '2024-02-04' # by RJH
+LAST_MODIFIED_DATE = '2024-02-16' # by RJH
 SHORT_PROGRAM_NAME = "createBookPages"
 PROGRAM_NAME = "OpenBibleData createBookPages functions"
-PROGRAM_VERSION = '0.49'
+PROGRAM_VERSION = '0.50'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -90,7 +90,7 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
 
     processedBBBs, processedFilenames = [], []
     for BBB in state.BBBsToProcess['OET']:
-        ourTidyBBB = tidyBBB( BBB )
+        ourTidyBBB = getOurTidyBBB( BBB )
         # print( f"{BBB=} {BBBsToProcess}"); print( len(state.BBBsToProcess[thisBible.abbreviation]) )
         # if not allBooksFlag: rvBible.loadBookIfNecessary( BBB )
         # lvBible.loadBookIfNecessary( BBB )
@@ -205,8 +205,14 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
                 dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createOETBookPages {BBB} {n:,}: No Cid in {rvSectionHtml=}" )
                 rvStartCV, rvEndCV = '', 'C1'
                 # halt
-            dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"""\nSearching for ' id="{rvEndCV}"' in '{lvRest}'""" )
-            ixEndCV = lvRest.rindex( f' id="{rvEndCV}"' ) # Versification problem if this fails
+            dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"""\nSearching for OET-RV {BBB} ' id="{rvEndCV}"' in '{lvRest}'""" )
+            try: ixEndCV = lvRest.rindex( f' id="{rvEndCV}"' )
+            except ValueError: # Versification problem if this fails
+                # Let's try for the previous verse -- at least this solves Gen 31:55 not there
+                frontBit, backBit = rvEndCV.split( 'V' )
+                adjustedRvEndCV = f'{frontBit}V{int(backBit)-1}'
+                print( f"ixEndCV is now decreased by one verse from '{rvEndCV}' to '{adjustedRvEndCV}'" )
+                ixEndCV = lvRest.rindex( f' id="{adjustedRvEndCV}"' ) # If this fails, we give up trying to fix versification problem
             try: ixNextCV = lvRest.index( f' id="C', ixEndCV+5 )
             except ValueError: ixNextCV = len( lvRest ) - 1
             # print( f"\n{BBB} {n}: {lvRest[ixEndCV:ixNextCV]=} {lvRest[ixNextCV:ixNextCV+10]=}" )
@@ -229,7 +235,7 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
             # Fails on JNA n=4 rvStartCV='C4' rvEndCV='C4V11' lvChunk[-8:]='eat(fs).'
             assert rsLvChunk[-1]=='>' \
             or (rsLvChunk[-2]=='>' and rsLvChunk[-1] in '.,') \
-            or (BBB in ('RUT','JNA','EST') and rsLvChunk[-1]=='.'), f"{BBB} {n=} {rvStartCV=} {rvEndCV=} {lvChunk[-8:]=}"
+            or (BBB in ('GEN','RUT','JNA','EST') and rsLvChunk[-1]=='.'), f"{BBB} {n=} {rvStartCV=} {rvEndCV=} {lvChunk[-8:]=}"
             lvChunks.append( lvChunk )
             lvRest = lvRest[lvEndIx:]
 
@@ -310,7 +316,7 @@ def createBookPages( level:int, folder:Path, thisBible, state:State ) -> List[st
 
     processedBBBs, processedFilenames = [], []
     for BBB in state.BBBsToProcess[thisBible.abbreviation]:
-        ourTidyBBB = tidyBBB( BBB )
+        ourTidyBBB = getOurTidyBBB( BBB )
         # print( f"{BBB=} {state.BBBsToProcess[thisBible.abbreviation]}"); print( len(BBBsToProcess) )
         # if not allBooksFlag: thisBible.loadBookIfNecessary( BBB )
         if thisBible.abbreviation=='OET-LV' \

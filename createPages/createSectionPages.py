@@ -58,7 +58,7 @@ import BibleOrgSys.Formats.ESFMBible as ESFMBible
 
 from settings import State, TEST_MODE, reorderBooksForOETVersions, UNFINISHED_WARNING_PARAGRAPH, JAMES_NOTE_PARAGRAPH
 from usfm import convertUSFMMarkerListToHtml
-from Bibles import tidyBBB
+from Bibles import getOurTidyBBB
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
                     makeTop, makeBottom, makeBookNavListParagraph, removeDuplicateCVids, checkHtml
 from OETHandlers import livenOETWordLinks
@@ -179,7 +179,7 @@ def createOETSectionPages( level:int, folder:Path, rvBible, lvBible, state:State
     # Now, make the actual section pages
     BBBs = []
     for BBB in state.BBBsToProcess['OET']:
-        ourTidyBBB = tidyBBB( BBB )
+        ourTidyBBB = getOurTidyBBB( BBB )
         dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"OET {BBB=} {state.BBBsToProcess['OET']}/{len(state.BBBsToProcess['OET'])}")
 
         # TODO: Can we delete all this now???
@@ -396,7 +396,7 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> List
     #     or 'ALL' in thisBibleBooksToLoad \
     #     or BBB in thisBibleBooksToLoad:
     #         filename = f'{BBB}.htm'
-    #         ourTidyBBB = tidyBBB( BBB )
+    #         ourTidyBBB = getOurTidyBBB( BBB )
     #         BBBLinks.append( f'''<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB).replace('James','Jacob/(James)')}" href="{filename}#Top">{ourTidyBBB}</a>''' )
     navBookListParagraph = makeBookNavListParagraph(state.BBBLinks[thisBible.abbreviation], thisBible.abbreviation, state)
 
@@ -438,7 +438,7 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> List
     BBBs = []
     # state.sectionsLists[thisBible.abbreviation] = {}
     for BBB in state.BBBsToProcess[thisBible.abbreviation]:
-        ourTidyBBB = tidyBBB( BBB )
+        ourTidyBBB = getOurTidyBBB( BBB )
         dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{thisBible.abbreviation} {BBB=} {state.BBBsToProcess[thisBible.abbreviation]}/{len(state.BBBsToProcess[thisBible.abbreviation])}")
 
         if thisBible.abbreviation=='OET-LV' \

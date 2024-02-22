@@ -56,7 +56,7 @@ from BibleOrgSys.Internals.InternalBibleInternals import getLeadingInt
 
 from settings import State, TEST_MODE
 from usfm import convertUSFMMarkerListToHtml
-from Bibles import formatUnfoldingWordTranslationNotes, formatTyndaleNotes, tidyBBB
+from Bibles import formatUnfoldingWordTranslationNotes, formatTyndaleNotes, getOurTidyBBB
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
                     makeTop, makeBottom, makeBookNavListParagraph, checkHtml
 from createOETReferencePages import CNTR_BOOK_ID_MAP
@@ -91,7 +91,7 @@ def createOETInterlinearPages( level:int, folder:Path, state:State ) -> bool:
     BBBLinks, BBBNextLinks = [], []
     # for BBB in state.booksToLoad['OET']:
     #     if BibleOrgSysGlobals.loadedBibleBooksCodes.isChapterVerseBook( BBB ):
-    #         ourTidyBBB = tidyBBB( BBB )
+    #         ourTidyBBB = getOurTidyBBB( BBB )
     #         BBBLinks.append( f'''<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB).replace('James','Jacob/(James)')}" href="{BBB}/">{ourTidyBBB}</a>''' )
     #         BBBNextLinks.append( f'''<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB).replace('James','Jacob/(James)')}" href="../{BBB}/">{ourTidyBBB}</a>''' )
 
@@ -138,8 +138,8 @@ def createOETInterlinearVersePagesForBook( level:int, folder:Path, BBB:str, BBBL
     except FileExistsError: pass # they were already there
 
     # We don't want the book link for this book to be a recursive link, so remove <a> marking
-    ourTidyBBB = tidyBBB( BBB )
-    ourTidyBbb = tidyBBB( BBB, titleCase=True )
+    ourTidyBBB = getOurTidyBBB( BBB )
+    ourTidyBbb = getOurTidyBBB( BBB, titleCase=True )
     adjBBBLinksHtml = makeBookNavListParagraph(state.BBBLinks['OET-RV'], 'interlinearVerse', state) \
             .replace( f'''<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB).replace('James','Jacob/(James)')}" href="../{BBB}/">{ourTidyBBB}</a>''', ourTidyBBB )
 
@@ -265,8 +265,8 @@ def createOETInterlinearVersePage( level:int, BBB:str, c:int, v:int, state:State
     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"createOETInterlinearVersePage {level}, {BBB} {c}:{v}, …" )
 
     # We don't want the book link for this book to be a recursive link, so remove <a> marking
-    ourTidyBBB = tidyBBB( BBB )
-    ourTidyBbb = tidyBBB( BBB, titleCase=True )
+    ourTidyBBB = getOurTidyBBB( BBB )
+    ourTidyBbb = getOurTidyBBB( BBB, titleCase=True )
     C, V = str(c), str(v)
 
     lvBible = state.preloadedBibles['OET-LV']

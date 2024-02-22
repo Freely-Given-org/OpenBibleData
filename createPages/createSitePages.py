@@ -68,9 +68,9 @@ from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39, BOOKLIST_NT27
 sys.path.append( '../../BibleTransliterations/Python/' )
 from BibleTransliterations import load_transliteration_table
 
-from settings import State, state, reorderBooksForOETVersions, TEST_MODE, \
+from settings import State, state, reorderBooksForOETVersions, TEST_MODE, SITE_NAME, SITE_ABBREVIATION, \
     TEMP_BUILD_FOLDER, ALL_PRODUCTION_BOOKS, UPDATE_ACTUAL_SITE_WHEN_BUILT, DESTINATION_FOLDER, BY_DOCUMENT_PARAGRAPH
-from Bibles import preloadVersions, tidyBBB
+from Bibles import preloadVersions, getOurTidyBBB
 from createBookPages import createOETBookPages, createBookPages
 from createChapterPages import createOETSideBySideChapterPages, createChapterPages
 from createSectionPages import createOETSectionPages, createSectionPages
@@ -82,7 +82,7 @@ from Dict import createTyndaleDictPages, createUBSDictionaryPages
 from html import makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2024-02-04' # by RJH
+LAST_MODIFIED_DATE = '2024-02-20' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData Create Pages"
 PROGRAM_VERSION = '0.94'
@@ -169,7 +169,7 @@ def _createSitePages() -> bool:
             state.BBBLinks['OET'] = []
             for BBB in state.BBBsToProcess['OET']:
                 filename = f'{BBB}.htm'
-                ourTidyBBB = tidyBBB( BBB )
+                ourTidyBBB = getOurTidyBBB( BBB )
                 state.BBBLinks['OET'].append( f'''<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB).replace('James','Jacob/(James)')}" href="{filename}#Top">{ourTidyBBB}</a>''' )
         else: # not OET
             thisBible = state.preloadedBibles[versionAbbreviation]
@@ -195,7 +195,7 @@ def _createSitePages() -> bool:
                     or 'ALL' in thisBibleBooksToLoad \
                     or BBB in thisBibleBooksToLoad:
                         filename = f'{BBB}.htm'
-                        ourTidyBBB = tidyBBB( BBB )
+                        ourTidyBBB = getOurTidyBBB( BBB )
                         state.BBBLinks[versionAbbreviation].append( f'''<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB).replace('James','Jacob/(James)')}" href="{filename}#Top">{ourTidyBBB}</a>''' )
 
     # Ok, let's go create some static pages
@@ -506,10 +506,10 @@ def _createDetailsPages( level:int, buildFolder:Path, state:State ) -> bool:
 '''
         if TEST_MODE and versionAbbreviation in state.selectedVersesOnlyVersions:
             # Add a list of links to verses containing this version
-            selectedVerseLinksList = [f'<a href="../par/{BBB}/C{C}V{V}.htm#Top">{tidyBBB( BBB, titleCase=True )} {C}:{V}</a>' for BBB,C,V in state.preloadedBibles[versionAbbreviation]]
+            selectedVerseLinksList = [f'<a href="../par/{BBB}/C{C}V{V}.htm#Top">{getOurTidyBBB( BBB, titleCase=True )} {C}:{V}</a>' for BBB,C,V in state.preloadedBibles[versionAbbreviation]]
         #     for BBB,C,V in state.preloadedBibles[versionAbbreviation]:
-        #         ourTidyBBB = tidyBBB( BBB, titleCase=True )
-        #         selectedVerseLinksList.append( f'<a href="../par/{BBB}/C{C}V{V}.htm#Top">{tidyBBB( BBB, titleCase=True )} {C}:{V}</a>' )
+        #         ourTidyBBB = getOurTidyBBB( BBB, titleCase=True )
+        #         selectedVerseLinksList.append( f'<a href="../par/{BBB}/C{C}V{V}.htm#Top">{getOurTidyBBB( BBB, titleCase=True )} {C}:{V}</a>' )
             detailsHtml = f'''{detailsHtml}<h2>Available selections</h2>
 <p class="rem">The following parallel verse pages feature this version:</p>
 <p class="selectedLinks">{' '.join(selectedVerseLinksList)}</p>
@@ -565,7 +565,7 @@ def _createSearchPage( level:int, buildFolder:Path, state:State ) -> bool:
     fnPrint( DEBUGGING_THIS_MODULE, f"_createSearchPage( {level}, {buildFolder}, {state.BibleVersions} )" )
     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nCreating {'TEST ' if TEST_MODE else ''}search page…" )
 
-    searchHTML = f'''<h1 id="Top">Search Open Bible Data</h1>
+    searchHTML = f'''<h1 id="Top">Search {SITE_NAME}</h1>
 <p class="note">Searching should find English and Latin words, plus Hebrew and Greek words and their English transliterations.</p>
 {('<p class="note">Note that only limited Bible books are indexed on these TEST pages.</p>'+NEWLINE) if TEST_MODE else ''}<div id="search"></div>
 <script>
@@ -599,8 +599,8 @@ def _createAboutPage( level:int, buildFolder:Path, state:State ) -> bool:
     fnPrint( DEBUGGING_THIS_MODULE, f"_createAboutPage( {level}, {buildFolder}, {state.BibleVersions} )" )
     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Creating {'TEST ' if TEST_MODE else ''}about page…" )
 
-    aboutHTML = '''<h1 id="Top">About Open Bible Data</h1>
-<p class="about">Open Bible Data (OBD) is a large set of static webpages created for several main reasons:</p>
+    aboutHTML = f'''<h1 id="Top">About {SITE_NAME}</h1>
+<p class="about">{SITE_NAME} (OBD) is a large set of static webpages created for several main reasons:</p>
 <ol>
 <li>As a way to <b>showcase the <em>Open English Translation</em></b> of the Bible which is designed to be read with the <em>Readers’ Version</em> and the very <em>Literal Version</em> side-by-side.
     (Most existing Bible apps don’t allow for this.)
@@ -643,7 +643,7 @@ def _createAboutPage( level:int, buildFolder:Path, state:State ) -> bool:
 </ul>
 <p class="about">We would welcome any others who would like to contribute open datasets or code to this endeavour.
     Please contact us at <b>Freely</b> dot <b>Given</b> dot <b>org</b> (at) <b>gmail</b> dot <b>com</b>.
-    We consider this OBD project to be part of the very first stage of contributing to the development of an open-licensed Bible-study app
+    We consider this {SITE_ABBREVIATION} project to be part of the very first stage of contributing to the development of an open-licensed Bible-study app
         to rival the commercial ones (like ‘Logos’ -- not the plural of ‘logo’).</p>
 <p class="about">You’ll possibly notice that not many large, commercial Bibles are included in these pages because of their strict control of their texts.
     We highly recommend that our readers find better translations that are more influenced by discipleship priorities, and less by finances.
@@ -685,15 +685,15 @@ def _createMainIndexPage( level, folder:Path, state:State ) -> bool:
     # Create the very top level index file
     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Creating main {'TEST ' if TEST_MODE else ''}index page for {len(state.BibleVersions)} versions…" )
     html = makeTop( level, None, 'topIndex', None, state ) \
-            .replace( '__TITLE__', 'TEST Open Bible Data Home' if TEST_MODE else 'Open Bible Data Home') \
+            .replace( '__TITLE__', f'TEST {SITE_NAME} Home' if TEST_MODE else f'{SITE_NAME} Home') \
             .replace( '__KEYWORDS__', 'Bible, translation, English, OET' )
     if TEST_MODE:
         html = html.replace( '<body>', '<body><p class="note"><a href="../">UP TO MAIN NON-TEST SITE</a></p>')
-    bodyHtml = """<!--_createMainIndexPage--><h1 id="Top">Open Bible Data Home TEST</h1>
-""" if TEST_MODE else """<!--_createMainIndexPage--><h1 id="Top">Open Bible Data Home</h1>
+    bodyHtml = f"""<!--_createMainIndexPage--><h1 id="Top">{SITE_NAME} Home TEST</h1>
+""" if TEST_MODE else f"""<!--_createMainIndexPage--><h1 id="Top">{SITE_NAME} Home</h1>
 """
     html = f'''{html}{bodyHtml}
-<p class="note">Welcome to this <em>Open Bible Data</em> site created to share God’s fantastic message with everyone,
+<p class="note">Welcome to this <em>{SITE_NAME}</em> site created to share God’s fantastic message with everyone,
     and with a special interest in helping Bible translators around the world.</p>
 <p class="note">Choose a version abbreviation above to view Bible ‘books’ <b>by document</b> or <b>by section</b> or <b>by chapter</b>.</p>
 <p class="note">The <b><a href="rel/">Related</a> passage</b> option shows OET-RV sections with any parallel or related content (especially in the ‘Messiah accounts’: John, Mark, Matthew, and Luke), as well as listing out all of the cross-references.</p>
@@ -714,12 +714,12 @@ def _createMainIndexPage( level, folder:Path, state:State ) -> bool:
 #     # Create the versions index file (in case it's needed)
 #     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Creating versions {'TEST ' if TEST_MODE else ''}index page for {len(state.BibleVersions)} versions…" )
 #     html = makeTop( level+1, None, 'topIndex', None, state ) \
-#             .replace( '__TITLE__', 'TEST Open Bible Data Versions' if TEST_MODE else 'Open Bible Data Versions') \
+#             .replace( '__TITLE__', 'TEST {SITE_NAME} Versions' if TEST_MODE else '{SITE_NAME} Versions') \
 #             .replace( '__KEYWORDS__', 'Bible, translation, English, OET' )
 #     if TEST_MODE:
 #         html = html.replace( '<body>', '<body><p class="index"><a href="{'../'*level}">UP TO MAIN NON-TEST SITE</a></p>')
-#     bodyHtml = """<!--createVersionsIndexPage--><h1 id="Top">Open Bible Data TEST Versions</h1>
-# """ if TEST_MODE else """<!--_createMainIndexPage--><h1 id="Top">Open Bible Data Versions</h1>
+#     bodyHtml = """<!--createVersionsIndexPage--><h1 id="Top">{SITE_NAME} TEST Versions</h1>
+# """ if TEST_MODE else """<!--_createMainIndexPage--><h1 id="Top">{SITE_NAME} Versions</h1>
 # """
 
 #     bodyHtml = f'{bodyHtml}<p class="index">Select one of the above Bible version abbreviations for views of entire documents (‘<i>books</i>’) or sections or chapters, or else select either of the Parallel or Interlinear verse views.</p>\n<ol>\n'
