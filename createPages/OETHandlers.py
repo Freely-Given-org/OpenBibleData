@@ -62,10 +62,10 @@ from BibleTransliterations import transliterate_Greek
 from settings import State
 
 
-LAST_MODIFIED_DATE = '2024-02-01' # by RJH
+LAST_MODIFIED_DATE = '2024-03-08' # by RJH
 SHORT_PROGRAM_NAME = "OETHandlers"
 PROGRAM_NAME = "OpenBibleData OET handler"
-PROGRAM_VERSION = '0.33'
+PROGRAM_VERSION = '0.34'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -113,8 +113,8 @@ def findLVQuote( level:int, BBB:str, C:str, V:str, occurrenceNumber:int, origina
         # # Go backwards through the ESFM table until we find the first word in this B/C/V
         # firstWordNumber = getLeadingInt( wordNumberStr )
         # rowStr = wordTable[firstWordNumber]
-        # #  0    1          2        3           4           5          6            7           8     9           10
-        # # 'Ref\tGreekWord\tSRLemma\tGreekLemma\tGlossWords\tGlossCaps\tProbability\tStrongsExt\tRole\tMorphology\tTags'
+        # #  0    1          2        3           4              5              6          7            8           9     10          11
+        # # 'Ref\tGreekWord\tSRLemma\tGreekLemma\tVLTGlossWords\tOETGlossWords\tGlossCaps\tProbability\tStrongsExt\tRole\tMorphology\tTags'
         # assert rowStr.startswith( f'{BBB}_{C}:{V}w' )
         # # Search backwards through the word-table until we find the first word number still in the verse (includes variants)
         # while firstWordNumber > 1:
@@ -165,11 +165,11 @@ def findLVQuote( level:int, BBB:str, C:str, V:str, occurrenceNumber:int, origina
             # if not rowStr.startswith( f'{BBB}_{C}:{V}w' ): # gone into the next verse
             #     break
             row = rowStr.split( '\t' )
-            #  0    1          2        3           4           5          6            7           8     9           10
-            # 'Ref\tGreekWord\tSRLemma\tGreekLemma\tGlossWords\tGlossCaps\tProbability\tStrongsExt\tRole\tMorphology\tTags'
-            if not row[6]: # This Greek word is not in the GNT text
+            #  0    1          2        3           4              5              6          7            8           9     10          11
+            # 'Ref\tGreekWord\tSRLemma\tGreekLemma\tVLTGlossWords\tOETGlossWords\tGlossCaps\tProbability\tStrongsExt\tRole\tMorphology\tTags'
+            if not row[7]: # This Greek word is not in the GNT text
                 continue
-            assert int(row[6]), f"{row=}"
+            assert int(row[7]), f"{row=}"
 
             # NOTE: We have to replace MODIFIER LETTER APOSTROPHE with RIGHT SINGLE QUOTATION MARK to match correctly
             if row[1].replace('ʼ','’') == olWord: # we have a Greek word match
@@ -198,9 +198,9 @@ def findLVQuote( level:int, BBB:str, C:str, V:str, occurrenceNumber:int, origina
                 if not rowStr.startswith( f'{BBB}_{C}:{V}w' ): # gone into the next verse
                     break
                 row = rowStr.split( '\t' )
-                if not row[6]: # This Greek word is not in the GNT text
+                if not row[7]: # This Greek word is not in the GNT text
                     continue
-                assert int(row[6]), f"{row=}"
+                assert int(row[7]), f"{row=}"
                 if matchStart == -wordNumber:
                     matchStart = len(ourWords) # Convert to index of these words
                 ourWords.append( row[1] )
@@ -267,7 +267,7 @@ def livenOETWordLinks( bibleObject:ESFMBible, BBB:str, givenEntryList:InternalBi
             wordNumber = int( wordnumberMatch.group(1) )
             wordRow = state.OETRefData['word_table'][wordNumber]
             SRLemma = wordRow.split( '\t' )[2]
-            _ref, _greekWord, SRLemma, _GrkLemma, _glossWordsStr, _glossCaps, _probability, extendedStrongs, roleLetter, morphology, _tagsStr = wordRow.split( '\t' )
+            _ref, _greekWord, SRLemma, _GrkLemma, _VLTGlossWordsStr, _OETGlossWordsStr, _glossCaps, _probability, extendedStrongs, roleLetter, morphology, _tagsStr = wordRow.split( '\t' )
 
             # Do colourisation
             if roleLetter == 'V':

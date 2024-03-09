@@ -63,10 +63,10 @@ from createOETReferencePages import CNTR_BOOK_ID_MAP
 from OETHandlers import livenOETWordLinks
 
 
-LAST_MODIFIED_DATE = '2024-02-01' # by RJH
+LAST_MODIFIED_DATE = '2024-03-08' # by RJH
 SHORT_PROGRAM_NAME = "createOETInterlinearPages"
 PROGRAM_NAME = "OpenBibleData createOETInterlinearPages functions"
-PROGRAM_VERSION = '0.44'
+PROGRAM_VERSION = '0.45'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -389,8 +389,8 @@ def createOETInterlinearVersePage( level:int, BBB:str, c:int, v:int, state:State
         firstWordNumber,lastWordNumber = state.OETRefData['word_table_index'][f'{BBB}_{C}:{V}']
         # firstWordNumber = getLeadingInt( wordNumberStr )
         # rowStr = wordTable[firstWordNumber]
-        # #  0    1      2      3           4          5            6           7     8           9
-        # # 'Ref\tGreekWord\tSRLemma\tGreekLemma\tGlossWords\tGlossCaps\tProbability\tStrongsExt\tRole\tMorphology\tTags'
+        # #  0    1          2        3           4              5              6          7            8           9     10          11
+        # # 'Ref\tGreekWord\tSRLemma\tGreekLemma\tVLTGlossWords\tOETGlossWords\tGlossCaps\tProbability\tStrongsExt\tRole\tMorphology\tTags'
         # assert rowStr.startswith( f'{BBB}_{c}:{v}w' )
         # # Search backwards through the word-table until we find the first word number still in the verse (includes variants)
         # while firstWordNumber > 1:
@@ -408,7 +408,8 @@ def createOETInterlinearVersePage( level:int, BBB:str, c:int, v:int, state:State
 <li lang="en_TRANS"><b>OET-RV words</b></li>
 <li lang="en_STRONGS">Strongs</li>
 <li lang="en_MORPH">Role/Morphology</li>
-<li lang="en_GLOSS">SR Gloss</li>
+<li lang="en_GLOSS">OET Gloss</li>
+<li lang="en_GLOSS">VLT Gloss</li>
 <li lang="en_CAPS">CAPS codes</li>
 <li lang="en_PERCENT">Confidence</li>
 <li lang="en_TAGS">OET tags</li>
@@ -422,10 +423,10 @@ def createOETInterlinearVersePage( level:int, BBB:str, c:int, v:int, state:State
             # if not rowStr.startswith( f'{BBB}_{c}:{v}w' ): # gone into the next verse
             #     break
             row = rowStr.split( '\t' )
-            #  0    1          2        3           4           5          6            7           8     9           10
-            # 'Ref\tGreekWord\tSRLemma\tGreekLemma\tGlossWords\tGlossCaps\tProbability\tStrongsExt\tRole\tMorphology\tTags'
-            if row[10]:
-                tags = row[10].split( ';' )
+            #  0    1          2        3           4              5              6          7            8           9     10          11
+            # 'Ref\tGreekWord\tSRLemma\tGreekLemma\tVLTGlossWords\tOETGlossWords\tGlossCaps\tProbability\tStrongsExt\tRole\tMorphology\tTags'
+            if row[11]:
+                tags = row[11].split( ';' )
                 for t,tag in enumerate( tags ):
                     tagPrefix, tag = tag[0], tag[1:]
                     if tagPrefix == 'P':
@@ -434,16 +435,17 @@ def createOETInterlinearVersePage( level:int, BBB:str, c:int, v:int, state:State
                         tags[t] = f'''Location=<a title="View place details" href="{'../'*level}ref/Loc/{tag}.htm#Top">{tag}</a>'''
                 tagsHtml = '; '.join( tags )
             else: tagsHtml = '-'
-            GreekList.append( f'''<li><ol class="{'word' if row[6] else 'variant'}">
+            GreekList.append( f'''<li><ol class="{'word' if row[7] else 'variant'}">
 <li lang="el">{row[1]}</li>
 <li lang="el_LEMMA">{row[2]}</li>
 <li lang="en_TRANS"><b>{' '.join(lvEnglishWordDict[wordNumber]) if lvEnglishWordDict[wordNumber] else '-'}</b></li>
 <li lang="en_TRANS"><b>{' '.join(rvEnglishWordDict[wordNumber]) if rvEnglishWordDict[wordNumber] else '-'}</b></li>
-<li lang="en_STRONGS"><a href="https://BibleHub.com/greek/{row[7][:-1]}.htm">{row[7]}</a></li>
-<li lang="en_MORPH">{row[8]}{row[9]}</li>
+<li lang="en_STRONGS"><a href="https://BibleHub.com/greek/{row[8][:-1]}.htm">{row[8]}</a></li>
+<li lang="en_MORPH">{row[9]}{row[10]}</li>
+<li lang="en_GLOSS">{row[5]}</li>
 <li lang="en_GLOSS">{row[4]}</li>
-<li lang="en_CAPS">{row[5] if row[5] else '-'}</li>
-<li lang="en_PERCENT">{row[6]+'%' if row[6] else 'V'}</li>
+<li lang="en_CAPS">{row[6] if row[6] else '-'}</li>
+<li lang="en_PERCENT">{row[7]+'%' if row[7] else 'V'}</li>
 <li lang="en_TAGS">{tagsHtml}</li>
 <li lang="en_WORDNUM"><a title="View word details" href="{'../'*level}ref/GrkWrd/{wordNumber}.htm#Top">{wordNumber}</a></li>
 </ol></li>''' )
@@ -466,7 +468,8 @@ def createOETInterlinearVersePage( level:int, BBB:str, c:int, v:int, state:State
 <li lang="el">Greek word</li>
 <li lang="el_LEMMA">Greek lemma</li>
 <li lang="en_MORPH">Role/Morphology</li>
-<li lang="en_GLOSS">SR Gloss</li>
+<li lang="en_GLOSS">OET Gloss</li>
+<li lang="en_GLOSS">VLT Gloss</li>
 <li lang="en_CAPS">CAPS codes</li>
 <li lang="en_PERCENT">Confidence</li>
 <li lang="en_TAGS">OET tags</li>
@@ -491,8 +494,8 @@ def createOETInterlinearVersePage( level:int, BBB:str, c:int, v:int, state:State
             rowStr = wordTable[wordNumber]
             assert rowStr.startswith( f'{BBB}_{c}:{v}w' )
             row = rowStr.split( '\t' )
-            if row[10]:
-                tags = row[10].split( ';' )
+            if row[11]:
+                tags = row[11].split( ';' )
                 for t,tag in enumerate( tags ):
                     tagPrefix, tag = tag[0], tag[1:]
                     if tagPrefix == 'P':
@@ -504,13 +507,14 @@ def createOETInterlinearVersePage( level:int, BBB:str, c:int, v:int, state:State
             reverseList.append( f'''<li><ol class="word">
 <li lang="en_TRANS"><b>{word}</b></li>
 <li lang="en_TRANS"><b>{' '.join(rvEnglishWordDict[wordNumber]) if rvEnglishWordDict[wordNumber] else '-'}</b></li>
-<li lang="en_STRONGS"><a href="https://BibleHub.com/greek/{row[6][:-1]}.htm">{row[6]}</a></li>
+<li lang="en_STRONGS"><a href="https://BibleHub.com/greek/{row[7][:-1]}.htm">{row[6]}</a></li>
 <li lang="el">{row[1]}</li>
 <li lang="el_LEMMA">{row[2]}</li>
-<li lang="en_MORPH">{row[7]}{row[8]}</li>
+<li lang="en_MORPH">{row[8]}{row[9]}</li>
+<li lang="en_GLOSS">{row[4]}</li>
 <li lang="en_GLOSS">{row[3]}</li>
-<li lang="en_CAPS">{row[4] if row[4] else '-'}</li>
-<li lang="en_PERCENT">{row[5]+'%' if row[5] else 'V'}</li>
+<li lang="en_CAPS">{row[5] if row[5] else '-'}</li>
+<li lang="en_PERCENT">{row[6]+'%' if row[6] else 'V'}</li>
 <li lang="en_TAGS">{tagsHtml}</li>
 <li lang="en_WORDNUM"><a title="View word details" href="{'../'*level}ref/GrkWrd/{wordNumber}.htm#Top">{wordNumber}</a></li>
 </ol></li>''' )
