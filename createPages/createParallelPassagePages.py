@@ -41,18 +41,18 @@ from BibleOrgSys.Internals.InternalBibleInternals import InternalBibleEntryList,
 
 from settings import State, TEST_MODE, reorderBooksForOETVersions, UNFINISHED_WARNING_PARAGRAPH, JAMES_NOTE_PARAGRAPH
 from usfm import convertUSFMMarkerListToHtml
-from Bibles import getOurTidyBBB, getVerseDataListForReference
+from Bibles import getVerseDataListForReference
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
                     do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
                     removeDuplicateCVids, \
                     makeTop, makeBottom, makeBookNavListParagraph, checkHtml
-from OETHandlers import livenOETWordLinks
+from OETHandlers import livenOETWordLinks, getOETTidyBBB, getOETBookName
 
 
-LAST_MODIFIED_DATE = '2024-02-04' # by RJH
+LAST_MODIFIED_DATE = '2024-03-13' # by RJH
 SHORT_PROGRAM_NAME = "createParallelPassagePages"
 PROGRAM_NAME = "OpenBibleData createParallelPassagePages functions"
-PROGRAM_VERSION = '0.16'
+PROGRAM_VERSION = '0.17'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -78,29 +78,11 @@ def createParallelPassagePages( level:int, folder:Path, state:State ) -> bool:
     try: os.makedirs( folder )
     except FileExistsError: pass # they were already there
 
-    rvBible = state.preloadedBibles['OET-RV']
-    #rvBible, lvBible = state.preloadedBibles['OET-RV'], state.preloadedBibles['OET-LV']
 
-    # if 0: # old system
-    #     if not loadSynopticVerseTable():
-    #         return False
-    #     # Prepare the book links
-    #     availableRelatedBBBs = []
-    #     availableRelatedBBBLinks = []
-    #     for BBB in reorderBooksForOETVersions( state.allBBBs ):
-    #         if BBB in PARALLEL_VERSE_TABLE or not ONLY_MAKE_PAGES_WHICH_HAVE_PARALLELS:
-    #             availableRelatedBBBs.append( BBB )
-    #             ourTidyBBB = getOurTidyBBB( BBB )
-    #             availableRelatedBBBLinks.append( f'''<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB).replace('James','Jacob/(James)')}" href="{BBB}/">{ourTidyBBB}</a>''' )
-    #     # Now create the actual synoptic pages
-    #     for BBB in reorderBooksForOETVersions( state.allBBBs ):
-    #         if BBB in availableRelatedBBBs:
-    #             createSynopticSectionPassagePagesForBook( level, folder, rvBible, BBB, availableRelatedBBBLinks, state )
-
-    # else: # new system
     # Prepare the book links
     availableRelatedBBBs = []
     availableRelatedBBBLinks = []
+    rvBible = state.preloadedBibles['OET-RV']
     for BBB in reorderBooksForOETVersions( state.allBBBs ):
         try:
             _numBBBSections = len( rvBible[BBB]._SectionIndex )
@@ -115,13 +97,13 @@ def createParallelPassagePages( level:int, folder:Path, state:State ) -> bool:
             for entry in verseEntryList:
                 if entry.getMarker() == 'r':
                     availableRelatedBBBs.append( BBB )
-                    ourTidyBBB = getOurTidyBBB( BBB )
-                    availableRelatedBBBLinks.append( f'''<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB).replace('James','Jacob/(James)')}" href="{BBB}/">{ourTidyBBB}</a>''' )
+                    ourTidyBBB = getOETTidyBBB( BBB )
+                    availableRelatedBBBLinks.append( f'''<a title="{getOETBookName(BBB)}" href="{BBB}/">{ourTidyBBB}</a>''' )
                     break
         else: # make pages for all books, even ones without section cross-references
             availableRelatedBBBs.append( BBB )
-            ourTidyBBB = getOurTidyBBB( BBB )
-            availableRelatedBBBLinks.append( f'''<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB).replace('James','Jacob/(James)')}" href="{BBB}/">{ourTidyBBB}</a>''' )
+            ourTidyBBB = getOETTidyBBB( BBB )
+            availableRelatedBBBLinks.append( f'''<a title="{getOETBookName(BBB)}" href="{BBB}/">{ourTidyBBB}</a>''' )
     # Now create the actual section-reference pages
     for BBB in reorderBooksForOETVersions( state.allBBBs ):
         if BBB in availableRelatedBBBs:
@@ -234,10 +216,10 @@ def createParallelPassagePages( level:int, folder:Path, state:State ) -> bool:
 #     except FileExistsError: pass # they were already there
 
 #     # We don't want the book link for this book to be a recursive link, so remove <a> marking
-#     ourTidyBBB = getOurTidyBBB( BBB )
-#     ourTidyBbb = getOurTidyBBB( BBB, titleCase=True )
+#     ourTidyBBB = getOETTidyBBB( BBB )
+#     ourTidyBbb = getOETTidyBBB( BBB, titleCase=True )
 #     adjBBBLinksHtml = makeBookNavListParagraph(BBBLinks, 'OET-RV', state) \
-#             .replace( f'''<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB).replace('James','Jacob/(James)')}" href="../{BBB}/">{ourTidyBBB}</a>''', ourTidyBBB )
+#             .replace( f'''<a title="{getOETBookName(BBB)}" href="../{BBB}/">{ourTidyBBB}</a>''', ourTidyBBB )
 #     numBBBSections = len( thisBible[BBB]._SectionIndex )
 #     navBookListParagraph = makeBookNavListParagraph(BBBLinks, f'Related {thisBible.abbreviation}', state) \
 #                                 .replace( 'href="', 'href="../' ) # Because we use BBB sub-folders
@@ -475,10 +457,10 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
     except FileExistsError: pass # they were already there
 
     # We don't want the book link for this book to be a recursive link, so remove <a> marking
-    ourTidyBBB = getOurTidyBBB( BBB )
-    ourTidyBbb = getOurTidyBBB( BBB, titleCase=True )
+    ourTidyBBB = getOETTidyBBB( BBB )
+    ourTidyBbb = getOETTidyBBB( BBB, titleCase=True )
     adjBBBLinksHtml = makeBookNavListParagraph(BBBLinks, 'OET-RV', state) \
-            .replace( f'''<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB).replace('James','Jacob/(James)')}" href="../{BBB}/">{ourTidyBBB}</a>''', ourTidyBBB )
+            .replace( f'''<a title="{getOETBookName(BBB)}" href="../{BBB}/">{ourTidyBBB}</a>''', ourTidyBBB )
     numBBBSections = len( thisBible[BBB]._SectionIndex )
     navBookListParagraph = makeBookNavListParagraph(BBBLinks, f'Related {thisBible.abbreviation}', state) \
                                 .replace( 'href="', 'href="../' ) # Because we use BBB sub-folders
@@ -603,7 +585,7 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
         nextXrFnLetter = 'b'
         for srBBB,srCVpart in zip( crossReferencesBBBList, crossReferencesCVList, strict=True ):
             dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"{BBB} {startC}:{startV} {srBBB=} {srCVpart=}")
-            srTidyBbb = getOurTidyBBB( srBBB, titleCase=True, allowFourChars=True )
+            srTidyBbb = getOETTidyBBB( srBBB, titleCase=True, allowFourChars=True )
 
             # TODO: Most of this next block of code should really be in BibleOrgSys
             if srCVpart.count(':')==1 and srCVpart.count(',')==1 and srCVpart.count('-')==2:

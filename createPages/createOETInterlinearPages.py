@@ -56,17 +56,17 @@ from BibleOrgSys.Internals.InternalBibleInternals import getLeadingInt
 
 from settings import State, TEST_MODE
 from usfm import convertUSFMMarkerListToHtml
-from Bibles import formatUnfoldingWordTranslationNotes, formatTyndaleNotes, getOurTidyBBB
+from Bibles import formatUnfoldingWordTranslationNotes, formatTyndaleNotes
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
                     makeTop, makeBottom, makeBookNavListParagraph, checkHtml
 from createOETReferencePages import CNTR_BOOK_ID_MAP
-from OETHandlers import livenOETWordLinks
+from OETHandlers import livenOETWordLinks, getOETBookName, getOETTidyBBB
 
 
-LAST_MODIFIED_DATE = '2024-03-08' # by RJH
+LAST_MODIFIED_DATE = '2024-03-13' # by RJH
 SHORT_PROGRAM_NAME = "createOETInterlinearPages"
 PROGRAM_NAME = "OpenBibleData createOETInterlinearPages functions"
-PROGRAM_VERSION = '0.45'
+PROGRAM_VERSION = '0.46'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -87,13 +87,7 @@ def createOETInterlinearPages( level:int, folder:Path, state:State ) -> bool:
     try: os.makedirs( folder )
     except FileExistsError: pass # they were already there
 
-    # Prepare the book links
     BBBLinks, BBBNextLinks = [], []
-    # for BBB in state.booksToLoad['OET']:
-    #     if BibleOrgSysGlobals.loadedBibleBooksCodes.isChapterVerseBook( BBB ):
-    #         ourTidyBBB = getOurTidyBBB( BBB )
-    #         BBBLinks.append( f'''<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB).replace('James','Jacob/(James)')}" href="{BBB}/">{ourTidyBBB}</a>''' )
-    #         BBBNextLinks.append( f'''<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB).replace('James','Jacob/(James)')}" href="../{BBB}/">{ourTidyBBB}</a>''' )
 
     # Now create the actual interlinear pages
     for BBB in state.booksToLoad['OET']:
@@ -138,10 +132,10 @@ def createOETInterlinearVersePagesForBook( level:int, folder:Path, BBB:str, BBBL
     except FileExistsError: pass # they were already there
 
     # We don't want the book link for this book to be a recursive link, so remove <a> marking
-    ourTidyBBB = getOurTidyBBB( BBB )
-    ourTidyBbb = getOurTidyBBB( BBB, titleCase=True )
+    ourTidyBBB = getOETTidyBBB( BBB )
+    ourTidyBbb = getOETTidyBBB( BBB, titleCase=True )
     adjBBBLinksHtml = makeBookNavListParagraph(state.BBBLinks['OET-RV'], 'interlinearVerse', state) \
-            .replace( f'''<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB).replace('James','Jacob/(James)')}" href="../{BBB}/">{ourTidyBBB}</a>''', ourTidyBBB )
+            .replace( f'''<a title="{getOETBookName(BBB)}" href="../{BBB}/">{ourTidyBBB}</a>''', ourTidyBBB )
 
     numChapters = None
     for versionAbbreviation in state.BibleVersions:
@@ -265,8 +259,8 @@ def createOETInterlinearVersePage( level:int, BBB:str, c:int, v:int, state:State
     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"createOETInterlinearVersePage {level}, {BBB} {c}:{v}, …" )
 
     # We don't want the book link for this book to be a recursive link, so remove <a> marking
-    ourTidyBBB = getOurTidyBBB( BBB )
-    ourTidyBbb = getOurTidyBBB( BBB, titleCase=True )
+    ourTidyBBB = getOETTidyBBB( BBB )
+    ourTidyBbb = getOETTidyBBB( BBB, titleCase=True )
     C, V = str(c), str(v)
 
     lvBible = state.preloadedBibles['OET-LV']

@@ -42,6 +42,7 @@ CHANGELOG:
     2023-12-24 Added findSectionNumber() and livenSectionReferences() functions
     2024-01-24 Use new BibleOrgSys getContextVerseDataRange() function for OET-LV verse range
     2024-01-27 Add 'related section' links for OET and OET-RV pages
+    2024-03-10 Add chapter bars to section pages, and add navigation to bottom of the pages as well
 """
 from gettext import gettext as _
 from typing import Dict, List, Tuple, Optional
@@ -52,22 +53,21 @@ from collections import defaultdict
 
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
-from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_NT27
-from BibleOrgSys.Internals.InternalBibleInternals import InternalBibleEntryList, getLeadingInt
+# from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_NT27
+from BibleOrgSys.Internals.InternalBibleInternals import getLeadingInt
 import BibleOrgSys.Formats.ESFMBible as ESFMBible
 
 from settings import State, TEST_MODE, reorderBooksForOETVersions, UNFINISHED_WARNING_PARAGRAPH, JAMES_NOTE_PARAGRAPH
 from usfm import convertUSFMMarkerListToHtml
-from Bibles import getOurTidyBBB
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
                     makeTop, makeBottom, makeBookNavListParagraph, removeDuplicateCVids, checkHtml
-from OETHandlers import livenOETWordLinks
+from OETHandlers import livenOETWordLinks, getOETTidyBBB
 
 
-LAST_MODIFIED_DATE = '2024-02-04' # by RJH
+LAST_MODIFIED_DATE = '2024-03-13' # by RJH
 SHORT_PROGRAM_NAME = "createSectionPages"
 PROGRAM_NAME = "OpenBibleData createSectionPages functions"
-PROGRAM_VERSION = '0.53'
+PROGRAM_VERSION = '0.54'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -179,7 +179,7 @@ def createOETSectionPages( level:int, folder:Path, rvBible, lvBible, state:State
     # Now, make the actual section pages
     BBBs = []
     for BBB in state.BBBsToProcess['OET']:
-        ourTidyBBB = getOurTidyBBB( BBB )
+        ourTidyBBB = getOETTidyBBB( BBB )
         dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"OET {BBB=} {state.BBBsToProcess['OET']}/{len(state.BBBsToProcess['OET'])}")
 
         # TODO: Can we delete all this now???
@@ -201,6 +201,18 @@ def createOETSectionPages( level:int, folder:Path, rvBible, lvBible, state:State
         dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{rvBible.abbreviation} {type(rvBible[BBB]._SectionIndex)=} {rvBible[BBB]._SectionIndex=}" )
         if not rvBible[BBB]._SectionIndex: # no sections in this book, e.g., FRT
             continue
+
+        numChapters = rvBible.getNumChapters( BBB )
+        cLinks = [f'<a title="Choose “book”" href="./">{ourTidyBBB}</a>']
+        if numChapters >= 1:
+            if rvBible.discoveryResults[BBB]['haveIntroductoryText']:
+                cLinks.append( f'<a title="View document introduction" href="{BBB}_Intro.htm#Top">Intro</a>' )
+            for c in range( 1, numChapters+1 ):
+                cLinks.append( f'<a title="View chapter page instead" href="../byC/{BBB}_C{c}.htm#Top">C{c}</a>' )
+        else:
+            c = '0' # TODO: for now
+            halt
+        cLinksPar = f'<p class="chLst">{" ".join( cLinks )}</p>'
 
         # # First, get our list of sections
         BBBs.append( BBB )
@@ -314,8 +326,11 @@ def createOETSectionPages( level:int, folder:Path, rvBible, lvBible, state:State
                             f'''<a title="Up to {state.BibleNames['OET']}" href="{'../'*level}OET/">↑OET</a>''' )
             sectionHtml = f'''{top}<!--section page-->
 {navBookListParagraph}
+{cLinksPar}
 {sectionHtml}
 {removeDuplicateCVids( BBB, combinedHtml )}</div><!--RVLVcontainer-->
+<p class="secNav">{sectionIndexLink}{leftLink}{documentLink} {startChapterLink}:{startV}–{endChapterLink}:{endV}{rightLink}{relatedLink}{parallelLink}{interlinearLink}{detailsLink}</p>
+{cLinksPar}
 {makeBottom( level, 'section', state )}'''
             checkHtml( rvBible.abbreviation, sectionHtml )
             assert not filepath.is_file() # Check that we're not overwriting anything
@@ -385,19 +400,6 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> List
     except FileExistsError: pass # they were already there
 
     thisBibleBooksToLoad = state.booksToLoad[thisBible.abbreviation]
-    # BBBsToProcess = thisBible.books.keys() if thisBibleBooksToLoad==['ALL'] \
-    #             else BOOKLIST_NT27 if thisBibleBooksToLoad==['NT'] \
-    #             else thisBibleBooksToLoad
-    # if 'OET' in thisBible.abbreviation:
-    #     BBBsToProcess = reorderBooksForOETVersions( BBBsToProcess )
-    # BBBLinks = []
-    # for BBB in state.BBBsToProcess[thisBible.abbreviation]:
-    #     if BBB=='FRT' \
-    #     or 'ALL' in thisBibleBooksToLoad \
-    #     or BBB in thisBibleBooksToLoad:
-    #         filename = f'{BBB}.htm'
-    #         ourTidyBBB = getOurTidyBBB( BBB )
-    #         BBBLinks.append( f'''<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB).replace('James','Jacob/(James)')}" href="{filename}#Top">{ourTidyBBB}</a>''' )
     navBookListParagraph = makeBookNavListParagraph(state.BBBLinks[thisBible.abbreviation], thisBible.abbreviation, state)
 
     # Firstly make our list of section headings
@@ -438,7 +440,7 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> List
     BBBs = []
     # state.sectionsLists[thisBible.abbreviation] = {}
     for BBB in state.BBBsToProcess[thisBible.abbreviation]:
-        ourTidyBBB = getOurTidyBBB( BBB )
+        ourTidyBBB = getOETTidyBBB( BBB )
         dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{thisBible.abbreviation} {BBB=} {state.BBBsToProcess[thisBible.abbreviation]}/{len(state.BBBsToProcess[thisBible.abbreviation])}")
 
         if thisBible.abbreviation=='OET-LV' \
@@ -450,6 +452,18 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> List
         and BBB not in state.booksToLoad[thisBible.abbreviation]:
             logging.critical( f"VV Skipped sections difficult book: {thisBible.abbreviation} {BBB}")
             continue # Only create pages for the requested books
+
+        numChapters = thisBible.getNumChapters( BBB )
+        if numChapters >= 1:
+            cLinks = [f'<a title="Choose “book”" href="./">{ourTidyBBB}</a>']
+            if thisBible.discoveryResults[BBB]['haveIntroductoryText']:
+                cLinks.append( f'<a title="View document introduction" href="{BBB}_Intro.htm#Top">Intro</a>' )
+            for c in range( 1, numChapters+1 ):
+                cLinks.append( f'<a title="View chapter page instead" href="../byC/{BBB}_C{c}.htm#Top">C{c}</a>' )
+            cLinksPar = f'<p class="chLst">{" ".join( cLinks )}</p>' if cLinks else ''
+        else:
+            # c = '0' # TODO: for now
+            cLinksPar = ''
 
         dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{thisBible.abbreviation} {type(thisBible[BBB]._SectionIndex)=} {thisBible[BBB]._SectionIndex=}" )
         if not thisBible[BBB]._SectionIndex: # no sections in this book, e.g., FRT
@@ -525,7 +539,9 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> List
                 textHtml = do_LSV_HTMLcustomisations( textHtml )
             elif thisBible.abbreviation == 'T4T':
                 textHtml = do_T4T_HTMLcustomisations( textHtml )
-            sectionHtml = f'{sectionHtml}{textHtml}'
+            sectionHtml = f'''{sectionHtml}{textHtml}
+<p class="secNav">{sectionIndexLink}{leftLink}{documentLink} {startChapterLink}:{startV}–{endChapterLink}:{endV}{rightLink}{relatedLink}{parallelLink}{interlinearLink}{detailsLink}</p>
+'''
 
             filepath = folder.joinpath( sectionFilename )
             top = makeTop( level, thisBible.abbreviation, 'section', f'bySec/{BBB}.htm', state ) \
@@ -535,7 +551,9 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> List
                             f'''<a title="Up to {state.BibleNames[thisBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/">↑{thisBible.abbreviation}</a>''' )
             sectionHtml = f'''{top}<!--section page-->
 {navBookListParagraph}
+{cLinksPar}
 {sectionHtml}
+{cLinksPar}
 {makeBottom( level, 'section', state )}'''
             checkHtml( thisBible.abbreviation, sectionHtml )
             assert not filepath.is_file() # Check that we're not overwriting anything

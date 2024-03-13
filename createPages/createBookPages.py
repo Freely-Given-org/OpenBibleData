@@ -45,13 +45,12 @@ import BibleOrgSys.Formats.ESFMBible as ESFMBible
 
 from settings import State, TEST_MODE, reorderBooksForOETVersions, UNFINISHED_WARNING_PARAGRAPH, JAMES_NOTE_PARAGRAPH
 from usfm import convertUSFMMarkerListToHtml
-from Bibles import getOurTidyBBB
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
                     makeTop, makeBottom, makeBookNavListParagraph, removeDuplicateCVids, checkHtml
-from OETHandlers import livenOETWordLinks
+from OETHandlers import livenOETWordLinks, getOETTidyBBB
 
 
-LAST_MODIFIED_DATE = '2024-02-16' # by RJH
+LAST_MODIFIED_DATE = '2024-03-13' # by RJH
 SHORT_PROGRAM_NAME = "createBookPages"
 PROGRAM_NAME = "OpenBibleData createBookPages functions"
 PROGRAM_VERSION = '0.50'
@@ -90,7 +89,7 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
 
     processedBBBs, processedFilenames = [], []
     for BBB in state.BBBsToProcess['OET']:
-        ourTidyBBB = getOurTidyBBB( BBB )
+        ourTidyBBB = getOETTidyBBB( BBB )
         # print( f"{BBB=} {BBBsToProcess}"); print( len(state.BBBsToProcess[thisBible.abbreviation]) )
         # if not allBooksFlag: rvBible.loadBookIfNecessary( BBB )
         # lvBible.loadBookIfNecessary( BBB )
@@ -251,7 +250,6 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
 '''
         filename = f'{BBB}.htm'
         processedFilenames.append( filename )
-        # BBBLinks.append( f'''<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB).replace('James','Jacob/(James)')}" href="{filename}#Top">{ourTidyBBB}</a>''' )
         filepath = folder.joinpath( filename )
         top = makeTop( level, 'OET', 'book', f'byDoc/{filename}', state ) \
                 .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}OET {ourTidyBBB}" ) \
@@ -316,7 +314,7 @@ def createBookPages( level:int, folder:Path, thisBible, state:State ) -> List[st
 
     processedBBBs, processedFilenames = [], []
     for BBB in state.BBBsToProcess[thisBible.abbreviation]:
-        ourTidyBBB = getOurTidyBBB( BBB )
+        ourTidyBBB = getOETTidyBBB( BBB )
         # print( f"{BBB=} {state.BBBsToProcess[thisBible.abbreviation]}"); print( len(BBBsToProcess) )
         # if not allBooksFlag: thisBible.loadBookIfNecessary( BBB )
         if thisBible.abbreviation=='OET-LV' \

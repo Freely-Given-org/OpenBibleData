@@ -38,8 +38,6 @@ formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segmentTy
 
 loadSelectedVersesFile( fileLocation, givenName:str, givenAbbreviation:str, encoding='utf-8' ) -> Bible
 
-getOurTidyBBB( BBB:str, titleCase:Optional[bool]=False, allowFourChars:Optional[bool]=True ) -> str
-
 getVerseDataListForReference( givenRefString:str, thisBible:Bible, lastBBB:Optional[str]=None, lastC:Optional[str]=None ) -> Tuple[str,str,InternalBibleEntryList,List[str]]
 
 briefDemo() -> None
@@ -86,10 +84,10 @@ from OETHandlers import findLVQuote
 from Dict import loadAndIndexUBSGreekDictJSON, loadAndIndexUBSHebrewDictJSON
 
 
-LAST_MODIFIED_DATE = '2024-02-22' # by RJH
+LAST_MODIFIED_DATE = '2024-03-13' # by RJH
 SHORT_PROGRAM_NAME = "Bibles"
 PROGRAM_NAME = "OpenBibleData Bibles handler"
-PROGRAM_VERSION = '0.62'
+PROGRAM_VERSION = '0.63'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -937,20 +935,6 @@ def loadSelectedVersesFile( fileLocation, givenName:str, givenAbbreviation:str, 
     vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    loadSelectedVersesFile() loaded {len(verseTable):,} {givenAbbreviation} verse entries from {fileLocation}." )
     return verseTable
 # end of Bibles.loadSelectedVersesFile
-
-
-def getOurTidyBBB( BBB:str, titleCase:Optional[bool]=False, allowFourChars:Optional[bool]=True ) -> str:
-    """
-    Our customised version of tidyBBB
-    """
-    newBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.tidyBBB( BBB, titleCase=titleCase, allowFourChars=allowFourChars )
-    if newBBB == 'JAM': return 'YAC'
-    if newBBB == 'Jam': return 'Yac'
-    if newBBB == 'ACTS': return 'ACTs'
-    if newBBB == 'JUDE': return 'YUD'
-    if newBBB == 'Jude': return 'Yud'
-    return newBBB
-# end of Bibles.getOurTidyBBB
 
 
 def getVerseDataListForReference( givenRefString:str, thisBible:Bible, lastBBB:Optional[str]=None, lastC:Optional[str]=None ) -> Tuple[str,str,InternalBibleEntryList,List[str]]:

@@ -56,10 +56,10 @@ from BibleTransliterations import transliterate_Greek
 
 from settings import State, TEST_MODE, ALL_TEST_REFERENCE_PAGES, SITE_NAME
 from html import makeTop, makeBottom, checkHtml
-from Bibles import getOurTidyBBB
+from OETHandlers import getOETTidyBBB
 
 
-LAST_MODIFIED_DATE = '2024-03-09' # by RJH
+LAST_MODIFIED_DATE = '2024-03-13' # by RJH
 SHORT_PROGRAM_NAME = "createOETReferencePages"
 PROGRAM_NAME = "OpenBibleData createOETReferencePages functions"
 PROGRAM_VERSION = '0.59'
@@ -807,8 +807,8 @@ def make_Greek_word_pages( level:int, outputFolderPath:Path, state:State ) -> No
                 continue # In some test modes, we only make the relevant word pages
             C, VW = CVW.split( ':', 1 )
             V, W = VW.split( 'w', 1 )
-            ourTidyBBB = getOurTidyBBB( BBB )
-            ourTidyBbb = getOurTidyBBB( BBB, titleCase=True )
+            ourTidyBBB = getOETTidyBBB( BBB )
+            ourTidyBbb = getOETTidyBBB( BBB, titleCase=True )
 
             strongs = extendedStrongs[:-1] if extendedStrongs else None # drop the last digit
 
@@ -956,7 +956,7 @@ This is all part of the commitment of the <em>Open English Translation</em> team
                     oBBB, oCVW = oWordRef.split( '_', 1 )
                     oC, oVW = oCVW.split( ':', 1 )
                     oV, oW = oVW.split( 'w', 1 )
-                    oTidyBBB = getOurTidyBBB( oBBB )
+                    oTidyBBB = getOETTidyBBB( oBBB )
                     # if other_count == 0:
                     translation = '<small>(no English gloss here)</small>' if oOETGlossWords=='-' else f'''‘{oFormattedContextGlossWords.replace('_','<span class="ul">_</span>')}’'''
                     wordsHtml = f'''{wordsHtml}\n<p class="wordLine"><a title="View OET {oTidyBBB} text" href="{'../'*level}OET/byC/{oBBB}_C{oC}.htm#C{oC}V{oV}">{oTidyBBB} {oC}:{oV}</a>''' \
@@ -1005,7 +1005,7 @@ f''' {translation} <a title="Go to Statistical Restoration Greek page" href=
                                     eBBB, eCVW = eWordRef.split( '_', 1 )
                                     eC, eVW = eCVW.split( ':', 1 )
                                     eV, eW = eVW.split( 'w', 1 )
-                                    eTidyBBB = getOurTidyBBB( eBBB )
+                                    eTidyBBB = getOETTidyBBB( eBBB )
 
                                     eGreekPossibleLink = f'<a title="Go to word page" href="{thisN}.htm#Top">{eGreekWord}</a>' if ALL_TEST_REFERENCE_PAGES or eBBB in state.preloadedBibles['OET-RV'] else eGreekWord
                                     eLemmaLink = f'<a title="View Greek root word" href="../GrkLem/{eSRLemma}.htm#Top">{eSRLemma}</a>' if eSRLemma!=SRLemma else ''
@@ -1150,7 +1150,7 @@ def make_Greek_lemma_pages( level:int, outputFolderPath:Path, state:State ) -> N
                 oBBB, oCVW = oWordRef.split( '_', 1 )
                 oC, oVW = oCVW.split( ':', 1 )
                 oV, oW = oVW.split( 'w', 1 )
-                oTidyBBB = getOurTidyBBB( oBBB )
+                oTidyBBB = getOETTidyBBB( oBBB )
                 oTidyMorphology = oMorphology[4:] if oMorphology.startswith('....') else oMorphology
                 usedRoleLetters.add( oRoleLetter )
                 if oTidyMorphology != '...': usedMorphologies.add( oTidyMorphology )

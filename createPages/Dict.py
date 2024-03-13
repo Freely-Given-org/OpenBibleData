@@ -43,9 +43,10 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 
 from settings import State, TEST_MODE, ALTERNATIVE_VERSION
 from html import makeTop, makeBottom, checkHtml
+from OETHandlers import getOETTidyBBB
 
 
-LAST_MODIFIED_DATE = '2024-02-22' # by RJH
+LAST_MODIFIED_DATE = '2024-03-13' # by RJH
 SHORT_PROGRAM_NAME = "Dictionary"
 PROGRAM_NAME = "OpenBibleData Dictionary handler"
 PROGRAM_VERSION = '0.44'
@@ -946,8 +947,6 @@ BOOK_NUM_TABLE = { '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GE
 def getLexReferencesHtmlList( level, lexRefs ) -> List[str]:
     """
     """
-    from Bibles import getOurTidyBBB
-
     lexRefsHtmlList = []
     for fullLexRef in lexRefs:
         # print( f"{fullLexRef=}")
@@ -956,7 +955,7 @@ def getLexReferencesHtmlList( level, lexRefs ) -> List[str]:
         assert lexRef.isdigit()
         bkNum, C, V, last5Digits = int(lexRef[0:3]), int(lexRef[3:6]), int(lexRef[6:9]), lexRef[9:]
         BBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromReferenceNumber( bkNum )
-        ourTidyBBB = getOurTidyBBB( BBB )
+        ourTidyBBB = getOETTidyBBB( BBB )
         # TODO: We're not yet using last5Digits, e.g., '00046', or lexRefExtra, e.g., '{N:001}'
         lexLink = f'''<a href="{'../'*level}par/{BBB}/C{C}V{V}.htm#Top">{ourTidyBBB} {C}:{V}</a>'''
         lexRefsHtmlList.append( f'''{lexLink}''' )

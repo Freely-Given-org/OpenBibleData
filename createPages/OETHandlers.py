@@ -25,21 +25,19 @@
 """
 Module handling OETHandlers functions.
 
-BibleOrgSys uses a three-character book code to identify books.
-    These referenceAbbreviations are nearly always represented as BBB in the program code
-            (although formally named referenceAbbreviation
-                and possibly still represented as that in some of the older code),
-        and in a sense, this is the centre of the BibleOrgSys.
-    The referenceAbbreviation/BBB always starts with a letter, and letters are always UPPERCASE
-        so 2 Corinthians is 'CO2' not '2Co' or anything.
-        This was because early versions of HTML ID fields used to need
-                to start with a letter (not a digit),
-            (and most identifiers in computer languages still require that).
+getOETTidyBBB( BBB:str, titleCase:Optional[bool]=False, allowFourChars:Optional[bool]=True ) -> str
+getOETBookName( BBB:str ) -> str
+
+findLVQuote( level:int, BBB:str, C:str, V:str, occurrenceNumber:int, originalQuote:str, state:State ) -> str (html)
+
+livenOETWordLinks( bibleObject:ESFMBible, BBB:str, givenEntryList:InternalBibleEntryList, hrefTemplate:str, state:State ) -> InternalBibleEntryList
+
 
 CHANGELOG:
     2023-08-22 Change some logging from critical to errors
     2023-10-25 Make use of word table index; add colourisation of OET words
     2023-12-15 Improve colorisation of OET words
+    2024-03-13 Add getOETBookName(BBB) function
 """
 # from gettext import gettext as _
 from typing import Dict, List, Tuple, Optional
@@ -62,14 +60,63 @@ from BibleTransliterations import transliterate_Greek
 from settings import State
 
 
-LAST_MODIFIED_DATE = '2024-03-08' # by RJH
+LAST_MODIFIED_DATE = '2024-03-13' # by RJH
 SHORT_PROGRAM_NAME = "OETHandlers"
 PROGRAM_NAME = "OpenBibleData OET handler"
-PROGRAM_VERSION = '0.34'
+PROGRAM_VERSION = '0.40'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
 
+
+def getOETTidyBBB( BBB:str, titleCase:Optional[bool]=False, allowFourChars:Optional[bool]=True ) -> str:
+    """
+    Our customised version of tidyBBB
+    """
+    newBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.tidyBBB( BBB, titleCase=titleCase, allowFourChars=allowFourChars )
+    # OT
+    if newBBB == 'JNA': return 'YNA'
+    if newBBB == 'Jna': return 'Yna'
+    # NT
+    if newBBB == 'JHN': return 'YHN'
+    if newBBB == 'Jhn': return 'Yhn'
+    if newBBB == 'JOHN': return 'YHN'
+    if newBBB == 'John': return 'Yhn'
+    if newBBB == 'JAM': return 'YAC'
+    if newBBB == 'Jam': return 'Yac'
+    if newBBB == 'ACTS': return 'ACTs'
+    if newBBB == '1JN': return '1YN'
+    if newBBB == '2JN': return '2YN'
+    if newBBB == '3JN': return '3YN'
+    if newBBB == '1Jn': return '1Yn'
+    if newBBB == '2Jn': return '2Yn'
+    if newBBB == '3Jn': return '3Yn'
+    if newBBB == '1JHN': return '1YHN'
+    if newBBB == '2JHN': return '2YHN'
+    if newBBB == '3JHN': return '3YHN'
+    if newBBB == '1Jhn': return '1Yhn'
+    if newBBB == '2Jhn': return '2Yhn'
+    if newBBB == '3Jhn': return '3Yhn'
+    if newBBB == 'JUDE': return 'YUD'
+    if newBBB == 'Jude': return 'Yud'
+    return newBBB
+# end of Bibles.getOETTidyBBB
+
+
+def getOETBookName( BBB:str ) -> str:
+    """
+    """
+    return ( BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB)
+                .replace('Jonah','Yonah/(Jonah)')
+                .replace('John','Yohan/(John)')
+                .replace('James','Jacob/(James)')
+                .replace('1 John',' 1 Yohan/(John)')
+                .replace('2 John',' 2 Yohan/(John)')
+                .replace('3 John',' 3 Yohan/(John)')
+                .replace('Jude','Jacob/(Jude)')
+            )
+# end of OETHandlers.getOETBookName
+    
 
 def findLVQuote( level:int, BBB:str, C:str, V:str, occurrenceNumber:int, originalQuote:str, state:State ) -> str: # html
     """

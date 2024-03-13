@@ -70,7 +70,8 @@ from BibleTransliterations import load_transliteration_table
 
 from settings import State, state, reorderBooksForOETVersions, TEST_MODE, SITE_NAME, SITE_ABBREVIATION, \
     TEMP_BUILD_FOLDER, ALL_PRODUCTION_BOOKS, UPDATE_ACTUAL_SITE_WHEN_BUILT, DESTINATION_FOLDER, BY_DOCUMENT_PARAGRAPH
-from Bibles import preloadVersions, getOurTidyBBB
+from Bibles import preloadVersions
+from OETHandlers import getOETTidyBBB, getOETBookName
 from createBookPages import createOETBookPages, createBookPages
 from createChapterPages import createOETSideBySideChapterPages, createChapterPages
 from createSectionPages import createOETSectionPages, createSectionPages
@@ -82,9 +83,9 @@ from Dict import createTyndaleDictPages, createUBSDictionaryPages
 from html import makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2024-03-08' # by RJH
+LAST_MODIFIED_DATE = '2024-03-13' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
-PROGRAM_NAME = "OpenBibleData Create Pages"
+PROGRAM_NAME = "OpenBibleData Create Site Pages"
 PROGRAM_VERSION = '0.95'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
@@ -169,8 +170,8 @@ def _createSitePages() -> bool:
             state.BBBLinks['OET'] = []
             for BBB in state.BBBsToProcess['OET']:
                 filename = f'{BBB}.htm'
-                ourTidyBBB = getOurTidyBBB( BBB )
-                state.BBBLinks['OET'].append( f'''<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB).replace('James','Jacob/(James)')}" href="{filename}#Top">{ourTidyBBB}</a>''' )
+                ourTidyBBB = getOETTidyBBB( BBB )
+                state.BBBLinks['OET'].append( f'''<a title="{getOETBookName(BBB)}" href="{filename}#Top">{ourTidyBBB}</a>''' )
         else: # not OET
             thisBible = state.preloadedBibles[versionAbbreviation]
             thisBibleBooksToLoad = state.booksToLoad[versionAbbreviation]
@@ -195,8 +196,8 @@ def _createSitePages() -> bool:
                     or 'ALL' in thisBibleBooksToLoad \
                     or BBB in thisBibleBooksToLoad:
                         filename = f'{BBB}.htm'
-                        ourTidyBBB = getOurTidyBBB( BBB )
-                        state.BBBLinks[versionAbbreviation].append( f'''<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB).replace('James','Jacob/(James)')}" href="{filename}#Top">{ourTidyBBB}</a>''' )
+                        ourTidyBBB = getOETTidyBBB( BBB )
+                        state.BBBLinks[versionAbbreviation].append( f'''<a title="{getOETBookName(BBB)}" href="{filename}#Top">{ourTidyBBB}</a>''' )
 
     # Ok, let's go create some static pages
     if 'OET' in state.BibleVersions: # this is a special case
@@ -506,10 +507,10 @@ def _createDetailsPages( level:int, buildFolder:Path, state:State ) -> bool:
 '''
         if TEST_MODE and versionAbbreviation in state.selectedVersesOnlyVersions:
             # Add a list of links to verses containing this version
-            selectedVerseLinksList = [f'<a href="../par/{BBB}/C{C}V{V}.htm#Top">{getOurTidyBBB( BBB, titleCase=True )} {C}:{V}</a>' for BBB,C,V in state.preloadedBibles[versionAbbreviation]]
+            selectedVerseLinksList = [f'<a href="../par/{BBB}/C{C}V{V}.htm#Top">{getOETTidyBBB( BBB, titleCase=True )} {C}:{V}</a>' for BBB,C,V in state.preloadedBibles[versionAbbreviation]]
         #     for BBB,C,V in state.preloadedBibles[versionAbbreviation]:
-        #         ourTidyBBB = getOurTidyBBB( BBB, titleCase=True )
-        #         selectedVerseLinksList.append( f'<a href="../par/{BBB}/C{C}V{V}.htm#Top">{getOurTidyBBB( BBB, titleCase=True )} {C}:{V}</a>' )
+        #         ourTidyBBB = getOETTidyBBB( BBB, titleCase=True )
+        #         selectedVerseLinksList.append( f'<a href="../par/{BBB}/C{C}V{V}.htm#Top">{getOETTidyBBB( BBB, titleCase=True )} {C}:{V}</a>' )
             detailsHtml = f'''{detailsHtml}<h2>Available selections</h2>
 <p class="rem">The following parallel verse pages feature this version:</p>
 <p class="selectedLinks">{' '.join(selectedVerseLinksList)}</p>

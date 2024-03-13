@@ -49,13 +49,12 @@ import BibleOrgSys.Formats.ESFMBible as ESFMBible
 
 from settings import State, TEST_MODE, reorderBooksForOETVersions, UNFINISHED_WARNING_PARAGRAPH, JAMES_NOTE_PARAGRAPH
 from usfm import convertUSFMMarkerListToHtml
-from Bibles import getOurTidyBBB
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
                     makeTop, makeBottom, makeBookNavListParagraph, removeDuplicateCVids, checkHtml
-from OETHandlers import livenOETWordLinks
+from OETHandlers import livenOETWordLinks, getOETTidyBBB
 
 
-LAST_MODIFIED_DATE = '2024-02-04' # by RJH
+LAST_MODIFIED_DATE = '2024-03-13' # by RJH
 SHORT_PROGRAM_NAME = "createChapterPages"
 PROGRAM_NAME = "OpenBibleData createChapterPages functions"
 PROGRAM_VERSION = '0.57'
@@ -87,7 +86,7 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
     BBBs, filenames = [], []
     for BBB in state.BBBsToProcess['OET']:
         vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Creating chapter pages for OET {BBB}…" )
-        ourTidyBBB = getOurTidyBBB( BBB )
+        ourTidyBBB = getOETTidyBBB( BBB )
         # print( f"{BBB=} {BBBsToProcess}"); print( len(state.BBBsToProcess[thisBible.abbreviation]) )
         # if not allBooksFlag: rvBible.loadBookIfNecessary( BBB )
         # lvBible.loadBookIfNecessary( BBB )
@@ -137,8 +136,8 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
             continue # Only create pages for the requested LV books
 
         BBBs.append( BBB )
-        numChapters = rvBible.getNumChapters( BBB )
 
+        numChapters = rvBible.getNumChapters( BBB )
         cLinks = [f'<a title="Choose “book”" href="./">{ourTidyBBB}</a>']
         if numChapters >= 1:
             if rvBible.discoveryResults[BBB]['haveIntroductoryText']:
@@ -325,8 +324,6 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
         filename = f'{BBB}.htm'
         filenames.append( filename )
         filepath = folder.joinpath( filename )
-        # BBBLinks.append( f'''<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB).replace('James','Jacob/(James)')}" href="{filename}#Top">{ourTidyBBB}</a>''' )
-        # numChapters = rvBible.getNumChapters( BBB )
         top = makeTop( level, 'OET', 'chapter', 'byC/', state ) \
                 .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}OET {ourTidyBBB}" ) \
                 .replace( '__KEYWORDS__', f'Bible, OET, Open English Translation, chapter, {ourTidyBBB}' ) \
@@ -401,7 +398,7 @@ def createChapterPages( level:int, folder:Path, thisBible, state:State ) -> List
             continue # Only create pages for the requested books
 
         BBBs.append( BBB )
-        ourTidyBBB = getOurTidyBBB( BBB )
+        ourTidyBBB = getOETTidyBBB( BBB )
         try: numChapters = thisBible.getNumChapters( BBB )
         except KeyError:
             logging.critical( f"Can't get number of chapters for {thisBible.abbreviation} {BBB}")

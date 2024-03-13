@@ -63,10 +63,10 @@ from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39, BOOKLIST_NT27
 from settings import State, TEST_MODE, SITE_NAME
 
 
-LAST_MODIFIED_DATE = '2024-02-23' # by RJH
+LAST_MODIFIED_DATE = '2024-03-13' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
-PROGRAM_VERSION = '0.70'
+PROGRAM_VERSION = '0.71'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -307,8 +307,13 @@ def makeBookNavListParagraph( linksList:List[str], workAbbrevPlus:str, state:Sta
         displayText = aLink[ixDisplayLinkStart:ixDisplayLinkEnd]
         # print( f"  {aLink=} {displayText=}")
         assert 3 <= len(displayText) <= 4 # it should be a tidyBBB
-        BBB = 'JAM' if displayText=='YAC' else 'JDE' if displayText=='YUD' else 'PS2' if displayText=='2PS' \
-                else BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromText( displayText )
+        BBB = ( 'JNA' if displayText=='YNA'
+                else 'JHN' if displayText=='YHN'
+                else 'JAM' if displayText=='YAC'
+                else 'JN1' if displayText=='1YHN' else 'JN2' if displayText=='2YHN' else 'JN3' if displayText=='3YHN'
+                else 'JDE' if displayText=='YUD'
+                else 'PS2' if displayText=='2PS'
+                else BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromText( displayText ) )
         # print( f"   {aLink=} {displayText=} {BBB=}")
         assert BBB, f"{displayText=}"
         newALink = f'{aLink[:ixDisplayLinkStart]}{displayText}{aLink[ixDisplayLinkEnd:]}'
