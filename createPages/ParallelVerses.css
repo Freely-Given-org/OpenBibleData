@@ -112,6 +112,10 @@ span.xrRef { font-weight:bold; }
 /* span.fnText { } */
 /* span.xrText { } */
 
+/* OSHB cases (also used for OET-RV and OET-LV) */
+/* Used in <a> fields and in spans */
+.hebrewVrb { background-color:yellow; }
+
 /* SR-GNT cases (also used for OET-RV and OET-LV) */
 /* Used in <a> fields and in spans */
 .greekNom { background-color:lightgreen; }

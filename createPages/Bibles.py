@@ -84,10 +84,10 @@ from OETHandlers import findLVQuote
 from Dict import loadAndIndexUBSGreekDictJSON, loadAndIndexUBSHebrewDictJSON
 
 
-LAST_MODIFIED_DATE = '2024-03-13' # by RJH
+LAST_MODIFIED_DATE = '2024-03-21' # by RJH
 SHORT_PROGRAM_NAME = "Bibles"
 PROGRAM_NAME = "OpenBibleData Bibles handler"
-PROGRAM_VERSION = '0.63'
+PROGRAM_VERSION = '0.64'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -125,10 +125,10 @@ def preloadVersions( state:State ) -> int:
                 # print( f"{wordTableID=} {type(wordTable)=}")
                 thisBible.ESFMWordTables[wordTableID] = wordTable
             # print( f"{len(thisBible.ESFMWordTables)=}" )
-            # For now, use the NT sourceFolder so that the NT word file will load
-            # NOTE: This means that we lose the OT sourceFolder (so possibly should save it somewhere)
-            # TODO: What will we do in the future when we have both OT and NT word files ???
-            thisBible.sourceFolder = thisBibleNT.sourceFolder
+            # For now, use add custom OT and NT sourceFolder variables so that we can load the two different word files
+            thisBible.OTsourceFolder = thisBible.sourceFolder
+            thisBible.NTsourceFolder = thisBibleNT.sourceFolder
+            thisBible.sourceFolder = None
             state.preloadedBibles[versionAbbreviation] = thisBible
         elif versionAbbreviation in state.BibleLocations:
             thisBible = preloadVersion( versionAbbreviation, state.BibleLocations[versionAbbreviation], state )

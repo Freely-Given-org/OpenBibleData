@@ -63,10 +63,10 @@ from createOETReferencePages import CNTR_BOOK_ID_MAP
 from OETHandlers import livenOETWordLinks, getOETBookName, getOETTidyBBB
 
 
-LAST_MODIFIED_DATE = '2024-03-13' # by RJH
+LAST_MODIFIED_DATE = '2024-03-22' # by RJH
 SHORT_PROGRAM_NAME = "createOETInterlinearPages"
 PROGRAM_NAME = "OpenBibleData createOETInterlinearPages functions"
-PROGRAM_VERSION = '0.46'
+PROGRAM_VERSION = '0.50'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -102,7 +102,7 @@ def createOETInterlinearPages( level:int, folder:Path, state:State ) -> bool:
             .replace( '__KEYWORDS__', 'Bible, interlinear' )
     indexHtml = f'''{top}
 <h1 id="Top">OET interlinear verse pages</h1>
-<p class="note">These pages show single OET verses with each Greek word aligned with the English word(s) that it was translated to, along with any translation notes and study notes for the verse. Finally, at the bottom of each page there's a <em>Reverse Interlinear</em> with the same information but in English word order.</p>
+<p class="note">These pages show single OET verses with each Hebrew or Greek word aligned with the English word(s) that it was translated to, along with any translation notes and study notes for the verse. Finally, at the bottom of each page there's a <em>Reverse Interlinear</em> with the same information but in English word order.</p>
 <h2>Index of books</h2>
 {makeBookNavListParagraph(state.BBBLinks['OET-RV'], 'interlinearIndex', state)}
 {makeBottom( level, 'interlinearVerse', state )}'''
@@ -258,6 +258,9 @@ def createOETInterlinearVersePage( level:int, BBB:str, c:int, v:int, state:State
 
     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"createOETInterlinearVersePage {level}, {BBB} {c}:{v}, …" )
 
+    NT = BibleOrgSysGlobals.loadedBibleBooksCodes.isNewTestament_NR( BBB )
+    wordFileName = 'OET-LV_NT_word_table.tsv' if NT else 'OET-LV_OT_word_table.tsv'
+
     # We don't want the book link for this book to be a recursive link, so remove <a> marking
     ourTidyBBB = getOETTidyBBB( BBB )
     ourTidyBbb = getOETTidyBBB( BBB, titleCase=True )
@@ -265,12 +268,12 @@ def createOETInterlinearVersePage( level:int, BBB:str, c:int, v:int, state:State
 
     lvBible = state.preloadedBibles['OET-LV']
     rvBible = state.preloadedBibles['OET-RV']
-    wordTable = state.OETRefData['word_table']
+    wordTable = state.OETRefData['word_tables'][wordFileName]
 
     html = '<h2>SR Greek word order <small>(including unused variants)</small></h2><div class=interlinear><ol class=verse>'
     try:
         lvVerseEntryList, lvContextList = lvBible.getContextVerseData( (BBB, C, V) )
-        livenedLvVerseEntryList = livenOETWordLinks( lvBible, BBB, lvVerseEntryList, f"{'../'*level}ref/GrkWrd/{{n}}.htm#Top", state )
+        livenedLvVerseEntryList = livenOETWordLinks( lvBible, BBB, lvVerseEntryList, f"{'../'*level}ref/{'GrkWrd' if NT else 'HebWrd'}/{{n}}.htm#Top", state )
         lvTextHtml = do_OET_LV_HTMLcustomisations( convertUSFMMarkerListToHtml( level, 'OET-LV', (BBB,C,V), 'verse', lvContextList, livenedLvVerseEntryList, basicOnly=True, state=state ) )
         lvHtml = f'''<div class="LV"><p class="LV"><span class="wrkName"><a title="View {state.BibleNames['OET']} chapter" href="{'../'*level}OET/byC/{BBB}_C{c}.htm#Top">OET</a> (<a title="{state.BibleNames['OET-LV']}" href="{'../'*level}OET-LV/byC/{BBB}_C{c}.htm#Top">OET-LV</a>)</span> {lvTextHtml}</p></div><!--LV-->'''
     except (KeyError, TypeError):
@@ -284,7 +287,7 @@ def createOETInterlinearVersePage( level:int, BBB:str, c:int, v:int, state:State
         lvVerseEntryList = []
     try:
         rvVerseEntryList, rvContextList = rvBible.getContextVerseData( (BBB, C, V) )
-        livenedRvVerseEntryList = livenOETWordLinks( lvBible, BBB, rvVerseEntryList, f"{'../'*level}ref/GrkWrd/{{n}}.htm#Top", state )
+        livenedRvVerseEntryList = livenOETWordLinks( lvBible, BBB, rvVerseEntryList, f"{'../'*level}ref/{'GrkWrd' if NT else 'HebWrd'}/{{n}}.htm#Top", state )
         rvTextHtml = do_OET_RV_HTMLcustomisations( convertUSFMMarkerListToHtml( level, 'OET-RV', (BBB,C,V), 'verse', rvContextList, livenedRvVerseEntryList, basicOnly=True, state=state ) )
         rvHtml = f'''<div class="RV"><p class="RV"><span class="wrkName"><a title="View {state.BibleNames['OET']} chapter" href="{'../'*level}OET/byC/{BBB}_C{c}.htm#Top">OET</a> (<a title="{state.BibleNames['OET-RV']}" href="{'../'*level}OET-RV/byC/{BBB}_C{c}.htm#Top">OET-RV</a>)</span> {rvTextHtml}</p></div><!--RV-->'''
     except (KeyError, TypeError):
@@ -350,8 +353,8 @@ def createOETInterlinearVersePage( level:int, BBB:str, c:int, v:int, state:State
             logging.critical( f"OET-LV {BBB} {c}:{v} why did we get a zero-length word in {lvEnglishWordList}???" )
             continue
         try: word,numberStr = extendedWord.split( '¦' )
-        except ValueError:
-            logging.critical( f"OET-LV {BBB} {c}:{v} word/number split failed on '{extendedWord}'" )
+        except ValueError: # normal for footnotes
+            logging.warning( f"OET-LV {BBB} {c}:{v} word/number split failed on '{extendedWord}'" )
             # print( f"OET-LV {BBB} {c}:{v} {text=} {lvEnglishWordList=}")
             continue
         number = getLeadingInt( numberStr )
@@ -380,7 +383,7 @@ def createOETInterlinearVersePage( level:int, BBB:str, c:int, v:int, state:State
     # print( f"Found {BBB} {c}:{v} ({len(EnglishWordList)}) {EnglishWordList=}" )
     iHtml = ''
     if wordNumberStr: # Now we have a word number from the correct verse
-        firstWordNumber,lastWordNumber = state.OETRefData['word_table_index'][f'{BBB}_{C}:{V}']
+        firstWordNumber,lastWordNumber = state.OETRefData['word_table_indexes'][wordFileName][f'{BBB}_{C}:{V}']
         # firstWordNumber = getLeadingInt( wordNumberStr )
         # rowStr = wordTable[firstWordNumber]
         # #  0    1          2        3           4              5              6          7            8           9     10          11
@@ -392,10 +395,11 @@ def createOETInterlinearVersePage( level:int, BBB:str, c:int, v:int, state:State
         #     if not wordTable[firstWordNumber].startswith( f'{BBB}_{c}:{v}w' ):
         #         firstWordNumber += 1 # We went too far
         #         break
-        # assert firstWordNumber == state.OETRefData['word_table_index'][f'{BBB}_{c}:{v}'][0], f"{wordNumberStr=} {firstWordNumber=} {state.OETRefData['word_table_index'][f'{BBB}_{c}:{v}']=}"
+        # assert firstWordNumber == state.OETRefData['word_table_indexes'][wordFileName][f'{BBB}_{c}:{v}'][0], f"{wordNumberStr=} {firstWordNumber=} {state.OETRefData['word_table_indexes'][wordFileName][f'{BBB}_{c}:{v}']=}"
 
         # Display the interlinear blocks
-        GreekList = ['''<li><ol class="titles">
+        if NT:
+            GreekList = ['''<li><ol class="titles">
 <li lang="el">Greek word</li>
 <li lang="el_LEMMA">Greek lemma</li>
 <li lang="en_TRANS"><b>OET-LV words</b></li>
@@ -409,27 +413,27 @@ def createOETInterlinearVersePage( level:int, BBB:str, c:int, v:int, state:State
 <li lang="en_TAGS">OET tags</li>
 <li lang="en_WORDNUM">OET word #</li>
 </ol></li>''']
-        for wordNumber in range( firstWordNumber, lastWordNumber+1 ):
-            # if wordNumber >= len(wordTable): # we must be in one of the last verses of Rev
-            #     break
-            rowStr = wordTable[wordNumber]
-            assert rowStr.startswith( f'{BBB}_{c}:{v}w' )
-            # if not rowStr.startswith( f'{BBB}_{c}:{v}w' ): # gone into the next verse
-            #     break
-            row = rowStr.split( '\t' )
-            #  0    1          2        3           4              5              6          7            8           9     10          11
-            # 'Ref\tGreekWord\tSRLemma\tGreekLemma\tVLTGlossWords\tOETGlossWords\tGlossCaps\tProbability\tStrongsExt\tRole\tMorphology\tTags'
-            if row[11]:
-                tags = row[11].split( ';' )
-                for t,tag in enumerate( tags ):
-                    tagPrefix, tag = tag[0], tag[1:]
-                    if tagPrefix == 'P':
-                        tags[t] = f'''Person=<a title="View person details" href="{'../'*level}ref/Per/{tag}.htm#Top">{tag}</a>'''
-                    elif tagPrefix == 'L':
-                        tags[t] = f'''Location=<a title="View place details" href="{'../'*level}ref/Loc/{tag}.htm#Top">{tag}</a>'''
-                tagsHtml = '; '.join( tags )
-            else: tagsHtml = '-'
-            GreekList.append( f'''<li><ol class="{'word' if row[7] else 'variant'}">
+            for wordNumber in range( firstWordNumber, lastWordNumber+1 ):
+                # if wordNumber >= len(wordTable): # we must be in one of the last verses of Rev
+                #     break
+                rowStr = wordTable[wordNumber]
+                assert rowStr.startswith( f'{BBB}_{c}:{v}w' )
+                # if not rowStr.startswith( f'{BBB}_{c}:{v}w' ): # gone into the next verse
+                #     break
+                row = rowStr.split( '\t' )
+                #  0    1          2        3           4              5              6          7            8           9     10          11
+                # 'Ref\tGreekWord\tSRLemma\tGreekLemma\tVLTGlossWords\tOETGlossWords\tGlossCaps\tProbability\tStrongsExt\tRole\tMorphology\tTags'
+                if row[11]:
+                    tags = row[11].split( ';' )
+                    for t,tag in enumerate( tags ):
+                        tagPrefix, tag = tag[0], tag[1:]
+                        if tagPrefix == 'P':
+                            tags[t] = f'''Person=<a title="View person details" href="{'../'*level}ref/Per/{tag}.htm#Top">{tag}</a>'''
+                        elif tagPrefix == 'L':
+                            tags[t] = f'''Location=<a title="View place details" href="{'../'*level}ref/Loc/{tag}.htm#Top">{tag}</a>'''
+                    tagsHtml = '; '.join( tags )
+                else: tagsHtml = '-'
+                GreekList.append( f'''<li><ol class="{'word' if row[7] else 'variant'}">
 <li lang="el">{row[1]}</li>
 <li lang="el_LEMMA">{row[2]}</li>
 <li lang="en_TRANS"><b>{' '.join(lvEnglishWordDict[wordNumber]) if lvEnglishWordDict[wordNumber] else '-'}</b></li>
@@ -441,9 +445,59 @@ def createOETInterlinearVersePage( level:int, BBB:str, c:int, v:int, state:State
 <li lang="en_CAPS">{row[6] if row[6] else '-'}</li>
 <li lang="en_PERCENT">{row[7]+'%' if row[7] else 'V'}</li>
 <li lang="en_TAGS">{tagsHtml}</li>
-<li lang="en_WORDNUM"><a title="View word details" href="{'../'*level}ref/GrkWrd/{wordNumber}.htm#Top">{wordNumber}</a></li>
+<li lang="en_WORDNUM"><a title="View word details" href="{'../'*level}ref/{'GrkWrd' if NT else 'HebWrd'}/{wordNumber}.htm#Top">{wordNumber}</a></li>
 </ol></li>''' )
-        iHtml = f'{iHtml}{NEWLINE.join( GreekList )}'
+            iHtml = f'{iHtml}{NEWLINE.join( GreekList )}'
+        else: # OT
+            HebrewList = ['''<li><ol class="titles">
+<li lang="el">Greek word</li>
+<li lang="el_LEMMA">Greek lemma</li>
+<li lang="en_TRANS"><b>OET-LV words</b></li>
+<li lang="en_TRANS"><b>OET-RV words</b></li>
+<li lang="en_STRONGS">Strongs</li>
+<li lang="en_MORPH">Role/Morphology</li>
+<li lang="en_GLOSS">OET Gloss</li>
+<li lang="en_GLOSS">VLT Gloss</li>
+<li lang="en_CAPS">CAPS codes</li>
+<li lang="en_PERCENT">Confidence</li>
+<li lang="en_TAGS">OET tags</li>
+<li lang="en_WORDNUM">OET word #</li>
+</ol></li>''']
+            for wordNumber in range( firstWordNumber, lastWordNumber+1 ):
+                # if wordNumber >= len(wordTable): # we must be in one of the last verses of Rev
+                #     break
+                rowStr = wordTable[wordNumber]
+                assert rowStr.startswith( f'{BBB}_{c}:{v}' )
+                # if not rowStr.startswith( f'{BBB}_{c}:{v}w' ): # gone into the next verse
+                #     break
+                row = rowStr.split( '\t' )
+                #  0    1        2       3                4        5                      6           7     8                9                10                         11         12                   13                   14                15          16
+                # 'Ref\tOSHBid\tRowType\tMorphemeRowList\tStrongs\tCantillationHierarchy\tMorphology\tWord\tNoCantillations\tMorphemeGlosses\tContextualMorphemeGlosses\tWordGloss\tContextualWordGloss\tGlossCapitalisation\tGlossPunctuation\tGlossOrder\tGlossInsert'
+                if 0 and row[11]:
+                    tags = row[11].split( ';' )
+                    for t,tag in enumerate( tags ):
+                        tagPrefix, tag = tag[0], tag[1:]
+                        if tagPrefix == 'P':
+                            tags[t] = f'''Person=<a title="View person details" href="{'../'*level}ref/Per/{tag}.htm#Top">{tag}</a>'''
+                        elif tagPrefix == 'L':
+                            tags[t] = f'''Location=<a title="View place details" href="{'../'*level}ref/Loc/{tag}.htm#Top">{tag}</a>'''
+                    tagsHtml = '; '.join( tags )
+                else: tagsHtml = '-'
+                HebrewList.append( f'''<li><ol class="{'word' if row[7] else 'variant'}">
+<li lang="el">{row[1]}</li>
+<li lang="el_LEMMA">{row[2]}</li>
+<li lang="en_TRANS"><b>{' '.join(lvEnglishWordDict[wordNumber]) if lvEnglishWordDict[wordNumber] else '-'}</b></li>
+<li lang="en_TRANS"><b>{' '.join(rvEnglishWordDict[wordNumber]) if rvEnglishWordDict[wordNumber] else '-'}</b></li>
+<li lang="en_STRONGS"><a href="https://BibleHub.com/greek/{row[8][:-1]}.htm">{row[8]}</a></li>
+<li lang="en_MORPH">{row[9]}{row[10]}</li>
+<li lang="en_GLOSS">{row[5]}</li>
+<li lang="en_GLOSS">{row[4]}</li>
+<li lang="en_CAPS">{row[6] if row[6] else '-'}</li>
+<li lang="en_PERCENT">{row[7]+'%' if row[7] else 'V'}</li>
+<li lang="en_TAGS">{tagsHtml}</li>
+<li lang="en_WORDNUM"><a title="View word details" href="{'../'*level}ref/{'GrkWrd' if NT else 'HebWrd'}/{wordNumber}.htm#Top">{wordNumber}</a></li>
+</ol></li>''' )
+            iHtml = f'{iHtml}{NEWLINE.join( HebrewList )}'
 
     # Now append the OET-RV
     html = f'''{html}{iHtml}</ol></div><!--interlinear-->
@@ -486,19 +540,20 @@ def createOETInterlinearVersePage( level:int, BBB:str, c:int, v:int, state:State
         else:
             # Display the reverse interlinear blocks
             rowStr = wordTable[wordNumber]
-            assert rowStr.startswith( f'{BBB}_{c}:{v}w' )
-            row = rowStr.split( '\t' )
-            if row[11]:
-                tags = row[11].split( ';' )
-                for t,tag in enumerate( tags ):
-                    tagPrefix, tag = tag[0], tag[1:]
-                    if tagPrefix == 'P':
-                        tags[t] = f'''Person=<a title="View person details" href="{'../'*level}ref/Per/{tag}.htm#Top">{tag}</a>'''
-                    elif tagPrefix == 'L':
-                        tags[t] = f'''Location=<a title="View place details" href="{'../'*level}ref/Loc/{tag}.htm#Top">{tag}</a>'''
-                tagsHtml = '; '.join( tags )
-            else: tagsHtml = '-'
-            reverseList.append( f'''<li><ol class="word">
+            if NT:
+                assert rowStr.startswith( f'{BBB}_{c}:{v}w' )
+                row = rowStr.split( '\t' )
+                if row[11]:
+                    tags = row[11].split( ';' )
+                    for t,tag in enumerate( tags ):
+                        tagPrefix, tag = tag[0], tag[1:]
+                        if tagPrefix == 'P':
+                            tags[t] = f'''Person=<a title="View person details" href="{'../'*level}ref/Per/{tag}.htm#Top">{tag}</a>'''
+                        elif tagPrefix == 'L':
+                            tags[t] = f'''Location=<a title="View place details" href="{'../'*level}ref/Loc/{tag}.htm#Top">{tag}</a>'''
+                    tagsHtml = '; '.join( tags )
+                else: tagsHtml = '-'
+                reverseList.append( f'''<li><ol class="word">
 <li lang="en_TRANS"><b>{word}</b></li>
 <li lang="en_TRANS"><b>{' '.join(rvEnglishWordDict[wordNumber]) if rvEnglishWordDict[wordNumber] else '-'}</b></li>
 <li lang="en_STRONGS"><a href="https://BibleHub.com/greek/{row[7][:-1]}.htm">{row[6]}</a></li>
@@ -510,9 +565,36 @@ def createOETInterlinearVersePage( level:int, BBB:str, c:int, v:int, state:State
 <li lang="en_CAPS">{row[5] if row[5] else '-'}</li>
 <li lang="en_PERCENT">{row[6]+'%' if row[6] else 'V'}</li>
 <li lang="en_TAGS">{tagsHtml}</li>
-<li lang="en_WORDNUM"><a title="View word details" href="{'../'*level}ref/GrkWrd/{wordNumber}.htm#Top">{wordNumber}</a></li>
+<li lang="en_WORDNUM"><a title="View word details" href="{'../'*level}ref/{'GrkWrd' if NT else 'HebWrd'}/{wordNumber}.htm#Top">{wordNumber}</a></li>
 </ol></li>''' )
-        lastWordNumber = wordNumber
+            else: # OT
+                assert rowStr.startswith( f'{BBB}_{c}:{v}' )
+                row = rowStr.split( '\t' )
+                if 0 and row[11]:
+                    tags = row[11].split( ';' )
+                    for t,tag in enumerate( tags ):
+                        tagPrefix, tag = tag[0], tag[1:]
+                        if tagPrefix == 'P':
+                            tags[t] = f'''Person=<a title="View person details" href="{'../'*level}ref/Per/{tag}.htm#Top">{tag}</a>'''
+                        elif tagPrefix == 'L':
+                            tags[t] = f'''Location=<a title="View place details" href="{'../'*level}ref/Loc/{tag}.htm#Top">{tag}</a>'''
+                    tagsHtml = '; '.join( tags )
+                else: tagsHtml = '-'
+                reverseList.append( f'''<li><ol class="word">
+<li lang="en_TRANS"><b>{word}</b></li>
+<li lang="en_TRANS"><b>{' '.join(rvEnglishWordDict[wordNumber]) if rvEnglishWordDict[wordNumber] else '-'}</b></li>
+<li lang="en_STRONGS"><a href="https://BibleHub.com/greek/{row[7][:-1]}.htm">{row[6]}</a></li>
+<li lang="el">{row[1]}</li>
+<li lang="el_LEMMA">{row[2]}</li>
+<li lang="en_MORPH">{row[8]}{row[9]}</li>
+<li lang="en_GLOSS">{row[4]}</li>
+<li lang="en_GLOSS">{row[3]}</li>
+<li lang="en_CAPS">{row[5] if row[5] else '-'}</li>
+<li lang="en_PERCENT">{row[6]+'%' if row[6] else 'V'}</li>
+<li lang="en_TAGS">{tagsHtml}</li>
+<li lang="en_WORDNUM"><a title="View word details" href="{'../'*level}ref/{'GrkWrd' if NT else 'HebWrd'}/{wordNumber}.htm#Top">{wordNumber}</a></li>
+</ol></li>''' )
+            lastWordNumber = wordNumber
     riHtml = f'{riHtml}{NEWLINE.join( reverseList )}'
 
 

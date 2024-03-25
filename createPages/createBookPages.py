@@ -50,10 +50,10 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_
 from OETHandlers import livenOETWordLinks, getOETTidyBBB
 
 
-LAST_MODIFIED_DATE = '2024-03-13' # by RJH
+LAST_MODIFIED_DATE = '2024-03-22' # by RJH
 SHORT_PROGRAM_NAME = "createBookPages"
 PROGRAM_NAME = "OpenBibleData createBookPages functions"
-PROGRAM_VERSION = '0.50'
+PROGRAM_VERSION = '0.51'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -89,6 +89,7 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
 
     processedBBBs, processedFilenames = [], []
     for BBB in state.BBBsToProcess['OET']:
+        NT = BibleOrgSysGlobals.loadedBibleBooksCodes.isNewTestament_NR( BBB )
         ourTidyBBB = getOETTidyBBB( BBB )
         # print( f"{BBB=} {BBBsToProcess}"); print( len(state.BBBsToProcess[thisBible.abbreviation]) )
         # if not allBooksFlag: rvBible.loadBookIfNecessary( BBB )
@@ -121,8 +122,8 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
 {UNFINISHED_WARNING_PARAGRAPH}
 '''
             verseEntryList, contextList = rvBible.getContextVerseData( (BBB,) )
-            if isinstance( rvBible, ESFMBible.ESFMBible ):
-                verseEntryList = livenOETWordLinks( rvBible, BBB, verseEntryList, f"{'../'*level}ref/GrkWrd/{{n}}.htm#Top", state )
+            assert isinstance( rvBible, ESFMBible.ESFMBible )
+            verseEntryList = livenOETWordLinks( rvBible, BBB, verseEntryList, f"{'../'*level}ref/{'GrkWrd' if NT else 'HebWrd'}/{{n}}.htm#Top", state )
             textHtml = convertUSFMMarkerListToHtml( level, rvBible.abbreviation, (BBB,), 'book', contextList, verseEntryList, basicOnly=False, state=state )
             # textHtml = livenIORs( BBB, textHtml )
             textHtml = do_OET_RV_HTMLcustomisations( textHtml )
@@ -168,10 +169,10 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
 '''
         rvVerseEntryList, rvContextList = rvBible.getContextVerseData( (BBB,) )
         lvVerseEntryList, lvContextList = lvBible.getContextVerseData( (BBB,) )
-        if isinstance( rvBible, ESFMBible.ESFMBible ):
-            rvVerseEntryList = livenOETWordLinks( rvBible, BBB, rvVerseEntryList, f"{'../'*level}ref/GrkWrd/{{n}}.htm#Top", state )
-        if isinstance( lvBible, ESFMBible.ESFMBible ):
-            lvVerseEntryList = livenOETWordLinks( lvBible, BBB, lvVerseEntryList, f"{'../'*level}ref/GrkWrd/{{n}}.htm#Top", state )
+        assert isinstance( rvBible, ESFMBible.ESFMBible )
+        rvVerseEntryList = livenOETWordLinks( rvBible, BBB, rvVerseEntryList, f"{'../'*level}ref/{'GrkWrd' if NT else 'HebWrd'}/{{n}}.htm#Top", state )
+        assert isinstance( lvBible, ESFMBible.ESFMBible )
+        lvVerseEntryList = livenOETWordLinks( lvBible, BBB, lvVerseEntryList, f"{'../'*level}ref/{'GrkWrd' if NT else 'HebWrd'}/{{n}}.htm#Top", state )
         rvHtml = do_OET_RV_HTMLcustomisations( convertUSFMMarkerListToHtml( level, 'OET', (BBB,), 'book', rvContextList, rvVerseEntryList, basicOnly=False, state=state ) )
         tempLVHtml = convertUSFMMarkerListToHtml( level, 'OET', (BBB,), 'book', lvContextList, lvVerseEntryList, basicOnly=False, state=state )
         if '+' in tempLVHtml: print( f"PLUS {tempLVHtml[max(0,tempLVHtml.index('+')-20):tempLVHtml.index('+')+80]}" )
@@ -210,7 +211,7 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
                 # Let's try for the previous verse -- at least this solves Gen 31:55 not there
                 frontBit, backBit = rvEndCV.split( 'V' )
                 adjustedRvEndCV = f'{frontBit}V{int(backBit)-1}'
-                print( f"ixEndCV is now decreased by one verse from '{rvEndCV}' to '{adjustedRvEndCV}'" )
+                print( f"{BBB} ixEndCV is now decreased by one verse from '{rvEndCV}' to '{adjustedRvEndCV}'" )
                 ixEndCV = lvRest.rindex( f' id="{adjustedRvEndCV}"' ) # If this fails, we give up trying to fix versification problem
             try: ixNextCV = lvRest.index( f' id="C', ixEndCV+5 )
             except ValueError: ixNextCV = len( lvRest ) - 1
@@ -314,9 +315,12 @@ def createBookPages( level:int, folder:Path, thisBible, state:State ) -> List[st
 
     processedBBBs, processedFilenames = [], []
     for BBB in state.BBBsToProcess[thisBible.abbreviation]:
+        NT = BibleOrgSysGlobals.loadedBibleBooksCodes.isNewTestament_NR( BBB )
+        # wordFileName = 'OET-LV_NT_word_table.tsv' if NT else 'OET-LV_OT_word_table.tsv'
         ourTidyBBB = getOETTidyBBB( BBB )
         # print( f"{BBB=} {state.BBBsToProcess[thisBible.abbreviation]}"); print( len(BBBsToProcess) )
         # if not allBooksFlag: thisBible.loadBookIfNecessary( BBB )
+
         if thisBible.abbreviation=='OET-LV' \
         and BBB in ('FRT','INT','NUM','SA1','SA2','CH1','EZR','NEH','JOB','SNG','JER','DAN'):
             logging.critical( f"AA Skipped OET chapters difficult book: OET-LV {BBB}")
@@ -343,7 +347,7 @@ def createBookPages( level:int, folder:Path, thisBible, state:State ) -> List[st
 '''
         verseEntryList, contextList = thisBible.getContextVerseData( (BBB,) )
         if isinstance( thisBible, ESFMBible.ESFMBible ):
-            verseEntryList = livenOETWordLinks( thisBible, BBB, verseEntryList, f"{'../'*level}ref/GrkWrd/{{n}}.htm#Top", state )
+            verseEntryList = livenOETWordLinks( thisBible, BBB, verseEntryList, f"{'../'*level}ref/{'GrkWrd' if NT else 'HebWrd'}/{{n}}.htm#Top", state )
         textHtml = convertUSFMMarkerListToHtml( level, thisBible.abbreviation, (BBB,), 'book', contextList, verseEntryList, basicOnly=False, state=state )
         # textHtml = livenIORs( BBB, textHtml )
         if thisBible.abbreviation == 'OET-RV':

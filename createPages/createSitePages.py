@@ -50,6 +50,7 @@ CHANGELOG:
     2023-12-29 Started adding OET OT
     2024-01-02 Make sure all HTML folders contain an index file
     2024-01-11 Load all OET-LV NT books
+    2024-03-21 Handle two word tables for OET
 """
 from gettext import gettext as _
 from typing import Dict, List, Tuple
@@ -58,6 +59,7 @@ import os
 import shutil
 import glob
 from datetime import date
+import logging
 
 import sys
 sys.path.append( '../../BibleOrgSys/' )
@@ -83,10 +85,10 @@ from Dict import createTyndaleDictPages, createUBSDictionaryPages
 from html import makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2024-03-13' # by RJH
+LAST_MODIFIED_DATE = '2024-03-22' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData Create Site Pages"
-PROGRAM_VERSION = '0.95'
+PROGRAM_VERSION = '0.96'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
@@ -112,31 +114,40 @@ def _createSitePages() -> bool:
     # preloadUwTranslationNotes( state )
     # fillSelectedVerses( state )
 
-    # Load our OET worddata table
+    # Load our OET worddata tables
     state.OETRefData = {} # This is where we will store all our temporary ref data
+    state.OETRefData['word_tables'] = {}
     lvBible = state.preloadedBibles['OET-LV']
-    assert len(lvBible.ESFMWordTables) == 1, f"{len(lvBible.ESFMWordTables)=}" # TODO: Why did this fail
-    wordFileName = list(lvBible.ESFMWordTables.keys())[0]
-    assert wordFileName.endswith( '.tsv' )
-    if lvBible.ESFMWordTables[wordFileName] is None:
-        lvBible.loadESFMWordFile( wordFileName )
-    state.OETRefData['word_table'] = list(lvBible.ESFMWordTables.values())[0]
-    columnHeaders = state.OETRefData['word_table'][0]
-    assert columnHeaders == 'Ref\tGreekWord\tSRLemma\tGreekLemma\tVLTGlossWords\tOETGlossWords\tGlossCaps\tProbability\tStrongsExt\tRole\tMorphology\tTags' # If not, probably need to fix some stuff
+    assert len(lvBible.ESFMWordTables) == 2, f"{len(lvBible.ESFMWordTables)=}"
+    print( f"{lvBible.ESFMWordTables=}" )
+    for wordTableFilename in lvBible.ESFMWordTables:
+        assert wordTableFilename.endswith( '.tsv' )
+        if lvBible.ESFMWordTables[wordTableFilename] is None:
+            lvBible.loadESFMWordFile( wordTableFilename )
+        print( f"{type(lvBible.ESFMWordTables[wordTableFilename])}" )
+        state.OETRefData['word_tables'][wordTableFilename] = lvBible.ESFMWordTables[wordTableFilename]
+        columnHeaders = state.OETRefData['word_tables'][wordTableFilename][0]
+        print( f"{columnHeaders=}")
+        if '_OT_' in wordTableFilename:
+            assert columnHeaders == 'Ref\tOSHBid\tRowType\tMorphemeRowList\tStrongs\tCantillationHierarchy\tMorphology\tWord\tNoCantillations\tMorphemeGlosses\tContextualMorphemeGlosses\tWordGloss\tContextualWordGloss\tGlossCapitalisation\tGlossPunctuation\tGlossOrder\tGlossInsert' # If not, probably need to fix some stuff
+        elif '_NT_' in wordTableFilename:
+            assert columnHeaders == 'Ref\tGreekWord\tSRLemma\tGreekLemma\tVLTGlossWords\tOETGlossWords\tGlossCaps\tProbability\tStrongsExt\tRole\tMorphology\tTags' # If not, probably need to fix some stuff
 
-    # Make a BCV index to the OET word table
-    state.OETRefData['word_table_index'] = {}
-    lastBCVref = None
-    startIx = 1
-    for n, columns_string in enumerate( state.OETRefData['word_table'][1:], start=1 ):
-        wordRef = columns_string.split( '\t', 1 )[0] # Something like 'MAT_1:1w1'
-        BCVref = wordRef.split( 'w', 1 )[0] # Something like 'MAT_1:1'
-        if BCVref != lastBCVref:
-            if lastBCVref is not None:
-                state.OETRefData['word_table_index'][lastBCVref] = (startIx,n-1)
-            startIx = n
-            lastBCVref = BCVref
-    state.OETRefData['word_table_index'][lastBCVref] = (startIx,n) # Save the final one
+    # Make a BCV index to the OET word tables
+    state.OETRefData['word_table_indexes'] = {}
+    for wordTableFilename in lvBible.ESFMWordTables:
+        state.OETRefData['word_table_indexes'][wordTableFilename] = {}
+        lastBCVref = None
+        startIx = 1
+        for n, columns_string in enumerate( state.OETRefData['word_tables'][wordTableFilename][1:], start=1 ):
+            wordRef = columns_string.split( '\t', 1 )[0] # Something like 'MAT_1:1w1'
+            BCVref = wordRef.split( 'w', 1 )[0] # Something like 'MAT_1:1'
+            if BCVref != lastBCVref:
+                if lastBCVref is not None:
+                    state.OETRefData['word_table_indexes'][wordTableFilename][lastBCVref] = (startIx,n-1)
+                startIx = n
+                lastBCVref = BCVref
+        state.OETRefData['word_table_indexes'][wordTableFilename][lastBCVref] = (startIx,n) # Save the final one
 
     load_transliteration_table( 'Greek' )
     load_transliteration_table( 'Hebrew' )
@@ -293,8 +304,11 @@ def _createSitePages() -> bool:
         for imgFilepath in glob.glob( f'{TOBDmapSourceFolder}/*.png' ):
             vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Copying {imgFilepath} to {TOBDmapDestinationFolder}/…" )
             # Note: shutil.copy2 is the same as copy but keeps metadata like creation and modification times
-            shutil.copy2( imgFilepath, f'{TOBDmapDestinationFolder}/' )
-            count += 1
+            try:
+                shutil.copy2( imgFilepath, f'{TOBDmapDestinationFolder}/' )
+                count += 1
+            except FileNotFoundError as e:
+                logging.critical( f"TOBD image file problem: {e}" )
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Copied {count:,} maps into {TOBDmapDestinationFolder}/." )
 
         # We need to copy the .css files and Bible.js across

@@ -63,10 +63,10 @@ from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39, BOOKLIST_NT27
 from settings import State, TEST_MODE, SITE_NAME
 
 
-LAST_MODIFIED_DATE = '2024-03-13' # by RJH
+LAST_MODIFIED_DATE = '2024-03-25' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
-PROGRAM_VERSION = '0.71'
+PROGRAM_VERSION = '0.72'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -81,8 +81,8 @@ KNOWN_PAGE_TYPES = ('site', 'topIndex', 'details', 'allDetails',
                     'book','bookIndex', 'chapter','chapterIndex', 'section','sectionIndex',
                     'relatedPassage','relatedSectionIndex', 'parallelVerse', 'interlinearVerse',
                     'dictionaryMainIndex','dictionaryLetterIndex','dictionaryEntry','dictionaryIntro',
-                    'word','lemma', 'person','location',
-                    'wordIndex','lemmaIndex', 'personIndex','locationIndex', 'referenceIndex',
+                    'word','lemma','morpheme', 'person','location',
+                    'wordIndex','lemmaIndex','morphemeIndex', 'personIndex','locationIndex', 'referenceIndex',
                     'search', 'about')
 def makeTop( level:int, versionAbbreviation:Optional[str], pageType:str, versionSpecificFileOrFolderName:Optional[str], state:State ) -> str:
     """
@@ -103,14 +103,14 @@ def makeTop( level:int, versionAbbreviation:Optional[str], pageType:str, version
         cssFilename = 'ParallelVerses.css'
     elif pageType == 'interlinearVerse':
         cssFilename = 'InterlinearVerse.css'
-    elif pageType in ('word','lemma', 'person','location'):
+    elif pageType in ('word','lemma','morpheme', 'person','location'):
         cssFilename = 'BibleWord.css'
     elif pageType in ('dictionaryLetterIndex', 'dictionaryEntry','dictionaryIntro'):
         cssFilename = 'BibleDict.css'
     elif pageType in ('site', 'details','allDetails', 'search', 'about', 'topIndex',
                       'bookIndex','chapterIndex','sectionIndex',
                       'relatedSectionIndex', 'dictionaryMainIndex',
-                      'wordIndex','lemmaIndex','personIndex','locationIndex','referenceIndex' ):
+                      'wordIndex','lemmaIndex','morphemeIndex','personIndex','locationIndex','referenceIndex' ):
         cssFilename = 'BibleSite.css'
     else: unexpected_page_type
 
@@ -479,6 +479,7 @@ def do_OET_LV_HTMLcustomisations( html:str ) -> str:
             .replace( '<span class="add">^', '<span class="addOwner">' )
             # Put all underlines into a span with a class (then we will have a button to hide them)
             .replace( '_', '<span class="ul">_</span>')
+            .replace( '--UNDERLINE--', '_' ) # Unprotect sanitised footnotes (see usfm.py)
             # Now unprotect everything again
             .replace( '~~COMMENT~~', '<!--' ).replace( '~~V', '_V' )
             .replace( '~~COLON~~', ':' ).replace( '~~PERIOD~~', '.' )

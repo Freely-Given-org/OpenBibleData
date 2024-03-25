@@ -66,10 +66,10 @@ from settings import State
 from html import checkHtml
 
 
-LAST_MODIFIED_DATE = '2024-02-02' # by RJH
+LAST_MODIFIED_DATE = '2024-03-25' # by RJH
 SHORT_PROGRAM_NAME = "usfm"
 PROGRAM_NAME = "OpenBibleData USFM to HTML functions"
-PROGRAM_VERSION = '0.67'
+PROGRAM_VERSION = '0.68'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -746,18 +746,22 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                 fnoteMiddle = f'{fnoteMiddle}</span>'
             assert '\\' not in fnoteMiddle, f"{fnoteMiddle[fnoteMiddle.index(f'{BACKSLASH}x')-10:fnoteMiddle.index(f'{BACKSLASH}x')+12]}"
         dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} {segmentType} {refTuple} {fnoteMiddle=}" )
-        sanitisedFnoteMiddle = fnoteMiddle
+        sanitisedFnoteMiddle = fnoteMiddle.replace( '<br>', ' ' ).replace( '  ', ' ' )
+        if ' note:' not in sanitisedFnoteMiddle and 'Note:' not in sanitisedFnoteMiddle:
+            sanitisedFnoteMiddle = f'Note: {sanitisedFnoteMiddle}'
         if '"' in sanitisedFnoteMiddle or '<' in sanitisedFnoteMiddle or '>' in sanitisedFnoteMiddle:
             sanitisedFnoteMiddle = sanitisedFnoteMiddle.replace( '</span>', '' )
             for footnoteMarker in ('ft','xt', 'fq','fqa', 'fk','fl','fw','fp','fv', 'add', 'sc', 'wh','wg', 'jmp'): # These are USFM markers (and will be span classes)
                 sanitisedFnoteMiddle = sanitisedFnoteMiddle.replace( f'<span class="{footnoteMarker}">', '' )
-            for charMarker in ('em','i', 'b', 'sup','sub'): # These are HTML markers
+            for charMarker in ('em','i','b', 'sup','sub'): # These are HTML markers
                 sanitisedFnoteMiddle = sanitisedFnoteMiddle.replace( f'<{charMarker}>', '' ).replace( f'</{charMarker}>', '' )
             if '"' in sanitisedFnoteMiddle or '<' in sanitisedFnoteMiddle or '>' in sanitisedFnoteMiddle:
                 logging.critical( f"Left-over HTML chars in {refTuple} {sanitisedFnoteMiddle=}" )
                 sanitisedFnoteMiddle = sanitisedFnoteMiddle.replace( '"', '&quot;' ).replace( '<', '&lt;' ).replace( '>', '&gt;' )
+            if versionAbbreviation == 'OET-LV': # then we don't want underlines in the sanitised footnote to get converted into spans later
+                sanitisedFnoteMiddle = sanitisedFnoteMiddle.replace('_', '--UNDERLINE--') # So we protect them -- gets fixed in do_OET_LV_HTMLcustomisations() in html.py
         assert '"' not in sanitisedFnoteMiddle and '<' not in sanitisedFnoteMiddle and '>' not in sanitisedFnoteMiddle, f"Left-over HTML chars in {refTuple} {sanitisedFnoteMiddle=}"
-        fnoteCaller = f'<span class="fnCaller">[<a title="Note: {sanitisedFnoteMiddle}" href="#fn{footnotesCount}">fn</a>]</span>'
+        fnoteCaller = f'<span class="fnCaller">[<a title="{sanitisedFnoteMiddle}" href="#fn{footnotesCount}">fn</a>]</span>'
         fnoteRef = ''
         if frText:
             frCV = frText

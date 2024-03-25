@@ -46,17 +46,17 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39, BOOKLIST_NT27
 
 
-LAST_MODIFIED_DATE = '2024-03-13' # by RJH
+LAST_MODIFIED_DATE = '2024-03-23' # by RJH
 SHORT_PROGRAM_NAME = "settings"
 PROGRAM_NAME = "OpenBibleData Create Pages"
-PROGRAM_VERSION = '0.94'
+PROGRAM_VERSION = '0.95'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
 
 OET_VERSION = 'v0.05'
 
-TEST_MODE = False # Writes website into Test subfolder
+TEST_MODE = True # Writes website into Test subfolder
 ALL_PRODUCTION_BOOKS = not TEST_MODE # If set to False, only selects one book per version for a faster test build
 ALL_TEST_REFERENCE_PAGES = False # If in Test mode, make ALL word/lemma pages, or just the RELEVANT ones
 UPDATE_ACTUAL_SITE_WHEN_BUILT = True # The pages are initially built in a tmp folder so need to be copied to the final destination
@@ -67,21 +67,16 @@ DEBUG_DESTINATION_FOLDER = NORMAL_DESTINATION_FOLDER.joinpath( 'Test/')
 DESTINATION_FOLDER = DEBUG_DESTINATION_FOLDER if TEST_MODE or BibleOrgSysGlobals.debugFlag \
                         else NORMAL_DESTINATION_FOLDER
 
+OET_NT_BOOK_ORDER = ['JHN','MRK','MAT','LUK','ACT', 'ROM','CO1','CO2', 'GAL','EPH','PHP','COL', 'TH1','TH2', 'TI1','TI2','TIT','PHM', 'HEB', 'JAM', 'PE1','PE2', 'JN1','JN2','JN3', 'JDE', 'REV']
+
 TEST_OT_BOOK_LIST = ['GEN','RUT'] # RUT plus books in progress
-TEST_NT_BOOK_LIST = ['MRK','REV'] # MRK plus books in progress
+TEST_NT_BOOK_LIST = ['MRK']
 TEST_BOOK_LIST = TEST_OT_BOOK_LIST + TEST_NT_BOOK_LIST
 
-OET_LV_BOOK_LIST = ['RUT','JNA','EST'] + BOOKLIST_NT27
-OET_RV_BOOK_LIST = ['RUT','JNA','EST'] + (
-    ['JHN','MRK','MAT','LUK','ACT', 'ROM','CO1','CO2', 'GAL','EPH','PHP','COL', 'TH1','TH2', 'TI1','TI2','TIT','PHM', 'HEB', 'JAM', 'PE1','PE2', 'JN1','JN2','JN3', 'JDE', 'REV']
-    if TEST_MODE else
-    ['JHN','MRK','MAT','LUK','ACT', 'ROM','CO1','CO2', 'GAL','EPH','PHP','COL', 'TH1','TH2', 'TI1','TI2','TIT','PHM', 'HEB', 'JAM', 'PE1','PE2', 'JN1','JN2','JN3', 'JDE'] )
+OET_LV_BOOK_LIST = BOOKLIST_OT39 + OET_NT_BOOK_ORDER
+OET_RV_BOOK_LIST = ['GEN','RUT','JNA','EST'] + OET_NT_BOOK_ORDER
 # TODO: What about 'INT' ?
 OET_RV_BOOK_LIST_WITH_FRT = ['FRT'] + OET_RV_BOOK_LIST
-# NT_BOOK_LIST_WITH_FRT = ['FRT'] + BOOKLIST_NT27
-# assert len(NT_BOOK_LIST_WITH_FRT) == 27+1
-# OT_BOOK_LIST_WITH_FRT = ['FRT'] + BOOKLIST_OT39
-# assert len(OT_BOOK_LIST_WITH_FRT) == 39+1
 
 SITE_NAME = 'Open Bible Data'
 SITE_ABBREVIATION = 'OBD'
@@ -89,7 +84,7 @@ SITE_ABBREVIATION = 'OBD'
 # The version to link to when the OET doesn't have that book (yet)
 ALTERNATIVE_VERSION = 'WEB' # Should be a version with all books present
 
-NUM_EXTRA_MODES = 5 # Related, parallel and interlinear verses, dictionary, and search
+NUM_EXTRA_MODES = 5 # Related passages, parallel and interlinear verses, dictionary, and search
 
 UNFINISHED_WARNING_TEXT = 'This is still a very early look into the unfinished text of the <em>Open English Translation</em> of the Bible. Please double-check the text in advance before using in public.'
 UNFINISHED_WARNING_PARAGRAPH = f'<p class="rem">{UNFINISHED_WARNING_TEXT}</p>'
@@ -115,7 +110,7 @@ class State:
                 'NIV','CEV','ESV','NASB','LSB',
                 'JQT','2DT','1ST','TPT',
                 'WEB','WMB','NET','LSV','FBV','TCNT','T4T','LEB','NRSV','NKJV','BBE',
-                'JPS','ASV','DRA','YLT','DBY','RV','WBS','KJB','BB','GNV','CB',
+                'MOF','JPS','ASV','DRA','YLT','DBY','RV','WBS','KJB','BB','GNV','CB',
                 'TNT','WYC',
                 'LUT','CLV',
                 'SR-GNT','UGNT','SBL-GNT','TC-GNT',
@@ -141,7 +136,7 @@ class State:
                 'BSB':('',''),'BLB':('',''),
                 'OEB':('',''),'ISV':('',''),
                 'WEB':('',''),'WMB':('',''),'NET':('',''),'LSV':('',''),'FBV':('',''),'TCNT':('<small>','</small>'),'T4T':('',''),'LEB':('',''),'BBE':('',''),
-                'JPS':('<small>','</small>'),'ASV':('',''),'DRA':('<small>','</small>'),'YLT':('',''),'DBY':('',''),'RV':('',''),
+                'MOF':('<small>','</small>'),'JPS':('<small>','</small>'),'ASV':('',''),'DRA':('<small>','</small>'),'YLT':('',''),'DBY':('',''),'RV':('',''),
                 'WBS':('<small>','</small>'),
                 'KJB':('',''),'BB':('',''),'GNV':('',''),'CB':('',''),
                 'TNT':('',''),'WYC':('',''), #'CLV':('<small>','</small>'),
@@ -157,7 +152,7 @@ class State:
                 ## 'WYC': '../copiedBibles/English/eBible.org/Wycliffe/',
     BibleLocations = {
                 'OET-RV': '../../OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/',
-                'OET-LV-OT': '../../OpenEnglishTranslation--OET/intermediateTexts/auto_edited_OT_USFM/', # Not ESFM yet
+                'OET-LV-OT': '../../OpenEnglishTranslation--OET/intermediateTexts/auto_edited_OT_ESFM/', # No NT here
                 'OET-LV-NT': '../../OpenEnglishTranslation--OET/intermediateTexts/auto_edited_VLT_ESFM/', # No OT here
                 'SR-GNT': '../../Forked/CNTR-SR/SR usfm/', # We moved these up in the list because they're now compulsory
                 'UHB': '../copiedBibles/Original/unfoldingWord.org/UHB/',
@@ -192,6 +187,7 @@ class State:
                 'NRSV': '../copiedBibles/English/NRSV_verses.tsv',
                 'NKJV': '../copiedBibles/English/NKJV_verses.tsv',
                 'BBE': '../copiedBibles/English/eBible.org/BBE/',
+                # 'MOF': '',
                 'JPS': '../copiedBibles/English/eBible.org/JPS/',
                 'ASV': '../copiedBibles/English/eBible.org/ASV/',
                 'DRA': '../copiedBibles/English/eBible.org/DRA/',
@@ -249,6 +245,7 @@ class State:
                 'NRSV': 'New Revised Standard Version (1989)',
                 'NKJV': 'New King James Version (1982)',
                 'BBE': 'Bible in Basic English (1965)',
+                'MOF': 'The Moffatt Translation of the Bible (1922)',
                 'JPS': 'Jewish Publication Society TaNaKH (1917)',
                 'ASV': 'American Standard Version (1901)',
                 'DRA': 'Douay-Rheims American Edition (1899)',
@@ -310,6 +307,7 @@ class State:
                 'NRSV': ['ALL'],
                 'NKJV': ['ALL'],
                 'BBE': ['ALL'],
+                'MOF': ['ALL'],
                 'JPS': ['ALL'],
                 'ASV': ['ALL'],
                 'DRA': ['ALL'],
@@ -367,6 +365,7 @@ class State:
                 'NRSV': TEST_BOOK_LIST,
                 'NKJV': TEST_BOOK_LIST,
                 'BBE': TEST_BOOK_LIST,
+                'MOF': TEST_BOOK_LIST,
                 'JPS': TEST_OT_BOOK_LIST,
                 'ASV': TEST_BOOK_LIST,
                 'DRA': TEST_BOOK_LIST,
@@ -522,6 +521,10 @@ We’re also grateful to the <a href="https://www.Biblica.com/clear/">Biblica Cl
                 'licence': '<p class="licence">(coming).</p>',
                 'acknowledgements': '<p class="acknwldg">(coming).</p>' },
         'BBE': {'about': '<p class="about">Bible in Basic English (1965).</p>',
+                'copyright': '<p class="copyright">Copyright © (coming).</p>',
+                'licence': '<p class="licence">(coming).</p>',
+                'acknowledgements': '<p class="acknwldg">(coming).</p>' },
+        'MOF': {'about': '<p class="about">The Moffatt Translation of the Bible (1922).</p>',
                 'copyright': '<p class="copyright">Copyright © (coming).</p>',
                 'licence': '<p class="licence">(coming).</p>',
                 'acknowledgements': '<p class="acknwldg">(coming).</p>' },
