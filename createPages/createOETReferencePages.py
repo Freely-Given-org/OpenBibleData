@@ -60,7 +60,7 @@ from html import makeTop, makeBottom, checkHtml
 from OETHandlers import getOETTidyBBB
 
 
-LAST_MODIFIED_DATE = '2024-03-25' # by RJH
+LAST_MODIFIED_DATE = '2024-03-27' # by RJH
 SHORT_PROGRAM_NAME = "createOETReferencePages"
 PROGRAM_NAME = "OpenBibleData createOETReferencePages functions"
 PROGRAM_VERSION = '0.60'
@@ -1807,7 +1807,7 @@ def create_Hebrew_morpheme_pages( level:int, outputFolderPath:Path, state:State 
     morphemeLinks:List[str] = []
     for mm, morpheme in enumerate( morphemeList ):
         print( f"\nMorpheme {mm}: {morpheme}" )
-        if mm > 300: break # Genesis goes up to almost 37,000
+        if mm > 100: break # Genesis goes up to almost 37,000
         hebMorpheme = state.OETRefData['OTHebrewMorphemeDict'][morpheme]
         morphemeRowsList = state.OETRefData['OTMorphemeDict'][morpheme]
         morphemeFormsList = sorted( state.OETRefData['OTMorphemeFormsDict'][morpheme] )

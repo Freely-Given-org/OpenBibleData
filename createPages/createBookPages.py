@@ -50,10 +50,10 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_
 from OETHandlers import livenOETWordLinks, getOETTidyBBB
 
 
-LAST_MODIFIED_DATE = '2024-03-22' # by RJH
+LAST_MODIFIED_DATE = '2024-03-28' # by RJH
 SHORT_PROGRAM_NAME = "createBookPages"
 PROGRAM_NAME = "OpenBibleData createBookPages functions"
-PROGRAM_VERSION = '0.51'
+PROGRAM_VERSION = '0.52'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -89,11 +89,9 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
 
     processedBBBs, processedFilenames = [], []
     for BBB in state.BBBsToProcess['OET']:
+        dPrint( 'Info', DEBUGGING_THIS_MODULE, f"    createOETBookPages {BBB=} {state.BBBsToProcess['OET']} out of {len(state.BBBsToProcess['OET'])}" )
         NT = BibleOrgSysGlobals.loadedBibleBooksCodes.isNewTestament_NR( BBB )
         ourTidyBBB = getOETTidyBBB( BBB )
-        # print( f"{BBB=} {BBBsToProcess}"); print( len(state.BBBsToProcess[thisBible.abbreviation]) )
-        # if not allBooksFlag: rvBible.loadBookIfNecessary( BBB )
-        # lvBible.loadBookIfNecessary( BBB )
 
         # TODO: Can we delete all this now???
         if lvBible.abbreviation=='OET-LV' \
@@ -212,7 +210,10 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
                 frontBit, backBit = rvEndCV.split( 'V' )
                 adjustedRvEndCV = f'{frontBit}V{int(backBit)-1}'
                 print( f"{BBB} ixEndCV is now decreased by one verse from '{rvEndCV}' to '{adjustedRvEndCV}'" )
-                ixEndCV = lvRest.rindex( f' id="{adjustedRvEndCV}"' ) # If this fails, we give up trying to fix versification problem
+                try: ixEndCV = lvRest.rindex( f' id="{adjustedRvEndCV}"' ) # If this fails, we give up trying to fix versification problem
+                except ValueError:
+                    logging.critical( f"Gave up trying to fix OET book versification for {BBB} section RV {rvStartCV}-{rvEndCV}")
+                    ixEndCV = len(lvRest) - 1 # Will this work???
             try: ixNextCV = lvRest.index( f' id="C', ixEndCV+5 )
             except ValueError: ixNextCV = len( lvRest ) - 1
             # print( f"\n{BBB} {n}: {lvRest[ixEndCV:ixNextCV]=} {lvRest[ixNextCV:ixNextCV+10]=}" )
@@ -232,10 +233,11 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
             lvChunk = lvRest[:lvEndIx]
             # Make sure that our split was at a sensible place
             rsLvChunk = lvChunk.rstrip()
-            # Fails on JNA n=4 rvStartCV='C4' rvEndCV='C4V11' lvChunk[-8:]='eat(fs).'
-            assert rsLvChunk[-1]=='>' \
-            or (rsLvChunk[-2]=='>' and rsLvChunk[-1] in '.,') \
-            or (BBB in ('GEN','RUT','JNA','EST') and rsLvChunk[-1]=='.'), f"{BBB} {n=} {rvStartCV=} {rvEndCV=} {lvChunk[-8:]=}"
+            if ixEndCV != len(lvRest)-1: # from second level 'except' above
+                assert rsLvChunk[-1]=='>' \
+                or (rsLvChunk[-2]=='>' and rsLvChunk[-1] in '.,') \
+                or (BBB in ('GEN','RUT','JNA','EST') and rsLvChunk[-1]=='.'), f"{BBB} {n=} {rvStartCV=} {rvEndCV=} {lvChunk[-8:]=}"
+                # Fails on JNA n=4 rvStartCV='C4' rvEndCV='C4V11' lvChunk[-8:]='eat(fs).'
             lvChunks.append( lvChunk )
             lvRest = lvRest[lvEndIx:]
 

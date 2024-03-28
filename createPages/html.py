@@ -48,14 +48,10 @@ CHANGELOG:
 """
 from gettext import gettext as _
 from typing import Dict, List, Tuple, Optional
-from pathlib import Path
-import os
 import logging
 from datetime import datetime
 import re
 
-# sys.path.append( '../../BibleOrgSys/BibleOrgSys/' )
-# import BibleOrgSysGlobals
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39, BOOKLIST_NT27
@@ -63,10 +59,10 @@ from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39, BOOKLIST_NT27
 from settings import State, TEST_MODE, SITE_NAME
 
 
-LAST_MODIFIED_DATE = '2024-03-25' # by RJH
+LAST_MODIFIED_DATE = '2024-03-27' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
-PROGRAM_VERSION = '0.72'
+PROGRAM_VERSION = '0.73'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -390,7 +386,7 @@ def removeDuplicateCVids( BBB:str, html:str ) -> str:
     return html
 # end of html.removeDuplicateCVids
 
-def checkHtml( where:str, html:str, segmentOnly:bool=False ) -> bool:
+def checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool:
     """
     Just do some very quick and basic tests
         that our HTML makes some sense.
@@ -398,42 +394,48 @@ def checkHtml( where:str, html:str, segmentOnly:bool=False ) -> bool:
     Throws an AssertError for any problems.
     """
     # fnPrint( DEBUGGING_THIS_MODULE, f"checkHtml( {where}, {len(html)} )" )
+    if 'TCNT' not in where and 'TC-GNT' not in where: # These two versions use the '¦' character in their footnotes
+        assert '¦' not in htmlToCheck, f"checkHtml() found unprocessed word number marker in {where} {htmlToCheck=}"
 
     for marker,startMarker in (('html','<html'),('head','<head>'),('body','<body>')):
         if segmentOnly:
-            assert html.count( startMarker ) == html.count( f'</{marker}>' ), html[html.index(startMarker):]
+            assert htmlToCheck.count( startMarker ) == htmlToCheck.count( f'</{marker}>' ), htmlToCheck[htmlToCheck.index(startMarker):]
         else:
-            assert html.count( startMarker ) == 1, f"checkHtml() found {html.count( startMarker )} '{startMarker}' markers"
-            assert html.count( f'</{marker}>' ) == 1
+            assert htmlToCheck.count( startMarker ) == 1, f"checkHtml() found {htmlToCheck.count( startMarker )} '{startMarker}' markers"
+            assert htmlToCheck.count( f'</{marker}>' ) == 1
 
     for marker,startMarker in (('div','<div'),('p','<p '),('h1','<h1'),('h2','<h2'),('h3','<h3'),('em','<em>'),('i','<i>'),('b','<b>'),('sup','<sup>'),('sub','<sub>')):
-        startCount = html.count( startMarker )
-        if startMarker.endswith( ' ' ): startCount += html.count( f'<{marker}>' )
-        endCount = html.count( f'</{marker}>' )
+        startCount = htmlToCheck.count( startMarker )
+        if startMarker.endswith( ' ' ): startCount += htmlToCheck.count( f'<{marker}>' )
+        endCount = htmlToCheck.count( f'</{marker}>' )
         if startCount != endCount:
             # try: errMsg = f"Mismatched '{marker}' start and end markers '{where}' {segmentOnly=} {html.count(startMarker)}!={html.count(f'</{marker}>')} …{html[html.index(startMarker):]}"
             # except ValueError: errMsg = f"Mismatched '{marker}' start and end markers '{where}' {segmentOnly=} {html.count(startMarker)}!={html.count(f'</{marker}>')} {html[:html.index(f'</{marker}>')]}…"
             # logging.critical( errMsg )
-            ixStartMarker = html.find( startMarker )
-            ixEndMarker = html.find( f'</{marker}>' )
+            ixStartMarker = htmlToCheck.find( startMarker )
+            ixEndMarker = htmlToCheck.find( f'</{marker}>' )
             ixMinStart = min( 9999999 if ixStartMarker==-1 else ixStartMarker, 9999999 if ixEndMarker==-1 else ixEndMarker )
-            ixRStartMarker = html.rfind( startMarker )
-            ixREndMarker = html.rfind( f'</{marker}>' )
+            ixRStartMarker = htmlToCheck.rfind( startMarker )
+            ixREndMarker = htmlToCheck.rfind( f'</{marker}>' )
             ixMinEnd = min( ixRStartMarker, ixREndMarker )
             logging.critical( f"Mismatched '{marker}' start and end markers '{where}' {segmentOnly=} {startCount}!={endCount}"
-                              f" {'…' if ixMinStart>0 else ''}{html[ixMinStart:ixMinEnd+5]}{'…' if ixMinEnd+5<len(html) else ''}" )
-            if DEBUGGING_THIS_MODULE: print( f"\ncheckHtml: complete {html=}\n")
+                              f" {'…' if ixMinStart>0 else ''}{htmlToCheck[ixMinStart:ixMinEnd+5]}{'…' if ixMinEnd+5<len(htmlToCheck) else ''}" )
+            if DEBUGGING_THIS_MODULE: print( f"\ncheckHtml: complete {htmlToCheck=}\n")
             return False
+
+    if '<br>\n</p>' in htmlToCheck or '<br>\n</span>' in htmlToCheck:
+        logging.critical( f"{where}' {segmentOnly=} has wasted <br> in {htmlToCheck=} THIS IS BEING CHANGED!!!" )
+        htmlToCheck = htmlToCheck.replace( '<br>\n</span></span></p>', '</span></span></p>' ).replace( '<br>\n</span></p>', '</span></p>' ).replace( '<br>\n</p>', '</p>' )
 
     return True
 # end of html.checkHtml
 
 
-def do_OET_RV_HTMLcustomisations( html:str ) -> str:
+def do_OET_RV_HTMLcustomisations( OET_RV_html:str ) -> str:
     """
     OET-RV is formatted in paragraphs.
     """
-    return (html \
+    return (OET_RV_html \
             # Adjust specialised add markers
             .replace( '<span class="add">', '<span class="RVadd">' )
             )
@@ -441,25 +443,27 @@ def do_OET_RV_HTMLcustomisations( html:str ) -> str:
 
 
 digitPunctDigitRegex = re.compile( '[0-9][:.][0-9]' )
-def do_OET_LV_HTMLcustomisations( html:str ) -> str:
+def do_OET_LV_HTMLcustomisations( OET_LV_html:str ) -> str:
     """
     OET-LV is often formatted as a new line for each sentence.
 
     We have to protect fields like periods in '../C2_V2.htm' from corruption
         (and then restore them again of course).
     """
+    assert '<br>\n</p>' not in OET_LV_html and '<br>\n</span>' not in OET_LV_html, f"Wasted <br> in {OET_LV_html=}"
+
     # Preserve the colon in times like 12:30 and in C:V and v0.1 fields
     searchStartIndex = 0
     while True: # Look for links that we could maybe liven
-        match = digitPunctDigitRegex.search( html, searchStartIndex )
+        match = digitPunctDigitRegex.search( OET_LV_html, searchStartIndex )
         if not match:
             break
         guts = match.group(0) # Entire match
         assert len(guts)==3 and (guts.count(':') + guts.count('.'))==1
-        html = f'''{html[:match.start()]}{guts.replace(':','~~COLON~~',1).replace('.','~~PERIOD~~',1)}{html[match.end():]}'''
+        OET_LV_html = f'''{OET_LV_html[:match.start()]}{guts.replace(':','~~COLON~~',1).replace('.','~~PERIOD~~',1)}{OET_LV_html[match.end():]}'''
         searchStartIndex = match.end() + 8 # We've added that many characters
 
-    html = (html \
+    OET_LV_html = (OET_LV_html \
             # Protect fields we need to preserve
             .replace( '<!--', '~~COMMENT~~' ).replace( '_V', '~~V' )
             .replace( '../', '~~PERIOD~~~~PERIOD~~/' )
@@ -478,34 +482,40 @@ def do_OET_LV_HTMLcustomisations( html:str ) -> str:
             .replace( '<span class="add">>', '<span class="addExtra">' )
             .replace( '<span class="add">^', '<span class="addOwner">' )
             # Put all underlines into a span with a class (then we will have a button to hide them)
+            .replace( '="', '~~EQUAL"' ) # Protect class=, id=, etc.
+            .replace( '=', '_' ).replace( '÷', '_' ) # For OT morphemes
+            .replace( '~~EQUAL"', '="' ) # Unprotect class=, id=, etc.
             .replace( '_', '<span class="ul">_</span>')
-            .replace( '--UNDERLINE--', '_' ) # Unprotect sanitised footnotes (see usfm.py)
             # Now unprotect everything again
+            .replace( '--fnUNDERLINE--', '_' ).replace( '--fnEQUAL--', '=' ).replace( '--fnCOLON--', ':' ).replace( '--fnPERIOD--', '.' ) # Unprotect sanitised footnotes (see usfm.py)
             .replace( '~~COMMENT~~', '<!--' ).replace( '~~V', '_V' )
             .replace( '~~COLON~~', ':' ).replace( '~~PERIOD~~', '.' )
-            # For OT
-            # TODO: Not sure that this is the best place to do these
+            # TODO: Not sure that this is the best place to do this next one for the OT
             .replace( ' DOM ',' <span class="dom">DOM</span> ')
             )
+    # TODO: I was unable to figure out why this is happening to one particular exegesis footnote in 2 Kings 6:25
+    # assert '<br>\n</p>' not in OET_LV_html and '<br>\n</span>' not in OET_LV_html, f"Wasted <br> in {OET_LV_html=}"
+    OET_LV_html = OET_LV_html.replace( '<br>\n</span></span></p>', '</span></span></p>' ).replace( '<br>\n</span></p>', '</span></p>' ).replace( '<br>\n</p>', '</p>' )
+
     # assert '+' not in html, f"{html[html.index('+')-20:html.index('+')+30]}"
     # assert '^' not in html, f"{html[html.index('^')-20:html.index('^')+30]}"
     # assert '<span class="add">' not in html, f'''{html[html.index('<span class="add">')-20:html.index('<span class="add">')+50]}'''
-    return html
+    return OET_LV_html
 # end of html.do_OET_LV_HTMLcustomisations
 
 
-def do_LSV_HTMLcustomisations( html:str ) -> str:
+def do_LSV_HTMLcustomisations( LSV_html:str ) -> str:
     """
     LSV has lines like:
         v 7 “\\w Blessed|strong="G3107"\\w* [\\w are|strong="G3588"\\w*] \\w they|strong="G2532"\\w* \\w whose|strong="G3739"\\w* lawless \\w acts|strong="G4160"\\w* \\w were|strong="G3588"\\w* forgiven, || \\w And|strong="G2532"\\w* \\w whose|strong="G3739"\\w* \\w sins|strong="G3900"\\w* \\w were|strong="G3588"\\w* \\w covered|strong="G1943"\\w*;
 
     We need to change the two parallel lines to <br>.
     """
-    return html.replace( ' || ', '<br>' ).replace( '||', '<br>' ) # Second one catches any source inconsistencies
+    return LSV_html.replace( ' || ', '<br>' ).replace( '||', '<br>' ) # Second one catches any source inconsistencies
 # end of html.do_LSV_HTMLcustomisations
 
 
-def do_T4T_HTMLcustomisations( html:str ) -> str:
+def do_T4T_HTMLcustomisations( T4T_html:str ) -> str:
     """
     T4T has:
         We have tried to indicate the beginning of an alternative by a ‘◄’ and the ending of each alternative by a ‘►’.
@@ -534,8 +544,8 @@ def do_T4T_HTMLcustomisations( html:str ) -> str:
                          ('MET','metaphor'), ('MTY','metonymy'), ('PRS','personification'), ('RHQ','rhetorical question'),
                          ('SIM','simile'), ('SYM','symbol'), ('SAR','sarcasm'), ('SYN','synecdoche'), ('TRI','triple') ):
         fullFoS = f'[{FoS}]'
-        html = html.replace( fullFoS, f'<span class="FoS" title="{fosType} (figure of speech)">{fullFoS}</span>' )
-    return html.replace( '◄', '<span title="alternative translation">◄</span>' )
+        T4T_html = T4T_html.replace( fullFoS, f'<span class="FoS" title="{fosType} (figure of speech)">{fullFoS}</span>' )
+    return T4T_html.replace( '◄', '<span title="alternative translation">◄</span>' )
 # end of html.do_T4T_HTMLcustomisations
 
 

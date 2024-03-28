@@ -92,7 +92,7 @@ p.intro-h1 { font-weight:bold; }
 span.sn-excerpt { font-family:Arial, Helvetica, sans-serif; color:saddleBrown; }
 span.ital { font-style:italic; }
 span.hebrew { color:orange; }
-span.greek { color:darkgreen; }
+span.grk { color:darkgreen; }
 /* Tyndale TNs */
 p.theme-title { font-weight:bold; }
 p.theme-refs-title { font-weight:bold; }
@@ -114,17 +114,18 @@ span.xrRef { font-weight:bold; }
 
 /* OSHB cases (also used for OET-RV and OET-LV) */
 /* Used in <a> fields and in spans */
-.hebrewVrb { background-color:yellow; }
+.hebVrb { background-color:yellow; }
+.hebNeg { background-color:crimson; }
 
 /* SR-GNT cases (also used for OET-RV and OET-LV) */
 /* Used in <a> fields and in spans */
-.greekNom { background-color:lightgreen; }
-.greekAcc { background-color:orange; }
-.greekGen { background-color:pink; }
-.greekDat { background-color:cyan; }
-.greekVoc { background-color:orchid; }
-.greekVrb { background-color:yellow; }
-.greekNeg { background-color:crimson; }
+.grkNom { background-color:lightgreen; }
+.grkAcc { background-color:orange; }
+.grkGen { background-color:pink; }
+.grkDat { background-color:cyan; }
+.grkVoc { background-color:orchid; }
+.grkVrb { background-color:yellow; }
+.grkNeg { background-color:crimson; }
 
 /* Other GNT classes */
 /* span.wrkName { } */

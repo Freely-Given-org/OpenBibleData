@@ -46,7 +46,7 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39, BOOKLIST_NT27
 
 
-LAST_MODIFIED_DATE = '2024-03-23' # by RJH
+LAST_MODIFIED_DATE = '2024-03-28' # by RJH
 SHORT_PROGRAM_NAME = "settings"
 PROGRAM_NAME = "OpenBibleData Create Pages"
 PROGRAM_VERSION = '0.95'
@@ -54,9 +54,9 @@ PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
 
-OET_VERSION = 'v0.05'
+OET_VERSION = 'v0.06'
 
-TEST_MODE = True # Writes website into Test subfolder
+TEST_MODE = False # Writes website into Test subfolder
 ALL_PRODUCTION_BOOKS = not TEST_MODE # If set to False, only selects one book per version for a faster test build
 ALL_TEST_REFERENCE_PAGES = False # If in Test mode, make ALL word/lemma pages, or just the RELEVANT ones
 UPDATE_ACTUAL_SITE_WHEN_BUILT = True # The pages are initially built in a tmp folder so need to be copied to the final destination
@@ -636,7 +636,8 @@ We’re also grateful to the <a href="https://www.Biblica.com/clear/">Biblica Cl
                 'acknowledgements': '<p class="acknwldg">Thanks to <a href="https://github.com/Freely-Given-org/ubs-open-license">UBS</a> for making these available.</p>' },
     }
 
-    if not TEST_MODE: assert len(BibleLocations) >= 51, len(BibleLocations)
+    if not TEST_MODE and UPDATE_ACTUAL_SITE_WHEN_BUILT:
+        assert len(BibleLocations) >= 51, len(BibleLocations)
     for versionLocation in BibleLocations.values():
         assert versionLocation.startswith('../copiedBibles/') \
             or versionLocation.startswith('../../OpenEnglishTranslation--OET/') \

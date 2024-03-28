@@ -41,7 +41,7 @@ CHANGELOG:
 """
 # from gettext import gettext as _
 from typing import Dict, List, Tuple, Optional
-from pathlib import Path
+# from pathlib import Path
 import logging
 import re
 
@@ -60,10 +60,10 @@ from BibleTransliterations import transliterate_Hebrew, transliterate_Greek
 from settings import State
 
 
-LAST_MODIFIED_DATE = '2024-03-25' # by RJH
+LAST_MODIFIED_DATE = '2024-03-28' # by RJH
 SHORT_PROGRAM_NAME = "OETHandlers"
 PROGRAM_NAME = "OpenBibleData OET handler"
-PROGRAM_VERSION = '0.51'
+PROGRAM_VERSION = '0.52'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -289,7 +289,7 @@ def findLVQuote( level:int, BBB:str, C:str, V:str, occurrenceNumber:int, origina
                         logging.critical( f"No available gloss2 for Hebrew {row}" )
                     # assert gloss, f"{BBB} {C}:{V} {row=}"
                     ourWords.append( gloss )
-            lvEnglishWords.append( f"(Some words not found in SR-GNT: {' '.join( ourWords )})" )
+            lvEnglishWords.append( f'''(Some words not found in {'<a href="#SR-GNT">SR-GNT</a>' if NT else '<a href="#UHB">UHB</a>'}: {' '.join( ourWords )})''' )
             logging.error( f"findLVQuote unable to match {BBB}_{C}:{V} '{originalQuote}' {occurrenceNumber=} {currentOccurrenceNumber=} {inGap=}\n  {olWords=}  {olIndex=}\n  {ourWords=} {matchStart=}" )
             # if BBB not in ('MRK',) or C not in ('1',) or V not in ('5','8','14'):
             #     halt
@@ -363,12 +363,12 @@ def livenOETWordLinks( bibleObject:ESFMBible, BBB:str, givenEntryList:InternalBi
 
                 # Do colourisation
                 if roleLetter == 'V':
-                    caseClassName = 'greekVrb'
+                    caseClassName = 'grkVrb'
                 elif extendedStrongs == '37560': # Greek 'οὐ' (ou) 'not'
-                    caseClassName = 'greekNeg'
+                    caseClassName = 'grkNeg'
                 # TODO: Need to find where collation table is imported and change 'None' to None there (and then fix this again)
                 elif morphology!='None' and morphology[4] != '.': # Two words in table have morphology of 'None' Jhn 5:27 w2
-                    caseClassName = f'''greek{GREEK_CASE_CLASS_DICT[morphology[4]]}'''
+                    caseClassName = f'''grk{GREEK_CASE_CLASS_DICT[morphology[4]]}'''
                 else: caseClassName = None
 
                 if caseClassName: # Add a clase to the anchor for the English word
@@ -404,14 +404,20 @@ def livenOETWordLinks( bibleObject:ESFMBible, BBB:str, givenEntryList:InternalBi
                 ref, OSHBid, rowType, morphemeRowList, strongs, cantillationHierarchy, morphology, word, noCantillations, morphemeGlosses, contextualMorphemeGlosses, wordGloss, contextualWordGloss, glossCapitalisation, glossPunctuation, glossOrder, glossInsert = wordRow.split( '\t' )
 
                 # Do colourisation
-                if morphology.startswith( 'V' ):
-                    caseClassName = 'hebrewVrb'
-                # elif extendedStrongs == '37560': # Greek 'οὐ' (ou) 'not'
-                #     caseClassName = 'greekNeg'
+                caseClassName = None
+                for subMorph in morphology.split( ',' ):
+                    if subMorph.startswith( 'V' ):
+                        caseClassName = 'hebVrb'
+                        break
+                for subStrong in strongs.split( ',' ):
+                    try: subStrongInt = getLeadingInt( subStrong ) # Ignores suffixes like a,b,c
+                    except ValueError: continue
+                    if subStrongInt in (369, 3808): # Hebrew 'אַיִן' 'ayin' 'no', or 'לֹא' (lo) 'not'
+                        caseClassName = 'hebNeg'
+                        break
                 # TODO: Need to find where collation table is imported and change 'None' to None there (and then fix this again)
                 # elif morphology!='None' and morphology[4] != '.': # Two words in table have morphology of 'None' Jhn 5:27 w2
-                #     caseClassName = f'''greek{GREEK_CASE_CLASS_DICT[morphology[4]]}'''
-                else: caseClassName = None
+                #     caseClassName = f'''heb{HEBREW_CASE_CLASS_DICT[morphology[4]]}'''
 
                 if caseClassName: # Add a clase to the anchor for the English word
                     # print( f"    livenOETWordLinks {originalText[wordnumberMatch.end():]=}")

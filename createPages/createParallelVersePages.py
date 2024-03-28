@@ -44,12 +44,13 @@ import logging
 
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
+from BibleOrgSys.Internals.InternalBibleInternals import getLeadingInt
 import BibleOrgSys.Formats.ESFMBible as ESFMBible
 import BibleOrgSys.OriginalLanguages.Greek as Greek
 
 import sys
 sys.path.append( '../../BibleTransliterations/Python/' )
-from BibleTransliterations import transliterate_Greek, transliterate_Hebrew
+from BibleTransliterations import transliterate_Hebrew, transliterate_Greek
 
 from settings import State, TEST_MODE, reorderBooksForOETVersions
 from usfm import convertUSFMMarkerListToHtml
@@ -60,7 +61,7 @@ from createOETReferencePages import CNTR_BOOK_ID_MAP
 from OETHandlers import getOETTidyBBB, getOETBookName, livenOETWordLinks
 
 
-LAST_MODIFIED_DATE = '2024-03-25' # by RJH
+LAST_MODIFIED_DATE = '2024-03-28' # by RJH
 SHORT_PROGRAM_NAME = "createParallelVersePages"
 PROGRAM_NAME = "OpenBibleData createParallelVersePages functions"
 PROGRAM_VERSION = '0.91'
@@ -264,6 +265,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                             if isinstance( thisBible, ESFMBible.ESFMBible ):
                                 verseEntryList = livenOETWordLinks( thisBible, BBB, verseEntryList, f"{'../'*BBBLevel}ref/{'GrkWrd' if NT else 'HebWrd'}/{{n}}.htm#Top", state )
                             textHtml = convertUSFMMarkerListToHtml( BBBLevel, versionAbbreviation, (BBB,C,V), 'verse', contextList, verseEntryList, basicOnly=(c!=-1), state=state )
+                            assert '¦' not in textHtml, f"{BBB} {C}:{V} {versionAbbreviation} {textHtml=}"
                             if textHtml == '◘': raise UntranslatedVerseError
 
                             if 'OET' not in versionAbbreviation:
@@ -278,7 +280,9 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                             if versionAbbreviation == 'OET-RV':
                                 textHtml = do_OET_RV_HTMLcustomisations( textHtml )
                             elif versionAbbreviation == 'OET-LV':
+                                # assert '<span class="ul">_</span>HNcbsa' not in textHtml, f'''Here1 ({textHtml.count('<span class="ul">_</span>HNcbsa')}) {textHtml=}'''
                                 textHtml = do_OET_LV_HTMLcustomisations( textHtml )
+                                # assert textHtml.count('<span class="ul">_</span>HNcbsa') < 2, f'''Here2 ({textHtml.count('<span class="ul">_</span>HNcbsa')}) {textHtml=}'''
                             elif versionAbbreviation == 'WEB': # assuming WEB comes BEFORE WMB
                                 textHtmlWEB = textHtml # Save it
                             elif versionAbbreviation == 'WMB': # assuming WEB comes BEFORE WMB
@@ -322,10 +326,12 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                                 collationHref = f'https://GreekCNTR.org/collation/?v={CNTR_BOOK_ID_MAP[BBB]}{C.zfill(3)}{V.zfill(3)}'
                                 try:
                                     # NOTE: We close the previous paragraph, but leave the key paragraph open
-                                    keysHtml = f'''</p><p class="key"><b>Key</b>: <button type="button" id="coloursButton" title="Hide grammatical colours above" onclick="hide_show_colours()">C</button> {', '.join(grammaticalKeysHtmlList)}.\n<br><small>Note: Aligning of the OET-RV to the LV is done by some temporary software, hence the OET-RV alignments are incomplete (and may occasionally be wrong).</small>'''
-                                except UnboundLocalError:
+                                    keysHtml = f'''</p><p class="key"><b>Key</b>: <button type="button" id="coloursButton" title="Hide grammatical colours above" onclick="hide_show_colours()">C</button> {', '.join(grammaticalKeysHtmlList)}.
+<br><small>Note: Automatic aligning of the OET-RV to the LV is done by some temporary software, hence the OET-RV alignments are incomplete (and may occasionally be wrong).</small>'''
+                                except UnboundLocalError: # grammaticalKeysHtmlList
                                     keysHtml = ''
-                                textHtml = f'''{textHtml} <a title="Go to the GreekCNTR collation page" href="{collationHref}">‡</a><span class="SR-GNT_trans"><br>   ({transcription})</span>
+                                textHtml = f'''{textHtml} <a title="Go to the GreekCNTR collation page" href="{collationHref}">‡</a><span class="SR-GNT_trans">
+<br>   ({transcription})</span>
 {keysHtml}'''
                             elif versionAbbreviation in ('UGNT','SBL-GNT','TC-GNT','BrLXX'):
                                 transcription = transliterate_Greek(textHtml)
@@ -336,10 +342,22 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                                     raise ValueError( f"Bad Greek transcription for {versionAbbreviation} {BBB} {C}:{V} {transcription=} from '{textHtml}'" )
                                 if transcription:
                                     textHtml = f'{textHtml}<span class="{versionAbbreviation}_trans"><br>  ({transcription})</span>'
-                            elif versionAbbreviation in ('UHB',):
+                            elif versionAbbreviation == 'UHB':
                                 # print( f"{versionAbbreviation} {BBB} {C}:{V} {textHtml=}")
-                                textHtml = f'{textHtml}<span class="{versionAbbreviation}_trans"><br>  ({transliterate_Hebrew(textHtml)})</span>'
+                                if C!='-1' and V!='0' and textHtml:
+                                    textHtml, grammaticalKeysHtmlList = brightenUHB( BBB, C, V, textHtml, verseEntryList, state )
+                                transcription = transliterate_Hebrew(textHtml)
+                                collationHref = f'https://hb.OpenScriptures.org/structure/OshbVerse/index.html?b={BibleOrgSysGlobals.loadedBibleBooksCodes.getOSISAbbreviation(BBB)}&c={C}&v={V}'
+                                try:
+                                    keysHtml = f'''</p><p class="key"><b>Key</b>: <button type="button" id="coloursButton" title="Hide grammatical colours above" onclick="hide_show_colours()">C</button> {', '.join(grammaticalKeysHtmlList)}.
+<br><small>Note: Automatic aligning of the OET-RV to the LV is done by some temporary software, hence the OET-RV alignments are incomplete (and may occasionally be wrong).</small>'''
+                                except UnboundLocalError: # grammaticalKeysHtmlList
+                                    keysHtml = ''
+                                textHtml = f'''{textHtml} <a title="Go to the OSHB verse page" href="{collationHref}">‡</a><span class="UHB_trans">
+<br>   ({transcription})</span>
+{keysHtml}'''
                             if textHtml:
+                                # assert textHtml.count('<span class="ul">_</span>HNcbsa') < 2, f'''Here3 ({textHtml.count('<span class="ul">_</span>HNcbsa')}) {textHtml=}'''
                                 if versionAbbreviation in ('UGNT','SBL-GNT','TC-GNT') \
                                 and 'SR-GNT' in greekWords and greekWords[versionAbbreviation]!=greekWords['SR-GNT']:
                                     # Here we colour the workname to show critical GNT texts that differ in someway from the SR-GNT
@@ -351,18 +369,19 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                                     else: spanClassName = 'wrkNameDiffText'
                                     greekVersionKeysHtmlSet.add( spanClassName )
                                     versionNameLink = f'''{'../'*BBBLevel}{versionAbbreviation}/details.htm#Top''' if versionAbbreviation in state.versionsWithoutTheirOwnPages else f'''{'../'*BBBLevel}{versionAbbreviation}/byC/{BBB}_C{C}.htm#Top'''
-                                    vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="{spanClassName}"><a title="View {state.BibleNames[versionAbbreviation]} chapter" href="{versionNameLink}">{versionAbbreviation}</a></span> {textHtml}</p>
+                                    vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="{spanClassName}"><a title="View {state.BibleNames[versionAbbreviation]} {'details' if versionAbbreviation in state.versionsWithoutTheirOwnPages else 'chapter'}" href="{versionNameLink}">{versionAbbreviation}</a></span> {textHtml}</p>
 '''
                                 elif versionAbbreviation=='OET-RV':
-                                    vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName"><a title="View {state.BibleNames['OET']} chapter" href="{'../'*BBBLevel}OET/byC/{BBB}_C{C}.htm#Top">OET</a> (<a title="View {state.BibleNames['OET-RV']} chapter" href="{'../'*BBBLevel}OET-RV/byC/{BBB}_C{C}.htm#Top">OET-RV</a>)</span> {textHtml}</p>
+                                    # Label it as 'OET (OET-RV) and slip in id's for CV (so footnote returns work) and also for C and V (just in case)
+                                    vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span id="C{C}V{V}" class="wrkName"><a id="C{C}" title="View {state.BibleNames['OET']} chapter (side-by-side versions)" href="{'../'*BBBLevel}OET/byC/{BBB}_C{C}.htm#Top">OET</a> <small>(<a id="V{V}" title="View {state.BibleNames['OET-RV']} chapter (by itself)" href="{'../'*BBBLevel}OET-RV/byC/{BBB}_C{C}.htm#Top">OET-RV</a>)</small></span> {textHtml}</p>
 '''                                    
-                                elif versionAbbreviation=='WYC':
+                                elif versionAbbreviation=='WYC': # Just add a bit about it being translated from the Latin (not the Greek)
                                     versionNameLink = f'''{'../'*BBBLevel}{versionAbbreviation}/details.htm#Top''' if versionAbbreviation in state.versionsWithoutTheirOwnPages else f'''{'../'*BBBLevel}{versionAbbreviation}/byC/{BBB}_C{C}.htm#Top'''
-                                    vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation]} chapter (translated from the Latin)" href="{versionNameLink}">{versionAbbreviation}</a></span> {textHtml}</p>
+                                    vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation]} {'details' if versionAbbreviation in state.versionsWithoutTheirOwnPages else 'chapter (translated from the Latin)'}" href="{versionNameLink}">{versionAbbreviation}</a></span> {textHtml}</p>
 '''
-                                else:
+                                else: # for all the others
                                     versionNameLink = f'''{'../'*BBBLevel}{versionAbbreviation}/details.htm#Top''' if versionAbbreviation in state.versionsWithoutTheirOwnPages else f'''{'../'*BBBLevel}{versionAbbreviation}/byC/{BBB}_C{C}.htm#Top'''
-                                    vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation]} chapter" href="{versionNameLink}">{versionAbbreviation}</a></span> {textHtml}</p>
+                                    vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation]} {'details' if versionAbbreviation in state.versionsWithoutTheirOwnPages else 'chapter'}" href="{versionNameLink}">{versionAbbreviation}</a></span> {textHtml}</p>
 '''
                             else: # no textHtml -- can include verses that are not in the OET-LV
                                 if c==-1 or v==0: # For these edge cases, we don't want the version abbreviation appearing
@@ -565,26 +584,24 @@ def removeGreekPunctuation( greekText:str ) -> str:
 
 
 GREEK_CASE_CLASS_DICT = { 'N':'Nom','n':'Nom', 'G':'Gen','g':'Gen', 'A':'Acc','a':'Acc', 'D':'Dat','d':'Dat', 'V':'Voc','v':'Voc', }
-GREEK_CASE_CLASS_KEY_DICT = { 'greekVrb':'<span class="greekVrb">yellow</span>:verbs',
-                              'greekNom':'<span class="greekNom">light-green</span>:nominative/subject',
-                              'greekAcc':'<span class="greekAcc">orange</span>:accusative/object',
-                              'greekGen':'<span class="greekGen">pink</span>:genitive/possessor',
-                              'greekDat':'<span class="greekDat">cyan</span>:dative/indirect object',
-                              'greekVoc':'<span class="greekVoc">magenta</span>:vocative',
-                              'greekNeg':'<span class="greekNeg">red</span>:negative'}
-def brightenSRGNT( BBB, C, V, textHtml, verseEntryList, state:State ) -> Tuple[str,List[str]]:
+GREEK_CASE_CLASS_KEY_DICT = { 'grkVrb':'<span class="grkVrb">yellow</span>:verbs',
+                              'grkNom':'<span class="grkNom">light-green</span>:nominative/subject',
+                              'grkAcc':'<span class="grkAcc">orange</span>:accusative/object',
+                              'grkGen':'<span class="grkGen">pink</span>:genitive/possessor',
+                              'grkDat':'<span class="grkDat">cyan</span>:dative/indirect object',
+                              'grkVoc':'<span class="grkVoc">magenta</span>:vocative',
+                              'grkNeg':'<span class="grkNeg">red</span>:negative'}
+def brightenSRGNT( BBB:str, C:str, V:str, brightenTextHtml:str, verseEntryList, state:State ) -> Tuple[str,List[str]]:
     """
     Take the SR-GNT text (which includes punctuation and might also include <br> characters)
         and mark the role participants
     """
-    # dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"brightenSRGNT( {BBB} {C}:{V} {textHtml}, {verseEntryList}, … )…" )
+    # dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"brightenSRGNT( {BBB} {C}:{V} {brightenTextHtml}, {verseEntryList}, … )…" )
 
-    # NT = BibleOrgSysGlobals.loadedBibleBooksCodes.isNewTestament_NR( BBB )
-    wordFileName = 'OET-LV_NT_word_table.tsv' # if NT else 'OET-LV_OT_word_table.tsv'
+    wordFileName = 'OET-LV_NT_word_table.tsv'
 
-    punctuatedGrkWords = textHtml.replace( '<br>', ' ').split( ' ' )
+    punctuatedGrkWords = brightenTextHtml.replace( '<br>', ' ').replace( '  ', ' ').split( ' ' )
     strippedGrkWords = [punctuatedGrkWord.lstrip( '“‘˚(' ).rstrip( '.,?!:”’·;)–…' ) for punctuatedGrkWord in punctuatedGrkWords]
-    # print( f"  gW {grkWords=}" )
 
     # Match Greek words to word numbers
     firstWordNumber,lastWordNumber = state.OETRefData['word_table_indexes'][wordFileName][f'{BBB}_{C}:{V}']
@@ -623,11 +640,11 @@ def brightenSRGNT( BBB, C, V, textHtml, verseEntryList, state:State ) -> Tuple[s
 
     classKeySet = set()
     if allExtras:
-        # Find each word in textHtml, find the word info in allExtras, and then update textHtml with more classes
+        # Find each word in brightenTextHtml, find the word info in allExtras, and then update brightenTextHtml with more classes
         searchStartIndex = wordNumberIndex = extraIndexOffset = 0
         for _safetyCount1 in range( len(punctuatedGrkWords)+1 ):
             rawGrkWord = punctuatedGrkWords[wordNumberIndex]
-            ix = textHtml.index( rawGrkWord, searchStartIndex )
+            ix = brightenTextHtml.index( rawGrkWord, searchStartIndex )
             # print( f"  aE {wordNumberIndex=} {rawGrkWord=} {searchStartIndex=} {ix=} {extraIndexOffset=}")
             assert ix != -1
             simpleGrkWord = rawGrkWord.lstrip( '“‘˚(' )
@@ -637,7 +654,7 @@ def brightenSRGNT( BBB, C, V, textHtml, verseEntryList, state:State ) -> Tuple[s
             attribDict = {}
             for _safetyCount2 in range( 4 ):
                 extraEntry = allExtras[wordNumberIndex+extraIndexOffset]
-                # print( f"     {textHtml[ix:ix+20]=}… {extraEntry=}")
+                # print( f"     {brightenTextHtml[ix:ix+20]=}… {extraEntry=}")
                 extraType, extraText = extraEntry.getType(), extraEntry.getText()
                 # print( f"       TyTxClTx {extraType=} {extraText=} {extraEntry.getCleanText()=}")
                 if extraType != 'ww': extraIndexOffset += 1; continue # it could be a footnote or something
@@ -650,6 +667,7 @@ def brightenSRGNT( BBB, C, V, textHtml, verseEntryList, state:State ) -> Tuple[s
                         if fieldName == 'morph':
                             assert fieldValue.startswith( 'Gr,' )
                             attribDict['role'] = fieldValue[3]
+                            assert fieldValue[4] == ',', f"{BBB} {C}:{V} {fieldValue=} {extraType=} {extraEntry.getText()=}" # SR-GNT Mrk 1:1 has 'Gr,N,....NFS'
                             fieldValue = fieldValue[5:] # Get only the morph bit
                             assert len(fieldValue) == 7
                         elif fieldName == 'strong':
@@ -666,21 +684,21 @@ def brightenSRGNT( BBB, C, V, textHtml, verseEntryList, state:State ) -> Tuple[s
             except IndexError:
                 wordLink = f'''https://BibleHub.com/greek/{attribDict['strong'][:-1]}.htm''' # default to BibleHub by Strongs number if we don't know the word number
             if attribDict['role'] == 'V':
-                caseClassName = 'greekVrb'
+                caseClassName = 'grkVrb'
             elif attribDict['strong'] == '37560': # Greek 'οὐ' (ou) 'not'
-                caseClassName = 'greekNeg'
+                caseClassName = 'grkNeg'
             elif attribDict['morph'][4] != '.':
                 try:
-                    caseClassName = f'''greek{GREEK_CASE_CLASS_DICT[attribDict['morph'][4]]}'''
+                    caseClassName = f'''grk{GREEK_CASE_CLASS_DICT[attribDict['morph'][4]]}'''
                 except KeyError:
                     print( f"{BBB} {C}:{V} {currentWordNumber=} {rawGrkWord=} {simpleGrkWord=} {attribDict=}" )
                     raise KeyError
             else: caseClassName = None
             if caseClassName: classKeySet.add( caseClassName )
             caseClassHtml = '' if not caseClassName else f'''class="{caseClassName}" ''' # Has a trailing space
-            textHtml = f'''{textHtml[:ix-1]}<b>˚<a title="{attribDict['role']}-{attribDict['morph']}" {caseClassHtml}href="{wordLink}">{simpleGrkWord}</a></b>{textHtml[ix+len(simpleGrkWord):]}''' \
+            brightenTextHtml = f'''{brightenTextHtml[:ix-1]}<b>˚<a title="{attribDict['role']}-{attribDict['morph']}" {caseClassHtml}href="{wordLink}">{simpleGrkWord}</a></b>{brightenTextHtml[ix+len(simpleGrkWord):]}''' \
                         if '˚' in rawGrkWord else \
-                        f'''{textHtml[:ix]}<a title="{attribDict['role']}-{attribDict['morph']}" {caseClassHtml}href="{wordLink}">{simpleGrkWord}</a>{textHtml[ix+len(simpleGrkWord):]}'''
+                        f'''{brightenTextHtml[:ix]}<a title="{attribDict['role']}-{attribDict['morph']}" {caseClassHtml}href="{wordLink}">{simpleGrkWord}</a>{brightenTextHtml[ix+len(simpleGrkWord):]}'''
             wordNumberIndex += 1
             if wordNumberIndex >= len(punctuatedGrkWords):
                 break
@@ -694,8 +712,261 @@ def brightenSRGNT( BBB, C, V, textHtml, verseEntryList, state:State ) -> Tuple[s
             classKeyList.append( classKeyHtml )
     assert classKeyList
 
-    return textHtml, classKeyList
+    return brightenTextHtml, classKeyList
 # end of createParallelVersePages.brightenSRGNT
+
+
+# HEBREW_CASE_CLASS_DICT = { 'N':'Nom','n':'Nom', 'G':'Gen','g':'Gen', 'A':'Acc','a':'Acc', 'D':'Dat','d':'Dat', 'V':'Voc','v':'Voc', }
+HEBREW_CASE_CLASS_KEY_DICT = { 'hebVrb':'<span class="hebVrb">yellow</span>:verbs',
+                            #   'hebNom':'<span class="hebNom">light-green</span>:nominative/subject',
+                            #   'hebAcc':'<span class="hebAcc">orange</span>:accusative/object',
+                            #   'hebGen':'<span class="hebGen">pink</span>:genitive/possessor',
+                            #   'hebDat':'<span class="hebDat">cyan</span>:dative/indirect object',
+                            #   'hebVoc':'<span class="hebVoc">magenta</span>:vocative',
+                              'hebNeg':'<span class="hebNeg">red</span>:negative'}
+def brightenUHB( BBB:str, C:str, V:str, brightenUHBTextHtml:str, verseEntryList, state:State ) -> Tuple[str,List[str]]:
+    """
+    Take the UHB text (which includes punctuation and might also include <br> characters)
+        and mark the role participants
+
+    From https://git.door43.org/unfoldingWord/hbo_uhb:
+        The UHB differs from the OSHB in a few respects (though more may be coming):
+
+        Metadata—The UHB text includes various metadata to mark the text which create links to other content that our software uses.
+            For example, we add links to our unfoldingWord® Translation Words articles where appropriate.
+        Joined words (for example: inseparable prepositions, the definite article, conjunctive waw) are separated
+                using a unicode WORD JOINER (U+2060) character instead of the / character that the OSHB uses.
+        The UHB is encoded in USFM 3.0 instead of the OSIS that the OSHB uses.
+        The UHB uses the versification scheme of the ULT instead of that of the OSHB (which is based on the WLC scheme common for Hebrew Bibles).
+            The goal of this change is to simplify the translation and reference process for Gateway Language teams and supplemental resources
+                (such as our translation helps suite).
+            This may make some resources that are keyed to the WLC more difficult to use with the Hebrew text
+                but it will likely simplify the use of many other resources that use an ASV/KJV style of versification.
+        For each Ketiv/Qere occurrence, we have selected one of the forms for the main body of the text and have footnoted the other.
+        In some instances, the UHB selects alternate readings (either in the text or in the footnotes) from the OSHB,
+                usually on the basis of manuscripts other than the Leningrad Codex.
+            These references include: Gen 13:10; Ruth 3:12, 3:15, 4:4; 2 Sam 2:9, 5:8, 22:8, 23:8; 1 Ki 12:12; 1 Chr 9:4;
+                                        Isa 53:11; Jer 2:21, 6:6, 8:6, 8:10 [x2], 15:10, 18:16; Nah 2:1.
+
+    Sadly it doesn't document the morphology field which contains a wide range of formats,
+        e.g., "He,D", "He,Np", "He,Ncmsc", "He,Vqp3ms", and with colons: "He,R:R", "He,C:Ncmsa", "He,Ncmpc:Sp1cs"
+        It seems that the colon is often correlated to a colon in strongs, e.g., "b:H1471a"
+            but there are also word entries without a colon in strongs, yet one in the morphology!!!
+    """
+    dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\nbrightenUHB( {BBB} {C}:{V} {brightenUHBTextHtml}, {verseEntryList}, … )…" )
+
+    wordFileName = 'OET-LV_OT_word_table.tsv'
+
+    # NOTE: UHB wrongly has the ca fields before the \p field so they go onto the end of the previous lines
+    # /w בָּ⁠הָֽר|lemma="הַר" strong="b:H2022" x-morph="He,Rd:Ncmsa"/w*׃
+    # /ca 32/ca*
+    # /p
+    # /v 55
+    # /va 32:1/va*
+    # /w וַ⁠יַּשְׁכֵּ֨ם|lemma="שָׁכַם" strong="c:H7925" x-morph="He,C:Vhw3ms"/w*
+    # gives
+    # וַ⁠יִּזְבַּ֨ח יַעֲקֹ֥ב זֶ֨בַח֙ בָּ⁠הָ֔ר וַ⁠יִּקְרָ֥א לְ⁠אֶחָ֖י⁠ו לֶ⁠אֱכָל־לָ֑חֶם וַ⁠יֹּ֣אכְלוּ לֶ֔חֶם וַ⁠יָּלִ֖ינוּ בָּ⁠הָֽר׃ <span class="ca">32</span>
+    # so we'll just ignore it
+
+    adjustedBrightenUHBTextHtml, vaText, caText = brightenUHBTextHtml, None, None
+    vC, vV = C, V
+    if '<span class="ca">' in adjustedBrightenUHBTextHtml: # First one is at Gen 31:54
+        ixStartSpan = adjustedBrightenUHBTextHtml.index( '<span class="ca">' )
+        ixEndSpan = adjustedBrightenUHBTextHtml.index( '</span>', ixStartSpan+17 )
+        caText = adjustedBrightenUHBTextHtml[ixStartSpan+17:ixEndSpan]
+        # print( f"{caText=}")
+        assert ':' not in caText
+        adjustedBrightenUHBTextHtml = f'{adjustedBrightenUHBTextHtml[:ixStartSpan]}{adjustedBrightenUHBTextHtml[ixEndSpan+7:]}' # Remove this non-Hebrew bit before we divide it into words
+        # vC, vV = caText, '1'
+    assert 'class="ca"' not in adjustedBrightenUHBTextHtml
+    while '<span class="va">' in adjustedBrightenUHBTextHtml: # First one is at Gen 31:55
+        ixStartSpan =  adjustedBrightenUHBTextHtml.index( '<span class="va">')
+        ixEndSpan = adjustedBrightenUHBTextHtml.index( '</span> ', ixStartSpan+16 )
+        vaText = adjustedBrightenUHBTextHtml[ixStartSpan+17:ixEndSpan]
+        adjustedBrightenUHBTextHtml = f'{adjustedBrightenUHBTextHtml[:ixStartSpan]}{adjustedBrightenUHBTextHtml[ixEndSpan+8:]}' # Remove this non-Hebrew bit before we divide it into words
+        vC, vV = vaText.split(':') if ':' in vaText else (C, vaText)
+    assert 'class="va"' not in adjustedBrightenUHBTextHtml
+    punctuatedHebWords = ( adjustedBrightenUHBTextHtml.replace( '<br>', ' ')
+                          .replace( '־', ' ־ ') # We surrounded maqaf by spaces so it's processed like a word
+                          .replace( '׀', ' ׀ ' ) # Same for HEBREW PUNCTUATION PASEQ U+05C0
+                          .replace( ' פ ', ' ') # Remove stand-alone pe, first one at Gen 35:22
+                          .replace( ' ס ', ' ') # Remove stand-alone samekh, first one at Deu 2:8
+                          .replace( '  ', ' ')
+                          .split( ' ' )
+                          )
+    WJ = '\u2060' # word joiner (makes Hebrew displays on console ugly and hard to read)
+    strippedHebWords = []
+    for punctuatedHebWord in punctuatedHebWords:
+        if punctuatedHebWord.endswith( '׃׆ס' ):
+            punctuatedHebWord = punctuatedHebWord[:-3] # Remove 'sof pasuq' and 'reverse nun' and 'samekh' Hebrew characters
+        if punctuatedHebWord.endswith( '׃פ' ) or punctuatedHebWord.endswith( '׃ס' ): # We don't want to remove these from the end of normal words
+            punctuatedHebWord = punctuatedHebWord[:-2] # Remove 'sof pasuq' and 'pe' or 'samekh' Hebrew characters
+        strippedHebWords.append( punctuatedHebWord.lstrip( '“‘˚(' ).rstrip( '.,?!:”’·;)–…׃') ) # Last rstrip one is 'sof pasuq' and 'pe' & 'samekh' Hebrew characters
+    print( f"  brightenUHB strippedHebWords={str(strippedHebWords).replace(WJ,'')}" )
+
+    # Match Hebrew words to word numbers -- we use the original numbering which is marked as variant in UHB
+    try: firstWordNumber,lastWordNumber = state.OETRefData['word_table_indexes'][wordFileName][f'{BBB}_{vC}:{vV}']
+    except KeyError as e:
+        logging.critical( f"brightenUHB() nothing for {e}" )
+        return brightenUHBTextHtml, []
+    
+    currentWordNumber = firstWordNumber
+    hebWordNumbers = []
+    for strippedHebWord in strippedHebWords:
+        print( f"  {BBB} {C}:{V} strippedHebWord='{strippedHebWord.replace(WJ,'')}' {currentWordNumber=} from ({firstWordNumber},{lastWordNumber})" )
+        ref, OSHBid, rowType, morphemeRowList, strongs, cantillationHierarchy, morphology, word, noCantillations, morphemeGlosses, contextualMorphemeGlosses, wordGloss, contextualWordGloss, glossCapitalisation, glossPunctuation, glossOrder, glossInsert = state.OETRefData['word_tables'][wordFileName][currentWordNumber].split( '\t' )
+        hebWordNumbers.append( currentWordNumber )
+        # TODO: probably d field in PSA is a problem
+        if BBB!='PSA' and not f'{BBB}_{C}' in ('NUM_26','SA1_20','KI1_22','CH1_12','JOB_41'): # Num 26:1/25:19 and SA1 20:42 is a very complicated versification issue (chapter break in middle of alternative verse)
+            assert currentWordNumber <= lastWordNumber, f"{currentWordNumber=} {firstWordNumber=} {lastWordNumber=}"
+        currentWordNumber += 1
+    if len(hebWordNumbers) != len(strippedHebWords):
+        logging.critical( f"brighten UHB was unable to find word numbers for all words for {BBB} {C}:{V} (got {len(hebWordNumbers)} out of {len(strippedHebWords)})" )
+
+    # TODO: Not totally sure that we need these extras from https://github.com/Center-for-New-Testament-Restoration/SR files
+    #           now that we have the word numbers for the Hebrew words
+    allExtras = None
+    for verseEntry in verseEntryList:
+        print( f"    vE {verseEntry=}" )
+        marker, extras = verseEntry.getMarker(), verseEntry.getExtras()
+        if extras: # Extras contain the info we need, like: ww @ 4 = 'Ἀρχὴ|lemma="ἀρχή" x-koine="αρχη" x-strong="G07460" x-morph="Gr,N,....NFS"'
+            print( f"      ME {marker=} {extras=}" )
+            if allExtras is None:
+                allExtras = list( extras )
+            else: allExtras += list( extras )
+
+    classKeySet = set()
+    if allExtras:
+        # Find each word in brightenTextHtml, find the word info in allExtras, and then update brightenTextHtml with more classes
+        searchStartIndex = verseWordNumberIndex = extraIndexOffset = 0
+        for _safetyCount1 in range( len(strippedHebWords)+1 ):
+            rawHebWord = strippedHebWords[verseWordNumberIndex]
+            print( f"Start of loop1 {verseWordNumberIndex=} {rawHebWord=}" )
+            attribDict = {}
+            if rawHebWord in '־׀': # maqaf and paseq
+                attribDict['lang'] = 'He'
+                attribDict['morph'] = ['maqaf' if rawHebWord=='־' else 'paseq']
+                verseWordNumberIndex += 1
+                if verseWordNumberIndex >= len(strippedHebWords):
+                    break
+                searchStartIndex = ix + len(simpleHebWord)
+                extraIndexOffset -= 1 # Stops the extras from advancing
+                continue # nothing more to do in this loop
+            ix = brightenUHBTextHtml.index( rawHebWord, searchStartIndex )
+            print( f"  aE {verseWordNumberIndex=} {rawHebWord=} {searchStartIndex=} {ix=} {extraIndexOffset=}")
+            assert ix != -1
+            simpleHebWord = rawHebWord.lstrip( '“‘˚(' ) # TODO: Why do we need to do this again? Seems redundant
+            print( f"{simpleHebWord=}" )
+            ix += len(rawHebWord) - len(simpleHebWord) # Adjust for removal of any leading punctuation
+            simpleHebWord = simpleHebWord.rstrip( '.,?!:”’·;)–…׃' ) # Last ones are 'sof pasuq' and was 'pe' & samekh Hebrew characters
+            # if '\u2060' not in simpleHebWord: # word joiner '⁠' -- this fails for words like 'בְּ\u2060רֵאשִׁ֖ית' which has a word-joiner in it
+            #     assert simpleHebWord.isalpha(), f"{simpleHebWord=}" # This doesn't seem to work for Hebrew, e.g., word 'בָּרָ֣א' fails
+            assert ',' not in simpleHebWord and ':' not in simpleHebWord and '.' not in simpleHebWord and '¦' not in simpleHebWord # Do this instead
+            if '־' in simpleHebWord: halt # maqaf
+            for _safetyCount2 in range( 4 ): # we use this instead of while True to use extraIndexOffset to step past any possible footnotes, etc.
+                print( f"     {_safetyCount2} {verseWordNumberIndex=} {extraIndexOffset=} sum={verseWordNumberIndex+extraIndexOffset} {len(allExtras)=}")
+                try: extraEntry = allExtras[verseWordNumberIndex+extraIndexOffset]
+                except IndexError: break # not sure why wordNumberIndex is too high (even with extraIndexOffset=0) and this happens -- first one at Gen 3:15
+                print( f"     {brightenUHBTextHtml[ix:ix+20]=}… {extraEntry=}")
+                extraType, extraText = extraEntry.getType(), extraEntry.getText()
+                print( f"       TyTxClTx {extraType=} {extraText=} {extraEntry.getCleanText()=}")
+                if extraType != 'ww': extraIndexOffset += 1; continue # it could be a footnote or something
+                if extraText.startswith( f'{simpleHebWord}|' ):
+                    extraText = extraText[len(simpleHebWord)+1:] # Remove the word that we've just confirmed, left with something like 'lemma="ἁμαρτία" x-koine="αμαρτιασ" x-strong="G02660" x-morph="Gr,N,....AFP"'
+                    for extraTextChunk in ( extraText
+                                        #    .replace( 'תּוּבַל קַיִן', 'תּוּבַל_קַיִן' ) # Need special handling for Tubal-Cain (Gen 4:22 onwards) with a space in the lemma
+                                        #    .replace( 'בְּאֵר שֶׁבַע', 'בְּאֵ_שֶׁבַע' ) # Need special handling for Be'er Sheba (Gen 21:14 onwards) with a space in the lemma
+                                        #    .replace( 'קִרְיַת אַרְבַּע', 'קִרְיַת_אַרְבַּע' ) # Need special handling for Kiriath Arba (Gen 23:2 onwards) with a space in the lemma
+                                        #    .replace( 'בְּאֵר לַחַי רֹאִי', 'בְּאֵר_לַחַי_רֹאִי' ) # Need special handling for Be’er-Lahai-Roi (Gen 24:62 onwards) with a space in the lemma
+                                        #    .replace( 'בֵּית לֶחֶם', 'בֵּית_לֶחֶם' ) # Need special handling for Beth Lechem / Bethlehem (Gen 35:19 onwards) with a space in the lemma
+                                        #    .replace( 'בַּעַל חָנָן', 'בַּעַל_חָנָן' ) # Need special handling for Ba'al Hanan (Gen 36:38 onwards) with a space in the lemma
+                                            .split( '" ' ) ): # Use the double quote so we don't need every special case with a space in the UHB 'lemma' field
+                        print( f"    {extraTextChunk=}")
+                        fieldName, fieldValue = extraTextChunk.split( '=', 1 )
+                        fieldValue = fieldValue.strip( '"' )
+                        if fieldName.startswith( 'x-' ): fieldName = fieldName[2:]
+                        if fieldName == 'strong':
+                            # assert 'H' in fieldValue, f"{fieldValue=}" # Can be something like 'b:H7225' or "l"
+                            assert fieldValue.count( 'H' ) <= 1, f"{fieldValue=}" # Can be something like 'b:H7225' or "l"
+                            # Seems that the ':' is a morpheme separator
+                            strongs = []
+                            for subFieldValue in fieldValue.split( ':' ):
+                                print( f"      strong {subFieldValue=}" )
+                                if subFieldValue[0] == 'H':
+                                    subFieldValue = subFieldValue[1:]
+                                    # assert subFieldValue.isdigit() # Fails on '7760a'
+                                assert 1 <= len(subFieldValue) <= 5
+                                strongs.append( subFieldValue )
+                            fieldValue = strongs
+                        elif fieldName == 'morph':
+                            print( f"      morph field {fieldValue=}")
+                            if ':' in attribDict['strong']: # 'strong' in attribDict and 
+                                assert fieldValue.count(':') == attribDict['strong'].count( ':' )
+                            assert fieldValue.startswith( 'He,' ) or fieldValue.startswith( 'Ar,' ), f"{fieldValue=}"
+                            attribDict['lang'] = fieldValue[:2]
+                            fieldValue = fieldValue[3:] # Remove unneeded? language prefix
+                            # Seems that the ':' is a morpheme separator in the UHB
+                            morphs = []
+                            for subFieldValue in fieldValue.split( ':' ):
+                                print( f"        morph {subFieldValue=}" )
+                                assert 1 <= len(subFieldValue) <= 6
+                                morphs.append( subFieldValue )
+                            fieldValue = morphs
+                        print( f"     {simpleHebWord} {fieldName}='{fieldValue}'" )
+                        attribDict[fieldName] = fieldValue
+                    break
+                print( f"Oops!!! No match for {simpleHebWord=} {extraText=}")
+                # TODO: Why do we have to disable the next two lines for NEH 7:68
+            #     halt
+            # else: need_to_increase_count2_for_brightenUHB
+            print( f"    {attribDict=}" )
+            try:
+                wordLink = f'../../ref/HebWrd/{hebWordNumbers[_safetyCount1]}.htm#Top' # We'd prefer to link to our own word pages
+            except IndexError:
+                wordLink = f'''https://BibleHub.com/greek/{attribDict['strong'][:-1]}.htm''' # default to BibleHub by Strongs number if we don't know the word number
+            caseClassName = None
+            try:
+                for subMorph in attribDict['morph']:
+                    if subMorph[0] == 'V':
+                        caseClassName = 'hebVrb'
+                        break
+            except KeyError:
+                print( f"Error: no morph available for {simpleHebWord=} from {simpleHebWord=}" )
+            try:
+                for subStrong in attribDict['strong']:
+                    print( f"{subStrong=}" )
+                    try: subStrongInt = getLeadingInt( subStrong ) # Ignores suffixes like a,b,c
+                    except ValueError: continue
+                    if subStrongInt in (369, 3808): # Hebrew 'אַיִן' 'ayin' 'no', or 'לֹא' (lo) 'not'
+                        caseClassName = 'hebNeg'
+                        break
+            except KeyError:
+                print( f"Error: no strongs available for {simpleHebWord=} from {simpleHebWord=}" )
+            # elif attribDict['morph'][4] != '.':
+            #     try:
+            #         caseClassName = f'''heb{HEBREW_CASE_CLASS_DICT[attribDict['morph'][4]]}'''
+            #     except KeyError:
+            #         print( f"{BBB} {C}:{V} {currentWordNumber=} {rawHebWord=} {simpleHebWord=} {attribDict=}" )
+            #         raise KeyError
+            if caseClassName: classKeySet.add( caseClassName )
+            caseClassHtml = '' if not caseClassName else f'''class="{caseClassName}" ''' # Has a trailing space
+            titleHtml = f'''title="{'Aramic ' if attribDict['lang']=='Ar' else ''}{', '.join(attribDict['morph'])}" ''' if 'morph' in attribDict else ''
+            brightenUHBTextHtml = f'''{brightenUHBTextHtml[:ix]}<a {titleHtml}{caseClassHtml}href="{wordLink}">{simpleHebWord}</a>{brightenUHBTextHtml[ix+len(simpleHebWord):]}'''
+            verseWordNumberIndex += 1
+            if verseWordNumberIndex >= len(strippedHebWords):
+                break
+            searchStartIndex = ix + len(simpleHebWord)
+        else: need_to_increase_count1_for_brightenUHB
+
+    # Get the colour keys into the correct order
+    classKeyList = []
+    for classKey,classKeyHtml in HEBREW_CASE_CLASS_KEY_DICT.items():
+        if classKey in classKeySet:
+            classKeyList.append( classKeyHtml )
+    # assert classKeyList # TODO: re-enable once the above is working better
+
+    return brightenUHBTextHtml, classKeyList
+# end of createParallelVersePages.brightenUHB
 
 
 ENGLISH_WORD_MAP = ( # Place longer words first,
@@ -792,7 +1063,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
             ((' beed ',' bedde '),' bed '),
             ((' bene ',' ben '),' been '),
             ((' bifore',' bifor'),' before'),
-            ((' beganne',' begane',' bigunnen',' bigan'),' began'), ((' bigat ',' begate '),' begat '), ((' beggere',' begger'),' beggar'), ((' beggide',),' begged'), (('bigynnyng','beginnynge','begynnynge','begynnyng','begynninge'),'beginning'), (('bigetun ','begotte '),'begotten '),
+            ((' beganne',' begane',' bigunnen',' bigan'),' began'), ((' bigat ',' begate '),' begat '), ((' beggere',' begger'),' beggar'), ((' beggide',),' begged'), (('bigynnyng','beginnynge','beginnyng','begynnynge','begynnyng','begynninge'),'beginning'), (('bigetun ','begotte '),'begotten '),
             (('behelde','biheeld'),'beheld'), ((' behinde',' bihynde',' behynde'),' behind'), ((' biholdinge',),' beholding'),(('Biholde','Beholde'),'Behold'),((' biholdist ',' biholde ', ' beholde '),' behold '),((' beholde,',),' behold,'), ((' bihoueth',),' behoves'),
             ((' beynge ',' beyng '),' being '),
             (('bileueden','beleeued','beleued','beleved'),'believed'), ((' bileueth',' beleueth',' beleeueth'),' believes'), (('Bileue ','Beleeue ','Beleue ','Beleve '),'Believe '),((' beleue',' beleeue',' beleve',' bileue'),' believe'), ((' belonge ',),' belong '), ((' beloued',' beloven'),' beloved'),
@@ -899,14 +1170,14 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
         ((' duste ',),' dust '), ((' duetie ',),' duty '),
         (('dwelliden','dwellide','dwellyde'),'dwelled/dwelt'),(('dwelleth','dwellith'),'dwells'), (('dwellynge','dwellinge'),'dwelling'),
     ((' ech ',),' each '),
-            ((' eerli',' erly'),' early'), ((' eares ',' eeris ',' eris '),' ears '), ((' erthe',' erth'),' earth'),
+            ((' eerli',' erly'),' early'), ((' eares ',' eeris ',' eris '),' ears '), ((' erthe',' erth',' `erthe'),' earth'),
             (('Eastwarde',),'Eastward'),(('eastwarde',),'eastward'), ((' easyer',),' easier'), ((' eest ',),' east '),
             ((' etynge',' eatyng'),' eating'),((' eate ',' ete '),' eat '),((' eate,',' ete,'),' eat,'),((' eate.',' ete.'),' eat.'),((' eate:',' ete:'),' eat:'),((' eate;',' ete;'),' eat;'),
         (('edificacioun',),'edification'), (('edyfyinge','edifyenge'),'edifying'),
         (('Egipte',),'Egypt'),
         ((' eldere ',),' elder '), (('Elias','Helyas'),'Elias/Elijah'),(('Helie','Elie'),'Elye/Elijah'),
             ((' els ',),' else '),((' els,',),' else,'),
-        (('Emperours',),'Emperors'),((' emperours',),' emperors'),(('Emperoure',),'Emperor'),((' emperoure',),' emperor'),
+        (('Emperours',),'Emperors'),((' emperours',),' emperors'),(('Emperoure',),'Emperor'),((' emperoure',),' emperor'), ((' emptie,',),' empty,'),
         ((' ende ',),' end '),((' ende,',),' end,'), (('ynough','inough'),'enough'), ((' entred',' entriden',' entride',' entrid'),' entered'),((' entereth',' entreth'),' entereth/enters'),((' entre ',),' enter '),
         (('Hester',),'Esther'),
         (('euangelisynge',),'evangelising'),
@@ -937,6 +1208,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
             ((' foold ',),' fold '), ((' folkis',),' folks/people'), ((' folowed',' folewiden',' suede'),' followed'), ((' folowe',' folow',' suen'),' follow'), (('Folowe','Folow'),'Follow'), ((' foli ',),' folly '),
             (('foolishnesse','folishnes'),'foolishness'), ((' foote ',' fote '),' foot '),
             (('forgeven','foryouun','forgeuen','forgiuen'),'forgiven'), ((' forgiue ',' foryyue ',' forgeve ',' forgeue '),' forgive '),
+                ((' fourme,',' forme,'),' form,'),
                 ((' fornicacion',),' fornication'),
                 ((' forsooke',' forsoke',),' forsook'),((' foorth',' forthe'),' forth'),
                 ((' fourtie',' fourtye',' fourti'),' forty'),
@@ -960,7 +1232,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
             ((' goon ',),' gone '),
             (('Gospell',),'Gospel'),((' gospell',),' gospel'),
         (('Graunte ','Graunt '),'Grant '),((' graunte ',' graunt ',' graut '),' grant '), ((' graue.',),' grave.'),
-            ((' gretter',),' greater'),((' greate ',' grete ',' greet ',' grett ',' gret '),' great '),
+            (('gretter',),'greater'),(('greate ','grete ','greet ','grett ','gret '),'great '),(('grett.','greate.','greet.'),'great.'),
             (('greeueth ',),'grieveth/grieves '),(('greeuous','grieuous'),'grievous'),
             (('growne ',),'grown '),
             (('grounde',),'ground'), (('grutchyng',),'groutching/grudging'),
@@ -993,7 +1265,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
         ((' hundrid',),' hundred'), ((' hungren',),' hungering'),((' hungride',' hungred',' hugred'),' hungered'),((' hungur',' honger'),' hunger'), ((' hurte ',),' hurt '), (('husbande','hosebonde'),'husband'),
         ((' hypocrisie',' ypocrisye'),' hypocrisy'),
     (('Y ',),'I '),((' Y ',),' I '),((' Y;',),' I;'),
-        ((' Yd',),' Id'), ((' ydols',),' idols'),
+        ((' Yd',),' Id'), ((' idel ',),' idle '), ((' ydols',),' idols'),
         (('Yf ',),'If '),((' yff ',' yf '),' if '), ((' ymage ',),' image '), (('Ys ',),'Is '),((' ys ',),' is '), ((' yssue',),' issue'),
         (('Yt ',),'It '),((' yt ',),' it '),
         (('encreased',),'increased'), (('indignacioun',),'indignation'), ((' inheret ',' inherite '),' inherit '), (('interpretacion',),'interpretation'),(('interprete ',),'interpret '),
@@ -1020,7 +1292,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
             (('Leuite',),'Levite'),
         (('lyberte','libertie'),'liberty'),
             ((' lyffe',' lyfe',' lijf'),' life'),
-            ((' lyght',' liyt'),' light'),
+            ((' leityngis',' lyghtnynges',' lightnynges'),' lightnings'), ((' lyght',' liyt'),' light'),
             (('Lykewyse',),'Likewise'),(('lykewyse','likewyse'),'likewise'), ((' lyke',' lijk',' lijc'),' like'),
             ((' lynage ',),' lineage '),
             ((' litil',' lytell',' lytle',' litle'),' little'),
@@ -1060,7 +1332,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
             (('Moises','Moyses'),'Moses'),
             ((' moder ',' modir '),' mother '),
             ((' mountaynes',' moutaynes',' mountaines'),' mountains'),((' mountayne',' mountaine'),' mountain'), ((' moute ',),' mount '), ((' mornen ',' mourne ',' morne '),' mourn '),((' mornen,',' mourne,',' morne,'),' mourn,'),((' mornen:',' mourne:',' morne:'),' mourn:'),
-            ((' moued',),' moved'), ((' moue ',),' move '),
+            ((' mouyng',),' moving'),((' moued',),' moved'),((' moue ',),' move '),
         ((' myche',' moche',' moch',' muche'),' much'), (('murthurers',),'murderers'),(('murthurer',),'murderer'),
     (('Naomy','Naemi'),'Naomi'), ((' naciouns',' nacions'),' nations'), ((' natiue',),' native'),
         ((' neere ',' neare '),' near '),((' neere.',' neare.'),' near.'),((' neere:',' neare:'),' near:'),
@@ -1073,6 +1345,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
         ((' neer ',' nyer ',' nier '),' nigher/nearer '),((' nyy ',' nye '),' nigh/near '),((' nyy.',' nye.'),' nigh/near.'), ((' nyyti',' nyyt',' nyght',' nighte'),' night'), ((' nyenth',' nynthe',' nynth'),' ninth'),
         ((' ner ',' ne '),' nor '), (('northwarde',),'northward'),
             (('nothinge','nothyng'),'nothing'),
+            ((' nouyt ',),' nought/nothing '),
         (('Nowe ',),'Now '),((' nowe ',),' now '),
         (('numbred',),'numbered'),(('noumbre','nombre','nomber'),'number'),
     ((' othe ',' ooth '),' oath '),
@@ -1176,7 +1449,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
             ((' syght ',' sighte ',' siyt '),' sight '),((' sighte,',),' sight,'), ((' signes',),' signs'),((' signe ',),' sign '),
             ((' siluer',),' silver'),
             (('Symount','Symon'),'Simon'), ((' simulacion',),' simulation'),
-            ((' sence ',),' since '), ((' synners',),' sinners'),((' synner',),' sinner'), ((' synfull',' synful'),' sinful'),((' sinnes',' synnes'),' sins'),((' synnede',' synned'),' sinned'),((' synne ',' sinne '),' sin '),((' synne,',' sinne,'),' sin,'),((' synne.',' sinne.'),' sin.'),
+            ((' sence ',' sithen '),' since '), ((' synners',),' sinners'),((' synner',),' sinner'), ((' synfull',' synful'),' sinful'),((' sinnes',' synnes'),' sins'),((' synnede',' synned'),' sinned'),((' synne ',' sinne '),' sin '),((' synne,',' sinne,'),' sin,'),((' synne.',' sinne.'),' sin.'),
             ((' sistris',' systers'),' sisters'),((' sistir',),' sister'),
             ((' sittynge',' syttyng'),' sitting'),((' sitten ',' sitte ',' syt '),' sit '), ((' liggynge',),' situated'),
             ((' sixte ',' sixt '),' sixth '), ((' sixe ',),' six '),
@@ -1194,7 +1467,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
             ((' souyten',),' sought'), ((' sounde',),' sound'), (('southwarde',),'southward'), (('souereynes',),'sovereigns'),
         ((' spette ',' spate '),' spat '),
             (('speakynge','spekynge','speakinge','spekinge','speakyng'),'speaking'),((' spekith',' speaketh'),' speaks'),((' speake',),' speak'),
-            ((' spyed',),' spied'), ((' spirites',' spiritis',' spretes'),' spirits'),((' spirite',' sprete'),' spirit'), (('spotil','spetil','spettle'),'spittle'),
+            ((' spyed',),' spied'), ((' spirites',' spiritis',' spretes'),' spirits'),(('Spiryt',),'Spirit'),((' spirite',' sprete'),' spirit'), (('spotil','spetil','spettle'),'spittle'),
             ((' spak ',),' spoke '),
             ((' sprede ',' spred '),' spread '),
         ((' staffe ',),' staff '), (('stondinge','standyng','stodinge'),'standing'),((' stondith',),' standeth/stands'),((' stande ',' stonde '),' stand '),((' stonde.',),' stand.'), ((' starre',),' star'),
@@ -1233,7 +1506,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
                 ((' thridde',' thyrde',' thirde'),' third'), ((' thristen',),' thirsting'),((' thyrst ',' thurst ',' thirste '),' thirst '),((' thirste,',),' thirst,'),
             (('thwong',),'thong'), ((' thou ',),' thou/you '), ((' thouy ',),' though '), ((' thouyte ',),' thought '), (('thousynde','thousande'),'thousand'),
             ((' thre ',),' three '), ((' trone ',),' throne '), (('thorowout',),'throughout'), (('thorow ','thorou '),'through '),(('thorow,',),'through,'), (('throwen',),'thrown'),
-            (('thundryng',),'thundering'), (('thounder','thonder'),'thunder'),
+            (('thundringes','thundrings','thondringes','thundris'),'thunderings'),(('thundryng',),'thundering'),(('thounder','thonder'),'thunder'),
         ((' tydynges',' tidynges',' tydinges',' tydings'),' tidings/news'),(('Tydinges',),'Tidings'), ((' tyde',),' tide'),
             ((' tyed ',),' tied '), ((' tiel ',),' tile '),
             ((' tyll ',),' till '),
@@ -1257,14 +1530,14 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
             (('vnleauened','vnleuened'),'unleavened'), ((' vnloose',),' unloose'),
             ((' vnsauerie',' unsauery',' unsavery'),' unsavoury'),
             ((' vntieden',),' untied'), (('Untyll ','Vntill '),'Until '),(('vntill','vntyll'),'until'), (('Vnto ',),'Unto '),((' vnto',),' unto'), ((' vntiynge',),' untying'),
-        ((' vp ',),' up '),((' vp,',),' up,'),((' vp.',),' up.'), ((' vpon ',' apon '),' upon '),(('Vpon ',),'Upon '),
+        ((' vp ',),' up '),((' vp,',),' up,'),((' vp.',),' up.'), ((' vpon ',' upo ',' apon '),' upon '),(('Vpon ',),'Upon '),
         ((' vs',),' us'),
             ((' vn',),' un'), # Special case for all remaining un- words
             ((' vp',),' up'), # Special case for all remaining up- words
     ((' valey',),' valley'), (('vanisshed','vanysshed'),'vanished'), (('vanyte ','vanitie '),'vanity '),
         (('Ueryly','Verely','Veryly'),'Verily/Truly'),((' verely',' veryly'),' verily/truly'), ((' vessell',),' vessel'),
         (('vyneyarde','vynyarde','vynyerd','vineyarde'),'vineyard'), ((' vertu',),' virtue'), ((' visite ',' vyset '),' visit '),
-        ((' voyce',' vois'),' voice'),
+        ((' voyce',' vois'),' voice'), ((' voyde',' voide'),' void'),
     (('walkynge','walkinge'),'walking'),((' walkid',),' walked'),((' walke ',),' walk '),((' walke,',),' walk,'),
              ((' warres',),' wars'),((' warre ',),' war '),
              ((' waisschide',' wasshed',' wesshed'),' washed'),((' waisschun',),' washing'),((' wesshe ',' washe '),' wash '),((' wassche;',),' wash;'),
@@ -1359,7 +1632,8 @@ def moderniseEnglishWords( html:str ) -> bool:
 GERMAN_WORD_MAP = (
     ('Aber','But'),(' aber',' but'),
         (' Arche ',' ark '),
-        (' alle ',' all '),(' allen ',' all '), (' alten ',' old '),
+        (' alle ',' all '),(' alle,',' all,'),(' allen ',' all '),  ('Also ','So '), (' alten ',' old '),
+        ('Am ','At_the '),(' am ',' in/at/on_the '),
         (' an ',' at '), ('Anfang','beginning'),
         (' auch ',' also '),(' auch.',' also.'), (' aus ',' out of '), (' auf ',' on '),(' aufs ',' onto '),
     ('Älteste','elder'),
@@ -1384,26 +1658,29 @@ GERMAN_WORD_MAP = (
         ('Du ','You '), (' durch ',' through '),
     ('Engel','angel'),
         ('Erde','earth'), (' erste ',' first '),
-        (' ein ',' a '),(' eine ',' one '),(' einen ',' a '),
+        (' ein ',' a '),(' eine ',' one '),(' einen ',' a '), ('eingeborenen','native_born'),
         (' er ',' he '),
-        (' es ',' it '), (' essen',' eat'),
+        ('Es ','It '),(' es ',' it '), (' essen',' eat'),
         (' etliche ',' several '),
         (' euch',' you'),(' eure ',' your '),
         ('Evangeliums','gospel'),
+        (' ewige ',' eternal '),
     ('Feuer','fire'),
-        ('Finsternis','darkness'),
+        ('Finsternis','darkness'),(' finster ',' dark '),
         ('Fleisch','flesh'),
         ('Füßen ','feet '),
-    ('Gajus','Gaius'),
+    (' gab,',' gave,'), ('Gajus','Gaius'),
         (' geben ',' give '),
             ('Geist','spirit'),
+            ('geliebet','loved'),
             (' gemacht',' made'), ('Gemeinden','communities'),
             (' gesandt',' sent'), ('geschrieben','written'), ('Gesetz','law'), (' gesund ',' healed '),
-        ('Glauben','faith'),
+            (' gewesen ',' been '),
+        ('Glauben','faith'), ('glauben','believe'),
         ('Gottes','God’s'),('GOtt','God'),
-        ('Grabe ','grave '), (' groß ',' large '), (' große ',' great '),(' großen',' great'),
+        ('Grabe ','grave '), (' groß ',' large '), (' große ',' large '),(' großen',' large'),(' großes',' large'),
         (' gut ',' good '),
-    ('Habe ','goods '), (' habe ',' have '),(' habe;',' have;'), (' habt',' have'),
+    ('Habe ','goods '), (' habe ',' have '),(' habe;',' have;'), ('haben','have'), (' habt',' have'),
             (' halten ',' hold '),
             (' hat ',' has '),(' hat,',' has,'), (' hatte ',' had '),
             ('Hauses','houses'),
@@ -1426,8 +1703,8 @@ GERMAN_WORD_MAP = (
         ('Königs','kings'),('König','king'),
         ('Krone ','crown '),
     ('Lauterkeit','purity/integrity'),
-        ('Lebens','life'), ('Leib ','body '),
-        ('Licht ','light '),
+        ('Lebens','life'),('Leben ','life '), ('leer,','empty,'), ('Leib ','body '),
+        ('Licht','light'),
             ('Lieben ','loved (one) '), (' liebhabe ',' love '), (' Liebe ',' love '), (' ließ ',' let '),(' ließen ',' leave/let '),
             ('Lippen ','lips '),
     (' machten',' make'), ('Mann ','man '),('Mann.','man.'), ('Märkte ','marketplaces '),
@@ -1448,23 +1725,26 @@ GERMAN_WORD_MAP = (
         (' roter ',' red '),
     (' sagt',' says'), (' sah,',' saw,'), ('Samen ','seed/seeds '),('Samen.','seed/seeds.'), (' saß ',' sat '),
         ('Schande ','shame '), (' schied ',' separated '), ('Schiff','ship'), ('Schlüssel ','key '),
-        (' sei ',' be '), (' sein ',' his '),(' seine ',' his '), (' selbst ',' himself/itself '), (' sende ',' send '),
+        (' sei ',' be '), (' sein ',' his '),(' seine ',' his '),(' seinen ',' his '), (' seit ',' since '),
+            (' selbst ',' himself/itself '),
+            (' sende ',' send '),
         (' sich ',' itself/yourself/themselves '),(' sie ',' she/they/them '), (' sieben ',' seven '), (' sind ',' are '),
         ('Sohn','son'),
             ('sondern','rather'), ('Sonne','sun'), ('Sonst ','Otherwise '),
-        ('Speise ','food '), (' spiritern ',' spirits '), (' sprach ',' spoke '),
+        ('Speise ','food '), (' spiritern ',' spirits '), (' sprach ',' spoke '),(' sprach:',' spoke:'),
         ('Städte ','cities '), ('Stamms ','tribe '), (' starb ',' died '), (' stehet',' stands'), (' stund ',' stood '),
-    (' timor ',' fear '),
+        (' schwebete ',' floated '), (' schuf ',' created '),
+    ('Tiefe ','depth '), (' timor ',' fear '),
         (' trug ',' wore '),
     ('Und ','And '),(' und ',' and '),
         ('ungläubige','unbelieving'), ('Ungewitter','storm'),
         (' unrein',' unclean'),
         (' unter ',' under '),
     ('Vaterland','fatherland/homeland'), ('Vater ','father '),
-        ('verkündigte','announced'), ('verlässest','leave'), ('versammelt','gathered'),
+        ('verkündigte','announced'), ('verlässest','leave'), ('verloren','lost'), ('versammelt','gathered'),
         (' viel ',' many '), ('Volk','people'), (' vom ',' from_the '), (' von ',' from '), (' vor ',' before/in_front_of '),
     ('Wahrheit','truth'),
-            (' war ',' was '),(' war.',' was.'), (' wären ',' would_be '),
+            (' war ',' was '),(' war.',' was.'), (' ward ',' was '), (' wären ',' would_be '), # Is 'ward' a mispelling?
             ('Wasser','water'),
         ('Weiber','women'),('Weib ','woman '),('Weib,','woman,'), ('Wein ','wine '),
             ('Welche ','Which '),('welcher ','which '),(' welches ',' which '),(' welchem ',' which_one '), ('Welt','world'),
@@ -1476,7 +1756,7 @@ GERMAN_WORD_MAP = (
             ('Wisset ','Know '),(' wisset ',' know '),
         (' wollte',' wanted'),
             ('Worten','words'),
-        ('Wurzel ','root '),
+        (' wurden ',' became '), ('Wurzel ','root '), (' wüst ',' wild '),
     ('Yahre','years'),
     ('zähme ','tame '),
         (' zehn ',' ten '), ('Zeichen ','sign '), (' zeugen',' witness'),
@@ -1519,51 +1799,63 @@ def translateGerman( html:str ) -> bool:
 
 
 LATIN_WORD_MAP = (
-    (' aliæ ',' in_another '),
+    (' æternam',' eternal'),
+        (' aliæ ',' in_another '),
         ('ancillam','maidservant'),
         (' angelum',' a_messenger/angel'), (' annos ',' years '),
         (' appellavit ',' he_called '),
-    (' decem ',' ten '), ('Deus ','God '),
-    (' eam ',' her '),
-        (' es ',' you_are '), (' est ',' it_is '),(' est,',' it_is,'),
-        ('Et ','And '),(' et ',' and '),
+        (' autem ',' however '),
+    (' bona',' good'),
     ('cælum','the_sky'),
         ('congregabit','will_gather'),
-    ('dæmonia','demons'),
-        (' de ',' about '), (' dedit',' he_gave'),
-    ('ecclesiis','assemblies/churches'),
+        ('creavit ','created '), ('credit','he_believes'),
+    ('dæmonia','demons'), (' daret',' would_give'),
+        (' de ',' about '), (' decem ',' ten '), (' dedit',' he_gave'), ('Deus','God'),
+        ('dilexit','he_loved'), ('divisit','divided'), ('Dixitque','And_he_said'),
+    (' eam ',' her '),
+        ('ecclesiis','assemblies/churches'),
         ('Ego ','I '),(' ego ',' I '),
         (' ei ',' to_him '),
         (' enim',' because'),
         (' erant ',' they_were '),
-    ('facultatibus','resources'),
-    ('habitare','to_live'),
+        (' es ',' you_are '), (' esset ',' was '), (' est ',' it_is '),(' est,',' it_is,'),
+        ('Et ','And '),(' et ',' and '),
+        (' eum,',' him,'),
+    ('facultatibus','resources'), (' facta ',' facts '),
+        ('Fiat ','Let_it_happen '), ('Filium','Son'),
+    (' habeat ',' have '), ('habitare','to_live'),
         (' hæc ',' this '),
         ('hebraice','hebrew'),
     (' inter ',' between '),
         (' illos ',' those '),(' illum ',' him '),
     (' legum ',' the_law '),
         (' locum ',' place '),
+        (' lucem ',' the_light '), (' lux',' light'),
     (' magnus',' big'),
         (' meum ',' mine '),
         (' ministrabant',' served'), (' misi ',' I_sent '),
-        (' multæ ',' many '),
+        (' multæ ',' many '), (' mundum',' the_world'),
     (' non ',' not/no '), (' novam',' new'),(' novum ',' new '),
-    (' post ',' after '),
-        ('Propterea ',"That's_why "),
+    (' omnis ',' everyone '),
+    (' pereat ',' perish '),
+        (' post ',' after '),
+        ('principio ','at_the_beginning '), ('Propterea ',"That's_why "),
         (' puteum ',' a_well '),
     (' qua ',' which '),(' quæ ',' which '), (' qualis ',' such_as '), (' quam ',' how '),
         ('qui ','who '),
+        ('quod ','that '),
     (' radix ',' root '),
     (' secundum ',' after/second '), (' sed ',' but '), (' semen ',' seed '), (' septem ',' seven '),
-        (' sic ',' so '),
+        ('Sic ','So '), (' sic ',' so '),
         (' stella ',' star '),
-        (' suam ',' his_own '),(' suis',' to_his_own'),(' sum ',' I_am '),(' sunt ',' are '),(' suo ',' his_own '),
-    (' te,',' you(sg),'),(' te.',' you(sg).'), (' terra ',' earth/land '),(' terram ',' the_earth/land '),
+        (' suam ',' his_own '),(' suis',' to_his_own'),(' sum ',' I_am '),(' sunt ',' are '),(' suo ',' his_own '), (' suum ',' his_own '),
+    (' te,',' you(sg),'),(' te.',' you(sg).'), (' tenebris',' darkness'), (' terra ',' earth/land '),(' terram',' the_earth/land'),
         (' tui ',' yours '), ('tulit ','took '), (' tuum ',' your '),
-    (' uxorem',' wife'),(' uxor ',' wife '),
+    ('unigenitum','only_born'),
+    (' ut ',' as '),
+        (' uxorem',' wife'),(' uxor ',' wife '),
     ('veritatem','words'),
-        (' vidi ',' I_saw '), (' viro ',' to_the_man '), (' vitæ ',' of_life '),
+        (' vidi ',' I_saw '),(' vidit ',' he_saw '), (' viro ',' to_the_man '), (' vitæ ',' of_life '), (' vitam ',' life '),
         (' vobis ',' to_you '), ('vocatur ','is_called '), (' voces',' voices'),
     )
 LatinWords, EnglishWords = [], []

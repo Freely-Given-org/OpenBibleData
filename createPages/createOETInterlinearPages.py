@@ -63,7 +63,7 @@ from createOETReferencePages import CNTR_BOOK_ID_MAP
 from OETHandlers import livenOETWordLinks, getOETBookName, getOETTidyBBB
 
 
-LAST_MODIFIED_DATE = '2024-03-22' # by RJH
+LAST_MODIFIED_DATE = '2024-03-26' # by RJH
 SHORT_PROGRAM_NAME = "createOETInterlinearPages"
 PROGRAM_NAME = "OpenBibleData createOETInterlinearPages functions"
 PROGRAM_VERSION = '0.50'
@@ -321,7 +321,8 @@ def createOETInterlinearVersePage( level:int, BBB:str, c:int, v:int, state:State
                             .replace('\\sup ','<sup>').replace('\\sup*','</sup>') \
                             .replace('\\untr ','').replace('\\untr*','') \
                             .replace('/messiah¦', ' messiah¦') \
-                            .replace('_',' ').replace('   ',' ').replace('  ',' ') \
+                            .replace('_',' ').replace('=',' ').replace('÷',' ') \
+                            .replace('   ',' ').replace('  ',' ') \
                             .strip().split( ' ' )
         # print( f"Found {BBB} {c}:{v} {lvVerseEntry=}" )
         ixMarker = text.index( '¦' )

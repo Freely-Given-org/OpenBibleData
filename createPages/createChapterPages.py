@@ -40,11 +40,10 @@ from pathlib import Path
 import os
 import logging
 
-# sys.path.append( '../../BibleOrgSys/BibleOrgSys/' )
-# import BibleOrgSysGlobals
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
-from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39, BOOKLIST_NT27
+# from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39, BOOKLIST_NT27
+from BibleOrgSys.Internals.InternalBibleInternals import InternalBibleEntryList
 import BibleOrgSys.Formats.ESFMBible as ESFMBible
 
 from settings import State, TEST_MODE, reorderBooksForOETVersions, UNFINISHED_WARNING_PARAGRAPH, JAMES_NOTE_PARAGRAPH
@@ -54,10 +53,10 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_
 from OETHandlers import livenOETWordLinks, getOETTidyBBB
 
 
-LAST_MODIFIED_DATE = '2024-03-22' # by RJH
+LAST_MODIFIED_DATE = '2024-03-28' # by RJH
 SHORT_PROGRAM_NAME = "createChapterPages"
 PROGRAM_NAME = "OpenBibleData createChapterPages functions"
-PROGRAM_VERSION = '0.60'
+PROGRAM_VERSION = '0.61'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -193,7 +192,10 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
                 assert isinstance( rvBible, ESFMBible.ESFMBible )
                 rvVerseEntryList = livenOETWordLinks( rvBible, BBB, rvVerseEntryList, f"{'../'*level}ref/{'GrkWrd' if NT else 'HebWrd'}/{{n}}.htm#Top", state )
                 # print( f"OET-RV {BBB} {c} got {len(rvVerseEntryList)} verse entries, {len(rvContextList)} context entries")
-                lvVerseEntryList, lvContextList = lvBible.getContextVerseData( (BBB, str(c)) )
+                try: lvVerseEntryList, lvContextList = lvBible.getContextVerseData( (BBB, str(c)) )
+                except KeyError:
+                    logging.critical( f"createOETSideBySideChapterPages probable versification error for {lvBible.abbreviation} {BBB} {c=}" )
+                    lvVerseEntryList, lvContextList = InternalBibleEntryList(), []
                 assert isinstance( lvBible, ESFMBible.ESFMBible )
                 lvVerseEntryList = livenOETWordLinks( lvBible, BBB, lvVerseEntryList, f"{'../'*level}ref/{'GrkWrd' if NT else 'HebWrd'}/{{n}}.htm#Top", state )
                 # rvHtml = livenIORs( BBB, convertUSFMMarkerListToHtml( 'OET', (BBB,c), 'chapter', rvContextList, rvVerseEntryList ), numChapters )
@@ -221,15 +223,21 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
                             CclassIndex9 = rvSectionHtml.index( '"', CclassIndex8+4 )
                             rvEndCV = rvSectionHtml[CclassIndex8+4:CclassIndex9]
                             # dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"\n  {BBB} {n:,}: {rvStartCV=} {rvEndCV=}")
-                        except ValueError:
-                            dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createOETChapterPages {BBB} {c=} {n:,}/{len(rvSections):,}: No Cid in {rvSectionHtml=}" )
+                        except ValueError as e:
+                            dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createOETChapterPages {BBB} {c=} {n:,}/{len(rvSections):,}: No Cid in {rvSectionHtml=} {e=}" )
                             rvStartCV, rvEndCV = '', 'C1'
                         # dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"""Searching for ' id="{rvEndCV}"' in '{lvRest}'""" )
                         try:
                             ixEndCV = lvRest.rindex( f' id="{rvEndCV}"' ) # Versification problem if this fails
-                        except ValueError: # this can happen if the section end is part-way through the next chapter
+                        except ValueError as e: # this can happen if the section end is part-way through the next chapter
                             # i.e., the section crosses chapter boundaries
-                            assert n == len(rvSections) - 1 # It must be the final section
+                            dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createOETChapterPages {BBB} {c=} {n:,}/{len(rvSections):,}: section seems to cross chapter boundary {rvStartCV=} {rvEndCV=} {e=}")
+                            if BBB == 'MAL' and c==4:
+                                dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createOETChapterPages aborting {BBB} {c=} {n:,}/{len(rvSections):,}" )
+                                lvChunks.append( '<p>Unsolved versification error for Malachi 4!</p>' )
+                                break # This versification is giving too many versification problems (with entire c4 missing)
+                            if BBB not in ('PSA','EZE','JOL'): # TODO: Not sure what's going on with ms1 and mr in PSA and EZE 4 and Joel 2
+                                assert n == len(rvSections) - 1 # It must be the final section
                             ixEndCV = len(lvRest) - 1
                         try: ixNextCV = lvRest.index( f' id="C', ixEndCV+5 )
                         except ValueError: ixNextCV = len(lvRest) - 1
@@ -241,7 +249,8 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
                                 break
                         else:
                             dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{lvRest[lvIndex8-50:lvIndex8+50]}")
-                            not_far_enough
+                            if DEBUGGING_THIS_MODULE or BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag: not_far_enough
+                            break
                         # print( f"\n{n}: {lvRest[ixEndCV:lvIndex8]=}" )
                         lvEndIx = lvIndex8
                         if lvRest[lvEndIx:].startswith( '</span>'): # Occurs at end of MRK (perhaps because of missing SR verses in ending) -- not sure if in other places

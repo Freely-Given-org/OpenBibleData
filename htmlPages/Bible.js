@@ -73,7 +73,7 @@ function hide_show_transliterations() {
 }
 
 function hide_show_colours() {
-    classes_to_adjust = ['.greekNom', '.greekAcc', '.greekGen', '.greekDat', '.greekVoc', '.greekVrb', '.greekNeg'];
+    classes_to_adjust = ['.greekNom','.greekAcc','.greekGen','.greekDat', '.greekVoc','.greekVrb','.greekNeg', '.hebVrb','.hebNeg'];
     let btn = document.getElementById('coloursButton');
     if (btn.style.backgroundColor === 'orange') {
         for (let cl of classes_to_adjust) {
