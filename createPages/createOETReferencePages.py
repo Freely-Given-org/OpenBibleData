@@ -60,10 +60,10 @@ from html import makeTop, makeBottom, checkHtml
 from OETHandlers import getOETTidyBBB
 
 
-LAST_MODIFIED_DATE = '2024-03-27' # by RJH
+LAST_MODIFIED_DATE = '2024-04-03' # by RJH
 SHORT_PROGRAM_NAME = "createOETReferencePages"
 PROGRAM_NAME = "OpenBibleData createOETReferencePages functions"
-PROGRAM_VERSION = '0.60'
+PROGRAM_VERSION = '0.61'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -414,7 +414,7 @@ KNOWN_GREEK_PREFIXES = ('a','amfi','ana','anti','apo','arχ',
 OSHB_POS_DICT = { 'A':'adjective', 'C':'conjunction', 'D':'adverb', 'N':'noun', 'P':'pronoun',
                   'R':'preposition', 'S':'suffix', 'T':'particle', 'V':'verb',
                   'x':'(unknown)' }
-OSHB_NOUN_DICT = { # 'N':'noun',
+OSHB_NOUN_DICT = { 'N':'noun',
                    'Nc':'common_noun', 'Ng':'noun_(gentilic)', 'Np':'proper_noun', 
                    'Nx':'noun_(unknown_type)' }
 OSHB_ADJECTIVE_DICT = { # 'A':'adjective',
@@ -440,7 +440,7 @@ OSHB_VERB_CONJUGATION_TYPE_DICT = { # 'V':'verb',
 OSHB_PRONOUN_DICT = { 'Pd':'demonstrative_pronoun', 'Pf':'indefinite_pronoun', 'Pi':'interrogative_pronoun', 'Pp':'personal_pronoun', 'Pr':'relative_pronoun' }
 OSHB_PARTICLE_DICT = { 'Ta':'affirmation_particle', 'Td':'definite_article', 'Te':'exhortation_particle', 'Ti':'interrogative_particle', 'Tj':'interjection_particle',
                        'Tm':'demonstrative_particle', 'Tn':'negative_particle', 'To':'direct_object_marker', 'Tr':'relative_particle' }
-OSHB_PREPOSITION_DICT = { 'Rd':'definite_article' }
+OSHB_PREPOSITION_DICT = { 'R':'preposition', 'Rd':'preposition_with_definite_article' }
 OSHB_SUFFIX_DICT = { 'Sd':'directional_<i>he</i>_suffix', 'Sh':'paragogic_<i>he</i>_suffix', 'Sn':'paragogic_<i>nun</i>_suffix', 'Sp':'pronominal_suffix' }
 OSHB_VERB_CONJUGATION_TYPE_DICT = { # 'V':'verb',
                     'p':'perfect_(<i>qatal</i>)', 'q':'sequential_perfect_(<i>weqatal</i>)', 'i':'imperfect_(<i>yiqtol</i>)', 'w':'sequential_imperfect_(<i>wayyiqtol</i>)',
@@ -1457,7 +1457,7 @@ def create_Hebrew_word_pages( level:int, outputFolderPath:Path, state:State ) ->
             for individualMorphology in morphology.split( ',' ):
                 if individualMorphology:
                     tidyMorphology = individualMorphology
-                    tidyMorphologyField = f'''{tidyMorphologyField}<br> <small>Morphology={tidyMorphology}</small>'''
+                    tidyMorphologyField = f'''{tidyMorphologyField}<br> <small><a title="Learn more about OSHB morphology" href="https://hb.OpenScriptures.org/HomeFiles/Morph.html">Morphology</a>={tidyMorphology}</small>'''
                     # print( f"{ref} got '{hebrewWord}' morphology ({len(individualMorphology)}) = '{individualMorphology}' (from ({len(morphology)}) '{morphology}')" )
                     PoS = individualMorphology[0] # individualMorphology is variable length, depending on the PoS, etc.
                     PoS_with_type = individualMorphology[:2] # Two characters
@@ -1734,6 +1734,8 @@ f''' <a title="Go to Open Scriptures Hebrew verse page" href="https://hb.OpenS
             if len(extraHTMLList) > 10:
                 wordsHtml = f'''{wordsHtml}\n<p class="summary">Have {len(extraWordSet):,} other words{f" ({', '.join(extraWordSet)})" if len(extraWordSet)<30 else ''} with {len(extraLemmaSet):,} lemma{'' if len(extraLemmaSet)==1 else 's'} altogether ({', '.join(sorted(extraLemmaSet))})</p>'''
             wordsHtml = f'''{wordsHtml}\n{NEWLINE.join(extraHTMLList)}'''
+
+        wordsHtml = wordsHtml.replace( ' <small>(<br> ', '\n<br><small> (' ) # Tidy up formatting of similar word morphologies
 
         keyHtml = ''
         if usedRoleLetters or usedMorphologies: # Add a key at the bottom

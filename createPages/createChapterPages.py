@@ -53,13 +53,15 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_
 from OETHandlers import livenOETWordLinks, getOETTidyBBB
 
 
-LAST_MODIFIED_DATE = '2024-03-28' # by RJH
+LAST_MODIFIED_DATE = '2024-04-03' # by RJH
 SHORT_PROGRAM_NAME = "createChapterPages"
 PROGRAM_NAME = "OpenBibleData createChapterPages functions"
-PROGRAM_VERSION = '0.61'
+PROGRAM_VERSION = '0.62'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
+
+NEWLINE = '\n'
 
 
 
@@ -173,17 +175,13 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
                 cNav = f'<p class="cNav">{leftLink}{documentLink} {"Intro" if c==-1 else c}{rightLink}{parallelLink}{interlinearLink}{detailsLink}</p>'
                 chapterHtml = f'''<h1 id="Top">Open English Translation {ourTidyBBB} Introduction</h1>
 {cNav}
-{UNFINISHED_WARNING_PARAGRAPH}
-<div class="RVLVcontainer">
+{f'{JAMES_NOTE_PARAGRAPH}{NEWLINE}' if BBB=='JAM' else ''}<div class="RVLVcontainer">
 <h2><a title="View just the Readers’ Version" href="{'../'*level}OET-RV/byC/{BBB}_Intro.htm#Top">Readers’ Version</a></h2>
-<h2><a title="View just the Literal Version" href="{'../'*level}OET-LV/byC/{BBB}_Intro.htm#Top">Literal Version</a></h2>
-''' if c==-1 else f'''<h1 id="Top">Open English Translation {ourTidyBBB} Chapter {c}</h1>
+<h2><a title="View just the Literal Version" href="{'../'*level}OET-LV/byC/{BBB}_Intro.htm#Top">Literal Version</a></h2>''' if c==-1 else f'''<h1 id="Top">Open English Translation {ourTidyBBB} Chapter {c}</h1>
 {cNav}
-{UNFINISHED_WARNING_PARAGRAPH}
-<div class="RVLVcontainer">
+{f'{JAMES_NOTE_PARAGRAPH}{NEWLINE}' if BBB=='JAM' else ''}<div class="RVLVcontainer">
 <h2><a title="View just the Readers’ Version" href="{'../'*level}OET-RV/byC/{BBB}_C{c}.htm#Top">Readers’ Version</a></h2>
-<h2><a title="View just the Literal Version" href="{'../'*level}OET-LV/byC/{BBB}_C{c}.htm#Top">Literal Version</a> <button type="button" id="marksButton" title="Hide/Show underline and strike-throughs" onclick="hide_show_marks()">Hide marks</button></h2>
-'''
+<h2><a title="View just the Literal Version" href="{'../'*level}OET-LV/byC/{BBB}_C{c}.htm#Top">Literal Version</a> <button type="button" id="marksButton" title="Hide/Show underline and strike-throughs" onclick="hide_show_marks()">Hide marks</button></h2>'''
                 try: rvVerseEntryList, rvContextList = rvBible.getContextVerseData( (BBB, str(c)) )
                 except KeyError:
                     if c == 0: continue # Usually no chapter zero
@@ -459,19 +457,13 @@ def createChapterPages( level:int, folder:Path, thisBible, state:State ) -> List
                 detailsLink = f''' <a title="Show details about this work" href="{'../'*(level-1)}details.htm#Top">©</a>'''
                 cNav = f'<p class="cNav">{oetLink}{leftLink}{documentLink} {"Intro" if c==-1 else c}{rightLink}{parallelLink}{interlinearLink}{detailsLink}</p>'
                 chapterHtml = f'''<h1 id="Top">{thisBible.abbreviation} {ourTidyBBB} Introduction</h1>
-{cNav}
-{JAMES_NOTE_PARAGRAPH if 'OET' in thisBible.abbreviation and BBB=='JAM' else ''}
-{UNFINISHED_WARNING_PARAGRAPH if 'OET' in thisBible.abbreviation else ''}
-''' if c==-1 else f'''<h1 id="Top">{thisBible.abbreviation} {ourTidyBBB} Chapter {c}</h1>
-{cNav}
-{JAMES_NOTE_PARAGRAPH if 'OET' in thisBible.abbreviation and BBB=='JAM' else ''}
-{UNFINISHED_WARNING_PARAGRAPH if 'OET' in thisBible.abbreviation else ''}
-'''
+{cNav}{f'{NEWLINE}{JAMES_NOTE_PARAGRAPH}' if 'OET' in thisBible.abbreviation and BBB=='JAM' else ''}{f'{NEWLINE}{UNFINISHED_WARNING_PARAGRAPH}' if 'OET' in thisBible.abbreviation else ''}''' \
+    if c==-1 else f'''<h1 id="Top">{thisBible.abbreviation} {ourTidyBBB} Chapter {c}</h1>
+{cNav}{f'{NEWLINE}{JAMES_NOTE_PARAGRAPH}' if 'OET' in thisBible.abbreviation and BBB=='JAM' else ''}{f'{NEWLINE}{UNFINISHED_WARNING_PARAGRAPH}' if 'OET' in thisBible.abbreviation else ''}'''
                 if thisBible.abbreviation == 'OET-LV':
                     chapterHtml = f'''{chapterHtml}<div class="buttons">
     <button type="button" id="marksButton" title="Hide/Show underline and strike-throughs" onclick="hide_show_marks()">Hide marks</button>
-</div><!--buttons-->
-'''
+</div><!--buttons-->'''
                 try: verseEntryList, contextList = thisBible.getContextVerseData( (BBB, str(c)) )
                 except KeyError:
                     if c == 0: continue # Usually no chapter zero

@@ -84,15 +84,15 @@ from OETHandlers import findLVQuote
 from Dict import loadAndIndexUBSGreekDictJSON, loadAndIndexUBSHebrewDictJSON
 
 
-LAST_MODIFIED_DATE = '2024-03-21' # by RJH
+LAST_MODIFIED_DATE = '2024-04-03' # by RJH
 SHORT_PROGRAM_NAME = "Bibles"
 PROGRAM_NAME = "OpenBibleData Bibles handler"
-PROGRAM_VERSION = '0.64'
+PROGRAM_VERSION = '0.65'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
 
-NEW_LINE = '\n'
+NEWLINE = '\n'
 
 
 
@@ -408,7 +408,7 @@ def loadTyndaleBookIntrosXML( abbrev:str, XML_filepath ) -> Dict[str,str]:
                             htmlSegment = htmlSegment[ixClose+2:]
                         assert theirClass.startswith('intro-')
                         htmlSegment = f'<p class="{theirClass}">{htmlSegment}</p>'
-                        thisEntry = f"{thisEntry}{NEW_LINE if thisEntry else ''}{htmlSegment}"
+                        thisEntry = f"{thisEntry}{NEWLINE if thisEntry else ''}{htmlSegment}"
                         pCount += 1
                     stateCounter += 1
                 else: halt
@@ -528,6 +528,8 @@ def formatTyndaleNotes( abbrev:str, level:int, BBB:str, C:str, V:str, segmentTyp
     # Fix their links like '<a href="?bref=Mark.4.14-20">4:14-20</a>'
     nHtml = fixTyndaleBRefs( abbrev, level, BBB, C, V, nHtml, state )
 
+    nHtml = nHtml.replace( '<br>\n' , '\n<br>' ) # Make sure it follows our convention (just for tidyness and consistency)
+    while '\n\n' in nHtml: nHtml = nHtml.replace( '\n\n', '\n' ) # Remove useless extra newline characters
     checkHtml( f'{abbrev} {BBB} {C}:{V}', nHtml, segmentOnly=True )
     # if abbrev=='TTN' and BBB=='MRK' and C=='1' and V=='14': halt
     return nHtml
@@ -722,7 +724,7 @@ def formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segme
                 betterNoteName = noteName.replace( 'figs-', 'figures-of-speech / ' )
                 # print( f"{noteName=} {betterNoteName=}" )
                 noteCount += 1
-                tnHtml = f'{tnHtml}<p class="TARef"><b>Note {noteCount} topic</b>: <a title="View uW TA article" href="https://Door43.org/u/unfoldingWord/en_ta/master/{noteFile}.html#{noteName}">{betterNoteName}</a></p>\n'
+                tnHtml = f'''{tnHtml}{NEWLINE if tnHtml else ''}<p class="TARef"><b>Note {noteCount} topic</b>: <a title="View uW TA article" href="https://Door43.org/u/unfoldingWord/en_ta/master/{noteFile}.html#{noteName}">{betterNoteName}</a></p>'''
                 occurrenceNumber = 1
 
             elif lastMarker in ('pi1','ipi'): # Occurrence number
@@ -735,8 +737,8 @@ def formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segme
             elif lastMarker in ('q1','iq1'): # An original language quote
                 assert rest
                 if rest.startswith( 'Connecting Statement' ):
-                    assert occurrenceNumber == 0
-                    tnHtml = f'{tnHtml}<p class="Gram">{rest}</p>'
+                    assert occurrenceNumber == 0 # UTN PSA 29:6 and onwards has lots of errors with this (that we fixed in our copy)
+                    tnHtml = f'''{tnHtml}{NEWLINE if tnHtml else ''}<p class="Gram">{rest}</p>'''
                 else: # assume it's an original language quote
                     # if BBB!='JHN' and C!='11' and V!='45': # Jn 11:45 and Exo 1:15, etc.
                     #     assert occurrenceNumber != 0, f"TN {BBB} {C}:{V} {occurrenceNumber=} {marker}='{rest}'"
@@ -849,9 +851,10 @@ def formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segme
                     rest = rest.replace( '**', '<b>', 1 ).replace( '**', '</b>', 1 )
                 # Add our own little bit of bolding
                 rest = ( rest.replace( 'Alternate translation:', '<b>Alternate translation</b>:' )
-                            .replace( '{', '<span class="add">' ).replace( '}', '</span>' ) # TN uses braces {} for "add" markers, e.g., GEN 13:8, MRK 6:11
-                            .replace( '\\n\\n\\n', '\\n<br>\\n' ) # e.g., Ruth 2:intro (probable mistake)
-                            .replace( '\\n', '\n' ) ) # Unescape TSV newlines
+                            .replace( '{', '<span class="add">' ).replace( '}', '</span>' ) # UTN uses braces {} for "add" markers, e.g., GEN 13:8, MRK 6:11
+                            .replace( '\\n', '\n' ) # Unescape TSV newlines
+                            .replace( '\n\n\n', '\n<br>' ) # e.g., Ruth 2:intro (probable mistake)
+                        )
                 if BBB not in ('EXO','PSA','ROM','CO1'): # uW TN Exo 4:0, Psa 4:0, Rom 16:24, 1Co 15:23 have formatting problems
                     assert '\\' not in rest, f"TN {BBB} {C}:{V} {lastMarker=} {marker}='{rest}'"
                 newRestLines = []
@@ -864,8 +867,9 @@ def formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segme
                         line = f'<h3>{line[4:]}</h3>'
                     elif line.startswith( '#### '):
                         line = f'<h4>{line[5:]}</h4>'
-                    newRestLines.append( line )
-                tnHtml = f'''{tnHtml}<p class="TN{'1' if lastMarker=='pi1' else ''}">{NEW_LINE.join(newRestLines)}</p>\n'''
+                    if line:
+                        newRestLines.append( line )
+                tnHtml = f'''{tnHtml}{NEWLINE if tnHtml else ''}<p class="TN{'1' if lastMarker=='pi1' else ''}">{NEWLINE.join(newRestLines)}</p>'''
 
             else:
                 logging.critical( f"formatUnfoldingWordTranslationNotesA ({BBB}, {C}, {V}) has unhandled {marker=} {rest=} {lastMarker=}" )
@@ -874,9 +878,6 @@ def formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segme
         else:
             logging.critical( f"formatUnfoldingWordTranslationNotesB ({BBB}, {C}, {V}) has unhandled {marker=} {rest=} {lastMarker=}" )
         lastMarker = marker
-
-    # if not BibleOrgSysGlobals.loadedBibleBooksCodes.isNewTestament_NR( BBB ): continue # Skip all except NT for now
-
 
     # # Liven the TA link
     # searchStartIndex = 0
@@ -895,8 +896,12 @@ def formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segme
     # # Add our own little bit of bolding
     # tnHtml = tnHtml.replace( 'Alternate translation:', '<b>Alternate translation</b>:' )
 
-    if BBB not in ('LEV','HAG','MAT'): # We have a problem at Lev 1:3, Hag 1:0, Mat 27:0
+    if BBB not in ('LEV','HAGx','MATx'): # We have a problem at Lev 1:3, Deu 19:0, Hag 1:0, Mat 27:0 with rc:\\\tw instead of rc:\\*\tw and other errors
         assert 'rc://' not in tnHtml, f"TN {BBB} {C}:{V} {tnHtml=}"
+    tnHtml = tnHtml.replace( '<br>\n' , '\n<br>' ) # Make sure it follows our convention (just for tidyness and consistency)
+    while '\n\n' in tnHtml: tnHtml = tnHtml.replace( '\n\n', '\n' ) # Remove useless extra newline characters (as of 2024, the UTNs are full of formatting errors and inconsistencies)
+    # assert '\n\n' not in tnHtml, f"TN {BBB} {C}:{V} {tnHtml=}"
+    assert not tnHtml.endswith( '\n' )
     checkHtml( f'UTN {BBB} {C}:{V}', tnHtml, segmentOnly=True )
     return tnHtml
 # end of Bibles.formatUnfoldingWordTranslationNotes

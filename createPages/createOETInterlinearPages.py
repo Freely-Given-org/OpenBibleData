@@ -63,10 +63,10 @@ from createOETReferencePages import CNTR_BOOK_ID_MAP
 from OETHandlers import livenOETWordLinks, getOETBookName, getOETTidyBBB
 
 
-LAST_MODIFIED_DATE = '2024-03-26' # by RJH
+LAST_MODIFIED_DATE = '2024-04-03' # by RJH
 SHORT_PROGRAM_NAME = "createOETInterlinearPages"
 PROGRAM_NAME = "OpenBibleData createOETInterlinearPages functions"
-PROGRAM_VERSION = '0.50'
+PROGRAM_VERSION = '0.51'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -173,6 +173,8 @@ def createOETInterlinearVersePagesForBook( level:int, folder:Path, BBB:str, BBBL
                 detailsLink = f''' <a title="Show details about the OET" href="{'../'*(BBBLevel)}OET/details.htm#Top">©</a>'''
                 navLinks = f'<p id="__ID__" class="vNav">{leftCLink}{leftVLink}{ourTidyBbb} {c}:{v} <a title="Go to __WHERE__ of page" href="#__LINK__">__ARROW__</a>{rightVLink}{rightCLink}{parallelLink}{detailsLink}</p>'
                 iHtml = createOETInterlinearVersePage( BBBLevel, BBB, c, v, state )
+                assert iHtml
+                assert '\n\n' not in iHtml
                 filename = f'C{c}V{v}.htm'
                 # filenames.append( filename )
                 filepath = BBBFolder.joinpath( filename )
@@ -270,7 +272,7 @@ def createOETInterlinearVersePage( level:int, BBB:str, c:int, v:int, state:State
     rvBible = state.preloadedBibles['OET-RV']
     wordTable = state.OETRefData['word_tables'][wordFileName]
 
-    html = '<h2>SR Greek word order <small>(including unused variants)</small></h2><div class=interlinear><ol class=verse>'
+    iHtml = '<h2>SR Greek word order <small>(including unused variants)</small></h2><div class=interlinear><ol class=verse>'
     try:
         lvVerseEntryList, lvContextList = lvBible.getContextVerseData( (BBB, C, V) )
         livenedLvVerseEntryList = livenOETWordLinks( lvBible, BBB, lvVerseEntryList, f"{'../'*level}ref/{'GrkWrd' if NT else 'HebWrd'}/{{n}}.htm#Top", state )
@@ -501,7 +503,7 @@ def createOETInterlinearVersePage( level:int, BBB:str, c:int, v:int, state:State
             iHtml = f'{iHtml}{NEWLINE.join( HebrewList )}'
 
     # Now append the OET-RV
-    html = f'''{html}{iHtml}</ol></div><!--interlinear-->
+    iHtml = f'''{iHtml}{iHtml}</ol></div><!--interlinear-->
 {lvHtml}
 {rvHtml}
 {utnHtml}
@@ -599,14 +601,16 @@ def createOETInterlinearVersePage( level:int, BBB:str, c:int, v:int, state:State
     riHtml = f'{riHtml}{NEWLINE.join( reverseList )}'
 
 
-    html = f'''{html}{riHtml}</ol></div><!--interlinear-->
+    iHtml = f'''{iHtml}{riHtml}</ol></div><!--interlinear-->
 {lvHtml}
 {rvHtml}
-<p class="note"><small><b>Note</b>: The OET-RV is still only a first draft, and so far only a few words have been (mostly automatically) matched to the Greek words that they’re translated from.</small></p>
-{f'<p class="thanks"><b>Acknowledgements</b>: The SR Greek text, lemmas, morphology, and English gloss <small>(7th line)</small> are all thanks to the <a href="https://GreekCNTR.org/collation/index.htm?v={CNTR_BOOK_ID_MAP[BBB]}{C.zfill(3)}{V.zfill(3)}">SR-GNT</a>.</p>' if BibleOrgSysGlobals.loadedBibleBooksCodes.isNewTestament_NR( BBB ) else ''}'''
+<p class="note"><small><b>Note</b>: The OET-RV is still only a first draft, and so far only a few words have been (mostly automatically) matched to the Greek words that they’re translated from.</small></p>{f'{NEWLINE}<p class="thanks"><b>Acknowledgements</b>: The SR Greek text, lemmas, morphology, and English gloss <small>(7th line)</small> are all thanks to the <a href="https://GreekCNTR.org/collation/index.htm?v={CNTR_BOOK_ID_MAP[BBB]}{C.zfill(3)}{V.zfill(3)}">SR-GNT</a>.</p>' if BibleOrgSysGlobals.loadedBibleBooksCodes.isNewTestament_NR( BBB ) else ''}'''
+    
+    # iHtml = iHtml.replace( '<br>\n' , '\n<br>' ) # Make sure it follows our convention (just for tidyness and consistency)
+    while '\n\n' in iHtml: iHtml = iHtml.replace( '\n\n', '\n' ) # Remove useless extra newline characters
     # dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\n\n{iHtml=}" )
-    checkHtml( f'Interlinear {BBB} {c}:{v}', html, segmentOnly=True )
-    return html
+    checkHtml( f'Interlinear {BBB} {c}:{v}', iHtml, segmentOnly=True )
+    return iHtml
 # end of html.createOETInterlinearVersePage
 
 

@@ -57,14 +57,14 @@ from usfm import convertUSFMMarkerListToHtml
 from Bibles import formatTyndaleBookIntro, formatUnfoldingWordTranslationNotes, formatTyndaleNotes
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
                     makeTop, makeBottom, makeBookNavListParagraph, checkHtml
-from createOETReferencePages import CNTR_BOOK_ID_MAP
+from createOETReferencePages import CNTR_BOOK_ID_MAP, OSHB_ADJECTIVE_DICT, OSHB_PARTICLE_DICT, OSHB_NOUN_DICT, OSHB_PREPOSITION_DICT, OSHB_PRONOUN_DICT, OSHB_SUFFIX_DICT
 from OETHandlers import getOETTidyBBB, getOETBookName, livenOETWordLinks
 
 
-LAST_MODIFIED_DATE = '2024-03-28' # by RJH
+LAST_MODIFIED_DATE = '2024-04-03' # by RJH
 SHORT_PROGRAM_NAME = "createParallelVersePages"
 PROGRAM_NAME = "OpenBibleData createParallelVersePages functions"
-PROGRAM_VERSION = '0.91'
+PROGRAM_VERSION = '0.92'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -204,6 +204,9 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                         else f'<p id="__ID__" class="vNav">{introLink}{leftCLink}{leftVLink}{ourTidyBbb} {C}:{V} <a title="Go to __WHERE__ of page" href="#__LINK__">__ARROW__</a>{rightVLink}{rightCLink}{interlinearLink}{detailsLink}{hideFieldsButton}{hideTransliterationsButton}</p>'
                 parallelHtml = ''
                 for versionAbbreviation in parallelVersions: # our adjusted order
+                    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"    createParallelVersePagesForBook {BBB} {C}:{V} processing {versionAbbreviation}…" )
+                    assert not parallelHtml.endswith( '\n' )
+
                     if versionAbbreviation == 'OET': continue # Skip this pseudo-version as we have OET-RV and OET-LV
                     if versionAbbreviation in ('UHB','JPS') \
                     and not BibleOrgSysGlobals.loadedBibleBooksCodes.isOldTestament_NR( BBB):
@@ -218,7 +221,8 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                         continue # We handle the notes separately at the end
 
                     if not doneHideablesDiv and versionAbbreviation not in ('OET-RV','OET-LV','SR-GNT','UHB','ULT','UST'):
-                        parallelHtml = f'{parallelHtml}\n<div class="hideables">\n<hr style="width:40%;margin-left:0;margin-top: 0.3em">\n'
+                        assert not parallelHtml.endswith( '\n' )
+                        parallelHtml = f'{parallelHtml}\n<div class="hideables">\n<hr style="width:40%;margin-left:0;margin-top: 0.3em">'
                         doneHideablesDiv = True
 
                     thisBible = state.preloadedBibles[versionAbbreviation]
@@ -241,8 +245,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                                 .replace( '\n', '<br>' )
                             # if versionAbbreviation=='CSB' and BBB=='RUT' and C=='2' and 'ORD' in verseText: print( f"{versionAbbreviation} {BBB} {C}:{V} {vHtml=}" ); halt
                             assert '\\' not in vHtml, f"{versionAbbreviation} {BBB} {C}:{V} {vHtml=}"
-                            vHtml =  f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName"><a title="Go to {state.BibleNames[versionAbbreviation]} copyright info" href="{'../'*BBBLevel}allDetails.htm#{versionAbbreviation}">{versionAbbreviation}</a></span> {vHtml}</p>
-'''
+                            vHtml =  f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName"><a title="Go to {state.BibleNames[versionAbbreviation]} copyright info" href="{'../'*BBBLevel}allDetails.htm#{versionAbbreviation}">{versionAbbreviation}</a></span> {vHtml}</p>'''
                         except KeyError:
                             vHtml = None # We display nothing at all for these versions that only have a few selected verses
                     else: # should be a Bible object
@@ -266,6 +269,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                                 verseEntryList = livenOETWordLinks( thisBible, BBB, verseEntryList, f"{'../'*BBBLevel}ref/{'GrkWrd' if NT else 'HebWrd'}/{{n}}.htm#Top", state )
                             textHtml = convertUSFMMarkerListToHtml( BBBLevel, versionAbbreviation, (BBB,C,V), 'verse', contextList, verseEntryList, basicOnly=(c!=-1), state=state )
                             assert '¦' not in textHtml, f"{BBB} {C}:{V} {versionAbbreviation} {textHtml=}"
+                            assert not textHtml.endswith( '\n' )
                             if textHtml == '◘': raise UntranslatedVerseError
 
                             if 'OET' not in versionAbbreviation:
@@ -369,20 +373,16 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                                     else: spanClassName = 'wrkNameDiffText'
                                     greekVersionKeysHtmlSet.add( spanClassName )
                                     versionNameLink = f'''{'../'*BBBLevel}{versionAbbreviation}/details.htm#Top''' if versionAbbreviation in state.versionsWithoutTheirOwnPages else f'''{'../'*BBBLevel}{versionAbbreviation}/byC/{BBB}_C{C}.htm#Top'''
-                                    vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="{spanClassName}"><a title="View {state.BibleNames[versionAbbreviation]} {'details' if versionAbbreviation in state.versionsWithoutTheirOwnPages else 'chapter'}" href="{versionNameLink}">{versionAbbreviation}</a></span> {textHtml}</p>
-'''
+                                    vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="{spanClassName}"><a title="View {state.BibleNames[versionAbbreviation]} {'details' if versionAbbreviation in state.versionsWithoutTheirOwnPages else 'chapter'}" href="{versionNameLink}">{versionAbbreviation}</a></span> {textHtml}</p>'''
                                 elif versionAbbreviation=='OET-RV':
                                     # Label it as 'OET (OET-RV) and slip in id's for CV (so footnote returns work) and also for C and V (just in case)
-                                    vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span id="C{C}V{V}" class="wrkName"><a id="C{C}" title="View {state.BibleNames['OET']} chapter (side-by-side versions)" href="{'../'*BBBLevel}OET/byC/{BBB}_C{C}.htm#Top">OET</a> <small>(<a id="V{V}" title="View {state.BibleNames['OET-RV']} chapter (by itself)" href="{'../'*BBBLevel}OET-RV/byC/{BBB}_C{C}.htm#Top">OET-RV</a>)</small></span> {textHtml}</p>
-'''                                    
+                                    vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span id="C{C}V{V}" class="wrkName"><a id="C{C}" title="View {state.BibleNames['OET']} chapter (side-by-side versions)" href="{'../'*BBBLevel}OET/byC/{BBB}_C{C}.htm#Top">OET</a> <small>(<a id="V{V}" title="View {state.BibleNames['OET-RV']} chapter (by itself)" href="{'../'*BBBLevel}OET-RV/byC/{BBB}_C{C}.htm#Top">OET-RV</a>)</small></span> {textHtml}</p>'''                                    
                                 elif versionAbbreviation=='WYC': # Just add a bit about it being translated from the Latin (not the Greek)
                                     versionNameLink = f'''{'../'*BBBLevel}{versionAbbreviation}/details.htm#Top''' if versionAbbreviation in state.versionsWithoutTheirOwnPages else f'''{'../'*BBBLevel}{versionAbbreviation}/byC/{BBB}_C{C}.htm#Top'''
-                                    vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation]} {'details' if versionAbbreviation in state.versionsWithoutTheirOwnPages else 'chapter (translated from the Latin)'}" href="{versionNameLink}">{versionAbbreviation}</a></span> {textHtml}</p>
-'''
+                                    vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation]} {'details' if versionAbbreviation in state.versionsWithoutTheirOwnPages else 'chapter (translated from the Latin)'}" href="{versionNameLink}">{versionAbbreviation}</a></span> {textHtml}</p>'''
                                 else: # for all the others
                                     versionNameLink = f'''{'../'*BBBLevel}{versionAbbreviation}/details.htm#Top''' if versionAbbreviation in state.versionsWithoutTheirOwnPages else f'''{'../'*BBBLevel}{versionAbbreviation}/byC/{BBB}_C{C}.htm#Top'''
-                                    vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation]} {'details' if versionAbbreviation in state.versionsWithoutTheirOwnPages else 'chapter'}" href="{versionNameLink}">{versionAbbreviation}</a></span> {textHtml}</p>
-'''
+                                    vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation]} {'details' if versionAbbreviation in state.versionsWithoutTheirOwnPages else 'chapter'}" href="{versionNameLink}">{versionAbbreviation}</a></span> {textHtml}</p>'''
                             else: # no textHtml -- can include verses that are not in the OET-LV
                                 if c==-1 or v==0: # For these edge cases, we don't want the version abbreviation appearing
                                     vHtml = ''
@@ -398,8 +398,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                             assert not textHtml, f"{versionAbbreviation} {BBB} {C}:{V} {verseEntryList=} {textHtml=}"
                             assert BBB not in thisBible
                             warningText = f'No {versionAbbreviation} {ourTidyBBB} book available'
-                            vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName">{versionAbbreviation}</span> <span class="noBook"><small>{warningText}</small></span></p>
-'''
+                            vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName">{versionAbbreviation}</span> <span class="noBook"><small>{warningText}</small></span></p>'''
                             logging.warning( warningText )
 
                         except UntranslatedVerseError:
@@ -409,12 +408,10 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                             if BBB in thisBible:
                                 # print( f"No verse inB {versionAbbreviation} {BBB} in {thisBible}"); halt
                                 warningText = f'No {versionAbbreviation} {ourTidyBBB} {C}:{V} verse available'
-                                vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName"><a title="{state.BibleNames[versionAbbreviation]}" href="{'../'*BBBLevel}{versionAbbreviation}/byC/{BBB}_C{C}.htm#Top">{versionAbbreviation}</a></span> <span class="noVerse"><small>{warningText}</small></span></p>
-'''
+                                vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName"><a title="{state.BibleNames[versionAbbreviation]}" href="{'../'*BBBLevel}{versionAbbreviation}/byC/{BBB}_C{C}.htm#Top">{versionAbbreviation}</a></span> <span class="noVerse"><small>{warningText}</small></span></p>'''
                             else:
                                 warningText = f'No {versionAbbreviation} {ourTidyBBB} book available'
-                                vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName">{versionAbbreviation}</span> <span class="noBook"><small>{warningText}</small></span></p>
-'''
+                                vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName">{versionAbbreviation}</span> <span class="noBook"><small>{warningText}</small></span></p>'''
                             logging.warning( warningText )
 
                         except KeyError:
@@ -425,19 +422,19 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                                 # print( f"No verse inKT {versionAbbreviation} {BBB} in {thisBible}"); halt
                                 warningText = f'No {versionAbbreviation} {ourTidyBBB} {C}:{V} verse available'
                                 versionNameLink = f'''{'../'*BBBLevel}{versionAbbreviation}/details.htm#Top''' if versionAbbreviation in state.versionsWithoutTheirOwnPages else f'''{'../'*BBBLevel}{versionAbbreviation}/byC/{BBB}_C{C}.htm#Top'''
-                                vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName"><a title="{state.BibleNames[versionAbbreviation]}" href="{versionNameLink}">{versionAbbreviation}</a></span> <span class="noVerse"><small>{warningText}</small></span></p>
-'''
+                                vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName"><a title="{state.BibleNames[versionAbbreviation]}" href="{versionNameLink}">{versionAbbreviation}</a></span> <span class="noVerse"><small>{warningText}</small></span></p>'''
                                 logging.warning( warningText )
                             else:
                                 warningText = f'No {versionAbbreviation} {ourTidyBBB} book available'
-                                vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName">{versionAbbreviation}</span> <span class="noBook"><small>{warningText}</small></span></p>
-'''
+                                vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName">{versionAbbreviation}</span> <span class="noBook"><small>{warningText}</small></span></p>'''
                                 logging.warning( warningText )
 
                     if vHtml:
                         # dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"\n\n{pHtml=} {vHtml=}" )
                         checkHtml( f'{versionAbbreviation} {BBB} {C}:{V}', vHtml, segmentOnly=True )
-                        parallelHtml = f'{parallelHtml}{vHtml}'
+                        assert not parallelHtml.endswith( '\n' )
+                        assert not vHtml.endswith( '\n' )
+                        parallelHtml = f"{parallelHtml}{NEWLINE if parallelHtml else ''}{vHtml}"
 
                 # Close the hideable div
                 assert doneHideablesDiv # Fails if no Bible versions were included that go in the hideable div
@@ -446,26 +443,26 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                 if c == -1: # Handle Tyndale book intro summaries and book intros
                     tbisHtml = formatTyndaleBookIntro( 'TBIS', BBBLevel, BBB, 'parallelVerse', state )
                     if tbisHtml:
-                        tbisHtml = f'''<div id="TBIS" class="parallelTBI"><a title="Go to TSN copyright page" href="{'../'*BBBLevel}TSN/details.htm#Top">TBIS</a> <b>Tyndale Book Intro Summary</b>: {tbisHtml}</div><!--end of TBI-->\n'''
-                        parallelHtml = f'{parallelHtml}{tbisHtml}'
+                        tbisHtml = f'''<div id="TBIS" class="parallelTBI"><a title="Go to TSN copyright page" href="{'../'*BBBLevel}TSN/details.htm#Top">TBIS</a> <b>Tyndale Book Intro Summary</b>: {tbisHtml}</div><!--end of TBI-->'''
+                        parallelHtml = f"{parallelHtml}{NEWLINE if parallelHtml else ''}{tbisHtml}"
                     tbiHtml = formatTyndaleBookIntro( 'TBI', BBBLevel, BBB, 'parallelVerse', state )
                     if tbiHtml:
-                        tbiHtml = f'''<div id="TBI" class="parallelTBI"><a title="Go to TSN copyright page" href="{'../'*BBBLevel}TSN/details.htm#Top">TBI</a> <b>Tyndale Book Intro</b>: {tbiHtml}</div><!--end of TBI-->\n'''
-                        parallelHtml = f'{parallelHtml}{tbiHtml}'
+                        tbiHtml = f'''<div id="TBI" class="parallelTBI"><a title="Go to TSN copyright page" href="{'../'*BBBLevel}TSN/details.htm#Top">TBI</a> <b>Tyndale Book Intro</b>: {tbiHtml}</div><!--end of TBI-->'''
+                        parallelHtml = f"{parallelHtml}{NEWLINE if parallelHtml else ''}{tbiHtml}"
 
                 # Handle Tyndale open study notes and theme notes
                 tsnHtml = formatTyndaleNotes( 'TOSN', BBBLevel, BBB, C, V, 'parallelVerse', state )
                 if tsnHtml:
-                    tsnHtml = f'''<div id="TSN" class="parallelTSN"><a title="Go to TSN copyright page" href="{'../'*BBBLevel}TSN/details.htm#Top">TSN</a> <b>Tyndale Study Notes</b>: {tsnHtml}</div><!--end of TSN-->\n'''
+                    tsnHtml = f'''<div id="TSN" class="parallelTSN"><a title="Go to TSN copyright page" href="{'../'*BBBLevel}TSN/details.htm#Top">TSN</a> <b>Tyndale Study Notes</b>: {tsnHtml}</div><!--end of TSN-->'''
                     parallelHtml = f'{parallelHtml}\n<hr style="width:40%;margin-left:0;margin-top: 0.3em">\n{tsnHtml}'
                 ttnHtml = formatTyndaleNotes( 'TTN', BBBLevel, BBB, C, V, 'parallelVerse', state )
                 if ttnHtml:
-                    ttnHtml = f'''<div id="TTN" class="parallelTTN"><a title="Go to TSN copyright page" href="{'../'*BBBLevel}TSN/details.htm#Top">TTN</a> <b>Tyndale Theme Notes</b>: {ttnHtml}</div><!--end of TTN-->\n'''
-                    parallelHtml = f'{parallelHtml}{ttnHtml}'
+                    ttnHtml = f'''<div id="TTN" class="parallelTTN"><a title="Go to TSN copyright page" href="{'../'*BBBLevel}TSN/details.htm#Top">TTN</a> <b>Tyndale Theme Notes</b>: {ttnHtml}</div><!--end of TTN-->'''
+                    parallelHtml = f"{parallelHtml}{NEWLINE if parallelHtml else ''}{ttnHtml}"
                 # Handle uW translation notes
                 utnHtml = formatUnfoldingWordTranslationNotes( BBBLevel, BBB, C, V, 'parallelVerse', state )
                 if utnHtml:
-                    utnHtml = f'''<div id="UTN" class="parallelUTN"><a title="Go to UTN copyright page" href="{'../'*BBBLevel}UTN/details.htm#Top">UTN</a> <b>uW Translation Notes</b>: {utnHtml}</div><!--end of UTN-->\n'''
+                    utnHtml = f'''<div id="UTN" class="parallelUTN"><a title="Go to UTN copyright page" href="{'../'*BBBLevel}UTN/details.htm#Top">UTN</a> <b>uW Translation Notes</b>: {utnHtml}</div><!--end of UTN-->'''
                     parallelHtml = f'{parallelHtml}\n<hr style="width:40%;margin-left:0;margin-top: 0.3em">\n{utnHtml}'
 
                 filename = 'Intro.htm' if c==-1 else f'C{C}V{V}.htm'
@@ -507,11 +504,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
             .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{ourTidyBBB} Parallel View" ) \
             .replace( '__KEYWORDS__', 'Bible, parallel' )
     # For Psalms, we don't list every single verse
-    indexHtml = f'''{top}{adjBBBLinksHtml}
-{f'<h1 id="Top">{ourTidyBBB} parallel songs index</h1>' if BBB=='PSA' else ''}
-{cLinksPar}
-{f'<h1 id="Top">{ourTidyBBB} parallel verses index</h1>' if BBB!='PSA' else ''}
-{f'<p class="vsLst">{" ".join( vLinksList )}</p>' if BBB!='PSA' else ''}
+    indexHtml = f'''{top}{adjBBBLinksHtml}{f'{NEWLINE}<h1 id="Top">{ourTidyBBB} parallel songs index</h1>' if BBB=='PSA' else ''}{cLinksPar}{f'{NEWLINE}<h1 id="Top">{ourTidyBBB} parallel verses index</h1>' if BBB!='PSA' else ''}{f'{NEWLINE}<p class="vsLst">{" ".join( vLinksList )}</p>' if BBB!='PSA' else ''}
 {makeBottom( BBBLevel, 'parallelVerse', state )}'''
     checkHtml( 'parallelIndex', indexHtml )
     with open( filepath1, 'wt', encoding='utf-8' ) as indexHtmlFile:
@@ -528,11 +521,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
             .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{ourTidyBBB} Parallel View" ) \
             .replace( '__KEYWORDS__', 'Bible, parallel' )
     # For Psalms, we don't list every single verse
-    indexHtml = f'''{top}{adjBBBLinksHtml}
-{f'<h1 id="Top">{ourTidyBBB} parallel songs index</h1>' if BBB=='PSA' else ''}
-{cLinksPar}
-{f'<h1 id="Top">{ourTidyBBB} parallel verses index</h1>' if BBB!='PSA' else ''}
-{f'<p class="vsLst">{" ".join( newBBBVLinks )}</p>' if BBB!='PSA' else ''}
+    indexHtml = f'''{top}{adjBBBLinksHtml}{f'{NEWLINE}<h1 id="Top">{ourTidyBBB} parallel songs index</h1>' if BBB=='PSA' else ''}{cLinksPar}{f'{NEWLINE}<h1 id="Top">{ourTidyBBB} parallel verses index</h1>' if BBB!='PSA' else ''}{f'{NEWLINE}<p class="vsLst">{" ".join( newBBBVLinks )}</p>' if BBB!='PSA' else ''}
 {makeBottom( level, 'parallelVerse', state )}'''
     checkHtml( 'parallelIndex', indexHtml )
     with open( filepath2, 'wt', encoding='utf-8' ) as indexHtmlFile:
@@ -950,7 +939,20 @@ def brightenUHB( BBB:str, C:str, V:str, brightenUHBTextHtml:str, verseEntryList,
             #         raise KeyError
             if caseClassName: classKeySet.add( caseClassName )
             caseClassHtml = '' if not caseClassName else f'''class="{caseClassName}" ''' # Has a trailing space
-            titleHtml = f'''title="{'Aramic ' if attribDict['lang']=='Ar' else ''}{', '.join(attribDict['morph'])}" ''' if 'morph' in attribDict else ''
+            adjusted_morphology_fields = []
+            for some_morph in attribDict['morph']:
+                if len(some_morph) <= 2: # We expand these short ones
+                    if some_morph[0]=='A': adjusted_morphology_fields.append( OSHB_ADJECTIVE_DICT[some_morph] ); continue
+                    if some_morph[0]=='C': adjusted_morphology_fields.append( 'conjunction' ); continue
+                    if some_morph[0]=='D': adjusted_morphology_fields.append( 'adverb' ); continue
+                    if some_morph[0]=='N': adjusted_morphology_fields.append( OSHB_NOUN_DICT[some_morph] ); continue
+                    if some_morph[0]=='P': adjusted_morphology_fields.append( OSHB_PRONOUN_DICT[some_morph] ); continue
+                    if some_morph[0]=='R': adjusted_morphology_fields.append( OSHB_PREPOSITION_DICT[some_morph] ); continue
+                    if some_morph[0]=='S': adjusted_morphology_fields.append( OSHB_SUFFIX_DICT[some_morph] ); continue
+                    if some_morph[0]=='T': adjusted_morphology_fields.append( OSHB_PARTICLE_DICT[some_morph] ); continue
+                    raise ValueError( "Some unexpected short Hebrew morphology '{some_morph}'")
+                adjusted_morphology_fields.append( some_morph ) 
+            titleHtml = f'''title="{'Aramic ' if attribDict['lang']=='Ar' else ''}{', '.join(adjusted_morphology_fields)}" ''' if 'morph' in attribDict else ''
             brightenUHBTextHtml = f'''{brightenUHBTextHtml[:ix]}<a {titleHtml}{caseClassHtml}href="{wordLink}">{simpleHebWord}</a>{brightenUHBTextHtml[ix+len(simpleHebWord):]}'''
             verseWordNumberIndex += 1
             if verseWordNumberIndex >= len(strippedHebWords):
@@ -1059,7 +1061,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
             (('basskettes','baskettes'),'baskets'), (('bastardes',),'bastards'),
             ((' batels',),' battles'),
         ((' bee ',),' be '),
-            ((' bearinge',' beringe',' berynge'),' bearing'),((' beare ',' bere '),' bear '), (('beastes','beestes','beestis'),'beasts'),((' beesti',),' beast'),
+            ((' bearinge',' bearynge',' beringe',' berynge'),' bearing'),((' beare ',' bere '),' bear '), (('beastes','beestes','beestis'),'beasts'),((' beesti',),' beast'),
             ((' beed ',' bedde '),' bed '),
             ((' bene ',' ben '),' been '),
             ((' bifore',' bifor'),' before'),
@@ -1102,7 +1104,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
             (('carnall ',),'carnal '), (('carpeter',),'carpenter'), ((' carieth',' caried'),' carried'),((' cary ',),' carry '),
             ((' castynge',' castyng',' castinge'),' casting/throwing'),((' castiden ',' kesten '),' cast/throw '),((' caste ',' keste '),' cast/threw '), (('casteles','castels'),'castles'),
             ((' cattell',' catel'),' cattle'),
-        ((' ceessid',),' ceased'),
+        ((' ceesside',' ceessid'),' ceased'),
             (('centurien',),'centurion'),
             ((' certayne',' certein',' certaine'),' certain'),
         (('cheynes','chaines'),'chains'),(('chamber','chaumber','chambre'),'chamber/room'), (('chaunced','chaunsed'),'chanced'), (('chaungeris',),'changers'), (('charite',),'charity'), (('chastisynge',),'chastising'),(('chastisith','chasteneth'),'chastens/disciplines'),
@@ -1292,7 +1294,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
             (('Leuite',),'Levite'),
         (('lyberte','libertie'),'liberty'),
             ((' lyffe',' lyfe',' lijf'),' life'),
-            ((' leityngis',' lyghtnynges',' lightnynges'),' lightnings'), ((' lyght',' liyt'),' light'),
+            ((' leityngis',' lyghtnynges',' lightnynges'),' lightnings'), (('Liyt ',),'Light '),((' lyght',' liyt'),' light'),
             (('Lykewyse',),'Likewise'),(('lykewyse','likewyse'),'likewise'), ((' lyke',' lijk',' lijc'),' like'),
             ((' lynage ',),' lineage '),
             ((' litil',' lytell',' lytle',' litle'),' little'),
@@ -1306,7 +1308,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
             ((' loude ',),' loud '),
             ((' louede',' loued',' louyde'),' loved'),((' loveth',' loueth'),' loveth/loves'),((' lovest',' louest'),' lovest/love'),((' louen ',' loue '),' love '),((' loue.',),' love.'),
     ((' maad',),' made'),
-            ((' maydens',),' maidens'), ((' maydes',),' maids'), ((' maymed',),' maimed'),
+            ((' maydens',),' maidens'), ((' maydes',),' maids'),((' mayde,',),' maid,'), ((' maymed',),' maimed'),
             ((' makynge',),' making'),((' makere ',),' maker '),
             ((' mannus',),' man\'s'),((' ma ',),' man '), ((' mankynde',),' mankind'),((' mankinde,',),' mankind,'), ((' manere',' maner'),' manner'), ((' manye ',),' many '),
             ((' mariage',),' marriage'), ((' maried',),' married'), (('marueyled','marueiled','merveled','marueled','merveyled','marveled'),'marvelled'), (('Maryes',),"Mary's/Maria's"),(('Marye','Marie'),'Mary/Maria'),
@@ -1571,7 +1573,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
             ((' wordis',),' words'),((' worde',),' word'), ((' workes',' werkis'),' works'),((' worche ',' worke ',' werke ',' werk '),' work '),((' worke,',' werk,'),' work,'),((' worche.',),' work.'), ((' worlde',),' world'), ((' worme ',),' worm '), (('worschipide','worshypped'),'worshipped'), ((' worthie',' worthi'),' worthy'),
             (('Woulde ','Wolde '),'Would '),((' woldist ',' woldest ',' woulde ',' wolde '),' would '),
         ((' writyng',),' writing'),((' wryte ',),' write '), (('wrytten','wrytte','writun'),'written'), ((' wroote ',' wroot '),' wrote '), (('wrought','wrouyt'),'wrought/done'),
-    (('Iacob',),'Yacob'), (('Iames','James'),'Yames/Yacob'), (('Iauan',),'Yavan'),
+    (('Iaakob','Iacob'),'Yacob'), (('Iames','James'),'Yames/Yacob'), (('Iauan',),'Yavan'),
         (('Ye ',),'Ye/You_all '),((' ye ',' yee '),' ye/you_all '), ((' thi ',' thy '),' thy/your '), ((' youre ',),' your(pl) '),
             ((' yhe,',),' yea/yes,'), ((' yeres',),' years'),((' yeare',' yeere',' yeer',' yere'),' year'),
             (('Hierusalem','Ierusalem','Ierusale','Jerusalem'),'Yerusalem'),

@@ -64,10 +64,10 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_
 from OETHandlers import livenOETWordLinks, getOETTidyBBB
 
 
-LAST_MODIFIED_DATE = '2024-03-25' # by RJH
+LAST_MODIFIED_DATE = '2024-04-02' # by RJH
 SHORT_PROGRAM_NAME = "createSectionPages"
 PROGRAM_NAME = "OpenBibleData createSectionPages functions"
-PROGRAM_VERSION = '0.55'
+PROGRAM_VERSION = '0.56'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -242,6 +242,8 @@ def createOETSectionPages( level:int, folder:Path, rvBible, lvBible, state:State
                 assert endV == '?'
                 # numExtrasSkipped += 1
                 continue
+            if 'Psalm' in sectionName or 'Songs' in sectionName:
+                print( f"OET {sectionName=}" ); halt
             # n2 = n1 - numExtrasSkipped
             startChapterLink = f'''<a title="Chapter view" href="../byC/{BBB}_{'Intro' if startC=='-1' else f'C{startC}'}.htm#Top">{'Intro' if startC=='-1' else startC}</a>'''
             endChapterLink = f'''<a title="Chapter view" href="../byC/{BBB}_{'Intro' if endC=='-1' else f'C{endC}'}.htm#Top">{'Intro' if endC=='-1' else endC}</a>'''
@@ -257,8 +259,7 @@ def createOETSectionPages( level:int, folder:Path, rvBible, lvBible, state:State
 {UNFINISHED_WARNING_PARAGRAPH}
 <div class="RVLVcontainer">
 <h2>Readers’ Version</h2>
-<h2>Literal Version <button type="button" id="marksButton" title="Hide/Show underline and strike-throughs" onclick="hide_show_marks()">Hide marks</button></h2>
-'''
+<h2>Literal Version <button type="button" id="marksButton" title="Hide/Show underline and strike-throughs" onclick="hide_show_marks()">Hide marks</button></h2>'''
             if isinstance( rvBible, ESFMBible.ESFMBible ):
                 rvVerseEntryList = livenOETWordLinks( rvBible, BBB, rvVerseEntryList, f"{'../'*level}ref/{'GrkWrd' if NT else 'HebWrd'}/{{n}}.htm#Top", state )
             rvHtml = convertUSFMMarkerListToHtml( level, rvBible.abbreviation, (BBB,startC, startV), 'section', rvContextList, rvVerseEntryList, basicOnly=False, state=state )
@@ -347,12 +348,13 @@ def createOETSectionPages( level:int, folder:Path, rvBible, lvBible, state:State
                 .replace( '__KEYWORDS__', f'Bible, OET, sections, {ourTidyBBB}' ) \
                 .replace( f'''<a title="{state.BibleNames['OET']}" href="{'../'*2}OET/bySec/{sectionFilename}#Top">OET</a>''',
                         f'''<a title="Up to {state.BibleNames['OET']}" href="{'../'*2}OET/">↑OET</a>''' )
-        sectionHtml = f'<h1 id="Top">Index of sections for OET {ourTidyBBB}</h1>\n'
+        sectionHtml = f'<h1 id="Top">Index of sections for OET {ourTidyBBB}</h1>'
         for _nnn,startC,startV,_endC,_endV,sectionName,reasonName,_contextList,_verseEntryList,sectionFilename in state.sectionsLists['OET-RV'][BBB]:
             # print( f"HERE8 {BBB} {startC}:{startV} {_endC}:{endV} '{sectionName=}' '{reasonName=}' '{filename=}'" )
             reasonString = '' if reasonName=='Section heading' and not TEST_MODE else f' ({reasonName})' # Suppress '(Section Heading)' appendages in the list
             # NOTE: word 'Alternate ' is defined above at start of main loop
-            sectionHtml = f'''{sectionHtml}<p class="{'alternateHeading' if reasonName.startswith('Alternate ') else 'sectionHeading'}"><a title="View section" href="{sectionFilename}#Top">{'Intro' if startC=='-1' else startC}:{startV} <b>{sectionName}</b>{reasonString}</a></p>\n'''
+            sectionHtml = f'''{sectionHtml}\n<p class="{'alternateHeading' if reasonName.startswith('Alternate ') else 'sectionHeading'}"><a title="View section" href="{sectionFilename}#Top">{'Intro' if startC=='-1' else startC}:{startV} <b>{sectionName}</b>{reasonString}</a></p>'''
+
         sectionHtml = f'''{top}<!--sections page-->
 {navBookListParagraph}
 {sectionHtml}
@@ -478,7 +480,8 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> List
                     .replace( '__KEYWORDS__', f'Bible, {thisBible.abbreviation}, sections, {ourTidyBBB}' ) \
                     .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*level}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/bySec/{sectionFilename}#Top">{thisBible.abbreviation}</a>''',
                             f'''<a title="Up to {state.BibleNames[thisBible.abbreviation]}" href="{'../'*level}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/">↑{thisBible.abbreviation}</a>''' )
-            sectionHtml = f'<h1 id="Top">{thisBible.abbreviation} {ourTidyBBB} has NO section headings</h1>\n'
+            sectionHtml = f'<h1 id="Top">{thisBible.abbreviation} {ourTidyBBB} has NO section headings</h1>'
+
             sectionHtml = f'''{top}<!--no sections page-->
 {navBookListParagraph}
 {sectionHtml}
@@ -516,6 +519,9 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> List
                 assert thisBible.abbreviation == 'OET-RV'
                 assert endV == '?'
                 continue
+            if sectionName.startswith( 'Psalms '):
+                print( f"{thisBible.abbreviation} {sectionName=}" )
+                sectionName = sectionName.replace( 'Psalms', 'Song' if 'OET' in thisBible.abbreviation else 'Psalm' )
             startChapterLink = f'''<a title="Chapter view" href="../byC/{BBB}_{'Intro' if startC=='-1' else f'C{startC}'}.htm#Top">{'Intro' if startC=='-1' else startC}</a>'''
             endChapterLink = f'''<a title="Chapter view" href="../byC/{BBB}_{'Intro' if endC=='-1' else f'C{endC}'}.htm#Top">{'Intro' if endC=='-1' else endC}</a>'''
             leftLink = f'<a title="Previous section" href="{BBB}_S{n-1}.htm#Top">←</a> ' if n>0 else ''
@@ -526,10 +532,7 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> List
 
             sectionHtml = f'''<h1><span title="{state.BibleNames[thisBible.abbreviation]}">{thisBible.abbreviation}</span> by section {ourTidyBBB} {'Intro' if startC=='-1' else startC}:{startV}</h1>
 <p class="secNav">{sectionIndexLink}{leftLink}{documentLink} {startChapterLink}:{startV}–{endChapterLink}:{endV}{rightLink}{relatedLink}{parallelLink}{interlinearLink}{detailsLink}</p>
-{JAMES_NOTE_PARAGRAPH if 'OET' in thisBible.abbreviation and BBB=='JAM' else ''}
-{UNFINISHED_WARNING_PARAGRAPH if 'OET' in thisBible.abbreviation else ''}
-<h1>{sectionName}</h1>
-'''
+{f'{JAMES_NOTE_PARAGRAPH}{NEWLINE}' if 'OET' in thisBible.abbreviation and BBB=='JAM' else ''}{f'{UNFINISHED_WARNING_PARAGRAPH}{NEWLINE}' if 'OET' in thisBible.abbreviation else ''}<h1>{sectionName}</h1>'''
             if isinstance( thisBible, ESFMBible.ESFMBible ): # e.g., OET-RV
                 verseEntryList = livenOETWordLinks( thisBible, BBB, verseEntryList, f"{'../'*level}ref/{'GrkWrd' if NT else 'HebWrd'}/{{n}}.htm#Top", state )
             textHtml = convertUSFMMarkerListToHtml( level, thisBible.abbreviation, (BBB,startC), 'section', contextList, verseEntryList, basicOnly=False, state=state )
@@ -543,8 +546,7 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> List
             elif thisBible.abbreviation == 'T4T':
                 textHtml = do_T4T_HTMLcustomisations( textHtml )
             sectionHtml = f'''{sectionHtml}{textHtml}
-<p class="secNav">{sectionIndexLink}{leftLink}{documentLink} {startChapterLink}:{startV}–{endChapterLink}:{endV}{rightLink}{relatedLink}{parallelLink}{interlinearLink}{detailsLink}</p>
-'''
+<p class="secNav">{sectionIndexLink}{leftLink}{documentLink} {startChapterLink}:{startV}–{endChapterLink}:{endV}{rightLink}{relatedLink}{parallelLink}{interlinearLink}{detailsLink}</p>'''
 
             filepath = folder.joinpath( sectionFilename )
             top = makeTop( level, thisBible.abbreviation, 'section', f'bySec/{BBB}.htm', state ) \
@@ -576,7 +578,7 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> List
         for _nnn,startC,startV,_endC,_endV,sectionName,reasonName,_contextList,_verseEntryList,sectionFilename in state.sectionsLists[thisBible.abbreviation][BBB]:
             reasonString = '' if reasonName=='Section heading' and not TEST_MODE else f' ({reasonName})' # Suppress '(Section Heading)' appendages in the list
             # NOTE: word 'Alternate ' is defined in the above OET function at start of main loop
-            sectionHtml = f'''{sectionHtml}<p class="{'alternateHeading' if reasonName.startswith('Alternate ') else 'sectionHeading'}"><a title="View section" href="{sectionFilename}#Top">{'Intro' if startC=='-1' else startC}:{startV} <b>{sectionName}</b>{reasonString}</a></p>\n'''
+            sectionHtml = f'''{sectionHtml}<p class="{'alternateHeading' if reasonName.startswith('Alternate ') else 'sectionHeading'}"><a title="View section" href="{sectionFilename}#Top">{'Intro' if startC=='-1' else startC}:{startV} <b>{sectionName}</b>{reasonString}</a></p>'''
             # sectionHtml = f'''{sectionHtml}<p class="sectionHeading"><a title="View section" href="{filename}#Top">{'Intro' if startC=='-1' else startC}:{startV} <b>{sectionName}</b>{reasonString}</a></p>\n'''
         sectionHtml = f'''{top}<!--sections page-->
 {navBookListParagraph}

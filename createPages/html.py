@@ -45,6 +45,7 @@ CHANGELOG:
     2023-09-25 Added search
     2023-10-10 Improved OET-LV customisations to be more selective and efficient
     2024-01-25 Added support for 'Related' sections mode
+    2024-04-03 Added OET Key page
 """
 from gettext import gettext as _
 from typing import Dict, List, Tuple, Optional
@@ -59,10 +60,10 @@ from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39, BOOKLIST_NT27
 from settings import State, TEST_MODE, SITE_NAME
 
 
-LAST_MODIFIED_DATE = '2024-03-27' # by RJH
+LAST_MODIFIED_DATE = '2024-04-03' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
-PROGRAM_VERSION = '0.73'
+PROGRAM_VERSION = '0.74'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -79,7 +80,7 @@ KNOWN_PAGE_TYPES = ('site', 'topIndex', 'details', 'allDetails',
                     'dictionaryMainIndex','dictionaryLetterIndex','dictionaryEntry','dictionaryIntro',
                     'word','lemma','morpheme', 'person','location',
                     'wordIndex','lemmaIndex','morphemeIndex', 'personIndex','locationIndex', 'referenceIndex',
-                    'search', 'about')
+                    'search', 'about', 'OETKey')
 def makeTop( level:int, versionAbbreviation:Optional[str], pageType:str, versionSpecificFileOrFolderName:Optional[str], state:State ) -> str:
     """
     Create the very top part of an HTML page.
@@ -103,7 +104,7 @@ def makeTop( level:int, versionAbbreviation:Optional[str], pageType:str, version
         cssFilename = 'BibleWord.css'
     elif pageType in ('dictionaryLetterIndex', 'dictionaryEntry','dictionaryIntro'):
         cssFilename = 'BibleDict.css'
-    elif pageType in ('site', 'details','allDetails', 'search', 'about', 'topIndex',
+    elif pageType in ('site', 'details','allDetails', 'search', 'about', 'OETKey', 'topIndex',
                       'bookIndex','chapterIndex','sectionIndex',
                       'relatedSectionIndex', 'dictionaryMainIndex',
                       'wordIndex','lemmaIndex','morphemeIndex','personIndex','locationIndex','referenceIndex' ):
@@ -111,12 +112,13 @@ def makeTop( level:int, versionAbbreviation:Optional[str], pageType:str, version
     else: unexpected_page_type
 
     aboutLink = 'About' if pageType=='about' else f'''<a href="{'../'*level}about.htm#Top">About</a>'''
+    OETKeyLink = 'OET Key' if pageType=='OETKey' else f'''<a href="{'../'*level}OETKey.htm#Top">OET Key</a>'''
     if TEST_MODE:
-        topLink = f'<p class="site">TEST {SITE_NAME} Home  {aboutLink}</p>' if pageType=='topIndex' \
-            else f'''<p class="site"><a href="{'index.htm' if level==0 else '../'*level}">TEST {SITE_NAME} Home</a>  {aboutLink}</p>'''
+        topLink = f'<p class="site">{SITE_NAME} TEST Home  {aboutLink}</p>' if pageType=='topIndex' \
+            else f'''<p class="site"><a href="{'index.htm' if level==0 else '../'*level}">TEST {SITE_NAME} Home</a>  {aboutLink}  {OETKeyLink}</p>'''
     else:
         topLink = f'<p class="site">{SITE_NAME} Home  {aboutLink}</p>' if pageType=='topIndex' \
-            else f'''<p class="site"><a href="{'index.htm' if level==0 else '../'*level}">{SITE_NAME} Home</a>  {aboutLink}</p>'''
+            else f'''<p class="site"><a href="{'index.htm' if level==0 else '../'*level}">{SITE_NAME} Home</a>  {aboutLink}  {OETKeyLink}</p>'''
     top = f"""<!DOCTYPE html>
 <html lang="en-US">
 <head>
@@ -141,8 +143,7 @@ else f"""<!DOCTYPE html>
 <body><!--Level{level}-->{topLink}
 <h3>Demonstration version—prototype quality only—still in development</h3>
 """
-    return f'''{top}{_makeHeader( level, versionAbbreviation, pageType, versionSpecificFileOrFolderName, state )}
-'''
+    return f'{top}{_makeHeader( level, versionAbbreviation, pageType, versionSpecificFileOrFolderName, state )}'
 # end of html.makeTop
 
 def _makeHeader( level:int, versionAbbreviation:str, pageType:str, versionSpecificFileOrFolderName:Optional[str], state:State ) -> str:
@@ -393,7 +394,17 @@ def checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool:
 
     Throws an AssertError for any problems.
     """
-    # fnPrint( DEBUGGING_THIS_MODULE, f"checkHtml( {where}, {len(html)} )" )
+    fnPrint( DEBUGGING_THIS_MODULE, f"checkHtml( {where}, {len(htmlToCheck)} )" )
+
+    if '\n\n' in htmlToCheck:
+        ix = htmlToCheck.index( '\n\n' )
+        print( f"checkHtml({where=} {segmentOnly=}) found \\n\\n in …{htmlToCheck[ix-30:ix]}{htmlToCheck[ix:ix+50]}…" )
+        raise ValueError( f"checkHtml({where}) found unexpected double newlines" )
+    if '<br>\n' in htmlToCheck:
+        ix = htmlToCheck.index( '<br>\n' )
+        print( f"checkHtml({where=} {segmentOnly=}) found <br> in …{htmlToCheck[ix-30:ix]}{htmlToCheck[ix:ix+50]}…" )
+        raise ValueError( f"checkHtml({where}) found <br> followed by unexpected newline" )
+            
     if 'TCNT' not in where and 'TC-GNT' not in where: # These two versions use the '¦' character in their footnotes
         assert '¦' not in htmlToCheck, f"checkHtml() found unprocessed word number marker in {where} {htmlToCheck=}"
 
@@ -423,9 +434,9 @@ def checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool:
             if DEBUGGING_THIS_MODULE: print( f"\ncheckHtml: complete {htmlToCheck=}\n")
             return False
 
-    if '<br>\n</p>' in htmlToCheck or '<br>\n</span>' in htmlToCheck:
+    if '\n<br></p>' in htmlToCheck or '\n<br></span>' in htmlToCheck:
         logging.critical( f"{where}' {segmentOnly=} has wasted <br> in {htmlToCheck=} THIS IS BEING CHANGED!!!" )
-        htmlToCheck = htmlToCheck.replace( '<br>\n</span></span></p>', '</span></span></p>' ).replace( '<br>\n</span></p>', '</span></p>' ).replace( '<br>\n</p>', '</p>' )
+        htmlToCheck = htmlToCheck.replace( '\n<br></span></span></p>', '</span></span></p>' ).replace( '\n<br></span></p>', '</span></p>' ).replace( '\n<br></p>', '</p>' )
 
     return True
 # end of html.checkHtml
@@ -450,7 +461,8 @@ def do_OET_LV_HTMLcustomisations( OET_LV_html:str ) -> str:
     We have to protect fields like periods in '../C2_V2.htm' from corruption
         (and then restore them again of course).
     """
-    assert '<br>\n</p>' not in OET_LV_html and '<br>\n</span>' not in OET_LV_html, f"Wasted <br> in {OET_LV_html=}"
+    assert '<br>\n' not in OET_LV_html
+    assert '\n<br></p>' not in OET_LV_html and '\n<br></span>' not in OET_LV_html, f"Wasted <br> in {OET_LV_html=}"
 
     # Preserve the colon in times like 12:30 and in C:V and v0.1 fields
     searchStartIndex = 0
@@ -472,8 +484,8 @@ def do_OET_LV_HTMLcustomisations( OET_LV_html:str ) -> str:
             # .replace( 'v0.', 'v0~~PERIOD~~' )
             .replace( '.\\f*', '~~PERIOD~~\\f*' ).replace( 'Note:', 'Note~~COLON~~').replace( '."', '~~PERIOD~~"' ) # These last two are inside the footnote callers
             # Make each sentence start a new line
-            .replace( '.', '.<br>\n' ).replace( '?', '?<br>\n' )
-            .replace( '!', '!<br>\n' ).replace( ':', ':<br>\n' )
+            .replace( '.', '.\n<br>' ).replace( '?', '?\n<br>' )
+            .replace( '!', '!\n<br>' ).replace( ':', ':\n<br>' )
             # Adjust specialised add markers
             .replace( '<span class="add">+', '<span class="addArticle">' )
             .replace( '<span class="add">-', '<span class="unusedArticle">' )
@@ -494,8 +506,14 @@ def do_OET_LV_HTMLcustomisations( OET_LV_html:str ) -> str:
             .replace( ' DOM ',' <span class="dom">DOM</span> ')
             )
     # TODO: I was unable to figure out why this is happening to one particular exegesis footnote in 2 Kings 6:25
-    # assert '<br>\n</p>' not in OET_LV_html and '<br>\n</span>' not in OET_LV_html, f"Wasted <br> in {OET_LV_html=}"
-    OET_LV_html = OET_LV_html.replace( '<br>\n</span></span></p>', '</span></span></p>' ).replace( '<br>\n</span></p>', '</span></p>' ).replace( '<br>\n</p>', '</p>' )
+    # assert '\n<br></p>' not in OET_LV_html and '\n<br></span>' not in OET_LV_html, f"Wasted <br> in {OET_LV_html=}"
+    OET_LV_html = OET_LV_html.replace( '\n<br></span></span></p>', '</span></span></p>' ).replace( '\n<br></span></p>', '</span></p>' ).replace( '\n<br></p>', '</p>' )
+
+    # Tidyup
+    if OET_LV_html.endswith( '\n' ): OET_LV_html = OET_LV_html[:-1] # We don't end our html with a newline
+    if OET_LV_html.endswith( '<br>' ):
+        OET_LV_html = OET_LV_html[:-4] # We don't end our html with a newline
+        if OET_LV_html[-1] == '\n': OET_LV_html = OET_LV_html[:-1] # We don't end our html with a newline
 
     # assert '+' not in html, f"{html[html.index('+')-20:html.index('+')+30]}"
     # assert '^' not in html, f"{html[html.index('^')-20:html.index('^')+30]}"

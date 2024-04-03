@@ -46,15 +46,15 @@ from html import makeTop, makeBottom, checkHtml
 from OETHandlers import getOETTidyBBB
 
 
-LAST_MODIFIED_DATE = '2024-03-13' # by RJH
+LAST_MODIFIED_DATE = '2024-04-03' # by RJH
 SHORT_PROGRAM_NAME = "Dictionary"
 PROGRAM_NAME = "OpenBibleData Dictionary handler"
-PROGRAM_VERSION = '0.44'
+PROGRAM_VERSION = '0.45'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
 
-NEW_LINE = '\n'
+NEWLINE = '\n'
 
 
 TOBDData = {}
@@ -157,7 +157,7 @@ def loadTyndaleOpenBibleDictXML( abbrev:str, folderpath ) -> None:
                                 theirClass = htmlSegment[8:ixClose]
                                 htmlSegment = htmlSegment[ixClose+2:]
                             htmlSegment = f'<p class="{theirClass}">{htmlSegment}</p>'
-                            thisEntry = f"{thisEntry}{NEW_LINE if thisEntry else ''}{htmlSegment}"
+                            thisEntry = f"{thisEntry}{NEWLINE if thisEntry else ''}{htmlSegment}"
                         elif bodyelement.tag == 'table':
                             BibleOrgSysGlobals.checkXMLNoAttributes( bodyelement, bodyLocation, '1wk8', loadErrors )
                             BibleOrgSysGlobals.checkXMLNoText( bodyelement, bodyLocation, '1wk8', loadErrors )
@@ -166,7 +166,7 @@ def loadTyndaleOpenBibleDictXML( abbrev:str, folderpath ) -> None:
                                                                     # .replace( '<a href="  \?', '<a href="?') # Fix encoding mistake in 1 Tim
                             assert '\\' not in htmlSegment, f"Intro {partCount=} {htmlSegment=}"
                             htmlSegment = f'<table>{htmlSegment}</table>'
-                            thisEntry = f"{thisEntry}{NEW_LINE if thisEntry else ''}{htmlSegment}"
+                            thisEntry = f"{thisEntry}{NEWLINE if thisEntry else ''}{htmlSegment}"
                         else: halt
                         partCount += 1
                     stateCounter += 1
@@ -265,7 +265,7 @@ def loadTyndaleOpenBibleDictXML( abbrev:str, folderpath ) -> None:
                                 theirClass = htmlSegment[8:ixClose]
                                 htmlSegment = htmlSegment[ixClose+2:]
                             htmlSegment = f'<p class="{theirClass}">{htmlSegment}</p>'
-                            thisEntry = f"{thisEntry}{NEW_LINE if thisEntry else ''}{htmlSegment}"
+                            thisEntry = f"{thisEntry}{NEWLINE if thisEntry else ''}{htmlSegment}"
                         else: halt
                         partCount += 1
                     stateCounter += 1
@@ -361,7 +361,7 @@ def loadTyndaleOpenBibleDictXML( abbrev:str, folderpath ) -> None:
                                 theirClass = htmlSegment[8:ixClose]
                                 htmlSegment = htmlSegment[ixClose+2:]
                             htmlSegment = f'<p class="{theirClass}">{htmlSegment}</p>'
-                            thisEntry = f"{thisEntry}{NEW_LINE if thisEntry else ''}{htmlSegment}"
+                            thisEntry = f"{thisEntry}{NEWLINE if thisEntry else ''}{htmlSegment}"
                         else: halt
                         partCount += 1
                     stateCounter += 1
@@ -509,7 +509,7 @@ def loadDictLetterXML( letter:str, folderpath ) -> None:
                                     theirClass = htmlSegment[8:ixClose]
                                     htmlSegment = htmlSegment[ixClose+2:]
                                 htmlSegment = f'<p class="{theirClass}">{htmlSegment}</p>'
-                                thisEntry = f"{thisEntry}{NEW_LINE if thisEntry else ''}{htmlSegment}"
+                                thisEntry = f"{thisEntry}{NEWLINE if thisEntry else ''}{htmlSegment}"
                             elif bodyelement.tag == 'include_items':
                                 BibleOrgSysGlobals.checkXMLNoText( bodyelement, bodyLocation, '1wk8', loadErrors )
                                 BibleOrgSysGlobals.checkXMLNoSubelements( bodyelement, bodyLocation, '1wk8', loadErrors )
@@ -529,12 +529,12 @@ def loadDictLetterXML( letter:str, folderpath ) -> None:
                                     assert iiSrc == '../Textboxes/Textboxes.xml'
                                     # So we want to save this as an XML paragraph to insert textbox later
                                     htmlSegment = f'<include_items src="{iiSrc}" name="{iiName}"/>'
-                                    thisEntry = f"{thisEntry}{NEW_LINE if thisEntry else ''}{htmlSegment}"
+                                    thisEntry = f"{thisEntry}{NEWLINE if thisEntry else ''}{htmlSegment}"
                                 elif 'Map' in iiSrc:
                                     assert iiSrc == '../Maps/Maps.xml'
                                     # So we want to save this as an XML paragraph to insert map later
                                     htmlSegment = f'<include_items src="{iiSrc}" name="{iiName}"/>'
-                                    thisEntry = f"{thisEntry}{NEW_LINE if thisEntry else ''}{htmlSegment}"
+                                    thisEntry = f"{thisEntry}{NEWLINE if thisEntry else ''}{htmlSegment}"
                                 else: # They don't supply pictures or charts so might as well discard those here for now
                                     pass
                             else: halt
@@ -616,7 +616,7 @@ def createTyndaleDictPages( level:int, outputFolderPath, state:State ) -> bool:
             articleLink = f'<a title="Go to article" href="{articleLinkName}.htm#Top">{articleDisplayName}</a>'
             firstLetters = articleLinkName[:2]
             if articleLinkHtml:
-                articleLinkHtml = f'''{articleLinkHtml}{' ' if firstLetters==lastFirstLetters else f'{NEW_LINE}<br>'}{articleLink}'''
+                articleLinkHtml = f'''{articleLinkHtml}{' ' if firstLetters==lastFirstLetters else f'{NEWLINE}<br>'}{articleLink}'''
             else: # first entry
                 articleLinkHtml = articleLink
             lastFirstLetters = firstLetters
@@ -970,7 +970,7 @@ def createUBSGreekDictionaryPages( level, outputFolderPath, state:State ) -> Non
     global USB_GNT_DATA, USB_GNT_ID_INDEX, USB_GNT_LEMMA_INDEX
     fnPrint( DEBUGGING_THIS_MODULE, f"createUBSGreekDictionaryPages( {level}, '{outputFolderPath}', ... )")
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, "\nCreating UBS Greek Bible Dict pages…" )
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, "  Creating UBS Greek Bible Dict pages…" )
 
     try: os.makedirs( outputFolderPath )
     except FileExistsError: pass # it was already there
@@ -988,43 +988,43 @@ def createUBSGreekDictionaryPages( level, outputFolderPath, state:State ) -> Non
         rightLink = f''' <a title="Go to next article" href="{lemmaList[e+1]}.htm#__ID__">→</a>''' if e<len(lemmaList)-1 else ''
         navLinks = f'<p id="__ID__" class="dNav">{introLink} {leftLink}{indexLink}{rightLink} {detailsLink}</p>'
 
-        entryHtml = f'<h2>{lemma}</h2>\n'
+        entryHtml = f'<h2>{lemma}</h2>'
         for key,data in entry.items():
             if data is None or data=='' or data==[]: continue # Don't display blank stuff
             if key == 'Lemma': continue # Already used that
             if key == 'BaseForms':
-                entryHtml = f'''{entryHtml}<p class="GDict"><b>{key}</b>:</p><ol>\n'''
+                entryHtml = f'''{entryHtml}<p class="GDict"><b>{key}</b>:</p><ol>'''
                 for bf,bfEntry in enumerate( data ):
                     bfEntryHtml = ''
                     for bfKey,bfData in bfEntry.items():
                         if bfData is None or bfData=='' or bfData==[]: continue # Don't display blank stuff
                         if bfKey in ('Inflections','LEXMeanings'):
-                            bfEntryHtml = f'''{bfEntryHtml}<p class="GDict"><b>{bfKey}</b>:</p><ol>\n'''
+                            bfEntryHtml = f'''{bfEntryHtml}<p class="GDict"><b>{bfKey}</b>:</p><ol>'''
                             for lm,lmEntry in enumerate( bfData ):
                                 lmEntryHtml = ''
                                 for lmKey,lmData in lmEntry.items():
                                     if lmData is None or lmData=='' or lmData==[]: continue # Don't display blank stuff
                                     if lmKey == 'LEXSenses':
-                                        lmEntryHtml = f'''{lmEntryHtml}<p class="GDict"><b>{lmKey}</b>:</p><ol>\n'''
+                                        lmEntryHtml = f'''{lmEntryHtml}<p class="GDict"><b>{lmKey}</b>:</p><ol>'''
                                         for ls,lsEntry in enumerate( lmData ):
                                             lsEntryHtml = ''
                                             for lsKey,lsData in lsEntry.items():
                                                 if lsData is None or lsData=='' or lsData==[]: continue # Don't display blank stuff
-                                                lsEntryHtml = f'''{lsEntryHtml}<p class="GDict"><b>{lsKey}</b>: {lsData[0] if isinstance(lsData, list) and len(lsData)==1 else lsData}</p>\n'''
-                                            lmEntryHtml = f'''{lmEntryHtml}<li class="GDict">{lsEntryHtml}</li>\n'''
-                                        lmEntryHtml = f'''{lmEntryHtml}</ol>\n'''
+                                                lsEntryHtml = f'''{lsEntryHtml}<p class="GDict"><b>{lsKey}</b>: {lsData[0] if isinstance(lsData, list) and len(lsData)==1 else lsData}</p>'''
+                                            lmEntryHtml = f'''{lmEntryHtml}<li class="GDict">{lsEntryHtml}</li>'''
+                                        lmEntryHtml = f'''{lmEntryHtml}</ol>'''
                                     elif lmKey == 'LEXReferences':
-                                        lmEntryHtml = f'''{lmEntryHtml}<p class="GDict"><b>LEXReferences</b>: {', '.join(getLexReferencesHtmlList(level, lmData))}</p>\n'''
+                                        lmEntryHtml = f'''{lmEntryHtml}<p class="GDict"><b>LEXReferences</b>: {', '.join(getLexReferencesHtmlList(level, lmData))}</p>'''
                                     else:
-                                        lmEntryHtml = f'''{lmEntryHtml}<p class="GDict"><b>{lmKey}</b>: {lmData[0] if isinstance(lmData, list) and len(lmData)==1 else lmData}</p>\n'''
-                                bfEntryHtml = f'''{bfEntryHtml}<li class="GDict">{lmEntryHtml}</li>\n'''
-                            bfEntryHtml = f'''{bfEntryHtml}</ol>\n'''
+                                        lmEntryHtml = f'''{lmEntryHtml}<p class="GDict"><b>{lmKey}</b>: {lmData[0] if isinstance(lmData, list) and len(lmData)==1 else lmData}</p>'''
+                                bfEntryHtml = f'''{bfEntryHtml}<li class="GDict">{lmEntryHtml}</li>'''
+                            bfEntryHtml = f'''{bfEntryHtml}</ol>'''
                         else:
-                            bfEntryHtml = f'''{bfEntryHtml}<p class="GDict"><b>{bfKey}</b>: {bfData[0] if isinstance(bfData, list) and len(bfData)==1 else bfData}</p>\n'''
-                    entryHtml = f'''{entryHtml}<li class="GDict">{bfEntryHtml}</li>\n'''
-                entryHtml = f'''{entryHtml}</ol>\n'''
+                            bfEntryHtml = f'''{bfEntryHtml}<p class="GDict"><b>{bfKey}</b>: {bfData[0] if isinstance(bfData, list) and len(bfData)==1 else bfData}</p>'''
+                    entryHtml = f'''{entryHtml}<li class="GDict">{bfEntryHtml}</li>'''
+                entryHtml = f'''{entryHtml}</ol>'''
             else:
-                entryHtml = f'''{entryHtml}<p class="GDict"><b>{key}</b>: {data[0] if isinstance(data, list) and len(data)==1 else data}</p>\n'''
+                entryHtml = f'''{entryHtml}<p class="GDict"><b>{key}</b>: {data[0] if isinstance(data, list) and len(data)==1 else data}</p>'''
 
         filepath = outputFolderPath.joinpath( f"{entry['Lemma']}.htm" )
         top = makeTop( level, None, 'dictionaryEntry', None, state ) \
@@ -1050,7 +1050,7 @@ def createUBSHebrewDictionaryPages( level, outputFolderPath, state:State ) -> No
 
     fnPrint( DEBUGGING_THIS_MODULE, f"createUBSHebrewDictionaryPages( {level}, '{outputFolderPath}', ... )")
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, "\nCreating UBS Hebrew Bible Dict pages…" )
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, "  Creating UBS Hebrew Bible Dict pages…" )
 
     try: os.makedirs( outputFolderPath )
     except FileExistsError: pass # it was already there
@@ -1068,43 +1068,43 @@ def createUBSHebrewDictionaryPages( level, outputFolderPath, state:State ) -> No
         rightLink = f''' <a title="Go to next article" href="{lemmaList[e+1]}.htm#__ID__">→</a>''' if e<len(lemmaList)-1 else ''
         navLinks = f'<p id="__ID__" class="dNav">{introLink} {leftLink}{indexLink}{rightLink} {detailsLink}</p>'
 
-        entryHtml = f'<h2>{lemma}</h2>\n'
+        entryHtml = f'<h2>{lemma}</h2>'
         for key,data in entry.items():
             if data is None or data=='' or data==[]: continue # Don't display blank stuff
             if key == 'Lemma': continue # Already used that
             if key == 'BaseForms':
-                entryHtml = f'''{entryHtml}<p class="HDict"><b>{key}</b>:</p><ol>\n'''
+                entryHtml = f'''{entryHtml}<p class="HDict"><b>{key}</b>:</p><ol>'''
                 for bf,bfEntry in enumerate( data ):
                     bfEntryHtml = ''
                     for bfKey,bfData in bfEntry.items():
                         if bfData is None or bfData=='' or bfData==[]: continue # Don't display blank stuff
                         if bfKey in ('Inflections','LEXMeanings'):
-                            bfEntryHtml = f'''{bfEntryHtml}<p class="HDict"><b>{bfKey}</b>:</p><ol>\n'''
+                            bfEntryHtml = f'''{bfEntryHtml}<p class="HDict"><b>{bfKey}</b>:</p><ol>'''
                             for lm,lmEntry in enumerate( bfData ):
                                 lmEntryHtml = ''
                                 for lmKey,lmData in lmEntry.items():
                                     if lmData is None or lmData=='' or lmData==[]: continue # Don't display blank stuff
                                     if lmKey == 'LEXSenses':
-                                        lmEntryHtml = f'''{lmEntryHtml}<p class="HDict"><b>{lmKey}</b>:</p><ol>\n'''
+                                        lmEntryHtml = f'''{lmEntryHtml}<p class="HDict"><b>{lmKey}</b>:</p><ol>'''
                                         for ls,lsEntry in enumerate( lmData ):
                                             lsEntryHtml = ''
                                             for lsKey,lsData in lsEntry.items():
                                                 if lsData is None or lsData=='' or lsData==[]: continue # Don't display blank stuff
-                                                lsEntryHtml = f'''{lsEntryHtml}<p class="HDict"><b>{lsKey}</b>: {lsData[0] if isinstance(lsData, list) and len(lsData)==1 else lsData}</p>\n'''
-                                            lmEntryHtml = f'''{lmEntryHtml}<li class="HDict">{lsEntryHtml}</li>\n'''
-                                        lmEntryHtml = f'''{lmEntryHtml}</ol>\n'''
+                                                lsEntryHtml = f'''{lsEntryHtml}<p class="HDict"><b>{lsKey}</b>: {lsData[0] if isinstance(lsData, list) and len(lsData)==1 else lsData}</p>'''
+                                            lmEntryHtml = f'''{lmEntryHtml}<li class="HDict">{lsEntryHtml}</li>'''
+                                        lmEntryHtml = f'''{lmEntryHtml}</ol>'''
                                     elif lmKey == 'LEXReferences':
-                                        lmEntryHtml = f'''{lmEntryHtml}<p class="HDict"><b>LEXReferences</b>: {', '.join(getLexReferencesHtmlList(level, lmData))}</p>\n'''
+                                        lmEntryHtml = f'''{lmEntryHtml}<p class="HDict"><b>LEXReferences</b>: {', '.join(getLexReferencesHtmlList(level, lmData))}</p>'''
                                     else:
-                                        lmEntryHtml = f'''{lmEntryHtml}<p class="HDict"><b>{lmKey}</b>: {lmData[0] if isinstance(lmData, list) and len(lmData)==1 else lmData}</p>\n'''
-                                bfEntryHtml = f'''{bfEntryHtml}<li class="HDict">{lmEntryHtml}</li>\n'''
-                            bfEntryHtml = f'''{bfEntryHtml}</ol>\n'''
+                                        lmEntryHtml = f'''{lmEntryHtml}<p class="HDict"><b>{lmKey}</b>: {lmData[0] if isinstance(lmData, list) and len(lmData)==1 else lmData}</p>'''
+                                bfEntryHtml = f'''{bfEntryHtml}<li class="HDict">{lmEntryHtml}</li>'''
+                            bfEntryHtml = f'''{bfEntryHtml}</ol>'''
                         else:
-                            bfEntryHtml = f'''{bfEntryHtml}<p class="HDict"><b>{bfKey}</b>: {bfData[0] if isinstance(bfData, list) and len(bfData)==1 else bfData}</p>\n'''
-                    entryHtml = f'''{entryHtml}<li class="HDict">{bfEntryHtml}</li>\n'''
-                entryHtml = f'''{entryHtml}</ol>\n'''
+                            bfEntryHtml = f'''{bfEntryHtml}<p class="HDict"><b>{bfKey}</b>: {bfData[0] if isinstance(bfData, list) and len(bfData)==1 else bfData}</p>'''
+                    entryHtml = f'''{entryHtml}<li class="HDict">{bfEntryHtml}</li>'''
+                entryHtml = f'''{entryHtml}</ol>'''
             else:
-                entryHtml = f'''{entryHtml}<p class="HDict"><b>{key}</b>: {data[0] if isinstance(data, list) and len(data)==1 else data}</p>\n'''
+                entryHtml = f'''{entryHtml}<p class="HDict"><b>{key}</b>: {data[0] if isinstance(data, list) and len(data)==1 else data}</p>'''
 
         filepath = outputFolderPath.joinpath( f"{entry['Lemma']}.htm" )
         top = makeTop( level, None, 'dictionaryEntry', None, state ) \
@@ -1113,7 +1113,7 @@ def createUBSHebrewDictionaryPages( level, outputFolderPath, state:State ) -> No
         articleHtml = f'''{top}
 <h1>{'TEST ' if TEST_MODE else ''}UBS Dictionary of the Hebrew New Testament</h1>
 {navLinks.replace('__ID__','Top')}
-{entryHtml}
+{entryHtml.replace( f'{NEWLINE}</p>', '</p>' )}
 {makeBottom( level, 'dictionaryEntry', state )}'''
         checkHtml( 'DictionaryArticle', articleHtml )
         assert not filepath.is_file() # Check that we're not overwriting anything

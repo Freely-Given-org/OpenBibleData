@@ -66,16 +66,16 @@ from settings import State
 from html import checkHtml
 
 
-LAST_MODIFIED_DATE = '2024-03-27' # by RJH
+LAST_MODIFIED_DATE = '2024-04-02' # by RJH
 SHORT_PROGRAM_NAME = "usfm"
 PROGRAM_NAME = "OpenBibleData USFM to HTML functions"
-PROGRAM_VERSION = '0.69'
+PROGRAM_VERSION = '0.70'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
 
 BACKSLASH = '\\'
-# NEWLINE = '\n'
+NEWLINE = '\n'
 # EM_SPACE = ' '
 NARROW_NON_BREAK_SPACE = ' '
 NON_BREAK_SPACE = ' ' # NBSP
@@ -178,7 +178,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                             'pi1','pi2', 'pc','pm','pmc','pmo','po','pr', 'qm1','qm2', 'qr', 'cls'):
             assert not rest, f"Unexpected rest {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {marker}={rest}"
             if inMainDiv: # this can happen in INT module
-                html = f'{html}</div><!--{inMainDiv}-->\n'
+                html = f'{html}</div><!--{inMainDiv}-->'
                 inMainDiv = None
             if inRightDiv:
                 html = f'{html}</div><!--rightBox-->\n'
@@ -319,7 +319,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
         elif marker in ('imt1','imt2','imt3','imt4'):
             assert rest
             if inMainDiv == 'bookHeader':
-                    html = f'{html}</div><!--{inMainDiv}-->\n'
+                    html = f'{html}</div><!--{inMainDiv}-->'
                     inMainDiv = None
             if not inMainDiv:
                 inMainDiv = 'bookIntro'
@@ -338,7 +338,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
             assert not inRightDiv
             if inMainDiv == 'bookHeader':
                     assert not inTable and not inList and not inParagraph
-                    html = f'{html}</div><!--{inMainDiv}-->\n'
+                    html = f'{html}</div><!--{inMainDiv}-->'
                     inMainDiv = None
             if inTable:
                 logging.critical( f"Table should have been closed already {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inTable=} {inListEntry=} {marker=}" )
@@ -610,7 +610,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                 assert segmentType != 'verse'
                 assert not basicOnly
             if inMainDiv == 'bookHeader':
-                html = f'{html}</div><!--{inMainDiv}-->\n'
+                html = f'{html}</div><!--{inMainDiv}-->'
                 inMainDiv = None
             assert not inMainDiv
             assert not inTable and not inList
@@ -625,7 +625,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                 assert segmentType != 'verse'
                 assert not basicOnly
             if inMainDiv:
-                html = f'{html}</div><!--{inMainDiv}-->\n'
+                html = f'{html}</div><!--{inMainDiv}-->'
                 inMainDiv = None
         elif marker not in ('usfm','ide', 'sts',
                             'h', 'toc1','toc2','toc3', '¬headers',
@@ -675,7 +675,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
         html = f'{html}</div><!--{inSection}-->\n'
     if inMainDiv:
             logger( f"convertUSFMMarkerListToHtml final unclosed '{inMainDiv}' main section {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} last {marker=}" )
-            html = f'{html}</div><!--{inMainDiv}-->\n'
+            html = f'{html}</div><!--{inMainDiv}-->'
 
     # Handle all footnotes in one go (but we don't check here for matching \fr fields)
     footnotesCount = 0
@@ -766,8 +766,8 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
             if '"' in sanitisedFnoteMiddle or '<' in sanitisedFnoteMiddle or '>' in sanitisedFnoteMiddle:
                 logging.critical( f"Left-over HTML chars in {refTuple} {sanitisedFnoteMiddle=}" )
                 sanitisedFnoteMiddle = sanitisedFnoteMiddle.replace( '"', '&quot;' ).replace( '<', '&lt;' ).replace( '>', '&gt;' )
-                if versionAbbreviation != 'LEB': # LEB MRK has sanitisedFnoteMiddle='Note: A quotation from Isa 40:3|link-href="None"'
-                    halt # in case it's a systematic problem
+                # if versionAbbreviation != 'LEB': # LEB MRK has sanitisedFnoteMiddle='Note: A quotation from Isa 40:3|link-href="None"'
+                #     halt # in case it's a systematic problem
         assert '"' not in sanitisedFnoteMiddle and '<' not in sanitisedFnoteMiddle and '>' not in sanitisedFnoteMiddle, f"Left-over HTML chars in {refTuple} {sanitisedFnoteMiddle=}"
         fnoteCaller = f'<span class="fnCaller">[<a title="{sanitisedFnoteMiddle}" href="#fn{footnotesCount}">fn</a>]</span>'
         fnoteRef = ''
@@ -883,6 +883,10 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
     if versionAbbreviation not in ('BRN',): # BRN ISA 52
         assert '\\x' not in html, f"{html[html.index(f'{BACKSLASH}x')-10:html.index(f'{BACKSLASH}x')+12]}"
 
+    # Some final cleanups
+    if 'OET' in versionAbbreviation:
+        html = html.replace( '≈', f'''<a title="Go to missing verses pages" href="{'../'*level}OET/missingVerse.htm">≈</a>''' )
+
     if basicOnly: # remove leading, trailing, and internal blank lines
         while '<br><br>' in html:
             html = html.replace( '<br><br>', '<br>' )
@@ -891,14 +895,29 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
         while html.endswith( '<br>' ): # LEB also
             html = html[:-4]
 
-    if 'OET' in versionAbbreviation:
-        html = html.replace( '≈', f'''<a title="Go to missing verses pages" href="{'../'*level}OET/missingVerse.htm">≈</a>''' )
+    if '<br>\n' in html:
+        ix = html.index( '<br>\n' )
+        print( f"{versionAbbreviation} {refTuple} {segmentType} {basicOnly=} …{html[ix-20:ix]}{html[ix:ix+20]}…" )
+        halt
+    html = html.replace( '<br>\n', '\n<br>' ) # This is our consistent (arbitrary) choice in OBD
+    if '\n\n' in html:
+        ix = html.index( '\n\n' )
+        print( f"{versionAbbreviation} {refTuple} {segmentType} {basicOnly=} …{html[ix-20:ix]}{html[ix:ix+20]}…" )
+        halt
+    html = html.replace( '\n\n', '\n' )
 
+    while html.endswith( '\n' ): html = html[:-1] # We don't end our html with a newline
+    while html.endswith( '<br>' ):
+        html = html[:-4] # We don't end our html with a newline
+        while html[-1] == '\n': html = html[:-1] # We don't end our html with a newline
+
+    # Some final checks
     if versionAbbreviation not in ('ULT','UST'): # uW stuff has too many USFM encoding errors
         assert 'strong="' not in html, f"{level=} '{versionAbbreviation}' {refTuple} {segmentType=} {len(contextList)=} {len(markerList)=} {basicOnly=} '{html if len(html)<4000 else f'{html[:2000]} ....... {html[-2000:]}'}'"
     if not checkHtml( f'convertUSFMMarkerListToHtml({versionAbbreviation} {refTuple} {segmentType} {basicOnly=})', html, segmentOnly=True ):
         if DEBUGGING_THIS_MODULE and versionAbbreviation!='OEB': # OEB has error in Job 26:14
             halt
+    # print( f"convertUSFMMarkerListToHtml({versionAbbreviation} {refTuple} {segmentType} {basicOnly=}) ended with newline: {html.endswith(NEWLINE)}" )
     return html
 # end of usfm.convertUSFMMarkerListToHtml
 

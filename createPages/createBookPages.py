@@ -50,7 +50,7 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_
 from OETHandlers import livenOETWordLinks, getOETTidyBBB
 
 
-LAST_MODIFIED_DATE = '2024-03-28' # by RJH
+LAST_MODIFIED_DATE = '2024-04-03' # by RJH
 SHORT_PROGRAM_NAME = "createBookPages"
 PROGRAM_NAME = "OpenBibleData createBookPages functions"
 PROGRAM_VERSION = '0.52'
@@ -117,8 +117,7 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
 
             bkHtml = f'''<p class="bkNav">{bkPrevNav}<span class="bkHead" id="Top">{rvBible.abbreviation} {ourTidyBBB}</span>{bkNextNav}</p>
 {JAMES_NOTE_PARAGRAPH}
-{UNFINISHED_WARNING_PARAGRAPH}
-'''
+{UNFINISHED_WARNING_PARAGRAPH}'''
             verseEntryList, contextList = rvBible.getContextVerseData( (BBB,) )
             assert isinstance( rvBible, ESFMBible.ESFMBible )
             verseEntryList = livenOETWordLinks( rvBible, BBB, verseEntryList, f"{'../'*level}ref/{'GrkWrd' if NT else 'HebWrd'}/{{n}}.htm#Top", state )
@@ -159,12 +158,10 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
         bkNextNav = f' <a title="Go to next book" href="{iBkList[bkIx+1]}.htm#Top">►</a>' if bkIx<len(iBkList)-1 else ''
 
         bkHtml = f'''<p class="bkNav">{bkPrevNav}<span class="bkHead" id="Top">Open English Translation {ourTidyBBB}</span>{bkNextNav}</p>
-{JAMES_NOTE_PARAGRAPH if BBB=='JAM' else ''}
-{UNFINISHED_WARNING_PARAGRAPH}
+{f'{JAMES_NOTE_PARAGRAPH}{NEWLINE}' if BBB=='JAM' else ''}{UNFINISHED_WARNING_PARAGRAPH}
 <div class="RVLVcontainer">
 <h2>Readers’ Version</h2>
-<h2>Literal Version <button type="button" id="marksButton" title="Hide/Show underline and strike-throughs" onclick="hide_show_marks()">Hide marks</button></h2>
-'''
+<h2>Literal Version <button type="button" id="marksButton" title="Hide/Show underline and strike-throughs" onclick="hide_show_marks()">Hide marks</button></h2>'''
         rvVerseEntryList, rvContextList = rvBible.getContextVerseData( (BBB,) )
         lvVerseEntryList, lvContextList = lvBible.getContextVerseData( (BBB,) )
         assert isinstance( rvBible, ESFMBible.ESFMBible )
@@ -181,11 +178,11 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
 
         # Now we have to divide the RV and the LV into an equal number of chunks (so they mostly line up)
         # First get the header and intro chunks
-        ixBHend = rvHtml.index( '<!--bookHeader-->\n' ) + 18
-        ixBIend = rvHtml.index( '<!--bookIntro-->\n', ixBHend ) + 17
+        ixBHend = rvHtml.index( '<!--bookHeader-->' ) + 17
+        ixBIend = rvHtml.index( '<!--bookIntro-->', ixBHend ) + 16
         rvSections = [ rvHtml[:ixBHend], rvHtml[ixBHend:ixBIend] ] + rvHtml[ixBIend:].split( '<div class="s1">' )
-        ixBHend = lvHtml.index( '<!--bookHeader-->\n' ) + 18
-        try: ixBIend = lvHtml.index( '<!--bookIntro-->\n', ixBHend ) + 17 # No intro expected in OET-LV
+        ixBHend = lvHtml.index( '<!--bookHeader-->' ) + 17
+        try: ixBIend = lvHtml.index( '<!--bookIntro-->', ixBHend ) + 16 # No intro expected in OET-LV
         except ValueError: ixBIend = lvHtml.index( '<span id="C', ixBHend )
         lvChunks, lvRest = [ lvHtml[:ixBHend], lvHtml[ixBHend:ixBIend] ], lvHtml[ixBIend:]
         # Now try to match the rv sections
@@ -343,10 +340,7 @@ def createBookPages( level:int, folder:Path, thisBible, state:State ) -> List[st
             bkPrevNav = f'''<a title="Go to book index" href="index.htm#Top">◄</a> '''
             bkNextNav = f' <a title="Go to first existing book" href="{iBkList[1]}.htm#Top">►</a>'
 
-        bkHtml = f'''<p class="bkNav">{bkPrevNav}<span class="bkHead" id="Top">{thisBible.abbreviation} {ourTidyBBB}</span>{bkNextNav}</p>
-{JAMES_NOTE_PARAGRAPH if 'OET' in thisBible.abbreviation and BBB=='JAM' else ''}
-{UNFINISHED_WARNING_PARAGRAPH if 'OET' in thisBible.abbreviation else ''}
-'''
+        bkHtml = f'''<p class="bkNav">{bkPrevNav}<span class="bkHead" id="Top">{thisBible.abbreviation} {ourTidyBBB}</span>{bkNextNav}</p>{f'{NEWLINE}{JAMES_NOTE_PARAGRAPH}' if 'OET' in thisBible.abbreviation and BBB=='JAM' else ''}{f'{NEWLINE}{UNFINISHED_WARNING_PARAGRAPH}' if 'OET' in thisBible.abbreviation else ''}'''
         verseEntryList, contextList = thisBible.getContextVerseData( (BBB,) )
         if isinstance( thisBible, ESFMBible.ESFMBible ):
             verseEntryList = livenOETWordLinks( thisBible, BBB, verseEntryList, f"{'../'*level}ref/{'GrkWrd' if NT else 'HebWrd'}/{{n}}.htm#Top", state )

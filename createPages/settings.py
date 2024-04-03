@@ -56,7 +56,7 @@ DEBUGGING_THIS_MODULE = False # Adds debugging output
 
 OET_VERSION = 'v0.06'
 
-TEST_MODE = False # Writes website into Test subfolder
+TEST_MODE = True # Writes website into Test subfolder
 ALL_PRODUCTION_BOOKS = not TEST_MODE # If set to False, only selects one book per version for a faster test build
 ALL_TEST_REFERENCE_PAGES = False # If in Test mode, make ALL word/lemma pages, or just the RELEVANT ones
 UPDATE_ACTUAL_SITE_WHEN_BUILT = True # The pages are initially built in a tmp folder so need to be copied to the final destination

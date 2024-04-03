@@ -225,7 +225,7 @@ def _createSitePages() -> bool:
             if versionAbbreviation == 'TTN': continue # These ones don't even have a folder
             # We just write a very bland index page here
             versionName = state.BibleNames[versionAbbreviation]
-            indexHtml = f'<h1 id="Top">{versionName}</h1>\n'
+            indexHtml = f'<h1 id="Top">{versionName}</h1>'
             top = makeTop( 1, None, 'site', None, state ) \
                             .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{versionName}" ) \
                             .replace( '__KEYWORDS__', f'Bible, {versionAbbreviation}, {versionName}' )
@@ -272,6 +272,7 @@ def _createSitePages() -> bool:
     _createDetailsPages( 0, TEMP_BUILD_FOLDER, state )
     _createSearchPage( 0, TEMP_BUILD_FOLDER, state )
     _createAboutPage( 0, TEMP_BUILD_FOLDER, state )
+    _createOETKeyPage( 0, TEMP_BUILD_FOLDER, state )
 
     _createMainIndexPage( 0, TEMP_BUILD_FOLDER, state )
 
@@ -339,6 +340,8 @@ def _cleanHTMLFolders( folder:Path, state:State ) -> bool:
     try: os.unlink( folder.joinpath( 'allDetails.htm' ) )
     except FileNotFoundError: pass
     try: os.unlink( folder.joinpath( 'about.htm' ) )
+    except FileNotFoundError: pass
+    try: os.unlink( folder.joinpath( 'OETKey.htm' ) )
     except FileNotFoundError: pass
     try: os.unlink( folder.joinpath( 'search.htm' ) )
     except FileNotFoundError: pass
@@ -675,12 +678,14 @@ def _createAboutPage( level:int, buildFolder:Path, state:State ) -> bool:
 <p class="about">If you are the copyright owner of a Bible translation or a relevant dataset and would like to see it listed on this site,
         please contact us at <b>Freely</b> dot <b>Given</b> dot <b>org</b> (at) <b>gmail</b> dot <b>com</b>.</p>
 <p class="about">The source code for the Python program that produces these pages can be found at <a href="https://github.com/Freely-Given-org/OpenBibleData">GitHub.com/Freely-Given-org/OpenBibleData</a>.
-    You can also advise us of any errors by clicking on <em>New issue</em> <a href="https://github.com/Freely-Given-org/OpenBibleData/issues">here</a> and telling us the problem.</p>
-'''
+    You can also advise us of any errors by clicking on <em>New issue</em> <a href="https://github.com/Freely-Given-org/OpenBibleData/issues">here</a> and telling us the problem.</p>'''
     topHtml = makeTop( level, None, 'about', None, state ) \
                 .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}About OBD" ) \
                 .replace( '__KEYWORDS__', 'Bible, about, OBD' )
-    html = f'''{topHtml}{aboutHTML}<p class="note"><small>Last rebuilt: {date.today()}</small></p>{makeBottom( level, 'about', state )}'''
+    html = f'''{topHtml}
+{aboutHTML}
+<p class="note"><small>Last rebuilt: {date.today()}</small></p>
+{makeBottom( level, 'about', state )}'''
     checkHtml( 'About', html )
 
     filepath = buildFolder.joinpath( 'about.htm' )
@@ -691,6 +696,40 @@ def _createAboutPage( level:int, buildFolder:Path, state:State ) -> bool:
 # end of createSitePages._createAboutPage
 
 
+def _createOETKeyPage( level:int, buildFolder:Path, state:State ) -> bool:
+    """
+    Creates and saves the About OBD page.
+    """
+    fnPrint( DEBUGGING_THIS_MODULE, f"_createOETKeyPage( {level}, {buildFolder}, {state.BibleVersions} )" )
+    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Creating {'TEST ' if TEST_MODE else ''}OET Key page…" )
+
+    keyHTML = f'''<h1 id="Top">OET Key</h1>
+<p class="about">The <em>Open English Translation</em> of the Bible is not tied to tradition (and especially not to traditional mistakes or misunderstandings) so it has a number of changes from more common Bible translations.
+We also aim to educate our readers better about how our Bibles get to us, so that’s a second reason why is differs from usual, and hence requires this key to explain some of the features.</p>
+<h1>The Hebrew Scriptures <small>(Old Testament)</small><sup>*</sup></p>
+<p class="about">To be continued...</p>
+<h1>The Messianic Update <small>(New Testament)</small></p>
+<p class="about">To be continued...</p>
+<h1>Other</p>
+<p class="about">To be continued...</p>
+<p><b><sup>*</sup></b> The <em>OET</em> avoids the word ‘Testament’ because it’s not used in modern English (except perhaps by lawyers),
+and we dislike ‘Old’ and ‘New’ because ‘new’ might (wrongly) imply that the ‘old’ is no longer required.</p>'''
+    topHtml = makeTop( level, None, 'about', None, state ) \
+                .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}About OBD" ) \
+                .replace( '__KEYWORDS__', 'Bible, about, OBD' )
+    html = f'''{topHtml}
+{keyHTML}
+{makeBottom( level, 'about', state )}'''
+    checkHtml( 'OETKey', html )
+
+    filepath = buildFolder.joinpath( 'OETKey.htm' )
+    assert not filepath.is_file() # Check that we're not overwriting anything
+    with open( filepath, 'wt', encoding='utf-8' ) as htmlFile:
+        htmlFile.write( html )
+    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  {len(html):,} characters written to {filepath}" )
+# end of createSitePages._createOETKeyPage
+
+
 def _createMainIndexPage( level, folder:Path, state:State ) -> bool:
     """
     Creates and saves the main index page.
@@ -698,16 +737,16 @@ def _createMainIndexPage( level, folder:Path, state:State ) -> bool:
     fnPrint( DEBUGGING_THIS_MODULE, f"_createMainIndexPage( {level}, {folder}, {state.BibleVersions} )" )
 
     # Create the very top level index file
-    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Creating main {'TEST ' if TEST_MODE else ''}index page for {len(state.BibleVersions)} versions…" )
+    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Creating {'TEST ' if TEST_MODE else ''}main index page for {len(state.BibleVersions)} versions…" )
     html = makeTop( level, None, 'topIndex', None, state ) \
             .replace( '__TITLE__', f'TEST {SITE_NAME} Home' if TEST_MODE else f'{SITE_NAME} Home') \
             .replace( '__KEYWORDS__', 'Bible, translation, English, OET' )
     if TEST_MODE:
         html = html.replace( '<body>', '<body><p class="note"><a href="../">UP TO MAIN NON-TEST SITE</a></p>')
-    bodyHtml = f"""<!--_createMainIndexPage--><h1 id="Top">{SITE_NAME} Home TEST</h1>
-""" if TEST_MODE else f"""<!--_createMainIndexPage--><h1 id="Top">{SITE_NAME} Home</h1>
-"""
-    html = f'''{html}{bodyHtml}
+    bodyHtml = f'<!--_createMainIndexPage--><h1 id="Top">{SITE_NAME} TEST Home</h1>' \
+        if TEST_MODE else f'<!--_createMainIndexPage--><h1 id="Top">{SITE_NAME} Home</h1>'
+    html = f'''{html}
+{bodyHtml}
 <p class="note">Welcome to this <em>{SITE_NAME}</em> site created to share God’s fantastic message with everyone,
     and with a special interest in helping Bible translators around the world.</p>
 <p class="note">Choose a version abbreviation above to view Bible ‘books’ <b>by document</b> or <b>by section</b> or <b>by chapter</b>.</p>
@@ -737,12 +776,12 @@ def _createMainIndexPage( level, folder:Path, state:State ) -> bool:
 # """ if TEST_MODE else """<!--_createMainIndexPage--><h1 id="Top">{SITE_NAME} Versions</h1>
 # """
 
-#     bodyHtml = f'{bodyHtml}<p class="index">Select one of the above Bible version abbreviations for views of entire documents (‘<i>books</i>’) or sections or chapters, or else select either of the Parallel or Interlinear verse views.</p>\n<ol>\n'
+#     bodyHtml = f'{bodyHtml}<p class="index">Select one of the above Bible version abbreviations for views of entire documents (‘<i>books</i>’) or sections or chapters, or else select either of the Parallel or Interlinear verse views.</p>\n<ol>'
 #     for versionAbbreviation in state.BibleVersions:
-#         bodyHtml = f'{bodyHtml}<li><b>{versionAbbreviation}</b>: {state.BibleNames[versionAbbreviation]}</li>\n'
-#     bodyHtml = f'{bodyHtml}</ol>\n'
+#         bodyHtml = f'{bodyHtml}<li><b>{versionAbbreviation}</b>: {state.BibleNames[versionAbbreviation]}</li>'
+#     bodyHtml = f'{bodyHtml}</ol>'
 
-#     html += bodyHtml + f'<p class="index"><small>Last rebuilt: {date.today()}</small></p>\n' + makeBottom( level, 'topIndex', state )
+#     html += bodyHtml + f'<p class="index"><small>Last rebuilt: {date.today()}</small></p>' + makeBottom( level, 'topIndex', state )
 #     checkHtml( 'VersionIndex', html )
 
 #     filepath = folder.joinpath( 'index.htm' )
