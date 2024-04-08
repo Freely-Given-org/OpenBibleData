@@ -60,10 +60,10 @@ from html import makeTop, makeBottom, checkHtml
 from OETHandlers import getOETTidyBBB
 
 
-LAST_MODIFIED_DATE = '2024-04-03' # by RJH
+LAST_MODIFIED_DATE = '2024-04-08' # by RJH
 SHORT_PROGRAM_NAME = "createOETReferencePages"
 PROGRAM_NAME = "OpenBibleData createOETReferencePages functions"
-PROGRAM_VERSION = '0.61'
+PROGRAM_VERSION = '0.62'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -767,12 +767,12 @@ def preprocessHebrewWordsMorphemesGlosses( BBBSelection:Union[str, List[str]], s
         if (processBBB is not None and columns_string.startswith(processBBB)) \
         or (processBBB is None and columns_string[:3] not in ignoreBBBs):
             started = True
-            _ref, OSHBid, rowType, morphemeRowList, strongs, cantillationHierarchy, morphology, word, noCantillations, morphemeGlosses, contextualMorphemeGlosses, wordGloss, contextualWordGloss, glossCapitalisation, glossPunctuation, glossOrder, glossInsert = columns_string.split( '\t' )
+            _ref, rowType, lemmaRowList, strongs, morphology, word, noCantillations, morphemeGlosses, contextualMorphemeGlosses, wordGloss, contextualWordGloss, glossCapitalisation, glossPunctuation, glossOrder, glossInsert, role, nesting, tags = columns_string.split( '\t' )
             gloss = contextualWordGloss if contextualWordGloss else wordGloss if wordGloss else contextualMorphemeGlosses if contextualMorphemeGlosses else morphemeGlosses
             formMorph2Tuple = (noCantillations, morphology)
             state.OETRefData['OTFormUsageDict'][formMorph2Tuple].append( n )
-            if ',' in morphemeRowList:
-                for morphemeRowNumberStr in morphemeRowList.split( ',' ):
+            if ',' in lemmaRowList:
+                for morphemeRowNumberStr in lemmaRowList.split( ',' ):
                     morphemeRowNumber = int( morphemeRowNumberStr )
             else:
                 state.OETRefData['OTMorphemeDict'][noCantillations].append( n )
@@ -1423,13 +1423,13 @@ def create_Hebrew_word_pages( level:int, outputFolderPath:Path, state:State ) ->
         usedRoleLetters, usedMorphologies = set(), set()
         output_filename = f'{n}.htm'
         # dPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Got '{columns_string}' for '{output_filename}'" )
-        ref, _OSHBid, rowType, morphemeRowList, strongs, _cantillationHierarchy, morphology, word, noCantillations, morphemeGlosses, contextualMorphemeGlosses, wordGloss, contextualWordGloss, glossCapitalisation, glossPunctuation, glossOrder, glossInsert = columns_string.split( '\t' )
-        isMultipleMorphemes = ',' in morphemeRowList
-        # print( f"{ref} '{rowType}' ({morphemeRowList}) got '{word}' ({noCantillations}) morphology='{morphology}'" )
+        ref, rowType, lemmaRowList, strongs, morphology, word, noCantillations, morphemeGlosses, contextualMorphemeGlosses, wordGloss, contextualWordGloss, glossCapitalisation, glossPunctuation, glossOrder, glossInsert, role, nesting, tags = columns_string.split( '\t' )
+        isMultipleMorphemes = ',' in lemmaRowList
+        # print( f"{ref} '{rowType}' ({lemmaRowList}) got '{word}' ({noCantillations}) morphology='{morphology}'" )
         hebrewWord = (noCantillations.replace( ',', '' ) # Remove morpheme breaks
                         if noCantillations else word ) # Segs and notes have nothing in the noCantillations field
         wordGloss = wordGloss.replace( '=', '_' )
-        gloss = ( contextualWordGloss if contextualWordGloss else wordGloss if wordGloss else contextualMorphemeGlosses if contextualMorphemeGlosses else morphemeGlosses )
+        gloss = contextualWordGloss if contextualWordGloss else wordGloss if wordGloss else contextualMorphemeGlosses if contextualMorphemeGlosses else morphemeGlosses
         if isMultipleMorphemes:
             if contextualMorphemeGlosses:
                 mainGlossWord = sorted(contextualMorphemeGlosses.replace('/',',').split( ',' ), key=len)[-1]
@@ -1453,11 +1453,11 @@ def create_Hebrew_word_pages( level:int, outputFolderPath:Path, state:State ) ->
         tidyMorphologyField = translationField = capsField = ''
         if rowType != 'seg' and 'note' not in rowType:
             # it's a proper Hebrew (or Aramaic) word
-            assert morphemeRowList.count(',') == strongs.count(',') == morphology.count(',') == word.count(',') == noCantillations.count(',')
+            assert lemmaRowList.count(',') == strongs.count(',') == morphology.count(',') == word.count(',') == noCantillations.count(',')
             for individualMorphology in morphology.split( ',' ):
                 if individualMorphology:
                     tidyMorphology = individualMorphology
-                    tidyMorphologyField = f'''{tidyMorphologyField}<br> <small><a title="Learn more about OSHB morphology" href="https://hb.OpenScriptures.org/HomeFiles/Morph.html">Morphology</a>={tidyMorphology}</small>'''
+                    tidyMorphologyField = f'''{tidyMorphologyField}<br> <small><a title="Learn more about OSHB morphology" href="https://hb.OpenScriptures.org/HomeFiles/Morph.html">Morphology</a>=<a title="See OSHB morphology codes" href="https://hb.OpenScriptures.org/parsing/HebrewMorphologyCodes.html">{tidyMorphology}</a></small>'''
                     # print( f"{ref} got '{hebrewWord}' morphology ({len(individualMorphology)}) = '{individualMorphology}' (from ({len(morphology)}) '{morphology}')" )
                     PoS = individualMorphology[0] # individualMorphology is variable length, depending on the PoS, etc.
                     PoS_with_type = individualMorphology[:2] # Two characters
@@ -1566,7 +1566,7 @@ def create_Hebrew_word_pages( level:int, outputFolderPath:Path, state:State ) ->
         #             logging.critical( f"Unknown '{tagPrefix}' word tag in {n}: {columns_string}")
         #             unknownTag
         morphemeLinks = []
-        for morphemeRowNumber in morphemeRowList.split( ',' ):
+        for morphemeRowNumber in lemmaRowList.split( ',' ):
             morphemeLinks.append( f'<a title="View Hebrew morpheme" href="../HebMph/{morphemeRowNumber}.htm#Top">{morphemeRowNumber}</a>' )
         morphemeLinks = ( f'''Morphemes=<b>{', '.join(morphemeLinks)}</b>''' if isMultipleMorphemes else f'Morpheme=<b>{morphemeLinks[0]}</b>' ) if morphemeLinks else ''
         morphemeGlossesList = sorted( state.OETRefData['OTMorphemeOETGlossesDict'][noCantillations] )
@@ -1647,11 +1647,11 @@ This is all part of the commitment of the <em>Open English Translation</em> team
         for oN in thisWordNumberList:
             if oN==n: continue # don't duplicate the word we're making the page for
             # print( f"HERE: ({len(state.OETRefData['word_tables'][wordFileName][oN].split( TAB ))}) {state.OETRefData['word_tables'][wordFileName][oN]}")
-            oWordRef, _oOSHBid, oRowType, oMorphemeRowList, oStrongs, _oCantillationHierarchy, oMorphology, oWord, oNoCantillations, oMorphemeGlosses, oContextualMorphemeGlosses, oWordGloss, oContextualWordGloss, oGlossCapitalisation, oGlossPunctuation, oGlossOrder, oGlossInsert = state.OETRefData['word_tables'][wordFileName][oN].split( '\t' )
+            oWordRef, oRowType, oLemmaRowList, oStrongs, oMorphology, oWord, oNoCantillations, oMorphemeGlosses, oContextualMorphemeGlosses, oWordGloss, oContextualWordGloss, oGlossCapitalisation, oGlossPunctuation, oGlossOrder, oGlossInsert, oRole, oNesting, oTags = state.OETRefData['word_tables'][wordFileName][oN].split( '\t' )
             oHebrewWord = (oNoCantillations.replace( ',', '' ) # Remove morpheme breaks
                             if oNoCantillations else oWord ) # Segs and notes have nothing in the noCantillations field
             oWordGloss = oWordGloss.replace( '=', '_' )
-            oGloss = ( oContextualWordGloss if oContextualWordGloss else oWordGloss if oWordGloss else oContextualMorphemeGlosses if oContextualMorphemeGlosses else oMorphemeGlosses )
+            oGloss = oContextualWordGloss if oContextualWordGloss else oWordGloss if oWordGloss else oContextualMorphemeGlosses if oContextualMorphemeGlosses else oMorphemeGlosses
             oBBB, oCVW = oWordRef.split( '_', 1 )
             oC, oVW = oCVW.split( ':', 1 )
             oV, oW = oVW.split( 'w', 1 )
@@ -1698,11 +1698,11 @@ f''' {translation} <a title="Go to Open Scriptures Hebrew verse page" href="
                         dPrint( 'Info', DEBUGGING_THIS_MODULE, f"EXCESSIVE {len(nList):,} entries for '{mainGlossWord}' from {similarWord=}")
                     for thisN in nList:
                         if thisN == n: continue # That's the current word row
-                        eWordRef, _eOSHBid, eRowType, eMorphemeRowList, eStrongs, _eCantillationHierarchy, eMorphology, eWord, eNoCantillations, eMorphemeGlosses, eContextualMorphemeGlosses, eWordGloss, eContextualWordGloss, eGlossCapitalisation, eGlossPunctuation, eGlossOrder, eGlossInsert = state.OETRefData['word_tables'][wordFileName][thisN].split( '\t' )
+                        eWordRef, eRowType, eLemmaRowList, eStrongs, eMorphology, eWord, eNoCantillations, eMorphemeGlosses, eContextualMorphemeGlosses, eWordGloss, eContextualWordGloss, eGlossCapitalisation, eGlossPunctuation, eGlossOrder, eGlossInsert, eRole, eNesting, eTags = state.OETRefData['word_tables'][wordFileName][thisN].split( '\t' )
                         eHebrewWord = (eNoCantillations.replace( ',', '' ) # Remove morpheme breaks
                                         if eNoCantillations else eWord ) # Segs and notes have nothing in the noCantillations field
                         eWordGloss = eWordGloss.replace( '=', '_' )
-                        eGloss = ( eContextualWordGloss if eContextualWordGloss else eWordGloss if eWordGloss else eContextualMorphemeGlosses if eContextualMorphemeGlosses else eMorphemeGlosses )
+                        eGloss = eContextualWordGloss if eContextualWordGloss else eWordGloss if eWordGloss else eContextualMorphemeGlosses if eContextualMorphemeGlosses else eMorphemeGlosses
                         if eHebrewWord!=hebrewWord or eMorphology!=morphology:
                             eBBB, eCVW = eWordRef.split( '_', 1 )
                             eC, eVW = eCVW.split( ':', 1 )
@@ -1837,7 +1837,7 @@ def create_Hebrew_morpheme_pages( level:int, outputFolderPath:Path, state:State 
             Side-effects: udates usedRoleLetters and usedMorphologies
             """
             # for oN in thisMorphemeRowsList:
-            #     _oref, oOSHBid, orowType, omorphemeRowList, ostrongs, ocantillationHierarchy, omorphology, oword, _oNoCantillations, oMorphemeGlosses, oContextualMorphemeGlosses, oWordGloss, oContextualWordGloss, oglossCapitalisation, oglossPunctuation, oglossOrder, oglossInsert = state.OETRefData['word_tables'][wordFileName][oN].split( '\t' )
+            #     _oref, orowType, olemmaRowList, ostrongs, ocantillationHierarchy, omorphology, oword, _oNoCantillations, oMorphemeGlosses, oContextualMorphemeGlosses, oWordGloss, oContextualWordGloss, oglossCapitalisation, oglossPunctuation, oglossOrder, oglossInsert, oRole, oNesting, oTags = state.OETRefData['word_tables'][wordFileName][oN].split( '\t' )
             #     # usedRoleLetters.add( oRoleLetter )
             # # oRoleLetter remains set to the last value added to the set (which is the only value if len(oRoleSet)==1)
 
@@ -1848,7 +1848,7 @@ def create_Hebrew_morpheme_pages( level:int, outputFolderPath:Path, state:State 
                 maxWordsToShow = 100
                 morphemeHTML = f"<h2>Have {len(thisMorphemeRowsList):,} {'use' if len(thisMorphemeRowsList)==1 else 'uses'} of Hebrew root word <small>(morpheme)</small> ‘{thisMorphemeStr}’ in the Hebrew originals</h2>"
             for displayCounter,oN in enumerate( thisMorphemeRowsList, start=1 ):
-                oWordRef, oOSHBid, orowType, omorphemeRowList, ostrongs, ocantillationHierarchy, oMorphology, oword, oNoCantillations, oMorphemeGlosses, oContextualMorphemeGlosses, oWordGloss, oContextualWordGloss, oglossCapitalisation, oglossPunctuation, oglossOrder, oglossInsert = state.OETRefData['word_tables'][wordFileName][oN].split( '\t' )
+                oWordRef, oRowType, oLemmaRowList, oStrongs, oMorphology, oWord, oNoCantillations, oMorphemeGlosses, oContextualMorphemeGlosses, oWordGloss, oContextualWordGloss, oGlossCapitalisation, oGlossPunctuation, oGlossOrder, oGlossInsert, oRole, oNesting, oTags = state.OETRefData['word_tables'][wordFileName][oN].split( '\t' )
                 # print( f"    {oWordRef=} {oOSHBid=} {orowType=} {len(thisMorphemeRowsList)=}" )
                 oHebrewWord = oNoCantillations
                 oWordGloss = oWordGloss.replace( '=', '_' )

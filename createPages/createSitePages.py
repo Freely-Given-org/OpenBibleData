@@ -51,6 +51,7 @@ CHANGELOG:
     2024-01-02 Make sure all HTML folders contain an index file
     2024-01-11 Load all OET-LV NT books
     2024-03-21 Handle two word tables for OET
+    2024-04-04 Create 'OET Key' page
 """
 from gettext import gettext as _
 from typing import Dict, List, Tuple
@@ -85,7 +86,7 @@ from Dict import createTyndaleDictPages, createUBSDictionaryPages
 from html import makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2024-03-22' # by RJH
+LAST_MODIFIED_DATE = '2024-04-05' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData Create Site Pages"
 PROGRAM_VERSION = '0.96'
@@ -129,7 +130,7 @@ def _createSitePages() -> bool:
         columnHeaders = state.OETRefData['word_tables'][wordTableFilename][0]
         print( f"{columnHeaders=}")
         if '_OT_' in wordTableFilename:
-            assert columnHeaders == 'Ref\tOSHBid\tRowType\tMorphemeRowList\tStrongs\tCantillationHierarchy\tMorphology\tWord\tNoCantillations\tMorphemeGlosses\tContextualMorphemeGlosses\tWordGloss\tContextualWordGloss\tGlossCapitalisation\tGlossPunctuation\tGlossOrder\tGlossInsert' # If not, probably need to fix some stuff
+            assert columnHeaders == 'Ref\tRowType\tLemmaRowList\tStrongs\tMorphology\tWord\tNoCantillations\tMorphemeGlosses\tContextualMorphemeGlosses\tWordGloss\tContextualWordGloss\tGlossCapitalisation\tGlossPunctuation\tGlossOrder\tGlossInsert\tRole\tNesting\tTags' # If not, probably need to fix some stuff
         elif '_NT_' in wordTableFilename:
             assert columnHeaders == 'Ref\tGreekWord\tSRLemma\tGreekLemma\tVLTGlossWords\tOETGlossWords\tGlossCaps\tProbability\tStrongsExt\tRole\tMorphology\tTags' # If not, probably need to fix some stuff
 
@@ -705,15 +706,15 @@ def _createOETKeyPage( level:int, buildFolder:Path, state:State ) -> bool:
 
     keyHTML = f'''<h1 id="Top">OET Key</h1>
 <p class="about">The <em>Open English Translation</em> of the Bible is not tied to tradition (and especially not to traditional mistakes or misunderstandings) so it has a number of changes from more common Bible translations.
-We also aim to educate our readers better about how our Bibles get to us, so that’s a second reason why is differs from usual, and hence requires this key to explain some of the features.</p>
-<h1>The Hebrew Scriptures <small>(Old Testament)</small><sup>*</sup></p>
+We also aim to educate our readers better about how our Bibles get to us, so that’s a second reason why it differs from usual, and hence requires this key to explain some of the features.</p>
+<h1>The Hebrew Scriptures <small>(Old Testament)</small><sup>*</sup></h1>
 <p class="about">To be continued...</p>
-<h1>The Messianic Update <small>(New Testament)</small></p>
+<h1>The Messianic Update <small>(New Testament)</small></h1>
 <p class="about">To be continued...</p>
-<h1>Other</p>
+<h1>Other</h1>
 <p class="about">To be continued...</p>
 <p><b><sup>*</sup></b> The <em>OET</em> avoids the word ‘Testament’ because it’s not used in modern English (except perhaps by lawyers),
-and we dislike ‘Old’ and ‘New’ because ‘new’ might (wrongly) imply that the ‘old’ is no longer required.</p>'''
+plus we dislike ‘Old’ and ‘New’ because ‘new’ might (wrongly) imply that the ‘old’ is no longer required.</p>'''
     topHtml = makeTop( level, None, 'about', None, state ) \
                 .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}About OBD" ) \
                 .replace( '__KEYWORDS__', 'Bible, about, OBD' )

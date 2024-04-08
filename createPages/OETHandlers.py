@@ -60,10 +60,10 @@ from BibleTransliterations import transliterate_Hebrew, transliterate_Greek
 from settings import State
 
 
-LAST_MODIFIED_DATE = '2024-03-28' # by RJH
+LAST_MODIFIED_DATE = '2024-04-08' # by RJH
 SHORT_PROGRAM_NAME = "OETHandlers"
 PROGRAM_NAME = "OpenBibleData OET handler"
-PROGRAM_VERSION = '0.52'
+PROGRAM_VERSION = '0.53'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -241,15 +241,15 @@ def findLVQuote( level:int, BBB:str, C:str, V:str, occurrenceNumber:int, origina
                     olIndex = 0 # We started a match and then failed -- back to the beginning
                     matchStart = None
             else: # OT
-                #  0    1        2       3                4        5                      6           7     8                9                10                         11         12                   13                   14                15          16
-                # 'Ref\tOSHBid\tRowType\tMorphemeRowList\tStrongs\tCantillationHierarchy\tMorphology\tWord\tNoCantillations\tMorphemeGlosses\tContextualMorphemeGlosses\tWordGloss\tContextualWordGloss\tGlossCapitalisation\tGlossPunctuation\tGlossOrder\tGlossInsert'
+                #  0    1        2             3        4           5     6                7                8                          9          10                   11                   12                13          14           15    16       17
+                # 'Ref\tRowType\tLemmaRowList\tStrongs\tMorphology\tWord\tNoCantillations\tMorphemeGlosses\tContextualMorphemeGlosses\tWordGloss\tContextualWordGloss\tGlossCapitalisation\tGlossPunctuation\tGlossOrder\tGlossInsert\tRole\tNesting\tTags'
                 assert rowStr.startswith( f'{BBB}_{C}:{V}' ), f"{BBB} {C}:{V} {rowStr=}" # without the 'w' because segs and notes don't have word numbers
-                if row[8] == olWord: # we have a Hebrew word match
+                if row[6] == olWord: # we have a Hebrew word match
                     if currentOccurrenceNumber > 0:
                         assert olIndex == 0
                         currentOccurrenceNumber -= 1
                     if currentOccurrenceNumber == 0: # We can start matching up now
-                        gloss = row[12] if row[12] else row[11] if row[11] else row[10] if row[10] else row[9]
+                        gloss = row[10] if row[10] else row[9] if row[9] else row[8] if row[8] else row[7]
                         if not gloss:
                             logging.critical( f"No available gloss1 for Hebrew {row}" )
                         # assert gloss, f"{BBB} {C}:{V} {row=}"
@@ -284,7 +284,7 @@ def findLVQuote( level:int, BBB:str, C:str, V:str, occurrenceNumber:int, origina
                 else: # OT
                     if matchStart == -wordNumber:
                         matchStart = len(ourWords) # Convert to index of these words
-                    gloss = row[12] if row[12] else row[11] if row[11] else row[10] if row[10] else row[9]
+                    gloss = row[10] if row[10] else row[9] if row[9] else row[8] if row[8] else row[7]
                     if not gloss:
                         logging.critical( f"No available gloss2 for Hebrew {row}" )
                     # assert gloss, f"{BBB} {C}:{V} {row=}"
@@ -401,7 +401,7 @@ def livenOETWordLinks( bibleObject:ESFMBible, BBB:str, givenEntryList:InternalBi
                 wordNumber = int( wordnumberMatch.group(1) )
                 wordRow = state.OETRefData['word_tables'][wordFileName][wordNumber]
 
-                ref, OSHBid, rowType, morphemeRowList, strongs, cantillationHierarchy, morphology, word, noCantillations, morphemeGlosses, contextualMorphemeGlosses, wordGloss, contextualWordGloss, glossCapitalisation, glossPunctuation, glossOrder, glossInsert = wordRow.split( '\t' )
+                ref, rowType, lemmaRowList, strongs, morphology, word, noCantillations, morphemeGlosses, contextualMorphemeGlosses, wordGloss, contextualWordGloss, glossCapitalisation, glossPunctuation, glossOrder, glossInsert, role, nesting, tags = wordRow.split( '\t' )
 
                 # Do colourisation
                 caseClassName = None
