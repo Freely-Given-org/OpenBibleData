@@ -53,7 +53,7 @@ CHANGELOG:
 """
 from gettext import gettext as _
 from typing import Dict, List, Tuple, Optional
-# from pathlib import Path
+from datetime import datetime
 import os.path
 import logging
 import re
@@ -84,10 +84,10 @@ from OETHandlers import findLVQuote
 from Dict import loadAndIndexUBSGreekDictJSON, loadAndIndexUBSHebrewDictJSON
 
 
-LAST_MODIFIED_DATE = '2024-04-05' # by RJH
+LAST_MODIFIED_DATE = '2024-04-10' # by RJH
 SHORT_PROGRAM_NAME = "Bibles"
 PROGRAM_NAME = "OpenBibleData Bibles handler"
-PROGRAM_VERSION = '0.67'
+PROGRAM_VERSION = '0.69'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -102,34 +102,36 @@ def preloadVersions( state:State ) -> int:
     """
     fnPrint( DEBUGGING_THIS_MODULE, f"preloadVersions( {state.BibleVersions} )" )
 
-    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Preloading {state.BibleVersions}{' in TEST mode' if TEST_MODE else ''}…" )
+    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"{datetime.now().strftime('%H:%M')} Preloading {state.BibleVersions}{' in TEST mode' if TEST_MODE else ''}…" )
 
     for versionAbbreviation in state.BibleVersions[:]: # copy because we'll be deleting some entries as we go
         if versionAbbreviation == 'OET':
             # This is a combination of two translations, so nothing to load here
-            assert 'OET-RV' in state.BibleVersions and 'OET-LV' in state.BibleVersions, state.BibleVersions
+            assert 'OET-RV' in state.BibleVersions and 'OET-LV' in state.BibleVersions
         elif versionAbbreviation == 'OET-LV':
             # Load the OT and NT from separate folders, and then combine them into one ESFM Bible object
-            thisBible = preloadVersion( versionAbbreviation, state.BibleLocations['OET-LV-OT'], state )
-            assert isinstance( thisBible, ESFMBible.ESFMBible )
+            thisBibleOT = preloadVersion( versionAbbreviation, state.BibleLocations['OET-LV-OT'], state )
+            assert isinstance( thisBibleOT, ESFMBible.ESFMBible )
             thisBibleNT = preloadVersion( versionAbbreviation, state.BibleLocations['OET-LV-NT'], state )
             assert isinstance( thisBibleNT, ESFMBible.ESFMBible )
-            # print( f"{len(thisBible)=} {len(thisBibleNT)=}" )
+            # print( f"{len(thisBibleOT)=} {len(thisBibleNT)=}" )
+            thisBible = thisBibleOT
             for bookObject in thisBibleNT:
                 # print( type(bookObject), bookObject.BBB )
                 assert bookObject.BBB not in thisBible.books
                 thisBible.books[bookObject.BBB] = bookObject
-            # print( f"{len(thisBible)=}" )
-            # print( f"{len(thisBible.ESFMWordTables)=}" )
+            # print( f"{len(thisBibleOT)=}" )
+            # print( f"{len(thisBibleOT.ESFMWordTables)=}" )
             for wordTableID,wordTable in thisBibleNT.ESFMWordTables.items():
                 # print( f"{wordTableID=} {type(wordTable)=}")
                 thisBible.ESFMWordTables[wordTableID] = wordTable
             # print( f"{len(thisBible.ESFMWordTables)=}" )
             # For now, use add custom OT and NT sourceFolder variables so that we can load the two different word files
-            thisBible.OTsourceFolder = thisBible.sourceFolder
+            thisBible.OTsourceFolder = thisBibleOT.sourceFolder
             thisBible.NTsourceFolder = thisBibleNT.sourceFolder
             thisBible.sourceFolder = None
             state.preloadedBibles[versionAbbreviation] = thisBible
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"preloadVersions() loaded {thisBible}" )
         elif versionAbbreviation in state.BibleLocations:
             thisBible = preloadVersion( versionAbbreviation, state.BibleLocations[versionAbbreviation], state )
             if isinstance(thisBible, Bible) \

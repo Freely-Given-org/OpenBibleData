@@ -47,15 +47,15 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39, BOOKLIST_NT27
 
 
-LAST_MODIFIED_DATE = '2024-04-05' # by RJH
+LAST_MODIFIED_DATE = '2024-04-12' # by RJH
 SHORT_PROGRAM_NAME = "settings"
-PROGRAM_NAME = "OpenBibleData Create Pages"
+PROGRAM_NAME = "OpenBibleData (OBD) Create Pages"
 PROGRAM_VERSION = '0.96'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
 
-OET_VERSION = 'v0.06'
+OET_VERSION = 'v0.08'
 
 TEST_MODE = True # Writes website into Test subfolder
 ALL_PRODUCTION_BOOKS = not TEST_MODE # If set to False, only selects one book per version for a faster test build
@@ -401,8 +401,8 @@ You can read more about the design of the <em>OET</em> at <a href="https://OpenE
                 'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
                 'acknowledgements': '''<p class="acknwldg">Thanks to <a href="https://Freely-Given.org/">Freely-Given.org</a> for creating this exciting, radical, new Bible translation which is viewable from <a href="https://OpenEnglishTranslation.Bible">OpenEnglishTranslation.Bible</a>.
 We are very grateful to Dr. Alan Bunning of the <a href="https://GreekCNTR.org">Center for New Testament Restoration</a> whose many years of hard work the <em>OET-LV</em> part of the New Testament is adapted from.
-The <em>OET-LV</em> part of the Old Testament text (and the morphology analysis) is adapted from the work of the <a href="https://hb.OpenScriptures.org/">Open Scriptures Hebrew Bible</a> team.
-We’re also grateful to the <a href="https://www.Biblica.com/clear/">Biblica Clear Bible team</a> who provide the pronoun referential information as part of their <a href="https://GitHub.com/Clear-Bible/macula-greek">Macula Greek</a> project and also some OT glosses as part of their <a href="https://GitHub.com/Clear-Bible/macula-hebrew">Macula Hebrew</a> project.</p>''' },
+The <em>OET-LV</em> part of the Old Testament Hebrew text (and the morphology analysis) is adapted from the work of the <a href="https://hb.OpenScriptures.org/">Open Scriptures Hebrew Bible</a> team.
+We’re also grateful to the <a href="https://www.Biblica.com/clear/">Biblica Clear Bible team</a> who provide the pronoun referential information as part of their <a href="https://GitHub.com/Clear-Bible/macula-greek">Macula Greek</a> project and also some of the OT glosses as part of their <a href="https://GitHub.com/Clear-Bible/macula-hebrew">Macula Hebrew</a> project.</p>''' },
         'OET-RV': {'about': '''<p class="about">The (still unfinished) <em>Open English Translation Readers’ Version</em> is a new, modern-English easy-to-read translation of the Bible.
 You can read more about the design of the <em>OET-RV</em> at <a href="https://OpenEnglishTranslation.Bible/Design/ReadersVersion">OpenEnglishTranslation.Bible/Design/ReadersVersion</a>.</p>''',
                 'copyright': '<p class="copyright">Copyright © 2010-2024 <a href="https://Freely-Given.org">Freely-Given.org</a>.</p>',
@@ -413,9 +413,9 @@ You can read more about the design of the <em>OET-LV</em> at <a href="https://Op
                 'copyright': '<p class="copyright">Copyright © 2010-2024 <a href="https://Freely-Given.org">Freely-Given.org</a>.</p>',
                 'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
                 'acknowledgements': '''<p class="acknwldg">Thanks to <a href="https://Freely-Given.org/">Freely-Given.org</a> for creating this exciting, new Bible translation which is viewable from <a href="https://OpenEnglishTranslation.Bible">OpenEnglishTranslation.Bible</a>.
-We are very grateful to Dr. Alan Bunning of the <a href="https://GreekCNTR.org">Center for New Testament Restoration</a> whose many years of hard work this <em>OET-LV</em> New Testament is adapted from.
-The <em>OET-LV</em> Old Testament text (and the morphology analysis) is adapted from the work of the <a href="https://hb.OpenScriptures.org/">Open Scriptures Hebrew Bible</a> team.
-We’re also grateful to the <a href="https://www.Biblica.com/clear/">Biblica Clear Bible team</a> who provide the pronoun referential information as part of their <a href="https://GitHub.com/Clear-Bible/macula-greek">Macula Greek</a> project and also some OT glosses as part of their <a href="https://GitHub.com/Clear-Bible/macula-hebrew">Macula Hebrew</a> project.</p>''' },
+We are very grateful to Dr. Alan Bunning of the <a href="https://GreekCNTR.org">Center for New Testament Restoration</a> whose many years of hard work this literal New Testament is adapted from.
+The Old Testament Hebrew text (and the morphology analysis) is adapted from the work of the <a href="https://hb.OpenScriptures.org/">Open Scriptures Hebrew Bible</a> team.
+We’re also grateful to the <a href="https://www.Biblica.com/clear/">Biblica Clear Bible team</a> who provide the pronoun referential information as part of their <a href="https://GitHub.com/Clear-Bible/macula-greek">Macula Greek</a> project and also some of the OT glosses as part of their <a href="https://GitHub.com/Clear-Bible/macula-hebrew">Macula Hebrew</a> project.</p>''' },
         'ULT': {'about': '<p class="about">unfoldingWord® Literal Text (2023) and derived from the 1901 ASV.</p>',
                 'copyright': '<p class="copyright">Copyright © 2023 by unfoldingWord.</p>',
                 'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',

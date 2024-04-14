@@ -66,10 +66,10 @@ from settings import State
 from html import checkHtml
 
 
-LAST_MODIFIED_DATE = '2024-04-02' # by RJH
+LAST_MODIFIED_DATE = '2024-04-13' # by RJH
 SHORT_PROGRAM_NAME = "usfm"
 PROGRAM_NAME = "OpenBibleData USFM to HTML functions"
-PROGRAM_VERSION = '0.70'
+PROGRAM_VERSION = '0.73'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -205,7 +205,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                     inListDepth -= 1
                 inList = None
             if basicOnly:
-                if html: html = f'{html}<br>' # Just start the new paragraph on a new line
+                if html: html = f'{html}<br>¶ ' # Just start the new paragraph on a new line with a pilcrow
             else: # not basicOnly
                 html = f'{html}<p class="{marker}">'
                 inParagraph = marker
@@ -490,8 +490,14 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                                 html = f'{html[:-6]}\n' # Open the last li entry back up
                                 inListEntry = True
                         currentListLevel += 1
-                        html = f"{html}{' '*currentListLevel}<ul>\n"
-                    html = f"{html}{' '*(markerListLevel-1)}<ul>\n"
+                        while html.endswith('<br>') or html.endswith('\n'):
+                            if html.endswith('<br>'): html = html[:-4]
+                            if html.endswith('\n'): html = html[:-1]
+                        html = f"{html}\n{' '*currentListLevel}<ul>\n"
+                    while html.endswith('<br>') or html.endswith('\n'):
+                        if html.endswith('<br>'): html = html[:-4]
+                        if html.endswith('\n'): html = html[:-1]
+                    html = f"{html}\n{' '*(markerListLevel-1)}<ul>\n"
                     inList = f'ul_{currentListLevel+1}'
                 elif markerListLevel < currentListLevel:
                     if markerListLevel < currentListLevel - 1: # it's more than one level down
@@ -567,7 +573,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
             html = f'{html}{NARROW_NON_BREAK_SPACE}{formatUSFMText(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state)}{NARROW_NON_BREAK_SPACE}'
         # The following should all have their own data and get converted to a simple <p>…</p> field
         elif marker in ('ip','ipi','ipq','ipr', 'im','imi','imq', 'iq1','iq2','iq3', 'io1','io2','io3','io4'):
-            assert rest
+            assert rest, f"{versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {marker}='{rest}'"
             assert not inSection and not inParagraph, f"{versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {marker}={rest}"
             introHtml = formatUSFMText( versionAbbreviation, refTuple, segmentType, rest, basicOnly, state )
             if marker in ('io1','io2','io3','io4'):
@@ -764,7 +770,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
             # if '_' in sanitisedFnoteMiddle or 'UNDERLINE' in sanitisedFnoteMiddle \
             # or '=' in sanitisedFnoteMiddle or 'EQUAL' in sanitisedFnoteMiddle: halt
             if '"' in sanitisedFnoteMiddle or '<' in sanitisedFnoteMiddle or '>' in sanitisedFnoteMiddle:
-                logging.critical( f"Left-over HTML chars in {refTuple} {sanitisedFnoteMiddle=}" )
+                logging.critical( f"Left-over HTML chars in {versionAbbreviation} {refTuple} {sanitisedFnoteMiddle=}" )
                 sanitisedFnoteMiddle = sanitisedFnoteMiddle.replace( '"', '&quot;' ).replace( '<', '&lt;' ).replace( '>', '&gt;' )
                 # if versionAbbreviation != 'LEB': # LEB MRK has sanitisedFnoteMiddle='Note: A quotation from Isa 40:3|link-href="None"'
                 #     halt # in case it's a systematic problem
@@ -1201,7 +1207,7 @@ def livenIntroductionLinks( versionAbbreviation:str, refTuple:tuple, segmentType
         guts = match.group(0)[1:-1] # Remove the parentheses or other surrounding chars
         preChar, refC, refV, refRest, postChar = match.groups()
         dPrint( 'Info', DEBUGGING_THIS_MODULE, f"Got {versionAbbreviation} intro ref CV match with '{preChar}' '{guts}' '{postChar}' -> {match.groups()=}" )
-        logging.critical( f"Assuming '{guts}' ref in {ourBBB} intro is a self-reference BUT THIS COULD EASILY BE WRONG" )
+        logging.critical( f"Assuming {versionAbbreviation} {ourBBB} intro '{guts}' ref is a self-reference BUT THIS COULD EASILY BE WRONG" )
         if segmentType == 'book':
             newGuts = f'<a title="Jump down to reference" href="#C{refC}V{refV}">{guts}</a>'
         elif segmentType == 'chapter':

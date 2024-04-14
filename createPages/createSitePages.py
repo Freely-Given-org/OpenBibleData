@@ -86,9 +86,9 @@ from Dict import createTyndaleDictPages, createUBSDictionaryPages
 from html import makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2024-04-05' # by RJH
+LAST_MODIFIED_DATE = '2024-04-11' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
-PROGRAM_NAME = "OpenBibleData Create Site Pages"
+PROGRAM_NAME = "OpenBibleData (OBD) Create Site Pages"
 PROGRAM_VERSION = '0.96'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
@@ -120,15 +120,15 @@ def _createSitePages() -> bool:
     state.OETRefData['word_tables'] = {}
     lvBible = state.preloadedBibles['OET-LV']
     assert len(lvBible.ESFMWordTables) == 2, f"{len(lvBible.ESFMWordTables)=}"
-    print( f"{lvBible.ESFMWordTables=}" )
+    # print( f"{lvBible.ESFMWordTables=}" )
     for wordTableFilename in lvBible.ESFMWordTables:
         assert wordTableFilename.endswith( '.tsv' )
         if lvBible.ESFMWordTables[wordTableFilename] is None:
             lvBible.loadESFMWordFile( wordTableFilename )
-        print( f"{type(lvBible.ESFMWordTables[wordTableFilename])}" )
+        # print( f"{type(lvBible.ESFMWordTables[wordTableFilename])}" )
         state.OETRefData['word_tables'][wordTableFilename] = lvBible.ESFMWordTables[wordTableFilename]
         columnHeaders = state.OETRefData['word_tables'][wordTableFilename][0]
-        print( f"{columnHeaders=}")
+        # print( f"{columnHeaders=}")
         if '_OT_' in wordTableFilename:
             assert columnHeaders == 'Ref\tRowType\tLemmaRowList\tStrongs\tMorphology\tWord\tNoCantillations\tMorphemeGlosses\tContextualMorphemeGlosses\tWordGloss\tContextualWordGloss\tGlossCapitalisation\tGlossPunctuation\tGlossOrder\tGlossInsert\tRole\tNesting\tTags' # If not, probably need to fix some stuff
         elif '_NT_' in wordTableFilename:
@@ -187,7 +187,7 @@ def _createSitePages() -> bool:
         else: # not OET
             thisBible = state.preloadedBibles[versionAbbreviation]
             thisBibleBooksToLoad = state.booksToLoad[versionAbbreviation]
-            print( f'{versionAbbreviation}: {thisBible=} {thisBibleBooksToLoad=}' )
+            # print( f'{versionAbbreviation}: {thisBible=} {thisBibleBooksToLoad=}' )
             # if versionAbbreviation in state.selectedVersesOnlyVersions:
             #     state.BBBsToProcess[versionAbbreviation] = []
             #     assert isinstance( thisBible, dict )

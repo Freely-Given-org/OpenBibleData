@@ -61,7 +61,7 @@ from createOETReferencePages import CNTR_BOOK_ID_MAP, OSHB_ADJECTIVE_DICT, OSHB_
 from OETHandlers import getOETTidyBBB, getOETBookName, livenOETWordLinks
 
 
-LAST_MODIFIED_DATE = '2024-04-07' # by RJH
+LAST_MODIFIED_DATE = '2024-04-14' # by RJH
 SHORT_PROGRAM_NAME = "createParallelVersePages"
 PROGRAM_NAME = "OpenBibleData createParallelVersePages functions"
 PROGRAM_VERSION = '0.92'
@@ -73,6 +73,7 @@ BACKSLASH = '\\'
 NEWLINE = '\n'
 EM_SPACE = ' '
 NARROW_NON_BREAK_SPACE = ' '
+WJ = '\u2060' # word joiner (makes Hebrew displays on console ugly and hard to read)
 
 
 def createParallelVersePages( level:int, folder:Path, state:State ) -> bool:
@@ -262,7 +263,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                                 try:
                                     greekWords[f'{versionAbbreviation}_NoAccents'] = greekClass.removeAccents()
                                 except Exception as exc:
-                                    print( f"\n{BBB} {C}:{V} {versionAbbreviation}\n{greekWords[f'{versionAbbreviation}_NoPunct']=}" )
+                                    # print( f"\n{BBB} {C}:{V} {versionAbbreviation}\n{greekWords[f'{versionAbbreviation}_NoPunct']=}" )
                                     raise exc
                                 # print( f"\n{BBB} {C}:{V} {versionAbbreviation}\n{greekWords[f'{versionAbbreviation}_NoPunct']=}\n{greekWords[f'{versionAbbreviation}_NoAccents']=}" )
                             if isinstance( thisBible, ESFMBible.ESFMBible ):
@@ -589,7 +590,9 @@ def brightenSRGNT( BBB:str, C:str, V:str, brightenTextHtml:str, verseEntryList, 
 
     wordFileName = 'OET-LV_NT_word_table.tsv'
 
-    punctuatedGrkWords = brightenTextHtml.replace( '<br>', ' ').replace( '  ', ' ').split( ' ' )
+    punctuatedGrkWords = brightenTextHtml.replace( '¶ ', ' ') \
+                                         .replace( '<br>', ' ').replace( '  ', ' ') \
+                                         .split( ' ' )
     strippedGrkWords = [punctuatedGrkWord.lstrip( '“‘˚(' ).rstrip( '.,?!:”’·;)–…' ) for punctuatedGrkWord in punctuatedGrkWords]
 
     # Match Greek words to word numbers
@@ -742,7 +745,8 @@ def brightenUHB( BBB:str, C:str, V:str, brightenUHBTextHtml:str, verseEntryList,
         It seems that the colon is often correlated to a colon in strongs, e.g., "b:H1471a"
             but there are also word entries without a colon in strongs, yet one in the morphology!!!
     """
-    dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\nbrightenUHB( {BBB} {C}:{V} {brightenUHBTextHtml}, {verseEntryList}, … )…" )
+    UHBRef = f'{BBB}_{C}:{V}'
+    dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\nbrightenUHB( {UHBRef} {brightenUHBTextHtml}, {verseEntryList}, … )…" )
 
     wordFileName = 'OET-LV_OT_word_table.tsv'
 
@@ -775,15 +779,18 @@ def brightenUHB( BBB:str, C:str, V:str, brightenUHBTextHtml:str, verseEntryList,
         adjustedBrightenUHBTextHtml = f'{adjustedBrightenUHBTextHtml[:ixStartSpan]}{adjustedBrightenUHBTextHtml[ixEndSpan+8:]}' # Remove this non-Hebrew bit before we divide it into words
         vC, vV = vaText.split(':') if ':' in vaText else (C, vaText)
     assert 'class="va"' not in adjustedBrightenUHBTextHtml
-    punctuatedHebWords = ( adjustedBrightenUHBTextHtml.replace( '<br>', ' ')
+    cleanedAdjustedBrightenUHBTextHtml = ( adjustedBrightenUHBTextHtml.replace( '<br>', ' ')
                           .replace( '־', ' ־ ') # We surrounded maqaf by spaces so it's processed like a word
                           .replace( '׀', ' ׀ ' ) # Same for HEBREW PUNCTUATION PASEQ U+05C0
                           .replace( ' פ ', ' ') # Remove stand-alone pe, first one at Gen 35:22
                           .replace( ' ס ', ' ') # Remove stand-alone samekh, first one at Deu 2:8
+                        #   .replace( ' ס', '') # Remove stand-alone samekh at end of strong, first one at Exo 14:25 XXX THIS IS DELETING SAMEKH AT START OF WORDS!!!!
                           .replace( '  ', ' ')
-                          .split( ' ' )
                           )
-    WJ = '\u2060' # word joiner (makes Hebrew displays on console ugly and hard to read)
+    if cleanedAdjustedBrightenUHBTextHtml.endswith(' פ'):
+        cleanedAdjustedBrightenUHBTextHtml = cleanedAdjustedBrightenUHBTextHtml[:-2] # Remove final stand-alone samekh
+        # print( f"{UHBRef} Did extra clean-up '{cleanedAdjustedBrightenUHBTextHtml.replace(WJ,'')}'")
+    punctuatedHebWords = cleanedAdjustedBrightenUHBTextHtml.split( ' ' )
     strippedHebWords = []
     for punctuatedHebWord in punctuatedHebWords:
         if punctuatedHebWord.endswith( '׃׆ס' ):
@@ -791,7 +798,7 @@ def brightenUHB( BBB:str, C:str, V:str, brightenUHBTextHtml:str, verseEntryList,
         if punctuatedHebWord.endswith( '׃פ' ) or punctuatedHebWord.endswith( '׃ס' ): # We don't want to remove these from the end of normal words
             punctuatedHebWord = punctuatedHebWord[:-2] # Remove 'sof pasuq' and 'pe' or 'samekh' Hebrew characters
         strippedHebWords.append( punctuatedHebWord.lstrip( '“‘˚(' ).rstrip( '.,?!:”’·;)–…׃') ) # Last rstrip one is 'sof pasuq' and 'pe' & 'samekh' Hebrew characters
-    print( f"  brightenUHB strippedHebWords={str(strippedHebWords).replace(WJ,'')}" )
+    # print( f"  brightenUHB strippedHebWords={str(strippedHebWords).replace(WJ,'')}" )
 
     # Match Hebrew words to word numbers -- we use the original numbering which is marked as variant in UHB
     try: firstWordNumber,lastWordNumber = state.OETRefData['word_table_indexes'][wordFileName][f'{BBB}_{vC}:{vV}']
@@ -802,7 +809,7 @@ def brightenUHB( BBB:str, C:str, V:str, brightenUHBTextHtml:str, verseEntryList,
     currentWordNumber = firstWordNumber
     hebWordNumbers = []
     for strippedHebWord in strippedHebWords:
-        print( f"  {BBB} {C}:{V} strippedHebWord='{strippedHebWord.replace(WJ,'')}' {currentWordNumber=} from ({firstWordNumber},{lastWordNumber})" )
+        # print( f"  {UHBRef} strippedHebWord='{strippedHebWord.replace(WJ,'')}' {currentWordNumber=} from ({firstWordNumber},{lastWordNumber})" )
         ref, rowType, lemmaRowList, strongs, morphology, word, noCantillations, morphemeGlosses, contextualMorphemeGlosses, wordGloss, contextualWordGloss, glossCapitalisation, glossPunctuation, glossOrder, glossInsert, role, nesting, tags = state.OETRefData['word_tables'][wordFileName][currentWordNumber].split( '\t' )
         hebWordNumbers.append( currentWordNumber )
         # TODO: probably d field in PSA is a problem
@@ -810,16 +817,16 @@ def brightenUHB( BBB:str, C:str, V:str, brightenUHBTextHtml:str, verseEntryList,
             assert currentWordNumber <= lastWordNumber, f"{currentWordNumber=} {firstWordNumber=} {lastWordNumber=}"
         currentWordNumber += 1
     if len(hebWordNumbers) != len(strippedHebWords):
-        logging.critical( f"brighten UHB was unable to find word numbers for all words for {BBB} {C}:{V} (got {len(hebWordNumbers)} out of {len(strippedHebWords)})" )
+        logging.critical( f"brighten UHB was unable to find word numbers for all words for {UHBRef} (got {len(hebWordNumbers)} out of {len(strippedHebWords)})" )
 
     # TODO: Not totally sure that we need these extras from https://github.com/Center-for-New-Testament-Restoration/SR files
     #           now that we have the word numbers for the Hebrew words
     allExtras = None
     for verseEntry in verseEntryList:
-        print( f"    vE {verseEntry=}" )
+        # print( f"    vE {verseEntry=}" )
         marker, extras = verseEntry.getMarker(), verseEntry.getExtras()
         if extras: # Extras contain the info we need, like: ww @ 4 = 'Ἀρχὴ|lemma="ἀρχή" x-koine="αρχη" x-strong="G07460" x-morph="Gr,N,....NFS"'
-            print( f"      ME {marker=} {extras=}" )
+            # print( f"      ME {marker=} {extras=}" )
             if allExtras is None:
                 allExtras = list( extras )
             else: allExtras += list( extras )
@@ -830,7 +837,7 @@ def brightenUHB( BBB:str, C:str, V:str, brightenUHBTextHtml:str, verseEntryList,
         searchStartIndex = verseWordNumberIndex = extraIndexOffset = 0
         for _safetyCount1 in range( len(strippedHebWords)+1 ):
             rawHebWord = strippedHebWords[verseWordNumberIndex]
-            print( f"Start of loop1 {verseWordNumberIndex=} {rawHebWord=}" )
+            # print( f"Start of loop1 {verseWordNumberIndex=} {rawHebWord=}" )
             attribDict = {}
             if rawHebWord in '־׀': # maqaf and paseq
                 attribDict['lang'] = 'He'
@@ -842,10 +849,10 @@ def brightenUHB( BBB:str, C:str, V:str, brightenUHBTextHtml:str, verseEntryList,
                 extraIndexOffset -= 1 # Stops the extras from advancing
                 continue # nothing more to do in this loop
             ix = brightenUHBTextHtml.index( rawHebWord, searchStartIndex )
-            print( f"  aE {verseWordNumberIndex=} {rawHebWord=} {searchStartIndex=} {ix=} {extraIndexOffset=}")
+            # print( f"  aE {verseWordNumberIndex=} {rawHebWord=} {searchStartIndex=} {ix=} {extraIndexOffset=}")
             assert ix != -1
             simpleHebWord = rawHebWord.lstrip( '“‘˚(' ) # TODO: Why do we need to do this again? Seems redundant
-            print( f"{simpleHebWord=}" )
+            # print( f"{simpleHebWord=}" )
             ix += len(rawHebWord) - len(simpleHebWord) # Adjust for removal of any leading punctuation
             simpleHebWord = simpleHebWord.rstrip( '.,?!:”’·;)–…׃' ) # Last ones are 'sof pasuq' and was 'pe' & samekh Hebrew characters
             # if '\u2060' not in simpleHebWord: # word joiner '⁠' -- this fails for words like 'בְּ\u2060רֵאשִׁ֖ית' which has a word-joiner in it
@@ -853,12 +860,12 @@ def brightenUHB( BBB:str, C:str, V:str, brightenUHBTextHtml:str, verseEntryList,
             assert ',' not in simpleHebWord and ':' not in simpleHebWord and '.' not in simpleHebWord and '¦' not in simpleHebWord # Do this instead
             if '־' in simpleHebWord: halt # maqaf
             for _safetyCount2 in range( 4 ): # we use this instead of while True to use extraIndexOffset to step past any possible footnotes, etc.
-                print( f"     {_safetyCount2} {verseWordNumberIndex=} {extraIndexOffset=} sum={verseWordNumberIndex+extraIndexOffset} {len(allExtras)=}")
+                # print( f"     {_safetyCount2} {verseWordNumberIndex=} {extraIndexOffset=} sum={verseWordNumberIndex+extraIndexOffset} {len(allExtras)=}")
                 try: extraEntry = allExtras[verseWordNumberIndex+extraIndexOffset]
                 except IndexError: break # not sure why wordNumberIndex is too high (even with extraIndexOffset=0) and this happens -- first one at Gen 3:15
-                print( f"     {brightenUHBTextHtml[ix:ix+20]=}… {extraEntry=}")
+                # print( f"     {brightenUHBTextHtml[ix:ix+20]=}… {extraEntry=}")
                 extraType, extraText = extraEntry.getType(), extraEntry.getText()
-                print( f"       TyTxClTx {extraType=} {extraText=} {extraEntry.getCleanText()=}")
+                # print( f"       TyTxClTx {extraType=} {extraText=} {extraEntry.getCleanText()=}")
                 if extraType != 'ww': extraIndexOffset += 1; continue # it could be a footnote or something
                 if extraText.startswith( f'{simpleHebWord}|' ):
                     extraText = extraText[len(simpleHebWord)+1:] # Remove the word that we've just confirmed, left with something like 'lemma="ἁμαρτία" x-koine="αμαρτιασ" x-strong="G02660" x-morph="Gr,N,....AFP"'
@@ -870,7 +877,7 @@ def brightenUHB( BBB:str, C:str, V:str, brightenUHBTextHtml:str, verseEntryList,
                                         #    .replace( 'בֵּית לֶחֶם', 'בֵּית_לֶחֶם' ) # Need special handling for Beth Lechem / Bethlehem (Gen 35:19 onwards) with a space in the lemma
                                         #    .replace( 'בַּעַל חָנָן', 'בַּעַל_חָנָן' ) # Need special handling for Ba'al Hanan (Gen 36:38 onwards) with a space in the lemma
                                             .split( '" ' ) ): # Use the double quote so we don't need every special case with a space in the UHB 'lemma' field
-                        print( f"    {extraTextChunk=}")
+                        # print( f"    {extraTextChunk=}")
                         fieldName, fieldValue = extraTextChunk.split( '=', 1 )
                         fieldValue = fieldValue.strip( '"' )
                         if fieldName.startswith( 'x-' ): fieldName = fieldName[2:]
@@ -880,7 +887,7 @@ def brightenUHB( BBB:str, C:str, V:str, brightenUHBTextHtml:str, verseEntryList,
                             # Seems that the ':' is a morpheme separator
                             strongs = []
                             for subFieldValue in fieldValue.split( ':' ):
-                                print( f"      strong {subFieldValue=}" )
+                                # print( f"      strong {subFieldValue=}" )
                                 if subFieldValue[0] == 'H':
                                     subFieldValue = subFieldValue[1:]
                                     # assert subFieldValue.isdigit() # Fails on '7760a'
@@ -888,7 +895,7 @@ def brightenUHB( BBB:str, C:str, V:str, brightenUHBTextHtml:str, verseEntryList,
                                 strongs.append( subFieldValue )
                             fieldValue = strongs
                         elif fieldName == 'morph':
-                            print( f"      morph field {fieldValue=}")
+                            # print( f"      morph field {fieldValue=}")
                             if ':' in attribDict['strong']: # 'strong' in attribDict and 
                                 assert fieldValue.count(':') == attribDict['strong'].count( ':' )
                             assert fieldValue.startswith( 'He,' ) or fieldValue.startswith( 'Ar,' ), f"{fieldValue=}"
@@ -897,18 +904,18 @@ def brightenUHB( BBB:str, C:str, V:str, brightenUHBTextHtml:str, verseEntryList,
                             # Seems that the ':' is a morpheme separator in the UHB
                             morphs = []
                             for subFieldValue in fieldValue.split( ':' ):
-                                print( f"        morph {subFieldValue=}" )
+                                # print( f"        morph {subFieldValue=}" )
                                 assert 1 <= len(subFieldValue) <= 6
                                 morphs.append( subFieldValue )
                             fieldValue = morphs
-                        print( f"     {simpleHebWord} {fieldName}='{fieldValue}'" )
+                        # print( f"     {simpleHebWord} {fieldName}='{fieldValue}'" )
                         attribDict[fieldName] = fieldValue
                     break
-                print( f"Oops!!! No match for {simpleHebWord=} {extraText=}")
+                # print( f"Oops!!! No match for {simpleHebWord=} {extraText=}")
                 # TODO: Why do we have to disable the next two lines for NEH 7:68
             #     halt
             # else: need_to_increase_count2_for_brightenUHB
-            print( f"    {attribDict=}" )
+            # print( f"    {attribDict=}" )
             try:
                 wordLink = f'../../ref/HebWrd/{hebWordNumbers[_safetyCount1]}.htm#Top' # We'd prefer to link to our own word pages
             except IndexError:
@@ -920,38 +927,39 @@ def brightenUHB( BBB:str, C:str, V:str, brightenUHBTextHtml:str, verseEntryList,
                         caseClassName = 'hebVrb'
                         break
             except KeyError:
-                print( f"Error: no morph available for {simpleHebWord=} from {simpleHebWord=}" )
+                print( f"Error: {UHBRef} no morph available for {simpleHebWord=} from {rawHebWord=} from {strippedHebWords=}" )
             try:
                 for subStrong in attribDict['strong']:
-                    print( f"{subStrong=}" )
+                    # print( f"{subStrong=}" )
                     try: subStrongInt = getLeadingInt( subStrong ) # Ignores suffixes like a,b,c
                     except ValueError: continue
                     if subStrongInt in (369, 3808): # Hebrew 'אַיִן' 'ayin' 'no', or 'לֹא' (lo) 'not'
                         caseClassName = 'hebNeg'
                         break
             except KeyError:
-                print( f"Error: no strongs available for {simpleHebWord=} from {simpleHebWord=}" )
+                print( f"Error: {UHBRef} no strongs available for {simpleHebWord=} from {rawHebWord=} from {strippedHebWords=}" )
             # elif attribDict['morph'][4] != '.':
             #     try:
             #         caseClassName = f'''heb{HEBREW_CASE_CLASS_DICT[attribDict['morph'][4]]}'''
             #     except KeyError:
-            #         print( f"{BBB} {C}:{V} {currentWordNumber=} {rawHebWord=} {simpleHebWord=} {attribDict=}" )
+            #         print( f"{UHBRef} {currentWordNumber=} {rawHebWord=} {simpleHebWord=} {attribDict=}" )
             #         raise KeyError
             if caseClassName: classKeySet.add( caseClassName )
             caseClassHtml = '' if not caseClassName else f'''class="{caseClassName}" ''' # Has a trailing space
             adjusted_morphology_fields = []
-            for some_morph in attribDict['morph']:
-                if len(some_morph) <= 2: # We expand these short ones
-                    if some_morph[0]=='A': adjusted_morphology_fields.append( OSHB_ADJECTIVE_DICT[some_morph] ); continue
-                    if some_morph[0]=='C': adjusted_morphology_fields.append( 'conjunction' ); continue
-                    if some_morph[0]=='D': adjusted_morphology_fields.append( 'adverb' ); continue
-                    if some_morph[0]=='N': adjusted_morphology_fields.append( OSHB_NOUN_DICT[some_morph] ); continue
-                    if some_morph[0]=='P': adjusted_morphology_fields.append( OSHB_PRONOUN_DICT[some_morph] ); continue
-                    if some_morph[0]=='R': adjusted_morphology_fields.append( OSHB_PREPOSITION_DICT[some_morph] ); continue
-                    if some_morph[0]=='S': adjusted_morphology_fields.append( OSHB_SUFFIX_DICT[some_morph] ); continue
-                    if some_morph[0]=='T': adjusted_morphology_fields.append( OSHB_PARTICLE_DICT[some_morph] ); continue
-                    raise ValueError( "Some unexpected short Hebrew morphology '{some_morph}'")
-                adjusted_morphology_fields.append( some_morph ) 
+            if 'morph' in attribDict:
+                for some_morph in attribDict['morph']:
+                    if len(some_morph) <= 2: # We expand these short ones
+                        if some_morph[0]=='A': adjusted_morphology_fields.append( OSHB_ADJECTIVE_DICT[some_morph] ); continue
+                        if some_morph[0]=='C': adjusted_morphology_fields.append( 'conjunction' ); continue
+                        if some_morph[0]=='D': adjusted_morphology_fields.append( 'adverb' ); continue
+                        if some_morph[0]=='N': adjusted_morphology_fields.append( OSHB_NOUN_DICT[some_morph] ); continue
+                        if some_morph[0]=='P': adjusted_morphology_fields.append( OSHB_PRONOUN_DICT[some_morph] ); continue
+                        if some_morph[0]=='R': adjusted_morphology_fields.append( OSHB_PREPOSITION_DICT[some_morph] ); continue
+                        if some_morph[0]=='S': adjusted_morphology_fields.append( OSHB_SUFFIX_DICT[some_morph] ); continue
+                        if some_morph[0]=='T': adjusted_morphology_fields.append( OSHB_PARTICLE_DICT[some_morph] ); continue
+                        raise ValueError( "Some unexpected short Hebrew morphology '{some_morph}'")
+                    adjusted_morphology_fields.append( some_morph ) 
             titleHtml = f'''title="{'Aramic ' if attribDict['lang']=='Ar' else ''}{', '.join(adjusted_morphology_fields)}" ''' if 'morph' in attribDict else ''
             brightenUHBTextHtml = f'''{brightenUHBTextHtml[:ix]}<a {titleHtml}{caseClassHtml}href="{wordLink}">{simpleHebWord}</a>{brightenUHBTextHtml[ix+len(simpleHebWord):]}'''
             verseWordNumberIndex += 1
@@ -1047,7 +1055,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
             (('answerden','answerede','answerde','answeride','aunswered'),'answered'),((' aunswere ',' answere '),' answer '),((' aunswere:',' answere:'),' answer:'),
             ((' ony ',' eny '),' any '), (('enythinge',),'anything'),
         (('apostlis',),'apostles'),
-            (('appearaunce',),'appearance'),(('appearynge','apperynge','apperinge','appearyng'),'appearing'),((' appered',' apperide'),' appeared'),((' appeare ',),' appear '), (('appoynte','apoynte'),'appoint'),
+            (('appearaunce',),'appearance'),(('appearynge','apperynge','apperinge','appearyng'),'appearing'),((' apperiden',' appered',' apperide'),' appeared'),((' appeare ',),' appear '), (('appoynte','apoynte'),'appoint'),
         (('archaungel',),'archangel'), ((' aryse',),' arise'),(('Aryse ',),'Arise '), (('Arke ',),'ark '),((' arcke ',' arke '),' ark '), ((' arte ',),' art '),
         (('ascencioun',),'ascension'),
             ((' asshes',),' ashes'),
@@ -1061,7 +1069,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
             (('basskettes','baskettes'),'baskets'), (('bastardes',),'bastards'),
             ((' batels',),' battles'),
         ((' bee ',),' be '),
-            ((' bearinge',' bearynge',' beringe',' berynge'),' bearing'),((' beare ',' bere '),' bear '), (('beastes','beestes','beestis'),'beasts'),((' beesti',),' beast'),
+            ((' bearinge',' bearynge',' beringe',' berynge'),' bearing'),((' beare ',' bere '),' bear '), (('beastes','beestes','beestis'),'beasts/animals'),((' beesti',' beeste',' beest'),' beast/animal'),
             ((' beed ',' bedde '),' bed '),
             ((' bene ',' ben '),' been '),
             ((' bifore',' bifor'),' before'),
@@ -1090,7 +1098,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
         ((' braunches',),' branches'),((' braunch',' braunche'),' branch'),
             (('britheren',),'brethren/brothers'),(('brithre.',),'brethren/brothers.'),(('brethren:','brethre:'),'brethren/brothers:'),
             (('brycke','bricke','bryck'),'brick'), ((' bryde',),' bride'), (('bryngeth',),'bringeth/brings'),(('bryngyng',),'bringing'), (('Brynge ','Bryng '),'Bring '),((' brynge ',' bryng ',' bringe '),' bring '),
-            ((' brouyten ',),' brought '),
+            ((' brouyten ',' brouyte '),' brought '),
         (('buyldynges','buildynges','bildyngis'),'buildings'),(('buyldinge',),'building'),
             ((' buriall',),' burial'),((' buryinge',' biriyng'),' burying'), ((' brent',),' burnt'),((' burne ',),' burn '),
             ((' bysy ',),' busy '),((' busines',' busynesse',' busynes'),' business'),(('businesss',),'business'), ((' byers',' biggeris'),' buyers'),
@@ -1336,7 +1344,8 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
             ((' mountaynes',' moutaynes',' mountaines'),' mountains'),((' mountayne',' mountaine'),' mountain'), ((' moute ',),' mount '), ((' mornen ',' mourne ',' morne '),' mourn '),((' mornen,',' mourne,',' morne,'),' mourn,'),((' mornen:',' mourne:',' morne:'),' mourn:'),
             ((' mouyng',),' moving'),((' moued',),' moved'),((' moue ',),' move '),
         ((' myche',' moche',' moch',' muche'),' much'), (('murthurers',),'murderers'),(('murthurer',),'murderer'),
-    (('Naomy','Naemi'),'Naomi'), ((' naciouns',' nacions'),' nations'), ((' natiue',),' native'),
+    (('Naomy','Naemi'),'Naomi'),
+            ((' naciouns',' nacions'),' nations'), ((' natiue',),' native'),
         ((' neere ',' neare '),' near '),((' neere.',' neare.'),' near.'),((' neere:',' neare:'),' near:'),
             ((' nedeful',),' needful'),((' nedes',),' needs'),((' neede ',' neade ',' nede '),' need '),
             ((' neiyboris',' neghboures',' neghbours',' neyghbours'),' neighbours'),((' neiybore',),' neighbour'), (('Nether ',),'Neither '),((' nether',' nethir'),' neither'),(('(nether',),'(neither'),
@@ -1388,7 +1397,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
             ((' plese ',),' please '), ((' pleside',' plesid'),' pleased'), ((' plente ',),' plenty '),
             ((' plucke ',),' pluck '),
         ((' poole ',),' pool '), ((' poore ',' povre ',' pore '),' poor '),
-            (('possessyoun',),'possession'),(('possesse ',),'possess '),
+            (('possessyoun','possessioun'),'possession'),(('possesse ',),'possess '),
             ((' pottere',),' potter'),
             ((' powdir',),' powder'),
         (('praysed',),'praised'), (('preyeden','preiede','praied'),'prayed'),(('preier',),'prayer'),(('preyng',),'praying'),((' preye ',' praye '),' pray '),((' praye:',),' pray:'),((' praye.',),' pray.'),
@@ -1430,6 +1439,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
             ((' saaf',),' safe'),
             ((' seyden',' seiden',' seide',' seid',' sayde',' sayd',' saide', ' seien'),' said'),
             ((' saltid',),' salted'),
+            ((' sande',),' sand'),
             ((' sate ',),' sat '), (('Sathanas','Sathan'),'Satan'), ((' satisfie ',),' satisfy '),
             ((' saued',),' saved'),((' saue ',),' save '),((' sauyng',' sauinge',' sauing',' savinge'),' saving'), ((' sauery',),' savoury'),
             ((' sawe ',' sai ',' sayn ',' siy '),' saw '),
@@ -1508,7 +1518,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
             ((' thieues',' theeues',' theves',' theues'),' thieves'),((' thiefe',' theefe',' theef',' thefe'),' thief'), ((' thyne ',' thine '),' thine/your '), ((' thinges',' thingis',' thynges'),' things'),((' thinge',' thyng'),' thing'), ((' thenkynge',),' thinking'), ((' thynke',' thenken'),' think'),
                 ((' thridde',' thyrde',' thirde'),' third'), ((' thristen',),' thirsting'),((' thyrst ',' thurst ',' thirste '),' thirst '),((' thirste,',),' thirst,'),
             (('thwong',),'thong'), ((' thou ',),' thou/you '), ((' thouy ',),' though '), ((' thouyte ',),' thought '), (('thousynde','thousande'),'thousand'),
-            ((' thre ',),' three '), ((' trone ',),' throne '), (('thorowout',),'throughout'), (('thorow ','thorou '),'through '),(('thorow,',),'through,'), (('throwen',),'thrown'),
+            ((' threed',),' thread'), ((' thre ',),' three '), ((' trone ',),' throne '), (('thorowout',),'throughout'), (('thorow ','thorou '),'through '),(('thorow,',),'through,'), (('throwen',),'thrown'),
             (('thundringes','thundrings','thondringes','thundris'),'thunderings'),(('thundryng',),'thundering'),(('thounder','thonder'),'thunder'),
         ((' tydynges',' tidynges',' tydinges',' tydings'),' tidings/news'),(('Tydinges',),'Tidings'), ((' tyde',),' tide'),
             ((' tyed ',),' tied '), ((' tiel ',),' tile '),
@@ -1518,6 +1528,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
             ((' tokene ',),' token '),
             ((' tungis',' tunges',' toges'),' tongues'),((' tonge ',),' tongue '),((' tonge,',),' tongue,'),
             ((' tokun ',' toke ',' tooke '),' took '),
+            ((' touche ',),' touch '),
             ((' townes',' tounes'),' towns'),((' towne ',' toune '),' town '),
         (('ttasfigured',),'transfigured'), ((' trauelid',),' travelled'),
             (('treasurie','tresorie'),'treasury'), ((' tre,',),' tree,'),
@@ -1525,7 +1536,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
             (('Treuli','Sotheli'),'Truly'),(('truely','treuli','sotheli'),'truly'), (('sothfast',),'truthful'), ((' trewthe',' trueth',' treuthe',' verite'),' truth'),
         ((' turneden',' turnede'),' turned'),(('Turne ',),'Turn '),((' tourne ',' turne '),' turn '),
         (('twolue','twelue'),'twelve'), (('twentie ','twenti ','twentye '),'twenty '),
-            ((' twyse',' twise'),' twice'), ((' twei ',' tweyne ',' tweyn ',' twey ', ' twaine '),' two '),
+            ((' twyse',' twise'),' twice'), (('twynnes','twinnes','twyns'),'twins'), ((' twei ',' tweyne ',' tweyn ',' twey ', ' twaine '),' two '),
     (('vnbileue','vnbelefe','vnbeleue','vnbeliefe'),'unbelief'), (('vnbeleuing','vnbeleuynge'),'unbelieving'),
         (('vncerteyn',),'uncertain'), (('vncleane','vnclene'),'unclean'), (('vncovered','vncouered'),'uncovered'),
             ((' vnderstande',' vnderstand'),' understand'),(('Vnderstonde',),'Understood'),(('vnderstonde','vnderstoode','vnderstode','vndirstood'),'understood'), ((' vnder',),' under'), ((' vndon.',),' undone.'),
@@ -1588,7 +1599,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
     (('Zebedeus ','zebede ','Zebede '),'Zebedee '), (('Zebedeus,','zebede,','Zebede,'),'Zebedee,'),
 
     # Roman numerals
-    (('.iii.',),'3'), (('.vii.',),'7'), (('xii.',),'12'), ((' xl ',),' 40 '),
+    (('.iii.',),'3'), (('.vii.','vii.'),'7'), ((' x.',),' 10'), (('xii.',),'12'), ((' xl ',),' 40 '),
 
     # Symbols
     ((' & ',),' and '),
@@ -1712,11 +1723,14 @@ GERMAN_WORD_MAP = (
             ('Lippen ','lips '),
     (' machten',' make'), ('Mann ','man '),('Mann.','man.'), ('Märkte ','marketplaces '),
         (' mecum ',' with_me '),
-            ('Meer ','sea '),('Meer.','sea.'),
+            ('Meeres','sea'),('Meer ','sea '),('Meer.','sea.'),
             ('Meine ','My '),(' meinem ',' my '),(' meinen ',' my '), (' mit ',' with '),
         ('Mond ','moon '), ('. Morgan','. Morning'),('Morgan','morning'),
         (' mögest',' may'),
-    (' nachdem ',' after '), ('Nacht ','night '), ('Naemi ','Naomi '), (' nahmen ',' took '), (' nämlich ',' namely '),
+    (' nachdem ',' after '), ('Nacht ','night '),
+            ('Naemi ','Naomi '),
+            (' nahmen ',' took '),
+            ('Namen ','names '), (' nämlich ',' namely '),
         (' nicht ',' not '),(' nicht,',' not,'), (' nimmermehr',' nevermore'),
         (' noch ',' still '),
         (' nun ',' now '),
@@ -1726,7 +1740,7 @@ GERMAN_WORD_MAP = (
         (' predigte ',' preached '),
     ('Reich ','kingdom '), (' reisete ',' travelled '),
         (' roter ',' red '),
-    (' sagt',' says'), (' sah,',' saw,'), ('Samen ','seed/seeds '),('Samen.','seed/seeds.'), (' saß ',' sat '),
+    (' sagt',' says'), (' sah ',' saw '),(' sah,',' saw,'), ('Samen ','seed/seeds '),('Samen.','seed/seeds.'), (' saß ',' sat '),
         ('Schande ','shame '), (' schied ',' separated '), ('Schiff','ship'), ('Schlüssel ','key '),
         (' sei ',' be '), (' sein ',' his '),(' seine ',' his '),(' seinen ',' his '), (' seit ',' since '),
             (' selbst ',' himself/itself '),
@@ -1735,10 +1749,13 @@ GERMAN_WORD_MAP = (
         ('Sohn','son'),
             ('sondern','rather'), ('Sonne','sun'), ('Sonst ','Otherwise '),
         ('Speise ','food '), (' spiritern ',' spirits '), (' sprach ',' spoke '),(' sprach:',' spoke:'),
-        ('Städte ','cities '), ('Stamms ','tribe '), (' starb ',' died '), (' stehet',' stands'), (' stund ',' stood '),
+        ('Städte ','cities '),
+            ('Stamms ','tribe '), (' starb ',' died '),
+            (' stehet',' stands'), (' steigen',' climb'),
+            (' stund ',' stood '),
         (' schwebete ',' floated '), (' schuf ',' created '),
-    ('Tiefe ','depth '), (' timor ',' fear '),
-        (' trug ',' wore '),
+    ('Tiefe ','depth '), ('Tier ','animal '), (' timor ',' fear '),
+        (' trat ',' stepped '), (' trug ',' wore '),
     ('Und ','And '),(' und ',' and '),
         ('ungläubige','unbelieving'), ('Ungewitter','storm'),
         (' unrein',' unclean'),

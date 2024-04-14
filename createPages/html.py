@@ -60,10 +60,10 @@ from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39, BOOKLIST_NT27
 from settings import State, TEST_MODE, SITE_NAME
 
 
-LAST_MODIFIED_DATE = '2024-04-03' # by RJH
+LAST_MODIFIED_DATE = '2024-04-10' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
-PROGRAM_VERSION = '0.74'
+PROGRAM_VERSION = '0.75'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -314,7 +314,7 @@ def makeBookNavListParagraph( linksList:List[str], workAbbrevPlus:str, state:Sta
         # print( f"   {aLink=} {displayText=} {BBB=}")
         assert BBB, f"{displayText=}"
         newALink = f'{aLink[:ixDisplayLinkStart]}{displayText}{aLink[ixDisplayLinkEnd:]}'
-        if BBB in ('INT','FRT','OTH','GLS','XXA','XXB','XXC'):
+        if BBB in ('INT','FRT','OTH','GLS','XXA','XXB','XXC','XXD'):
             newALink = f'<span class="XX">{newALink}</span>'
         elif BBB in BOOKLIST_OT39:
             newALink = f'<span class="OT">{newALink}</span>'
@@ -398,11 +398,11 @@ def checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool:
 
     if '\n\n' in htmlToCheck:
         ix = htmlToCheck.index( '\n\n' )
-        print( f"checkHtml({where=} {segmentOnly=}) found \\n\\n in …{htmlToCheck[ix-30:ix]}{htmlToCheck[ix:ix+50]}…" )
+        # print( f"checkHtml({where=} {segmentOnly=}) found \\n\\n in …{htmlToCheck[ix-30:ix]}{htmlToCheck[ix:ix+50]}…" )
         raise ValueError( f"checkHtml({where}) found unexpected double newlines" )
     if '<br>\n' in htmlToCheck:
         ix = htmlToCheck.index( '<br>\n' )
-        print( f"checkHtml({where=} {segmentOnly=}) found <br> in …{htmlToCheck[ix-30:ix]}{htmlToCheck[ix:ix+50]}…" )
+        # print( f"checkHtml({where=} {segmentOnly=}) found <br> in …{htmlToCheck[ix-30:ix]}{htmlToCheck[ix:ix+50]}…" )
         raise ValueError( f"checkHtml({where}) found <br> followed by unexpected newline" )
             
     if 'TCNT' not in where and 'TC-GNT' not in where: # These two versions use the '¦' character in their footnotes

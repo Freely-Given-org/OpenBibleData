@@ -64,10 +64,10 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_
 from OETHandlers import livenOETWordLinks, getOETTidyBBB
 
 
-LAST_MODIFIED_DATE = '2024-04-02' # by RJH
+LAST_MODIFIED_DATE = '2024-04-09' # by RJH
 SHORT_PROGRAM_NAME = "createSectionPages"
 PROGRAM_NAME = "OpenBibleData createSectionPages functions"
-PROGRAM_VERSION = '0.56'
+PROGRAM_VERSION = '0.58'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -183,11 +183,11 @@ def createOETSectionPages( level:int, folder:Path, rvBible, lvBible, state:State
         ourTidyBBB = getOETTidyBBB( BBB )
         dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"OET {BBB=} {state.BBBsToProcess['OET']}/{len(state.BBBsToProcess['OET'])}")
 
-        # TODO: Can we delete all this now???
-        if lvBible.abbreviation=='OET-LV' \
-        and BBB in ('INT','NUM','SA1','SA2','CH1','EZR','NEH','JOB','SNG','JER','DAN'):
-            logging.critical( f"A Skipped OET sections difficult book: OET-LV {BBB}")
-            continue # Too many problems for now
+        # # TODO: Can we delete all this now???
+        # if lvBible.abbreviation=='OET-LV' \
+        # and BBB in ('INT','NUM','SA1','SA2','CH1','EZR','NEH','JOB','SNG','JER','DAN'):
+        #     logging.critical( f"A Skipped OET sections difficult book: OET-LV {BBB}")
+        #     continue # Too many problems for now
         if rvBible.abbreviation in state.booksToLoad \
         and 'ALL' not in state.booksToLoad[rvBible.abbreviation] \
         and BBB not in state.booksToLoad[rvBible.abbreviation]:
@@ -242,8 +242,8 @@ def createOETSectionPages( level:int, folder:Path, rvBible, lvBible, state:State
                 assert endV == '?'
                 # numExtrasSkipped += 1
                 continue
-            if 'Psalm' in sectionName or 'Songs' in sectionName:
-                print( f"OET {sectionName=}" ); halt
+            # if 'Psalm' in sectionName or 'Songs' in sectionName:
+            #     print( f"OET {sectionName=}" ); halt
             # n2 = n1 - numExtrasSkipped
             startChapterLink = f'''<a title="Chapter view" href="../byC/{BBB}_{'Intro' if startC=='-1' else f'C{startC}'}.htm#Top">{'Intro' if startC=='-1' else startC}</a>'''
             endChapterLink = f'''<a title="Chapter view" href="../byC/{BBB}_{'Intro' if endC=='-1' else f'C{endC}'}.htm#Top">{'Intro' if endC=='-1' else endC}</a>'''
@@ -412,10 +412,10 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> List
         state.sectionsLists[thisBible.abbreviation] = {}
     for BBB in state.BBBsToProcess[thisBible.abbreviation]:
         NT = BibleOrgSysGlobals.loadedBibleBooksCodes.isNewTestament_NR( BBB )
-        if thisBible.abbreviation=='OET-LV' \
-        and BBB in ('FRT','INT','NUM','SA1','SA2','CH1','EZR','NEH','JOB','SNG','JER','DAN'):
-            logging.critical( f"AA Skipped OET sections difficult book: OET-LV {BBB}")
-            continue # Too many problems for now
+        # if thisBible.abbreviation=='OET-LV' \
+        # and BBB in ('FRT','INT','NUM','SA1','SA2','CH1','EZR','NEH','JOB','SNG','JER','DAN'):
+        #     logging.critical( f"AA Skipped OET sections difficult book: OET-LV {BBB}")
+        #     continue # Too many problems for now
         if thisBibleBooksToLoad not in (['ALL'],['NT']) \
         and BBB not in state.booksToLoad[thisBible.abbreviation]:
             logging.critical( f"VV Skipped sections difficult book: {thisBible.abbreviation} {BBB}")
@@ -448,10 +448,10 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> List
         ourTidyBBB = getOETTidyBBB( BBB )
         dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{thisBible.abbreviation} {BBB=} {state.BBBsToProcess[thisBible.abbreviation]}/{len(state.BBBsToProcess[thisBible.abbreviation])}")
 
-        if thisBible.abbreviation=='OET-LV' \
-        and BBB in ('FRT','INT','NUM','SA1','SA2','CH1','EZR','NEH','JOB','SNG','JER','DAN'):
-            logging.critical( f"AA Skipped OET sections difficult book: OET-LV {BBB}")
-            continue # Too many problems for now
+        # if thisBible.abbreviation=='OET-LV' \
+        # and BBB in ('FRT','INT','NUM','SA1','SA2','CH1','EZR','NEH','JOB','SNG','JER','DAN'):
+        #     logging.critical( f"AA Skipped OET sections difficult book: OET-LV {BBB}")
+        #     continue # Too many problems for now
         if thisBible.abbreviation in state.booksToLoad \
         and 'ALL' not in state.booksToLoad[thisBible.abbreviation] \
         and BBB not in state.booksToLoad[thisBible.abbreviation]:
@@ -520,7 +520,7 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> List
                 assert endV == '?'
                 continue
             if sectionName.startswith( 'Psalms '):
-                print( f"{thisBible.abbreviation} {sectionName=}" )
+                # print( f"{thisBible.abbreviation} {sectionName=}" )
                 sectionName = sectionName.replace( 'Psalms', 'Song' if 'OET' in thisBible.abbreviation else 'Psalm' )
             startChapterLink = f'''<a title="Chapter view" href="../byC/{BBB}_{'Intro' if startC=='-1' else f'C{startC}'}.htm#Top">{'Intro' if startC=='-1' else startC}</a>'''
             endChapterLink = f'''<a title="Chapter view" href="../byC/{BBB}_{'Intro' if endC=='-1' else f'C{endC}'}.htm#Top">{'Intro' if endC=='-1' else endC}</a>'''

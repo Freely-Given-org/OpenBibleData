@@ -60,10 +60,10 @@ from html import makeTop, makeBottom, checkHtml
 from OETHandlers import getOETTidyBBB
 
 
-LAST_MODIFIED_DATE = '2024-04-08' # by RJH
+LAST_MODIFIED_DATE = '2024-04-11' # by RJH
 SHORT_PROGRAM_NAME = "createOETReferencePages"
 PROGRAM_NAME = "OpenBibleData createOETReferencePages functions"
-PROGRAM_VERSION = '0.62'
+PROGRAM_VERSION = '0.63'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -438,7 +438,8 @@ OSHB_VERB_CONJUGATION_TYPE_DICT = { # 'V':'verb',
                     'p':'perfect_(<i>qatal</i>)', 'q':'sequential_perfect_(<i>weqatal</i>)', 'i':'imperfect_(<i>yiqtol</i>)', 'w':'sequential_imperfect_(<i>wayyiqtol</i>)',
                     'h':'cohortative', 'j':'jussive', 'v':'imperative', 'r':'active_participle', 's':'passive_participle', 'a':'infinitive_absolute', 'c':'infinitive_construct' }
 OSHB_PRONOUN_DICT = { 'Pd':'demonstrative_pronoun', 'Pf':'indefinite_pronoun', 'Pi':'interrogative_pronoun', 'Pp':'personal_pronoun', 'Pr':'relative_pronoun' }
-OSHB_PARTICLE_DICT = { 'Ta':'affirmation_particle', 'Td':'definite_article', 'Te':'exhortation_particle', 'Ti':'interrogative_particle', 'Tj':'interjection_particle',
+OSHB_PARTICLE_DICT = { 'T':'particle',
+                       'Ta':'affirmation_particle', 'Td':'definite_article', 'Te':'exhortation_particle', 'Ti':'interrogative_particle', 'Tj':'interjection_particle',
                        'Tm':'demonstrative_particle', 'Tn':'negative_particle', 'To':'direct_object_marker', 'Tr':'relative_particle' }
 OSHB_PREPOSITION_DICT = { 'R':'preposition', 'Rd':'preposition_with_definite_article' }
 OSHB_SUFFIX_DICT = { 'Sd':'directional_<i>he</i>_suffix', 'Sh':'paragogic_<i>he</i>_suffix', 'Sn':'paragogic_<i>nun</i>_suffix', 'Sp':'pronominal_suffix' }
@@ -795,7 +796,7 @@ def preprocessHebrewWordsMorphemesGlosses( BBBSelection:Union[str, List[str]], s
 # end of createOETReferencePages.preprocessHebrewWordsMorphemesGlosses
 
 
-forward_slash_regex = re.compile( '[a-zⱪō]/[a-zA-Z\([]')
+forward_slash_regex = re.compile( '[a-zⱪō]/[a-zA-Z[(]')
 def formatNTSpansGlossWords( glossWords:str ) -> str:
     """
     Put HTML spans about the various parts of the gloss Words string
@@ -1523,7 +1524,7 @@ def create_Hebrew_word_pages( level:int, outputFolderPath:Path, state:State ) ->
                     translationField = f'''‘{gloss[0].upper() if glossCapitalisation=='S' else gloss[0]}{gloss[1:]}’'''
                 else:
                     translationField = "<small>Oops, no gloss available!</small>"
-                    logging.critical( f"{ref} {rowType} '{word}' No gloss available" )
+                    logging.critical( f"create_Hebrew_word_pages: {ref} {rowType} No gloss available for '{word}'" )
                 if glossCapitalisation:
                     capsField = f' <small>(Caps={glossCapitalisation})</small>'
 
@@ -1531,9 +1532,10 @@ def create_Hebrew_word_pages( level:int, outputFolderPath:Path, state:State ) ->
         for originalStrongsBit in strongs.split( ',' ):
             possibleStrongsNumber = originalStrongsBit
             if ' ' in possibleStrongsNumber:
-                if possibleStrongsNumber[-2] == ' ' and possibleStrongsNumber[-1] in 'ab':
+                if possibleStrongsNumber[-2] == ' ' and possibleStrongsNumber[-1] in 'abcdef':
                     possibleStrongsNumber = possibleStrongsNumber[:-2] # Remove suffix
-                else: print( f"{BBB} {C}:{V}w{W} {possibleStrongsNumber=} from {strongs=}" )
+                else:
+                    logging.critical( f"create_Hebrew_word_pages {BBB} {C}:{V}w{W} {gloss=} {possibleStrongsNumber=} from {strongs=}" )
             if possibleStrongsNumber.isdigit():
                 strongsLinks = f'''{strongsLinks}{', ' if strongsLinks else ''}<a title="Goes to Strongs dictionary" href="https://BibleHub.com/hebrew/{possibleStrongsNumber}.htm">{originalStrongsBit}</a>'''
             elif possibleStrongsNumber: # things like c, m, or b
@@ -1803,13 +1805,13 @@ def create_Hebrew_morpheme_pages( level:int, outputFolderPath:Path, state:State 
     # morphemeFileName = 'OET-LV_OT_morpheme_table.tsv'
 
     morphemeList = sorted( [morpheme for morpheme in state.OETRefData['OTMorphemeDict']] )
-    print( f"\n({len(morphemeList):,}) {morphemeList[:10]=}" )
+    # print( f"\n({len(morphemeList):,}) {morphemeList[:10]=}" )
 
     # Now make a page for each Hebrew morpheme (including the variants not used in the translation)
     morphemeLinks:List[str] = []
     for mm, morpheme in enumerate( morphemeList ):
-        print( f"\nMorpheme {mm}: {morpheme}" )
-        if mm > 100: break # Genesis goes up to almost 37,000
+        # print( f"\nMorpheme {mm}: {morpheme}" )
+        if mm > 50: break # Genesis goes up to almost 37,000
         hebMorpheme = state.OETRefData['OTHebrewMorphemeDict'][morpheme]
         morphemeRowsList = state.OETRefData['OTMorphemeDict'][morpheme]
         morphemeFormsList = sorted( state.OETRefData['OTMorphemeFormsDict'][morpheme] )
@@ -1912,7 +1914,7 @@ def create_Hebrew_morpheme_pages( level:int, outputFolderPath:Path, state:State 
         # Consider other morphemes with similar English glosses
         similarMorphemeSet = set()
         for morphemeGloss in morphemeOETGlossesList:
-            print( f"  A {morphemeGloss=}" )
+            # print( f"  A {morphemeGloss=}" )
             if morphemeGloss not in COMMON_ENGLISH_WORDS_LIST: # Ignore the most common words
                 # List other morphemes that are glossed similarly
                 try:
@@ -1937,7 +1939,7 @@ def create_Hebrew_morpheme_pages( level:int, outputFolderPath:Path, state:State 
         # Consider other morphemes with constrastive English glosses
         contrastiveMorphemeSet = set()
         for morphemeGloss in morphemeOETGlossesList:
-            print( f"  B {morphemeGloss=}" )
+            # print( f"  B {morphemeGloss=}" )
             if morphemeGloss not in COMMON_ENGLISH_WORDS_LIST: # Ignore the most common words
                 # List other morphemes that are glossed as antonyms
                 try:

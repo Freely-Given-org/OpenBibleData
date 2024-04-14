@@ -53,10 +53,10 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_
 from OETHandlers import livenOETWordLinks, getOETTidyBBB
 
 
-LAST_MODIFIED_DATE = '2024-04-03' # by RJH
+LAST_MODIFIED_DATE = '2024-04-10' # by RJH
 SHORT_PROGRAM_NAME = "createChapterPages"
 PROGRAM_NAME = "OpenBibleData createChapterPages functions"
-PROGRAM_VERSION = '0.62'
+PROGRAM_VERSION = '0.65'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -93,11 +93,11 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
         # if not allBooksFlag: rvBible.loadBookIfNecessary( BBB )
         # lvBible.loadBookIfNecessary( BBB )
 
-        # TODO: Can we delete all this now???
-        if lvBible.abbreviation=='OET-LV' \
-        and BBB in ('INT','NUM','SA1','SA2','CH1','EZR','NEH','JOB','SNG','JER','DAN'):
-            logging.critical( f"A Skipped OET chapters difficult book: OET-LV {BBB}")
-            continue # Too many problems for now
+        # # TODO: Can we delete all this now???
+        # if lvBible.abbreviation=='OET-LV' \
+        # and BBB in ('INT','NUM','SA1','SA2','CH1','EZR','NEH','JOB','SNG','JER','DAN'):
+        #     logging.critical( f"A Skipped OET chapters difficult book: OET-LV {BBB}")
+        #     continue # Too many problems for now
         if rvBible.abbreviation in state.booksToLoad \
         and 'ALL' not in state.booksToLoad[rvBible.abbreviation] \
         and BBB not in state.booksToLoad[rvBible.abbreviation]:
@@ -234,8 +234,12 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
                                 dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createOETChapterPages aborting {BBB} {c=} {n:,}/{len(rvSections):,}" )
                                 lvChunks.append( '<p>Unsolved versification error for Malachi 4!</p>' )
                                 break # This versification is giving too many versification problems (with entire c4 missing)
-                            if BBB not in ('PSA','EZE','JOL'): # TODO: Not sure what's going on with ms1 and mr in PSA and EZE 4 and Joel 2
-                                assert n == len(rvSections) - 1 # It must be the final section
+                            if BBB not in ('JOBx','PSAx','EZEx','JOLx'): # TODO: Not sure what's going on with ms1 and mr in PSA and EZE 4 and Joel 2
+                                if n != len(rvSections)-1: # It should be the final section
+                                    logging.critical( f"createOETChapterPagesA {BBB} {c=} {n:,}/{len(rvSections):,} seems to have a versification problem around {rvStartCV=} {rvEndCV=}" )
+                                    while len(lvChunks) < len(rvSections):
+                                        lvChunks.append( f"<p>Oops, missing OET-LV section (probably from a versification error).</p>" )
+                                    break
                             ixEndCV = len(lvRest) - 1
                         try: ixNextCV = lvRest.index( f' id="C', ixEndCV+5 )
                         except ValueError: ixNextCV = len(lvRest) - 1
@@ -251,8 +255,12 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
                             break
                         # print( f"\n{n}: {lvRest[ixEndCV:lvIndex8]=}" )
                         lvEndIx = lvIndex8
+                        # TODO: Work out why we need these next two sets of lines
                         if lvRest[lvEndIx:].startswith( '</span>'): # Occurs at end of MRK (perhaps because of missing SR verses in ending) -- not sure if in other places
-                            print( f"\nNOTE: Fixed end of chunk in OET {BBB}!!!" )
+                            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"\nNOTE: Fixed </span> end of {BBB} {rvStartCV=} {rvEndCV=} chunk in OET!!! {lvEndIx=} {ixNextCV=}" )
+                            lvEndIx = ixNextCV + 1
+                        elif lvRest[lvEndIx:].startswith( '</a>'): # Occurs at end of MAT Why????
+                            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"\nNOTE: Fixed </a> end of {BBB} {rvStartCV=} {rvEndCV=} chunk in OET!!! {lvEndIx=} {ixNextCV=}" )
                             lvEndIx = ixNextCV + 1
                         lvChunk = lvRest[:lvEndIx]
                         # Make sure that our split was at a sensible place
@@ -263,6 +271,12 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
                             or (rsLvChunk[-2]=='>' and rsLvChunk[-1] in '.,?'), f"ASSERT createOETChapterPages {BBB} {c=} {n:,}/{len(rvSections):,}: {lvChunk[-8:]=} {rsLvChunk[-5:]=}"
                         lvChunks.append( lvChunk )
                         lvRest = lvRest[lvEndIx:]
+                        if not lvRest:
+                            logging.critical( f"createOETChapterPagesB {BBB} {c=} {n:,}/{len(rvSections):,} seems to have a versification problem around {rvStartCV=} {rvEndCV=}" )
+                            while len(lvChunks) < len(rvSections):
+                                lvChunks.append( f"<p>Oops, no more OET-LV sections (probably from a versification error).</p>" )
+                            # assert BBB == 'EZE' # This happens at EZE 20 (and in GEN???)
+                            break
 
                     assert len(lvChunks) == len(rvSections), f"{len(lvChunks)=} {len(rvSections)=}"
 
@@ -327,7 +341,7 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
             halt
 
         # Now create an index page for this book
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Creating chapter index page for OET {BBB}…" )
+        vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Creating chapter index page for OET {BBB}…" )
         # filename = f'{BBB}_index.htm' if numChapters>0 else f'{BBB}.htm' # for FRT, etc.
         filename = f'{BBB}.htm'
         filenames.append( filename )
@@ -347,6 +361,7 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
         vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(chapterHtml):,} characters written to {filepath}" )
 
     # Create overall OET chapter index page
+    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, "  Creating overall OET chapter index page…" )
     filename = 'index.htm'
     filenames.append( filename )
     filepath = folder.joinpath( filename )
@@ -398,10 +413,10 @@ def createChapterPages( level:int, folder:Path, thisBible, state:State ) -> List
         # print( f"{BBB=} {state.BBBsToProcess[thisBible.abbreviation]}"); print( len(state.BBBsToProcess[thisBible.abbreviation]) )
         # if not allBooksFlag: thisBible.loadBookIfNecessary( BBB )
 
-        if thisBible.abbreviation=='OET-LV' \
-        and BBB in ('FRT','INT','NUM','SA1','SA2','CH1','EZR','NEH','JOB','SNG','JER','DAN'):
-            logging.critical( f"AA Skipped OET chapters difficult book: OET-LV {BBB}")
-            continue # Too many problems for now
+        # if thisBible.abbreviation=='OET-LV' \
+        # and BBB in ('FRT','INT','NUM','SA1','SA2','CH1','EZR','NEH','JOB','SNG','JER','DAN'):
+        #     logging.critical( f"AA Skipped OET chapters difficult book: OET-LV {BBB}")
+        #     continue # Too many problems for now
         if thisBibleBooksToLoad not in (['ALL'],['NT']) \
         and BBB not in state.booksToLoad[thisBible.abbreviation]:
             logging.critical( f"VV Skipped chapters difficult book: {thisBible.abbreviation} {BBB}")
@@ -525,7 +540,7 @@ def createChapterPages( level:int, folder:Path, thisBible, state:State ) -> List
 
         else: # a non-chapter book
             dPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"createChapterPages {thisBible.abbreviation} {BBB} has {numChapters} chapters!!!" )
-            assert BBB in ('INT','FRT','OTH','GLS','XXA','XXB','XXC')
+            assert BBB in ('INT','FRT','OTH','GLS','XXA','XXB','XXC','XXD')
             dPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"createChapterPages {thisBible.abbreviation} {thisBible.books[BBB]=}" )
             vPrint( 'Info', DEBUGGING_THIS_MODULE, f"      Creating (non)chapter pages for {thisBible.abbreviation} {BBB}…" )
             chapterHtml = f'<h1 id="Top">{thisBible.abbreviation} {BBB}</h1>\n'

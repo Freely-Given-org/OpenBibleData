@@ -50,10 +50,10 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_
 from OETHandlers import livenOETWordLinks, getOETTidyBBB
 
 
-LAST_MODIFIED_DATE = '2024-04-03' # by RJH
+LAST_MODIFIED_DATE = '2024-04-09' # by RJH
 SHORT_PROGRAM_NAME = "createBookPages"
 PROGRAM_NAME = "OpenBibleData createBookPages functions"
-PROGRAM_VERSION = '0.52'
+PROGRAM_VERSION = '0.54'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -85,6 +85,7 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
     # assert iBkList == BBBsToProcess
     # print( f"OET {BBBsToProcess=} {iBkList=}" )
     iBkList = ['index'] + state.BBBsToProcess['OET']
+    # print( f"{iBkList=}" ); halt
     navBookListParagraph = makeBookNavListParagraph(state.BBBLinks['OET'], 'OET', state)
 
     processedBBBs, processedFilenames = [], []
@@ -93,11 +94,11 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
         NT = BibleOrgSysGlobals.loadedBibleBooksCodes.isNewTestament_NR( BBB )
         ourTidyBBB = getOETTidyBBB( BBB )
 
-        # TODO: Can we delete all this now???
-        if lvBible.abbreviation=='OET-LV' \
-        and BBB in ('INT','NUM','SA1','SA2','CH1','EZR','NEH','JOB','SNG','JER','DAN'):
-            logging.critical( f"A Skipped OET chapters difficult book: OET-LV {BBB}")
-            continue # Too many problems for now
+        # # TODO: Can we delete all this now???
+        # if lvBible.abbreviation=='OET-LV' \
+        # and BBB in ('INT','NUM','SA1','SA2','CH1','EZR','NEH','JOB','SNG','JER','DAN'):
+        #     logging.critical( f"A Skipped OET chapters difficult book: OET-LV {BBB}")
+        #     continue # Too many problems for now
         if rvBible.abbreviation in state.booksToLoad \
         and 'ALL' not in state.booksToLoad[rvBible.abbreviation] \
         and BBB not in state.booksToLoad[rvBible.abbreviation]:
@@ -170,9 +171,9 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
         lvVerseEntryList = livenOETWordLinks( lvBible, BBB, lvVerseEntryList, f"{'../'*level}ref/{'GrkWrd' if NT else 'HebWrd'}/{{n}}.htm#Top", state )
         rvHtml = do_OET_RV_HTMLcustomisations( convertUSFMMarkerListToHtml( level, 'OET', (BBB,), 'book', rvContextList, rvVerseEntryList, basicOnly=False, state=state ) )
         tempLVHtml = convertUSFMMarkerListToHtml( level, 'OET', (BBB,), 'book', lvContextList, lvVerseEntryList, basicOnly=False, state=state )
-        if '+' in tempLVHtml: print( f"PLUS {tempLVHtml[max(0,tempLVHtml.index('+')-20):tempLVHtml.index('+')+80]}" )
-        if '^' in tempLVHtml: print( f"HAT {tempLVHtml[max(0,tempLVHtml.index('^')-20):tempLVHtml.index('^')+80]}" )
-        if '~' in tempLVHtml: print( f"SQUIG {tempLVHtml[max(0,tempLVHtml.index('~')-20):tempLVHtml.index('~')+80]}" )
+        if '+' in tempLVHtml: print( f"HAVE_PLUS {tempLVHtml[max(0,tempLVHtml.index('+')-30):tempLVHtml.index('+')+90]}" )
+        if '^' in tempLVHtml: print( f"HAVE_HAT {tempLVHtml[max(0,tempLVHtml.index('^')-30):tempLVHtml.index('^')+90]}" )
+        if '~' in tempLVHtml: print( f"HAVE_SQUIG {tempLVHtml[max(0,tempLVHtml.index('~')-30):tempLVHtml.index('~')+90]}" )
         lvHtml = do_OET_LV_HTMLcustomisations( tempLVHtml )
         # lvHtml = do_OET_LV_HTMLcustomisations( convertUSFMMarkerListToHtml( level, 'OET', (BBB,), 'book', lvContextList, lvVerseEntryList, basicOnly=False, state=state ) )
 
@@ -203,12 +204,13 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
             dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"""\nSearching for OET-RV {BBB} ' id="{rvEndCV}"' in '{lvRest}'""" )
             try: ixEndCV = lvRest.rindex( f' id="{rvEndCV}"' )
             except ValueError: # Versification problem if this fails
+                logging.warning( f"{BBB} Possible versification problem around {rvEndCV} -- we'll try to handle it." )
                 # Let's try for the previous verse -- at least this solves Gen 31:55 not there
                 frontBit, backBit = rvEndCV.split( 'V' )
                 adjustedRvEndCV = f'{frontBit}V{int(backBit)-1}'
-                print( f"{BBB} ixEndCV is now decreased by one verse from '{rvEndCV}' to '{adjustedRvEndCV}'" )
+                logging.info( f"{BBB} ixEndCV is now decreased by one verse from '{rvEndCV}' to '{adjustedRvEndCV}'" )
                 try: ixEndCV = lvRest.rindex( f' id="{adjustedRvEndCV}"' ) # If this fails, we give up trying to fix versification problem
-                except ValueError:
+                except ValueError: # second level 'except'
                     logging.critical( f"Gave up trying to fix OET book versification for {BBB} section RV {rvStartCV}-{rvEndCV}")
                     ixEndCV = len(lvRest) - 1 # Will this work???
             try: ixNextCV = lvRest.index( f' id="C', ixEndCV+5 )
@@ -224,8 +226,12 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
                 not_far_enough
             # print( f"\n{n}: {lvRest[ixEndCV:lvIndex8]=}" )
             lvEndIx = lvIndex8
+            # TODO: Work out why we need these next two sets of lines
             if lvRest[lvEndIx:].startswith( '</span>'): # Occurs at end of MRK (perhaps because of missing SR verses in ending) -- not sure if in other places
-                dPrint( 'Info', DEBUGGING_THIS_MODULE, f"\nNOTE: Fixed end of chunk in OET {BBB}!!!" )
+                dPrint( 'Info', DEBUGGING_THIS_MODULE, f"\nNOTE: Fixed </span> end of {BBB} {rvStartCV=} {rvEndCV=} chunk in OET!!! {lvEndIx=} {ixNextCV=}" )
+                lvEndIx = ixNextCV + 1
+            elif lvRest[lvEndIx:].startswith( '</a>'): # Occurs at end of MAT Why????
+                dPrint( 'Info', DEBUGGING_THIS_MODULE, f"\nNOTE: Fixed </a> end of {BBB} {rvStartCV=} {rvEndCV=} chunk in OET!!! {lvEndIx=} {ixNextCV=}" )
                 lvEndIx = ixNextCV + 1
             lvChunk = lvRest[:lvEndIx]
             # Make sure that our split was at a sensible place
@@ -233,7 +239,7 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
             if ixEndCV != len(lvRest)-1: # from second level 'except' above
                 assert rsLvChunk[-1]=='>' \
                 or (rsLvChunk[-2]=='>' and rsLvChunk[-1] in '.,') \
-                or (BBB in ('GEN','RUT','JNA','EST') and rsLvChunk[-1]=='.'), f"{BBB} {n=} {rvStartCV=} {rvEndCV=} {lvChunk[-8:]=}"
+                or (BBB in ('GENx','RUTx','JNAx','ESTx') and rsLvChunk[-1]=='.'), f"{BBB} {n=} {rvStartCV=} {rvEndCV=} {lvChunk[-40:]=} {lvRest[lvEndIx:lvEndIx+30]=}"
                 # Fails on JNA n=4 rvStartCV='C4' rvEndCV='C4V11' lvChunk[-8:]='eat(fs).'
             lvChunks.append( lvChunk )
             lvRest = lvRest[lvEndIx:]
@@ -320,10 +326,10 @@ def createBookPages( level:int, folder:Path, thisBible, state:State ) -> List[st
         # print( f"{BBB=} {state.BBBsToProcess[thisBible.abbreviation]}"); print( len(BBBsToProcess) )
         # if not allBooksFlag: thisBible.loadBookIfNecessary( BBB )
 
-        if thisBible.abbreviation=='OET-LV' \
-        and BBB in ('FRT','INT','NUM','SA1','SA2','CH1','EZR','NEH','JOB','SNG','JER','DAN'):
-            logging.critical( f"AA Skipped OET chapters difficult book: OET-LV {BBB}")
-            continue # Too many problems for now
+        # if thisBible.abbreviation=='OET-LV' \
+        # and BBB in ('FRT','INT','NUM','SA1','SA2','CH1','EZR','NEH','JOB','SNG','JER','DAN'):
+        #     logging.critical( f"AA Skipped OET chapters difficult book: OET-LV {BBB}")
+        #     continue # Too many problems for now
         if thisBibleBooksToLoad not in (['ALL'],['NT']) \
         and BBB not in thisBibleBooksToLoad:
             logging.critical( f"VV Skipped chapters difficult book: {thisBible.abbreviation} {BBB}")
