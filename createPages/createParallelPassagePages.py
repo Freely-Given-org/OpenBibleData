@@ -49,10 +49,10 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
 from OETHandlers import livenOETWordLinks, getOETTidyBBB, getOETBookName
 
 
-LAST_MODIFIED_DATE = '2024-04-03' # by RJH
+LAST_MODIFIED_DATE = '2024-04-23' # by RJH
 SHORT_PROGRAM_NAME = "createParallelPassagePages"
 PROGRAM_NAME = "OpenBibleData createParallelPassagePages functions"
-PROGRAM_VERSION = '0.21'
+PROGRAM_VERSION = '0.22'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -459,7 +459,9 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
 
     # We don't want the book link for this book to be a recursive link, so remove <a> marking
     ourTidyBBB = getOETTidyBBB( BBB )
+    ourTidyBBBwithNotes = getOETTidyBBB( BBB, addNotes=True )
     ourTidyBbb = getOETTidyBBB( BBB, titleCase=True )
+    ourTidyBbbWithNotes = getOETTidyBBB( BBB, titleCase=True, addNotes=True )
     adjBBBLinksHtml = makeBookNavListParagraph(BBBLinks, 'OET-RV', state) \
             .replace( f'''<a title="{getOETBookName(BBB)}" href="../{BBB}/">{ourTidyBBB}</a>''', ourTidyBBB )
     numBBBSections = len( thisBible[BBB]._SectionIndex )
@@ -564,7 +566,7 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
 {f'{JAMES_NOTE_PARAGRAPH}{NEWLINE}' if 'OET' in thisBible.abbreviation and BBB=='JAM' else ''}{f'{UNFINISHED_WARNING_PARAGRAPH}{NEWLINE}' if 'OET' in thisBible.abbreviation else ''}<h1>{'TEST ' if TEST_MODE else ''}{sectionName}</h1>'''
         assert '\n\n' not in crossReferencedSectionHtml
         if isinstance( thisBible, ESFMBible.ESFMBible ): # e.g., OET-RV
-            verseEntryList = livenOETWordLinks( thisBible, BBB, verseEntryList, f"{'../'*BBBLevel}ref/{'GrkWrd' if NT else 'HebWrd'}/{{n}}.htm#Top", state )
+            verseEntryList = livenOETWordLinks( BBBLevel, thisBible, BBB, verseEntryList, state )
         textHtml = convertUSFMMarkerListToHtml( BBBLevel, thisBible.abbreviation, (BBB,startC), 'relatedPassage', contextList, verseEntryList, basicOnly=False, state=state )
         # textHtml = livenIORs( BBB, textHtml, sections )
         if thisBible.abbreviation == 'OET-RV':
@@ -583,7 +585,7 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
         # Ok, now actually form the parallel sections
         nextXrFnLetter = 'b'
         for srBBB,srCVpart in zip( crossReferencesBBBList, crossReferencesCVList, strict=True ):
-            dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"{BBB} {startC}:{startV} {srBBB=} {srCVpart=}")
+            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"{BBB} {startC}:{startV} {srBBB=} {srCVpart=}")
             srTidyBbb = getOETTidyBBB( srBBB, titleCase=True, allowFourChars=True )
 
             # TODO: Most of this next block of code should really be in BibleOrgSys
@@ -716,7 +718,7 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
             sectionHeadingsList.append( (srTidyBbb,srStartC,f'{srTidyBbb} {srStartC}:{srStartV}{f"–{srEndV}" if srEndC==srStartC else f"—{srEndC}:{srEndV}"}') ) # We use en-dash and em-dash onscreen
 
             if isinstance( thisBible, ESFMBible.ESFMBible ): # e.g., OET-RV
-                verseEntryList = livenOETWordLinks( thisBible, srBBB, verseEntryList, f"{'../'*BBBLevel}ref/{'GrkWrd' if NT else 'HebWrd'}/{{n}}.htm#Top", state )
+                verseEntryList = livenOETWordLinks( BBBLevel, thisBible, srBBB, verseEntryList, state )
             textHtml = convertUSFMMarkerListToHtml( BBBLevel, thisBible.abbreviation, (srBBB,srStartC), 'relatedPassage', contextList, verseEntryList, basicOnly=False, state=state )
             # textHtml = livenIORs( BBB, textHtml, sections )
             if thisBible.abbreviation == 'OET-RV':
@@ -790,7 +792,7 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
                     lastXrefNT = BibleOrgSysGlobals.loadedBibleBooksCodes.isNewTestament_NR( lastXrefBBB )
                     if verseEntryList:
                         if isinstance( thisBible, ESFMBible.ESFMBible ): # e.g., OET-RV
-                            verseEntryList = livenOETWordLinks( thisBible, lastXrefBBB, verseEntryList, f"{'../'*BBBLevel}ref/{'GrkWrd' if lastXrefNT else 'HebWrd'}/{{n}}.htm#Top", state )
+                            verseEntryList = livenOETWordLinks( BBBLevel, thisBible, lastXrefBBB, verseEntryList, state )
                         textHtml = convertUSFMMarkerListToHtml( BBBLevel, thisBible.abbreviation, (lastXrefBBB,lastXrefC), 'relatedPassage', contextList, verseEntryList, basicOnly=False, state=state )
                         # NOTE: textHtml can be empty here
                         # textHtml = livenIORs( BBB, textHtml, sections )

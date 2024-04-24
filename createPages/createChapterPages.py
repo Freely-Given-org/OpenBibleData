@@ -50,13 +50,13 @@ from settings import State, TEST_MODE, reorderBooksForOETVersions, UNFINISHED_WA
 from usfm import convertUSFMMarkerListToHtml
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
                     makeTop, makeBottom, makeBookNavListParagraph, removeDuplicateCVids, checkHtml
-from OETHandlers import livenOETWordLinks, getOETTidyBBB
+from OETHandlers import livenOETWordLinks, getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
-LAST_MODIFIED_DATE = '2024-04-10' # by RJH
+LAST_MODIFIED_DATE = '2024-04-23' # by RJH
 SHORT_PROGRAM_NAME = "createChapterPages"
 PROGRAM_NAME = "OpenBibleData createChapterPages functions"
-PROGRAM_VERSION = '0.65'
+PROGRAM_VERSION = '0.66'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -89,6 +89,7 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
         vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Creating chapter pages for OET {BBB}…" )
         NT = BibleOrgSysGlobals.loadedBibleBooksCodes.isNewTestament_NR( BBB )
         ourTidyBBB = getOETTidyBBB( BBB )
+        ourTidyBBBwithNotes = getOETTidyBBB( BBB, addNotes=True )
         # print( f"{BBB=} {BBBsToProcess}"); print( len(state.BBBsToProcess[thisBible.abbreviation]) )
         # if not allBooksFlag: rvBible.loadBookIfNecessary( BBB )
         # lvBible.loadBookIfNecessary( BBB )
@@ -110,15 +111,15 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
             chapterHtml = f'<h1 id="Top">{rvBible.abbreviation} {BBB}</h1>\n'
             verseEntryList, contextList = rvBible.getContextVerseData( (BBB, '-1') )
             if isinstance( rvBible, ESFMBible.ESFMBible ):
-                verseEntryList = livenOETWordLinks( rvBible, BBB, verseEntryList, f"{'../'*level}ref/{'GrkWrd' if NT else 'HebWrd'}/{{n}}.htm#Top", state )
+                verseEntryList = livenOETWordLinks( level, rvBible, BBB, verseEntryList, state )
             dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{rvBible.abbreviation} {BBB} {verseEntryList} {contextList}" )
             chapterHtml = f'''{chapterHtml}{convertUSFMMarkerListToHtml( level, rvBible.abbreviation, (BBB,'-1'), 'chapter', contextList, verseEntryList, basicOnly=False, state=state )}'''
             filename = f'{BBB}.htm'
             filenames.append( filename )
-            # BBBLinks.append( f'''<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB)}" href="{filename}#Top">{ourTidyBBB}</a>''' )
+            # BBBLinks.append( f'''<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB)}" href="{filename}#Top">{ourTidyBBBwithNotes}</a>''' )
             filepath = folder.joinpath( filename )
             top = makeTop( level, rvBible.abbreviation, 'chapter', f'byC/{filename}', state ) \
-                    .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{rvBible.abbreviation} {BBB}" ) \
+                    .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{rvBible.abbreviation} {ourTidyBBB}" ) \
                     .replace( '__KEYWORDS__', f'Bible, {rvBible.abbreviation}, front matter, chapter, {ourTidyBBB}' ) \
                     .replace( f'''<a title="{state.BibleNames[rvBible.abbreviation]}" href="{'../'*level}{BibleOrgSysGlobals.makeSafeString(rvBible.abbreviation)}/byC/{filename}#Top">{rvBible.abbreviation}</a>''',
                               f'''<a title="Up to {state.BibleNames[rvBible.abbreviation]}" href="{'../'*level}{BibleOrgSysGlobals.makeSafeString(rvBible.abbreviation)}/">↑{rvBible.abbreviation}</a>''' )
@@ -140,7 +141,7 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
         BBBs.append( BBB )
 
         numChapters = rvBible.getNumChapters( BBB )
-        cLinks = [f'<a title="Choose “book”" href="./">{ourTidyBBB}</a>']
+        cLinks = [f'<a title="Choose “book”" href="./">{ourTidyBBBwithNotes}</a>']
         if numChapters >= 1:
             if rvBible.discoveryResults[BBB]['haveIntroductoryText']:
                 cLinks.append( f'<a title="View document introduction" href="{BBB}_Intro.htm#Top">Intro</a>' )
@@ -156,7 +157,7 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
         if numChapters >= 1:
             for c in range( -1, numChapters+1 ):
                 vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"      Creating chapter pages for OET {BBB} {c}…" )
-                documentLink = f'<a title="Whole document view" href="../byDoc/{BBB}.htm#Top">{ourTidyBBB}</a>'
+                documentLink = f'<a title="Whole document view" href="../byDoc/{BBB}.htm#Top">{ourTidyBBBwithNotes}</a>'
                 if c == -1: # Intro
                     leftLink = ''
                     rightLink = f' <a title="Next chapter" href="{BBB}_C1.htm#Top">►</a>' if c<numChapters else ''
@@ -173,11 +174,11 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
                 interlinearLink = f''' <a title="Interlinear verse view" href="{'../'*level}ilr/{BBB}/C{'1' if c==-1 else c}V1.htm#Top">═</a>''' if BBB in state.booksToLoad['OET'] else ''
                 detailsLink = f''' <a title="Show details about this work" href="{'../'*(level-1)}details.htm#Top">©</a>'''
                 cNav = f'<p class="cNav">{leftLink}{documentLink} {"Intro" if c==-1 else c}{rightLink}{parallelLink}{interlinearLink}{detailsLink}</p>'
-                chapterHtml = f'''<h1 id="Top">Open English Translation {ourTidyBBB} Introduction</h1>
+                chapterHtml = f'''<h1 id="Top">Open English Translation {ourTidyBBBwithNotes} Introduction</h1>
 {cNav}
 {f'{JAMES_NOTE_PARAGRAPH}{NEWLINE}' if BBB=='JAM' else ''}<div class="RVLVcontainer">
 <h2><a title="View just the Readers’ Version" href="{'../'*level}OET-RV/byC/{BBB}_Intro.htm#Top">Readers’ Version</a></h2>
-<h2><a title="View just the Literal Version" href="{'../'*level}OET-LV/byC/{BBB}_Intro.htm#Top">Literal Version</a></h2>''' if c==-1 else f'''<h1 id="Top">Open English Translation {ourTidyBBB} Chapter {c}</h1>
+<h2><a title="View just the Literal Version" href="{'../'*level}OET-LV/byC/{BBB}_Intro.htm#Top">Literal Version</a></h2>''' if c==-1 else f'''<h1 id="Top">Open English Translation {ourTidyBBBwithNotes} Chapter {c}</h1>
 {cNav}
 {f'{JAMES_NOTE_PARAGRAPH}{NEWLINE}' if BBB=='JAM' else ''}<div class="RVLVcontainer">
 <h2><a title="View just the Readers’ Version" href="{'../'*level}OET-RV/byC/{BBB}_C{c}.htm#Top">Readers’ Version</a></h2>
@@ -188,17 +189,17 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
                     logging.critical( f"No chapter found for {rvBible.abbreviation} {BBB} {c=}" )
                     halt # continue
                 assert isinstance( rvBible, ESFMBible.ESFMBible )
-                rvVerseEntryList = livenOETWordLinks( rvBible, BBB, rvVerseEntryList, f"{'../'*level}ref/{'GrkWrd' if NT else 'HebWrd'}/{{n}}.htm#Top", state )
+                rvVerseEntryList = livenOETWordLinks( level, rvBible, BBB, rvVerseEntryList, state )
                 # print( f"OET-RV {BBB} {c} got {len(rvVerseEntryList)} verse entries, {len(rvContextList)} context entries")
                 try: lvVerseEntryList, lvContextList = lvBible.getContextVerseData( (BBB, str(c)) )
                 except KeyError:
                     logging.critical( f"createOETSideBySideChapterPages probable versification error for {lvBible.abbreviation} {BBB} {c=}" )
                     lvVerseEntryList, lvContextList = InternalBibleEntryList(), []
                 assert isinstance( lvBible, ESFMBible.ESFMBible )
-                lvVerseEntryList = livenOETWordLinks( lvBible, BBB, lvVerseEntryList, f"{'../'*level}ref/{'GrkWrd' if NT else 'HebWrd'}/{{n}}.htm#Top", state )
+                lvVerseEntryList = livenOETWordLinks( level, lvBible, BBB, lvVerseEntryList, state )
                 # rvHtml = livenIORs( BBB, convertUSFMMarkerListToHtml( 'OET', (BBB,c), 'chapter', rvContextList, rvVerseEntryList ), numChapters )
-                rvHtml = do_OET_RV_HTMLcustomisations( convertUSFMMarkerListToHtml( level, 'OET', (BBB,str(c)), 'chapter', rvContextList, rvVerseEntryList, basicOnly=False, state=state ) )
-                lvHtml = do_OET_LV_HTMLcustomisations( convertUSFMMarkerListToHtml( level, 'OET', (BBB,str(c)), 'chapter', lvContextList, lvVerseEntryList, basicOnly=False, state=state ) )
+                rvHtml = do_OET_RV_HTMLcustomisations( convertUSFMMarkerListToHtml( level, 'OET-RV', (BBB,str(c)), 'chapter', rvContextList, rvVerseEntryList, basicOnly=False, state=state ) )
+                lvHtml = do_OET_LV_HTMLcustomisations( convertUSFMMarkerListToHtml( level, 'OET-LV', (BBB,str(c)), 'chapter', lvContextList, lvVerseEntryList, basicOnly=False, state=state ) )
 
                 if c < 1:
                     rvHtml = f'''<div class="chunkRV">{rvHtml}</div><!--chunkRV-->\n'''
@@ -303,7 +304,7 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
 {cNav}
 {cLinksPar}
 {makeBottom( level, 'chapter', state )}'''
-                checkHtml( 'OETChapterIndex', chapterHtml )
+                checkHtml( 'OETChapter', chapterHtml )
                 assert not filepath.is_file() # Check that we're not overwriting anything
                 with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
                     cHtmlFile.write( chapterHtml )
@@ -318,7 +319,7 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
             # # verseEntryList, contextList = thisBible.getContextVerseData( (BBB, str(c)) )
             verseEntryList, contextList = lvBible.getContextVerseData( (BBB, '-1') )
             if isinstance( lvBible, ESFMBible.ESFMBible ):
-                verseEntryList = livenOETWordLinks( lvBible, BBB, verseEntryList, f"{'../'*level}ref/{'GrkWrd' if NT else 'HebWrd'}/{{n}}.htm#Top", state )
+                verseEntryList = livenOETWordLinks( level, lvBible, BBB, verseEntryList, state )
             dPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"{lvBible.abbreviation} {BBB} {verseEntryList} {contextList}" )
             chapterHtml = f'''{chapterHtml}{convertUSFMMarkerListToHtml( level, (BBB,str(c)), 'chapter', contextList, verseEntryList, basicOnly=False, state=state )}'''
             filename = f'{BBB}_C{c}.htm'
@@ -485,7 +486,7 @@ def createChapterPages( level:int, folder:Path, thisBible, state:State ) -> List
                     logging.critical( f"No chapter found for {thisBible.abbreviation} {BBB} {c=}" )
                     continue
                 if isinstance( thisBible, ESFMBible.ESFMBible ): # e.g., OET-RV and OET-LV
-                    verseEntryList = livenOETWordLinks( thisBible, BBB, verseEntryList, f"{'../'*level}ref/{'GrkWrd' if NT else 'HebWrd'}/{{n}}.htm#Top", state )
+                    verseEntryList = livenOETWordLinks( level, thisBible, BBB, verseEntryList, state )
                 textHtml = convertUSFMMarkerListToHtml( level, thisBible.abbreviation, (BBB,str(c)), 'chapter', contextList, verseEntryList, basicOnly=False, state=state )
                 # textHtml = livenIORs( BBB, textHtml, numChapters )
                 if thisBible.abbreviation == 'OET-RV':
@@ -546,7 +547,7 @@ def createChapterPages( level:int, folder:Path, thisBible, state:State ) -> List
             chapterHtml = f'<h1 id="Top">{thisBible.abbreviation} {BBB}</h1>\n'
             verseEntryList, contextList = thisBible.getContextVerseData( (BBB, '-1') )
             if isinstance( thisBible, ESFMBible.ESFMBible ):
-                verseEntryList = livenOETWordLinks( thisBible, BBB, verseEntryList, f"{'../'*level}ref/{'GrkWrd' if NT else 'HebWrd'}/{{n}}.htm#Top", state )
+                verseEntryList = livenOETWordLinks( level, thisBible, BBB, verseEntryList, state )
             dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{thisBible.abbreviation} {BBB} {verseEntryList} {contextList}" )
             chapterHtml = f'''{chapterHtml}{convertUSFMMarkerListToHtml( level, thisBible.abbreviation, (BBB,'-1'), 'chapter', contextList, verseEntryList, basicOnly=False, state=state )}'''
             filename = f'{BBB}.htm'

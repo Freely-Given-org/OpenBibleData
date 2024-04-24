@@ -47,13 +47,13 @@ from settings import State, TEST_MODE, reorderBooksForOETVersions, UNFINISHED_WA
 from usfm import convertUSFMMarkerListToHtml
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
                     makeTop, makeBottom, makeBookNavListParagraph, removeDuplicateCVids, checkHtml
-from OETHandlers import livenOETWordLinks, getOETTidyBBB
+from OETHandlers import livenOETWordLinks, getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
-LAST_MODIFIED_DATE = '2024-04-09' # by RJH
+LAST_MODIFIED_DATE = '2024-04-23' # by RJH
 SHORT_PROGRAM_NAME = "createBookPages"
 PROGRAM_NAME = "OpenBibleData createBookPages functions"
-PROGRAM_VERSION = '0.54'
+PROGRAM_VERSION = '0.55'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -93,6 +93,7 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
         dPrint( 'Info', DEBUGGING_THIS_MODULE, f"    createOETBookPages {BBB=} {state.BBBsToProcess['OET']} out of {len(state.BBBsToProcess['OET'])}" )
         NT = BibleOrgSysGlobals.loadedBibleBooksCodes.isNewTestament_NR( BBB )
         ourTidyBBB = getOETTidyBBB( BBB )
+        ourTidyBBBwithNotes = getOETTidyBBB( BBB, addNotes=True )
 
         # # TODO: Can we delete all this now???
         # if lvBible.abbreviation=='OET-LV' \
@@ -116,19 +117,19 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
                 bkPrevNav = f'''<a title="Go to book index" href="index.htm#Top">◄</a> '''
                 bkNextNav = f' <a title="Go to first existing book" href="{iBkList[1]}.htm#Top">►</a>'
 
-            bkHtml = f'''<p class="bkNav">{bkPrevNav}<span class="bkHead" id="Top">{rvBible.abbreviation} {ourTidyBBB}</span>{bkNextNav}</p>
+            bkHtml = f'''<p class="bkNav">{bkPrevNav}<span class="bkHead" id="Top">{rvBible.abbreviation} {ourTidyBBBwithNotes}</span>{bkNextNav}</p>
 {JAMES_NOTE_PARAGRAPH}
 {UNFINISHED_WARNING_PARAGRAPH}'''
             verseEntryList, contextList = rvBible.getContextVerseData( (BBB,) )
             assert isinstance( rvBible, ESFMBible.ESFMBible )
-            verseEntryList = livenOETWordLinks( rvBible, BBB, verseEntryList, f"{'../'*level}ref/{'GrkWrd' if NT else 'HebWrd'}/{{n}}.htm#Top", state )
+            verseEntryList = livenOETWordLinks( level, rvBible, BBB, verseEntryList, state )
             textHtml = convertUSFMMarkerListToHtml( level, rvBible.abbreviation, (BBB,), 'book', contextList, verseEntryList, basicOnly=False, state=state )
             # textHtml = livenIORs( BBB, textHtml )
             textHtml = do_OET_RV_HTMLcustomisations( textHtml )
             bkHtml = f'{bkHtml}{textHtml}'
             filename = f'{BBB}.htm'
             processedFilenames.append( filename )
-            # BBBLinks.append( f'''<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB)}" href="{filename}#Top">{ourTidyBBB}</a>''' )
+            # BBBLinks.append( f'''<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB)}" href="{filename}#Top">{ourTidyBBBwithNotes}</a>''' )
             filepath = folder.joinpath( filename )
             top = makeTop( level, rvBible.abbreviation, 'book', f'byDoc/{filename}', state ) \
                     .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{rvBible.abbreviation} {ourTidyBBB} book" ) \
@@ -158,7 +159,7 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
         bkPrevNav = f'''<a title="Go to {'book index' if bkIx==1 else 'previous book'}" href="{iBkList[bkIx-1]}.htm#Top">◄</a> ''' if bkIx>0 else ''
         bkNextNav = f' <a title="Go to next book" href="{iBkList[bkIx+1]}.htm#Top">►</a>' if bkIx<len(iBkList)-1 else ''
 
-        bkHtml = f'''<p class="bkNav">{bkPrevNav}<span class="bkHead" id="Top">Open English Translation {ourTidyBBB}</span>{bkNextNav}</p>
+        bkHtml = f'''<p class="bkNav">{bkPrevNav}<span class="bkHead" id="Top">Open English Translation {ourTidyBBBwithNotes}</span>{bkNextNav}</p>
 {f'{JAMES_NOTE_PARAGRAPH}{NEWLINE}' if BBB=='JAM' else ''}{UNFINISHED_WARNING_PARAGRAPH}
 <div class="RVLVcontainer">
 <h2>Readers’ Version</h2>
@@ -166,9 +167,9 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
         rvVerseEntryList, rvContextList = rvBible.getContextVerseData( (BBB,) )
         lvVerseEntryList, lvContextList = lvBible.getContextVerseData( (BBB,) )
         assert isinstance( rvBible, ESFMBible.ESFMBible )
-        rvVerseEntryList = livenOETWordLinks( rvBible, BBB, rvVerseEntryList, f"{'../'*level}ref/{'GrkWrd' if NT else 'HebWrd'}/{{n}}.htm#Top", state )
+        rvVerseEntryList = livenOETWordLinks( level, rvBible, BBB, rvVerseEntryList, state )
         assert isinstance( lvBible, ESFMBible.ESFMBible )
-        lvVerseEntryList = livenOETWordLinks( lvBible, BBB, lvVerseEntryList, f"{'../'*level}ref/{'GrkWrd' if NT else 'HebWrd'}/{{n}}.htm#Top", state )
+        lvVerseEntryList = livenOETWordLinks( level, lvBible, BBB, lvVerseEntryList, state )
         rvHtml = do_OET_RV_HTMLcustomisations( convertUSFMMarkerListToHtml( level, 'OET', (BBB,), 'book', rvContextList, rvVerseEntryList, basicOnly=False, state=state ) )
         tempLVHtml = convertUSFMMarkerListToHtml( level, 'OET', (BBB,), 'book', lvContextList, lvVerseEntryList, basicOnly=False, state=state )
         if '+' in tempLVHtml: print( f"HAVE_PLUS {tempLVHtml[max(0,tempLVHtml.index('+')-30):tempLVHtml.index('+')+90]}" )
@@ -320,9 +321,8 @@ def createBookPages( level:int, folder:Path, thisBible, state:State ) -> List[st
 
     processedBBBs, processedFilenames = [], []
     for BBB in state.BBBsToProcess[thisBible.abbreviation]:
-        NT = BibleOrgSysGlobals.loadedBibleBooksCodes.isNewTestament_NR( BBB )
-        # wordFileName = 'OET-LV_NT_word_table.tsv' if NT else 'OET-LV_OT_word_table.tsv'
         ourTidyBBB = getOETTidyBBB( BBB )
+        NT = BibleOrgSysGlobals.loadedBibleBooksCodes.isNewTestament_NR( BBB )
         # print( f"{BBB=} {state.BBBsToProcess[thisBible.abbreviation]}"); print( len(BBBsToProcess) )
         # if not allBooksFlag: thisBible.loadBookIfNecessary( BBB )
 
@@ -349,7 +349,7 @@ def createBookPages( level:int, folder:Path, thisBible, state:State ) -> List[st
         bkHtml = f'''<p class="bkNav">{bkPrevNav}<span class="bkHead" id="Top">{thisBible.abbreviation} {ourTidyBBB}</span>{bkNextNav}</p>{f'{NEWLINE}{JAMES_NOTE_PARAGRAPH}' if 'OET' in thisBible.abbreviation and BBB=='JAM' else ''}{f'{NEWLINE}{UNFINISHED_WARNING_PARAGRAPH}' if 'OET' in thisBible.abbreviation else ''}'''
         verseEntryList, contextList = thisBible.getContextVerseData( (BBB,) )
         if isinstance( thisBible, ESFMBible.ESFMBible ):
-            verseEntryList = livenOETWordLinks( thisBible, BBB, verseEntryList, f"{'../'*level}ref/{'GrkWrd' if NT else 'HebWrd'}/{{n}}.htm#Top", state )
+            verseEntryList = livenOETWordLinks( level, thisBible, BBB, verseEntryList, state )
         textHtml = convertUSFMMarkerListToHtml( level, thisBible.abbreviation, (BBB,), 'book', contextList, verseEntryList, basicOnly=False, state=state )
         # textHtml = livenIORs( BBB, textHtml )
         if thisBible.abbreviation == 'OET-RV':

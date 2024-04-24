@@ -61,13 +61,13 @@ from Bibles import formatUnfoldingWordTranslationNotes, formatTyndaleNotes
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
                     makeTop, makeBottom, makeBookNavListParagraph, checkHtml
 from createOETReferencePages import CNTR_BOOK_ID_MAP
-from OETHandlers import livenOETWordLinks, getOETBookName, getOETTidyBBB
+from OETHandlers import livenOETWordLinks, getOETBookName, getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
-LAST_MODIFIED_DATE = '2024-04-08' # by RJH
+LAST_MODIFIED_DATE = '2024-04-23' # by RJH
 SHORT_PROGRAM_NAME = "createOETInterlinearPages"
 PROGRAM_NAME = "OpenBibleData createOETInterlinearPages functions"
-PROGRAM_VERSION = '0.52'
+PROGRAM_VERSION = '0.53'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -134,9 +134,11 @@ def createOETInterlinearVersePagesForBook( level:int, folder:Path, BBB:str, BBBL
 
     # We don't want the book link for this book to be a recursive link, so remove <a> marking
     ourTidyBBB = getOETTidyBBB( BBB )
+    ourTidyBBBwithNotes = getOETTidyBBB( BBB, addNotes=True )
     ourTidyBbb = getOETTidyBBB( BBB, titleCase=True )
+    ourTidyBbbWithNotes = getOETTidyBBB( BBB, titleCase=True, addNotes=True )
     adjBBBLinksHtml = makeBookNavListParagraph(state.BBBLinks['OET-RV'], 'interlinearVerse', state) \
-            .replace( f'''<a title="{getOETBookName(BBB)}" href="../{BBB}/">{ourTidyBBB}</a>''', ourTidyBBB )
+            .replace( f'''<a title="{getOETBookName(BBB)}" href="../{BBB}/">{ourTidyBBBwithNotes}</a>''', ourTidyBBB )
 
     numChapters = None
     for versionAbbreviation in state.BibleVersions:
@@ -172,7 +174,7 @@ def createOETInterlinearVersePagesForBook( level:int, folder:Path, BBB:str, BBBL
                 rightCLink = f' <a title="Go to next chapter" href="C{c+1}V1.htm#__ID__">►</a>' if c<numChapters else ''
                 parallelLink = f''' <a title="Parallel verse view" href="{'../'*BBBLevel}par/{BBB}/C{c}V{v}.htm#Top">║</a>'''
                 detailsLink = f''' <a title="Show details about the OET" href="{'../'*(BBBLevel)}OET/details.htm#Top">©</a>'''
-                navLinks = f'<p id="__ID__" class="vNav">{leftCLink}{leftVLink}{ourTidyBbb} {c}:{v} <a title="Go to __WHERE__ of page" href="#__LINK__">__ARROW__</a>{rightVLink}{rightCLink}{parallelLink}{detailsLink}</p>'
+                navLinks = f'<p id="__ID__" class="vNav">{leftCLink}{leftVLink}{ourTidyBBBwithNotes} {c}:{v} <a title="Go to __WHERE__ of page" href="#__LINK__">__ARROW__</a>{rightVLink}{rightCLink}{parallelLink}{detailsLink}</p>'
                 iHtml = createOETInterlinearVersePage( BBBLevel, BBB, c, v, state )
                 assert iHtml
                 assert '\n\n' not in iHtml
@@ -186,7 +188,7 @@ def createOETInterlinearVersePagesForBook( level:int, folder:Path, BBB:str, BBBL
                 iHtml = f'''{top}<!--interlinear verse page-->
 {adjBBBLinksHtml}
 {cLinksPar}
-<h1 id="Top">OET interlinear {ourTidyBBB} {c}:{v}</h1>
+<h1 id="Top">OET interlinear {ourTidyBBBwithNotes} {c}:{v}</h1>
 {navLinks.replace('__ID__','Top').replace('__ARROW__','↓').replace('__LINK__','Bottom').replace('__WHERE__','bottom')}
 {iHtml}
 {navLinks.replace('__ID__','Bottom').replace('__ARROW__','↑').replace('__LINK__','Top').replace('__WHERE__','top')}
@@ -210,11 +212,11 @@ def createOETInterlinearVersePagesForBook( level:int, folder:Path, BBB:str, BBBL
             .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{ourTidyBBB} Interlinear View" ) \
             .replace( '__KEYWORDS__', 'Bible, interlinear' )
     # For Psalms, we don't list every single verse
-    ourLinks = f'''<h1 id="Top">OET {ourTidyBBB} interlinear songs index</h1>
+    ourLinks = f'''<h1 id="Top">OET {ourTidyBBBwithNotes} interlinear songs index</h1>
 <p class="chLst">{EM_SPACE.join( [f'<a title="Go to interlinear verse page" href="C{ps}V1.htm#Top">Ps{ps}</a>' for ps in range(1,numChapters+1)] )}</p>''' \
                 if BBB=='PSA' else \
 f'''<p class="chLst">{ourTidyBbb if ourTidyBbb!='Yac' else 'Yacob/(James)'} {' '.join( [f'<a title="Go to interlinear verse page" href="C{chp}V1.htm#Top">C{chp}</a>' for chp in range(1,numChapters+1)] )}</p>
-<h1 id="Top">OET {ourTidyBBB} interlinear verses index</h1>
+<h1 id="Top">OET {ourTidyBBBwithNotes} interlinear verses index</h1>
 <p class="vsLst">{' '.join( vLinks )}</p>'''
     indexHtml = f'''{top}{adjBBBLinksHtml}
 {ourLinks}
@@ -234,11 +236,11 @@ f'''<p class="chLst">{ourTidyBbb if ourTidyBbb!='Yac' else 'Yacob/(James)'} {'
             .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{ourTidyBBB} Interlinear View" ) \
             .replace( '__KEYWORDS__', 'Bible, interlinear' )
     # For Psalms, we don't list every single verse
-    ourLinks = f'''<h1 id="Top">OET {ourTidyBBB} interlinear songs index</h1>
+    ourLinks = f'''<h1 id="Top">OET {ourTidyBBBwithNotes} interlinear songs index</h1>
 <p class="chLst">{EM_SPACE.join( [f'<a title="Go to interlinear verse page" href="C{ps}V1.htm#Top">Ps{ps}</a>' for ps in range(1,numChapters+1)] )}</p>''' \
                 if BBB=='PSA' else \
 f'''<p class="chLst">{ourTidyBbb if ourTidyBbb!='Yac' else 'Yacob/(James)'} {' '.join( [f'<a title="Go to interlinear verse page" href="C{chp}V1.htm#Top">C{chp}</a>' for chp in range(1,numChapters+1)] )}</p>
-<h1 id="Top">OET {ourTidyBBB} interlinear verses index</h1>
+<h1 id="Top">OET {ourTidyBBBwithNotes} interlinear verses index</h1>
 <p class="vsLst">{' '.join( newBBBVLinks )}</p>'''
     indexHtml = f'''{top}{adjBBBLinksHtml}
 {ourLinks}
@@ -266,7 +268,9 @@ def createOETInterlinearVersePage( level:int, BBB:str, c:int, v:int, state:State
 
     # We don't want the book link for this book to be a recursive link, so remove <a> marking
     ourTidyBBB = getOETTidyBBB( BBB )
+    ourTidyBBBwithNotes = getOETTidyBBB( BBB, addNotes=True )
     ourTidyBbb = getOETTidyBBB( BBB, titleCase=True )
+    ourTidyBbbWithNotes = getOETTidyBBB( BBB, titleCase=True, addNotes=True )
     C, V = str(c), str(v)
 
     lvBible = state.preloadedBibles['OET-LV']
@@ -275,29 +279,29 @@ def createOETInterlinearVersePage( level:int, BBB:str, c:int, v:int, state:State
 
     try:
         lvVerseEntryList, lvContextList = lvBible.getContextVerseData( (BBB, C, V) )
-        livenedLvVerseEntryList = livenOETWordLinks( lvBible, BBB, lvVerseEntryList, f"{'../'*level}ref/{'GrkWrd' if NT else 'HebWrd'}/{{n}}.htm#Top", state )
+        livenedLvVerseEntryList = livenOETWordLinks( level, lvBible, BBB, lvVerseEntryList, state )
         lvTextHtml = do_OET_LV_HTMLcustomisations( convertUSFMMarkerListToHtml( level, 'OET-LV', (BBB,C,V), 'verse', lvContextList, livenedLvVerseEntryList, basicOnly=True, state=state ) )
         lvHtml = f'''<div class="LV"><p class="LV"><span class="wrkName"><a title="View {state.BibleNames['OET']} chapter" href="{'../'*level}OET/byC/{BBB}_C{c}.htm#Top">OET</a> (<a title="{state.BibleNames['OET-LV']}" href="{'../'*level}OET-LV/byC/{BBB}_C{c}.htm#Top">OET-LV</a>)</span> {lvTextHtml}</p></div><!--LV-->'''
     except (KeyError, TypeError):
         if BBB in lvBible and BBB in rvBible:
-            warningText = f'No OET-LV {ourTidyBBB} {c}:{v} verse available'
+            warningText = f'No OET-LV {ourTidyBBBwithNotes} {c}:{v} verse available'
             lvHtml = f'''<p class="ilNote"><span class="wrkName"><a title="{state.BibleNames['OET']}" href="{'../'*level}OET/byC/{BBB}_C{c}.htm#Top">OET-LV</a></span> <span class="noVerse"><small>{warningText}</small></span></p>'''
         else:
-            warningText = f'No OET-LV {ourTidyBBB} book available'
+            warningText = f'No OET-LV {ourTidyBBBwithNotes} book available'
             lvHtml = f'''<p class="ilNote"><span class="wrkName">OET-LV</span> <span class="noBook"><small>{warningText}</small></span></p>'''
         logging.critical( warningText )
         lvVerseEntryList = []
     try:
         rvVerseEntryList, rvContextList = rvBible.getContextVerseData( (BBB, C, V) )
-        livenedRvVerseEntryList = livenOETWordLinks( lvBible, BBB, rvVerseEntryList, f"{'../'*level}ref/{'GrkWrd' if NT else 'HebWrd'}/{{n}}.htm#Top", state )
+        livenedRvVerseEntryList = livenOETWordLinks( level, lvBible, BBB, rvVerseEntryList, state )
         rvTextHtml = do_OET_RV_HTMLcustomisations( convertUSFMMarkerListToHtml( level, 'OET-RV', (BBB,C,V), 'verse', rvContextList, livenedRvVerseEntryList, basicOnly=True, state=state ) )
         rvHtml = f'''<div class="RV"><p class="RV"><span class="wrkName"><a title="View {state.BibleNames['OET']} chapter" href="{'../'*level}OET/byC/{BBB}_C{c}.htm#Top">OET</a> (<a title="{state.BibleNames['OET-RV']}" href="{'../'*level}OET-RV/byC/{BBB}_C{c}.htm#Top">OET-RV</a>)</span> {rvTextHtml}</p></div><!--RV-->'''
     except (KeyError, TypeError):
         if BBB in rvBible:
-            warningText = f'No OET-RV {ourTidyBBB} {c}:{v} verse available'
+            warningText = f'No OET-RV {ourTidyBBBwithNotes} {c}:{v} verse available'
             rvHtml = f'''<p class="ilNote"><span class="wrkName"><a title="{state.BibleNames['OET']}" href="{'../'*level}OET/byC/{BBB}_C{c}.htm#Top">OET-RV</a></span> <span class="noVerse"><small>{warningText}</small></span></p>'''
         else:
-            warningText = f'No OET-RV {ourTidyBBB} book available'
+            warningText = f'No OET-RV {ourTidyBBBwithNotes} book available'
             rvHtml = f'''< class="ilNote"><span class="wrkName">OET-RV</span> <span class="noBook"><small>{warningText}</small></span></p>'''
         logging.critical( warningText )
         rvVerseEntryList = []
@@ -448,7 +452,7 @@ def createOETInterlinearVersePage( level:int, BBB:str, c:int, v:int, state:State
 <li lang="en_CAPS">{row[6] if row[6] else '-'}</li>
 <li lang="en_PERCENT">{row[7]+'%' if row[7] else 'V'}</li>
 <li lang="en_TAGS">{tagsHtml}</li>
-<li lang="en_WORDNUM"><a title="View word details" href="{'../'*level}ref/GrkWrd/{wordNumber}.htm#Top">{wordNumber}</a></li>
+<li lang="en_WORDNUM"><a title="View word details" href="{'../'*level}ref/GrkWrd/{getGreekWordpageFilename(wordNumber, state)}#Top">{wordNumber}</a></li>
 </ol></li>''' )
             ivHtml = f'{ivHtml}{NEWLINE.join( GreekList )}'
         else: # OT
@@ -579,7 +583,7 @@ def createOETInterlinearVersePage( level:int, BBB:str, c:int, v:int, state:State
 <li lang="en_CAPS">{row[6] if row[6] else '-'}</li>
 <li lang="en_PERCENT">{row[7]+'%' if row[7] else 'V'}</li>
 <li lang="en_TAGS">{tagsHtml}</li>
-<li lang="en_WORDNUM"><a title="View word details" href="{'../'*level}ref/GrkWrd/{wordNumber}.htm#Top">{wordNumber}</a></li>
+<li lang="en_WORDNUM"><a title="View word details" href="{'../'*level}ref/GrkWrd/{getGreekWordpageFilename(wordNumber, state)}#Top">{wordNumber}</a></li>
 </ol></li>''' )
             else: # OT
                 assert rowStr.startswith( f'{BBB}_{c}:{v}' )

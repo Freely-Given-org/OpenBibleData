@@ -116,6 +116,8 @@ span.xrRef { font-weight:bold; }
 /* Used in <a> fields and in spans */
 .hebVrb { background-color:yellow; }
 .hebNeg { background-color:crimson; }
+.hebEl { background-color:powderBlue; }
+.hebYhwh { background-color:paleGreen; }
 
 /* SR-GNT cases (also used for OET-RV and OET-LV) */
 /* Used in <a> fields and in spans */

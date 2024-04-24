@@ -25,16 +25,21 @@
 """
 Module handling html functions.
 
-BibleOrgSys uses a three-character book code to identify books.
-    These referenceAbbreviations are nearly always represented as BBB in the program code
-            (although formally named referenceAbbreviation
-                and possibly still represented as that in some of the older code),
-        and in a sense, this is the centre of the BibleOrgSys.
-    The referenceAbbreviation/BBB always starts with a letter, and letters are always UPPERCASE
-        so 2 Corinthians is 'CO2' not '2Co' or anything.
-        This was because early versions of HTML ID fields used to need
-                to start with a letter (not a digit),
-            (and most identifiers in computer languages still require that).
+makeTop( level:int, versionAbbreviation:Optional[str], pageType:str, versionSpecificFileOrFolderName:Optional[str], state:State ) -> str
+makeHeader( level:int, versionAbbreviation:str, pageType:str, versionSpecificFileOrFolderName:Optional[str], state:State ) -> str
+makeBookNavListParagraph( linksList:List[str], workAbbrevPlus:str, state:State ) -> str
+makeBottom( level:int, pageType:str, state:State ) -> str
+makeFooter( level:int, pageType:str, state:State ) -> str
+removeDuplicateCVids( BBB:str, html:str ) -> str
+checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool
+do_OET_RV_HTMLcustomisations( OET_RV_html:str ) -> str
+do_OET_LV_HTMLcustomisations( OET_LV_html:str ) -> str
+do_LSV_HTMLcustomisations( LSV_html:str ) -> str
+do_T4T_HTMLcustomisations( T4T_html:str ) -> str
+briefDemo() -> None
+fullDemo() -> None
+main calls fullDemo()
+
 
 CHANGELOG:
     2023-07-20 Handled removal of #Vv navigation links to section pages (already had #CcVv)
@@ -46,6 +51,7 @@ CHANGELOG:
     2023-10-10 Improved OET-LV customisations to be more selective and efficient
     2024-01-25 Added support for 'Related' sections mode
     2024-04-03 Added OET Key page
+    2024-04-21 Added News page
 """
 from gettext import gettext as _
 from typing import Dict, List, Tuple, Optional
@@ -60,10 +66,10 @@ from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39, BOOKLIST_NT27
 from settings import State, TEST_MODE, SITE_NAME
 
 
-LAST_MODIFIED_DATE = '2024-04-10' # by RJH
+LAST_MODIFIED_DATE = '2024-04-22' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
-PROGRAM_VERSION = '0.75'
+PROGRAM_VERSION = '0.77'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -80,7 +86,7 @@ KNOWN_PAGE_TYPES = ('site', 'topIndex', 'details', 'allDetails',
                     'dictionaryMainIndex','dictionaryLetterIndex','dictionaryEntry','dictionaryIntro',
                     'word','lemma','morpheme', 'person','location',
                     'wordIndex','lemmaIndex','morphemeIndex', 'personIndex','locationIndex', 'referenceIndex',
-                    'search', 'about', 'OETKey')
+                    'search', 'about', 'news', 'OETKey')
 def makeTop( level:int, versionAbbreviation:Optional[str], pageType:str, versionSpecificFileOrFolderName:Optional[str], state:State ) -> str:
     """
     Create the very top part of an HTML page.
@@ -104,21 +110,19 @@ def makeTop( level:int, versionAbbreviation:Optional[str], pageType:str, version
         cssFilename = 'BibleWord.css'
     elif pageType in ('dictionaryLetterIndex', 'dictionaryEntry','dictionaryIntro'):
         cssFilename = 'BibleDict.css'
-    elif pageType in ('site', 'details','allDetails', 'search', 'about', 'OETKey', 'topIndex',
+    elif pageType in ('site', 'details','allDetails', 'search', 'about', 'news', 'OETKey', 'topIndex',
                       'bookIndex','chapterIndex','sectionIndex',
                       'relatedSectionIndex', 'dictionaryMainIndex',
                       'wordIndex','lemmaIndex','morphemeIndex','personIndex','locationIndex','referenceIndex' ):
         cssFilename = 'BibleSite.css'
     else: unexpected_page_type
 
+    homeLink = f"{SITE_NAME}{' TEST' if TEST_MODE else ''} Home" if pageType=='topIndex' else f'''<a href="{'../'*level}about.htm#Top">About</a>'''
     aboutLink = 'About' if pageType=='about' else f'''<a href="{'../'*level}about.htm#Top">About</a>'''
+    newsLink = 'News' if pageType=='news' else f'''<a href="{'../'*level}news.htm#Top">News</a>'''
     OETKeyLink = 'OET Key' if pageType=='OETKey' else f'''<a href="{'../'*level}OETKey.htm#Top">OET Key</a>'''
-    if TEST_MODE:
-        topLink = f'<p class="site">{SITE_NAME} TEST Home  {aboutLink}</p>' if pageType=='topIndex' \
-            else f'''<p class="site"><a href="{'index.htm' if level==0 else '../'*level}">TEST {SITE_NAME} Home</a>  {aboutLink}  {OETKeyLink}</p>'''
-    else:
-        topLink = f'<p class="site">{SITE_NAME} Home  {aboutLink}</p>' if pageType=='topIndex' \
-            else f'''<p class="site"><a href="{'index.htm' if level==0 else '../'*level}">{SITE_NAME} Home</a>  {aboutLink}  {OETKeyLink}</p>'''
+    topLink = f'<p class="site">{homeLink}  {aboutLink}  {newsLink}  {OETKeyLink}</p>'
+
     top = f"""<!DOCTYPE html>
 <html lang="en-US">
 <head>
@@ -204,11 +208,6 @@ def _makeHeader( level:int, versionAbbreviation:str, pageType:str, versionSpecif
         initialVersionList.append( 'Search' )
     else: # add a link for dictionary
         initialVersionList.append( f'''{state.BibleVersionDecorations['Search'][0]}<a title="Find Bible words" href="{'../'*level}search.htm">Search</a>{state.BibleVersionDecorations['Search'][1]}''' )
-    # Moved to top line in makeTop above
-    # if pageType == 'about':
-    #     initialVersionList.append( 'About' )
-    # else: # add a link for about page
-    #     initialVersionList.append( f'''<a title="About OBD" href="{'../'*level}about.htm#Top">About</a>''' )
 
     # This code tries to adjust links to books which aren't in a version, e.g., UHB has no NT books, SR-GNT and UGNT have no OT books
     # It does this by adjusting the potential bad link to the next level higher.
@@ -387,6 +386,8 @@ def removeDuplicateCVids( BBB:str, html:str ) -> str:
     return html
 # end of html.removeDuplicateCVids
 
+
+titleRegex = re.compile( 'title="(.+?)"' )
 def checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool:
     """
     Just do some very quick and basic tests
@@ -399,11 +400,11 @@ def checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool:
     if '\n\n' in htmlToCheck:
         ix = htmlToCheck.index( '\n\n' )
         # print( f"checkHtml({where=} {segmentOnly=}) found \\n\\n in …{htmlToCheck[ix-30:ix]}{htmlToCheck[ix:ix+50]}…" )
-        raise ValueError( f"checkHtml({where}) found unexpected double newlines" )
+        raise ValueError( f"checkHtml({where}) found unexpected double newlines in {htmlToCheck=}" )
     if '<br>\n' in htmlToCheck:
         ix = htmlToCheck.index( '<br>\n' )
         # print( f"checkHtml({where=} {segmentOnly=}) found <br> in …{htmlToCheck[ix-30:ix]}{htmlToCheck[ix:ix+50]}…" )
-        raise ValueError( f"checkHtml({where}) found <br> followed by unexpected newline" )
+        raise ValueError( f"checkHtml({where}) found <br> followed by unexpected newline in {htmlToCheck=}" )
             
     if 'TCNT' not in where and 'TC-GNT' not in where: # These two versions use the '¦' character in their footnotes
         assert '¦' not in htmlToCheck, f"checkHtml() found unprocessed word number marker in {where} {htmlToCheck=}"
@@ -437,6 +438,18 @@ def checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool:
     if '\n<br></p>' in htmlToCheck or '\n<br></span>' in htmlToCheck:
         logging.critical( f"{where}' {segmentOnly=} has wasted <br> in {htmlToCheck=} THIS IS BEING CHANGED!!!" )
         htmlToCheck = htmlToCheck.replace( '\n<br></span></span></p>', '</span></span></p>' ).replace( '\n<br></span></p>', '</span></p>' ).replace( '\n<br></p>', '</p>' )
+
+    # Check for illegal characters in title popups
+    searchStartIndex = 0
+    while True: # Look for links that we could maybe liven
+        match = titleRegex.search( htmlToCheck, searchStartIndex )
+        if not match:
+            break
+        titleAttributeGuts = match.group(1)
+        assert '\n' not in titleAttributeGuts, f"Bad title attribute with newline in {htmlToCheck=}"
+        assert '<br' not in titleAttributeGuts, f"Bad title attribute with BR in {htmlToCheck=}"
+        assert '<span' not in titleAttributeGuts, f"Bad title attribute with SPAN in {htmlToCheck=}"
+        searchStartIndex = match.end()
 
     return True
 # end of html.checkHtml
@@ -483,6 +496,8 @@ def do_OET_LV_HTMLcustomisations( OET_LV_html:str ) -> str:
             .replace( '.org', '~~PERIOD~~org' ).replace( '.tsv', '~~PERIOD~~tsv' )
             # .replace( 'v0.', 'v0~~PERIOD~~' )
             .replace( '.\\f*', '~~PERIOD~~\\f*' ).replace( 'Note:', 'Note~~COLON~~').replace( '."', '~~PERIOD~~"' ) # These last two are inside the footnote callers
+            # In <hr>
+            .replace( 'width:', 'width~~COLON~~' ).replace( 'margin-left:', 'margin-left~~COLON~~' ).replace( 'margin-top:', 'margin-top~~COLON~~' )
             # Make each sentence start a new line
             .replace( '.', '.\n<br>' ).replace( '?', '?\n<br>' )
             .replace( '!', '!\n<br>' ).replace( ':', ':\n<br>' )

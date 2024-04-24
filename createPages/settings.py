@@ -35,6 +35,7 @@ and more pages to come hopefully.
 CHANGELOG:
     2024-01-11 Load all OET-LV NT books
     2024-04-05 Add more acknowledgements for the OT part
+    2024-04-18 Added AICNT
 """
 from gettext import gettext as _
 from typing import List
@@ -43,11 +44,11 @@ from pathlib import Path
 import sys
 sys.path.append( '../../BibleOrgSys/' )
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
-from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
-from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39, BOOKLIST_NT27
+from BibleOrgSys.BibleOrgSysGlobals import dPrint
+from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39
 
 
-LAST_MODIFIED_DATE = '2024-04-12' # by RJH
+LAST_MODIFIED_DATE = '2024-04-18' # by RJH
 SHORT_PROGRAM_NAME = "settings"
 PROGRAM_NAME = "OpenBibleData (OBD) Create Pages"
 PROGRAM_VERSION = '0.96'
@@ -55,7 +56,7 @@ PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
 
-OET_VERSION = 'v0.08'
+OET_VERSION = 'v0.09'
 
 TEST_MODE = True # Writes website into Test subfolder
 ALL_PRODUCTION_BOOKS = not TEST_MODE # If set to False, only selects one book per version for a faster test build
@@ -107,7 +108,7 @@ class State:
                 'OET-RV','OET-LV',
                 'ULT','UST',
                 'BSB','BLB',
-                'OEB','ISV','CSB','NLT',
+                'AICNT','OEB','ISV','CSB','NLT',
                 'NIV','CEV','ESV','NASB','LSB',
                 'JQT','2DT','1ST','TPT',
                 'WEB','WMB','NET','LSV','FBV','TCNT','T4T','LEB','NRSV','NKJV','BBE',
@@ -135,7 +136,7 @@ class State:
     BibleVersionDecorations = { 'OET':('<b>','</b>'),'OET-RV':('<b>','</b>'),'OET-LV':('<b>','</b>'),
                 'ULT':('',''),'UST':('',''),
                 'BSB':('',''),'BLB':('',''),
-                'OEB':('',''),'ISV':('',''),
+                'AICNT':('',''),'OEB':('',''),'ISV':('',''),
                 'WEB':('',''),'WMB':('',''),'NET':('',''),'LSV':('',''),'FBV':('',''),'TCNT':('<small>','</small>'),'T4T':('',''),'LEB':('',''),'BBE':('',''),
                 'MOF':('<small>','</small>'),'JPS':('<small>','</small>'),'ASV':('',''),'DRA':('<small>','</small>'),'YLT':('',''),'DBY':('',''),'RV':('',''),
                 'WBS':('<small>','</small>'),
@@ -164,6 +165,7 @@ class State:
                 # However, if they're all commented out, 'assert doneHideablesDiv' will fail in createParallelVersePages.py
                 'BSB': '../copiedBibles/English/Berean.Bible/BSB/',
                 'BLB': '../copiedBibles/English/Berean.Bible/BLB/blb.modified.txt', # NT only so far
+                'AICNT': '../copiedBibles/English/AICNT/', # NT only
                 'OEB': '../copiedBibles/English/OEB/',
                 # 'ISV': '',
                 'CSB': '../copiedBibles/English/CSB_verses.tsv',
@@ -222,6 +224,7 @@ class State:
                 'UST': 'unfoldingWord® Simplified Text (2023)',
                 'BSB': 'Berean Study/Standard Bible (2020)',
                 'BLB': 'Berean Literal Bible NT (2022)',
+                'AICNT': 'AI Critical NT (2023)',
                 'OEB': 'Open English Bible (in progress)',
                 'ISV': 'International Standard Version (2020?)',
                 'CSB': 'Christian Standard Bible (2017)',
@@ -283,7 +286,8 @@ class State:
                 'ULT': ['ALL'],
                 'UST': ['ALL'], # MRK 13:13 gives \\add error (24Jan2023)
                 'BSB': ['ALL'],
-                'BLB': ['NT'],
+                'BLB': ['ALL'], # NT only
+                'AICNT': ['ALL'], # NT only
                 'OEB': ['ALL'],
                 'ISV': ['ALL'],
                 'CSB': ['ALL'],
@@ -342,6 +346,7 @@ class State:
                 'UST': TEST_BOOK_LIST, # Has no FRT for some reason
                 'BSB': TEST_BOOK_LIST,
                 'BLB': TEST_NT_BOOK_LIST, # NT only
+                'AICNT': TEST_NT_BOOK_LIST, # NT only
                 'OEB': TEST_BOOK_LIST,
                 'ISV': TEST_BOOK_LIST,
                 'CSB': TEST_BOOK_LIST,
@@ -402,7 +407,8 @@ You can read more about the design of the <em>OET</em> at <a href="https://OpenE
                 'acknowledgements': '''<p class="acknwldg">Thanks to <a href="https://Freely-Given.org/">Freely-Given.org</a> for creating this exciting, radical, new Bible translation which is viewable from <a href="https://OpenEnglishTranslation.Bible">OpenEnglishTranslation.Bible</a>.
 We are very grateful to Dr. Alan Bunning of the <a href="https://GreekCNTR.org">Center for New Testament Restoration</a> whose many years of hard work the <em>OET-LV</em> part of the New Testament is adapted from.
 The <em>OET-LV</em> part of the Old Testament Hebrew text (and the morphology analysis) is adapted from the work of the <a href="https://hb.OpenScriptures.org/">Open Scriptures Hebrew Bible</a> team.
-We’re also grateful to the <a href="https://www.Biblica.com/clear/">Biblica Clear Bible team</a> who provide the pronoun referential information as part of their <a href="https://GitHub.com/Clear-Bible/macula-greek">Macula Greek</a> project and also some of the OT glosses as part of their <a href="https://GitHub.com/Clear-Bible/macula-hebrew">Macula Hebrew</a> project.</p>''' },
+We’re also grateful to the <a href="https://www.Biblica.com/clear/">Biblica Clear Bible team</a> who provide the pronoun referential information as part of their <a href="https://GitHub.com/Clear-Bible/macula-greek">Macula Greek</a> project and also some of the OT glosses as part of their <a href="https://GitHub.com/Clear-Bible/macula-hebrew">Macula Hebrew</a> project.
+Also, the Bible translation resources created by <a href="https://www.unfoldingWord.org">unfoldingWord</a> have proven very helpful.</p>''' },
         'OET-RV': {'about': '''<p class="about">The (still unfinished) <em>Open English Translation Readers’ Version</em> is a new, modern-English easy-to-read translation of the Bible.
 You can read more about the design of the <em>OET-RV</em> at <a href="https://OpenEnglishTranslation.Bible/Design/ReadersVersion">OpenEnglishTranslation.Bible/Design/ReadersVersion</a>.</p>''',
                 'copyright': '<p class="copyright">Copyright © 2010-2024 <a href="https://Freely-Given.org">Freely-Given.org</a>.</p>',
@@ -425,13 +431,17 @@ We’re also grateful to the <a href="https://www.Biblica.com/clear/">Biblica Cl
                 'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
                 'acknowledgements': '<p class="acknwldg">Thanks to <a href="https://www.unfoldingword.org/">unfoldingWord</a> for creating this specialised Bible translation which is designed to be a tool for Bible translators.</p>' },
         'BSB': {'about': '<p class="about">Berean Standard Bible (2020).</p>',
-                'copyright': '<p class="copyright">Copyright © 2016, 2020 by Bible Hub. Used by Permission. All Rights Reserved Worldwide.</p>',
-                'licence': '<p class="licence">The Berean Bible text is <a href="https://berean.bible/terms.htm#Top">free to use</a> in any electronic form to promote the reading, learning, and understanding of the Holy Bible as the Word of God.</p>',
-                'acknowledgements': '<p class="acknwldg">Thanks to <a href="https://biblehub.com/">BibleHub</a> for the <a href="https://berean.bible/">BSB</a>.</p>' },
-        'BLB': {'about': '<p class="about">Berean Literal Bible (2022).</p>',
+                'copyright': '<p class="copyright"><a href="https://berean.bible/terms.htm">Public domain</a>.</p>',
+                'licence': '<p class="licence"><a href="https://creativecommons.org/publicdomain/zero/1.0/">CC0</a> licence. All uses are freely permitted.</p>',
+                'acknowledgements': '<p class="acknwldg">Thanks to John Isett and <a href="https://biblehub.com/">BibleHub</a> for the <a href="https://berean.bible/">BSB</a>.</p>' },
+        'BLB': {'about': '<p class="about">Berean Literal Bible New Testament (2022).</p>',
                 'copyright': '<p class="copyright">Copyright © 2022 by Bible Hub. Used by Permission. All Rights Reserved Worldwide.</p>',
                 'licence': '<p class="licence">The Berean Bible text is <a href="https://berean.bible/terms.htm#Top">free to use</a> in any electronic form to promote the reading, learning, and understanding of the Holy Bible as the Word of God.</p>',
                 'acknowledgements': '<p class="acknwldg">Thanks to <a href="https://biblehub.com/">BibleHub</a> for the <a href="https://berean.bible/">BLB</a>.</p>' },
+        'AICNT': {'about': '<p class="about">The <a href="https://AICNT.org/">AI Critical New Testament</a> (AICNT) is a critical English edition carefully compiled to indicate the text of the earliest manuscripts in contrast to later changes and in reference to Greek critical editions. The AICNT provides readers with a rich source of vital information and leverages AI (GPT-4) to translate with optimal transparency. See the preface at <a href="https://aicnt.org/preface">AICNT.org/preface</a>. The site <a href="https://GPT.Bible">GPT.Bible</a> offers enhanced search and viewing functionality for exploring the AICNT.</p>',
+                'copyright': '<p class="copyright">Copyright 2023 <a href="https://IntegritySyndicate.com/">Integrity Syndicate</a>.</p>',
+                'licence': '<p class="licence">Copyrighted. Used with permission.</p>',
+                'acknowledgements': '<p class="acknwldg">Thanks to Theophilus Josiah, founder.</p>' },
         'OEB': {'about': '<p class="about">Open English Bible (in progress).</p>',
                 'copyright': '<p class="copyright">Copyright © 2010-2021 Russell Allen.</p>',
                 'licence': '<p class="licence"><a href="http://creativecommons.org/publicdomain/zero/1.0/">Creative Commons Zero licence</a>.</p>',

@@ -52,6 +52,7 @@ CHANGELOG:
     2024-01-11 Load all OET-LV NT books
     2024-03-21 Handle two word tables for OET
     2024-04-04 Create 'OET Key' page
+    2024-04-21 Create 'OBD News' page
 """
 from gettext import gettext as _
 from typing import Dict, List, Tuple
@@ -86,7 +87,7 @@ from Dict import createTyndaleDictPages, createUBSDictionaryPages
 from html import makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2024-04-11' # by RJH
+LAST_MODIFIED_DATE = '2024-04-24' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData (OBD) Create Site Pages"
 PROGRAM_VERSION = '0.96'
@@ -110,6 +111,10 @@ def _createSitePages() -> bool:
         _cleanHTMLFolders( TEMP_BUILD_FOLDER, state )
 
     # Preload our various Bibles
+    for versionAbbreviation in state.BibleVersions:
+        state.booksToLoad[versionAbbreviation] = BOOKLIST_OT39 if state.booksToLoad[versionAbbreviation]==['OT'] \
+                                            else BOOKLIST_NT27 if state.booksToLoad[versionAbbreviation]==['NT'] \
+                                            else state.booksToLoad[versionAbbreviation] # NOTE: We don't replace ['ALL'] because that is 'all available', including 'FRT','XXA', etc.
     numLoadedVersions = preloadVersions( state )
     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nPreloaded {len(state.preloadedBibles)} Bible versions: {list(state.preloadedBibles.keys())}" )
     # preloadUwTranslationNotes( state )
@@ -130,7 +135,7 @@ def _createSitePages() -> bool:
         columnHeaders = state.OETRefData['word_tables'][wordTableFilename][0]
         # print( f"{columnHeaders=}")
         if '_OT_' in wordTableFilename:
-            assert columnHeaders == 'Ref\tRowType\tLemmaRowList\tStrongs\tMorphology\tWord\tNoCantillations\tMorphemeGlosses\tContextualMorphemeGlosses\tWordGloss\tContextualWordGloss\tGlossCapitalisation\tGlossPunctuation\tGlossOrder\tGlossInsert\tRole\tNesting\tTags' # If not, probably need to fix some stuff
+            assert columnHeaders == 'Ref\tRowType\tMorphemeRowList\tLemmaRowList\tStrongs\tMorphology\tWord\tNoCantillations\tMorphemeGlosses\tContextualMorphemeGlosses\tWordGloss\tContextualWordGloss\tGlossCapitalisation\tGlossPunctuation\tGlossOrder\tGlossInsert\tRole\tNesting\tTags' # If not, probably need to fix some stuff
         elif '_NT_' in wordTableFilename:
             assert columnHeaders == 'Ref\tGreekWord\tSRLemma\tGreekLemma\tVLTGlossWords\tOETGlossWords\tGlossCaps\tProbability\tStrongsExt\tRole\tMorphology\tTags' # If not, probably need to fix some stuff
 
@@ -196,13 +201,14 @@ def _createSitePages() -> bool:
             #             state.BBBsToProcess[versionAbbreviation].append( BBB )
             # else: # not selectedVersesOnlyVersions
             if versionAbbreviation not in state.selectedVersesOnlyVersions:
-                state.BBBsToProcess[versionAbbreviation] = thisBible.books.keys() if thisBibleBooksToLoad==['ALL'] \
-                        else BOOKLIST_NT27 if thisBibleBooksToLoad==['NT'] \
-                        else thisBibleBooksToLoad
+                state.BBBsToProcess[versionAbbreviation] = thisBible.books.keys() 
                 if 'OET' in versionAbbreviation:
                     state.BBBsToProcess[versionAbbreviation] = reorderBooksForOETVersions( state.BBBsToProcess[versionAbbreviation] )
                 state.BBBLinks[versionAbbreviation] = []
-                for BBB in state.BBBsToProcess[versionAbbreviation]:
+                ourBBBsToProcess = BOOKLIST_NT27 if state.BBBsToProcess[versionAbbreviation]==['NT'] \
+                            else BOOKLIST_OT39 if state.BBBsToProcess[versionAbbreviation]==['OT'] \
+                            else state.BBBsToProcess[versionAbbreviation]
+                for BBB in ourBBBsToProcess:
                     # We include FRT here if there is one, but it will be excluded later where irrelevant
                     if BBB=='FRT' \
                     or 'ALL' in thisBibleBooksToLoad \
@@ -273,6 +279,7 @@ def _createSitePages() -> bool:
     _createDetailsPages( 0, TEMP_BUILD_FOLDER, state )
     _createSearchPage( 0, TEMP_BUILD_FOLDER, state )
     _createAboutPage( 0, TEMP_BUILD_FOLDER, state )
+    _createNewsPage( 0, TEMP_BUILD_FOLDER, state )
     _createOETKeyPage( 0, TEMP_BUILD_FOLDER, state )
 
     _createMainIndexPage( 0, TEMP_BUILD_FOLDER, state )
@@ -288,41 +295,43 @@ def _createSitePages() -> bool:
             assert os.path.isdir( DESTINATION_FOLDER )
             _cleanHTMLFolders( DESTINATION_FOLDER, state )
 
-        # Now move the site from our temporary build location to overwrite the destination location
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Moving files and folders from {TEMP_BUILD_FOLDER}/ to {DESTINATION_FOLDER}/…" )
-        count = 0
-        for fileOrFolderPath in glob.glob( f'{TEMP_BUILD_FOLDER}/*' ):
-            vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Moving {fileOrFolderPath} to {DESTINATION_FOLDER}/…" )
-            # Note: shutil.copy2 is the same as copy but keeps metadata like creation and modification times
-            shutil.move( fileOrFolderPath, f'{DESTINATION_FOLDER}/', copy_function=shutil.copy2)
-            count += 1
-        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Moved {count:,} folders and files into {DESTINATION_FOLDER}/." )
-
-        # We also need to copy the TOBD maps across
-        TOBDmapSourceFolder = os.path.join( state.BibleLocations['TOSN'], '../OBD/Maps/artfiles/' )
-        TOBDmapDestinationFolder = DESTINATION_FOLDER.joinpath( 'dct/' )
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Copying TOBD maps from {TOBDmapSourceFolder} to {TOBDmapDestinationFolder}/…" )
-        count = 0
-        for imgFilepath in glob.glob( f'{TOBDmapSourceFolder}/*.png' ):
-            vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Copying {imgFilepath} to {TOBDmapDestinationFolder}/…" )
-            # Note: shutil.copy2 is the same as copy but keeps metadata like creation and modification times
-            try:
-                shutil.copy2( imgFilepath, f'{TOBDmapDestinationFolder}/' )
+        try: # Now move the site from our temporary build location to overwrite the destination location
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Moving files and folders from {TEMP_BUILD_FOLDER}/ to {DESTINATION_FOLDER}/…" )
+            count = 0
+            for fileOrFolderPath in glob.glob( f'{TEMP_BUILD_FOLDER}/*' ):
+                vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Moving {fileOrFolderPath} to {DESTINATION_FOLDER}/…" )
+                # Note: shutil.copy2 is the same as copy but keeps metadata like creation and modification times
+                shutil.move( fileOrFolderPath, f'{DESTINATION_FOLDER}/', copy_function=shutil.copy2)
                 count += 1
-            except FileNotFoundError as e:
-                logging.critical( f"TOBD image file problem: {e}" )
-        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Copied {count:,} maps into {TOBDmapDestinationFolder}/." )
+            vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Moved {count:,} folders and files into {DESTINATION_FOLDER}/." )
 
-        # We need to copy the .css files and Bible.js across
-        count = 0
-        for filepath in glob.glob( '*.css' ):
-            vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Copying {filepath}…" )
-            # Note: shutil.copy2 is the same as copy but keeps metadata like creation and modification times
-            shutil.copy2( filepath, DESTINATION_FOLDER )
+            # We also need to copy the TOBD maps across
+            TOBDmapSourceFolder = os.path.join( state.BibleLocations['TOSN'], '../OBD/Maps/artfiles/' )
+            TOBDmapDestinationFolder = DESTINATION_FOLDER.joinpath( 'dct/' )
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Copying TOBD maps from {TOBDmapSourceFolder} to {TOBDmapDestinationFolder}/…" )
+            count = 0
+            for imgFilepath in glob.glob( f'{TOBDmapSourceFolder}/*.png' ):
+                vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Copying {imgFilepath} to {TOBDmapDestinationFolder}/…" )
+                # Note: shutil.copy2 is the same as copy but keeps metadata like creation and modification times
+                try:
+                    shutil.copy2( imgFilepath, f'{TOBDmapDestinationFolder}/' )
+                    count += 1
+                except FileNotFoundError as e:
+                    logging.critical( f"TOBD image file problem: {e}" )
+            vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Copied {count:,} maps into {TOBDmapDestinationFolder}/." )
+
+            # We need to copy the .css files and Bible.js across
+            count = 0
+            for filepath in glob.glob( '*.css' ):
+                vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Copying {filepath}…" )
+                # Note: shutil.copy2 is the same as copy but keeps metadata like creation and modification times
+                shutil.copy2( filepath, DESTINATION_FOLDER )
+                count += 1
+            shutil.copy2( 'Bible.js', DESTINATION_FOLDER )
             count += 1
-        shutil.copy2( 'Bible.js', DESTINATION_FOLDER )
-        count += 1
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Copied {count:,} stylesheets and scripts into {DESTINATION_FOLDER}/." )
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Copied {count:,} stylesheets and scripts into {DESTINATION_FOLDER}/." )
+        except Exception as e:
+            logging.critical( f"Oops, something went wrong copying files into {DESTINATION_FOLDER}/: {e}" )
 
         vPrint( 'Normal', DEBUGGING_THIS_MODULE, f'''\nNOW RUN "npx pagefind --glob "{{OET,par}}/**/*.{{htm}}" --site ../htmlPages{'/Test' if TEST_MODE else ''}/" to create search index!''' )
     else:
@@ -341,6 +350,8 @@ def _cleanHTMLFolders( folder:Path, state:State ) -> bool:
     try: os.unlink( folder.joinpath( 'allDetails.htm' ) )
     except FileNotFoundError: pass
     try: os.unlink( folder.joinpath( 'about.htm' ) )
+    except FileNotFoundError: pass
+    try: os.unlink( folder.joinpath( 'news.htm' ) )
     except FileNotFoundError: pass
     try: os.unlink( folder.joinpath( 'OETKey.htm' ) )
     except FileNotFoundError: pass
@@ -619,7 +630,7 @@ def _createAboutPage( level:int, buildFolder:Path, state:State ) -> bool:
     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Creating {'TEST ' if TEST_MODE else ''}about page…" )
 
     aboutHTML = f'''<h1 id="Top">About {SITE_NAME}</h1>
-<p class="about">{SITE_NAME} (OBD) is a large set of static webpages created for several main reasons:</p>
+<p class="about">{SITE_NAME} ({SITE_ABBREVIATION}) is a large set of static webpages created for several main reasons:</p>
 <ol>
 <li>As a way to <b>showcase the <em>Open English Translation</em></b> of the Bible which is designed to be read with the <em>Readers’ Version</em> and the very <em>Literal Version</em> side-by-side.
     (Most existing Bible apps don’t allow for this.)
@@ -659,12 +670,13 @@ def _createAboutPage( level:int, buildFolder:Path, state:State ) -> bool:
     </ol></li>
 <li>Our <b>Interlinear verse view</b> shows word-for-word interlinear and reverse-interlinear views of the <em>OET</em> and the original languages.</li>
 <li>Our <b>Search page</b> allows you to search for English, Latin, Hebrew, and Greek words.</li>
+<li>On the negative side, note that <b>our Old Testament pages are still much less developed than our New Testament ones</b>—both a still very much a work-in-progress, but for the Old Testament, we're still waiting for corrections from some of our partners before we can improve our own side more.</li>
 </ul>
 <p class="about">We would welcome any others who would like to contribute open datasets or code to this endeavour.
     Please contact us at <b>Freely</b> dot <b>Given</b> dot <b>org</b> (at) <b>gmail</b> dot <b>com</b>.
     We consider this {SITE_ABBREVIATION} project to be part of the very first stage of contributing to the development of an open-licensed Bible-study app
-        to rival the commercial ones (like ‘Logos’ -- not the plural of ‘logo’).</p>
-<p class="about">You’ll possibly notice that not many large, commercial Bibles are included in these pages because of their strict control of their texts.
+        to rival the commercial ones (like ‘Logos’—not the plural of ‘logo’).</p>
+<p class="about">You’ll possibly notice that not many large, commercial Bibles are included in these pages because of their strict limits on the use of their texts.
     We highly recommend that our readers find better translations that are more influenced by discipleship priorities, and less by finances.
     <small>(See <a href="https://SellingJesus.org/">SellingJesus.org</a> if you want to learn more about commercialism of Christian publications.)</p>
 <p class="about"><b>Acknowledgement</b>: The overall design of the site was influenced by <a href="https://BibleHub.com/">BibleHub.com</a>
@@ -681,8 +693,8 @@ def _createAboutPage( level:int, buildFolder:Path, state:State ) -> bool:
 <p class="about">The source code for the Python program that produces these pages can be found at <a href="https://github.com/Freely-Given-org/OpenBibleData">GitHub.com/Freely-Given-org/OpenBibleData</a>.
     You can also advise us of any errors by clicking on <em>New issue</em> <a href="https://github.com/Freely-Given-org/OpenBibleData/issues">here</a> and telling us the problem.</p>'''
     topHtml = makeTop( level, None, 'about', None, state ) \
-                .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}About OBD" ) \
-                .replace( '__KEYWORDS__', 'Bible, about, OBD' )
+                .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}About {SITE_ABBREVIATION}" ) \
+                .replace( '__KEYWORDS__', f'Bible, about, {SITE_ABBREVIATION}' )
     html = f'''{topHtml}
 {aboutHTML}
 <p class="note"><small>Last rebuilt: {date.today()}</small></p>
@@ -697,6 +709,39 @@ def _createAboutPage( level:int, buildFolder:Path, state:State ) -> bool:
 # end of createSitePages._createAboutPage
 
 
+def _createNewsPage( level:int, buildFolder:Path, state:State ) -> bool:
+    """
+    Creates and saves the OBD News page.
+    """
+    fnPrint( DEBUGGING_THIS_MODULE, f"_createNewsPage( {level}, {buildFolder}, {state.BibleVersions} )" )
+    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Creating {'TEST ' if TEST_MODE else ''}news page…" )
+
+    newsHTML = f'''<h1 id="Top">{SITE_NAME} News</h1>
+<p class="about">Recent {SITE_NAME} ({SITE_ABBREVIATION}) site developments:</p>
+<ul>
+<li><b>2024-Apr-20</b>: We added the <a href="{'../'*level}AICNT">AI Critical New Testament</a> (AICNT), mainly so that we can start to evaluate (on our <a href="{'../'*level}par/MRK/C1V1.htm#Top">Parallel Pages</a>) how well current, so-called ‘AI’ technologies might affect the Bible translation world.</li>
+<li><b>2024-Feb-15</b>: We added <a href="{'../'*level}rel/">Related Passages pages</a>—displaying related passages side-by-side, e.g., <a href="{'../'*level}rel/MRK/MRK_S3.htm#Top">here</a> (if you have a wide screen).</li>
+</ul>
+<p class="about">If you are the copyright owner of a Bible translation or a relevant dataset and would like to see it listed on this {SITE_ABBREVIATION} site,
+        please contact us at <b>Freely</b> dot <b>Given</b> dot <b>org</b> (at) <b>gmail</b> dot <b>com</b>.</p>
+<p class="about">The source code for the Python program that produces these pages can be found at <a href="https://github.com/Freely-Given-org/OpenBibleData">GitHub.com/Freely-Given-org/OpenBibleData</a>.
+    You can also advise us of any errors by clicking on <em>New issue</em> <a href="https://github.com/Freely-Given-org/OpenBibleData/issues">here</a> and telling us the problem.</p>'''
+    topHtml = makeTop( level, None, 'news', None, state ) \
+                .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{SITE_ABBREVIATION} News" ) \
+                .replace( '__KEYWORDS__', f'Bible, news, {SITE_ABBREVIATION}' )
+    html = f'''{topHtml}
+{newsHTML}
+{makeBottom( level, 'news', state )}'''
+    checkHtml( 'News', html )
+
+    filepath = buildFolder.joinpath( 'news.htm' )
+    assert not filepath.is_file() # Check that we're not overwriting anything
+    with open( filepath, 'wt', encoding='utf-8' ) as htmlFile:
+        htmlFile.write( html )
+    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  {len(html):,} characters written to {filepath}" )
+# end of createSitePages._createNewsPage
+
+
 def _createOETKeyPage( level:int, buildFolder:Path, state:State ) -> bool:
     """
     Creates and saves the About OBD page.
@@ -708,13 +753,14 @@ def _createOETKeyPage( level:int, buildFolder:Path, state:State ) -> bool:
 <p class="about">The <em>Open English Translation</em> of the Bible is not tied to tradition (and especially not to traditional mistakes or misunderstandings) so it has a number of changes from more common Bible translations.
 We also aim to educate our readers better about how our Bibles get to us, so that’s a second reason why it differs from usual, and hence requires this key to explain some of the features.</p>
 <h1>The Hebrew Scriptures <small>(Old Testament)</small><sup>*</sup></h1>
-<p class="about">To be continued...</p>
+<p class="about">Still coming...</p>
 <h1>The Messianic Update <small>(New Testament)</small></h1>
-<p class="about">To be continued...</p>
+<p class="about">Still coming...</p>
 <h1>Other</h1>
-<p class="about">To be continued...</p>
+<p class="about">Still coming...</p>
 <p><b><sup>*</sup></b> The <em>OET</em> avoids the word ‘Testament’ because it’s not used in modern English (except perhaps by lawyers),
-plus we dislike ‘Old’ and ‘New’ because ‘new’ might (wrongly) imply that the ‘old’ is no longer required.</p>'''
+plus we dislike ‘Old’ and ‘New’ because ‘new’ might (wrongly) imply that the ‘old’ is no longer required.
+Note that the terms ‘Old Testament’ and ‘New Testament’ don’t occur in any ancient manuscripts.</p>'''
     topHtml = makeTop( level, None, 'about', None, state ) \
                 .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}About OBD" ) \
                 .replace( '__KEYWORDS__', 'Bible, about, OBD' )

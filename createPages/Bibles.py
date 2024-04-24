@@ -84,10 +84,10 @@ from OETHandlers import findLVQuote
 from Dict import loadAndIndexUBSGreekDictJSON, loadAndIndexUBSHebrewDictJSON
 
 
-LAST_MODIFIED_DATE = '2024-04-10' # by RJH
+LAST_MODIFIED_DATE = '2024-04-19' # by RJH
 SHORT_PROGRAM_NAME = "Bibles"
 PROGRAM_NAME = "OpenBibleData Bibles handler"
-PROGRAM_VERSION = '0.69'
+PROGRAM_VERSION = '0.70'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -274,7 +274,9 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
                                             encoding='utf-8' )
         if versionAbbreviation in ('ULT','UST','UHB','UGNT','SR-GNT'):
             thisBible.uWencoded = True # TODO: Shouldn't be required ???
-        if 'ALL' in state.booksToLoad[versionAbbreviation]:
+        if state.booksToLoad[versionAbbreviation] in (['ALL'],['OT'],['NT']):
+            # We assume that we can load all books, even for OT and NT
+            #  i.e., we assume (but don't check) that only those books will exist (plus maybe intro, etc.)
             thisBible.loadBooks() # So we can iterate through them all later
         else: # only load the specific books as we need them
             thisBible.preload()
@@ -694,7 +696,7 @@ def formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segme
             continue # not used here
         dPrint( 'Never', DEBUGGING_THIS_MODULE, f"TN {BBB} {C}:{V} {marker}='{rest}'" )
         if rest is None:
-            dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Skipped TN {BBB} {C}:{V} {marker}='{rest}'" )
+            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"formatUnfoldingWordTranslationNotes( {BBB}, {C}:{V}, {segmentType=} ) skipped TN {marker}='{rest}'" )
             lastMarker = marker
             continue
         assert rest == entry.getFullText().rstrip(), f"TN {BBB} {C}:{V} {marker}='{rest}' ft='{entry.getFullText()}'" # Just checking that we're not missing anything here
