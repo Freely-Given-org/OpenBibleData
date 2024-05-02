@@ -50,7 +50,7 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_
 from OETHandlers import livenOETWordLinks, getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
-LAST_MODIFIED_DATE = '2024-04-23' # by RJH
+LAST_MODIFIED_DATE = '2024-04-30' # by RJH
 SHORT_PROGRAM_NAME = "createBookPages"
 PROGRAM_NAME = "OpenBibleData createBookPages functions"
 PROGRAM_VERSION = '0.55'
@@ -140,7 +140,7 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
 {navBookListParagraph}
 {bkHtml}
 {makeBottom( level, 'book', state )}'''
-            checkHtml( rvBible.abbreviation, bkHtml )
+            checkHtml( f'{rvBible.abbreviation} {BBB}', bkHtml )
             assert not filepath.is_file() # Check that we're not overwriting anything
             with open( filepath, 'wt', encoding='utf-8' ) as bkHtmlFile:
                 bkHtmlFile.write( bkHtml )
@@ -170,8 +170,9 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
         rvVerseEntryList = livenOETWordLinks( level, rvBible, BBB, rvVerseEntryList, state )
         assert isinstance( lvBible, ESFMBible.ESFMBible )
         lvVerseEntryList = livenOETWordLinks( level, lvBible, BBB, lvVerseEntryList, state )
-        rvHtml = do_OET_RV_HTMLcustomisations( convertUSFMMarkerListToHtml( level, 'OET', (BBB,), 'book', rvContextList, rvVerseEntryList, basicOnly=False, state=state ) )
-        tempLVHtml = convertUSFMMarkerListToHtml( level, 'OET', (BBB,), 'book', lvContextList, lvVerseEntryList, basicOnly=False, state=state )
+        # NOTE: We change the version abbreviation here to give the function more indication where we're coming from
+        rvHtml = do_OET_RV_HTMLcustomisations( convertUSFMMarkerListToHtml( level, 'OET-RV', (BBB,), 'book', rvContextList, rvVerseEntryList, basicOnly=False, state=state ) )
+        tempLVHtml = convertUSFMMarkerListToHtml( level, 'OET-LV', (BBB,), 'book', lvContextList, lvVerseEntryList, basicOnly=False, state=state )
         if '+' in tempLVHtml: print( f"HAVE_PLUS {tempLVHtml[max(0,tempLVHtml.index('+')-30):tempLVHtml.index('+')+90]}" )
         if '^' in tempLVHtml: print( f"HAVE_HAT {tempLVHtml[max(0,tempLVHtml.index('^')-30):tempLVHtml.index('^')+90]}" )
         if '~' in tempLVHtml: print( f"HAVE_SQUIG {tempLVHtml[max(0,tempLVHtml.index('~')-30):tempLVHtml.index('~')+90]}" )
@@ -267,7 +268,7 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
 {navBookListParagraph}
 {bkHtml}{removeDuplicateCVids( BBB, combinedHtml )}</div><!--RVLVcontainer-->
 {makeBottom( level, 'book', state )}'''
-        checkHtml( 'book', bkHtml )
+        checkHtml( f'OET {BBB}', bkHtml )
         assert not filepath.is_file() # Check that we're not overwriting anything
         with open( filepath, 'wt', encoding='utf-8' ) as bkHtmlFile:
             bkHtmlFile.write( bkHtml )
@@ -374,7 +375,7 @@ def createBookPages( level:int, folder:Path, thisBible, state:State ) -> List[st
 {navBookListParagraph}
 {bkHtml}
 {makeBottom( level, 'book', state )}'''
-        checkHtml( thisBible.abbreviation, bkHtml )
+        checkHtml( f'{thisBible.abbreviation} {BBB}', bkHtml )
         assert not filepath.is_file() # Check that we're not overwriting anything
         with open( filepath, 'wt', encoding='utf-8' ) as bkHtmlFile:
             bkHtmlFile.write( bkHtml )
@@ -394,7 +395,7 @@ def createBookPages( level:int, folder:Path, thisBible, state:State ) -> List[st
 <h2>Index of books</h2>
 {navBookListParagraph}
 {makeBottom( level, 'bookIndex', state)}'''
-    checkHtml( thisBible.abbreviation, indexHtml )
+    checkHtml( f'{thisBible.abbreviation} book index', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as bkHtmlFile:
         bkHtmlFile.write( indexHtml )

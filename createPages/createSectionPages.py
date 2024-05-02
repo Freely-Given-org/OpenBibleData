@@ -250,7 +250,7 @@ def createOETSectionPages( level:int, folder:Path, rvBible, lvBible, state:State
             endChapterLink = f'''<a title="Chapter view" href="../byC/{BBB}_{'Intro' if endC=='-1' else f'C{endC}'}.htm#Top">{'Intro' if endC=='-1' else endC}</a>'''
             leftLink = f'<a title="Previous section" href="{BBB}_S{n-1}.htm#Top">←</a> ' if n>0 else ''
             rightLink = f' <a title="Next section" href="{BBB}_S{n+1}.htm#Top">→</a>' if n<numBBBSections-1 else ''
-            relatedLink = f''' <a title="Related section view" href="{'../'*level}rel/{BBB}/{sectionFilename}#Top">≈</a>'''
+            relatedLink = f''' <a title="Related section view" href="{'../'*level}rel/{BBB}/{sectionFilename}#Top">◘</a>'''
             parallelLink = f''' <a title="Parallel verse view" href="{'../'*level}par/{BBB}/C{'1' if startC=='-1' else startC}V{startV}.htm#Top">║</a>'''
             interlinearLink = f''' <a title="Interlinear verse view" href="{'../'*level}ilr/{BBB}/C{'1' if startC=='-1' else startC}V{startV}.htm#Top">═</a>''' if BBB in state.booksToLoad['OET'] else ''
 
@@ -335,7 +335,7 @@ def createOETSectionPages( level:int, folder:Path, rvBible, lvBible, state:State
 <p class="secNav">{sectionIndexLink}{leftLink}{documentLink} {startChapterLink}:{startV}–{endChapterLink}:{endV}{rightLink}{relatedLink}{parallelLink}{interlinearLink}{detailsLink}</p>
 {cLinksPar}
 {makeBottom( level, 'section', state )}'''
-            checkHtml( rvBible.abbreviation, sectionHtml )
+            checkHtml( f'{rvBible.abbreviation} {BBB} section', sectionHtml )
             assert not filepath.is_file() # Check that we're not overwriting anything
             with open( filepath, 'wt', encoding='utf-8' ) as sectionHtmlFile:
                 sectionHtmlFile.write( sectionHtml )
@@ -360,7 +360,7 @@ def createOETSectionPages( level:int, folder:Path, rvBible, lvBible, state:State
 {navBookListParagraph}
 {sectionHtml}
 {makeBottom( level, 'sectionIndex', state )}'''
-        checkHtml( 'OET section', sectionHtml )
+        checkHtml( 'OET section index', sectionHtml )
         assert not filepath.is_file() # Check that we're not overwriting anything
         with open( filepath, 'wt', encoding='utf-8' ) as sectionHtmlFile:
             sectionHtmlFile.write( sectionHtml )
@@ -379,7 +379,7 @@ def createOETSectionPages( level:int, folder:Path, rvBible, lvBible, state:State
 <h2>Index of OET books</h2>
 {navBookListParagraph}
 {makeBottom( level, 'sectionIndex', state)}'''
-    checkHtml( 'OET sections', indexHtml )
+    checkHtml( 'OET sections index', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as sectionHtmlFile:
         sectionHtmlFile.write( indexHtml )
@@ -487,7 +487,7 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> List
 {navBookListParagraph}
 {sectionHtml}
 {makeBottom( level, 'section', state )}'''
-            checkHtml( thisBible.abbreviation, sectionHtml )
+            checkHtml( f'{thisBible.abbreviation} {BBB} section', sectionHtml )
             assert not filepath.is_file() # Check that we're not overwriting anything
             with open( filepath, 'wt', encoding='utf-8' ) as sectionHtmlFile:
                 sectionHtmlFile.write( sectionHtml )
@@ -527,7 +527,7 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> List
             endChapterLink = f'''<a title="Chapter view" href="../byC/{BBB}_{'Intro' if endC=='-1' else f'C{endC}'}.htm#Top">{'Intro' if endC=='-1' else endC}</a>'''
             leftLink = f'<a title="Previous section" href="{BBB}_S{n-1}.htm#Top">←</a> ' if n>0 else ''
             rightLink = f' <a title="Next section" href="{BBB}_S{n+1}.htm#Top">→</a>' if n<numBBBSections-1 else ''
-            relatedLink = f''' <a title="Related section view" href="{'../'*level}rel/{BBB}/{sectionFilename}#Top">≈</a>''' if thisBible.abbreviation=='OET-RV' else ''
+            relatedLink = f''' <a title="Related section view" href="{'../'*level}rel/{BBB}/{sectionFilename}#Top">◘</a>''' if thisBible.abbreviation=='OET-RV' else ''
             parallelLink = f''' <a title="Parallel verse view" href="{'../'*level}par/{BBB}/C{'1' if startC=='-1' else startC}V{startV}.htm#Top">║</a>'''
             interlinearLink = f''' <a title="Interlinear verse view" href="{'../'*level}ilr/{BBB}/C{'1' if startC=='-1' else startC}V{startV}.htm#Top">═</a>''' if BBB in state.booksToLoad['OET'] else ''
 
@@ -561,7 +561,7 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> List
 {sectionHtml}
 {cLinksPar}
 {makeBottom( level, 'section', state )}'''
-            checkHtml( thisBible.abbreviation, sectionHtml )
+            checkHtml( f'{thisBible.abbreviation} {BBB} section', sectionHtml )
             assert not filepath.is_file() # Check that we're not overwriting anything
             with open( filepath, 'wt', encoding='utf-8' ) as sectionHtmlFile:
                 sectionHtmlFile.write( sectionHtml )
@@ -585,7 +585,7 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> List
 {navBookListParagraph}
 {sectionHtml}
 {makeBottom( level, 'sectionIndex', state )}'''
-        checkHtml( thisBible.abbreviation, sectionHtml )
+        checkHtml( f'{thisBible.abbreviation} section index', sectionHtml )
         assert not filepath.is_file() # Check that we're not overwriting anything
         with open( filepath, 'wt', encoding='utf-8' ) as sectionHtmlFile:
             sectionHtmlFile.write( sectionHtml )
@@ -604,7 +604,7 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> List
 <h2>Index of {thisBible.abbreviation} books</h2>
 {navBookListParagraph}
 {makeBottom( level, 'sectionIndex', state)}'''
-    checkHtml( thisBible.abbreviation, indexHtml )
+    checkHtml( f'{thisBible.abbreviation} sections index', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as sectionHtmlFile:
         sectionHtmlFile.write( indexHtml )

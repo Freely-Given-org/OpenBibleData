@@ -78,7 +78,7 @@ from html import makeTop, makeBottom, checkHtml
 from OETHandlers import getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
-LAST_MODIFIED_DATE = '2024-04-24' # by RJH
+LAST_MODIFIED_DATE = '2024-04-30' # by RJH
 SHORT_PROGRAM_NAME = "createOETReferencePages"
 PROGRAM_NAME = "OpenBibleData createOETReferencePages functions"
 PROGRAM_VERSION = '0.67'
@@ -1102,7 +1102,7 @@ def create_Hebrew_word_pages( level:int, outputFolderPath:Path, state:State ) ->
                         prevN = nN
                         break
             else: prevN = n-1
-        if n<len(state.OETRefData['word_tables'][HebrewWordFileName]):
+        if n<len(state.OETRefData['word_tables'][HebrewWordFileName])-1:
             if TEST_MODE and not ALL_TEST_REFERENCE_PAGES:
                 for nN in range( n+1, len(state.OETRefData['word_tables'][HebrewWordFileName]) ):
                     nWordRef = state.OETRefData['word_tables'][HebrewWordFileName][nN].split( '\t', 1 )[0]
@@ -1116,7 +1116,7 @@ def create_Hebrew_word_pages( level:int, outputFolderPath:Path, state:State ) ->
         oetLink = f''' <a title="View whole chapter" href="{'../'*level}OET/byC/{BBB}_C{C}.htm#C{C}">{ourTidyBbbWithNotes}{NARROW_NON_BREAK_SPACE}{C}</a>'''
         parallelLink = f''' <b><a title="View verse in many parallel versions" href="{'../'*level}par/{BBB}/C{C}V{V}.htm#Top">║</a></b>'''
         interlinearLink = f''' <b><a title="View interlinear verse word-by-word" href="{'../'*level}ilr/{BBB}/C{C}V{V}.htm#Top">═</a></b>''' if BBB in state.booksToLoad['OET'] else ''
-        wordsHtml = f'''<h2>Open English Translation (OET)</h2>\n<h1 id="Top">Wordlink #{n}</h1>
+        wordsHtml = f'''<h2>Open English Translation (OET)</h2>\n<h1 id="Top">Hebrew wordlink #{n}</h1>
 <p class="pNav">{prevLink}<b>{hebrewWord}</b> <a href="index.htm">↑</a>{nextLink}{oetLink}{parallelLink}{interlinearLink}</p>
 <p class="link"><a title="Go to Open Scriptures Hebrew verse page" href="https://hb.OpenScriptures.org/structure/OshbVerse/index.html?b={OSISbookCode}&c={C}&v={V}">OSHB {ourTidyBbbWithNotes} {C}:{V}</a>
  <b>{hebrewWord}</b> ({transliterate_Hebrew(noCantillations.replace(',',', '))}) {translationField}{capsField if TEST_MODE else ''} Strongs={strongsLinks} {lemmaLinks}{tidyMorphologyField}<br>  </p>
@@ -1753,7 +1753,7 @@ def create_Greek_word_pages( level:int, outputFolderPath:Path, state:State ) -> 
                         prevN = nN
                         break
             else: prevN = n-1
-        if n<len(state.OETRefData['word_tables'][GreekWordFileName]):
+        if n<len(state.OETRefData['word_tables'][GreekWordFileName])-1:
             if TEST_MODE and not ALL_TEST_REFERENCE_PAGES:
                 for nN in range( n+1, len(state.OETRefData['word_tables'][GreekWordFileName]) ):
                     nWordRef = state.OETRefData['word_tables'][GreekWordFileName][nN].split( '\t', 1 )[0]
@@ -1767,7 +1767,7 @@ def create_Greek_word_pages( level:int, outputFolderPath:Path, state:State ) -> 
         oetLink = f''' <a title="View whole chapter" href="{'../'*level}OET/byC/{BBB}_C{C}.htm#C{C}">{ourTidyBbbWithNotes}{NARROW_NON_BREAK_SPACE}{C}</a>'''
         parallelLink = f''' <b><a title="View verse in many parallel versions" href="{'../'*level}par/{BBB}/C{C}V{V}.htm#Top">║</a></b>'''
         interlinearLink = f''' <b><a title="View interlinear verse word-by-word" href="{'../'*level}ilr/{BBB}/C{C}V{V}.htm#Top">═</a></b>''' if BBB in state.booksToLoad['OET'] else ''
-        wordsHtml = f'''{'' if probability else '<div class="unusedWord">'}<h2>Open English Translation (OET)</h2>\n<h1 id="Top">Wordlink #{n}{'' if probability else ' <small>(Unused Greek word variant)</small>'}</h1>
+        wordsHtml = f'''{'' if probability else '<div class="unusedWord">'}<h2>Open English Translation (OET)</h2>\n<h1 id="Top">Koine Greek wordlink #{n}{'' if probability else ' <small>(Unused Greek word variant)</small>'}</h1>
 <p class="pNav">{prevLink}<b>{greekWord}</b> <a href="index.htm">↑</a>{nextLink}{oetLink}{parallelLink}{interlinearLink}</p>
 <p class="link"><a title="Go to Statistical Restoration Greek page" href="https://GreekCNTR.org/collation/?v={CNTR_BOOK_ID_MAP[BBB]}{C.zfill(3)}{V.zfill(3)}">SR GNT {tidyBbbb} {C}:{V}</a>
  {probabilityField if TEST_MODE else ''}<b>{greekWord}</b> ({transliterate_Greek(greekWord)}) {translation}{capsField if TEST_MODE else ''}

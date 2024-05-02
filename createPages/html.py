@@ -66,10 +66,10 @@ from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39, BOOKLIST_NT27
 from settings import State, TEST_MODE, SITE_NAME
 
 
-LAST_MODIFIED_DATE = '2024-04-22' # by RJH
+LAST_MODIFIED_DATE = '2024-05-01' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
-PROGRAM_VERSION = '0.77'
+PROGRAM_VERSION = '0.79'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -80,7 +80,7 @@ NEWLINE = '\n'
 # NARROW_NON_BREAK_SPACE = ' '
 
 
-KNOWN_PAGE_TYPES = ('site', 'topIndex', 'details', 'allDetails',
+KNOWN_PAGE_TYPES = ('site', 'TopIndex', 'details', 'AllDetails',
                     'book','bookIndex', 'chapter','chapterIndex', 'section','sectionIndex',
                     'relatedPassage','relatedSectionIndex', 'parallelVerse', 'interlinearVerse',
                     'dictionaryMainIndex','dictionaryLetterIndex','dictionaryEntry','dictionaryIntro',
@@ -110,16 +110,16 @@ def makeTop( level:int, versionAbbreviation:Optional[str], pageType:str, version
         cssFilename = 'BibleWord.css'
     elif pageType in ('dictionaryLetterIndex', 'dictionaryEntry','dictionaryIntro'):
         cssFilename = 'BibleDict.css'
-    elif pageType in ('site', 'details','allDetails', 'search', 'about', 'news', 'OETKey', 'topIndex',
+    elif pageType in ('site', 'details','AllDetails', 'search', 'about', 'news', 'OETKey', 'TopIndex',
                       'bookIndex','chapterIndex','sectionIndex',
                       'relatedSectionIndex', 'dictionaryMainIndex',
                       'wordIndex','lemmaIndex','morphemeIndex','personIndex','locationIndex','referenceIndex' ):
         cssFilename = 'BibleSite.css'
     else: unexpected_page_type
 
-    homeLink = f"{SITE_NAME}{' TEST' if TEST_MODE else ''} Home" if pageType=='topIndex' else f'''<a href="{'../'*level}about.htm#Top">About</a>'''
-    aboutLink = 'About' if pageType=='about' else f'''<a href="{'../'*level}about.htm#Top">About</a>'''
-    newsLink = 'News' if pageType=='news' else f'''<a href="{'../'*level}news.htm#Top">News</a>'''
+    homeLink = f"{SITE_NAME}{' TEST' if TEST_MODE else ''} Home" if pageType=='TopIndex' else f'''<a href="{'../'*level}index.htm#Top">{SITE_NAME}{' TEST' if TEST_MODE else ''} Home</a>'''
+    aboutLink = 'About' if pageType=='about' else f'''<a href="{'../'*level}About.htm#Top">About</a>'''
+    newsLink = 'News' if pageType=='news' else f'''<a href="{'../'*level}News.htm#Top">News</a>'''
     OETKeyLink = 'OET Key' if pageType=='OETKey' else f'''<a href="{'../'*level}OETKey.htm#Top">OET Key</a>'''
     topLink = f'<p class="site">{homeLink}  {aboutLink}  {newsLink}  {OETKeyLink}</p>'
 
@@ -207,7 +207,7 @@ def _makeHeader( level:int, versionAbbreviation:str, pageType:str, versionSpecif
     if pageType == 'search':
         initialVersionList.append( 'Search' )
     else: # add a link for dictionary
-        initialVersionList.append( f'''{state.BibleVersionDecorations['Search'][0]}<a title="Find Bible words" href="{'../'*level}search.htm">Search</a>{state.BibleVersionDecorations['Search'][1]}''' )
+        initialVersionList.append( f'''{state.BibleVersionDecorations['Search'][0]}<a title="Find Bible words" href="{'../'*level}Search.htm">Search</a>{state.BibleVersionDecorations['Search'][1]}''' )
 
     # This code tries to adjust links to books which aren't in a version, e.g., UHB has no NT books, SR-GNT and UGNT have no OT books
     # It does this by adjusting the potential bad link to the next level higher.
@@ -346,7 +346,7 @@ def _makeFooter( level:int, pageType:str, state:State ) -> str:
     html = f"""<div class="footer">
 <p class="copyright"><small><em>{'TEST ' if TEST_MODE else ''}{SITE_NAME}</em> site copyright © 2023-2024 <a href="https://Freely-Given.org">Freely-Given.org</a>.
 <br>Python source code for creating these static pages is available <a href="https://GitHub.com/Freely-Given-org/OpenBibleData">here</a> under an <a href="https://GitHub.com/Freely-Given-org/OpenBibleData/blob/main/LICENSE">open licence</a>.{datetime.now().strftime('<br> (Page created: %Y-%m-%d %H:%M)') if TEST_MODE else ''}</small></p>
-<p class="copyright"><small>For Bible data copyrights, see the <a href="{'../'*level}allDetails.htm#Top">details</a> for each displayed Bible version.</small></p>
+<p class="copyright"><small>For Bible data copyrights, see the <a href="{'../'*level}AllDetails.htm#Top">details</a> for each displayed Bible version.</small></p>
 <p class="note"><small>The <em>Open English Translation (OET)</em> main site is at <a href="https://OpenEnglishTranslation.Bible">OpenEnglishTranslation.Bible</a>.</small></p>
 </div><!--footer-->"""
     return html
@@ -416,7 +416,7 @@ def checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool:
             assert htmlToCheck.count( startMarker ) == 1, f"checkHtml() found {htmlToCheck.count( startMarker )} '{startMarker}' markers"
             assert htmlToCheck.count( f'</{marker}>' ) == 1
 
-    for marker,startMarker in (('div','<div'),('p','<p '),('h1','<h1'),('h2','<h2'),('h3','<h3'),('em','<em>'),('i','<i>'),('b','<b>'),('sup','<sup>'),('sub','<sub>')):
+    for marker,startMarker in (('div','<div'),('p','<p '),('h1','<h1'),('h2','<h2'),('h3','<h3'),('em','<em>'),('i','<i>'),('b','<b>'),('small','<small>'),('sup','<sup>'),('sub','<sub>')):
         startCount = htmlToCheck.count( startMarker )
         if startMarker.endswith( ' ' ): startCount += htmlToCheck.count( f'<{marker}>' )
         endCount = htmlToCheck.count( f'</{marker}>' )
@@ -433,11 +433,23 @@ def checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool:
             logging.critical( f"Mismatched '{marker}' start and end markers '{where}' {segmentOnly=} {startCount}!={endCount}"
                               f" {'…' if ixMinStart>0 else ''}{htmlToCheck[ixMinStart:ixMinEnd+5]}{'…' if ixMinEnd+5<len(htmlToCheck) else ''}" )
             if DEBUGGING_THIS_MODULE: print( f"\ncheckHtml: complete {htmlToCheck=}\n")
+            if TEST_MODE and ('JOB' not in where and 'OEB' not in where # why are these bad???
+            and 'UTN' not in where and 'ULT' not in where
+            and 'Parallel' not in where and 'Interlinear' not in where ): # Probably it's in UTN on parallel and interlinear pages
+                print( f"'{where}' {segmentOnly=} Bad html = {htmlToCheck=}\n")
+                halt    
             return False
 
+    if '<li>' in htmlToCheck or '<li ' in htmlToCheck or '</li>' in htmlToCheck:
+        assert '<ol>' in htmlToCheck or '<ol ' in htmlToCheck or '<ul>' in htmlToCheck or '<ul ' in htmlToCheck
+        assert '</ol>' in htmlToCheck or '</ul>' in htmlToCheck
+
     if '\n<br></p>' in htmlToCheck or '\n<br></span>' in htmlToCheck:
-        logging.critical( f"{where}' {segmentOnly=} has wasted <br> in {htmlToCheck=} THIS IS BEING CHANGED!!!" )
+        logging.critical( f"'{where}' {segmentOnly=} has wasted <br> in {htmlToCheck=} THIS IS BEING CHANGED!!!" )
         htmlToCheck = htmlToCheck.replace( '\n<br></span></span></p>', '</span></span></p>' ).replace( '\n<br></span></p>', '</span></p>' ).replace( '\n<br></p>', '</p>' )
+    if '\n</a>' in htmlToCheck:
+        logging.critical( f"'{where}' {segmentOnly=} has unexpected newline before anchor close in {htmlToCheck=}" )
+        halt
 
     # Check for illegal characters in title popups
     searchStartIndex = 0

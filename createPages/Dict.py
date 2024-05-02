@@ -564,7 +564,7 @@ def createTyndaleDictPages( level:int, outputFolderPath, state:State ) -> bool:
 
     indexLink = '<a title="Go up to main index" href="index.htm#__ID__">Index</a>'
     introLink = '<a title="Go to dict introduction" href="intro.htm#__ID__">Intro</a>'
-    TOBD_detailsLink = f'''<a title="Show details" href="{'../'*(level)}allDetails.htm#TOBD">©</a>'''
+    TOBD_detailsLink = f'''<a title="Show details" href="{'../'*(level)}AllDetails.htm#TOBD">©</a>'''
     UBS_detailsLink = f'''<a title="Show details" href="{'../'*(level)}UBS/details.htm">©</a>'''
 
     letterLinkList = [f'''<a title="Go to index page for letter '{l}'" href="index_{l}.htm#Top">{l}</a>''' for l in TOBDData['Letters']]
@@ -977,7 +977,7 @@ def createUBSGreekDictionaryPages( level, outputFolderPath, state:State ) -> Non
 
     indexLink = '<a title="Go up to main index" href="index.htm#__ID__">Index</a>'
     introLink = '<a title="Go to dict introduction" href="intro.htm#__ID__">Intro</a>'
-    detailsLink = f'''<a title="Show details" href="{'../'*(level)}allDetails.htm#UBS">©</a>'''
+    detailsLink = f'''<a title="Show details" href="{'../'*(level)}AllDetails.htm#UBS">©</a>'''
 
     # Make dictionary article pages
     lemmaList = [a['Lemma'] for a in USB_GNT_DATA]
@@ -1057,7 +1057,7 @@ def createUBSHebrewDictionaryPages( level, outputFolderPath, state:State ) -> No
 
     indexLink = '<a title="Go up to main index" href="index.htm#__ID__">Index</a>'
     introLink = '<a title="Go to dict introduction" href="intro.htm#__ID__">Intro</a>'
-    detailsLink = f'''<a title="Show details" href="{'../'*(level)}allDetails.htm#UBS">©</a>'''
+    detailsLink = f'''<a title="Show details" href="{'../'*(level)}AllDetails.htm#UBS">©</a>'''
 
     # Make dictionary article pages
     lemmaList = [a['Lemma'] for a in USB_HEB_DATA]

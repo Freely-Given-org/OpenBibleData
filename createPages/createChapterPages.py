@@ -53,7 +53,7 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_
 from OETHandlers import livenOETWordLinks, getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
-LAST_MODIFIED_DATE = '2024-04-23' # by RJH
+LAST_MODIFIED_DATE = '2024-04-30' # by RJH
 SHORT_PROGRAM_NAME = "createChapterPages"
 PROGRAM_NAME = "OpenBibleData createChapterPages functions"
 PROGRAM_VERSION = '0.66'
@@ -126,7 +126,7 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
             chapterHtml = f'''{top}<!--chapter page-->
 {chapterHtml}
 {makeBottom( level, 'chapter', state )}'''
-            checkHtml( rvBible.abbreviation, chapterHtml )
+            checkHtml( f'{rvBible.abbreviation} {BBB}', chapterHtml )
             assert not filepath.is_file() # Check that we're not overwriting anything
             with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
                 cHtmlFile.write( chapterHtml )
@@ -198,6 +198,7 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
                 assert isinstance( lvBible, ESFMBible.ESFMBible )
                 lvVerseEntryList = livenOETWordLinks( level, lvBible, BBB, lvVerseEntryList, state )
                 # rvHtml = livenIORs( BBB, convertUSFMMarkerListToHtml( 'OET', (BBB,c), 'chapter', rvContextList, rvVerseEntryList ), numChapters )
+                # NOTE: We change the version abbreviation here to give the function more indication where we're coming from
                 rvHtml = do_OET_RV_HTMLcustomisations( convertUSFMMarkerListToHtml( level, 'OET-RV', (BBB,str(c)), 'chapter', rvContextList, rvVerseEntryList, basicOnly=False, state=state ) )
                 lvHtml = do_OET_LV_HTMLcustomisations( convertUSFMMarkerListToHtml( level, 'OET-LV', (BBB,str(c)), 'chapter', lvContextList, lvVerseEntryList, basicOnly=False, state=state ) )
 
@@ -304,7 +305,7 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
 {cNav}
 {cLinksPar}
 {makeBottom( level, 'chapter', state )}'''
-                checkHtml( 'OETChapter', chapterHtml )
+                checkHtml( f'OET {BBB}_C{c}', chapterHtml )
                 assert not filepath.is_file() # Check that we're not overwriting anything
                 with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
                     cHtmlFile.write( chapterHtml )
@@ -334,7 +335,7 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
 {cLinksPar}
 {chapterHtml}
 {makeBottom( level, 'chapter', state )}'''
-            checkHtml( chapterHtml )
+            checkHtml( 'OET', chapterHtml )
             assert not filepath.is_file() # Check that we're not overwriting anything
             with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
                 cHtmlFile.write( chapterHtml )
@@ -434,7 +435,7 @@ def createChapterPages( level:int, folder:Path, thisBible, state:State ) -> List
             if thisBible.discoveryResults[BBB]['haveIntroductoryText']:
                 cLinks.append( f'<a title="View document introduction" href="{BBB}_Intro.htm#Top">Intro</a>' )
             for c in range( 1, numChapters+1 ):
-                # dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"createChapterPages getNumVerses( {thisBible.abbreviation} {BBB} {c} )")
+                dPrint( 'Info', DEBUGGING_THIS_MODULE, f"createChapterPages getNumVerses( {thisBible.abbreviation} {BBB} {c} )")
                 numVerses = thisBible.getNumVerses( BBB, c )
                 if numVerses: # make sure it's a normal chapter, e.g., in ESG book which lacks chapters 1-9
                     cLinks.append( f'<a title="View chapter page" href="{BBB}_C{c}.htm#Top">C{c}</a>' )
@@ -513,7 +514,7 @@ def createChapterPages( level:int, folder:Path, thisBible, state:State ) -> List
 {cNav}
 {cLinksPar}
 {makeBottom( level, 'chapter', state )}'''
-                checkHtml( thisBible.abbreviation, chapterHtml )
+                checkHtml( f'{thisBible.abbreviation} {BBB}_C{c}', chapterHtml )
                 assert not filepath.is_file() # Check that we're not overwriting anything
                 with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
                     cHtmlFile.write( chapterHtml )
@@ -533,7 +534,7 @@ def createChapterPages( level:int, folder:Path, thisBible, state:State ) -> List
             chapterHtml = f'''{top}<!--chapters indexPage-->
 {cLinksPar}
 {makeBottom( level, 'chapter', state )}'''
-            checkHtml( thisBible.abbreviation, chapterHtml )
+            checkHtml( f'{thisBible.abbreviation}  chapter index', chapterHtml )
             assert not filepath.is_file() # Check that we're not overwriting anything
             with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
                 cHtmlFile.write( chapterHtml )
@@ -561,7 +562,7 @@ def createChapterPages( level:int, folder:Path, thisBible, state:State ) -> List
             chapterHtml = f'''{top}<!--chapter page-->
 {chapterHtml}
 {makeBottom( level, 'chapter', state )}'''
-            checkHtml( thisBible.abbreviation, chapterHtml )
+            checkHtml( f'{thisBible.abbreviation} {BBB}', chapterHtml )
             assert not filepath.is_file() # Check that we're not overwriting anything
             with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
                 cHtmlFile.write( chapterHtml )
@@ -581,7 +582,7 @@ def createChapterPages( level:int, folder:Path, thisBible, state:State ) -> List
 <h2>Index of books</h2>
 {navBookListParagraph}
 {makeBottom( level, 'chapterIndex', state)}'''
-    checkHtml( thisBible.abbreviation, indexHtml )
+    checkHtml( f'{thisBible.abbreviation} book index', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
         cHtmlFile.write( indexHtml )

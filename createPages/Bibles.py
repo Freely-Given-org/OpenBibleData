@@ -50,6 +50,7 @@ CHANGELOG:
     2023-10-09 Fix a few more uW tN markdown link references
     2023-12-29 Started adding OET OT
     2024-01-18 Try to handle backslashes better in TSV (text) Bibles
+    2024-05-02 Improve UTN markdown to HTML conversion
 """
 from gettext import gettext as _
 from typing import Dict, List, Tuple, Optional
@@ -84,10 +85,10 @@ from OETHandlers import findLVQuote
 from Dict import loadAndIndexUBSGreekDictJSON, loadAndIndexUBSHebrewDictJSON
 
 
-LAST_MODIFIED_DATE = '2024-04-19' # by RJH
+LAST_MODIFIED_DATE = '2024-05-02' # by RJH
 SHORT_PROGRAM_NAME = "Bibles"
 PROGRAM_NAME = "OpenBibleData Bibles handler"
-PROGRAM_VERSION = '0.70'
+PROGRAM_VERSION = '0.71'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -662,18 +663,21 @@ def formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segme
         19/ m = ''
     Note the superfluous final empty m field
 
+    NOTE: For book and chapter introductions, the p~ entry might contain several markdown paragraphs.
+
     TODO: Get the English quote (ULT, OET-LV???) from the Greek words
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"formatUnfoldingWordTranslationNotes( {BBB}, {C}:{V}, {segmentType=} )" )
+    utnRef = f'{BBB}_{C}:{V}'
+    fnPrint( DEBUGGING_THIS_MODULE, f"formatUnfoldingWordTranslationNotes( {level}, {utnRef}, {segmentType=} )" )
     assert segmentType in ('parallelVerse','interlinearVerse')
 
     try:
         verseEntryList = state.preloadedBibles['UTN'].getVerseDataList( (BBB, C, V) )
     except KeyError:
-        logging.warning( f"uW TNs have no notes for {BBB} {C}:{V}" )
+        logging.warning( f"uW TNs have no notes for {utnRef}" )
         return ''
     if not verseEntryList: # can be None
-        logging.warning( f"uW TNs has no notes for {BBB} {C}:{V}" )
+        logging.warning( f"uW TNs has no notes for {utnRef}" )
         return ''
 
     NT = BibleOrgSysGlobals.loadedBibleBooksCodes.isNewTestament_NR( BBB )
@@ -692,22 +696,22 @@ def formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segme
         if marker.startswith( '¬' ): assert not rest; continue # end markers not needed here
         if marker in ('c','c#'):
             assert rest
-            # print( f"TN {BBB} {C}:{V} ignored {marker}='{rest}'" )
+            # print( f"TN {utnRef} ignored {marker}='{rest}'" )
             continue # not used here
-        dPrint( 'Never', DEBUGGING_THIS_MODULE, f"TN {BBB} {C}:{V} {marker}='{rest}'" )
+        dPrint( 'Never', DEBUGGING_THIS_MODULE, f"TN {utnRef} {marker}='{rest}'" )
         if rest is None:
-            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"formatUnfoldingWordTranslationNotes( {BBB}, {C}:{V}, {segmentType=} ) skipped TN {marker}='{rest}'" )
+            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"formatUnfoldingWordTranslationNotes( {utnRef}, {segmentType=} ) skipped TN {marker}='{rest}'" )
             lastMarker = marker
             continue
-        assert rest == entry.getFullText().rstrip(), f"TN {BBB} {C}:{V} {marker}='{rest}' ft='{entry.getFullText()}'" # Just checking that we're not missing anything here
-        assert marker in ('v', 'm','q1','p','pi1', 'p~', 'im','iq1','ip','ipi'), f"Unexpected marker TN {BBB} {C}:{V} {marker}='{rest}' ({lastMarker=})" # We expect a very limited subset
+        assert rest == entry.getFullText().rstrip(), f"TN {utnRef} {marker}='{rest}' ft='{entry.getFullText()}'" # Just checking that we're not missing anything here
+        assert marker in ('v', 'm','q1','p','pi1', 'p~', 'im','iq1','ip','ipi'), f"Unexpected marker TN {utnRef} {marker}='{rest}' ({lastMarker=})" # We expect a very limited subset
 
         if marker == 'v':
             if rest!=V and '-' not in rest:
-                logging.critical( f"Why did TN {BBB} {C}:{V} get {marker}='{rest}' from {verseEntryList=}?" )
+                logging.critical( f"Why did TN {utnRef} get {marker}='{rest}' from {verseEntryList=}?" )
                 # Doesn't seem that we usually need to display this but we will here in case something is wrong
                 tnHtml = f'''{' ' if tnHtml else ''}{tnHtml}<span class="v">{V} </span>'''
-            # assert rest==V or '-' in rest, f"TN {BBB} {C}:{V} {marker}='{rest}' from {verseEntryList=}"
+            # assert rest==V or '-' in rest, f"TN {utnRef} {marker}='{rest}' from {verseEntryList=}"
 
         elif marker == 'p~': # This has the text
             if lastMarker in ('m','im'):  # TA reference
@@ -724,7 +728,7 @@ def formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segme
                 else:
                     noteName = rest
                     noteFile = '03-translate'
-                    logging.critical( f"Missing ResourceContainer path in TA note: {BBB} {C}:{V} '{noteName}'" )
+                    logging.critical( f"Missing ResourceContainer path in TA note: {utnRef} '{noteName}'" )
                 betterNoteName = noteName.replace( 'figs-', 'figures-of-speech / ' )
                 # print( f"{noteName=} {betterNoteName=}" )
                 noteCount += 1
@@ -734,20 +738,20 @@ def formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segme
             elif lastMarker in ('pi1','ipi'): # Occurrence number
                 assert rest
                 if rest!='-1' and not rest.isdigit():
-                    logging.critical( f"getContextVerseData ({BBB}, {C}, {V}) has unexpected {lastMarker=} {marker=} {rest=}" )
-                # assert rest.isdigit() or rest=='-1', f"getContextVerseData ({BBB}, {C}, {V}) has unexpected {marker=} {rest=}" # Jhn 12:15 or 16???
+                    logging.critical( f"getContextVerseData ({utnRef}) has unexpected {lastMarker=} {marker=} {rest=}" )
+                # assert rest.isdigit() or rest=='-1', f"getContextVerseData ({utnRef}) has unexpected {marker=} {rest=}" # Jhn 12:15 or 16???
                 occurrenceNumber = getLeadingInt(rest) # Shouldn't be necessary but uW stuff isn't well checked/validated
 
             elif lastMarker in ('q1','iq1'): # An original language quote
                 assert rest
                 if rest.startswith( 'Connecting Statement' ):
-                    assert occurrenceNumber == 0, f"{BBB} {C}:{V} Connecting Statement has occurrence={occurrenceNumber}" # UTN PSA 29:6 and onwards has lots of errors with this (that we fixed in our copy)
+                    assert occurrenceNumber == 0, f"{utnRef} Connecting Statement has occurrence={occurrenceNumber}" # UTN PSA 29:6 and onwards has lots of errors with this (that we fixed in our copy)
                     tnHtml = f'''{tnHtml}{NEWLINE if tnHtml else ''}<p class="Gram">{rest}</p>'''
                 else: # assume it's an original language quote
                     # if BBB!='JHN' and C!='11' and V!='45': # Jn 11:45 and Exo 1:15, etc.
-                    #     assert occurrenceNumber != 0, f"TN {BBB} {C}:{V} {occurrenceNumber=} {marker}='{rest}'"
+                    #     assert occurrenceNumber != 0, f"TN {utnRef} {occurrenceNumber=} {marker}='{rest}'"
                     if occurrenceNumber == 0:
-                        logging.error( f"TN occurrenceNumber is zero with {BBB} {C}:{V} '{rest}'" )
+                        logging.error( f"TN occurrenceNumber is zero with {utnRef} '{rest}'" )
                     lvQuoteHtml = findLVQuote( level, BBB, C, V, occurrenceNumber, rest, state ).replace(' & ',' <small>&</small> ')
                     tnHtml = f'''{tnHtml}<p class="OL">{'' if occurrenceNumber==1 else f'(Occurrence {occurrenceNumber}) '}{rest.replace(' & ',' <small>&</small> ')}</p>
 <p class="Trans">{lvQuoteHtml if lvQuoteHtml else f'({transliterate_Greek(rest)})' if NT else f'({transliterate_Hebrew(rest)})'}</p>'''
@@ -798,13 +802,13 @@ def formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segme
                 for _safetyCount in range( 46 ): # 45 wasn't enough for EXO 15:0
                     match = markdownLinkRegex.search( rest, searchStartIndex )
                     if not match: break
-                    # dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"{_safetyCount} getContextVerseData found TN markdown link {BBB} {C}:{V} {match=} {match.groups()=}" )
+                    # dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"{_safetyCount} getContextVerseData found TN markdown link {utnRef} {match=} {match.groups()=}" )
                     newLink = match.group(1)
                     if match.group(2).startswith( '../' ) and match.group(2).endswith( '.md' ):
                         # Probably something like: [13:20](../13/20.md)
                         linkTarget = match.group(2)[3:-3]
                         if linkTarget.endswith('/'): linkTarget = linkTarget[:-1] # Mistake in TN Rom 2:2
-                        # dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Have scripture link {BBB} {C}:{V} {match.group(1)=} {linkTarget=}" )
+                        # dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Have scripture link {utnRef} {match.group(1)=} {linkTarget=}" )
                         if linkTarget == 'front/intro':
                             pass # TODO: We're being lazy here -- where do we find a book intro?
                         elif linkTarget.count('/') == 2:
@@ -812,7 +816,7 @@ def formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segme
                             # Deal with book encoding issues in the uW notes
                             if lUUU == 'i1kg': lUUU = '1Ki' # UTN Mat 17:0
                             elif lUUU.lower() == '2kg': lUUU = '2Ki'
-                            assert len(lUUU) == 3, f"{lUUU=} {lC=} {lV=} {linkTarget=} from {BBB} {C}:{V} '{rest}'"
+                            assert len(lUUU) == 3, f"{lUUU=} {lC=} {lV=} {linkTarget=} from {utnRef} '{rest}'"
                             lC = int(lC)
                             try: lV = int(lV)
                             except ValueError:
@@ -827,60 +831,114 @@ def formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segme
                                 if lV.startswith('.'): lV = int(lV[1:])
                             newLink = f'<a href="C{lC}V{lV}.htm#Top">{match.group(1)}</a>'
                         else:
-                            # dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"{_safetyCount} getContextVerseData found TN markdown link {BBB} {C}:{V} {match=} {match.groups()=}" )
-                            logging.critical( f"formatUnfoldingWordTranslationNotes1 ({BBB}, {C}, {V}) has unhandled markdown reference in '{rest}'" )
+                            # dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"{_safetyCount} getContextVerseData found TN markdown link {utnRef} {match=} {match.groups()=}" )
+                            logging.critical( f"formatUnfoldingWordTranslationNotes1 ({utnRef}) has unhandled markdown reference in '{rest}'" )
                     elif match.group(2).startswith( './' ) and match.group(2).endswith( '.md' ):
                         # Probably something like: [Mark 14:22–25](./22.md)
                         linkTarget = match.group(2)[2:-3]
-                        # print( f"  Have scripture link {BBB} {C}:{V} {match.group(1)=} {linkTarget=}" )
+                        # print( f"  Have scripture link {utnRef} {match.group(1)=} {linkTarget=}" )
                         if linkTarget.count('/') == 0:
                             lV = linkTarget
                             newLink = f'<a href="C{C}V{lV}.htm#Top">{match.group(1)}</a>'
                         else:
-                            # dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"{_safetyCount} getContextVerseData found TN markdown link {BBB} {C}:{V} {match=} {match.groups()=}" )
-                            logging.critical( f"formatUnfoldingWordTranslationNotes2 ({BBB}, {C}, {V}) has unhandled markdown reference in '{rest}'" )
+                            # dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"{_safetyCount} getContextVerseData found TN markdown link {utnRef} {match=} {match.groups()=}" )
+                            logging.critical( f"formatUnfoldingWordTranslationNotes2 ({utnRef}) has unhandled markdown reference in '{rest}'" )
                     else:
                         # e.g., From Ruth 3:9: [2:20](../02/20/zu5f)
-                        # dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"{_safetyCount} getContextVerseData found TN markdown link {BBB} {C}:{V} {match=} {match.groups()=}" )
-                        logging.critical( f"formatUnfoldingWordTranslationNotes ({BBB}, {C}, {V}) has unhandled markdown link in '{rest}'" )
+                        # dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"{_safetyCount} getContextVerseData found TN markdown link {utnRef} {match=} {match.groups()=}" )
+                        logging.critical( f"formatUnfoldingWordTranslationNotes ({utnRef}) has unhandled markdown link in '{rest}'" )
                     rest = f'{rest[:match.start()]}{newLink}{rest[match.end():]}'
-                    # dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  {BBB} {C}:{V} with {newLink=}, now {rest=}" )
+                    # dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  {utnRef} with {newLink=}, now {rest=}" )
                     searchStartIndex = match.start() + len(newLink)
                 else:
-                    logging.critical( f"getContextVerseData found excess TN markdown links in {_safetyCount} {BBB} {C}:{V} {rest=}" )
+                    logging.critical( f"getContextVerseData found excess TN markdown links in {_safetyCount} {utnRef} {rest=}" )
                     need_to_increase_max_MDLink_loop_count
                 if BBB not in ('HAG','MAT'): # uW Hag 1:0, Mat 27:0 have formatting problems
-                    assert 'rc://' not in rest, f"TN {BBB} {C}:{V} {lastMarker=} {marker}='{rest}'"
+                    assert 'rc://' not in rest, f"TN {utnRef} {lastMarker=} {marker}='{rest}'"
                 while '**' in rest:
                     rest = rest.replace( '**', '<b>', 1 ).replace( '**', '</b>', 1 )
                 # Add our own little bit of bolding
+                #   and fix some UTN formatting errors
                 rest = ( rest.replace( 'Alternate translation:', '<b>Alternate translation</b>:' )
                             .replace( '{', '<span class="add">' ).replace( '}', '</span>' ) # UTN uses braces {} for "add" markers, e.g., GEN 13:8, MRK 6:11
                             .replace( '\\n', '\n' ) # Unescape TSV newlines
-                            .replace( '\n\n\n', '\n<br>' ) # e.g., Ruth 2:intro (probable mistake)
+                            .replace( '\n\n\n', '\n\n' ) # e.g., Ruth 2:intro (probable mistake)
+                            .replace( '.#', '.\n\n#' ) # Fix markdown formatting mistake in Ruth 33:intro (and maybe other places)
                         )
                 if BBB not in ('EXO','PSA','ROM','CO1'): # uW TN Exo 4:0, Psa 4:0, Rom 16:24, 1Co 15:23 have formatting problems
-                    assert '\\' not in rest, f"TN {BBB} {C}:{V} {lastMarker=} {marker}='{rest}'"
-                newRestLines = []
-                for line in rest.split( '\n' ):
-                    if line.startswith( '# '):
-                        line = f'<h1>{line[2:]}</h1>'
-                    elif line.startswith( '## '):
-                        line = f'<h2>{line[3:]}</h2>'
-                    elif line.startswith( '### '):
-                        line = f'<h3>{line[4:]}</h3>'
-                    elif line.startswith( '#### '):
-                        line = f'<h4>{line[5:]}</h4>'
-                    if line:
-                        newRestLines.append( line )
-                tnHtml = f'''{tnHtml}{NEWLINE if tnHtml else ''}<p class="TN{'1' if lastMarker=='pi1' else ''}">{NEWLINE.join(newRestLines)}</p>'''
+                    assert '\\' not in rest, f"TN {utnRef} {lastMarker=} {marker}='{rest}'"
+                # if utnRef=='RUT_2:0': print( f"\nUTN {utnRef} {rest=}" )
 
-            else:
-                logging.critical( f"formatUnfoldingWordTranslationNotesA ({BBB}, {C}, {V}) has unhandled {marker=} {rest=} {lastMarker=}" )
+                thisMarkdownHtml = ''
+                openPHtml = f'''<p class="TN{'1' if lastMarker=='pi1' else ''}">'''
+                inParagraph = haveBlankLine = False
+                for line in rest.split( '\n' ):
+                    # print( f"  UTN {utnRef} {line=}" )
+                    if line.startswith( '#### '):
+                        if inParagraph:
+                            thisMarkdownHtml = f'{thisMarkdownHtml}</p>'
+                            inParagraph = False
+                        thisMarkdownHtml = f"{thisMarkdownHtml}{NEWLINE if thisMarkdownHtml else ''}<h4>{line[5:]}</h4>"
+                    elif line.startswith( '####'):
+                        logging.critical( f"Bad markdown formatting in UTN {utnRef} line: {line=}" )
+                        if inParagraph:
+                            thisMarkdownHtml = f'{thisMarkdownHtml}</p>'
+                            inParagraph = False
+                        thisMarkdownHtml = f"{thisMarkdownHtml}{NEWLINE if thisMarkdownHtml else ''}<h4>{line[4:]}</h4>"
+                    elif line.startswith( '### '):
+                        if inParagraph:
+                            thisMarkdownHtml = f'{thisMarkdownHtml}</p>'
+                            inParagraph = False
+                        thisMarkdownHtml = f"{thisMarkdownHtml}{NEWLINE if thisMarkdownHtml else ''}<h3>{line[4:]}</h3>"
+                    elif line.startswith( '###'):
+                        logging.critical( f"Bad markdown formatting in UTN {utnRef} line: {line=}" )
+                        if inParagraph:
+                            thisMarkdownHtml = f'{thisMarkdownHtml}</p>'
+                            inParagraph = False
+                        thisMarkdownHtml = f"{thisMarkdownHtml}{NEWLINE if thisMarkdownHtml else ''}<h3>{line[3:]}</h3>"
+                    elif line.startswith( '## '):
+                        if inParagraph:
+                            thisMarkdownHtml = f'{thisMarkdownHtml}</p>'
+                            inParagraph = False
+                        thisMarkdownHtml = f"{thisMarkdownHtml}{NEWLINE if thisMarkdownHtml else ''}<h2>{line[3:]}</h2>"
+                    elif line.startswith( '##'):
+                        logging.critical( f"Bad markdown formatting in UTN {utnRef} line: {line=}" )
+                        if inParagraph:
+                            thisMarkdownHtml = f'{thisMarkdownHtml}</p>'
+                            inParagraph = False
+                        thisMarkdownHtml = f"{thisMarkdownHtml}{NEWLINE if thisMarkdownHtml else ''}<h2>{line[2:]}</h2>"
+                    elif line.startswith( '# '):
+                        if inParagraph:
+                            thisMarkdownHtml = f'{thisMarkdownHtml}</p>'
+                            inParagraph = False
+                        thisMarkdownHtml = f"{thisMarkdownHtml}{NEWLINE if thisMarkdownHtml else ''}<h1>{line[2:]}</h1>"
+                    elif line.startswith( '#'):
+                        logging.critical( f"Bad markdown formatting in UTN {utnRef} line: {line=}" )
+                        if inParagraph:
+                            thisMarkdownHtml = f'{thisMarkdownHtml}</p>'
+                            inParagraph = False
+                        thisMarkdownHtml = f"{thisMarkdownHtml}{NEWLINE if thisMarkdownHtml else ''}<h1>{line[1:]}</h1>"
+                    elif line:
+                        if not inParagraph:
+                            thisMarkdownHtml = f"{thisMarkdownHtml}{NEWLINE if thisMarkdownHtml else ''}{openPHtml}"
+                            inParagraph = True
+                        thisMarkdownHtml = f'{thisMarkdownHtml}{line}'
+                    elif inParagraph:
+                        haveBlankLine = True
+                if inParagraph:
+                    thisMarkdownHtml = f'{thisMarkdownHtml}</p>'
+                # if utnRef=='RUT_2:0': print( f"\nUTN2 {utnRef} {thisMarkdownHtml}" )
+                checkHtml( f'UTN {utnRef}', thisMarkdownHtml, segmentOnly=True )
+                tnHtml = f'''{tnHtml}{NEWLINE if tnHtml else ''}{thisMarkdownHtml}'''
+                assert '##' not in tnHtml, f"UTN {utnRef} {tnHtml}" # Can have single hashes in valid URLS, e.g., #Top
+                # if utnRef=='RUT_2:0': print( f"\nUTN3 {utnRef} {tnHtml}" )
+
+            else: # not a marker that we were expecting
+                logging.critical( f"formatUnfoldingWordTranslationNotesA ({utnRef}) has unhandled {marker=} {rest=} {lastMarker=}" )
         elif marker in ('m','q1','p','pi1'):
             assert not rest # Just ignore these markers (but they influence lastMarker)
         else:
-            logging.critical( f"formatUnfoldingWordTranslationNotesB ({BBB}, {C}, {V}) has unhandled {marker=} {rest=} {lastMarker=}" )
+            logging.critical( f"formatUnfoldingWordTranslationNotesB ({utnRef}) has unhandled {marker=} {rest=} {lastMarker=}" )
         lastMarker = marker
 
     # # Liven the TA link
@@ -901,12 +959,12 @@ def formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segme
     # tnHtml = tnHtml.replace( 'Alternate translation:', '<b>Alternate translation</b>:' )
 
     if BBB not in ('LEV','HAGx','MATx'): # We have a problem at Lev 1:3, Deu 19:0, Hag 1:0, Mat 27:0 with rc:\\\tw instead of rc:\\*\tw and other errors
-        assert 'rc://' not in tnHtml, f"TN {BBB} {C}:{V} {tnHtml=}"
+        assert 'rc://' not in tnHtml, f"TN {utnRef} {tnHtml=}"
     tnHtml = tnHtml.replace( '<br>\n' , '\n<br>' ) # Make sure it follows our convention (just for tidyness and consistency)
     while '\n\n' in tnHtml: tnHtml = tnHtml.replace( '\n\n', '\n' ) # Remove useless extra newline characters (as of 2024, the UTNs are full of formatting errors and inconsistencies)
-    # assert '\n\n' not in tnHtml, f"TN {BBB} {C}:{V} {tnHtml=}"
+    # assert '\n\n' not in tnHtml, f"TN {utnRef} {tnHtml=}"
     assert not tnHtml.endswith( '\n' )
-    checkHtml( f'UTN {BBB} {C}:{V}', tnHtml, segmentOnly=True )
+    checkHtml( f'UTN {utnRef}', tnHtml, segmentOnly=True )
     return tnHtml
 # end of Bibles.formatUnfoldingWordTranslationNotes
 

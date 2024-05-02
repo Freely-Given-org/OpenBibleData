@@ -41,6 +41,7 @@ CHANGELOG:
     2023-10-25 Make use of word table index; add colourisation of OET words
     2023-12-15 Improve colorisation of OET words
     2024-03-13 Add getOETBookName(BBB) function
+    2024-05-01 Added morphology in popups in livenOETWordLinks()
 """
 # from gettext import gettext as _
 from typing import Dict, List, Tuple, Optional
@@ -64,10 +65,10 @@ from settings import State
 from html import checkHtml
 
 
-LAST_MODIFIED_DATE = '2024-04-24' # by RJH
+LAST_MODIFIED_DATE = '2024-05-01' # by RJH
 SHORT_PROGRAM_NAME = "OETHandlers"
 PROGRAM_NAME = "OpenBibleData OET handler"
-PROGRAM_VERSION = '0.56'
+PROGRAM_VERSION = '0.57'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -245,7 +246,7 @@ def livenOETWordLinks( level:int, bibleObject:ESFMBible, BBB:str, givenEntryList
                     # print( f"    livenOETWordLinks now '{originalText[wordnumberMatch.end():]}'")
                     # colourisationsAdded += 1
 
-                newTitleGuts = f'''="{greekWord} ({transliteratedWord}){'' if SRLemma==transliteratedWord else f" from {SRLemma}"}"'''
+                newTitleGuts = f'''="{greekWord} ({transliteratedWord}, {morphology.removeprefix('....')}){'' if SRLemma==transliteratedWord else f" from {SRLemma}"}"'''
                 originalText = f'''{originalText[:titleMatch.start()]}{newTitleGuts}{originalText[titleMatch.end():]}'''
 
                 searchStartIndex = hrefMatch.end()
@@ -264,6 +265,7 @@ def livenOETWordLinks( level:int, bibleObject:ESFMBible, BBB:str, givenEntryList
 
                 ref, rowType, morphemeRowList, lemmaRowList, strongs, morphology, word, noCantillations, morphemeGlosses, contextualMorphemeGlosses, wordGloss, contextualWordGloss, glossCapitalisation, glossPunctuation, glossOrder, glossInsert, role, nesting, tags = wordRow.split( '\t' )
                 transliteratedWord = transliterate_Hebrew( noCantillations )
+                transliteratedWordForTitle = transliteratedWord.replace( 'ə', '~~SCHWA~~' ) # Protect it so not adjusted in the title field
 
                 # Do colourisation
                 # NOTE: We have almost identical code in brightenUHB() in createParallelVersePages.py
@@ -278,7 +280,7 @@ def livenOETWordLinks( level:int, bibleObject:ESFMBible, BBB:str, givenEntryList
                     if subStrongInt in (369, 3808): # Hebrew 'אַיִן' 'ayin' 'no', or 'לֹא' (lo) 'not'
                         caseClassName = 'hebNeg'
                         break
-                    if subStrongInt in (430,410): # Hebrew 'אֱלֹהִים' 'ʼelohīm', 'אֵל' 'El'
+                    if subStrongInt in (430,410,433): # Hebrew 'אֱלֹהִים' 'ʼelohīm', 'אֵל' 'El'
                         caseClassName = 'hebEl'
                         break
                     if subStrongInt in (3068,3050): # Hebrew 'יְהוָה' 'Yahweh', 'יָהּ' 'Yah'
@@ -305,7 +307,7 @@ def livenOETWordLinks( level:int, bibleObject:ESFMBible, BBB:str, givenEntryList
                     # print( f"    livenOETWordLinks now '{originalText[wordnumberMatch.end():]}'")
                     # colourisationsAdded += 1
 
-                newTitleGuts = f'''="{noCantillations}"''' # ({transliteratedWord}){'' if SRLemma==transliteratedWord else f" from {SRLemma}"}"'''
+                newTitleGuts = f'''="{noCantillations} ({transliteratedWordForTitle}, {morphology})"''' # ({transliteratedWord}){'' if SRLemma==transliteratedWord else f" from {SRLemma}"}"'''
                 originalText = f'''{originalText[:titleMatch.start()]}{newTitleGuts}{originalText[titleMatch.end():]}'''
 
                 searchStartIndex = hrefMatch.end() 

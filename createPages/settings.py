@@ -36,6 +36,7 @@ CHANGELOG:
     2024-01-11 Load all OET-LV NT books
     2024-04-05 Add more acknowledgements for the OT part
     2024-04-18 Added AICNT
+    2024-04-25 Added some Moffat books
 """
 from gettext import gettext as _
 from typing import List
@@ -48,7 +49,7 @@ from BibleOrgSys.BibleOrgSysGlobals import dPrint
 from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39
 
 
-LAST_MODIFIED_DATE = '2024-04-18' # by RJH
+LAST_MODIFIED_DATE = '2024-04-29' # by RJH
 SHORT_PROGRAM_NAME = "settings"
 PROGRAM_NAME = "OpenBibleData (OBD) Create Pages"
 PROGRAM_VERSION = '0.96'
@@ -56,9 +57,9 @@ PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
 
-OET_VERSION = 'v0.09'
+OET_VERSION = 'v0.11'
 
-TEST_MODE = True # Writes website into Test subfolder
+TEST_MODE = False # Writes website into Test subfolder
 ALL_PRODUCTION_BOOKS = not TEST_MODE # If set to False, only selects one book per version for a faster test build
 ALL_TEST_REFERENCE_PAGES = False # If in Test mode, make ALL word/lemma pages, or just the RELEVANT ones
 UPDATE_ACTUAL_SITE_WHEN_BUILT = True # The pages are initially built in a tmp folder so need to be copied to the final destination
@@ -71,7 +72,7 @@ DESTINATION_FOLDER = DEBUG_DESTINATION_FOLDER if TEST_MODE or BibleOrgSysGlobals
 
 OET_NT_BOOK_ORDER = ['JHN','MRK','MAT','LUK','ACT', 'ROM','CO1','CO2', 'GAL','EPH','PHP','COL', 'TH1','TH2', 'TI1','TI2','TIT','PHM', 'HEB', 'JAM', 'PE1','PE2', 'JN1','JN2','JN3', 'JDE', 'REV']
 
-TEST_OT_BOOK_LIST = ['GEN','RUT','JOB'] # RUT plus books in progress
+TEST_OT_BOOK_LIST = ['RUT','JOB','PSA'] # RUT plus books in progress
 TEST_NT_BOOK_LIST = ['MRK']
 TEST_BOOK_LIST = TEST_OT_BOOK_LIST + TEST_NT_BOOK_LIST
 
@@ -190,7 +191,7 @@ class State:
                 'NRSV': '../copiedBibles/English/NRSV_verses.tsv',
                 'NKJV': '../copiedBibles/English/NKJV_verses.tsv',
                 'BBE': '../copiedBibles/English/eBible.org/BBE/',
-                # 'MOF': '',
+                'MOF': '../copiedBibles/English/Moffat/',
                 'JPS': '../copiedBibles/English/eBible.org/JPS/',
                 'ASV': '../copiedBibles/English/eBible.org/ASV/',
                 'DRA': '../copiedBibles/English/eBible.org/DRA/',
@@ -263,12 +264,12 @@ class State:
                 'GB': 'Great Bible (1539)', # Not in OBD yet
                 'CB': 'Coverdale Bible (1535-1553)',
                 'TNT': 'Tyndale New Testament (1526)',
-                'WYC': 'Wycliffe Bible (1382)',
-                'LUT': 'Luther Bible (1545)',
+                'WYC': 'Wycliffe Bible (middle-English, 1382)',
+                'LUT': 'Luther Bible (German, 1545)',
                 'CLV': 'Clementine Vulgate (Latin, 1592)',
                 'SR-GNT': 'Statistical Restoration Greek New Testament (2022)',
                 'UGNT': 'unfoldingWord® Greek New Testament (2022)',
-                'SBL-GNT': 'Society for Biblical Literature Greek New Testament (2020???)',
+                'SBL-GNT': 'Society for Biblical Literature Greek New Testament (2010)',
                 'TC-GNT': 'Text-Critical Greek New Testament (2010, Byzantine)',
                 'BRN': 'Brenton Septuagint Translation (1851)',
                 'BrLXX': '(Brenton’s) Ancient Greek translation of the Hebrew Scriptures (~250 BC)',
@@ -421,7 +422,8 @@ You can read more about the design of the <em>OET-LV</em> at <a href="https://Op
                 'acknowledgements': '''<p class="acknwldg">Thanks to <a href="https://Freely-Given.org/">Freely-Given.org</a> for creating this exciting, new Bible translation which is viewable from <a href="https://OpenEnglishTranslation.Bible">OpenEnglishTranslation.Bible</a>.
 We are very grateful to Dr. Alan Bunning of the <a href="https://GreekCNTR.org">Center for New Testament Restoration</a> whose many years of hard work this literal New Testament is adapted from.
 The Old Testament Hebrew text (and the morphology analysis) is adapted from the work of the <a href="https://hb.OpenScriptures.org/">Open Scriptures Hebrew Bible</a> team.
-We’re also grateful to the <a href="https://www.Biblica.com/clear/">Biblica Clear Bible team</a> who provide the pronoun referential information as part of their <a href="https://GitHub.com/Clear-Bible/macula-greek">Macula Greek</a> project and also some of the OT glosses as part of their <a href="https://GitHub.com/Clear-Bible/macula-hebrew">Macula Hebrew</a> project.</p>''' },
+We’re also grateful to the <a href="https://www.Biblica.com/clear/">Biblica Clear Bible team</a> who provide the pronoun referential information as part of their <a href="https://GitHub.com/Clear-Bible/macula-greek">Macula Greek</a> project and also some of the OT glosses as part of their <a href="https://GitHub.com/Clear-Bible/macula-hebrew">Macula Hebrew</a> project.</p>''',
+                'notes' : '''<p class="note">Note that the <em>OET-LV</em> is VERY literal (even including Hebrew and Greek words that are not normally translated into English) because it’s designed to be used in conjunction with our <em>Readers’ Version</em>.</p>''' },
         'ULT': {'about': '<p class="about">unfoldingWord® Literal Text (2023) and derived from the 1901 ASV.</p>',
                 'copyright': '<p class="copyright">Copyright © 2023 by unfoldingWord.</p>',
                 'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
@@ -457,39 +459,39 @@ We’re also grateful to the <a href="https://www.Biblica.com/clear/">Biblica Cl
         'NLT': {'about': '<p class="about">New Living Translation (2015).</p>',
                 'copyright': '<p class="copyright">Holy Bible, New Living Translation, copyright © 1996, 2004, 2015 by Tyndale House Foundation. Used by permission of Tyndale House Publishers. All rights reserved.</p>',
                 'licence': '<p class="licence">five hundred (500) verses without the express written permission of the publisher, providing the verses quoted do not amount to a complete book of the Bible nor do the verses quoted account for twenty-five percent (25%) or more of the total text of the work in which they are quoted.</p>',
-                'acknowledgements': '<p class="acknwldg"></p>' },
+                 },
         'NIV': {'about': '<p class="about">New International Version (2011).</p>',
                 'copyright': '<p class="copyright">Scripture quotations taken from The Holy Bible, New International Version® NIV®. Copyright © 1973, 1978, 1984, 2011 by Biblica, Inc.™ Used by permission. All rights reserved worldwide.</p>',
                 'licence': '<p class="licence">The NIV® text may be quoted in any form (written, visual, electronic or audio), up to and inclusive of five hundred (500) verses without the express written permission of the publisher, providing the verses quoted do not amount to a complete book of the Bible nor do the verses quoted account for twenty-five percent (25%) or more of the total text of the work in which they are quoted.</p>',
-                'acknowledgements': '<p class="acknwldg"></p>' },
+                 },
         'CEV': {'about': '<p class="about">Contemporary English Version, Second Edition (2006).</p>',
                 'copyright': '<p class="copyright">Scripture quotations marked (CEV) are from the Contemporary English Version Copyright © 1991, 1992, 1995 by American Bible Society. Used by Permission.</p>',
                 'licence': '<p class="licence">Text from the Contemporary English Version (CEV) may be quoted in any form (written, visual, electronic or audio) up to and inclusive of five hundred (500) verses without written permission, providing the verses quoted do not amount to 50% of a complete book of the Bible nor do the verses account for twenty-five percent (25%) or more of the total text of the work in which they are quoted and the work is available for non-commercial use.</p>',
-                'acknowledgements': '<p class="acknwldg"></p>' },
+                 },
         'ESV': {'about': '<p class="about">English Standard Version (2001).</p>',
                 'copyright': '<p class="copyright">Scripture quotations are from the ESV® Bible (The Holy Bible, English Standard Version®), copyright © 2001 by Crossway Bibles, a publishing ministry of Good News Publishers. Used by permission. All rights reserved.</p>',
                 'licence': '<p class="licence">The ESV text may be quoted (in written, visual, or electronic form) up to and inclusive of five hundred (500) verses without express written permission of the publisher, providing that the verses quoted do not amount to a complete book of the Bible nor do the verses quoted account for twenty-five (25%) percent or more of the total text of the work in which they are quoted.</p>',
-                'acknowledgements': '<p class="acknwldg"></p>' },
+                 },
         'NASB': {'about': '<p class="about">New American Standard Bible (1995): A revision of the American Standard Version (ASV) incorporating information from the Dead Sea Scrolls.</p>',
                 'copyright': '<p class="copyright">Scripture taken from the NEW AMERICAN STANDARD BIBLE, © Copyright The Lockman Foundation 1960, 1962, 1963, 1968, 1971, 1972, 1973, 1975, 1977, 1995. Used by permission.</p>',
                 'licence': '<p class="licence">The text of the New American Standard Bible® may be quoted and/or reprinted up to and inclusive of five hundred (500) verses without express written permission of The Lockman Foundation, providing that the verses do not amount to a complete book of the Bible nor do the verses quoted account for more than 25% of the total work in which they are quoted.</p>',
-                'acknowledgements': '<p class="acknwldg"></p>' },
+                 },
         'LSB': {'about': '<p class="about"><a href="https://LSBible.org/">Legacy Standard Bible</a> (2021): A revision of the 1995 New American Standard Bible (NASB) completed in October 2021.</p>',
                 'copyright': '<p class="copyright">Copyright © 2021 by The Lockman Foundation. All Rights Reserved.</p>',
                 'licence': '<p class="licence">The text of the LSB® (Legacy Standard Bible®) may be quoted in any form (written, visual, electronic, or audio) up to and inclusive of one thousand (1,000) verses providing the verses do not amount to a complete book of the Bible, nor do the verses quoted account for more than 50% of the total text of the work in which they are quoted, nor may more than 1,000 verses be stored in an electronic retrieval system. <small>(Downloaded from <a href="https://LSBible.org/permission-to-quote-the-lsb/">LSBible.org/permission-to-quote-the-lsb/</a> January 2024)</small></p>',
-                'acknowledgements': '<p class="acknwldg"></p>' },
+                 },
         'JQT': {'about': '<p class="about">James Quiggle Translation New Testament (2023).</p>',
                 'copyright': '<p class="copyright">Translated and published by James D. Quiggle, copyright 2023.</p>',
                 'licence': '<p class="licence">Limited to twenty verses.</p>',
-                'acknowledgements': '<p class="acknwldg"></p>' },
+                 },
         '2DT': {'about': '<p class="about">The Second Testament: A new translation (2023) by Scot McKnight.</p>',
                 'copyright': '<p class="copyright">Copyright © 2023 by IVP Academic. Used by Permission. All Rights Reserved Worldwide.</p>',
                 'licence': '<p class="licence">Up to 300 verses may be used.</p>',
-                'acknowledgements': '<p class="acknwldg"></p>' },
+                 },
         '1ST': {'about': '<p class="about">The First Testament: A new translation (2018) by John Goldingay.</p>',
                 'copyright': '<p class="copyright">Copyright © 2018 by IVP Academic. Used by Permission. All Rights Reserved Worldwide.</p>',
                 'licence': '<p class="licence">Up to 300 verses may be used.</p>',
-                'acknowledgements': '<p class="acknwldg"></p>' },
+                 },
         'TPT': {'about': '<p class="about">The Passion Translation (2017) by Brian Simmons.</p>',
                 'copyright': '<p class="copyright">Scripture quotations marked TPT are from The Passion Translation®. Copyright © 2017, 2018, 2020 by Passion & Fire Ministries, Inc. Used by permission. All rights reserved. ThePassionTranslation.com.</p>',
                 'licence': '<p class="licence">Up to 250 verses may be used.</p>',
@@ -539,10 +541,12 @@ We’re also grateful to the <a href="https://www.Biblica.com/clear/">Biblica Cl
                 'copyright': '<p class="copyright">Copyright © (coming).</p>',
                 'licence': '<p class="licence">(coming).</p>',
                 'acknowledgements': '<p class="acknwldg">(coming).</p>' },
-        'MOF': {'about': '<p class="about">The Moffatt Translation of the Bible (1922).</p>',
-                'copyright': '<p class="copyright">Copyright © (coming).</p>',
-                'licence': '<p class="licence">(coming).</p>',
-                'acknowledgements': '<p class="acknwldg">(coming).</p>' },
+        'MOF': {'about': '<p class="about">The <a href="https://en.wikipedia.org/wiki/Moffatt,_New_Translation">Moffatt Translation</a> of the Bible (1922).</p>',
+                'copyright': '<p class="copyright">Copyright © 1922 James Moffatt.</p>',
+                'licence': '<p class="licence">Copyright expired. Public domain.</p>',
+                'acknowledgements': '<p class="acknwldg">Thanks to the <a href="https://github.com/openenglishbible/usfm-bibles/tree/master/Moffat">OEB team</a> for their <a href="https://github.com/openenglishbible/Open-English-Bible/discussions/348">USFM transcriptions</a> of Moffat’s work.</p>',
+                'notes': '''<p class="note">Please note that including Moffat’s work on these pages doesn’t mean that we endorse <a href="https://en.wikipedia.org/wiki/Documentary_hypothesis">The Documentary Hypothesis</a> or other things that he espoused.
+However, Moffat wasn’t just a <em>follow the crowd</em> person, so he’s likely to have had at least <em>some</em> good ideas that we all might be able to learn from.</p>''' },
         'JPS': {'about': '<p class="about">Jewish Publication Society TaNaKH (1917).</p>',
                 'copyright': '<p class="copyright">Copyright © (coming).</p>',
                 'licence': '<p class="licence">(coming).</p>',
@@ -592,14 +596,14 @@ We’re also grateful to the <a href="https://www.Biblica.com/clear/">Biblica Cl
                 'copyright': '<p class="copyright">Copyright © (coming).</p>',
                 'licence': '<p class="licence">(coming).</p>',
                 'acknowledgements': '<p class="acknwldg">(coming).</p>' },
-        'WYC': {'about': '<p class="about"><a href="https://en.wikipedia.org/wiki/Wycliffe%27s_Bible">Wycliffe Bible</a> (1382).</p>',
+        'WYC': {'about': '<p class="about"><a href="https://en.wikipedia.org/wiki/Wycliffe%27s_Bible">Wycliffe Bible</a> (middle-English, 1382).</p>',
                 'copyright': '<p class="copyright">Public Domain.</p>',
                 'licence': '<p class="licence">Public Domain.</p>',
-                'acknowledgements': '<p class="acknwldg">The entire English-speaking world is indebted to <a href="https://en.wikipedia.org/wiki/John_Wycliffe">John Wycliffe</a> for his brave work to make the Bible available in the language of the common people at a time when priests insisted that the Bible was only valid in Latin.</p>' },
+                'acknowledgements': '<p class="acknwldg">The entire English-speaking world is indebted to <a href="https://en.wikipedia.org/wiki/John_Wycliffe">John Wycliffe</a> for his brave work to make the Bible available in the language of the common people at a time when most priests insisted that the Bible was only valid in Latin.</p>' },
         'LUT': {'about': '<p class="about"><a href="https://en.wikipedia.org/wiki/Luther_Bible">Luther’s German Bible</a> (1545).</p>',
                 'copyright': '<p class="copyright">Public Domain.</p>',
                 'licence': '<p class="licence">Public Domain.</p>',
-                'acknowledgements': '<p class="acknwldg">The entire German-speaking world is indebted to <a href="https://en.wikipedia.org/wiki/Martin_Luther">Martin Luther</a> for his brave work to make the Bible available in the language of the common people at a time when priests insisted that the Bible was only valid in Latin.</p>' },
+                'acknowledgements': '<p class="acknwldg">The entire German-speaking world is indebted to <a href="https://en.wikipedia.org/wiki/Martin_Luther">Martin Luther</a> for his brave work to make the Bible available in the language of the common people at a time when most priests insisted that the Bible was only valid in Latin.</p>' },
         'CLV': {'about': '<p class="about"><a href="https://en.wikipedia.org/wiki/Sixto-Clementine_Vulgate">Clementine Vulgate Bible</a> (Latin, 1592).</p>',
                 'copyright': '<p class="copyright">Copyright © (coming).</p>',
                 'licence': '<p class="licence">(coming).</p>',
@@ -612,7 +616,7 @@ We’re also grateful to the <a href="https://www.Biblica.com/clear/">Biblica Cl
                 'copyright': '<p class="copyright">Copyright © 2022 by unfoldingWord.</p>',
                 'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
                 'acknowledgements': '<p class="acknwldg">Thanks to <a href="https://www.unfoldingword.org/">unfoldingWord</a> for creating <a href="https://git.door43.org/unfoldingWord/el-x-koine_ugnt">this GNT</a> from the <a href="https://github.com/Center-for-New-Testament-Restoration/BHP">Bunnings Heuristic Prototype GNT</a>.</p>' },
-        'SBL-GNT': {'about': '<p class="about">Society for Biblical Literature Greek New Testament (2023).</p>',
+        'SBL-GNT': {'about': '<p class="about">Society for Biblical Literature Greek New Testament (Michael Holmes, 2010).</p>',
                 'copyright': '<p class="copyright">Copyright © 2010 by the Society of Biblical Literature and <a href="http://www.logos.com/">Logos Bible Software</a>.</p>',
                 'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
                 'acknowledgements': '<p class="acknwldg">Thanks to <a href="https://sblgnt.com/">SBL</a> and <a href="https://www.logos.com/">Logos Bible Software</a> for supplying <a href="https://github.com/LogosBible/SBLGNT/">this GNT</a>.</p>' },
