@@ -39,3 +39,6 @@ p.sectionHeading + p.alternateHeading { margin-top:-1.2em; }
 /* p.about { } */
 /* p.note { } */
 p.footnote { font-size:0.85em; }
+
+/* On OETKey page */
+span.parr { vertical-align:super; font-size:0.8em; color:green; }

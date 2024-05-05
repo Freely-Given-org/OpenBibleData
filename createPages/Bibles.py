@@ -454,24 +454,26 @@ def formatTyndaleNotes( abbrev:str, level:int, BBB:str, C:str, V:str, segmentTyp
     """
     These are mostly HTML now artificially encoded inside USFM fields.
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"formatTyndaleNotes( {BBB}, {C}:{V}, {segmentType=} )" )
+    ftnRef = f'{BBB}_{C}:{V}'
+    fnPrint( DEBUGGING_THIS_MODULE, f"formatTyndaleNotes( {ftnRef}, {segmentType=} )" )
     assert abbrev in ('TOSN','TTN')
     assert segmentType in ('parallelVerse','interlinearVerse')
     
     try:
         verseEntryList = state.preloadedBibles[abbrev].getVerseDataList( (BBB, C, V) )
     except KeyError:
-        logging.warning( f"Tyndale have no notes for {abbrev} {BBB} {C}:{V}" )
+        logging.warning( f"Tyndale have no notes for {abbrev} {ftnRef}" )
         return ''
     if not verseEntryList: # can be None
-        logging.warning( f"Tyndale has no notes for {abbrev} {BBB} {C}:{V}" )
+        logging.warning( f"Tyndale has no notes for {abbrev} {ftnRef}" )
         return ''
 
     nHtml = ''
     lastMarker = None
+    inList = False
     for entry in verseEntryList:
         marker, rest = entry.getMarker(), entry.getText()
-        # dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"{abbrev} {BBB} {C}:{V} {marker}='{rest}'" )
+        # dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"{abbrev} {ftnRef} {marker}='{rest}'" )
         if marker in ('¬v','¬c','¬p','¬pi1','¬pi2','¬li1','¬chapters'):
             assert not rest; continue # most end markers not needed here
         # if marker == 'v':
@@ -518,24 +520,32 @@ def formatTyndaleNotes( abbrev:str, level:int, BBB:str, C:str, V:str, segmentTyp
             nHtml = f'{nHtml}\n<br>'
         elif marker == 'list':
             assert not rest
+            assert not inList
             # assert abbrev == 'TTN'
             nHtml = f'{nHtml}\n<ol>'
+            inList = True
         elif marker == '¬list':
             assert not rest
+            # assert inList, f"{ftnRef}" # Fails in Romans I think
             # assert abbrev == 'TTN'
-            nHtml = f'{nHtml}</ol>'
+            if inList:
+                nHtml = f'{nHtml}</ol>'
+                inList = False
         elif marker not in ('id','usfm','ide','intro','c','c#','c~','v','v='):
-            dPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"{abbrev} {BBB} {C}:{V} {marker}={rest}" )
+            dPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"{abbrev} {ftnRef} {marker}={rest}" )
             unknown_Tyndale_notes_marker
         assert '<class=' not in nHtml, f"{marker=} {rest=} {lastMarker=} {nHtml=}"
         lastMarker = marker
+    if inList:
+        nHtml = f'{nHtml}</ol>'
+    assert nHtml.count( '<ol>' ) == nHtml.count( '</ol>' ), f"formatTyndaleNotes {ftnRef} {nHtml.count('<ol>')} ≠ {nHtml.count('</ol>')}"
 
     # Fix their links like '<a href="?bref=Mark.4.14-20">4:14-20</a>'
     nHtml = fixTyndaleBRefs( abbrev, level, BBB, C, V, nHtml, state )
 
     nHtml = nHtml.replace( '<br>\n' , '\n<br>' ) # Make sure it follows our convention (just for tidyness and consistency)
     while '\n\n' in nHtml: nHtml = nHtml.replace( '\n\n', '\n' ) # Remove useless extra newline characters
-    checkHtml( f'{abbrev} {BBB} {C}:{V}', nHtml, segmentOnly=True )
+    checkHtml( f'{abbrev} {ftnRef}', nHtml, segmentOnly=True )
     # if abbrev=='TTN' and BBB=='MRK' and C=='1' and V=='14': halt
     return nHtml
 # end of Bibles.formatTyndaleNotes
@@ -930,7 +940,8 @@ def formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segme
                 # if utnRef=='RUT_2:0': print( f"\nUTN2 {utnRef} {thisMarkdownHtml}" )
                 checkHtml( f'UTN {utnRef}', thisMarkdownHtml, segmentOnly=True )
                 tnHtml = f'''{tnHtml}{NEWLINE if tnHtml else ''}{thisMarkdownHtml}'''
-                assert '##' not in tnHtml, f"UTN {utnRef} {tnHtml}" # Can have single hashes in valid URLS, e.g., #Top
+                if utnRef not in ('JOS_23:0','PRO_5:0','REV_18:0'): # Has a MD formatting error
+                    assert '##' not in tnHtml, f"UTN {utnRef} {tnHtml}" # Can have single hashes in valid URLS, e.g., #Top
                 # if utnRef=='RUT_2:0': print( f"\nUTN3 {utnRef} {tnHtml}" )
 
             else: # not a marker that we were expecting

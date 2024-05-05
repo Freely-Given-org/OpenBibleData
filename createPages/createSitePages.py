@@ -72,7 +72,7 @@ from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39, BOOKLIST_NT27
 sys.path.append( '../../BibleTransliterations/Python/' )
 from BibleTransliterations import load_transliteration_table
 
-from settings import State, state, reorderBooksForOETVersions, TEST_MODE, SITE_NAME, SITE_ABBREVIATION, \
+from settings import State, state, reorderBooksForOETVersions, TEST_MODE, SITE_NAME, SITE_ABBREVIATION, OET_VERSION, \
     TEMP_BUILD_FOLDER, ALL_PRODUCTION_BOOKS, UPDATE_ACTUAL_SITE_WHEN_BUILT, DESTINATION_FOLDER, BY_DOCUMENT_PARAGRAPH
 from Bibles import preloadVersions
 from OETHandlers import getOETTidyBBB, getOETBookName
@@ -87,7 +87,7 @@ from Dict import createTyndaleDictPages, createUBSDictionaryPages
 from html import makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2024-05-02' # by RJH
+LAST_MODIFIED_DATE = '2024-05-05' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData (OBD) Create Site Pages"
 PROGRAM_VERSION = '0.96'
@@ -249,7 +249,7 @@ def _createSitePages() -> bool:
             if 'haveSectionHeadings' not in thisBible.discoveryResults['ALL']: # probably we have no books that actually loaded
                 dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Adding discoveryResults 'haveSectionHeadings' for {thisBible.abbreviation}: no books loaded?" )
                 thisBible.discoveryResults['ALL']['haveSectionHeadings'] = False # We need this in several places
-            if TEST_MODE and versionAbbreviation in ('OEB','WEB','WMB','NET','LSV','FBV','TCNT','T4T','LEB',
+            if not TEST_MODE or versionAbbreviation in ('OEB','WEB','WMB','NET','LSV','FBV','TCNT','T4T','LEB',
                                                      'BBE','MOF','JPS','ASV','DRA','YLT','DBY','RV','WBS',
                                                      'KJB','BB','GNV','CB','TNT','WYC'):
                 # In test mode, we don't usually need to make all those pages, even just for the test books
@@ -642,7 +642,7 @@ def _createSearchPage( level:int, buildFolder:Path, state:State ) -> bool:
   <script src="pagefind/pagefind-ui.js"></script>
 </head>''')
     html = f'''{topHtml}{searchHTML}<p class="note">Search functionality is provided thanks to <a href="https://Pagefind.app/">Pagefind</a>.</p>
-<p class="note"><small>OBD pages last rebuilt: {date.today()}</small></p>{makeBottom( level, 'search', state )}'''
+<p class="note"><small>OBD pages last rebuilt: {date.today()} (OET {OET_VERSION})</small></p>{makeBottom( level, 'search', state )}'''
     checkHtml( 'Search', html )
 
     filepath = buildFolder.joinpath( 'Search.htm' )
@@ -728,7 +728,7 @@ def _createAboutPage( level:int, buildFolder:Path, state:State ) -> bool:
                 .replace( '__KEYWORDS__', f'Bible, about, {SITE_ABBREVIATION}' )
     html = f'''{topHtml}
 {aboutHTML}
-<p class="note"><small>Last rebuilt: {date.today()}</small></p>
+<p class="note"><small>Last rebuilt: {date.today()} (OET {OET_VERSION})</small></p>
 {makeBottom( level, 'about', state )}'''
     checkHtml( 'About', html )
 
@@ -858,7 +858,7 @@ def _createMainIndexPage( level, folder:Path, state:State ) -> bool:
 <p class="note">The <b><a href="ilr/">Interlinear</a> verse</b> view shows the OET-RV and OET-LV aligned with the original Hebrew or Greek words (including a ‘reverse interlinear’).</p>
 <p class="note">The <b><a href="dct/">Dictionary</a></b> link takes you to the <i>Tyndale Bible Dictionary</i>, with UBS dictionaries also coming...</p>
 <p class="note">The <b><a href="Search.htm">Search</a></b> link allows you to find English words (from a range of versions), or even Greek/Hebrew words, within the Bible text.</p>
-<p class="note"><small>Last rebuilt: {date.today()}</small></p>
+<p class="note"><small>Last rebuilt: {date.today()} (OET {OET_VERSION})</small></p>
 {makeBottom( level, 'TopIndex', state )}'''
     checkHtml( 'TopIndex', html )
 
@@ -884,7 +884,7 @@ def _createMainIndexPage( level, folder:Path, state:State ) -> bool:
 #         bodyHtml = f'{bodyHtml}<li><b>{versionAbbreviation}</b>: {state.BibleNames[versionAbbreviation]}</li>'
 #     bodyHtml = f'{bodyHtml}</ol>'
 
-#     html += bodyHtml + f'<p class="index"><small>Last rebuilt: {date.today()}</small></p>' + makeBottom( level, 'TopIndex', state )
+#     html += bodyHtml + f'<p class="index"><small>Last rebuilt: {date.today()} (OET {OET_VERSION})</small></p>' + makeBottom( level, 'TopIndex', state )
 #     checkHtml( 'VersionIndex', html )
 
 #     filepath = folder.joinpath( 'index.htm' )

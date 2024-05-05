@@ -61,7 +61,7 @@ OET_VERSION = 'v0.11'
 
 TEST_MODE = False # Writes website into Test subfolder
 ALL_PRODUCTION_BOOKS = not TEST_MODE # If set to False, only selects one book per version for a faster test build
-ALL_TEST_REFERENCE_PAGES = False # If in Test mode, make ALL word/lemma pages, or just the RELEVANT ones
+ALL_TEST_REFERENCE_PAGES = False # If in TEST_MODE, make ALL word/lemma pages, or just the RELEVANT ones
 UPDATE_ACTUAL_SITE_WHEN_BUILT = True # The pages are initially built in a tmp folder so need to be copied to the final destination
 
 TEMP_BUILD_FOLDER = Path( '/tmp/OBDHtmlPages/' )
@@ -72,8 +72,8 @@ DESTINATION_FOLDER = DEBUG_DESTINATION_FOLDER if TEST_MODE or BibleOrgSysGlobals
 
 OET_NT_BOOK_ORDER = ['JHN','MRK','MAT','LUK','ACT', 'ROM','CO1','CO2', 'GAL','EPH','PHP','COL', 'TH1','TH2', 'TI1','TI2','TIT','PHM', 'HEB', 'JAM', 'PE1','PE2', 'JN1','JN2','JN3', 'JDE', 'REV']
 
-TEST_OT_BOOK_LIST = ['RUT','JOB','PSA'] # RUT plus books in progress
-TEST_NT_BOOK_LIST = ['MRK']
+TEST_OT_BOOK_LIST = ['EXO','RUT','JOB'] # RUT plus books in progress
+TEST_NT_BOOK_LIST = ['MRK'] # Shortest gospel
 TEST_BOOK_LIST = TEST_OT_BOOK_LIST + TEST_NT_BOOK_LIST
 
 OET_LV_BOOK_LIST = BOOKLIST_OT39 + OET_NT_BOOK_ORDER
@@ -406,8 +406,8 @@ You can read more about the design of the <em>OET</em> at <a href="https://OpenE
                 'copyright': '<p class="copyright">Copyright © 2010-2024 <a href="https://Freely-Given.org">Freely-Given.org</a>.</p>',
                 'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
                 'acknowledgements': '''<p class="acknwldg">Thanks to <a href="https://Freely-Given.org/">Freely-Given.org</a> for creating this exciting, radical, new Bible translation which is viewable from <a href="https://OpenEnglishTranslation.Bible">OpenEnglishTranslation.Bible</a>.
-We are very grateful to Dr. Alan Bunning of the <a href="https://GreekCNTR.org">Center for New Testament Restoration</a> whose many years of hard work the <em>OET-LV</em> part of the New Testament is adapted from.
-The <em>OET-LV</em> part of the Old Testament Hebrew text (and the morphology analysis) is adapted from the work of the <a href="https://hb.OpenScriptures.org/">Open Scriptures Hebrew Bible</a> team.
+We are very grateful to Dr. Alan Bunning of the <a href="https://GreekCNTR.org">Center for New Testament Restoration</a> whose many years of hard work the New Testament part of the <em>OET-LV</em> is adapted from.
+The Old Testament part of the <em>OET-LV</em> uses the morphology analysis from the work of the <a href="https://hb.OpenScriptures.org/">Open Scriptures Hebrew Bible</a> team.
 We’re also grateful to the <a href="https://www.Biblica.com/clear/">Biblica Clear Bible team</a> who provide the pronoun referential information as part of their <a href="https://GitHub.com/Clear-Bible/macula-greek">Macula Greek</a> project and also some of the OT glosses as part of their <a href="https://GitHub.com/Clear-Bible/macula-hebrew">Macula Hebrew</a> project.
 Also, the Bible translation resources created by <a href="https://www.unfoldingWord.org">unfoldingWord</a> have proven very helpful.</p>''' },
         'OET-RV': {'about': '''<p class="about">The (still unfinished) <em>Open English Translation Readers’ Version</em> is a new, modern-English easy-to-read translation of the Bible.

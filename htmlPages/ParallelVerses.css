@@ -62,7 +62,7 @@ span.cPsa { font-size:1.6em; font-weight:bold; color:green; }
 span.v { vertical-align:super; font-size:0.5em; color:red; }
 span.cv { vertical-align:super; font-size:0.8em; color:orange; }
 span.vp { vertical-align:super; font-size:0.5em; color:purple; }
-span.d { font-style:italic; }
+span.d { font-style:italic; color:sienna; }
 p.s1 { margin-top:0.1em; margin-bottom:0; font-weight:bold; }
 p.r { margin-top:0; margin-bottom:0; font-size:0.75em; }
 p.p { text-indent:0.5em; margin-top:0.2em; margin-bottom:0.2em; }
@@ -72,14 +72,18 @@ p.q2 { margin-left:2em; margin-top:0.2em; margin-bottom:0.2em; }
 
 p.key { background-color:seaShell; font-size:0.8em; }
 
+/* NT spans */
 span.nominaSacra { font-weight:bold; }
 /* span.nd { font-weight:bold; } */
 span.add { color:grey; }
 span.RVadd { color:dimGrey; }
 span.wj { color:saddlebrown; }
 span.sig { font-family:cursive; }
-span.FoS { color:mediumvioletred; }
+span.FoS { color:mediumvioletred; } /* T4T Figure of speech */
 span.untr { font-size:0.8em; color:grey; text-decoration:line-through; }
+
+/* OT spans */
+span.parr { vertical-align:super; font-size:0.8em; color:green; }
 
 /* Tyndale Book Intro Summaries */
 p.intro-title { text-align:center; font-size:1.8em; }

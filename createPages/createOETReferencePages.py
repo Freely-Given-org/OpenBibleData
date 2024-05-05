@@ -1079,15 +1079,15 @@ def create_Hebrew_word_pages( level:int, outputFolderPath:Path, state:State ) ->
         #         else:
         #             logging.critical( f"Unknown '{tagPrefix}' word tag in {n}: {columns_string}")
         #             unknownTag
-        lemmaLinks = []
+        lemmaLinksList = []
         for lemmaRowNumberStr in lemmaRowList.split( ',' ):
             # print( f"{lemmaRowNumberStr=}" )
             try: lemmaRowNumber = int(lemmaRowNumberStr)
             except ValueError: continue # could be empty string or '<<<MISSING>>>'
             lemmaTrans = state.OETRefData['OTTransLemmaList'][lemmaRowNumber]
             lemmaHebrew = state.OETRefData['OTHebLemmaList'][lemmaRowNumber]
-            lemmaLinks.append( f'<a title="View Hebrew morpheme" href="../HebLem/{lemmaTrans}.htm#Top">‘{lemmaHebrew}’</a>' )
-        lemmaLinks = ( f'''Lemmas=<b>{', '.join(lemmaLinks)}</b>''' if isMultipleLemmas else f'Lemma=<b>{lemmaLinks[0]}</b>' ) if lemmaLinks else ''
+            lemmaLinksList.append( f'<a title="View Hebrew morpheme" href="../HebLem/{lemmaTrans}.htm#Top">‘{lemmaHebrew}’</a>' )
+        lemmaLinksStr = ( f'''Lemmas=<b>{', '.join(lemmaLinksList)}</b>''' if isMultipleLemmas else f'Lemma=<b>{lemmaLinksList[0]}</b>' ) if lemmaLinksList else ''
         lemmaGlossesList = sorted( state.OETRefData['OTLemmaOETGlossesDict'][noCantillations] )
         wordOETGlossesList = sorted( state.OETRefData['OTFormOETGlossesDict'][(hebrewWord,morphology)] )
         # wordVLTGlossesList = sorted( state.OETRefData['OTFormVLTGlossesDict'][(hebrewWord,morphology)] )
@@ -1119,7 +1119,7 @@ def create_Hebrew_word_pages( level:int, outputFolderPath:Path, state:State ) ->
         wordsHtml = f'''<h2>Open English Translation (OET)</h2>\n<h1 id="Top">Hebrew wordlink #{n}</h1>
 <p class="pNav">{prevLink}<b>{hebrewWord}</b> <a href="index.htm">↑</a>{nextLink}{oetLink}{parallelLink}{interlinearLink}</p>
 <p class="link"><a title="Go to Open Scriptures Hebrew verse page" href="https://hb.OpenScriptures.org/structure/OshbVerse/index.html?b={OSISbookCode}&c={C}&v={V}">OSHB {ourTidyBbbWithNotes} {C}:{V}</a>
- <b>{hebrewWord}</b> ({transliterate_Hebrew(noCantillations.replace(',',', '))}) {translationField}{capsField if TEST_MODE else ''} Strongs={strongsLinks} {lemmaLinks}{tidyMorphologyField}<br>  </p>
+ <b>{hebrewWord}</b> ({transliterate_Hebrew(noCantillations.replace(',',', '))}) {translationField}{capsField if TEST_MODE else ''} Strongs={strongsLinks} {lemmaLinksStr}{tidyMorphologyField}<br>  </p>
 <p class="note"><small>Note: These word pages enable you to click through to the <a href="https://hb.OpenScriptures.org">Open Scriptures Hebrew Bible</a> (OSHB) that the <em>Open English Translation</em> Old Testament is translated from.
 The OSHB is based on the <a href="https://www.Tanach.us/Tanach.xml">Westminster Leningrad Codex</a> (WLC).
 (We are still searching for a digitized facsimile of the Leningradensis manuscript that we can easily link to. See <a href="https://www.AnimatedHebrew.com/mss/index.html#leningrad">this list</a> and <a href="https://archive.org/details/Leningrad_Codex/">this archive</a> for now.)
@@ -1194,7 +1194,7 @@ f''' {translation} <a title="Go to Open Scriptures Hebrew verse page" href="
             displayCounter += 1
             if displayCounter >= maxWordsToShow: break
         if len(lemmaGlossesList) > len(wordOETGlossesList):
-            wordsHtml = f'''{wordsHtml}\n<p class="lemmaGlossesSummary">The various word forms of the root word (lemma) ‘{lemmaLinks}’ have {len(lemmaGlossesList):,} different glosses: ‘<b>{"</b>’, ‘<b>".join(lemmaGlossesList)}</b>’.</p>'''
+            wordsHtml = f'''{wordsHtml}\n<p class="lemmaGlossesSummary">The various word forms of the root word (lemma) ‘{lemmaLinksStr}’ have {len(lemmaGlossesList):,} different glosses: ‘<b>{"</b>’, ‘<b>".join(lemmaGlossesList)}</b>’.</p>'''
         elif len(thisWordNumberList) == 1:
             hebLemmaWordRowsList = state.OETRefData['OTLemmaRowNumbersDict'][noCantillations]
             # lemmaFormsList = state.OETRefData['OTLemmaFormsDict'][noCantillations]
@@ -1202,15 +1202,15 @@ f''' {translation} <a title="Go to Open Scriptures Hebrew verse page" href="
                 # print( f"{ref} '{hebrew}' ({glossWords}) {lemma=} {hebLemmaWordRowsList=} {lemmaFormsList=} {morphemeGlossesList=}" )
                 # assert len(lemmaFormsList) == 1, f"{ref} {hebLemmaWordRowsList=} {lemmaFormsList=} {morphemeGlossesList=}"
                 # assert len(morphemeGlossesList) == 1
-                wordsHtml = f'''{wordsHtml.replace(lemmaLinks, f'{lemmaLinks}<sup>*</sup>', 1)}\n<p class="note"><sup>*</sup>Note: This is also the only occurrence of the word root <small>(lemma)</small> ‘{noCantillations}’ in the Hebrew originals.</p>'''
+                wordsHtml = f'''{wordsHtml.replace(lemmaLinksStr, f'{lemmaLinksStr}<sup>*</sup>', 1)}\n<p class="note"><sup>*</sup>Note: This is also the only occurrence of the word root <small>(lemma)</small> ‘{noCantillations}’ in the Hebrew originals.</p>'''
 
+        extraHTMLList = []
         if mainGlossWord not in COMMON_ENGLISH_WORDS_LIST: # Ignore the most common words
             # List other words that are glossed similarly
             try:
                 similarWords = (mainGlossWord,) + SIMILAR_GLOSS_WORDS_DICT[mainGlossWord]
                 # print( f"      {mainGlossWord=} {similarWords=}")
             except KeyError: similarWords = (mainGlossWord,)
-            extraHTMLList = []
             extraWordSet, extraLemmaSet = set(), set()
             for similarWord in similarWords:
                 nList = state.OETRefData['OETOTGlossWordDict'][similarWord]
@@ -1253,7 +1253,7 @@ f''' <a title="Go to Open Scriptures Hebrew verse page" href="https://hb.OpenS
 f''' ‘{eFormattedContextGlossWords}’''' \
 f''' <a title="Go to Open Scriptures Hebrew verse page" href="https://hb.OpenScriptures.org/structure/OshbVerse/index.html?b={eOSISbookCode}&c={eC}&v={eV}">OSHB {eTidyBBB} {eC}:{eV} word {eW}</a></p>''' )
                             extraWordSet.add( eHebrewPossibleLink )
-                            extraLemmaSet.add( eLemmaLink if eLemmaLink else lemmaLinks )
+                            extraLemmaSet.add( eLemmaLink if eLemmaLink else lemmaLinksStr )
         assert not wordsHtml.endswith('\n'), f"{wordsHtml=}"
         if extraHTMLList:
             wordsHtml = f'''{wordsHtml}\n<h2 class="otherHebrew">Hebrew words ({len(extraHTMLList):,}) other than {hebrewWord} <small>({tidyMorphologyField})</small> with a gloss related to ‘{mainGlossWord}’</h2>'''

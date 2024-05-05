@@ -416,7 +416,9 @@ def checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool:
             assert htmlToCheck.count( startMarker ) == 1, f"checkHtml() found {htmlToCheck.count( startMarker )} '{startMarker}' markers"
             assert htmlToCheck.count( f'</{marker}>' ) == 1
 
-    for marker,startMarker in (('div','<div'),('p','<p '),('h1','<h1'),('h2','<h2'),('h3','<h3'),('em','<em>'),('i','<i>'),('b','<b>'),('small','<small>'),('sup','<sup>'),('sub','<sub>')):
+    for marker,startMarker in (('div','<div'),('p','<p '),('h1','<h1'),('h2','<h2'),('h3','<h3'),('h4','<h4'),
+                               ('ol','<ol'),('ul','<ul'),
+                               ('em','<em>'),('i','<i>'),('b','<b>'),('small','<small>'),('sup','<sup>'),('sub','<sub>')):
         startCount = htmlToCheck.count( startMarker )
         if startMarker.endswith( ' ' ): startCount += htmlToCheck.count( f'<{marker}>' )
         endCount = htmlToCheck.count( f'</{marker}>' )
