@@ -95,3 +95,13 @@ Note: these might be ‘logical’ halves,
 e.g., there might be two sentences in a verse
 (even if the second sentence is 3x the length of the first one).
 Of course, splitting references like this increases the number of lines in the file.
+
+## Versification scheme
+
+This table uses the ‘original’ (Hebrew/Greek) versification.
+Amongst other things, this means that many Psalms appear to have an extra verse
+compared to many English translations because the introductory text like
+‘A Psalm of David’ (which is usually placed in a
+[USFM](https://ubsicap.github.io/usfm/characters/index.html)
+[\d field](https://ubsicap.github.io/usfm/titles_headings/index.html#d))
+is marked as v1 (and so traditional English v1 text can be found in v2).
