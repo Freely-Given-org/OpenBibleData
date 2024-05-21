@@ -42,7 +42,7 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 LAST_MODIFIED_DATE = '2024-05-21' # by RJH
 SHORT_PROGRAM_NAME = "SentenceImportance_initialisation"
 PROGRAM_NAME = "Sentence Importance initialisation"
-PROGRAM_VERSION = '0.01'
+PROGRAM_VERSION = '0.02'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -54,6 +54,7 @@ NUM_EXPECTED_DATA_LINES = 41_899
 defaultImportance, defaultTextualIssue, defaultClarity = 'M', '0', 'C'
 vitalRefs = ['GEN_1:1','GEN_1:2','GEN_1:3', 'EXO_20:11', 'DEU_31:6', 'PSA_46:1', 'PRO_3:5','PRO_3:6', 'ISA_53:4','ISA_53:5','ISA_53:6', 'JER_29:11', 'MAT_6:33', 'MAT_28:19','MAT_28:20', 'JHN_3:16','JHN_5:24','JHN_11:25', 'ROM_3:23','ROM_6:23','ROM_8:28', 'ROM_12:2', 'CO2_5:21','CO2_12:9', 'GAL_5:22','GAL_5:23', 'EPH_2:9', 'PHP_4:6','PHP_4:7','PHP_4:8', 'PHP_4:13', 'TI2_3:16', 'HEB_11:6','HEB_13:5', 'PE1_3:15', 'PE1_5:7']
 importantRefs = ['JHN_16:33']
+obscureRefs = ['JOB_29:20','JOB_29:24',]
 
 
 
@@ -78,17 +79,21 @@ def init() -> bool:
 
             importance, textualIssue, clarity = defaultImportance, defaultTextualIssue, defaultClarity
             if fgRef in vitalRefs:
-                importance = 'V' # vital = 4
+                importance = 'V' # vital = 4/4
                 vitalRefs.remove( fgRef )
             elif fgRef in importantRefs:
-                importance = 'I' # important = 3
+                importance = 'I' # important = 3/4
                 importantRefs.remove( fgRef )
+            if fgRef in obscureRefs:
+                clarity = 'O' # obscure = 1/3
+                obscureRefs.remove( fgRef )
 
             outputFile.write( f"{fgRef}\t{importance}\t{textualIssue}\t{clarity}\n" )
             numLinesWritten += 1
     assert numLinesWritten == NUM_EXPECTED_DATA_LINES+1, f"{NUM_EXPECTED_DATA_LINES=:,} {numLinesWritten=:,}"
     assert len(vitalRefs) == 0, f"({len(vitalRefs)}) {vitalRefs=}" # They should all have been used
     assert len(importantRefs) == 0, f"({len(importantRefs)}) {importantRefs=}" # They should all have been used
+    assert len(obscureRefs) == 0, f"({len(obscureRefs)}) {obscureRefs=}" # They should all have been used
 
     return True
 # end of load_transliteration_table()

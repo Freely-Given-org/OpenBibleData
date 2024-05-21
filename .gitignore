@@ -1,6 +1,13 @@
 # Our VEnv
 createPages/cpVEnv/
 
+# Backup files
+*.bak
+*.bak2
+*.bak3
+*.bak4
+*.bak5
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
