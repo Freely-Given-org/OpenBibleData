@@ -64,6 +64,7 @@ from collections import defaultdict
 import re
 import json
 import logging
+import unicodedata
 
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
@@ -78,10 +79,10 @@ from html import makeTop, makeBottom, checkHtml
 from OETHandlers import getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
-LAST_MODIFIED_DATE = '2024-04-30' # by RJH
+LAST_MODIFIED_DATE = '2024-05-20' # by RJH
 SHORT_PROGRAM_NAME = "createOETReferencePages"
 PROGRAM_NAME = "OpenBibleData createOETReferencePages functions"
-PROGRAM_VERSION = '0.67'
+PROGRAM_VERSION = '0.68'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -719,7 +720,17 @@ def preprocessHebrewWordsLemmasGlosses( BBBSelection:Union[str, List[str]], stat
         logging.info( f"loadESFMWordFile: Detected UTF-16 Byte Order Marker in {lemmaFileName}" )
         lemmaFileText = lemmaFileText[1:] # Remove the Unicode Byte Order Marker (BOM)
     state.OETRefData['OTLemmaFullRowTable'] = lemmaFileText.rstrip( '\n' ).split( '\n' ) # Remove any blank line at the end then split
-    state.OETRefData['OTLemmaGlossDict'] = {lemmaLine.split('\t')[0]:lemmaLine.split('\t')[1] for lemmaLine in state.OETRefData['OTLemmaFullRowTable'][1:]}
+    # state.OETRefData['OTLemmaGlossDict'] = {lemmaLine.split('\t')[0]:lemmaLine.split('\t')[1] for lemmaLine in state.OETRefData['OTLemmaFullRowTable'][1:]}
+    # assert len(state.OETRefData['OTLemmaGlossDict']) == len(state.OETRefData['OTLemmaFullRowTable']) - 1 # So no duplicate/overwritten entries
+    state.OETRefData['OTLemmaGlossDict'] = {}
+    for lemmaLine in state.OETRefData['OTLemmaFullRowTable'][1:]: # Don't use a dict comprehension because we need to detect duplicates
+        lemmaHebrewKey,lemmaGlossesValue = lemmaLine.split('\t')
+        # print( f"{lemmaHebrewKey=} {lemmaGlossesValue=} from {lemmaLine=}")
+        for char in lemmaHebrewKey:
+            # print( f"{ord(char)=} {unicodedata.name(char)=} {char=} {unicodedata.category(char)=} {unicodedata.bidirectional(char)=} {unicodedata.combining(char)=} {unicodedata.mirrored(char)=}" )
+            assert 'ACCENT' not in unicodedata.name(char), f"{unicodedata.name(char)=} {lemmaHebrewKey=} {lemmaGlossesValue=}"
+        assert lemmaHebrewKey not in state.OETRefData['OTLemmaGlossDict']
+        state.OETRefData['OTLemmaGlossDict'][lemmaHebrewKey] = lemmaGlossesValue
     state.OETRefData['OTHebLemmaList'] = [lemmaLine.split('\t')[0] for lemmaLine in state.OETRefData['OTLemmaFullRowTable']]
     state.OETRefData['OTTransLemmaList'] = [transliterate_Hebrew(hebLemma) for hebLemma in state.OETRefData['OTHebLemmaList']]
     # print( f"{len(state.OETRefData['OTLemmaFullRowTable'])=} {len(state.OETRefData['OTLemmaGlossDict'])=}" )
@@ -904,6 +915,7 @@ def formatNTContextSpansOETGlossWords( rowNum:int, state:State ) -> str:
 # end of createOETReferencePages.formatNTContextSpansOETGlossWords
 
 
+used_word_filenames = []
 def create_Hebrew_word_pages( level:int, outputFolderPath:Path, state:State ) -> None:
     """
     """
@@ -933,6 +945,8 @@ def create_Hebrew_word_pages( level:int, outputFolderPath:Path, state:State ) ->
         # print( f"Word {n}: {columns_string}" )
         usedRoleLetters, usedMorphologies = set(), set()
         output_filename = getHebrewWordpageFilename( n, state )
+        assert output_filename not in used_word_filenames, f"Hebrew {n} {output_filename}"
+        used_word_filenames.append( output_filename )
         # dPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Got '{columns_string}' for '{output_filename}'" )
         ref, rowType, morphemeRowList, lemmaRowList, strongs, morphology, word, noCantillations, morphemeGlosses, contextualMorphemeGlosses, wordGloss, contextualWordGloss, glossCapitalisation, glossPunctuation, glossOrder, glossInsert, role, nesting, tags = columns_string.split( '\t' )
         isMultipleLemmas = ',' in lemmaRowList
@@ -1086,7 +1100,7 @@ def create_Hebrew_word_pages( level:int, outputFolderPath:Path, state:State ) ->
             except ValueError: continue # could be empty string or '<<<MISSING>>>'
             lemmaTrans = state.OETRefData['OTTransLemmaList'][lemmaRowNumber]
             lemmaHebrew = state.OETRefData['OTHebLemmaList'][lemmaRowNumber]
-            lemmaLinksList.append( f'<a title="View Hebrew morpheme" href="../HebLem/{lemmaTrans}.htm#Top">‘{lemmaHebrew}’</a>' )
+            lemmaLinksList.append( f'<a title="View Hebrew lemma" href="../HebLem/{lemmaTrans}.htm#Top">‘{lemmaHebrew}’</a>' )
         lemmaLinksStr = ( f'''Lemmas=<b>{', '.join(lemmaLinksList)}</b>''' if isMultipleLemmas else f'Lemma=<b>{lemmaLinksList[0]}</b>' ) if lemmaLinksList else ''
         lemmaGlossesList = sorted( state.OETRefData['OTLemmaOETGlossesDict'][noCantillations] )
         wordOETGlossesList = sorted( state.OETRefData['OTFormOETGlossesDict'][(hebrewWord,morphology)] )
@@ -1286,7 +1300,9 @@ f''' <a title="Go to Open Scriptures Hebrew verse page" href="https://hb.OpenS
                         .replace( 'par/"', f'par/{BBB}/C{C}V{V}.htm#Top"' )
         wordsHtml = f'''{top}{wordsHtml}{keyHtml}{makeBottom( level, 'word', state )}'''
         checkHtml( 'HebrewWordPage', wordsHtml )
-        with open( outputFolderPath.joinpath(output_filename), 'wt', encoding='utf-8' ) as html_output_file:
+        filepath = outputFolderPath.joinpath( output_filename )
+        assert not filepath.is_file() # Check that we're not overwriting anything
+        with open( filepath, 'wt', encoding='utf-8' ) as html_output_file:
             html_output_file.write( wordsHtml )
         vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"      Wrote {len(wordsHtml):,} characters to {output_filename}" )
         wordLinks.append( f'<a href="{output_filename}">{hebrewWord}</a>')
@@ -1380,6 +1396,8 @@ def create_Hebrew_lemma_pages( level:int, outputFolderPath:Path, state:State ) -
     lemmaLinks:List[str] = []
     for mm, (hebLemma,lemmaOETGlossesList)  in enumerate( state.OETRefData['OTLemmaGlossDict'].items(), start=1 ):
         translemma = transliterate_Hebrew( hebLemma )
+        # if translemma in ('ʼēlleh','ʼavār','ʼadār','ʼaddār','ʼomənāh','kūr','kkūr','ⱪūr'):
+        #     print( f"{mm:,}/{len(state.OETRefData['OTLemmaGlossDict']):,} {hebLemma=} {translemma=}" )
         hebLemmaWordRowsList = state.OETRefData['OTWordRowNumbersDict'][mm]
         # print( f"\nLemma {mm}: {hebLemma=} {translemma=} {lemmaOETGlossesList=} {hebLemmaWordRowsList=}" )
         # lemmaFormsList = sorted( state.OETRefData['OTLemmaFormsDict'][hebLemma] )
@@ -1550,7 +1568,9 @@ def create_Hebrew_lemma_pages( level:int, outputFolderPath:Path, state:State ) -
                         .replace( '__KEYWORDS__', 'Bible, word' )
         lemmasHtml = f'''{top}{lemmasHtml}{keyHtml}{makeBottom( level, 'lemma', state )}'''
         checkHtml( 'HebrewLemmaPage', lemmasHtml )
-        with open( outputFolderPath.joinpath(output_filename), 'wt', encoding='utf-8' ) as html_output_file:
+        filepath = outputFolderPath.joinpath( output_filename )
+        assert not filepath.is_file(), f"{filepath=}" # Check that we're not overwriting anything
+        with open( filepath, 'wt', encoding='utf-8' ) as html_output_file:
             html_output_file.write( lemmasHtml )
         vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  Wrote {len(lemmasHtml):,} characters to {output_filename}" )
         lemmaLinks.append( f'<a href="{output_filename}">{hebLemma}</a>')
@@ -1618,6 +1638,8 @@ def create_Greek_word_pages( level:int, outputFolderPath:Path, state:State ) -> 
 
     def tidy_Greek_word_gloss( engGloss:str ) -> str:
         """
+        The gloss might be the OET-LV gloss,
+            or the original VLT gloss.
         """
             # .replace( '\\untr ', '<span class="untr">').replace( '\\untr*', '</span>') \
             # .replace( '\\nd ', '<span class="nd">').replace( '\\nd*', '</span>') \
@@ -1649,6 +1671,8 @@ def create_Greek_word_pages( level:int, outputFolderPath:Path, state:State ) -> 
 
         ref, greekWord, SRLemma, _GrkLemma, VLTGlossWordsStr, OETGlossWordsStr, glossCaps, probability, extendedStrongs, roleLetter, morphology, tagsStr = columns_string.split( '\t' )
         output_filename = getGreekWordpageFilename( n, state )
+        assert output_filename not in used_word_filenames, f"Greek {n} {output_filename}"
+        used_word_filenames.append( output_filename )
         formattedOETGlossWords = formatNTSpansGlossWords( OETGlossWordsStr )
         formattedVLTGlossWords = formatNTSpansGlossWords( VLTGlossWordsStr )
         formattedContextGlossWords = formatNTContextSpansOETGlossWords( n, state )
@@ -1932,7 +1956,9 @@ f''' <a title="Go to Statistical Restoration Greek page" href="https://GreekCN
 {keyHtml}
 {makeBottom( level, 'word', state )}'''
         checkHtml( 'GreekWordPage', wordsHtml )
-        with open( outputFolderPath.joinpath(output_filename), 'wt', encoding='utf-8' ) as html_output_file:
+        filepath = outputFolderPath.joinpath( output_filename )
+        assert not filepath.is_file(), f"{filepath=}" # Check that we're not overwriting anything
+        with open( filepath, 'wt', encoding='utf-8' ) as html_output_file:
             html_output_file.write( wordsHtml )
         vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"      Wrote {len(wordsHtml):,} characters to {output_filename}" )
         wordLinks.append( f'<a href="{output_filename}">{greekWord}</a>')
@@ -2198,7 +2224,9 @@ def create_Greek_lemma_pages( level:int, outputFolderPath:Path, state:State ) ->
 {keyHtml}
 {makeBottom( level, 'lemma', state )}'''
         checkHtml( 'GreekLemmaPage', lemmasHtml )
-        with open( outputFolderPath.joinpath(output_filename), 'wt', encoding='utf-8' ) as html_output_file:
+        filepath = outputFolderPath.joinpath( output_filename )
+        assert not filepath.is_file() # Check that we're not overwriting anything
+        with open( filepath, 'wt', encoding='utf-8' ) as html_output_file:
             html_output_file.write( lemmasHtml )
         vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  Wrote {len(lemmasHtml):,} characters to {output_filename}" )
         lemmaLinks.append( f'<a href="{output_filename}">{lemma}</a>')
@@ -2309,7 +2337,9 @@ def create_person_pages( level:int, outputFolderPath:Path, state:State ) -> int:
 {bodyHtml}
 <p class="thanks"><small>Grateful thanks to <a href="https://Viz.Bible">Viz.Bible</a> for these links and this data.</small></p>
 {makeBottom( level, 'person', state )}'''
-        with open( outputFolderPath.joinpath(output_filename), 'wt', encoding='utf-8' ) as html_output_file:
+        filepath = outputFolderPath.joinpath( output_filename )
+        assert not filepath.is_file() # Check that we're not overwriting anything
+        with open( filepath, 'wt', encoding='utf-8' ) as html_output_file:
             html_output_file.write( html )
         vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  Wrote {len(html):,} characters to {output_filename}" )
         personLinks.append( f'<a href="{output_filename}">{personName}</a>')
@@ -2392,7 +2422,9 @@ def create_location_pages( level:int, outputFolderPath:Path, state:State ) -> in
 {bodyHtml}
 <p class="thanks"><small>Grateful thanks to <a href="https://Viz.Bible">Viz.Bible</a> for these links and this data.</small></p>
 {makeBottom( level, 'location', state )}'''
-        with open( outputFolderPath.joinpath(output_filename), 'wt', encoding='utf-8' ) as html_output_file:
+        filepath = outputFolderPath.joinpath( output_filename )
+        assert not filepath.is_file() # Check that we're not overwriting anything
+        with open( filepath, 'wt', encoding='utf-8' ) as html_output_file:
             html_output_file.write( html )
         vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  Wrote {len(html):,} characters to {output_filename}" )
         locationLinks.append( f'<a href="{output_filename}">{placeName}</a>')

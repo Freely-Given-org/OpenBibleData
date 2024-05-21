@@ -1,5 +1,9 @@
+div.header {}
 div.footer { width:500px; height:250px; margin:50px; }
-div.rightBox { float:right; width:35%; border:3px solid #73AD21; padding:0.2em; }
+
+p.site {}
+p.copyright {}
+p.note {}
 
 span.upLink { font-size:1.5em; font-weight:bold; }
 
@@ -41,27 +45,45 @@ p.vNav { text-align:center; font-size:1.8em; }
 .crossRefs a { text-decoration:none; } */
 
 /* Header USFM */
+div.bookHeader {}
+div.bookIntro {}
+p.id,p.rem { font-size:0.8em; color:grey; }
+p.id + p.rem, p.rem + p.rem { margin-top:-1.1em; }
 p.h { font-weight:bold; }
 p.mt1 { text-align:center; font-size:1.8em; }
 p.mt2 { text-align:center; font-size:1.3em; }
+p.mt3 { text-align:center; font-size:1.2em; }
 p.mt1 + p.mt2, p.mt2 + p.mt1 { margin-top:-0.5em; }
-p.rem { font-size:0.8em; color:grey; }
+p.ms1 { font-weight:bold; font-size:1.5em; }
+p.ms2 { font-weight:bold; font-size:1.3em; }
+
+/* div.rightBox { float:right; width:35%; border:3px solid #73AD21; padding:0.2em; } */
+
+p.parallelVerse {}
+span.UHB_trans {}
+div.hideables {}
 
 /* Our book intro USFM */
 li.intro { margin-top:0.5em; margin-bottom:0.5em; }
 p.is1 { font-weight:bold; font-size:1.3em; }
 p.is2 { font-weight:bold; }
+div.iot {}
 p.iot { font-weight:bold; }
 p.io1 { text-indent:2em; margin-top:0.2em; margin-bottom:0.2em; }
+p.io2 { text-indent:4em; margin-top:0.2em; margin-bottom:0.2em; }
+p.ip { text-indent:0.5em; margin-top:0.2em; margin-bottom:0.2em; }
 span.ior { font-weight:bold; }
 span.bk { font-style:italic; }
 
 /* Chapters USFM */
 span.c { font-size:1.1em; color:green; }
 span.cPsa { font-size:1.6em; font-weight:bold; color:green; }
+span.ca { font-size:1.1em; color:blue; }
 span.v { vertical-align:super; font-size:0.5em; color:red; }
 span.cv { vertical-align:super; font-size:0.8em; color:orange; }
 span.vp { vertical-align:super; font-size:0.5em; color:purple; }
+span.va { vertical-align:super; font-size:0.5em; color:crimson; }
+span.noVerse {} /* We don't have that verse */
 span.d { font-style:italic; color:sienna; }
 p.s1 { margin-top:0.1em; margin-bottom:0; font-weight:bold; }
 p.r { margin-top:0; margin-bottom:0; font-size:0.75em; }
@@ -69,52 +91,113 @@ p.p { text-indent:0.5em; margin-top:0.2em; margin-bottom:0.2em; }
 p.q1 { margin-left:1em; margin-top:0.2em; margin-bottom:0.2em; }
 p.q2 { margin-left:2em; margin-top:0.2em; margin-bottom:0.2em; }
 /* p.m {  } */
-
-p.key { background-color:seaShell; font-size:0.8em; }
+span.li1 {} /* Why's this a span??? */
 
 /* NT spans */
 span.nominaSacra { font-weight:bold; }
-/* span.nd { font-weight:bold; } */
-span.add { color:grey; }
-span.RVadd { color:dimGrey; }
+span.nd {}
+span.sc { font-size:0.8em; } /* Small caps */
 span.wj { color:saddlebrown; }
 span.sig { font-family:cursive; }
-span.FoS { color:mediumvioletred; } /* T4T Figure of speech */
-span.untr { font-size:0.8em; color:grey; text-decoration:line-through; }
+span.t4tFoS { color:mediumvioletred; } /* T4T Figure of speech */
+span.ul { color:darkGrey; }
+span.SR-GNT_trans {}
 
 /* OT spans */
 span.parr { vertical-align:super; font-size:0.8em; color:green; }
 
+/* OET add spans */
+span.addArticle { color:bisque; }
+span.unusedArticle { color:lavender; }
+span.addCopula { color:pink; }
+span.addDirectObject { color:brown; }
+span.addExtra { color:lightGreen; }
+span.addOwner { color:darkOrchid; }
+span.addPronoun { color:darkgreen; }
+span.addReferent { color:darkblue; }
+span.addReword { color:orange; }
+span.RVadd { color:#505050; } /* Darker than dimGrey which is #696969 (black is #000000) */
+span.add { color:grey; }
+span.untr { font-size:0.8em; color:grey; text-decoration:line-through; }
+span.unsure { text-decoration:underline; text-decoration-style: dotted; }
+
+p.key { background-color:seaShell; font-size:0.8em; }
+
+/* Where do these come from??? One of the below! */
+span.sup { vertical-align:super; }
+span.sub { vertical-align:sub; }
+
 /* Tyndale Book Intro Summaries */
 p.intro-title { text-align:center; font-size:1.8em; }
 p.intro-sidebar-h1 { font-weight:bold; }
-
-/* Tyndale Book Intros */
 p.intro-h1 { font-weight:bold; }
 
+/* Tyndale book intros */
+div.parallelTBI {}
+p.intro-body-fl {}
+p.intro-sidebar-body-fl {}
+p.intro-overview {}
+p.intro-body {}
+p.intro-body-fl-sp {}
+p.intro-list {}
+p.intro-list-sp {}
+span.intro-h2 {}
+span.intro-h2-era {}
+span.era {}
+span.greek {}
+
 /* Tyndale SNs */
+div.parallelTSN {}
+p.sn-text {}
 span.sn-excerpt { font-family:Arial, Helvetica, sans-serif; color:saddleBrown; }
-span.ital { font-style:italic; }
+span.sn-ref {}
+span.ital { font-style:italic; } /* TODO: We need to fix these two */
+span.bold { font-weight:bold; }
 span.hebrew { color:orange; }
 span.grk { color:darkgreen; }
+
 /* Tyndale TNs */
+div.parallelTTN {}
 p.theme-title { font-weight:bold; }
 p.theme-refs-title { font-weight:bold; }
-/* uW TNs */
+p.theme-body-fl {}
+p.theme-body-fl-sp {}
+p.theme-body {}
+p.theme-refs {}
+span.divine-name {}
+
+/* unfoldingWord translation notes (UTNs) */
+div.parallelUTN {}
+p.TN {}
 p.OL { margin-bottom:0; color:indigo; }
 p.Trans { margin-top:0; color:saddlebrown; }
 p.Gram { font-style:italic; }
+p.TARef {}
 
-/* Notes USFM */
+/* USFM footnotes */
+div.footnotes {}
 p.fn { margin-top:0.2em; margin-bottom:0.2em; font-size:0.75em; }
-p.xr { margin-top:0.2em; margin-bottom:0.2em; font-size:0.75em; }
 span.fnCaller { vertical-align:super; font-size:0.7em; color:green; }
-span.enCaller { vertical-align:super; font-size:0.7em; color:green; }
-span.xrCaller { vertical-align:super; font-size:0.7em; color:blue; }
+/* span.enCaller { vertical-align:super; font-size:0.7em; color:green; } */
 span.fnRef { font-weight:bold; }
+span.fnText { }
+span.fe {}
+span.fk { font-style:italic; font-weight:bold; }
+span.fl { font-style:italic; font-weight:bold; }
+span.fm { vertical-align:super; }
+span.fp {}
+span.fq { font-style:italic; }
+span.fqa { font-style:italic; }
+span.ft {}
+span.fv { vertical-align:super; }
+span.fw {}
+
+/* USFM cross-references */
+div.crossRefs {}
+p.xr { margin-top:0.2em; margin-bottom:0.2em; font-size:0.75em; }
+span.xrCaller { vertical-align:super; font-size:0.7em; color:blue; }
 span.xrRef { font-weight:bold; }
-/* span.fnText { } */
-/* span.xrText { } */
+span.xrText {}
 
 /* OSHB cases (also used for OET-RV and OET-LV) */
 /* Used in <a> fields and in spans */
@@ -134,7 +217,7 @@ span.xrRef { font-weight:bold; }
 .grkNeg { background-color:crimson; }
 
 /* Other GNT classes */
-/* span.wrkName { } */
+span.wrkName {}
 span.wrkNameDiffPunct { background-color:yellow; }
 span.wrkNameDiffAccents { background-color:orange; }
 span.wrkNameDiffText { background-color:red; }

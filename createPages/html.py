@@ -32,6 +32,7 @@ makeBottom( level:int, pageType:str, state:State ) -> str
 makeFooter( level:int, pageType:str, state:State ) -> str
 removeDuplicateCVids( BBB:str, html:str ) -> str
 checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool
+checkHtmlForMissingStyles( where:str, htmlToCheck:str ) -> bool
 do_OET_RV_HTMLcustomisations( OET_RV_html:str ) -> str
 do_OET_LV_HTMLcustomisations( OET_LV_html:str ) -> str
 do_LSV_HTMLcustomisations( LSV_html:str ) -> str
@@ -52,12 +53,15 @@ CHANGELOG:
     2024-01-25 Added support for 'Related' sections mode
     2024-04-03 Added OET Key page
     2024-04-21 Added News page
+    2024-05-15 Added HTML/CSS style matching checks
 """
-from gettext import gettext as _
-from typing import Dict, List, Tuple, Optional
+# from gettext import gettext as _
+from typing import Dict, List, Tuple, Optional, Union
 import logging
 from datetime import datetime
 import re
+# from functools import cache
+from collections import defaultdict
 
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
@@ -66,10 +70,10 @@ from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39, BOOKLIST_NT27
 from settings import State, TEST_MODE, SITE_NAME
 
 
-LAST_MODIFIED_DATE = '2024-05-01' # by RJH
+LAST_MODIFIED_DATE = '2024-05-19' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
-PROGRAM_VERSION = '0.79'
+PROGRAM_VERSION = '0.81'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -465,17 +469,167 @@ def checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool:
         assert '<span' not in titleAttributeGuts, f"Bad title attribute with SPAN in {htmlToCheck=}"
         searchStartIndex = match.end()
 
-    return True
+    if segmentOnly:
+        return True
+        
+    result = checkHtmlForMissingStyles( where, htmlToCheck )
+    if where == 'TopIndex': # that's the final page that we build
+        print()
+        for mm,msg in enumerate( collectedMsgs, start=1 ):
+            logging.critical( f"Missing CSS style {mm}/{len(collectedMsgs)}: {msg}" )
+        if not TEST_MODE:
+            for someStylesheetName,someStyleDict in cachedStyleDicts.items():
+                unusedList = [sdKey[5:] for sdKey,sdValue in someStyleDict.items() if sdKey.startswith( 'used_') and not sdValue]
+                if unusedList:
+                    logging.critical( f"UNUSED STYLES in {someStylesheetName} were ({len(unusedList)})/({len(someStyleDict)}) {unusedList=}" )
+
+    return result
 # end of html.checkHtml
+
+classRegex = re.compile( '<([^>]+?) [^>]*?class="([^>"]+?)"' )
+cachedStyleDicts = {}
+collectedMsgs = []
+def checkHtmlForMissingStyles( where:str, htmlToCheck:str ) -> bool:
+    """
+    Given an html page,
+        determine the stylesheet and load it if not already cached,
+        and then check that all classes are in the stylesheet.
+    """
+    def loadCSSStyles( lsStylesheetName:str ) -> Dict[str,Union[bool,List[str]]]:
+        """
+        Load the stylesheet and cache it for next time.
+
+        Adds a used_{} entry (set to False) so we can set at the end,
+            which stylesheet entries are never used.
+        """
+        # print( f"loadCSSStyles {lsStylesheetName=}" )
+        if lsStylesheetName in cachedStyleDicts:
+            return cachedStyleDicts[lsStylesheetName]
+        with open( f'../htmlPages/{lsStylesheetName}' if 'pagefind' in lsStylesheetName else lsStylesheetName, 'rt', encoding='utf-8') as ssFile:
+            lsStyleDict = defaultdict( list )
+            for ssLine in ssFile:
+                if ' + ' in ssLine: continue # Don't need these
+                # print( f"  {ssLine=}" )
+                if ssLine.startswith( 'span.' ):
+                    className = ssLine[5:].split( ' ', 1 )[0]
+                    # print( f"    span {className=}")
+                    assert ' ' not in className and ',' not in className, f"{className=}"
+                    assert 'span' not in lsStyleDict[className]
+                    lsStyleDict[className].append( 'span' )
+                    lsStyleDict[f'used_{className}'] = False
+                elif ssLine.startswith( 'p.' ):
+                    classNames = ssLine[2:].split( ' ', 1 )[0]
+                    # print( f"    p {classNames=} {ssLine[len(classNames)+4:]=}")
+                    for className in classNames.split( ',' ):
+                        className = className.replace( 'p.', '' )
+                        # if not ssLine[len(className)+4:].startswith( '+ '): # p.mt1 + p.mt2, p.mt2 + p.mt1 { margin-top:-0.5em; }
+                        assert ' ' not in className and ',' not in className, f"{className=}"
+                        assert 'p' not in lsStyleDict[className]
+                        lsStyleDict[className].append( 'p' )
+                        lsStyleDict[f'used_{className}'] = False
+                elif ssLine.startswith( 'div.' ):
+                    className = ssLine[4:].split( ' ', 1 )[0]
+                    # print( f"    div {className=}")
+                    assert ' ' not in className and ',' not in className, f"{className=}"
+                    assert 'div' not in lsStyleDict[className]
+                    lsStyleDict[className].append( 'div' )
+                    lsStyleDict[f'used_{className}'] = False
+                elif ssLine.startswith( 'h1.' ) or ssLine.startswith( 'h2.' ):
+                    elementName = ssLine[:2]
+                    className = ssLine[3:].split( ' ', 1 )[0]
+                    # print( f"    {elementName} {className=}")
+                    assert ' ' not in className and ',' not in className, f"{className=}"
+                    assert elementName not in lsStyleDict[className]
+                    lsStyleDict[className].append( elementName )
+                    lsStyleDict[f'used_{className}'] = False
+                elif ssLine.startswith( 'ol.' ):
+                    className = ssLine[3:].split( ' ', 1 )[0]
+                    # print( f"    ol {className=}")
+                    assert ' ' not in className and ',' not in className, f"{className=}"
+                    if className not in ('verse',): # In InterlinearVerse.css these are specified for each language
+                        assert 'ol' not in lsStyleDict[className], f"{className=} {lsStyleDict[className]=} {ssLine=}"
+                    if 'ol' not in lsStyleDict[className]:
+                        lsStyleDict[className].append( 'ol' )
+                        lsStyleDict[f'used_{className}'] = False
+                elif ssLine.startswith( 'li.' ):
+                    elementName = ssLine[:2]
+                    className = ssLine[3:].split( ' ', 1 )[0]
+                    # print( f"    {elementName} {className=}")
+                    assert ' ' not in className and ',' not in className, f"{className=}"
+                    assert elementName not in lsStyleDict[className]
+                    lsStyleDict[className].append( elementName )
+                    lsStyleDict[f'used_{className}'] = False
+                elif ssLine.startswith( '.' ):
+                    className = ssLine[1:].split( ' ', 1 )[0]
+                    # print( f"    {className=} {ssLine[len(className)+2:]=}")
+                    assert ' ' not in className and ',' not in className, f"{className=}"
+                    if not ssLine[len(className)+2:].startswith( 'a {'): # .wrkLst a { text-decoration:none; color:white; }
+                        assert '' not in lsStyleDict[className]
+                        lsStyleDict[className].append( '' )
+                        lsStyleDict[f'used_{className}'] = False
+        # print( f"{lsStylesheetName=} ({len(lsStyleDict)//2}) {lsStyleDict=}" )
+        cachedStyleDicts[lsStylesheetName] = lsStyleDict
+        return lsStyleDict
+    # end of loadCSSStyles function
+
+    startedCheck = False
+    for line in htmlToCheck.split( '\n' ):
+        if not startedCheck:
+            if 'rel="stylesheet"' in line:
+                ixStart = line.index( 'href="' )
+                ixEnd = line.index( '">', ixStart+6 )
+                stylesheetName = line[ixStart+6:ixEnd].replace( '../', '' )
+                styleDict = loadCSSStyles( stylesheetName )
+            # Only Search.htm has two stylesheets, but we're only interested in the first one
+            # elif '</head>' in line:
+                startedCheck = True
+        else: # startedCheck
+            for elementName,classNames in classRegex.findall( line ):
+                # print( f"  {elementName=} {classNames=}" )
+                for className in classNames.split( ' '):
+                    # assert className in styleDict and (elementName in styleDict[className] or '' in styleDict[className]), f"{elementName}.{className} not in {stylesheetName} in {where=}"
+                    if className not in styleDict \
+                    or (elementName not in styleDict[className] and '' not in styleDict[className]):
+                        msg = f"{elementName}.{className} not in {stylesheetName}"
+                        if msg not in collectedMsgs:
+                            collectedMsgs.append( msg )
+                            logging.critical( f"{len(collectedMsgs)}: CSS style {msg} in {where=}" )
+                    styleDict[f'used_{className}'] = True
+
+    # # The unused CSS entries should get less and less with each page checked
+    # unusedList = [sdKey[5:] for sdKey,sdValue in styleDict.items() if sdKey.startswith( 'used_') and not sdValue]
+    # if unusedList and len(unusedList) < len(styleDict)//6:
+    #     print( f"{stylesheetName} {where=} ({len(unusedList)})/({len(styleDict)}) {unusedList=}" )
+
+    return True
+# end of html.checkHtmlForMissingStyles
 
 
 def do_OET_RV_HTMLcustomisations( OET_RV_html:str ) -> str:
     """
     OET-RV is formatted in paragraphs.
+
+    See https://OpenEnglishTranslation.Bible/Resources/Formats for descriptions of add subfields.
     """
+    assert '<span class="add">+' not in OET_RV_html # Only expected in OET-LV
+    assert '<span class="add">-' not in OET_RV_html # Only expected in OET-LV
+    # assert '<span class="add">=' not in OET_RV_html # Only expected in OET-LV
+    assert '<span class="add">~' not in OET_RV_html # Only expected in OET-LV
+    # assert '<span class="add">>' not in OET_RV_html # Only expected in OET-LV
+    assert '<span class="add">^' not in OET_RV_html # Only expected in OET-LV
     return (OET_RV_html \
             # Adjust specialised add markers
+            .replace( '<span class="add">?>', '<span class="unsure addExtra">' )
+            .replace( '<span class="add">>', '<span class="addExtra">' )
+            .replace( '<span class="add">?*', '<span class="unsure addPronoun">' )
+            .replace( '<span class="add">*', '<span class="addPronoun">' )
+            .replace( '<span class="add">?@', '<span class="unsure addReferent">' )
+            .replace( '<span class="add">@', '<span class="addReferent">' )
+            .replace( '<span class="add">?≈', '<span class="unsure addReword">' )
+            .replace( '<span class="add">≈', '<span class="addReword">' )
+            .replace( '<span class="add">?', '<span class="unsure RVadd">' )
             .replace( '<span class="add">', '<span class="RVadd">' )
+            .replace( '≈', '<span class="parr">≈</span>')
             )
 # end of html.do_OET_RV_HTMLcustomisations
 
@@ -487,6 +641,8 @@ def do_OET_LV_HTMLcustomisations( OET_LV_html:str ) -> str:
 
     We have to protect fields like periods in '../C2_V2.htm' from corruption
         (and then restore them again of course).
+
+    See https://OpenEnglishTranslation.Bible/Resources/Formats for descriptions of add subfields.
     """
     assert '<br>\n' not in OET_LV_html
     assert '\n<br></p>' not in OET_LV_html and '\n<br></span>' not in OET_LV_html, f"Wasted <br> in {OET_LV_html=}"
@@ -502,6 +658,10 @@ def do_OET_LV_HTMLcustomisations( OET_LV_html:str ) -> str:
         OET_LV_html = f'''{OET_LV_html[:match.start()]}{guts.replace(':','~~COLON~~',1).replace('.','~~PERIOD~~',1)}{OET_LV_html[match.end():]}'''
         searchStartIndex = match.end() + 8 # We've added that many characters
 
+    assert '<span class="add">*' not in OET_LV_html # Only expected in OET-RV
+    assert '<span class="add">@' not in OET_LV_html # Only expected in OET-RV
+    assert '<span class="add">≈' not in OET_LV_html # Only expected in OET-RV
+    assert '<span class="add">?' not in OET_LV_html # Only expected in OET-RV
     OET_LV_html = (OET_LV_html \
             # Protect fields we need to preserve
             .replace( '<!--', '~~COMMENT~~' ).replace( '_V', '~~V' )
@@ -591,7 +751,7 @@ def do_T4T_HTMLcustomisations( T4T_html:str ) -> str:
                          ('MET','metaphor'), ('MTY','metonymy'), ('PRS','personification'), ('RHQ','rhetorical question'),
                          ('SIM','simile'), ('SYM','symbol'), ('SAR','sarcasm'), ('SYN','synecdoche'), ('TRI','triple') ):
         fullFoS = f'[{FoS}]'
-        T4T_html = T4T_html.replace( fullFoS, f'<span class="FoS" title="{fosType} (figure of speech)">{fullFoS}</span>' )
+        T4T_html = T4T_html.replace( fullFoS, f'<span class="t4tFoS" title="{fosType} (figure of speech)">{fullFoS}</span>' )
     return T4T_html.replace( '◄', '<span title="alternative translation">◄</span>' )
 # end of html.do_T4T_HTMLcustomisations
 

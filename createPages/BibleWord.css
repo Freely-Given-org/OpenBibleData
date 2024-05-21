@@ -1,3 +1,12 @@
+div.header {}
+div.footer { width:500px; height:250px; margin:50px; }
+
+p.site {}
+p.copyright {}
+p.note {}
+p.link {}
+p.summary {}
+
 div.unusedWord { color:grey; }
 
 a { text-decoration:none; }
@@ -5,26 +14,52 @@ a { text-decoration:none; }
 /* Navigational lists at top of page */
 p.wrkLst { background-color:#904471; color:98a9d4; }
 .wrkLst a { text-decoration:none; color:white; }
-p.viewLst {background-color:#936EA1; color:98a9d4; }
-.viewLst a { text-decoration:none; color:white; }
-p.bkLst {background-color:#F9F871; }
-.bkLst a { color:inherit; text-decoration:none; }
-p.chLst {background-color:paleGreen; }
-.chLst a { text-decoration:none; }
-p.vsLst {background-color:mistyRose; }
-.vsLst a { text-decoration:none; }
+/* p.viewLst {background-color:#936EA1; color:98a9d4; } */
+/* .viewLst a { text-decoration:none; color:white; } */
+/* p.bkLst {background-color:#F9F871; } */
+/* .bkLst a { color:inherit; text-decoration:none; } */
+/* p.chLst {background-color:paleGreen; } */
+/* .chLst a { text-decoration:none; } */
+/* p.vsLst {background-color:mistyRose; } */
+/* .vsLst a { text-decoration:none; } */
 
 /* Navs are the ones with arrows */
-p.cNav { text-align:center; font-size:1.8em; background-color:#98a9d4; }
-p.vNav { text-align:center; font-size:1.8em; }
+/* p.cNav { text-align:center; font-size:1.8em; background-color:#98a9d4; } */
+/* p.vNav { text-align:center; font-size:1.8em; } */
 p.pNav { text-align:center; font-size:1.8em; }
 
+h2.otherGreek {}
 p.wordLine { text-indent:1em; margin-top:0.2em; margin-bottom:0.2em; font-size:0.9em; }
 p.lemmaLine { text-indent:1em; margin-top:0.2em; margin-bottom:0.2em; font-size:0.9em; }
+p.lemmaGlossesSummary {}
 p.key { background-color:seaShell; font-size:0.8em; }
 
 span.glossPre { color:lightGreen; }
 span.glossHelper { color:grey; }
 span.glossPost { color:brown; }
+
+/* NT spans */
+/* span.nominaSacra { font-weight:bold; } */
+span.nd {}
+/* span.wj { color:saddlebrown; } */
+/* span.sc { font-size:0.8em; } /* Small caps */
+/* span.sig { font-family:cursive; } */
+/* span.ul { color:darkGrey; } */
+/* span.SR-GNT_trans {} */
+
+/* OET add spans */
+span.addArticle { color:bisque; }
+/* span.unusedArticle { color:lavender; } */
+/* span.addCopula { color:pink; } */
+/* span.addDirectObject { color:brown; } */
+span.addExtra { color:lightGreen; }
+/* span.addOwner { color:darkOrchid; } */
+/* span.addPronoun { color:darkgreen; } */
+/* span.addReferent { color:darkblue; } */
+/* span.addReword { color:orange; } */
+/* span.RVadd { color:#505050; } /* Darker than dimGrey which is #696969 (black is #000000) */
+span.add { color:grey; }
+span.untr { font-size:0.8em; color:grey; text-decoration:line-through; }
+/* span.unsure { text-decoration:underline; text-decoration-style: dotted; } */
 
 span.ul { color:darkGrey; }

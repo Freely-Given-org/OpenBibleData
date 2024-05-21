@@ -1,9 +1,14 @@
 /* Also used for sections and documents */
+/* Paratext stylesheet is at https://github.com/ubsicap/usfm/blob/master/sty/usfm.sty */
 
+div.header {}
 div.footer { width:500px; height:250px; margin:50px; }
-div.rightBox { float:right; width:35%; border:3px solid #73AD21; padding:0.2em; }
 
-span.upLink { font-size:1.5em; font-weight:bold; }
+p.site {}
+p.copyright {}
+p.note {}
+
+/* span.upLink { font-size:1.5em; font-weight:bold; } */
 
 /* Links */
 /* a:link { text-decoration:none; }
@@ -21,8 +26,8 @@ p.bkLst {background-color:#F9F871; }
 .bkLst a { color:inherit; text-decoration:none; }
 p.chLst {background-color:paleGreen; }
 .chLst a { text-decoration:none; }
-p.vsLst {background-color:mistyRose; }
-.vsLst a { text-decoration:none; }
+/* p.vsLst {background-color:mistyRose; } */
+/* .vsLst a { text-decoration:none; } */
 
 /* For bkList class */
 span.XX { color:purple; }
@@ -36,7 +41,7 @@ span.DC { color:orange; font-size:smaller; }
 
 /* Navs are the ones with arrows */
 p.bkNav { text-align:center; font-size:2em; }
-/* span.bkHead { } */
+span.bkHead {}
 p.secNav { text-align:center; font-size:1.8em; }
 p.cNav { text-align:center; font-size:1.8em; background-color:#98a9d4; }
 /* .cNav a { text-decoration:none; } */
@@ -46,25 +51,35 @@ p.vNav { text-align:center; font-size:1.8em; }
 .crossRefs a { text-decoration:none; } */
 
 /* Header USFM */
+div.bookHeader {}
+p.id,p.rem { font-size:0.8em; color:grey; }
+p.id + p.rem, p.rem + p.rem { margin-top:-1.1em; }
 p.h { font-weight:bold; }
 p.mt1 { text-align:center; font-size:1.8em; }
 p.mt2 { text-align:center; font-size:1.3em; }
+p.mt3 { text-align:center; font-size:1.2em; }
 p.mt1 + p.mt2, p.mt2 + p.mt1 { margin-top:-0.5em; }
-p.id, p.rem { font-size:0.8em; color:grey; }
+p.ms1 { font-weight:bold; font-size:1.5em; }
+p.ms2 { font-weight:bold; font-size:1.3em; }
 
 /* Book intro USFM */
 li.intro { margin-top:0.5em; margin-bottom:0.5em; }
 p.imt1 { text-align:center; font-size:1.8em; }
 p.imt2 { text-align:center; font-size:1.3em; }
+p.imt3 { text-align:center; font-size:1.2em; }
+p.imt4 { text-align:center; font-size:1.1em; }
 p.is1 { font-weight:bold; font-size:1.3em; }
 p.is2 { font-weight:bold; }
 p.iot { font-weight:bold; }
 p.io1 { text-indent:2em; margin-top:0.2em; margin-bottom:0.2em; }
+p.io2 { text-indent:4em; margin-top:0.2em; margin-bottom:0.2em; }
+p.ip { text-indent:0.5em; margin-top:0.2em; margin-bottom:0.2em; }
 span.ior { font-weight:bold; } /* font-style:italic; */
 span.bk { font-style:italic; }
 
 /* Section headings list */
 /* p.sectionHeading { } */
+div.rightBox { float:right; width:35%; border:3px solid #73AD21; padding:0.2em; } /* For OET individual RV */
 
 /* Chapters USFM */
 span.c { font-size:1.1em; color:green; }
@@ -72,30 +87,83 @@ span.cPsa { font-size:1.6em; font-weight:bold; color:green; }
 span.v { vertical-align:super; font-size:0.5em; color:red; }
 span.cv { vertical-align:super; font-size:0.8em; color:orange; }
 span.vp { vertical-align:super; font-size:0.5em; color:purple; }
+div.s1 {}
 p.s1 { margin-top:0.1em; margin-bottom:0; font-weight:bold; }
+p.s2 { margin-top:0.1em; margin-bottom:0; font-size:1.1em; }
+p.s3 { margin-top:0.1em; margin-bottom:0; font-size:1.05em; }
+p.sr { margin-top:0; margin-bottom:0; font-size:0.9em; } /* Section reference range */
 p.r { margin-top:0; margin-bottom:0; font-size:0.75em; }
 p.d { font-style:italic; }
 p.p { text-indent:0.5em; margin-top:0.2em; margin-bottom:0.2em; }
-p.m { margin-top:0.2em; margin-bottom:0.2em; }
-p.q1 { margin-left:1em; margin-top:0.2em; margin-bottom:0.2em; }
-p.q2 { margin-left:2em; margin-top:0.2em; margin-bottom:0.2em; }
+p.pi1 { margin-left:1em; margin-top:0.2em; margin-bottom:0.2em; }
+p.pi2 { margin-left:2em; margin-top:0.2em; margin-bottom:0.2em; }
+p.pc { text-align: center; }
 p.pm { margin-top:0.2em; margin-bottom:0.2em; }
 p.pmo { margin-left:1em; margin-top:0.2em; margin-bottom:0.2em; }
 p.pmc { margin-top:0.2em; margin-bottom:0.2em; }
 p.pmr { margin-top:0.2em; margin-bottom:0.2em; }
-span.add { color:grey; }
-span.rem { font-size:0.8em; color:grey; }
-span.wj { color:saddlebrown; }
-span.sig { font-family:cursive; }
-span.FoS { color:mediumvioletred; }
+p.m { margin-top:0.2em; margin-bottom:0.2em; }
+p.mi {}
+p.q1 { margin-left:1em; margin-top:0.2em; margin-bottom:0.2em; }
+p.q2 { margin-left:2em; margin-top:0.2em; margin-bottom:0.2em; }
+p.q3 { margin-left:3em; margin-top:0.2em; margin-bottom:0.2em; }
+p.qa { font-weight:bold; } /* Acrostic heading */
+p.nb {}
 
-/* Notes USFM */
+span.nd {}
+span.wj { color:saddlebrown; }
+span.qt { font-style:italic; }
+span.sc { font-size:0.8em; } /* Small caps */
+span.sig { font-family:cursive; }
+span.rem { font-size:0.8em; color:grey; }
+span.wh { font-style:italic; }
+span.jmp {}
+span.t4tFoS { color:mediumvioletred; } /* T4T figure of speech */
+
+/* OET add spans */
+span.addArticle { color:bisque; }
+span.unusedArticle { color:lavender; }
+span.addCopula { color:pink; }
+span.addDirectObject { color:brown; }
+span.addExtra { color:lightGreen; }
+span.addOwner { color:darkOrchid; }
+span.addPronoun { color:darkgreen; }
+span.addReferent { color:darkblue; }
+span.addReword { color:orange; }
+span.RVadd { color:#505050; } /* Darker than dimGrey which is #696969 (black is #000000) */
+span.add { color:grey; }
+span.untr { font-size:0.8em; color:grey; text-decoration:line-through; }
+span.unsure { text-decoration:underline; text-decoration-style: dotted; }
+
+/* USFM footnotes */
+div.footnotes {}
 p.fn { margin-top:0.2em; margin-bottom:0.2em; font-size:0.75em; }
-p.xr { margin-top:0.2em; margin-bottom:0.2em; font-size:0.75em; }
 span.fnCaller { vertical-align:super; font-size:0.7em; color:green; }
-span.enCaller { vertical-align:super; font-size:0.7em; color:green; }
-span.xrCaller { vertical-align:super; font-size:0.7em; color:blue; }
+/* span.enCaller { vertical-align:super; font-size:0.7em; color:yellow; } */
 span.fnRef { font-weight:bold; }
+span.fnText {}
+/* span.fe {} */
+span.fk { font-style:italic; font-weight:bold; }
+span.fl { font-style:italic; font-weight:bold; }
+/* span.fm { vertical-align:super; } */
+span.fp {}
+span.fq { font-style:italic; }
+span.fqa { font-style:italic; }
+span.ft {}
+span.fv { vertical-align:super; }
+/* span.fw {} */
+
+/* USFM cross-references */
+div.crossRefs {}
+p.xr { margin-top:0.2em; margin-bottom:0.2em; font-size:0.75em; }
+span.xrText {}
+span.xt {}
+span.xrCaller { vertical-align:super; font-size:0.7em; color:blue; }
 span.xrRef { font-weight:bold; }
-/* span.fnText { } */
-/* span.xrText { } */
+/* span.rq { font-style:italic; } */
+/* span.xk { font-style:italic; } */
+/* span.xnt {} */
+/* span.xop {} */
+/* span.xot {} */
+/* span.xq { font-style:italic; } */
+/* span.xta {} */

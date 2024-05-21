@@ -49,10 +49,10 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
 from OETHandlers import livenOETWordLinks, getOETTidyBBB, getOETBookName
 
 
-LAST_MODIFIED_DATE = '2024-04-23' # by RJH
+LAST_MODIFIED_DATE = '2024-05-19' # by RJH
 SHORT_PROGRAM_NAME = "createParallelPassagePages"
 PROGRAM_NAME = "OpenBibleData createParallelPassagePages functions"
-PROGRAM_VERSION = '0.22'
+PROGRAM_VERSION = '0.24'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -743,11 +743,12 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
         for hh,htmlChunk in enumerate( sectionHtmlList ):
             # Adjust the xref and footnote numbers so we don't have duplicate ids on the page
             replacementLetter = chr( ord('a') + hh ) # abcde
+            assert replacementLetter in 'abcde'
             htmlChunk = htmlChunk \
                             .replace( '#C', f'#{replacementLetter}C' ).replace( '"C', f'"{replacementLetter}C' ) \
                             .replace( '#V', f'#{replacementLetter}V' ).replace( '"V', f'"{replacementLetter}V' ) \
-                            .replace( '#fn', f'#{replacementLetter}Fn' ).replace( '"fn', f'"{replacementLetter}Fn' ) \
-                            .replace( '#xr', f'#{replacementLetter}Xr' ).replace( '"xr', f'"{replacementLetter}Xr' )
+                            .replace( '#fn', f'#{replacementLetter}Fn' ).replace( 'id="fn', f'id="{replacementLetter}Fn' ) \
+                            .replace( '#xr', f'#{replacementLetter}Xr' ).replace( 'id="xr', f'id="{replacementLetter}Xr' )
             crossReferencedSectionHtml = f'''{crossReferencedSectionHtml}\n<div class="chunkRV">{htmlChunk}</div><!--chunkRV-->'''
         crossReferencedSectionHtml = f'''{crossReferencedSectionHtml}\n</div><!--{containerClassname}-->'''
         assert '\n\n' not in crossReferencedSectionHtml
@@ -778,8 +779,19 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
             dPrint( 'Info', DEBUGGING_THIS_MODULE, f"({len(splitUpCollectedVerseCrossReferences)}) {splitUpCollectedVerseCrossReferences=}" )
             doneCrossReferences = []
             lastXrefBBB = lastXrefC = None
+            # Seems that the max is 71
             for ccc, collectedVerseCrossReference in enumerate( splitUpCollectedVerseCrossReferences ):
-                replacementLetter = chr( ord('g') + ccc ) # ghijk...
+                # print( f"{ccc=}/{len(splitUpCollectedVerseCrossReferences)}" )
+                if ccc < 20:
+                    replacementLetter = chr( ord('g') + ccc ) # ghijk...
+                    assert replacementLetter in 'ghijklmnopqrstuvwxyz', f"{ccc=} {replacementLetter=}"
+                elif ccc < 46:
+                    replacementLetter = f"a{chr( ord('a') + ccc - 20 ) }"
+                    assert replacementLetter[1] in 'abcdefghijklmnopqrstuvwxyz', f"{ccc=} {replacementLetter=}"
+                else:
+                    replacementLetter = f"b{chr( ord('a') + ccc - 46 ) }"
+                    assert replacementLetter[1] in 'abcdefghijklmnopqrstuvwxy', f"{ccc=} {replacementLetter=}"
+                # print( f"  {ccc=} {replacementLetter=}" )
                 if collectedVerseCrossReference not in doneCrossReferences:
                     if collectedVerseCrossReference[1]==' ' and collectedVerseCrossReference[0] in 'abcdef':
                         collectedVerseCrossReference = collectedVerseCrossReference[2:]
@@ -789,7 +801,7 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
                         collectedVerseCrossReference = collectedVerseCrossReference[:-1]
                     assert '\\' not in collectedVerseCrossReference, f"{BBB} {startC}:{startV} got {collectedVerseCrossReference=}"
                     lastXrefBBB, lastXrefC, verseEntryList, contextList = getVerseDataListForReference( collectedVerseCrossReference, thisBible, lastXrefBBB, lastXrefC )
-                    lastXrefNT = BibleOrgSysGlobals.loadedBibleBooksCodes.isNewTestament_NR( lastXrefBBB )
+                    # lastXrefNT = BibleOrgSysGlobals.loadedBibleBooksCodes.isNewTestament_NR( lastXrefBBB )
                     if verseEntryList:
                         if isinstance( thisBible, ESFMBible.ESFMBible ): # e.g., OET-RV
                             verseEntryList = livenOETWordLinks( BBBLevel, thisBible, lastXrefBBB, verseEntryList, state )
@@ -807,8 +819,10 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
                     thisXrefHtml = f'''<p><b>{collectedVerseCrossReference}</b>:</p>{textHtml if textHtml else 'Sorry, unable to find data for this passage.'}''' \
                                         .replace( '#C', f'#{replacementLetter}C' ).replace( '"C', f'"{replacementLetter}C' ) \
                                         .replace( '#V', f'#{replacementLetter}V' ).replace( '"V', f'"{replacementLetter}V' ) \
-                                        .replace( '#fn', f'#{replacementLetter}Fn' ).replace( '"fn', f'"{replacementLetter}Fn' ) \
-                                        .replace( '#xr', f'#{replacementLetter}Xr' ).replace( '"xr', f'"{replacementLetter}Xr' )
+                                        .replace( '#fn', f'#{replacementLetter}Fn' ).replace( 'id="fn', f'id="{replacementLetter}Fn' ) \
+                                        .replace( '#xr', f'#{replacementLetter}Xr' ).replace( 'id="xr', f'id="{replacementLetter}Xr' )
+                    # print( f"{thisXrefHtml=}" )
+                    # if 'Fn' in thisXrefHtml or 'Xr' in thisXrefHtml: halt
                     xrefHtml = f"{xrefHtml}{NEWLINE if xrefHtml else ''}{thisXrefHtml}"
                     doneCrossReferences.append( collectedVerseCrossReference )
             xrefHtml = f'<div><h2>Collected OET-RV cross-references</h2>\n{xrefHtml}\n</div><!--end of collectedCrossReferences-->'

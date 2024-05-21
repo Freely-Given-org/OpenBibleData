@@ -65,10 +65,10 @@ from settings import State
 from html import checkHtml
 
 
-LAST_MODIFIED_DATE = '2024-05-01' # by RJH
+LAST_MODIFIED_DATE = '2024-05-20' # by RJH
 SHORT_PROGRAM_NAME = "OETHandlers"
 PROGRAM_NAME = "OpenBibleData OET handler"
-PROGRAM_VERSION = '0.57'
+PROGRAM_VERSION = '0.58'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -126,19 +126,33 @@ def getOETBookName( BBB:str ) -> str:
     
 
 def getHebrewWordpageFilename( rowNum:int, state:State ) -> str:
+    """
+    Take a unique reference like JN2_1:3w4 and make it into a filename
+            like KI2c1v3w4.htm
+        although notes and segment punctuation are treated differently
+            like KI2c1v3n123456.htm
+    """
     ref, rowType, morphemeRowList, rest = state.OETRefData['word_tables']['OET-LV_OT_word_table.tsv'][rowNum].split( '\t', 3 )
     if 'w' not in ref:
         letter = 's' if rowType=='seg' else 'n' if 'note' in rowType else None
         assert letter
         assert morphemeRowList.isdigit()
         ref = f'{ref}{letter}{morphemeRowList}'
-    return f"{ref.replace('_','c',1).replace(':','v',1)}.htm" # Don't want underlines coz they're used for many other things, and colon might not be legal in filesystem
-# end of createOETReferencePages.getGreekWordpageFilename
+    result = f"{ref.replace('_','c',1).replace(':','v',1)}.htm" # Don't want underlines coz they're used for many other things, and colon might not be legal in filesystem
+    return result
+# end of createOETReferencePages.getHebrewWordpageFilename
 
 
 def getGreekWordpageFilename( rowNum:int, state:State ) -> str:
+    """
+    Take a unique reference like JN2_1:3w4 and make it into a filename
+            like JN2c1v3w4.htm
+        although notes and segment punctuation are treated differently
+            like JN2n1v3n123456.htm
+    """
     nWordRef = state.OETRefData['word_tables']['OET-LV_NT_word_table.tsv'][rowNum].split( '\t', 1 )[0]
-    return f"{nWordRef.replace('_','c',1).replace(':','v',1)}.htm" # Don't want underlines coz they're used for many other things, and colon might not be legal in filesystem
+    result = f"{nWordRef.replace('_','c',1).replace(':','v',1)}.htm" # Don't want underlines coz they're used for many other things, and colon might not be legal in filesystem
+    return result
 # end of createOETReferencePages.getGreekWordpageFilename
 
 

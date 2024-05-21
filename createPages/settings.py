@@ -37,6 +37,7 @@ CHANGELOG:
     2024-04-05 Add more acknowledgements for the OT part
     2024-04-18 Added AICNT
     2024-04-25 Added some Moffat books
+    2024-05-06 Added some NETS verses
 """
 from gettext import gettext as _
 from typing import List
@@ -49,7 +50,7 @@ from BibleOrgSys.BibleOrgSysGlobals import dPrint
 from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39
 
 
-LAST_MODIFIED_DATE = '2024-04-29' # by RJH
+LAST_MODIFIED_DATE = '2024-05-06' # by RJH
 SHORT_PROGRAM_NAME = "settings"
 PROGRAM_NAME = "OpenBibleData (OBD) Create Pages"
 PROGRAM_VERSION = '0.96'
@@ -57,9 +58,9 @@ PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
 
-OET_VERSION = 'v0.11'
+OET_VERSION = 'v0.13'
 
-TEST_MODE = False # Writes website into Test subfolder
+TEST_MODE = True # Writes website into Test subfolder
 ALL_PRODUCTION_BOOKS = not TEST_MODE # If set to False, only selects one book per version for a faster test build
 ALL_TEST_REFERENCE_PAGES = False # If in TEST_MODE, make ALL word/lemma pages, or just the RELEVANT ones
 UPDATE_ACTUAL_SITE_WHEN_BUILT = True # The pages are initially built in a tmp folder so need to be copied to the final destination
@@ -117,7 +118,7 @@ class State:
                 'TNT','WYC',
                 'LUT','CLV',
                 'SR-GNT','UGNT','SBL-GNT','TC-GNT',
-                'BRN','BrLXX', 'UHB',
+                'NETS','BRN','BrLXX', 'UHB',
                 # NOTES:
                 'TOSN','UTN',
                 ]
@@ -128,8 +129,8 @@ class State:
     # Specific short lists
     auxilliaryVersions = ('OET','TTN','TOBD') # These ones don't have their own Bible locations at all
     # The following three lines are also in selectedVersesVersions.py
-    selectedVersesOnlyVersions = ('CSB','NLT','NIV','CEV','ESV','NASB','LSB','JQT','2DT','1ST','TPT','NRSV','NKJV' ) # These ones have .tsv sources (and don't produce Bible objects)
-    numAllowedSelectedVerses   = (  300,  500,  500,  500,  500,   500, 1000,   20, 300,  300,  250,   300,   300 ) # Order must match above list
+    selectedVersesOnlyVersions = ('CSB','NLT','NIV','CEV','ESV','NASB','LSB','JQT','2DT','1ST','TPT','NRSV','NKJV', 'NETS' ) # These ones have .tsv sources (and don't produce Bible objects)
+    numAllowedSelectedVerses   = (  300,  500,  500,  500,  500,   500, 1000,   20, 300,  300,  250,   300,   300,    250  ) # Order must match above list
     assert len(numAllowedSelectedVerses) == len(selectedVersesOnlyVersions)
     versionsWithoutTheirOwnPages = selectedVersesOnlyVersions + ('LUT','CLV', 'UGNT','SBL-GNT','TC-GNT', 'BRN','BrLXX', 'TOSN','TTN','UTN')
 
@@ -210,6 +211,7 @@ class State:
                 'UGNT': '../copiedBibles/Original/unfoldingWord.org/UGNT/',
                 'SBL-GNT': '../../Forked/SBLGNT/data/sblgnt/text/',
                 'TC-GNT': '../copiedBibles/Greek/eBible.org/TC-GNT/',
+                'NETS': '../copiedBibles/English/NETS_verses.tsv',
                 'BRN': '../copiedBibles/English/eBible.org/Brenton/', # with deuterocanon and OTH,XXA,XXB,XXC,
                 'BrLXX': '../copiedBibles/Greek/eBible.org/BrLXX/',
                 # NOTE: Dictionary and notes are special cases here at the end (skipped in many parts of the program)
@@ -271,13 +273,14 @@ class State:
                 'UGNT': 'unfoldingWord® Greek New Testament (2022)',
                 'SBL-GNT': 'Society for Biblical Literature Greek New Testament (2010)',
                 'TC-GNT': 'Text-Critical Greek New Testament (2010, Byzantine)',
+                'NETS': 'New English Translation of the Septuagint (2009,2014)',
                 'BRN': 'Brenton Septuagint Translation (1851)',
                 'BrLXX': '(Brenton’s) Ancient Greek translation of the Hebrew Scriptures (~250 BC)',
                 'UHB': 'unfoldingWord® Hebrew Bible (2022)',
                 'TOSN': 'Tyndale Open Study Notes (2022)',
                 'TOBD': 'Tyndale Open Bible Dictionary (2023)',
                 'UTN': 'unfoldingWord® Translation Notes (2023)',
-                'UBS': 'United Bible Societies open-license resources (2023)',
+                'UBS': 'United Bible Societies open-licenced resources (2023)',
                 }
 
     booksToLoad = {
@@ -333,6 +336,7 @@ class State:
                 'UGNT': ['ALL'],
                 'SBL-GNT': ['ALL'],
                 'TC-GNT': ['ALL'],
+                'NETS': ['ALL'],
                 'BRN': ['ALL'],
                 'BrLXX': ['ALL'],
                 'UHB': ['ALL'],
@@ -392,6 +396,7 @@ class State:
                 'UGNT': TEST_NT_BOOK_LIST, # NT only
                 'SBL-GNT': TEST_NT_BOOK_LIST, # NT only
                 'TC-GNT': TEST_NT_BOOK_LIST, # NT only
+                'NETS': TEST_OT_BOOK_LIST, # OT only
                 'BRN': TEST_OT_BOOK_LIST, # OT only
                 'BrLXX': TEST_OT_BOOK_LIST, # OT only
                 'UHB': TEST_OT_BOOK_LIST, # OT only
@@ -454,8 +459,7 @@ We’re also grateful to the <a href="https://www.Biblica.com/clear/">Biblica Cl
                 'acknowledgements': '<p class="acknwldg">(coming).</p>' },
         'CSB': {'about': '<p class="about">(Holmes) Christian Standard Bible (2017).</p>',
                 'copyright': '<p class="copyright">Copyright © (coming).</p>',
-                'licence': '<p class="licence">(coming).</p>',
-                'acknowledgements': '<p class="acknwldg">(coming).</p>' },
+                'licence': '<p class="licence">(coming).</p>' },
         'NLT': {'about': '<p class="about">New Living Translation (2015).</p>',
                 'copyright': '<p class="copyright">Holy Bible, New Living Translation, copyright © 1996, 2004, 2015 by Tyndale House Foundation. Used by permission of Tyndale House Publishers. All rights reserved.</p>',
                 'licence': '<p class="licence">five hundred (500) verses without the express written permission of the publisher, providing the verses quoted do not amount to a complete book of the Bible nor do the verses quoted account for twenty-five percent (25%) or more of the total text of the work in which they are quoted.</p>',
@@ -495,7 +499,7 @@ We’re also grateful to the <a href="https://www.Biblica.com/clear/">Biblica Cl
         'TPT': {'about': '<p class="about">The Passion Translation (2017) by Brian Simmons.</p>',
                 'copyright': '<p class="copyright">Scripture quotations marked TPT are from The Passion Translation®. Copyright © 2017, 2018, 2020 by Passion & Fire Ministries, Inc. Used by permission. All rights reserved. ThePassionTranslation.com.</p>',
                 'licence': '<p class="licence">Up to 250 verses may be used.</p>',
-                'acknowledgements': '<p class="acknwldg">A few selected verses included here for reference purposes only—this is not a recommended as a reliable Bible translation.</p>' },
+                'notes': '<p class="acknwldg">A few selected verses included here for reference purposes only—this is not a recommended as a reliable Bible translation.</p>' },
         'WEB': {'about': '<p class="about">World English Bible (2023).</p>',
                 'copyright': '<p class="copyright">Copyright © (coming).</p>',
                 'licence': '<p class="licence">(coming).</p>',
@@ -531,12 +535,10 @@ We’re also grateful to the <a href="https://www.Biblica.com/clear/">Biblica Cl
                 'acknowledgements': '<p class="acknwldg">Thanks to <a href="http://www.logos.com/">Logos Bible Software</a> for supplying a XML file.</p>' },
         'NRSV': {'about': '<p class="about">New Revised Standard Version (1989).</p>',
                 'copyright': '<p class="copyright">Copyright © (coming).</p>',
-                'licence': '<p class="licence">(coming).</p>',
-                'acknowledgements': '<p class="acknwldg">(coming).</p>' },
+                'licence': '<p class="licence">(coming).</p>' },
         'NKJV': {'about': '<p class="about">New King James Version (1979).</p>',
                 'copyright': '<p class="copyright">Copyright © (coming).</p>',
-                'licence': '<p class="licence">(coming).</p>',
-                'acknowledgements': '<p class="acknwldg">(coming).</p>' },
+                'licence': '<p class="licence">(coming).</p>' },
         'BBE': {'about': '<p class="about">Bible in Basic English (1965).</p>',
                 'copyright': '<p class="copyright">Copyright © (coming).</p>',
                 'licence': '<p class="licence">(coming).</p>',
@@ -624,6 +626,9 @@ However, Moffat wasn’t just a <em>follow the crowd</em> person, so he’s like
                 'copyright': '<p class="copyright">Copyright © (coming).</p>',
                 'licence': '<p class="licence">(coming).</p>',
                 'acknowledgements': '<p class="acknwldg">Thanks to <a href="https://eBible.org/Scriptures/details.php?id=grctcgnt">eBible.org</a> for supplying the USFM files.</p>' },
+        'NETS': {'about': '<p class="about">NETS is a new translation of the Greek Jewish Scriptures, entitled <em>A New English Translation of the Septuagint and the Other Greek Translations Traditionally Included Under that Title</em>. For more information on this project, see the <a href="https://ccat.sas.upenn.edu/nets/">main NETS webpage</a>.</p>',
+                'copyright': '<p class="copyright">Copyright © 2007 by the International Organization for Septuagint and Cognate Studies, Inc. All rights reserved.</p>',
+                'licence': '<p class="licence">The text of A New English Translation of the Septuagint (NETS) may be quoted in any form (written, visual, electronic, or audio) up to and inclusive of 250 verses without written permission from Oxford University Press, provided that the verses quoted do not account for more than 20% of the work in which they are quoted and provided that a complete book of NETS is not quoted.</p>' },
         'BRN': {'about': '<p class="about">Sir Lancelot C. L. Brenton’s 1851 translation of the ancient Greek Septuagint (LXX) translation of the Hebrew scriptures.</p>',
                 'copyright': '<p class="copyright">Copyright © (coming).</p>',
                 'licence': '<p class="licence">(coming).</p>',
@@ -648,15 +653,15 @@ However, Moffat wasn’t just a <em>follow the crowd</em> person, so he’s like
                 'copyright': '<p class="copyright">Copyright © 2022 by unfoldingWord.</p>',
                 'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
                 'acknowledgements': '<p class="acknwldg">Thanks to <a href="https://www.unfoldingword.org/">unfoldingWord</a> for creating <a href="https://git.door43.org/unfoldingWord/en_tn">these notes</a> to assist Bible translators.</p>' },
-        'UBS': {'about': '<p class="about">United Bible Societies (2023).</p>',
-                'copyright': '''<p class="copyright">UBS Dictionary of Biblical Hebrew, Copyright © United Bible Societies, 2023. Adapted from Semantic Dictionary of Biblical Hebrew © 2000-2023 United Bible Societies.</p>
-<p class="copyright">UBS Dictionary of New Testament Greek, Copyright © United Bible Societies, 2023. Adapted from Semantic Dictionary of Biblical Greek: © United Bible Societies 2018-2023, which is adapted from Greek-English Lexicon of the New Testa­ment: Based on Semantic Domains, Eds. J P Louw, Eugene Albert Nida © United Bible Societies 1988, 1989.</p>''',
+        'UBS': {'about': '<p class="about">United Bible Societies open-licenced dictionaries (2023).</p>',
+                'copyright': '''<p class="copyright"><b>UBS Dictionary of Biblical Hebrew</b>, Copyright © United Bible Societies, 2023. Adapted from Semantic Dictionary of Biblical Hebrew © 2000-2023 United Bible Societies.</p>
+<p class="copyright"><b>UBS Dictionary of New Testament Greek</b>, Copyright © United Bible Societies, 2023. Adapted from Semantic Dictionary of Biblical Greek: © United Bible Societies 2018-2023, which is adapted from Greek-English Lexicon of the New Testa­ment: Based on Semantic Domains, Eds. J P Louw, Eugene Albert Nida © United Bible Societies 1988, 1989.</p>''',
                 'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
                 'acknowledgements': '<p class="acknwldg">Thanks to <a href="https://github.com/Freely-Given-org/ubs-open-license">UBS</a> for making these available.</p>' },
     }
 
     if not TEST_MODE and UPDATE_ACTUAL_SITE_WHEN_BUILT:
-        assert len(BibleLocations) >= 51, len(BibleLocations)
+        assert len(BibleLocations) >= 57, len(BibleLocations)
     for versionLocation in BibleLocations.values():
         assert versionLocation.startswith('../copiedBibles/') \
             or versionLocation.startswith('../../OpenEnglishTranslation--OET/') \

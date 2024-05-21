@@ -1,3 +1,10 @@
+div.header {}
+div.footer {}
+
+p.site {}
+p.copyright {}
+p.note {}
+
 div.Textbox { display:flex; width:50%; flex-direction:column; border:2px solid black;
     background-color:lightYellow; padding-left:0.4em; padding-right:0.3em; float:right; }
 
@@ -6,19 +13,19 @@ a { text-decoration:none; }
 /* Navigational lists at top of page */
 p.wrkLst { background-color:#904471; color:98a9d4; }
 .wrkLst a { text-decoration:none; color:white; }
-p.viewLst {background-color:#936EA1; color:98a9d4; }
-.viewLst a { text-decoration:none; color:white; }
-p.bkLst {background-color:#F9F871; }
-.bkLst a { color:inherit; text-decoration:none; }
-p.chLst {background-color:paleGreen; }
-.chLst a { text-decoration:none; }
-p.vsLst {background-color:mistyRose; }
-.vsLst a { text-decoration:none; }
+/* p.viewLst {background-color:#936EA1; color:98a9d4; } */
+/* .viewLst a { text-decoration:none; color:white; } */
+/* p.bkLst {background-color:#F9F871; } */
+/* .bkLst a { color:inherit; text-decoration:none; } */
+/* p.chLst {background-color:paleGreen; } */
+/* .chLst a { text-decoration:none; } */
+/* p.vsLst {background-color:mistyRose; } */
+/* .vsLst a { text-decoration:none; } */
 
 /* Navs are the ones with arrows */
-p.cNav { text-align:center; font-size:1.8em; background-color:#98a9d4; }
-p.vNav { text-align:center; font-size:1.8em; }
-p.pNav { text-align:center; font-size:1.8em; }
+/* p.cNav { text-align:center; font-size:1.8em; background-color:#98a9d4; } */
+/* p.vNav { text-align:center; font-size:1.8em; } */
+/* p.pNav { text-align:center; font-size:1.8em; } */
 p.dNav { text-align:center; font-size:1.8em; }
 
 p.h1 { margin-bottom:0.2em; font-weight:bold; font-size:1.8em; }
@@ -27,13 +34,60 @@ p.h3 { font-weight:bold; font-size:1.3em; }
 p.h4 { font-weight:bold; font-size:1.2em; }
 p.h5 { font-weight:bold; font-size:1.1em; }
 
+p.contributor {}
+p.dctLtrs {}
+p.next {}
+p.list {}
+p.list-0 {}
+p.list-1 {}
+p.list-text {}
+p.list-text-fl {}
+p.list-space {}
+
+p.GDict {}
+li.GDict {}
+p.HDict {}
+li.HDict {}
+
+p.artfile {}
+p.caption-text {}
+
+p.box-extract {}
+p.box-h2-poetic {}
+p.extract {}
+p.extract-fl {}
+p.extract-fl-space {}
+p.h2-list {}
+p.h2-preview {}
+p.preview-text {}
+p.preview-list {}
+p.preview-list-first {}
+p.preview-list-1 {}
+p.box-first {}
+p.box-h2 {}
+p.fl {}
+p.poetry-1 {}
+p.poetry-2 {}
+p.poetry-3 {}
+p.poetry-1-sp {}
+p.td {}
+
+p.sp { font-weight:bold; } /* Speaker */
+span.sc { font-size:0.8em; } /* Small caps */
+span.lc {}
+span.vn {}
+span.sup { vertical-align:super; }
+span.sub { vertical-align:sub; }
+span.bold { font-weight:bold; }
+span.divine-name {}
+
 /* Map box */
 div.Mapbox { display:flex; width:50%; flex-direction:column; border:2px solid black;
     background-color:lightCyan; padding-left:0.3em; padding-right:0.3em; float:right; }
 img { width:100%; object-fit:contain; }
 p.caption-head { margin-top:0.2em; margin-bottom:0.1em; font-weight:bold; font-size:1.1em; }
 
-span.sn-excerpt { font-family:Arial, Helvetica, sans-serif; color:saddleBrown; }
+/* span.sn-excerpt { font-family:Arial, Helvetica, sans-serif; color:saddleBrown; } */
 span.ital { font-style:italic; }
 span.hebrew { color:orange; }
 span.greek { color:darkgreen; }

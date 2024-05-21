@@ -25,6 +25,21 @@
 """
 Module handling Bible Dictionary functions.
 
+loadTyndaleOpenBibleDictXML( abbrev:str, folderpath ) -> None
+loadDictLetterXML( letter:str, folderpath ) -> None
+createTyndaleDictPages( level:int, outputFolderPath, state:State ) -> bool
+fixTyndaleDictItemRefs( abbrev:str, level:int, articleLinkName:str, html:str, state:State ) -> str
+livenTyndaleTextboxRefs( abbrev:str, level:int, articleLinkName:str, html:str, state:State ) -> str
+livenTyndaleMapRefs( abbrev:str, level:int, articleLinkName:str, html:str, state:State ) -> str
+loadAndIndexUBSGreekDictJSON( abbrev:str, folderpath ) -> None
+loadAndIndexUBSHebrewDictJSON( abbrev:str, folderpath ) -> None
+createUBSDictionaryPages( level, outputFolderPath, state:State ) -> None
+getLexReferencesHtmlList( level, lexRefs ) -> List[str]
+createUBSGreekDictionaryPages( level, outputFolderPath, state:State ) -> None
+createUBSHebrewDictionaryPages( level, outputFolderPath, state:State ) -> None
+briefDemo() -> None
+fullDemo() -> None
+
 CHANGELOG:
     2024-01-30 Load UBS Dictionary of Greek New Testament
     2024-02-22 Load UBS Dictionary of Biblical Hebrew
@@ -46,7 +61,7 @@ from html import makeTop, makeBottom, checkHtml
 from OETHandlers import getOETTidyBBB
 
 
-LAST_MODIFIED_DATE = '2024-04-03' # by RJH
+LAST_MODIFIED_DATE = '2024-05-19' # by RJH
 SHORT_PROGRAM_NAME = "Dictionary"
 PROGRAM_NAME = "OpenBibleData Dictionary handler"
 PROGRAM_VERSION = '0.45'

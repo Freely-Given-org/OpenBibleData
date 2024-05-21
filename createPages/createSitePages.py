@@ -87,7 +87,7 @@ from Dict import createTyndaleDictPages, createUBSDictionaryPages
 from html import makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2024-05-05' # by RJH
+LAST_MODIFIED_DATE = '2024-05-17' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData (OBD) Create Site Pages"
 PROGRAM_VERSION = '0.96'
@@ -280,9 +280,9 @@ def _createSitePages() -> bool:
     createOETInterlinearPages( 1, TEMP_BUILD_FOLDER.joinpath('ilr/'), state )
     createParallelPassagePages( 1, TEMP_BUILD_FOLDER.joinpath('rel/'), state )
 
+    createOETReferencePages( 1, TEMP_BUILD_FOLDER.joinpath('ref/'), state )
     createUBSDictionaryPages( 1, TEMP_BUILD_FOLDER.joinpath('UBS/'), state )
     createTyndaleDictPages( 1, TEMP_BUILD_FOLDER.joinpath('dct/'), state )
-    createOETReferencePages( 1, TEMP_BUILD_FOLDER.joinpath('ref/'), state )
 
     _createDetailsPages( 0, TEMP_BUILD_FOLDER, state )
     _createSearchPage( 0, TEMP_BUILD_FOLDER, state )
@@ -606,6 +606,10 @@ def _createDetailsPages( level:int, buildFolder:Path, state:State ) -> bool:
     html = f'''{topHtml}<h1 id="Top">Details for all versions</h1>
 <p class="note">If you’re the copyright owner of a Bible translation and would like to see it listed on this site,
   please contact us at <b>Freely</b> dot <b>Given</b> dot <b>org</b> (at) <b>gmail</b> dot <b>com</b>.</p>
+<p class="note"><small>Although the <em>Open Bible Data</em> project is designed to showcase and make use of open-licenced Biblical materials,
+  many commercial businesses <a href="https://SellingJesus.org/">copyright</a> their Bible translations and other materials in order to restrict sites like this from being able to use them.
+  So although we don’t consider their materials to be very useful here (and new, high-quality, open-licenced materials are currently being developed to replace them),
+  we have included some of their verses on a few of our parallel verse pages just for interest and for comparison, so you’ll find their copyright details below.</small></p>
 {allDetailsHTML}{makeBottom( level, 'AllDetails', state )}'''
     checkHtml( 'AllDetails', html )
 
@@ -671,7 +675,7 @@ def _createAboutPage( level:int, buildFolder:Path, state:State ) -> bool:
 <li>To <b>showcase how <em>OET-RV</em> section headings are formatted</b> so as not to break the flow of the text.
     Section headings are available as a help to the reader, but were not in the original manuscripts,
         and the original flow of the text was not designed to be arbitrarily divided into sections.</li>
-<li>To <b>promote other open-licenced Bible translations</b>, including those developed as resources for Bible translators themselves. We believe that God’s Message should be freely available to all.</li>
+<li>To <b>promote other open-licenced Bible translations</b>, including those developed as resources for Bible translators themselves. We believe that God’s message should be freely available to all.</li>
 <li>As a way to <b>showcase open-licenced Bible datasets</b>.
     Hence every word in the <em>OET-LV</em> is linked to the Greek word that they are translated from.
     In addition, most pronouns like ‘he’ or ‘she’ are linked to the earlier referrents in the text.</li>
@@ -707,7 +711,7 @@ def _createAboutPage( level:int, buildFolder:Path, state:State ) -> bool:
     Please contact us at <b>Freely</b> dot <b>Given</b> dot <b>org</b> (at) <b>gmail</b> dot <b>com</b>.
     We consider this {SITE_ABBREVIATION} project to be part of the very first stage of contributing to the development of an open-licensed Bible-study app
         to rival the commercial ones (like ‘Logos’—not the plural of ‘logo’).</p>
-<p class="about">You’ll possibly notice that not many large, commercial Bibles are included in these pages because of their strict limits on the use of their texts.
+<p class="about">You’ll possibly notice that not many large, commercial Bible translations are included in these pages because of their strict limits on the use of their texts.
     We highly recommend that our readers find better translations that are more influenced by discipleship priorities, and less by finances.
     <small>(See <a href="https://SellingJesus.org/">SellingJesus.org</a> if you want to learn more about commercialism of Christian publications.)</small></p>
 <p class="about"><b>Acknowledgement</b>: The overall design of the site was influenced by <a href="https://BibleHub.com/">BibleHub.com</a>
@@ -717,7 +721,7 @@ def _createAboutPage( level:int, buildFolder:Path, state:State ) -> bool:
 <p class="about">These pages are created by a Python program that takes the open-licenced resources and combines them in different ways on different pages.
     The program is still being developed, and hence this site (or this part of the site), is still at the prototype stage,
         especially with respect to navigation around the pages which is still being improved.</p>
-<p class="about">Also, several Bible ‘books’ are not yet included because no draft of the <em>OET</em> is available,
+<p class="about">Also, several Bible ‘books’ are not yet included because no draft of that <em>OET</em> book is available yet,
     so you might find some dead links, i.e., “Page Not Found” errors, that will eventually be fixed.</p>
 <p class="about">If you are the copyright owner of a Bible translation or a relevant dataset and would like to see it listed on this site,
         please contact us at <b>Freely</b> dot <b>Given</b> dot <b>org</b> (at) <b>gmail</b> dot <b>com</b>.</p>

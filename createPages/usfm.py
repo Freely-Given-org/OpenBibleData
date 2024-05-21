@@ -935,7 +935,8 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
 
     # Some final styling and cleanups
     if 'OET' in versionAbbreviation:
-        html = html.replace( '≈', '<span class="parr">≈</span>') \
+        # html = html.replace( '≈', '<span class="parr">≈</span>') \
+        html = html \
                 .replace( '◘', f'''<a title="Go to missing verses pages" href="{'../'*level}OET/missingVerse.htm">◘</a>''' )
         if versionAbbreviation == 'OET-LV':
             html = html.replace( 'ə', '<small>ə</small>' )
