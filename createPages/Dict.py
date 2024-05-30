@@ -61,7 +61,7 @@ from html import makeTop, makeBottom, checkHtml
 from OETHandlers import getOETTidyBBB
 
 
-LAST_MODIFIED_DATE = '2024-05-19' # by RJH
+LAST_MODIFIED_DATE = '2024-05-28' # by RJH
 SHORT_PROGRAM_NAME = "Dictionary"
 PROGRAM_NAME = "OpenBibleData Dictionary handler"
 PROGRAM_VERSION = '0.45'
@@ -604,7 +604,7 @@ def createTyndaleDictPages( level:int, outputFolderPath, state:State ) -> bool:
         filename = f'{articleLinkName}.htm'
         filepath = outputFolderPath.joinpath( filename )
         top = makeTop( level, None, 'dictionaryEntry', None, state ) \
-                .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}Dictionary Article" ) \
+                .replace( '__TITLE__', f"Dictionary Article{' TEST' if TEST_MODE else ''}" ) \
                 .replace( '__KEYWORDS__', f'Bible, dictionary, {articleLinkName}' )
 # <h2 id="Top">{articleLinkName}</h2>
         articleHtml = f'''{top}
@@ -638,7 +638,7 @@ def createTyndaleDictPages( level:int, outputFolderPath, state:State ) -> bool:
         filename = f'index_{letter}.htm'
         filepath = outputFolderPath.joinpath( filename )
         top = makeTop( level, None, 'dictionaryLetterIndex', None, state ) \
-                .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}Dictionary Index Letter" ) \
+                .replace( '__TITLE__', f"Dictionary Index Letter{' TEST' if TEST_MODE else ''}" ) \
                 .replace( '__KEYWORDS__', 'Bible, dictionary' )
         letterIndexHtml = f'''{top}
 {lettersParagraph}
@@ -657,7 +657,7 @@ def createTyndaleDictPages( level:int, outputFolderPath, state:State ) -> bool:
     filename = 'intro.htm'
     filepath = outputFolderPath.joinpath( filename )
     top = makeTop( level, None, 'dictionaryIntro', None, state ) \
-            .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}Dictionary Introduction" ) \
+            .replace( '__TITLE__', f"Dictionary Introduction{' TEST' if TEST_MODE else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, dictionary, introduction' )
     introHtml = f'''{top}<p class="note"><b>Note</b>: The Tyndale Open Bible Dictionary is included on this site because it contains a wealth of useful information,
 even though it was originally designed to supplement the <i>New Living Translation</i>, not our <em>Open English Translation</em>.</p>
@@ -674,7 +674,7 @@ even though it was originally designed to supplement the <i>New Living Translati
     filename = 'index.htm'
     filepath = outputFolderPath.joinpath( filename )
     top = makeTop( level, None, 'dictionaryMainIndex', None, state ) \
-            .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}Dictionary Index" ) \
+            .replace( '__TITLE__', f"Dictionary Index{' TEST' if TEST_MODE else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, dictionary' )
 # <p class="dNav"><a id="Go to dict intro" href="intro.htm#Top">Introduction</a></p>
     indexHtml = f'''{top}
@@ -1043,7 +1043,7 @@ def createUBSGreekDictionaryPages( level, outputFolderPath, state:State ) -> Non
 
         filepath = outputFolderPath.joinpath( f"{entry['Lemma']}.htm" )
         top = makeTop( level, None, 'dictionaryEntry', None, state ) \
-                .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}UBS Greek Dictionary Article" ) \
+                .replace( '__TITLE__', f"UBS Greek Dictionary Article{' TEST' if TEST_MODE else ''}" ) \
                 .replace( '__KEYWORDS__', f'Bible, dictionary, {lemma}' )
         articleHtml = f'''{top}
 <h1>{'TEST ' if TEST_MODE else ''}UBS Dictionary of the Greek New Testament</h1>
@@ -1123,7 +1123,7 @@ def createUBSHebrewDictionaryPages( level, outputFolderPath, state:State ) -> No
 
         filepath = outputFolderPath.joinpath( f"{entry['Lemma']}.htm" )
         top = makeTop( level, None, 'dictionaryEntry', None, state ) \
-                .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}UBS Hebrew Dictionary Article" ) \
+                .replace( '__TITLE__', f"UBS Hebrew Dictionary Article{' TEST' if TEST_MODE else ''}" ) \
                 .replace( '__KEYWORDS__', f'Bible, dictionary, {lemma}' )
         articleHtml = f'''{top}
 <h1>{'TEST ' if TEST_MODE else ''}UBS Dictionary of the Hebrew New Testament</h1>

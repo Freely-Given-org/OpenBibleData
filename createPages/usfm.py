@@ -67,7 +67,7 @@ from settings import State
 from html import checkHtml
 
 
-LAST_MODIFIED_DATE = '2024-05-01' # by RJH
+LAST_MODIFIED_DATE = '2024-05-27' # by RJH
 SHORT_PROGRAM_NAME = "usfm"
 PROGRAM_NAME = "OpenBibleData USFM to HTML functions"
 PROGRAM_VERSION = '0.76'
@@ -935,7 +935,6 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
 
     # Some final styling and cleanups
     if 'OET' in versionAbbreviation:
-        # html = html.replace( '≈', '<span class="parr">≈</span>') \
         html = html \
                 .replace( '◘', f'''<a title="Go to missing verses pages" href="{'../'*level}OET/missingVerse.htm">◘</a>''' )
         if versionAbbreviation == 'OET-LV':

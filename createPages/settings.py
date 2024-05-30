@@ -50,7 +50,7 @@ from BibleOrgSys.BibleOrgSysGlobals import dPrint
 from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39
 
 
-LAST_MODIFIED_DATE = '2024-05-06' # by RJH
+LAST_MODIFIED_DATE = '2024-05-30' # by RJH
 SHORT_PROGRAM_NAME = "settings"
 PROGRAM_NAME = "OpenBibleData (OBD) Create Pages"
 PROGRAM_VERSION = '0.96'
@@ -58,7 +58,7 @@ PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
 
-OET_VERSION = 'v0.13'
+OET_VERSION = 'v0.14'
 
 TEST_MODE = True # Writes website into Test subfolder
 ALL_PRODUCTION_BOOKS = not TEST_MODE # If set to False, only selects one book per version for a faster test build
@@ -90,14 +90,14 @@ ALTERNATIVE_VERSION = 'WEB' # Should be a version with all books present
 
 NUM_EXTRA_MODES = 5 # Related passages, parallel and interlinear verses, dictionary, and search
 
-UNFINISHED_WARNING_TEXT = 'This is still a very early look into the unfinished text of the <em>Open English Translation</em> of the Bible. Please double-check the text in advance before using in public.'
-UNFINISHED_WARNING_PARAGRAPH = f'<p class="rem">{UNFINISHED_WARNING_TEXT}</p>'
+UNFINISHED_WARNING_HTML_TEXT = 'This is still a very early look into the unfinished text of the <em>Open English Translation</em> of the Bible. Please double-check the text in advance before using in public.'
+UNFINISHED_WARNING_HTML_PARAGRAPH = f'<p class="rem">{UNFINISHED_WARNING_HTML_TEXT}</p>'
 
-JAMES_NOTE_TEXT = 'Note that the <em>OET</em> uses ‘Yacob’ for ‘The Letter of Jacob’ (wrongly called ‘James’ in older Bibles).'
-JAMES_NOTE_PARAGRAPH = f'<p class="rem">{JAMES_NOTE_TEXT}</p>'
+JAMES_NOTE_HTML_TEXT = 'Note that the <em>OET</em> uses ‘Yacob’ for ‘The Letter of Jacob’ (wrongly called ‘James’ in older Bibles).'
+JAMES_NOTE_HTML_PARAGRAPH = f'<p class="rem">{JAMES_NOTE_HTML_TEXT}</p>'
 
-BY_DOCUMENT_TEXT = 'Remember that ancient letters were meant to be read in their entirety, just like modern letters. We provide a byChapter mode for convenience only, but mostly recommend the byDocument and bySection modes for personal reading.'
-BY_DOCUMENT_PARAGRAPH = f'<p class="rem">{BY_DOCUMENT_TEXT}</p>'
+BY_DOCUMENT_HTML_TEXT = 'Remember that ancient letters were meant to be read in their entirety, just like modern letters. We provide a byChapter mode for convenience only, but mostly <b>recommend the byDocument and bySection modes</b> for personal reading.'
+BY_DOCUMENT_HTML_PARAGRAPH = f'<p class="rem">{BY_DOCUMENT_HTML_TEXT}</p>'
 
 
 
@@ -510,7 +510,7 @@ We’re also grateful to the <a href="https://www.Biblica.com/clear/">Biblica Cl
                 'acknowledgements': '<p class="acknwldg">(coming).</p>' },
         'NET': {'about': '<p class="about">New English Translation (2016).</p>',
                 'copyright': '<p class="copyright">Copyright © (coming).</p>',
-                'licence': '<p class="licence"><a href="https://bible.org/downloads">Free</a> (without their notes).</p>',
+                'licence': '''<p class="licence"><a href="https://bible.org/downloads">Free</a> (without their many notes, which sadly we're unable to include).</p>''',
                 'acknowledgements': '<p class="acknwldg">(coming).</p>' },
         'LSV': {'about': '<p class="about">Literal Standard Version (2020).</p>',
                 'copyright': '<p class="copyright">Copyright © (coming).</p>',

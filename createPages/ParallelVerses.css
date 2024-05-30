@@ -87,17 +87,18 @@ p.iot { font-weight:bold; }
 p.io1 { text-indent:2em; margin-top:0.2em; margin-bottom:0.2em; }
 p.io2 { text-indent:4em; margin-top:0.2em; margin-bottom:0.2em; }
 p.ip { text-indent:0.5em; margin-top:0.2em; margin-bottom:0.2em; }
+p.im { margin-top:0.2em; margin-bottom:0.2em; }
 span.ior { font-weight:bold; }
 span.bk { font-style:italic; }
 
 /* Chapters USFM */
 span.c { font-size:1.1em; color:green; }
-span.cPsa { font-size:1.6em; font-weight:bold; color:green; }
 span.ca { font-size:1.1em; color:blue; }
+span.cPsa { font-size:1.6em; font-weight:bold; color:green; }
 span.v { vertical-align:super; font-size:0.5em; color:red; }
-span.cv { vertical-align:super; font-size:0.8em; color:orange; }
-span.vp { vertical-align:super; font-size:0.5em; color:purple; }
 span.va { vertical-align:super; font-size:0.5em; color:crimson; }
+span.vp { vertical-align:super; font-size:0.5em; color:purple; }
+span.cv { vertical-align:super; font-size:0.8em; color:orange; }
 span.noVerse {} /* We don't have that verse */
 span.d { font-style:italic; color:sienna; }
 div.s1 {}
@@ -134,6 +135,8 @@ span.addExtra { color:lightGreen; }
 span.addOwner { color:darkOrchid; }
 span.addPronoun { color:darkgreen; }
 span.addReferent { color:darkblue; }
+span.addPluralised { color:darkcyan; }
+span.addNegated { color:darkred; }
 span.addReword { color:orange; }
 span.RVadd { color:#505050; } /* Darker than dimGrey which is #696969 (black is #000000) */
 span.add { color:grey; }
@@ -170,10 +173,13 @@ div.parallelTSN {}
 p.sn-text {}
 span.sn-excerpt { font-family:Arial, Helvetica, sans-serif; color:saddleBrown; }
 span.sn-ref {}
-span.ital { font-style:italic; } /* TODO: We need to fix these two */
+span.ital { font-style:italic; } /* TODO: We need to fix these */
 span.bold { font-weight:bold; }
+span.ital-bold { font-style:italic; font-weight:bold; }
 span.hebrew { color:orange; }
+span.aramic { color:darkorchid; }
 span.grk { color:darkgreen; }
+span.latin { color:darkblue; }
 
 /* Tyndale TNs */
 div.parallelTTN {}

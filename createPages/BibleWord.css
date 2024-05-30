@@ -56,6 +56,8 @@ span.addExtra { color:lightGreen; }
 /* span.addOwner { color:darkOrchid; } */
 /* span.addPronoun { color:darkgreen; } */
 /* span.addReferent { color:darkblue; } */
+/* span.addPluralised { color:darkcyan; } */
+/* span.addNegated { color:darkred; } */
 /* span.addReword { color:orange; } */
 /* span.RVadd { color:#505050; } /* Darker than dimGrey which is #696969 (black is #000000) */
 span.add { color:grey; }

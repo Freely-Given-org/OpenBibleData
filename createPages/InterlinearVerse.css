@@ -256,6 +256,8 @@ span.addExtra { color:lightGreen; }
 span.addOwner { color:darkOrchid; }
 span.addPronoun { color:darkgreen; }
 span.addReferent { color:darkblue; }
+span.addPluralised { color:darkcyan; }
+span.addNegated { color:darkred; }
 span.addReword { color:orange; }
 span.RVadd { color:#505050; } /* Darker than dimGrey which is #696969 (black is #000000) */
 span.add { color:grey; }
@@ -310,9 +312,11 @@ div.TSN {}
 p.sn-text {}
 span.sn-excerpt { font-family:Arial, Helvetica, sans-serif; color:saddleBrown; }
 span.sn-ref {}
-span.ital { font-style:italic; } /* TODO: We need to fix these two */
+span.ital { font-style:italic; } /* TODO: We need to fix these */
 span.bold { font-weight:bold; }
+span.ital-bold { font-style:italic; font-weight:bold; }
 span.hebrew { color:orange; }
+span.aramic { color:darkorchid; }
 span.grk { color:darkgreen; }
 
 /* unfoldingWord translation notes (UTNs) */

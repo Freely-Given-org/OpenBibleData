@@ -42,10 +42,10 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 
 
 
-LAST_MODIFIED_DATE = '2024-05-22' # by RJH
+LAST_MODIFIED_DATE = '2024-05-26' # by RJH
 SHORT_PROGRAM_NAME = "SentenceImportance_initialisation"
 PROGRAM_NAME = "Sentence Importance initialisation"
-PROGRAM_VERSION = '0.10'
+PROGRAM_VERSION = '0.12'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -77,8 +77,21 @@ vitalRefs = ['GEN_1:1','GEN_1:2','GEN_1:3',
              'HEB_11:6','HEB_13:5',
              'PE1_3:15', 'PE1_5:7']
 importantRefs = ['JHN_16:33']
+trivialRefs = ['EXO_16:36']
 obscureRefs = ['JOB_29:20','JOB_29:24',]
-unclearRefs = ['JOB_30:6','JOB_30:7','JOB_30:11a','JOB_30:12','JOB_30:13','JOB_30:14','JOB_30:15','JOB_30:16a','JOB_30:17a','JOB_30:18','JOB_30:28a']
+unclearRefs = ['EXO_15:25b',
+               'JOB_30:6','JOB_30:7','JOB_30:11a','JOB_30:12','JOB_30:13','JOB_30:14','JOB_30:15','JOB_30:16a','JOB_30:17a','JOB_30:18','JOB_30:28a',
+                'JOB_31:12','JOB_31:16b',
+                'JOB_33:14','JOB_33:16']
+# Just do some basic integrity checking
+allRefs = vitalRefs + importantRefs + trivialRefs + obscureRefs + unclearRefs
+assert len( set(allRefs) ) == len(allRefs) # Otherwise there must be a duplicate
+halfRefs = [ref for ref in allRefs if ref[-1] in 'ab']
+assert len( set(halfRefs) ) == len(halfRefs) # Otherwise there must be a duplicate
+for ref in allRefs:
+    assert 7 <= len(ref) <= 12
+    assert ref.count('_')==1 and ref.count(':')
+    if ref in halfRefs: assert ref[:-1] not in allRefs
 
 
 
@@ -101,7 +114,7 @@ def load():
 
     # Find the list of verses which must be split
     splitVerseSet = set()
-    for ref in vitalRefs + importantRefs + obscureRefs + unclearRefs:
+    for ref in allRefs:
         if ref[-1] in 'ab':
             splitVerseSet.add( ref[:-1] )
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"{len(splitVerseSet):,} verses need to be split." )
@@ -240,6 +253,9 @@ def create( initialTSVLines, collationVerseDict, splitVerseSet ) -> bool:
                 elif subRef in importantRefs:
                     importance = 'I' # important = 3/4
                     importantRefs.remove( subRef )
+                elif subRef in trivialRefs:
+                    importance = 'T' # trivial = 0/4
+                    trivialRefs.remove( subRef )
                 if subRef in obscureRefs:
                     clarity = 'O' # obscure = 1/3
                     obscureRefs.remove( subRef )
@@ -254,6 +270,7 @@ def create( initialTSVLines, collationVerseDict, splitVerseSet ) -> bool:
     assert numLinesWritten == 1+NUM_EXPECTED_DATA_LINES+len(splitVerseSet), f"{NUM_EXPECTED_DATA_LINES=:,} {len(splitVerseSet)=:,} {numLinesWritten=:,}"
     assert len(vitalRefs) == 0, f"({len(vitalRefs)}) {vitalRefs=}" # They should all have been used
     assert len(importantRefs) == 0, f"({len(importantRefs)}) {importantRefs=}" # They should all have been used
+    assert len(trivialRefs) == 0, f"({len(trivialRefs)}) {trivialRefs=}" # They should all have been used
     assert len(obscureRefs) == 0, f"({len(obscureRefs)}) {obscureRefs=}" # They should all have been used
     assert len(unclearRefs) == 0, f"({len(unclearRefs)}) {unclearRefs=}" # They should all have been used
 

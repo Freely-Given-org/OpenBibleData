@@ -70,10 +70,10 @@ from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39, BOOKLIST_NT27
 from settings import State, TEST_MODE, SITE_NAME
 
 
-LAST_MODIFIED_DATE = '2024-05-19' # by RJH
+LAST_MODIFIED_DATE = '2024-05-30' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
-PROGRAM_VERSION = '0.81'
+PROGRAM_VERSION = '0.82'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -349,7 +349,7 @@ def _makeFooter( level:int, pageType:str, state:State ) -> str:
     # fnPrint( DEBUGGING_THIS_MODULE, f"_makeFooter()" )
     html = f"""<div class="footer">
 <p class="copyright"><small><em>{'TEST ' if TEST_MODE else ''}{SITE_NAME}</em> site copyright © 2023-2024 <a href="https://Freely-Given.org">Freely-Given.org</a>.
-<br>Python source code for creating these static pages is available <a href="https://GitHub.com/Freely-Given-org/OpenBibleData">here</a> under an <a href="https://GitHub.com/Freely-Given-org/OpenBibleData/blob/main/LICENSE">open licence</a>.{datetime.now().strftime('<br> (Page created: %Y-%m-%d %H:%M)') if TEST_MODE else ''}</small></p>
+<br>Python source code for creating these static pages is available <a href="https://GitHub.com/Freely-Given-org/OpenBibleData">on GitHub</a> under an <a href="https://GitHub.com/Freely-Given-org/OpenBibleData/blob/main/LICENSE">open licence</a>.{datetime.now().strftime('<br> (Page created: %Y-%m-%d %H:%M)') if TEST_MODE else ''}</small></p>
 <p class="copyright"><small>For Bible data copyrights, see the <a href="{'../'*level}AllDetails.htm#Top">details</a> for each displayed Bible version.</small></p>
 <p class="note"><small>The <em>Open English Translation (OET)</em> main site is at <a href="https://OpenEnglishTranslation.Bible">OpenEnglishTranslation.Bible</a>.</small></p>
 </div><!--footer-->"""
@@ -605,6 +605,7 @@ def checkHtmlForMissingStyles( where:str, htmlToCheck:str ) -> bool:
 # end of html.checkHtmlForMissingStyles
 
 
+ADD_REGEX = re.compile( '<span class="RVadd">' )
 def do_OET_RV_HTMLcustomisations( OET_RV_html:str ) -> str:
     """
     OET-RV is formatted in paragraphs.
@@ -613,24 +614,44 @@ def do_OET_RV_HTMLcustomisations( OET_RV_html:str ) -> str:
     """
     assert '<span class="add">+' not in OET_RV_html # Only expected in OET-LV
     assert '<span class="add">-' not in OET_RV_html # Only expected in OET-LV
-    # assert '<span class="add">=' not in OET_RV_html # Only expected in OET-LV
-    assert '<span class="add">~' not in OET_RV_html # Only expected in OET-LV
+    assert '<span class="add">=' not in OET_RV_html # Only expected in OET-LV
+    # assert '<span class="add"><' not in OET_RV_html # Only expected in OET-LV
     # assert '<span class="add">>' not in OET_RV_html # Only expected in OET-LV
-    assert '<span class="add">^' not in OET_RV_html # Only expected in OET-LV
-    return (OET_RV_html \
+    assert '<span class="add">&' not in OET_RV_html # Only expected in OET-LV
+    result = (OET_RV_html \
             # Adjust specialised add markers
+            .replace( '<span class="add">?<', '<span class="unsure addDirectObject">' )
+            .replace( '<span class="add"><a title', '__PROTECT__' )
+            .replace( '<span class="add"><', '<span class="addDirectObject">' )
+            .replace( '__PROTECT__', '<span class="add"><a title' )
             .replace( '<span class="add">?>', '<span class="unsure addExtra">' )
             .replace( '<span class="add">>', '<span class="addExtra">' )
             .replace( '<span class="add">?*', '<span class="unsure addPronoun">' )
             .replace( '<span class="add">*', '<span class="addPronoun">' )
             .replace( '<span class="add">?@', '<span class="unsure addReferent">' )
             .replace( '<span class="add">@', '<span class="addReferent">' )
+            .replace( '<span class="add">?#', '<span class="unsure addPluralised">' )
+            .replace( '<span class="add">#', '<span class="addPluralised">' )
+            .replace( '<span class="add">?^', '<span class="unsure addNegated">' )
+            .replace( '<span class="add">^', '<span class="addNegated">' )
             .replace( '<span class="add">?≈', '<span class="unsure addReword">' )
             .replace( '<span class="add">≈', '<span class="addReword">' )
             .replace( '<span class="add">?', '<span class="unsure RVadd">' )
             .replace( '<span class="add">', '<span class="RVadd">' )
             .replace( '≈', '<span class="parr">≈</span>')
             )
+    startSearchIndex = 0
+    for _safetyCount in range( 3_000 ): # 2_000 wasn't enough
+        match = ADD_REGEX.search( result, startSearchIndex )
+        if not match: break
+        startSearchIndex = match.end()
+        # print( f"{startSearchIndex=} {nextChar=} {result[match.start():match.start()+30]}" )
+        nextChars = result[startSearchIndex:]
+        if not nextChars.startswith( '<a title' ):
+            nextChar = result[startSearchIndex]
+            assert nextChar.isalpha() or nextChar in '(,‘’—', f"{startSearchIndex=} {nextChar=} {result[match.start():match.start()+30]}"
+    else: NOT_ENOUGH_LOOPS
+    return result
 # end of html.do_OET_RV_HTMLcustomisations
 
 
@@ -660,6 +681,7 @@ def do_OET_LV_HTMLcustomisations( OET_LV_html:str ) -> str:
 
     assert '<span class="add">*' not in OET_LV_html # Only expected in OET-RV
     assert '<span class="add">@' not in OET_LV_html # Only expected in OET-RV
+    assert '<span class="add">~' not in OET_LV_html # Only expected in OET-RV
     assert '<span class="add">≈' not in OET_LV_html # Only expected in OET-RV
     assert '<span class="add">?' not in OET_LV_html # Only expected in OET-RV
     OET_LV_html = (OET_LV_html \
@@ -679,9 +701,9 @@ def do_OET_LV_HTMLcustomisations( OET_LV_html:str ) -> str:
             .replace( '<span class="add">+', '<span class="addArticle">' )
             .replace( '<span class="add">-', '<span class="unusedArticle">' )
             .replace( '<span class="add">=', '<span class="addCopula">' )
-            .replace( '<span class="add">~', '<span class="addDirectObject">' )
+            .replace( '<span class="add"><', '<span class="addDirectObject">' )
             .replace( '<span class="add">>', '<span class="addExtra">' )
-            .replace( '<span class="add">^', '<span class="addOwner">' )
+            .replace( '<span class="add">&', '<span class="addOwner">' )
             # Put all underlines into a span with a class (then we will have a button to hide them)
             .replace( '="', '~~EQUAL"' ) # Protect class=, id=, etc.
             .replace( '=', '_' ).replace( '÷', '_' ) # For OT morphemes

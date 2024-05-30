@@ -64,7 +64,7 @@ from createOETReferencePages import CNTR_BOOK_ID_MAP
 from OETHandlers import livenOETWordLinks, getOETBookName, getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
-LAST_MODIFIED_DATE = '2024-04-23' # by RJH
+LAST_MODIFIED_DATE = '2024-05-28' # by RJH
 SHORT_PROGRAM_NAME = "createOETInterlinearPages"
 PROGRAM_NAME = "OpenBibleData createOETInterlinearPages functions"
 PROGRAM_VERSION = '0.53'
@@ -99,7 +99,7 @@ def createOETInterlinearPages( level:int, folder:Path, state:State ) -> bool:
     filename = 'index.htm'
     filepath = folder.joinpath( filename )
     top = makeTop( level, None, 'interlinearVerse', None, state ) \
-            .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}Interlinear View" ) \
+            .replace( '__TITLE__', f"Interlinear View{' TEST' if TEST_MODE else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, interlinear' )
     indexHtml = f'''{top}
 <h1 id="Top">OET interlinear verse pages</h1>
@@ -182,7 +182,7 @@ def createOETInterlinearVersePagesForBook( level:int, folder:Path, BBB:str, BBBL
                 # filenames.append( filename )
                 filepath = BBBFolder.joinpath( filename )
                 top = makeTop( BBBLevel, None, 'interlinearVerse', None, state ) \
-                        .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{ourTidyBBB} {c}:{v} Interlinear View" ) \
+                        .replace( '__TITLE__', f"{ourTidyBBB} {c}:{v} Interlinear View{' TEST' if TEST_MODE else ''}" ) \
                         .replace( '__KEYWORDS__', f'Bible, interlinear, {ourTidyBBB}' ) \
                         .replace( f'''href="{'../'*BBBLevel}par/"''', f'''href="{'../'*BBBLevel}par/{BBB}/C{c}V{v}.htm#Top"''')
                 iHtml = f'''{top}<!--interlinear verse page-->
@@ -209,7 +209,7 @@ def createOETInterlinearVersePagesForBook( level:int, folder:Path, BBB:str, BBBL
     filename1 = 'index.htm'
     filepath1 = BBBFolder.joinpath( filename1 )
     top = makeTop( BBBLevel, None, 'interlinearVerse', None, state) \
-            .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{ourTidyBBB} Interlinear View" ) \
+            .replace( '__TITLE__', f"{ourTidyBBB} Interlinear View{' TEST' if TEST_MODE else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, interlinear' )
     # For Psalms, we don't list every single verse
     ourLinks = f'''<h1 id="Top">OET {ourTidyBBBwithNotes} interlinear songs index</h1>
@@ -233,7 +233,7 @@ f'''<p class="chLst">{ourTidyBbb if ourTidyBbb!='Yac' else 'Yacob/(James)'} {'
     filename2 = f'{BBB}.htm'
     filepath2 = folder.joinpath( filename2 )
     top = makeTop( level, None, 'interlinearVerse', None, state) \
-            .replace( '__TITLE__', f"{'TEST ' if TEST_MODE else ''}{ourTidyBBB} Interlinear View" ) \
+            .replace( '__TITLE__', f"{ourTidyBBB} Interlinear View{' TEST' if TEST_MODE else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, interlinear' )
     # For Psalms, we don't list every single verse
     ourLinks = f'''<h1 id="Top">OET {ourTidyBBBwithNotes} interlinear songs index</h1>
@@ -316,37 +316,38 @@ def createOETInterlinearVersePage( level:int, BBB:str, c:int, v:int, state:State
     wordNumberStr = None # in case there's no words
     lvEnglishWordList = []
     for lvVerseEntry in lvVerseEntryList:
-        text = lvVerseEntry.getFullText()
-        if not text or '¦' not in text: continue # no interest to us here
+        cleanLVText, fullLVText = lvVerseEntry.getCleanText(), lvVerseEntry.getFullText()
+        if not fullLVText or '¦' not in fullLVText: continue # no interest to us here
 
         # Remove sentence punctuation, break "chosen/messiah"
         #   then split into words
-        lvEnglishWordList += text.replace(',','').replace('.','').replace(':','').replace('?','') \
-                            .replace('\\add ','').replace('\\add*','') \
-                            .replace('\\nd ','').replace('\\nd*','') \
-                            .replace('\\sup ','<sup>').replace('\\sup*','</sup>') \
-                            .replace('\\untr ','').replace('\\untr*','') \
-                            .replace('/messiah¦', ' messiah¦') \
-                            .replace('_',' ').replace('=',' ').replace('÷',' ') \
-                            .replace('   ',' ').replace('  ',' ') \
+        lvEnglishWordList += ( cleanLVText.replace(',','').replace('.','').replace(':','').replace('?','')
+                            # .replace('\\add ','').replace('\\add*','')
+                            # .replace('\\nd ','').replace('\\nd*','')
+                            # .replace('\\sup ','<sup>').replace('\\sup*','</sup>')
+                            # .replace('\\untr ','').replace('\\untr*','')
+                            .replace('/messiah¦', ' messiah¦')
+                            .replace('_',' ').replace('=',' ').replace('÷',' ')
+                            .replace('   ',' ').replace('  ',' ')
                             .strip().split( ' ' )
+                            )
         # print( f"Found {BBB} {c}:{v} {lvVerseEntry=}" )
-        ixMarker = text.index( '¦' )
+        ixMarker = fullLVText.index( '¦' )
         if not wordNumberStr: # We only need to find one word number (preferably the first one) here
             wordNumberStr = ''
             for increment in range( 1, 7 ): # (maximum of six word-number digits)
-                if text[ixMarker+increment].isdigit():
-                    wordNumberStr = f'{wordNumberStr}{text[ixMarker+increment]}' # Append the next digit
+                if fullLVText[ixMarker+increment].isdigit():
+                    wordNumberStr = f'{wordNumberStr}{fullLVText[ixMarker+increment]}' # Append the next digit
                 else: break
         # break
     rvEnglishWordList = []
     for rvVerseEntry in rvVerseEntryList:
-        text = rvVerseEntry.getFullText()
-        if not text or '¦' not in text: continue # no interest to us here
+        fullLVText = rvVerseEntry.getFullText()
+        if not fullLVText or '¦' not in fullLVText: continue # no interest to us here
 
         # Remove sentence punctuation,
         #   then split into words
-        rvEnglishWordList += text.replace(',','').replace('.','').replace(':','').replace('?','') \
+        rvEnglishWordList += fullLVText.replace(',','').replace('.','').replace(':','').replace('?','') \
                             .replace('\\add ','').replace('\\add*','') \
                             .replace('\\nd ','').replace('\\nd*','') \
                             .replace('\\sup ','<sup>').replace('\\sup*','</sup>') \
