@@ -103,7 +103,9 @@ span.noVerse {} /* We don't have that verse */
 span.d { font-style:italic; color:sienna; }
 div.s1 {}
 p.s1 { margin-top:0.1em; margin-bottom:0; font-weight:bold; }
-p.r { margin-top:0; margin-bottom:0; font-size:0.75em; }
+/* p.mr { margin-top:0; margin-bottom:0; font-size:1.1em; text-align: center; font-style:italic; } Major section reference range */
+/* p.sr { margin-top:0; margin-bottom:0; font-size:0.9em; text-align: center; font-weight:bold; } Section reference range */
+p.r { margin-top:0; margin-bottom:0; font-size:0.75em; text-align: center; font-style:italic; } /* Parallel references */
 p.p { text-indent:0.5em; margin-top:0.2em; margin-bottom:0.2em; }
 p.q1 { margin-left:1em; margin-top:0.2em; margin-bottom:0.2em; }
 p.q2 { margin-left:2em; margin-top:0.2em; margin-bottom:0.2em; }
@@ -126,12 +128,27 @@ span.ul { color:darkGrey; }
 /* OT spans */
 span.parr { vertical-align:super; font-size:0.8em; color:green; }
 
+span.tl {}
+span.wh { font-style:italic; }
+span.jmp {}
+
+/* NET Bible notes spans */
+span.fn { font-weight:bold; color:blue } /* NET footnote number */
+span.es {} /* e shwa -- should be replaced with actual shwa now */
+span.fx { font-weight:bold; } /* footnote cross-reference */
+span.ver { font-weight:bold; } /* version abbreviation */
+span.src { font-weight:bold; } /* manuscript source abbreviation */
+span.heb { font-weight:bold; color:orange; }
+span.theb { color:grey; } /* transliteration */
+span.tgrk { color:grey; } /* transliteration */
+
 /* OET add spans */
 span.addArticle { color:bisque; }
 span.unusedArticle { color:lavender; }
 span.addCopula { color:pink; }
 span.addDirectObject { color:brown; }
 span.addExtra { color:lightGreen; }
+span.addElided { color:darkgoldenrod; }
 span.addOwner { color:darkOrchid; }
 span.addPronoun { color:darkgreen; }
 span.addReferent { color:darkblue; }
@@ -144,60 +161,6 @@ span.untr { font-size:0.8em; color:grey; text-decoration:line-through; }
 span.unsure { text-decoration:underline; text-decoration-style: dotted; }
 
 p.key { background-color:seaShell; font-size:0.8em; }
-
-/* Where do these come from??? One of the below! */
-span.sup { vertical-align:super; }
-span.sub { vertical-align:sub; }
-
-/* Tyndale Book Intro Summaries */
-p.intro-title { text-align:center; font-size:1.8em; }
-p.intro-sidebar-h1 { font-weight:bold; }
-p.intro-h1 { font-weight:bold; }
-
-/* Tyndale book intros */
-div.parallelTBI {}
-p.intro-body-fl {}
-p.intro-sidebar-body-fl {}
-p.intro-overview {}
-p.intro-body {}
-p.intro-body-fl-sp {}
-p.intro-list {}
-p.intro-list-sp {}
-span.intro-h2 {}
-span.intro-h2-era {}
-span.era {}
-span.greek {}
-
-/* Tyndale SNs */
-div.parallelTSN {}
-p.sn-text {}
-span.sn-excerpt { font-family:Arial, Helvetica, sans-serif; color:saddleBrown; }
-span.sn-ref {}
-span.ital { font-style:italic; } /* TODO: We need to fix these */
-span.bold { font-weight:bold; }
-span.ital-bold { font-style:italic; font-weight:bold; }
-span.hebrew { color:orange; }
-span.aramic { color:darkorchid; }
-span.grk { color:darkgreen; }
-span.latin { color:darkblue; }
-
-/* Tyndale TNs */
-div.parallelTTN {}
-p.theme-title { font-weight:bold; }
-p.theme-refs-title { font-weight:bold; }
-p.theme-body-fl {}
-p.theme-body-fl-sp {}
-p.theme-body {}
-p.theme-refs {}
-span.divine-name {}
-
-/* unfoldingWord translation notes (UTNs) */
-div.parallelUTN {}
-p.TN {}
-p.OL { margin-bottom:0; color:indigo; }
-p.Trans { margin-top:0; color:saddlebrown; }
-p.Gram { font-style:italic; }
-p.TARef {}
 
 /* USFM footnotes */
 div.footnotes {}
@@ -247,3 +210,63 @@ span.wrkName {}
 span.wrkNameDiffPunct { background-color:yellow; }
 span.wrkNameDiffAccents { background-color:orange; }
 span.wrkNameDiffText { background-color:red; }
+
+/* Where do these come from??? One of the below! */
+span.sup { vertical-align:super; }
+span.sub { vertical-align:sub; }
+
+/* Tyndale Book Intro Summaries */
+p.intro-title { text-align:center; font-size:1.8em; }
+p.intro-sidebar-h1 { font-weight:bold; }
+p.intro-h1 { font-weight:bold; }
+
+/* Tyndale book intros */
+div.parallelTBI {}
+p.intro-body-fl {}
+p.intro-sidebar-body-fl {}
+p.intro-overview {}
+p.intro-body {}
+p.intro-body-fl-sp {}
+p.intro-list {}
+p.intro-list-sp {}
+span.intro-h2 {}
+span.intro-h2-era {}
+span.era {}
+span.greek {}
+
+/* Tyndale SNs */
+div.parallelTSN {}
+p.sn-text {}
+span.sn-excerpt { font-family:Arial, Helvetica, sans-serif; color:saddleBrown; }
+span.sn-excerpt-sc { font-family:Arial, Helvetica, sans-serif; color:saddleBrown; }
+span.sn-excerpt-roman { font-family:'Times New Roman', Times, serif, Helvetica, sans-serif; color:saddleBrown; }
+span.sn-ref {}
+span.sn-ref-sc {}
+span.ital { font-style:italic; } /* TODO: We need to fix these */
+span.bold { font-weight:bold; }
+span.ital-bold { font-style:italic; font-weight:bold; }
+span.hebrew { font-weight:bold; color:orange; }
+span.aramaic { font-weight:bold; color:darkorchid; }
+span.grk { font-weight:bold; color:darkgreen; } /* Also used in NET Bible footnotes */
+span.latin { font-weight:bold; color:darkblue; }
+span.divine-name {}
+span.divine-name-ital { font-style:italic; }
+
+/* Tyndale TNs */
+div.parallelTTN {}
+p.theme-title { font-weight:bold; }
+p.theme-refs-title { font-weight:bold; }
+p.theme-h2 { font-weight:bold; }
+p.theme-body-fl {}
+p.theme-body-fl-sp {}
+p.theme-body {}
+p.theme-body-sp {}
+p.theme-refs {}
+
+/* unfoldingWord translation notes (UTNs) */
+div.parallelUTN {}
+p.TN {}
+p.OL { margin-bottom:0; color:indigo; }
+p.Trans { margin-top:0; color:saddlebrown; }
+p.Gram { font-style:italic; }
+p.TARef {}

@@ -57,6 +57,7 @@ CHANGELOG:
     2024-03-22 Add OT Hebrew word and lemma pages
     2024-04-23 Use ref for Heb and Grk word page filenames (instead of row number)
     2024-05-27 Try adding word connections for Hebrew roots
+    2024-06-03 In test mode, only make connected lemma pages for Heb/Grk words used
 """
 from gettext import gettext as _
 from typing import Dict, List, Tuple, Union
@@ -67,6 +68,7 @@ import re
 import json
 import logging
 import unicodedata
+from time import time
 
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
@@ -82,10 +84,10 @@ from html import makeTop, makeBottom, checkHtml
 from OETHandlers import getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
-LAST_MODIFIED_DATE = '2024-05-30' # by RJH
+LAST_MODIFIED_DATE = '2024-06-11' # by RJH
 SHORT_PROGRAM_NAME = "createOETReferencePages"
 PROGRAM_NAME = "OpenBibleData createOETReferencePages functions"
-PROGRAM_VERSION = '0.69'
+PROGRAM_VERSION = '0.71'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -648,9 +650,19 @@ def createOETReferencePages( level:int, outputFolderPath:Path, state:State ) -> 
     state.OETRefData['OTLemmaOETGlossesDict'] = defaultdict(set)
     state.OETRefData['OTLemmasForRootDict'] = defaultdict(set)
     state.OETRefData['OETOTGlossWordDict'] = defaultdict(list)
+    state.OETRefData['OTLemmaGlossDict'] = {}
+    # startTime = time()
     preprocessHebrewWordsLemmasGlosses( [], state ) # Ignores these ones
+    # if TEST_MODE: vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      preprocessHebrewWordsLemmasGlosses() took {(time()-startTime)/60:.2f} minutes.")
+    startTime = time()
     create_Hebrew_word_pages( level+1, outputFolderPath.joinpath( 'HebWrd/' ), state )
+    if TEST_MODE: vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      create_Hebrew_word_pages() took {(time()-startTime)/60:.1f} minutes.")
+    startTime = time()
     create_Hebrew_lemma_pages( level+1, outputFolderPath.joinpath( 'HebLem/' ), state )
+    if TEST_MODE: vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      create_Hebrew_lemma_pages() took {(time()-startTime)/60:.1f} minutes.")
+    del state.OETRefData['OTFormUsageDict'], state.OETRefData['OTLemmaRowNumbersDict'], state.OETRefData['OTWordRowNumbersDict']
+    del state.OETRefData['OTFormOETGlossesDict'], state.OETRefData['OTLemmaOETGlossesDict'], state.OETRefData['OTLemmasForRootDict']
+    del state.OETRefData['OETOTGlossWordDict'], state.OETRefData['OTLemmaGlossDict']
 
     state.OETRefData['NTFormUsageDict'], state.OETRefData['NTLemmaDict'] = defaultdict(list), defaultdict(list)
     state.OETRefData['NTLemmaFormsDict'] = defaultdict(set)
@@ -659,11 +671,17 @@ def createOETReferencePages( level:int, outputFolderPath:Path, state:State ) -> 
     state.OETRefData['OETNTGlossWordDict'], state.OETRefData['VLTGlossWordDict'] = defaultdict(list), defaultdict(list)
     state.OETRefData['NTGreekLemmaDict'] = {}
     # NOTE: The word table has Matthew at the beginning (whereas the OET places John and Mark at the beginning) so we do them first
+    # startTime = time()
     preprocessGreekWordsLemmasGlosses( 'JHN', state ) # Only processes this book
     preprocessGreekWordsLemmasGlosses( 'MRK', state )
     preprocessGreekWordsLemmasGlosses( ['JHN','MRK'], state ) # Ignores these ones
+    # if TEST_MODE: vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      preprocessGreekWordsLemmasGlosses() took {(time()-startTime)/60:.2f} minutes.")
+    startTime = time()
     create_Greek_word_pages( level+1, outputFolderPath.joinpath( 'GrkWrd/' ), state )
+    if TEST_MODE: vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      create_Greek_word_pages() took {(time()-startTime)/60:.1f} minutes.")
+    startTime = time()
     create_Greek_lemma_pages( level+1, outputFolderPath.joinpath( 'GrkLem/' ), state )
+    if TEST_MODE: vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      create_Greek_lemma_pages() took {(time()-startTime)/60:.1f} minutes.")
 
     create_person_pages( level+1, outputFolderPath.joinpath( 'Per/' ), state )
     create_location_pages( level+1, outputFolderPath.joinpath( 'Loc/' ), state )
@@ -766,6 +784,9 @@ def preprocessHebrewWordsLemmasGlosses( BBBSelection:Union[str, List[str]], stat
                     state.OETRefData['OTLemmaRowNumbersDict'][noCantillations].append( lemmaRowNumber )
                     state.OETRefData['OTWordRowNumbersDict'][lemmaRowNumber].append( n )
                 except ValueError: pass
+            # print( f"{_word=} {noCantillations=} {_morphemeRowList=} {lemmaRowList=} {state.OETRefData['OTLemmaRowNumbersDict'][noCantillations]=}" )
+            # for lrn in state.OETRefData['OTLemmaRowNumbersDict'][noCantillations]: print( f"  {lrn=}: {state.OETRefData['OTWordRowNumbersDict'][lrn]=}")
+            # if noCantillations == 'נִין': halt
             # else:
             #     state.OETRefData['OTLemmaRowNumbersDict'][noCantillations].append( n )
             #     state.OETRefData['OTLemmaFormsDict'][noCantillations].add( formMorph2Tuple )
@@ -942,9 +963,10 @@ def create_Hebrew_word_pages( level:int, outputFolderPath:Path, state:State ) ->
     # end of createOETReferencePages.tidy_Hebrew_word_gloss
 
 
-    # Now make a page for each Hebrew word (including the variants not used in the translation)
+    # Now make a page for each Hebrew word (including the note pages)
     numWordPagesMade = 0
-    wordLinks:List[str] = []
+    wordLinks:List[str] = [] # Used below to make an index page
+    state.OETRefData['usedHebLemmas'] = set() # Used in next function to make lemma pages
     for n, columns_string in enumerate( state.OETRefData['word_tables'][HebrewWordFileName][1:], start=1 ):
         if not columns_string: continue # a blank line (esp. at end)
         # print( f"Word {n}: {columns_string}" )
@@ -954,6 +976,18 @@ def create_Hebrew_word_pages( level:int, outputFolderPath:Path, state:State ) ->
         used_word_filenames.append( output_filename )
         # dPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Got '{columns_string}' for '{output_filename}'" )
         ref, rowType, morphemeRowList, lemmaRowList, strongs, morphology, word, noCantillations, morphemeGlosses, contextualMorphemeGlosses, wordGloss, contextualWordGloss, glossCapitalisation, glossPunctuation, glossOrder, glossInsert, role, nesting, tags = columns_string.split( '\t' )
+
+        BBB, CVW = ref.split( '_', 1 )
+        if TEST_MODE and not ALL_TEST_REFERENCE_PAGES and BBB not in TEST_BOOK_LIST:
+            continue # In some test modes, we only make the relevant word pages
+        C, VW = CVW.split( ':', 1 )
+        V, W = VW.split( 'w', 1 ) if 'w' in VW else (VW, '') # Segs and Notes don't have word numbers
+        ourTidyBBB = getOETTidyBBB( BBB )
+        ourTidyBBBwithNotes = getOETTidyBBB( BBB, addNotes=True )
+        ourTidyBbb = getOETTidyBBB( BBB, titleCase=True )
+        ourTidyBbbWithNotes = getOETTidyBBB( BBB, titleCase=True, addNotes=True )
+        OSISbookCode = BibleOrgSysGlobals.loadedBibleBooksCodes.getOSISAbbreviation( BBB )
+
         isMultipleLemmas = ',' in lemmaRowList
         # print( f"{ref} '{rowType}' ({lemmaRowList}) got '{word}' ({noCantillations}) morphology='{morphology}'" )
         hebrewWord = (noCantillations.replace( ',', '' ) # Remove morpheme breaks
@@ -970,20 +1004,8 @@ def create_Hebrew_word_pages( level:int, outputFolderPath:Path, state:State ) ->
             else: mainGlossWord = gloss
         else: mainGlossWord = gloss
 
-
-        BBB, CVW = ref.split( '_', 1 )
-        if TEST_MODE and not ALL_TEST_REFERENCE_PAGES and BBB not in TEST_BOOK_LIST:
-            continue # In some test modes, we only make the relevant word pages
-        C, VW = CVW.split( ':', 1 )
-        V, W = VW.split( 'w', 1 ) if 'w' in VW else (VW, '') # Segs and Notes don't have word numbers
-        ourTidyBBB = getOETTidyBBB( BBB )
-        ourTidyBBBwithNotes = getOETTidyBBB( BBB, addNotes=True )
-        ourTidyBbb = getOETTidyBBB( BBB, titleCase=True )
-        ourTidyBbbWithNotes = getOETTidyBBB( BBB, titleCase=True, addNotes=True )
-        OSISbookCode = BibleOrgSysGlobals.loadedBibleBooksCodes.getOSISAbbreviation( BBB )
-
         tidyMorphologyField = translationField = capsField = ''
-        if rowType != 'seg' and 'note' not in rowType:
+        if rowType!='seg' and 'note' not in rowType:
             # it's a proper Hebrew (or Aramaic) word
             assert morphemeRowList.count(',') == strongs.count(',') == morphology.count(',') == word.count(',') == noCantillations.count(',')
             for individualMorphology in morphology.split( ',' ):
@@ -1052,12 +1074,14 @@ def create_Hebrew_word_pages( level:int, outputFolderPath:Path, state:State ) ->
                     word_details_field = '(NONE)'
 
                 if gloss:
-                    translationField = f'''‘{gloss[0].upper() if glossCapitalisation=='S' else gloss[0]}{gloss[1:]}’'''
+                    translationField = f'''‘{gloss[0].upper() if glossCapitalisation=='S' else gloss[0]}{gloss[1:]}’'''.replace(',',', ')
                 else:
                     translationField = "<small>Oops, no gloss available!</small>"
-                    logging.critical( f"create_Hebrew_word_pages: {ref} {rowType} No gloss available for '{word}'" )
+                    logging.error( f"create_Hebrew_word_pages: {ref} {rowType} No gloss available for '{word}'" )
                 if glossCapitalisation:
                     capsField = f' <small>(Caps={glossCapitalisation})</small>'
+
+        transliterationBit = f" ({transliterate_Hebrew(noCantillations.replace(',',', '))})" if noCantillations else ''
 
         strongsLinks = ''
         for originalStrongsBit in strongs.split( ',' ):
@@ -1071,6 +1095,7 @@ def create_Hebrew_word_pages( level:int, outputFolderPath:Path, state:State ) ->
                 strongsLinks = f'''{strongsLinks}{', ' if strongsLinks else ''}<a title="Goes to Strongs dictionary" href="https://BibleHub.com/hebrew/{possibleStrongsNumber}.htm">{originalStrongsBit}</a>'''
             elif possibleStrongsNumber: # things like c, m, or b
                 strongsLinks = f'''{strongsLinks}{', ' if strongsLinks else ''}{originalStrongsBit}'''
+        StrongsBit = f' Strongs={strongsLinks}' if strongsLinks else ''
 
         # Add pointers to people, locations, etc.
         # semanticExtras = nominaSacraField
@@ -1103,8 +1128,9 @@ def create_Hebrew_word_pages( level:int, outputFolderPath:Path, state:State ) ->
             # print( f"{lemmaRowNumberStr=}" )
             try: lemmaRowNumber = int(lemmaRowNumberStr)
             except ValueError: continue # could be empty string or '<<<MISSING>>>'
-            lemmaTrans = state.OETRefData['OTTransLemmaList'][lemmaRowNumber]
             lemmaHebrew = state.OETRefData['OTHebLemmaList'][lemmaRowNumber]
+            state.OETRefData['usedHebLemmas'].add( lemmaHebrew ) # Used in next function to make lemma pages
+            lemmaTrans = state.OETRefData['OTTransLemmaList'][lemmaRowNumber]
             lemmaLinksList.append( f'<a title="View Hebrew lemma" href="../HebLem/{lemmaTrans}.htm#Top">‘{lemmaHebrew}’</a>' )
         lemmaLinksStr = ( f'''Lemmas=<b>{', '.join(lemmaLinksList)}</b>''' if isMultipleLemmas else f'Lemma=<b>{lemmaLinksList[0]}</b>' ) if lemmaLinksList else ''
         # print( f"{len(state.OETRefData['OTLemmaOETGlossesDict'])=} {noCantillations=} {state.OETRefData['OTLemmaOETGlossesDict'][noCantillations]=}")
@@ -1139,10 +1165,10 @@ def create_Hebrew_word_pages( level:int, outputFolderPath:Path, state:State ) ->
         oetLink = f''' <a title="View whole chapter" href="{'../'*level}OET/byC/{BBB}_C{C}.htm#C{C}">{ourTidyBbbWithNotes}{NARROW_NON_BREAK_SPACE}{C}</a>'''
         parallelLink = f''' <b><a title="View verse in many parallel versions" href="{'../'*level}par/{BBB}/C{C}V{V}.htm#Top">║</a></b>'''
         interlinearLink = f''' <b><a title="View interlinear verse word-by-word" href="{'../'*level}ilr/{BBB}/C{C}V{V}.htm#Top">═</a></b>''' if BBB in state.booksToLoad['OET'] else ''
-        wordsHtml = f'''<h2>Open English Translation (OET)</h2>\n<h1 id="Top">Hebrew wordlink #{n}</h1>
+        wordsHtml = f'''<h2>Open English Translation (OET)</h2>\n<h1 id="Top">Hebrew wordlink #{n}</h1>{f"{NEWLINE}<h2>{rowType.title()}</h2>" if rowType else ''}
 <p class="pNav">{prevLink}<b>{hebrewWord}</b> <a href="index.htm">↑</a>{nextLink}{oetLink}{parallelLink}{interlinearLink}</p>
 <p class="link"><a title="Go to Open Scriptures Hebrew verse page" href="https://hb.OpenScriptures.org/structure/OshbVerse/index.html?b={OSISbookCode}&c={C}&v={V}">OSHB {ourTidyBbbWithNotes} {C}:{V}</a>
- <b>{hebrewWord}</b> ({transliterate_Hebrew(noCantillations.replace(',',', '))}) {translationField}{capsField if TEST_MODE else ''} Strongs={strongsLinks} {lemmaLinksStr}{tidyMorphologyField}<br>  </p>
+ <b>{hebrewWord}</b>{transliterationBit} {translationField}{capsField if TEST_MODE else ''}{StrongsBit} {lemmaLinksStr}{tidyMorphologyField}<br>  </p>
 <p class="note"><small>Note: These word pages enable you to click through to the <a href="https://hb.OpenScriptures.org">Open Scriptures Hebrew Bible</a> (OSHB) that the <em>Open English Translation</em> Old Testament is translated from.
 The OSHB is based on the <a href="https://www.Tanach.us/Tanach.xml">Westminster Leningrad Codex</a> (WLC).
 (We are still searching for a digitized facsimile of the Leningradensis manuscript that we can easily link to. See <a href="https://www.AnimatedHebrew.com/mss/index.html#leningrad">this list</a> and <a href="https://archive.org/details/Leningrad_Codex/">this archive</a> for now.)
@@ -1225,13 +1251,15 @@ f''' {translation} <a title="Go to Open Scriptures Hebrew verse page" href="
             hebLemmaWordRowsList = state.OETRefData['OTLemmaRowNumbersDict'][noCantillations]
             # lemmaFormsList = state.OETRefData['OTLemmaFormsDict'][noCantillations]
             if len(hebLemmaWordRowsList) == 1:
-                # print( f"{ref} '{hebrew}' ({glossWords}) {lemma=} {hebLemmaWordRowsList=} {lemmaFormsList=} {morphemeGlossesList=}" )
-                # assert len(lemmaFormsList) == 1, f"{ref} {hebLemmaWordRowsList=} {lemmaFormsList=} {morphemeGlossesList=}"
-                # assert len(morphemeGlossesList) == 1
-                wordsHtml = f'''{wordsHtml.replace(lemmaLinksStr, f'{lemmaLinksStr}<sup>*</sup>', 1)}\n<p class="note"><sup>*</sup>Note: This is also the only occurrence of the word root <small>(lemma)</small> ‘{noCantillations}’ in the Hebrew originals.</p>'''
+                thisSingleLemmaRowNumber = hebLemmaWordRowsList[0]
+                if len( state.OETRefData['OTWordRowNumbersDict'][thisSingleLemmaRowNumber] ) == 1:
+                    # print( f"{ref} '{hebrew}' ({glossWords}) {lemma=} {hebLemmaWordRowsList=} {lemmaFormsList=} {morphemeGlossesList=}" )
+                    # assert len(lemmaFormsList) == 1, f"{ref} {hebLemmaWordRowsList=} {lemmaFormsList=} {morphemeGlossesList=}"
+                    # assert len(morphemeGlossesList) == 1
+                    wordsHtml = f'''{wordsHtml.replace(lemmaLinksStr, f'{lemmaLinksStr}<sup>*</sup>', 1)}\n<p class="note"><sup>*</sup>Note: This is also the only occurrence of the word root <small>(lemma)</small> ‘{noCantillations}’ in the Hebrew originals.</p>'''
 
         extraHTMLList = []
-        if mainGlossWord not in COMMON_ENGLISH_WORDS_LIST: # Ignore the most common words
+        if 0 and mainGlossWord not in COMMON_ENGLISH_WORDS_LIST: # Ignore the most common words
             # List other words that are glossed similarly
             try:
                 similarWords = (mainGlossWord,) + SIMILAR_GLOSS_WORDS_DICT[mainGlossWord]
@@ -1239,7 +1267,11 @@ f''' {translation} <a title="Go to Open Scriptures Hebrew verse page" href="
             except KeyError: similarWords = (mainGlossWord,)
             extraWordSet, extraLemmaSet = set(), set()
             for similarWord in similarWords:
+                print( f"{similarWord=} from {similarWords=} {len(state.OETRefData['OETOTGlossWordDict'])=}")
                 nList = state.OETRefData['OETOTGlossWordDict'][similarWord]
+                print( f"{similarWord=} from {similarWords=} {len(state.OETRefData['OETOTGlossWordDict'])=} {nList=}")
+                assert not nList
+                does_this_execute
                 # print( f'''    {n} {ref} {hebrewWord} '{mainGlossWord}' {f'{similarWord=} ' if similarWord!=mainGlossWord else ''}({len(nList)}) {nList[:8]=}{'…' if len(nList)>8 else ''}''' )
                 if len(nList) > 1:
                     if similarWord==mainGlossWord: assert n in nList
@@ -1260,7 +1292,7 @@ f''' {translation} <a title="Go to Open Scriptures Hebrew verse page" href="
                             eTidyBBBwithNotes = getOETTidyBBB( eBBB, addNotes=True )
                             eOSISbookCode = BibleOrgSysGlobals.loadedBibleBooksCodes.getOSISAbbreviation( eBBB )
 
-                            eHebrewPossibleLink = f'<a title="Go to word page" href="{thisN}.htm#Top">{eHebrewWord}</a>' if ALL_TEST_REFERENCE_PAGES or eBBB in TEST_BOOK_LIST else eHebrewWord
+                            eHebrewPossibleLink = f'<a title="Go to word page" href="{thisN}.htm#Top">{eHebrewWord}</a>' if not TEST_MODE or ALL_TEST_REFERENCE_PAGES or eBBB in TEST_BOOK_LIST else eHebrewWord
                             eLemmaLink = f'<a title="View Hebrew root word" href="../HebLem/{eHebrewWord}.htm#Top">{eHebrewWord}</a>' if eNoCantillations!=noCantillations else ''
                             eFormattedContextGlossWords = formatNTContextSpansOETGlossWords( thisN, state )
                             assert '\\' not in eFormattedContextGlossWords, f"{n=} {eFormattedContextGlossWords=}"
@@ -1322,7 +1354,7 @@ f''' <a title="Go to Open Scriptures Hebrew verse page" href="https://hb.OpenS
         vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"      Wrote {len(wordsHtml):,} characters to {output_filename}" )
         wordLinks.append( f'<a href="{output_filename}">{hebrewWord}</a>')
         numWordPagesMade += 1
-    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f'''    Created {numWordPagesMade:,}{f"/{len(state.OETRefData['word_tables'][HebrewWordFileName])-1:,}" if numWordPagesMade < len(state.OETRefData['word_tables'][HebrewWordFileName])-1 else ''} Hebrew word pages.''' )
+    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f'''    Created {numWordPagesMade:,}{f"/{len(state.OETRefData['word_tables'][HebrewWordFileName])-1:,}" if numWordPagesMade < len(state.OETRefData['word_tables'][HebrewWordFileName])-1 else ''} Hebrew word pages (using {len(state.OETRefData['usedHebLemmas']):,} Hebrew lemmas).''' )
 
     # Create index page for this folder
     filename = 'index.htm'
@@ -1400,16 +1432,20 @@ def create_Hebrew_lemma_pages( level:int, outputFolderPath:Path, state:State ) -
     # end of createOETReferencePages.tidy_Hebrew_lemma_gloss
 
 
-    lemmaList = [transliterate_Hebrew(lemma) for lemma in state.OETRefData['OTLemmaGlossDict']]
-    lemmaList.insert( 0, None ) # Insert a dummy entry so that indexing is 1-based like other lists
+    # transliteratedLemmaList = [transliterate_Hebrew(lemma) for lemma in state.OETRefData['OTLemmaGlossDict']]
+    # transliteratedLemmaList.insert( 0, None ) # Insert a dummy entry so that indexing is 1-based like other lists
     # print( f"{lemmaList[:50]=}" )
     # print( f"{state.OETRefData['OTHebLemmaList'][0]=} {state.OETRefData['OTHebLemmaList'][1]=} {state.OETRefData['OTHebLemmaList'][2]=}")
     # print( f"{state.OETRefData['OTTransLemmaList'][0]=} {state.OETRefData['OTTransLemmaList'][1]=} {state.OETRefData['OTTransLemmaList'][2]=}")
     # halt
 
     # Now make a page for each Hebrew lemma
-    lemmaLinks:List[str] = []
-    for mm, (hebLemma,lemmaOETGlossesList)  in enumerate( state.OETRefData['OTLemmaGlossDict'].items(), start=1 ):
+    lemmaLinks:List[str] = [] # Used below to make an index page
+    lemmaListWithGlosses = list( state.OETRefData['OTLemmaGlossDict'].items() )
+    # print( f"{lemmaListWithGlosses[:50]=}")
+    for mm, (hebLemma,lemmaOETGlossesList)  in enumerate( lemmaListWithGlosses, start=1 ):
+        if TEST_MODE and not ALL_TEST_REFERENCE_PAGES and hebLemma not in state.OETRefData['usedHebLemmas']:
+            continue # Don't make this page
         transliteratedLemma = transliterate_Hebrew( hebLemma )
         vowellessLemma = removeHebrewVowelPointing( hebLemma )
         hebLemmaWordRowsList = state.OETRefData['OTWordRowNumbersDict'][mm]
@@ -1423,8 +1459,27 @@ def create_Hebrew_lemma_pages( level:int, outputFolderPath:Path, state:State ) -
         usedMorphologies = set()
         output_filename = f'{transliteratedLemma}.htm'
 
-        prevLink = f'<b><a title="Previous lemma" href="{lemmaList[mm-1]}.htm#Top">←</a></b> ' if mm>0 else ''
-        nextLink = f' <b><a title="Next lemma" href="{lemmaList[mm+1]}.htm#Top">→</a></b>' if mm<len(lemmaList)-1 else ''
+        prevMM = nextMM = None
+        if mm > 1:
+            if TEST_MODE and not ALL_TEST_REFERENCE_PAGES:
+                for MM in range( mm-2, 0, -1 ):
+                    MMLemma = lemmaListWithGlosses[MM][0]
+                    # print( f"{mm=} {MM=} {lemmaListWithGlosses[MM]=} {MMLemma=} {list(state.OETRefData['usedHebLemmas'])[:20]=}")
+                    # halt
+                    if MMLemma in state.OETRefData['usedHebLemmas']:
+                        prevMM = MM
+                        break
+            else: prevMM = mm-1
+        if mm<len(lemmaListWithGlosses)-1:
+            if TEST_MODE and not ALL_TEST_REFERENCE_PAGES:
+                for MM in range( mm, len(lemmaListWithGlosses) ):
+                    MMLemma = lemmaListWithGlosses[MM][0]
+                    if MMLemma in state.OETRefData['usedHebLemmas']:
+                        nextMM = MM
+                        break
+            else: nextMM = mm+1
+        prevLink = f'<b><a title="Previous lemma" href="{transliterate_Hebrew(lemmaListWithGlosses[prevMM][0])}.htm#Top">←</a></b> ' if prevMM else ''
+        nextLink = f' <b><a title="Next lemma" href="{transliterate_Hebrew(lemmaListWithGlosses[nextMM][0])}.htm#Top">→</a></b>' if nextMM else ''
         lemmasHtml = f'''<h1 id="Top">Hebrew root <small>(lemma)</small> ‘{hebLemma}’ ({transliteratedLemma})</h1>
 <p class="pNav">{prevLink}<b>{hebLemma}</b> <a href="index.htm">↑</a>{nextLink}</p>'''
 # <p class="summary">This root form (lemma) ‘{hebLemma}’ is used in {'only one form' if len(lemmaFormsList)==1 else f'{len(lemmaFormsList):,} different forms'} in the Hebrew originals: {', '.join([f'<a title="View Hebrew word form" href="../HebWrd/{getFirstHebrewWordNumber(heb,morph)}.htm#Top">{heb}</a> <small>({morph[4:] if morph.startswith("....") else morph})</small>' for heb,morph in lemmaFormsList])}.</p>
@@ -1469,10 +1524,10 @@ def create_Hebrew_lemma_pages( level:int, outputFolderPath:Path, state:State ) -
                                 if not TEST_MODE or oBBB in state.preloadedBibles['OET-RV'] \
                                     else f'{oTidyBBBwithNotes} {oC}:{oV}'
                 oHebrewWordLink = f'<a title="Go to word page" href="../HebWrd/{oN}.htm#Top">{oHebrewWord}</a>' if not TEST_MODE or oBBB in state.preloadedBibles['OET-RV'] else oHebrewWord
-                translation = f'''‘{oFormattedContextGlossWords.replace('_','<span class="ul">_</span>')}’'''
-                lemmaHTML = f'''{lemmaHTML}\n<p class="lemmaLine">{oOETLink} <b>{oHebrewWordLink}</b> ({transliterate_Hebrew(oHebrewWord)})''' \
-                    f" {oTidyMorphology}" \
-                    f''' {translation} <a title="Go to Open Scriptures Hebrew verse page" href="https://hb.OpenScriptures.org/structure/OshbVerse/index.html?b={oOSISbookCode}&c={oC}&v={oV}">OSHB {oTidyBBBwithNotes} {oC}:{oV} word {oW}</a></p>'''
+                translation = f'''‘{oFormattedContextGlossWords.replace(',',', ').replace('_','<span class="ul">_</span>')}’'''
+                lemmaHTML = f'''{lemmaHTML}\n<p class="lemmaLine">{oOETLink} <b>{oHebrewWordLink}</b> ({transliterate_Hebrew(oHebrewWord.replace(',',', '))})''' \
+                    f" {oTidyMorphology} {translation} " \
+                    f'''<a title="Go to Open Scriptures Hebrew verse page" href="https://hb.OpenScriptures.org/structure/OshbVerse/index.html?b={oOSISbookCode}&c={oC}&v={oV}">OSHB {oTidyBBBwithNotes} {oC}:{oV} word {oW}</a></p>'''
                 # other_count += 1
                 # if other_count >= 120:
                 #     lemmaHTML = f'{lemmaHTML}\n<p class="summary">({len(thisWordNumberList)-other_count-1:,} more examples not listed)</p>'
@@ -1483,11 +1538,11 @@ def create_Hebrew_lemma_pages( level:int, outputFolderPath:Path, state:State ) -
             return lemmaHTML
         # end of createOETReferencePages.create_Hebrew_lemma_pages.makeHebrewLemmaHTML
 
-        lemmasHtml = f"{lemmasHtml}\n{makeHebrewLemmaHTML(hebLemma, hebLemmaWordRowsList)}"
+        lemmasHtml = f"{lemmasHtml}\n{makeHebrewLemmaHTML(hebLemma, hebLemmaWordRowsList)}" # MAke all the Hebrew lemma pages
 
         # Consider related lemmas, e.g., with or without prefix
         this_extended_lemma_list = [hebLemma]
-        for mm2, this_second_lemma in enumerate( lemmaList ):
+        for mm2, (this_second_lemma,this_second_lemma_glosses) in enumerate( lemmaListWithGlosses ):
             # print( f"  {mm} {this_second_lemma=}" )
             if this_second_lemma and len(this_second_lemma)>1 and this_second_lemma not in this_extended_lemma_list:
                 prefix = None
@@ -1719,7 +1774,8 @@ def create_Greek_word_pages( level:int, outputFolderPath:Path, state:State ) -> 
 
     # Now make a page for each Greek word (including the variants not used in the translation)
     numWordPagesMade = 0
-    wordLinks:List[str] = []
+    wordLinks:List[str] = [] # Used below to make an index page
+    state.OETRefData['usedGrkLemmas'] = set() # Used in next function to make lemma pages
     for n, columns_string in enumerate( state.OETRefData['word_tables'][GreekWordFileName][1:], start=1 ):
         if not columns_string: continue # a blank line (esp. at end)
         # print( f"Word {n}: {columns_string}" )
@@ -1727,7 +1783,18 @@ def create_Greek_word_pages( level:int, outputFolderPath:Path, state:State ) -> 
         # dPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Got '{columns_string}' for '{output_filename}'" )
         usedRoleLetters, usedMorphologies = set(), set()
 
-        ref, greekWord, SRLemma, _GrkLemma, VLTGlossWordsStr, OETGlossWordsStr, glossCaps, probability, extendedStrongs, roleLetter, morphology, tagsStr = columns_string.split( '\t' )
+        ref, greekWord, SRLemma, GrkLemma, VLTGlossWordsStr, OETGlossWordsStr, glossCaps, probability, extendedStrongs, roleLetter, morphology, tagsStr = columns_string.split( '\t' )
+
+        BBB, CVW = ref.split( '_', 1 )
+        if TEST_MODE and not ALL_TEST_REFERENCE_PAGES and BBB not in TEST_BOOK_LIST:
+            continue # In some test modes, we only make the relevant word pages
+        C, VW = CVW.split( ':', 1 )
+        V, W = VW.split( 'w', 1 )
+        # ourTidyBBB = getOETTidyBBB( BBB, addNotes=True )
+        ourTidyBbb = getOETTidyBBB( BBB, titleCase=True )
+        ourTidyBbbWithNotes = getOETTidyBBB( BBB, titleCase=True, addNotes=True )
+        tidyBbbb = getOETTidyBBB( BBB, titleCase=True, allowFourChars=True )
+
         output_filename = getGreekWordpageFilename( n, state )
         assert output_filename not in used_word_filenames, f"Greek {n} {output_filename}"
         used_word_filenames.append( output_filename )
@@ -1748,16 +1815,6 @@ def create_Greek_word_pages( level:int, outputFolderPath:Path, state:State ) -> 
         if extendedStrongs == 'None': extendedStrongs = None
         if roleLetter == 'None': roleLetter = None
         if morphology == 'None': morphology = None
-
-        BBB, CVW = ref.split( '_', 1 )
-        if TEST_MODE and not ALL_TEST_REFERENCE_PAGES and BBB not in TEST_BOOK_LIST:
-            continue # In some test modes, we only make the relevant word pages
-        C, VW = CVW.split( ':', 1 )
-        V, W = VW.split( 'w', 1 )
-        # ourTidyBBB = getOETTidyBBB( BBB, addNotes=True )
-        ourTidyBbb = getOETTidyBBB( BBB, titleCase=True )
-        ourTidyBbbWithNotes = getOETTidyBBB( BBB, titleCase=True, addNotes=True )
-        tidyBbbb = getOETTidyBBB( BBB, titleCase=True, allowFourChars=True )
 
         strongs = extendedStrongs[:-1] if extendedStrongs else None # drop the last digit
 
@@ -1820,6 +1877,7 @@ def create_Greek_word_pages( level:int, outputFolderPath:Path, state:State ) -> 
                 else:
                     logging.critical( f"Unknown '{tagPrefix}' word tag in {n}: {columns_string}")
                     unknownTag
+        state.OETRefData['usedGrkLemmas'].add( GrkLemma ) # Used in next function to make lemma pages
         lemmaLink = f'<a title="View Greek root word" href="../GrkLem/{SRLemma}.htm#Top">{SRLemma}</a>'
         lemmaGlossesList = sorted( state.OETRefData['NTLemmaOETGlossesDict'][SRLemma] )
         wordOETGlossesList = sorted( state.OETRefData['NTFormOETGlossesDict'][(greekWord,roleLetter,morphology)] )
@@ -1963,7 +2021,7 @@ f''' {translation} <a title="Go to Statistical Restoration Greek page" href=
                                 eTidyBBB = getOETTidyBBB( eBBB )
                                 eTidyBbbb = getOETTidyBBB( eBBB, titleCase=True, allowFourChars=True )
 
-                                eGreekPossibleLink = f'<a title="Go to word page" href="{getGreekWordpageFilename(thisN, state)}#Top">{eGreekWord}</a>' if ALL_TEST_REFERENCE_PAGES or eBBB in TEST_BOOK_LIST else eGreekWord
+                                eGreekPossibleLink = f'<a title="Go to word page" href="{getGreekWordpageFilename(thisN, state)}#Top">{eGreekWord}</a>' if not TEST_MODE or ALL_TEST_REFERENCE_PAGES or eBBB in TEST_BOOK_LIST else eGreekWord
                                 eLemmaLink = f'<a title="View Greek root word" href="../GrkLem/{eSRLemma}.htm#Top">{eSRLemma}</a>' if eSRLemma!=SRLemma else ''
                                 eFormattedContextGlossWords = tidyGlossOfGreekWord( formatNTContextSpansOETGlossWords( thisN, state ) )
                                 assert '\\' not in eFormattedContextGlossWords, f"{n=} {eFormattedContextGlossWords=}"
@@ -2021,7 +2079,7 @@ f''' <a title="Go to Statistical Restoration Greek page" href="https://GreekCN
         vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"      Wrote {len(wordsHtml):,} characters to {output_filename}" )
         wordLinks.append( f'<a href="{output_filename}">{greekWord}</a>')
         numWordPagesMade += 1
-    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f'''    Created {numWordPagesMade:,}{f"/{len(state.OETRefData['word_tables'][GreekWordFileName])-1:,}" if numWordPagesMade < len(state.OETRefData['word_tables'][GreekWordFileName])-1 else ''} Greek word pages.''' )
+    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f'''    Created {numWordPagesMade:,}{f"/{len(state.OETRefData['word_tables'][GreekWordFileName])-1:,}" if numWordPagesMade < len(state.OETRefData['word_tables'][GreekWordFileName])-1 else ''} Greek word pages (using {len(state.OETRefData['usedGrkLemmas']):,} Greek lemmas).''' )
 
     # Create index page for this folder
     filename = 'index.htm'
@@ -2111,10 +2169,12 @@ def create_Greek_lemma_pages( level:int, outputFolderPath:Path, state:State ) ->
     lemmaList = sorted( [lemma for lemma in state.OETRefData['NTLemmaDict']] )
 
     # Now make a page for each Greek lemma (including the variants not used in the translation)
-    lemmaLinks:List[str] = []
+    lemmaLinks:List[str] = [] # Used below to make an index page
     for ll, lemma in enumerate( lemmaList ):
         # print( f"Lemma {ll}: {lemma}" )
         grkLemma = state.OETRefData['NTGreekLemmaDict'][lemma]
+        if TEST_MODE and not ALL_TEST_REFERENCE_PAGES and grkLemma not in state.OETRefData['usedGrkLemmas']:
+            continue # Don't make this page
         grkLemmaWordRowsList = state.OETRefData['NTLemmaDict'][lemma]
         grkLemmaFormsList = sorted( state.OETRefData['NTLemmaFormsDict'][lemma] )
         grkLemmaOETGlossesList = sorted( state.OETRefData['NTLemmaOETGlossesDict'][lemma] )
@@ -2126,8 +2186,27 @@ def create_Greek_lemma_pages( level:int, outputFolderPath:Path, state:State ) ->
         usedRoleLetters, usedMorphologies = set(), set()
         output_filename = f'{lemma}.htm'
 
-        prevLink = f'<b><a title="Previous lemma" href="{lemmaList[ll-1]}.htm#Top">←</a></b> ' if ll>0 else ''
-        nextLink = f' <b><a title="Next lemma" href="{lemmaList[ll+1]}.htm#Top">→</a></b>' if ll<len(lemmaList)-1 else ''
+        prevLL = nextLL = None
+        if ll > 1:
+            if TEST_MODE and not ALL_TEST_REFERENCE_PAGES:
+                for LL in range( ll-1, 0, -1 ):
+                    LLLemma = lemmaList[LL]
+                    LLGrkLemma = state.OETRefData['NTGreekLemmaDict'][LLLemma]
+                    if LLGrkLemma in state.OETRefData['usedGrkLemmas']:
+                        prevLL = LL
+                        break
+            else: prevLL = ll-1
+        if ll<len(lemmaList)-1:
+            if TEST_MODE and not ALL_TEST_REFERENCE_PAGES:
+                for LL in range( ll+1, len(lemmaList) ):
+                    LLLemma = lemmaList[LL]
+                    LLGrkLemma = state.OETRefData['NTGreekLemmaDict'][LLLemma]
+                    if LLGrkLemma in state.OETRefData['usedGrkLemmas']:
+                        nextLL = LL
+                        break
+            else: nextLL = ll+1
+        prevLink = f'<b><a title="Previous lemma" href="{lemmaList[prevLL]}.htm#Top">←</a></b> ' if prevLL else ''
+        nextLink = f' <b><a title="Next lemma" href="{lemmaList[nextLL]}.htm#Top">→</a></b>' if nextLL else ''
         lemmasHtml = f'''<h1 id="Top">Greek root word <small>(lemma)</small> ‘{grkLemma}’ ({lemma})</h1>
 <p class="pNav">{prevLink}<b>{lemma}</b> <a href="index.htm">↑</a>{nextLink}</p>
 <p class="summary">This root form (lemma) ‘{grkLemma}’ is used in {'only one form' if len(grkLemmaFormsList)==1 else f'{len(grkLemmaFormsList):,} different forms'} in the Greek originals: {', '.join([f'<a title="View Greek word form" href="../GrkWrd/{getGreekWordpageFilename(getFirstGreekWordNumber(grk,roleLetter,morph), state)}#Top">{grk}</a> <small>({roleLetter}-{morph[4:] if morph.startswith("....") else morph})</small>' for grk,roleLetter,morph in grkLemmaFormsList])}.</p>

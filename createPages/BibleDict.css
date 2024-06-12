@@ -89,6 +89,6 @@ p.caption-head { margin-top:0.2em; margin-bottom:0.1em; font-weight:bold; font-s
 
 /* span.sn-excerpt { font-family:Arial, Helvetica, sans-serif; color:saddleBrown; } */
 span.ital { font-style:italic; }
-span.hebrew { color:orange; }
-span.greek { color:darkgreen; }
+span.hebrew { font-weight:bold; color:orange; }
+span.greek { font-weight:bold; color:darkgreen; }
 span.era { color:cornflowerblue; }

@@ -69,7 +69,6 @@ p.mt2 { text-align:center; font-size:1.3em; }
 p.mt1 + p.mt2, p.mt2 + p.mt1 { margin-top:-0.5em; }
 p.ms1 { font-weight:bold; font-size:1.5em; }
 /* p.ms2 { font-weight:bold; font-size:1.3em; } */
-p.mr { font-weight:bold; font-size:1.1em; }
 
 /* Book intro USFM */
 /* li.intro { margin-top:0.5em; margin-bottom:0.5em; } */
@@ -99,8 +98,9 @@ div.s1 {}
 p.s1 { margin-top:0.1em; margin-bottom:0; font-weight:bold; }
 p.s2 { margin-top:0.1em; margin-bottom:0; font-size:1.1em; }
 p.s3 { margin-top:0.1em; margin-bottom:0; font-size:1.05em; }
-p.sr { margin-top:0; margin-bottom:0; font-size:0.9em; } /* Section reference range */
-p.r { margin-top:0; margin-bottom:0; font-size:0.75em; }
+p.mr { margin-top:0; margin-bottom:0; font-size:1.1em; text-align: center; font-style:italic; } /* Major section reference range */
+p.sr { margin-top:0; margin-bottom:0; font-size:0.9em; text-align: center; font-weight:bold; } /* Section reference range */
+p.r { margin-top:0; margin-bottom:0; font-size:0.75em; text-align: center; font-style:italic; } /* Parallel references */
 
 /* Chapters USFM */
 span.c { font-size:1.1em; color:green; }
@@ -137,6 +137,7 @@ span.parr { vertical-align:super; font-size:0.8em; color:green; }
 /* span.addCopula { color:pink; } */
 span.addDirectObject { color:brown; }
 span.addExtra { color:lightGreen; }
+span.addElided { color:darkgoldenrod; }
 /* span.addOwner { color:darkOrchid; } */
 span.addPronoun { color:darkgreen; }
 span.addReferent { color:darkblue; }

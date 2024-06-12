@@ -53,6 +53,7 @@ span.addArticle { color:bisque; }
 /* span.addCopula { color:pink; } */
 /* span.addDirectObject { color:brown; } */
 span.addExtra { color:lightGreen; }
+/* span.addElided { color:darkgoldenrod; } */
 /* span.addOwner { color:darkOrchid; } */
 /* span.addPronoun { color:darkgreen; } */
 /* span.addReferent { color:darkblue; } */
@@ -62,6 +63,5 @@ span.addExtra { color:lightGreen; }
 /* span.RVadd { color:#505050; } /* Darker than dimGrey which is #696969 (black is #000000) */
 span.add { color:grey; }
 span.untr { font-size:0.8em; color:grey; text-decoration:line-through; }
-/* span.unsure { text-decoration:underline; text-decoration-style: dotted; } */
 
 span.ul { color:darkGrey; }

@@ -50,7 +50,7 @@ from BibleOrgSys.BibleOrgSysGlobals import dPrint
 from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39
 
 
-LAST_MODIFIED_DATE = '2024-05-30' # by RJH
+LAST_MODIFIED_DATE = '2024-06-12' # by RJH
 SHORT_PROGRAM_NAME = "settings"
 PROGRAM_NAME = "OpenBibleData (OBD) Create Pages"
 PROGRAM_VERSION = '0.96'
@@ -58,7 +58,7 @@ PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
 
-OET_VERSION = 'v0.14'
+OET_VERSION = 'v0.15'
 
 TEST_MODE = True # Writes website into Test subfolder
 ALL_PRODUCTION_BOOKS = not TEST_MODE # If set to False, only selects one book per version for a faster test build
@@ -87,17 +87,22 @@ SITE_ABBREVIATION = 'OBD'
 
 # The version to link to when the OET doesn't have that book (yet)
 ALTERNATIVE_VERSION = 'WEB' # Should be a version with all books present
+VERSIONS_WITH_BEYOND66_BOOKS = ('WEB',)
 
 NUM_EXTRA_MODES = 5 # Related passages, parallel and interlinear verses, dictionary, and search
 
-UNFINISHED_WARNING_HTML_TEXT = 'This is still a very early look into the unfinished text of the <em>Open English Translation</em> of the Bible. Please double-check the text in advance before using in public.'
-UNFINISHED_WARNING_HTML_PARAGRAPH = f'<p class="rem">{UNFINISHED_WARNING_HTML_TEXT}</p>'
+OET_UNFINISHED_WARNING_HTML_TEXT = 'This is still a very early look into the unfinished text of the <em>Open English Translation</em> of the Bible. Please double-check the text in advance before using in public.'
+OET_UNFINISHED_WARNING_HTML_PARAGRAPH = f'<p class="rem">{OET_UNFINISHED_WARNING_HTML_TEXT}</p>'
+OETS_UNFINISHED_WARNING_HTML_TEXT = 'The OET segments on this page are still very early looks into the unfinished texts of the <em>Open English Translation</em> of the Bible. Please double-check these texts in advance before using in public.'
+OETS_UNFINISHED_WARNING_HTML_PARAGRAPH = f'<p class="rem">{OETS_UNFINISHED_WARNING_HTML_TEXT}</p>'
 
 JAMES_NOTE_HTML_TEXT = 'Note that the <em>OET</em> uses ‘Yacob’ for ‘The Letter of Jacob’ (wrongly called ‘James’ in older Bibles).'
 JAMES_NOTE_HTML_PARAGRAPH = f'<p class="rem">{JAMES_NOTE_HTML_TEXT}</p>'
 
 BY_DOCUMENT_HTML_TEXT = 'Remember that ancient letters were meant to be read in their entirety, just like modern letters. We provide a byChapter mode for convenience only, but mostly <b>recommend the byDocument and bySection modes</b> for personal reading.'
 BY_DOCUMENT_HTML_PARAGRAPH = f'<p class="rem">{BY_DOCUMENT_HTML_TEXT}</p>'
+
+PICKLE_FILENAME_END = '.OBD_Bible.pickle'
 
 
 
@@ -106,14 +111,15 @@ class State:
     A place to store some of the global stuff that needs to be passed around.
     """
     # This first one specifies the order in which everything is processed
-    BibleVersions = ['OET', # NOTE: OET is a "pseudo-version" containing both OET-RV and OET-LV side-by-side and handled separately in many places
+    # NOTE: OET is a "pseudo-version" containing both OET-RV and OET-LV side-by-side and handled separately in many places
+    BibleVersions = ['OET',
                 'OET-RV','OET-LV',
-                'ULT','UST',
+                'ULT','UST','NET', # We move NET up nearer the top for TEST_MODE
                 'BSB','BLB',
                 'AICNT','OEB','ISV','CSB','NLT',
                 'NIV','CEV','ESV','NASB','LSB',
                 'JQT','2DT','1ST','TPT',
-                'WEB','WMB','NET','LSV','FBV','TCNT','T4T','LEB','NRSV','NKJV','BBE',
+                'WEB','WMB','MSG','LSV','FBV','TCNT','T4T','LEB','NRSV','NKJV','BBE',
                 'MOF','JPS','ASV','DRA','YLT','DBY','RV','WBS','KJB','BB','GNV','CB',
                 'TNT','WYC',
                 'LUT','CLV',
@@ -121,20 +127,35 @@ class State:
                 'NETS','BRN','BrLXX', 'UHB',
                 # NOTES:
                 'TOSN','UTN',
-                ]
-    # NOTE: The above list has entries deleted by preloadBibles() if they fail to load
+                ] if TEST_MODE else \
+                ['OET',
+                'OET-RV','OET-LV',
+                'ULT','UST',
+                'BSB','BLB',
+                'AICNT','OEB','ISV','CSB','NLT',
+                'NIV','CEV','ESV','NASB','LSB',
+                'JQT','2DT','1ST','TPT',
+                'WEB','WMB','MSG','NET','LSV','FBV','TCNT','T4T','LEB','NRSV','NKJV','BBE',
+                'MOF','JPS','ASV','DRA','YLT','DBY','RV','WBS','KJB','BB','GNV','CB',
+                'TNT','WYC',
+                'LUT','CLV',
+                'SR-GNT','UGNT','SBL-GNT','TC-GNT',
+                'NETS','BRN','BrLXX', 'UHB',
+                # NOTES:
+                'TOSN','UTN',
+                ]    # NOTE: The above list has entries deleted by preloadBibles() if they fail to load
     #           (often because we temporarily remove the BibleLocation below)
     allBibleVersions = BibleVersions[:] # Keep a copy with the full list
 
     # Specific short lists
     auxilliaryVersions = ('OET','TTN','TOBD') # These ones don't have their own Bible locations at all
     # The following three lines are also in selectedVersesVersions.py
-    selectedVersesOnlyVersions = ('CSB','NLT','NIV','CEV','ESV','NASB','LSB','JQT','2DT','1ST','TPT','NRSV','NKJV', 'NETS' ) # These ones have .tsv sources (and don't produce Bible objects)
-    numAllowedSelectedVerses   = (  300,  500,  500,  500,  500,   500, 1000,   20, 300,  300,  250,   300,   300,    250  ) # Order must match above list
+    selectedVersesOnlyVersions = ('CSB','NLT','NIV','CEV','ESV','MSG','NASB','LSB','JQT','2DT','1ST','TPT','NRSV','NKJV', 'NETS' ) # These ones have .tsv sources (and don't produce Bible objects)
+    numAllowedSelectedVerses   = (  300,  500,  500,  500,  500, 500,   500, 1000,   20,  300,  300,  250,   300,   300,    250  ) # Order must match above list
     assert len(numAllowedSelectedVerses) == len(selectedVersesOnlyVersions)
     versionsWithoutTheirOwnPages = selectedVersesOnlyVersions + ('LUT','CLV', 'UGNT','SBL-GNT','TC-GNT', 'BRN','BrLXX', 'TOSN','TTN','UTN')
 
-    # NOTE: We don't display the versionsWithoutTheirOwnPages, so don't need decorations for them
+    # NOTE: We don't display the versionsWithoutTheirOwnPages, so don't need/allow decorations for them
     BibleVersionDecorations = { 'OET':('<b>','</b>'),'OET-RV':('<b>','</b>'),'OET-LV':('<b>','</b>'),
                 'ULT':('',''),'UST':('',''),
                 'BSB':('',''),'BLB':('',''),
@@ -156,68 +177,71 @@ class State:
                 ## 'WYC': '../copiedBibles/English/eBible.org/Wycliffe/',
     BibleLocations = {
                 'OET-RV': '../../OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/',
+                'OET-LV': '../../OpenEnglishTranslation--OET/intermediateTexts/', # Only .pickle here
                 'OET-LV-OT': '../../OpenEnglishTranslation--OET/intermediateTexts/auto_edited_OT_ESFM/', # No NT here
                 'OET-LV-NT': '../../OpenEnglishTranslation--OET/intermediateTexts/auto_edited_VLT_ESFM/', # No OT here
                 'SR-GNT': '../../Forked/CNTR-SR/SR usfm/', # We moved these up in the list because they're now compulsory
                 'UHB': '../copiedBibles/Original/unfoldingWord.org/UHB/',
                 # NOTE: The program will still run if some of these below are commented out or removed
                 # (e.g., this can be done quickly for a faster test)
-                'ULT': '../copiedBibles/English/unfoldingWord.org/ULT/',
-                'UST': '../copiedBibles/English/unfoldingWord.org/UST/',
-                # However, if they're all commented out, 'assert doneHideablesDiv' will fail in createParallelVersePages.py
-                'BSB': '../copiedBibles/English/Berean.Bible/BSB/',
-                'BLB': '../copiedBibles/English/Berean.Bible/BLB/blb.modified.txt', # NT only so far
-                'AICNT': '../copiedBibles/English/AICNT/', # NT only
-                'OEB': '../copiedBibles/English/OEB/',
-                # 'ISV': '',
-                'CSB': '../copiedBibles/English/CSB_verses.tsv',
-                'NLT': '../copiedBibles/English/NLT_verses.tsv',
-                'NIV': '../copiedBibles/English/NIV_verses.tsv',
-                'CEV': '../copiedBibles/English/CEV_verses.tsv',
-                'ESV': '../copiedBibles/English/ESV_verses.tsv',
-                'NASB': '../copiedBibles/English/NASB_verses.tsv',
-                'LSB': '../copiedBibles/English/LSB_verses.tsv',
-                'JQT': '../copiedBibles/English/JQT_verses.tsv',
-                '2DT': '../copiedBibles/English/2DT_verses.tsv',
-                '1ST': '../copiedBibles/English/1ST_verses.tsv',
-                'TPT': '../copiedBibles/English/TPT_verses.tsv',
-                'WEB': '../copiedBibles/English/eBible.org/WEB/',
-                'WMB': '../copiedBibles/English/eBible.org/WMB/',
-                'NET': '../copiedBibles/English/eBible.org/NET/',
-                'LSV': '../copiedBibles/English/eBible.org/LSV/',
-                'FBV': '../copiedBibles/English/eBible.org/FBV/',
-                'TCNT': '../copiedBibles/English/eBible.org/TCNT/',
-                'T4T': '../copiedBibles/English/eBible.org/T4T/',
-                'LEB': '../copiedBibles/English/LogosBibleSoftware/LEB/LEB.xml', # not OSIS
-                'NRSV': '../copiedBibles/English/NRSV_verses.tsv',
-                'NKJV': '../copiedBibles/English/NKJV_verses.tsv',
-                'BBE': '../copiedBibles/English/eBible.org/BBE/',
-                'MOF': '../copiedBibles/English/Moffat/',
-                'JPS': '../copiedBibles/English/eBible.org/JPS/',
-                'ASV': '../copiedBibles/English/eBible.org/ASV/',
-                'DRA': '../copiedBibles/English/eBible.org/DRA/',
-                'YLT': '../copiedBibles/English/eBible.org/YLT/',
-                'DBY': '../copiedBibles/English/eBible.org/DBY/',
-                'RV': '../copiedBibles/English/eBible.org/RV/', # with deuterocanon
-                'WBS': '../copiedBibles/English/eBible.org/RV/',
-                'KJB': '../copiedBibles/English/eBible.org/KJB/', # with deuterocanon
-                'BB': '/mnt/SSDs/Bibles/DataSets/BibleSuperSearch.com/v5.0/TXT/bishops.txt',
-                'GNV': '../copiedBibles/English/eBible.org/GNV/',
-                'CB': '/mnt/SSDs/Bibles/DataSets/BibleSuperSearch.com/v5.0/TXT/coverdale.txt',
-                'TNT': '../copiedBibles/English/eBible.org/TNT/',
-                'WYC': '/mnt/SSDs/Bibles/Zefania modules/SF_2009-01-20_ENG_BIBLE_WYCLIFFE_(JOHN WYCLIFFE BIBLE).xml',
-                'LUT': '../copiedBibles/German/Zefania/LUT1545/SF_2009-01-20_GER_LUTH1545STR_(LUTHER 1545 MIT STRONGS).xml',
-                'CLV': '../copiedBibles/Latin/eBible.org/CLV/',
-                'UGNT': '../copiedBibles/Original/unfoldingWord.org/UGNT/',
-                'SBL-GNT': '../../Forked/SBLGNT/data/sblgnt/text/',
-                'TC-GNT': '../copiedBibles/Greek/eBible.org/TC-GNT/',
-                'NETS': '../copiedBibles/English/NETS_verses.tsv',
-                'BRN': '../copiedBibles/English/eBible.org/Brenton/', # with deuterocanon and OTH,XXA,XXB,XXC,
-                'BrLXX': '../copiedBibles/Greek/eBible.org/BrLXX/',
+                # 'ULT': '../copiedBibles/English/unfoldingWord.org/ULT/',
+                # 'UST': '../copiedBibles/English/unfoldingWord.org/UST/',
+                # # However, if they're all commented out, 'assert doneHideablesDiv' will fail in createParallelVersePages.py if not in test mode
+                # 'BSB': '../copiedBibles/English/Berean.Bible/BSB/',
+                # 'BLB': '../copiedBibles/English/Berean.Bible/BLB/blb.modified.txt', # NT only so far
+                # 'AICNT': '../copiedBibles/English/AICNT/', # NT only
+                # 'OEB': '../copiedBibles/English/OEB/',
+                # # 'ISV': '',
+                # 'CSB': '../copiedBibles/English/CSB_verses.tsv',
+                # 'NLT': '../copiedBibles/English/NLT_verses.tsv',
+                # 'NIV': '../copiedBibles/English/NIV_verses.tsv',
+                # 'CEV': '../copiedBibles/English/CEV_verses.tsv',
+                # 'ESV': '../copiedBibles/English/ESV_verses.tsv',
+                # 'NASB': '../copiedBibles/English/NASB_verses.tsv',
+                # 'LSB': '../copiedBibles/English/LSB_verses.tsv',
+                # 'JQT': '../copiedBibles/English/JQT_verses.tsv',
+                # '2DT': '../copiedBibles/English/2DT_verses.tsv',
+                # '1ST': '../copiedBibles/English/1ST_verses.tsv',
+                # 'TPT': '../copiedBibles/English/TPT_verses.tsv',
+                # 'WEB': '../copiedBibles/English/eBible.org/WEB/',
+                # 'WMB': '../copiedBibles/English/eBible.org/WMB/',
+                # 'MSG': '../copiedBibles/English/MSG_verses.tsv',
+                # 'NET': '../copiedBibles/English/NET/' if TEST_MODE else '../copiedBibles/English/eBible.org/NET/',
+                # 'LSV': '../copiedBibles/English/eBible.org/LSV/',
+                # 'FBV': '../copiedBibles/English/eBible.org/FBV/',
+                # 'TCNT': '../copiedBibles/English/eBible.org/TCNT/',
+                # 'T4T': '../copiedBibles/English/eBible.org/T4T/',
+                # 'LEB': '../copiedBibles/English/LogosBibleSoftware/LEB/LEB.xml', # not OSIS
+                # 'NRSV': '../copiedBibles/English/NRSV_verses.tsv',
+                # 'NKJV': '../copiedBibles/English/NKJV_verses.tsv',
+                # 'BBE': '../copiedBibles/English/eBible.org/BBE/',
+                # 'MOF': '../copiedBibles/English/Moffat/',
+                # 'JPS': '../copiedBibles/English/eBible.org/JPS/',
+                # 'ASV': '../copiedBibles/English/eBible.org/ASV/',
+                # 'DRA': '../copiedBibles/English/eBible.org/DRA/',
+                # 'YLT': '../copiedBibles/English/eBible.org/YLT/',
+                # 'DBY': '../copiedBibles/English/eBible.org/DBY/',
+                # 'RV': '../copiedBibles/English/eBible.org/RV/', # with deuterocanon
+                # 'WBS': '../copiedBibles/English/eBible.org/WBS/',
+                # 'KJB': '../copiedBibles/English/eBible.org/KJB/', # with deuterocanon
+                # 'BB': '../copiedBibles/English/BibleSuperSearch/BB/bishops.txt',
+                # 'GNV': '../copiedBibles/English/eBible.org/GNV/',
+                # 'CB': '../copiedBibles/English/BibleSuperSearch/CB/coverdale.txt',
+                # 'TNT': '../copiedBibles/English/eBible.org/TNT/',
+                # 'WYC': '../copiedBibles/English/Zefania/WYC/SF_2009-01-20_ENG_BIBLE_WYCLIFFE_(JOHN WYCLIFFE BIBLE).xml',
+                # 'LUT': '../copiedBibles/German/Zefania/LUT1545/SF_2009-01-20_GER_LUTH1545STR_(LUTHER 1545 MIT STRONGS).xml',
+                # 'CLV': '../copiedBibles/Latin/eBible.org/CLV/',
+                # 'UGNT': '../copiedBibles/Original/unfoldingWord.org/UGNT/',
+                # 'SBL-GNT': '../../Forked/SBLGNT/data/sblgnt/text/',
+                # 'TC-GNT': '../copiedBibles/Greek/eBible.org/TC-GNT/',
+                # 'NETS': '../copiedBibles/English/NETS_verses.tsv',
+                # 'BRN': '../copiedBibles/English/eBible.org/Brenton/', # with deuterocanon and OTH,XXA,XXB,XXC,
+                # 'BrLXX': '../copiedBibles/Greek/eBible.org/BrLXX/',
                 # NOTE: Dictionary and notes are special cases here at the end (skipped in many parts of the program)
                 'TOSN': '../copiedBibles/English/Tyndale/OSN/', # This one also loads TTN (Tyndale Theme Notes)
                 'UTN': '../copiedBibles/English/unfoldingWord.org/UTN/',
                 }
+    WholeBibleVersions = ('LEB','BB','CB','WYC','LUT') # These versions get all books loaded -- no individual book files
 
     BibleNames = {
                 'OET': 'Open English Translation (2030)',
@@ -243,6 +267,7 @@ class State:
                 'TPT': 'The Passion Translation (2017)',
                 'WEB': 'World English Bible (2023)',
                 'WMB': 'World Messianic Bible (2023) / Hebrew Names Version (HNV)',
+                'MSG': 'The Message (2018)',
                 'NET': 'New English Translation (2016)',
                 'LSV': 'Literal Standard Version (2020)',
                 'FBV': 'Free Bible Version (2018)',
@@ -307,6 +332,7 @@ class State:
                 'TPT': ['ALL'],
                 'WEB': ['ALL'],
                 'WMB': ['ALL'],
+                'MSG': ['ALL'],
                 'NET': ['ALL'],
                 'LSV': ['ALL'],
                 'FBV': ['ALL'],
@@ -367,6 +393,7 @@ class State:
                 'TPT': TEST_BOOK_LIST,
                 'WEB': TEST_BOOK_LIST,
                 'WMB': TEST_BOOK_LIST,
+                'MSG': TEST_BOOK_LIST,
                 'NET': TEST_BOOK_LIST,
                 'LSV': TEST_BOOK_LIST,
                 'FBV': TEST_BOOK_LIST,
@@ -508,6 +535,9 @@ We’re also grateful to the <a href="https://www.Biblica.com/clear/">Biblica Cl
                 'copyright': '<p class="copyright">Copyright © (coming).</p>',
                 'licence': '<p class="licence">(coming).</p>',
                 'acknowledgements': '<p class="acknwldg">(coming).</p>' },
+        'MSG': {'about': '<p class="about">The Message (2018).</p>',
+                'copyright': '<p class="copyright">Copyright © 1993,2002,2018 by Eugene H. Peterson. Used by permission of NavPress. All rights reserved. Represented by Tyndale House Publishers, Inc.</p>',
+                'licence': '''<p class="licence">The Message text may be quoted in any form (written, visual, electronic, or audio), up to and inclusive of five hundred (500) verses, without express written permission of the publisher, NavPress Publishing Group, providing the verses quoted do not amount to a complete book of the Bible and do not account for twenty-five percent (25%) or more of the total text of the work in which they are quoted.</p>''' },
         'NET': {'about': '<p class="about">New English Translation (2016).</p>',
                 'copyright': '<p class="copyright">Copyright © (coming).</p>',
                 'licence': '''<p class="licence"><a href="https://bible.org/downloads">Free</a> (without their many notes, which sadly we're unable to include).</p>''',
@@ -668,11 +698,11 @@ However, Moffat wasn’t just a <em>follow the crowd</em> person, so he’s like
             or versionLocation.startswith('../../Forked/') \
             or versionLocation.startswith('/mnt/SSDs/Bibles/'), f"{versionLocation=}"
     assert len(BibleVersionDecorations) == len(BibleVersions) + len(auxilliaryVersions) + NUM_EXTRA_MODES - len(versionsWithoutTheirOwnPages), \
-        f"{len(BibleVersionDecorations)=} {len(BibleVersions)=} {len(auxilliaryVersions)=} {len(versionsWithoutTheirOwnPages)=} sum={len(BibleVersions)+len(auxilliaryVersions)+4-len(versionsWithoutTheirOwnPages)}"
+        f"{len(BibleVersionDecorations)=} {len(BibleVersions)=} + {len(auxilliaryVersions)=} + {NUM_EXTRA_MODES=} - {len(versionsWithoutTheirOwnPages)=} sum={len(BibleVersions)+len(auxilliaryVersions)+4-len(versionsWithoutTheirOwnPages)}"
         # Above adds Parallel and Interlinear and Dictionary but subtracts selected-verses-only versions and TTN
-    assert len(BibleVersions)-1 >= len(BibleLocations) # OET is a pseudo-version
+    assert len(BibleVersions) >= len(BibleLocations) # OET is a pseudo-version
     assert len(BibleNames)-1 >= len(BibleLocations) # OET is a pseudo-version
-    assert len(booksToLoad)-1 >= len(BibleLocations) # OET is a pseudo-version
+    assert len(booksToLoad) >= len(BibleLocations) # OET is a pseudo-version
 
     preloadedBibles = {}
     sectionsLists = {}

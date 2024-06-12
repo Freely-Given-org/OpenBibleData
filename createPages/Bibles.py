@@ -51,11 +51,13 @@ CHANGELOG:
     2023-12-29 Started adding OET OT
     2024-01-18 Try to handle backslashes better in TSV (text) Bibles
     2024-05-02 Improve UTN markdown to HTML conversion
+    2024-06-10 Save and load pickled Bibles for load speed boost
 """
 from gettext import gettext as _
 from typing import Dict, List, Tuple, Optional
 from datetime import datetime
 import os.path
+from pathlib import Path
 import logging
 import re
 from xml.etree.ElementTree import ElementTree, ParseError
@@ -66,6 +68,7 @@ import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 import BibleOrgSys.Formats.USFMBible as USFMBible
 import BibleOrgSys.Formats.ESFMBible as ESFMBible
+import BibleOrgSys.Formats.USXXMLBible as USXXMLBible
 import BibleOrgSys.Formats.ZefaniaXMLBible as ZefaniaXMLBible
 import BibleOrgSys.Formats.CSVBible as CSVBible
 import BibleOrgSys.Formats.LEBXMLBible as LEBXMLBible
@@ -79,16 +82,16 @@ import sys
 sys.path.append( '../../BibleTransliterations/Python/' )
 from BibleTransliterations import transliterate_Greek, transliterate_Hebrew
 
-from settings import State, ALTERNATIVE_VERSION, TEST_MODE
+from settings import State, ALTERNATIVE_VERSION, TEST_MODE, TEST_BOOK_LIST, PICKLE_FILENAME_END
 from html import checkHtml
-from OETHandlers import findLVQuote
+from OETHandlers import findLVQuote, getBBBFromOETBookName
 from Dict import loadAndIndexUBSGreekDictJSON, loadAndIndexUBSHebrewDictJSON
 
 
-LAST_MODIFIED_DATE = '2024-05-02' # by RJH
+LAST_MODIFIED_DATE = '2024-06-12' # by RJH
 SHORT_PROGRAM_NAME = "Bibles"
 PROGRAM_NAME = "OpenBibleData Bibles handler"
-PROGRAM_VERSION = '0.71'
+PROGRAM_VERSION = '0.73'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -109,7 +112,49 @@ def preloadVersions( state:State ) -> int:
         if versionAbbreviation == 'OET':
             # This is a combination of two translations, so nothing to load here
             assert 'OET-RV' in state.BibleVersions and 'OET-LV' in state.BibleVersions
-        elif versionAbbreviation == 'OET-LV':
+            continue
+
+        if ( versionAbbreviation not in state.selectedVersesOnlyVersions
+            and versionAbbreviation != 'TOSN' # coz TOSN loads lots of other things as well
+            and versionAbbreviation in state.BibleLocations
+            ):
+            vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nLooking for a pickle for {versionAbbreviation}…" )
+            # See if a pickled version is available for a MUCH faster load time
+            folderOrFileLocationPath = Path( state.BibleLocations[versionAbbreviation] )
+            pickleFilename = f"{versionAbbreviation}__{'_'.join(TEST_BOOK_LIST)}{PICKLE_FILENAME_END}" \
+                                if TEST_MODE and versionAbbreviation not in State.WholeBibleVersions \
+                                else f'{versionAbbreviation}{PICKLE_FILENAME_END}'
+            pickleFolderPath = folderOrFileLocationPath if folderOrFileLocationPath.is_dir() else folderOrFileLocationPath.parent
+            pickleFilePath = pickleFolderPath.joinpath( pickleFilename )
+            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"{folderOrFileLocationPath=} {pickleFilename=} {pickleFolderPath=} {pickleFilePath=}" )
+            if pickleFilePath.is_file():
+                pickleIsObsolete = False
+                pickleMTime = pickleFilePath.stat().st_mtime # A large integer
+                dPrint( 'Info', DEBUGGING_THIS_MODULE, f"preloadVersions found {pickleFilename=}" )
+                for somePath in pickleFolderPath.iterdir():
+                    dPrint( 'Info', DEBUGGING_THIS_MODULE, f"{pickleFolderPath=} {somePath=} {type(somePath)=}" )
+                    if somePath.is_file() and not str(somePath).endswith( PICKLE_FILENAME_END ):
+                        fileMTime = somePath.stat().st_mtime # A large integer
+                        if fileMTime > pickleMTime:
+                            pickleIsObsolete = True
+                            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} pickle is obsolete because {somePath.name} is more recent." )
+                            break
+                    else:
+                        dPrint( 'Info', DEBUGGING_THIS_MODULE, f"Ignoring folder {somePath}")
+                if not pickleIsObsolete:
+                    try:
+                        newBibleObj = BibleOrgSysGlobals.unpickleObject( pickleFilename, pickleFolderPath )
+                        # dPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"newObj is {newBibleObj}" )
+                        dPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Loaded {versionAbbreviation} {type(newBibleObj)} pickle file: {pickleFilename}." )
+                        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"preloadVersions() loaded pickled {newBibleObj}" )
+                        state.preloadedBibles[versionAbbreviation] = newBibleObj
+                        continue
+                    except EOFError:
+                        logging.critical( f"Failed to load {versionAbbreviation} pickle file: Ran out of input from {pickleFilename} in {pickleFolderPath}")
+            else:
+                vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  No pickle file for {versionAbbreviation}." )
+
+        if versionAbbreviation == 'OET-LV':
             # Load the OT and NT from separate folders, and then combine them into one ESFM Bible object
             thisBibleOT = preloadVersion( versionAbbreviation, state.BibleLocations['OET-LV-OT'], state )
             assert isinstance( thisBibleOT, ESFMBible.ESFMBible )
@@ -133,6 +178,14 @@ def preloadVersions( state:State ) -> int:
             thisBible.sourceFolder = None
             state.preloadedBibles[versionAbbreviation] = thisBible
             vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"preloadVersions() loaded {thisBible}" )
+
+            pickleFilename = f"{versionAbbreviation}__{'_'.join(TEST_BOOK_LIST)}{PICKLE_FILENAME_END}" \
+                                if TEST_MODE and versionAbbreviation not in State.WholeBibleVersions \
+                                else f'{versionAbbreviation}{PICKLE_FILENAME_END}'
+            pickleFolderPath = state.BibleLocations['OET-LV']
+            thisBible.pickle( pickleFilename, pickleFolderPath )
+
+        # Everything other than OET-LV
         elif versionAbbreviation in state.BibleLocations:
             thisBible = preloadVersion( versionAbbreviation, state.BibleLocations[versionAbbreviation], state )
             if isinstance(thisBible, Bible) \
@@ -140,6 +193,7 @@ def preloadVersions( state:State ) -> int:
                 state.preloadedBibles[versionAbbreviation] = thisBible
             else:
                 halt # preloadVersion failed
+
         else:
             logging.critical( f"createPages preloadVersions() has no folder location to find '{versionAbbreviation}'" )
             assert 'OET' not in versionAbbreviation
@@ -190,7 +244,7 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
         # print( f"{thisBible.settingsDict=}" )
         # verseEntryList, contextList = thisBible.getContextVerseData( ('MAT', '2', '1') )
         # print( f"Mat 2:1 {verseEntryList=} {contextList=}" )
-    elif '/TXT/' in folderOrFileLocation: # Custom VPL
+    elif versionAbbreviation in ('CB','BB'): # Custom VPL
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Loading '{versionAbbreviation}' VPL Bible{' in TEST mode' if TEST_MODE else ''}…" )
         thisBible = VPLBible.VPLBible( folderOrFileLocation, givenName=state.BibleNames[versionAbbreviation],
                                             givenAbbreviation=versionAbbreviation, encoding='utf-8' )
@@ -269,6 +323,18 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
                                             givenAbbreviation=versionAbbreviation, encoding='utf-8' )
         # NOTE: thisBible is NOT a Bible object here!!!
         # vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} loaded ({len(thisBible.books.keys())}) {list(thisBible.books.keys())}" )
+    elif versionAbbreviation in ('NET',) and 'eBible.org' not in folderOrFileLocation: # USX
+        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Preloading '{versionAbbreviation}' USX Bible{' in TEST mode' if TEST_MODE else ''}…" )
+        thisBible = USXXMLBible.USXXMLBible( folderOrFileLocation, givenAbbreviation=versionAbbreviation,
+                                            encoding='utf-8' )
+        if state.booksToLoad[versionAbbreviation] in (['ALL'],['OT'],['NT']):
+            # We assume that we can load all books, even for OT and NT
+            #  i.e., we assume (but don't check) that only those books will exist (plus maybe intro, etc.)
+            thisBible.loadBooks() # So we can iterate through them all later
+        else: # only load the specific books as we need them
+            thisBible.preload()
+            for BBB in state.booksToLoad[versionAbbreviation]:
+                thisBible.loadBookIfNecessary( BBB )
     else: # USFM
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Preloading '{versionAbbreviation}' USFM Bible{' in TEST mode' if TEST_MODE else ''}…" )
         thisBible = USFMBible.USFMBible( folderOrFileLocation, givenAbbreviation=versionAbbreviation,
@@ -284,6 +350,19 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
             for BBB in state.booksToLoad[versionAbbreviation]:
                 thisBible.loadBookIfNecessary( BBB )
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  preloadVersion() loaded {len(thisBible):,} {versionAbbreviation} verses" if versionAbbreviation in state.selectedVersesOnlyVersions else f"preloadVersion() loaded {thisBible}" )
+
+    if ( versionAbbreviation not in state.selectedVersesOnlyVersions # they're dicts not Bible objects
+    and 'Zefania' not in folderOrFileLocation # TODO: these don't work for some reason
+    and versionAbbreviation != 'OET-LV' # This one is handled by the calling function because it's more complex (uses two folders)
+    and versionAbbreviation != 'TOSN' # This one has different complexities coz it loads various other bits
+    ):
+        pickleFilename = f"{versionAbbreviation}__{'_'.join(TEST_BOOK_LIST)}{PICKLE_FILENAME_END}" \
+                            if TEST_MODE and versionAbbreviation not in State.WholeBibleVersions \
+                            else f'{versionAbbreviation}{PICKLE_FILENAME_END}'
+        pickleFolderPath = folderOrFileLocation if os.path.isdir( folderOrFileLocation ) else Path( folderOrFileLocation ).parent
+        thisBible.pickle( pickleFilename, pickleFolderPath )
+        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Saved pickle file: {pickleFilename}." )
+
     return thisBible
 # end of Bibles.preloadVersion
 
@@ -842,7 +921,7 @@ def formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segme
                             newLink = f'<a href="C{lC}V{lV}.htm#Top">{match.group(1)}</a>'
                         else:
                             # dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"{_safetyCount} getContextVerseData found TN markdown link {utnRef} {match=} {match.groups()=}" )
-                            logging.critical( f"formatUnfoldingWordTranslationNotes1 ({utnRef}) has unhandled markdown reference in '{rest}'" )
+                            logging.error( f"formatUnfoldingWordTranslationNotes1 ({utnRef}) has unhandled markdown reference in '{rest}'" )
                     elif match.group(2).startswith( './' ) and match.group(2).endswith( '.md' ):
                         # Probably something like: [Mark 14:22–25](./22.md)
                         linkTarget = match.group(2)[2:-3]
@@ -852,16 +931,16 @@ def formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segme
                             newLink = f'<a href="C{C}V{lV}.htm#Top">{match.group(1)}</a>'
                         else:
                             # dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"{_safetyCount} getContextVerseData found TN markdown link {utnRef} {match=} {match.groups()=}" )
-                            logging.critical( f"formatUnfoldingWordTranslationNotes2 ({utnRef}) has unhandled markdown reference in '{rest}'" )
+                            logging.error( f"formatUnfoldingWordTranslationNotes2 ({utnRef}) has unhandled markdown reference in '{rest}'" )
                     else:
                         # e.g., From Ruth 3:9: [2:20](../02/20/zu5f)
                         # dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"{_safetyCount} getContextVerseData found TN markdown link {utnRef} {match=} {match.groups()=}" )
-                        logging.critical( f"formatUnfoldingWordTranslationNotes ({utnRef}) has unhandled markdown link in '{rest}'" )
+                        logging.error( f"formatUnfoldingWordTranslationNotes ({utnRef}) has unhandled markdown link in '{rest}'" )
                     rest = f'{rest[:match.start()]}{newLink}{rest[match.end():]}'
                     # dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  {utnRef} with {newLink=}, now {rest=}" )
                     searchStartIndex = match.start() + len(newLink)
                 else:
-                    logging.critical( f"getContextVerseData found excess TN markdown links in {_safetyCount} {utnRef} {rest=}" )
+                    logging.error( f"getContextVerseData found excess TN markdown links in {_safetyCount} {utnRef} {rest=}" )
                     need_to_increase_max_MDLink_loop_count
                 if BBB not in ('HAG','MAT'): # uW Hag 1:0, Mat 27:0 have formatting problems
                     assert 'rc://' not in rest, f"TN {utnRef} {lastMarker=} {marker}='{rest}'"
@@ -1032,13 +1111,13 @@ def getVerseDataListForReference( givenRefString:str, thisBible:Bible, lastBBB:O
     if ' ' not in adjRefString: adjRefString = f'{lastBBB} {adjRefString}'
     refBits = adjRefString.split( ' ' )
     bookAbbreviation, refCVpart = (refBits[0],refBits[1:]) if len(refBits[0])>1 else (f'{refBits[0]} {refBits[1]}', refBits[2:])
-    bookAbbreviation = bookAbbreviation.rstrip( '.' )
-    refBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromText( bookAbbreviation )
+    refBBB = getBBBFromOETBookName( bookAbbreviation )
     if refBBB is None:
-        if thisBible.abbreviation=='OET-RV' and bookAbbreviation[0]=='Y':
-            refBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromText( f'J{bookAbbreviation[1:]}' ) # Convert Yoel back to Joel, etc.
-            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"{bookAbbreviation=} {refCVpart=} {refBBB=}" )
-        elif bookAbbreviation[0].isdigit() and (':' in bookAbbreviation or '-' in bookAbbreviation): # or bookAbbreviation.isdigit() might need to be added
+        # if thisBible.abbreviation=='OET-RV' and bookAbbreviation[0]=='Y':
+        #     refBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromText( f'J{bookAbbreviation[1:]}' ) # Convert Yoel back to Joel, etc.
+        #     dPrint( 'Info', DEBUGGING_THIS_MODULE, f"{bookAbbreviation=} {refCVpart=} {refBBB=}" )
+        # el
+        if bookAbbreviation[0].isdigit() and (':' in bookAbbreviation or '-' in bookAbbreviation): # or bookAbbreviation.isdigit() might need to be added
             # It must be another reference in the same book
             refBBB = lastBBB
             assert not refCVpart
@@ -1144,10 +1223,10 @@ def getVerseDataListForReference( givenRefString:str, thisBible:Bible, lastBBB:O
                         verseEntryList, contextList = thisBible.getContextVerseDataRange( (refBBB,refStartC,refStartV), (refBBB,refEndC,refEndV) )
                     else: # might be a book range like '1Sam 16:1–1Ki 2:11'
                         bookAbbreviation2, refEndC = refEndC.split( ' ' )
-                        refBBB2 = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromText( bookAbbreviation2 )
-                        if refBBB2 is None and thisBible.abbreviation=='OET-RV' and bookAbbreviation2[0]=='Y':
-                            refBBB2 = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromText( f'J{bookAbbreviation2[1:]}' ) # Convert Yoel back to Joel, etc.
-                            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"{bookAbbreviation2=} {refCVpart=} {refBBB2=}" )
+                        refBBB2 = getBBBFromOETBookName( bookAbbreviation2 )
+                        # if refBBB2 is None and thisBible.abbreviation=='OET-RV' and bookAbbreviation2[0]=='Y':
+                        #     refBBB2 = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromText( f'J{bookAbbreviation2[1:]}' ) # Convert Yoel back to Joel, etc.
+                        #     dPrint( 'Info', DEBUGGING_THIS_MODULE, f"{bookAbbreviation2=} {refCVpart=} {refBBB2=}" )
                         assert refBBB2, f"getVerseDataListForReference {givenRefString=} can't get BBB2 from {bookAbbreviation2=} {refCVpart=}"
                         verseEntryList, contextList = thisBible.getContextVerseDataRange( (refBBB,refStartC,refStartV), (refBBB2,refEndC,refEndV) )
                 elif ':' not in refCVpart: # might be a chapter range, e.g., Num 22–24

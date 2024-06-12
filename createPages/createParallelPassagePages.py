@@ -39,20 +39,20 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 import BibleOrgSys.Formats.ESFMBible as ESFMBible
 from BibleOrgSys.Internals.InternalBibleInternals import InternalBibleEntryList, getLeadingInt
 
-from settings import State, TEST_MODE, reorderBooksForOETVersions, UNFINISHED_WARNING_HTML_PARAGRAPH, JAMES_NOTE_HTML_PARAGRAPH
+from settings import State, TEST_MODE, reorderBooksForOETVersions, OET_UNFINISHED_WARNING_HTML_PARAGRAPH, JAMES_NOTE_HTML_PARAGRAPH
 from usfm import convertUSFMMarkerListToHtml
 from Bibles import getVerseDataListForReference
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
                     do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
                     removeDuplicateCVids, \
                     makeTop, makeBottom, makeBookNavListParagraph, checkHtml
-from OETHandlers import livenOETWordLinks, getOETTidyBBB, getOETBookName
+from OETHandlers import livenOETWordLinks, getOETTidyBBB, getOETBookName, getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2024-05-28' # by RJH
+LAST_MODIFIED_DATE = '2024-06-03' # by RJH
 SHORT_PROGRAM_NAME = "createParallelPassagePages"
 PROGRAM_NAME = "OpenBibleData createParallelPassagePages functions"
-PROGRAM_VERSION = '0.24'
+PROGRAM_VERSION = '0.26'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -251,7 +251,7 @@ def createParallelPassagePages( level:int, folder:Path, state:State ) -> bool:
 
 #         synopticSectionHtml = f'''<h1><span title="{state.BibleNames[thisBible.abbreviation]}">{thisBible.abbreviation}</span> by synoptic section {ourTidyBBB} {'Intro' if startC=='-1' else startC}:{startV}</h1>
 # <p class="secNav">{leftLink}{documentLink} {startChapterLink}:{startV}–{endChapterLink}:{endV}{rightLink}{parallelLink}{interlinearLink}{detailsLink}</p>
-# {UNFINISHED_WARNING_HTML_PARAGRAPH if 'OET' in thisBible.abbreviation else ''}
+# {OET_UNFINISHED_WARNING_HTML_PARAGRAPH if 'OET' in thisBible.abbreviation else ''}
 # <h1>{sectionName}</h1>
 # '''
 #         if isinstance( thisBible, ESFMBible.ESFMBible ): # e.g., OET-RV
@@ -498,6 +498,7 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
             assert thisBible.abbreviation == 'OET-RV'
             assert endV == '?'
             continue
+        assert startC is not None and endC is not None, f"{n} start={startC}:{startV} end={endC}:{endV}"
         
         # Get the section references from this original section
         #   and at the same time, collect all of the cross-references
@@ -536,8 +537,7 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
         for sr,sectionReference in enumerate( sectionReferences ):
             bits = sectionReference.split( ' ' )
             bookAbbreviation, cvPart = (bits[0],bits[1:]) if len(bits[0])>1 else (f'{bits[0]} {bits[1]}', bits[2:])
-            bookAbbreviation = bookAbbreviation.rstrip( '.' )
-            xrefBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromText( bookAbbreviation )
+            xrefBBB = getBBBFromOETBookName( bookAbbreviation )
             if xrefBBB is None and bookAbbreviation[0].isdigit() and (':' in bookAbbreviation or '-' in bookAbbreviation): # or bookAbbreviation.isdigit() might need to be added
                 # It must be another reference in the same book
                 xrefBBB = crossReferencesBBBList[-1]
@@ -563,7 +563,7 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
 
         crossReferencedSectionHtml = f'''<h1 id="Top"><span title="{state.BibleNames[thisBible.abbreviation]}">{thisBible.abbreviation}</span> by cross-referenced section {ourTidyBBB} {'Intro' if startC=='-1' else startC}:{startV}</h1>
 <p class="secNav">{sectionIndexLink}{leftLink}{documentLink} {startChapterLink}:{startV}–{endChapterLink}:{endV}{rightLink}{parallelLink}{interlinearLink}{detailsLink}</p>
-{f'{JAMES_NOTE_HTML_PARAGRAPH}{NEWLINE}' if 'OET' in thisBible.abbreviation and BBB=='JAM' else ''}{f'{UNFINISHED_WARNING_HTML_PARAGRAPH}{NEWLINE}' if 'OET' in thisBible.abbreviation else ''}<h1>{'TEST ' if TEST_MODE else ''}{sectionName}</h1>'''
+{f'{JAMES_NOTE_HTML_PARAGRAPH}{NEWLINE}' if 'OET' in thisBible.abbreviation and BBB=='JAM' else ''}{f'{OET_UNFINISHED_WARNING_HTML_PARAGRAPH}{NEWLINE}' if 'OET' in thisBible.abbreviation else ''}<h1>{'TEST ' if TEST_MODE else ''}{sectionName}</h1>'''
         assert '\n\n' not in crossReferencedSectionHtml
         if isinstance( thisBible, ESFMBible.ESFMBible ): # e.g., OET-RV
             verseEntryList = livenOETWordLinks( BBBLevel, thisBible, BBB, verseEntryList, state )
@@ -745,13 +745,16 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
             replacementLetter = chr( ord('a') + hh ) # abcde
             assert replacementLetter in 'abcde'
             htmlChunk = htmlChunk \
-                            .replace( '#C', f'#{replacementLetter}C' ).replace( '"C', f'"{replacementLetter}C' ) \
-                            .replace( '#V', f'#{replacementLetter}V' ).replace( '"V', f'"{replacementLetter}V' ) \
+                            .replace( '"#C', f'"#{replacementLetter}C' ).replace( '"C', f'"{replacementLetter}C' ) \
+                            .replace( '"#V', f'"#{replacementLetter}V' ).replace( '"V', f'"{replacementLetter}V' ) \
                             .replace( '#fn', f'#{replacementLetter}Fn' ).replace( 'id="fn', f'id="{replacementLetter}Fn' ) \
                             .replace( '#xr', f'#{replacementLetter}Xr' ).replace( 'id="xr', f'id="{replacementLetter}Xr' )
             crossReferencedSectionHtml = f'''{crossReferencedSectionHtml}\n<div class="chunkRV">{htmlChunk}</div><!--chunkRV-->'''
         crossReferencedSectionHtml = f'''{crossReferencedSectionHtml}\n</div><!--{containerClassname}-->'''
         assert '\n\n' not in crossReferencedSectionHtml
+        assert 'None.htm' not in crossReferencedSectionHtml, crossReferencedSectionHtml
+        assert '.htm#aC' not in crossReferencedSectionHtml and '.htm#bC' not in crossReferencedSectionHtml, crossReferencedSectionHtml
+        assert '.htm#aV' not in crossReferencedSectionHtml and '.htm#bV' not in crossReferencedSectionHtml, crossReferencedSectionHtml
 
         # Now list all the combined cross-references with their passages
         xrefHtml = ''
@@ -763,11 +766,11 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
                 and not (collectedVerseCrossReference[1]==' ' and collectedVerseCrossReference[0] in '123'):
                     # This is the first crossReference but doesn't start with something like '3 Jn'
                     firstPart = collectedVerseCrossReference.split( ' ')[0]
-                    attemptedBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromText( firstPart )
+                    attemptedBBB = getBBBFromOETBookName( firstPart )
                     dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"    {collectedVerseCrossReference=} {firstPart=} {attemptedBBB=}" )
-                    if attemptedBBB is None and thisBible.abbreviation=='OET-RV' and firstPart[0]=='Y':
-                        # Maybe we need to convert something like Yoel to Joel
-                        attemptedBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromText( f'J{firstPart[1:]}' )
+                    # if attemptedBBB is None and thisBible.abbreviation=='OET-RV' and firstPart[0]=='Y':
+                    #     # Maybe we need to convert something like Yoel to Joel
+                    #     attemptedBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromText( f'J{firstPart[1:]}' )
                     if attemptedBBB is None:
                         # If might be an internal reference to this same book
                         #   so prepend this book code
@@ -817,16 +820,22 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
                         elif thisBible.abbreviation == 'T4T':
                             textHtml = do_T4T_HTMLcustomisations( textHtml )
                     thisXrefHtml = f'''<p><b>{collectedVerseCrossReference}</b>:</p>{textHtml if textHtml else 'Sorry, unable to find data for this passage.'}''' \
-                                        .replace( '#C', f'#{replacementLetter}C' ).replace( '"C', f'"{replacementLetter}C' ) \
+                                        .replace( '"#C', f'"#{replacementLetter}C' ).replace( '"C', f'"{replacementLetter}C' ) \
                                         .replace( '#V', f'#{replacementLetter}V' ).replace( '"V', f'"{replacementLetter}V' ) \
                                         .replace( '#fn', f'#{replacementLetter}Fn' ).replace( 'id="fn', f'id="{replacementLetter}Fn' ) \
                                         .replace( '#xr', f'#{replacementLetter}Xr' ).replace( 'id="xr', f'id="{replacementLetter}Xr' )
+                    assert '.htm#aC' not in thisXrefHtml and '.htm#bC' not in thisXrefHtml, thisXrefHtml
+                    assert '.htm#aV' not in thisXrefHtml and '.htm#bV' not in thisXrefHtml, thisXrefHtml
+                    assert '.htm#gC' not in thisXrefHtml and '.htm#hC' not in thisXrefHtml, thisXrefHtml
                     # print( f"{thisXrefHtml=}" )
                     # if 'Fn' in thisXrefHtml or 'Xr' in thisXrefHtml: halt
                     xrefHtml = f"{xrefHtml}{NEWLINE if xrefHtml else ''}{thisXrefHtml}"
                     doneCrossReferences.append( collectedVerseCrossReference )
+            assert '.htm#aC' not in xrefHtml and '.htm#bC' not in xrefHtml, xrefHtml
+            assert '.htm#aV' not in xrefHtml and '.htm#bV' not in xrefHtml, xrefHtml
+            assert '.htm#gC' not in xrefHtml and '.htm#hC' not in xrefHtml, xrefHtml
             xrefHtml = f'<div><h2>Collected OET-RV cross-references</h2>\n{xrefHtml}\n</div><!--end of collectedCrossReferences-->'
-            
+
         filepath = BBBFolder.joinpath( sFilename )
         top = makeTop( BBBLevel, thisBible.abbreviation, 'relatedPassage', None, state ) \
                 .replace( '__TITLE__', f"{thisBible.abbreviation} {ourTidyBBB} section{' TEST' if TEST_MODE else ''}" ) \
@@ -838,6 +847,7 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
 {removeDuplicateCVids( BBB, crossReferencedSectionHtml ).replace( '../byC/', '../../OET/byC/' )}{f"{NEWLINE}{xrefHtml.replace( '../byC/', '../../OET/byC/' )}" if xrefHtml else ''}
 {makeBottom( BBBLevel, 'relatedPassage', state )}'''
         checkHtml( thisBible.abbreviation, crossReferencedSectionHtml )
+        assert '.htm#aC' not in crossReferencedSectionHtml and '.htm#bC' not in crossReferencedSectionHtml, crossReferencedSectionHtml
         assert not filepath.is_file(), f"{filepath=}" # Check that we're not overwriting anything
         with open( filepath, 'wt', encoding='utf-8' ) as sectionHtmlFile:
             sectionHtmlFile.write( crossReferencedSectionHtml )

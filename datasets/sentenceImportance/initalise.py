@@ -39,20 +39,21 @@ import sys
 sys.path.append( '../../../BibleOrgSys/' )
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
+import BibleOrgSys.Formats.USXXMLBible as USXXMLBible
 
 
 
-LAST_MODIFIED_DATE = '2024-05-26' # by RJH
+LAST_MODIFIED_DATE = '2024-06-11' # by RJH
 SHORT_PROGRAM_NAME = "SentenceImportance_initialisation"
 PROGRAM_NAME = "Sentence Importance initialisation"
-PROGRAM_VERSION = '0.12'
+PROGRAM_VERSION = '0.13'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
 
 
 TSV_FILENAME = 'sentenceImportance.tsv'
-NUM_EXPECTED_DATA_LINES = 41_899
+NUM_EXPECTED_DATA_LINES = 41_899 # for initial vref.txt file with no split verses
 
 COLLATION_PATHNAME = Path( '../../../CNTR-GNT/sourceExports/collation.csv' )
 NUM_EXPECTED_COLLATION_COLUMNS = 35
@@ -60,6 +61,8 @@ BOS_BOOK_ID_MAP = {
     40: 'MAT', 41: 'MRK', 42: 'LUK', 43: 'JHN', 44: 'ACT',
     45: 'ROM', 46: 'CO1', 47: 'CO2', 48: 'GAL', 49: 'EPH', 50: 'PHP', 51: 'COL', 52: 'TH1', 53: 'TH2', 54: 'TI1', 55: 'TI2', 56: 'TIT', 57: 'PHM',
     58: 'HEB', 59: 'JAM', 60: 'PE1', 61: 'PE2', 62: 'JN1', 63: 'JN2', 64: 'JN3', 65: 'JDE', 66: 'REV', 99:None}
+
+NET_PATHNAME = Path( '../../copiedBibles/English/NET/' )
 
 
 # Default values are M2=Medium importance, 0:no textual issue, C3:clear enough
@@ -82,7 +85,9 @@ obscureRefs = ['JOB_29:20','JOB_29:24',]
 unclearRefs = ['EXO_15:25b',
                'JOB_30:6','JOB_30:7','JOB_30:11a','JOB_30:12','JOB_30:13','JOB_30:14','JOB_30:15','JOB_30:16a','JOB_30:17a','JOB_30:18','JOB_30:28a',
                 'JOB_31:12','JOB_31:16b',
-                'JOB_33:14','JOB_33:16']
+                'JOB_33:14','JOB_33:16',
+                'JOB_34:24a',
+                'JOB_36:8','JOB_36:16','JOB_36:17','JOB_36:18','JOB_36:19','JOB_36:27b','JOB_36:33''JOB_37:22a']
 # Just do some basic integrity checking
 allRefs = vitalRefs + importantRefs + trivialRefs + obscureRefs + unclearRefs
 assert len( set(allRefs) ) == len(allRefs) # Otherwise there must be a duplicate
@@ -98,8 +103,11 @@ for ref in allRefs:
 def run() -> bool:
     """
     """
+    netBible = USXXMLBible.USXXMLBible( NET_PATHNAME, givenAbbreviation='NET', encoding='utf-8' )
+    netBible.loadBooks() # So we can iterate through them all later
+
     initialLines, collationVerseDict, splitVerseSet = load()
-    create( initialLines, collationVerseDict, splitVerseSet )
+    create( initialLines, netBible, collationVerseDict, splitVerseSet )
 # end of initalise.run()
 
 
@@ -109,7 +117,7 @@ def load():
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Loading original {TSV_FILENAME}…" )
     with open( TSV_FILENAME, 'rt', encoding='utf-8') as inputTSVFile:
         initialTSVLines = inputTSVFile.read().rstrip().split( '\n' )
-    assert len(initialTSVLines) == NUM_EXPECTED_DATA_LINES, f"{NUM_EXPECTED_DATA_LINES:,=} {len(initialTSVLines):,=}"
+    assert len(initialTSVLines) == NUM_EXPECTED_DATA_LINES, f"{NUM_EXPECTED_DATA_LINES=:,} {len(initialTSVLines)=:,}"
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  {len(initialTSVLines):,} initial lines loaded from original {TSV_FILENAME}." )
 
     # Find the list of verses which must be split
@@ -162,6 +170,7 @@ def load():
         # Use the original table row to put the gloss into the literal text
         if collation_id == '99999999999':
             this_verse_row_list = None
+            never_happens_now
         else:
             if book_number != last_book_number:  # we've started a new book
                 if book_number != 99:
@@ -173,7 +182,7 @@ def load():
 
             assert len(verse_id) == 8 and verse_id.isdigit()
             if verse_id != last_verse_id:
-                this_verse_row_list = get_verse_rows(collation_csv_rows, collation_row_number)
+                this_verse_row_list = get_verse_collation_rows(collation_csv_rows, collation_row_number)
                 last_verse_id = verse_id
 
                 fgRef = f'{BBB}_{chapter_number}:{verse_number}'
@@ -207,13 +216,34 @@ def load():
 # end of initalise.load()
 
 
-def get_verse_rows(given_collation_rows: List[dict], row_index: int) -> List[list]:
+def has_text_critical_footnote( netBible, BBB:str, C:str, V:str ) -> bool:
+    """
+    Return True if NET Bible has a TC footnote for this verse.
+    """
+    try: verseEntryList, _contextList = netBible.getContextVerseData( (BBB,C,V) )
+    except KeyError:
+        logging.critical( f"Seems NET Bible has no verse for {BBB}_{C}:{V}")
+        return False
+    except TypeError:
+        if C=='1' and V=='1':
+            logging.critical( f"Seems NET Bible has no {BBB} book")
+        return False
+
+    for entry in verseEntryList:
+        text = entry.getFullText()
+        if text and 'Textual Criticism' in text:
+            return True
+    return False
+# end of initalise.has_text_critical_footnote()
+
+
+def get_verse_collation_rows(given_collation_rows: List[dict], row_index: int) -> List[list]:
     """
     row_index should be the index of the first row for the particular verse
 
     Returns a list of rows for the verse
     """
-    # vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"get_verse_rows({row_index})")
+    # vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"get_verse_collation_rows({row_index})")
     this_verse_row_list = []
     this_verseID = given_collation_rows[row_index]['VerseID']
     if row_index > 0: assert given_collation_rows[row_index-1]['VerseID'] != this_verseID
@@ -224,10 +254,10 @@ def get_verse_rows(given_collation_rows: List[dict], row_index: int) -> List[lis
         else: # done
             break
     return this_verse_row_list
-# end of extract_VLT_NT_to_ESFM.get_verse_rows
+# end of initalise.get_verse_collation_rows
 
 
-def create( initialTSVLines, collationVerseDict, splitVerseSet ) -> bool:
+def create( initialTSVLines, netBible, collationVerseDict, splitVerseSet ) -> bool:
     """
     """
     BibleOrgSysGlobals.backupAnyExistingFile( TSV_FILENAME, numBackups=3 )
@@ -237,15 +267,29 @@ def create( initialTSVLines, collationVerseDict, splitVerseSet ) -> bool:
         outputFile.write( "FGRef\tImportance\tTextualIssue\tClarity\n")
         numLinesWritten += 1
         for line in initialTSVLines:
-            UUU = line.split(' ')[0]
+            UUU, CV = line.split(' ')
             BBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromUSFMAbbreviation( UUU )
-            fgRef = f'{BBB}_{line[4:]}'
+            C, V = CV.split( ':' )
+            fgRef = f'{BBB}_{CV}'
+            # print( f"{fgRef}" )
+            has_TC_footnote = has_text_critical_footnote( netBible, BBB, C, V )
+            # print( f"  {has_TC_footnote}")
+            # if BBB=='EXO' and has_TC_footnote: print( f"{fgRef} has TC" ); halt
             # print( f"{line=} {fgRef=}" )
             subRefs = [f'{fgRef}a',f'{fgRef}b'] if fgRef in splitVerseSet else [fgRef]
 
             for subRef in subRefs: # either one or two lines per verse
                 importance, clarity = defaultImportance, defaultClarity
+
                 textualIssue = collationVerseDict[subRef] if subRef in collationVerseDict else defaultTextualIssue
+                if has_TC_footnote:
+                    if textualIssue==defaultTextualIssue: # default is '0'
+                        textualIssue = '2' # textualIssue ranges from 0 (None) to 4 (Major)
+                    elif textualIssue == '1':
+                        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Increased {subRef} TC from 1 to 2")
+                        textualIssue = '2' # textualIssue ranges from 0 (None) to 4 (Major)
+                    else:
+                        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"{subRef} TC was already {textualIssue}")
 
                 if subRef in vitalRefs:
                     importance = 'V' # vital = 4/4

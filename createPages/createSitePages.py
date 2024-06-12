@@ -87,7 +87,7 @@ from Dict import createTyndaleDictPages, createUBSDictionaryPages
 from html import makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2024-05-17' # by RJH
+LAST_MODIFIED_DATE = '2024-06-12' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData (OBD) Create Site Pages"
 PROGRAM_VERSION = '0.96'
@@ -249,7 +249,7 @@ def _createSitePages() -> bool:
             if 'haveSectionHeadings' not in thisBible.discoveryResults['ALL']: # probably we have no books that actually loaded
                 dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Adding discoveryResults 'haveSectionHeadings' for {thisBible.abbreviation}: no books loaded?" )
                 thisBible.discoveryResults['ALL']['haveSectionHeadings'] = False # We need this in several places
-            if not TEST_MODE or versionAbbreviation in ('OEB','WEB','WMB','NET','LSV','FBV','TCNT','T4T','LEB',
+            if not TEST_MODE or versionAbbreviation not in ('OEB','WEB','WMB','NET','LSV','FBV','TCNT','T4T','LEB',
                                                      'BBE','MOF','JPS','ASV','DRA','YLT','DBY','RV','WBS',
                                                      'KJB','BB','GNV','CB','TNT','WYC'):
                 # In test mode, we don't usually need to make all those pages, even just for the test books
@@ -422,6 +422,7 @@ def _createVersionPages( level:int, folder:Path, thisBible, state:State ) -> boo
         that then allows the user to choose by document/section/chapter or display version details
     """
     fnPrint( DEBUGGING_THIS_MODULE, f"_createVersionPages( {level}, {folder}, {thisBible.abbreviation} )")
+
     createBookPages( level+1, folder.joinpath('byDoc/'), thisBible, state )
     dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{thisBible.discoveryResults['ALL']['haveSectionHeadings']=}" )
     createChapterPages( level+1, folder.joinpath('byC/'), thisBible, state )
@@ -566,7 +567,7 @@ def _createDetailsPages( level:int, buildFolder:Path, state:State ) -> bool:
 
         if TEST_MODE and versionAbbreviation in state.selectedVersesOnlyVersions:
             # Add a list of links to verses containing this version
-            selectedVerseLinksList = [f'<a href="../par/{BBB}/C{C}V{V}.htm#Top">{getOETTidyBBB( BBB, titleCase=True )} {C}:{V}</a>' for BBB,C,V in state.preloadedBibles[versionAbbreviation]]
+            selectedVerseLinksList = [f'<a href="par/{BBB}/C{C}V{V}.htm#Top">{getOETTidyBBB( BBB, titleCase=True )} {C}:{V}</a>' for BBB,C,V in state.preloadedBibles[versionAbbreviation]]
         #     for BBB,C,V in state.preloadedBibles[versionAbbreviation]:
         #         ourTidyBBB = getOETTidyBBB( BBB, titleCase=True )
         #         selectedVerseLinksList.append( f'<a href="../par/{BBB}/C{C}V{V}.htm#Top">{getOETTidyBBB( BBB, titleCase=True )} {C}:{V}</a>' )

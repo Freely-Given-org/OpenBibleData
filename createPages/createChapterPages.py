@@ -46,14 +46,14 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 from BibleOrgSys.Internals.InternalBibleInternals import InternalBibleEntryList
 import BibleOrgSys.Formats.ESFMBible as ESFMBible
 
-from settings import State, TEST_MODE, reorderBooksForOETVersions, UNFINISHED_WARNING_HTML_PARAGRAPH, JAMES_NOTE_HTML_PARAGRAPH
+from settings import State, TEST_MODE, reorderBooksForOETVersions, OET_UNFINISHED_WARNING_HTML_PARAGRAPH, JAMES_NOTE_HTML_PARAGRAPH
 from usfm import convertUSFMMarkerListToHtml
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
                     makeTop, makeBottom, makeBookNavListParagraph, removeDuplicateCVids, checkHtml
 from OETHandlers import livenOETWordLinks, getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
-LAST_MODIFIED_DATE = '2024-04-30' # by RJH
+LAST_MODIFIED_DATE = '2024-06-12' # by RJH
 SHORT_PROGRAM_NAME = "createChapterPages"
 PROGRAM_NAME = "OpenBibleData createChapterPages functions"
 PROGRAM_VERSION = '0.66'
@@ -238,7 +238,7 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
                                 break # This versification is giving too many versification problems (with entire c4 missing)
                             if BBB not in ('JOBx','PSAx','EZEx','JOLx'): # TODO: Not sure what's going on with ms1 and mr in PSA and EZE 4 and Joel 2
                                 if n != len(rvSections)-1: # It should be the final section
-                                    logging.critical( f"createOETChapterPagesA {BBB} {c=} {n:,}/{len(rvSections):,} seems to have a versification problem around {rvStartCV=} {rvEndCV=}" )
+                                    logging.error( f"createOETChapterPagesA {BBB} {c=} {n:,}/{len(rvSections):,} seems to have a versification problem around {rvStartCV=} {rvEndCV=}" )
                                     while len(lvChunks) < len(rvSections):
                                         lvChunks.append( f"<p>Oops, missing OET-LV section (probably from a versification error).</p>" )
                                     break
@@ -274,7 +274,7 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
                         lvChunks.append( lvChunk )
                         lvRest = lvRest[lvEndIx:]
                         if not lvRest:
-                            logging.critical( f"createOETChapterPagesB {BBB} {c=} {n:,}/{len(rvSections):,} seems to have a versification problem around {rvStartCV=} {rvEndCV=}" )
+                            logging.error( f"createOETChapterPagesB {BBB} {c=} {n:,}/{len(rvSections):,} seems to have a versification problem around {rvStartCV=} {rvEndCV=}" )
                             while len(lvChunks) < len(rvSections):
                                 lvChunks.append( f"<p>Oops, no more OET-LV sections (probably from a versification error).</p>" )
                             # assert BBB == 'EZE' # This happens at EZE 20 (and in GEN???)
@@ -474,9 +474,9 @@ def createChapterPages( level:int, folder:Path, thisBible, state:State ) -> List
                 detailsLink = f''' <a title="Show details about this work" href="{'../'*(level-1)}details.htm#Top">©</a>'''
                 cNav = f'<p class="cNav">{oetLink}{leftLink}{documentLink} {"Intro" if c==-1 else c}{rightLink}{parallelLink}{interlinearLink}{detailsLink}</p>'
                 chapterHtml = f'''<h1 id="Top">{thisBible.abbreviation} {ourTidyBBB} Introduction</h1>
-{cNav}{f'{NEWLINE}{JAMES_NOTE_HTML_PARAGRAPH}' if 'OET' in thisBible.abbreviation and BBB=='JAM' else ''}{f'{NEWLINE}{UNFINISHED_WARNING_HTML_PARAGRAPH}' if 'OET' in thisBible.abbreviation else ''}''' \
+{cNav}{f'{NEWLINE}{JAMES_NOTE_HTML_PARAGRAPH}' if 'OET' in thisBible.abbreviation and BBB=='JAM' else ''}{f'{NEWLINE}{OET_UNFINISHED_WARNING_HTML_PARAGRAPH}' if 'OET' in thisBible.abbreviation else ''}''' \
     if c==-1 else f'''<h1 id="Top">{thisBible.abbreviation} {ourTidyBBB} Chapter {c}</h1>
-{cNav}{f'{NEWLINE}{JAMES_NOTE_HTML_PARAGRAPH}' if 'OET' in thisBible.abbreviation and BBB=='JAM' else ''}{f'{NEWLINE}{UNFINISHED_WARNING_HTML_PARAGRAPH}' if 'OET' in thisBible.abbreviation else ''}'''
+{cNav}{f'{NEWLINE}{JAMES_NOTE_HTML_PARAGRAPH}' if 'OET' in thisBible.abbreviation and BBB=='JAM' else ''}{f'{NEWLINE}{OET_UNFINISHED_WARNING_HTML_PARAGRAPH}' if 'OET' in thisBible.abbreviation else ''}'''
                 if thisBible.abbreviation == 'OET-LV':
                     chapterHtml = f'''{chapterHtml}<div class="buttons">
     <button type="button" id="marksButton" title="Hide/Show underline and strike-throughs" onclick="hide_show_marks()">Hide marks</button>

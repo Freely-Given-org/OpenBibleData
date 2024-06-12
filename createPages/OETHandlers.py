@@ -62,13 +62,12 @@ sys.path.append( '../../BibleTransliterations/Python/' )
 from BibleTransliterations import transliterate_Hebrew, transliterate_Greek
 
 from settings import State
-from html import checkHtml
 
 
-LAST_MODIFIED_DATE = '2024-05-20' # by RJH
+LAST_MODIFIED_DATE = '2024-06-12' # by RJH
 SHORT_PROGRAM_NAME = "OETHandlers"
 PROGRAM_NAME = "OpenBibleData OET handler"
-PROGRAM_VERSION = '0.58'
+PROGRAM_VERSION = '0.60'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -122,6 +121,17 @@ def getOETBookName( BBB:str ) -> str:
                 .replace('3 John',' 3 Yohan/(John)')
                 .replace('Jude','Yudas/(Jude)')
             )
+# end of OETHandlers.getOETBookName
+    
+
+def getBBBFromOETBookName( booknameText:str ) -> str:
+    """
+    """
+    return BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromText(
+                booknameText.rstrip( '.' ) # Remove any final period TODO: Should BibleOrgSys do that?
+                    .replace( 'Yob', 'Job' ).replace( 'Yoel', 'Joel' )
+                    .replace( 'Yhn', 'Jn' ).replace( 'Yud', 'Jud' )
+                )
 # end of OETHandlers.getOETBookName
     
 
@@ -356,6 +366,8 @@ def findLVQuote( level:int, BBB:str, C:str, V:str, occurrenceNumber:int, origina
 
     Note also that the SR-GNT might have ˚ nomina sacra marks in it, e.g., ˚Ἰησοῦ ˚Χριστοῦ, Υἱοῦ ˚Θεοῦ
     """
+    from html import checkHtml
+
     # DEBUGGING_THIS_MODULE = 99
     fnPrint( DEBUGGING_THIS_MODULE, f"formatUnfoldingWordTranslationNotes( {level=}, {BBB} {C}:{V}, {occurrenceNumber=} {originalQuote=}, … )")
     ref = f'{BBB}_{C}:{V}'
@@ -368,7 +380,7 @@ def findLVQuote( level:int, BBB:str, C:str, V:str, occurrenceNumber:int, origina
     try:
         lvVerseEntryList, _lvContextList = state.preloadedBibles['OET-LV'].getContextVerseData( (BBB, C, V) )
     except (KeyError, TypeError): # TypeError is if None is returned
-        logger = logging.critical if BBB in state.booksToLoad['OET-LV'] else logging.warning
+        logger = logging.error if BBB in state.booksToLoad['OET-LV'] else logging.warning
         logger( f"findLVQuote: OET-LV has no text for {ref}")
         return ''
 
@@ -533,11 +545,11 @@ def findLVQuote( level:int, BBB:str, C:str, V:str, occurrenceNumber:int, origina
                         matchStart = len(ourWords) # Convert to index of these words
                     gloss = row[10] if row[10] else row[9] if row[9] else row[8] if row[8] else row[7]
                     if not gloss:
-                        logging.critical( f"No available gloss2 for Hebrew {row}" )
+                        logging.error( f"No available gloss2 for Hebrew {row}" )
                     # assert gloss, f"{BBB} {C}:{V} {row=}"
                     ourWords.append( gloss )
             lvEnglishWords.append( f'''(Some words not found in {'<a href="#SR-GNT">SR-GNT</a>' if NT else '<a href="#UHB">UHB</a>'}: {' '.join( ourWords )})''' )
-            logging.critical( f"findLVQuote unable to match {ref} '{originalQuote}' {occurrenceNumber=} {currentOccurrenceNumber=} {inGap=}\n  {olWords=}  {olIndex=}\n  {ourWords=} {matchStart=}" )
+            logging.warning( f"findLVQuote unable to match {ref} '{originalQuote}' {occurrenceNumber=} {currentOccurrenceNumber=} {inGap=}\n  {olWords=}  {olIndex=}\n  {ourWords=} {matchStart=}" )
             # if BBB not in ('MRK',) or C not in ('1',) or V not in ('5','8','14'):
             # halt
 
@@ -552,7 +564,7 @@ def findLVQuote( level:int, BBB:str, C:str, V:str, occurrenceNumber:int, origina
         checkHtml( 'LVQuote', assembledHtml, segmentOnly=True )
         return assembledHtml
     else:
-        logging.critical( f"findLVQuote: OET-LV can't find a starting word number for {ref}")
+        logging.error( f"findLVQuote: OET-LV can't find a starting word number for {ref}")
         return ''
 # end of OETHandlers.findLVQuote
 

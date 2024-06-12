@@ -68,12 +68,13 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39, BOOKLIST_NT27
 
 from settings import State, TEST_MODE, SITE_NAME
+from OETHandlers import getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2024-05-30' # by RJH
+LAST_MODIFIED_DATE = '2024-06-12' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
-PROGRAM_VERSION = '0.82'
+PROGRAM_VERSION = '0.84'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -313,7 +314,7 @@ def makeBookNavListParagraph( linksList:List[str], workAbbrevPlus:str, state:Sta
                 else 'JN1' if displayText=='1YHN' else 'JN2' if displayText=='2YHN' else 'JN3' if displayText=='3YHN'
                 else 'JDE' if displayText=='YUD'
                 else 'PS2' if displayText=='2PS'
-                else BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromText( displayText ) )
+                else getBBBFromOETBookName( displayText ) )
         # print( f"   {aLink=} {displayText=} {BBB=}")
         assert BBB, f"{displayText=}"
         newALink = f'{aLink[:ixDisplayLinkStart]}{displayText}{aLink[ixDisplayLinkEnd:]}'
@@ -362,7 +363,7 @@ def removeDuplicateCVids( BBB:str, html:str ) -> str:
 
     This function removes the second id field in each case (which should be in the LV text).
 
-    Assert statements are disabled because this function can be quite slow for an entire OET book
+    # Assert statements are disabled because this function can be quite slow for an entire OET book
     """
     vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Removing duplicate IDs (#CV & #V) for {BBB} ({len(html):,} chars)…" )
     
@@ -385,8 +386,30 @@ def removeDuplicateCVids( BBB:str, html:str ) -> str:
         # else: # for #V entries, in large multi-chapter sections there can be several
         #     assert 1 <= idCount <= 5, f"{BBB} {idContents=} {idCount=} {html}"
         # if idCount > 1:
-        html = f"{html[:endIx]}{html[endIx:].replace( idContents, '' )}"
-            # assert html.count( idContents ) == 1
+        endHtml = html[endIx:]
+        # NOTE: In a section that includes multiple chapters, we might have multiple 'id="V1"'s
+        # print( f"removeDuplicateCVids {BBB} {idContents=} {startIx=} {endIx=}" )
+        while (endHtmlStartIx := endHtml.find( idContents ) ) != -1:
+            # if endHtmlStartIx == -1: continue # No duplicate found
+            # print( f"removeDuplicateCVidsA {endHtmlStartIx=} '{endHtml[endHtmlStartIx-50:endHtmlStartIx+50]}'" )
+            if ( (idContents.startswith( ' id="C' ) and 'V' not in idContents) # don't want ' id="C1V1'
+            or idContents.startswith( ' id="V' ) ): # Only in side-by-side chapters (not in entire books)
+                # then from something like '<span id="C123"></span>', if we delete the id bit, we get useless '<span></span>'
+                #   so let's delete the whole lot
+                assert endHtml[endHtmlStartIx-5:endHtmlStartIx] == '<span', f"{endHtml[endHtmlStartIx-5:endHtmlStartIx]=}"
+                assert endHtml[endHtmlStartIx+len(idContents):endHtmlStartIx+len(idContents)+8] == '></span>', f"{endHtml[endHtmlStartIx+len(idContents):endHtmlStartIx+len(idContents)+8]=}"
+                endHtml = f'{endHtml[:endHtmlStartIx-5]}{endHtml[endHtmlStartIx+len(idContents)+8:]}'
+                html = f'{html[:endIx]}{endHtml}'
+                # assert '<span></span>' not in html
+                # print( f"removeDuplicateCVidsB {endHtmlStartIx=}\nendHtml='…{endHtml[endHtmlStartIx-50:endHtmlStartIx+50]}…'\nhtml='…{html[endIx+endHtmlStartIx-50:endIx+endHtmlStartIx+50]}…'" )
+            else:       
+                endHtml = f'{endHtml[:endHtmlStartIx]}{endHtml[endHtmlStartIx+len(idContents):]}'
+                html = f'{html[:endIx]}{endHtml}'
+                # assert '<span></span>' not in html
+                # print( f"removeDuplicateCVidsC {endHtmlStartIx=}\nendHtml='…{endHtml[endHtmlStartIx-50:endHtmlStartIx+50]}…'\nhtml='…{html[endIx+endHtmlStartIx-50:endIx+endHtmlStartIx+50]}…'" )
+        assert html.count( idContents ) == 1, f"{idContents=} {html.count(idContents)=}"
+
+    assert '<span></span>' not in html # it used to be there when we deleted id fields from the already empty spans
     return html
 # end of html.removeDuplicateCVids
 
@@ -410,8 +433,8 @@ def checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool:
         # print( f"checkHtml({where=} {segmentOnly=}) found <br> in …{htmlToCheck[ix-30:ix]}{htmlToCheck[ix:ix+50]}…" )
         raise ValueError( f"checkHtml({where}) found <br> followed by unexpected newline in {htmlToCheck=}" )
             
-    if 'TCNT' not in where and 'TC-GNT' not in where: # These two versions use the '¦' character in their footnotes
-        assert '¦' not in htmlToCheck, f"checkHtml() found unprocessed word number marker in {where} {htmlToCheck=}"
+    if 'TCNT' not in where and 'TC-GNT' not in where and not where.startswith('Parallel '): # These two versions use the '¦' character in their footnotes
+        assert '¦' not in htmlToCheck, f"checkHtml() found unprocessed word number marker in '{where}' {htmlToCheck=}"
 
     for marker,startMarker in (('html','<html'),('head','<head>'),('body','<body>')):
         if segmentOnly:
@@ -420,7 +443,10 @@ def checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool:
             assert htmlToCheck.count( startMarker ) == 1, f"checkHtml() found {htmlToCheck.count( startMarker )} '{startMarker}' markers"
             assert htmlToCheck.count( f'</{marker}>' ) == 1
 
+    assert '<span>' not in htmlToCheck, f"<span> '{where}' {segmentOnly=} …{htmlToCheck[htmlToCheck.index('<span>')-180:htmlToCheck.index('<span>')+180]}…"
+    assert '>span class' not in htmlToCheck, f"'>span class' '{where}' {segmentOnly=} …{htmlToCheck[htmlToCheck.index('>span class')-180:htmlToCheck.index('>span class')+180]}…"
     for marker,startMarker in (('div','<div'),('p','<p '),('h1','<h1'),('h2','<h2'),('h3','<h3'),('h4','<h4'),
+                               ('span','<span'),
                                ('ol','<ol'),('ul','<ul'),
                                ('em','<em>'),('i','<i>'),('b','<b>'),('small','<small>'),('sup','<sup>'),('sub','<sub>')):
         startCount = htmlToCheck.count( startMarker )
@@ -436,14 +462,17 @@ def checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool:
             ixRStartMarker = htmlToCheck.rfind( startMarker )
             ixREndMarker = htmlToCheck.rfind( f'</{marker}>' )
             ixMinEnd = min( ixRStartMarker, ixREndMarker )
-            logging.critical( f"Mismatched '{marker}' start and end markers '{where}' {segmentOnly=} {startCount}!={endCount}"
+            logging.error( f"Mismatched '{marker}' start and end markers '{where}' {segmentOnly=} {startCount}!={endCount}"
                               f" {'…' if ixMinStart>0 else ''}{htmlToCheck[ixMinStart:ixMinEnd+5]}{'…' if ixMinEnd+5<len(htmlToCheck) else ''}" )
             if DEBUGGING_THIS_MODULE: print( f"\ncheckHtml: complete {htmlToCheck=}\n")
             if TEST_MODE and ('JOB' not in where and 'OEB' not in where # why are these bad???
             and 'UTN' not in where and 'ULT' not in where
             and 'Parallel' not in where and 'Interlinear' not in where ): # Probably it's in UTN on parallel and interlinear pages
-                print( f"'{where}' {segmentOnly=} Bad html = {htmlToCheck=}\n")
-                halt    
+                print( f"'{where}' {segmentOnly=} Bad html = {htmlToCheck=}")
+                print( f"'{where}' {segmentOnly=} {startMarker=} {startCount=} {endCount=}")
+                if 'book' not in where.lower():
+                    if 'UST' not in where: # UST PSA has totally messed up \\qs encoding
+                        halt
             return False
 
     if '<li>' in htmlToCheck or '<li ' in htmlToCheck or '</li>' in htmlToCheck:
@@ -451,7 +480,7 @@ def checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool:
         assert '</ol>' in htmlToCheck or '</ul>' in htmlToCheck
 
     if '\n<br></p>' in htmlToCheck or '\n<br></span>' in htmlToCheck:
-        logging.critical( f"'{where}' {segmentOnly=} has wasted <br> in {htmlToCheck=} THIS IS BEING CHANGED!!!" )
+        logging.warning( f"checkHtml '{where}' {segmentOnly=} needed to fix wasted <br> in {htmlToCheck=}" )
         htmlToCheck = htmlToCheck.replace( '\n<br></span></span></p>', '</span></span></p>' ).replace( '\n<br></span></p>', '</span></p>' ).replace( '\n<br></p>', '</p>' )
     if '\n</a>' in htmlToCheck:
         logging.critical( f"'{where}' {segmentOnly=} has unexpected newline before anchor close in {htmlToCheck=}" )
@@ -514,7 +543,7 @@ def checkHtmlForMissingStyles( where:str, htmlToCheck:str ) -> bool:
                     className = ssLine[5:].split( ' ', 1 )[0]
                     # print( f"    span {className=}")
                     assert ' ' not in className and ',' not in className, f"{className=}"
-                    assert 'span' not in lsStyleDict[className]
+                    assert 'span' not in lsStyleDict[className], f"{lsStylesheetName=} {className=} {lsStyleDict[className]=}"
                     lsStyleDict[className].append( 'span' )
                     lsStyleDict[f'used_{className}'] = False
                 elif ssLine.startswith( 'p.' ):
@@ -523,8 +552,8 @@ def checkHtmlForMissingStyles( where:str, htmlToCheck:str ) -> bool:
                     for className in classNames.split( ',' ):
                         className = className.replace( 'p.', '' )
                         # if not ssLine[len(className)+4:].startswith( '+ '): # p.mt1 + p.mt2, p.mt2 + p.mt1 { margin-top:-0.5em; }
-                        assert ' ' not in className and ',' not in className, f"{className=}"
-                        assert 'p' not in lsStyleDict[className]
+                        assert ' ' not in className and ',' not in className, f"{lsStylesheetName=} {className=}"
+                        assert 'p' not in lsStyleDict[className], f"{lsStylesheetName=} {className=} {lsStyleDict[className]=}"
                         lsStyleDict[className].append( 'p' )
                         lsStyleDict[f'used_{className}'] = False
                 elif ssLine.startswith( 'div.' ):
@@ -605,7 +634,7 @@ def checkHtmlForMissingStyles( where:str, htmlToCheck:str ) -> bool:
 # end of html.checkHtmlForMissingStyles
 
 
-ADD_REGEX = re.compile( '<span class="RVadd">' )
+RV_ADD_REGEX = re.compile( '<span class="RVadd">' )
 def do_OET_RV_HTMLcustomisations( OET_RV_html:str ) -> str:
     """
     OET-RV is formatted in paragraphs.
@@ -617,15 +646,19 @@ def do_OET_RV_HTMLcustomisations( OET_RV_html:str ) -> str:
     assert '<span class="add">=' not in OET_RV_html # Only expected in OET-LV
     # assert '<span class="add"><' not in OET_RV_html # Only expected in OET-LV
     # assert '<span class="add">>' not in OET_RV_html # Only expected in OET-LV
+    assert '<span class="add">?≡' not in OET_RV_html # Doesn't make sense
     assert '<span class="add">&' not in OET_RV_html # Only expected in OET-LV
     result = (OET_RV_html \
             # Adjust specialised add markers
             .replace( '<span class="add">?<', '<span class="unsure addDirectObject">' )
-            .replace( '<span class="add"><a title', '__PROTECT__' )
+            .replace( '<span class="add"><span ', '__PROTECT_SPAN__' )
+            .replace( '<span class="add"><a title', '__PROTECT_A__' )
             .replace( '<span class="add"><', '<span class="addDirectObject">' )
-            .replace( '__PROTECT__', '<span class="add"><a title' )
+            .replace( '__PROTECT_A__', '<span class="add"><a title' )
+            .replace( '__PROTECT_SPAN__', '<span class="add"><span ' )
             .replace( '<span class="add">?>', '<span class="unsure addExtra">' )
             .replace( '<span class="add">>', '<span class="addExtra">' )
+            .replace( '<span class="add">≡', '<span class="addElided">' )
             .replace( '<span class="add">?*', '<span class="unsure addPronoun">' )
             .replace( '<span class="add">*', '<span class="addPronoun">' )
             .replace( '<span class="add">?@', '<span class="unsure addReferent">' )
@@ -640,17 +673,22 @@ def do_OET_RV_HTMLcustomisations( OET_RV_html:str ) -> str:
             .replace( '<span class="add">', '<span class="RVadd">' )
             .replace( '≈', '<span class="parr">≈</span>')
             )
+    
+    # Just do an additional check inside '<span class="RVadd">' spans
     startSearchIndex = 0
     for _safetyCount in range( 3_000 ): # 2_000 wasn't enough
-        match = ADD_REGEX.search( result, startSearchIndex )
+        match = RV_ADD_REGEX.search( result, startSearchIndex )
         if not match: break
         startSearchIndex = match.end()
         # print( f"{startSearchIndex=} {nextChar=} {result[match.start():match.start()+30]}" )
         nextChars = result[startSearchIndex:]
-        if not nextChars.startswith( '<a title' ):
+        if not ( nextChars.startswith( '<a title' )
+                or nextChars.startswith( '<span class="wj">' ) or nextChars.startswith( '<span class="nominaSacra">') ):
             nextChar = result[startSearchIndex]
-            assert nextChar.isalpha() or nextChar in '(,‘’—', f"{startSearchIndex=} {nextChar=} {result[match.start():match.start()+30]}"
+            # NOTE: 1/ 2/ 3/ are used in OET-RV EXO 23
+            assert nextChar.isalpha() or nextChar in '(,‘’—123', f"{startSearchIndex=} {nextChar=} {result[match.start():match.start()+80]}"
     else: NOT_ENOUGH_LOOPS
+
     return result
 # end of html.do_OET_RV_HTMLcustomisations
 
@@ -701,7 +739,9 @@ def do_OET_LV_HTMLcustomisations( OET_LV_html:str ) -> str:
             .replace( '<span class="add">+', '<span class="addArticle">' )
             .replace( '<span class="add">-', '<span class="unusedArticle">' )
             .replace( '<span class="add">=', '<span class="addCopula">' )
+            .replace( '<span class="add"><a title', '__PROTECT__' )
             .replace( '<span class="add"><', '<span class="addDirectObject">' )
+            .replace( '__PROTECT__', '<span class="add"><a title' )
             .replace( '<span class="add">>', '<span class="addExtra">' )
             .replace( '<span class="add">&', '<span class="addOwner">' )
             # Put all underlines into a span with a class (then we will have a button to hide them)

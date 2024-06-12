@@ -9,7 +9,7 @@ p.copyright {}
 p.note {}
 p.thanks {}
 
-span.upLink { font-size:1.5em; font-weight:bold; }
+/* span.upLink { font-size:1.5em; font-weight:bold; } */
 
 /* Links */
 /* a:link { text-decoration:none; }
@@ -21,8 +21,8 @@ a { text-decoration:none; }
 /* Navigational lists at top of page */
 p.wrkLst { background-color:#904471; color:98a9d4; }
 .wrkLst a { text-decoration:none; color:white; }
-p.viewLst {background-color:#936EA1; color:98a9d4; }
-.viewLst a { text-decoration:none; color:white; }
+/* p.viewLst {background-color:#936EA1; color:98a9d4; } */
+/* .viewLst a { text-decoration:none; color:white; } */
 p.bkLst {background-color:#F9F871; }
 .bkLst a { color:inherit; text-decoration:none; }
 p.chLst {background-color:paleGreen; }
@@ -37,11 +37,11 @@ span.OT { color:saddlebrown; }
 .OT a { text-decoration:none; }
 span.NT { color:darkgreen; }
 .NT a { text-decoration:none; }
-span.DC { color:orange; font-size:smaller; }
-.DC a { text-decoration:none; }
+/* span.DC { color:orange; font-size:smaller; } */
+/* .DC a { text-decoration:none; } */
 
 /* Navs are the ones with arrows */
-p.cNav { text-align:center; font-size:1.8em; background-color:#98a9d4; }
+/* p.cNav { text-align:center; font-size:1.8em; background-color:#98a9d4; } */
 /* .cNav a { text-decoration:none; } */
 p.vNav { text-align:center; font-size:1.8em; }
 /* .vNav a { text-decoration:none; }
@@ -204,34 +204,36 @@ p.LV {}
 span.wrkName {}
 
 /* Header USFM */
-p.h { font-weight:bold; }
-p.mt1 { text-align:center; font-size:1.8em; }
-p.mt2 { text-align:center; font-size:1.3em; }
-p.mt1 + p.mt2, p.mt2 + p.mt1 { margin-top:-0.5em; }
-p.rem { font-size:0.8em; color:grey; }
+/* p.h { font-weight:bold; } */
+/* p.mt1 { text-align:center; font-size:1.8em; } */
+/* p.mt2 { text-align:center; font-size:1.3em; } */
+/* p.mt1 + p.mt2, p.mt2 + p.mt1 { margin-top:-0.5em; } */
+/* p.rem { font-size:0.8em; color:grey; } */
 
-/* Book intro USFM
-li.intro { margin-top:0.5em; margin-bottom:0.5em; }
-p.is1 { font-weight:bold; font-size:1.3em; }
-p.is2 { font-weight:bold; }
-p.iot { font-weight:bold; }
-p.io1 { text-indent:2em; margin-top:0.2em; margin-bottom:0.2em; }
-span.ior { font-weight:bold; }
-span.bk { font-style:italic; } */
+/* Book intro USFM */
+/* li.intro { margin-top:0.5em; margin-bottom:0.5em; } */
+/* p.is1 { font-weight:bold; font-size:1.3em; } */
+/* p.is2 { font-weight:bold; } */
+/* p.iot { font-weight:bold; } */
+/* p.io1 { text-indent:2em; margin-top:0.2em; margin-bottom:0.2em; } */
+/* span.ior { font-weight:bold; } */
+/* span.bk { font-style:italic; } */
 
 /* Chapters USFM */
 span.c { font-size:1.1em; color:green; }
-span.cPsa { font-size:1.6em; font-weight:bold; color:green; }
+/* span.cPsa { font-size:1.6em; font-weight:bold; color:green; } */
 span.v { vertical-align:super; font-size:0.5em; color:red; }
-span.cv { vertical-align:super; font-size:0.8em; color:orange; }
-span.vp { vertical-align:super; font-size:0.5em; color:purple; }
+/* span.cv { vertical-align:super; font-size:0.8em; color:orange; } */
+/* span.vp { vertical-align:super; font-size:0.5em; color:purple; } */
 span.noVerse {} /* We don't have that verse */
-span.d { font-style:italic; }
-p.s1 { margin-top:0.1em; margin-bottom:0; font-weight:bold; }
-p.r { margin-top:0; margin-bottom:0; font-size:0.75em; }
+/* span.d { font-style:italic; } */
+/* p.s1 { margin-top:0.1em; margin-bottom:0; font-weight:bold; } */
+/* p.mr { margin-top:0; margin-bottom:0; font-size:1.1em; text-align: center; font-style:italic; } Major section reference range */
+/* p.sr { margin-top:0; margin-bottom:0; font-size:0.9em; text-align: center; font-weight:bold; } Section reference range */
+/* p.r { margin-top:0; margin-bottom:0; font-size:0.75em; text-align: center; font-style:italic; } Parallel references */
 p.p { text-indent:0.5em; margin-top:0.2em; margin-bottom:0.2em; }
-p.q1 { margin-left:1em; margin-top:0.2em; margin-bottom:0.2em; }
-p.q2 { margin-left:2em; margin-top:0.2em; margin-bottom:0.2em; }
+/* p.q1 { margin-left:1em; margin-top:0.2em; margin-bottom:0.2em; } */
+/* p.q2 { margin-left:2em; margin-top:0.2em; margin-bottom:0.2em; } */
 /* p.m {  } */
 span.li1 {} /* Why's this a span??? */
 
@@ -242,18 +244,19 @@ span.wj { color:saddlebrown; }
 span.sc { font-size:0.8em; } /* Small caps */
 span.sig { font-family:cursive; }
 span.ul { color:darkGrey; }
-span.SR-GNT_trans {}
+/* span.SR-GNT_trans {} */
 
 /* OT spans */
 span.parr { vertical-align:super; font-size:0.8em; color:green; }
 
 /* OET add spans */
 span.addArticle { color:bisque; } */
-span.unusedArticle { color:lavender; }
+/* span.unusedArticle { color:lavender; } */
 span.addCopula { color:pink; }
 span.addDirectObject { color:brown; }
 span.addExtra { color:lightGreen; }
-span.addOwner { color:darkOrchid; }
+span.addElided { color:darkgoldenrod; }
+/* span.addOwner { color:darkOrchid; } */
 span.addPronoun { color:darkgreen; }
 span.addReferent { color:darkblue; }
 span.addPluralised { color:darkcyan; }
@@ -283,11 +286,11 @@ span.ft {}
 /* span.fw {} */
 
 /* USFM cross-references */
-div.crossRefs {}
-p.xr { margin-top:0.2em; margin-bottom:0.2em; font-size:0.75em; }
-span.xrCaller { vertical-align:super; font-size:0.7em; color:blue; }
-span.xrRef { font-weight:bold; }
-span.xrText {}
+/* div.crossRefs {} */
+/* p.xr { margin-top:0.2em; margin-bottom:0.2em; font-size:0.75em; } */
+/* span.xrCaller { vertical-align:super; font-size:0.7em; color:blue; } */
+/* span.xrRef { font-weight:bold; } */
+/* span.xrText {} */
 
 /* Where do these come from??? One of the below! */
 span.sup { vertical-align:super; }
@@ -311,13 +314,18 @@ span.greek {}
 div.TSN {}
 p.sn-text {}
 span.sn-excerpt { font-family:Arial, Helvetica, sans-serif; color:saddleBrown; }
+span.sn-excerpt-sc { font-family:Arial, Helvetica, sans-serif; color:saddleBrown; }
+span.sn-excerpt-roman { font-family:'Times New Roman', Times, serif, Helvetica, sans-serif; color:saddleBrown; }
 span.sn-ref {}
+/* span.sn-ref-sc {} */
 span.ital { font-style:italic; } /* TODO: We need to fix these */
-span.bold { font-weight:bold; }
+/* span.bold { font-weight:bold; } */
 span.ital-bold { font-style:italic; font-weight:bold; }
-span.hebrew { color:orange; }
-span.aramic { color:darkorchid; }
-span.grk { color:darkgreen; }
+span.hebrew { font-weight:bold; color:orange; }
+span.aramaic { font-weight:bold; color:darkorchid; }
+span.grk { font-weight:bold; color:darkgreen; } Also used in NET Bible footnotes
+span.latin { font-weight:bold; color:darkblue; }
+span.divine-name-ital { font-style:italic; }
 
 /* unfoldingWord translation notes (UTNs) */
 div.UTN {}

@@ -28,10 +28,10 @@ when another considers it important. So we don't want to try to be too fine-grai
 
 Hence the importance values are:
 
-1. 0=T=Trivial (like a forgotten cloak, or greetings from some person we know longer know)
-2. 1=M=Medium (the great majority of sentences in the Bible)
-3. 2=I=Important (specific statements that are commonly considered to be more important, and hence often memorised)
-4. 3=V=Vital (specific statements that are commonly found in doctrinal statements)
+- 0=T=Trivial (like a forgotten cloak, or greetings from some person we know longer know)
+- 1=M=Medium (the great majority of sentences in the Bible)
+- 2=I=Important (specific statements that are commonly considered to be more important, and hence often memorised)
+- 3=V=Vital (specific statements that are commonly found in doctrinal statements)
 
 ## Textual issues
 
@@ -41,10 +41,10 @@ It may have been deleted by some, added by some, or (intentionally or accidental
 
 Hence the textual issue values are:
 
-1. 0=No issue (so most translations are working from the same Hebrew/Greek text here)
-2. 1=Minor spelling or word order issues (with pretty-much no effect on meaning)
-3. 2=Minor word changes (some words vary in manuscripts of different origins)
-4. 3=Major differences (any translations might be expected to have a footnote her to explain textual differences in the source)
+- 0=No issue (so most translations are working from the same Hebrew/Greek text here)
+- 1=Minor spelling or word order issues (with pretty-much no effect on meaning)
+- 2=Minor word changes (some words vary in manuscripts of different origins)
+- 3=Major differences (any translations might be expected to have a footnote her to explain textual differences in the source)
 
 ## Clarity / Understandability
 
@@ -55,9 +55,9 @@ But other passages are much more obscure than that.
 
 Hence the clarity values are:
 
-1. 0=O=Obscure (we can only really guess at what was meant, and hence we might expect translations to differ widely)
-2. 1=U=Unclear (we’re unsure exactly what was meant, like the parchment example above)
-3. 2=C=Clear (it seems clear enough what the author or speaker meant, as far as we know)
+- 0=O=Obscure (we can only really guess at what was meant, and hence we might expect translations to differ widely)
+- 1=U=Unclear (we’re unsure exactly what was meant, like the parchment example above)
+- 2=C=Clear (it seems clear enough what the author or speaker meant, as far as we know)
 
 ## TSV format
 

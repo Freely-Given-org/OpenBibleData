@@ -43,7 +43,7 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39, BOOKLIST_NT27
 import BibleOrgSys.Formats.ESFMBible as ESFMBible
 
-from settings import State, TEST_MODE, reorderBooksForOETVersions, UNFINISHED_WARNING_HTML_PARAGRAPH, JAMES_NOTE_HTML_PARAGRAPH
+from settings import State, TEST_MODE, reorderBooksForOETVersions, OET_UNFINISHED_WARNING_HTML_PARAGRAPH, JAMES_NOTE_HTML_PARAGRAPH
 from usfm import convertUSFMMarkerListToHtml
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
                     makeTop, makeBottom, makeBookNavListParagraph, removeDuplicateCVids, checkHtml
@@ -119,7 +119,7 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
 
             bkHtml = f'''<p class="bkNav">{bkPrevNav}<span class="bkHead" id="Top">{rvBible.abbreviation} {ourTidyBBBwithNotes}</span>{bkNextNav}</p>
 {JAMES_NOTE_HTML_PARAGRAPH}
-{UNFINISHED_WARNING_HTML_PARAGRAPH}'''
+{OET_UNFINISHED_WARNING_HTML_PARAGRAPH}'''
             verseEntryList, contextList = rvBible.getContextVerseData( (BBB,) )
             assert isinstance( rvBible, ESFMBible.ESFMBible )
             verseEntryList = livenOETWordLinks( level, rvBible, BBB, verseEntryList, state )
@@ -140,7 +140,7 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
 {navBookListParagraph}
 {bkHtml}
 {makeBottom( level, 'book', state )}'''
-            checkHtml( f'{rvBible.abbreviation} {BBB}', bkHtml )
+            checkHtml( f'OET Book FRT {rvBible.abbreviation} {BBB}', bkHtml )
             assert not filepath.is_file() # Check that we're not overwriting anything
             with open( filepath, 'wt', encoding='utf-8' ) as bkHtmlFile:
                 bkHtmlFile.write( bkHtml )
@@ -160,7 +160,7 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
         bkNextNav = f' <a title="Go to next book" href="{iBkList[bkIx+1]}.htm#Top">►</a>' if bkIx<len(iBkList)-1 else ''
 
         bkHtml = f'''<p class="bkNav">{bkPrevNav}<span class="bkHead" id="Top">Open English Translation {ourTidyBBBwithNotes}</span>{bkNextNav}</p>
-{f'{JAMES_NOTE_HTML_PARAGRAPH}{NEWLINE}' if BBB=='JAM' else ''}{UNFINISHED_WARNING_HTML_PARAGRAPH}
+{f'{JAMES_NOTE_HTML_PARAGRAPH}{NEWLINE}' if BBB=='JAM' else ''}{OET_UNFINISHED_WARNING_HTML_PARAGRAPH}
 <div class="RVLVcontainer">
 <h2>Readers’ Version</h2>
 <h2>Literal Version <button type="button" id="marksButton" title="Hide/Show underline and strike-throughs" onclick="hide_show_marks()">Hide marks</button></h2>'''
@@ -253,6 +253,8 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
         for rvSection,lvChunk in zip( rvSections, lvChunks, strict=True ):
             if rvSection.startswith( '<div class="rightBox">' ):
                 rvSection = f'<div class="s1">{rvSection}' # This got removed above
+            checkHtml( f"OET-RV {BBB} Section", rvSection, segmentOnly=True )
+            checkHtml( f"OET-LV {BBB} Chunk", lvChunk, segmentOnly=True )
             combinedHtml = f'''{combinedHtml}<div class="chunkRV">{rvSection}</div><!--chunkRV-->
 <div class="chunkLV">{lvChunk}</div><!--chunkLV-->
 '''
@@ -268,7 +270,7 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
 {navBookListParagraph}
 {bkHtml}{removeDuplicateCVids( BBB, combinedHtml )}</div><!--RVLVcontainer-->
 {makeBottom( level, 'book', state )}'''
-        checkHtml( f'OET {BBB}', bkHtml )
+        checkHtml( f'OET Book {BBB}', bkHtml )
         assert not filepath.is_file() # Check that we're not overwriting anything
         with open( filepath, 'wt', encoding='utf-8' ) as bkHtmlFile:
             bkHtmlFile.write( bkHtml )
@@ -331,7 +333,7 @@ def createBookPages( level:int, folder:Path, thisBible, state:State ) -> List[st
         # and BBB in ('FRT','INT','NUM','SA1','SA2','CH1','EZR','NEH','JOB','SNG','JER','DAN'):
         #     logging.critical( f"AA Skipped OET chapters difficult book: OET-LV {BBB}")
         #     continue # Too many problems for now
-        if thisBibleBooksToLoad not in (['ALL'],['NT']) \
+        if thisBibleBooksToLoad not in (['ALL'],['OT'],['NT']) \
         and BBB not in thisBibleBooksToLoad:
             logging.critical( f"VV Skipped chapters difficult book: {thisBible.abbreviation} {BBB}")
             continue # Only create pages for the requested books
@@ -347,7 +349,7 @@ def createBookPages( level:int, folder:Path, thisBible, state:State ) -> List[st
             bkPrevNav = f'''<a title="Go to book index" href="index.htm#Top">◄</a> '''
             bkNextNav = f' <a title="Go to first existing book" href="{iBkList[1]}.htm#Top">►</a>'
 
-        bkHtml = f'''<p class="bkNav">{bkPrevNav}<span class="bkHead" id="Top">{thisBible.abbreviation} {ourTidyBBB}</span>{bkNextNav}</p>{f'{NEWLINE}{JAMES_NOTE_HTML_PARAGRAPH}' if 'OET' in thisBible.abbreviation and BBB=='JAM' else ''}{f'{NEWLINE}{UNFINISHED_WARNING_HTML_PARAGRAPH}' if 'OET' in thisBible.abbreviation else ''}'''
+        bkHtml = f'''<p class="bkNav">{bkPrevNav}<span class="bkHead" id="Top">{thisBible.abbreviation} {ourTidyBBB}</span>{bkNextNav}</p>{f'{NEWLINE}{JAMES_NOTE_HTML_PARAGRAPH}' if 'OET' in thisBible.abbreviation and BBB=='JAM' else ''}{f'{NEWLINE}{OET_UNFINISHED_WARNING_HTML_PARAGRAPH}' if 'OET' in thisBible.abbreviation else ''}'''
         verseEntryList, contextList = thisBible.getContextVerseData( (BBB,) )
         if isinstance( thisBible, ESFMBible.ESFMBible ):
             verseEntryList = livenOETWordLinks( level, thisBible, BBB, verseEntryList, state )
@@ -375,7 +377,7 @@ def createBookPages( level:int, folder:Path, thisBible, state:State ) -> List[st
 {navBookListParagraph}
 {bkHtml}
 {makeBottom( level, 'book', state )}'''
-        checkHtml( f'{thisBible.abbreviation} {BBB}', bkHtml )
+        checkHtml( f'Book {thisBible.abbreviation} {BBB}', bkHtml )
         assert not filepath.is_file() # Check that we're not overwriting anything
         with open( filepath, 'wt', encoding='utf-8' ) as bkHtmlFile:
             bkHtmlFile.write( bkHtml )
