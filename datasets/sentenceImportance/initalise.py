@@ -43,7 +43,7 @@ import BibleOrgSys.Formats.USXXMLBible as USXXMLBible
 
 
 
-LAST_MODIFIED_DATE = '2024-06-11' # by RJH
+LAST_MODIFIED_DATE = '2024-06-16' # by RJH
 SHORT_PROGRAM_NAME = "SentenceImportance_initialisation"
 PROGRAM_NAME = "Sentence Importance initialisation"
 PROGRAM_VERSION = '0.13'
@@ -87,7 +87,14 @@ unclearRefs = ['EXO_15:25b',
                 'JOB_31:12','JOB_31:16b',
                 'JOB_33:14','JOB_33:16',
                 'JOB_34:24a',
-                'JOB_36:8','JOB_36:16','JOB_36:17','JOB_36:18','JOB_36:19','JOB_36:27b','JOB_36:33''JOB_37:22a']
+                'JOB_36:8','JOB_36:16','JOB_36:17','JOB_36:18','JOB_36:19','JOB_36:27b','JOB_36:33',
+                'JOB_37:22a',
+                'JOB_38:20','JOB_38:36',
+                'JOB_39:13b',
+                'JOB_40:13b', 'JOB_40:19', 'JOB_40:24a',
+                ]
+TCRefs = ['JOB_39:13','JOB_39:14','JOB_39:15','JOB_39:16','JOB_39:17','JOB_39:18', # Ostrich section
+          ]
 # Just do some basic integrity checking
 allRefs = vitalRefs + importantRefs + trivialRefs + obscureRefs + unclearRefs
 assert len( set(allRefs) ) == len(allRefs) # Otherwise there must be a duplicate
@@ -264,7 +271,7 @@ def create( initialTSVLines, netBible, collationVerseDict, splitVerseSet ) -> bo
 
     numLinesWritten = 0
     with open( TSV_FILENAME, 'wt', encoding='utf-8') as outputFile:
-        outputFile.write( "FGRef\tImportance\tTextualIssue\tClarity\n")
+        outputFile.write( "FGRef\tImportance\tTextualIssue\tClarity\tComment\n")
         numLinesWritten += 1
         for line in initialTSVLines:
             UUU, CV = line.split(' ')
@@ -279,10 +286,10 @@ def create( initialTSVLines, netBible, collationVerseDict, splitVerseSet ) -> bo
             subRefs = [f'{fgRef}a',f'{fgRef}b'] if fgRef in splitVerseSet else [fgRef]
 
             for subRef in subRefs: # either one or two lines per verse
-                importance, clarity = defaultImportance, defaultClarity
+                importance, clarity, comment = defaultImportance, defaultClarity, ''
 
                 textualIssue = collationVerseDict[subRef] if subRef in collationVerseDict else defaultTextualIssue
-                if has_TC_footnote:
+                if has_TC_footnote or subRef in TCRefs:
                     if textualIssue==defaultTextualIssue: # default is '0'
                         textualIssue = '2' # textualIssue ranges from 0 (None) to 4 (Major)
                     elif textualIssue == '1':
@@ -307,7 +314,7 @@ def create( initialTSVLines, netBible, collationVerseDict, splitVerseSet ) -> bo
                     clarity = 'U' # unclear = 2/3
                     unclearRefs.remove( subRef )
 
-                outputFile.write( f"{subRef}\t{importance}\t{textualIssue}\t{clarity}\n" )
+                outputFile.write( f"{subRef}\t{importance}\t{textualIssue}\t{clarity}\t{comment}\n" )
                 numLinesWritten += 1
 
     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  {numLinesWritten:,} lines written to {TSV_FILENAME}." )

@@ -64,10 +64,10 @@ from BibleTransliterations import transliterate_Hebrew, transliterate_Greek
 from settings import State
 
 
-LAST_MODIFIED_DATE = '2024-06-12' # by RJH
+LAST_MODIFIED_DATE = '2024-06-17' # by RJH
 SHORT_PROGRAM_NAME = "OETHandlers"
 PROGRAM_NAME = "OpenBibleData OET handler"
-PROGRAM_VERSION = '0.60'
+PROGRAM_VERSION = '0.61'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -135,21 +135,23 @@ def getBBBFromOETBookName( booknameText:str ) -> str:
 # end of OETHandlers.getOETBookName
     
 
-def getHebrewWordpageFilename( rowNum:int, state:State ) -> str:
+def getHebrewWordpageFilename( wordTableRowNum:int, state:State ) -> str:
     """
     Take a unique reference like JN2_1:3w4 and make it into a filename
             like KI2c1v3w4.htm
         although notes and segment punctuation are treated differently
             like KI2c1v3n123456.htm
     """
-    ref, rowType, morphemeRowList, rest = state.OETRefData['word_tables']['OET-LV_OT_word_table.tsv'][rowNum].split( '\t', 3 )
+    ref, rowType, morphemeRowNumberOrList, _rest = state.OETRefData['word_tables']['OET-LV_OT_word_table.tsv'][wordTableRowNum].split( '\t', 3 )
+    ref = ref.replace('_','c',1).replace(':','v',1) # Don't want underlines coz they're used for many other things, and colon might not be legal in filesystem
+
     if 'w' not in ref:
         letter = 's' if rowType=='seg' else 'n' if 'note' in rowType else None
         assert letter
-        assert morphemeRowList.isdigit()
-        ref = f'{ref}{letter}{morphemeRowList}'
-    result = f"{ref.replace('_','c',1).replace(':','v',1)}.htm" # Don't want underlines coz they're used for many other things, and colon might not be legal in filesystem
-    return result
+        assert morphemeRowNumberOrList.isdigit()
+        ref = f'{ref}{letter}{morphemeRowNumberOrList}'
+
+    return f'{ref}.htm'
 # end of createOETReferencePages.getHebrewWordpageFilename
 
 
@@ -174,7 +176,7 @@ def livenOETWordLinks( level:int, bibleObject:ESFMBible, BBB:str, givenEntryList
     """
     Livens ESFM wordlinks in the OET versions (i.e., the words with ¦ numbers suffixed to them).
 
-    Then add the transliteration to the title="§«GreekWord»§" popup.
+    Then add the transliteration to the title="§«OrigWord»§" popup.
 
     NOTE: Now that we no longer use word numbers as word filenames, we have to do an extra step of post-processing
     """
@@ -288,7 +290,7 @@ def livenOETWordLinks( level:int, bibleObject:ESFMBible, BBB:str, givenEntryList
                 wordRow = state.OETRefData['word_tables']['OET-LV_OT_word_table.tsv'][wordNumber]
 
                 ref, rowType, morphemeRowList, lemmaRowList, strongs, morphology, word, noCantillations, morphemeGlosses, contextualMorphemeGlosses, wordGloss, contextualWordGloss, glossCapitalisation, glossPunctuation, glossOrder, glossInsert, role, nesting, tags = wordRow.split( '\t' )
-                transliteratedWord = transliterate_Hebrew( noCantillations )
+                transliteratedWord = ','.join( [transliterate_Hebrew(part) for part in noCantillations.split(',')] ) # Need to split at commas for correct transliteration
                 transliteratedWordForTitle = transliteratedWord.replace( 'ə', '~~SCHWA~~' ) # Protect it so not adjusted in the title field
 
                 # Do colourisation
@@ -340,9 +342,9 @@ def livenOETWordLinks( level:int, bibleObject:ESFMBible, BBB:str, givenEntryList
         if transliterationsAdded > 0 or colourisationsAdded > 0:
             # print( f"  Now '{originalText}'")
             if transliterationsAdded > 0:
-                vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Added {transliterationsAdded:,} {bibleObject.abbreviation} {BBB} transliterations to Greek titles." )
+                vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  Added {transliterationsAdded:,} {bibleObject.abbreviation} {BBB} transliterations to Greek titles." )
             if colourisationsAdded > 0:
-                vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Added {colourisationsAdded:,} {bibleObject.abbreviation} {BBB} colourisations to Greek words." )
+                vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  Added {colourisationsAdded:,} {bibleObject.abbreviation} {BBB} colourisations to Greek words." )
             # adjText, cleanText, extras = _processLineFix( self, C:str,V:str, originalMarker:str, text:str, fixErrors:List[str] )
             # newEntry = InternalBibleEntry( entry.getMarker(), entry.getOriginalMarker(), entry.getAdjustedText(), entry.getCleanText(), entry.getExtras(), originalText )
             # Since we messed up many of the fields, set them to blank/null entries so that the old/wrong/outdated values can't be accidentally used

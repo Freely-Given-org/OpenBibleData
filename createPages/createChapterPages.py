@@ -53,7 +53,7 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_
 from OETHandlers import livenOETWordLinks, getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
-LAST_MODIFIED_DATE = '2024-06-12' # by RJH
+LAST_MODIFIED_DATE = '2024-06-14' # by RJH
 SHORT_PROGRAM_NAME = "createChapterPages"
 PROGRAM_NAME = "OpenBibleData createChapterPages functions"
 PROGRAM_VERSION = '0.66'
@@ -164,7 +164,7 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
                 elif c == 0:
                     continue
                 elif c == 1:
-                    leftLink = f'<a title="Book introduction" href="{BBB}_Intro.htm#Top">◄</a> '
+                    leftLink = f'<a title="Previous (book introduction)" href="{BBB}_Intro.htm#Top">◄</a> '
                     rightLink = f' <a title="Next chapter" href="{BBB}_C{c+1}.htm#Top">►</a>' if c<numChapters else ''
                 else: # c > 1
                     assert c > 1
@@ -231,7 +231,7 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
                             ixEndCV = lvRest.rindex( f' id="{rvEndCV}"' ) # Versification problem if this fails
                         except ValueError as e: # this can happen if the section end is part-way through the next chapter
                             # i.e., the section crosses chapter boundaries
-                            dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createOETChapterPages {BBB} {c=} {n:,}/{len(rvSections):,}: section seems to cross chapter boundary {rvStartCV=} {rvEndCV=} {e=}")
+                            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"  createOETChapterPages {BBB} {c=} {n:,}/{len(rvSections):,}: section seems to cross chapter boundary {rvStartCV=} {rvEndCV=} {e=}")
                             if BBB == 'MAL' and c==4:
                                 dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createOETChapterPages aborting {BBB} {c=} {n:,}/{len(rvSections):,}" )
                                 lvChunks.append( '<p>Unsolved versification error for Malachi 4!</p>' )
@@ -421,7 +421,7 @@ def createChapterPages( level:int, folder:Path, thisBible, state:State ) -> List
         #     continue # Too many problems for now
         if thisBibleBooksToLoad not in (['ALL'],['NT']) \
         and BBB not in state.booksToLoad[thisBible.abbreviation]:
-            logging.critical( f"VV Skipped chapters difficult book: {thisBible.abbreviation} {BBB}")
+            logging.error( f"VV Skipped chapters difficult book: {thisBible.abbreviation} {BBB}")
             continue # Only create pages for the requested books
 
         BBBs.append( BBB )
@@ -457,11 +457,11 @@ def createChapterPages( level:int, folder:Path, thisBible, state:State ) -> List
                     leftLink = ''
                     rightLink = f' <a title="Next chapter" href="{BBB}_C{0 if haveChapterZero else 1}.htm#Top">►</a>'
                 elif c == 0:
-                    leftLink = f'<a title="Book introduction" href="{BBB}_Intro.htm#Top">◄</a> ' if haveBookIntro else ''
+                    leftLink = f'<a title="Previous (book introduction)" href="{BBB}_Intro.htm#Top">◄</a> ' if haveBookIntro else ''
                     rightLink = f' <a title="Next chapter" href="{BBB}_C1.htm#Top">►</a>'
                 elif c == 1:
                     leftLink = f'<a title="Previous chapter" href="{BBB}_C0.htm#Top">◄</a> ' if haveChapterZero \
-                            else f'<a title="Book introduction" href="{BBB}_Intro.htm#Top">◄</a> ' if haveBookIntro \
+                            else f'<a title="Previous (book introduction)" href="{BBB}_Intro.htm#Top">◄</a> ' if haveBookIntro \
                             else ''
                     rightLink = f' <a title="Next chapter" href="{BBB}_C{c+1}.htm#Top">►</a>' if c<numChapters else ''
                 else: # c > 1
@@ -521,7 +521,7 @@ def createChapterPages( level:int, folder:Path, thisBible, state:State ) -> List
                 vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(chapterHtml):,} characters written to {filepath}" )
 
             # Now create an index page for this book
-            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Creating chapter index page for {thisBible.abbreviation} {BBB}…" )
+            vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Creating chapter index page for {thisBible.abbreviation} {BBB}…" )
             # filename = f'{BBB}_index.htm' if numChapters>0 else f'{BBB}.htm' # for FRT, etc.
             filename = f'{BBB}.htm'
             filenames.append( filename )

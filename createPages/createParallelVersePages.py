@@ -81,16 +81,16 @@ import sys
 sys.path.append( '../../BibleTransliterations/Python/' )
 from BibleTransliterations import transliterate_Hebrew, transliterate_Greek
 
-from settings import State, TEST_MODE, TEST_BOOK_LIST, reorderBooksForOETVersions, OETS_UNFINISHED_WARNING_HTML_PARAGRAPH
+from settings import State, TEST_MODE, TEST_BOOK_LIST, reorderBooksForOETVersions, OETS_UNFINISHED_WARNING_HTML_TEXT
 from usfm import convertUSFMMarkerListToHtml
 from Bibles import formatTyndaleBookIntro, formatUnfoldingWordTranslationNotes, formatTyndaleNotes
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
-                    makeTop, makeBottom, makeBookNavListParagraph, checkHtml
+                    makeTop, makeBottom, makeBookNavListParagraph, removeDuplicateFNids, checkHtml
 from createOETReferencePages import CNTR_BOOK_ID_MAP, OSHB_ADJECTIVE_DICT, OSHB_PARTICLE_DICT, OSHB_NOUN_DICT, OSHB_PREPOSITION_DICT, OSHB_PRONOUN_DICT, OSHB_SUFFIX_DICT
 from OETHandlers import getOETTidyBBB, getOETBookName, livenOETWordLinks, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
-LAST_MODIFIED_DATE = '2024-06-12' # by RJH
+LAST_MODIFIED_DATE = '2024-06-14' # by RJH
 SHORT_PROGRAM_NAME = "createParallelVersePages"
 PROGRAM_NAME = "OpenBibleData createParallelVersePages functions"
 PROGRAM_VERSION = '0.96'
@@ -135,8 +135,8 @@ def createParallelVersePages( level:int, folder:Path, state:State ) -> bool:
     filename = 'index.htm'
     filepath = folder.joinpath( filename )
     top = makeTop( level, None, 'parallelVerse', None, state ) \
-            .replace( '__TITLE__', f"Parallel View{' TEST' if TEST_MODE else ''}" ) \
-            .replace( '__KEYWORDS__', 'Bible, parallel' )
+            .replace( '__TITLE__', f"Parallel Verse View{' TEST' if TEST_MODE else ''}" ) \
+            .replace( '__KEYWORDS__', 'Bible, parallel, verse' )
     indexHtml = f'''{top}<h1 id="Top">Parallel verse pages</h1>
 <p class="note">Each page only contains a single verse with minimal formatting, but displays it in a large number of different versions to enable analysis of different translation decisions. Study notes, theme notes, and translation notes will also be displayed, although not every verse has these.</p>
 <p class="note">Generally the older versions are nearer the bottom, and so reading from the bottom to the top can show how many English vocabulary and punctuation decisions propagated from one version to another.</p>
@@ -213,11 +213,11 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
             introLink = f'''<a title="Go to book intro" href="Intro.htm#__ID__">B</a> {f'<a title="Go to chapter intro" href="C{c}V0.htm#__ID__">I</a> ' if c!=-1 else ''}'''
             leftCLink = f'<a title="Go to previous chapter" href="C{c-1}V1.htm#__ID__">◄</a> ' if c>1 else ''
             rightCLink = f' <a title="Go to first chapter" href="C1V1.htm#__ID__">►</a>' if c==-1 \
-                    else f' <a title="Go to next chapter" href="C{c+1}V1.htm#__ID__">►</a>' if c<numChapters \
+                    else f' <a title="Next chapter" href="C{c+1}V1.htm#__ID__">►</a>' if c<numChapters \
                     else ''
             numVerses = referenceBible.getNumVerses( BBB, c )
             if numVerses is None: # something unusual
-                logging.critical( f"createParallelVersePagesForBook: no verses found for {BBB} {C}" )
+                logging.error( f"createParallelVersePagesForBook: no verses found for {BBB} {C}" )
                 continue
             oetRvPsaHasD = False
             # There's an EM_SPACE and an EN_SPACE (for the join) in the following line
@@ -230,12 +230,12 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                 greekWords = {}; greekVersionKeysHtmlSet = set()
 
                 # The following all have a __ID__ string than needs to be replaced
-                leftVLink = f'<a title="Go to previous verse" href="C{C}V{v-1}.htm#__ID__">←</a> ' if v>1 \
-                        else f'<a title="Go to last verse of previous chapter" href="C{c-1}V{lastNumVerses}.htm#__ID__">↨</a> ' if c>1 \
+                leftVLink = f'<a title="Previous verse" href="C{C}V{v-1}.htm#__ID__">←</a> ' if v>1 \
+                        else f'<a title="Previous chapter (last verse)" href="C{c-1}V{lastNumVerses}.htm#__ID__">↨</a> ' if c>1 \
                         else ''
                 # NOTE below: C1V0 may not exist in the version but usually there's uW TNs for 1:0
-                rightVLink = f' <a title="Go to first chapter intro" href="C1V0.htm#__ID__">→</a>' if c==-1 \
-                        else f' <a title="Go to next verse" href="C{C}V{v+1}.htm#__ID__">→</a>' if v<numVerses \
+                rightVLink = f' <a title="Next page is first chapter intro" href="C1V0.htm#__ID__">→</a>' if c==-1 \
+                        else f' <a title="Next verse" href="C{C}V{v+1}.htm#__ID__">→</a>' if v<numVerses \
                         else ''
                 interlinearLink = f''' <a title="Interlinear verse view" href="{'../'*BBBLevel}ilr/{BBB}/C{C}V{V}.htm#Top">═</a>''' if BBB in state.booksToLoad['OET'] else ''
                 navLinks = f'<p id="__ID__" class="vNav">{leftCLink}{leftVLink}{ourTidyBbb} Book Introductions <a title="Go to __WHERE__ of page" href="#__LINK__">__ARROW__</a>{rightVLink}{rightCLink}{interlinearLink}{detailsLink}{hideFieldsButton}{hideTransliterationsButton}</p>' if c==-1 \
@@ -361,7 +361,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                                 # if BBB=='MRK' and C=='3' and V=='9': print( f"BBB {parRef} {versionAbbreviation} {textHtml=}" )
                             elif versionAbbreviation == 'OET-LV':
                                 # assert '<span class="ul">_</span>HNcbsa' not in textHtml, f'''Here1 ({textHtml.count('<span class="ul">_</span>HNcbsa')}) {textHtml=}'''
-                                textHtml = do_OET_LV_HTMLcustomisations( textHtml )
+                                textHtml, footnoteFreeTextHtml, footnotesHtml = do_OET_LV_HTMLcustomisations(textHtml), do_OET_LV_HTMLcustomisations(footnoteFreeTextHtml), do_OET_LV_HTMLcustomisations(footnotesHtml)
                                 # assert textHtml.count('<span class="ul">_</span>HNcbsa') < 2, f'''Here2 ({textHtml.count('<span class="ul">_</span>HNcbsa')}) {textHtml=}'''
                             elif versionAbbreviation == 'WEB': # assuming WEB comes BEFORE WMB
                                 footnoteFreeTextHtmlWEB = footnoteFreeTextHtml # Save it
@@ -385,7 +385,9 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                                     textHtml = f'{textHtml}<span class="{versionAbbreviation}_mod"><br>  ({modernisedTextHtml})</span>'
                             elif versionAbbreviation in ('LUT','CLV'):
                                 translateFunction = translateGerman if versionAbbreviation=='LUT' else translateLatin
-                                adjustedForeignTextHtml, translatedFootnotesHtml = translateFunction( footnoteFreeTextHtml ), translateFunction( footnotesHtml )
+                                adjustedForeignTextHtml = translateFunction( footnoteFreeTextHtml )
+                                if footnotesHtml:
+                                    translatedFootnotesHtml = removeDuplicateFNids( parRef, f'{footnotesHtml}__JOIN__{translateFunction( footnotesHtml )}' ).split( '__JOIN__' )[1]
                                 if adjustedForeignTextHtml != textHtml: # only show it if it changed
                                     # No longer true since we're now using getFullText (even for basicOnly), e.g., we may have id fields included in a bookHeader div
                                     # assert '</p>' not in textHtml
@@ -606,8 +608,8 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                 # filenames.append( filename )
                 filepath = BBBFolder.joinpath( filename )
                 top = makeTop( BBBLevel, None, 'parallelVerse', None, state ) \
-                        .replace( '__TITLE__', f"{ourTidyBBB} {C}:{V} Parallel View{' TEST' if TEST_MODE else ''}" ) \
-                        .replace( '__KEYWORDS__', f'Bible, parallel, {ourTidyBBB}' )
+                        .replace( '__TITLE__', f"{ourTidyBBB} {C}:{V} Parallel Verse View{' TEST' if TEST_MODE else ''}" ) \
+                        .replace( '__KEYWORDS__', f'Bible, parallel, verse, {ourTidyBBB}' )
                 if BBB in state.booksToLoad['OET']:
                     top = top.replace( f'''href="{'../'*BBBLevel}ilr/"''', f'''href="{'../'*BBBLevel}ilr/{BBB}/C{C}V{V}.htm#Top"''')
                 parallelHtml = f'''{top}<!--parallel verse page-->
@@ -615,8 +617,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
 {cLinksPar}
 {vLinksPar}
 <h1>Parallel {ourTidyBBB} {'Intro' if c==-1 else f'{C}:{V}'}</h1>
-<p class="rem">Note: This view shows ‘verses’ which are not natural language units and hence sometimes only part of a sentence will be visible. This view is only designed for doing comparisons of different translations. Click on the version abbreviation to see the verse in more of its context.</p>
-{OETS_UNFINISHED_WARNING_HTML_PARAGRAPH}
+<p class="rem">Note: This view shows ‘verses’ which are not natural language units and hence sometimes only part of a sentence will be visible. This view is only designed for doing comparisons of different translations. Click on any Bible version abbreviation to see the verse in more of its context. {OETS_UNFINISHED_WARNING_HTML_TEXT}</p>
 {navLinks.replace('__ID__','Top').replace('__ARROW__','↓').replace('__LINK__','Bottom').replace('__WHERE__','bottom')}
 {parallelHtml}
 {navLinks.replace('__ID__','Bottom').replace('__ARROW__','↑').replace('__LINK__','Top').replace('__WHERE__','top')}
@@ -639,8 +640,8 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
     filename1 = 'index.htm'
     filepath1 = BBBFolder.joinpath( filename1 )
     top = makeTop( BBBLevel, None, 'parallelVerse', None, state) \
-            .replace( '__TITLE__', f"{ourTidyBBB} Parallel View{' TEST' if TEST_MODE else ''}" ) \
-            .replace( '__KEYWORDS__', 'Bible, parallel' )
+            .replace( '__TITLE__', f"{ourTidyBBB} Parallel Verse View{' TEST' if TEST_MODE else ''}" ) \
+            .replace( '__KEYWORDS__', 'Bible, parallel, verse' )
     # For Psalms, we don't list every single verse
     indexHtml = f'''{top}{adjBBBLinksHtml}{f'{NEWLINE}<h1 id="Top">{ourTidyBBB} parallel songs index</h1>' if BBB=='PSA' else ''}{cLinksPar}{f'{NEWLINE}<h1 id="Top">{ourTidyBBB} parallel verses index</h1>' if BBB!='PSA' else ''}{f'{NEWLINE}<p class="vsLst">{" ".join( vLinksList )}</p>' if BBB!='PSA' else ''}
 {makeBottom( BBBLevel, 'parallelVerse', state )}'''
@@ -656,8 +657,8 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
     filename2 = f'{BBB}.htm'
     filepath2 = folder.joinpath( filename2 )
     top = makeTop( level, None, 'parallelVerse', None, state) \
-            .replace( '__TITLE__', f"{ourTidyBBB} Parallel View{' TEST' if TEST_MODE else ''}" ) \
-            .replace( '__KEYWORDS__', 'Bible, parallel' )
+            .replace( '__TITLE__', f"{ourTidyBBB} Parallel Verse View{' TEST' if TEST_MODE else ''}" ) \
+            .replace( '__KEYWORDS__', 'Bible, parallel, verse' )
     # For Psalms, we don't list every single verse
     indexHtml = f'''{top}{adjBBBLinksHtml}{f'{NEWLINE}<h1 id="Top">{ourTidyBBB} parallel songs index</h1>' if BBB=='PSA' else ''}{cLinksPar}{f'{NEWLINE}<h1 id="Top">{ourTidyBBB} parallel verses index</h1>' if BBB!='PSA' else ''}{f'{NEWLINE}<p class="vsLst">{" ".join( newBBBVLinks )}</p>' if BBB!='PSA' else ''}
 {makeBottom( level, 'parallelVerse', state )}'''
@@ -666,7 +667,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
         indexHtmlFile.write( indexHtml )
     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath2}" )
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createParallelVersePagesForBook() finished processing {len(vLinksList):,} {BBB} verses." )
+    vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  createParallelVersePagesForBook() finished processing {len(vLinksList):,} {BBB} verses." )
     return True
 # end of createParallelVersePages.createParallelVersePagesForBook
 
@@ -772,14 +773,14 @@ def brightenSRGNT( BBB:str, C:str, V:str, brightenTextHtml:str, verseEntryList, 
         if not greekWord.startswith('κρ') and not greekWord.startswith('μακρ') and not greekWord.startswith('γενν'): # Seems there were some spelling changes
             # and greekWord not in ('κράββατον','κράββατόν'):
             if greekWord.lower() != strippedGrkWord.lower():
-                logging.critical( f"Unable to find word number for {BBB} {C}:{V} {currentWordNumber=} {greekWord=} {strippedGrkWord=} {len(punctuatedGrkWords)=} {len(grkWordNumbers)=}" )
+                logging.error( f"Unable to find word number for {BBB} {C}:{V} {currentWordNumber=} {greekWord=} {strippedGrkWord=} {len(punctuatedGrkWords)=} {len(grkWordNumbers)=}" )
                 break # We failed to match -- it's not critical so we'll just stop here (meaning we won't have all the word numbers for this verse)
             # assert greekWord.lower() == strippedGrkWord.lower(), f"{BBB} {C}:{V} {currentWordNumber=} {greekWord=} {strippedGrkWord=} {len(punctuatedGrkWords)=} {grkWordNumbers=}"
         grkWordNumbers.append( currentWordNumber )    
         assert currentWordNumber <= lastWordNumber
         currentWordNumber += 1
     if len(grkWordNumbers) != len(punctuatedGrkWords):
-        logging.critical( f"brighten SR-GNT was unable to find word numbers for all words for {BBB} {C}:{V} (got {len(grkWordNumbers)} out of {len(punctuatedGrkWords)})" )
+        logging.error( f"brighten SR-GNT was unable to find word numbers for all words for {BBB} {C}:{V} (got {len(grkWordNumbers)} out of {len(punctuatedGrkWords)})" )
 
     # TODO: Not totally sure that we need these extras from https://github.com/Center-for-New-Testament-Restoration/SR files
     #           now that we have the word numbers for the Greek words
@@ -1002,7 +1003,7 @@ def brightenUHB( BBB:str, C:str, V:str, brightenUHBTextHtml:str, verseEntryList,
     # Match Hebrew words to word numbers -- we use the original numbering which is marked as variant in UHB
     try: firstWordNumber,lastWordNumber = state.OETRefData['word_table_indexes'][wordFileName][f'{BBB}_{vC}:{vV}']
     except KeyError as e:
-        logging.critical( f"brightenUHB() {UHBRef} nothing for {e}" )
+        logging.error( f"brightenUHB() {UHBRef} nothing for {e}" )
         return brightenUHBTextHtml, []
     
     currentWordNumber = firstWordNumber
@@ -1017,7 +1018,7 @@ def brightenUHB( BBB:str, C:str, V:str, brightenUHBTextHtml:str, verseEntryList,
         #     assert currentWordNumber <= lastWordNumber, f"{currentWordNumber=} {firstWordNumber=} {lastWordNumber=}"
         currentWordNumber += 1
     if len(hebWordNumbers) != len(strippedHebWords):
-        logging.critical( f"brighten UHB was unable to find word numbers for all words for {UHBRef} (got {len(hebWordNumbers)} out of {len(strippedHebWords)})" )
+        logging.error( f"brighten UHB was unable to find word numbers for all words for {UHBRef} (got {len(hebWordNumbers)} out of {len(strippedHebWords)})" )
 
     # TODO: Not totally sure that we need these extras from https://github.com/Center-for-New-Testament-Restoration/SR files
     #           now that we have the word numbers for the Hebrew words
@@ -1054,7 +1055,7 @@ def brightenUHB( BBB:str, C:str, V:str, brightenUHBTextHtml:str, verseEntryList,
                 continue # nothing more to do in this loop
             try: ix = brightenUHBTextHtml.index( rawHebWord, searchStartIndex )
             except ValueError as e:
-                logging.critical( f"brightenUHB {UHBRef} couldn't find {rawHebWord=} {searchStartIndex=} in {brightenUHBTextHtml}, {verseEntryList}: {e}" )
+                logging.error( f"brightenUHB {UHBRef} couldn't find {rawHebWord=} {searchStartIndex=} in {brightenUHBTextHtml}, {verseEntryList}: {e}" )
                 # halt
                 verseWordNumberIndex += 1
                 if verseWordNumberIndex >= len(strippedHebWords):
@@ -1630,7 +1631,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
     ((' paynes',),' pains'),((' payne',),' pain'),
             ((' parablis',),' parables'), ((' partynge',),' parting'), ((' parts',' parties'),' parts/region'),((' parte ',),' part '),
             (('Passeouer','Passouer'),'Passover'),((' passiden',' passide'),' passed'),((' passynge',),' passing'),((' passe ',),' pass '),((' passe?',),' pass?'),((' passe:',),' pass:'),
-            ((' pacience',),' patience'),
+            ((' pathes',' paches','pathhis'),' paths'), ((' pacience',),' patience'),
             (('Pavl',),'Paul'),
             ((' paye ',),' pay '),
         ((' pees',),' peace'),
@@ -1661,7 +1662,11 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
                 (('preuent',),'prevent'),
             (('prijs ',),'price '), (('preestis','prestis','prestes','priestes'),'priests'),(('Priestes','Prestes'),'Priests'),(('prieste','preste','prest',),'priest'), (('princis','prynces'),'princes'),
                 (('prisouneris','presoners'),'prisoners'), (('pryuatly',),'privately'),
-            (('proceaded',),'proceeded'), (('proffet',),'profit'), (('promysed','bihiyten'),'promised'), (('Prophetes',),'Prophets'),(('profetis','prophetes'),'prophets'), (('Prophete',),'Prophet'),((' prophete ',),' prophet '),((' prophete,',),' prophet,'),((' prophete.',),' prophet.'),((' prophete?',' profete?'),' prophet?'),
+            (('proceaded',),'proceeded'),
+                (('proffet',),'profit'),
+                (('promysed','bihiyten'),'promised'),
+                (('Prophetes',),'Prophets'),(('profetis','prophetes'),'prophets'), (('Prophete',),'Prophet'),((' prophete ',),' prophet '),((' prophete,',),' prophet,'),((' prophete.',),' prophet.'),((' prophete?',' profete?'),' prophet?'),
+                (('proude',),'proud'),
                 ((' preued',),' proved'),((' proue ',),' prove '), (('prouerbe',),'proverb'), (('prouynces','prouinces'),'provinces'),
         (('publysshed',),'published'),
             ((' punishe ',),' punish '),
@@ -1689,7 +1694,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
             ((' returne ',),' return '),
             ((' rewarde ',),' reward '),((' rewarde.',),' reward.'),
         ((' riche ',),' rich '),
-            ((' ryght ',' riyt '),' right '), (('riytwisnesse ','rightewesnes ','righteousnes '),'righteousness '),(('riytwisnesse,','rightewesnes,','righteousnesse,','righteousnes,'),'righteousness,'),(('riytwisnesse:','rightewesnes:','righteousnes:'),'righteousness:'),((' ryghteous',),' righteous'),
+            ((' ryght ',' riyt '),' right '),((' riyt.',),' right.'), (('riytwisnesse ','rightewesnes ','righteousnes '),'righteousness '),(('riytwisnesse,','rightewesnes,','righteousnesse,','righteousnes,'),'righteousness,'),(('riytwisnesse:','rightewesnes:','righteousnes:'),'righteousness:'),((' ryghteous',),' righteous'),
             ((' risith',),' riseth/rises'), ((' ryse ',),' rise '),
             ((' ryuer',' riuer'),' river'),
         ((' rocke ',),' rock '),
@@ -1758,7 +1763,8 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
                 ((' stomacke ',' stomac '),' stomach '),
                 ((' stoonys',),' stones'),((' stoone',' stoon'),' stone'),
                 ((' stoode',' stonden',' stoden',' stode'),' stood'), ((' stoupe',' stowpe'),' stoop'),
-            (('strayght',),'straight'), (('straunger',),'stranger'),(('straunge ',),'strange '),
+                ((' storme,',),' storm,'),
+            (('strayght','streyght'),'straight'), (('straunger',),'stranger'),(('straunge ',),'strange '),
                 ((' streames',' stremys'),' streams'), ((' strewiden ',' strawed ',' strowed '),' strewed '),
                 ((' strijf',' stryfe'),' strife'),((' stryuynge',' stryuyng',' stryvinge',' striuing'),' striving'),(('stryve','stryue','striue'),'strive'),
             (('stumbleth','stombleth','stomblith'),'stumbles'),
@@ -1823,7 +1829,9 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
             ((' vn',),' un'), # Special case for all remaining un- words
             ((' vp',),' up'), # Special case for all remaining up- words
     ((' valey',),' valley'), (('vanisshed','vanysshed'),'vanished'), (('vanyte ','vanitie '),'vanity '),
-        (('Ueryly','Verely','Veryly'),'Verily/Truly'),((' verely',' veryly'),' verily/truly'), ((' vessell',),' vessel'),
+        ((' vayle',' vaile',' vail'),' veil'),
+            (('Ueryly','Verely','Veryly'),'Verily/Truly'),((' verely',' veryly'),' verily/truly'),
+            ((' vessell',),' vessel'),
         (('vyneyarde','vynyarde','vynyerd','vineyarde'),'vineyard'), ((' vertu',),' virtue'), ((' visite ',' vyset '),' visit '),
         ((' voyce',' vois'),' voice'), ((' voyde',' voide'),' void'),
     ((' wayte ',),' wait '),((' waite,',),' wait,'),
@@ -1971,7 +1979,7 @@ GERMAN_WORD_MAP = (
     (' ehe ',' before '),
         ('Engel','angel'),
         ('Erde','earth'), (' erste ',' first '),
-        (' ein ',' a '),(' eine ',' one '),(' einem ',' one '),(' einen ',' a '),(' einer,',' one,'), ('eingeborenen','native_born'),
+        (' ein ',' a '),(' eine ',' one '),(' einem ',' one '),(' einen ',' a '),(' einer,',' one,'),(' eines ',' one '), ('eingeborenen','native_born'),
         (' er ',' he '), (' erschien',' appeared'),  (' ersterben',' die'),   (' erwürget',' strangled'),
         ('Es ','It '),(' es ',' it '), (' essen',' eat'),
         (' etliche ',' several '),
@@ -1981,7 +1989,7 @@ GERMAN_WORD_MAP = (
         ('Evangeliums','gospel'),
         (' ewige ',' eternal '),
     (' fast ',' nearly '),
-        (' ferne;',' distance;'), ('Feuer','fire'),
+        (' fehlet ',' mistake '), (' ferne;',' distance;'), ('Feuer','fire'),
         (' findet ',' finds '), ('Finsternis','darkness'),(' finster ',' dark '),
         ('Fleisch','flesh'),
         ('Freunde','friends'),
@@ -2069,6 +2077,7 @@ GERMAN_WORD_MAP = (
         (' noch ',' still '),
         (' nun ',' now '),
     (' oder ',' or '),
+        (' offene ',' open '),
         (' ohne ',' without '), ('Ohren ','ears '),
         ('Ort ','location '),('Ort,','location,'),
     ('Pferd','horse'),
@@ -2128,7 +2137,7 @@ GERMAN_WORD_MAP = (
     ('Was ','What '),
             ('Vaterland','fatherland/homeland'), ('Vater ','father '),
         ('vergeben','forgive'), ('verkündigte','announced'), ('verlässest','leave'), ('verloren','lost'), ('versammelt','gathered'),
-        (' viel ',' many '),
+        (' viel ',' many '), (' vier ',' four '),
         ('Volk','people'),
             (' vom ',' from_the '),
             (' von ',' from '),
@@ -2201,32 +2210,38 @@ LATIN_WORD_MAP = (
         ('ancillam','maidservant'),
             (' angelum',' a_messenger/angel'),
             (' annos ',' years '),
-            (' antequam ',' before '),
+            (' ante ',' before '),(' antequam ',' before '),
         (' appellavit ',' he_called '),
         (' aqua',' water'),
         (' audi ',' listen '), (' autem ',' however '),
         (' bis ',' twice '),
     (' bibere ',' to_drink '),
-        (' bona',' good'),
+        (' bona ',' good '),
     ('cælum','the_sky'), (' calida ',' hot '),
         ('Chananæum','Canaanites'),
         ('circumferentur','are_carried_around'),
             ('civitatis','of_the_city'),
+        ('clamantis','crying'),
         ('congregabit','will_gather'), ('continetur','is_contained'), ('contradictione','contradiction'),
-            (' cor ',' heart '),
+            (' cor ',' heart '), (' corrigit ',' corrects '),
         ('creavit ','created '), ('credit','he_believes'),
         ('Cum ','Since '),(' cum ',' when/with '),
     ('dæmonia','demons'), (' daret',' would_give'),
-        (' de ',' about '), (' decem ',' ten '), (' dedit',' he_gave'), ('Dei','God'),('Deum','God'),('Deus','God'),
-        ('dicitur','it_is_said'),
+        (' de ',' about '),
+            (' decem ',' ten '),
+            (' dedit',' he_gave'),
+            ('Dei','God'),
+            (' deserto ',' desert '),
+            ('Deum','God'),('Deus','God'),
+        (' dicit:',' he_says:'), ('dicitur','it_is_said'),
             (' diebus ',' days '), ('Dies ','The_day '),
             ('dilexit','he_loved'),
             ('dimittere','to_release'),('dimittuntur','they_are_released'),
             ('divisit','divided'),
             ('Dixitque','And_he_said'), (' dixit ',' he_said '),
-        (' docebo ',' I_will_teach '),
+        (' docebo ',' I_will_teach '), (' docet',' teaches'),
             (' dolor ',' pain '),
-            ('Dominus','Master'), (' domum ',' home '),
+            ('Domini,','Master,'),('Dominus','Master'), (' domum ',' home '), (' domus ',' home '),
         (' donec ',' until '),
         (' ductus ',' leadership '), (' duo ',' two '),
     (' eam ',' her '),
@@ -2245,11 +2260,11 @@ LATIN_WORD_MAP = (
         ('Et ','And '),(' et ',' and '), (' etiam ',' also '),
         (' eum ',' him '),(' eum,',' him,'),(' eum.',' him.'),(' eum?',' him?'),
         (' expecto ',' I_wait '),
-    (' faciat ',' let_him_do '), (' facta ',' facts '), ('facultatibus','resources'),
+    (' faciat ',' let_him_do '), (' facite ',' do_it '), (' facta ',' facts '), ('facultatibus','resources'),
         (' feri ',' wild '),
         ('Fiat ','Let_it_happen '),
             (' fidei',' of_faith'),(' fidem ',' faith '),
-            (' filia',' daughter'),(' filii',' children'),('Filium','Son'),('Fili,','Son,'),
+            (' filia',' daughter'),('Filii','Children'),(' filii',' children'),('Filium','Son'),('Fili,','Son,'),
         ('fluctus ','wave '),
         ('fratrem','brother'),
         (' fuerit',' has_been'),
@@ -2262,7 +2277,8 @@ LATIN_WORD_MAP = (
         ('Hi ','They '), (' hic ',' this '),(' hic.',' this.'),
         (' homo ',' human '),
         (' hunc ',' this_one '),
-    (' illis,',' to_them,'),
+    (' ibi ',' there '),
+        (' illis,',' to_them,'),
             (' illos ',' those '),(' illum ',' him '),
         (' infirmum',' weak'), ('Initium ','The_beginning '),(' initium ',' the_beginning '), (' inter ',' between '), (' introëas',' enter'),
         (' ipse ',' himself '),
@@ -2272,13 +2288,13 @@ LATIN_WORD_MAP = (
         (' liberis ',' freedom '),
         (' loco ',' instead '), (' locum ',' place '), (' locutus ',' spoke '),
         (' lucem ',' the_light '), (' lux',' light'),
-    (' maculæ',' spots'), (' magnus',' big'), (' manu ',' by_hand '),
+    (' maculæ',' spots'), (' magnus',' big'), (' manu ',' by_hand '), (' mare ',' the_sea '),
         (' mea.',' my.'), (' meæ ',' my '),
             (' mei ',' my/mine '),(' mei.',' my/mine.'),
             (' membra ',' members '),
             (' meo ',' mine '), (' mercede ',' reward '),
             (' meum ',' mine '),(' meum,',' mine,'),(' meum.',' mine.'), (' meus ',' mine '),(' meus,',' mine,'),
-        ('millibus','thousands'), ('ministrabant','served'), (' misi ',' I_sent '),
+        ('millibus','thousands'), ('ministrabant','served'), (' misi ',' I_sent '), (' mitto ',' I_send '),
         (' monte ',' mountain '),
             (' mortuæ',' dead'),
         (' multæ ',' many '), (' mundum',' the_world'),
@@ -2289,9 +2305,10 @@ LATIN_WORD_MAP = (
             (' novam',' new'),(' novum ',' new '),
         (' nubes ',' clouds '),
             (' nunc ',' now '),
-    (' omnes ',' everyone '), (' omni ',' all '), (' omnis ',' everyone '), (' omnipotens',' omnipotent'),
+    (' omnes ',' everyone '), (' omni ',' all '), ('Omnia ','Everything '),(' omnia ',' everything '),(' omnia,',' everything,'), (' omnis ',' everyone '), (' omnipotens',' omnipotent'),
         (' oratio ',' speech '), (' orbatus',' bereaved'),
-    (' peccata ',' sins '),(' peccatis ',' sins '),
+        (' ostiis ',' the_doors '),
+    (' peccata ',' sins '),(' peccatis ',' sins '), ('peccatorum','sinners'),
             (' pedibus',' feet'),
             (' peperit ',' gave_birth '),
             (' perductus ',' conducted '), (' pereat ',' perish '), (' perflata ',' blown_away '), (' perierunt',' they_perished'), (' pertinet',' belongs'),
@@ -2300,26 +2317,28 @@ LATIN_WORD_MAP = (
             (' populum',' the_people'),
             (' post ',' after '),
             (' poterant ',' they_could '),
-        ('princeps ','prince '), ('principio ','at_the_beginning '), (' prius ',' first/before '),
-            ('procella ','storm '), ('Propterea ',"That's_why "),
+        ('prima ','the_first '), ('princeps ','prince '), ('principio ','at_the_beginning '), (' prius ',' first/before '),
+            ('procedens','proceeding'), ('procella ','storm '), ('proprie ','properly '), ('Propterea ',"That's_why "),
         (' puteum ',' a_well '),
     (' qua ',' which '),(' quæ ',' which '),
             (' qualis ',' such_as '),
             (' quam ',' how '),
+            (' quando ',' when '),
             (' quasi ',' as_if '),
             (' quatuor',' four'),
         (' quem ',' which '),
-        ('Qui ','Who '),('qui ','who '), ('quia ','because '), ('quibus ','to_whom '), ('quis ','who/any '),
+        ('Qui ','Who '),('qui ','who '), ('quia ','because '), ('quibus ','to_whom '), ('Quis ','Who '),('quis ','who/any '),
         ('Quod ','That '),('quod ','that '), ('quos ','which '),
     (' radix ',' root '),
-        (' regis',' king'),(' regnum',' kingdom'),
+        (' rectas ',' correct '),
+            (' regis',' king'),(' regnum',' kingdom'),
             ('remittat','let_him_go'), ('remittentur','they_will_be_released'),
             (' reus ',' guilty '),
         (' rursum',' again'),
     (' salvabit',' will_save'), (' sanguinis',' blood'), (' sapientiam',' wisdom'),
         (' secundum ',' after/second '),
-            (' sed ',' but '),
-            (' semen ',' seed '),
+            ('Sed ','But '),(' sed ',' but '),
+            (' semen ',' seed '), (' semitas ',' path '),
             ('senioribus','seniors'),
             (' septem ',' seven '), (' septimus ',' the_seventh '),
             (' servata ',' saved '),
@@ -2331,36 +2350,45 @@ LATIN_WORD_MAP = (
             (' sive ',' if/or '),
         (' stare',' to_stand'),
             (' stella ',' star '),
-        (' suam ',' his_own '),(' suam,',' his_own,'), (' suas ',' their_own '),
+        (' sua ',' his_own '),(' suam ',' his_own '),(' suam,',' his_own,'), (' suas ',' their_own '),
             ('Sub ','Under '),(' sub ',' under '),
             (' suis',' to_his_own'),(' sum ',' I_am '),
-            (' sunt ',' are '),(' sunt,',' are,'),(' sunt.',' are.'), (' suo ',' his_own '), (' suum ',' his_own '),(' suum,',' his_own,'),
+            (' sunt ',' are '),(' sunt,',' are,'),(' sunt.',' are.'),
+            (' suo ',' his_own '),
+            (' super ',' over '),
+            (' surdos ',' the_deaf '),
+            (' suum ',' his_own '),(' suum,',' his_own,'),
     (' tace,',' be_silent,'),
             (' tantum ',' only '),
         (' te ',' you(sg) '),(' te,',' you(sg),'),(' te.',' you(sg).'),
+            ('Tectum ','The_roof '),(' tectum ',' roof '),
             (' tenebris',' darkness'), (' tenet',' holds'),
             (' terra ',' earth/land '),(' terram',' the_earth/land'),
         (' tibi ',' to_you '),
         ('Tollens ','Taking_off '),
-        (' tua ',' your '),(' tua.',' your.'),(' tui ',' yours '), ('tulit ','took '), (' tuum ',' your '),
-    (' unctus ',' anointed '),
-        (' unde ',' whence '),
-        ('unigenitum','only_born'),
-    (' ut ',' as '),
-        (' uxorem',' wife'),(' uxor ',' wife '),
+        (' tua ',' your '),(' tua.',' your.'),(' tui ',' yours '), ('tulit ','took '), (' tuum ',' your '),(' tuos ',' yours '),
+    (' ubi ',' where '),
+        (' unctus ',' anointed '),
+            (' unde ',' whence '),
+            ('unigenitum','only_born'),
+            (' unum ',' one '),(' unum.',' one.'),
+        (' usus ',' use '),
+        (' ut ',' as '),
+            (' uxorem',' wife'),(' uxor ',' wife '),
     ('Væ ','Alas '),
         (' vel ',' or '),
             (' veniat ',' let_him_come '),(' veniret ',' would_come '),(' venit ',' he_came '), (' ventis ',' the_winds '),
             ('veritatem','words'),
             ('vestimenta','clothes'), ('vestrum','of_you'),
-        (' via ',' road '),
+        (' via ',' road '),(' viam ',' road '),
             (' vidi ',' I_saw '),(' vidisset ',' had_seen '),(' vidit ',' he_saw '),
             (' vir ',' man '), (' virga',' rod/staff'), (' viro ',' to_the_man '), (' viros ',' men '),
             (' vis ',' you_want '),
             (' vitæ ',' of_life '), (' vitam ',' life '),
             (' vivat',' he_lives'),
         (' vobis ',' to_you '), ('vobiscum','with_you'),
-            ('vocans ','calling '), ('vocatur ','is_called '), (' voces',' voices'),
+            ('vocans ','calling '), ('vocatur ','is_called '), (' voces',' voices'), ('Vox ','The_voice '),
+        (' vulva ',' womb '),
     )
 LatinWords, EnglishWords = [], []
 for wordMapEntry in LATIN_WORD_MAP:

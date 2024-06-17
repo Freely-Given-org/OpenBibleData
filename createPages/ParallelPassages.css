@@ -138,7 +138,7 @@ span.parr { vertical-align:super; font-size:0.8em; color:green; }
 span.addDirectObject { color:brown; }
 span.addExtra { color:lightGreen; }
 span.addElided { color:darkgoldenrod; }
-/* span.addOwner { color:darkOrchid; } */
+span.addOwner { color:darkOrchid; }
 span.addPronoun { color:darkgreen; }
 span.addReferent { color:darkblue; }
 span.addPluralised { color:darkcyan; }

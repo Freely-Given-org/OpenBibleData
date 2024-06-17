@@ -88,7 +88,7 @@ from OETHandlers import findLVQuote, getBBBFromOETBookName
 from Dict import loadAndIndexUBSGreekDictJSON, loadAndIndexUBSHebrewDictJSON
 
 
-LAST_MODIFIED_DATE = '2024-06-12' # by RJH
+LAST_MODIFIED_DATE = '2024-06-14' # by RJH
 SHORT_PROGRAM_NAME = "Bibles"
 PROGRAM_NAME = "OpenBibleData Bibles handler"
 PROGRAM_VERSION = '0.73'
@@ -118,7 +118,7 @@ def preloadVersions( state:State ) -> int:
             and versionAbbreviation != 'TOSN' # coz TOSN loads lots of other things as well
             and versionAbbreviation in state.BibleLocations
             ):
-            vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nLooking for a pickle for {versionAbbreviation}…" )
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\nLooking for a pickle for {versionAbbreviation}…" )
             # See if a pickled version is available for a MUCH faster load time
             folderOrFileLocationPath = Path( state.BibleLocations[versionAbbreviation] )
             pickleFilename = f"{versionAbbreviation}__{'_'.join(TEST_BOOK_LIST)}{PICKLE_FILENAME_END}" \
@@ -126,13 +126,13 @@ def preloadVersions( state:State ) -> int:
                                 else f'{versionAbbreviation}{PICKLE_FILENAME_END}'
             pickleFolderPath = folderOrFileLocationPath if folderOrFileLocationPath.is_dir() else folderOrFileLocationPath.parent
             pickleFilePath = pickleFolderPath.joinpath( pickleFilename )
-            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"{folderOrFileLocationPath=} {pickleFilename=} {pickleFolderPath=} {pickleFilePath=}" )
+            dPrint( 'Never', DEBUGGING_THIS_MODULE, f"{folderOrFileLocationPath=} {pickleFilename=} {pickleFolderPath=} {pickleFilePath=}" )
             if pickleFilePath.is_file():
                 pickleIsObsolete = False
                 pickleMTime = pickleFilePath.stat().st_mtime # A large integer
                 dPrint( 'Info', DEBUGGING_THIS_MODULE, f"preloadVersions found {pickleFilename=}" )
                 for somePath in pickleFolderPath.iterdir():
-                    dPrint( 'Info', DEBUGGING_THIS_MODULE, f"{pickleFolderPath=} {somePath=} {type(somePath)=}" )
+                    dPrint( 'Never', DEBUGGING_THIS_MODULE, f"{pickleFolderPath=} {somePath=} {type(somePath)=}" )
                     if somePath.is_file() and not str(somePath).endswith( PICKLE_FILENAME_END ):
                         fileMTime = somePath.stat().st_mtime # A large integer
                         if fileMTime > pickleMTime:
@@ -140,13 +140,13 @@ def preloadVersions( state:State ) -> int:
                             vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} pickle is obsolete because {somePath.name} is more recent." )
                             break
                     else:
-                        dPrint( 'Info', DEBUGGING_THIS_MODULE, f"Ignoring folder {somePath}")
+                        dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"Ignoring folder {somePath}")
                 if not pickleIsObsolete:
                     try:
                         newBibleObj = BibleOrgSysGlobals.unpickleObject( pickleFilename, pickleFolderPath )
                         # dPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"newObj is {newBibleObj}" )
-                        dPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Loaded {versionAbbreviation} {type(newBibleObj)} pickle file: {pickleFilename}." )
-                        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"preloadVersions() loaded pickled {newBibleObj}" )
+                        # dPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Loaded {versionAbbreviation} {type(newBibleObj)} pickle file: {pickleFilename}." )
+                        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"preloadVersions() loaded pickled {newBibleObj if BibleOrgSysGlobals.verbosityLevel>=2 else versionAbbreviation}" )
                         state.preloadedBibles[versionAbbreviation] = newBibleObj
                         continue
                     except EOFError:
@@ -352,7 +352,7 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  preloadVersion() loaded {len(thisBible):,} {versionAbbreviation} verses" if versionAbbreviation in state.selectedVersesOnlyVersions else f"preloadVersion() loaded {thisBible}" )
 
     if ( versionAbbreviation not in state.selectedVersesOnlyVersions # they're dicts not Bible objects
-    and 'Zefania' not in folderOrFileLocation # TODO: these don't work for some reason
+    #and 'Zefania' not in folderOrFileLocation # TODO: these don't work for some reason
     and versionAbbreviation != 'OET-LV' # This one is handled by the calling function because it's more complex (uses two folders)
     and versionAbbreviation != 'TOSN' # This one has different complexities coz it loads various other bits
     ):
@@ -361,7 +361,7 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
                             else f'{versionAbbreviation}{PICKLE_FILENAME_END}'
         pickleFolderPath = folderOrFileLocation if os.path.isdir( folderOrFileLocation ) else Path( folderOrFileLocation ).parent
         thisBible.pickle( pickleFilename, pickleFolderPath )
-        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Saved pickle file: {pickleFilename}." )
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Saved pickle file: {pickleFilename}." )
 
     return thisBible
 # end of Bibles.preloadVersion
@@ -515,7 +515,7 @@ def formatTyndaleBookIntro( abbrev:str, level:int, BBB:str, segmentType:str, sta
 
     sourceDict = {'TBI':TyndaleBookIntrosDict, 'TBIS':TyndaleBookIntroSummariesDict}[abbrev]
     if BBB not in sourceDict:
-        logging.critical( f'No Tyndale book intro for {abbrev} {BBB}' )
+        logging.warning( f'No Tyndale book intro for {abbrev} {BBB}' )
         return ''
 
     bHtml = sourceDict[BBB]
@@ -797,7 +797,7 @@ def formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segme
 
         if marker == 'v':
             if rest!=V and '-' not in rest:
-                logging.critical( f"Why did TN {utnRef} get {marker}='{rest}' from {verseEntryList=}?" )
+                logging.error( f"Why did TN {utnRef} get {marker}='{rest}' from {verseEntryList=}?" )
                 # Doesn't seem that we usually need to display this but we will here in case something is wrong
                 tnHtml = f'''{' ' if tnHtml else ''}{tnHtml}<span class="v">{V} </span>'''
             # assert rest==V or '-' in rest, f"TN {utnRef} {marker}='{rest}' from {verseEntryList=}"
@@ -817,7 +817,7 @@ def formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segme
                 else:
                     noteName = rest
                     noteFile = '03-translate'
-                    logging.critical( f"Missing ResourceContainer path in TA note: {utnRef} '{noteName}'" )
+                    logging.error( f"Missing ResourceContainer path in TA note: {utnRef} '{noteName}'" )
                 betterNoteName = noteName.replace( 'figs-', 'figures-of-speech / ' )
                 # print( f"{noteName=} {betterNoteName=}" )
                 noteCount += 1
@@ -827,7 +827,7 @@ def formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segme
             elif lastMarker in ('pi1','ipi'): # Occurrence number
                 assert rest
                 if rest!='-1' and not rest.isdigit():
-                    logging.critical( f"getContextVerseData ({utnRef}) has unexpected {lastMarker=} {marker=} {rest=}" )
+                    logging.error( f"getContextVerseData ({utnRef}) has unexpected {lastMarker=} {marker=} {rest=}" )
                 # assert rest.isdigit() or rest=='-1', f"getContextVerseData ({utnRef}) has unexpected {marker=} {rest=}" # Jhn 12:15 or 16???
                 occurrenceNumber = getLeadingInt(rest) # Shouldn't be necessary but uW stuff isn't well checked/validated
 
@@ -969,7 +969,7 @@ def formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segme
                             inParagraph = False
                         thisMarkdownHtml = f"{thisMarkdownHtml}{NEWLINE if thisMarkdownHtml else ''}<h4>{line[5:]}</h4>"
                     elif line.startswith( '####'):
-                        logging.critical( f"Bad markdown formatting in UTN {utnRef} line: {line=}" )
+                        logging.error( f"Bad markdown formatting in UTN {utnRef} line: {line=}" )
                         if inParagraph:
                             thisMarkdownHtml = f'{thisMarkdownHtml}</p>'
                             inParagraph = False
@@ -980,7 +980,7 @@ def formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segme
                             inParagraph = False
                         thisMarkdownHtml = f"{thisMarkdownHtml}{NEWLINE if thisMarkdownHtml else ''}<h3>{line[4:]}</h3>"
                     elif line.startswith( '###'):
-                        logging.critical( f"Bad markdown formatting in UTN {utnRef} line: {line=}" )
+                        logging.error( f"Bad markdown formatting in UTN {utnRef} line: {line=}" )
                         if inParagraph:
                             thisMarkdownHtml = f'{thisMarkdownHtml}</p>'
                             inParagraph = False
@@ -991,7 +991,7 @@ def formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segme
                             inParagraph = False
                         thisMarkdownHtml = f"{thisMarkdownHtml}{NEWLINE if thisMarkdownHtml else ''}<h2>{line[3:]}</h2>"
                     elif line.startswith( '##'):
-                        logging.critical( f"Bad markdown formatting in UTN {utnRef} line: {line=}" )
+                        logging.error( f"Bad markdown formatting in UTN {utnRef} line: {line=}" )
                         if inParagraph:
                             thisMarkdownHtml = f'{thisMarkdownHtml}</p>'
                             inParagraph = False
@@ -1002,7 +1002,7 @@ def formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segme
                             inParagraph = False
                         thisMarkdownHtml = f"{thisMarkdownHtml}{NEWLINE if thisMarkdownHtml else ''}<h1>{line[2:]}</h1>"
                     elif line.startswith( '#'):
-                        logging.critical( f"Bad markdown formatting in UTN {utnRef} line: {line=}" )
+                        logging.error( f"Bad markdown formatting in UTN {utnRef} line: {line=}" )
                         if inParagraph:
                             thisMarkdownHtml = f'{thisMarkdownHtml}</p>'
                             inParagraph = False
@@ -1250,7 +1250,7 @@ def getVerseDataListForReference( givenRefString:str, thisBible:Bible, lastBBB:O
                 else: # not a single chapter book, and has no colon
                     noColon3b
     except KeyError: # if can't find any verseEntries
-        logging.critical( f"getVerseDataListForReference {givenRefString=} was unable to find {refBBB} {refStartC}:{refStartV} from {givenRefString=}" )
+        logging.error( f"getVerseDataListForReference {givenRefString=} was unable to find {refBBB} {refStartC}:{refStartV} from {givenRefString=}" )
 
     return refBBB, refStartC, verseEntryList, contextList
 # end of Bibles.getVerseDataListForReference

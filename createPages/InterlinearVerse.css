@@ -48,12 +48,12 @@ p.vNav { text-align:center; font-size:1.8em; }
 .footnotes a { text-decoration:none; }
 .crossRefs a { text-decoration:none; } */
 
-div.interlinear {
+/* div.interlinear {
     background:hsla(55, 99%, 80%, 50);
     padding:5px;
     overflow:auto;
     margin:1em 0;
-}
+} */
 div.TN {
     background:hsla(55, 99%, 80%, 50);
     padding:5px;
@@ -231,11 +231,11 @@ span.noVerse {} /* We don't have that verse */
 /* p.mr { margin-top:0; margin-bottom:0; font-size:1.1em; text-align: center; font-style:italic; } Major section reference range */
 /* p.sr { margin-top:0; margin-bottom:0; font-size:0.9em; text-align: center; font-weight:bold; } Section reference range */
 /* p.r { margin-top:0; margin-bottom:0; font-size:0.75em; text-align: center; font-style:italic; } Parallel references */
-p.p { text-indent:0.5em; margin-top:0.2em; margin-bottom:0.2em; }
+/* p.p { text-indent:0.5em; margin-top:0.2em; margin-bottom:0.2em; } */
 /* p.q1 { margin-left:1em; margin-top:0.2em; margin-bottom:0.2em; } */
 /* p.q2 { margin-left:2em; margin-top:0.2em; margin-bottom:0.2em; } */
 /* p.m {  } */
-span.li1 {} /* Why's this a span??? */
+/* span.li1 {} Why's this a span??? */
 
 /* NT spans */
 span.nominaSacra { font-weight:bold; }
@@ -256,7 +256,7 @@ span.addCopula { color:pink; }
 span.addDirectObject { color:brown; }
 span.addExtra { color:lightGreen; }
 span.addElided { color:darkgoldenrod; }
-/* span.addOwner { color:darkOrchid; } */
+span.addOwner { color:darkOrchid; }
 span.addPronoun { color:darkgreen; }
 span.addReferent { color:darkblue; }
 span.addPluralised { color:darkcyan; }
@@ -323,7 +323,7 @@ span.ital { font-style:italic; } /* TODO: We need to fix these */
 span.ital-bold { font-style:italic; font-weight:bold; }
 span.hebrew { font-weight:bold; color:orange; }
 span.aramaic { font-weight:bold; color:darkorchid; }
-span.grk { font-weight:bold; color:darkgreen; } Also used in NET Bible footnotes
+span.grk { font-weight:bold; color:darkgreen; } /* Also used in NET Bible footnotes */
 span.latin { font-weight:bold; color:darkblue; }
 span.divine-name-ital { font-style:italic; }
 

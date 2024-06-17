@@ -70,7 +70,7 @@ from html import checkHtml
 from OETHandlers import getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2024-06-12' # by RJH
+LAST_MODIFIED_DATE = '2024-06-13' # by RJH
 SHORT_PROGRAM_NAME = "usfm"
 PROGRAM_NAME = "OpenBibleData USFM to HTML functions"
 PROGRAM_VERSION = '0.78'
@@ -95,7 +95,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
     Loops through the given list of USFM lines
         and converts to a HTML segment as required.
     """
-    from createSectionPages import livenSectionReferences
+    from createSectionPages import livenSectionReferences # Doesn't cause a circular reference import problem
     # if segmentType=='relatedPassage' and refTuple[0]=='JHN' and refTuple[1]=='1':
     #     print( f"\n{refTuple}\n{contextList=}\n{markerList=}")
 
@@ -171,7 +171,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                 V1, V2 = V.split( '-' )
                 # We want both verse numbers to be searchable
                 if int(V2) != int(V1)+1: # We don't handle 3+ verse reordering well yet
-                    logging.critical( f" Not handling 3+ verse bridge well yet at {versionAbbreviation} {refTuple} {C}:{V}" )
+                    logging.warning( f" Not handling 3+ verse bridge well yet at {versionAbbreviation} {refTuple} {C}:{V}" )
                 vLink = f'''<a title="Go to verse in parallel view" href="{'../'*level}par/{BBB}/C{C}V{V1}.htm#Top">{V1}</a>'''
                 html = f'{html}{"" if html.endswith(">") else " "}' \
                         + f'''{f"""<span id="C{C}"></span><span class="{'cPsa' if BBB=='PSA' else 'c'}" id="C{C}V1">{C}</span>""" if V1=="1" else f"""<span class="v" id="C{C}V{V1}">{vLink}-</span>"""}''' \
@@ -181,7 +181,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
             else: # it's a simple verse number
                 if segmentType != 'verse': # No need for verse numbers at all if we're only displaying one verse
                     if not V.isdigit():
-                        logging.critical( f"Expected a verse number digit at {versionAbbreviation} {refTuple} {C}:{V} {rest=}" )
+                        logging.error( f"Expected a verse number digit at {versionAbbreviation} {refTuple} {C}:{V} {rest=}" )
                     cLink = f'''<a title="Go to verse in parallel view" href="{'../'*level}par/{BBB}/C{C}V1.htm#Top">{C}</a>'''
                     vLink = f'''<a title="Go to verse in parallel view" href="{'../'*level}par/{BBB}/C{C}V{V}.htm#Top">{V}</a>'''
                     html = f'''{html}{'' if html.endswith('"p">')or html.endswith('—') else ' '}''' \
@@ -201,7 +201,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                 html = f'{html}</div><!--rightBox-->\n'
                 inRightDiv = False
             if inParagraph:
-                logging.critical( f"Already in paragraph {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {marker}={rest}" )
+                logging.warning( f"Already in paragraph {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {marker}={rest}" )
                 assert not basicOnly, f"{versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {marker}={rest}"
                 html = f'{html}</p>\n'
                 inParagraph = None
@@ -230,20 +230,20 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                             '¬pi1','¬pi2', '¬pc','¬pm','¬pmc','¬pmo','¬po','¬pr', '¬qm1','¬qm2', '¬qr', '¬cls'):
             assert not rest
             if inParagraph and inParagraph != marker[1:]:
-                logging.critical( f"Closing wrong paragraph {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {marker=}" )
+                logging.error( f"Closing wrong paragraph {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {marker=}" )
             if not basicOnly and inParagraph:
                 html = f'{html}</p>\n'
                 inParagraph = None
         elif marker in ('s1','s2','s3','s4'):
             if not rest:
-                logging.critical( f"Expected heading text {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} {marker=}" )
+                logging.error( f"Expected heading text {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} {marker=}" )
             assert not inRightDiv
             if inTable:
-                logging.critical( f"Table should have been closed already {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} {marker=}" )
+                logging.warning( f"Table should have been closed already {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} {marker=}" )
                 html = f'{html}</{inTable}>\n'
                 inTable = None
             if inList:
-                logging.critical( f"List should have been closed already {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} {marker=}" )
+                logging.warning( f"List should have been closed already {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} {marker=}" )
                 inListMarker, inListDepth = inList.split( '_', 1 )
                 inListDepth = int( inListDepth )
                 while inListDepth > 0:
@@ -362,11 +362,11 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                     html = f'{html}</div><!--{inMainDiv}-->'
                     inMainDiv = None
             if inTable:
-                logging.critical( f"Table should have been closed already {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inTable=} {inListEntry=} {marker=}" )
+                logging.warning( f"Table should have been closed already {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inTable=} {inListEntry=} {marker=}" )
                 html = f'{html}</inTable>\n'
                 inTable = None
             if inList:
-                logging.critical( f"List should have been closed already {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} {marker=}" )
+                logging.warning( f"List should have been closed already {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} {marker=}" )
                 inListMarker, inListDepth = inList.split( '_', 1 )
                 inListDepth = int( inListDepth )
                 while inListDepth > 0:
@@ -454,12 +454,12 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
         # The following should all have their own data and get converted to a simple <p class="xx">…</p> field
         elif marker in ('mr','sr', 'd', 'sp', 'cp', 'qa','qc','qd'):
             if not rest:
-                logging.critical( f"Expected field text {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} {marker=}" )
+                logging.error( f"Source problem for {versionAbbreviation}: Expected field text {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} {marker=}" )
             if inRightDiv:
                 html = f'{html}</div><!--rightBox-->\n'
                 inRightDiv = False
             if inParagraph:
-                logging.critical( f"Unexpected inParagraph {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {marker}={rest}" )
+                logging.error( f"Unexpected inParagraph {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {marker}={rest}" )
                 assert not basicOnly
                 html = f'{html}</p>\n'
                 inParagraph = None
@@ -576,11 +576,11 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
             assert not inSection and not inParagraph, f"{versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {marker}={rest}"
         elif marker in ('ms1','ms2','ms3','ms4'):
             if inParagraph:
-                logging.critical( f"Why still in paragraph {versionAbbreviation} '{segmentType}' {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {marker}={rest}" )
+                logging.warning( f"Why still in paragraph {versionAbbreviation} '{segmentType}' {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {marker}={rest}" )
                 html = f'{html}</p>\n'
                 inParagraph = None
             if inSection:
-                logging.critical( f"Why still in section {versionAbbreviation} '{segmentType}' {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {marker}={rest}" )
+                logging.warning( f"Why still in section {versionAbbreviation} '{segmentType}' {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {marker}={rest}" )
                 html = f'{html}</div><!--{inSection}-->\n'
                 inSection = None
             # if refTuple[0] == 'JOB' and inSection=='s1' and inParagraph=='q1': # TODO: Fix something for OET-LV
@@ -669,18 +669,18 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
             if versionAbbreviation in ('ULT','UST'):
             # Can't list faulty books for uW stuff because there's too many errors keep popping up
             # and ('ACT' in refTuple or 'PSA' in refTuple or 'KI2' in refTuple): # Bad USFM encoding at UST Act 26:29-30
-                logging.critical( f"Unexpected '{marker}' marker at {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {rest=}" )
+                logging.warning( f"Unexpected {versionAbbreviation} '{marker}' marker at {segmentType} {basicOnly=} {refTuple} {C}:{V} {rest=}" )
             else:
                 raise Exception( f"Unexpected '{marker}' marker {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {rest=}" )
         if '\\f ' not in html and '\\x ' not in html: # they're handled down below
             if '\\' in html:
-                logging.critical( f"Left-over backslash in {versionAbbreviation} '{segmentType}' {basicOnly=} {refTuple} {C}:{V} '{html if len(html)<4000 else f'{html[:2000]} ....... {html[-2000:]}'}'" )
+                (logging.warning if versionAbbreviation in ('ULT','UST') else logging.error)( f"Left-over backslash in {versionAbbreviation} '{segmentType}' {basicOnly=} {refTuple} {C}:{V} '{html if len(html)<4000 else f'{html[:2000]} ....... {html[-2000:]}'}'" )
                 if versionAbbreviation not in ('ULT','UST') \
                 or ('GEN' not in refTuple and 'MAT' not in refTuple and 'PSA' not in refTuple and 'ISA' not in refTuple and 'JER' not in refTuple and 'DEU' not in refTuple and 'JOB' not in refTuple and 'SNG' not in refTuple): # ULT Gen 14:21, ISA and UST MAT has an encoding fault in 12:20 14Feb2023
                     raise Exception( f"Left-over backslash {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} '{html}'" )
 
     # Check for left-over unclosed segments
-    logger = logging.critical if segmentType=='book' else logging.warning
+    logger = logging.error if segmentType=='book' else logging.warning
     if inParagraph:
         if not basicOnly:
             logger( f"convertUSFMMarkerListToHtml final unclosed paragraph {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} last {marker=}" )
@@ -1284,7 +1284,7 @@ def livenIntroductionLinks( versionAbbreviation:str, refTuple:tuple, segmentType
         guts = match.group(0)[1:-1] # Remove the parentheses or other surrounding chars
         preChar, refC, refV, refRest, postChar = match.groups()
         dPrint( 'Info', DEBUGGING_THIS_MODULE, f"Got {versionAbbreviation} intro ref CV match with '{preChar}' '{guts}' '{postChar}' -> {match.groups()=}" )
-        logging.critical( f"Assuming {versionAbbreviation} {ourBBB} intro '{guts}' ref is a self-reference BUT THIS COULD EASILY BE WRONG" )
+        logging.warning( f"Assuming {versionAbbreviation} {ourBBB} intro '{guts}' ref is a self-reference BUT THIS COULD EASILY BE WRONG" )
         if segmentType == 'book':
             newGuts = f'<a title="Jump down to reference" href="#C{refC}V{refV}">{guts}</a>'
         elif segmentType == 'chapter':

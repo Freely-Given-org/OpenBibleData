@@ -88,10 +88,10 @@ span.bk { font-style:italic; }
 
 /* Section headings list */
 /* p.sectionHeading { } */
-p.alternateHeading { margin-top:0.1em; margin-bottom:0.1em; margin-left:1em; font-size:0.8em; color:grey; }
-p.sectionHeading + p.alternateHeading { margin-top:-1.2em; }
-p.alt_s1 { margin-top:0.1em; margin-bottom:0; text-align:right; font-size:0.6em; color:silver; font-weight:bold; }
-p.alt_r { margin-top:0.1em; margin-bottom:0; text-align:right; font-size:0.5em; color:silver; }
+/* p.alternateHeading { margin-top:0.1em; margin-bottom:0.1em; margin-left:1em; font-size:0.8em; color:grey; } */
+/* p.sectionHeading + p.alternateHeading { margin-top:-1.2em; } */
+/* p.alt_s1 { margin-top:0.1em; margin-bottom:0; text-align:right; font-size:0.6em; color:silver; font-weight:bold; } */
+/* p.alt_r { margin-top:0.1em; margin-bottom:0; text-align:right; font-size:0.5em; color:silver; } */
 
 /* Inside box */
 div.rightBox { float:right; width:35%; border:3px solid #73AD21; padding:0.2em; }
@@ -99,8 +99,8 @@ div.s1 {}
 p.s1 { margin-top:0.1em; margin-bottom:0; font-size:1.2em; font-weight:bold; }
 p.s2 { margin-top:0.1em; margin-bottom:0; font-size:1.1em; }
 p.s3 { margin-top:0.1em; margin-bottom:0; font-size:1.05em; }
-p.extra_s1 { margin-top:0.1em; margin-bottom:0; text-align:right; font-size:0.7em; color:grey; font-weight:bold; }
-p.extra_r { margin-top:0.1em; margin-bottom:0; text-align:right; font-size:0.6em; color:grey; }
+/* p.extra_s1 { margin-top:0.1em; margin-bottom:0; text-align:right; font-size:0.7em; color:grey; font-weight:bold; } */
+/* p.extra_r { margin-top:0.1em; margin-bottom:0; text-align:right; font-size:0.6em; color:grey; } */
 p.sr { margin-top:0; margin-bottom:0; font-size:0.9em; text-align: center; font-weight:bold; } /* Section reference range */
 p.r { margin-top:0; margin-bottom:0; font-size:0.75em; text-align: center; font-style:italic; } /* Parallel references */
 
@@ -117,9 +117,9 @@ p.p { text-indent:0.5em; margin-top:0.2em; margin-bottom:0.2em; }
 p.pi1 { margin-left:1em; margin-top:0.2em; margin-bottom:0.2em; }
 p.pc { text-align: center; }
 p.pm { margin-top:0.2em; margin-bottom:0.2em; }
-p.pmo { margin-left:1em; margin-top:0.2em; margin-bottom:0.2em; }
-p.pmc { margin-top:0.2em; margin-bottom:0.2em; }
-p.pmr { margin-top:0.2em; margin-bottom:0.2em; }
+/* p.pmo { margin-left:1em; margin-top:0.2em; margin-bottom:0.2em; } */
+/* p.pmc { margin-top:0.2em; margin-bottom:0.2em; } */
+/* p.pmr { margin-top:0.2em; margin-bottom:0.2em; } */
 p.m { margin-top:0.2em; margin-bottom:0.2em; }
 p.mi {}
 p.q1 { margin-left:1em; margin-top:0.2em; margin-bottom:0.2em; }

@@ -589,8 +589,8 @@ def createTyndaleDictPages( level:int, outputFolderPath, state:State ) -> bool:
     articleList = [a for a in TOBDData['Articles']]
     for j,(articleLinkName,article) in enumerate( TOBDData['Articles'].items() ):
         dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"Making article page for '{articleLinkName}'…" )
-        leftLink = f'''<a title="Go to previous article" href="{articleList[j-1]}.htm#__ID__">←</a> ''' if j>0 else ''
-        rightLink = f''' <a title="Go to next article" href="{articleList[j+1]}.htm#__ID__">→</a>''' if j<len(articleList)-1 else ''
+        leftLink = f'''<a title="Previous article" href="{articleList[j-1]}.htm#__ID__">←</a> ''' if j>0 else ''
+        rightLink = f''' <a title="Next article" href="{articleList[j+1]}.htm#__ID__">→</a>''' if j<len(articleList)-1 else ''
         navLinks = f'<p id="__ID__" class="dNav">{introLink} {leftLink}{indexLink}{rightLink} {TOBD_detailsLink}</p>'
 
         article = livenTyndaleTextboxRefs( 'TOBD', level, articleLinkName, article, state )
@@ -623,8 +623,8 @@ def createTyndaleDictPages( level:int, outputFolderPath, state:State ) -> bool:
     letterList = [l for l in TOBDData['Letters']]
     for j,(letter,articleList) in enumerate( TOBDData['Letters'].items() ):
         dPrint( 'Info', DEBUGGING_THIS_MODULE, f"Making letter summary page for '{letter}'…" )
-        leftLink = f'''<a title="Go to previous letter" href="index_{letterList[j-1]}.htm#__ID__">←</a> ''' if j>0 else ''
-        rightLink = f''' <a title="Go to next letter" href="index_{letterList[j+1]}.htm#__ID__">→</a>''' if j<len(letterList)-1 else ''
+        leftLink = f'''<a title="Previous letter" href="index_{letterList[j-1]}.htm#__ID__">←</a> ''' if j>0 else ''
+        rightLink = f''' <a title="Next letter" href="index_{letterList[j+1]}.htm#__ID__">→</a>''' if j<len(letterList)-1 else ''
         navLinks = f'<p id="__ID__" class="dNav">{leftLink}{indexLink} {introLink}{rightLink} {TOBD_detailsLink}</p>'
         articleLinkHtml = ''
         for articleLinkName,articleDisplayName in articleList:
@@ -999,8 +999,8 @@ def createUBSGreekDictionaryPages( level, outputFolderPath, state:State ) -> Non
     for e,entry in enumerate( USB_GNT_DATA ): # each entry is a dict
         lemma = entry['Lemma']
         dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"Making article page for '{lemma}'…" )
-        leftLink = f'''<a title="Go to previous article" href="{lemmaList[e-1]}.htm#__ID__">←</a> ''' if e>0 else ''
-        rightLink = f''' <a title="Go to next article" href="{lemmaList[e+1]}.htm#__ID__">→</a>''' if e<len(lemmaList)-1 else ''
+        leftLink = f'''<a title="Previous article" href="{lemmaList[e-1]}.htm#__ID__">←</a> ''' if e>0 else ''
+        rightLink = f''' <a title="Next article" href="{lemmaList[e+1]}.htm#__ID__">→</a>''' if e<len(lemmaList)-1 else ''
         navLinks = f'<p id="__ID__" class="dNav">{introLink} {leftLink}{indexLink}{rightLink} {detailsLink}</p>'
 
         entryHtml = f'<h2>{lemma}</h2>'
@@ -1079,8 +1079,8 @@ def createUBSHebrewDictionaryPages( level, outputFolderPath, state:State ) -> No
     for e,entry in enumerate( USB_HEB_DATA ): # each entry is a dict
         lemma = entry['Lemma']
         dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"Making article page for '{lemma}'…" )
-        leftLink = f'''<a title="Go to previous article" href="{lemmaList[e-1]}.htm#__ID__">←</a> ''' if e>0 else ''
-        rightLink = f''' <a title="Go to next article" href="{lemmaList[e+1]}.htm#__ID__">→</a>''' if e<len(lemmaList)-1 else ''
+        leftLink = f'''<a title="Previous article" href="{lemmaList[e-1]}.htm#__ID__">←</a> ''' if e>0 else ''
+        rightLink = f''' <a title="Next article" href="{lemmaList[e+1]}.htm#__ID__">→</a>''' if e<len(lemmaList)-1 else ''
         navLinks = f'<p id="__ID__" class="dNav">{introLink} {leftLink}{indexLink}{rightLink} {detailsLink}</p>'
 
         entryHtml = f'<h2>{lemma}</h2>'

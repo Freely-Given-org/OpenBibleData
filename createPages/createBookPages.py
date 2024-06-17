@@ -50,10 +50,10 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_
 from OETHandlers import livenOETWordLinks, getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
-LAST_MODIFIED_DATE = '2024-05-28' # by RJH
+LAST_MODIFIED_DATE = '2024-06-14' # by RJH
 SHORT_PROGRAM_NAME = "createBookPages"
 PROGRAM_NAME = "OpenBibleData createBookPages functions"
-PROGRAM_VERSION = '0.55'
+PROGRAM_VERSION = '0.56'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -111,11 +111,11 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
             # iBkList = ['index'] + state.booksToLoad[rvBible.abbreviation]
             try: # May give ValueError if this book doesn't not occur in this translation
                 bkIx = iBkList.index( BBB )
-                bkPrevNav = f'''<a title="Go to {'book index' if bkIx==1 else 'previous book'}" href="{iBkList[bkIx-1]}.htm#Top">◄</a> ''' if bkIx>0 else ''
-                bkNextNav = f' <a title="Go to next book" href="{iBkList[bkIx+1]}.htm#Top">►</a>' if bkIx<len(iBkList)-1 else ''
+                bkPrevNav = f'''<a title="Previous {'(book index)' if bkIx==1 else 'book'}" href="{iBkList[bkIx-1]}.htm#Top">◄</a> ''' if bkIx>0 else ''
+                bkNextNav = f' <a title="Next book" href="{iBkList[bkIx+1]}.htm#Top">►</a>' if bkIx<len(iBkList)-1 else ''
             except ValueError: # this BBB wasn't there in the list for this work
-                bkPrevNav = f'''<a title="Go to book index" href="index.htm#Top">◄</a> '''
-                bkNextNav = f' <a title="Go to first existing book" href="{iBkList[1]}.htm#Top">►</a>'
+                bkPrevNav = f'''<a title="Previous (book index)" href="index.htm#Top">◄</a> '''
+                bkNextNav = f' <a title="Next (first existing book)" href="{iBkList[1]}.htm#Top">►</a>'
 
             bkHtml = f'''<p class="bkNav">{bkPrevNav}<span class="bkHead" id="Top">{rvBible.abbreviation} {ourTidyBBBwithNotes}</span>{bkNextNav}</p>
 {JAMES_NOTE_HTML_PARAGRAPH}
@@ -156,8 +156,8 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
         processedBBBs.append( BBB )
 
         bkIx = iBkList.index( BBB )
-        bkPrevNav = f'''<a title="Go to {'book index' if bkIx==1 else 'previous book'}" href="{iBkList[bkIx-1]}.htm#Top">◄</a> ''' if bkIx>0 else ''
-        bkNextNav = f' <a title="Go to next book" href="{iBkList[bkIx+1]}.htm#Top">►</a>' if bkIx<len(iBkList)-1 else ''
+        bkPrevNav = f'''<a title="Previous {'(book index)' if bkIx==1 else 'book'}" href="{iBkList[bkIx-1]}.htm#Top">◄</a> ''' if bkIx>0 else ''
+        bkNextNav = f' <a title="Next book" href="{iBkList[bkIx+1]}.htm#Top">►</a>' if bkIx<len(iBkList)-1 else ''
 
         bkHtml = f'''<p class="bkNav">{bkPrevNav}<span class="bkHead" id="Top">Open English Translation {ourTidyBBBwithNotes}</span>{bkNextNav}</p>
 {f'{JAMES_NOTE_HTML_PARAGRAPH}{NEWLINE}' if BBB=='JAM' else ''}{OET_UNFINISHED_WARNING_HTML_PARAGRAPH}
@@ -213,7 +213,7 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
                 logging.info( f"{BBB} ixEndCV is now decreased by one verse from '{rvEndCV}' to '{adjustedRvEndCV}'" )
                 try: ixEndCV = lvRest.rindex( f' id="{adjustedRvEndCV}"' ) # If this fails, we give up trying to fix versification problem
                 except ValueError: # second level 'except'
-                    logging.critical( f"Gave up trying to fix OET book versification for {BBB} section RV {rvStartCV}-{rvEndCV}")
+                    logging.error( f"Gave up trying to fix OET book versification for {BBB} section RV {rvStartCV}-{rvEndCV}")
                     ixEndCV = len(lvRest) - 1 # Will this work???
             try: ixNextCV = lvRest.index( f' id="C', ixEndCV+5 )
             except ValueError: ixNextCV = len( lvRest ) - 1
@@ -335,7 +335,7 @@ def createBookPages( level:int, folder:Path, thisBible, state:State ) -> List[st
         #     continue # Too many problems for now
         if thisBibleBooksToLoad not in (['ALL'],['OT'],['NT']) \
         and BBB not in thisBibleBooksToLoad:
-            logging.critical( f"VV Skipped chapters difficult book: {thisBible.abbreviation} {BBB}")
+            logging.error( f"VV Skipped difficult book: {thisBible.abbreviation} {BBB}")
             continue # Only create pages for the requested books
 
         vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Creating book pages for {thisBible.abbreviation} {BBB}…" )
@@ -343,11 +343,11 @@ def createBookPages( level:int, folder:Path, thisBible, state:State ) -> List[st
 
         try: # May give ValueError if this book doesn't not occur in this translation
             bkIx = iBkList.index( BBB )
-            bkPrevNav = f'''<a title="Go to {'book index' if bkIx==1 else 'previous book'}" href="{iBkList[bkIx-1]}.htm#Top">◄</a> ''' if bkIx>0 else ''
-            bkNextNav = f' <a title="Go to next book" href="{iBkList[bkIx+1]}.htm#Top">►</a>' if bkIx<len(iBkList)-1 else ''
+            bkPrevNav = f'''<a title="Previous {'(book index)' if bkIx==1 else 'book'}" href="{iBkList[bkIx-1]}.htm#Top">◄</a> ''' if bkIx>0 else ''
+            bkNextNav = f' <a title="Next book" href="{iBkList[bkIx+1]}.htm#Top">►</a>' if bkIx<len(iBkList)-1 else ''
         except ValueError: # this BBB wasn't there in the list for this work
-            bkPrevNav = f'''<a title="Go to book index" href="index.htm#Top">◄</a> '''
-            bkNextNav = f' <a title="Go to first existing book" href="{iBkList[1]}.htm#Top">►</a>'
+            bkPrevNav = f'''<a title="Previous (book index)" href="index.htm#Top">◄</a> '''
+            bkNextNav = f' <a title="Next (first existing book)" href="{iBkList[1]}.htm#Top">►</a>'
 
         bkHtml = f'''<p class="bkNav">{bkPrevNav}<span class="bkHead" id="Top">{thisBible.abbreviation} {ourTidyBBB}</span>{bkNextNav}</p>{f'{NEWLINE}{JAMES_NOTE_HTML_PARAGRAPH}' if 'OET' in thisBible.abbreviation and BBB=='JAM' else ''}{f'{NEWLINE}{OET_UNFINISHED_WARNING_HTML_PARAGRAPH}' if 'OET' in thisBible.abbreviation else ''}'''
         verseEntryList, contextList = thisBible.getContextVerseData( (BBB,) )

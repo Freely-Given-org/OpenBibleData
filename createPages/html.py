@@ -71,10 +71,10 @@ from settings import State, TEST_MODE, SITE_NAME
 from OETHandlers import getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2024-06-12' # by RJH
+LAST_MODIFIED_DATE = '2024-06-14' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
-PROGRAM_VERSION = '0.84'
+PROGRAM_VERSION = '0.86'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -136,26 +136,22 @@ def makeTop( level:int, versionAbbreviation:Optional[str], pageType:str, version
   <meta name="viewport" content="user-scalable=yes, initial-scale=1, minimum-scale=1, width=device-width">
   <meta name="keywords" content="__KEYWORDS__">
   <link rel="stylesheet" type="text/css" href="{'../'*level}{cssFilename}">
-  <script src="{'../'*level}Bible.js"></script>
+  __SCRIPT__
 </head>
 <body><!--Level{level}-->{topLink}
-""" if (versionAbbreviation and 'OET' in versionAbbreviation) or pageType=='parallelVerse' \
-else f"""<!DOCTYPE html>
-<html lang="en-US">
-<head>
-  <title>__TITLE__</title>
-  <meta charset="utf-8">
-  <meta name="viewport" content="user-scalable=yes, initial-scale=1, minimum-scale=1, width=device-width">
-  <meta name="keywords" content="__KEYWORDS__">
-  <link rel="stylesheet" type="text/css" href="{'../'*level}{cssFilename}">
-</head>
-<body><!--Level{level}-->{topLink}
-<h3>Demonstration version—prototype quality only—still in development</h3>
 """
-    return f'{top}{_makeHeader( level, versionAbbreviation, pageType, versionSpecificFileOrFolderName, state )}'
+    # Insert javascript file(s) if required
+    if (versionAbbreviation and 'OET' in versionAbbreviation) or pageType=='parallelVerse':
+        top = top.replace( '__SCRIPT__', f'''<script src="{'../'*level}Bible.js"></script>\n  __SCRIPT__''' )
+    if 'Dict' in cssFilename or 'Word' in cssFilename \
+    or pageType in ('chapter','section','book','parallelVerse','interlinearVerse','relatedPassage'):
+        top = top.replace( '__SCRIPT__', f'''<script src="{'../'*level}KB.js"></script>\n  __SCRIPT__''' )
+    top = top.replace( '\n  __SCRIPT__', '' )
+
+    return f'{top}{_makeNavigationLinks( level, versionAbbreviation, pageType, versionSpecificFileOrFolderName, state )}'
 # end of html.makeTop
 
-def _makeHeader( level:int, versionAbbreviation:str, pageType:str, versionSpecificFileOrFolderName:Optional[str], state:State ) -> str:
+def _makeNavigationLinks( level:int, versionAbbreviation:str, pageType:str, versionSpecificFileOrFolderName:Optional[str], state:State ) -> str:
     """
     Create the navigation that goes before the page content.
 
@@ -164,7 +160,7 @@ def _makeHeader( level:int, versionAbbreviation:str, pageType:str, versionSpecif
 
     Note: versionAbbreviation can be None for parallel, interlinear and word pages, etc.
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"_makeHeader( {level}, {versionAbbreviation}, {pageType}, {versionSpecificFileOrFolderName} )" )
+    fnPrint( DEBUGGING_THIS_MODULE, f"_makeNavigationLinks( {level}, {versionAbbreviation}, {pageType}, {versionSpecificFileOrFolderName} )" )
 
     # Add all the version abbreviations (except for the selected-verses-only verses)
     #   with their style decorators
@@ -219,7 +215,7 @@ def _makeHeader( level:int, versionAbbreviation:str, pageType:str, versionSpecif
     newVersionList = []
     for entry in initialVersionList:
         # if pageType == 'parallelVerse':
-        #     print( f"  _makeHeader processing {entry=} ({level=} {versionAbbreviation=} {pageType=} {fileOrFolderName=})" )
+        #     print( f"  _makeNavigationLinks processing {entry=} ({level=} {versionAbbreviation=} {pageType=} {fileOrFolderName=})" )
         if '/par/' in entry or '/ilr/' in entry:
             newVersionList.append( entry )
             continue # Should always be able to link to these
@@ -276,7 +272,7 @@ def _makeHeader( level:int, versionAbbreviation:str, pageType:str, versionSpecif
     viewHtml = f'''<p class="viewLst">{' '.join(viewLinks)}</p>''' if viewLinks else ''
 
     return f'''<div class="header">{versionHtml}{NEWLINE if viewHtml else ''}{viewHtml}</div><!--header-->'''
-# end of html._makeHeader
+# end of html._makeNavigationLinks
 
 
 HTML_PLUS_LIST = ['parallelVerse','interlinearVerse', 'parallelIndex','interlinearIndex']
@@ -413,6 +409,47 @@ def removeDuplicateCVids( BBB:str, html:str ) -> str:
     return html
 # end of html.removeDuplicateCVids
 
+def removeDuplicateFNids( where:str, html:str ) -> str:
+    """
+    Where we have translated or transliterated footnotes (in parallel verse displays),
+        we get doubled ids like <p class="fn" id="fnCLV1">
+
+    This function removes the second id field in each case (which should be in the translated/transliterated footnote).
+
+    # Assert statements are disabled because this function can be quite slow for an entire OET book
+    """
+    vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Removing duplicate footnote IDs for {where} ({len(html):,} chars)…" )
+    
+    endIx = 0 # This is where we start searching
+    while True:
+        startIx = html.find( ' id="fn', endIx )
+        if startIx == -1: break # None / no more
+        endIx = html.find( '>', startIx+8 ) # The end of the first id field found -- any duplicates will be AFTER this
+        # assert endIx != -1
+        idContents = html[startIx:endIx]
+        # print( f"    {startIx} {idContents=}")
+        # assert 7 < len(idContents) < 14, f"{idContents=} {len(idContents)=}"
+        # idCount = html.count( idContents, startIx ) # It's quicker if we don't do this
+        # if startIx == startCIx:
+        #     assert 1 <= idCount <= 2, f"{BBB} {idContents=} {idCount=} {html}"
+        # else: # for #V entries, in large multi-chapter sections there can be several
+        #     assert 1 <= idCount <= 5, f"{BBB} {idContents=} {idCount=} {html}"
+        # if idCount > 1:
+        endHtml = html[endIx:]
+        # NOTE: In a section that includes multiple chapters, we might have multiple 'id="V1"'s
+        # print( f"removeDuplicateFNids {BBB} {idContents=} {startIx=} {endIx=}" )
+        while (endHtmlStartIx := endHtml.find( idContents ) ) != -1:
+            # if endHtmlStartIx == -1: continue # No duplicate found
+            # print( f"removeDuplicateFNidsA {endHtmlStartIx=} '{endHtml[endHtmlStartIx-50:endHtmlStartIx+50]}'" )
+            endHtml = f'{endHtml[:endHtmlStartIx]}{endHtml[endHtmlStartIx+len(idContents):]}'
+            html = f'{html[:endIx]}{endHtml}'
+            # assert '<span></span>' not in html
+            # print( f"removeDuplicateFNidsC {endHtmlStartIx=}\nendHtml='…{endHtml[endHtmlStartIx-50:endHtmlStartIx+50]}…'\nhtml='…{html[endIx+endHtmlStartIx-50:endIx+endHtmlStartIx+50]}…'" )
+        assert html.count( idContents ) == 1, f"{idContents=} {html.count(idContents)=}"
+
+    return html
+# end of html.removeDuplicateFNids
+
 
 titleRegex = re.compile( 'title="(.+?)"' )
 def checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool:
@@ -468,8 +505,8 @@ def checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool:
             if TEST_MODE and ('JOB' not in where and 'OEB' not in where # why are these bad???
             and 'UTN' not in where and 'ULT' not in where
             and 'Parallel' not in where and 'Interlinear' not in where ): # Probably it's in UTN on parallel and interlinear pages
-                print( f"'{where}' {segmentOnly=} Bad html = {htmlToCheck=}")
-                print( f"'{where}' {segmentOnly=} {startMarker=} {startCount=} {endCount=}")
+                print( f"'{where}' {segmentOnly=} {marker=} Bad html = {htmlToCheck=}")
+                print( f"'{where}' {segmentOnly=} {marker=} {startMarker=} {startCount=} {endCount=}")
                 if 'book' not in where.lower():
                     if 'UST' not in where: # UST PSA has totally messed up \\qs encoding
                         halt
@@ -644,10 +681,7 @@ def do_OET_RV_HTMLcustomisations( OET_RV_html:str ) -> str:
     assert '<span class="add">+' not in OET_RV_html # Only expected in OET-LV
     assert '<span class="add">-' not in OET_RV_html # Only expected in OET-LV
     assert '<span class="add">=' not in OET_RV_html # Only expected in OET-LV
-    # assert '<span class="add"><' not in OET_RV_html # Only expected in OET-LV
-    # assert '<span class="add">>' not in OET_RV_html # Only expected in OET-LV
     assert '<span class="add">?≡' not in OET_RV_html # Doesn't make sense
-    assert '<span class="add">&' not in OET_RV_html # Only expected in OET-LV
     result = (OET_RV_html \
             # Adjust specialised add markers
             .replace( '<span class="add">?<', '<span class="unsure addDirectObject">' )
@@ -659,6 +693,8 @@ def do_OET_RV_HTMLcustomisations( OET_RV_html:str ) -> str:
             .replace( '<span class="add">?>', '<span class="unsure addExtra">' )
             .replace( '<span class="add">>', '<span class="addExtra">' )
             .replace( '<span class="add">≡', '<span class="addElided">' )
+            .replace( '<span class="add">?&', '<span class="unsure addOwner">' )
+            .replace( '<span class="add">&', '<span class="addOwner">' )
             .replace( '<span class="add">?*', '<span class="unsure addPronoun">' )
             .replace( '<span class="add">*', '<span class="addPronoun">' )
             .replace( '<span class="add">?@', '<span class="unsure addReferent">' )
@@ -686,7 +722,7 @@ def do_OET_RV_HTMLcustomisations( OET_RV_html:str ) -> str:
                 or nextChars.startswith( '<span class="wj">' ) or nextChars.startswith( '<span class="nominaSacra">') ):
             nextChar = result[startSearchIndex]
             # NOTE: 1/ 2/ 3/ are used in OET-RV EXO 23
-            assert nextChar.isalpha() or nextChar in '(,‘’—123', f"{startSearchIndex=} {nextChar=} {result[match.start():match.start()+80]}"
+            assert nextChar.isalpha() or nextChar in '(,‘’—123☺', f"{startSearchIndex=} {nextChar=} {result[match.start():match.start()+80]}"
     else: NOT_ENOUGH_LOOPS
 
     return result

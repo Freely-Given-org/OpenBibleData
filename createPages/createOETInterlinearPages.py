@@ -64,7 +64,7 @@ from createOETReferencePages import CNTR_BOOK_ID_MAP
 from OETHandlers import livenOETWordLinks, getOETBookName, getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
-LAST_MODIFIED_DATE = '2024-05-28' # by RJH
+LAST_MODIFIED_DATE = '2024-06-13' # by RJH
 SHORT_PROGRAM_NAME = "createOETInterlinearPages"
 PROGRAM_NAME = "OpenBibleData createOETInterlinearPages functions"
 PROGRAM_VERSION = '0.53'
@@ -162,14 +162,14 @@ def createOETInterlinearVersePagesForBook( level:int, folder:Path, BBB:str, BBBL
             vPrint( 'Info', DEBUGGING_THIS_MODULE, f"      Creating interlinear pages for {BBB} {c}…" )
             numVerses = referenceBible.getNumVerses( BBB, c )
             if numVerses is None: # something unusual
-                logging.critical( f"createOETInterlinearVersePagesForBook: no verses found for {BBB} {c}" )
+                logging.error( f"createOETInterlinearVersePagesForBook: no verses found for {BBB} {c}" )
                 continue
             for v in range( 1, numVerses+1 ):
                 # The following all have a __ID__ string than needs to be replaced
-                leftVLink = f'<a title="Go to previous verse" href="C{c}V{v-1}.htm#__ID__">←</a> ' if v>1 \
+                leftVLink = f'<a title="Previous verse" href="C{c}V{v-1}.htm#__ID__">←</a> ' if v>1 \
                         else f'<a title="Go to last verse of previous chapter" href="C{c-1}V{lastNumVerses}.htm#__ID__">↨</a> ' if c>1 \
                         else ''
-                rightVLink = f' <a title="Go to next verse" href="C{c}V{v+1}.htm#__ID__">→</a>' if v<numVerses else ''
+                rightVLink = f' <a title="Next verse" href="C{c}V{v+1}.htm#__ID__">→</a>' if v<numVerses else ''
                 leftCLink = f'<a title="Go to previous chapter" href="C{c-1}V1.htm#__ID__">◄</a> ' if c>1 else ''
                 rightCLink = f' <a title="Go to next chapter" href="C{c+1}V1.htm#__ID__">►</a>' if c<numChapters else ''
                 parallelLink = f''' <a title="Parallel verse view" href="{'../'*BBBLevel}par/{BBB}/C{c}V{v}.htm#Top">║</a>'''
@@ -289,7 +289,7 @@ def createOETInterlinearVersePage( level:int, BBB:str, c:int, v:int, state:State
         else:
             warningText = f'No OET-LV {ourTidyBBBwithNotes} book available'
             lvHtml = f'''<p class="ilNote"><span class="wrkName">OET-LV</span> <span class="noBook"><small>{warningText}</small></span></p>'''
-        logging.critical( warningText )
+        logging.warning( warningText )
         lvVerseEntryList = []
     try:
         rvVerseEntryList, rvContextList = rvBible.getContextVerseData( (BBB, C, V) )
@@ -303,7 +303,7 @@ def createOETInterlinearVersePage( level:int, BBB:str, c:int, v:int, state:State
         else:
             warningText = f'No OET-RV {ourTidyBBBwithNotes} book available'
             rvHtml = f'''< class="ilNote"><span class="wrkName">OET-RV</span> <span class="noBook"><small>{warningText}</small></span></p>'''
-        logging.critical( warningText )
+        logging.warning( warningText )
         rvVerseEntryList = []
     # Handle (uW) translation notes and (Tyndale) study notes
     utnHtml = formatUnfoldingWordTranslationNotes( level, BBB, C, V, 'interlinearVerse', state )

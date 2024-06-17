@@ -23,13 +23,15 @@
 #   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 """
-Module handling createSitePages functions.
+Main module creating the HTML site.
 
 Creates the OpenBibleData site with
     Whole document (‘book’) pages
     Section pages
     Whole chapter pages
     Parallel verse pages
+    Parallel passage pages
+    Hebrew and Greek word and lemma pages
 and more pages to come hopefully.
 
 CHANGELOG:
@@ -78,7 +80,7 @@ from Bibles import preloadVersions
 from OETHandlers import getOETTidyBBB, getOETBookName
 from createBookPages import createOETBookPages, createBookPages
 from createChapterPages import createOETSideBySideChapterPages, createChapterPages
-from createSectionPages import createOETSectionPages, createSectionPages
+from createSectionPages import createOETSectionLists, createOETSectionPages, createSectionPages
 from createParallelPassagePages import createParallelPassagePages
 from createParallelVersePages import createParallelVersePages
 from createOETInterlinearPages import createOETInterlinearPages
@@ -87,7 +89,7 @@ from Dict import createTyndaleDictPages, createUBSDictionaryPages
 from html import makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2024-06-12' # by RJH
+LAST_MODIFIED_DATE = '2024-06-13' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData (OBD) Create Site Pages"
 PROGRAM_VERSION = '0.96'
@@ -223,6 +225,7 @@ def _createSitePages() -> bool:
         vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\nDoing discovery on OET…" )
         state.preloadedBibles['OET-RV'].discover() # Now that all required books are loaded
         state.preloadedBibles['OET-LV'].discover() #     ..ditto..
+        createOETSectionLists( state.preloadedBibles['OET-RV'], state ) # Have to do this early for section references
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nCreating {'TEST ' if TEST_MODE else ''}version pages for OET…" )
         versionFolder = TEMP_BUILD_FOLDER.joinpath( f'OET/' )
         _createOETVersionPages( 1, versionFolder, state.preloadedBibles['OET-RV'], state.preloadedBibles['OET-LV'], state )
@@ -328,7 +331,7 @@ def _createSitePages() -> bool:
                     logging.critical( f"TOBD image file problem: {e}" )
             vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Copied {count:,} maps into {TOBDmapDestinationFolder}/." )
 
-            # We need to copy the .css files and Bible.js across
+            # We need to copy the .css and .js files across
             count = 0
             for filepath in glob.glob( '*.css' ):
                 vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Copying {filepath}…" )
@@ -336,7 +339,8 @@ def _createSitePages() -> bool:
                 shutil.copy2( filepath, DESTINATION_FOLDER )
                 count += 1
             shutil.copy2( 'Bible.js', DESTINATION_FOLDER )
-            count += 1
+            shutil.copy2( 'KB.js', DESTINATION_FOLDER )
+            count += 2
             vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Copied {count:,} stylesheets and scripts into {DESTINATION_FOLDER}/." )
         except Exception as e:
             logging.critical( f"Oops, something went wrong copying files into {DESTINATION_FOLDER}/: {e}" )
