@@ -49,10 +49,10 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
 from OETHandlers import livenOETWordLinks, getOETTidyBBB, getOETBookName, getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2024-06-13' # by RJH
+LAST_MODIFIED_DATE = '2024-06-27' # by RJH
 SHORT_PROGRAM_NAME = "createParallelPassagePages"
 PROGRAM_NAME = "OpenBibleData createParallelPassagePages functions"
-PROGRAM_VERSION = '0.27'
+PROGRAM_VERSION = '0.28'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -488,7 +488,7 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
 
     # Now, make the actual pages
     vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Creating section cross-reference pages for {thisBible.abbreviation} {BBB}…" )
-    documentLink = f'<a title="Whole document view" href="../byDoc/{BBB}.htm#Top">{ourTidyBBB}</a>'
+    documentLink = f'''<a title="Whole document view" href="{'../'*(BBBLevel)}OET/byDoc/{BBB}.htm#C{startC}V{startV}">{ourTidyBBB}</a>'''
     sectionIndexLink = '<a title="Go up to OET-RV related-section index" href="index.htm#Top">⌂</a> '
     detailsLink = f''' <a title="Show details about this work" href="{'../'*(BBBLevel)}OET-RV/details.htm#Top">©</a>'''
     usedParallels = []

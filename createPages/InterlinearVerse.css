@@ -226,7 +226,7 @@ span.v { vertical-align:super; font-size:0.5em; color:red; }
 /* span.cv { vertical-align:super; font-size:0.8em; color:orange; } */
 /* span.vp { vertical-align:super; font-size:0.5em; color:purple; } */
 span.noVerse {} /* We don't have that verse */
-/* span.d { font-style:italic; } */
+span.d { font-style:italic; }
 /* p.s1 { margin-top:0.1em; margin-bottom:0; font-weight:bold; } */
 /* p.mr { margin-top:0; margin-bottom:0; font-size:1.1em; text-align: center; font-style:italic; } Major section reference range */
 /* p.sr { margin-top:0; margin-bottom:0; font-size:0.9em; text-align: center; font-weight:bold; } Section reference range */
@@ -235,7 +235,7 @@ span.noVerse {} /* We don't have that verse */
 /* p.q1 { margin-left:1em; margin-top:0.2em; margin-bottom:0.2em; } */
 /* p.q2 { margin-left:2em; margin-top:0.2em; margin-bottom:0.2em; } */
 /* p.m {  } */
-/* span.li1 {} Why's this a span??? */
+span.li1 {} /* Why's this a span??? */
 
 /* NT spans */
 span.nominaSacra { font-weight:bold; }
@@ -247,7 +247,7 @@ span.ul { color:darkGrey; }
 /* span.SR-GNT_trans {} */
 
 /* OT spans */
-span.parr { vertical-align:super; font-size:0.8em; color:green; }
+span.parr { vertical-align:super; font-size:0.8em; color:green; } /* Hebrew parallelism */
 
 /* OET add spans */
 span.addArticle { color:bisque; } */
@@ -265,7 +265,7 @@ span.addReword { color:orange; }
 span.RVadd { color:#505050; } /* Darker than dimGrey which is #696969 (black is #000000) */
 span.add { color:grey; }
 span.untr { font-size:0.8em; color:grey; text-decoration:line-through; }
-span.unsure { text-decoration:underline; text-decoration-style: dotted; }
+span.unsure { text-decoration:underline; text-decoration-style: dotted; text-decoration-color: orange; }
 
 /* USFM footnotes */
 div.footnotes {}
@@ -297,7 +297,6 @@ span.sup { vertical-align:super; }
 span.sub { vertical-align:sub; }
 
 /* Tyndale book intros */
-/* div.parallelTBI {} */
 /* p.intro-body-fl {} */
 /* p.intro-sidebar-body-fl {} */
 /* p.intro-overview {} */
@@ -317,7 +316,7 @@ span.sn-excerpt { font-family:Arial, Helvetica, sans-serif; color:saddleBrown; }
 span.sn-excerpt-sc { font-family:Arial, Helvetica, sans-serif; color:saddleBrown; }
 span.sn-excerpt-roman { font-family:'Times New Roman', Times, serif, Helvetica, sans-serif; color:saddleBrown; }
 span.sn-ref {}
-/* span.sn-ref-sc {} */
+span.sn-ref-sc {}
 span.ital { font-style:italic; } /* TODO: We need to fix these */
 /* span.bold { font-weight:bold; } */
 span.ital-bold { font-style:italic; font-weight:bold; }

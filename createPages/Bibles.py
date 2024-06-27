@@ -54,13 +54,15 @@ CHANGELOG:
     2024-06-10 Save and load pickled Bibles for load speed boost
 """
 from gettext import gettext as _
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Tuple, Set, Optional
 from datetime import datetime
-import os.path
+import os, os.path
 from pathlib import Path
 import logging
 import re
 from xml.etree.ElementTree import ElementTree, ParseError
+import shutil
+from collections import defaultdict
 
 import sys
 sys.path.append( '../../BibleOrgSys/' )
@@ -82,19 +84,22 @@ import sys
 sys.path.append( '../../BibleTransliterations/Python/' )
 from BibleTransliterations import transliterate_Greek, transliterate_Hebrew
 
-from settings import State, ALTERNATIVE_VERSION, TEST_MODE, TEST_BOOK_LIST, PICKLE_FILENAME_END
+from settings import State, ALTERNATIVE_VERSION, TEST_MODE, TEST_BOOK_LIST, PICKLE_FILENAME_END, TEMP_BUILD_FOLDER
 from html import checkHtml
 from OETHandlers import findLVQuote, getBBBFromOETBookName
 from Dict import loadAndIndexUBSGreekDictJSON, loadAndIndexUBSHebrewDictJSON
 
 
-LAST_MODIFIED_DATE = '2024-06-14' # by RJH
+LAST_MODIFIED_DATE = '2024-06-26' # by RJH
 SHORT_PROGRAM_NAME = "Bibles"
 PROGRAM_NAME = "OpenBibleData Bibles handler"
-PROGRAM_VERSION = '0.73'
+PROGRAM_VERSION = '0.74'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
+
+
+BIBLE_MAPPER_PATH = Path( '../copiedBibles/maps/' )
 
 NEWLINE = '\n'
 
@@ -1254,6 +1259,89 @@ def getVerseDataListForReference( givenRefString:str, thisBible:Bible, lastBBB:O
 
     return refBBB, refStartC, verseEntryList, contextList
 # end of Bibles.getVerseDataListForReference
+
+
+BMM_INDEX = defaultdict( list )
+def getBibleMapperMaps( level:int, BBB:str, C:str, V:Optional[str], referenceBible:Bible ) -> str: # html
+    """
+    """
+    global BMM_INDEX
+
+    bmmRef = f'{BBB}_{C}:{V}' # V can be None
+    fnPrint( DEBUGGING_THIS_MODULE, f"getBibleMapperMaps( {level}, {bmmRef} )" )
+
+    if not BMM_INDEX:
+        vPrint( 'Info', DEBUGGING_THIS_MODULE, f"getBibleMapperMaps( {level}, {bmmRef} ) needs to load map index…")
+        mapIndexFilepath = '../copiedBibles/maps/mapIndex.tsv'
+        with open( mapIndexFilepath, 'rt', encoding='utf-8' ) as tsvFile:
+            for line in tsvFile: # Three-column TSV
+                if line.startswith( 'ReferenceRange' ): continue # It's the header line
+                mapRef, mapFilename, optionalComment = line.rstrip( '\n' ).split( '\t' )
+                mapBBB, mapCVstuff = mapRef.split( '_' )
+                chapters:Set[str] = set()
+                if '–' in mapCVstuff: # enDash: it's a chapter range
+                    startCVstuff, endCVstuff = mapCVstuff.split( '–' )
+                    # print( f"Chapter range: {mapBBB} {startCVstuff} to {endCVstuff} = '{mapFilename}'")
+                    try: startC, startV = startCVstuff.split( ':' )
+                    except ValueError: startC, startV = startCVstuff, '1'
+                    try: endC, endV = endCVstuff.split( ':' )
+                    except ValueError: endC, endV = endCVstuff, referenceBible.getNumVerses( mapBBB, endCVstuff )
+                    # print( f"   so {startC}:{startV} to {endC}:{endV}" )
+                    for c in range( int(startC), int(endC)+1 ):
+                        chapters.add( str(c) )
+                        for v in range( int(startV) if c==int(startC) else 1, (int(endV) if c==int(endC) else referenceBible.getNumVerses( mapBBB, c ))+1 ):
+                            BMM_INDEX[f'{mapBBB}_{c}:{v}'].append( mapFilename )
+                elif '-' in mapCVstuff: # hyphen: it's a verse range
+                    startCVstuff, endCVstuff = mapCVstuff.split( '-' )
+                    # print( f"Verse range: {mapBBB} {startCVstuff} to {endCVstuff} = '{mapFilename}'")
+                    assert ':' not in endCVstuff
+                    mapC, startV = startCVstuff.split( ':' )
+                    chapters.add( mapC )
+                    endV = endCVstuff
+                    # print( f"   so {mapC}:{startV} to {mapC}:{endV}" )
+                    for v in range( int(startV), int(endV)+1 ):
+                        BMM_INDEX[f'{mapBBB}_{mapC}:{v}'].append( mapFilename )
+                elif ':' in mapCVstuff: # it's a single verse
+                    # print( f"Single verse: {mapBBB} {mapCVstuff} = '{mapFilename}'")
+                    mapC = mapCVstuff.split( ':' )[0]
+                    chapters.add( mapC )
+                    BMM_INDEX[mapRef].append( mapFilename )
+                else: # it's a single chapter
+                    mapC = mapCVstuff
+                    # print( f"Single chapter: {mapBBB} {mapC} = '{mapFilename}'")
+                    chapters.add( mapC )
+                    for v in range( 1, referenceBible.getNumVerses( mapBBB, mapC)+1 ):
+                        BMM_INDEX[f'{mapBBB}_{mapC}:{v}'].append( mapFilename )
+                for mapC in chapters:
+                    BMM_INDEX[f'{mapBBB}_{mapC}:None'].append( mapFilename )
+        # print( f"({len(BMM_INDEX)}) {BMM_INDEX.keys()=}" )
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  getBibleMapperMaps() loaded {len(BMM_INDEX):,} verse and chapter entries.")
+
+    if bmmRef not in BMM_INDEX:
+        return None
+    
+    ourHtml = ''
+    for filename in BMM_INDEX[bmmRef]:
+        dPrint( 'Info', DEBUGGING_THIS_MODULE, f"getBibleMapperMaps( {level}, {bmmRef} ) got {filename=}" )
+        textFilepath = BIBLE_MAPPER_PATH.joinpath( f'{filename}.htmlSegment' )
+        with open( textFilepath, 'rt', encoding='utf-8' ) as txtFile:
+            htmlSegment = txtFile.read()
+        # TODO: Liven links in htmlSegment
+        imageFilename = f'{filename}_high.jpg'
+        sourceImageFilepath = BIBLE_MAPPER_PATH.joinpath( imageFilename )
+        destinationFolderpath = TEMP_BUILD_FOLDER. joinpath( 'BMM/' )
+        try: os.makedirs( destinationFolderpath )
+        except FileExistsError: pass
+        # Note: shutil.copy2 is the same as copy but keeps metadata like creation and modification times
+        shutil.copy2( sourceImageFilepath, destinationFolderpath )
+        ourHtml = f'''{ourHtml}
+<br><a href="https://BibleMapper.com" target="_blank" rel="noopener noreferrer"><img src="{'../'*level}BMM/{imageFilename}" alt="Map" width="98%" style="max-width:1000px; display:block; margin:auto;"></a>
+{htmlSegment}'''
+    checkHtml( f'BibleMapperMap@{bmmRef} with {filename}', ourHtml, segmentOnly=True )
+    return ourHtml
+# end of Bibles.getBibleMapperMaps
+
+
 
 def briefDemo() -> None:
     """

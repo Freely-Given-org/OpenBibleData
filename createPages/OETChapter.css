@@ -166,13 +166,13 @@ span.addReword {} /*{ color:orange; }*/
 span.RVadd { color:#505050; } /* Darker than dimGrey which is #696969 (black is #000000) */
 span.add { color:grey; }
 span.untr { font-size:0.8em; color:grey; text-decoration:line-through; }
-span.unsure { text-decoration:underline; text-decoration-style: dotted; }
+span.unsure { text-decoration:underline; text-decoration-style: dotted; text-decoration-color: orange; }
 
 span.ul { color:darkGrey; }
 /* span.dom { color:Gainsboro; font-size:0.75em; } */
 /* span.schwa { font-size:0.75em; } */
 span.nominaSacra { font-weight:bold; }
-span.parr { vertical-align:super; font-size:0.8em; color:green; }
+span.parr { vertical-align:super; font-size:0.8em; color:green; } /* Hebrew parallelism */
 
 /* OSHB cases (also used for OET-RV and OET-LV) */
 /* Used in <a> fields and in spans */
@@ -192,3 +192,8 @@ span.parr { vertical-align:super; font-size:0.8em; color:green; }
 .grkVoc {} /* { background-color:orchid; } */
 .grkVrb {} /* { background-color:yellow; } */
 .grkNeg {} /* { background-color:crimson; } */
+
+/* BibleMapper.com Maps */
+div.parallelBMM {}
+h2.mapTitle {}
+p.mapRefs { font-weight:bold; }

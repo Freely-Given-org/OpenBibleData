@@ -10,7 +10,7 @@ p.sectionHeading {}
 a:visited { text-decoration:none; }
 a:hover { text-decoration:none; }
 a:active { text-decoration:none; } */
-a { text-decoration:none; }
+/* a { text-decoration:none; } We want anchor decorations on these index pages */
 
 /* Navigational lists at top of page */
 p.wrkLst { background-color:#904471; color:98a9d4; }
@@ -45,8 +45,4 @@ p.sectionHeading + p.alternateHeading { margin-top:-1.2em; }
 p.about { }
 p.licence { }
 p.acknwldg { }
-/* p.note { } */
 p.footnote { font-size:0.85em; }
-
-/* On OETKey page */
-span.parr { vertical-align:super; font-size:0.8em; color:green; }

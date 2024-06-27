@@ -137,24 +137,7 @@ span.qs { font-style:italic; } /* Selah */
 span.qac { color:darkOrchid; font-style:italic; } /* Acrostic letter */
 span.jmp {}
 span.t4tFoS { color:mediumvioletred; } /* T4T figure of speech */
-
-/* OET add spans */
-span.addArticle { color:bisque; }
-span.unusedArticle { color:lavender; }
-span.addCopula { color:pink; }
-span.addDirectObject { color:brown; }
-span.addExtra { color:lightGreen; }
-span.addElided { color:darkgoldenrod; }
-span.addOwner { color:darkOrchid; }
-span.addPronoun { color:darkgreen; }
-span.addReferent { color:darkblue; }
-span.addPluralised { color:darkcyan; }
-span.addNegated { color:darkred; }
-span.addReword { color:orange; }
-span.RVadd { color:#505050; } /* Darker than dimGrey which is #696969 (black is #000000) */
-span.add { color:grey; }
-span.untr { font-size:0.8em; color:grey; text-decoration:line-through; }
-span.unsure { text-decoration:underline; text-decoration-style: dotted; }
+span.add { color:grey; font-style:italic; }
 
 /* USFM footnotes */
 div.footnotes {}
@@ -191,7 +174,7 @@ span.xrRef { font-weight:bold; }
 
 span.tl {}
 
-/* NET Bible notes spans */
+/* NET Bible notes spans -- only used in TEST versions */
 span.fn { font-weight:bold; color:blue } /* NET footnote number */
 span.es {} /* e shwa -- should be replaced with actual shwa now */
 span.fx { font-weight:bold; } /* footnote cross-reference */

@@ -58,6 +58,7 @@ CHANGELOG:
     2024-04-23 Use ref for Heb and Grk word page filenames (instead of row number)
     2024-05-27 Try adding word connections for Hebrew roots
     2024-06-03 In test mode, only make connected lemma pages for Heb/Grk words used
+    2024-06-19 Remove notes and segs from Hebrew words indexes
 """
 from gettext import gettext as _
 from typing import Dict, List, Tuple, Union
@@ -84,10 +85,10 @@ from html import makeTop, makeBottom, checkHtml
 from OETHandlers import getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
-LAST_MODIFIED_DATE = '2024-06-12' # by RJH
+LAST_MODIFIED_DATE = '2024-06-20' # by RJH
 SHORT_PROGRAM_NAME = "createOETReferencePages"
 PROGRAM_NAME = "OpenBibleData createOETReferencePages functions"
-PROGRAM_VERSION = '0.72'
+PROGRAM_VERSION = '0.73'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -500,16 +501,25 @@ LC_FACSIMILE_PAGE_INDEX = { # from https://openlibrary.org/books/OL24998735M/The
 
 COMMON_ENGLISH_WORDS_LIST = ( # Ignore the most common words
     'God','Jesus','Lord', 'Joshua',
-    'the','¬the','that','this','which','¬which','these',
-    'and','for','but','if','as','therefore','in_order_that','because',
-    'is','also',
-    'to','in','with','from','by','on','into',
-    'not','all','saying','said','having',
+    'a','an','the','¬the','that','this','which','¬which','these','those',
+    'and','for','but','if','as','therefore','in_order_that','because','so','then',
+    'also','again','just',
+    'here','there',
+    'some','any',
+    'to','from','unto', 'with', 'in','out', 'by','on','upon','into','of','at', 'up','down', 'before','after', 'under','over',
+    'not','all',
     'what','who',
-    'you', 'he','we','they','I','she','you_all',
+    'you', 'he','we','they','I','she','you_all','it',
             'him','us','them','me','her',
-    'your','his','our','their','my',
+    'your','his','our','their','my','its',
+    'will','was','would','be','been','is','am','are','have','has','had','having','do','did','does','doing','can','may','let',
+    'won\'t','didn\'t','don\'t',
+    'I\'ll','we\'ll',
+    'one', # Especially for LV
+    'very',
+    'say','saying','said','go','came','went', 'get','put',
     )
+assert len(set(COMMON_ENGLISH_WORDS_LIST)) == len(COMMON_ENGLISH_WORDS_LIST) # No duplicates
 SIMILAR_GLOSS_WORDS_TABLE = [
     # Each line (tuple) contains two tuples:
     #   The first is a list of words for existing glosses
@@ -525,6 +535,7 @@ SIMILAR_GLOSS_WORDS_TABLE = [
     (('chief_priest','chief_priests'),('priest','priests')),
     (('child','children'),('son','sons','daughter','daughters')),
     (('clean',),('moral','permissible','pure','unclean')),
+    (('coin','coins'),('money','silver')),
     (('cry','cries','crying','cried'),('weep','weeps','weeping','weeped','mourn','mourns','mourning','mourned')),
     (('daughter','daughters'),('child','children')),
     (('devil',),('Satan',)),
@@ -551,10 +562,12 @@ SIMILAR_GLOSS_WORDS_TABLE = [
     (('joined_together',),('united',)),
     (('Joshua',),('Jesus','Yeshua')),
     (('lamp','lamps'),('light','lights')),
+    (('law','laws'),('statute','statutes','regulation','regulations')),
     (('logical',),('sensible','logic','logically')),
     (('light','lights'),('lamp','lamps')),
     (('lip','lips'),('mouth','mouths')),
     (('mind','minds'),('heart','hearts')),
+    (('money',),('silver','coin','coins')),
     (('mourn','mourns','mourning','mourned'),('weep','weeps','weeping','weeped','cry','cries','crying','cried')),
     (('mouth','mouths'),('lips','lip','tongue')),
     (('pagan','pagans'),('Gentile','Gentiles','Greeks')),
@@ -562,6 +575,7 @@ SIMILAR_GLOSS_WORDS_TABLE = [
     (('patriach','patriarchs'),('ancestor','ancestors','elders')),
     (('priest','priests'),('chief_priest','chief_priests')),
     (('purity',),('holiness',)),
+    (('regulation','regulations'),('law','laws','statute','statutes')),
     (('remnant',),('remainder','few')),
     (('reward','rewards'),('gift','gifts')),
     (('riches',),('wealth',)),
@@ -572,9 +586,11 @@ SIMILAR_GLOSS_WORDS_TABLE = [
     (('seed',),('sperm',)),
     (('servant','servants'),('slave','slaves','house_servant','house_servants','attendant','attendants')),
     (('ship','ships'),('boat','boats')),
+    (('silver',),('money','coin','coins')),
     (('slave','slaves'),('servant','house_servant','servants','house_servants','attendant','attendants')),
     (('son','sons'),('child','children')),
     (('sperm',),('seed',)),
+    (('statute','statutes'),('law','laws','regulation','regulations')),
     (('suddenly',),('immediately',)),
     (('unclean',),('immoral','prohibited','impure','clean')),
     (('united',),('joined_together',)),
@@ -610,6 +626,7 @@ CONTRASTIVE_GLOSS_WORDS_TABLE = [
     # NOTE: Reversals are not automatic -- they have to be manually entered
     (('sprinkle','sprinkled','sprinkling'),('baptize','baptized','baptizing')), (('baptize','baptized','baptizing'),('sprinkle','sprinkled','sprinkling')),
     (('dark','darkness'),('light',)), (('light',),('dark','darkness')),
+    (('hot',),('cold',)), (('cold',),('hot',)),
     (('sexual_intercourse',),('homosexuals',)), (('homosexuals',),('sexual_intercourse',)), # both based on lemma koitē
     ]
 CONTRASTIVE_GLOSS_WORDS_DICT = {} # We create this dict at load time as we check the above table
@@ -693,10 +710,10 @@ def createOETReferencePages( level:int, outputFolderPath:Path, state:State ) -> 
     filename = 'index.htm'
     filepath = outputFolderPath.joinpath( filename )
     top = makeTop( level, None, 'referenceIndex', None, state) \
-            .replace( '__TITLE__', f"OpenBibleData Reference Index{' TEST' if TEST_MODE else ''}" ) \
+            .replace( '__TITLE__', f"OpenBibleData Reference Contents{' TEST' if TEST_MODE else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, reference' )
     indexHtml = f'''{top}
-<h1 id="Top">Reference pages contents page</h1>
+<h1 id="Top">Reference lists contents page</h1>
 <h2>{SITE_NAME}</h2>
 <p class="note"><a href="HebWrd/">Hebrew words index</a> <a href="HebWrd/transIndex.htm">Transliterated Hebrew words index</a></p>
 <p class="note"><a href="HebLem/">Hebrew lemmas index</a> <a href="HebLem/transIndex.htm">Transliterated Hebrew lemmas index</a></p>
@@ -793,12 +810,26 @@ def preprocessHebrewWordsLemmasGlosses( BBBSelection:Union[str, List[str]], stat
             # else:
             #     state.OETRefData['OTLemmaRowNumbersDict'][noCantillations].append( n )
             #     state.OETRefData['OTLemmaFormsDict'][noCantillations].add( formMorph2Tuple )
-            state.OETRefData['OTFormOETGlossesDict'][formMorph2Tuple].add( gloss )
-            state.OETRefData['OTLemmaOETGlossesDict'][noCantillations].add( gloss )
-            # for someGlossWord in gloss.split( ' ' ):
-            #     if '/' not in someGlossWord and '˱' not in someGlossWord and '‹' not in someGlossWord: # We only want the main words
-            #         assert n not in state.OETRefData['OETOTGlossWordDict'][someGlossWord]
-            #         state.OETRefData['OETOTGlossWordDict'][someGlossWord].append( n )
+            if gloss:
+                state.OETRefData['OTFormOETGlossesDict'][formMorph2Tuple].add( gloss )
+                state.OETRefData['OTLemmaOETGlossesDict'][noCantillations].add( gloss )
+                if gloss != 'DOM':
+                    adjGloss = ( gloss.replace( '\\untr DOM\\untr*', '' ).replace( 'DOM', '' )
+                                    .replace( '\\nd ', '' ).replace( '\\nd*', '' )
+                                    .replace( '_~_', ' ' )
+                                    .replace( '(cmp)', '' )
+                                    .replace( '[s]', '' ).replace( '[es]', '' )
+                                    .replace( '(ms)', '' ).replace( '(m)', '' ).replace( '(fs)', '' )
+                                    .replace( '//', ' ' ).replace( '/', ' ' ).replace( '_', ' ' ).replace( '=', ' ' ).replace( ',', ' ' )
+                                    .replace( '[', ' ' ).replace( ']', ' ' ).replace( '(', ' ' ).replace( ')', ' ' )
+                                    .replace( '   ', ' ' ).replace( '  ', ' ' ).strip() )
+                    if adjGloss:
+                        for someGlossWord in adjGloss.split( ' ' ):
+                            assert someGlossWord, f"{someGlossWord=} {gloss=} {adjGloss=}"
+                            if someGlossWord not in COMMON_ENGLISH_WORDS_LIST:
+                                # print( f"{n} {_ref} {someGlossWord=} from {gloss=}")
+                                # assert n not in state.OETRefData['OETOTGlossWordDict'][someGlossWord] # There are some rare instances like the=time//this_time
+                                state.OETRefData['OETOTGlossWordDict'][someGlossWord].append( n )
             # if noCantillations in state.OETRefData['OTHebrewLemmaDict']:
             #     # assert state.OETRefData['NTGreekLemmaDict'][noCantillations] == GrkLemma, f"{n=} {_ref} {noCantillations=} {GrkLemma=} {state.OETRefData['NTGreekLemmaDict'][SRLemma]=}"
             #     if state.OETRefData['OTHebrewLemmaDict'][noCantillations] != GrkLemma:
@@ -965,10 +996,85 @@ def create_Hebrew_word_pages( level:int, outputFolderPath:Path, state:State ) ->
         return result
     # end of createOETReferencePages.tidy_Hebrew_word_gloss
 
+    def tidy_Hebrew_morphology( tHM_rowType:str, tHM_morphology:str ) -> str:
+        """
+        """
+        tHM_tidyMorphologyField = ''
+        for tHM_individualMorphology in tHM_morphology.split( ',' ):
+            if tHM_individualMorphology:
+                tHM_tidyMorphology = tHM_individualMorphology
+                tHM_tidyMorphologyField = f'''{tHM_tidyMorphologyField}{'<br> ' if tHM_tidyMorphologyField else ''}<small><a title="Learn more about OSHB morphology" href="https://hb.OpenScriptures.org/HomeFiles/Morph.html">Morphology</a>=<a title="See OSHB morphology codes" href="https://hb.OpenScriptures.org/parsing/HebrewMorphologyCodes.html">{tHM_tidyMorphology}</a></small>'''
+                # print( f"{ref} got '{hebrewWord}' morphology ({len(individualMorphology)}) = '{individualMorphology}' (from ({len(morphology)}) '{morphology}')" )
+                tHM_PoS = tHM_individualMorphology[0] # individualMorphology is variable length, depending on the PoS, etc.
+                tHM_PoS_with_type = tHM_individualMorphology[:2] # Two characters
+                # posField = f'PoS=<b>{OSHB_POS_DICT[PoS]}</b>'
+                tHM_word_details_field = ''
+                if tHM_PoS == 'N': # noun
+                    assert len(tHM_individualMorphology) in (2, 5)
+                    noun_type = OSHB_NOUN_DICT[tHM_PoS_with_type]
+                    tHM_word_details_field = f'PoS=<b>{noun_type}</b>'
+                    if len(tHM_individualMorphology) > 2:
+                        tHM_word_details_field = f'{tHM_word_details_field} Gender={OSHB_GENDER_DICT[tHM_individualMorphology[2]]} Number={OSHB_NUMBER_DICT[tHM_individualMorphology[3]]} State={OSHB_STATE_DICT[tHM_individualMorphology[4]]}'
+
+                elif tHM_PoS == 'V': # verb: Generally verbs require no state. Participles, on the other hand, require no person, though they do take a state.
+                    assert 3 <= len(tHM_individualMorphology) <= 7
+                    # try:
+                    verb_type = OSHB_ARAMAIC_VERB_STEM_DICT[tHM_PoS_with_type] if 'A' in tHM_rowType else OSHB_HEBREW_VERB_STEM_DICT[tHM_PoS_with_type]
+                    # except KeyError: # 'Va'
+                    #     print( f"Why did tidy_Hebrew_morphology({morphology}) fail with {rowType=} {PoS_with_type=} ???")
+                    #     verb_type = f'UNKNOWN {PoS_with_type=}'
+                    tHM_word_details_field = f'PoS=<b>{verb_type}</b> Type={OSHB_VERB_CONJUGATION_TYPE_DICT[tHM_individualMorphology[2]]}'
+                    if len(tHM_individualMorphology) == 6:
+                        if tHM_individualMorphology[2] in 'rs': # active or passive PARTICIPLE (has no person field but does have a state)
+                            tHM_word_details_field = f'{tHM_word_details_field} Gender={OSHB_GENDER_DICT[tHM_individualMorphology[3]]} Number={OSHB_NUMBER_DICT[tHM_individualMorphology[4]]} State={OSHB_STATE_DICT[tHM_individualMorphology[5]]}'
+                        else:
+                            tHM_word_details_field = f'{tHM_word_details_field} Person={OSHB_PERSON_DICT[tHM_individualMorphology[3]]} Gender={OSHB_GENDER_DICT[tHM_individualMorphology[4]]} Number={OSHB_NUMBER_DICT[tHM_individualMorphology[5]]}'
+                    elif len(tHM_individualMorphology) == 7: # then we have a state as well
+                        tHM_word_details_field = f'{tHM_word_details_field} Person={OSHB_PERSON_DICT[tHM_individualMorphology[3]]} Gender={OSHB_GENDER_DICT[tHM_individualMorphology[4]]} Number={OSHB_NUMBER_DICT[tHM_individualMorphology[5]]} State={OSHB_STATE_DICT[tHM_individualMorphology[6]]}'
+                    elif len(tHM_individualMorphology) == 3:
+                        assert tHM_individualMorphology[2] in 'ac' # infinitive absolute or construct
+                        # We've already got the verb + stem + conjugation type above
+
+                elif tHM_PoS == 'A': # adjective
+                    assert len(tHM_individualMorphology) == 5
+                    adjective_type = OSHB_ADJECTIVE_DICT[tHM_PoS_with_type]
+                    tHM_word_details_field = f'PoS=<b>{adjective_type}</b> Gender={OSHB_GENDER_DICT[tHM_individualMorphology[2]]} Number={OSHB_NUMBER_DICT[tHM_individualMorphology[3]]} State={OSHB_STATE_DICT[tHM_individualMorphology[4]]}'
+                elif tHM_PoS == 'P': # pronoun: person, gender, number and state are the same wherever they apply.
+                    assert 2 <= len(tHM_individualMorphology) <= 5
+                    pronoun_type = OSHB_PRONOUN_DICT[tHM_PoS_with_type]
+                    tHM_word_details_field = f'PoS=<b>{pronoun_type}</b>'
+                    if len(tHM_individualMorphology) > 2:
+                        tHM_word_details_field = f'{tHM_word_details_field} Person={OSHB_PERSON_DICT[tHM_individualMorphology[2]]} Gender={OSHB_GENDER_DICT[tHM_individualMorphology[3]]} Number={OSHB_NUMBER_DICT[tHM_individualMorphology[4]]}'
+                elif tHM_PoS == 'T': # particle
+                    if len(tHM_individualMorphology) == 1: # e.g., at Aramaic DAN_4:12w11
+                        tHM_word_details_field = f'PoS=<b>particle</b>'
+                    else:
+                        assert len(tHM_individualMorphology) == 2
+                        particle_type = OSHB_PARTICLE_DICT[tHM_PoS_with_type]
+                        tHM_word_details_field = f'PoS=<b>{particle_type}</b>'
+                elif tHM_PoS == 'R': # preposition: the preposition type is only used when the inseparable preposition is pointed in such a way to indicate the presence of the definite article.
+                    assert 1 <= len(tHM_individualMorphology) <= 2, f"'{tHM_PoS}' ({len(tHM_individualMorphology)}) {tHM_individualMorphology=}"
+                    tHM_word_details_field = f'PoS=<b>{OSHB_PREPOSITION_DICT[tHM_PoS_with_type]}</b>' if len(tHM_individualMorphology)==2 else f'PoS=<b>{OSHB_POS_DICT[tHM_PoS]}</b>'
+                elif tHM_PoS == 'S': # suffix
+                    assert 2 <= len(tHM_individualMorphology) <= 5
+                    suffix_type = OSHB_SUFFIX_DICT[tHM_PoS_with_type]
+                    tHM_word_details_field = f'PoS=<b>{suffix_type}</b>'
+                    if len(tHM_individualMorphology) > 2:
+                        tHM_word_details_field = f'{tHM_word_details_field} Person={OSHB_PERSON_DICT[tHM_individualMorphology[2]]} Gender={OSHB_GENDER_DICT[tHM_individualMorphology[3]]} Number={OSHB_NUMBER_DICT[tHM_individualMorphology[4]]}'
+                else:
+                    if tHM_PoS in ('C','D'): # conjunction or adverb
+                        assert len(tHM_individualMorphology) == 1 # We only have the PoS
+                    tHM_word_details_field = f'PoS=<b>{OSHB_POS_DICT[tHM_PoS]}</b>'
+                tHM_tidyMorphologyField = f'''{'Aramaic ' if 'A' in tHM_rowType else ''}{tHM_tidyMorphologyField} {tHM_word_details_field}'''
+            else: # individualMorphology is blank (AMO_6:14w14)
+                tHM_tidyMorphologyField = '(MISSING)'
+                tHM_word_details_field = '(NONE)'
+        return tHM_tidyMorphologyField
+    # end of createOETReferencePages.tidy_Hebrew_morphology
 
     # Now make a page for each Hebrew word (including the note pages)
     numWordPagesMade = 0
-    wordLinks:List[str] = [] # Used below to make an index page
+    wordLinksForIndex:List[str] = [] # Used below to make an index page
     state.OETRefData['usedHebLemmas'] = set() # Used in next function to make lemma pages
     for n, columns_string in enumerate( state.OETRefData['word_tables'][HebrewWordFileName][1:], start=1 ):
         if not columns_string: continue # a blank line (esp. at end)
@@ -1013,78 +1119,15 @@ def create_Hebrew_word_pages( level:int, outputFolderPath:Path, state:State ) ->
         if rowType!='seg' and 'note' not in rowType:
             # it's a proper Hebrew (or Aramaic) word
             assert morphemeRowList.count(',') == strongs.count(',') == morphology.count(',') == word.count(',') == noCantillations.count(',')
-            for individualMorphology in morphology.split( ',' ):
-                if individualMorphology:
-                    tidyMorphology = individualMorphology
-                    tidyMorphologyField = f'''{tidyMorphologyField}{'<br> ' if tidyMorphologyField else ''}<small><a title="Learn more about OSHB morphology" href="https://hb.OpenScriptures.org/HomeFiles/Morph.html">Morphology</a>=<a title="See OSHB morphology codes" href="https://hb.OpenScriptures.org/parsing/HebrewMorphologyCodes.html">{tidyMorphology}</a></small>'''
-                    # print( f"{ref} got '{hebrewWord}' morphology ({len(individualMorphology)}) = '{individualMorphology}' (from ({len(morphology)}) '{morphology}')" )
-                    PoS = individualMorphology[0] # individualMorphology is variable length, depending on the PoS, etc.
-                    PoS_with_type = individualMorphology[:2] # Two characters
-                    # posField = f'PoS=<b>{OSHB_POS_DICT[PoS]}</b>'
-                    word_details_field = ''
-                    if PoS == 'N': # noun
-                        assert len(individualMorphology) in (2, 5)
-                        noun_type = OSHB_NOUN_DICT[PoS_with_type]
-                        word_details_field = f'PoS=<b>{noun_type}</b>'
-                        if len(individualMorphology) > 2:
-                            word_details_field = f'{word_details_field} Gender={OSHB_GENDER_DICT[individualMorphology[2]]} Number={OSHB_NUMBER_DICT[individualMorphology[3]]} State={OSHB_STATE_DICT[individualMorphology[4]]}'
-                    elif PoS == 'V': # verb: Generally verbs require no state. Participles, on the other hand, require no person, though they do take a state.
-                        assert 3 <= len(individualMorphology) <= 7
-                        verb_type = OSHB_ARAMAIC_VERB_STEM_DICT[PoS_with_type] if 'A' in rowType else OSHB_HEBREW_VERB_STEM_DICT[PoS_with_type]
-                        word_details_field = f'PoS=<b>{verb_type}</b> Type={OSHB_VERB_CONJUGATION_TYPE_DICT[individualMorphology[2]]}'
-                        if len(individualMorphology) == 6:
-                            if individualMorphology[2] in 'rs': # active or passive PARTICIPLE (has no person field but does have a state)
-                                word_details_field = f'{word_details_field} Gender={OSHB_GENDER_DICT[individualMorphology[3]]} Number={OSHB_NUMBER_DICT[individualMorphology[4]]} State={OSHB_STATE_DICT[individualMorphology[5]]}'
-                            else:
-                                word_details_field = f'{word_details_field} Person={OSHB_PERSON_DICT[individualMorphology[3]]} Gender={OSHB_GENDER_DICT[individualMorphology[4]]} Number={OSHB_NUMBER_DICT[individualMorphology[5]]}'
-                        elif len(individualMorphology) == 7: # then we have a state as well
-                            word_details_field = f'{word_details_field} Person={OSHB_PERSON_DICT[individualMorphology[3]]} Gender={OSHB_GENDER_DICT[individualMorphology[4]]} Number={OSHB_NUMBER_DICT[individualMorphology[5]]} State={OSHB_STATE_DICT[individualMorphology[6]]}'
-                        elif len(individualMorphology) == 3:
-                            assert individualMorphology[2] in 'ac' # infinitive absolute or construct
-                            # We've already got the verb + stem + conjugation type above
+            tidyMorphologyField = tidy_Hebrew_morphology( rowType, morphology )
 
-                    elif PoS == 'A': # adjective
-                        assert len(individualMorphology) == 5
-                        adjective_type = OSHB_ADJECTIVE_DICT[PoS_with_type]
-                        word_details_field = f'PoS=<b>{adjective_type}</b> Gender={OSHB_GENDER_DICT[individualMorphology[2]]} Number={OSHB_NUMBER_DICT[individualMorphology[3]]} State={OSHB_STATE_DICT[individualMorphology[4]]}'
-                    elif PoS == 'P': # pronoun: person, gender, number and state are the same wherever they apply.
-                        assert 2 <= len(individualMorphology) <= 5
-                        pronoun_type = OSHB_PRONOUN_DICT[PoS_with_type]
-                        word_details_field = f'PoS=<b>{pronoun_type}</b>'
-                        if len(individualMorphology) > 2:
-                            word_details_field = f'{word_details_field} Person={OSHB_PERSON_DICT[individualMorphology[2]]} Gender={OSHB_GENDER_DICT[individualMorphology[3]]} Number={OSHB_NUMBER_DICT[individualMorphology[4]]}'
-                    elif PoS == 'T': # particle
-                        if len(individualMorphology) == 1: # e.g., at Aramaic DAN_4:12w11
-                            word_details_field = f'PoS=<b>particle</b>'
-                        else:
-                            assert len(individualMorphology) == 2
-                            particle_type = OSHB_PARTICLE_DICT[PoS_with_type]
-                            word_details_field = f'PoS=<b>{particle_type}</b>'
-                    elif PoS == 'R': # preposition: the preposition type is only used when the inseparable preposition is pointed in such a way to indicate the presence of the definite article.
-                        assert 1 <= len(individualMorphology) <= 2, f"'{PoS}' ({len(individualMorphology)}) {individualMorphology=}"
-                        word_details_field = f'PoS=<b>{OSHB_PREPOSITION_DICT[PoS_with_type]}</b>' if len(individualMorphology)==2 else f'PoS=<b>{OSHB_POS_DICT[PoS]}</b>'
-                    elif PoS == 'S': # suffix
-                        assert 2 <= len(individualMorphology) <= 5
-                        suffix_type = OSHB_SUFFIX_DICT[PoS_with_type]
-                        word_details_field = f'PoS=<b>{suffix_type}</b>'
-                        if len(individualMorphology) > 2:
-                            word_details_field = f'{word_details_field} Person={OSHB_PERSON_DICT[individualMorphology[2]]} Gender={OSHB_GENDER_DICT[individualMorphology[3]]} Number={OSHB_NUMBER_DICT[individualMorphology[4]]}'
-                    else:
-                        if PoS in ('C','D'): # conjunction or adverb
-                            assert len(individualMorphology) == 1 # We only have the PoS
-                        word_details_field = f'PoS=<b>{OSHB_POS_DICT[PoS]}</b>'
-                    tidyMorphologyField = f'''{'Aramaic ' if 'A' in rowType else ''}{tidyMorphologyField} {word_details_field}'''
-                else: # individualMorphology is blank (AMO_6:14w14)
-                    tidyMorphologyField = '(MISSING)'
-                    word_details_field = '(NONE)'
-
-                if gloss:
-                    translationField = f'''‘{gloss[0].upper() if glossCapitalisation=='S' else gloss[0]}{gloss[1:]}’'''.replace(',',', ')
-                else:
-                    translationField = "<small>Oops, no gloss available!</small>"
-                    logging.error( f"create_Hebrew_word_pages: {ref} {rowType} No gloss available for '{word}'" )
-                if glossCapitalisation:
-                    capsField = f' <small>(Caps={glossCapitalisation})</small>'
+            if gloss:
+                translationField = f'''‘{gloss[0].upper() if glossCapitalisation=='S' else gloss[0]}{gloss[1:]}’'''.replace(',',', ')
+            else:
+                translationField = "<small>Oops, no gloss available!</small>"
+                logging.error( f"create_Hebrew_word_pages: {ref} {rowType} No gloss available for '{word}'" )
+            if glossCapitalisation:
+                capsField = f' <small>(Caps={glossCapitalisation})</small>'
 
         transliterationBit = f" ({transliterate_Hebrew(noCantillations.replace(',',', '))})" if noCantillations else ''
 
@@ -1265,7 +1308,7 @@ f''' {translation} <a title="Go to Open Scriptures Hebrew verse page" href="
                     wordsHtml = f'''{wordsHtml.replace(lemmaLinksStr, f'{lemmaLinksStr}<sup>*</sup>', 1)}\n<p class="note"><sup>*</sup>Note: This is also the only occurrence of the word root <small>(lemma)</small> ‘{noCantillations}’ in the Hebrew originals.</p>'''
 
         extraHTMLList = []
-        if 0 and mainGlossWord not in COMMON_ENGLISH_WORDS_LIST: # Ignore the most common words
+        if mainGlossWord not in COMMON_ENGLISH_WORDS_LIST: # Ignore the most common words
             # List other words that are glossed similarly
             try:
                 similarWords = (mainGlossWord,) + SIMILAR_GLOSS_WORDS_DICT[mainGlossWord]
@@ -1273,23 +1316,26 @@ f''' {translation} <a title="Go to Open Scriptures Hebrew verse page" href="
             except KeyError: similarWords = (mainGlossWord,)
             extraWordSet, extraLemmaSet = set(), set()
             for similarWord in similarWords:
-                print( f"{similarWord=} from {similarWords=} {len(state.OETRefData['OETOTGlossWordDict'])=}")
+                # print( f"{similarWord=} from {similarWords=} {len(state.OETRefData['OETOTGlossWordDict'])=}")
                 nList = state.OETRefData['OETOTGlossWordDict'][similarWord]
-                print( f"{similarWord=} from {similarWords=} {len(state.OETRefData['OETOTGlossWordDict'])=} {nList=}")
-                assert not nList
-                does_this_execute
+                # print( f"{similarWord=} from {similarWords=} {len(state.OETRefData['OETOTGlossWordDict'])=} {nList=}")
                 # print( f'''    {n} {ref} {hebrewWord} '{mainGlossWord}' {f'{similarWord=} ' if similarWord!=mainGlossWord else ''}({len(nList)}) {nList[:8]=}{'…' if len(nList)>8 else ''}''' )
                 if len(nList) > 1:
-                    if similarWord==mainGlossWord: assert n in nList
-                    if len(nList)>400:
-                        dPrint( 'Info', DEBUGGING_THIS_MODULE, f"EXCESSIVE {len(nList):,} entries for '{mainGlossWord}' from {similarWord=}")
+                    if similarWord==mainGlossWord:
+                        # assert n in nList, f"{n=} {mainGlossWord=} ({len(nList)}) {nList=}"
+                        logging.warning( f"Not sure why {n=} similarWord={mainGlossWord=} not in ({len(nList)})" )
+                    # elif len(nList)>400:
+                    else:
+                        # print( f"This one {n=} similarWord={mainGlossWord=} was in ({len(nList)})" )
+                        if len(nList)>400:
+                            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"EXCESSIVE {len(nList):,} entries for {mainGlossWord=} from {similarWord=}")
                     for thisN in nList:
                         if thisN == n: continue # That's the current word row
                         eWordRef, eRowType, eMorphemeRowList, eLemmaRowList, eStrongs, eMorphology, eWord, eNoCantillations, eMorphemeGlosses, eContextualMorphemeGlosses, eWordGloss, eContextualWordGloss, eGlossCapitalisation, eGlossPunctuation, eGlossOrder, eGlossInsert, eRole, eNesting, eTags = state.OETRefData['word_tables'][HebrewWordFileName][thisN].split( '\t' )
                         eHebrewWord = (eNoCantillations.replace( ',', '' ) # Remove morpheme breaks
                                         if eNoCantillations else eWord ) # Segs and notes have nothing in the noCantillations field
                         eWordGloss = eWordGloss.replace( '=', '_' )
-                        # eGloss = tidy_Hebrew_word_gloss( eContextualWordGloss if eContextualWordGloss else eWordGloss if eWordGloss else eContextualMorphemeGlosses if eContextualMorphemeGlosses else eMorphemeGlosses )
+                        eGloss = tidy_Hebrew_word_gloss( eContextualWordGloss if eContextualWordGloss else eWordGloss if eWordGloss else eContextualMorphemeGlosses if eContextualMorphemeGlosses else eMorphemeGlosses )
                         if eHebrewWord!=hebrewWord or eMorphology!=morphology:
                             eBBB, eCVW = eWordRef.split( '_', 1 )
                             eC, eVW = eCVW.split( ':', 1 )
@@ -1300,21 +1346,22 @@ f''' {translation} <a title="Go to Open Scriptures Hebrew verse page" href="
 
                             eHebrewPossibleLink = f'<a title="Go to word page" href="{thisN}.htm#Top">{eHebrewWord}</a>' if not TEST_MODE or ALL_TEST_REFERENCE_PAGES or eBBB in TEST_BOOK_LIST else eHebrewWord
                             eLemmaLink = f'<a title="View Hebrew root word" href="../HebLem/{eHebrewWord}.htm#Top">{eHebrewWord}</a>' if eNoCantillations!=noCantillations else ''
-                            eFormattedContextGlossWords = formatNTContextSpansOETGlossWords( thisN, state )
-                            assert '\\' not in eFormattedContextGlossWords, f"{n=} {eFormattedContextGlossWords=}"
-                            etidyMorphologyField = eTidyMorphology = '' #= eMoodField = eTenseField = eVoiceField = ePersonField = eCaseField = eGenderField = eNumberField = ''
+                            eWordGloss = eWordGloss.replace( '=', '_' )
+                            eGloss = tidy_Hebrew_word_gloss( eContextualWordGloss if eContextualWordGloss else eWordGloss if eWordGloss else eContextualMorphemeGlosses if eContextualMorphemeGlosses else eMorphemeGlosses )
+                            assert '\\' not in eGloss, f"{n=} {eGloss=}"
+                            etidyMorphologyField = '' #= eMoodField = eTenseField = eVoiceField = ePersonField = eCaseField = eGenderField = eNumberField = ''
                             if eMorphology:
-                                assert len(eMorphology) == 7, f"Got {eWordRef} '{eHebrewWord}' morphology ({len(eMorphology)}) = '{eMorphology}'"
-                                eTidyMorphology = eMorphology[4:] if eMorphology.startswith('....') else eMorphology
-                                etidyMorphologyField = f'{eTidyMorphology}'
-                                if eTidyMorphology != '...': usedMorphologies.add( eTidyMorphology )
+                                eTidyMorphologyField = tidy_Hebrew_morphology( eRowType, eMorphology )
+                                # eTidyMorphology = eMorphology[4:] if eMorphology.startswith('....') else eMorphology
+                                # etidyMorphologyField = f'{eTidyMorphology}'
+                                # if eTidyMorphology != '...': usedMorphologies.add( eTidyMorphology )
                             extraHTMLList.append( f'''<p class="wordLine"><a title="View OET {eTidyBBB} text" href="{'../'*level}OET/byC/{eBBB}_C{eC}.htm#C{eC}V{eV}">{eTidyBBB} {eC}:{eV}</a>''' \
 f''' <b>{eHebrewPossibleLink}</b> ({transliterate_Hebrew(eHebrewWord)}) <small>{etidyMorphologyField}</small>{f' Lemma={eLemmaLink}' if eLemmaLink else ''}''' \
-f''' ‘{eFormattedContextGlossWords}’''' \
+f''' ‘{eGloss}’''' \
 f''' <a title="Go to Open Scriptures Hebrew verse page" href="https://hb.OpenScriptures.org/structure/OshbVerse/index.html?b={eOSISbookCode}&c={eC}&v={eV}">OSHB {eTidyBBB} {eC}:{eV} word {eW}</a></p>'''
                                 if not TEST_MODE or eBBB in state.preloadedBibles['OET-RV'] else
                                     f'''<p class="wordLine">{eTidyBBB} {eC}:{eV} ‘{eHebrewPossibleLink}’ <small>({etidyMorphologyField})</small>{f' Lemma={eLemmaLink}' if eLemmaLink else ''}''' \
-f''' ‘{eFormattedContextGlossWords}’''' \
+f''' ‘{eGloss}’''' \
 f''' <a title="Go to Open Scriptures Hebrew verse page" href="https://hb.OpenScriptures.org/structure/OshbVerse/index.html?b={eOSISbookCode}&c={eC}&v={eV}">OSHB {eTidyBBB} {eC}:{eV} word {eW}</a></p>''' )
                             extraWordSet.add( eHebrewPossibleLink )
                             extraLemmaSet.add( eLemmaLink if eLemmaLink else lemmaLinksStr )
@@ -1358,7 +1405,8 @@ f''' <a title="Go to Open Scriptures Hebrew verse page" href="https://hb.OpenS
         with open( filepath, 'wt', encoding='utf-8' ) as html_output_file:
             html_output_file.write( wordsHtml )
         vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"      Wrote {len(wordsHtml):,} characters to {output_filename}" )
-        wordLinks.append( f'<a href="{output_filename}">{hebrewWord}</a>')
+        if rowType!='seg' and 'note' not in rowType:
+            wordLinksForIndex.append( f'<a href="{output_filename}">{hebrewWord}</a>')
         numWordPagesMade += 1
     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f'''    Created {numWordPagesMade:,}{f"/{len(state.OETRefData['word_tables'][HebrewWordFileName])-1:,}" if numWordPagesMade < len(state.OETRefData['word_tables'][HebrewWordFileName])-1 else ''} Hebrew word pages (using {len(state.OETRefData['usedHebLemmas']):,} Hebrew lemmas).''' )
 
@@ -1366,11 +1414,11 @@ f''' <a title="Go to Open Scriptures Hebrew verse page" href="https://hb.OpenS
     filename = 'index.htm'
     filepath = outputFolderPath.joinpath( filename )
     top = makeTop( level, None, 'wordIndex', None, state) \
-            .replace( '__TITLE__', f"Hebrew Word Index{' TEST' if TEST_MODE else ''}" ) \
+            .replace( '__TITLE__', f"Hebrew Words Index{' TEST' if TEST_MODE else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, Hebrew, words' )
-    indexText = ' '.join( wordLinks )
+    indexText = ' '.join( wordLinksForIndex )
     indexHtml = f'''{top}
-<p class="note"><b><a href="../">Reference pages contents page</a></b></p>
+<p class="note"><b><a href="../">Reference lists contents page</a></b></p>
 <p class="note">Hebrew words index <a href="transIndex.htm">Transliterated Hebrew words index</a></p>
 <p class="note"><a href="../HebLem/">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm">Transliterated Hebrew lemmas index</a></p>
 <p class="note"><a href="../GrkWrd/">Greek words index</a> <a href="../GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
@@ -1390,18 +1438,18 @@ f''' <a title="Go to Open Scriptures Hebrew verse page" href="https://hb.OpenS
     filename = 'transIndex.htm'
     filepath = outputFolderPath.joinpath( filename )
     top = makeTop( level, None, 'wordIndex', None, state) \
-            .replace( '__TITLE__', f"Transliterated Hebrew Word Index{' TEST' if TEST_MODE else ''}" ) \
+            .replace( '__TITLE__', f"Transliterated Hebrew Words Index{' TEST' if TEST_MODE else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, Hebrew, words, transliterated' )
     indexText = transliterate_Hebrew( indexText )
     indexHtml = f'''{top}
-<p class="note"><b><a href="../">Reference pages contents page</a></b></p>
+<p class="note"><b><a href="../">Reference lists contents page</a></b></p>
 <p class="note"><a href="index.htm">Hebrew words index</a> Transliterated Hebrew words index</p>
 <p class="note"><a href="../HebLem/">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm">Transliterated Hebrew lemmas index</a></p>
 <p class="note"><a href="../GrkWrd/">Greek words index</a> <a href="../GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
 <p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
 <p class="note"><a href="../Per/">Bible people index</a></p>
 <p class="note"><a href="../Loc/">Bible locations index</a></p>
-<h1 id="Top">Hebrew Words Index</h1>
+<h1 id="Top">Transliterated Hebrew Words Index</h1>
 <p class="note">{indexText}</p>
 {makeBottom( level, 'wordIndex', state )}'''
     checkHtml( 'wordIndex', indexHtml )
@@ -1596,7 +1644,6 @@ def create_Hebrew_lemma_pages( level:int, outputFolderPath:Path, state:State ) -
             lemmasHtml = f'''{lemmasHtml}
 <h1>Lemmas with similar glosses to ‘{hebLemma}’ ({transliteratedLemma})</h1>'''
             for extraLemma in similarLemmaSet:
-                # NEVER_GETS_HERE -- IT DOES
                 transliteratedExtraLemma = transliterate_Hebrew( extraLemma )
                 extra_lemma_link = f'<a title="Go to lemma page" href="{transliteratedExtraLemma}.htm#Top">{extraLemma}</a>'
                 hebExtraLemmaWordRowsListA = state.OETRefData['OTLemmaRowNumbersDict'][extraLemma]
@@ -1616,13 +1663,14 @@ def create_Hebrew_lemma_pages( level:int, outputFolderPath:Path, state:State ) -
                 # List other lemmas that are glossed as antonyms
                 try:
                     contrastiveWords = CONTRASTIVE_GLOSS_WORDS_DICT[lemmaGloss]
-                    # print( f"      {lemmaGloss=} {contrastiveWords=} {ll} {lemma=} {lemmaGlossesList=}")
+                    print( f"      {lemmaGloss=} {contrastiveWords=} {mm} {hebLemma=} {lemmaOETGlossesList=}")
+                    NEVER_GETS_HERE
                 except KeyError: contrastiveWords = []
                 for contrastiveWord in contrastiveWords:
                     for otherLemma,otherLemmaGlosses in state.OETRefData['OTLemmaOETGlossesDict'].items():
                         # NOTE: otherLemmaGlosses contains raw words and well as HTML spans for gloss helpers, etc.
                         if otherLemma != hebLemma:
-                            # print( f"{otherLemma=} {otherLemmaGlosses=}")
+                            print( f"{otherLemma=} {otherLemmaGlosses=}")
                             if contrastiveWord in otherLemmaGlosses:
                                 assert otherLemma not in similarLemmaSet
                                 contrastiveLemmaSet.add( otherLemma )
@@ -1701,7 +1749,7 @@ def create_Hebrew_lemma_pages( level:int, outputFolderPath:Path, state:State ) -
             .replace( '__KEYWORDS__', 'Bible, Hebrew, lemmas' )
     indexText = ' '.join( lemmaLinks )
     indexHtml = f'''{top}
-<p class="note"><b><a href="../">Reference pages contents page</a></b></p>
+<p class="note"><b><a href="../">Reference lists contents page</a></b></p>
 <p class="note"><a href="../HebWrd/">Hebrew words index</a> <a href="../HebWrd/transIndex.htm">Transliterated Hebrew words index</a></p>
 <p class="note">Hebrew lemmas index <a href="transIndex.htm">Transliterated Hebrew lemmas index</a></p>
 <p class="note"><a href="../GrkWrd/">Greek words index</a> <a href="../GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
@@ -1725,9 +1773,9 @@ def create_Hebrew_lemma_pages( level:int, outputFolderPath:Path, state:State ) -
             .replace( '__KEYWORDS__', 'Bible, Hebrew, lemmas' )
     indexText = transliterate_Hebrew( indexText )
     indexHtml = f'''{top}
-<p class="note"><b><a href="../">Reference pages contents page</a></b></p>
+<p class="note"><b><a href="../">Reference lists contents page</a></b></p>
 <p class="note"><a href="../HebWrd/">Hebrew words index</a> <a href="../HebWrd/transIndex.htm">Transliterated Hebrew words index</a></p>
-<p class="note"><a href="index.html">Hebrew lemmas index</a> Transliterated Hebrew lemmas index</p>
+<p class="note"><a href="index.htm">Hebrew lemmas index</a> Transliterated Hebrew lemmas index</p>
 <p class="note"><a href="../GrkWrd/">Greek words index</a> <a href="../GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
 <p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
 <p class="note"><a href="../Per/">Bible people index</a></p>
@@ -1780,7 +1828,7 @@ def create_Greek_word_pages( level:int, outputFolderPath:Path, state:State ) -> 
 
     # Now make a page for each Greek word (including the variants not used in the translation)
     numWordPagesMade = 0
-    wordLinks:List[str] = [] # Used below to make an index page
+    wordLinksForIndex:List[str] = [] # Used below to make an index page
     state.OETRefData['usedGrkLemmas'] = set() # Used in next function to make lemma pages
     for n, columns_string in enumerate( state.OETRefData['word_tables'][GreekWordFileName][1:], start=1 ):
         if not columns_string: continue # a blank line (esp. at end)
@@ -2085,7 +2133,7 @@ f''' <a title="Go to Statistical Restoration Greek page" href="https://GreekCN
         with open( filepath, 'wt', encoding='utf-8' ) as html_output_file:
             html_output_file.write( wordsHtml )
         vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"      Wrote {len(wordsHtml):,} characters to {output_filename}" )
-        wordLinks.append( f'<a href="{output_filename}">{greekWord}</a>')
+        wordLinksForIndex.append( f'<a href="{output_filename}">{greekWord}</a>')
         numWordPagesMade += 1
     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f'''    Created {numWordPagesMade:,}{f"/{len(state.OETRefData['word_tables'][GreekWordFileName])-1:,}" if numWordPagesMade < len(state.OETRefData['word_tables'][GreekWordFileName])-1 else ''} Greek word pages (using {len(state.OETRefData['usedGrkLemmas']):,} Greek lemmas).''' )
 
@@ -2093,11 +2141,11 @@ f''' <a title="Go to Statistical Restoration Greek page" href="https://GreekCN
     filename = 'index.htm'
     filepath = outputFolderPath.joinpath( filename )
     top = makeTop( level, None, 'wordIndex', None, state) \
-            .replace( '__TITLE__', f"Greek Word Index{' TEST' if TEST_MODE else ''}" ) \
+            .replace( '__TITLE__', f"Greek Words Index{' TEST' if TEST_MODE else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, Greek, words' )
-    indexText = ' '.join( wordLinks )
+    indexText = ' '.join( wordLinksForIndex )
     indexHtml = f'''{top}
-<p class="note"><b><a href="../">Reference pages contents page</a></b></p>
+<p class="note"><b><a href="../">Reference lists contents page</a></b></p>
 <p class="note"><a href="../HebWrd/">Hebrew words index</a> <a href="../HebWrd/transIndex.htm">Transliterated Hebrew words index</a></p>
 <p class="note"><a href="../HebLem/">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm">Transliterated Hebrew lemmas index</a></p>
 <p class="note">Greek words index <a href="transIndex.htm">Transliterated Greek words index</a></p>
@@ -2117,18 +2165,18 @@ f''' <a title="Go to Statistical Restoration Greek page" href="https://GreekCN
     filename = 'transIndex.htm'
     filepath = outputFolderPath.joinpath( filename )
     top = makeTop( level, None, 'wordIndex', None, state) \
-            .replace( '__TITLE__', f"Transliterated Greek Word Index{' TEST' if TEST_MODE else ''}" ) \
+            .replace( '__TITLE__', f"Transliterated Greek Words Index{' TEST' if TEST_MODE else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, Greek, words, transliterated' )
     indexText = transliterate_Greek( indexText )
     indexHtml = f'''{top}
-<p class="note"><b><a href="../">Reference pages contents page</a></b></p>
+<p class="note"><b><a href="../">Reference lists contents page</a></b></p>
 <p class="note"><a href="../HebWrd/">Hebrew words index</a> <a href="../HebWrd/transIndex.htm">Transliterated Hebrew words index</a></p>
 <p class="note"><a href="../HebLem/">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm">Transliterated Hebrew lemmas index</a></p>
 <p class="note"><a href="index.htm">Greek words index</a> Transliterated Greek words index</p>
 <p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
 <p class="note"><a href="../Per/">Bible people index</a></p>
 <p class="note"><a href="../Loc/">Bible locations index</a></p>
-<h1 id="Top">Greek Words Index</h1>
+<h1 id="Top">Transliterated Greek Words Index</h1>
 <p class="note">{indexText}</p>
 {makeBottom( level, 'wordIndex', state )}'''
     checkHtml( 'wordIndex', indexHtml )
@@ -2387,7 +2435,7 @@ def create_Greek_lemma_pages( level:int, outputFolderPath:Path, state:State ) ->
             .replace( '__KEYWORDS__', 'Bible, Greek, lemmas' )
     indexText = ' '.join( lemmaLinks )
     indexHtml = f'''{top}
-<p class="note"><b><a href="../">Reference pages contents page</a></b></p>
+<p class="note"><b><a href="../">Reference lists contents page</a></b></p>
 <p class="note"><a href="../HebWrd/">Hebrew words index</a> <a href="../HebWrd/transIndex.htm">Transliterated Hebrew words index</a></p>
 <p class="note"><a href="../HebLem/">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm">Transliterated Hebrew lemmas index</a></p>
 <p class="note"><a href="../GrkWrd/">Greek words index</a> <a href="../GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
@@ -2411,7 +2459,7 @@ def create_Greek_lemma_pages( level:int, outputFolderPath:Path, state:State ) ->
             .replace( '__KEYWORDS__', 'Bible, Greek, lemmas, transliterated' )
     indexText = transliterate_Greek( indexText)
     indexHtml = f'''{top}
-<p class="note"><b><a href="../">Reference pages contents page</a></b></p>
+<p class="note"><b><a href="../">Reference lists contents page</a></b></p>
 <p class="note"><a href="../HebWrd/">Hebrew words index</a> <a href="../HebWrd/transIndex.htm">Transliterated Hebrew words index</a></p>
 <p class="note"><a href="../HebLem/">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm">Transliterated Hebrew lemmas index</a></p>
 <p class="note"><a href="../GrkWrd/">Greek words index</a> <a href="../GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
@@ -2498,7 +2546,7 @@ def create_person_pages( level:int, outputFolderPath:Path, state:State ) -> int:
             .replace( '__TITLE__', f"Bible Person Index{' TEST' if TEST_MODE else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, person, people' )
     indexHtml = f'''{top}
-<p class="note"><b><a href="../">Reference pages contents page</a></b></p>
+<p class="note"><b><a href="../">Reference lists contents page</a></b></p>
 <p class="note"><a href="../HebWrd/">Hebrew words index</a> <a href="../HebWrd/transIndex.htm">Transliterated Hebrew words index</a></p>
 <p class="note"><a href="../HebLem/">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm">Transliterated Hebrew lemmas index</a></p>
 <p class="note"><a href="../GrkWrd/">Greek words index</a> <a href="../GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
@@ -2583,7 +2631,7 @@ def create_location_pages( level:int, outputFolderPath:Path, state:State ) -> in
             .replace( '__TITLE__', f"Bible Location Index{' TEST' if TEST_MODE else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, location, locations, place, places' )
     indexHtml = f'''{top}
-<p class="note"><b><a href="../">Reference pages contents page</a></b></p>
+<p class="note"><b><a href="../">Reference lists contents page</a></b></p>
 <p class="note"><a href="../HebWrd/">Hebrew words index</a> <a href="../HebWrd/transIndex.htm">Transliterated Hebrew words index</a></p>
 <p class="note"><a href="../HebLem/">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm">Transliterated Hebrew lemmas index</a></p>
 <p class="note"><a href="../GrkWrd/">Greek words index</a> <a href="../GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>

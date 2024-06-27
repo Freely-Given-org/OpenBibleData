@@ -129,10 +129,10 @@ span.rem { font-size:0.8em; color:grey; }
 span.sc { font-size:0.8em; } /* Small caps */
 
 /* OT spans */
-span.parr { vertical-align:super; font-size:0.8em; color:green; }
+span.parr { vertical-align:super; font-size:0.8em; color:green; } /* Hebrew parallelism */
 
 /* OET add spans */
-/* span.addArticle { color:bisque; } */
+span.addArticle { color:bisque; }
 /* span.unusedArticle { color:lavender; } */
 /* span.addCopula { color:pink; } */
 span.addDirectObject { color:brown; }
@@ -147,7 +147,7 @@ span.addReword {} /*{ color:orange; }*/
 span.RVadd { color:#505050; } /* Darker than dimGrey which is #696969 (black is #000000) */
 /* span.add { color:grey; } */
 /* span.untr { font-size:0.8em; color:grey; text-decoration:line-through; } */
-span.unsure { text-decoration:underline; text-decoration-style: dotted; }
+span.unsure { text-decoration:underline; text-decoration-style: dotted; text-decoration-color: orange; }
 
 /* span.ul { color:darkGrey; } */
 /* span.dom { color:Gainsboro; font-size:0.75em; } */

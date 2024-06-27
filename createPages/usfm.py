@@ -55,6 +55,7 @@ CHANGELOG:
     2024-01-17 Add special handling for OT '\\nd LORD\\nd*' and convert \\nd to nominaSacra span in NT
     2024-06-05 Include footnotes now (but not cross-references) in 'basic' mode
     2024-06-06 Fixed bug with closed fields inside footnotes
+    2024-06-25 Put NNBSP between sucessive (close) quote marks
 """
 from gettext import gettext as _
 import re
@@ -70,7 +71,7 @@ from html import checkHtml
 from OETHandlers import getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2024-06-13' # by RJH
+LAST_MODIFIED_DATE = '2024-06-25' # by RJH
 SHORT_PROGRAM_NAME = "usfm"
 PROGRAM_NAME = "OpenBibleData USFM to HTML functions"
 PROGRAM_VERSION = '0.78'
@@ -144,6 +145,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                 rest = rest.replace( "'", "’" ) # Replace apostrophes
             elif versionAbbreviation in ('ULT','UST'):
                 rest = rest.replace( '{', '\\add ' ).replace( '}', '\\add*' ) # Replace UST braces
+            rest = rest.replace( '’”', '’ ”' ).replace( '’ ”', '’ ”' ).replace( '”’', '” ’' ).replace( '” ’', '” ’' ) # Insert NNBSP
 
             if basicOnly and '\\x ' in rest:
                 rest, xCount = XRefRegEx.subn( '', rest )
@@ -1224,9 +1226,10 @@ def livenIntroductionLinks( versionAbbreviation:str, refTuple:tuple, segmentType
         if refB.startswith( 'See ' ): refB =refB[4:]
         refBBB = getBBBFromOETBookName( refB )
         if not refBBB:
-            logging.critical( f"livenIntroductionLinks( {versionAbbreviation}, {refTuple}, {segmentType}, '{introHtml}' ) failed to  find BBB for {refB=} from intro ref CV match with '{preChar}' '{guts}' '{postChar}' -> {match.groups()=}")
-            newGuts = guts # Can't make a link
-        elif segmentType == 'book':
+            logging.warning( f"livenIntroductionLinks( {versionAbbreviation}, {refTuple}, {segmentType}, '{introHtml}' ) failed to  find BBB for {refB=} from intro ref CV match with '{preChar}' '{guts}' '{postChar}' -> {match.groups()=}")
+            # newGuts = guts # Can't make a link
+            refBBB = ourBBB # Assume it's an internal link to this book
+        if segmentType == 'book':
             newGuts = f'<a title="Go to reference document" href="{refBBB}.htm#C{refC}V{refV}">{guts}</a>'
         elif segmentType == 'chapter':
             newGuts = f'<a title="Go to reference chapter" href="{refBBB}_C{refC}.htm#C{refC}V{refV}">{guts}</a>'
@@ -1317,7 +1320,7 @@ def livenIntroductionLinks( versionAbbreviation:str, refTuple:tuple, segmentType
                 else:
                     # for something in state.sectionsLists[versionAbbreviation][ourBBB]:
                     #     print( f"  {type(something)=} {len(something)=} {something=}" )
-                    logging.critical( f"PROBABLY WRONGLY GUESSED BOOK: unable_to_find_reference for {ourBBB=} {refC}:{refV} {[f'{startC}:{startV}…{endC}:{endV}' for _n,startC,startV,endC,endV,_sectionName,_reasonName,_contextList,_verseEntryList,_sFilename in state.sectionsLists[versionAbbreviation][ourBBB]]}" )
+                    logging.error( f"PROBABLY WRONGLY GUESSED BOOK: unable_to_find_reference for {ourBBB=} {refC}:{refV} {[f'{startC}:{startV}…{endC}:{endV}' for _n,startC,startV,endC,endV,_sectionName,_reasonName,_contextList,_verseEntryList,_sFilename in state.sectionsLists[versionAbbreviation][ourBBB]]}" )
                     newGuts = guts # Can't make a link
                     # unable_to_find_reference # Need to write more code
             # except KeyError:

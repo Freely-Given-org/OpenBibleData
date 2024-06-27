@@ -45,6 +45,7 @@ CHANGELOG:
     2024-01-27 Add 'related section' links for OET and OET-RV pages
     2024-03-10 Add chapter bars to section pages, and add navigation to bottom of the pages as well
     2024-06-14 Make section cross-ref clicks go to parallel passage pages
+    2024-06-26 Added BibleMapper.com maps to OET sections
 """
 from gettext import gettext as _
 from typing import Dict, List, Tuple, Optional
@@ -59,17 +60,18 @@ from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_66
 from BibleOrgSys.Internals.InternalBibleInternals import getLeadingInt
 from BibleOrgSys.Formats.ESFMBible import ESFMBible as ESFMBible
 
-from settings import State, TEST_MODE, VERSIONS_WITH_BEYOND66_BOOKS, OET_UNFINISHED_WARNING_HTML_PARAGRAPH, JAMES_NOTE_HTML_PARAGRAPH, reorderBooksForOETVersions
+from settings import State, TEST_MODE, VERSIONS_WITH_BEYOND_66_BOOKS, OET_UNFINISHED_WARNING_HTML_PARAGRAPH, JAMES_NOTE_HTML_PARAGRAPH, reorderBooksForOETVersions
 from usfm import convertUSFMMarkerListToHtml
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
                     makeTop, makeBottom, makeBookNavListParagraph, removeDuplicateCVids, checkHtml
+from Bibles import getBibleMapperMaps
 from OETHandlers import livenOETWordLinks, getOETTidyBBB, getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2024-06-15' # by RJH
+LAST_MODIFIED_DATE = '2024-06-26' # by RJH
 SHORT_PROGRAM_NAME = "createSectionPages"
 PROGRAM_NAME = "OpenBibleData createSectionPages functions"
-PROGRAM_VERSION = '0.62'
+PROGRAM_VERSION = '0.623'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -186,6 +188,7 @@ def createOETSectionPages( level:int, folder:Path, rvBible:ESFMBible, lvBible:ES
 
     # Now, make the actual section pages
     BBBs = []
+    state.sectionsWithMaps = defaultdict( list )
     for BBB in state.BBBsToProcess['OET']:
         NT = BibleOrgSysGlobals.loadedBibleBooksCodes.isNewTestament_NR( BBB )
         ourTidyBBB = getOETTidyBBB( BBB )
@@ -329,6 +332,23 @@ def createOETSectionPages( level:int, folder:Path, rvBible:ESFMBible, lvBible:ES
             combinedHtml = f'''<div class="chunkRV">{rvHtml}</div><!--chunkRV-->
 <div class="chunkLV">{lvHtml}</div><!--chunkLV-->
 '''
+            combinedHtml = f'{removeDuplicateCVids( BBB, combinedHtml )}</div><!--RVLVcontainer-->'
+            
+            # Handle BibleMapper maps and notes -- could be zero or more for any one section
+            bmmHtml = set()
+            for c in range( int(startC), int(endC)+1 ):
+                for v in range( int(startV) if c==int(startC) else 1, (int(endV) if c==int(endC) else rvBible.getNumVerses( BBB, c ))+1 ):
+                    # print( f"{BBB} {c}:{v}")
+                    result = getBibleMapperMaps( level, BBB, c, v, rvBible )
+                    if result:
+                        # print( f"  {BBB} {c}:{v} got a map")
+                        bmmHtml.add( result )
+            if bmmHtml:
+                # print( f"{BBB} {startC}:{startV} to {endC}:{endV} got {len(bmmHtml)} map(s)")
+                bmmHtml = f'''<div id="BMM" class="parallelBMM"><a title="Go to BMM copyright page" href="{'../'*level}BMM/details.htm#Top">BMM</a> <b>BibleMapper.com Maps</b>: {'<br>'.join(bmmHtml)}</div><!--end of BMM-->'''
+                combinedHtml = f'{combinedHtml}\n<hr style="width:40%;margin-left:0;margin-top: 0.3em">\n{bmmHtml}'
+                state.sectionsWithMaps[BBB].append( n )
+
             filepath = folder.joinpath( sectionFilename )
             top = makeTop( level, 'OET', 'section', f'bySec/{BBB}.htm', state ) \
                     .replace( '__TITLE__', f"OET {ourTidyBBB} section{' TEST' if TEST_MODE else ''}" ) \
@@ -339,7 +359,7 @@ def createOETSectionPages( level:int, folder:Path, rvBible:ESFMBible, lvBible:ES
 {navBookListParagraph}
 {cLinksPar}
 {sectionHtml}
-{removeDuplicateCVids( BBB, combinedHtml )}</div><!--RVLVcontainer-->
+{combinedHtml}
 <p class="secNav">{sectionIndexLink}{leftLink}{documentLink} {startChapterLink}:{startV}–{endChapterLink}:{endV}{rightLink}{relatedLink}{parallelLink}{interlinearLink}{detailsLink}</p>
 {cLinksPar}
 {makeBottom( level, 'section', state )}'''
@@ -350,15 +370,15 @@ def createOETSectionPages( level:int, folder:Path, rvBible:ESFMBible, lvBible:ES
             vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(sectionHtml):,} characters written to {filepath}" )
 
         # Now make the section index file for this book
-        sectionFilename = f'{BBB}.htm'
-        filepath = folder.joinpath( sectionFilename )
-        top = makeTop( level, 'OET', 'sectionIndex', f'bySec/{sectionFilename}', state ) \
+        indexFilename = f'{BBB}.htm'
+        filepath = folder.joinpath( indexFilename )
+        top = makeTop( level, 'OET', 'sectionIndex', f'bySec/{indexFilename}', state ) \
                 .replace( '__TITLE__', f"OET {ourTidyBBB} sections{' TEST' if TEST_MODE else ''}" ) \
                 .replace( '__KEYWORDS__', f'Bible, OET, sections, {ourTidyBBB}' ) \
-                .replace( f'''<a title="{state.BibleNames['OET']}" href="{'../'*2}OET/bySec/{sectionFilename}#Top">OET</a>''',
+                .replace( f'''<a title="{state.BibleNames['OET']}" href="{'../'*2}OET/bySec/{indexFilename}#Top">OET</a>''',
                         f'''<a title="Up to {state.BibleNames['OET']}" href="{'../'*2}OET/">↑OET</a>''' )
         sectionHtml = f'<h1 id="Top">Index of sections for OET {ourTidyBBBwithNotes}</h1>'
-        for _nnn,startC,startV,_endC,_endV,sectionName,reasonName,_contextList,_verseEntryList,sectionFilename in state.sectionsLists['OET-RV'][BBB]:
+        for _nnn,startC,startV,_endC,_endV,sectionName,reasonName,_contextList,_verseEntryList,indexFilename in state.sectionsLists['OET-RV'][BBB]:
             # print( f"HERE8 {BBB} {startC}:{startV} {_endC}:{endV} '{sectionName=}' '{reasonName=}' '{filename=}'" )
             reasonString = '' if reasonName=='Section heading' and not TEST_MODE else f' ({reasonName})' # Suppress '(Section Heading)' appendages in the list
             # NOTE: word 'Alternate ' is defined above at start of main loop
@@ -375,9 +395,9 @@ def createOETSectionPages( level:int, folder:Path, rvBible:ESFMBible, lvBible:ES
         vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(sectionHtml):,} characters written to {filepath}" )
 
     # Now a single overall index page for sections
-    sectionFilename = 'index.htm'
+    indexFilename = 'index.htm'
     # filenames.append( filename )
-    filepath = folder.joinpath( sectionFilename )
+    filepath = folder.joinpath( indexFilename )
     top = makeTop( level, 'OET', 'sectionIndex', 'bySec/', state ) \
             .replace( '__TITLE__', f"OET Sections View{' TEST' if TEST_MODE else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, OET, sections, books' ) \
@@ -634,7 +654,7 @@ def findSectionNumber( versionAbbreviation:str, refBBB:str, refC:str, refV:str, 
     if not refBBB:
         # print( "findSectionNumber: No refBBB -- returning None" )
         return None # Can't do anything without a valid BBB
-    assert refBBB in BOOKLIST_66 or versionAbbreviation in VERSIONS_WITH_BEYOND66_BOOKS, f"findSectionNumber( {versionAbbreviation}, {refBBB} {refC}:{refV} )"
+    assert refBBB in BOOKLIST_66 or versionAbbreviation in VERSIONS_WITH_BEYOND_66_BOOKS, f"findSectionNumber( {versionAbbreviation}, {refBBB} {refC}:{refV} )"
     if refBBB not in state.sectionsLists[versionAbbreviation]: # No section headings for this book
         if TEST_MODE:
             return 0 # default to introduction for testing (because it doesn't contain all the books)

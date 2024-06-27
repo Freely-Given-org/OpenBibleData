@@ -120,13 +120,14 @@ span.nominaSacra { font-weight:bold; }
 span.nd {}
 span.wj { color:saddlebrown; }
 span.sc { font-size:0.8em; } /* Small caps */
+span.qs { font-style:italic; } /* Selah */
 span.qt { font-style:italic; }
 span.sig { font-family:cursive; }
 span.t4tFoS { color:mediumvioletred; } /* T4T Figure of speech */
 span.ul { color:darkGrey; }
 
 /* OT spans */
-span.parr { vertical-align:super; font-size:0.8em; color:green; }
+span.parr { vertical-align:super; font-size:0.8em; color:green; } /* Hebrew parallelism */
 
 span.tl {}
 span.wh { font-style:italic; }
@@ -144,7 +145,7 @@ span.tgrk { color:grey; } /* transliteration */
 
 /* OET add spans */
 span.addArticle { color:bisque; }
-span.unusedArticle { color:lavender; }
+/* span.unusedArticle { color:lavender; } */
 span.addCopula { color:pink; }
 span.addDirectObject { color:brown; }
 span.addExtra { color:lightGreen; }
@@ -158,7 +159,7 @@ span.addReword { color:orange; }
 span.RVadd { color:#505050; } /* Darker than dimGrey which is #696969 (black is #000000) */
 span.add { color:grey; }
 span.untr { font-size:0.8em; color:grey; text-decoration:line-through; }
-span.unsure { text-decoration:underline; text-decoration-style: dotted; }
+span.unsure { text-decoration:underline; text-decoration-style: dotted; text-decoration-color: orange; }
 
 p.key { background-color:seaShell; font-size:0.8em; }
 
@@ -270,3 +271,8 @@ p.OL { margin-bottom:0; color:indigo; }
 p.Trans { margin-top:0; color:saddlebrown; }
 p.Gram { font-style:italic; }
 p.TARef {}
+
+/* BibleMapper.com Maps */
+div.parallelBMM {}
+h2.mapTitle {}
+p.mapRefs { font-weight:bold; }

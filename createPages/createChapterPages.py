@@ -33,6 +33,7 @@ CHANGELOG:
     2023-12-22 Broke OET chapters correctly into chunks by section for proper alignment
     2023-12-28 Fix bug where duplicate HTML IDs weren't being removed from chapters
     2024-01-18 Fix bug with overwritten GLS 'chapter' page (e.g., in WEB)
+    2024-06-26 Added BibleMapper.com maps to OET chapters
 """
 from gettext import gettext as _
 from typing import Dict, List, Tuple
@@ -42,7 +43,6 @@ import logging
 
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
-# from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39, BOOKLIST_NT27
 from BibleOrgSys.Internals.InternalBibleInternals import InternalBibleEntryList
 import BibleOrgSys.Formats.ESFMBible as ESFMBible
 
@@ -50,13 +50,14 @@ from settings import State, TEST_MODE, reorderBooksForOETVersions, OET_UNFINISHE
 from usfm import convertUSFMMarkerListToHtml
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
                     makeTop, makeBottom, makeBookNavListParagraph, removeDuplicateCVids, checkHtml
+from Bibles import getBibleMapperMaps
 from OETHandlers import livenOETWordLinks, getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
-LAST_MODIFIED_DATE = '2024-06-14' # by RJH
+LAST_MODIFIED_DATE = '2024-06-26' # by RJH
 SHORT_PROGRAM_NAME = "createChapterPages"
 PROGRAM_NAME = "OpenBibleData createChapterPages functions"
-PROGRAM_VERSION = '0.66'
+PROGRAM_VERSION = '0.67'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -290,6 +291,14 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
                         combinedHtml = f'''{combinedHtml}<div class="chunkRV">{rvSection}</div><!--chunkRV-->
 <div class="chunkLV">{lvChunk}</div><!--chunkLV-->
 '''
+                combinedHtml = f'{removeDuplicateCVids( BBB, combinedHtml )}</div><!--RVLVcontainer-->'
+
+            # Handle BibleMapper maps and notes -- the function handles chapters automatically
+                bmmHtml = getBibleMapperMaps( level, BBB, c, None, rvBible ) # Setting verse to None make it look at chapter level
+                if bmmHtml:
+                    bmmHtml = f'''<div id="BMM" class="parallelBMM"><a title="Go to BMM copyright page" href="{'../'*level}BMM/details.htm#Top">BMM</a> <b>BibleMapper.com Maps</b>: {bmmHtml}</div><!--end of BMM-->'''
+                    combinedHtml = f'{combinedHtml}\n<hr style="width:40%;margin-left:0;margin-top: 0.3em">\n{bmmHtml}'
+
                 filename = f'{BBB}_Intro.htm' if c==-1 else f'{BBB}_C{c}.htm'
                 filenames.append( filename )
                 filepath = folder.joinpath( filename )
@@ -301,7 +310,7 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
                 chapterHtml = f'''{top}<!--chapter page-->
 {navBookListParagraph}
 {cLinksPar}
-{chapterHtml}{removeDuplicateCVids( BBB, combinedHtml )}</div><!--RVLVcontainer-->
+{chapterHtml}{combinedHtml}
 {cNav}
 {cLinksPar}
 {makeBottom( level, 'chapter', state )}'''

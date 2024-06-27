@@ -92,6 +92,7 @@ unclearRefs = ['EXO_15:25b',
                 'JOB_38:20','JOB_38:36',
                 'JOB_39:13b',
                 'JOB_40:13b', 'JOB_40:19', 'JOB_40:24a',
+                'JOB_41:9', 'JOB_41:11',
                 ]
 TCRefs = ['JOB_39:13','JOB_39:14','JOB_39:15','JOB_39:16','JOB_39:17','JOB_39:18', # Ostrich section
           ]

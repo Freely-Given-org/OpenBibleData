@@ -71,10 +71,10 @@ from settings import State, TEST_MODE, SITE_NAME
 from OETHandlers import getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2024-06-14' # by RJH
+LAST_MODIFIED_DATE = '2024-06-25' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
-PROGRAM_VERSION = '0.86'
+PROGRAM_VERSION = '0.88'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -140,6 +140,9 @@ def makeTop( level:int, versionAbbreviation:Optional[str], pageType:str, version
 </head>
 <body><!--Level{level}-->{topLink}
 """
+    # Insert second stylesheet if required
+    if pageType == 'OETKey':
+        top = top.replace( '__SCRIPT__', f'''<link rel="stylesheet" type="text/css" href="{'../'*level}OETChapter.css">\n  __SCRIPT__''' )
     # Insert javascript file(s) if required
     if (versionAbbreviation and 'OET' in versionAbbreviation) or pageType=='parallelVerse':
         top = top.replace( '__SCRIPT__', f'''<script src="{'../'*level}Bible.js"></script>\n  __SCRIPT__''' )
@@ -201,6 +204,10 @@ def _makeNavigationLinks( level:int, versionAbbreviation:str, pageType:str, vers
         initialVersionList.append( 'Interlinear' )
     else: # add a link for interlinear
         initialVersionList.append( f'''{state.BibleVersionDecorations['Interlinear'][0]}<a title="Single verse in interlinear word view" href="{'../'*level}ilr/">Interlinear</a>{state.BibleVersionDecorations['Interlinear'][1]}''' )
+    if pageType == 'referenceIndex':
+        initialVersionList.append( 'Reference' )
+    else: # add a link for dictionary
+        initialVersionList.append( f'''{state.BibleVersionDecorations['Reference'][0]}<a title="Reference index" href="{'../'*level}ref/">Reference</a>{state.BibleVersionDecorations['Reference'][1]}''' )
     if pageType == 'dictionaryMainIndex':
         initialVersionList.append( 'Dictionary' )
     else: # add a link for dictionary
@@ -540,6 +547,7 @@ def checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool:
         
     result = checkHtmlForMissingStyles( where, htmlToCheck )
     if where == 'TopIndex': # that's the final page that we build
+        # so we output extra info here
         print()
         for mm,msg in enumerate( collectedMsgs, start=1 ):
             logging.critical( f"Missing CSS style {mm}/{len(collectedMsgs)}: {msg}" )
@@ -639,14 +647,15 @@ def checkHtmlForMissingStyles( where:str, htmlToCheck:str ) -> bool:
     # end of loadCSSStyles function
 
     startedCheck = False
+    styleDict = {}
     for line in htmlToCheck.split( '\n' ):
-        if not startedCheck:
+        if not startedCheck or where=='OETKey': # OETKey has two stylesheets
             if 'rel="stylesheet"' in line:
                 ixStart = line.index( 'href="' )
                 ixEnd = line.index( '">', ixStart+6 )
                 stylesheetName = line[ixStart+6:ixEnd].replace( '../', '' )
-                styleDict = loadCSSStyles( stylesheetName )
-            # Only Search.htm has two stylesheets, but we're only interested in the first one
+                styleDict.update( loadCSSStyles( stylesheetName ) )
+            # Search.htm has two stylesheets, but we're only interested in the first one
             # elif '</head>' in line:
                 startedCheck = True
         else: # startedCheck
@@ -678,7 +687,7 @@ def do_OET_RV_HTMLcustomisations( OET_RV_html:str ) -> str:
 
     See https://OpenEnglishTranslation.Bible/Resources/Formats for descriptions of add subfields.
     """
-    assert '<span class="add">+' not in OET_RV_html # Only expected in OET-LV
+    # assert '<span class="add">+' not in OET_RV_html # Only expected in OET-LV
     assert '<span class="add">-' not in OET_RV_html # Only expected in OET-LV
     assert '<span class="add">=' not in OET_RV_html # Only expected in OET-LV
     assert '<span class="add">?≡' not in OET_RV_html # Doesn't make sense
@@ -692,13 +701,15 @@ def do_OET_RV_HTMLcustomisations( OET_RV_html:str ) -> str:
             .replace( '__PROTECT_SPAN__', '<span class="add"><span ' )
             .replace( '<span class="add">?>', '<span class="unsure addExtra">' )
             .replace( '<span class="add">>', '<span class="addExtra">' )
+            .replace( '<span class="add">?+', '<span class="unsure addArticle">' )
+            .replace( '<span class="add">+', '<span class="addArticle">' )
             .replace( '<span class="add">≡', '<span class="addElided">' )
             .replace( '<span class="add">?&', '<span class="unsure addOwner">' )
             .replace( '<span class="add">&', '<span class="addOwner">' )
-            .replace( '<span class="add">?*', '<span class="unsure addPronoun">' )
-            .replace( '<span class="add">*', '<span class="addPronoun">' )
             .replace( '<span class="add">?@', '<span class="unsure addReferent">' )
             .replace( '<span class="add">@', '<span class="addReferent">' )
+            .replace( '<span class="add">?*', '<span class="unsure addPronoun">' )
+            .replace( '<span class="add">*', '<span class="addPronoun">' )
             .replace( '<span class="add">?#', '<span class="unsure addPluralised">' )
             .replace( '<span class="add">#', '<span class="addPluralised">' )
             .replace( '<span class="add">?^', '<span class="unsure addNegated">' )

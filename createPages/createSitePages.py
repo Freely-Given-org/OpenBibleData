@@ -89,7 +89,7 @@ from Dict import createTyndaleDictPages, createUBSDictionaryPages
 from html import makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2024-06-13' # by RJH
+LAST_MODIFIED_DATE = '2024-06-26' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData (OBD) Create Site Pages"
 PROGRAM_VERSION = '0.96'
@@ -381,6 +381,8 @@ def _cleanHTMLFolders( folder:Path, state:State ) -> bool:
     except FileNotFoundError: pass
     try: shutil.rmtree( folder.joinpath( 'UBS/' ) )
     except FileNotFoundError: pass
+    try: shutil.rmtree( folder.joinpath( 'BMM/' ) )
+    except FileNotFoundError: pass
     for versionAbbreviation in state.allBibleVersions + ['UTN','TOSN','TOBD']:
         vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Removing tree at {folder.joinpath( f'{versionAbbreviation}/' )}/…")
         try: shutil.rmtree( folder.joinpath( f'{versionAbbreviation}/' ) )
@@ -514,7 +516,7 @@ def _createDetailsPages( level:int, buildFolder:Path, state:State ) -> bool:
     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nCreating {'TEST ' if TEST_MODE else ''}details pages for {len(state.BibleVersions)} versions…" )
 
     allDetailsHTML = ''
-    for versionAbbreviation in ['OET'] + [versAbbrev for versAbbrev in state.preloadedBibles] + ['UBS']:
+    for versionAbbreviation in ['OET'] + [versAbbrev for versAbbrev in state.preloadedBibles] + ['UBS','BMM']:
         if versionAbbreviation == 'TTN': # we only need the one for TOSN I think
             versionAbbreviation = 'TOBD' # Put this one in instead
 
@@ -581,13 +583,26 @@ def _createDetailsPages( level:int, buildFolder:Path, state:State ) -> bool:
 <p class="selectedLinks">{' '.join(selectedVerseLinksList)}</p>
 '''
 
+        if versionAbbreviation == 'BMM': # List section pages with maps
+            BBBMapLinkParagraphs = []
+            for BBB in state.sectionsWithMaps:
+                BBBMapLinks = [f'<a href="../OET/bySec/{BBB}_S{n}.htm#BMM">S{n}</a>' for n in state.sectionsWithMaps[BBB]]
+                BBBMapLinkHtml = f'''<p class="selectedLinks"><b>{BBB}</b>: {' '.join(BBBMapLinks)}</p>'''
+                BBBMapLinkParagraphs.append( BBBMapLinkHtml )
+            if BBBMapLinkParagraphs:
+                detailsHtml = f'''{detailsHtml}
+<h2>Available selections</h2>
+<p class="note">The following <em>OET</em> section pages feature maps at the bottom:</p>
+{NEWLINE.join( BBBMapLinkParagraphs )}
+'''
+
         bodyHtml = f'''<!--_createDetailsPages--><h1 id="Top">{versionName} Details</h1>
 {detailsHtml}<hr style="width:40%;margin-left:0;margin-top: 0.3em">
 <p class="note">See details for ALL included translations and reference materials <a title="All versions’ details" href="../AllDetails.htm#Top">here</a>.</p>
 '''
 
         allDetailsHTML = f'''{allDetailsHTML}{'<hr style="width:40%;margin-left:0;margin-top: 0.3em">' if allDetailsHTML else ''}<h2 id="{versionAbbreviation}">{versionName}</h2>
-{detailsHtml.replace('h2','h3')}'''
+{detailsHtml.replace('h2','h3').replace('href="../OET/bySec/','href="OET/bySec/')}'''
 
         html = f"{topHtml}{bodyHtml}{makeBottom( level+1, 'details', state )}"
         checkHtml( f'{versionAbbreviation} details', html )
@@ -615,7 +630,12 @@ def _createDetailsPages( level:int, buildFolder:Path, state:State ) -> bool:
   many commercial businesses <a href="https://SellingJesus.org/">copyright</a> their Bible translations and other materials in order to restrict sites like this from being able to use them.
   So although we don’t consider their materials to be very useful here (and new, high-quality, open-licenced materials are currently being developed to replace them),
   we have included some of their verses on a few of our parallel verse pages just for interest and for comparison, so you’ll find their copyright details below.</small></p>
-{allDetailsHTML}{makeBottom( level, 'AllDetails', state )}'''
+{allDetailsHTML}{makeBottom( level, 'AllDetails', state )}
+<hr style="width:40%;margin-left:0;margin-top: 0.3em">
+<p class="rem"><small>So far we’ve only had one translation organisation refuse to allow us to display their work on our <a href="par/MRK/C1V1.htm#Top">parallel verse pages</a> (designed to help Bible students and Bible translators compare versions)
+and that is the <a href="https://www.easyenglish.bible/about-easyenglish/">Easy English Bible</a> who twice refused our application (without giving any good reason) despite their translation being developed with donations from the public.
+Sadly, this is the current state of the Bible translation world as discussed over at <a href="https://sellingjesus.org/articles/copyright-jesus-command-to-freely-give">SellingJesus.org</a>
+and what we hope to start to change with this <b>free and open <em>Open English Translation</em> development</b>.</small></p>'''
     checkHtml( 'AllDetails', html )
 
     filepath = buildFolder.joinpath( 'AllDetails.htm' )
@@ -727,7 +747,7 @@ def _createAboutPage( level:int, buildFolder:Path, state:State ) -> bool:
     The program is still being developed, and hence this site (or this part of the site), is still at the prototype stage,
         especially with respect to navigation around the pages which is still being improved.</p>
 <p class="about">Also, several Bible ‘books’ are not yet included because no draft of that <em>OET</em> book is available yet,
-    so you might find some dead links, i.e., “Page Not Found” errors, that will eventually be fixed.</p>
+    so you might find some dead links, i.e., “Page Not Found” errors, that will eventually be filled out.</p>
 <p class="about">If you are the copyright owner of a Bible translation or a relevant dataset and would like to see it listed on this site,
         please contact us at <b>Freely</b> dot <b>Given</b> dot <b>org</b> (at) <b>gmail</b> dot <b>com</b>.</p>
 <p class="about">The source code for the Python program that produces these pages can be found at <a href="https://github.com/Freely-Given-org/OpenBibleData">GitHub.com/Freely-Given-org/OpenBibleData</a>.
@@ -759,7 +779,7 @@ def _createNewsPage( level:int, buildFolder:Path, state:State ) -> bool:
     newsHTML = f'''<h1 id="Top">{SITE_NAME} News</h1>
 <p class="about">Recent {SITE_NAME} ({SITE_ABBREVIATION}) site developments:</p>
 <ul>
-<li><b>2024-Apr-20</b>: We added the <a href="{'../'*level}AICNT">AI Critical New Testament</a> (AICNT), mainly so that we can start to evaluate (on our <a href="{'../'*level}par/MRK/C1V1.htm#Top">Parallel Pages</a>) how well current, so-called ‘AI’ technologies might affect the Bible translation world.</li>
+<li><b>2024-Apr-20</b>: We added the <a href="{'../'*level}AICNT">AI Critical New Testament</a> (AICNT), mainly so that we can start to evaluate (on our <a href="{'../'*level}par/MRK/C1V1.htm#AICNT">Parallel Pages</a>) how well current, so-called ‘AI’ technologies might affect the Bible translation world.</li>
 <li><b>2024-Feb-15</b>: We added <a href="{'../'*level}rel/">Related Passages pages</a>—displaying related passages side-by-side, e.g., <a href="{'../'*level}rel/MRK/MRK_S3.htm#Top">here</a> (if you have a wide screen).</li>
 </ul>
 <p class="about">If you are the copyright owner of a Bible translation or a relevant dataset and would like to see it listed on this {SITE_ABBREVIATION} site,
@@ -789,21 +809,84 @@ def _createOETKeyPage( level:int, buildFolder:Path, state:State ) -> bool:
     fnPrint( DEBUGGING_THIS_MODULE, f"_createOETKeyPage( {level}, {buildFolder}, {state.BibleVersions} )" )
     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Creating {'TEST ' if TEST_MODE else ''}OET Key page…" )
 
-    keyHTML = f'''<h1 id="Top">Key to the <em>OET</em></h1>
-<p class="note">The <em>Open English Translation</em> of the Bible is not tied to tradition (and especially not to traditional mistakes or misunderstandings) so it has a number of changes from more common Bible translations.</p>
+    keyHTML = f'''<h1 id="Top">Key to the <em>Open English Translation</em></h1>
+<p class="note">The <em>Open English Translation of the Bible</em> is not tied to tradition (and especially not to traditional mistakes or misunderstandings) so it has a number of changes from more common Bible translations.</p>
 <p class="note">We also aim to educate our readers better about how our Bibles get to us and we have many different kinds of links on the site, so that’s a second reason why it differs from usual, and hence requires this key to explain some of the features.</p>
 <h1>The Hebrew Scriptures <small>(Old Testament)</small><sup>*</sup></h1>
 <p class="note">We are experimenting in the <em>OET-RV</em> with marking parallel Hebrew poetry lines with the symbol <b><span class="parr">≈</span></b>.
-English tends to use rhyming for poetry (and rap is extreme rhyming), but we can also use things like shorter line/sentence lengths instead.
+    English tends to use rhyming for poetry (and rap is <em>extreme</em> rhyming),
+    but we can also use things like shorter line/sentence lengths instead.
 <a href="https://en.wikipedia.org/wiki/Biblical_poetry">Hebrew poetry</a> tends to use parallelism—shortish pairs of lines where the second line might say almost the same thing using synonyms, etc., or it might say the opposite thing (or it might just conclude the thought/argument).
 Wherever, we believe that we have a retelling of almost the same thought in poetry, we try to assist the reader to see this by preceding the second line with the <span class="parr">≈</span> character (the mathematical ‘approximately equal’ sign).</p>
 <p class="note">More to come...</p>
+<p class="footnote"><b><sup>*</sup></b> The <em>OET</em> avoids the word ‘Testament’ because it’s not used in modern English (except perhaps by lawyers),
+    plus we dislike ‘Old’ and ‘New’ because ‘new’ might (wrongly) imply that the ‘old’ is no longer required.
+    Note that the terms ‘Old Testament’ and ‘New Testament’ don’t occur in any ancient manuscripts.</p>
 <h1>The Messianic Update <small>(New Testament)</small></h1>
 <p class="note">Still coming...</p>
+<h1>The <em>OET Literal Version</em></h1>
+<p class="note">The <em>OET-LV</em> aims to be a word-for-word correspondence with the original source manuscripts (mostly Hebrew and Greek),
+    although with the word-order revised to make it easier for English readers to understand.</p>
+<p class="note">In order to be as transparent to our readers as possible, we use various text formats to indicate various decisions that have been made.
+    The following are the various text formats in the <em>OET-LV</em>:</p>
+<ul>
+    <li><b>Sample</b>: ‘<span class="untr">the</span>’ <b>represents</b> words in the original language which usually remain untranslated in English.
+        The Greek case-marker/definite-article is a common example of this because it would be quite unnatural to say something like ‘said to the Peter’ in English.
+        The Hebrew direct-object-marker ‘<span class="untr">DOM</span>’ is another example of a word not required to be translated into English.
+        However, we want to highlight to our readers the original language words which are being dropped from the <em>OET</em> literal translation.</li>
+    <li><b>Sample</b>: ‘<span class="addArticle">the</span>’ <b>represents</b> articles (like ‘a’, ‘the’, ‘some’) that weren’t in the original language but which had to be added to make the English sound natural.</li>
+    <li><b>Sample</b>: ‘<span class="addCopula">is</span>’ <b>represents</b> a helping word known as a <b>copula</b> (like ‘is’, ‘was’, ‘are’) that the original language doesn’t have but which had to be added to make the English make sense.</li>
+    <li><b>Sample</b>: ‘<span class="addDirectObject">the sheep</span>’ <b>represents</b> a word we had to add because the English verb is transitive and requires a direct object, even if the original didn’t (perhaps because it was elided, i.e., omitted the second time rather than being repeated).
+        For example, you can say ‘Jesus wept’ (intransitive verb), but ‘Jesus told’ (transitive verb) is incomplete in English, so we might need to add ‘<span class="addDirectObject">him</span>’.</li>
+    <li><b>Sample</b>: ‘the <span class="addExtra">thing</span>’ or ‘the <span class="addExtra">one</span>’ <b>represents</b> words that weren’t in the original language but which had to be added to make the English make sense,
+        e.g., ‘the <span class="addExtra">ones</span> who went’. (Depending on the context, the missing word could have been ‘<span class="addExtra">people</span>’, ‘<span class="addExtra">men</span>’, or even something like ‘<span class="addExtra">donkeys</span>’.)</li>
+</ul>
+<p class="note">More coming...</p>
+<p class="note"><small><b>Note</b>: Most other literal English versions don’t indicate these kinds of changes to their readers, even though they’ve also had to make them.</small></p>
+<h1>The <em>OET Readers’ Version</em></h1>
+<p class="note">The <em>OET-RV</em> aims to be a easy-to-read-and-understand modern-Englishword <em>translation</em> of the original source manuscripts (mostly Hebrew and Greek).
+    It’s NOT intended to be a ‘paraphrase’, although any decent translation does require the rephrasing of original segments for a range of linguistic and cultural reasons
+    (since our aim is for the message of the original writers to be understood as much as possible).</p>
+<ul>
+    <li><b>Sample</b>: ‘<span class="RVadd">two</span>’ <b>represents</b> English words that the translators have added to help or remind the readers,
+        e.g., ‘the <span class="RVadd">two</span> brothers’).</li>
+    <li><b>Sample</b>: ‘<span class="addReferent">David</span>’ <b>is used when</b> a pronoun (like ‘he’, ‘it’, ‘you’, or ‘those’) is replaced with its referent,
+            i.e., the person(s) or object(s) being referred to.
+        There are several reasons why this might be done, but the main two are:
+        <ol>
+        <li>The addition of a section heading (or even sometimes, a paragraph) which means that the reader might jump in at that point, not having read the previous context.</li>
+        <li>Differences in sentence and discourse structure between modern-English and the original languages</li>
+        </ol>
+        It should be noted that well over 99% of these substitutions are quite obvious,
+            however there are some cases where the original is technically ambiguous, but it seems clear who or what is the referent.
+        If it’s not clear, we will either try to make the best decision, or else, leave it ambiguous for the reader.</li>
+    <li><b>Sample</b>: ‘<span class="addPronoun">she</span>’ <b>is used when</b> a pronoun is used instead of the full form,
+        e.g., ‘<span class="addPronoun">it</span>’ instead of ‘the white horse’. This is usually done to adhere to the norms of English fluency.
+    <li><b>Sample</b>: ‘<span class="unsure">in the clouds</span>’ <b>represents</b> a word or phrase where we really can’t determine what the original author was probably trying to say.
+        Sometimes we lack cultural understanding, sometimes it’s a rarely used original language word, and sometimes the original phrase or sentence just doesn’t seem to make sense in the context.
+        Note that this formatting can also be combined with some of the above formats like ‘<span class="unsure RVadd">thing</span>’.</li>
+    <li><b>Sample</b>: ‘<span class="wj">Once there was a man with…</span>’ <b>is used for</b> anything that it seems that Yeshua/Jesus actually spoke.
+        (There’s no speech marks in the original manuscripts, so some interpretation decisions are required.)
+        Although the invention of <em>red-letter Bibles</em> was possibly a sales booster technique from <a href="https://en.wikipedia.org/wiki/Red_letter_edition">the late 1800’s</a>,
+            it is popular with some readers (although we consider that it also might be a distraction from understanding the context of the direct speech, hence we use a <span class="wj">darker colour</span>.)
+        With modern display (and even printing) technologies, the <em>OET</em> team plan to also use colour to mark direct speech from other speakers in the future
+            (although we also plan to make it possible for online readers to disable it).</li>
+</ul>
+<p class="note">More coming...</p>
+<p class="note"><small><b>Note</b>: Most older English Bible translations use <i>italics</i> to indicate <b>added</b> words,
+    even though most other English literature uses <i>italics</i> for <em>emphasis</em>
+    (not for things like added words which should actually be ‘deemphasised’).</small></p>
+<p class="note"><small><b>Note</b>: Most other English Bible translations don’t indicate the other kinds of changes to their readers,
+        even though they’ve also had to make them.
+    The <em>OET-RV</em> displays them because it’s intended for serious study,
+        but we also plan to make ways to hide these details for easy and undistracted reading.</small></p>
+<p class="note"><small>Technical readers might wish to view the <a href="https://OpenEnglishTranslation.Bible/Resources/Formats">encoding conventions</a>
+        used to mark these various features in our <a href="https://GitHub.com/Freely-Given-org/ESFM">ESFM files</a>.</small></p>
 <h1>Transliterations</h1>
 <p class="note">The <em>OET</em> uses a unique set of characters for transliterating Hebrew and Greek characters, taking advantage of the modern Unicode character set which is now available to us.
-This has the disadvantage of being different from the transliterations commonly used in academia, but the advantage of being designed with the less technical reader in mind, i.e., we’ve tried to make it easier for the non-expert who's familiar with the English alphabet to guess at the sound of the letter.
-We’ve also tried to take advantage of single Unicode characters like <b>æ</b> and <b>ʦ</b> to represent two English letters as a match for the single letters in the other languages.</p>
+    This has the disadvantage of being different from the transliterations commonly used in academia, but the advantage of being designed with the less technical reader in mind,
+        i.e., we’ve tried to make it easier for the non-expert who’s familiar with the English alphabet to guess at the sound of the letter.
+    We’ve also tried to take advantage of single Unicode characters like <b>æ</b> and <b>ʦ</b> to represent two English letters as a match for the single letters in the other languages.</p>
 <p class="note">Long vowels are indicated with the macron over the vowel, i.e., ‘ā ē ī ō ū’ versus the normal ‘a e i o u’.</p>
 <p class="note">More to come...</p>
 <h1>Names of people and places</h1>
@@ -822,10 +905,7 @@ even if it’s hard for us now to get those old, wrong names out of our minds.</
 <h1>Other</h1>
 <p class="note">Omitted verses are marked with the character ◘ (with a link to our <a href="{'../'*level}OET/missingVerse.htm">missing verses page</a>) to indicate that we didn’t accidentally miss translating it.
 The reason why such verses are not included is usually because the original language text was missing in the oldest manuscripts and thus believed to be a later addition in later copies.</p>
-<p class="note">More to come...</p>
-<p class="footnote"><b><sup>*</sup></b> The <em>OET</em> avoids the word ‘Testament’ because it’s not used in modern English (except perhaps by lawyers),
-plus we dislike ‘Old’ and ‘New’ because ‘new’ might (wrongly) imply that the ‘old’ is no longer required.
-Note that the terms ‘Old Testament’ and ‘New Testament’ don’t occur in any ancient manuscripts.</p>'''
+<p class="note">More to come...</p>'''
     topHtml = makeTop( level, None, 'OETKey', None, state ) \
                 .replace( '__TITLE__', f"Key to the Open English Translation{' TEST' if TEST_MODE else ''}" ) \
                 .replace( '__KEYWORDS__', 'Bible, key, OET' )
