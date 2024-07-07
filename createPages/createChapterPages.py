@@ -54,10 +54,10 @@ from Bibles import getBibleMapperMaps
 from OETHandlers import livenOETWordLinks, getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
-LAST_MODIFIED_DATE = '2024-06-26' # by RJH
+LAST_MODIFIED_DATE = '2024-07-07' # by RJH
 SHORT_PROGRAM_NAME = "createChapterPages"
 PROGRAM_NAME = "OpenBibleData createChapterPages functions"
-PROGRAM_VERSION = '0.67'
+PROGRAM_VERSION = '0.68'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -294,9 +294,9 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
                 combinedHtml = f'{removeDuplicateCVids( BBB, combinedHtml )}</div><!--RVLVcontainer-->'
 
             # Handle BibleMapper maps and notes -- the function handles chapters automatically
-                bmmHtml = getBibleMapperMaps( level, BBB, c, None, rvBible ) # Setting verse to None make it look at chapter level
+                bmmHtml = getBibleMapperMaps( level, BBB, c, None, None, None, rvBible ) # Setting verse to None make it look at chapter level
                 if bmmHtml:
-                    bmmHtml = f'''<div id="BMM" class="parallelBMM"><a title="Go to BMM copyright page" href="{'../'*level}BMM/details.htm#Top">BMM</a> <b>BibleMapper.com Maps</b>: {bmmHtml}</div><!--end of BMM-->'''
+                    bmmHtml = f'''<div id="BMM" class="parallelBMM"><a title="Go to BMM copyright page" href="{'../'*level}BMM/details.htm#Top">BMM</a> <b><a href="https://BibleMapper.com" target="_blank" rel="noopener noreferrer">BibleMapper.com</a> Maps</b>: {bmmHtml}</div><!--end of BMM-->'''
                     combinedHtml = f'{combinedHtml}\n<hr style="width:40%;margin-left:0;margin-top: 0.3em">\n{bmmHtml}'
 
                 filename = f'{BBB}_Intro.htm' if c==-1 else f'{BBB}_C{c}.htm'

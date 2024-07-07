@@ -93,11 +93,11 @@ span.bk { font-style:italic; }
 /* p.alt_r { margin-top:0.1em; margin-bottom:0; text-align:right; font-size:0.5em; color:silver; } */
 
 /* Inside box */
-div.rightBox { float:right; width:35%; border:3px solid #73AD21; padding:0.2em; }
+div.rightBox { float:right; width:40%; border:3px solid #73AD21; padding:0.2em; }
 div.s1 {}
-p.s1 { margin-top:0.1em; margin-bottom:0; font-weight:bold; }
-p.s2 { margin-top:0.1em; margin-bottom:0; font-size:1.1em; }
-p.s3 { margin-top:0.1em; margin-bottom:0; font-size:1.05em; }
+p.s1 { margin-top:0.1em; margin-bottom:0; font-size:1.15em; font-weight:bold; }
+p.s2 { margin-top:0; margin-bottom:0; float:right; width:35%; border:2px dashed blue; padding:0.2em; font-size:1.1em; font-weight:bold; }
+p.s3 { margin-top:0; margin-bottom:0; float:right; width:35%; border:1px dotted black; padding:0.2em;  font-size:1.05em; font-weight:bold; }
 p.mr { margin-top:0; margin-bottom:0; font-size:1.1em; text-align: center; font-style:italic; } /* Major section reference range */
 p.sr { margin-top:0; margin-bottom:0; font-size:0.9em; text-align: center; font-weight:bold; } /* Section reference range */
 p.r { margin-top:0; margin-bottom:0; font-size:0.75em; text-align: center; font-style:italic; } /* Parallel references */
@@ -183,7 +183,7 @@ span.xrText {}
 /* OSHB cases (also used for OET-RV and OET-LV) */
 /* Used in <a> fields and in spans */
 /* Not sure that we want chapters coloured */
-.hebVrb {} /* { background-color:yellow; } */
+.hebVrb {} /* { background-color:khaki; } */
 .hebNeg {} /* { background-color:crimson; } */
 .hebEl {} /* { background-color:powderBlue; } */
 .hebYhwh {} /* { background-color:paleGreen; } */
@@ -196,5 +196,5 @@ span.xrText {}
 .grkGen {} /* { background-color:pink; } */
 .grkDat {} /* { background-color:cyan; } */
 .grkVoc {} /* { background-color:orchid; } */
-.grkVrb {} /* { background-color:yellow; } */
+.grkVrb {} /* { background-color:khaki; } */
 .grkNeg {} /* { background-color:crimson; } */

@@ -89,7 +89,7 @@ from Dict import createTyndaleDictPages, createUBSDictionaryPages
 from html import makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2024-06-26' # by RJH
+LAST_MODIFIED_DATE = '2024-07-05' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData (OBD) Create Site Pages"
 PROGRAM_VERSION = '0.96'
@@ -165,9 +165,8 @@ def _createSitePages() -> bool:
     for BBB in BibleOrgSysGlobals.loadedBibleBooksCodes:
         for versionAbbreviation in state.BibleVersions:
             if versionAbbreviation == 'OET': continue # OET is a pseudo version (OET-RV plus OET-LV)
-            # if versionAbbreviation not in ('TTN',) \
-            if versionAbbreviation in state.versionsWithoutTheirOwnPages:
-                continue # We don't worry about these few selected verses here
+            if versionAbbreviation in state.versionsWithoutTheirOwnPages: continue # We don't worry about these few selected verses here
+            if versionAbbreviation == 'TTN': continue
             for entry in state.booksToLoad[versionAbbreviation]:
                 if entry == BBB or entry == 'ALL':
                     if BBB in state.preloadedBibles[versionAbbreviation]:
@@ -248,6 +247,7 @@ def _createSitePages() -> bool:
                 indexHtmlFile.write( f'''{top}{indexHtml}\n<p class="note"><a href="details.htm">See copyright details.</p>\n{makeBottom( 1, 'site', state )}''' )
             vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"    {len(indexHtml):,} characters written to {filepath}" )
         else:
+            if versionAbbreviation == 'TTN': continue # Not actually a Bible version
             thisBible.discover() # Now that all required books are loaded
             if 'haveSectionHeadings' not in thisBible.discoveryResults['ALL']: # probably we have no books that actually loaded
                 dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Adding discoveryResults 'haveSectionHeadings' for {thisBible.abbreviation}: no books loaded?" )
@@ -379,11 +379,7 @@ def _cleanHTMLFolders( folder:Path, state:State ) -> bool:
     except FileNotFoundError: pass
     try: shutil.rmtree( folder.joinpath( 'dct/' ) )
     except FileNotFoundError: pass
-    try: shutil.rmtree( folder.joinpath( 'UBS/' ) )
-    except FileNotFoundError: pass
-    try: shutil.rmtree( folder.joinpath( 'BMM/' ) )
-    except FileNotFoundError: pass
-    for versionAbbreviation in state.allBibleVersions + ['UTN','TOSN','TOBD']:
+    for versionAbbreviation in state.allBibleVersions + ['UTN','TOSN','TOBD','UBS','THBD','BMM']:
         vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Removing tree at {folder.joinpath( f'{versionAbbreviation}/' )}/…")
         try: shutil.rmtree( folder.joinpath( f'{versionAbbreviation}/' ) )
         except FileNotFoundError: pass
@@ -513,10 +509,10 @@ def _createDetailsPages( level:int, buildFolder:Path, state:State ) -> bool:
         plus a summary page of all the versions.
     """
     fnPrint( DEBUGGING_THIS_MODULE, f"_createDetailsPages( {level}, {buildFolder}, {state.BibleVersions} )" )
-    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nCreating {'TEST ' if TEST_MODE else ''}details pages for {len(state.BibleVersions)} versions…" )
+    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nCreating {'TEST ' if TEST_MODE else ''}details pages for {len(state.BibleVersions)} versions (plus All Details page)…" )
 
     allDetailsHTML = ''
-    for versionAbbreviation in ['OET'] + [versAbbrev for versAbbrev in state.preloadedBibles] + ['UBS','BMM']:
+    for versionAbbreviation in ['OET'] + [versAbbrev for versAbbrev in state.preloadedBibles] + ['UBS','THBD','BMM',]:
         if versionAbbreviation == 'TTN': # we only need the one for TOSN I think
             versionAbbreviation = 'TOBD' # Put this one in instead
 
@@ -630,12 +626,11 @@ def _createDetailsPages( level:int, buildFolder:Path, state:State ) -> bool:
   many commercial businesses <a href="https://SellingJesus.org/">copyright</a> their Bible translations and other materials in order to restrict sites like this from being able to use them.
   So although we don’t consider their materials to be very useful here (and new, high-quality, open-licenced materials are currently being developed to replace them),
   we have included some of their verses on a few of our parallel verse pages just for interest and for comparison, so you’ll find their copyright details below.</small></p>
-{allDetailsHTML}{makeBottom( level, 'AllDetails', state )}
-<hr style="width:40%;margin-left:0;margin-top: 0.3em">
+{allDetailsHTML}<hr style="width:40%;margin-left:0;margin-top: 0.3em">
 <p class="rem"><small>So far we’ve only had one translation organisation refuse to allow us to display their work on our <a href="par/MRK/C1V1.htm#Top">parallel verse pages</a> (designed to help Bible students and Bible translators compare versions)
-and that is the <a href="https://www.easyenglish.bible/about-easyenglish/">Easy English Bible</a> who twice refused our application (without giving any good reason) despite their translation being developed with donations from the public.
+and that is the <a href="https://www.easyenglish.bible/about-easyenglish/">Easy English Bible</a> who twice refused our application (without giving any reason) despite their translation being developed with donations from the public.
 Sadly, this is the current state of the Bible translation world as discussed over at <a href="https://sellingjesus.org/articles/copyright-jesus-command-to-freely-give">SellingJesus.org</a>
-and what we hope to start to change with this <b>free and open <em>Open English Translation</em> development</b>.</small></p>'''
+and what we hope to start to change with this <b>free and open <em>Open English Translation</em> development</b>.</small></p>{makeBottom( level, 'AllDetails', state )}'''
     checkHtml( 'AllDetails', html )
 
     filepath = buildFolder.joinpath( 'AllDetails.htm' )

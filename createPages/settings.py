@@ -44,7 +44,7 @@ from BibleOrgSys.BibleOrgSysGlobals import dPrint, fnPrint
 from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39
 
 
-LAST_MODIFIED_DATE = '2024-06-27' # by RJH
+LAST_MODIFIED_DATE = '2024-07-05' # by RJH
 SHORT_PROGRAM_NAME = "settings"
 PROGRAM_NAME = "OpenBibleData (OBD) Create Pages"
 PROGRAM_VERSION = '0.96'
@@ -52,9 +52,9 @@ PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
 
-OET_VERSION = 'v0.16'
+OET_VERSION = 'v0.18'
 
-TEST_MODE = True # Writes website into Test subfolder
+TEST_MODE = False # Writes website into Test subfolder
 ALL_PRODUCTION_BOOKS = not TEST_MODE # If set to False, only selects one book per version for a faster test build
 ALL_TEST_REFERENCE_PAGES = False # If in TEST_MODE, make ALL word/lemma pages, or just the RELEVANT ones
 UPDATE_ACTUAL_SITE_WHEN_BUILT = True # The pages are initially built in a tmp folder so need to be copied to the final destination
@@ -67,7 +67,7 @@ DESTINATION_FOLDER = DEBUG_DESTINATION_FOLDER if TEST_MODE or BibleOrgSysGlobals
 
 OET_NT_BOOK_ORDER = ['JHN','MRK','MAT','LUK','ACT', 'ROM','CO1','CO2', 'GAL','EPH','PHP','COL', 'TH1','TH2', 'TI1','TI2','TIT','PHM', 'HEB', 'JAM', 'PE1','PE2', 'JN1','JN2','JN3', 'JDE', 'REV']
 
-TEST_OT_BOOK_LIST = ['EXO','RUT','PSA','MAL'] # RUT plus books in progress
+TEST_OT_BOOK_LIST = ['JOS','PSA'] # Books in progress
 TEST_NT_BOOK_LIST = ['MRK'] # Shortest gospel
 TEST_BOOK_LIST = TEST_OT_BOOK_LIST + TEST_NT_BOOK_LIST
 
@@ -142,12 +142,12 @@ class State:
     allBibleVersions = BibleVersions[:] # Keep a copy with the full list
 
     # Specific short lists
-    auxilliaryVersions = ('OET','TTN','TOBD','BMM') # These ones don't have their own Bible locations at all
+    auxilliaryVersions = ('OET','TOBD') # These ones don't have their own Bible locations at all
     # The following three lines are also in selectedVersesVersions.py
     selectedVersesOnlyVersions = ('CSB','NLT','NIV','CEV','ESV','MSG','NASB','LSB','JQT','2DT','1ST','TPT','NRSV','NKJV','NAB', 'NETS' ) # These ones have .tsv sources (and don't produce Bible objects)
     numAllowedSelectedVerses   = (  300,  500,  500,  500,  500,  500,   500, 1000,   20,  300,  300,  250,   300,   300,  250,    250  ) # Order must match above list
     assert len(numAllowedSelectedVerses) == len(selectedVersesOnlyVersions)
-    versionsWithoutTheirOwnPages = selectedVersesOnlyVersions + ('LUT','CLV', 'UGNT','SBL-GNT','TC-GNT', 'BRN','BrLXX', 'TOSN','TTN','UTN', 'BMM')
+    versionsWithoutTheirOwnPages = selectedVersesOnlyVersions + ('LUT','CLV', 'UGNT','SBL-GNT','TC-GNT', 'BRN','BrLXX', 'TOSN','UTN')
 
     # NOTE: We don't display the versionsWithoutTheirOwnPages, so don't need/allow decorations for them
     BibleVersionDecorations = { 'OET':('<b>','</b>'),'OET-RV':('<b>','</b>'),'OET-LV':('<b>','</b>'),
@@ -302,6 +302,7 @@ class State:
                 'TOBD': 'Tyndale Open Bible Dictionary (2023)',
                 'UTN': 'unfoldingWord® Translation Notes (2023)',
                 'UBS': 'United Bible Societies open-licenced resources (2023)',
+                'THBD': 'Theographic Bible Database',
                 'BMM': 'BibleMapper.com Maps',
                 }
 
@@ -690,6 +691,10 @@ However, Moffat wasn’t just a <em>follow the crowd</em> person, so he’s like
 <p class="copyright"><b>UBS Dictionary of New Testament Greek</b>, Copyright © United Bible Societies, 2023. Adapted from Semantic Dictionary of Biblical Greek: © United Bible Societies 2018-2023, which is adapted from Greek-English Lexicon of the New Testa­ment: Based on Semantic Domains, Eds. J P Louw, Eugene Albert Nida © United Bible Societies 1988, 1989.</p>''',
                 'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
                 'acknowledgements': '<p class="acknwldg">Thanks to <a href="https://github.com/Freely-Given-org/ubs-open-license">UBS</a> for making these available.</p>' },
+        'THBD': {'about': '<p class="about"><a href="https://devpost.com/software/theographic">Theographic Bible Database</a>.</p>',
+                'copyright': '''<p class="copyright">Developed by Robert Rouse and others, but no copyright statement discovered.</p>''',
+                'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a> according to <a href="https://github.com/robertrouse/theographic-bible-metadata#license">this</a>.</p>',
+                'acknowledgements': '<p class="acknwldg">Thanks to Robert Rouse for being an early and innovative <a href="https://www.airtable.com/universe/expnj1m8PhSHJ5W3M/theographic-bible-database-info">collector and organiser</a> of this information, as well as his impressive presentations and designs at <a href="https://Viz.Bible/">Viz.Bible</a>.</p>' },
         'BMM': {'about': '<p class="about"><a href="https://BibleMapper.com">BibleMapper.com</a> Maps.</p>',
                 'copyright': '''<p class="copyright">All maps and text, copyright © by David P. Barrett. All rights reserved.</p>''',
                 'licence': '<p class="licence">You are welcome to use these maps for any non-commercial purposes.</p>',
@@ -705,7 +710,7 @@ However, Moffat wasn’t just a <em>follow the crowd</em> person, so he’s like
             or versionLocation.startswith('/mnt/SSDs/Bibles/'), f"{versionLocation=}"
     assert len(BibleVersionDecorations) == len(BibleVersions) + len(auxilliaryVersions) + NUM_EXTRA_MODES - len(versionsWithoutTheirOwnPages), \
         f"{len(BibleVersionDecorations)=} {len(BibleVersions)=} + {len(auxilliaryVersions)=} + {NUM_EXTRA_MODES=} - {len(versionsWithoutTheirOwnPages)=} sum={len(BibleVersions)+len(auxilliaryVersions)+4-len(versionsWithoutTheirOwnPages)}"
-        # Above adds Parallel and Interlinear and Dictionary but subtracts selected-verses-only versions and TTN
+        # Above adds Parallel and Interlinear and Dictionary but subtracts selected-verses-only versions
     assert len(BibleVersions) >= len(BibleLocations) # OET is a pseudo-version
     assert len(BibleNames)-1 >= len(BibleLocations) # OET is a pseudo-version
     assert len(booksToLoad) >= len(BibleLocations) # OET is a pseudo-version

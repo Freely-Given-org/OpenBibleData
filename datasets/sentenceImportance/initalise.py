@@ -43,10 +43,10 @@ import BibleOrgSys.Formats.USXXMLBible as USXXMLBible
 
 
 
-LAST_MODIFIED_DATE = '2024-06-16' # by RJH
+LAST_MODIFIED_DATE = '2024-07-05' # by RJH
 SHORT_PROGRAM_NAME = "SentenceImportance_initialisation"
 PROGRAM_NAME = "Sentence Importance initialisation"
-PROGRAM_VERSION = '0.13'
+PROGRAM_VERSION = '0.15'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -67,35 +67,45 @@ NET_PATHNAME = Path( '../../copiedBibles/English/NET/' )
 
 # Default values are M2=Medium importance, 0:no textual issue, C3:clear enough
 defaultImportance, defaultTextualIssue, defaultClarity = 'M', '0', 'C'
-vitalRefs = ['GEN_1:1','GEN_1:2','GEN_1:3',
-             'EXO_20:11', 'DEU_31:6', 'PSA_46:1',
-             'PRO_3:5','PRO_3:6',
-             'ISA_53:4','ISA_53:5','ISA_53:6',
-             'JER_29:11',
-             'MAT_6:33', 'MAT_28:19','MAT_28:20',
-             'JHN_3:16','JHN_5:24','JHN_11:25',
-             'ROM_3:23','ROM_6:23','ROM_8:28', 'ROM_12:2', 'CO2_5:21','CO2_12:9',
-             'GAL_5:22','GAL_5:23', 'EPH_2:9',
-             'PHP_4:6','PHP_4:7','PHP_4:8', 'PHP_4:13', 'TI2_3:16',
-             'HEB_11:6','HEB_13:5',
-             'PE1_3:15', 'PE1_5:7']
-importantRefs = ['JHN_16:33']
+vitalRefs = [ # Often in doctrinal statements
+    'GEN_1:1','GEN_1:2','GEN_1:3',
+    'EXO_20:11', 'DEU_31:6', 'PSA_46:1',
+    'PRO_3:5','PRO_3:6',
+    'ISA_53:4','ISA_53:5','ISA_53:6',
+    'JER_29:11',
+    'MAL_3:8','MAL_3:9','MAL_3:10',
+    'MAT_6:33', 'MAT_28:19','MAT_28:20',
+    'JHN_3:16','JHN_5:24','JHN_11:25',
+    'ROM_3:23','ROM_6:23','ROM_8:28', 'ROM_12:2', 'CO2_5:21','CO2_12:9',
+    'GAL_5:22','GAL_5:23', 'EPH_2:9',
+    'PHP_4:6','PHP_4:7','PHP_4:8', 'PHP_4:13', 'TI2_3:16',
+    'HEB_11:6','HEB_13:5',
+    'PE1_3:15', 'PE1_5:7',
+    ]
+importantRefs = [ # Often memorised
+    'JOS_1:9',
+    'JHN_16:33',
+    ]
 trivialRefs = ['EXO_16:36']
-obscureRefs = ['JOB_29:20','JOB_29:24',]
-unclearRefs = ['EXO_15:25b',
-               'JOB_30:6','JOB_30:7','JOB_30:11a','JOB_30:12','JOB_30:13','JOB_30:14','JOB_30:15','JOB_30:16a','JOB_30:17a','JOB_30:18','JOB_30:28a',
-                'JOB_31:12','JOB_31:16b',
-                'JOB_33:14','JOB_33:16',
-                'JOB_34:24a',
-                'JOB_36:8','JOB_36:16','JOB_36:17','JOB_36:18','JOB_36:19','JOB_36:27b','JOB_36:33',
-                'JOB_37:22a',
-                'JOB_38:20','JOB_38:36',
-                'JOB_39:13b',
-                'JOB_40:13b', 'JOB_40:19', 'JOB_40:24a',
-                'JOB_41:9', 'JOB_41:11',
-                ]
-TCRefs = ['JOB_39:13','JOB_39:14','JOB_39:15','JOB_39:16','JOB_39:17','JOB_39:18', # Ostrich section
-          ]
+obscureRefs = [ # Not sure what the Hebrew or Greek is saying
+    'JOB_29:20','JOB_29:24',
+    ]
+unclearRefs = [ # Mostly sure what's in the Hebrew or Greek, but not sure what it means
+    'EXO_15:25b',
+    'JOB_30:6','JOB_30:7','JOB_30:11a','JOB_30:12','JOB_30:13','JOB_30:14','JOB_30:15','JOB_30:16a','JOB_30:17a','JOB_30:18','JOB_30:28a',
+    'JOB_31:12','JOB_31:16b',
+    'JOB_33:14','JOB_33:16',
+    'JOB_34:24a',
+    'JOB_36:8','JOB_36:16','JOB_36:17','JOB_36:18','JOB_36:19','JOB_36:27b','JOB_36:33',
+    'JOB_37:22a',
+    'JOB_38:20','JOB_38:36',
+    'JOB_39:13b',
+    'JOB_40:13b', 'JOB_40:19', 'JOB_40:24a',
+    'JOB_41:9', 'JOB_41:11',
+    ]
+textualCriticismRefs = [ # Hebrew or Greek original manuscripts vary
+    'JOB_39:13','JOB_39:14','JOB_39:15','JOB_39:16','JOB_39:17','JOB_39:18', # Ostrich section
+    ]
 # Just do some basic integrity checking
 allRefs = vitalRefs + importantRefs + trivialRefs + obscureRefs + unclearRefs
 assert len( set(allRefs) ) == len(allRefs) # Otherwise there must be a duplicate
@@ -290,7 +300,7 @@ def create( initialTSVLines, netBible, collationVerseDict, splitVerseSet ) -> bo
                 importance, clarity, comment = defaultImportance, defaultClarity, ''
 
                 textualIssue = collationVerseDict[subRef] if subRef in collationVerseDict else defaultTextualIssue
-                if has_TC_footnote or subRef in TCRefs:
+                if has_TC_footnote or subRef in textualCriticismRefs:
                     if textualIssue==defaultTextualIssue: # default is '0'
                         textualIssue = '2' # textualIssue ranges from 0 (None) to 4 (Major)
                     elif textualIssue == '1':

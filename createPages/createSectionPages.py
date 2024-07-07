@@ -68,10 +68,10 @@ from Bibles import getBibleMapperMaps
 from OETHandlers import livenOETWordLinks, getOETTidyBBB, getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2024-06-26' # by RJH
+LAST_MODIFIED_DATE = '2024-07-07' # by RJH
 SHORT_PROGRAM_NAME = "createSectionPages"
 PROGRAM_NAME = "OpenBibleData createSectionPages functions"
-PROGRAM_VERSION = '0.623'
+PROGRAM_VERSION = '0.63'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -335,17 +335,10 @@ def createOETSectionPages( level:int, folder:Path, rvBible:ESFMBible, lvBible:ES
             combinedHtml = f'{removeDuplicateCVids( BBB, combinedHtml )}</div><!--RVLVcontainer-->'
             
             # Handle BibleMapper maps and notes -- could be zero or more for any one section
-            bmmHtml = set()
-            for c in range( int(startC), int(endC)+1 ):
-                for v in range( int(startV) if c==int(startC) else 1, (int(endV) if c==int(endC) else rvBible.getNumVerses( BBB, c ))+1 ):
-                    # print( f"{BBB} {c}:{v}")
-                    result = getBibleMapperMaps( level, BBB, c, v, rvBible )
-                    if result:
-                        # print( f"  {BBB} {c}:{v} got a map")
-                        bmmHtml.add( result )
+            bmmHtml = getBibleMapperMaps( level, BBB, startC, startV, endC, endV, state.preloadedBibles['OET-RV'] )
             if bmmHtml:
                 # print( f"{BBB} {startC}:{startV} to {endC}:{endV} got {len(bmmHtml)} map(s)")
-                bmmHtml = f'''<div id="BMM" class="parallelBMM"><a title="Go to BMM copyright page" href="{'../'*level}BMM/details.htm#Top">BMM</a> <b>BibleMapper.com Maps</b>: {'<br>'.join(bmmHtml)}</div><!--end of BMM-->'''
+                bmmHtml = f'''<div id="BMM" class="parallelBMM"><a title="Go to BMM copyright page" href="{'../'*level}BMM/details.htm#Top">BMM</a> <b><a href="https://BibleMapper.com" target="_blank" rel="noopener noreferrer">BibleMapper.com</a> Maps</b>: {bmmHtml}</div><!--end of BMM-->'''
                 combinedHtml = f'{combinedHtml}\n<hr style="width:40%;margin-left:0;margin-top: 0.3em">\n{bmmHtml}'
                 state.sectionsWithMaps[BBB].append( n )
 
@@ -371,14 +364,14 @@ def createOETSectionPages( level:int, folder:Path, rvBible:ESFMBible, lvBible:ES
 
         # Now make the section index file for this book
         indexFilename = f'{BBB}.htm'
-        filepath = folder.joinpath( indexFilename )
+        indexFilepath = folder.joinpath( indexFilename )
         top = makeTop( level, 'OET', 'sectionIndex', f'bySec/{indexFilename}', state ) \
                 .replace( '__TITLE__', f"OET {ourTidyBBB} sections{' TEST' if TEST_MODE else ''}" ) \
                 .replace( '__KEYWORDS__', f'Bible, OET, sections, {ourTidyBBB}' ) \
                 .replace( f'''<a title="{state.BibleNames['OET']}" href="{'../'*2}OET/bySec/{indexFilename}#Top">OET</a>''',
                         f'''<a title="Up to {state.BibleNames['OET']}" href="{'../'*2}OET/">↑OET</a>''' )
         sectionHtml = f'<h1 id="Top">Index of sections for OET {ourTidyBBBwithNotes}</h1>'
-        for _nnn,startC,startV,_endC,_endV,sectionName,reasonName,_contextList,_verseEntryList,indexFilename in state.sectionsLists['OET-RV'][BBB]:
+        for _nnn,startC,startV,_endC,_endV,sectionName,reasonName,_contextList,_verseEntryList,sectionFilename in state.sectionsLists['OET-RV'][BBB]:
             # print( f"HERE8 {BBB} {startC}:{startV} {_endC}:{endV} '{sectionName=}' '{reasonName=}' '{filename=}'" )
             reasonString = '' if reasonName=='Section heading' and not TEST_MODE else f' ({reasonName})' # Suppress '(Section Heading)' appendages in the list
             # NOTE: word 'Alternate ' is defined above at start of main loop
@@ -389,15 +382,15 @@ def createOETSectionPages( level:int, folder:Path, rvBible:ESFMBible, lvBible:ES
 {sectionHtml}
 {makeBottom( level, 'sectionIndex', state )}'''
         checkHtml( 'OET section index', sectionHtml )
-        assert not filepath.is_file() # Check that we're not overwriting anything
-        with open( filepath, 'wt', encoding='utf-8' ) as sectionHtmlFile:
+        assert not indexFilepath.is_file() # Check that we're not overwriting anything
+        with open( indexFilepath, 'wt', encoding='utf-8' ) as sectionHtmlFile:
             sectionHtmlFile.write( sectionHtml )
-        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(sectionHtml):,} characters written to {filepath}" )
+        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(sectionHtml):,} characters written to {indexFilepath}" )
 
     # Now a single overall index page for sections
     indexFilename = 'index.htm'
     # filenames.append( filename )
-    filepath = folder.joinpath( indexFilename )
+    indexFilepath = folder.joinpath( indexFilename )
     top = makeTop( level, 'OET', 'sectionIndex', 'bySec/', state ) \
             .replace( '__TITLE__', f"OET Sections View{' TEST' if TEST_MODE else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, OET, sections, books' ) \
@@ -408,10 +401,10 @@ def createOETSectionPages( level:int, folder:Path, rvBible:ESFMBible, lvBible:ES
 {navBookListParagraph}
 {makeBottom( level, 'sectionIndex', state)}'''
     checkHtml( 'OET sections index', indexHtml )
-    assert not filepath.is_file() # Check that we're not overwriting anything
-    with open( filepath, 'wt', encoding='utf-8' ) as sectionHtmlFile:
+    assert not indexFilepath.is_file() # Check that we're not overwriting anything
+    with open( indexFilepath, 'wt', encoding='utf-8' ) as sectionHtmlFile:
         sectionHtmlFile.write( indexHtml )
-    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
+    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {indexFilepath}" )
 
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createOETSectionPages() finished processing {len(BBBs)} OET books: {BBBs}." )
 # end of createSectionPages.createOETSectionPages
@@ -597,7 +590,7 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> List
 
         # Now make the section index file for this book
         sectionFilename = f'{BBB}.htm'
-        filepath = folder.joinpath( sectionFilename )
+        indexFilepath = folder.joinpath( sectionFilename )
         top = makeTop( level, thisBible.abbreviation, 'sectionIndex', f'bySec/{sectionFilename}', state ) \
                 .replace( '__TITLE__', f"{thisBible.abbreviation} {ourTidyBBB} sections{' TEST' if TEST_MODE else ''}" ) \
                 .replace( '__KEYWORDS__', f'Bible, {thisBible.abbreviation}, sections, {ourTidyBBB}' ) \
@@ -614,15 +607,15 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> List
 {sectionHtml}
 {makeBottom( level, 'sectionIndex', state )}'''
         checkHtml( f'{thisBible.abbreviation} section index', sectionHtml )
-        assert not filepath.is_file() # Check that we're not overwriting anything
-        with open( filepath, 'wt', encoding='utf-8' ) as sectionHtmlFile:
+        assert not indexFilepath.is_file() # Check that we're not overwriting anything
+        with open( indexFilepath, 'wt', encoding='utf-8' ) as sectionHtmlFile:
             sectionHtmlFile.write( sectionHtml )
-        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(sectionHtml):,} characters written to {filepath}" )
+        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(sectionHtml):,} characters written to {indexFilepath}" )
 
     # Now an overall index for sections
     sectionFilename = 'index.htm'
     # filenames.append( filename )
-    filepath = folder.joinpath( sectionFilename )
+    indexFilepath = folder.joinpath( sectionFilename )
     top = makeTop( level, thisBible.abbreviation, 'sectionIndex', 'bySec/', state ) \
             .replace( '__TITLE__', f"{thisBible.abbreviation} Sections View{' TEST' if TEST_MODE else ''}" ) \
             .replace( '__KEYWORDS__', f'Bible, {thisBible.abbreviation}, sections, books' ) \
@@ -633,10 +626,10 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> List
 {navBookListParagraph}
 {makeBottom( level, 'sectionIndex', state)}'''
     checkHtml( f'{thisBible.abbreviation} sections index', indexHtml )
-    assert not filepath.is_file() # Check that we're not overwriting anything
-    with open( filepath, 'wt', encoding='utf-8' ) as sectionHtmlFile:
+    assert not indexFilepath.is_file() # Check that we're not overwriting anything
+    with open( indexFilepath, 'wt', encoding='utf-8' ) as sectionHtmlFile:
         sectionHtmlFile.write( indexHtml )
-    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
+    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {indexFilepath}" )
 
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createSectionPages() finished processing {len(BBBs)} {thisBible.abbreviation} books: {BBBs}." )
     # return filenames

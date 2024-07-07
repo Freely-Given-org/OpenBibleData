@@ -71,7 +71,7 @@ from settings import State, TEST_MODE, SITE_NAME
 from OETHandlers import getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2024-06-25' # by RJH
+LAST_MODIFIED_DATE = '2024-07-08' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
 PROGRAM_VERSION = '0.88'
@@ -262,7 +262,7 @@ def _makeNavigationLinks( level:int, versionAbbreviation:str, pageType:str, vers
     viewLinks = []
     if pageType in ('book','section','chapter', 'details',
                     'bookIndex','sectionIndex','chapterIndex') \
-    and versionAbbreviation not in ('TOSN','TTN','TOBD','UTN','UBS') \
+    and versionAbbreviation not in ('TOSN','TTN','TOBD','UTN','UBS','THBD','BMM') \
     and versionAbbreviation not in state.versionsWithoutTheirOwnPages:
         if TEST_MODE: viewLinks.append( 'TEST' )
         if not versionAbbreviation: versionAbbreviation = 'OET'
@@ -548,7 +548,6 @@ def checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool:
     result = checkHtmlForMissingStyles( where, htmlToCheck )
     if where == 'TopIndex': # that's the final page that we build
         # so we output extra info here
-        print()
         for mm,msg in enumerate( collectedMsgs, start=1 ):
             logging.critical( f"Missing CSS style {mm}/{len(collectedMsgs)}: {msg}" )
         if not TEST_MODE:

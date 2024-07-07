@@ -336,7 +336,7 @@ p.TARef {}
 
 /* OSHB cases (also used for OET-RV and OET-LV) */
 /* Used in <a> fields and in spans */
-.hebVrb { background-color:yellow; }
+.hebVrb { background-color:khaki; }
 .hebNeg { background-color:crimson; }
 .hebEl { background-color:powderBlue; }
 .hebYhwh { background-color:paleGreen; }
@@ -348,5 +348,5 @@ p.TARef {}
 .grkGen { background-color:pink; }
 .grkDat { background-color:cyan; }
 .grkVoc { background-color:orchid; }
-.grkVrb { background-color:yellow; }
+.grkVrb { background-color:khaki; }
 .grkNeg { background-color:crimson; }

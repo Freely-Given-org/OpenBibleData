@@ -57,8 +57,6 @@ p.mt1 + p.mt2, p.mt2 + p.mt1 { margin-top:-0.5em; }
 p.ms1 { font-weight:bold; font-size:1.5em; }
 p.ms2 { font-weight:bold; font-size:1.3em; }
 
-/* div.rightBox { float:right; width:35%; border:3px solid #73AD21; padding:0.2em; } */
-
 p.parallelVerse {}
 span.SR-GNT_trans {}
 span.UHB_trans {}
@@ -191,7 +189,7 @@ span.xt {}
 
 /* OSHB cases (also used for OET-RV and OET-LV) */
 /* Used in <a> fields and in spans */
-.hebVrb { background-color:yellow; }
+.hebVrb { background-color:khaki; }
 .hebNeg { background-color:crimson; }
 .hebEl { background-color:powderBlue; }
 .hebYhwh { background-color:paleGreen; }
@@ -203,7 +201,7 @@ span.xt {}
 .grkGen { background-color:pink; }
 .grkDat { background-color:cyan; }
 .grkVoc { background-color:orchid; }
-.grkVrb { background-color:yellow; }
+.grkVrb { background-color:khaki; }
 .grkNeg { background-color:crimson; }
 
 /* Other GNT classes */
@@ -276,3 +274,4 @@ p.TARef {}
 div.parallelBMM {}
 h2.mapTitle {}
 p.mapRefs { font-weight:bold; }
+p.mapDescription {}
