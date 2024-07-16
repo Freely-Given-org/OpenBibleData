@@ -85,7 +85,7 @@ from html import makeTop, makeBottom, checkHtml
 from OETHandlers import getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
-LAST_MODIFIED_DATE = '2024-07-05' # by RJH
+LAST_MODIFIED_DATE = '2024-07-09' # by RJH
 SHORT_PROGRAM_NAME = "createOETReferencePages"
 PROGRAM_NAME = "OpenBibleData createOETReferencePages functions"
 PROGRAM_VERSION = '0.74'
@@ -1512,14 +1512,16 @@ def create_Hebrew_lemma_pages( level:int, outputFolderPath:Path, state:State ) -
     lemmaList = list( state.OETRefData['OTLemmaGlossDict'] )
     # lemmaListWithGlosses = list( state.OETRefData['OTLemmaGlossDict'].items() )
     # assert len(lemmaListWithGlosses) == len(lemmaList)
-    for mm, hebLemma  in enumerate( lemmaList, start=1 ):
+    for ll, hebLemma  in enumerate( lemmaList, start=1 ):
+        transliteratedLemma = transliterate_Hebrew( hebLemma )
+        if transliteratedLemma == 'pitgām': # One is at ll=5803 hebLemma='פִּתְגָם' ll=5804 hebLemma='פִּתְגָּם'
+            print( f"      Found pitgām at {ll=} {hebLemma=} {transliteratedLemma=} wordRows={state.OETRefData['OTWordRowNumbersDict'][ll]}" )
         if TEST_MODE and not ALL_TEST_REFERENCE_PAGES and hebLemma not in state.OETRefData['usedHebLemmas']:
             continue # Don't make this page
-        transliteratedLemma = transliterate_Hebrew( hebLemma )
         vowellessLemma = removeHebrewVowelPointing( hebLemma )
         transliteratedVowellessLemma = transliterate_Hebrew( vowellessLemma )
 
-        hebLemmaWordRowsList = state.OETRefData['OTWordRowNumbersDict'][mm]
+        hebLemmaWordRowsList = state.OETRefData['OTWordRowNumbersDict'][ll]
         # print( f"\nLemma {mm}: {hebLemma=} {translemma=} {lemmaOETGlossesList=} {hebLemmaWordRowsList=}" )
         # lemmaFormsList = sorted( state.OETRefData['OTLemmaFormsDict'][hebLemma] )
         # lemmaOETGlossesList = state.OETRefData['OTLemmaGlossDict'][hebLemma].split( ';' )
@@ -1528,28 +1530,28 @@ def create_Hebrew_lemma_pages( level:int, outputFolderPath:Path, state:State ) -
         #     return state.OETRefData['OTFormUsageDict'][(grk,morph)][0]
 
         usedMorphologies = set()
-        output_filename = f'{transliteratedLemma}.htm'
+        ll_output_filename = f"{'pitggām' if hebLemma=='פִּתְגָּם' else transliteratedLemma}.htm" # Hack to keep transliterations unique
 
-        prevMM = nextMM = None
-        if mm > 1:
+        prevLL = nextLL = None
+        if ll > 1:
             if TEST_MODE and not ALL_TEST_REFERENCE_PAGES:
-                for MM in range( mm-2, 0, -1 ):
+                for LL in range( ll-2, 0, -1 ):
                     # MMLemma = lemmaListWithGlosses[MM][0]
                     # print( f"{mm=} {MM=} {lemmaListWithGlosses[MM]=} {MMLemma=} {list(state.OETRefData['usedHebLemmas'])[:20]=}")
                     # halt
-                    if lemmaList[MM] in state.OETRefData['usedHebLemmas']:
-                        prevMM = MM
+                    if lemmaList[LL] in state.OETRefData['usedHebLemmas']:
+                        prevLL = LL
                         break
-            else: prevMM = mm-1
-        if mm<len(lemmaList)-1:
+            else: prevLL = ll-1
+        if ll<len(lemmaList)-1:
             if TEST_MODE and not ALL_TEST_REFERENCE_PAGES:
-                for MM in range( mm, len(lemmaList) ):
-                    if lemmaList[MM] in state.OETRefData['usedHebLemmas']:
-                        nextMM = MM
+                for LL in range( ll, len(lemmaList) ):
+                    if lemmaList[LL] in state.OETRefData['usedHebLemmas']:
+                        nextLL = LL
                         break
-            else: nextMM = mm+1
-        prevLink = f'<b><a title="Previous lemma" href="{transliterate_Hebrew(lemmaList[prevMM])}.htm#Top">←</a></b> ' if prevMM else ''
-        nextLink = f' <b><a title="Next lemma" href="{transliterate_Hebrew(lemmaList[nextMM])}.htm#Top">→</a></b>' if nextMM else ''
+            else: nextLL = ll+1
+        prevLink = f'<b><a title="Previous lemma" href="{transliterate_Hebrew(lemmaList[prevLL])}.htm#Top">←</a></b> ' if prevLL else ''
+        nextLink = f' <b><a title="Next lemma" href="{transliterate_Hebrew(lemmaList[nextLL])}.htm#Top">→</a></b>' if nextLL else ''
         lemmasHtml = f'''<h1 id="Top">Hebrew root <small>(lemma)</small> ‘{hebLemma}’ ({transliteratedLemma})</h1>
 <p class="pNav">{prevLink}<b>{hebLemma}</b> <a title="Go to Hebrew word index" href="index.htm">↑</a>{nextLink}</p>'''
 # <p class="summary">This root form (lemma) ‘{hebLemma}’ is used in {'only one form' if len(lemmaFormsList)==1 else f'{len(lemmaFormsList):,} different forms'} in the Hebrew originals: {', '.join([f'<a title="View Hebrew word form" href="../HebWrd/{getFirstHebrewWordNumber(heb,morph)}.htm#Top">{heb}</a> <small>({morph[4:] if morph.startswith("....") else morph})</small>' for heb,morph in lemmaFormsList])}.</p>
@@ -1612,7 +1614,7 @@ def create_Hebrew_lemma_pages( level:int, outputFolderPath:Path, state:State ) -
 
         # Consider related lemmas, e.g., with or without prefix
         this_extended_lemma_list = [hebLemma]
-        for mm2, this_second_lemma in enumerate( lemmaList ):
+        for ll2, this_second_lemma in enumerate( lemmaList ):
             # print( f"  {mm} {this_second_lemma=}" )
             if this_second_lemma and len(this_second_lemma)>1 and this_second_lemma not in this_extended_lemma_list:
                 prefix = None
@@ -1680,7 +1682,7 @@ def create_Hebrew_lemma_pages( level:int, outputFolderPath:Path, state:State ) -
                 # List other lemmas that are glossed as antonyms
                 try:
                     contrastiveWords = CONTRASTIVE_GLOSS_WORDS_DICT[lemmaGloss]
-                    print( f"      {lemmaGloss=} {contrastiveWords=} {mm} {hebLemma=} {lemmaOETGlossesList=}")
+                    print( f"      {lemmaGloss=} {contrastiveWords=} {ll} {hebLemma=} {lemmaOETGlossesList=}")
                     NEVER_GETS_HERE
                 except KeyError: contrastiveWords = []
                 for contrastiveWord in contrastiveWords:
@@ -1791,12 +1793,14 @@ def create_Hebrew_lemma_pages( level:int, outputFolderPath:Path, state:State ) -
                         .replace( '__KEYWORDS__', 'Bible, word' )
         lemmasHtml = f'''{top}{lemmasHtml}{keyHtml}{makeBottom( level, 'lemma', state )}'''
         checkHtml( 'HebrewLemmaPage', lemmasHtml )
-        filepath = outputFolderPath.joinpath( output_filename )
+        filepath = outputFolderPath.joinpath( ll_output_filename )
         assert not filepath.is_file(), f"{filepath=}" # Check that we're not overwriting anything
+        # if filepath.is_file():
+        #     logging.critical( f"create_Hebrew_lemma_pages is about to overwrite {filepath} for {ll=} {hebLemma=} {transliteratedLemma=}" )
         with open( filepath, 'wt', encoding='utf-8' ) as html_output_file:
             html_output_file.write( lemmasHtml )
-        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  Wrote {len(lemmasHtml):,} characters to {output_filename}" )
-        lemmaLinks.append( f'<a href="{output_filename}">{hebLemma}</a>')
+        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  Wrote {len(lemmasHtml):,} characters to {ll_output_filename}" )
+        lemmaLinks.append( f'<a href="{ll_output_filename}">{hebLemma}</a>')
     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f'''    Created {len(lemmaLinks):,}{f"/{len(state.OETRefData['OTLemmaGlossDict']):,}" if len(lemmaLinks) < len(state.OETRefData['OTLemmaGlossDict']) else ''} Hebrew lemma pages.''' )
 
     # Create index page for this folder

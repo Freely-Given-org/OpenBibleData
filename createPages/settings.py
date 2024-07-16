@@ -54,7 +54,7 @@ DEBUGGING_THIS_MODULE = False # Adds debugging output
 
 OET_VERSION = 'v0.18'
 
-TEST_MODE = False # Writes website into Test subfolder
+TEST_MODE = True # Writes website into Test subfolder
 ALL_PRODUCTION_BOOKS = not TEST_MODE # If set to False, only selects one book per version for a faster test build
 ALL_TEST_REFERENCE_PAGES = False # If in TEST_MODE, make ALL word/lemma pages, or just the RELEVANT ones
 UPDATE_ACTUAL_SITE_WHEN_BUILT = True # The pages are initially built in a tmp folder so need to be copied to the final destination
@@ -67,7 +67,7 @@ DESTINATION_FOLDER = DEBUG_DESTINATION_FOLDER if TEST_MODE or BibleOrgSysGlobals
 
 OET_NT_BOOK_ORDER = ['JHN','MRK','MAT','LUK','ACT', 'ROM','CO1','CO2', 'GAL','EPH','PHP','COL', 'TH1','TH2', 'TI1','TI2','TIT','PHM', 'HEB', 'JAM', 'PE1','PE2', 'JN1','JN2','JN3', 'JDE', 'REV']
 
-TEST_OT_BOOK_LIST = ['JOS','PSA'] # Books in progress
+TEST_OT_BOOK_LIST = ['JOS'] # Books in progress
 TEST_NT_BOOK_LIST = ['MRK'] # Shortest gospel
 TEST_BOOK_LIST = TEST_OT_BOOK_LIST + TEST_NT_BOOK_LIST
 
@@ -81,7 +81,7 @@ SITE_ABBREVIATION = 'OBD'
 
 # The version to link to when the OET doesn't have that book (yet)
 ALTERNATIVE_VERSION = 'WEB' # Should be a version with all books present
-VERSIONS_WITH_BEYOND_66_BOOKS = ('WEB',)
+VERSIONS_WITH_BEYOND_66_BOOKS = ('KJB-1611','WEB',)
 
 NUM_EXTRA_MODES = 6 # Related passages, parallel and interlinear verses, reference and (Tyndale Bible) dictionary, and search
 
@@ -114,7 +114,7 @@ class State:
                 'NIV','CEV','ESV','NASB','LSB',
                 'JQT','2DT','1ST','TPT',
                 'WEB','WMB','MSG','LSV','FBV','TCNT','T4T','LEB','NRSV','NKJV','NAB','BBE',
-                'MOF','JPS','ASV','DRA','YLT','DBY','RV','WBS','KJB','BB','GNV','CB',
+                'MOF','JPS','ASV','DRA','YLT','DBY','RV','WBS','KJB-1769','KJB-1611','BB','GNV','CB',
                 'TNT','WYC',
                 'LUT','CLV',
                 'SR-GNT','UGNT','SBL-GNT','TC-GNT',
@@ -130,7 +130,7 @@ class State:
                 'NIV','CEV','ESV','NASB','LSB',
                 'JQT','2DT','1ST','TPT',
                 'WEB','WMB','MSG','NET','LSV','FBV','TCNT','T4T','LEB','NRSV','NKJV','NAB','BBE',
-                'MOF','JPS','ASV','DRA','YLT','DBY','RV','WBS','KJB','BB','GNV','CB',
+                'MOF','JPS','ASV','DRA','YLT','DBY','RV','WBS','KJB-1769','KJB-1611','BB','GNV','CB',
                 'TNT','WYC',
                 'LUT','CLV',
                 'SR-GNT','UGNT','SBL-GNT','TC-GNT',
@@ -147,7 +147,9 @@ class State:
     selectedVersesOnlyVersions = ('CSB','NLT','NIV','CEV','ESV','MSG','NASB','LSB','JQT','2DT','1ST','TPT','NRSV','NKJV','NAB', 'NETS' ) # These ones have .tsv sources (and don't produce Bible objects)
     numAllowedSelectedVerses   = (  300,  500,  500,  500,  500,  500,   500, 1000,   20,  300,  300,  250,   300,   300,  250,    250  ) # Order must match above list
     assert len(numAllowedSelectedVerses) == len(selectedVersesOnlyVersions)
+    # We want these versions on our parallel pages, but are not interested enough in them for them to have their own version pages
     versionsWithoutTheirOwnPages = selectedVersesOnlyVersions + ('LUT','CLV', 'UGNT','SBL-GNT','TC-GNT', 'BRN','BrLXX', 'TOSN','UTN')
+    if not TEST_MODE: versionsWithoutTheirOwnPages += 'KJB-1611'
 
     # NOTE: We don't display the versionsWithoutTheirOwnPages, so don't need/allow decorations for them
     BibleVersionDecorations = { 'OET':('<b>','</b>'),'OET-RV':('<b>','</b>'),'OET-LV':('<b>','</b>'),
@@ -157,7 +159,7 @@ class State:
                 'WEB':('',''),'WMB':('',''),'NET':('',''),'LSV':('',''),'FBV':('',''),'TCNT':('<small>','</small>'),'T4T':('',''),'LEB':('',''),'BBE':('',''),
                 'MOF':('<small>','</small>'),'JPS':('<small>','</small>'),'ASV':('',''),'DRA':('<small>','</small>'),'YLT':('',''),'DBY':('',''),'RV':('',''),
                 'WBS':('<small>','</small>'),
-                'KJB':('',''),'BB':('',''),'GNV':('',''),'CB':('',''),
+                'KJB-1769':('',''),'KJB-1611':('',''), 'BB':('',''),'GNV':('',''),'CB':('',''),
                 'TNT':('',''),'WYC':('',''), #'CLV':('<small>','</small>'),
                 'SR-GNT':('<b>','</b>'), # 'UGNT':('<small>','</small>'),'SBL-GNT':('<small>','</small>'),'TC-GNT':('<small>','</small>'),
                 # 'BRN':('<small>','</small>'),'BrLXX':('',''),
@@ -218,7 +220,8 @@ class State:
                 'DBY': '../copiedBibles/English/eBible.org/DBY/',
                 'RV': '../copiedBibles/English/eBible.org/RV/', # with deuterocanon
                 'WBS': '../copiedBibles/English/eBible.org/WBS/',
-                'KJB': '../copiedBibles/English/eBible.org/KJB/', # with deuterocanon
+                'KJB-1769': '../copiedBibles/English/eBible.org/KJB/', # with deuterocanon
+                'KJB-1611': '../copiedBibles/English/KJB-1611/', # with deuterocanon
                 'BB': '../copiedBibles/English/BibleSuperSearch/BB/bishops.txt',
                 'GNV': '../copiedBibles/English/eBible.org/GNV/',
                 'CB': '../copiedBibles/English/BibleSuperSearch/CB/coverdale.txt',
@@ -281,7 +284,8 @@ class State:
                 'DBY': 'Darby Translation (1890)',
                 'RV': 'English Revised Version (1885)',
                 'WBS': 'Webster Bible (American, 1833)',
-                'KJB': 'King James Bible (1769)',
+                'KJB-1769': 'King James Bible (1769)',
+                'KJB-1611': 'King James Bible (1611)',
                 'BB': 'Bishops Bible (1568,1602)',
                 'GNV': 'Geneva Bible (1557-1560,1599)',
                 'GB': 'Great Bible (1539)', # Not in OBD yet
@@ -349,7 +353,8 @@ class State:
                 'DBY': ['ALL'],
                 'RV': ['ALL'],
                 'WBS': ['ALL'],
-                'KJB': ['ALL'],
+                'KJB-1769': ['ALL'],
+                'KJB-1611': ['ALL'],
                 'BB': ['ALL'],
                 'GNV': ['ALL'],
                 'CB': ['ALL'],
@@ -411,7 +416,8 @@ class State:
                 'DBY': TEST_BOOK_LIST,
                 'RV': TEST_BOOK_LIST,
                 'WBS': TEST_BOOK_LIST,
-                'KJB': TEST_BOOK_LIST,
+                'KJB-1769': TEST_BOOK_LIST,
+                'KJB-1611': ['FRT'] + TEST_BOOK_LIST,
                 'BB': TEST_BOOK_LIST,
                 'GNV': TEST_BOOK_LIST,
                 'CB': TEST_BOOK_LIST,
@@ -611,9 +617,18 @@ However, Moffat wasn’t just a <em>follow the crowd</em> person, so he’s like
                 'copyright': '<p class="copyright">Copyright © (coming).</p>',
                 'licence': '<p class="licence">(coming).</p>',
                 'acknowledgements': '<p class="acknwldg">(coming).</p>' },
-        'KJB': {'about': '<p class="about">King James Bible (1611-1769).</p>',
+        'KJB-1769': {'about': '<p class="about">King James Bible (1611-1769).</p>',
                 'copyright': '<p class="copyright">Copyright © (coming).</p>',
                 'licence': '<p class="licence">(coming).</p>',
+                'acknowledgements': '<p class="acknwldg">(coming).</p>',
+                'notes': '''<p class="note">Note that after the publication of Samuel Johnson’s dictionary in 1755, the 1769 editions of the KJV are very different from the 1611 edition,
+including major typographic and formatting changes, and major spelling changes (including gaining the letter ‘j’), as well as hundreds of corrections.
+There are also some verse number changes and some changes to the italicised words, and the marginal notes from 1611 were removed.
+(There’s a lot of information online, but you can start by reading more details <a href="https://www.wayoflife.org/reports/changes_to_kjv_since_1611.html">here</a>.)</p>
+<p class="note">Also note that the apocryphal books were officially removed later in 1885, leaving only 66 ‘books’.</p>''' },
+        'KJB-1611': {'about': '<p class="about">King James Bible (1611).</p>',
+                'copyright': '<p class="copyright">Copyright © (coming).</p>',
+                'licence': '<p class="licence">Public domain.</p>',
                 'acknowledgements': '<p class="acknwldg">(coming).</p>' },
         'BB': {'about': '<p class="about">Bishops Bible (1568,1602).</p>',
                 'copyright': '<p class="copyright">Public Domain.</p>',

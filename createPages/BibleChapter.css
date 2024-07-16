@@ -135,6 +135,31 @@ span.jmp {}
 span.t4tFoS { color:mediumvioletred; } /* T4T figure of speech */
 span.add { color:grey; font-style:italic; }
 
+span.BSB_chapterIntro {}
+span.KJB-1611_chapterIntro { font-size:0.8em; color: grey; UnifrakturCook,"New Rocker","Unifraktur Maguntia","Germania One",Astloch,textura,schwabacher,rotunda,bastarda,cursive; }
+span.LEB_chapterIntro {}
+
+span.AICNT_verseTextChunk {}
+span.BLB_verseTextChunk {}
+span.BSB_verseTextChunk {}
+span.KJB-1611_verseTextChunk { font-family: UnifrakturCook,"New Rocker","Unifraktur Maguntia","Germania One",Astloch,textura,schwabacher,rotunda,bastarda,cursive; }
+span.add_KJB-1611 { vertical-align:middle; position:relative; top:-0.1em; font-size:0.8em; color: grey; }
+span.KJB-1769_verseTextChunk {}
+span.LEB_verseTextChunk {}
+span.NET_verseTextChunk {}
+span.OEB_verseTextChunk {}
+span.RV_verseTextChunk {}
+span.SBL-GNT_verseTextChunk {}
+span.SR-GNT_verseTextChunk {}
+span.T4T_verseTextChunk {}
+span.TC_verseTextChunk {}
+span.TCNT_verseTextChunk {}
+span.TNT_verseTextChunk {}
+span.UGNT_verseTextChunk {}
+span.UHB_verseTextChunk {}
+span.ULT_verseTextChunk {}
+span.UST_verseTextChunk {}
+
 /* USFM footnotes */
 div.footnotes {}
 p.fn { margin-top:0.2em; margin-bottom:0.2em; font-size:0.75em; }

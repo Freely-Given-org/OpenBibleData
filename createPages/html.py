@@ -71,7 +71,7 @@ from settings import State, TEST_MODE, SITE_NAME
 from OETHandlers import getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2024-07-08' # by RJH
+LAST_MODIFIED_DATE = '2024-07-12' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
 PROGRAM_VERSION = '0.88'
@@ -679,6 +679,22 @@ def checkHtmlForMissingStyles( where:str, htmlToCheck:str ) -> bool:
 # end of html.checkHtmlForMissingStyles
 
 
+def convert_adds_to_italics( htmlSegment:str, where:Optional[str]=None ) -> str:
+    """
+    """
+    # Hardwire added words in non-OET versions to italics
+    for _cati_safetyCheck in range( 30 ): # 20 was too few (because this might include an intro paragraph)
+        ix = htmlSegment.find( '<span class="add">' )
+        if ix == -1: break
+        htmlSegment = htmlSegment.replace( '<span class="add">', '<i>', 1 )
+        # TODO: What if there was another span inside the add field ???
+        htmlSegment = f"{htmlSegment[:ix]}{htmlSegment[ix:].replace('</span>','</i>',1)}"
+    else: not_enough_loops
+
+    return htmlSegment
+# end of html.convert_adds_to_italics
+
+
 RV_ADD_REGEX = re.compile( '<span class="RVadd">' )
 def do_OET_RV_HTMLcustomisations( OET_RV_html:str ) -> str:
     """
@@ -770,7 +786,8 @@ def do_OET_LV_HTMLcustomisations( OET_LV_html:str ) -> str:
     assert '<span class="add">?' not in OET_LV_html # Only expected in OET-RV
     OET_LV_html = (OET_LV_html \
             # Protect fields we need to preserve
-            .replace( '<!--', '~~COMMENT~~' ).replace( '_V', '~~V' )
+            .replace( '_V', '~~ULINE~~V' ).replace( '_verseText', '~~ULINE~~verseText' )
+            .replace( '<!--', '~~COMMENT~~' )
             .replace( '../', '~~PERIOD~~~~PERIOD~~/' )
             .replace( '.htm', '~~PERIOD~~htm' ).replace( 'https:', 'https~~COLON~~' )
             .replace( '.org', '~~PERIOD~~org' ).replace( '.tsv', '~~PERIOD~~tsv' )
@@ -785,20 +802,20 @@ def do_OET_LV_HTMLcustomisations( OET_LV_html:str ) -> str:
             .replace( '<span class="add">+', '<span class="addArticle">' )
             .replace( '<span class="add">-', '<span class="unusedArticle">' )
             .replace( '<span class="add">=', '<span class="addCopula">' )
-            .replace( '<span class="add"><a title', '__PROTECT__' )
+            .replace( '<span class="add"><a title', '~~PROTECT~~' )
             .replace( '<span class="add"><', '<span class="addDirectObject">' )
-            .replace( '__PROTECT__', '<span class="add"><a title' )
+            .replace( '~~PROTECT~~', '<span class="add"><a title' )
             .replace( '<span class="add">>', '<span class="addExtra">' )
             .replace( '<span class="add">&', '<span class="addOwner">' )
             # Put all underlines into a span with a class (then we will have a button to hide them)
             .replace( '="', '~~EQUAL"' ) # Protect class=, id=, etc.
             .replace( '=', '_' ).replace( '÷', '_' ) # For OT morphemes
             .replace( '~~EQUAL"', '="' ) # Unprotect class=, id=, etc.
-            .replace( '_', '<span class="ul">_</span>')
+            .replace( '_', '<span class="ul">_</span>') # THIS IS ONE THAT CAN OVERREACH
             # Now unprotect everything again
             .replace( '--fnUNDERLINE--', '_' ).replace( '--fnEQUAL--', '=' ).replace( '--fnCOLON--', ':' ).replace( '--fnPERIOD--', '.' ) # Unprotect sanitised footnotes (see usfm.py)
-            .replace( '~~COMMENT~~', '<!--' ).replace( '~~V', '_V' )
-            .replace( '~~COLON~~', ':' ).replace( '~~PERIOD~~', '.' )
+            .replace( '~~COMMENT~~', '<!--' )
+            .replace( '~~ULINE~~', '_' ).replace( '~~COLON~~', ':' ).replace( '~~PERIOD~~', '.' )
             # TODO: Not sure that this is the best place to do this next one for the OT
             .replace( ' DOM ',' <span class="dom">DOM</span> ')
             )

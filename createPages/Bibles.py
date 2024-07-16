@@ -90,7 +90,7 @@ from OETHandlers import findLVQuote, getBBBFromOETBookName
 from Dict import loadAndIndexUBSGreekDictJSON, loadAndIndexUBSHebrewDictJSON
 
 
-LAST_MODIFIED_DATE = '2024-07-08' # by RJH
+LAST_MODIFIED_DATE = '2024-07-10' # by RJH
 SHORT_PROGRAM_NAME = "Bibles"
 PROGRAM_NAME = "OpenBibleData Bibles handler"
 PROGRAM_VERSION = '0.74'
@@ -1262,11 +1262,12 @@ def getVerseDataListForReference( givenRefString:str, thisBible:Bible, lastBBB:O
 
 
 BMM_INDEX = defaultdict( set )
+BMM_TEXT_CACHE = {}
 def getBibleMapperMaps( level:int, BBB:str, startC:str, startV:Optional[str], endC:Optional[str], endV:Optional[str], referenceBible:Bible ) -> str: # html
     """
     Can be called for a verse, a chapter, or a section
     """
-    global BMM_INDEX
+    global BMM_INDEX, BMM_TEXT_CACHE
 
     fnPrint( DEBUGGING_THIS_MODULE, f"getBibleMapperMaps( {level}, {startC}:{startV}–{endC}:{endV} )" )
 
@@ -1283,7 +1284,7 @@ def getBibleMapperMaps( level:int, BBB:str, startC:str, startV:Optional[str], en
                     startCVstuff, endCVstuff = mapCVstuff.split( '–' )
                     # print( f"Chapter range: {mapBBB} {startCVstuff} to {endCVstuff} = '{mapFilename}'")
                     try: iStartC, iStartV = startCVstuff.split( ':' )
-                    except ValueError: startC, startV = startCVstuff, '1'
+                    except ValueError: iStartC, iStartV = startCVstuff, '1'
                     try: iEndC, iEndV = endCVstuff.split( ':' )
                     except ValueError: iEndC, iEndV = endCVstuff, referenceBible.getNumVerses( mapBBB, endCVstuff )
                     # print( f"   so {startC}:{startV} to {endC}:{endV}" )
@@ -1336,10 +1337,17 @@ def getBibleMapperMaps( level:int, BBB:str, startC:str, startV:Optional[str], en
     ourHtml = ''
     for filename in mapFilenamesSet:
         dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"getBibleMapperMaps( {level}, {startC}:{startV}–{endC}:{endV} ) got {filename=}" )
-        textFilepath = BIBLE_MAPPER_PATH.joinpath( f'{filename}.htmlSegment' )
-        with open( textFilepath, 'rt', encoding='utf-8' ) as txtFile:
-            htmlSegment = txtFile.read().rstrip() # Remove trailing newlines, etc.
-        # TODO: Liven links in htmlSegment
+
+        try: htmlSegment = BMM_TEXT_CACHE[filename]
+        except KeyError: # not cached yet
+            textFilepath = BIBLE_MAPPER_PATH.joinpath( f'{filename}.htmlSegment' )
+            with open( textFilepath, 'rt', encoding='utf-8' ) as txtFile:
+                htmlSegment = txtFile.read()
+            # TODO: Liven links in htmlSegment
+            checkHtml( f"Map {filename}", htmlSegment, segmentOnly=True )
+            htmlSegment = htmlSegment.rstrip() # Remove trailing newlines, etc.
+            BMM_TEXT_CACHE[filename] = htmlSegment
+
         imageFilename = f'{filename}_high.jpg'
         sourceImageFilepath = BIBLE_MAPPER_PATH.joinpath( imageFilename )
         destinationFolderpath = TEMP_BUILD_FOLDER. joinpath( 'BMM/' )
@@ -1347,11 +1355,12 @@ def getBibleMapperMaps( level:int, BBB:str, startC:str, startV:Optional[str], en
         except FileExistsError: pass
         # Note: shutil.copy2 is the same as copy but keeps metadata like creation and modification times
         shutil.copy2( sourceImageFilepath, destinationFolderpath )
+
         ourHtml = f'''{ourHtml}
 <p><img src="{'../'*level}BMM/{imageFilename}" alt="Map" width="98%" style="max-width:1000px; display:block; margin:auto;"></p>
 {htmlSegment}'''
 
-    checkHtml( f'BibleMapperMap@{startC}:{startV}–{endC}:{endV} with {mapFilenamesSet}', ourHtml, segmentOnly=True )
+    checkHtml( f'BibleMapperMap@{BBB}_{startC}:{startV}–{endC}:{endV} with {mapFilenamesSet}', ourHtml, segmentOnly=True )
     return ourHtml
 # end of Bibles.getBibleMapperMaps
 

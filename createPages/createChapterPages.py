@@ -54,7 +54,7 @@ from Bibles import getBibleMapperMaps
 from OETHandlers import livenOETWordLinks, getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
-LAST_MODIFIED_DATE = '2024-07-07' # by RJH
+LAST_MODIFIED_DATE = '2024-07-12' # by RJH
 SHORT_PROGRAM_NAME = "createChapterPages"
 PROGRAM_NAME = "OpenBibleData createChapterPages functions"
 PROGRAM_VERSION = '0.68'
@@ -507,6 +507,8 @@ def createChapterPages( level:int, folder:Path, thisBible, state:State ) -> List
                     textHtml = do_LSV_HTMLcustomisations( textHtml )
                 elif thisBible.abbreviation == 'T4T':
                     textHtml = do_T4T_HTMLcustomisations( textHtml )
+                elif thisBible.abbreviation == 'KJB-1611':
+                    textHtml = textHtml.replace( 'class="add"', 'class="add_KJB-1611"' )
                 chapterHtml = f'{chapterHtml}{textHtml}'
                 filename = f'{BBB}_Intro.htm' if c==-1 else f'{BBB}_C{c}.htm'
                 filenames.append( filename )

@@ -261,8 +261,8 @@ span.addPronoun { color:darkgreen; }
 span.addReferent { color:darkblue; }
 span.addPluralised { color:darkcyan; }
 span.addNegated { color:darkred; }
-span.addReword { color:orange; }
-span.RVadd { color:#505050; } /* Darker than dimGrey which is #696969 (black is #000000) */
+span.addReword { text-decoration:underline; text-decoration-style: dotted; }
+span.RVadd { color:darkOrange; } /* Was #505050 - darker than dimGrey which is #696969 (black is #000000) */
 span.add { color:grey; }
 span.untr { font-size:0.8em; color:grey; text-decoration:line-through; }
 span.unsure { text-decoration:underline; text-decoration-style: dotted; text-decoration-color: orange; }
@@ -325,6 +325,9 @@ span.aramaic { font-weight:bold; color:darkorchid; }
 span.grk { font-weight:bold; color:darkgreen; } /* Also used in NET Bible footnotes */
 span.latin { font-weight:bold; color:darkblue; }
 span.divine-name-ital { font-style:italic; }
+
+span.OET-LV_verseTextChunk {}
+span.OET-RV_verseTextChunk {}
 
 /* unfoldingWord translation notes (UTNs) */
 div.UTN {}

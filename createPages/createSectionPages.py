@@ -68,7 +68,7 @@ from Bibles import getBibleMapperMaps
 from OETHandlers import livenOETWordLinks, getOETTidyBBB, getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2024-07-07' # by RJH
+LAST_MODIFIED_DATE = '2024-07-12' # by RJH
 SHORT_PROGRAM_NAME = "createSectionPages"
 PROGRAM_NAME = "OpenBibleData createSectionPages functions"
 PROGRAM_VERSION = '0.63'
@@ -567,6 +567,8 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> List
                 textHtml = do_LSV_HTMLcustomisations( textHtml )
             elif thisBible.abbreviation == 'T4T':
                 textHtml = do_T4T_HTMLcustomisations( textHtml )
+            elif thisBible.abbreviation == 'KJB-1611':
+                textHtml = textHtml.replace( 'class="add"', 'class="add_KJB-1611"' )
             sectionHtml = f'''{sectionHtml}{textHtml}
 <p class="secNav">{sectionIndexLink}{leftLink}{documentLink} {startChapterLink}:{startV}–{endChapterLink}:{endV}{rightLink}{relatedLink}{parallelLink}{interlinearLink}{detailsLink}</p>'''
 

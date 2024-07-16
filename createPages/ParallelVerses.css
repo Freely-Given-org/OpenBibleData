@@ -58,20 +58,72 @@ p.ms1 { font-weight:bold; font-size:1.5em; }
 p.ms2 { font-weight:bold; font-size:1.3em; }
 
 p.parallelVerse {}
-span.SR-GNT_trans {}
-span.UHB_trans {}
-span.KJB_mod {}
+
+span.BSB_chapterIntro {}
+span.KJB-1611_chapterIntro { font-size:0.8em; color: grey; UnifrakturCook,"New Rocker","Unifraktur Maguntia","Germania One",Astloch,textura,schwabacher,rotunda,bastarda,cursive; }
+span.LEB_chapterIntro {}
+
+span.AICNT_verseTextChunk {}
+span.ASV_verseTextChunk {}
+span.BB_verseTextChunk {}
+span.BBE_verseTextChunk {}
+span.BLB_verseTextChunk {}
+span.BrLXX_verseTextChunk {}
+span.BRN_verseTextChunk {}
+span.BSB_verseTextChunk {}
+span.CB_verseTextChunk {}
+span.CLV_verseTextChunk {}
+span.DBY_verseTextChunk {}
+span.DRA_verseTextChunk {}
+span.FBV_verseTextChunk {}
+span.GNV_verseTextChunk {}
+span.JPS_verseTextChunk {}
+span.KJB-1611_verseTextChunk { font-family: UnifrakturCook,"New Rocker","Unifraktur Maguntia","Germania One",Astloch,textura,schwabacher,rotunda,bastarda,cursive; }
+span.add_KJB-1611 { vertical-align:middle; position:relative; top:-0.1em; font-size:0.8em; color: grey; }
+span.KJB-1769_verseTextChunk {}
+span.LEB_verseTextChunk {}
+span.LSV_verseTextChunk {}
+span.LUT_verseTextChunk {}
+span.MOF_verseTextChunk {}
+span.NET_verseTextChunk {}
+span.OEB_verseTextChunk {}
+span.OET-LV_verseTextChunk {}
+span.OET-RV_verseTextChunk {}
+span.RV_verseTextChunk {}
+span.SBL-GNT_verseTextChunk {}
+span.SR-GNT_verseTextChunk {}
+span.T4T_verseTextChunk {}
+span.TC_verseTextChunk {}
+span.TC-GNT_verseTextChunk {}
+span.TCNT_verseTextChunk {}
+span.TNT_verseTextChunk {}
+span.UGNT_verseTextChunk {}
+span.UHB_verseTextChunk {}
+span.ULT_verseTextChunk {}
+span.UST_verseTextChunk {}
+span.WBS_verseTextChunk {}
+span.WEB_verseTextChunk {}
+span.WMB_verseTextChunk {}
+span.WYC_verseTextChunk {}
+span.YLT_verseTextChunk {}
+
 span.BB_mod {}
-span.GNV_mod {}
 span.CB_mod {}
+span.CLV_trans {}
+span.GNV_mod {}
+span.KJB-1769_mod {}
+span.KJB-1611_mod {}
+span.LUT_trans {}
 span.TNT_mod {}
 span.WYC_mod {}
-span.LUT_trans {}
-span.CLV_trans {}
-span.UGNT_trans {}
-span.TC-GNT_trans {}
-span.SBL-GNT_trans {}
+
 span.BrLXX_trans {}
+span.SBL-GNT_trans {}
+span.SR-GNT_trans {}
+span.TC-GNT_trans {}
+span.UGNT_trans {}
+span.UHB_trans {}
+
 div.hideables {}
 span.noBook {}
 
@@ -153,8 +205,8 @@ span.addPronoun { color:darkgreen; }
 span.addReferent { color:darkblue; }
 span.addPluralised { color:darkcyan; }
 span.addNegated { color:darkred; }
-span.addReword { color:orange; }
-span.RVadd { color:#505050; } /* Darker than dimGrey which is #696969 (black is #000000) */
+span.addReword { text-decoration:underline; text-decoration-style: dotted; }
+span.RVadd { color:darkOrange; } /* Was #505050 - darker than dimGrey which is #696969 (black is #000000) */
 span.add { color:grey; }
 span.untr { font-size:0.8em; color:grey; text-decoration:line-through; }
 span.unsure { text-decoration:underline; text-decoration-style: dotted; text-decoration-color: orange; }

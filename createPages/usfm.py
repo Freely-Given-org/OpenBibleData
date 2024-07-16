@@ -56,8 +56,11 @@ CHANGELOG:
     2024-06-05 Include footnotes now (but not cross-references) in 'basic' mode
     2024-06-06 Fixed bug with closed fields inside footnotes
     2024-06-25 Put NNBSP between sucessive (close) quote marks
+    2024-07-11 Put verse text chunks into a style
+    2024-07-13 Changed KJB-1611 chapter numbers to Roman numerals
 """
 from gettext import gettext as _
+from typing import Union
 import re
 import logging
 
@@ -71,10 +74,10 @@ from html import checkHtml
 from OETHandlers import getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2024-06-25' # by RJH
+LAST_MODIFIED_DATE = '2024-07-13' # by RJH
 SHORT_PROGRAM_NAME = "usfm"
 PROGRAM_NAME = "OpenBibleData USFM to HTML functions"
-PROGRAM_VERSION = '0.78'
+PROGRAM_VERSION = '0.80'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -160,7 +163,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
         if marker in ('p~','v~'): # This has the actual verse text
             if not rest:
                 logging.error( f"Expected verse text {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} {marker=}" )
-            html = f'{html}{convertUSFMCharacterFormatting( versionAbbreviation, refTuple, segmentType, rest, basicOnly, state )}'
+            html = f'''{html}<span class="{versionAbbreviation}_{'chapterIntro' if V=='0' else 'verseTextChunk'}">{convertUSFMCharacterFormatting( versionAbbreviation, refTuple, segmentType, rest, basicOnly, state )}</span>'''
         elif marker == 'v': # This is where we want the verse marker
             if inRightDiv:
                 html = f'{html}</div><!--rightBox-->\n'
@@ -176,7 +179,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                     logging.warning( f" Not handling 3+ verse bridge well yet at {versionAbbreviation} {refTuple} {C}:{V}" )
                 vLink = f'''<a title="Go to verse in parallel view" href="{'../'*level}par/{BBB}/C{C}V{V1}.htm#Top">{V1}</a>'''
                 html = f'{html}{"" if html.endswith(">") else " "}' \
-                        + f'''{f"""<span id="C{C}"></span><span class="{'cPsa' if BBB=='PSA' else 'c'}" id="C{C}V1">{C}</span>""" if V1=="1" else f"""<span class="v" id="C{C}V{V1}">{vLink}-</span>"""}''' \
+                        + f'''{f"""<span id="C{C}"></span><span class="{'cPsa' if BBB=='PSA' else 'c'}" id="C{C}V1">{toRomanNumerals(C) if versionAbbreviation=='KJB-1611' else C}</span>""" if V1=="1" else f"""<span class="v" id="C{C}V{V1}">{vLink}-</span>"""}''' \
                         + (f'<span id="V{V1}"></span><span id="V{V2}"></span>' if segmentType in ('chapter','section','relatedPassage') or isSingleChapterBook else '') \
                         + f'<span class="v" id="C{C}V{V2}">{V2}{NARROW_NON_BREAK_SPACE}</span>' \
                         + (rest if rest else '=◘=')
@@ -184,7 +187,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                 if segmentType != 'verse': # No need for verse numbers at all if we're only displaying one verse
                     if not V.isdigit():
                         logging.error( f"Expected a verse number digit at {versionAbbreviation} {refTuple} {C}:{V} {rest=}" )
-                    cLink = f'''<a title="Go to verse in parallel view" href="{'../'*level}par/{BBB}/C{C}V1.htm#Top">{C}</a>'''
+                    cLink = f'''<a title="Go to verse in parallel view" href="{'../'*level}par/{BBB}/C{C}V1.htm#Top">{toRomanNumerals(C) if versionAbbreviation=='KJB-1611' else C}</a>'''
                     vLink = f'''<a title="Go to verse in parallel view" href="{'../'*level}par/{BBB}/C{C}V{V}.htm#Top">{V}</a>'''
                     html = f'''{html}{'' if html.endswith('"p">')or html.endswith('—') else ' '}''' \
                             + (f'<span id="V{V}"></span>' if segmentType in ('chapter','section','relatedPassage') or isSingleChapterBook else '') \
@@ -1416,7 +1419,29 @@ def livenIORs( versionAbbreviation:str, refTuple:tuple, segmentType:str, ioLineH
 # end of usfm.livenIORs function
 
 
+# ROMAN_DICT = { 1000:'M', 900:'CM', 500:'D', 400:'CD', 100:'C', 90:'XC', 50:'L', 40:'XL', 10:'X', 9:'IX', 5:'V', 4:'IV', 1:'I' }
+# We only use this for chapter numbers, so maximum is 151
+ROMAN_DICT = { 100:'C', 90:'XC', 50:'L', 40:'XL', 10:'X', 9:'IX', 5:'V', 4:'IV', 1:'I' }
+def toRomanNumerals( num:Union[int,str] ) -> str:
+    """
+    Adapted from https://stackoverflow.com/questions/28777219/basic-program-to-convert-integer-to-roman-numerals
+    """
+    if not isinstance(num, int): num = int( num )
+
+    def roman_num(num):
+        for r in ROMAN_DICT.keys():
+            x, y = divmod(num, r)
+            yield ROMAN_DICT[r] * x
+            num -= (r * x)
+            if num <= 0:
+                break
+
+    return ''.join([a for a in roman_num(num)])
+# end of usfm.toRomanNumerals function
+
+
 def briefDemo() -> None:
+        
     """
     Main program to handle command line parameters and then run what they want.
     """

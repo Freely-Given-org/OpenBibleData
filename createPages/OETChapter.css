@@ -133,6 +133,9 @@ span.sc { font-size:0.8em; } /* Small caps */
 span.sig { font-family:cursive; }
 span.rem { font-size:0.8em; color:grey; }
 
+span.OET-LV_verseTextChunk {}
+span.OET-RV_verseTextChunk {}
+
 /* USFM footnotes */
 div.footnotes {}
 p.fn { margin-top:0.2em; margin-bottom:0.2em; font-size:0.75em; }
@@ -162,8 +165,8 @@ span.addPronoun { color:darkgreen; }
 span.addReferent { color:darkblue; }
 span.addPluralised { color:darkcyan; }
 span.addNegated { color:darkred; }
-span.addReword {} /*{ color:orange; }*/
-span.RVadd { color:#505050; } /* Darker than dimGrey which is #696969 (black is #000000) */
+span.addReword { text-decoration:underline; text-decoration-style: dotted; }
+span.RVadd { color:darkOrange; } /* Was #505050 - darker than dimGrey which is #696969 (black is #000000) */
 span.add { color:grey; }
 span.untr { font-size:0.8em; color:grey; text-decoration:line-through; }
 span.unsure { text-decoration:underline; text-decoration-style: dotted; text-decoration-color: orange; }

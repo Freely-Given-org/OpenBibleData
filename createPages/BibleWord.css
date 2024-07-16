@@ -40,28 +40,11 @@ span.glossHelper { color:grey; }
 span.glossPost { color:brown; }
 
 /* NT spans */
-/* span.nominaSacra { font-weight:bold; } */
 span.nd {}
-/* span.wj { color:saddlebrown; } */
-/* span.sc { font-size:0.8em; } /* Small caps */
-/* span.sig { font-family:cursive; } */
-/* span.ul { color:darkGrey; } */
-/* span.SR-GNT_trans {} */
 
 /* OET add spans */
 span.addArticle { color:bisque; }
-/* span.unusedArticle { color:lavender; } */
-/* span.addCopula { color:pink; } */
-/* span.addDirectObject { color:brown; } */
 span.addExtra { color:lightGreen; }
-/* span.addElided { color:darkgoldenrod; } */
-/* span.addOwner { color:darkOrchid; } */
-/* span.addPronoun { color:darkgreen; } */
-/* span.addReferent { color:darkblue; } */
-/* span.addPluralised { color:darkcyan; } */
-/* span.addNegated { color:darkred; } */
-/* span.addReword { color:orange; } */
-/* span.RVadd { color:#505050; } /* Darker than dimGrey which is #696969 (black is #000000) */
 span.add { color:grey; }
 span.untr { font-size:0.8em; color:grey; text-decoration:line-through; }
 

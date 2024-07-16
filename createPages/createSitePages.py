@@ -89,7 +89,7 @@ from Dict import createTyndaleDictPages, createUBSDictionaryPages
 from html import makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2024-07-05' # by RJH
+LAST_MODIFIED_DATE = '2024-07-15' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData (OBD) Create Site Pages"
 PROGRAM_VERSION = '0.96'
@@ -254,7 +254,7 @@ def _createSitePages() -> bool:
                 thisBible.discoveryResults['ALL']['haveSectionHeadings'] = False # We need this in several places
             if not TEST_MODE or versionAbbreviation not in ('OEB','WEB','WMB','NET','LSV','FBV','TCNT','T4T','LEB',
                                                      'BBE','MOF','JPS','ASV','DRA','YLT','DBY','RV','WBS',
-                                                     'KJB','BB','GNV','CB','TNT','WYC'):
+                                                     'KJB-1769','BB','GNV','CB','TNT','WYC'):
                 # In test mode, we don't usually need to make all those pages, even just for the test books
                 vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nCreating {'TEST ' if TEST_MODE else ''}version pages for {thisBible.abbreviation}…" )
                 versionFolder = TEMP_BUILD_FOLDER.joinpath( f'{thisBible.abbreviation}/' )
@@ -856,14 +856,16 @@ Wherever, we believe that we have a retelling of almost the same thought in poet
             however there are some cases where the original is technically ambiguous, but it seems clear who or what is the referent.
         If it’s not clear, we will either try to make the best decision, or else, leave it ambiguous for the reader.</li>
     <li><b>Sample</b>: ‘<span class="addPronoun">she</span>’ <b>is used when</b> a pronoun is used instead of the full form,
-        e.g., ‘<span class="addPronoun">it</span>’ instead of ‘the white horse’. This is usually done to adhere to the norms of English fluency.
+        e.g., ‘<span class="addPronoun">it</span>’ instead of ‘the white horse’. This is usually done to adhere to the norms of English fluency.</li>
+    <li><b>Sample</b>: ‘<span class="addReword">But</span>’ <b>is used when</b> a word, phrase, or clause is reworded so there's no longer a close match to the original words,
+        e.g., ‘<span class="addReword">the tribes of Reuben and Gad</span>’ instead of ‘the Reubenite and the Gadite’. (Josh 13:8) This is usually done to give better English fluency and understanding.</li>
     <li><b>Sample</b>: ‘<span class="unsure">in the clouds</span>’ <b>represents</b> a word or phrase where we really can’t determine what the original author was probably trying to say.
         Sometimes we lack cultural understanding, sometimes it’s a rarely used original language word, and sometimes the original phrase or sentence just doesn’t seem to make sense in the context.
         Note that this formatting can also be combined with some of the above formats like ‘<span class="unsure RVadd">thing</span>’.</li>
     <li><b>Sample</b>: ‘<span class="wj">Once there was a man with…</span>’ <b>is used for</b> anything that it seems that Yeshua/Jesus actually spoke.
         (There’s no speech marks in the original manuscripts, so some interpretation decisions are required.)
         Although the invention of <em>red-letter Bibles</em> was possibly a sales booster technique from <a href="https://en.wikipedia.org/wiki/Red_letter_edition">the late 1800’s</a>,
-            it is popular with some readers (although we consider that it also might be a distraction from understanding the context of the direct speech, hence we use a <span class="wj">darker colour</span>.)
+            it is popular with some readers (although we consider that it also might be a distraction from understanding the context of the direct speech, hence we use a <span class="wj">less prominent colour</span> than <span style="color:red">red</span>.)
         With modern display (and even printing) technologies, the <em>OET</em> team plan to also use colour to mark direct speech from other speakers in the future
             (although we also plan to make it possible for online readers to disable it).</li>
 </ul>
@@ -901,6 +903,10 @@ even if it’s hard for us now to get those old, wrong names out of our minds.</
 <p class="note">Omitted verses are marked with the character ◘ (with a link to our <a href="{'../'*level}OET/missingVerse.htm">missing verses page</a>) to indicate that we didn’t accidentally miss translating it.
 The reason why such verses are not included is usually because the original language text was missing in the oldest manuscripts and thus believed to be a later addition in later copies.</p>
 <p class="note">More to come...</p>'''
+    assert keyHTML.count( '<li>' ) == keyHTML.count( '</li>' )
+    assert keyHTML.count( '<ol>' ) == keyHTML.count( '</ol>' )
+    assert keyHTML.count( '<p' ) == keyHTML.count( '</p>' )
+    assert keyHTML.count( '<span' ) == keyHTML.count( '</span>' )
     topHtml = makeTop( level, None, 'OETKey', None, state ) \
                 .replace( '__TITLE__', f"Key to the Open English Translation{' TEST' if TEST_MODE else ''}" ) \
                 .replace( '__KEYWORDS__', 'Bible, key, OET' )
