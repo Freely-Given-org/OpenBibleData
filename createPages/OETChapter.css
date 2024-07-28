@@ -166,7 +166,7 @@ span.addReferent { color:darkblue; }
 span.addPluralised { color:darkcyan; }
 span.addNegated { color:darkred; }
 span.addReword { text-decoration:underline; text-decoration-style: dotted; }
-span.RVadd { color:darkOrange; } /* Was #505050 - darker than dimGrey which is #696969 (black is #000000) */
+span.RVadd { color:#505050; } /* Darker than dimGrey which is #696969 (black is #000000) */
 span.add { color:grey; }
 span.untr { font-size:0.8em; color:grey; text-decoration:line-through; }
 span.unsure { text-decoration:underline; text-decoration-style: dotted; text-decoration-color: orange; }
@@ -199,5 +199,6 @@ span.parr { vertical-align:super; font-size:0.8em; color:green; } /* Hebrew para
 /* BibleMapper.com Maps */
 div.parallelBMM {}
 h2.mapTitle {}
+p.mapSubtitle {}
 p.mapRefs { font-weight:bold; }
 p.mapDescription {}

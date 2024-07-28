@@ -41,6 +41,7 @@ CHANGELOG:
     2023-10-25 Make use of word table index
     2024-01-07 Add chapter bar at top
     2024-04-08 Handle OT as well
+    2024-07-19 Fixed OT Strongs links
 """
 # from gettext import gettext as _
 from typing import Dict, List, Tuple
@@ -64,10 +65,10 @@ from createOETReferencePages import CNTR_BOOK_ID_MAP
 from OETHandlers import livenOETWordLinks, getOETBookName, getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
-LAST_MODIFIED_DATE = '2024-06-19' # by RJH
+LAST_MODIFIED_DATE = '2024-07-19' # by RJH
 SHORT_PROGRAM_NAME = "createOETInterlinearPages"
 PROGRAM_NAME = "OpenBibleData createOETInterlinearPages functions"
-PROGRAM_VERSION = '0.54'
+PROGRAM_VERSION = '0.55'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -175,7 +176,7 @@ def createOETInterlinearVersePagesForBook( level:int, folder:Path, BBB:str, BBBL
                 parallelLink = f''' <a title="Parallel verse view" href="{'../'*BBBLevel}par/{BBB}/C{c}V{v}.htm#Top">║</a>'''
                 detailsLink = f''' <a title="Show details about the OET" href="{'../'*(BBBLevel)}OET/details.htm#Top">©</a>'''
                 navLinks = f'<p id="__ID__" class="vNav">{leftCLink}{leftVLink}{ourTidyBBBwithNotes} {c}:{v} <a title="Go to __WHERE__ of page" href="#__LINK__">__ARROW__</a>{rightVLink}{rightCLink}{parallelLink}{detailsLink}</p>'
-                iHtml = createOETInterlinearVersePage( BBBLevel, BBB, c, v, state )
+                iHtml = createOETInterlinearVerseInner( BBBLevel, BBB, c, v, state )
                 assert iHtml
                 assert '\n\n' not in iHtml
                 filename = f'C{c}V{v}.htm'
@@ -188,12 +189,12 @@ def createOETInterlinearVersePagesForBook( level:int, folder:Path, BBB:str, BBBL
                 iHtml = f'''{top}<!--interlinear verse page-->
 {adjBBBLinksHtml}
 {cLinksPar}
-<h1 id="Top">OET interlinear {ourTidyBBBwithNotes} {c}:{v}</h1>
+<h1>OET interlinear {ourTidyBBBwithNotes} {c}:{v}</h1>
 {navLinks.replace('__ID__','Top').replace('__ARROW__','↓').replace('__LINK__','Bottom').replace('__WHERE__','bottom')}
 {iHtml}
 {navLinks.replace('__ID__','Bottom').replace('__ARROW__','↑').replace('__LINK__','Top').replace('__WHERE__','top')}
 {makeBottom( BBBLevel, 'interlinearVerse', state )}'''
-                checkHtml( f'Interlinear {BBB} {c}:{v}', iHtml )
+                checkHtml( f'Interlinear page {BBB} {c}:{v}', iHtml )
                 assert not filepath.is_file() # Check that we're not overwriting anything
                 with open( filepath, 'wt', encoding='utf-8' ) as iHtmlFile:
                     iHtmlFile.write( iHtml )
@@ -255,13 +256,13 @@ f'''<p class="chLst">{ourTidyBbb if ourTidyBbb!='Yac' else 'Yacob/(James)'} {'
 # end of html.createOETInterlinearVersePagesForBook
 
 
-def createOETInterlinearVersePage( level:int, BBB:str, c:int, v:int, state:State ) -> str:
+def createOETInterlinearVerseInner( level:int, BBB:str, c:int, v:int, state:State ) -> str: # Returns the HTML
     """
     Create an interlinear page for the Bible verse.
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"createOETInterlinearVersePage( {level}, {BBB} {c}:{v}, … )" )
+    fnPrint( DEBUGGING_THIS_MODULE, f"createOETInterlinearVerseInner( {level}, {BBB} {c}:{v}, … )" )
 
-    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"createOETInterlinearVersePage {level}, {BBB} {c}:{v}, …" )
+    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"createOETInterlinearVerseInner {level}, {BBB} {c}:{v}, …" )
 
     NT = BibleOrgSysGlobals.loadedBibleBooksCodes.isNewTestament_NR( BBB )
     wordFileName = 'OET-LV_NT_word_table.tsv' if NT else 'OET-LV_OT_word_table.tsv'
@@ -281,6 +282,7 @@ def createOETInterlinearVersePage( level:int, BBB:str, c:int, v:int, state:State
         lvVerseEntryList, lvContextList = lvBible.getContextVerseData( (BBB, C, V) )
         livenedLvVerseEntryList = livenOETWordLinks( level, lvBible, BBB, lvVerseEntryList, state )
         lvTextHtml = do_OET_LV_HTMLcustomisations( convertUSFMMarkerListToHtml( level, 'OET-LV', (BBB,C,V), 'verse', lvContextList, livenedLvVerseEntryList, basicOnly=True, state=state ) )
+        lvTextHtml = lvTextHtml.replace( 'id="fn', 'id="fnLV' ).replace( 'href="#fn', 'href="#fnLV' )
         lvHtml = f'''<div class="LV"><p class="LV"><span class="wrkName"><a title="View {state.BibleNames['OET']} chapter" href="{'../'*level}OET/byC/{BBB}_C{c}.htm#Top">OET</a> (<a title="{state.BibleNames['OET-LV']}" href="{'../'*level}OET-LV/byC/{BBB}_C{c}.htm#Top">OET-LV</a>)</span> {lvTextHtml}</p></div><!--LV-->'''
     except (KeyError, TypeError):
         if BBB in lvBible and BBB in rvBible:
@@ -295,6 +297,7 @@ def createOETInterlinearVersePage( level:int, BBB:str, c:int, v:int, state:State
         rvVerseEntryList, rvContextList = rvBible.getContextVerseData( (BBB, C, V) )
         livenedRvVerseEntryList = livenOETWordLinks( level, lvBible, BBB, rvVerseEntryList, state )
         rvTextHtml = do_OET_RV_HTMLcustomisations( convertUSFMMarkerListToHtml( level, 'OET-RV', (BBB,C,V), 'verse', rvContextList, livenedRvVerseEntryList, basicOnly=True, state=state ) )
+        rvTextHtml = rvTextHtml.replace( 'id="fn', 'id="fnRV' ).replace( 'href="#fn', 'href="#fnRV' )
         rvHtml = f'''<div class="RV"><p class="RV"><span class="wrkName"><a title="View {state.BibleNames['OET']} chapter" href="{'../'*level}OET/byC/{BBB}_C{c}.htm#Top">OET</a> (<a title="{state.BibleNames['OET-RV']}" href="{'../'*level}OET-RV/byC/{BBB}_C{c}.htm#Top">OET-RV</a>)</span> {rvTextHtml}</p></div><!--RV-->'''
     except (KeyError, TypeError):
         if BBB in rvBible:
@@ -321,7 +324,9 @@ def createOETInterlinearVersePage( level:int, BBB:str, c:int, v:int, state:State
 
         # Remove sentence punctuation, break "chosen/messiah"
         #   then split into words
-        lvEnglishWordList += ( cleanLVText.replace(',','').replace('.','').replace(':','').replace('?','')
+        lvEnglishWordList += ( cleanLVText # This has all formatting (like \\add fields) removed
+                            .replace(',','').replace('.','').replace(':','').replace('?','')
+                            .replace('>','').replace('<','') \
                             # .replace('\\add ','').replace('\\add*','')
                             # .replace('\\nd ','').replace('\\nd*','')
                             # .replace('\\sup ','<sup>').replace('\\sup*','</sup>')
@@ -342,12 +347,13 @@ def createOETInterlinearVersePage( level:int, BBB:str, c:int, v:int, state:State
         # break
     rvEnglishWordList = []
     for rvVerseEntry in rvVerseEntryList:
-        fullLVText = rvVerseEntry.getFullText()
-        if not fullLVText or '¦' not in fullLVText: continue # no interest to us here
+        fullRVText = rvVerseEntry.getFullText()
+        if not fullRVText or '¦' not in fullRVText: continue # no interest to us here
 
         # Remove sentence punctuation,
         #   then split into words
-        rvEnglishWordList += fullLVText.replace(',','').replace('.','').replace(':','').replace('?','') \
+        rvEnglishWordList += fullRVText.replace(',','').replace('.','').replace(':','').replace('?','') \
+                            .replace('\\add >','').replace('\\add <','') \
                             .replace('\\add ','').replace('\\add*','') \
                             .replace('\\nd ','').replace('\\nd*','') \
                             .replace('\\sup ','<sup>').replace('\\sup*','</sup>') \
@@ -429,6 +435,7 @@ def createOETInterlinearVersePage( level:int, BBB:str, c:int, v:int, state:State
                 # if not rowStr.startswith( f'{BBB}_{c}:{v}w' ): # gone into the next verse
                 #     break
                 row = rowStr.split( '\t' )
+                assert len(row) == 12
                 #  0    1          2        3           4              5              6          7            8           9     10          11
                 # 'Ref\tGreekWord\tSRLemma\tGreekLemma\tVLTGlossWords\tOETGlossWords\tGlossCaps\tProbability\tStrongsExt\tRole\tMorphology\tTags'
                 if row[11]:
@@ -458,8 +465,8 @@ def createOETInterlinearVersePage( level:int, BBB:str, c:int, v:int, state:State
             ivHtml = f'{ivHtml}{NEWLINE.join( GreekList )}'
         else: # OT
             HebrewList = ['''<li><ol class="titles">
-<li lang="el">Hebrew word</li>
-<li lang="el_LEMMA">Hebrew lemma</li>
+<li lang="he">Hebrew word</li>
+<li lang="he_LEMMA">Hebrew lemma</li>
 <li lang="en_TRANS"><b>OET-LV words</b></li>
 <li lang="en_TRANS"><b>OET-RV words</b></li>
 <li lang="en_STRONGS">Strongs</li>
@@ -477,11 +484,13 @@ def createOETInterlinearVersePage( level:int, BBB:str, c:int, v:int, state:State
                 # if not rowStr.startswith( f'{BBB}_{c}:{v}w' ): # gone into the next verse
                 #     break
                 row = rowStr.split( '\t' )
-                #  0    1        2             3        4           5     6                7                8                          9          10                   11                   12                13          14           15    16       17
-                # 'Ref\tRowType\tLemmaRowList\tStrongs\tMorphology\tWord\tNoCantillations\tMorphemeGlosses\tContextualMorphemeGlosses\tWordGloss\tContextualWordGloss\tGlossCapitalisation\tGlossPunctuation\tGlossOrder\tGlossInsert\tRole\tNesting\tTags'
-                gloss = row[10] if row[10] else row[9] if row[9] else row[8] if row[8] else row[7]
-                if row[17]:
-                    tags = row[17].split( ';' )
+                assert len(row) == 19, f"({len(row)}) {row=}"
+                #  0    1        2                3             4        5           6     7                8                9                          10         11                   12                   13                14          15           16    17       18
+                # 'Ref\tRowType\tMorphemeRowList\tLemmaRowList\tStrongs\tMorphology\tWord\tNoCantillations\tMorphemeGlosses\tContextualMorphemeGlosses\tWordGloss\tContextualWordGloss\tGlossCapitalisation\tGlossPunctuation\tGlossOrder\tGlossInsert\tRole\tNesting\tTags'
+                gloss = row[11] if row[11] else row[10] if row[10] else row[9] if row[9] else row[8]
+                strongsList = [f'<a href="https://BibleHub.com/hebrew/{nn}.htm">{nn}</a>' for nn in row[4].split(',') if nn.isdigit()]
+                if row[18]:
+                    tags = row[18].split( ';' )
                     for t,tag in enumerate( tags ):
                         tagPrefix, tag = tag[0], tag[1:]
                         if tagPrefix == 'P':
@@ -491,14 +500,14 @@ def createOETInterlinearVersePage( level:int, BBB:str, c:int, v:int, state:State
                     tagsHtml = '; '.join( tags )
                 else: tagsHtml = '-'
                 HebrewList.append( f'''<li><ol class="word">
-<li lang="el">{row[6]}</li>
-<li lang="el_LEMMA">{row[2]}</li>
+<li lang="he">{row[7]}</li>
+<li lang="he_LEMMA">{row[2]}</li>
 <li lang="en_TRANS"><b>{' '.join(lvEnglishWordDict[wordNumber]) if lvEnglishWordDict[wordNumber] else '-'}</b></li>
 <li lang="en_TRANS"><b>{' '.join(rvEnglishWordDict[wordNumber]) if rvEnglishWordDict[wordNumber] else '-'}</b></li>
-<li lang="en_STRONGS"><a href="https://BibleHub.com/hebrew/{row[3][:-1]}.htm">{row[3]}</a></li>
-<li lang="en_MORPH">{row[15]}-{row[4]}</li>
+<li lang="en_STRONGS">{','.join(strongsList)}</li>
+<li lang="en_MORPH">{row[16]}-{row[5]}</li>
 <li lang="en_GLOSS">{gloss}</li>
-<li lang="en_CAPS">{row[11] if row[11] else '-'}</li>
+<li lang="en_CAPS">{row[12] if row[12] else '-'}</li>
 <li lang="en_TAGS">{tagsHtml}</li>
 <li lang="en_WORDNUM"><a title="View word details" href="{'../'*level}ref/HebWrd/{wordNumber}.htm#Top">{wordNumber}</a></li>
 </ol></li>''' )
@@ -534,8 +543,8 @@ def createOETInterlinearVersePage( level:int, BBB:str, c:int, v:int, state:State
 <li lang="en_TRANS"><b>OET-LV words</b></li>
 <li lang="en_TRANS"><b>OET-RV words</b></li>
 <li lang="en_STRONGS">Strongs</li>
-<li lang="el">Hebrew word</li>
-<li lang="el_LEMMA">Hebrew lemma</li>
+<li lang="he">Hebrew word</li>
+<li lang="he_LEMMA">Hebrew lemma</li>
 <li lang="en_MORPH">Role/Morphology</li>
 <li lang="en_GLOSS">Gloss</li>
 <li lang="en_CAPS">CAPS codes</li>
@@ -562,6 +571,9 @@ def createOETInterlinearVersePage( level:int, BBB:str, c:int, v:int, state:State
             if NT:
                 assert rowStr.startswith( f'{BBB}_{c}:{v}w' )
                 row = rowStr.split( '\t' )
+                assert len(row) == 12
+                #  0    1          2        3           4              5              6          7            8           9     10          11
+                # 'Ref\tGreekWord\tSRLemma\tGreekLemma\tVLTGlossWords\tOETGlossWords\tGlossCaps\tProbability\tStrongsExt\tRole\tMorphology\tTags'
                 if row[11]:
                     tags = row[11].split( ';' )
                     for t,tag in enumerate( tags ):
@@ -589,8 +601,11 @@ def createOETInterlinearVersePage( level:int, BBB:str, c:int, v:int, state:State
             else: # OT
                 assert rowStr.startswith( f'{BBB}_{c}:{v}' )
                 row = rowStr.split( '\t' )
-                if 0 and row[11]:
-                    tags = row[11].split( ';' )
+                assert len(row) == 19, f"({len(row)}) {row=}"
+                #  0    1        2                3             4        5           6     7                8                9                          10         11                   12                   13                14          15           16    17       18
+                # 'Ref\tRowType\tMorphemeRowList\tLemmaRowList\tStrongs\tMorphology\tWord\tNoCantillations\tMorphemeGlosses\tContextualMorphemeGlosses\tWordGloss\tContextualWordGloss\tGlossCapitalisation\tGlossPunctuation\tGlossOrder\tGlossInsert\tRole\tNesting\tTags'
+                if row[18]:
+                    tags = row[18].split( ';' )
                     for t,tag in enumerate( tags ):
                         tagPrefix, tag = tag[0], tag[1:]
                         if tagPrefix == 'P':
@@ -599,15 +614,16 @@ def createOETInterlinearVersePage( level:int, BBB:str, c:int, v:int, state:State
                             tags[t] = f'''Location=<a title="View place details" href="{'../'*level}ref/Loc/{tag}.htm#Top">{tag}</a>'''
                     tagsHtml = '; '.join( tags )
                 else: tagsHtml = '-'
+                strongsList = [f'<a href="https://BibleHub.com/hebrew/{nn}.htm">{nn}</a>' for nn in row[3].split(',') if nn.isdigit()]
                 reverseList.append( f'''<li><ol class="word">
 <li lang="en_TRANS"><b>{word}</b></li>
 <li lang="en_TRANS"><b>{' '.join(rvEnglishWordDict[wordNumber]) if rvEnglishWordDict[wordNumber] else '-'}</b></li>
-<li lang="en_STRONGS"><a href="https://BibleHub.com/hebrew/{row[3][:-1]}.htm">{row[3]}</a></li>
-<li lang="el">{row[1]}</li>
-<li lang="el_LEMMA">{row[2]}</li>
-<li lang="en_MORPH">{row[15]}-{row[4]}</li>
+<li lang="en_STRONGS">{','.join(strongsList)}</li>
+<li lang="he">{row[1]}</li>
+<li lang="he_LEMMA">{row[2]}</li>
+<li lang="en_MORPH">{row[16]}-{row[5]}</li>
 <li lang="en_GLOSS">{gloss}</li>
-<li lang="en_CAPS">{row[11] if row[11] else '-'}</li>
+<li lang="en_CAPS">{row[12] if row[12] else '-'}</li>
 <li lang="en_TAGS">{tagsHtml}</li>
 <li lang="en_WORDNUM"><a title="View word details" href="{'../'*level}ref/HebWrd/{wordNumber}.htm#Top">{wordNumber}</a></li>
 </ol></li>''' )
@@ -616,16 +632,16 @@ def createOETInterlinearVersePage( level:int, BBB:str, c:int, v:int, state:State
 
 
     ivHtml = f'''{ivHtml}{rivHtml}</ol></div><!--interlinear-->
-{lvHtml}
-{rvHtml}
-<p class="note"><small><b>Note</b>: The OET-RV is still only a first draft, and so far only a few words have been (mostly automatically) matched to the Greek words that they’re translated from.</small></p>{f'{NEWLINE}<p class="thanks"><b>Acknowledgements</b>: The SR Greek text, lemmas, morphology, and VLT gloss are all thanks to the <a href="https://GreekCNTR.org/collation/index.htm?v={CNTR_BOOK_ID_MAP[BBB]}{C.zfill(3)}{V.zfill(3)}">SR-GNT</a>.</p>' if BibleOrgSysGlobals.loadedBibleBooksCodes.isNewTestament_NR( BBB ) else ''}'''
+{lvHtml.replace( 'id="fnLV', 'id="fnRvLV' ).replace( 'href="#fnLV', 'href="#fnRvLV' )}
+{rvHtml.replace( 'id="fnRV', 'id="fnRvRV' ).replace( 'href="#fnRV', 'href="#fnRvRV' )}
+<p class="note"><small><b>Note</b>: The OET-RV is still only a first draft, and so far only a few words have been (mostly automatically) matched to the Hebrew or Greek words that they’re translated from.</small></p>{f'{NEWLINE}<p class="thanks"><b>Acknowledgements</b>: The SR Greek text, lemmas, morphology, and VLT gloss are all thanks to the <a href="https://GreekCNTR.org/collation/index.htm?v={CNTR_BOOK_ID_MAP[BBB]}{C.zfill(3)}{V.zfill(3)}">SR-GNT</a>.</p>' if BibleOrgSysGlobals.loadedBibleBooksCodes.isNewTestament_NR( BBB ) else ''}'''
     
     # ivHtml = ivHtml.replace( '<br>\n' , '\n<br>' ) # Make sure it follows our convention (just for tidyness and consistency)
     while '\n\n' in ivHtml: ivHtml = ivHtml.replace( '\n\n', '\n' ) # Remove useless extra newline characters
     # dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\n\n{ivHtml=}" )
-    checkHtml( f'Interlinear {BBB} {c}:{v}', ivHtml, segmentOnly=True )
+    checkHtml( f'Interlinear verse inner {BBB} {c}:{v}', ivHtml, segmentOnly=True )
     return ivHtml
-# end of html.createOETInterlinearVersePage
+# end of html.createOETInterlinearVerseInner
 
 
 

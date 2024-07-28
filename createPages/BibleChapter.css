@@ -134,18 +134,36 @@ span.qac { color:darkOrchid; font-style:italic; } /* Acrostic letter */
 span.jmp {}
 span.t4tFoS { color:mediumvioletred; } /* T4T figure of speech */
 span.add { color:grey; font-style:italic; }
+span.k {} /* keyterm used in WEB GLS */
 
 span.BSB_chapterIntro {}
+span.FBV_chapterIntro {}
 span.KJB-1611_chapterIntro { font-size:0.8em; color: grey; UnifrakturCook,"New Rocker","Unifraktur Maguntia","Germania One",Astloch,textura,schwabacher,rotunda,bastarda,cursive; }
+span.KJB-1769_chapterIntro {}
 span.LEB_chapterIntro {}
+span.OEB_chapterIntro {}
+span.RV_chapterIntro {}
+span.ULT_chapterIntro {}
+span.WEB_chapterIntro {}
 
 span.AICNT_verseTextChunk {}
+span.ASV_verseTextChunk {}
+span.BB_verseTextChunk {}
+span.BBE_verseTextChunk {}
 span.BLB_verseTextChunk {}
 span.BSB_verseTextChunk {}
+span.CB_verseTextChunk {}
+span.DBY_verseTextChunk {}
+span.DRA_verseTextChunk {}
+span.FBV_verseTextChunk {}
+span.GNV_verseTextChunk {}
+span.JPS_verseTextChunk {}
 span.KJB-1611_verseTextChunk { font-family: UnifrakturCook,"New Rocker","Unifraktur Maguntia","Germania One",Astloch,textura,schwabacher,rotunda,bastarda,cursive; }
 span.add_KJB-1611 { vertical-align:middle; position:relative; top:-0.1em; font-size:0.8em; color: grey; }
 span.KJB-1769_verseTextChunk {}
 span.LEB_verseTextChunk {}
+span.LSV_verseTextChunk {}
+span.MOF_verseTextChunk {}
 span.NET_verseTextChunk {}
 span.OEB_verseTextChunk {}
 span.RV_verseTextChunk {}
@@ -156,9 +174,14 @@ span.TC_verseTextChunk {}
 span.TCNT_verseTextChunk {}
 span.TNT_verseTextChunk {}
 span.UGNT_verseTextChunk {}
-span.UHB_verseTextChunk {}
+span.UHB_verseTextChunk { font-family: Alef,"Noto Sans Hebrew","SBL Hebrew","Ezra SIL"; }
 span.ULT_verseTextChunk {}
 span.UST_verseTextChunk {}
+span.WBS_verseTextChunk {}
+span.WEB_verseTextChunk {}
+span.WMB_verseTextChunk {}
+span.WYC_verseTextChunk {}
+span.YLT_verseTextChunk {}
 
 /* USFM footnotes */
 div.footnotes {}

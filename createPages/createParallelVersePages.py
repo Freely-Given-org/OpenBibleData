@@ -92,7 +92,7 @@ from createOETReferencePages import CNTR_BOOK_ID_MAP, OSHB_ADJECTIVE_DICT, OSHB_
 from OETHandlers import getOETTidyBBB, getOETBookName, livenOETWordLinks, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
-LAST_MODIFIED_DATE = '2024-07-15' # by RJH
+LAST_MODIFIED_DATE = '2024-07-26' # by RJH
 SHORT_PROGRAM_NAME = "createParallelVersePages"
 PROGRAM_NAME = "OpenBibleData createParallelVersePages functions"
 PROGRAM_VERSION = '0.96'
@@ -138,7 +138,7 @@ def createParallelVersePages( level:int, folder:Path, state:State ) -> bool:
     filepath = folder.joinpath( filename )
     top = makeTop( level, None, 'parallelVerse', None, state ) \
             .replace( '__TITLE__', f"Parallel Verse View{' TEST' if TEST_MODE else ''}" ) \
-            .replace( '__KEYWORDS__', 'Bible, parallel, verse' )
+            .replace( '__KEYWORDS__', 'Bible, parallel, verse, view, display, index' )
     indexHtml = f'''{top}<h1 id="Top">Parallel verse pages</h1>
 <p class="note">Each page only contains a single verse with minimal formatting, but displays it in a large number of different versions to enable analysis of different translation decisions. Study notes, theme notes, and translation notes will also be displayed, although not every verse has these.</p>
 <p class="note">Generally the older versions are nearer the bottom, and so reading from the bottom to the top can show how many English vocabulary and punctuation decisions propagated from one version to another.</p>
@@ -247,7 +247,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"    createParallelVersePagesForBook {parRef} processing {versionAbbreviation}…" )
                     assert not parallelHtml.endswith( '\n' )
 
-                    if versionAbbreviation == 'OET': continue # Skip this pseudo-version as we have OET-RV and OET-LV
+                    if versionAbbreviation == 'OET': continue # Skip this pseudo-version as we have both OET-RV and OET-LV instead
                     if versionAbbreviation in ('UHB','JPS') \
                     and not BibleOrgSysGlobals.loadedBibleBooksCodes.isOldTestament_NR( BBB):
                         continue # Skip non-OT books for Hebrew
@@ -346,7 +346,9 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                             if versionAbbreviation not in ('TCNT','TC-GNT'): # They use this character in footnotes
                                 assert '¦' not in textHtml, f"{parRef} {versionAbbreviation} {textHtml=}"
                             assert not textHtml.endswith( '\n' )
-                            if textHtml == '◙': raise UntranslatedVerseError
+                            if textHtml == '◙':
+                                NEVER_GETS_HERE
+                                raise UntranslatedVerseError
 
                             if versionAbbreviation == 'KJB-1611':
                                 textHtml = textHtml.replace( 'class="add"', 'class="add_KJB-1611"' )
@@ -355,19 +357,21 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                                 textHtml = convert_adds_to_italics( textHtml, f'OET parallel verse {parRef}' )
 
                             if versionAbbreviation == 'OET-RV':
-                                # if BBB=='MRK' and C=='3' and V=='9': print( f"AAA {parRef} {versionAbbreviation} {textHtml=}" )
+                                # if BBB=='MRK' and C=='7' and V=='16': print( f"AAA {parRef} {versionAbbreviation} {textHtml=}" )
                                 textHtml = do_OET_RV_HTMLcustomisations( textHtml )
-                                # if BBB=='MRK' and C=='3' and V=='9': print( f"BBB {parRef} {versionAbbreviation} {textHtml=}" )
+                                # if BBB=='MRK' and C=='7' and V=='16': print( f"BBB {parRef} {versionAbbreviation} {textHtml=}" )
                             elif versionAbbreviation == 'OET-LV':
+                                # if BBB=='MRK' and C=='7' and V=='16': print( f"CCC {parRef} {versionAbbreviation} {textHtml=}" )
                                 # assert '<span class="ul">_</span>HNcbsa' not in textHtml, f'''Here1 ({textHtml.count('<span class="ul">_</span>HNcbsa')}) {textHtml=}'''
                                 textHtml, footnoteFreeTextHtml, footnotesHtml = do_OET_LV_HTMLcustomisations(textHtml), do_OET_LV_HTMLcustomisations(footnoteFreeTextHtml), do_OET_LV_HTMLcustomisations(footnotesHtml)
                                 # assert textHtml.count('<span class="ul">_</span>HNcbsa') < 2, f'''Here2 ({textHtml.count('<span class="ul">_</span>HNcbsa')}) {textHtml=}'''
+                                # if BBB=='MRK' and C=='7' and V=='16': print( f"DDD {parRef} {versionAbbreviation} {textHtml=}" )
                             elif versionAbbreviation == 'WEB': # assuming WEB comes BEFORE WMB
-                                footnoteFreeTextHtmlWEB = footnoteFreeTextHtml # Save it
+                                textHtmlWEB = textHtml # Save it
                             elif versionAbbreviation == 'WMB': # assuming WEB comes BEFORE WMB
-                                if footnoteFreeTextHtml == footnoteFreeTextHtmlWEB:
+                                if textHtml == textHtmlWEB.replace( 'WEB', 'WMB' ):
                                     # print( f"Skipping parallel for WMB {parRef} because same as WEB" )
-                                    continue
+                                    textHtml = "(Same as above)" # Do we also need to adjust footnotesHtml ???
                                 # else:
                                 #     print( f"Using parallel for WMB {parRef} because different from WEB:" )
                                 #     print( f"  {textHtmlWEB=}" )
@@ -378,89 +382,118 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                                 textHtml = do_T4T_HTMLcustomisations( textHtml )
                             elif versionAbbreviation in ('WYC','TNT','CB','GNV','BB','KJB-1769','KJB-1611'):
                                 # print( f"{versionAbbreviation} {parRef} {footnoteFreeTextHtml=}")
-                                rawTextHtml = footnoteFreeTextHtml
-                                if rawTextHtml.startswith( f'<span class="{versionAbbreviation}_verseTextChunk">' ):
-                                    assert rawTextHtml.endswith( '</span>' )
-                                    rawTextHtml = rawTextHtml[30+len(versionAbbreviation):-7]
+                                # rawTextHtml = footnoteFreeTextHtml
+                                # if rawTextHtml.startswith( f'<span class="{versionAbbreviation}_verseTextChunk">' ):
+                                #     assert rawTextHtml.endswith( '</span>' )
+                                #     rawTextHtml = rawTextHtml[30+len(versionAbbreviation):-7]
                                 # print( f"{versionAbbreviation} {parRef} {rawTextHtml=}")
                                 # if V=='4': halt
-                                modernisedTextHtml = moderniseEnglishWords( rawTextHtml )
-                                if versionAbbreviation in ('WYC','TNT','CB','GNV','BB'): # all from 1500's
-                                    modernisedTextHtml = modernisedTextHtml.replace( 'J', 'Y' ).replace( 'Ie', 'Ye' ).replace( 'Io', 'Yo' )
-                                if modernisedTextHtml != rawTextHtml: # only show it if it changed
+                                modernisedTextHtml = moderniseEnglishWords( footnoteFreeTextHtml )
+                                if versionAbbreviation in ('WYC','TNT','CB','GNV','BB','KJB-1611'): # all from 1500's
+                                    modernisedTextHtml = modernisedTextHtml.replace( 'J', 'Y' ).replace( 'Ie', 'Ye' ).replace( 'Io', 'Yo' ) \
+                                                                                .replace( 'KYB', 'KJB' ) # Fix overreach
+                                if versionAbbreviation == 'KJB-1769':
+                                    modernisedKJV1769TextHtml = modernisedTextHtml.replace( versionAbbreviation, '' )
+                                if modernisedTextHtml != footnoteFreeTextHtml: # only show it if it changed
                                     # print( f"{versionAbbreviation} {parRef} {modernisedTextHtml=}")
-                                    # Hardwire added words to italics
-                                    modernisedTextHtml = convert_adds_to_italics( modernisedTextHtml, f'Ancient parallel verse {parRef}' )
-                                    if '<div' in modernisedTextHtml: # Shouldn't put a div inside a span!
-                                        assert C=='-1' and V=='0'
-                                        textHtml = f'{textHtml}<br>  ({modernisedTextHtml})' # Typically a book heading
-                                    else: # no div
-                                        textHtml = f'{textHtml}<br>  <span class="{versionAbbreviation}_mod">({modernisedTextHtml})</span>'
+                                    if versionAbbreviation == 'KJB-1611' \
+                                    and modernisedTextHtml.replace( versionAbbreviation, '' ) == modernisedKJV1769TextHtml:
+                                        textHtml = "(Same as KJB-1769 above)"
+                                    else:
+                                        # Hardwire added words to italics
+                                        modernisedTextHtml = convert_adds_to_italics( modernisedTextHtml, f'Ancient parallel verse {parRef}' )
+                                        modernisedTextHtml = modernisedTextHtml.replace( '_verseTextChunk"', '_mod"' )
+                                        # if '<div' in modernisedTextHtml: # Shouldn't put a div inside a span!
+                                        #     assert C=='-1' and V=='0'
+                                        #     textHtml = f'''{textHtml}<br>   ({modernisedTextHtml.replace('<br>','<br>   ')})''' # Typically a book heading
+                                        # else: # no div
+                                        textHtml = f'''{textHtml}<br>   ({modernisedTextHtml.replace('<br>','<br>   ')})'''
                             elif versionAbbreviation in ('LUT','CLV'):
                                 translateFunction = translateGerman if versionAbbreviation=='LUT' else translateLatin
-                                adjustedForeignTextHtml = translateFunction( footnoteFreeTextHtml )
-                                if footnotesHtml:
-                                    translatedFootnotesHtml = removeDuplicateFNids( parRef, f'{footnotesHtml}__JOIN__{translateFunction( footnotesHtml )}' ).split( '__JOIN__' )[1]
-                                if adjustedForeignTextHtml != textHtml: # only show it if it changed
+                                adjustedForeignTextHtml = None
+                                if C!='-1' and V!='0' and textHtml:
+                                    # assert footnoteFreeTextHtml.startswith( f'<span class="{versionAbbreviation}_verseTextChunk">' ), f"{versionAbbreviation} {parRef} {footnoteFreeTextHtml=}"
+                                    # assert footnoteFreeTextHtml.endswith( '</span>' )
+                                    # footnoteFreeTextHtml = footnoteFreeTextHtml[30+len(versionAbbreviation):-7]
+                                    # assert f'class="{versionAbbreviation}_verseTextChunk"' not in footnoteFreeTextHtml
+                                    adjustedForeignTextHtml = translateFunction( footnoteFreeTextHtml.replace( f'<span class="{versionAbbreviation}_verseTextChunk">', f'<span class="{versionAbbreviation}_trans">') )
+                                    if footnotesHtml:
+                                        translatedFootnotesHtml = removeDuplicateFNids( parRef, f'{footnotesHtml}__JOIN__{translateFunction( footnotesHtml )}' ).split( '__JOIN__' )[1]
+                                if adjustedForeignTextHtml and adjustedForeignTextHtml != textHtml: # only show it if it changed
                                     # No longer true since we're now using getFullText (even for basicOnly), e.g., we may have id fields included in a bookHeader div
                                     # assert '</p>' not in textHtml
                                     if '<div ' in textHtml: # it might have had footnotes in a <div>, but we want the transliteration BEFORE the footnotes
                                         assert '</div>' in textHtml
-                                        textHtml = textHtml.replace( '<hr', f'<span class="{versionAbbreviation}_trans"><br>  ({adjustedForeignTextHtml})</span><hr' ) \
-                                                        if '<hr ' in textHtml else \
-                                                    f'{textHtml}<span class="{versionAbbreviation}_trans"></span><br>  ({adjustedForeignTextHtml})'
+                                        textHtml = textHtml.replace( '<hr', f'''<br>   ({adjustedForeignTextHtml.replace('<br>','<br>   ')})<hr''' ) \
+                                                    if '<hr ' in textHtml else f'''{textHtml}<br>   ({adjustedForeignTextHtml.replace('<br>','<br>   ')})'''
                                     else: # no <div>s so should be ok to add a span
                                         assert '</div>' not in textHtml
-                                        textHtml = f'{textHtml}<span class="{versionAbbreviation}_trans"><br>  ({adjustedForeignTextHtml})</span>'
+                                        textHtml = f'''{textHtml}<br>   ({adjustedForeignTextHtml.replace('<br>','<br>   ')})'''
                             elif versionAbbreviation == 'SR-GNT':
+                                SRtranscription = grammaticalKeysHtmlList = None
                                 if C!='-1' and V!='0' and textHtml:
-                                    print( f"{parRef} SR-GNT {verseEntryList=} {textHtml=} {footnoteFreeTextHtml=}" )
+                                    # print( f"{parRef} SR-GNT {verseEntryList=} {textHtml=} {footnoteFreeTextHtml=}" )
                                     # if '<' in textHtml or '>' in textHtml or '=' in textHtml or '"' in textHtml:
                                     #     if '<br>' not in textHtml: # Some verses have a sentence break
                                     #         print( f"\nunexpected fields in SR-GNT textHtml {parRef} {textHtml}" ); halt
-                                    assert textHtml.startswith( '<span class="SR-GNT_verseTextChunk">' )
-                                    assert textHtml.endswith( '</span>' )
-                                    textHtml = textHtml[36:-7]
-                                    if 'span' in textHtml: # This can happen if a verse has a paragraph break in the middle of it
-                                        textHtml = textHtml.replace( '<span class="SR-GNT_verseTextChunk">', '' ).replace( '</span>', '' )
-                                    assert 'span' not in textHtml
+                                    # assert textHtml.startswith( '<span class="SR-GNT_verseTextChunk">' )
+                                    # assert textHtml.endswith( '</span>' )
+                                    # textHtml = textHtml[36:-7]
+                                    # if 'span' in textHtml: # This can happen if a verse has a paragraph break in the middle of it
+                                    #     textHtml = textHtml.replace( '<span class="SR-GNT_verseTextChunk">', '' ).replace( '</span>', '' )
+                                    # assert 'span' not in textHtml
                                     textHtml, grammaticalKeysHtmlList = brightenSRGNT( BBB, C, V, textHtml, verseEntryList, state )
-                                    textHtml = f'<span class="SR-GNT_verseTextChunk">{textHtml}</span>'
-                                transcription = transliterate_Greek(footnoteFreeTextHtml) # Colourisation and nomina sacra gets carried through
-                                if 'Ah' in transcription or ' ah' in transcription or transcription.startswith('ah') \
-                                or 'Eh' in transcription or ' eh' in transcription or transcription.startswith('eh') \
-                                or 'Oh' in transcription or ' oh' in transcription or transcription.startswith('oh') \
-                                or 'Uh' in transcription or ' uh' in transcription or transcription.startswith('uh'):
-                                    raise ValueError( f"Bad Greek transcription for {versionAbbreviation} {parRef} {transcription=} from '{textHtml}'" )
+                                    # textHtml = f'<span class="SR-GNT_verseTextChunk">{textHtml}</span>'
+                                    # checkHtml( f'footnoteFreeTextHtml {parRef}', footnoteFreeTextHtml, segmentOnly=True )
+                                    # assert footnoteFreeTextHtml.startswith( '<span class="SR-GNT_verseTextChunk">' ), f"{versionAbbreviation} {parRef} {footnoteFreeTextHtml=}"
+                                    # assert footnoteFreeTextHtml.endswith( '</span>' )
+                                    # footnoteFreeTextHtml = footnoteFreeTextHtml[36:-7]
+                                    # assert 'class="SR-GNT_verseTextChunk"' not in footnoteFreeTextHtml
+                                    footnoteFreeTextHtml, _grammaticalKeysHtmlList = brightenSRGNT( BBB, C, V, footnoteFreeTextHtml, verseEntryList, state )
+                                    SRtranscription = transliterate_Greek( footnoteFreeTextHtml.replace( '<span class="SR-GNT_verseTextChunk">', '<span class="SR-GNT_trans">') ) # Colourisation and nomina sacra gets carried through
+                                    if 'Ah' in SRtranscription or ' ah' in SRtranscription or SRtranscription.startswith('ah') \
+                                    or 'Eh' in SRtranscription or ' eh' in SRtranscription or SRtranscription.startswith('eh') \
+                                    or 'Oh' in SRtranscription or ' oh' in SRtranscription or SRtranscription.startswith('oh') \
+                                    or 'Uh' in SRtranscription or ' uh' in SRtranscription or SRtranscription.startswith('uh'):
+                                        raise ValueError( f"Bad Greek transcription for {versionAbbreviation} {parRef} {SRtranscription=} from '{textHtml}'" )
                                 # Add an extra link to the CNTR collation page
                                 collationHref = f'https://GreekCNTR.org/collation/?v={CNTR_BOOK_ID_MAP[BBB]}{C.zfill(3)}{V.zfill(3)}'
                                 try:
                                     # NOTE: We close the previous paragraph, but leave the key paragraph open
                                     keysHtml = f'''</p>\n<p class="key"><b>Key</b>: <button type="button" id="coloursButton" title="Hide grammatical colours above" onclick="hide_show_colours()">C</button> {', '.join(grammaticalKeysHtmlList)}.
 <br><small>Note: Automatic aligning of the OET-RV to the LV is done by some temporary software, hence the OET-RV alignments are incomplete (and may occasionally be wrong).</small>'''
-                                except UnboundLocalError: # grammaticalKeysHtmlList
+                                except (UnboundLocalError, TypeError): # grammaticalKeysHtmlList
                                     keysHtml = ''
-                                textHtml = f'''{textHtml} <a title="Go to the GreekCNTR collation page" href="{collationHref}">‡</a><span class="SR-GNT_trans">
-<br>   ({transcription})</span>{keysHtml}'''
+                                textHtml = f'{textHtml} <a title="Go to the GreekCNTR collation page" href="{collationHref}">‡</a>'
+                                if SRtranscription:
+                                    textHtml = f'''{textHtml}
+<br>   ({SRtranscription.replace('<br>','<br>   ')})'''
+                                textHtml = f'{textHtml}{keysHtml}'
 
                             elif versionAbbreviation in ('UGNT','SBL-GNT','TC-GNT','BrLXX'):
-                                transcription = transliterate_Greek(footnoteFreeTextHtml)
-                                if 'Ah' in transcription or ' ah' in transcription or transcription.startswith('ah') \
-                                or 'Eh' in transcription or ' eh' in transcription or transcription.startswith('eh') \
-                                or 'Oh' in transcription or ' oh' in transcription or transcription.startswith('oh') \
-                                or 'Uh' in transcription or ' uh' in transcription or transcription.startswith('uh'):
-                                    raise ValueError( f"Bad Greek transcription for {versionAbbreviation} {parRef} {transcription=} from '{textHtml}'" )
-                                if transcription:
+                                grkTranscription = None
+                                if C!='-1' and V!='0' and textHtml:
+                                    # print( f"{footnoteFreeTextHtml=}" )
+                                    # assert footnoteFreeTextHtml.startswith( f'<span class="{versionAbbreviation}_verseTextChunk">' ), f"{versionAbbreviation} {parRef} {footnoteFreeTextHtml=}"
+                                    # assert footnoteFreeTextHtml.endswith( '</span>' )
+                                    # footnoteFreeTextHtml = footnoteFreeTextHtml[30+len(versionAbbreviation):-7]
+                                    # assert f'class="{versionAbbreviation}_verseTextChunk"' not in footnoteFreeTextHtml, f"{footnoteFreeTextHtml=}"
+                                    grkTranscription = transliterate_Greek(footnoteFreeTextHtml.replace( f'<span class="{versionAbbreviation}_verseTextChunk">', f'<span class="{versionAbbreviation}_trans">'))
+                                    if 'Ah' in grkTranscription or ' ah' in grkTranscription or grkTranscription.startswith('ah') \
+                                    or 'Eh' in grkTranscription or ' eh' in grkTranscription or grkTranscription.startswith('eh') \
+                                    or 'Oh' in grkTranscription or ' oh' in grkTranscription or grkTranscription.startswith('oh') \
+                                    or 'Uh' in grkTranscription or ' uh' in grkTranscription or grkTranscription.startswith('uh'):
+                                        raise ValueError( f"Bad Greek transcription for {versionAbbreviation} {parRef} {grkTranscription=} from '{textHtml}'" )
+                                if grkTranscription:
                                     # No longer true since we're now using getFullText (even for basicOnly), e.g., we may have id fields included in a bookHeader div
                                     # assert '</p>' not in textHtml, f"Parallel verse {versionAbbreviation} {parRef} {textHtml=} {transcription=}"
                                     if '<div ' in textHtml: # it might have had footnotes in a <div>, but we want the transliteration BEFORE the footnotes
                                         assert '</div>' in textHtml
-                                        textHtml = textHtml.replace( '<hr', f'<span class="{versionAbbreviation}_trans"><br>  ({transcription})</span><hr' ) \
-                                                        if '<hr ' in textHtml else \
-                                            f'{textHtml}<span class="{versionAbbreviation}_trans"></span><br>  ({transcription})'
+                                        textHtml = textHtml.replace( '<hr', f'''<br> ''  ({grkTranscription.replace('<br>','<br>   ')})<hr''' ) \
+                                                    if '<hr ' in textHtml else f'''{textHtml}<br>   ({grkTranscription.replace('<br>','<br>   ')})'''
                                     else: # no <div>s so should be ok to add a span
                                         assert '</div>' not in textHtml
-                                        textHtml = f'{textHtml}<span class="{versionAbbreviation}_trans"><br>  ({transcription})</span>'
+                                        textHtml = f'''{textHtml}<br>   ({grkTranscription.replace('<br>','<br>   ')})'''
                             elif versionAbbreviation == 'UHB':
                                 if BBB=='PSA' and 'class="d"' in textHtml:
                                     # There's no special formatting in the original Hebrew, so we don't want it here either
@@ -482,31 +515,51 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                                     # if C=='51': halt
                                 # print( f"{versionAbbreviation} {parRef} {textHtml=}")
                                 # checkHtml( f'brightenedUHB0 {parRef}', textHtml, segmentOnly=True )
+                                uhbTranscription = grammaticalKeysHtmlList = None
                                 if C!='-1' and V!='0' and textHtml:
-                                    # print( f"{parRef} UHB {verseEntryList=} {textHtml=} {footnoteFreeTextHtml=}" )
-                                    assert textHtml.startswith( '<span class="UHB_verseTextChunk">' )
-                                    assert textHtml.endswith( '</span>' )
-                                    textHtml = textHtml[33:-7]
-                                    # if 'class="UHB_verseTextChunk"' in textHtml: # This can happen if a verse has a paragraph break in the middle of it
-                                    #     textHtml = textHtml.replace( '<span class="UHB_verseTextChunk">', '' ).replace( '</span>', '' )
-                                    # print( f"  Now {textHtml=}" )
-                                    assert 'class="UHB_verseTextChunk"' not in textHtml
+                                    # print( f"{V=} {parRef} UHB {verseEntryList=} {textHtml=} {footnoteFreeTextHtml=}" )
+                                    # NOTE: This code only works if there's no internal spans (due to internal paragraph breaks, etc.)
+                                    # assert textHtml.startswith( '<span class="UHB_verseTextChunk">' ), f""
+                                    # assert textHtml.endswith( '</span>' )
+                                    # textHtml = textHtml[33:-7]
+                                    # # if 'class="UHB_verseTextChunk"' in textHtml: # This can happen if a verse has a paragraph break in the middle of it
+                                    # #     textHtml = textHtml.replace( '<span class="UHB_verseTextChunk">', '' ).replace( '</span>', '' )
+                                    # # print( f"  Now {textHtml=}" )
+                                    # assert 'class="UHB_verseTextChunk"' not in textHtml
                                     textHtml, grammaticalKeysHtmlList = brightenUHB( BBB, C, V, textHtml, verseEntryList, state )
-                                    textHtml = f'<span class="UHB_verseTextChunk">{textHtml}</span>'
-                                # checkHtml( f'brightenedUHB1 {parRef}', textHtml, segmentOnly=True )
-                                uhbTranscription = transliterate_Hebrew(footnoteFreeTextHtml).replace( 'yəhvāh', 'yhwh' ).replace( 'ə', '<small>ə</small>' )
+                                    # textHtml = f'<span class="UHB_verseTextChunk">{textHtml}</span>'
+                                    # checkHtml( f'brightenedUHB1 {parRef}', textHtml, segmentOnly=True )
+                                    # print( f"{parRef} {footnoteFreeTextHtml=}" )
+                                    # checkHtml( f'footnoteFreeTextHtml {parRef}', footnoteFreeTextHtml, segmentOnly=True )
+                                    # assert footnoteFreeTextHtml.startswith( '<span class="UHB_verseTextChunk">' ), f"{versionAbbreviation} {parRef} {footnoteFreeTextHtml=}"
+                                    # assert footnoteFreeTextHtml.endswith( '</span>' )
+                                    # footnoteFreeTextHtml = footnoteFreeTextHtml[33:-7]
+                                    # assert 'class="UHB_verseTextChunk"' not in footnoteFreeTextHtml
+                                    footnoteFreeTextHtml, _grammaticalKeysHtmlList = brightenUHB( BBB, C, V, footnoteFreeTextHtml, verseEntryList, state )
+                                    uhbTranscription = transliterate_Hebrew(footnoteFreeTextHtml.replace( '<span class="UHB_verseTextChunk">', '<span class="UHB_trans">')).replace( 'yəhvāh', 'yhwh' ).replace( 'ə', '<small>ə</small>' )
+                                    checkHtml( f'uhbTranscription {parRef}', uhbTranscription, segmentOnly=True )
+                                    # if C=='2': halt
                                 collationHref = f'https://hb.OpenScriptures.org/structure/OshbVerse/index.html?b={BibleOrgSysGlobals.loadedBibleBooksCodes.getOSISAbbreviation(BBB)}&c={C}&v={V}'
                                 try:
                                     keysHtml = f'''</p>\n<p class="key"><b>Key</b>: <button type="button" id="coloursButton" title="Hide grammatical colours above" onclick="hide_show_colours()">C</button> {', '.join(grammaticalKeysHtmlList)}.
 <br><small>Note: Automatic aligning of the OET-RV to the LV is done by some temporary software, hence the OET-RV alignments are incomplete (and may occasionally be wrong).</small>'''
-                                except UnboundLocalError: # grammaticalKeysHtmlList
+                                except (UnboundLocalError, TypeError): # grammaticalKeysHtmlList
                                     keysHtml = ''
-                                textHtml = f'''{textHtml} <a title="Go to the OSHB verse page" href="{collationHref}">‡</a><span class="UHB_trans">
-<br>   ({uhbTranscription})</span>{keysHtml}'''
+                                textHtml = f'{textHtml} <a title="Go to the OSHB verse page" href="{collationHref}">‡</a>'
+                                if uhbTranscription:
+                                    if parRef == 'JOS_16:0': halt
+                                    textHtml = f'''{textHtml}
+<br>   ({uhbTranscription.replace('<br>','<br>   ')})'''
+                                textHtml = f'{textHtml}{keysHtml}'
                                 # checkHtml( f'brightenedUHB2 {parRef}', textHtml, segmentOnly=True )
 
                             if textHtml:
                                 assert not textHtml.endswith( '\n' ), f"{versionAbbreviation} {parRef} {textHtml[-30:]=}"
+                                if V != '0': # Introductions can have more bits (and so too for the modified/updated bits) than individual verses
+                                    if versionAbbreviation != 'OEB': # their Ezekiel is really messed up
+                                        assert textHtml.count( '_verseTextChunk"' ) <= (2+textHtml.count('¶')+textHtml.count('§')+textHtml.count('⇔')+textHtml.count('•')), f"{versionAbbreviation} {parRef} {textHtml=}"
+                                    assert textHtml.count( '_mod"' ) <= (2+textHtml.count('¶')+textHtml.count('§')+textHtml.count('⇔')+textHtml.count('•')), f"{versionAbbreviation} {parRef} {textHtml=}"
+                                assert textHtml.count( '_trans"' ) < (2+textHtml.count('¶')+textHtml.count('§')+textHtml.count('⇔')+textHtml.count('•')), f"{versionAbbreviation} {parRef} {textHtml=}"
                                 # NOTE: textHtml might have footnotes in a div -- in that case we need special handling because can't put a <div> in a <p> below
                                 # assert textHtml.count('<span class="ul">_</span>HNcbsa') < 2, f'''Here3 ({textHtml.count('<span class="ul">_</span>HNcbsa')}) {textHtml=}'''
                                 if versionAbbreviation in ('UGNT','SBL-GNT','TC-GNT') \
@@ -522,7 +575,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                                     versionNameLink = f'''{'../'*BBBLevel}{versionAbbreviation}/details.htm#Top''' if versionAbbreviation in state.versionsWithoutTheirOwnPages else f'''{'../'*BBBLevel}{versionAbbreviation}/byC/{BBB}_C{C}.htm#Top'''
                                     if '<div ' in textHtml: # it might be a book intro or footnotes -- we can't put a <div> INSIDE a <p>, so we append it instead
                                         assert '</div>' in textHtml
-                                        vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="{spanClassName}"><a title="View {state.BibleNames[versionAbbreviation]} {'details' if versionAbbreviation in state.versionsWithoutTheirOwnPages else 'chapter'}" href="{versionNameLink}">{versionAbbreviation}</a></span> {textHtml.replace('<hr','</p><hr')}'''
+                                        vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="{spanClassName}"><a title="View {state.BibleNames[versionAbbreviation]} {'details' if versionAbbreviation in state.versionsWithoutTheirOwnPages else 'chapter'}" href="{versionNameLink}">{versionAbbreviation}</a></span></p>{textHtml}''' # .replace('<hr','</p><hr')
                                     else: # no <div>s so should be ok to put inside a paragraph
                                         assert '</div>' not in textHtml
                                         vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="{spanClassName}"><a title="View {state.BibleNames[versionAbbreviation]} {'details' if versionAbbreviation in state.versionsWithoutTheirOwnPages else 'chapter'}" href="{versionNameLink}">{versionAbbreviation}</a></span> {textHtml}</p>'''
@@ -530,7 +583,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                                     # Label it as 'OET (OET-RV) and slip in id's for CV (so footnote returns work) and also for C and V (just in case)
                                     if '<div ' in textHtml: # it might be a book intro or footnotes -- we can't put a <div> INSIDE a <p>, so we append it instead
                                         assert '</div>' in textHtml
-                                        vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span id="C{C}V{V}" class="wrkName"><a id="C{C}" title="View {state.BibleNames['OET']} chapter (side-by-side versions)" href="{'../'*BBBLevel}OET/byC/{BBB}_C{C}.htm#Top">OET</a> <small>(<a id="V{V}" title="View {state.BibleNames['OET-RV']} chapter (by itself)" href="{'../'*BBBLevel}OET-RV/byC/{BBB}_C{C}.htm#Top">OET-RV</a>)</small></span> {textHtml.replace('<hr','</p><hr')}'''                                    
+                                        vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span id="C{C}V{V}" class="wrkName"><a id="C{C}" title="View {state.BibleNames['OET']} chapter (side-by-side versions)" href="{'../'*BBBLevel}OET/byC/{BBB}_C{C}.htm#Top">OET</a> <small>(<a id="V{V}" title="View {state.BibleNames['OET-RV']} chapter (by itself)" href="{'../'*BBBLevel}OET-RV/byC/{BBB}_C{C}.htm#Top">OET-RV</a>)</small></span></p>{textHtml}'''                                    
                                     else: # no <div>s so should be ok to put inside a paragraph
                                         assert '</div>' not in textHtml
                                         vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span id="C{C}V{V}" class="wrkName"><a id="C{C}" title="View {state.BibleNames['OET']} chapter (side-by-side versions)" href="{'../'*BBBLevel}OET/byC/{BBB}_C{C}.htm#Top">OET</a> <small>(<a id="V{V}" title="View {state.BibleNames['OET-RV']} chapter (by itself)" href="{'../'*BBBLevel}OET-RV/byC/{BBB}_C{C}.htm#Top">OET-RV</a>)</small></span> {textHtml}</p>'''                                    
@@ -540,9 +593,12 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                                     vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation]} {'details' if versionAbbreviation in state.versionsWithoutTheirOwnPages else 'chapter (translated from the Latin)'}" href="{versionNameLink}">{versionAbbreviation}</a></span> {textHtml}</p>'''
                                 else: # for all the others
                                     versionNameLink = f'''{'../'*BBBLevel}{versionAbbreviation}/details.htm#Top''' if versionAbbreviation in state.versionsWithoutTheirOwnPages else f'''{'../'*BBBLevel}{versionAbbreviation}/byC/{BBB}_C{C}.htm#Top'''
-                                    if '<div ' in textHtml: # it might be a book intro or footnotes
+                                    if textHtml.startswith( "(Same as " ):
+                                        assert versionAbbreviation in ('WMB','KJB-1611')
+                                        vHtml = f'''<p id="{versionAbbreviation}" class="closeVerse"><span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation]} {'details' if versionAbbreviation in state.versionsWithoutTheirOwnPages else 'chapter'}" href="{versionNameLink}">{versionAbbreviation}</a></span> {textHtml}</p>'''
+                                    elif '<div ' in textHtml: # it might be a book intro or footnotes
                                         assert '</div>' in textHtml
-                                        vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation]} {'details' if versionAbbreviation in state.versionsWithoutTheirOwnPages else 'chapter'}" href="{versionNameLink}">{versionAbbreviation}</a></span> {textHtml.replace('<hr','</p><hr')}'''
+                                        vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation]} {'details' if versionAbbreviation in state.versionsWithoutTheirOwnPages else 'chapter'}" href="{versionNameLink}">{versionAbbreviation}</a></span></p>{textHtml}''' # .replace('<hr','</p><hr')
                                     else: # no <div>s so should be ok to put inside a paragraph
                                         assert '</div>' not in textHtml
                                         vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation]} {'details' if versionAbbreviation in state.versionsWithoutTheirOwnPages else 'chapter'}" href="{versionNameLink}">{versionAbbreviation}</a></span> {textHtml}</p>'''
@@ -552,6 +608,8 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                             else: # no textHtml -- can include verses that are not in the OET-LV
                                 if c==-1 or v==0: # For these edge cases, we don't want the version abbreviation appearing
                                     vHtml = ''
+                                else:
+                                    vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation]} {'details' if versionAbbreviation in state.versionsWithoutTheirOwnPages else 'chapter'}" href="{versionNameLink}">{versionAbbreviation}</a></span> <a title="Go to missing verses pages" href="{'../'*level}OET/missingVerse.htm">◘</a></p>'''
                             if versionAbbreviation=='TC-GNT': # the final one that we display, so show the key to the colours
                                 greekVersionKeysHtmlList = []
                                 if 'wrkNameDiffPunct' in greekVersionKeysHtmlSet: greekVersionKeysHtmlList.append( '<span class="wrkNameDiffPunct">yellow</span>:punctuation differs' )
@@ -568,17 +626,18 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                             logging.warning( warningText )
 
                         except UntranslatedVerseError:
+                            NEVER_GETS_HERE
                             assert textHtml == '◙'
                             assert versionAbbreviation == 'OET-RV'
                             assert BBB in thisBible
                             # Label it as 'OET (OET-RV) and slip in id's for CV (so footnote returns work) and also for C and V (just in case)
-                            if BBB in thisBible:
-                                # print( f"No verse inB OET-RV {BBB} in {thisBible}"); halt
-                                warningText = f'No OET-RV {ourTidyBBBwithNotes} {C}:{V} verse available'
-                                vHtml = f'''<p id="OET-RV" class="parallelVerse"><span id="C{C}V{V}" class="wrkName"><a id="C{C}" title="{state.BibleNames['OET']}" href="{'../'*BBBLevel}OET/byC/{BBB}_C{C}.htm#Top">OET</a> <small>(<a id="V{V}" title="View {state.BibleNames['OET-RV']} chapter (by itself)" href="{'../'*BBBLevel}OET-RV/byC/{BBB}_C{C}.htm#Top">OET-RV</a>)</small></span> <span class="noVerse"><small>{warningText}</small></span></p>'''
-                            else:
-                                warningText = f'No OET-RV {ourTidyBBBwithNotes} book available'
-                                vHtml = f'''<p id="OET-RV" class="parallelVerse"><span class="wrkName">OET-RV</span> <span class="noBook"><small>{warningText}</small></span></p>'''
+                            # if BBB in thisBible:
+                            # print( f"No verse inB OET-RV {BBB} in {thisBible}"); halt
+                            warningText = f'No OET-RV {ourTidyBBBwithNotes} {C}:{V} verse available'
+                            vHtml = f'''<p id="OET-RV" class="parallelVerse"><span id="C{C}V{V}" class="wrkName"><a id="C{C}" title="{state.BibleNames['OET']}" href="{'../'*BBBLevel}OET/byC/{BBB}_C{C}.htm#Top">OET</a> <small>(<a id="V{V}" title="View {state.BibleNames['OET-RV']} chapter (by itself)" href="{'../'*BBBLevel}OET-RV/byC/{BBB}_C{C}.htm#Top">OET-RV</a>)</small></span> <span class="noVerse"><small>{warningText}</small></span></p>'''
+                            # else:
+                            #     warningText = f'No OET-RV {ourTidyBBBwithNotes} book available'
+                            #     vHtml = f'''<p id="OET-RV" class="parallelVerse"><span class="wrkName">OET-RV</span> <span class="noBook"><small>{warningText}</small></span></p>'''
                             logging.warning( warningText )
 
                         except KeyError:
@@ -602,6 +661,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                         assert not parallelHtml.endswith( '\n' )
                         assert not vHtml.endswith( '\n' )
                         parallelHtml = f"{parallelHtml}{NEWLINE if parallelHtml else ''}{vHtml}"
+                    checkHtml( f"End of parallel pass for {versionAbbreviation} {parRef}", parallelHtml.replace('<div class="hideables">\n',''), segmentOnly=True ) # hideables isn't ended yet
 
                 # Close the hideable div
                 if not TEST_MODE: assert doneHideablesDiv # Fails if no Bible versions were included that go in the hideable div
@@ -644,7 +704,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                 filepath = BBBFolder.joinpath( filename )
                 top = makeTop( BBBLevel, None, 'parallelVerse', None, state ) \
                         .replace( '__TITLE__', f"{ourTidyBBB} {C}:{V} Parallel Verse View{' TEST' if TEST_MODE else ''}" ) \
-                        .replace( '__KEYWORDS__', f'Bible, parallel, verse, {ourTidyBBB}' )
+                        .replace( '__KEYWORDS__', f'Bible, parallel, verse, view, display, {ourTidyBBB}' )
                 if BBB in state.booksToLoad['OET']:
                     top = top.replace( f'''href="{'../'*BBBLevel}ilr/"''', f'''href="{'../'*BBBLevel}ilr/{BBB}/C{C}V{V}.htm#Top"''')
                 parallelHtml = f'''{top}<!--parallel verse page-->
@@ -676,7 +736,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
     filepath1 = BBBFolder.joinpath( filename1 )
     top = makeTop( BBBLevel, None, 'parallelVerse', None, state) \
             .replace( '__TITLE__', f"{ourTidyBBB} Parallel Verse View{' TEST' if TEST_MODE else ''}" ) \
-            .replace( '__KEYWORDS__', 'Bible, parallel, verse' )
+            .replace( '__KEYWORDS__', 'Bible, parallel, verse, view, display, index' )
     # For Psalms, we don't list every single verse
     indexHtml = f'''{top}{adjBBBLinksHtml}{f'{NEWLINE}<h1 id="Top">{ourTidyBBB} parallel songs index</h1>' if BBB=='PSA' else ''}{cLinksPar}{f'{NEWLINE}<h1 id="Top">{ourTidyBBB} parallel verses index</h1>' if BBB!='PSA' else ''}{f'{NEWLINE}<p class="vsLst">{" ".join( vLinksList )}</p>' if BBB!='PSA' else ''}
 {makeBottom( BBBLevel, 'parallelVerse', state )}'''
@@ -693,7 +753,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
     filepath2 = folder.joinpath( filename2 )
     top = makeTop( level, None, 'parallelVerse', None, state) \
             .replace( '__TITLE__', f"{ourTidyBBB} Parallel Verse View{' TEST' if TEST_MODE else ''}" ) \
-            .replace( '__KEYWORDS__', 'Bible, parallel, verse' )
+            .replace( '__KEYWORDS__', 'Bible, parallel, verse, view, display, index' )
     # For Psalms, we don't list every single verse
     indexHtml = f'''{top}{adjBBBLinksHtml}{f'{NEWLINE}<h1 id="Top">{ourTidyBBB} parallel songs index</h1>' if BBB=='PSA' else ''}{cLinksPar}{f'{NEWLINE}<h1 id="Top">{ourTidyBBB} parallel verses index</h1>' if BBB!='PSA' else ''}{f'{NEWLINE}<p class="vsLst">{" ".join( newBBBVLinks )}</p>' if BBB!='PSA' else ''}
 {makeBottom( level, 'parallelVerse', state )}'''
@@ -789,20 +849,23 @@ def brightenSRGNT( BBB:str, C:str, V:str, brightenTextHtml:str, verseEntryList, 
 
     wordFileName = 'OET-LV_NT_word_table.tsv'
 
-    punctuatedGrkWords = ( brightenTextHtml.replace( '¶', ' ' ).replace( '⇔', ' ' ).replace( '§', ' ' )
-                                        #  .replace( '’ ”', '’”' ).replace( '” ’', '”’' ).replace( NARROW_NON_BREAK_SPACE, ' ' ) # Leave NNBSP
-                                         .replace( NON_BREAK_SPACE, ' ' ).replace( EN_SPACE, ' ' ).replace( EM_SPACE, ' ' )
-                                         .replace( '<br>', ' ' ).replace( '   ', ' ' ).replace( '  ', ' ' )
-                                         .split( ' ' )
-                        )
-    strippedGrkWords = [punctuatedGrkWord.lstrip( '“‘˚(' ).rstrip( '.,?!:”’ ·;)–…' ) for punctuatedGrkWord in punctuatedGrkWords] # Includes NNBSP
+    cleanedbrightenTextHtml = ( brightenTextHtml.replace( '¶', ' ' ).replace( '⇔', ' ' ).replace( '§', ' ' )
+                            #  .replace( '’ ”', '’”' ).replace( '” ’', '”’' ).replace( NARROW_NON_BREAK_SPACE, ' ' ) # Leave NNBSP
+                                .replace( NARROW_NON_BREAK_SPACE, ' ' ).replace( NON_BREAK_SPACE, ' ' )
+                                .replace( EN_SPACE, ' ' ).replace( EM_SPACE, ' ' )
+                                .replace( '<span class="SR-GNT_verseTextChunk">', '' ).replace( '</span>', '' )
+                                .replace( '<br>', ' ' ).replace( '   ', ' ' ).replace( '  ', ' ' )
+                                .rstrip()
+                                )
+    punctuatedGrkWords = [punctuatedGrkWord for punctuatedGrkWord in cleanedbrightenTextHtml.split() if punctuatedGrkWord not in ('’','’,','”','”,','’;')]
+    strippedGrkWords = [punctuatedGrkWord.lstrip( '“‘˚(' ).rstrip( '.,?!:’ ”·;)–…' ) for punctuatedGrkWord in punctuatedGrkWords] # Includes (now) space between speech closing marks
 
     # Match Greek words to word numbers
     firstWordNumber,lastWordNumber = state.OETRefData['word_table_indexes'][wordFileName][brRef]
     currentWordNumber = firstWordNumber
     grkWordNumbers = []
     for strippedGrkWord in strippedGrkWords:
-        assert strippedGrkWord, f"{brRef} {strippedGrkWords=}"
+        assert strippedGrkWord, f"{brRef} {strippedGrkWords=} from {punctuatedGrkWords=} from {cleanedbrightenTextHtml=} from {brightenTextHtml=}"
         # print( f"  {brRef} {strippedGrkWord=} {currentWordNumber=} from ({firstWordNumber},{lastWordNumber})" )
         ref, greekWord, SRLemma, _GrkLemma, VLTGlossWordsStr, OETGlossWordsStr, glossCaps, probability, extendedStrongs, roleLetter, morphology, tagsStr = state.OETRefData['word_tables'][wordFileName][currentWordNumber].split( '\t' )
         # print( f"    A {currentWordNumber=} {ref=} {greekWord=}" )
@@ -841,12 +904,16 @@ def brightenSRGNT( BBB:str, C:str, V:str, brightenTextHtml:str, verseEntryList, 
         searchStartIndex = wordNumberIndex = extraIndexOffset = 0
         for _safetyCount1 in range( len(punctuatedGrkWords)+1 ):
             rawGrkWord = punctuatedGrkWords[wordNumberIndex]
-            # print( f"{brRef} {rawGrkWord=} from {punctuatedGrkWords=} from {brightenTextHtml=}" )
-            ix = brightenTextHtml.index( rawGrkWord, searchStartIndex )
+            # print( f"brightenSRGNT {brRef} {rawGrkWord=} from {punctuatedGrkWords=} from {brightenTextHtml=}" )
+            ixRawGrkWord = brightenTextHtml.index( rawGrkWord, searchStartIndex )
+            # except ValueError:
+            #     logging.critical( f"brightenSRGNT {brRef} couldn't find {rawGrkWord=} from {punctuatedGrkWords=} from {searchStartIndex=} {brightenTextHtml[searchStartIndex:searchStartIndex+3]=} in {brightenTextHtml=}" )
+            #     halt
+            #     continue
             # print( f"  aE {wordNumberIndex=} {rawGrkWord=} {searchStartIndex=} {ix=} {extraIndexOffset=}")
-            assert ix != -1
+            # assert ix != -1
             simpleGrkWord = rawGrkWord.lstrip( '“‘˚(' )
-            ix += len(rawGrkWord) - len(simpleGrkWord) # Adjust for removal of any leading punctuation
+            ixRawGrkWord += len(rawGrkWord) - len(simpleGrkWord) # Adjust for removal of any leading punctuation
             simpleGrkWord = simpleGrkWord.lstrip( ' ' ).rstrip( '.,?!:”’ ·;)–…' ) # Includes NNBSP
             assert simpleGrkWord.isalpha(), f"{simpleGrkWord=}"
             attribDict = {}
@@ -894,13 +961,16 @@ def brightenSRGNT( BBB:str, C:str, V:str, brightenTextHtml:str, verseEntryList, 
             else: caseClassName = None
             if caseClassName: classKeySet.add( caseClassName )
             caseClassHtml = '' if not caseClassName else f'''class="{caseClassName}" ''' # Has a trailing space
-            brightenTextHtml = f'''{brightenTextHtml[:ix-1]}<b>˚<a title="{attribDict['role']}-{attribDict['morph']}" {caseClassHtml}href="{wordLink}">{simpleGrkWord}</a></b>{brightenTextHtml[ix+len(simpleGrkWord):]}''' \
+            linkHtml = f'''<a title="{attribDict['role']}-{attribDict['morph']}" {caseClassHtml}href="{wordLink}">{simpleGrkWord}</a>'''
+            beforeHtml = brightenTextHtml[:ixRawGrkWord]
+            assert not beforeHtml.endswith( '.htm#Top">' ), f"brightenSRGNT about to wrongly embed an anchor after ...{beforeHtml[-80:]=}"
+            brightenTextHtml = f'''{brightenTextHtml[:ixRawGrkWord-1]}<b>˚{linkHtml}</b>{brightenTextHtml[ixRawGrkWord+len(simpleGrkWord):]}''' \
                         if '˚' in rawGrkWord else \
-                        f'''{brightenTextHtml[:ix]}<a title="{attribDict['role']}-{attribDict['morph']}" {caseClassHtml}href="{wordLink}">{simpleGrkWord}</a>{brightenTextHtml[ix+len(simpleGrkWord):]}'''
+                        f'''{beforeHtml}{linkHtml}{brightenTextHtml[ixRawGrkWord+len(simpleGrkWord):]}'''
             wordNumberIndex += 1
             if wordNumberIndex >= len(punctuatedGrkWords):
                 break
-            searchStartIndex = ix + len(simpleGrkWord)
+            searchStartIndex = ixRawGrkWord + len(linkHtml)
         else: need_to_increase_count1_for_brightenSRGNT
 
     # Get the colour keys into the correct order
@@ -1014,6 +1084,8 @@ def brightenUHB( BBB:str, C:str, V:str, brightenUHBTextHtml:str, verseEntryList,
     # assert 'span' not in adjustedBrightenUHBTextHtml, f"{UHBRef} {adjustedBrightenUHBTextHtml=} from {brightenUHBTextHtml=}"
     checkHtml( f'adjustedBrightenUHBTextHtml {UHBRef}', adjustedBrightenUHBTextHtml, segmentOnly=True ) # TODO: REMOVE This should be irrelevant/unnecessary
     cleanedAdjustedBrightenUHBTextHtml = ( adjustedBrightenUHBTextHtml.replace( '\n<br>', ' ').replace( '<br>', ' ')
+                          .replace( NARROW_NON_BREAK_SPACE, ' ' ) # Used after variant verse numbers (\\va fields)
+                          .replace( '<span class="UHB_verseTextChunk">', '' ).replace( '</span>', '' )
                           .replace( '¶', ' ')
                           .replace( '־', ' ־ ') # We surrounded maqaf by spaces so it's processed like a word
                           .replace( '׀', ' ׀ ' ) # Same for HEBREW PUNCTUATION PASEQ U+05C0
@@ -1080,9 +1152,9 @@ def brightenUHB( BBB:str, C:str, V:str, brightenUHBTextHtml:str, verseEntryList,
         # Find each word in brightenTextHtml, find the word info in allExtras, and then update brightenTextHtml with more classes
         searchStartIndex = verseWordNumberIndex = extraIndexOffset = 0
         for _safetyCount1 in range( len(strippedHebWords)+1 ):
-            checkHtml( f'Extras loop of brightenedUHB {UHBRef} {_safetyCount1=}', brightenUHBTextHtml, segmentOnly=True )
+            checkHtml( f'Extras loop top for brightenedUHB {UHBRef} {_safetyCount1=}', brightenUHBTextHtml, segmentOnly=True )
             rawHebWord = strippedHebWords[verseWordNumberIndex]
-            # print( f"Start of {UHBRef} loop1 {_safetyCount1=} {verseWordNumberIndex=} {rawHebWord=}" )
+            dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"Start of {UHBRef} loop1 {_safetyCount1=} {verseWordNumberIndex=} {rawHebWord=}" )
             # assert 'span' not in rawHebWord # No longer true now that we have footnotes included for display
             assert '\n' not in rawHebWord
             attribDict = {}
@@ -1092,22 +1164,24 @@ def brightenUHB( BBB:str, C:str, V:str, brightenUHBTextHtml:str, verseEntryList,
                 verseWordNumberIndex += 1
                 if verseWordNumberIndex >= len(strippedHebWords):
                     break
-                searchStartIndex = ix + len(simpleHebWord)
+                # searchStartIndex = ixRawHebWord + len(simpleHebWord)
+                searchStartIndex += 1
                 extraIndexOffset -= 1 # Stops the extras from advancing
                 continue # nothing more to do in this loop
-            try: ix = brightenUHBTextHtml.index( rawHebWord, searchStartIndex )
+            dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  About to search for {rawHebWord=} in {searchStartIndex=} {brightenUHBTextHtml[searchStartIndex:]=} {brightenUHBTextHtml[searchStartIndex:].count(rawHebWord)=}")
+            try: ixRawHebWord = brightenUHBTextHtml.index( rawHebWord, searchStartIndex )
             except ValueError as e:
-                logging.error( f"brightenUHB {UHBRef} couldn't find {rawHebWord=} {searchStartIndex=} in {brightenUHBTextHtml}, {verseEntryList}: {e}" )
-                # halt
+                logging.critical( f"brightenUHB {UHBRef} couldn't find {rawHebWord=} {searchStartIndex=} in {brightenUHBTextHtml}, {verseEntryList}: {e}" )
+                halt
                 verseWordNumberIndex += 1
                 if verseWordNumberIndex >= len(strippedHebWords):
                     break
                 continue # TODO: Why did this happen?
-            # print( f"  aE {verseWordNumberIndex=} {rawHebWord=} {searchStartIndex=} {ix=} {extraIndexOffset=}")
-            assert ix != -1
+            dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  aE {verseWordNumberIndex=} ({len(rawHebWord)}) {rawHebWord=} {searchStartIndex=} {ixRawHebWord=} {extraIndexOffset=}")
+            assert ixRawHebWord != -1
             simpleHebWord = rawHebWord.lstrip( '“‘˚(' ) # TODO: Why do we need to do this again? Seems redundant
-            # print( f"{simpleHebWord=}" )
-            ix += len(rawHebWord) - len(simpleHebWord) # Adjust for removal of any leading punctuation
+            # print( f"({len(simpleHebWord)}) {simpleHebWord=}" )
+            ixRawHebWord += len(rawHebWord) - len(simpleHebWord) # Adjust for removal of any leading punctuation
             simpleHebWord = simpleHebWord.rstrip( '.,?!:”’·;)–…׃' ) # Last ones are 'sof pasuq' and was 'pe' & samekh Hebrew characters
             # if '\u2060' not in simpleHebWord: # word joiner '⁠' -- this fails for words like 'בְּ\u2060רֵאשִׁ֖ית' which has a word-joiner in it
             #     assert simpleHebWord.isalpha(), f"{simpleHebWord=}" # This doesn't seem to work for Hebrew, e.g., word 'בָּרָ֣א' fails
@@ -1115,10 +1189,10 @@ def brightenUHB( BBB:str, C:str, V:str, brightenUHBTextHtml:str, verseEntryList,
             assert ',' not in simpleHebWord and ':' not in simpleHebWord and '.' not in simpleHebWord and '¦' not in simpleHebWord, f"brightenUHB {UHBRef} {simpleHebWord=} from {adjustedBrightenUHBTextHtml=} from {brightenUHBTextHtml=}"
             if '־' in simpleHebWord: halt # maqaf
             for _safetyCount2 in range( 4 ): # we use this instead of while True to use extraIndexOffset to step past any possible footnotes, etc.
-                # print( f"     {_safetyCount2} {verseWordNumberIndex=} {extraIndexOffset=} sum={verseWordNumberIndex+extraIndexOffset} {len(allExtras)=}")
+                # print( f"     Loop2 {_safetyCount2} {verseWordNumberIndex=} {extraIndexOffset=} sum={verseWordNumberIndex+extraIndexOffset} {len(allExtras)=}")
                 try: extraEntry = allExtras[verseWordNumberIndex+extraIndexOffset]
                 except IndexError: break # not sure why wordNumberIndex is too high (even with extraIndexOffset=0) and this happens -- first one at Gen 3:15
-                # print( f"     {brightenUHBTextHtml[ix:ix+20]=}… {extraEntry=}")
+                # print( f"     {brightenUHBTextHtml[ixRawHebWord:ixRawHebWord+20]=}… {extraEntry=}")
                 extraType, extraText = extraEntry.getType(), extraEntry.getText()
                 # print( f"       TyTxClTx {extraType=} {extraText=} {extraEntry.getCleanText()=}")
                 if extraType != 'ww': extraIndexOffset += 1; continue # it could be a footnote or something
@@ -1223,11 +1297,24 @@ def brightenUHB( BBB:str, C:str, V:str, brightenUHBTextHtml:str, verseEntryList,
                         raise ValueError( "Some unexpected short Hebrew morphology '{some_morph}'")
                     adjusted_morphology_fields.append( some_morph ) 
             titleHtml = f'''title="{'Aramic ' if attribDict['lang']=='Ar' else ''}{', '.join(adjusted_morphology_fields)}" ''' if 'morph' in attribDict else ''
-            brightenUHBTextHtml = f'''{brightenUHBTextHtml[:ix]}<a {titleHtml}{caseClassHtml}href="{wordLink}">{simpleHebWord}</a>{brightenUHBTextHtml[ix+len(simpleHebWord):]}'''
+            # print( f"            {titleHtml=} {caseClassHtml=} {wordLink=} {simpleHebWord=}" )
+            linkHtml = f'<a {titleHtml}{caseClassHtml}href="{wordLink}">{simpleHebWord}</a>'
+            # print( f"            {linkHtml=}" )
+            beforeHtml = brightenUHBTextHtml[:ixRawHebWord]
+            # print( f"              {beforeHtml=}" )
+            # afterHtml = brightenUHBTextHtml[ixRawHebWord+len(simpleHebWord):]
+            # print( f"              {afterHtml=}" )
+            assert not beforeHtml.endswith( '.htm#Top">' ), f"brightenUHB about to wrongly embed an anchor after ...{beforeHtml[-80:]=}"
+            # print( f"              after='{brightenUHBTextHtml[ixRawHebWord+len(simpleHebWord):]}'" )
+            brightenUHBTextHtml = f'{beforeHtml}{linkHtml}{brightenUHBTextHtml[ixRawHebWord+len(simpleHebWord):]}'
+            checkHtml( f'Extras loop bottomA for brightenedUHB {UHBRef} {_safetyCount1=}', brightenUHBTextHtml, segmentOnly=True )
             verseWordNumberIndex += 1
             if verseWordNumberIndex >= len(strippedHebWords):
                 break
-            searchStartIndex = ix + len(simpleHebWord)
+            searchStartIndex = ixRawHebWord + len(linkHtml)
+            searchHtml = brightenUHBTextHtml[searchStartIndex:]
+            # print( f"              {searchHtml=}" )
+            checkHtml( f'Extras loop bottomB for brightenedUHB {UHBRef} {_safetyCount1=}', brightenUHBTextHtml, segmentOnly=True )
         else: need_to_increase_safetyCount1_for_brightenUHB
 
     # Get the colour keys into the correct order
@@ -1672,7 +1759,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
         ((' awne ',' owne '),' own '),
         ((' oxun',),' oxen'),
     ((' paynes',),' pains'),((' payne',),' pain'),
-            ((' parablis',),' parables'), ((' partynge',),' parting'), ((' parts',' parties'),' parts/region'),((' parte ',),' part '),
+            ((' parablis',),' parables'), ((' partynge',),' parting'), ((' parts',' parties',' partis'),' parts'),((' parte ',),' part '),
             (('Passeouer','Passouer'),'Passover'),((' passiden',' passide'),' passed'),((' passynge',),' passing'),((' passe ',),' pass '),((' passe?',),' pass?'),((' passe:',),' pass:'),
             ((' pathes',' paches',' pathhis'),' paths'), ((' pacience',),' patience'),
             (('Pavl',),'Paul'),
@@ -1680,7 +1767,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
         ((' pees',),' peace'),
             (('penaunce',),'penance'), ((' penie ',' peny '),' penny '),((' penie,',' peny,'),' penny,'),
             (('puplis',),'peoples'),((' puple',' pople'),' people'),
-            (('perceiued','perceaved','perceaued'),'perceived'),(('Perceave','Perceiue'),'Perceive'),((' witen',),' perceive'),
+            (('perceiued','perceaved','perceaued'),'perceived'),(('Perceave','Perceiue'),'Perceive'),((' witen',' perceiue'),' perceive'),
                 ((' perfaicte ',),' perfect '), (('perfourmeth ','performeth '),'performeth/performs ' ),((' perfourme ',' performe '),' perform '),
                 ((' perel ',),' peril '),((' perel.',),' peril.'), ((' perische',' perisshe',' perishe'),' perish'),
                 (('persecucioun','persecucion'),'persecution'),
@@ -1857,7 +1944,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
             ((' touche ',),' touch '),
             ((' townes',' tounes'),' towns'),((' towne ',' toune '),' town '),
         (('ttasfigured',),'transfigured'), ((' trauelid',),' travelled'),
-            (('treasurie','tresorie'),'treasury'), ((' tre ',),' tree '),((' tre,',),' tree,'),
+            (('treasurie','tresorie'),'treasury'), ((' tre ',),' tree '),((' tre,',),' tree,'), (('trespasse ',),'trespass '),
             (('trybe ',),'tribe '), (('tribulacioun',),'tribulation'), ((' tryed',),' tried'),
             ((' truble ',),' trouble '),
             (('Treuli','Sotheli'),'Truly'),(('truely','treuli','sotheli'),'truly'), (('sothfast',),'truthful'), ((' trewthe',' trueth',' treuthe',' verite'),' truth'),
@@ -1999,6 +2086,7 @@ GERMAN_WORD_MAP = (
         ('bedecken','cover'),
             ('Befehl','command'),
             (' begab ',' gifted '),
+            (' bei ',' at '),
             (' bekleidet',' clothed'),
             (' beraubt',' robbed'),
                 (' bereitete',' prepared'),
@@ -2053,9 +2141,10 @@ GERMAN_WORD_MAP = (
         ('Freunde','friends'),
         ('Fuß','foot'),
         ('Füßen ','feet '),('Füße ','feet '), (' führest',' lead'), (' für ',' for '),
-    (' gab,',' gave,'), ('Gajus','Gaius'), (' gar ',' even '),
+    (' gab ',' gave '),(' gab,',' gave,'), ('Gajus','Gaius'), (' gar ',' even '),
         (' geben ',' give '), (' gebe ',' give '), ('Gebirge ','mountains '), (' geboten ',' offered '),
             (' gedachte',' thought'),
+            (' gegeben',' given'),
             (' gehe ',' go '),(' gehen',' go'),
             ('Geist','spirit'),
             ('gekehret','swept'),
@@ -2065,7 +2154,7 @@ GERMAN_WORD_MAP = (
             (' gesandt',' sent'), ('geschrieben','written'), ('Gesetz','law'), (' gesund ',' healed '),
             ('Getreide ','grain '),
             (' gewesen ',' been '),
-        (' ging ',' went '),
+        ('Gib ','Give '),(' gib ',' give '), (' ging ',' went '),
         ('Glauben','faith'), ('glauben','believe'), ('Glied','member/element'),
         (' goß ',' poured/cast '),('Gottes','God’s'),('GOtt','God'),('Götter','gods'),
         ('Grabe ','grave '), (' groß ',' large '), (' große ',' large '),(' großen',' large'),(' großes',' large'),
@@ -2074,7 +2163,7 @@ GERMAN_WORD_MAP = (
             (' halben ',' half '), ('halsstarrig','stubborn'), (' halten ',' hold '),
             ('Händen','hands'),
             (' harre ',' wait '),
-            (' hasse ',' hate '),
+            (' hasse ',' hate '), (' hast ',' have '),
             (' hat ',' has '),(' hat,',' has,'),(' hat:',' has:'), (' hatte ',' had '),
             ('Hauses','houses'),('Hause ','house '), ('Haut ','skin '),
         (' hebräisch ',' hebrew '),
@@ -2129,7 +2218,7 @@ GERMAN_WORD_MAP = (
             ('. Morgan','. Morning'),('Morgan','morning'),
         (' mögest',' may'),
         (' muß ',' must '),
-    (' nachdem ',' after '),(' nach ',' after '), ('Nacht ','night '),
+    (' nachdem ',' after '),('Nach ','After '),(' nach ',' after '), ('Nacht ','night '),
             ('Naemi ','Naomi '),
             (' nahmen ',' took '),(' nahm ',' took '),
             ('Namen ','names '), (' nämlich ',' namely '),
@@ -2142,7 +2231,8 @@ GERMAN_WORD_MAP = (
             (' nimmermehr',' nevermore'),
         (' noch ',' still '),
         (' nun ',' now '),
-    (' oder ',' or '),
+    (' oben ',' above '),
+        (' oder ',' or '),
         (' offene ',' open '),
         (' ohne ',' without '), ('Ohren ','ears '),
         ('Ort ','location '),('Ort,','location,'),
@@ -2153,6 +2243,7 @@ GERMAN_WORD_MAP = (
         (' redete ',' talked '), (' redet ',' talks '),
             ('Reich ','kingdom '), (' reisete ',' travelled '),
         (' roter ',' red '),
+        (' ruchbar',' noticeable'),
     (' sagen',' say'), (' sagt',' says'),
             (' sah ',' saw '),(' sah,',' saw,'),
             ('Samen ','seed/seeds '),('Samen.','seed/seeds.'),
@@ -2164,7 +2255,8 @@ GERMAN_WORD_MAP = (
                 (' schlug ',' hit/beat '),
                 (' schuf ',' created '),
                 (' schwebete ',' floated '),
-        (' sehe ',' see '), (' sehen',' see'),
+        ('Segen','blessing'),
+            (' sehe ',' see '), (' sehen',' see'),
             ('Sei ','Be '),(' sei ',' be '), (' sein ',' his '),(' seine ',' his '),(' seinen ',' his '),(' seiner ',' his '), (' seit ',' since '),
             (' selbst ',' himself/itself '),
             (' sende ',' send '),(' senden ',' send '),
@@ -2202,7 +2294,7 @@ GERMAN_WORD_MAP = (
         ('Und ','And '),(' und ',' and '),
         ('ungläubige','unbelieving'), ('Ungewitter','storm'),
         (' unrecht',' wrong'), (' unrein',' unclean'),
-        (' unter ',' under '),
+        (' unten',' below'),(' unter ',' under '),
     ('Vaterland','fatherland/homeland'), ('Vater ','father '),('Väter ','fathers '),
         ('vergeben','forgive'), ('verkündigte','announced'), ('verlässest','leave'), ('verloren','lost'), ('versammelt','gathered'), ('versöhnen','reconcile'), ('verständig','sensible'),
         (' viel ',' many '), (' vier ',' four '), (' vierte ',' fourth '),
@@ -2219,7 +2311,7 @@ GERMAN_WORD_MAP = (
             (' wenn ',' when '),
             ('Wer ','Who '),(' wer ',' who '), (' werden',' become'),(' werde',' become'),
             (' weinete ',' cried '), (' weiße ',' white '),
-        (' wider ',' against '), ('Wie ','How '),(' wie ',' like '), (' wieder',' again'), ('Wind ','wind '), ('Winkel ','corner '),
+        (' wider ',' against '), ('Wie ','How '),(' wie ',' like '), (' wiederum',' again/in_turn'),(' wieder',' again'), ('Wind ','wind '), ('Winkel ','corner '),
             (' wird ',' becomes '),
             ('Wisset ','Know '),(' wisset ',' know '),
         ('Wo ','Where '),
@@ -2269,7 +2361,7 @@ def translateGerman( html:str ) -> bool:
 
 
 LATIN_WORD_MAP = (
-    (' ab ',' away '), (' abierunt',' they_are_gone'), (' arbores ',' trees '),
+    (' ab ',' away '), (' abierunt',' they_are_gone'), (' abiit ',' he_is_gone '), (' arbores ',' trees '),
         (' æternam',' eternal'), (' æternum',' eternal'),
         (' absque ',' without '),
         (' ad ',' to '), (' adverso ',' on_the_contrary '),
@@ -2287,44 +2379,46 @@ LATIN_WORD_MAP = (
     (' bibere ',' to_drink '),
         (' bona ',' good '),
     ('cælum','the_sky'), (' calida ',' hot '),
-        ('Centum ','Hundred '),(' centum ',' hundred '),
+        (' ceciderunt',' they_fell'),(' cecidit',' fell'),
+            ('Centum ','Hundred '),(' centum ',' hundred '),
             ('Cerno ','I_see '), (' cervicis ',' of_the_neck '),
         ('Chananæum','Canaanites'),
         ('circumferentur','are_carried_around'),
             ('civitatis','of_the_city'),
         ('clamantis','crying'),
-        ('congregabit','will_gather'), ('continetur','is_contained'), (' contra ',' on_the_contrary '), ('contradictione','contradiction'),
+        ('congregabit','will_gather'), ('conspectu','in_sight'), ('continetur','is_contained'), (' contra ',' on_the_contrary '), ('contradictione','contradiction'),
             (' cor ',' heart '), (' corrigit ',' corrects '),
         ('creavit ','created '), ('credit','he_believes'),
         ('Cum ','Since '),(' cum ',' when/with '),
-    ('dæmonia','demons'), (' daret',' would_give'),
+    ('dæmonia','demons'), (' daret ',' would_give '),(' daretur',' would_be_given'),
         (' de ',' about '),
-            (' decem ',' ten '),
-            (' dedit',' he_gave'),
+            (' decem ',' ten '),(' decem,',' ten,'),
+            (' dedit',' he_gave'), ('Deditque','And_he_gave'),
             ('Dei','God'),
             (' deserto ',' desert '),(' desertum',' desert'),
             ('Deum','God'),('Deus','God'),
-        (' dices:',' you_say:'), (' dicit:',' he_says:'), ('dicitur','it_is_said'),
-            (' diebus ',' days '), ('Dies ','The_day '),
+        ('dicentes','saying'), (' dices:',' you_say:'), (' dicit:',' he_says:'), ('dicitur','it_is_said'),
+            (' diebus ',' days '), ('Dies ','The_day '),(' dies',' days'),
             ('dilexit','he_loved'),
             ('dimittere','to_release'),('dimittuntur','they_are_released'),
             ('divisit','divided'),
             ('Dixitque','And_he_said'), (' dixit ',' he_said '),
         (' docebo ',' I_will_teach '), (' docet',' teaches'),
             (' dolor ',' pain '),
-            ('Domini,','Master,'),('Dominus','Master'), (' domum ',' home '), (' domus ',' home '),
+            ('Domini ','Master '),('Domini,','Master,'),('Dominus','Master'), (' domum ',' home '), (' domus ',' home '),
         ('donec ','until '),
         (' ductus ',' leadership '), (' duo ',' two '), (' duræ ',' hard '),
     (' eam ',' her '),
+            (' earum',' of_them'),
         ('Ecce ','Behold '), ('ecclesiis','assemblies/churches'),
         (' effusi ',' poured_out '),
         ('Ego ','I '),(' ego ',' I '),
-        (' ei ',' to_him '),(' ei.',' to_him.'),
+        (' ei ',' to_him '),(' ei.',' to_him.'),(' eis ',' to_them '),
         (' ejus',' his'),
         (' enim',' because'),
         (' eos',' them'),
         (' epulis ',' food '),
-        (' eradicatæ',' eradicated'), (' erant ',' they_were '), (' erat',' was'),
+        (' eradicatæ',' eradicated'), (' erant ',' they_were '),(' erant.',' they_were.'), (' erat',' was'),
             (' erit ',' will_be '),(' erit.',' will_be.'),
             (' ero.',' I_will_be.'), (' errore ',' by_mistake '),
         (' es ',' you_are '), (' essent ',' they_would_be '), (' esset ',' was '), (' est ',' it_is '),(' est,',' it_is,'),(' est:',' it_is:'),
@@ -2335,15 +2429,16 @@ LATIN_WORD_MAP = (
         (' feri ',' wild '),
         ('Fiat ','Let_it_happen '),
             (' fidei',' of_faith'),(' fidem ',' faith '),
-            (' filia',' daughter'),('Filii','Children'),(' filii',' children'),('Filium','Son'),('Fili,','Son,'),
+            (' filia',' daughter'),('Filiæ','Daughters'),('Filii','Children'),(' filii',' children'),('filiorum','of_children'),('Filium','Son'),('Fili,','Son,'),
         ('fluctus ','wave '),
-        ('fratrem','brother'),
+        ('fratrem','brother'),('fratrum','brothers'),
         (' fuerit',' has_been'),
             (' fugabunt ',' they_will_flee '),
+            (' funiculi ',' rope '),
             (' fur ',' a_thief '),
     (' genere ',' in_general '),
     (' habeat ',' have '),(' habes,',' you_have,'), ('habitare','to_live'),
-        ('Hæc ','This '),(' hæc ',' this '),
+        ('Hæc ','This '),(' hæc ',' this '), ('hæreditatem','inheritance'),
         ('hebraice','hebrew'), ('Hethæum','Hittites'),  ('Hevæum','Hivites'),
         ('Hi ','They '), (' hic ',' this '),(' hic.',' this.'),
         ('Hoc ','This '), (' homo ',' human '),
@@ -2351,20 +2446,28 @@ LATIN_WORD_MAP = (
     (' ibi ',' there '),
         (' illis,',' to_them,'),
             (' illos ',' those '),(' illum ',' him '),
-        (' infirmum',' weak'), ('Initium ','The_beginning '),(' initium ',' the_beginning '), (' inter ',' between '), (' introëas',' enter'),
+        ('imperium','government'),
+        (' infirmum',' weak'),
+            ('Initium ','The_beginning '),(' initium ',' the_beginning '),
+            (' inter ',' between '), ('intravit','he_entered'), ('introëas','enter'),
         (' ipse ',' himself '),
         (' iste ',' this '),
-        (' itaque ',' therefore '),
-    (' justa.',' just.'),
+        (' itaque ',' therefore '), (' iterum',' again'),
+    ('Jordanem','Yordan'),
+        (' justa.',' just.'), (' juxta ',' next_to '),
     (' laganum ',' pancake '),
         (' legum ',' the_law '),
         (' liberis ',' freedom '),
         (' loco ',' instead '), (' locum ',' place '), (' locutus ',' spoke '),
             (' longious ',' farther '),
         (' lucem ',' the_light '), (' lux',' light'),
-    (' maculæ',' spots'), (' magnus',' big'), (' manu ',' by_hand '), (' mare ',' the_sea '),
+    (' maculæ',' spots'),
+            (' magnus',' big'),
+            (' manu ',' by_hand '),(' manum ',' hand '),
+            (' mare ',' the_sea '),
         (' mea.',' my.'), (' meæ ',' my '),
             (' mecum ',' with_me '),
+            (' medio ',' in_the_middle '),
             (' mei ',' my/mine '),(' mei.',' my/mine.'),
             (' membra ',' members '),
             (' meo ',' mine '), (' mercede ',' reward '),
@@ -2376,11 +2479,13 @@ LATIN_WORD_MAP = (
             (' mitto ',' I_send '),
         (' monte ',' mountain '),
             (' mortuæ',' dead'),
+            ('Moysi','of_Moses'),
         (' multæ ',' many '), (' mundum',' the_world'),
     ('Nati ','born '),
         (' nec ',' but_not '),
-        (' non ',' not/no '), ('Nonne ','Isn\'t_it '),
-            (' nos ',' we '),(' nos,',' we,'), (' nostri ',' our '),
+        (' nobis ',' us '),
+            (' non ',' not/no '), ('Nonne ','Isn\'t_it '),
+            (' nos ',' we '),(' nos,',' we,'), (' nostri ',' our '), ('nostrorum','of_ours'),
             (' novam',' new'),(' novum ',' new '),
         (' nubes ',' clouds '),
             (' nunc ',' now '),
@@ -2388,17 +2493,19 @@ LATIN_WORD_MAP = (
         (' omnes ',' everyone '), (' omni ',' all '), ('Omnia ','Everything '),(' omnia ',' everything '),(' omnia,',' everything,'), (' omnis ',' everyone '), (' omnipotens',' omnipotent'),
         (' oratio ',' speech '), (' orbatus',' bereaved'),
         (' ostiis ',' the_doors '),
-    (' panis ',' brread '),
+    (' panis ',' bread '),
+            (' patris ',' of_the_father '),
         (' peccata ',' sins '),(' peccatis ',' sins '), ('peccatorum','sinners'),
             (' pedibus',' feet'),
             (' peperit ',' gave_birth '),
-            (' perductus ',' conducted '), (' pereat ',' perish '), (' perflata ',' blown_away '), (' perierunt',' they_perished'), (' pertinet',' belongs'),
+            (' per ',' through '), (' perductus ',' conducted '), (' pereat ',' perish '), (' perflata ',' blown_away '), (' perierunt',' they_perished'), (' pertinet',' belongs'),
         ('placabilem','appeasable'),
         ('Pones ','Put '), (' ponit',' puts'),
             (' populum',' the_people'),
-            (' post ',' after '),
+            ('possederunt','they_possesed'), ('possessionem','possession'), (' post ',' after '),
             (' poterant ',' they_could '),
-        ('prima ','the_first '), ('princeps ','prince '), ('principio ','at_the_beginning '), (' prius',' first/before'),
+        ('præcepit','ordered'),
+            ('prima ','the_first '), ('princeps ','prince '), ('principio ','at_the_beginning '), ('principum','of_the_princes'), (' prius',' first/before'),
             ('procedens','proceeding'), ('procella ','storm '), ('proprie ','properly '), ('Propterea ',"That's_why "),
         (' putabunt ',' they_will_think '), (' puteum ',' a_well '),
     (' qua ',' which '),(' quæ ',' which '),
@@ -2408,15 +2515,19 @@ LATIN_WORD_MAP = (
             (' quasi ',' as_if '),
             (' quatuor',' four'),
         (' quem ',' which '),
-        ('Qui ','Who '),('qui ','who '), ('quia ','because '), ('quibus ','to_whom '), ('Quis ','Who '),('quis ','who/any '),
+        ('Qui ','Who '),(' qui ',' who '), ('quia ','because '), ('quibus ','to_whom '), ('Quis ','Who '),('quis ','who/any '),
         ('Quod ','That '),('quod ','that '), ('quos ','which '),
     (' radix ',' root '),
         (' rectas ',' correct '),
             (' regis',' king'),(' regnum',' kingdom'),
+            (' reliqui ',' I_left '),
             ('remittat','let_him_go'), ('remittentur','they_will_be_released'),
             (' reus ',' guilty '),
         (' rursum',' again'),
-    (' salvabit',' will_save'), (' sanctum',' holy'), (' sanguinis',' blood'), (' sapientiam',' wisdom'),
+    ('sacerdotis','of_the_priest'),
+            (' salvabit',' will_save'),
+            (' sanctum',' holy'), (' sanguinis',' blood'),
+            (' sapientiam',' wisdom'),
         (' secundum ',' after/second '),
             ('Sed ','But '),(' sed ',' but '),
             (' semen ',' seed '), (' semitas ',' path '),
@@ -2429,6 +2540,7 @@ LATIN_WORD_MAP = (
             (' sine ',' without '),
             (' sit,',' let_it_be,'),(' sit:',' let_it_be:'), (' situ ',' situation '),
             (' sive ',' if/or '),
+        (' sortem ',' lot '),
         (' stare',' to_stand'), (' statim ',' immediately '),
             (' stella ',' star '),
         (' sua ',' his_own '),(' suam ',' his_own '),(' suam,',' his_own,'), (' suas ',' their_own '),
@@ -2448,6 +2560,7 @@ LATIN_WORD_MAP = (
             (' testimonium',' testimony'),
         (' tibi ',' to_you '),
         ('Tollens ','Taking_off '),
+        (' trans ',' across '),
         (' tua ',' your '),(' tua.',' your.'),(' tui ',' yours '), ('tulit ','took '), (' tuum ',' your '),(' tuos ',' yours '),
     (' ubi ',' where '),
         (' unctionis',' anointing'), (' unctus ',' anointed '),
@@ -2460,7 +2573,7 @@ LATIN_WORD_MAP = (
             (' uxorem',' wife'),(' uxor ',' wife '),
     ('Væ ','Alas '),
         (' vel ',' or '),
-            (' veniat ',' let_him_come '),(' veniret ',' would_come '),(' venit ',' he_came '), (' ventis ',' the_winds '),
+            ('Veneruntque','And_they_came'),(' veniat ',' let_him_come '),(' veniret ',' would_come '),(' venit ',' he_came '), (' ventis ',' the_winds '),
             ('veritatem','words'),
             ('vestimenta','clothes'), ('vestras','your'),('vestrum','of_you'),
         (' via ',' road '),(' viam ',' road '),
@@ -2500,6 +2613,8 @@ def translateLatin( html:str ) -> bool:
 
     if html.startswith( 'et '): # Handle common exception that can't be expressed in the word table
         html = f'and {html[3:]}'
+    elif html.startswith( 'qui '):
+        html = f'who {html[4:]}'
     for LatinWord,EnglishWord in LATIN_WORD_MAP:
         html = html.replace( LatinWord, EnglishWord )
 

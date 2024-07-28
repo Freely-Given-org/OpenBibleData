@@ -44,7 +44,7 @@ from BibleOrgSys.BibleOrgSysGlobals import dPrint, fnPrint
 from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39
 
 
-LAST_MODIFIED_DATE = '2024-07-05' # by RJH
+LAST_MODIFIED_DATE = '2024-07-25' # by RJH
 SHORT_PROGRAM_NAME = "settings"
 PROGRAM_NAME = "OpenBibleData (OBD) Create Pages"
 PROGRAM_VERSION = '0.96'
@@ -52,7 +52,7 @@ PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
 
-OET_VERSION = 'v0.18'
+OET_VERSION = 'v0.19'
 
 TEST_MODE = True # Writes website into Test subfolder
 ALL_PRODUCTION_BOOKS = not TEST_MODE # If set to False, only selects one book per version for a faster test build
@@ -149,7 +149,7 @@ class State:
     assert len(numAllowedSelectedVerses) == len(selectedVersesOnlyVersions)
     # We want these versions on our parallel pages, but are not interested enough in them for them to have their own version pages
     versionsWithoutTheirOwnPages = selectedVersesOnlyVersions + ('LUT','CLV', 'UGNT','SBL-GNT','TC-GNT', 'BRN','BrLXX', 'TOSN','UTN')
-    if not TEST_MODE: versionsWithoutTheirOwnPages += 'KJB-1611'
+#     if not TEST_MODE: versionsWithoutTheirOwnPages += 'KJB-1611'
 
     # NOTE: We don't display the versionsWithoutTheirOwnPages, so don't need/allow decorations for them
     BibleVersionDecorations = { 'OET':('<b>','</b>'),'OET-RV':('<b>','</b>'),'OET-LV':('<b>','</b>'),
@@ -619,17 +619,25 @@ However, Moffat wasn’t just a <em>follow the crowd</em> person, so he’s like
                 'acknowledgements': '<p class="acknwldg">(coming).</p>' },
         'KJB-1769': {'about': '<p class="about">King James Bible (1611-1769).</p>',
                 'copyright': '<p class="copyright">Copyright © (coming).</p>',
-                'licence': '<p class="licence">(coming).</p>',
-                'acknowledgements': '<p class="acknwldg">(coming).</p>',
+                'licence': '<p class="licence">Public domain outside of the United Kingdom.</p>',
+                'acknowledgements': '''<p class="acknwldg">We’re all very grateful that after disgracing John Wycliffe and brutally executing William Tyndale, England finally got a king who would authorise a quality Bible translation.
+This was the printed book that had more influence on our modern world than any other and remains a world-wide best-selling publication.
+Thanks to <a href="https://eBible.org/Scriptures/">eBible.org</a> for supplying the USFM files.</p>''',
                 'notes': '''<p class="note">Note that after the publication of Samuel Johnson’s dictionary in 1755, the 1769 editions of the KJV are very different from the 1611 edition,
 including major typographic and formatting changes, and major spelling changes (including gaining the letter ‘j’), as well as hundreds of corrections.
 There are also some verse number changes and some changes to the italicised words, and the marginal notes from 1611 were removed.
 (There’s a lot of information online, but you can start by reading more details <a href="https://www.wayoflife.org/reports/changes_to_kjv_since_1611.html">here</a>.)</p>
 <p class="note">Also note that the apocryphal books were officially removed later in 1885, leaving only 66 ‘books’.</p>''' },
         'KJB-1611': {'about': '<p class="about">King James Bible (1611).</p>',
-                'copyright': '<p class="copyright">Copyright © (coming).</p>',
-                'licence': '<p class="licence">Public domain.</p>',
-                'acknowledgements': '<p class="acknwldg">(coming).</p>' },
+                'copyright': '<p class="copyright">No copyright statement was included in the early printings as can be seen <a href="https://Archive.org/details/1611TheAuthorizedKingJamesBible/page/n2/mode/1up">here</a>.</p>',
+                'licence': '<p class="licence">Public domain outside of the United Kingdom.</p>',
+                'acknowledgements': '''<p class="acknwldg">We’re all very grateful that after disgracing John Wycliffe and brutally executing William Tyndale, England finally got a king who would authorise a quality Bible translation.
+This was the printed book that had more influence on our modern world than any other.</p>''',
+                'notes': '''<p class="note">There were a number of printings of the KJB in 1611—the most famous being the ‘He-Bible’ and the ‘She-Bible’ (named after the ‘he/she went into town’ in <a href="__LEVEL__par/RUT/C3V15.htm#Top">Ruth 3:15</a>).
+You’ll notice that there are no speech marks in the 1611 KJB (just as there are none in the Hebrew and Greek original manuscripts),
+        but they were added by the time of the 1769 printings.
+Also note that there was no letter ‘J’ in the 1611 KJB, e.g., ‘John’ was spelt as ‘Iohn’ (and would have most likely still been pronounced as ‘Yon’ although that pronunciation was probably already beginning to change).</p>
+<p class="note">Finally, note that the KJB included ‘The Bookes called Apocrypha’ as can be seen <a href="https://archive.org/details/1611TheAuthorizedKingJamesBible/page/n37/mode/1up">here</a>, so an additional fourteen ‘bookes’ beyond the often-expected sixty-six.</p>''' },
         'BB': {'about': '<p class="about">Bishops Bible (1568,1602).</p>',
                 'copyright': '<p class="copyright">Public Domain.</p>',
                 'licence': '<p class="licence">Public Domain.</p>',

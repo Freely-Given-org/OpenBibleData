@@ -50,10 +50,10 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_
 from OETHandlers import livenOETWordLinks, getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
-LAST_MODIFIED_DATE = '2024-06-14' # by RJH
+LAST_MODIFIED_DATE = '2024-07-19' # by RJH
 SHORT_PROGRAM_NAME = "createBookPages"
 PROGRAM_NAME = "OpenBibleData createBookPages functions"
-PROGRAM_VERSION = '0.56'
+PROGRAM_VERSION = '0.57'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -253,8 +253,11 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
         for rvSection,lvChunk in zip( rvSections, lvChunks, strict=True ):
             if rvSection.startswith( '<div class="rightBox">' ):
                 rvSection = f'<div class="s1">{rvSection}' # This got removed above
-            checkHtml( f"OET-RV {BBB} Section", rvSection, segmentOnly=True )
-            checkHtml( f"OET-LV {BBB} Chunk", lvChunk, segmentOnly=True )
+            # Handle footnotes so the same fn1 doesn't occur for both chunks if they both have footnotes
+            rvSection = rvSection.replace( 'id="fn', 'id="fnRV' ).replace( 'href="#fn', 'href="#fnRV' )
+            lvChunk = lvChunk.replace( 'id="fn', 'id="fnLV' ).replace( 'href="#fn', 'href="#fnLV' )
+            # checkHtml( f"OET-RV {BBB} Section", rvSection, segmentOnly=True )
+            # checkHtml( f"OET-LV {BBB} Chunk", lvChunk, segmentOnly=True )
             combinedHtml = f'''{combinedHtml}<div class="chunkRV">{rvSection}</div><!--chunkRV-->
 <div class="chunkLV">{lvChunk}</div><!--chunkLV-->
 '''

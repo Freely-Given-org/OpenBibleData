@@ -85,10 +85,10 @@ from html import makeTop, makeBottom, checkHtml
 from OETHandlers import getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
-LAST_MODIFIED_DATE = '2024-07-09' # by RJH
+LAST_MODIFIED_DATE = '2024-07-20' # by RJH
 SHORT_PROGRAM_NAME = "createOETReferencePages"
 PROGRAM_NAME = "OpenBibleData createOETReferencePages functions"
-PROGRAM_VERSION = '0.74'
+PROGRAM_VERSION = '0.75'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -1794,9 +1794,11 @@ def create_Hebrew_lemma_pages( level:int, outputFolderPath:Path, state:State ) -
         lemmasHtml = f'''{top}{lemmasHtml}{keyHtml}{makeBottom( level, 'lemma', state )}'''
         checkHtml( 'HebrewLemmaPage', lemmasHtml )
         filepath = outputFolderPath.joinpath( ll_output_filename )
-        assert not filepath.is_file(), f"{filepath=}" # Check that we're not overwriting anything
-        # if filepath.is_file():
-        #     logging.critical( f"create_Hebrew_lemma_pages is about to overwrite {filepath} for {ll=} {hebLemma=} {transliteratedLemma=}" )
+        # assert not filepath.is_file(), f"{ll} {hebLemma=} {transliteratedLemma=} {filepath=}" # Check that we're not overwriting anything
+        if filepath.is_file():
+            logging.critical( f"create_Hebrew_lemma_pages was about to overwrite {filepath} for {ll=} {hebLemma=} {transliteratedLemma=}" )
+            filepath = outputFolderPath.joinpath( f'2{ll_output_filename}' )
+            logging.critical( f"    Renamed to {filepath}" )
         with open( filepath, 'wt', encoding='utf-8' ) as html_output_file:
             html_output_file.write( lemmasHtml )
         vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  Wrote {len(lemmasHtml):,} characters to {ll_output_filename}" )
@@ -2269,13 +2271,13 @@ def create_Greek_lemma_pages( level:int, outputFolderPath:Path, state:State ) ->
             # .replace( '\\add ', '<span class="add">').replace( '\\add*', '</span>') \
         assert '<span class="ul">' not in engGloss # already
         result = ( engGloss
-            # .replace( '\\add +', '<span class="addArticle">' )
+            .replace( '\\add +', '<span class="addArticle">' )
             # .replace( '\\add -', '<span class="unusedArticle">' )
             # .replace( '\\add =', '<span class="addCopula">' )
             # .replace( '\\add <a title', '__PROTECT__' ) # Enable if required
             # .replace( '\\add <', '<span class="addDirectObject">' )
             # .replace( '__PROTECT__', '\\add <a title' )
-            # .replace( '\\add >', '<span class="addExtra">' )
+            .replace( '\\add >', '<span class="addExtra">' )
             # .replace( '\\add &', '<span class="addOwner">' )
             .replace( '\\add ', '<span class="add">').replace( '\\add*', '</span>')
             # .replace( '_', '<span class="ul">_</span>')
@@ -2480,7 +2482,7 @@ def create_Greek_lemma_pages( level:int, outputFolderPath:Path, state:State ) ->
         lemmasHtml = f'''{top}{lemmasHtml}
 {keyHtml}
 {makeBottom( level, 'lemma', state )}'''
-        checkHtml( 'GreekLemmaPage', lemmasHtml )
+        checkHtml( f'GreekLemmaPage for {ll} {lemma=}', lemmasHtml )
         filepath = outputFolderPath.joinpath( output_filename )
         assert not filepath.is_file() # Check that we're not overwriting anything
         with open( filepath, 'wt', encoding='utf-8' ) as html_output_file:

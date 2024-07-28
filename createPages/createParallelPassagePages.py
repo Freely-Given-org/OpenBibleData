@@ -49,10 +49,10 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
 from OETHandlers import livenOETWordLinks, getOETTidyBBB, getOETBookName, getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2024-06-28' # by RJH
+LAST_MODIFIED_DATE = '2024-07-20' # by RJH
 SHORT_PROGRAM_NAME = "createParallelPassagePages"
 PROGRAM_NAME = "OpenBibleData createParallelPassagePages functions"
-PROGRAM_VERSION = '0.29'
+PROGRAM_VERSION = '0.30'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -492,7 +492,7 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
     detailsLink = f''' <a title="Show details about this work" href="{'../'*(BBBLevel)}OET-RV/details.htm#Top">©</a>'''
     usedParallels = []
     for n,startC,startV,endC,endV,sectionName,reasonName,contextList,verseEntryList,sFilename in availableSections:
-        dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"MakeLoop{n} {startC}:{startV}-{endC}:{endV} '{sectionName}' {reasonName} {len(contextList)} {len(verseEntryList)} '{sFilename}'" )
+        dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"      MakeLoop{n} {startC}:{startV}-{endC}:{endV} '{sectionName}' {reasonName} {len(contextList)} {len(verseEntryList)} '{sFilename}'" )
         if endC == '?': # Then these are the OET-RV additional/alternative headings
             assert thisBible.abbreviation == 'OET-RV'
             assert endV == '?'
@@ -547,7 +547,7 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
             crossReferencesBBBList.append( xrefBBB )
             assert isinstance( cvPart, list ) and len(cvPart)==1 and isinstance( cvPart[0], str ), f"{sr} {BBB} {startC}:{startV} {sectionReference=} {cvPart=} from {sectionReferences=}"
             crossReferencesCVList.append( cvPart[0] )
-        dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"Got BBB set for {BBB} {startC}:{startV} {sectionReferences=} {crossReferencesBBBList=} {crossReferencesCVList=}" )
+        dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"      Got BBB set for {BBB} {startC}:{startV} {sectionReferences=} {crossReferencesBBBList=} {crossReferencesCVList=}" )
         assert len(crossReferencesBBBList) == len(crossReferencesCVList) == len(sectionReferences)
         crossReferencesBBBSet = set( crossReferencesBBBList ) # Some books might appear more than once
         # assert BBB not in crossReferencesBBBSet # Not necessarily true
@@ -703,8 +703,13 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
                         srEndC = srStartC
                         verseEntryList, contextList = thisBible.getContextVerseData( (srBBB,srStartC) )
                         srEndV = str( thisBible.getNumVerses( srBBB, srStartC ) )
+            # lastV = None
             for entry in verseEntryList:
                 oText = entry.getOriginalText()
+                # if entry.getMarker() == 'v':
+                #     print( f"createSectionCrossReferencePagesForBook {oText=}")
+                #     assert oText != lastV
+                #     lastV = oText
                 if oText and '\\x ' in oText: # then extract a list of verse cross-references
                     startIndex = 0
                     for _safetyCount2 in range( 3 ):
@@ -760,7 +765,7 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
         # Now list all the combined cross-references with their passages
         xrefHtml = ''
         if collectedVerseCrossReferences:
-            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"  {BBB} {startC}:{startV} collectedVerseCrossReferences = ({len(collectedVerseCrossReferences)}) {collectedVerseCrossReferences}" )
+            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"      {BBB} {startC}:{startV} collectedVerseCrossReferences = ({len(collectedVerseCrossReferences)}) {collectedVerseCrossReferences}" )
             splitUpCollectedVerseCrossReferences = []
             for collectedVerseCrossReference in collectedVerseCrossReferences:
                 if not splitUpCollectedVerseCrossReferences \
@@ -768,7 +773,7 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
                     # This is the first crossReference but doesn't start with something like '3 Jn'
                     firstPart = collectedVerseCrossReference.split( ' ')[0]
                     attemptedBBB = getBBBFromOETBookName( firstPart )
-                    dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"    {collectedVerseCrossReference=} {firstPart=} {attemptedBBB=}" )
+                    dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {collectedVerseCrossReference=} {firstPart=} {attemptedBBB=}" )
                     # if attemptedBBB is None and thisBible.abbreviation=='OET-RV' and firstPart[0]=='Y':
                     #     # Maybe we need to convert something like Yoel to Joel
                     #     attemptedBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromText( f'J{firstPart[1:]}' )
@@ -780,7 +785,7 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
                     splitUpCollectedVerseCrossReferences += collectedVerseCrossReference.split( '; ' )
                 except ValueError: # No semicolon
                     splitUpCollectedVerseCrossReferences.append( collectedVerseCrossReference )
-            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"({len(splitUpCollectedVerseCrossReferences)}) {splitUpCollectedVerseCrossReferences=}" )
+            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"      ({len(splitUpCollectedVerseCrossReferences)}) {splitUpCollectedVerseCrossReferences=}" )
             doneCrossReferences = []
             lastXrefBBB = lastXrefC = None
             # Seems that the max is 71

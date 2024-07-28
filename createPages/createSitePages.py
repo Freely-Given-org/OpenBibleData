@@ -89,7 +89,7 @@ from Dict import createTyndaleDictPages, createUBSDictionaryPages
 from html import makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2024-07-15' # by RJH
+LAST_MODIFIED_DATE = '2024-07-24' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData (OBD) Create Site Pages"
 PROGRAM_VERSION = '0.96'
@@ -256,7 +256,7 @@ def _createSitePages() -> bool:
                                                      'BBE','MOF','JPS','ASV','DRA','YLT','DBY','RV','WBS',
                                                      'KJB-1769','BB','GNV','CB','TNT','WYC'):
                 # In test mode, we don't usually need to make all those pages, even just for the test books
-                vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nCreating {'TEST ' if TEST_MODE else ''}version pages for {thisBible.abbreviation}…" )
+                vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nCreating {'TEST ' if TEST_MODE else ''}version pages for {thisBible.abbreviation} ({thisBible.name})…" )
                 versionFolder = TEMP_BUILD_FOLDER.joinpath( f'{thisBible.abbreviation}/' )
                 _createVersionPages( 1, versionFolder, thisBible, state )
     # print( f"Discovery time {datetime.now()-discoverStartTime}" ); halt
@@ -593,12 +593,12 @@ def _createDetailsPages( level:int, buildFolder:Path, state:State ) -> bool:
 '''
 
         bodyHtml = f'''<!--_createDetailsPages--><h1 id="Top">{versionName} Details</h1>
-{detailsHtml}<hr style="width:40%;margin-left:0;margin-top: 0.3em">
-<p class="note">See details for ALL included translations and reference materials <a title="All versions’ details" href="../AllDetails.htm#Top">here</a>.</p>
+{detailsHtml.replace('__LEVEL__','../'*(level+1))}<hr style="width:40%;margin-left:0;margin-top: 0.3em">
+<p class="note">See details for <a title="All versions’ details" href="../AllDetails.htm#Top">ALL</a> included translations and reference materials.</p>
 '''
 
         allDetailsHTML = f'''{allDetailsHTML}{'<hr style="width:40%;margin-left:0;margin-top: 0.3em">' if allDetailsHTML else ''}<h2 id="{versionAbbreviation}">{versionName}</h2>
-{detailsHtml.replace('h2','h3').replace('href="../OET/bySec/','href="OET/bySec/')}'''
+{detailsHtml.replace('h2','h3').replace('href="../OET/bySec/','href="OET/bySec/').replace('__LEVEL__','../'*level)}'''
 
         html = f"{topHtml}{bodyHtml}{makeBottom( level+1, 'details', state )}"
         checkHtml( f'{versionAbbreviation} details', html )

@@ -31,6 +31,7 @@ makeBookNavListParagraph( linksList:List[str], workAbbrevPlus:str, state:State )
 makeBottom( level:int, pageType:str, state:State ) -> str
 makeFooter( level:int, pageType:str, state:State ) -> str
 removeDuplicateCVids( BBB:str, html:str ) -> str
+removeDuplicateFNids( where:str, html:str ) -> str
 checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool
 checkHtmlForMissingStyles( where:str, htmlToCheck:str ) -> bool
 do_OET_RV_HTMLcustomisations( OET_RV_html:str ) -> str
@@ -54,6 +55,7 @@ CHANGELOG:
     2024-04-03 Added OET Key page
     2024-04-21 Added News page
     2024-05-15 Added HTML/CSS style matching checks
+    2024-07-19 Added HTML class, id, and title validity checks and missed add processing checks
 """
 # from gettext import gettext as _
 from typing import Dict, List, Tuple, Optional, Union
@@ -71,10 +73,10 @@ from settings import State, TEST_MODE, SITE_NAME
 from OETHandlers import getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2024-07-12' # by RJH
+LAST_MODIFIED_DATE = '2024-07-25' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
-PROGRAM_VERSION = '0.88'
+PROGRAM_VERSION = '0.89'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -458,7 +460,9 @@ def removeDuplicateFNids( where:str, html:str ) -> str:
 # end of html.removeDuplicateFNids
 
 
-titleRegex = re.compile( 'title="(.+?)"' )
+classAttributeRegex = re.compile( 'class="(.+?)"' )
+idAttributeRegex = re.compile( 'id="(.+?)"' )
+titleAttributeRegex = re.compile( 'title="(.+?)"' )
 def checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool:
     """
     Just do some very quick and basic tests
@@ -477,7 +481,8 @@ def checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool:
         # print( f"checkHtml({where=} {segmentOnly=}) found <br> in …{htmlToCheck[ix-30:ix]}{htmlToCheck[ix:ix+50]}…" )
         raise ValueError( f"checkHtml({where}) found <br> followed by unexpected newline in {htmlToCheck=}" )
             
-    if 'TCNT' not in where and 'TC-GNT' not in where and not where.startswith('Parallel '): # These two versions use the '¦' character in their footnotes
+    if ( 'TCNT' not in where and 'TC-GNT' not in where  # These two versions use the '¦' character in their footnotes
+    and not where.startswith('Parallel ') and not where.startswith('End of parallel') ): # and they also appear on parallel pages
         assert '¦' not in htmlToCheck, f"checkHtml() found unprocessed word number marker in '{where}' {htmlToCheck=}"
 
     for marker,startMarker in (('html','<html'),('head','<head>'),('body','<body>')):
@@ -487,6 +492,55 @@ def checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool:
             assert htmlToCheck.count( startMarker ) == 1, f"checkHtml() found {htmlToCheck.count( startMarker )} '{startMarker}' markers"
             assert htmlToCheck.count( f'</{marker}>' ) == 1
 
+    if ('ULT' not in where and 'UST' not in where
+    and 'OEB' not in where
+    # Parallel pages
+    and 'PSA' not in where # uW really messes up \\qs Selah\\qs* amongst other things
+    and 'JOB' not in where # UST I think
+    and 'PRO' not in where # UST I think
+    and 'JOL' not in where # UST I think
+    and 'MAT' not in where # UST I think
+    and 'ROM' not in where # Maybe AICNT Rom 9:32, but probably UST
+    and 'CO2' not in where # Maybe AICNT 2 Cor 8:22, but probably UST
+    and 'GAL' not in where # Maybe AICNT Gal 2:2, but probably UST
+    and 'HEB' not in where # Heb 4:3
+    and 'REV' not in where # Rev 2:9
+    # and 'JOB_17:5' not in where # UST I think
+    # and 'JOB_24:18' not in where # UST maybe or BSB???
+    # and 'JOB_29:12' not in where # UST maybe or BSB???
+    # and 'JOB_30:26' not in where # UST maybe or BSB???
+    # and 'JOB_30:26' not in where # UST maybe or BSB???
+    ):
+        # Check (nested) spans
+        spanNestingLevel = searchStartIndex = 0
+        while True:
+            # print( f"{spanNestingLevel=} {searchStartIndex=} {len(htmlToCheck)=}")
+            spanIx = htmlToCheck.find( '<span', searchStartIndex )
+            if spanIx == -1: spanIx = 99_999_999
+            endSpanIx = htmlToCheck.find( '</span>', searchStartIndex )
+            if endSpanIx == -1: endSpanIx = 99_999_999
+            if spanIx == endSpanIx: # No more spans or end spans
+                assert spanIx == 99_999_999
+                break
+            elif spanIx < endSpanIx: # it's a new span
+                assert spanNestingLevel < 8, f"Too many nested spans {spanNestingLevel} '{where}' {segmentOnly=} {htmlToCheck=}"
+                spanNestingLevel += 1
+                # print( f"Found new span in '{where}' {segmentOnly=} '{'' if spanIx==0 else '…'}{htmlToCheck[spanIx:spanIx+200]}…'"
+                #             if spanNestingLevel == 1 else
+                #        f"Found nested level{spanNestingLevel} span in '{where}' {segmentOnly=} '{'' if spanIx==0 else '…'}{htmlToCheck[spanIx:spanIx+200]}…' then …{htmlToCheck[lastSpanIx:lastSpanIx+200]}" )
+                lastSpanIx = spanIx
+                searchStartIndex = spanIx + 7
+            else: # endSpanIx < spanIx
+                assert spanNestingLevel > 0, f"Extra close span in '{where}' {segmentOnly=} '{'' if endSpanIx==0 else '…'}{htmlToCheck[endSpanIx:endSpanIx+200]}…'"
+                spanNestingLevel -= 1
+                searchStartIndex = endSpanIx + 7
+        assert spanNestingLevel==0, f"Unclosed span in '{where}' {segmentOnly=} '{'' if lastSpanIx==0 else '…'}{htmlToCheck[lastSpanIx:lastSpanIx+200]}…' FROM {htmlToCheck=}"
+
+    if not segmentOnly or '<span class="add"><' not in htmlToCheck: # < is one of our add field sub-classifiers
+        assert '<<' not in htmlToCheck, f"<span> '{where}' {segmentOnly=} …{htmlToCheck[htmlToCheck.index('<<')-180:htmlToCheck.index('<<')+180]}…"
+    if not segmentOnly or '<span class="add">>' not in htmlToCheck: # > is one of our add field sub-classifiers
+        if where not in ('UTN ZEP_1:0','Parallel ZEP_1:0'):
+            assert '>>' not in htmlToCheck, f"<span> '{where}' {segmentOnly=} …{htmlToCheck[htmlToCheck.index('>>')-180:htmlToCheck.index('>>')+180]}…"
     assert '<span>' not in htmlToCheck, f"<span> '{where}' {segmentOnly=} …{htmlToCheck[htmlToCheck.index('<span>')-180:htmlToCheck.index('<span>')+180]}…"
     assert '>span class' not in htmlToCheck, f"'>span class' '{where}' {segmentOnly=} …{htmlToCheck[htmlToCheck.index('>span class')-180:htmlToCheck.index('>span class')+180]}…"
     for marker,startMarker in (('div','<div'),('p','<p '),('h1','<h1'),('h2','<h2'),('h3','<h3'),('h4','<h4'),
@@ -515,9 +569,21 @@ def checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool:
                 print( f"'{where}' {segmentOnly=} {marker=} Bad html = {htmlToCheck=}")
                 print( f"'{where}' {segmentOnly=} {marker=} {startMarker=} {startCount=} {endCount=}")
                 if 'book' not in where.lower():
-                    if 'UST' not in where: # UST PSA has totally messed up \\qs encoding
+                    if 'ULT' not in where and 'UST' not in where and 'PSA' not in where: # UST PSA has totally messed up \\qs encoding
                         halt
             return False
+
+    # Should be no <a ...> anchors embedded inside other anchors
+    if not segmentOnly or '<span class="add"><a ' not in htmlToCheck: # Temporary fields can confuse our check, e.g., '<span class="add"><a word</span>'
+        searchStartIndex = 0
+        while True:
+            aIx = htmlToCheck.find( '<a ', searchStartIndex )
+            if aIx == -1: break
+            endIx = htmlToCheck.index( '</a>', aIx+3 )
+            nextAIx = htmlToCheck.find( '<a ', aIx+3 )
+            if nextAIx != -1:
+                assert endIx < nextAIx, f"Nested anchors in '{where}' {segmentOnly=} '{'' if aIx==0 else '…'}{htmlToCheck[aIx:aIx+200]}…'"
+            searchStartIndex = endIx + 4
 
     if '<li>' in htmlToCheck or '<li ' in htmlToCheck or '</li>' in htmlToCheck:
         assert '<ol>' in htmlToCheck or '<ol ' in htmlToCheck or '<ul>' in htmlToCheck or '<ul ' in htmlToCheck
@@ -530,21 +596,73 @@ def checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool:
         logging.critical( f"'{where}' {segmentOnly=} has unexpected newline before anchor close in {htmlToCheck=}" )
         halt
 
-    # Check for illegal characters in title popups
+    # Check classes
     searchStartIndex = 0
-    while True: # Look for links that we could maybe liven
-        match = titleRegex.search( htmlToCheck, searchStartIndex )
+    while True:
+        match = classAttributeRegex.search( htmlToCheck, searchStartIndex )
         if not match:
             break
-        titleAttributeGuts = match.group(1)
-        assert '\n' not in titleAttributeGuts, f"Bad title attribute with newline in {htmlToCheck=}"
-        assert '<br' not in titleAttributeGuts, f"Bad title attribute with BR in {htmlToCheck=}"
-        assert '<span' not in titleAttributeGuts, f"Bad title attribute with SPAN in {htmlToCheck=}"
+        classGuts = match.group(1) # might be something like 'KJB-1611_verseTextChunk'
+        assert len(classGuts) <= 23, f"'{where}' {segmentOnly=} class is too long ({len(classGuts)}) {classGuts=}"
+        assert '\n' not in classGuts, f"'{where}' {segmentOnly=} Bad class with newline in {classGuts=} FROM {htmlToCheck=}"
+        assert '<' not in classGuts, f"'{where}' {segmentOnly=} Bad class with < in {classGuts=} FROM {htmlToCheck=}"
+        assert '>' not in classGuts, f"'{where}' {segmentOnly=} Bad class with > in {classGuts=} FROM {htmlToCheck=}"
+        searchStartIndex = match.end()
+
+    # Check IDs
+    idDict = {} # Used to make sure that they're all unique
+    searchStartIndex = 0
+    while True:
+        match = idAttributeRegex.search( htmlToCheck, searchStartIndex )
+        if not match:
+            break
+        idGuts = match.group(1) # might be something like 'C18V27' or 'BottomTransliterationsButton' or Tyndale dict 'The18thand19thCenturiesNewDiscoveriesofEarlierManuscriptsandIncreasedKnowledgeoftheOriginalLanguages'
+        assert len(idGuts) <= (100 if where=='DictionaryArticle' else 28), f"'{where}' {segmentOnly=} id is too long ({len(idGuts)}) {idGuts=}"
+        assert ' ' not in idGuts, f"'{where}' {segmentOnly=} Bad id with space in {idGuts=} FROM {htmlToCheck=}"
+        assert '\n' not in idGuts, f"'{where}' {segmentOnly=} Bad id with newline in {idGuts=} FROM {htmlToCheck=}"
+        assert '<' not in idGuts, f"'{where}' {segmentOnly=} Bad id with < in {idGuts=} FROM {htmlToCheck=}"
+        assert '>' not in idGuts, f"'{where}' {segmentOnly=} Bad id with > in {idGuts=} FROM {htmlToCheck=}"
+        if 'OEB' not in where and 'MOF' not in where and 'WYC' not in where: # OEB SNG,JER and MOF PSA and WYC SA2 have verse number problems
+            assert idGuts not in idDict, f''''{where}' {segmentOnly=} Duplicate id="{idGuts}" FROM ‘…{htmlToCheck[max(0,idDict[idGuts][0]-300):idDict[idGuts][1]+300]}…’ THEN FROM ‘…{htmlToCheck[match.start()-300:match.end()+300]}…’'''
+        idDict[idGuts] = (match.start(),match.end())
+        searchStartIndex = match.end()
+    del idDict
+
+    # Check for illegal characters in title popups
+    searchStartIndex = 0
+    while True:
+        match = titleAttributeRegex.search( htmlToCheck, searchStartIndex )
+        if not match:
+            break
+        titleGuts = match.group(1) # Can be an entire footnote or can be a parsing of a word (with some fields still expanded like --fnColon--)
+        assert len(titleGuts) <= (1010 if titleGuts.startswith('Note') or titleGuts.startswith('Variant note') or 'NET' in where or 'TCNT' in where or 'TC-GNT' in where or 'T4T' in where or 'Parallel' in where or 'End of parallel' in where else 150), f"'{where}' {segmentOnly=} title is too long ({len(titleGuts)}) {titleGuts=}"
+        assert '\n' not in titleGuts, f"'{where}' {segmentOnly=} Bad title with newline in {titleGuts=} FROM {htmlToCheck=}"
+        assert '<br' not in titleGuts, f"'{where}' {segmentOnly=} Bad title with BR in {titleGuts=} FROM {htmlToCheck=}"
+        assert '<span' not in titleGuts, f"'{where}' {segmentOnly=} Bad title with SPAN in {titleGuts=} FROM {htmlToCheck=}"
         searchStartIndex = match.end()
 
     if segmentOnly:
         return True
         
+    # The following are not actual HTML errors, but rather, our own processing errors
+    #   (We don't check segments, because some of these things are processed later on)
+    if 'OET' in where or 'Parallel' in where:
+        for char,reason in (('+','added article'),('-','dropped article'),('=','added copula'),('>','implied object'),
+                    ('≡','repeat ellided'),('≡','repeat ellided'),('&','added ownwer'),('@','expanded pronoun'),('*','reduced to pronoun'),
+                    ('#','changed number'),('^','used opposite'),('≈','reworded'),('?','unsure'),):
+            assert f'<span class="add">{char}' not in htmlToCheck, f''''{where}' {segmentOnly=} Missed ADD {reason} in …{htmlToCheck[max(0,htmlToCheck.index(f'<span class="add">{char}')-50):htmlToCheck.index(f'<span class="add">{char}')+100]}…'''
+        # We have to check this one separately: ('<','implied direct object') because it might be the start of the next field
+        searchStartIndex = 0
+        while True:
+            try: ix = htmlToCheck.index( '<span class="add"><', searchStartIndex )
+            except ValueError: # substring not found
+                break
+            next = htmlToCheck[ix+18:ix+50]
+            if not next.startswith( '<a title=' ) and not next.startswith( '<span ' ):
+                raise ValueError( f"Unprocessed add field with {next=} '{where}' {segmentOnly=}" )
+            searchStartIndex = ix + 18
+
+    # See if all our classes/styles exist in the stylesheet
     result = checkHtmlForMissingStyles( where, htmlToCheck )
     if where == 'TopIndex': # that's the final page that we build
         # so we output extra info here

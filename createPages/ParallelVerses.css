@@ -58,10 +58,18 @@ p.ms1 { font-weight:bold; font-size:1.5em; }
 p.ms2 { font-weight:bold; font-size:1.3em; }
 
 p.parallelVerse {}
+p.closeVerse { margin-top:-1em; }
 
+span.BRN_chapterIntro {}
 span.BSB_chapterIntro {}
-span.KJB-1611_chapterIntro { font-size:0.8em; color: grey; UnifrakturCook,"New Rocker","Unifraktur Maguntia","Germania One",Astloch,textura,schwabacher,rotunda,bastarda,cursive; }
+span.FBV_chapterIntro {}
+span.KJB-1611_chapterIntro { font-size:0.8em; color:grey; font-family:UnifrakturCook,"New Rocker","Unifraktur Maguntia","Germania One",Astloch,textura,schwabacher,rotunda,bastarda,cursive; }
+span.KJB-1769_chapterIntro { font-size:0.8em; color:grey; font-family:UnifrakturCook,"New Rocker","Unifraktur Maguntia","Germania One",Astloch,textura,schwabacher,rotunda,bastarda,cursive; }
 span.LEB_chapterIntro {}
+span.OEB_chapterIntro {}
+span.RV_chapterIntro {}
+span.ULT_chapterIntro {}
+span.WEB_chapterIntro {}
 
 span.AICNT_verseTextChunk {}
 span.ASV_verseTextChunk {}
@@ -78,7 +86,7 @@ span.DRA_verseTextChunk {}
 span.FBV_verseTextChunk {}
 span.GNV_verseTextChunk {}
 span.JPS_verseTextChunk {}
-span.KJB-1611_verseTextChunk { font-family: UnifrakturCook,"New Rocker","Unifraktur Maguntia","Germania One",Astloch,textura,schwabacher,rotunda,bastarda,cursive; }
+span.KJB-1611_verseTextChunk { font-family:UnifrakturCook,"New Rocker","Unifraktur Maguntia","Germania One",Astloch,textura,schwabacher,rotunda,bastarda,cursive; }
 span.add_KJB-1611 { vertical-align:middle; position:relative; top:-0.1em; font-size:0.8em; color: grey; }
 span.KJB-1769_verseTextChunk {}
 span.LEB_verseTextChunk {}
@@ -98,7 +106,7 @@ span.TC-GNT_verseTextChunk {}
 span.TCNT_verseTextChunk {}
 span.TNT_verseTextChunk {}
 span.UGNT_verseTextChunk {}
-span.UHB_verseTextChunk {}
+span.UHB_verseTextChunk { font-family: Alef,"Noto Sans Hebrew","SBL Hebrew","Ezra SIL"; }
 span.ULT_verseTextChunk {}
 span.UST_verseTextChunk {}
 span.WBS_verseTextChunk {}
@@ -107,22 +115,22 @@ span.WMB_verseTextChunk {}
 span.WYC_verseTextChunk {}
 span.YLT_verseTextChunk {}
 
-span.BB_mod {}
-span.CB_mod {}
-span.CLV_trans {}
-span.GNV_mod {}
-span.KJB-1769_mod {}
-span.KJB-1611_mod {}
-span.LUT_trans {}
-span.TNT_mod {}
-span.WYC_mod {}
+span.BB_mod { font-family:sans-serif; font-size:0.85em; }
+span.CB_mod { font-family:sans-serif; font-size:0.85em; }
+span.CLV_trans { font-family:sans-serif; font-size:0.85em; }
+span.GNV_mod { font-family:sans-serif; font-size:0.85em; }
+span.KJB-1769_mod { font-family:sans-serif; font-size:0.85em; }
+span.KJB-1611_mod { font-family:sans-serif; font-size:0.85em; }
+span.LUT_trans { font-family:sans-serif; font-size:0.85em; }
+span.TNT_mod { font-family:sans-serif; font-size:0.85em; }
+span.WYC_mod { font-family:sans-serif; font-size:0.85em; }
 
-span.BrLXX_trans {}
-span.SBL-GNT_trans {}
-span.SR-GNT_trans {}
-span.TC-GNT_trans {}
-span.UGNT_trans {}
-span.UHB_trans {}
+span.BrLXX_trans { font-family:sans-serif; font-size:0.85em; }
+span.SBL-GNT_trans { font-family:sans-serif; font-size:0.85em; }
+span.SR-GNT_trans { font-family:sans-serif; font-size:0.85em; }
+span.TC-GNT_trans { font-family:sans-serif; font-size:0.85em; }
+span.UGNT_trans { font-family:sans-serif; font-size:0.85em; }
+span.UHB_trans { font-family:sans-serif; font-size:0.85em; }
 
 div.hideables {}
 span.noBook {}
@@ -206,7 +214,7 @@ span.addReferent { color:darkblue; }
 span.addPluralised { color:darkcyan; }
 span.addNegated { color:darkred; }
 span.addReword { text-decoration:underline; text-decoration-style: dotted; }
-span.RVadd { color:darkOrange; } /* Was #505050 - darker than dimGrey which is #696969 (black is #000000) */
+span.RVadd { color:#505050; } /* Darker than dimGrey which is #696969 (black is #000000) */
 span.add { color:grey; }
 span.untr { font-size:0.8em; color:grey; text-decoration:line-through; }
 span.unsure { text-decoration:underline; text-decoration-style: dotted; text-decoration-color: orange; }
@@ -278,11 +286,15 @@ p.intro-sidebar-body-fl {}
 p.intro-overview {}
 p.intro-body {}
 p.intro-body-fl-sp {}
+p.intro-extract {}
 p.intro-list {}
 p.intro-list-sp {}
+p.intro-poetry-1-sp {}
+p.intro-poetry-2 {}
 span.intro-h2 {}
 span.intro-h2-era {}
 span.era {}
+span.bold-era {}
 span.greek {}
 
 /* Tyndale SNs */
@@ -325,5 +337,6 @@ p.TARef {}
 /* BibleMapper.com Maps */
 div.parallelBMM {}
 h2.mapTitle {}
+p.mapSubtitle {}
 p.mapRefs { font-weight:bold; }
 p.mapDescription {}

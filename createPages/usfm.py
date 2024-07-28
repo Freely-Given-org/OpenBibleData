@@ -58,6 +58,7 @@ CHANGELOG:
     2024-06-25 Put NNBSP between sucessive (close) quote marks
     2024-07-11 Put verse text chunks into a style
     2024-07-13 Changed KJB-1611 chapter numbers to Roman numerals
+    2024-07-18 Limited the length of footnote title popups
 """
 from gettext import gettext as _
 from typing import Union
@@ -74,7 +75,7 @@ from html import checkHtml
 from OETHandlers import getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2024-07-13' # by RJH
+LAST_MODIFIED_DATE = '2024-07-21' # by RJH
 SHORT_PROGRAM_NAME = "usfm"
 PROGRAM_NAME = "OpenBibleData USFM to HTML functions"
 PROGRAM_VERSION = '0.80'
@@ -104,10 +105,19 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
     #     print( f"\n{refTuple}\n{contextList=}\n{markerList=}")
 
     fnPrint( DEBUGGING_THIS_MODULE, f"convertUSFMMarkerListToHtml( {versionAbbreviation} {refTuple} '{segmentType}' {contextList} {markerList} )" )
-    dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"convertUSFMMarkerListToHtml( {versionAbbreviation} {refTuple} '{segmentType}' {contextList} {len(markerList)} )" )
+    dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"convertUSFMMarkerListToHtml( {versionAbbreviation} {refTuple} '{segmentType}' {contextList=} {len(markerList)=} )" )
     assert segmentType in ('book','section','chapter','verse','relatedPassage'), f"Unexpected {segmentType=}"
     maxFootnoteChars = MAX_NET_FOOTNOTE_CHARS if versionAbbreviation=='NET' else MAX_FOOTNOTE_CHARS
     # if versionAbbreviation=='NET' and refTuple==('JOB','36','4'): print( f"\nconvertUSFMMarkerListToHtml( {versionAbbreviation} {refTuple} '{segmentType}' {contextList=} {[entry.getFullText() for entry in markerList]} )\n" )
+    # if versionAbbreviation=='OET-RV' and refTuple==('CH2','23'): print( f"\nconvertUSFMMarkerListToHtml( {versionAbbreviation} {refTuple} '{segmentType}' {contextList=} {[(entry.getMarker(),entry.getFullText()) for entry in markerList]} )\n" )
+    # # Check that we don't have any duplicated verses in the segment
+    # lastV = None
+    # for entry in markerList:
+    #     marker, text = entry.getMarker(), entry.getFullText()
+    #     print( f"convertUSFMMarkerListToHtml {versionAbbreviation} {refTuple} {segmentType} {marker}={text}" )
+    #     if marker == 'v':
+    #         assert text != lastV
+    #         lastV = text
 
     inMainDiv = inParagraph = inSection = inList = inListEntry = inTable = None
     inRightDiv = False
@@ -138,6 +148,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
         assert isinstance(V, str), f"{refTuple=}"
     isSingleChapterBook = BibleOrgSysGlobals.loadedBibleBooksCodes.isSingleChapterBook( BBB )
 
+    # numChapters = 0
     for n, entry in enumerate( markerList ):
         marker = entry.getMarker()
         # rest = entry.getText() if basicOnly and 'OET' not in versionAbbreviation else entry.getFullText() # getText() has notes removed but doesn't work with wordlink numbers in OET
@@ -170,27 +181,28 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                 inRightDiv = False
             V = rest.strip() # Play safe
             # We don't display the verse number below for verse 1 (after chapter number)
-            if '-' in V: # it's a verse range
-                assert V[0].isdigit() and V[-1].isdigit(), f"Expected a verse number digit with {BBB} {C}:{V=} {rest=}"
-                assert ':' not in V # We don't handle chapter ranges here yet (and probably don't need to)
-                V1, V2 = V.split( '-' )
-                # We want both verse numbers to be searchable
-                if int(V2) != int(V1)+1: # We don't handle 3+ verse reordering well yet
-                    logging.warning( f" Not handling 3+ verse bridge well yet at {versionAbbreviation} {refTuple} {C}:{V}" )
-                vLink = f'''<a title="Go to verse in parallel view" href="{'../'*level}par/{BBB}/C{C}V{V1}.htm#Top">{V1}</a>'''
-                html = f'{html}{"" if html.endswith(">") else " "}' \
-                        + f'''{f"""<span id="C{C}"></span><span class="{'cPsa' if BBB=='PSA' else 'c'}" id="C{C}V1">{toRomanNumerals(C) if versionAbbreviation=='KJB-1611' else C}</span>""" if V1=="1" else f"""<span class="v" id="C{C}V{V1}">{vLink}-</span>"""}''' \
-                        + (f'<span id="V{V1}"></span><span id="V{V2}"></span>' if segmentType in ('chapter','section','relatedPassage') or isSingleChapterBook else '') \
-                        + f'<span class="v" id="C{C}V{V2}">{V2}{NARROW_NON_BREAK_SPACE}</span>' \
-                        + (rest if rest else '=◘=')
-            else: # it's a simple verse number
-                if segmentType != 'verse': # No need for verse numbers at all if we're only displaying one verse
+            # NOTE: For sections (which can include multiple chapters), have to take care not to get duplicate V{v} id attributes
+            if segmentType != 'verse': # No need for verse numbers at all if we're only displaying one verse
+                if '-' in V: # it's a verse range
+                    assert V[0].isdigit() and V[-1].isdigit(), f"Expected a verse number digit with {BBB} {C}:{V=} {rest=}"
+                    assert ':' not in V # We don't handle chapter ranges here yet (and probably don't need to)
+                    V1, V2 = V.split( '-' )
+                    # We want both verse numbers to be searchable
+                    if int(V2) != int(V1)+1: # We don't handle 3+ verse reordering well yet
+                        logging.warning( f" Not handling 3+ verse bridge well yet at {versionAbbreviation} {refTuple} {C}:{V}" )
+                    vLink = f'''<a title="Go to verse in parallel view" href="{'../'*level}par/{BBB}/C{C}V{V1}.htm#Top">{V1}</a>'''
+                    html = f'{html}{"" if html.endswith(">") else " "}' \
+                            + f'''{f"""<span id="C{C}"></span><span class="{'cPsa' if BBB=='PSA' else 'c'}" id="C{C}V1">{toRomanNumerals(C) if versionAbbreviation=='KJB-1611' else C}</span>""" if V1=="1" else f"""<span class="v" id="C{C}V{V1}">{vLink}-</span>"""}''' \
+                            + (f'<span id="V{V1}"></span><span id="V{V2}"></span>' if (segmentType in ('chapter','section','relatedPassage') or isSingleChapterBook) and f'id="V{V1}"' not in html and f'id="V{V2}"' not in html else '') \
+                            + f'<span class="v" id="C{C}V{V2}">{V2}{NARROW_NON_BREAK_SPACE}</span>' \
+                            + (rest if rest else '=◘=')
+                else: # it's a simple verse number
                     if not V.isdigit():
                         logging.error( f"Expected a verse number digit at {versionAbbreviation} {refTuple} {C}:{V} {rest=}" )
                     cLink = f'''<a title="Go to verse in parallel view" href="{'../'*level}par/{BBB}/C{C}V1.htm#Top">{toRomanNumerals(C) if versionAbbreviation=='KJB-1611' else C}</a>'''
                     vLink = f'''<a title="Go to verse in parallel view" href="{'../'*level}par/{BBB}/C{C}V{V}.htm#Top">{V}</a>'''
                     html = f'''{html}{'' if html.endswith('"p">')or html.endswith('—') else ' '}''' \
-                            + (f'<span id="V{V}"></span>' if segmentType in ('chapter','section','relatedPassage') or isSingleChapterBook else '') \
+                            + (f'<span id="V{V}"></span>' if (segmentType in ('chapter','section','relatedPassage') or isSingleChapterBook) and f'id="V{V}"' not in html else '') \
                             + f'''{f"""<span id="C{C}"></span><span class="{'cPsa' if BBB=='PSA' else 'c'}" id="C{C}V1">{cLink}{NARROW_NON_BREAK_SPACE}</span>""" if V=="1"
                                    else f"""<span class="v" id="C{C}V{V}">{vLink}{NARROW_NON_BREAK_SPACE}</span>"""}'''
                 # html = f'{html} <span class="v" id="C{refTuple[1]}V{V}">{V}{NARROW_NON_BREAK_SPACE}</span>'
@@ -227,7 +239,8 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                     inListDepth -= 1
                 inList = None
             if basicOnly:
-                if html: html = f"{html}<br>{NARROW_NON_BREAK_SPACE if '1' in marker else NON_BREAK_SPACE if '2' in marker else ''}{'¶' if 'p' in marker else '⇔' if 'q' in marker else '§'}{NARROW_NON_BREAK_SPACE}" # Just start the new paragraph on a new line with a pilcrow
+                # if html: html = f"{html}<br>{NARROW_NON_BREAK_SPACE if '1' in marker else NON_BREAK_SPACE if '2' in marker else ''}{'¶' if 'p' in marker else '⇔' if 'q' in marker else '§'}{NARROW_NON_BREAK_SPACE}" # Just start the new paragraph on a new line with a pilcrow
+                if html: html = f"{html}<br>{' ' if '1' in marker else ' ' if '2' in marker else NON_BREAK_SPACE}{'¶' if 'p' in marker else '⇔' if 'q' in marker else '§'}{NARROW_NON_BREAK_SPACE}" # Just start the new paragraph on a new line with a pilcrow
             else: # not basicOnly
                 html = f'{html}<p class="{marker}">'
                 inParagraph = marker
@@ -330,6 +343,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
             # if segmentType == 'chapter':
             C, V = rest.strip(), '0' # Play safe
             # html = f'{html}<span class="{marker}" id="C{C}">{C}{NARROW_NON_BREAK_SPACE}</span>'
+            # numChapters += 1
         elif marker in ('mt1','mt2','mt3','mt4'):
             assert rest
             if not inMainDiv:
@@ -737,14 +751,14 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
         fContentIx = html.find( '\\f', fStartIx+3 if frIx==-1 else frIx+3 )
         if fContentIx == fEndIx: fContentIx = -1
         if fContentIx == -1:
-            logging.critical( f"No internal footnote markers {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {footnotesCount=} {html[fStartIx:fStartIx+2*maxFootnoteChars]}" )
+            logging.warning( f"No internal footnote markers {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {footnotesCount=} {html[fStartIx:fStartIx+2*maxFootnoteChars]}" )
             fContentIx = fStartIx + (5 if html[fStartIx:].startswith( '\\f + ') else 3)
         else:
             assert html[fContentIx+1:fContentIx+3] in ('ft','fq','fk','fl','fw','fp','fv', 'fn') if versionAbbreviation=='NET' else ('ft','fq','fk','fl','fw','fp','fv'), \
                 f"Unexpected '{html[fContentIx+1:fContentIx+3]}' {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {footnotesCount=} {html[fStartIx:fStartIx+2*maxFootnoteChars]}"
         assert html[fContentIx:fContentIx+3] != '\\f*'
         if fStartIx+5 > fContentIx > fStartIx+16:
-            logging.critical( f"Unexpected footnote start {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {footnotesCount=} {fStartIx=} {fContentIx=} '{html[fStartIx:fStartIx+20]}'" ) # Skips ' + \\fr c:v '
+            logging.error( f"Unexpected footnote start {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {footnotesCount=} {fStartIx=} {fContentIx=} '{html[fStartIx:fStartIx+20]}'" ) # Skips ' + \\fr c:v '
         if frIx == -1:
             frText = ''
         else: # we have one
@@ -756,13 +770,14 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
         if versionAbbreviation=='NET': internalOpenCount += fnoteMiddle.count( '\\fn ') # Seems to be a NET Bible special
         dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"\nProcessing {versionAbbreviation} {segmentType} {refTuple} footnote from '{fnoteMiddle}'" )
         if internalOpenCount > 0:
-            # internalCloseCount = fnoteMiddle.count( '\\ft*') + fnoteMiddle.count( '\\fq*') + fnoteMiddle.count( '\\fqa*') + fnoteMiddle.count( '\\fk*')
-            # internalMarkerCount = internalOpenCount - internalCloseCount
-            # dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"Footnote middle has {internalOpenCount=} {internalCloseCount=} {internalMarkerCount=} '{fnoteMiddle}'" )
+            if DEBUGGING_THIS_MODULE:
+                internalCloseCount = fnoteMiddle.count( '\\ft*') + fnoteMiddle.count( '\\fq*') + fnoteMiddle.count( '\\fqa*') + fnoteMiddle.count( '\\fk*')
+                internalMarkerCount = internalOpenCount - internalCloseCount
+                dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"Footnote middle has {internalOpenCount=} {internalCloseCount=} {internalMarkerCount=} '{fnoteMiddle}'" )
             inSpan = None
             internalSearchStartIx = 0
             for _innerSafetyCount in range( 520 ): # max number of fields in footnote -- 25 not enough for CLV, 400 not enough for NET ECC
-                # print( f"    Searching from {internalSearchStartIx}: '{fnoteMiddle[internalSearchStartIx:]}' from {fnoteMiddle=}")
+                dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"    Searching from {internalSearchStartIx}: '{fnoteMiddle[internalSearchStartIx:]}' from {fnoteMiddle=}")
                 internalStartIx = fnoteMiddle.find( '\\', internalSearchStartIx )
                 if internalStartIx == -1: break # all done
                 dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"Found backslash at index {internalStartIx} in '{fnoteMiddle}'" )
@@ -770,7 +785,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                 while internalStartIx + len(fMarker) < len(fnoteMiddle):
                     if fnoteMiddle[internalStartIx+len(fMarker)+1].islower():
                         fMarker = f'{fMarker}{fnoteMiddle[internalStartIx+len(fMarker)+1]}'
-                        # dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"Forming {fMarker=} from '{fnoteMiddle[internalStartIx:internalStartIx+20]}…'" )
+                        dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"Forming {fMarker=} from '{fnoteMiddle[internalStartIx:internalStartIx+20]}…'" )
                     else: break
                 if fnoteMiddle[internalStartIx+len(fMarker)+1] == ' ': # It's an opening marker
                     dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"Got opening {fMarker=} with {inSpan=} from '{fnoteMiddle[internalStartIx:internalStartIx+20]}…'" )
@@ -795,7 +810,6 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
             if inSpan: # at end
                 fnoteMiddle = f'{fnoteMiddle}</span>'
             assert '\\' not in fnoteMiddle, f"{fnoteMiddle[fnoteMiddle.index(f'{BACKSLASH}x')-10:fnoteMiddle.index(f'{BACKSLASH}x')+12]}"
-            # if versionAbbreviation == 'NET': halt
         dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} {segmentType} {refTuple} {fnoteMiddle=}" )
         if versionAbbreviation == 'OET-LV': # then we don't want equals or underlines in the footnote to get converted into spans later
             fnoteMiddle = fnoteMiddle.replace('.', '--fnPERIOD--').replace(':', '--fnCOLON--') # So we protect them -- gets fixed in do_OET_LV_HTMLcustomisations() in html.py
@@ -814,7 +828,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                 sanitisedFnoteMiddle = sanitisedFnoteMiddle.replace( f'<{charMarker}>', '' ).replace( f'</{charMarker}>', '' )
             # if versionAbbreviation == 'OET-LV': # then we don't want equals or underlines in the sanitised footnote to get converted into spans later
             #     sanitisedFnoteMiddle = sanitisedFnoteMiddle.replace('_', '--fnUNDERLINE--').replace('=', '--fnEQUAL--') # So we protect them -- gets fixed in do_OET_LV_HTMLcustomisations() in html.py
-            # print( f"{versionAbbreviation} {segmentType} {refTuple} {sanitisedFnoteMiddle=}" )
+            dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} {segmentType} {refTuple} {sanitisedFnoteMiddle=}" )
             # if '_' in sanitisedFnoteMiddle or 'UNDERLINE' in sanitisedFnoteMiddle \
             # or '=' in sanitisedFnoteMiddle or 'EQUAL' in sanitisedFnoteMiddle: halt
             if '"' in sanitisedFnoteMiddle or '<' in sanitisedFnoteMiddle or '>' in sanitisedFnoteMiddle:
@@ -828,7 +842,8 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
             assert ':' not in sanitisedFnoteMiddle and '.' not in sanitisedFnoteMiddle \
                 and '_' not in sanitisedFnoteMiddle and '=' not in sanitisedFnoteMiddle
         assert '"' not in sanitisedFnoteMiddle and '<' not in sanitisedFnoteMiddle and '>' not in sanitisedFnoteMiddle, f"Left-over HTML chars in {versionAbbreviation} {refTuple} {sanitisedFnoteMiddle=}"
-        fnoteCaller = f'<span class="fnCaller">[<a title="{sanitisedFnoteMiddle}" href="#fn{footnotesCount}">fn</a>]</span>'
+        footnotePopup = sanitisedFnoteMiddle if len(sanitisedFnoteMiddle) < 1010 else f'{sanitisedFnoteMiddle[:999]}…'
+        fnoteCaller = f'<span class="fnCaller">[<a title="{footnotePopup}" href="#fn{footnotesCount}">fn</a>]</span>'
         fnoteRef = ''
         if frText:
             frCV = frText
@@ -852,8 +867,8 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
             #       but can't have multiple id's on one element, so have to add an extra empty span.
             #   We only do this for single verses because the backwards link can't work for both.
             dupIx = footnotesHtml.index( f'">{fnoteRef}<span class="fnText">{fnoteMiddle}</span></p>\n' )
-            footnotesHtml = f'{footnotesHtml[:dupIx]}"><span id="fn{footnotesCount}></span>{footnotesHtml[dupIx+2:]}'
-            # print( f"{versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {footnotesHtml=}" ); halt
+            footnotesHtml = f'{footnotesHtml[:dupIx]}"><span id="fn{footnotesCount}"></span>{footnotesHtml[dupIx+2:]}'
+            dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {footnotesHtml=}" )
         else: # append this footnote to go at the bottom
             footnotesHtml = f'{footnotesHtml}{fnoteText}'
         html = f'{html[:fStartIx]}{fnoteCaller}{html[fEndIx+3:]}'

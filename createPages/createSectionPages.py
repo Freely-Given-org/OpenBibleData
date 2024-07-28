@@ -68,10 +68,10 @@ from Bibles import getBibleMapperMaps
 from OETHandlers import livenOETWordLinks, getOETTidyBBB, getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2024-07-12' # by RJH
+LAST_MODIFIED_DATE = '2024-07-19' # by RJH
 SHORT_PROGRAM_NAME = "createSectionPages"
 PROGRAM_NAME = "OpenBibleData createSectionPages functions"
-PROGRAM_VERSION = '0.63'
+PROGRAM_VERSION = '0.64'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -119,6 +119,7 @@ def createOETSectionLists( rvBible:ESFMBible, state:State ) -> bool:
         if not rvBible[BBB]._SectionIndex: # no sections in this book, e.g., FRT
             continue
 
+        # Now create the main sections list for this book
         bkObject = rvBible[BBB]
         state.sectionsLists['OET-RV'][BBB] = []
         for n,(startCV, sectionIndexEntry) in enumerate( bkObject._SectionIndex.items() ):
@@ -151,6 +152,14 @@ def createOETSectionLists( rvBible:ESFMBible, state:State ) -> bool:
             #     dPrint( 'Verbose', DEBUGGING_THIS_MODULE,  f"{sectionName=} {reasonMarker=}" )
             reasonName = REASON_NAME_DICT[reasonMarker]
             rvVerseEntryList, rvContextList = bkObject._SectionIndex.getSectionEntriesWithContext( startCV )
+            # Check that we don't have any duplicated verses in the section
+            lastV = None
+            for entry in rvVerseEntryList:
+                marker, text = entry.getMarker(), entry.getFullText()
+                # dPrint( 'Info', DEBUGGING_THIS_MODULE, ( f"createOETSectionLists {marker}={text}" )
+                if marker == 'v':
+                    assert text != lastV
+                    lastV = text
             state.sectionsLists['OET-RV'][BBB].append( (n,startC,startV,endC,endV,sectionName,reasonName,rvContextList,rvVerseEntryList,sectionFilename) )
         if additionalSectionHeadingsDict:
             vPrint( 'Info', DEBUGGING_THIS_MODULE, f"{BBB} didn't use {additionalSectionHeadingsDict=}")
@@ -329,6 +338,9 @@ def createOETSectionPages( level:int, folder:Path, rvBible:ESFMBible, lvBible:ES
                 lvVerseEntryList = livenOETWordLinks( level, lvBible, BBB, lvVerseEntryList, state )
             lvHtml = convertUSFMMarkerListToHtml( level, lvBible.abbreviation, (BBB,startC), 'section', lvContextList, lvVerseEntryList, basicOnly=False, state=state )
             lvHtml = do_OET_LV_HTMLcustomisations( lvHtml )
+            # Handle footnotes so the same fn1 doesn't occur for both chunks if they both have footnotes
+            rvHtml = rvHtml.replace( 'id="fn', 'id="fnRV' ).replace( 'href="#fn', 'href="#fnRV' )
+            lvHtml = lvHtml.replace( 'id="fn', 'id="fnLV' ).replace( 'href="#fn', 'href="#fnLV' )
             combinedHtml = f'''<div class="chunkRV">{rvHtml}</div><!--chunkRV-->
 <div class="chunkLV">{lvHtml}</div><!--chunkLV-->
 '''

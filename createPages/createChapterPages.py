@@ -54,10 +54,10 @@ from Bibles import getBibleMapperMaps
 from OETHandlers import livenOETWordLinks, getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
-LAST_MODIFIED_DATE = '2024-07-12' # by RJH
+LAST_MODIFIED_DATE = '2024-07-19' # by RJH
 SHORT_PROGRAM_NAME = "createChapterPages"
 PROGRAM_NAME = "OpenBibleData createChapterPages functions"
-PROGRAM_VERSION = '0.68'
+PROGRAM_VERSION = '0.69'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -288,6 +288,9 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
                     for rvSection,lvChunk in zip( rvSections, lvChunks, strict=True ):
                         if rvSection.startswith( '<div class="rightBox">' ):
                             rvSection = f'<div class="s1">{rvSection}' # This got removed above
+                        # Handle footnotes so the same fn1 doesn't occur for both chunks if they both have footnotes
+                        rvSection = rvSection.replace( 'id="fn', 'id="fnRV' ).replace( 'href="#fn', 'href="#fnRV' )
+                        lvChunk = lvChunk.replace( 'id="fn', 'id="fnLV' ).replace( 'href="#fn', 'href="#fnLV' )
                         combinedHtml = f'''{combinedHtml}<div class="chunkRV">{rvSection}</div><!--chunkRV-->
 <div class="chunkLV">{lvChunk}</div><!--chunkLV-->
 '''

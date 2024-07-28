@@ -52,6 +52,7 @@ CHANGELOG:
     2024-01-18 Try to handle backslashes better in TSV (text) Bibles
     2024-05-02 Improve UTN markdown to HTML conversion
     2024-06-10 Save and load pickled Bibles for load speed boost
+    2024-07-22 Remove CRs (\\r) from UTNs
 """
 from gettext import gettext as _
 from typing import Dict, List, Tuple, Set, Optional
@@ -84,16 +85,16 @@ import sys
 sys.path.append( '../../BibleTransliterations/Python/' )
 from BibleTransliterations import transliterate_Greek, transliterate_Hebrew
 
-from settings import State, ALTERNATIVE_VERSION, TEST_MODE, TEST_BOOK_LIST, PICKLE_FILENAME_END, TEMP_BUILD_FOLDER
+from settings import State, ALTERNATIVE_VERSION, TEST_MODE, ALL_PRODUCTION_BOOKS, TEST_BOOK_LIST, PICKLE_FILENAME_END, TEMP_BUILD_FOLDER
 from html import checkHtml
 from OETHandlers import findLVQuote, getBBBFromOETBookName
 from Dict import loadAndIndexUBSGreekDictJSON, loadAndIndexUBSHebrewDictJSON
 
 
-LAST_MODIFIED_DATE = '2024-07-10' # by RJH
+LAST_MODIFIED_DATE = '2024-07-25' # by RJH
 SHORT_PROGRAM_NAME = "Bibles"
 PROGRAM_NAME = "OpenBibleData Bibles handler"
-PROGRAM_VERSION = '0.74'
+PROGRAM_VERSION = '0.76'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -127,7 +128,7 @@ def preloadVersions( state:State ) -> int:
             # See if a pickled version is available for a MUCH faster load time
             folderOrFileLocationPath = Path( state.BibleLocations[versionAbbreviation] )
             pickleFilename = f"{versionAbbreviation}__{'_'.join(TEST_BOOK_LIST)}{PICKLE_FILENAME_END}" \
-                                if TEST_MODE and versionAbbreviation not in State.WholeBibleVersions \
+                                if TEST_MODE and not ALL_PRODUCTION_BOOKS and versionAbbreviation not in state.WholeBibleVersions \
                                 else f'{versionAbbreviation}{PICKLE_FILENAME_END}'
             pickleFolderPath = folderOrFileLocationPath if folderOrFileLocationPath.is_dir() else folderOrFileLocationPath.parent
             pickleFilePath = pickleFolderPath.joinpath( pickleFilename )
@@ -185,7 +186,7 @@ def preloadVersions( state:State ) -> int:
             vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"preloadVersions() loaded {thisBible}" )
 
             pickleFilename = f"{versionAbbreviation}__{'_'.join(TEST_BOOK_LIST)}{PICKLE_FILENAME_END}" \
-                                if TEST_MODE and versionAbbreviation not in State.WholeBibleVersions \
+                                if TEST_MODE and not ALL_PRODUCTION_BOOKS and versionAbbreviation not in state.WholeBibleVersions \
                                 else f'{versionAbbreviation}{PICKLE_FILENAME_END}'
             pickleFolderPath = state.BibleLocations['OET-LV']
             thisBible.pickle( pickleFilename, pickleFolderPath )
@@ -216,6 +217,7 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
     global TyndaleBookIntrosDict, TyndaleBookIntroSummariesDict
 
     fnPrint( DEBUGGING_THIS_MODULE, f"preloadVersion( '{versionAbbreviation}', '{folderOrFileLocation}', … ){' in TEST mode' if TEST_MODE else ''}" )
+    versionName = state.BibleNames[versionAbbreviation]
 
     # if versionAbbreviation in ('BSB',): # Single TSV .txt file
     #     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Loading {versionAbbreviation} CSV/TSV Bible…" )
@@ -225,7 +227,7 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
     #     print( f"{versionAbbreviation} loaded ({len(thisBible.books.keys())}) {thisBible.books.keys()}" )
     if versionAbbreviation in ('BLB','SBL-GNT'): # Single (BLB) or multiple (SBL-GNT) TSV .txt file(s)
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Loading '{versionAbbreviation}' CSV/TSV Bible{' in TEST mode' if TEST_MODE else ''}…" )
-        thisBible = CSVBible.CSVBible( folderOrFileLocation, givenName=state.BibleNames[versionAbbreviation],
+        thisBible = CSVBible.CSVBible( folderOrFileLocation, givenName=versionName,
                                             givenAbbreviation=versionAbbreviation, encoding='utf-8' )
         thisBible.loadBooks() # So we can iterate through them all later
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} loaded ({len(thisBible.books.keys())}) {list(thisBible.books.keys())}" )
@@ -241,7 +243,7 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
     #     print( f"{versionAbbreviation} loaded ({len(thisBible.books.keys())}) {thisBible.books.keys()}" )
     elif versionAbbreviation == 'LEB': # Custom XML
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Loading '{versionAbbreviation}' XML Bible{' in TEST mode' if TEST_MODE else ''}…" )
-        thisBible = LEBXMLBible.LEBXMLBible( folderOrFileLocation, givenName=state.BibleNames[versionAbbreviation],
+        thisBible = LEBXMLBible.LEBXMLBible( folderOrFileLocation, givenName=versionName,
                                             givenAbbreviation=versionAbbreviation, encoding='utf-8' )
         thisBible.loadBooks() # So we can iterate through them all later
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} loaded ({len(thisBible.books.keys())}) {list(thisBible.books.keys())}" )
@@ -251,7 +253,7 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
         # print( f"Mat 2:1 {verseEntryList=} {contextList=}" )
     elif versionAbbreviation in ('CB','BB'): # Custom VPL
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Loading '{versionAbbreviation}' VPL Bible{' in TEST mode' if TEST_MODE else ''}…" )
-        thisBible = VPLBible.VPLBible( folderOrFileLocation, givenName=state.BibleNames[versionAbbreviation],
+        thisBible = VPLBible.VPLBible( folderOrFileLocation, givenName=versionName,
                                             givenAbbreviation=versionAbbreviation, encoding='utf-8' )
         thisBible.load() # So we can iterate through them all later
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} loaded ({len(thisBible.books.keys())}) {list(thisBible.books.keys())}" )
@@ -261,7 +263,7 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
         # print( f"Mrk 1:1 {verseEntryList=} {contextList=}" )
     elif 'Zefania' in folderOrFileLocation: # Zefania XML
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Loading '{versionAbbreviation}' Zefania XML Bible{' in TEST mode' if TEST_MODE else ''}…" )
-        thisBible = ZefaniaXMLBible.ZefaniaXMLBible( folderOrFileLocation, givenName=state.BibleNames[versionAbbreviation],
+        thisBible = ZefaniaXMLBible.ZefaniaXMLBible( folderOrFileLocation, givenName=versionName,
                                             givenAbbreviation=versionAbbreviation, encoding='utf-8' )
         thisBible.loadBooks() # So we can iterate through them all later
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} loaded ({len(thisBible.books.keys())}) {list(thisBible.books.keys())}" )
@@ -272,7 +274,7 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
         # if versionAbbreviation=='LUT': halt
     elif 'OET' in versionAbbreviation or 'ESFM' in folderOrFileLocation: # ESFM
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Preloading '{versionAbbreviation}' ESFM Bible{' in TEST mode' if TEST_MODE else ''}…" )
-        thisBible = ESFMBible.ESFMBible( folderOrFileLocation, givenAbbreviation=versionAbbreviation )
+        thisBible = ESFMBible.ESFMBible( folderOrFileLocation, givenName=versionName, givenAbbreviation=versionAbbreviation )
         thisBible.loadAuxilliaryFiles = True
         # if versionAbbreviation in ('ULT','UST','UHB','UGNT','SR-GNT'):
         #     thisBible.uWencoded = True # TODO: Shouldn't be required ???
@@ -324,13 +326,13 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
         loadAndIndexUBSHebrewDictJSON( 'UHD', '../../Forked/ubs-open-license/dictionaries/hebrew/JSON' )
     elif versionAbbreviation in state.selectedVersesOnlyVersions: # small numbers of sample verses
         vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Loading '{versionAbbreviation}' sample verses…" )
-        thisBible = loadSelectedVersesFile( folderOrFileLocation, givenName=state.BibleNames[versionAbbreviation],
+        thisBible = loadSelectedVersesFile( folderOrFileLocation, givenName=versionName,
                                             givenAbbreviation=versionAbbreviation, encoding='utf-8' )
         # NOTE: thisBible is NOT a Bible object here!!!
         # vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} loaded ({len(thisBible.books.keys())}) {list(thisBible.books.keys())}" )
     elif versionAbbreviation in ('NET',) and 'eBible.org' not in folderOrFileLocation: # USX
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Preloading '{versionAbbreviation}' USX Bible{' in TEST mode' if TEST_MODE else ''}…" )
-        thisBible = USXXMLBible.USXXMLBible( folderOrFileLocation, givenAbbreviation=versionAbbreviation,
+        thisBible = USXXMLBible.USXXMLBible( folderOrFileLocation, givenName=versionName, givenAbbreviation=versionAbbreviation,
                                             encoding='utf-8' )
         if state.booksToLoad[versionAbbreviation] in (['ALL'],['OT'],['NT']):
             # We assume that we can load all books, even for OT and NT
@@ -342,7 +344,7 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
                 thisBible.loadBookIfNecessary( BBB )
     else: # USFM
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Preloading '{versionAbbreviation}' USFM Bible{' in TEST mode' if TEST_MODE else ''}…" )
-        thisBible = USFMBible.USFMBible( folderOrFileLocation, givenAbbreviation=versionAbbreviation,
+        thisBible = USFMBible.USFMBible( folderOrFileLocation, givenName=versionName, givenAbbreviation=versionAbbreviation,
                                             encoding='utf-8' )
         if versionAbbreviation in ('ULT','UST','UHB','UGNT','SR-GNT'):
             thisBible.uWencoded = True # TODO: Shouldn't be required ???
@@ -362,7 +364,7 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
     and versionAbbreviation != 'TOSN' # This one has different complexities coz it loads various other bits
     ):
         pickleFilename = f"{versionAbbreviation}__{'_'.join(TEST_BOOK_LIST)}{PICKLE_FILENAME_END}" \
-                            if TEST_MODE and versionAbbreviation not in State.WholeBibleVersions \
+                            if TEST_MODE and not ALL_PRODUCTION_BOOKS and versionAbbreviation not in state.WholeBibleVersions \
                             else f'{versionAbbreviation}{PICKLE_FILENAME_END}'
         pickleFolderPath = folderOrFileLocation if os.path.isdir( folderOrFileLocation ) else Path( folderOrFileLocation ).parent
         thisBible.pickle( pickleFilename, pickleFolderPath )
@@ -799,6 +801,9 @@ def formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segme
             continue
         assert rest == entry.getFullText().rstrip(), f"TN {utnRef} {marker}='{rest}' ft='{entry.getFullText()}'" # Just checking that we're not missing anything here
         assert marker in ('v', 'm','q1','p','pi1', 'p~', 'im','iq1','ip','ipi'), f"Unexpected marker TN {utnRef} {marker}='{rest}' ({lastMarker=})" # We expect a very limited subset
+        if '\\r' in rest: # TODO: Should this be in BibleOrgSys (when the UTNs are loaded???)
+            logging.warning( f"Removed CR from UTN {utnRef}" )
+            rest = rest.replace( '\\r', '' )
 
         if marker == 'v':
             if rest!=V and '-' not in rest:
@@ -851,7 +856,9 @@ def formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segme
 <p class="Trans">{lvQuoteHtml if lvQuoteHtml else f'({transliterate_Greek(rest)})' if NT else f'({transliterate_Hebrew(rest)})'}</p>'''
 
             elif lastMarker in ('p','ip'): # This is the actual note (which can have markdown formatting)
+                rest = rest.replace( '\\r', '' ) # Fix formatting inconsistencies in the original notes
                 # Liven any TA markdown [[links]] (especially in book or chapter introductions)
+                rest = rest.replace( '[ ]', '__SQUARE_BRACKETS__' ) # Protect this
                 searchStartIndex = 0
                 for _safetyCount in range( 10 ): # 6 wasn't enough for MAT (6?), 9 wasn't enough for REV (1?)
                     match = taMDLinkRegEx.search( rest, searchStartIndex )
@@ -958,6 +965,7 @@ def formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segme
                             .replace( '\\n', '\n' ) # Unescape TSV newlines
                             .replace( '\n\n\n', '\n\n' ) # e.g., Ruth 2:intro (probable mistake)
                             .replace( '.#', '.\n\n#' ) # Fix markdown formatting mistake in Ruth 33:intro (and maybe other places)
+                            .replace( '__SQUARE_BRACKETS__', '[ ]' ) # Unprotect square brackets again
                         )
                 if BBB not in ('EXO','PSA','ROM','CO1'): # uW TN Exo 4:0, Psa 4:0, Rom 16:24, 1Co 15:23 have formatting problems
                     assert '\\' not in rest, f"TN {utnRef} {lastMarker=} {marker}='{rest}'"

@@ -61,10 +61,10 @@ from html import makeTop, makeBottom, checkHtml
 from OETHandlers import getOETTidyBBB
 
 
-LAST_MODIFIED_DATE = '2024-05-28' # by RJH
+LAST_MODIFIED_DATE = '2024-07-20' # by RJH
 SHORT_PROGRAM_NAME = "Dictionary"
 PROGRAM_NAME = "OpenBibleData Dictionary handler"
-PROGRAM_VERSION = '0.45'
+PROGRAM_VERSION = '0.46'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -644,7 +644,7 @@ def createTyndaleDictPages( level:int, outputFolderPath, state:State ) -> bool:
 {lettersParagraph}
 <h1>{'TEST ' if TEST_MODE else ''}Tyndale Open Bible Dictionary</h1>
 {navLinks.replace('__ID__','Top')}
-<h2 id="Top">Index for dictionary letter '{letter}'</h2>
+<h2>Index for dictionary letter '{letter}'</h2>
 {articleLinkHtml}
 {makeBottom( level, 'dictionaryLetterIndex', state )}'''
         checkHtml( 'DictionaryLetterIndex', letterIndexHtml )
@@ -679,7 +679,7 @@ even though it was originally designed to supplement the <i>New Living Translati
 # <p class="dNav"><a id="Go to dict intro" href="intro.htm#Top">Introduction</a></p>
     indexHtml = f'''{top}
 <h1 id="Top">Tyndale Open Bible Dictionary <small>{TOBD_detailsLink}</small></h1>
-<p class="note">This is a comprehensive Bible dictionary with articles for each Bible ‘book’ as well as for significant people and places and terms. (Read the <a id="Go to dict intro" href="intro.htm#Top">full introduction</a> for more details.)</p>
+<p class="note">This is a comprehensive Bible dictionary with articles for each Bible ‘book’ as well as for significant people and places and terms. (Read the <a title="Go to dict intro" href="intro.htm#Top">full introduction</a> for more details.)</p>
 <p class="note">Note that some of the comments refer specifically to the ‘New Living Translation’ (which we don’t have permission to display on this site), but many of the articles are generally applicable, even to <b>OET</b> issues.</p>
 <h2>Index of dictionary letters</h2>
 {lettersParagraph}
