@@ -627,7 +627,8 @@ Thanks to <a href="https://eBible.org/Scriptures/">eBible.org</a> for supplying 
 including major typographic and formatting changes, and major spelling changes (including gaining the letter ‘j’), as well as hundreds of corrections.
 There are also some verse number changes and some changes to the italicised words, and the marginal notes from 1611 were removed.
 (There’s a lot of information online, but you can start by reading more details <a href="https://www.wayoflife.org/reports/changes_to_kjv_since_1611.html">here</a>.)</p>
-<p class="note">Also note that the apocryphal books were officially removed later in 1885, leaving only 66 ‘books’.</p>''' },
+<p class="note">Also note that the apocryphal books were officially removed later in 1885, leaving only 66 ‘books’.
+        (The marginal footnotes in all books were also removed.)</p>''' },
         'KJB-1611': {'about': '<p class="about">King James Bible (1611).</p>',
                 'copyright': '<p class="copyright">No copyright statement was included in the early printings as can be seen <a href="https://Archive.org/details/1611TheAuthorizedKingJamesBible/page/n2/mode/1up">here</a>.</p>',
                 'licence': '<p class="licence">Public domain outside of the United Kingdom.</p>',
@@ -636,7 +637,9 @@ This was the printed book that had more influence on our modern world than any o
                 'notes': '''<p class="note">There were a number of printings of the KJB in 1611—the most famous being the ‘He-Bible’ and the ‘She-Bible’ (named after the ‘he/she went into town’ in <a href="__LEVEL__par/RUT/C3V15.htm#Top">Ruth 3:15</a>).
 You’ll notice that there are no speech marks in the 1611 KJB (just as there are none in the Hebrew and Greek original manuscripts),
         but they were added by the time of the 1769 printings.
-Also note that there was no letter ‘J’ in the 1611 KJB, e.g., ‘John’ was spelt as ‘Iohn’ (and would have most likely still been pronounced as ‘Yon’ although that pronunciation was probably already beginning to change).</p>
+Also note that there was no letter ‘J’ in the 1611 KJB, e.g., ‘John’ was spelt as ‘Iohn’ (and would have most likely still been pronounced as ‘Yon’ although that pronunciation was probably already beginning to change).
+Footnote markers PRECEDE the text that they concern,
+        rather than the modern practice of having footnote markers follow the text.</p>
 <p class="note">Finally, note that the KJB included ‘The Bookes called Apocrypha’ as can be seen <a href="https://archive.org/details/1611TheAuthorizedKingJamesBible/page/n37/mode/1up">here</a>, so an additional fourteen ‘bookes’ beyond the often-expected sixty-six.</p>''' },
         'BB': {'about': '<p class="about">Bishops Bible (1568,1602).</p>',
                 'copyright': '<p class="copyright">Public Domain.</p>',
