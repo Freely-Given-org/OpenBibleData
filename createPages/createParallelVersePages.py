@@ -405,10 +405,16 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                                     cleanedModernisedTextHtml = modernisedTextHtml.replace( versionAbbreviation, '' )
                                     if versionAbbreviation in ('WYC','TNT','CB','GNV','BB','KJB-1611') \
                                     and cleanedModernisedTextHtml == cleanedModernisedKJV1769TextHtml:
-                                        modernisedTextHtml = "Modernised spelling is same as KJB-1769 above" # (Will be placed in parentheses below)
+                                        modernisedTextHtml = f"<small>Modernised spelling is same as used by KJB-1769 above{' apart from footnotes' if footnotesHtml else ''}</small>" # (Will be placed in parentheses below)
                                     elif versionAbbreviation in ('WYC','TNT','CB','GNV','BB','KJB-1611') \
                                     and cleanedModernisedTextHtml.lower() == cleanedModernisedKJV1769TextHtml.lower():
-                                        modernisedTextHtml = "Modernised spelling is same as KJB-1769 above, apart from capitalisation" # (Will be placed in parentheses below)
+                                        modernisedTextHtml = f"<small>Modernised spelling is same as used by KJB-1769 above, apart from capitalisation{' and footnotes' if footnotesHtml else ''}</small>" # (Will be placed in parentheses below)
+                                    elif versionAbbreviation in ('WYC','TNT','CB','GNV','BB','KJB-1611') \
+                                    and cleanedModernisedTextHtml.replace(',','').replace('.','').replace(':','').replace(';','') == cleanedModernisedKJV1769TextHtml.replace(',','').replace('.','').replace(':','').replace(';',''):
+                                        modernisedTextHtml = f"<small>Modernised spelling is same as used by KJB-1769 above, apart from punctuation{' and footnotes' if footnotesHtml else ''}</small>" # (Will be placed in parentheses below)
+                                    elif versionAbbreviation in ('WYC','TNT','CB','GNV','BB','KJB-1611') \
+                                    and cleanedModernisedTextHtml.replace(',','').replace('.','').replace(':','').replace(';','').lower() == cleanedModernisedKJV1769TextHtml.replace(',','').replace('.','').replace(':','').replace(';','').lower():
+                                        modernisedTextHtml = f"<small>Modernised spelling is same as used by KJB-1769 above, apart from capitalisation and punctuation{' and footnotes' if footnotesHtml else ''}</small>" # (Will be placed in parentheses below)
                                     else:
                                         # Hardwire added words to italics
                                         modernisedTextHtml = convert_adds_to_italics( modernisedTextHtml, f'Ancient parallel verse {parRef}' )
@@ -1770,6 +1776,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
         ((' awne ',' owne '),' own '),
         ((' oxun',),' oxen'),
     ((' paynes',),' pains'),((' payne',),' pain'),
+            ((' paulsie',' palsie',' palsye'),' palsy'),
             ((' parablis',),' parables'), ((' partynge',),' parting'), ((' parts',' parties',' partis'),' parts'),((' parte ',),' part '),
             (('Passeouer','Passouer'),'Passover'),((' passiden',' passide'),' passed'),((' passynge',),' passing'),((' passe ',),' pass '),((' passe?',),' pass?'),((' passe:',),' pass:'),
             ((' pathes',' paches',' pathhis'),' paths'), ((' pacience',),' patience'),
@@ -1880,7 +1887,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
             (('Symount','Symon'),'Simon'), ((' simulacion',),' simulation'),
             ((' sence ',' sithen '),' since '), ((' synners',' synneris'),' sinners'),((' synner',),' sinner'), ((' synfull',' synful'),' sinful'),((' sinnes',' synnes'),' sins'),((' synnede',' synned'),' sinned'),((' synne ',' sinne '),' sin '),((' synne,',' sinne,'),' sin,'),((' synne.',' sinne.'),' sin.'),
             ((' sistris',' systers'),' sisters'),((' sistir',),' sister'),
-            ((' sittynge',' syttyng'),' sitting'),((' sitten ',' sitte ',' syt '),' sit '), ((' liggynge',),' situated'),
+            ((' sittynge',' syttyng',' sittinge'),' sitting'),((' sitten ',' sitte ',' syt '),' sit '), ((' liggynge',),' situated'),
             ((' sixte ',' sixt '),' sixth '), ((' sixe ',),' six '),
         ((' skynne ',' skyn ',' skinne '),' skin '),((' skynne,',' skyn,'),' skin,'),
         ((' slayne',' slayn',' slaine'),' slain/killed'),((' sleye ',' slaye ',' sle '),' slay/kill '),((' sle.',),' slay/kill.'), (('sclaundrid',),'slandered/disgraced'),

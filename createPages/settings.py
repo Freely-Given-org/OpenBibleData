@@ -67,7 +67,7 @@ DESTINATION_FOLDER = DEBUG_DESTINATION_FOLDER if TEST_MODE or BibleOrgSysGlobals
 
 OET_NT_BOOK_ORDER = ['JHN','MRK','MAT','LUK','ACT', 'ROM','CO1','CO2', 'GAL','EPH','PHP','COL', 'TH1','TH2', 'TI1','TI2','TIT','PHM', 'HEB', 'JAM', 'PE1','PE2', 'JN1','JN2','JN3', 'JDE', 'REV']
 
-TEST_OT_BOOK_LIST = ['JOS'] # Books in progress
+TEST_OT_BOOK_LIST = ['JOS','JDG'] # Books in progress
 TEST_NT_BOOK_LIST = ['MRK'] # Shortest gospel
 TEST_BOOK_LIST = TEST_OT_BOOK_LIST + TEST_NT_BOOK_LIST
 
