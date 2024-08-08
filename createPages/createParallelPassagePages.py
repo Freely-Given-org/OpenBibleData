@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
-# html.py
+# createParallelPassagePages.py
 #
 # Module handling OpenBibleData createParallelPassagePages functions
 #
@@ -49,7 +49,7 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
 from OETHandlers import livenOETWordLinks, getOETTidyBBB, getOETBookName, getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2024-07-20' # by RJH
+LAST_MODIFIED_DATE = '2024-08-05' # by RJH
 SHORT_PROGRAM_NAME = "createParallelPassagePages"
 PROGRAM_NAME = "OpenBibleData createParallelPassagePages functions"
 PROGRAM_VERSION = '0.30'
@@ -498,7 +498,7 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
             assert endV == '?'
             continue
         assert startC is not None and endC is not None, f"{n} start={startC}:{startV} end={endC}:{endV}"
-        
+
         # Get the section references from this original section
         #   and at the same time, collect all of the cross-references
         sectionReferences, collectedVerseCrossReferences = [], []

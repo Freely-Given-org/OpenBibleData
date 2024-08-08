@@ -91,10 +91,10 @@ from OETHandlers import findLVQuote, getBBBFromOETBookName
 from Dict import loadAndIndexUBSGreekDictJSON, loadAndIndexUBSHebrewDictJSON
 
 
-LAST_MODIFIED_DATE = '2024-07-25' # by RJH
+LAST_MODIFIED_DATE = '2024-08-07' # by RJH
 SHORT_PROGRAM_NAME = "Bibles"
 PROGRAM_NAME = "OpenBibleData Bibles handler"
-PROGRAM_VERSION = '0.76'
+PROGRAM_VERSION = '0.77'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -544,7 +544,7 @@ def formatTyndaleNotes( abbrev:str, level:int, BBB:str, C:str, V:str, segmentTyp
     fnPrint( DEBUGGING_THIS_MODULE, f"formatTyndaleNotes( {ftnRef}, {segmentType=} )" )
     assert abbrev in ('TOSN','TTN')
     assert segmentType in ('parallelVerse','interlinearVerse')
-    
+
     try:
         verseEntryList = state.preloadedBibles[abbrev].getVerseDataList( (BBB, C, V) )
     except KeyError:
@@ -575,7 +575,7 @@ def formatTyndaleNotes( abbrev:str, level:int, BBB:str, C:str, V:str, segmentTyp
                 theirClass = rest[8:ixClose]
                 rest = rest[ixClose+2:]
             rest = rest.replace( ' <class="sn-text">', '</p>\n<p class="sn-text">')
-                        # .replace( '<class="sn-text">', '</p>\n<p class="sn-text">') 
+                        # .replace( '<class="sn-text">', '</p>\n<p class="sn-text">')
             nHtml = f'{nHtml}<p class="{theirClass if theirClass else abbrev}">{rest}</p>'
         elif marker in ('s1','s2','s3'): # These have the text in the same entry
             assert rest
@@ -851,9 +851,12 @@ def formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segme
                     #     assert occurrenceNumber != 0, f"TN {utnRef} {occurrenceNumber=} {marker}='{rest}'"
                     if occurrenceNumber == 0:
                         logging.error( f"TN occurrenceNumber is zero with {utnRef} '{rest}'" )
-                    lvQuoteHtml = findLVQuote( level, BBB, C, V, occurrenceNumber, rest, state ).replace(' & ',' <small>&</small> ')
-                    tnHtml = f'''{tnHtml}<p class="OL">{'' if occurrenceNumber==1 else f'(Occurrence {occurrenceNumber}) '}{rest.replace(' & ',' <small>&</small> ')}</p>
-<p class="Trans">{lvQuoteHtml if lvQuoteHtml else f'({transliterate_Greek(rest)})' if NT else f'({transliterate_Hebrew(rest)})'}</p>'''
+                    lvQuoteHtml = findLVQuote( level, BBB, C, V, occurrenceNumber, rest, state ) \
+                                        .replace(' & ',' <small>&amp;</small> ')
+                    transQuoteHtml = ( lvQuoteHtml if lvQuoteHtml else f'({transliterate_Greek(rest)})' if NT else f'({transliterate_Hebrew(rest)})' ) \
+                                        .replace( '\\sup ', '<sup>' ).replace( '\\sup*', '</sup>' ) # TODO: Check space isn't already _, e.g., http://freely-given.org/OBD/Test/par/JDG/C1V13.htm#Top
+                    tnHtml = f'''{tnHtml}<p class="OL">{'' if occurrenceNumber==1 else f'(Occurrence {occurrenceNumber}) '}{rest.replace(' & ',' <small>&amp;</small> ')}</p>
+<p class="Trans">{transQuoteHtml}</p>'''
 
             elif lastMarker in ('p','ip'): # This is the actual note (which can have markdown formatting)
                 rest = rest.replace( '\\r', '' ) # Fix formatting inconsistencies in the original notes
@@ -1336,11 +1339,11 @@ def getBibleMapperMaps( level:int, BBB:str, startC:str, startV:Optional[str], en
         for c in range( int(startC), int(endC)+1 ):
             for v in range( getLeadingInt(startV) if c==int(startC) else 1, (getLeadingInt(endV) if c==int(endC) else referenceBible.getNumVerses( BBB, c ))+1 ):
                 # print( f"  Chapter range {BBB} {c}:{v}")
-                mapFilenamesSet.update( BMM_INDEX[f'{BBB}_{c}:{v}'] ) 
+                mapFilenamesSet.update( BMM_INDEX[f'{BBB}_{c}:{v}'] )
 
     if not mapFilenamesSet: # No maps for this reference / reference range
         return ''
-    
+
     dPrint( 'Info', DEBUGGING_THIS_MODULE, f"getBibleMapperMaps( {level}, {startC}:{startV}–{endC}:{endV} ) got {mapFilenamesSet=}" )
     ourHtml = ''
     for filename in mapFilenamesSet:
