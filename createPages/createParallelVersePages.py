@@ -92,7 +92,7 @@ from createOETReferencePages import CNTR_BOOK_ID_MAP, OSHB_ADJECTIVE_DICT, OSHB_
 from OETHandlers import getOETTidyBBB, getOETBookName, livenOETWordLinks, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
-LAST_MODIFIED_DATE = '2024-08-07' # by RJH
+LAST_MODIFIED_DATE = '2024-08-08' # by RJH
 SHORT_PROGRAM_NAME = "createParallelVersePages"
 PROGRAM_NAME = "OpenBibleData createParallelVersePages functions"
 PROGRAM_VERSION = '0.96'
@@ -394,7 +394,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                                 modernisedTextHtml = moderniseEnglishWords( footnoteFreeTextHtml )
                                 if versionAbbreviation in ('WYC','TNT','CB','GNV','BB','KJB-1611'): # all from 1500's
                                     modernisedTextHtml = modernisedTextHtml.replace( 'J', 'Y' ).replace( 'Ie', 'Ye' ).replace( 'Io', 'Yo' ) \
-                                                                                .replace( 'KYB', 'KJB' ) # Fix overreach
+                                                                                .replace( 'Yudge', 'Judge' ).replace( 'KYB', 'KJB' ) # Fix overreaches
                                 if versionAbbreviation == 'KJB-1769':
                                     # if parRef=='MRK_1:18': print( f"{versionAbbreviation} {parRef} {modernisedTextHtml=}" )
                                     cleanedModernisedKJV1769TextHtml = modernisedTextHtml.replace( versionAbbreviation, '' )
@@ -1750,7 +1750,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
             ((' nedeful',),' needful'),((' nedes',),' needs'),((' neede ',' neade ',' nede '),' need '),
             ((' neiyboris',' neghboures',' neghbours',' neyghbours'),' neighbours'),((' neiybore',' neyghbour',' neghboure'),' neighbour'), (('Nether ',),'Neither '),((' nether',' nethir'),' neither'),(('(nether',),'(neither'),
             ((' nettes',' nettis'),' nets'),
-            (('Neverthelesse ','Neuertheles ',),'Nevertheless '),(('Neuertheles,',),'Nevertheless,'), ((' neuere',' neuer'),' never'),
+            (('Neverthelesse ','Neuerthelesse ','Neuertheles '),'Nevertheless '),(('Neuertheles,',),'Nevertheless,'), ((' neuere',' neuer'),' never'),
             ((' newe ',),' new '),
             ((' nexte',),' next'),
         ((' neer ',' nyer ',' nier '),' nigher/nearer '),((' nyy ',' nye '),' nigh/near '),((' nyy.',' nye.'),' nigh/near.'), ((' nyyti',' nyyt',' nyght',' nighte'),' night'),
@@ -1770,7 +1770,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
         ((' onys,',),' once,'), ((' oon ',),' one '),((' oon.',),' one.'), ((' onely ',' `oon '),' only '),
         ((' openyde',' openyd'),' opened'),((' openeth',' openith'),' openeth/opens'),
             ((' opynyouns',),' opinions'),
-            ((' oppressith',),' oppresses'),((' oppressid',),' oppressed'),((' oppresse ',),' oppress '),((' oppressio ',),' oppression '),
+            ((' oppressith',),' oppresses'),((' oppressid',),' oppressed'),((' oppresse ',),' oppress '),((' oppressio ',),' oppression '),((' oppressour',' oppresser'),' oppressor'),
         ((' ordayned',' ordeined',' ordeynede',' ordeyned'),' ordained'),((' ordayne ',),' ordain '),
         (('Othere','Othir','Wother'),'Other'),((' othere',' othir', ' tothir'),' other'),
         ((' oure ',),' our '),
@@ -1910,7 +1910,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
         ((' spette ',' spate '),' spat '),
             (('speakynge','spekynge','speakinge','spekinge','speakyng'),'speaking'),(('spekith ','speaketh '),'speaketh/speaks '),((' speake',),' speak'),
             ((' spyed',),' spied'), ((' spirites',' spiritis',' spretes'),' spirits'),(('Spiryt',),'Spirit'),((' spirite',' sprete'),' spirit'), (('spotil','spetil','spettle'),'spittle'),
-            ((' spak ',),' spoke '),
+            ((' spoyled',),' spoiled'), ((' spak ',),' spoke '),
             ((' sprede ',' spred '),' spread '),
         ((' staffe ',),' staff '), (('stondinge','standyng','stodinge'),'standing'),((' stondith',),' standeth/stands'),((' stande ',' stonde '),' stand '),((' stonde.',),' stand.'), ((' starre',),' star'),
             ((' steale.',),' steal.'),(('Steppe ',),'Step '),
@@ -2336,7 +2336,7 @@ GERMAN_WORD_MAP = (
         ('Weg ','path '),
             ('Weiber','women'),('Weib ','woman '),('Weib,','woman,'), ('Wein ','wine '),
             ('Welche ','Which '),('welcher ','which '),(' welches ',' which '),(' welchem ',' which_one '), ('Welt','world'),
-            (' wenn ',' when '),
+            ('Wenn ','When '),(' wenn ',' when '),
             ('Wer ','Who '),(' wer ',' who '), (' werden',' become'),(' werde',' become'),
             (' weinete ',' cried '), (' weiße ',' white '),
         (' wider ',' against '), ('Wie ','How '),(' wie ',' like '), (' wiederum',' again/in_turn'),(' wieder',' again'), ('Wind ','wind '), ('Winkel ','corner '),
