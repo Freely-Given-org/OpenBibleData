@@ -74,7 +74,8 @@ from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39, BOOKLIST_NT27
 sys.path.append( '../../BibleTransliterations/Python/' )
 from BibleTransliterations import load_transliteration_table
 
-from settings import State, state, reorderBooksForOETVersions, TEST_MODE, SITE_NAME, SITE_ABBREVIATION, OET_VERSION, \
+from settings import State, state, reorderBooksForOETVersions, TEST_MODE, TEST_BOOK_LIST, \
+    SITE_NAME, SITE_ABBREVIATION, OET_VERSION, \
     TEMP_BUILD_FOLDER, ALL_PRODUCTION_BOOKS, UPDATE_ACTUAL_SITE_WHEN_BUILT, DESTINATION_FOLDER, BY_DOCUMENT_HTML_PARAGRAPH
 from Bibles import preloadVersions
 from OETHandlers import getOETTidyBBB, getOETBookName
@@ -89,7 +90,7 @@ from Dict import createTyndaleDictPages, createUBSDictionaryPages
 from html import makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2024-07-24' # by RJH
+LAST_MODIFIED_DATE = '2024-08-08' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData (OBD) Create Site Pages"
 PROGRAM_VERSION = '0.96'
@@ -106,6 +107,8 @@ def _createSitePages() -> bool:
     """
     fnPrint( DEBUGGING_THIS_MODULE, "_createSitePages()")
     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"_createSitePages() running in {'TEST' if TEST_MODE else 'production'} mode with {'all production books' if ALL_PRODUCTION_BOOKS else 'reduced books being loaded'} for {len(state.BibleLocations):,} Bible versions…" )
+    if TEST_MODE:
+        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"    {TEST_BOOK_LIST=}" )
 
     try: os.makedirs( TEMP_BUILD_FOLDER )
     except FileExistsError:
@@ -202,7 +205,7 @@ def _createSitePages() -> bool:
             #             state.BBBsToProcess[versionAbbreviation].append( BBB )
             # else: # not selectedVersesOnlyVersions
             if versionAbbreviation not in state.selectedVersesOnlyVersions:
-                state.BBBsToProcess[versionAbbreviation] = thisBible.books.keys() 
+                state.BBBsToProcess[versionAbbreviation] = thisBible.books.keys()
                 if 'OET' in versionAbbreviation:
                     state.BBBsToProcess[versionAbbreviation] = reorderBooksForOETVersions( state.BBBsToProcess[versionAbbreviation] )
                 state.BBBLinks[versionAbbreviation] = []

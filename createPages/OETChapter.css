@@ -2,7 +2,7 @@
 /* Paratext stylesheet is at https://github.com/ubsicap/usfm/blob/master/sty/usfm.sty */
 
 div.header {}
-div.footer { width:500px; height:250px; margin:50px; }
+div.footer { margin:50px; }
 div.periph {}
 
 p.site {}

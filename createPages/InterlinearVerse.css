@@ -2,7 +2,7 @@
 /* Contains a single verse with translation and morphology etc, for each word
     as well as translation notes */
 div.header {}
-div.footer { width:500px; height:250px; margin:50px; }
+div.footer { margin:50px; }
 
 p.site {}
 p.copyright {}

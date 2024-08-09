@@ -7,7 +7,7 @@ div.container5 { display:grid; column-gap:0.4em; grid-template-columns:0.2fr 0.2
 div.chunkRV {}
 
 div.header {}
-div.footer { width:500px; height:250px; margin:50px; }
+div.footer { margin:50px; }
 
 p.site {}
 p.copyright {}

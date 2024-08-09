@@ -1,5 +1,5 @@
 div.header {}
-div.footer {}
+div.footer { margin:50px; }
 
 p.site {}
 p.copyright {}
