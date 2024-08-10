@@ -1409,11 +1409,11 @@ def getVerseDetailsHtml( BBB:str, C:str, V:str ) -> str: # html
             if partRef in VERSE_DETAILS_TABLE:
                 verseDetails += f"{'<br>' if verseDetails else ''}{formatVerseDetailsHtml( partRef )}"
 
-    return f'<p class="verseDetails">{verseDetails}</p>'
+    return f'<p class="verseDetails">{verseDetails} <small>(All still tentative.)</small></p>'
 # end of Bibles.getVerseDetailsHtml
 
-IMPORTANCE_TABLE = { 'T':'<span style="color:green;">trivial</span>', 'M':'<span style="color:yellow;">medium</span>', 'I':'<span style="color:orange;">important</span>', 'V':'<span style="color:red;">vital</span>' }
-TEXTUAL_ISSUE_TABLE = { '0':'<span style="color:green;">none</span>', '1':'<span style="color:yellow;">minor spelling</span>', '2':'<span style="color:orange;">minor word changes</span>', '3':'<span style="color:red;">major</span>' }
+IMPORTANCE_TABLE = { 'T':'<span style="color:green;">trivial</span>', 'M':'<span style="color:pink;">medium</span>', 'I':'<span style="color:orange;">important</span>', 'V':'<span style="color:red;">vital</span>' }
+TEXTUAL_ISSUE_TABLE = { '0':'<span style="color:green;">none</span>', '1':'<span style="color:pink;">minor spelling</span>', '2':'<span style="color:orange;">minor word changes</span>', '3':'<span style="color:red;">major</span>' }
 CLARITY_TABLE = { 'O':'<span style="color:red;">obscure</span>', 'U':'<span style="color:orange;">unclear</span>', 'C':'<span style="color:green;">clear</span>' }
 def formatVerseDetailsHtml( verseRef:str ) -> str: # html
     """
@@ -1443,9 +1443,9 @@ def formatVerseDetailsHtml( verseRef:str ) -> str: # html
     global VERSE_DETAILS_TABLE, TEXTUAL_ISSUE_TABLE, CLARITY_TABLE, IMPORTANCE_TABLE
 
     importance, textualIssue, clarity = VERSE_DETAILS_TABLE[verseRef]
-    result = f"{'' if textualIssue=='0' else '<b>'}Text critical issues{'' if textualIssue=='0' else '</b>'}={TEXTUAL_ISSUE_TABLE[textualIssue]} " \
-             f"{'' if clarity=='C' else '<b>'}Clarity{'' if clarity=='C' else '</b>'} of original={CLARITY_TABLE[clarity]} " \
-             f"{'' if importance=='T' else '<b>'}Importance{'' if importance=='T' else '</b>'}={IMPORTANCE_TABLE[importance]}"
+    result = f"{'' if textualIssue=='0' else '<b>'}Text critical issues{'' if textualIssue=='0' else '</b>'}={TEXTUAL_ISSUE_TABLE[textualIssue]} " \
+             f"{'' if clarity=='C' else '<b>'}Clarity{'' if clarity=='C' else '</b>'} of original={CLARITY_TABLE[clarity]} " \
+             f"{'' if importance in 'TI' else '<b>'}Importance{'' if importance in 'TI' else '</b>'}={IMPORTANCE_TABLE[importance]}"
 
     verseRefDescription = '' if verseRef[-1].isdigit() else f'Segment {verseRef[-1]}: '
     return f"{verseRefDescription}{result}"

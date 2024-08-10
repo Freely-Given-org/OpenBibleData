@@ -43,10 +43,10 @@ import BibleOrgSys.Formats.USXXMLBible as USXXMLBible
 
 
 
-LAST_MODIFIED_DATE = '2024-07-05' # by RJH
+LAST_MODIFIED_DATE = '2024-08-10' # by RJH
 SHORT_PROGRAM_NAME = "SentenceImportance_initialisation"
 PROGRAM_NAME = "Sentence Importance initialisation"
-PROGRAM_VERSION = '0.15'
+PROGRAM_VERSION = '0.16'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -86,12 +86,21 @@ importantRefs = [ # Often memorised
     'JOS_1:9',
     'JHN_16:33',
     ]
-trivialRefs = ['EXO_16:36']
-obscureRefs = [ # Not sure what the Hebrew or Greek is saying
+trivialRefs = [
+    'EXO_16:36'
+    # Jdg 5 is Deborah and Barak's song
+    'JDG_5:1','JDG_5:2','JDG_5:3','JDG_5:4','JDG_5:5','JDG_5:6','JDG_5:7','JDG_5:8','JDG_5:9','JDG_5:10',
+        'JDG_5:11','JDG_5:12','JDG_5:13','JDG_5:14','JDG_5:15','JDG_5:16','JDG_5:17','JDG_5:18','JDG_5:19','JDG_5:20',
+        'JDG_5:21','JDG_5:22','JDG_5:23','JDG_5:24','JDG_5:25','JDG_5:26','JDG_5:27','JDG_5:28','JDG_5:29','JDG_5:30',
+        'JDG_5:31',
+    ]
+obscureRefs = [ # Not sure what the Hebrew or Greek is trying to say
+    'JDG_5:11a','JDG_5:14',
     'JOB_29:20','JOB_29:24',
     ]
 unclearRefs = [ # Mostly sure what's in the Hebrew or Greek, but not sure what it means
     'EXO_15:25b',
+    'JDG_5:13',
     'JOB_30:6','JOB_30:7','JOB_30:11a','JOB_30:12','JOB_30:13','JOB_30:14','JOB_30:15','JOB_30:16a','JOB_30:17a','JOB_30:18','JOB_30:28a',
     'JOB_31:12','JOB_31:16b',
     'JOB_33:14','JOB_33:16',
