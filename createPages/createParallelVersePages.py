@@ -84,7 +84,7 @@ from BibleTransliterations import transliterate_Hebrew, transliterate_Greek
 
 from settings import State, TEST_MODE, TEST_BOOK_LIST, reorderBooksForOETVersions, OETS_UNFINISHED_WARNING_HTML_TEXT
 from usfm import convertUSFMMarkerListToHtml
-from Bibles import formatTyndaleBookIntro, formatUnfoldingWordTranslationNotes, formatTyndaleNotes, getBibleMapperMaps
+from Bibles import formatTyndaleBookIntro, formatUnfoldingWordTranslationNotes, formatTyndaleNotes, getBibleMapperMaps, getVerseDetailsHtml
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
                     convert_adds_to_italics, removeDuplicateFNids, \
                     makeTop, makeBottom, makeBookNavListParagraph, checkHtml
@@ -92,7 +92,7 @@ from createOETReferencePages import CNTR_BOOK_ID_MAP, OSHB_ADJECTIVE_DICT, OSHB_
 from OETHandlers import getOETTidyBBB, getOETBookName, livenOETWordLinks, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
-LAST_MODIFIED_DATE = '2024-08-08' # by RJH
+LAST_MODIFIED_DATE = '2024-08-09' # by RJH
 SHORT_PROGRAM_NAME = "createParallelVersePages"
 PROGRAM_NAME = "OpenBibleData createParallelVersePages functions"
 PROGRAM_VERSION = '0.96'
@@ -242,7 +242,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                 interlinearLink = f''' <a title="Interlinear verse view" href="{'../'*BBBLevel}ilr/{BBB}/C{C}V{V}.htm#Top">═</a>''' if BBB in state.booksToLoad['OET'] else ''
                 navLinks = f'<p id="__ID__" class="vNav">{leftCLink}{leftVLink}{ourTidyBbb} Book Introductions <a title="Go to __WHERE__ of page" href="#__LINK__">__ARROW__</a>{rightVLink}{rightCLink}{interlinearLink}{detailsLink}{hideFieldsButton}{hideTransliterationsButton}</p>' if c==-1 \
                         else f'<p id="__ID__" class="vNav">{introLink}{leftCLink}{leftVLink}{ourTidyBbb} {C}:{V} <a title="Go to __WHERE__ of page" href="#__LINK__">__ARROW__</a>{rightVLink}{rightCLink}{interlinearLink}{detailsLink}{hideFieldsButton}{hideTransliterationsButton}</p>'
-                parallelHtml = ''
+                parallelHtml = getVerseDetailsHtml( BBB, C, V )
                 for versionAbbreviation in parallelVersions: # our adjusted order
                     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"    createParallelVersePagesForBook {parRef} processing {versionAbbreviation}…" )
                     assert not parallelHtml.endswith( '\n' )
@@ -1489,13 +1489,13 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
             (('carnall ',),'carnal '), (('carpeter',),'carpenter'), ((' carieth',' caried'),' carried'),((' cary ',),' carry '),
             ((' castynge',' castyng',' castinge'),' casting/throwing'),((' castiden ',' kesten '),' cast/throw '),((' caste ',' keste '),' cast/threw '), (('casteles','castels'),'castles'),
             ((' cattell',' catell ',' catel'),' cattle'),
-        ((' ceesside',' ceessid'),' ceased'),((' ceesse ',' ceasse '),' cease '),((' ceesse,',' ceasse,'),' cease,'),
+        ((' ceesside',' ceessid',' ceassed'),' ceased'),((' ceesse ',' ceasse '),' cease '),((' ceesse,',' ceasse,'),' cease,'),
             (('centurien',),'centurion'),
             ((' certayne',' certein',' certaine'),' certain'),
         (('cheynes','chaines'),'chains'),
                 (('chamber','chaumber','chambre'),'chamber/room'),
                 (('chaunced','chaunsed'),'chanced'), (('chaungeris',),'changers'), (('chaunginge','chaungyng','chaunging'),'changing'),
-                (('charite',),'charity'),
+                (('charettes','charets','charis'),'chariots'), (('charite',),'charity'),
                 (('chastisynge',),'chastising'),(('chastisith','chasteneth'),'chastens/disciplines'),
             ((' cheife ',' chefe '),' chief '), (('chyldren',),'children'),(('childre ',),'children '), (('chylde,','childe,'),'child,'),(('chylde.','childe.'),'child.'), (('chymney',),'chimney'),
             ((' chese ',),' choose '), (('chosun',),'chosen'),
@@ -1579,7 +1579,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
             ((' entred',' entriden',' entride',' entrid'),' entered'),((' entereth',' entreth'),' entereth/enters'),((' entre ',),' enter '),
         (('Hester',),'Esther'),
         (('euangelisynge',),'evangelising'),
-            (('Euen ',),'Even '),((' euene ',' euen '),' even '), ((' euenyng',' euening'),' evening'),((' euentid ',),' eventide/evening '), (('euen ',),'even '), # At beginning of sentence
+            (('Euen ',),'Even '),((' euene ',' euen '),' even '),(('>euen<',),'>even<'), ((' euenyng',' euening'),' evening'),((' euentid ',),' eventide/evening '), (('euen ',),'even '), # At beginning of sentence
             (('everlastinge','euerlastynge','euerlastyng','euerlastinge','euerlasting'),'everlasting'), ((' eueremore',' euermore'),' evermore'), (('Euery',),'Every'),((' euery',),' every'), ((' euer ',),' ever '),
         ((' yuelis',),' evils'),((' evyll',' euell',' euill',' euyll',' evell',' yuel'),' evil'),
         (('excedyngly','exceadingly','exceedyngly'),'exceedingly'),((' exceade ',),' exceed '), ((' excepte ',),' except '), ((' exercyse ',),' exercise '),
@@ -1791,7 +1791,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
             ((' paye ',),' pay '),
         ((' pees',),' peace'),
             (('penaunce',),'penance'), ((' penie ',' peny '),' penny '),((' penie,',' peny,'),' penny,'),
-            (('puplis',),'peoples'),((' puple',' pople'),' people'),
+            (('puplis',),'peoples'),((' `puple',' puple',' pople'),' people'),
             (('perceiued','perceaved','perceaued'),'perceived'),(('Perceave','Perceiue'),'Perceive'),((' witen',' perceiue'),' perceive'),
                 ((' perfaicte ',),' perfect '), (('perfourmeth ','performeth '),'performeth/performs ' ),((' perfourme ',' performe '),' perform '),
                 ((' perel ',),' peril '),((' perel.',),' peril.'), ((' perische',' perisshe',' perishe'),' perish'),
@@ -1851,7 +1851,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
             (('reuerence',),'reverence'),
             ((' rewarde ',),' reward '),((' rewarde.',),' reward.'),
         ((' riche ',),' rich '),
-            ((' ryght ',' riyt '),' right '),((' riyt.',),' right.'), (('riytwisnesse ','rightewesnes ','righteousnes '),'righteousness '),(('riytwisnesse,','rightewesnes,','righteousnesse,','righteousnes,'),'righteousness,'),(('riytwisnesse:','rightewesnes:','righteousnes:'),'righteousness:'),((' ryghteous',),' righteous'),
+            ((' ryght ',' riyt '),' right '),((' riyt.',),' right.'), (('riytwisnesse ','rightewesnes ','rightousnesse ','righteousnes '),'righteousness '),(('riytwisnesse,','rightewesnes,','righteousnesse,','righteousnes,'),'righteousness,'),(('riytwisnesse:','rightewesnes:','righteousnes:'),'righteousness:'),((' ryghteous',),' righteous'),
             ((' risith',),' riseth/rises'), ((' ryse ',),' rise '),
             ((' ryuer',' riuer'),' river'),
         ((' rocke ',),' rock '),
@@ -1927,6 +1927,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
             (('strayght','streyght'),'straight'), (('straunger',),'stranger'),(('straunge ',),'strange '),
                 ((' streames',' stremys'),' streams'), ((' strewiden ',' strawed ',' strowed '),' strewed '),
                 ((' strijf',' stryfe'),' strife'),((' stryuynge',' stryuyng',' stryvinge',' striuing'),' striving'),(('stryve','stryue','striue'),'strive'),
+                ((' stronge ',),' strong '),
             (('stubborne',),'stubborn'), (('stumbleth','stombleth','stomblith'),'stumbles'),
         (('subiection','subieccion'),'subjection'),((' suget',),' subject'), (('substaunce',),'substance'), ((' subtill ',' subtil '),' subtle '),
             ((' soch ',' suche ',' siche ',' sich '),' such '), ((' soucke ',' sucke '),' suck '),
@@ -1980,7 +1981,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
     (('vnbileue','vnbelefe','vnbeleue','vnbeliefe'),'unbelief'), (('vnbeleuing','vnbeleuynge'),'unbelieving'),
         (('vncerteyn',),'uncertain'), (('vncleane','vnclene'),'unclean'), (('vncovered','vncouered'),'uncovered'),
             ((' vnderstande',' vnderstand'),' understand'),(('Vnderstonde',),'Understood'),(('vnderstonde','vnderstoode','vnderstode','vndirstood'),'understood'), ((' vnder',' vndur'),' under'), ((' vndon.',),' undone.'),
-            (('vnfeithful',),'unfaithful'),
+            (('vnfeithful',),'unfaithful'), (('vnfensed',),'unfenced'),
             (('vnleauened','vnleuened'),'unleavened'), ((' vnloose',),' unloose'),
             ((' vnsauerie',' unsauery',' unsavery'),' unsavoury'),
             ((' vntieden',),' untied'), (('Untyll ','Vntill '),'Until '),(('vntill','vntyll'),'until'), (('Vnto ',),'Unto '),((' vnto',),' unto'), ((' vntiynge',),' untying'),
@@ -2275,7 +2276,7 @@ GERMAN_WORD_MAP = (
             ('Reich ','kingdom '), (' reisete ',' travelled '),
         (' roter ',' red '),
         (' ruchbar',' noticeable'),
-    (' sagen',' say'), (' sagt',' says'),
+    (' sagen',' say'),(' sagt',' says'),(' sage ',' said '),
             (' sah ',' saw '),(' sah,',' saw,'),
             ('Samen ','seed/seeds '),('Samen.','seed/seeds.'),
             ('Sand','sand'),

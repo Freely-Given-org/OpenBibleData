@@ -40,6 +40,8 @@ loadSelectedVersesFile( fileLocation, givenName:str, givenAbbreviation:str, enco
 
 getVerseDataListForReference( givenRefString:str, thisBible:Bible, lastBBB:Optional[str]=None, lastC:Optional[str]=None ) -> Tuple[str,str,InternalBibleEntryList,List[str]]
 
+getVerseDetailsHtml( BBB:str, C:str, V:str ) -> str # html
+
 briefDemo() -> None
 fullDemo() -> None
 
@@ -91,10 +93,10 @@ from OETHandlers import findLVQuote, getBBBFromOETBookName
 from Dict import loadAndIndexUBSGreekDictJSON, loadAndIndexUBSHebrewDictJSON
 
 
-LAST_MODIFIED_DATE = '2024-08-07' # by RJH
+LAST_MODIFIED_DATE = '2024-08-10' # by RJH
 SHORT_PROGRAM_NAME = "Bibles"
 PROGRAM_NAME = "OpenBibleData Bibles handler"
-PROGRAM_VERSION = '0.77'
+PROGRAM_VERSION = '0.79'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -1374,6 +1376,80 @@ def getBibleMapperMaps( level:int, BBB:str, startC:str, startV:Optional[str], en
     checkHtml( f'BibleMapperMap@{BBB}_{startC}:{startV}–{endC}:{endV} with {mapFilenamesSet}', ourHtml, segmentOnly=True )
     return ourHtml
 # end of Bibles.getBibleMapperMaps
+
+
+VERSE_DETAILS_TABLE_FILEPATH = Path( '../datasets/sentenceImportance/sentenceImportance.tsv' )
+VERSE_DETAILS_TABLE = {}
+def getVerseDetailsHtml( BBB:str, C:str, V:str ) -> str: # html
+    """
+    Return a short string with information from our database
+        about Textual Critism, Clarity, etc., of the particular verse.
+    """
+    global VERSE_DETAILS_TABLE
+
+    if not VERSE_DETAILS_TABLE:
+        # We have to load it on the first call
+        with open( VERSE_DETAILS_TABLE_FILEPATH, 'rt', encoding='utf-8' ) as tableFilepath:
+            headerLine = tableFilepath.readline().rstrip( '\n' )
+            assert headerLine == 'FGRef	Importance	TextualIssue	Clarity'
+            while True:
+                dataLine = tableFilepath.readline()
+                if not dataLine: break # EOF presumably
+                dataFields = dataLine.rstrip( '\n' ).split( '\t' )
+                VERSE_DETAILS_TABLE[dataFields[0]] = (dataFields[1],dataFields[2],dataFields[3])
+        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Loaded {len(VERSE_DETAILS_TABLE):,} sets of verse details." )
+
+    verseDetails = ''
+    ref = f'{BBB}_{C}:{V}'
+    if ref in VERSE_DETAILS_TABLE:
+        verseDetails = formatVerseDetailsHtml( ref )
+    else: # assume the verse is divided into parts
+        for part in 'abcde':
+            partRef = f'{ref}{part}'
+            if partRef in VERSE_DETAILS_TABLE:
+                verseDetails += f"{'<br>' if verseDetails else ''}{formatVerseDetailsHtml( partRef )}"
+
+    return f'<p class="verseDetails>{verseDetails}</p>'
+# end of Bibles.getVerseDetailsHtml
+
+IMPORTANCE_TABLE = { 'T':'<span style="color:green;">trivial</span>', 'M':'<span style="color:yellow;">medium</span>', 'I':'<span style="color:orange;">important</span>', 'V':'<span style="color:red;">vital</span>' }
+TEXTUAL_ISSUE_TABLE = { '0':'<span style="color:green;">none</span>', '1':'<span style="color:yellow;">minor spelling</span>', '2':'<span style="color:orange;">minor word changes</span>', '3':'<span style="color:red;">major</span>' }
+CLARITY_TABLE = { 'O':'<span style="color:red;">obscure</span>', 'U':'<span style="color:orange;">unclear</span>', 'C':'<span style="color:green;">clear</span>' }
+def formatVerseDetailsHtml( verseRef:str ) -> str: # html
+    """
+    Return a short string with information from our database
+        about Textual Critism, Clarity, etc., of the particular verse or verse segment.
+
+    NOTE: verseRef might be part of a verse, e.g., 'GEN_1:1:a'
+        but it's guaranteed to be in the VERSE_DETAILS_TABLE.
+
+    The importance values are:
+        - 0=T=Trivial (like a forgotten cloak, or greetings from some person we know longer know)
+        - 1=M=Medium (the great majority of sentences in the Bible)
+        - 2=I=Important (specific statements that are commonly considered to be more important, and hence often memorised)
+        - 3=V=Vital (specific statements that are commonly found in doctrinal statements)
+
+    The textual issue values are:
+        - 0=No issue (so most translations are working from the same Hebrew/Greek text here)
+        - 1=Minor spelling or word order issues (with pretty-much no effect on meaning)
+        - 2=Minor word changes (some words vary in manuscripts of different origins)
+        - 3=Major differences (any translations might be expected to have a footnote her to explain textual differences in the source)
+
+    The clarity (understandbility) values are:
+        - 0=O=Obscure (we can only really guess at what was meant, and hence we might expect translations to differ widely)
+        - 1=U=Unclear (we’re unsure exactly what was meant, like the parchment example above)
+        - 2=C=Clear (it seems clear enough what the author or speaker meant, as far as we know)
+    """
+    global VERSE_DETAILS_TABLE, TEXTUAL_ISSUE_TABLE, CLARITY_TABLE, IMPORTANCE_TABLE
+
+    importance, textualIssue, clarity = VERSE_DETAILS_TABLE[verseRef]
+    result = f"{'' if textualIssue=='0' else '<b>'}Text critical issues{'' if textualIssue=='0' else '</b>'}={TEXTUAL_ISSUE_TABLE[textualIssue]} " \
+             f"{'' if clarity=='C' else '<b>'}Clarity{'' if clarity=='C' else '</b>'} of original={CLARITY_TABLE[clarity]} " \
+             f"{'' if importance=='T' else '<b>'}Importance{'' if importance=='T' else '</b>'}={IMPORTANCE_TABLE[importance]}"
+
+    verseRefDescription = '' if verseRef[-1].isdigit() else f'Segment {verseRef[-1]}: '
+    return f"{verseRefDescription}{result}"
+# end of Bibles.formatVerseDetailsHtml
 
 
 
