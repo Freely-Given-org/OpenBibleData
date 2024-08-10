@@ -1409,7 +1409,7 @@ def getVerseDetailsHtml( BBB:str, C:str, V:str ) -> str: # html
             if partRef in VERSE_DETAILS_TABLE:
                 verseDetails += f"{'<br>' if verseDetails else ''}{formatVerseDetailsHtml( partRef )}"
 
-    return f'<p class="verseDetails>{verseDetails}</p>'
+    return f'<p class="verseDetails">{verseDetails}</p>'
 # end of Bibles.getVerseDetailsHtml
 
 IMPORTANCE_TABLE = { 'T':'<span style="color:green;">trivial</span>', 'M':'<span style="color:yellow;">medium</span>', 'I':'<span style="color:orange;">important</span>', 'V':'<span style="color:red;">vital</span>' }
