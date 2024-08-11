@@ -92,7 +92,7 @@ trivialRefs = [
     'JDG_5:1','JDG_5:2','JDG_5:3','JDG_5:4','JDG_5:5','JDG_5:6','JDG_5:7','JDG_5:8','JDG_5:9','JDG_5:10',
         'JDG_5:11','JDG_5:12','JDG_5:13','JDG_5:14','JDG_5:15','JDG_5:16','JDG_5:17','JDG_5:18','JDG_5:19','JDG_5:20',
         'JDG_5:21','JDG_5:22','JDG_5:23','JDG_5:24','JDG_5:25','JDG_5:26','JDG_5:27','JDG_5:28','JDG_5:29','JDG_5:30',
-        'JDG_5:31',
+        'JDG_5:31a',
     ]
 obscureRefs = [ # Not sure what the Hebrew or Greek is trying to say
     'JDG_5:11a','JDG_5:14',
