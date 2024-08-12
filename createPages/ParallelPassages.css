@@ -153,7 +153,8 @@ span.unsure { text-decoration:underline; text-decoration-style: dotted; text-dec
 /* span.dom { color:Gainsboro; font-size:0.75em; } */
 /* span.schwa { font-size:0.75em; } */
 span.nominaSacra { font-weight:bold; }
-/* span.nd { text-decoration:overline; text-decoration-style: dashed; text-decoration-color:purple; } */
+/* span.nd {} */
+/* span.ndORD { font-size:.75em; text-decoration:overline; text-decoration-style:dashed; text-decoration-color:purple; } */
 
 span.OET-RV_verseTextChunk {}
 

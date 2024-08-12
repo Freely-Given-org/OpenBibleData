@@ -127,7 +127,8 @@ p.q2 { margin-left:2em; margin-top:0.2em; margin-bottom:0.2em; }
 p.qa { font-weight:bold; } /* Acrostic heading */
 p.nb {}
 
-span.nd { text-decoration:overline; text-decoration-style: dashed; text-decoration-color:purple; }
+span.nd {}
+span.ndORD { font-size:.75em; text-decoration:overline; text-decoration-style:dashed; text-decoration-color:purple; }
 span.wj { color:saddlebrown; }
 span.sc { font-size:0.8em; } /* Small caps */
 span.sig { font-family:cursive; }

@@ -159,8 +159,13 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                 rest = rest.replace( "'", "’" ) # Replace apostrophes
             elif versionAbbreviation in ('ULT','UST'):
                 rest = rest.replace( '{', '\\add ' ).replace( '}', '\\add*' ) # Replace UST braces
+            elif versionAbbreviation in ('CB',):
+                rest = rest.replace( 'LORDE', '\\nd LORDE\\nd*' )
+            elif versionAbbreviation == 'LUT':
+                rest = rest.replace( 'HErr', '\\nd HErr\\nd*' )
+            else:
+                rest = rest.replace( '\\nd  ', '\\nd ' ) # Fix an eBible.org USFM error
             rest = rest.replace( '’”', '’ ”' ).replace( '’ ”', '’ ”' ).replace( '”’', '” ’' ).replace( '” ’', '” ’' ) # Insert NNBSP
-            rest = rest.replace( '\\nd  ', '\\nd ' ) # Fix an eBible.org USFM error
 
             if basicOnly and '\\x ' in rest:
                 rest, xCount = XRefRegEx.subn( '', rest )

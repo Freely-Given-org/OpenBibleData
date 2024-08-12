@@ -40,7 +40,8 @@ span.glossHelper { color:grey; }
 span.glossPost { color:brown; }
 
 /* NT spans */
-span.nd { text-decoration:overline; text-decoration-style: dashed; text-decoration-color:purple; }
+span.nd {}
+span.ndORD { font-size:.75em; text-decoration:overline; text-decoration-style:dashed; text-decoration-color:purple; }
 
 /* OET add spans */
 span.addArticle { color:bisque; }
