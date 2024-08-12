@@ -186,7 +186,7 @@ def livenOETWordLinks( level:int, bibleObject:ESFMBible, BBB:str, givenEntryList
     assert len(bibleObject.ESFMWordTables) == 2, f"{len(bibleObject.ESFMWordTables)=}"
     for entry in givenEntryList:
         if entry.getOriginalText():
-            assert '\\nd \\nd ' not in entry.getOriginalText()
+            assert '\\nd \\nd ' not in entry.getOriginalText(), f"Double nd in {bibleObject.abbreviation} {BBB} {entry=}"
 
     # Liven the word links using the BibleOrgSys function
     #   We use unusual word pairs in both templates (we don't actually use titleTemplate as a template)
