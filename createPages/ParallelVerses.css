@@ -176,7 +176,7 @@ span.w {}
 
 /* NT spans */
 span.nominaSacra { font-weight:bold; }
-span.nd {}
+span.nd { text-decoration:overline; text-decoration-style: dashed; text-decoration-color:purple; }
 span.wj { color:saddlebrown; }
 span.sc { font-size:0.8em; } /* Small caps */
 span.qs { font-style:italic; } /* Selah */

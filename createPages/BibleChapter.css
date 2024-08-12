@@ -122,7 +122,7 @@ p.qa { font-weight:bold; } /* Acrostic heading */
 p.qs { font-style:italic; } /* Selah */
 p.nb {}
 
-span.nd {}
+span.nd { text-decoration:overline; text-decoration-style: dashed; text-decoration-color:purple; }
 span.wj { color:saddlebrown; }
 span.qt { font-style:italic; }
 span.sc { font-size:0.8em; } /* Small caps */
