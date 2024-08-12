@@ -155,6 +155,8 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
         # The following line means we get all footnotes, etc.
         rest = entry.getFullText() # getText() has notes removed but doesn't work with wordlink numbers in OET
         if rest: # Special handling for some versions
+            assert '\\nd \\nd ' not in rest, f"Unexpected doubled nd’s in verse text {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {marker=} {rest=}"
+            assert '\\nd*\\nd*' not in rest, f"Unexpected closing nd’s in verse text {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {marker=} {rest=}"
             if 'OET' in versionAbbreviation:
                 rest = rest.replace( "'", "’" ) # Replace apostrophes
             elif versionAbbreviation in ('ULT','UST'):
