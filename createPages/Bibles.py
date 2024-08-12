@@ -291,7 +291,13 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
         vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Preloading uW translation notes{' in TEST mode' if TEST_MODE else ''}…" )
         thisBible = uWNotesBible.uWNotesBible( state.BibleLocations[versionAbbreviation], givenName='uWTranslationNotes',
                                             givenAbbreviation='UTN', encoding='utf-8' )
-        thisBible.loadBooks() # So we can iterate through them all later
+        # thisBible.loadBooks() # So we can iterate through them all later
+        if 'ALL' in state.booksToLoad[versionAbbreviation]:
+            thisBible.loadBooks() # So we can iterate through them all later
+        else: # only load the specific books as we need them
+            thisBible.preload()
+            for BBB in state.booksToLoad[versionAbbreviation]:
+                thisBible.loadBookIfNecessary( BBB )
     elif versionAbbreviation == 'TOSN': # We use this to also load non-Bible (non-B/C/V) stuff
         #   like Tyndale open Bible dictionary and book intros and UBS dictionaries
         sourceFolder = state.BibleLocations[versionAbbreviation]
