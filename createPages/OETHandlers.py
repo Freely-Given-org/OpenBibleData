@@ -64,7 +64,7 @@ from BibleTransliterations import transliterate_Hebrew, transliterate_Greek
 from settings import State
 
 
-LAST_MODIFIED_DATE = '2024-06-17' # by RJH
+LAST_MODIFIED_DATE = '2024-08-12' # by RJH
 SHORT_PROGRAM_NAME = "OETHandlers"
 PROGRAM_NAME = "OpenBibleData OET handler"
 PROGRAM_VERSION = '0.61'
@@ -122,7 +122,7 @@ def getOETBookName( BBB:str ) -> str:
                 .replace('Jude','Yudas/(Jude)')
             )
 # end of OETHandlers.getOETBookName
-    
+
 
 def getBBBFromOETBookName( booknameText:str ) -> str:
     """
@@ -133,7 +133,7 @@ def getBBBFromOETBookName( booknameText:str ) -> str:
                     .replace( 'Yhn', 'Jn' ).replace( 'Yud', 'Jud' )
                 )
 # end of OETHandlers.getOETBookName
-    
+
 
 def getHebrewWordpageFilename( wordTableRowNum:int, state:State ) -> str:
     """
@@ -184,11 +184,15 @@ def livenOETWordLinks( level:int, bibleObject:ESFMBible, BBB:str, givenEntryList
 
     assert 1 <= level <= 3, f"{level=}"
     assert len(bibleObject.ESFMWordTables) == 2, f"{len(bibleObject.ESFMWordTables)=}"
+    for entry in givenEntryList:
+        assert '\\nd \\nd ' not in entry.getOriginalText()
 
     # Liven the word links using the BibleOrgSys function
     #   We use unusual word pairs in both templates (we don't actually use titleTemplate as a template)
     #       so that we can easily find them again in the returned InternalBibleEntryList
     revisedEntryList = bibleObject.livenESFMWordLinks( BBB, givenEntryList, linkTemplate='►{n}◄', titleTemplate='§«OrigWord»§' )[0]
+    for revisedEntry in givenEntryList:
+        assert '\\nd \\nd ' not in revisedEntry.getOriginalText()
     # We get something back like:
     #   v=18
     #   v~=<a title="§καὶ§" href="../../ref/{'GrkWrd' if NT else 'HebWrd'}/33110.htm#Top">And</a> \add +<a title="§Σαδδουκαῖοι§" href="../../ref/{'GrkWrd' if NT else 'HebWrd'}/33112.htm#Top">the</a>\add*<a title="§Σαδδουκαῖοι§" href="../../ref/{'GrkWrd' if NT else 'HebWrd'}/33112.htm#Top">_Saddoukaios</a>_\add <a title="§Σαδδουκαῖοι§" href="../../ref/{'GrkWrd' if NT else 'HebWrd'}/33112.htm#Top">sect</a>\add* <a title="§ἔρχονται§" href="../../ref/{'GrkWrd' if NT else 'HebWrd'}/33111.htm#Top">are</a><a title="§ἔρχονται§" href="../../ref/{'GrkWrd' if NT else 'HebWrd'}/33111.htm#Top">_coming</a> <a title="§πρὸς§" href="../../ref/{'GrkWrd' if NT else 'HebWrd'}/33113.htm#Top">to</a> <a title="§αὐτόν§" href="../../ref/{'GrkWrd' if NT else 'HebWrd'}/33114.htm#Top">him</a>, <a title="§οἵτινες§" href="../../ref/{'GrkWrd' if NT else 'HebWrd'}/33116.htm#Top">who</a> <a title="§λέγουσιν§" href="../../ref/{'GrkWrd' if NT else 'HebWrd'}/33117.htm#Top">are</a><a title="§λέγουσιν§" href="../../ref/{'GrkWrd' if NT else 'HebWrd'}/33117.htm#Top">_saying</a> <a title="§εἶναι§" href="../../ref/{'GrkWrd' if NT else 'HebWrd'}/33120.htm#Top">to</a>_ <a title="§μὴ§" href="../../ref/{'GrkWrd' if NT else 'HebWrd'}/33119.htm#Top">not</a> <a title="§εἶναι§" href="../../ref/{'GrkWrd' if NT else 'HebWrd'}/33120.htm#Top">_be</a> \add +<a title="§ἀνάστασιν§" href="../../ref/{'GrkWrd' if NT else 'HebWrd'}/33118.htm#Top">a</a>\add*<a title="§ἀνάστασιν§" href="../../ref/{'GrkWrd' if NT else 'HebWrd'}/33118.htm#Top">_resurrection</a>, <a title="§καὶ§" href="../../ref/{'GrkWrd' if NT else 'HebWrd'}/33121.htm#Top">and</a> <a title="§ἐπηρώτων§" href="../../ref/{'GrkWrd' if NT else 'HebWrd'}/33122.htm#Top">they</a><a title="§ἐπηρώτων§" href="../../ref/{'GrkWrd' if NT else 'HebWrd'}/33122.htm#Top">_were</a><a title="§ἐπηρώτων§" href="../../ref/{'GrkWrd' if NT else 'HebWrd'}/33122.htm#Top">_asking</a> <a title="§αὐτὸν§" href="../../ref/{'GrkWrd' if NT else 'HebWrd'}/33125.htm#Top">him</a> <a title="§λέγοντες§" href="../../ref/{'GrkWrd' if NT else 'HebWrd'}/33126.htm#Top">saying</a>,
@@ -336,7 +340,7 @@ def livenOETWordLinks( level:int, bibleObject:ESFMBible, BBB:str, givenEntryList
                 newTitleGuts = f'''="{noCantillations} ({transliteratedWordForTitle}, {morphology})"''' # ({transliteratedWord}){'' if SRLemma==transliteratedWord else f" from {SRLemma}"}"'''
                 originalText = f'''{originalText[:titleMatch.start()]}{newTitleGuts}{originalText[titleMatch.end():]}'''
 
-                searchStartIndex = hrefMatch.end() 
+                searchStartIndex = hrefMatch.end()
                 transliterationsAdded += 1
 
         if transliterationsAdded > 0 or colourisationsAdded > 0:
@@ -355,6 +359,8 @@ def livenOETWordLinks( level:int, bibleObject:ESFMBible, BBB:str, givenEntryList
             updatedVerseList.append( entry )
             halt
 
+    for updatedEntry in updatedVerseList:
+        assert '\\nd \\nd ' not in updatedEntry.getOriginalText()
     return updatedVerseList
 # end of OETHandlers.livenOETWordLinks function
 
