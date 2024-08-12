@@ -396,12 +396,12 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                                     modernisedTextHtml = modernisedTextHtml.replace( 'J', 'Y' ).replace( 'Ie', 'Ye' ).replace( 'Io', 'Yo' ) \
                                                                                 .replace( 'Yudge', 'Judge' ).replace( 'KYB', 'KJB' ) # Fix overreaches
                                 if versionAbbreviation == 'KJB-1769':
-                                    # if parRef=='MRK_1:18': print( f"{versionAbbreviation} {parRef} {modernisedTextHtml=}" )
+                                    if parRef=='JDG_6:23': print( f"{versionAbbreviation} {parRef} {modernisedTextHtml=}" )
                                     cleanedModernisedKJV1769TextHtml = modernisedTextHtml.replace( versionAbbreviation, '' )
-                                    # if parRef=='MRK_1:18': print( f"{versionAbbreviation} {parRef} {modernisedKJV1769TextHtml=}" )
+                                    if parRef=='JDG_6:23': print( f"{versionAbbreviation} {parRef} {cleanedModernisedKJV1769TextHtml=}" )
                                 if modernisedTextHtml != footnoteFreeTextHtml: # only show it if it changed
-                                    # if versionAbbreviation == 'KJB-1611' and parRef == 'MRK_1:18':
-                                        # print( f"{versionAbbreviation} {parRef} {modernisedTextHtml=}")
+                                    if versionAbbreviation == 'KJB-1611' and parRef == 'JDG_6:23':
+                                        print( f"{versionAbbreviation} {parRef} {modernisedTextHtml=}")
                                     cleanedModernisedTextHtml = modernisedTextHtml.replace( versionAbbreviation, '' )
                                     if versionAbbreviation in ('WYC','TNT','CB','GNV','BB','KJB-1611') \
                                     and cleanedModernisedTextHtml == cleanedModernisedKJV1769TextHtml:
@@ -1548,7 +1548,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
                 ((' distriede',' destroied',' destried'),' destroyed'),((' distrie ',' destroye ',' distroye '),' destroy '),
             ((' deuelis',' devylles',' devvyls',' deuils',' deuyls',' deuels'),' devils'),((' devyll',' deuell',' deuyll'),' devil'),
         ((' dyd ',' diden ',' dide '),' did '),((' dide,',),' did,'),
-            ((' dyeth ',' dieth '),' dieth/dies '), ((' dieden ',' dyed '),' died '),((' diede,',),' died,'),
+            ((' dyeth ',' dieth '),' dieth/dies '), ((' dieden ',' dyed '),' died '),((' diede,',),' died,'),((' dye.',),' die.'),
             ((' discerne:',),' discern:'), (('disciplis',),'disciples'),
                 (('disdayned',),'disdained'),(('disdaine ',),'disdain '),
                 ((' dysshe.',' disshe.'),' dish.'),
@@ -1562,7 +1562,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
             ((' dubble.',),' double.'),((' doute,',),' doubt,'),
             ((' doue',),' dove'),
             ((' downe',' doune',' doun'),' down'),
-        (('dredden','dredde'),'dreaded'), ((' dryncke',' drynke',' drynk',' drinke'),' drink'), ((' driveth',' driueth'),' driveth/drives'), ((' driue',' dryue'),' drive'),
+        (('dredden','dredde'),'dreaded'),(('drede ',),'dread '), ((' dryncke',' drynke',' drynk',' drinke'),' drink'), ((' driveth',' driueth'),' driveth/drives'), ((' driue',' dryue'),' drive'),
             ((' drave',' droue'),' drove'), ((' drie ',),' dry '),((' dryed',),' dried'),
         ((' duste ',),' dust '), ((' duetie ',),' duty '),
         (('dwelliden','dwellide','dwellyde'),'dwelled/dwelt'),(('dwelleth','dwellith'),'dwells'), (('dwellynge','dwellinge'),'dwelling'),
@@ -1734,7 +1734,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
             ((' mendynge',' mendyng',' mendinge'),' mending'),
             ((' mercyfull ',' mercifull '),' merciful '),((' mercyfull:',' mercifull:'),' merciful:'),((' merci ',),' mercy '),
             (('messauger',),'messenger'),
-        ((' Madianites',),'Midianites'),((' myddil',),' middle'),
+        (('Madianites',),'Midianites'),((' myddil',),' middle'),
             ((' myghty ',' mightie ',' miyti '),' mighty '),((' myyte ',' myght ',' mighte '),' might '),
             ((' mylke ',' milke '),' milk '),((' mylke,',' mylk,',' milke,'),' milk,'),((' milke:',),' milk:'), (('mylstone','milstone'),'millstone'),
             ((' myndes',' mindes'),' minds'),((' mynde',),' mind'), ((' myne ',' myn '),' mine '), (('ministred','mynistred','mynystriden'),'ministered'),((' mynyster',' mynister'),' minister'),
@@ -1791,7 +1791,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
             ((' pathes',' paches',' pathhis'),' paths'), ((' pacience',),' patience'),
             (('Pavl',),'Paul'),
             ((' paye ',),' pay '),
-        ((' pees',),' peace'),
+        (('Pees',),'Peace'),((' pees',),' peace'),
             (('penaunce',),'penance'), ((' penie ',' peny '),' penny '),((' penie,',' peny,'),' penny,'),
             (('puplis',),'peoples'),((' `puple',' puple',' pople'),' people'),
             (('perceiued','perceaved','perceaued'),'perceived'),(('Perceave','Perceiue'),'Perceive'),((' witen',' perceiue'),' perceive'),
@@ -2037,6 +2037,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
     (('Iaakob','Iacob'),'Yacob'), (('Iames','James'),'Yames/Yacob'), (('Iauan',),'Yavan'),
         (('Ye ',),'Ye/You_all '),((' ye ',' yee '),' ye/you_all '), ((' thi ',' thy '),' thy/your '), ((' youre ',),' your(pl) '),
             ((' yhe,',),' yea/yes,'), ((' yeres',),' years'),((' yeare',' yeere',' yeer',' yere'),' year'),
+            (('Iehouah ',),'Yehovah '),
             (('Hierusalem','Ierusalem','Ierusale','Jerusalem'),'Yerusalem'),
             (('Iesus',),'Yesus/Yeshua'),(('Iesu ',),'Yesu '),(('Iesu.',),'Yesu.'),
             ((' yit ',),' yet '),
