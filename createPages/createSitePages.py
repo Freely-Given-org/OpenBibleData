@@ -232,7 +232,6 @@ def _createSitePages() -> bool:
             for lvEntry in lvVerseEntryList:
                 if lvEntry.getOriginalText():
                     assert '\\nd \\nd ' not in lvEntry.getOriginalText(), f"lvBible JDG_1:2 {lvEntry=}"
-                    assert '\\nd ' not in lvEntry.getOriginalText(), f"lvBible JDG_1:2 {lvEntry=}"
                     assert 'YHWH' not in lvEntry.getOriginalText(), f"lvBible JDG_1:2 {lvEntry=}"
             rvVerseEntryList, _contextList = state.preloadedBibles['OET-RV'].getContextVerseData( ('JDG','1','2') )
             for rvEntry in rvVerseEntryList:
