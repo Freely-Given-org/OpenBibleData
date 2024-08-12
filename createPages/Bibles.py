@@ -93,7 +93,7 @@ from OETHandlers import findLVQuote, getBBBFromOETBookName
 from Dict import loadAndIndexUBSGreekDictJSON, loadAndIndexUBSHebrewDictJSON
 
 
-LAST_MODIFIED_DATE = '2024-08-11' # by RJH
+LAST_MODIFIED_DATE = '2024-08-12' # by RJH
 SHORT_PROGRAM_NAME = "Bibles"
 PROGRAM_NAME = "OpenBibleData Bibles handler"
 PROGRAM_VERSION = '0.79'
@@ -1415,7 +1415,7 @@ def getVerseDetailsHtml( BBB:str, C:str, V:str ) -> str: # html
             if partRef in VERSE_DETAILS_TABLE:
                 verseDetails += f"{'<br>' if verseDetails else ''}{formatVerseDetailsHtml( partRef )}"
 
-    return f'<p class="verseDetails">{verseDetails} <small style="color:grey;">(All still tentative.)</small></p>'
+    return f'<p class="verseDetails">{verseDetails} <small style="color:grey;">(All still tentative.)</small></p>'
 # end of Bibles.getVerseDetailsHtml
 
 IMPORTANCE_TABLE = { 'T':'<span style="color:grey;">trivial</span>', 'M':'<span style="color:pink;">medium</span>', 'I':'<span style="color:orange;">important</span>', 'V':'<span style="color:red;">vital</span>' }
