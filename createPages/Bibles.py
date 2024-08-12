@@ -184,10 +184,16 @@ def preloadVersions( state:State ) -> int:
             thisBible.OTsourceFolder = thisBibleOT.sourceFolder
             thisBible.NTsourceFolder = thisBibleNT.sourceFolder
             thisBible.sourceFolder = None
-            state.preloadedBibles[versionAbbreviation] = thisBible
+            state.preloadedBibles['OET-LV'] = thisBible
             vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"preloadVersions() loaded {thisBible}" )
 
-            pickleFilename = f"{versionAbbreviation}__{'_'.join(TEST_BOOK_LIST)}{PICKLE_FILENAME_END}" \
+            if 1:
+                lvVerseEntryList, _contextList = thisBible.getContextVerseDataRange( ('JDG','1','2') )
+                for lvEntry in lvVerseEntryList:
+                    if lvEntry.getOriginalText():
+                        assert '\\nd \\nd ' not in lvEntry.getOriginalText(), f"lvBible JDG_1:2 {lvEntry=}"
+
+            pickleFilename = f"OET-LV__{'_'.join(TEST_BOOK_LIST)}{PICKLE_FILENAME_END}" \
                                 if TEST_MODE and not ALL_PRODUCTION_BOOKS and versionAbbreviation not in state.WholeBibleVersions \
                                 else f'{versionAbbreviation}{PICKLE_FILENAME_END}'
             pickleFolderPath = state.BibleLocations['OET-LV']
