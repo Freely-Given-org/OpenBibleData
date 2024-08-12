@@ -641,7 +641,7 @@ def checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool:
         assert '<span' not in titleGuts, f"'{where}' {segmentOnly=} Bad title with SPAN in {titleGuts=} FROM {htmlToCheck=}"
         searchStartIndex = match.end()
 
-    assert '<span class="nd"><span class="nd">' not in htmlToCheck, f"'{where}' {segmentOnly=} Found {htmlToCheck.count('<span class="nd"><span class="nd">')} doubled ND spans in {htmlToCheck}" # in case we accidentally apply it twice
+    assert '<span class="nd"><span class="nd">' not in htmlToCheck, f"""'{where}' {segmentOnly=} Found {htmlToCheck.count('<span class="nd"><span class="nd">')} doubled ND spans in {htmlToCheck}""" # in case we accidentally apply it twice
 
     if segmentOnly:
         return True
