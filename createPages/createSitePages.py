@@ -90,7 +90,7 @@ from Dict import createTyndaleDictPages, createUBSDictionaryPages
 from html import makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2024-08-08' # by RJH
+LAST_MODIFIED_DATE = '2024-08-12' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData (OBD) Create Site Pages"
 PROGRAM_VERSION = '0.96'
@@ -394,10 +394,10 @@ def _createOETVersionPages( level:int, folder:Path, rvBible, lvBible, state:Stat
     """
     """
     fnPrint( DEBUGGING_THIS_MODULE, f"_createOETVersionPages( {level}, {folder}, {rvBible.abbreviation}, {lvBible.abbreviation} )")
-    createOETBookPages( level+1, folder.joinpath('byDoc/'), rvBible, lvBible, state )
     dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{rvBible.discoveryResults['ALL']['haveSectionHeadings']=}" )
     dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{lvBible.discoveryResults['ALL']['haveSectionHeadings']=}" )
     createOETSideBySideChapterPages( level+1, folder.joinpath('byC/'), rvBible, lvBible, state )
+    createOETBookPages( level+1, folder.joinpath('byDoc/'), rvBible, lvBible, state )
 
     versionName = state.BibleNames['OET']
     indexHtml = f'''<h1 id="Top">{versionName}</h1>
@@ -428,9 +428,9 @@ def _createVersionPages( level:int, folder:Path, thisBible, state:State ) -> boo
     """
     fnPrint( DEBUGGING_THIS_MODULE, f"_createVersionPages( {level}, {folder}, {thisBible.abbreviation} )")
 
-    createBookPages( level+1, folder.joinpath('byDoc/'), thisBible, state )
     dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{thisBible.discoveryResults['ALL']['haveSectionHeadings']=}" )
     createChapterPages( level+1, folder.joinpath('byC/'), thisBible, state )
+    createBookPages( level+1, folder.joinpath('byDoc/'), thisBible, state )
 
     versionName = state.BibleNames[thisBible.abbreviation]
     indexHtml = f'''<h1 id="Top">{versionName}</h1>

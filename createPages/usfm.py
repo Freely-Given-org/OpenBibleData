@@ -160,8 +160,10 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
             elif versionAbbreviation in ('ULT','UST'):
                 rest = rest.replace( '{', '\\add ' ).replace( '}', '\\add*' ) # Replace UST braces
             elif versionAbbreviation in ('CB',):
+                assert '\\nd LORDE\\nd*' not in rest
                 rest = rest.replace( 'LORDE', '\\nd LORDE\\nd*' )
             elif versionAbbreviation == 'LUT':
+                assert '\\nd HErr\\nd*' not in rest
                 rest = rest.replace( 'HErr', '\\nd HErr\\nd*' )
             else:
                 rest = rest.replace( '\\nd  ', '\\nd ' ) # Fix an eBible.org USFM error
