@@ -191,7 +191,8 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
                     halt # continue
                 assert isinstance( rvBible, ESFMBible.ESFMBible )
                 for rvEntry in rvVerseEntryList:
-                    assert '\\nd \\nd ' not in rvEntry.getOriginalText(), f"rvBible {BBB}_{c} {rvEntry=}"
+                    if rvEntry.getOriginalText():
+                        assert '\\nd \\nd ' not in rvEntry.getOriginalText(), f"rvBible {BBB}_{c} {rvEntry=}"
                 rvVerseEntryList = livenOETWordLinks( level, rvBible, BBB, rvVerseEntryList, state )
                 # print( f"OET-RV {BBB} {c} got {len(rvVerseEntryList)} verse entries, {len(rvContextList)} context entries")
                 try: lvVerseEntryList, lvContextList = lvBible.getContextVerseData( (BBB, str(c)) )
@@ -200,7 +201,8 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
                     lvVerseEntryList, lvContextList = InternalBibleEntryList(), []
                 assert isinstance( lvBible, ESFMBible.ESFMBible )
                 for lvEntry in lvVerseEntryList:
-                    assert '\\nd \\nd ' not in lvEntry.getOriginalText(), f"lvBible {BBB}_{c} {lvEntry=}"
+                    if lvEntry.getOriginalText():
+                        assert '\\nd \\nd ' not in lvEntry.getOriginalText(), f"lvBible {BBB}_{c} {lvEntry=}"
                 lvVerseEntryList = livenOETWordLinks( level, lvBible, BBB, lvVerseEntryList, state )
                 # rvHtml = livenIORs( BBB, convertUSFMMarkerListToHtml( 'OET', (BBB,c), 'chapter', rvContextList, rvVerseEntryList ), numChapters )
                 # NOTE: We change the version abbreviation here to give the function more indication where we're coming from
