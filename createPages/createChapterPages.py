@@ -197,6 +197,8 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
                     logging.critical( f"createOETSideBySideChapterPages probable versification error for {lvBible.abbreviation} {BBB} {c=}" )
                     lvVerseEntryList, lvContextList = InternalBibleEntryList(), []
                 assert isinstance( lvBible, ESFMBible.ESFMBible )
+                for entry in lvVerseEntryList:
+                    assert '\\nd \\nd ' not in entry.getOriginalText(), f"lvBible {BBB}_{c} {entry=}"
                 lvVerseEntryList = livenOETWordLinks( level, lvBible, BBB, lvVerseEntryList, state )
                 # rvHtml = livenIORs( BBB, convertUSFMMarkerListToHtml( 'OET', (BBB,c), 'chapter', rvContextList, rvVerseEntryList ), numChapters )
                 # NOTE: We change the version abbreviation here to give the function more indication where we're coming from
