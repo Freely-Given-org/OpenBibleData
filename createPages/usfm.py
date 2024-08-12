@@ -75,10 +75,10 @@ from html import checkHtml
 from OETHandlers import getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2024-07-21' # by RJH
+LAST_MODIFIED_DATE = '2024-08-12' # by RJH
 SHORT_PROGRAM_NAME = "usfm"
 PROGRAM_NAME = "OpenBibleData USFM to HTML functions"
-PROGRAM_VERSION = '0.80'
+PROGRAM_VERSION = '0.81'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -160,6 +160,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
             elif versionAbbreviation in ('ULT','UST'):
                 rest = rest.replace( '{', '\\add ' ).replace( '}', '\\add*' ) # Replace UST braces
             rest = rest.replace( '’”', '’ ”' ).replace( '’ ”', '’ ”' ).replace( '”’', '” ’' ).replace( '” ’', '” ’' ) # Insert NNBSP
+            rest = rest.replace( '\\nd  ', '\\nd ' ) # Fix an eBible.org USFM error
 
             if basicOnly and '\\x ' in rest:
                 rest, xCount = XRefRegEx.subn( '', rest )
@@ -1171,7 +1172,7 @@ def convertUSFMCharacterFormatting( versionAbbreviation:str, refTuple:tuple, seg
             .replace( '\\it ', '<i>' ).replace( '\\it*', '</i>' ) \
             .replace( '\\em ', '<em>' ).replace( '\\em*', '</em>' ) \
             .replace( '\\sup ', '<sup>' ).replace( '\\sup*', '</sup>' )
-    
+
     # Special handling for OT '\\nd LORD\\nd*' (this is also in createParallelVersePages)
     html = html.replace( '\\nd LORD\\nd*', '\\nd L<span style="font-size:.75em;">ORD</span>\\nd*' )
 
@@ -1456,7 +1457,7 @@ def toRomanNumerals( num:Union[int,str] ) -> str:
 
 
 def briefDemo() -> None:
-        
+
     """
     Main program to handle command line parameters and then run what they want.
     """
