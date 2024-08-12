@@ -228,13 +228,13 @@ def _createSitePages() -> bool:
         state.preloadedBibles['OET-RV'].discover() # Now that all required books are loaded
         state.preloadedBibles['OET-LV'].discover() #     ..ditto..
         if 1:
-            lvVerseEntryList, _contextList = state.preloadedBibles['OET-LV'].getContextVerseDataRange( ('JDG','1','2') )
+            lvVerseEntryList, _contextList = state.preloadedBibles['OET-LV'].getContextVerseData( ('JDG','1','2') )
             for lvEntry in lvVerseEntryList:
                 if lvEntry.getOriginalText():
                     assert '\\nd \\nd ' not in lvEntry.getOriginalText(), f"lvBible JDG_1:2 {lvEntry=}"
                     assert '\\nd ' not in lvEntry.getOriginalText(), f"lvBible JDG_1:2 {lvEntry=}"
                     assert 'YHWH' not in lvEntry.getOriginalText(), f"lvBible JDG_1:2 {lvEntry=}"
-            rvVerseEntryList, _contextList = state.preloadedBibles['OET-RV'].getContextVerseDataRange( ('JDG','1','2') )
+            rvVerseEntryList, _contextList = state.preloadedBibles['OET-RV'].getContextVerseData( ('JDG','1','2') )
             for rvEntry in rvVerseEntryList:
                 if rvEntry.getOriginalText():
                     assert '\\nd \\nd ' not in rvEntry.getOriginalText(), f"rvBible JDG_1:2 {rvEntry=}"

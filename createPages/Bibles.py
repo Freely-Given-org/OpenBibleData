@@ -188,7 +188,7 @@ def preloadVersions( state:State ) -> int:
             vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"preloadVersions() loaded {thisBible}" )
 
             if 1:
-                lvVerseEntryList, _contextList = thisBible.getContextVerseDataRange( ('JDG','1','2') )
+                lvVerseEntryList, _contextList = thisBible.getContextVerseData( ('JDG','1','2') )
                 for lvEntry in lvVerseEntryList:
                     if lvEntry.getOriginalText():
                         assert '\\nd \\nd ' not in lvEntry.getOriginalText(), f"lvBible JDG_1:2 {lvEntry=}"
