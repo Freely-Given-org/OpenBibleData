@@ -73,7 +73,7 @@ from settings import State, TEST_MODE, SITE_NAME
 from OETHandlers import getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2024-07-25' # by RJH
+LAST_MODIFIED_DATE = '2024-08-12' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
 PROGRAM_VERSION = '0.89'
@@ -371,7 +371,7 @@ def removeDuplicateCVids( BBB:str, html:str ) -> str:
     # Assert statements are disabled because this function can be quite slow for an entire OET book
     """
     vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Removing duplicate IDs (#CV & #V) for {BBB} ({len(html):,} chars)…" )
-    
+
     endIx = 0 # This is where we start searching
     while True:
         startVIx = html.find( ' id="V', endIx )
@@ -407,7 +407,7 @@ def removeDuplicateCVids( BBB:str, html:str ) -> str:
                 html = f'{html[:endIx]}{endHtml}'
                 # assert '<span></span>' not in html
                 # print( f"removeDuplicateCVidsB {endHtmlStartIx=}\nendHtml='…{endHtml[endHtmlStartIx-50:endHtmlStartIx+50]}…'\nhtml='…{html[endIx+endHtmlStartIx-50:endIx+endHtmlStartIx+50]}…'" )
-            else:       
+            else:
                 endHtml = f'{endHtml[:endHtmlStartIx]}{endHtml[endHtmlStartIx+len(idContents):]}'
                 html = f'{html[:endIx]}{endHtml}'
                 # assert '<span></span>' not in html
@@ -428,7 +428,7 @@ def removeDuplicateFNids( where:str, html:str ) -> str:
     # Assert statements are disabled because this function can be quite slow for an entire OET book
     """
     vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Removing duplicate footnote IDs for {where} ({len(html):,} chars)…" )
-    
+
     endIx = 0 # This is where we start searching
     while True:
         startIx = html.find( ' id="fn', endIx )
@@ -480,7 +480,7 @@ def checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool:
         ix = htmlToCheck.index( '<br>\n' )
         # print( f"checkHtml({where=} {segmentOnly=}) found <br> in …{htmlToCheck[ix-30:ix]}{htmlToCheck[ix:ix+50]}…" )
         raise ValueError( f"checkHtml({where}) found <br> followed by unexpected newline in {htmlToCheck=}" )
-            
+
     if ( 'TCNT' not in where and 'TC-GNT' not in where  # These two versions use the '¦' character in their footnotes
     and not where.startswith('Parallel ') and not where.startswith('End of parallel') ): # and they also appear on parallel pages
         assert '¦' not in htmlToCheck, f"checkHtml() found unprocessed word number marker in '{where}' {htmlToCheck=}"
@@ -546,7 +546,7 @@ def checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool:
     for marker,startMarker in (('div','<div'),('p','<p '),('h1','<h1'),('h2','<h2'),('h3','<h3'),('h4','<h4'),
                                ('span','<span'),
                                ('ol','<ol'),('ul','<ul'),
-                               ('em','<em>'),('i','<i>'),('b','<b>'),('small','<small>'),('sup','<sup>'),('sub','<sub>')):
+                               ('em','<em>'),('i','<i>'),('b','<b>'),('small','<small '),('sup','<sup>'),('sub','<sub>')):
         startCount = htmlToCheck.count( startMarker )
         if startMarker.endswith( ' ' ): startCount += htmlToCheck.count( f'<{marker}>' )
         endCount = htmlToCheck.count( f'</{marker}>' )
@@ -643,7 +643,7 @@ def checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool:
 
     if segmentOnly:
         return True
-        
+
     # The following are not actual HTML errors, but rather, our own processing errors
     #   (We don't check segments, because some of these things are processed later on)
     if 'OET' in where or 'Parallel' in where:
@@ -853,7 +853,7 @@ def do_OET_RV_HTMLcustomisations( OET_RV_html:str ) -> str:
             .replace( '<span class="add">', '<span class="RVadd">' )
             .replace( '≈', '<span class="parr">≈</span>')
             )
-    
+
     # Just do an additional check inside '<span class="RVadd">' spans
     startSearchIndex = 0
     for _safetyCount in range( 3_000 ): # 2_000 wasn't enough
