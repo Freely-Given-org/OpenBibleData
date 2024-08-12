@@ -187,14 +187,6 @@ def preloadVersions( state:State ) -> int:
             state.preloadedBibles['OET-LV'] = thisBible
             vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"preloadVersions() loaded {thisBible}" )
 
-            if 1:
-                lvVerseEntryList, _contextList = thisBible.getContextVerseData( ('JDG','1','2') )
-                for lvEntry in lvVerseEntryList:
-                    if lvEntry.getOriginalText():
-                        assert '\\nd \\nd ' not in lvEntry.getOriginalText(), f"lvBible JDG_1:2 {lvEntry=}"
-                        assert '\\nd ' not in lvEntry.getOriginalText(), f"lvBible JDG_1:2 {lvEntry=}"
-                        assert 'YHWH' not in lvEntry.getOriginalText(), f"lvBible JDG_1:2 {lvEntry=}"
-
             pickleFilename = f"OET-LV__{'_'.join(TEST_BOOK_LIST)}{PICKLE_FILENAME_END}" \
                                 if TEST_MODE and not ALL_PRODUCTION_BOOKS and versionAbbreviation not in state.WholeBibleVersions \
                                 else f'{versionAbbreviation}{PICKLE_FILENAME_END}'
