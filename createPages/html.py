@@ -73,7 +73,7 @@ from settings import State, TEST_MODE, SITE_NAME
 from OETHandlers import getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2024-08-12' # by RJH
+LAST_MODIFIED_DATE = '2024-08-13' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
 PROGRAM_VERSION = '0.89'
@@ -549,7 +549,8 @@ def checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool:
                                ('em','<em>'),('i','<i>'),('b','<b>'),('small','<small '),('sup','<sup>'),('sub','<sub>')):
         startCount = htmlToCheck.count( startMarker )
         if startMarker.endswith( ' ' ): startCount += htmlToCheck.count( f'<{marker}>' )
-        endCount = htmlToCheck.count( f'</{marker}>' )
+        endMarker = f'</{marker}>'
+        endCount = htmlToCheck.count( endMarker )
         if startCount != endCount:
             # try: errMsg = f"Mismatched '{marker}' start and end markers '{where}' {segmentOnly=} {html.count(startMarker)}!={html.count(f'</{marker}>')} …{html[html.index(startMarker):]}"
             # except ValueError: errMsg = f"Mismatched '{marker}' start and end markers '{where}' {segmentOnly=} {html.count(startMarker)}!={html.count(f'</{marker}>')} {html[:html.index(f'</{marker}>')]}…"
@@ -572,6 +573,12 @@ def checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool:
                     if 'ULT' not in where and 'UST' not in where and 'PSA' not in where: # UST PSA has totally messed up \\qs encoding
                         halt
             return False
+        # Checked for accidentally doubled nesting
+        if startMarker.endswith( '>' ):
+            assert f'{startMarker}{startMarker}' not in htmlToCheck, f"Doubled {startMarker} in {where}' {segmentOnly=}"
+            assert f'{startMarker} {startMarker}' not in htmlToCheck, f"Doubled {startMarker} in {where}' {segmentOnly=}"
+        assert f'{endMarker}{endMarker}' not in htmlToCheck, f"Doubled {endMarker} in {where}' {segmentOnly=}"
+        assert f'{endMarker} {endMarker}' not in htmlToCheck, f"Doubled {endMarker} in {where}' {segmentOnly=}"
 
     # Should be no <a ...> anchors embedded inside other anchors
     if not segmentOnly or '<span class="add"><a ' not in htmlToCheck: # Temporary fields can confuse our check, e.g., '<span class="add"><a word</span>'
