@@ -1393,7 +1393,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
     (('thy selfe','thi silf','yi self'),'thyself/yourself'),
     ((' to gedder',' to geder',' to gidir'),' together'),
     (('with outen',),'without'),
-    (('whom soeuer',),'whomsoever'),
+    (('whom soeuer ',),'whomsoever '),
     (('youre selues',),'yourselves'),
 
     # One word into two
