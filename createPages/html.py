@@ -577,7 +577,7 @@ def checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool:
         if startMarker.endswith( '>' ):
             assert f'{startMarker}{startMarker}' not in htmlToCheck, f"Doubled {startMarker} in {where}' {segmentOnly=}"
             assert f'{startMarker} {startMarker}' not in htmlToCheck, f"Doubled {startMarker} in {where}' {segmentOnly=}"
-        if marker != 'span': # nested spans are ok
+        if marker not in ('span','div'): # nested spans and divs are ok
             assert f'{endMarker}{endMarker}' not in htmlToCheck, f"Doubled end {endMarker} in {where}' {segmentOnly=}"
             assert f'{endMarker} {endMarker}' not in htmlToCheck, f"Doubled end {endMarker} in {where}' {segmentOnly=}"
 
