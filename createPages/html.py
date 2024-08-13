@@ -577,8 +577,9 @@ def checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool:
         if startMarker.endswith( '>' ):
             assert f'{startMarker}{startMarker}' not in htmlToCheck, f"Doubled {startMarker} in {where}' {segmentOnly=}"
             assert f'{startMarker} {startMarker}' not in htmlToCheck, f"Doubled {startMarker} in {where}' {segmentOnly=}"
-        assert f'{endMarker}{endMarker}' not in htmlToCheck, f"Doubled {endMarker} in {where}' {segmentOnly=}"
-        assert f'{endMarker} {endMarker}' not in htmlToCheck, f"Doubled {endMarker} in {where}' {segmentOnly=}"
+        if marker != 'span': # nested spans are ok
+            assert f'{endMarker}{endMarker}' not in htmlToCheck, f"Doubled end {endMarker} in {where}' {segmentOnly=}"
+            assert f'{endMarker} {endMarker}' not in htmlToCheck, f"Doubled end {endMarker} in {where}' {segmentOnly=}"
 
     # Should be no <a ...> anchors embedded inside other anchors
     if not segmentOnly or '<span class="add"><a ' not in htmlToCheck: # Temporary fields can confuse our check, e.g., '<span class="add"><a word</span>'
