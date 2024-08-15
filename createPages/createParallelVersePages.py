@@ -92,7 +92,7 @@ from createOETReferencePages import CNTR_BOOK_ID_MAP, OSHB_ADJECTIVE_DICT, OSHB_
 from OETHandlers import getOETTidyBBB, getOETBookName, livenOETWordLinks, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
-LAST_MODIFIED_DATE = '2024-08-13' # by RJH
+LAST_MODIFIED_DATE = '2024-08-15' # by RJH
 SHORT_PROGRAM_NAME = "createParallelVersePages"
 PROGRAM_NAME = "OpenBibleData createParallelVersePages functions"
 PROGRAM_VERSION = '0.96'
@@ -411,10 +411,12 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                                     and cleanedModernisedTextHtml.lower() == cleanedModernisedKJV1769TextHtml.lower():
                                         modernisedTextHtml = f"<small>Modernised spelling is same as used by KJB-1769 above, apart from capitalisation{' and footnotes' if footnotesHtml else ''}</small>" # (Will be placed in parentheses below)
                                     elif versionAbbreviation in ('WYC','TNT','CB','GNV','BB','KJB-1611') \
-                                    and cleanedModernisedTextHtml.replace(',','').replace('.','').replace(':','').replace(';','') == cleanedModernisedKJV1769TextHtml.replace(',','').replace('.','').replace(':','').replace(';',''):
+                                    and cleanedModernisedTextHtml.replace(',','').replace('.','').replace(':','').replace(';','').replace('“','').replace('”','').replace('‘','').replace('’','') \
+                                    == cleanedModernisedKJV1769TextHtml.replace(',','').replace('.','').replace(':','').replace(';','').replace('“','').replace('”','').replace('‘','').replace('’',''):
                                         modernisedTextHtml = f"<small>Modernised spelling is same as used by KJB-1769 above, apart from punctuation{' and footnotes' if footnotesHtml else ''}</small>" # (Will be placed in parentheses below)
                                     elif versionAbbreviation in ('WYC','TNT','CB','GNV','BB','KJB-1611') \
-                                    and cleanedModernisedTextHtml.replace(',','').replace('.','').replace(':','').replace(';','').lower() == cleanedModernisedKJV1769TextHtml.replace(',','').replace('.','').replace(':','').replace(';','').lower():
+                                    and cleanedModernisedTextHtml.replace(',','').replace('.','').replace(':','').replace(';','').replace('“','').replace('”','').replace('‘','').replace('’','').lower() \
+                                    == cleanedModernisedKJV1769TextHtml.replace(',','').replace('.','').replace(':','').replace(';','').replace('“','').replace('”','').replace('‘','').replace('’','').lower():
                                         modernisedTextHtml = f"<small>Modernised spelling is same as used by KJB-1769 above, apart from capitalisation and punctuation{' and footnotes' if footnotesHtml else ''}</small>" # (Will be placed in parentheses below)
                                     else:
                                         # Hardwire added words to italics
@@ -1428,7 +1430,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
             ((' aungel',),' angel'), ((' angwische',),' anguish'),
             (('anoyntiden','anointide','annoynted','anoynted'),'anointed'),(('Annoynted',),'Anointed'),((' annoynt',' anoynte',' anoynt'),' anoint'),
                 ((' anoon ',' anone ',' anon '),' anon/immediately '), (('Anothir',),'Another'),((' anothir',),' another'),
-            (('answerden','answerede','answerde''answeriden',,'answeride','aunswered'),'answered'),((' aunswere ',' answere '),' answer '),((' aunswere,',),' answer,'),((' aunswere:',' answere:'),' answer:'),
+            (('answerden','answerede','answerde','answeriden','answeride','aunswered'),'answered'),((' aunswere ',' answere '),' answer '),((' aunswere,',),' answer,'),((' aunswere:',' answere:'),' answer:'),
             ((' ony ',' eny '),' any '), (('enythinge',),'anything'),
         (('apostlis',),'apostles'),
             (('appearaunce',),'appearance'),(('appearynge','apperynge','apperinge','appearyng'),'appearing'),((' apperiden',' appered',' apperide'),' appeared'),((' appeare ',),' appear '), (('appoynted',),'appointed'),(('appoynte','apoynte'),'appoint'),
