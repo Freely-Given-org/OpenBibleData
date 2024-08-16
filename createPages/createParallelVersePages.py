@@ -92,7 +92,7 @@ from createOETReferencePages import CNTR_BOOK_ID_MAP, OSHB_ADJECTIVE_DICT, OSHB_
 from OETHandlers import getOETTidyBBB, getOETBookName, livenOETWordLinks, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
-LAST_MODIFIED_DATE = '2024-08-15' # by RJH
+LAST_MODIFIED_DATE = '2024-08-16' # by RJH
 SHORT_PROGRAM_NAME = "createParallelVersePages"
 PROGRAM_NAME = "OpenBibleData createParallelVersePages functions"
 PROGRAM_VERSION = '0.96'
@@ -397,12 +397,11 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                                     modernisedTextHtml = modernisedTextHtml.replace( 'J', 'Y' ).replace( 'Ie', 'Ye' ).replace( 'Io', 'Yo' ) \
                                                                                 .replace( 'Yudge', 'Judge' ).replace( 'KYB', 'KJB' ) # Fix overreaches
                                 if versionAbbreviation == 'KJB-1769':
-                                    if parRef=='JDG_6:23': print( f"{versionAbbreviation} {parRef} {modernisedTextHtml=}" )
+                                    # if parRef=='JDG_6:23': print( f"{versionAbbreviation} {parRef} {modernisedTextHtml=}" )
                                     cleanedModernisedKJV1769TextHtml = modernisedTextHtml.replace( versionAbbreviation, '' )
-                                    if parRef=='JDG_6:23': print( f"{versionAbbreviation} {parRef} {cleanedModernisedKJV1769TextHtml=}" )
+                                    # if parRef=='JDG_6:23': print( f"{versionAbbreviation} {parRef} {cleanedModernisedKJV1769TextHtml=}" )
                                 if modernisedTextHtml != footnoteFreeTextHtml: # only show it if it changed
-                                    if versionAbbreviation == 'KJB-1611' and parRef == 'JDG_6:23':
-                                        print( f"{versionAbbreviation} {parRef} {modernisedTextHtml=}")
+                                    # if versionAbbreviation == 'KJB-1611' and parRef == 'JDG_6:23': print( f"{versionAbbreviation} {parRef} {modernisedTextHtml=}")
                                     cleanedModernisedTextHtml = modernisedTextHtml.replace( versionAbbreviation, '' )
                                     if versionAbbreviation in ('WYC','TNT','CB','GNV','BB','KJB-1611') \
                                     and cleanedModernisedTextHtml == cleanedModernisedKJV1769TextHtml:
@@ -2162,7 +2161,11 @@ GERMAN_WORD_MAP = (
         ('Engel','angel'),
         ('Erbe ','heritage '), ('Erde','earth'), (' erste ',' first '),
         (' ein ',' a '),(' eine ',' one '),(' einem ',' one '),(' einen ',' a '),(' einer,',' one,'),(' eines ',' one '), ('eingeborenen','native_born'),
-        ('Er ','He '),(' er ',' he '), (' erlösete',' redeemed'), (' erschien',' appeared'),  (' ersterben',' die'),   (' erwürget',' strangled'),
+        ('Er ','He '),(' er ',' he '),
+            (' ergrimmete ',' enraged '),
+            (' erlösete',' redeemed'),
+            (' erschien',' appeared'),  (' ersterben',' die'),
+            (' erwürget',' strangled'),
         ('Es ','It '),(' es ',' it '), (' essen',' eat'),
         (' etliche ',' several '),
             (' etwa ',' approximately '),
