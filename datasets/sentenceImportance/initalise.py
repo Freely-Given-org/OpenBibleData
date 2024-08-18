@@ -43,7 +43,7 @@ import BibleOrgSys.Formats.USXXMLBible as USXXMLBible
 
 
 
-LAST_MODIFIED_DATE = '2024-08-10' # by RJH
+LAST_MODIFIED_DATE = '2024-08-18' # by RJH
 SHORT_PROGRAM_NAME = "SentenceImportance_initialisation"
 PROGRAM_NAME = "Sentence Importance initialisation"
 PROGRAM_VERSION = '0.16'
@@ -94,13 +94,13 @@ trivialRefs = [
         'JDG_5:21','JDG_5:22','JDG_5:23','JDG_5:24','JDG_5:25','JDG_5:26','JDG_5:27','JDG_5:28','JDG_5:29','JDG_5:30',
         'JDG_5:31a',
     ]
-obscureRefs = [ # Not sure what the Hebrew or Greek is trying to say
+obscureRefs = [ # Not really at all sure what the Hebrew or Greek is trying to say
     'JDG_5:11a','JDG_5:14',
     'JOB_29:20','JOB_29:24',
     ]
 unclearRefs = [ # Mostly sure what's in the Hebrew or Greek, but not sure what it means
     'EXO_15:25b',
-    'JDG_5:13',
+    'JDG_5:13', 'JDG_13:19b',
     'JOB_30:6','JOB_30:7','JOB_30:11a','JOB_30:12','JOB_30:13','JOB_30:14','JOB_30:15','JOB_30:16a','JOB_30:17a','JOB_30:18','JOB_30:28a',
     'JOB_31:12','JOB_31:16b',
     'JOB_33:14','JOB_33:16',
