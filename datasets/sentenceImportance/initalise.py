@@ -98,9 +98,9 @@ obscureRefs = [ # Not really at all sure what the Hebrew or Greek is trying to s
     'JDG_5:11a','JDG_5:14',
     'JOB_29:20','JOB_29:24',
     ]
-unclearRefs = [ # Mostly sure what's in the Hebrew or Greek, but not sure what it means
+unclearRefs = [ # Mostly sure what's in the Hebrew or Greek, but not sure what it means, or what the cultural implications were
     'EXO_15:25b',
-    'JDG_5:13', 'JDG_13:19b',
+    'JDG_5:13', 'JDG_13:19b', 'JDG_14:11',
     'JOB_30:6','JOB_30:7','JOB_30:11a','JOB_30:12','JOB_30:13','JOB_30:14','JOB_30:15','JOB_30:16a','JOB_30:17a','JOB_30:18','JOB_30:28a',
     'JOB_31:12','JOB_31:16b',
     'JOB_33:14','JOB_33:16',
