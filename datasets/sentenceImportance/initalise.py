@@ -65,7 +65,7 @@ BOS_BOOK_ID_MAP = {
 NET_PATHNAME = Path( '../../copiedBibles/English/NET/' )
 
 
-# Default values are M2=Medium importance, 0:no textual issue, C3:clear enough
+# Default values are M2=Medium/normal importance, 0:no textual issue, C3:clear enough
 defaultImportance, defaultTextualIssue, defaultClarity = 'M', '0', 'C'
 vitalRefs = [ # Often in doctrinal statements
     'GEN_1:1','GEN_1:2','GEN_1:3',

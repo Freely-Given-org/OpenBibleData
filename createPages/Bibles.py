@@ -93,7 +93,7 @@ from OETHandlers import findLVQuote, getBBBFromOETBookName
 from Dict import loadAndIndexUBSGreekDictJSON, loadAndIndexUBSHebrewDictJSON
 
 
-LAST_MODIFIED_DATE = '2024-08-12' # by RJH
+LAST_MODIFIED_DATE = '2024-08-22' # by RJH
 SHORT_PROGRAM_NAME = "Bibles"
 PROGRAM_NAME = "OpenBibleData Bibles handler"
 PROGRAM_VERSION = '0.79'
@@ -1418,7 +1418,7 @@ def getVerseDetailsHtml( BBB:str, C:str, V:str ) -> str: # html
     return f'<p class="verseDetails">{verseDetails} <small style="color:grey;">(All still tentative.)</small></p>'
 # end of Bibles.getVerseDetailsHtml
 
-IMPORTANCE_TABLE = { 'T':'<span style="color:grey;">trivial</span>', 'M':'<span style="color:pink;">medium</span>', 'I':'<span style="color:orange;">important</span>', 'V':'<span style="color:red;">vital</span>' }
+IMPORTANCE_TABLE = { 'T':'<span style="color:grey;">trivial</span>', 'M':'<span style="color:pink;">normal</span>', 'I':'<span style="color:orange;">important</span>', 'V':'<span style="color:red;">vital</span>' }
 TEXTUAL_ISSUE_TABLE = { '0':'<span style="color:green;">none</span>', '1':'<span style="color:pink;">minor spelling</span>', '2':'<span style="color:orange;">minor word changes</span>', '3':'<span style="color:red;">major</span>' }
 CLARITY_TABLE = { 'O':'<span style="color:red;">obscure</span>', 'U':'<span style="color:orange;">unclear</span>', 'C':'<span style="color:green;">clear</span>' }
 def formatVerseDetailsHtml( verseRef:str ) -> str: # html
@@ -1431,7 +1431,7 @@ def formatVerseDetailsHtml( verseRef:str ) -> str: # html
 
     The importance values are:
         - 0=T=Trivial (like a forgotten cloak, or greetings from some person we know longer know)
-        - 1=M=Medium (the great majority of sentences in the Bible)
+        - 1=M=Medium/Normal (the great majority of sentences in the Bible)
         - 2=I=Important (specific statements that are commonly considered to be more important, and hence often memorised)
         - 3=V=Vital (specific statements that are commonly found in doctrinal statements)
 

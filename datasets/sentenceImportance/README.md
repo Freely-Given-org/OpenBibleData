@@ -29,7 +29,7 @@ when another considers it important. So we don't want to try to be too fine-grai
 Hence the importance values are:
 
 - 0=T=Trivial (like a forgotten cloak, or greetings from some person we know longer know)
-- 1=M=Medium (the great majority of sentences in the Bible)
+- 1=M=Medium/Normal (the great majority of sentences in the Bible)
 - 2=I=Important (specific statements that are commonly considered to be more important, and hence often memorised)
 - 3=V=Vital (specific statements that are commonly found in doctrinal statements)
 
