@@ -75,10 +75,10 @@ from html import checkHtml
 from OETHandlers import getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2024-08-12' # by RJH
+LAST_MODIFIED_DATE = '2024-08-24' # by RJH
 SHORT_PROGRAM_NAME = "usfm"
 PROGRAM_NAME = "OpenBibleData USFM to HTML functions"
-PROGRAM_VERSION = '0.81'
+PROGRAM_VERSION = '0.82'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -166,7 +166,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                 rest = rest.replace( 'LORDE', '\\nd LORDE\\nd*' )
             elif versionAbbreviation == 'LUT':
                 assert '\\nd HErr\\nd*' not in rest
-                rest = rest.replace( 'HErr', '\\nd HErr\\nd*' )
+                rest = rest.replace( 'HErrn', '\\nd HErr\\nd*’s' ).replace( 'HErr', '\\nd HErr\\nd*' )
             else:
                 rest = rest.replace( '\\nd  ', '\\nd ' ) # Fix an eBible.org USFM error
             rest = rest.replace( '’”', '’ ”' ).replace( '’ ”', '’ ”' ).replace( '”’', '” ’' ).replace( '” ’', '” ’' ) # Insert NNBSP
