@@ -166,7 +166,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                 rest = rest.replace( 'LORDE', '\\nd LORDE\\nd*' )
             elif versionAbbreviation == 'LUT':
                 assert '\\nd HErr\\nd*' not in rest
-                rest = rest.replace( 'HErrn', '\\nd HErr\\nd*’s' ).replace( 'HErr', '\\nd HErr\\nd*' )
+                rest = rest.replace( 'HErrn', 'HErr’s' ).replace( 'HErr', '\\nd HErr\\nd*' )
             else:
                 rest = rest.replace( '\\nd  ', '\\nd ' ) # Fix an eBible.org USFM error
             rest = rest.replace( '’”', '’ ”' ).replace( '’ ”', '’ ”' ).replace( '”’', '” ’' ).replace( '” ’', '” ’' ) # Insert NNBSP
