@@ -616,13 +616,10 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                                         if footnotesHtmlWeb:
                                             if footnotesHtml == footnotesHtmlWeb.replace( 'WEB', 'WMB' ):
                                                 footnotesHtml = '' # No need to repeat these either
-                                            else:
-                                                print( f"WEB ({len(footnotesHtmlWeb)}) {footnotesHtmlWeb}")
-                                                print( f"WMB ({len(footnotesHtml)}) {footnotesHtml}")
-                                                halt
-                                            # closeVerse class writes WMB text on top of WEB footnotes -- probably should be fixed in CSS, but not sure how so will fix it here
+                                                textHtml = textHtml.replace( 'above)', 'above including footnotes)' )
+                                            # "closeVerse" class writes WMB text on top of WEB footnotes -- probably should be fixed in CSS, but not sure how so will fix it here
                                             vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation]} {'details' if versionAbbreviation in state.versionsWithoutTheirOwnPages else 'chapter'}" href="{versionNameLink}">{versionAbbreviation}</a></span> {textHtml}</p>'''
-                                        else: # WEB had no footnotes
+                                        else: # WEB had no footnotes, so ok to use "closeVerse" class
                                             vHtml = f'''<p id="{versionAbbreviation}" class="closeVerse"><span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation]} {'details' if versionAbbreviation in state.versionsWithoutTheirOwnPages else 'chapter'}" href="{versionNameLink}">{versionAbbreviation}</a></span> {textHtml}</p>'''
                                     elif '<div ' in textHtml: # it might be a book intro or footnotes
                                         assert '</div>' in textHtml
@@ -1519,7 +1516,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
                 (('chaunced','chaunsed'),'chanced'), (('chaungeris',),'changers'), (('chaunginge','chaungyng','chaunging'),'changing'),
                 (('charettes','charets','charis'),'chariots'), (('charite',),'charity'),
                 (('chastisynge',),'chastising'),(('chastisith','chasteneth'),'chastens/disciplines'),
-            ((' cheife ',' chefe '),' chief '), (('chyldren',),'children'),(('childre ',),'children '), (('chylde,','childe,'),'child,'),(('chylde.','childe.'),'child.'), (('chymney',),'chimney'),
+            ((' cheife ',' chefe '),' chief '), (('chyldren',),'children'),(('childre ',),'children '),(('childre.',),'children.'), (('chylde,','childe,'),'child,'),(('chylde.','childe.'),'child.'), (('chymney',),'chimney'),
             ((' chese ',),' choose '), (('chosun',),'chosen'),
             (('chirchis',),'churches'),(('chirche',),'church'),(('Churche ',),'Church '),(('Churche,',),'Church,'),
             (('Christes',),'Christ’s'),(('Christe','Crist'),'Christ'),
@@ -1575,7 +1572,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
                 ((' dysshe.',' disshe.'),' dish.'),
                 (('disputacio?',),'disputation?'),(('disputyng',),'disputing'),
             ((' dyvers',' diuerse ',' diuers'),' diverse/various'), (('devided','deuided','deuyded'),'divided'), (('devorsement','deuorcemet','diuorcement'),'divorcement'),
-        ((' doe ',),' do '),((' doe?',),' do?'),
+        ((' doe ',),' do '),((' doe.',),' do.'),((' doe?',),' do?'),
             (('doctryne',),'doctrine'),
             ((' doist ',),' doest '),
             ((' don ',),' done '),((' don,',),' done,'),((' don.',),' done.'),((' doon;',),' done;'),
@@ -1656,7 +1653,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
             ((' goon ',),' gone '),
             ((' goodis',),' goods'),
             (('Gospell',),'Gospel'),((' gospell',),' gospel'),
-        (('Graunte ','Graunt '),'Grant '),((' graunte ',' graunt ',' graut '),' grant '), ((' graue ',),' grave '),((' graue.',),' grave.'),
+        (('Graunte ','Graunt '),'Grant '),((' graunte ',' graunt ',' graut '),' grant '), (('grauen',),'graven'),((' graue ',),' grave '),((' graue.',),' grave.'),
             (('grettere','gretter'),'greater'),(('greate ','grete ','greet ','grett ','gret '),'great '),(('grett.','greate.','greet.'),'great.'),
             (('greeueth ',),'grieveth/grieves '),(('greeuous','grieuous'),'grievous'),
             (('growne ',),'grown '),
@@ -1940,7 +1937,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
             ((' souyten',),' sought'), ((' sounde',),' sound'), (('southwarde',),'southward'), (('souereynes',),'sovereigns'),
         ((' spette ',' spate '),' spat '),
             (('speakynge','spekynge','speakinge','spekinge','speakyng'),'speaking'),(('spekith ','speaketh '),'speaketh/speaks '),((' speake',),' speak'),
-            ((' spyed',),' spied'), ((' spirites',' spiritis',' spretes'),' spirits'),(('Spiryt',),'Spirit'),((' spirite',' sprete'),' spirit'), (('spotil','spetil','spettle'),'spittle'),
+            ((' spyed',),' spied'),((' spie ',),' spy '), ((' spirites',' spiritis',' spretes'),' spirits'),(('Spiryt',),'Spirit'),((' spirite',' sprete'),' spirit'), (('spotil','spetil','spettle'),'spittle'),
             ((' spoyled',),' spoiled'), ((' spak ',),' spoke '),
             ((' spredden ',' sprede ',' spred '),' spread '),
         ((' staffe ',),' staff '), (('stondinge','standyng','stodinge'),'standing'),((' stondith',),' standeth/stands'),((' stande ',' stonde '),' stand '),((' stonde.',),' stand.'), ((' starre',),' star'),
@@ -2250,7 +2247,7 @@ GERMAN_WORD_MAP = (
         ('Jüngern','disciples'),
     (' kamen ',' came '), (' kam ',' came '), (' kaufen ',' buy '),
         (' keine ',' no '), (' keinen ',' none '),
-        ('Kinder ','children '),
+        ('Kinder ','children '),('Kinder,','children,'),('Kinder.','children.'),
         ('Kleider ','clothes '),('Kleid ','garment '),
         ('Komm ','Come '),(' komme ',' come '),(' kommen ',' coming '),(' kommt ',' comes '),
         (' konnten ',' could '),
@@ -2396,6 +2393,7 @@ GERMAN_WORD_MAP = (
         (' zehn ',' ten '), ('Zeichen ','sign '), (' zeugen',' witness'), ('Zeugnis','transcript'),
         (' zog ',' pulled '),(' zogen ',' pulled '), ('Zorn','anger'),
         (' zu ',' to '),(' zu,',' to,'), ('Zuletzt ','Finally '), (' zum ',' for_the '), (' zur ',' to '), (' zusammen ',' together '),
+        (' zwei ',' two '),
     )
 GermanWords, EnglishWords = [], []
 for wordMapEntry in GERMAN_WORD_MAP:
