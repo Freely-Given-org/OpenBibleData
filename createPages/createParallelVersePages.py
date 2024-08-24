@@ -614,9 +614,13 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                                     if textHtml.startswith( "(Same as " ):
                                         assert versionAbbreviation in ('WMB',)
                                         if footnotesHtmlWeb:
-                                            if footnotesHtml == footnotesHtmlWeb:
+                                            if footnotesHtml == footnotesHtmlWeb.replace( 'WEB', 'WMB' ):
                                                 footnotesHtml = '' # No need to repeat these either
-                                            # closeVerse class writes WMB text on top of WEB footnotes -- probably should be fixed in CSS, but not sure how so will do it here
+                                            else:
+                                                print( f"WEB ({len(footnotesHtmlWeb)}) {footnotesHtmlWeb}")
+                                                print( f"WMB ({len(footnotesHtml)}) {footnotesHtml}")
+                                                halt
+                                            # closeVerse class writes WMB text on top of WEB footnotes -- probably should be fixed in CSS, but not sure how so will fix it here
                                             vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation]} {'details' if versionAbbreviation in state.versionsWithoutTheirOwnPages else 'chapter'}" href="{versionNameLink}">{versionAbbreviation}</a></span> {textHtml}</p>'''
                                         else: # WEB had no footnotes
                                             vHtml = f'''<p id="{versionAbbreviation}" class="closeVerse"><span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation]} {'details' if versionAbbreviation in state.versionsWithoutTheirOwnPages else 'chapter'}" href="{versionNameLink}">{versionAbbreviation}</a></span> {textHtml}</p>'''
@@ -626,14 +630,17 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                                     else: # no <div>s so should be ok to put inside a paragraph
                                         assert '</div>' not in textHtml
                                         vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation]} {'details' if versionAbbreviation in state.versionsWithoutTheirOwnPages else 'chapter'}" href="{versionNameLink}">{versionAbbreviation}</a></span> {textHtml}</p>'''
+                                # Now append the footnotes (if any) for this version
                                 vHtml = f'{vHtml}{footnotesHtml}'
                                 if translatedFootnotesHtml and translatedFootnotesHtml!=footnotesHtml: # can happen with CLV
                                     vHtml = f'{vHtml}{translatedFootnotesHtml}'
+
                             else: # no textHtml -- can include verses that are not in the OET-LV
                                 if c==-1 or v==0: # For these edge cases, we don't want the version abbreviation appearing
                                     vHtml = ''
                                 else:
                                     vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation]} {'details' if versionAbbreviation in state.versionsWithoutTheirOwnPages else 'chapter'}" href="{versionNameLink}">{versionAbbreviation}</a></span> <a title="Go to missing verses pages" href="{'../'*level}OET/missingVerse.htm">◘</a></p>'''
+
                             if versionAbbreviation=='TC-GNT': # the final one that we display, so show the key to the colours
                                 greekVersionKeysHtmlList = []
                                 if 'wrkNameDiffPunct' in greekVersionKeysHtmlSet: greekVersionKeysHtmlList.append( '<span class="wrkNameDiffPunct">yellow</span>:punctuation differs' )
