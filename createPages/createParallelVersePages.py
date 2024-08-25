@@ -92,7 +92,7 @@ from createOETReferencePages import CNTR_BOOK_ID_MAP, OSHB_ADJECTIVE_DICT, OSHB_
 from OETHandlers import getOETTidyBBB, getOETBookName, livenOETWordLinks, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
-LAST_MODIFIED_DATE = '2024-08-24' # by RJH
+LAST_MODIFIED_DATE = '2024-08-25' # by RJH
 SHORT_PROGRAM_NAME = "createParallelVersePages"
 PROGRAM_NAME = "OpenBibleData createParallelVersePages functions"
 PROGRAM_VERSION = '0.96'
@@ -1572,7 +1572,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
                 ((' dysshe.',' disshe.'),' dish.'),
                 (('disputacio?',),'disputation?'),(('disputyng',),'disputing'),
             ((' dyvers',' diuerse ',' diuers'),' diverse/various'), (('devided','deuided','deuyded'),'divided'), (('devorsement','deuorcemet','diuorcement'),'divorcement'),
-        ((' doe ',),' do '),((' doe.',),' do.'),((' doe?',),' do?'),
+        (('Doe ',),'Do '),((' doe ',),' do '),((' doe.',),' do.'),((' doe?',),' do?'),
             (('doctryne',),'doctrine'),
             ((' doist ',),' doest '),
             ((' don ',),' done '),((' don,',),' done,'),((' don.',),' done.'),((' doon;',),' done;'),
@@ -2122,18 +2122,17 @@ GERMAN_WORD_MAP = (
         (' alle ',' all '),(' alle,',' all,'),(' allen ',' all '),(' alles ',' all/everything '), ('allmächtige','almighty'),
             ('Also ','So '),
             ('Altar ','altar '), (' alten ',' old '),(' alt ',' old '),
-        ('Angesicht ','face '), (' antwortete ',' replied '),
+        (' andere ',' other '), ('Angesicht','face'), (' antworteten',' replied'),(' antwortete',' replied'),
         ('Am ','At_the '),(' am ',' in/at/on_the '),
         (' an ',' at '), (' anbeten',' worship'), (' andern ',' change '), ('Anfang','beginning'), ('Antwort','answer'),
         ('Arche ','ark '),
         ('Asche ','ash '), (' aß ',' ate '),
         (' außen ',' outside '),
-            (' auch ',' also '),(' auch.',' also.'),
+            (' auch ',' also '),(' auch,',' also,'),(' auch.',' also.'),
             (' auf ',' on '),(' auf,',' on,'), (' aufs ',' onto '),
             ('Aus ','Out of '),(' aus ',' out of '),(' aus.',' out.'),
-    ('Ägypten','Egypt'),
+    ('Ägypten','Egypt'), # with umlaut
         ('Ältesten','elders'), ('Älteste','elder'),
-        (' andere ',' other '),
         ('ärgerte','annoyed'),('ärgert','annoys'),
     (' bald ',' soon '),
             ('Barmherzigkeit','compassion'),
@@ -2199,7 +2198,7 @@ GERMAN_WORD_MAP = (
         (' folgen ',' follow/obey '),(' folgeten ',' followed '),
         ('Freunde','friends'),
         ('Fuß','foot'),
-        ('Füßen ','feet '),('Füße ','feet '), (' führen',' lead'),(' führest',' lead'), (' für ',' for '),
+        ('Füßen ','feet '),('Füße ','feet '), (' führen',' lead'),(' führest',' lead'), (' fünf ',' five '), (' für ',' for '),
     (' gab ',' gave '),(' gab,',' gave,'),(' gaben ',' gave '), ('Gajus','Gaius'), (' gar ',' even '),
         (' geben ',' give '),(' geben.',' give.'), (' gebe ',' give '), ('Gebirge ','mountains '), (' geboten ',' offered '),
             (' gedachte',' thought'),
@@ -2269,7 +2268,7 @@ GERMAN_WORD_MAP = (
             ('List ','cunning '),
     (' mache ',' make '),(' machen ',' make '),(' machten',' make'),(' machte ',' made '),
             (' mag ',' like '),
-            ('Männer ','men '), ('Manne ','man '), ('Mann ','man '),('Mann.','man.'),
+            ('Männer','men'), ('Manne ','man '), ('Mann ','man '),('Mann.','man.'),
             ('Märkte ','marketplaces '),
         (' mecum ',' with_me '),
             ('Meeres','sea'),('Meer ','sea '),('Meer.','sea.'),
@@ -2371,7 +2370,7 @@ GERMAN_WORD_MAP = (
             (' von ',' from '),
             (' vor ',' before/in_front_of '), ('vorüberging','passed_by'),
     ('Wahrheit','truth'),
-            (' war ',' was '),(' war,',' was,'),(' war.',' was.'), (' ward ',' was '), (' wären ',' would_be '), (' warf ',' threw '), # Is 'ward' a mispelling?
+            (' war ',' was '),(' war,',' was,'),(' war.',' was.'), (' ward ',' was '), (' waren',' were'),(' wären ',' would_be '), (' warf ',' threw '), # Is 'ward' a mispelling?
             ('Was ','What '), ('Wasser','water'),
         ('Weg ','path '),
             ('Weiber','women'),('Weib ','woman '),('Weib,','woman,'), (' weil ',' because '),  ('Wein ','wine '),  (' weiß ',' know '),
