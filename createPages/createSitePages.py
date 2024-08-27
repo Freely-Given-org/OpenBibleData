@@ -90,7 +90,7 @@ from Dict import createTyndaleDictPages, createUBSDictionaryPages
 from html import makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2024-08-13' # by RJH
+LAST_MODIFIED_DATE = '2024-08-27' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData (OBD) Create Site Pages"
 PROGRAM_VERSION = '0.96'
@@ -227,7 +227,7 @@ def _createSitePages() -> bool:
         vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\nDoing discovery on OET…" )
         state.preloadedBibles['OET-RV'].discover() # Now that all required books are loaded
         state.preloadedBibles['OET-LV'].discover() #     ..ditto..
-        if 1:
+        if 0:
             lvVerseEntryList, _contextList = state.preloadedBibles['OET-LV'].getContextVerseData( ('JDG','1') )
             for lvEntry in lvVerseEntryList:
                 if lvEntry.getOriginalText():
