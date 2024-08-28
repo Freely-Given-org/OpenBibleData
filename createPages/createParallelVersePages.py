@@ -408,9 +408,11 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                                         """
                                         return ( htmlText
                                                 .replace(',','').replace('.','').replace(':','').replace(';','')
+                                                .replace('-','')
                                                 .replace('“','').replace('”','')
                                                 .replace('‘','').replace('’','')
                                                 .replace('(','').replace(')','')
+                                                .replace('¶ ','').replace('¶','')
                                                 )
                                     # end of removeVersePunctuation function
                                     if versionAbbreviation in ('WYC','TNT','CB','GNV','BB','KJB-1611') \
@@ -1465,7 +1467,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
         ((' eeten,',' eten,'),' ate,'), ((' athyrst',),' athirst'), ((' attayne ',' attaine '),' attain '),
         (('aucthoritie','auctoritie','authoritie','auctorite'),'authority'),
         ((' auoyded',),' avoided'),
-        ((' awaye',' awei'),' away'),
+        ((' awaye',' awei',' awey'),' away'),
     ((' backe ',),' back '), (('baptysed','baptisid'),'baptised'), (('baptisynge','baptisyng'),'baptising'), (('baptisme','baptyme','baptym'),'baptism'), ((' baptyse',),' baptise'),
             (('basskettes','baskettes'),'baskets'), (('bastardes',),'bastards'),
             ((' batels',),' battles'), ((' battayll',' battell',' batel'),' battle'),
@@ -1983,7 +1985,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
             ((' tauyte',),' taught'),
         (('techyng','teching'),'teaching'),(('teacheth','techith'),'teacheth/teaches'),((' teachest',' teache',' techist',' teche'),' teach'),
             (('temptacioun','temptacion','teptacion','tentation'),'temptation'), (('temptiden','temptid'),'tempted'), ((' tempte ',' tepte '),' tempt '),
-            ((' tenauntes',),' tenants'), ((' tendre',' teder'),' tender'), ((' tentes',),' tents'), ((' tenthe',),' tenth'), ((' tentis',),' tents'),
+            ((' tenauntes',),' tenants'), ((' tendre',' teder'),' tender'), ((' tenthe',),' tenth'), ((' tentis',' tentes'),' tents'),
             (('testifie ','testifye ','testyfye '),'testify '), (('testimoniall',),'testimonial'),
         (('thankes','thakes'),'thanks'),(('thanke ',),'thank '), (('Thilke ',),'That '),((' thilke ',),' that '),
             ((' theyr ',),' their '),
