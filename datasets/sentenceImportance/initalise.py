@@ -114,6 +114,7 @@ unclearRefs = [ # Mostly sure what's in the Hebrew or Greek, but not sure what i
     'JOB_41:9', 'JOB_41:11',
     ]
 textualCriticismRefs = [ # Hebrew or Greek original manuscripts vary
+    'SA1_4:2',
     'JOB_39:13','JOB_39:14','JOB_39:15','JOB_39:16','JOB_39:17','JOB_39:18', # Ostrich section
     ]
 # Just do some basic integrity checking

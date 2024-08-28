@@ -92,7 +92,7 @@ from createOETReferencePages import CNTR_BOOK_ID_MAP, OSHB_ADJECTIVE_DICT, OSHB_
 from OETHandlers import getOETTidyBBB, getOETBookName, livenOETWordLinks, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
-LAST_MODIFIED_DATE = '2024-08-25' # by RJH
+LAST_MODIFIED_DATE = '2024-08-28' # by RJH
 SHORT_PROGRAM_NAME = "createParallelVersePages"
 PROGRAM_NAME = "OpenBibleData createParallelVersePages functions"
 PROGRAM_VERSION = '0.96'
@@ -403,6 +403,16 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                                 if modernisedTextHtml != footnoteFreeTextHtml: # only show it if it changed
                                     # if versionAbbreviation == 'KJB-1611' and parRef == 'JDG_6:23': print( f"{versionAbbreviation} {parRef} {modernisedTextHtml=}")
                                     cleanedModernisedTextHtml = modernisedTextHtml.replace( versionAbbreviation, '' )
+                                    def removeVersePunctuation( htmlText:str ) -> str:
+                                        """
+                                        """
+                                        return ( htmlText
+                                                .replace(',','').replace('.','').replace(':','').replace(';','')
+                                                .replace('“','').replace('”','')
+                                                .replace('‘','').replace('’','')
+                                                .replace('(','').replace(')','')
+                                                )
+                                    # end of removeVersePunctuation function
                                     if versionAbbreviation in ('WYC','TNT','CB','GNV','BB','KJB-1611') \
                                     and cleanedModernisedTextHtml == cleanedModernisedKJV1769TextHtml:
                                         modernisedTextHtml = f"<small>Modernised spelling is same as used by KJB-1769 above{' apart from footnotes' if footnotesHtml else ''}</small>" # (Will be placed in parentheses below)
@@ -410,12 +420,12 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                                     and cleanedModernisedTextHtml.lower() == cleanedModernisedKJV1769TextHtml.lower():
                                         modernisedTextHtml = f"<small>Modernised spelling is same as used by KJB-1769 above, apart from capitalisation{' and footnotes' if footnotesHtml else ''}</small>" # (Will be placed in parentheses below)
                                     elif versionAbbreviation in ('WYC','TNT','CB','GNV','BB','KJB-1611') \
-                                    and cleanedModernisedTextHtml.replace(',','').replace('.','').replace(':','').replace(';','').replace('“','').replace('”','').replace('‘','').replace('’','') \
-                                    == cleanedModernisedKJV1769TextHtml.replace(',','').replace('.','').replace(':','').replace(';','').replace('“','').replace('”','').replace('‘','').replace('’',''):
+                                    and removeVersePunctuation( cleanedModernisedTextHtml) \
+                                    == removeVersePunctuation( cleanedModernisedKJV1769TextHtml ):
                                         modernisedTextHtml = f"<small>Modernised spelling is same as used by KJB-1769 above, apart from punctuation{' and footnotes' if footnotesHtml else ''}</small>" # (Will be placed in parentheses below)
                                     elif versionAbbreviation in ('WYC','TNT','CB','GNV','BB','KJB-1611') \
-                                    and cleanedModernisedTextHtml.replace(',','').replace('.','').replace(':','').replace(';','').replace('“','').replace('”','').replace('‘','').replace('’','').lower() \
-                                    == cleanedModernisedKJV1769TextHtml.replace(',','').replace('.','').replace(':','').replace(';','').replace('“','').replace('”','').replace('‘','').replace('’','').lower():
+                                    and removeVersePunctuation( cleanedModernisedTextHtml ).lower() \
+                                    == removeVersePunctuation( cleanedModernisedKJV1769TextHtml ).lower():
                                         modernisedTextHtml = f"<small>Modernised spelling is same as used by KJB-1769 above, apart from capitalisation and punctuation{' and footnotes' if footnotesHtml else ''}</small>" # (Will be placed in parentheses below)
                                     else:
                                         # Hardwire added words to italics
@@ -1409,7 +1419,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
     ((' to gedder',' to geder',' to gidir'),' together'),
     (('with outen',),'without'),
     (('whom soeuer ',),'whomsoever '),
-    (('youre selues',),'yourselves'),
+    (('youre selues','your selues'),'yourselves'),
 
     # One word into two
     ((' assoone ',' assone '),' as soon '),
@@ -1458,7 +1468,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
         ((' awaye',' awei'),' away'),
     ((' backe ',),' back '), (('baptysed','baptisid'),'baptised'), (('baptisynge','baptisyng'),'baptising'), (('baptisme','baptyme','baptym'),'baptism'), ((' baptyse',),' baptise'),
             (('basskettes','baskettes'),'baskets'), (('bastardes',),'bastards'),
-            ((' batels',),' battles'),
+            ((' batels',),' battles'), ((' battayll',' battell',' batel'),' battle'),
         (('Bee ',),'Be '),((' bee ',),' be '),
             ((' bearinge',' bearynge',' beringe',' berynge'),' bearing'),((' beare ',' bere '),' bear '), (('beastes','beestes','beestis'),'beasts/animals'),((' beesti',' beeste',' beest'),' beast/animal'),
             ((' beed ',' bedde '),' bed '),
@@ -1568,6 +1578,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
             ((' deuelis',' devylles',' devvyls',' deuils',' deuyls',' deuels'),' devils'),((' devyll',' deuell',' deuyll'),' devil'),
         ((' dyd ',' diden ',' dide '),' did '),((' dide,',),' did,'),
             ((' dyeth ',' dieth '),' dieth/dies '), ((' dieden ',' dyed '),' died '),((' diede,',),' died,'),((' dye.',),' die.'),
+            ((' dymme ',),' dim '),((' dymme,',' dimme,'),' dim,'),
             ((' discerne:',),' discern:'), (('disciplis',),'disciples'),
                 (('disdayned',),'disdained'),(('disdaine ',),'disdain '),
                 ((' dysshe.',' disshe.'),' dish.'),
@@ -1825,7 +1836,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
                 (('perteyneth',),'pertaineth/pertains'),(('perteyninge','parteyning','pertayninge'),'pertaining'),(('pertayne ',),'pertain '),
                 (('peruert ',),'pervert '),(('perverteth ','peruerteth '),'perverteth/perverts '),
             (('Petir',),'Peter'),
-        (('Pharao ','Farao '),'Pharaoh '),(('Pharao,','Farao,'),'Pharaoh,'), (('Fariseis','Farisees','Pharises','pharisees','pharises'),'Pharisees'), (('Philippe',),'Philip'),
+        (('Pharao ','Farao '),'Pharaoh '),(('Pharao,','Farao,'),'Pharaoh,'), (('Fariseis','Farisees','Pharises','pharisees','pharises'),'Pharisees'), (('Philippe',),'Philip'), (('Philistim','Philistyne','Filistei'),'Philistine'),
         ((' peaces',' peeces',' peces'),' pieces'),((' peece ',' pece '),' piece '), ((' pearced',),' pierced'),
             ((' pylgrym',),' pilgrim'),
             ((' pyned',),' pined'),
@@ -1972,7 +1983,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
             ((' tauyte',),' taught'),
         (('techyng','teching'),'teaching'),(('teacheth','techith'),'teacheth/teaches'),((' teachest',' teache',' techist',' teche'),' teach'),
             (('temptacioun','temptacion','teptacion','tentation'),'temptation'), (('temptiden','temptid'),'tempted'), ((' tempte ',' tepte '),' tempt '),
-            ((' tenauntes',),' tenants'), ((' tendre',' teder'),' tender'), ((' tentes',),' tents'), ((' tenthe',),' tenth'),
+            ((' tenauntes',),' tenants'), ((' tendre',' teder'),' tender'), ((' tentes',),' tents'), ((' tenthe',),' tenth'), ((' tentis',),' tents'),
             (('testifie ','testifye ','testyfye '),'testify '), (('testimoniall',),'testimonial'),
         (('thankes','thakes'),'thanks'),(('thanke ',),'thank '), (('Thilke ',),'That '),((' thilke ',),' that '),
             ((' theyr ',),' their '),
@@ -2120,7 +2131,7 @@ def moderniseEnglishWords( html:str ) -> bool:
 
 
 GERMAN_WORD_MAP = (
-    ('Aber','But'),(' aber',' but'),
+    ('Aber ','But '),(' aber ',' but '),(' abermal:',' again:'),
         (' alle ',' all '),(' alle,',' all,'),(' allen ',' all '),(' alles ',' all/everything '), ('allmächtige','almighty'),
             ('Also ','So '),
             ('Altar ','altar '), (' alten ',' old '),(' alt ',' old '),
@@ -2152,10 +2163,10 @@ GERMAN_WORD_MAP = (
         (' bin,',' am,'), (' bis ',' until '), (' bist ',' are '),
         (' bleibe ',' stay '),(' bleiben ',' remain '), ('Blut','blood'),
         (' bösen ',' evil '),
-        (' brachte',' brought'), ('Brot ','bread '), ('Brüder','brothers'),('Bruder','brother'),
+        (' brachte',' brought'), ('Brots','bread'),('Brot ','bread '), ('Brüder','brothers'),('Bruder','brother'),
     ('Christus','Christ'),
     ('Da ','So '),(' da ',' there '),
-            ('Daher ','Therefore '),
+            ('Daher ','Therefore '), (' dahin ',' gone '),
             (' damit ',' with_it/so_that '),
             (' danach ',' after/thereafter/then '),
             (' darauf ',' on_it '), ('Darum','Therefore'), (' darum ',' therefore '),
@@ -2196,13 +2207,13 @@ GERMAN_WORD_MAP = (
         (' ewige ',' eternal '),
     (' fahre ',' drive '), (' fast ',' nearly '),
         (' fehlet ',' mistake '), (' ferne;',' distance;'), ('Feuer','fire'),
-        (' findet ',' finds '), ('Finsternis','darkness'),(' finster ',' dark '),
+        (' findet ',' finds '), (' fing ',' caught '), ('Finsternis','darkness'),(' finster ',' dark '),
         ('Fleisch','flesh'),
         (' folgen ',' follow/obey '),(' folgeten ',' followed '),
         ('Freunde','friends'),
         ('Fuß','foot'),
         ('Füßen ','feet '),('Füße ','feet '), (' führen',' lead'),(' führest',' lead'), (' fünf ',' five '), (' für ',' for '),
-    (' gab ',' gave '),(' gab,',' gave,'),(' gaben ',' gave '), ('Gajus','Gaius'), (' gar ',' even '),
+    (' gab ',' gave '),(' gab,',' gave,'),(' gaben ',' gave '), ('Gajus','Gaius'), (' ganzen ',' entire '), (' gar ',' even '),
         (' geben ',' give '),(' geben.',' give.'), (' gebe ',' give '), ('Gebirge ','mountains '), (' geboten ',' offered '),
             (' gedachte',' thought'),
             (' geführet',' guided'),
@@ -2256,7 +2267,7 @@ GERMAN_WORD_MAP = (
         (' konnten ',' could '),
         ('Königs','kings'),('König','king'),
         ('Krone ','crown '),
-    ('Lager ','camp '),
+    ('Lager ','camp '), (' lagerten',' stored'),
             ('Lande','land'), (' lang,',' long,'),(' länger ',' longer '),
             (' lasse ',' let '),
             (' laß ',' let '),
@@ -2306,7 +2317,7 @@ GERMAN_WORD_MAP = (
         ('Ort ','location '),('Ort,','location,'),
     (' öde ',' dull '),
     ('Pferd','horse'),
-        (' predigte ',' preached '),
+        (' predigen ',' preaching '), (' predigte ',' preached '),
     ('Rat ','advice '),
         (' redeten',' talked'),(' redete ',' talked '), (' redet ',' talks '),
             ('Reich ','kingdom '), (' reisen ',' travel '),(' reisete ',' travelled '),
@@ -2346,7 +2357,7 @@ GERMAN_WORD_MAP = (
                 (' steigen',' climb'),
                 (' sterben',' die'),(' sterbe',' die'),
             (' stille ',' silence '),
-            ('streite ','argue/battle '),('streiten','argue/battle'),
+            ('Streit','battle'),('streite ','argue/battle '),('streiten','argue/battle'),
             (' stund ',' stood '),
     ('Tage ','days '), (' täglich',' daily'), (' tat ',' did '),
         ('Teile','parts'),(' teile ',' share '),
@@ -2434,11 +2445,14 @@ def translateGerman( html:str ) -> bool:
 
 
 LATIN_WORD_MAP = (
+    # Two words
+    ('et ait','and he_said'),
+    # Single Latin words
     (' ab ',' away '), (' abierunt',' they_are_gone'), (' abiit ',' he_is_gone '), (' arbores ',' trees '),
         (' æternam',' eternal'), (' æternum',' eternal'),
         (' absque ',' without '),
         (' ad ',' to '), (' adverso ',' on_the_contrary '),
-        (' ait ',' he_said '),
+        (' ait ',' he_said '),(' ait:',' he_said:'),
         (' alia ',' other '), (' aliæ ',' in_another '), (' aliud',' something_else'), (' alleviabit',' will_relieve'),
         ('amaræ','bitter'),
         ('ancillam','maidservant'),
@@ -2447,11 +2461,12 @@ LATIN_WORD_MAP = (
             (' ante ',' before '),(' antequam ',' before '),
         (' appellavit ',' he_called '),
         (' aqua',' water'),
+        (' arca ',' box '),
         (' audi ',' listen '), (' autem',' however'),
         (' bis ',' twice '),
     (' bibere ',' to_drink '),
         (' bona ',' good '),
-    ('cælum','the_sky'), (' calida ',' hot '),
+    ('cælum','the_sky'), (' calida ',' hot '), (' capta ',' captured '),
         (' ceciderunt',' they_fell'),(' cecidit',' fell'),
             ('Centum ','Hundred '),(' centum ',' hundred '),
             ('Cerno ','I_see '), (' cervicis ',' of_the_neck '),
@@ -2468,7 +2483,7 @@ LATIN_WORD_MAP = (
         (' de ',' about '),
             (' decem ',' ten '),(' decem,',' ten,'),
             (' dedit',' he_gave'), ('Deditque','And_he_gave'),
-            ('Dei','God'),
+            ('Dei','of_God'),
             (' deserto ',' desert '),(' desertum',' desert'),
             ('Deum','God'),('Deus','God'),
         ('dicat','let_him_say'), ('dicentes','saying'), (' dices:',' you_say:'), (' dicit:',' he_says:'), ('dicitur','it_is_said'),
@@ -2486,7 +2501,7 @@ LATIN_WORD_MAP = (
             (' earum',' of_them'),
         ('Ecce ','Behold '), ('ecclesiis','assemblies/churches'),
         (' effusi ',' poured_out '),
-        ('Ego ','I '),(' ego ',' I '),
+        ('Ego ','I '),(' ego ',' I '),(' ego.',' I.'),
         (' ei ',' to_him '),(' ei.',' to_him.'),(' eis ',' to_them '),
         (' ejus',' his'),
         (' enim',' because'),
@@ -2511,6 +2526,7 @@ LATIN_WORD_MAP = (
             (' funiculi ',' rope '),
             (' fur ',' a_thief '),
     (' genere ',' in_general '),
+        (' gloria ',' glory '),
     (' habeat ',' have '),(' habes,',' you_have,'), ('habitare','to_live'),
         ('Hæc ','This '),(' hæc ',' this '), ('hæreditatem','inheritance'),
         ('hebraice','hebrew'), ('Hethæum','Hittites'),  ('Hevæum','Hivites'),
@@ -2526,7 +2542,7 @@ LATIN_WORD_MAP = (
             ('Initium ','The_beginning '),(' initium ',' the_beginning '),
             (' inter ',' between '), ('intravit','he_entered'), ('introëas','enter'),
         (' ipse ',' himself '),(' ipsos ',' themselves '),
-        (' iste ',' this '),
+        ('Israël','Israel'), (' iste ',' this '),
         (' itaque ',' therefore '), (' iterum',' again'),
     ('Jordanem','Yordan'),
         (' justa.',' just.'),('Justi ','Just '), (' juxta ',' next_to '),
@@ -2598,6 +2614,7 @@ LATIN_WORD_MAP = (
             (' regis',' king'),(' regnum',' kingdom'),
             (' reliqui ',' I_left '),
             ('remittat','let_him_go'), ('remittentur','they_will_be_released'),
+            ('respondens','responding'),
             (' retia ',' net '),
             (' reus ',' guilty '),
         (' rursum',' again'),
@@ -2637,7 +2654,7 @@ LATIN_WORD_MAP = (
             (' testimonium',' testimony'),
         (' tibi ',' to_you '),
         ('Tollens ','Taking_off '),
-        (' tradidit ',' he_delivered '), (' trans ',' across '),
+        (' tradidit ',' he_delivered '), (' trans ',' across '), ('Translata ','Transferred '),
         (' tua ',' your '),(' tua.',' your.'),
             (' tui ',' yours '),
             ('tulerunt','they_took'), ('tulit ','took '),
@@ -2664,7 +2681,7 @@ LATIN_WORD_MAP = (
             (' vitæ ',' of_life '), (' vitam ',' life '),
             (' vivat',' he_lives'),
         (' vobis ',' to_you '), ('vobiscum','with_you'),
-            ('vocans ','calling '), ('vocatur ','is_called '), (' voces',' voices'), ('Vox ','The_voice '),
+            ('vocans ','calling '), ('vocatur ','is_called '), ('vocavit','he_called'), (' voces',' voices'), ('Vox ','The_voice '),
         (' vulva ',' womb '),
     )
 LatinWords, EnglishWords = [], []
