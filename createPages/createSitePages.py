@@ -227,17 +227,6 @@ def _createSitePages() -> bool:
         vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\nDoing discovery on OET…" )
         state.preloadedBibles['OET-RV'].discover() # Now that all required books are loaded
         state.preloadedBibles['OET-LV'].discover() #     ..ditto..
-        if 0:
-            lvVerseEntryList, _contextList = state.preloadedBibles['OET-LV'].getContextVerseData( ('JDG','1') )
-            for lvEntry in lvVerseEntryList:
-                if lvEntry.getOriginalText():
-                    assert '\\nd \\nd ' not in lvEntry.getOriginalText(), f"lvBible JDG_1:2 {lvEntry=}"
-            rvVerseEntryList, _contextList = state.preloadedBibles['OET-RV'].getContextVerseData( ('JDG','1') )
-            for rvEntry in rvVerseEntryList:
-                if rvEntry.getOriginalText():
-                    assert '\\nd \\nd ' not in rvEntry.getOriginalText(), f"rvBible JDG_1:2 {rvEntry=}"
-                    assert '\\nd ' not in rvEntry.getOriginalText(), f"rvBible JDG_1:2 {rvEntry=}"
-                    assert 'YHWH' not in rvEntry.getOriginalText(), f"rvBible JDG_1:2 {rvEntry=}"
 
         createOETSectionLists( state.preloadedBibles['OET-RV'], state ) # Have to do this early for section references
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nCreating {'TEST ' if TEST_MODE else ''}version pages for OET…" )
