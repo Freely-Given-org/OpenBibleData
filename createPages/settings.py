@@ -217,17 +217,17 @@ class State:
                 'ASV': '../copiedBibles/English/eBible.org/ASV/',
                 'DRA': '../copiedBibles/English/eBible.org/DRA/',
                 'YLT': '../copiedBibles/English/eBible.org/YLT/',
-                'Drby': '../copiedBibles/English/eBible.org/Drby/',
+                'Drby': '../copiedBibles/English/eBible.org/DBY/',
                 'RV': '../copiedBibles/English/eBible.org/RV/', # with deuterocanon
                 'WBS': '../copiedBibles/English/eBible.org/WBS/',
                 'KJB-1769': '../copiedBibles/English/eBible.org/KJB/', # with deuterocanon
                 'KJB-1611': '../copiedBibles/English/KJB-1611/', # with deuterocanon
                 'Bish': '../copiedBibles/English/BibleSuperSearch/BB/bishops.txt',
-                'Gnva': '../copiedBibles/English/eBible.org/Gnva/',
+                'Gnva': '../copiedBibles/English/eBible.org/GNV/',
                 'Cvdl': '../copiedBibles/English/BibleSuperSearch/CB/coverdale.txt',
                 'TNT': '../copiedBibles/English/eBible.org/TNT/',
-                'Wyc': '../copiedBibles/English/Zefania/Wyc/SF_2009-01-20_ENG_BIBLE_WycLIFFE_(JOHN WycLIFFE BIBLE).xml',
-                'Luth': '../copiedBibles/German/Zefania/Luth1545/SF_2009-01-20_GER_LuthH1545STR_(LuthHER 1545 MIT STRONGS).xml',
+                'Wyc': '../copiedBibles/English/Zefania/WYC/SF_2009-01-20_ENG_BIBLE_WYCLIFFE_(JOHN WYCLIFFE BIBLE).xml',
+                'Luth': '../copiedBibles/German/Zefania/LUT1545/SF_2009-01-20_GER_LUTH1545STR_(LUTHER 1545 MIT STRONGS).xml',
                 'ClVg': '../copiedBibles/Latin/eBible.org/CLV/',
                 'UGNT': '../copiedBibles/Original/unfoldingWord.org/UGNT/',
                 'SBL-GNT': '../../Forked/SBLGNT/data/sblgnt/text/',
