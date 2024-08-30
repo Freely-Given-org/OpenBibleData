@@ -251,7 +251,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                     if versionAbbreviation in ('UHB','JPS') \
                     and not BibleOrgSysGlobals.loadedBibleBooksCodes.isOldTestament_NR( BBB):
                         continue # Skip non-OT books for Hebrew
-                    if versionAbbreviation in ('BRN','BrLXX') \
+                    if versionAbbreviation in ('BrTr','BrLXX') \
                     and BibleOrgSysGlobals.loadedBibleBooksCodes.isNewTestament_NR( BBB):
                         continue # Skip NT books for Brenton (it has deuterocanon/apocrypha)
                     if versionAbbreviation in ('BLB','AICNT','TCNT','TNT', 'SR-GNT','UGNT','SBL-GNT','TC-GNT') \
@@ -383,7 +383,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                                 textHtml = do_LSV_HTMLcustomisations( textHtml )
                             elif versionAbbreviation == 'T4T':
                                 textHtml = do_T4T_HTMLcustomisations( textHtml )
-                            elif versionAbbreviation in ('WYC','TNT','CVD','GNV','BIS','KJB-1769','KJB-1611'):
+                            elif versionAbbreviation in ('Wyc','TNT','Cvdl','Gnva','Bish','KJB-1769','KJB-1611'):
                                 # See if we need to add a modernised version of this text underneath the main/original text ???
                                 # print( f"{versionAbbreviation} {parRef} {footnoteFreeTextHtml=}")
                                 # rawTextHtml = footnoteFreeTextHtml
@@ -393,7 +393,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                                 # print( f"{versionAbbreviation} {parRef} {rawTextHtml=}")
                                 # if V=='4': halt
                                 modernisedTextHtml = moderniseEnglishWords( footnoteFreeTextHtml )
-                                if versionAbbreviation in ('WYC','TNT','CVD','GNV','BIS','KJB-1611'): # all from 1500's
+                                if versionAbbreviation in ('Wyc','TNT','Cvdl','Gnva','Bish','KJB-1611'): # all from 1500's
                                     modernisedTextHtml = modernisedTextHtml.replace( 'J', 'Y' ).replace( 'Ie', 'Ye' ).replace( 'Io', 'Yo' ) \
                                                                                 .replace( 'Yudge', 'Judge' ).replace( 'KYB', 'KJB' ) # Fix overreaches
                                 if versionAbbreviation == 'KJB-1769':
@@ -415,17 +415,17 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                                                 .replace('¶ ','').replace('¶','')
                                                 )
                                     # end of removeVersePunctuation function
-                                    if versionAbbreviation in ('WYC','TNT','CVD','GNV','BIS','KJB-1611') \
+                                    if versionAbbreviation in ('Wyc','TNT','Cvdl','Gnva','Bish','KJB-1611') \
                                     and cleanedModernisedTextHtml == cleanedModernisedKJV1769TextHtml:
                                         modernisedTextHtml = f"<small>Modernised spelling is same as used by KJB-1769 above{' apart from footnotes' if footnotesHtml else ''}</small>" # (Will be placed in parentheses below)
-                                    elif versionAbbreviation in ('WYC','TNT','CVD','GNV','BIS','KJB-1611') \
+                                    elif versionAbbreviation in ('Wyc','TNT','Cvdl','Gnva','Bish','KJB-1611') \
                                     and cleanedModernisedTextHtml.lower() == cleanedModernisedKJV1769TextHtml.lower():
                                         modernisedTextHtml = f"<small>Modernised spelling is same as used by KJB-1769 above, apart from capitalisation{' and footnotes' if footnotesHtml else ''}</small>" # (Will be placed in parentheses below)
-                                    elif versionAbbreviation in ('WYC','TNT','CVD','GNV','BIS','KJB-1611') \
+                                    elif versionAbbreviation in ('Wyc','TNT','Cvdl','Gnva','Bish','KJB-1611') \
                                     and removeVersePunctuation( cleanedModernisedTextHtml) \
                                     == removeVersePunctuation( cleanedModernisedKJV1769TextHtml ):
                                         modernisedTextHtml = f"<small>Modernised spelling is same as used by KJB-1769 above, apart from punctuation{' and footnotes' if footnotesHtml else ''}</small>" # (Will be placed in parentheses below)
-                                    elif versionAbbreviation in ('WYC','TNT','CVD','GNV','BIS','KJB-1611') \
+                                    elif versionAbbreviation in ('Wyc','TNT','Cvdl','Gnva','Bish','KJB-1611') \
                                     and removeVersePunctuation( cleanedModernisedTextHtml ).lower() \
                                     == removeVersePunctuation( cleanedModernisedKJV1769TextHtml ).lower():
                                         modernisedTextHtml = f"<small>Modernised spelling is same as used by KJB-1769 above, apart from capitalisation and punctuation{' and footnotes' if footnotesHtml else ''}</small>" # (Will be placed in parentheses below)
@@ -438,8 +438,8 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                                         #     textHtml = f'''{textHtml}<br>   ({modernisedTextHtml.replace('<br>','<br>   ')})''' # Typically a book heading
                                         # else: # no div
                                     textHtml = f'''{textHtml}<br>   ({modernisedTextHtml.replace('<br>','<br>   ')})'''
-                            elif versionAbbreviation in ('LUT','CLV'):
-                                translateFunction = translateGerman if versionAbbreviation=='LUT' else translateLatin
+                            elif versionAbbreviation in ('Luth','ClVg'):
+                                translateFunction = translateGerman if versionAbbreviation=='Luth' else translateLatin
                                 adjustedForeignTextHtml = None
                                 if C!='-1' and V!='0' and textHtml:
                                     # assert footnoteFreeTextHtml.startswith( f'<span class="{versionAbbreviation}_verseTextChunk">' ), f"{versionAbbreviation} {parRef} {footnoteFreeTextHtml=}"
@@ -617,7 +617,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                                     else: # no <div>s so should be ok to put inside a paragraph
                                         assert '</div>' not in textHtml
                                         vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span id="C{C}V{V}" class="wrkName"><a id="C{C}" title="View {state.BibleNames['OET']} chapter (side-by-side versions)" href="{'../'*BBBLevel}OET/byC/{BBB}_C{C}.htm#Top">OET</a> <small>(<a id="V{V}" title="View {state.BibleNames['OET-RV']} chapter (by itself)" href="{'../'*BBBLevel}OET-RV/byC/{BBB}_C{C}.htm#Top">OET-RV</a>)</small></span> {textHtml}</p>'''
-                                elif versionAbbreviation=='WYC': # Just add a bit about it being translated from the Latin (not the Greek)
+                                elif versionAbbreviation=='Wyc': # Just add a bit about it being translated from the Latin (not the Greek)
                                     versionNameLink = f'''{'../'*BBBLevel}{versionAbbreviation}/details.htm#Top''' if versionAbbreviation in state.versionsWithoutTheirOwnPages else f'''{'../'*BBBLevel}{versionAbbreviation}/byC/{BBB}_C{C}.htm#Top'''
                                     assert '<div' not in textHtml, f"{versionAbbreviation} {parRef} {textHtml=}"
                                     vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation]} {'details' if versionAbbreviation in state.versionsWithoutTheirOwnPages else 'chapter (translated from the Latin)'}" href="{versionNameLink}">{versionAbbreviation}</a></span> {textHtml}</p>'''
@@ -641,7 +641,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                                         vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation]} {'details' if versionAbbreviation in state.versionsWithoutTheirOwnPages else 'chapter'}" href="{versionNameLink}">{versionAbbreviation}</a></span> {textHtml}</p>'''
                                 # Now append the footnotes (if any) for this version
                                 vHtml = f'{vHtml}{footnotesHtml}'
-                                if translatedFootnotesHtml and translatedFootnotesHtml!=footnotesHtml: # can happen with CLV
+                                if translatedFootnotesHtml and translatedFootnotesHtml!=footnotesHtml: # can happen with ClVg
                                     vHtml = f'{vHtml}{translatedFootnotesHtml}'
 
                             else: # no textHtml -- can include verses that are not in the OET-LV
@@ -1390,7 +1390,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
     (('the heed ',),'the head '),
     (('to bye ',),'to buy '),
     (('token his ',),'took his '),
-    ((' to many:',),' too many:'), # CVD Jdg 7:4
+    ((' to many:',),' too many:'), # Cvdl Jdg 7:4
     (('the see ',),'the sea '),
     (('we han ',),'we have '),
     (('with greet',),'with great'),

@@ -421,7 +421,7 @@ def removeDuplicateCVids( BBB:str, html:str ) -> str:
 def removeDuplicateFNids( where:str, html:str ) -> str:
     """
     Where we have translated or transliterated footnotes (in parallel verse displays),
-        we get doubled ids like <p class="fn" id="fnCLV1">
+        we get doubled ids like <p class="fn" id="fnClVg1">
 
     This function removes the second id field in each case (which should be in the translated/transliterated footnote).
 
@@ -630,7 +630,7 @@ def checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool:
         assert '\n' not in idGuts, f"'{where}' {segmentOnly=} Bad id with newline in {idGuts=} FROM {htmlToCheck=}"
         assert '<' not in idGuts, f"'{where}' {segmentOnly=} Bad id with < in {idGuts=} FROM {htmlToCheck=}"
         assert '>' not in idGuts, f"'{where}' {segmentOnly=} Bad id with > in {idGuts=} FROM {htmlToCheck=}"
-        if 'OEB' not in where and 'MOF' not in where and 'WYC' not in where: # OEB SNG,JER and MOF PSA and WYC SA2 have verse number problems
+        if 'OEB' not in where and 'Moff' not in where and 'Wyc' not in where: # OEB SNG,JER and Moff PSA and Wyc SA2 have verse number problems
             assert idGuts not in idDict, f''''{where}' {segmentOnly=} Duplicate id="{idGuts}" FROM ‘…{htmlToCheck[max(0,idDict[idGuts][0]-300):idDict[idGuts][1]+300]}…’ THEN FROM ‘…{htmlToCheck[match.start()-300:match.end()+300]}…’'''
         idDict[idGuts] = (match.start(),match.end())
         searchStartIndex = match.end()

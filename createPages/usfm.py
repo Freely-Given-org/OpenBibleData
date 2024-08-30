@@ -89,7 +89,7 @@ NEWLINE = '\n'
 NARROW_NON_BREAK_SPACE = ' '
 NON_BREAK_SPACE = ' ' # NBSP
 
-MAX_FOOTNOTE_CHARS = 11_500 # 1,029 in FBV, 1,688 in BRN, 10,426 in CLV JOB!
+MAX_FOOTNOTE_CHARS = 11_500 # 1,029 in FBV, 1,688 in BrTr, 10,426 in ClVg JOB!
 MAX_NET_FOOTNOTE_CHARS = 18_000 # 17,145 in NET ECC
 
 BCVRefRegEx = re.compile( '([1-3]? ?[A-Z][a-z]{0,3}) ([1-9][0-9]{0,2}):([1-9][0-9]{0,2})' )
@@ -161,10 +161,10 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                 rest = rest.replace( "'", "’" ) # Replace apostrophes
             elif versionAbbreviation in ('ULT','UST'):
                 rest = rest.replace( '{', '\\add ' ).replace( '}', '\\add*' ) # Replace UST braces
-            elif versionAbbreviation in ('CVD',):
+            elif versionAbbreviation in ('Cvdl',):
                 assert '\\nd LORDE\\nd*' not in rest
                 rest = rest.replace( 'LORDE', '\\nd LORDE\\nd*' )
-            elif versionAbbreviation == 'LUT':
+            elif versionAbbreviation == 'Luth':
                 assert '\\nd HErr\\nd*' not in rest
                 rest = rest.replace( 'HErrn', 'HErr’s' ).replace( 'HErr', '\\nd HErr\\nd*' )
             else:
@@ -786,7 +786,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                 dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"Footnote middle has {internalOpenCount=} {internalCloseCount=} {internalMarkerCount=} '{fnoteMiddle}'" )
             inSpan = None
             internalSearchStartIx = 0
-            for _innerSafetyCount in range( 520 ): # max number of fields in footnote -- 25 not enough for CLV, 400 not enough for NET ECC
+            for _innerSafetyCount in range( 520 ): # max number of fields in footnote -- 25 not enough for ClVg, 400 not enough for NET ECC
                 dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"    Searching from {internalSearchStartIx}: '{fnoteMiddle[internalSearchStartIx:]}' from {fnoteMiddle=}")
                 internalStartIx = fnoteMiddle.find( '\\', internalSearchStartIx )
                 if internalStartIx == -1: break # all done
@@ -898,7 +898,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
         assert '<a title="Variant note:\n<br>' not in html # Check this before we append the actual footnote content to the end.
         html = f'{html}<hr style="width:40%;margin-left:0;margin-top: 0.3em">\n<div class="footnotes">\n{footnotesHtml}</div><!--footnotes-->\n'
     # TODO: Find out why these following exceptions occur
-    if versionAbbreviation not in ('T4T','BRN','CLV','TCNT','TC-GNT'): # T4T ISA 33:8, BRN KI1 6:36a, CLV MRK 3:10, TCNT&TC-GNT INT \\fp Why???
+    if versionAbbreviation not in ('T4T','BrTr','ClVg','TCNT','TC-GNT'): # T4T ISA 33:8, BrTr KI1 6:36a, ClVg MRK 3:10, TCNT&TC-GNT INT \\fp Why???
         assert '\\f' not in html, f"{versionAbbreviation} {refTuple} html='…{html[html.index(f'{BACKSLASH}f')-10:html.index(f'{BACKSLASH}f')+maxFootnoteChars]}…'"
 
     # Now handle all cross-references in one go (we don't check for matching \xo fields)
@@ -980,7 +980,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
         if not checkHtml( f"Cross-references for {versionAbbreviation} {segmentType} {basicOnly=} {refTuple}", crossReferencesHtml, segmentOnly=True ):
             if DEBUGGING_THIS_MODULE: halt
         html = f'{html}<hr style="width:40%;margin-left:0;margin-top: 0.3em">\n<div class="crossRefs">\n{crossReferencesHtml}</div><!--crossRefs-->\n'
-    if versionAbbreviation not in ('BRN',): # BRN ISA 52
+    if versionAbbreviation not in ('BrTr',): # BrTr ISA 52
         assert '\\x' not in html, f"{html[html.index(f'{BACKSLASH}x')-10:html.index(f'{BACKSLASH}x')+12]}"
 
     # Some final styling and cleanups

@@ -149,22 +149,22 @@ span.WEB_chapterIntro {}
 
 span.AICNT_verseTextChunk {}
 span.ASV_verseTextChunk {}
-span.BIS_verseTextChunk {}
-span.BISE_verseTextChunk {}
+span.Bish_verseTextChunk {}
+span.BBE_verseTextChunk {}
 span.BLB_verseTextChunk {}
 span.BSB_verseTextChunk {}
-span.CVD_verseTextChunk {}
-span.DBY_verseTextChunk {}
+span.Cvdl_verseTextChunk {}
+span.Drby_verseTextChunk {}
 span.DRA_verseTextChunk {}
 span.FBV_verseTextChunk {}
-span.GNV_verseTextChunk {}
+span.Gnva_verseTextChunk {}
 span.JPS_verseTextChunk {}
 span.KJB-1611_verseTextChunk { font-family:UnifrakturCook,"New Rocker","Unifraktur Maguntia","Germania One",Astloch,textura,schwabacher,rotunda,bastarda,blankenburg,cursive; }
 span.add_KJB-1611 { vertical-align:middle; position:relative; top:-0.1em; font-size:0.8em; color: grey; }
 span.KJB-1769_verseTextChunk {}
 span.LEB_verseTextChunk {}
 span.LSV_verseTextChunk {}
-span.MOF_verseTextChunk {}
+span.Moff_verseTextChunk {}
 span.NET_verseTextChunk {}
 span.OEB_verseTextChunk {}
 span.RV_verseTextChunk {}
@@ -181,7 +181,7 @@ span.UST_verseTextChunk {}
 span.WBS_verseTextChunk {}
 span.WEB_verseTextChunk {}
 span.WMB_verseTextChunk {}
-span.WYC_verseTextChunk {}
+span.Wyc_verseTextChunk {}
 span.YLT_verseTextChunk {}
 
 /* USFM footnotes */
