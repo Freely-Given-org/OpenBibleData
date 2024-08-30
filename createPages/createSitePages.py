@@ -257,7 +257,7 @@ def _createSitePages() -> bool:
                 dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Adding discoveryResults 'haveSectionHeadings' for {thisBible.abbreviation}: no books loaded?" )
                 thisBible.discoveryResults['ALL']['haveSectionHeadings'] = False # We need this in several places
             if not TEST_MODE or versionAbbreviation not in ('OEB','WEB','WMB','NET','LSV','FBV','TCNT','T4T','LEB',
-                                                     'BBE','Moff','JPS','ASV','DRA','YLT','Drby','RV','WBS',
+                                                     'BBE','Moff','JPS','ASV','DRA','YLT','Drby','RV','Wbstr',
                                                      'KJB-1769','Bish','Gnva','Cvdl','TNT','Wyc'):
                 # In test mode, we don't usually need to make all those pages, even just for the test books
                 vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nCreating {'TEST ' if TEST_MODE else ''}version pages for {thisBible.abbreviation} ({thisBible.name})…" )

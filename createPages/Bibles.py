@@ -93,7 +93,7 @@ from OETHandlers import findLVQuote, getBBBFromOETBookName
 from Dict import loadAndIndexUBSGreekDictJSON, loadAndIndexUBSHebrewDictJSON
 
 
-LAST_MODIFIED_DATE = '2024-08-22' # by RJH
+LAST_MODIFIED_DATE = '2024-08-30' # by RJH
 SHORT_PROGRAM_NAME = "Bibles"
 PROGRAM_NAME = "OpenBibleData Bibles handler"
 PROGRAM_VERSION = '0.79'
@@ -126,13 +126,13 @@ def preloadVersions( state:State ) -> int:
             and versionAbbreviation != 'TOSN' # coz TOSN loads lots of other things as well
             and versionAbbreviation in state.BibleLocations
             ):
-            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\nLooking for a pickle for {versionAbbreviation}…" )
             # See if a pickled version is available for a MUCH faster load time
             folderOrFileLocationPath = Path( state.BibleLocations[versionAbbreviation] )
             pickleFilename = f"{versionAbbreviation}__{'_'.join(TEST_BOOK_LIST)}{PICKLE_FILENAME_END}" \
                                 if TEST_MODE and not ALL_PRODUCTION_BOOKS and versionAbbreviation not in state.WholeBibleVersions \
                                 else f'{versionAbbreviation}{PICKLE_FILENAME_END}'
             pickleFolderPath = folderOrFileLocationPath if folderOrFileLocationPath.is_dir() else folderOrFileLocationPath.parent
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\nLooking for a pickle for '{versionAbbreviation}'{f' in {pickleFolderPath}' if BibleOrgSysGlobals.verbosityLevel>2 else ''}…" )
             pickleFilePath = pickleFolderPath.joinpath( pickleFilename )
             dPrint( 'Never', DEBUGGING_THIS_MODULE, f"{folderOrFileLocationPath=} {pickleFilename=} {pickleFolderPath=} {pickleFilePath=}" )
             if pickleFilePath.is_file():
