@@ -132,7 +132,7 @@ def preloadVersions( state:State ) -> int:
                                 if TEST_MODE and not ALL_PRODUCTION_BOOKS and versionAbbreviation not in state.WholeBibleVersions \
                                 else f'{versionAbbreviation}{PICKLE_FILENAME_END}'
             pickleFolderPath = folderOrFileLocationPath if folderOrFileLocationPath.is_dir() else folderOrFileLocationPath.parent
-            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\nLooking for a pickle for '{versionAbbreviation}'{f' in {pickleFolderPath}' if BibleOrgSysGlobals.verbosityLevel>2 else ''}…" )
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\nLooking for a pickle for ‘{versionAbbreviation}’{f' in {pickleFolderPath}' if BibleOrgSysGlobals.verbosityLevel>2 else ''}…" )
             pickleFilePath = pickleFolderPath.joinpath( pickleFilename )
             dPrint( 'Never', DEBUGGING_THIS_MODULE, f"{folderOrFileLocationPath=} {pickleFilename=} {pickleFolderPath=} {pickleFilePath=}" )
             if pickleFilePath.is_file():
@@ -203,7 +203,7 @@ def preloadVersions( state:State ) -> int:
                 halt # preloadVersion failed
 
         else:
-            logging.critical( f"createPages preloadVersions() has no folder location to find '{versionAbbreviation}'" )
+            logging.critical( f"createPages preloadVersions() has no folder location to find ‘{versionAbbreviation}’" )
             assert 'OET' not in versionAbbreviation
             state.BibleVersions.remove( versionAbbreviation )
     return len(state.preloadedBibles)
@@ -218,7 +218,7 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
     from Dict import loadTyndaleOpenBibleDictXML
     global TyndaleBookIntrosDict, TyndaleBookIntroSummariesDict
 
-    fnPrint( DEBUGGING_THIS_MODULE, f"preloadVersion( '{versionAbbreviation}', '{folderOrFileLocation}', … ){' in TEST mode' if TEST_MODE else ''}" )
+    fnPrint( DEBUGGING_THIS_MODULE, f"preloadVersion( ‘{versionAbbreviation}’, '{folderOrFileLocation}', … ){' in TEST mode' if TEST_MODE else ''}" )
     versionName = state.BibleNames[versionAbbreviation]
 
     # if versionAbbreviation in ('BSB',): # Single TSV .txt file
@@ -228,7 +228,7 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
     #     thisBible.load()
     #     print( f"{versionAbbreviation} loaded ({len(thisBible.books.keys())}) {thisBible.books.keys()}" )
     if versionAbbreviation in ('BLB','SBL-GNT'): # Single (BLB) or multiple (SBL-GNT) TSV .txt file(s)
-        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Loading '{versionAbbreviation}' CSV/TSV Bible{' in TEST mode' if TEST_MODE else ''}…" )
+        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Loading ‘{versionAbbreviation}’ CSV/TSV Bible{' in TEST mode' if TEST_MODE else ''}…" )
         thisBible = CSVBible.CSVBible( folderOrFileLocation, givenName=versionName,
                                             givenAbbreviation=versionAbbreviation, encoding='utf-8' )
         thisBible.loadBooks() # So we can iterate through them all later
@@ -244,7 +244,7 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
     #     thisBible.loadBooks() # So we can iterate through them all later
     #     print( f"{versionAbbreviation} loaded ({len(thisBible.books.keys())}) {thisBible.books.keys()}" )
     elif versionAbbreviation == 'LEB': # Custom XML
-        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Loading '{versionAbbreviation}' XML Bible{' in TEST mode' if TEST_MODE else ''}…" )
+        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Loading ‘{versionAbbreviation}’ XML Bible{' in TEST mode' if TEST_MODE else ''}…" )
         thisBible = LEBXMLBible.LEBXMLBible( folderOrFileLocation, givenName=versionName,
                                             givenAbbreviation=versionAbbreviation, encoding='utf-8' )
         thisBible.loadBooks() # So we can iterate through them all later
@@ -254,7 +254,7 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
         # verseEntryList, contextList = thisBible.getContextVerseData( ('MAT', '2', '1') )
         # print( f"Mat 2:1 {verseEntryList=} {contextList=}" )
     elif versionAbbreviation in ('Cvdl','Bish'): # Custom VPL
-        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Loading '{versionAbbreviation}' VPL Bible{' in TEST mode' if TEST_MODE else ''}…" )
+        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Loading ‘{versionAbbreviation}’ VPL Bible{' in TEST mode' if TEST_MODE else ''}…" )
         thisBible = VPLBible.VPLBible( folderOrFileLocation, givenName=versionName,
                                             givenAbbreviation=versionAbbreviation, encoding='utf-8' )
         thisBible.load() # So we can iterate through them all later
@@ -264,7 +264,7 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
         # verseEntryList, contextList = thisBible.getContextVerseData( ('MRK', '1', '1') )
         # print( f"Mrk 1:1 {verseEntryList=} {contextList=}" )
     elif 'Zefania' in folderOrFileLocation: # Zefania XML
-        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Loading '{versionAbbreviation}' Zefania XML Bible{' in TEST mode' if TEST_MODE else ''}…" )
+        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Loading ‘{versionAbbreviation}’ Zefania XML Bible{' in TEST mode' if TEST_MODE else ''}…" )
         thisBible = ZefaniaXMLBible.ZefaniaXMLBible( folderOrFileLocation, givenName=versionName,
                                             givenAbbreviation=versionAbbreviation, encoding='utf-8' )
         thisBible.loadBooks() # So we can iterate through them all later
@@ -275,7 +275,7 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
         # print( f"{versionAbbreviation} Mat 2:1 {verseEntryList=} {contextList=}" )
         # if versionAbbreviation=='Luth': halt
     elif 'OET' in versionAbbreviation or 'ESFM' in folderOrFileLocation: # ESFM
-        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Preloading '{versionAbbreviation}' ESFM Bible{' in TEST mode' if TEST_MODE else ''}…" )
+        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Preloading ‘{versionAbbreviation}’ ESFM Bible{' in TEST mode' if TEST_MODE else ''}…" )
         thisBible = ESFMBible.ESFMBible( folderOrFileLocation, givenName=versionName, givenAbbreviation=versionAbbreviation )
         thisBible.loadAuxilliaryFiles = True
         # if versionAbbreviation in ('ULT','UST','UHB','UGNT','SR-GNT'):
@@ -333,13 +333,13 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
         loadAndIndexUBSGreekDictJSON( 'UGD', '../../Forked/ubs-open-license/dictionaries/greek/JSON' )
         loadAndIndexUBSHebrewDictJSON( 'UHD', '../../Forked/ubs-open-license/dictionaries/hebrew/JSON' )
     elif versionAbbreviation in state.selectedVersesOnlyVersions: # small numbers of sample verses
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Loading '{versionAbbreviation}' sample verses…" )
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Loading ‘{versionAbbreviation}’ sample verses…" )
         thisBible = loadSelectedVersesFile( folderOrFileLocation, givenName=versionName,
                                             givenAbbreviation=versionAbbreviation, encoding='utf-8' )
         # NOTE: thisBible is NOT a Bible object here!!!
         # vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} loaded ({len(thisBible.books.keys())}) {list(thisBible.books.keys())}" )
     elif versionAbbreviation in ('NET',) and 'eBible.org' not in folderOrFileLocation: # USX
-        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Preloading '{versionAbbreviation}' USX Bible{' in TEST mode' if TEST_MODE else ''}…" )
+        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Preloading ‘{versionAbbreviation}’ USX Bible{' in TEST mode' if TEST_MODE else ''}…" )
         thisBible = USXXMLBible.USXXMLBible( folderOrFileLocation, givenName=versionName, givenAbbreviation=versionAbbreviation,
                                             encoding='utf-8' )
         if state.booksToLoad[versionAbbreviation] in (['ALL'],['OT'],['NT']):
@@ -351,7 +351,7 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
             for BBB in state.booksToLoad[versionAbbreviation]:
                 thisBible.loadBookIfNecessary( BBB )
     else: # USFM
-        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Preloading '{versionAbbreviation}' USFM Bible{' in TEST mode' if TEST_MODE else ''}…" )
+        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Preloading ‘{versionAbbreviation}’ USFM Bible{' in TEST mode' if TEST_MODE else ''}…" )
         thisBible = USFMBible.USFMBible( folderOrFileLocation, givenName=versionName, givenAbbreviation=versionAbbreviation,
                                             encoding='utf-8' )
         if versionAbbreviation in ('ULT','UST','UHB','UGNT','SR-GNT'):

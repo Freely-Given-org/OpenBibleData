@@ -1019,7 +1019,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
 
     # Some final checks
     if versionAbbreviation not in ('ULT','UST'): # uW stuff has too many USFM encoding errors
-        assert 'strong="' not in html, f"{level=} '{versionAbbreviation}' {refTuple} {segmentType=} {len(contextList)=} {len(markerList)=} {basicOnly=} '{html if len(html)<4000 else f'{html[:2000]} ....... {html[-2000:]}'}'"
+        assert 'strong="' not in html, f"{level=} ‘{versionAbbreviation}’ {refTuple} {segmentType=} {len(contextList)=} {len(markerList)=} {basicOnly=} '{html if len(html)<4000 else f'{html[:2000]} ....... {html[-2000:]}'}'"
     if not checkHtml( f'convertUSFMMarkerListToHtml({versionAbbreviation} {refTuple} {segmentType} {basicOnly=})', html, segmentOnly=True ):
         if DEBUGGING_THIS_MODULE and versionAbbreviation!='OEB': # OEB has error in Job 26:14
             halt
@@ -1209,7 +1209,7 @@ def convertUSFMCharacterFormatting( versionAbbreviation:str, refTuple:tuple, seg
 
     # Final checking
     if versionAbbreviation not in ('UST','ULT'): # uW stuff has too many USFM encoding errors and inconsistencies
-        assert 'strong="' not in html, f"'{versionAbbreviation}' {refTuple} {segmentType=} {basicOnly=} {usfmField=}\n  html='{html if len(html)<4000 else f'{html[:2000]} ....... {html[-2000:]}'}'"
+        assert 'strong="' not in html, f"‘{versionAbbreviation}’ {refTuple} {segmentType=} {basicOnly=} {usfmField=}\n  html='{html if len(html)<4000 else f'{html[:2000]} ....... {html[-2000:]}'}'"
     if '\\ts\\*' in html:
         logging.critical( f"Removing ts marker in {versionAbbreviation} {refTuple} {segmentType} {basicOnly=}…")
         html = html.replace( '\\ts\\*', '' )

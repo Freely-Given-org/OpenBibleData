@@ -561,7 +561,7 @@ def _createDetailsPages( level:int, buildFolder:Path, state:State ) -> bool:
 <p class="note">See key and more information <a href="byDoc/FRT.htm#Top">here</a>.</p>
 ''' if versionAbbreviation == 'T4T' else ''
 
-        detailsHtml = f'''{extraHTML}<h2>About the {versionAbbreviation}</h2>{state.detailsHtml[versionAbbreviation]['about']}
+        detailsHtml = f'''{extraHTML}<h2>About the ‘{versionAbbreviation}’</h2>{state.detailsHtml[versionAbbreviation]['about']}
 <h2>Copyright</h2>{state.detailsHtml[versionAbbreviation]['copyright']}
 <h2>Licence</h2>{state.detailsHtml[versionAbbreviation]['licence']}'''
         if 'acknowledgements' in state.detailsHtml[versionAbbreviation]:
