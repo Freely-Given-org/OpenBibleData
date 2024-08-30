@@ -85,7 +85,7 @@ from html import makeTop, makeBottom, checkHtml
 from OETHandlers import getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
-LAST_MODIFIED_DATE = '2024-07-20' # by RJH
+LAST_MODIFIED_DATE = '2024-08-29' # by RJH
 SHORT_PROGRAM_NAME = "createOETReferencePages"
 PROGRAM_NAME = "OpenBibleData createOETReferencePages functions"
 PROGRAM_VERSION = '0.75'
@@ -440,7 +440,7 @@ OSHB_POS_DICT = { 'A':'adjective', 'C':'conjunction', 'D':'adverb', 'N':'noun', 
                   'R':'preposition', 'S':'suffix', 'T':'particle', 'V':'verb',
                   'x':'(unknown)' }
 OSHB_NOUN_DICT = { 'N':'noun',
-                   'Nc':'common_noun', 'Ng':'noun_(gentilic)', 'Np':'proper_noun', 
+                   'Nc':'common_noun', 'Ng':'noun_(gentilic)', 'Np':'proper_noun',
                    'Nx':'noun_(unknown_type)' }
 OSHB_ADJECTIVE_DICT = { # 'A':'adjective',
                         'Aa':'adjective', 'Ac':'adjective_(cardinal_number)', 'Ag':'adjective_(gentilic)', 'Ao':'adjective_(ordinal_number)',
@@ -528,10 +528,14 @@ SIMILAR_GLOSS_WORDS_TABLE = [
     # NOTE: Reversals are not automatic -- they have to be manually entered
     (('ancestor','ancestors'),('patriarch','patriarchs','elders')),
     (('anger',),('wrath',)),
+    (('angel','angels'),('messenger','messengers')),
+    (('ark',),('box','boxes','chest','chests')),
     (('barley',),('grain','wheat')),
     (('blessed',),('blessing','blessings','bless','blesses','cursed')),
     (('boat','boats'),('ship','ships')),
     (('body','bodies'),('flesh',)),
+    (('box','boxes'),('chest','chests','ark')),
+    (('chest','chests'),('box','boxes','ark')),
     (('chief_priest','chief_priests'),('priest','priests')),
     (('child','children'),('son','sons','daughter','daughters')),
     (('clean',),('moral','permissible','pure','unclean')),
@@ -568,6 +572,8 @@ SIMILAR_GLOSS_WORDS_TABLE = [
     (('logical',),('sensible','logic','logically')),
     (('light','lights'),('lamp','lamps')),
     (('lip','lips'),('mouth','mouths')),
+    (('little',),('small',)),
+    (('messenger','messengers'),('angel','angels')),
     (('mind','minds'),('heart','hearts')),
     (('money',),('silver','coin','coins')),
     (('mourn','mourns','mourning','mourned'),('weep','weeps','weeping','weeped','cry','cries','crying','cried')),
@@ -590,6 +596,7 @@ SIMILAR_GLOSS_WORDS_TABLE = [
     (('ship','ships'),('boat','boats')),
     (('silver',),('money','coin','coins')),
     (('slave','slaves'),('servant','house_servant','servants','house_servants','attendant','attendants')),
+    (('small',),('little',)),
     (('son','sons'),('child','children')),
     (('sperm',),('seed',)),
     (('statute','statutes'),('law','laws','regulation','regulations')),

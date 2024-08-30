@@ -74,13 +74,13 @@ span.WEB_chapterIntro {}
 
 span.AICNT_verseTextChunk {}
 span.ASV_verseTextChunk {}
-span.BB_verseTextChunk {}
-span.BBE_verseTextChunk {}
+span.BIS_verseTextChunk {}
+span.BISE_verseTextChunk {}
 span.BLB_verseTextChunk {}
 span.BrLXX_verseTextChunk {}
 span.BRN_verseTextChunk {}
 span.BSB_verseTextChunk {}
-span.CB_verseTextChunk {}
+span.CVD_verseTextChunk {}
 span.CLV_verseTextChunk {}
 span.DBY_verseTextChunk {}
 span.DRA_verseTextChunk {}
@@ -116,8 +116,8 @@ span.WMB_verseTextChunk {}
 span.WYC_verseTextChunk {}
 span.YLT_verseTextChunk {}
 
-span.BB_mod { font-family:sans-serif; font-size:0.85em; }
-span.CB_mod { font-family:sans-serif; font-size:0.85em; }
+span.BIS_mod { font-family:sans-serif; font-size:0.85em; }
+span.CVD_mod { font-family:sans-serif; font-size:0.85em; }
 span.CLV_trans { font-family:sans-serif; font-size:0.85em; }
 span.GNV_mod { font-family:sans-serif; font-size:0.85em; }
 span.KJB-1769_mod { font-family:sans-serif; font-size:0.85em; }

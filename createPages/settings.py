@@ -114,7 +114,7 @@ class State:
                 'NIV','CEV','ESV','NASB','LSB',
                 'JQT','2DT','1ST','TPT',
                 'WEB','WMB','MSG','LSV','FBV','TCNT','T4T','LEB','NRSV','NKJV','NAB','BBE',
-                'MOF','JPS','ASV','DRA','YLT','DBY','RV','WBS','KJB-1769','KJB-1611','BB','GNV','CB',
+                'MOF','JPS','ASV','DRA','YLT','DBY','RV','WBS','KJB-1769','KJB-1611','BIS','GNV','CVD',
                 'TNT','WYC',
                 'LUT','CLV',
                 'SR-GNT','UGNT','SBL-GNT','TC-GNT',
@@ -130,7 +130,7 @@ class State:
                 'NIV','CEV','ESV','NASB','LSB',
                 'JQT','2DT','1ST','TPT',
                 'WEB','WMB','MSG','NET','LSV','FBV','TCNT','T4T','LEB','NRSV','NKJV','NAB','BBE',
-                'MOF','JPS','ASV','DRA','YLT','DBY','RV','WBS','KJB-1769','KJB-1611','BB','GNV','CB',
+                'MOF','JPS','ASV','DRA','YLT','DBY','RV','WBS','KJB-1769','KJB-1611','BIS','GNV','CVD',
                 'TNT','WYC',
                 'LUT','CLV',
                 'SR-GNT','UGNT','SBL-GNT','TC-GNT',
@@ -159,7 +159,7 @@ class State:
                 'WEB':('',''),'WMB':('',''),'NET':('',''),'LSV':('',''),'FBV':('',''),'TCNT':('<small>','</small>'),'T4T':('',''),'LEB':('',''),'BBE':('',''),
                 'MOF':('<small>','</small>'),'JPS':('<small>','</small>'),'ASV':('',''),'DRA':('<small>','</small>'),'YLT':('',''),'DBY':('',''),'RV':('',''),
                 'WBS':('<small>','</small>'),
-                'KJB-1769':('',''),'KJB-1611':('',''), 'BB':('',''),'GNV':('',''),'CB':('',''),
+                'KJB-1769':('',''),'KJB-1611':('',''), 'BIS':('',''),'GNV':('',''),'CVD':('',''),
                 'TNT':('',''),'WYC':('',''), #'CLV':('<small>','</small>'),
                 'SR-GNT':('<b>','</b>'), # 'UGNT':('<small>','</small>'),'SBL-GNT':('<small>','</small>'),'TC-GNT':('<small>','</small>'),
                 # 'BRN':('<small>','</small>'),'BrLXX':('',''),
@@ -222,9 +222,9 @@ class State:
                 'WBS': '../copiedBibles/English/eBible.org/WBS/',
                 'KJB-1769': '../copiedBibles/English/eBible.org/KJB/', # with deuterocanon
                 'KJB-1611': '../copiedBibles/English/KJB-1611/', # with deuterocanon
-                'BB': '../copiedBibles/English/BibleSuperSearch/BB/bishops.txt',
+                'BIS': '../copiedBibles/English/BibleSuperSearch/BIS/bishops.txt',
                 'GNV': '../copiedBibles/English/eBible.org/GNV/',
-                'CB': '../copiedBibles/English/BibleSuperSearch/CB/coverdale.txt',
+                'CVD': '../copiedBibles/English/BibleSuperSearch/CVD/coverdale.txt',
                 'TNT': '../copiedBibles/English/eBible.org/TNT/',
                 'WYC': '../copiedBibles/English/Zefania/WYC/SF_2009-01-20_ENG_BIBLE_WYCLIFFE_(JOHN WYCLIFFE BIBLE).xml',
                 'LUT': '../copiedBibles/German/Zefania/LUT1545/SF_2009-01-20_GER_LUTH1545STR_(LUTHER 1545 MIT STRONGS).xml',
@@ -239,7 +239,7 @@ class State:
                 'TOSN': '../copiedBibles/English/Tyndale/OSN/', # This one also loads TTN (Tyndale Theme Notes)
                 'UTN': '../copiedBibles/English/unfoldingWord.org/UTN/',
                 }
-    WholeBibleVersions = ('LEB','BB','CB','WYC','LUT') # These versions get all books loaded -- no individual book files
+    WholeBibleVersions = ('LEB','BIS','CVD','WYC','LUT') # These versions get all books loaded -- no individual book files
 
     BibleNames = {
                 'OET': 'Open English Translation (2030)',
@@ -286,10 +286,10 @@ class State:
                 'WBS': 'Webster Bible (American, 1833)',
                 'KJB-1769': 'King James Bible (1769)',
                 'KJB-1611': 'King James Bible (1611)',
-                'BB': 'Bishops Bible (1568,1602)',
+                'BIS': 'Bishops Bible (1568,1602)',
                 'GNV': 'Geneva Bible (1557-1560,1599)',
-                'GB': 'Great Bible (1539)', # Not in OBD yet
-                'CB': 'Coverdale Bible (1535-1553)',
+                'GNV': 'Great Bible (1539)', # Not in OBD yet
+                'CVD': 'Coverdale Bible (1535-1553)',
                 'TNT': 'Tyndale New Testament (1526)',
                 'WYC': 'Wycliffe Bible (middle-English, 1382)',
                 'LUT': 'Luther Bible (German, 1545)',
@@ -355,9 +355,9 @@ class State:
                 'WBS': ['ALL'],
                 'KJB-1769': ['ALL'],
                 'KJB-1611': ['ALL'],
-                'BB': ['ALL'],
+                'BIS': ['ALL'],
                 'GNV': ['ALL'],
-                'CB': ['ALL'],
+                'CVD': ['ALL'],
                 'TNT': ['ALL'],
                 'WYC': ['ALL'],
                 'LUT': ['ALL'],
@@ -418,9 +418,9 @@ class State:
                 'WBS': TEST_BOOK_LIST,
                 'KJB-1769': TEST_BOOK_LIST,
                 'KJB-1611': ['FRT'] + TEST_BOOK_LIST,
-                'BB': TEST_BOOK_LIST,
+                'BIS': TEST_BOOK_LIST,
                 'GNV': TEST_BOOK_LIST,
-                'CB': TEST_BOOK_LIST,
+                'CVD': TEST_BOOK_LIST,
                 'TNT': TEST_NT_BOOK_LIST, # NT only
                 'WYC': TEST_BOOK_LIST,
                 'LUT': TEST_BOOK_LIST,
@@ -641,7 +641,7 @@ Also note that there was no letter ‘J’ in the 1611 KJB, e.g., ‘John’ was
 Footnote markers PRECEDE the text that they concern,
         rather than the modern practice of having footnote markers follow the text.</p>
 <p class="note">Finally, note that the KJB included ‘The Bookes called Apocrypha’ as can be seen <a href="https://archive.org/details/1611TheAuthorizedKingJamesBible/page/n37/mode/1up">here</a>, so an additional fourteen ‘bookes’ beyond the often-expected sixty-six.</p>''' },
-        'BB': {'about': '<p class="about">Bishops Bible (1568,1602).</p>',
+        'BIS': {'about': '<p class="about">Bishops Bible (1568,1602).</p>',
                 'copyright': '<p class="copyright">Public Domain.</p>',
                 'licence': '<p class="licence">Public Domain.</p>',
                 'acknowledgements': '<p class="acknwldg">(coming).</p>' },
@@ -649,7 +649,7 @@ Footnote markers PRECEDE the text that they concern,
                 'copyright': '<p class="copyright">Copyright © (coming).</p>',
                 'licence': '<p class="licence">(coming).</p>',
                 'acknowledgements': '<p class="acknwldg">(coming).</p>' },
-        'CB': {'about': '<p class="about"><a href="https://en.wikipedia.org/wiki/Coverdale_Bible">Coverdale Bible</a> (1535-1553).</p>',
+        'CVD': {'about': '<p class="about"><a href="https://en.wikipedia.org/wiki/Coverdale_Bible">Coverdale Bible</a> (1535-1553).</p>',
                 'copyright': '<p class="copyright">Public Domain.</p>',
                 'licence': '<p class="licence">Public Domain.</p>',
                 'acknowledgements': '<p class="acknwldg">(coming).</p>' },

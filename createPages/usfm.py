@@ -161,7 +161,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                 rest = rest.replace( "'", "’" ) # Replace apostrophes
             elif versionAbbreviation in ('ULT','UST'):
                 rest = rest.replace( '{', '\\add ' ).replace( '}', '\\add*' ) # Replace UST braces
-            elif versionAbbreviation in ('CB',):
+            elif versionAbbreviation in ('CVD',):
                 assert '\\nd LORDE\\nd*' not in rest
                 rest = rest.replace( 'LORDE', '\\nd LORDE\\nd*' )
             elif versionAbbreviation == 'LUT':
