@@ -92,7 +92,7 @@ from createOETReferencePages import CNTR_BOOK_ID_MAP, OSHB_ADJECTIVE_DICT, OSHB_
 from OETHandlers import getOETTidyBBB, getOETBookName, livenOETWordLinks, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
-LAST_MODIFIED_DATE = '2024-08-30' # by RJH
+LAST_MODIFIED_DATE = '2024-09-01' # by RJH
 SHORT_PROGRAM_NAME = "createParallelVersePages"
 PROGRAM_NAME = "OpenBibleData createParallelVersePages functions"
 PROGRAM_VERSION = '0.96'
@@ -383,7 +383,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                                 textHtml = do_LSV_HTMLcustomisations( textHtml )
                             elif versionAbbreviation == 'T4T':
                                 textHtml = do_T4T_HTMLcustomisations( textHtml )
-                            elif versionAbbreviation in ('Wyc','TNT','Cvdl','Gnva','Bish','KJB-1769','KJB-1611'):
+                            elif versionAbbreviation in ('Wyc','TNT','Cvdl','Gnva','Bshps','KJB-1769','KJB-1611'):
                                 # See if we need to add a modernised version of this text underneath the main/original text ???
                                 # print( f"{versionAbbreviation} {parRef} {footnoteFreeTextHtml=}")
                                 # rawTextHtml = footnoteFreeTextHtml
@@ -393,7 +393,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                                 # print( f"{versionAbbreviation} {parRef} {rawTextHtml=}")
                                 # if V=='4': halt
                                 modernisedTextHtml = moderniseEnglishWords( footnoteFreeTextHtml )
-                                if versionAbbreviation in ('Wyc','TNT','Cvdl','Gnva','Bish','KJB-1611'): # all from 1500's
+                                if versionAbbreviation in ('Wyc','TNT','Cvdl','Gnva','Bshps','KJB-1611'): # all from 1500's
                                     modernisedTextHtml = modernisedTextHtml.replace( 'J', 'Y' ).replace( 'Ie', 'Ye' ).replace( 'Io', 'Yo' ) \
                                                                                 .replace( 'Yudge', 'Judge' ).replace( 'KYB', 'KJB' ) # Fix overreaches
                                 if versionAbbreviation == 'KJB-1769':
@@ -415,17 +415,17 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                                                 .replace('¶ ','').replace('¶','')
                                                 )
                                     # end of removeVersePunctuation function
-                                    if versionAbbreviation in ('Wyc','TNT','Cvdl','Gnva','Bish','KJB-1611') \
+                                    if versionAbbreviation in ('Wyc','TNT','Cvdl','Gnva','Bshps','KJB-1611') \
                                     and cleanedModernisedTextHtml == cleanedModernisedKJV1769TextHtml:
                                         modernisedTextHtml = f"<small>Modernised spelling is same as used by KJB-1769 above{' apart from footnotes' if footnotesHtml else ''}</small>" # (Will be placed in parentheses below)
-                                    elif versionAbbreviation in ('Wyc','TNT','Cvdl','Gnva','Bish','KJB-1611') \
+                                    elif versionAbbreviation in ('Wyc','TNT','Cvdl','Gnva','Bshps','KJB-1611') \
                                     and cleanedModernisedTextHtml.lower() == cleanedModernisedKJV1769TextHtml.lower():
                                         modernisedTextHtml = f"<small>Modernised spelling is same as used by KJB-1769 above, apart from capitalisation{' and footnotes' if footnotesHtml else ''}</small>" # (Will be placed in parentheses below)
-                                    elif versionAbbreviation in ('Wyc','TNT','Cvdl','Gnva','Bish','KJB-1611') \
+                                    elif versionAbbreviation in ('Wyc','TNT','Cvdl','Gnva','Bshps','KJB-1611') \
                                     and removeVersePunctuation( cleanedModernisedTextHtml) \
                                     == removeVersePunctuation( cleanedModernisedKJV1769TextHtml ):
                                         modernisedTextHtml = f"<small>Modernised spelling is same as used by KJB-1769 above, apart from punctuation{' and footnotes' if footnotesHtml else ''}</small>" # (Will be placed in parentheses below)
-                                    elif versionAbbreviation in ('Wyc','TNT','Cvdl','Gnva','Bish','KJB-1611') \
+                                    elif versionAbbreviation in ('Wyc','TNT','Cvdl','Gnva','Bshps','KJB-1611') \
                                     and removeVersePunctuation( cleanedModernisedTextHtml ).lower() \
                                     == removeVersePunctuation( cleanedModernisedKJV1769TextHtml ).lower():
                                         modernisedTextHtml = f"<small>Modernised spelling is same as used by KJB-1769 above, apart from capitalisation and punctuation{' and footnotes' if footnotesHtml else ''}</small>" # (Will be placed in parentheses below)
@@ -1601,7 +1601,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
             ((' drave',' droue'),' drove'), ((' drie ',),' dry '),((' dryed',),' dried'),
         ((' duyk ',),' duke '), ((' duste ',),' dust '), ((' duetie ',),' duty '),
         (('dwelliden','dwellide','dwellyde'),'dwelled/dwelt'), (('dwelleris',),'dwellers'), (('dwelleth','dwellith'),'dwells'), (('dwellynge','dwellinge'),'dwelling'),
-    ((' ech ',),' each '),
+    (('Ech ',),'Each '),((' ech ',),' each '),
             ((' eerli',' earely',' earlie',' erly'),' early'), ((' eares ',' eeris ',' eris '),' ears '),((' eares,',),' ears,'), ((' erthe',' erth',' `erthe'),' earth'),
             (('Eastwarde',),'Eastward'),(('eastwarde',),'eastward'), ((' easyer',),' easier'), ((' eest ',),' east '),
             ((' etynge',' eatyng'),' eating'),((' eate ',' ete '),' eat '),((' eate,',' ete,'),' eat,'),((' eate.',' ete.'),' eat.'),((' eate:',' ete:'),' eat:'),((' eate;',' ete;'),' eat;'),
@@ -1664,7 +1664,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
         ((' girdil',' gerdyll',' gerdell'),' girdle'),
         (('gladli',),'gladly'),((' gladde ',),' glad '), ((' glorie',),' glory'),
         ((' goddes',' goddis'),' gods'),
-            (('Goo ','Goe '),'Go '),(('Goo,','Goe,'),'Go,'),((' goe ',' goo '),' go '),((' goe.',' goo.'),' go.'),
+            (('Goo ','Goe '),'Go '),(('Goo,','Goe,'),'Go,'),((' goe ',' goo '),' go '),((' goe,',),' go,'),((' goe.',' goo.'),' go.'),((' goe:',),' go:'),
             ((' goeth ',' goith '),' goeth/goes '), ((' goinge ',' goyng ',' gon '),' going '),
             ((' goldun ',),' golden '),((' golde ',),' gold '),((' golde.',),' gold.'),
             ((' goon ',),' gone '),
@@ -1682,7 +1682,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
             (('halewide',),'hallowed/consecrated'),
             ((' handes',' hondes',' hoondis',' hondis'),' hands'),((' hande ',' honde ',' hoond ',' hond '),' hand '),((' hond,',' hande,'),' hand,'),
             ((' happe ',),' happen '), ((' happili',' haply'),' happily'),
-            ((' hardnesse ',' hardnes '),' hardness '), ((' haruest',' heruest'),' harvest'),
+            ((' hardnesse ',' hardnes '),' hardness '), (('Herken ',),'Hearken '), ((' haruest',' heruest'),' harvest'),
             ((' hath ',),' hath/has '),
             (('Haue ',),'Have '),((' haue ',' han '),' have '),((' haue?',),' have?'), ((' havinge',' hauinge',' hauing',' hauynge',' havynge',' hauyng'),' having'),
         ((' hee ',),' he '),
@@ -1817,7 +1817,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
         ((' openyde',' openyd'),' opened'),((' openeth',' openith'),' openeth/opens'),
             ((' opynyouns',),' opinions'),
             ((' oppressith',),' oppresses'),((' oppressid',),' oppressed'),((' oppresse ',),' oppress '),((' oppressio ',),' oppression '),((' oppressour',' oppresser'),' oppressor'),
-        ((' ordayned',' ordeined',' ordeynede',' ordeyned'),' ordained'),((' ordayne ',),' ordain '),
+        ((' ordayned',' ordeined',' ordeynede',' ordeyned'),' ordained'),((' ordayne ',' ordeyne '),' ordain '),
         (('Othere','Othir','Wother'),'Other'),((' othere',' othir', ' tothir'),' other'),
         ((' oure ',),' our '),
             ((' outwarde',),' outward'), ((' oute.',),' out.'),
@@ -2048,7 +2048,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
              ((' waisschide',' wasshed',' wesshed'),' washed'),((' waisschun',' waischun'),' washing'),((' wesshe ',' washe '),' wash '),((' wassche;',),' wash;'),
              ((' watred',),' watered'),((' watris',),' waters'),((' watir',' watre'),' water'),
                 ((' wayes',' weies'),' ways'),((' waye ',' weie ',' weye '),' way '),((' waye,',' weie,',' weye,'),' way,'),((' waye.',' weie.',' weye.'),' way.'),((' waye:',' weie:',' weye:'),' way:'),
-        ((' wee ',),' we '),
+        ((' wee ',),' we '),((' wee?',),' we?'),
             ((' weryed',' weried'),' wearied'),((' weery',' wery'),' weary'),
             ((' wepe ',),' weep '),((' wepyng',),' weeping'),
             ((' welde ',),' weld '), ((' wel ',),' well '),
@@ -2365,12 +2365,12 @@ GERMAN_WORD_MAP = (
         ('Speise ','food '),
             (' spiritern ',' spirits '),
             (' sprachen',' said'),(' sprach ',' spoke '),(' sprach:',' spoke:'),
-        ('Städte ','cities '),('Städten ','cities '), ('Stadt ','city '),('Stadt,','city,'),
+        ('Städte ','cities '),('Städten ','cities '), ('Stadt ','city '),('Stadt,','city,'),,('Stadt!','city!'),
             ('Stamms ','tribe '),('Stamm ','tribe '), (' starb ',' died '), ('Staube ','dust '),('Staub ','dust '),
             (' stehet',' stands'),
                 (' steigen',' climb'),
                 (' sterben',' die'),(' sterbe',' die'),
-            (' stille ',' silence '),
+            (' stille ',' silence '), ('Stimme ','voice '),
             ('Streit','battle'),('streite ','argue/battle '),('streiten','argue/battle'),
             (' stund ',' stood '),
     ('Tage ','days '), (' täglich',' daily'), (' tat ',' did '),(' taten ',' did '),

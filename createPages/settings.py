@@ -114,7 +114,7 @@ class State:
                 'NIV','CEV','ESV','NASB','LSB',
                 'JQT','2DT','1ST','TPT',
                 'WEB','WMB','MSG','LSV','FBV','TCNT','T4T','LEB','NRSV','NKJV','NAB','BBE',
-                'Moff','JPS','ASV','DRA','YLT','Drby','RV','Wbstr','KJB-1769','KJB-1611','Bish','Gnva','Cvdl',
+                'Moff','JPS','ASV','DRA','YLT','Drby','RV','Wbstr','KJB-1769','KJB-1611','Bshps','Gnva','Cvdl',
                 'TNT','Wyc',
                 'Luth','ClVg',
                 'SR-GNT','UGNT','SBL-GNT','TC-GNT',
@@ -130,7 +130,7 @@ class State:
                 'NIV','CEV','ESV','NASB','LSB',
                 'JQT','2DT','1ST','TPT',
                 'WEB','WMB','MSG','NET','LSV','FBV','TCNT','T4T','LEB','NRSV','NKJV','NAB','BBE',
-                'Moff','JPS','ASV','DRA','YLT','Drby','RV','Wbstr','KJB-1769','KJB-1611','Bish','Gnva','Cvdl',
+                'Moff','JPS','ASV','DRA','YLT','Drby','RV','Wbstr','KJB-1769','KJB-1611','Bshps','Gnva','Cvdl',
                 'TNT','Wyc',
                 'Luth','ClVg',
                 'SR-GNT','UGNT','SBL-GNT','TC-GNT',
@@ -159,7 +159,7 @@ class State:
                 'WEB':('',''),'WMB':('',''),'NET':('',''),'LSV':('',''),'FBV':('',''),'TCNT':('<small>','</small>'),'T4T':('',''),'LEB':('',''),'BBE':('',''),
                 'Moff':('<small>','</small>'),'JPS':('<small>','</small>'),'ASV':('',''),'DRA':('<small>','</small>'),'YLT':('',''),'Drby':('',''),'RV':('',''),
                 'Wbstr':('<small>','</small>'),
-                'KJB-1769':('',''),'KJB-1611':('',''), 'Bish':('',''),'Gnva':('',''),'Cvdl':('',''),
+                'KJB-1769':('',''),'KJB-1611':('',''), 'Bshps':('',''),'Gnva':('',''),'Cvdl':('',''),
                 'TNT':('',''),'Wyc':('',''), #'ClVg':('<small>','</small>'),
                 'SR-GNT':('<b>','</b>'), # 'UGNT':('<small>','</small>'),'SBL-GNT':('<small>','</small>'),'TC-GNT':('<small>','</small>'),
                 # 'BrTr':('<small>','</small>'),'BrLXX':('',''),
@@ -222,7 +222,7 @@ class State:
                 'Wbstr': '../copiedBibles/English/eBible.org/WBS/',
                 'KJB-1769': '../copiedBibles/English/eBible.org/KJB/', # with deuterocanon
                 'KJB-1611': '../copiedBibles/English/KJB-1611/', # with deuterocanon
-                'Bish': '../copiedBibles/English/BibleSuperSearch/BB/bishops.txt',
+                'Bshps': '../copiedBibles/English/BibleSuperSearch/BB/bishops.txt',
                 'Gnva': '../copiedBibles/English/eBible.org/GNV/',
                 'Cvdl': '../copiedBibles/English/BibleSuperSearch/CB/coverdale.txt',
                 'TNT': '../copiedBibles/English/eBible.org/TNT/',
@@ -239,7 +239,7 @@ class State:
                 'TOSN': '../copiedBibles/English/Tyndale/OSN/', # This one also loads TTN (Tyndale Theme Notes)
                 'UTN': '../copiedBibles/English/unfoldingWord.org/UTN/',
                 }
-    WholeBibleVersions = ('LEB','Bish','Cvdl','Wyc','Luth') # These versions get all books loaded -- no individual book files
+    WholeBibleVersions = ('LEB','Bshps','Cvdl','Wyc','Luth') # These versions get all books loaded -- no individual book files
 
     BibleNames = {
                 'OET': 'Open English Translation (2030)',
@@ -286,7 +286,7 @@ class State:
                 'Wbstr': 'Webster Bible (American, 1833)',
                 'KJB-1769': 'King James Bible (1769)',
                 'KJB-1611': 'King James Bible (1611)',
-                'Bish': 'Bishops Bible (1568, 1602)',
+                'Bshps': 'Bshpsops Bible (1568, 1602)',
                 'Gnva': 'Geneva Bible (1557-1560, 1599)',
                 'Great': 'Great Bible (1539)', # Not in OBD yet
                 'Cvdl': 'Coverdale Bible (1535-1553)',
@@ -355,7 +355,7 @@ class State:
                 'Wbstr': ['ALL'],
                 'KJB-1769': ['ALL'],
                 'KJB-1611': ['ALL'],
-                'Bish': ['ALL'],
+                'Bshps': ['ALL'],
                 'Gnva': ['ALL'],
                 'Cvdl': ['ALL'],
                 'TNT': ['ALL'],
@@ -418,7 +418,7 @@ class State:
                 'Wbstr': TEST_BOOK_LIST,
                 'KJB-1769': TEST_BOOK_LIST,
                 'KJB-1611': ['FRT'] + TEST_BOOK_LIST,
-                'Bish': TEST_BOOK_LIST,
+                'Bshps': TEST_BOOK_LIST,
                 'Gnva': TEST_BOOK_LIST,
                 'Cvdl': TEST_BOOK_LIST,
                 'TNT': TEST_NT_BOOK_LIST, # NT only
@@ -641,7 +641,7 @@ Also note that there was no letter ‘J’ in the 1611 KJB, e.g., ‘John’ was
 Footnote markers PRECEDE the text that they concern,
         rather than the modern practice of having footnote markers follow the text.</p>
 <p class="note">Finally, note that the KJB included ‘The Bookes called Apocrypha’ as can be seen <a href="https://archive.org/details/1611TheAuthorizedKingJamesBible/page/n37/mode/1up">here</a>, so an additional fourteen ‘bookes’ beyond the often-expected sixty-six.</p>''' },
-        'Bish': {'about': '<p class="about">Bishops Bible (1568, 1602).</p>',
+        'Bshps': {'about': '<p class="about">Bshpsops Bible (1568, 1602).</p>',
                 'copyright': '<p class="copyright">Public Domain.</p>',
                 'licence': '<p class="licence">Public Domain.</p>',
                 'acknowledgements': '<p class="acknwldg">(coming).</p>' },
