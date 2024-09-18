@@ -68,7 +68,7 @@ p.h { font-weight:bold; }
 p.mt1 { text-align:center; font-size:1.8em; }
 p.mt2 { text-align:center; font-size:1.3em; }
 p.mt3 { text-align:center; font-size:1.2em; }
-p.mt1 + p.mt2, p.mt2 + p.mt1 { margin-top:-0.5em; }
+p.mt1 + p.mt2, p.mt2 + p.mt1, p.mt2 + p.mt3, p.mt3 + p.mt2, p.mt1 + p.mt3, p.mt3 + p.mt1 { margin-top:-0.5em; }
 p.ms1 { font-weight:bold; font-size:1.5em; }
 p.mr { margin-top:0; margin-bottom:0; font-size:1.1em; text-align: center; font-style:italic; } /* Major section reference range */
 

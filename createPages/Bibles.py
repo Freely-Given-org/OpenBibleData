@@ -93,10 +93,10 @@ from OETHandlers import findLVQuote, getBBBFromOETBookName
 from Dict import loadAndIndexUBSGreekDictJSON, loadAndIndexUBSHebrewDictJSON
 
 
-LAST_MODIFIED_DATE = '2024-08-30' # by RJH
+LAST_MODIFIED_DATE = '2024-09-17' # by RJH
 SHORT_PROGRAM_NAME = "Bibles"
 PROGRAM_NAME = "OpenBibleData Bibles handler"
-PROGRAM_VERSION = '0.79'
+PROGRAM_VERSION = '0.82'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -911,7 +911,7 @@ def formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segme
                 else: tn_tw_loop2_range_needs_increasing
                 # Replace markdown links with something more readable
                 searchStartIndex = 0
-                for _safetyCount in range( 46 ): # 45 wasn't enough for EXO 15:0
+                for _safetyCount in range( 100 ): # 45 wasn't enough for EXO 15:0, 94 wasn't enough for Lev 4:0
                     match = markdownLinkRegex.search( rest, searchStartIndex )
                     if not match: break
                     # dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"{_safetyCount} getContextVerseData found TN markdown link {utnRef} {match=} {match.groups()=}" )
@@ -963,8 +963,8 @@ def formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segme
                     # dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  {utnRef} with {newLink=}, now {rest=}" )
                     searchStartIndex = match.start() + len(newLink)
                 else:
-                    logging.error( f"getContextVerseData found excess TN markdown links in {_safetyCount} {utnRef} {rest=}" )
-                    need_to_increase_max_MDLink_loop_count
+                    # logging.error( f"getContextVerseData found excess TN markdown links in {_safetyCount} {utnRef} {rest=}" )
+                    raise ParseError( f"need_to_increase_max_MDLink_loop_count getContextVerseData found excess TN markdown links in {_safetyCount} for {utnRef} {rest=}" )
                 if BBB not in ('HAG','MAT'): # uW Hag 1:0, Mat 27:0 have formatting problems
                     assert 'rc://' not in rest, f"TN {utnRef} {lastMarker=} {marker}='{rest}'"
                 while '**' in rest:
@@ -1294,9 +1294,9 @@ def getBibleMapperMaps( level:int, BBB:str, startC:str, startV:Optional[str], en
         vPrint( 'Info', DEBUGGING_THIS_MODULE, f"getBibleMapperMaps( {level}, {startC}:{startV}–{endC}:{endV} ) needs to load map index…")
         mapIndexFilepath = '../copiedBibles/maps/mapIndex.tsv'
         with open( mapIndexFilepath, 'rt', encoding='utf-8' ) as tsvFile:
-            for line in tsvFile: # Three-column TSV
+            for line in tsvFile: # Four-column TSV
                 if line.startswith( 'ReferenceRange' ): continue # It's the header line
-                mapRef, mapFilename, _optionalComment = line.rstrip( '\n' ).split( '\t' )
+                mapRef, mapFilename, supplementaryMapFilename, _optionalComment = line.rstrip( '\n' ).split( '\t' )
                 mapBBB, mapCVstuff = mapRef.split( '_' )
                 chapters:Set[str] = set()
                 if '–' in mapCVstuff: # enDash: it's a chapter range
@@ -1310,7 +1310,7 @@ def getBibleMapperMaps( level:int, BBB:str, startC:str, startV:Optional[str], en
                     for c in range( int(iStartC), int(iEndC)+1 ):
                         chapters.add( str(c) )
                         for v in range( int(iStartV) if c==int(iStartC) else 1, (int(iEndV) if c==int(iEndC) else referenceBible.getNumVerses( mapBBB, c ))+1 ):
-                            BMM_INDEX[f'{mapBBB}_{c}:{v}'].add( mapFilename )
+                            BMM_INDEX[f'{mapBBB}_{c}:{v}'].add( (mapFilename,supplementaryMapFilename) )
                 elif '-' in mapCVstuff: # hyphen: it's a verse range
                     startCVstuff, endCVstuff = mapCVstuff.split( '-' )
                     # print( f"Verse range: {mapBBB} {startCVstuff} to {endCVstuff} = '{mapFilename}'")
@@ -1320,20 +1320,20 @@ def getBibleMapperMaps( level:int, BBB:str, startC:str, startV:Optional[str], en
                     iEndV = endCVstuff
                     # print( f"   so {mapC}:{startV} to {mapC}:{endV}" )
                     for v in range( int(iStartV), int(iEndV)+1 ):
-                        BMM_INDEX[f'{mapBBB}_{mapC}:{v}'].add( mapFilename )
+                        BMM_INDEX[f'{mapBBB}_{mapC}:{v}'].add( (mapFilename,supplementaryMapFilename) )
                 elif ':' in mapCVstuff: # it's a single verse
                     # print( f"Single verse: {mapBBB} {mapCVstuff} = '{mapFilename}'")
                     mapC = mapCVstuff.split( ':' )[0]
                     chapters.add( mapC )
-                    BMM_INDEX[mapRef].add( mapFilename )
+                    BMM_INDEX[mapRef].add( (mapFilename,supplementaryMapFilename) )
                 else: # it's a single chapter
                     mapC = mapCVstuff
                     # print( f"Single chapter: {mapBBB} {mapC} = '{mapFilename}'")
                     chapters.add( mapC )
                     for v in range( 1, referenceBible.getNumVerses( mapBBB, mapC)+1 ):
-                        BMM_INDEX[f'{mapBBB}_{mapC}:{v}'].add( mapFilename )
+                        BMM_INDEX[f'{mapBBB}_{mapC}:{v}'].add( (mapFilename,supplementaryMapFilename) )
                 for mapC in chapters:
-                    BMM_INDEX[f'{mapBBB}_{mapC}:None'].add( mapFilename )
+                    BMM_INDEX[f'{mapBBB}_{mapC}:None'].add( (mapFilename,supplementaryMapFilename) )
         # print( f"({len(BMM_INDEX)}) {BMM_INDEX.keys()=}" )
         vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  getBibleMapperMaps() loaded {len(BMM_INDEX):,} verse and chapter entries.")
 
@@ -1354,30 +1354,38 @@ def getBibleMapperMaps( level:int, BBB:str, startC:str, startV:Optional[str], en
 
     dPrint( 'Info', DEBUGGING_THIS_MODULE, f"getBibleMapperMaps( {level}, {startC}:{startV}–{endC}:{endV} ) got {mapFilenamesSet=}" )
     ourHtml = ''
-    for filename in mapFilenamesSet:
+    for filename,supplementaryFilename in mapFilenamesSet:
         dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"getBibleMapperMaps( {level}, {startC}:{startV}–{endC}:{endV} ) got {filename=}" )
 
-        try: htmlSegment = BMM_TEXT_CACHE[filename]
+        try: htmlTextSegment = BMM_TEXT_CACHE[filename]
         except KeyError: # not cached yet
             textFilepath = BIBLE_MAPPER_PATH.joinpath( f'{filename}.htmlSegment' )
             with open( textFilepath, 'rt', encoding='utf-8' ) as txtFile:
-                htmlSegment = txtFile.read()
+                htmlTextSegment = txtFile.read()
+            assert htmlTextSegment.startswith( '<h2 class="mapTitle">' ), f"{filename=} {textFilepath=}"
+            checkHtml( f"Map {filename}", htmlTextSegment, segmentOnly=True )
             # TODO: Liven links in htmlSegment
-            checkHtml( f"Map {filename}", htmlSegment, segmentOnly=True )
-            htmlSegment = htmlSegment.rstrip() # Remove trailing newlines, etc.
-            BMM_TEXT_CACHE[filename] = htmlSegment
+            htmlTextSegment = htmlTextSegment.rstrip() # Remove trailing newlines, etc.
+            BMM_TEXT_CACHE[filename] = htmlTextSegment
 
         imageFilename = f'{filename}_high.jpg'
+        imageHtml = f'''<p><img src="{'../'*level}BMM/{imageFilename}" alt="Map" width="98%" style="max-width:1000px; display:block; margin:auto;"></p>\n'''
         sourceImageFilepath = BIBLE_MAPPER_PATH.joinpath( imageFilename )
         destinationFolderpath = TEMP_BUILD_FOLDER. joinpath( 'BMM/' )
         try: os.makedirs( destinationFolderpath )
         except FileExistsError: pass
         # Note: shutil.copy2 is the same as copy but keeps metadata like creation and modification times
         shutil.copy2( sourceImageFilepath, destinationFolderpath )
+        supplementaryImageHtml = ''
+        if supplementaryFilename:
+            supplementaryImageFilename = f'{supplementaryFilename}_high.jpg'
+            supplementaryImageHtml = f'''<p><img src="{'../'*level}BMM/{supplementaryImageFilename}" alt="Map" width="98%" style="max-width:1000px; display:block; margin:auto;"></p>\n'''
+            supplementarySourceImageFilepath = BIBLE_MAPPER_PATH.joinpath( supplementaryImageFilename )
+            # Note: shutil.copy2 is the same as copy but keeps metadata like creation and modification times
+            shutil.copy2( supplementarySourceImageFilepath, destinationFolderpath )
 
         ourHtml = f'''{ourHtml}
-<p><img src="{'../'*level}BMM/{imageFilename}" alt="Map" width="98%" style="max-width:1000px; display:block; margin:auto;"></p>
-{htmlSegment}'''
+{imageHtml}{supplementaryImageHtml}{htmlTextSegment}'''
 
     checkHtml( f'BibleMapperMap@{BBB}_{startC}:{startV}–{endC}:{endV} with {mapFilenamesSet}', ourHtml, segmentOnly=True )
     return ourHtml
@@ -1397,11 +1405,12 @@ def getVerseDetailsHtml( BBB:str, C:str, V:str ) -> str: # html
         # We have to load it on the first call
         with open( VERSE_DETAILS_TABLE_FILEPATH, 'rt', encoding='utf-8' ) as tableFilepath:
             headerLine = tableFilepath.readline().rstrip( '\n' )
-            assert headerLine == 'FGRef	Importance	TextualIssue	Clarity'
+            assert headerLine == 'FGRef	Importance	TextualIssue	Clarity	Comment'
             while True:
                 dataLine = tableFilepath.readline()
                 if not dataLine: break # EOF presumably
                 dataFields = dataLine.rstrip( '\n' ).split( '\t' )
+                assert dataFields[0] not in VERSE_DETAILS_TABLE
                 VERSE_DETAILS_TABLE[dataFields[0]] = (dataFields[1],dataFields[2],dataFields[3])
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Loaded {len(VERSE_DETAILS_TABLE):,} sets of verse details." )
 
@@ -1410,16 +1419,16 @@ def getVerseDetailsHtml( BBB:str, C:str, V:str ) -> str: # html
     if ref in VERSE_DETAILS_TABLE:
         verseDetails = formatVerseDetailsHtml( ref )
     else: # assume the verse is divided into parts
-        for part in 'abcde':
+        for part in 'abcde': # we really only expect 'a' or 'b'
             partRef = f'{ref}{part}'
             if partRef in VERSE_DETAILS_TABLE:
                 verseDetails += f"{'<br>' if verseDetails else ''}{formatVerseDetailsHtml( partRef )}"
 
-    return f'<p class="verseDetails">{verseDetails} <small style="color:grey;">(All still tentative.)</small></p>'
+    return f'''<p class="verseDetails">{verseDetails}{'<br>' if 'Segment' in verseDetails else ' '}<small style="color:grey;">(All still tentative.)</small></p>'''
 # end of Bibles.getVerseDetailsHtml
 
 IMPORTANCE_TABLE = { 'T':'<span style="color:grey;">trivial</span>', 'M':'<span style="color:pink;">normal</span>', 'I':'<span style="color:orange;">important</span>', 'V':'<span style="color:red;">vital</span>' }
-TEXTUAL_ISSUE_TABLE = { '0':'<span style="color:green;">none</span>', '1':'<span style="color:pink;">minor spelling</span>', '2':'<span style="color:orange;">minor word changes</span>', '3':'<span style="color:red;">major</span>' }
+TEXTUAL_ISSUE_TABLE = { '0':'<span style="color:green;">none</span>', '1':'<span style="color:pink;">minor spelling</span>', '2':'<span style="color:orange;">small word differences</span>', '3':'<span style="color:red;">major</span>' }
 CLARITY_TABLE = { 'O':'<span style="color:red;">obscure</span>', 'U':'<span style="color:orange;">unclear</span>', 'C':'<span style="color:green;">clear</span>' }
 def formatVerseDetailsHtml( verseRef:str ) -> str: # html
     """
@@ -1453,7 +1462,7 @@ def formatVerseDetailsHtml( verseRef:str ) -> str: # html
              f"{'' if clarity=='C' else '<b>'}Clarity{'' if clarity=='C' else '</b>'} of original={CLARITY_TABLE[clarity]} " \
              f"{'' if importance in 'TI' else '<b>'}Importance{'' if importance in 'TI' else '</b>'}={IMPORTANCE_TABLE[importance]}"
 
-    verseRefDescription = '' if verseRef[-1].isdigit() else f'Segment {verseRef[-1]}: '
+    verseRefDescription = '' if verseRef[-1].isdigit() else f'Part <b>{verseRef[-1]}</b>: '
     return f"{verseRefDescription}{result}"
 # end of Bibles.formatVerseDetailsHtml
 

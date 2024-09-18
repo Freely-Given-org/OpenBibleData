@@ -85,10 +85,10 @@ from html import makeTop, makeBottom, checkHtml
 from OETHandlers import getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
-LAST_MODIFIED_DATE = '2024-08-29' # by RJH
+LAST_MODIFIED_DATE = '2024-09-16' # by RJH
 SHORT_PROGRAM_NAME = "createOETReferencePages"
 PROGRAM_NAME = "OpenBibleData createOETReferencePages functions"
-PROGRAM_VERSION = '0.75'
+PROGRAM_VERSION = '0.76'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -1751,7 +1751,35 @@ def create_Hebrew_lemma_pages( level:int, outputFolderPath:Path, state:State ) -
                 adjVowellessLemma = vowellessLemma[1:]
                 lemmaSet.update( state.OETRefData['OTLemmasForRootDict'][adjVowellessLemma] )
                 # print( f"         {adjVowellessLemma=} *NOW count={len(lemmaSet)} {lemmaSet=}")
-            if vowellessLemma[-1] in 'הן': # Then it's possibly a derived root with a suffix
+            if vowellessLemma.endswith( 'אל' ): # Like 'שְׁמוּאֵל' Shemu'el
+                # print( f"  EL {hebLemma=} {vowellessLemma=} count={len(lemmaSet)} {lemmaSet=}")
+                adjVowellessLemma = vowellessLemma[:-2] # Remove the final consonant
+                if len(adjVowellessLemma) > 3 and adjVowellessLemma[-1] in 'ו':
+                    adjVowellessLemma = adjVowellessLemma[:-1] # Remove the preceding vowel
+                # Change (the now) final consonants where required
+                if   adjVowellessLemma[-1] == 'נ': adjVowellessLemma = f'{adjVowellessLemma[:-1]}ן'
+                elif adjVowellessLemma[-1] == 'כ': adjVowellessLemma = f'{adjVowellessLemma[:-1]}ך'
+                elif adjVowellessLemma[-1] == 'מ': adjVowellessLemma = f'{adjVowellessLemma[:-1]}ם'
+                elif adjVowellessLemma[-1] == 'פ': adjVowellessLemma = f'{adjVowellessLemma[:-1]}ף'
+                elif adjVowellessLemma[-1] == 'צ': adjVowellessLemma = f'{adjVowellessLemma[:-1]}ץ'
+                lemmaSet.update( state.OETRefData['OTLemmasForRootDict'][adjVowellessLemma] )
+                # print( f"  Adding {state.OETRefData['OTLemmasForRootDict'][adjVowellessLemma]} to lemma {ll_output_filename}" )
+                # print( f"         {adjVowellessLemma=} NOW* count={len(lemmaSet)} {lemmaSet=}")
+            elif vowellessLemma.endswith( 'יה' ): # Like '' Elijah
+                # print( f"  YAH {hebLemma=} {vowellessLemma=} count={len(lemmaSet)} {lemmaSet=}")
+                adjVowellessLemma = vowellessLemma[:-2] # Remove the final consonant
+                if len(adjVowellessLemma) > 3 and adjVowellessLemma[-1] in 'ו':
+                    adjVowellessLemma = adjVowellessLemma[:-1] # Remove the preceding vowel
+                # Change (the now) final consonants where required
+                if   adjVowellessLemma[-1] == 'נ': adjVowellessLemma = f'{adjVowellessLemma[:-1]}ן'
+                elif adjVowellessLemma[-1] == 'כ': adjVowellessLemma = f'{adjVowellessLemma[:-1]}ך'
+                elif adjVowellessLemma[-1] == 'מ': adjVowellessLemma = f'{adjVowellessLemma[:-1]}ם'
+                elif adjVowellessLemma[-1] == 'פ': adjVowellessLemma = f'{adjVowellessLemma[:-1]}ף'
+                elif adjVowellessLemma[-1] == 'צ': adjVowellessLemma = f'{adjVowellessLemma[:-1]}ץ'
+                lemmaSet.update( state.OETRefData['OTLemmasForRootDict'][adjVowellessLemma] )
+                # print( f"  Adding {state.OETRefData['OTLemmasForRootDict'][adjVowellessLemma]} to lemma {ll_output_filename}" )
+                # print( f"         {adjVowellessLemma=} NOW* count={len(lemmaSet)} {lemmaSet=}")
+            elif vowellessLemma[-1] in 'הן': # Then it's possibly a derived root with a suffix
                 # print( f"  {hebLemma=} {vowellessLemma=} count={len(lemmaSet)} {lemmaSet=}")
                 adjVowellessLemma = vowellessLemma[:-1] # Remove the final consonant
                 if len(adjVowellessLemma) > 3 and adjVowellessLemma[-1] in 'ו':
@@ -1764,24 +1792,40 @@ def create_Hebrew_lemma_pages( level:int, outputFolderPath:Path, state:State ) -
                 elif adjVowellessLemma[-1] == 'צ': adjVowellessLemma = f'{adjVowellessLemma[:-1]}ץ'
                 lemmaSet.update( state.OETRefData['OTLemmasForRootDict'][adjVowellessLemma] )
                 # print( f"         {adjVowellessLemma=} NOW* count={len(lemmaSet)} {lemmaSet=}")
+            vlWithoutY = vowellessLemma.replace( 'י', '' )
+            if vlWithoutY != vowellessLemma and len(vlWithoutY)>=3:
+                # print( f"Got {vlWithoutY=} from {vowellessLemma}" )
+                # print( f"  Adding {state.OETRefData['OTLemmasForRootDict'][vlWithoutY]} to lemma {ll_output_filename}" )
+                lemmaSet.update( state.OETRefData['OTLemmasForRootDict'][vlWithoutY] )
+            vlWithoutV = vowellessLemma.replace( 'ו', '' )
+            if vlWithoutV != vowellessLemma and len(vlWithoutV)>=3:
+                # print( f"Got {vlWithoutV=} from {vowellessLemma}" )
+                # print( f"  Adding {state.OETRefData['OTLemmasForRootDict'][vlWithoutV]} to lemma {ll_output_filename}" )
+                lemmaSet.update( state.OETRefData['OTLemmasForRootDict'][vlWithoutV] )
+            if 'י' in vowellessLemma and 'ו' in vowellessLemma:
+                vlWithoutYV = vowellessLemma.replace( 'י', '' ).replace( 'ו', '' )
+                if len(vlWithoutYV) >= 3:
+                    # print( f"  Got {vlWithoutYV=} from {vowellessLemma}" )
+                    # print( f"    Adding {state.OETRefData['OTLemmasForRootDict'][vlWithoutYV]} to lemma {ll_output_filename}" )
+                    lemmaSet.update( state.OETRefData['OTLemmasForRootDict'][vlWithoutYV] )
             if lemmaSet:
                 lemmasHtml = f'''{lemmasHtml}
     <h1>Lemmas with some of the same root consonants as ‘{vowellessLemma}’ ({transliteratedVowellessLemma})</h1>'''
-                for sameRootLemma in lemmaSet:
-                    assert sameRootLemma != hebLemma
-                    transliteratedSameRootLemma = transliterate_Hebrew( sameRootLemma )
-                    # print( f"{sameRootLemma=} from {hebLemma=} {vowellessLemma=} count={len(lemmaSet)} {lemmaSet=}")
-                    other_lemma_link = f'<a title="Go to lemma page" href="{transliteratedSameRootLemma}.htm#Top">{sameRootLemma}</a>'
-                    # hebOtherLemmaWordRowsListA = state.OETRefData['OTLemmaRowNumbersDict'][sameRootLemma]
-                    # print( f"{vowellessLemma=} count={len(lemmaSet)} {sameRootLemma=} {transliteratedSameRootLemma=} ({len(hebOtherLemmaWordRowsListA)}) {hebOtherLemmaWordRowsListA=}" )
+                for similarRootLemma in sorted( lemmaSet ):
+                    assert similarRootLemma != hebLemma
+                    transliteratedSimilarRootLemma = transliterate_Hebrew( similarRootLemma )
+                    # print( f"{similarRootLemma=} from {hebLemma=} {vowellessLemma=} count={len(lemmaSet)} {lemmaSet=}")
+                    other_lemma_link = f'<a title="Go to lemma page" href="{transliteratedSimilarRootLemma}.htm#Top">{similarRootLemma}</a>'
+                    # hebOtherLemmaWordRowsListA = state.OETRefData['OTLemmaRowNumbersDict'][similarRootLemma]
+                    # print( f"{vowellessLemma=} count={len(lemmaSet)} {similarRootLemma=} {transliteratedSimilarRootLemma=} ({len(hebOtherLemmaWordRowsListA)}) {hebOtherLemmaWordRowsListA=}" )
                     # if hebOtherLemmaWordRowsListA: assert len(hebOtherLemmaWordRowsListA) == 1
-                    rowNum = list(state.OETRefData['OTLemmaGlossDict']).index(sameRootLemma) + 1
+                    rowNum = list(state.OETRefData['OTLemmaGlossDict']).index(similarRootLemma) + 1
                     # print( f"    {rowNum=}" )
                     # if hebOtherLemmaWordRowsListA: assert rowNum == hebOtherLemmaWordRowsListA[0] - 1
                     hebOtherLemmaWordRowsListB = state.OETRefData['OTWordRowNumbersDict'][rowNum]
                     # print( f"    ({len(hebOtherLemmaWordRowsListB)}) {hebOtherLemmaWordRowsListB}" )
                     lemmasHtml = f"{lemmasHtml}\n{makeHebrewLemmaHTML(other_lemma_link, hebOtherLemmaWordRowsListB)}"
-                    # lemmasHtml = f"{lemmasHtml}\n{makeHebrewLemmaHTML(other_lemma_link, state.OETRefData['OTLemmaRowNumbersDict'][sameRootLemma])}"
+                    # lemmasHtml = f"{lemmasHtml}\n{makeHebrewLemmaHTML(other_lemma_link, state.OETRefData['OTLemmaRowNumbersDict'][similarRootLemma])}"
             assert '\\' not in lemmasHtml, f"{lemmasHtml=}"
             assert not lemmasHtml.endswith('\n'), f"{lemmasHtml=}"
 

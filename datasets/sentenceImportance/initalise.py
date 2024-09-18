@@ -43,7 +43,7 @@ import BibleOrgSys.Formats.USXXMLBible as USXXMLBible
 
 
 
-LAST_MODIFIED_DATE = '2024-08-18' # by RJH
+LAST_MODIFIED_DATE = '2024-09-16' # by RJH
 SHORT_PROGRAM_NAME = "SentenceImportance_initialisation"
 PROGRAM_NAME = "Sentence Importance initialisation"
 PROGRAM_VERSION = '0.16'
@@ -67,7 +67,7 @@ NET_PATHNAME = Path( '../../copiedBibles/English/NET/' )
 
 # Default values are M2=Medium/normal importance, 0:no textual issue, C3:clear enough
 defaultImportance, defaultTextualIssue, defaultClarity = 'M', '0', 'C'
-vitalRefs = [ # Often in doctrinal statements
+vitalImportanceRefs = [ # Often in doctrinal statements
     'GEN_1:1','GEN_1:2','GEN_1:3',
     'EXO_20:11', 'DEU_31:6', 'PSA_46:1',
     'PRO_3:5','PRO_3:6',
@@ -86,46 +86,50 @@ importantRefs = [ # Often memorised
     'JOS_1:9',
     'JHN_16:33',
     ]
-trivialRefs = [
-    'EXO_16:36'
+trivialImportanceRefs = [
+    'EXO_16:36',
     # Jdg 5 is Deborah and Barak's song
     'JDG_5:1','JDG_5:2','JDG_5:3','JDG_5:4','JDG_5:5','JDG_5:6','JDG_5:7','JDG_5:8','JDG_5:9','JDG_5:10',
-        'JDG_5:11','JDG_5:12','JDG_5:13','JDG_5:14','JDG_5:15','JDG_5:16','JDG_5:17','JDG_5:18','JDG_5:19','JDG_5:20',
+        'JDG_5:11a','JDG_5:11b','JDG_5:12','JDG_5:13','JDG_5:14','JDG_5:15','JDG_5:16','JDG_5:17','JDG_5:18','JDG_5:19','JDG_5:20',
         'JDG_5:21','JDG_5:22','JDG_5:23','JDG_5:24','JDG_5:25','JDG_5:26','JDG_5:27','JDG_5:28','JDG_5:29','JDG_5:30',
         'JDG_5:31a',
     ]
-obscureRefs = [ # Not really at all sure what the Hebrew or Greek is trying to say
+obscureClarityRefs = [ # Not really at all sure what the Hebrew or Greek is trying to say
     'JDG_5:11a','JDG_5:14',
     'JOB_29:20','JOB_29:24',
     ]
-unclearRefs = [ # Mostly sure what's in the Hebrew or Greek, but not sure what it means, or what the cultural implications were
+unclearClarityRefs = [ # Mostly sure what's in the Hebrew or Greek, but not sure what it means, or what the cultural implications were
     'EXO_15:25b',
     'JDG_5:13', 'JDG_13:19b', 'JDG_14:11', 'JDG_15:8a', 'JDG_17:3b',
-    'SA1_2:23',
+    'SA1_2:23', 'SA1_17:6b', 'SA1_17:29b',
     'JOB_30:6','JOB_30:7','JOB_30:11a','JOB_30:12','JOB_30:13','JOB_30:14','JOB_30:15','JOB_30:16a','JOB_30:17a','JOB_30:18','JOB_30:28a',
-    'JOB_31:12','JOB_31:16b',
-    'JOB_33:14','JOB_33:16',
-    'JOB_34:24a',
-    'JOB_36:8','JOB_36:16','JOB_36:17','JOB_36:18','JOB_36:19','JOB_36:27b','JOB_36:33',
-    'JOB_37:22a',
-    'JOB_38:20','JOB_38:36',
-    'JOB_39:13b',
-    'JOB_40:13b', 'JOB_40:19', 'JOB_40:24a',
-    'JOB_41:9', 'JOB_41:11',
+        'JOB_31:12','JOB_31:16b',
+        'JOB_33:14','JOB_33:16',
+        'JOB_34:24a',
+        'JOB_36:8','JOB_36:16','JOB_36:17','JOB_36:18','JOB_36:19','JOB_36:27b','JOB_36:33',
+        'JOB_37:22a',
+        'JOB_38:20','JOB_38:36',
+        'JOB_39:13b',
+        'JOB_40:13b', 'JOB_40:19', 'JOB_40:24a',
+        'JOB_41:9', 'JOB_41:11',
     ]
 textualCriticismRefs = [ # Hebrew or Greek original manuscripts vary
     'SA1_4:2',
-    'JOB_39:13','JOB_39:14','JOB_39:15','JOB_39:16','JOB_39:17','JOB_39:18', # Ostrich section
+    'JOB_39:13a','JOB_39:13b','JOB_39:14','JOB_39:15','JOB_39:16','JOB_39:17','JOB_39:18', # Ostrich section
     ]
 # Just do some basic integrity checking
-allRefs = vitalRefs + importantRefs + trivialRefs + obscureRefs + unclearRefs
-assert len( set(allRefs) ) == len(allRefs) # Otherwise there must be a duplicate
+importanceRefs = vitalImportanceRefs + importantRefs + trivialImportanceRefs
+assert len( set(importanceRefs) ) == len(importanceRefs) # Otherwise there must be a duplicate
+clarityRefs = obscureClarityRefs + unclearClarityRefs
+assert len( set(clarityRefs) ) == len(clarityRefs) # Otherwise there must be a duplicate
+allRefs = importanceRefs + clarityRefs + textualCriticismRefs
+# assert len( set(allRefs) ) == len(allRefs) # Otherwise there must be a duplicate # SIMPLY NOT TRUE -- duplicates expected here
 halfRefs = [ref for ref in allRefs if ref[-1] in 'ab']
-assert len( set(halfRefs) ) == len(halfRefs) # Otherwise there must be a duplicate
+# assert len( set(halfRefs) ) == len(halfRefs) # Otherwise there must be a duplicate # SIMPLY NOT TRUE -- duplicates expected here
 for ref in allRefs:
-    assert 7 <= len(ref) <= 12
+    assert 7 <= len(ref) <= 12, f"{ref=}"
     assert ref.count('_')==1 and ref.count(':')
-    if ref in halfRefs: assert ref[:-1] not in allRefs
+    if ref in halfRefs: assert ref[:-1] not in allRefs, f"Need to fix '{ref[:-1]}' in tables since we also have '{ref}'"
 
 
 
@@ -320,32 +324,32 @@ def create( initialTSVLines, netBible, collationVerseDict, splitVerseSet ) -> bo
                     else:
                         vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"{subRef} TC was already {textualIssue}")
 
-                if subRef in vitalRefs:
+                if subRef in vitalImportanceRefs:
                     importance = 'V' # vital = 4/4
-                    vitalRefs.remove( subRef )
+                    vitalImportanceRefs.remove( subRef )
                 elif subRef in importantRefs:
                     importance = 'I' # important = 3/4
                     importantRefs.remove( subRef )
-                elif subRef in trivialRefs:
+                elif subRef in trivialImportanceRefs:
                     importance = 'T' # trivial = 0/4
-                    trivialRefs.remove( subRef )
-                if subRef in obscureRefs:
+                    trivialImportanceRefs.remove( subRef )
+                if subRef in obscureClarityRefs:
                     clarity = 'O' # obscure = 1/3
-                    obscureRefs.remove( subRef )
-                elif subRef in unclearRefs:
+                    obscureClarityRefs.remove( subRef )
+                elif subRef in unclearClarityRefs:
                     clarity = 'U' # unclear = 2/3
-                    unclearRefs.remove( subRef )
+                    unclearClarityRefs.remove( subRef )
 
                 outputFile.write( f"{subRef}\t{importance}\t{textualIssue}\t{clarity}\t{comment}\n" )
                 numLinesWritten += 1
 
     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  {numLinesWritten:,} lines written to {TSV_FILENAME}." )
     assert numLinesWritten == 1+NUM_EXPECTED_DATA_LINES+len(splitVerseSet), f"{NUM_EXPECTED_DATA_LINES=:,} {len(splitVerseSet)=:,} {numLinesWritten=:,}"
-    assert len(vitalRefs) == 0, f"({len(vitalRefs)}) {vitalRefs=}" # They should all have been used
+    assert len(vitalImportanceRefs) == 0, f"({len(vitalImportanceRefs)}) {vitalImportanceRefs=}" # They should all have been used
     assert len(importantRefs) == 0, f"({len(importantRefs)}) {importantRefs=}" # They should all have been used
-    assert len(trivialRefs) == 0, f"({len(trivialRefs)}) {trivialRefs=}" # They should all have been used
-    assert len(obscureRefs) == 0, f"({len(obscureRefs)}) {obscureRefs=}" # They should all have been used
-    assert len(unclearRefs) == 0, f"({len(unclearRefs)}) {unclearRefs=}" # They should all have been used
+    assert len(trivialImportanceRefs) == 0, f"({len(trivialImportanceRefs)}) {trivialImportanceRefs=}" # They should all have been used
+    assert len(obscureClarityRefs) == 0, f"({len(obscureClarityRefs)}) {obscureClarityRefs=}" # They should all have been used
+    assert len(unclearClarityRefs) == 0, f"({len(unclearClarityRefs)}) {unclearClarityRefs=}" # They should all have been used
 
     return True
 # end of initalise.create()

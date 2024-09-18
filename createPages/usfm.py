@@ -75,7 +75,7 @@ from html import checkHtml
 from OETHandlers import getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2024-08-24' # by RJH
+LAST_MODIFIED_DATE = '2024-09-09' # by RJH
 SHORT_PROGRAM_NAME = "usfm"
 PROGRAM_NAME = "OpenBibleData USFM to HTML functions"
 PROGRAM_VERSION = '0.82'
@@ -754,7 +754,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
         if fStartIx == -1: break # all done
         footnotesCount += 1
         fEndIx = html.find( '\\f*', fStartIx+3 )
-        assert fEndIx != -1
+        assert fEndIx != -1, f"Can't find footnote end {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {footnotesCount=} {fStartIx=} {html[fStartIx:fStartIx+2*maxFootnoteChars]}"
         assert fStartIx+4 < fEndIx < fStartIx+maxFootnoteChars, f"Unexpected footnote size {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {footnotesCount=} {fEndIx-fStartIx} {html[fStartIx:fStartIx+2*maxFootnoteChars]}"
         frIx = html.find( '\\fr ', fStartIx+3 ) # Might be absent or in the next footnote
         if frIx > fEndIx: frIx = -1 # If it's in the next footnote, then there's no fr in this one

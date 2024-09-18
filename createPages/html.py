@@ -73,7 +73,7 @@ from settings import State, TEST_MODE, SITE_NAME
 from OETHandlers import getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2024-08-13' # by RJH
+LAST_MODIFIED_DATE = '2024-09-04' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
 PROGRAM_VERSION = '0.89'
@@ -485,11 +485,11 @@ def checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool:
     and not where.startswith('Parallel ') and not where.startswith('End of parallel') ): # and they also appear on parallel pages
         assert '¦' not in htmlToCheck, f"checkHtml() found unprocessed word number marker in '{where}' {htmlToCheck=}"
 
-    for marker,startMarker in (('html','<html'),('head','<head>'),('body','<body>')):
+    for marker,startMarker in (('html','<html'),('head','<head'),('body','<body')):
         if segmentOnly:
             assert htmlToCheck.count( startMarker ) == htmlToCheck.count( f'</{marker}>' ), htmlToCheck[htmlToCheck.index(startMarker):]
         else:
-            assert htmlToCheck.count( startMarker ) == 1, f"checkHtml() found {htmlToCheck.count( startMarker )} '{startMarker}' markers"
+            assert htmlToCheck.count( startMarker ) == 1, f"checkHtml() found {htmlToCheck.count( startMarker )} '{marker}' markers in '{where}'"
             assert htmlToCheck.count( f'</{marker}>' ) == 1
 
     if ('ULT' not in where and 'UST' not in where

@@ -44,7 +44,7 @@ from BibleOrgSys.BibleOrgSysGlobals import dPrint, fnPrint
 from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39
 
 
-LAST_MODIFIED_DATE = '2024-08-25' # by RJH
+LAST_MODIFIED_DATE = '2024-09-17' # by RJH
 SHORT_PROGRAM_NAME = "settings"
 PROGRAM_NAME = "OpenBibleData (OBD) Create Pages"
 PROGRAM_VERSION = '0.96'
@@ -52,7 +52,7 @@ PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
 
-OET_VERSION = 'v0.19'
+OET_VERSION = 'v0.20'
 
 TEST_MODE = True # Writes website into Test subfolder
 ALL_PRODUCTION_BOOKS = not TEST_MODE # If set to False, only selects one book per version for a faster test build
@@ -220,8 +220,8 @@ class State:
                 'Drby': '../copiedBibles/English/eBible.org/DBY/',
                 'RV': '../copiedBibles/English/eBible.org/RV/', # with deuterocanon
                 'Wbstr': '../copiedBibles/English/eBible.org/WBS/',
-                'KJB-1769': '../copiedBibles/English/eBible.org/KJB/', # with deuterocanon
-                'KJB-1611': '../copiedBibles/English/KJB-1611/', # with deuterocanon
+                'KJB-1769': '../copiedBibles/English/eBible.org/KJB/', # with deuterocanon -- ALWAYS NEEDED if KJB-1611 and some others are included
+                'KJB-1611': '../Bibles/English/KJB-1611/', # with deuterocanon
                 'Bshps': '../copiedBibles/English/BibleSuperSearch/BB/bishops.txt',
                 'Gnva': '../copiedBibles/English/eBible.org/GNV/',
                 'Cvdl': '../copiedBibles/English/BibleSuperSearch/CB/coverdale.txt',
@@ -621,7 +621,7 @@ However, Moffat wasn’t just a <em>follow the crowd</em> person, so he’s like
                 'copyright': '<p class="copyright">Copyright © (coming).</p>',
                 'licence': '<p class="licence">Public domain outside of the United Kingdom.</p>',
                 'acknowledgements': '''<p class="acknwldg">We’re all very grateful that after disgracing John Wycliffe and brutally executing William Tyndale, England finally got a king who would authorise a quality Bible translation.
-This was the printed book that had more influence on our modern world than any other and remains a world-wide best-selling publication.
+This was the printed book that had more influence on our modern world than any other, and remains a world-wide best-selling publication.
 Thanks to <a href="https://eBible.org/Scriptures/">eBible.org</a> for supplying the USFM files.</p>''',
                 'notes': '''<p class="note">Note that after the publication of Samuel Johnson’s dictionary in 1755, the 1769 editions of the KJV are very different from the 1611 edition,
 including major typographic and formatting changes, and major spelling changes (including gaining the letter ‘j’), as well as hundreds of corrections.
@@ -731,6 +731,7 @@ Footnote markers PRECEDE the text that they concern,
         assert len(BibleLocations) >= 57, len(BibleLocations)
     for versionLocation in BibleLocations.values():
         assert versionLocation.startswith('../copiedBibles/') \
+            or versionLocation.startswith('../Bibles/') \
             or versionLocation.startswith('../../OpenEnglishTranslation--OET/') \
             or versionLocation.startswith('../../Forked/') \
             or versionLocation.startswith('/mnt/SSDs/Bibles/'), f"{versionLocation=}"
