@@ -658,7 +658,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                 html = f'{html}</div><!--periph-->\n'
                 inSection = None
             assert not inSection and not inParagraph, f"{versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {marker}={rest}"
-            html = f'{html}<hr style="width:40%;margin-left:0;margin-top: 0.3em">\n<div class="periph">\n<h1>{rest}</h1>\n'
+            html = f'{html}<hr style="width:60%;margin-left:0;margin-top: 0.3em">\n<div class="periph">\n<h1>{rest}</h1>\n'
             inSection = marker
         elif marker == 'headers':
             assert not rest
