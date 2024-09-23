@@ -32,6 +32,7 @@ CHANGELOG:
     2024-04-25 Added some Moffat books
     2024-05-06 Added some NETS verses
     2024-06-25 Added BibleMapper copyright details
+    2024-09-23 Change OET OT book order
 """
 from gettext import gettext as _
 from typing import List
@@ -44,10 +45,10 @@ from BibleOrgSys.BibleOrgSysGlobals import dPrint, fnPrint
 from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39
 
 
-LAST_MODIFIED_DATE = '2024-09-17' # by RJH
+LAST_MODIFIED_DATE = '2024-09-23' # by RJH
 SHORT_PROGRAM_NAME = "settings"
 PROGRAM_NAME = "OpenBibleData (OBD) Create Pages"
-PROGRAM_VERSION = '0.96'
+PROGRAM_VERSION = '0.97'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
@@ -65,7 +66,27 @@ DEBUG_DESTINATION_FOLDER = NORMAL_DESTINATION_FOLDER.joinpath( 'Test/')
 DESTINATION_FOLDER = DEBUG_DESTINATION_FOLDER if TEST_MODE or BibleOrgSysGlobals.debugFlag \
                         else NORMAL_DESTINATION_FOLDER
 
-OET_NT_BOOK_ORDER = ['JHN','MRK','MAT','LUK','ACT', 'ROM','CO1','CO2', 'GAL','EPH','PHP','COL', 'TH1','TH2', 'TI1','TI2','TIT','PHM', 'HEB', 'JAM', 'PE1','PE2', 'JN1','JN2','JN3', 'JDE', 'REV']
+# We use a rough logical, then chronological 'book' order
+# For the OT, we keep SA1/SA2, etc. together (as a single document) rather than splitting them chronologically
+OET_OT_BOOK_ORDER = ['GEN','EXO','LEV','NUM','DEU',
+                        'JOS','JDG','RUT',
+                        'SA1','SA2', 'PSA', 'AMO','HOS',
+                        'KI1','KI2', 'CH1','CH2', 'PRO','ECC','SNG',
+                        'JOL', 'MIC', 'ISA', 'ZEP', 'HAB', 'JER','LAM',
+                        'JNA', 'NAH', 'OBA',
+                        'DAN', 'EZE',
+                        'EZR','EST','NEH', 'HAG','ZEC','MAL',
+                        'JOB']
+# For the NT, we put JHN first as a parallel to GEN, then ACT ends up better because immediately following LUK
+OET_NT_BOOK_ORDER = ['JHN','MRK','MAT','LUK','ACT',
+                        'JAM', 'GAL', 'TH1','TH2', 'CO1','CO2', 'ROM', 'COL', 'PHM', 'EPH', 'PHP',
+                        'TI1','TIT', 'PE1','PE2',
+                        'TI2', 'HEB', 'JDE',
+                        'JN1','JN2','JN3', 'REV']
+OET_BOOK_ORDER = ['INT','FRT'] + OET_OT_BOOK_ORDER + OET_NT_BOOK_ORDER # For now -- will add apocrypha when drafted
+assert len(OET_OT_BOOK_ORDER) == 39
+assert len(OET_NT_BOOK_ORDER) == 27
+assert len(OET_BOOK_ORDER) == 68 # For now
 
 TEST_OT_BOOK_LIST = ['SA1'] # Books in progress
 TEST_NT_BOOK_LIST = ['MRK'] # Shortest gospel
@@ -114,7 +135,7 @@ class State:
                 'NIV','CEV','ESV','NASB','LSB',
                 'JQT','2DT','1ST','TPT',
                 'WEB','WMB','MSG','LSV','FBV','TCNT','T4T','LEB','NRSV','NKJV','NAB','BBE',
-                'Moff','JPS','ASV','DRA','YLT','Drby','RV','Wbstr','KJB-1769','KJB-1611','Bshps','Gnva','Cvdl',
+                'Moff','JPS','Wymth','ASV','DRA','YLT','Drby','RV','Wbstr','KJB-1769','KJB-1611','Bshps','Gnva','Cvdl',
                 'TNT','Wyc',
                 'Luth','ClVg',
                 'SR-GNT','UGNT','SBL-GNT','TC-GNT',
@@ -130,7 +151,7 @@ class State:
                 'NIV','CEV','ESV','NASB','LSB',
                 'JQT','2DT','1ST','TPT',
                 'WEB','WMB','MSG','NET','LSV','FBV','TCNT','T4T','LEB','NRSV','NKJV','NAB','BBE',
-                'Moff','JPS','ASV','DRA','YLT','Drby','RV','Wbstr','KJB-1769','KJB-1611','Bshps','Gnva','Cvdl',
+                'Moff','JPS','Wymth','ASV','DRA','YLT','Drby','RV','Wbstr','KJB-1769','KJB-1611','Bshps','Gnva','Cvdl',
                 'TNT','Wyc',
                 'Luth','ClVg',
                 'SR-GNT','UGNT','SBL-GNT','TC-GNT',
@@ -155,12 +176,12 @@ class State:
     BibleVersionDecorations = { 'OET':('<b>','</b>'),'OET-RV':('<b>','</b>'),'OET-LV':('<b>','</b>'),
                 'ULT':('',''),'UST':('',''),
                 'BSB':('',''),'BLB':('',''),
-                'AICNT':('',''),'OEB':('',''),'ISV':('',''),
-                'WEB':('',''),'WMB':('',''),'NET':('',''),'LSV':('',''),'FBV':('',''),'TCNT':('<small>','</small>'),'T4T':('',''),'LEB':('',''),'BBE':('',''),
-                'Moff':('<small>','</small>'),'JPS':('<small>','</small>'),'ASV':('',''),'DRA':('<small>','</small>'),'YLT':('',''),'Drby':('',''),'RV':('',''),
+                'AICNT':('',''), 'OEB':('',''), 'ISV':('',''),
+                'WEB':('',''),'WMB':('',''), 'NET':('',''), 'LSV':('',''), 'FBV':('',''), 'TCNT':('<small>','</small>'), 'T4T':('',''),'LEB':('',''),'BBE':('',''),
+                'Moff':('<small>','</small>'), 'JPS':('<small>','</small>'), 'Wymth':('<small>','</small>'), 'ASV':('',''), 'DRA':('<small>','</small>'),'YLT':('',''),'Drby':('',''),'RV':('',''),
                 'Wbstr':('<small>','</small>'),
-                'KJB-1769':('',''),'KJB-1611':('',''), 'Bshps':('',''),'Gnva':('',''),'Cvdl':('',''),
-                'TNT':('',''),'Wyc':('',''), #'ClVg':('<small>','</small>'),
+                'KJB-1769':('',''),'KJB-1611':('',''), 'Bshps':('',''), 'Gnva':('',''), 'Cvdl':('',''),
+                'TNT':('',''), 'Wyc':('',''), #'ClVg':('<small>','</small>'),
                 'SR-GNT':('<b>','</b>'), # 'UGNT':('<small>','</small>'),'SBL-GNT':('<small>','</small>'),'TC-GNT':('<small>','</small>'),
                 # 'BrTr':('<small>','</small>'),'BrLXX':('',''),
                 'UHB':('<b>','</b>'),
@@ -214,6 +235,7 @@ class State:
                 'BBE': '../copiedBibles/English/eBible.org/BBE/',
                 'Moff': '../copiedBibles/English/Moffat/',
                 'JPS': '../copiedBibles/English/eBible.org/JPS/',
+                'Wymth': '../Bibles/English/Weymouth_NT-1903/',
                 'ASV': '../copiedBibles/English/eBible.org/ASV/',
                 'DRA': '../copiedBibles/English/eBible.org/DRA/',
                 'YLT': '../copiedBibles/English/eBible.org/YLT/',
@@ -278,6 +300,7 @@ class State:
                 'BBE': 'Bible in Basic English (1965)',
                 'Moff': 'The Moffatt Translation of the Bible (1922)',
                 'JPS': 'Jewish Publication Society TaNaKH (1917)',
+                'Wymth': 'Weymouth New Testament (1903)',
                 'ASV': 'American Standard Version (1901)',
                 'DRA': 'Douay-Rheims American Edition (1899)',
                 'YLT': 'Youngs Literal Translation (1898)',
@@ -347,6 +370,7 @@ class State:
                 'BBE': ['ALL'],
                 'Moff': ['ALL'],
                 'JPS': ['ALL'],
+                'Wymth':['ALL'], # NT only
                 'ASV': ['ALL'],
                 'DRA': ['ALL'],
                 'YLT': ['ALL'],
@@ -410,6 +434,7 @@ class State:
                 'BBE': TEST_BOOK_LIST,
                 'Moff': TEST_BOOK_LIST,
                 'JPS': TEST_OT_BOOK_LIST,
+                'Wymth': TEST_NT_BOOK_LIST, # NT only
                 'ASV': TEST_BOOK_LIST,
                 'DRA': TEST_BOOK_LIST,
                 'YLT': TEST_BOOK_LIST,
@@ -532,7 +557,7 @@ We’re also grateful to the <a href="https://www.Biblica.com/clear/">Biblica Cl
         'TPT': {'about': '<p class="about">The Passion Translation (2017) by Brian Simmons.</p>',
                 'copyright': '<p class="copyright">Scripture quotations marked TPT are from The Passion Translation®. Copyright © 2017, 2018, 2020 by Passion & Fire Ministries, Inc. Used by permission. All rights reserved. ThePassionTranslation.com.</p>',
                 'licence': '<p class="licence">Up to 250 verses may be used.</p>',
-                'notes': '<p class="acknwldg">A few selected verses included here for reference purposes only—this is not a recommended as a reliable Bible translation.</p>' },
+                'notes': '<p class="note">A few selected verses included here for reference purposes only—this is not a recommended as a reliable Bible translation.</p>' },
         'WEB': {'about': '<p class="about">World English Bible (2023).</p>',
                 'copyright': '<p class="copyright">Copyright © (coming).</p>',
                 'licence': '<p class="licence">(coming).</p>',
@@ -592,6 +617,12 @@ However, Moffat wasn’t just a <em>follow the crowd</em> person, so he’s like
                 'copyright': '<p class="copyright">Copyright © (coming).</p>',
                 'licence': '<p class="licence">(coming).</p>',
                 'acknowledgements': '<p class="acknwldg">(coming).</p>' },
+        'Wymth': {'about': '<p class="about">Weymouth New Testament (1903).</p>',
+                'copyright': '<p class="copyright">Copyright © (coming).</p>',
+                'licence': '<p class="licence">Public domain.</p>',
+                'acknowledgements': '<p class="acknwldg">(coming).</p>',
+                'notes': '''<p class="note">Also known as “The New Testament in Modern Speech” or “The Modern Speech New Testament”.
+See <a href="https://en.wikipedia.org/wiki/Weymouth_New_Testament">Wikipedia</a> and <a href="https://www.bible-researcher.com/weymouth.html">here</a>.</p>''' },
         'ASV': {'about': '<p class="about">American Standard Version (1901).</p>',
                 'copyright': '<p class="copyright">Copyright © (coming).</p>',
                 'licence': '<p class="licence">(coming).</p>',
@@ -751,51 +782,44 @@ state = State()
 
 def reorderBooksForOETVersions( givenBookList:List[str] ) -> List[str]:
     """
-    OET needs to put JHN and MRK before MAT
+    OET OT needs to put EZR NEH after MAL
+    OET NT needs to put JHN and MRK before MAT
     """
     fnPrint( DEBUGGING_THIS_MODULE, f"reorderBooksForOETVersions( {type(givenBookList)} ({len(givenBookList)}) {givenBookList} )" )
 
-    if not isinstance( givenBookList, list ):
-        givenBookList = list( givenBookList )
+    newBookList = []
+    for BBB in OET_BOOK_ORDER:
+        if BBB in givenBookList:
+            newBookList.append( BBB )
 
-    try: ixJHN = givenBookList.index('JHN')
-    except ValueError: return givenBookList # Might not have all books included
-    try: ixFirstGospel = givenBookList.index('MAT')
-    except ValueError: ixFirstGospel = givenBookList.index('MRK')
-    if ixFirstGospel<ixJHN:
-        # print( f"{ixFirstGospel=} {ixJHN=} {givenBookList}")
-        givenBookList.remove( 'JHN' )
-        givenBookList.remove( 'MRK' )
-        givenBookList.insert( ixFirstGospel, 'MRK' )
-        givenBookList.insert( ixFirstGospel, 'JHN' )
-        # print( f"Returning ({len(givenBookList)}) {givenBookList}" )
-
-    return givenBookList
+    assert len(newBookList) == len(givenBookList), f"({len(newBookList)}) {newBookList=} from ({len(givenBookList)}) {givenBookList=} {givenBookList-newBookList}"
+    return newBookList
 # end of createSitePages.reorderBooksForOETVersions
 
 
 
 def briefDemo() -> None:
     """
-    Main program to handle command line parameters and then run what they want.
+    Brief demo to check module is working
     """
     BibleOrgSysGlobals.introduceProgram( __name__, PROGRAM_NAME_VERSION, LAST_MODIFIED_DATE )
 
-    # Demo the settings object
-    settings()
+    # Demo the settings
+    print( f"({len(OET_BOOK_ORDER)}) {OET_BOOK_ORDER=}" )
 # end of settings.briefDemo
 
 def fullDemo() -> None:
     """
-    Full demo to check class is working
+    Full demo to check module is working
     """
     BibleOrgSysGlobals.introduceProgram( __name__, PROGRAM_NAME_VERSION, LAST_MODIFIED_DATE )
 
-    # Demo the settings object
-    settings()
+    # Demo the settings
+    print( f"({len(OET_BOOK_ORDER)}) {OET_BOOK_ORDER=}" )
 # end of settings.fullDemo
 
 if __name__ == '__main__':
+    # Main program to handle command line parameters and then run what they want.
     from multiprocessing import freeze_support
     freeze_support() # Multiprocessing support for frozen Windows executables
 

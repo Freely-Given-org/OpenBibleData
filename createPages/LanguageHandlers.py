@@ -51,7 +51,7 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 import BibleOrgSys.OriginalLanguages.Greek as Greek
 
 
-LAST_MODIFIED_DATE = '2024-09-20' # by RJH
+LAST_MODIFIED_DATE = '2024-09-23' # by RJH
 SHORT_PROGRAM_NAME = "LanguageHandlers"
 PROGRAM_NAME = "OpenBibleData Language Handling functions"
 PROGRAM_VERSION = '0.96'
@@ -224,7 +224,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
             (('carnall ',),'carnal '), (('carpeter',),'carpenter'), ((' carieth',' caried',' caryed'),' carried'),((' cary ',),' carry '),
             ((' castynge',' castyng',' castinge'),' casting/throwing'),((' castiden ',' kesten '),' cast/throw '),((' caste ',' keste '),' cast/threw '), (('casteles','castels'),'castles'),
             ((' cattell',' catell',' catel'),' cattle'),
-            ((' caues ',),' caves '),((' caues,',),' caves,'), ((' caue ',),' cave,'),((' caue ',),' cave,'),
+            ((' caues ',),' caves '),((' caues,',),' caves,'), ((' caue ',),' cave '),((' caue,',),' cave,'),
         ((' ceesside',' ceessid',' ceassed'),' ceased'),((' ceesse ',' ceasse '),' cease '),((' ceesse,',' ceasse,'),' cease,'),
             (('centurien',),'centurion'),
             ((' certayne',' certein',' certaine'),' certain'),
