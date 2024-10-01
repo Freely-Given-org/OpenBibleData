@@ -73,7 +73,7 @@ from settings import State, TEST_MODE, SITE_NAME
 from OETHandlers import getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2024-09-04' # by RJH
+LAST_MODIFIED_DATE = '2024-09-30' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
 PROGRAM_VERSION = '0.89'
@@ -91,8 +91,9 @@ KNOWN_PAGE_TYPES = ('site', 'TopIndex', 'details', 'AllDetails',
                     'book','bookIndex', 'chapter','chapterIndex', 'section','sectionIndex',
                     'relatedPassage','relatedSectionIndex', 'parallelVerse', 'interlinearVerse',
                     'dictionaryMainIndex','dictionaryLetterIndex','dictionaryEntry','dictionaryIntro',
-                    'word','lemma','morpheme', 'person','location',
-                    'wordIndex','lemmaIndex','morphemeIndex', 'personIndex','locationIndex', 'referenceIndex',
+                    'word','lemma','morpheme', 'person','location', 'statistics',
+                    'wordIndex','lemmaIndex','morphemeIndex', 'personIndex','locationIndex',
+                        'statisticsIndex', 'referenceIndex',
                     'search', 'about', 'news', 'OETKey')
 def makeTop( level:int, versionAbbreviation:Optional[str], pageType:str, versionSpecificFileOrFolderName:Optional[str], state:State ) -> str:
     """
@@ -118,9 +119,10 @@ def makeTop( level:int, versionAbbreviation:Optional[str], pageType:str, version
     elif pageType in ('dictionaryLetterIndex', 'dictionaryEntry','dictionaryIntro'):
         cssFilename = 'BibleDict.css'
     elif pageType in ('site', 'details','AllDetails', 'search', 'about', 'news', 'OETKey', 'TopIndex',
+                      'statistics',
                       'bookIndex','chapterIndex','sectionIndex',
                       'relatedSectionIndex', 'dictionaryMainIndex',
-                      'wordIndex','lemmaIndex','morphemeIndex','personIndex','locationIndex','referenceIndex' ):
+                      'wordIndex','lemmaIndex','morphemeIndex','personIndex','locationIndex','statisticsIndex','referenceIndex' ):
         cssFilename = 'BibleSite.css'
     else: unexpected_page_type
 

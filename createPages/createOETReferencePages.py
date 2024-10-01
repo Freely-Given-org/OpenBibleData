@@ -59,6 +59,7 @@ CHANGELOG:
     2024-05-27 Try adding word connections for Hebrew roots
     2024-06-03 In test mode, only make connected lemma pages for Heb/Grk words used
     2024-06-19 Remove notes and segs from Hebrew words indexes
+    2024-09-30 Started adding some Bible stats
 """
 from gettext import gettext as _
 from typing import Dict, List, Tuple, Union
@@ -74,21 +75,22 @@ from time import time
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39, BOOKLIST_NT27
+from BibleOrgSys.Reference.BibleVersificationSystems import BibleVersificationSystem
 from BibleOrgSys.OriginalLanguages import Hebrew
 
 import sys
 sys.path.append( '../../BibleTransliterations/Python/' )
 from BibleTransliterations import transliterate_Hebrew, transliterate_Greek
 
-from settings import State, TEST_MODE, ALL_TEST_REFERENCE_PAGES, TEST_BOOK_LIST, SITE_NAME
+from settings import State, SITE_NAME, TEST_MODE, ALL_TEST_REFERENCE_PAGES, TEST_BOOK_LIST, OET_RV_BOOK_LIST, OET_BOOK_ORDER
 from html import makeTop, makeBottom, checkHtml
-from OETHandlers import getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename
+from OETHandlers import getOETTidyBBB, getOETBookName, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
-LAST_MODIFIED_DATE = '2024-09-16' # by RJH
+LAST_MODIFIED_DATE = '2024-10-01' # by RJH
 SHORT_PROGRAM_NAME = "createOETReferencePages"
 PROGRAM_NAME = "OpenBibleData createOETReferencePages functions"
-PROGRAM_VERSION = '0.76'
+PROGRAM_VERSION = '0.78'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -670,6 +672,8 @@ def createOETReferencePages( level:int, outputFolderPath:Path, state:State ) -> 
 
     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nCreating {'TEST ' if TEST_MODE else ''}reference pages for OET…" )
 
+    create_statistics_pages( level+1, outputFolderPath.joinpath( 'Stats/' ), state )
+
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Preprocessing word forms for OET…" )
     # Here we create our Dicts and Lists that we'll make the reference pages from
     # First make a list of each place the same Greek word (and matching morphology) is used
@@ -731,6 +735,7 @@ def createOETReferencePages( level:int, outputFolderPath:Path, state:State ) -> 
 <p class="note"><a href="GrkLem/">Greek lemmas index</a> <a href="GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
 <p class="note"><a href="Per/">Bible people index</a></p>
 <p class="note"><a href="Loc/">Bible locations index</a></p>
+<p class="note"><a href="Stats/">Bible statistics</a></p>
 {makeBottom( level, 'referenceIndex', state )}'''
     checkHtml( 'referenceIndex', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
@@ -1134,8 +1139,10 @@ def create_Hebrew_word_pages( level:int, outputFolderPath:Path, state:State ) ->
             if gloss:
                 translationField = f'''‘{gloss[0].upper() if glossCapitalisation=='S' else gloss[0]}{gloss[1:]}’'''.replace(',',', ')
             else:
-                translationField = "<small>Oops, no gloss available!</small>"
+                translationField = '<small>Oops, <a href="https://GitHub.com/Clear-Bible/macula-hebrew/issues/121">no gloss available</a>!</small>'
                 logging.error( f"create_Hebrew_word_pages: {ref} {rowType} No gloss available for '{word}'" )
+                # print( f"create_Hebrew_word_pages: {ref} {rowType=} No gloss available for {word=} {role=}" )
+                # print( f"  {morphemeGlosses=} {contextualMorphemeGlosses=} {wordGloss=} {contextualWordGloss=}")
             if glossCapitalisation:
                 capsField = f' <small>(Caps={glossCapitalisation})</small>'
 
@@ -1447,6 +1454,7 @@ f''' <a title="Go to Open Scriptures Hebrew verse page" href="https://hb.OpenS
 <p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
 <p class="note"><a href="../Per/">Bible people index</a></p>
 <p class="note"><a href="../Loc/">Bible locations index</a></p>
+<p class="note"><a href="../Stats/">Bible statistics</a></p>
 <h1 id="Top">Hebrew Words Index</h1>
 <p class="note">{indexText}</p>
 {makeBottom( level, 'wordIndex', state )}'''
@@ -1471,6 +1479,7 @@ f''' <a title="Go to Open Scriptures Hebrew verse page" href="https://hb.OpenS
 <p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
 <p class="note"><a href="../Per/">Bible people index</a></p>
 <p class="note"><a href="../Loc/">Bible locations index</a></p>
+<p class="note"><a href="../Stats/">Bible statistics</a></p>
 <h1 id="Top">Transliterated Hebrew Words Index</h1>
 <p class="note">{indexText}</p>
 {makeBottom( level, 'wordIndex', state )}'''
@@ -1871,6 +1880,7 @@ def create_Hebrew_lemma_pages( level:int, outputFolderPath:Path, state:State ) -
 <p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
 <p class="note"><a href="../Per/">Bible people index</a></p>
 <p class="note"><a href="../Loc/">Bible locations index</a></p>
+<p class="note"><a href="../Stats/">Bible statistics</a></p>
 <h1 id="Top">Hebrew Lemmas Index</h1>
 <p class="note">{indexText}</p>
 {makeBottom( level, 'lemmaIndex', state )}'''
@@ -1895,6 +1905,7 @@ def create_Hebrew_lemma_pages( level:int, outputFolderPath:Path, state:State ) -
 <p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
 <p class="note"><a href="../Per/">Bible people index</a></p>
 <p class="note"><a href="../Loc/">Bible locations index</a></p>
+<p class="note"><a href="../Stats/">Bible statistics</a></p>
 <h1 id="Top">Transliterated Hebrew Lemmas Index</h1>
 <p class="note">{indexText}</p>
 {makeBottom( level, 'lemmaIndex', state )}'''
@@ -2267,6 +2278,7 @@ f''' <a title="Go to Statistical Restoration Greek page" href="https://GreekCN
 <p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
 <p class="note"><a href="../Per/">Bible people index</a></p>
 <p class="note"><a href="../Loc/">Bible locations index</a></p>
+<p class="note"><a href="../Stats/">Bible statistics</a></p>
 <h1 id="Top">Greek Words Index</h1>
 <p class="note">{indexText}</p>
 {makeBottom( level, 'wordIndex', state )}'''
@@ -2291,6 +2303,7 @@ f''' <a title="Go to Statistical Restoration Greek page" href="https://GreekCN
 <p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
 <p class="note"><a href="../Per/">Bible people index</a></p>
 <p class="note"><a href="../Loc/">Bible locations index</a></p>
+<p class="note"><a href="../Stats/">Bible statistics</a></p>
 <h1 id="Top">Transliterated Greek Words Index</h1>
 <p class="note">{indexText}</p>
 {makeBottom( level, 'wordIndex', state )}'''
@@ -2557,6 +2570,7 @@ def create_Greek_lemma_pages( level:int, outputFolderPath:Path, state:State ) ->
 <p class="note">Greek lemmas index <a href="transIndex.htm">Transliterated Greek lemmas index</a></p>
 <p class="note"><a href="../Per/">Bible people index</a></p>
 <p class="note"><a href="../Loc/">Bible locations index</a></p>
+<p class="note"><a href="../Stats/">Bible statistics</a></p>
 <h1 id="Top">Greek Lemmas Index</h1>
 <p class="note">{indexText}</p>
 {makeBottom( level, 'lemmaIndex', state )}'''
@@ -2581,6 +2595,7 @@ def create_Greek_lemma_pages( level:int, outputFolderPath:Path, state:State ) ->
 <p class="note"><a href="index.htm">Greek lemmas index</a> Transliterated Greek lemmas index</p>
 <p class="note"><a href="../Per/">Bible people index</a></p>
 <p class="note"><a href="../Loc/">Bible locations index</a></p>
+<p class="note"><a href="../Stats/">Bible statistics</a></p>
 <h1 id="Top">Greek Lemmas Index</h1>
 <p class="note">{indexText}</p>
 {makeBottom( level, 'lemmaIndex', state )}'''
@@ -2667,6 +2682,7 @@ def create_person_pages( level:int, outputFolderPath:Path, state:State ) -> int:
 <p class="note"><a href="../GrkWrd/">Greek words index</a> <a href="../GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
 <p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
 <p class="note"><a href="../Loc/">Bible locations index</a></p>
+<p class="note"><a href="../Stats/">Bible statistics</a></p>
 <h1 id="Top">Bible People Index</h1>
 <p class="note">{' '.join(personLinks)}</p>
 {makeBottom( level, 'personIndex', state )}'''
@@ -2752,6 +2768,7 @@ def create_location_pages( level:int, outputFolderPath:Path, state:State ) -> in
 <p class="note"><a href="../GrkWrd/">Greek words index</a> <a href="../GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
 <p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
 <p class="note"><a href="../Per/">Bible people index</a></p>
+<p class="note"><a href="../Stats/">Bible statistics</a></p>
 <h1 id="Top">Bible Locations Index</h1>
 <p class="note">{' '.join(locationLinks)}</p>
 {makeBottom( level, 'locationIndex', state )}'''
@@ -2761,6 +2778,152 @@ def create_location_pages( level:int, outputFolderPath:Path, state:State ) -> in
         indexHtmlFile.write( indexHtml )
     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
 # end of createOETReferencePages.create_location_pages function
+
+
+def create_statistics_pages( level:int, outputFolderPath:Path, state:State ) -> int:
+    """
+    """
+    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Making statistics pages…" )
+
+    try: os.makedirs( outputFolderPath )
+    except FileExistsError: pass # it was already there
+
+    bvs = BibleVersificationSystem( 'BibMaxRef' )
+
+    # Create chapters page
+    output_filename = 'Chapters.htm'
+    filepath = outputFolderPath.joinpath( output_filename )
+    top = makeTop( level, None, 'statistics', None, state) \
+            .replace( '__TITLE__', f"Bible Chapters and Verses{' TEST' if TEST_MODE else ''}" ) \
+            .replace( '__KEYWORDS__', 'Bible, statistics, number, chapters, verses, percentage' )
+    # Do it three times to get the right order for us: OT, DC, NT
+    chaptersData5columns = [(BBB, getOETBookName(BBB),'OT',bvs.getNumChapters(BBB),bvs.getTotalNumVerses(BBB))
+                        for BBB in bvs if BibleOrgSysGlobals.loadedBibleBooksCodes.isOldTestament_NR(BBB)]
+    chaptersData5columns += [(BBB, getOETBookName(BBB),'DC',bvs.getNumChapters(BBB),bvs.getTotalNumVerses(BBB))
+                        for BBB in bvs if BibleOrgSysGlobals.loadedBibleBooksCodes.isDeuterocanon_NR(BBB)]
+    chaptersData5columns += [(BBB, getOETBookName(BBB),'NT',bvs.getNumChapters(BBB),bvs.getTotalNumVerses(BBB))
+                        for BBB in bvs if BibleOrgSysGlobals.loadedBibleBooksCodes.isNewTestament_NR(BBB)]
+    # print( f"({len(chaptersData5columns)}) {chaptersData5columns=}" )
+    totalChapters = total66Chapters = totalOTChapters = totalDCChapters = totalNTChapters = 0
+    totalVerses = total66Verses = totalOTVerses = totalDCVerses = totalNTVerses = 0
+    for BBB,_bkName,_testamentAbbrev,numChaps,numVerses in chaptersData5columns:
+        if BibleOrgSysGlobals.loadedBibleBooksCodes.isOldTestament_NR(BBB):
+            totalOTChapters += numChaps; totalOTVerses += numVerses
+            total66Chapters += numChaps; total66Verses += numVerses
+            totalChapters += numChaps; totalVerses += numVerses
+        elif BibleOrgSysGlobals.loadedBibleBooksCodes.isDeuterocanon_NR(BBB):
+            totalDCChapters += numChaps; totalDCVerses += numVerses
+            totalChapters += numChaps; totalVerses += numVerses
+        elif BibleOrgSysGlobals.loadedBibleBooksCodes.isNewTestament_NR(BBB):
+            totalNTChapters += numChaps; totalNTVerses += numVerses
+            total66Chapters += numChaps; total66Verses += numVerses
+            totalChapters += numChaps; totalVerses += numVerses
+    print( f"    {totalOTChapters=} {totalDCChapters=} {totalNTChapters=} {total66Chapters=}" )
+    print( f"    {totalOTVerses=} {totalDCVerses=} {totalNTVerses=} {total66Verses=}" )
+    # Add percentage columns ready for sorting
+    chaptersData8columns = []
+    for BBB,bkName,testamentAbbrev,numChaps,numVerses in chaptersData5columns:
+            verseTotalPercent66 = f'{numVerses*100/total66Verses:0.1f}'
+            verseTotalPercent = f'{numVerses*100/totalVerses:0.1f}'
+            verseTestamentPercent = f'''{numVerses*100/(totalOTVerses if testamentAbbrev=='OT' else totalNTVerses if testamentAbbrev=='NT' else totalDCVerses):0.1f}'''
+            chaptersData8columns.append( (BBB,bkName,testamentAbbrev,numChaps,numVerses,verseTotalPercent66,verseTotalPercent,verseTestamentPercent) )
+    # print( f"({len(chaptersData8columns)}) {chaptersData8columns=}" )
+
+    chapters66HtmlTableLines = []
+    for BBB,bkName,testamentAbbrev,numChaps,numVerses,verseTotalPercent66,verseTotalPercent,verseTestamentPercent in chaptersData8columns:
+        if BibleOrgSysGlobals.loadedBibleBooksCodes.isOldTestament_NR(BBB) or BibleOrgSysGlobals.loadedBibleBooksCodes.isNewTestament_NR(BBB):
+            chapters66HtmlTableLines.append( f'''<tr><td style="text-align:center;">{len(chapters66HtmlTableLines)+1}</td><td>{BBB}</td><td style="text-align:center;">{bkName}</td><td style="text-align:right;">{numChaps}</td><td style="text-align:right;">{numVerses:,}</td><td style="text-align:right;">{verseTotalPercent66}%</td><td style="text-align:right;">{verseTestamentPercent}% {testamentAbbrev}</td></tr>''' )
+    # print( f"({len(chapters66HtmlTableLines)}) {chapters66HtmlTableLines=}" )
+    chapters66Html = f'''<table style="width:95%;">
+<tr><th>Number</th><th>Code</th><th>Book name</th><th>Chapters</th><th>Verses</th><th>Bible</th><th>Testament</th></tr>
+{NEWLINE.join( chapters66HtmlTableLines )}
+<tr><td></td><td></td><td style="text-align:center;"><b>TOTAL</b></td><td style="text-align:right;"><b>{total66Chapters:,}</b></td><td style="text-align:right;"><b>{total66Verses:,}</b></td><td></td><td></td></tr>
+</table>'''
+
+    chaptersHtmlTableLines = []
+    for BBB,bkName,testamentAbbrev,numChaps,numVerses,verseTotalPercent66,verseTotalPercent,verseTestamentPercent in chaptersData8columns:
+        if BibleOrgSysGlobals.loadedBibleBooksCodes.isOldTestament_NR(BBB) or BibleOrgSysGlobals.loadedBibleBooksCodes.isDeuterocanon_NR(BBB) or BibleOrgSysGlobals.loadedBibleBooksCodes.isNewTestament_NR(BBB):
+            chaptersHtmlTableLines.append( f'''<tr><td style="text-align:center;">{len(chaptersHtmlTableLines)+1}</td><td>{BBB}</td><td style="text-align:center;">{bkName}</td><td style="text-align:right;">{numChaps}</td><td style="text-align:right;">{numVerses:,}</td><td style="text-align:right;">{verseTotalPercent}%</td><td style="text-align:right;">{verseTestamentPercent}% {testamentAbbrev}</td></tr>''' )
+    # print( f"({len(chaptersHtmlTableLines)}) {chaptersHtmlTableLines=}" )
+    chaptersHtml = f'''<table style="width:95%;">
+<tr><th>Number</th><th>Code</th><th>Book name</th><th>Chapters</th><th>Verses</th><th>Bible</th><th>Testament</th></tr>
+{NEWLINE.join( chaptersHtmlTableLines )}
+<tr><td></td><td></td><td style="text-align:center;"><b>TOTAL</b></td><td style="text-align:right;"><b>{totalChapters:,}</b></td><td style="text-align:right;"><b>{totalVerses:,}</b></td><td></td><td></td></tr>
+</table>'''
+
+    chaptersData8columns.sort(key=lambda x:x[4], reverse=False) # Sort in place
+    sortedChapters66HtmlTableLines = []
+    for BBB,bkName,testamentAbbrev,numChaps,numVerses,verseTotalPercent66,verseTotalPercent,verseTestamentPercent in chaptersData8columns:
+        if BibleOrgSysGlobals.loadedBibleBooksCodes.isOldTestament_NR(BBB) or BibleOrgSysGlobals.loadedBibleBooksCodes.isNewTestament_NR(BBB):
+            sortedChapters66HtmlTableLines.append( f'''<tr><td style="text-align:center;">{len(sortedChapters66HtmlTableLines)+1}</td><td>{BBB}</td><td style="text-align:center;">{bkName}</td><td style="text-align:right;">{numChaps}</td><td style="text-align:right;">{numVerses:,}</td><td style="text-align:right;">{verseTotalPercent66}%</td><td style="text-align:right;">{verseTestamentPercent}% {testamentAbbrev}</td></tr>''' )
+    # print( f"({len(chapters66HtmlTableLines)}) {chapters66HtmlTableLines=}" )
+    sortedChapters66Html = f'''<table style="width:95%;">
+<tr><th>Number</th><th>Code</th><th>Book name</th><th>Chapters</th><th>Verses</th><th>Bible</th><th>Testament</th></tr>
+{NEWLINE.join( sortedChapters66HtmlTableLines )}
+<tr><td></td><td></td><td style="text-align:center;"><b>TOTAL</b></td><td style="text-align:right;"><b>{total66Chapters:,}</b></td><td style="text-align:right;"><b>{total66Verses:,}</b></td><td></td><td></td></tr>
+</table>'''
+
+    sortedChaptersHtmlTableLines = []
+    for BBB,bkName,testamentAbbrev,numChaps,numVerses,verseTotalPercent66,verseTotalPercent,verseTestamentPercent in chaptersData8columns:
+        if BibleOrgSysGlobals.loadedBibleBooksCodes.isOldTestament_NR(BBB) or BibleOrgSysGlobals.loadedBibleBooksCodes.isDeuterocanon_NR(BBB) or BibleOrgSysGlobals.loadedBibleBooksCodes.isNewTestament_NR(BBB):
+            sortedChaptersHtmlTableLines.append( f'''<tr><td style="text-align:center;">{len(sortedChaptersHtmlTableLines)+1}</td><td>{BBB}</td><td style="text-align:center;">{bkName}</td><td style="text-align:right;">{numChaps}</td><td style="text-align:right;">{numVerses:,}</td><td style="text-align:right;">{verseTotalPercent}%</td><td style="text-align:right;">{verseTestamentPercent}% {testamentAbbrev}</td></tr>''' )
+    # print( f"({len(chaptersHtmlTableLines)}) {chaptersHtmlTableLines=}" )
+    sortedChaptersHtml = f'''<table style="width:95%;">
+<tr><th>Number</th><th>Code</th><th>Book name</th><th>Chapters</th><th>Verses</th><th>Bible</th><th>Testament</th></tr>
+{NEWLINE.join( sortedChaptersHtmlTableLines )}
+<tr><td></td><td></td><td style="text-align:center;"><b>TOTAL</b></td><td style="text-align:right;"><b>{totalChapters:,}</b></td><td style="text-align:right;"><b>{totalVerses:,}</b></td><td></td><td></td></tr>
+</table>'''
+
+    pageHtml = f'''{top}
+<p class="note"><b><a href="../">Reference lists contents page</a></b></p>
+<p class="note"><a href="../HebWrd/">Hebrew words index</a> <a href="../HebWrd/transIndex.htm">Transliterated Hebrew words index</a></p>
+<p class="note"><a href="../HebLem/">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm">Transliterated Hebrew lemmas index</a></p>
+<p class="note"><a href="../GrkWrd/">Greek words index</a> <a href="../GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
+<p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
+<p class="note"><a href="../Per/">Bible people index</a></p>
+<p class="note"><a href="../Loc/">Bible locations index</a></p>
+<p class="note"><a href="../Stats/">Bible statistics index</a></p>
+<h1 id="Top">Bible Chapters and Verses—Traditional Western Protestant</h1>
+{chapters66Html}
+<h1>Bible Chapters and Verses—Traditional Western Protestant</h1>
+<h2>Sorted by number of verses</h2>
+{sortedChapters66Html}
+<hr>
+<h1>Bible Chapters and Verses—With Deuterocanon/Apocrypha</h1>
+{chaptersHtml}
+<h1>Bible Chapters and Verses—With Deuterocanon/Apocrypha</h1>
+<h2>Sorted by number of verses</h2>
+{sortedChaptersHtml}
+{makeBottom( level, 'statisticsIndex', state )}'''
+    checkHtml( 'statisticsIndex', pageHtml )
+    assert not filepath.is_file() # Check that we're not overwriting anything
+    with open( filepath, 'wt', encoding='utf-8' ) as html_output_file:
+        html_output_file.write( pageHtml )
+    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  Wrote {len(pageHtml):,} characters to {output_filename}" )
+
+    # Create index page for this folder
+    filename = 'index.htm'
+    filepath = outputFolderPath.joinpath( filename )
+    top = makeTop( level, None, 'statisticsIndex', None, state) \
+            .replace( '__TITLE__', f"Bible Statistics Index{' TEST' if TEST_MODE else ''}" ) \
+            .replace( '__KEYWORDS__', 'Bible, statistics, number, chapters, verses' )
+    indexHtml = f'''{top}
+<p class="note"><b><a href="../">Reference lists contents page</a></b></p>
+<p class="note"><a href="../HebWrd/">Hebrew words index</a> <a href="../HebWrd/transIndex.htm">Transliterated Hebrew words index</a></p>
+<p class="note"><a href="../HebLem/">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm">Transliterated Hebrew lemmas index</a></p>
+<p class="note"><a href="../GrkWrd/">Greek words index</a> <a href="../GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
+<p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
+<p class="note"><a href="../Per/">Bible people index</a></p>
+<p class="note"><a href="../Loc/">Bible locations index</a></p>
+<h1 id="Top">Bible Statistics Index</h1>
+<p class="note"><a href="Chapters.htm">Bible chapters and verses</a></p>
+{makeBottom( level, 'statisticsIndex', state )}'''
+    checkHtml( 'statisticsIndex', indexHtml )
+    assert not filepath.is_file() # Check that we're not overwriting anything
+    with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
+        indexHtmlFile.write( indexHtml )
+    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
+# end of createOETReferencePages.create_statistics_pages function
 
 
 mdLinkRegex = re.compile( '\\[(.+?)\\]\\((.+?)\\)' )

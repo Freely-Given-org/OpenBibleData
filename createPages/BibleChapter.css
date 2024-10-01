@@ -86,6 +86,7 @@ span.bk { font-style:italic; }
 span.c { font-size:1.1em; color:green; }
 span.ca { font-size:1.1em; color:blue; }
 span.cp { font-size:1.1em; color:darkblue; }
+p.cp { font-size:1.1em; color:darkblue; } /* Why do we have both p and span for cp -- USFM 3.0 says p ???*/
 span.cPsa { font-size:1.6em; font-weight:bold; color:green; }
 span.v { vertical-align:super; font-size:0.5em; color:red; }
 span.va { vertical-align:super; font-size:0.5em; color:crimson; }
@@ -180,6 +181,7 @@ span.ULT_verseTextChunk {}
 span.UST_verseTextChunk {}
 span.Wbstr_verseTextChunk {}
 span.WEB_verseTextChunk {}
+span.Wymth_verseTextChunk {}
 span.WMB_verseTextChunk {}
 span.Wyc_verseTextChunk {}
 span.YLT_verseTextChunk {}

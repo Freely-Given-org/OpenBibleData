@@ -45,7 +45,7 @@ from BibleOrgSys.BibleOrgSysGlobals import dPrint, fnPrint
 from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39
 
 
-LAST_MODIFIED_DATE = '2024-09-23' # by RJH
+LAST_MODIFIED_DATE = '2024-09-24' # by RJH
 SHORT_PROGRAM_NAME = "settings"
 PROGRAM_NAME = "OpenBibleData (OBD) Create Pages"
 PROGRAM_VERSION = '0.97'
@@ -53,7 +53,7 @@ PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
 
-OET_VERSION = 'v0.20'
+OET_VERSION = 'v0.22' # Incremented on most runs for the production site
 
 TEST_MODE = True # Writes website into Test subfolder
 ALL_PRODUCTION_BOOKS = not TEST_MODE # If set to False, only selects one book per version for a faster test build
@@ -62,9 +62,12 @@ UPDATE_ACTUAL_SITE_WHEN_BUILT = True # The pages are initially built in a tmp fo
 
 TEMP_BUILD_FOLDER = Path( '/tmp/OBDHtmlPages/' )
 NORMAL_DESTINATION_FOLDER = Path( '../htmlPages/' )
-DEBUG_DESTINATION_FOLDER = NORMAL_DESTINATION_FOLDER.joinpath( 'Test/')
+DEBUG_DESTINATION_FOLDER = NORMAL_DESTINATION_FOLDER.joinpath( 'Test/' )
 DESTINATION_FOLDER = DEBUG_DESTINATION_FOLDER if TEST_MODE or BibleOrgSysGlobals.debugFlag \
                         else NORMAL_DESTINATION_FOLDER
+
+SITE_NAME = 'Open Bible Data'
+SITE_ABBREVIATION = 'OBD'
 
 # We use a rough logical, then chronological 'book' order
 # For the OT, we keep SA1/SA2, etc. together (as a single document) rather than splitting them chronologically
@@ -77,18 +80,25 @@ OET_OT_BOOK_ORDER = ['GEN','EXO','LEV','NUM','DEU',
                         'DAN', 'EZE',
                         'EZR','EST','NEH', 'HAG','ZEC','MAL',
                         'JOB']
+assert len(OET_OT_BOOK_ORDER) == 39
+# The following are not necessarily all included in the OET
+OET_APOCRYPHA_BOOK_ORDER = ['LAO',
+                        'GES','LES','ESG','DNG','PS2',
+                        'TOB','JDT','ESA','WIS','SIR','BAR','LJE','PAZ','SUS','BEL','MAN',
+                        'MA1','MA2','MA3','MA4',
+                        'GLS',
+                        'XXA','XXB','XXC','XXD','XXE']
 # For the NT, we put JHN first as a parallel to GEN, then ACT ends up better because immediately following LUK
 OET_NT_BOOK_ORDER = ['JHN','MRK','MAT','LUK','ACT',
                         'JAM', 'GAL', 'TH1','TH2', 'CO1','CO2', 'ROM', 'COL', 'PHM', 'EPH', 'PHP',
                         'TI1','TIT', 'PE1','PE2',
                         'TI2', 'HEB', 'JDE',
                         'JN1','JN2','JN3', 'REV']
-OET_BOOK_ORDER = ['INT','FRT'] + OET_OT_BOOK_ORDER + OET_NT_BOOK_ORDER # For now -- will add apocrypha when drafted
-assert len(OET_OT_BOOK_ORDER) == 39
 assert len(OET_NT_BOOK_ORDER) == 27
-assert len(OET_BOOK_ORDER) == 68 # For now
+OET_BOOK_ORDER = ['INT','FRT'] + OET_OT_BOOK_ORDER + OET_APOCRYPHA_BOOK_ORDER + OET_NT_BOOK_ORDER
+assert len(OET_BOOK_ORDER) > 68
 
-TEST_OT_BOOK_LIST = ['SA1'] # Books in progress
+TEST_OT_BOOK_LIST = ['SA2','NAH','OBA','HAG'] # Books in progress
 TEST_NT_BOOK_LIST = ['MRK'] # Shortest gospel
 TEST_BOOK_LIST = TEST_OT_BOOK_LIST + TEST_NT_BOOK_LIST
 
@@ -97,12 +107,12 @@ OET_RV_BOOK_LIST = ['GEN','EXO','JOS','JDG','RUT','SA1','EST','JOB','JNA','MAL']
 # TODO: What about 'INT' ?
 OET_RV_BOOK_LIST_WITH_FRT = ['FRT'] + OET_RV_BOOK_LIST
 
-SITE_NAME = 'Open Bible Data'
-SITE_ABBREVIATION = 'OBD'
-
 # The version to link to when the OET doesn't have that book (yet)
 ALTERNATIVE_VERSION = 'WEB' # Should be a version with all books present
-VERSIONS_WITH_BEYOND_66_BOOKS = ('KJB-1611','WEB',)
+VERSIONS_WITH_BEYOND_66_BOOKS = ( 'KJB-1611','WEB', )
+
+OT_ONLY_VERSIONS = ['UHB','JPS']
+NT_ONLY_VERSIONS = ['BLB','AICNT','TCNT','TNT','Wymth', 'SR-GNT','UGNT','SBL-GNT','TC-GNT']
 
 NUM_EXTRA_MODES = 6 # Related passages, parallel and interlinear verses, reference and (Tyndale Bible) dictionary, and search
 
@@ -617,12 +627,12 @@ However, Moffat wasn’t just a <em>follow the crowd</em> person, so he’s like
                 'copyright': '<p class="copyright">Copyright © (coming).</p>',
                 'licence': '<p class="licence">(coming).</p>',
                 'acknowledgements': '<p class="acknwldg">(coming).</p>' },
-        'Wymth': {'about': '<p class="about">Weymouth New Testament (1903).</p>',
-                'copyright': '<p class="copyright">Copyright © (coming).</p>',
-                'licence': '<p class="licence">Public domain.</p>',
-                'acknowledgements': '<p class="acknwldg">(coming).</p>',
-                'notes': '''<p class="note">Also known as “The New Testament in Modern Speech” or “The Modern Speech New Testament”.
-See <a href="https://en.wikipedia.org/wiki/Weymouth_New_Testament">Wikipedia</a> and <a href="https://www.bible-researcher.com/weymouth.html">here</a>.</p>''' },
+        'Wymth': {'about': '<p class="about">Weymouth New Testament (1903). Also known as “The New Testament in Modern Speech” or “The Modern Speech New Testament”.</p>',
+                'copyright': '<p class="copyright">Copyright © 1903.</p>',
+                'licence': '<p class="licence">Copyright expired. Public domain.</p>',
+                'acknowledgements': '''<p class="acknwldg">Thanks to Richard Weymouth for his work 120 years ago to bring English Bible translations back to the modern English of the time—the end of the 19th century and start of the 20th.
+(Our own <a href="https://OpenEnglishTranslation.Bible">Open English Translation</a> continues this concept, but now into the 21st century.)</p>''',
+                'notes': '''<p class="note">See <a href="https://en.wikipedia.org/wiki/Weymouth_New_Testament">Wikipedia</a> and <a href="https://www.bible-researcher.com/weymouth.html">here</a>.</p>''' },
         'ASV': {'about': '<p class="about">American Standard Version (1901).</p>',
                 'copyright': '<p class="copyright">Copyright © (coming).</p>',
                 'licence': '<p class="licence">(coming).</p>',
@@ -792,7 +802,7 @@ def reorderBooksForOETVersions( givenBookList:List[str] ) -> List[str]:
         if BBB in givenBookList:
             newBookList.append( BBB )
 
-    assert len(newBookList) == len(givenBookList), f"({len(newBookList)}) {newBookList=} from ({len(givenBookList)}) {givenBookList=} {givenBookList-newBookList}"
+    assert len(newBookList) == len(givenBookList), f"({len(newBookList)}) {newBookList=} from ({len(givenBookList)}) {givenBookList=} {[BBB for BBB in givenBookList if BBB not in newBookList]}"
     return newBookList
 # end of createSitePages.reorderBooksForOETVersions
 

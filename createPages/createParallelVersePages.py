@@ -78,7 +78,8 @@ import sys
 sys.path.append( '../../BibleTransliterations/Python/' )
 from BibleTransliterations import transliterate_Hebrew, transliterate_Greek
 
-from settings import State, TEST_MODE, TEST_BOOK_LIST, reorderBooksForOETVersions, OETS_UNFINISHED_WARNING_HTML_TEXT
+from settings import State, TEST_MODE, TEST_BOOK_LIST, OT_ONLY_VERSIONS, NT_ONLY_VERSIONS, \
+                                reorderBooksForOETVersions, OETS_UNFINISHED_WARNING_HTML_TEXT
 from usfm import convertUSFMMarkerListToHtml
 from Bibles import formatTyndaleBookIntro, formatUnfoldingWordTranslationNotes, formatTyndaleNotes, getBibleMapperMaps, getVerseDetailsHtml
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
@@ -89,7 +90,7 @@ from OETHandlers import getOETTidyBBB, getOETBookName, livenOETWordLinks, getHeb
 from LanguageHandlers import moderniseEnglishWords, translateGerman, translateLatin
 
 
-LAST_MODIFIED_DATE = '2024-09-23' # by RJH
+LAST_MODIFIED_DATE = '2024-09-30' # by RJH
 SHORT_PROGRAM_NAME = "createParallelVersePages"
 PROGRAM_NAME = "OpenBibleData createParallelVersePages functions"
 PROGRAM_VERSION = '0.97'
@@ -241,19 +242,19 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                 navLinks = f'<p id="__ID__" class="vNav">{leftCLink}{leftVLink}{ourTidyBbb} Book Introductions <a title="Go to __WHERE__ of page" href="#__LINK__">__ARROW__</a>{rightVLink}{rightCLink}{interlinearLink}{detailsLink}{hideFieldsButton}{hideTransliterationsButton}</p>' if c==-1 \
                         else f'<p id="__ID__" class="vNav">{introLink}{leftCLink}{leftVLink}{ourTidyBbb} {C}:{V} <a title="Go to __WHERE__ of page" href="#__LINK__">__ARROW__</a>{rightVLink}{rightCLink}{interlinearLink}{detailsLink}{hideFieldsButton}{hideTransliterationsButton}</p>'
                 parallelHtml = getVerseDetailsHtml( BBB, C, V )
-                # ancientRefsToPrint = ('MRK_1:0',) # For debugging
+                ancientRefsToPrint = ('OBA_1:19','OBA_1:21','SA2_1:16') #('SA1_31:13',) # For debugging
                 for versionAbbreviation in parallelVersions: # our adjusted order
                     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"    createParallelVersePagesForBook {parRef} processing {versionAbbreviation}…" )
                     assert not parallelHtml.endswith( '\n' )
 
                     if versionAbbreviation == 'OET': continue # Skip this pseudo-version as we have both OET-RV and OET-LV instead
-                    if versionAbbreviation in ('UHB','JPS') \
+                    if versionAbbreviation in (OT_ONLY_VERSIONS) \
                     and not BibleOrgSysGlobals.loadedBibleBooksCodes.isOldTestament_NR( BBB):
                         continue # Skip non-OT books for Hebrew
                     if versionAbbreviation in ('BrTr','BrLXX') \
                     and BibleOrgSysGlobals.loadedBibleBooksCodes.isNewTestament_NR( BBB):
                         continue # Skip NT books for Brenton (it has deuterocanon/apocrypha)
-                    if versionAbbreviation in ('BLB','AICNT','TCNT','TNT', 'SR-GNT','UGNT','SBL-GNT','TC-GNT') \
+                    if versionAbbreviation in (NT_ONLY_VERSIONS) \
                     and not BibleOrgSysGlobals.loadedBibleBooksCodes.isNewTestament_NR( BBB):
                         continue # Skip non-NT books for Koine Greek NT
                     if versionAbbreviation in ('TOSN','TTN','UTN'):
@@ -402,27 +403,28 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                                                                             .replace( 'J', 'Y' ).replace( 'Benjam', 'Benyam' ) \
                                                                             .replace( '<span class="wj">', '' ).replace( '</span>', '' ) \
                                                                             .replace( '  ', ' ' ).replace( '> ', '>' ) # Not sure why there's so many superfluous spaces in this text ???
-                                    # if parRef in ancientRefsToPrint: print( f"BB {versionAbbreviation} {parRef} ({len(cleanedModernisedKJB1769TextHtml)}) {cleanedModernisedKJB1769TextHtml=}" )
+                                    if parRef in ancientRefsToPrint: print( f"BB {versionAbbreviation} {parRef} ({len(cleanedModernisedKJB1769TextHtml)}) {cleanedModernisedKJB1769TextHtml=}" )
                                 modernisedTextDiffers = modernisedTextHtml != footnoteFreeTextHtml # we'll usually only show it if it changed
                                 # if versionAbbreviation=='KJB-1611' and parRef in ancientRefsToPrint: print( f"CC {versionAbbreviation} {parRef} ({len(modernisedTextHtml)}) {modernisedTextHtml=}")
                                 cleanedModernisedTextHtml = modernisedTextHtml.replace( versionAbbreviation, '' ) \
                                                                         .replace( '<span class="wj">', '' ).replace( '</span>', '' ) \
                                                                         .replace( 'Yesus/Yeshua', 'Yesus' )
-                                # if versionAbbreviation=='KJB-1611' and parRef in ancientRefsToPrint: print( f"DD {versionAbbreviation} {parRef} same={cleanedModernisedTextHtml==cleanedModernisedKJB1769TextHtml} ({len(cleanedModernisedTextHtml)}) {cleanedModernisedTextHtml=}")
-                                def removeVersePunctuation( htmlText:str ) -> str:
+                                if versionAbbreviation=='KJB-1611' and parRef in ancientRefsToPrint: print( f"DD {versionAbbreviation} {parRef} same={cleanedModernisedTextHtml==cleanedModernisedKJB1769TextHtml} ({len(cleanedModernisedTextHtml)}) {cleanedModernisedTextHtml=}")
+                                def removeVersePunctuationForComparison( htmlText:str ) -> str:
                                     """
                                     Punctuation was used differently over the centuries, so remove it from the verse
                                         so we can compare two verses and see if they differ only by punctuation.
                                     """
                                     return ( htmlText
                                             .replace(',','').replace('.','').replace(':','').replace(';','')
+                                            .replace('!','').replace('?','') # Yes, even question mark is added punctuation
                                             .replace('-','')
                                             .replace('“','').replace('”','')
                                             .replace('‘','').replace('’','')
                                             .replace('(','').replace(')','')
                                             .replace('¶ ','').replace('¶','')
                                             )
-                                # end of removeVersePunctuation function
+                                # end of removeVersePunctuationForComparison function
                                 if versionAbbreviation in ('Wyc','TNT','Cvdl','Gnva','Bshps','KJB-1611') \
                                 and cleanedModernisedTextHtml == cleanedModernisedKJB1769TextHtml:
                                     modernisedTextHtml = f"<small>{'Modernised spelling is s' if modernisedTextDiffers else 'S'}ame as used by KJB-1769 above{' apart from footnotes' if footnotesHtml else ''}</small>" # (Will be placed in parentheses below)
@@ -430,13 +432,17 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                                 and cleanedModernisedTextHtml.lower() == cleanedModernisedKJB1769TextHtml.lower():
                                     modernisedTextHtml = f"<small>{'Modernised spelling is s' if modernisedTextDiffers else 'S'}ame as used by KJB-1769 above, apart from capitalisation{' and footnotes' if footnotesHtml else ''}</small>" # (Will be placed in parentheses below)
                                 elif versionAbbreviation in ('Wyc','TNT','Cvdl','Gnva','Bshps','KJB-1611') \
-                                and removeVersePunctuation( cleanedModernisedTextHtml) \
-                                == removeVersePunctuation( cleanedModernisedKJB1769TextHtml ):
+                                and removeVersePunctuationForComparison( cleanedModernisedTextHtml) \
+                                == removeVersePunctuationForComparison( cleanedModernisedKJB1769TextHtml ):
                                     modernisedTextHtml = f"<small>{'Modernised spelling is s' if modernisedTextDiffers else 'S'}ame as used by KJB-1769 above, apart from punctuation{' and footnotes' if footnotesHtml else ''}</small>" # (Will be placed in parentheses below)
                                 elif versionAbbreviation in ('Wyc','TNT','Cvdl','Gnva','Bshps','KJB-1611') \
-                                and removeVersePunctuation( cleanedModernisedTextHtml ).lower() \
-                                == removeVersePunctuation( cleanedModernisedKJB1769TextHtml ).lower():
+                                and removeVersePunctuationForComparison( cleanedModernisedTextHtml ).lower() \
+                                == removeVersePunctuationForComparison( cleanedModernisedKJB1769TextHtml ).lower():
                                     modernisedTextHtml = f"<small>{'Modernised spelling is s' if modernisedTextDiffers else 'S'}ame as used by KJB-1769 above, apart from capitalisation and punctuation{' and footnotes' if footnotesHtml else ''}</small>" # (Will be placed in parentheses below)
+                                elif versionAbbreviation in ('Wyc','TNT','Cvdl','Gnva','Bshps','KJB-1611') \
+                                and removeVersePunctuationForComparison( cleanedModernisedTextHtml ).lower().replace( '<span class="add">', '' ) \
+                                == removeVersePunctuationForComparison( cleanedModernisedKJB1769TextHtml ).lower().replace( '<span class="add">', '' ):
+                                    modernisedTextHtml = f"<small>{'Modernised spelling is s' if modernisedTextDiffers else 'S'}ame as used by KJB-1769 above, apart from marking of added words (and possibly capitalisation and punctuation{' and footnotes' if footnotesHtml else ''})</small>" # (Will be placed in parentheses below)
                                 else:
                                     if versionAbbreviation == 'KJB-1611':
                                         modernisedTextHtml = modernisedTextHtml.replace( 'class="add"', 'class="add_KJB-1611"' )
@@ -680,7 +686,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                             assert BBB not in thisBible
                             if versionAbbreviation == 'KJB-1769': cleanedModernisedKJB1769TextHtml = ''
                             warningText = f'No {versionAbbreviation} {ourTidyBBBwithNotes} book available'
-                            vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName">{versionAbbreviation}</span> <span class="noBook"><small>{warningText}</small></span></p>'''
+                            vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation]} details" href="{'../'*BBBLevel}{versionAbbreviation}/details.htm#Top">{versionAbbreviation}</a></span> <span class="noBook"><small>{warningText}</small></span></p>'''
                             logging.warning( warningText )
 
                         except UntranslatedVerseError:
