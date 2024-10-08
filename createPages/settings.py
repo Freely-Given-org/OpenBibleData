@@ -45,7 +45,7 @@ from BibleOrgSys.BibleOrgSysGlobals import dPrint, fnPrint
 from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39
 
 
-LAST_MODIFIED_DATE = '2024-09-24' # by RJH
+LAST_MODIFIED_DATE = '2024-10-08' # by RJH
 SHORT_PROGRAM_NAME = "settings"
 PROGRAM_NAME = "OpenBibleData (OBD) Create Pages"
 PROGRAM_VERSION = '0.97'
@@ -59,6 +59,10 @@ TEST_MODE = True # Writes website into Test subfolder
 ALL_PRODUCTION_BOOKS = not TEST_MODE # If set to False, only selects one book per version for a faster test build
 ALL_TEST_REFERENCE_PAGES = False # If in TEST_MODE, make ALL word/lemma pages, or just the RELEVANT ones
 UPDATE_ACTUAL_SITE_WHEN_BUILT = True # The pages are initially built in a tmp folder so need to be copied to the final destination
+
+TEST_OT_BOOK_LIST = ['SA2','NAH','OBA','HAG'] # Books in progress
+TEST_NT_BOOK_LIST = ['MRK','LUK'] # Shortest gospel
+TEST_BOOK_LIST = TEST_OT_BOOK_LIST + TEST_NT_BOOK_LIST
 
 TEMP_BUILD_FOLDER = Path( '/tmp/OBDHtmlPages/' )
 NORMAL_DESTINATION_FOLDER = Path( '../htmlPages/' )
@@ -97,10 +101,6 @@ OET_NT_BOOK_ORDER = ['JHN','MRK','MAT','LUK','ACT',
 assert len(OET_NT_BOOK_ORDER) == 27
 OET_BOOK_ORDER = ['INT','FRT'] + OET_OT_BOOK_ORDER + OET_APOCRYPHA_BOOK_ORDER + OET_NT_BOOK_ORDER
 assert len(OET_BOOK_ORDER) > 68
-
-TEST_OT_BOOK_LIST = ['SA2','NAH','OBA','HAG'] # Books in progress
-TEST_NT_BOOK_LIST = ['MRK'] # Shortest gospel
-TEST_BOOK_LIST = TEST_OT_BOOK_LIST + TEST_NT_BOOK_LIST
 
 OET_LV_BOOK_LIST = BOOKLIST_OT39 + OET_NT_BOOK_ORDER
 OET_RV_BOOK_LIST = ['GEN','EXO','JOS','JDG','RUT','SA1','EST','JOB','JNA','MAL'] + OET_NT_BOOK_ORDER
