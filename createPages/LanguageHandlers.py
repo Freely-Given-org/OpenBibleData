@@ -51,7 +51,7 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 import BibleOrgSys.OriginalLanguages.Greek as Greek
 
 
-LAST_MODIFIED_DATE = '2024-10-01' # by RJH
+LAST_MODIFIED_DATE = '2024-10-09' # by RJH
 SHORT_PROGRAM_NAME = "LanguageHandlers"
 PROGRAM_NAME = "OpenBibleData Language Handling functions"
 PROGRAM_VERSION = '0.96'
@@ -115,6 +115,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
     ((' it selfe',' it self',' it silfe',' it silf',),' itself'),
     ((' lyke wyse',),' likewise'),
     (('money chaungeris','money chaungers'),'moneychangers'),
+    (('meane tyme','meane time','mean time'),'meantime'),
     (('ouerbody cote',),'overcoat'),
     (('sea syde','sea side'),'seaside'),
     (('stiffe necked',),'stiff-necked'),
@@ -450,7 +451,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
         ((' hundrid',),' hundred'), ((' hungren',),' hungering'),((' hungride',' hungred',' hugred'),' hungered'),((' hungur',' honger'),' hunger'),
             ((' hurlide ',' hurlid '),' hurled '), ((' hurte ',),' hurt '),
             (('husbande','hosebonde'),'husband'),
-        ((' hypocrisie',' ypocrisye'),' hypocrisy'),
+        ((' hypocrisie',' ypocrisye',' ypocrisie',' ypocrisy'),' hypocrisy'),
     (('Y ',),'I '),(('Y,',),'I,'),(('Y;',),'I;'),
         ((' Yd',),' Id'), ((' idel ',),' idle '), ((' ydols',' idoles'),' idols'),
         (('Yf ',),'If '),((' yff ',' yf '),' if '), ((' `ymage',' ymage'),' image'), (('Ys ',),'Is '),((' ys ',),' is '), ((' yssue',),' issue'),
@@ -796,7 +797,7 @@ ENGLISH_WORD_MAP = ( # Place longer words first,
         (('ttasfigured',),'transfigured'), ((' trauelid',),' travelled'),
             (('treasurie','tresorie'),'treasury'), ((' tre ',),' tree '),((' tre,',),' tree,'), (('trespasse ',),'trespass '),
             (('trybe ',),'tribe '),(('trybes',),'tribes'), (('tribulacioun',),'tribulation'), ((' tryed',),' tried'),
-            ((' truble ',),' trouble '),
+            ((' treden ',' trode ',' trood '),' trod '), ((' truble ',),' trouble '),
             (('Treuli','Sotheli'),'Truly'),(('truely','treuli','sotheli'),'truly'), (('sothfast',),'truthful'), ((' trewthe',' trueth',' treuthe',' verite'),' truth'),
             ((' trye ',),' try '),
         ((' turneden',' turnede'),' turned'),(('Turne ',),'Turn '),((' tourne ',' turne '),' turn '),((' turne,',),' turn,'),
