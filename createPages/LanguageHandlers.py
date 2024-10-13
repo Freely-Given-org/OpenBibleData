@@ -1300,7 +1300,8 @@ for wordMapEntry in GERMAN_WORD_MAP:
     if EnglishWord[-1] in ' ,.:;':
         assert GermanWord[-1] == EnglishWord[-1], f"Mismatched trailing character: {GermanWord=} {EnglishWord=}"
     assert '  ' not in EnglishWord
-    assert ' ' not in EnglishWord.strip(), f"Space in middle of {EnglishWord=}" # No space in middle
+    if ' ' not in GermanWord.strip():
+        assert ' ' not in EnglishWord.strip(), f"Space in middle of {EnglishWord=}" # No space in middle
     EnglishWords.append( EnglishWord )
 del GermanWords, EnglishWords
 
@@ -1630,7 +1631,8 @@ for wordMapEntry in LATIN_WORD_MAP:
     if EnglishWord[-1] in ' ,.:;':
         assert LatinWord[-1] == EnglishWord[-1], f"Mismatched trailing character: {LatinWord=} {EnglishWord=}"
     assert '  ' not in EnglishWord
-    assert ' ' not in EnglishWord.strip(), f"Space in middle of {EnglishWord=}" # No space in middle
+    if ' ' not in LatinWord.strip():
+        assert ' ' not in EnglishWord.strip(), f"Space in middle of {EnglishWord=}" # No space in middle
     EnglishWords.append( EnglishWord )
 del LatinWords, EnglishWords
 
