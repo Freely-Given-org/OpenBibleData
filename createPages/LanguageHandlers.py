@@ -1127,7 +1127,7 @@ GERMAN_WORD_MAP = (
             (' legte ',' laid '),
             ('Leib ','body '), ('Leid ','sorrow '),
         ('Licht','light'),('licht','light'),
-            ('Lieben ','loved (one) '), (' lieber ',' dear '), (' liebhabe ',' love '), ('Liebe ','love '),
+            ('Lieben ','loved_(one) '), (' lieber ',' dear '), (' liebhabe ',' love '), ('Liebe ','love '),
                 (' ließ ',' let '),(' ließen ',' leave/let '), (' liegen',' lie/lay'), (' lieten',' lead'),
                 (' lief ',' ran '),
             ('Lippen ','lips '),
