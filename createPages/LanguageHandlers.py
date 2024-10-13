@@ -913,7 +913,7 @@ for wordMapEntry in ENGLISH_WORD_MAP:
         if sowIx > 0: assert someOldWord not in newWord, f"Recursive substitution of '{someOldWord}' into '{newWord}'"
         assert '  ' not in someOldWord
         oldWords.append( someOldWord)
-    if newWord not in ('grape-gatherers','themselves',): # sometimes two->one and sometimes it's a single word
+    if newWord not in ('grape-gatherers','themselves','whithersoever'): # sometimes two->one and sometimes it's a single word
         assert newWord not in newWords, f"Duplicated {newWord=}"
     if someOldWords[0].startswith(' '): assert newWord.startswith(' '), f"Mismatched leading space:  {someOldWords} {newWord=}"
     if someOldWords[0].endswith(' '): assert newWord.endswith(' '), f"Mismatched trailing space: {someOldWords} {newWord=}"
