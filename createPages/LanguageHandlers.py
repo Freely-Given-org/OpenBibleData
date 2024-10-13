@@ -952,7 +952,7 @@ GERMAN_WORD_MAP = (
         (' außen ',' outside '),
             ('Auch ','Also '),(' auch ',' also '),(' auch,',' also,'),(' auch.',' also.'),
             (' auf ',' on '),(' auf,',' on,'), (' aufs ',' onto '),
-            ('Aus ','Out of '),(' aus ',' out of '),(' aus.',' out.'),
+            ('Aus ','Out_of '),(' aus ',' out_of '),(' aus.',' out.'),
     ('Ägypten','Egypt'), # with umlaut
         ('Ältesten','elders'), ('Älteste','elder'),
         ('ärgerte','annoyed'),('ärgert','annoys'),
