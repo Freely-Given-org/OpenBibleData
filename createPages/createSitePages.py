@@ -631,6 +631,7 @@ def _createDetailsPages( level:int, buildFolder:Path, state:State ) -> bool:
   So although we don’t consider their materials to be very useful here (and new, high-quality, open-licenced materials are currently being developed to replace them),
   we have included some of their verses on a few of our parallel verse pages just for interest and for comparison, so you’ll find their copyright details below.</small></p>
 {allDetailsHTML}<hr style="width:40%;margin-left:0;margin-top: 0.3em">
+<p class="note">See the <a href="http://bibles.wikidot.com/timeline">WikiDot Bible Translation Timeline</a> for a list of many of the above Bible versions (plus many others).</p>
 <p class="rem"><small>So far we’ve only had one translation organisation refuse to allow us to display their work on our <a href="par/MRK/C1V1.htm#Top">parallel verse pages</a> (designed to help Bible students and Bible translators compare versions)
 and that is the <a href="https://www.easyenglish.bible/about-easyenglish/">Easy English Bible</a> who twice refused our application (without giving any reason) despite their translation being developed with donations from the public.
 Sadly, this is the current state of the Bible translation world as discussed over at <a href="https://sellingjesus.org/articles/copyright-jesus-command-to-freely-give">SellingJesus.org</a>
