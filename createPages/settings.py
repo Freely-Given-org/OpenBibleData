@@ -33,6 +33,7 @@ CHANGELOG:
     2024-05-06 Added some NETS verses
     2024-06-25 Added BibleMapper copyright details
     2024-09-23 Change OET OT book order
+    2024-10-24 Change WEB and WMB to British spelling WEBBE and WMBB
 """
 from gettext import gettext as _
 from typing import List
@@ -45,26 +46,28 @@ from BibleOrgSys.BibleOrgSysGlobals import dPrint, fnPrint
 from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39
 
 
-LAST_MODIFIED_DATE = '2024-10-15' # by RJH
+LAST_MODIFIED_DATE = '2024-10-27' # by RJH
 SHORT_PROGRAM_NAME = "settings"
 PROGRAM_NAME = "OpenBibleData (OBD) Create Pages"
-PROGRAM_VERSION = '0.97'
+PROGRAM_VERSION = '0.98'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
 
-OET_VERSION = 'v0.22' # Incremented on most runs for the production site
+OET_VERSION = 'v0.24' # Incremented on most runs for the production site
 
 TEST_MODE = True # Writes website into Test subfolder
 ALL_PRODUCTION_BOOKS = not TEST_MODE # If set to False, only selects one book per version for a faster test build
 ALL_TEST_REFERENCE_PAGES = False # If in TEST_MODE, make ALL word/lemma pages, or just the RELEVANT ones
 UPDATE_ACTUAL_SITE_WHEN_BUILT = True # The pages are initially built in a tmp folder so need to be copied to the final destination
 
+OET_RV_OT_BOOK_LIST = ['GEN','EXO','JOS','JDG','RUT','SA1','SA2','EST','JOB','JNA','MAL']
+
 TEST_OT_BOOK_LIST = ['SA2','NAH','OBA','HAG'] # Books in progress
-TEST_NT_BOOK_LIST = ['MRK','LUK'] # Shortest gospel
+TEST_NT_BOOK_LIST = ['MRK',] # Shortest gospel
 TEST_BOOK_LIST = TEST_OT_BOOK_LIST + TEST_NT_BOOK_LIST
 
-TEMP_BUILD_FOLDER = Path( '/tmp/OBDHtmlPages/' )
+TEMP_BUILD_FOLDER = Path( '../BuildingHtmlPages/' )
 NORMAL_DESTINATION_FOLDER = Path( '../htmlPages/' )
 DEBUG_DESTINATION_FOLDER = NORMAL_DESTINATION_FOLDER.joinpath( 'Test/' )
 DESTINATION_FOLDER = DEBUG_DESTINATION_FOLDER if TEST_MODE or BibleOrgSysGlobals.debugFlag \
@@ -103,13 +106,13 @@ OET_BOOK_ORDER = ['INT','FRT'] + OET_OT_BOOK_ORDER + OET_APOCRYPHA_BOOK_ORDER + 
 assert len(OET_BOOK_ORDER) > 68
 
 OET_LV_BOOK_LIST = BOOKLIST_OT39 + OET_NT_BOOK_ORDER
-OET_RV_BOOK_LIST = ['GEN','EXO','JOS','JDG','RUT','SA1','EST','JOB','JNA','MAL'] + OET_NT_BOOK_ORDER
+OET_RV_BOOK_LIST = OET_RV_OT_BOOK_LIST + OET_NT_BOOK_ORDER
 # TODO: What about 'INT' ?
 OET_RV_BOOK_LIST_WITH_FRT = ['FRT'] + OET_RV_BOOK_LIST
 
 # The version to link to when the OET doesn't have that book (yet)
 ALTERNATIVE_VERSION = 'WEB' # Should be a version with all books present
-VERSIONS_WITH_BEYOND_66_BOOKS = ( 'KJB-1611','WEB', )
+VERSIONS_WITH_BEYOND_66_BOOKS = ( 'KJB-1611','WEBBE','WEB', )
 
 OT_ONLY_VERSIONS = ['UHB','JPS']
 NT_ONLY_VERSIONS = ['BLB','AICNT','TCNT','TNT','Wymth', 'SR-GNT','UGNT','SBL-GNT','TC-GNT']
@@ -145,7 +148,7 @@ class State:
                 'AICNT','OEB','ISV','CSB','NLT',
                 'NIV','CEV','ESV','NASB','LSB',
                 'JQT','2DT','1ST','TPT',
-                'WEB','WMB','MSG','LSV','FBV','TCNT','T4T','LEB','NRSV','NKJV','NAB','BBE',
+                'WEBBE','WEB','WMBB','WMB','MSG','LSV','FBV','TCNT','T4T','LEB','NRSV','NKJV','NAB','BBE',
                 'Moff','JPS','Wymth','ASV','DRA','YLT','Drby','RV','Wbstr','KJB-1769','KJB-1611','Bshps','Gnva','Cvdl',
                 'TNT','Wyc',
                 'Luth','ClVg',
@@ -161,7 +164,7 @@ class State:
                 'AICNT','OEB','ISV','CSB','NLT',
                 'NIV','CEV','ESV','NASB','LSB',
                 'JQT','2DT','1ST','TPT',
-                'WEB','WMB','MSG','NET','LSV','FBV','TCNT','T4T','LEB','NRSV','NKJV','NAB','BBE',
+                'WEBBE','WEB','WMBB','WMB','MSG','NET','LSV','FBV','TCNT','T4T','LEB','NRSV','NKJV','NAB','BBE',
                 'Moff','JPS','Wymth','ASV','DRA','YLT','Drby','RV','Wbstr','KJB-1769','KJB-1611','Bshps','Gnva','Cvdl',
                 'TNT','Wyc',
                 'Luth','ClVg',
@@ -188,7 +191,7 @@ class State:
                 'ULT':('',''),'UST':('',''),
                 'BSB':('',''),'BLB':('',''),
                 'AICNT':('',''), 'OEB':('',''), 'ISV':('',''),
-                'WEB':('',''),'WMB':('',''), 'NET':('',''), 'LSV':('',''), 'FBV':('',''), 'TCNT':('<small>','</small>'), 'T4T':('',''),'LEB':('',''),'BBE':('',''),
+                'WEBBE':('',''),'WEB':('',''),'WMB':('',''),'WMBB':('',''), 'NET':('',''), 'LSV':('',''), 'FBV':('',''), 'TCNT':('<small>','</small>'), 'T4T':('',''),'LEB':('',''),'BBE':('',''),
                 'Moff':('<small>','</small>'), 'JPS':('<small>','</small>'), 'Wymth':('<small>','</small>'), 'ASV':('',''), 'DRA':('<small>','</small>'),'YLT':('',''),'Drby':('',''),'RV':('',''),
                 'Wbstr':('<small>','</small>'),
                 'KJB-1769':('',''),'KJB-1611':('',''), 'Bshps':('',''), 'Gnva':('',''), 'Cvdl':('',''),
@@ -231,8 +234,10 @@ class State:
                 '2DT': '../copiedBibles/English/2DT_verses.tsv',
                 '1ST': '../copiedBibles/English/1ST_verses.tsv',
                 'TPT': '../copiedBibles/English/TPT_verses.tsv',
-                'WEB': '../copiedBibles/English/eBible.org/WEB/',
-                'WMB': '../copiedBibles/English/eBible.org/WMB/',
+                'WEBBE': '../copiedBibles/English/eBible.org/WEBBE/', # British spelling
+                # 'WEB': '../copiedBibles/English/eBible.org/WEB/', # USA spelling
+                'WMBB': '../copiedBibles/English/eBible.org/WMBB/', # British spelling
+                # 'WMB': '../copiedBibles/English/eBible.org/WMB/', #USA spelling
                 'MSG': '../copiedBibles/English/MSG_verses.tsv',
                 'NET': '../copiedBibles/English/NET/' if TEST_MODE else '../copiedBibles/English/eBible.org/NET/',
                 'LSV': '../copiedBibles/English/eBible.org/LSV/',
@@ -296,7 +301,9 @@ class State:
                 '2DT': 'The Second Testament (2023)',
                 '1ST': 'The First Testament (2018)',
                 'TPT': 'The Passion Translation (2017)',
+                'WEBBE': 'World English Bible (2023) British Edition',
                 'WEB': 'World English Bible (2023)',
+                'WMBB': 'World Messianic Bible (2023) British Edition / Hebrew Names Version (HNV)',
                 'WMB': 'World Messianic Bible (2023) / Hebrew Names Version (HNV)',
                 'MSG': 'The Message (2018)',
                 'NET': 'New English Translation (2016)',
@@ -366,7 +373,9 @@ class State:
                 '2DT': ['ALL'],
                 '1ST': ['ALL'],
                 'TPT': ['ALL'],
+                'WEBBE': ['ALL'],
                 'WEB': ['ALL'],
+                'WMBB': ['ALL'],
                 'WMB': ['ALL'],
                 'MSG': ['ALL'],
                 'NET': ['ALL'],
@@ -430,7 +439,9 @@ class State:
                 '2DT': TEST_BOOK_LIST,
                 '1ST': TEST_BOOK_LIST,
                 'TPT': TEST_BOOK_LIST,
+                'WEBBE': TEST_BOOK_LIST,
                 'WEB': TEST_BOOK_LIST,
+                'WMBB': TEST_BOOK_LIST,
                 'WMB': TEST_BOOK_LIST,
                 'MSG': TEST_BOOK_LIST,
                 'NET': TEST_BOOK_LIST,
@@ -569,7 +580,15 @@ We’re also grateful to the <a href="https://www.Biblica.com/clear/">Biblica Cl
                 'copyright': '<p class="copyright">Scripture quotations marked TPT are from The Passion Translation®. Copyright © 2017, 2018, 2020 by Passion & Fire Ministries, Inc. Used by permission. All rights reserved. ThePassionTranslation.com.</p>',
                 'licence': '<p class="licence">Up to 250 verses may be used.</p>',
                 'notes': '<p class="note">A few selected verses included here for reference purposes only—this is not a recommended as a reliable Bible translation.</p>' },
+        'WEBBE': {'about': '<p class="about">World English Bible (2023) British Edition.</p>',
+                'copyright': '<p class="copyright">Copyright © (coming).</p>',
+                'licence': '<p class="licence">(coming).</p>',
+                'acknowledgements': '<p class="acknwldg">(coming).</p>' },
         'WEB': {'about': '<p class="about">World English Bible (2023).</p>',
+                'copyright': '<p class="copyright">Copyright © (coming).</p>',
+                'licence': '<p class="licence">(coming).</p>',
+                'acknowledgements': '<p class="acknwldg">(coming).</p>' },
+        'WMBB': {'about': '<p class="about">World Messianic Bible (2023) British Edition also known as the HNV: Hebrew Names Version.</p>',
                 'copyright': '<p class="copyright">Copyright © (coming).</p>',
                 'licence': '<p class="licence">(coming).</p>',
                 'acknowledgements': '<p class="acknwldg">(coming).</p>' },

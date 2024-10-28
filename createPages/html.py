@@ -56,6 +56,7 @@ CHANGELOG:
     2024-04-21 Added News page
     2024-05-15 Added HTML/CSS style matching checks
     2024-07-19 Added HTML class, id, and title validity checks and missed add processing checks
+    2024-10-24 Added title pop-ups on added text classes
 """
 # from gettext import gettext as _
 from typing import Dict, List, Tuple, Optional, Union
@@ -73,10 +74,10 @@ from settings import State, TEST_MODE, SITE_NAME
 from OETHandlers import getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2024-09-30' # by RJH
+LAST_MODIFIED_DATE = '2024-10-26' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
-PROGRAM_VERSION = '0.89'
+PROGRAM_VERSION = '0.90'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -684,7 +685,7 @@ def checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool:
             for someStylesheetName,someStyleDict in cachedStyleDicts.items():
                 unusedList = [sdKey[5:] for sdKey,sdValue in someStyleDict.items() if sdKey.startswith( 'used_') and not sdValue]
                 if unusedList:
-                    logging.critical( f"UNUSED STYLES in {someStylesheetName} were ({len(unusedList)})/({len(someStyleDict)}) {unusedList=}" )
+                    logging.warning( f"UNUSED STYLES in {someStylesheetName} were ({len(unusedList)})/({len(someStyleDict)}) {unusedList=}" )
 
     return result
 # end of html.checkHtml
@@ -838,32 +839,32 @@ def do_OET_RV_HTMLcustomisations( OET_RV_html:str ) -> str:
     assert '<span class="add">?≡' not in OET_RV_html # Doesn't make sense
     result = (OET_RV_html \
             # Adjust specialised add markers
-            .replace( '<span class="add">?<', '<span class="unsure addDirectObject">' )
+            .replace( '<span class="add">?<', '<span class="unsure addDirectObject" title="added direct object (uncertain)">' )
             .replace( '<span class="add"><span ', '__PROTECT_SPAN__' )
             .replace( '<span class="add"><a title', '__PROTECT_A__' )
-            .replace( '<span class="add"><', '<span class="addDirectObject">' )
+            .replace( '<span class="add"><', '<span class="addDirectObject" title="added direct object">' )
             .replace( '__PROTECT_A__', '<span class="add"><a title' )
             .replace( '__PROTECT_SPAN__', '<span class="add"><span ' )
-            .replace( '<span class="add">?>', '<span class="unsure addExtra">' )
-            .replace( '<span class="add">>', '<span class="addExtra">' )
-            .replace( '<span class="add">?+', '<span class="unsure addArticle">' )
-            .replace( '<span class="add">+', '<span class="addArticle">' )
-            .replace( '<span class="add">≡', '<span class="addElided">' )
-            .replace( '<span class="add">?&', '<span class="unsure addOwner">' )
-            .replace( '<span class="add">&', '<span class="addOwner">' )
-            .replace( '<span class="add">?@', '<span class="unsure addReferent">' )
-            .replace( '<span class="add">@', '<span class="addReferent">' )
-            .replace( '<span class="add">?*', '<span class="unsure addPronoun">' )
-            .replace( '<span class="add">*', '<span class="addPronoun">' )
-            .replace( '<span class="add">?#', '<span class="unsure addPluralised">' )
-            .replace( '<span class="add">#', '<span class="addPluralised">' )
-            .replace( '<span class="add">?^', '<span class="unsure addNegated">' )
-            .replace( '<span class="add">^', '<span class="addNegated">' )
-            .replace( '<span class="add">?≈', '<span class="unsure addReword">' )
-            .replace( '<span class="add">≈', '<span class="addReword">' )
-            .replace( '<span class="add">?', '<span class="unsure RVadd">' )
-            .replace( '<span class="add">', '<span class="RVadd">' )
-            .replace( '≈', '<span class="parr">≈</span>')
+            .replace( '<span class="add">?>', '<span class="unsure addExtra" title="added implied info (uncertain)">' )
+            .replace( '<span class="add">>', '<span class="addExtra" title="added implied info">' )
+            .replace( '<span class="add">?+', '<span class="unsure addArticle" title="added article (uncertain)">' )
+            .replace( '<span class="add">+', '<span class="addArticle" title="added article">' )
+            .replace( '<span class="add">≡', '<span class="addElided" title="addded elided info">' )
+            .replace( '<span class="add">?&', '<span class="unsure addOwner" title="added owner (uncertain)">' )
+            .replace( '<span class="add">&', '<span class="addOwner" title="added owner">' )
+            .replace( '<span class="add">?@', '<span class="unsure addReferent" title="inserted referent (uncertain)">' )
+            .replace( '<span class="add">@', '<span class="addReferent" title="inserted referent">' )
+            .replace( '<span class="add">?*', '<span class="unsure addPronoun" title="used pronoun (uncertain)">' )
+            .replace( '<span class="add">*', '<span class="addPronoun" title="used pronoun">' )
+            .replace( '<span class="add">?#', '<span class="unsure addPluralised" title="changed number (uncertain)">' )
+            .replace( '<span class="add">#', '<span class="addPluralised" title="changed number">' )
+            .replace( '<span class="add">?^', '<span class="unsure addNegated" title="negated (uncertain)">' )
+            .replace( '<span class="add">^', '<span class="addNegated" title="negated">' )
+            .replace( '<span class="add">?≈', '<span class="unsure addReword" title="reworded (uncertain)">' )
+            .replace( '<span class="add">≈', '<span class="addReword" title="reworded">' )
+            .replace( '<span class="add">?', '<span class="unsure RVadd" title="added info (uncertain)">' )
+            .replace( '<span class="add">', '<span class="RVadd" title="added info">' )
+            .replace( '≈', '<span class="parr" title="parallelism">≈</span>')
             )
 
     # Just do an additional check inside '<span class="RVadd">' spans

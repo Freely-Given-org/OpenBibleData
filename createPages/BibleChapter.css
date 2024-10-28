@@ -146,6 +146,7 @@ span.LEB_chapterIntro {}
 span.OEB_chapterIntro {}
 span.RV_chapterIntro {}
 span.ULT_chapterIntro {}
+span.WEBBE_chapterIntro {}
 span.WEB_chapterIntro {}
 
 span.AICNT_verseTextChunk {}
@@ -180,8 +181,10 @@ span.UHB_verseTextChunk { font-family: Alef,"Noto Sans Hebrew","SBL Hebrew","Ezr
 span.ULT_verseTextChunk {}
 span.UST_verseTextChunk {}
 span.Wbstr_verseTextChunk {}
+span.WEBBE_verseTextChunk {}
 span.WEB_verseTextChunk {}
 span.Wymth_verseTextChunk {}
+span.WMBB_verseTextChunk {}
 span.WMB_verseTextChunk {}
 span.Wyc_verseTextChunk {}
 span.YLT_verseTextChunk {}

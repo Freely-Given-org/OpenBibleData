@@ -90,7 +90,7 @@ from OETHandlers import getOETTidyBBB, getOETBookName, livenOETWordLinks, getHeb
 from LanguageHandlers import moderniseEnglishWords, translateGerman, translateLatin
 
 
-LAST_MODIFIED_DATE = '2024-10-16' # by RJH
+LAST_MODIFIED_DATE = '2024-10-24' # by RJH
 SHORT_PROGRAM_NAME = "createParallelVersePages"
 PROGRAM_NAME = "OpenBibleData createParallelVersePages functions"
 PROGRAM_VERSION = '0.97'
@@ -242,7 +242,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                 navLinks = f'<p id="__ID__" class="vNav">{leftCLink}{leftVLink}{ourTidyBbb} Book Introductions <a title="Go to __WHERE__ of page" href="#__LINK__">__ARROW__</a>{rightVLink}{rightCLink}{interlinearLink}{detailsLink}{hideFieldsButton}{hideTransliterationsButton}</p>' if c==-1 \
                         else f'<p id="__ID__" class="vNav">{introLink}{leftCLink}{leftVLink}{ourTidyBbb} {C}:{V} <a title="Go to __WHERE__ of page" href="#__LINK__">__ARROW__</a>{rightVLink}{rightCLink}{interlinearLink}{detailsLink}{hideFieldsButton}{hideTransliterationsButton}</p>'
                 parallelHtml = getVerseDetailsHtml( BBB, C, V )
-                ancientRefsToPrint = ('OBA_1:19','OBA_1:21','SA2_1:16') #('SA1_31:13',) # For debugging
+                ancientRefsToPrint = ('SA2_20:19',) # ('SA1_31:13',) # For debugging
                 for versionAbbreviation in parallelVersions: # our adjusted order
                     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"    createParallelVersePagesForBook {parRef} processing {versionAbbreviation}…" )
                     assert not parallelHtml.endswith( '\n' )
@@ -370,10 +370,10 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                                 textHtml, footnoteFreeTextHtml, footnotesHtml = do_OET_LV_HTMLcustomisations(textHtml), do_OET_LV_HTMLcustomisations(footnoteFreeTextHtml), do_OET_LV_HTMLcustomisations(footnotesHtml)
                                 # assert textHtml.count('<span class="ul">_</span>HNcbsa') < 2, f'''Here2 ({textHtml.count('<span class="ul">_</span>HNcbsa')}) {textHtml=}'''
                                 # if BBB=='MRK' and C=='7' and V=='16': print( f"DDD {parRef} {versionAbbreviation} {textHtml=}" )
-                            elif versionAbbreviation == 'WEB': # assuming WEB comes BEFORE WMB
+                            elif versionAbbreviation in ('WEBBE','WEB'): # assuming WEB/WEBBE comes BEFORE WMB/WMBBB
                                 textHtmlWEB, footnotesHtmlWeb = textHtml, footnotesHtml # Save it
-                            elif versionAbbreviation == 'WMB': # assuming WEB comes BEFORE WMB
-                                if textHtml and textHtml == textHtmlWEB.replace( 'WEB', 'WMB' ):
+                            elif versionAbbreviation in ('WMBB','WMB'): # assuming WEB/WEBBE comes BEFORE WMB/WMBB
+                                if textHtml and textHtml == textHtmlWEB.replace( 'WEBBE', 'WMBB' ).replace( 'WEB', 'WMB' ):
                                     # print( f"Skipping parallel for WMB {parRef} because same as WEB" )
                                     textHtml = "(Same as above)" # Do we also need to adjust footnotesHtml ???
                                 # else:
@@ -402,7 +402,8 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                                     cleanedModernisedKJB1769TextHtml = modernisedTextHtml.replace( versionAbbreviation, '' ) \
                                                                             .replace( 'J', 'Y' ).replace( 'Benjam', 'Benyam' ) \
                                                                             .replace( '<span class="wj">', '' ).replace( '</span>', '' ) \
-                                                                            .replace( '  ', ' ' ).replace( '> ', '>' ) # Not sure why there's so many superfluous spaces in this text ???
+                                                                            .replace( '  ', ' ' ).replace( '> ', '>' ) \
+                                                                            .strip() # Not sure why there's so many superfluous spaces in this text ???
                                     if parRef in ancientRefsToPrint: print( f"BB {versionAbbreviation} {parRef} ({len(cleanedModernisedKJB1769TextHtml)}) {cleanedModernisedKJB1769TextHtml=}" )
                                 modernisedTextDiffers = modernisedTextHtml != footnoteFreeTextHtml # we'll usually only show it if it changed
                                 # if versionAbbreviation=='KJB-1611' and parRef in ancientRefsToPrint: print( f"CC {versionAbbreviation} {parRef} ({len(modernisedTextHtml)}) {modernisedTextHtml=}")
@@ -423,6 +424,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                                             .replace('‘','').replace('’','')
                                             .replace('(','').replace(')','')
                                             .replace('¶ ','').replace('¶','')
+                                            .replace('  ',' ') # Around (now-removed) brackets 2Sam 4:10
                                             )
                                 # end of removeVersePunctuationForComparison function
                                 if versionAbbreviation in ('Wyc','TNT','Cvdl','Gnva','Bshps','KJB-1611') \
@@ -645,12 +647,12 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                                 else: # for all the others
                                     versionNameLink = f'''{'../'*BBBLevel}{versionAbbreviation}/details.htm#Top''' if versionAbbreviation in state.versionsWithoutTheirOwnPages else f'''{'../'*BBBLevel}{versionAbbreviation}/byC/{BBB}_{adjC}.htm#V{V}'''
                                     if textHtml.startswith( "(Same as " ):
-                                        assert versionAbbreviation in ('WMB',)
+                                        assert versionAbbreviation in ('WMBB','WMB')
                                         if footnotesHtmlWeb:
-                                            if footnotesHtml == footnotesHtmlWeb.replace( 'WEB', 'WMB' ):
+                                            if footnotesHtml == footnotesHtmlWeb.replace( 'WEBBE', 'WMBB' ).replace( 'WEB', 'WMB' ):
                                                 footnotesHtml = '' # No need to repeat these either
                                                 textHtml = textHtml.replace( 'above)', 'above including footnotes)' )
-                                            # "closeVerse" class writes WMB text on top of WEB footnotes -- probably should be fixed in CSS, but not sure how so will fix it here
+                                            # "closeVerse" class writes WMBB/WMB text on top of WEBBE/WEB footnotes -- probably should be fixed in CSS, but not sure how so will fix it here
                                             vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation]} {'details' if versionAbbreviation in state.versionsWithoutTheirOwnPages else 'chapter'}" href="{versionNameLink}">{versionAbbreviation}</a></span> {textHtml}</p>'''
                                         else: # WEB had no footnotes, so ok to use "closeVerse" class
                                             vHtml = f'''<p id="{versionAbbreviation}" class="closeVerse"><span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation]} {'details' if versionAbbreviation in state.versionsWithoutTheirOwnPages else 'chapter'}" href="{versionNameLink}">{versionAbbreviation}</a></span> {textHtml}</p>'''

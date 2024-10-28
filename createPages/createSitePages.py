@@ -90,10 +90,10 @@ from Dict import createTyndaleDictPages, createUBSDictionaryPages
 from html import makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2024-08-27' # by RJH
+LAST_MODIFIED_DATE = '2024-10-26' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData (OBD) Create Site Pages"
-PROGRAM_VERSION = '0.96'
+PROGRAM_VERSION = '0.97'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
@@ -229,7 +229,7 @@ def _createSitePages() -> bool:
         state.preloadedBibles['OET-LV'].discover() #     ..ditto..
 
         createOETSectionLists( state.preloadedBibles['OET-RV'], state ) # Have to do this early for section references
-        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nCreating {'TEST ' if TEST_MODE else ''}version pages for OET…" )
+        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Creating {'TEST ' if TEST_MODE else ''}version pages for OET…" )
         versionFolder = TEMP_BUILD_FOLDER.joinpath( f'OET/' )
         _createOETVersionPages( 1, versionFolder, state.preloadedBibles['OET-RV'], state.preloadedBibles['OET-LV'], state )
         _createOETMissingVersePage( 1, versionFolder )
@@ -252,15 +252,16 @@ def _createSitePages() -> bool:
             vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"    {len(indexHtml):,} characters written to {filepath}" )
         else:
             if versionAbbreviation == 'TTN': continue # Not actually a Bible version
+            vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nDoing discovery for {thisBible.abbreviation} ({thisBible.name})…" )
             thisBible.discover() # Now that all required books are loaded
             if 'haveSectionHeadings' not in thisBible.discoveryResults['ALL']: # probably we have no books that actually loaded
                 dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Adding discoveryResults 'haveSectionHeadings' for {thisBible.abbreviation}: no books loaded?" )
                 thisBible.discoveryResults['ALL']['haveSectionHeadings'] = False # We need this in several places
-            if not TEST_MODE or versionAbbreviation not in ('OEB','WEB','WMB','NET','LSV','FBV','TCNT','T4T','LEB',
+            if not TEST_MODE or versionAbbreviation not in ('OEB','WEBBE','WEB','WMBB','WMB','NET','LSV','FBV','TCNT','T4T','LEB',
                                                      'BBE','Moff','JPS','ASV','DRA','YLT','Drby','RV','Wbstr',
                                                      'KJB-1769','Bshps','Gnva','Cvdl','TNT','Wyc'):
                 # In test mode, we don't usually need to make all those pages, even just for the test books
-                vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nCreating {'TEST ' if TEST_MODE else ''}version pages for {thisBible.abbreviation} ({thisBible.name})…" )
+                vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Creating {'TEST ' if TEST_MODE else ''}version pages for {thisBible.abbreviation} ({thisBible.name})…" )
                 versionFolder = TEMP_BUILD_FOLDER.joinpath( f'{thisBible.abbreviation}/' )
                 _createVersionPages( 1, versionFolder, thisBible, state )
     # print( f"Discovery time {datetime.now()-discoverStartTime}" ); halt
@@ -542,7 +543,7 @@ def _createDetailsPages( level:int, buildFolder:Path, state:State ) -> bool:
                     elif 'creativecommons.org/licenses/by-sa/4.0' in actualCoprText:
                             state.detailsHtml[versionAbbreviation]['licence'] = \
                             state.detailsHtml[versionAbbreviation]['licence'].replace( '(coming)', '<a href="https://CreativeCommons.org/licenses/by-sa/4.0/">Creative Commons Attribution Share-Alike license 4.0</a>' )
-                    else: dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Unrecognised eBible {versionAbbreviation} copyright: '{actualCoprText}'")
+                    else: dPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Unrecognised eBible {versionAbbreviation} copyright: '{actualCoprText}'")
                     state.detailsHtml[versionAbbreviation]['acknowledgements'] = \
                             state.detailsHtml[versionAbbreviation]['acknowledgements'].replace( '(coming)',
                                 'Thanks to <a href="https://eBible.org/Scriptures/">eBible.org</a> for supplying the USFM files' )
@@ -812,6 +813,7 @@ def _createOETKeyPage( level:int, buildFolder:Path, state:State ) -> bool:
     keyHTML = f'''<h1 id="Top">Key to the <em>Open English Translation</em></h1>
 <p class="note">The <em>Open English Translation of the Bible</em> is not tied to tradition (and especially not to traditional mistakes or misunderstandings) so it has a number of changes from more common Bible translations.</p>
 <p class="note">We also aim to educate our readers better about how our Bibles get to us and we have many different kinds of links on the site, so that’s a second reason why it differs from usual, and hence requires this key to explain some of the features.</p>
+<p class="note">Note that the <em>OET</em> is being drafted with UK spelling and so we favour those editions on this site, but an edition will also be produced in the future with US spellings (plus any necessary wording changes).</p>
 <h1>The Hebrew Scriptures <small>(Old Testament)</small><sup>*</sup></h1>
 <p class="note">We are experimenting in the <em>OET-RV</em> with marking parallel Hebrew poetry lines with the symbol <b><span class="parr">≈</span></b>.
     English tends to use rhyming for poetry (and rap is <em>extreme</em> rhyming),
