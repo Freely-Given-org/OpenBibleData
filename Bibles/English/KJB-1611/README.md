@@ -27,8 +27,8 @@ we would also mark any text in these files which is marked as added text in the 
 
 ## Content
 
-Filenames are in the form ‘KJB-1611_BBB.usfm’ where ‘BBB’ represents the three-character
-Bible Book Code from [[https://Freely-Given.org/Software/BibleOrganisationalSystem/BOSBooksCodes.html]].
+Filenames are in the form ‘nn_UUU_KJB-1611.usfm’ where ‘nn’ represents the two-character ‘Number’ and ‘UUU’ represents the three-character
+book identifier from [[https://ubsicap.github.io/usfm/identification/books.html]].
 
 The 1611 KJB also included a section labelled ‘Apocrypha’
 (between the ‘Olde Testament’ and the ‘New Testament’)
