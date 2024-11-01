@@ -300,7 +300,7 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
                         combinedHtml = f'''{combinedHtml}<div class="chunkRV">{rvSection}</div><!--chunkRV-->
 <div class="chunkLV">{lvChunk}</div><!--chunkLV-->
 '''
-                combinedHtml = f'{removeDuplicateCVids( BBB, combinedHtml )}</div><!--RVLVcontainer-->'
+                combinedHtml = f'{removeDuplicateCVids( combinedHtml )}</div><!--RVLVcontainer-->'
 
             # Handle BibleMapper maps and notes -- the function handles chapters automatically
                 bmmHtml = getBibleMapperMaps( level, BBB, c, None, None, None, rvBible ) # Setting verse to None make it look at chapter level

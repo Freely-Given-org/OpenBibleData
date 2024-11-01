@@ -68,10 +68,10 @@ from Bibles import getBibleMapperMaps
 from OETHandlers import livenOETWordLinks, getOETTidyBBB, getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2024-07-19' # by RJH
+LAST_MODIFIED_DATE = '2024-11-01' # by RJH
 SHORT_PROGRAM_NAME = "createSectionPages"
 PROGRAM_NAME = "OpenBibleData createSectionPages functions"
-PROGRAM_VERSION = '0.64'
+PROGRAM_VERSION = '0.65'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -344,7 +344,7 @@ def createOETSectionPages( level:int, folder:Path, rvBible:ESFMBible, lvBible:ES
             combinedHtml = f'''<div class="chunkRV">{rvHtml}</div><!--chunkRV-->
 <div class="chunkLV">{lvHtml}</div><!--chunkLV-->
 '''
-            combinedHtml = f'{removeDuplicateCVids( BBB, combinedHtml )}</div><!--RVLVcontainer-->'
+            combinedHtml = f'{removeDuplicateCVids( combinedHtml )}</div><!--RVLVcontainer-->'
             
             # Handle BibleMapper maps and notes -- could be zero or more for any one section
             bmmHtml = getBibleMapperMaps( level, BBB, startC, startV, endC, endV, state.preloadedBibles['OET-RV'] )
@@ -737,6 +737,8 @@ def livenSectionReferences( versionAbbreviation:str, refTuple:tuple, segmentType
                     logging.critical( f"unable_to_find_reference for {refBBB} {refC}:{refV} {[f'{startC}:{startV}…{endC}:{endV}' for startC,startV,endC,endV,_sectionName,_reasonName,_contextList,_verseEntryList,_sFilename in state.sectionsLists[versionAbbreviation]]}" )
                     unable_to_find_reference # Need to write more code
                 # print( f"  {sectionNumber=} {sectionReferenceLink=}")
+            elif segmentType == 'topicalPassage':
+                sectionReferenceLink = f'{refBBB}.htm#C{refC}V{refV}' # What's expected here ??? TMP XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
             elif 'OET' in versionAbbreviation \
             and segmentType in ('book','chapter','section'):
                 # Always go to a related passage display

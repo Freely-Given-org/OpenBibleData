@@ -271,7 +271,7 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
                           f'''<a title="Up to {state.BibleNames['OET']}" href="{'../'*level}OET/">↑OET</a>''' )
         bkHtml = f'''{top}<!--book page-->
 {navBookListParagraph}
-{bkHtml}{removeDuplicateCVids( BBB, combinedHtml )}</div><!--RVLVcontainer-->
+{bkHtml}{removeDuplicateCVids( combinedHtml )}</div><!--RVLVcontainer-->
 {makeBottom( level, 'book', state )}'''
         checkHtml( f'OET Book {BBB}', bkHtml )
         assert not filepath.is_file() # Check that we're not overwriting anything

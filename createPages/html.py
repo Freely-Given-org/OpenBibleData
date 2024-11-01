@@ -30,7 +30,7 @@ makeHeader( level:int, versionAbbreviation:str, pageType:str, versionSpecificFil
 makeBookNavListParagraph( linksList:List[str], workAbbrevPlus:str, state:State ) -> str
 makeBottom( level:int, pageType:str, state:State ) -> str
 makeFooter( level:int, pageType:str, state:State ) -> str
-removeDuplicateCVids( BBB:str, html:str ) -> str
+removeDuplicateCVids( html:str ) -> str
 removeDuplicateFNids( where:str, html:str ) -> str
 checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool
 checkHtmlForMissingStyles( where:str, htmlToCheck:str ) -> bool
@@ -57,13 +57,14 @@ CHANGELOG:
     2024-05-15 Added HTML/CSS style matching checks
     2024-07-19 Added HTML class, id, and title validity checks and missed add processing checks
     2024-10-24 Added title pop-ups on added text classes
+    2024-10-31 Added more Hebrew parallelism options
+    2024-11-01 Added topic pages
 """
 # from gettext import gettext as _
 from typing import Dict, List, Tuple, Optional, Union
 import logging
 from datetime import datetime
 import re
-# from functools import cache
 from collections import defaultdict
 
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
@@ -74,10 +75,10 @@ from settings import State, TEST_MODE, SITE_NAME
 from OETHandlers import getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2024-10-26' # by RJH
+LAST_MODIFIED_DATE = '2024-11-01' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
-PROGRAM_VERSION = '0.90'
+PROGRAM_VERSION = '0.91'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -90,7 +91,9 @@ NEWLINE = '\n'
 
 KNOWN_PAGE_TYPES = ('site', 'TopIndex', 'details', 'AllDetails',
                     'book','bookIndex', 'chapter','chapterIndex', 'section','sectionIndex',
-                    'relatedPassage','relatedSectionIndex', 'parallelVerse', 'interlinearVerse',
+                    'relatedPassage','relatedSectionIndex',
+                    'topicPassages','topicsIndex',
+                    'parallelVerse', 'interlinearVerse',
                     'dictionaryMainIndex','dictionaryLetterIndex','dictionaryEntry','dictionaryIntro',
                     'word','lemma','morpheme', 'person','location', 'statistics',
                     'wordIndex','lemmaIndex','morphemeIndex', 'personIndex','locationIndex',
@@ -111,6 +114,8 @@ def makeTop( level:int, versionAbbreviation:Optional[str], pageType:str, version
         cssFilename = 'OETChapter.css' if 'OET' in versionAbbreviation else 'BibleChapter.css'
     elif pageType == 'relatedPassage':
         cssFilename = 'ParallelPassages.css'
+    elif pageType == 'topicPassages':
+        cssFilename = 'TopicalPassages.css'
     elif pageType == 'parallelVerse':
         cssFilename = 'ParallelVerses.css'
     elif pageType == 'interlinearVerse':
@@ -122,7 +127,7 @@ def makeTop( level:int, versionAbbreviation:Optional[str], pageType:str, version
     elif pageType in ('site', 'details','AllDetails', 'search', 'about', 'news', 'OETKey', 'TopIndex',
                       'statistics',
                       'bookIndex','chapterIndex','sectionIndex',
-                      'relatedSectionIndex', 'dictionaryMainIndex',
+                      'relatedSectionIndex', 'topicsIndex', 'dictionaryMainIndex',
                       'wordIndex','lemmaIndex','morphemeIndex','personIndex','locationIndex','statisticsIndex','referenceIndex' ):
         cssFilename = 'BibleSite.css'
     else: unexpected_page_type
@@ -149,7 +154,8 @@ def makeTop( level:int, versionAbbreviation:Optional[str], pageType:str, version
     if pageType == 'OETKey':
         top = top.replace( '__SCRIPT__', f'''<link rel="stylesheet" type="text/css" href="{'../'*level}OETChapter.css">\n  __SCRIPT__''' )
     # Insert javascript file(s) if required
-    if (versionAbbreviation and 'OET' in versionAbbreviation) or pageType=='parallelVerse':
+    if (versionAbbreviation and 'OET' in versionAbbreviation) \
+    or pageType in ('parallelVerse','topicPassages'):
         top = top.replace( '__SCRIPT__', f'''<script src="{'../'*level}Bible.js"></script>\n  __SCRIPT__''' )
     if 'Dict' in cssFilename or 'Word' in cssFilename \
     or pageType in ('chapter','section','book','parallelVerse','interlinearVerse','relatedPassage'):
@@ -199,8 +205,12 @@ def _makeNavigationLinks( level:int, versionAbbreviation:str, pageType:str, vers
                             )
     if pageType in ('relatedPassage','relatedSectionIndex'):
         initialVersionList.append( 'Related' )
-    else: # add a link for parallel
+    else: # add a link for related
         initialVersionList.append( f'''{state.BibleVersionDecorations['Related'][0]}<a title="Single OET-RV section with related verses from other books" href="{'../'*level}rel/">Related</a>{state.BibleVersionDecorations['Related'][1]}''' )
+    if pageType in ('topicPassages','topicsIndex'):
+        initialVersionList.append( 'Topics' )
+    else: # add a link for topics
+        initialVersionList.append( f'''{state.BibleVersionDecorations['Topics'][0]}<a title="Collections of OET passages organised by topic" href="{'../'*level}tpc/">Topics</a>{state.BibleVersionDecorations['Topics'][1]}''' )
     if pageType == 'parallelVerse':
         initialVersionList.append( 'Parallel' )
     else: # add a link for parallel
@@ -211,7 +221,7 @@ def _makeNavigationLinks( level:int, versionAbbreviation:str, pageType:str, vers
         initialVersionList.append( f'''{state.BibleVersionDecorations['Interlinear'][0]}<a title="Single verse in interlinear word view" href="{'../'*level}ilr/">Interlinear</a>{state.BibleVersionDecorations['Interlinear'][1]}''' )
     if pageType == 'referenceIndex':
         initialVersionList.append( 'Reference' )
-    else: # add a link for dictionary
+    else: # add a link for reference
         initialVersionList.append( f'''{state.BibleVersionDecorations['Reference'][0]}<a title="Reference index" href="{'../'*level}ref/">Reference</a>{state.BibleVersionDecorations['Reference'][1]}''' )
     if pageType == 'dictionaryMainIndex':
         initialVersionList.append( 'Dictionary' )
@@ -219,7 +229,7 @@ def _makeNavigationLinks( level:int, versionAbbreviation:str, pageType:str, vers
         initialVersionList.append( f'''{state.BibleVersionDecorations['Dictionary'][0]}<a title="Dictionary index" href="{'../'*level}dct/">Dictionary</a>{state.BibleVersionDecorations['Dictionary'][1]}''' )
     if pageType == 'search':
         initialVersionList.append( 'Search' )
-    else: # add a link for dictionary
+    else: # add a link for search
         initialVersionList.append( f'''{state.BibleVersionDecorations['Search'][0]}<a title="Find Bible words" href="{'../'*level}Search.htm">Search</a>{state.BibleVersionDecorations['Search'][1]}''' )
 
     # This code tries to adjust links to books which aren't in a version, e.g., UHB has no NT books, SR-GNT and UGNT have no OT books
@@ -365,7 +375,7 @@ def _makeFooter( level:int, pageType:str, state:State ) -> str:
     return html
 # end of html._makeFooter
 
-def removeDuplicateCVids( BBB:str, html:str ) -> str:
+def removeDuplicateCVids( html:str ) -> str:
     """
     Where we have OET parallel RV and LV, we get doubled ids like <span id="V6"></span><span class="v" id="C2V6">
 
@@ -373,7 +383,7 @@ def removeDuplicateCVids( BBB:str, html:str ) -> str:
 
     # Assert statements are disabled because this function can be quite slow for an entire OET book
     """
-    vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Removing duplicate IDs (#CV & #V) for {BBB} ({len(html):,} chars)…" )
+    vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Removing duplicate IDs (#CV & #V) for ({len(html):,} chars)…" )
 
     endIx = 0 # This is where we start searching
     while True:
@@ -849,7 +859,7 @@ def do_OET_RV_HTMLcustomisations( OET_RV_html:str ) -> str:
             .replace( '<span class="add">>', '<span class="addExtra" title="added implied info">' )
             .replace( '<span class="add">?+', '<span class="unsure addArticle" title="added article (uncertain)">' )
             .replace( '<span class="add">+', '<span class="addArticle" title="added article">' )
-            .replace( '<span class="add">≡', '<span class="addElided" title="addded elided info">' )
+            .replace( '<span class="add">≡', '<span class="addElided" title="added elided info">' )
             .replace( '<span class="add">?&', '<span class="unsure addOwner" title="added owner (uncertain)">' )
             .replace( '<span class="add">&', '<span class="addOwner" title="added owner">' )
             .replace( '<span class="add">?@', '<span class="unsure addReferent" title="inserted referent (uncertain)">' )
@@ -864,7 +874,9 @@ def do_OET_RV_HTMLcustomisations( OET_RV_html:str ) -> str:
             .replace( '<span class="add">≈', '<span class="addReword" title="reworded">' )
             .replace( '<span class="add">?', '<span class="unsure RVadd" title="added info (uncertain)">' )
             .replace( '<span class="add">', '<span class="RVadd" title="added info">' )
-            .replace( '≈', '<span class="parr" title="parallelism">≈</span>')
+            .replace( '≈', '<span class="synonParr" title="synonymous parallelism">≈</span>')
+            .replace( '^', '<span class="antiParr" title="antithetic parallelism">^</span>')
+            .replace( '≥', '<span class="synthParr" title="synthetic parallelism">≥</span>')
             )
 
     # Just do an additional check inside '<span class="RVadd">' spans

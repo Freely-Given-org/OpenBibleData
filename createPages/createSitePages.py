@@ -55,6 +55,7 @@ CHANGELOG:
     2024-03-21 Handle two word tables for OET
     2024-04-04 Create 'OET Key' page
     2024-04-21 Create 'OBD News' page
+    2024-11-01 Add Topics pages
 """
 from gettext import gettext as _
 # from typing import Dict, List, Tuple
@@ -84,16 +85,17 @@ from createChapterPages import createOETSideBySideChapterPages, createChapterPag
 from createSectionPages import createOETSectionLists, createOETSectionPages, createSectionPages
 from createParallelPassagePages import createParallelPassagePages
 from createParallelVersePages import createParallelVersePages
+from createTopicPages import createTopicPages
 from createOETInterlinearPages import createOETInterlinearPages
 from createOETReferencePages import createOETReferencePages
 from Dict import createTyndaleDictPages, createUBSDictionaryPages
 from html import makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2024-10-26' # by RJH
+LAST_MODIFIED_DATE = '2024-11-01' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData (OBD) Create Site Pages"
-PROGRAM_VERSION = '0.97'
+PROGRAM_VERSION = '0.98'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
@@ -287,6 +289,7 @@ def _createSitePages() -> bool:
     createParallelVersePages( 1, TEMP_BUILD_FOLDER.joinpath('par/'), state )
     createOETInterlinearPages( 1, TEMP_BUILD_FOLDER.joinpath('ilr/'), state )
     createParallelPassagePages( 1, TEMP_BUILD_FOLDER.joinpath('rel/'), state )
+    createTopicPages( 1, TEMP_BUILD_FOLDER.joinpath('tpc/'), state )
 
     createOETReferencePages( 1, TEMP_BUILD_FOLDER.joinpath('ref/'), state )
     createUBSDictionaryPages( 1, TEMP_BUILD_FOLDER.joinpath('UBS/'), state )
@@ -377,6 +380,8 @@ def _cleanHTMLFolders( folder:Path, state:State ) -> bool:
     try: shutil.rmtree( folder.joinpath( 'rel/' ) )
     except FileNotFoundError: pass
     try: shutil.rmtree( folder.joinpath( 'par/' ) )
+    except FileNotFoundError: pass
+    try: shutil.rmtree( folder.joinpath( 'tpc/' ) )
     except FileNotFoundError: pass
     try: shutil.rmtree( folder.joinpath( 'ilr/' ) )
     except FileNotFoundError: pass

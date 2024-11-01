@@ -242,7 +242,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                 navLinks = f'<p id="__ID__" class="vNav">{leftCLink}{leftVLink}{ourTidyBbb} Book Introductions <a title="Go to __WHERE__ of page" href="#__LINK__">__ARROW__</a>{rightVLink}{rightCLink}{interlinearLink}{detailsLink}{hideFieldsButton}{hideTransliterationsButton}</p>' if c==-1 \
                         else f'<p id="__ID__" class="vNav">{introLink}{leftCLink}{leftVLink}{ourTidyBbb} {C}:{V} <a title="Go to __WHERE__ of page" href="#__LINK__">__ARROW__</a>{rightVLink}{rightCLink}{interlinearLink}{detailsLink}{hideFieldsButton}{hideTransliterationsButton}</p>'
                 parallelHtml = getVerseDetailsHtml( BBB, C, V )
-                ancientRefsToPrint = ('SA2_20:19',) # ('SA1_31:13',) # For debugging
+                ancientRefsToPrint = ('SA2_21:7','SA2_21:12') # ('SA1_31:13',) # For debugging
                 for versionAbbreviation in parallelVersions: # our adjusted order
                     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"    createParallelVersePagesForBook {parRef} processing {versionAbbreviation}…" )
                     assert not parallelHtml.endswith( '\n' )
@@ -397,20 +397,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                                 if versionAbbreviation in ('Wyc','TNT','Cvdl','Gnva','Bshps','KJB-1611'): # all from 1500's
                                     modernisedTextHtml = modernisedTextHtml.replace( 'J', 'Y' ).replace( 'Ie', 'Ye' ).replace( 'Io', 'Yo' ) \
                                                                                 .replace( 'Yudge', 'Judge' ).replace( 'KYB', 'KJB' ) # Fix overreaches
-                                if versionAbbreviation == 'KJB-1769':
-                                    # if parRef in ancientRefsToPrint: print( f"AA {versionAbbreviation} {parRef} ({len(modernisedTextHtml)}) {modernisedTextHtml=}" )
-                                    cleanedModernisedKJB1769TextHtml = modernisedTextHtml.replace( versionAbbreviation, '' ) \
-                                                                            .replace( 'J', 'Y' ).replace( 'Benjam', 'Benyam' ) \
-                                                                            .replace( '<span class="wj">', '' ).replace( '</span>', '' ) \
-                                                                            .replace( '  ', ' ' ).replace( '> ', '>' ) \
-                                                                            .strip() # Not sure why there's so many superfluous spaces in this text ???
-                                    if parRef in ancientRefsToPrint: print( f"BB {versionAbbreviation} {parRef} ({len(cleanedModernisedKJB1769TextHtml)}) {cleanedModernisedKJB1769TextHtml=}" )
-                                modernisedTextDiffers = modernisedTextHtml != footnoteFreeTextHtml # we'll usually only show it if it changed
-                                # if versionAbbreviation=='KJB-1611' and parRef in ancientRefsToPrint: print( f"CC {versionAbbreviation} {parRef} ({len(modernisedTextHtml)}) {modernisedTextHtml=}")
-                                cleanedModernisedTextHtml = modernisedTextHtml.replace( versionAbbreviation, '' ) \
-                                                                        .replace( '<span class="wj">', '' ).replace( '</span>', '' ) \
-                                                                        .replace( 'Yesus/Yeshua', 'Yesus' )
-                                if versionAbbreviation=='KJB-1611' and parRef in ancientRefsToPrint: print( f"DD {versionAbbreviation} {parRef} same={cleanedModernisedTextHtml==cleanedModernisedKJB1769TextHtml} ({len(cleanedModernisedTextHtml)}) {cleanedModernisedTextHtml=}")
+
                                 def removeVersePunctuationForComparison( htmlText:str ) -> str:
                                     """
                                     Punctuation was used differently over the centuries, so remove it from the verse
@@ -427,6 +414,25 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                                             .replace('  ',' ') # Around (now-removed) brackets 2Sam 4:10
                                             )
                                 # end of removeVersePunctuationForComparison function
+
+                                if versionAbbreviation == 'KJB-1769':
+                                    # if parRef in ancientRefsToPrint: print( f"AA {versionAbbreviation} {parRef} ({len(modernisedTextHtml)}) {modernisedTextHtml=}" )
+                                    cleanedModernisedKJB1769TextHtml = modernisedTextHtml.replace( versionAbbreviation, '' ) \
+                                                                            .replace( 'J', 'Y' ).replace( 'Benjam', 'Benyam' ) \
+                                                                            .replace( '<span class="wj">', '' ).replace( '</span>', '' ) \
+                                                                            .replace( '  ', ' ' ).replace( '> ', '>' ) \
+                                                                            .strip() # Not sure why there's so many superfluous spaces in this text ???
+                                    depunctuatedCleanedModernisedKJB1769TextHtml = removeVersePunctuationForComparison( cleanedModernisedKJB1769TextHtml )
+                                    if parRef in ancientRefsToPrint: print( f"BB {versionAbbreviation} {parRef} ({len(depunctuatedCleanedModernisedKJB1769TextHtml)}) {depunctuatedCleanedModernisedKJB1769TextHtml=}" )
+                                modernisedTextDiffers = modernisedTextHtml != footnoteFreeTextHtml # we'll usually only show it if it changed
+                                # if versionAbbreviation=='KJB-1611' and parRef in ancientRefsToPrint: print( f"CC {versionAbbreviation} {parRef} ({len(modernisedTextHtml)}) {modernisedTextHtml=}")
+                                cleanedModernisedTextHtml = modernisedTextHtml.replace( versionAbbreviation, '' ) \
+                                                                        .replace( '<span class="wj">', '' ) \
+                                                                        .replace( '<span style="fontsize75em">', '' ) \
+                                                                        .replace( '</span>', '' ) \
+                                                                        .replace( 'Yesus/Yeshua', 'Yesus' )
+                                depunctuatedCleanedModernisedTextHtml = removeVersePunctuationForComparison( cleanedModernisedTextHtml )
+                                if versionAbbreviation=='KJB-1611' and parRef in ancientRefsToPrint: print( f"DD {versionAbbreviation} {parRef} same={cleanedModernisedTextHtml==cleanedModernisedKJB1769TextHtml} ({len(depunctuatedCleanedModernisedTextHtml)}) {depunctuatedCleanedModernisedTextHtml=}")
                                 if versionAbbreviation in ('Wyc','TNT','Cvdl','Gnva','Bshps','KJB-1611') \
                                 and cleanedModernisedTextHtml == cleanedModernisedKJB1769TextHtml:
                                     modernisedTextHtml = f"<small>{'Modernised spelling is s' if modernisedTextDiffers else 'S'}ame as from KJB-1769 above{' apart from footnotes' if footnotesHtml else ''}</small>" # (Will be placed in parentheses below)
@@ -434,16 +440,14 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                                 and cleanedModernisedTextHtml.lower() == cleanedModernisedKJB1769TextHtml.lower():
                                     modernisedTextHtml = f"<small>{'Modernised spelling is s' if modernisedTextDiffers else 'S'}ame as from KJB-1769 above, apart from capitalisation{' and footnotes' if footnotesHtml else ''}</small>" # (Will be placed in parentheses below)
                                 elif versionAbbreviation in ('Wyc','TNT','Cvdl','Gnva','Bshps','KJB-1611') \
-                                and removeVersePunctuationForComparison( cleanedModernisedTextHtml) \
-                                == removeVersePunctuationForComparison( cleanedModernisedKJB1769TextHtml ):
+                                and depunctuatedCleanedModernisedTextHtml == depunctuatedCleanedModernisedKJB1769TextHtml:
                                     modernisedTextHtml = f"<small>{'Modernised spelling is s' if modernisedTextDiffers else 'S'}ame as from KJB-1769 above, apart from punctuation{' and footnotes' if footnotesHtml else ''}</small>" # (Will be placed in parentheses below)
                                 elif versionAbbreviation in ('Wyc','TNT','Cvdl','Gnva','Bshps','KJB-1611') \
-                                and removeVersePunctuationForComparison( cleanedModernisedTextHtml ).lower() \
-                                == removeVersePunctuationForComparison( cleanedModernisedKJB1769TextHtml ).lower():
+                                and depunctuatedCleanedModernisedTextHtml.lower() == depunctuatedCleanedModernisedKJB1769TextHtml.lower():
                                     modernisedTextHtml = f"<small>{'Modernised spelling is s' if modernisedTextDiffers else 'S'}ame as from KJB-1769 above, apart from capitalisation and punctuation{' and footnotes' if footnotesHtml else ''}</small>" # (Will be placed in parentheses below)
                                 elif versionAbbreviation in ('Wyc','TNT','Cvdl','Gnva','Bshps','KJB-1611') \
-                                and removeVersePunctuationForComparison( cleanedModernisedTextHtml ).lower().replace( '<span class="add">', '' ) \
-                                == removeVersePunctuationForComparison( cleanedModernisedKJB1769TextHtml ).lower().replace( '<span class="add">', '' ):
+                                and depunctuatedCleanedModernisedTextHtml.lower().replace( '<span class="add">', '' ) \
+                                == depunctuatedCleanedModernisedKJB1769TextHtml.lower().replace( '<span class="add">', '' ):
                                     modernisedTextHtml = f"<small>{'Modernised spelling is s' if modernisedTextDiffers else 'S'}ame as from KJB-1769 above, apart from marking of added words (and possibly capitalisation and punctuation{' and footnotes' if footnotesHtml else ''})</small>" # (Will be placed in parentheses below)
                                 else:
                                     if versionAbbreviation == 'KJB-1611':

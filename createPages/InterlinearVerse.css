@@ -248,7 +248,9 @@ span.ul { color:darkGrey; }
 /* span.SR-GNT_trans {} */
 
 /* OT spans */
-span.parr { vertical-align:super; font-size:0.8em; color:green; } /* Hebrew parallelism */
+span.synonParr { vertical-align:super; font-size:0.8em; color:green; } /* Hebrew synonymous parallelism */
+span.antiParr { vertical-align:super; font-size:0.8em; color:orangeRed; } /* Hebrew antithetic parallelism */
+span.synthParr { vertical-align:super; font-size:0.8em; color:blue; } /* Hebrew synthetic parallelism */
 
 /* OET add spans */
 span.addArticle { color:bisque; } */

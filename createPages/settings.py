@@ -34,6 +34,7 @@ CHANGELOG:
     2024-06-25 Added BibleMapper copyright details
     2024-09-23 Change OET OT book order
     2024-10-24 Change WEB and WMB to British spelling WEBBE and WMBB
+    2024-11-01 Added topics pages
 """
 from gettext import gettext as _
 from typing import List
@@ -46,7 +47,7 @@ from BibleOrgSys.BibleOrgSysGlobals import dPrint, fnPrint
 from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39
 
 
-LAST_MODIFIED_DATE = '2024-10-27' # by RJH
+LAST_MODIFIED_DATE = '2024-11-01' # by RJH
 SHORT_PROGRAM_NAME = "settings"
 PROGRAM_NAME = "OpenBibleData (OBD) Create Pages"
 PROGRAM_VERSION = '0.98'
@@ -54,9 +55,9 @@ PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
 
-OET_VERSION = 'v0.24' # Incremented on most runs for the production site
+OET_VERSION = 'v0.25' # Incremented on most runs for the production site
 
-TEST_MODE = True # Writes website into Test subfolder
+TEST_MODE = False # Writes website into Test subfolder
 ALL_PRODUCTION_BOOKS = not TEST_MODE # If set to False, only selects one book per version for a faster test build
 ALL_TEST_REFERENCE_PAGES = False # If in TEST_MODE, make ALL word/lemma pages, or just the RELEVANT ones
 UPDATE_ACTUAL_SITE_WHEN_BUILT = True # The pages are initially built in a tmp folder so need to be copied to the final destination
@@ -117,7 +118,7 @@ VERSIONS_WITH_BEYOND_66_BOOKS = ( 'KJB-1611','WEBBE','WEB', )
 OT_ONLY_VERSIONS = ['UHB','JPS']
 NT_ONLY_VERSIONS = ['BLB','AICNT','TCNT','TNT','Wymth', 'SR-GNT','UGNT','SBL-GNT','TC-GNT']
 
-NUM_EXTRA_MODES = 6 # Related passages, parallel and interlinear verses, reference and (Tyndale Bible) dictionary, and search
+NUM_EXTRA_MODES = 7 # Related passages, topics, parallel and interlinear verses, reference and (Tyndale Bible) dictionary, and search
 
 OET_UNFINISHED_WARNING_HTML_TEXT = 'This is still a very early look into the unfinished text of the <em>Open English Translation</em> of the Bible. Please double-check the text in advance before using in public.'
 OET_UNFINISHED_WARNING_HTML_PARAGRAPH = f'<p class="rem">{OET_UNFINISHED_WARNING_HTML_TEXT}</p>'
@@ -199,7 +200,7 @@ class State:
                 'SR-GNT':('<b>','</b>'), # 'UGNT':('<small>','</small>'),'SBL-GNT':('<small>','</small>'),'TC-GNT':('<small>','</small>'),
                 # 'BrTr':('<small>','</small>'),'BrLXX':('',''),
                 'UHB':('<b>','</b>'),
-                'Related':('<b>','</b>'), 'Parallel':('<b>','</b>'), 'Interlinear':('<b>','</b>'), 'Reference':('<b>','</b>'), 'Dictionary':('<b>','</b>'), 'Search':('<b>','</b>'),
+                'Related':('<b>','</b>'), 'Topics':('<b>','</b>'), 'Parallel':('<b>','</b>'), 'Interlinear':('<b>','</b>'), 'Reference':('<b>','</b>'), 'Dictionary':('<b>','</b>'), 'Search':('<b>','</b>'),
                 # NOTES:
                 'TOSN':('',''),'UTN':('',''),
                 }

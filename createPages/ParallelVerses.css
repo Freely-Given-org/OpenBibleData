@@ -194,7 +194,9 @@ span.t4tFoS { color:mediumvioletred; } /* T4T Figure of speech */
 span.ul { color:darkGrey; }
 
 /* OT spans */
-span.parr { vertical-align:super; font-size:0.8em; color:green; } /* Hebrew parallelism */
+span.synonParr { vertical-align:super; font-size:0.8em; color:green; } /* Hebrew synonymous parallelism */
+span.antiParr { vertical-align:super; font-size:0.8em; color:orangeRed; } /* Hebrew antithetic parallelism */
+span.synthParr { vertical-align:super; font-size:0.8em; color:blue; } /* Hebrew synthetic parallelism */
 
 span.tl {}
 span.wh { font-style:italic; }

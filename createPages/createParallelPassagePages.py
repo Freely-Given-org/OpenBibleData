@@ -29,7 +29,7 @@ CHANGELOG:
     2024-01-14 First attempt
 """
 from gettext import gettext as _
-from typing import Tuple, List
+from typing import List
 from pathlib import Path
 import os
 import logging
@@ -49,7 +49,7 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
 from OETHandlers import livenOETWordLinks, getOETTidyBBB, getOETBookName, getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2024-08-05' # by RJH
+LAST_MODIFIED_DATE = '2024-11-01' # by RJH
 SHORT_PROGRAM_NAME = "createParallelPassagePages"
 PROGRAM_NAME = "OpenBibleData createParallelPassagePages functions"
 PROGRAM_VERSION = '0.30'
@@ -63,7 +63,7 @@ EM_SPACE = ' '
 NARROW_NON_BREAK_SPACE = ' '
 
 
-PARALLEL_FILE_LOCATION = Path( '../ParallelPassages.tsv' )
+# PARALLEL_FILE_LOCATION = Path( '../ParallelPassages.tsv' )
 ONLY_MAKE_PAGES_WHICH_HAVE_PARALLELS = False # The prev/next links aren't yet correct if this option is selected
 
 
@@ -850,7 +850,7 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
                         f'''<a title="Up to {state.BibleNames[thisBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/">↑{thisBible.abbreviation}</a>''' )
         crossReferencedSectionHtml = f'''{top}<!--cross-reference section page-->
 {navBookListParagraph}
-{removeDuplicateCVids( BBB, crossReferencedSectionHtml ).replace( '../byC/', '../../OET/byC/' )}{f"{NEWLINE}{xrefHtml.replace( '../byC/', '../../OET/byC/' )}" if xrefHtml else ''}
+{removeDuplicateCVids( crossReferencedSectionHtml ).replace( '../byC/', '../../OET/byC/' )}{f"{NEWLINE}{xrefHtml.replace( '../byC/', '../../OET/byC/' )}" if xrefHtml else ''}
 {makeBottom( BBBLevel, 'relatedPassage', state )}'''
         checkHtml( f'{thisBible.abbreviation} cross-referenced section', crossReferencedSectionHtml )
         assert '.htm#aC' not in crossReferencedSectionHtml and '.htm#bC' not in crossReferencedSectionHtml, crossReferencedSectionHtml
