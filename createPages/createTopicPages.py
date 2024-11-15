@@ -27,6 +27,7 @@ Module handling createTopicPages functions.
 
 CHANGELOG:
     2024-11-01 First attempt
+    2024-11-09 Added some headings
 """
 from gettext import gettext as _
 from typing import Tuple, List
@@ -49,10 +50,10 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
 from OETHandlers import livenOETWordLinks, getOETTidyBBB, getOETBookName, getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2024-11-01' # by RJH
+LAST_MODIFIED_DATE = '2024-11-14' # by RJH
 SHORT_PROGRAM_NAME = "createTopicPages"
 PROGRAM_NAME = "OpenBibleData createTopicPages functions"
-PROGRAM_VERSION = '0.10'
+PROGRAM_VERSION = '0.20'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -70,26 +71,46 @@ TOPIC_TABLE = {
     'Advent week four': ['MIC_5:2-5a', 'LUK_1:39-56', 'HEB_10:5-10', 'REV_22:6-21'],
     'Advent Christmas': ['ISA_9:2-7', 'PSA_96', 'TIT_2:11-14', 'LUK_2:1-20'],
     'Advent revelation (epiphany)': ['ISA_60:1-6', 'PSA_72', 'EPH_3:1-12', 'MAT_2:1-12'],
-    'Basic salvation': ['ROM_3:22-23','ROM_6:22-23', 'JHN_3:14-16'],
+    'Basic salvation': ['ROM_6:22-23', 'ROM_3:22-23', 'JHN_3:14-16', 'REV_3:19-21'],
     'Once saved, always saved': ['PSA_136:1-2','PSA_138:7-8',
-                                'MAT_7:21-23','MAT_10:21-22', 'MRK_4:16-17', 'JHN_10:28-29','JHN_14:16-17',
+                                'MAT_7:21-23', 'MAT_10:21-22', 'MAT_25:40-41',
+                                'MRK_4:16-17',
+                                'JHN_10:28-29','JHN_14:16-17',
                                 'ROM_8:38-39','ROM_11:17-22', 'CO1_9:26-27',
                                 'GAL_5:3-4', 'EPH_1:13-14','EPH_4:29-30',
-                                'TI1_4:1-2',
+                                'TI1_2:1-8', 'TI1_4:1-2',
                                 'HEB_3:11-12','HEB_6:1-8','HEB_9:11-12','HEB_10:26-31',
                                 'PE2_2:20-22','PE2_3:1-18',
                                 'JN1_1:6-7','JN1_5:11-13',
                                 'JAM_5:19-20',
                                 'REV_3:4-5'],
+    'Yeshua/Jesus not God (Christadelphian)': ['H3 Claim: <span style="background-color:khaki;">Jesus died</span>', 'CO1_15:3-4', 'H3 Claim: <span style="background-color:lightBlue;">God cannot die</span>', 'TI1_1:17',
+                                        'H3 Claim: <span style="background-color:khaki;">Jesus was tempted </span>', 'HEB_4:14-15', 'H3 Claim: <span style="background-color:lightBlue;">God cannot be tempted</span>', 'JAM_1:13',
+                                        'H3 Claim: <span style="background-color:khaki;">Jesus was seen</span>', 'JHN_1:29', 'H3 Claim: <span style="background-color:lightBlue;">No man has ever seen God</span>', 'JN1_4:12',
+                                        'H3 Claim: <span style="background-color:khaki;">Jesus was and is a man</span>', 'TI1_2:5', 'H3 Claim: <span style="background-color:lightBlue;">God is not a man</span>', 'NUM_23:18-19',
+                                        'H3 Claim: <span style="background-color:khaki;">Jesus had to grow and learn</span>', 'HEB_5:8-9', 'H3 Claim: <span style="background-color:lightBlue;">God doesn’t ever need to learn</span>', 'ISA_40:28',
+                                        'H3 Claim: <span style="background-color:khaki;">Jesus needs salvation</span>', 'HEB_5:7', 'H3 Claim: <span style="background-color:lightBlue;">God does not</span>', 'HEB_5:7',
+                                        'H3 Claim: <span style="background-color:khaki;">Jesus grew weary</span>', 'JHN_4:5-6', 'H3 Claim: <span style="background-color:lightBlue;">God can’t grow weary</span>', 'ISA_40:28',
+                                        'H3 Claim: <span style="background-color:khaki;">Jesus slept</span>', 'MAT_8:23-24', 'H3 Claim: <span style="background-color:lightBlue;">God doesn’t slumber</span>', 'PSA_121:2-4',
+                                        'H3 Claim: <span style="background-color:khaki;">Jesus wasn’t all powerful</span>', 'JHN_5:18-19', 'H3 Claim: <span style="background-color:lightBlue;">God is all powerful (omnipotent)</span>', 'ISA_45:5-7',
+                                        'H3 Claim: <span style="background-color:khaki;">Jesus wasn’t all knowing</span>', 'MRK_13:31-32', 'H3 Claim: <span style="background-color:lightBlue;">God is all knowing (omniscient)</span>', 'ISA_46:9-10',
+                                        'H3 Only God can do that', 'MRK_2:1-12', 'MAT_9:1-9', 'LUK_5:17-26',
+                                        ]
     }
 for topic,refs in TOPIC_TABLE.items():
     assert isinstance( topic, str )
     assert isinstance( refs, list )
     for ref in refs:
         assert isinstance( ref, str )
-        assert ' ' not in ref
-        assert ref.count( '_' ) == 1
-        assert ref.count( ':' ) <= 1
+        if not ref.startswith( 'H3 ' ):
+            # Assume it's a reference -- either a verse or a verse or chapter range
+            assert ' ' not in ref
+            BBB, refRest = ref.split( '_' ) # This split will fail if it's not a valid scripture reference
+            try:
+                C, Vs = refRest.split( ':' )
+                assert C.isdigit()
+            except ValueError:
+                assert refRest.isdigit()
 
 def createTopicPages( level:int, folder:Path, state:State ) -> bool:
     """
@@ -104,13 +125,13 @@ def createTopicPages( level:int, folder:Path, state:State ) -> bool:
     topics = []
     topicsHtmls = []
     for topic,refs in TOPIC_TABLE.items():
-        topicWords = [x.title() for x in topic.replace(',','').split()]
+        topicWords = [x.title() for x in topic.replace(', ',' ').replace('/','⁄').split()]
         topicFilename = f'''{''.join(topicWords)}.htm'''
         createTopicPage( level, folder, topicFilename, topic, refs, state )
         topics.append( (topic,topicFilename) )
         topicsHtmls.append( f'''<a href="{topicFilename}">{topic}</a>''' )
 
-    # Create index page
+    # Create topic index page
     filename = 'index.htm'
     filepath = folder.joinpath( filename )
     top = makeTop( level, None, 'topicsIndex', None, state ) \
@@ -143,60 +164,66 @@ def createTopicPage( level:int, folder:Path, filename:str, topic:str, refs:List[
     rvBible, lvBible = state.preloadedBibles['OET-RV'], state.preloadedBibles['OET-LV']
 
     combinedHtmlChunks = []
-    topicPassagesHTML = f'<h1>{topic}</h1>'
     for rr,ref in enumerate( refs, start=1 ):
-        print( f"  {rr} {topic} {ref=}")
-        BBB, refRest = ref.split( '_' )
-        try: C, Vs = refRest.split( ':' )
-        except ValueError:
-            assert refRest.isdigit()
-            C, Vs = refRest, None
-        print( f"    {rr} {topic} {ref=} {BBB=} {refRest=} {C=} {Vs=}")
-        if Vs is None: # then it's an entire chapter (no verses specified)
-            rvVerseEntryList, rvContextList = rvBible.getContextVerseData( (BBB,C) )
-            try: lvVerseEntryList, lvContextList = lvBible.getContextVerseData( (BBB,C) )
-            except TypeError: # Book appears to be not available
+        # print( f"  {rr} {topic} {ref=}")
+        if ref.startswith( 'H3 '): # Then it's a heading -- we'll remove this part of the string
+            combinedHtmlChunks.append( f'''<h3>{ref[3:]}</h3>
+<h3></h3>''' ) # Second one is to keep the number of columns matched
+        else: # We'll assume it's a scripture reference
+            BBB, refRest = ref.split( '_' ) # This split will fail if it's not a valid scripture reference
+            try: C, Vs = refRest.split( ':' )
+            except ValueError:
+                assert refRest.isdigit()
+                C, Vs = refRest, None
+            # print( f"    {rr} {topic} {ref=} {BBB=} {refRest=} {C=} {Vs=}")
+            if Vs is None: # then it's an entire chapter (no verses specified)
+                rvVerseEntryList, rvContextList = rvBible.getContextVerseData( (BBB,C) )
+                try: lvVerseEntryList, lvContextList = lvBible.getContextVerseData( (BBB,C) )
+                except TypeError: # Book appears to be not available
+                    assert TEST_MODE
+                    lvVerseEntryList, lvContextList = InternalBibleEntryList(), []
+            elif '-' in Vs: # then it's a verse range
+                startV, endV = Vs.split( '-' )
+                rvVerseEntryList, rvContextList = rvBible.getContextVerseDataRange( (BBB,C,startV), (BBB,C,endV) )
+                try: lvVerseEntryList, lvContextList = lvBible.getContextVerseDataRange( (BBB,C,startV), (BBB,C,endV) )
+                except TypeError: # Book appears to be not available
+                    assert TEST_MODE
+                    lvVerseEntryList, lvContextList = InternalBibleEntryList(), []
+            elif '–' in Vs: # en-dash, then it's a chapter range
+                not_written_yet
+            else: # assume it's a single verse
+                assert Vs and Vs.isdigit()
+                rvVerseEntryList, rvContextList = rvBible.getContextVerseData( (BBB,C,Vs) )
+                try: lvVerseEntryList, lvContextList = lvBible.getContextVerseData( (BBB,C,Vs) )
+                except TypeError: # Book appears to be not available
+                    assert TEST_MODE
+                    lvVerseEntryList, lvContextList = InternalBibleEntryList(), []
+            # print( f"{rvVerseEntryList=}" )
+            # print( f"{lvVerseEntryList=}" )
+            rvVerseEntryList = livenOETWordLinks( level, rvBible, BBB, rvVerseEntryList, state )
+            try: lvVerseEntryList = livenOETWordLinks( level, lvBible, BBB, lvVerseEntryList, state )
+            except KeyError: # Missing book
                 assert TEST_MODE
-                lvVerseEntryList, lvContextList = InternalBibleEntryList(), []
-        elif '-' in Vs: # then it's a verse range
-            startV, endV = Vs.split( '-' )
-            rvVerseEntryList, rvContextList = rvBible.getContextVerseDataRange( (BBB,C,startV), (BBB,C,endV) )
-            try: lvVerseEntryList, lvContextList = lvBible.getContextVerseDataRange( (BBB,C,startV), (BBB,C,endV) )
-            except TypeError: # Book appears to be not available
+            rvTextHtml = convertUSFMMarkerListToHtml( level, rvBible.abbreviation, (BBB,C), 'topicalPassage', rvContextList, rvVerseEntryList, basicOnly=False, state=state )
+            # rvTextHtml = livenIORs( BBB, rvTextHtml, sections )
+            rvTextHtml = do_OET_RV_HTMLcustomisations( rvTextHtml )
+
+            if lvVerseEntryList:
+                lvTextHtml = convertUSFMMarkerListToHtml( level, lvBible.abbreviation, (BBB,C), 'topicalPassage', lvContextList, lvVerseEntryList, basicOnly=False, state=state )
+                # lvTextHtml = livenIORs( BBB, lvTextHtml, sections )
+                lvTextHtml = do_OET_LV_HTMLcustomisations( lvTextHtml )
+            else: # We didn't get any LV data
                 assert TEST_MODE
-                lvVerseEntryList, lvContextList = InternalBibleEntryList(), []
-        elif '–' in Vs: # en-dash, then it's a chapter range
-            not_written_yet
-        else:
-            assert Vs and Vs.isdigit()
-            rvVerseEntryList, rvContextList = rvBible.getContextVerseData( (BBB,C,Vs) )
-            lvVerseEntryList, lvContextList = lvBible.getContextVerseData( (BBB,C,Vs) )
-        # print( f"{rvVerseEntryList=}" )
-        # print( f"{lvVerseEntryList=}" )
-        rvVerseEntryList = livenOETWordLinks( level, rvBible, BBB, rvVerseEntryList, state )
-        try: lvVerseEntryList = livenOETWordLinks( level, lvBible, BBB, lvVerseEntryList, state )
-        except KeyError: # Missing book
-            assert TEST_MODE
-        rvTextHtml = convertUSFMMarkerListToHtml( level, rvBible.abbreviation, (BBB,C), 'topicalPassage', rvContextList, rvVerseEntryList, basicOnly=False, state=state )
-        # rvTextHtml = livenIORs( BBB, rvTextHtml, sections )
-        rvTextHtml = do_OET_RV_HTMLcustomisations( rvTextHtml )
+                lvTextHtml = f'<h4>No OET-LV {BBB} book available</h4>'
 
-        if lvVerseEntryList:
-            lvTextHtml = convertUSFMMarkerListToHtml( level, lvBible.abbreviation, (BBB,C), 'topicalPassage', lvContextList, lvVerseEntryList, basicOnly=False, state=state )
-            # lvTextHtml = livenIORs( BBB, lvTextHtml, sections )
-            lvTextHtml = do_OET_LV_HTMLcustomisations( lvTextHtml )
-        else: # We didn't get any LV data
-            assert TEST_MODE
-            lvTextHtml = f'<h4>No OET-LV {BBB} book available</h4>'
-
-        if rvTextHtml.startswith( '<div class="rightBox">' ):
-            rvTextHtml = f'<div class="s1">{rvTextHtml}' # This got removed above
-        # Handle footnotes and cross-references so the same fn1 doesn't occur for both chunks if they both have footnotes
-        rvTextHtml = rvTextHtml.replace( 'id="fn', f'id="fn{rr}RV' ).replace( 'href="#fn', f'href="#fn{rr}RV' ) \
-                               .replace( 'id="xr', f'id="xr{rr}RV' ).replace( 'href="#xr', f'href="#xr{rr}RV' )
-        lvTextHtml = lvTextHtml.replace( 'id="fn', f'id="fn{rr}LV' ).replace( 'href="#fn', f'href="#fn{rr}LV' ) \
-                               .replace( 'id="xr', f'id="xr{rr}LV' ).replace( 'href="#xr', f'href="#xr{rr}LV' )
-        combinedHtmlChunks.append( f'''<h3>OET <a title="View in context of whole book" href="{'../'*level}OET/byDoc/{BBB}.htm#C{C}V{startV}">{getOETTidyBBB(BBB,True,True,True)}</a> <a title="View in context of whole chapter" href="{'../'*level}OET/byC/{BBB}_C{C}.htm#V{startV}">{refRest}</a></h3>
+            if rvTextHtml.startswith( '<div class="rightBox">' ):
+                rvTextHtml = f'<div class="s1">{rvTextHtml}' # This got removed above
+            # Handle footnotes and cross-references so the same fn1 doesn't occur for both chunks if they both have footnotes
+            rvTextHtml = rvTextHtml.replace( 'id="fn', f'id="fn{rr}RV' ).replace( 'href="#fn', f'href="#fn{rr}RV' ) \
+                                .replace( 'id="xr', f'id="xr{rr}RV' ).replace( 'href="#xr', f'href="#xr{rr}RV' )
+            lvTextHtml = lvTextHtml.replace( 'id="fn', f'id="fn{rr}LV' ).replace( 'href="#fn', f'href="#fn{rr}LV' ) \
+                                .replace( 'id="xr', f'id="xr{rr}LV' ).replace( 'href="#xr', f'href="#xr{rr}LV' )
+            combinedHtmlChunks.append( f'''<h3>OET <a title="View in context of whole book" href="{'../'*level}OET/byDoc/{BBB}.htm#C{C}V{startV}">{getOETTidyBBB(BBB,True,True,True)}</a> <a title="View in context of whole chapter" href="{'../'*level}OET/byC/{BBB}_C{C}.htm#V{startV}">{refRest}</a></h3>
 <h3></h3>
 <div class="chunkRV">{rvTextHtml}</div><!--chunkRV-->
 <div class="chunkLV">{lvTextHtml}</div><!--chunkLV-->''' )
@@ -206,10 +233,6 @@ def createTopicPage( level:int, folder:Path, filename:str, topic:str, refs:List[
 <h2>Literal Version <button type="button" id="marksButton" title="Hide/Show underline and strike-throughs" onclick="hide_show_marks()">Hide marks</button></h2>
 {NEWLINE.join(combinedHtmlChunks)}</div><!--RVLVcontainer-->'''
 
-#     topicPassagesHTML = f'''{topicPassagesHTML}\n<h3>OET <a title="View in context of whole book" href="{'../'*level}OET/byDoc/{BBB}.htm#C{C}V{startV}">{getOETTidyBBB(BBB,True,True,True)}</a> <a title="View in context of whole chapter" href="{'../'*level}OET/byC/{BBB}_C{C}.htm#V{startV}">{refRest}</a></h3>
-# {combinedHtml}'''
-    # print( f"{topicPassagesHTML=}")
-
     filepath = folder.joinpath( filename )
     top = makeTop( level, None, 'topicPassages', None, state ) \
             .replace( '__TITLE__', f"{topic}{' TEST' if TEST_MODE else ''}" ) \
@@ -218,9 +241,10 @@ def createTopicPage( level:int, folder:Path, filename:str, topic:str, refs:List[
             #         f'''<a title="Up to {state.BibleNames[thisRvBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisRvBible.abbreviation)}/">↑{thisRvBible.abbreviation}</a>''' )
     topicHtml = f'''{top}<!--topic page-->
 <p>&lt;<a href="index.htm">Up to topic index page</a>&gt;</p>
-<p>This page contains selected passages from the <em>Open English Translation</em> with the passage from the <em>OET Readers’ Version</em> on the left, and the <em>OET Literal Version</em> on the right. No commentary is included—our aim is simply to conveniently list the passages in one place so that our readers can make up their own minds about what the writer of the passage was intending to communicate.</p>
+<h1>{topic}</h1>
+<p>This page contains selected passages from the <em>Open English Translation</em> with the passage from the <em>OET Readers’ Version</em> on the left, and the <em>OET Literal Version</em> on the right. Minimal commentary is included (only some headings)—our aim is simply to conveniently list the passages in one place so that our readers can make up their own minds about what the writer of the passage was intending to communicate.</p>
 {removeDuplicateCVids(combinedHtml)}
-<p class="note">Please contact us at <b>Freely</b> dot <b>Given</b> dot <b>org</b> (at) <b>gmail</b> dot <b>com</b> if there’s any passages that you’d like us to add to this topic page, or any passages that need a little bit more context around them.</p>
+<p class="note">Please contact us at <b>Freely</b> dot <b>Given</b> dot <b>org</b> (at) <b>gmail</b> dot <b>com</b> if there’s any passages that you’d like us to add to this topic page, or any passages that need a little bit more context around them. (We encourage our readers to always view things in their context, so we discourage use of the word ‘verse’.)</p>
 <p>&lt;<a href="index.htm">Go to topic index page</a>&gt;</p>
 {makeBottom( level, 'topicPassages', state )}'''
     checkHtml( f'{topic} Topic', topicHtml )
