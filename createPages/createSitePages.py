@@ -77,7 +77,8 @@ from BibleTransliterations import load_transliteration_table
 
 from settings import State, state, reorderBooksForOETVersions, TEST_MODE, TEST_BOOK_LIST, \
     SITE_NAME, SITE_ABBREVIATION, OET_VERSION, \
-    TEMP_BUILD_FOLDER, ALL_PRODUCTION_BOOKS, UPDATE_ACTUAL_SITE_WHEN_BUILT, DESTINATION_FOLDER, BY_DOCUMENT_HTML_PARAGRAPH
+    TEMP_BUILD_FOLDER, UPDATE_ACTUAL_SITE_WHEN_BUILT, DESTINATION_FOLDER, \
+    ALL_PRODUCTION_BOOKS, BY_DOCUMENT_HTML_PARAGRAPH, REUSE_EXISTING_WORD_PAGES
 from Bibles import preloadVersions
 from OETHandlers import getOETTidyBBB, getOETBookName
 from createBookPages import createOETBookPages, createBookPages
@@ -92,7 +93,7 @@ from Dict import createTyndaleDictPages, createUBSDictionaryPages
 from html import makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2024-11-01' # by RJH
+LAST_MODIFIED_DATE = '2024-11-14' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData (OBD) Create Site Pages"
 PROGRAM_VERSION = '0.98'
@@ -291,9 +292,12 @@ def _createSitePages() -> bool:
     createParallelPassagePages( 1, TEMP_BUILD_FOLDER.joinpath('rel/'), state )
     createTopicPages( 1, TEMP_BUILD_FOLDER.joinpath('tpc/'), state )
 
-    createOETReferencePages( 1, TEMP_BUILD_FOLDER.joinpath('ref/'), state )
-    createUBSDictionaryPages( 1, TEMP_BUILD_FOLDER.joinpath('UBS/'), state )
-    createTyndaleDictPages( 1, TEMP_BUILD_FOLDER.joinpath('dct/'), state )
+    if not TEST_MODE \
+    or not REUSE_EXISTING_WORD_PAGES:
+        # Don't rebuild these reference pages -- we'll reuse the existing folders full of pages
+        createOETReferencePages( 1, TEMP_BUILD_FOLDER.joinpath('ref/'), state )
+        createUBSDictionaryPages( 1, TEMP_BUILD_FOLDER.joinpath('UBS/'), state )
+        createTyndaleDictPages( 1, TEMP_BUILD_FOLDER.joinpath('dct/'), state )
 
     _createDetailsPages( 0, TEMP_BUILD_FOLDER, state )
     _createSearchPage( 0, TEMP_BUILD_FOLDER, state )
@@ -377,19 +381,23 @@ def _cleanHTMLFolders( folder:Path, state:State ) -> bool:
     except FileNotFoundError: pass
     try: os.unlink( folder.joinpath( 'Search.htm' ) )
     except FileNotFoundError: pass
-    try: shutil.rmtree( folder.joinpath( 'rel/' ) )
-    except FileNotFoundError: pass
     try: shutil.rmtree( folder.joinpath( 'par/' ) )
-    except FileNotFoundError: pass
-    try: shutil.rmtree( folder.joinpath( 'tpc/' ) )
     except FileNotFoundError: pass
     try: shutil.rmtree( folder.joinpath( 'ilr/' ) )
     except FileNotFoundError: pass
-    try: shutil.rmtree( folder.joinpath( 'ref/' ) )
+    try: shutil.rmtree( folder.joinpath( 'rel/' ) )
     except FileNotFoundError: pass
-    try: shutil.rmtree( folder.joinpath( 'dct/' ) )
+    try: shutil.rmtree( folder.joinpath( 'tpc/' ) )
     except FileNotFoundError: pass
-    for versionAbbreviation in state.allBibleVersions + ['UTN','TOSN','TOBD','UBS','THBD','BMM']:
+    if not TEST_MODE \
+    or not REUSE_EXISTING_WORD_PAGES: # Leave the existing folders there if we're not rebuilding these reference pages
+        try: shutil.rmtree( folder.joinpath( 'ref/' ) )
+        except FileNotFoundError: pass
+        try: shutil.rmtree( folder.joinpath( 'UBS/' ) )
+        except FileNotFoundError: pass
+        try: shutil.rmtree( folder.joinpath( 'dct/' ) )
+        except FileNotFoundError: pass
+    for versionAbbreviation in state.allPossibleBibleVersions + ['UTN','TOSN','TOBD','UBS','THBD','BMM']:
         vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Removing tree at {folder.joinpath( f'{versionAbbreviation}/' )}/…")
         try: shutil.rmtree( folder.joinpath( f'{versionAbbreviation}/' ) )
         except FileNotFoundError: pass
@@ -469,7 +477,7 @@ def _createOETMissingVersePage( level:int, buildFolder:Path ) -> bool:
 to indicate places where we intentionally did not include the translation of an <b>entire</b> verse.
 This is not because we’re trying to trying to hide anything that was in the original scriptures,
 but rather it’s because the majority of scholars believe that the verse was added later by a scribe
-and most likely was not written by the original author of the book or letter.</p>
+and most likely was not written by the original author of the document or letter.</p>
 <p class="note">It’s clear that the oldest copies of the manuscripts that we have, are not the originals which were first dictated by their authors,
 but rather they’re copies made over the next few centuries.
 Often, the copyists wanted to fix errors which they believed earlier copyists may have made,
@@ -603,11 +611,11 @@ def _createDetailsPages( level:int, buildFolder:Path, state:State ) -> bool:
 '''
 
         bodyHtml = f'''<!--_createDetailsPages--><h1 id="Top">{versionName} Details</h1>
-{detailsHtml.replace('__LEVEL__','../'*(level+1))}<hr style="width:40%;margin-left:0;margin-top: 0.3em">
+{detailsHtml.replace('__LEVEL__','../'*(level+1))}<hr style="width:45%;margin-left:0;margin-top: 0.3em">
 <p class="note">See details for <a title="All versions’ details" href="../AllDetails.htm#Top">ALL</a> included translations and reference materials.</p>
 '''
 
-        allDetailsHTML = f'''{allDetailsHTML}{'<hr style="width:40%;margin-left:0;margin-top: 0.3em">' if allDetailsHTML else ''}<h2 id="{versionAbbreviation}">{versionName}</h2>
+        allDetailsHTML = f'''{allDetailsHTML}{'<hr style="width:45%;margin-left:0;margin-top: 0.3em">' if allDetailsHTML else ''}<h2 id="{versionAbbreviation}">{versionName}</h2>
 {detailsHtml.replace('h2','h3').replace('href="../OET/bySec/','href="OET/bySec/').replace('__LEVEL__','../'*level)}'''
 
         html = f"{topHtml}{bodyHtml}{makeBottom( level+1, 'details', state )}"
@@ -636,7 +644,7 @@ def _createDetailsPages( level:int, buildFolder:Path, state:State ) -> bool:
   many commercial businesses <a href="https://SellingJesus.org/">copyright</a> their Bible translations and other materials in order to restrict sites like this from being able to use them.
   So although we don’t consider their materials to be very useful here (and new, high-quality, open-licenced materials are currently being developed to replace them),
   we have included some of their verses on a few of our parallel verse pages just for interest and for comparison, so you’ll find their copyright details below.</small></p>
-{allDetailsHTML}<hr style="width:40%;margin-left:0;margin-top: 0.3em">
+{allDetailsHTML}<hr style="width:45%;margin-left:0;margin-top: 0.3em">
 <p class="note">See the <a href="http://bibles.wikidot.com/timeline">WikiDot Bible Translation Timeline</a> for a list of many of the above Bible versions (plus many others).</p>
 <p class="rem"><small>So far we’ve only had one translation organisation refuse to allow us to display their work on our <a href="par/MRK/C1V1.htm#Top">parallel verse pages</a> (designed to help Bible students and Bible translators compare versions)
 and that is the <a href="https://www.easyenglish.bible/about-easyenglish/">Easy English Bible</a> who twice refused our application (without giving any reason) despite their translation being developed with donations from the public.

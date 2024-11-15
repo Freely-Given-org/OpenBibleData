@@ -87,7 +87,7 @@ from html import makeTop, makeBottom, checkHtml
 from OETHandlers import getOETTidyBBB, getOETBookName, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
-LAST_MODIFIED_DATE = '2024-10-01' # by RJH
+LAST_MODIFIED_DATE = '2024-11-09' # by RJH
 SHORT_PROGRAM_NAME = "createOETReferencePages"
 PROGRAM_NAME = "OpenBibleData createOETReferencePages functions"
 PROGRAM_VERSION = '0.78'
@@ -537,6 +537,7 @@ SIMILAR_GLOSS_WORDS_TABLE = [
     (('boat','boats'),('ship','ships')),
     (('body','bodies'),('flesh',)),
     (('box','boxes'),('chest','chests','ark')),
+    (('chair','chairs'),('seat','seats','throne','thrones')),
     (('chest','chests'),('box','boxes','ark')),
     (('chief_priest','chief_priests'),('priest','priests')),
     (('child','children'),('son','sons','daughter','daughters')),
@@ -593,6 +594,7 @@ SIMILAR_GLOSS_WORDS_TABLE = [
     (('Sabbath','Sabbaths'),('week','weeks','rest')),
     (('Satan',),('devil',)),
     (('scroll','scrolls'),('book','books','scipture','scriptures')),
+    (('seat','seats'),('chair','chairs','throne','thrones')),
     (('seed',),('sperm',)),
     (('servant','servants'),('slave','slaves','house_servant','house_servants','attendant','attendants')),
     (('ship','ships'),('boat','boats')),
@@ -604,6 +606,7 @@ SIMILAR_GLOSS_WORDS_TABLE = [
     (('statute','statutes'),('law','laws','regulation','regulations')),
     (('suddenly',),('immediately',)),
     (('terror',),('dread','fear')),
+    (('throne','thrones'),('chair','chairs','seat','seats')),
     (('unclean',),('immoral','prohibited','impure','clean')),
     (('united',),('joined_together',)),
     (('way','ways'),('path','paths','road','roads')),
@@ -1936,9 +1939,11 @@ def create_Greek_word_pages( level:int, outputFolderPath:Path, state:State ) -> 
             # .replace( '\\nd ', '<span class="nd">').replace( '\\nd*', '</span>') \
             # .replace( '\\add ', '<span class="add">').replace( '\\add*', '</span>') \
         assert '<span class="ul">' not in engGloss # already
+        assert '\\add -' not in engGloss
+        assert '\\add ¿' not in engGloss
+        # .replace( '\\add ¿', '<span class="unusedArticle">' )
         result = ( engGloss
             .replace( '\\add +', '<span class="addArticle">' )
-            .replace( '\\add -', '<span class="unusedArticle">' )
             .replace( '\\add =', '<span class="addCopula">' )
             #.replace( '\\add <a title', '__PROTECT__' ) # Enable if required
             .replace( '\\add <', '<span class="addDirectObject">' )
@@ -2336,7 +2341,7 @@ def create_Greek_lemma_pages( level:int, outputFolderPath:Path, state:State ) ->
         assert '<span class="ul">' not in engGloss # already
         result = ( engGloss
             .replace( '\\add +', '<span class="addArticle">' )
-            # .replace( '\\add -', '<span class="unusedArticle">' )
+            # .replace( '\\add ¿', '<span class="unusedArticle">' )
             # .replace( '\\add =', '<span class="addCopula">' )
             # .replace( '\\add <a title', '__PROTECT__' ) # Enable if required
             # .replace( '\\add <', '<span class="addDirectObject">' )

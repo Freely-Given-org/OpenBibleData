@@ -1,4 +1,63 @@
 // Adapted from https://ralzohairi.medium.com/adding-custom-keyboard-shortcuts-to-your-website-b4151fda2e7a
+//  and from https://stackoverflow.com/questions/53192433/how-to-detect-swipe-in-javascript
+
+var initialX = null;
+var initialY = null;
+var container = document.querySelector(".hideables");
+console.log(`${typeof container} container=${container}`);
+
+if (container != null) {
+    container.addEventListener("touchstart", startTouch, false);
+    container.addEventListener("touchmove", moveTouch, false);
+}
+
+function startTouch(e) {
+    initialX = e.touches[0].clientX;
+    initialY = e.touches[0].clientY;
+};
+
+function moveTouch(e) {
+    if (initialX === null) {
+        return;
+    }
+    if (initialY === null) {
+        return;
+    }
+
+    var currentX = e.touches[0].clientX;
+    var currentY = e.touches[0].clientY;
+
+    var diffX = initialX - currentX;
+    var diffY = initialY - currentY;
+
+  // Swipe Up / Down / Left / Right
+  if (Math.abs(diffX) > Math.abs(diffY)) {
+    // sliding horizontally
+    if (diffX > 0) {
+      // swiped left
+      console.log("swiped left");
+      handleChange( 'Previous' );
+    } else {
+      // swiped right
+      console.log("swiped right");
+      handleChange( 'Next' );
+    }
+  } else {
+    // sliding vertically
+    if (diffY > 0) {
+      // swiped up
+      console.log("swiped up");
+    } else {
+      // swiped down
+      console.log("swiped down");
+    }
+  }
+
+  initialX = null;
+  initialY = null;
+
+  e.preventDefault();
+};
 
 // Keep track of clicked keys
 var isKeyPressed = {
@@ -6,7 +65,29 @@ var isKeyPressed = {
     'p': false,
  // ... Other keys to check for custom key combinations
 };
- 
+
+
+function handleChange( direction ) {
+    // direction must be "Previous" or "Next"
+    let aLink = document.querySelector(`a[title^="${direction} "]`) // Finds next anchor with title BEGINNING WITH the given string
+    // console.log( `${direction} aLink=${aLink}` );
+    // console.log( `aLink type=${typeof aLink}` );
+    if (aLink != null) {
+        aLinkStr = aLink.getAttribute('href');
+        // console.log( `${direction} aLinkstr=${aLinkStr}` );
+        // console.log( `aLinkStr type=${typeof aLinkStr}` );
+        current = window.location.href;
+        // console.log( `Current=${current} ${current.endsWith('#Top')}` );
+        if (current.includes('#') && !current.endsWith('#Top')) {
+            ix = current.indexOf('#');
+            aLinkStr = aLinkStr.substring(0, aLinkStr.length-4) + current.substring(ix);
+            // console.log( `aLinkStr=${aLinkStr}` );
+            aLink.setAttribute('href', aLinkStr);
+        }
+        aLink.click();
+    }
+}
+
 document.onkeydown = (keyDownEvent) => {
   
     //Prevent default key actions, if desired
@@ -22,17 +103,13 @@ document.onkeydown = (keyDownEvent) => {
     if (isKeyPressed['p']
         || isKeyPressed['b']
         || isKeyPressed['ArrowLeft']) {
-        let aLink = document.querySelector('a[title^="Previous "]') // Finds title BEGINNING WITH the given string
-        // console.log( `p=Previous aLink=${aLink}` );
-        if (aLink != null) aLink.click();
+            handleChange( 'Previous' );
     }
-    // Forward/Next uses first <a title="Previous something..." link
+    // Forward/Next uses first <a title="Next something..." link
     else if (isKeyPressed['n']
         || isKeyPressed['f']
         || isKeyPressed['ArrowRight']) {
-        let aLink = document.querySelector('a[title^="Next "]') // Finds title BEGINNING WITH the given string
-        // console.log( `n=Next aLink=${aLink}` );
-        if (aLink != null) aLink.click();
+            handleChange( 'Next' );
     };
     // else {
     //     console.log( `Other keyDown=${keyDownEvent.key}` );

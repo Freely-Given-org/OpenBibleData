@@ -47,7 +47,7 @@ from BibleOrgSys.BibleOrgSysGlobals import dPrint, fnPrint
 from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39
 
 
-LAST_MODIFIED_DATE = '2024-11-01' # by RJH
+LAST_MODIFIED_DATE = '2024-11-14' # by RJH
 SHORT_PROGRAM_NAME = "settings"
 PROGRAM_NAME = "OpenBibleData (OBD) Create Pages"
 PROGRAM_VERSION = '0.98'
@@ -55,16 +55,17 @@ PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
 
-OET_VERSION = 'v0.25' # Incremented on most runs for the production site
+OET_VERSION = 'v0.26' # At 49.4% 2024-11-15 (Incremented on most runs for the production site)
 
 TEST_MODE = False # Writes website into Test subfolder
 ALL_PRODUCTION_BOOKS = not TEST_MODE # If set to False, only selects one book per version for a faster test build
+REUSE_EXISTING_WORD_PAGES = TEST_MODE # Don't recreate word pages
 ALL_TEST_REFERENCE_PAGES = False # If in TEST_MODE, make ALL word/lemma pages, or just the RELEVANT ones
 UPDATE_ACTUAL_SITE_WHEN_BUILT = True # The pages are initially built in a tmp folder so need to be copied to the final destination
 
-OET_RV_OT_BOOK_LIST = ['GEN','EXO','JOS','JDG','RUT','SA1','SA2','EST','JOB','JNA','MAL']
+OET_RV_OT_BOOK_LIST = ['GEN','EXO','JOS','JDG','RUT','SA1','SA2','KI1','EST','JOB','PSA','JNA','HAG','MAL']
 
-TEST_OT_BOOK_LIST = ['SA2','NAH','OBA','HAG'] # Books in progress
+TEST_OT_BOOK_LIST = ['KI1','PSA','NAH'] # Books in progress (do EZR after NAH)
 TEST_NT_BOOK_LIST = ['MRK',] # Shortest gospel
 TEST_BOOK_LIST = TEST_OT_BOOK_LIST + TEST_NT_BOOK_LIST
 
@@ -94,8 +95,7 @@ OET_APOCRYPHA_BOOK_ORDER = ['LAO',
                         'GES','LES','ESG','DNG','PS2',
                         'TOB','JDT','ESA','WIS','SIR','BAR','LJE','PAZ','SUS','BEL','MAN',
                         'MA1','MA2','MA3','MA4',
-                        'GLS',
-                        'XXA','XXB','XXC','XXD','XXE']
+                        'GLS']
 # For the NT, we put JHN first as a parallel to GEN, then ACT ends up better because immediately following LUK
 OET_NT_BOOK_ORDER = ['JHN','MRK','MAT','LUK','ACT',
                         'JAM', 'GAL', 'TH1','TH2', 'CO1','CO2', 'ROM', 'COL', 'PHM', 'EPH', 'PHP',
@@ -103,7 +103,7 @@ OET_NT_BOOK_ORDER = ['JHN','MRK','MAT','LUK','ACT',
                         'TI2', 'HEB', 'JDE',
                         'JN1','JN2','JN3', 'REV']
 assert len(OET_NT_BOOK_ORDER) == 27
-OET_BOOK_ORDER = ['INT','FRT'] + OET_OT_BOOK_ORDER + OET_APOCRYPHA_BOOK_ORDER + OET_NT_BOOK_ORDER
+OET_BOOK_ORDER = ['FRT','INT'] + OET_OT_BOOK_ORDER + OET_APOCRYPHA_BOOK_ORDER + OET_NT_BOOK_ORDER + ['XXA','XXB','XXC','XXD','XXE','CNC','GLO','TDX','NDX','OTH','BAK']
 assert len(OET_BOOK_ORDER) > 68
 
 OET_LV_BOOK_LIST = BOOKLIST_OT39 + OET_NT_BOOK_ORDER
@@ -113,10 +113,10 @@ OET_RV_BOOK_LIST_WITH_FRT = ['FRT'] + OET_RV_BOOK_LIST
 
 # The version to link to when the OET doesn't have that book (yet)
 ALTERNATIVE_VERSION = 'WEB' # Should be a version with all books present
-VERSIONS_WITH_BEYOND_66_BOOKS = ( 'KJB-1611','WEBBE','WEB', )
 
-OT_ONLY_VERSIONS = ['UHB','JPS']
-NT_ONLY_VERSIONS = ['BLB','AICNT','TCNT','TNT','Wymth', 'SR-GNT','UGNT','SBL-GNT','TC-GNT']
+VERSIONS_WITHOUT_NT = ['UHB','JPS', 'BrLXX','BrTr']
+VERSIONS_WITHOUT_OT = ['BLB','AICNT','TCNT','TNT','Wymth', 'SR-GNT','UGNT','SBL-GNT','TC-GNT']
+VERSIONS_WITH_APOCRYPHA = ( 'KJB-1611', 'WEBBE','WEB', 'BrLXX','BrTr')
 
 NUM_EXTRA_MODES = 7 # Related passages, topics, parallel and interlinear verses, reference and (Tyndale Bible) dictionary, and search
 
@@ -154,7 +154,7 @@ class State:
                 'TNT','Wyc',
                 'Luth','ClVg',
                 'SR-GNT','UGNT','SBL-GNT','TC-GNT',
-                'NETS','BrTr','BrLXX', 'UHB',
+                'UHB', 'BrLXX','BrTr', 'NETS',
                 # NOTES:
                 'TOSN','UTN',
                 ] if TEST_MODE else \
@@ -170,12 +170,12 @@ class State:
                 'TNT','Wyc',
                 'Luth','ClVg',
                 'SR-GNT','UGNT','SBL-GNT','TC-GNT',
-                'NETS','BrTr','BrLXX', 'UHB',
+                'UHB', 'BrLXX','BrTr', 'NETS',
                 # NOTES:
                 'TOSN','UTN',
                 ]    # NOTE: The above list has entries deleted by preloadBibles() if they fail to load
     #           (often because we temporarily remove the BibleLocation below)
-    allBibleVersions = BibleVersions[:] # Keep a copy with the full list
+    allPossibleBibleVersions = BibleVersions[:] # Keep a copy with the full list
 
     # Specific short lists
     auxilliaryVersions = ('OET','TOBD') # These ones don't have their own Bible locations at all
@@ -184,7 +184,7 @@ class State:
     numAllowedSelectedVerses   = (  300,  500,  500,  500,  500,  500,   500, 1000,   20,  300,  300,  250,   300,   300,  250,    250  ) # Order must match above list
     assert len(numAllowedSelectedVerses) == len(selectedVersesOnlyVersions)
     # We want these versions on our parallel pages, but are not interested enough in them for them to have their own version pages
-    versionsWithoutTheirOwnPages = selectedVersesOnlyVersions + ('Luth','ClVg', 'UGNT','SBL-GNT','TC-GNT', 'BrTr','BrLXX', 'TOSN','UTN')
+    versionsWithoutTheirOwnPages = selectedVersesOnlyVersions + ('Luth','ClVg', 'UGNT','SBL-GNT','TC-GNT', 'TOSN','UTN')
 #     if not TEST_MODE: versionsWithoutTheirOwnPages += 'KJB-1611'
 
     # NOTE: We don't display the versionsWithoutTheirOwnPages, so don't need/allow decorations for them
@@ -198,8 +198,8 @@ class State:
                 'KJB-1769':('',''),'KJB-1611':('',''), 'Bshps':('',''), 'Gnva':('',''), 'Cvdl':('',''),
                 'TNT':('',''), 'Wyc':('',''), #'ClVg':('<small>','</small>'),
                 'SR-GNT':('<b>','</b>'), # 'UGNT':('<small>','</small>'),'SBL-GNT':('<small>','</small>'),'TC-GNT':('<small>','</small>'),
-                # 'BrTr':('<small>','</small>'),'BrLXX':('',''),
                 'UHB':('<b>','</b>'),
+                'BrTr':('<small>','</small>'),'BrLXX':('',''),
                 'Related':('<b>','</b>'), 'Topics':('<b>','</b>'), 'Parallel':('<b>','</b>'), 'Interlinear':('<b>','</b>'), 'Reference':('<b>','</b>'), 'Dictionary':('<b>','</b>'), 'Search':('<b>','</b>'),
                 # NOTES:
                 'TOSN':('',''),'UTN':('',''),
@@ -215,12 +215,12 @@ class State:
                 'SR-GNT': '../../Forked/CNTR-SR/SR usfm/', # We moved these up in the list because they're now compulsory
                 'UHB': '../copiedBibles/Original/unfoldingWord.org/UHB/',
                 # NOTE: The program will still run if some of these below are commented out or removed
-                # (e.g., this can be done quickly for a faster test)
+                # (e.g., this can be done quickly for a faster test run)
                 'ULT': '../copiedBibles/English/unfoldingWord.org/ULT/',
                 'UST': '../copiedBibles/English/unfoldingWord.org/UST/',
-                # However, if they're all commented out, 'assert doneHideablesDiv' will fail in createParallelVersePages.py if not in test mode
                 'BSB': '../copiedBibles/English/Berean.Bible/BSB/',
                 'BLB': '../copiedBibles/English/Berean.Bible/BLB/blb.modified.txt', # NT only so far
+                # However, if they're all commented out, 'assert doneHideablesDiv' will fail in createParallelVersePages.py if not in test mode
                 'AICNT': '../copiedBibles/English/AICNT/', # NT only
                 'OEB': '../copiedBibles/English/OEB/',
                 # 'ISV': '',
@@ -658,18 +658,21 @@ However, Moffat wasn’t just a <em>follow the crowd</em> person, so he’s like
                 'copyright': '<p class="copyright">Copyright © (coming).</p>',
                 'licence': '<p class="licence">(coming).</p>',
                 'acknowledgements': '<p class="acknwldg">(coming).</p>' },
-        'DRA': {'about': '<p class="about">Douay-Rheims American Edition (1899).</p>',
+        'DRA': {'about': '<p class="about">Douay-Rheims American Edition (1899), named after two French cities where it was first translated from the Latin Vulgate in the early 1600’s.</p>',
                 'copyright': '<p class="copyright">Copyright © (coming).</p>',
                 'licence': '<p class="licence">(coming).</p>',
-                'acknowledgements': '<p class="acknwldg">(coming).</p>' },
+                'acknowledgements': '<p class="acknwldg">(coming).</p>',
+                'notes': '''<p class="note">See <a href="https://en.wikipedia.org/wiki/Douay%E2%80%93Rheims_Bible">Wikipedia</a>.</p>''' },
         'YLT': {'about': '<p class="about">Youngs Literal Translation (1898).</p>',
                 'copyright': '<p class="copyright">Copyright © (coming).</p>',
                 'licence': '<p class="licence">(coming).</p>',
-                'acknowledgements': '<p class="acknwldg">(coming).</p>' },
+                'acknowledgements': '<p class="acknwldg">(coming).</p>',
+                'notes': '''<p class="note">See <a href="https://en.wikipedia.org/wiki/Young%27s_Literal_Translation">Wikipedia</a>.</p>''' },
         'Drby': {'about': '<p class="about">Darby Translation (1890).</p>',
                 'copyright': '<p class="copyright">Copyright © (coming).</p>',
                 'licence': '<p class="licence">(coming).</p>',
-                'acknowledgements': '<p class="acknwldg">(coming).</p>' },
+                'acknowledgements': '<p class="acknwldg">(coming).</p>',
+                'notes': '''<p class="note">See <a href="https://en.wikipedia.org/wiki/Darby_Bible">Wikipedia</a>.</p>''' },
         'RV': {'about': '''<p class="about">The English Revised Version (1885) was an officially authorised revision of the King James Bible.
                             (See <a href="https://en.wikipedia.org/wiki/Revised_Version">Wikipedia entry</a>.)</p>''',
                 'copyright': '<p class="copyright">Copyright © (coming).</p>',
@@ -678,7 +681,8 @@ However, Moffat wasn’t just a <em>follow the crowd</em> person, so he’s like
         'Wbstr': {'about': '<p class="about">Webster Bible (1833).</p>',
                 'copyright': '<p class="copyright">Copyright © (coming).</p>',
                 'licence': '<p class="licence">(coming).</p>',
-                'acknowledgements': '<p class="acknwldg">(coming).</p>' },
+                'acknowledgements': '<p class="acknwldg">(coming).</p>',
+                'notes': '''<p class="note">See <a href="https://en.wikipedia.org/wiki/Webster%27s_Revision">Wikipedia</a>.</p>''' },
         'KJB-1769': {'about': '<p class="about">King James Bible (1611-1769).</p>',
                 'copyright': '<p class="copyright">Copyright © (coming).</p>',
                 'licence': '<p class="licence">Public domain outside of the United Kingdom.</p>',
@@ -824,7 +828,7 @@ def reorderBooksForOETVersions( givenBookList:List[str] ) -> List[str]:
         if BBB in givenBookList:
             newBookList.append( BBB )
 
-    assert len(newBookList) == len(givenBookList), f"({len(newBookList)}) {newBookList=} from ({len(givenBookList)}) {givenBookList=} {[BBB for BBB in givenBookList if BBB not in newBookList]}"
+    assert len(newBookList) == len(givenBookList), f"createSitePages.reorderBooksForOETVersions ({len(newBookList)}) {newBookList=} from ({len(givenBookList)}) {givenBookList=} {[BBB for BBB in givenBookList if BBB not in newBookList]}"
     return newBookList
 # end of createSitePages.reorderBooksForOETVersions
 

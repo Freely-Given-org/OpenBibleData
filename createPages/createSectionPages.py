@@ -60,7 +60,7 @@ from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_66
 from BibleOrgSys.Internals.InternalBibleInternals import getLeadingInt
 from BibleOrgSys.Formats.ESFMBible import ESFMBible as ESFMBible
 
-from settings import State, TEST_MODE, VERSIONS_WITH_BEYOND_66_BOOKS, OET_UNFINISHED_WARNING_HTML_PARAGRAPH, JAMES_NOTE_HTML_PARAGRAPH, reorderBooksForOETVersions
+from settings import State, TEST_MODE, VERSIONS_WITH_APOCRYPHA, OET_UNFINISHED_WARNING_HTML_PARAGRAPH, JAMES_NOTE_HTML_PARAGRAPH, reorderBooksForOETVersions
 from usfm import convertUSFMMarkerListToHtml
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
                     makeTop, makeBottom, makeBookNavListParagraph, removeDuplicateCVids, checkHtml
@@ -68,7 +68,7 @@ from Bibles import getBibleMapperMaps
 from OETHandlers import livenOETWordLinks, getOETTidyBBB, getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2024-11-01' # by RJH
+LAST_MODIFIED_DATE = '2024-11-14' # by RJH
 SHORT_PROGRAM_NAME = "createSectionPages"
 PROGRAM_NAME = "OpenBibleData createSectionPages functions"
 PROGRAM_VERSION = '0.65'
@@ -351,7 +351,7 @@ def createOETSectionPages( level:int, folder:Path, rvBible:ESFMBible, lvBible:ES
             if bmmHtml:
                 # print( f"{BBB} {startC}:{startV} to {endC}:{endV} got {len(bmmHtml)} map(s)")
                 bmmHtml = f'''<div id="BMM" class="parallelBMM"><a title="Go to BMM copyright page" href="{'../'*level}BMM/details.htm#Top">BMM</a> <b><a href="https://BibleMapper.com" target="_blank" rel="noopener noreferrer">BibleMapper.com</a> Maps</b>: {bmmHtml}</div><!--end of BMM-->'''
-                combinedHtml = f'{combinedHtml}\n<hr style="width:40%;margin-left:0;margin-top: 0.3em">\n{bmmHtml}'
+                combinedHtml = f'{combinedHtml}\n<hr style="width:45%;margin-left:0;margin-top: 0.3em">\n{bmmHtml}'
                 state.sectionsWithMaps[BBB].append( n )
 
             filepath = folder.joinpath( sectionFilename )
@@ -661,7 +661,7 @@ def findSectionNumber( versionAbbreviation:str, refBBB:str, refC:str, refV:str, 
     if not refBBB:
         # print( "findSectionNumber: No refBBB -- returning None" )
         return None # Can't do anything without a valid BBB
-    assert refBBB in BOOKLIST_66 or versionAbbreviation in VERSIONS_WITH_BEYOND_66_BOOKS, f"findSectionNumber( {versionAbbreviation}, {refBBB} {refC}:{refV} )"
+    assert refBBB in BOOKLIST_66 or versionAbbreviation in VERSIONS_WITH_APOCRYPHA, f"findSectionNumber( {versionAbbreviation}, {refBBB} {refC}:{refV} )"
     if refBBB not in state.sectionsLists[versionAbbreviation]: # No section headings for this book
         if TEST_MODE:
             return 0 # default to introduction for testing (because it doesn't contain all the books)

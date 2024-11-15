@@ -42,12 +42,14 @@ CHANGELOG:
     2023-12-15 Improve colorisation of OET words
     2024-03-13 Add getOETBookName(BBB) function
     2024-05-01 Added morphology in popups in livenOETWordLinks()
+    2024-11-14 NFC normalise Hebrew title fields
 """
 # from gettext import gettext as _
 from typing import Dict, List, Tuple, Optional
 # from pathlib import Path
 import logging
 import re
+import unicodedata
 
 import sys
 sys.path.append( '../../BibleOrgSys/' )
@@ -57,14 +59,13 @@ from BibleOrgSys.Internals.InternalBibleInternals import getLeadingInt
 import BibleOrgSys.Formats.ESFMBible as ESFMBible
 from BibleOrgSys.Internals.InternalBibleInternals import InternalBibleEntryList, InternalBibleEntry
 
-import sys
 sys.path.append( '../../BibleTransliterations/Python/' )
 from BibleTransliterations import transliterate_Hebrew, transliterate_Greek
 
 from settings import State
 
 
-LAST_MODIFIED_DATE = '2024-08-12' # by RJH
+LAST_MODIFIED_DATE = '2024-11-14' # by RJH
 SHORT_PROGRAM_NAME = "OETHandlers"
 PROGRAM_NAME = "OpenBibleData OET handler"
 PROGRAM_VERSION = '0.61'
@@ -339,7 +340,10 @@ def livenOETWordLinks( level:int, bibleObject:ESFMBible, BBB:str, givenEntryList
                     # print( f"    livenOETWordLinks now '{originalText[wordnumberMatch.end():]}'")
                     # colourisationsAdded += 1
 
-                newTitleGuts = f'''="{noCantillations} ({transliteratedWordForTitle}, {morphology})"''' # ({transliteratedWord}){'' if SRLemma==transliteratedWord else f" from {SRLemma}"}"'''
+                # print( f"livenOETWordLinks ({len(noCantillations)}) {noCantillations=} NFC={unicodedata.is_normalized('NFC',noCantillations)} NFKC={unicodedata.is_normalized('NFKC',noCantillations)} NFD={unicodedata.is_normalized('NFD',noCantillations)} NFKD={unicodedata.is_normalized('NFKD',noCantillations)}")
+                # noCantillations = unicodedata.normalize( 'NFC', noCantillations )
+                # print( f"                  ({len(noCantillations)}) {noCantillations=} NFC={unicodedata.is_normalized('NFC',noCantillations)} NFKC={unicodedata.is_normalized('NFKC',noCantillations)} NFD={unicodedata.is_normalized('NFD',noCantillations)} NFKD={unicodedata.is_normalized('NFKD',noCantillations)}")
+                newTitleGuts = f'''="{unicodedata.normalize('NFC',noCantillations)} ({transliteratedWordForTitle}, {morphology})"''' # ({transliteratedWord}){'' if SRLemma==transliteratedWord else f" from {SRLemma}"}"'''
                 originalText = f'''{originalText[:titleMatch.start()]}{newTitleGuts}{originalText[titleMatch.end():]}'''
 
                 searchStartIndex = hrefMatch.end()

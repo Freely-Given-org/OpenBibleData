@@ -43,10 +43,10 @@ import BibleOrgSys.Formats.USXXMLBible as USXXMLBible
 
 
 
-LAST_MODIFIED_DATE = '2024-10-10' # by RJH
+LAST_MODIFIED_DATE = '2024-11-11' # by RJH
 SHORT_PROGRAM_NAME = "SentenceImportance_initialisation"
 PROGRAM_NAME = "Sentence Importance initialisation"
-PROGRAM_VERSION = '0.16'
+PROGRAM_VERSION = '0.17'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -86,7 +86,10 @@ importantRefs = [ # Often memorised
     'JOS_1:9',
     'JHN_16:33',
     ]
-trivialImportanceRefs = [
+listsOfNames = ['KI1_4:2','KI1_4:3','KI1_4:4','KI1_4:5','KI1_4:6',
+                'KI1_4:8','KI1_4:9','KI1_4:10','KI1_4:11','KI1_4:12','KI1_4:13','KI1_4:14','KI1_4:15','KI1_4:16','KI1_4:17','KI1_4:18','KI1_4:19',
+                ]
+trivialImportanceRefs = listsOfNames + [
     'EXO_16:36',
     # Jdg 5 is Deborah and Barak's song
     'JDG_5:1','JDG_5:2','JDG_5:3','JDG_5:4','JDG_5:5','JDG_5:6','JDG_5:7','JDG_5:8','JDG_5:9','JDG_5:10',
@@ -102,7 +105,8 @@ unclearClarityRefs = [ # Mostly sure what's in the Hebrew or Greek, but not sure
     'EXO_15:25b',
     'JDG_5:13', 'JDG_13:19b', 'JDG_14:11', 'JDG_15:8a', 'JDG_17:3b',
     'SA1_2:23', 'SA1_17:6b', 'SA1_17:29b',
-    'SA2_1:18', 'SA2_5:8', 'SA2_7:19', 'SA2_20:8b',
+    'SA2_1:18', 'SA2_5:8', 'SA2_7:19', 'SA2_20:8b', 'SA2_23:5',
+    'KI1_6:31b', 'KI1_6:33b', 'KI1_7:28',
     'JOB_30:6','JOB_30:7','JOB_30:11a','JOB_30:12','JOB_30:13','JOB_30:14','JOB_30:15','JOB_30:16a','JOB_30:17a','JOB_30:18','JOB_30:28a',
         'JOB_31:12','JOB_31:16b',
         'JOB_33:14','JOB_33:16',

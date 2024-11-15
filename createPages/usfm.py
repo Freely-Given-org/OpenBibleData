@@ -63,6 +63,7 @@ CHANGELOG:
 from gettext import gettext as _
 from typing import Union
 import re
+import unicodedata
 import logging
 
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
@@ -75,7 +76,7 @@ from html import checkHtml
 from OETHandlers import getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2024-11-01' # by RJH
+LAST_MODIFIED_DATE = '2024-11-14' # by RJH
 SHORT_PROGRAM_NAME = "usfm"
 PROGRAM_NAME = "OpenBibleData USFM to HTML functions"
 PROGRAM_VERSION = '0.82'
@@ -149,7 +150,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
     isSingleChapterBook = BibleOrgSysGlobals.loadedBibleBooksCodes.isSingleChapterBook( BBB )
 
     # numChapters = 0
-    for n, entry in enumerate( markerList ):
+    for MLIndex, entry in enumerate( markerList ):
         marker = entry.getMarker()
         # rest = entry.getText() if basicOnly and 'OET' not in versionAbbreviation else entry.getFullText() # getText() has notes removed but doesn't work with wordlink numbers in OET
         # The following line means we get all footnotes, etc.
@@ -309,7 +310,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                             if segmentType in ('section','relatedPassage'):
                                 # print( f"\n  {C=} {V=} {marker}='{rest}'")
                                 if V is None:
-                                    for nextEntry in markerList[n+1:]: # Skip through next markers
+                                    for nextEntry in markerList[MLIndex+1:]: # Skip through next markers
                                         nextMarker = nextEntry.getMarker()
                                         if nextMarker == 'v':
                                             nextV = nextEntry.getCleanText()
@@ -323,7 +324,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                                 nextV = '1' if V is None else getLeadingInt(V)+1 # Why  do we add 1 ???
                             html = f'{html}<div class="{marker}"><div class="rightBox"><p class="{marker}"><span class="s1cv">{C}:{nextV}</span> {convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state)}</p>\n'
                             inRightDiv = True
-                        else:
+                        else: # not OET
                             html = f'{html}<div class="{marker}"><p class="{marker}">{convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state)}</p>\n'
                         inSection = marker
                 else: # for s2/3/4 we add a heading, but don't consider it a section
@@ -339,7 +340,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                 #     halt # Why were we in a rightDiv
                 html = f'{html}</div><!--{marker[1:]}-->\n'
             inSection = None
-        elif marker == 'r':
+        elif marker == 'r': # usually following a \\s1 (but maybe a \\s2) -- either way there could be a \\rem in between
             # The following is not true for the ULT at least (e.g., see ULT Gen 5:1)
             # assert rest[0]=='(' and rest[-1]==')', f"{versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {marker}={rest}"
             assert not inTable
@@ -347,7 +348,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
             if not basicOnly:
                 assert inSection, f"{versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {marker}={rest}"
                 if 'OET' in versionAbbreviation:
-                    assert inRightDiv, f"{versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {marker}={rest}"
+                    assert inRightDiv, f"{versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {marker}={rest} prevEntry={markerList[MLIndex-1]} {html[-50:]}"
                 html = f'{html}<p class="{marker}">{livenSectionReferences( versionAbbreviation, refTuple, segmentType, rest, state )}</p>\n'
         elif marker == 'c':
             # if segmentType == 'chapter':
@@ -853,7 +854,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                 and '_' not in sanitisedFnoteMiddle and '=' not in sanitisedFnoteMiddle
         assert '"' not in sanitisedFnoteMiddle and '<' not in sanitisedFnoteMiddle and '>' not in sanitisedFnoteMiddle, f"Left-over HTML chars in {versionAbbreviation} {refTuple} {sanitisedFnoteMiddle=}"
         footnotePopup = sanitisedFnoteMiddle if len(sanitisedFnoteMiddle) < 1010 else f'{sanitisedFnoteMiddle[:999]}…'
-        fnoteCaller = f'<span class="fnCaller">[<a title="{footnotePopup}" href="#fn{footnotesCount}">fn</a>]</span>'
+        fnoteCaller = f'<span class="fnCaller">[<a title="{unicodedata.normalize('NFC',footnotePopup)}" href="#fn{footnotesCount}">fn</a>]</span>'
         fnoteRef = ''
         if frText:
             frCV = frText
@@ -896,7 +897,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
         #     nIx = html.index( '<a title="Variant note' )
         #     print( f"FOUND FN TITLE {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} '{html[nIx:nIx+80]}'" )
         assert '<a title="Variant note:\n<br>' not in html # Check this before we append the actual footnote content to the end.
-        html = f'{html}<hr style="width:40%;margin-left:0;margin-top: 0.3em">\n<div class="footnotes">\n{footnotesHtml}</div><!--footnotes-->\n'
+        html = f'{html}<hr style="width:35%;margin-left:0;margin-top: 0.3em">\n<div class="footnotes">\n{footnotesHtml}</div><!--footnotes-->\n'
     # TODO: Find out why these following exceptions occur
     if versionAbbreviation not in ('T4T','BrTr','ClVg','TCNT','TC-GNT'): # T4T ISA 33:8, BrTr KI1 6:36a, ClVg MRK 3:10, TCNT&TC-GNT INT \\fp Why???
         assert '\\f' not in html, f"{versionAbbreviation} {refTuple} html='…{html[html.index(f'{BACKSLASH}f')-10:html.index(f'{BACKSLASH}f')+maxFootnoteChars]}…'"
@@ -979,7 +980,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
     if crossReferencesHtml:
         if not checkHtml( f"Cross-references for {versionAbbreviation} {segmentType} {basicOnly=} {refTuple}", crossReferencesHtml, segmentOnly=True ):
             if DEBUGGING_THIS_MODULE: halt
-        html = f'{html}<hr style="width:40%;margin-left:0;margin-top: 0.3em">\n<div class="crossRefs">\n{crossReferencesHtml}</div><!--crossRefs-->\n'
+        html = f'{html}<hr style="width:30%;margin-left:0;margin-top: 0.3em">\n<div class="crossRefs">\n{crossReferencesHtml}</div><!--crossRefs-->\n'
     if versionAbbreviation not in ('BrTr',): # BrTr ISA 52
         assert '\\x' not in html, f"{html[html.index(f'{BACKSLASH}x')-10:html.index(f'{BACKSLASH}x')+12]}"
 

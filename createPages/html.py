@@ -75,7 +75,7 @@ from settings import State, TEST_MODE, SITE_NAME
 from OETHandlers import getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2024-11-01' # by RJH
+LAST_MODIFIED_DATE = '2024-11-13' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
 PROGRAM_VERSION = '0.91'
@@ -673,7 +673,9 @@ def checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool:
         for char,reason in (('+','added article'),('-','dropped article'),('=','added copula'),('>','implied object'),
                     ('≡','repeat ellided'),('≡','repeat ellided'),('&','added ownwer'),('@','expanded pronoun'),('*','reduced to pronoun'),
                     ('#','changed number'),('^','used opposite'),('≈','reworded'),('?','unsure'),):
-            assert f'<span class="add">{char}' not in htmlToCheck, f''''{where}' {segmentOnly=} Missed ADD {reason} in …{htmlToCheck[max(0,htmlToCheck.index(f'<span class="add">{char}')-50):htmlToCheck.index(f'<span class="add">{char}')+100]}…'''
+            if 'NAH_2:7' not in where and 'GAL_5:10' not in where \
+            and 'CO1_10:24' not in where and 'EPH_2:22' not in where: # LEB has 'added text' starting with '='   :)
+                assert f'<span class="add">{char}' not in htmlToCheck, f''''{where}' {segmentOnly=} Missed ADD {reason} in …{htmlToCheck[max(0,htmlToCheck.index(f'<span class="add">{char}')-50):htmlToCheck.index(f'<span class="add">{char}')+100]}…'''
         # We have to check this one separately: ('<','implied direct object') because it might be the start of the next field
         searchStartIndex = 0
         while True:
@@ -844,7 +846,7 @@ def do_OET_RV_HTMLcustomisations( OET_RV_html:str ) -> str:
     See https://OpenEnglishTranslation.Bible/Resources/Formats for descriptions of add subfields.
     """
     # assert '<span class="add">+' not in OET_RV_html # Only expected in OET-LV
-    assert '<span class="add">-' not in OET_RV_html # Only expected in OET-LV
+    # assert '<span class="add">-' not in OET_RV_html # Only expected in OET-LV # WE ALLOW IT NOW as HYPHEN (not as a special char)
     assert '<span class="add">=' not in OET_RV_html # Only expected in OET-LV
     assert '<span class="add">?≡' not in OET_RV_html # Doesn't make sense
     result = (OET_RV_html \
@@ -922,11 +924,13 @@ def do_OET_LV_HTMLcustomisations( OET_LV_html:str ) -> str:
         OET_LV_html = f'''{OET_LV_html[:match.start()]}{guts.replace(':','~~COLON~~',1).replace('.','~~PERIOD~~',1)}{OET_LV_html[match.end():]}'''
         searchStartIndex = match.end() + 8 # We've added that many characters
 
+    assert '<span class="add">-' not in OET_LV_html # Only expected in OET-RV
     assert '<span class="add">*' not in OET_LV_html # Only expected in OET-RV
     assert '<span class="add">@' not in OET_LV_html # Only expected in OET-RV
     assert '<span class="add">~' not in OET_LV_html # Only expected in OET-RV
     assert '<span class="add">≈' not in OET_LV_html # Only expected in OET-RV
     assert '<span class="add">?' not in OET_LV_html # Only expected in OET-RV
+            # .replace( '<span class="add">-', '<span class="unusedArticle">' )
     OET_LV_html = (OET_LV_html \
             # Protect fields we need to preserve
             .replace( '_V', '~~ULINE~~V' ).replace( '_verseText', '~~ULINE~~verseText' )
@@ -943,7 +947,6 @@ def do_OET_LV_HTMLcustomisations( OET_LV_html:str ) -> str:
             .replace( '!', '!\n<br>' ).replace( ':', ':\n<br>' )
             # Adjust specialised add markers
             .replace( '<span class="add">+', '<span class="addArticle">' )
-            .replace( '<span class="add">-', '<span class="unusedArticle">' )
             .replace( '<span class="add">=', '<span class="addCopula">' )
             .replace( '<span class="add"><a title', '~~PROTECT~~' )
             .replace( '<span class="add"><', '<span class="addDirectObject">' )
