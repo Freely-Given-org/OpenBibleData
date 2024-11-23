@@ -27,6 +27,7 @@ Module handling createParallelPassagePages functions.
 
 CHANGELOG:
     2024-01-14 First attempt
+    2024-11-20 Try to prevent some duplicate cross-references
 """
 from gettext import gettext as _
 from typing import List
@@ -49,10 +50,10 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
 from OETHandlers import livenOETWordLinks, getOETTidyBBB, getOETBookName, getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2024-11-01' # by RJH
+LAST_MODIFIED_DATE = '2024-11-20' # by RJH
 SHORT_PROGRAM_NAME = "createParallelPassagePages"
 PROGRAM_NAME = "OpenBibleData createParallelPassagePages functions"
-PROGRAM_VERSION = '0.30'
+PROGRAM_VERSION = '0.31'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -717,7 +718,9 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
                         except ValueError: break
                         xtIx = oText.index( '\\xt ', xStartIx+6 )
                         xEndIx = oText.index( '\\x*', xtIx+6 )
-                        collectedVerseCrossReferences.append( oText[xtIx+4:xEndIx] ) # Only save the guts of the xref
+                        thisXref = oText[xtIx+4:xEndIx]
+                        if thisXref not in collectedVerseCrossReferences: # already
+                            collectedVerseCrossReferences.append( thisXref ) # Only save the guts of the xref
                         startIndex = xEndIx + 3
                     else: need_to_increase_safety_count2
             sectionHeadingsList.append( (srTidyBbb,srStartC,f'{srTidyBbb} {srStartC}:{srStartV}{f"–{srEndV}" if srEndC==srStartC else f"—{srEndC}:{srEndV}"}') ) # We use en-dash and em-dash onscreen

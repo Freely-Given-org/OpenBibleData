@@ -71,14 +71,24 @@ TOPIC_TABLE = {
     'Advent week four': ['MIC_5:2-5a', 'LUK_1:39-56', 'HEB_10:5-10', 'REV_22:6-21'],
     'Advent Christmas': ['ISA_9:2-7', 'PSA_96', 'TIT_2:11-14', 'LUK_2:1-20'],
     'Advent revelation (epiphany)': ['ISA_60:1-6', 'PSA_72', 'EPH_3:1-12', 'MAT_2:1-12'],
+    'Advent (all)': ['JER_33:14-16', 'PSA_25:1-9', 'TH1_3:9-13', 'LUK_21:25-36',
+                        'MAL_3:1-4', 'LUK_1:67-79', 'PHP_1:3-11', 'LUK_3:1-6', 'PSA_80',
+                        'ZEP_3:14-20', 'ISA_12:2-6', 'PHP_4:4-7', 'LUK_3:7-18',
+                        'MIC_5:2-5a', 'LUK_1:39-56', 'HEB_10:5-10', 'REV_22:6-21',
+                        'ISA_9:2-7', 'PSA_96', 'TIT_2:11-14', 'LUK_2:1-20',
+                        'ISA_60:1-6', 'PSA_72', 'EPH_3:1-12', 'MAT_2:1-12'],
     'Basic salvation': ['ROM_6:22-23', 'ROM_3:22-23', 'JHN_3:14-16', 'REV_3:19-21'],
-    'Once saved, always saved': ['PSA_136:1-2','PSA_138:7-8',
+    'Predestination and ‘once saved, always saved’': ['PSA_136:1-2','PSA_138:7-8',
                                 'MAT_7:21-23', 'MAT_10:21-22', 'MAT_25:40-41',
                                 'MRK_4:16-17',
-                                'JHN_10:28-29','JHN_14:16-17',
-                                'ROM_8:38-39','ROM_11:17-22', 'CO1_9:26-27',
-                                'GAL_5:3-4', 'EPH_1:13-14','EPH_4:29-30',
+                                'JHN_6:35-37', 'JHN_6:44-45', 'JHN_10:28-29','JHN_14:16-17',
+                                'ROM_5:9-10', 'ROM_8:5-8', 'ROM_8:38-39', 'ROM_11:17-22',
+                                'CO1_2:14-15', 'CO1_9:26-27',
+                                'GAL_5:3-4',
+                                'EPH_1:4-9', 'EPH_1:13-14','EPH_4:29-30',
                                 'TI1_2:1-8', 'TI1_4:1-2',
+                                'TI2_2:10',
+                                'TIT_2:9-12',
                                 'HEB_3:11-12','HEB_6:1-8','HEB_9:11-12','HEB_10:26-31',
                                 'PE2_2:20-22','PE2_3:1-18',
                                 'JN1_1:6-7','JN1_5:11-13',
@@ -122,14 +132,14 @@ def createTopicPages( level:int, folder:Path, state:State ) -> bool:
     try: os.makedirs( folder )
     except FileExistsError: pass # they were already there
 
-    topics = []
-    topicsHtmls = []
+    # topics = []
+    topicsHtmlsForIndex = []
     for topic,refs in TOPIC_TABLE.items():
         topicWords = [x.title() for x in topic.replace(', ',' ').replace('/','⁄').split()]
-        topicFilename = f'''{''.join(topicWords)}.htm'''
+        topicFilename = BibleOrgSysGlobals.makeSafeFilename( f'''{''.join(topicWords)}.htm''' )
         createTopicPage( level, folder, topicFilename, topic, refs, state )
-        topics.append( (topic,topicFilename) )
-        topicsHtmls.append( f'''<a href="{topicFilename}">{topic}</a>''' )
+        # topics.append( (topic,topicFilename) )
+        topicsHtmlsForIndex.append( f'''<a href="{topicFilename}">{topic}</a>''' )
 
     # Create topic index page
     filename = 'index.htm'
@@ -140,7 +150,7 @@ def createTopicPages( level:int, folder:Path, state:State ) -> bool:
     indexHtml = f'''{top}<h1 id="Top">Topic pages</h1>
 <p>These pages contain selected passages from the <em>Open English Translation</em> for the given topics. Each page contains the passage from the <em>OET Readers’ Version</em> on the left, with the <em>OET Literal Version</em> on the right. No notes or commentary is included—our aim is simply to conveniently list the passages in one place so that readers can make up their own minds about how the passages should be interpreted.</p>
 <h2>Index of topics</h2>
-<p>\n{'<br>'.join(topicsHtmls)}</p>
+<p>\n{'<br>'.join(topicsHtmlsForIndex)}</p>
 <p class="note">Please contact us at <b>Freely</b> dot <b>Given</b> dot <b>org</b> (at) <b>gmail</b> dot <b>com</b> if there’s any topics that you’d like us to add, or any passages that you’d like us to add to any topic page.</p>
 {makeBottom( level, 'topicsIndex', state )}'''
     checkHtml( 'topicsIndex', indexHtml )

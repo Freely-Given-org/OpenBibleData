@@ -55,9 +55,9 @@ PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
 
-OET_VERSION = 'v0.26' # At 49.4% 2024-11-15 (Incremented on most runs for the production site)
+OET_VERSION = 'v0.26' # At 50.1% 2024-11-23 (Incremented on most runs for the production site)
 
-TEST_MODE = False # Writes website into Test subfolder
+TEST_MODE = True # Writes website into Test subfolder
 ALL_PRODUCTION_BOOKS = not TEST_MODE # If set to False, only selects one book per version for a faster test build
 REUSE_EXISTING_WORD_PAGES = TEST_MODE # Don't recreate word pages
 ALL_TEST_REFERENCE_PAGES = False # If in TEST_MODE, make ALL word/lemma pages, or just the RELEVANT ones
@@ -151,7 +151,7 @@ class State:
                 'JQT','2DT','1ST','TPT',
                 'WEBBE','WEB','WMBB','WMB','MSG','LSV','FBV','TCNT','T4T','LEB','NRSV','NKJV','NAB','BBE',
                 'Moff','JPS','Wymth','ASV','DRA','YLT','Drby','RV','Wbstr','KJB-1769','KJB-1611','Bshps','Gnva','Cvdl',
-                'TNT','Wyc',
+                'TNT','Wycl',
                 'Luth','ClVg',
                 'SR-GNT','UGNT','SBL-GNT','TC-GNT',
                 'UHB', 'BrLXX','BrTr', 'NETS',
@@ -167,7 +167,7 @@ class State:
                 'JQT','2DT','1ST','TPT',
                 'WEBBE','WEB','WMBB','WMB','MSG','NET','LSV','FBV','TCNT','T4T','LEB','NRSV','NKJV','NAB','BBE',
                 'Moff','JPS','Wymth','ASV','DRA','YLT','Drby','RV','Wbstr','KJB-1769','KJB-1611','Bshps','Gnva','Cvdl',
-                'TNT','Wyc',
+                'TNT','Wycl',
                 'Luth','ClVg',
                 'SR-GNT','UGNT','SBL-GNT','TC-GNT',
                 'UHB', 'BrLXX','BrTr', 'NETS',
@@ -196,7 +196,7 @@ class State:
                 'Moff':('<small>','</small>'), 'JPS':('<small>','</small>'), 'Wymth':('<small>','</small>'), 'ASV':('',''), 'DRA':('<small>','</small>'),'YLT':('',''),'Drby':('',''),'RV':('',''),
                 'Wbstr':('<small>','</small>'),
                 'KJB-1769':('',''),'KJB-1611':('',''), 'Bshps':('',''), 'Gnva':('',''), 'Cvdl':('',''),
-                'TNT':('',''), 'Wyc':('',''), #'ClVg':('<small>','</small>'),
+                'TNT':('',''), 'Wycl':('',''), #'ClVg':('<small>','</small>'),
                 'SR-GNT':('<b>','</b>'), # 'UGNT':('<small>','</small>'),'SBL-GNT':('<small>','</small>'),'TC-GNT':('<small>','</small>'),
                 'UHB':('<b>','</b>'),
                 'BrTr':('<small>','</small>'),'BrLXX':('',''),
@@ -206,7 +206,7 @@ class State:
                 }
 
                 ## 'LEB': '../copiedBibles/English/LogosBibleSoftware/LEB/LEB.osis.xml', # OSIS
-                ## 'Wyc': '../copiedBibles/English/eBible.org/Wycliffe/',
+                ## 'Wycl': '../copiedBibles/English/eBible.org/Wycliffe/',
     BibleLocations = {
                 'OET-RV': '../../OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/',
                 'OET-LV': '../../OpenEnglishTranslation--OET/intermediateTexts/', # Only .pickle here
@@ -265,7 +265,7 @@ class State:
                 'Gnva': '../copiedBibles/English/eBible.org/GNV/',
                 'Cvdl': '../copiedBibles/English/BibleSuperSearch/CB/coverdale.txt',
                 'TNT': '../copiedBibles/English/eBible.org/TNT/',
-                'Wyc': '../copiedBibles/English/Zefania/WYC/SF_2009-01-20_ENG_BIBLE_WYCLIFFE_(JOHN WYCLIFFE BIBLE).xml',
+                'Wycl': '../copiedBibles/English/Zefania/WYC/SF_2009-01-20_ENG_BIBLE_WYCLIFFE_(JOHN WYCLIFFE BIBLE).xml',
                 'Luth': '../copiedBibles/German/Zefania/LUT1545/SF_2009-01-20_GER_LUTH1545STR_(LUTHER 1545 MIT STRONGS).xml',
                 'ClVg': '../copiedBibles/Latin/eBible.org/CLV/',
                 'UGNT': '../copiedBibles/Original/unfoldingWord.org/UGNT/',
@@ -278,7 +278,7 @@ class State:
                 'TOSN': '../copiedBibles/English/Tyndale/OSN/', # This one also loads TTN (Tyndale Theme Notes)
                 'UTN': '../copiedBibles/English/unfoldingWord.org/UTN/',
                 }
-    WholeBibleVersions = ('LEB','Bshps','Cvdl','Wyc','Luth') # These versions get all books loaded -- no individual book files
+    WholeBibleVersions = ('LEB','Bshps','Cvdl','Wycl','Luth') # These versions get all books loaded -- no individual book files
 
     BibleNames = {
                 'OET': 'Open English Translation (2030)',
@@ -333,7 +333,7 @@ class State:
                 'Great': 'Great Bible (1539)', # Not in OBD yet
                 'Cvdl': 'Coverdale Bible (1535-1553)',
                 'TNT': 'Tyndale New Testament (1526)',
-                'Wyc': 'Wycliffe Bible (middle-English, 1382)',
+                'Wycl': 'Wycliffe Bible (middle-English, 1382)',
                 'Luth': 'Luther Bible (German, 1545)',
                 'ClVg': 'Clementine Vulgate (Latin, 1592)',
                 'SR-GNT': 'Statistical Restoration Greek New Testament (2022)',
@@ -404,7 +404,7 @@ class State:
                 'Gnva': ['ALL'],
                 'Cvdl': ['ALL'],
                 'TNT': ['ALL'],
-                'Wyc': ['ALL'],
+                'Wycl': ['ALL'],
                 'Luth': ['ALL'],
                 'ClVg': ['ALL'],
                 'SR-GNT': ['ALL'],
@@ -470,7 +470,7 @@ class State:
                 'Gnva': TEST_BOOK_LIST,
                 'Cvdl': TEST_BOOK_LIST,
                 'TNT': TEST_NT_BOOK_LIST, # NT only
-                'Wyc': TEST_BOOK_LIST,
+                'Wycl': TEST_BOOK_LIST,
                 'Luth': TEST_BOOK_LIST,
                 'ClVg': TEST_BOOK_LIST,
                 'SR-GNT': TEST_NT_BOOK_LIST, # NT only
@@ -723,7 +723,7 @@ Footnote markers PRECEDE the text that they concern,
                 'copyright': '<p class="copyright">Copyright © (coming).</p>',
                 'licence': '<p class="licence">(coming).</p>',
                 'acknowledgements': '<p class="acknwldg">(coming).</p>' },
-        'Wyc': {'about': '<p class="about"><a href="https://en.wikipedia.org/wiki/Wycliffe%27s_Bible">Wycliffe Bible</a> (middle-English, 1382).</p>',
+        'Wycl': {'about': '<p class="about"><a href="https://en.wikipedia.org/wiki/Wycliffe%27s_Bible">Wycliffe Bible</a> (middle-English, 1382).</p>',
                 'copyright': '<p class="copyright">Public Domain.</p>',
                 'licence': '<p class="licence">Public Domain.</p>',
                 'acknowledgements': '<p class="acknwldg">The entire English-speaking world is indebted to <a href="https://en.wikipedia.org/wiki/John_Wycliffe">John Wycliffe</a> for his brave work to make the Bible available in the language of the common people at a time when most priests insisted that the Bible was only valid in Latin.</p>',

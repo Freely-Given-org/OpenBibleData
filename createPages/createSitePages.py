@@ -93,7 +93,7 @@ from Dict import createTyndaleDictPages, createUBSDictionaryPages
 from html import makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2024-11-14' # by RJH
+LAST_MODIFIED_DATE = '2024-11-18' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData (OBD) Create Site Pages"
 PROGRAM_VERSION = '0.98'
@@ -262,7 +262,7 @@ def _createSitePages() -> bool:
                 thisBible.discoveryResults['ALL']['haveSectionHeadings'] = False # We need this in several places
             if not TEST_MODE or versionAbbreviation not in ('OEB','WEBBE','WEB','WMBB','WMB','NET','LSV','FBV','TCNT','T4T','LEB',
                                                      'BBE','Moff','JPS','ASV','DRA','YLT','Drby','RV','Wbstr',
-                                                     'KJB-1769','Bshps','Gnva','Cvdl','TNT','Wyc'):
+                                                     'KJB-1769','Bshps','Gnva','Cvdl','TNT','Wycl'):
                 # In test mode, we don't usually need to make all those pages, even just for the test books
                 vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Creating {'TEST ' if TEST_MODE else ''}version pages for {thisBible.abbreviation} ({thisBible.name})…" )
                 versionFolder = TEMP_BUILD_FOLDER.joinpath( f'{thisBible.abbreviation}/' )
@@ -294,10 +294,12 @@ def _createSitePages() -> bool:
 
     if not TEST_MODE \
     or not REUSE_EXISTING_WORD_PAGES:
-        # Don't rebuild these reference pages -- we'll reuse the existing folders full of pages
         createOETReferencePages( 1, TEMP_BUILD_FOLDER.joinpath('ref/'), state )
         createUBSDictionaryPages( 1, TEMP_BUILD_FOLDER.joinpath('UBS/'), state )
         createTyndaleDictPages( 1, TEMP_BUILD_FOLDER.joinpath('dct/'), state )
+    else:
+        # Don't rebuild these reference pages -- we'll reuse the existing folders full of pages
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"NOT generating new {'TEST ' if TEST_MODE else ''}reference pages (OET word pages, UBS dict, Tyndale Dict)." )
 
     _createDetailsPages( 0, TEMP_BUILD_FOLDER, state )
     _createSearchPage( 0, TEMP_BUILD_FOLDER, state )

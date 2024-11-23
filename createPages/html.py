@@ -576,7 +576,10 @@ def checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool:
             ixMinEnd = min( ixRStartMarker, ixREndMarker )
             logging.error( f"Mismatched '{marker}' start and end markers '{where}' {segmentOnly=} {startCount}!={endCount}"
                               f" {'…' if ixMinStart>0 else ''}{htmlToCheck[ixMinStart:ixMinEnd+5]}{'…' if ixMinEnd+5<len(htmlToCheck) else ''}" )
-            if DEBUGGING_THIS_MODULE: print( f"\ncheckHtml: complete {htmlToCheck=}\n")
+            if DEBUGGING_THIS_MODULE:
+                print( f"\nMismatched '{marker}' start and end markers '{where}' {segmentOnly=} {startCount}!={endCount}"
+                              f" {'…' if ixMinStart>0 else ''}{htmlToCheck[ixMinStart:ixMinEnd+5]}{'…' if ixMinEnd+5<len(htmlToCheck) else ''}" )
+                print( f"checkHtml: complete {htmlToCheck=}\n")
             if TEST_MODE and ('JOB' not in where and 'OEB' not in where # why are these bad???
             and 'UTN' not in where and 'ULT' not in where
             and 'Parallel' not in where and 'Interlinear' not in where ): # Probably it's in UTN on parallel and interlinear pages
@@ -643,7 +646,7 @@ def checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool:
         assert '\n' not in idGuts, f"'{where}' {segmentOnly=} Bad id with newline in {idGuts=} FROM {htmlToCheck=}"
         assert '<' not in idGuts, f"'{where}' {segmentOnly=} Bad id with < in {idGuts=} FROM {htmlToCheck=}"
         assert '>' not in idGuts, f"'{where}' {segmentOnly=} Bad id with > in {idGuts=} FROM {htmlToCheck=}"
-        if 'OEB' not in where and 'Moff' not in where and 'Wyc' not in where: # OEB SNG,JER and Moff PSA and Wyc SA2 have verse number problems
+        if 'OEB' not in where and 'Moff' not in where and 'Wycl' not in where: # OEB SNG,JER and Moff PSA and Wyc SA2 have verse number problems
             assert idGuts not in idDict, f''''{where}' {segmentOnly=} Duplicate id="{idGuts}" FROM ‘…{htmlToCheck[max(0,idDict[idGuts][0]-300):idDict[idGuts][1]+300]}…’ THEN FROM ‘…{htmlToCheck[match.start()-300:match.end()+300]}…’'''
         idDict[idGuts] = (match.start(),match.end())
         searchStartIndex = match.end()
