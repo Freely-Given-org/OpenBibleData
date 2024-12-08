@@ -78,7 +78,9 @@ function handleChange( direction ) {
         // console.log( `aLinkStr type=${typeof aLinkStr}` );
         current = window.location.href;
         // console.log( `Current=${current} ${current.endsWith('#Top')}` );
-        if (current.includes('#') && !current.endsWith('#Top')) {
+        // Something was going wrong here (when pages load slowly) and ending up with multiple # parts
+        // if (current.includes('#') && !current.endsWith('#Top')) {
+        if ((current.match(/#/g)||[]).length===1 && !current.endsWith('#Top')) {
             ix = current.indexOf('#');
             aLinkStr = aLinkStr.substring(0, aLinkStr.length-4) + current.substring(ix);
             // console.log( `aLinkStr=${aLinkStr}` );
@@ -89,16 +91,16 @@ function handleChange( direction ) {
 }
 
 document.onkeydown = (keyDownEvent) => {
-  
+
     //Prevent default key actions, if desired
     // keyDownEvent.preventDefault();
-    
+
     if (keyDownEvent.ctrlKey || keyDownEvent.altKey || keyDownEvent.metaKey || keyDownEvent.shiftKey)
         return;
 
     // Track key click
     isKeyPressed[keyDownEvent.key] = true;
-    
+
     // Back/Previous uses first <a title="Previous something..." link
     if (isKeyPressed['p']
         || isKeyPressed['b']
@@ -119,12 +121,12 @@ document.onkeydown = (keyDownEvent) => {
     // if (isKeyPressed['a'] && isKeyPressed['b']) {} //for example we want to check if a and b are clicked at the same time
     //do something as custom shortcut (a & b) is clicked
 };
-  
+
 document.onkeyup = (keyUpEvent) => {
-  
+
     // Prevent default key actions, if desired
     // keyUpEvent.preventDefault();
-    
+
     // Track key release
     isKeyPressed[keyUpEvent.key] = false;
 };
