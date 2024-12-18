@@ -55,7 +55,7 @@ PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
 
-OET_VERSION = 'v0.26' # At 50.1% 2024-11-23 (Incremented on most runs for the production site)
+OET_VERSION = 'v0.27' # At 51.1% 2024-12-16 (Incremented on most runs for the production site)
 
 TEST_MODE = True # Writes website into Test subfolder
 ALL_PRODUCTION_BOOKS = not TEST_MODE # If set to False, only selects one book per version for a faster test build
@@ -63,9 +63,9 @@ REUSE_EXISTING_WORD_PAGES = TEST_MODE # Don't recreate word pages
 ALL_TEST_REFERENCE_PAGES = False # If in TEST_MODE, make ALL word/lemma pages, or just the RELEVANT ones
 UPDATE_ACTUAL_SITE_WHEN_BUILT = True # The pages are initially built in a tmp folder so need to be copied to the final destination
 
-OET_RV_OT_BOOK_LIST = ['GEN','EXO','JOS','JDG','RUT','SA1','SA2','KI1','EST','JOB','PSA','JNA','HAG','MAL']
+OET_RV_OT_BOOK_LIST = ['GEN','EXO','JOS','JDG','RUT','SA1','SA2','KI1','KI2','EZR','EST','JOB','PSA','JNA','NAH','HAG','MAL']
 
-TEST_OT_BOOK_LIST = ['KI1','PSA','NAH'] # Books in progress (do EZR after NAH)
+TEST_OT_BOOK_LIST = ['KI2','PSA','EZR'] # Books in progress
 TEST_NT_BOOK_LIST = ['MRK',] # Shortest gospel
 TEST_BOOK_LIST = TEST_OT_BOOK_LIST + TEST_NT_BOOK_LIST
 
@@ -81,6 +81,7 @@ SITE_ABBREVIATION = 'OBD'
 # We use a rough logical, then chronological 'book' order
 # For the OT, we keep SA1/SA2, etc. together (as a single document) rather than splitting them chronologically
 OET_OT_BOOK_ORDER = ['GEN','EXO','LEV','NUM','DEU',
+                        'JOB', # Where does this belong?
                         'JOS','JDG','RUT',
                         'SA1','SA2', 'PSA', 'AMO','HOS',
                         'KI1','KI2', 'CH1','CH2', 'PRO','ECC','SNG',
@@ -88,7 +89,7 @@ OET_OT_BOOK_ORDER = ['GEN','EXO','LEV','NUM','DEU',
                         'JNA', 'NAH', 'OBA',
                         'DAN', 'EZE',
                         'EZR','EST','NEH', 'HAG','ZEC','MAL',
-                        'JOB']
+                        ]
 assert len(OET_OT_BOOK_ORDER) == 39
 # The following are not necessarily all included in the OET
 OET_APOCRYPHA_BOOK_ORDER = ['LAO',

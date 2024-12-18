@@ -91,7 +91,7 @@ from OETHandlers import getOETTidyBBB, getOETBookName, livenOETWordLinks, getHeb
 from LanguageHandlers import moderniseEnglishWords, translateGerman, translateLatin
 
 
-LAST_MODIFIED_DATE = '2024-11-23' # by RJH
+LAST_MODIFIED_DATE = '2024-12-12' # by RJH
 SHORT_PROGRAM_NAME = "createParallelVersePages"
 PROGRAM_NAME = "OpenBibleData createParallelVersePages functions"
 PROGRAM_VERSION = '0.98'
@@ -260,8 +260,9 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                 navLinks = f'<p id="__ID__" class="vNav">{leftCLink}{leftVLink}{ourTidyBbb} Book Introductions <a title="Go to __WHERE__ of page" href="#__LINK__">__ARROW__</a>{rightVLink}{rightCLink}{interlinearLink}{detailsLink}{hideFieldsButton}{hideTransliterationsButton}</p>' if c==-1 \
                         else f'<p id="__ID__" class="vNav">{introLink}{leftCLink}{leftVLink}{ourTidyBbb} {C}:{V} <a title="Go to __WHERE__ of page" href="#__LINK__">__ARROW__</a>{rightVLink}{rightCLink}{interlinearLink}{detailsLink}{hideFieldsButton}{hideTransliterationsButton}</p>'
 
-                cleanedModernisedKJB1769TextHtml = depunctuatedCleanedModernisedKJB1769TextHtml = ''
+                debugKJBCompareBit = False
                 ancientRefsToPrint = () # ('SA1_31:13',) # For debugging
+                cleanedModernisedKJB1769TextHtml = depunctuatedCleanedModernisedKJB1769TextHtml = '' # These two are only used for comparisons -- they're not displayed on the page anywhere
                 parallelHtml = getVerseDetailsHtml( BBB, C, V )
                 for versionAbbreviation in parallelVersions: # our adjusted order
                     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"    createParallelVersePagesForBook {parRef} processing {versionAbbreviation}…" )
@@ -436,48 +437,51 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                                             )
                                 # end of removeVersePunctuationForComparison function
 
-                                debugThisBit = False
                                 if versionAbbreviation == 'KJB-1769':
                                     # if parRef in ancientRefsToPrint: print( f"AA {versionAbbreviation} {parRef} ({len(modernisedTextHtml)}) {modernisedTextHtml=}" )
+                                    # NOTE: cleanedModernisedKJB1769TextHtml and depunctuatedCleanedModernisedKJB1769TextHtml are only used for comparisons -- they're not displayed on the page anywhere
                                     cleanedModernisedKJB1769TextHtml = modernisedTextHtml.replace( versionAbbreviation, '' ) \
                                                                             .replace( '⇔ ', '' ) \
-                                                                            .replace( 'J', 'Y' ).replace( 'Benjam', 'Benyam' ) \
+                                                                            .replace( 'J', 'Y' ).replace( 'Benjam', 'Benyam' ).replace( 'ij', 'iy' ).replace( 'Ij', 'Iy' ).replace( 'Ie', 'Ye' ) \
                                                                             .replace( '<span class="wj">', '' ).replace( '</span>', '' ) \
                                                                             .replace( '  ', ' ' ).replace( '> ', '>' ) \
                                                                             .strip() # Not sure why there's so many superfluous spaces in this text ???
                                     depunctuatedCleanedModernisedKJB1769TextHtml = removeVersePunctuationForComparison( cleanedModernisedKJB1769TextHtml )
                                     if parRef in ancientRefsToPrint: print( f"BB {versionAbbreviation} {parRef} ({len(depunctuatedCleanedModernisedKJB1769TextHtml)}) {depunctuatedCleanedModernisedKJB1769TextHtml=}" )
                                 # if versionAbbreviation=='KJB-1611' and parRef in ancientRefsToPrint: print( f"CC {versionAbbreviation} {parRef} ({len(modernisedTextHtml)}) {modernisedTextHtml=}")
+                                # NOTE: cleanedModernisedTextHtml and depunctuatedCleanedModernisedTextHtml are only used for comparisons -- they're not displayed on the page anywhere
                                 cleanedModernisedTextHtml = modernisedTextHtml.replace( versionAbbreviation, '' ) \
+                                                                        .replace( 'ij', 'iy' ) \
                                                                         .replace( '<span class="wj">', '' ) \
                                                                         .replace( '<span style="fontsize75em">', '' ) \
                                                                         .replace( '</span>', '' ) \
+                                                                        .replace( 'Yuniper', 'Juniper' ) \
                                                                         .replace( 'Yesus/Yeshua', 'Yesus' )
                                 depunctuatedCleanedModernisedTextHtml = removeVersePunctuationForComparison( cleanedModernisedTextHtml )
                                 if versionAbbreviation=='KJB-1611' and parRef in ancientRefsToPrint: print( f"DD {versionAbbreviation} {parRef} same={cleanedModernisedTextHtml==cleanedModernisedKJB1769TextHtml} ({len(depunctuatedCleanedModernisedTextHtml)}) {depunctuatedCleanedModernisedTextHtml=}")
                                 if versionAbbreviation in ('Wycl','TNT','Cvdl','Gnva','Bshps','KJB-1611') \
                                 and cleanedModernisedTextHtml == cleanedModernisedKJB1769TextHtml:
                                     modernisedTextHtml = f"<small>{'Modernised spelling is s' if modernisedTextDiffers else 'S'}ame as from KJB-1769 above{' apart from footnotes' if footnotesHtml else ''}</small>" # (Will be placed in parentheses below)
-                                    if debugThisBit: print( f"{parRef} {versionAbbreviation} {modernisedTextHtml}" )
+                                    if debugKJBCompareBit: print( f"{parRef} {versionAbbreviation} {modernisedTextHtml}" )
                                 elif versionAbbreviation in ('Wycl','TNT','Cvdl','Gnva','Bshps','KJB-1611') \
                                 and cleanedModernisedTextHtml.lower() == cleanedModernisedKJB1769TextHtml.lower():
                                     modernisedTextHtml = f"<small>{'Modernised spelling is s' if modernisedTextDiffers else 'S'}ame as from KJB-1769 above, apart from capitalisation{' and footnotes' if footnotesHtml else ''}</small>" # (Will be placed in parentheses below)
-                                    if debugThisBit: print( f"{parRef} {versionAbbreviation} {modernisedTextHtml}" )
+                                    if debugKJBCompareBit: print( f"{parRef} {versionAbbreviation} {modernisedTextHtml}" )
                                 elif versionAbbreviation in ('Wycl','TNT','Cvdl','Gnva','Bshps','KJB-1611') \
                                 and depunctuatedCleanedModernisedTextHtml == depunctuatedCleanedModernisedKJB1769TextHtml:
                                     modernisedTextHtml = f"<small>{'Modernised spelling is s' if modernisedTextDiffers else 'S'}ame as from KJB-1769 above, apart from punctuation{' and footnotes' if footnotesHtml else ''}</small>" # (Will be placed in parentheses below)
-                                    if debugThisBit: print( f"{parRef} {versionAbbreviation} {modernisedTextHtml}" )
+                                    if debugKJBCompareBit: print( f"{parRef} {versionAbbreviation} {modernisedTextHtml}" )
                                 elif versionAbbreviation in ('Wycl','TNT','Cvdl','Gnva','Bshps','KJB-1611') \
                                 and depunctuatedCleanedModernisedTextHtml.lower() == depunctuatedCleanedModernisedKJB1769TextHtml.lower():
                                     modernisedTextHtml = f"<small>{'Modernised spelling is s' if modernisedTextDiffers else 'S'}ame as from KJB-1769 above, apart from capitalisation and punctuation{' and footnotes' if footnotesHtml else ''}</small>" # (Will be placed in parentheses below)
-                                    if debugThisBit: print( f"{parRef} {versionAbbreviation} {modernisedTextHtml}" )
+                                    if debugKJBCompareBit: print( f"{parRef} {versionAbbreviation} {modernisedTextHtml}" )
                                 elif versionAbbreviation in ('Wycl','TNT','Cvdl','Gnva','Bshps','KJB-1611') \
                                 and depunctuatedCleanedModernisedTextHtml.lower().replace( '<span class="add">', '' ) \
                                 == depunctuatedCleanedModernisedKJB1769TextHtml.lower().replace( '<span class="add">', '' ):
                                     modernisedTextHtml = f"<small>{'Modernised spelling is s' if modernisedTextDiffers else 'S'}ame as from KJB-1769 above, apart from marking of added words (and possibly capitalisation and punctuation{' and footnotes' if footnotesHtml else ''})</small>" # (Will be placed in parentheses below)
-                                    if debugThisBit: print( f"{parRef} {versionAbbreviation} {modernisedTextHtml}" )
+                                    if debugKJBCompareBit: print( f"{parRef} {versionAbbreviation} {modernisedTextHtml}" )
                                 else: # the modernised text itself will be displayed
-                                    if debugThisBit and versionAbbreviation!='KJB-1769': print( f"{parRef} {versionAbbreviation} DIFFERENT" )
+                                    if debugKJBCompareBit and versionAbbreviation!='KJB-1769': print( f"{parRef} {versionAbbreviation} DIFFERENT" )
                                     if versionAbbreviation == 'KJB-1611':
                                         # if debugThisBit:
                                         #     print( f"  {depunctuatedCleanedModernisedKJB1769TextHtml=}" )
@@ -491,7 +495,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                                     #     textHtml = f'''{textHtml}<br>   ({modernisedTextHtml.replace('<br>','<br>   ')})''' # Typically a book heading
                                     # else: # no div
                                 if versionAbbreviation=='KJB-1611' and not modernisedTextHtml.startswith('<small>') and not parRef.endswith( ':0' ): # Don't include chapter intros
-                                    if debugThisBit:
+                                    if debugKJBCompareBit:
                                         print( f"    {depunctuatedCleanedModernisedKJB1769TextHtml=}" )
                                         print( f"  KJB-1611 {depunctuatedCleanedModernisedTextHtml=}" )
                                         print( f"                              {modernisedTextHtml=}")
@@ -499,7 +503,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                                     #   try to highlight the first KJB-1611 word that differs from the KJB-1769
                                     #       (so we can see where an edit was made)
                                     differentWordHighlighted = False
-                                    if debugThisBit:
+                                    if debugKJBCompareBit:
                                         print( f"AAA {depunctuatedCleanedModernisedTextHtml.replace( '<span class="_verseTextChunk">', '' ).replace( '<span class="add">', '' ).replace( ' class="', '' ).replace( ' style="', '' ).lower()}" )
                                         print( f"BBB {depunctuatedCleanedModernisedKJB1769TextHtml.replace( '<span class="_verseTextChunk">', '' ).replace( '<span class="add">', '' ).replace( ' class="', '' ).replace( ' style="', '' ).lower()}" )
                                         print( f"CCC {modernisedTextHtml.replace( '<span class="KJB-1611_mod">', '' ).replace( '<span class="add_KJB-1611">', '' ).replace( ' class="', '' ).replace( ' style="', '' ).replace( '</span>', '' ).replace( '¶ ', '' )}" )
@@ -508,11 +512,11 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                                     for wordNum, (word1611, word1769, wordModTxt) in enumerate( zip( depunctuatedCleanedModernisedTextHtml.replace( '<span class="_verseTextChunk">', '' ).replace( '<span class="add">', '' ).replace( ' class="', '' ).replace( ' style="', '' ).lower().split(),
                                                                            depunctuatedCleanedModernisedKJB1769TextHtml.replace( '<span class="_verseTextChunk">', '' ).replace( '<span class="add">', '' ).replace( ' class="', '' ).replace( ' style="', '' ).lower().split(),
                                                                            modernisedTextHtml.replace( '<span class="KJB-1611_mod">', '' ).replace( '<span class="add_KJB-1611">', '' ).replace( ' class="', '' ).replace( ' style="', '' ).replace( '</span>', '' ).replace( '¶ ', '' ).replace( '( ', '' ).split() ) ):
-                                        if debugThisBit \
+                                        if debugKJBCompareBit \
                                         and not word1611==word1769==wordModTxt: print( f"  LOOP {parRef} {wordNum} {changeIndex} {doneHighlight=} {word1611=} {word1769=} {wordModTxt=}")
                                         if word1769 != word1611:
                                             wordModTxtAdj = removeVersePunctuationForComparison( wordModTxt )
-                                            if debugThisBit:
+                                            if debugKJBCompareBit:
                                                 if wordModTxtAdj != wordModTxt: print( f"        {wordModTxtAdj=} ({modernisedTextHtml.count(wordModTxtAdj)})" )
                                                 if ( 'spannd' not in wordModTxt
                                                 and '-' not in wordModTxt
@@ -524,7 +528,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                                                  or (len(wordModTxt)>0 and modernisedTextHtml.count(f' {wordModTxt}')==modernisedTextHtml.count(wordModTxt) and modernisedTextHtml.count(f'{wordModTxt} ')==modernisedTextHtml.count(wordModTxt) ) ) # Shorter words can occur inside other words too often
                                             and 'class=' not in wordModTxt
                                             and wordModTxtAdj.lower() not in ('adoniyah',) ):
-                                                if debugThisBit: print( f"{parRef}\n{depunctuatedCleanedModernisedTextHtml=}\n{depunctuatedCleanedModernisedKJB1769TextHtml=}\n{modernisedTextHtml=}" )
+                                                if debugKJBCompareBit: print( f"{parRef}\n{depunctuatedCleanedModernisedTextHtml=}\n{depunctuatedCleanedModernisedKJB1769TextHtml=}\n{modernisedTextHtml=}" )
                                                 assert wordModTxt != 'span'
                                                 # wordMTadj = removeVersePunctuationForComparison( wordMT )
                                                 # Save the correct replacement until after the loop, or we can accidentally replace some of those words
@@ -537,16 +541,16 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                                                 doneHighlight = True
                                                 checkHtml( f'hilighted {parRef} modernisedTextHtml after {wordModTxt=} replacement', modernisedTextHtml, segmentOnly=True )
                                                 differentWordHighlighted = True
-                                                if debugThisBit: print( f"  NOW {modernisedTextHtml=}" )
+                                                if debugKJBCompareBit: print( f"  NOW {modernisedTextHtml=}" )
                                                 # break
                                         if not doneHighlight:
                                             changeIndex += len(wordModTxt) + 1 # for the space that it was split on
                                     modernisedTextHtml = modernisedTextHtml.replace( 'SPAN1', 'title="Word (or format) changed in KJB-1769" class="hilite"' ) \
                                                                            .replace( 'SPAN2', 'title="Possible word (or format) changed in KJB-1769" class="possibleHilite"' )
                                     if not differentWordHighlighted and 'class="nd"' not in depunctuatedCleanedModernisedTextHtml:
-                                        if debugThisBit: print( "CHECK THE ABOVE" )
+                                        if debugKJBCompareBit: print( "CHECK THE ABOVE" )
                                         # halt
-                                    # if 'KI1_12:' in parRef: halt
+                                    # if 'KI2_3:' in parRef: halt
                                 if modernisedTextDiffers or 'KJB-1769 above' in modernisedTextHtml:
                                     # if parRef in ancientRefsToPrint: print( f"YY {versionAbbreviation} {parRef} {modernisedTextDiffers=} {modernisedTextHtml=}" )
                                     textHtml = f'''{textHtml}<br>   ({modernisedTextHtml.replace('<br>','<br>   ')})'''
@@ -824,7 +828,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                     if versionAbbreviation in state.versionComments \
                     and parRef in state.versionComments[versionAbbreviation]:
                         optionalTextSegment,comment = state.versionComments[versionAbbreviation][parRef]                 
-                        parallelHtml = f'''{parallelHtml}{NEWLINE if parallelHtml else ''}<p class="editorsNote"><b>Editor’s note on {versionAbbreviation}</b>: {f"<i>{optionalTextSegment}</i>: " if optionalTextSegment else ''}{comment}</p>'''
+                        parallelHtml = f'''{parallelHtml}{NEWLINE if parallelHtml else ''}<p class="editorsNote"><b>OET editor’s note on {versionAbbreviation}</b>: {f"<i>{optionalTextSegment}</i>: " if optionalTextSegment else ''}{comment}</p>'''
                     checkHtml( f"End of parallel pass for {versionAbbreviation} {parRef}", parallelHtml.replace('<div class="hideables">\n',''), segmentOnly=True ) # hideables isn't ended yet
 
                 # Close the hideable div
