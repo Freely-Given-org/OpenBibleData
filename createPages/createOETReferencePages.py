@@ -87,7 +87,7 @@ from html import makeTop, makeBottom, checkHtml
 from OETHandlers import getOETTidyBBB, getOETBookName, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
-LAST_MODIFIED_DATE = '2024-12-18' # by RJH
+LAST_MODIFIED_DATE = '2024-12-19' # by RJH
 SHORT_PROGRAM_NAME = "createOETReferencePages"
 PROGRAM_NAME = "OpenBibleData createOETReferencePages functions"
 PROGRAM_VERSION = '0.79'
@@ -752,6 +752,8 @@ def createOETReferencePages( level:int, outputFolderPath:Path, state:State ) -> 
 
 
 HebrewWordFileName = 'OET-LV_OT_word_table.tsv'
+# HebrewMorphemeFileName = 'OET-LV_OT_morpheme_table.tsv'
+HebrewLemmaFileName = 'OET-LV_OT_lemma_table.tsv'
 def preprocessHebrewWordsLemmasGlosses( BBBSelection:Union[str, List[str]], state ) -> bool:
     """
     Makes all the lists and indexes of words, lemmas, and glosses
@@ -771,13 +773,10 @@ def preprocessHebrewWordsLemmasGlosses( BBBSelection:Union[str, List[str]], stat
         processBBB = None
         ignoreBBBs = BBBSelection
 
-    # morphemeFileName = 'OET-LV_OT_morpheme_table.tsv'
-    lemmaFileName = 'OET-LV_OT_lemma_table.tsv'
-
-    with open( os.path.join(state.preloadedBibles['OET-LV'].OTsourceFolder, lemmaFileName), 'rt', encoding='UTF-8' ) as lemmaTSVfile:
+    with open( os.path.join(state.preloadedBibles['OET-LV'].OTsourceFolder, HebrewLemmaFileName), 'rt', encoding='UTF-8' ) as lemmaTSVfile:
         lemmaFileText = lemmaTSVfile.read()
     if lemmaFileText.startswith( BibleOrgSysGlobals.BOM ):
-        logging.info( f"loadESFMWordFile: Detected UTF-16 Byte Order Marker in {lemmaFileName}" )
+        logging.info( f"loadESFMWordFile: Detected UTF-16 Byte Order Marker in {HebrewLemmaFileName}" )
         lemmaFileText = lemmaFileText[1:] # Remove the Unicode Byte Order Marker (BOM)
     state.OETRefData['OTLemmaFullRowTable'] = lemmaFileText.rstrip( '\n' ).split( '\n' ) # Remove any blank line at the end then split
     # state.OETRefData['OTLemmaGlossDict'] = {lemmaLine.split('\t')[0]:lemmaLine.split('\t')[1] for lemmaLine in state.OETRefData['OTLemmaFullRowTable'][1:]}
@@ -1211,6 +1210,7 @@ def create_Hebrew_word_pages( level:int, outputFolderPath:Path, state:State ) ->
         wordOETGlossesList = sorted( state.OETRefData['OTFormOETGlossesDict'][(hebrewWord,morphology)] )
         # wordVLTGlossesList = sorted( state.OETRefData['OTFormVLTGlossesDict'][(hebrewWord,morphology)] )
 
+        # Make the navigation links for the top of the page
         prevN = nextN = None
         if hh > 1:
             if TEST_MODE and not ALL_TEST_REFERENCE_PAGES:
@@ -1372,7 +1372,7 @@ f''' {translation} <a title="Go to Open Scriptures Hebrew verse page" href="
                                 try: eLemmaRowNumber = int(eLemmaRowNumberStr)
                                 except ValueError: continue # could be empty string or '<<<MISSING>>>'
                                 eLemmaHebrew = state.OETRefData['OTHebLemmaList'][eLemmaRowNumber]
-                                state.OETRefData['usedHebLemmas'].add( lemmaHebrew ) # Used in next function to make lemma pages
+                                state.OETRefData['usedHebLemmas'].add( eLemmaHebrew ) # Used in next function to make lemma pages
                                 eLemmaTrans = state.OETRefData['OTTransLemmaList'][eLemmaRowNumber]
                                 eLemmaLink = f'<a title="View Hebrew lemma" href="../HebLem/{eLemmaTrans}.htm#Top">‘{eLemmaHebrew}’</a>'
                                 eLemmaLinksList.append( eLemmaLink )
@@ -1442,6 +1442,7 @@ f''' <a title="Go to Open Scriptures Hebrew verse page" href="https://hb.OpenS
         if rowType!='seg' and 'note' not in rowType:
             wordLinksForIndex.append( f'<a href="{output_filename}">{hebrewWord}</a>')
         numWordPagesMade += 1
+
     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f'''    Created {numWordPagesMade:,}{f"/{len(state.OETRefData['word_tables'][HebrewWordFileName])-1:,}" if numWordPagesMade < len(state.OETRefData['word_tables'][HebrewWordFileName])-1 else ''} Hebrew word pages (using {len(state.OETRefData['usedHebLemmas']):,} Hebrew lemmas).''' )
 
     # Create index page for this folder
