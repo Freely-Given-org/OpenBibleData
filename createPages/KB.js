@@ -3,7 +3,7 @@
 
 var initialX = null;
 var initialY = null;
-var container = document.querySelector(".hideables");
+var container = document.querySelector(".container");
 console.log(`${typeof container} container=${container}`);
 
 if (container != null) {
@@ -33,7 +33,7 @@ function moveTouch(e) {
   // Swipe Up / Down / Left / Right
   if (Math.abs(diffX) > Math.abs(diffY)) {
     // sliding horizontally
-    if (diffX > 0) {
+    if (diffX < 0) {
       // swiped left
       console.log("swiped left");
       handleChange( 'Previous' );
