@@ -344,7 +344,7 @@ p.theme-refs {}
 
 /* unfoldingWord translation notes (UTNs) */
 div.parallelUTN {}
-p.TN {}
+p.UTN {}
 p.OL { margin-bottom:0; color:indigo; }
 p.Trans { margin-top:0; color:saddlebrown; }
 p.Gram { font-style:italic; }

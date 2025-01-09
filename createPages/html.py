@@ -5,7 +5,7 @@
 #
 # Module handling OpenBibleData html functions
 #
-# Copyright (C) 2023-2024 Robert Hunt
+# Copyright (C) 2023-2025 Robert Hunt
 # Author: Robert Hunt <Freely.Given.org+OBD@gmail.com>
 # License: See gpl-3.0.txt
 #
@@ -75,7 +75,7 @@ from settings import State, TEST_MODE, SITE_NAME
 from OETHandlers import getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2024-11-13' # by RJH
+LAST_MODIFIED_DATE = '2025-01-07' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
 PROGRAM_VERSION = '0.91'
@@ -367,7 +367,7 @@ def _makeFooter( level:int, pageType:str, state:State ) -> str:
     """
     # fnPrint( DEBUGGING_THIS_MODULE, f"_makeFooter()" )
     html = f"""<div class="footer">
-<p class="copyright"><small><em>{'TEST ' if TEST_MODE else ''}{SITE_NAME}</em> site copyright © 2023-2024 <a href="https://Freely-Given.org">Freely-Given.org</a>.
+<p class="copyright"><small><em>{'TEST ' if TEST_MODE else ''}{SITE_NAME}</em> site copyright © 2023–2025 <a href="https://Freely-Given.org">Freely-Given.org</a>.
 <br>Python source code for creating these static pages is available <a href="https://GitHub.com/Freely-Given-org/OpenBibleData">on GitHub</a> under an <a href="https://GitHub.com/Freely-Given-org/OpenBibleData/blob/main/LICENSE">open licence</a>.{datetime.now().strftime('<br> (Page created: %Y-%m-%d %H:%M)') if TEST_MODE else ''}</small></p>
 <p class="copyright"><small>For Bible data copyrights, see the <a href="{'../'*level}AllDetails.htm#Top">details</a> for each displayed Bible version.</small></p>
 <p class="note"><small>The <em>Open English Translation (OET)</em> main site is at <a href="https://OpenEnglishTranslation.Bible">OpenEnglishTranslation.Bible</a>.</small></p>
@@ -481,7 +481,7 @@ def checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool:
     Just do some very quick and basic tests
         that our HTML makes some sense.
 
-    Throws an AssertError for any problems.
+    Throws an AssertError or a ValueError for any problems.
     """
     fnPrint( DEBUGGING_THIS_MODULE, f"checkHtml( {where}, {len(htmlToCheck)} )" )
 
@@ -561,6 +561,8 @@ def checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool:
                                ('ol','<ol'),('ul','<ul'),
                                ('em','<em>'),('i','<i>'),('b','<b>'),('small','<small '),('sup','<sup>'),('sub','<sub>')):
         startCount = htmlToCheck.count( startMarker )
+        if startCount and 'UTN' not in where and 'UTN' not in htmlToCheck: # uW UTNs have too many formatting errors to bother checking them
+            assert f'<{marker}></{marker}>' not in htmlToCheck, f"Empty <{marker}> field {where}' {segmentOnly=} …{htmlToCheck[htmlToCheck.index(f'<{marker}></{marker}>')-180:htmlToCheck.index(f'<{marker}></{marker}>')+180]}…"
         if startMarker.endswith( ' ' ): startCount += htmlToCheck.count( f'<{marker}>' )
         endMarker = f'</{marker}>'
         endCount = htmlToCheck.count( endMarker )
@@ -750,7 +752,7 @@ def checkHtmlForMissingStyles( where:str, htmlToCheck:str ) -> bool:
                     className = ssLine[4:].split( ' ', 1 )[0]
                     # print( f"    div {className=}")
                     assert ' ' not in className and ',' not in className, f"{className=}"
-                    assert 'div' not in lsStyleDict[className]
+                    assert 'div' not in lsStyleDict[className], f"DIV in {lsStyleDict[className]=} {ssLine=}"
                     lsStyleDict[className].append( 'div' )
                     lsStyleDict[f'used_{className}'] = False
                 elif ssLine.startswith( 'h1.' ) or ssLine.startswith( 'h2.' ):

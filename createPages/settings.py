@@ -5,7 +5,7 @@
 #
 # Module handling OpenBibleData settings functions
 #
-# Copyright (C) 2023-2024 Robert Hunt
+# Copyright (C) 2023-2025 Robert Hunt
 # Author: Robert Hunt <Freely.Given.org+OBD@gmail.com>
 # License: See gpl-3.0.txt
 #
@@ -47,7 +47,7 @@ from BibleOrgSys.BibleOrgSysGlobals import dPrint, fnPrint
 from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39
 
 
-LAST_MODIFIED_DATE = '2024-11-14' # by RJH
+LAST_MODIFIED_DATE = '2025-01-07' # by RJH
 SHORT_PROGRAM_NAME = "settings"
 PROGRAM_NAME = "OpenBibleData (OBD) Create Pages"
 PROGRAM_VERSION = '0.98'
@@ -55,7 +55,7 @@ PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
 
-OET_VERSION = 'v0.27' # At 51.1% 2024-12-16 (Incremented on most runs for the production site)
+OET_VERSION = 'v0.29' # At 53.1% 2025-01-06 (Incremented on most runs for the production site)
 
 TEST_MODE = True # Writes website into Test subfolder
 ALL_PRODUCTION_BOOKS = not TEST_MODE # If set to False, only selects one book per version for a faster test build
@@ -490,7 +490,7 @@ class State:
     detailsHtml = {
         'OET': {'about': f'''<p class="about">The (still unfinished) <em>Open English Translation</em> ({OET_VERSION}) consists of a <em>Readers’ Version</em> and a <em>Literal Version</em> side-by-side.
 You can read a lot more about the design of the <em>OET</em> at <a href="https://OpenEnglishTranslation.Bible/Design/Overview">OpenEnglishTranslation.Bible/Design/Overview</a>.</p>''',
-                'copyright': '<p class="copyright">Copyright © 2010-2024 <a href="https://Freely-Given.org">Freely-Given.org</a>.</p>',
+                'copyright': '<p class="copyright">Copyright © 2010–2025 <a href="https://Freely-Given.org">Freely-Given.org</a>.</p>',
                 'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
                 'acknowledgements': '''<p class="acknwldg">Thanks to <a href="https://Freely-Given.org/">Freely-Given.org</a> for creating this exciting, radical, new Bible translation which is viewable from <a href="https://OpenEnglishTranslation.Bible/Reader">OpenEnglishTranslation.Bible</a>.
 We are very grateful to Dr. Alan Bunning of the <a href="https://GreekCNTR.org">Center for New Testament Restoration</a> whose many years of hard work the New Testament part of the <em>OET-LV</em> is adapted from.
@@ -499,12 +499,12 @@ We’re also grateful to the <a href="https://www.Biblica.com/clear/">Biblica Cl
 Also, the Bible translation resources created by <a href="https://www.unfoldingWord.org">unfoldingWord</a> have proven very helpful.</p>''' },
         'OET-RV': {'about': '''<p class="about">The (still unfinished) <em>Open English Translation Readers’ Version</em> is a new, modern-English, easy-to-read translation of the Bible.
 You can read a lot more about the design of the <em>OET-RV</em> at <a href="https://OpenEnglishTranslation.Bible/Design/ReadersVersion">OpenEnglishTranslation.Bible/Design/ReadersVersion</a>.</p>''',
-                'copyright': '<p class="copyright">Copyright © 2010-2024 <a href="https://Freely-Given.org">Freely-Given.org</a>.</p>',
+                'copyright': '<p class="copyright">Copyright © 2010–2025 <a href="https://Freely-Given.org">Freely-Given.org</a>.</p>',
                 'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
                 'acknowledgements': '<p class="acknwldg">Thanks to <a href="https://Freely-Given.org/">Freely-Given.org</a> for creating this exciting, new Bible translation which is viewable from <a href="https://OpenEnglishTranslation.Bible/Reader">OpenEnglishTranslation.Bible</a>.</p>' },
         'OET-LV': {'about': '''<p class="about">The (still unfinished) <em>Open English Translation Literal Version</em> is a tool designed to give a look into what was actually written in the original Hebrew or Greek manuscripts.
 You can read a lot more about the design of the <em>OET-LV</em> at <a href="https://OpenEnglishTranslation.Bible/Design/LiteralVersion">OpenEnglishTranslation.Bible/Design/LiteralVersion</a>.</p>''',
-                'copyright': '<p class="copyright">Copyright © 2010-2024 <a href="https://Freely-Given.org">Freely-Given.org</a>.</p>',
+                'copyright': '<p class="copyright">Copyright © 2010–2025 <a href="https://Freely-Given.org">Freely-Given.org</a>.</p>',
                 'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
                 'acknowledgements': '''<p class="acknwldg">Thanks to <a href="https://Freely-Given.org/">Freely-Given.org</a> for creating this exciting, new Bible translation which is viewable from <a href="https://OpenEnglishTranslation.Bible/Reader">OpenEnglishTranslation.Bible</a>.
 We are very grateful to Dr. Alan Bunning of the <a href="https://GreekCNTR.org">Center for New Testament Restoration</a> whose many years of hard work this literal New Testament is adapted from.

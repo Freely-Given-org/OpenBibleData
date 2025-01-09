@@ -5,7 +5,7 @@
 #
 # Module handling OpenBibleData createSitePages functions
 #
-# Copyright (C) 2023-2024 Robert Hunt
+# Copyright (C) 2023-2025 Robert Hunt
 # Author: Robert Hunt <Freely.Given.org+OBD@gmail.com>
 # License: See gpl-3.0.txt
 #
@@ -93,7 +93,7 @@ from Dict import createTyndaleDictPages, createUBSDictionaryPages
 from html import makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2024-11-18' # by RJH
+LAST_MODIFIED_DATE = '2025-01-05' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData (OBD) Create Site Pages"
 PROGRAM_VERSION = '0.98'
@@ -299,7 +299,7 @@ def _createSitePages() -> bool:
         createTyndaleDictPages( 1, TEMP_BUILD_FOLDER.joinpath('dct/'), state )
     else:
         # Don't rebuild these reference pages -- we'll reuse the existing folders full of pages
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"NOT generating new {'TEST ' if TEST_MODE else ''}reference pages (OET word pages, UBS dict, Tyndale Dict)." )
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\nNOT generating new {'TEST ' if TEST_MODE else ''}reference pages (OET word pages, UBS dict, Tyndale Dict)." )
 
     _createDetailsPages( 0, TEMP_BUILD_FOLDER, state )
     _createSearchPage( 0, TEMP_BUILD_FOLDER, state )

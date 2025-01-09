@@ -5,7 +5,7 @@
 #
 # Module handling OpenBibleData createTopicPages functions
 #
-# Copyright (C) 2024 Robert Hunt
+# Copyright (C) 2024-2025 Robert Hunt
 # Author: Robert Hunt <Freely.Given.org+OBD@gmail.com>
 # License: See gpl-3.0.txt
 #
@@ -50,10 +50,10 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
 from OETHandlers import livenOETWordLinks, getOETTidyBBB, getOETBookName, getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2024-12-11' # by RJH
+LAST_MODIFIED_DATE = '2025-01-09' # by RJH
 SHORT_PROGRAM_NAME = "createTopicPages"
 PROGRAM_NAME = "OpenBibleData createTopicPages functions"
-PROGRAM_VERSION = '0.21'
+PROGRAM_VERSION = '0.22'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -128,7 +128,7 @@ def createTopicPages( level:int, folder:Path, state:State ) -> bool:
     fnPrint( DEBUGGING_THIS_MODULE, f"createTopicPages( {level}, {folder}, {state.BibleVersions} )" )
     assert level == 1
 
-    vPrint( 'Info', DEBUGGING_THIS_MODULE, f"\ncreateTopicPages( {level}, {folder}, {state.BibleVersions} )" )
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\ncreateTopicPages( {level}, {folder} with {state.booksToLoad['OET']} )" )
     try: os.makedirs( folder )
     except FileExistsError: pass # they were already there
 
@@ -159,7 +159,7 @@ def createTopicPages( level:int, folder:Path, state:State ) -> bool:
         indexHtmlFile.write( indexHtml )
     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createTopicPages() finished processing {len(state.allBBBs)} books: {state.allBBBs}" )
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createTopicPages() finished processing {len(TOPIC_TABLE)} topics: {str(TOPIC_TABLE.keys()).replace('dict_keys([','').replace('])','')}" )
     return True
 # end of createTopicPages.createTopicPages
 
@@ -170,7 +170,7 @@ def createTopicPage( level:int, folder:Path, filename:str, topic:str, refs:List[
     """
     fnPrint( DEBUGGING_THIS_MODULE, f"createTopicPage( {level}, {folder}, '{filename}', '{topic}', {len(refs)}, {state.BibleVersions} )" )
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createTopicPage for '{topic}' ({filename}) with {len(refs)} Bible passages…" )
+    vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  createTopicPage for '{topic}' ({filename}) with {len(refs)} Bible passages…" )
     rvBible, lvBible = state.preloadedBibles['OET-RV'], state.preloadedBibles['OET-LV']
 
     combinedHtmlChunks = []
@@ -178,7 +178,7 @@ def createTopicPage( level:int, folder:Path, filename:str, topic:str, refs:List[
         # print( f"  {rr} {topic} {ref=}")
         if ref.startswith( 'H3 '): # Then it's a heading -- we'll remove this part of the string
             combinedHtmlChunks.append( f'''<h3>{ref[3:]}</h3>
-<h3></h3>''' ) # Second one is to keep the number of columns matched
+<h3> </h3>''' ) # Second one is to keep the number of columns matched - put a space in so checkHTML accepts it
         else: # We'll assume it's a scripture reference
             BBB, refRest = ref.split( '_' ) # This split will fail if it's not a valid scripture reference
             try: C, Vs = refRest.split( ':' )
@@ -234,9 +234,10 @@ def createTopicPage( level:int, folder:Path, filename:str, topic:str, refs:List[
             lvTextHtml = lvTextHtml.replace( 'id="fn', f'id="fn{rr}LV' ).replace( 'href="#fn', f'href="#fn{rr}LV' ) \
                                 .replace( 'id="xr', f'id="xr{rr}LV' ).replace( 'href="#xr', f'href="#xr{rr}LV' )
             combinedHtmlChunks.append( f'''<h3>OET <a title="View in context of whole book" href="{'../'*level}OET/byDoc/{BBB}.htm#C{C}V{startV}">{getOETTidyBBB(BBB,True,True,True)}</a> <a title="View in context of whole chapter" href="{'../'*level}OET/byC/{BBB}_C{C}.htm#V{startV}">{refRest}</a></h3>
-<h3></h3>
+<h3> </h3>
 <div class="chunkRV">{rvTextHtml}</div><!--chunkRV-->
 <div class="chunkLV">{lvTextHtml}</div><!--chunkLV-->''' )
+ # Second h3 above is to keep the number of columns matched - put a space in so checkHTML accepts it
 
     combinedHtml = f'''<div class="RVLVcontainer">
 <h2>Readers’ Version</h2>
@@ -264,7 +265,7 @@ def createTopicPage( level:int, folder:Path, filename:str, topic:str, refs:List[
         topicHtmlFile.write( topicHtml )
     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(topicHtml):,} characters written to {filepath}" )
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createTopicPage() finished processing '{topic}' with {len(refs):,} references." )
+    vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    createTopicPage() finished processing '{topic}' with {len(refs):,} references." )
     return True
 # end of createTopicPages.createTopicPage
 

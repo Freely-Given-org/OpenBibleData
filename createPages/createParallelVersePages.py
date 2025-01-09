@@ -5,7 +5,7 @@
 #
 # Module handling OpenBibleData createParallelVersePages functions
 #
-# Copyright (C) 2023-2024 Robert Hunt
+# Copyright (C) 2023-2025 Robert Hunt
 # Author: Robert Hunt <Freely.Given.org+OBD@gmail.com>
 # License: See gpl-3.0.txt
 #
@@ -91,7 +91,7 @@ from OETHandlers import getOETTidyBBB, getOETBookName, livenOETWordLinks, getHeb
 from LanguageHandlers import moderniseEnglishWords, translateGerman, translateLatin
 
 
-LAST_MODIFIED_DATE = '2024-12-12' # by RJH
+LAST_MODIFIED_DATE = '2025-01-08' # by RJH
 SHORT_PROGRAM_NAME = "createParallelVersePages"
 PROGRAM_NAME = "OpenBibleData createParallelVersePages functions"
 PROGRAM_VERSION = '0.98'
@@ -249,6 +249,8 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                 greekWords = {}; greekVersionKeysHtmlSet = set()
 
                 # The following all have a __ID__ string than needs to be replaced
+                if v > 3:
+                    leftCLink = f'<a title="Go to start of chapter" href="C{c}V1.htm#__ID__">◄</a> ' # instead of PREVIOUS chapter
                 leftVLink = f'<a title="Previous verse" href="C{C}V{v-1}.htm#__ID__">←</a> ' if v>1 \
                         else f'<a title="Previous chapter (last verse)" href="C{c-1}V{lastNumVerses}.htm#__ID__">↨</a> ' if c>1 \
                         else ''

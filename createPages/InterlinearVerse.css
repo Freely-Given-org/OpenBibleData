@@ -54,7 +54,7 @@ p.vNav { text-align:center; font-size:1.8em; }
     overflow:auto;
     margin:1em 0;
 } */
-div.TN {
+div.UTN {
     background:hsla(55, 99%, 80%, 50);
     padding:5px;
     overflow:auto;
@@ -333,8 +333,7 @@ span.OET-LV_verseTextChunk {}
 span.OET-RV_verseTextChunk {}
 
 /* unfoldingWord translation notes (UTNs) */
-div.UTN {}
-p.TN {}
+p.UTN {}
 p.OL { margin-bottom:0; color:indigo; }
 p.Trans { margin-top:0; color:saddlebrown; }
 p.Gram { font-style:italic; }

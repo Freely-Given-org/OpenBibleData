@@ -5,7 +5,7 @@
 #
 # Module handling OpenBibleData OETHandlers functions
 #
-# Copyright (C) 2023-2024 Robert Hunt
+# Copyright (C) 2023-2025 Robert Hunt
 # Author: Robert Hunt <Freely.Given.org+OBD@gmail.com>
 # License: See gpl-3.0.txt
 #
@@ -65,7 +65,7 @@ from BibleTransliterations import transliterate_Hebrew, transliterate_Greek
 from settings import State
 
 
-LAST_MODIFIED_DATE = '2024-11-14' # by RJH
+LAST_MODIFIED_DATE = '2025-01-07' # by RJH
 SHORT_PROGRAM_NAME = "OETHandlers"
 PROGRAM_NAME = "OpenBibleData OET handler"
 PROGRAM_VERSION = '0.61'
@@ -446,10 +446,10 @@ def findLVQuote( level:int, BBB:str, C:str, V:str, occurrenceNumber:int, origina
         #     import unicodedata
         #     for char in adjustedOriginalQuote:
         #         if char not in ' &’' and 'GREEK' not in unicodedata.name(char):
-        #             print( f"findLVQuote: uW TN has unexpected char {BBB} {C}:{V} '{char}' ({unicodedata.name(char)}) from '{adjustedOriginalQuote}' from '{originalQuote}'" )
+        #             print( f"findLVQuote: uW UTN has unexpected char {BBB} {C}:{V} '{char}' ({unicodedata.name(char)}) from '{adjustedOriginalQuote}' from '{originalQuote}'" )
         #             halt
         olWords = adjustedOriginalQuote.split( ' ' )
-        assert '' not in olWords, f"findLVQuote: uW TN has unexpected empty string {ref} {olWords=} from '{adjustedOriginalQuote}' from '{originalQuote}'"
+        assert '' not in olWords, f"findLVQuote: uW UTN has unexpected empty string {ref} {olWords=} from '{adjustedOriginalQuote}' from '{originalQuote}'"
         olIndex = wordNumberOffset = 0
         lvEnglishWords = []
         inGap = False
@@ -463,9 +463,9 @@ def findLVQuote( level:int, BBB:str, C:str, V:str, occurrenceNumber:int, origina
                 lvEnglishWords.append( '&' )
                 olIndex += 1
                 if olIndex == 0:
-                    logging.critical( f"findLVQuote: uW TN has ampersand at beginning {ref} '{originalQuote}'" )
+                    logging.critical( f"findLVQuote: uW UTN has ampersand at beginning {ref} '{originalQuote}'" )
                 elif olIndex == len(olWords):
-                    logging.critical( f"findLVQuote: uW TN has ampersand at end {ref} '{originalQuote}'" )
+                    logging.critical( f"findLVQuote: uW UTN has ampersand at end {ref} '{originalQuote}'" )
                     break # finished
                 inGap = True
                 continue # Pass over whatever this SR row was (i.e., sort of match the ampersand)
