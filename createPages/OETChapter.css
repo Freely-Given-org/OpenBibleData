@@ -1,6 +1,7 @@
 /* Also used for OET sections and documents */
 /* Paratext stylesheet is at https://github.com/ubsicap/usfm/blob/master/sty/usfm.sty */
 
+body.container {}
 div.header {}
 div.footer { margin:50px; }
 div.periph {}

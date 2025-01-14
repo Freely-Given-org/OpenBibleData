@@ -43,6 +43,7 @@ CHANGELOG:
     2024-03-13 Add getOETBookName(BBB) function
     2024-05-01 Added morphology in popups in livenOETWordLinks()
     2024-11-14 NFC normalise Hebrew title fields
+    2025-01-15 Handle NT morphology fields with middle dot instead of period
 """
 # from gettext import gettext as _
 from typing import Dict, List, Tuple, Optional
@@ -65,10 +66,10 @@ from BibleTransliterations import transliterate_Hebrew, transliterate_Greek
 from settings import State
 
 
-LAST_MODIFIED_DATE = '2025-01-07' # by RJH
+LAST_MODIFIED_DATE = '2025-01-15' # by RJH
 SHORT_PROGRAM_NAME = "OETHandlers"
 PROGRAM_NAME = "OpenBibleData OET handler"
-PROGRAM_VERSION = '0.61'
+PROGRAM_VERSION = '0.62'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -258,7 +259,7 @@ def livenOETWordLinks( level:int, bibleObject:ESFMBible, BBB:str, givenEntryList
                 elif extendedStrongs == '37560': # Greek 'οὐ' (ou) 'not'
                     caseClassName = 'grkNeg'
                 # TODO: Need to find where collation table is imported and change 'None' to None there (and then fix this again)
-                elif morphology!='None' and morphology[4] != '.': # Two words in table have morphology of 'None' Jhn 5:27 w2
+                elif morphology!='None' and morphology[4] != '·': # (Middle dot) Two words in table have morphology of 'None' Jhn 5:27 w2
                     caseClassName = f'''grk{GREEK_CASE_CLASS_DICT[morphology[4]]}'''
                 else: caseClassName = None
 
@@ -279,7 +280,7 @@ def livenOETWordLinks( level:int, bibleObject:ESFMBible, BBB:str, givenEntryList
                     # print( f"    livenOETWordLinks now '{originalText[wordnumberMatch.end():]}'")
                     # colourisationsAdded += 1
 
-                newTitleGuts = f'''="{greekWord} ({transliteratedWord}, {morphology.removeprefix('....')}){'' if SRLemma==transliteratedWord else f" from {SRLemma}"}"'''
+                newTitleGuts = f'''="{greekWord} ({transliteratedWord}, {morphology.removeprefix('····')}){'' if SRLemma==transliteratedWord else f" from {SRLemma}"}"'''
                 originalText = f'''{originalText[:titleMatch.start()]}{newTitleGuts}{originalText[titleMatch.end():]}'''
 
                 searchStartIndex = hrefMatch.end()

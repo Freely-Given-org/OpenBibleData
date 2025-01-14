@@ -1,4 +1,5 @@
 /* Also used for OET sections and documents */
+body.container {}
 div.container1 {}
 div.container2 { display:grid; column-gap:0.6em; grid-template-columns:0.5fr 0.5fr; }
 div.container3 { display:grid; column-gap:0.5em; grid-template-columns:0.33fr 0.33fr 0.33fr; }

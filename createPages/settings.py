@@ -47,7 +47,7 @@ from BibleOrgSys.BibleOrgSysGlobals import dPrint, fnPrint
 from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39
 
 
-LAST_MODIFIED_DATE = '2025-01-07' # by RJH
+LAST_MODIFIED_DATE = '2025-01-14' # by RJH
 SHORT_PROGRAM_NAME = "settings"
 PROGRAM_NAME = "OpenBibleData (OBD) Create Pages"
 PROGRAM_VERSION = '0.98'
@@ -55,11 +55,11 @@ PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
 
-OET_VERSION = 'v0.29' # At 53.1% 2025-01-06 (Incremented on most runs for the production site)
+OET_VERSION = 'v0.30' # At 53.7% 2025-01-13 (Incremented on most runs for the production site)
 
 TEST_MODE = True # Writes website into Test subfolder
 ALL_PRODUCTION_BOOKS = not TEST_MODE # If set to False, only selects one book per version for a faster test build
-REUSE_EXISTING_WORD_PAGES = TEST_MODE # Don't recreate word pages
+REUSE_EXISTING_WORD_PAGES = False #TEST_MODE # Don't recreate word pages
 ALL_TEST_REFERENCE_PAGES = False # If in TEST_MODE, make ALL word/lemma pages, or just the RELEVANT ones
 UPDATE_ACTUAL_SITE_WHEN_BUILT = True # The pages are initially built in a tmp folder so need to be copied to the final destination
 
@@ -69,7 +69,7 @@ TEST_OT_BOOK_LIST = ['KI2','PSA','EZR'] # Books in progress
 TEST_NT_BOOK_LIST = ['MRK',] # Shortest gospel
 TEST_BOOK_LIST = TEST_OT_BOOK_LIST + TEST_NT_BOOK_LIST
 
-TEMP_BUILD_FOLDER = Path( '../BuildingHtmlPages/' )
+TEMP_BUILD_FOLDER = Path( '../buildingHtmlPages/' )
 NORMAL_DESTINATION_FOLDER = Path( '../htmlPages/' )
 DEBUG_DESTINATION_FOLDER = NORMAL_DESTINATION_FOLDER.joinpath( 'Test/' )
 DESTINATION_FOLDER = DEBUG_DESTINATION_FOLDER if TEST_MODE or BibleOrgSysGlobals.debugFlag \
@@ -329,7 +329,7 @@ class State:
                 'Wbstr': 'Webster Bible (American, 1833)',
                 'KJB-1769': 'King James Bible (1769)',
                 'KJB-1611': 'King James Bible (1611)',
-                'Bshps': 'Bshpsops Bible (1568, 1602)',
+                'Bshps': 'Bishops Bible (1568, 1602)',
                 'Gnva': 'Geneva Bible (1557-1560, 1599)',
                 'Great': 'Great Bible (1539)', # Not in OBD yet
                 'Cvdl': 'Coverdale Bible (1535-1553)',
@@ -708,7 +708,7 @@ Also note that there was no letter ‘J’ in the 1611 KJB, e.g., ‘John’ was
 Footnote markers PRECEDE the text that they concern,
         rather than the modern practice of having footnote markers follow the text.</p>
 <p class="note">Finally, note that the KJB included ‘The Bookes called Apocrypha’ as can be seen <a href="https://archive.org/details/1611TheAuthorizedKingJamesBible/page/n37/mode/1up">here</a>, so an additional fourteen ‘bookes’ beyond the often-expected sixty-six.</p>''' },
-        'Bshps': {'about': '<p class="about">Bshpsops Bible (1568, 1602).</p>',
+        'Bshps': {'about': '<p class="about">Bishops Bible (1568, 1602).</p>',
                 'copyright': '<p class="copyright">Public Domain.</p>',
                 'licence': '<p class="licence">Public Domain.</p>',
                 'acknowledgements': '<p class="acknwldg">(coming).</p>' },

@@ -61,6 +61,7 @@ CHANGELOG:
     2024-09-20 Split out language data tables
     2024-09-23 Link to actual verse in version chapter pages (rather than #Top)
     2024-11-18 Use colour hilight on (apparent) word changes between KJB-1611 and 1769
+    2025-01-13 Add multiprocessing
 """
 from gettext import gettext as _
 from typing import Tuple, List
@@ -68,6 +69,7 @@ from pathlib import Path
 import os
 import logging
 import re
+import multiprocessing
 
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
@@ -79,7 +81,7 @@ import sys
 sys.path.append( '../../BibleTransliterations/Python/' )
 from BibleTransliterations import transliterate_Hebrew, transliterate_Greek
 
-from settings import State, TEST_MODE, TEST_BOOK_LIST, VERSIONS_WITHOUT_NT, VERSIONS_WITHOUT_OT, VERSIONS_WITH_APOCRYPHA, \
+from settings import State, TEST_MODE, TEST_BOOK_LIST, UPDATE_ACTUAL_SITE_WHEN_BUILT, VERSIONS_WITHOUT_NT, VERSIONS_WITHOUT_OT, VERSIONS_WITH_APOCRYPHA, \
                                 reorderBooksForOETVersions, OET_SINGLE_VERSE_HTML_TEXT, OETS_UNFINISHED_WARNING_HTML_TEXT
 from usfm import convertUSFMMarkerListToHtml
 from Bibles import formatTyndaleBookIntro, formatUnfoldingWordTranslationNotes, formatTyndaleNotes, getBibleMapperMaps, getVerseDetailsHtml
@@ -91,7 +93,7 @@ from OETHandlers import getOETTidyBBB, getOETBookName, livenOETWordLinks, getHeb
 from LanguageHandlers import moderniseEnglishWords, translateGerman, translateLatin
 
 
-LAST_MODIFIED_DATE = '2025-01-08' # by RJH
+LAST_MODIFIED_DATE = '2025-01-13' # by RJH
 SHORT_PROGRAM_NAME = "createParallelVersePages"
 PROGRAM_NAME = "OpenBibleData createParallelVersePages functions"
 PROGRAM_VERSION = '0.98'
@@ -120,11 +122,15 @@ def createParallelVersePages( level:int, folder:Path, state:State ) -> bool:
 
     # Move SR-GNT and UHB and BrLXX and Brenton up after OET-RV and OET-LV
     parallelVersions = state.BibleVersions[:]
-    parallelVersions.remove('SR-GNT'); parallelVersions.insert( 3, 'SR-GNT' )
-    parallelVersions.remove('UHB'); parallelVersions.insert( 4, 'UHB' )
-    parallelVersions.remove('BrLXX'); parallelVersions.insert( 5, 'BrLXX' )
-    parallelVersions.remove('BrTr'); parallelVersions.insert( 6, 'BrTr' )
-    parallelVersions.remove('NETS'); parallelVersions.insert( 7, 'NETS' )
+    try:
+        parallelVersions.remove('SR-GNT'); parallelVersions.insert( 3, 'SR-GNT' )
+        parallelVersions.remove('UHB'); parallelVersions.insert( 4, 'UHB' )
+        parallelVersions.remove('BrLXX'); parallelVersions.insert( 5, 'BrLXX' ) # These three LXX versions only exist for OT books (so don't appear on NT pages)
+        parallelVersions.remove('BrTr'); parallelVersions.insert( 6, 'BrTr' )
+        parallelVersions.remove('NETS'); parallelVersions.insert( 7, 'NETS' )
+    except ValueError as e:
+        if UPDATE_ACTUAL_SITE_WHEN_BUILT and not TEST_MODE: # Ignore missing versions in test modes
+            raise e
 
     # Load version comments
     state.versionComments = {}
@@ -391,6 +397,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                                 # if BBB=='MRK' and C=='7' and V=='16': print( f"CCC {parRef} {versionAbbreviation} {textHtml=}" )
                                 # assert '<span class="ul">_</span>HNcbsa' not in textHtml, f'''Here1 ({textHtml.count('<span class="ul">_</span>HNcbsa')}) {textHtml=}'''
                                 textHtml, footnoteFreeTextHtml, footnotesHtml = do_OET_LV_HTMLcustomisations(textHtml), do_OET_LV_HTMLcustomisations(footnoteFreeTextHtml), do_OET_LV_HTMLcustomisations(footnotesHtml)
+                                checkHtml( f"OET-LV parallel AAA for {parRef}", textHtml, segmentOnly=True ); checkHtml( f"OET-LV parallel BBB for {parRef}", footnoteFreeTextHtml, segmentOnly=True ); checkHtml( f"OET-LV parallel CCC for {parRef}", footnotesHtml, segmentOnly=True )
                                 # assert textHtml.count('<span class="ul">_</span>HNcbsa') < 2, f'''Here2 ({textHtml.count('<span class="ul">_</span>HNcbsa')}) {textHtml=}'''
                                 # if BBB=='MRK' and C=='7' and V=='16': print( f"DDD {parRef} {versionAbbreviation} {textHtml=}" )
                             elif versionAbbreviation in ('WEBBE','WEB'): # assuming WEB/WEBBE comes BEFORE WMB/WMBBB
@@ -834,7 +841,8 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                     checkHtml( f"End of parallel pass for {versionAbbreviation} {parRef}", parallelHtml.replace('<div class="hideables">\n',''), segmentOnly=True ) # hideables isn't ended yet
 
                 # Close the hideable div
-                if not TEST_MODE: assert doneHideablesDiv # Fails if no Bible versions were included that go in the hideable div
+                if UPDATE_ACTUAL_SITE_WHEN_BUILT and not TEST_MODE:
+                    assert doneHideablesDiv # Fails if no Bible versions were included that go in the hideable div
                 if doneHideablesDiv:
                     parallelHtml = f'{parallelHtml}\n</div><!--end of hideables-->'
 

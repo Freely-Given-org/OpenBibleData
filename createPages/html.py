@@ -59,6 +59,8 @@ CHANGELOG:
     2024-10-24 Added title pop-ups on added text classes
     2024-10-31 Added more Hebrew parallelism options
     2024-11-01 Added topic pages
+    2025-01-10 Added container class to html body tag
+    2025-01-15 Improved check to find newlines inside HTML title attributes
 """
 # from gettext import gettext as _
 from typing import Dict, List, Tuple, Optional, Union
@@ -75,10 +77,10 @@ from settings import State, TEST_MODE, SITE_NAME
 from OETHandlers import getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2025-01-07' # by RJH
+LAST_MODIFIED_DATE = '2025-01-15' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
-PROGRAM_VERSION = '0.91'
+PROGRAM_VERSION = '0.92'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -148,7 +150,7 @@ def makeTop( level:int, versionAbbreviation:Optional[str], pageType:str, version
   <link rel="stylesheet" type="text/css" href="{'../'*level}{cssFilename}">
   __SCRIPT__
 </head>
-<body><!--Level{level}-->{topLink}
+<body class="container"><!--Level{level}-->{topLink}
 """
     # Insert second stylesheet if required
     if pageType == 'OETKey':
@@ -473,9 +475,10 @@ def removeDuplicateFNids( where:str, html:str ) -> str:
 # end of html.removeDuplicateFNids
 
 
-classAttributeRegex = re.compile( 'class="(.+?)"' )
-idAttributeRegex = re.compile( 'id="(.+?)"' )
-titleAttributeRegex = re.compile( 'title="(.+?)"' )
+# These regexs have an extra bit to also allow for a nl inside the double-quotes (re.MULTILINE didn't seem to work for us)
+classAttributeRegex = re.compile( 'class="([^"]+?)"|class="([^"]+?)$' )
+idAttributeRegex = re.compile( 'id="([^"]+?)"|id="([^"]+?)$' )
+titleAttributeRegex = re.compile( 'title="([^"]+?)"|title="([^"]+?)$' )
 def checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool:
     """
     Just do some very quick and basic tests
@@ -488,11 +491,15 @@ def checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool:
     if '\n\n' in htmlToCheck:
         ix = htmlToCheck.index( '\n\n' )
         # print( f"checkHtml({where=} {segmentOnly=}) found \\n\\n in …{htmlToCheck[ix-30:ix]}{htmlToCheck[ix:ix+50]}…" )
-        raise ValueError( f"checkHtml({where}) found unexpected double newlines in {htmlToCheck=}" )
+        raise ValueError( f"checkHtml({where}) found unexpected double newlines in …{htmlToCheck[ix-30:ix]}{htmlToCheck[ix:ix+50]}…" )
     if '<br>\n' in htmlToCheck:
         ix = htmlToCheck.index( '<br>\n' )
         # print( f"checkHtml({where=} {segmentOnly=}) found <br> in …{htmlToCheck[ix-30:ix]}{htmlToCheck[ix:ix+50]}…" )
-        raise ValueError( f"checkHtml({where}) found <br> followed by unexpected newline in {htmlToCheck=}" )
+        raise ValueError( f"checkHtml({where}) found <br> followed by unexpected newline in …{htmlToCheck[ix-30:ix]}{htmlToCheck[ix:ix+50]}…" )
+    # if '.\n<br>.\n<br>' in htmlToCheck:
+    #     ix = htmlToCheck.index( '.\n<br>.\n<br>' )
+    #     # print( f"checkHtml({where=} {segmentOnly=}) found <br> in …{htmlToCheck[ix-30:ix]}{htmlToCheck[ix:ix+50]}…" )
+    #     raise ValueError( f"checkHtml({where}) found multiple .\\n<br>s in …{htmlToCheck[ix-30:ix]}{htmlToCheck[ix:ix+50]}…" )
 
     if ( 'TCNT' not in where and 'TC-GNT' not in where  # These two versions use the '¦' character in their footnotes
     and not where.startswith('Parallel ') and not where.startswith('End of parallel') ): # and they also appear on parallel pages
@@ -506,6 +513,7 @@ def checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool:
             assert htmlToCheck.count( f'</{marker}>' ) == 1
 
     if ('ULT' not in where and 'UST' not in where
+    and 'UTN' not in where and '"UTN"' not in htmlToCheck
     and 'OEB' not in where
     # Parallel pages
     and 'PSA' not in where # uW really messes up \\qs Selah\\qs* amongst other things
@@ -590,7 +598,7 @@ def checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool:
                 if 'book' not in where.lower():
                     if 'ULT' not in where and 'UST' not in where and 'PSA' not in where: # UST PSA has totally messed up \\qs encoding
                         halt
-            return False
+            # return False # TODO: Why was this here ???
         # Checked for accidentally doubled nesting
         if startMarker.endswith( '>' ):
             assert f'{startMarker}{startMarker}' not in htmlToCheck, f"Doubled {startMarker} in {where}' {segmentOnly=}"
@@ -780,6 +788,14 @@ def checkHtmlForMissingStyles( where:str, htmlToCheck:str ) -> bool:
                     assert elementName not in lsStyleDict[className]
                     lsStyleDict[className].append( elementName )
                     lsStyleDict[f'used_{className}'] = False
+                elif ssLine.startswith( 'body.' ):
+                    elementName = ssLine[:4]
+                    className = ssLine[5:].split( ' ', 1 )[0]
+                    # print( f"    {elementName} {className=}")
+                    assert ' ' not in className and ',' not in className, f"{className=}"
+                    assert elementName not in lsStyleDict[className]
+                    lsStyleDict[className].append( elementName )
+                    lsStyleDict[f'used_{className}'] = False
                 elif ssLine.startswith( '.' ):
                     className = ssLine[1:].split( ' ', 1 )[0]
                     # print( f"    {className=} {ssLine[len(className)+2:]=}")
@@ -940,7 +956,7 @@ def do_OET_LV_HTMLcustomisations( OET_LV_html:str ) -> str:
             # Protect fields we need to preserve
             .replace( '_V', '~~ULINE~~V' ).replace( '_verseText', '~~ULINE~~verseText' )
             .replace( '<!--', '~~COMMENT~~' )
-            .replace( '../', '~~PERIOD~~~~PERIOD~~/' )
+            .replace( '../', '~~PERIOD~~~~PERIOD~~/' ) # Protect paths like ../../somewhere.htm
             .replace( '.htm', '~~PERIOD~~htm' ).replace( 'https:', 'https~~COLON~~' )
             .replace( '.org', '~~PERIOD~~org' ).replace( '.tsv', '~~PERIOD~~tsv' )
             # .replace( 'v0.', 'v0~~PERIOD~~' )
@@ -948,7 +964,7 @@ def do_OET_LV_HTMLcustomisations( OET_LV_html:str ) -> str:
             # In <hr>
             .replace( 'width:', 'width~~COLON~~' ).replace( 'margin-left:', 'margin-left~~COLON~~' ).replace( 'margin-top:', 'margin-top~~COLON~~' )
             # Make each sentence start a new line
-            .replace( '.', '.\n<br>' ).replace( '?', '?\n<br>' )
+            .replace( '.', '.\n<br>' ).replace( '?', '?\n<br>' ) # NOTE: DANGEROUS if periods in HMTL title fields (like morphology), etc.
             .replace( '!', '!\n<br>' ).replace( ':', ':\n<br>' )
             # Adjust specialised add markers
             .replace( '<span class="add">+', '<span class="addArticle">' )
@@ -983,6 +999,7 @@ def do_OET_LV_HTMLcustomisations( OET_LV_html:str ) -> str:
     # assert '+' not in html, f"{html[html.index('+')-20:html.index('+')+30]}"
     # assert '^' not in html, f"{html[html.index('^')-20:html.index('^')+30]}"
     # assert '<span class="add">' not in html, f'''{html[html.index('<span class="add">')-20:html.index('<span class="add">')+50]}'''
+    checkHtml( "do_OET_LV_HTMLcustomisations", OET_LV_html, segmentOnly=True )
     return OET_LV_html
 # end of html.do_OET_LV_HTMLcustomisations
 

@@ -93,7 +93,7 @@ from Dict import createTyndaleDictPages, createUBSDictionaryPages
 from html import makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2025-01-05' # by RJH
+LAST_MODIFIED_DATE = '2025-01-13' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData (OBD) Create Site Pages"
 PROGRAM_VERSION = '0.98'
@@ -329,8 +329,10 @@ def _createSitePages() -> bool:
                 shutil.move( fileOrFolderPath, f'{DESTINATION_FOLDER}/', copy_function=shutil.copy2)
                 count += 1
             vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Moved {count:,} folders and files into {DESTINATION_FOLDER}/." )
+        except Exception as e:
+            logging.critical( f"Oops, something went wrong copying folders/files into {DESTINATION_FOLDER}/: {e} with {fileOrFolderPath=}" )
 
-            # We also need to copy the TOBD maps across
+        try: # We also need to copy the TOBD maps across
             TOBDmapSourceFolder = os.path.join( state.BibleLocations['TOSN'], '../OBD/Maps/artfiles/' )
             TOBDmapDestinationFolder = DESTINATION_FOLDER.joinpath( 'dct/' )
             vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Copying TOBD maps from {TOBDmapSourceFolder} to {TOBDmapDestinationFolder}/…" )
@@ -344,8 +346,10 @@ def _createSitePages() -> bool:
                 except FileNotFoundError as e:
                     logging.critical( f"TOBD image file problem: {e}" )
             vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Copied {count:,} maps into {TOBDmapDestinationFolder}/." )
+        except Exception as e:
+            logging.critical( f"Oops, something went wrong copying image files into {DESTINATION_FOLDER}/: {e} with {imgFilepath=}" )
 
-            # We need to copy the .css and .js files across
+        try: # We need to copy the .css and .js files across
             count = 0
             for filepath in glob.glob( '*.css' ):
                 vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Copying {filepath}…" )
@@ -357,7 +361,7 @@ def _createSitePages() -> bool:
             count += 2
             vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Copied {count:,} stylesheets and scripts into {DESTINATION_FOLDER}/." )
         except Exception as e:
-            logging.critical( f"Oops, something went wrong copying files into {DESTINATION_FOLDER}/: {e}" )
+            logging.critical( f"Oops, something went wrong copying aux files into {DESTINATION_FOLDER}/: {e} with {filepath=}" )
 
         vPrint( 'Normal', DEBUGGING_THIS_MODULE, f'''\nNOW RUN "npx pagefind --glob "{{OET,par}}/**/*.{{htm}}" --site ../htmlPages{'/Test' if TEST_MODE else ''}/" to create search index!''' )
     else:
@@ -957,7 +961,7 @@ def _createMainIndexPage( level, folder:Path, state:State ) -> bool:
             .replace( '__TITLE__', f'TEST {SITE_NAME} Home' if TEST_MODE else f'{SITE_NAME} Home') \
             .replace( '__KEYWORDS__', 'Bible, translation, English, OET' )
     if TEST_MODE:
-        html = html.replace( '<body>', '<body><p class="note"><a href="../">UP TO MAIN NON-TEST SITE</a></p>')
+        html = html.replace( '<body class="container">', '<body class="container"><p class="note"><a href="../">UP TO MAIN NON-TEST SITE</a></p>')
     bodyHtml = f'<!--_createMainIndexPage--><h1 id="Top">{SITE_NAME} TEST Home</h1>' \
         if TEST_MODE else f'<!--_createMainIndexPage--><h1 id="Top">{SITE_NAME} Home</h1>'
     html = f'''{html}
@@ -986,7 +990,7 @@ def _createMainIndexPage( level, folder:Path, state:State ) -> bool:
 #             .replace( '__TITLE__', 'TEST {SITE_NAME} Versions' if TEST_MODE else '{SITE_NAME} Versions') \
 #             .replace( '__KEYWORDS__', 'Bible, translation, English, OET' )
 #     if TEST_MODE:
-#         html = html.replace( '<body>', '<body><p class="index"><a href="{'../'*level}">UP TO MAIN NON-TEST SITE</a></p>')
+#         html = html.replace( '<body class="container">', '<body class="container"><p class="index"><a href="{'../'*level}">UP TO MAIN NON-TEST SITE</a></p>')
 #     bodyHtml = """<!--createVersionsIndexPage--><h1 id="Top">{SITE_NAME} TEST Versions</h1>
 # """ if TEST_MODE else """<!--_createMainIndexPage--><h1 id="Top">{SITE_NAME} Versions</h1>
 # """

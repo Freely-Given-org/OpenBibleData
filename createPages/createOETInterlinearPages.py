@@ -395,7 +395,8 @@ def createOETInterlinearVerseInner( level:int, BBB:str, c:int, v:int, state:Stat
             rvEnglishWordDict[number].append( word )
 
     # print( f"Found {BBB} {c}:{v} ({len(EnglishWordList)}) {EnglishWordList=}" )
-    ivHtml = f'''<h2>{'SR Greek' if NT else 'Hebrew'} word order{' <small>(including unused variants)</small>' if NT else ''}</h2><div class=interlinear><ol class=verse>'''
+    ivHtml = f'''<h2>{'SR Greek' if NT else 'Hebrew'} word order{' <small>(including unused variants)</small>' if NT else ''}</h2>
+<div class=interlinear><ol class=verse>'''
     if wordNumberStr: # Now we have a word number from the correct verse
         firstWordNumber,lastWordNumber = state.OETRefData['word_table_indexes'][wordFileName][f'{BBB}_{C}:{V}']
         # firstWordNumber = getLeadingInt( wordNumberStr )
@@ -414,19 +415,19 @@ def createOETInterlinearVerseInner( level:int, BBB:str, c:int, v:int, state:Stat
         # Display the interlinear blocks
         if NT:
             GreekList = ['''<li><ol class="titles">
-<li lang="el">Greek word</li>
-<li lang="el_LEMMA">Greek lemma</li>
-<li lang="en_TRANS"><b>OET-LV words</b></li>
-<li lang="en_TRANS"><b>OET-RV words</b></li>
-<li lang="en_STRONGS">Strongs</li>
-<li lang="en_MORPH">Role/Morphology</li>
-<li lang="en_GLOSS">OET Gloss</li>
-<li lang="en_GLOSS">VLT Gloss</li>
-<li lang="en_CAPS">CAPS codes</li>
-<li lang="en_PERCENT">Confidence</li>
-<li lang="en_TAGS">OET tags</li>
-<li lang="en_WORDNUM">OET word #</li>
-</ol></li>''']
+  <li lang="el">Greek word</li>
+  <li lang="el_LEMMA">Greek lemma</li>
+  <li lang="en_TRANS"><b>OET-LV words</b></li>
+  <li lang="en_TRANS"><b>OET-RV words</b></li>
+  <li lang="en_STRONGS">Strongs</li>
+  <li lang="en_MORPH">Role/Morphology</li>
+  <li lang="en_GLOSS">OET Gloss</li>
+  <li lang="en_GLOSS">VLT Gloss</li>
+  <li lang="en_CAPS">CAPS codes</li>
+  <li lang="en_PERCENT">Confidence</li>
+  <li lang="en_TAGS">OET tags</li>
+  <li lang="en_WORDNUM">OET word #</li>
+</ol><!--titles--></li>''']
             for wordNumber in range( firstWordNumber, lastWordNumber+1 ):
                 # if wordNumber >= len(wordTable): # we must be in one of the last verses of Rev
                 #     break
@@ -449,33 +450,33 @@ def createOETInterlinearVerseInner( level:int, BBB:str, c:int, v:int, state:Stat
                     tagsHtml = '; '.join( tags )
                 else: tagsHtml = '-'
                 GreekList.append( f'''<li><ol class="{'word' if row[7] else 'variant'}">
-<li lang="el">{row[1]}</li>
-<li lang="el_LEMMA">{row[2]}</li>
-<li lang="en_TRANS"><b>{' '.join(lvEnglishWordDict[wordNumber]) if lvEnglishWordDict[wordNumber] else '-'}</b></li>
-<li lang="en_TRANS"><b>{' '.join(rvEnglishWordDict[wordNumber]) if rvEnglishWordDict[wordNumber] else '-'}</b></li>
-<li lang="en_STRONGS"><a href="https://BibleHub.com/greek/{row[8][:-1]}.htm">{row[8]}</a></li>
-<li lang="en_MORPH">{row[9]}{row[10]}</li>
-<li lang="en_GLOSS">{row[5]}</li>
-<li lang="en_GLOSS">{row[4]}</li>
-<li lang="en_CAPS">{row[6] if row[6] else '-'}</li>
-<li lang="en_PERCENT">{row[7]+'%' if row[7] else 'V'}</li>
-<li lang="en_TAGS">{tagsHtml}</li>
-<li lang="en_WORDNUM"><a title="View word details" href="{'../'*level}ref/GrkWrd/{getGreekWordpageFilename(wordNumber, state)}#Top">{wordNumber}</a></li>
-</ol></li>''' )
+  <li lang="el">{row[1]}</li>
+  <li lang="el_LEMMA">{row[2]}</li>
+  <li lang="en_TRANS"><b>{' '.join(lvEnglishWordDict[wordNumber]) if lvEnglishWordDict[wordNumber] else '-'}</b></li>
+  <li lang="en_TRANS"><b>{' '.join(rvEnglishWordDict[wordNumber]) if rvEnglishWordDict[wordNumber] else '-'}</b></li>
+  <li lang="en_STRONGS"><a href="https://BibleHub.com/greek/{row[8][:-1]}.htm">{row[8]}</a></li>
+  <li lang="en_MORPH">{row[9]}{row[10]}</li>
+  <li lang="en_GLOSS">{row[5]}</li>
+  <li lang="en_GLOSS">{row[4]}</li>
+  <li lang="en_CAPS">{row[6] if row[6] else '-'}</li>
+  <li lang="en_PERCENT">{row[7]+'%' if row[7] else 'V'}</li>
+  <li lang="en_TAGS">{tagsHtml}</li>
+  <li lang="en_WORDNUM"><a title="View word details" href="{'../'*level}ref/GrkWrd/{getGreekWordpageFilename(wordNumber, state)}#Top">{wordNumber}</a></li>
+</ol><!--{'word' if row[7] else 'variant'}--></li>''' )
             ivHtml = f'{ivHtml}{NEWLINE.join( GreekList )}'
         else: # OT
             HebrewList = ['''<li><ol class="titles">
-<li lang="he">Hebrew word</li>
-<li lang="he_LEMMA">Hebrew lemma</li>
-<li lang="en_TRANS"><b>OET-LV words</b></li>
-<li lang="en_TRANS"><b>OET-RV words</b></li>
-<li lang="en_STRONGS">Strongs</li>
-<li lang="en_MORPH">Role/Morphology</li>
-<li lang="en_GLOSS">Gloss</li>
-<li lang="en_CAPS">CAPS codes</li>
-<li lang="en_TAGS">OET tags</li>
-<li lang="en_WORDNUM">OET word #</li>
-</ol></li>''']
+  <li lang="he">Hebrew word</li>
+  <li lang="he_LEMMA">Hebrew lemma</li>
+  <li lang="en_TRANS"><b>OET-LV words</b></li>
+  <li lang="en_TRANS"><b>OET-RV words</b></li>
+  <li lang="en_STRONGS">Strongs</li>
+  <li lang="en_MORPH">Role/Morphology</li>
+  <li lang="en_GLOSS">Gloss</li>
+  <li lang="en_CAPS">CAPS codes</li>
+  <li lang="en_TAGS">OET tags</li>
+  <li lang="en_WORDNUM">OET word #</li>
+</ol><!--titles--></li>''']
             for wordNumber in range( firstWordNumber, lastWordNumber+1 ):
                 # if wordNumber >= len(wordTable): # we must be in one of the last verses of Rev
                 #     break
@@ -500,21 +501,22 @@ def createOETInterlinearVerseInner( level:int, BBB:str, c:int, v:int, state:Stat
                     tagsHtml = '; '.join( tags )
                 else: tagsHtml = '-'
                 HebrewList.append( f'''<li><ol class="word">
-<li lang="he">{row[7]}</li>
-<li lang="he_LEMMA">{row[2]}</li>
-<li lang="en_TRANS"><b>{' '.join(lvEnglishWordDict[wordNumber]) if lvEnglishWordDict[wordNumber] else '-'}</b></li>
-<li lang="en_TRANS"><b>{' '.join(rvEnglishWordDict[wordNumber]) if rvEnglishWordDict[wordNumber] else '-'}</b></li>
-<li lang="en_STRONGS">{','.join(strongsList)}</li>
-<li lang="en_MORPH">{row[16]}-{row[5]}</li>
-<li lang="en_GLOSS">{gloss}</li>
-<li lang="en_CAPS">{row[12] if row[12] else '-'}</li>
-<li lang="en_TAGS">{tagsHtml}</li>
-<li lang="en_WORDNUM"><a title="View word details" href="{'../'*level}ref/HebWrd/{wordNumber}.htm#Top">{wordNumber}</a></li>
-</ol></li>''' )
+  <li lang="he">{row[7]}</li>
+  <li lang="he_LEMMA">{row[2]}</li>
+  <li lang="en_TRANS"><b>{' '.join(lvEnglishWordDict[wordNumber]) if lvEnglishWordDict[wordNumber] else '-'}</b></li>
+  <li lang="en_TRANS"><b>{' '.join(rvEnglishWordDict[wordNumber]) if rvEnglishWordDict[wordNumber] else '-'}</b></li>
+  <li lang="en_STRONGS">{','.join(strongsList)}</li>
+  <li lang="en_MORPH">{row[16]}-{row[5]}</li>
+  <li lang="en_GLOSS">{gloss}</li>
+  <li lang="en_CAPS">{row[12] if row[12] else '-'}</li>
+  <li lang="en_TAGS">{tagsHtml}</li>
+  <li lang="en_WORDNUM"><a title="View word details" href="{'../'*level}ref/HebWrd/{wordNumber}.htm#Top">{wordNumber}</a></li>
+</ol><!--word--></li>''' )
             ivHtml = f'{ivHtml}{NEWLINE.join( HebrewList )}'
 
     # Now append the OET-RV
-    ivHtml = f'''{ivHtml}</ol></div><!--interlinear-->
+    ivHtml = f'''{ivHtml}
+</ol><!--verse--></div><!--interlinear-->
 {lvHtml}
 {rvHtml}
 {utnHtml}
@@ -525,32 +527,32 @@ def createOETInterlinearVerseInner( level:int, BBB:str, c:int, v:int, state:Stat
     rivHtml = ''
     if NT:
         reverseList = ['''<li><ol class="titles">
-<li lang="en_TRANS"><b>OET-LV words</b></li>
-<li lang="en_TRANS"><b>OET-RV words</b></li>
-<li lang="en_STRONGS">Strongs</li>
-<li lang="el">Greek word</li>
-<li lang="el_LEMMA">Greek lemma</li>
-<li lang="en_MORPH">Role/Morphology</li>
-<li lang="en_GLOSS">OET Gloss</li>
-<li lang="en_GLOSS">VLT Gloss</li>
-<li lang="en_CAPS">CAPS codes</li>
-<li lang="en_PERCENT">Confidence</li>
-<li lang="en_TAGS">OET tags</li>
-<li lang="en_WORDNUM">OET word #</li>
-</ol></li>''']
+  <li lang="en_TRANS"><b>OET-LV words</b></li>
+  <li lang="en_TRANS"><b>OET-RV words</b></li>
+  <li lang="en_STRONGS">Strongs</li>
+  <li lang="el">Greek word</li>
+  <li lang="el_LEMMA">Greek lemma</li>
+  <li lang="en_MORPH">Role/Morphology</li>
+  <li lang="en_GLOSS">OET Gloss</li>
+  <li lang="en_GLOSS">VLT Gloss</li>
+  <li lang="en_CAPS">CAPS codes</li>
+  <li lang="en_PERCENT">Confidence</li>
+  <li lang="en_TAGS">OET tags</li>
+  <li lang="en_WORDNUM">OET word #</li>
+</ol><!--titles--></li>''']
     else: # OT
         reverseList = ['''<li><ol class="titles">
-<li lang="en_TRANS"><b>OET-LV words</b></li>
-<li lang="en_TRANS"><b>OET-RV words</b></li>
-<li lang="en_STRONGS">Strongs</li>
-<li lang="he">Hebrew word</li>
-<li lang="he_LEMMA">Hebrew lemma</li>
-<li lang="en_MORPH">Role/Morphology</li>
-<li lang="en_GLOSS">Gloss</li>
-<li lang="en_CAPS">CAPS codes</li>
-<li lang="en_TAGS">OET tags</li>
-<li lang="en_WORDNUM">OET word #</li>
-</ol></li>''']
+  <li lang="en_TRANS"><b>OET-LV words</b></li>
+  <li lang="en_TRANS"><b>OET-RV words</b></li>
+  <li lang="en_STRONGS">Strongs</li>
+  <li lang="he">Hebrew word</li>
+  <li lang="he_LEMMA">Hebrew lemma</li>
+  <li lang="en_MORPH">Role/Morphology</li>
+  <li lang="en_GLOSS">Gloss</li>
+  <li lang="en_CAPS">CAPS codes</li>
+  <li lang="en_TAGS">OET tags</li>
+  <li lang="en_WORDNUM">OET word #</li>
+</ol><!--titles--></li>''']
     lastWordNumber = None
     for extendedWord in lvEnglishWordList:
         if not extendedWord:
@@ -585,19 +587,19 @@ def createOETInterlinearVerseInner( level:int, BBB:str, c:int, v:int, state:Stat
                     tagsHtml = '; '.join( tags )
                 else: tagsHtml = '-'
                 reverseList.append( f'''<li><ol class="word">
-<li lang="en_TRANS"><b>{word}</b></li>
-<li lang="en_TRANS"><b>{' '.join(rvEnglishWordDict[wordNumber]) if rvEnglishWordDict[wordNumber] else '-'}</b></li>
-<li lang="en_STRONGS"><a href="https://BibleHub.com/greek/{row[8][:-1]}.htm">{row[8]}</a></li>
-<li lang="el">{row[6]}</li>
-<li lang="el_LEMMA">{row[2]}</li>
-<li lang="en_MORPH">{row[9]}-{row[10]}</li>
-<li lang="en_GLOSS">{row[5]}</li>
-<li lang="en_GLOSS">{row[4]}</li>
-<li lang="en_CAPS">{row[6] if row[6] else '-'}</li>
-<li lang="en_PERCENT">{row[7]+'%' if row[7] else 'V'}</li>
-<li lang="en_TAGS">{tagsHtml}</li>
-<li lang="en_WORDNUM"><a title="View word details" href="{'../'*level}ref/GrkWrd/{getGreekWordpageFilename(wordNumber, state)}#Top">{wordNumber}</a></li>
-</ol></li>''' )
+  <li lang="en_TRANS"><b>{word}</b></li>
+  <li lang="en_TRANS"><b>{' '.join(rvEnglishWordDict[wordNumber]) if rvEnglishWordDict[wordNumber] else '-'}</b></li>
+  <li lang="en_STRONGS"><a href="https://BibleHub.com/greek/{row[8][:-1]}.htm">{row[8]}</a></li>
+  <li lang="el">{row[6]}</li>
+  <li lang="el_LEMMA">{row[2]}</li>
+  <li lang="en_MORPH">{row[9]}-{row[10]}</li>
+  <li lang="en_GLOSS">{row[5]}</li>
+  <li lang="en_GLOSS">{row[4]}</li>
+  <li lang="en_CAPS">{row[6] if row[6] else '-'}</li>
+  <li lang="en_PERCENT">{row[7]+'%' if row[7] else 'V'}</li>
+  <li lang="en_TAGS">{tagsHtml}</li>
+  <li lang="en_WORDNUM"><a title="View word details" href="{'../'*level}ref/GrkWrd/{getGreekWordpageFilename(wordNumber, state)}#Top">{wordNumber}</a></li>
+</ol><!--word--></li>''' )
             else: # OT
                 assert rowStr.startswith( f'{BBB}_{c}:{v}' )
                 row = rowStr.split( '\t' )
@@ -616,22 +618,23 @@ def createOETInterlinearVerseInner( level:int, BBB:str, c:int, v:int, state:Stat
                 else: tagsHtml = '-'
                 strongsList = [f'<a href="https://BibleHub.com/hebrew/{nn}.htm">{nn}</a>' for nn in row[3].split(',') if nn.isdigit()]
                 reverseList.append( f'''<li><ol class="word">
-<li lang="en_TRANS"><b>{word}</b></li>
-<li lang="en_TRANS"><b>{' '.join(rvEnglishWordDict[wordNumber]) if rvEnglishWordDict[wordNumber] else '-'}</b></li>
-<li lang="en_STRONGS">{','.join(strongsList)}</li>
-<li lang="he">{row[1]}</li>
-<li lang="he_LEMMA">{row[2]}</li>
-<li lang="en_MORPH">{row[16]}-{row[5]}</li>
-<li lang="en_GLOSS">{gloss}</li>
-<li lang="en_CAPS">{row[12] if row[12] else '-'}</li>
-<li lang="en_TAGS">{tagsHtml}</li>
-<li lang="en_WORDNUM"><a title="View word details" href="{'../'*level}ref/HebWrd/{wordNumber}.htm#Top">{wordNumber}</a></li>
-</ol></li>''' )
+    <li lang="en_TRANS"><b>{word}</b></li>
+    <li lang="en_TRANS"><b>{' '.join(rvEnglishWordDict[wordNumber]) if rvEnglishWordDict[wordNumber] else '-'}</b></li>
+    <li lang="en_STRONGS">{','.join(strongsList)}</li>
+    <li lang="he">{row[1]}</li>
+    <li lang="he_LEMMA">{row[2]}</li>
+    <li lang="en_MORPH">{row[16]}-{row[5]}</li>
+    <li lang="en_GLOSS">{gloss}</li>
+    <li lang="en_CAPS">{row[12] if row[12] else '-'}</li>
+    <li lang="en_TAGS">{tagsHtml}</li>
+    <li lang="en_WORDNUM"><a title="View word details" href="{'../'*level}ref/HebWrd/{wordNumber}.htm#Top">{wordNumber}</a></li>
+</ol><!--word--></li>''' )
             lastWordNumber = wordNumber
     rivHtml = f'{rivHtml}{NEWLINE.join( reverseList )}'
 
 
-    ivHtml = f'''{ivHtml}{rivHtml}</ol></div><!--interlinear-->
+    ivHtml = f'''{ivHtml}{rivHtml}
+</ol><!--verse--></div><!--interlinear-->
 {lvHtml.replace( 'id="fnLV', 'id="fnRvLV' ).replace( 'href="#fnLV', 'href="#fnRvLV' )}
 {rvHtml.replace( 'id="fnRV', 'id="fnRvRV' ).replace( 'href="#fnRV', 'href="#fnRvRV' )}
 <p class="note"><small><b>Note</b>: The OET-RV is still only a first draft, and so far only a few words have been (mostly automatically) matched to the Hebrew or Greek words that they’re translated from.</small></p>{f'{NEWLINE}<p class="thanks"><b>Acknowledgements</b>: The SR Greek text, lemmas, morphology, and VLT gloss are all thanks to the <a href="https://GreekCNTR.org/collation/index.htm?v={CNTR_BOOK_ID_MAP[BBB]}{C.zfill(3)}{V.zfill(3)}">SR-GNT</a>.</p>' if BibleOrgSysGlobals.loadedBibleBooksCodes.isNewTestament_NR( BBB ) else ''}'''

@@ -4,7 +4,7 @@
 var initialX = null;
 var initialY = null;
 var container = document.querySelector(".container");
-console.log(`${typeof container} container=${container}`);
+// console.log(`${typeof container} container=${container}`);
 
 if (container != null) {
     container.addEventListener("touchstart", startTouch, false);
@@ -35,22 +35,22 @@ function moveTouch(e) {
     // sliding horizontally
     if (diffX < 0) {
       // swiped left
-      console.log("swiped left");
+      // console.log("swiped left");
       handleChange( 'Previous' );
     } else {
       // swiped right
-      console.log("swiped right");
+      // console.log("swiped right");
       handleChange( 'Next' );
     }
-  } else {
-    // sliding vertically
-    if (diffY > 0) {
-      // swiped up
-      console.log("swiped up");
-    } else {
-      // swiped down
-      console.log("swiped down");
-    }
+  // } else {
+  //   // sliding vertically
+  //   if (diffY > 0) {
+  //     // swiped up
+  //     console.log("swiped up");
+  //   } else {
+  //     // swiped down
+  //     console.log("swiped down");
+  //   }
   }
 
   initialX = null;

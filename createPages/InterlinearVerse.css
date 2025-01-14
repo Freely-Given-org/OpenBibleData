@@ -1,6 +1,7 @@
 /* InterlinearVerse.css */
 /* Contains a single verse with translation and morphology etc, for each word
     as well as translation notes */
+body.container { background-color:powderblue; }
 div.header {}
 div.footer { margin:50px; }
 
@@ -59,18 +60,21 @@ div.UTN {
     padding:5px;
     overflow:auto;
     margin:1em 0;
+    display: block;
 }
 div.LV {
     background:hsla(55, 99%, 80%, 50);
     padding:5px;
     overflow:auto;
     margin:1em 0;
+    display: block;
 }
 div.RV {
     background:hsla(55, 99%, 80%, 50);
     padding:5px;
     overflow:auto;
     margin:1em 0;
+    display: block;
 }
 
 /* p.LV {
@@ -79,12 +83,14 @@ div.RV {
     overflow:auto;
     margin:1em 0;
 }
+
 p.RV {
     background:hsla(55, 99%, 80%, 50);
     padding:5px;
     overflow:auto;
     margin:1em 0;
-} */
+    } */
+p.LV {}
 
 ol {
     list-style-type:none;
@@ -193,14 +199,12 @@ ol.variant {
 }
 p.ilNote {}
 
-body { background-color:powderblue; }
 table, th, td { border:1px solid black; border-collapse:collapse; }
 table tr:nth-child(even) { background-color:#eee; }
 table tr:nth-child(odd) { background-color:#fff; }
 table th { color:white; background-color:black; }
 th, td { padding:15px; text-align:center; }
 
-p.LV {}
 span.wrkName {}
 
 /* Header USFM */
