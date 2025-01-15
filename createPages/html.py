@@ -586,15 +586,14 @@ def checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool:
             ixMinEnd = min( ixRStartMarker, ixREndMarker )
             logging.error( f"Mismatched '{marker}' start and end markers '{where}' {segmentOnly=} {startCount}!={endCount}"
                               f" {'…' if ixMinStart>0 else ''}{htmlToCheck[ixMinStart:ixMinEnd+5]}{'…' if ixMinEnd+5<len(htmlToCheck) else ''}" )
-            if DEBUGGING_THIS_MODULE:
-                print( f"\nMismatched '{marker}' start and end markers '{where}' {segmentOnly=} {startCount}!={endCount}"
+            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"\nMismatched '{marker}' start and end markers '{where}' {segmentOnly=} {startCount}!={endCount}"
                               f" {'…' if ixMinStart>0 else ''}{htmlToCheck[ixMinStart:ixMinEnd+5]}{'…' if ixMinEnd+5<len(htmlToCheck) else ''}" )
-                print( f"checkHtml: complete {htmlToCheck=}\n")
+            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"checkHtml: complete {htmlToCheck=}\n")
             if TEST_MODE and ('JOB' not in where and 'OEB' not in where # why are these bad???
             and 'UTN' not in where and 'ULT' not in where
             and 'Parallel' not in where and 'Interlinear' not in where ): # Probably it's in UTN on parallel and interlinear pages
-                print( f"'{where}' {segmentOnly=} {marker=} Bad html = {htmlToCheck=}")
-                print( f"'{where}' {segmentOnly=} {marker=} {startMarker=} {startCount=} {endCount=}")
+                dPrint( 'Info', DEBUGGING_THIS_MODULE, f"'{where}' {segmentOnly=} {marker=} HTML marker mismatch in {htmlToCheck=}")
+                dPrint( 'Info', DEBUGGING_THIS_MODULE, f"'{where}' {segmentOnly=} {marker=} {startMarker=} {startCount=} {endCount=}")
                 if 'book' not in where.lower():
                     if 'ULT' not in where and 'UST' not in where and 'PSA' not in where: # UST PSA has totally messed up \\qs encoding
                         halt
@@ -922,7 +921,7 @@ def do_OET_RV_HTMLcustomisations( OET_RV_html:str ) -> str:
 
 
 digitPunctDigitRegex = re.compile( '[0-9][:.][0-9]' )
-def do_OET_LV_HTMLcustomisations( OET_LV_html:str ) -> str:
+def do_OET_LV_HTMLcustomisations( where:str, OET_LV_html:str ) -> str:
     """
     OET-LV is often formatted as a new line for each sentence.
 
@@ -999,7 +998,7 @@ def do_OET_LV_HTMLcustomisations( OET_LV_html:str ) -> str:
     # assert '+' not in html, f"{html[html.index('+')-20:html.index('+')+30]}"
     # assert '^' not in html, f"{html[html.index('^')-20:html.index('^')+30]}"
     # assert '<span class="add">' not in html, f'''{html[html.index('<span class="add">')-20:html.index('<span class="add">')+50]}'''
-    checkHtml( "do_OET_LV_HTMLcustomisations", OET_LV_html, segmentOnly=True )
+    checkHtml( f"do_OET_LV_HTMLcustomisations {where=}", OET_LV_html, segmentOnly=True )
     return OET_LV_html
 # end of html.do_OET_LV_HTMLcustomisations
 

@@ -5,7 +5,7 @@
 #
 # Module handling OpenBibleData createChapterPages functions
 #
-# Copyright (C) 2023-2024 Robert Hunt
+# Copyright (C) 2023-2025 Robert Hunt
 # Author: Robert Hunt <Freely.Given.org+OBD@gmail.com>
 # License: See gpl-3.0.txt
 #
@@ -54,10 +54,10 @@ from Bibles import getBibleMapperMaps
 from OETHandlers import livenOETWordLinks, getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
-LAST_MODIFIED_DATE = '2024-11-14' # by RJH
+LAST_MODIFIED_DATE = '2025-01-15' # by RJH
 SHORT_PROGRAM_NAME = "createChapterPages"
 PROGRAM_NAME = "OpenBibleData createChapterPages functions"
-PROGRAM_VERSION = '0.69'
+PROGRAM_VERSION = '0.70'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -207,7 +207,7 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
                 # rvHtml = livenIORs( BBB, convertUSFMMarkerListToHtml( 'OET', (BBB,c), 'chapter', rvContextList, rvVerseEntryList ), numChapters )
                 # NOTE: We change the version abbreviation here to give the function more indication where we're coming from
                 rvHtml = do_OET_RV_HTMLcustomisations( convertUSFMMarkerListToHtml( level, 'OET-RV', (BBB,str(c)), 'chapter', rvContextList, rvVerseEntryList, basicOnly=False, state=state ) )
-                lvHtml = do_OET_LV_HTMLcustomisations( convertUSFMMarkerListToHtml( level, 'OET-LV', (BBB,str(c)), 'chapter', lvContextList, lvVerseEntryList, basicOnly=False, state=state ) )
+                lvHtml = do_OET_LV_HTMLcustomisations( f"ChapterA={BBB}_{c}", convertUSFMMarkerListToHtml( level, 'OET-LV', (BBB,str(c)), 'chapter', lvContextList, lvVerseEntryList, basicOnly=False, state=state ) )
 
                 if c < 1:
                     rvHtml = f'''<div class="chunkRV">{rvHtml}</div><!--chunkRV-->\n'''
@@ -511,7 +511,7 @@ def createChapterPages( level:int, folder:Path, thisBible, state:State ) -> List
                 if thisBible.abbreviation == 'OET-RV':
                     textHtml = do_OET_RV_HTMLcustomisations( textHtml )
                 elif thisBible.abbreviation == 'OET-LV':
-                    textHtml = do_OET_LV_HTMLcustomisations( textHtml )
+                    textHtml = do_OET_LV_HTMLcustomisations( f"ChapterB={BBB}_{c}", textHtml )
                 elif thisBible.abbreviation == 'LSV':
                     textHtml = do_LSV_HTMLcustomisations( textHtml )
                 elif thisBible.abbreviation == 'T4T':

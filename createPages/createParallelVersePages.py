@@ -93,7 +93,7 @@ from OETHandlers import getOETTidyBBB, getOETBookName, livenOETWordLinks, getHeb
 from LanguageHandlers import moderniseEnglishWords, translateGerman, translateLatin
 
 
-LAST_MODIFIED_DATE = '2025-01-13' # by RJH
+LAST_MODIFIED_DATE = '2025-01-15' # by RJH
 SHORT_PROGRAM_NAME = "createParallelVersePages"
 PROGRAM_NAME = "OpenBibleData createParallelVersePages functions"
 PROGRAM_VERSION = '0.98'
@@ -396,7 +396,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                             elif versionAbbreviation == 'OET-LV':
                                 # if BBB=='MRK' and C=='7' and V=='16': print( f"CCC {parRef} {versionAbbreviation} {textHtml=}" )
                                 # assert '<span class="ul">_</span>HNcbsa' not in textHtml, f'''Here1 ({textHtml.count('<span class="ul">_</span>HNcbsa')}) {textHtml=}'''
-                                textHtml, footnoteFreeTextHtml, footnotesHtml = do_OET_LV_HTMLcustomisations(textHtml), do_OET_LV_HTMLcustomisations(footnoteFreeTextHtml), do_OET_LV_HTMLcustomisations(footnotesHtml)
+                                textHtml, footnoteFreeTextHtml, footnotesHtml = do_OET_LV_HTMLcustomisations(f"ParallelVerseTxt={parRef}", textHtml), do_OET_LV_HTMLcustomisations(f"ParallelVerseFF={parRef}", footnoteFreeTextHtml), do_OET_LV_HTMLcustomisations(f"ParallelVerseFN={parRef}", footnotesHtml)
                                 checkHtml( f"OET-LV parallel AAA for {parRef}", textHtml, segmentOnly=True ); checkHtml( f"OET-LV parallel BBB for {parRef}", footnoteFreeTextHtml, segmentOnly=True ); checkHtml( f"OET-LV parallel CCC for {parRef}", footnotesHtml, segmentOnly=True )
                                 # assert textHtml.count('<span class="ul">_</span>HNcbsa') < 2, f'''Here2 ({textHtml.count('<span class="ul">_</span>HNcbsa')}) {textHtml=}'''
                                 # if BBB=='MRK' and C=='7' and V=='16': print( f"DDD {parRef} {versionAbbreviation} {textHtml=}" )

@@ -50,10 +50,10 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
 from OETHandlers import livenOETWordLinks, getOETTidyBBB, getOETBookName, getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2025-01-09' # by RJH
+LAST_MODIFIED_DATE = '2025-01-15' # by RJH
 SHORT_PROGRAM_NAME = "createTopicPages"
 PROGRAM_NAME = "OpenBibleData createTopicPages functions"
-PROGRAM_VERSION = '0.22'
+PROGRAM_VERSION = '0.23'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -221,7 +221,7 @@ def createTopicPage( level:int, folder:Path, filename:str, topic:str, refs:List[
             if lvVerseEntryList:
                 lvTextHtml = convertUSFMMarkerListToHtml( level, lvBible.abbreviation, (BBB,C), 'topicalPassage', lvContextList, lvVerseEntryList, basicOnly=False, state=state )
                 # lvTextHtml = livenIORs( BBB, lvTextHtml, sections )
-                lvTextHtml = do_OET_LV_HTMLcustomisations( lvTextHtml )
+                lvTextHtml = do_OET_LV_HTMLcustomisations( f"Topic={topic}@{BBB}_{C}", lvTextHtml )
             else: # We didn't get any LV data
                 assert TEST_MODE
                 lvTextHtml = f'<h4>No OET-LV {BBB} book available</h4>'

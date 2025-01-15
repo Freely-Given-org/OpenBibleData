@@ -5,7 +5,7 @@
 #
 # Module handling OpenBibleData createParallelPassagePages functions
 #
-# Copyright (C) 2024 Robert Hunt
+# Copyright (C) 2024-2025 Robert Hunt
 # Author: Robert Hunt <Freely.Given.org+OBD@gmail.com>
 # License: See gpl-3.0.txt
 #
@@ -50,10 +50,10 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
 from OETHandlers import livenOETWordLinks, getOETTidyBBB, getOETBookName, getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2024-11-20' # by RJH
+LAST_MODIFIED_DATE = '2025-01-15' # by RJH
 SHORT_PROGRAM_NAME = "createParallelPassagePages"
 PROGRAM_NAME = "OpenBibleData createParallelPassagePages functions"
-PROGRAM_VERSION = '0.31'
+PROGRAM_VERSION = '0.32'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -262,7 +262,7 @@ def createParallelPassagePages( level:int, folder:Path, state:State ) -> bool:
 #         if thisBible.abbreviation == 'OET-RV':
 #             textHtml = do_OET_RV_HTMLcustomisations( textHtml )
 #         elif thisBible.abbreviation == 'OET-LV':
-#             textHtml = do_OET_LV_HTMLcustomisations( textHtml )
+#             textHtml = do_OET_LV_HTMLcustomisations( f"ParallelPassage={BBB}_{C}:{V}", textHtml )
 #         elif thisBible.abbreviation == 'LSV':
 #             textHtml = do_LSV_HTMLcustomisations( textHtml )
 #         elif thisBible.abbreviation == 'T4T':
@@ -573,7 +573,7 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
         if thisBible.abbreviation == 'OET-RV':
             textHtml = do_OET_RV_HTMLcustomisations( textHtml )
         elif thisBible.abbreviation == 'OET-LV':
-            textHtml = do_OET_LV_HTMLcustomisations( textHtml )
+            textHtml = do_OET_LV_HTMLcustomisations( f"ParallelPassageA={BBB}_{startC}", textHtml )
         elif thisBible.abbreviation == 'LSV':
             textHtml = do_LSV_HTMLcustomisations( textHtml )
         elif thisBible.abbreviation == 'T4T':
@@ -732,7 +732,7 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
             if thisBible.abbreviation == 'OET-RV':
                 textHtml = do_OET_RV_HTMLcustomisations( textHtml )
             elif thisBible.abbreviation == 'OET-LV':
-                textHtml = do_OET_LV_HTMLcustomisations( textHtml )
+                textHtml = do_OET_LV_HTMLcustomisations( f"ParallelPassageB={srBBB}_{srStartC}", textHtml )
             elif thisBible.abbreviation == 'LSV':
                 textHtml = do_LSV_HTMLcustomisations( textHtml )
             elif thisBible.abbreviation == 'T4T':
@@ -823,7 +823,7 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
                         if thisBible.abbreviation == 'OET-RV':
                             textHtml = do_OET_RV_HTMLcustomisations( textHtml )
                         elif thisBible.abbreviation == 'OET-LV':
-                            textHtml = do_OET_LV_HTMLcustomisations( textHtml )
+                            textHtml = do_OET_LV_HTMLcustomisations( f"ParallelPassageX={lastXrefBBB}_{lastXrefC}", textHtml )
                         elif thisBible.abbreviation == 'LSV':
                             textHtml = do_LSV_HTMLcustomisations( textHtml )
                         elif thisBible.abbreviation == 'T4T':

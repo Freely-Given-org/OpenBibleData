@@ -5,7 +5,7 @@
 #
 # Module handling OpenBibleData createBookPages functions
 #
-# Copyright (C) 2023-2024 Robert Hunt
+# Copyright (C) 2023-2025 Robert Hunt
 # Author: Robert Hunt <Freely.Given.org+OBD@gmail.com>
 # License: See gpl-3.0.txt
 #
@@ -50,10 +50,10 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_
 from OETHandlers import livenOETWordLinks, getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
-LAST_MODIFIED_DATE = '2024-07-19' # by RJH
+LAST_MODIFIED_DATE = '2025-01-15' # by RJH
 SHORT_PROGRAM_NAME = "createBookPages"
 PROGRAM_NAME = "OpenBibleData createBookPages functions"
-PROGRAM_VERSION = '0.57'
+PROGRAM_VERSION = '0.58'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -176,8 +176,8 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
         if '+' in tempLVHtml: print( f"HAVE_PLUS {tempLVHtml[max(0,tempLVHtml.index('+')-30):tempLVHtml.index('+')+90]}" )
         if '^' in tempLVHtml: print( f"HAVE_HAT {tempLVHtml[max(0,tempLVHtml.index('^')-30):tempLVHtml.index('^')+90]}" )
         if '~' in tempLVHtml: print( f"HAVE_SQUIG {tempLVHtml[max(0,tempLVHtml.index('~')-30):tempLVHtml.index('~')+90]}" )
-        lvHtml = do_OET_LV_HTMLcustomisations( tempLVHtml )
-        # lvHtml = do_OET_LV_HTMLcustomisations( convertUSFMMarkerListToHtml( level, 'OET', (BBB,), 'book', lvContextList, lvVerseEntryList, basicOnly=False, state=state ) )
+        lvHtml = do_OET_LV_HTMLcustomisations( f"BookA={BBB}", tempLVHtml )
+        # lvHtml = do_OET_LV_HTMLcustomisations( f"BookA={BBB}", convertUSFMMarkerListToHtml( level, 'OET', (BBB,), 'book', lvContextList, lvVerseEntryList, basicOnly=False, state=state ) )
 
         # Now we have to divide the RV and the LV into an equal number of chunks (so they mostly line up)
         # First get the header and intro chunks
@@ -361,7 +361,7 @@ def createBookPages( level:int, folder:Path, thisBible, state:State ) -> List[st
         if thisBible.abbreviation == 'OET-RV':
             textHtml = do_OET_RV_HTMLcustomisations( textHtml )
         elif thisBible.abbreviation == 'OET-LV':
-            textHtml = do_OET_LV_HTMLcustomisations( textHtml )
+            textHtml = do_OET_LV_HTMLcustomisations( f"BookB={BBB}", textHtml )
         elif thisBible.abbreviation == 'LSV':
             textHtml = do_LSV_HTMLcustomisations( textHtml )
         elif thisBible.abbreviation == 'T4T':

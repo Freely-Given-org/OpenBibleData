@@ -5,7 +5,7 @@
 #
 # Module handling OpenBibleData createSectionPages functions
 #
-# Copyright (C) 2023-2024 Robert Hunt
+# Copyright (C) 2023-2025 Robert Hunt
 # Author: Robert Hunt <Freely.Given.org+OBD@gmail.com>
 # License: See gpl-3.0.txt
 #
@@ -68,10 +68,10 @@ from Bibles import getBibleMapperMaps
 from OETHandlers import livenOETWordLinks, getOETTidyBBB, getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2024-11-14' # by RJH
+LAST_MODIFIED_DATE = '2025-01-15' # by RJH
 SHORT_PROGRAM_NAME = "createSectionPages"
 PROGRAM_NAME = "OpenBibleData createSectionPages functions"
-PROGRAM_VERSION = '0.65'
+PROGRAM_VERSION = '0.66'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -337,7 +337,7 @@ def createOETSectionPages( level:int, folder:Path, rvBible:ESFMBible, lvBible:ES
             if isinstance( lvBible, ESFMBible ):
                 lvVerseEntryList = livenOETWordLinks( level, lvBible, BBB, lvVerseEntryList, state )
             lvHtml = convertUSFMMarkerListToHtml( level, lvBible.abbreviation, (BBB,startC), 'section', lvContextList, lvVerseEntryList, basicOnly=False, state=state )
-            lvHtml = do_OET_LV_HTMLcustomisations( lvHtml )
+            lvHtml = do_OET_LV_HTMLcustomisations( f"SectionA={BBB}_{startC}", lvHtml )
             # Handle footnotes so the same fn1 doesn't occur for both chunks if they both have footnotes
             rvHtml = rvHtml.replace( 'id="fn', 'id="fnRV' ).replace( 'href="#fn', 'href="#fnRV' )
             lvHtml = lvHtml.replace( 'id="fn', 'id="fnLV' ).replace( 'href="#fn', 'href="#fnLV' )
@@ -574,7 +574,7 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> List
             if thisBible.abbreviation == 'OET-RV':
                 textHtml = do_OET_RV_HTMLcustomisations( textHtml )
             elif thisBible.abbreviation == 'OET-LV':
-                textHtml = do_OET_LV_HTMLcustomisations( textHtml )
+                textHtml = do_OET_LV_HTMLcustomisations( f"SectionB={BBB}_{startC}", textHtml )
             elif thisBible.abbreviation == 'LSV':
                 textHtml = do_LSV_HTMLcustomisations( textHtml )
             elif thisBible.abbreviation == 'T4T':
