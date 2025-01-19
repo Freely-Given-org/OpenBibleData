@@ -1,7 +1,7 @@
 /* InterlinearVerse.css */
 /* Contains a single verse with translation and morphology etc, for each word
     as well as translation notes */
-body.container { background-color:powderblue; }
+body.container { background-color:powderblue; display:grid; }
 div.header {}
 div.footer { margin:50px; }
 
