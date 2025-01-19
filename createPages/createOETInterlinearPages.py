@@ -25,16 +25,15 @@
 """
 Module handling createOETInterlinearPages functions.
 
-BibleOrgSys uses a three-character book code to identify books.
-    These referenceAbbreviations are nearly always represented as BBB in the program code
-            (although formally named referenceAbbreviation
-                and possibly still represented as that in some of the older code),
-        and in a sense, this is the centre of the BibleOrgSys.
-    The referenceAbbreviation/BBB always starts with a letter, and letters are always UPPERCASE
-        so 2 Corinthians is 'CO2' not '2Co' or anything.
-        This was because early versions of HTML ID fields used to need
-                to start with a letter (not a digit),
-            (and most identifiers in computer languages still require that).
+createOETInterlinearPages( level:int, folder:Path, state:State ) -> bool
+createOETInterlinearVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:List[str], state:State ) -> bool
+    Create a page for every Bible verse
+createOETInterlinearVerseInner( level:int, BBB:str, c:int, v:int, state:State ) -> str # Returns the HTML
+    Create an interlinear page for the Bible verse.
+briefDemo() -> None
+    Brief demo to check class is working
+fullDemo() -> None
+    Full demo to check class is working
 
 CHANGELOG:
     2023-07-19 Fixed untr marker detection
@@ -42,6 +41,10 @@ CHANGELOG:
     2024-01-07 Add chapter bar at top
     2024-04-08 Handle OT as well
     2024-07-19 Fixed OT Strongs links
+    2025-01-17 Display untranslated words better in the NT
+
+TODO:
+    Add colour keys for LV and RV words
 """
 # from gettext import gettext as _
 from typing import Dict, List, Tuple
@@ -65,10 +68,10 @@ from createOETReferencePages import CNTR_BOOK_ID_MAP
 from OETHandlers import livenOETWordLinks, getOETBookName, getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
-LAST_MODIFIED_DATE = '2025-01-15' # by RJH
+LAST_MODIFIED_DATE = '2025-01-17' # by RJH
 SHORT_PROGRAM_NAME = "createOETInterlinearPages"
 PROGRAM_NAME = "OpenBibleData createOETInterlinearPages functions"
-PROGRAM_VERSION = '0.56'
+PROGRAM_VERSION = '0.57'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -394,24 +397,18 @@ def createOETInterlinearVerseInner( level:int, BBB:str, c:int, v:int, state:Stat
         else:
             rvEnglishWordDict[number].append( word )
 
+    if NT: # See if we have variants
+        firstWordNumber,lastWordNumber = state.OETRefData['word_table_indexes'][wordFileName][f'{BBB}_{C}:{V}']
+        haveVariants = False
+        for wordNumber in range( firstWordNumber, lastWordNumber+1 ):
+            if not wordTable[wordNumber].split('\t')[7]: # probability
+                haveVariants = True
+                break # no need to look further
+
     # print( f"Found {BBB} {c}:{v} ({len(EnglishWordList)}) {EnglishWordList=}" )
-    ivHtml = f'''<h2>{'SR Greek' if NT else 'Hebrew'} word order{' <small>(including unused variants)</small>' if NT else ''}</h2>
+    ivHtml = f'''<h2>{'SR Greek' if NT else 'Hebrew'} word order{' <small>(including unused variant words in grey)</small>' if NT and haveVariants else ''}</h2>
 <div class=interlinear><ol class=verse>'''
     if wordNumberStr: # Now we have a word number from the correct verse
-        firstWordNumber,lastWordNumber = state.OETRefData['word_table_indexes'][wordFileName][f'{BBB}_{C}:{V}']
-        # firstWordNumber = getLeadingInt( wordNumberStr )
-        # rowStr = wordTable[firstWordNumber]
-        # #  0    1          2        3           4              5              6          7            8           9     10          11
-        # # 'Ref\tGreekWord\tSRLemma\tGreekLemma\tVLTGlossWords\tOETGlossWords\tGlossCaps\tProbability\tStrongsExt\tRole\tMorphology\tTags'
-        # assert rowStr.startswith( f'{BBB}_{c}:{v}w' )
-        # # Search backwards through the word-table until we find the first word number still in the verse (includes variants)
-        # while firstWordNumber > 1:
-        #     firstWordNumber -= 1
-        #     if not wordTable[firstWordNumber].startswith( f'{BBB}_{c}:{v}w' ):
-        #         firstWordNumber += 1 # We went too far
-        #         break
-        # assert firstWordNumber == state.OETRefData['word_table_indexes'][wordFileName][f'{BBB}_{c}:{v}'][0], f"{wordNumberStr=} {firstWordNumber=} {state.OETRefData['word_table_indexes'][wordFileName][f'{BBB}_{c}:{v}']=}"
-
         # Display the interlinear blocks
         if NT:
             GreekList = ['''<li><ol class="titles">
@@ -452,7 +449,7 @@ def createOETInterlinearVerseInner( level:int, BBB:str, c:int, v:int, state:Stat
                 GreekList.append( f'''<li><ol class="{'word' if row[7] else 'variant'}">
   <li lang="el">{row[1]}</li>
   <li lang="el_LEMMA">{row[2]}</li>
-  <li lang="en_TRANS"><b>{' '.join(lvEnglishWordDict[wordNumber]) if lvEnglishWordDict[wordNumber] else '-'}</b></li>
+  <li lang="en_TRANS">{'<span class="untr" title="Word typically omitted from English translations">' if row[4][0]=='¬' else '<b>'}{' '.join(lvEnglishWordDict[wordNumber]) if lvEnglishWordDict[wordNumber] else '-'}{'</span>' if row[4][0]=='¬' else '</b>'}</li>
   <li lang="en_TRANS"><b>{' '.join(rvEnglishWordDict[wordNumber]) if rvEnglishWordDict[wordNumber] else '-'}</b></li>
   <li lang="en_STRONGS"><a href="https://BibleHub.com/greek/{row[8][:-1]}.htm">{row[8]}</a></li>
   <li lang="en_MORPH">{row[9]}{row[10]}</li>
@@ -477,6 +474,7 @@ def createOETInterlinearVerseInner( level:int, BBB:str, c:int, v:int, state:Stat
   <li lang="en_TAGS">OET tags</li>
   <li lang="en_WORDNUM">OET word #</li>
 </ol><!--titles--></li>''']
+            firstWordNumber,lastWordNumber = state.OETRefData['word_table_indexes'][wordFileName][f'{BBB}_{C}:{V}']
             for wordNumber in range( firstWordNumber, lastWordNumber+1 ):
                 # if wordNumber >= len(wordTable): # we must be in one of the last verses of Rev
                 #     break
@@ -587,7 +585,7 @@ def createOETInterlinearVerseInner( level:int, BBB:str, c:int, v:int, state:Stat
                     tagsHtml = '; '.join( tags )
                 else: tagsHtml = '-'
                 reverseList.append( f'''<li><ol class="word">
-  <li lang="en_TRANS"><b>{word}</b></li>
+  <li lang="en_TRANS">{'<span class="untr" title="Word typically omitted from English translations">' if row[4][0]=='¬' else '<b>'}{word}{'</span>' if row[4][0]=='¬' else '</b>'}</li>
   <li lang="en_TRANS"><b>{' '.join(rvEnglishWordDict[wordNumber]) if rvEnglishWordDict[wordNumber] else '-'}</b></li>
   <li lang="en_STRONGS"><a href="https://BibleHub.com/greek/{row[8][:-1]}.htm">{row[8]}</a></li>
   <li lang="el">{row[6]}</li>
@@ -637,7 +635,9 @@ def createOETInterlinearVerseInner( level:int, BBB:str, c:int, v:int, state:Stat
 </ol><!--verse--></div><!--interlinear-->
 {lvHtml.replace( 'id="fnLV', 'id="fnRvLV' ).replace( 'href="#fnLV', 'href="#fnRvLV' )}
 {rvHtml.replace( 'id="fnRV', 'id="fnRvRV' ).replace( 'href="#fnRV', 'href="#fnRvRV' )}
-<p class="note"><small><b>Note</b>: The OET-RV is still only a first draft, and so far only a few words have been (mostly automatically) matched to the Hebrew or Greek words that they’re translated from.</small></p>{f'{NEWLINE}<p class="thanks"><b>Acknowledgements</b>: The SR Greek text, lemmas, morphology, and VLT gloss are all thanks to the <a href="https://GreekCNTR.org/collation/index.htm?v={CNTR_BOOK_ID_MAP[BBB]}{C.zfill(3)}{V.zfill(3)}">SR-GNT</a>.</p>' if BibleOrgSysGlobals.loadedBibleBooksCodes.isNewTestament_NR( BBB ) else ''}'''
+<p class="note"><small><b>Note</b>: The OET-RV is still only a first draft, and so far only a few words have been (mostly automatically) matched to the Hebrew or Greek words that they’re translated from.</small></p>
+<p class="thanks"><b>Acknowledgements</b>: {f'The SR Greek text, lemmas, morphology, and VLT gloss are all thanks to the <a href="https://GreekCNTR.org/collation/index.htm?v={CNTR_BOOK_ID_MAP[BBB]}{C.zfill(3)}{V.zfill(3)}">SR-GNT</a>.</p>' if BibleOrgSysGlobals.loadedBibleBooksCodes.isNewTestament_NR( BBB )
+                                       else f'The Hebrew text, lemmas, and morphology are all thanks to the <a href="https://hb.openscriptures.org/">OSHB</a> and some of the glosses are from <a href="https://GitHub.com/Clear-Bible/macula-hebrew">Macula Hebrew</a>.'}'''
     
     # ivHtml = ivHtml.replace( '<br>\n' , '\n<br>' ) # Make sure it follows our convention (just for tidyness and consistency)
     while '\n\n' in ivHtml: ivHtml = ivHtml.replace( '\n\n', '\n' ) # Remove useless extra newline characters
@@ -650,7 +650,7 @@ def createOETInterlinearVerseInner( level:int, BBB:str, c:int, v:int, state:Stat
 
 def briefDemo() -> None:
     """
-    Main program to handle command line parameters and then run what they want.
+    Brief demo to check class is working
     """
     BibleOrgSysGlobals.introduceProgram( __name__, PROGRAM_NAME_VERSION, LAST_MODIFIED_DATE )
 

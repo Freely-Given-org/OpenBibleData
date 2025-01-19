@@ -139,6 +139,7 @@ span.t4tFoS { color:mediumvioletred; } /* T4T figure of speech */
 span.add { color:grey; font-style:italic; }
 span.k {} /* keyterm used in WEB GLS */
 
+span.BrTr_chapterIntro {}
 span.BSB_chapterIntro {}
 span.FBV_chapterIntro {}
 span.KJB-1611_chapterIntro { font-size:0.8em; color: grey; font-family:UnifrakturCook,"New Rocker","Unifraktur Maguntia","Germania One",Astloch,textura,schwabacher,rotunda,bastarda,blankenburg,cursive; }
