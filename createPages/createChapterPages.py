@@ -34,6 +34,8 @@ CHANGELOG:
     2023-12-28 Fix bug where duplicate HTML IDs weren't being removed from chapters
     2024-01-18 Fix bug with overwritten GLS 'chapter' page (e.g., in WEB)
     2024-06-26 Added BibleMapper.com maps to OET chapters
+    2025-01-30 Display book list on chapter pages (was only working on OET)
+    2025-02-02 Added ID to clinksPar (at top of page only)
 """
 from gettext import gettext as _
 from typing import Dict, List, Tuple
@@ -54,10 +56,10 @@ from Bibles import getBibleMapperMaps
 from OETHandlers import livenOETWordLinks, getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
-LAST_MODIFIED_DATE = '2025-01-15' # by RJH
+LAST_MODIFIED_DATE = '2025-02-02' # by RJH
 SHORT_PROGRAM_NAME = "createChapterPages"
 PROGRAM_NAME = "OpenBibleData createChapterPages functions"
-PROGRAM_VERSION = '0.70'
+PROGRAM_VERSION = '0.72'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -318,7 +320,7 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
                                   f'''<a title="Up to {state.BibleNames['OET']}" href="{'../'*level}OET">↑OET</a>''' )
                 chapterHtml = f'''{top}<!--chapter page-->
 {navBookListParagraph}
-{cLinksPar}
+{cLinksPar.replace( 'class="chLst">', 'class="chLst" id="chLst">', 1 )}
 {chapterHtml}{combinedHtml}
 {cNav}
 {cLinksPar}
@@ -529,7 +531,8 @@ def createChapterPages( level:int, folder:Path, thisBible, state:State ) -> List
                         .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*level}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/byC/{filename}#Top">{thisBible.abbreviation}</a>''',
                                   f'''<a title="Up to {state.BibleNames[thisBible.abbreviation]}" href="{'../'*level}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/">↑{thisBible.abbreviation}</a>''' )
                 chapterHtml = f'''{top}<!--chapter page-->
-{cLinksPar}
+{navBookListParagraph}
+{cLinksPar.replace( 'class="chLst">', 'class="chLst" id="chLst">', 1 )}
 {chapterHtml}
 {cNav}
 {cLinksPar}

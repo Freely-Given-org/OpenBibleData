@@ -5,7 +5,7 @@
 #
 # Module handling OpenBibleData USFM to HTML functions
 #
-# Copyright (C) 2023-2024 Robert Hunt
+# Copyright (C) 2023-2025 Robert Hunt
 # Author: Robert Hunt <Freely.Given.org+OBD@gmail.com>
 # License: See gpl-3.0.txt
 #
@@ -59,6 +59,7 @@ CHANGELOG:
     2024-07-11 Put verse text chunks into a style
     2024-07-13 Changed KJB-1611 chapter numbers to Roman numerals
     2024-07-18 Limited the length of footnote title popups
+    2025-02-03 Include cross-references for OET-RV parallel verses only (no other versions)
 """
 from gettext import gettext as _
 from typing import Union
@@ -71,15 +72,15 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, dPrint, vPrint
 from BibleOrgSys.Internals.InternalBibleInternals import getLeadingInt
 from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_NT27
 
-from settings import State
+from settings import State, TEST_MODE
 from html import checkHtml
 from OETHandlers import getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2024-11-14' # by RJH
+LAST_MODIFIED_DATE = '2025-02-05' # by RJH
 SHORT_PROGRAM_NAME = "usfm"
 PROGRAM_NAME = "OpenBibleData USFM to HTML functions"
-PROGRAM_VERSION = '0.82'
+PROGRAM_VERSION = '0.84'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -93,21 +94,29 @@ NON_BREAK_SPACE = ' ' # NBSP
 MAX_FOOTNOTE_CHARS = 11_500 # 1,029 in FBV, 1,688 in BrTr, 10,426 in ClVg JOB!
 MAX_NET_FOOTNOTE_CHARS = 18_000 # 17,145 in NET ECC
 
-BCVRefRegEx = re.compile( '([1-3]? ?[A-Z][a-z]{0,3}) ([1-9][0-9]{0,2}):([1-9][0-9]{0,2})' )
+BCVRefRegEx = re.compile( '([1-3]? ?[A-Z][a-z]{0,3}) ([1-9][0-9]{0,2})[:–]([1-9][0-9]{0,2})' ) # Can have en-dash for chapter range
+CVRefRegEx = re.compile( '([1-9][0-9]{0,2}):([1-9][0-9]{0,2})' )
 XRefRegEx = re.compile( '\\\\x .+?\\\\x\\*' )
 spanClassRegEx = re.compile( '<span class=".+?">' )
 def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tuple, segmentType:str, contextList:list, markerList:list, basicOnly:bool, state:State ) -> str:
     """
     Loops through the given list of USFM lines
         and converts to a HTML segment as required.
+
+    basicOnly ignores things like section headings (s1),
+                        cross-references (x, apart from in OET-RV parallel verses), etc.
+                    (but includes footnotes).
+
+    TODO: Should this have had 'includeFootnotes' and 'includeXrefs' as separate parameters???
     """
+    from createSectionPages import findSectionNumber # Doesn't cause a circular reference import problem
     from createSectionPages import livenSectionReferences # Doesn't cause a circular reference import problem
     # if segmentType=='relatedPassage' and refTuple[0]=='JHN' and refTuple[1]=='1':
     #     print( f"\n{refTuple}\n{contextList=}\n{markerList=}")
 
     fnPrint( DEBUGGING_THIS_MODULE, f"convertUSFMMarkerListToHtml( {versionAbbreviation} {refTuple} '{segmentType}' {contextList} {markerList} )" )
     dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"convertUSFMMarkerListToHtml( {versionAbbreviation} {refTuple} '{segmentType}' {contextList=} {len(markerList)=} )" )
-    assert segmentType in ('book','section','chapter','verse','relatedPassage','topicalPassage'), f"Unexpected {segmentType=}"
+    assert segmentType in ('book','section','chapter','parallelVerse','interlinearVerse','relatedPassage','topicalPassage'), f"Unexpected {segmentType=}"
     maxFootnoteChars = MAX_NET_FOOTNOTE_CHARS if versionAbbreviation=='NET' else MAX_FOOTNOTE_CHARS
     # if versionAbbreviation=='NET' and refTuple==('JOB','36','4'): print( f"\nconvertUSFMMarkerListToHtml( {versionAbbreviation} {refTuple} '{segmentType}' {contextList=} {[entry.getFullText() for entry in markerList]} )\n" )
     # if versionAbbreviation=='OET-RV' and refTuple==('CH2','23'): print( f"\nconvertUSFMMarkerListToHtml( {versionAbbreviation} {refTuple} '{segmentType}' {contextList=} {[(entry.getMarker(),entry.getFullText()) for entry in markerList]} )\n" )
@@ -133,7 +142,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
             if not basicOnly:
                 html = f'{html}<p class="p">'
                 inParagraph = marker
-        elif segmentType == 'verse':
+        elif segmentType.endswith('Verse'):
             if marker not in ('chapters', 'c'):
                 Exception( f"Unexpected context for '{segmentType}': {contextList}" )
         elif marker not in ('chapters', 'c'):
@@ -172,7 +181,10 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                 rest = rest.replace( '\\nd  ', '\\nd ' ) # Fix an eBible.org USFM error
             rest = rest.replace( '’”', '’ ”' ).replace( '’ ”', '’ ”' ).replace( '”’', '” ’' ).replace( '” ’', '” ’' ) # Insert NNBSP
 
-            if basicOnly and '\\x ' in rest:
+            if basicOnly \
+            and (versionAbbreviation!='OET-RV' or segmentType!='parallelVerse') \
+            and '\\x ' in rest:
+                # Completely remove cross-references
                 rest, xCount = XRefRegEx.subn( '', rest )
                 # print( f"Removed {xCount} cross-references from {refTuple} {rest=} now {xrest=}")
                 # if xCount > 1: halt
@@ -193,7 +205,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
             V = rest.strip() # Play safe
             # We don't display the verse number below for verse 1 (after chapter number)
             # NOTE: For sections (which can include multiple chapters), have to take care not to get duplicate V{v} id attributes
-            if segmentType != 'verse': # No need for verse numbers at all if we're only displaying one verse
+            if segmentType not in ('parallelVerse','interlinearVerse'): # No need for verse numbers at all if we're only displaying one verse
                 if '-' in V: # it's a verse range
                     assert V[0].isdigit() and V[-1].isdigit(), f"Expected a verse number digit with {BBB} {C}:{V=} {rest=}"
                     assert ':' not in V # We don't handle chapter ranges here yet (and probably don't need to)
@@ -291,7 +303,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                         html = f'{html}</p>\n'
                         inParagraph = None
                     if inSection == 's1': # Shouldn't happen
-                        logger = logging.warning if segmentType=='verse' else logging.error
+                        logger = logging.warning if segmentType.endswith('Verse') else logging.error
                         logger( f"Why wasn't previous s1 section closed??? {versionAbbreviation} {refTuple} {C}:{V} {inSection=} {inParagraph=} {marker}={rest}" )
                         if not basicOnly:
                             html = f'{html}</div><!--{marker}-->\n'
@@ -322,7 +334,13 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                                 #     halt
                             else:
                                 nextV = '1' if V is None else getLeadingInt(V)+1 # Why  do we add 1 ???
-                            html = f'{html}<div class="{marker}"><div class="rightBox"><p class="{marker}"><span class="s1cv">{C}:{nextV}</span> {convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state)}</p>\n'
+                            if ( segmentType == 'section' # Don't want a link to ourself
+                            or '\\f' in rest ): # Would otherwise end up with an anchor embedded inside an anchor at Jhn 7:53 (unless we write more code)
+                                html = f'''{html}<div class="{marker}"><div class="rightBox"><p class="{marker}"><span class="s1cv">{C}:{nextV}</span> {convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state)}</p>\n'''
+                            else:
+                                sectionNumber = findSectionNumber( 'OET-RV', BBB, C, str(nextV), state )
+                                assert sectionNumber is not None, f"Bad OET-RV {refTuple} /s1 section reference: {rest=}"
+                                html = f'''{html}<div class="{marker}"><div class="rightBox"><p class="{marker}"><span class="s1cv">{C}:{nextV}</span> <a title="Go to section view" href="{'../'*level}OET/bySec/{BBB}_S{sectionNumber}.htm#C{C}V{nextV}">{convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state)}</a></p>\n'''
                             inRightDiv = True
                         else: # not OET
                             html = f'{html}<div class="{marker}"><p class="{marker}">{convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state)}</p>\n'
@@ -418,7 +436,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
             else: # not in periph
                 if marker == 's1':
                     if inSection == 's1': # Shouldn't happen
-                        logger = logging.warning if segmentType=='verse' else logging.error
+                        logger = logging.warning if segmentType.endswith('Verse') else logging.error
                         logger( f"Why wasn't previous s1 section closed??? {versionAbbreviation} {refTuple} {C}:{V} {inSection=} {inParagraph=} {marker}={rest}" )
                         if not basicOnly:
                             html = f'{html}</div><!--{marker}-->\n'
@@ -664,7 +682,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
         elif marker == 'headers':
             assert not rest
             if C != '-1' :
-                assert segmentType != 'verse', f"{versionAbbreviation} {segmentType=} {refTuple} {C}:{V}"
+                assert segmentType not in ('parallelVerse','interlinearVerse'), f"{versionAbbreviation} {segmentType=} {refTuple} {C}:{V}"
                 assert not basicOnly
             assert not inMainDiv
             # if not inMainDiv:
@@ -673,7 +691,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
         elif marker == 'intro':
             assert not rest
             if C != '-1' :
-                assert segmentType != 'verse'
+                assert segmentType not in ('parallelVerse','interlinearVerse')
                 assert not basicOnly
             if inMainDiv == 'bookHeader':
                 html = f'{html}</div><!--{inMainDiv}-->'
@@ -688,7 +706,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
         elif marker in ('ie', '¬intro', 'chapters'):
             assert not rest
             if C != '-1' :
-                assert segmentType != 'verse'
+                assert segmentType not in ('parallelVerse','interlinearVerse')
                 assert not basicOnly
             if inMainDiv:
                 html = f'{html}</div><!--{inMainDiv}-->'
@@ -872,7 +890,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
             assert frText[-1] != '\n'
             fnoteRef = f'<span class="fnRef"><a title="Return to text" href="{frCV}">{frText}</a></span> '
         fnoteText = f'<p class="fn" id="fn{footnotesCount}">{fnoteRef}<span class="fnText">{fnoteMiddle}</span></p>\n'
-        if segmentType=='verse' and f'">{fnoteRef}<span class="fnText">{fnoteMiddle}</span></p>\n' in footnotesHtml:
+        if segmentType.endswith('Verse') and f'">{fnoteRef}<span class="fnText">{fnoteMiddle}</span></p>\n' in footnotesHtml:
             # We already have an identical footnote created, e.g., in OET-LV Job 8:16
             #   so all we have to do, is add the additional id to the existing note
             #       but can't have multiple id's on one element, so have to add an extra empty span.
@@ -903,7 +921,10 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
         assert '\\f' not in html, f"{versionAbbreviation} {refTuple} html='…{html[html.index(f'{BACKSLASH}f')-10:html.index(f'{BACKSLASH}f')+maxFootnoteChars]}…'"
 
     # Now handle all cross-references in one go (we don't check for matching \xo fields)
-    pathPrefix = '../../OET/byC/' if segmentType=='verse' else '' if segmentType=='chapter' else '../byC/'
+    pathPrefix = '../../OET/byC/' if segmentType in ('parallelVerse','interlinearVerse') \
+                        else '../OET/byC/' if segmentType in ('topicalPassage',) \
+                        else '' if segmentType=='chapter' \
+                        else '../byC/'
     crossReferencesCount = 0
     crossReferencesHtml = ''
     searchStartIx = 0
@@ -922,7 +943,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
         xEndIx = html.find( '\\x*', xtIx+3 )
         assert xEndIx != -1
 
-        # Liven the cross-references themselves
+        # Liven the cross-references (xrefs) themselves
         xrefLiveMiddle = xrefOriginalMiddle = html[xtIx+4:xEndIx]
         xrefOriginalMiddle = xrefOriginalMiddle.replace('\\xo ','').replace('\\xt ','') # Fix things like "Gen 25:9-10; \\xo b \\xt Gen 35:29."
         # print( f" {xrefLiveMiddle=}")
@@ -930,26 +951,67 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
         xrefLiveMiddle = xrefLiveMiddle.replace('\\xo ','<b>').replace('\\xt ','</b>') # Fix things like "Gen 25:9-10; \\xo b \\xt Gen 35:29."
         # TODO: The following code does not work for one chapter books (Jude 5), additional Vs (Mrk 3:4,5), or additional CVs (Mrk 3:4; 4:5)
         # TODO: The following code is untidy, not including combined verses in the link, e.g., Mrk 3:4-5
-        reStartIx = 0
+        reStartIx, lastXBBB = 0, BBB
         for _safetyCount2 in range( 999 if segmentType=='book' else 99 ):
-            match = BCVRefRegEx.search( xrefLiveMiddle, reStartIx )
-            if not match: break
-            # print( match.groups() )
-            xB, xC, xV = match.groups()
-            # For books without a book number like 1 Cor, the regex may capture an extra space before the book abbreviation
-            xB = xB.lstrip()
-            assert ' ' not in xB, f"{match.groups()}"
+            if reStartIx>0: dPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Now searching {refTuple} from {xrefLiveMiddle[reStartIx:]=}" )
+            matchBCV = BCVRefRegEx.search( xrefLiveMiddle, reStartIx )
+            matchCV = CVRefRegEx.search( xrefLiveMiddle, reStartIx )
+            if not matchBCV and not matchCV: break # all done here
+            if not matchBCV or (matchCV is not None and matchCV.start()<matchBCV.start()):
+                match = matchCV
+                xC, xV = match.groups()
+                xBBB = lastXBBB
+            else:
+                match = matchBCV
+                # NOTE: This match also captures chapter ranges, e.g., it gets Lev 1:2, but also Lev 1–2
+                xB, xC, xV = match.groups()
+                if '–' in match.group(): # For a chapter range, change our search to v1
+                    # print( f"                       Changed {xB} {xC}–{xV} to {xC}:1")
+                    xV = '1' # (rather than thinking the second chapter of the range is the verse number)
+                xB = xB.lstrip() # For books without a book number like 1 Cor, the regex may capture an extra space before the book abbreviation
+                assert ' ' not in xB, f"{match.groups()}"
+                xBBB = getBBBFromOETBookName( xB )
+            lastXBBB = xBBB
+            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"Got {refTuple} {match.groups()=} from {xrefLiveMiddle=}" )
             assert xC.isdigit(), f"{match.groups()}"
             assert xV.isdigit(), f"{match.groups()}"
-            xBBB = getBBBFromOETBookName( xB )
+
+            # Now check for a verse or chapter range and include them in our find
+            matchInner = match.group()
+            matchEnd = match.end()
+            try:
+                while xrefLiveMiddle[matchEnd] in '-–1234567890abc:': # includes en-dash for chapter ranges
+                    # print( f"        Stepping past '{xrefLiveMiddle[matchEnd]}'" )
+                    matchInner = f'{matchInner}{xrefLiveMiddle[matchEnd]}'
+                    matchEnd += 1
+            except IndexError: # (can happen if xref inner doesn't end with a period)
+                pass # Reached end of string
+
             if xBBB:
                 assert int(xC) <= BibleOrgSysGlobals.loadedBibleBooksCodes.getMaxChapters( xBBB ), f"{match.groups()}"
             else:
                 dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"convertUSFMMarkerListToHtml( {versionAbbreviation} {refTuple} '{segmentType}' {contextList} {len(markerList)} )" )
                 logging.critical( f"Failed to find xref book from '{xB}' from '{xrefOriginalMiddle}' in {match.groups()} for {versionAbbreviation} {segmentType} {basicOnly=} {refTuple}")
                 halt
-            xrefLiveMiddle = f'{xrefLiveMiddle[:match.start()]}<a title="View cross reference" href="{pathPrefix}{xBBB}_C{xC}.htm#C{xC}V{xV}">{match.group()}</a>{xrefLiveMiddle[match.end():]}'
-            reStartIx = match.end() + 55 + len(pathPrefix) # approx number of characters that we add
+            if versionAbbreviation == 'OET-RV': # We want to link to the section page, (not the chapter page)
+                sectionNumber = findSectionNumber( 'OET-RV', xBBB, xC, xV, state )
+                dPrint( 'Info', DEBUGGING_THIS_MODULE, f"convertUSFMMarkerListToHtml for {versionAbbreviation} {refTuple} '{segmentType}' findSectionNumber( 'OET-RV', {xBBB} {xC}:{xV} ) returned {sectionNumber}" )
+                assert sectionNumber is not None, f"Bad OET-RV {refTuple} cross-reference: {xBBB} {xC}:{xV} from {xrefLiveMiddle=}"
+                if not TEST_MODE:
+                    assert sectionNumber > 0, f"ZERO OET-RV {refTuple} cross-reference: {xBBB} {xC}:{xV} from {xrefLiveMiddle=}"
+                # print( f"       {level=} {versionAbbreviation} {refTuple} {segmentType} {basicOnly=} {pathPrefix=}")
+                adjPathPrefix = pathPrefix.replace('byC','bySec') if pathPrefix else '../bySec/'
+                assert 'bySec' in adjPathPrefix, f"{pathPrefix=} {adjPathPrefix=}"
+                inside = f'<a title="View cross reference" href="{adjPathPrefix.replace('byC','bySec')}{xBBB}_S{sectionNumber}.htm#C{xC}V{xV}">{matchInner}</a>'
+                xrefLiveMiddle = f'''{xrefLiveMiddle[:match.start()]}{inside}{xrefLiveMiddle[matchEnd:]}'''
+            else: # not OET-RV -- link to the chapter page
+                inside = f'<a title="View cross reference" href="{pathPrefix}{xBBB}_C{xC}.htm#C{xC}V{xV}">{matchInner}</a>'
+                xrefLiveMiddle = f'{xrefLiveMiddle[:match.start()]}{inside}{xrefLiveMiddle[matchEnd:]}'
+            reStartIx = match.start() + len(inside) # exact number of characters that we add (otherwise we get mistakes/overlaps)
+            # # NOTE: The above code can leave us pointing to a range, e.g., Deu 1:19-2:2 would leave us at the hyphen
+            # while xrefLiveMiddle[reStartIx] in ' -123456789;.,abc':
+            #     print( f"        Stepping past '{xrefLiveMiddle[reStartIx]}'" )
+            #     reStartIx += 1 # Step past extra parts (like a range) so they don't get false thought to be another valid ref
         else:
             logging.critical( f"Inner xref loop needed to break for {versionAbbreviation} {segmentType} {basicOnly=} {refTuple}" )
             inner_xr_loop_needed_to_break
@@ -983,6 +1045,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
         html = f'{html}<hr style="width:30%;margin-left:0;margin-top: 0.3em">\n<div class="crossRefs">\n{crossReferencesHtml}</div><!--crossRefs-->\n'
     if versionAbbreviation not in ('BrTr',): # BrTr ISA 52
         assert '\\x' not in html, f"{html[html.index(f'{BACKSLASH}x')-10:html.index(f'{BACKSLASH}x')+12]}"
+    # if refTuple==('DAN','1','2') or refTuple==('DAN','1','18'): halt
 
     # Some final styling and cleanups
     if 'OET' in versionAbbreviation:
@@ -1098,7 +1161,7 @@ def convertUSFMCharacterFormatting( versionAbbreviation:str, refTuple:tuple, seg
                         newLink = f'<a title="Go to internal jump link reference document" href="{jmpLink}">{jmpDisplay}</a>'
                     elif segmentType == 'chapter':
                         newLink = f'<a title="Go to internal jump link reference chapter" href="{ourBBB}_C{refC}.htm#C{refC}V{refV}">{jmpDisplay}</a>'
-                    elif segmentType == 'verse':
+                    elif segmentType.endswith( 'Verse' ):
                         # dPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"convertUSFMCharacterFormatting( {versionAbbreviation}, {refTuple}, {segmentType}, '{introHtml}' )" )
                         # print( f"{versionAbbreviation}, {refTuple}, {ourBBB=} {refC=} {refV=} {jmpDisplay=}" )
                         newLink = f'<a title="Go to internal jump link reference verse" href="C{refC}V{refV}.htm#Top">{jmpDisplay}</a>'
@@ -1262,7 +1325,7 @@ def livenIntroductionLinks( versionAbbreviation:str, refTuple:tuple, segmentType
             newGuts = f'<a title="Go to reference document" href="{refBBB}.htm#C{refC}V{refV}">{guts}</a>'
         elif segmentType == 'chapter':
             newGuts = f'<a title="Go to reference chapter" href="{refBBB}_C{refC}.htm#C{refC}V{refV}">{guts}</a>'
-        elif segmentType == 'verse': # For an introduction (so 'verse' is 'line')
+        elif segmentType.endswith( 'Verse' ): # For an introduction (so 'verse' is 'line')
             # dPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"livenIntroductionLinks( {versionAbbreviation}, {refTuple}, {segmentType}, '{introHtml}' )" )
             assert refTuple[1] == '-1', f"{refTuple=}"
             # print( f"{versionAbbreviation}, {refTuple}, {refBBB=} {refC=} {refV=} {guts=}" )
@@ -1321,7 +1384,7 @@ def livenIntroductionLinks( versionAbbreviation:str, refTuple:tuple, segmentType
             newGuts = f'<a title="Jump down to reference" href="#C{refC}V{refV}">{guts}</a>'
         elif segmentType == 'chapter':
             newGuts = f'<a title="Jump to chapter page with reference" href="{ourBBB}_C{refC}.htm#C{refC}V{refV}">{guts}</a>'
-        elif segmentType == 'verse': # For an introduction (so 'verse' is 'line')
+        elif segmentType.endswith( 'Verse' ): # For an introduction (so 'verse' is 'line')
             # dPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"livenIntroductionLinks( {versionAbbreviation}, {refTuple}, {segmentType}, '{introHtml}' )" )
             assert refTuple[1] == '-1', f"{refTuple=}"
             # print( f"{versionAbbreviation}, {refTuple}, {refBBB=} {refC=} {refV=} {guts=}" )
@@ -1398,7 +1461,7 @@ def livenIORs( versionAbbreviation:str, refTuple:tuple, segmentType:str, ioLineH
             newGuts = f'<a title="Jump down to reference" href="#C{Cstr}V{Vstr}">{guts}</a>'
         elif segmentType == 'chapter':
             newGuts = f'<a title="Jump to chapter page with reference" href="{ourBBB}_C{Cstr}.htm#C{Cstr}V{Vstr}">{guts}</a>'
-        elif segmentType == 'verse': # For an introduction (so 'verse' is 'line')
+        elif segmentType.endswith( 'Verse' ): # For an introduction (so 'verse' is 'line')
             # dPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"livenIntroductionLinks( {versionAbbreviation}, {refTuple}, {segmentType}, '{introHtml}' )" )
             assert refTuple[1] == '-1', f"{refTuple=}"
             # print( f"{versionAbbreviation}, {refTuple}, {refBBB=} {refC=} {refV=} {guts=}" )

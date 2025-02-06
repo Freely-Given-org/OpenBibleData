@@ -56,6 +56,7 @@ CHANGELOG:
     2024-04-04 Create 'OET Key' page
     2024-04-21 Create 'OBD News' page
     2024-11-01 Add Topics pages
+    2025-01-31 Autofocus on search box on search page
 """
 from gettext import gettext as _
 # from typing import Dict, List, Tuple
@@ -75,7 +76,7 @@ from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39, BOOKLIST_NT27
 sys.path.append( '../../BibleTransliterations/Python/' )
 from BibleTransliterations import load_transliteration_table
 
-from settings import State, state, reorderBooksForOETVersions, TEST_MODE, TEST_BOOK_LIST, \
+from settings import State, state, reorderBooksForOETVersions, TEST_MODE, TEST_BOOK_LIST, TEST_VERSIONS_ONLY, \
     SITE_NAME, SITE_ABBREVIATION, OET_VERSION, \
     TEMP_BUILD_FOLDER, UPDATE_ACTUAL_SITE_WHEN_BUILT, DESTINATION_FOLDER, \
     ALL_PRODUCTION_BOOKS, BY_DOCUMENT_HTML_PARAGRAPH, REUSE_EXISTING_WORD_PAGES
@@ -93,7 +94,7 @@ from Dict import createTyndaleDictPages, createUBSDictionaryPages
 from html import makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2025-01-13' # by RJH
+LAST_MODIFIED_DATE = '2025-02-05' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData (OBD) Create Site Pages"
 PROGRAM_VERSION = '0.98'
@@ -172,9 +173,10 @@ def _createSitePages() -> bool:
         for versionAbbreviation in state.BibleVersions:
             if versionAbbreviation == 'OET': continue # OET is a pseudo version (OET-RV plus OET-LV)
             if versionAbbreviation in state.versionsWithoutTheirOwnPages: continue # We don't worry about these few selected verses here
+            if TEST_MODE and TEST_VERSIONS_ONLY and versionAbbreviation not in TEST_VERSIONS_ONLY: continue # Didn't load these ones
             if versionAbbreviation == 'TTN': continue
-            for entry in state.booksToLoad[versionAbbreviation]:
-                if entry == BBB or entry == 'ALL':
+            for bookEntry in state.booksToLoad[versionAbbreviation]:
+                if bookEntry == BBB or bookEntry == 'ALL':
                     if BBB in state.preloadedBibles[versionAbbreviation]:
                         allBBBs.add( BBB )
     # Now put them in the proper print order
@@ -197,6 +199,7 @@ def _createSitePages() -> bool:
                 ourTidyBBB = getOETTidyBBB( BBB )
                 state.BBBLinks['OET'].append( f'''<a title="{getOETBookName(BBB)}" href="{filename}#Top">{ourTidyBBB}</a>''' )
         else: # not OET
+            if TEST_MODE and TEST_VERSIONS_ONLY and versionAbbreviation not in TEST_VERSIONS_ONLY: continue # Didn't load these ones
             thisBible = state.preloadedBibles[versionAbbreviation]
             thisBibleBooksToLoad = state.booksToLoad[versionAbbreviation]
             # print( f'{versionAbbreviation}: {thisBible=} {thisBibleBooksToLoad=}' )
@@ -227,9 +230,11 @@ def _createSitePages() -> bool:
     # Ok, let's go create some static pages
     # discoverStartTime = datetime.now()
     if 'OET' in state.BibleVersions: # this is a special case
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\nDoing discovery on OET…" )
-        state.preloadedBibles['OET-RV'].discover() # Now that all required books are loaded
-        state.preloadedBibles['OET-LV'].discover() #     ..ditto..
+        # vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\nDoing discovery on OET…" )
+        # state.preloadedBibles['OET-RV'].discover() # Now that all required books are loaded
+        # state.preloadedBibles['OET-LV'].discover() #     ..ditto..
+        assert 'discoveryResults' in state.preloadedBibles['OET-RV'].__dict__
+        assert 'discoveryResults' in state.preloadedBibles['OET-LV'].__dict__
 
         createOETSectionLists( state.preloadedBibles['OET-RV'], state ) # Have to do this early for section references
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Creating {'TEST ' if TEST_MODE else ''}version pages for OET…" )
@@ -255,8 +260,9 @@ def _createSitePages() -> bool:
             vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"    {len(indexHtml):,} characters written to {filepath}" )
         else:
             if versionAbbreviation == 'TTN': continue # Not actually a Bible version
-            vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nDoing discovery for {thisBible.abbreviation} ({thisBible.name})…" )
-            thisBible.discover() # Now that all required books are loaded
+            # vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nDoing discovery for {thisBible.abbreviation} ({thisBible.name})…" )
+            # thisBible.discover() # Now that all required books are loaded
+            assert 'discoveryResults' in thisBible.__dict__
             if 'haveSectionHeadings' not in thisBible.discoveryResults['ALL']: # probably we have no books that actually loaded
                 dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Adding discoveryResults 'haveSectionHeadings' for {thisBible.abbreviation}: no books loaded?" )
                 thisBible.discoveryResults['ALL']['haveSectionHeadings'] = False # We need this in several places
@@ -680,7 +686,7 @@ def _createSearchPage( level:int, buildFolder:Path, state:State ) -> bool:
 {('<p class="note">Note that only limited Bible books are indexed on these TEST pages.</p>'+NEWLINE) if TEST_MODE else ''}<div id="search"></div>
 <script>
     window.addEventListener('DOMContentLoaded', (event) => {{
-        new PagefindUI({{ element: "#search", showSubResults: false }});
+        new PagefindUI({{ element: "#search", showSubResults: false, autofocus: true }});
     }});
 </script>
 '''

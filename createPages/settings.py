@@ -47,7 +47,7 @@ from BibleOrgSys.BibleOrgSysGlobals import dPrint, fnPrint
 from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39
 
 
-LAST_MODIFIED_DATE = '2025-01-19' # by RJH
+LAST_MODIFIED_DATE = '2025-02-06' # by RJH
 SHORT_PROGRAM_NAME = "settings"
 PROGRAM_NAME = "OpenBibleData (OBD) Create Pages"
 PROGRAM_VERSION = '0.98'
@@ -55,9 +55,10 @@ PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
 
-OET_VERSION = 'v0.31' # At 54.1% 2025-01-19 (Incremented on most runs for the production site)
+OET_VERSION = 'v0.32' # At 55.1% 2025-02-04 (Incremented on most runs for the production site)
 
 TEST_MODE = True # Writes website into Test subfolder
+TEST_VERSIONS_ONLY = None #['OET','OET-RV','OET-LV',   'ULT','UST','NET',   'UHB',   'TOSN','UTN']
 ALL_PRODUCTION_BOOKS = not TEST_MODE # If set to False, only selects one book per version for a faster test build
 REUSE_EXISTING_WORD_PAGES = TEST_MODE # Don't recreate word pages
 ALL_TEST_REFERENCE_PAGES = False # If in TEST_MODE, make ALL word/lemma pages, or just the RELEVANT ones
@@ -65,7 +66,7 @@ UPDATE_ACTUAL_SITE_WHEN_BUILT = True # The pages are initially built in a tmp fo
 
 OET_RV_OT_BOOK_LIST = ['GEN','EXO','JOS','JDG','RUT','SA1','SA2','KI1','KI2','EZR','NEH','EST','JOB','PSA','JNA','NAH','HAG','MAL']
 
-TEST_OT_BOOK_LIST = ['PSA','EZR','NEH'] # Books in progress
+TEST_OT_BOOK_LIST = ['PSA','EZR','DAN'] # Books in progress
 TEST_NT_BOOK_LIST = ['MRK',] # Shortest gospel
 TEST_BOOK_LIST = TEST_OT_BOOK_LIST + TEST_NT_BOOK_LIST
 

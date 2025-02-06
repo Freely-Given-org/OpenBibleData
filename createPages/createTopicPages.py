@@ -28,6 +28,7 @@ Module handling createTopicPages functions.
 CHANGELOG:
     2024-11-01 First attempt
     2024-11-09 Added some headings
+    2025-02-03 Accept and process lemma page links
 """
 from gettext import gettext as _
 from typing import Tuple, List
@@ -50,10 +51,10 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
 from OETHandlers import livenOETWordLinks, getOETTidyBBB, getOETBookName, getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2025-01-15' # by RJH
+LAST_MODIFIED_DATE = '2025-02-03' # by RJH
 SHORT_PROGRAM_NAME = "createTopicPages"
 PROGRAM_NAME = "OpenBibleData createTopicPages functions"
-PROGRAM_VERSION = '0.23'
+PROGRAM_VERSION = '0.24'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -78,6 +79,16 @@ TOPIC_TABLE = {
                         'ISA_9:2-7', 'PSA_96', 'TIT_2:11-14', 'LUK_2:1-20',
                         'ISA_60:1-6', 'PSA_72', 'EPH_3:1-12', 'MAT_2:1-12'],
     'Basic salvation': ['ROM_6:22-23', 'ROM_3:22-23', 'JHN_3:14-16', 'REV_3:19-21'],
+    'Repentance': ['MRK_1:14-15','MRK_6:12',
+                        'MAT_3:1-2','MAT_3:8','MAT_4:17','MAT_9:13','MAT_12:41','LUK_5:32','LUK_13:3-5','LUK_17:3','LUK_24:46-47',
+                        'ACT_2:38','ACT_3:19','ACT_5:31','ACT_11:18','ACT_17:30','ACT_20:21','ACT_26:19-20',
+                        'ROM_2:4',
+                        'CO2_7:9-10','CO2_12:20-21',
+                        'TI2_2:25','PE2_3:9','HEB_6:1',
+                        'REV_2:5','REV_3:3','REV_3:19',
+                    'H3 For further word studies:',
+                        'HebLem/shūⱱ','HebLem/nāḩam',
+                        'GrkLem/metanoia','GrkLem/strefō'],
     'Predestination and ‘once saved, always saved’': ['PSA_136:1-2','PSA_138:7-8',
                                 'MAT_7:21-23', 'MAT_10:21-22', 'MAT_25:40-41',
                                 'MRK_4:16-17',
@@ -113,14 +124,18 @@ for topic,refs in TOPIC_TABLE.items():
     for ref in refs:
         assert isinstance( ref, str )
         if not ref.startswith( 'H3 ' ):
-            # Assume it's a reference -- either a verse or a verse or chapter range
-            assert ' ' not in ref
-            BBB, refRest = ref.split( '_' ) # This split will fail if it's not a valid scripture reference
-            try:
-                C, Vs = refRest.split( ':' )
-                assert C.isdigit()
-            except ValueError:
-                assert refRest.isdigit()
+            if '/' in ref: # assume it's a lemma page link
+                assert ref.count( '/' ) == 1
+                part1, part2 = ref.split( '/' )
+                assert part1 in ('HebLem','GrkLem')
+            else: # assume it's a reference -- either a verse or a verse or chapter range
+                assert ' ' not in ref, f"{ref=}"
+                BBB, refRest = ref.split( '_' ) # This split will fail if it's not a valid scripture reference
+                try:
+                    C, Vs = refRest.split( ':' )
+                    assert C.isdigit()
+                except ValueError:
+                    assert refRest.isdigit()
 
 def createTopicPages( level:int, folder:Path, state:State ) -> bool:
     """
@@ -167,6 +182,9 @@ def createTopicPages( level:int, folder:Path, state:State ) -> bool:
 def createTopicPage( level:int, folder:Path, filename:str, topic:str, refs:List[str], state:State ) -> bool:
     """
     Create a page for each Bible topic.
+
+    Note: refs parameter can include Bible refs, e,g, 'MRK_1:2', and word refs, e.g., 'HebLem/nāḩam'
+            as well as headings, e.g., 'H3 Only God can do that'
     """
     fnPrint( DEBUGGING_THIS_MODULE, f"createTopicPage( {level}, {folder}, '{filename}', '{topic}', {len(refs)}, {state.BibleVersions} )" )
 
@@ -175,10 +193,14 @@ def createTopicPage( level:int, folder:Path, filename:str, topic:str, refs:List[
 
     combinedHtmlChunks = []
     for rr,ref in enumerate( refs, start=1 ):
-        # print( f"  {rr} {topic} {ref=}")
-        if ref.startswith( 'H3 '): # Then it's a heading -- we'll remove this part of the string
+        dPrint( 'Never', DEBUGGING_THIS_MODULE, f"  {rr} ‘{topic}’ {ref=}")
+        if ref.startswith( 'H3 '): # Then it's a heading (we'll remove this initial part of the string)
             combinedHtmlChunks.append( f'''<h3>{ref[3:]}</h3>
 <h3> </h3>''' ) # Second one is to keep the number of columns matched - put a space in so checkHTML accepts it
+        elif '/' in ref: # we'll assume it's a lemma reference
+            path, word = ref.split( '/' )
+            combinedHtmlChunks.append( f'''<p class="lemmaLink">See uses of <b>{'Hebrew' if 'Heb' in path else 'Greek'} word root <a href="{'../'*level}ref/{ref}.htm#Top">‘{word}’</a></b>.</p>
+<p class="lemmaLink"> </p>''' ) # Second one is to keep the number of columns matched - put a space in so checkHTML accepts it
         else: # We'll assume it's a scripture reference
             BBB, refRest = ref.split( '_' ) # This split will fail if it's not a valid scripture reference
             try: C, Vs = refRest.split( ':' )
@@ -208,6 +230,7 @@ def createTopicPage( level:int, folder:Path, filename:str, topic:str, refs:List[
                 except TypeError: # Book appears to be not available
                     assert TEST_MODE
                     lvVerseEntryList, lvContextList = InternalBibleEntryList(), []
+                startV = Vs # Used to build the HTML anchor below
             # print( f"{rvVerseEntryList=}" )
             # print( f"{lvVerseEntryList=}" )
             rvVerseEntryList = livenOETWordLinks( level, rvBible, BBB, rvVerseEntryList, state )

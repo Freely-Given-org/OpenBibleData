@@ -61,6 +61,8 @@ CHANGELOG:
     2024-11-01 Added topic pages
     2025-01-10 Added container class to html body tag
     2025-01-15 Improved check to find newlines inside HTML title attributes
+    2025-01-30 Put added ‘owner’ in quotes in HTML title field
+    2025-02-02 Make book selection display chapter list selector (not just 1:1#Top)
 """
 # from gettext import gettext as _
 from typing import Dict, List, Tuple, Optional, Union
@@ -73,11 +75,11 @@ import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39, BOOKLIST_NT27
 
-from settings import State, TEST_MODE, SITE_NAME
+from settings import State, TEST_MODE, TEST_VERSIONS_ONLY, SITE_NAME
 from OETHandlers import getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2025-01-15' # by RJH
+LAST_MODIFIED_DATE = '2025-02-05' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
 PROGRAM_VERSION = '0.92'
@@ -167,7 +169,7 @@ def makeTop( level:int, versionAbbreviation:Optional[str], pageType:str, version
     return f'{top}{_makeNavigationLinks( level, versionAbbreviation, pageType, versionSpecificFileOrFolderName, state )}'
 # end of html.makeTop
 
-def _makeNavigationLinks( level:int, versionAbbreviation:str, pageType:str, versionSpecificFileOrFolderName:Optional[str], state:State ) -> str:
+def _makeNavigationLinks( level:int, versionAbbreviation:Optional[str], pageType:str, versionSpecificFileOrFolderName:Optional[str], state:State ) -> str:
     """
     Create the navigation that goes before the page content.
 
@@ -186,6 +188,8 @@ def _makeNavigationLinks( level:int, versionAbbreviation:str, pageType:str, vers
         if loopVersionAbbreviation in ('TOSN','TTN','UTN'): # Skip notes
             continue
         if loopVersionAbbreviation in state.versionsWithoutTheirOwnPages: # Skip versions without their own pages
+            continue
+        if TEST_MODE and TEST_VERSIONS_ONLY and loopVersionAbbreviation not in TEST_VERSIONS_ONLY:
             continue
         if pageType in ('section','section'):
             try:
@@ -237,39 +241,42 @@ def _makeNavigationLinks( level:int, versionAbbreviation:str, pageType:str, vers
     # This code tries to adjust links to books which aren't in a version, e.g., UHB has no NT books, SR-GNT and UGNT have no OT books
     # It does this by adjusting the potential bad link to the next level higher.
     newVersionList = []
-    for entry in initialVersionList:
+    for initial_entry in initialVersionList:
         # if pageType == 'parallelVerse':
         #     print( f"  _makeNavigationLinks processing {entry=} ({level=} {versionAbbreviation=} {pageType=} {fileOrFolderName=})" )
-        if '/par/' in entry or '/ilr/' in entry:
-            newVersionList.append( entry )
+        if '/par/' in initial_entry or '/ilr/' in initial_entry:
+            newVersionList.append( initial_entry )
             continue # Should always be able to link to these
         entryBBB = None
         for tryBBB in state.allBBBs: # from all loaded versions
-            if f'{tryBBB}.' in entry or f'{tryBBB}_' in entry or f'{tryBBB}/' in entry:
+            if f'{tryBBB}.' in initial_entry or f'{tryBBB}_' in initial_entry or f'{tryBBB}/' in initial_entry:
                 assert not entryBBB # Make sure we only found exactly one of them
                 entryBBB = tryBBB
         if entryBBB:
-            startIndex = entry.index('">') + 2
-            loopVersionAbbreviation = entry[startIndex:entry.index('<',startIndex)]
+            startIndex = initial_entry.index('">') + 2
+            loopVersionAbbreviation = initial_entry[startIndex:initial_entry.index('<',startIndex)]
             if loopVersionAbbreviation == 'OET': loopVersionAbbreviation = 'OET-RV' # We look here in this case
-            thisBible = state.preloadedBibles[loopVersionAbbreviation]
+            try: thisBible = state.preloadedBibles[loopVersionAbbreviation]
+            except KeyError:
+                assert TEST_MODE
+                thisBible = []
             if entryBBB in thisBible:
                 # if pageType == 'parallelVerse': print( f"    Appended {thisVersionAbbreviation} {entryBBB} as is (from {entry})")
-                newVersionList.append( entry )
+                newVersionList.append( initial_entry )
                 continue # Should always be able to link to these
-            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"      Might not be able to link to {pageType} {loopVersionAbbreviation} {entry}???" )
+            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"      Might not be able to link to {pageType} {loopVersionAbbreviation} {initial_entry}???" )
             replacement = ''
             if '/' in versionSpecificFileOrFolderName:
                 ix = versionSpecificFileOrFolderName.index( '/' )
                 if ix>0 and ix<len(versionSpecificFileOrFolderName)-1: # The slash is in the middle -- not at the beginning or the end
                     replacement = versionSpecificFileOrFolderName[:ix+1]
                     dPrint( 'Info', DEBUGGING_THIS_MODULE, f"          Can we adapt {pageType} '{versionSpecificFileOrFolderName}' to '{replacement}'" )
-            newEntry = entry.replace( versionSpecificFileOrFolderName, replacement ) # Effectively links to a higher level folder
+            newEntry = initial_entry.replace( versionSpecificFileOrFolderName, replacement ) # Effectively links to a higher level folder
             dPrint( 'Info', DEBUGGING_THIS_MODULE, f"       Changed {pageType} link entry to {newEntry}")
             newVersionList.append( newEntry )
         else:
-            dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        Couldn't find a BBB so should be able to link ok to {pageType} {entry}" )
-            newVersionList.append( entry )
+            dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        Couldn't find a BBB so should be able to link ok to {pageType} {initial_entry}" )
+            newVersionList.append( initial_entry )
     assert len(newVersionList) == len(initialVersionList)
     versionHtml = f'''<p class="wrkLst">{' '.join(newVersionList)}</p>'''
     # if pageType == 'parallelVerse':
@@ -321,8 +328,11 @@ def makeBookNavListParagraph( linksList:List[str], workAbbrevPlus:str, state:Sta
             # Make the versionAbbreviation links go to 1:1 for the selected book
             ixHrefStart = aLink.index( 'href="' ) + 6
             ixHrefEnd = aLink.index( '.htm', ixHrefStart )
-            hrefText = aLink[ixHrefStart:ixHrefEnd]
-            aLink = f'''{aLink[:ixHrefStart]}{'' if 'Index' in workAbbrevPlus else '../'}{hrefText}/C1V1{aLink[ixHrefEnd:]}'''
+            hrefTextBit, hrefEndBit = aLink[ixHrefStart:ixHrefEnd], aLink[ixHrefEnd:]
+            assert hrefEndBit.startswith( '.htm#Top">' ), f"{hrefEndBit=} {workAbbrevPlus=}" # This is set in createSitePages._createSitePages()
+            if 'Index' in workAbbrevPlus:
+                hrefEndBit = hrefEndBit.replace( '#Top', '#chLst', 1 ) # Show them the chapter and verse choices (because we're going to plonk them in 1:1)
+            aLink = f'''{aLink[:ixHrefStart]}{'' if 'Index' in workAbbrevPlus else '../'}{hrefTextBit}/C1V1{hrefEndBit}'''
         ixDisplayLinkStart = aLink.index( '>' ) + 1
         ixDisplayLinkEnd = aLink.index( '<', ixDisplayLinkStart )
         displayText = aLink[ixDisplayLinkStart:ixDisplayLinkEnd]
@@ -596,6 +606,8 @@ def checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool:
                 dPrint( 'Info', DEBUGGING_THIS_MODULE, f"'{where}' {segmentOnly=} {marker=} {startMarker=} {startCount=} {endCount=}")
                 if 'book' not in where.lower():
                     if 'ULT' not in where and 'UST' not in where and 'PSA' not in where: # UST PSA has totally messed up \\qs encoding
+                        logging.critical( f"Mismatched '{marker}' start and end markers '{where}' {segmentOnly=} {startCount}!={endCount}"
+                              f" {'…' if ixMinStart>0 else ''}{htmlToCheck[ixMinStart:ixMinEnd+5]}{'…' if ixMinEnd+5<len(htmlToCheck) else ''}" )
                         halt
             # return False # TODO: Why was this here ???
         # Checked for accidentally doubled nesting
@@ -683,7 +695,7 @@ def checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool:
     #   (We don't check segments, because some of these things are processed later on)
     if 'OET' in where or 'Parallel' in where:
         for char,reason in (('+','added article'),('-','dropped article'),('=','added copula'),('>','implied object'),
-                    ('≡','repeat ellided'),('≡','repeat ellided'),('&','added ownwer'),('@','expanded pronoun'),('*','reduced to pronoun'),
+                    ('≡','repeat ellided'),('≡','repeat ellided'),('&','added ‘owner’'),('@','expanded pronoun'),('*','reduced to pronoun'),
                     ('#','changed number'),('^','used opposite'),('≈','reworded'),('?','unsure'),):
             if 'NAH_2:7' not in where and 'GAL_5:10' not in where \
             and 'CO1_10:24' not in where and 'EPH_2:22' not in where: # LEB has 'added text' starting with '='   :)
@@ -882,8 +894,8 @@ def do_OET_RV_HTMLcustomisations( OET_RV_html:str ) -> str:
             .replace( '<span class="add">?+', '<span class="unsure addArticle" title="added article (uncertain)">' )
             .replace( '<span class="add">+', '<span class="addArticle" title="added article">' )
             .replace( '<span class="add">≡', '<span class="addElided" title="added elided info">' )
-            .replace( '<span class="add">?&', '<span class="unsure addOwner" title="added owner (uncertain)">' )
-            .replace( '<span class="add">&', '<span class="addOwner" title="added owner">' )
+            .replace( '<span class="add">?&', '<span class="unsure addOwner" title="added ‘owner’ (uncertain)">' )
+            .replace( '<span class="add">&', '<span class="addOwner" title="added ‘owner’">' )
             .replace( '<span class="add">?@', '<span class="unsure addReferent" title="inserted referent (uncertain)">' )
             .replace( '<span class="add">@', '<span class="addReferent" title="inserted referent">' )
             .replace( '<span class="add">?*', '<span class="unsure addPronoun" title="used pronoun (uncertain)">' )

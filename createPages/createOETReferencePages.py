@@ -62,6 +62,7 @@ CHANGELOG:
     2024-09-30 Started adding some Bible stats
     2025-01-13 Tried but failed at multi-processing (state was too large to pickle)
     2025-01-15 Handle revised NT morphology fields with middle dots instead of periods
+    2025-02-06 Put "Aramaic" on Hebrew word pages (instead of just 'A') and improve rowTypeField for others as well
 """
 from gettext import gettext as _
 from typing import Dict, List, Tuple, Union
@@ -90,10 +91,10 @@ from html import makeTop, makeBottom, checkHtml
 from OETHandlers import getOETTidyBBB, getOETBookName, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
-LAST_MODIFIED_DATE = '2025-01-15' # by RJH
+LAST_MODIFIED_DATE = '2025-02-06' # by RJH
 SHORT_PROGRAM_NAME = "createOETReferencePages"
 PROGRAM_NAME = "OpenBibleData createOETReferencePages functions"
-PROGRAM_VERSION = '0.81'
+PROGRAM_VERSION = '0.82'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -1119,7 +1120,6 @@ def tidy_Hebrew_morphology( tHM_rowType:str, tHM_morphology:str ) -> str:
 # # end of ESFMBible._create_Hebrew_word_page_MP
 
 
-
 used_word_filenames = []
 def create_Hebrew_word_pages( level:int, outputFolderPath:Path, state:State ) -> None:
     """
@@ -1380,7 +1380,7 @@ def create_Hebrew_word_page( level:int, hh:int, hebrewWord:str, columns_string:s
     oetLink = f''' <a title="View whole chapter" href="{'../'*level}OET/byC/{BBB}_C{C}.htm#C{C}">{ourTidyBbbWithNotes}{NARROW_NON_BREAK_SPACE}{C}</a>'''
     parallelLink = f''' <b><a title="View verse in many parallel versions" href="{'../'*level}par/{BBB}/C{C}V{V}.htm#Top">║</a></b>'''
     interlinearLink = f''' <b><a title="View interlinear verse word-by-word" href="{'../'*level}ilr/{BBB}/C{C}V{V}.htm#Top">═</a></b>''' if BBB in state.booksToLoad['OET'] else ''
-    rowTypeField = 'Ketiv (marginal note)' if rowType=='K' else 'Segment punctuation' if rowType=='seg' else rowType.title() if rowType else ''
+    rowTypeField = '‘Ketiv’ (marginal note on original)' if rowType=='K' else 'Aramaic ‘ketiv’ (marginal note on original)' if rowType=='AK' else 'Segment punctuation' if rowType=='seg' else 'Aramaic' if rowType=='A' else rowType.title() if 'note' in rowType else rowType
     hebrewWordTitle = rowTypeField if rowType=='seg' or 'note' in rowType else hebrewWord # f'{hebrewWord}\u202d' # unicode LRO
     wordsHtml = f'''<h2>Open English Translation (OET)</h2>\n<h1 id="Top">Hebrew wordlink #{hh}</h1>{f"{NEWLINE}<h2>{rowTypeField}</h2>" if rowTypeField else ''}
 <p class="pNav">{prevLink}<b>{hebrewWordTitle}</b> <a title="Go to Hebrew word index" href="index.htm">↑</a>{nextLink}{oetLink}{parallelLink}{interlinearLink}</p>
@@ -1618,7 +1618,6 @@ def create_Hebrew_lemma_pages( level:int, outputFolderPath:Path, state:State ) -
     TODO: Why does this take so long to run???
     TODO: Add related lemma info (not just prefixed ones, but adding synonyms, etc.)
     """
-    # DEBUGGING_THIS_MODULE = 99
     fnPrint( DEBUGGING_THIS_MODULE, f"create_Hebrew_lemma_pages( {outputFolderPath}, {state.BibleVersions} )" )
     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Making {len(state.OETRefData['OTLemmaGlossDict']):,} Hebrew lemma pages…" )
 

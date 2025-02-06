@@ -50,10 +50,10 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
 from OETHandlers import livenOETWordLinks, getOETTidyBBB, getOETBookName, getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2025-01-15' # by RJH
+LAST_MODIFIED_DATE = '2025-02-05' # by RJH
 SHORT_PROGRAM_NAME = "createParallelPassagePages"
 PROGRAM_NAME = "OpenBibleData createParallelPassagePages functions"
-PROGRAM_VERSION = '0.32'
+PROGRAM_VERSION = '0.33'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -229,9 +229,9 @@ def createParallelPassagePages( level:int, folder:Path, state:State ) -> bool:
 #     # referenceBible = state.preloadedBibles['OET-LV']
 #     # numChapters = referenceBible.getNumChapters( BBB ) # Causes the book to be loaded if not already
 #     # introLinks = [ '<a title="Go to synoptic intro page" href="Intro.htm#Top">Intro</a>' ]
-#     # cLinksPar = f'''<p class="chLst">{EM_SPACE.join( introLinks + [f'<a title="Go to synoptic verse page" href="C{ps}V1.htm#Top">Ps{ps}</a>' for ps in range(1,numChapters+1)] )}</p>''' \
+#     # cLinksPar = f'''<p class="chLst" id="chLst">{EM_SPACE.join( introLinks + [f'<a title="Go to synoptic verse page" href="C{ps}V1.htm#Top">Ps{ps}</a>' for ps in range(1,numChapters+1)] )}</p>''' \
 #     #     if BBB=='PSA' else \
-#     #         f'''<p class="chLst">{ourTidyBbb if ourTidyBbb!='Yac' else 'Yacob/(James)'} {' '.join( introLinks + [f'<a title="Go to synoptic verse page" href="C{chp}V1.htm#Top">C{chp}</a>' for chp in range(1,numChapters+1)] )}</p>'''
+#     #         f'''<p class="chLst" id="chLst">{ourTidyBbb if ourTidyBbb!='Yac' else 'Yacob/(James)'} {' '.join( introLinks + [f'<a title="Go to synoptic verse page" href="C{chp}V1.htm#Top">C{chp}</a>' for chp in range(1,numChapters+1)] )}</p>'''
 
 #     # Now, make the actual pages
 #     vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Creating synoptic section pages for {thisBible.abbreviation} {BBB}…" )
@@ -522,7 +522,7 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
                 oText = entry.getOriginalText()
                 if oText and '\\x ' in oText: # then extract a list of verse cross-references
                     startIndex = 0
-                    for _safetyCount in range( 3 ):
+                    for _safetyCount in range( 4 ): # 3 wasn't enough for JDE
                         try: xStartIx = oText.index( '\\x ', startIndex )
                         except ValueError: break
                         xtIx = oText.index( '\\xt ', xStartIx+6 )
@@ -531,7 +531,7 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
                         if xrefGuts not in collectedVerseCrossReferences: # don't have exact duplicates
                             collectedVerseCrossReferences.append( xrefGuts )
                         startIndex = xEndIx + 3
-                    else: need_to_increase_safety_count
+                    else: need_to_increase_xref_safety_count
         assert sectionReferences or not ONLY_MAKE_PAGES_WHICH_HAVE_PARALLELS
         crossReferencesBBBList, crossReferencesCVList = [], []
         for sr,sectionReference in enumerate( sectionReferences ):

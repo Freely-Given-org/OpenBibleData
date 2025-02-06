@@ -55,6 +55,8 @@ CHANGELOG:
     2024-05-02 Improve UTN markdown to HTML conversion
     2024-06-10 Save and load pickled Bibles for load speed boost
     2024-07-22 Remove CRs (\\r) from UTNs
+    2025-01-31 Do discover() before pickling to save time on the next load
+    2025-02-05 Only load certain Bible versions if specified
 """
 from gettext import gettext as _
 from typing import Dict, List, Tuple, Set, Optional
@@ -87,16 +89,17 @@ import sys
 sys.path.append( '../../BibleTransliterations/Python/' )
 from BibleTransliterations import transliterate_Greek, transliterate_Hebrew
 
-from settings import State, ALTERNATIVE_VERSION, TEST_MODE, ALL_PRODUCTION_BOOKS, TEST_BOOK_LIST, PICKLE_FILENAME_END, TEMP_BUILD_FOLDER
+from settings import State, ALTERNATIVE_VERSION, TEST_MODE, TEST_VERSIONS_ONLY, \
+                                ALL_PRODUCTION_BOOKS, TEST_BOOK_LIST, PICKLE_FILENAME_END, TEMP_BUILD_FOLDER
 from html import checkHtml
 from OETHandlers import findLVQuote, getBBBFromOETBookName
 from Dict import loadAndIndexUBSGreekDictJSON, loadAndIndexUBSHebrewDictJSON
 
 
-LAST_MODIFIED_DATE = '2025-01-07' # by RJH
+LAST_MODIFIED_DATE = '2025-02-05' # by RJH
 SHORT_PROGRAM_NAME = "Bibles"
 PROGRAM_NAME = "OpenBibleData Bibles handler"
-PROGRAM_VERSION = '0.82'
+PROGRAM_VERSION = '0.84'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -117,6 +120,9 @@ def preloadVersions( state:State ) -> int:
     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"{datetime.now().strftime('%H:%M')} Preloading {state.BibleVersions}{' in TEST mode' if TEST_MODE else ''}…" )
 
     for versionAbbreviation in state.BibleVersions[:]: # copy because we'll be deleting some entries as we go
+        if TEST_MODE and TEST_VERSIONS_ONLY and versionAbbreviation not in TEST_VERSIONS_ONLY:
+            continue # Skip this version not desired for this test
+
         if versionAbbreviation == 'OET':
             # This is a combination of two translations, so nothing to load here
             assert 'OET-RV' in state.BibleVersions and 'OET-LV' in state.BibleVersions
@@ -155,6 +161,7 @@ def preloadVersions( state:State ) -> int:
                         # dPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"newObj is {newBibleObj}" )
                         # dPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Loaded {versionAbbreviation} {type(newBibleObj)} pickle file: {pickleFilename}." )
                         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"preloadVersions() loaded pickled {newBibleObj if BibleOrgSysGlobals.verbosityLevel>=2 else versionAbbreviation}" )
+                        assert 'discoveryResults' in newBibleObj.__dict__ # .discover() should have been called before it was saved
                         state.preloadedBibles[versionAbbreviation] = newBibleObj
                         continue
                     except EOFError:
@@ -185,6 +192,8 @@ def preloadVersions( state:State ) -> int:
             thisBible.NTsourceFolder = thisBibleNT.sourceFolder
             thisBible.sourceFolder = None
             state.preloadedBibles['OET-LV'] = thisBible
+            vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nDoing discovery for {thisBible.abbreviation} ({thisBible.name})…" )
+            thisBible.discover()
             vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"preloadVersions() loaded {thisBible}" )
 
             pickleFilename = f"OET-LV__{'_'.join(TEST_BOOK_LIST)}{PICKLE_FILENAME_END}" \
@@ -371,6 +380,9 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
     and versionAbbreviation != 'OET-LV' # This one is handled by the calling function because it's more complex (uses two folders)
     and versionAbbreviation != 'TOSN' # This one has different complexities coz it loads various other bits
     ):
+        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nDoing discovery for {thisBible.abbreviation} ({thisBible.name})…" )
+        thisBible.discover()
+
         pickleFilename = f"{versionAbbreviation}__{'_'.join(TEST_BOOK_LIST)}{PICKLE_FILENAME_END}" \
                             if TEST_MODE and not ALL_PRODUCTION_BOOKS and versionAbbreviation not in state.WholeBibleVersions \
                             else f'{versionAbbreviation}{PICKLE_FILENAME_END}'

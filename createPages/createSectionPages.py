@@ -46,6 +46,7 @@ CHANGELOG:
     2024-03-10 Add chapter bars to section pages, and add navigation to bottom of the pages as well
     2024-06-14 Make section cross-ref clicks go to parallel passage pages
     2024-06-26 Added BibleMapper.com maps to OET sections
+    2025-02-02 Added ID to clinksPar (at top of page only)
 """
 from gettext import gettext as _
 from typing import Dict, List, Tuple, Optional
@@ -68,10 +69,10 @@ from Bibles import getBibleMapperMaps
 from OETHandlers import livenOETWordLinks, getOETTidyBBB, getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2025-01-15' # by RJH
+LAST_MODIFIED_DATE = '2025-02-04' # by RJH
 SHORT_PROGRAM_NAME = "createSectionPages"
 PROGRAM_NAME = "OpenBibleData createSectionPages functions"
-PROGRAM_VERSION = '0.66'
+PROGRAM_VERSION = '0.67'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -362,7 +363,7 @@ def createOETSectionPages( level:int, folder:Path, rvBible:ESFMBible, lvBible:ES
                             f'''<a title="Up to {state.BibleNames['OET']}" href="{'../'*level}OET/">↑OET</a>''' )
             sectionHtml = f'''{top}<!--section page-->
 {navBookListParagraph}
-{cLinksPar}
+{cLinksPar.replace( 'class="chLst">', 'class="chLst" id="chLst">', 1 )}
 {sectionHtml}
 {combinedHtml}
 <p class="secNav">{sectionIndexLink}{leftLink}{documentLink} {startChapterLink}:{startV}–{endChapterLink}:{endV}{rightLink}{relatedLink}{parallelLink}{interlinearLink}{detailsLink}</p>
@@ -592,7 +593,7 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> List
                             f'''<a title="Up to {state.BibleNames[thisBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/">↑{thisBible.abbreviation}</a>''' )
             sectionHtml = f'''{top}<!--section page-->
 {navBookListParagraph}
-{cLinksPar}
+{cLinksPar.replace( 'class="chLst">', 'class="chLst" id="chLst">', 1 )}
 {sectionHtml}
 {cLinksPar}
 {makeBottom( level, 'section', state )}'''
@@ -656,34 +657,45 @@ def findSectionNumber( versionAbbreviation:str, refBBB:str, refC:str, refV:str, 
         return the section number containing the given reference.
     """
     fnPrint( DEBUGGING_THIS_MODULE, f"findSectionNumber( {versionAbbreviation}, {refBBB} {refC}:{refV} )" )
-    # print( f"findSectionNumber( {versionAbbreviation}, {refBBB} {refC}:{refV} )" )
 
     if not refBBB:
-        # print( "findSectionNumber: No refBBB -- returning None" )
+        dPrint( 'Info', DEBUGGING_THIS_MODULE, "findSectionNumber: No refBBB parameter given -- returning None" )
         return None # Can't do anything without a valid BBB
     assert refBBB in BOOKLIST_66 or versionAbbreviation in VERSIONS_WITH_APOCRYPHA, f"findSectionNumber( {versionAbbreviation}, {refBBB} {refC}:{refV} )"
     if refBBB not in state.sectionsLists[versionAbbreviation]: # No section headings for this book
         if TEST_MODE:
+            dPrint( 'Info', DEBUGGING_THIS_MODULE, "default to introduction for TEST_MODE (because it doesn't contain all the books)" )
             return 0 # default to introduction for testing (because it doesn't contain all the books)
         else:
-            logging.error( f"findSectionNumber: No {versionAbbreviation} sectionsLists for {refBBB} -- only have {state.sectionsLists[versionAbbreviation].keys()} -- returning None" )
+            logger = logging.critical if DEBUGGING_THIS_MODULE else logging.error
+            logger( f"findSectionNumber: No {versionAbbreviation} sectionsLists for {refBBB} -- only have {state.sectionsLists[versionAbbreviation].keys()} -- returning None" )
             return None
 
+    if refV == '0':
+        dPrint( 'Info', DEBUGGING_THIS_MODULE, f"findSectionNumber: adjusting {versionAbbreviation} search for {refBBB} {refC}:{refV} to verse 1" )
+        refV = '1'
     intRefV = getLeadingInt( refV )
 
     for n,startC,startV,endC,endV,_sectionName,reasonName,_contextList,_verseEntryList,_filename in state.sectionsLists[versionAbbreviation][refBBB]:
+        dPrint( 'Info', DEBUGGING_THIS_MODULE, f"\nLOOP {n} finding {refBBB} {refC}:{refV} in {startC}:{startV}-{endC}:{endV} {_sectionName=},{reasonName=},_contextList,_verseEntryList,{_filename}" )
         if reasonName.startswith( 'Alternate ' ): continue # ignore these ones
 
-        # print( f"  findSectionNumber {versionAbbreviation} {state.sectionsLists[versionAbbreviation][refBBB][n]}")
-        if startC==refC and endC==refC:
+        # dPrint( 'Info', DEBUGGING_THIS_MODULE, f"  findSectionNumber for {versionAbbreviation} {refBBB} {refC}:{refV} got {state.sectionsLists[versionAbbreviation][refBBB][n]}")
+        if startC==refC and endC==refC: # This section only spans a single chapter (or part of a chapter)
             if getLeadingInt(startV) <= intRefV <= getLeadingInt(endV): # It's in this single chapter
                 return n
-        elif startC==refC and intRefV>=getLeadingInt(startV): # It's in the first chapter
-            return n
-        elif endC==refC and intRefV<=getLeadingInt(endV): # It's in the second chapter
-            return n
+        else: # This section spans two or more chapters
+            if startC==refC and intRefV>=getLeadingInt(startV): # It's in the first chapter
+                dPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Found {refBBB} {refC}:{refV} in first chapter of {startC}:{startV}-{endC}:{endV}" )
+                return n
+            elif endC==refC and intRefV<=getLeadingInt(endV): # It's in the last chapter
+                dPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Found {refBBB} {refC}:{refV} in last chapter of {startC}:{startV}-{endC}:{endV}" )
+                return n
+            elif int(startC) < int(refC) < int(endC): # It's in one of the middle chapters
+                dPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Found {refBBB} {refC}:{refV} in middle chapter of {startC}:{startV}-{endC}:{endV}" )
+                return n
 
-    # print( "findSectionNumber: Couldn't find a section -- returning None" )
+    dPrint( 'Info', DEBUGGING_THIS_MODULE, "findSectionNumber: Couldn't find a section match -- returning None" )
     return None
 # end of createSectionPages.findSectionNumber
 
