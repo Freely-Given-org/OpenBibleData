@@ -94,7 +94,7 @@ from Dict import createTyndaleDictPages, createUBSDictionaryPages
 from html import makeTop, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2025-02-05' # by RJH
+LAST_MODIFIED_DATE = '2025-02-11' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData (OBD) Create Site Pages"
 PROGRAM_VERSION = '0.98'
@@ -110,7 +110,7 @@ def _createSitePages() -> bool:
     Build all the pages in a temporary location
     """
     fnPrint( DEBUGGING_THIS_MODULE, "_createSitePages()")
-    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"_createSitePages() running in {'TEST' if TEST_MODE else 'production'} mode with {'all production books' if ALL_PRODUCTION_BOOKS else 'reduced books being loaded'} for {len(state.BibleLocations):,} Bible versions…" )
+    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"_createSitePages() running in {'TEST' if TEST_MODE else 'production'} mode with {'all production books' if ALL_PRODUCTION_BOOKS else 'reduced books being loaded'} for {f'{len(TEST_VERSIONS_ONLY)}/' if TEST_VERSIONS_ONLY else ''}{len(state.BibleLocations):,} Bible versions…" )
     if TEST_MODE:
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"    {TEST_BOOK_LIST=}" )
 
@@ -173,7 +173,7 @@ def _createSitePages() -> bool:
         for versionAbbreviation in state.BibleVersions:
             if versionAbbreviation == 'OET': continue # OET is a pseudo version (OET-RV plus OET-LV)
             if versionAbbreviation in state.versionsWithoutTheirOwnPages: continue # We don't worry about these few selected verses here
-            if TEST_MODE and TEST_VERSIONS_ONLY and versionAbbreviation not in TEST_VERSIONS_ONLY: continue # Didn't load these ones
+            if TEST_VERSIONS_ONLY and versionAbbreviation not in TEST_VERSIONS_ONLY: continue # Didn't load these ones
             if versionAbbreviation == 'TTN': continue
             for bookEntry in state.booksToLoad[versionAbbreviation]:
                 if bookEntry == BBB or bookEntry == 'ALL':
@@ -199,7 +199,7 @@ def _createSitePages() -> bool:
                 ourTidyBBB = getOETTidyBBB( BBB )
                 state.BBBLinks['OET'].append( f'''<a title="{getOETBookName(BBB)}" href="{filename}#Top">{ourTidyBBB}</a>''' )
         else: # not OET
-            if TEST_MODE and TEST_VERSIONS_ONLY and versionAbbreviation not in TEST_VERSIONS_ONLY: continue # Didn't load these ones
+            if TEST_VERSIONS_ONLY and versionAbbreviation not in TEST_VERSIONS_ONLY: continue # Didn't load these ones
             thisBible = state.preloadedBibles[versionAbbreviation]
             thisBibleBooksToLoad = state.booksToLoad[versionAbbreviation]
             # print( f'{versionAbbreviation}: {thisBible=} {thisBibleBooksToLoad=}' )
@@ -228,15 +228,23 @@ def _createSitePages() -> bool:
                         state.BBBLinks[versionAbbreviation].append( f'''<a title="{getOETBookName(BBB)}" href="{filename}#Top">{ourTidyBBB}</a>''' )
 
     # Ok, let's go create some static pages
-    # discoverStartTime = datetime.now()
+    assert 'discoveryResults' in state.preloadedBibles['OET-RV'].__dict__
+    assert 'discoveryResults' in state.preloadedBibles['OET-LV'].__dict__
+    createOETSectionLists( state.preloadedBibles['OET-RV'], state ) # Have to do this early for section references
+
+    # Do individual verse pages first because they give more detailed error messages for source Bible formatting errors
+    # TODO: We could use multiprocessing to do all these at once
+    #   (except that state is quite huge with all preloaded versions and hence expensive to pickle)
+    createParallelVersePages( 1, TEMP_BUILD_FOLDER.joinpath('par/'), state )
+    createOETInterlinearPages( 1, TEMP_BUILD_FOLDER.joinpath('ilr/'), state )
+    createParallelPassagePages( 1, TEMP_BUILD_FOLDER.joinpath('rel/'), state )
+    createTopicPages( 1, TEMP_BUILD_FOLDER.joinpath('tpc/'), state )
+
     if 'OET' in state.BibleVersions: # this is a special case
         # vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\nDoing discovery on OET…" )
         # state.preloadedBibles['OET-RV'].discover() # Now that all required books are loaded
         # state.preloadedBibles['OET-LV'].discover() #     ..ditto..
-        assert 'discoveryResults' in state.preloadedBibles['OET-RV'].__dict__
-        assert 'discoveryResults' in state.preloadedBibles['OET-LV'].__dict__
 
-        createOETSectionLists( state.preloadedBibles['OET-RV'], state ) # Have to do this early for section references
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Creating {'TEST ' if TEST_MODE else ''}version pages for OET…" )
         versionFolder = TEMP_BUILD_FOLDER.joinpath( f'OET/' )
         _createOETVersionPages( 1, versionFolder, state.preloadedBibles['OET-RV'], state.preloadedBibles['OET-LV'], state )
@@ -273,11 +281,7 @@ def _createSitePages() -> bool:
                 vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Creating {'TEST ' if TEST_MODE else ''}version pages for {thisBible.abbreviation} ({thisBible.name})…" )
                 versionFolder = TEMP_BUILD_FOLDER.joinpath( f'{thisBible.abbreviation}/' )
                 _createVersionPages( 1, versionFolder, thisBible, state )
-    # print( f"Discovery time {datetime.now()-discoverStartTime}" ); halt
 
-    # We do this later than the _createVersionPages above
-    #   because we need all versions to have all books loaded and 'discovered', i.e., analysed
-    #   so we know in advance which versions have section headings
     if 'OET' in state.BibleVersions: # this is a special case
         rvBible, lvBible = state.preloadedBibles['OET-RV'], state.preloadedBibles['OET-LV']
         if rvBible.discoveryResults['ALL']['haveSectionHeadings'] or lvBible.discoveryResults['ALL']['haveSectionHeadings']:
@@ -290,13 +294,6 @@ def _createSitePages() -> bool:
             if thisBible.discoveryResults['ALL']['haveSectionHeadings']:
                 versionFolder = TEMP_BUILD_FOLDER.joinpath( f'{thisBible.abbreviation}/' )
                 createSectionPages( 2, versionFolder.joinpath('bySec/'), thisBible, state )
-
-    # TODO: We could use multiprocessing to do all these at once
-    #   (except that state is quite huge with all preloaded versions and hence expensive to pickle)
-    createParallelVersePages( 1, TEMP_BUILD_FOLDER.joinpath('par/'), state )
-    createOETInterlinearPages( 1, TEMP_BUILD_FOLDER.joinpath('ilr/'), state )
-    createParallelPassagePages( 1, TEMP_BUILD_FOLDER.joinpath('rel/'), state )
-    createTopicPages( 1, TEMP_BUILD_FOLDER.joinpath('tpc/'), state )
 
     if not TEST_MODE \
     or not REUSE_EXISTING_WORD_PAGES:
@@ -319,7 +316,7 @@ def _createSitePages() -> bool:
 
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\n{TEMP_BUILD_FOLDER} is {_getFolderSize(TEMP_BUILD_FOLDER)//1_000_000:,} MB" )
 
-    if UPDATE_ACTUAL_SITE_WHEN_BUILT:
+    if UPDATE_ACTUAL_SITE_WHEN_BUILT and not TEST_VERSIONS_ONLY:
         # Clean away any existing folders so we can copy in the newly built stuff
         try: os.makedirs( f'{DESTINATION_FOLDER}/' )
         except FileExistsError: # they were already there

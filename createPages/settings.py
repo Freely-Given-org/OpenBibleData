@@ -47,7 +47,7 @@ from BibleOrgSys.BibleOrgSysGlobals import dPrint, fnPrint
 from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39
 
 
-LAST_MODIFIED_DATE = '2025-02-06' # by RJH
+LAST_MODIFIED_DATE = '2025-02-12' # by RJH
 SHORT_PROGRAM_NAME = "settings"
 PROGRAM_NAME = "OpenBibleData (OBD) Create Pages"
 PROGRAM_VERSION = '0.98'
@@ -55,16 +55,16 @@ PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
 
-OET_VERSION = 'v0.32' # At 55.1% 2025-02-04 (Incremented on most runs for the production site)
+OET_VERSION = 'v0.33' # At 56.2% 2025-02-14 (Incremented on most runs for the production site)
 
-TEST_MODE = True # Writes website into Test subfolder
-TEST_VERSIONS_ONLY = None #['OET','OET-RV','OET-LV',   'ULT','UST','NET',   'UHB',   'TOSN','UTN']
-ALL_PRODUCTION_BOOKS = not TEST_MODE # If set to False, only selects one book per version for a faster test build
+TEST_MODE = False # Writes website into 'Test' subfolder if True
+TEST_VERSIONS_ONLY = None #['OET','OET-RV','OET-LV',   'WEBBE','WMBB',  'TOSN','UTN']
+ALL_PRODUCTION_BOOKS = not TEST_MODE # If set to False, uses the TEST book list (with many less books) for a faster test build
 REUSE_EXISTING_WORD_PAGES = TEST_MODE # Don't recreate word pages
 ALL_TEST_REFERENCE_PAGES = False # If in TEST_MODE, make ALL word/lemma pages, or just the RELEVANT ones
 UPDATE_ACTUAL_SITE_WHEN_BUILT = True # The pages are initially built in a tmp folder so need to be copied to the final destination
 
-OET_RV_OT_BOOK_LIST = ['GEN','EXO','JOS','JDG','RUT','SA1','SA2','KI1','KI2','EZR','NEH','EST','JOB','PSA','JNA','NAH','HAG','MAL']
+OET_RV_OT_BOOK_LIST = ['GEN','EXO','JOS','JDG','RUT','SA1','SA2','KI1','KI2','EZR','NEH','EST','JOB','PSA','JNA','DAN','NAH','HAG','MAL']
 
 TEST_OT_BOOK_LIST = ['PSA','EZR','DAN'] # Books in progress
 TEST_NT_BOOK_LIST = ['MRK',] # Shortest gospel
@@ -109,7 +109,7 @@ OET_BOOK_ORDER = ['FRT','INT'] + OET_OT_BOOK_ORDER + OET_APOCRYPHA_BOOK_ORDER + 
 assert len(OET_BOOK_ORDER) > 68
 
 OET_LV_BOOK_LIST = BOOKLIST_OT39 + OET_NT_BOOK_ORDER
-OET_RV_BOOK_LIST = OET_RV_OT_BOOK_LIST + OET_NT_BOOK_ORDER
+OET_RV_BOOK_LIST = TEST_BOOK_LIST if TEST_MODE else (OET_RV_OT_BOOK_LIST + OET_NT_BOOK_ORDER)
 # TODO: What about 'INT' ?
 OET_RV_BOOK_LIST_WITH_FRT = ['FRT'] + OET_RV_BOOK_LIST
 
@@ -145,38 +145,38 @@ class State:
     # This first one specifies the order in which everything is processed
     # NOTE: OET is a "pseudo-version" containing both OET-RV and OET-LV side-by-side and handled separately in many places
     BibleVersions = ['OET',
-                'OET-RV','OET-LV',
-                'ULT','UST','NET', # We move NET up nearer the top for TEST_MODE
-                'BSB','BLB',
-                'AICNT','OEB','ISV','CSB','NLT',
-                'NIV','CEV','ESV','NASB','LSB',
-                'JQT','2DT','1ST','TPT',
-                'WEBBE','WEB','WMBB','WMB','MSG','LSV','FBV','TCNT','T4T','LEB','NRSV','NKJV','NAB','BBE',
-                'Moff','JPS','Wymth','ASV','DRA','YLT','Drby','RV','Wbstr','KJB-1769','KJB-1611','Bshps','Gnva','Cvdl',
-                'TNT','Wycl',
-                'Luth','ClVg',
-                'SR-GNT','UGNT','SBL-GNT','TC-GNT',
-                'UHB', 'BrLXX','BrTr', 'NETS',
-                # NOTES:
-                'TOSN','UTN',
-                ] if TEST_MODE else \
-                ['OET',
-                'OET-RV','OET-LV',
-                'ULT','UST',
-                'BSB','BLB',
-                'AICNT','OEB','ISV','CSB','NLT',
-                'NIV','CEV','ESV','NASB','LSB',
-                'JQT','2DT','1ST','TPT',
-                'WEBBE','WEB','WMBB','WMB','MSG','NET','LSV','FBV','TCNT','T4T','LEB','NRSV','NKJV','NAB','BBE',
-                'Moff','JPS','Wymth','ASV','DRA','YLT','Drby','RV','Wbstr','KJB-1769','KJB-1611','Bshps','Gnva','Cvdl',
-                'TNT','Wycl',
-                'Luth','ClVg',
-                'SR-GNT','UGNT','SBL-GNT','TC-GNT',
-                'UHB', 'BrLXX','BrTr', 'NETS',
-                # NOTES:
-                'TOSN','UTN',
-                ]    # NOTE: The above list has entries deleted by preloadBibles() if they fail to load
-    #           (often because we temporarily remove the BibleLocation below)
+        'OET-RV','OET-LV',
+        'ULT','UST','NET', # We move NET up nearer the top for TEST_MODE
+        'BSB','BLB',
+        'AICNT','OEB','ISV','CSB','NLT',
+        'NIV','CEV','ESV','NASB','LSB',
+        'JQT','2DT','1ST','TPT',
+        'WEBBE','WEB','WMBB','WMB','MSG','LSV','FBV','TCNT','T4T','LEB','NRSV','NKJV','NAB','BBE',
+        'Moff','JPS','Wymth','ASV','DRA','YLT','Drby','RV','Wbstr','KJB-1769','KJB-1611','Bshps','Gnva','Cvdl',
+        'TNT','Wycl',
+        'Luth','ClVg',
+        'SR-GNT','UGNT','SBL-GNT','TC-GNT',
+        'UHB', 'BrLXX','BrTr', 'NETS',
+        # NOTES:
+        'TOSN','UTN',
+        ] if TEST_MODE else \
+        ['OET',
+        'OET-RV','OET-LV',
+        'ULT','UST',
+        'BSB','BLB',
+        'AICNT','OEB','ISV','CSB','NLT',
+        'NIV','CEV','ESV','NASB','LSB',
+        'JQT','2DT','1ST','TPT',
+        'WEBBE','WEB','WMBB','WMB','MSG','NET','LSV','FBV','TCNT','T4T','LEB','NRSV','NKJV','NAB','BBE',
+        'Moff','JPS','Wymth','ASV','DRA','YLT','Drby','RV','Wbstr','KJB-1769','KJB-1611','Bshps','Gnva','Cvdl',
+        'TNT','Wycl',
+        'Luth','ClVg',
+        'SR-GNT','UGNT','SBL-GNT','TC-GNT',
+        'UHB', 'BrLXX','BrTr', 'NETS',
+        # NOTES:
+        'TOSN','UTN',
+        ]    # NOTE: The above list has entries deleted by preloadBibles() if they fail to load
+#           (often because we temporarily remove the BibleLocation below)
     allPossibleBibleVersions = BibleVersions[:] # Keep a copy with the full list
 
     # Specific short lists
@@ -191,302 +191,300 @@ class State:
 
     # NOTE: We don't display the versionsWithoutTheirOwnPages, so don't need/allow decorations for them
     BibleVersionDecorations = { 'OET':('<b>','</b>'),'OET-RV':('<b>','</b>'),'OET-LV':('<b>','</b>'),
-                'ULT':('',''),'UST':('',''),
-                'BSB':('',''),'BLB':('',''),
-                'AICNT':('',''), 'OEB':('',''), 'ISV':('',''),
-                'WEBBE':('',''),'WEB':('',''),'WMB':('',''),'WMBB':('',''), 'NET':('',''), 'LSV':('',''), 'FBV':('',''), 'TCNT':('<small>','</small>'), 'T4T':('',''),'LEB':('',''),'BBE':('',''),
-                'Moff':('<small>','</small>'), 'JPS':('<small>','</small>'), 'Wymth':('<small>','</small>'), 'ASV':('',''), 'DRA':('<small>','</small>'),'YLT':('',''),'Drby':('',''),'RV':('',''),
-                'Wbstr':('<small>','</small>'),
-                'KJB-1769':('',''),'KJB-1611':('',''), 'Bshps':('',''), 'Gnva':('',''), 'Cvdl':('',''),
-                'TNT':('',''), 'Wycl':('',''), #'ClVg':('<small>','</small>'),
-                'SR-GNT':('<b>','</b>'), # 'UGNT':('<small>','</small>'),'SBL-GNT':('<small>','</small>'),'TC-GNT':('<small>','</small>'),
-                'UHB':('<b>','</b>'),
-                'BrTr':('<small>','</small>'),'BrLXX':('',''),
-                'Related':('<b>','</b>'), 'Topics':('<b>','</b>'), 'Parallel':('<b>','</b>'), 'Interlinear':('<b>','</b>'), 'Reference':('<b>','</b>'), 'Dictionary':('<b>','</b>'), 'Search':('<b>','</b>'),
-                # NOTES:
-                'TOSN':('',''),'UTN':('',''),
-                }
+        'ULT':('',''),'UST':('',''),
+        'BSB':('',''),'BLB':('',''),
+        'AICNT':('',''), 'OEB':('',''), 'ISV':('',''),
+        'WEBBE':('',''),'WEB':('',''),'WMB':('',''),'WMBB':('',''), 'NET':('',''), 'LSV':('',''), 'FBV':('',''), 'TCNT':('<small>','</small>'), 'T4T':('',''),'LEB':('',''),'BBE':('',''),
+        'Moff':('<small>','</small>'), 'JPS':('<small>','</small>'), 'Wymth':('<small>','</small>'), 'ASV':('',''), 'DRA':('<small>','</small>'),'YLT':('',''),'Drby':('',''),'RV':('',''),
+        'Wbstr':('<small>','</small>'),
+        'KJB-1769':('',''),'KJB-1611':('',''), 'Bshps':('',''), 'Gnva':('',''), 'Cvdl':('',''),
+        'TNT':('',''), 'Wycl':('',''), #'ClVg':('<small>','</small>'),
+        'SR-GNT':('<b>','</b>'), # 'UGNT':('<small>','</small>'),'SBL-GNT':('<small>','</small>'),'TC-GNT':('<small>','</small>'),
+        'UHB':('<b>','</b>'),
+        'BrTr':('<small>','</small>'),'BrLXX':('',''),
+        'Related':('<b>','</b>'), 'Topics':('<b>','</b>'), 'Parallel':('<b>','</b>'), 'Interlinear':('<b>','</b>'), 'Reference':('<b>','</b>'), 'Dictionary':('<b>','</b>'), 'Search':('<b>','</b>'),
+        # NOTES:
+        'TOSN':('',''),'UTN':('',''),
+        }
 
-                ## 'LEB': '../copiedBibles/English/LogosBibleSoftware/LEB/LEB.osis.xml', # OSIS
-                ## 'Wycl': '../copiedBibles/English/eBible.org/Wycliffe/',
+        ## 'LEB': '../copiedBibles/English/LogosBibleSoftware/LEB/LEB.osis.xml', # OSIS
+        ## 'Wycl': '../copiedBibles/English/eBible.org/Wycliffe/',
     BibleLocations = {
-                'OET-RV': '../../OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/',
-                'OET-LV': '../../OpenEnglishTranslation--OET/intermediateTexts/', # Only .pickle here
-                'OET-LV-OT': '../../OpenEnglishTranslation--OET/intermediateTexts/auto_edited_OT_ESFM/', # No NT here
-                'OET-LV-NT': '../../OpenEnglishTranslation--OET/intermediateTexts/auto_edited_VLT_ESFM/', # No OT here
-                'SR-GNT': '../../Forked/CNTR-SR/SR usfm/', # We moved these up in the list because they're now compulsory
-                'UHB': '../copiedBibles/Original/unfoldingWord.org/UHB/',
-                # NOTE: The program will still run if some of these below are commented out or removed
-                # (e.g., this can be done quickly for a faster test run)
-                'ULT': '../copiedBibles/English/unfoldingWord.org/ULT/',
-                'UST': '../copiedBibles/English/unfoldingWord.org/UST/',
-                'BSB': '../copiedBibles/English/Berean.Bible/BSB/',
-                'BLB': '../copiedBibles/English/Berean.Bible/BLB/blb.modified.txt', # NT only so far
-                # However, if they're all commented out, 'assert doneHideablesDiv' will fail in createParallelVersePages.py if not in test mode
-                'AICNT': '../copiedBibles/English/AICNT/', # NT only
-                'OEB': '../copiedBibles/English/OEB/',
-                # 'ISV': '',
-                'CSB': '../copiedBibles/English/CSB_verses.tsv',
-                'NLT': '../copiedBibles/English/NLT_verses.tsv',
-                'NIV': '../copiedBibles/English/NIV_verses.tsv',
-                'CEV': '../copiedBibles/English/CEV_verses.tsv',
-                'ESV': '../copiedBibles/English/ESV_verses.tsv',
-                'NASB': '../copiedBibles/English/NASB_verses.tsv',
-                'LSB': '../copiedBibles/English/LSB_verses.tsv',
-                'JQT': '../copiedBibles/English/JQT_verses.tsv',
-                '2DT': '../copiedBibles/English/2DT_verses.tsv',
-                '1ST': '../copiedBibles/English/1ST_verses.tsv',
-                'TPT': '../copiedBibles/English/TPT_verses.tsv',
-                'WEBBE': '../copiedBibles/English/eBible.org/WEBBE/', # British spelling
-                # 'WEB': '../copiedBibles/English/eBible.org/WEB/', # USA spelling
-                'WMBB': '../copiedBibles/English/eBible.org/WMBB/', # British spelling
-                # 'WMB': '../copiedBibles/English/eBible.org/WMB/', #USA spelling
-                'MSG': '../copiedBibles/English/MSG_verses.tsv',
-                'NET': '../copiedBibles/English/NET/' if TEST_MODE else '../copiedBibles/English/eBible.org/NET/',
-                'LSV': '../copiedBibles/English/eBible.org/LSV/',
-                'FBV': '../copiedBibles/English/eBible.org/FBV/',
-                'TCNT': '../copiedBibles/English/eBible.org/TCNT/',
-                'T4T': '../copiedBibles/English/eBible.org/T4T/',
-                'LEB': '../copiedBibles/English/LogosBibleSoftware/LEB/LEB.xml', # not OSIS
-                'NRSV': '../copiedBibles/English/NRSV_verses.tsv',
-                'NKJV': '../copiedBibles/English/NKJV_verses.tsv',
-                'NAB': '../copiedBibles/English/NAB_verses.tsv',
-                'BBE': '../copiedBibles/English/eBible.org/BBE/',
-                'Moff': '../copiedBibles/English/Moffat/',
-                'JPS': '../copiedBibles/English/eBible.org/JPS/',
-                'Wymth': '../Bibles/English/Weymouth_NT-1903/',
-                'ASV': '../copiedBibles/English/eBible.org/ASV/',
-                'DRA': '../copiedBibles/English/eBible.org/DRA/',
-                'YLT': '../copiedBibles/English/eBible.org/YLT/',
-                'Drby': '../copiedBibles/English/eBible.org/DBY/',
-                'RV': '../copiedBibles/English/eBible.org/RV/', # with deuterocanon
-                'Wbstr': '../copiedBibles/English/eBible.org/WBS/',
-                'KJB-1769': '../copiedBibles/English/eBible.org/KJB/', # with deuterocanon -- ALWAYS NEEDED if KJB-1611 and some others are included
-                'KJB-1611': '../Bibles/English/KJB-1611/', # with deuterocanon
-                'Bshps': '../copiedBibles/English/BibleSuperSearch/BB/bishops.txt',
-                'Gnva': '../copiedBibles/English/eBible.org/GNV/',
-                'Cvdl': '../copiedBibles/English/BibleSuperSearch/CB/coverdale.txt',
-                'TNT': '../copiedBibles/English/eBible.org/TNT/',
-                'Wycl': '../copiedBibles/English/Zefania/WYC/SF_2009-01-20_ENG_BIBLE_WYCLIFFE_(JOHN WYCLIFFE BIBLE).xml',
-                'Luth': '../copiedBibles/German/Zefania/LUT1545/SF_2009-01-20_GER_LUTH1545STR_(LUTHER 1545 MIT STRONGS).xml',
-                'ClVg': '../copiedBibles/Latin/eBible.org/CLV/',
-                'UGNT': '../copiedBibles/Original/unfoldingWord.org/UGNT/',
-                'SBL-GNT': '../../Forked/SBLGNT/data/sblgnt/text/',
-                'TC-GNT': '../copiedBibles/Greek/eBible.org/TC-GNT/',
-                'NETS': '../copiedBibles/English/NETS_verses.tsv',
-                'BrTr': '../copiedBibles/English/eBible.org/Brenton/', # with deuterocanon and OTH,XXA,XXB,XXC,
-                'BrLXX': '../copiedBibles/Greek/eBible.org/BrLXX/',
-                # NOTE: Dictionary and notes are special cases here at the end (skipped in many parts of the program)
-                'TOSN': '../copiedBibles/English/Tyndale/OSN/', # This one also loads TTN (Tyndale Theme Notes)
-                'UTN': '../copiedBibles/English/unfoldingWord.org/UTN/',
-                }
+        'OET-RV': '../../OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/',
+        'OET-LV': '../../OpenEnglishTranslation--OET/intermediateTexts/', # Only .pickle here
+        'OET-LV-OT': '../../OpenEnglishTranslation--OET/intermediateTexts/auto_edited_OT_ESFM/', # No NT here
+        'OET-LV-NT': '../../OpenEnglishTranslation--OET/intermediateTexts/auto_edited_VLT_ESFM/', # No OT here
+        'SR-GNT': '../../Forked/CNTR-SR/SR usfm/', # We moved these up in the list because they're now compulsory
+        'UHB': '../copiedBibles/Original/unfoldingWord.org/UHB/',
+        # NOTE: The program will still run if some of these below are commented out or removed
+        # (e.g., this can be done quickly for a faster test run)
+        'ULT': '../copiedBibles/English/unfoldingWord.org/ULT/',
+        'UST': '../copiedBibles/English/unfoldingWord.org/UST/',
+        'BSB': '../copiedBibles/English/Berean.Bible/BSB/',
+        'BLB': '../copiedBibles/English/Berean.Bible/BLB/blb.modified.txt', # NT only so far
+        # However, if they're all commented out, 'assert doneHideablesDiv' will fail in createParallelVersePages.py if not in test mode
+        'AICNT': '../copiedBibles/English/AICNT/', # NT only
+        'OEB': '../copiedBibles/English/OEB/',
+        # 'ISV': '', # Seems dead and gone :-(
+        'CSB': '../copiedBibles/English/CSB_verses.tsv',
+        'NLT': '../copiedBibles/English/NLT_verses.tsv',
+        'NIV': '../copiedBibles/English/NIV_verses.tsv',
+        'CEV': '../copiedBibles/English/CEV_verses.tsv',
+        'ESV': '../copiedBibles/English/ESV_verses.tsv',
+        'NASB': '../copiedBibles/English/NASB_verses.tsv',
+        'LSB': '../copiedBibles/English/LSB_verses.tsv',
+        'JQT': '../copiedBibles/English/JQT_verses.tsv',
+        '2DT': '../copiedBibles/English/2DT_verses.tsv',
+        '1ST': '../copiedBibles/English/1ST_verses.tsv',
+        'TPT': '../copiedBibles/English/TPT_verses.tsv',
+        'WEBBE': '../copiedBibles/English/eBible.org/WEBBE/', # British spelling  # 'WEB': '../copiedBibles/English/eBible.org/WEB/', # USA spelling
+        'WMBB': '../copiedBibles/English/eBible.org/WMBB/', # British spelling  # 'WMB': '../copiedBibles/English/eBible.org/WMB/', #USA spelling
+        'MSG': '../copiedBibles/English/MSG_verses.tsv',
+        'NET': '../copiedBibles/English/NET/' if TEST_MODE else '../copiedBibles/English/eBible.org/NET/',
+        'LSV': '../copiedBibles/English/eBible.org/LSV/',
+        'FBV': '../copiedBibles/English/eBible.org/FBV/',
+        'TCNT': '../copiedBibles/English/eBible.org/TCNT/',
+        'T4T': '../copiedBibles/English/eBible.org/T4T/',
+        'LEB': '../copiedBibles/English/LogosBibleSoftware/LEB/LEB.xml', # not OSIS
+        'NRSV': '../copiedBibles/English/NRSV_verses.tsv',
+        'NKJV': '../copiedBibles/English/NKJV_verses.tsv',
+        'NAB': '../copiedBibles/English/NAB_verses.tsv',
+        'BBE': '../copiedBibles/English/eBible.org/BBE/',
+        'Moff': '../copiedBibles/English/Moffat/',
+        'JPS': '../copiedBibles/English/eBible.org/JPS/',
+        'Wymth': '../Bibles/English/Weymouth_NT-1903/',
+        'ASV': '../copiedBibles/English/eBible.org/ASV/',
+        'DRA': '../copiedBibles/English/eBible.org/DRA/',
+        'YLT': '../copiedBibles/English/eBible.org/YLT/',
+        'Drby': '../copiedBibles/English/eBible.org/DBY/',
+        'RV': '../copiedBibles/English/eBible.org/RV/', # with deuterocanon
+        'Wbstr': '../copiedBibles/English/eBible.org/WBS/',
+        'KJB-1769': '../copiedBibles/English/eBible.org/KJB/', # with deuterocanon -- ALWAYS NEEDED if KJB-1611 and some others are included
+        'KJB-1611': '../Bibles/English/KJB-1611/', # with deuterocanon
+        'Bshps': '../copiedBibles/English/BibleSuperSearch/BB/bishops.txt',
+        'Gnva': '../copiedBibles/English/eBible.org/GNV/',
+        'Cvdl': '../copiedBibles/English/BibleSuperSearch/CB/coverdale.txt',
+        'TNT': '../copiedBibles/English/eBible.org/TNT/',
+        'Wycl': '../copiedBibles/English/Zefania/WYC/SF_2009-01-20_ENG_BIBLE_WYCLIFFE_(JOHN WYCLIFFE BIBLE).xml',
+        'Luth': '../copiedBibles/German/Zefania/LUT1545/SF_2009-01-20_GER_LUTH1545STR_(LUTHER 1545 MIT STRONGS).xml',
+        'ClVg': '../copiedBibles/Latin/eBible.org/CLV/',
+        'UGNT': '../copiedBibles/Original/unfoldingWord.org/UGNT/',
+        'SBL-GNT': '../../Forked/SBLGNT/data/sblgnt/text/',
+        'TC-GNT': '../copiedBibles/Greek/eBible.org/TC-GNT/',
+        'NETS': '../copiedBibles/English/NETS_verses.tsv',
+        'BrTr': '../copiedBibles/English/eBible.org/Brenton/', # with deuterocanon and OTH,XXA,XXB,XXC,
+        'BrLXX': '../copiedBibles/Greek/eBible.org/BrLXX/',
+        # NOTE: Dictionary and notes are special cases here at the end (skipped in many parts of the program)
+        'TOSN': '../copiedBibles/English/Tyndale/OSN/', # This one also loads TTN (Tyndale Theme Notes)
+        'UTN': '../copiedBibles/English/unfoldingWord.org/UTN/',
+        }
     WholeBibleVersions = ('LEB','Bshps','Cvdl','Wycl','Luth') # These versions get all books loaded -- no individual book files
 
     BibleNames = {
-                'OET': 'Open English Translation (2030)',
-                'OET-RV': 'Open English Translation—Readers’ Version (2030)',
-                'OET-LV': 'Open English Translation—Literal Version (2025)',
-                'ULT': 'unfoldingWord® Literal Text (2023)',
-                'UST': 'unfoldingWord® Simplified Text (2023)',
-                'BSB': 'Berean Study/Standard Bible (2020)',
-                'BLB': 'Berean Literal Bible NT (2022)',
-                'AICNT': 'AI Critical NT (2023)',
-                'OEB': 'Open English Bible (in progress)',
-                'ISV': 'International Standard Version (2020?)',
-                'CSB': 'Christian Standard Bible (2017)',
-                'NLT': 'New Living Translation (2015)',
-                'NIV': 'New International Version (2011)',
-                'CEV': 'Contemporary English Version (2006)',
-                'ESV': 'English Standard Version (2001)',
-                'NASB': 'New American Standard Bible (1995)',
-                'LSB': 'Legacy Standard Bible (2021)',
-                'JQT': 'James Quiggle Translation New Testament (2023)',
-                '2DT': 'The Second Testament (2023)',
-                '1ST': 'The First Testament (2018)',
-                'TPT': 'The Passion Translation (2017)',
-                'WEBBE': 'World English Bible (2023) British Edition',
-                'WEB': 'World English Bible (2023)',
-                'WMBB': 'World Messianic Bible (2023) British Edition / Hebrew Names Version (HNV)',
-                'WMB': 'World Messianic Bible (2023) / Hebrew Names Version (HNV)',
-                'MSG': 'The Message (2018)',
-                'NET': 'New English Translation (2016)',
-                'LSV': 'Literal Standard Version (2020)',
-                'FBV': 'Free Bible Version (2018)',
-                'TCNT': 'Text-Critical New Testament (2022, Byzantine)',
-                'T4T': 'Translation for Translators (2017)',
-                'LEB': 'Lexham English Bible (2010, 2012)',
-                'NRSV': 'New Revised Standard Version (1989)',
-                'NKJV': 'New King James Version (1982)',
-                'NAB': 'New American Bible (1970, revised 2010)',
-                'BBE': 'Bible in Basic English (1965)',
-                'Moff': 'The Moffatt Translation of the Bible (1922)',
-                'JPS': 'Jewish Publication Society TaNaKH (1917)',
-                'Wymth': 'Weymouth New Testament (1903)',
-                'ASV': 'American Standard Version (1901)',
-                'DRA': 'Douay-Rheims American Edition (1899)',
-                'YLT': 'Youngs Literal Translation (1898)',
-                'Drby': 'Darby Translation (1890)',
-                'RV': 'English Revised Version (1885)',
-                'Wbstr': 'Webster Bible (American, 1833)',
-                'KJB-1769': 'King James Bible (1769)',
-                'KJB-1611': 'King James Bible (1611)',
-                'Bshps': 'Bishops Bible (1568, 1602)',
-                'Gnva': 'Geneva Bible (1557-1560, 1599)',
-                'Great': 'Great Bible (1539)', # Not in OBD yet
-                'Cvdl': 'Coverdale Bible (1535-1553)',
-                'TNT': 'Tyndale New Testament (1526)',
-                'Wycl': 'Wycliffe Bible (middle-English, 1382)',
-                'Luth': 'Luther Bible (German, 1545)',
-                'ClVg': 'Clementine Vulgate (Latin, 1592)',
-                'SR-GNT': 'Statistical Restoration Greek New Testament (2022)',
-                'UGNT': 'unfoldingWord® Greek New Testament (2022)',
-                'SBL-GNT': 'Society for Biblical Literature Greek New Testament (2010)',
-                'TC-GNT': 'Text-Critical Greek New Testament (2010, Byzantine)',
-                'NETS': 'New English Translation of the Septuagint (2009,2014)',
-                'BrTr': 'Brenton Septuagint Translation (1851)',
-                'BrLXX': '(Brenton’s) Ancient Greek translation of the Hebrew Scriptures (~250 BC)',
-                'UHB': 'unfoldingWord® Hebrew Bible (2022)',
-                'TOSN': 'Tyndale Open Study Notes (2022)',
-                'TOBD': 'Tyndale Open Bible Dictionary (2023)',
-                'UTN': 'unfoldingWord® Translation Notes (2023)',
-                'UBS': 'United Bible Societies open-licenced resources (2023)',
-                'THBD': 'Theographic Bible Database',
-                'BMM': 'BibleMapper.com Maps',
-                }
+        'OET': 'Open English Translation (2030)',
+        'OET-RV': 'Open English Translation—Readers’ Version (2030)',
+        'OET-LV': 'Open English Translation—Literal Version (2025)',
+        'ULT': 'unfoldingWord® Literal Text (2023)',
+        'UST': 'unfoldingWord® Simplified Text (2023)',
+        'BSB': 'Berean Study/Standard Bible (2020)',
+        'BLB': 'Berean Literal Bible NT (2022)',
+        'AICNT': 'AI Critical NT (2023)',
+        'OEB': 'Open English Bible (in progress)',
+        'ISV': 'International Standard Version (2020?)',
+        'CSB': 'Christian Standard Bible (2017)',
+        'NLT': 'New Living Translation (2015)',
+        'NIV': 'New International Version (2011)',
+        'CEV': 'Contemporary English Version (2006)',
+        'ESV': 'English Standard Version (2001)',
+        'NASB': 'New American Standard Bible (1995)',
+        'LSB': 'Legacy Standard Bible (2021)',
+        'JQT': 'James Quiggle Translation New Testament (2023)',
+        '2DT': 'The Second Testament (2023)',
+        '1ST': 'The First Testament (2018)',
+        'TPT': 'The Passion Translation (2017)',
+        'WEBBE': 'World English Bible (2023) British Edition',
+        'WEB': 'World English Bible (2023)',
+        'WMBB': 'World Messianic Bible (2023) British Edition / Hebrew Names Version (HNV)',
+        'WMB': 'World Messianic Bible (2023) / Hebrew Names Version (HNV)',
+        'MSG': 'The Message (2018)',
+        'NET': 'New English Translation (2016)',
+        'LSV': 'Literal Standard Version (2020)',
+        'FBV': 'Free Bible Version (2018)',
+        'TCNT': 'Text-Critical New Testament (2022, Byzantine)',
+        'T4T': 'Translation for Translators (2017)',
+        'LEB': 'Lexham English Bible (2010, 2012)',
+        'NRSV': 'New Revised Standard Version (1989)',
+        'NKJV': 'New King James Version (1982)',
+        'NAB': 'New American Bible (1970, revised 2010)',
+        'BBE': 'Bible in Basic English (1965)',
+        'Moff': 'The Moffatt Translation of the Bible (1922)',
+        'JPS': 'Jewish Publication Society TaNaKH (1917)',
+        'Wymth': 'Weymouth New Testament (1903)',
+        'ASV': 'American Standard Version (1901)',
+        'DRA': 'Douay-Rheims American Edition (1899)',
+        'YLT': 'Youngs Literal Translation (1898)',
+        'Drby': 'Darby Translation (1890)',
+        'RV': 'English Revised Version (1885)',
+        'Wbstr': 'Webster Bible (American, 1833)',
+        'KJB-1769': 'King James Bible (1769)',
+        'KJB-1611': 'King James Bible (1611)',
+        'Bshps': 'Bishops Bible (1568, 1602)',
+        'Gnva': 'Geneva Bible (1557-1560, 1599)',
+        'Great': 'Great Bible (1539)', # Not in OBD yet
+        'Cvdl': 'Coverdale Bible (1535-1553)',
+        'TNT': 'Tyndale New Testament (1526)',
+        'Wycl': 'Wycliffe Bible (middle-English, 1382)',
+        'Luth': 'Luther Bible (German, 1545)',
+        'ClVg': 'Clementine Vulgate (Latin, 1592)',
+        'SR-GNT': 'Statistical Restoration Greek New Testament (2022)',
+        'UGNT': 'unfoldingWord® Greek New Testament (2022)',
+        'SBL-GNT': 'Society for Biblical Literature Greek New Testament (2010)',
+        'TC-GNT': 'Text-Critical Greek New Testament (2010, Byzantine)',
+        'NETS': 'New English Translation of the Septuagint (2009,2014)',
+        'BrTr': 'Brenton Septuagint Translation (1851)',
+        'BrLXX': '(Brenton’s) Ancient Greek translation of the Hebrew Scriptures (~250 BC)',
+        'UHB': 'unfoldingWord® Hebrew Bible (2022)',
+        'TOSN': 'Tyndale Open Study Notes (2022)',
+        'TOBD': 'Tyndale Open Bible Dictionary (2023)',
+        'UTN': 'unfoldingWord® Translation Notes (2023)',
+        'UBS': 'United Bible Societies open-licenced resources (2023)',
+        'THBD': 'Theographic Bible Database',
+        'BMM': 'BibleMapper.com Maps',
+        }
 
     booksToLoad = {
-                'OET': OET_RV_BOOK_LIST_WITH_FRT,
-                'OET-RV': ['ALL'], # Load ALL coz we use related sections anyway OET_RV_BOOK_LIST_WITH_FRT,
-                'OET-LV': OET_LV_BOOK_LIST,
-                'ULT': ['ALL'],
-                'UST': ['ALL'], # MRK 13:13 gives \\add error (24Jan2023)
-                'BSB': ['ALL'],
-                'BLB': ['ALL'], # NT only
-                'AICNT': ['ALL'], # NT only
-                'OEB': ['ALL'],
-                'ISV': ['ALL'],
-                'CSB': ['ALL'],
-                'NLT': ['ALL'],
-                'NIV': ['ALL'],
-                'CEV': ['ALL'],
-                'ESV': ['ALL'],
-                'NASB': ['ALL'],
-                'LSB': ['ALL'],
-                'JQT': ['ALL'],
-                '2DT': ['ALL'],
-                '1ST': ['ALL'],
-                'TPT': ['ALL'],
-                'WEBBE': ['ALL'],
-                'WEB': ['ALL'],
-                'WMBB': ['ALL'],
-                'WMB': ['ALL'],
-                'MSG': ['ALL'],
-                'NET': ['ALL'],
-                'LSV': ['ALL'],
-                'FBV': ['ALL'],
-                'TCNT': ['ALL'],
-                'T4T': ['ALL'],
-                'LEB': ['ALL'],
-                'NRSV': ['ALL'],
-                'NKJV': ['ALL'],
-                'NAB': ['ALL'],
-                'BBE': ['ALL'],
-                'Moff': ['ALL'],
-                'JPS': ['ALL'],
-                'Wymth':['ALL'], # NT only
-                'ASV': ['ALL'],
-                'DRA': ['ALL'],
-                'YLT': ['ALL'],
-                'Drby': ['ALL'],
-                'RV': ['ALL'],
-                'Wbstr': ['ALL'],
-                'KJB-1769': ['ALL'],
-                'KJB-1611': ['ALL'],
-                'Bshps': ['ALL'],
-                'Gnva': ['ALL'],
-                'Cvdl': ['ALL'],
-                'TNT': ['ALL'],
-                'Wycl': ['ALL'],
-                'Luth': ['ALL'],
-                'ClVg': ['ALL'],
-                'SR-GNT': ['ALL'],
-                'UGNT': ['ALL'],
-                'SBL-GNT': ['ALL'],
-                'TC-GNT': ['ALL'],
-                'NETS': ['ALL'],
-                'BrTr': ['ALL'],
-                'BrLXX': ['ALL'],
-                'UHB': ['ALL'],
-                # NOTES:
-                'TOSN': ['ALL'],
-                'UTN': ['ALL'],
-            } if ALL_PRODUCTION_BOOKS else {
-                'OET': ['FRT'] + TEST_BOOK_LIST,
-                'OET-RV': ['ALL'], # Load ALL coz we use related sections anyway ['FRT'] + TEST_BOOK_LIST,
-                'OET-LV': TEST_BOOK_LIST,
-                'ULT': ['FRT'] + TEST_BOOK_LIST,
-                'UST': TEST_BOOK_LIST, # Has no FRT for some reason
-                'BSB': TEST_BOOK_LIST,
-                'BLB': TEST_NT_BOOK_LIST, # NT only
-                'AICNT': TEST_NT_BOOK_LIST, # NT only
-                'OEB': TEST_BOOK_LIST,
-                'ISV': TEST_BOOK_LIST,
-                'CSB': TEST_BOOK_LIST,
-                'NLT': TEST_BOOK_LIST,
-                'NIV': TEST_BOOK_LIST,
-                'CEV': TEST_BOOK_LIST,
-                'ESV': TEST_BOOK_LIST,
-                'NASB': TEST_BOOK_LIST,
-                'LSB': TEST_BOOK_LIST,
-                'JQT': TEST_BOOK_LIST,
-                '2DT': TEST_BOOK_LIST,
-                '1ST': TEST_BOOK_LIST,
-                'TPT': TEST_BOOK_LIST,
-                'WEBBE': TEST_BOOK_LIST,
-                'WEB': TEST_BOOK_LIST,
-                'WMBB': TEST_BOOK_LIST,
-                'WMB': TEST_BOOK_LIST,
-                'MSG': TEST_BOOK_LIST,
-                'NET': TEST_BOOK_LIST,
-                'LSV': TEST_BOOK_LIST,
-                'FBV': TEST_BOOK_LIST,
-                'TCNT': TEST_NT_BOOK_LIST, # NT only
-                'T4T': TEST_BOOK_LIST,
-                'LEB': TEST_BOOK_LIST,
-                'NRSV': TEST_BOOK_LIST,
-                'NKJV': TEST_BOOK_LIST,
-                'NAB': TEST_BOOK_LIST,
-                'BBE': TEST_BOOK_LIST,
-                'Moff': TEST_BOOK_LIST,
-                'JPS': TEST_OT_BOOK_LIST,
-                'Wymth': TEST_NT_BOOK_LIST, # NT only
-                'ASV': TEST_BOOK_LIST,
-                'DRA': TEST_BOOK_LIST,
-                'YLT': TEST_BOOK_LIST,
-                'Drby': TEST_BOOK_LIST,
-                'RV': TEST_BOOK_LIST,
-                'Wbstr': TEST_BOOK_LIST,
-                'KJB-1769': TEST_BOOK_LIST,
-                'KJB-1611': ['FRT'] + TEST_BOOK_LIST,
-                'Bshps': TEST_BOOK_LIST,
-                'Gnva': TEST_BOOK_LIST,
-                'Cvdl': TEST_BOOK_LIST,
-                'TNT': TEST_NT_BOOK_LIST, # NT only
-                'Wycl': TEST_BOOK_LIST,
-                'Luth': TEST_BOOK_LIST,
-                'ClVg': TEST_BOOK_LIST,
-                'SR-GNT': TEST_NT_BOOK_LIST, # NT only
-                'UGNT': TEST_NT_BOOK_LIST, # NT only
-                'SBL-GNT': TEST_NT_BOOK_LIST, # NT only
-                'TC-GNT': TEST_NT_BOOK_LIST, # NT only
-                'NETS': TEST_OT_BOOK_LIST, # OT only
-                'BrTr': TEST_OT_BOOK_LIST, # OT only
-                'BrLXX': TEST_OT_BOOK_LIST, # OT only
-                'UHB': TEST_OT_BOOK_LIST, # OT only
-                # NOTES:
-                'TOSN': TEST_BOOK_LIST,
-                'UTN': TEST_BOOK_LIST,
-            }
+        'OET': OET_RV_BOOK_LIST_WITH_FRT,
+        'OET-RV': ['ALL'], # Load ALL coz we use related sections anyway OET_RV_BOOK_LIST_WITH_FRT,
+        'OET-LV': OET_LV_BOOK_LIST,
+        'ULT': ['ALL'],
+        'UST': ['ALL'], # MRK 13:13 gives \\add error (24Jan2023)
+        'BSB': ['ALL'],
+        'BLB': ['ALL'], # NT only
+        'AICNT': ['ALL'], # NT only
+        'OEB': ['ALL'],
+        'ISV': ['ALL'],
+        'CSB': ['ALL'],
+        'NLT': ['ALL'],
+        'NIV': ['ALL'],
+        'CEV': ['ALL'],
+        'ESV': ['ALL'],
+        'NASB': ['ALL'],
+        'LSB': ['ALL'],
+        'JQT': ['ALL'],
+        '2DT': ['ALL'],
+        '1ST': ['ALL'],
+        'TPT': ['ALL'],
+        'WEBBE': ['ALL'],
+        'WEB': ['ALL'],
+        'WMBB': ['ALL'],
+        'WMB': ['ALL'],
+        'MSG': ['ALL'],
+        'NET': ['ALL'],
+        'LSV': ['ALL'],
+        'FBV': ['ALL'],
+        'TCNT': ['ALL'],
+        'T4T': ['ALL'],
+        'LEB': ['ALL'],
+        'NRSV': ['ALL'],
+        'NKJV': ['ALL'],
+        'NAB': ['ALL'],
+        'BBE': ['ALL'],
+        'Moff': ['ALL'],
+        'JPS': ['ALL'],
+        'Wymth':['ALL'], # NT only
+        'ASV': ['ALL'],
+        'DRA': ['ALL'],
+        'YLT': ['ALL'],
+        'Drby': ['ALL'],
+        'RV': ['ALL'],
+        'Wbstr': ['ALL'],
+        'KJB-1769': ['ALL'],
+        'KJB-1611': ['ALL'],
+        'Bshps': ['ALL'],
+        'Gnva': ['ALL'],
+        'Cvdl': ['ALL'],
+        'TNT': ['ALL'],
+        'Wycl': ['ALL'],
+        'Luth': ['ALL'],
+        'ClVg': ['ALL'],
+        'SR-GNT': ['ALL'],
+        'UGNT': ['ALL'],
+        'SBL-GNT': ['ALL'],
+        'TC-GNT': ['ALL'],
+        'NETS': ['ALL'],
+        'BrTr': ['ALL'],
+        'BrLXX': ['ALL'],
+        'UHB': ['ALL'],
+        # NOTES:
+        'TOSN': ['ALL'],
+        'UTN': ['ALL'],
+    } if ALL_PRODUCTION_BOOKS else {
+        'OET': ['FRT'] + TEST_BOOK_LIST,
+        'OET-RV': ['ALL'], # Load ALL coz we use related sections anyway ['FRT'] + TEST_BOOK_LIST,
+        'OET-LV': TEST_BOOK_LIST,
+        'ULT': ['FRT'] + TEST_BOOK_LIST,
+        'UST': TEST_BOOK_LIST, # Has no FRT for some reason
+        'BSB': TEST_BOOK_LIST,
+        'BLB': TEST_NT_BOOK_LIST, # NT only
+        'AICNT': TEST_NT_BOOK_LIST, # NT only
+        'OEB': TEST_BOOK_LIST,
+        'ISV': TEST_BOOK_LIST,
+        'CSB': TEST_BOOK_LIST,
+        'NLT': TEST_BOOK_LIST,
+        'NIV': TEST_BOOK_LIST,
+        'CEV': TEST_BOOK_LIST,
+        'ESV': TEST_BOOK_LIST,
+        'NASB': TEST_BOOK_LIST,
+        'LSB': TEST_BOOK_LIST,
+        'JQT': TEST_BOOK_LIST,
+        '2DT': TEST_BOOK_LIST,
+        '1ST': TEST_BOOK_LIST,
+        'TPT': TEST_BOOK_LIST,
+        'WEBBE': TEST_BOOK_LIST,
+        'WEB': TEST_BOOK_LIST,
+        'WMBB': TEST_BOOK_LIST,
+        'WMB': TEST_BOOK_LIST,
+        'MSG': TEST_BOOK_LIST,
+        'NET': TEST_BOOK_LIST,
+        'LSV': TEST_BOOK_LIST,
+        'FBV': TEST_BOOK_LIST,
+        'TCNT': TEST_NT_BOOK_LIST, # NT only
+        'T4T': TEST_BOOK_LIST,
+        'LEB': TEST_BOOK_LIST,
+        'NRSV': TEST_BOOK_LIST,
+        'NKJV': TEST_BOOK_LIST,
+        'NAB': TEST_BOOK_LIST,
+        'BBE': TEST_BOOK_LIST,
+        'Moff': TEST_BOOK_LIST,
+        'JPS': TEST_OT_BOOK_LIST,
+        'Wymth': TEST_NT_BOOK_LIST, # NT only
+        'ASV': TEST_BOOK_LIST,
+        'DRA': TEST_BOOK_LIST,
+        'YLT': TEST_BOOK_LIST,
+        'Drby': TEST_BOOK_LIST,
+        'RV': TEST_BOOK_LIST,
+        'Wbstr': TEST_BOOK_LIST,
+        'KJB-1769': TEST_BOOK_LIST,
+        'KJB-1611': ['FRT'] + TEST_BOOK_LIST,
+        'Bshps': TEST_BOOK_LIST,
+        'Gnva': TEST_BOOK_LIST,
+        'Cvdl': TEST_BOOK_LIST,
+        'TNT': TEST_NT_BOOK_LIST, # NT only
+        'Wycl': TEST_BOOK_LIST,
+        'Luth': TEST_BOOK_LIST,
+        'ClVg': TEST_BOOK_LIST,
+        'SR-GNT': TEST_NT_BOOK_LIST, # NT only
+        'UGNT': TEST_NT_BOOK_LIST, # NT only
+        'SBL-GNT': TEST_NT_BOOK_LIST, # NT only
+        'TC-GNT': TEST_NT_BOOK_LIST, # NT only
+        'NETS': TEST_OT_BOOK_LIST, # OT only
+        'BrTr': TEST_OT_BOOK_LIST, # OT only
+        'BrLXX': TEST_OT_BOOK_LIST, # OT only
+        'UHB': TEST_OT_BOOK_LIST, # OT only
+        # NOTES:
+        'TOSN': TEST_BOOK_LIST,
+        'UTN': TEST_BOOK_LIST,
+        }
 
     detailsHtml = {
         'OET': {'about': f'''<p class="about">The (still unfinished) <em>Open English Translation</em> ({OET_VERSION}) consists of a <em>Readers’ Version</em> and a <em>Literal Version</em> side-by-side.

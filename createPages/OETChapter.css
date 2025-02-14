@@ -10,7 +10,7 @@ p.site {}
 p.copyright {}
 p.note {}
 
-div.RVLVcontainer { display:grid; column-gap:0.6em; grid-template-columns:0.85fr 1.15fr; }
+div.RVLVcontainer { display:grid; column-gap:0.6em; grid-template-columns:0.50fr 0.50fr; }
 div.chunkRV {}
 div.chunkLV { font-size:0.9em; }
 div.buttons {}

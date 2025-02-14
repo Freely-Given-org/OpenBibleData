@@ -40,7 +40,8 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 import BibleOrgSys.Formats.ESFMBible as ESFMBible
 from BibleOrgSys.Internals.InternalBibleInternals import InternalBibleEntryList, getLeadingInt
 
-from settings import State, TEST_MODE, reorderBooksForOETVersions, OET_UNFINISHED_WARNING_HTML_PARAGRAPH, JAMES_NOTE_HTML_PARAGRAPH
+from settings import State, TEST_MODE, OET_RV_BOOK_LIST, reorderBooksForOETVersions, \
+                        OET_UNFINISHED_WARNING_HTML_PARAGRAPH, JAMES_NOTE_HTML_PARAGRAPH
 from usfm import convertUSFMMarkerListToHtml
 from Bibles import getVerseDataListForReference
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
@@ -50,10 +51,10 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
 from OETHandlers import livenOETWordLinks, getOETTidyBBB, getOETBookName, getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2025-02-05' # by RJH
+LAST_MODIFIED_DATE = '2025-02-10' # by RJH
 SHORT_PROGRAM_NAME = "createParallelPassagePages"
 PROGRAM_NAME = "OpenBibleData createParallelPassagePages functions"
-PROGRAM_VERSION = '0.33'
+PROGRAM_VERSION = '0.34'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -84,7 +85,7 @@ def createParallelPassagePages( level:int, folder:Path, state:State ) -> bool:
     availableRelatedBBBs = []
     availableRelatedBBBLinks = []
     rvBible = state.preloadedBibles['OET-RV']
-    for BBB in reorderBooksForOETVersions( state.allBBBs ):
+    for BBB in reorderBooksForOETVersions( OET_RV_BOOK_LIST ): #state.allBBBs ):
         try:
             _numBBBSections = len( rvBible[BBB]._SectionIndex )
         except KeyError:
@@ -106,7 +107,7 @@ def createParallelPassagePages( level:int, folder:Path, state:State ) -> bool:
             ourTidyBBB = getOETTidyBBB( BBB )
             availableRelatedBBBLinks.append( f'''<a title="{getOETBookName(BBB)}" href="{BBB}/">{ourTidyBBB}</a>''' )
     # Now create the actual section-reference pages
-    for BBB in reorderBooksForOETVersions( state.allBBBs ):
+    for BBB in reorderBooksForOETVersions( OET_RV_BOOK_LIST ): #state.allBBBs ):
         if BBB in availableRelatedBBBs:
             createSectionCrossReferencePagesForBook( level, folder, rvBible, BBB, availableRelatedBBBLinks, state )
 

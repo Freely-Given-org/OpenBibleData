@@ -6,7 +6,7 @@ p.site {}
 p.copyright {}
 p.note {}
 
-div.RVLVcontainer { display:grid; column-gap:0.8em; grid-template-columns:1.0fr 1.0fr; }
+div.RVLVcontainer { display:grid; column-gap:0.8em; grid-template-columns:0.50fr 0.50fr; }
 div.chunkRV {}
 div.chunkLV { font-size:0.9em; }
 div.buttons {}

@@ -117,6 +117,7 @@ unclearClarityRefs = [ # Mostly sure what's in the Hebrew or Greek, but not sure
         'JOB_39:13b',
         'JOB_40:13b', 'JOB_40:19', 'JOB_40:24a',
         'JOB_41:9', 'JOB_41:11',
+    'DAN_8:12','DAN_8:13a',
     'OBA_1:16',
     ]
 textualCriticismRefs = [ # Hebrew or Greek original manuscripts vary

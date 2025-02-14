@@ -96,7 +96,7 @@ from OETHandlers import findLVQuote, getBBBFromOETBookName
 from Dict import loadAndIndexUBSGreekDictJSON, loadAndIndexUBSHebrewDictJSON
 
 
-LAST_MODIFIED_DATE = '2025-02-05' # by RJH
+LAST_MODIFIED_DATE = '2025-02-10' # by RJH
 SHORT_PROGRAM_NAME = "Bibles"
 PROGRAM_NAME = "OpenBibleData Bibles handler"
 PROGRAM_VERSION = '0.84'
@@ -120,7 +120,7 @@ def preloadVersions( state:State ) -> int:
     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"{datetime.now().strftime('%H:%M')} Preloading {state.BibleVersions}{' in TEST mode' if TEST_MODE else ''}…" )
 
     for versionAbbreviation in state.BibleVersions[:]: # copy because we'll be deleting some entries as we go
-        if TEST_MODE and TEST_VERSIONS_ONLY and versionAbbreviation not in TEST_VERSIONS_ONLY:
+        if TEST_VERSIONS_ONLY and versionAbbreviation not in TEST_VERSIONS_ONLY:
             continue # Skip this version not desired for this test
 
         if versionAbbreviation == 'OET':
@@ -1114,7 +1114,7 @@ def loadSelectedVersesFile( fileLocation, givenName:str, givenAbbreviation:str, 
             else:
                 ref,verseText = line.split( '\t' )
                 assert ref.strip() == ref
-                assert verseText.strip() == verseText, f"{givenAbbreviation} {j} {ref=} '{verseText[:6]}…{verseText[-6:]}'"
+                assert verseText.strip() == verseText, f"Unexpected leading or trailing space in {givenAbbreviation} {j} {ref=} '{verseText[:6]}…{verseText[-6:]}'"
                 BBB, CV = ref.split( '_' )
                 C, V = CV.split( ':' )
                 ourRef = (BBB,C,V)
@@ -1273,7 +1273,7 @@ def getVerseDataListForReference( givenRefString:str, thisBible:Bible, lastBBB:O
                     for refC in range( int(refStartC)+1, int(refFinalC)+1 ):
                         verseEntryList += thisBible.getVerseDataList( (refBBB,str(refC)) )
                 else: noColon2b
-            else: # no comma, hyphen or en-dash
+            else: # no comma, hyphen or en-dash, so presumably just a single verse
                 if ':' in refCVpart:
                     refStartC, refVpart = refCVpart.split( ':' )
                     assert refStartC.isdigit()
@@ -1284,6 +1284,7 @@ def getVerseDataListForReference( givenRefString:str, thisBible:Bible, lastBBB:O
                     assert refStartV.isdigit()
                     verseEntryList, contextList = thisBible.getContextVerseData( (refBBB,refStartC,refStartV) )
                 else: # not a single chapter book, and has no colon
+                    print( f"{thisBible.abbreviation} {givenRefString=} {bookAbbreviation=} {refBBB=} {refCVpart=} {refIsSingleChapterBook=} {lastBBB=} {lastC=}" )
                     noColon3b
     except KeyError: # if can't find any verseEntries
         logging.error( f"getVerseDataListForReference {givenRefString=} was unable to find {refBBB} {refStartC}:{refStartV} from {givenRefString=}" )

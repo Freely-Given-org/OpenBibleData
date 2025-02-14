@@ -94,7 +94,7 @@ NON_BREAK_SPACE = ' ' # NBSP
 MAX_FOOTNOTE_CHARS = 11_500 # 1,029 in FBV, 1,688 in BrTr, 10,426 in ClVg JOB!
 MAX_NET_FOOTNOTE_CHARS = 18_000 # 17,145 in NET ECC
 
-BCVRefRegEx = re.compile( '([1-3]? ?[A-Z][a-z]{0,3}) ([1-9][0-9]{0,2})[:–]([1-9][0-9]{0,2})' ) # Can have en-dash for chapter range
+BCVRefRegEx = re.compile( '([1-3]? ?[A-Z][a-z]{0,12}) ([1-9][0-9]{0,2})[:–]([1-9][0-9]{0,2})' ) # Can have en-dash for chapter range
 CVRefRegEx = re.compile( '([1-9][0-9]{0,2}):([1-9][0-9]{0,2})' )
 XRefRegEx = re.compile( '\\\\x .+?\\\\x\\*' )
 spanClassRegEx = re.compile( '<span class=".+?">' )
@@ -969,7 +969,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                     # print( f"                       Changed {xB} {xC}–{xV} to {xC}:1")
                     xV = '1' # (rather than thinking the second chapter of the range is the verse number)
                 xB = xB.lstrip() # For books without a book number like 1 Cor, the regex may capture an extra space before the book abbreviation
-                assert ' ' not in xB, f"{match.groups()}"
+                # assert ' ' not in xB, f"{match.groups()}" # False for '2 Kings'
                 xBBB = getBBBFromOETBookName( xB )
             lastXBBB = xBBB
             dPrint( 'Info', DEBUGGING_THIS_MODULE, f"Got {refTuple} {match.groups()=} from {xrefLiveMiddle=}" )
@@ -988,7 +988,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                 pass # Reached end of string
 
             if xBBB:
-                assert int(xC) <= BibleOrgSysGlobals.loadedBibleBooksCodes.getMaxChapters( xBBB ), f"{match.groups()}"
+                assert int(xC) <= BibleOrgSysGlobals.loadedBibleBooksCodes.getMaxChapters( xBBB ), f"Bad xref {xBBB} {match.groups()} from {versionAbbreviation} {refTuple} {segmentType}"
             else:
                 dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"convertUSFMMarkerListToHtml( {versionAbbreviation} {refTuple} '{segmentType}' {contextList} {len(markerList)} )" )
                 logging.critical( f"Failed to find xref book from '{xB}' from '{xrefOriginalMiddle}' in {match.groups()} for {versionAbbreviation} {segmentType} {basicOnly=} {refTuple}")

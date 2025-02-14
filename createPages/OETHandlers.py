@@ -129,10 +129,18 @@ def getOETBookName( BBB:str ) -> str:
 def getBBBFromOETBookName( booknameText:str ) -> str:
     """
     """
+    if booknameText == '1Yhn': return 'JN1'
+    if booknameText == '2Yhn': return 'JN2'
+    if booknameText == '3Yhn': return 'JN3'
+    if booknameText == 'Yochanan': return 'JHN'
+    if booknameText == 'Yonah': return 'JNA'
+    if booknameText == 'Yob': return 'JOB'
+    if booknameText == 'Yoel': return 'JOL'
     return BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromText(
                 booknameText.rstrip( '.' ) # Remove any final period TODO: Should BibleOrgSys do that?
-                    .replace( 'Yob', 'Job' ).replace( 'Yoel', 'Joel' )
-                    .replace( 'Yhn', 'Jn' ).replace( 'Yud', 'Jud' )
+                    # .replace( 'Yob', 'JOB' ).replace( 'Yochanan', 'JHN' ).replace( 'Yoel', 'JOL' ).replace( 'Yonah', 'JNA' )
+                    .replace( 'Yhn', 'JHN' ).replace( 'Yud', 'JDE' )
+                    # .replace( '1Yhn', 'JN1' ).replace( '2Yhn', 'JN2' ).replace( '3Yhn', 'JN3' )
                 )
 # end of OETHandlers.getOETBookName
 

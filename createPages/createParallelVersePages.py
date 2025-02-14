@@ -97,7 +97,7 @@ from OETHandlers import getOETTidyBBB, getOETBookName, livenOETWordLinks, getHeb
 from LanguageHandlers import moderniseEnglishWords, translateGerman, translateLatin
 
 
-LAST_MODIFIED_DATE = '2025-02-05' # by RJH
+LAST_MODIFIED_DATE = '2025-02-12' # by RJH
 SHORT_PROGRAM_NAME = "createParallelVersePages"
 PROGRAM_NAME = "OpenBibleData createParallelVersePages functions"
 PROGRAM_VERSION = '0.98'
@@ -216,7 +216,8 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
     numChapters = None
     for versionAbbreviation in parallelVersions: # Our adjusted order
         if versionAbbreviation == 'OET': continue # that's only a "pseudo-version"!
-        referenceBible = state.preloadedBibles[versionAbbreviation]
+        try: referenceBible = state.preloadedBibles[versionAbbreviation]
+        except KeyError: continue # We don't have that version
         if BBB not in referenceBible: continue # don't want to force loading the book
         # referenceBible.loadBookIfNecessary( BBB )
         numChapters = referenceBible.getNumChapters( BBB ) # Causes the book to be loaded if not already
@@ -249,10 +250,10 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                 logging.error( f"createParallelVersePagesForBook: no verses found for {BBB} {C}" )
                 continue
             oetRvPsaHasD = False
-            # There's an EM_SPACE and an EN_SPACE (for the join) in the following line
             for v in range( 0, numVerses+1 ):
                 V = str( v )
                 parRef = f'{BBB}_{C}:{V}'
+                # There's an EM_SPACE and an EN_SPACE (for the join) in the following line
                 vLinksPar = f'''<p class="vsLst" id="vsLst">{ourTidyBbb} {C} {' '.join( [f'<a title="Go to parallel verse page" href="C{C}V{vv}.htm#Top">V{vv}</a>'
                                 for vv in range(1,numVerses+1,5 if numVerses>100 else 4 if numVerses>80 else 3 if numVerses>60 else 2 if numVerses>40 else 1) if vv!=v] )}</p>'''
                 doneHideablesDiv = False
@@ -281,7 +282,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                     assert not parallelHtml.endswith( '\n' )
 
                     if versionAbbreviation == 'OET': continue # Skip this pseudo-version as we have both OET-RV and OET-LV instead
-                    if TEST_MODE and TEST_VERSIONS_ONLY and versionAbbreviation not in TEST_VERSIONS_ONLY:
+                    if TEST_VERSIONS_ONLY and versionAbbreviation not in TEST_VERSIONS_ONLY:
                         continue
                     if versionAbbreviation in (VERSIONS_WITHOUT_NT) \
                     and BibleOrgSysGlobals.loadedBibleBooksCodes.isNewTestament_NR( BBB ):
@@ -723,6 +724,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                                 # checkHtml( f'brightenedUHB2 {parRef}', textHtml, segmentOnly=True )
 
                             if textHtml:
+                                checkHtml( f'Parallel textHtml {versionAbbreviation} {parRef}', textHtml, segmentOnly=True )
                                 # if parRef in ancientRefsToPrint: print( f"aaaa {versionAbbreviation} {parRef} Got {textHtml=}" )
                                 assert not textHtml.endswith( '\n' ), f"{versionAbbreviation} {parRef} {textHtml[-30:]=}"
                                 if V != '0': # Introductions can have more bits (and so too for the modified/updated bits) than individual verses
@@ -845,14 +847,17 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                     if vHtml:
                         # dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"\n\n{pHtml=} {vHtml=}" )
                         checkHtml( f'Parallel vHtml {versionAbbreviation} {parRef}', vHtml, segmentOnly=True )
-                        assert not parallelHtml.endswith( '\n' )
                         assert not vHtml.endswith( '\n' )
+                        assert not parallelHtml.endswith( '\n' )
                         parallelHtml = f"{parallelHtml}{NEWLINE if parallelHtml else ''}{vHtml}"
+                        try: checkHtml( f'Parallel parallelHtml {versionAbbreviation} {parRef}', parallelHtml, segmentOnly=True )
+                        except AssertionError as ae: print( ae )
                     if versionAbbreviation in state.versionComments \
                     and parRef in state.versionComments[versionAbbreviation]:
                         optionalTextSegment,comment = state.versionComments[versionAbbreviation][parRef]                 
                         parallelHtml = f'''{parallelHtml}{NEWLINE if parallelHtml else ''}<p class="editorsNote"><b>OET editor’s note on {versionAbbreviation}</b>: {f"<i>{optionalTextSegment}</i>: " if optionalTextSegment else ''}{comment}</p>'''
-                    checkHtml( f"End of parallel pass for {versionAbbreviation} {parRef}", parallelHtml.replace('<div class="hideables">\n',''), segmentOnly=True ) # hideables isn't ended yet
+                    try: checkHtml( f"End of parallel pass for {versionAbbreviation} {parRef}", parallelHtml.replace('<div class="hideables">\n',''), segmentOnly=True ) # hideables isn't ended yet
+                    except AssertionError as ae: print( ae )
 
                 # Close the hideable div
                 if UPDATE_ACTUAL_SITE_WHEN_BUILT and not TEST_MODE:

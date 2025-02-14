@@ -62,7 +62,7 @@ CHANGELOG:
     2025-01-10 Added container class to html body tag
     2025-01-15 Improved check to find newlines inside HTML title attributes
     2025-01-30 Put added ‘owner’ in quotes in HTML title field
-    2025-02-02 Make book selection display chapter list selector (not just 1:1#Top)
+    2025-02-02 Make book selection jump to chapter list selector (not just 1:1#Top)
 """
 # from gettext import gettext as _
 from typing import Dict, List, Tuple, Optional, Union
@@ -79,7 +79,7 @@ from settings import State, TEST_MODE, TEST_VERSIONS_ONLY, SITE_NAME
 from OETHandlers import getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2025-02-05' # by RJH
+LAST_MODIFIED_DATE = '2025-02-13' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
 PROGRAM_VERSION = '0.92'
@@ -189,7 +189,7 @@ def _makeNavigationLinks( level:int, versionAbbreviation:Optional[str], pageType
             continue
         if loopVersionAbbreviation in state.versionsWithoutTheirOwnPages: # Skip versions without their own pages
             continue
-        if TEST_MODE and TEST_VERSIONS_ONLY and loopVersionAbbreviation not in TEST_VERSIONS_ONLY:
+        if TEST_VERSIONS_ONLY and loopVersionAbbreviation not in TEST_VERSIONS_ONLY:
             continue
         if pageType in ('section','section'):
             try:
@@ -314,6 +314,8 @@ def makeBookNavListParagraph( linksList:List[str], workAbbrevPlus:str, state:Sta
         preceded by the work abbreviation (non-link) if specified.
 
     linksList contains links like '<a title="Generic front matter" href="FRT.htm#Top">FRT</a>', '<a title="Jonah" href="JNA.htm#Top">JNA</a>', '<a title="Mark" href="MRK.htm#Top">MARK</a>'
+
+    workAbbrevPlus is where we're coming from, and can contain a version abbreviation or something like 'interlinearVerse'
     """
     fnPrint( DEBUGGING_THIS_MODULE, f"makeBookNavListParagraph( {linksList}, {workAbbrevPlus}, ... )" )
     assert workAbbrevPlus in state.preloadedBibles \
@@ -323,15 +325,17 @@ def makeBookNavListParagraph( linksList:List[str], workAbbrevPlus:str, state:Sta
     newList = (['TEST',workAbbrevPlus] if TEST_MODE else [workAbbrevPlus]) if workAbbrevPlus else (['TEST'] if TEST_MODE else [])
     for aLink in linksList:
         # print( f"{aLink=}")
-        if '>FRT<' in aLink and workAbbrevPlus in HTML_PLUS_LIST: continue # Don't include this
+        if ('>FRT<' in aLink or '>INT<' in aLink) \
+        and workAbbrevPlus in HTML_PLUS_LIST:
+            continue # Don't include this
         if workAbbrevPlus in HTML_PLUS_LIST: # they're all byVerse options
             # Make the versionAbbreviation links go to 1:1 for the selected book
             ixHrefStart = aLink.index( 'href="' ) + 6
             ixHrefEnd = aLink.index( '.htm', ixHrefStart )
             hrefTextBit, hrefEndBit = aLink[ixHrefStart:ixHrefEnd], aLink[ixHrefEnd:]
             assert hrefEndBit.startswith( '.htm#Top">' ), f"{hrefEndBit=} {workAbbrevPlus=}" # This is set in createSitePages._createSitePages()
-            if 'Index' in workAbbrevPlus:
-                hrefEndBit = hrefEndBit.replace( '#Top', '#chLst', 1 ) # Show them the chapter and verse choices (because we're going to plonk them in 1:1)
+            # if 'Index' in workAbbrevPlus:
+            hrefEndBit = hrefEndBit.replace( '#Top', '#chLst', 1 ) # Show them the chapter and verse choices (because we're going to plonk them in 1:1)
             aLink = f'''{aLink[:ixHrefStart]}{'' if 'Index' in workAbbrevPlus else '../'}{hrefTextBit}/C1V1{hrefEndBit}'''
         ixDisplayLinkStart = aLink.index( '>' ) + 1
         ixDisplayLinkEnd = aLink.index( '<', ixDisplayLinkStart )
