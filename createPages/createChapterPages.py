@@ -56,10 +56,10 @@ from Bibles import getBibleMapperMaps
 from OETHandlers import livenOETWordLinks, getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
-LAST_MODIFIED_DATE = '2025-02-02' # by RJH
+LAST_MODIFIED_DATE = '2025-02-24' # by RJH
 SHORT_PROGRAM_NAME = "createChapterPages"
 PROGRAM_NAME = "OpenBibleData createChapterPages functions"
-PROGRAM_VERSION = '0.72'
+PROGRAM_VERSION = '0.73'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -149,7 +149,7 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
             if rvBible.discoveryResults[BBB]['haveIntroductoryText']:
                 cLinks.append( f'<a title="View document introduction" href="{BBB}_Intro.htm#Top">Intro</a>' )
             for c in range( 1, numChapters+1 ):
-                cLinks.append( f'<a title="View chapter page" href="{BBB}_C{c}.htm#Top">C{c}</a>' )
+                cLinks.append( f'<a title="View chapter page" href="{BBB}_C{c}.htm#Top">{'Sg' if BBB=='PSA' else 'C'}{c}</a>' )
         else:
             c = '0' # TODO: for now
             halt
@@ -458,7 +458,7 @@ def createChapterPages( level:int, folder:Path, thisBible, state:State ) -> List
                 dPrint( 'Info', DEBUGGING_THIS_MODULE, f"createChapterPages getNumVerses( {thisBible.abbreviation} {BBB} {c} )")
                 numVerses = thisBible.getNumVerses( BBB, c )
                 if numVerses: # make sure it's a normal chapter, e.g., in ESG book which lacks chapters 1-9
-                    cLinks.append( f'<a title="View chapter page" href="{BBB}_C{c}.htm#Top">C{c}</a>' )
+                    cLinks.append( f'<a title="View chapter page" href="{BBB}_C{c}.htm#Top">{'Sg' if 'OET' in thisBible.abbreviation and BBB=='PSA' else 'Ps' if BBB=='PSA' else 'C'}{c}</a>' )
         else:
             cLinks.append( f'<a title="View document" href="{BBB}.htm#Top">{ourTidyBBB}</a>' )
         cLinksPar = f'<p class="chLst">{" ".join( cLinks )}</p>'

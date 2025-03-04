@@ -60,6 +60,9 @@ CHANGELOG:
     2024-07-13 Changed KJB-1611 chapter numbers to Roman numerals
     2024-07-18 Limited the length of footnote title popups
     2025-02-03 Include cross-references for OET-RV parallel verses only (no other versions)
+    2025-02-24 Avoid putting <ul> around list in parallelVerse mode
+    2025-02-26 Handle /cl else put chapter numbers before /d (in PSA) and /iex (in KJB-1611)
+    2025-03-04 Ignore nb markers in OET-LV
 """
 from gettext import gettext as _
 from typing import Union
@@ -77,10 +80,10 @@ from html import checkHtml
 from OETHandlers import getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2025-02-05' # by RJH
+LAST_MODIFIED_DATE = '2025-03-04' # by RJH
 SHORT_PROGRAM_NAME = "usfm"
 PROGRAM_NAME = "OpenBibleData USFM to HTML functions"
-PROGRAM_VERSION = '0.84'
+PROGRAM_VERSION = '0.85'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -117,7 +120,12 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
     fnPrint( DEBUGGING_THIS_MODULE, f"convertUSFMMarkerListToHtml( {versionAbbreviation} {refTuple} '{segmentType}' {contextList} {markerList} )" )
     dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"convertUSFMMarkerListToHtml( {versionAbbreviation} {refTuple} '{segmentType}' {contextList=} {len(markerList)=} )" )
     assert segmentType in ('book','section','chapter','parallelVerse','interlinearVerse','relatedPassage','topicalPassage'), f"Unexpected {segmentType=}"
+    BBB = refTuple[0] # Compulsory
     maxFootnoteChars = MAX_NET_FOOTNOTE_CHARS if versionAbbreviation=='NET' else MAX_FOOTNOTE_CHARS
+
+    # if 'KJB' in versionAbbreviation and BBB=='PSA' and len(refTuple)>1 and refTuple[1] in ('98','99','100'):
+    #     print( f"\nconvertUSFMMarkerListToHtml( {versionAbbreviation} {refTuple} '{segmentType}' {contextList=} {[(entry.getMarker(),entry.getFullText()) for entry in markerList]} )\n" )
+        # if refTuple[2] == '2': halt
     # if versionAbbreviation=='NET' and refTuple==('JOB','36','4'): print( f"\nconvertUSFMMarkerListToHtml( {versionAbbreviation} {refTuple} '{segmentType}' {contextList=} {[entry.getFullText() for entry in markerList]} )\n" )
     # if versionAbbreviation=='OET-RV' and refTuple==('CH2','23'): print( f"\nconvertUSFMMarkerListToHtml( {versionAbbreviation} {refTuple} '{segmentType}' {contextList=} {[(entry.getMarker(),entry.getFullText()) for entry in markerList]} )\n" )
     # # Check that we don't have any duplicated verses in the segment
@@ -149,7 +157,6 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
             if refTuple[0] not in ('EXO','NUM') or marker!='list': Exception( f"Unexpected context for '{segmentType}': {contextList}" )
 
     C = V = None
-    BBB = refTuple[0]
     if len(refTuple) > 1:
         C = refTuple[1]
         assert isinstance(C, str), f"{refTuple=}"
@@ -159,6 +166,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
     isSingleChapterBook = BibleOrgSysGlobals.loadedBibleBooksCodes.isSingleChapterBook( BBB )
 
     # numChapters = 0
+    cPrinted = True
     for MLIndex, entry in enumerate( markerList ):
         marker = entry.getMarker()
         # rest = entry.getText() if basicOnly and 'OET' not in versionAbbreviation else entry.getFullText() # getText() has notes removed but doesn't work with wordlink numbers in OET
@@ -206,6 +214,11 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
             # We don't display the verse number below for verse 1 (after chapter number)
             # NOTE: For sections (which can include multiple chapters), have to take care not to get duplicate V{v} id attributes
             if segmentType not in ('parallelVerse','interlinearVerse'): # No need for verse numbers at all if we're only displaying one verse
+                if cPrinted:
+                    cID = ''
+                else:
+                    cID = f'<span id="C{C}"></span>'
+                    cPrinted = True
                 if '-' in V: # it's a verse range
                     assert V[0].isdigit() and V[-1].isdigit(), f"Expected a verse number digit with {BBB} {C}:{V=} {rest=}"
                     assert ':' not in V # We don't handle chapter ranges here yet (and probably don't need to)
@@ -215,7 +228,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                         logging.warning( f" Not handling 3+ verse bridge well yet at {versionAbbreviation} {refTuple} {C}:{V}" )
                     vLink = f'''<a title="Go to verse in parallel view" href="{'../'*level}par/{BBB}/C{C}V{V1}.htm#Top">{V1}</a>'''
                     html = f'{html}{"" if html.endswith(">") else " "}' \
-                            + f'''{f"""<span id="C{C}"></span><span class="{'cPsa' if BBB=='PSA' else 'c'}" id="C{C}V1">{toRomanNumerals(C) if versionAbbreviation=='KJB-1611' else C}</span>""" if V1=="1" else f"""<span class="v" id="C{C}V{V1}">{vLink}-</span>"""}''' \
+                            + f'''{f"""{cID}<span class="{'cPsa' if BBB=='PSA' else 'c'}" id="C{C}V1">{toRomanNumerals(C) if versionAbbreviation=='KJB-1611' else C}</span>""" if V1=='1' else f"""<span class="v" id="C{C}V{V1}">{vLink}-</span>"""}''' \
                             + (f'<span id="V{V1}"></span><span id="V{V2}"></span>' if (segmentType in ('chapter','section','relatedPassage') or isSingleChapterBook) and f'id="V{V1}"' not in html and f'id="V{V2}"' not in html else '') \
                             + f'<span class="v" id="C{C}V{V2}">{V2}{NARROW_NON_BREAK_SPACE}</span>' \
                             + (rest if rest else '=◘=')
@@ -226,7 +239,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                     vLink = f'''<a title="Go to verse in parallel view" href="{'../'*level}par/{BBB}/C{C}V{V}.htm#Top">{V}</a>'''
                     html = f'''{html}{'' if html.endswith('"p">')or html.endswith('—') else ' '}''' \
                             + (f'<span id="V{V}"></span>' if (segmentType in ('chapter','section','relatedPassage') or isSingleChapterBook) and f'id="V{V}"' not in html else '') \
-                            + f'''{f"""<span id="C{C}"></span><span class="{'cPsa' if BBB=='PSA' else 'c'}" id="C{C}V1">{cLink}{NARROW_NON_BREAK_SPACE}</span>""" if V=="1"
+                            + f'''{f"""{cID}<span class="{'cPsa' if BBB=='PSA' else 'c'}" id="C{C}V1">{cLink}{NARROW_NON_BREAK_SPACE}</span>""" if V=='1'
                                    else f"""<span class="v" id="C{C}V{V}">{vLink}{NARROW_NON_BREAK_SPACE}</span>"""}'''
                 # html = f'{html} <span class="v" id="C{refTuple[1]}V{V}">{V}{NARROW_NON_BREAK_SPACE}</span>'
         elif marker in ('¬v', ): # We can ignore these end markers
@@ -264,7 +277,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
             if basicOnly:
                 # if html: html = f"{html}<br>{NARROW_NON_BREAK_SPACE if '1' in marker else NON_BREAK_SPACE if '2' in marker else ''}{'¶' if 'p' in marker else '⇔' if 'q' in marker else '§'}{NARROW_NON_BREAK_SPACE}" # Just start the new paragraph on a new line with a pilcrow
                 if html: html = f"{html}<br>{' ' if '1' in marker else ' ' if '2' in marker else NON_BREAK_SPACE}{'¶' if 'p' in marker else '⇔' if 'q' in marker else '§'}{NARROW_NON_BREAK_SPACE}" # Just start the new paragraph on a new line with a pilcrow
-            else: # not basicOnly
+            elif versionAbbreviation != 'OET-LV': # not basicOnly and not OET-LV (we ignore them there)
                 html = f'{html}<p class="{marker}">'
                 inParagraph = marker
         elif marker in ('¬p', '¬q1','¬q2','¬q3','¬q4', '¬m','¬mi', '¬nb',
@@ -373,8 +386,19 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
             C, V = rest.strip(), '0' # Play safe
             # html = f'{html}<span class="{marker}" id="C{C}">{C}{NARROW_NON_BREAK_SPACE}</span>'
             # numChapters += 1
+            cPrinted = False
+        elif marker == 'c#':
+            assert rest and rest.isdigit()
+            # Below is not necessarily true -- fails on OET-RV chapter basicOnly=False ('PSA', '1') 1:0 inSection='s1' inParagraph='p' c#=1
+            # if len(refTuple)>1 and refTuple[1] != '-1':
+            #     assert not inParagraph, f"{versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {marker}={rest}"
+
+            # if TEST_MODE and versionAbbreviation != 'SR-GNT':
+            #     html = f'{html}<span class="{'cPsa' if BBB=='PSA' else 'c'}">C###{toRomanNumerals(rest) if versionAbbreviation=='KJB-1611' else rest}</span>{NARROW_NON_BREAK_SPACE}'
         elif marker in ('mt1','mt2','mt3','mt4'):
             assert rest
+            if versionAbbreviation == 'KJB-1611':
+                rest = rest.replace( '   ', ' &nbsp; ' ) # We sometimes have three spaces which html normally loses, so try to prevent it
             if not inMainDiv:
                 inMainDiv = 'bookHeader'
                 html = f'{html}<div class="{inMainDiv}">'
@@ -459,6 +483,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
         # We also treat the id field exactly like a rem field
         elif marker in ('rem','id'): # rem's can sort of be anywhere!
             assert rest
+            rest = rest.replace( "Open English Translation", "<em>Open English Translation</em>" )
             if rest.startswith( '/' ):
                 if inRightDiv:
                     assert not inParagraph
@@ -500,7 +525,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                 elif not basicOnly:
                     html = f'{html}<p class="{marker}">{convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state)}</p>\n'
         # The following should all have their own data and get converted to a simple <p class="xx">…</p> field
-        elif marker in ('mr','sr', 'd', 'sp', 'cp', 'qa','qc','qd'):
+        elif marker in ('mr','sr', 'cl', 'd', 'sp', 'cp', 'qa','qc','qd'):
             if not rest:
                 logging.error( f"Source problem for {versionAbbreviation}: Expected field text {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} {marker=}" )
             if inRightDiv:
@@ -511,14 +536,27 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                 assert not basicOnly
                 html = f'{html}</p>\n'
                 inParagraph = None
-            if basicOnly:
+            if marker == 'cl' and not basicOnly:
+                if segmentType == 'chapter':
+                    html = f'{html}<p class="cl" id="C{C}">{convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state)}</p>\n'
+                else: # probably whole document/book, so make a chapter link
+                    html = f'{html}<p class="cl" id="C{C}"><a title="View single {'Psalm' if BBB=='PSA' else 'chapter'}" href="../byC/{BBB}_C{C}.htm#Top">{convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state)}</a></p>\n'
+                cPrinted = True
+            elif basicOnly:
                 if marker == 'd': # These are canonical so MUST be included
                     # NOTE: In basicOnly mode, we put \\d paragraphs in a SPAN, not in a PARAGRAPH (like we do further below)
                     html = f'{html}<span class="{marker}">{convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state)}</span>\n'
                     if not checkHtml( f'\\d at convertUSFMMarkerListToHtml({versionAbbreviation} {refTuple} {segmentType} {basicOnly=})', html, segmentOnly=True ):
                         if DEBUGGING_THIS_MODULE or TEST_MODE: halt
             else: # not basicOnly
-                html = f'{html}<p class="{marker}">{convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state)}</p>\n'
+                if cPrinted:
+                    cBit = ''
+                else:
+                    cBit = f'''<span class="{'cPsa' if BBB=='PSA' else 'c'}" id="C{C}">{toRomanNumerals(C) if versionAbbreviation=='KJB-1611' else C}</span> ''' \
+                        if segmentType == 'chapter' else \
+                            f'''<span class="{'cPsa' if BBB=='PSA' else 'c'}" id="C{C}"><a title="View single {'Psalm' if BBB=='PSA' else 'chapter'}" href="../byC/{BBB}_C{C}.htm#Top">{toRomanNumerals(C) if versionAbbreviation=='KJB-1611' else C}</a></span> '''
+                    cPrinted = True
+                html = f'{html}<p class="{marker}">{cBit}{convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state)}</p>\n'
         elif marker in ('b','ib'):
             html = f'{html}<br>'
         elif marker in ('list','ilist'):
@@ -526,8 +564,9 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
             #   so we have to handle that
             assert not rest
             assert not inList, f"inList {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} {marker=}"
-            html = f'{html}<ul>\n'
-            inList = 'ul_1'
+            if segmentType != 'parallelVerse':
+                html = f'{html}<ul>\n'
+                inList = 'ul_1'
         elif marker in ('¬list','¬ilist'):
             assert not rest
             if not basicOnly and not inList:
@@ -550,7 +589,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
             assert 0 <= currentListLevel <= 4
             if basicOnly:
                 # We only do it with a span (because a list couldn't go inside a paragraph anyway, and most snippets end up put inside paragraphs)
-                html = f'''{html}{' '*markerListLevel}<span class="{marker}">•{' ' if markerListLevel==1 else ' '}{convertUSFMCharacterFormatting( versionAbbreviation, refTuple, segmentType, rest, basicOnly, state )}</span>'''
+                html = f'''{html}{'<br>' if '•' in html else ''}{'&nbsp;'*markerListLevel}<span class="{marker}">•{' ' if markerListLevel==1 else ' '}{convertUSFMCharacterFormatting( versionAbbreviation, refTuple, segmentType, rest, basicOnly, state )}</span>'''
             else: # not basic only
                 if markerListLevel > currentListLevel:
                     logging.warning( f"Not inList B {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} {marker}={rest}" )
@@ -667,6 +706,26 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
             assert not rest
             assert not inSection and not inParagraph, f"{versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {marker}={rest}"
             html = f'{html}</div><!--{marker[1:]}-->\n'
+        elif marker == 'iex': # Possible chapter intro
+            assert versionAbbreviation == 'KJB-1611' # Only one so far
+            assert not inRightDiv
+            assert not inSection
+            assert not inParagraph
+            assert rest
+            # if not rest:
+            #     logging.error( f"Expected text {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} {marker=}" )
+            if segmentType in ('parallelVerse','interlinearVerse'):
+                assert basicOnly or refTuple[1]=='-1', f"{versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C=}:{V=} {inSection=} {inParagraph=} {marker}={rest}"
+            else:
+                assert not basicOnly
+                if cPrinted:
+                    cBit = ''
+                else:
+                    cBit = f'''<span class="{'cPsa' if BBB=='PSA' else 'c'}" id="C{C}">{toRomanNumerals(C) if versionAbbreviation=='KJB-1611' else C}</span> ''' \
+                        if segmentType == 'chapter' else \
+                            f'''<span class="{'cPsa' if BBB=='PSA' else 'c'}" id="C{C}"><a title="View single {'Psalm' if BBB=='PSA' else 'chapter'}" href="../byC/{BBB}_C{C}.htm#Top">{toRomanNumerals(C) if versionAbbreviation=='KJB-1611' else C}</a></span> '''
+                    cPrinted = True
+                html = f'''{html}<p class="{versionAbbreviation}_chapterIntro">{cBit}{convertUSFMCharacterFormatting( versionAbbreviation, refTuple, segmentType, rest, basicOnly, state )}</p>\n'''
         elif marker in ('periph',):
             assert rest
             assert not basicOnly
@@ -691,7 +750,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
         elif marker == 'intro':
             assert not rest
             if C != '-1' :
-                assert segmentType not in ('parallelVerse','interlinearVerse')
+                assert segmentType not in ('parallelVerse','interlinearVerse'), f"{versionAbbreviation} {segmentType=} {refTuple} {C}:{V} {markerList=}"
                 assert not basicOnly
             if inMainDiv == 'bookHeader':
                 html = f'{html}</div><!--{inMainDiv}-->'
@@ -713,7 +772,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                 inMainDiv = None
         elif marker not in ('usfm','ide', 'sts',
                             'h', 'toc1','toc2','toc3', 'toca1','toca2','toca3', '¬headers',
-                            'v=', 'c#', 'cl¤', '¬c', '¬chapters'): # We can ignore all of these
+                            'v=', 'cl¤', '¬c', '¬chapters'): # We can ignore all of these -- 'c#' now handled above
             if versionAbbreviation in ('ULT','UST'):
             # Can't list faulty books for uW stuff because there's too many errors keep popping up
             # and ('ACT' in refTuple or 'PSA' in refTuple or 'KI2' in refTuple): # Bad USFM encoding at UST Act 26:29-30
@@ -1050,7 +1109,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
     # Some final styling and cleanups
     if 'OET' in versionAbbreviation:
         html = html \
-                .replace( '◘', f'''<a title="Go to missing verses pages" href="{'../'*level}OET/missingVerse.htm">◘</a>''' )
+                .replace( '◘', f'''<a title="Go to missing verses pages" href="{'../'*level}OET/missingVerses.htm">◘</a>''' )
         if versionAbbreviation == 'OET-LV':
             html = html.replace( 'ə', '<small>ə</small>' )
 
@@ -1239,6 +1298,7 @@ def convertUSFMCharacterFormatting( versionAbbreviation:str, refTuple:tuple, seg
             assert '\\w ' not in html and '\\+w ' not in html, f"{html[html.index(f'{BACKSLASH}x')-10:html.index(f'{BACKSLASH}x')+12]}" # Note: can still be \\wj in text
 
     # Replace the character markers which have specific HMTL equivalents
+    # NOTE: Embedded markers like \\+em have already had the + removed above
     html = html \
             .replace( '\\bdit ', '<b><i>' ).replace( '\\bdit*', '</i></b>' ) \
             .replace( '\\bd ', '<b>' ).replace( '\\bd*', '</b>' ) \

@@ -67,6 +67,8 @@ p.parallelVerse {}
 /* p.moddedVerse { margin-top:-1em; margin-left:3em; font-size:0.8em; } /* includes translations */
 p.closeVerse { margin-top:-1em; }
 
+p.KJB-1611_chapterIntro { font-size:0.8em; color: grey; font-family:UnifrakturCook,"New Rocker","Unifraktur Maguntia","Germania One",Astloch,textura,schwabacher,rotunda,bastarda,blankenburg,cursive; }
+
 span.BrTr_chapterIntro {}
 span.BSB_chapterIntro {}
 span.FBV_chapterIntro {}
@@ -172,7 +174,7 @@ span.va { vertical-align:super; font-size:0.5em; color:crimson; }
 span.vp { vertical-align:super; font-size:0.5em; color:purple; }
 span.cv { vertical-align:super; font-size:0.8em; color:orange; }
 span.noVerse {} /* We don't have that verse */
-span.d { font-style:italic; color:sienna; }
+span.d { color:sienna; }
 div.s1 {}
 p.s1 { margin-top:0.1em; margin-bottom:0; font-weight:bold; }
 /* p.mr { margin-top:0; margin-bottom:0; font-size:1.1em; text-align: center; font-style:italic; } Major section reference range */

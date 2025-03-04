@@ -29,6 +29,7 @@ CHANGELOG:
     2023-08-30 Added FRT processing for RV
     2023-12-21 Keep book selection line at top of page
     2024-01-08 Fixed bug when moving to previous/next books for 'ALL' books
+    2025-03-03 Tried to improve breaking into sections, esp. handling of /ms1 titles
 """
 from gettext import gettext as _
 from typing import Dict, List, Tuple
@@ -50,10 +51,10 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_
 from OETHandlers import livenOETWordLinks, getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
-LAST_MODIFIED_DATE = '2025-01-15' # by RJH
+LAST_MODIFIED_DATE = '2025-03-03' # by RJH
 SHORT_PROGRAM_NAME = "createBookPages"
 PROGRAM_NAME = "OpenBibleData createBookPages functions"
-PROGRAM_VERSION = '0.58'
+PROGRAM_VERSION = '0.59'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -173,9 +174,9 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
         # NOTE: We change the version abbreviation here to give the function more indication where we're coming from
         rvHtml = do_OET_RV_HTMLcustomisations( convertUSFMMarkerListToHtml( level, 'OET-RV', (BBB,), 'book', rvContextList, rvVerseEntryList, basicOnly=False, state=state ) )
         tempLVHtml = convertUSFMMarkerListToHtml( level, 'OET-LV', (BBB,), 'book', lvContextList, lvVerseEntryList, basicOnly=False, state=state )
-        if '+' in tempLVHtml: print( f"HAVE_PLUS {tempLVHtml[max(0,tempLVHtml.index('+')-30):tempLVHtml.index('+')+90]}" )
-        if '^' in tempLVHtml: print( f"HAVE_HAT {tempLVHtml[max(0,tempLVHtml.index('^')-30):tempLVHtml.index('^')+90]}" )
-        if '~' in tempLVHtml: print( f"HAVE_SQUIG {tempLVHtml[max(0,tempLVHtml.index('~')-30):tempLVHtml.index('~')+90]}" )
+        # if '+' in tempLVHtml: print( f"HAVE_PLUS {tempLVHtml[max(0,tempLVHtml.index('+')-30):tempLVHtml.index('+')+90]}" )
+        # if '^' in tempLVHtml: print( f"HAVE_HAT {tempLVHtml[max(0,tempLVHtml.index('^')-30):tempLVHtml.index('^')+90]}" )
+        # if '~' in tempLVHtml: print( f"HAVE_SQUIG {tempLVHtml[max(0,tempLVHtml.index('~')-30):tempLVHtml.index('~')+90]}" )
         lvHtml = do_OET_LV_HTMLcustomisations( f"BookA={BBB}", tempLVHtml )
         # lvHtml = do_OET_LV_HTMLcustomisations( f"BookA={BBB}", convertUSFMMarkerListToHtml( level, 'OET', (BBB,), 'book', lvContextList, lvVerseEntryList, basicOnly=False, state=state ) )
 
@@ -184,13 +185,45 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
         ixBHend = rvHtml.index( '<!--bookHeader-->' ) + 17
         ixBIend = rvHtml.index( '<!--bookIntro-->', ixBHend ) + 16
         rvSections = [ rvHtml[:ixBHend], rvHtml[ixBHend:ixBIend] ] + rvHtml[ixBIend:].split( '<div class="s1">' )
+        if not rvSections[2]: # i.e., that last bit above started with '<div class="s1">' so we got a null entry
+            rvSections.pop( 2 ) # delete unnecessary empty section from list[2]
+            # print( "Deleted unnecessary empty section from list[2]" )
+        # rvSections2 = [ (0,ixBHend), (ixBHend,ixBIend) ]
+        rvSections2 = [ rvHtml[:ixBHend], rvHtml[ixBHend:ixBIend] ]
+        ixLast = ixBIend
+        minBlockSize = 190 # We start searching for the next block this far into the existing block
+                            # If too small (like 50, even 180), get extra blocks
+                            # If too large, might miss a block in a book with untranslated verses (and thus small blocks)
+        for _safetyCount in range ( 177 ): # Max number of sections in any book
+            # print( f"    {_safetyCount} {BBB} '{rvHtml[ixLast:ixLast+20]}…'")
+            ixS1 = rvHtml[ixLast+minBlockSize:].find( '<div class="s1">' )
+            if ixS1 == -1: ixS1 = 99_999_999
+            ixMS1 = rvHtml[ixLast+minBlockSize:].find( '<p class="ms1">' )
+            if ixMS1 == -1: ixMS1 = 99_999_999
+            ixMin = min( ixS1, ixMS1 ) + minBlockSize
+            # print( f"    {_safetyCount} {ixS1=} {ixMS1=} {ixMin=} {ixLast=} {len(rvHtml)=:,} '{rvHtml[ixLast:ixLast+20]}…{rvHtml[ixMin-20:ixMin]}'")
+            # rvSections2.append( (ixLast,ixMin) )
+            rvSections2.append( rvHtml[ixLast:ixLast+ixMin] )
+            if ixMin > 99_999_000:
+                break
+            ixLast += ixMin
+        else: too_few_loop_counters
+        # print( f"{BBB} ({len(rvSections)=}) {[(n,len(x),x[:15] if len(x)>200 else x) for n,x in enumerate(rvSections)]}" )
+        # print( f"{BBB} ({len(rvSections2)=}) {[(n,len(x),x[:15] if len(x)>200 else x) for n,x in enumerate(rvSections2)]}" )
+        # assert len(rvSections2)==len(rvSections), f"{BBB} {len(rvSections)=} {len(rvSections2)=}"
+        if len(rvSections2) != len(rvSections):
+            dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"OET {BBB} Mismatched number of sections: {len(rvSections)=} vs {len(rvSections2)=}")
+            # if BBB == 'EZE': stop_for_Ezekiel
+        rvSections = rvSections2 # Let's use the new system
+
         ixBHend = lvHtml.index( '<!--bookHeader-->' ) + 17
         try: ixBIend = lvHtml.index( '<!--bookIntro-->', ixBHend ) + 16 # No intro expected in OET-LV
         except ValueError: ixBIend = lvHtml.index( '<span id="C', ixBHend )
         lvChunks, lvRest = [ lvHtml[:ixBHend], lvHtml[ixBHend:ixBIend] ], lvHtml[ixBIend:]
         # Now try to match the rv sections
-        for n,rvSectionHtml in enumerate( rvSections[2:] ): # continuing on AFTER the introduction
-            # dPrint( 'Info', DEBUGGING_THIS_MODULE, f"\n{BBB} {n}: {rvSectionHtml=}" )
+        for n,rvSectionHtml in enumerate( rvSections[2:] ): # continuing on AFTER the headers and introduction
+            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"\n{BBB} {n}: {rvSectionHtml=}/{len(rvSections)-2}" )
+            assert rvSectionHtml
             try:
                 CclassIndex1 = rvSectionHtml.index( 'id="C' )
                 CclassIndex2 = rvSectionHtml.index( '"', CclassIndex1+4 )
@@ -200,17 +233,23 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
                 rvEndCV = rvSectionHtml[CclassIndex8+4:CclassIndex9]
                 # dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"\n  {BBB} {n:,}: {rvStartCV=} {rvEndCV=}")
             except ValueError:
-                dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createOETBookPages {BBB} {n:,}: No Cid in {rvSectionHtml=}" )
+                dPrint( 'Info', DEBUGGING_THIS_MODULE, f"  createOETBookPages {BBB} {n:,}: No Cid in {rvSectionHtml=}" )
                 rvStartCV, rvEndCV = '', 'C1'
                 # halt
-            dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"""\nSearching for OET-RV {BBB} ' id="{rvEndCV}"' in '{lvRest}'""" )
+            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"""\nSearching for OET-RV {BBB} ' id="{rvEndCV}"' in '{lvRest}'""" )
             try: ixEndCV = lvRest.rindex( f' id="{rvEndCV}"' )
             except ValueError: # Versification problem if this fails
-                logging.warning( f"{BBB} Possible versification problem around {rvEndCV} -- we'll try to handle it." )
+                logging.error( f"{BBB} Possible OET versification problem around {rvEndCV} -- we'll try to handle it." )
                 # Let's try for the previous verse -- at least this solves Gen 31:55 not there
-                frontBit, backBit = rvEndCV.split( 'V' )
-                adjustedRvEndCV = f'{frontBit}V{int(backBit)-1}'
-                logging.info( f"{BBB} ixEndCV is now decreased by one verse from '{rvEndCV}' to '{adjustedRvEndCV}'" )
+                assert rvEndCV[0] == 'C'
+                try:
+                    frontBit, backBit = rvEndCV.split( 'V' )
+                    adjustedRvEndCV = f'{frontBit}V{int(backBit)-1}'
+                except ValueError:
+                    previousC = int(rvEndCV[1:]) - 1
+                    adjustedRvEndCV = f'C{previousC}V{rvBible.getNumVerses( BBB, previousC )}'
+                    # print( f"Now {adjustedRvEndCV=}")
+                logging.info( f"{BBB} OET ixEndCV is now decreased by one verse from '{rvEndCV}' to '{adjustedRvEndCV}'" )
                 try: ixEndCV = lvRest.rindex( f' id="{adjustedRvEndCV}"' ) # If this fails, we give up trying to fix versification problem
                 except ValueError: # second level 'except'
                     logging.error( f"Gave up trying to fix OET book versification for {BBB} section RV {rvStartCV}-{rvEndCV}")
@@ -253,6 +292,7 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
         for rvSection,lvChunk in zip( rvSections, lvChunks, strict=True ):
             if rvSection.startswith( '<div class="rightBox">' ):
                 rvSection = f'<div class="s1">{rvSection}' # This got removed above
+                needed_to_add_back_in # Shouldn't be needed any more now
             # Handle footnotes so the same fn1 doesn't occur for both chunks if they both have footnotes
             rvSection = rvSection.replace( 'id="fn', 'id="fnRV' ).replace( 'href="#fn', 'href="#fnRV' )
             lvChunk = lvChunk.replace( 'id="fn', 'id="fnLV' ).replace( 'href="#fn', 'href="#fnLV' )

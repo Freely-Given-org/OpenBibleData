@@ -64,6 +64,7 @@ CHANGELOG:
     2025-01-13 Add multiprocessing
     2025-02-02 Added ID to clinksPar, make OET/OET-RV go to section instead of chapter
     2025-02-03 Chapter selector now goes to verse selector (#vsLst) not #Top
+    2025-02-25 Improved colouring for changes between KJB-1611 and KJB-1769
 """
 from gettext import gettext as _
 from typing import Tuple, List
@@ -97,7 +98,7 @@ from OETHandlers import getOETTidyBBB, getOETBookName, livenOETWordLinks, getHeb
 from LanguageHandlers import moderniseEnglishWords, translateGerman, translateLatin
 
 
-LAST_MODIFIED_DATE = '2025-02-12' # by RJH
+LAST_MODIFIED_DATE = '2025-02-28' # by RJH
 SHORT_PROGRAM_NAME = "createParallelVersePages"
 PROGRAM_NAME = "OpenBibleData createParallelVersePages functions"
 PROGRAM_VERSION = '0.98'
@@ -226,7 +227,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
         logging.critical( f"createParallelVersePagesForBook unable to find a valid reference Bible for {BBB}" )
         return False # Need to check what FRT does
     introLinks = [ '<a title="Go to parallel intro page" href="Intro.htm#Top">Intro</a>' ]
-    cLinksPar = f'''<p class="chLst" id="chLst">{ourTidyBBBwithNotes} {' '.join( introLinks + [f'<a title="Go to parallel verse page" href="C{ps}V1.htm#vsLst">Ps{ps}</a>' for ps in range(1,numChapters+1)] )}</p>''' \
+    cLinksPar = f'''<p class="chLst" id="chLst">{ourTidyBBBwithNotes} {' '.join( introLinks + [f'<a title="Go to parallel verse page" href="C{ps}V1.htm#vsLst">Sg{ps}</a>' for ps in range(1,numChapters+1)] )}</p>''' \
         if BBB=='PSA' else \
             f'''<p class="chLst" id="chLst">{ourTidyBbb if ourTidyBbb!='Yac' else 'Yacob/(James)'} {' '.join( introLinks + [f'<a title="Go to parallel verse page" href="C{chp}V1.htm#vsLst">C{chp}</a>' for chp in range(1,numChapters+1)] )}</p>'''
 
@@ -273,7 +274,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                 navLinks = f'<p id="__ID__" class="vNav">{leftCLink}{leftVLink}{ourTidyBbb} Book Introductions <a title="Go to __WHERE__ of page" href="#__LINK__">__ARROW__</a>{rightVLink}{rightCLink}{interlinearLink}{detailsLink}{hideFieldsButton}{hideTransliterationsButton}</p>' if c==-1 \
                         else f'<p id="__ID__" class="vNav">{introLink}{leftCLink}{leftVLink}{ourTidyBbb} {C}:{V} <a title="Go to __WHERE__ of page" href="#__LINK__">__ARROW__</a>{rightVLink}{rightCLink}{interlinearLink}{detailsLink}{hideFieldsButton}{hideTransliterationsButton}</p>'
 
-                debugKJBCompareBit = False
+                debugKJBCompareBit = False #parRef == 'PSA_103:1'
                 ancientRefsToPrint = () # ('SA1_31:13',) # For debugging
                 cleanedModernisedKJB1769TextHtml = depunctuatedCleanedModernisedKJB1769TextHtml = '' # These two are only used for comparisons -- they're not displayed on the page anywhere
                 parallelHtml = getVerseDetailsHtml( BBB, C, V )
@@ -501,7 +502,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                                     modernisedTextHtml = f"<small>{'Modernised spelling is s' if modernisedTextDiffers else 'S'}ame as from KJB-1769 above, apart from marking of added words (and possibly capitalisation and punctuation{' and footnotes' if footnotesHtml else ''})</small>" # (Will be placed in parentheses below)
                                     if debugKJBCompareBit: print( f"{parRef} {versionAbbreviation} {modernisedTextHtml}" )
                                 else: # the modernised text itself will be displayed
-                                    if debugKJBCompareBit and versionAbbreviation!='KJB-1769': print( f"{parRef} {versionAbbreviation} DIFFERENT" )
+                                    if debugKJBCompareBit and versionAbbreviation!='KJB-1769': print( f"\n{parRef} {versionAbbreviation} DIFFERENT" )
                                     if versionAbbreviation == 'KJB-1611':
                                         # if debugThisBit:
                                         #     print( f"  {depunctuatedCleanedModernisedKJB1769TextHtml=}" )
@@ -521,19 +522,19 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                                         print( f"                              {modernisedTextHtml=}")
                                     # When the texts differ,
                                     #   try to highlight the first KJB-1611 word that differs from the KJB-1769
-                                    #       (so we can see where an edit was made)
+                                    #       (so we can see where a 1769 edit was made)
                                     differentWordHighlighted = False
                                     if debugKJBCompareBit:
-                                        print( f"AAA {depunctuatedCleanedModernisedTextHtml.replace( '<span class="_verseTextChunk">', '' ).replace( '<span class="add">', '' ).replace( ' class="', '' ).replace( ' style="', '' ).lower()}" )
-                                        print( f"BBB {depunctuatedCleanedModernisedKJB1769TextHtml.replace( '<span class="_verseTextChunk">', '' ).replace( '<span class="add">', '' ).replace( ' class="', '' ).replace( ' style="', '' ).lower()}" )
-                                        print( f"CCC {modernisedTextHtml.replace( '<span class="KJB-1611_mod">', '' ).replace( '<span class="add_KJB-1611">', '' ).replace( ' class="', '' ).replace( ' style="', '' ).replace( '</span>', '' ).replace( '¶ ', '' )}" )
+                                        print( f"aaa 1769 {depunctuatedCleanedModernisedKJB1769TextHtml.replace( '<span class="_verseTextChunk">', '' ).replace( '<span class="add">', '' ).replace( ' class="', '' ).replace( ' style="', '' ).lower()}" )
+                                        print( f"bbb 1611 {depunctuatedCleanedModernisedTextHtml.replace( '<span class="_verseTextChunk">', '' ).replace( '<span class="add">', '' ).replace( ' class="', '' ).replace( ' style="', '' ).lower()}" )
+                                        print( f"Ccc 1611 {modernisedTextHtml.replace( '<span class="KJB-1611_mod">', '' ).replace( '<span class="add_KJB-1611">', '' ).replace( ' class="', '' ).replace( ' style="', '' ).replace( '</span>', '' ).replace( '¶ ', '' )}" )
                                     doneHighlight = False
-                                    changeIndex = 0 # So we only replace words after that
+                                    changeIndex = (modernisedTextHtml.index('>')+1) if modernisedTextHtml[0]=='<' else 0 # So we only replace words after an initial span marker
                                     for wordNum, (word1611, word1769, wordModTxt) in enumerate( zip( depunctuatedCleanedModernisedTextHtml.replace( '<span class="_verseTextChunk">', '' ).replace( '<span class="add">', '' ).replace( ' class="', '' ).replace( ' style="', '' ).lower().split(),
                                                                            depunctuatedCleanedModernisedKJB1769TextHtml.replace( '<span class="_verseTextChunk">', '' ).replace( '<span class="add">', '' ).replace( ' class="', '' ).replace( ' style="', '' ).lower().split(),
                                                                            modernisedTextHtml.replace( '<span class="KJB-1611_mod">', '' ).replace( '<span class="add_KJB-1611">', '' ).replace( ' class="', '' ).replace( ' style="', '' ).replace( '</span>', '' ).replace( '¶ ', '' ).replace( '( ', '' ).split() ) ):
                                         if debugKJBCompareBit \
-                                        and not word1611==word1769==wordModTxt: print( f"  LOOP {parRef} {wordNum} {changeIndex} {doneHighlight=} {word1611=} {word1769=} {wordModTxt=}")
+                                        and not word1611==word1769==wordModTxt: print( f"  {parRef} LOOP {wordNum=} {doneHighlight=} {word1611=} {word1769=} {wordModTxt=}{f'/{modernisedTextHtml.count(wordModTxt)}' if modernisedTextHtml.count(wordModTxt)!=1 else ''} {changeIndex=} so '{modernisedTextHtml[changeIndex:changeIndex+20]}...'")
                                         if word1769 != word1611:
                                             wordModTxtAdj = removeVersePunctuationForComparison( wordModTxt )
                                             if debugKJBCompareBit:
@@ -548,29 +549,38 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                                                  or (len(wordModTxt)>0 and modernisedTextHtml.count(f' {wordModTxt}')==modernisedTextHtml.count(wordModTxt) and modernisedTextHtml.count(f'{wordModTxt} ')==modernisedTextHtml.count(wordModTxt) ) ) # Shorter words can occur inside other words too often
                                             and 'class=' not in wordModTxt
                                             and wordModTxtAdj.lower() not in ('adoniyah',) ):
-                                                if debugKJBCompareBit: print( f"{parRef}\n{depunctuatedCleanedModernisedTextHtml=}\n{depunctuatedCleanedModernisedKJB1769TextHtml=}\n{modernisedTextHtml=}" )
+                                                if debugKJBCompareBit: print( f"  {parRef} {modernisedTextHtml=}" )
                                                 assert wordModTxt != 'span'
                                                 # wordMTadj = removeVersePunctuationForComparison( wordMT )
                                                 # Save the correct replacement until after the loop, or we can accidentally replace some of those words
                                                 # TODO: Replacing all the words (or parts of words) isn't really very satisfactory
+                                                if debugKJBCompareBit:
+                                                    tempChangeIndex = max( changeIndex, modernisedTextHtml.find( wordModTxt, changeIndex ))
+                                                    print( f"    PPP Now changeIndex = {tempChangeIndex} = max({changeIndex},{modernisedTextHtml.find( wordModTxt, changeIndex )}) so '{modernisedTextHtml[tempChangeIndex:tempChangeIndex+20]}...'" )
                                                 changeIndex = max( changeIndex, modernisedTextHtml.find( wordModTxt, changeIndex ))
                                                 modernisedTextHtml = f"{modernisedTextHtml[:changeIndex]}{modernisedTextHtml[changeIndex:].replace( wordModTxt, f'<span SPAN1>{wordModTxt}</span>' 
                                                              if modernisedTextHtml[changeIndex:].count(wordModTxt)==1 and not doneHighlight # Consecutive words might be just out of step
                                                                                                         else f'<span SPAN2>{wordModTxt}</span>')}"
-                                                changeIndex += 19 # The minimum number of added characters
+                                                changeIndex += len( '<span SPANx></span>' ) # Number of added characters
+                                                if debugKJBCompareBit: print( f"    QQQ Now changeIndex += 19 = {changeIndex} so '{modernisedTextHtml[changeIndex:changeIndex+20]}...'" )
                                                 doneHighlight = True
                                                 checkHtml( f'hilighted {parRef} modernisedTextHtml after {wordModTxt=} replacement', modernisedTextHtml, segmentOnly=True )
                                                 differentWordHighlighted = True
                                                 if debugKJBCompareBit: print( f"  NOW {modernisedTextHtml=}" )
                                                 # break
                                         if not doneHighlight:
+                                            # NOTE: The following mostly accounts for spans like '<span class="add_KJB-1611">...</span>'
                                             changeIndex += len(wordModTxt) + 1 # for the space that it was split on
+                                            if modernisedTextHtml[changeIndex:].startswith( '<span class="add_KJB-1611">' ):
+                                                changeIndex += len( '<span class="add_KJB-1611">' )
+                                            elif modernisedTextHtml[changeIndex:].startswith( '/span> ' ):
+                                                changeIndex += len( '</span>' )
                                     modernisedTextHtml = modernisedTextHtml.replace( 'SPAN1', 'title="Word (or format) changed in KJB-1769" class="hilite"' ) \
                                                                            .replace( 'SPAN2', 'title="Possible word (or format) changed in KJB-1769" class="possibleHilite"' )
                                     if not differentWordHighlighted and 'class="nd"' not in depunctuatedCleanedModernisedTextHtml:
                                         if debugKJBCompareBit: print( "CHECK THE ABOVE" )
                                         # halt
-                                    # if 'KI2_3:' in parRef: halt
+                                    # if parRef == 'PSA_103:1': halt
                                 if modernisedTextDiffers or 'KJB-1769 above' in modernisedTextHtml:
                                     # if parRef in ancientRefsToPrint: print( f"YY {versionAbbreviation} {parRef} {modernisedTextDiffers=} {modernisedTextHtml=}" )
                                     textHtml = f'''{textHtml}<br>   ({modernisedTextHtml.replace('<br>','<br>   ')})'''
@@ -757,7 +767,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                                     assert sectionNumber is not None, f"Bad OET-RV parallel verse section {BBB} {C} {V}"
                                     if '<div ' in textHtml: # it might be a book intro or footnotes -- we can't put a <div> INSIDE a <p>, so we append it instead
                                         assert '</div>' in textHtml
-                                        vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span id="C{C}V{V}" class="wrkName"><a id="C{C}" title="View {state.BibleNames['OET']} section (side-by-side versions)" href="{'../'*BBBLevel}OET/bySec/{BBB}_S{sectionNumber}.htm#V{V}">OET</a> <small>(<a id="V{V}" title="View {state.BibleNames['OET-RV']} section (by itself)" href="{'../'*BBBLevel}OET-RV/bySec/{BBB}_S{sectionNumber}.htm#V{V}">OET-RV</a>)</small></span></p>{textHtml}'''
+                                        vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span id="C{C}V{V}" class="wrkName"><a id="C{C}" title="View {state.BibleNames['OET']} section (side-by-side versions)" href="{'../'*BBBLevel}OET/bySec/{BBB}_S{sectionNumber}.htm#V{V}">OET</a> <small>(<a id="V{V}" title="View {state.BibleNames['OET-RV']} section (by itself)" href="{'../'*BBBLevel}OET-RV/bySec/{BBB}_S{sectionNumber}.htm#V{V}">OET-RV</a>)</small></span>{'' if textHtml.startswith('<p ') or textHtml.startswith('<div') else ' '}{textHtml.replace('<div','</p><div',1)}'''
                                     else: # no <div>s so should be ok to put inside a paragraph
                                         assert '</div>' not in textHtml
                                         vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span id="C{C}V{V}" class="wrkName"><a id="C{C}" title="View {state.BibleNames['OET']} section (side-by-side versions)" href="{'../'*BBBLevel}OET/bySec/{BBB}_S{sectionNumber}.htm#V{V}">OET</a> <small>(<a id="V{V}" title="View {state.BibleNames['OET-RV']} section (by itself)" href="{'../'*BBBLevel}OET-RV/bySec/{BBB}_S{sectionNumber}.htm#V{V}">OET-RV</a>)</small></span> {textHtml}</p>'''
@@ -777,8 +787,10 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                                             vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation]} {'details' if versionAbbreviation in state.versionsWithoutTheirOwnPages else 'chapter'}" href="{versionNameLink}">{versionAbbreviation}</a></span> {textHtml}</p>'''
                                         else: # WEB had no footnotes, so ok to use "closeVerse" class
                                             vHtml = f'''<p id="{versionAbbreviation}" class="closeVerse"><span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation]} {'details' if versionAbbreviation in state.versionsWithoutTheirOwnPages else 'chapter'}" href="{versionNameLink}">{versionAbbreviation}</a></span> {textHtml}</p>'''
-                                    elif '<div ' in textHtml: # it might be a book intro or footnotes
+                                    elif '<div ' in textHtml: # it might be a book intro XXXor footnotesXXX wrong it seems
                                         assert '</div>' in textHtml
+                                        assert c == -1 # Book intro
+                                        # print( f"{parRef} {versionAbbreviation} {textHtml[textHtml.index('<div'):]}")
                                         vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation]} {'details' if versionAbbreviation in state.versionsWithoutTheirOwnPages else 'chapter'}" href="{versionNameLink}">{versionAbbreviation}</a></span></p>{textHtml}''' # .replace('<hr','</p><hr')
                                     else: # no <div>s so should be ok to put inside a paragraph
                                         assert '</div>' not in textHtml
@@ -793,7 +805,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                                 if c==-1 or v==0: # For these edge cases, we don't want the version abbreviation appearing
                                     vHtml = ''
                                 else:
-                                    vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation]} {'details' if versionAbbreviation in state.versionsWithoutTheirOwnPages else 'chapter'}" href="{versionNameLink}">{versionAbbreviation}</a></span> <a title="Go to missing verses pages" href="{'../'*level}OET/missingVerse.htm">◘</a></p>'''
+                                    vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation]} {'details' if versionAbbreviation in state.versionsWithoutTheirOwnPages else 'chapter'}" href="{versionNameLink}">{versionAbbreviation}</a></span> <a title="Go to missing verses pages" href="{'../'*level}OET/missingVerses.htm">◘</a></p>'''
 
                             if versionAbbreviation=='TC-GNT': # the final one that we display, so show the key to the colours
                                 greekVersionKeysHtmlList = []
@@ -860,7 +872,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                     except AssertionError as ae: print( ae )
 
                 # Close the hideable div
-                if UPDATE_ACTUAL_SITE_WHEN_BUILT and not TEST_MODE:
+                if UPDATE_ACTUAL_SITE_WHEN_BUILT and not TEST_MODE and not TEST_VERSIONS_ONLY:
                     assert doneHideablesDiv # Fails if no Bible versions were included that go in the hideable div
                 if doneHideablesDiv:
                     parallelHtml = f'{parallelHtml}\n</div><!--end of hideables-->'
@@ -1040,7 +1052,11 @@ GREEK_CASE_CLASS_KEY_DICT = { 'grkVrb':'<span class="grkVrb">khaki</span>:verbs'
 def brightenSRGNT( BBB:str, C:str, V:str, brightenTextHtml:str, verseEntryList, state:State ) -> Tuple[str,List[str]]:
     """
     Take the SR-GNT text (which includes punctuation and might also include <br> characters)
-        and mark the role participants
+        and match the words against our word table to link them
+        and then colour the role participants
+
+    Parameter brightenTextHtml might be something like this (Mrk 14:63):
+        '<span class="SR-GNT_verseTextChunk">Ὁ δὲ ἀρχιερεὺς διαρρήξας τοὺς χιτῶνας αὐτοῦ λέγει, “Τί ἔτι χρείαν ἔχομεν μαρτύρων;</span>'
     """
     # dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"brightenSRGNT( {BBB} {C}:{V} {brightenTextHtml}, {verseEntryList}, … )…" )
     brRef = f'{BBB}_{C}:{V}'
@@ -1113,7 +1129,7 @@ def brightenSRGNT( BBB:str, C:str, V:str, brightenTextHtml:str, verseEntryList, 
             simpleGrkWord = rawGrkWord.lstrip( '“‘˚(' )
             ixRawGrkWord += len(rawGrkWord) - len(simpleGrkWord) # Adjust for removal of any leading punctuation
             simpleGrkWord = simpleGrkWord.lstrip( ' ' ).rstrip( '.,?!:”’ ·;)–…' ) # Includes NNBSP
-            assert simpleGrkWord.isalpha(), f"{simpleGrkWord=}"
+            assert simpleGrkWord.isalpha(), f"brightenSRGNT( {BBB} {C}:{V} failed with {simpleGrkWord=} from {punctuatedGrkWords=}"
             attribDict = {}
             for _safetyCount2 in range( 4 ):
                 extraEntry = allExtras[wordNumberIndex+extraIndexOffset]

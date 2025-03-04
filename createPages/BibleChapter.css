@@ -100,6 +100,7 @@ p.s3 { margin-top:0.1em; margin-bottom:0; font-size:1.05em; font-weight:bold; }
 p.mr { margin-top:0; margin-bottom:0; font-size:1.1em; text-align: center; font-style:italic; } /* Major section reference range */
 p.sr { margin-top:0; margin-bottom:0; font-size:0.9em; text-align: center; font-weight:bold; } /* Section reference range */
 p.r { margin-top:0; margin-bottom:0; font-size:0.75em; text-align: center; font-style:italic; } /* Parallel references */
+p.cl { margin-top:2.0em; margin-bottom:0; text-align:center; font-size:1.2em; }
 p.d { font-style:italic; }
 p.sp { font-weight:bold; } /* Speaker */
 p.p { text-indent:0.5em; margin-top:0.2em; margin-bottom:0.2em; }
@@ -138,6 +139,8 @@ span.jmp {}
 span.t4tFoS { color:mediumvioletred; } /* T4T figure of speech */
 span.add { color:grey; font-style:italic; }
 span.k {} /* keyterm used in WEB GLS */
+
+p.KJB-1611_chapterIntro { font-size:0.8em; color: grey; font-family:UnifrakturCook,"New Rocker","Unifraktur Maguntia","Germania One",Astloch,textura,schwabacher,rotunda,bastarda,blankenburg,cursive; }
 
 span.BrTr_chapterIntro {}
 span.BSB_chapterIntro {}

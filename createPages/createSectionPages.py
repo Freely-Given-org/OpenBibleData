@@ -69,7 +69,7 @@ from Bibles import getBibleMapperMaps
 from OETHandlers import livenOETWordLinks, getOETTidyBBB, getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2025-02-04' # by RJH
+LAST_MODIFIED_DATE = '2025-02-24' # by RJH
 SHORT_PROGRAM_NAME = "createSectionPages"
 PROGRAM_NAME = "OpenBibleData createSectionPages functions"
 PROGRAM_VERSION = '0.67'
@@ -231,7 +231,7 @@ def createOETSectionPages( level:int, folder:Path, rvBible:ESFMBible, lvBible:ES
             if rvBible.discoveryResults[BBB]['haveIntroductoryText']:
                 cLinks.append( f'<a title="View document introduction" href="{BBB}_Intro.htm#Top">Intro</a>' )
             for c in range( 1, numChapters+1 ):
-                cLinks.append( f'<a title="View chapter page instead" href="../byC/{BBB}_C{c}.htm#Top">C{c}</a>' )
+                cLinks.append( f'<a title="View chapter page instead" href="../byC/{BBB}_C{c}.htm#Top">{'Sg' if BBB=='PSA' else 'C'}{c}</a>' )
         else:
             c = '0' # TODO: for now
             halt
@@ -499,7 +499,7 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> List
             if thisBible.discoveryResults[BBB]['haveIntroductoryText']:
                 cLinks.append( f'<a title="View document introduction" href="{BBB}_Intro.htm#Top">Intro</a>' )
             for c in range( 1, numChapters+1 ):
-                cLinks.append( f'<a title="View chapter page instead" href="../byC/{BBB}_C{c}.htm#Top">C{c}</a>' )
+                cLinks.append( f'<a title="View chapter page instead" href="../byC/{BBB}_C{c}.htm#Top">{'Sg' if 'OET' in thisBible.abbreviation and BBB=='PSA' else 'Ps' if BBB=='PSA' else 'C'}{c}</a>' )
             cLinksPar = f'<p class="chLst">{" ".join( cLinks )}</p>' if cLinks else ''
         else:
             # c = '0' # TODO: for now

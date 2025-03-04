@@ -26,7 +26,28 @@
 Module handling html functions.
 
 makeTop( level:int, versionAbbreviation:Optional[str], pageType:str, versionSpecificFileOrFolderName:Optional[str], state:State ) -> str
-makeHeader( level:int, versionAbbreviation:str, pageType:str, versionSpecificFileOrFolderName:Optional[str], state:State ) -> str
+    Create the very top part of an HTML page.
+
+    This is the HTML <head> segment, including assigning the correct CSS stylesheet.
+
+    Note: versionAbbreviation can be None for parallel, interlinear and word pages, etc.
+_makeNavigationLinks( level:int, versionAbbreviation:Optional[str], pageType:str, versionSpecificFileOrFolderName:Optional[str], state:State ) -> str
+    Create the navigation that goes before the page content.
+
+    This includes the list of versions, and possibly the "ByDocument/BySection" bar as well.
+        (It doesn't include book, chapter, or verse selector bars.)
+
+    Note: versionAbbreviation can be None for parallel, interlinear and word pages, etc.
+_makeWorkNavListParagraph( level:int, versionAbbreviation:Optional[str], pageType:str, versionSpecificFileOrFolderName:Optional[str], state:State ) -> str
+    Create the list of available versions.
+
+    Note: versionAbbreviation can be None for parallel, interlinear and word pages, etc.
+makeViewNavListParagraph( level:int, versionAbbreviation:Optional[str], pageType:str, state:State ) -> str
+    Make the "ByDocument/BySection" bar.
+
+    Note: versionAbbreviation can be None for parallel, interlinear and word pages, etc.
+        It can also be the 'OET' pseudo version.
+        Can return an empty string.
 makeBookNavListParagraph( linksList:List[str], workAbbrevPlus:str, state:State ) -> str
 makeBottom( level:int, pageType:str, state:State ) -> str
 makeFooter( level:int, pageType:str, state:State ) -> str
@@ -63,6 +84,8 @@ CHANGELOG:
     2025-01-15 Improved check to find newlines inside HTML title attributes
     2025-01-30 Put added ‘owner’ in quotes in HTML title field
     2025-02-02 Make book selection jump to chapter list selector (not just 1:1#Top)
+    2025-02-20 Add OET missing verses link (in TEST MODE only)
+    2025-02-21 Created functions
 """
 # from gettext import gettext as _
 from typing import Dict, List, Tuple, Optional, Union
@@ -79,10 +102,10 @@ from settings import State, TEST_MODE, TEST_VERSIONS_ONLY, SITE_NAME
 from OETHandlers import getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2025-02-13' # by RJH
+LAST_MODIFIED_DATE = '2025-02-28' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
-PROGRAM_VERSION = '0.92'
+PROGRAM_VERSION = '0.93'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -169,6 +192,7 @@ def makeTop( level:int, versionAbbreviation:Optional[str], pageType:str, version
     return f'{top}{_makeNavigationLinks( level, versionAbbreviation, pageType, versionSpecificFileOrFolderName, state )}'
 # end of html.makeTop
 
+
 def _makeNavigationLinks( level:int, versionAbbreviation:Optional[str], pageType:str, versionSpecificFileOrFolderName:Optional[str], state:State ) -> str:
     """
     Create the navigation that goes before the page content.
@@ -179,6 +203,21 @@ def _makeNavigationLinks( level:int, versionAbbreviation:Optional[str], pageType
     Note: versionAbbreviation can be None for parallel, interlinear and word pages, etc.
     """
     fnPrint( DEBUGGING_THIS_MODULE, f"_makeNavigationLinks( {level}, {versionAbbreviation}, {pageType}, {versionSpecificFileOrFolderName} )" )
+
+    versionHtml = _makeWorkNavListParagraph( level, versionAbbreviation, pageType, versionSpecificFileOrFolderName, state )
+    viewHtml = makeViewNavListParagraph( level, versionAbbreviation, pageType, state )
+
+    return f'''<div class="header">{versionHtml}{NEWLINE if viewHtml else ''}{viewHtml}</div><!--header-->'''
+# end of html._makeNavigationLinks
+
+
+def _makeWorkNavListParagraph( level:int, versionAbbreviation:Optional[str], pageType:str, versionSpecificFileOrFolderName:Optional[str], state:State ) -> str:
+    """
+    Create the list of available versions.
+
+    Note: versionAbbreviation can be None for parallel, interlinear and word pages, etc.
+    """
+    fnPrint( DEBUGGING_THIS_MODULE, f"_makeWorkNavListParagraph( {level}, {versionAbbreviation}, {pageType}, {versionSpecificFileOrFolderName} )" )
 
     # Add all the version abbreviations (except for the selected-verses-only verses)
     #   with their style decorators
@@ -277,15 +316,25 @@ def _makeNavigationLinks( level:int, versionAbbreviation:Optional[str], pageType
         else:
             dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        Couldn't find a BBB so should be able to link ok to {pageType} {initial_entry}" )
             newVersionList.append( initial_entry )
+
     assert len(newVersionList) == len(initialVersionList)
-    versionHtml = f'''<p class="wrkLst">{' '.join(newVersionList)}</p>'''
-    # if pageType == 'parallelVerse':
-    #     print( f"    {newVersionList=}" )
-    #     halt
+    return f'''<p class="wrkLst">{' '.join(newVersionList)}</p>'''
+# end of html._makeWorkNavListParagraph
+
+
+def makeViewNavListParagraph( level:int, versionAbbreviation:Optional[str], pageType:str, state:State ) -> str:
+    """
+    Make the "ByDocument/BySection" bar.
+
+    Note: versionAbbreviation can be None for parallel, interlinear and word pages, etc.
+        It can also be the 'OET' pseudo version.
+        Can return an empty string.
+    """
+    fnPrint( DEBUGGING_THIS_MODULE, f"makeViewNavListParagraph( {level}, {versionAbbreviation}, {pageType} )" )
 
     viewLinks = []
     if pageType in ('book','section','chapter', 'details',
-                    'bookIndex','sectionIndex','chapterIndex') \
+                    'workIndex','bookIndex','sectionIndex','chapterIndex') \
     and versionAbbreviation not in ('TOSN','TTN','TOBD','UTN','UBS','THBD','BMM') \
     and versionAbbreviation not in state.versionsWithoutTheirOwnPages:
         if TEST_MODE: viewLinks.append( 'TEST' )
@@ -300,10 +349,11 @@ def _makeNavigationLinks( level:int, versionAbbreviation:Optional[str], pageType
                             if 'chapter' not in pageType else 'By Chapter' )
         viewLinks.append( f'''<a title="View version details" href="{'../'*level}{versionAbbreviation}/details.htm#Top">Details</a>'''
                             if pageType!='details' else 'Details' )
-    viewHtml = f'''<p class="viewLst">{' '.join(viewLinks)}</p>''' if viewLinks else ''
+        if TEST_MODE and 'OET' in versionAbbreviation:
+            viewLinks.append( f'''<a title="View verses not included in the OET" href="{'../'*level}OET/missingVerses.htm#Top"><small>Missing verses</small></a>''' )
 
-    return f'''<div class="header">{versionHtml}{NEWLINE if viewHtml else ''}{viewHtml}</div><!--header-->'''
-# end of html._makeNavigationLinks
+    return f'''<p class="viewLst">{' '.join(viewLinks)}</p>''' if viewLinks else ''
+# end of html.makeViewNavListParagraph
 
 
 HTML_PLUS_LIST = ['parallelVerse','interlinearVerse', 'parallelIndex','interlinearIndex']
@@ -430,12 +480,19 @@ def removeDuplicateCVids( html:str ) -> str:
             or idContents.startswith( ' id="V' ) ): # Only in side-by-side chapters (not in entire books)
                 # then from something like '<span id="C123"></span>', if we delete the id bit, we get useless '<span></span>'
                 #   so let's delete the whole lot
-                assert endHtml[endHtmlStartIx-5:endHtmlStartIx] == '<span', f"{endHtml[endHtmlStartIx-5:endHtmlStartIx]=}"
-                assert endHtml[endHtmlStartIx+len(idContents):endHtmlStartIx+len(idContents)+8] == '></span>', f"{endHtml[endHtmlStartIx+len(idContents):endHtmlStartIx+len(idContents)+8]=}"
-                endHtml = f'{endHtml[:endHtmlStartIx-5]}{endHtml[endHtmlStartIx+len(idContents)+8:]}'
-                html = f'{html[:endIx]}{endHtml}'
-                # assert '<span></span>' not in html
-                # print( f"removeDuplicateCVidsB {endHtmlStartIx=}\nendHtml='…{endHtml[endHtmlStartIx-50:endHtmlStartIx+50]}…'\nhtml='…{html[endIx+endHtmlStartIx-50:endIx+endHtmlStartIx+50]}…'" )
+                # assert endHtml[endHtmlStartIx-5:endHtmlStartIx] == '<span', f"{endHtml[endHtmlStartIx-10:endHtmlStartIx]=} then {endHtml[endHtmlStartIx:endHtmlStartIx+10]=}"
+                # assert endHtml[endHtmlStartIx+len(idContents):endHtmlStartIx+len(idContents)+8] == '></span>', f"{endHtml[endHtmlStartIx+len(idContents):endHtmlStartIx+len(idContents)+8]=}"
+                if endHtml[endHtmlStartIx-5:endHtmlStartIx] == '<span' \
+                and endHtml[endHtmlStartIx+len(idContents):endHtmlStartIx+len(idContents)+8] == '></span>':
+                    endHtml = f'{endHtml[:endHtmlStartIx-5]}{endHtml[endHtmlStartIx+len(idContents)+8:]}'
+                    html = f'{html[:endIx]}{endHtml}'
+                    # assert '<span></span>' not in html
+                    # print( f"removeDuplicateCVidsB {endHtmlStartIx=}\nendHtml='…{endHtml[endHtmlStartIx-50:endHtmlStartIx+50]}…'\nhtml='…{html[endIx+endHtmlStartIx-50:endIx+endHtmlStartIx+50]}…'" )
+                elif endHtml[endHtmlStartIx-15:endHtmlStartIx] == '<span class="c"' \
+                and endHtml[endHtmlStartIx:].startswith( ' id="C' ):
+                    # print( f"{idContents=} {endHtml[endHtmlStartIx:endHtmlStartIx+30]=}" )
+                    endHtml = f'{endHtml[:endHtmlStartIx]}{endHtml[endHtmlStartIx+len(idContents):]}'
+                    html = f'{html[:endIx]}{endHtml}'
             else:
                 endHtml = f'{endHtml[:endHtmlStartIx]}{endHtml[endHtmlStartIx+len(idContents):]}'
                 html = f'{html[:endIx]}{endHtml}'
@@ -583,7 +640,7 @@ def checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool:
                                ('ol','<ol'),('ul','<ul'),
                                ('em','<em>'),('i','<i>'),('b','<b>'),('small','<small '),('sup','<sup>'),('sub','<sub>')):
         startCount = htmlToCheck.count( startMarker )
-        if startCount and 'UTN' not in where and 'UTN' not in htmlToCheck: # uW UTNs have too many formatting errors to bother checking them
+        if startCount and 'UTN' not in where and 'UTN' not in htmlToCheck: # uW UTNs have too many formatting errors to bother checking them + NET ISA 43:24 eBible usfm
             assert f'<{marker}></{marker}>' not in htmlToCheck, f"Empty <{marker}> field {where}' {segmentOnly=} …{htmlToCheck[htmlToCheck.index(f'<{marker}></{marker}>')-180:htmlToCheck.index(f'<{marker}></{marker}>')+180]}…"
         if startMarker.endswith( ' ' ): startCount += htmlToCheck.count( f'<{marker}>' )
         endMarker = f'</{marker}>'
@@ -612,7 +669,7 @@ def checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool:
                     if 'ULT' not in where and 'UST' not in where and 'PSA' not in where: # UST PSA has totally messed up \\qs encoding
                         logging.critical( f"Mismatched '{marker}' start and end markers '{where}' {segmentOnly=} {startCount}!={endCount}"
                               f" {'…' if ixMinStart>0 else ''}{htmlToCheck[ixMinStart:ixMinEnd+5]}{'…' if ixMinEnd+5<len(htmlToCheck) else ''}" )
-                        halt
+                        mismatched_start_and_end_markers
             # return False # TODO: Why was this here ???
         # Checked for accidentally doubled nesting
         if startMarker.endswith( '>' ):

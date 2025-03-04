@@ -63,6 +63,7 @@ CHANGELOG:
     2025-01-13 Tried but failed at multi-processing (state was too large to pickle)
     2025-01-15 Handle revised NT morphology fields with middle dots instead of periods
     2025-02-06 Put "Aramaic" on Hebrew word pages (instead of just 'A') and improve rowTypeField for others as well
+    2025-02-16 Handle changed characters for glossHelper (was /word/ now ˓word˒)
 """
 from gettext import gettext as _
 from typing import Dict, List, Tuple, Union
@@ -91,10 +92,10 @@ from html import makeTop, makeBottom, checkHtml
 from OETHandlers import getOETTidyBBB, getOETBookName, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
-LAST_MODIFIED_DATE = '2025-02-06' # by RJH
+LAST_MODIFIED_DATE = '2025-02-24' # by RJH
 SHORT_PROGRAM_NAME = "createOETReferencePages"
 PROGRAM_NAME = "OpenBibleData createOETReferencePages functions"
-PROGRAM_VERSION = '0.82'
+PROGRAM_VERSION = '0.83'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -534,6 +535,7 @@ SIMILAR_GLOSS_WORDS_TABLE = [
     #   The second is a list of other glosses to also display as synonyms
     # NOTE: The glosses are the original VLT glosses -- not our adjusted OET-LV glosses
     # NOTE: Reversals are not automatic -- they have to be manually entered
+    (('afraid','scared'),('frightened','terrified')),
     (('ancestor','ancestors'),('patriarch','patriarchs','elders')),
     (('anger',),('wrath',)),
     (('angel','angels'),('messenger','messengers')),
@@ -556,19 +558,22 @@ SIMILAR_GLOSS_WORDS_TABLE = [
     (('door','doors'),('doorway','doorways','gate','gates')),
     (('doorway','doorways'),('door','doors','gate','gates')),
     (('dread',),('fear','terror')),
+    (('earth',),('world','land')),
     (('enlighten','enlightened','enlightening'),('light','illuminate','illuminated','illuminating')),
     (('fear',),('dread','terror')),
     (('few',),('remnant','remainder')),
     (('flesh',),('body','bodies','carnal','meat')),
     (('fleshly',),('worldly',)),
+    (('frighten','frightens','frightened','frightening'),('terrify','terrifies','terrified','terrifying','afraid')),
     (('fulfilment','fulfillment'),('fullness',)),
     (('fullness',),('fulfillment','fulfilment')),
     (('gate','gates'),('door','doors','doorway','doorways')),
     (('gift','gifts'),('reward','rewards')),
     (('glorious',),('honoured','honored','glory')),
-    (('glory',),('honour','honor','glorious')),
+    (('glory',),('honour','splendour','majesty','glorious')),
     (('grain',),('wheat','barley')),
     (('heart','hearts'),('mind','minds')),
+    (('heaven','heavens'),('sky','skies')),
     (('holiness',),('purity',)),
     (('house_servant','house_servants'),('servant','servants','attendant','attendants','slave','slaves')),
     (('illuminate','illuminated','illuminating'),('light','enlighten','enlightened','enlightening')),
@@ -576,12 +581,14 @@ SIMILAR_GLOSS_WORDS_TABLE = [
     (('Jesus',),('Joshua','Yeshua')),
     (('joined_together',),('united',)),
     (('Joshua',),('Jesus','Yeshua')),
+    (('land',),('world','earth')),
     (('lamp','lamps'),('light','lights')),
     (('law','laws'),('statute','statutes','regulation','regulations')),
     (('logical',),('sensible','logic','logically')),
     (('light','lights'),('lamp','lamps')),
     (('lip','lips'),('mouth','mouths')),
     (('little',),('small',)),
+    (('majesty',),('glory','splendour')),
     (('messenger','messengers'),('angel','angels')),
     (('mind','minds'),('heart','hearts')),
     (('money',),('silver','coin','coins')),
@@ -605,12 +612,15 @@ SIMILAR_GLOSS_WORDS_TABLE = [
     (('servant','servants'),('slave','slaves','house_servant','house_servants','attendant','attendants')),
     (('ship','ships'),('boat','boats')),
     (('silver',),('money','coin','coins')),
+    (('sky','skies'),('heaven','heavens')),
     (('slave','slaves'),('servant','house_servant','servants','house_servants','attendant','attendants')),
     (('small',),('little',)),
     (('son','sons'),('child','children')),
     (('sperm',),('seed',)),
+    (('splendour',),('glory','majesty')),
     (('statute','statutes'),('law','laws','regulation','regulations')),
     (('suddenly',),('immediately',)),
+    (('terrify','terrifies','terrified','terrifying'),('frighten','frightens','frightened','frightening','afraid')),
     (('terror',),('dread','fear')),
     (('throne','thrones'),('chair','chairs','seat','seats')),
     (('unclean',),('immoral','prohibited','impure','clean')),
@@ -621,6 +631,7 @@ SIMILAR_GLOSS_WORDS_TABLE = [
     (('weep','weeps''weeping','weeped'),('cry','cries','crying','cried','mourn','mourns','mourning','mourned')),
     (('wheat',),('grain','barley')),
     (('whence',),('therefore','accordingly','consequently')),
+    (('world',),('earth','land')),
     (('worldly',),('fleshly',)),
     (('wrath',),('anger',)),
     ]
@@ -629,8 +640,8 @@ for firstWords,similarWords in SIMILAR_GLOSS_WORDS_TABLE:
     assert isinstance(firstWords,tuple) and isinstance(similarWords,tuple)
     for firstWord in firstWords:
         assert isinstance( firstWord, str )
-        assert firstWord not in similarWords # No duplicates
-        assert firstWord not in SIMILAR_GLOSS_WORDS_DICT # No duplicates
+        assert firstWord not in similarWords, f"{firstWord=}" # No duplicates
+        assert firstWord not in SIMILAR_GLOSS_WORDS_DICT, f"{firstWord=}" # No duplicates
         fwList = list( firstWords )
         fwList.remove( firstWord )
         otherFirstWords = tuple( fwList )
@@ -918,11 +929,11 @@ def preprocessGreekWordsLemmasGlosses( BBBSelection:Union[str, List[str]], state
                 state.OETRefData['NTLemmaOETGlossesDict'][SRLemma].add( OETFormattedGlossWords )
                 state.OETRefData['NTLemmaVLTGlossesDict'][SRLemma].add( VLTFormattedGlossWords )
                 for someGlossWord in OETGlossWordsStr.split( ' ' ):
-                    if '/' not in someGlossWord and '˱' not in someGlossWord and '‹' not in someGlossWord: # We only want the main words
+                    if '˓' not in someGlossWord and '˱' not in someGlossWord and '‹' not in someGlossWord: # We only want the main words
                         assert n not in state.OETRefData['OETNTGlossWordDict'][someGlossWord]
                         state.OETRefData['OETNTGlossWordDict'][someGlossWord].append( n )
                 for someGlossWord in VLTGlossWordsStr.split( ' ' ):
-                    if '/' not in someGlossWord and '˱' not in someGlossWord and '‹' not in someGlossWord: # We only want the main words
+                    if '˓' not in someGlossWord and '˱' not in someGlossWord and '‹' not in someGlossWord: # We only want the main words
                         assert n not in state.OETRefData['VLTGlossWordDict'][someGlossWord]
                         state.OETRefData['VLTGlossWordDict'][someGlossWord].append( n )
                 if SRLemma in state.OETRefData['NTGreekLemmaDict']:
@@ -946,16 +957,16 @@ def formatNTSpansGlossWords( glossWords:str ) -> str:
     # Because we have entries like 'Mōsaʸs/(Mosheh)', 'apprentices/followers', and 'chosen_one/messiah',
     #   we can get messed up with glossHelper spans
     adjustedGlossWords = glossWords
-    if glossWords.count('/') in (1,3,5):
-        while (match := forward_slash_regex.search( adjustedGlossWords )):
-            # print( f"Found match {match} in {adjustedGlossWords=}")
-            adjustedGlossWords = f'{adjustedGlossWords[:match.start()+1]}__SLASH__{adjustedGlossWords[match.end()-1:]}'
-            # print( f"{adjustedGlossWords=}" ); halt
-    assert adjustedGlossWords.count('/') in (0,2,4), f"{adjustedGlossWords=} from {glossWords=}"
+    # if glossWords.count('/') in (1,3,5):
+    #     while (match := forward_slash_regex.search( adjustedGlossWords )):
+    #         # print( f"Found match {match} in {adjustedGlossWords=}")
+    #         adjustedGlossWords = f'{adjustedGlossWords[:match.start()+1]}__SLASH__{adjustedGlossWords[match.end()-1:]}'
+    #         # print( f"{adjustedGlossWords=}" ); halt
+    # assert adjustedGlossWords.count('/') in (0,2,4), f"{adjustedGlossWords=} from {glossWords=}"
 
     result = ( adjustedGlossWords
-                .replace( '/', '<span class="glossHelper">', 1 ).replace( '/', '</span>', 1 )
                 .replace( '˱', '<span class="glossPre">', 1 ).replace( '˲', '</span>', 1 )
+                .replace( '˓', '<span class="glossHelper">', 1 ).replace( '˒', '</span>', 1 )
                 .replace( '‹', '<span class="glossPost">', 1 ).replace( '›', '</span>', 1 )
                 .replace('\\add >','<span class="addExtra">').replace('\\add*','</span>')
                 .replace('\\add ','<span class="add">').replace('\\add*','</span>')
@@ -2072,7 +2083,7 @@ def create_Greek_word_pages( level:int, outputFolderPath:Path, state:State ) -> 
     state.OETRefData['usedGrkLemmas'] = set() # Used in next function to make lemma pages
     for gg, columns_string in enumerate( state.OETRefData['word_tables'][GreekWordFileName][1:], start=1 ):
         if gg % 40_000 == 0:
-            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      {numWordPagesMade:,} made out of {gg:,}…" )
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      {numWordPagesMade:,} made out of {gg:,} out of {len(state.OETRefData['word_tables'][GreekWordFileName])-1}…" )
         if not columns_string: continue # a blank line (esp. at end)
         # print( f"Word {n}: {columns_string}" )
 
@@ -2105,7 +2116,7 @@ def create_Greek_word_pages( level:int, outputFolderPath:Path, state:State ) -> 
                                 .replace('\\sup ','').replace('\\sup*','') \
                                 .split( ' ' ):
             # print( f"{someGlossWord=}" )
-            if '˱' not in someGlossWord and '‹' not in someGlossWord and someGlossWord[0]!='/': # We only want the main words not gloss helpers, etc.
+            if '˱' not in someGlossWord and '˓' not in someGlossWord and '‹' not in someGlossWord: # We only want the main words not gloss helpers, etc.
                 assert not mainGlossWord, f"{someGlossWord=} {mainGlossWord=}" # There should only be ONE mainGlossWord
                 mainGlossWord = someGlossWord.split('/(')[0] # Throw away any Hebrew names #.replace('\\add_','\\add ')
         if mainGlossWord and ('\\' in mainGlossWord or '/' in mainGlossWord):
@@ -2472,7 +2483,7 @@ def create_Greek_lemma_pages( level:int, outputFolderPath:Path, state:State ) ->
     lemmaLinks:List[str] = [] # Used below to make an index page
     for ll, lemma in enumerate( lemmaList ):
         if (ll+1) % 1_000 == 0:
-            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      {len(lemmaLinks):,} made out of {ll+1:,}…" )
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      {len(lemmaLinks):,} made out of {ll+1:,} out of {len(lemmaList)}…" )
         # print( f"Lemma {ll}: {lemma}" )
         grkLemma = state.OETRefData['NTGreekLemmaDict'][lemma]
         if TEST_MODE and not ALL_TEST_REFERENCE_PAGES and grkLemma not in state.OETRefData['usedGrkLemmas']:

@@ -5,7 +5,7 @@
 #
 # Module handling SentenceImportance initialisation
 #
-# Copyright (C) 2024 Robert Hunt
+# Copyright (C) 2024-2025 Robert Hunt
 # Author: Robert Hunt <Freely.Given.org+BOS@gmail.com>
 # License: See gpl-3.0.txt
 #
@@ -43,10 +43,10 @@ import BibleOrgSys.Formats.USXXMLBible as USXXMLBible
 
 
 
-LAST_MODIFIED_DATE = '2024-12-02' # by RJH
+LAST_MODIFIED_DATE = '2025-03-04' # by RJH
 SHORT_PROGRAM_NAME = "SentenceImportance_initialisation"
 PROGRAM_NAME = "Sentence Importance initialisation"
-PROGRAM_VERSION = '0.17'
+PROGRAM_VERSION = '0.18'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -68,23 +68,46 @@ NET_PATHNAME = Path( '../../copiedBibles/English/NET/' )
 # Default values are M2=Medium/normal importance, 0:no textual issue, C3:clear enough
 defaultImportance, defaultTextualIssue, defaultClarity = 'M', '0', 'C'
 vitalImportanceRefs = [ # Often in doctrinal statements
-    'GEN_1:1','GEN_1:2','GEN_1:3',
+    'GEN_1:1','GEN_1:2','GEN_1:3', 'GEN_3:16',
     'EXO_20:11', 'DEU_31:6', 'PSA_46:1',
     'PRO_3:5','PRO_3:6',
-    'ISA_53:4','ISA_53:5','ISA_53:6',
+    'ISA_53:4','ISA_53:5','ISA_53:6', 'ISA_55:11',
     'JER_29:11',
     'MAL_3:8','MAL_3:9','MAL_3:10',
-    'MAT_6:33', 'MAT_28:19','MAT_28:20',
-    'JHN_3:16','JHN_5:24','JHN_11:25',
-    'ROM_3:23','ROM_6:23','ROM_8:28', 'ROM_12:2', 'CO2_5:21','CO2_12:9',
-    'GAL_5:22','GAL_5:23', 'EPH_2:9',
-    'PHP_4:6','PHP_4:7','PHP_4:8', 'PHP_4:13', 'TI2_3:16',
+
+    'MAT_6:33', 'MAT 24:35', 'MAT_28:19','MAT_28:20',
+    'JHN_3:16','JHN_5:24','JHN_11:25','JHN_20:31',
+
+    'ROM_3:23','ROM_6:23','ROM_8:28', 'ROM_12:2',
+    'CO2_5:21','CO2_12:9',
+    'GAL_3:10','GAL_3:13-14','GAL_5:22','GAL_5:23', 'EPH_2:9',
+    'PHP_4:6','PHP_4:7','PHP_4:8', 'PHP_4:13',
+    'TI2_3:16-17',
+
     'HEB_11:6','HEB_13:5',
     'PE1_3:15', 'PE1_5:7',
+    'PE2_1:19-21',
+
+    'JN1_5:11-13',
     ]
 importantRefs = [ # Often memorised
     'JOS_1:9',
-    'JHN_16:33',
+    'PRO_4:1-7',
+    'MAT_4:4',
+    'LUK_24:27',
+    'JHN_7:16','JHN_16:33',
+    'ACT_2:42',
+    'CO1_10:6-11',
+    'ROM_3:19-22','ROM_5:16-24','ROM_15:4','ROM_16:17',
+    'GAL_3:21-22',
+    'EPH_4:14',
+    'TI1_4:13','TI1_4:16','TI1_6:3',
+    'TI2_2:15','TI2_4:3-4',
+    'TIT_1:9','TIT_2:1',
+    'HEB_4:12-13','HEB_13:9',
+    'PE2_3:15-16',
+    'JN1_4:1',
+    'JN2_1:9',
     ]
 listsOfNames = ['KI1_4:2','KI1_4:3','KI1_4:4','KI1_4:5','KI1_4:6',
                 'KI1_4:8','KI1_4:9','KI1_4:10','KI1_4:11','KI1_4:12','KI1_4:13','KI1_4:14','KI1_4:15','KI1_4:16','KI1_4:17','KI1_4:18','KI1_4:19',
@@ -117,8 +140,10 @@ unclearClarityRefs = [ # Mostly sure what's in the Hebrew or Greek, but not sure
         'JOB_39:13b',
         'JOB_40:13b', 'JOB_40:19', 'JOB_40:24a',
         'JOB_41:9', 'JOB_41:11',
-    'DAN_8:12','DAN_8:13a',
+    'PSA_92:11','PSA_93:3a','PSA_105:19','PSA_105_28b','PSA_105_32b',
+    'DAN_8:12','DAN_8:13a','DAN_11:43b',
     'OBA_1:16',
+    'ZEP_3:10b',
     ]
 textualCriticismRefs = [ # Hebrew or Greek original manuscripts vary
     'SA1_4:2',
@@ -136,7 +161,7 @@ halfRefs = [ref for ref in allRefs if ref[-1] in 'ab']
 # assert len( set(halfRefs) ) == len(halfRefs) # Otherwise there must be a duplicate # SIMPLY NOT TRUE -- duplicates expected here
 for ref in allRefs:
     assert 7 <= len(ref) <= 12, f"{ref=}"
-    assert ref.count('_')==1 and ref.count(':')
+    assert ref.count('_') == 1 and ref.count(':') >= 1
     if ref in halfRefs: assert ref[:-1] not in allRefs, f"Need to fix '{ref[:-1]}' in tables since we also have '{ref}'"
 
 
