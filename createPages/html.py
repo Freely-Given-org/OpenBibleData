@@ -102,7 +102,7 @@ from settings import State, TEST_MODE, TEST_VERSIONS_ONLY, SITE_NAME
 from OETHandlers import getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2025-02-28' # by RJH
+LAST_MODIFIED_DATE = '2025-03-08' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
 PROGRAM_VERSION = '0.93'
@@ -741,7 +741,7 @@ def checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool:
         if not match:
             break
         titleGuts = match.group(1) # Can be an entire footnote or can be a parsing of a word (with some fields still expanded like --fnColon--)
-        assert len(titleGuts) <= (1010 if titleGuts.startswith('Note') or titleGuts.startswith('Variant note') or 'NET' in where or 'TCNT' in where or 'TC-GNT' in where or 'T4T' in where or 'Parallel' in where or 'End of parallel' in where else 150), f"'{where}' {segmentOnly=} title is too long ({len(titleGuts)}) {titleGuts=}"
+        assert len(titleGuts) <= (1010 if titleGuts.startswith('OSHB ') or titleGuts.startswith('Note') or 'NET' in where or 'TCNT' in where or 'TC-GNT' in where or 'T4T' in where or 'Parallel' in where or 'End of parallel' in where else 150), f"'{where}' {segmentOnly=} title is too long ({len(titleGuts)}) {titleGuts=}"
         assert '\n' not in titleGuts, f"'{where}' {segmentOnly=} Bad title with newline in {titleGuts=} FROM {htmlToCheck=}"
         assert '<br' not in titleGuts, f"'{where}' {segmentOnly=} Bad title with BR in {titleGuts=} FROM {htmlToCheck=}"
         assert '<span' not in titleGuts, f"'{where}' {segmentOnly=} Bad title with SPAN in {titleGuts=} FROM {htmlToCheck=}"

@@ -88,7 +88,7 @@ from settings import State, TEST_MODE, TEST_BOOK_LIST, TEST_VERSIONS_ONLY, \
                     UPDATE_ACTUAL_SITE_WHEN_BUILT, VERSIONS_WITHOUT_NT, VERSIONS_WITHOUT_OT, VERSIONS_WITH_APOCRYPHA, \
                     reorderBooksForOETVersions, OET_SINGLE_VERSE_HTML_TEXT, OETS_UNFINISHED_WARNING_HTML_TEXT
 from usfm import convertUSFMMarkerListToHtml
-from Bibles import formatTyndaleBookIntro, formatUnfoldingWordTranslationNotes, formatTyndaleNotes, getBibleMapperMaps, getVerseDetailsHtml
+from Bibles import formatTyndaleBookIntro, formatUnfoldingWordTranslationNotes, formatTyndaleNotes, getBibleMapperMaps, getVerseMetaInfoHtml
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
                     convert_adds_to_italics, removeDuplicateFNids, \
                     makeTop, makeBottom, makeBookNavListParagraph, checkHtml
@@ -274,10 +274,10 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                 navLinks = f'<p id="__ID__" class="vNav">{leftCLink}{leftVLink}{ourTidyBbb} Book Introductions <a title="Go to __WHERE__ of page" href="#__LINK__">__ARROW__</a>{rightVLink}{rightCLink}{interlinearLink}{detailsLink}{hideFieldsButton}{hideTransliterationsButton}</p>' if c==-1 \
                         else f'<p id="__ID__" class="vNav">{introLink}{leftCLink}{leftVLink}{ourTidyBbb} {C}:{V} <a title="Go to __WHERE__ of page" href="#__LINK__">__ARROW__</a>{rightVLink}{rightCLink}{interlinearLink}{detailsLink}{hideFieldsButton}{hideTransliterationsButton}</p>'
 
-                debugKJBCompareBit = False #parRef == 'PSA_103:1'
+                debugKJBCompareBit = False #parRef == 'PSA_5:1'
                 ancientRefsToPrint = () # ('SA1_31:13',) # For debugging
                 cleanedModernisedKJB1769TextHtml = depunctuatedCleanedModernisedKJB1769TextHtml = '' # These two are only used for comparisons -- they're not displayed on the page anywhere
-                parallelHtml = getVerseDetailsHtml( BBB, C, V )
+                parallelHtml = getVerseMetaInfoHtml( BBB, C, V )
                 for versionAbbreviation in parallelVersions: # our adjusted order
                     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"    createParallelVersePagesForBook {parRef} processing {versionAbbreviation}…" )
                     assert not parallelHtml.endswith( '\n' )
@@ -461,23 +461,24 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                                 if versionAbbreviation == 'KJB-1769':
                                     # if parRef in ancientRefsToPrint: print( f"AA {versionAbbreviation} {parRef} ({len(modernisedTextHtml)}) {modernisedTextHtml=}" )
                                     # NOTE: cleanedModernisedKJB1769TextHtml and depunctuatedCleanedModernisedKJB1769TextHtml are only used for comparisons -- they're not displayed on the page anywhere
-                                    cleanedModernisedKJB1769TextHtml = modernisedTextHtml.replace( versionAbbreviation, '' ) \
-                                                                            .replace( '⇔ ', '' ) \
-                                                                            .replace( 'J', 'Y' ).replace( 'Benjam', 'Benyam' ).replace( 'ij', 'iy' ).replace( 'Ij', 'Iy' ).replace( 'Ie', 'Ye' ) \
-                                                                            .replace( '<span class="wj">', '' ).replace( '</span>', '' ) \
-                                                                            .replace( '  ', ' ' ).replace( '> ', '>' ) \
-                                                                            .strip() # Not sure why there's so many superfluous spaces in this text ???
+                                    cleanedModernisedKJB1769TextHtml = ( modernisedTextHtml.replace( versionAbbreviation, '' )
+                                                                            .replace( '⇔ ', '' )
+                                                                            .replace( '<br> ', '') # (with en-space) after Psalm titles
+                                                                            .replace( 'J', 'Y' ).replace( 'Benjam', 'Benyam' ).replace( 'ij', 'iy' ).replace( 'Ij', 'Iy' ).replace( 'Ie', 'Ye' )
+                                                                            .replace( '<span class="wj">', '' ).replace( '</span>', '' )
+                                                                            .replace( '  ', ' ' ).replace( '> ', '>' ).replace( ' \n', '\n')
+                                                                            .strip() ) # Not sure why there's so many superfluous spaces in this text ???
                                     depunctuatedCleanedModernisedKJB1769TextHtml = removeVersePunctuationForComparison( cleanedModernisedKJB1769TextHtml )
                                     if parRef in ancientRefsToPrint: print( f"BB {versionAbbreviation} {parRef} ({len(depunctuatedCleanedModernisedKJB1769TextHtml)}) {depunctuatedCleanedModernisedKJB1769TextHtml=}" )
                                 # if versionAbbreviation=='KJB-1611' and parRef in ancientRefsToPrint: print( f"CC {versionAbbreviation} {parRef} ({len(modernisedTextHtml)}) {modernisedTextHtml=}")
                                 # NOTE: cleanedModernisedTextHtml and depunctuatedCleanedModernisedTextHtml are only used for comparisons -- they're not displayed on the page anywhere
-                                cleanedModernisedTextHtml = modernisedTextHtml.replace( versionAbbreviation, '' ) \
-                                                                        .replace( 'ij', 'iy' ) \
-                                                                        .replace( '<span class="wj">', '' ) \
-                                                                        .replace( '<span style="fontsize75em">', '' ) \
-                                                                        .replace( '</span>', '' ) \
-                                                                        .replace( 'Yuniper', 'Juniper' ) \
-                                                                        .replace( 'Yesus/Yeshua', 'Yesus' )
+                                cleanedModernisedTextHtml = ( modernisedTextHtml.replace( versionAbbreviation, '' )
+                                                                        .replace( 'ij', 'iy' )
+                                                                        .replace( '<span class="wj">', '' )
+                                                                        # .replace( '<span style="fontsize75em">', '' ) # Where does this come from???
+                                                                        .replace( '</span>', '' )
+                                                                        .replace( 'Yuniper', 'Juniper' )
+                                                                        .replace( 'Yesus/Yeshua', 'Yesus' ) )
                                 depunctuatedCleanedModernisedTextHtml = removeVersePunctuationForComparison( cleanedModernisedTextHtml )
                                 if versionAbbreviation=='KJB-1611' and parRef in ancientRefsToPrint: print( f"DD {versionAbbreviation} {parRef} same={cleanedModernisedTextHtml==cleanedModernisedKJB1769TextHtml} ({len(depunctuatedCleanedModernisedTextHtml)}) {depunctuatedCleanedModernisedTextHtml=}")
                                 if versionAbbreviation in ('Wycl','TNT','Cvdl','Gnva','Bshps','KJB-1611') \
@@ -580,7 +581,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                                     if not differentWordHighlighted and 'class="nd"' not in depunctuatedCleanedModernisedTextHtml:
                                         if debugKJBCompareBit: print( "CHECK THE ABOVE" )
                                         # halt
-                                    # if parRef == 'PSA_103:1': halt
+                                    if parRef == 'PSA_5:1': halt
                                 if modernisedTextDiffers or 'KJB-1769 above' in modernisedTextHtml:
                                     # if parRef in ancientRefsToPrint: print( f"YY {versionAbbreviation} {parRef} {modernisedTextDiffers=} {modernisedTextHtml=}" )
                                     textHtml = f'''{textHtml}<br>   ({modernisedTextHtml.replace('<br>','<br>   ')})'''

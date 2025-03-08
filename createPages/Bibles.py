@@ -40,7 +40,7 @@ loadSelectedVersesFile( fileLocation, givenName:str, givenAbbreviation:str, enco
 
 getVerseDataListForReference( givenRefString:str, thisBible:Bible, lastBBB:Optional[str]=None, lastC:Optional[str]=None ) -> Tuple[str,str,InternalBibleEntryList,List[str]]
 
-getVerseDetailsHtml( BBB:str, C:str, V:str ) -> str # html
+getVerseMetaInfoHtml( BBB:str, C:str, V:str ) -> str # html
 
 briefDemo() -> None
 fullDemo() -> None
@@ -96,7 +96,7 @@ from OETHandlers import findLVQuote, getBBBFromOETBookName
 from Dict import loadAndIndexUBSGreekDictJSON, loadAndIndexUBSHebrewDictJSON
 
 
-LAST_MODIFIED_DATE = '2025-02-10' # by RJH
+LAST_MODIFIED_DATE = '2025-03-07' # by RJH
 SHORT_PROGRAM_NAME = "Bibles"
 PROGRAM_NAME = "OpenBibleData Bibles handler"
 PROGRAM_VERSION = '0.84'
@@ -1099,6 +1099,8 @@ def loadSelectedVersesFile( fileLocation, givenName:str, givenAbbreviation:str, 
     """
     These are loaded from simple two-column TSV files
         with reference and verse text.
+
+    Usually they only contain some small number of verses, e.g., 200 - 500 (cf NT. = 8,000, Bible = 31,000)
     """
     fnPrint( DEBUGGING_THIS_MODULE, f"loadSelectedVersesFile( {fileLocation}, {givenName}, {givenAbbreviation}, {encoding} )" )
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  loadSelectedVersesFile() loading {givenAbbreviation} ({givenName}) verse entries from {fileLocation}…" )
@@ -1407,7 +1409,7 @@ def getBibleMapperMaps( level:int, BBB:str, startC:str, startV:Optional[str], en
 
 VERSE_DETAILS_TABLE_FILEPATH = Path( '../datasets/sentenceImportance/sentenceImportance.tsv' )
 VERSE_DETAILS_TABLE = {}
-def getVerseDetailsHtml( BBB:str, C:str, V:str ) -> str: # html
+def getVerseMetaInfoHtml( BBB:str, C:str, V:str ) -> str: # html
     """
     Return a short string with information from our database
         about Textual Critism, Clarity, etc., of the particular verse.
@@ -1438,7 +1440,7 @@ def getVerseDetailsHtml( BBB:str, C:str, V:str ) -> str: # html
                 verseDetails += f"{'<br>' if verseDetails else ''}{formatVerseDetailsHtml( partRef )}"
 
     return f'''<p class="verseDetails">{verseDetails}{'<br>' if 'Segment' in verseDetails else ' '}<small style="color:grey;">(All still tentative.)</small></p>'''
-# end of Bibles.getVerseDetailsHtml
+# end of Bibles.getVerseMetaInfoHtml
 
 IMPORTANCE_TABLE = { 'T':'<span style="color:grey;">trivial</span>', 'M':'<span style="color:pink;">normal</span>', 'I':'<span style="color:orange;">important</span>', 'V':'<span style="color:red;">vital</span>' }
 TEXTUAL_ISSUE_TABLE = { '0':'<span style="color:green;">none</span>', '1':'<span style="color:pink;">minor spelling</span>', '2':'<span style="color:orange;">small word differences</span>', '3':'<span style="color:red;">major</span>' }
