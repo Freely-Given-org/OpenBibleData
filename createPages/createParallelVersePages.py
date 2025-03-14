@@ -65,6 +65,7 @@ CHANGELOG:
     2025-02-02 Added ID to clinksPar, make OET/OET-RV go to section instead of chapter
     2025-02-03 Chapter selector now goes to verse selector (#vsLst) not #Top
     2025-02-25 Improved colouring for changes between KJB-1611 and KJB-1769
+    2025-03-14 Tried to improve that colouring so it highlights the FIRST different word, even if it's small like 'a'
 """
 from gettext import gettext as _
 from typing import Tuple, List
@@ -98,7 +99,7 @@ from OETHandlers import getOETTidyBBB, getOETBookName, livenOETWordLinks, getHeb
 from LanguageHandlers import moderniseEnglishWords, translateGerman, translateLatin
 
 
-LAST_MODIFIED_DATE = '2025-02-28' # by RJH
+LAST_MODIFIED_DATE = '2025-03-14' # by RJH
 SHORT_PROGRAM_NAME = "createParallelVersePages"
 PROGRAM_NAME = "OpenBibleData createParallelVersePages functions"
 PROGRAM_VERSION = '0.98'
@@ -274,7 +275,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                 navLinks = f'<p id="__ID__" class="vNav">{leftCLink}{leftVLink}{ourTidyBbb} Book Introductions <a title="Go to __WHERE__ of page" href="#__LINK__">__ARROW__</a>{rightVLink}{rightCLink}{interlinearLink}{detailsLink}{hideFieldsButton}{hideTransliterationsButton}</p>' if c==-1 \
                         else f'<p id="__ID__" class="vNav">{introLink}{leftCLink}{leftVLink}{ourTidyBbb} {C}:{V} <a title="Go to __WHERE__ of page" href="#__LINK__">__ARROW__</a>{rightVLink}{rightCLink}{interlinearLink}{detailsLink}{hideFieldsButton}{hideTransliterationsButton}</p>'
 
-                debugKJBCompareBit = False #parRef == 'PSA_5:1'
+                debugKJBCompareBit = False #parRef == 'PSA_68:6'
                 ancientRefsToPrint = () # ('SA1_31:13',) # For debugging
                 cleanedModernisedKJB1769TextHtml = depunctuatedCleanedModernisedKJB1769TextHtml = '' # These two are only used for comparisons -- they're not displayed on the page anywhere
                 parallelHtml = getVerseMetaInfoHtml( BBB, C, V )
@@ -537,6 +538,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                                         if debugKJBCompareBit \
                                         and not word1611==word1769==wordModTxt: print( f"  {parRef} LOOP {wordNum=} {doneHighlight=} {word1611=} {word1769=} {wordModTxt=}{f'/{modernisedTextHtml.count(wordModTxt)}' if modernisedTextHtml.count(wordModTxt)!=1 else ''} {changeIndex=} so '{modernisedTextHtml[changeIndex:changeIndex+20]}...'")
                                         if word1769 != word1611:
+                                            if debugKJBCompareBit: print( f"  {parRef} {word1611=} IS DIFFERENT FROM {word1769=}" )
                                             wordModTxtAdj = removeVersePunctuationForComparison( wordModTxt )
                                             if debugKJBCompareBit:
                                                 if wordModTxtAdj != wordModTxt: print( f"        {wordModTxtAdj=} ({modernisedTextHtml.count(wordModTxtAdj)})" )
@@ -546,10 +548,11 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                                                 and parRef not in ('KI1_10:15',) ):
                                                     assert wordModTxtAdj in modernisedTextHtml, f"{wordModTxt=} should have been in {modernisedTextHtml=}"
                                             if ( wordModTxtAdj.lower() == word1611
-                                            and (modernisedTextHtml.count(wordModTxt)==1
-                                                 or (len(wordModTxt)>0 and modernisedTextHtml.count(f' {wordModTxt}')==modernisedTextHtml.count(wordModTxt) and modernisedTextHtml.count(f'{wordModTxt} ')==modernisedTextHtml.count(wordModTxt) ) ) # Shorter words can occur inside other words too often
+                                            # and (modernisedTextHtml.count(wordModTxt)==1
+                                            #      or (len(wordModTxt)>0 and modernisedTextHtml.count(f' {wordModTxt}')==modernisedTextHtml.count(wordModTxt) and modernisedTextHtml.count(f'{wordModTxt} ')==modernisedTextHtml.count(wordModTxt) ) ) # Shorter words can occur inside other words too often
                                             and 'class=' not in wordModTxt
-                                            and wordModTxtAdj.lower() not in ('adoniyah',) ):
+                                            and wordModTxtAdj.lower() not in ('adoniyah',) # Why???
+                                            ):
                                                 if debugKJBCompareBit: print( f"  {parRef} {modernisedTextHtml=}" )
                                                 assert wordModTxt != 'span'
                                                 # wordMTadj = removeVersePunctuationForComparison( wordMT )
@@ -559,12 +562,18 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                                                     tempChangeIndex = max( changeIndex, modernisedTextHtml.find( wordModTxt, changeIndex ))
                                                     print( f"    PPP Now changeIndex = {tempChangeIndex} = max({changeIndex},{modernisedTextHtml.find( wordModTxt, changeIndex )}) so '{modernisedTextHtml[tempChangeIndex:tempChangeIndex+20]}...'" )
                                                 changeIndex = max( changeIndex, modernisedTextHtml.find( wordModTxt, changeIndex ))
-                                                modernisedTextHtml = f"{modernisedTextHtml[:changeIndex]}{modernisedTextHtml[changeIndex:].replace( wordModTxt, f'<span SPAN1>{wordModTxt}</span>' 
+                                                if modernisedTextHtml[changeIndex:].startswith( f'{wordModTxt} '):
+                                                    modernisedTextHtml = f"{modernisedTextHtml[:changeIndex]}{modernisedTextHtml[changeIndex:].replace( wordModTxt, f'<span SPAN1>{wordModTxt}</span>' if doneHighlight else f'<span SPAN2>{wordModTxt}</span>', 1 )}"
+                                                    changeIndex += len( '<span SPANx></span>' ) # Number of added characters
+                                                    doneHighlight = True
+                                                elif modernisedTextHtml.count(wordModTxt)==1 \
+                                                or (len(wordModTxt)>0 and modernisedTextHtml.count(f' {wordModTxt}')==modernisedTextHtml.count(wordModTxt) and modernisedTextHtml.count(f'{wordModTxt} ')==modernisedTextHtml.count(wordModTxt) ): # Shorter words can occur inside other words too often
+                                                    modernisedTextHtml = ( f"{modernisedTextHtml[:changeIndex]}{modernisedTextHtml[changeIndex:].replace( wordModTxt, f'<span SPAN1>{wordModTxt}</span>'
                                                              if modernisedTextHtml[changeIndex:].count(wordModTxt)==1 and not doneHighlight # Consecutive words might be just out of step
-                                                                                                        else f'<span SPAN2>{wordModTxt}</span>')}"
-                                                changeIndex += len( '<span SPANx></span>' ) # Number of added characters
+                                                                                                        else f'<span SPAN2>{wordModTxt}</span>')}" )
+                                                    changeIndex += len( '<span SPANx></span>' ) # Number of added characters
+                                                    doneHighlight = True
                                                 if debugKJBCompareBit: print( f"    QQQ Now changeIndex += 19 = {changeIndex} so '{modernisedTextHtml[changeIndex:changeIndex+20]}...'" )
-                                                doneHighlight = True
                                                 checkHtml( f'hilighted {parRef} modernisedTextHtml after {wordModTxt=} replacement', modernisedTextHtml, segmentOnly=True )
                                                 differentWordHighlighted = True
                                                 if debugKJBCompareBit: print( f"  NOW {modernisedTextHtml=}" )
@@ -581,7 +590,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                                     if not differentWordHighlighted and 'class="nd"' not in depunctuatedCleanedModernisedTextHtml:
                                         if debugKJBCompareBit: print( "CHECK THE ABOVE" )
                                         # halt
-                                    if parRef == 'PSA_5:1': halt
+                                    # if parRef == 'PSA_68:6': halt
                                 if modernisedTextDiffers or 'KJB-1769 above' in modernisedTextHtml:
                                     # if parRef in ancientRefsToPrint: print( f"YY {versionAbbreviation} {parRef} {modernisedTextDiffers=} {modernisedTextHtml=}" )
                                     textHtml = f'''{textHtml}<br>   ({modernisedTextHtml.replace('<br>','<br>   ')})'''

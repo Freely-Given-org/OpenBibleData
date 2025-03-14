@@ -64,6 +64,7 @@ CHANGELOG:
     2025-01-15 Handle revised NT morphology fields with middle dots instead of periods
     2025-02-06 Put "Aramaic" on Hebrew word pages (instead of just 'A') and improve rowTypeField for others as well
     2025-02-16 Handle changed characters for glossHelper (was /word/ now ˓word˒)
+    2025-03-11 Put more glosses on Hebrew word pages
 """
 from gettext import gettext as _
 from typing import Dict, List, Tuple, Union
@@ -92,10 +93,10 @@ from html import makeTop, makeBottom, checkHtml
 from OETHandlers import getOETTidyBBB, getOETBookName, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
-LAST_MODIFIED_DATE = '2025-02-24' # by RJH
+LAST_MODIFIED_DATE = '2025-03-14' # by RJH
 SHORT_PROGRAM_NAME = "createOETReferencePages"
 PROGRAM_NAME = "OpenBibleData createOETReferencePages functions"
-PROGRAM_VERSION = '0.83'
+PROGRAM_VERSION = '0.84'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -969,7 +970,7 @@ def formatNTSpansGlossWords( glossWords:str ) -> str:
                 .replace( '˓', '<span class="glossHelper">', 1 ).replace( '˒', '</span>', 1 )
                 .replace( '‹', '<span class="glossPost">', 1 ).replace( '›', '</span>', 1 )
                 .replace('\\add >','<span class="addExtra">').replace('\\add*','</span>')
-                .replace('\\add ','<span class="add">').replace('\\add*','</span>')
+                .replace('\\add ','<span class="add">')
                 .replace('\\sup ','<sup>').replace('\\sup*','</sup>')
             )
     assert result.count('<span ') == result.count('</span>'), f"{result=} from {glossWords=}"
@@ -1030,13 +1031,14 @@ def tidy_Hebrew_word_gloss( engGloss:str ) -> str:
     """
     """
     assert '<span class="ul">' not in engGloss # already
-    result = engGloss \
-        .replace( '\\untr ', '<span class="untr">').replace( '\\untr*', '</span>') \
-        .replace( '\\nd ', '<span class="nd">').replace( '\\nd*', '</span>') \
-        .replace( '\\add >', '<span class="addExtra">').replace( '\\add*', '</span>') \
-        .replace( '\\sup ', '<sup>').replace( '\\sup*', '</sup>') \
-        .replace( '_', '<span class="ul">_</span>')
-    assert '\\' not in result
+    result = ( engGloss
+        .replace( '\\untr ', '<span class="untr">').replace( '\\untr*', '</span>')
+        .replace( '\\nd ', '<span class="nd">').replace( '\\nd*', '</span>')
+        .replace( '\\add >', '<span class="addExtra">').replace( '\\add*', '</span>')
+        .replace( '\\add ', '<span class="addExtra">') # Is this the right class? e.g., engGloss='kor_\\add measures\\add*'
+        .replace( '\\sup ', '<sup>').replace( '\\sup*', '</sup>')
+        .replace( '_', '<span class="ul">_</span>') )
+    assert '\\' not in result, f"tidy_Hebrew_word_gloss( {engGloss=} ) -> {result=}"
     return result
 # end of createOETReferencePages.tidy_Hebrew_word_gloss
 
@@ -1252,11 +1254,16 @@ def create_Hebrew_word_pages( level:int, outputFolderPath:Path, state:State ) ->
 # end of createOETReferencePages.create_Hebrew_word_pages
 
 
+GLOSS_TYPE_STRING_DICT = {'cWG':'contextual word gloss',
+                    'wG':'word gloss',
+                    'cMGs':'contextual morpheme glosses',
+                    'mGs':'morpheme glosses'}
 def create_Hebrew_word_page( level:int, hh:int, hebrewWord:str, columns_string:str, outputFolderPath:Path, output_filename:Path, state:State ) -> bool:
     """
     """
     fnPrint( DEBUGGING_THIS_MODULE, f"create_Hebrew_word_page( {level}, {hh}, {hebrewWord}, ..., {output_filename} ... )" )
     dPrint( 'Normal' if BibleOrgSysGlobals.alreadyMultiprocessing else 'Verbose', DEBUGGING_THIS_MODULE, f"Word {hh}: {columns_string}" )
+    assert hebrewWord
 
     usedRoleLetters, usedMorphologies = set(), set()
     # dPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Got '{columns_string}' for '{output_filename}'" )
@@ -1277,7 +1284,9 @@ def create_Hebrew_word_page( level:int, hh:int, hebrewWord:str, columns_string:s
     # print( f"{ref} '{rowType}' ({lemmaRowList}) got '{word}' ({noCantillations}) morphology='{morphology}'" )
     wordGloss = wordGloss.replace( '=', '_' )
     # NOTE: segs don't have glosses, plus some glosses might be missing
-    gloss = tidy_Hebrew_word_gloss( contextualWordGloss if contextualWordGloss else wordGloss if wordGloss else contextualMorphemeGlosses if contextualMorphemeGlosses else morphemeGlosses )
+    gloss = contextualWordGloss if contextualWordGloss else wordGloss if wordGloss else contextualMorphemeGlosses if contextualMorphemeGlosses else morphemeGlosses
+    chosenGlossType = 'cWG' if contextualWordGloss else 'wG' if wordGloss else 'cMGs' if contextualMorphemeGlosses else 'mGs'
+    gloss = tidy_Hebrew_word_gloss( gloss.replace(',',', ').replace('</','PRoTecT').replace('/', ' / ').replace('PRoTecT', '</') ) # looks much nicer
     # NOT TRUE assert rowType in ('seg',) or gloss, f"{ref=} {rowType=} {morphemeRowList=} {lemmaRowList=} {strongs=} {morphology=} {word=} {noCantillations=} {morphemeGlosses=} {contextualMorphemeGlosses=} {wordGloss=} {contextualWordGloss=} {glossCapitalisation=} {glossPunctuation=} {glossOrder=} {glossInsert=} {role=} {nesting=} {tags=}"
     if isMultipleLemmas:
         if contextualMorphemeGlosses:
@@ -1289,16 +1298,23 @@ def create_Hebrew_word_page( level:int, hh:int, hebrewWord:str, columns_string:s
         else: mainGlossWord = gloss
     else: mainGlossWord = gloss
 
-    tidyMorphologyField = translationField = capsField = ''
+    tidyMorphologyFields = translationFields = capsField = ''
     if rowType!='seg' and 'note' not in rowType:
         # it's a proper Hebrew (or Aramaic) word
         assert morphemeRowList.count(',') == strongs.count(',') == morphology.count(',') == word.count(',') == noCantillations.count(',')
-        tidyMorphologyField = tidy_Hebrew_morphology( rowType, morphology )
+        tidyMorphologyFields = tidy_Hebrew_morphology( rowType, morphology )
 
         if gloss:
-            translationField = f'''‘{gloss[0].upper() if glossCapitalisation=='S' else gloss[0]}{gloss[1:]}’'''.replace(',',', ')
+            translationFields = f'''{GLOSS_TYPE_STRING_DICT[chosenGlossType]}=‘<b>{gloss[0].upper() if glossCapitalisation=='S' else gloss[0]}{gloss[1:]}</b>’'''
+            for extraGlossType,extraGlossString in (('cWG',contextualWordGloss),('wG',wordGloss),('cMGs',contextualMorphemeGlosses),('mGs',morphemeGlosses)):
+                if extraGlossType != chosenGlossType and extraGlossString:
+                    extraGlossTypeString = 'possible word glosses' if extraGlossType=='wG' and '/' in extraGlossString \
+                                                            else GLOSS_TYPE_STRING_DICT[extraGlossType]
+                    extraGlossString = tidy_Hebrew_word_gloss( extraGlossString.replace(',',', ').replace('</','PRoTecT').replace('/', ' / ').replace('PRoTecT', '</') ) # looks much nicer
+                    translationFields = f'''{translationFields} {extraGlossTypeString}=‘<b>{extraGlossString[0].upper() if glossCapitalisation=='S' else extraGlossString[0]}{extraGlossString[1:]}</b>’'''
+            translationFields = translationFields
         else:
-            translationField = '<small>Oops, <a href="https://GitHub.com/Clear-Bible/macula-hebrew/issues/121">no gloss available</a>!</small>'
+            translationFields = '<small>Oops, <a href="https://GitHub.com/Clear-Bible/macula-hebrew/issues/121">no gloss available</a>!</small>'
             logging.error( f"create_Hebrew_word_pages: {ref} {rowType} No gloss available for '{word}'" )
             # print( f"create_Hebrew_word_pages: {ref} {rowType=} No gloss available for {word=} {role=}" )
             # print( f"  {morphemeGlosses=} {contextualMorphemeGlosses=} {wordGloss=} {contextualWordGloss=}")
@@ -1395,8 +1411,9 @@ def create_Hebrew_word_page( level:int, hh:int, hebrewWord:str, columns_string:s
     hebrewWordTitle = rowTypeField if rowType=='seg' or 'note' in rowType else hebrewWord # f'{hebrewWord}\u202d' # unicode LRO
     wordsHtml = f'''<h2>Open English Translation (OET)</h2>\n<h1 id="Top">Hebrew wordlink #{hh}</h1>{f"{NEWLINE}<h2>{rowTypeField}</h2>" if rowTypeField else ''}
 <p class="pNav">{prevLink}<b>{hebrewWordTitle}</b> <a title="Go to Hebrew word index" href="index.htm">↑</a>{nextLink}{oetLink}{parallelLink}{interlinearLink}</p>
-<p class="link"><a title="Go to Open Scriptures Hebrew verse page" href="https://hb.OpenScriptures.org/structure/OshbVerse/index.html?b={OSISbookCode}&c={C}&v={V}">OSHB {ourTidyBbbWithNotes} {C}:{V}</a>
- <b>{hebrewWord}</b>{transliterationBit} {translationField}{capsField if TEST_MODE else ''}{StrongsBit} {lemmaLinksStr}<br> {tidyMorphologyField}<br>  </p>
+<p class="link"><a title="Go to Open Scriptures Hebrew verse page" href="https://hb.OpenScriptures.org/structure/OshbVerse/index.html?b={OSISbookCode}&c={C}&v={V}">OSHB {ourTidyBbbWithNotes} {C}:{V}</a> <b>{hebrewWord}</b>{transliterationBit}{StrongsBit} {lemmaLinksStr}
+<br> {translationFields}{capsField if TEST_MODE else ''}
+<br> {tidyMorphologyFields}</p>
 <p class="note"><small>Note: These word pages enable you to click through to the <a href="https://hb.OpenScriptures.org">Open Scriptures Hebrew Bible</a> (OSHB) that the <em>Open English Translation</em> Old Testament is translated from.
 The OSHB is based on the <a href="https://www.Tanach.us/Tanach.xml">Westminster Leningrad Codex</a> (WLC).
 (We are still searching for a digitized facsimile of the Leningradensis manuscript that we can easily link to. See <a href="https://www.AnimatedHebrew.com/mss/index.html#leningrad">this list</a> and <a href="https://archive.org/details/Leningrad_Codex/">this archive</a> for now.)
@@ -1412,22 +1429,22 @@ This is all part of the commitment of the <em>Open English Translation</em> team
             assert '\\' not in wordGlossesStr
         if len(thisWordNumberList) > 100: # too many to list
             maxWordsToShow = 50
-            wordsHtml = f'{wordsHtml}\n<h2>Showing the first {maxWordsToShow} out of {len(thisWordNumberList)-1:,} uses of identical word form {hebrewWord} <small>({tidyMorphologyField})</small> in the Hebrew originals</h2>'
+            wordsHtml = f'{wordsHtml}\n<h2>Showing the first {maxWordsToShow} out of {len(thisWordNumberList)-1:,} uses of identical word form {hebrewWord} <small>({tidyMorphologyFields})</small> in the Hebrew originals</h2>'
             if len(wordOETGlossesList)>1:
-                wordsHtml = f'''{wordsHtml}\n<p class="summary">The word form ‘{hebrewWord}’ <small>({tidyMorphologyField})</small> has {len(wordOETGlossesList):,} different glosses: ‘<b>{wordGlossesStr}</b>’.</p>'''
+                wordsHtml = f'''{wordsHtml}\n<p class="summary">The word form ‘{hebrewWord}’ <small>({tidyMorphologyFields})</small> has {len(wordOETGlossesList):,} different glosses: ‘<b>{wordGlossesStr}</b>’.</p>'''
                 # if wordVLTGlossesList != wordOETGlossesList:
                 #     wordsHtml = f'''{wordsHtml}\n<p class="summary"><small>(In the VLT, the word form ‘{hebrewWord}’ <small>({tidyMorphologyField})</small> has {len(wordVLTGlossesList):,} different glosses: ‘<b>{"</b>’, ‘<b>".join(wordVLTGlossesList)}</b>’)</small>.</p>'''
             else:
                 # assert wordOETGlossesList == [gloss], f"{wordOETGlossesList}  vs {[gloss]}"
                 if not gloss:
                     print( f"{ref=} {rowType=} {morphemeRowList=} {lemmaRowList=} {strongs=} {morphology=} {word=} {noCantillations=} {morphemeGlosses=} {contextualMorphemeGlosses=} {wordGloss=} {contextualWordGloss=} {glossCapitalisation=} {glossPunctuation=} {glossOrder=} {glossInsert=} {role=} {nesting=} {tags=}" )
-                wordsHtml = f'{wordsHtml}\n<p class="summary">The word form ‘{hebrewWord}’ <small>({tidyMorphologyField})</small> is always and only glossed as ‘<b>{gloss}</b>’.</p>'
+                wordsHtml = f'{wordsHtml}\n<p class="summary">The word form ‘{hebrewWord}’ <small>({tidyMorphologyFields})</small> is always and only glossed as ‘<b>{gloss}</b>’.</p>'
                 # if VLTGlossWordsStr != gloss:
                 #     wordsHtml = f'{wordsHtml}\n<p class="summary"><small>(In the VLT, the word form ‘{hebrewWord}’ <small>({tidyMorphologyField})</small> was always and only glossed as ‘<b>{VLTGlossWordsStr}</b>’)</small>.</p>'
         else: # we can list all uses of the word
             maxWordsToShow = 100
             if len(thisWordNumberList) == 1:
-                wordsHtml = f'{wordsHtml}\n<h2>Only use of identical word form ‘{hebrewWord}’ <small>({tidyMorphologyField})</small> in the Hebrew originals</h2>'
+                wordsHtml = f'{wordsHtml}\n<h2>Only use of identical word form ‘{hebrewWord}’ <small>({tidyMorphologyFields})</small> in the Hebrew originals</h2>'
                 # hebLemmaWordRowsList = state.OETRefData['OTLemmaRowNumbersDict'][noCantillations]
                 # lemmaFormsList = sorted( state.OETRefData['OTLemmaFormsDict'][noCantillations] )
                 # if len(hebLemmaWordRowsList) == 1:
@@ -1436,14 +1453,14 @@ This is all part of the commitment of the <em>Open English Translation</em> team
                 #     assert len(morphemeGlossesList) == 1
                 #     html = f'''{html.replace(morphemeLink, f'{morphemeLink}<sup>*</sup>')}\n<p class="note"><sup>*</sup>Note: This is also the only occurrence of the word root <small>(lemma)</small> '{lemma}' in the Hebrew originals.</p>'''
             elif len(thisWordNumberList) > 1:
-                wordsHtml = f'{wordsHtml}\n<h2>Other uses ({len(thisWordNumberList)-1:,}) of identical word form {hebrewWord} <small>({tidyMorphologyField})</small> in the Hebrew originals</h2>'
+                wordsHtml = f'{wordsHtml}\n<h2>Other uses ({len(thisWordNumberList)-1:,}) of identical word form {hebrewWord} <small>({tidyMorphologyFields})</small> in the Hebrew originals</h2>'
             if len(wordOETGlossesList)>1:
-                wordsHtml = f'''{wordsHtml}\n<p class="summary">The word form ‘{hebrewWord}’ <small>({tidyMorphologyField})</small> has {len(wordOETGlossesList):,} different glosses: ‘<b>{wordGlossesStr}</b>’.</p>'''
+                wordsHtml = f'''{wordsHtml}\n<p class="summary">The word form ‘{hebrewWord}’ <small>({tidyMorphologyFields})</small> has {len(wordOETGlossesList):,} different glosses: ‘<b>{wordGlossesStr}</b>’.</p>'''
                 # if wordVLTGlossesList != wordOETGlossesList:
                 #     wordsHtml = f'''{wordsHtml}\n<p class="summary"><small>(In the VLT, the word form ‘{hebrewWord}’ <small>({tidyMorphologyField})</small> has {len(wordVLTGlossesList):,} different glosses: ‘<b>{"</b>’, ‘<b>".join(wordVLTGlossesList)}</b>’)</small>.</p>'''
             else:
                 # assert wordOETGlossesList == [gloss], f"{n} {BBB} {C}:{V} {hebrewWord=} {morphology=}: {wordOETGlossesList}  vs {[gloss]}"
-                wordsHtml = f'{wordsHtml}\n<p class="summary">The word form ‘{hebrewWord}’ <small>({tidyMorphologyField})</small> is always and only glossed as ‘<b>{gloss}</b>’.</p>'
+                wordsHtml = f'{wordsHtml}\n<p class="summary">The word form ‘{hebrewWord}’ <small>({tidyMorphologyFields})</small> is always and only glossed as ‘<b>{gloss}</b>’.</p>'
                 # if formattedVLTGlossWords != gloss:
                 #     wordsHtml = f'{wordsHtml}\n<p class="summary"><small>(In the VLT, the word form ‘{hebrewWord}’ <small>({tidyMorphologyField})</small> was always and only glossed as ‘<b>{formattedVLTGlossWords}</b>’)</small>.</p>'
         displayCounter = 0 # Don't use enumerate on the next line, because there is a condition inside the loop
@@ -1451,10 +1468,20 @@ This is all part of the commitment of the <em>Open English Translation</em> team
             if oN==hh: continue # don't duplicate the word we're making the page for
             # print( f"HERE: ({len(state.OETRefData['word_tables'][wordFileName][oN].split( TAB ))}) {state.OETRefData['word_tables'][wordFileName][oN]}")
             oWordRef, oRowType, oMorphemeRowList, oLemmaRowList, oStrongs, oMorphology, oWord, oNoCantillations, oMorphemeGlosses, oContextualMorphemeGlosses, oWordGloss, oContextualWordGloss, oGlossCapitalisation, oGlossPunctuation, oGlossOrder, oGlossInsert, oRole, oNesting, oTags = state.OETRefData['word_tables'][HebrewWordFileName][oN].split( '\t' )
-            oHebrewWord = (oNoCantillations.replace( ',', '' ) # Remove morpheme breaks
-                            if oNoCantillations else oWord ) # Segs and notes have nothing in the noCantillations field
             oWordGloss = oWordGloss.replace( '=', '_' )
+            # oHebrewWord = (oNoCantillations.replace( ',', '' ) # Remove morpheme breaks
+            #                 if oNoCantillations else oWord ) # Segs and notes have nothing in the noCantillations field
             oGloss = tidy_Hebrew_word_gloss( oContextualWordGloss if oContextualWordGloss else oWordGloss if oWordGloss else oContextualMorphemeGlosses if oContextualMorphemeGlosses else oMorphemeGlosses )
+            oChosenGlossType = 'cWG' if oContextualWordGloss else 'wG' if oWordGloss else 'cMGs' if oContextualMorphemeGlosses else 'mGs'
+            oTranslation = '<small>(no English gloss here)</small>' if not oGloss or oGloss=='-' \
+                                else f'''{GLOSS_TYPE_STRING_DICT[oChosenGlossType]}=‘<b>{oGloss}</b>’'''
+            for oExtraGlossType,oExtraGlossString in (('cWG',oContextualWordGloss),('wG',oWordGloss),('cMGs',oContextualMorphemeGlosses),('mGs',oMorphemeGlosses)):
+                if oExtraGlossType != oChosenGlossType and oExtraGlossString:
+                    oExtraGlossTypeString = 'possible word glosses' if oExtraGlossType=='wG' and '/' in oExtraGlossString \
+                                                            else GLOSS_TYPE_STRING_DICT[oExtraGlossType]
+                    oExtraGlossString = tidy_Hebrew_lemma_gloss( oExtraGlossString )
+                    oTranslation = f'''{oTranslation} {oExtraGlossTypeString}=‘<b>{oExtraGlossString}</b>’'''
+            oTranslation = oTranslation.replace(',',', ').replace('</','PRoTecT').replace('/', ' / ').replace('PRoTecT', '</') # looks much nicer
             oBBB, oCVW = oWordRef.split( '_', 1 )
             oC, oVW = oCVW.split( ':', 1 )
             oV, oW = oVW.split( 'w', 1 )
@@ -1462,12 +1489,11 @@ This is all part of the commitment of the <em>Open English Translation</em> team
             oTidyBBBwithNotes = getOETTidyBBB( oBBB, addNotes=True )
             oOSISbookCode = BibleOrgSysGlobals.loadedBibleBooksCodes.getOSISAbbreviation( oBBB )
             # if other_count == 0:
-            translation = '<small>(no English gloss here)</small>' if oGloss=='-' else f'''‘{oGloss.replace('_','<span class="ul">_</span>')}’'''
             wordsHtml = f'''{wordsHtml}\n<p class="wordLine"><a title="View OET {oTidyBBB} text" href="{'../'*level}OET/byC/{oBBB}_C{oC}.htm#C{oC}V{oV}">{oTidyBBBwithNotes} {oC}:{oV}</a>''' \
-f''' {translation} <a title="Go to Open Scriptures Hebrew verse page" href="https://hb.OpenScriptures.org/structure/OshbVerse/index.html?b={oOSISbookCode}&c={oC}&v={oV}">OSHB {oTidyBBBwithNotes} {oC}:{oV} word {oW}</a></p>''' \
+f''' {oTranslation} <a title="Go to Open Scriptures Hebrew verse page" href="https://hb.OpenScriptures.org/structure/OshbVerse/index.html?b={oOSISbookCode}&c={oC}&v={oV}">OSHB {oTidyBBBwithNotes} {oC}:{oV} word {oW}</a></p>''' \
             if not TEST_MODE or oBBB in state.preloadedBibles['OET-RV'] else \
             f'''{wordsHtml}\n<p class="wordLine">{oTidyBBBwithNotes} {oC}:{oV}''' \
-f''' {translation} <a title="Go to Open Scriptures Hebrew verse page" href="https://hb.OpenScriptures.org/structure/OshbVerse/index.html?b={oOSISbookCode}&c={oC}&v={oV}">OSHB {oTidyBBBwithNotes} {oC}:{oV} word {oW}</a></p>'''
+f''' {oTranslation} <a title="Go to Open Scriptures Hebrew verse page" href="https://hb.OpenScriptures.org/structure/OshbVerse/index.html?b={oOSISbookCode}&c={oC}&v={oV}">OSHB {oTidyBBBwithNotes} {oC}:{oV} word {oW}</a></p>'''
             # other_count += 1
             # if other_count >= 120:
             #     html = f'{html}\n<p class="summary">({len(thisWordNumberList)-other_count-1:,} more examples not listed)</p>'
@@ -1478,7 +1504,7 @@ f''' {translation} <a title="Go to Open Scriptures Hebrew verse page" href="
             # print( f"{n}/{len(state.OETRefData['word_tables'][HebrewWordFileName])-1} {hebrewWord=} {wordGloss=} ({len(lemmaGlossesList)}) {lemmaGlossesList=} ({len(wordOETGlossesList)}) {wordOETGlossesList=}")
             assert lemmaGlossesList != ['']
             # NEVER_HAPPENS_BUT_PROBABLY_SHOULD_MAYBE -- Oh, it does happen at least once for 25401 hebrewWord='וְאֵלֶּה' wordGloss='and_these' (1) lemmaGlossesList=['and=these'] (0) wordOETGlossesList=[]
-            wordsHtml = f'''{wordsHtml}\n<p class="lemmaGlossesSummary">The various word forms of the root word (lemma) ‘{lemmaLinksStr}’ have {len(lemmaGlossesList):,} different glosses: ‘<b>{"</b>’, ‘<b>".join(lemmaGlossesList)}</b>’.</p>'''
+            wordsHtml = f'''{wordsHtml}\n<p class="lemmaGlossesSummary">The various word forms of the root word (lemma) ‘{lemmaLinksStr}’ {f"""have {len(lemmaGlossesList):,} different glosses: ‘<b>{"</b>’, ‘<b>".join(lemmaGlossesList)}</b>’""" if len(lemmaGlossesList)>1 else f"have only one gloss: ‘<b>{lemmaGlossesList[0]}</b>’"}.</p>'''
         elif len(thisWordNumberList) == 1:
             hebLemmaWordRowsList = state.OETRefData['OTLemmaRowNumbersDict'][noCantillations]
             # lemmaFormsList = state.OETRefData['OTLemmaFormsDict'][noCantillations]
@@ -1517,8 +1543,8 @@ f''' {translation} <a title="Go to Open Scriptures Hebrew verse page" href="
                         eWordRef, eRowType, eMorphemeRowList, eLemmaRowList, eStrongs, eMorphology, eWord, eNoCantillations, eMorphemeGlosses, eContextualMorphemeGlosses, eWordGloss, eContextualWordGloss, eGlossCapitalisation, eGlossPunctuation, eGlossOrder, eGlossInsert, eRole, eNesting, eTags = state.OETRefData['word_tables'][HebrewWordFileName][thisN].split( '\t' )
                         eHebrewWord = (eNoCantillations.replace( ',', '' ) # Remove morpheme breaks
                                         if eNoCantillations else eWord ) # Segs and notes have nothing in the noCantillations field
-                        eWordGloss = eWordGloss.replace( '=', '_' )
-                        eGloss = tidy_Hebrew_word_gloss( eContextualWordGloss if eContextualWordGloss else eWordGloss if eWordGloss else eContextualMorphemeGlosses if eContextualMorphemeGlosses else eMorphemeGlosses )
+                        # eWordGloss = eWordGloss.replace( '=', '_' )
+                        # eGloss = tidy_Hebrew_word_gloss( eContextualWordGloss if eContextualWordGloss else eWordGloss if eWordGloss else eContextualMorphemeGlosses if eContextualMorphemeGlosses else eMorphemeGlosses )
                         if eHebrewWord!=hebrewWord or eMorphology!=morphology:
                             eBBB, eCVW = eWordRef.split( '_', 1 )
                             eC, eVW = eCVW.split( ':', 1 )
@@ -1545,24 +1571,32 @@ f''' {translation} <a title="Go to Open Scriptures Hebrew verse page" href="
                             extraWordSet.add( eHebrewPossibleLink )
                             eWordGloss = eWordGloss.replace( '=', '_' )
                             eGloss = tidy_Hebrew_word_gloss( eContextualWordGloss if eContextualWordGloss else eWordGloss if eWordGloss else eContextualMorphemeGlosses if eContextualMorphemeGlosses else eMorphemeGlosses )
+                            eChosenGlossType = 'cWG' if eContextualWordGloss else 'wG' if eWordGloss else 'cMGs' if eContextualMorphemeGlosses else 'mGs'
                             assert '\\' not in eGloss, f"{hh=} {eGloss=}"
+                            eTranslation = '<small>(no English gloss here)</small>' if not eGloss or eGloss=='-' \
+                                                else f'''{GLOSS_TYPE_STRING_DICT[eChosenGlossType]}=‘<b>{eGloss}</b>’'''
+                            for eExtraGlossType,eExtraGlossString in (('cWG',eContextualWordGloss),('wG',eWordGloss),('cMGs',eContextualMorphemeGlosses),('mGs',eMorphemeGlosses)):
+                                if eExtraGlossType != eChosenGlossType and eExtraGlossString:
+                                    eExtraGlossTypeString = 'possible word glosses' if eExtraGlossType=='wG' and '/' in eExtraGlossString \
+                                                                            else GLOSS_TYPE_STRING_DICT[eExtraGlossType]
+                                    eExtraGlossString = tidy_Hebrew_lemma_gloss( eExtraGlossString )
+                                    eTranslation = f'''{eTranslation} {eExtraGlossTypeString}=‘<b>{eExtraGlossString}</b>’'''
+                            eTranslation = eTranslation.replace(',',', ').replace('</','PRoTecT').replace('/', ' / ').replace('PRoTecT', '</') # looks much nicer
                             etidyMorphologyField = '' #= eMoodField = eTenseField = eVoiceField = ePersonField = eCaseField = eGenderField = eNumberField = ''
-                            if eMorphology:
-                                eTidyMorphologyField = tidy_Hebrew_morphology( eRowType, eMorphology )
+                            # if eMorphology:
+                                # eTidyMorphologyFields = tidy_Hebrew_morphology( eRowType, eMorphology )
                                 # eTidyMorphology = eMorphology[4:] if eMorphology.startswith('····') else eMorphology
                                 # etidyMorphologyField = f'{eTidyMorphology}'
                                 # if eTidyMorphology != '···': usedMorphologies.add( eTidyMorphology )
                             extraHTMLList.append( f'''<p class="wordLine"><a title="View OET {eTidyBBB} text" href="{'../'*level}OET/byC/{eBBB}_C{eC}.htm#C{eC}V{eV}">{eTidyBBB} {eC}:{eV}</a>''' \
-f''' <b>{eHebrewPossibleLink}</b> ({transliterate_Hebrew(eHebrewWord)}) <small>{etidyMorphologyField}</small>{f' {eLemmaLinksStr}' if eLemmaLinksStr else ''}''' \
-f''' ‘{eGloss}’''' \
+f''' <b>{eHebrewPossibleLink}</b> ({transliterate_Hebrew(eHebrewWord)}) <small>{etidyMorphologyField}</small>{f' {eLemmaLinksStr}' if eLemmaLinksStr else ''} {eTranslation}''' \
 f''' <a title="Go to Open Scriptures Hebrew verse page" href="https://hb.OpenScriptures.org/structure/OshbVerse/index.html?b={eOSISbookCode}&c={eC}&v={eV}">OSHB {eTidyBBB} {eC}:{eV} word {eW}</a></p>'''
                         if not TEST_MODE or eBBB in state.preloadedBibles['OET-RV'] else
-                            f'''<p class="wordLine">{eTidyBBB} {eC}:{eV} ‘{eHebrewPossibleLink}’ <small>({etidyMorphologyField})</small>{f' Lemma={eLemmaLink}' if eLemmaLink else ''}''' \
-f''' ‘{eGloss}’''' \
+                            f'''<p class="wordLine">{eTidyBBB} {eC}:{eV} ‘{eHebrewPossibleLink}’ <small>({etidyMorphologyField})</small>{f' Lemma={eLemmaLink}' if eLemmaLink else ''} ‘{eTranslation}’''' \
 f''' <a title="Go to Open Scriptures Hebrew verse page" href="https://hb.OpenScriptures.org/structure/OshbVerse/index.html?b={eOSISbookCode}&c={eC}&v={eV}">OSHB {eTidyBBB} {eC}:{eV} word {eW}</a></p>''' )
         assert not wordsHtml.endswith('\n'), f"{wordsHtml=}"
         if extraHTMLList:
-            wordsHtml = f'''{wordsHtml}\n<h2 class="otherHebrew">Hebrew words ({len(extraHTMLList):,}) other than {hebrewWord} <small>({tidyMorphologyField})</small> with a gloss related to ‘{mainGlossWord}’</h2>'''
+            wordsHtml = f'''{wordsHtml}\n<h2 class="otherHebrew">Hebrew words ({len(extraHTMLList):,}) other than {hebrewWord} <small>({tidyMorphologyFields})</small> with a gloss related to ‘{mainGlossWord}’</h2>'''
             if len(extraHTMLList) > 10:
                 wordsHtml = f'''{wordsHtml}\n<p class="summary">Have {len(extraWordSet):,} other words{f" ({', '.join(extraWordSet)})" if len(extraWordSet)<30 else ''} with {len(extraLemmaSet):,} lemma{'' if len(extraLemmaSet)==1 else 's'} altogether ({', '.join(sorted(extraLemmaSet))})</p>'''
             wordsHtml = f'''{wordsHtml}\n{NEWLINE.join(extraHTMLList)}'''
@@ -1614,6 +1648,7 @@ def tidy_Hebrew_lemma_gloss( engGloss:str ) -> str:
         .replace( '\\untr ', '<span class="untr">').replace( '\\untr*', '</span>')
         .replace( '\\nd ', '<span class="nd">').replace( '\\nd*', '</span>')
         .replace( '\\add >', '<span class="addExtra">').replace( '\\add*', '</span>')
+        .replace( '\\add ', '<span class="addExtra">') # Is this the right class? e.g., engGloss='kor_\\add measures\\add*'
         .replace( '\\sup ', '<sup>').replace( '\\sup*', '</sup>')
         .replace( '_', '<span class="ul">_</span>')
         )
@@ -1699,7 +1734,7 @@ def create_Hebrew_lemma_pages( level:int, outputFolderPath:Path, state:State ) -
             The guts of making the lemma page
                 put into a function so that we can also re-use it for related words
 
-            Side-effects: udates usedRoleLetters and usedMorphologies
+            Side-effects: updates usedRoleLetters and usedMorphologies
             """
             # for oN in thisLemmaRowsList:
             #     _oref, orowType, oMorphemeRowList, olemmaRowList, ostrongs, ocantillationHierarchy, omorphology, oword, _oNoCantillations, oMorphemeGlosses, oContextualMorphemeGlosses, oWordGloss, oContextualWordGloss, oglossCapitalisation, oglossPunctuation, oglossOrder, oglossInsert, oRole, oNesting, oTags = state.OETRefData['word_tables'][wordFileName][oN].split( '\t' )
@@ -1718,7 +1753,16 @@ def create_Hebrew_lemma_pages( level:int, outputFolderPath:Path, state:State ) -
                 oHebrewWord = oNoCantillations
                 oWordGloss = oWordGloss.replace( '=', '_' )
                 oGloss = tidy_Hebrew_lemma_gloss( oContextualWordGloss if oContextualWordGloss else oWordGloss if oWordGloss else oContextualMorphemeGlosses if oContextualMorphemeGlosses else oMorphemeGlosses )
-                oFormattedContextGlossWords = oGloss # formatNTContextSpansOETGlossWords( oN, state )
+                chosenGlossType = 'cWG' if oContextualWordGloss else 'wG' if oWordGloss else 'cMGs' if oContextualMorphemeGlosses else 'mGs'
+                # oFormattedContextGlossWords = oGloss # formatNTContextSpansOETGlossWords( oN, state )
+                translation = f'''{GLOSS_TYPE_STRING_DICT[chosenGlossType]}=‘<b>{oGloss}</b>’''' if oGloss else '<small>(no English gloss here)</small>'
+                for extraGlossType,extraGlossString in (('cWG',oContextualWordGloss),('wG',oWordGloss),('cMGs',oContextualMorphemeGlosses),('mGs',oMorphemeGlosses)):
+                    if extraGlossType != chosenGlossType and extraGlossString:
+                        extraGlossTypeString = 'possible glosses' if extraGlossType=='wG' and '/' in extraGlossString \
+                                                                else GLOSS_TYPE_STRING_DICT[extraGlossType]
+                        extraGlossString = tidy_Hebrew_lemma_gloss( extraGlossString )
+                        translation = f'''{translation} {extraGlossTypeString}=‘<b>{extraGlossString}</b>’'''
+                translation = translation.replace(',',', ').replace('</','PRoTecT').replace('/', ' / ').replace('PRoTecT', '</') # looks much nicer
                 oBBB, oCVW = oWordRef.split( '_', 1 )
                 oC, oVW = oCVW.split( ':', 1 )
                 oV, oW = oVW.split( 'w', 1 ) if 'w' in oVW else (oVW, '')
@@ -1733,7 +1777,6 @@ def create_Hebrew_lemma_pages( level:int, outputFolderPath:Path, state:State ) -
                                 if not TEST_MODE or oBBB in state.preloadedBibles['OET-RV'] \
                                     else f'{oTidyBBBwithNotes} {oC}:{oV}'
                 oHebrewWordLink = f'<a title="Go to word page" href="../HebWrd/{oN}.htm#Top">{oHebrewWord}</a>' if not TEST_MODE or oBBB in state.preloadedBibles['OET-RV'] else oHebrewWord
-                translation = f'''‘{oFormattedContextGlossWords.replace(',',', ').replace('_','<span class="ul">_</span>')}’'''
                 lemmaHTML = f'''{lemmaHTML}\n<p class="lemmaLine">{oOETLink} <b>{oHebrewWordLink}</b> ({transliterate_Hebrew(oHebrewWord.replace(',',', '))})''' \
                     f" {oTidyMorphology} {translation} " \
                     f'''<a title="Go to Open Scriptures Hebrew verse page" href="https://hb.OpenScriptures.org/structure/OshbVerse/index.html?b={oOSISbookCode}&c={oC}&v={oV}">OSHB {oTidyBBBwithNotes} {oC}:{oV} word {oW}</a></p>'''
@@ -1744,6 +1787,7 @@ def create_Hebrew_lemma_pages( level:int, outputFolderPath:Path, state:State ) -
                 if displayCounter >= maxWordsToShow: break
             assert '\\' not in lemmaHTML, f"{lemmaHTML=}"
             assert not lemmaHTML.endswith('\n'), f"{lemmaHTML=}"
+            checkHtml( 'HebrewLemmaSegment', lemmaHTML, segmentOnly=True )
             return lemmaHTML
         # end of createOETReferencePages.create_Hebrew_lemma_pages.makeHebrewLemmaHTML
 
@@ -1856,7 +1900,8 @@ def create_Hebrew_lemma_pages( level:int, outputFolderPath:Path, state:State ) -
         assert hebLemma in lemmaSet
         if len(lemmaSet) > 1:
             lemmasHtml = f'''{lemmasHtml}
-<h1>Lemmas with same root consonants as ‘{vowellessLemma}’ ({transliteratedVowellessLemma})</h1>'''
+<h1>Lemmas with same root consonants as ‘{vowellessLemma}’ ({transliteratedVowellessLemma})</h1>
+<p class="rem">It's possible that {'some of these' if len(lemmaSet)>2 else 'this'} might not have any actual semantic connection to the main root above—use with caution.</p>'''
             for sameRootLemma in lemmaSet:
                 if sameRootLemma == hebLemma: continue # This is already the page we're on
                 transliteratedSameRootLemma = transliterate_Hebrew( sameRootLemma )
@@ -2293,7 +2338,7 @@ f''' {translation} <a title="Go to Statistical Restoration Greek page" href=
                 displayCounter += 1
                 if displayCounter >= maxWordsToShow: break
             if len(lemmaGlossesList) > len(wordOETGlossesList):
-                wordsHtml = f'''{wordsHtml}\n<p class="lemmaGlossesSummary">The various word forms of the root word (lemma) ‘{lemmaLink}’ have {len(lemmaGlossesList):,} different glosses: ‘<b>{tidyGlossOfGreekWord("</b>’, ‘<b>".join(lemmaGlossesList))}</b>’.</p>'''
+                wordsHtml = f'''{wordsHtml}\n<p class="lemmaGlossesSummary">The various word forms of the root word (lemma) ‘{lemmaLink}’ {f"""have {len(lemmaGlossesList):,} different glosses: ‘<b>{tidyGlossOfGreekWord("</b>’, ‘<b>".join(lemmaGlossesList))}</b>’""" if len(lemmaGlossesList)>1 else f"have only one gloss: ‘<b>{tidyGlossOfGreekWord(lemmaGlossesList[0])}</b>’"}.</p>'''
             elif len(thisWordNumberList) == 1:
                 grkLemmaWordRowsList = state.OETRefData['NTLemmaDict'][SRLemma]
                 grkLemmaFormsList = state.OETRefData['NTLemmaFormsDict'][SRLemma]

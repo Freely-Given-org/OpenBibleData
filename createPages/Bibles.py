@@ -57,6 +57,8 @@ CHANGELOG:
     2024-07-22 Remove CRs (\\r) from UTNs
     2025-01-31 Do discover() before pickling to save time on the next load
     2025-02-05 Only load certain Bible versions if specified
+    2025-03-11 Handle 'Quoted by' in OET-RV xrefs
+    2025-03-14 Add link to sentence importance database
 """
 from gettext import gettext as _
 from typing import Dict, List, Tuple, Set, Optional
@@ -96,10 +98,10 @@ from OETHandlers import findLVQuote, getBBBFromOETBookName
 from Dict import loadAndIndexUBSGreekDictJSON, loadAndIndexUBSHebrewDictJSON
 
 
-LAST_MODIFIED_DATE = '2025-03-07' # by RJH
+LAST_MODIFIED_DATE = '2025-03-14' # by RJH
 SHORT_PROGRAM_NAME = "Bibles"
 PROGRAM_NAME = "OpenBibleData Bibles handler"
-PROGRAM_VERSION = '0.84'
+PROGRAM_VERSION = '0.86'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -1146,6 +1148,8 @@ def getVerseDataListForReference( givenRefString:str, thisBible:Bible, lastBBB:O
         assert adjRefString.count('(')==1 and adjRefString.count(')')==1
         adjRefString = f"{adjRefString[:adjRefString.index('(')]}{adjRefString[adjRefString.index(')')+1:]}".strip()
         dPrint( 'Info', DEBUGGING_THIS_MODULE, f"{givenRefString=} {adjRefString=}")
+    if thisBible.abbreviation == 'OET-RV':
+        adjRefString = adjRefString.replace( 'Quoted by ', '' )
     if ' ' not in adjRefString: adjRefString = f'{lastBBB} {adjRefString}'
     refBits = adjRefString.split( ' ' )
     bookAbbreviation, refCVpart = (refBits[0],refBits[1:]) if len(refBits[0])>1 else (f'{refBits[0]} {refBits[1]}', refBits[2:])
@@ -1167,7 +1171,7 @@ def getVerseDataListForReference( givenRefString:str, thisBible:Bible, lastBBB:O
     refIsSingleChapterBook = BibleOrgSysGlobals.loadedBibleBooksCodes.isSingleChapterBook( refBBB )
     # Special case to handle xref crossing books: '1Sam 16:1–1Ki 2:11'
     if len(refCVpart) > 1: # ['16:1–1Ki', '2:11'] or ['59', 'header']
-        assert len(refCVpart) == 2
+        assert len(refCVpart) == 2, f"{refCVpart=} from {givenRefString}, {thisBible.abbreviation}, {lastBBB=} {refIsSingleChapterBook=} {lastC=} {refCVpart=}"
         if refCVpart[0].endswith( '1Ki' ):
             refCVpart = [f'{refCVpart[0]} {refCVpart[1]}'] # Put it back together again (and handle properly below)
         elif refBBB=='PSA' and ':' not in refCVpart[0] and refCVpart[1] in ('header',):
@@ -1439,7 +1443,7 @@ def getVerseMetaInfoHtml( BBB:str, C:str, V:str ) -> str: # html
             if partRef in VERSE_DETAILS_TABLE:
                 verseDetails += f"{'<br>' if verseDetails else ''}{formatVerseDetailsHtml( partRef )}"
 
-    return f'''<p class="verseDetails">{verseDetails}{'<br>' if 'Segment' in verseDetails else ' '}<small style="color:grey;">(All still tentative.)</small></p>'''
+    return f'''<p class="verseDetails">{verseDetails}{'<br>' if 'Segment' in verseDetails else ' '}<small style="color:grey;">(<a title="See database" href="https://GitHub.com/Freely-Given-org/OpenBibleData/tree/main/datasets/sentenceImportance">All still tentative</a>.)</small></p>'''
 # end of Bibles.getVerseMetaInfoHtml
 
 IMPORTANCE_TABLE = { 'T':'<span style="color:grey;">trivial</span>', 'M':'<span style="color:pink;">normal</span>', 'I':'<span style="color:orange;">important</span>', 'V':'<span style="color:red;">vital</span>' }

@@ -5,6 +5,7 @@ div.footer { margin:50px; }
 p.site {}
 p.copyright {}
 p.note {}
+p.rem { font-size:0.8em; color:grey; }
 p.link {}
 p.summary {}
 

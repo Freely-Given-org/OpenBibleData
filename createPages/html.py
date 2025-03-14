@@ -86,6 +86,7 @@ CHANGELOG:
     2025-02-02 Make book selection jump to chapter list selector (not just 1:1#Top)
     2025-02-20 Add OET missing verses link (in TEST MODE only)
     2025-02-21 Created functions
+    2025-03-11 Add a couple more checks of spans in checkHtml()
 """
 # from gettext import gettext as _
 from typing import Dict, List, Tuple, Optional, Union
@@ -102,7 +103,7 @@ from settings import State, TEST_MODE, TEST_VERSIONS_ONLY, SITE_NAME
 from OETHandlers import getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2025-03-08' # by RJH
+LAST_MODIFIED_DATE = '2025-03-11' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
 PROGRAM_VERSION = '0.93'
@@ -575,6 +576,9 @@ def checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool:
     if ( 'TCNT' not in where and 'TC-GNT' not in where  # These two versions use the '¦' character in their footnotes
     and not where.startswith('Parallel ') and not where.startswith('End of parallel') ): # and they also appear on parallel pages
         assert '¦' not in htmlToCheck, f"checkHtml() found unprocessed word number marker in '{where}' {htmlToCheck=}"
+
+    assert '<span class="ul"><span class="ul">' not in htmlToCheck, f'''Nested <span class="ul"><span class="ul"> '{where}' {segmentOnly=} …{htmlToCheck[htmlToCheck.index('<span class="ul"><span class="ul">')-180:htmlToCheck.index('<span class="ul"><span class="ul">')+180]}…'''
+    assert '< /' not in htmlToCheck, f'''Extra space in close span '{where}' {segmentOnly=} …{htmlToCheck[htmlToCheck.index('< /')-180:htmlToCheck.index('< /')+180]}…'''
 
     for marker,startMarker in (('html','<html'),('head','<head'),('body','<body')):
         if segmentOnly:

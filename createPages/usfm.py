@@ -63,6 +63,7 @@ CHANGELOG:
     2025-02-24 Avoid putting <ul> around list in parallelVerse mode
     2025-02-26 Handle /cl else put chapter numbers before /d (in PSA) and /iex (in KJB-1611)
     2025-03-04 Ignore nb markers in OET-LV
+    2025-03-11 Liven OSHB footnotes in OET-LV
 """
 from gettext import gettext as _
 from typing import Union
@@ -80,10 +81,10 @@ from html import checkHtml
 from OETHandlers import getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2025-03-04' # by RJH
+LAST_MODIFIED_DATE = '2025-03-11' # by RJH
 SHORT_PROGRAM_NAME = "usfm"
 PROGRAM_NAME = "OpenBibleData USFM to HTML functions"
-PROGRAM_VERSION = '0.85'
+PROGRAM_VERSION = '0.86'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -948,6 +949,8 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                 frCV = ''
             assert frText[-1] != '\n'
             fnoteRef = f'<span class="fnRef"><a title="Return to text" href="{frCV}">{frText}</a></span> '
+        if versionAbbreviation=='OET-LV' and fnoteMiddle.startswith( 'OSHB '):
+            fnoteMiddle = fnoteMiddle.replace( 'OSHB ', '<a href="https://hb.OpenScriptures.org">OSHB</a> ', 1 ) # Make it a live link
         fnoteText = f'<p class="fn" id="fn{footnotesCount}">{fnoteRef}<span class="fnText">{fnoteMiddle}</span></p>\n'
         if segmentType.endswith('Verse') and f'">{fnoteRef}<span class="fnText">{fnoteMiddle}</span></p>\n' in footnotesHtml:
             # We already have an identical footnote created, e.g., in OET-LV Job 8:16
