@@ -67,7 +67,7 @@ NET_PATHNAME = Path( '../../copiedBibles/English/NET/' )
 
 # Default values are M2=Medium/normal importance, 0:no textual issue, C3:clear enough
 defaultImportance, defaultTextualIssue, defaultClarity = 'M', '0', 'C'
-vitalImportanceRefs = [ # Often in doctrinal statements
+vitalImportanceRefsWithRanges = [ # Often in doctrinal statements
     'GEN_1:1','GEN_1:2','GEN_1:3', 'GEN_3:16',
     'EXO_20:11', 'DEU_31:6', 'PSA_46:1',
     'PRO_3:5','PRO_3:6',
@@ -75,7 +75,7 @@ vitalImportanceRefs = [ # Often in doctrinal statements
     'JER_29:11',
     'MAL_3:8','MAL_3:9','MAL_3:10',
 
-    'MAT_6:33', 'MAT 24:35', 'MAT_28:19','MAT_28:20',
+    'MAT_6:33', 'MAT_24:35', 'MAT_28:19','MAT_28:20',
     'JHN_3:16','JHN_5:24','JHN_11:25','JHN_20:31',
 
     'ROM_3:23','ROM_6:23','ROM_8:28', 'ROM_12:2',
@@ -90,7 +90,7 @@ vitalImportanceRefs = [ # Often in doctrinal statements
 
     'JN1_5:11-13',
     ]
-importantRefs = [ # Often memorised
+importantRefsWithRanges = [ # Often memorised
     'JOS_1:9',
     'PRO_4:1-7',
     'MAT_4:4',
@@ -98,7 +98,7 @@ importantRefs = [ # Often memorised
     'JHN_7:16','JHN_16:33',
     'ACT_2:42',
     'CO1_10:6-11',
-    'ROM_3:19-22','ROM_5:16-24','ROM_15:4','ROM_16:17',
+    'ROM_3:19-22','ROM_5:16-21','ROM_15:4','ROM_16:17',
     'GAL_3:21-22',
     'EPH_4:14',
     'TI1_4:13','TI1_4:16','TI1_6:3',
@@ -140,9 +140,10 @@ unclearClarityRefs = [ # Mostly sure what's in the Hebrew or Greek, but not sure
         'JOB_39:13b',
         'JOB_40:13b', 'JOB_40:19', 'JOB_40:24a',
         'JOB_41:9', 'JOB_41:11',
-    'PSA_92:11','PSA_93:3a','PSA_105:19','PSA_105_28b','PSA_105_32b',
+    'PSA_68:12b','PSA_68:13','PSA_68:15','PSA_92:11','PSA_93:3a','PSA_105:19','PSA_105:28b','PSA_105:32b',
     'DAN_8:12','DAN_8:13a','DAN_11:43b',
     'OBA_1:16',
+    'HAB_3:15',
     'ZEP_3:10b',
     ]
 textualCriticismRefs = [ # Hebrew or Greek original manuscripts vary
@@ -150,6 +151,28 @@ textualCriticismRefs = [ # Hebrew or Greek original manuscripts vary
     'SA2_6:1',
     'JOB_39:13a','JOB_39:13b','JOB_39:14','JOB_39:15','JOB_39:16','JOB_39:17','JOB_39:18', # Ostrich section
     ]
+# Handle ranges in some lists
+newList = []
+for entry in vitalImportanceRefsWithRanges:
+    if '-' in entry:
+        BBB,CVV = entry.split( '_' )
+        C,VV = CVV.split( ':' )
+        V1,V2 = VV.split( '-' )
+        for newV in range( int(V1), int(V2)+1 ):
+            newList.append( f'{BBB}_{C}:{newV}' )
+    else: newList.append( entry )
+vitalImportanceRefs = newList
+newList = []
+for entry in importantRefsWithRanges:
+    if '-' in entry:
+        BBB,CVV = entry.split( '_' )
+        C,VV = CVV.split( ':' )
+        V1,V2 = VV.split( '-' )
+        for newV in range( int(V1), int(V2)+1 ):
+            newList.append( f'{BBB}_{C}:{newV}' )
+    else: newList.append( entry )
+importantRefs = newList
+
 # Just do some basic integrity checking
 importanceRefs = vitalImportanceRefs + importantRefs + trivialImportanceRefs
 assert len( set(importanceRefs) ) == len(importanceRefs) # Otherwise there must be a duplicate
@@ -161,7 +184,7 @@ halfRefs = [ref for ref in allRefs if ref[-1] in 'ab']
 # assert len( set(halfRefs) ) == len(halfRefs) # Otherwise there must be a duplicate # SIMPLY NOT TRUE -- duplicates expected here
 for ref in allRefs:
     assert 7 <= len(ref) <= 12, f"{ref=}"
-    assert ref.count('_') == 1 and ref.count(':') >= 1
+    assert ref.count('_') == 1 and ref.count(':') >= 1, f"{ref=}"
     if ref in halfRefs: assert ref[:-1] not in allRefs, f"Need to fix '{ref[:-1]}' in tables since we also have '{ref}'"
 
 
