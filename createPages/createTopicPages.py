@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+# -\*- coding: utf-8 -\*-
+# SPDX-FileCopyrightText: © 2024 Robert Hunt <Freely.Given.org+OBD@gmail.com>
+# SPDX-License-Identifier: GPL-3.0-or-later
 #
 # createTopicPages.py
 #
@@ -31,7 +33,6 @@ CHANGELOG:
     2025-02-03 Accept and process lemma page links
 """
 from gettext import gettext as _
-from typing import Tuple, List
 from pathlib import Path
 import os
 import logging
@@ -179,7 +180,7 @@ def createTopicPages( level:int, folder:Path, state:State ) -> bool:
 # end of createTopicPages.createTopicPages
 
 
-def createTopicPage( level:int, folder:Path, filename:str, topic:str, refs:List[str], state:State ) -> bool:
+def createTopicPage( level:int, folder:Path, filename:str, topic:str, refs:list[str], state:State ) -> bool:
     """
     Create a page for each Bible topic.
 

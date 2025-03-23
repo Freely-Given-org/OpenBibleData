@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+# -\*- coding: utf-8 -\*-
+# SPDX-FileCopyrightText: © 2024 Robert Hunt <Freely.Given.org+OBD@gmail.com>
+# SPDX-License-Identifier: GPL-3.0-or-later
 #
 # createParallelPassagePages.py
 #
@@ -30,7 +32,6 @@ CHANGELOG:
     2024-11-20 Try to prevent some duplicate cross-references
 """
 from gettext import gettext as _
-from typing import List
 from pathlib import Path
 import os
 import logging
@@ -204,7 +205,7 @@ def createParallelPassagePages( level:int, folder:Path, state:State ) -> bool:
 # class MissingBookError( Exception ): pass
 # class UntranslatedVerseError( Exception ): pass
 
-# def createSynopticSectionPassagePagesForBook( level:int, folder:Path, thisBible, BBB:str, BBBLinks:List[str], state:State ) -> bool:
+# def createSynopticSectionPassagePagesForBook( level:int, folder:Path, thisBible, BBB:str, BBBLinks:list[str], state:State ) -> bool:
 #     """
 #     Create a page for every Bible passage that has related verses in other synoptic gospels.
 #     """
@@ -443,7 +444,7 @@ def createParallelPassagePages( level:int, folder:Path, state:State ) -> bool:
 # # end of createParallelPassagePages.createSynopticSectionPassagePagesForBook
 
 
-def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, BBB:str, BBBLinks:List[str], state:State ) -> bool:
+def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, BBB:str, BBBLinks:list[str], state:State ) -> bool:
     """
     Create a page for every Bible section and display section cross-references if they exist.
 

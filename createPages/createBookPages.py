@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+# -\*- coding: utf-8 -\*-
+# SPDX-FileCopyrightText: © 2023 Robert Hunt <Freely.Given.org+OBD@gmail.com>
+# SPDX-License-Identifier: GPL-3.0-or-later
 #
 # createBookPages.py
 #
@@ -32,7 +34,6 @@ CHANGELOG:
     2025-03-03 Tried to improve breaking into sections, esp. handling of /ms1 titles
 """
 from gettext import gettext as _
-from typing import Dict, List, Tuple
 from pathlib import Path
 import os
 import logging
@@ -65,7 +66,7 @@ NEWLINE = '\n'
 NARROW_NON_BREAK_SPACE = ' '
 
 
-def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) -> List[str]:
+def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) -> list[str]:
     """
     The OET is a pseudo-version which includes the OET-RV and OET-LV side-by-side.
     """
@@ -344,7 +345,7 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
 # end of createBookPages.createOETBookPages
 
 
-def createBookPages( level:int, folder:Path, thisBible, state:State ) -> List[str]:
+def createBookPages( level:int, folder:Path, thisBible, state:State ) -> list[str]:
     """
     This creates a page for each book for all versions other than 'OET'
                                 which is considerably more complex (above).

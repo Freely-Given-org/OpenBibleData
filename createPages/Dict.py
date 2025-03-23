@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+# -\*- coding: utf-8 -\*-
+# SPDX-FileCopyrightText: © 2023 Robert Hunt <Freely.Given.org+OBD@gmail.com>
+# SPDX-License-Identifier: GPL-3.0-or-later
 #
 # Dict.py
 #
@@ -34,7 +36,7 @@ livenTyndaleMapRefs( abbrev:str, level:int, articleLinkName:str, html:str, state
 loadAndIndexUBSGreekDictJSON( abbrev:str, folderpath ) -> None
 loadAndIndexUBSHebrewDictJSON( abbrev:str, folderpath ) -> None
 createUBSDictionaryPages( level, outputFolderPath, state:State ) -> None
-getLexReferencesHtmlList( level, lexRefs ) -> List[str]
+getLexReferencesHtmlList( level, lexRefs ) -> list[str]
 createUBSGreekDictionaryPages( level, outputFolderPath, state:State ) -> None
 createUBSHebrewDictionaryPages( level, outputFolderPath, state:State ) -> None
 briefDemo() -> None
@@ -45,7 +47,6 @@ CHANGELOG:
     2024-02-22 Load UBS Dictionary of Biblical Hebrew
 """
 from gettext import gettext as _
-from typing import List
 import os.path
 import logging
 from xml.etree.ElementTree import ElementTree
@@ -91,7 +92,7 @@ def loadTyndaleOpenBibleDictXML( abbrev:str, folderpath ) -> None:
     vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Preloading Tyndale Open Bible Dictionary introduction from {folderpath}…" )
     XML_filepath = os.path.join( folderpath, '_INTRODUCTION.xml' )
 
-    loadErrors:List[str] = []
+    loadErrors:list[str] = []
     XMLTree = ElementTree().parse( XML_filepath )
 
     if XMLTree.tag == 'items':
@@ -195,7 +196,7 @@ def loadTyndaleOpenBibleDictXML( abbrev:str, folderpath ) -> None:
     vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Preloading Tyndale Open Bible Dictionary textboxes from {folderpath}…" )
     XML_filepath = os.path.join( folderpath, 'Textboxes/', 'Textboxes.xml' )
 
-    loadErrors:List[str] = []
+    loadErrors:list[str] = []
     XMLTree = ElementTree().parse( XML_filepath )
 
     if XMLTree.tag == 'items':
@@ -294,7 +295,7 @@ def loadTyndaleOpenBibleDictXML( abbrev:str, folderpath ) -> None:
     vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Preloading Tyndale Open Bible Dictionary maps from {folderpath}…" )
     XML_filepath = os.path.join( folderpath, 'Maps/', 'Maps.xml' )
 
-    loadErrors:List[str] = []
+    loadErrors:list[str] = []
     XMLTree = ElementTree().parse( XML_filepath )
 
     if XMLTree.tag == 'items':
@@ -397,7 +398,7 @@ def loadDictLetterXML( letter:str, folderpath ) -> None:
     vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Preloading Tyndale Open Bible Dictionary '{letter}' from {folderpath}…" )
     XML_filepath = os.path.join( folderpath, 'Articles/', f'{letter}.xml')
 
-    loadErrors:List[str] = []
+    loadErrors:list[str] = []
     XMLTree = ElementTree().parse( XML_filepath )
 
     if XMLTree.tag == 'items':
@@ -959,7 +960,7 @@ def createUBSDictionaryPages( level, outputFolderPath, state:State ) -> None:
 
 BOOK_NUM_TABLE = { '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', 
                   '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '001':'GEN', '066':'REV', }
-def getLexReferencesHtmlList( level, lexRefs ) -> List[str]:
+def getLexReferencesHtmlList( level, lexRefs ) -> list[str]:
     """
     """
     lexRefsHtmlList = []

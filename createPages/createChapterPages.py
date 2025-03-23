@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+# -\*- coding: utf-8 -\*-
+# SPDX-FileCopyrightText: © 2023 Robert Hunt <Freely.Given.org+OBD@gmail.com>
+# SPDX-License-Identifier: GPL-3.0-or-later
 #
 # createChapterPages.py
 #
@@ -38,7 +40,6 @@ CHANGELOG:
     2025-02-02 Added ID to clinksPar (at top of page only)
 """
 from gettext import gettext as _
-from typing import Dict, List, Tuple
 from pathlib import Path
 import os
 import logging
@@ -68,7 +69,7 @@ NEWLINE = '\n'
 
 
 
-def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, state:State ) -> List[str]:
+def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, state:State ) -> list[str]:
     """
     The OET is a pseudo-version which includes the OET-RV and OET-LV side-by-side.
 
@@ -408,7 +409,7 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
 # end of createChapterPages.createOETSideBySideChapterPages
 
 
-def createChapterPages( level:int, folder:Path, thisBible, state:State ) -> List[str]:
+def createChapterPages( level:int, folder:Path, thisBible, state:State ) -> list[str]:
     """
     This creates a page for each chapter for all versions
         other than 'OET' which is considerably more complex (above).

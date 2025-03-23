@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+# -\*- coding: utf-8 -\*-
+# SPDX-FileCopyrightText: © 2023 Robert Hunt <Freely.Given.org+OBD@gmail.com>
+# SPDX-License-Identifier: GPL-3.0-or-later
 #
 # settings.py
 #
@@ -36,8 +38,6 @@ CHANGELOG:
     2024-10-24 Change WEB and WMB to British spelling WEBBE and WMBB
     2024-11-01 Added topics pages
 """
-from gettext import gettext as _
-from typing import List
 from pathlib import Path
 
 import sys
@@ -55,10 +55,10 @@ PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
 
-OET_VERSION = 'v0.35' # At 58.7% 2025-03-13 (Incremented on most runs for the production site)
+OET_VERSION = 'v0.35' # At 59.6% 2025-03-21 (Incremented on most runs for the production site)
 
 TEST_MODE = True # Writes website into 'Test' subfolder if True
-TEST_VERSIONS_ONLY = None #['OET','OET-RV','OET-LV', 'TOSN','UTN'] # Also stops actual site being built
+TEST_VERSIONS_ONLY = None #['OET','OET-RV','OET-LV', 'BSB', 'TOSN','UTN'] # Also stops actual site being built
 ALL_PRODUCTION_BOOKS = not TEST_MODE # If set to False, uses the TEST book list (with many less books) for a faster test build
 CREATE_PARALLEL_VERSE_PAGES = 'FIRST' # 'FIRST','LAST', or None -- depending on debugging needs
 REUSE_EXISTING_WORD_PAGES = TEST_MODE # Don't recreate word pages
@@ -519,7 +519,7 @@ We’re also grateful to the <a href="https://www.Biblica.com/clear/">Biblica Cl
                 'copyright': '<p class="copyright">Copyright © 2023 by unfoldingWord.</p>',
                 'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
                 'acknowledgements': '<p class="acknwldg">Thanks to <a href="https://www.unfoldingword.org/">unfoldingWord</a> for creating this specialised Bible translation which is designed to be a tool for Bible translators.</p>' },
-        'BSB': {'about': '<p class="about">Berean Standard Bible (2020).</p>',
+        'BSB': {'about': '<p class="about">Berean Standard Bible (Version 3, 2025).</p>',
                 'copyright': '<p class="copyright"><a href="https://berean.bible/terms.htm">Public domain</a>.</p>',
                 'licence': '<p class="licence"><a href="https://creativecommons.org/publicdomain/zero/1.0/">CC0</a> licence. All uses are freely permitted.</p>',
                 'acknowledgements': '<p class="acknwldg">Thanks to John Isett and <a href="https://biblehub.com/">BibleHub</a> for the <a href="https://berean.bible/">BSB</a>.</p>' },
@@ -817,7 +817,7 @@ Footnote markers PRECEDE the text that they concern,
 state = State()
 
 
-def reorderBooksForOETVersions( givenBookList:List[str] ) -> List[str]:
+def reorderBooksForOETVersions( givenBookList:list[str] ) -> list[str]:
     """
     OET OT needs to put EZR NEH after MAL
     OET NT needs to put JHN and MRK before MAT

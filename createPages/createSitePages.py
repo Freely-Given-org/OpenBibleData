@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+# -\*- coding: utf-8 -\*-
+# SPDX-FileCopyrightText: © 2023 Robert Hunt <Freely.Given.org+OBD@gmail.com>
+# SPDX-License-Identifier: GPL-3.0-or-later
 #
 # createSitePages.py
 #
@@ -63,7 +65,6 @@ CHANGELOG:
     2025-03-03 Allow settings to choose when parallel verse pages are built (early, late, or never)
 """
 from gettext import gettext as _
-# from typing import Dict, List, Tuple
 from pathlib import Path
 import os
 import shutil

@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+# -\*- coding: utf-8 -\*-
+# SPDX-FileCopyrightText: © 2023 Robert Hunt <Freely.Given.org+OBD@gmail.com>
+# SPDX-License-Identifier: GPL-3.0-or-later
 #
 # createSectionPages.py
 #
@@ -28,9 +30,9 @@ Module handling createSectionPages functions.
 Assumes that all books are already loaded.
 
 createOETSectionLists( rvBible:ESFMBible, state:State ) -> bool
-createOETSectionPages( level:int, folder:Path, rvBible:ESFMBible, lvBible:ESFMBible, state:State ) -> List[str]
-createSectionPages( level:int, folder:Path, thisBible, state:State ) -> List[str]
-findSectionNumber( versionAbbreviation:str, refBBB:str, refC:str, refV:str, state:State ) -> Optional[int]
+createOETSectionPages( level:int, folder:Path, rvBible:ESFMBible, lvBible:ESFMBible, state:State ) -> list[str]
+createSectionPages( level:int, folder:Path, thisBible, state:State ) -> list[str]
+findSectionNumber( versionAbbreviation:str, refBBB:str, refC:str, refV:str, state:State ) -> int|None
 livenSectionReferences( versionAbbreviation:str, refTuple:tuple, segmentType:str,
                                                 sectionReferenceText:str, state:State ) -> str
 briefDemo() -> None
@@ -49,7 +51,6 @@ CHANGELOG:
     2025-02-02 Added ID to clinksPar (at top of page only)
 """
 from gettext import gettext as _
-from typing import Dict, List, Tuple, Optional
 from pathlib import Path
 import os
 import logging
@@ -69,7 +70,7 @@ from Bibles import getBibleMapperMaps
 from OETHandlers import livenOETWordLinks, getOETTidyBBB, getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2025-02-24' # by RJH
+LAST_MODIFIED_DATE = '2025-03-21' # by RJH
 SHORT_PROGRAM_NAME = "createSectionPages"
 PROGRAM_NAME = "OpenBibleData createSectionPages functions"
 PROGRAM_VERSION = '0.67'
@@ -180,7 +181,7 @@ def createOETSectionLists( rvBible:ESFMBible, state:State ) -> bool:
     return True
 # end of createSectionPages.createOETSectionLists
 
-def createOETSectionPages( level:int, folder:Path, rvBible:ESFMBible, lvBible:ESFMBible, state:State ) -> List[str]:
+def createOETSectionPages( level:int, folder:Path, rvBible:ESFMBible, lvBible:ESFMBible, state:State ) -> list[str]:
     """
     The OET is a pseudo-version which includes the OET-RV and OET-LV side-by-side.
     """
@@ -423,7 +424,7 @@ def createOETSectionPages( level:int, folder:Path, rvBible:ESFMBible, lvBible:ES
 # end of createSectionPages.createOETSectionPages
 
 
-def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> List[str]:
+def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> list[str]:
     """
     This creates a page for each section for all versions other than 'OET' (dual columns)
                                 which is considerably more complex (above).
@@ -651,7 +652,7 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> List
 # end of createSectionPages.createSectionPages
 
 
-def findSectionNumber( versionAbbreviation:str, refBBB:str, refC:str, refV:str, state:State ) -> Optional[int]:
+def findSectionNumber( versionAbbreviation:str, refBBB:str, refC:str, refV:str, state:State ) -> int|None:
     """
     Given a BCV reference and a Bible that has s1 section headings,
         return the section number containing the given reference.
@@ -793,9 +794,9 @@ def livenSectionReferences( versionAbbreviation:str, refTuple:tuple, segmentType
             pass # We don't actually need to do anything here
         elif token.startswith('1 ') or token.startswith('2 ') or token.startswith('3 ') \
           or token.startswith('I ') or token.startswith('II ') or token.startswith('III ') \
-          or token.startswith('Song '):
+          or token.startswith('Song of'):
             # Then we expect the token to start with something like '1 Cor.'
-            assert token.count( ' ') >= 2
+            assert token.count( ' ' ) >= 2, f"Bad {token=} from {versionAbbreviation} {refTuple} {segmentType} {currentBBB} {sectionReferenceText=}"
             bookAbbrev, rest = token.rsplit( ' ', 1 )
             currentBBB = getBBBFromOETBookName( bookAbbrev )
             assert currentBBB in BOOKLIST_66, f"{currentBBB=} from {bookAbbrev=} in livenSectionReferences( {versionAbbreviation}, {refTuple}, {segmentType}, '{sectionReferenceText}' ) processing {n}: {token=}…"

@@ -41,6 +41,10 @@ span.glossPre { color:lightGreen; }
 span.glossHelper { color:grey; }
 span.glossPost { color:brown; }
 
+/* For our Strongs pages */
+span.GreekWord {}
+span.StrongsRef {}
+
 /* NT spans */
 span.nd {}
 span.ndORD { font-size:.75em; text-decoration:overline; text-decoration-style:dashed; text-decoration-color:purple; }

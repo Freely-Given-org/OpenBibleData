@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+# -\*- coding: utf-8 -\*-
+# SPDX-FileCopyrightText: © 2023 Robert Hunt <Freely.Given.org+OBD@gmail.com>
+# SPDX-License-Identifier: GPL-3.0-or-later
 #
 # usfm.py
 #
@@ -66,7 +68,6 @@ CHANGELOG:
     2025-03-11 Liven OSHB footnotes in OET-LV
 """
 from gettext import gettext as _
-from typing import Union
 import re
 import unicodedata
 import logging
@@ -1574,7 +1575,7 @@ def livenIORs( versionAbbreviation:str, refTuple:tuple, segmentType:str, ioLineH
 # ROMAN_DICT = { 1000:'M', 900:'CM', 500:'D', 400:'CD', 100:'C', 90:'XC', 50:'L', 40:'XL', 10:'X', 9:'IX', 5:'V', 4:'IV', 1:'I' }
 # We only use this for chapter numbers, so maximum is 151
 ROMAN_DICT = { 100:'C', 90:'XC', 50:'L', 40:'XL', 10:'X', 9:'IX', 5:'V', 4:'IV', 1:'I' }
-def toRomanNumerals( num:Union[int,str] ) -> str:
+def toRomanNumerals( num:int|str ) -> str:
     """
     Adapted from https://stackoverflow.com/questions/28777219/basic-program-to-convert-integer-to-roman-numerals
     """

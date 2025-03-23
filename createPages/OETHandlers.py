@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+# -\*- coding: utf-8 -\*-
+# SPDX-License-Identifier: GPL-3.0-or-later
 #
 # OETHandlers.py
 #
@@ -25,7 +26,7 @@
 """
 Module handling OETHandlers functions.
 
-getOETTidyBBB( BBB:str, titleCase:Optional[bool]=False, allowFourChars:Optional[bool]=True ) -> str
+getOETTidyBBB( BBB:str, titleCase:bool|None=False, allowFourChars:bool|None=True ) -> str
 getOETBookName( BBB:str ) -> str
 getHebrewWordpageFilename( rowNum:int, state:State ) -> str
 getGreekWordpageFilename( rowNum:int, state:State ) -> str
@@ -45,9 +46,6 @@ CHANGELOG:
     2024-11-14 NFC normalise Hebrew title fields
     2025-01-15 Handle NT morphology fields with middle dot instead of period
 """
-# from gettext import gettext as _
-from typing import Dict, List, Tuple, Optional
-# from pathlib import Path
 import logging
 import re
 import unicodedata
@@ -77,7 +75,7 @@ DEBUGGING_THIS_MODULE = False
 WJ = '\u2060' # word joiner (makes Hebrew displays on console ugly and hard to read)
 
 
-def getOETTidyBBB( BBB:str, titleCase:Optional[bool]=False, allowFourChars:Optional[bool]=True, addNotes:Optional[bool]=False ) -> str:
+def getOETTidyBBB( BBB:str, titleCase:bool|None=False, allowFourChars:bool|None=True, addNotes:bool|None=False ) -> str:
     """
     Our customised version of tidyBBB
     """
@@ -364,7 +362,7 @@ def livenOETWordLinks( level:int, bibleObject:ESFMBible, BBB:str, givenEntryList
                 vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  Added {transliterationsAdded:,} {bibleObject.abbreviation} {BBB} transliterations to Greek titles." )
             if colourisationsAdded > 0:
                 vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  Added {colourisationsAdded:,} {bibleObject.abbreviation} {BBB} colourisations to Greek words." )
-            # adjText, cleanText, extras = _processLineFix( self, C:str,V:str, originalMarker:str, text:str, fixErrors:List[str] )
+            # adjText, cleanText, extras = _processLineFix( self, C:str,V:str, originalMarker:str, text:str, fixErrors:list[str] )
             # newEntry = InternalBibleEntry( entry.getMarker(), entry.getOriginalMarker(), entry.getAdjustedText(), entry.getCleanText(), entry.getExtras(), originalText )
             # Since we messed up many of the fields, set them to blank/null entries so that the old/wrong/outdated values can't be accidentally used
             newEntry = InternalBibleEntry( entry.getMarker(), entry.getOriginalMarker(), '', '', None, originalText )

@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+# -\*- coding: utf-8 -\*-
+# SPDX-FileCopyrightText: © 2023 Robert Hunt <Freely.Given.org+OBD@gmail.com>
+# SPDX-License-Identifier: GPL-3.0-or-later
 #
 # createParallelVersePages.py
 #
@@ -26,17 +28,17 @@
 Module handling createParallelVersePages functions.
 
 createParallelVersePages( level:int, folder:Path, state:State ) -> bool
-createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:List[str], state:State ) -> bool
+createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:list[str], state:State ) -> bool
 getPlainText( givenVerseEntryList ) -> str
     Takes a verseEntryList and converts it to a string of plain text words.
     Used to compare critical Greek versions.
 removeGreekPunctuation( greekText:str ) -> str
     Converts to lowercase and removes punctuation used in any Greek version.
     Used to compare critical Greek versions.
-brightenSRGNT( BBB:str, C:str, V:str, brightenTextHtml:str, verseEntryList, state:State ) -> Tuple[str,List[str]]
+brightenSRGNT( BBB:str, C:str, V:str, brightenTextHtml:str, verseEntryList, state:State ) -> tuple[str,list[str]]
     Take the SR-GNT text (which includes punctuation and might also include <br> characters)
         and mark the role participants
-brightenUHB( BBB:str, C:str, V:str, brightenUHBTextHtml:str, verseEntryList, state:State ) -> Tuple[str,List[str]]
+brightenUHB( BBB:str, C:str, V:str, brightenUHBTextHtml:str, verseEntryList, state:State ) -> tuple[str,list[str]]
     Take the UHB text (which includes punctuation and might also include <br> characters)
         and mark the role participants
 briefDemo() -> None
@@ -67,19 +69,19 @@ CHANGELOG:
     2025-02-25 Improved colouring for changes between KJB-1611 and KJB-1769
     2025-03-14 Tried to improve that colouring so it highlights the FIRST different word, even if it's small like 'a'
 """
-from gettext import gettext as _
-from typing import Tuple, List
 from pathlib import Path
 import os
 import logging
 import re
-import multiprocessing
+# import multiprocessing
 
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 from BibleOrgSys.Internals.InternalBibleInternals import getLeadingInt
 import BibleOrgSys.Formats.ESFMBible as ESFMBible
 import BibleOrgSys.OriginalLanguages.Greek as Greek
+from BibleOrgSys.Reference.OldBiblicalEnglish import moderniseEnglishWords
+from BibleOrgSys.Reference.EuropeanToEnglish import translateGerman, translateLatin
 
 import sys
 sys.path.append( '../../BibleTransliterations/Python/' )
@@ -96,10 +98,9 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_
 from createSectionPages import findSectionNumber
 from createOETReferencePages import CNTR_BOOK_ID_MAP, OSHB_ADJECTIVE_DICT, OSHB_PARTICLE_DICT, OSHB_NOUN_DICT, OSHB_PREPOSITION_DICT, OSHB_PRONOUN_DICT, OSHB_SUFFIX_DICT
 from OETHandlers import getOETTidyBBB, getOETBookName, livenOETWordLinks, getHebrewWordpageFilename, getGreekWordpageFilename
-from LanguageHandlers import moderniseEnglishWords, translateGerman, translateLatin
 
 
-LAST_MODIFIED_DATE = '2025-03-14' # by RJH
+LAST_MODIFIED_DATE = '2025-03-15' # by RJH
 SHORT_PROGRAM_NAME = "createParallelVersePages"
 PROGRAM_NAME = "OpenBibleData createParallelVersePages functions"
 PROGRAM_VERSION = '0.98'
@@ -193,7 +194,7 @@ def createParallelVersePages( level:int, folder:Path, state:State ) -> bool:
 class MissingBookError( Exception ): pass
 class UntranslatedVerseError( Exception ): pass
 
-def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:List[str], parallelVersions:List[str], state:State ) -> bool:
+def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:list[str], parallelVersions:list[str], state:State ) -> bool:
     """
     Create a page for every Bible verse
         displaying the verse for every available version.
@@ -436,7 +437,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                                 #     rawTextHtml = rawTextHtml[30+len(versionAbbreviation):-7]
                                 # print( f"{versionAbbreviation} {parRef} {rawTextHtml=}")
                                 # if V=='4': halt
-                                modernisedTextHtml = moderniseEnglishWords( footnoteFreeTextHtml )
+                                modernisedTextHtml = moderniseEnglishWords( footnoteFreeTextHtml, allowOptions=True ) # Can return words like 'hateth/hates'
                                 if versionAbbreviation in ('KJB-1611','Bshps','Gnva','Cvdl','TNT','Wycl'):
                                     modernisedTextHtml = modernisedTextHtml.replace( 'J', 'Y' ).replace( 'Ie', 'Ye' ).replace( 'Io', 'Yo' ) \
                                                                                 .replace( 'Yudge', 'Judge' ).replace( 'KYB', 'KJB' ) # Fix overreaches
@@ -554,7 +555,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                                             and wordModTxtAdj.lower() not in ('adoniyah',) # Why???
                                             ):
                                                 if debugKJBCompareBit: print( f"  {parRef} {modernisedTextHtml=}" )
-                                                assert wordModTxt != 'span'
+                                                assert wordModTxt != 'span' or parRef in ('EXO_28:16','EXO_39:9'), f"  {parRef} {wordModTxt=} {modernisedTextHtml=}"
                                                 # wordMTadj = removeVersePunctuationForComparison( wordMT )
                                                 # Save the correct replacement until after the loop, or we can accidentally replace some of those words
                                                 # TODO: Replacing all the words (or parts of words) isn't really very satisfactory
@@ -562,19 +563,20 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                                                     tempChangeIndex = max( changeIndex, modernisedTextHtml.find( wordModTxt, changeIndex ))
                                                     print( f"    PPP Now changeIndex = {tempChangeIndex} = max({changeIndex},{modernisedTextHtml.find( wordModTxt, changeIndex )}) so '{modernisedTextHtml[tempChangeIndex:tempChangeIndex+20]}...'" )
                                                 changeIndex = max( changeIndex, modernisedTextHtml.find( wordModTxt, changeIndex ))
+                                                # We get problems with 'a' or 'an' which occur inside 'span' and other words
                                                 if modernisedTextHtml[changeIndex:].startswith( f'{wordModTxt} '):
-                                                    modernisedTextHtml = f"{modernisedTextHtml[:changeIndex]}{modernisedTextHtml[changeIndex:].replace( wordModTxt, f'<span SPAN1>{wordModTxt}</span>' if doneHighlight else f'<span SPAN2>{wordModTxt}</span>', 1 )}"
-                                                    changeIndex += len( '<span SPANx></span>' ) # Number of added characters
+                                                    modernisedTextHtml = f"{modernisedTextHtml[:changeIndex]}{modernisedTextHtml[changeIndex:].replace('<span','SSSSS').replace('</span>','EEEEEEE').replace( wordModTxt, f'<spanSPAN1>{wordModTxt}</span>' if doneHighlight else f'<spanSPAN2>{wordModTxt}</span>', 1 )}"
+                                                    changeIndex += len( '<spanSPANx></span>' ) # Number of added characters = 18
                                                     doneHighlight = True
                                                 elif modernisedTextHtml.count(wordModTxt)==1 \
                                                 or (len(wordModTxt)>0 and modernisedTextHtml.count(f' {wordModTxt}')==modernisedTextHtml.count(wordModTxt) and modernisedTextHtml.count(f'{wordModTxt} ')==modernisedTextHtml.count(wordModTxt) ): # Shorter words can occur inside other words too often
-                                                    modernisedTextHtml = ( f"{modernisedTextHtml[:changeIndex]}{modernisedTextHtml[changeIndex:].replace( wordModTxt, f'<span SPAN1>{wordModTxt}</span>'
+                                                    modernisedTextHtml = ( f"{modernisedTextHtml[:changeIndex]}{modernisedTextHtml[changeIndex:].replace('<span','SSSSS').replace('</span>','EEEEEEE').replace( wordModTxt, f'<spanSPAN1>{wordModTxt}</span>'
                                                              if modernisedTextHtml[changeIndex:].count(wordModTxt)==1 and not doneHighlight # Consecutive words might be just out of step
-                                                                                                        else f'<span SPAN2>{wordModTxt}</span>')}" )
-                                                    changeIndex += len( '<span SPANx></span>' ) # Number of added characters
+                                                                                                        else f'<spanSPAN2>{wordModTxt}</span>')}" )
+                                                    changeIndex += len( '<spanSPANx></span>' ) # Number of added characters = 18
                                                     doneHighlight = True
-                                                if debugKJBCompareBit: print( f"    QQQ Now changeIndex += 19 = {changeIndex} so '{modernisedTextHtml[changeIndex:changeIndex+20]}...'" )
-                                                checkHtml( f'hilighted {parRef} modernisedTextHtml after {wordModTxt=} replacement', modernisedTextHtml, segmentOnly=True )
+                                                assert '<sp<sp' not in modernisedTextHtml, f"hilighted {parRef} modernisedTextHtml after {wordModTxt=} replacement @ '{modernisedTextHtml[changeIndex-19:changeIndex+20]}...' from {modernisedTextHtml=}"
+                                                if debugKJBCompareBit: print( f"    QQQ Now changeIndex += 18 = {changeIndex} so '{modernisedTextHtml[changeIndex:changeIndex+20]}...'" )
                                                 differentWordHighlighted = True
                                                 if debugKJBCompareBit: print( f"  NOW {modernisedTextHtml=}" )
                                                 # break
@@ -585,8 +587,10 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                                                 changeIndex += len( '<span class="add_KJB-1611">' )
                                             elif modernisedTextHtml[changeIndex:].startswith( '/span> ' ):
                                                 changeIndex += len( '</span>' )
-                                    modernisedTextHtml = modernisedTextHtml.replace( 'SPAN1', 'title="Word (or format) changed in KJB-1769" class="hilite"' ) \
-                                                                           .replace( 'SPAN2', 'title="Possible word (or format) changed in KJB-1769" class="possibleHilite"' )
+                                    modernisedTextHtml = modernisedTextHtml.replace( 'SPAN1', ' title="Word (or format) changed in KJB-1769" class="hilite"' ) \
+                                                                           .replace( 'SPAN2', ' title="Possible word (or format) changed in KJB-1769" class="possibleHilite"' ) \
+                                                                           .replace('SSSSS','<span').replace('EEEEEEE','</span>') # Uncover hidden spans again
+                                    checkHtml( f"hilighted {parRef} after replacements: {modernisedTextHtml=}", modernisedTextHtml, segmentOnly=True )
                                     if not differentWordHighlighted and 'class="nd"' not in depunctuatedCleanedModernisedTextHtml:
                                         if debugKJBCompareBit: print( "CHECK THE ABOVE" )
                                         # halt
@@ -648,7 +652,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
                                 try:
                                     # NOTE: We close the previous paragraph, but leave the key paragraph open
                                     keysHtml = f'''</p>\n<p class="key"><b>Key</b>: <button type="button" id="coloursButton" title="Hide grammatical colours above" onclick="hide_show_colours()">C</button> {', '.join(grammaticalKeysHtmlList)}.
-<br><small>Note: Automatic aligning of the OET-RV to the LV is done by some temporary software, hence the OET-RV alignments are incomplete (and may occasionally be wrong).</small>'''
+<br><small>Note: Automatic aligning of the <em>OET-RV</em> to the <em>LV</em> is done by some temporary software, hence the <em>RV</em> alignments are incomplete (and may occasionally be wrong).</small>'''
                                 except (UnboundLocalError, TypeError): # grammaticalKeysHtmlList
                                     keysHtml = ''
                                 if textHtml:
@@ -988,7 +992,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:L
 
 # <span class="fnCaller">[<a title="Note: K אחד" href="#fnUHB4">fn</a>]</span>
 footnoteRegex = re.compile( '<span class="fnCaller">.+?</span>' )
-def handleAndExtractFootnotes( versionAbbreviation:str, verseHtml:str ) -> Tuple[str,str,str]:
+def handleAndExtractFootnotes( versionAbbreviation:str, verseHtml:str ) -> tuple[str,str,str]:
     """
     Given verseHtml that may contain a footnotes division,
         separate off the footnotes.
@@ -1059,7 +1063,7 @@ GREEK_CASE_CLASS_KEY_DICT = { 'grkVrb':'<span class="grkVrb">khaki</span>:verbs'
                               'grkDat':'<span class="grkDat">cyan</span>:dative/indirect object',
                               'grkVoc':'<span class="grkVoc">magenta</span>:vocative',
                               'grkNeg':'<span class="grkNeg">red</span>:negative'}
-def brightenSRGNT( BBB:str, C:str, V:str, brightenTextHtml:str, verseEntryList, state:State ) -> Tuple[str,List[str]]:
+def brightenSRGNT( BBB:str, C:str, V:str, brightenTextHtml:str, verseEntryList, state:State ) -> tuple[str,list[str]]:
     """
     Take the SR-GNT text (which includes punctuation and might also include <br> characters)
         and match the words against our word table to link them
@@ -1219,7 +1223,7 @@ HEBREW_CASE_CLASS_KEY_DICT = { 'hebVrb':'<span class="hebVrb">khaki</span>:verbs
                               'hebEl':'<span class="hebEl">blue</span>:Elohim',
                               'hebYhwh':'<span class="hebYhwh">green</span>:YHWH',
                               }
-def brightenUHB( BBB:str, C:str, V:str, brightenUHBTextHtml:str, verseEntryList, state:State ) -> Tuple[str,List[str]]:
+def brightenUHB( BBB:str, C:str, V:str, brightenUHBTextHtml:str, verseEntryList, state:State ) -> tuple[str,list[str]]:
     """
     Take the UHB text (which includes punctuation and might also include <br> characters and footnote callers)
         and mark the role participants

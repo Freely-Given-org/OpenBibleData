@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+# -\*- coding: utf-8 -\*-
+# SPDX-FileCopyrightText: © 2023 Robert Hunt <Freely.Given.org+OBD@gmail.com>
+# SPDX-License-Identifier: GPL-3.0-or-later
 #
 # Bibles.py
 #
@@ -29,7 +31,7 @@ Module handling Bibles functions for OpenBibleData package.
 preloadVersions( state:State ) -> int
 preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:State ) -> Bible
 
-loadTyndaleBookIntrosXML( abbrev:str, XML_filepath ) -> Dict[str,str]
+loadTyndaleBookIntrosXML( abbrev:str, XML_filepath ) -> dict[str,str]
 formatTyndaleBookIntro( abbrev:str, level:int, BBB:str, segmentType:str, state:State ) -> str
 formatTyndaleNotes( abbrev:str, level:int, BBB:str, C:str, V:str, segmentType:str, state:State ) -> str # html
 fixTyndaleBRefs( abbrev:str, level:int, BBBorArticleName:str, C:str, V:str, html:str, state:State ) -> str
@@ -38,7 +40,7 @@ formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segmentTy
 
 loadSelectedVersesFile( fileLocation, givenName:str, givenAbbreviation:str, encoding='utf-8' ) -> Bible
 
-getVerseDataListForReference( givenRefString:str, thisBible:Bible, lastBBB:Optional[str]=None, lastC:Optional[str]=None ) -> Tuple[str,str,InternalBibleEntryList,List[str]]
+getVerseDataListForReference( givenRefString:str, thisBible:Bible, lastBBB:str|None=None, lastC:str|None=None ) -> tuple[str,str,InternalBibleEntryList,list[str]]
 
 getVerseMetaInfoHtml( BBB:str, C:str, V:str ) -> str # html
 
@@ -59,9 +61,9 @@ CHANGELOG:
     2025-02-05 Only load certain Bible versions if specified
     2025-03-11 Handle 'Quoted by' in OET-RV xrefs
     2025-03-14 Add link to sentence importance database
+    2025-03-17 Update mapIndex format to include both high-res and low-res filenames
+    2025-03-21 Handle obsolete pickle in OET-LV which has OT and NT in separate folders
 """
-from gettext import gettext as _
-from typing import Dict, List, Tuple, Set, Optional
 from datetime import datetime
 import os, os.path
 from pathlib import Path
@@ -98,10 +100,10 @@ from OETHandlers import findLVQuote, getBBBFromOETBookName
 from Dict import loadAndIndexUBSGreekDictJSON, loadAndIndexUBSHebrewDictJSON
 
 
-LAST_MODIFIED_DATE = '2025-03-14' # by RJH
+LAST_MODIFIED_DATE = '2025-03-21' # by RJH
 SHORT_PROGRAM_NAME = "Bibles"
 PROGRAM_NAME = "OpenBibleData Bibles handler"
-PROGRAM_VERSION = '0.86'
+PROGRAM_VERSION = '0.88'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -155,8 +157,18 @@ def preloadVersions( state:State ) -> int:
                             pickleIsObsolete = True
                             vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} pickle is obsolete because {somePath.name} is more recent." )
                             break
+                    elif versionAbbreviation == 'OET-LV': # This one has the OT and the NT in separate folders
+                        if str(somePath).endswith ('intermediateTexts/auto_edited_OT_ESFM') or str(somePath).endswith ('intermediateTexts/auto_edited_VLT_ESFM'):
+                            for someSubPath in somePath.iterdir():
+                                dPrint( 'Never', DEBUGGING_THIS_MODULE, f"Checking file-times in {somePath=} {someSubPath=} {type(someSubPath)=}" )
+                                if someSubPath.is_file() and not str(someSubPath).endswith( PICKLE_FILENAME_END ):
+                                    fileMTime = someSubPath.stat().st_mtime # A large integer
+                                    if fileMTime > pickleMTime:
+                                        pickleIsObsolete = True
+                                        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} pickle is obsolete because {someSubPath.name} is more recent." )
+                                        break
                     else:
-                        dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"Ignoring folder {somePath}")
+                        dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"Ignoring pickle file or folder {somePath=} {somePath.name=}")
                 if not pickleIsObsolete:
                     try:
                         newBibleObj = BibleOrgSysGlobals.unpickleObject( pickleFilename, pickleFolderPath )
@@ -398,13 +410,13 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
 # The following functions are in BibleOrgSys.InternalBible
     # getNumChapters( self, BBB:str ) -> int:
     # getNumVerses( self, BBB:str, C:str ) -> int:
-    # getContextVerseData( self, BCVReference:Union[SimpleVerseKey,Tuple[str,str,str,str]] ):
-    # getVerseDataList( self, BCVReference:Union[SimpleVerseKey,Tuple[str,str,str,str]] ):
+    # getContextVerseData( self, BCVReference:SimpleVerseKey|tuple[str,str,str,str]] ):
+    # getVerseDataList( self, BCVReference:SimpleVerseKey|tuple[str,str,str,str]] ):
     # getVerseText( self, BCVReference, fullTextFlag:bool=False ) -> str:
 # The following functions are in BibleOrgSys.InternalBibleBook
     # getNumChapters( self ) -> int:
     # getNumVerses( self, C:str ) -> int:
-    # getContextVerseData( self, BCVReference:Union[SimpleVerseKey,Tuple[str,str,str,str]] ):
+    # getContextVerseData( self, BCVReference:SimpleVerseKey|tuple[str,str,str,str]] ):
 
 # # We want to add the following functions:
 # def eachChapter( thisBible, BBB:str ) -> str:
@@ -414,14 +426,14 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
 #     yield '2'
 
 
-def loadTyndaleBookIntrosXML( abbrev:str, XML_filepath ) -> Dict[str,str]:
+def loadTyndaleBookIntrosXML( abbrev:str, XML_filepath ) -> dict[str,str]:
     """
     Load the Tyndale book intros or book intro summaries from the XML file
     """
     fnPrint( DEBUGGING_THIS_MODULE, f"loadTyndaleBookIntrosXML( {abbrev}, {XML_filepath} )" )
 
     dataDict = {}
-    loadErrors:List[str] = []
+    loadErrors:list[str] = []
     XMLTree = ElementTree().parse( XML_filepath )
 
     if XMLTree.tag == 'items':
@@ -1134,7 +1146,7 @@ def loadSelectedVersesFile( fileLocation, givenName:str, givenAbbreviation:str, 
 # end of Bibles.loadSelectedVersesFile
 
 
-def getVerseDataListForReference( givenRefString:str, thisBible:Bible, lastBBB:Optional[str]=None, lastC:Optional[str]=None ) -> Tuple[str,str,InternalBibleEntryList,List[str]]:
+def getVerseDataListForReference( givenRefString:str, thisBible:Bible, lastBBB:str|None=None, lastC:str|None=None ) -> tuple[str,str,InternalBibleEntryList,list[str]]:
     """
     If a reference doesn't contain a book name abbreviation, we might need to use the (optional) lastBBB parameter (and lastC for verse lists)
 
@@ -1301,23 +1313,24 @@ def getVerseDataListForReference( givenRefString:str, thisBible:Bible, lastBBB:O
 
 BMM_INDEX = defaultdict( set )
 BMM_TEXT_CACHE = {}
-def getBibleMapperMaps( level:int, BBB:str, startC:str, startV:Optional[str], endC:Optional[str], endV:Optional[str], referenceBible:Bible ) -> str: # html
+def getBibleMapperMaps( level:int, BBB:str, startC:str, startV:str|None, endC:str|None, endV:str|None, referenceBible:Bible ) -> str: # html
     """
     Can be called for a verse, a chapter, or a section
     """
     global BMM_INDEX, BMM_TEXT_CACHE
 
-    fnPrint( DEBUGGING_THIS_MODULE, f"getBibleMapperMaps( {level}, {startC}:{startV}–{endC}:{endV} )" )
+    fnPrint( DEBUGGING_THIS_MODULE, f"getBibleMapperMaps( {level}, {BBB} {startC}:{startV}–{endC}:{endV} )" )
 
     if not BMM_INDEX:
         vPrint( 'Info', DEBUGGING_THIS_MODULE, f"getBibleMapperMaps( {level}, {startC}:{startV}–{endC}:{endV} ) needs to load map index…")
         mapIndexFilepath = '../copiedBibles/maps/mapIndex.tsv'
         with open( mapIndexFilepath, 'rt', encoding='utf-8' ) as tsvFile:
-            for line in tsvFile: # Four-column TSV
+            for line in tsvFile: # Five-column TSV
                 if line.startswith( 'ReferenceRange' ): continue # It's the header line
-                mapRef, mapFilename, supplementaryMapFilename, _optionalComment = line.rstrip( '\n' ).split( '\t' )
+                mapRef, hiResMapFilename, lowResMapFilename, supplementaryMapFilename, _optionalComment = line.rstrip( '\n' ).split( '\t' )
+                mapName = hiResMapFilename.split( '_' )[0]
                 mapBBB, mapCVstuff = mapRef.split( '_' )
-                chapters:Set[str] = set()
+                chapters:set[str] = set()
                 if '–' in mapCVstuff: # enDash: it's a chapter range
                     startCVstuff, endCVstuff = mapCVstuff.split( '–' )
                     # print( f"Chapter range: {mapBBB} {startCVstuff} to {endCVstuff} = '{mapFilename}'")
@@ -1329,7 +1342,7 @@ def getBibleMapperMaps( level:int, BBB:str, startC:str, startV:Optional[str], en
                     for c in range( int(iStartC), int(iEndC)+1 ):
                         chapters.add( str(c) )
                         for v in range( int(iStartV) if c==int(iStartC) else 1, (int(iEndV) if c==int(iEndC) else referenceBible.getNumVerses( mapBBB, c ))+1 ):
-                            BMM_INDEX[f'{mapBBB}_{c}:{v}'].add( (mapFilename,supplementaryMapFilename) )
+                            BMM_INDEX[f'{mapBBB}_{c}:{v}'].add( (mapName,hiResMapFilename,lowResMapFilename,supplementaryMapFilename) )
                 elif '-' in mapCVstuff: # hyphen: it's a verse range
                     startCVstuff, endCVstuff = mapCVstuff.split( '-' )
                     # print( f"Verse range: {mapBBB} {startCVstuff} to {endCVstuff} = '{mapFilename}'")
@@ -1339,20 +1352,20 @@ def getBibleMapperMaps( level:int, BBB:str, startC:str, startV:Optional[str], en
                     iEndV = endCVstuff
                     # print( f"   so {mapC}:{startV} to {mapC}:{endV}" )
                     for v in range( int(iStartV), int(iEndV)+1 ):
-                        BMM_INDEX[f'{mapBBB}_{mapC}:{v}'].add( (mapFilename,supplementaryMapFilename) )
+                        BMM_INDEX[f'{mapBBB}_{mapC}:{v}'].add( (mapName,hiResMapFilename,lowResMapFilename,supplementaryMapFilename) )
                 elif ':' in mapCVstuff: # it's a single verse
                     # print( f"Single verse: {mapBBB} {mapCVstuff} = '{mapFilename}'")
                     mapC = mapCVstuff.split( ':' )[0]
                     chapters.add( mapC )
-                    BMM_INDEX[mapRef].add( (mapFilename,supplementaryMapFilename) )
+                    BMM_INDEX[mapRef].add( (mapName,hiResMapFilename,lowResMapFilename,supplementaryMapFilename) )
                 else: # it's a single chapter
                     mapC = mapCVstuff
                     # print( f"Single chapter: {mapBBB} {mapC} = '{mapFilename}'")
                     chapters.add( mapC )
                     for v in range( 1, referenceBible.getNumVerses( mapBBB, mapC)+1 ):
-                        BMM_INDEX[f'{mapBBB}_{mapC}:{v}'].add( (mapFilename,supplementaryMapFilename) )
+                        BMM_INDEX[f'{mapBBB}_{mapC}:{v}'].add( (mapName,hiResMapFilename,lowResMapFilename,supplementaryMapFilename) )
                 for mapC in chapters:
-                    BMM_INDEX[f'{mapBBB}_{mapC}:None'].add( (mapFilename,supplementaryMapFilename) )
+                    BMM_INDEX[f'{mapBBB}_{mapC}:None'].add( (mapName,hiResMapFilename,lowResMapFilename,supplementaryMapFilename) )
         # print( f"({len(BMM_INDEX)}) {BMM_INDEX.keys()=}" )
         vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  getBibleMapperMaps() loaded {len(BMM_INDEX):,} verse and chapter entries.")
 
@@ -1371,37 +1384,55 @@ def getBibleMapperMaps( level:int, BBB:str, startC:str, startV:Optional[str], en
     if not mapFilenamesSet: # No maps for this reference / reference range
         return ''
 
+    destinationFolderpath = TEMP_BUILD_FOLDER. joinpath( 'BMM/' )
+    try: os.makedirs( destinationFolderpath )
+    except FileExistsError: pass
+
     dPrint( 'Info', DEBUGGING_THIS_MODULE, f"getBibleMapperMaps( {level}, {startC}:{startV}–{endC}:{endV} ) got {mapFilenamesSet=}" )
     ourHtml = ''
-    for filename,supplementaryFilename in mapFilenamesSet:
-        dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"getBibleMapperMaps( {level}, {startC}:{startV}–{endC}:{endV} ) got {filename=}" )
+    for mapName,hiResFilename,loResFilename,supplementaryFilename in mapFilenamesSet:
+        dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"getBibleMapperMaps( {level}, {startC}:{startV}–{endC}:{endV} ) got {hiResFilename=}" )
 
-        try: htmlTextSegment = BMM_TEXT_CACHE[filename]
+        try: htmlTextSegment = BMM_TEXT_CACHE[hiResFilename]
         except KeyError: # not cached yet
-            textFilepath = BIBLE_MAPPER_PATH.joinpath( f'{filename}.htmlSegment' )
+            textFilepath = BIBLE_MAPPER_PATH.joinpath( f'{mapName}.htmlSegment' )
             with open( textFilepath, 'rt', encoding='utf-8' ) as txtFile:
                 htmlTextSegment = txtFile.read()
-            assert htmlTextSegment.startswith( '<h2 class="mapTitle">' ), f"{filename=} {textFilepath=}"
-            checkHtml( f"Map {filename}", htmlTextSegment, segmentOnly=True )
+            assert htmlTextSegment.startswith( '<h2 class="mapTitle">' ), f"{hiResFilename=} {textFilepath=}"
+            checkHtml( f"Map {hiResFilename}", htmlTextSegment, segmentOnly=True )
             # TODO: Liven links in htmlSegment
             htmlTextSegment = htmlTextSegment.rstrip() # Remove trailing newlines, etc.
-            BMM_TEXT_CACHE[filename] = htmlTextSegment
+            BMM_TEXT_CACHE[hiResFilename] = htmlTextSegment
 
-        imageFilename = f'{filename}_high.jpg'
-        imageHtml = f'''<p><img src="{'../'*level}BMM/{imageFilename}" alt="Map" width="98%" style="max-width:1000px; display:block; margin:auto;"></p>\n'''
-        sourceImageFilepath = BIBLE_MAPPER_PATH.joinpath( imageFilename )
-        destinationFolderpath = TEMP_BUILD_FOLDER. joinpath( 'BMM/' )
-        try: os.makedirs( destinationFolderpath )
-        except FileExistsError: pass
-        # Note: shutil.copy2 is the same as copy but keeps metadata like creation and modification times
-        shutil.copy2( sourceImageFilepath, destinationFolderpath )
+        if loResFilename: # Display the low-res image but link it to the hi-res one
+            imageFilename = loResFilename
+            imageHtml = f'''<p><a title="Click to view high-resolution image" href="{'../'*level}BMM/{hiResFilename}"><img src="{'../'*level}BMM/{imageFilename}" alt="Map" width="98%" style="max-width:1000px; display:block; margin:auto;"></a></p>\n'''
+            if not destinationFolderpath.joinpath( hiResFilename ).is_file():
+                # Save the hi-res image file here (the default one is saved below)
+                # print( f"    getBibleMapperMaps( {level}, {BBB} {startC}:{startV}–{endC}:{endV} ): Saving hi-res {destinationFolderpath}/{hiResFilename}…" )
+                # assert not destinationFolderpath.joinpath( hiResFilename ).is_file(), f"getBibleMapperMaps( {level}, {BBB} {startC}:{startV}–{endC}:{endV} ): Why does hi-res {destinationFolderpath}/{hiResFilename} already exist?"
+                sourceImageFilepath = BIBLE_MAPPER_PATH.joinpath( hiResFilename )
+                # Note: shutil.copy2 is the same as copy but keeps metadata like creation and modification times
+                shutil.copy2( sourceImageFilepath, destinationFolderpath )
+        else: # Only seem to have a hi-res file
+            imageFilename = hiResFilename
+            imageHtml = f'''<p><img src="{'../'*level}BMM/{imageFilename}" alt="Map" width="98%" style="max-width:1000px; display:block; margin:auto;"></p>\n'''
+        if not destinationFolderpath.joinpath( imageFilename ).is_file():
+            # Save the default image file
+            # print( f"    getBibleMapperMaps( {level}, {BBB} {startC}:{startV}–{endC}:{endV} ): Saving default {destinationFolderpath}/{imageFilename}…" )
+            # assert not destinationFolderpath.joinpath( imageFilename ).is_file(), f"getBibleMapperMaps( {level}, {BBB} {startC}:{startV}–{endC}:{endV} ): Why does default {destinationFolderpath}/{imageFilename} already exist?"
+            sourceImageFilepath = BIBLE_MAPPER_PATH.joinpath( imageFilename )
+            # Note: shutil.copy2 is the same as copy but keeps metadata like creation and modification times
+            shutil.copy2( sourceImageFilepath, destinationFolderpath )
+            if supplementaryFilename:
+                supplementaryImageFilename = f'{supplementaryFilename}_high.jpg'
+                supplementarySourceImageFilepath = BIBLE_MAPPER_PATH.joinpath( supplementaryImageFilename )
+                # Note: shutil.copy2 is the same as copy but keeps metadata like creation and modification times
+                shutil.copy2( supplementarySourceImageFilepath, destinationFolderpath )
         supplementaryImageHtml = ''
         if supplementaryFilename:
             supplementaryImageFilename = f'{supplementaryFilename}_high.jpg'
             supplementaryImageHtml = f'''<p><img src="{'../'*level}BMM/{supplementaryImageFilename}" alt="Map" width="98%" style="max-width:1000px; display:block; margin:auto;"></p>\n'''
-            supplementarySourceImageFilepath = BIBLE_MAPPER_PATH.joinpath( supplementaryImageFilename )
-            # Note: shutil.copy2 is the same as copy but keeps metadata like creation and modification times
-            shutil.copy2( supplementarySourceImageFilepath, destinationFolderpath )
 
         ourHtml = f'''{ourHtml}
 {imageHtml}{supplementaryImageHtml}{htmlTextSegment}'''

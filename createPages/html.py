@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+# -\*- coding: utf-8 -\*-
+# SPDX-FileCopyrightText: © 2023 Robert Hunt <Freely.Given.org+OBD@gmail.com>
+# SPDX-License-Identifier: GPL-3.0-or-later
 #
 # html.py
 #
@@ -25,30 +27,30 @@
 """
 Module handling html functions.
 
-makeTop( level:int, versionAbbreviation:Optional[str], pageType:str, versionSpecificFileOrFolderName:Optional[str], state:State ) -> str
+makeTop( level:int, versionAbbreviation:str|None, pageType:str, versionSpecificFileOrFolderName:str|None, state:State ) -> str
     Create the very top part of an HTML page.
 
     This is the HTML <head> segment, including assigning the correct CSS stylesheet.
 
     Note: versionAbbreviation can be None for parallel, interlinear and word pages, etc.
-_makeNavigationLinks( level:int, versionAbbreviation:Optional[str], pageType:str, versionSpecificFileOrFolderName:Optional[str], state:State ) -> str
+_makeNavigationLinks( level:int, versionAbbreviation:str|None, pageType:str, versionSpecificFileOrFolderName:str|None, state:State ) -> str
     Create the navigation that goes before the page content.
 
     This includes the list of versions, and possibly the "ByDocument/BySection" bar as well.
         (It doesn't include book, chapter, or verse selector bars.)
 
     Note: versionAbbreviation can be None for parallel, interlinear and word pages, etc.
-_makeWorkNavListParagraph( level:int, versionAbbreviation:Optional[str], pageType:str, versionSpecificFileOrFolderName:Optional[str], state:State ) -> str
+_makeWorkNavListParagraph( level:int, versionAbbreviation:str|None, pageType:str, versionSpecificFileOrFolderName:str|None, state:State ) -> str
     Create the list of available versions.
 
     Note: versionAbbreviation can be None for parallel, interlinear and word pages, etc.
-makeViewNavListParagraph( level:int, versionAbbreviation:Optional[str], pageType:str, state:State ) -> str
+makeViewNavListParagraph( level:int, versionAbbreviation:str|None, pageType:str, state:State ) -> str
     Make the "ByDocument/BySection" bar.
 
     Note: versionAbbreviation can be None for parallel, interlinear and word pages, etc.
         It can also be the 'OET' pseudo version.
         Can return an empty string.
-makeBookNavListParagraph( linksList:List[str], workAbbrevPlus:str, state:State ) -> str
+makeBookNavListParagraph( linksList:list[str], workAbbrevPlus:str, state:State ) -> str
 makeBottom( level:int, pageType:str, state:State ) -> str
 makeFooter( level:int, pageType:str, state:State ) -> str
 removeDuplicateCVids( html:str ) -> str
@@ -89,7 +91,6 @@ CHANGELOG:
     2025-03-11 Add a couple more checks of spans in checkHtml()
 """
 # from gettext import gettext as _
-from typing import Dict, List, Tuple, Optional, Union
 import logging
 from datetime import datetime
 import re
@@ -103,10 +104,10 @@ from settings import State, TEST_MODE, TEST_VERSIONS_ONLY, SITE_NAME
 from OETHandlers import getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2025-03-11' # by RJH
+LAST_MODIFIED_DATE = '2025-03-15' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
-PROGRAM_VERSION = '0.93'
+PROGRAM_VERSION = '0.94'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -123,11 +124,11 @@ KNOWN_PAGE_TYPES = ('site', 'TopIndex', 'details', 'AllDetails',
                     'topicPassages','topicsIndex',
                     'parallelVerse', 'interlinearVerse',
                     'dictionaryMainIndex','dictionaryLetterIndex','dictionaryEntry','dictionaryIntro',
-                    'word','lemma','morpheme', 'person','location', 'statistics',
+                    'word','lemma','morpheme', 'person','location', 'statistics', 'StrongsPage',
                     'wordIndex','lemmaIndex','morphemeIndex', 'personIndex','locationIndex',
-                        'statisticsIndex', 'referenceIndex',
+                        'statisticsIndex', 'referenceIndex','StrongsIndex',
                     'search', 'about', 'news', 'OETKey')
-def makeTop( level:int, versionAbbreviation:Optional[str], pageType:str, versionSpecificFileOrFolderName:Optional[str], state:State ) -> str:
+def makeTop( level:int, versionAbbreviation:str|None, pageType:str, versionSpecificFileOrFolderName:str|None, state:State ) -> str:
     """
     Create the very top part of an HTML page.
 
@@ -148,14 +149,14 @@ def makeTop( level:int, versionAbbreviation:Optional[str], pageType:str, version
         cssFilename = 'ParallelVerses.css'
     elif pageType == 'interlinearVerse':
         cssFilename = 'InterlinearVerse.css'
-    elif pageType in ('word','lemma','morpheme', 'person','location'):
+    elif pageType in ('word','lemma','morpheme', 'person','location','StrongsPage'):
         cssFilename = 'BibleWord.css'
     elif pageType in ('dictionaryLetterIndex', 'dictionaryEntry','dictionaryIntro'):
         cssFilename = 'BibleDict.css'
     elif pageType in ('site', 'details','AllDetails', 'search', 'about', 'news', 'OETKey', 'TopIndex',
                       'statistics',
                       'bookIndex','chapterIndex','sectionIndex',
-                      'relatedSectionIndex', 'topicsIndex', 'dictionaryMainIndex',
+                      'relatedSectionIndex', 'topicsIndex', 'dictionaryMainIndex','StrongsIndex',
                       'wordIndex','lemmaIndex','morphemeIndex','personIndex','locationIndex','statisticsIndex','referenceIndex' ):
         cssFilename = 'BibleSite.css'
     else: unexpected_page_type
@@ -194,7 +195,7 @@ def makeTop( level:int, versionAbbreviation:Optional[str], pageType:str, version
 # end of html.makeTop
 
 
-def _makeNavigationLinks( level:int, versionAbbreviation:Optional[str], pageType:str, versionSpecificFileOrFolderName:Optional[str], state:State ) -> str:
+def _makeNavigationLinks( level:int, versionAbbreviation:str|None, pageType:str, versionSpecificFileOrFolderName:str|None, state:State ) -> str:
     """
     Create the navigation that goes before the page content.
 
@@ -212,7 +213,7 @@ def _makeNavigationLinks( level:int, versionAbbreviation:Optional[str], pageType
 # end of html._makeNavigationLinks
 
 
-def _makeWorkNavListParagraph( level:int, versionAbbreviation:Optional[str], pageType:str, versionSpecificFileOrFolderName:Optional[str], state:State ) -> str:
+def _makeWorkNavListParagraph( level:int, versionAbbreviation:str|None, pageType:str, versionSpecificFileOrFolderName:str|None, state:State ) -> str:
     """
     Create the list of available versions.
 
@@ -323,7 +324,7 @@ def _makeWorkNavListParagraph( level:int, versionAbbreviation:Optional[str], pag
 # end of html._makeWorkNavListParagraph
 
 
-def makeViewNavListParagraph( level:int, versionAbbreviation:Optional[str], pageType:str, state:State ) -> str:
+def makeViewNavListParagraph( level:int, versionAbbreviation:str|None, pageType:str, state:State ) -> str:
     """
     Make the "ByDocument/BySection" bar.
 
@@ -359,7 +360,7 @@ def makeViewNavListParagraph( level:int, versionAbbreviation:Optional[str], page
 
 HTML_PLUS_LIST = ['parallelVerse','interlinearVerse', 'parallelIndex','interlinearIndex']
 OET_HTML_PLUS_LIST = ['OET'] + HTML_PLUS_LIST
-def makeBookNavListParagraph( linksList:List[str], workAbbrevPlus:str, state:State ) -> str:
+def makeBookNavListParagraph( linksList:list[str], workAbbrevPlus:str, state:State ) -> str:
     """
     Create a 'bkLst' paragraph with the book abbreviation links
         preceded by the work abbreviation (non-link) if specified.
@@ -800,7 +801,7 @@ def checkHtmlForMissingStyles( where:str, htmlToCheck:str ) -> bool:
         determine the stylesheet and load it if not already cached,
         and then check that all classes are in the stylesheet.
     """
-    def loadCSSStyles( lsStylesheetName:str ) -> Dict[str,Union[bool,List[str]]]:
+    def loadCSSStyles( lsStylesheetName:str ) -> dict[str,bool|list[str]]:
         """
         Load the stylesheet and cache it for next time.
 
@@ -919,7 +920,7 @@ def checkHtmlForMissingStyles( where:str, htmlToCheck:str ) -> bool:
 # end of html.checkHtmlForMissingStyles
 
 
-def convert_adds_to_italics( htmlSegment:str, where:Optional[str]=None ) -> str:
+def convert_adds_to_italics( htmlSegment:str, where:str|None=None ) -> str:
     """
     """
     # Hardwire added words in non-OET versions to italics

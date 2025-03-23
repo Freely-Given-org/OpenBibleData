@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+# -\*- coding: utf-8 -\*-
+# SPDX-FileCopyrightText: © 2023 Robert Hunt <Freely.Given.org+OBD@gmail.com>
+# SPDX-License-Identifier: GPL-3.0-or-later
 #
 # createOETInterlinearPages.py
 #
@@ -26,7 +28,7 @@
 Module handling createOETInterlinearPages functions.
 
 createOETInterlinearPages( level:int, folder:Path, state:State ) -> bool
-createOETInterlinearVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:List[str], state:State ) -> bool
+createOETInterlinearVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:list[str], state:State ) -> bool
     Create a page for every Bible verse
 createOETInterlinearVerseInner( level:int, BBB:str, c:int, v:int, state:State ) -> str # Returns the HTML
     Create an interlinear page for the Bible verse.
@@ -49,7 +51,6 @@ TODO:
     Add colour keys for LV and RV words
 """
 # from gettext import gettext as _
-from typing import Dict, List, Tuple
 from pathlib import Path
 import os
 import logging
@@ -125,7 +126,7 @@ def createOETInterlinearPages( level:int, folder:Path, state:State ) -> bool:
 # end of createOETInterlinearPages.createOETInterlinearPages
 
 
-def createOETInterlinearVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:List[str], state:State ) -> bool:
+def createOETInterlinearVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:list[str], state:State ) -> bool:
     """
     Create a page for every Bible verse
         displaying the interlinear verses.

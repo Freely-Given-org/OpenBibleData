@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+# -\*- coding: utf-8 -\*-
+# SPDX-FileCopyrightText: © 2024 Robert Hunt <Freely.Given.org+OBD@gmail.com>
+# SPDX-License-Identifier: GPL-3.0-or-later
 #
 # initialise.py
 #
 # Module handling SentenceImportance initialisation
 #
 # Copyright (C) 2024-2025 Robert Hunt
-# Author: Robert Hunt <Freely.Given.org+BOS@gmail.com>
+# Author: Robert Hunt <Freely.Given.org+OBD@gmail.com>
 # License: See gpl-3.0.txt
 #
 #   This program is free software: you can redistribute it and/or modify
@@ -30,10 +32,9 @@ This bit of code is only ever intended to be run once
 CHANGELOG:
     2023-05-22 Use VariantID and Translatable SR-GNT collation columns from CNTR
 """
-from typing import List
 from pathlib import Path
-import logging
 from csv import  DictReader
+import logging
 
 import sys
 sys.path.append( '../../../BibleOrgSys/' )
@@ -43,7 +44,7 @@ import BibleOrgSys.Formats.USXXMLBible as USXXMLBible
 
 
 
-LAST_MODIFIED_DATE = '2025-03-04' # by RJH
+LAST_MODIFIED_DATE = '2025-03-21' # by RJH
 SHORT_PROGRAM_NAME = "SentenceImportance_initialisation"
 PROGRAM_NAME = "Sentence Importance initialisation"
 PROGRAM_VERSION = '0.18'
@@ -140,7 +141,7 @@ unclearClarityRefs = [ # Mostly sure what's in the Hebrew or Greek, but not sure
         'JOB_39:13b',
         'JOB_40:13b', 'JOB_40:19', 'JOB_40:24a',
         'JOB_41:9', 'JOB_41:11',
-    'PSA_68:12b','PSA_68:13','PSA_68:15','PSA_92:11','PSA_93:3a','PSA_105:19','PSA_105:28b','PSA_105:32b',
+    'PSA_16:5', 'PSA_68:12b','PSA_68:13','PSA_68:15','PSA_68:21b','PSA_92:11','PSA_93:3a','PSA_105:19','PSA_105:28b','PSA_105:32b',
     'DAN_8:12','DAN_8:13a','DAN_11:43b',
     'OBA_1:16',
     'HAB_3:15',
@@ -326,7 +327,7 @@ def has_text_critical_footnote( netBible, BBB:str, C:str, V:str ) -> bool:
 # end of initalise.has_text_critical_footnote()
 
 
-def get_verse_collation_rows(given_collation_rows: List[dict], row_index: int) -> List[list]:
+def get_verse_collation_rows(given_collation_rows: list[dict], row_index: int) -> list[list]:
     """
     row_index should be the index of the first row for the particular verse
 
