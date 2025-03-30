@@ -49,6 +49,7 @@ CHANGELOG:
     2024-06-14 Make section cross-ref clicks go to parallel passage pages
     2024-06-26 Added BibleMapper.com maps to OET sections
     2025-02-02 Added ID to clinksPar (at top of page only)
+    2025-03-24 Liven Readers' Version and Literal Version headings
 """
 from gettext import gettext as _
 from pathlib import Path
@@ -70,10 +71,10 @@ from Bibles import getBibleMapperMaps
 from OETHandlers import livenOETWordLinks, getOETTidyBBB, getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2025-03-21' # by RJH
+LAST_MODIFIED_DATE = '2025-03-24' # by RJH
 SHORT_PROGRAM_NAME = "createSectionPages"
 PROGRAM_NAME = "OpenBibleData createSectionPages functions"
-PROGRAM_VERSION = '0.67'
+PROGRAM_VERSION = '0.68'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -281,56 +282,14 @@ def createOETSectionPages( level:int, folder:Path, rvBible:ESFMBible, lvBible:ES
 <h1>{'TEST ' if TEST_MODE else ''}{sectionName}</h1>
 {OET_UNFINISHED_WARNING_HTML_PARAGRAPH}
 <div class="RVLVcontainer">
-<h2>Readers’ Version</h2>
-<h2>Literal Version <button type="button" id="marksButton" title="Hide/Show underline and strike-throughs" onclick="hide_show_marks()">Hide marks</button></h2>'''
+<h2><a title="View just the Readers’ Version by itself" href="{'../'*level}OET-RV/bySec/{BBB}_S{n}.htm#Top">Readers’ Version</a></h2>
+<h2><a title="View just the Literal Version (chapter) by itself" href="{'../'*level}OET-LV/byC/{BBB}_C{startC}.htm#V{startV}">Literal Version</a> <button type="button" id="marksButton" title="Hide/Show underline and strike-throughs" onclick="hide_show_marks()">Hide marks</button></h2>'''
             if isinstance( rvBible, ESFMBible ):
                 rvVerseEntryList = livenOETWordLinks( level, rvBible, BBB, rvVerseEntryList, state )
             rvHtml = convertUSFMMarkerListToHtml( level, rvBible.abbreviation, (BBB,startC, startV), 'section', rvContextList, rvVerseEntryList, basicOnly=False, state=state )
             rvHtml = do_OET_RV_HTMLcustomisations( rvHtml )
             # rvHtml = livenIORs( BBB, rvHtml, sections )
 
-            # if 0: # old code
-            #     # Get the info for the first LV verse
-            #     try:
-            #         lvVerseEntryList, lvContextList = lvBible.getContextVerseData( (BBB, startC, startV) )
-            #     except KeyError: # this can fail in the introduction which is missing from LV
-            #         logging.critical( f"Seems OET-LV {BBB} is missing section starting with {startC}:{startV}" )
-            #         lvVerseEntryList, lvContextList = [], []
-            #     # then concatenate the verse lists for the following LV verses
-            #     dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"Concatenating OET-LV {BBB} from {startC}:{startV} to {endC}:{endV}" )
-            #     C = int(startC)
-            #     V = getLeadingInt(startV) + 1 # Handles strings like '4b'
-            #     for _safetyCount in range( 100 ):
-            #         # dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Looking for {C}:{V}" )
-            #         endVint = getLeadingInt(endV)
-            #         if C > int(endC) \
-            #         or (C==int(endC) and V >= endVint):
-            #             break
-            #         # dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Adding {C}:{V}" )
-            #         try:
-            #             thisVerseEntryList = lvBible.getVerseDataList( (BBB, str(C), str(V) ) )
-            #             assert isinstance( thisVerseEntryList, InternalBibleEntryList )
-            #         except KeyError:
-            #             if startC == '-1': # This is expected, because LV doesn't have intros, so endV will be excessive
-            #                 assert endC == '-1'
-            #                 assert V > 9 # We should have got some lines
-            #                 break
-            #             else: # We're in a chapter and may have reached the end
-            #                 if startC != endC:
-            #                     numVerses = lvBible.getNumVerses( BBB, str(C) )
-            #                     if V > numVerses:
-            #                         C += 1
-            #                         V = 0
-            #                         # Try again with the first verse of the next chapter
-            #                         thisVerseEntryList = lvBible.getVerseDataList( (BBB, str(C), str(V) ) )
-            #                         assert isinstance( thisVerseEntryList, InternalBibleEntryList )
-            #                     else: raise KeyError
-            #                 else: raise KeyError
-            #         lvVerseEntryList += thisVerseEntryList
-            #         V += 1
-            #     else:
-            #         loop_counter_too_small
-            # else: # new code using new BibleOrgSys function
             try:
                 lvVerseEntryList, lvContextList = lvBible.getContextVerseDataRange( (BBB, startC, startV), (BBB, endC, endV) )
             except KeyError: # this can fail in the introduction which is missing from LV

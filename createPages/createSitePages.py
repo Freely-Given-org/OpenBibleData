@@ -63,6 +63,7 @@ CHANGELOG:
     2025-02-20 Add missing verses links to OET details pages
     2025-02-21 Use function from html.py for making view list bar
     2025-03-03 Allow settings to choose when parallel verse pages are built (early, late, or never)
+    2025-03-24 Make TEST verse-only version links point to that particular version on parallel pages
 """
 from gettext import gettext as _
 from pathlib import Path
@@ -99,7 +100,7 @@ from Dict import createTyndaleDictPages, createUBSDictionaryPages
 from html import makeTop, makeViewNavListParagraph, makeBottom, checkHtml
 
 
-LAST_MODIFIED_DATE = '2025-03-03' # by RJH
+LAST_MODIFIED_DATE = '2025-03-24' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData (OBD) Create Site Pages"
 PROGRAM_VERSION = '0.99'
@@ -619,10 +620,7 @@ def _createDetailsPages( level:int, buildFolder:Path, state:State ) -> bool:
 
         if TEST_MODE and versionAbbreviation in state.selectedVersesOnlyVersions:
             # Add a list of links to verses containing this version
-            selectedVerseLinksList = [f'<a href="par/{BBB}/C{C}V{V}.htm#Top">{getOETTidyBBB( BBB, titleCase=True )} {C}:{V}</a>' for BBB,C,V in state.preloadedBibles[versionAbbreviation]]
-        #     for BBB,C,V in state.preloadedBibles[versionAbbreviation]:
-        #         ourTidyBBB = getOETTidyBBB( BBB, titleCase=True )
-        #         selectedVerseLinksList.append( f'<a href="../par/{BBB}/C{C}V{V}.htm#Top">{getOETTidyBBB( BBB, titleCase=True )} {C}:{V}</a>' )
+            selectedVerseLinksList = [f'<a href="par/{BBB}/C{C}V{V}.htm#{versionAbbreviation}">{getOETTidyBBB( BBB, titleCase=True )} {C}:{V}</a>' for BBB,C,V in state.preloadedBibles[versionAbbreviation]]
             detailsHtml = f'''{detailsHtml}
 <h2>Available selections</h2>
 <p class="rem">The following parallel verse pages feature this version:</p>

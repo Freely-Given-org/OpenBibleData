@@ -44,7 +44,7 @@ import BibleOrgSys.Formats.USXXMLBible as USXXMLBible
 
 
 
-LAST_MODIFIED_DATE = '2025-03-21' # by RJH
+LAST_MODIFIED_DATE = '2025-03-24' # by RJH
 SHORT_PROGRAM_NAME = "SentenceImportance_initialisation"
 PROGRAM_NAME = "Sentence Importance initialisation"
 PROGRAM_VERSION = '0.18'
@@ -74,6 +74,7 @@ vitalImportanceRefsWithRanges = [ # Often in doctrinal statements
     'PRO_3:5','PRO_3:6',
     'ISA_53:4','ISA_53:5','ISA_53:6', 'ISA_55:11',
     'JER_29:11',
+    'ZEC_12:10',
     'MAL_3:8','MAL_3:9','MAL_3:10',
 
     'MAT_6:33', 'MAT_24:35', 'MAT_28:19','MAT_28:20',
@@ -306,25 +307,29 @@ def load():
 # end of initalise.load()
 
 
-def has_text_critical_footnote( netBible, BBB:str, C:str, V:str ) -> bool:
+def get_reference_text_critical_footnote_score( referenceBible, BBB:str, C:str, V:str ) -> int:
     """
-    Return True if NET Bible has a TC footnote for this verse.
+    Returns 2 (stronger) if the reference Bible has a TC footnote for this verse.
+    Returns 1 (weaker) if no TC footnote, but the LXX or similar is mentioned
     """
-    try: verseEntryList, _contextList = netBible.getContextVerseData( (BBB,C,V) )
+    try: verseEntryList, _contextList = referenceBible.getContextVerseData( (BBB,C,V) )
     except KeyError:
-        logging.critical( f"Seems NET Bible has no verse for {BBB}_{C}:{V}")
+        logging.critical( f"Seems reference Bible has no verse for {BBB}_{C}:{V}")
         return False
     except TypeError:
         if C=='1' and V=='1':
-            logging.critical( f"Seems NET Bible has no {BBB} book")
+            logging.critical( f"Seems reference Bible has no {BBB} book")
         return False
 
+    haveEarlyTranslationReference = False
     for entry in verseEntryList:
         text = entry.getFullText()
-        if text and 'Textual Criticism' in text:
-            return True
-    return False
-# end of initalise.has_text_critical_footnote()
+        if text:
+            if 'Textual Criticism' in text: return 2
+            if 'LXX' in text or 'Syriac' in text or 'Peshitta' in text or 'Dead Sea Scrolls' in text or 'Targum' in text or 'Vulgate' in text:
+                haveEarlyTranslationReference = True # return 1 Can't return straight away because next line might contain a TC footnote
+    return 1 if haveEarlyTranslationReference else False
+# end of initalise.get_reference_text_critical_footnote_score function
 
 
 def get_verse_collation_rows(given_collation_rows: list[dict], row_index: int) -> list[list]:
@@ -347,7 +352,7 @@ def get_verse_collation_rows(given_collation_rows: list[dict], row_index: int) -
 # end of initalise.get_verse_collation_rows
 
 
-def create( initialTSVLines, netBible, collationVerseDict, splitVerseSet ) -> bool:
+def create( initialTSVLines, referenceBible, collationVerseDict, splitVerseSet ) -> bool:
     """
     """
     BibleOrgSysGlobals.backupAnyExistingFile( TSV_FILENAME, numBackups=3 )
@@ -362,7 +367,7 @@ def create( initialTSVLines, netBible, collationVerseDict, splitVerseSet ) -> bo
             C, V = CV.split( ':' )
             fgRef = f'{BBB}_{CV}'
             # print( f"{fgRef}" )
-            has_TC_footnote = has_text_critical_footnote( netBible, BBB, C, V )
+            TC_footnote_value = get_reference_text_critical_footnote_score( referenceBible, BBB, C, V )
             # print( f"  {has_TC_footnote}")
             # if BBB=='EXO' and has_TC_footnote: print( f"{fgRef} has TC" ); halt
             # print( f"{line=} {fgRef=}" )
@@ -372,14 +377,19 @@ def create( initialTSVLines, netBible, collationVerseDict, splitVerseSet ) -> bo
                 importance, clarity, comment = defaultImportance, defaultClarity, ''
 
                 textualIssue = collationVerseDict[subRef] if subRef in collationVerseDict else defaultTextualIssue
-                if has_TC_footnote or subRef in textualCriticismRefs:
+                if TC_footnote_value==2 or subRef in textualCriticismRefs:
                     if textualIssue==defaultTextualIssue: # default is '0'
                         textualIssue = '2' # textualIssue ranges from 0 (None) to 4 (Major)
                     elif textualIssue == '1':
                         vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Increased {subRef} TC from 1 to 2")
                         textualIssue = '2' # textualIssue ranges from 0 (None) to 4 (Major)
                     else:
-                        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"{subRef} TC was already {textualIssue}")
+                        vPrint( 'Info', DEBUGGING_THIS_MODULE, f"{subRef} TC was already {textualIssue}")
+                elif TC_footnote_value==1:
+                    if textualIssue==defaultTextualIssue: # default is '0'
+                        textualIssue = '1' # textualIssue ranges from 0 (None) to 4 (Major)
+                    else:
+                        vPrint( 'Info', DEBUGGING_THIS_MODULE, f"{subRef} TC was already {textualIssue}")
 
                 if subRef in vitalImportanceRefs:
                     importance = 'V' # vital = 4/4

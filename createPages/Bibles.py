@@ -100,7 +100,7 @@ from OETHandlers import findLVQuote, getBBBFromOETBookName
 from Dict import loadAndIndexUBSGreekDictJSON, loadAndIndexUBSHebrewDictJSON
 
 
-LAST_MODIFIED_DATE = '2025-03-21' # by RJH
+LAST_MODIFIED_DATE = '2025-03-26' # by RJH
 SHORT_PROGRAM_NAME = "Bibles"
 PROGRAM_NAME = "OpenBibleData Bibles handler"
 PROGRAM_VERSION = '0.88'
@@ -763,7 +763,7 @@ taMDLinkRegEx = re.compile( '\\[\\[rc://([^/]+?)/ta/man/(translate|checking)/(.+
 taOtherLinkRegEx = re.compile( 'rc://([^/]+?)/ta/man/(translate|checking)/(.+?)[ ,.:;)\\]]' ) # Includes the following character after the link
 twMDLinkRegEx = re.compile( '\\[\\[rc://([^/]+?)/tw/dict/bible/(names|kt|other)/(.+?)\\]\\]' )
 twOtherLinkRegEx = re.compile( 'rc://([^/]+?)/tw/dict/bible/(names|kt|other)/(.+?)[ ,.:;)\\]]' ) # Includes the following character after the link
-markdownLinkRegex = re.compile( '\\[(.*?)\\]\\((.*?)\\)' )
+markdownLinkRegex = re.compile( '\\[([^[]]*?)\\]\\(([^ ]*?)\\)' )
 NOTE_FILENAME_DICT = {'translate':'03-translate', 'checking':'04-checking'}
 def formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segmentType:str, state:State ) -> str: # html
     """
