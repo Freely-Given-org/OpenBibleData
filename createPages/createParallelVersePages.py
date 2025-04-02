@@ -68,6 +68,7 @@ CHANGELOG:
     2025-02-03 Chapter selector now goes to verse selector (#vsLst) not #Top
     2025-02-25 Improved colouring for changes between KJB-1611 and KJB-1769
     2025-03-14 Tried to improve that colouring so it highlights the FIRST different word, even if it's small like 'a'
+    2025-04-02 Add English spell check in TEST MODE
 """
 from pathlib import Path
 import os
@@ -98,9 +99,10 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_
 from createSectionPages import findSectionNumber
 from createOETReferencePages import CNTR_BOOK_ID_MAP, OSHB_ADJECTIVE_DICT, OSHB_PARTICLE_DICT, OSHB_NOUN_DICT, OSHB_PREPOSITION_DICT, OSHB_PRONOUN_DICT, OSHB_SUFFIX_DICT
 from OETHandlers import getOETTidyBBB, getOETBookName, livenOETWordLinks, getHebrewWordpageFilename, getGreekWordpageFilename
+from spellCheckEnglish import spellCheckText, printSpellCheckSummary
 
 
-LAST_MODIFIED_DATE = '2025-03-15' # by RJH
+LAST_MODIFIED_DATE = '2025-04-02' # by RJH
 SHORT_PROGRAM_NAME = "createParallelVersePages"
 PROGRAM_NAME = "OpenBibleData createParallelVersePages functions"
 PROGRAM_VERSION = '0.98'
@@ -188,8 +190,12 @@ def createParallelVersePages( level:int, folder:Path, state:State ) -> bool:
     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
 
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createParallelVersePages() finished processing {len(state.allBBBs)} books: {state.allBBBs}" )
+
+    printSpellCheckSummary()
+
     return True
 # end of createParallelVersePages.createParallelVersePages
+
 
 class MissingBookError( Exception ): pass
 class UntranslatedVerseError( Exception ): pass
@@ -442,6 +448,9 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                     modernisedTextHtml = modernisedTextHtml.replace( 'J', 'Y' ).replace( 'Ie', 'Ye' ).replace( 'Io', 'Yo' ) \
                                                                                 .replace( 'Yudge', 'Judge' ).replace( 'KYB', 'KJB' ) # Fix overreaches
                                 modernisedTextDiffers = modernisedTextHtml != footnoteFreeTextHtml # we'll usually only show it if it changed
+                                if TEST_MODE:
+                                    # if not versionAbbreviation in ('KJB-1611','KJB-1769'):
+                                        modernisedTextHtml = spellCheckText( versionAbbreviation, parRef, modernisedTextHtml ) # Puts spans around mispellings
 
                                 def removeVersePunctuationForComparison( htmlText:str ) -> str:
                                     """
@@ -611,6 +620,8 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                     if footnotesHtml:
                                         translatedFootnotesHtml = removeDuplicateFNids( parRef, f'{footnotesHtml}__JOIN__{translateFunction( footnotesHtml )}' ).split( '__JOIN__' )[1]
                                 if adjustedForeignTextHtml and adjustedForeignTextHtml != textHtml: # only show it if it changed
+                                    if TEST_MODE:
+                                        adjustedForeignTextHtml = spellCheckText( versionAbbreviation, parRef, adjustedForeignTextHtml ) # Puts spans around mispellings
                                     # No longer true since we're now using getFullText (even for basicOnly), e.g., we may have id fields included in a bookHeader div
                                     # assert '</p>' not in textHtml
                                     if '<div ' in textHtml: # it might have had footnotes in a <div>, but we want the transliteration BEFORE the footnotes

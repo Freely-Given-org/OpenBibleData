@@ -40,8 +40,6 @@ CHANGELOG:
 """
 from pathlib import Path
 
-import sys
-sys.path.append( '../../BibleOrgSys/' )
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import dPrint, fnPrint
 from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39

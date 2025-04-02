@@ -44,7 +44,7 @@ import BibleOrgSys.Formats.USXXMLBible as USXXMLBible
 
 
 
-LAST_MODIFIED_DATE = '2025-03-24' # by RJH
+LAST_MODIFIED_DATE = '2025-04-01' # by RJH
 SHORT_PROGRAM_NAME = "SentenceImportance_initialisation"
 PROGRAM_NAME = "Sentence Importance initialisation"
 PROGRAM_VERSION = '0.18'
@@ -70,10 +70,12 @@ NET_PATHNAME = Path( '../../copiedBibles/English/NET/' )
 defaultImportance, defaultTextualIssue, defaultClarity = 'M', '0', 'C'
 vitalImportanceRefsWithRanges = [ # Often in doctrinal statements
     'GEN_1:1','GEN_1:2','GEN_1:3', 'GEN_3:16',
-    'EXO_20:11', 'DEU_31:6', 'PSA_46:1',
+    'EXO_20:11', 'DEU_31:6',
+    'PSA_22:1-2','PSA_22:7-18', 'PSA_46:1',
     'PRO_3:5','PRO_3:6',
     'ISA_53:4','ISA_53:5','ISA_53:6', 'ISA_55:11',
     'JER_29:11',
+    'MIC_5:2','MIC_6:8',
     'ZEC_12:10',
     'MAL_3:8','MAL_3:9','MAL_3:10',
 
