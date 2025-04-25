@@ -122,7 +122,7 @@ def createParallelPassagePages( level:int, folder:Path, state:State ) -> bool:
 <h2>Index of books</h2>
 {makeBookNavListParagraph(availableRelatedBBBLinks, 'Related OET-RV', state)}
 {makeBottom( level, 'relatedSectionIndex', state )}'''
-    checkHtml( 'relatedSectionIndex', indexHtml )
+    assert checkHtml( 'relatedSectionIndex', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
         indexHtmlFile.write( indexHtml )
@@ -382,7 +382,7 @@ def createParallelPassagePages( level:int, folder:Path, state:State ) -> bool:
 # {navBookListParagraph}
 # {removeDuplicateCVids( BBB, synopticSectionHtml )}
 # {makeBottom( BBBLevel, 'relatedPassage', state )}'''
-#         checkHtml( f'{thisBible.abbreviation}', synopticSectionHtml )
+#         assert checkHtml( f'{thisBible.abbreviation}', synopticSectionHtml )
 #         assert not filepath.is_file() # Check that we're not overwriting anything
 #         with open( filepath, 'wt', encoding='utf-8' ) as sectionHtmlFile:
 #             sectionHtmlFile.write( synopticSectionHtml )
@@ -408,7 +408,7 @@ def createParallelPassagePages( level:int, folder:Path, state:State ) -> bool:
 # {navBookListParagraph}
 # {synopticSectionIndexHtml}
 # {makeBottom( BBBLevel, 'relatedSectionIndex', state )}'''
-#     checkHtml( f'{thisBible.abbreviation}', synopticSectionIndexHtml )
+#     assert checkHtml( f'{thisBible.abbreviation}', synopticSectionIndexHtml )
 #     assert not filepath1.is_file() # Check that we're not overwriting anything
 #     with open( filepath1, 'wt', encoding='utf-8' ) as sectionHtmlFile:
 #         sectionHtmlFile.write( synopticSectionIndexHtml )
@@ -433,7 +433,7 @@ def createParallelPassagePages( level:int, folder:Path, state:State ) -> bool:
 # {navBookListParagraph}
 # {synopticSectionIndexHtml}
 # {makeBottom( level, 'relatedSectionIndex', state )}'''
-#     checkHtml( f'{thisBible.abbreviation}', synopticSectionIndexHtml )
+#     assert checkHtml( f'{thisBible.abbreviation}', synopticSectionIndexHtml )
 #     assert not filepath2.is_file() # Check that we're not overwriting anything
 #     with open( filepath2, 'wt', encoding='utf-8' ) as sectionHtmlFile:
 #         sectionHtmlFile.write( synopticSectionIndexHtml )
@@ -759,7 +759,7 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
                             .replace( '"#V', f'"#{replacementLetter}V' ).replace( '"V', f'"{replacementLetter}V' ) \
                             .replace( '#fn', f'#{replacementLetter}Fn' ).replace( 'id="fn', f'id="{replacementLetter}Fn' ) \
                             .replace( '#xr', f'#{replacementLetter}Xr' ).replace( 'id="xr', f'id="{replacementLetter}Xr' )
-            checkHtml( f'crossReferencedSection-{hh}', htmlChunk, segmentOnly=True )
+            assert checkHtml( f'crossReferencedSection-{hh}', htmlChunk, segmentOnly=True )
             crossReferencedSectionHtml = f'''{crossReferencedSectionHtml}\n<div class="chunkRV">{htmlChunk}</div><!--chunkRV-->'''
         crossReferencedSectionHtml = f'''{crossReferencedSectionHtml}\n</div><!--{containerClassname}-->'''
         assert '\n\n' not in crossReferencedSectionHtml
@@ -857,7 +857,7 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
 {navBookListParagraph}
 {removeDuplicateCVids( crossReferencedSectionHtml ).replace( '../byC/', '../../OET/byC/' )}{f"{NEWLINE}{xrefHtml.replace( '../byC/', '../../OET/byC/' )}" if xrefHtml else ''}
 {makeBottom( BBBLevel, 'relatedPassage', state )}'''
-        checkHtml( f'{thisBible.abbreviation} cross-referenced section', crossReferencedSectionHtml )
+        assert checkHtml( f'{thisBible.abbreviation} cross-referenced section', crossReferencedSectionHtml )
         assert '.htm#aC' not in crossReferencedSectionHtml and '.htm#bC' not in crossReferencedSectionHtml, crossReferencedSectionHtml
         assert not filepath.is_file(), f"{filepath=}" # Check that we're not overwriting anything
         with open( filepath, 'wt', encoding='utf-8' ) as sectionHtmlFile:
@@ -884,7 +884,7 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
 {navBookListParagraph}
 {crossReferencedSectionIndexHtml}
 {makeBottom( BBBLevel, 'relatedSectionIndex', state )}'''
-    checkHtml( f'{thisBible.abbreviation}', crossReferencedSectionIndexHtml )
+    assert checkHtml( f'{thisBible.abbreviation}', crossReferencedSectionIndexHtml )
     assert not filepath1.is_file() # Check that we're not overwriting anything
     with open( filepath1, 'wt', encoding='utf-8' ) as sectionHtmlFile:
         sectionHtmlFile.write( crossReferencedSectionIndexHtml )
@@ -909,7 +909,7 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
 {navBookListParagraph}
 {crossReferencedSectionIndexHtml}
 {makeBottom( level, 'relatedSectionIndex', state )}'''
-    checkHtml( f'{thisBible.abbreviation}', crossReferencedSectionIndexHtml )
+    assert checkHtml( f'{thisBible.abbreviation}', crossReferencedSectionIndexHtml )
     assert not filepath2.is_file() # Check that we're not overwriting anything
     with open( filepath2, 'wt', encoding='utf-8' ) as sectionHtmlFile:
         sectionHtmlFile.write( crossReferencedSectionIndexHtml )

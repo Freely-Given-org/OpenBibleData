@@ -329,7 +329,7 @@ def createOETSectionPages( level:int, folder:Path, rvBible:ESFMBible, lvBible:ES
 <p class="secNav">{sectionIndexLink}{leftLink}{documentLink} {startChapterLink}:{startV}–{endChapterLink}:{endV}{rightLink}{relatedLink}{parallelLink}{interlinearLink}{detailsLink}</p>
 {cLinksPar}
 {makeBottom( level, 'section', state )}'''
-            checkHtml( f'{rvBible.abbreviation} {BBB} section', sectionHtml )
+            assert checkHtml( f'{rvBible.abbreviation} {BBB} section', sectionHtml )
             assert not filepath.is_file() # Check that we're not overwriting anything
             with open( filepath, 'wt', encoding='utf-8' ) as sectionHtmlFile:
                 sectionHtmlFile.write( sectionHtml )
@@ -354,7 +354,7 @@ def createOETSectionPages( level:int, folder:Path, rvBible:ESFMBible, lvBible:ES
 {navBookListParagraph}
 {sectionHtml}
 {makeBottom( level, 'sectionIndex', state )}'''
-        checkHtml( 'OET section index', sectionHtml )
+        assert checkHtml( 'OET section index', sectionHtml )
         assert not indexFilepath.is_file() # Check that we're not overwriting anything
         with open( indexFilepath, 'wt', encoding='utf-8' ) as sectionHtmlFile:
             sectionHtmlFile.write( sectionHtml )
@@ -373,7 +373,7 @@ def createOETSectionPages( level:int, folder:Path, rvBible:ESFMBible, lvBible:ES
 <h2>Index of OET books</h2>
 {navBookListParagraph}
 {makeBottom( level, 'sectionIndex', state)}'''
-    checkHtml( 'OET sections index', indexHtml )
+    assert checkHtml( 'OET sections index', indexHtml )
     assert not indexFilepath.is_file() # Check that we're not overwriting anything
     with open( indexFilepath, 'wt', encoding='utf-8' ) as sectionHtmlFile:
         sectionHtmlFile.write( indexHtml )
@@ -481,7 +481,7 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> list
 {navBookListParagraph}
 {sectionHtml}
 {makeBottom( level, 'section', state )}'''
-            checkHtml( f'{thisBible.abbreviation} {BBB} section', sectionHtml )
+            assert checkHtml( f'{thisBible.abbreviation} {BBB} section', sectionHtml )
             assert not filepath.is_file() # Check that we're not overwriting anything
             with open( filepath, 'wt', encoding='utf-8' ) as sectionHtmlFile:
                 sectionHtmlFile.write( sectionHtml )
@@ -557,7 +557,7 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> list
 {sectionHtml}
 {cLinksPar}
 {makeBottom( level, 'section', state )}'''
-            checkHtml( f'{thisBible.abbreviation} {BBB} section', sectionHtml )
+            assert checkHtml( f'{thisBible.abbreviation} {BBB} section', sectionHtml )
             assert not filepath.is_file() # Check that we're not overwriting anything
             with open( filepath, 'wt', encoding='utf-8' ) as sectionHtmlFile:
                 sectionHtmlFile.write( sectionHtml )
@@ -581,7 +581,7 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> list
 {navBookListParagraph}
 {sectionHtml}
 {makeBottom( level, 'sectionIndex', state )}'''
-        checkHtml( f'{thisBible.abbreviation} section index', sectionHtml )
+        assert checkHtml( f'{thisBible.abbreviation} section index', sectionHtml )
         assert not indexFilepath.is_file() # Check that we're not overwriting anything
         with open( indexFilepath, 'wt', encoding='utf-8' ) as sectionHtmlFile:
             sectionHtmlFile.write( sectionHtml )
@@ -600,7 +600,7 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> list
 <h2>Index of {thisBible.abbreviation} books</h2>
 {navBookListParagraph}
 {makeBottom( level, 'sectionIndex', state)}'''
-    checkHtml( f'{thisBible.abbreviation} sections index', indexHtml )
+    assert checkHtml( f'{thisBible.abbreviation} sections index', indexHtml )
     assert not indexFilepath.is_file() # Check that we're not overwriting anything
     with open( indexFilepath, 'wt', encoding='utf-8' ) as sectionHtmlFile:
         sectionHtmlFile.write( indexHtml )

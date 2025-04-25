@@ -66,6 +66,7 @@ CHANGELOG:
     2025-02-26 Handle /cl else put chapter numbers before /d (in PSA) and /iex (in KJB-1611)
     2025-03-04 Ignore nb markers in OET-LV
     2025-03-11 Liven OSHB footnotes in OET-LV
+    2025-04-07 Improve handling of s2 headings
 """
 from gettext import gettext as _
 import re
@@ -82,10 +83,10 @@ from html import checkHtml
 from OETHandlers import getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2025-03-11' # by RJH
+LAST_MODIFIED_DATE = '2025-04-07' # by RJH
 SHORT_PROGRAM_NAME = "usfm"
 PROGRAM_NAME = "OpenBibleData USFM to HTML functions"
-PROGRAM_VERSION = '0.86'
+PROGRAM_VERSION = '0.87'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -293,7 +294,10 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
         elif marker in ('s1','s2','s3','s4'):
             if not rest:
                 logging.error( f"Expected heading text {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} {marker=}" )
-            assert not inRightDiv
+            if inRightDiv:
+                assert marker != 's1'
+                html = f'{html}</div><!--rightBox-->\n'
+                inRightDiv = False
             if inTable:
                 logging.warning( f"Table should have been closed already {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} {marker=}" )
                 html = f'{html}</{inTable}>\n'

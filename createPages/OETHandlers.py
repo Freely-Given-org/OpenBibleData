@@ -576,14 +576,14 @@ def findLVQuote( level:int, BBB:str, C:str, V:str, occurrenceNumber:int, origina
             # halt
 
         assembledHtml = ' '.join(lvEnglishWords)
-        # checkHtml( f'LV {BBB} {C}:{V}', html, segmentOnly=True )
+        # assert checkHtml( f'LV {BBB} {C}:{V}', html, segmentOnly=True )
         if not NT:
             assembledHtml = ( assembledHtml
                                 # Not totally sure where/why some of these have an underline after the ESFM marker where a space is expected
                                 .replace( '\\untr_', '<span class="untr">').replace( '\\untr ', '<span class="untr">').replace( '\\untr*', '</span>')
                                 .replace( '\\nd_', '<span class="nd">').replace( '\\nd ', '<span class="nd">').replace( '\\nd*', '</span>')
                             )
-        checkHtml( 'LVQuote', assembledHtml, segmentOnly=True )
+        assert checkHtml( 'LVQuote', assembledHtml, segmentOnly=True )
         return assembledHtml
     else:
         logging.error( f"findLVQuote: OET-LV can't find a starting word number for {ref}")

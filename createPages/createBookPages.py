@@ -143,7 +143,7 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
 {navBookListParagraph}
 {bkHtml}
 {makeBottom( level, 'book', state )}'''
-            checkHtml( f'OET Book FRT {rvBible.abbreviation} {BBB}', bkHtml )
+            assert checkHtml( f'OET Book FRT {rvBible.abbreviation} {BBB}', bkHtml )
             assert not filepath.is_file() # Check that we're not overwriting anything
             with open( filepath, 'wt', encoding='utf-8' ) as bkHtmlFile:
                 bkHtmlFile.write( bkHtml )
@@ -298,8 +298,8 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
             # Handle footnotes so the same fn1 doesn't occur for both chunks if they both have footnotes
             rvSection = rvSection.replace( 'id="fn', 'id="fnRV' ).replace( 'href="#fn', 'href="#fnRV' )
             lvChunk = lvChunk.replace( 'id="fn', 'id="fnLV' ).replace( 'href="#fn', 'href="#fnLV' )
-            # checkHtml( f"OET-RV {BBB} Section", rvSection, segmentOnly=True )
-            # checkHtml( f"OET-LV {BBB} Chunk", lvChunk, segmentOnly=True )
+            # assert checkHtml( f"OET-RV {BBB} Section", rvSection, segmentOnly=True )
+            # assert checkHtml( f"OET-LV {BBB} Chunk", lvChunk, segmentOnly=True )
             combinedHtml = f'''{combinedHtml}<div class="chunkRV">{rvSection}</div><!--chunkRV-->
 <div class="chunkLV">{lvChunk}</div><!--chunkLV-->
 '''
@@ -315,7 +315,7 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
 {navBookListParagraph}
 {bkHtml}{removeDuplicateCVids( combinedHtml )}</div><!--RVLVcontainer-->
 {makeBottom( level, 'book', state )}'''
-        checkHtml( f'OET Book {BBB}', bkHtml )
+        assert checkHtml( f'OET Book {BBB}', bkHtml )
         assert not filepath.is_file() # Check that we're not overwriting anything
         with open( filepath, 'wt', encoding='utf-8' ) as bkHtmlFile:
             bkHtmlFile.write( bkHtml )
@@ -335,7 +335,7 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
 <h2>Index of books</h2>
 {navBookListParagraph}
 {makeBottom( level, 'bookIndex', state )}'''
-    checkHtml( 'OETBooksIndex', indexHtml )
+    assert checkHtml( 'OETBooksIndex', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as bkHtmlFile:
         bkHtmlFile.write( indexHtml )
@@ -422,7 +422,7 @@ def createBookPages( level:int, folder:Path, thisBible, state:State ) -> list[st
 {navBookListParagraph}
 {bkHtml}
 {makeBottom( level, 'book', state )}'''
-        checkHtml( f'Book {thisBible.abbreviation} {BBB}', bkHtml )
+        assert checkHtml( f'Book {thisBible.abbreviation} {BBB}', bkHtml )
         assert not filepath.is_file() # Check that we're not overwriting anything
         with open( filepath, 'wt', encoding='utf-8' ) as bkHtmlFile:
             bkHtmlFile.write( bkHtml )
@@ -442,7 +442,7 @@ def createBookPages( level:int, folder:Path, thisBible, state:State ) -> list[st
 <h2>Index of books</h2>
 {navBookListParagraph}
 {makeBottom( level, 'bookIndex', state)}'''
-    checkHtml( f'{thisBible.abbreviation} book index', indexHtml )
+    assert checkHtml( f'{thisBible.abbreviation} book index', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as bkHtmlFile:
         bkHtmlFile.write( indexHtml )

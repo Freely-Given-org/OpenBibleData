@@ -56,7 +56,3 @@ span.add { color:grey; }
 span.untr { font-size:0.8em; color:grey; text-decoration:line-through; }
 
 span.ul { color:darkGrey; }
-
-/* Spell check */
-span.spelling { color:orchid }
-span.duplicate { color:orange }

@@ -30,7 +30,8 @@ Module handling SentenceImportance initialisation.
 This bit of code is only ever intended to be run once
 
 CHANGELOG:
-    2023-05-22 Use VariantID and Translatable SR-GNT collation columns from CNTR
+    2024-05-22 Use VariantID and Translatable SR-GNT collation columns from CNTR
+    2025-04-10 Use crossTestamentQuotes info
 """
 from pathlib import Path
 from csv import  DictReader
@@ -41,13 +42,15 @@ sys.path.append( '../../../BibleOrgSys/' )
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 import BibleOrgSys.Formats.USXXMLBible as USXXMLBible
+sys.path.append( '../crossTestamentQuotes/' )
+from load import getIndividualQuotedOTRefs, getIndividualQuotingNTRefs
 
 
 
-LAST_MODIFIED_DATE = '2025-04-01' # by RJH
+LAST_MODIFIED_DATE = '2025-04-18' # by RJH
 SHORT_PROGRAM_NAME = "SentenceImportance_initialisation"
 PROGRAM_NAME = "Sentence Importance initialisation"
-PROGRAM_VERSION = '0.18'
+PROGRAM_VERSION = '0.20'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -127,6 +130,8 @@ trivialImportanceRefs = listsOfNames + [
 obscureClarityRefs = [ # Not really at all sure what the Hebrew or Greek is trying to say
     'JDG_5:11a','JDG_5:14',
     'JOB_29:20','JOB_29:24',
+    'PSA_22:16b', 'PSA_35:16a',
+    'MIC_6:14', # Two unknown Hebrew words
     ]
 unclearClarityRefs = [ # Mostly sure what's in the Hebrew or Greek, but not sure what it means, or what the cultural implications were
     'EXO_15:25b',
@@ -144,8 +149,10 @@ unclearClarityRefs = [ # Mostly sure what's in the Hebrew or Greek, but not sure
         'JOB_39:13b',
         'JOB_40:13b', 'JOB_40:19', 'JOB_40:24a',
         'JOB_41:9', 'JOB_41:11',
-    'PSA_16:5', 'PSA_68:12b','PSA_68:13','PSA_68:15','PSA_68:21b','PSA_92:11','PSA_93:3a','PSA_105:19','PSA_105:28b','PSA_105:32b',
+    'PSA_16:5', 'PSA_41:9b', 'PSA_68:12b','PSA_68:13','PSA_68:15','PSA_68:21b','PSA_92:11','PSA_93:3a','PSA_105:19','PSA_105:28b','PSA_105:32b',
     'DAN_8:12','DAN_8:13a','DAN_11:43b',
+    'JOL_2:6b',
+    'AMO_6:3','AMO_8:7a',
     'OBA_1:16',
     'HAB_3:15',
     'ZEP_3:10b',
@@ -200,8 +207,8 @@ def run() -> bool:
     netBible.loadBooks() # So we can iterate through them all later
 
     initialLines, collationVerseDict, splitVerseSet = load()
-    create( initialLines, netBible, collationVerseDict, splitVerseSet )
-# end of initalise.run()
+    create( initialLines, netBible, collationVerseDict, splitVerseSet, getIndividualQuotedOTRefs(), getIndividualQuotingNTRefs() )
+# end of initialise.run()
 
 
 def load():
@@ -306,7 +313,7 @@ def load():
                     collationVerseDict[fgRef] = '2' if translatable else '1' if haveVariants else '0'
 
     return initialTSVLines, collationVerseDict, splitVerseSet
-# end of initalise.load()
+# end of initialise.load()
 
 
 def get_reference_text_critical_footnote_score( referenceBible, BBB:str, C:str, V:str ) -> int:
@@ -331,7 +338,7 @@ def get_reference_text_critical_footnote_score( referenceBible, BBB:str, C:str, 
             if 'LXX' in text or 'Syriac' in text or 'Peshitta' in text or 'Dead Sea Scrolls' in text or 'Targum' in text or 'Vulgate' in text:
                 haveEarlyTranslationReference = True # return 1 Can't return straight away because next line might contain a TC footnote
     return 1 if haveEarlyTranslationReference else False
-# end of initalise.get_reference_text_critical_footnote_score function
+# end of initialise.get_reference_text_critical_footnote_score function
 
 
 def get_verse_collation_rows(given_collation_rows: list[dict], row_index: int) -> list[list]:
@@ -351,10 +358,10 @@ def get_verse_collation_rows(given_collation_rows: list[dict], row_index: int) -
         else: # done
             break
     return this_verse_row_list
-# end of initalise.get_verse_collation_rows
+# end of initialise.get_verse_collation_rows
 
 
-def create( initialTSVLines, referenceBible, collationVerseDict, splitVerseSet ) -> bool:
+def create( initialTSVLines, referenceBible, collationVerseDict, splitVerseSet, individualQuotedOTRefs, individualQuotingNTRefs ) -> bool:
     """
     """
     BibleOrgSysGlobals.backupAnyExistingFile( TSV_FILENAME, numBackups=3 )
@@ -378,6 +385,7 @@ def create( initialTSVLines, referenceBible, collationVerseDict, splitVerseSet )
             for subRef in subRefs: # either one or two lines per verse
                 importance, clarity, comment = defaultImportance, defaultClarity, ''
 
+                # Look at textual issues 0=None/1=Minor spelling/2=Minor words/3-Major
                 textualIssue = collationVerseDict[subRef] if subRef in collationVerseDict else defaultTextualIssue
                 if TC_footnote_value==2 or subRef in textualCriticismRefs:
                     if textualIssue==defaultTextualIssue: # default is '0'
@@ -393,15 +401,28 @@ def create( initialTSVLines, referenceBible, collationVerseDict, splitVerseSet )
                     else:
                         vPrint( 'Info', DEBUGGING_THIS_MODULE, f"{subRef} TC was already {textualIssue}")
 
+                # Look at importance Trival/Medium/Important/Vital
                 if subRef in vitalImportanceRefs:
-                    importance = 'V' # vital = 4/4
+                    importance = 'V' # vital = 3/3
                     vitalImportanceRefs.remove( subRef )
                 elif subRef in importantRefs:
-                    importance = 'I' # important = 3/4
+                    importance = 'I' # important = 2/3
                     importantRefs.remove( subRef )
                 elif subRef in trivialImportanceRefs:
-                    importance = 'T' # trivial = 0/4
+                    importance = 'T' # trivial = 0/3
                     trivialImportanceRefs.remove( subRef )
+                # Now adjust if we have OT quotes
+                if (BBB,C,V) in individualQuotedOTRefs['Possible'] or (BBB,C,V) in individualQuotedOTRefs['Allusion+Possible']:
+                    if importance not in ('V','I'): # already
+                        importance = 'M' # medium = 1/3
+                if (BBB,C,V) in individualQuotedOTRefs['Allusion']:
+                    if importance != 'V': # already
+                        importance = 'I' # important = 2/3
+                if (BBB,C,V) in individualQuotedOTRefs['Quote']:
+                    importance = 'V' # vital = 3/3
+
+
+                # Look at clarity Obscure/Unclear/Clear
                 if subRef in obscureClarityRefs:
                     clarity = 'O' # obscure = 1/3
                     obscureClarityRefs.remove( subRef )
@@ -421,7 +442,7 @@ def create( initialTSVLines, referenceBible, collationVerseDict, splitVerseSet )
     assert len(unclearClarityRefs) == 0, f"({len(unclearClarityRefs)}) {unclearClarityRefs=}" # They should all have been used
 
     return True
-# end of initalise.create()
+# end of initialise.create()
 
 
 def briefDemo() -> None:
@@ -431,7 +452,7 @@ def briefDemo() -> None:
     BibleOrgSysGlobals.introduceProgram( __name__, PROGRAM_NAME_VERSION, LAST_MODIFIED_DATE )
 
     run()
-# end of initalise.briefDemo()
+# end of initialise.briefDemo()
 
 def fullDemo() -> None:
     """
@@ -440,7 +461,7 @@ def fullDemo() -> None:
     BibleOrgSysGlobals.introduceProgram( __name__, PROGRAM_NAME_VERSION, LAST_MODIFIED_DATE )
 
     run()
-# end of initalise.fullDemo()
+# end of initialise.fullDemo()
 
 if __name__ == '__main__':
     from multiprocessing import freeze_support
@@ -453,4 +474,4 @@ if __name__ == '__main__':
     fullDemo()
 
     BibleOrgSysGlobals.closedown( PROGRAM_NAME, PROGRAM_VERSION )
-# end of initalise.py
+# end of initialise.py

@@ -115,7 +115,7 @@ def createOETInterlinearPages( level:int, folder:Path, state:State ) -> bool:
 <h2>Index of books</h2>
 {makeBookNavListParagraph(state.BBBLinks['OET-RV'], 'interlinearIndex', state)}
 {makeBottom( level, 'interlinearVerse', state )}'''
-    checkHtml( 'interlinearIndex', indexHtml )
+    assert checkHtml( 'interlinearIndex', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
         indexHtmlFile.write( indexHtml )
@@ -206,7 +206,7 @@ def createOETInterlinearVersePagesForBook( level:int, folder:Path, BBB:str, BBBL
 {iHtml}
 {navLinks.replace('__ID__','Bottom').replace('__ARROW__','↑').replace('__LINK__','Top').replace('__WHERE__','top')}
 {makeBottom( BBBLevel, 'interlinearVerse', state )}'''
-                checkHtml( f'Interlinear page {BBB} {C}:{v}', iHtml )
+                assert checkHtml( f'Interlinear page {BBB} {C}:{v}', iHtml )
                 assert not filepath.is_file() # Check that we're not overwriting anything
                 with open( filepath, 'wt', encoding='utf-8' ) as iHtmlFile:
                     iHtmlFile.write( iHtml )
@@ -234,7 +234,7 @@ f'''<p class="chLst" id="chLst">{ourTidyBbb if ourTidyBbb!='Yac' else 'Yacob/(Ja
     indexHtml = f'''{top}{adjBBBLinksHtml}
 {ourLinks}
 {makeBottom( BBBLevel, 'interlinearVerse', state )}'''
-    checkHtml( 'interlinearIndex', indexHtml )
+    assert checkHtml( 'interlinearIndex', indexHtml )
     with open( filepath1, 'wt', encoding='utf-8' ) as indexHtmlFile:
         indexHtmlFile.write( indexHtml )
     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath1}" )
@@ -258,7 +258,7 @@ f'''<p class="chLst" id="chLst">{ourTidyBbb if ourTidyBbb!='Yac' else 'Yacob/(Ja
     indexHtml = f'''{top}{adjBBBLinksHtml}
 {ourLinks}
 {makeBottom( level, 'interlinearVerse', state )}'''
-    checkHtml( 'interlinearIndex', indexHtml )
+    assert checkHtml( 'interlinearIndex', indexHtml )
     with open( filepath2, 'wt', encoding='utf-8' ) as indexHtmlFile:
         indexHtmlFile.write( indexHtml )
     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath2}" )
@@ -654,7 +654,7 @@ def createOETInterlinearVerseInner( level:int, BBB:str, c:int, v:int, state:Stat
     # ivHtml = ivHtml.replace( '<br>\n' , '\n<br>' ) # Make sure it follows our convention (just for tidyness and consistency)
     while '\n\n' in ivHtml: ivHtml = ivHtml.replace( '\n\n', '\n' ) # Remove useless extra newline characters
     # dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\n\n{ivHtml=}" )
-    checkHtml( f'Interlinear verse inner {BBB} {c}:{v}', ivHtml, segmentOnly=True )
+    assert checkHtml( f'Interlinear verse inner {BBB} {c}:{v}', ivHtml, segmentOnly=True )
     return ivHtml
 # end of html.createOETInterlinearVerseInner
 

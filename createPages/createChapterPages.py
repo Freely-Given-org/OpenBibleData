@@ -130,7 +130,7 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
             chapterHtml = f'''{top}<!--chapter page-->
 {chapterHtml}
 {makeBottom( level, 'chapter', state )}'''
-            checkHtml( f'{rvBible.abbreviation} {BBB}', chapterHtml )
+            assert checkHtml( f'{rvBible.abbreviation} {BBB}', chapterHtml )
             assert not filepath.is_file() # Check that we're not overwriting anything
             with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
                 cHtmlFile.write( chapterHtml )
@@ -326,7 +326,7 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
 {cNav}
 {cLinksPar}
 {makeBottom( level, 'chapter', state )}'''
-                checkHtml( f'OET {BBB}_C{c}', chapterHtml )
+                assert checkHtml( f'OET {BBB}_C{c}', chapterHtml )
                 assert not filepath.is_file() # Check that we're not overwriting anything
                 with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
                     cHtmlFile.write( chapterHtml )
@@ -356,7 +356,7 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
 {cLinksPar}
 {chapterHtml}
 {makeBottom( level, 'chapter', state )}'''
-            checkHtml( 'OET', chapterHtml )
+            assert checkHtml( 'OET', chapterHtml )
             assert not filepath.is_file() # Check that we're not overwriting anything
             with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
                 cHtmlFile.write( chapterHtml )
@@ -377,7 +377,7 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
 {navBookListParagraph}
 {cLinksPar}
 {makeBottom( level, 'chapter', state )}'''
-        checkHtml( 'OETChaptersIndex', chapterHtml )
+        assert checkHtml( 'OETChaptersIndex', chapterHtml )
         assert not filepath.is_file() # Check that we're not overwriting anything
         with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
             cHtmlFile.write( chapterHtml )
@@ -398,7 +398,7 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
 <h2>Index of books</h2>
 {navBookListParagraph}
 {makeBottom( level, 'chapterIndex', state )}'''
-    checkHtml( 'OETBooksIndex', indexHtml )
+    assert checkHtml( 'OETBooksIndex', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
         cHtmlFile.write( indexHtml )
@@ -538,7 +538,7 @@ def createChapterPages( level:int, folder:Path, thisBible, state:State ) -> list
 {cNav}
 {cLinksPar}
 {makeBottom( level, 'chapter', state )}'''
-                checkHtml( f'{thisBible.abbreviation} {BBB}_C{c}', chapterHtml )
+                assert checkHtml( f'{thisBible.abbreviation} {BBB}_C{c}', chapterHtml )
                 assert not filepath.is_file() # Check that we're not overwriting anything
                 with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
                     cHtmlFile.write( chapterHtml )
@@ -558,7 +558,7 @@ def createChapterPages( level:int, folder:Path, thisBible, state:State ) -> list
             chapterHtml = f'''{top}<!--chapters indexPage-->
 {cLinksPar}
 {makeBottom( level, 'chapter', state )}'''
-            checkHtml( f'{thisBible.abbreviation}  chapter index', chapterHtml )
+            assert checkHtml( f'{thisBible.abbreviation}  chapter index', chapterHtml )
             assert not filepath.is_file() # Check that we're not overwriting anything
             with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
                 cHtmlFile.write( chapterHtml )
@@ -586,7 +586,7 @@ def createChapterPages( level:int, folder:Path, thisBible, state:State ) -> list
             chapterHtml = f'''{top}<!--chapter page-->
 {chapterHtml}
 {makeBottom( level, 'chapter', state )}'''
-            checkHtml( f'{thisBible.abbreviation} {BBB}', chapterHtml )
+            assert checkHtml( f'{thisBible.abbreviation} {BBB}', chapterHtml )
             assert not filepath.is_file() # Check that we're not overwriting anything
             with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
                 cHtmlFile.write( chapterHtml )
@@ -606,7 +606,7 @@ def createChapterPages( level:int, folder:Path, thisBible, state:State ) -> list
 <h2>Index of books</h2>
 {navBookListParagraph}
 {makeBottom( level, 'chapterIndex', state)}'''
-    checkHtml( f'{thisBible.abbreviation} book index', indexHtml )
+    assert checkHtml( f'{thisBible.abbreviation} book index', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
         cHtmlFile.write( indexHtml )

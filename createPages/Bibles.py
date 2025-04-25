@@ -44,6 +44,8 @@ getVerseDataListForReference( givenRefString:str, thisBible:Bible, lastBBB:str|N
 
 getVerseMetaInfoHtml( BBB:str, C:str, V:str ) -> str # html
 
+formatVerseDetailsHtml( verseRef:str ) -> str # html
+
 briefDemo() -> None
 fullDemo() -> None
 
@@ -63,6 +65,7 @@ CHANGELOG:
     2025-03-14 Add link to sentence importance database
     2025-03-17 Update mapIndex format to include both high-res and low-res filenames
     2025-03-21 Handle obsolete pickle in OET-LV which has OT and NT in separate folders
+    2025-04-16 Add cross-testament quotes to formatVerseDetailsHtml()
 """
 from datetime import datetime
 import os, os.path
@@ -89,9 +92,10 @@ import BibleOrgSys.Formats.TyndaleNotesBible as TyndaleNotesBible
 from BibleOrgSys.Bible import Bible
 from BibleOrgSys.Internals.InternalBibleInternals import InternalBibleEntryList, getLeadingInt
 
-import sys
 sys.path.append( '../../BibleTransliterations/Python/' )
 from BibleTransliterations import transliterate_Greek, transliterate_Hebrew
+sys.path.append( '../datasets/crossTestamentQuotes/' )
+from load import getIndividualQuotedOTRefs, getIndividualQuotingNTRefs
 
 from settings import State, ALTERNATIVE_VERSION, TEST_MODE, TEST_VERSIONS_ONLY, \
                                 ALL_PRODUCTION_BOOKS, TEST_BOOK_LIST, PICKLE_FILENAME_END, TEMP_BUILD_FOLDER
@@ -100,10 +104,10 @@ from OETHandlers import findLVQuote, getBBBFromOETBookName
 from Dict import loadAndIndexUBSGreekDictJSON, loadAndIndexUBSHebrewDictJSON
 
 
-LAST_MODIFIED_DATE = '2025-03-26' # by RJH
+LAST_MODIFIED_DATE = '2025-04-16' # by RJH
 SHORT_PROGRAM_NAME = "Bibles"
 PROGRAM_NAME = "OpenBibleData Bibles handler"
-PROGRAM_VERSION = '0.88'
+PROGRAM_VERSION = '0.89'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -565,7 +569,7 @@ def formatTyndaleBookIntro( abbrev:str, level:int, BBB:str, segmentType:str, sta
     # Fix their links like '<a href="?bref=Mark.4.14-20">4:14-20</a>'
     bHtml = fixTyndaleBRefs( abbrev, level, BBB, "-1", "0", bHtml, state )
 
-    checkHtml( f'{abbrev} {BBB}', bHtml, segmentOnly=True )
+    assert checkHtml( f'{abbrev} {BBB}', bHtml, segmentOnly=True )
     return bHtml
 # end of Bibles.formatTyndaleBookIntro
 
@@ -665,7 +669,7 @@ def formatTyndaleNotes( abbrev:str, level:int, BBB:str, C:str, V:str, segmentTyp
 
     nHtml = nHtml.replace( '<br>\n' , '\n<br>' ) # Make sure it follows our convention (just for tidyness and consistency)
     while '\n\n' in nHtml: nHtml = nHtml.replace( '\n\n', '\n' ) # Remove useless extra newline characters
-    checkHtml( f'{abbrev} {ftnRef}', nHtml, segmentOnly=True )
+    assert checkHtml( f'{abbrev} {ftnRef}', nHtml, segmentOnly=True )
     # if abbrev=='TTN' and BBB=='MRK' and C=='1' and V=='14': halt
     return nHtml
 # end of Bibles.formatTyndaleNotes
@@ -1067,7 +1071,7 @@ def formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segme
                 if inParagraph:
                     thisMarkdownHtml = f'{thisMarkdownHtml}</p>'
                 # if utnRef=='RUT_2:0': print( f"\nUTN2 {utnRef} {thisMarkdownHtml}" )
-                checkHtml( f'UTN {utnRef}', thisMarkdownHtml, segmentOnly=True )
+                assert checkHtml( f'UTN {utnRef}', thisMarkdownHtml, segmentOnly=True )
                 tnHtml = f'''{tnHtml}{NEWLINE if tnHtml else ''}{thisMarkdownHtml}'''
                 if utnRef not in ('JOS_23:0','PRO_5:0','REV_18:0'): # Has a MD formatting error
                     assert '##' not in tnHtml, f"UTN {utnRef} {tnHtml}" # Can have single hashes in valid URLS, e.g., #Top
@@ -1104,7 +1108,7 @@ def formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segme
     while '\n\n' in tnHtml: tnHtml = tnHtml.replace( '\n\n', '\n' ) # Remove useless extra newline characters (as of 2024, the UTNs are full of formatting errors and inconsistencies)
     # assert '\n\n' not in tnHtml, f"UTN {utnRef} {tnHtml=}"
     assert not tnHtml.endswith( '\n' )
-    checkHtml( f'UTN {utnRef}', tnHtml, segmentOnly=True )
+    assert checkHtml( f'UTN {utnRef}', tnHtml, segmentOnly=True )
     return tnHtml
 # end of Bibles.formatUnfoldingWordTranslationNotes
 
@@ -1399,7 +1403,7 @@ def getBibleMapperMaps( level:int, BBB:str, startC:str, startV:str|None, endC:st
             with open( textFilepath, 'rt', encoding='utf-8' ) as txtFile:
                 htmlTextSegment = txtFile.read()
             assert htmlTextSegment.startswith( '<h2 class="mapTitle">' ), f"{hiResFilename=} {textFilepath=}"
-            checkHtml( f"Map {hiResFilename}", htmlTextSegment, segmentOnly=True )
+            assert checkHtml( f"Map {hiResFilename}", htmlTextSegment, segmentOnly=True )
             # TODO: Liven links in htmlSegment
             htmlTextSegment = htmlTextSegment.rstrip() # Remove trailing newlines, etc.
             BMM_TEXT_CACHE[hiResFilename] = htmlTextSegment
@@ -1437,7 +1441,7 @@ def getBibleMapperMaps( level:int, BBB:str, startC:str, startV:str|None, endC:st
         ourHtml = f'''{ourHtml}
 {imageHtml}{supplementaryImageHtml}{htmlTextSegment}'''
 
-    checkHtml( f'BibleMapperMap@{BBB}_{startC}:{startV}–{endC}:{endV} with {mapFilenamesSet}', ourHtml, segmentOnly=True )
+    assert checkHtml( f'BibleMapperMap@{BBB}_{startC}:{startV}–{endC}:{endV} with {mapFilenamesSet}', ourHtml, segmentOnly=True )
     return ourHtml
 # end of Bibles.getBibleMapperMaps
 
@@ -1510,7 +1514,7 @@ def formatVerseDetailsHtml( verseRef:str ) -> str: # html
     importance, textualIssue, clarity = VERSE_DETAILS_TABLE[verseRef]
     result = f"{'' if textualIssue=='0' else '<b>'}Text critical issues{'' if textualIssue=='0' else '</b>'}={TEXTUAL_ISSUE_TABLE[textualIssue]} " \
              f"{'' if clarity=='C' else '<b>'}Clarity{'' if clarity=='C' else '</b>'} of original={CLARITY_TABLE[clarity]} " \
-             f"{'' if importance in 'TI' else '<b>'}Importance{'' if importance in 'TI' else '</b>'}={IMPORTANCE_TABLE[importance]}"
+             f"{'' if importance=='M' else '<b>'}Importance to us{'' if importance=='M' else '</b>'}={IMPORTANCE_TABLE[importance]}"
 
     verseRefDescription = '' if verseRef[-1].isdigit() else f'Part <b>{verseRef[-1]}</b>: '
     return f"{verseRefDescription}{result}"

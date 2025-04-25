@@ -77,7 +77,7 @@ import json
 import logging
 import unicodedata
 from time import time
-# import multiprocessing
+import multiprocessing, copy
 
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
@@ -95,10 +95,10 @@ from html import makeTop, makeBottom, checkHtml
 from OETHandlers import getOETTidyBBB, getOETBookName, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
-LAST_MODIFIED_DATE = '2025-03-18' # by RJH
+LAST_MODIFIED_DATE = '2025-04-21' # by RJH
 SHORT_PROGRAM_NAME = "createOETReferencePages"
 PROGRAM_NAME = "OpenBibleData createOETReferencePages functions"
-PROGRAM_VERSION = '0.85'
+PROGRAM_VERSION = '0.86'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -540,7 +540,7 @@ SIMILAR_GLOSS_WORDS_TABLE = [
     # NOTE: Reversals are not automatic -- they have to be manually entered
     (('afraid','scared'),('frightened','terrified')),
     (('ancestor','ancestors'),('patriarch','patriarchs','elders')),
-    (('anger',),('wrath',)),
+    (('anger',),('wrath','indignation')),
     (('angel','angels'),('messenger','messengers')),
     (('ark',),('box','boxes','chest','chests')),
     (('barley',),('grain','wheat')),
@@ -581,6 +581,7 @@ SIMILAR_GLOSS_WORDS_TABLE = [
     (('house_servant','house_servants'),('servant','servants','attendant','attendants','slave','slaves')),
     (('illuminate','illuminated','illuminating'),('light','enlighten','enlightened','enlightening')),
     (('immediately',),('suddenly',)),
+    (('indignation',),('anger','wrath')),
     (('Jesus',),('Joshua','Yeshua')),
     (('joined_together',),('united',)),
     (('Joshua',),('Jesus','Yeshua')),
@@ -636,7 +637,7 @@ SIMILAR_GLOSS_WORDS_TABLE = [
     (('whence',),('therefore','accordingly','consequently')),
     (('world',),('earth','land')),
     (('worldly',),('fleshly',)),
-    (('wrath',),('anger',)),
+    (('wrath',),('anger','indignation')),
     ]
 SIMILAR_GLOSS_WORDS_DICT = {} # We create this dict at load time as we check the above table
 for firstWords,similarWords in SIMILAR_GLOSS_WORDS_TABLE:
@@ -766,7 +767,7 @@ def createOETReferencePages( level:int, outputFolderPath:Path, state:State ) -> 
 <p class="note"><a href="Loc/">Bible locations index</a></p>
 <p class="note"><a href="Stats/">Bible statistics</a></p>
 {makeBottom( level, 'referenceIndex', state )}'''
-    checkHtml( 'referenceIndex', indexHtml )
+    assert checkHtml( 'referenceIndex', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
         indexHtmlFile.write( indexHtml )
@@ -1127,18 +1128,18 @@ def tidy_Hebrew_morphology( tHM_rowType:str, tHM_morphology:str ) -> str:
 # end of createOETReferencePages.tidy_Hebrew_morphology
 
 
-# def _create_Hebrew_word_page_MP( parameters ):
-#     """
-#     Multiprocessing version!
+def _create_Hebrew_word_page_MP( parameters ):
+    """
+    Multiprocessing version!
 
-#     Parameter is a 2-tuple containing BBB and the filename.
-#     """
-#     fnPrint( DEBUGGING_THIS_MODULE, f"_create_Hebrew_word_page_MP( {parameters} )" )
-#     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  _create_Hebrew_word_page_MP: Loading with {parameters}…" )
-#     result = create_Hebrew_word_page( *parameters )
-#     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"    Finishing _create_Hebrew_word_page_MP with {parameters} got {result=}." )
-#     return result
-# # end of ESFMBible._create_Hebrew_word_page_MP
+    Parameter is a 7-tuple containing the parameters (including the small-State).
+    """
+    fnPrint( DEBUGGING_THIS_MODULE, f"_create_Hebrew_word_page_MP( {parameters} )" )
+    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  _create_Hebrew_word_page_MP: Loading with {parameters}…" )
+    result = create_Hebrew_word_page( *parameters )
+    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"    Finishing _create_Hebrew_word_page_MP with {parameters} got {result=}." )
+    return result
+# end of ESFMBible._create_Hebrew_word_page_MP
 
 
 used_word_filenames = []
@@ -1155,41 +1156,88 @@ def create_Hebrew_word_pages( level:int, outputFolderPath:Path, state:State ) ->
     numWordPagesMade = 0
     wordLinksForIndex:list[str] = [] # Used below to make an index page
     state.OETRefData['usedHebLemmas'], state.OETRefData['usedHebStrongs'] = set(), set() # Used in next functions to make lemma and Strongs pages
-    # if BibleOrgSysGlobals.maxProcesses > 1 \
-    # and not BibleOrgSysGlobals.alreadyMultiprocessing: # Process all the word pages with different threads
-    #     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Creating {len(state.OETRefData['word_tables'][HebrewWordFileName])-1:,} Hebrew word pages using {BibleOrgSysGlobals.maxProcesses} processes…" )
-    #     vPrint( 'Normal', DEBUGGING_THIS_MODULE, "  NOTE: Outputs (including error and warning messages) from various words may be interspersed." )
-    #     # parameters = [(level, hh, hebrewWord, columns_string, outputFolderPath, output_filename, state) \
-    #     #                                     for hh,columns_string in enumerate( state.OETRefData['word_tables'][HebrewWordFileName][1:], start=1 ) if columns_string]
-    #     parameters = []
-    #     for hh, columns_string in enumerate( state.OETRefData['word_tables'][HebrewWordFileName][1:], start=1 ):
-    #         if not columns_string: continue # a blank line (esp. at end)
-    #         # if hh % 50_000 == 0:
-    #         #     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      {numWordPagesMade:,} made out of {hh:,} out of {len(state.OETRefData['word_tables'][HebrewWordFileName])-1:,}…" )
-    #         output_filename = getHebrewWordpageFilename( hh, state )
-    #         if DEBUGGING_THIS_MODULE or BibleOrgSysGlobals.debugFlag: # NOTE: This makes the function MUCH slower
-    #             # Check that we're not creating any duplicate filenames (that will then be overwritten)
-    #             assert output_filename not in used_word_filenames, f"Hebrew {hh} {output_filename}"
-    #             used_word_filenames.append( output_filename )
-    #         ref, rowType, morphemeRowList, lemmaRowList, strongs, morphology, word, noCantillations, morphemeGlosses, contextualMorphemeGlosses, wordGloss, contextualWordGloss, glossCapitalisation, glossPunctuation, glossOrder, glossInsert, role, nesting, tags = columns_string.split( '\t' )
-    #         # BBB, CVW = ref.split( '_', 1 )
-    #         # if TEST_MODE and not ALL_TEST_REFERENCE_PAGES and BBB not in TEST_BOOK_LIST:
-    #         #     continue # In some test modes, we only make the relevant word pages
-    #         hebrewWord = (noCantillations.replace( ',', '' ) # Remove morpheme breaks
-    #                         if noCantillations else word ) # Segs and notes have nothing in the noCantillations field
-    #         parameters.append( (level, hh, hebrewWord, columns_string, outputFolderPath, output_filename, state) )
-    #     BibleOrgSysGlobals.alreadyMultiprocessing = True
-    #     with multiprocessing.Pool( processes=BibleOrgSysGlobals.maxProcesses ) as pool: # start worker processes
-    #         results = pool.map( _create_Hebrew_word_page_MP, parameters ) # have the pool do our loads
-    #         assert len(results) == len(parameters)
-    #     BibleOrgSysGlobals.alreadyMultiprocessing = False
-    #     for rr, result in enumerate( results ):
-    #         if result:
-    #             if rowType!='seg' and 'note' not in rowType:
-    #                 wordLinksForIndex.append( f'<a href="{output_filename}">{hebrewWord}</a>')
-    #             numWordPagesMade += 1
-    # else:
-    if 1:
+    if 0 and BibleOrgSysGlobals.maxProcesses > 1 \
+    and not BibleOrgSysGlobals.alreadyMultiprocessing: # Process all the word pages with different threads
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Creating {len(state.OETRefData['word_tables'][HebrewWordFileName])-1:,} Hebrew word pages using {BibleOrgSysGlobals.maxProcesses} processes…" )
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, "  NOTE: Outputs (including error and warning messages) from various words may be interspersed." )
+        # parameters = [(level, hh, hebrewWord, columns_string, outputFolderPath, output_filename, state) \
+        #                                     for hh,columns_string in enumerate( state.OETRefData['word_tables'][HebrewWordFileName][1:], start=1 ) if columns_string]
+
+        print( f"\n{type(state.__dict__)=} {len(state.__dict__)=} {state.__dict__.keys()=}")
+        print( f"\n{type(vars(state))=} {len(vars(state))=} {vars(state).keys()=}")
+        print( f"\n{type(dir(state))=} {len(dir(state))=} {dir(state)=}")
+
+        # import pickle; size_estimate = len( pickle.dumps(state) ) # TypeError: cannot pickle 'dict_keys' object
+
+        state_keys = [k for k in dir(state) if not k.startswith('__')]
+        # state_keys = filter(lambda a: not a.startswith('__'), dir(state))
+        print( f"\n{type(state_keys)=} {len(state_keys)=} {state_keys=}")
+
+        import inspect
+        wantedStateAttributes = [a for a in inspect.getmembers(state, lambda a:not(inspect.isroutine(a))) if not(a[0].startswith('__') and a[0].endswith('__'))]
+        # print( f"\n{type(wantedStateAttributes)=} {len(wantedStateAttributes)=}" ) # {wantedAttributes=}")
+        # print( f"{len(str(wantedStateAttributes))//1_000_000:,} MB" )
+        print( f"\nState class is about ({len(wantedStateAttributes)}) {len(str(wantedStateAttributes))//1_000_000:,} MB" )
+
+        small_state = copy.copy( state ) # Shallow copy
+        small_state.OETRefData = copy.copy( state.OETRefData )
+        wantedSmallStateAttributes = [a for a in inspect.getmembers(small_state, lambda a:not(inspect.isroutine(a))) if not(a[0].startswith('__') and a[0].endswith('__'))]
+        print( f"Small state copied class started at about ({len(wantedSmallStateAttributes)}) {len(str(wantedSmallStateAttributes))//1_000_000:,} MB" )
+
+        small_state.BBBLinks = small_state.BBBsToProcess = small_state.BibleLanguages = small_state.BibleLocations = None
+        small_state.BibleNames = small_state.BibleVersionDecorations = small_state.BibleVersions = small_state.wholeBibleVersions = None
+        small_state.allBBBs = small_state.allPossibleBibleVersions = small_state.auxilliaryVersions = small_state.booksToLoad = None
+        small_state.detailsHtml = small_state.numAllowedSelectedVerses = small_state.preloadedBibles = small_state.sectionsLists = None
+        small_state.selectedVersesOnlyVersions = small_state.versionLocation = small_state.versionsWithoutTheirOwnPages = None
+        print( f"({len(small_state.OETRefData.keys()):,=}) {small_state.OETRefData.keys()=}")
+        for tableName in small_state.OETRefData:
+            small_state.OETRefData[tableName] = None
+        # small_state.OETRefData['OTFormUsageDict'] = None
+        # small_state.OETRefData['OTLemmaRowNumbersDict'] = None
+        # small_state.OETRefData['OTWordRowNumbersDict'] = None
+        # small_state.OETRefData['OTFormOETGlossesDict'] = None
+        # small_state.OETRefData['OTLemmaOETGlossesDict'] = None
+        # small_state.OETRefData['OTLemmasForRootDict'] = None
+        # small_state.OETRefData['OETOTGlossWordDict'] = None
+        # small_state.OETRefData['OTLemmaGlossDict'] = None
+        wantedSmallStateAttributes = [a for a in inspect.getmembers(small_state, lambda a:not(inspect.isroutine(a))) if not(a[0].startswith('__') and a[0].endswith('__'))]
+        for a,b in wantedSmallStateAttributes:
+            print( f"  {a} is {len(str(b)):,}")
+        print( f"Now small state copied class is about ({len(wantedSmallStateAttributes)}) {len(str(wantedSmallStateAttributes))//1_000:,} KB" )
+        wantedStateAttributes = [a for a in inspect.getmembers(state, lambda a:not(inspect.isroutine(a))) if not(a[0].startswith('__') and a[0].endswith('__'))]
+        print( f" and original state class is still about ({len(wantedStateAttributes)}) {len(str(wantedStateAttributes))//1_000_000:,} MB" )
+        # for a,b in wantedStateAttributes:
+        #     print( f"  {a} is {len(str(b)):,}")
+        # import pickle; size_estimate = len( pickle.dumps(small_state) ) # TypeError: cannot pickle 'dict_keys' object
+
+        parameters = []
+        for hh, columns_string in enumerate( state.OETRefData['word_tables'][HebrewWordFileName][1:10], start=1 ): # TEMP XXXX 10
+            if not columns_string: continue # a blank line (esp. at end)
+            # if hh % 50_000 == 0:
+            #     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      {numWordPagesMade:,} made out of {hh:,} out of {len(state.OETRefData['word_tables'][HebrewWordFileName])-1:,}…" )
+            output_filename = getHebrewWordpageFilename( hh, state )
+            if DEBUGGING_THIS_MODULE or BibleOrgSysGlobals.debugFlag: # NOTE: This makes the function MUCH slower
+                # Check that we're not creating any duplicate filenames (that will then be overwritten)
+                assert output_filename not in used_word_filenames, f"Hebrew {hh} {output_filename}"
+                used_word_filenames.append( output_filename )
+            ref, _rowType, _morphemeRowList, _lemmaRowList, _strongs, _morphology, word, noCantillations, _morphemeGlosses, _contextualMorphemeGlosses, _wordGloss, _contextualWordGloss, _glossCapitalisation, _glossPunctuation, _glossOrder, _glossInsert, _role, _nesting, _tags = columns_string.split( '\t' )
+            BBB, _CVW = ref.split( '_', 1 )
+            if TEST_MODE and not ALL_TEST_REFERENCE_PAGES and BBB not in TEST_BOOK_LIST:
+                continue # In some test modes, we only make the relevant word pages
+            hebrewWord = (noCantillations.replace( ',', '' ) # Remove morpheme breaks
+                            if noCantillations else word ) # Segs and notes have nothing in the noCantillations field
+            parameters.append( (level, hh, hebrewWord, columns_string, outputFolderPath, output_filename, small_state) )
+        BibleOrgSysGlobals.alreadyMultiprocessing = True
+        with multiprocessing.Pool( processes=BibleOrgSysGlobals.maxProcesses ) as pool: # start worker processes
+            results = pool.map( _create_Hebrew_word_page_MP, parameters ) # have the pool do our loads
+            assert len(results) == len(parameters)
+        BibleOrgSysGlobals.alreadyMultiprocessing = False
+        for rr, result in enumerate( results ):
+            if result:
+                if rowType!='seg' and 'note' not in rowType:
+                    wordLinksForIndex.append( f'<a href="{output_filename}">{hebrewWord}</a>')
+                numWordPagesMade += 1
+    else: # no multi-processing
         for hh, columns_string in enumerate( state.OETRefData['word_tables'][HebrewWordFileName][1:], start=1 ):
             if not columns_string: continue # a blank line (esp. at end)
             if hh % 50_000 == 0:
@@ -1199,10 +1247,10 @@ def create_Hebrew_word_pages( level:int, outputFolderPath:Path, state:State ) ->
                 # Check that we're not creating any duplicate filenames (that will then be overwritten)
                 assert output_filename not in used_word_filenames, f"Hebrew {hh} {output_filename}"
                 used_word_filenames.append( output_filename )
-            ref, rowType, morphemeRowList, lemmaRowList, strongs, morphology, word, noCantillations, morphemeGlosses, contextualMorphemeGlosses, wordGloss, contextualWordGloss, glossCapitalisation, glossPunctuation, glossOrder, glossInsert, role, nesting, tags = columns_string.split( '\t' )
-            # BBB, CVW = ref.split( '_', 1 )
-            # if TEST_MODE and not ALL_TEST_REFERENCE_PAGES and BBB not in TEST_BOOK_LIST:
-            #     continue # In some test modes, we only make the relevant word pages
+            ref, rowType, _morphemeRowList, _lemmaRowList, _strongs, _morphology, word, noCantillations, _morphemeGlosses, _contextualMorphemeGlosses, _wordGloss, _contextualWordGloss, _glossCapitalisation, _glossPunctuation, _glossOrder, _glossInsert, _role, _nesting, _tags = columns_string.split( '\t' )
+            BBB, _CVW = ref.split( '_', 1 )
+            if TEST_MODE and not ALL_TEST_REFERENCE_PAGES and BBB not in TEST_BOOK_LIST:
+                continue # In some test modes, we only make the relevant word pages
             hebrewWord = (noCantillations.replace( ',', '' ) # Remove morpheme breaks
                             if noCantillations else word ) # Segs and notes have nothing in the noCantillations field
             if create_Hebrew_word_page( level, hh, hebrewWord, columns_string, outputFolderPath, output_filename, state ):
@@ -1232,7 +1280,7 @@ def create_Hebrew_word_pages( level:int, outputFolderPath:Path, state:State ) ->
 <h1 id="Top">Hebrew Words Index</h1>
 <p class="note">{indexText}</p>
 {makeBottom( level, 'wordIndex', state )}'''
-    checkHtml( 'wordIndex', indexHtml )
+    assert checkHtml( 'wordIndex', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
         indexHtmlFile.write( indexHtml )
@@ -1258,7 +1306,7 @@ def create_Hebrew_word_pages( level:int, outputFolderPath:Path, state:State ) ->
 <h1 id="Top">Transliterated Hebrew Words Index</h1>
 <p class="note">{indexText}</p>
 {makeBottom( level, 'wordIndex', state )}'''
-    checkHtml( 'wordIndex', indexHtml )
+    assert checkHtml( 'wordIndex', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
         indexHtmlFile.write( indexHtml )
@@ -1282,8 +1330,9 @@ def create_Hebrew_word_page( level:int, hh:int, hebrewWord:str, columns_string:s
     ref, rowType, morphemeRowList, lemmaRowList, strongs, morphology, word, noCantillations, morphemeGlosses, contextualMorphemeGlosses, wordGloss, contextualWordGloss, glossCapitalisation, glossPunctuation, glossOrder, glossInsert, role, nesting, tags = columns_string.split( '\t' )
 
     BBB, CVW = ref.split( '_', 1 )
-    if TEST_MODE and not ALL_TEST_REFERENCE_PAGES and BBB not in TEST_BOOK_LIST:
-        return False # In some test modes, we only make the relevant word pages
+    assert not TEST_MODE or ALL_TEST_REFERENCE_PAGES or BBB in TEST_BOOK_LIST
+    # if TEST_MODE and not ALL_TEST_REFERENCE_PAGES and BBB not in TEST_BOOK_LIST:
+    #     return False # In some test modes, we only make the relevant word pages
     C, VW = CVW.split( ':', 1 )
     V, W = VW.split( 'w', 1 ) if 'w' in VW else (VW, '') # Segs and Notes don't have word numbers
     ourTidyBBB = getOETTidyBBB( BBB )
@@ -1644,7 +1693,7 @@ f''' <a title="Go to Open Scriptures Hebrew verse page" href="https://hb.OpenS
                     .replace( '__KEYWORDS__', 'Bible, word' ) \
                     .replace( 'par/"', f'par/{BBB}/C{C}V{V}.htm#Top"' )
     wordsHtml = f'''{top}{wordsHtml}{keyHtml}{makeBottom( level, 'word', state )}'''
-    checkHtml( 'HebrewWordPage', wordsHtml )
+    assert checkHtml( 'HebrewWordPage', wordsHtml )
     filepath = outputFolderPath.joinpath( output_filename )
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as html_output_file:
@@ -1801,7 +1850,7 @@ def create_Hebrew_lemma_pages( level:int, outputFolderPath:Path, state:State ) -
                 if displayCounter >= maxWordsToShow: break
             assert '\\' not in lemmaHTML, f"{lemmaHTML=}"
             assert not lemmaHTML.endswith('\n'), f"{lemmaHTML=}"
-            checkHtml( 'HebrewLemmaSegment', lemmaHTML, segmentOnly=True )
+            assert checkHtml( 'HebrewLemmaSegment', lemmaHTML, segmentOnly=True )
             return lemmaHTML
         # end of createOETReferencePages.create_Hebrew_lemma_pages.makeHebrewLemmaHTML
 
@@ -2033,7 +2082,7 @@ def create_Hebrew_lemma_pages( level:int, outputFolderPath:Path, state:State ) -
                         .replace( '__TITLE__', f"Hebrew lemma ‘{hebLemma}’{' TEST' if TEST_MODE else ''}" ) \
                         .replace( '__KEYWORDS__', 'Bible, word' )
         lemmasHtml = f'''{top}{lemmasHtml}{keyHtml}{makeBottom( level, 'lemma', state )}'''
-        checkHtml( 'HebrewLemmaPage', lemmasHtml )
+        assert checkHtml( 'HebrewLemmaPage', lemmasHtml )
         filepath = outputFolderPath.joinpath( ll_output_filename )
         # assert not filepath.is_file(), f"{ll} {hebLemma=} {transliteratedLemma=} {filepath=}" # Check that we're not overwriting anything
         if filepath.is_file():
@@ -2067,7 +2116,7 @@ def create_Hebrew_lemma_pages( level:int, outputFolderPath:Path, state:State ) -
 <h1 id="Top">Hebrew Lemmas Index</h1>
 <p class="note">{indexText}</p>
 {makeBottom( level, 'lemmaIndex', state )}'''
-    checkHtml( 'lemmaIndex', indexHtml )
+    assert checkHtml( 'lemmaIndex', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
         indexHtmlFile.write( indexHtml )
@@ -2094,7 +2143,7 @@ def create_Hebrew_lemma_pages( level:int, outputFolderPath:Path, state:State ) -
 <h1 id="Top">Transliterated Hebrew Lemmas Index</h1>
 <p class="note">{indexText}</p>
 {makeBottom( level, 'lemmaIndex', state )}'''
-    checkHtml( 'lemmaIndex', indexHtml )
+    assert checkHtml( 'lemmaIndex', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
         indexHtmlFile.write( indexHtml )
@@ -2448,7 +2497,7 @@ f''' <a title="Go to Statistical Restoration Greek page" href="https://GreekCN
         wordsHtml = f'''{top}{wordsHtml}
 {keyHtml}
 {makeBottom( level, 'word', state )}'''
-        checkHtml( 'GreekWordPage', wordsHtml )
+        assert checkHtml( 'GreekWordPage', wordsHtml )
         filepath = outputFolderPath.joinpath( output_filename )
         assert not filepath.is_file(), f"{filepath=}" # Check that we're not overwriting anything
         with open( filepath, 'wt', encoding='utf-8' ) as html_output_file:
@@ -2479,7 +2528,7 @@ f''' <a title="Go to Statistical Restoration Greek page" href="https://GreekCN
 <h1 id="Top">Greek Words Index</h1>
 <p class="note">{indexText}</p>
 {makeBottom( level, 'wordIndex', state )}'''
-    checkHtml( 'wordIndex', indexHtml )
+    assert checkHtml( 'wordIndex', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
         indexHtmlFile.write( indexHtml )
@@ -2506,7 +2555,7 @@ f''' <a title="Go to Statistical Restoration Greek page" href="https://GreekCN
 <h1 id="Top">Transliterated Greek Words Index</h1>
 <p class="note">{indexText}</p>
 {makeBottom( level, 'wordIndex', state )}'''
-    checkHtml( 'wordIndex', indexHtml )
+    assert checkHtml( 'wordIndex', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
         indexHtmlFile.write( indexHtml )
@@ -2747,7 +2796,7 @@ def create_Greek_lemma_pages( level:int, outputFolderPath:Path, state:State ) ->
         lemmasHtml = f'''{top}{lemmasHtml}
 {keyHtml}
 {makeBottom( level, 'lemma', state )}'''
-        checkHtml( f'GreekLemmaPage for {ll} {lemma=}', lemmasHtml )
+        assert checkHtml( f'GreekLemmaPage for {ll} {lemma=}', lemmasHtml )
         filepath = outputFolderPath.joinpath( output_filename )
         assert not filepath.is_file() # Check that we're not overwriting anything
         with open( filepath, 'wt', encoding='utf-8' ) as html_output_file:
@@ -2777,7 +2826,7 @@ def create_Greek_lemma_pages( level:int, outputFolderPath:Path, state:State ) ->
 <h1 id="Top">Greek Lemmas Index</h1>
 <p class="note">{indexText}</p>
 {makeBottom( level, 'lemmaIndex', state )}'''
-    checkHtml( 'lemmaIndex', indexHtml )
+    assert checkHtml( 'lemmaIndex', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
         indexHtmlFile.write( indexHtml )
@@ -2804,7 +2853,7 @@ def create_Greek_lemma_pages( level:int, outputFolderPath:Path, state:State ) ->
 <h1 id="Top">Greek Lemmas Index</h1>
 <p class="note">{indexText}</p>
 {makeBottom( level, 'lemmaIndex', state )}'''
-    checkHtml( 'lemmaIndex', indexHtml )
+    assert checkHtml( 'lemmaIndex', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
         indexHtmlFile.write( indexHtml )
@@ -2884,7 +2933,7 @@ def create_Hebrew_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:
 <p>{middle}</p>
 <p>View on <a href="https://BibleHub.com/hebrew/{strongsNumber}.htm">BibleHub</a>.</p>
 {makeBottom( level, 'StrongsPage', state )}'''
-        # checkHtml( 'StrongsPage', pageHtml )
+        # assert checkHtml( 'StrongsPage', pageHtml )
         with open( filepath, 'wt', encoding='utf-8' ) as html_output_file:
             html_output_file.write( pageHtml )
         vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  Wrote {len(pageHtml):,} characters to {output_filename}" )
@@ -2909,7 +2958,7 @@ def create_Hebrew_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:
 <h1 id="Top">Strongs Hebrew Index</h1>
 <ul>{'\n'.join(indexList)}</ul>
 {makeBottom( level, 'StrongsIndex', state )}'''
-    checkHtml( 'StrongsIndex', indexHtml )
+    assert checkHtml( 'StrongsIndex', indexHtml )
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
         indexHtmlFile.write( indexHtml )
     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
@@ -2983,7 +3032,7 @@ def create_Greek_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:B
 <p>{middle}</p>
 <p>View on <a href="https://BibleHub.com/greek/{strongsNumber}.htm">BibleHub</a>.</p>
 {makeBottom( level, 'StrongsPage', state )}'''
-        checkHtml( 'StrongsPage', pageHtml )
+        assert checkHtml( 'StrongsPage', pageHtml )
         with open( filepath, 'wt', encoding='utf-8' ) as html_output_file:
             html_output_file.write( pageHtml )
         vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  Wrote {len(pageHtml):,} characters to {output_filename}" )
@@ -3008,7 +3057,7 @@ def create_Greek_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:B
 <h1 id="Top">Strongs Greek Index</h1>
 <ul>{'\n'.join(indexList)}</ul>
 {makeBottom( level, 'StrongsIndex', state )}'''
-    checkHtml( 'StrongsIndex', indexHtml )
+    assert checkHtml( 'StrongsIndex', indexHtml )
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
         indexHtmlFile.write( indexHtml )
     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
@@ -3099,7 +3148,7 @@ def create_person_pages( level:int, outputFolderPath:Path, state:State ) -> int:
 <h1 id="Top">Bible People Index</h1>
 <p class="note">{' '.join(personLinks)}</p>
 {makeBottom( level, 'personIndex', state )}'''
-    checkHtml( 'personIndex', indexHtml )
+    assert checkHtml( 'personIndex', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
         indexHtmlFile.write( indexHtml )
@@ -3187,7 +3236,7 @@ def create_location_pages( level:int, outputFolderPath:Path, state:State ) -> in
 <h1 id="Top">Bible Locations Index</h1>
 <p class="note">{' '.join(locationLinks)}</p>
 {makeBottom( level, 'locationIndex', state )}'''
-    checkHtml( 'locationIndex', indexHtml )
+    assert checkHtml( 'locationIndex', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
         indexHtmlFile.write( indexHtml )
@@ -3312,7 +3361,7 @@ def create_statistics_pages( level:int, outputFolderPath:Path, state:State ) -> 
 <h2>Sorted by number of verses</h2>
 {sortedChaptersHtml}
 {makeBottom( level, 'statisticsIndex', state )}'''
-    checkHtml( 'statisticsIndex', pageHtml )
+    assert checkHtml( 'statisticsIndex', pageHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as html_output_file:
         html_output_file.write( pageHtml )
@@ -3337,7 +3386,7 @@ def create_statistics_pages( level:int, outputFolderPath:Path, state:State ) -> 
 <h1 id="Top">Bible Statistics Index</h1>
 <p class="note"><a href="Chapters.htm">Bible chapters and verses</a></p>
 {makeBottom( level, 'statisticsIndex', state )}'''
-    checkHtml( 'statisticsIndex', indexHtml )
+    assert checkHtml( 'statisticsIndex', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
         indexHtmlFile.write( indexHtml )

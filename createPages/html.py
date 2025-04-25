@@ -104,7 +104,7 @@ from settings import State, TEST_MODE, TEST_VERSIONS_ONLY, SITE_NAME
 from OETHandlers import getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2025-03-15' # by RJH
+LAST_MODIFIED_DATE = '2025-04-21' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
 PROGRAM_VERSION = '0.94'
@@ -747,9 +747,10 @@ def checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool:
             break
         titleGuts = match.group(1) # Can be an entire footnote or can be a parsing of a word (with some fields still expanded like --fnColon--)
         assert len(titleGuts) <= (1010 if titleGuts.startswith('OSHB ') or titleGuts.startswith('Note') or 'NET' in where or 'TCNT' in where or 'TC-GNT' in where or 'T4T' in where or 'Parallel' in where or 'End of parallel' in where else 150), f"'{where}' {segmentOnly=} title is too long ({len(titleGuts)}) {titleGuts=}"
-        assert '\n' not in titleGuts, f"'{where}' {segmentOnly=} Bad title with newline in {titleGuts=} FROM {htmlToCheck=}"
-        assert '<br' not in titleGuts, f"'{where}' {segmentOnly=} Bad title with BR in {titleGuts=} FROM {htmlToCheck=}"
-        assert '<span' not in titleGuts, f"'{where}' {segmentOnly=} Bad title with SPAN in {titleGuts=} FROM {htmlToCheck=}"
+        assert '\n' not in titleGuts, f"'{where}' {segmentOnly=} Bad HTML title with newline in {titleGuts=}\nFROM {htmlToCheck=}"
+        assert '<br' not in titleGuts, f"'{where}' {segmentOnly=} Bad HTML title with BR in {titleGuts=}\nFROM {htmlToCheck=}"
+        assert '<span' not in titleGuts, f"'{where}' {segmentOnly=} Bad HTML title with SPAN in {titleGuts=}\nFROM {htmlToCheck=}"
+        assert 'class="' not in titleGuts, f"'{where}' {segmentOnly=} Bad HTML title with CLASS in {titleGuts=}\nFROM {htmlToCheck=}"
         searchStartIndex = match.end()
 
     assert '<span class="nd"><span class="nd">' not in htmlToCheck, f"""'{where}' {segmentOnly=} Found {htmlToCheck.count('<span class="nd"><span class="nd">')} doubled ND spans in {htmlToCheck}""" # in case we accidentally apply it twice
@@ -949,34 +950,34 @@ def do_OET_RV_HTMLcustomisations( OET_RV_html:str ) -> str:
     assert '<span class="add">?≡' not in OET_RV_html # Doesn't make sense
     result = (OET_RV_html \
             # Adjust specialised add markers
-            .replace( '<span class="add">?<', '<span class="unsure addDirectObject" title="added direct object (uncertain)">' )
+            .replace( '<span class="add">?<', '<span class="addDirectObject unsure" title="added direct object (uncertain)">' )
             .replace( '<span class="add"><span ', '__PROTECT_SPAN__' )
             .replace( '<span class="add"><a title', '__PROTECT_A__' )
             .replace( '<span class="add"><', '<span class="addDirectObject" title="added direct object">' )
             .replace( '__PROTECT_A__', '<span class="add"><a title' )
             .replace( '__PROTECT_SPAN__', '<span class="add"><span ' )
-            .replace( '<span class="add">?>', '<span class="unsure addExtra" title="added implied info (uncertain)">' )
+            .replace( '<span class="add">?>', '<span class="addExtra unsure" title="added implied info (uncertain)">' )
             .replace( '<span class="add">>', '<span class="addExtra" title="added implied info">' )
-            .replace( '<span class="add">?+', '<span class="unsure addArticle" title="added article (uncertain)">' )
+            .replace( '<span class="add">?+', '<span class="addArticle unsure" title="added article (uncertain)">' )
             .replace( '<span class="add">+', '<span class="addArticle" title="added article">' )
             .replace( '<span class="add">≡', '<span class="addElided" title="added elided info">' )
-            .replace( '<span class="add">?&', '<span class="unsure addOwner" title="added ‘owner’ (uncertain)">' )
+            .replace( '<span class="add">?&', '<span class="addOwner unsure" title="added ‘owner’ (uncertain)">' )
             .replace( '<span class="add">&', '<span class="addOwner" title="added ‘owner’">' )
-            .replace( '<span class="add">?@', '<span class="unsure addReferent" title="inserted referent (uncertain)">' )
+            .replace( '<span class="add">?@', '<span class="addReferent unsure" title="inserted referent (uncertain)">' )
             .replace( '<span class="add">@', '<span class="addReferent" title="inserted referent">' )
-            .replace( '<span class="add">?*', '<span class="unsure addPronoun" title="used pronoun (uncertain)">' )
+            .replace( '<span class="add">?*', '<span class="addPronoun unsure" title="used pronoun (uncertain)">' )
             .replace( '<span class="add">*', '<span class="addPronoun" title="used pronoun">' )
-            .replace( '<span class="add">?#', '<span class="unsure addPluralised" title="changed number (uncertain)">' )
+            .replace( '<span class="add">?#', '<span class="addPluralised unsure" title="changed number (uncertain)">' )
             .replace( '<span class="add">#', '<span class="addPluralised" title="changed number">' )
-            .replace( '<span class="add">?^', '<span class="unsure addNegated" title="negated (uncertain)">' )
+            .replace( '<span class="add">?^', '<span class="addNegated unsure" title="negated (uncertain)">' )
             .replace( '<span class="add">^', '<span class="addNegated" title="negated">' )
-            .replace( '<span class="add">?≈', '<span class="unsure addReword" title="reworded (uncertain)">' )
+            .replace( '<span class="add">?≈', '<span class="addReword unsure" title="reworded (uncertain)">' )
             .replace( '<span class="add">≈', '<span class="addReword" title="reworded">' )
-            .replace( '<span class="add">?', '<span class="unsure RVadd" title="added info (uncertain)">' )
+            .replace( '<span class="add">?', '<span class="RVadd unsure" title="added info (uncertain)">' )
             .replace( '<span class="add">', '<span class="RVadd" title="added info">' )
             .replace( '≈', '<span class="synonParr" title="synonymous parallelism">≈</span>')
             .replace( '^', '<span class="antiParr" title="antithetic parallelism">^</span>')
-            .replace( '≥', '<span class="synthParr" title="synthetic parallelism">≥</span>')
+            .replace( '→', '<span class="synthParr" title="synthetic parallelism">→</span>')
             )
 
     # Just do an additional check inside '<span class="RVadd">' spans
@@ -1076,7 +1077,7 @@ def do_OET_LV_HTMLcustomisations( where:str, OET_LV_html:str ) -> str:
     # assert '+' not in html, f"{html[html.index('+')-20:html.index('+')+30]}"
     # assert '^' not in html, f"{html[html.index('^')-20:html.index('^')+30]}"
     # assert '<span class="add">' not in html, f'''{html[html.index('<span class="add">')-20:html.index('<span class="add">')+50]}'''
-    checkHtml( f"do_OET_LV_HTMLcustomisations {where=}", OET_LV_html, segmentOnly=True )
+    assert checkHtml( f"do_OET_LV_HTMLcustomisations {where=}", OET_LV_html, segmentOnly=True )
     return OET_LV_html
 # end of html.do_OET_LV_HTMLcustomisations
 

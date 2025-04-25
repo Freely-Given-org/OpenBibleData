@@ -614,7 +614,7 @@ def createTyndaleDictPages( level:int, outputFolderPath, state:State ) -> bool:
 {navLinks.replace('__ID__','Top')}
 {article}
 {makeBottom( level, 'dictionaryEntry', state )}'''
-        checkHtml( 'DictionaryArticle', articleHtml )
+        assert checkHtml( 'DictionaryArticle', articleHtml )
         assert not filepath.is_file() # Check that we're not overwriting anything
         with open( filepath, 'wt', encoding='utf-8' ) as articleHtmlFile:
             articleHtmlFile.write( articleHtml )
@@ -648,7 +648,7 @@ def createTyndaleDictPages( level:int, outputFolderPath, state:State ) -> bool:
 <h2>Index for dictionary letter '{letter}'</h2>
 {articleLinkHtml}
 {makeBottom( level, 'dictionaryLetterIndex', state )}'''
-        checkHtml( 'DictionaryLetterIndex', letterIndexHtml )
+        assert checkHtml( 'DictionaryLetterIndex', letterIndexHtml )
         assert not filepath.is_file() # Check that we're not overwriting anything
         with open( filepath, 'wt', encoding='utf-8' ) as letterIndexHtmlFile:
             letterIndexHtmlFile.write( letterIndexHtml )
@@ -665,7 +665,7 @@ even though it was originally designed to supplement the <i>New Living Translati
 <h1 id="Top">Tyndale Open Bible Dictionary <small>{TOBD_detailsLink}</small></h1>
 {TOBDData['Intro']}
 {makeBottom( level, 'dictionaryIntro', state )}'''
-    checkHtml( 'DictionaryIntro', introHtml )
+    assert checkHtml( 'DictionaryIntro', introHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as introHtmlFile:
         introHtmlFile.write( introHtml )
@@ -689,7 +689,7 @@ even though it was originally designed to supplement the <i>New Living Translati
 <h1>UBS Dictionary of Biblical Hebrew <small>{UBS_detailsLink}</small></h1>
 <p class="note">This isn’t fully formatted and implemented yet, but something might be visible <a href="{'../'*(level)}UBS/Heb/">here</a>.</p>
 {makeBottom( level, 'dictionaryMainIndex', state )}'''
-    checkHtml( 'DictionaryIndex', indexHtml )
+    assert checkHtml( 'DictionaryIndex', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
         indexHtmlFile.write( indexHtml )
@@ -1051,7 +1051,7 @@ def createUBSGreekDictionaryPages( level, outputFolderPath, state:State ) -> Non
 {navLinks.replace('__ID__','Top')}
 {entryHtml}
 {makeBottom( level, 'dictionaryEntry', state )}'''
-        checkHtml( 'DictionaryArticle', articleHtml )
+        assert checkHtml( 'DictionaryArticle', articleHtml )
         assert not filepath.is_file() # Check that we're not overwriting anything
         with open( filepath, 'wt', encoding='utf-8' ) as articleHtmlFile:
             articleHtmlFile.write( articleHtml )
@@ -1131,7 +1131,7 @@ def createUBSHebrewDictionaryPages( level, outputFolderPath, state:State ) -> No
 {navLinks.replace('__ID__','Top')}
 {entryHtml.replace( f'{NEWLINE}</p>', '</p>' )}
 {makeBottom( level, 'dictionaryEntry', state )}'''
-        checkHtml( 'DictionaryArticle', articleHtml )
+        assert checkHtml( 'DictionaryArticle', articleHtml )
         assert not filepath.is_file() # Check that we're not overwriting anything
         with open( filepath, 'wt', encoding='utf-8' ) as articleHtmlFile:
             articleHtmlFile.write( articleHtml )

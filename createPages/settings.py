@@ -45,31 +45,34 @@ from BibleOrgSys.BibleOrgSysGlobals import dPrint, fnPrint
 from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39
 
 
-LAST_MODIFIED_DATE = '2025-03-26' # by RJH
+LAST_MODIFIED_DATE = '2025-04-25' # by RJH
 SHORT_PROGRAM_NAME = "settings"
-PROGRAM_NAME = "OpenBibleData (OBD) Create Pages"
+PROGRAM_NAME = "OpenBibleData (OBD) Settings"
 PROGRAM_VERSION = '0.98'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
 
-OET_VERSION = 'v0.36' # At 60.3% 2025-03-28 (Incremented on most runs for the production site)
+OET_VERSION_NUMBER_STRING = 'v0.37.5' # Incremented on most runs
 
 TEST_MODE = True # Writes website into 'Test' subfolder if True
+TEST_OT_BOOK_LIST = ['PSA','JOL'] # Books in progress
+TEST_NT_BOOK_LIST = ['MRK'] # Shortest gospel
+TEST_BOOK_LIST_CHANGED = False
+
+# Many of these settings are used to omit some processing so as to get a speedier conclusion for debugging
 TEST_VERSIONS_ONLY = None #['OET','OET-RV','OET-LV', 'BSB', 'TOSN','UTN'] # Also stops actual site being built
 ALL_PRODUCTION_BOOKS = not TEST_MODE # If set to False, uses the TEST book list (with many less books) for a faster test build
 CREATE_PARALLEL_VERSE_PAGES = 'FIRST' # 'FIRST','LAST', or None -- depending on debugging needs
-REUSE_EXISTING_WORD_PAGES = TEST_MODE # Don't recreate word pages
+CREATE_BOOK_AND_OTHER_PAGES = True # Can be turned off for debugging
+DO_SPELL_CHECKS = True #TEST_MODE # On parallel pages
+REUSE_EXISTING_WORD_PAGES = TEST_MODE and not TEST_BOOK_LIST_CHANGED # Don't recreate word pages
 ALL_TEST_REFERENCE_PAGES = False # If in TEST_MODE, make ALL word/lemma pages, or just the RELEVANT ones
 UPDATE_ACTUAL_SITE_WHEN_BUILT = True # The pages are initially built in a tmp folder so need to be copied to the final destination
 
 OET_RV_OT_BOOK_LIST = ['GEN','EXO','JOS','JDG','RUT','SA1','SA2','KI1','KI2',
                        'EZR','NEH','EST','JOB','PSA',
-                       'OBA','DAN','JNA','MIC','NAH','HAB','ZEP','HAG','ZEC','MAL']
-
-TEST_OT_BOOK_LIST = ['PSA','MIC'] # Books in progress
-TEST_NT_BOOK_LIST = ['MRK'] # Shortest gospel
-TEST_BOOK_LIST = TEST_OT_BOOK_LIST + TEST_NT_BOOK_LIST
+                       'DAN','AMO','OBA','JNA','MIC','NAH','HAB','ZEP','HAG','ZEC','MAL']
 
 TEMP_BUILD_FOLDER = Path( '../buildingHtmlPages/' )
 NORMAL_DESTINATION_FOLDER = Path( '../htmlPages/' )
@@ -109,6 +112,7 @@ assert len(OET_NT_BOOK_ORDER) == 27
 OET_BOOK_ORDER = ['FRT','INT'] + OET_OT_BOOK_ORDER + OET_APOCRYPHA_BOOK_ORDER + OET_NT_BOOK_ORDER + ['XXA','XXB','XXC','XXD','XXE','CNC','GLO','TDX','NDX','OTH','BAK']
 assert len(OET_BOOK_ORDER) > 68
 
+TEST_BOOK_LIST = TEST_OT_BOOK_LIST + TEST_NT_BOOK_LIST
 OET_LV_BOOK_LIST = BOOKLIST_OT39 + OET_NT_BOOK_ORDER
 OET_RV_BOOK_LIST = TEST_BOOK_LIST if TEST_MODE else (OET_RV_OT_BOOK_LIST + OET_NT_BOOK_ORDER)
 # TODO: What about 'INT' ?
@@ -353,6 +357,78 @@ class State:
         'BMM': 'BibleMapper.com Maps',
         }
 
+    BibleLanguages = {
+        'OET': 'EN-UK',
+        'OET-RV': 'EN-UK',
+        'OET-LV': 'EN-UK',
+        'ULT': 'EN-USA',
+        'UST': 'EN-USA',
+        'BSB': 'EN-USA',
+        'BLB': 'EN-USA',
+        'AICNT': 'EN-USA',
+        'OEB': 'EN-UK',
+        'ISV': 'EN-USA',
+        'CSB': 'EN-USA',
+        'NLT': 'EN-USA',
+        'NIV': 'EN-USA',
+        'CEV': 'EN-USA',
+        'ESV': 'EN-USA',
+        'NASB': 'EN-USA',
+        'LSB': 'EN-USA',
+        'JQT': 'EN-USA',
+        '2DT': 'EN-USA',
+        '1ST': 'EN-USA',
+        'TPT': 'EN-USA',
+        'WEBBE': 'EN-UK',
+        'WEB': 'EN-USA',
+        'WMBB': 'EN-UK',
+        'WMB': 'EN-USA',
+        'MSG': 'EN-USA',
+        'NET': 'EN-USA',
+        'LSV': 'EN-USA',
+        'FBV': 'EN-USA',
+        'TCNT': 'EN-UK',
+        'T4T': 'EN-USA',
+        'LEB': 'EN-USA',
+        'NRSV': 'EN-UK',
+        'NKJV': 'EN-UK',
+        'NAB': 'EN-USA',
+        'BBE': 'EN-UK',
+        'Moff': 'EN-UK',
+        'JPS': 'EN-UK',
+        'Wymth': 'EN-UK',
+        'ASV': 'EN-USA',
+        'DRA': 'EN-UK',
+        'YLT': 'EN-UK',
+        'Drby': 'EN-UK',
+        'RV': 'EN-UK',
+        'Wbstr': 'EN-USA',
+        'KJB-1769': 'EN-UK',
+        'KJB-1611': 'EN-UK',
+        'Bshps': 'EN-UK',
+        'Gnva': 'EN-UK',
+        'Great': None, # Not in OBD yet
+        'Cvdl': 'EN-UK',
+        'TNT': 'EN-UK', # modernised
+        'Wycl': 'EN-UK', # modernised
+        'Luth': 'GER',
+        'ClVg': 'LAT',
+        'SR-GNT': 'GRK',
+        'UGNT': 'GRK',
+        'SBL-GNT': 'GRK',
+        'TC-GNT': None,
+        'NETS': None,
+        'BrTr': None,
+        'BrLXX': 'GRK',
+        'UHB': 'HEB',
+        'TOSN': 'EN-USA',
+        'TOBD': 'EN-USA',
+        'UTN': 'EN-USA',
+        'UBS': 'EN-USA',
+        'THBD': 'EN-USA',
+        'BMM': 'EN-USA',
+        }
+
     booksToLoad = {
         'OET': OET_RV_BOOK_LIST_WITH_FRT,
         'OET-RV': ['ALL'], # Load ALL coz we use related sections anyway OET_RV_BOOK_LIST_WITH_FRT,
@@ -488,7 +564,7 @@ class State:
         }
 
     detailsHtml = {
-        'OET': {'about': f'''<p class="about">The (still unfinished) <em>Open English Translation</em> ({OET_VERSION}) consists of a <em>Readers’ Version</em> and a <em>Literal Version</em> side-by-side.
+        'OET': {'about': f'''<p class="about">The (still unfinished) <em>Open English Translation</em> ({OET_VERSION_NUMBER_STRING}) consists of a <em>Readers’ Version</em> and a <em>Literal Version</em> side-by-side.
 You can read a lot more about the design of the <em>OET</em> at <a href="https://OpenEnglishTranslation.Bible/Design/Overview">OpenEnglishTranslation.Bible/Design/Overview</a>.</p>''',
                 'copyright': '<p class="copyright">Copyright © 2010–2025 <a href="https://Freely-Given.org">Freely-Given.org</a>.</p>',
                 'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',

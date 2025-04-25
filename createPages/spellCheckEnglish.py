@@ -30,11 +30,12 @@ Script to spell check English Bible verses.
 CHANGELOG:
     2024-03-13 Added check for duplicated words
     2025-03-10 Added support for a few more internal USFM markers
+    2025-04-16 Added support for removing some technical English words, but which aren't used in Bibles and so should be spelling errors
 """
 from gettext import gettext as _
 from pathlib import Path
+from collections import defaultdict
 import re
-import os
 
 if __name__ == '__main__':
     import sys
@@ -43,13 +44,13 @@ from BibleOrgSys import BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import vPrint, fnPrint, dPrint
 
 
-LAST_MODIFIED_DATE = '2025-04-02' # by RJH
+LAST_MODIFIED_DATE = '2025-04-25' # by RJH
 SHORT_PROGRAM_NAME = "spellCheckEnglish"
 PROGRAM_NAME = "English Bible Spell Check"
-PROGRAM_VERSION = '0.21'
+PROGRAM_VERSION = '0.44'
 PROGRAM_NAME_VERSION = '{} v{}'.format( SHORT_PROGRAM_NAME, PROGRAM_VERSION )
 
-DEBUGGING_THIS_MODULE = 99
+DEBUGGING_THIS_MODULE = False
 
 
 TED_Dict_folderpath = Path( '../../../Documents/RobH123/TED_Dict/sourceDicts/')
@@ -57,86 +58,183 @@ TED_Dict_folderpath = Path( '../../../Documents/RobH123/TED_Dict/sourceDicts/')
 
 # Globals
 # Prepopulate the word set with our exceptions
-BIBLE_WORD_SET = set(['3.0','UTF','ESFM','v0.6','Freely-Given.org',
-                      'OET','WORDTABLE','LV_OT_word_table.tsv','LV_NT_word_table.tsv',
-                      'b','c','d','e',
-                      's1','s2','r','+','LXX','Grk',
-                      'nomina','Nomina','sacra',
-                      'Deutercanon','Deuterocanonicals',
+INITIAL_BIBLE_WORD_LIST = ['3.0','UTF','USFM', '©', 'CC0',
+                    'EN','ENG',
+                    'b','c','d','e',
+                    's1','s2','r','+','LXX','Grk',
+                    'nomina','Nomina','sacra',
+                    'Deutercanon','Deuterocanonicals',
 
-                      'href="https', # Website refererences
-                      '\\jmp', '_', '_\\em*about', '_\\em*all', '_\\em*caring\\em',
-                      'wpmu2.azurewebsites.net', 'www.GotQuestions.org', 'www.biblicalarchaeology.org', 'www.billmounce.com', 'www.sil.org','textandcanon.org',
-                      'armstronginstitute.org','bibleDifferences.net','bibleandtech.blogspot.com','bibledifferences.net','biblestudyresources','commentary.html','judas%E2%80%99','tongue%E2%80%9D', 'Yeshua%E2%80%99',
-                      'mounce', 'openenglishbible', 'scrollandscreen.com', 'UASVBible.org', 'given.org', 'GitHub.com', 'GreekCNTR.org', # Websites
-                      '%E2%80%9Cdivided','%E2%80%9Cjew%E2%80%9D','v=66013018'
+                    'Abimelek','Abshalom','Ahimelek','Amatsyah','Ayyalon','Azaryah',
+                    'Benyamin','Benyamite','Benyamites', 'Beyt',
+                    'Efraim','Efron','Elifaz','Eliyyah','Esaw',
+                    'Far\'oh','Far’oh', 'Finehas',
+                    'Goliat',
+                    'Hizkiyyah','Hofni',
+                    'Isayah','Ishma\'el','Iyyov',
+                    'Kayin',
+                    'Lavan','Lakish','Layish',
+                    'Malaki','Manashsheh',
+                    'Metushalah',
+                    'Mikal','Milkah','Mitspah','Mitsrayim',
+                    'Mordekai','Mosheh',
+                    'Natan',
+                    'Petros','Potifar',
+                    'Sha\'ul','Sha’ul', 'She’ol',
+                    'Shekem','Shelomoh', 'Shemu\'el','Shemu’el',
+                    'Shim’on','Shimshon',
+                    'Shomron',
+                    'Shushan',
+                    'Tsevaot','Tsidon','Tsiklag',
+                    'Tsiyyon','Syon',
+                    'Uriyyah','Uzziyyah',
+                    'Yacob',
+                        'Yael',
+                        'Yafet','Yafo',
+                        'Yair',
+                        'Yakob',
+                        'Yared',
+                    'Yehoshafat','Yehoshua','Yehud','Yericho','Yeroboam','Yerushalem','Yeshayah','Yetro',
+                        'Yesse','Yishay',
+                        'Yisrael','Yisra\'el','Yisra’el', # Need a spelling decision here
+                        'Yitshak',
+                        'Yoav',
+                        'Yhn','Yohan','Yohannes','Yochanan','Yohan-the-Immerser',
+                        'Yoel','Yoktan','Yonah','Yonatan','Yoppa','Yordan','Yosef','Yoshua','Yotam',
+                    'Yudah','Yudas','Yude','Yudea','Yudean','Yudeans',
+                    'Zekaryah','Zofar',
 
-                      'Abimelek','Abshalom','Ahimelek','Amatsyah','Ayyalon','Azaryah',
-                      'Benyamin','Benyamite','Benyamites', 'Beyt',
-                      'Efraim','Efron','Elifaz','Eliyyah','Esaw',
-                      'Far\'oh','Finehas',
-                      'Goliat',
-                      'Hizkiyyah','Hofni',
-                      'Isayah','Ishma\'el','Iyyov',
-                      'Kayin',
-                      'Lavan','Lakish','Layish',
-                      'Malaki','Manashsheh',
-                        'Metushalah',
-                        'Mikal','Milkah','Mitspah','Mitsrayim',
-                        'Mordekai','Mosheh',
-                      'Natan',
-                      'Potifar',
-                      'Sha\'ul',
-                        'Shekem','Shelomoh','Shemu\'el',
-                        'Shimshon',
-                        'Shomron',
-                        'Shushan',
-                      'Tsidon','Tsiklag','Tsiyyon',
-                      'Uriyyah','Uzziyyah'
-                      'Yacob',
-                            'Yael',
-                            'Yafet','Yafo',
-                            'Yair',
-                            'Yakob',
-                            'Yared',
-                        'Yehoshafat','Yehoshua','Yehud','Yericho','Yerushalem','Yeshayah','Yesse','Yetro',
-                        'Yhn',
-                        'Yishay','Yisra\'el','Yitshak',
-                        'Yoav','Yohan','Yohan-the-Immerser','Yoel','Yoktan','Yonah','Yonatan','Yoppa','Yordan','Yosef','Yoshua','Yotam',
-                        'Yudah','Yudas','Yude','Yudea','Yudean','Yudeans',
-                      'Zekaryah','Zofar',
+                    'black-grained','building-stone',
+                    'efod','el','emerald-looking',
+                    'false-teachers','finely-ground','finely-spun',
+                    'Halleluyah','house-servants',
+                    'law-breaker',
+                    'maschil','michtam',
+                    'non',
+                    'pass-over',
+                    'tashheth','tent-making',
 
-                      'black-grained','building-stone',
-                      'efod','emerald-looking',
-                      'false-teachers','finely-ground','finely-spun',
-                      'house-servants',
-                      'law-breaker',
-                      'non',
-                      'pass-over',
-                      'tent-making',
+                    'IN','PRAISE','GIVE','LOVE','SAW','IS','AM','ARE','HERE','THERE','COMMONLY','CALLED','NOW',
+                    'THE','THAT','THIS','THESE','THINGS',
+                    'APOSTLES','GOSPEL','ACCORDING','TO','UNTO','ST','AND','PROPHET','PREACHER','BRANCH',
+                    'SAVE','SERVANT','SERVANTS','MAN','BURDEN','OUR','RIGHTEOUSNESS',
+                    'KING','OF','JEWS','YEWS','HAPPY','HOLY','HOLINESS','THRONE','PEACE','MOTHER','EARTH','GREAT','MYSTERY',
+                    'HARLOTS','PROSTITUTES','ABOMINATIONS',
+                    'BOOK','ORIGINAL','BASE','TEXT','PARABLE','NOTES','RELEASE','STATUS','TAGS','WORD','WORDS','SECTION','PRAYER','VISION',
+                    'END','COME','SING','BEHOLD','STAR','SHALL','RISE','STRINGED','UNKNOWN',
+                    'WHAT','WHICH','WHO',
 
-                      'nlt',
+                    'ADAM','ADONAI',
+                    'BABYLON','BETHLEHEM',
+                    'DAVID',
+                    'ISRAEL','ISRAELITES',
+                    'JAH','JEHOVAH','JESUS','JUDAH',
+                    'MOAB','MOSES',
+                    'NAZARETH','NAZARENE',
+                    'SETH','SOLOMON',
+                    'YESHUA','YEWES',
 
-                      'v2','v3','v4','v5','v6','v8','v9','v13','v14','v15','v16','v19','v26','v27',
-                      'GEN','EXO','LEV','NUM','DEU','JOS','JDG','RUT','SA1','SA2','KI1','KI2','CH1','CH2','EZR','NEH',
-                        'JOB','PSA','PRO','ECC','SNG','ISA','JER','LAM','EZE','DAN','HOS','JOL','AMO','OBA','JNA','MIC','NAH','HAB','ZEP','HAB','ZEC','MAL',
-                      'MAT','MRK','LUK','JHN','ACT','ROM','CO1','CO2','GAL','EPH','PHP','COL','TH1','TH2','TI1','TI2','TIT',
-                        'PHM','HEB','JAM','PE1','PE2','JN1','JN2','JN3','JDE','REV',
-                      'Gen','Exo','Lev','Num','Deu','Chr','Rut','Psa','Prv','Hos','Zech','Mal',
-                        'Mrk','Luk','Lk','Jhn','Jn','Act','Gal','Eph','Php','Col','Heb','Phm','Rev',
-                    ])
+                    'A.D','B.C',
+                    'TC','TD', # in footnotes
+                    'ONE','TWO','THREE','FOUR','FIVE','SIX','SEVEN',
+                    'FIRST','SECOND','THIRD','FOURTH','FIFTH',
+                    'II','III','IV','X',
+                    'ALEPH','BETH','GIMMEL','GIMEL','DALETH','HE','VAV','VAU','ZAYIN','ZAIN',
+                        'HETH','CHETH','TETH','YODH','JOD','YOD','CAPH','KAPF','LAMEDH','LAMED',
+                        'MEM','NUN','SAMEKH','SAMECH','AYIN','AIN','PE','TSADDI','TZADHE','TZADE','TZADDI',
+                        'QOPH','KOPH','RESH','SIN','SHIN','SCHIN','TAV','TAU',
+
+                    'MENE','MANE','TEKEL','TEQEL','THECEL', 'UPHARSIN','PERES','PHERES','PHARES','PHARSIN','PARSIN',
+                    'Tabitha cumi','Talitha cumi',
+
+                    'ULT','UST','BSB','OEB','NET','NRSV','WEB','WEBBE','WMB','WMBB','LSV','FBV','T4T','LEB','BBE','JPS','VLT','KJV',
+                    'OSHB',
+                    'nlt',
+
+                    'GENESIS','EXODUS','LEVITICUS','NUMBERS','DEUTERONOMY','JOSHUA','JUDGES','RUTH',
+                    'SAMUEL','KINGS','CHRONICLES','EZRA','NEHEMIAH','ESTHER','JOB','PSALMS','PROVERBS',
+                    'ECCLESIASTES','SONG','SONGS','ISAIAH','JEREMIAH','LAMENTATIONS','EZEKIEL',
+                    'DANIEL','HOSEA','JOEL','AMOS','OBADIAH','JONAH','MICAH',
+                    'NAHUM','HABAKKUK','ZEPHANIAH','HAGGAI','ZECHARIAH','MALACHI',
+                    'MATTHEW','MARK','LUKE','JOHN','ACTS','ROMANS','CORINTHIANS',
+                    'GALATIANS','EPHESIANS','PHILIPPIANS','COLOSSIANS','THESSALONIANS','TIMOTHY','TITUS','PHILEMON',
+                    'HEBREWS','JAMES','PETER','JUDE','REVELATION',
+
+                    'GEN','EXO','LEV','NUM','DEU','JOS','JDG','RUT','SA1','SA2','KI1','KI2','CH1','CH2','EZR','NEH','EST',
+                    'PSA','PRO','ECC','SNG','ISA','JER','LAM','EZE','EZK','DAN','HOS','JOL',
+                    'AMO','OBA','JNA','JON','MIC','NAH','NAM','HAB','ZEP','HAG','ZEC','MAL',
+                    'LAO','GES','LES','ESG','ADE','PS2','TOB','WIS','SIR','BAR','PAZ','JDT','DAG','SUS',
+                    'MAT','MRK','LUK','JHN','YHN','ACT','ROM','CO1','CO2','GAL','EPH','PHP','COL','TH1','TH2','TI1','TI2','TIT',
+                    'PHM','HEB','JAM','PE1','PE2','JN1','JN2','JN3','JDE','REV',
+                    'Gen','Exo','Lev','Num','Deu','Chr','Rut','Psa','Prv','Hos','Zech','Mal',
+                    'Mrk','Luk','Lk','Jhn','Jn','Act','Gal','Eph','Php','Col','Heb','Phm','Rev',
+
+                    'v2','v3','v4','v5','v6','v8','v9','v13','v14','v15','v16','v19','v26','v27',
+
+                    'ReMoV', # This is how we mark where we removed a complex word below
+                    ]
+INITIAL_BIBLE_WORD_SET = set( INITIAL_BIBLE_WORD_LIST )
+assert len(INITIAL_BIBLE_WORD_SET) == len(INITIAL_BIBLE_WORD_LIST), f"{[w for w in INITIAL_BIBLE_WORD_LIST if INITIAL_BIBLE_WORD_LIST.count(w)>1]}" # Shouldn't be any duplicates above
+# AMERICAN_SPELLINGS = ['baptized','baptizing','baptize','favors','favor','honors','honor','marvelous','neighbors','neighbor','realize','splendor','worshiped','worshiping']
+# BRITISH_SPELLINGS = ['baptised','baptising','baptise','favours','favour','honours','honour','marvellous','neighbours','neighbour','realise','splendour','worshipped','worshipping']
+
+PREAPPROVED_WORDS_TO_REMOVE = sorted(['God’s','GOD', 'LORD’S','LORD’s','LORD\'S','LORD\'s','LORDS','LORD', # Delete ALL CAPS versions
+
+            # Hyphenated names (would have been split up down below)
+            'Al-tashheth','al-tashcheth','Al-taschith','al- tashcheth',
+                'Aram-zobah',
+            'Beer-sheba',
+                'Ben-hadad',
+                'Beth-eden', 'Beth-el','Beyt-El','Beth-lehem',
+                'Bikath-Aven','Bikat-Aven',
+
+            # Mangled names
+            'Yoab','Yonathan',
+            'Yesus', 'Yhesus', 'Yhesu', 'Yerusalem',
+            'Yacob', 'Yames', 'Yohn', 'Yoseph', 'Yoses',
+
+            # Fancy pronouns
+            'you_all', 'you(sg)','you(ms)','you(fs)', 'your(sg)','your(pl)','your(ms)', 'yours(sg)','yours(pl)', 'yourself(m)',
+            'You_all', 'You(sg)',
+            'aren’t','Aren’t',
+                'can’t','Can’t', 'couldn’t','Couldn’t',
+                'didn’t','Didn’t', 'doesn’t','Doesn’t', 'don’t','Don’t',
+                'hadn’t','hasn’t', 'haven’t','Haven’t',
+                    'he’d','He’d', 'he’ll','He’ll', 'he’s','He’s',
+                'I’d', 'I’ll', 'I’m', 'isn’t','Isn’t', 'it’ll','It’ll', 'I’ve',
+                'mustn’t',
+                'needn’t',
+                'o’clock',
+                'she’d', 'shouldn’t','Shouldn’t',
+                'that’ll','That’ll',
+                    'there’ll','There’ll',
+                    'they’d','They’d', 'they’ll','They’ll', 'they’re','They’re','they’ve','They’ve', '’twas',
+                'you’d','You’d', 'you’ll','You’ll', 'you’re','You’re', 'you’ve','You’ve',
+                'wasn’t','Wasn’t',
+                    'we’d', 'we’ll','We’ll', 'we’re','We’re', 'weren’t','Weren’t', 'we’ve','We’ve',
+                    'who’d', 'who’ll', 'who’re', 'who’ve', 'won’t','Won’t', 'would’ve', 'wouldn’t','Wouldn’t',
+
+            # Other
+            'EDOMITE','EDOM','DOM', # Gotta do that one first
+            ], key=len, reverse=True) # Put longest first
+
 BAD_ENGLISH_WORD_SET, BAD_GERMAN_WORD_SET, BAD_LATIN_WORD_SET = set(), set(), set()
 BAD_ENGLISH_WORD_LIST, BAD_GERMAN_WORD_LIST, BAD_LATIN_WORD_LIST = [], [], []
+TOTAL_ENGLISH_WORDS_CHECKED_COUNT = TOTAL_GERMAN_WORDS_CHECKED_COUNT = TOTAL_LATIN_WORDS_CHECKED_COUNT = 0
 TOTAL_ENGLISH_MISSPELLING_COUNT = TOTAL_GERMAN_MISSPELLING_COUNT = TOTAL_LATIN_MISSPELLING_COUNT = 0
+BAD_ENGLISH_COUNTS, BAD_GERMAN_COUNTS, BAD_LATIN_COUNTS = defaultdict(int), defaultdict(int), defaultdict(int)
+MISPELLING_VERSION_REF_DICT = defaultdict( list )
 
 
+AMERICAN_WORD_SET, BRITISH_WORD_SET = set(), set()
 def load_dict_sources() -> bool:
     """
     Load the words from the SIL Toolbox source files.
     """
-    global BIBLE_WORD_SET
+    global AMERICAN_WORD_SET, BRITISH_WORD_SET
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Load English and Bible words from source dictionaries in {TED_Dict_folderpath}…" )
 
+    AMERICAN_WORD_SET, BRITISH_WORD_SET = set(INITIAL_BIBLE_WORD_SET), set(INITIAL_BIBLE_WORD_SET)
     for dictFilename in ('EnglishDict.db','BibleDict.db'):
         dictFilepath = TED_Dict_folderpath.joinpath( dictFilename )
         with open( dictFilepath, 'rt', encoding='utf-8' ) as dictSourceFile:
@@ -157,8 +255,12 @@ def load_dict_sources() -> bool:
                 if entryLine.startswith( '\\ms '):
                     mispelling = True
                     break
-            if language != 'AME' and not mispelling:
-                BIBLE_WORD_SET.add( word )
+            if not mispelling \
+            and word not in ('hade',): # Any technical or other English words which would be mispellings if used in a Bible
+                if language != 'BRI':
+                    AMERICAN_WORD_SET.add( word )
+                if language != 'AME':
+                    BRITISH_WORD_SET.add( word )
         # for line in dictSourceFile:
         #     line = line.rstrip( '\n' )
         #     if line.startswith( '\\wd '):
@@ -168,47 +270,197 @@ def load_dict_sources() -> bool:
         #             assert subscript.isdigit()
         #         BIBLE_WORD_SET.add( word )
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Loaded {len(BIBLE_WORD_SET):,} English and Bible words." )
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Loaded {len(AMERICAN_WORD_SET):,} American and {len(BRITISH_WORD_SET):,} British and Bible words." )
     # print( BIBLE_WORD_LIST[:10]); halt
     return True
 # end of spellCheckEnglish.load_dict_sources
 
 
+# From https://stackoverflow.com/questions/2556108/rreplace-how-to-replace-the-last-occurrence-of-an-expression-in-a-string
+def rreplace(s, old, new, occurrence):
+    li = s.rsplit(old, occurrence)
+    return new.join(li)
+# end of spellCheckEnglish.rreplace
+
+
 USFM_CLOSED_FIELDS_TO_COMPLETELY_REMOVED = ('x','fig')
-def spellCheckText( versionAbbreviation:str, ref:str, originalHTMLText:str ) -> str:
+FOOTNOTE_OR_XREF_CALLER_REGEX = re.compile( '<span class="(fn|xr)Caller".+?</span>' )
+ANCHOR_LINK_REGEX = re.compile( '<a ([^>]+?)>' )
+RV_ADD_REGEX = re.compile( '<span class="RVadd" [^>]+?>' )
+FOOTNOTE_Ps_REGEX = re.compile( '<p class="fn" id="fn[1-9]">' )
+FOOTNOTES_DIV_REGEX = re.compile( '<div class="footnotes">.+?</div><!--footnotes-->' )
+CROSSREFS_DIV_REGEX = re.compile( '<div class="crossRefs">.+?</div><!--crossRefs-->' )
+def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck:str, originalHTMLText:str, state ) -> str:
     """
     Puts a span around suspected misspelt words
+
+    Handles a number of different English traditions,
+        e.g., both straight and typographic apostrophes and quotes, etc.
     """
+    global TOTAL_ENGLISH_WORDS_CHECKED_COUNT, TOTAL_ENGLISH_MISSPELLING_COUNT, TOTAL_GERMAN_WORDS_CHECKED_COUNT, TOTAL_GERMAN_MISSPELLING_COUNT, TOTAL_LATIN_WORDS_CHECKED_COUNT, TOTAL_LATIN_MISSPELLING_COUNT
+
     location = f'{versionAbbreviation} {ref}'
-    if len(BIBLE_WORD_SET) < 10_000:
+    if len(AMERICAN_WORD_SET) < 10_000:
         load_dict_sources()
+
+    #if versionAbbreviation in ( 'ULT','UST', 'NET', 'BSB','BLB', 'WEB','WMB', 'LSV', 'FBV', 'LEB', 'ASV', 'Wbstr' ):
+    if state.BibleLanguages[versionAbbreviation] == 'EN-USA':
+         wordSetName = 'USA'
+         wordSet = AMERICAN_WORD_SET
+    # elif versionAbbreviation in ( 'OET-RV','OET-LV', 'OEB', 'WEBBE','WMBB', 'BBE','Moff','JPS','DRA','YLT','Drby','RV', 'KJB-1769','KJB-1611', 'Bshps','Gnva','Cvdl', 'TNT','Wycl', 'Luth','ClVg' ):
+    elif state.BibleLanguages[versionAbbreviation] == 'EN-UK' \
+    or state.BibleLanguages[versionAbbreviation] in ('GER','LAT'): # These ones should be translated
+         wordSetName = 'UK'
+         wordSet = BRITISH_WORD_SET
+    else:
+        raise ValueError( f"Unknown spell-check language for {versionAbbreviation} {state.BibleLanguages[versionAbbreviation]=}" )
+    
+
+    # Specific words expected in specific versions
+    if versionAbbreviation in ('OET','OET-RV','OET-LV'):
+        wordSet.update( ('OET','ESFM','v0.6','Freely-Given.org','WORDTABLE','LV_NT_word_table.tsv','table.tsv',
+                        'ScriptedBibleEditor',
+                        '\\jmp', '_', '_\\em*about', '_\\em*all', '_\\em*caring\\em',
+                        'href="https','openscriptures.org','en.wikipedia.org', # Website refererences
+                        'wpmu2.azurewebsites.net', 'www.GotQuestions.org', 'www.biblicalarchaeology.org', 'www.billmounce.com', 'www.sil.org','textandcanon.org',
+                        'armstronginstitute.org','bibleDifferences.net','bibleandtech.blogspot.com','bibledifferences.net','biblestudyresources','commentary.html','judas%E2%80%99','tongue%E2%80%9D', 'Yeshua%E2%80%99',
+                        'mounce', 'openenglishbible', 'scrollandscreen.com', 'UASVBible.org', 'given.org', 'GitHub.com', 'GreekCNTR.org', # Websites
+                        '%E2%80%9Cdivided','%E2%80%9Cjew%E2%80%9D','v=66013018',
+                        'Amots','Tsor',
+                        ) )
+        if versionAbbreviation == 'OET-LV':
+            wordSet.update( ('LV_OT_word_table.tsv',
+                            'Dawid','Efrayim','Farisaios','Galilaia','Pilatos'
+                            ) )
+    elif versionAbbreviation in ('UST','ULT','UHB','UGNT'):
+        wordSet.update( ('unfoldingWord®','unfoldingWord','tc','en',) )
+    elif versionAbbreviation == 'LSV': # Allow their UPPER CASE Psalm headings
+        wordSet.update( ('A','AN','ABIMELECH','ALL','AND','ASCENTS','AWAY','BEFORE','BEHAVIOR','BET','BY',
+                         'CHANGING','DEDICATION','DAY','DOE','DRIVES',
+                         'ENEMIES','FROM',
+                         'HAS','HOUSE','INSTRUCTION','MIKTAM','MORNING','INSTRUMENTS','HIS',
+                         'ON','OVERSEER','PRAYER','PSALM','SAUL','SAYS','SET','SPOKEN',
+                         'HIM','GOES','ALEPH-BET','YAH','ALEPH','BETH','WHO',
+                        ) )
+    elif versionAbbreviation == 'KJB-1611': # Allow their U P P E R C A S E Book headings
+        wordSet.update( ('B','C','D','E','F','G','H','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z') )
+    # elif versionAbbreviation in ('RV','AST',): # Handle long UPPER CASE titles
+    #     wordSet.update( ('FIRST','SECOND','THIRD','FOURTH','FIFTH','COMMONLY','CALLED','MOSES',) )
+    elif versionAbbreviation in ('DRA','YLT','RV'):
+        wordSet.update( ('baptized',) )
+    elif versionAbbreviation == 'Luth':
+        wordSet.update( ('Yuda',) )
+    elif versionAbbreviation == 'ClVg':
+        wordSet.update( ('Moyses','Yuda') )
 
     # vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Checking spelling of {versionAbbreviation} {ref} '{originalHTMLText}' …" )
     # if '0' not in ref and '-1' not in ref: halt
-    checkedHTMLText = originalHTMLText
+    checkedHTMLText = HTMLTextToCheck
+
+    # Clean up spaces
+    cleanedText =  ( HTMLTextToCheck
+                    .replace( '\n<br>\u2002⇔\u202f', ' ' )
+                    .replace( ' ', ' ' )
+                    .replace( ' ', ' ' )
+                    .replace( '&nbsp;', ' ' ).replace( '\xA0', ' ' )
+                    .replace( '\u202f', ' ' )
+                    .replace( '\n<br>', ' ' )
+                    .replace( '<br>', ' ' )
+                    .replace( '\n', ' ' )
+                    .replace( '  ', ' ' )
+                    )
 
     # Remove unwanted HTML crud
-    cleanedText =  ( originalHTMLText
+    cleanedText =  ( cleanedText
                     .replace( '<div>', '' )
-                    .replace( '<div class="bookHeader">', '' ).replace( '<!--bookHeader-->', '' )
-                    .replace( '<p class="id">', '' ).replace( '<p class="mt1">', '' )
                     .replace( f'<span class="{versionAbbreviation}_verseTextChunk">', '' ).replace( f'<span class="{versionAbbreviation}_trans">', '' )
-                    .replace( '<span class="add">', '' ).replace( '<span class="nd">', '' ).replace( '<span class="wj">', '' ).replace( '<span class="d">', '' )
                     .replace( '<span style="font-size:.75em;">', '' )
-                    .replace( '</span>', '' ).replace( '</p>', '' ).replace( '</div>', '' )
+                    .replace( '<hr style="width:30%;margin-left:0;margin-top: 0.3em">', '' ).replace( '<hr style="width:35%;margin-left:0;margin-top: 0.3em">', '' )
+
+                    .replace( '<span class="synonParr" title="synonymous parallelism">≈</span>', '' )
+                    .replace( '<span class="antiParr" title="antithetic parallelism">^</span>', '' )
+                    .replace( '<span class="synthParr" title="synthetic parallelism">→</span>', '' )
+
+                    .replace( '<span class="addArticle" title="added article">', '' )
+                    .replace( '<span class="addDirectObject" title="added direct object">', '' )
+                    .replace( '<span class="addDirectObject unsure" title="added direct object (uncertain)">', '' )
+                    .replace( '<span class="addElided" title="added elided info">', '' )
+                    .replace( '<span class="addExtra" title="added implied info">', '' )
+                    .replace( '<span class="addNegated" title="negated">', '' )
+                    .replace( '<span class="addOwner" title="added ‘owner’">', '' )
+                    .replace( '<span class="addPluralised" title="changed number">', '' )
+                    .replace( '<span class="addPronoun" title="used pronoun">', '' )
+                    .replace( '<span class="addReferent" title="inserted referent">', '' )
+                    .replace( '<span class="addReferent unsure" title="inserted referent (uncertain)">', '' )
+                    .replace( '<span class="addReword" title="reworded">', '' )
+                    .replace( '<span class="addReword unsure" title="reworded (uncertain)">', '' )
+                    .replace( '<span class="RVadd unsure" title="added info (uncertain)">', '' ) # (plain) RVadd is removed by RegEx
+
+                    .replace( '</span>s ', '</span> ' ).replace( '</span>s:', '</span>:' ) # LORDs
                     )
+    for divMarker in ( 'bookHeader','bookIntro',
+                      'iot',
+                      's1',
+                        ):
+        cleanedText =  cleanedText.replace( f'<div class="{divMarker}">', '' ).replace( f'<!--{divMarker}-->', '' )
+    for paragraphMarker in ( 'id','rem',
+                        'mt1','mt2','mt3','mt4',
+                        'iot','io1','io2','is1','is2','ip','im',
+                        'ms1','ms2',
+                        's1',
+                        'p', # OEB CH1_-1:0 uses p instead of ip!
+                        ):
+        cleanedText =  cleanedText.replace( f'<p class="{paragraphMarker}">', '' )
+    for spanMarker in ('add','addArticle','addExtra','addCopula','addDirectObject', # TODO: Why don't these have title fields???
+                       'untr','nominaSacra',
+                       'ior',
+                       'nd','wj','d','bk','qt','sc',
+                       'qs','sig',
+                        'ft', 'fnRef','fnText', # 'f', # We intentionally omit 'fr'
+                        'li1','li2','li3',
+                        'theb','va', # in NET
+                        'ul',
+                        ):
+        cleanedText =  cleanedText.replace( f'<span class="{spanMarker}">', '' )
+    cleanedText =  cleanedText.replace( f'<span class="{versionAbbreviation}_chapterIntro">', '' )
+    for formatField in ('i','em','small','sup','b'):
+        cleanedText =  cleanedText.replace( f'<{formatField}>', '' ).replace( f'</{formatField}>', '' )
+    cleanedText = FOOTNOTE_OR_XREF_CALLER_REGEX.sub( '', cleanedText )
+    cleanedText = ANCHOR_LINK_REGEX.sub( '', cleanedText )
+    cleanedText = RV_ADD_REGEX.sub( '', cleanedText )
+    if versionAbbreviation in ('OET-RV','OET-LV'): # we want to check the actual footnote content
+        cleanedText = cleanedText.replace( '<div class="footnotes">', '' ).replace( '</div><!--footnotes-->', '' )
+        cleanedText = FOOTNOTE_Ps_REGEX.sub( '', cleanedText )
+    else: # we won't bother checking footnote content for most versions, so delete the whole thing
+        cleanedText = FOOTNOTES_DIV_REGEX.sub( '', cleanedText )
+    cleanedText = CROSSREFS_DIV_REGEX.sub( '', cleanedText )
     assert '<span' not in cleanedText, f"{versionAbbreviation} {ref} {cleanedText=}"
-    assert 'class="' not in cleanedText, f"{versionAbbreviation} {ref} {cleanedText=}"
+    assert ' class="' not in cleanedText, f"{versionAbbreviation} {ref} {cleanedText=}"
+    assert ' title="' not in cleanedText, f"{versionAbbreviation} {ref} {cleanedText=}"
+    assert ' id="' not in cleanedText, f"{versionAbbreviation} {ref} {cleanedText=}"
+    assert ';margin' not in cleanedText, f"{versionAbbreviation} {ref} {cleanedText=}"
+    cleanedText = cleanedText.replace( '</span>', '' ).replace( '</p>', '' ).replace( '</div>', '' ).replace( '</a>', '' )
 
     # Now general or punctuation clean-ups
     cleanedText =  ( cleanedText
-                    .replace( '\n<br>\u2002⇔\u202f', ' ')
                     .replace( '\n', ' ' ) # Treat newlines as spaces
-                    .replace( '—', ' ' ) # Treat em-dashes as spaces
-                    .replace( '-', ' ' ) # Treat hyphens as spaces, i.e., split compound words (both good and bad like 'non-combatant')
+                    .replace( '—', ' ' ).replace( '–', ' ' ) # Treat em-dashes and en-dashes as spaces
+                    .replace( '…', ' ').replace( '...', ' ') # Treat ellipsis as spaces
                     .replace( '/', ' ' ) # Treat forward slash as spaces (sometimes used to separate alternate words like 'dew/rain')
+                    .replace( '_', ' ' ) # Treat underlines as spaces
+                    .replace( '{', '' ).replace( '}', '' ) # Delete braces
                     .replace( '¶', '' ) # Delete pilcrow
+                    .replace( '⇔', '' ).replace( '§', '' ).replace( '•', '' ) # Delete derived USFM format markers
+                    .replace( '’s', "'s" ) # Change apostrophe
                     )
+    if versionAbbreviation == 'OET-LV':
+        cleanedText =  ( cleanedText
+                        .replace( '˓', '' ).replace( '˒', '' ) # Around gloss-helpers
+                        )
+    elif versionAbbreviation == 'LEB':
+        cleanedText =  ( cleanedText
+                        .replace( '〚', '' ).replace( '〛', '' ) # White square brackets (from LEB)
+                        )
 
     # Now tidy-up any USFM stuff                    )
     # for fieldName in USFM_CLOSED_FIELDS_TO_COMPLETELY_REMOVED:
@@ -225,13 +477,21 @@ def spellCheckText( versionAbbreviation:str, ref:str, originalHTMLText:str ) -> 
     #                 )
 
     # Final Bible clean-ups
+    #   (Easier to remove these known-to-be-correct words here, rather than to handle them later)
+    thingsToReallyDelete = ['(s)','(es)','[s]',
+                            '(sg)','(pl)',
+                            ]
+    for thingToReallyDelete in thingsToReallyDelete:
+        cleanedText = cleanedText.replace( thingToReallyDelete, '' )
+    for wordToDelete in PREAPPROVED_WORDS_TO_REMOVE:
+        cleanedText = cleanedText.replace( wordToDelete, 'ReMoV' ) # If we really delete them, then our repeated words check does weird things
     cleanedText =  ( cleanedText
-                    .replace( 'LORD', '' ) # Delete ALL CAPS version
-                    .replace( 'Yesus', '' ).replace( 'Yhesus', '' ).replace( 'Yhesu', '' ).replace( 'Yerusalem', '' ) # Mangled names
-                        .replace( 'Yacob', '' ).replace( 'Yames', '' ).replace( 'Yohn', '' ).replace( 'Yoseph', '' ).replace( 'Yoses', '' )
-                    .replace( 'you_all', '' ).replace( 'you(sg)', '' ).replace( 'your(pl)', '' ) # Fancy pronouns
+                    .replace( '-', ' ' ) # Treat hyphens as spaces, i.e., split compound words (both good and bad like 'non-combatant')
                     .replace( '  ', ' ' )
                     )
+
+    if versionAbbreviation in ('Luth','ClVg'):
+        cleanedText = cleanedText.replace( '_', ' ' ) # Things like 'he_said'
 
     cleanedText = cleanedText.strip().replace( '  ', ' ' )
     # vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    About to check spelling of '{cleanedText}' …" )
@@ -244,28 +504,24 @@ def spellCheckText( versionAbbreviation:str, ref:str, originalHTMLText:str ) -> 
 
         if word in ('◙','…','…◙','◘'): continue # Untranslated or not-yet-translated verse
         if word.startswith( '###' ): continue # it's an fr or xo field
-        for _x in range( 3 ):
-            # We can have nested things, especially at the end of a sentence
-            #   e.g., 'my¦141837 heart¦141839 in \+add the\+add* \+nd messiah¦141841\+nd*.\sig*'
-            while word.startswith('‘') or word.startswith('“') \
+        if 'ā' in word or 'ē' in word or 'ī' in word or 'ō' in word or 'ū' in word: continue # It's a transliteration
+        if 'Ā' in word or 'Ē' in word or 'Ī' in word or 'Ō' in word or 'Ū' in word: continue # It's a transliteration
+        if 'ⱪ' in word or 'ʦ' in word or 'ʸ' in word: continue # It's a transliteration
+        if 'ⱪ' in word or 'Ē' in word or 'Ī' in word or 'Ş' in word or 'Ū' in word: continue # It's a transliteration
+        if 'ₐ' in word or 'ₑ' in word or 'ₒ' in word: continue # It's a transliteration
+        if 'ˊ' in word or 'XXX' in word: continue # It's a transliteration
+        for _x in range( 2 ):
+            # We can have nested punctuation, especially at the end of a sentence
+            while word.startswith('‘') or word.startswith('“') or word.startswith("'") or word.startswith('"') \
             or word.startswith('(')  or word.startswith('['):
                 word = word[1:]
-            for charMarker in ('add','+add','em','+em','nd','+nd','sc','wj','+wj','bd','it','+it','bdit','tl',
-                                'ior','bk','sig','sup','qs',
-                                'f','ft', # We intentionally omit 'fr'
-                                'x','xt'): # We intentionally omit 'xo'
-                if word == f'\\{charMarker}': # These are the character fields that we use in the OET
-                    word = None
-                    break
-                while word.endswith('.') or word.endswith(',') \
-                or word.endswith('’') or word.endswith('”') \
+            while word.endswith('.') or word.endswith(',') \
+                or word.endswith('’') or word.endswith('”') or word.endswith("'") or word.endswith('"') \
                 or word.endswith('?') or word.endswith('!') \
                 or word.endswith(':') or word.endswith(';') \
                 or word.endswith(')') or word.endswith(']') \
                 or word.endswith('…'): 
                     word = word[:-1]
-                if word.endswith( f'\\{charMarker}*' ):
-                    word = word[:-len(charMarker)-2]
             if not word: break
 
             # Remove \add markers
@@ -282,31 +538,67 @@ def spellCheckText( versionAbbreviation:str, ref:str, originalHTMLText:str ) -> 
         if '¦' in word:
             assert word.count( '¦' ) == 1, f"{word=} @ {location}"
             word, number = word.split( '¦', 1 )
-            assert number.isdigit(), f"'{word}¦{number}' from '{originalHTMLText}' @ {location}"
+            assert number.isdigit(), f"'{word}¦{number}' from '{HTMLTextToCheck}' @ {location}"
         # Get rid of possessives (using straight apostrophe ')
         if word.endswith("'"): word = word[:-1]
         elif word.endswith("'s"): word = word[:-2]
         if not word: continue
         if word[0].isdigit(): continue # Probably a ior or fr or xo reference
         if word.startswith( 'http' ): continue # URL
-        if word not in BIBLE_WORD_SET and f'{word[0].lower()}{word[1:]}' not in BIBLE_WORD_SET:
-            if versionAbbreviation not in ('Luth','ClVg'):
-                vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f'''    {word} is suspect @ {location} with {lastLastWord=} {lastWord=} {word=} {nextWord=} from {originalHTMLText=}''' )
+
+        if versionAbbreviation == 'Luth': TOTAL_GERMAN_WORDS_CHECKED_COUNT += 1
+        elif versionAbbreviation == 'ClVg': TOTAL_LATIN_WORDS_CHECKED_COUNT += 1
+        else: TOTAL_ENGLISH_WORDS_CHECKED_COUNT += 1
+        if word not in wordSet and f'{word[0].lower()}{word[1:]}' not in wordSet:
+            if versionAbbreviation not in ('Luth','ClVg'): # native or modernised English
+                vPrint( 'Normal' if ((versionAbbreviation!='LSV' and word.upper()==word)
+                            or 'ReMoV' in word
+                            or (word in ('s','heretage','yelde','deme','maden','virtuees','el','aha','loge','drede',
+                                   'fortyth','fulness','digged',"'And",'baptized','holden','hous','stedfast',
+                                   'schent','knowe','madist','clepe','veyn','hopide','thouyten','redy','spaken',
+                                   'silf','nedi','modir','sunne','hygh','i','sprete','wyn','ethir','zobah','hode','honde','equite',
+                                   'tashcheth','kindreds','tho','ynne','oute','wrooth','brak','thei','eere','hade','ioiyng',
+                                   'stablish','puplis','nyle','Forsothe','hertli','drinke')
+                                        and 'PSA' not in location) # coz Wycl versification doesn't usually match anyway
+                            or 'twas' in word )
+                        and word not in ('OK','NOT','SURE','TOO','LITERAL')
+                    else 'Info', DEBUGGING_THIS_MODULE, f'''    {word} is suspect {wordSetName} @ {location} from {originalHTMLText=}''' )
+            else: # Luth or ClVg
+                vPrint( 'Normal' if word.upper()==word
+                       or word in ('illis','illi','tuum','eis','eo','tuis','aut','Ende','tuæ','mihi','Tu','tu','Domine','meam','yudgment',
+                                   'ihn','als','tut','terra','es','childrens','Zeit','macht','loben','sind','yudgement','se','meas',
+                                   'dico','tamquam','tuorum','sie','sich','nobis','auf','gentes','irh','nostri',
+                                   'sua','suo','Wege','lobet','dich','fuit','regem','ac','seid','euer','er',)
+                    else 'Info', DEBUGGING_THIS_MODULE, f'''    {word} is suspect @ {location} from {originalHTMLText=}''' )
             if versionAbbreviation == 'Luth':
                 BAD_GERMAN_WORD_SET.add( word )
                 BAD_GERMAN_WORD_LIST.append( (word,location) )
+                BAD_GERMAN_COUNTS[word] += 1
                 TOTAL_GERMAN_MISSPELLING_COUNT += 1
+                if checkedHTMLText.count( word ) == 1:
+                    # print( f"MARKING {versionAbbreviation} {word=} in {ref} {checkedHTMLText=}" )
+                    checkedHTMLText = checkedHTMLText.replace( word, f'<span title="Possible misspelt or untranslated word" class="spelling">{word}</span>', 1 )
             elif versionAbbreviation == 'ClVg':
                 BAD_LATIN_WORD_SET.add( word )
                 BAD_LATIN_WORD_LIST.append( (word,location) )
+                BAD_LATIN_COUNTS[word] += 1
                 TOTAL_LATIN_MISSPELLING_COUNT += 1
+                if checkedHTMLText.count( word ) == 1:
+                    # print( f"MARKING {versionAbbreviation} {word=} in {ref} {checkedHTMLText=}" )
+                    checkedHTMLText = checkedHTMLText.replace( word, f'<span title="Possible misspelt or untranslated word" class="spelling">{word}</span>', 1 )
             else: # assume it's English
                 BAD_ENGLISH_WORD_SET.add( word )
                 BAD_ENGLISH_WORD_LIST.append( (word,location) )
+                BAD_ENGLISH_COUNTS[word] += 1
                 TOTAL_ENGLISH_MISSPELLING_COUNT += 1
-                if checkedHTMLText.count( word ) == 1:
-                    if versionAbbreviation not in ('KJB-1611',): # We don't do this coz it messes up later addition of hilites
+                if versionAbbreviation not in ('KJB-1611',): # We don't do this coz it messes up later addition of hilites
+                    if checkedHTMLText.count( word ) == 1:
+                        # print( f"MARKING {versionAbbreviation} {word=} in {ref} {checkedHTMLText=}" )
                         checkedHTMLText = checkedHTMLText.replace( word, f'<span title="Possible misspelt word" class="spelling">{word}</span>', 1 )
+                    elif versionAbbreviation=='OET-RV' and checkedHTMLText.count( word )==2 and len(word)>4: # The OET-RV text has footnotes included
+                        # We want to be certain to replace the word in the actual footnote text, not in the caller popup
+                        checkedHTMLText = rreplace( checkedHTMLText, word, f'<span title="Possible misspelt word" class="spelling">{word}</span>', 1 )
+            MISPELLING_VERSION_REF_DICT[versionAbbreviation].append( (word,ref) ) # We can save these to disk later
         if word == lastWord and word not in ('had','that'):
             vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f'''    Possible duplicated {word=} @ {location} with "{lastLastWord} {lastWord} {word} {nextWord}"''' )
             dupWord = f'{word} {word}'
@@ -320,25 +612,53 @@ def spellCheckText( versionAbbreviation:str, ref:str, originalHTMLText:str ) -> 
                 BAD_ENGLISH_WORD_SET.add( dupWord )
                 BAD_ENGLISH_WORD_LIST.append( (dupWord,location) )
             if checkedHTMLText.count( word ) == 2:
-                if versionAbbreviation not in ('KJB-1611',): # We don't do this coz it messes up later addition of hilites
+                if versionAbbreviation not in ('KJB-1611',): # We don't do yet this coz it messes up later addition of hilites
+                    # print( f"MARKING {versionAbbreviation} {word=} in {ref} {checkedHTMLText=}" )
                     checkedHTMLText = checkedHTMLText.replace( word, f'<span title="Possible duplicated word" class="duplicate">{word}</span>', 2 )
         lastLastWord = lastWord
         lastWord = word
 
     return checkedHTMLText
-# end of spellCheckEnglish.spellCheckText
+# end of spellCheckEnglish.spellCheckAndMarkHTMLText
 
 
-def printSpellCheckSummary() -> None:
+def printSpellCheckSummary( state ) -> None:
     """
     Prints some summary results
     """
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  TOTAL BAD_LATIN_WORDS = {TOTAL_LATIN_MISSPELLING_COUNT:,}" )
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  BAD_LATIN_WORDS ({len(BAD_LATIN_WORD_LIST):,}) ({len(BAD_LATIN_WORD_SET):,} unique){f': {BAD_LATIN_WORD_SET}' if BibleOrgSysGlobals.verbosityLevel>2 else ''}" )
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  TOTAL BAD_GERMAN_WORDS = {TOTAL_GERMAN_MISSPELLING_COUNT:,}" )
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  BAD_GERMAN_WORDS ({len(BAD_GERMAN_WORD_LIST):,}) ({len(BAD_GERMAN_WORD_SET):,} unique){f': {BAD_GERMAN_WORD_SET}' if BibleOrgSysGlobals.verbosityLevel>2 else ''}" )
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  TOTAL BAD_ENGLISH_WORDS = {TOTAL_ENGLISH_MISSPELLING_COUNT:,}" )
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  BAD_ENGLISH_WORDS ({len(BAD_ENGLISH_WORD_LIST):,}) ({len(BAD_ENGLISH_WORD_SET):,} unique){f': {BAD_ENGLISH_WORD_SET}' if BibleOrgSysGlobals.verbosityLevel>2 else ''}\n" )
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, "\n\nSpell-check results:" )
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  TOTAL LATIN WORDS CHECKED = {TOTAL_LATIN_WORDS_CHECKED_COUNT:,} BAD_LATIN WORDS {len(BAD_LATIN_WORD_LIST):,} = {len(BAD_LATIN_WORD_LIST)*100//TOTAL_LATIN_WORDS_CHECKED_COUNT}% ({len(BAD_LATIN_WORD_SET):,} unique){f': {BAD_LATIN_WORD_SET}' if BibleOrgSysGlobals.verbosityLevel>2 else ''}" )
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    TOTAL BAD LATIN WORDS = {TOTAL_LATIN_MISSPELLING_COUNT:,} WORST LATIN WORDS {[(k, BAD_LATIN_COUNTS[k]) for k in sorted(BAD_LATIN_COUNTS, key=BAD_LATIN_COUNTS.get, reverse=True)][:13]}" )
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  TOTAL GERMAN WORDS CHECKED = {TOTAL_GERMAN_WORDS_CHECKED_COUNT:,} BAD_GERMAN WORDS {len(BAD_GERMAN_WORD_LIST):,} {len(BAD_GERMAN_WORD_LIST)*100//TOTAL_GERMAN_WORDS_CHECKED_COUNT}% ({len(BAD_GERMAN_WORD_SET):,} unique){f': {BAD_GERMAN_WORD_SET}' if BibleOrgSysGlobals.verbosityLevel>2 else ''}" )
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    TOTAL BAD GERMAN WORDS = {TOTAL_GERMAN_MISSPELLING_COUNT:,} WORST GERMAN WORDS {[(k, BAD_GERMAN_COUNTS[k]) for k in sorted(BAD_GERMAN_COUNTS, key=BAD_GERMAN_COUNTS.get, reverse=True)][:13]}" )
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  TOTAL ENGLISH WORDS CHECKED = {TOTAL_ENGLISH_WORDS_CHECKED_COUNT:,} BAD_ENGLISH WORDS {len(BAD_ENGLISH_WORD_LIST):,} {len(BAD_ENGLISH_WORD_LIST)*100//TOTAL_ENGLISH_WORDS_CHECKED_COUNT}% ({len(BAD_ENGLISH_WORD_SET):,} unique){f': {BAD_ENGLISH_WORD_SET}' if BibleOrgSysGlobals.verbosityLevel>2 else ''}" )
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    TOTAL BAD ENGLISH WORDS = {TOTAL_ENGLISH_MISSPELLING_COUNT:,} WORST ENGLISH WORDS {[(k, BAD_ENGLISH_COUNTS[k]) for k in sorted(BAD_ENGLISH_COUNTS, key=BAD_ENGLISH_COUNTS.get, reverse=True)][:14]}\n" )
+
+    # for versionAbbreviation in ('OET-RV',): # Just out of curiousity # ,'OET-LV', 'ULT','UST'
+    #     print( f"\n{versionAbbreviation} [Using {state.BibleLanguages[versionAbbreviation]} dictionary] ({len(MISPELLING_VERSION_REF_DICT[versionAbbreviation]):,}) {MISPELLING_VERSION_REF_DICT[versionAbbreviation]}\n")
+
+    for versionAbbreviation in ('OET-RV','OET-LV', 'Wycl'): # Just out of curiousity # 'ULT','UST', 'BSB',
+        badDict = defaultdict(int)
+        for word,_ref in MISPELLING_VERSION_REF_DICT[versionAbbreviation]:
+            badDict[word] += 1
+        sortedDict = sorted( badDict.items(), key=lambda item: item[1], reverse=True )
+        displayList = [wordCountTuple for wordCountTuple in sortedDict if wordCountTuple[1]>(len(sortedDict)//20) or len(sortedDict)<25]
+        if len(displayList)<10 and len(displayList)<len(sortedDict): displayList += [wordCountTuple for ww,wordCountTuple in enumerate(sortedDict) if ww<10] # Could cause some duplicates
+        print( f"\n{versionAbbreviation} (using {state.BibleLanguages[versionAbbreviation]} dictionary) from {len(MISPELLING_VERSION_REF_DICT[versionAbbreviation]):,} refs got {len(sortedDict):,} unique words (showing {len(displayList):,}): {displayList}\n")
+
+    totalWordsWithRef = 0
+    for versionAbbreviation in MISPELLING_VERSION_REF_DICT:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    {versionAbbreviation} misspelt words (with references) = {len(MISPELLING_VERSION_REF_DICT[versionAbbreviation]):,}" )
+        totalWordsWithRef += len( MISPELLING_VERSION_REF_DICT[versionAbbreviation] )
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  TOTAL misspelt words (with references) = {totalWordsWithRef:,}\n" )
+
+    ethSet = set()
+    for versionAbbreviation in MISPELLING_VERSION_REF_DICT:
+        if versionAbbreviation not in ('Luth','ClVg'):
+            for word,_ref in MISPELLING_VERSION_REF_DICT[versionAbbreviation]:
+                if word.endswith( 'eth' ) or word.endswith( 'est' ):
+                    ethSet.add( word )
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  ALL English -eth or -est misspelt words: ({len(ethSet):,}) {sorted(ethSet)}\n" )
 # end of spellCheckEnglish.printSpellCheckSummary()
 
 # end of spellCheckEnglish.py
