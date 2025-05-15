@@ -45,7 +45,7 @@ from BibleOrgSys.BibleOrgSysGlobals import dPrint, fnPrint
 from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39
 
 
-LAST_MODIFIED_DATE = '2025-04-25' # by RJH
+LAST_MODIFIED_DATE = '2025-05-14' # by RJH
 SHORT_PROGRAM_NAME = "settings"
 PROGRAM_NAME = "OpenBibleData (OBD) Settings"
 PROGRAM_VERSION = '0.98'
@@ -53,10 +53,10 @@ PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
 
-OET_VERSION_NUMBER_STRING = 'v0.37.5' # Incremented on most runs
+OET_VERSION_NUMBER_STRING = 'v0.38.8' # Incremented on most runs
 
 TEST_MODE = True # Writes website into 'Test' subfolder if True
-TEST_OT_BOOK_LIST = ['PSA','JOL'] # Books in progress
+TEST_OT_BOOK_LIST = ['PSA','HOS'] # Books in progress
 TEST_NT_BOOK_LIST = ['MRK'] # Shortest gospel
 TEST_BOOK_LIST_CHANGED = False
 
@@ -129,7 +129,7 @@ NUM_EXTRA_MODES = 7 # Related passages, topics, parallel and interlinear verses,
 
 OET_UNFINISHED_WARNING_HTML_TEXT = 'This is still a very early look into the unfinished text of the <em>Open English Translation</em> of the Bible. Please double-check the text in advance before using in public.'
 OET_UNFINISHED_WARNING_HTML_PARAGRAPH = f'<p class="rem">{OET_UNFINISHED_WARNING_HTML_TEXT}</p>'
-OET_SINGLE_VERSE_HTML_TEXT = 'This view shows ‘verses’ which are not natural language units and hence sometimes only part of a sentence will be visible. Normally the OET discourages the reading of individual ‘verses’, but this view is only designed for doing comparisons of different translations.'
+OET_SINGLE_VERSE_HTML_TEXT = 'This view shows ‘verses’ which are not natural language units and hence sometimes only part of a sentence will be visible. Normally the OET discourages the reading of individual ‘verses’, but this view is only designed as a tool for doing comparisons of different translations.'
 OETS_UNFINISHED_WARNING_HTML_TEXT = 'The OET segments on this page are still very early looks into the unfinished texts of the <em>Open English Translation</em> of the Bible. Please double-check these texts in advance before using in public.'
 # OETS_UNFINISHED_WARNING_HTML_PARAGRAPH = f'<p class="rem">{OETS_UNFINISHED_WARNING_HTML_TEXT}</p>'
 
@@ -250,14 +250,14 @@ class State:
         'FBV': '../copiedBibles/English/eBible.org/FBV/',
         'TCNT': '../copiedBibles/English/eBible.org/TCNT/',
         'T4T': '../copiedBibles/English/eBible.org/T4T/',
-        'LEB': '../copiedBibles/English/LogosBibleSoftware/LEB/LEB.xml', # not OSIS
+        'LEB': '../copiedBibles/English/LogosBibleSoftware/LEB/LEB.updated.xml', # not OSIS
         'NRSV': '../copiedBibles/English/NRSV_verses.tsv',
         'NKJV': '../copiedBibles/English/NKJV_verses.tsv',
         'NAB': '../copiedBibles/English/NAB_verses.tsv',
         'BBE': '../copiedBibles/English/eBible.org/BBE/',
         'Moff': '../copiedBibles/English/Moffat/',
         'JPS': '../copiedBibles/English/eBible.org/JPS/',
-        'Wymth': '../Bibles/English/Weymouth_NT-1903/',
+        'Wymth': '../Bibles/EnglishTranslations/Weymouth_NT-1903/',
         'ASV': '../copiedBibles/English/eBible.org/ASV/',
         'DRA': '../copiedBibles/English/eBible.org/DRA/',
         'YLT': '../copiedBibles/English/eBible.org/YLT/',
@@ -265,7 +265,7 @@ class State:
         'RV': '../copiedBibles/English/eBible.org/RV/', # with deuterocanon
         'Wbstr': '../copiedBibles/English/eBible.org/WBS/',
         'KJB-1769': '../copiedBibles/English/eBible.org/KJB/', # with deuterocanon -- ALWAYS NEEDED if KJB-1611 and some others are included
-        'KJB-1611': '../Bibles/English/KJB-1611/', # with deuterocanon
+        'KJB-1611': '../Bibles/EnglishTranslations/KJB-1611/', # with deuterocanon
         'Bshps': '../copiedBibles/English/BibleSuperSearch/BB/bishops.txt',
         'Gnva': '../copiedBibles/English/eBible.org/GNV/',
         'Cvdl': '../copiedBibles/English/BibleSuperSearch/CB/coverdale.txt',
@@ -679,7 +679,7 @@ We’re also grateful to the <a href="https://www.Biblica.com/clear/">Biblica Cl
                 'licence': '''<p class="licence">The Message text may be quoted in any form (written, visual, electronic, or audio), up to and inclusive of five hundred (500) verses, without express written permission of the publisher, NavPress Publishing Group, providing the verses quoted do not amount to a complete book of the Bible and do not account for twenty-five percent (25%) or more of the total text of the work in which they are quoted.</p>''' },
         'NET': {'about': '<p class="about">New English Translation (2016).</p>',
                 'copyright': '<p class="copyright">Copyright © (coming).</p>',
-                'licence': '''<p class="licence"><a href="https://bible.org/downloads">Free</a> (without their many notes, which sadly we're unable to include).</p>''',
+                'licence': '''<p class="licence"><a href="https://bible.org/downloads">Free</a> (without their many notes, which we’re unable to include, sadly as we’ve discovered that a few of them are actually essential for qualifying or clarifying their translation).</p>''',
                 'acknowledgements': '<p class="acknwldg">(coming).</p>' },
         'LSV': {'about': '<p class="about">Literal Standard Version (2020).</p>',
                 'copyright': '<p class="copyright">Copyright © (coming).</p>',
@@ -783,6 +783,7 @@ You’ll notice that there are no speech marks in the 1611 KJB (just as there ar
 Also note that there was no letter ‘J’ in the 1611 KJB, e.g., ‘John’ was spelt as ‘Iohn’ (and would have most likely still been pronounced as ‘Yon’ although that pronunciation was probably already beginning to change).
 Footnote markers PRECEDE the text that they concern,
         rather than the modern practice of having footnote markers follow the text.</p>
+<p class="note">The 1611 KJB will look more original/authentic on your computer/device if you install a black-letter font such as <a href="https://fonts.google.com/specimen/UnifrakturCook">Unifraktur Cook from Google</a>.</p>
 <p class="note">Finally, note that the KJB included ‘The Bookes called Apocrypha’ as can be seen <a href="https://archive.org/details/1611TheAuthorizedKingJamesBible/page/n37/mode/1up">here</a>, so an additional fourteen ‘bookes’ beyond the often-expected sixty-six.</p>''' },
         'Bshps': {'about': '<p class="about">Bishops Bible (1568, 1602).</p>',
                 'copyright': '<p class="copyright">Public Domain.</p>',
@@ -877,8 +878,7 @@ Footnote markers PRECEDE the text that they concern,
         assert versionLocation.startswith('../copiedBibles/') \
             or versionLocation.startswith('../Bibles/') \
             or versionLocation.startswith('../../OpenEnglishTranslation--OET/') \
-            or versionLocation.startswith('../../Forked/') \
-            or versionLocation.startswith('/mnt/SSDs/Bibles/'), f"{versionLocation=}"
+            or versionLocation.startswith('../../Forked/'), f"{versionLocation=}"
     assert len(BibleVersionDecorations) == len(BibleVersions) + len(auxilliaryVersions) + NUM_EXTRA_MODES - len(versionsWithoutTheirOwnPages), \
         f"{len(BibleVersionDecorations)=} {len(BibleVersions)=} + {len(auxilliaryVersions)=} + {NUM_EXTRA_MODES=} - {len(versionsWithoutTheirOwnPages)=} sum={len(BibleVersions)+len(auxilliaryVersions)+4-len(versionsWithoutTheirOwnPages)}"
         # Above adds Parallel and Interlinear and Dictionary but subtracts selected-verses-only versions

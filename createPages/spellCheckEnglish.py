@@ -44,10 +44,10 @@ from BibleOrgSys import BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import vPrint, fnPrint, dPrint
 
 
-LAST_MODIFIED_DATE = '2025-04-25' # by RJH
+LAST_MODIFIED_DATE = '2025-05-15' # by RJH
 SHORT_PROGRAM_NAME = "spellCheckEnglish"
 PROGRAM_NAME = "English Bible Spell Check"
-PROGRAM_VERSION = '0.44'
+PROGRAM_VERSION = '0.46'
 PROGRAM_NAME_VERSION = '{} v{}'.format( SHORT_PROGRAM_NAME, PROGRAM_VERSION )
 
 DEBUGGING_THIS_MODULE = False
@@ -65,78 +65,99 @@ INITIAL_BIBLE_WORD_LIST = ['3.0','UTF','USFM', '©', 'CC0',
                     'nomina','Nomina','sacra',
                     'Deutercanon','Deuterocanonicals',
 
-                    'Abimelek','Abshalom','Ahimelek','Amatsyah','Ayyalon','Azaryah',
-                    'Benyamin','Benyamite','Benyamites', 'Beyt',
-                    'Efraim','Efron','Elifaz','Eliyyah','Esaw',
-                    'Far\'oh','Far’oh', 'Finehas',
+                    # OET-LV and OET-RV names
+                    #   Note: OET-LV names often use special characters (e.g., macrons on vowels, plus unusual consonantal forms)
+                    'Abimelek','Abraʼam','Abshalom','Ahimelek','Amatsyah',
+                        'Asaf','Ayyalon','Azaryah',
+                    'Bartimeus','Benyamin','Benyamite','Benyamites', 'Bethania', 'Beyt',
+                    'Dammeseq',
+                    'ʼEfrayim','Efraim','Efron','Elifaz','Eliyyah','Esaw',
+                    'Far\'oh','Far’oh', 'Fəlishtiy', 'Finehas',
                     'Goliat',
-                    'Hizkiyyah','Hofni',
+                    'Hidutun','Hizkiyyah','Hofni','Hoshea',
                     'Isayah','Ishma\'el','Iyyov',
-                    'Kayin',
+                    'Kaisar','Kasdiy','Kayin','Kush',
                     'Lavan','Lakish','Layish',
-                    'Malaki','Manashsheh',
+                    'Malaki','Manashsheh','Mənashsheh',
                     'Metushalah',
                     'Mikal','Milkah','Mitspah','Mitsrayim',
                     'Mordekai','Mosheh',
                     'Natan',
-                    'Petros','Potifar',
-                    'Sha\'ul','Sha’ul', 'She’ol',
-                    'Shekem','Shelomoh', 'Shemu\'el','Shemu’el',
+                    'Paulos','Petros','Potifar',
+                    'Qoraḩ',
+                    'Sha\'ul','Sha’ul', 'Shəkem', 'She’ol',
+                    'Shekem','Shelomoh','Shəlomoh', 'Shemu\'el','Shemu’el',
                     'Shim’on','Shimshon',
                     'Shomron',
                     'Shushan',
                     'Tsevaot','Tsidon','Tsiklag',
                     'Tsiyyon','Syon',
                     'Uriyyah','Uzziyyah',
-                    'Yacob',
+                    'Yacob','Yacov','Yakov', # Need a spelling decision here
                         'Yael',
                         'Yafet','Yafo',
                         'Yair',
                         'Yakob',
-                        'Yared',
-                    'Yehoshafat','Yehoshua','Yehud','Yericho','Yeroboam','Yerushalem','Yeshayah','Yetro',
-                        'Yesse','Yishay',
+                        'Yareb','Yared',
+                    'Yehoshafat','Yehoshua','Yehu','Yehud','Yericho','Yeroboam','Yerushalem','Yeshayah','Yetro',
+                        'Yesse','Yesu','Yishay',
                         'Yisrael','Yisra\'el','Yisra’el', # Need a spelling decision here
-                        'Yitshak',
-                        'Yoav',
+                        'Yitshak','Yizre’el',
+                        'Yoash','Yoav',
                         'Yhn','Yohan','Yohannes','Yochanan','Yohan-the-Immerser',
                         'Yoel','Yoktan','Yonah','Yonatan','Yoppa','Yordan','Yosef','Yoshua','Yotam',
-                    'Yudah','Yudas','Yude','Yudea','Yudean','Yudeans',
-                    'Zekaryah','Zofar',
+                    'Yudah','Yehudah','Youdaia', # Need a spelling decision here
+                    'Yudas','Youdas',
+                    'Yude','Yudea','Yudean','Yudeans',
+                    'Zebedaios','Zekaryah','Zofar',
 
                     'black-grained','building-stone',
                     'efod','el','emerald-looking',
                     'false-teachers','finely-ground','finely-spun',
                     'Halleluyah','house-servants',
                     'law-breaker',
-                    'maschil','michtam',
+                    'maschil','maskil','michtam',
                     'non',
                     'pass-over',
                     'tashheth','tent-making',
 
-                    'IN','PRAISE','GIVE','LOVE','SAW','IS','AM','ARE','HERE','THERE','COMMONLY','CALLED','NOW',
-                    'THE','THAT','THIS','THESE','THINGS',
-                    'APOSTLES','GOSPEL','ACCORDING','TO','UNTO','ST','AND','PROPHET','PREACHER','BRANCH',
-                    'SAVE','SERVANT','SERVANTS','MAN','BURDEN','OUR','RIGHTEOUSNESS',
-                    'KING','OF','JEWS','YEWS','HAPPY','HOLY','HOLINESS','THRONE','PEACE','MOTHER','EARTH','GREAT','MYSTERY',
-                    'HARLOTS','PROSTITUTES','ABOMINATIONS',
-                    'BOOK','ORIGINAL','BASE','TEXT','PARABLE','NOTES','RELEASE','STATUS','TAGS','WORD','WORDS','SECTION','PRAYER','VISION',
-                    'END','COME','SING','BEHOLD','STAR','SHALL','RISE','STRINGED','UNKNOWN',
-                    'WHAT','WHICH','WHO',
+                    # ALL CAPS are used in Psalm Titles by the LSV
+                    #   plus some translations use ALL CAPS for things like the sign on the cross, etc.
+                    'THE','THAT','THIS','THESE','THINGS','HERE','THERE',
+                    'WHAT','WHICH','WHO','WHEN',
+                    'IS','AM','ARE','SHALL',
+                    'IN','OF','TO','FOR','UNTO','ACCORDING','WITH',
+                    'THEY','OUR','US','HIMSELF',
+                    'AND','NOT',
 
-                    'ADAM','ADONAI',
+                    # T4T figurative speech abbreviations
+                    'DOU','EUP','HYP','MET','MTY','PRS','RHQ','SIM',
+
+                    # Various simple English words used in Psalm headings, etc.
+                    'CAME','COME','COMING','DO','SENDING','WATCH','PUT','DEATH','DESTROY',
+                    'PRAISE','GIVE','LOVE','SAW','COMMONLY','CALLED','NOW','SILENT','DOVE','FAR','OFF','TAKING','HOLD',
+                    'APOSTLE','APOSTLES','GOSPEL','ST','PROPHET','PREACHER','BRANCH','EPISTLE','VALLEY','SALT','STRIKES',
+                    'SAVE','SERVANT','SERVANTS','MAN','SONS','BURDEN','RIGHTEOUSNESS','LILY','TESTIMONY','TEACH','STRIVING',
+                    'KING','JEWS','YEWS','HAPPY','HOLY','HOLINESS','THRONE','PEACE','MOTHER','WOMEN','EARTH','GREAT','MYSTERY',
+                    'HARLOTS','PROSTITUTES','ABOMINATIONS','EVIL','UNCLEAN','SECRET','MEANING',
+                    'BOOK','ORIGINAL','BASE','TEXT','PARABLE','NOTES','RELEASE','STATUS','TAGS','WORD','WORDS','SECTION','PRAYER','VISION',
+                    'AMEN','END','SAY','SING','BEHOLD','STAR','RISE','STRINGED','UNKNOWN','HIDING',
+
+                    'ADAM','ADONAI','ASAPH',
                     'BABYLON','BETHLEHEM',
+                    'CHRIST',
                     'DAVID',
                     'ISRAEL','ISRAELITES',
                     'JAH','JEHOVAH','JESUS','JUDAH',
                     'MOAB','MOSES',
                     'NAZARETH','NAZARENE',
+                    'PAUL',
                     'SETH','SOLOMON',
-                    'YESHUA','YEWES',
+                    'YEHOVAH','YESHUA','YEWES',
 
                     'A.D','B.C',
                     'TC','TD', # in footnotes
-                    'ONE','TWO','THREE','FOUR','FIVE','SIX','SEVEN',
+                    'ONE','TWO','THREE','FOUR','FIVE','SIX','SEVEN','TWELVE','THOUSAND',
                     'FIRST','SECOND','THIRD','FOURTH','FIFTH',
                     'II','III','IV','X',
                     'ALEPH','BETH','GIMMEL','GIMEL','DALETH','HE','VAV','VAU','ZAYIN','ZAIN',
@@ -145,9 +166,9 @@ INITIAL_BIBLE_WORD_LIST = ['3.0','UTF','USFM', '©', 'CC0',
                         'QOPH','KOPH','RESH','SIN','SHIN','SCHIN','TAV','TAU',
 
                     'MENE','MANE','TEKEL','TEQEL','THECEL', 'UPHARSIN','PERES','PHERES','PHARES','PHARSIN','PARSIN',
-                    'Tabitha cumi','Talitha cumi',
+                    'Tabitha','Talitha','cumi',
 
-                    'ULT','UST','BSB','OEB','NET','NRSV','WEB','WEBBE','WMB','WMBB','LSV','FBV','T4T','LEB','BBE','JPS','VLT','KJV',
+                    'ULT','UST','BSB','OEB','NET','NRSV','WEB','WEBBE','WMB','WMBB','LSV','FBV','T4T','LEB','BBE','JPS','VLT','KJV','KJB',
                     'OSHB',
                     'nlt',
 
@@ -185,7 +206,7 @@ PREAPPROVED_WORDS_TO_REMOVE = sorted(['God’s','GOD', 'LORD’S','LORD’s','LO
                 'Aram-zobah',
             'Beer-sheba',
                 'Ben-hadad',
-                'Beth-eden', 'Beth-el','Beyt-El','Beth-lehem',
+                'Beth-aven','Beth-eden', 'Beth-el','Beyt-El','Beth-lehem',
                 'Bikath-Aven','Bikat-Aven',
 
             # Mangled names
@@ -194,8 +215,10 @@ PREAPPROVED_WORDS_TO_REMOVE = sorted(['God’s','GOD', 'LORD’S','LORD’s','LO
             'Yacob', 'Yames', 'Yohn', 'Yoseph', 'Yoses',
 
             # Fancy pronouns
-            'you_all', 'you(sg)','you(ms)','you(fs)', 'your(sg)','your(pl)','your(ms)', 'yours(sg)','yours(pl)', 'yourself(m)',
-            'You_all', 'You(sg)',
+            'you_all', #'you(sg)','you(ms)','you(fs)', 'your(sg)','your(pl)','your(ms)', 'yours(sg)','yours(pl)', 'yourself(m)',
+            'You_all', #'You(sg)',
+            #'it(f)', 'saying(ms)',
+
             'aren’t','Aren’t',
                 'can’t','Can’t', 'couldn’t','Couldn’t',
                 'didn’t','Didn’t', 'doesn’t','Doesn’t', 'don’t','Don’t',
@@ -205,7 +228,8 @@ PREAPPROVED_WORDS_TO_REMOVE = sorted(['God’s','GOD', 'LORD’S','LORD’s','LO
                 'mustn’t',
                 'needn’t',
                 'o’clock',
-                'she’d', 'shouldn’t','Shouldn’t',
+                'she’d', 'she’ll',
+                    'shouldn’t','Shouldn’t',
                 'that’ll','That’ll',
                     'there’ll','There’ll',
                     'they’d','They’d', 'they’ll','They’ll', 'they’re','They’re','they’ve','They’ve', '’twas',
@@ -217,6 +241,7 @@ PREAPPROVED_WORDS_TO_REMOVE = sorted(['God’s','GOD', 'LORD’S','LORD’s','LO
             # Other
             'EDOMITE','EDOM','DOM', # Gotta do that one first
             ], key=len, reverse=True) # Put longest first
+
 
 BAD_ENGLISH_WORD_SET, BAD_GERMAN_WORD_SET, BAD_LATIN_WORD_SET = set(), set(), set()
 BAD_ENGLISH_WORD_LIST, BAD_GERMAN_WORD_LIST, BAD_LATIN_WORD_LIST = [], [], []
@@ -330,7 +355,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                         ) )
         if versionAbbreviation == 'OET-LV':
             wordSet.update( ('LV_OT_word_table.tsv',
-                            'Dawid','Efrayim','Farisaios','Galilaia','Pilatos'
+                            'Dawid','Efrayim','Farisaios','Galilaia','Pilatos',
                             ) )
     elif versionAbbreviation in ('UST','ULT','UHB','UGNT'):
         wordSet.update( ('unfoldingWord®','unfoldingWord','tc','en',) )
@@ -374,7 +399,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
     cleanedText =  ( cleanedText
                     .replace( '<div>', '' )
                     .replace( f'<span class="{versionAbbreviation}_verseTextChunk">', '' ).replace( f'<span class="{versionAbbreviation}_trans">', '' )
-                    .replace( '<span style="font-size:.75em;">', '' )
+                    .replace( '<span class="nd">L<span style="font-size:.75em;">ORD</span></span>', 'LORD' )
                     .replace( '<hr style="width:30%;margin-left:0;margin-top: 0.3em">', '' ).replace( '<hr style="width:35%;margin-left:0;margin-top: 0.3em">', '' )
 
                     .replace( '<span class="synonParr" title="synonymous parallelism">≈</span>', '' )
@@ -423,7 +448,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                         ):
         cleanedText =  cleanedText.replace( f'<span class="{spanMarker}">', '' )
     cleanedText =  cleanedText.replace( f'<span class="{versionAbbreviation}_chapterIntro">', '' )
-    for formatField in ('i','em','small','sup','b'):
+    for formatField in ('i','b','em','small','sup','sub'):
         cleanedText =  cleanedText.replace( f'<{formatField}>', '' ).replace( f'</{formatField}>', '' )
     cleanedText = FOOTNOTE_OR_XREF_CALLER_REGEX.sub( '', cleanedText )
     cleanedText = ANCHOR_LINK_REGEX.sub( '', cleanedText )
@@ -479,7 +504,9 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
     # Final Bible clean-ups
     #   (Easier to remove these known-to-be-correct words here, rather than to handle them later)
     thingsToReallyDelete = ['(s)','(es)','[s]',
+                            '(m)', '(f)', '(ms)', '(fs)',
                             '(sg)','(pl)',
+                            '(n)', '(v)',
                             ]
     for thingToReallyDelete in thingsToReallyDelete:
         cleanedText = cleanedText.replace( thingToReallyDelete, '' )
@@ -552,13 +579,13 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
         if word not in wordSet and f'{word[0].lower()}{word[1:]}' not in wordSet:
             if versionAbbreviation not in ('Luth','ClVg'): # native or modernised English
                 vPrint( 'Normal' if ((versionAbbreviation!='LSV' and word.upper()==word)
-                            or 'ReMoV' in word
+                            or 'ReMoV' in word or 'honor' in word
                             or (word in ('s','heretage','yelde','deme','maden','virtuees','el','aha','loge','drede',
                                    'fortyth','fulness','digged',"'And",'baptized','holden','hous','stedfast',
                                    'schent','knowe','madist','clepe','veyn','hopide','thouyten','redy','spaken',
                                    'silf','nedi','modir','sunne','hygh','i','sprete','wyn','ethir','zobah','hode','honde','equite',
                                    'tashcheth','kindreds','tho','ynne','oute','wrooth','brak','thei','eere','hade','ioiyng',
-                                   'stablish','puplis','nyle','Forsothe','hertli','drinke')
+                                   'stablish','puplis','nyle','hertli','drinke''vertu','eet','saten','gileful','hertli','greces')
                                         and 'PSA' not in location) # coz Wycl versification doesn't usually match anyway
                             or 'twas' in word )
                         and word not in ('OK','NOT','SURE','TOO','LITERAL')
@@ -627,12 +654,12 @@ def printSpellCheckSummary( state ) -> None:
     Prints some summary results
     """
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, "\n\nSpell-check results:" )
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  TOTAL LATIN WORDS CHECKED = {TOTAL_LATIN_WORDS_CHECKED_COUNT:,} BAD_LATIN WORDS {len(BAD_LATIN_WORD_LIST):,} = {len(BAD_LATIN_WORD_LIST)*100//TOTAL_LATIN_WORDS_CHECKED_COUNT}% ({len(BAD_LATIN_WORD_SET):,} unique){f': {BAD_LATIN_WORD_SET}' if BibleOrgSysGlobals.verbosityLevel>2 else ''}" )
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    TOTAL BAD LATIN WORDS = {TOTAL_LATIN_MISSPELLING_COUNT:,} WORST LATIN WORDS {[(k, BAD_LATIN_COUNTS[k]) for k in sorted(BAD_LATIN_COUNTS, key=BAD_LATIN_COUNTS.get, reverse=True)][:13]}" )
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  TOTAL GERMAN WORDS CHECKED = {TOTAL_GERMAN_WORDS_CHECKED_COUNT:,} BAD_GERMAN WORDS {len(BAD_GERMAN_WORD_LIST):,} {len(BAD_GERMAN_WORD_LIST)*100//TOTAL_GERMAN_WORDS_CHECKED_COUNT}% ({len(BAD_GERMAN_WORD_SET):,} unique){f': {BAD_GERMAN_WORD_SET}' if BibleOrgSysGlobals.verbosityLevel>2 else ''}" )
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    TOTAL BAD GERMAN WORDS = {TOTAL_GERMAN_MISSPELLING_COUNT:,} WORST GERMAN WORDS {[(k, BAD_GERMAN_COUNTS[k]) for k in sorted(BAD_GERMAN_COUNTS, key=BAD_GERMAN_COUNTS.get, reverse=True)][:13]}" )
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  TOTAL ENGLISH WORDS CHECKED = {TOTAL_ENGLISH_WORDS_CHECKED_COUNT:,} BAD_ENGLISH WORDS {len(BAD_ENGLISH_WORD_LIST):,} {len(BAD_ENGLISH_WORD_LIST)*100//TOTAL_ENGLISH_WORDS_CHECKED_COUNT}% ({len(BAD_ENGLISH_WORD_SET):,} unique){f': {BAD_ENGLISH_WORD_SET}' if BibleOrgSysGlobals.verbosityLevel>2 else ''}" )
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    TOTAL BAD ENGLISH WORDS = {TOTAL_ENGLISH_MISSPELLING_COUNT:,} WORST ENGLISH WORDS {[(k, BAD_ENGLISH_COUNTS[k]) for k in sorted(BAD_ENGLISH_COUNTS, key=BAD_ENGLISH_COUNTS.get, reverse=True)][:14]}\n" )
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  TOTAL LATIN WORDS CHECKED = {TOTAL_LATIN_WORDS_CHECKED_COUNT:,} BAD_LATIN WORDS {len(BAD_LATIN_WORD_LIST):,} = {len(BAD_LATIN_WORD_LIST)*100/TOTAL_LATIN_WORDS_CHECKED_COUNT:.1f}% ({len(BAD_LATIN_WORD_SET):,} unique){f': {BAD_LATIN_WORD_SET}' if BibleOrgSysGlobals.verbosityLevel>2 else ''}" )
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    TOTAL BAD LATIN WORDS = {TOTAL_LATIN_MISSPELLING_COUNT:,} WORST LATIN WORDS {[(k, BAD_LATIN_COUNTS[k]) for k in sorted(BAD_LATIN_COUNTS, key=BAD_LATIN_COUNTS.get, reverse=True) if k.islower()][:13]}" )
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  TOTAL GERMAN WORDS CHECKED = {TOTAL_GERMAN_WORDS_CHECKED_COUNT:,} BAD_GERMAN WORDS {len(BAD_GERMAN_WORD_LIST):,} {len(BAD_GERMAN_WORD_LIST)*100/TOTAL_GERMAN_WORDS_CHECKED_COUNT:.1f}% ({len(BAD_GERMAN_WORD_SET):,} unique){f': {BAD_GERMAN_WORD_SET}' if BibleOrgSysGlobals.verbosityLevel>2 else ''}" )
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    TOTAL BAD GERMAN WORDS = {TOTAL_GERMAN_MISSPELLING_COUNT:,} WORST GERMAN WORDS {[(k, BAD_GERMAN_COUNTS[k]) for k in sorted(BAD_GERMAN_COUNTS, key=BAD_GERMAN_COUNTS.get, reverse=True) if k.islower()][:13]}" )
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  TOTAL ENGLISH WORDS CHECKED = {TOTAL_ENGLISH_WORDS_CHECKED_COUNT:,} BAD_ENGLISH WORDS {len(BAD_ENGLISH_WORD_LIST):,} {len(BAD_ENGLISH_WORD_LIST)*100/TOTAL_ENGLISH_WORDS_CHECKED_COUNT:.2f}% ({len(BAD_ENGLISH_WORD_SET):,} unique){f': {BAD_ENGLISH_WORD_SET}' if BibleOrgSysGlobals.verbosityLevel>2 else ''}" )
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    TOTAL BAD ENGLISH WORDS = {TOTAL_ENGLISH_MISSPELLING_COUNT:,} WORST ENGLISH WORDS {[(k, BAD_ENGLISH_COUNTS[k]) for k in sorted(BAD_ENGLISH_COUNTS, key=BAD_ENGLISH_COUNTS.get, reverse=True) if k.islower()][:14]}\n" )
 
     # for versionAbbreviation in ('OET-RV',): # Just out of curiousity # ,'OET-LV', 'ULT','UST'
     #     print( f"\n{versionAbbreviation} [Using {state.BibleLanguages[versionAbbreviation]} dictionary] ({len(MISPELLING_VERSION_REF_DICT[versionAbbreviation]):,}) {MISPELLING_VERSION_REF_DICT[versionAbbreviation]}\n")
@@ -642,7 +669,7 @@ def printSpellCheckSummary( state ) -> None:
         for word,_ref in MISPELLING_VERSION_REF_DICT[versionAbbreviation]:
             badDict[word] += 1
         sortedDict = sorted( badDict.items(), key=lambda item: item[1], reverse=True )
-        displayList = [wordCountTuple for wordCountTuple in sortedDict if wordCountTuple[1]>(len(sortedDict)//20) or len(sortedDict)<25]
+        displayList = [wordCountTuple for wordCountTuple in sortedDict if wordCountTuple[0].islower() and (wordCountTuple[1]>(len(sortedDict)//20) or len(sortedDict)<25)]
         if len(displayList)<10 and len(displayList)<len(sortedDict): displayList += [wordCountTuple for ww,wordCountTuple in enumerate(sortedDict) if ww<10] # Could cause some duplicates
         print( f"\n{versionAbbreviation} (using {state.BibleLanguages[versionAbbreviation]} dictionary) from {len(MISPELLING_VERSION_REF_DICT[versionAbbreviation]):,} refs got {len(sortedDict):,} unique words (showing {len(displayList):,}): {displayList}\n")
 

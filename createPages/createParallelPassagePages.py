@@ -30,6 +30,7 @@ Module handling createParallelPassagePages functions.
 CHANGELOG:
     2024-01-14 First attempt
     2024-11-20 Try to prevent some duplicate cross-references
+    2025-04-25 Allow for /r field that's not a true section reference (e.g., at top of Psalm 43)
 """
 from gettext import gettext as _
 from pathlib import Path
@@ -52,10 +53,10 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
 from OETHandlers import livenOETWordLinks, getOETTidyBBB, getOETBookName, getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2025-02-10' # by RJH
+LAST_MODIFIED_DATE = '2025-04-26' # by RJH
 SHORT_PROGRAM_NAME = "createParallelPassagePages"
 PROGRAM_NAME = "OpenBibleData createParallelPassagePages functions"
-PROGRAM_VERSION = '0.34'
+PROGRAM_VERSION = '0.35'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -536,6 +537,7 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
                     else: need_to_increase_xref_safety_count
         assert sectionReferences or not ONLY_MAKE_PAGES_WHICH_HAVE_PARALLELS
         crossReferencesBBBList, crossReferencesCVList = [], []
+        hadXrefException = False
         for sr,sectionReference in enumerate( sectionReferences ):
             bits = sectionReference.split( ' ' )
             bookAbbreviation, cvPart = (bits[0],bits[1:]) if len(bits[0])>1 else (f'{bits[0]} {bits[1]}', bits[2:])
@@ -546,12 +548,15 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
                 assert not cvPart
                 cvPart = [sectionReference]
                 sectionReferences[sr] = f'{xrefBBB} {sectionReference}'
-            assert xrefBBB, f"{sr} {BBB} {startC}:{startV} {sectionReferences=} got {sectionReference=} {bookAbbreviation=}"
-            crossReferencesBBBList.append( xrefBBB )
-            assert isinstance( cvPart, list ) and len(cvPart)==1 and isinstance( cvPart[0], str ), f"{sr} {BBB} {startC}:{startV} {sectionReference=} {cvPart=} from {sectionReferences=}"
-            crossReferencesCVList.append( cvPart[0] )
+            if xrefBBB:
+                crossReferencesBBBList.append( xrefBBB )
+                assert isinstance( cvPart, list ) and len(cvPart)==1 and isinstance( cvPart[0], str ), f"{sr} {BBB} {startC}:{startV} {sectionReference=} {cvPart=} from {sectionReferences=}"
+                crossReferencesCVList.append( cvPart[0] )
+            else:
+                logging.warning( f"{sr} {BBB} {startC}:{startV} {sectionReferences=} got {sectionReference=} {bookAbbreviation=}" )
+                hadXrefException = True
         dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"      Got BBB set for {BBB} {startC}:{startV} {sectionReferences=} {crossReferencesBBBList=} {crossReferencesCVList=}" )
-        assert len(crossReferencesBBBList) == len(crossReferencesCVList) == len(sectionReferences)
+        assert len(crossReferencesBBBList) == len(crossReferencesCVList) == len(sectionReferences) or hadXrefException
         crossReferencesBBBSet = set( crossReferencesBBBList ) # Some books might appear more than once
         # assert BBB not in crossReferencesBBBSet # Not necessarily true
         usedParallels.append( (startC,startV) )

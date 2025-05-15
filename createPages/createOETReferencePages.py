@@ -95,7 +95,7 @@ from html import makeTop, makeBottom, checkHtml
 from OETHandlers import getOETTidyBBB, getOETBookName, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
-LAST_MODIFIED_DATE = '2025-04-21' # by RJH
+LAST_MODIFIED_DATE = '2025-05-13' # by RJH
 SHORT_PROGRAM_NAME = "createOETReferencePages"
 PROGRAM_NAME = "OpenBibleData createOETReferencePages functions"
 PROGRAM_VERSION = '0.86'
@@ -563,6 +563,7 @@ SIMILAR_GLOSS_WORDS_TABLE = [
     (('dread',),('fear','terror')),
     (('earth',),('world','land')),
     (('enlighten','enlightened','enlightening'),('light','illuminate','illuminated','illuminating')),
+    (('fallen',),('Nephelim',)),
     (('fear',),('dread','terror')),
     (('few',),('remnant','remainder')),
     (('flesh',),('body','bodies','carnal','meat')),
@@ -598,6 +599,7 @@ SIMILAR_GLOSS_WORDS_TABLE = [
     (('money',),('silver','coin','coins')),
     (('mourn','mourns','mourning','mourned'),('weep','weeps','weeping','weeped','cry','cries','crying','cried')),
     (('mouth','mouths'),('lips','lip','tongue')),
+    (('Nephelim',),('fallen',)),
     (('pagan','pagans'),('Gentile','Gentiles','Greeks')),
     (('path','paths'),('way','ways','road','roads')),
     (('patriach','patriarchs'),('ancestor','ancestors','elders')),

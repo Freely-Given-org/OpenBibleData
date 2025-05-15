@@ -47,7 +47,7 @@ from load import getIndividualQuotedOTRefs, getIndividualQuotingNTRefs
 
 
 
-LAST_MODIFIED_DATE = '2025-04-18' # by RJH
+LAST_MODIFIED_DATE = '2025-05-08' # by RJH
 SHORT_PROGRAM_NAME = "SentenceImportance_initialisation"
 PROGRAM_NAME = "Sentence Importance initialisation"
 PROGRAM_VERSION = '0.20'
@@ -99,6 +99,7 @@ vitalImportanceRefsWithRanges = [ # Often in doctrinal statements
     ]
 importantRefsWithRanges = [ # Often memorised
     'JOS_1:9',
+    'PSA_51:10',
     'PRO_4:1-7',
     'MAT_4:4',
     'LUK_24:27',
@@ -130,10 +131,11 @@ trivialImportanceRefs = listsOfNames + [
 obscureClarityRefs = [ # Not really at all sure what the Hebrew or Greek is trying to say
     'JDG_5:11a','JDG_5:14',
     'JOB_29:20','JOB_29:24',
-    'PSA_22:16b', 'PSA_35:16a',
+    'PSA_22:16b', 'PSA_35:16a', 'PSA_56:10',
     'MIC_6:14', # Two unknown Hebrew words
     ]
 unclearClarityRefs = [ # Mostly sure what's in the Hebrew or Greek, but not sure what it means, or what the cultural implications were
+    'GEN_6:4',
     'EXO_15:25b',
     'JDG_5:13', 'JDG_13:19b', 'JDG_14:11', 'JDG_15:8a', 'JDG_17:3b',
     'SA1_2:23', 'SA1_17:6b', 'SA1_17:29b',
@@ -149,7 +151,8 @@ unclearClarityRefs = [ # Mostly sure what's in the Hebrew or Greek, but not sure
         'JOB_39:13b',
         'JOB_40:13b', 'JOB_40:19', 'JOB_40:24a',
         'JOB_41:9', 'JOB_41:11',
-    'PSA_16:5', 'PSA_41:9b', 'PSA_68:12b','PSA_68:13','PSA_68:15','PSA_68:21b','PSA_92:11','PSA_93:3a','PSA_105:19','PSA_105:28b','PSA_105:32b',
+    'PSA_16:5', 'PSA_41:9b', 'PSA_55:15a','PSA_55:18', 'PSA_62:3b',
+        'PSA_68:12b','PSA_68:13','PSA_68:15','PSA_68:21b','PSA_92:11','PSA_93:3a','PSA_105:19','PSA_105:28b','PSA_105:32b',
     'DAN_8:12','DAN_8:13a','DAN_11:43b',
     'JOL_2:6b',
     'AMO_6:3','AMO_8:7a',
