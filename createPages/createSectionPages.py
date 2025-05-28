@@ -50,6 +50,7 @@ CHANGELOG:
     2024-06-26 Added BibleMapper.com maps to OET sections
     2025-02-02 Added ID to clinksPar (at top of page only)
     2025-03-24 Liven Readers' Version and Literal Version headings
+    2025-05-21 Remove superfluous section headings in Psalms on the five "book" boundaries (chapters 1,42,73,90,107)
 """
 from gettext import gettext as _
 from pathlib import Path
@@ -63,7 +64,8 @@ from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_66
 from BibleOrgSys.Internals.InternalBibleInternals import getLeadingInt
 from BibleOrgSys.Formats.ESFMBible import ESFMBible as ESFMBible
 
-from settings import State, TEST_MODE, VERSIONS_WITH_APOCRYPHA, OET_UNFINISHED_WARNING_HTML_PARAGRAPH, JAMES_NOTE_HTML_PARAGRAPH, reorderBooksForOETVersions
+from settings import State, TEST_MODE, VERSIONS_WITH_APOCRYPHA, reorderBooksForOETVersions, \
+                        OET_UNFINISHED_WARNING_HTML_PARAGRAPH, JAMES_NOTE_HTML_PARAGRAPH, BLACK_LETTER_FONT_HTML_PARAGRAPH
 from usfm import convertUSFMMarkerListToHtml
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
                     makeTop, makeBottom, makeBookNavListParagraph, removeDuplicateCVids, checkHtml
@@ -71,22 +73,19 @@ from Bibles import getBibleMapperMaps
 from OETHandlers import livenOETWordLinks, getOETTidyBBB, getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2025-03-24' # by RJH
+LAST_MODIFIED_DATE = '2025-05-25' # by RJH
 SHORT_PROGRAM_NAME = "createSectionPages"
 PROGRAM_NAME = "OpenBibleData createSectionPages functions"
-PROGRAM_VERSION = '0.68'
+PROGRAM_VERSION = '0.71'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
 
-# BACKSLASH = '\\'
 NEWLINE = '\n'
-# EM_SPACE = ' '
-# NARROW_NON_BREAK_SPACE = ' '
 
-REASON_NAME_DICT = { 'Headers':'Headers', 'is1':'Introduction section heading',
-                     'c':'Start of chapter', 's1':'Section heading', 'c/s1':'Section heading',
-                     'ms1':'Main section', 'ms1/s1':'Main section with section heading' }
+SECTION_REASON_NAME_DICT = { 'Headers':'Headers', 'is1':'Introduction section heading',
+                         'c':'Start of chapter', 's1':'Section heading', 'c/s1':'Section heading',
+                         'ms1':'Main section', 'ms1/c':'Main section', 'ms1/s1':'Main section with section heading', 'ms1/c/s1':'Main section with section heading' }
 
 
 def createOETSectionLists( rvBible:ESFMBible, state:State ) -> bool:
@@ -153,7 +152,7 @@ def createOETSectionLists( rvBible:ESFMBible, state:State ) -> bool:
             sectionFilename = f'{BBB}_S{n}.htm'
             # if additionalSectionHeadingsDict:
             #     dPrint( 'Verbose', DEBUGGING_THIS_MODULE,  f"{sectionName=} {reasonMarker=}" )
-            reasonName = REASON_NAME_DICT[reasonMarker]
+            reasonName = SECTION_REASON_NAME_DICT[reasonMarker]
             rvVerseEntryList, rvContextList = bkObject._SectionIndex.getSectionEntriesWithContext( startCV )
             # Check that we don't have any duplicated verses in the section
             lastV = None
@@ -205,7 +204,7 @@ def createOETSectionPages( level:int, folder:Path, rvBible:ESFMBible, lvBible:ES
         NT = BibleOrgSysGlobals.loadedBibleBooksCodes.isNewTestament_NR( BBB )
         ourTidyBBB = getOETTidyBBB( BBB )
         ourTidyBBBwithNotes = getOETTidyBBB( BBB, addNotes=True )
-        dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"OET {BBB=} {state.BBBsToProcess['OET']}/{len(state.BBBsToProcess['OET'])}")
+        # dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"OET {BBB=} {state.BBBsToProcess['OET']}/{len(state.BBBsToProcess['OET'])}")
 
         # # TODO: Can we delete all this now???
         # if lvBible.abbreviation=='OET-LV' \
@@ -287,7 +286,7 @@ def createOETSectionPages( level:int, folder:Path, rvBible:ESFMBible, lvBible:ES
             if isinstance( rvBible, ESFMBible ):
                 rvVerseEntryList = livenOETWordLinks( level, rvBible, BBB, rvVerseEntryList, state )
             rvHtml = convertUSFMMarkerListToHtml( level, rvBible.abbreviation, (BBB,startC, startV), 'section', rvContextList, rvVerseEntryList, basicOnly=False, state=state )
-            rvHtml = do_OET_RV_HTMLcustomisations( rvHtml )
+            rvHtml = do_OET_RV_HTMLcustomisations( f'SectionA={BBB}_{startC}', rvHtml )
             # rvHtml = livenIORs( BBB, rvHtml, sections )
 
             try:
@@ -298,10 +297,10 @@ def createOETSectionPages( level:int, folder:Path, rvBible:ESFMBible, lvBible:ES
             if isinstance( lvBible, ESFMBible ):
                 lvVerseEntryList = livenOETWordLinks( level, lvBible, BBB, lvVerseEntryList, state )
             lvHtml = convertUSFMMarkerListToHtml( level, lvBible.abbreviation, (BBB,startC), 'section', lvContextList, lvVerseEntryList, basicOnly=False, state=state )
-            lvHtml = do_OET_LV_HTMLcustomisations( f"SectionA={BBB}_{startC}", lvHtml )
+            lvHtml = do_OET_LV_HTMLcustomisations( f'SectionA={BBB}_{startC}', lvHtml )
             # Handle footnotes so the same fn1 doesn't occur for both chunks if they both have footnotes
-            rvHtml = rvHtml.replace( 'id="fn', 'id="fnRV' ).replace( 'href="#fn', 'href="#fnRV' )
-            lvHtml = lvHtml.replace( 'id="fn', 'id="fnLV' ).replace( 'href="#fn', 'href="#fnLV' )
+            rvHtml = rvHtml.replace( 'id="footnotes', 'id="footnotesRV' ).replace( 'id="crossRefs', 'id="crossRefsRV' ).replace( 'id="fn', 'id="fnRV' ).replace( 'href="#fn', 'href="#fnRV' )
+            lvHtml = lvHtml.replace( 'id="footnotes', 'id="footnotesLV' ).replace( 'id="crossRefs', 'id="crossRefsLV' ).replace( 'id="fn', 'id="fnLV' ).replace( 'href="#fn', 'href="#fnLV' )
             combinedHtml = f'''<div class="chunkRV">{rvHtml}</div><!--chunkRV-->
 <div class="chunkLV">{lvHtml}</div><!--chunkLV-->
 '''
@@ -420,12 +419,13 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> list
         bkObject = thisBible[BBB]
         state.sectionsLists[thisBible.abbreviation][BBB] = []
         for n,(startCV, sectionIndexEntry) in enumerate( bkObject._SectionIndex.items() ):
-            # dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{thisBible.abbreviation} {NEWLINE*2}createSectionPages {n}: {BBB}_{startC}:{startV} {type(sectionIndexEntry)} ({len(sectionIndexEntry)}) {sectionIndexEntry=}" )
+            # if thisBible.abbreviation == 'BSB' and BBB=='PSA':
+            #     dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"{thisBible.abbreviation} {NEWLINE}createSectionPages {n}: {BBB}_{startCV} {type(sectionIndexEntry)} {sectionIndexEntry=}" )
             sectionName, reasonMarker = sectionIndexEntry.getSectionNameReason()
             if 'OET' in thisBible.abbreviation:
                 sectionName = sectionName.replace( "'", "’" ) # Replace apostrophes
             dPrint( 'Verbose', DEBUGGING_THIS_MODULE,  f"{sectionName=} {reasonMarker=}" )
-            reasonName = REASON_NAME_DICT[reasonMarker]
+            reasonName = SECTION_REASON_NAME_DICT[reasonMarker]
             startC,startV = startCV
             endC,endV = sectionIndexEntry.getEndCV()
             verseEntryList, contextList = bkObject._SectionIndex.getSectionEntriesWithContext( startCV )
@@ -437,11 +437,10 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> list
 
     # Now, make the actual pages
     BBBs = []
-    # state.sectionsLists[thisBible.abbreviation] = {}
     for BBB in state.BBBsToProcess[thisBible.abbreviation]:
         NT = BibleOrgSysGlobals.loadedBibleBooksCodes.isNewTestament_NR( BBB )
         ourTidyBBB = getOETTidyBBB( BBB )
-        dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{thisBible.abbreviation} {BBB=} {state.BBBsToProcess[thisBible.abbreviation]}/{len(state.BBBsToProcess[thisBible.abbreviation])}")
+        # dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{thisBible.abbreviation} {BBB=} {state.BBBsToProcess[thisBible.abbreviation]}/{len(state.BBBsToProcess[thisBible.abbreviation])}")
 
         # if thisBible.abbreviation=='OET-LV' \
         # and BBB in ('FRT','INT','NUM','SA1','SA2','CH1','EZR','NEH','JOB','SNG','JER','DAN'):
@@ -527,19 +526,19 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> list
 
             sectionHtml = f'''<h1><span title="{state.BibleNames[thisBible.abbreviation]}">{thisBible.abbreviation}</span> by section {ourTidyBBB} {'Intro' if startC=='-1' else startC}:{startV}</h1>
 <p class="secNav">{sectionIndexLink}{leftLink}{documentLink} {startChapterLink}:{startV}–{endChapterLink}:{endV}{rightLink}{relatedLink}{parallelLink}{interlinearLink}{detailsLink}</p>
-{f'{JAMES_NOTE_HTML_PARAGRAPH}{NEWLINE}' if 'OET' in thisBible.abbreviation and BBB=='JAM' else ''}{f'{OET_UNFINISHED_WARNING_HTML_PARAGRAPH}{NEWLINE}' if 'OET' in thisBible.abbreviation else ''}<h1>{sectionName}</h1>'''
+{f'{JAMES_NOTE_HTML_PARAGRAPH}{NEWLINE}' if 'OET' in thisBible.abbreviation and BBB=='JAM' else ''}{f'{OET_UNFINISHED_WARNING_HTML_PARAGRAPH}{NEWLINE}' if 'OET' in thisBible.abbreviation else ''}{f'{BLACK_LETTER_FONT_HTML_PARAGRAPH}{NEWLINE}' if thisBible.abbreviation=='KJB-1611' else ''}<h1>{sectionName}</h1>'''
             if isinstance( thisBible, ESFMBible ): # e.g., OET-RV
                 verseEntryList = livenOETWordLinks( level, thisBible, BBB, verseEntryList, state )
             textHtml = convertUSFMMarkerListToHtml( level, thisBible.abbreviation, (BBB,startC), 'section', contextList, verseEntryList, basicOnly=False, state=state )
             # textHtml = livenIORs( BBB, textHtml, sections )
             if thisBible.abbreviation == 'OET-RV':
-                textHtml = do_OET_RV_HTMLcustomisations( textHtml )
+                textHtml = do_OET_RV_HTMLcustomisations( f'SectionB={BBB}_{startC}', textHtml )
             elif thisBible.abbreviation == 'OET-LV':
-                textHtml = do_OET_LV_HTMLcustomisations( f"SectionB={BBB}_{startC}", textHtml )
+                textHtml = do_OET_LV_HTMLcustomisations( f'SectionB={BBB}_{startC}', textHtml )
             elif thisBible.abbreviation == 'LSV':
-                textHtml = do_LSV_HTMLcustomisations( textHtml )
+                textHtml = do_LSV_HTMLcustomisations( f'SectionB={BBB}_{startC}', textHtml )
             elif thisBible.abbreviation == 'T4T':
-                textHtml = do_T4T_HTMLcustomisations( textHtml )
+                textHtml = do_T4T_HTMLcustomisations( f'SectionB={BBB}_{startC}', textHtml )
             elif thisBible.abbreviation == 'KJB-1611':
                 textHtml = textHtml.replace( 'class="add"', 'class="add_KJB-1611"' )
             sectionHtml = f'''{sectionHtml}{textHtml}

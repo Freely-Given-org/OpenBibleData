@@ -89,6 +89,7 @@ CHANGELOG:
     2025-02-20 Add OET missing verses link (in TEST MODE only)
     2025-02-21 Created functions
     2025-03-11 Add a couple more checks of spans in checkHtml()
+    2025-05-19 Handle doubled T4T figures of speech
 """
 # from gettext import gettext as _
 import logging
@@ -104,10 +105,10 @@ from settings import State, TEST_MODE, TEST_VERSIONS_ONLY, SITE_NAME
 from OETHandlers import getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2025-04-21' # by RJH
+LAST_MODIFIED_DATE = '2025-05-27' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
-PROGRAM_VERSION = '0.94'
+PROGRAM_VERSION = '0.95'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -337,7 +338,7 @@ def makeViewNavListParagraph( level:int, versionAbbreviation:str|None, pageType:
     viewLinks = []
     if pageType in ('book','section','chapter', 'details',
                     'workIndex','bookIndex','sectionIndex','chapterIndex') \
-    and versionAbbreviation not in ('TOSN','TTN','TOBD','UTN','UBS','THBD','BMM') \
+    and versionAbbreviation not in ('PLBL','TOSN','TTN','TOBD','UTN','UBS','THBD','BMM') \
     and versionAbbreviation not in state.versionsWithoutTheirOwnPages:
         if TEST_MODE: viewLinks.append( 'TEST' )
         if not versionAbbreviation: versionAbbreviation = 'OET'
@@ -434,8 +435,8 @@ def _makeFooter( level:int, pageType:str, state:State ) -> str:
     Create any links or site map that follow the main content on the page.
     """
     # fnPrint( DEBUGGING_THIS_MODULE, f"_makeFooter()" )
-    html = f"""<div class="footer">
-<p class="copyright"><small><em>{'TEST ' if TEST_MODE else ''}{SITE_NAME}</em> site copyright © 2023–2025 <a href="https://Freely-Given.org">Freely-Given.org</a>.
+    html = f"""<div class="footer" id="footer">
+<p class="copyright" id="Bottom"><small><em>{'TEST ' if TEST_MODE else ''}{SITE_NAME}</em> site copyright © 2023–2025 <a href="https://Freely-Given.org">Freely-Given.org</a>.
 <br>Python source code for creating these static pages is available <a href="https://GitHub.com/Freely-Given-org/OpenBibleData">on GitHub</a> under an <a href="https://GitHub.com/Freely-Given-org/OpenBibleData/blob/main/LICENSE">open licence</a>.{datetime.now().strftime('<br> (Page created: %Y-%m-%d %H:%M)') if TEST_MODE else ''}</small></p>
 <p class="copyright"><small>For Bible data copyrights, see the <a href="{'../'*level}AllDetails.htm#Top">details</a> for each displayed Bible version.</small></p>
 <p class="note"><small>The <em>Open English Translation (OET)</em> main site is at <a href="https://OpenEnglishTranslation.Bible">OpenEnglishTranslation.Bible</a>.</small></p>
@@ -728,13 +729,13 @@ def checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool:
         if not match:
             break
         idGuts = match.group(1) # might be something like 'C18V27' or 'BottomTransliterationsButton' or Tyndale dict 'The18thand19thCenturiesNewDiscoveriesofEarlierManuscriptsandIncreasedKnowledgeoftheOriginalLanguages'
-        assert len(idGuts) <= (100 if where=='DictionaryArticle' else 28), f"'{where}' {segmentOnly=} id is too long ({len(idGuts)}) {idGuts=}"
+        assert len(idGuts) <= (100 if where=='DictionaryArticle' else 32), f"'{where}' {segmentOnly=} id is too long ({len(idGuts)}) {idGuts=}"
         assert ' ' not in idGuts, f"'{where}' {segmentOnly=} Bad id with space in {idGuts=} FROM {htmlToCheck=}"
         assert '\n' not in idGuts, f"'{where}' {segmentOnly=} Bad id with newline in {idGuts=} FROM {htmlToCheck=}"
         assert '<' not in idGuts, f"'{where}' {segmentOnly=} Bad id with < in {idGuts=} FROM {htmlToCheck=}"
         assert '>' not in idGuts, f"'{where}' {segmentOnly=} Bad id with > in {idGuts=} FROM {htmlToCheck=}"
         if 'OEB' not in where and 'Moff' not in where and 'Wycl' not in where: # OEB SNG,JER and Moff PSA and Wyc SA2 have verse number problems
-            assert idGuts not in idDict, f''''{where}' {segmentOnly=} Duplicate id="{idGuts}" FROM ‘…{htmlToCheck[max(0,idDict[idGuts][0]-300):idDict[idGuts][1]+300]}…’ THEN FROM ‘…{htmlToCheck[match.start()-300:match.end()+300]}…’'''
+            assert idGuts not in idDict, f'''Duplicate id="{idGuts}" FROM '{where}' {segmentOnly=} ‘…{htmlToCheck[max(0,idDict[idGuts][0]-300):idDict[idGuts][1]+300]}…’ THEN FROM ‘…{htmlToCheck[match.start()-300:match.end()+300]}…’'''
         idDict[idGuts] = (match.start(),match.end())
         searchStartIndex = match.end()
     del idDict
@@ -938,7 +939,7 @@ def convert_adds_to_italics( htmlSegment:str, where:str|None=None ) -> str:
 
 
 RV_ADD_REGEX = re.compile( '<span class="RVadd">' )
-def do_OET_RV_HTMLcustomisations( OET_RV_html:str ) -> str:
+def do_OET_RV_HTMLcustomisations( where:str, OET_RV_html:str ) -> str:
     """
     OET-RV is formatted in paragraphs.
 
@@ -1082,7 +1083,7 @@ def do_OET_LV_HTMLcustomisations( where:str, OET_LV_html:str ) -> str:
 # end of html.do_OET_LV_HTMLcustomisations
 
 
-def do_LSV_HTMLcustomisations( LSV_html:str ) -> str:
+def do_LSV_HTMLcustomisations( where:str, LSV_html:str ) -> str:
     """
     LSV has lines like:
         v 7 “\\w Blessed|strong="G3107"\\w* [\\w are|strong="G3588"\\w*] \\w they|strong="G2532"\\w* \\w whose|strong="G3739"\\w* lawless \\w acts|strong="G4160"\\w* \\w were|strong="G3588"\\w* forgiven, || \\w And|strong="G2532"\\w* \\w whose|strong="G3739"\\w* \\w sins|strong="G3900"\\w* \\w were|strong="G3588"\\w* \\w covered|strong="G1943"\\w*;
@@ -1093,7 +1094,11 @@ def do_LSV_HTMLcustomisations( LSV_html:str ) -> str:
 # end of html.do_LSV_HTMLcustomisations
 
 
-def do_T4T_HTMLcustomisations( T4T_html:str ) -> str:
+T4T_FOS_TYPES = ( ('APO','apostrophe'), ('CHI','chiasmus'), ('DOU','doublet'), ('EUP','euphemism'),
+                ('HEN','hendiadys'), ('HYP','hyperbole'), ('IDM','idiom'), ('IRO','irony'), ('LIT','litotes'),
+                ('MET','metaphor'), ('MTY','metonymy'), ('PRS','personification'), ('RHQ','rhetorical question'),
+                ('SIM','simile'), ('SYM','symbol'), ('SAR','sarcasm'), ('SYN','synecdoche'), ('TRI','triple') )
+def do_T4T_HTMLcustomisations( where:str, T4T_html:str ) -> str:
     """
     T4T has:
         We have tried to indicate the beginning of an alternative by a ‘◄’ and the ending of each alternative by a ‘►’.
@@ -1117,12 +1122,21 @@ def do_T4T_HTMLcustomisations( T4T_html:str ) -> str:
             [SYN] = synecdoche
             [TRI] = triple
     """
-    for FoS,fosType in ( ('APO','apostrophe'), ('CHI','chiasmus'), ('DOU','doublet'), ('EUP','euphemism'),
-                         ('HEN','hendiadys'), ('HYP','hyperbole'), ('IDM','idiom'), ('IRO','irony'), ('LIT','litotes'),
-                         ('MET','metaphor'), ('MTY','metonymy'), ('PRS','personification'), ('RHQ','rhetorical question'),
-                         ('SIM','simile'), ('SYM','symbol'), ('SAR','sarcasm'), ('SYN','synecdoche'), ('TRI','triple') ):
-        fullFoS = f'[{FoS}]'
-        T4T_html = T4T_html.replace( fullFoS, f'<span class="t4tFoS" title="{fosType} (figure of speech)">{fullFoS}</span>' )
+    if '[' in T4T_html:
+        T4T_html = T4T_html.replace( '[SIL]', '[SIM]' ) # Error in Psa 63:1
+        for FoS,fosType in T4T_FOS_TYPES:
+            fullFoS = f'[{FoS}]'
+            T4T_html = T4T_html.replace( fullFoS, f'<span class="t4tFoS" title="{fosType} (figure of speech)">LEFTBRACKET{FoS}RIGHTBRACKET</span>' )
+        if '[' in T4T_html: # still (we don't want to run these nested loops unnecessarily, especially for something that occurs relatively rarely)
+            for FoS1,fosType1 in T4T_FOS_TYPES:
+                for FoS2,fosType2 in T4T_FOS_TYPES:
+                    if FoS2 != FoS1:
+                        fullFoSs = f'[{FoS1}, {FoS2}]'
+                        T4T_html = T4T_html.replace( fullFoSs, f'LEFTBRACKET<span class="t4tFoS" title="{fosType1} (figure of speech)">{FoS1}</span>, <span class="t4tFoS" title="{fosType2} (figure of speech)">{FoS2}</span>RIGHTBRACKET' )
+        if 'GEN_13' not in where and 'GEN_25' not in where and 'GEN_48' not in where \
+        and 'MRK_2' not in where and 'MRK_16' not in where:
+            assert '[' not in T4T_html, f"{where} {T4T_html}"
+        T4T_html = T4T_html.replace( 'LEFTBRACKET', '[' ).replace( 'RIGHTBRACKET', ']' )
     return T4T_html.replace( '◄', '<span title="alternative translation">◄</span>' )
 # end of html.do_T4T_HTMLcustomisations
 

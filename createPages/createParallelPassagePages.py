@@ -53,10 +53,10 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
 from OETHandlers import livenOETWordLinks, getOETTidyBBB, getOETBookName, getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2025-04-26' # by RJH
+LAST_MODIFIED_DATE = '2025-05-25' # by RJH
 SHORT_PROGRAM_NAME = "createParallelPassagePages"
 PROGRAM_NAME = "OpenBibleData createParallelPassagePages functions"
-PROGRAM_VERSION = '0.35'
+PROGRAM_VERSION = '0.37'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -578,13 +578,13 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
         textHtml = convertUSFMMarkerListToHtml( BBBLevel, thisBible.abbreviation, (BBB,startC), 'relatedPassage', contextList, verseEntryList, basicOnly=False, state=state )
         # textHtml = livenIORs( BBB, textHtml, sections )
         if thisBible.abbreviation == 'OET-RV':
-            textHtml = do_OET_RV_HTMLcustomisations( textHtml )
+            textHtml = do_OET_RV_HTMLcustomisations( f'ParallelPassageA={BBB}_{startC}', textHtml )
         elif thisBible.abbreviation == 'OET-LV':
-            textHtml = do_OET_LV_HTMLcustomisations( f"ParallelPassageA={BBB}_{startC}", textHtml )
+            textHtml = do_OET_LV_HTMLcustomisations( f'ParallelPassageA={BBB}_{startC}', textHtml )
         elif thisBible.abbreviation == 'LSV':
-            textHtml = do_LSV_HTMLcustomisations( textHtml )
+            textHtml = do_LSV_HTMLcustomisations( f'ParallelPassageA={BBB}_{startC}', textHtml )
         elif thisBible.abbreviation == 'T4T':
-            textHtml = do_T4T_HTMLcustomisations( textHtml )
+            textHtml = do_T4T_HTMLcustomisations( f'ParallelPassageA={BBB}_{startC}', textHtml )
 
         sectionHeadingsList = [(ourTidyBbb,startC,f'{ourTidyBbb} {startC}:{startV}{f"–{endV}" if endC==startC else f"—{endC}:{endV}"}')] # We use en-dash and em-dash onscreen
         sectionHtmlList = [textHtml]
@@ -737,13 +737,13 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
             textHtml = convertUSFMMarkerListToHtml( BBBLevel, thisBible.abbreviation, (srBBB,srStartC), 'relatedPassage', contextList, verseEntryList, basicOnly=False, state=state )
             # textHtml = livenIORs( BBB, textHtml, sections )
             if thisBible.abbreviation == 'OET-RV':
-                textHtml = do_OET_RV_HTMLcustomisations( textHtml )
+                textHtml = do_OET_RV_HTMLcustomisations( f'ParallelPassageB={srBBB}_{srStartC}', textHtml )
             elif thisBible.abbreviation == 'OET-LV':
-                textHtml = do_OET_LV_HTMLcustomisations( f"ParallelPassageB={srBBB}_{srStartC}", textHtml )
+                textHtml = do_OET_LV_HTMLcustomisations( f'ParallelPassageB={srBBB}_{srStartC}', textHtml )
             elif thisBible.abbreviation == 'LSV':
-                textHtml = do_LSV_HTMLcustomisations( textHtml )
+                textHtml = do_LSV_HTMLcustomisations( f'ParallelPassageB={srBBB}_{srStartC}', textHtml )
             elif thisBible.abbreviation == 'T4T':
-                textHtml = do_T4T_HTMLcustomisations( textHtml )
+                textHtml = do_T4T_HTMLcustomisations( f'ParallelPassageB={srBBB}_{srStartC}', textHtml )
             sectionHtmlList.append( textHtml )
 
         # Now we need to create the division containing all the columns
@@ -762,8 +762,8 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
             htmlChunk = htmlChunk \
                             .replace( '"#C', f'"#{replacementLetter}C' ).replace( '"C', f'"{replacementLetter}C' ) \
                             .replace( '"#V', f'"#{replacementLetter}V' ).replace( '"V', f'"{replacementLetter}V' ) \
-                            .replace( '#fn', f'#{replacementLetter}Fn' ).replace( 'id="fn', f'id="{replacementLetter}Fn' ) \
-                            .replace( '#xr', f'#{replacementLetter}Xr' ).replace( 'id="xr', f'id="{replacementLetter}Xr' )
+                            .replace( 'id="footnotes', f'id="{replacementLetter}Footnotes' ).replace( '#fn', f'#{replacementLetter}Fn' ).replace( 'id="fn', f'id="{replacementLetter}Fn' ) \
+                            .replace( 'id="crossRefs', f'id="{replacementLetter}CrossRefs' ).replace( '#xr', f'#{replacementLetter}Xr' ).replace( 'id="xr', f'id="{replacementLetter}Xr' )
             assert checkHtml( f'crossReferencedSection-{hh}', htmlChunk, segmentOnly=True )
             crossReferencedSectionHtml = f'''{crossReferencedSectionHtml}\n<div class="chunkRV">{htmlChunk}</div><!--chunkRV-->'''
         crossReferencedSectionHtml = f'''{crossReferencedSectionHtml}\n</div><!--{containerClassname}-->'''
@@ -828,18 +828,18 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
                         # NOTE: textHtml can be empty here
                         # textHtml = livenIORs( BBB, textHtml, sections )
                         if thisBible.abbreviation == 'OET-RV':
-                            textHtml = do_OET_RV_HTMLcustomisations( textHtml )
+                            textHtml = do_OET_RV_HTMLcustomisations( f'ParallelPassageX={lastXrefBBB}_{lastXrefC}', textHtml )
                         elif thisBible.abbreviation == 'OET-LV':
-                            textHtml = do_OET_LV_HTMLcustomisations( f"ParallelPassageX={lastXrefBBB}_{lastXrefC}", textHtml )
+                            textHtml = do_OET_LV_HTMLcustomisations( f'ParallelPassageX={lastXrefBBB}_{lastXrefC}', textHtml )
                         elif thisBible.abbreviation == 'LSV':
-                            textHtml = do_LSV_HTMLcustomisations( textHtml )
+                            textHtml = do_LSV_HTMLcustomisations( f'ParallelPassageX={lastXrefBBB}_{lastXrefC}', textHtml )
                         elif thisBible.abbreviation == 'T4T':
-                            textHtml = do_T4T_HTMLcustomisations( textHtml )
+                            textHtml = do_T4T_HTMLcustomisations( f'ParallelPassageX={lastXrefBBB}_{lastXrefC}', textHtml )
                     thisXrefHtml = f'''<p><b>{collectedVerseCrossReference}</b>:</p>{textHtml if textHtml else 'Sorry, unable to find data for this passage.'}''' \
                                         .replace( '"#C', f'"#{replacementLetter}C' ).replace( '"C', f'"{replacementLetter}C' ) \
                                         .replace( '#V', f'#{replacementLetter}V' ).replace( '"V', f'"{replacementLetter}V' ) \
-                                        .replace( '#fn', f'#{replacementLetter}Fn' ).replace( 'id="fn', f'id="{replacementLetter}Fn' ) \
-                                        .replace( '#xr', f'#{replacementLetter}Xr' ).replace( 'id="xr', f'id="{replacementLetter}Xr' )
+                                        .replace( 'id="footnotes', f'id="{replacementLetter}Footnotes' ).replace( '#fn', f'#{replacementLetter}Fn' ).replace( 'id="fn', f'id="{replacementLetter}Fn' ) \
+                                        .replace( 'id="crossRefs', f'id="{replacementLetter}CrossRefs' ).replace( '#xr', f'#{replacementLetter}Xr' ).replace( 'id="xr', f'id="{replacementLetter}Xr' )
                     assert '.htm#aC' not in thisXrefHtml and '.htm#bC' not in thisXrefHtml, thisXrefHtml
                     assert '.htm#aV' not in thisXrefHtml and '.htm#bV' not in thisXrefHtml, thisXrefHtml
                     assert '.htm#gC' not in thisXrefHtml and '.htm#hC' not in thisXrefHtml, thisXrefHtml

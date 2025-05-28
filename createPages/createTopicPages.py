@@ -46,16 +46,15 @@ from settings import State, TEST_MODE, reorderBooksForOETVersions, OET_UNFINISHE
 from usfm import convertUSFMMarkerListToHtml
 from Bibles import getVerseDataListForReference
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
-                    do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
                     removeDuplicateCVids, \
                     makeTop, makeBottom, makeBookNavListParagraph, checkHtml
 from OETHandlers import livenOETWordLinks, getOETTidyBBB, getOETBookName, getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2025-02-26' # by RJH
+LAST_MODIFIED_DATE = '2025-05-25' # by RJH
 SHORT_PROGRAM_NAME = "createTopicPages"
 PROGRAM_NAME = "OpenBibleData createTopicPages functions"
-PROGRAM_VERSION = '0.25'
+PROGRAM_VERSION = '0.27'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -240,12 +239,12 @@ def createTopicPage( level:int, folder:Path, filename:str, topic:str, refs:list[
                 assert TEST_MODE
             rvTextHtml = convertUSFMMarkerListToHtml( level, rvBible.abbreviation, (BBB,C), 'topicalPassage', rvContextList, rvVerseEntryList, basicOnly=False, state=state )
             # rvTextHtml = livenIORs( BBB, rvTextHtml, sections )
-            rvTextHtml = do_OET_RV_HTMLcustomisations( rvTextHtml )
+            rvTextHtml = do_OET_RV_HTMLcustomisations( f'Topic={topic}@{BBB}_{C}', rvTextHtml )
 
             if lvVerseEntryList:
                 lvTextHtml = convertUSFMMarkerListToHtml( level, lvBible.abbreviation, (BBB,C), 'topicalPassage', lvContextList, lvVerseEntryList, basicOnly=False, state=state )
                 # lvTextHtml = livenIORs( BBB, lvTextHtml, sections )
-                lvTextHtml = do_OET_LV_HTMLcustomisations( f"Topic={topic}@{BBB}_{C}", lvTextHtml )
+                lvTextHtml = do_OET_LV_HTMLcustomisations( f'Topic={topic}@{BBB}_{C}', lvTextHtml )
             else: # We didn't get any LV data
                 assert TEST_MODE
                 lvTextHtml = f'<h4>No OET-LV {BBB} book available</h4>'
@@ -253,10 +252,10 @@ def createTopicPage( level:int, folder:Path, filename:str, topic:str, refs:list[
             if rvTextHtml.startswith( '<div class="rightBox">' ):
                 rvTextHtml = f'<div class="s1">{rvTextHtml}' # This got removed above
             # Handle footnotes and cross-references so the same fn1 doesn't occur for both chunks if they both have footnotes
-            rvTextHtml = rvTextHtml.replace( 'id="fn', f'id="fn{rr}RV' ).replace( 'href="#fn', f'href="#fn{rr}RV' ) \
-                                .replace( 'id="xr', f'id="xr{rr}RV' ).replace( 'href="#xr', f'href="#xr{rr}RV' )
-            lvTextHtml = lvTextHtml.replace( 'id="fn', f'id="fn{rr}LV' ).replace( 'href="#fn', f'href="#fn{rr}LV' ) \
-                                .replace( 'id="xr', f'id="xr{rr}LV' ).replace( 'href="#xr', f'href="#xr{rr}LV' )
+            rvTextHtml = rvTextHtml.replace( 'id="footnotes', f'id="footnotes{rr}RV' ).replace( 'id="fn', f'id="fn{rr}RV' ).replace( 'href="#fn', f'href="#fn{rr}RV' ) \
+                                .replace( 'id="crossRefs', f'id="crossRefs{rr}RV' ).replace( 'id="xr', f'id="xr{rr}RV' ).replace( 'href="#xr', f'href="#xr{rr}RV' )
+            lvTextHtml = lvTextHtml.replace( 'id="footnotes', f'id="footnotes{rr}LV' ).replace( 'id="fn', f'id="fn{rr}LV' ).replace( 'href="#fn', f'href="#fn{rr}LV' ) \
+                                .replace( 'id="crossRefs', f'id="crossRefs{rr}LV' ).replace( 'id="xr', f'id="xr{rr}LV' ).replace( 'href="#xr', f'href="#xr{rr}LV' )
             combinedHtmlChunks.append( f'''<h3>OET <a title="View in context of whole book" href="{'../'*level}OET/byDoc/{BBB}.htm#C{C}V{startV}">{getOETTidyBBB(BBB,True,True,True)}</a> <a title="View in context of whole chapter" href="{'../'*level}OET/byC/{BBB}_C{C}.htm#V{startV}">{refRest}</a></h3>
 <h3> </h3>
 <div class="chunkRV">{rvTextHtml}</div><!--chunkRV-->

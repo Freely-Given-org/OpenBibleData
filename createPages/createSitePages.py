@@ -102,7 +102,7 @@ from html import makeTop, makeViewNavListParagraph, makeBottom, checkHtml
 from spellCheckEnglish import printSpellCheckSummary
 
 
-LAST_MODIFIED_DATE = '2025-04-14' # by RJH
+LAST_MODIFIED_DATE = '2025-05-24' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData (OBD) Create Site Pages"
 PROGRAM_VERSION = '0.99'
@@ -436,7 +436,7 @@ def _cleanHTMLFolders( folder:Path, state:State ) -> bool:
         except FileNotFoundError: pass
         try: shutil.rmtree( folder.joinpath( 'dct/' ) )
         except FileNotFoundError: pass
-    for versionAbbreviation in state.allPossibleBibleVersions + ['UTN','TOSN','TOBD','UBS','THBD','BMM']:
+    for versionAbbreviation in state.allPossibleBibleVersions + ['PLBL','UTN','TOSN','TOBD','UBS','THBD','BMM']:
         vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Removing tree at {folder.joinpath( f'{versionAbbreviation}/' )}/…")
         try: shutil.rmtree( folder.joinpath( f'{versionAbbreviation}/' ) )
         except FileNotFoundError: pass
@@ -573,7 +573,7 @@ def _createDetailsPages( level:int, buildFolder:Path, state:State ) -> bool:
     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nCreating {'TEST ' if TEST_MODE else ''}details pages for {len(state.BibleVersions)} versions (plus All Details page)…" )
 
     allDetailsHTML = ''
-    for versionAbbreviation in ['OET'] + [versAbbrev for versAbbrev in state.preloadedBibles] + ['UBS','THBD','BMM',]:
+    for versionAbbreviation in ['OET'] + [versAbbrev for versAbbrev in state.preloadedBibles] + ['UBS','THBD','PLBL','BMM',]:
         if versionAbbreviation == 'TTN': # we only need the one for TOSN I think
             versionAbbreviation = 'TOBD' # Put this one in instead
 
@@ -673,7 +673,7 @@ def _createDetailsPages( level:int, buildFolder:Path, state:State ) -> bool:
         except FileExistsError: pass # they were already there
 
         filepath = versionFolder.joinpath( 'details.htm' )
-        assert not filepath.is_file() # Check that we're not overwriting anything
+        assert not filepath.is_file(), f"{filepath=}" # Check that we're not overwriting anything
         with open( filepath, 'wt', encoding='utf-8' ) as htmlFile:
             htmlFile.write( html )
         vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  {len(html):,} characters written to {filepath}" )
@@ -1009,9 +1009,9 @@ def _createMainIndexPage( level, folder:Path, state:State ) -> bool:
 {bodyHtml}
 <p class="note">Welcome to this <em>{SITE_NAME}</em> site created to share God’s fantastic message with everyone,
     and with a special interest in helping Bible translators around the world.</p>
-<p class="note">Choose a version abbreviation above to view Bible ‘books’ <b>by document</b> or <b>by section</b> or <b>by chapter</b>.</p>
-<p class="note">The <b><a href="rel/">Related</a> passage</b> option shows OET-RV sections with any parallel or related content (especially in the ‘Messiah accounts’: John, Mark, Matthew, and Luke), as well as listing out all of the cross-references.</p>
-<p class="note">For individual ‘verses’ you can see the OET-RV with the OET-LV underneath it, plus many other different translations, plus some translation notes in the <b><a href="par/">Parallel</a> verse</b> view.</p>
+<p class="note">Choose a version abbreviation above to view Bible ‘books’ <b>by section</b> (recommended) or <b>by document</b> (might be slow to load for large documents) or <b>by chapter</b> (often arbitrary divisions).</p>
+<p class="note">The <b><a href="rel/">Related</a> passage</b> option shows OET-RV sections with any parallel or related content (especially in the ‘Messiah accounts’: John, Mark, Matthew, and Luke), as well as listing out all of the cross-references. (Because it’s wide, it’s best viewed on a wide-screen or in landscape mode.)</p>
+<p class="note">For individual ‘verses’ you can see the OET-RV with the OET-LV underneath it, plus many other different translations, plus some translation notes in the <b><a href="par/">Parallel</a> verse</b> view (best viewed in portrait mode).</p>
 <p class="note">The <b><a href="ilr/">Interlinear</a> verse</b> view shows the OET-RV and OET-LV aligned with the original Hebrew or Greek words (including a ‘reverse interlinear’).</p>
 <p class="note">The <b><a href="dct/">Dictionary</a></b> link takes you to the <i>Tyndale Bible Dictionary</i>, with UBS dictionaries also coming...</p>
 <p class="note">The <b><a href="Search.htm">Search</a></b> link allows you to find English words (from a range of versions), or even Greek/Hebrew words, within the Bible text.</p>

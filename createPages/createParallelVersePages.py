@@ -69,6 +69,7 @@ CHANGELOG:
     2025-02-25 Improved colouring for changes between KJB-1611 and KJB-1769
     2025-03-14 Tried to improve that colouring so it highlights the FIRST different word, even if it's small like 'a'
     2025-04-02 Add English spell checks in TEST MODE
+    2025-05-23 Added link to Scriptura Psalms Layer-by-Layer
 """
 from pathlib import Path
 import os
@@ -102,7 +103,7 @@ from OETHandlers import getOETTidyBBB, getOETBookName, livenOETWordLinks, getHeb
 from spellCheckEnglish import spellCheckAndMarkHTMLText
 
 
-LAST_MODIFIED_DATE = '2025-05-15' # by RJH
+LAST_MODIFIED_DATE = '2025-05-25' # by RJH
 SHORT_PROGRAM_NAME = "createParallelVersePages"
 PROGRAM_NAME = "OpenBibleData createParallelVersePages functions"
 PROGRAM_VERSION = '0.98'
@@ -359,6 +360,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                 verseEntryList, contextList = thisBible.getContextVerseDataRange( (BBB, C, V), (BBB, C, '2') ) if v==1 else thisBible.getContextVerseData( (BBB, C, str(v+1)) )
                             else: # the normal, common case
                                 verseEntryList, contextList = thisBible.getContextVerseData( (BBB, C) if c==-1 else (BBB, C, V) )
+                                # if versionAbbreviation=='LEB' and parRef == 'MRK_13:24': print( f"---- {versionAbbreviation} {parRef} Got {verseEntryList=}" )
                                 # if parRef in ancientRefsToPrint: print( f"---- {versionAbbreviation} {parRef} Got {verseEntryList=}" )
                             if 'GNT' in versionAbbreviation:
                                 plainGreekText = getPlainText( verseEntryList )
@@ -409,14 +411,14 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
 
                             if versionAbbreviation == 'OET-RV':
                                 # if BBB=='MRK' and C=='7' and V=='16': print( f"AAA {parRef} {versionAbbreviation} {textHtml=}" )
-                                textHtml = do_OET_RV_HTMLcustomisations( textHtml )
+                                textHtml = do_OET_RV_HTMLcustomisations( f'ParallelVerseTxt={parRef}', textHtml )
                                 if DO_SPELL_CHECKS and parRef not in ('JOB_24:1','PSA_8:5','EZE_-1:0',): # TODO Check these out
                                     textHtml = spellCheckAndMarkHTMLText( versionAbbreviation, parRef, textHtml, textHtml, state ) # Puts spans around mispellings
                                 # if BBB=='MRK' and C=='7' and V=='16': print( f"BBB {parRef} {versionAbbreviation} {textHtml=}" )
                             elif versionAbbreviation == 'OET-LV':
                                 # if BBB=='MRK' and C=='7' and V=='16': print( f"CCC {parRef} {versionAbbreviation} {textHtml=}" )
                                 # assert '<span class="ul">_</span>HNcbsa' not in textHtml, f'''Here1 ({textHtml.count('<span class="ul">_</span>HNcbsa')}) {textHtml=}'''
-                                textHtml, footnoteFreeTextHtml, footnotesHtml = do_OET_LV_HTMLcustomisations(f"ParallelVerseTxt={parRef}", textHtml), do_OET_LV_HTMLcustomisations(f"ParallelVerseFF={parRef}", footnoteFreeTextHtml), do_OET_LV_HTMLcustomisations(f"ParallelVerseFN={parRef}", footnotesHtml)
+                                textHtml, footnoteFreeTextHtml, footnotesHtml = do_OET_LV_HTMLcustomisations( f"ParallelVerseTxt={parRef}", textHtml), do_OET_LV_HTMLcustomisations(f"ParallelVerseFF={parRef}", footnoteFreeTextHtml), do_OET_LV_HTMLcustomisations(f"ParallelVerseFN={parRef}", footnotesHtml)
                                 if DO_SPELL_CHECKS and parRef not in ('MAT_11:21','LUK_10:13','ACT_7:2','ACT_7:4'): # TODO Check these out
                                     textHtml = spellCheckAndMarkHTMLText( versionAbbreviation, parRef, textHtml, textHtml, state ) # Puts spans around mispellings
                                 assert checkHtml( f"OET-LV parallel AAA for {parRef}", textHtml, segmentOnly=True ); assert checkHtml( f"OET-LV parallel BBB for {parRef}", footnoteFreeTextHtml, segmentOnly=True ); assert checkHtml( f"OET-LV parallel CCC for {parRef}", footnotesHtml, segmentOnly=True )
@@ -440,16 +442,19 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                 #     print( f"  {textHtmlWEB=}" )
                                 #     print( f"     {textHtml=}" )
                             elif versionAbbreviation == 'LSV':
-                                textHtml = do_LSV_HTMLcustomisations( textHtml )
+                                textHtml = do_LSV_HTMLcustomisations( f'ParallelVerseTxt={parRef}', textHtml )
                                 if DO_SPELL_CHECKS:
                                     textHtml = spellCheckAndMarkHTMLText( versionAbbreviation, parRef, textHtml, textHtml, state ) # Puts spans around mispellings
                             elif versionAbbreviation == 'T4T':
-                                textHtml = do_T4T_HTMLcustomisations( textHtml )
-                            elif versionAbbreviation == 'LEB':
-                                textHtml = textHtml.replace('⌊','<sub>⌊</sub>').replace('⌋','<sub>⌋</sub>') # Around "idioms"
+                                textHtml = do_T4T_HTMLcustomisations( f'ParallelVerseTxt={parRef}', textHtml )
                                 if DO_SPELL_CHECKS:
                                     textHtml = spellCheckAndMarkHTMLText( versionAbbreviation, parRef, textHtml, textHtml, state ) # Puts spans around mispellings
+                            elif versionAbbreviation == 'LEB':
+                                if DO_SPELL_CHECKS:
+                                    textHtml = spellCheckAndMarkHTMLText( versionAbbreviation, parRef, textHtml, textHtml, state ) # Puts spans around mispellings
+                                textHtml = textHtml.replace('⌊','<sub>⌊</sub>').replace('⌋','<sub>⌋</sub>') # Around "idioms"
                             elif footnoteFreeTextHtml and versionAbbreviation in ('KJB-1769','KJB-1611','Bshps','Gnva','Cvdl','TNT','Wycl'):
+                                if versionAbbreviation=='KJB-1611' and BBB=='TOB': halt
                                 # See if we need to add a modernised version of this text underneath the main/original text ???
                                 # print( f"{versionAbbreviation} {parRef} {footnoteFreeTextHtml=}")
                                 # rawTextHtml = footnoteFreeTextHtml
@@ -466,6 +471,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                                                     .replace( 'Yewel', 'Jewel' ).replace( 'Yudge', 'Judge' ).replace( 'KYB', 'KJB' ) # Fix overreaches
                                 modernisedTextDiffers = modernisedTextHtml != footnoteFreeTextHtml # we'll usually only show it if it changed
                                 if DO_SPELL_CHECKS:
+                                    if versionAbbreviation=='KJB-1611' and BBB=='TOB': halt
                                     modernisedTextHtml = spellCheckAndMarkHTMLText( versionAbbreviation, parRef, modernisedTextHtml, footnoteFreeTextHtml, state ) # Puts spans around mispellings
 
                                 def removeVersePunctuationForComparison( htmlText:str ) -> str:
@@ -634,7 +640,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                     # assert f'class="{versionAbbreviation}_verseTextChunk"' not in footnoteFreeTextHtml
                                     adjustedForeignTextHtml = translateFunction( footnoteFreeTextHtml.replace( f'<span class="{versionAbbreviation}_verseTextChunk">', f'<span class="{versionAbbreviation}_trans">') )
                                     if footnotesHtml:
-                                        translatedFootnotesHtml = removeDuplicateFNids( parRef, f'{footnotesHtml}__JOIN__{translateFunction( footnotesHtml )}' ).split( '__JOIN__' )[1]
+                                        translatedFootnotesHtml = removeDuplicateFNids( parRef, f'{footnotesHtml}__JOIN__{translateFunction( footnotesHtml.replace(f' id="footnotes{versionAbbreviation}"','') )}' ).split( '__JOIN__' )[1]
                                 if adjustedForeignTextHtml and adjustedForeignTextHtml != textHtml: # only show it if it changed
                                     if DO_SPELL_CHECKS:
                                         adjustedForeignTextHtml = spellCheckAndMarkHTMLText( versionAbbreviation, parRef, adjustedForeignTextHtml, footnoteFreeTextHtml, state ) # Puts spans around mispellings
@@ -928,10 +934,16 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                         tbiHtml = f'''<div id="TBI" class="parallelTBI"><a title="Go to TSN copyright page" href="{'../'*BBBLevel}TSN/details.htm#Top">TBI</a> <b>Tyndale Book Intro</b>: {tbiHtml}</div><!--end of TBI-->'''
                         parallelHtml = f"{parallelHtml}{NEWLINE if parallelHtml else ''}{tbiHtml}"
 
+                if BBB == 'PSA': # Provide a link to Scriptura Psalms Layer-by-Layer
+                    plblHtml = f'''See the Scriptura Psalm Layer-by-Layer <a href="https://psalms.scriptura.org/w/Psalm_Overview_{C}">analysis overview</a>.
+<br>  See the Scriptura Psalm Layer-by-Layer <a href="https://psalms.scriptura.org/w/Psalm_{C}_Verse-by-Verse#v._{V}">analysis for this verse</a>.'''
+                    plblHtml = f'''<div id="PLBL" class="parallelPLBL"><a title="Go to PLBL copyright page" href="{'../'*BBBLevel}PLBL/details.htm#Top">PLBL</a> <b>Psalms Layer-by-Layer</b>: {plblHtml}</div><!--end of PLBL-->'''
+                    parallelHtml = f'{parallelHtml}\n<hr style="width:50%;margin-left:0;margin-top: 0.3em">\n{plblHtml}'
+
                 # Handle Tyndale open study notes and theme notes
                 tsnHtml = formatTyndaleNotes( 'TOSN', BBBLevel, BBB, C, V, 'parallelVerse', state )
                 if tsnHtml:
-                    tsnHtml = f'''<div id="TSN" class="parallelTSN"><a title="Go to TSN copyright page" href="{'../'*BBBLevel}TSN/details.htm#Top">TSN</a> <b>Tyndale Study Notes</b>: {tsnHtml}</div><!--end of TSN-->'''
+                    tsnHtml = f'''<div id="TSN" class="parallelTSN"><a title="Go to TOSN copyright page" href="{'../'*BBBLevel}TOSN/details.htm#Top">TSN</a> <b>Tyndale Study Notes</b>: {tsnHtml}</div><!--end of TSN-->'''
                     parallelHtml = f'{parallelHtml}\n<hr style="width:50%;margin-left:0;margin-top: 0.3em">\n{tsnHtml}'
                 ttnHtml = formatTyndaleNotes( 'TTN', BBBLevel, BBB, C, V, 'parallelVerse', state )
                 if ttnHtml:
@@ -963,9 +975,9 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
 {vLinksPar}
 <h1>Parallel {ourTidyBBB} {'Intro' if c==-1 else f'{C}:{V}'}</h1>
 <p class="rem">Note: {OET_SINGLE_VERSE_HTML_TEXT} Click on any Bible version abbreviation down the left-hand side to see the verse in more of its context. {OETS_UNFINISHED_WARNING_HTML_TEXT}</p>
-{navLinks.replace('__ID__','Top').replace('__ARROW__','↓').replace('__LINK__','Bottom').replace('__WHERE__','bottom')}
+{navLinks.replace('__ID__','Top').replace('__ARROW__','↓').replace('__LINK__','BottomNavs').replace('__WHERE__','bottom')}
 {parallelHtml}
-{navLinks.replace('__ID__','Bottom').replace('__ARROW__','↑').replace('__LINK__','Top').replace('__WHERE__','top')}
+{navLinks.replace('__ID__','BottomNavs').replace('__ARROW__','↑').replace('__LINK__','Top').replace('__WHERE__','top')}
 {makeBottom( BBBLevel, 'parallelVerse', state )}'''
                 assert checkHtml( f'Parallel {parRef}', parallelHtml )
                 assert not filepath.is_file() # Check that we're not overwriting anything
@@ -1024,12 +1036,12 @@ def handleAndExtractFootnotes( versionAbbreviation:str, verseHtml:str ) -> tuple
     Given verseHtml that may contain a footnotes division,
         separate off the footnotes.
     """
-    if '<div class="footnotes">' in verseHtml:
+    if '<div id="footnotes" class="footnotes">' in verseHtml:
         assert '<hr ' in verseHtml, f"{versionAbbreviation} {verseHtml=}"
         assert '</div>' in verseHtml
 
         # Handle footnotes so the same fn1 doesn't occur for multiple versions
-        verseHtml = verseHtml.replace( 'id="fn', f'id="fn{versionAbbreviation}' ).replace( 'href="#fn', f'href="#fn{versionAbbreviation}' )
+        verseHtml = verseHtml.replace( 'id="footnotes', f'id="footnotes{versionAbbreviation}' ).replace( 'id="fn', f'id="fn{versionAbbreviation}' ).replace( 'href="#fn', f'href="#fn{versionAbbreviation}' )
 
         verseHtml, footnoteHtml = verseHtml.split( '<hr ' )
         verseHtml = verseHtml.rstrip()
@@ -1037,8 +1049,9 @@ def handleAndExtractFootnotes( versionAbbreviation:str, verseHtml:str ) -> tuple
         # print( f"{numFootnotesRemoved} footnotes removed from {versionAbbreviation} {verseHtml=} gives {footnoteFreeVerseHtml=}")
         return verseHtml, footnoteFreeVerseHtml, f'<hr {footnoteHtml}'
     else:
+        if 'class="footnotes"' in verseHtml: print( "{versionAbbreviation} {verseHtml=}" ); halt
         if versionAbbreviation != 'OET-RV':
-            assert '<hr ' not in verseHtml, f"{versionAbbreviation=}"
+            assert '<hr ' not in verseHtml, f"{versionAbbreviation=} {verseHtml=}"
         return verseHtml, verseHtml, ''
 # end of createParallelVersePages.handleAndExtractFootnotes
 

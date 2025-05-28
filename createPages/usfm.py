@@ -67,6 +67,7 @@ CHANGELOG:
     2025-03-04 Ignore nb markers in OET-LV
     2025-03-11 Liven OSHB footnotes in OET-LV
     2025-04-07 Improve handling of s2 headings
+    2025-05-26 Liven KJB-1611 cross-references
 """
 from gettext import gettext as _
 import re
@@ -83,10 +84,10 @@ from html import checkHtml
 from OETHandlers import getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2025-04-07' # by RJH
+LAST_MODIFIED_DATE = '2025-05-26' # by RJH
 SHORT_PROGRAM_NAME = "usfm"
 PROGRAM_NAME = "OpenBibleData USFM to HTML functions"
-PROGRAM_VERSION = '0.87'
+PROGRAM_VERSION = '0.88'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -100,8 +101,8 @@ NON_BREAK_SPACE = ' ' # NBSP
 MAX_FOOTNOTE_CHARS = 11_500 # 1,029 in FBV, 1,688 in BrTr, 10,426 in ClVg JOB!
 MAX_NET_FOOTNOTE_CHARS = 18_000 # 17,145 in NET ECC
 
-BCVRefRegEx = re.compile( '([1-3]? ?[A-Z][a-z]{0,12}) ([1-9][0-9]{0,2})[:–]([1-9][0-9]{0,2})' ) # Can have en-dash for chapter range
-CVRefRegEx = re.compile( '([1-9][0-9]{0,2}):([1-9][0-9]{0,2})' )
+BCVRefRegEx = re.compile( '([1-4]?[ .]?[A-Za-z][a-z]{0,12})\\.? ?([1-9][0-9]{0,2})[:.–]([1-9][0-9]{0,2})' ) # Can have en-dash for chapter range
+CVRefRegEx = re.compile( '([1-9][0-9]{0,2})[:.]([1-9][0-9]{0,2})' )
 XRefRegEx = re.compile( '\\\\x .+?\\\\x\\*' )
 spanClassRegEx = re.compile( '<span class=".+?">' )
 def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tuple, segmentType:str, contextList:list, markerList:list, basicOnly:bool, state:State ) -> str:
@@ -829,6 +830,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
             logger( f"convertUSFMMarkerListToHtml final unclosed '{inMainDiv}' main section {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} last {marker=}" )
             html = f'{html}</div><!--{inMainDiv}-->'
 
+
     # Handle all footnotes in one go (but we don't check here for matching \fr fields)
     footnotesCount = 0
     footnotesHtml = ''
@@ -982,10 +984,11 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
         #     nIx = html.index( '<a title="Variant note' )
         #     print( f"FOUND FN TITLE {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} '{html[nIx:nIx+80]}'" )
         assert '<a title="Variant note:\n<br>' not in html # Check this before we append the actual footnote content to the end.
-        html = f'{html}<hr style="width:35%;margin-left:0;margin-top: 0.3em">\n<div class="footnotes">\n{footnotesHtml}</div><!--footnotes-->\n'
+        html = f'{html}<hr style="width:35%;margin-left:0;margin-top: 0.3em">\n<div id="footnotes" class="footnotes">\n{footnotesHtml}</div><!--footnotes-->\n'
     # TODO: Find out why these following exceptions occur
     if versionAbbreviation not in ('T4T','BrTr','ClVg','TCNT','TC-GNT'): # T4T ISA 33:8, BrTr KI1 6:36a, ClVg MRK 3:10, TCNT&TC-GNT INT \\fp Why???
         assert '\\f' not in html, f"{versionAbbreviation} {refTuple} html='…{html[html.index(f'{BACKSLASH}f')-10:html.index(f'{BACKSLASH}f')+maxFootnoteChars]}…'"
+
 
     # Now handle all cross-references in one go (we don't check for matching \xo fields)
     pathPrefix = '../../OET/byC/' if segmentType in ('parallelVerse','interlinearVerse') \
@@ -998,6 +1001,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
     for _safetyCount1 in range( 999 if segmentType=='book' else 99 ):
         xStartIx = html.find( '\\x ', searchStartIx )
         if xStartIx == -1: break # all done
+        # if versionAbbreviation=='KJB-1611': print( f"{versionAbbreviation} {refTuple} {segmentType=} got {xStartIx=}" )
         crossReferencesCount += 1
         xoIx = html.find( '\\xo ', xStartIx+3 ) # Might be absent
         xtIx = html.find( '\\xt ', xStartIx+3 )
@@ -1012,6 +1016,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
 
         # Liven the cross-references (xrefs) themselves
         xrefLiveMiddle = xrefOriginalMiddle = html[xtIx+4:xEndIx]
+        if versionAbbreviation=='KJB-1611': print( f"{versionAbbreviation} {refTuple} {segmentType=} got {xrefOriginalMiddle}" )
         xrefOriginalMiddle = xrefOriginalMiddle.replace('\\xo ','').replace('\\xt ','') # Fix things like "Gen 25:9-10; \\xo b \\xt Gen 35:29."
         # print( f" {xrefLiveMiddle=}")
         assert xrefLiveMiddle.count('\\xo ') == xrefLiveMiddle.count('\\xo '), f"{xrefLiveMiddle=}"
@@ -1021,14 +1026,15 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
         reStartIx, lastXBBB = 0, BBB
         for _safetyCount2 in range( 999 if segmentType=='book' else 99 ):
             if reStartIx>0: dPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Now searching {refTuple} from {xrefLiveMiddle[reStartIx:]=}" )
-            matchBCV = BCVRefRegEx.search( xrefLiveMiddle, reStartIx )
+            matchBCV = BCVRefRegEx.search( xrefLiveMiddle, reStartIx ) # Note that this won't find some non-capitalised books in KJB-1611, e.g., in Mark 1: 'Esa. 40.3. luke 3.4. iohn 1.23.
             matchCV = CVRefRegEx.search( xrefLiveMiddle, reStartIx )
-            if not matchBCV and not matchCV: break # all done here
+            if not matchBCV and not matchCV:
+                break # neither one was found - all done here
             if not matchBCV or (matchCV is not None and matchCV.start()<matchBCV.start()):
-                match = matchCV
+                match = matchCV # process matchCV
                 xC, xV = match.groups()
                 xBBB = lastXBBB
-            else:
+            else: # process matchBCV
                 match = matchBCV
                 # NOTE: This match also captures chapter ranges, e.g., it gets Lev 1:2, but also Lev 1–2
                 xB, xC, xV = match.groups()
@@ -1037,12 +1043,33 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                     xV = '1' # (rather than thinking the second chapter of the range is the verse number)
                 xB = xB.lstrip() # For books without a book number like 1 Cor, the regex may capture an extra space before the book abbreviation
                 # assert ' ' not in xB, f"{match.groups()}" # False for '2 Kings'
-                xBBB = getBBBFromOETBookName( xB )
+                if versionAbbreviation=='KJB-1611' and xB=='and':
+                    xBBB = lastXBBB # Same as last book
+                elif versionAbbreviation=='KJB-1611' and xB=='Chap':
+                    xBBB = BBB # This same book where the xref is located
+                else:
+                    xBBB = getBBBFromOETBookName( xB if versionAbbreviation!='KJB-1611' else
+                                                    xB # Fix KJB-1611 spellings
+                                                    .replace( '1.','1 ' ).replace( '2.','2 ' ).replace( '3.','3 ' ).replace( '4.','4 ' ) # Should BOS handle this???
+                                                    .replace( '1 Corin', '1 Cor').replace( '1 corin', '1 Cor') #This shouldn't have failed !!!
+                                                    .replace( 'Esa', 'Isa' )
+                                                    .replace( 'Ie', 'Je' ).replace( 'ier', 'Jer' )
+                                                    .replace( 'Io', 'Jo' ).replace( 'iob', 'Job' ).replace( 'iohn', 'Jhn' )
+                                                    .replace( 'iudith', 'Judith' )
+                                                    .replace( 'Leu', 'Lev' ).replace( 'Luc', 'Luk' )
+                                                    .replace( 'Prou', 'Prov' )
+                                                    .replace( 'reuel', 'Rev' )
+                                                    )
+                    if xB.startswith('Pro') and not xBBB:
+                        print( f"  {versionAbbreviation} {xBBB=} {xC=} {xV=} from {xB=} from {xrefOriginalMiddle=}" ); halt
+                if versionAbbreviation=='KJB-1611' and not xBBB: # still
+                    print( f"  {versionAbbreviation} {xBBB=} {xC=} {xV=} from {xB=} from {xrefOriginalMiddle=}" )
             lastXBBB = xBBB
-            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"Got {refTuple} {match.groups()=} from {xrefLiveMiddle=}" )
+            dPrint( 'Quiet' if versionAbbreviation=='KJB-1611' else 'Info', DEBUGGING_THIS_MODULE, f"Got {versionAbbreviation} {refTuple} {match.groups()=} from {xrefLiveMiddle=}" )
             assert xC.isdigit(), f"{match.groups()}"
             assert xV.isdigit(), f"{match.groups()}"
-
+            if versionAbbreviation=='KJB-1611' and not xBBB:
+                print( f"{versionAbbreviation} {xBBB=} {xC=} {xV=} from {xrefOriginalMiddle=}" ); halt
             # Now check for a verse or chapter range and include them in our find
             matchInner = match.group()
             matchEnd = match.end()
@@ -1109,7 +1136,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
     if crossReferencesHtml:
         if not checkHtml( f"Cross-references for {versionAbbreviation} {segmentType} {basicOnly=} {refTuple}", crossReferencesHtml, segmentOnly=True ):
             if DEBUGGING_THIS_MODULE: halt
-        html = f'{html}<hr style="width:30%;margin-left:0;margin-top: 0.3em">\n<div class="crossRefs">\n{crossReferencesHtml}</div><!--crossRefs-->\n'
+        html = f'{html}<hr style="width:30%;margin-left:0;margin-top: 0.3em">\n<div id="crossRefs" class="crossRefs">\n{crossReferencesHtml}</div><!--crossRefs-->\n'
     if versionAbbreviation not in ('BrTr',): # BrTr ISA 52
         assert '\\x' not in html, f"{html[html.index(f'{BACKSLASH}x')-10:html.index(f'{BACKSLASH}x')+12]}"
     # if refTuple==('DAN','1','2') or refTuple==('DAN','1','18'): halt

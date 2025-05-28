@@ -44,10 +44,10 @@ from BibleOrgSys import BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import vPrint, fnPrint, dPrint
 
 
-LAST_MODIFIED_DATE = '2025-05-15' # by RJH
+LAST_MODIFIED_DATE = '2025-05-25' # by RJH
 SHORT_PROGRAM_NAME = "spellCheckEnglish"
 PROGRAM_NAME = "English Bible Spell Check"
-PROGRAM_VERSION = '0.46'
+PROGRAM_VERSION = '0.48'
 PROGRAM_NAME_VERSION = '{} v{}'.format( SHORT_PROGRAM_NAME, PROGRAM_VERSION )
 
 DEBUGGING_THIS_MODULE = False
@@ -111,6 +111,10 @@ INITIAL_BIBLE_WORD_LIST = ['3.0','UTF','USFM', '©', 'CC0',
                     'Yude','Yudea','Yudean','Yudeans',
                     'Zebedaios','Zekaryah','Zofar',
 
+                    # Parts of compound names, e.g., Beth-arbel gets split into two 'words'
+                    'arbel','arbell',
+
+                    # Specialist words
                     'black-grained','building-stone',
                     'efod','el','emerald-looking',
                     'false-teachers','finely-ground','finely-spun',
@@ -128,18 +132,18 @@ INITIAL_BIBLE_WORD_LIST = ['3.0','UTF','USFM', '©', 'CC0',
                     'IS','AM','ARE','SHALL',
                     'IN','OF','TO','FOR','UNTO','ACCORDING','WITH',
                     'THEY','OUR','US','HIMSELF',
-                    'AND','NOT',
+                    'AND','NOT','OR',
 
-                    # T4T figurative speech abbreviations
-                    'DOU','EUP','HYP','MET','MTY','PRS','RHQ','SIM',
+                    # T4T figurative speech abbreviations -- not required because they get deleted
+                    # 'DOU','EUP','HYP','MET','MTY','PRS','RHQ','SIM',
 
                     # Various simple English words used in Psalm headings, etc.
-                    'CAME','COME','COMING','DO','SENDING','WATCH','PUT','DEATH','DESTROY',
-                    'PRAISE','GIVE','LOVE','SAW','COMMONLY','CALLED','NOW','SILENT','DOVE','FAR','OFF','TAKING','HOLD',
-                    'APOSTLE','APOSTLES','GOSPEL','ST','PROPHET','PREACHER','BRANCH','EPISTLE','VALLEY','SALT','STRIKES',
+                    'BEING','CAME','CAUSE','COME','COMING','DO','SENDING','WATCH','PUT','DEATH','DESTROY','BORN',
+                    'PRAISE','GIVE','LOVE','SAW','SET','COMMONLY','CALLED','NOW','SILENT','DOVE','FAR','OFF','TAKING','HOLD',
+                    'APOSTLE','APOSTLES','CHILD','GOSPEL','ST','PROPHET','PREACHER','BRANCH','EPISTLE','VALLEY','SALT','STRIKES',
                     'SAVE','SERVANT','SERVANTS','MAN','SONS','BURDEN','RIGHTEOUSNESS','LILY','TESTIMONY','TEACH','STRIVING',
                     'KING','JEWS','YEWS','HAPPY','HOLY','HOLINESS','THRONE','PEACE','MOTHER','WOMEN','EARTH','GREAT','MYSTERY',
-                    'HARLOTS','PROSTITUTES','ABOMINATIONS','EVIL','UNCLEAN','SECRET','MEANING',
+                    'HARLOTS','PROSTITUTES','ABOMINATIONS','EVIL','UNCLEAN','SECRET','MEANING','WILDERNESS','REMEMBER',
                     'BOOK','ORIGINAL','BASE','TEXT','PARABLE','NOTES','RELEASE','STATUS','TAGS','WORD','WORDS','SECTION','PRAYER','VISION',
                     'AMEN','END','SAY','SING','BEHOLD','STAR','RISE','STRINGED','UNKNOWN','HIDING',
 
@@ -313,8 +317,8 @@ FOOTNOTE_OR_XREF_CALLER_REGEX = re.compile( '<span class="(fn|xr)Caller".+?</spa
 ANCHOR_LINK_REGEX = re.compile( '<a ([^>]+?)>' )
 RV_ADD_REGEX = re.compile( '<span class="RVadd" [^>]+?>' )
 FOOTNOTE_Ps_REGEX = re.compile( '<p class="fn" id="fn[1-9]">' )
-FOOTNOTES_DIV_REGEX = re.compile( '<div class="footnotes">.+?</div><!--footnotes-->' )
-CROSSREFS_DIV_REGEX = re.compile( '<div class="crossRefs">.+?</div><!--crossRefs-->' )
+FOOTNOTES_DIV_REGEX = re.compile( '<div id="footnotes" class="footnotes">.+?</div><!--footnotes-->' )
+CROSSREFS_DIV_REGEX = re.compile( '<div id="crossRefs" class="crossRefs">.+?</div><!--crossRefs-->' )
 def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck:str, originalHTMLText:str, state ) -> str:
     """
     Puts a span around suspected misspelt words
@@ -396,12 +400,30 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                     )
 
     # Remove unwanted HTML crud
-    cleanedText =  ( cleanedText
-                    .replace( '<div>', '' )
-                    .replace( f'<span class="{versionAbbreviation}_verseTextChunk">', '' ).replace( f'<span class="{versionAbbreviation}_trans">', '' )
-                    .replace( '<span class="nd">L<span style="font-size:.75em;">ORD</span></span>', 'LORD' )
-                    .replace( '<hr style="width:30%;margin-left:0;margin-top: 0.3em">', '' ).replace( '<hr style="width:35%;margin-left:0;margin-top: 0.3em">', '' )
-
+    if versionAbbreviation == 'T4T':
+        cleanedText =  ( cleanedText
+                    .replace( '<span title="alternative translation">◄</span>', '' )
+                    .replace( '►', '' ) # Delete end of alternative translation
+    
+                    # Some of these can occur doubly, e.g., [MET, DOU], so that's what the second column here covers (without the square brackets)
+                    .replace( '<span class="t4tFoS" title="apostrophe (figure of speech)">[APO]</span>', '' )
+                    .replace( '<span class="t4tFoS" title="chiasmus (figure of speech)">[CHI]</span>', '' ).replace( '<span class="t4tFoS" title="chiasmus (figure of speech)">CHI</span>', '' )
+                    .replace( '<span class="t4tFoS" title="doublet (figure of speech)">[DOU]</span>', '' ).replace( '<span class="t4tFoS" title="doublet (figure of speech)">DOU</span>', '' )
+                    .replace( '<span class="t4tFoS" title="euphemism (figure of speech)">[EUP]</span>', '' ).replace( '<span class="t4tFoS" title="euphemism (figure of speech)">EUP</span>', '' )
+                    .replace( '<span class="t4tFoS" title="hendiadys (figure of speech)">[HEN]</span>', '' )
+                    .replace( '<span class="t4tFoS" title="hyperbole (figure of speech)">[HYP]</span>', '' ).replace( '<span class="t4tFoS" title="hyperbole (figure of speech)">HYP</span>', '' )
+                    .replace( '<span class="t4tFoS" title="idiom (figure of speech)">[IDM]</span>', '' ).replace( '<span class="t4tFoS" title="idiom (figure of speech)">IDM</span>', '' )
+                    .replace( '<span class="t4tFoS" title="irony (figure of speech)">[IRO]</span>', '' )
+                    .replace( '<span class="t4tFoS" title="litotes (figure of speech)">[LIT]</span>', '' )
+                    .replace( '<span class="t4tFoS" title="metaphor (figure of speech)">[MET]</span>', '' ).replace( '<span class="t4tFoS" title="metaphor (figure of speech)">MET</span>', '' )
+                    .replace( '<span class="t4tFoS" title="metonymy (figure of speech)">[MTY]</span>', '' ).replace( '<span class="t4tFoS" title="metonymy (figure of speech)">MTY</span>', '' )
+                    .replace( '<span class="t4tFoS" title="personification (figure of speech)">[PRS]</span>', '' ).replace( '<span class="t4tFoS" title="personification (figure of speech)">PRS</span>', '' )
+                    .replace( '<span class="t4tFoS" title="rhetorical question (figure of speech)">[RHQ]</span>', '' ).replace( '<span class="t4tFoS" title="rhetorical question (figure of speech)">RHQ</span>', '' )
+                    .replace( '<span class="t4tFoS" title="simile (figure of speech)">[SIM]</span>', '' )
+                    .replace( '<span class="t4tFoS" title="synecdoche (figure of speech)">[SYN]</span>', '' ).replace( '<span class="t4tFoS" title="synecdoche (figure of speech)">SYN</span>', '' )
+                    )
+    if 'OET' in versionAbbreviation:
+        cleanedText =  ( cleanedText
                     .replace( '<span class="synonParr" title="synonymous parallelism">≈</span>', '' )
                     .replace( '<span class="antiParr" title="antithetic parallelism">^</span>', '' )
                     .replace( '<span class="synthParr" title="synthetic parallelism">→</span>', '' )
@@ -420,6 +442,12 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                     .replace( '<span class="addReword" title="reworded">', '' )
                     .replace( '<span class="addReword unsure" title="reworded (uncertain)">', '' )
                     .replace( '<span class="RVadd unsure" title="added info (uncertain)">', '' ) # (plain) RVadd is removed by RegEx
+                    )
+    cleanedText =  ( cleanedText
+                    .replace( '<div>', '' )
+                    .replace( f'<span class="{versionAbbreviation}_verseTextChunk">', '' ).replace( f'<span class="{versionAbbreviation}_trans">', '' )
+                    .replace( '<span class="nd">L<span style="font-size:.75em;">ORD</span></span>', 'LORD' )
+                    .replace( '<hr style="width:30%;margin-left:0;margin-top: 0.3em">', '' ).replace( '<hr style="width:35%;margin-left:0;margin-top: 0.3em">', '' )
 
                     .replace( '</span>s ', '</span> ' ).replace( '</span>s:', '</span>:' ) # LORDs
                     )
@@ -430,7 +458,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
         cleanedText =  cleanedText.replace( f'<div class="{divMarker}">', '' ).replace( f'<!--{divMarker}-->', '' )
     for paragraphMarker in ( 'id','rem',
                         'mt1','mt2','mt3','mt4',
-                        'iot','io1','io2','is1','is2','ip','im',
+                        'imt1','iot','io1','io2','is1','is2','ip','im',
                         'ms1','ms2',
                         's1',
                         'p', # OEB CH1_-1:0 uses p instead of ip!
@@ -454,7 +482,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
     cleanedText = ANCHOR_LINK_REGEX.sub( '', cleanedText )
     cleanedText = RV_ADD_REGEX.sub( '', cleanedText )
     if versionAbbreviation in ('OET-RV','OET-LV'): # we want to check the actual footnote content
-        cleanedText = cleanedText.replace( '<div class="footnotes">', '' ).replace( '</div><!--footnotes-->', '' )
+        cleanedText = cleanedText.replace( '<div id="footnotes" class="footnotes">', '' ).replace( '</div><!--footnotes-->', '' )
         cleanedText = FOOTNOTE_Ps_REGEX.sub( '', cleanedText )
     else: # we won't bother checking footnote content for most versions, so delete the whole thing
         cleanedText = FOOTNOTES_DIV_REGEX.sub( '', cleanedText )
@@ -484,6 +512,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                         )
     elif versionAbbreviation == 'LEB':
         cleanedText =  ( cleanedText
+                        .replace( '⌊', '' ).replace( '⌋', '' ) # Floor brackets ('idioms' from LEB)
                         .replace( '〚', '' ).replace( '〛', '' ) # White square brackets (from LEB)
                         )
 

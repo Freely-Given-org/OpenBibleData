@@ -64,10 +64,10 @@ from BibleTransliterations import transliterate_Hebrew, transliterate_Greek
 from settings import State
 
 
-LAST_MODIFIED_DATE = '2025-01-15' # by RJH
+LAST_MODIFIED_DATE = '2025-05-27' # by RJH
 SHORT_PROGRAM_NAME = "OETHandlers"
 PROGRAM_NAME = "OpenBibleData OET handler"
-PROGRAM_VERSION = '0.62'
+PROGRAM_VERSION = '0.63'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -134,6 +134,11 @@ def getBBBFromOETBookName( booknameText:str ) -> str:
     if booknameText == 'Yonah': return 'JNA'
     if booknameText == 'Yob': return 'JOB'
     if booknameText == 'Yoel': return 'JOL'
+
+    # And for KJB-1611
+    if booknameText == '4 Esdr': return 'LES'
+    if booknameText == 'Ecclus': return 'SIR' # Sirach / Ecclesiasticus
+
     return BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromText(
                 booknameText.rstrip( '.' ) # Remove any final period TODO: Should BibleOrgSys do that?
                     # .replace( 'Yob', 'JOB' ).replace( 'Yochanan', 'JHN' ).replace( 'Yoel', 'JOL' ).replace( 'Yonah', 'JNA' )

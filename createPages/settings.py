@@ -45,7 +45,7 @@ from BibleOrgSys.BibleOrgSysGlobals import dPrint, fnPrint
 from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39
 
 
-LAST_MODIFIED_DATE = '2025-05-14' # by RJH
+LAST_MODIFIED_DATE = '2025-05-24' # by RJH
 SHORT_PROGRAM_NAME = "settings"
 PROGRAM_NAME = "OpenBibleData (OBD) Settings"
 PROGRAM_VERSION = '0.98'
@@ -53,10 +53,10 @@ PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
 
-OET_VERSION_NUMBER_STRING = 'v0.38.8' # Incremented on most runs
+OET_VERSION_NUMBER_STRING = 'v0.39.7' # Incremented on most runs
 
 TEST_MODE = True # Writes website into 'Test' subfolder if True
-TEST_OT_BOOK_LIST = ['PSA','HOS'] # Books in progress
+TEST_OT_BOOK_LIST = ['GEN','PSA','SNG'] # Books in progress
 TEST_NT_BOOK_LIST = ['MRK'] # Shortest gospel
 TEST_BOOK_LIST_CHANGED = False
 
@@ -135,6 +135,9 @@ OETS_UNFINISHED_WARNING_HTML_TEXT = 'The OET segments on this page are still ver
 
 JAMES_NOTE_HTML_TEXT = 'Note that the <em>OET</em> uses ‘Yacob’ for ‘The Letter of Jacob’ (wrongly called ‘James’ in older Bibles).'
 JAMES_NOTE_HTML_PARAGRAPH = f'<p class="rem">{JAMES_NOTE_HTML_TEXT}</p>'
+
+BLACK_LETTER_FONT_HTML_TEXT = 'Note that this page will look best (more authentic) if you’ve downloaded a black-letter font like <a href="https://fonts.google.com/specimen/UnifrakturCook">Google’s UnifrakturCook</a>.'
+BLACK_LETTER_FONT_HTML_PARAGRAPH = f'<p class="rem">{BLACK_LETTER_FONT_HTML_TEXT}</p>'
 
 BY_DOCUMENT_HTML_TEXT = 'Remember that ancient letters were meant to be read in their entirety, just like modern letters. We provide a byChapter mode for convenience only, but mostly <b>recommend the byDocument and bySection modes</b> for personal reading.'
 BY_DOCUMENT_HTML_PARAGRAPH = f'<p class="rem">{BY_DOCUMENT_HTML_TEXT}</p>'
@@ -349,6 +352,7 @@ class State:
         'BrTr': 'Brenton Septuagint Translation (1851)',
         'BrLXX': '(Brenton’s) Ancient Greek translation of the Hebrew Scriptures (~250 BC)',
         'UHB': 'unfoldingWord® Hebrew Bible (2022)',
+        'PLBL': 'Psalms Layer-by-Layer from Scriptura.org',
         'TOSN': 'Tyndale Open Study Notes (2022)',
         'TOBD': 'Tyndale Open Bible Dictionary (2023)',
         'UTN': 'unfoldingWord® Translation Notes (2023)',
@@ -421,6 +425,7 @@ class State:
         'BrTr': None,
         'BrLXX': 'GRK',
         'UHB': 'HEB',
+        'PLBL': 'EN-USA',
         'TOSN': 'EN-USA',
         'TOBD': 'EN-USA',
         'UTN': 'EN-USA',
@@ -598,7 +603,8 @@ We’re also grateful to the <a href="https://www.Biblica.com/clear/">Biblica Cl
         'BSB': {'about': '<p class="about">Berean Standard Bible (Version 3, 2025).</p>',
                 'copyright': '<p class="copyright"><a href="https://berean.bible/terms.htm">Public domain</a>.</p>',
                 'licence': '<p class="licence"><a href="https://creativecommons.org/publicdomain/zero/1.0/">CC0</a> licence. All uses are freely permitted.</p>',
-                'acknowledgements': '<p class="acknwldg">Thanks to John Isett and <a href="https://biblehub.com/">BibleHub</a> for the <a href="https://berean.bible/">BSB</a>.</p>' },
+                'acknowledgements': '<p class="acknwldg">Thanks to John Isett and <a href="https://biblehub.com/">BibleHub</a> for the <a href="https://berean.bible/">BSB</a>.</p>',
+                'notes': '<p class="note">According to Dr. Gray Hill, the BSB (originally called ‘The Berean Study Bible’) is intentionally designed <a href="https://www.youtube.com/watch?v=qX-2IMNzUbE">to preserve past traditions</a>. (Full video <a href="https://www.youtube.com/watch?v=hKooIYSq8Ys">here</a>.)</p>' },
         'BLB': {'about': '<p class="about">Berean Literal Bible New Testament (2022).</p>',
                 'copyright': '<p class="copyright">Copyright © 2022 by Bible Hub. Used by Permission. All Rights Reserved Worldwide.</p>',
                 'licence': '<p class="licence">The Berean Bible text is <a href="https://berean.bible/terms.htm#Top">free to use</a> in any electronic form to promote the reading, learning, and understanding of the Holy Bible as the Word of God.</p>',
@@ -698,7 +704,7 @@ We’re also grateful to the <a href="https://www.Biblica.com/clear/">Biblica Cl
                 'copyright': '<p class="copyright">Copyright © (coming).</p>',
                 'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a> as per <a href="https://ebible.org/t4t/copyright.htm#Top">here</a>.</p>',
                 'acknowledgements': '<p class="acknwldg">Thanks to the late <a href="https://tahlequah.hartfuneralhome.net/obituary/Ellis-Deibler">Ellis Deibler</a> for his work in preparing this specialised text to be used as a Bible translation tool. (coming).</p>' },
-        'LEB': {'about': '<p class="about">Lexham English Bible (2010,2012).</p>',
+        'LEB': {'about': '<p class="about">Lexham English Bible (2010, 2012).</p>',
                 'copyright': '<p class="copyright">Copyright © 2012 <a href="http://www.logos.com/">Logos Bible Software</a>. Lexham is a registered trademark of <a href="http://www.logos.com/">Logos Bible Software</a>.</p>',
                 'licence': '<p class="licence">You can give away the <a href="https://lexhampress.com/LEB-License">Lexham English Bible</a>, but you can’t sell it on its own. If the LEB comprises less than 25% of the content of a larger work, you can sell it as part of that work.</p>',
                 'acknowledgements': '<p class="acknwldg">Thanks to <a href="http://www.logos.com/">Logos Bible Software</a> for supplying a XML file.</p>' },
@@ -845,6 +851,11 @@ Footnote markers PRECEDE the text that they concern,
                 'copyright': '<p class="copyright">Copyright © 2022 by unfoldingWord.</p>',
                 'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
                 'acknowledgements': '<p class="acknwldg">Thanks to <a href="https://www.unfoldingword.org/">unfoldingWord</a> for creating <a href="https://git.door43.org/unfoldingWord/hbo_uhb">this HB</a> from the <a href="https://hb.openscriptures.org/">OSHB</a>.</p>' },
+        'PLBL': {'about': '<p class="about">Scriptura Psalms Layer-by-Layer (2025).</p>',
+                'copyright': '<p class="copyright">Copyright owned by <a href="https://www.Scriptura.org/">Scriptura.org</a>.</p>',
+                'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution 4.0 International License</a>.</p>',
+                'acknowledgements': '<p class="acknwldg">Thanks to <a href="https://psalms.scriptura.org/w/About">Scriptura</a> for their generous open-licensing of their work on the Songs/Psalms.</p>',
+                'notes': '''<p class="note">The current progress of their ongoing analysis of Songs/Psalms can be seen <a href="https://psalms.scriptura.org/w/Welcome">here</a>.</p>''' },
         'TOSN': {'about': '<p class="about">Tyndale Open Study Notes (2022).</p>',
                 'copyright': '<p class="copyright">Copyright © 2022 by Tyndale House Publishers.</p>',
                 'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
@@ -880,7 +891,7 @@ Footnote markers PRECEDE the text that they concern,
             or versionLocation.startswith('../../OpenEnglishTranslation--OET/') \
             or versionLocation.startswith('../../Forked/'), f"{versionLocation=}"
     assert len(BibleVersionDecorations) == len(BibleVersions) + len(auxilliaryVersions) + NUM_EXTRA_MODES - len(versionsWithoutTheirOwnPages), \
-        f"{len(BibleVersionDecorations)=} {len(BibleVersions)=} + {len(auxilliaryVersions)=} + {NUM_EXTRA_MODES=} - {len(versionsWithoutTheirOwnPages)=} sum={len(BibleVersions)+len(auxilliaryVersions)+4-len(versionsWithoutTheirOwnPages)}"
+        f"{len(BibleVersionDecorations)=} {len(BibleVersions)=} + {len(auxilliaryVersions)=} + {NUM_EXTRA_MODES=} - {len(versionsWithoutTheirOwnPages)=} sum={len(BibleVersions)+len(auxilliaryVersions)+NUM_EXTRA_MODES-len(versionsWithoutTheirOwnPages)}"
         # Above adds Parallel and Interlinear and Dictionary but subtracts selected-verses-only versions
     assert len(BibleVersions) >= len(BibleLocations) # OET is a pseudo-version
     assert len(BibleNames)-1 >= len(BibleLocations) # OET is a pseudo-version

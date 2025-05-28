@@ -198,7 +198,7 @@ span.sc { font-size:0.8em; } /* Small caps */
 span.qs { font-style:italic; } /* Selah */
 span.qt { font-style:italic; }
 span.sig { font-family:cursive; }
-span.t4tFoS { color:mediumvioletred; } /* T4T Figure of speech */
+span.t4tFoS { color:seaGreen; } /* T4T Figure of Speech */
 span.ul { color:darkGrey; }
 
 /* OT spans */
@@ -356,6 +356,9 @@ p.TARef {}
 /* Spell check */
 span.spelling { color:orchid }
 span.duplicate { color:orange }
+
+/* Psalms Layer-By-Layer */
+div.PLBL {}
 
 /* BibleMapper.com Maps */
 div.parallelBMM {}
