@@ -265,6 +265,11 @@ def createOETSectionPages( level:int, folder:Path, rvBible:ESFMBible, lvBible:ES
                 assert endV == '?'
                 # numExtrasSkipped += 1
                 continue
+            if BBB=='KI2' and n==5:
+                print( f"{BBB} S{n}")
+                for entry in rvVerseEntryList:
+                    print( f"   {entry}")
+                # halt
             # if 'Psalm' in sectionName or 'Songs' in sectionName:
             #     print( f"OET {sectionName=}" ); halt
             # n2 = n1 - numExtrasSkipped

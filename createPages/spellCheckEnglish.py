@@ -41,10 +41,10 @@ if __name__ == '__main__':
     import sys
     sys.path.insert( 0, '../../BibleOrgSys/' )
 from BibleOrgSys import BibleOrgSysGlobals
-from BibleOrgSys.BibleOrgSysGlobals import vPrint, fnPrint, dPrint
+from BibleOrgSys.BibleOrgSysGlobals import vPrint, fnPrint, dPrint, rreplace
 
 
-LAST_MODIFIED_DATE = '2025-05-25' # by RJH
+LAST_MODIFIED_DATE = '2025-05-29' # by RJH
 SHORT_PROGRAM_NAME = "spellCheckEnglish"
 PROGRAM_NAME = "English Bible Spell Check"
 PROGRAM_VERSION = '0.48'
@@ -305,13 +305,6 @@ def load_dict_sources() -> bool:
 # end of spellCheckEnglish.load_dict_sources
 
 
-# From https://stackoverflow.com/questions/2556108/rreplace-how-to-replace-the-last-occurrence-of-an-expression-in-a-string
-def rreplace(s, old, new, occurrence):
-    li = s.rsplit(old, occurrence)
-    return new.join(li)
-# end of spellCheckEnglish.rreplace
-
-
 USFM_CLOSED_FIELDS_TO_COMPLETELY_REMOVED = ('x','fig')
 FOOTNOTE_OR_XREF_CALLER_REGEX = re.compile( '<span class="(fn|xr)Caller".+?</span>' )
 ANCHOR_LINK_REGEX = re.compile( '<a ([^>]+?)>' )
@@ -327,6 +320,8 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
         e.g., both straight and typographic apostrophes and quotes, etc.
     """
     global TOTAL_ENGLISH_WORDS_CHECKED_COUNT, TOTAL_ENGLISH_MISSPELLING_COUNT, TOTAL_GERMAN_WORDS_CHECKED_COUNT, TOTAL_GERMAN_MISSPELLING_COUNT, TOTAL_LATIN_WORDS_CHECKED_COUNT, TOTAL_LATIN_MISSPELLING_COUNT
+
+    DEBUGGING_THIS_MODULE = 99 if 'TOB' in ref else False
 
     location = f'{versionAbbreviation} {ref}'
     if len(AMERICAN_WORD_SET) < 10_000:
@@ -413,14 +408,16 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                     .replace( '<span class="t4tFoS" title="hendiadys (figure of speech)">[HEN]</span>', '' )
                     .replace( '<span class="t4tFoS" title="hyperbole (figure of speech)">[HYP]</span>', '' ).replace( '<span class="t4tFoS" title="hyperbole (figure of speech)">HYP</span>', '' )
                     .replace( '<span class="t4tFoS" title="idiom (figure of speech)">[IDM]</span>', '' ).replace( '<span class="t4tFoS" title="idiom (figure of speech)">IDM</span>', '' )
-                    .replace( '<span class="t4tFoS" title="irony (figure of speech)">[IRO]</span>', '' )
-                    .replace( '<span class="t4tFoS" title="litotes (figure of speech)">[LIT]</span>', '' )
+                    .replace( '<span class="t4tFoS" title="irony (figure of speech)">[IRO]</span>', '' ).replace( '<span class="t4tFoS" title="irony (figure of speech)">IRO</span>', '' )
+                    .replace( '<span class="t4tFoS" title="litotes (figure of speech)">[LIT]</span>', '' ).replace( '<span class="t4tFoS" title="litotes (figure of speech)">LIT</span>', '' )
                     .replace( '<span class="t4tFoS" title="metaphor (figure of speech)">[MET]</span>', '' ).replace( '<span class="t4tFoS" title="metaphor (figure of speech)">MET</span>', '' )
                     .replace( '<span class="t4tFoS" title="metonymy (figure of speech)">[MTY]</span>', '' ).replace( '<span class="t4tFoS" title="metonymy (figure of speech)">MTY</span>', '' )
                     .replace( '<span class="t4tFoS" title="personification (figure of speech)">[PRS]</span>', '' ).replace( '<span class="t4tFoS" title="personification (figure of speech)">PRS</span>', '' )
                     .replace( '<span class="t4tFoS" title="rhetorical question (figure of speech)">[RHQ]</span>', '' ).replace( '<span class="t4tFoS" title="rhetorical question (figure of speech)">RHQ</span>', '' )
-                    .replace( '<span class="t4tFoS" title="simile (figure of speech)">[SIM]</span>', '' )
+                    .replace( '<span class="t4tFoS" title="sarcasm (figure of speech)">[SAR]</span>', '' ).replace( '<span class="t4tFoS" title="sarcasm (figure of speech)">SAR</span>', '' )
+                    .replace( '<span class="t4tFoS" title="simile (figure of speech)">[SIM]</span>', '' ).replace( '<span class="t4tFoS" title="simile (figure of speech)">SIM</span>', '' )
                     .replace( '<span class="t4tFoS" title="synecdoche (figure of speech)">[SYN]</span>', '' ).replace( '<span class="t4tFoS" title="synecdoche (figure of speech)">SYN</span>', '' )
+                    .replace( '<span class="t4tFoS" title="triple (figure of speech)">[TRI]</span>', '' )
                     )
     if 'OET' in versionAbbreviation:
         cleanedText =  ( cleanedText
@@ -492,7 +489,10 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
     assert ' title="' not in cleanedText, f"{versionAbbreviation} {ref} {cleanedText=}"
     assert ' id="' not in cleanedText, f"{versionAbbreviation} {ref} {cleanedText=}"
     assert ';margin' not in cleanedText, f"{versionAbbreviation} {ref} {cleanedText=}"
+    for htmlEntity in ('table','tr','td'):
+        cleanedText =  cleanedText.replace( f'<{htmlEntity}>', '' ).replace( f'</{htmlEntity}>', '' )
     cleanedText = cleanedText.replace( '</span>', '' ).replace( '</p>', '' ).replace( '</div>', '' ).replace( '</a>', '' )
+    assert '<' not in cleanedText and '>' not in cleanedText, f"Unexpected html markers in {versionAbbreviation} {ref} {cleanedText=}"
 
     # Now general or punctuation clean-ups
     cleanedText =  ( cleanedText
@@ -693,7 +693,7 @@ def printSpellCheckSummary( state ) -> None:
     # for versionAbbreviation in ('OET-RV',): # Just out of curiousity # ,'OET-LV', 'ULT','UST'
     #     print( f"\n{versionAbbreviation} [Using {state.BibleLanguages[versionAbbreviation]} dictionary] ({len(MISPELLING_VERSION_REF_DICT[versionAbbreviation]):,}) {MISPELLING_VERSION_REF_DICT[versionAbbreviation]}\n")
 
-    for versionAbbreviation in ('OET-RV','OET-LV', 'Wycl'): # Just out of curiousity # 'ULT','UST', 'BSB',
+    for versionAbbreviation in ('OET-RV','OET-LV', 'KJB-1611', 'Wycl'): # Just out of curiousity # 'ULT','UST', 'BSB',
         badDict = defaultdict(int)
         for word,_ref in MISPELLING_VERSION_REF_DICT[versionAbbreviation]:
             badDict[word] += 1

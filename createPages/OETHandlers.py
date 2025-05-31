@@ -135,10 +135,6 @@ def getBBBFromOETBookName( booknameText:str ) -> str:
     if booknameText == 'Yob': return 'JOB'
     if booknameText == 'Yoel': return 'JOL'
 
-    # And for KJB-1611
-    if booknameText == '4 Esdr': return 'LES'
-    if booknameText == 'Ecclus': return 'SIR' # Sirach / Ecclesiasticus
-
     return BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromText(
                 booknameText.rstrip( '.' ) # Remove any final period TODO: Should BibleOrgSys do that?
                     # .replace( 'Yob', 'JOB' ).replace( 'Yochanan', 'JHN' ).replace( 'Yoel', 'JOL' ).replace( 'Yonah', 'JNA' )

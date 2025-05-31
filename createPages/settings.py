@@ -53,17 +53,17 @@ PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
 
-OET_VERSION_NUMBER_STRING = 'v0.39.7' # Incremented on most runs
+OET_VERSION_NUMBER_STRING = 'v0.40.1' # Incremented on most runs
 
 TEST_MODE = True # Writes website into 'Test' subfolder if True
-TEST_OT_BOOK_LIST = ['GEN','PSA','SNG'] # Books in progress
+TEST_OT_BOOK_LIST = ['PSA','SNG'] # Books in progress
 TEST_NT_BOOK_LIST = ['MRK'] # Shortest gospel
 TEST_BOOK_LIST_CHANGED = False
 
 # Many of these settings are used to omit some processing so as to get a speedier conclusion for debugging
 TEST_VERSIONS_ONLY = None #['OET','OET-RV','OET-LV', 'BSB', 'TOSN','UTN'] # Also stops actual site being built
 ALL_PRODUCTION_BOOKS = not TEST_MODE # If set to False, uses the TEST book list (with many less books) for a faster test build
-CREATE_PARALLEL_VERSE_PAGES = 'FIRST' # 'FIRST','LAST', or None -- depending on debugging needs
+CREATE_PARALLEL_VERSE_PAGES = 'LAST' # 'FIRST','LAST', or None -- depending on debugging needs
 CREATE_BOOK_AND_OTHER_PAGES = True # Can be turned off for debugging
 DO_SPELL_CHECKS = True #TEST_MODE # On parallel pages
 REUSE_EXISTING_WORD_PAGES = TEST_MODE and not TEST_BOOK_LIST_CHANGED # Don't recreate word pages

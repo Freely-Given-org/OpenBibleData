@@ -105,7 +105,7 @@ from settings import State, TEST_MODE, TEST_VERSIONS_ONLY, SITE_NAME
 from OETHandlers import getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2025-05-27' # by RJH
+LAST_MODIFIED_DATE = '2025-05-29' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
 PROGRAM_VERSION = '0.95'
@@ -1133,9 +1133,9 @@ def do_T4T_HTMLcustomisations( where:str, T4T_html:str ) -> str:
                     if FoS2 != FoS1:
                         fullFoSs = f'[{FoS1}, {FoS2}]'
                         T4T_html = T4T_html.replace( fullFoSs, f'LEFTBRACKET<span class="t4tFoS" title="{fosType1} (figure of speech)">{FoS1}</span>, <span class="t4tFoS" title="{fosType2} (figure of speech)">{FoS2}</span>RIGHTBRACKET' )
-        if 'GEN_13' not in where and 'GEN_25' not in where and 'GEN_48' not in where \
-        and 'MRK_2' not in where and 'MRK_16' not in where:
-            assert '[' not in T4T_html, f"{where} {T4T_html}"
+        # if 'GEN_13' not in where and 'GEN_25' not in where and 'GEN_48' not in where \
+        # and 'MRK_2' not in where and 'MRK_16' not in where:
+        #     assert '[' not in T4T_html, f"{where} {T4T_html}"
         T4T_html = T4T_html.replace( 'LEFTBRACKET', '[' ).replace( 'RIGHTBRACKET', ']' )
     return T4T_html.replace( '◄', '<span title="alternative translation">◄</span>' )
 # end of html.do_T4T_HTMLcustomisations

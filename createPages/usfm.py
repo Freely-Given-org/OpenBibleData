@@ -68,6 +68,8 @@ CHANGELOG:
     2025-03-11 Liven OSHB footnotes in OET-LV
     2025-04-07 Improve handling of s2 headings
     2025-05-26 Liven KJB-1611 cross-references
+    2025-05-30 Tried to improve tables (esp. for T4T Ezra)
+    2025-05-31 Add handling of northern/southern kingdom colouring
 """
 from gettext import gettext as _
 import re
@@ -75,7 +77,7 @@ import unicodedata
 import logging
 
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
-from BibleOrgSys.BibleOrgSysGlobals import fnPrint, dPrint, vPrint
+from BibleOrgSys.BibleOrgSysGlobals import fnPrint, dPrint, vPrint, rreplace
 from BibleOrgSys.Internals.InternalBibleInternals import getLeadingInt
 from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_NT27
 
@@ -84,10 +86,10 @@ from html import checkHtml
 from OETHandlers import getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2025-05-26' # by RJH
+LAST_MODIFIED_DATE = '2025-05-31' # by RJH
 SHORT_PROGRAM_NAME = "usfm"
 PROGRAM_NAME = "OpenBibleData USFM to HTML functions"
-PROGRAM_VERSION = '0.88'
+PROGRAM_VERSION = '0.89'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -101,7 +103,7 @@ NON_BREAK_SPACE = ' ' # NBSP
 MAX_FOOTNOTE_CHARS = 11_500 # 1,029 in FBV, 1,688 in BrTr, 10,426 in ClVg JOB!
 MAX_NET_FOOTNOTE_CHARS = 18_000 # 17,145 in NET ECC
 
-BCVRefRegEx = re.compile( '([1-4]?[ .]?[A-Za-z][a-z]{0,12})\\.? ?([1-9][0-9]{0,2})[:.–]([1-9][0-9]{0,2})' ) # Can have en-dash for chapter range
+BCVRefRegEx = re.compile( '([1234I]?[ .]?[A-Za-z][a-z]{0,12})\\.? ?([1-9][0-9]{0,2})[:.–]([1-9][0-9]{0,2})' ) # Can have en-dash for chapter range
 CVRefRegEx = re.compile( '([1-9][0-9]{0,2})[:.]([1-9][0-9]{0,2})' )
 XRefRegEx = re.compile( '\\\\x .+?\\\\x\\*' )
 spanClassRegEx = re.compile( '<span class=".+?">' )
@@ -141,7 +143,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
     #         assert text != lastV
     #         lastV = text
 
-    inMainDiv = inParagraph = inSection = inList = inListEntry = inTable = None
+    inMainDiv = inParagraph = inSection = inList = inListEntry = inTable = inTableRow = None
     inRightDiv = False
     html = ''
     for marker in contextList:
@@ -241,7 +243,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                         logging.error( f"Expected a verse number digit at {versionAbbreviation} {refTuple} {C}:{V} {rest=}" )
                     cLink = f'''<a title="Go to verse in parallel view" href="{'../'*level}par/{BBB}/C{C}V1.htm#Top">{toRomanNumerals(C) if versionAbbreviation=='KJB-1611' else C}</a>'''
                     vLink = f'''<a title="Go to verse in parallel view" href="{'../'*level}par/{BBB}/C{C}V{V}.htm#Top">{V}</a>'''
-                    html = f'''{html}{'' if html.endswith('"p">')or html.endswith('—') else ' '}''' \
+                    html = f'''{html}{'' if html.endswith('"p">') or html.endswith('—') or html.endswith('—</span>') else ' '}''' \
                             + (f'<span id="V{V}"></span>' if (segmentType in ('chapter','section','relatedPassage') or isSingleChapterBook) and f'id="V{V}"' not in html else '') \
                             + f'''{f"""{cID}<span class="{'cPsa' if BBB=='PSA' else 'c'}" id="C{C}V1">{cLink}{NARROW_NON_BREAK_SPACE}</span>""" if V=='1'
                                    else f"""<span class="v" id="C{C}V{V}">{vLink}{NARROW_NON_BREAK_SPACE}</span>"""}'''
@@ -297,8 +299,10 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                 logging.error( f"Expected heading text {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} {marker=}" )
             if inRightDiv:
                 assert marker != 's1'
-                html = f'{html}</div><!--rightBox-->\n'
-                inRightDiv = False
+                if versionAbbreviation not in ('OET','OET-RV') or marker!='s4':
+                    # It mustn't be our "kingdom marker", e.g., 'Northern kingdom'
+                    html = f'{html}</div><!--rightBox-->\n'
+                    inRightDiv = False
             if inTable:
                 logging.warning( f"Table should have been closed already {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} {marker=}" )
                 html = f'{html}</{inTable}>\n'
@@ -365,9 +369,13 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                         else: # not OET
                             html = f'{html}<div class="{marker}"><p class="{marker}">{convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state)}</p>\n'
                         inSection = marker
-                else: # for s2/3/4 we add a heading, but don't consider it a section
+                else: # for s2/3/4 we add a heading, but don't consider it a section division
                     if not basicOnly:
-                        html = f'{html}<p class="{marker}">{convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state)}</p>\n'
+                        if marker=='s4' and versionAbbreviation in ('OET','OET-RV') and 'KINGDOM' in rest.upper():
+                            additionalClassName = rest.replace( ' ', '_' )
+                            html = rreplace( html, 'div class="s1"', f'''div class="s1 {additionalClassName}"''', 1 )
+                            html = f'''{html}<p class="{marker} {additionalClassName}">{convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state)}</p>\n'''
+                        else: html = f'{html}<p class="{marker}">{convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state)}</p>\n'
         elif marker in ('¬s1','¬s2','¬s3','¬s4',):
             assert not rest
             assert inSection == marker[1:] and not inParagraph, f"{versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {marker=}"
@@ -491,6 +499,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
         elif marker in ('rem','id'): # rem's can sort of be anywhere!
             assert rest
             rest = rest.replace( "Open English Translation", "<em>Open English Translation</em>" )
+            if versionAbbreviation=='OEB': rest = rest.replace( '->', '→' ) # In the book introductions '-&gt;'
             if rest.startswith( '/' ):
                 if inRightDiv:
                     assert not inParagraph
@@ -646,10 +655,27 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                 html = f'{html}</li>\n'
                 inListEntry = None
         elif marker == 'tr':
+            assert not inList and not inListEntry, f"{versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} {marker=} {rest=}"
             if not inTable:
+                if inParagraph:
+                    html = f'{html}</p>\n'
+                    inParagraph = None
                 html = f'{html}<table>'
                 inTable = 'table'
-            html = f'{html}<tr>{convertUSFMCharacterFormatting( versionAbbreviation, refTuple, segmentType, rest, basicOnly, state )}</tr>'
+            assert not inParagraph, f"{versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} {marker=} {rest=}"
+            if inTableRow:
+                html = f'{html}</tr>'
+                inTableRow = None
+            print( f"{versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} TR {rest=}" )
+            if rest:
+                html = f'{html}<tr>{convertUSFMCharacterFormatting( versionAbbreviation, refTuple, segmentType, rest, basicOnly, state )}</tr>'
+            else:
+                html = f'{html}<tr>'
+                inTableRow = 'tr'
+        elif marker in ('tc1','tc2','tc3'):
+            assert not inParagraph and not inList and not inListEntry and inTable and inTableRow, f"{versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} {inTable=} {inTableRow=} {marker=} {rest=}"
+            print( f"{versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} {inTable=} {inTableRow=} {marker=} {rest=}" )
+            halt
         elif segmentType=='chapter' and marker in ('¬c','¬chapters'): # We can ignore this
             # Just do some finishing off
             if inSection=='s1' and marker == '¬c':
@@ -1016,7 +1042,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
 
         # Liven the cross-references (xrefs) themselves
         xrefLiveMiddle = xrefOriginalMiddle = html[xtIx+4:xEndIx]
-        if versionAbbreviation=='KJB-1611': print( f"{versionAbbreviation} {refTuple} {segmentType=} got {xrefOriginalMiddle}" )
+        # if versionAbbreviation=='KJB-1611': print( f"{versionAbbreviation} {refTuple} {segmentType=} got {xrefOriginalMiddle}" )
         xrefOriginalMiddle = xrefOriginalMiddle.replace('\\xo ','').replace('\\xt ','') # Fix things like "Gen 25:9-10; \\xo b \\xt Gen 35:29."
         # print( f" {xrefLiveMiddle=}")
         assert xrefLiveMiddle.count('\\xo ') == xrefLiveMiddle.count('\\xo '), f"{xrefLiveMiddle=}"
@@ -1045,31 +1071,97 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                 # assert ' ' not in xB, f"{match.groups()}" # False for '2 Kings'
                 if versionAbbreviation=='KJB-1611' and xB=='and':
                     xBBB = lastXBBB # Same as last book
-                elif versionAbbreviation=='KJB-1611' and xB=='Chap':
+                elif versionAbbreviation=='KJB-1611' and xB in ('Chap','Cha','chap'):
                     xBBB = BBB # This same book where the xref is located
-                else:
-                    xBBB = getBBBFromOETBookName( xB if versionAbbreviation!='KJB-1611' else
-                                                    xB # Fix KJB-1611 spellings
-                                                    .replace( '1.','1 ' ).replace( '2.','2 ' ).replace( '3.','3 ' ).replace( '4.','4 ' ) # Should BOS handle this???
-                                                    .replace( '1 Corin', '1 Cor').replace( '1 corin', '1 Cor') #This shouldn't have failed !!!
-                                                    .replace( 'Esa', 'Isa' )
-                                                    .replace( 'Ie', 'Je' ).replace( 'ier', 'Jer' )
-                                                    .replace( 'Io', 'Jo' ).replace( 'iob', 'Job' ).replace( 'iohn', 'Jhn' )
-                                                    .replace( 'iudith', 'Judith' )
-                                                    .replace( 'Leu', 'Lev' ).replace( 'Luc', 'Luk' )
-                                                    .replace( 'Prou', 'Prov' )
-                                                    .replace( 'reuel', 'Rev' )
-                                                    )
-                    if xB.startswith('Pro') and not xBBB:
-                        print( f"  {versionAbbreviation} {xBBB=} {xC=} {xV=} from {xB=} from {xrefOriginalMiddle=}" ); halt
+                elif versionAbbreviation == 'KJB-1611':
+                    myTable = {
+                        'Actes':'ACT', 'Acts':'ACT', 'Act':'ACT', 'actes':'ACT', 'acts':'ACT', 'act':'ACT',
+                        'Amos':'AMO', 'amos':'AMO',
+                        '1. Chron':'CH1', '1.Chron':'CH1', '1 Chron':'CH1', '1.Chro':'CH1', '1.chron':'CH1', '1.chro':'CH1',
+                        '2.Chron':'CH2','2.chr':'CH2',
+                        '1.Corin':'CO1','1.corin':'CO1','1.Cor':'CO1','1.cor':'CO1',
+                        '2.Cor':'CO2','2.cor':'CO2',
+                        'coloss':'COL', 'Col':'COL', 'col':'COL',
+                        'Dan':'DAN',
+                        'Deut':'DEU','deut':'DEU','Deu':'DEU',
+                        'eccles':'ECC',
+                        'Ephes':'EPH', 'ephes':'EPH', 'Eph':'EPH', 'eph':'EPH', 'ephe':'EPH',
+                        'esth':'EST',
+                        'Exod':'EXO','Exo':'EXO',
+                        'Ezech':'EZE', 'Ezek':'EZE', 'ezek':'EZE',
+                        'Gene':'GEN','Gen':'GEN',
+                        'Gal':'GAL', 'galat':'GAL', 'gal':'GAL',
+                        'hab':'HAB', 'Abak':'HAB',
+                        'Hebr':'HEB', 'hebr':'HEB', 'Heb':'HEB', 'heb':'HEB',
+                        'Hose':'HOS', 'Hos':'HOS', 'Ose':'HOS',
+                        'Isai':'ISA', 'Esai':'ISA', 'Esa':'ISA','Esay':'ISA','esay':'ISA','Isa':'ISA','isa':'ISA',
+                        'Iam':'JAM','iam':'JAM',
+                        'Iudg':'JDG',
+                        'iudith':'JDT',
+                        'Ier':'JER','ier':'JER','Ierem':'JER', 'Iere':'JER', 'iere':'JER',
+                        'Ioh':'JHN','ioh':'JHN','Iohn':'JHN','iohn':'JHN',
+                        'I.Iohn':'JN1',
+                        'Iob':'JOB','iob':'JOB',
+                        'Ioel':'JOL',
+                        'Iosh':'JOS','iosh':'JOS','Ios':'JOS','Iosu':'JOS',
+                        '1.Kings':'KI1', '1.King':'KI1', '1.king':'KI1', '1 King':'KI1',
+                        'Lam':'LAM', 'lam':'LAM',
+                        '4.Esdr':'LES',
+                        'Leuit':'LEV','Leu':'LEV',
+                        'Luc':'LUK','Luk':'LUK', 'Luke':'LUK','luke':'LUK','luk':'LUK',
+                        '1 macc':'MA1',
+                        '2.Macc':'MA2',
+                        'Mala':'MAL', 'Mal':'MAL',
+                        'Matth':'MAT', 'Matt':'MAT','Mat':'MAT','mat':'MAT', 'matth':'MAT', 'matt':'MAT',
+                        'mica':'MIC',
+                        'Marc':'MRK', 'Mar':'MRK', 'mar':'MRK',
+                        'Nehem':'NEH', 'nehe':'NEH',
+                        'Numb':'NUM', 'Num':'NUM', 'num':'NUM',
+                        '1.Pet':'PE1', '1.pet':'PE1',
+                        '2.Pet':'PE2','2.pet':'PE2',
+                        'Phil':'PHP', 'phil':'PHP',
+                        'Psal':'PSA', 'psal':'PSA', 'Psa':'PSA', 'Ps':'PSA',
+                        'Prou':'PRO', 'Pro':'PRO', 'pro':'PRO', 'prou':'PRO',
+                        '1.Sam':'SA1', '1 Sam':'SA1',
+                        '2.Sam':'SA2',
+                        '1.tim':'TI1',
+                        'Tit':'TIT',
+                        'tob':'TOB',
+                        'reuel':'REV',
+                        'Rom':'ROM', 'rom':'ROM',
+                        'ecclus':'SIR', 'Ecclus':'SIR', # Sirach / Ecclesiasticus
+                        '1.Tim':'TI1',
+                        'Wisd':'WIS', 'Wis':'WIS', 'wisd':'WIS', 'wis':'WIS',
+                        'Zac':'ZAC',
+                        }
+                    try: xBBB = myTable[xB]
+                    except KeyError:
+                        print( f"USFM {versionAbbreviation}  '{xB}'  wasn't in the table!")
+                        adjXB = ( xB # Fix KJB-1611 spellings -- what's Apoc/apoc and nnm ???
+                                .replace( '1.','1 ' ).replace( '2.','2 ' ).replace( '3.','3 ' ).replace( '4.','4 ' ) # Should BOS handle this???
+                                .replace( 'I.','1 ' )
+        
+                                .replace( 'Ie', 'Je' )
+                                .replace( 'Io', 'Jo' )
+                                )
+                        xBBB = getBBBFromOETBookName( adjXB )
+                    if not xBBB:
+                        logging.critical( f"Unable to liven cross-reference from {versionAbbreviation} {refTuple} for {xBBB=} {xC=} {xV=} from {adjXB=} from {xrefOriginalMiddle=}" )
+                        # if adjXB not in ('Apoc','apoc','nnm'): halt # What are these???
+                else: # not KJB-1611
+                    xBBB = getBBBFromOETBookName( xB )
+                    if not xBBB:
+                        logging.critical( f"Unable to liven cross-reference from {versionAbbreviation} {refTuple} for {xBBB=} {xC=} {xV=} from {xB=} from {xrefOriginalMiddle=}" )
                 if versionAbbreviation=='KJB-1611' and not xBBB: # still
                     print( f"  {versionAbbreviation} {xBBB=} {xC=} {xV=} from {xB=} from {xrefOriginalMiddle=}" )
             lastXBBB = xBBB
-            dPrint( 'Quiet' if versionAbbreviation=='KJB-1611' else 'Info', DEBUGGING_THIS_MODULE, f"Got {versionAbbreviation} {refTuple} {match.groups()=} from {xrefLiveMiddle=}" )
+            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"Got {versionAbbreviation} {xBBB} from {refTuple} {match.groups()=} from {xoText=} {xrefLiveMiddle=}" )
             assert xC.isdigit(), f"{match.groups()}"
             assert xV.isdigit(), f"{match.groups()}"
             if versionAbbreviation=='KJB-1611' and not xBBB:
-                print( f"{versionAbbreviation} {xBBB=} {xC=} {xV=} from {xrefOriginalMiddle=}" ); halt
+                logging.critical( f"Unable to make {versionAbbreviation} xref: {xBBB=} {xC=} {xV=} from {xrefOriginalMiddle=}" )
+                reStartIx = match.end() # exact number of characters that we add (otherwise we get mistakes/overlaps)
+                continue
             # Now check for a verse or chapter range and include them in our find
             matchInner = match.group()
             matchEnd = match.end()
@@ -1082,7 +1174,11 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                 pass # Reached end of string
 
             if xBBB:
-                assert int(xC) <= BibleOrgSysGlobals.loadedBibleBooksCodes.getMaxChapters( xBBB ), f"Bad xref {xBBB} {match.groups()} from {versionAbbreviation} {refTuple} {segmentType}"
+                # assert int(xC) <= BibleOrgSysGlobals.loadedBibleBooksCodes.getMaxChapters( xBBB ), f"Bad xref {xBBB} {match.groups()} from {versionAbbreviation} {refTuple} {segmentType}"
+                if int(xC) > BibleOrgSysGlobals.loadedBibleBooksCodes.getMaxChapters( xBBB ):
+                    logging.critical( f"Not enough chapters in {xBBB} ({BibleOrgSysGlobals.loadedBibleBooksCodes.getMaxChapters(xBBB)}) for {match.groups()} from {versionAbbreviation} {refTuple} {segmentType} {xoText}" )
+                    reStartIx = match.end() # exact number of characters that we add (otherwise we get mistakes/overlaps)
+                    continue
             else:
                 dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"convertUSFMMarkerListToHtml( {versionAbbreviation} {refTuple} '{segmentType}' {contextList} {len(markerList)} )" )
                 logging.critical( f"Failed to find xref book from '{xB}' from '{xrefOriginalMiddle}' in {match.groups()} for {versionAbbreviation} {segmentType} {basicOnly=} {refTuple}")
@@ -1331,6 +1427,10 @@ def convertUSFMCharacterFormatting( versionAbbreviation:str, refTuple:tuple, seg
                 wCount = usfmField.count( '\\w ' ) + usfmField.count( '\\+w ' )
                 raise Exception( f"convertUSFMCharacterFormatting() w loop needed to break at {versionAbbreviation} {refTuple} '{segmentType}' with ({wCount:,}) '{usfmField}'" )
             assert '\\w ' not in html and '\\+w ' not in html, f"{html[html.index(f'{BACKSLASH}x')-10:html.index(f'{BACKSLASH}x')+12]}" # Note: can still be \\wj in text
+
+    if '\\tc' in usfmField:
+        html = html.replace( '\\tc1 ', '<td>' ).replace( '\\tc2 ', '</td><td>' ).replace( '\\tc3 ', '</td><td>' ).replace( '\\tc4 ', '</td><td>' ).replace( '\\tc5 ', '</td><td>' )
+    if '\\tr' in html: print( f"TR {versionAbbreviation} {refTuple} {segmentType} {basicOnly=} {usfmField=} {html=}" ); halt
 
     # Replace the character markers which have specific HMTL equivalents
     # NOTE: Embedded markers like \\+em have already had the + removed above

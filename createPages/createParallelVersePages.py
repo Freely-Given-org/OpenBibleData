@@ -360,7 +360,9 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                 verseEntryList, contextList = thisBible.getContextVerseDataRange( (BBB, C, V), (BBB, C, '2') ) if v==1 else thisBible.getContextVerseData( (BBB, C, str(v+1)) )
                             else: # the normal, common case
                                 verseEntryList, contextList = thisBible.getContextVerseData( (BBB, C) if c==-1 else (BBB, C, V) )
-                                # if versionAbbreviation=='LEB' and parRef == 'MRK_13:24': print( f"---- {versionAbbreviation} {parRef} Got {verseEntryList=}" )
+                                if versionAbbreviation=='T4T':
+                                    if parRef == 'EZR_2:2': print( f"---- {versionAbbreviation} {parRef} Got {verseEntryList=}" )
+                                    if parRef == 'EZR_2:3': print( f"---- {versionAbbreviation} {parRef} Got {verseEntryList=}" )
                                 # if parRef in ancientRefsToPrint: print( f"---- {versionAbbreviation} {parRef} Got {verseEntryList=}" )
                             if 'GNT' in versionAbbreviation:
                                 plainGreekText = getPlainText( verseEntryList )
@@ -390,6 +392,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                             if versionAbbreviation == 'OET-RV': # This is the only parallel version with cross-references included
                                 footnoteFreeTextHtml = footnotesHtml = '' # Any footnotes have been left in textHtml so no need for a separate container
                             else: # no cross-references were asked for here for other version
+                                assert textHtml.count('<hr ')<2, f"{versionAbbreviation} {BBB} {C}:{V} ({textHtml.count('<hr ')}) {textHtml=}"
                                 textHtml, footnoteFreeTextHtml, footnotesHtml = handleAndExtractFootnotes( versionAbbreviation, textHtml )
                                 if footnoteFreeTextHtml.endswith( ' </span>' ):
                                     footnoteFreeTextHtml = f'{footnoteFreeTextHtml[:-8]}</span>' # Remove superfluous final space
@@ -454,7 +457,6 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                     textHtml = spellCheckAndMarkHTMLText( versionAbbreviation, parRef, textHtml, textHtml, state ) # Puts spans around mispellings
                                 textHtml = textHtml.replace('⌊','<sub>⌊</sub>').replace('⌋','<sub>⌋</sub>') # Around "idioms"
                             elif footnoteFreeTextHtml and versionAbbreviation in ('KJB-1769','KJB-1611','Bshps','Gnva','Cvdl','TNT','Wycl'):
-                                if versionAbbreviation=='KJB-1611' and BBB=='TOB': halt
                                 # See if we need to add a modernised version of this text underneath the main/original text ???
                                 # print( f"{versionAbbreviation} {parRef} {footnoteFreeTextHtml=}")
                                 # rawTextHtml = footnoteFreeTextHtml
@@ -471,7 +473,6 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                                                     .replace( 'Yewel', 'Jewel' ).replace( 'Yudge', 'Judge' ).replace( 'KYB', 'KJB' ) # Fix overreaches
                                 modernisedTextDiffers = modernisedTextHtml != footnoteFreeTextHtml # we'll usually only show it if it changed
                                 if DO_SPELL_CHECKS:
-                                    if versionAbbreviation=='KJB-1611' and BBB=='TOB': halt
                                     modernisedTextHtml = spellCheckAndMarkHTMLText( versionAbbreviation, parRef, modernisedTextHtml, footnoteFreeTextHtml, state ) # Puts spans around mispellings
 
                                 def removeVersePunctuationForComparison( htmlText:str ) -> str:
@@ -1037,13 +1038,19 @@ def handleAndExtractFootnotes( versionAbbreviation:str, verseHtml:str ) -> tuple
         separate off the footnotes.
     """
     if '<div id="footnotes" class="footnotes">' in verseHtml:
-        assert '<hr ' in verseHtml, f"{versionAbbreviation} {verseHtml=}"
+        assert verseHtml.count('<hr ') == 1, f"{versionAbbreviation} ({verseHtml.count('<hr ')}) {verseHtml=}"
         assert '</div>' in verseHtml
 
         # Handle footnotes so the same fn1 doesn't occur for multiple versions
         verseHtml = verseHtml.replace( 'id="footnotes', f'id="footnotes{versionAbbreviation}' ).replace( 'id="fn', f'id="fn{versionAbbreviation}' ).replace( 'href="#fn', f'href="#fn{versionAbbreviation}' )
 
-        verseHtml, footnoteHtml = verseHtml.split( '<hr ' )
+        try: verseHtml, footnoteHtml = verseHtml.split( '<hr ' )
+        except ValueError as err: # usually too many values to unpack
+            ix1 = verseHtml.index( '<hr ' )
+            ix2 = verseHtml.index( '<hr ', ix1+5 )
+            logging.critical( f"Too many parts: '{versionAbbreviation} {verseHtml[ix1:ix1+30]}'  and also  '{verseHtml[ix2:ix2+30]}'")
+            return verseHtml, verseHtml, ''
+
         verseHtml = verseHtml.rstrip()
         footnoteFreeVerseHtml, numFootnotesRemoved = footnoteRegex.subn( '', verseHtml )
         # print( f"{numFootnotesRemoved} footnotes removed from {versionAbbreviation} {verseHtml=} gives {footnoteFreeVerseHtml=}")

@@ -98,13 +98,22 @@ span.bk { font-style:italic; }
 /* Inside box */
 div.rightBox { float:right; width:40%; border:3px solid #73AD21; padding:0.2em; }
 div.s1 {}
+div.Full_kingdom { background-color:#cce6ff; }
+div.Northern_kingdom { background-color:#ffe6ff; }
+div.Southern_kingdom { background-color:#e6ffe6; }
+div.Both_kingdoms { background-color:#fff5e6; }
 p.s1 { margin-top:0.1em; margin-bottom:0; font-size:1.15em; font-weight:bold; }
 p.s2 { margin-top:0; margin-bottom:0; float:right; width:35%; border:2px dashed blue; padding:0.2em; font-size:1.1em; font-weight:bold; }
-p.s3 { margin-top:0; margin-bottom:0; float:right; width:35%; border:1px dotted purple; padding:0.2em;  font-size:1.05em; font-weight:bold; }
+p.s3 { margin-top:0; margin-bottom:0; float:right; width:35%; border:1px dotted purple; padding:0.2em;  font-size:1.06em; font-weight:bold; }
+p.s4 { margin-top:0; margin-bottom:0; float:right; width:35%; border:1px dotted black; padding:0.2em;  font-size:1.03em; font-weight:bold; }
 /* p.extra_s1 { margin-top:0.1em; margin-bottom:0; text-align:right; font-size:0.7em; color:grey; font-weight:bold; } */
 /* p.extra_r { margin-top:0.1em; margin-bottom:0; text-align:right; font-size:0.6em; color:grey; } */
 p.sr { margin-top:0; margin-bottom:0; font-size:0.9em; text-align: center; font-weight:bold; } /* Section reference range */
 p.r { margin-top:0; margin-bottom:0; font-size:0.75em; text-align: center; font-style:italic; } /* Parallel references */
+p.Full_kingdom { color:blue; }
+p.Northern_kingdom { color:purple; }
+p.Southern_kingdom { color:green; }
+p.Both_kingdoms { color:orange; }
 
 /* Chapters USFM */
 span.c { font-size:1.1em; color:green; }
