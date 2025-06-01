@@ -264,8 +264,12 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                 assert not basicOnly, f"{versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {marker}={rest}"
                 html = f'{html}</p>\n'
                 inParagraph = None
+            if inTableRow:
+                assert inTable
+                html = f'{html}</tr>\n'
+                inTableRow = None
             if inTable:
-                html = f'{html}</inTable>\n'
+                html = f'{html}</table>\n'
                 inTable = None
             # TODO: Shouldn't this apply to all markers???
             if inList: # refTuple==('EXO',10,11)
@@ -305,7 +309,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                     inRightDiv = False
             if inTable:
                 logging.warning( f"Table should have been closed already {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} {marker=}" )
-                html = f'{html}</{inTable}>\n'
+                html = f'{html}</table>\n'
                 inTable = None
             if inList:
                 logging.warning( f"List should have been closed already {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} {marker=}" )
@@ -450,7 +454,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                     inMainDiv = None
             if inTable:
                 logging.warning( f"Table should have been closed already {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inTable=} {inListEntry=} {marker=}" )
-                html = f'{html}</inTable>\n'
+                html = f'{html}</table>\n'
                 inTable = None
             if inList:
                 logging.warning( f"List should have been closed already {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} {marker=}" )
@@ -664,11 +668,11 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                 inTable = 'table'
             assert not inParagraph, f"{versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} {marker=} {rest=}"
             if inTableRow:
-                html = f'{html}</tr>'
+                html = f'{html}</tr>\n'
                 inTableRow = None
             print( f"{versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} TR {rest=}" )
-            if rest:
-                html = f'{html}<tr>{convertUSFMCharacterFormatting( versionAbbreviation, refTuple, segmentType, rest, basicOnly, state )}</tr>'
+            if rest and rest.strip():
+                html = f'{html}<tr>{convertUSFMCharacterFormatting( versionAbbreviation, refTuple, segmentType, rest, basicOnly, state )}'
             else:
                 html = f'{html}<tr>'
                 inTableRow = 'tr'
@@ -825,10 +829,13 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
         if not basicOnly:
             logger( f"convertUSFMMarkerListToHtml final unclosed paragraph {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} last {marker=}" )
         html = f'{html}</p>\n'
+    if inTableRow:
+        assert inTable
+        html = f'{html}</tr>\n'
     if inTable:
         if not basicOnly:
             logger( f"convertUSFMMarkerListToHtml final unclosed table {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} last {marker=}" )
-        html = f'{html}</{inTable}>\n'
+        html = f'{html}</table>\n'
     if inListEntry:
         if not basicOnly:
             logger( f"convertUSFMMarkerListToHtml final unclosed listEntry {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} last {marker=}" )
@@ -1071,72 +1078,82 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                 # assert ' ' not in xB, f"{match.groups()}" # False for '2 Kings'
                 if versionAbbreviation=='KJB-1611' and xB=='and':
                     xBBB = lastXBBB # Same as last book
-                elif versionAbbreviation=='KJB-1611' and xB in ('Chap','Cha','chap'):
+                elif versionAbbreviation=='KJB-1611' and xB in ('Chap','Cha','chap','cha'):
                     xBBB = BBB # This same book where the xref is located
                 elif versionAbbreviation == 'KJB-1611':
                     myTable = {
                         'Actes':'ACT', 'Acts':'ACT', 'Act':'ACT', 'actes':'ACT', 'acts':'ACT', 'act':'ACT',
                         'Amos':'AMO', 'amos':'AMO',
-                        '1. Chron':'CH1', '1.Chron':'CH1', '1 Chron':'CH1', '1.Chro':'CH1', '1.chron':'CH1', '1.chro':'CH1',
-                        '2.Chron':'CH2','2.chr':'CH2',
+                        '1. Chron':'CH1', '1.Chron':'CH1','1.chron':'CH1', '1 Chron':'CH1', '1.Chro':'CH1', '1.chro':'CH1', '1 chron':'CH1',
+                        '2.Chron':'CH2', '2.Chr':'CH2','2.chr':'CH2',
                         '1.Corin':'CO1','1.corin':'CO1','1.Cor':'CO1','1.cor':'CO1',
                         '2.Cor':'CO2','2.cor':'CO2',
                         'coloss':'COL', 'Col':'COL', 'col':'COL',
                         'Dan':'DAN',
-                        'Deut':'DEU','deut':'DEU','Deu':'DEU',
+                        'Deut':'DEU','deut':'DEU', 'Deu':'DEU','deu':'DEU',
                         'eccles':'ECC',
                         'Ephes':'EPH', 'ephes':'EPH', 'Eph':'EPH', 'eph':'EPH', 'ephe':'EPH',
-                        'esth':'EST',
-                        'Exod':'EXO','Exo':'EXO',
-                        'Ezech':'EZE', 'Ezek':'EZE', 'ezek':'EZE',
+                        'Ester':'EST', 'Esth':'EST', 'Es':'EST', 'esth':'EST',
+                        'Exod':'EXO','exod':'EXO', 'Exo':'EXO',
+                        'Ezech':'EZE','ezech':'EZE', 'Ezek':'EZE','ezek':'EZE',
+                        'Ezra':'EZR',
                         'Gene':'GEN','Gen':'GEN',
-                        'Gal':'GAL', 'galat':'GAL', 'gal':'GAL',
-                        'hab':'HAB', 'Abak':'HAB',
+                        'Galat':'GAL','galat':'GAL', 'Gal':'GAL','gal':'GAL',
+                        'Habac':'HAB','hab':'HAB', 'Abak':'HAB', 'Abac':'HAB',
+                        'Hagge':'HAG', 'Agge':'HAG',
                         'Hebr':'HEB', 'hebr':'HEB', 'Heb':'HEB', 'heb':'HEB',
-                        'Hose':'HOS', 'Hos':'HOS', 'Ose':'HOS',
-                        'Isai':'ISA', 'Esai':'ISA', 'Esa':'ISA','Esay':'ISA','esay':'ISA','Isa':'ISA','isa':'ISA',
-                        'Iam':'JAM','iam':'JAM',
+                        'Hose':'HOS', 'Hos':'HOS','hos':'HOS', 'Ose':'HOS',
+                        'Isai':'ISA','isai':'ISA', 'Esai':'ISA', 'Esa':'ISA','Esay':'ISA','esay':'ISA','Isa':'ISA','isa':'ISA',
+                        'Iames':'JAM', 'Iam':'JAM', 'iam':'JAM',
+                        'Iude':'JDE',
                         'Iudg':'JDG',
                         'iudith':'JDT',
                         'Ier':'JER','ier':'JER','Ierem':'JER', 'Iere':'JER', 'iere':'JER',
                         'Ioh':'JHN','ioh':'JHN','Iohn':'JHN','iohn':'JHN',
-                        'I.Iohn':'JN1',
+                        '1.Iohn':'JN1','1.iohn':'JN1', 'I.Iohn':'JN1', '1.Ioh':'JN1',
                         'Iob':'JOB','iob':'JOB',
                         'Ioel':'JOL',
                         'Iosh':'JOS','iosh':'JOS','Ios':'JOS','Iosu':'JOS',
-                        '1.Kings':'KI1', '1.King':'KI1', '1.king':'KI1', '1 King':'KI1',
+                        '1.Kings':'KI1', '1.King':'KI1', '1.Kin':'KI1', '1.king':'KI1', '1 King':'KI1',
+                             '1.Reg':'KI1',
+                        '2.Kings':'KI2', '2.King':'KI2', '2.Kin':'KI2',
                         'Lam':'LAM', 'lam':'LAM',
                         '4.Esdr':'LES',
-                        'Leuit':'LEV','Leu':'LEV',
-                        'Luc':'LUK','Luk':'LUK', 'Luke':'LUK','luke':'LUK','luk':'LUK',
-                        '1 macc':'MA1',
-                        '2.Macc':'MA2',
-                        'Mala':'MAL', 'Mal':'MAL',
+                        'Leuit':'LEV','leuit':'LEV', 'Leui':'LEV','leui':'LEV', 'Leu':'LEV',
+                        'Luc':'LUK','luc':'LUK', 'Luk':'LUK', 'Luke':'LUK','luke':'LUK','luk':'LUK',
+                        '1.Macc':'MA1', '1 macc':'MA1', '1.Mac':'MA1',
+                        '2.Macc':'MA2','2.macc':'MA2', '2.mac':'MA2',
+                        'Malac':'MAL', 'Mala':'MAL', 'Mal':'MAL',
                         'Matth':'MAT', 'Matt':'MAT','Mat':'MAT','mat':'MAT', 'matth':'MAT', 'matt':'MAT',
                         'mica':'MIC',
-                        'Marc':'MRK', 'Mar':'MRK', 'mar':'MRK',
-                        'Nehem':'NEH', 'nehe':'NEH',
-                        'Numb':'NUM', 'Num':'NUM', 'num':'NUM',
+                        'Marke':'MRK','marke':'MRK', 'Mark':'MRK','mark':'MRK', 'Marc':'MRK', 'Mar':'MRK','mar':'MRK',
+                        'naum':'NAH',
+                        'Nehem':'NEH', 'nehem':'NEH', 'Nehe':'NEH', 'nehe':'NEH',
+                        'Numb':'NUM','numb':'NUM', 'Num':'NUM', 'num':'NUM',
                         '1.Pet':'PE1', '1.pet':'PE1',
                         '2.Pet':'PE2','2.pet':'PE2',
                         'Phil':'PHP', 'phil':'PHP',
-                        'Psal':'PSA', 'psal':'PSA', 'Psa':'PSA', 'Ps':'PSA',
+                        'Psal':'PSA', 'psal':'PSA', 'psalme':'PSA', 'Psa':'PSA', 'Ps':'PSA', 'psa':'PSA',
                         'Prou':'PRO', 'Pro':'PRO', 'pro':'PRO', 'prou':'PRO',
-                        '1.Sam':'SA1', '1 Sam':'SA1',
+                        '1.Sam':'SA1','1.sam':'SA1', '1 Sam':'SA1',
                         '2.Sam':'SA2',
+                        'Ecclu':'SIR',
+                        '1.Thess':'TH1','1.thess':'TH1', '1 thess':'TH1', '1.Thes':'TH1','1.thes':'TH1',
+                        '2.thes':'TH2', '2 thess':'TH2',
                         '1.tim':'TI1',
+                        '2.tim':'TI2',
                         'Tit':'TIT',
                         'tob':'TOB',
-                        'reuel':'REV',
+                        'reuel':'REV', 'Reu':'REV','reu':'REV',
                         'Rom':'ROM', 'rom':'ROM',
                         'ecclus':'SIR', 'Ecclus':'SIR', # Sirach / Ecclesiasticus
                         '1.Tim':'TI1',
                         'Wisd':'WIS', 'Wis':'WIS', 'wisd':'WIS', 'wis':'WIS',
-                        'Zac':'ZAC',
+                        'Zach':'ZEC', 'Zac':'ZEC',
                         }
                     try: xBBB = myTable[xB]
                     except KeyError:
-                        print( f"USFM {versionAbbreviation}  '{xB}'  wasn't in the table!")
+                        print( f"  {versionAbbreviation} {BBB}  '{xB}'  wasn't in the table from '{xrefOriginalMiddle}'")
                         adjXB = ( xB # Fix KJB-1611 spellings -- what's Apoc/apoc and nnm ???
                                 .replace( '1.','1 ' ).replace( '2.','2 ' ).replace( '3.','3 ' ).replace( '4.','4 ' ) # Should BOS handle this???
                                 .replace( 'I.','1 ' )
@@ -1159,7 +1176,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
             assert xC.isdigit(), f"{match.groups()}"
             assert xV.isdigit(), f"{match.groups()}"
             if versionAbbreviation=='KJB-1611' and not xBBB:
-                logging.critical( f"Unable to make {versionAbbreviation} xref: {xBBB=} {xC=} {xV=} from {xrefOriginalMiddle=}" )
+                logging.critical( f"Unable to make {versionAbbreviation} {BBB} xref: {xBBB=} {xC=} {xV=} from {xrefOriginalMiddle=}" )
                 reStartIx = match.end() # exact number of characters that we add (otherwise we get mistakes/overlaps)
                 continue
             # Now check for a verse or chapter range and include them in our find
@@ -1430,7 +1447,7 @@ def convertUSFMCharacterFormatting( versionAbbreviation:str, refTuple:tuple, seg
 
     if '\\tc' in usfmField:
         html = html.replace( '\\tc1 ', '<td>' ).replace( '\\tc2 ', '</td><td>' ).replace( '\\tc3 ', '</td><td>' ).replace( '\\tc4 ', '</td><td>' ).replace( '\\tc5 ', '</td><td>' )
-    if '\\tr' in html: print( f"TR {versionAbbreviation} {refTuple} {segmentType} {basicOnly=} {usfmField=} {html=}" ); halt
+    assert '\\tr' not in html, f"TR {versionAbbreviation} {refTuple} {segmentType} {basicOnly=} {usfmField=} {html=}"
 
     # Replace the character markers which have specific HMTL equivalents
     # NOTE: Embedded markers like \\+em have already had the + removed above

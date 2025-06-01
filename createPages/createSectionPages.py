@@ -625,7 +625,9 @@ def findSectionNumber( versionAbbreviation:str, refBBB:str, refC:str, refV:str, 
     if not refBBB:
         dPrint( 'Info', DEBUGGING_THIS_MODULE, "findSectionNumber: No refBBB parameter given -- returning None" )
         return None # Can't do anything without a valid BBB
-    assert refBBB in BOOKLIST_66 or versionAbbreviation in VERSIONS_WITH_APOCRYPHA, f"findSectionNumber( {versionAbbreviation}, {refBBB} {refC}:{refV} )"
+    if refBBB not in BOOKLIST_66 and versionAbbreviation not in VERSIONS_WITH_APOCRYPHA:
+        logging.warning( f"Unable to continue in findSectionNumber( {versionAbbreviation}, {refBBB} {refC}:{refV} )" )
+        return None # Can't do anything here
     if refBBB not in state.sectionsLists[versionAbbreviation]: # No section headings for this book
         if TEST_MODE:
             dPrint( 'Info', DEBUGGING_THIS_MODULE, "default to introduction for TEST_MODE (because it doesn't contain all the books)" )

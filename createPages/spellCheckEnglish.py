@@ -321,7 +321,8 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
     """
     global TOTAL_ENGLISH_WORDS_CHECKED_COUNT, TOTAL_ENGLISH_MISSPELLING_COUNT, TOTAL_GERMAN_WORDS_CHECKED_COUNT, TOTAL_GERMAN_MISSPELLING_COUNT, TOTAL_LATIN_WORDS_CHECKED_COUNT, TOTAL_LATIN_MISSPELLING_COUNT
 
-    DEBUGGING_THIS_MODULE = 99 if 'TOB' in ref else False
+    BBB = ref[:3]
+    # DEBUGGING_THIS_MODULE = 99 if BBB=='TOB' else False
 
     location = f'{versionAbbreviation} {ref}'
     if len(AMERICAN_WORD_SET) < 10_000:
@@ -647,12 +648,14 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                 BAD_ENGLISH_WORD_LIST.append( (word,location) )
                 BAD_ENGLISH_COUNTS[word] += 1
                 TOTAL_ENGLISH_MISSPELLING_COUNT += 1
-                if versionAbbreviation not in ('KJB-1611',): # We don't do this coz it messes up later addition of hilites
+                if versionAbbreviation not in ('KJB-1611',) \
+                or BibleOrgSysGlobals.loadedBibleBooksCodes.isDeuterocanon_NR(BBB): # We don't do this coz for KJB-1611 (except Apocrypha) it messes up later addition of hilites
                     if checkedHTMLText.count( word ) == 1:
-                        # print( f"MARKING {versionAbbreviation} {word=} in {ref} {checkedHTMLText=}" )
+                        dPrint( 'Info', DEBUGGING_THIS_MODULE, f"MARKING {versionAbbreviation} {word=} in {ref} {checkedHTMLText=}" )
                         checkedHTMLText = checkedHTMLText.replace( word, f'<span title="Possible misspelt word" class="spelling">{word}</span>', 1 )
                     elif versionAbbreviation=='OET-RV' and checkedHTMLText.count( word )==2 and len(word)>4: # The OET-RV text has footnotes included
                         # We want to be certain to replace the word in the actual footnote text, not in the caller popup
+                        dPrint( 'Info', DEBUGGING_THIS_MODULE, f"MARKING {versionAbbreviation} {word=} in {ref} {checkedHTMLText=}" )
                         checkedHTMLText = rreplace( checkedHTMLText, word, f'<span title="Possible misspelt word" class="spelling">{word}</span>', 1 )
             MISPELLING_VERSION_REF_DICT[versionAbbreviation].append( (word,ref) ) # We can save these to disk later
         if word == lastWord and word not in ('had','that'):
@@ -669,7 +672,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                 BAD_ENGLISH_WORD_LIST.append( (dupWord,location) )
             if checkedHTMLText.count( word ) == 2:
                 if versionAbbreviation not in ('KJB-1611',): # We don't do yet this coz it messes up later addition of hilites
-                    # print( f"MARKING {versionAbbreviation} {word=} in {ref} {checkedHTMLText=}" )
+                    dPrint( 'Info', DEBUGGING_THIS_MODULE, f"MARKING {versionAbbreviation} {word=} in {ref} {checkedHTMLText=}" )
                     checkedHTMLText = checkedHTMLText.replace( word, f'<span title="Possible duplicated word" class="duplicate">{word}</span>', 2 )
         lastLastWord = lastWord
         lastWord = word

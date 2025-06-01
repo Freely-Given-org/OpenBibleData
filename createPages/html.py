@@ -90,6 +90,7 @@ CHANGELOG:
     2025-02-21 Created functions
     2025-03-11 Add a couple more checks of spans in checkHtml()
     2025-05-19 Handle doubled T4T figures of speech
+    2025-05-31 Added deferred loading to make kb.js work properly
 """
 # from gettext import gettext as _
 import logging
@@ -105,7 +106,7 @@ from settings import State, TEST_MODE, TEST_VERSIONS_ONLY, SITE_NAME
 from OETHandlers import getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2025-05-29' # by RJH
+LAST_MODIFIED_DATE = '2025-05-31' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
 PROGRAM_VERSION = '0.95'
@@ -189,7 +190,7 @@ def makeTop( level:int, versionAbbreviation:str|None, pageType:str, versionSpeci
         top = top.replace( '__SCRIPT__', f'''<script src="{'../'*level}Bible.js"></script>\n  __SCRIPT__''' )
     if 'Dict' in cssFilename or 'Word' in cssFilename \
     or pageType in ('chapter','section','book','parallelVerse','interlinearVerse','relatedPassage'):
-        top = top.replace( '__SCRIPT__', f'''<script src="{'../'*level}KB.js"></script>\n  __SCRIPT__''' )
+        top = top.replace( '__SCRIPT__', f'''<script src="{'../'*level}KB.js" defer></script>\n  __SCRIPT__''' )
     top = top.replace( '\n  __SCRIPT__', '' )
 
     return f'{top}{_makeNavigationLinks( level, versionAbbreviation, pageType, versionSpecificFileOrFolderName, state )}'

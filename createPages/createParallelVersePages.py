@@ -103,7 +103,7 @@ from OETHandlers import getOETTidyBBB, getOETBookName, livenOETWordLinks, getHeb
 from spellCheckEnglish import spellCheckAndMarkHTMLText
 
 
-LAST_MODIFIED_DATE = '2025-05-25' # by RJH
+LAST_MODIFIED_DATE = '2025-06-01' # by RJH
 SHORT_PROGRAM_NAME = "createParallelVersePages"
 PROGRAM_NAME = "OpenBibleData createParallelVersePages functions"
 PROGRAM_VERSION = '0.98'
@@ -227,7 +227,6 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
         try: referenceBible = state.preloadedBibles[versionAbbreviation]
         except KeyError: continue # We don't have that version
         if BBB not in referenceBible: continue # don't want to force loading the book
-        # referenceBible.loadBookIfNecessary( BBB )
         numChapters = referenceBible.getNumChapters( BBB ) # Causes the book to be loaded if not already
         if numChapters: break
     else:
@@ -427,7 +426,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                 assert checkHtml( f"OET-LV parallel AAA for {parRef}", textHtml, segmentOnly=True ); assert checkHtml( f"OET-LV parallel BBB for {parRef}", footnoteFreeTextHtml, segmentOnly=True ); assert checkHtml( f"OET-LV parallel CCC for {parRef}", footnotesHtml, segmentOnly=True )
                                 # assert textHtml.count('<span class="ul">_</span>HNcbsa') < 2, f'''Here2 ({textHtml.count('<span class="ul">_</span>HNcbsa')}) {textHtml=}'''
                                 # if BBB=='MRK' and C=='7' and V=='16': print( f"DDD {parRef} {versionAbbreviation} {textHtml=}" )
-                            elif versionAbbreviation in ('ULT','UST','NET','BSB','BLB','OEB','FBV','BBE','Moff','JPS','ASV','DRA','YLT','Drby','RV','Wbstr'):
+                            elif versionAbbreviation in ('ULT','UST','NET','BSB','BLB','OEB','FBV','BBE','Moff','JPS','ASV','DRA','YLT','Drby','Wbstr'):
                                 if DO_SPELL_CHECKS:
                                     textHtml = spellCheckAndMarkHTMLText( versionAbbreviation, parRef, textHtml, textHtml, state ) # Puts spans around mispellings
                             elif versionAbbreviation in ('WEBBE','WEB'): # assuming WEB/WEBBE comes BEFORE WMB/WMBBB
@@ -456,7 +455,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                 if DO_SPELL_CHECKS:
                                     textHtml = spellCheckAndMarkHTMLText( versionAbbreviation, parRef, textHtml, textHtml, state ) # Puts spans around mispellings
                                 textHtml = textHtml.replace('⌊','<sub>⌊</sub>').replace('⌋','<sub>⌋</sub>') # Around "idioms"
-                            elif footnoteFreeTextHtml and versionAbbreviation in ('KJB-1769','KJB-1611','Bshps','Gnva','Cvdl','TNT','Wycl'):
+                            elif footnoteFreeTextHtml and versionAbbreviation in ('RV','KJB-1769','KJB-1611','Bshps','Gnva','Cvdl','TNT','Wycl'):
                                 # See if we need to add a modernised version of this text underneath the main/original text ???
                                 # print( f"{versionAbbreviation} {parRef} {footnoteFreeTextHtml=}")
                                 # rawTextHtml = footnoteFreeTextHtml

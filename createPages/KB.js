@@ -3,7 +3,7 @@
 
 var initialX = null;
 var initialY = null;
-var container = document.querySelector(".container");
+const container = document.querySelector(".container");
 // console.log(`${typeof container} container=${container}`);
 
 if (container != null) {

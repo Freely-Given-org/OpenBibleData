@@ -72,10 +72,10 @@ from createOETReferencePages import CNTR_BOOK_ID_MAP
 from OETHandlers import livenOETWordLinks, getOETBookName, getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
-LAST_MODIFIED_DATE = '2025-05-25' # by RJH
+LAST_MODIFIED_DATE = '2025-06-01' # by RJH
 SHORT_PROGRAM_NAME = "createOETInterlinearPages"
 PROGRAM_NAME = "OpenBibleData createOETInterlinearPages functions"
-PROGRAM_VERSION = '0.60'
+PROGRAM_VERSION = '0.61'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -152,8 +152,9 @@ def createOETInterlinearVersePagesForBook( level:int, folder:Path, BBB:str, BBBL
     for versionAbbreviation in state.BibleVersions:
         if versionAbbreviation == 'OET': continue # that's only a "pseudo-version"!
         referenceBible = state.preloadedBibles[versionAbbreviation]
-        # referenceBible.loadBookIfNecessary( BBB )
-        numChapters = referenceBible.getNumChapters( BBB )
+        if BBB not in referenceBible: continue # don't want to force loading the book
+        try: numChapters = referenceBible.getNumChapters( BBB )
+        except AttributeError: continue
         if numChapters: break
     else:
         logging.critical( f"createOETInterlinearVersePagesForBook unable to find a valid reference Bible for {BBB}" )
@@ -188,6 +189,7 @@ def createOETInterlinearVersePagesForBook( level:int, folder:Path, BBB:str, BBBL
                 detailsLink = f''' <a title="Show details about the OET" href="{'../'*(BBBLevel)}OET/details.htm#Top">©</a>'''
                 navLinks = f'<p id="__ID__" class="vNav">{leftCLink}{leftVLink}{ourTidyBBBwithNotes} {C}:{v} <a title="Go to __WHERE__ of page" href="#__LINK__">__ARROW__</a>{rightVLink}{rightCLink}{parallelLink}{detailsLink}</p>'
                 iHtml = createOETInterlinearVerseInner( BBBLevel, BBB, c, v, state )
+                if iHtml is None: continue
                 assert iHtml
                 assert '\n\n' not in iHtml
                 filename = f'C{C}V{v}.htm'
@@ -268,7 +270,7 @@ f'''<p class="chLst" id="chLst">{ourTidyBbb if ourTidyBbb!='Yac' else 'Yacob/(Ja
 # end of html.createOETInterlinearVersePagesForBook
 
 
-def createOETInterlinearVerseInner( level:int, BBB:str, c:int, v:int, state:State ) -> str: # Returns the HTML
+def createOETInterlinearVerseInner( level:int, BBB:str, c:int, v:int, state:State ) -> str|None: # Returns the HTML
     """
     Create an interlinear page for the Bible verse.
     """
@@ -286,7 +288,9 @@ def createOETInterlinearVerseInner( level:int, BBB:str, c:int, v:int, state:Stat
     ourTidyBbbWithNotes = getOETTidyBBB( BBB, titleCase=True, addNotes=True )
     C, V = str(c), str(v)
     sectionNumber = findSectionNumber( 'OET-RV', BBB, C, V, state )
-    assert sectionNumber is not None, f"Bad OET-RV interlinear section {BBB} {C} {V}"
+    if sectionNumber is None:
+        logging.critical( f"Bad OET-RV interlinear section {BBB} {C} {V}" )
+        return None
 
 
     lvBible = state.preloadedBibles['OET-LV']
