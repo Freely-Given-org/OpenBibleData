@@ -15,9 +15,9 @@ a:active { text-decoration:none; } */
 /* a { text-decoration:none; } We want anchor decorations on these index pages */
 
 /* Navigational lists at top of page */
-p.wrkLst { background-color:#904471; color:98a9d4; }
+p.wrkLst { background-color:#904471; color:#98a9d4; }
 .wrkLst a { text-decoration:none; color:white; }
-p.viewLst {background-color:#936EA1; color:98a9d4; }
+p.viewLst {background-color:#936EA1; color:#98a9d4; }
 .viewLst a { text-decoration:none; color:white; }
 p.bkLst {background-color:#F9F871; }
 .bkLst a { color:inherit; text-decoration:none; }

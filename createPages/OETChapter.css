@@ -28,9 +28,9 @@ a { color:inherit; text-decoration:none; }
 /* .container a { text-decoration:none; } */
 
 /* Navigational lists at top of page */
-p.wrkLst { background-color:#904471; color:98a9d4; }
+p.wrkLst { background-color:#904471; color:#98a9d4; }
 .wrkLst a { text-decoration:none; color:white; }
-p.viewLst {background-color:#936EA1; color:98a9d4; }
+p.viewLst {background-color:#936EA1; color:#98a9d4; }
 .viewLst a { text-decoration:none; color:white; }
 p.bkLst {background-color:#F9F871; }
 .bkLst a { color:inherit; text-decoration:none; }
@@ -98,10 +98,6 @@ span.bk { font-style:italic; }
 /* Inside box */
 div.rightBox { float:right; width:40%; border:3px solid #73AD21; padding:0.2em; }
 div.s1 {}
-div.Full_kingdom { background-color:#cce6ff; }
-div.Northern_kingdom { background-color:#ffe6ff; }
-div.Southern_kingdom { background-color:#e6ffe6; }
-div.Both_kingdoms { background-color:#fff5e6; }
 p.s1 { margin-top:0.1em; margin-bottom:0; font-size:1.15em; font-weight:bold; }
 p.s2 { margin-top:0; margin-bottom:0; float:right; width:35%; border:2px dashed blue; padding:0.2em; font-size:1.1em; font-weight:bold; }
 p.s3 { margin-top:0; margin-bottom:0; float:right; width:35%; border:1px dotted purple; padding:0.2em;  font-size:1.06em; font-weight:bold; }
@@ -114,6 +110,18 @@ p.Full_kingdom { color:blue; }
 p.Northern_kingdom { color:purple; }
 p.Southern_kingdom { color:green; }
 p.Both_kingdoms { color:orange; }
+
+/*** Other divs ***/
+/* For /s4 */
+div.Full_kingdom { background-color:#cce6ff; }
+div.Northern_kingdom { background-color:#ffe6ff; }
+div.Southern_kingdom { background-color:#e6ffe6; }
+div.Both_kingdoms { background-color:#fff5e6; }
+/* For /sp in SNG */
+div.groom { background-color:#e6f2ff; }
+div.bride { background-color:#ffe6f7; }
+div.women { background-color:#f2ccff; }
+div.brothers { background-color:#e6f0ff; }
 
 /* Chapters USFM */
 span.c { font-size:1.1em; color:green; }

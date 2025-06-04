@@ -86,10 +86,10 @@ from html import checkHtml
 from OETHandlers import getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2025-05-31' # by RJH
+LAST_MODIFIED_DATE = '2025-06-03' # by RJH
 SHORT_PROGRAM_NAME = "usfm"
 PROGRAM_NAME = "OpenBibleData USFM to HTML functions"
-PROGRAM_VERSION = '0.89'
+PROGRAM_VERSION = '0.90'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -102,6 +102,8 @@ NON_BREAK_SPACE = ' ' # NBSP
 
 MAX_FOOTNOTE_CHARS = 11_500 # 1,029 in FBV, 1,688 in BrTr, 10,426 in ClVg JOB!
 MAX_NET_FOOTNOTE_CHARS = 18_000 # 17,145 in NET ECC
+
+spClassDict = {'The groom':'groom', 'The bride':'bride', 'Yerushalem’s young women':'women','Bride’s older brothers':'brothers'}
 
 BCVRefRegEx = re.compile( '([1234I]?[ .]?[A-Za-z][a-z]{0,12})\\.? ?([1-9][0-9]{0,2})[:.–]([1-9][0-9]{0,2})' ) # Can have en-dash for chapter range
 CVRefRegEx = re.compile( '([1-9][0-9]{0,2})[:.]([1-9][0-9]{0,2})' )
@@ -143,7 +145,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
     #         assert text != lastV
     #         lastV = text
 
-    inMainDiv = inParagraph = inSection = inList = inListEntry = inTable = inTableRow = None
+    inMainDiv = inParagraph = inSection = inList = inListEntry = inTable = inTableRow = inSPdiv = None
     inRightDiv = False
     html = ''
     for marker in contextList:
@@ -301,6 +303,9 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
         elif marker in ('s1','s2','s3','s4'):
             if not rest:
                 logging.error( f"Expected heading text {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} {marker=}" )
+            if inSPdiv:
+                html = f'{html}</div><!--SP_{inSPdiv}-->\n'
+                inSPdiv = None
             if inRightDiv:
                 assert marker != 's1'
                 if versionAbbreviation not in ('OET','OET-RV') or marker!='s4':
@@ -576,6 +581,16 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                         if segmentType == 'chapter' else \
                             f'''<span class="{'cPsa' if BBB=='PSA' else 'c'}" id="C{C}"><a title="View single {'Psalm' if BBB=='PSA' else 'chapter'}" href="../byC/{BBB}_C{C}.htm#Top">{toRomanNumerals(C) if versionAbbreviation=='KJB-1611' else C}</a></span> '''
                     cPrinted = True
+                if versionAbbreviation=='OET-RV' and marker=='sp':
+                    assert BBB == 'SNG'
+                    if inSPdiv:
+                        html = f'{html}</div><!--SP_{inSPdiv}-->\n'
+                    spClass = spClassDict[rest]
+                    # except KeyError:
+                    #     logging.critical( f"No SP (speaker) dict entry for {rest=} {versionAbbreviation} {refTuple} {segmentType}" )
+                    #     spClass = 'None'
+                    html = f'{html}<div class={spClass}>'
+                    inSPdiv = spClass
                 html = f'{html}<p class="{marker}">{cBit}{convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state)}</p>\n'
         elif marker in ('b','ib'):
             html = f'{html}<br>'
@@ -852,6 +867,8 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                     inListEntry = None
             html = f'{html}</{inListMarker}>\n'
             inListDepth -= 1
+    if inSPdiv:
+        html = f'{html}</div><!--SP-->\n'
     if inSection in ('s1','periph'):
         if not basicOnly:
             logger( f"convertUSFMMarkerListToHtml final unclosed '{inSection}' section {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} last {marker=}" )
