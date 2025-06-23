@@ -91,6 +91,7 @@ CHANGELOG:
     2025-03-11 Add a couple more checks of spans in checkHtml()
     2025-05-19 Handle doubled T4T figures of speech
     2025-05-31 Added deferred loading to make kb.js work properly
+    2025-06-19 Handle more of the varieties in doubled T4T figures of speech
 """
 # from gettext import gettext as _
 import logging
@@ -106,7 +107,7 @@ from settings import State, TEST_MODE, TEST_VERSIONS_ONLY, SITE_NAME
 from OETHandlers import getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2025-05-31' # by RJH
+LAST_MODIFIED_DATE = '2025-06-19' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
 PROGRAM_VERSION = '0.95'
@@ -748,7 +749,7 @@ def checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool:
         if not match:
             break
         titleGuts = match.group(1) # Can be an entire footnote or can be a parsing of a word (with some fields still expanded like --fnColon--)
-        assert len(titleGuts) <= (1010 if titleGuts.startswith('OSHB ') or titleGuts.startswith('Note') or 'NET' in where or 'TCNT' in where or 'TC-GNT' in where or 'T4T' in where or 'Parallel' in where or 'End of parallel' in where else 150), f"'{where}' {segmentOnly=} title is too long ({len(titleGuts)}) {titleGuts=}"
+        assert len(titleGuts) <= (1010 if titleGuts.startswith('OSHB ') or titleGuts.startswith('Note') or 'NET' in where or 'TCNT' in where or 'TC-GNT' in where or 'T4T' in where or 'Parallel' in where or 'End of parallel' in where or '1611' in where else 150), f"{where=} {segmentOnly=} title is too long ({len(titleGuts)}) {titleGuts=}"
         assert '\n' not in titleGuts, f"'{where}' {segmentOnly=} Bad HTML title with newline in {titleGuts=}\nFROM {htmlToCheck=}"
         assert '<br' not in titleGuts, f"'{where}' {segmentOnly=} Bad HTML title with BR in {titleGuts=}\nFROM {htmlToCheck=}"
         assert '<span' not in titleGuts, f"'{where}' {segmentOnly=} Bad HTML title with SPAN in {titleGuts=}\nFROM {htmlToCheck=}"
@@ -952,30 +953,30 @@ def do_OET_RV_HTMLcustomisations( where:str, OET_RV_html:str ) -> str:
     assert '<span class="add">?≡' not in OET_RV_html # Doesn't make sense
     result = (OET_RV_html \
             # Adjust specialised add markers
-            .replace( '<span class="add">?<', '<span class="addDirectObject unsure" title="added direct object (uncertain)">' )
+            .replace( '<span class="add">?<', '<span class="addDirectObject unsure" title="added direct object (less certain)">' )
             .replace( '<span class="add"><span ', '__PROTECT_SPAN__' )
             .replace( '<span class="add"><a title', '__PROTECT_A__' )
             .replace( '<span class="add"><', '<span class="addDirectObject" title="added direct object">' )
             .replace( '__PROTECT_A__', '<span class="add"><a title' )
             .replace( '__PROTECT_SPAN__', '<span class="add"><span ' )
-            .replace( '<span class="add">?>', '<span class="addExtra unsure" title="added implied info (uncertain)">' )
+            .replace( '<span class="add">?>', '<span class="addExtra unsure" title="added implied info (less certain)">' )
             .replace( '<span class="add">>', '<span class="addExtra" title="added implied info">' )
-            .replace( '<span class="add">?+', '<span class="addArticle unsure" title="added article (uncertain)">' )
+            .replace( '<span class="add">?+', '<span class="addArticle unsure" title="added article (less certain)">' )
             .replace( '<span class="add">+', '<span class="addArticle" title="added article">' )
             .replace( '<span class="add">≡', '<span class="addElided" title="added elided info">' )
-            .replace( '<span class="add">?&', '<span class="addOwner unsure" title="added ‘owner’ (uncertain)">' )
+            .replace( '<span class="add">?&', '<span class="addOwner unsure" title="added ‘owner’ (less certain)">' )
             .replace( '<span class="add">&', '<span class="addOwner" title="added ‘owner’">' )
-            .replace( '<span class="add">?@', '<span class="addReferent unsure" title="inserted referent (uncertain)">' )
+            .replace( '<span class="add">?@', '<span class="addReferent unsure" title="inserted referent (less certain)">' )
             .replace( '<span class="add">@', '<span class="addReferent" title="inserted referent">' )
-            .replace( '<span class="add">?*', '<span class="addPronoun unsure" title="used pronoun (uncertain)">' )
+            .replace( '<span class="add">?*', '<span class="addPronoun unsure" title="used pronoun (less certain)">' )
             .replace( '<span class="add">*', '<span class="addPronoun" title="used pronoun">' )
-            .replace( '<span class="add">?#', '<span class="addPluralised unsure" title="changed number (uncertain)">' )
+            .replace( '<span class="add">?#', '<span class="addPluralised unsure" title="changed number (less certain)">' )
             .replace( '<span class="add">#', '<span class="addPluralised" title="changed number">' )
-            .replace( '<span class="add">?^', '<span class="addNegated unsure" title="negated (uncertain)">' )
+            .replace( '<span class="add">?^', '<span class="addNegated unsure" title="negated (less certain)">' )
             .replace( '<span class="add">^', '<span class="addNegated" title="negated">' )
-            .replace( '<span class="add">?≈', '<span class="addReword unsure" title="reworded (uncertain)">' )
+            .replace( '<span class="add">?≈', '<span class="addReword unsure" title="reworded (less certain)">' )
             .replace( '<span class="add">≈', '<span class="addReword" title="reworded">' )
-            .replace( '<span class="add">?', '<span class="RVadd unsure" title="added info (uncertain)">' )
+            .replace( '<span class="add">?', '<span class="RVadd unsure" title="added info (less certain)">' )
             .replace( '<span class="add">', '<span class="RVadd" title="added info">' )
             .replace( '≈', '<span class="synonParr" title="synonymous parallelism">≈</span>')
             .replace( '^', '<span class="antiParr" title="antithetic parallelism">^</span>')
@@ -1122,9 +1123,13 @@ def do_T4T_HTMLcustomisations( where:str, T4T_html:str ) -> str:
             [SAR] = sarcasm
             [SYN] = synecdoche
             [TRI] = triple
+    It also has things like [EUP, MTY] and [EUP/MTY]
     """
-    if '[' in T4T_html:
-        T4T_html = T4T_html.replace( '[SIL]', '[SIM]' ) # Error in Psa 63:1
+    if '[' in T4T_html or ']' in T4T_html:
+        T4T_html = (T4T_html
+                    .replace( '[SIL]', '[SIM]' ) # Error in Psa 63:1
+                    .replace( 'birth MET]', 'birth [MET]' ) # Error in Mat 24:8
+                    )
         for FoS,fosType in T4T_FOS_TYPES:
             fullFoS = f'[{FoS}]'
             T4T_html = T4T_html.replace( fullFoS, f'<span class="t4tFoS" title="{fosType} (figure of speech)">LEFTBRACKET{FoS}RIGHTBRACKET</span>' )
@@ -1132,11 +1137,19 @@ def do_T4T_HTMLcustomisations( where:str, T4T_html:str ) -> str:
             for FoS1,fosType1 in T4T_FOS_TYPES:
                 for FoS2,fosType2 in T4T_FOS_TYPES:
                     if FoS2 != FoS1:
+                        # T4T is not consistent here in use of commas and forward slashes
                         fullFoSs = f'[{FoS1}, {FoS2}]'
                         T4T_html = T4T_html.replace( fullFoSs, f'LEFTBRACKET<span class="t4tFoS" title="{fosType1} (figure of speech)">{FoS1}</span>, <span class="t4tFoS" title="{fosType2} (figure of speech)">{FoS2}</span>RIGHTBRACKET' )
-        # if 'GEN_13' not in where and 'GEN_25' not in where and 'GEN_48' not in where \
-        # and 'MRK_2' not in where and 'MRK_16' not in where:
-        #     assert '[' not in T4T_html, f"{where} {T4T_html}"
+                        fullFoSs = f'[{FoS1}/{FoS2}]'
+                        T4T_html = T4T_html.replace( fullFoSs, f'LEFTBRACKET<span class="t4tFoS" title="{fosType1} (figure of speech)">{FoS1}</span>/<span class="t4tFoS" title="{fosType2} (figure of speech)">{FoS2}</span>RIGHTBRACKET' )
+            # Double-check that we got them all
+            for FoS1,fosType1 in T4T_FOS_TYPES:
+                for FoS2,fosType2 in T4T_FOS_TYPES:
+                    if FoS2 != FoS1:
+                        # if 'GEN_13' not in where and 'GEN_25' not in where and 'GEN_48' not in where \
+                        # and 'MRK_2' not in where and 'MRK_16' not in where:
+                        assert f'[{FoS1}' not in T4T_html, f"[{FoS1} {where} {T4T_html}"
+                        assert f'{FoS2}]' not in T4T_html, f"{FoS2}] {where} {T4T_html}"
         T4T_html = T4T_html.replace( 'LEFTBRACKET', '[' ).replace( 'RIGHTBRACKET', ']' )
     return T4T_html.replace( '◄', '<span title="alternative translation">◄</span>' )
 # end of html.do_T4T_HTMLcustomisations

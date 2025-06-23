@@ -47,7 +47,7 @@ from load import getIndividualQuotedOTRefs, getIndividualQuotingNTRefs
 
 
 
-LAST_MODIFIED_DATE = '2025-05-19' # by RJH
+LAST_MODIFIED_DATE = '2025-06-15' # by RJH
 SHORT_PROGRAM_NAME = "SentenceImportance_initialisation"
 PROGRAM_NAME = "Sentence Importance initialisation"
 PROGRAM_VERSION = '0.20'
@@ -154,7 +154,7 @@ unclearClarityRefs = [ # Mostly sure what's in the Hebrew or Greek, but not sure
         'JOB_41:9', 'JOB_41:11',
     'PSA_16:5', 'PSA_41:9b', 'PSA_55:15a','PSA_55:18', 'PSA_62:3b',
         'PSA_68:12b','PSA_68:13','PSA_68:15','PSA_68:21b', 'PSA_73:9','PSA_73:10',
-        'PSA_92:11','PSA_93:3a','PSA_105:19','PSA_105:28b','PSA_105:32b',
+        'PSA_92:11', 'PSA_93:3a', 'PSA_105:19','PSA_105:28b','PSA_105:32b', 'PSA_108:9',
     'SNG_8:9',
     'DAN_8:12','DAN_8:13a','DAN_11:43b',
     'HOS_11:7b',

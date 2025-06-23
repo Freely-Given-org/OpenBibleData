@@ -122,7 +122,7 @@ p.qm1 { margin-left:1em; margin-top:0.2em; margin-bottom:0.2em; }
 p.qm2 { margin-left:2em; margin-top:0.2em; margin-bottom:0.2em; }
 p.qr { text-align:right; }
 p.qc { text-align: center; }
-p.qa { font-weight:bold; } /* Acrostic heading */
+p.qa { font-size:0.9em; text-align: right; margin-top:0.2em; margin-bottom:0.1em; } /* Acrostic heading */
 p.qs { font-style:italic; } /* Selah */
 p.nb {}
 

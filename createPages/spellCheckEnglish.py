@@ -44,10 +44,10 @@ from BibleOrgSys import BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import vPrint, fnPrint, dPrint, rreplace
 
 
-LAST_MODIFIED_DATE = '2025-05-29' # by RJH
+LAST_MODIFIED_DATE = '2025-06-19' # by RJH
 SHORT_PROGRAM_NAME = "spellCheckEnglish"
 PROGRAM_NAME = "English Bible Spell Check"
-PROGRAM_VERSION = '0.48'
+PROGRAM_VERSION = '0.49'
 PROGRAM_NAME_VERSION = '{} v{}'.format( SHORT_PROGRAM_NAME, PROGRAM_VERSION )
 
 DEBUGGING_THIS_MODULE = False
@@ -64,6 +64,7 @@ INITIAL_BIBLE_WORD_LIST = ['3.0','UTF','USFM', '©', 'CC0',
                     's1','s2','r','+','LXX','Grk',
                     'nomina','Nomina','sacra',
                     'Deutercanon','Deuterocanonicals',
+                    'hb',
 
                     # OET-LV and OET-RV names
                     #   Note: OET-LV names often use special characters (e.g., macrons on vowels, plus unusual consonantal forms)
@@ -129,9 +130,9 @@ INITIAL_BIBLE_WORD_LIST = ['3.0','UTF','USFM', '©', 'CC0',
                     #   plus some translations use ALL CAPS for things like the sign on the cross, etc.
                     'THE','THAT','THIS','THESE','THINGS','HERE','THERE',
                     'WHAT','WHICH','WHO','WHEN',
-                    'IS','AM','ARE','SHALL',
+                    'IS','AM','ARE','SHALL','SHOULD','WILL',
                     'IN','OF','TO','FOR','UNTO','ACCORDING','WITH',
-                    'THEY','OUR','US','HIMSELF',
+                    'THEY','THY','OUR','US','HIMSELF',
                     'AND','NOT','OR',
 
                     # T4T figurative speech abbreviations -- not required because they get deleted
@@ -144,20 +145,21 @@ INITIAL_BIBLE_WORD_LIST = ['3.0','UTF','USFM', '©', 'CC0',
                     'SAVE','SERVANT','SERVANTS','MAN','SONS','BURDEN','RIGHTEOUSNESS','LILY','TESTIMONY','TEACH','STRIVING',
                     'KING','JEWS','YEWS','HAPPY','HOLY','HOLINESS','THRONE','PEACE','MOTHER','WOMEN','EARTH','GREAT','MYSTERY',
                     'HARLOTS','PROSTITUTES','ABOMINATIONS','EVIL','UNCLEAN','SECRET','MEANING','WILDERNESS','REMEMBER',
-                    'BOOK','ORIGINAL','BASE','TEXT','PARABLE','NOTES','RELEASE','STATUS','TAGS','WORD','WORDS','SECTION','PRAYER','VISION',
-                    'AMEN','END','SAY','SING','BEHOLD','STAR','RISE','STRINGED','UNKNOWN','HIDING',
+                    'BOOK','ORIGINAL','BASE','TEXT','PARABLE','NATIONS','NOTES','RELEASE','STATUS','TAGS','WORD','WORDS','SECTION','PRAYER','VISION',
+                    'AMEN','END','SAY','SING','BEHOLD','STAR','RISE','STRINGED','UNKNOWN','HIDING','HOUSE',
+                    'GENERAL','GLORY','DIVINE','ELDER',
 
                     'ADAM','ADONAI','ASAPH',
                     'BABYLON','BETHLEHEM',
                     'CHRIST',
                     'DAVID',
                     'ISRAEL','ISRAELITES',
-                    'JAH','JEHOVAH','JESUS','JUDAH',
+                    'JAH','JEHOVAH','JESUS','JOSEPH','JUDAH',
                     'MOAB','MOSES',
                     'NAZARETH','NAZARENE',
                     'PAUL',
                     'SETH','SOLOMON',
-                    'YEHOVAH','YESHUA','YEWES',
+                    'YEHOVAH','YESHUA','YESUS','YEWES','YOHN',
 
                     'A.D','B.C',
                     'TC','TD', # in footnotes
@@ -334,7 +336,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
          wordSet = AMERICAN_WORD_SET
     # elif versionAbbreviation in ( 'OET-RV','OET-LV', 'OEB', 'WEBBE','WMBB', 'BBE','Moff','JPS','DRA','YLT','Drby','RV', 'KJB-1769','KJB-1611', 'Bshps','Gnva','Cvdl', 'TNT','Wycl', 'Luth','ClVg' ):
     elif state.BibleLanguages[versionAbbreviation] == 'EN-UK' \
-    or state.BibleLanguages[versionAbbreviation] in ('GER','LAT'): # These ones should be translated
+    or state.BibleLanguages[versionAbbreviation] in ('GER','LAT'): # These ones should have been translated
          wordSetName = 'UK'
          wordSet = BRITISH_WORD_SET
     else:
@@ -402,7 +404,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                     .replace( '►', '' ) # Delete end of alternative translation
     
                     # Some of these can occur doubly, e.g., [MET, DOU], so that's what the second column here covers (without the square brackets)
-                    .replace( '<span class="t4tFoS" title="apostrophe (figure of speech)">[APO]</span>', '' )
+                    .replace( '<span class="t4tFoS" title="apostrophe (figure of speech)">[APO]</span>', '' ).replace( '<span class="t4tFoS" title="apostrophe (figure of speech)">APO</span>', '' )
                     .replace( '<span class="t4tFoS" title="chiasmus (figure of speech)">[CHI]</span>', '' ).replace( '<span class="t4tFoS" title="chiasmus (figure of speech)">CHI</span>', '' )
                     .replace( '<span class="t4tFoS" title="doublet (figure of speech)">[DOU]</span>', '' ).replace( '<span class="t4tFoS" title="doublet (figure of speech)">DOU</span>', '' )
                     .replace( '<span class="t4tFoS" title="euphemism (figure of speech)">[EUP]</span>', '' ).replace( '<span class="t4tFoS" title="euphemism (figure of speech)">EUP</span>', '' )
@@ -417,6 +419,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                     .replace( '<span class="t4tFoS" title="rhetorical question (figure of speech)">[RHQ]</span>', '' ).replace( '<span class="t4tFoS" title="rhetorical question (figure of speech)">RHQ</span>', '' )
                     .replace( '<span class="t4tFoS" title="sarcasm (figure of speech)">[SAR]</span>', '' ).replace( '<span class="t4tFoS" title="sarcasm (figure of speech)">SAR</span>', '' )
                     .replace( '<span class="t4tFoS" title="simile (figure of speech)">[SIM]</span>', '' ).replace( '<span class="t4tFoS" title="simile (figure of speech)">SIM</span>', '' )
+                    .replace( '<span class="t4tFoS" title="symbol (figure of speech)">[SYM]</span>', '' )
                     .replace( '<span class="t4tFoS" title="synecdoche (figure of speech)">[SYN]</span>', '' ).replace( '<span class="t4tFoS" title="synecdoche (figure of speech)">SYN</span>', '' )
                     .replace( '<span class="t4tFoS" title="triple (figure of speech)">[TRI]</span>', '' )
                     )
@@ -428,7 +431,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
 
                     .replace( '<span class="addArticle" title="added article">', '' )
                     .replace( '<span class="addDirectObject" title="added direct object">', '' )
-                    .replace( '<span class="addDirectObject unsure" title="added direct object (uncertain)">', '' )
+                    .replace( '<span class="addDirectObject unsure" title="added direct object (less certain)">', '' )
                     .replace( '<span class="addElided" title="added elided info">', '' )
                     .replace( '<span class="addExtra" title="added implied info">', '' )
                     .replace( '<span class="addNegated" title="negated">', '' )
@@ -436,10 +439,10 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                     .replace( '<span class="addPluralised" title="changed number">', '' )
                     .replace( '<span class="addPronoun" title="used pronoun">', '' )
                     .replace( '<span class="addReferent" title="inserted referent">', '' )
-                    .replace( '<span class="addReferent unsure" title="inserted referent (uncertain)">', '' )
+                    .replace( '<span class="addReferent unsure" title="inserted referent (less certain)">', '' )
                     .replace( '<span class="addReword" title="reworded">', '' )
-                    .replace( '<span class="addReword unsure" title="reworded (uncertain)">', '' )
-                    .replace( '<span class="RVadd unsure" title="added info (uncertain)">', '' ) # (plain) RVadd is removed by RegEx
+                    .replace( '<span class="addReword unsure" title="reworded (less certain)">', '' )
+                    .replace( '<span class="RVadd unsure" title="added info (less certain)">', '' ) # (plain) RVadd is removed by RegEx
                     )
     cleanedText =  ( cleanedText
                     .replace( '<div>', '' )
@@ -464,7 +467,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
         cleanedText =  cleanedText.replace( f'<p class="{paragraphMarker}">', '' )
     for spanMarker in ('add','addArticle','addExtra','addCopula','addDirectObject', # TODO: Why don't these have title fields???
                        'untr','nominaSacra',
-                       'ior',
+                       'ior', 'vp',
                        'nd','wj','d','bk','qt','sc',
                        'qs','sig',
                         'ft', 'fnRef','fnText', # 'f', # We intentionally omit 'fr'
@@ -536,7 +539,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
     thingsToReallyDelete = ['(s)','(es)','[s]',
                             '(m)', '(f)', '(ms)', '(fs)',
                             '(sg)','(pl)',
-                            '(n)', '(v)',
+                            '(aj)', '(n)', '(v)',
                             ]
     for thingToReallyDelete in thingsToReallyDelete:
         cleanedText = cleanedText.replace( thingToReallyDelete, '' )

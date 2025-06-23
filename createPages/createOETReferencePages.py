@@ -68,6 +68,7 @@ CHANGELOG:
     2025-02-16 Handle changed characters for glossHelper (was /word/ now ˓word˒)
     2025-03-11 Put more glosses on Hebrew word pages
     2025-03-15 Start making our own Strongs pages
+    2025-06-18 Fix OT person/place links (from tags) which weren't being displayed on the Hebrew word pages
 """
 from pathlib import Path
 import os
@@ -95,10 +96,10 @@ from html import makeTop, makeBottom, checkHtml
 from OETHandlers import getOETTidyBBB, getOETBookName, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
-LAST_MODIFIED_DATE = '2025-05-13' # by RJH
+LAST_MODIFIED_DATE = '2025-06-19' # by RJH
 SHORT_PROGRAM_NAME = "createOETReferencePages"
 PROGRAM_NAME = "OpenBibleData createOETReferencePages functions"
-PROGRAM_VERSION = '0.86'
+PROGRAM_VERSION = '0.88'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -576,6 +577,7 @@ SIMILAR_GLOSS_WORDS_TABLE = [
     (('glorious',),('honoured','honored','glory')),
     (('glory',),('honour','splendour','majesty','glorious')),
     (('grain',),('wheat','barley')),
+    (('grave',),('Sheol',)),
     (('heart','hearts'),('mind','minds')),
     (('heaven','heavens'),('sky','skies')),
     (('holiness',),('purity',)),
@@ -616,6 +618,7 @@ SIMILAR_GLOSS_WORDS_TABLE = [
     (('seat','seats'),('chair','chairs','throne','thrones')),
     (('seed',),('sperm',)),
     (('servant','servants'),('slave','slaves','house_servant','house_servants','attendant','attendants')),
+    (('Sheol',),('grave',)),
     (('ship','ships'),('boat','boats')),
     (('silver',),('money','coin','coins')),
     (('sky','skies'),('heaven','heavens')),
@@ -1329,7 +1332,7 @@ def create_Hebrew_word_page( level:int, hh:int, hebrewWord:str, columns_string:s
 
     usedRoleLetters, usedMorphologies = set(), set()
     # dPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Got '{columns_string}' for '{output_filename}'" )
-    ref, rowType, morphemeRowList, lemmaRowList, strongs, morphology, word, noCantillations, morphemeGlosses, contextualMorphemeGlosses, wordGloss, contextualWordGloss, glossCapitalisation, glossPunctuation, glossOrder, glossInsert, role, nesting, tags = columns_string.split( '\t' )
+    ref, rowType, morphemeRowList, lemmaRowList, strongs, morphology, word, noCantillations, morphemeGlosses, contextualMorphemeGlosses, wordGloss, contextualWordGloss, glossCapitalisation, glossPunctuation, glossOrder, glossInsert, role, nesting, tagsStr = columns_string.split( '\t' )
 
     BBB, CVW = ref.split( '_', 1 )
     assert not TEST_MODE or ALL_TEST_REFERENCE_PAGES or BBB in TEST_BOOK_LIST
@@ -1404,31 +1407,31 @@ def create_Hebrew_word_page( level:int, hh:int, hebrewWord:str, columns_string:s
     StrongsBit = f' Strongs={strongsLinks}' if strongsLinks else ''
 
     # Add pointers to people, locations, etc.
-    # semanticExtras = nominaSacraField
-    # if tagsStr:
-    #     for semanticTag in tagsStr.split( ';' ):
-    #         tagPrefix, tag = semanticTag[0], semanticTag[1:]
-    #         # print( f"{BBB} {C}:{V} '{semanticTag}' from {tagsStr=}" )
-    #         if tagPrefix == 'P':
-    #             semanticExtras = f'''{semanticExtras}{' ' if semanticExtras else ''}Person=<a title="View person details" href="../Per/{tag}.htm#Top">{tag}</a>'''
-    #         elif tagPrefix == 'L':
-    #             semanticExtras = f'''{semanticExtras}{' ' if semanticExtras else ''}Location=<a title="View place details" href="../Loc/{tag}.htm#Top">{tag}</a>'''
-    #         elif tagPrefix == 'Y':
-    #             year = tag
-    #             semanticExtras = f'''{semanticExtras}{' ' if semanticExtras else ''}Year={year}{' AD' if int(year)>0 else ''}'''
-    #         elif tagPrefix == 'T':
-    #             semanticExtras = f'''{semanticExtras}{' ' if semanticExtras else ''}TimeSeries={tag}'''
-    #         elif tagPrefix == 'E':
-    #             semanticExtras = f'''{semanticExtras}{' ' if semanticExtras else ''}Event={tag}'''
-    #         elif tagPrefix == 'G':
-    #             semanticExtras = f'''{semanticExtras}{' ' if semanticExtras else ''}Group={tag}'''
-    #         elif tagPrefix == 'F':
-    #             semanticExtras = f'''{semanticExtras}{' ' if semanticExtras else ''}Referred to from <a title="Go to referent word" href="{tag}.htm#Top">Word #{tag}</a>'''
-    #         elif tagPrefix == 'R':
-    #             semanticExtras = f'''{semanticExtras}{' ' if semanticExtras else ''}Refers to <a title="Go to referred word" href="{tag}.htm#Top">Word #{tag}</a>'''
-    #         else:
-    #             logging.critical( f"Unknown '{tagPrefix}' word tag in {n}: {columns_string}")
-    #             unknownTag
+    semanticExtras = ''
+    if tagsStr:
+        for semanticTag in tagsStr.split( ';' ):
+            tagPrefix, tag = semanticTag[0], semanticTag[1:]
+            # print( f"{BBB} {C}:{V} '{semanticTag}' from {tagsStr=}" )
+            if tagPrefix == 'P':
+                semanticExtras = f'''{semanticExtras}{' ' if semanticExtras else ''}Person=<a title="View person details" href="../Per/{tag}.htm#Top">{tag}</a>'''
+            elif tagPrefix == 'L':
+                semanticExtras = f'''{semanticExtras}{' ' if semanticExtras else ''}Location=<a title="View place details" href="../Loc/{tag}.htm#Top">{tag}</a>'''
+            elif tagPrefix == 'Y':
+                year = tag
+                semanticExtras = f'''{semanticExtras}{' ' if semanticExtras else ''}Year={year}{' AD' if int(year)>0 else ''}'''
+            elif tagPrefix == 'T':
+                semanticExtras = f'''{semanticExtras}{' ' if semanticExtras else ''}TimeSeries={tag}'''
+            elif tagPrefix == 'E':
+                semanticExtras = f'''{semanticExtras}{' ' if semanticExtras else ''}Event={tag}'''
+            elif tagPrefix == 'G':
+                semanticExtras = f'''{semanticExtras}{' ' if semanticExtras else ''}Group={tag}'''
+            elif tagPrefix == 'F':
+                semanticExtras = f'''{semanticExtras}{' ' if semanticExtras else ''}Referred to from <a title="Go to referent word" href="{tag}.htm#Top">Word #{tag}</a>'''
+            elif tagPrefix == 'R':
+                semanticExtras = f'''{semanticExtras}{' ' if semanticExtras else ''}Refers to <a title="Go to referred word" href="{tag}.htm#Top">Word #{tag}</a>'''
+            else:
+                logging.critical( f"Unknown '{tagPrefix}' word tag in {n}: {columns_string}")
+                unknownTag
     lemmaLinksList = []
     for lemmaRowNumberStr in lemmaRowList.split( ',' ):
         # print( f"{lemmaRowNumberStr=}" )
@@ -1478,7 +1481,7 @@ def create_Hebrew_word_page( level:int, hh:int, hebrewWord:str, columns_string:s
 <p class="pNav">{prevLink}<b>{hebrewWordTitle}</b> <a title="Go to Hebrew word index" href="index.htm">↑</a>{nextLink}{oetLink}{parallelLink}{interlinearLink}</p>
 <p class="link"><a title="Go to Open Scriptures Hebrew verse page" href="https://hb.OpenScriptures.org/structure/OshbVerse/index.html?b={OSISbookCode}&c={C}&v={V}">OSHB {ourTidyBbbWithNotes} {C}:{V}</a> <b>{hebrewWord}</b>{transliterationBit}{StrongsBit} {lemmaLinksStr}
 <br> {translationFields}{capsField if TEST_MODE else ''}
-<br> {tidyMorphologyFields}</p>
+<br> {tidyMorphologyFields}{f'{NEWLINE}<br>  {semanticExtras}' if semanticExtras else ''}</p>
 <p class="note"><small>Note: These word pages enable you to click through to the <a href="https://hb.OpenScriptures.org">Open Scriptures Hebrew Bible</a> (OSHB) that the <em>Open English Translation</em> Old Testament is translated from.
 The OSHB is based on the <a href="https://www.Tanach.us/Tanach.xml">Westminster Leningrad Codex</a> (WLC).
 (We are still searching for a digitized facsimile of the Leningradensis manuscript that we can easily link to. See <a href="https://www.AnimatedHebrew.com/mss/index.html#leningrad">this list</a> and <a href="https://archive.org/details/Leningrad_Codex/">this archive</a> for now.)
@@ -1678,7 +1681,6 @@ f''' <a title="Go to Open Scriptures Hebrew verse page" href="https://hb.OpenS
 
     keyHtml = ''
     if usedRoleLetters or usedMorphologies: # Add a key at the bottom
-        keyHtml = '<p class="key" id="Bottom"><b>Key</b>:'
         for usedRoleLetter in sorted( usedRoleLetters ):
             keyHtml = f'{keyHtml} <b>{usedRoleLetter}</b>={CNTR_ROLE_NAME_DICT[usedRoleLetter]}'
         for usedMorphology in sorted( usedMorphologies ):
@@ -1686,8 +1688,8 @@ f''' <a title="Go to Open Scriptures Hebrew verse page" href="https://hb.OpenS
                 keyHtml = f"{keyHtml} <b>{usedMorphology}</b>={CNTR_MORPHOLOGY_NAME_DICT[usedMorphology.upper()]}"
             except KeyError:
                 logging.warning( f"create_Hebrew_word_pages: Missing {usedMorphology=}")
-        keyHtml = f'{keyHtml}</p>'
-    assert not keyHtml.startswith('\n') and not keyHtml.endswith('\n'), f"{keyHtml=}"
+        if keyHtml:
+            keyHtml = f'\n<p class="key" id="Key"><b>Key</b>:{keyHtml}</p>'
 
     # Now put it all together
     top = makeTop( level, None, 'word', None, state ) \
@@ -2070,14 +2072,15 @@ def create_Hebrew_lemma_pages( level:int, outputFolderPath:Path, state:State ) -
             assert '\\' not in lemmasHtml, f"{lemmasHtml=}"
             assert not lemmasHtml.endswith('\n'), f"{lemmasHtml=}"
 
+        keyHtml = ''
         if usedMorphologies: # Add a key at the bottom
-            keyHtml = '<p class="key" id="Bottom"><b>Key</b>:'
             for usedMorphology in sorted( usedMorphologies ):
                 try:
                     keyHtml = f"{keyHtml} <b>{usedMorphology}</b>={CNTR_MORPHOLOGY_NAME_DICT[usedMorphology.upper()]}"
                 except KeyError:
                     logging.warning( f"Missing {usedMorphology=}")
-            keyHtml = f'{keyHtml}</p>'
+            if keyHtml:
+                keyHtml = f'\n<p class="key" id="Key"><b>Key</b>:{keyHtml}</p>'
 
         # Now put it all together
         top = makeTop( level, None, 'lemma', None, state ) \
@@ -2480,8 +2483,8 @@ f''' <a title="Go to Statistical Restoration Greek page" href="https://GreekCN
         assert '\\' not in wordsHtml, f"{wordsHtml=}"
         assert '</span>C1.htm' not in wordsHtml, f"{wordsHtml=}"
 
+        keyHtml = ''
         if usedRoleLetters or usedMorphologies: # Add a key at the bottom
-            keyHtml = '<p class="key" id="Bottom"><b>Key</b>:'
             for usedRoleLetter in sorted( usedRoleLetters ):
                 keyHtml = f'{keyHtml} <b>{usedRoleLetter}</b>={CNTR_ROLE_NAME_DICT[usedRoleLetter]}'
             for usedMorphology in sorted( usedMorphologies ):
@@ -2489,16 +2492,15 @@ f''' <a title="Go to Statistical Restoration Greek page" href="https://GreekCN
                     keyHtml = f"{keyHtml} <b>{usedMorphology}</b>={CNTR_MORPHOLOGY_NAME_DICT[usedMorphology.upper()]}"
                 except KeyError:
                     logging.warning( f"create_Greek_word_pages: Missing {usedMorphology=}")
-            keyHtml = f'{keyHtml}</p>'
+            if keyHtml:
+                keyHtml = f'\n<p class="key" id="Key"><b>Key</b>:{keyHtml}</p>'
 
         # Now put it all together
         top = makeTop( level, None, 'word', None, state ) \
                         .replace( '__TITLE__', f"Greek word ‘{greekWord}’{' TEST' if TEST_MODE else ''}" ) \
                         .replace( '__KEYWORDS__', 'Bible, word' ) \
                         .replace( 'par/"', f'par/{BBB}/C{C}V{V}.htm#Top"' )
-        wordsHtml = f'''{top}{wordsHtml}
-{keyHtml}
-{makeBottom( level, 'word', state )}'''
+        wordsHtml = f'''{top}{wordsHtml}{keyHtml}{makeBottom( level, 'word', state )}'''
         assert checkHtml( 'GreekWordPage', wordsHtml )
         filepath = outputFolderPath.joinpath( output_filename )
         assert not filepath.is_file(), f"{filepath=}" # Check that we're not overwriting anything
@@ -2780,8 +2782,8 @@ def create_Greek_lemma_pages( level:int, outputFolderPath:Path, state:State ) ->
                 lemmasHtml = f"{lemmasHtml}\n{makeGreekLemmaHTML(extra_lemma_link, state.OETRefData['NTLemmaDict'][contrastiveLemma])}"
         assert '\\' not in lemmasHtml, f"{lemmalemmasHtmlHTML=}"
 
+        keyHtml = ''
         if usedRoleLetters or usedMorphologies: # Add a key at the bottom
-            keyHtml = '<p class="key" id="Bottom"><b>Key</b>:'
             for usedRoleLetter in sorted( usedRoleLetters ):
                 keyHtml = f'{keyHtml} <b>{usedRoleLetter}</b>={CNTR_ROLE_NAME_DICT[usedRoleLetter]}'
             for usedMorphology in sorted( usedMorphologies ):
@@ -2789,15 +2791,14 @@ def create_Greek_lemma_pages( level:int, outputFolderPath:Path, state:State ) ->
                     keyHtml = f"{keyHtml} <b>{usedMorphology}</b>={CNTR_MORPHOLOGY_NAME_DICT[usedMorphology.upper()]}"
                 except KeyError:
                     logging.warning( f"Missing {usedMorphology=}")
-            keyHtml = f'{keyHtml}</p>'
+            if keyHtml:
+                keyHtml = f'\n<p class="key" id="Key"><b>Key</b>:{keyHtml}</p>'
 
         # Now put it all together
         top = makeTop( level, None, 'lemma', None, state ) \
                         .replace( '__TITLE__', f"Greek lemma ‘{lemma}’{' TEST' if TEST_MODE else ''}" ) \
                         .replace( '__KEYWORDS__', 'Bible, word' )
-        lemmasHtml = f'''{top}{lemmasHtml}
-{keyHtml}
-{makeBottom( level, 'lemma', state )}'''
+        lemmasHtml = f'''{top}{lemmasHtml}{keyHtml}{makeBottom( level, 'lemma', state )}'''
         assert checkHtml( f'GreekLemmaPage for {ll} {lemma=}', lemmasHtml )
         filepath = outputFolderPath.joinpath( output_filename )
         assert not filepath.is_file() # Check that we're not overwriting anything

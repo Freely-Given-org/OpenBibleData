@@ -391,7 +391,8 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                             if versionAbbreviation == 'OET-RV': # This is the only parallel version with cross-references included
                                 footnoteFreeTextHtml = footnotesHtml = '' # Any footnotes have been left in textHtml so no need for a separate container
                             else: # no cross-references were asked for here for other version
-                                assert textHtml.count('<hr ')<2, f"{versionAbbreviation} {BBB} {C}:{V} ({textHtml.count('<hr ')}) {textHtml=}"
+                                        # An exception is https://Freely-Given.org/OBD/KJB-1611/byC/ESG_Intro.htm#Top
+                                assert textHtml.count('<hr ')<(3 if versionAbbreviation=='KJB-1611' else 2), f"{versionAbbreviation} {BBB} {C}:{V} ({textHtml.count('<hr ')}) {textHtml=}"
                                 textHtml, footnoteFreeTextHtml, footnotesHtml = handleAndExtractFootnotes( versionAbbreviation, textHtml )
                                 if footnoteFreeTextHtml.endswith( ' </span>' ):
                                     footnoteFreeTextHtml = f'{footnoteFreeTextHtml[:-8]}</span>' # Remove superfluous final space
@@ -469,7 +470,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                 modernisedTextHtml = moderniseEnglishWords( footnoteFreeTextHtml, allowOptions=True ) # Can return words like 'hateth/hates'
                                 if versionAbbreviation in ('KJB-1611','Bshps','Gnva','Cvdl','TNT','Wycl'):
                                     modernisedTextHtml = modernisedTextHtml.replace( 'J', 'Y' ).replace( 'Ie', 'Ye' ).replace( 'Io', 'Yo' ) \
-                                                                    .replace( 'Yewel', 'Jewel' ).replace( 'Yudge', 'Judge' ).replace( 'KYB', 'KJB' ) # Fix overreaches
+                                                                    .replace( 'Yewel', 'Jewel' ).replace( 'Yudge', 'Judge' ).replace( 'Yust', 'Just' ).replace( 'KYB', 'KJB' ) # Fix overreaches
                                 modernisedTextDiffers = modernisedTextHtml != footnoteFreeTextHtml # we'll usually only show it if it changed
                                 if DO_SPELL_CHECKS:
                                     modernisedTextHtml = spellCheckAndMarkHTMLText( versionAbbreviation, parRef, modernisedTextHtml, footnoteFreeTextHtml, state ) # Puts spans around mispellings
@@ -1035,20 +1036,26 @@ def handleAndExtractFootnotes( versionAbbreviation:str, verseHtml:str ) -> tuple
     """
     Given verseHtml that may contain a footnotes division,
         separate off the footnotes.
+
+    If there's also cross-references, they won't be split off separately.
+        (If they occur after the footnotes, then they'll be included with the footnotes.)
     """
     if '<div id="footnotes" class="footnotes">' in verseHtml:
-        assert verseHtml.count('<hr ') == 1, f"{versionAbbreviation} ({verseHtml.count('<hr ')}) {verseHtml=}"
-        assert '</div>' in verseHtml
+        assert verseHtml.count('<hr ') >= 1, f"{versionAbbreviation} ({verseHtml.count('<hr ')}) {verseHtml=}"
+        if verseHtml.count('<hr ') > 1:
+            assert '<div id="crossRefs" class="crossRefs">' in verseHtml, f"{versionAbbreviation} ({verseHtml.count('<hr ')}) {verseHtml=}"
+        assert verseHtml.count('</div>') == verseHtml.count( '<div ' )
 
         # Handle footnotes so the same fn1 doesn't occur for multiple versions
         verseHtml = verseHtml.replace( 'id="footnotes', f'id="footnotes{versionAbbreviation}' ).replace( 'id="fn', f'id="fn{versionAbbreviation}' ).replace( 'href="#fn', f'href="#fn{versionAbbreviation}' )
 
-        try: verseHtml, footnoteHtml = verseHtml.split( '<hr ' )
-        except ValueError as err: # usually too many values to unpack
-            ix1 = verseHtml.index( '<hr ' )
-            ix2 = verseHtml.index( '<hr ', ix1+5 )
-            logging.critical( f"Too many parts: '{versionAbbreviation} {verseHtml[ix1:ix1+30]}'  and also  '{verseHtml[ix2:ix2+30]}'")
-            return verseHtml, verseHtml, ''
+        verseHtml, footnoteHtml = verseHtml.split( '<hr ', 1 ) # Split at the first horizontal rule
+        # try: verseHtml, footnoteHtml = verseHtml.split( '<hr ' )
+        # except ValueError as err: # usually too many values to unpack
+        #     ix1 = verseHtml.index( '<hr ' )
+        #     ix2 = verseHtml.index( '<hr ', ix1+5 )
+        #     logging.critical( f"Too many parts: '{versionAbbreviation} {verseHtml[ix1:ix1+30]}'  and also  '{verseHtml[ix2:ix2+30]}'")
+        #     return verseHtml, verseHtml, ''
 
         verseHtml = verseHtml.rstrip()
         footnoteFreeVerseHtml, numFootnotesRemoved = footnoteRegex.subn( '', verseHtml )
