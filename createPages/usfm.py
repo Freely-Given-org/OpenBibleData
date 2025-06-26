@@ -35,6 +35,10 @@ livenIntroductionLinks( versionAbbreviation:str, refTuple:tuple, segmentType:str
                                                         introHtml:str, state:State ) -> str
 livenIORs( versionAbbreviation:str, refTuple:tuple, segmentType:str, ioLineHtml:str,
                                                                         state:State ) -> str
+livenXRefField( versionAbbreviation:str, refTuple:tuple, segmentType:str,
+                    pathPrefix:str, xoText:str, xrefOriginalMiddle:str, state:State ) -> str
+toRomanNumerals( num:int|str ) -> str
+
 briefDemo() -> None
 fullDemo() -> None
 main calls fullDemo()
@@ -70,6 +74,7 @@ CHANGELOG:
     2025-05-26 Liven KJB-1611 cross-references
     2025-05-30 Tried to improve tables (esp. for T4T Ezra)
     2025-05-31 Add handling of northern/southern kingdom colouring
+    2025-06-24 Move livening xrefs into a function, and apply it to xt fields inside footnotes as well.
 """
 from gettext import gettext as _
 import re
@@ -86,10 +91,10 @@ from html import checkHtml
 from OETHandlers import getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2025-06-03' # by RJH
+LAST_MODIFIED_DATE = '2025-06-24' # by RJH
 SHORT_PROGRAM_NAME = "usfm"
 PROGRAM_NAME = "OpenBibleData USFM to HTML functions"
-PROGRAM_VERSION = '0.90'
+PROGRAM_VERSION = '0.91'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -882,6 +887,10 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
 
 
     # Handle all footnotes in one go (but we don't check here for matching \fr fields)
+    pathPrefix = '../../OET/byC/' if segmentType in ('parallelVerse','interlinearVerse') \
+                        else '../OET/byC/' if segmentType in ('topicalPassage',) \
+                        else '' if segmentType=='chapter' \
+                        else '../byC/'
     footnotesCount = 0
     footnotesHtml = ''
     searchStartIx = 0
@@ -891,33 +900,42 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
         footnotesCount += 1
         fEndIx = html.find( '\\f*', fStartIx+3 )
         assert fEndIx != -1, f"Can't find footnote end {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {footnotesCount=} {fStartIx=} {html[fStartIx:fStartIx+2*maxFootnoteChars]}"
+        assert fEndIx < 9_999_999 # Or logic in next dozen lines below won't work
         assert fStartIx+4 < fEndIx < fStartIx+maxFootnoteChars, f"Unexpected footnote size {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {footnotesCount=} {fEndIx-fStartIx} {html[fStartIx:fStartIx+2*maxFootnoteChars]}"
         frIx = html.find( '\\fr ', fStartIx+3 ) # Might be absent or in the next footnote
         if frIx > fEndIx: frIx = -1 # If it's in the next footnote, then there's no fr in this one
-        fContentIx = html.find( '\\f', fStartIx+3 if frIx==-1 else frIx+3 )
-        if fContentIx == fEndIx: fContentIx = -1
-        if fContentIx == -1:
+
+        # Find the first \f(something) or \xt field
+        fFirstContentIx = html.find( '\\f', fStartIx+3 if frIx==-1 else frIx+3 )
+        if fFirstContentIx >= fEndIx: fFirstContentIx = -1
+        if fFirstContentIx == -1: fFirstContentIx = 9_999_999
+        xFirstContentIx = html.find( '\\xt ', fStartIx+3 if frIx==-1 else frIx+3 )
+        if xFirstContentIx >= fEndIx: xFirstContentIx = -1
+        if xFirstContentIx == -1: xFirstContentIx = 9_999_999
+        firstContentIx = min( fFirstContentIx, xFirstContentIx )
+        if firstContentIx == 9_999_999:
             logging.warning( f"No internal footnote markers {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {footnotesCount=} {html[fStartIx:fStartIx+2*maxFootnoteChars]}" )
-            fContentIx = fStartIx + (5 if html[fStartIx:].startswith( '\\f + ') else 3)
+            firstContentIx = fStartIx + (5 if html[fStartIx:].startswith( '\\f + ') else 3)
         else:
-            assert html[fContentIx+1:fContentIx+3] in ('ft','fq','fk','fl','fw','fp','fv', 'fn') if versionAbbreviation=='NET' else ('ft','fq','fk','fl','fw','fp','fv'), \
-                f"Unexpected '{html[fContentIx+1:fContentIx+3]}' {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {footnotesCount=} {html[fStartIx:fStartIx+2*maxFootnoteChars]}"
-        assert html[fContentIx:fContentIx+3] != '\\f*'
-        if fStartIx+5 > fContentIx > fStartIx+16:
-            logging.error( f"Unexpected footnote start {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {footnotesCount=} {fStartIx=} {fContentIx=} '{html[fStartIx:fStartIx+20]}'" ) # Skips ' + \\fr c:v '
+            assert html[firstContentIx+1:firstContentIx+3] in ('ft','fq','fk','fl','fw','fp','fv', 'fn') if versionAbbreviation=='NET' else ('ft','fq','fk','fl','fw','fp','fv'), \
+                f"Unexpected '{html[firstContentIx+1:firstContentIx+3]}' {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {footnotesCount=} {html[fStartIx:fStartIx+2*maxFootnoteChars]}"
+        assert html[firstContentIx:firstContentIx+3] != '\\f*'
+        if fStartIx+5 > firstContentIx > fStartIx+16:
+            logging.error( f"Unexpected footnote start {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {footnotesCount=} {fStartIx=} {firstContentIx=} '{html[fStartIx:fStartIx+20]}'" ) # Skips ' + \\fr c:v '
         if frIx == -1:
             frText = ''
         else: # we have one
             assert fStartIx+5 <= frIx <= fStartIx+6, f"{versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {fStartIx=} {frIx=} '{html[fStartIx:fStartIx+20]}'" # Skips ' + '
-            frText = html[frIx+3:fContentIx].strip()
-        fnoteMiddle = html[fContentIx:fEndIx]
-        internalOpenCount = fnoteMiddle.count( '\\ft ') + fnoteMiddle.count( '\\fq ') + fnoteMiddle.count( '\\fqa ') + fnoteMiddle.count( '\\fk ') + fnoteMiddle.count( '\\fl ') + fnoteMiddle.count( '\\fp ')\
+            frText = html[frIx+3:firstContentIx].strip()
+        fnoteMiddle = html[firstContentIx:fEndIx]
+        internalOpenCount = fnoteMiddle.count( '\\ft ') + fnoteMiddle.count( '\\fq ') + fnoteMiddle.count( '\\fqa ') + fnoteMiddle.count( '\\fk ') + fnoteMiddle.count( '\\fl ') + fnoteMiddle.count( '\\fp ') \
+                                + fnoteMiddle.count( '\\xt ') \
                                 + fnoteMiddle.count( '\\it ') + fnoteMiddle.count( '\\bd ') + fnoteMiddle.count( '\\bdit ') + fnoteMiddle.count( '\\em ')
         if versionAbbreviation=='NET': internalOpenCount += fnoteMiddle.count( '\\fn ') # Seems to be a NET Bible special
         dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"\nProcessing {versionAbbreviation} {segmentType} {refTuple} footnote from '{fnoteMiddle}'" )
         if internalOpenCount > 0:
             if DEBUGGING_THIS_MODULE:
-                internalCloseCount = fnoteMiddle.count( '\\ft*') + fnoteMiddle.count( '\\fq*') + fnoteMiddle.count( '\\fqa*') + fnoteMiddle.count( '\\fk*')
+                internalCloseCount = fnoteMiddle.count( '\\ft*') + fnoteMiddle.count( '\\fq*') + fnoteMiddle.count( '\\fqa*') + fnoteMiddle.count( '\\fk*') + fnoteMiddle.count( '\\xt*')
                 internalMarkerCount = internalOpenCount - internalCloseCount
                 dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"Footnote middle has {internalOpenCount=} {internalCloseCount=} {internalMarkerCount=} '{fnoteMiddle}'" )
             inSpan = None
@@ -934,14 +952,28 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                         dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"Forming {fMarker=} from '{fnoteMiddle[internalStartIx:internalStartIx+20]}…'" )
                     else: break
                 if fnoteMiddle[internalStartIx+len(fMarker)+1] == ' ': # It's an opening marker
-                    dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"Got opening {fMarker=} with {inSpan=} from '{fnoteMiddle[internalStartIx:internalStartIx+20]}…'" )
-                    span = f'<span class="{fMarker}">'
+                    dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"Got {versionAbbreviation} {refTuple} opening {fMarker=} with {inSpan=} from '{fnoteMiddle[internalStartIx:internalStartIx+20]}…'" )
+                    span = f'<span class="{fMarker}">' # 15 characters + len(fMarker)
                     internalSearchStartIx = internalStartIx + 15 + len(fMarker)
                     if inSpan:
                         span = f'</span>{span}'
                         internalSearchStartIx += 7
                         inSpan = None
-                    fnoteMiddle = f'{fnoteMiddle[:internalStartIx]}{span}{fnoteMiddle[internalStartIx+len(fMarker)+2:]}'
+                    if fMarker == 'xt':
+                        fNoteXTrest = fnoteMiddle[internalStartIx+len(fMarker)+1:]
+                        fNoteXTrestEndIx = fNoteXTrest.find( '\\' )
+                        if fNoteXTrestEndIx == -1: # no more subfields in this
+                            fNoteContinuation = ''
+                            livenedFootnoteXref = livenXRefField( versionAbbreviation, refTuple, segmentType, pathPrefix, 'footnoteXT', fNoteXTrest, state )
+                            fnoteMiddle = f'{fnoteMiddle[:internalStartIx]}{span}{livenedFootnoteXref}' # {fnoteMiddle[internalStartIx+len(fMarker)+2:]}
+                        else: # Only go up to the next field
+                            fNoteXTrest, fNoteContinuation = fNoteXTrest[:fNoteXTrestEndIx], fNoteXTrest[fNoteXTrestEndIx:]
+                            print( f"{fNoteXTrest=} {fNoteContinuation=}" )
+                        livenedFootnoteXref = livenXRefField( versionAbbreviation, refTuple, segmentType, pathPrefix, 'footnoteXT', fNoteXTrest, state )
+                        fnoteMiddle = f'{fnoteMiddle[:internalStartIx]}{span}{livenedFootnoteXref}{fNoteContinuation}'
+                        print( f"XT now {fnoteMiddle=} with {fNoteXTrestEndIx=}" )
+                    else: # it's a regular footnote format field (not an xt field inside a footnote)
+                        fnoteMiddle = f'{fnoteMiddle[:internalStartIx]}{span}{fnoteMiddle[internalStartIx+len(fMarker)+2:]}'
                     inSpan = fMarker
                 elif fnoteMiddle[internalStartIx+len(fMarker)+1] == '*': # It's a closing marker
                     dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"Got closing {fMarker=} with {inSpan=} from '{fnoteMiddle[internalStartIx:internalStartIx+20]}…'" )
@@ -956,7 +988,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
             if inSpan: # at end
                 fnoteMiddle = f'{fnoteMiddle}</span>'
             assert '\\' not in fnoteMiddle, f"{fnoteMiddle[fnoteMiddle.index(f'{BACKSLASH}x')-10:fnoteMiddle.index(f'{BACKSLASH}x')+12]}"
-        dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} {segmentType} {refTuple} {fnoteMiddle=}" )
+        dPrint( 'Normal' if '"xt"' in fnoteMiddle else 'Verbose', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} {segmentType} {refTuple} {fnoteMiddle=}" )
         if versionAbbreviation == 'OET-LV': # then we don't want equals or underlines in the footnote to get converted into spans later
             fnoteMiddle = fnoteMiddle.replace('.', '--fnPERIOD--').replace(':', '--fnCOLON--') # So we protect them -- gets fixed in do_OET_LV_HTMLcustomisations() in html.py
         assert '<br>' not in fnoteMiddle, f"{versionAbbreviation} {segmentType} {refTuple} {fnoteMiddle=}"
@@ -1041,10 +1073,6 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
 
 
     # Now handle all cross-references in one go (we don't check for matching \xo fields)
-    pathPrefix = '../../OET/byC/' if segmentType in ('parallelVerse','interlinearVerse') \
-                        else '../OET/byC/' if segmentType in ('topicalPassage',) \
-                        else '' if segmentType=='chapter' \
-                        else '../byC/'
     crossReferencesCount = 0
     crossReferencesHtml = ''
     searchStartIx = 0
@@ -1071,175 +1099,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
         # print( f" {xrefLiveMiddle=}")
         assert xrefLiveMiddle.count('\\xo ') == xrefLiveMiddle.count('\\xo '), f"{xrefLiveMiddle=}"
         xrefLiveMiddle = xrefLiveMiddle.replace('\\xo ','<b>').replace('\\xt ','</b>') # Fix things like "Gen 25:9-10; \\xo b \\xt Gen 35:29."
-        # TODO: The following code does not work for one chapter books (Jude 5), additional Vs (Mrk 3:4,5), or additional CVs (Mrk 3:4; 4:5)
-        # TODO: The following code is untidy, not including combined verses in the link, e.g., Mrk 3:4-5
-        reStartIx, lastXBBB = 0, BBB
-        for _safetyCount2 in range( 999 if segmentType=='book' else 99 ):
-            if reStartIx>0: dPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Now searching {refTuple} from {xrefLiveMiddle[reStartIx:]=}" )
-            matchBCV = BCVRefRegEx.search( xrefLiveMiddle, reStartIx ) # Note that this won't find some non-capitalised books in KJB-1611, e.g., in Mark 1: 'Esa. 40.3. luke 3.4. iohn 1.23.
-            matchCV = CVRefRegEx.search( xrefLiveMiddle, reStartIx )
-            if not matchBCV and not matchCV:
-                break # neither one was found - all done here
-            if not matchBCV or (matchCV is not None and matchCV.start()<matchBCV.start()):
-                match = matchCV # process matchCV
-                xC, xV = match.groups()
-                xBBB = lastXBBB
-            else: # process matchBCV
-                match = matchBCV
-                # NOTE: This match also captures chapter ranges, e.g., it gets Lev 1:2, but also Lev 1–2
-                xB, xC, xV = match.groups()
-                if '–' in match.group(): # For a chapter range, change our search to v1
-                    # print( f"                       Changed {xB} {xC}–{xV} to {xC}:1")
-                    xV = '1' # (rather than thinking the second chapter of the range is the verse number)
-                xB = xB.lstrip() # For books without a book number like 1 Cor, the regex may capture an extra space before the book abbreviation
-                # assert ' ' not in xB, f"{match.groups()}" # False for '2 Kings'
-                if versionAbbreviation=='KJB-1611' and xB=='and':
-                    xBBB = lastXBBB # Same as last book
-                elif versionAbbreviation=='KJB-1611' and xB in ('Chap','Cha','chap','cha'):
-                    xBBB = BBB # This same book where the xref is located
-                elif versionAbbreviation == 'KJB-1611':
-                    myTable = {
-                        'Actes':'ACT', 'Acts':'ACT', 'Act':'ACT', 'actes':'ACT', 'acts':'ACT', 'act':'ACT',
-                        'Amos':'AMO', 'amos':'AMO',
-                        '1. Chron':'CH1', '1.Chron':'CH1','1.chron':'CH1', '1 Chron':'CH1', '1.Chro':'CH1', '1.chro':'CH1', '1 chron':'CH1',
-                        '2.Chron':'CH2', '2.Chr':'CH2','2.chr':'CH2',
-                        '1.Corin':'CO1','1.corin':'CO1','1.Cor':'CO1','1.cor':'CO1',
-                        '2.Cor':'CO2','2.cor':'CO2',
-                        'coloss':'COL', 'Col':'COL', 'col':'COL',
-                        'Dan':'DAN',
-                        'Deut':'DEU','deut':'DEU', 'Deu':'DEU','deu':'DEU',
-                        'eccles':'ECC',
-                        'Ephes':'EPH', 'ephes':'EPH', 'Eph':'EPH', 'eph':'EPH', 'ephe':'EPH',
-                        'Ester':'EST', 'Esth':'EST', 'Es':'EST', 'esth':'EST',
-                        'Exod':'EXO','exod':'EXO', 'Exo':'EXO',
-                        'Ezech':'EZE','ezech':'EZE', 'Ezek':'EZE','ezek':'EZE',
-                        'Ezra':'EZR',
-                        'Gene':'GEN','Gen':'GEN',
-                        'Galat':'GAL','galat':'GAL', 'Gal':'GAL','gal':'GAL',
-                        'Habac':'HAB','hab':'HAB', 'Abak':'HAB', 'Abac':'HAB',
-                        'Hagge':'HAG', 'Agge':'HAG',
-                        'Hebr':'HEB', 'hebr':'HEB', 'Heb':'HEB', 'heb':'HEB',
-                        'Hose':'HOS', 'Hos':'HOS','hos':'HOS', 'Ose':'HOS',
-                        'Isai':'ISA','isai':'ISA', 'Esai':'ISA', 'Esa':'ISA','Esay':'ISA','esay':'ISA','Isa':'ISA','isa':'ISA',
-                        'Iames':'JAM', 'Iam':'JAM', 'iam':'JAM',
-                        'Iude':'JDE',
-                        'Iudg':'JDG',
-                        'iudith':'JDT',
-                        'Ier':'JER','ier':'JER','Ierem':'JER', 'Iere':'JER', 'iere':'JER',
-                        'Ioh':'JHN','ioh':'JHN','Iohn':'JHN','iohn':'JHN',
-                        '1.Iohn':'JN1','1.iohn':'JN1', 'I.Iohn':'JN1', '1.Ioh':'JN1',
-                        'Iob':'JOB','iob':'JOB',
-                        'Ioel':'JOL',
-                        'Iosh':'JOS','iosh':'JOS','Ios':'JOS','Iosu':'JOS',
-                        '1.Kings':'KI1', '1.King':'KI1', '1.Kin':'KI1', '1.king':'KI1', '1 King':'KI1',
-                             '1.Reg':'KI1',
-                        '2.Kings':'KI2', '2.King':'KI2', '2.Kin':'KI2',
-                        'Lam':'LAM', 'lam':'LAM',
-                        '4.Esdr':'LES',
-                        'Leuit':'LEV','leuit':'LEV', 'Leui':'LEV','leui':'LEV', 'Leu':'LEV',
-                        'Luc':'LUK','luc':'LUK', 'Luk':'LUK', 'Luke':'LUK','luke':'LUK','luk':'LUK',
-                        '1.Macc':'MA1', '1 macc':'MA1', '1.Mac':'MA1',
-                        '2.Macc':'MA2','2.macc':'MA2', '2.mac':'MA2',
-                        'Malac':'MAL', 'Mala':'MAL', 'Mal':'MAL',
-                        'Matth':'MAT', 'Matt':'MAT','Mat':'MAT','mat':'MAT', 'matth':'MAT', 'matt':'MAT',
-                        'mica':'MIC',
-                        'Marke':'MRK','marke':'MRK', 'Mark':'MRK','mark':'MRK', 'Marc':'MRK', 'Mar':'MRK','mar':'MRK',
-                        'naum':'NAH',
-                        'Nehem':'NEH', 'nehem':'NEH', 'Nehe':'NEH', 'nehe':'NEH',
-                        'Numb':'NUM','numb':'NUM', 'Num':'NUM', 'num':'NUM',
-                        '1.Pet':'PE1', '1.pet':'PE1',
-                        '2.Pet':'PE2','2.pet':'PE2',
-                        'Phil':'PHP', 'phil':'PHP',
-                        'Psal':'PSA', 'psal':'PSA', 'psalme':'PSA', 'Psa':'PSA', 'Ps':'PSA', 'psa':'PSA',
-                        'Prou':'PRO', 'Pro':'PRO', 'pro':'PRO', 'prou':'PRO',
-                        '1.Sam':'SA1','1.sam':'SA1', '1 Sam':'SA1',
-                        '2.Sam':'SA2',
-                        'Ecclu':'SIR',
-                        '1.Thess':'TH1','1.thess':'TH1', '1 thess':'TH1', '1.Thes':'TH1','1.thes':'TH1',
-                        '2.thes':'TH2', '2 thess':'TH2',
-                        '1.tim':'TI1',
-                        '2.tim':'TI2',
-                        'Tit':'TIT',
-                        'tob':'TOB',
-                        'reuel':'REV', 'Reu':'REV','reu':'REV',
-                        'Rom':'ROM', 'rom':'ROM',
-                        'ecclus':'SIR', 'Ecclus':'SIR', # Sirach / Ecclesiasticus
-                        '1.Tim':'TI1',
-                        'Wisd':'WIS', 'Wis':'WIS', 'wisd':'WIS', 'wis':'WIS',
-                        'Zach':'ZEC', 'Zac':'ZEC',
-                        }
-                    try: xBBB = myTable[xB]
-                    except KeyError:
-                        print( f"  {versionAbbreviation} {BBB}  '{xB}'  wasn't in the table from '{xrefOriginalMiddle}'")
-                        adjXB = ( xB # Fix KJB-1611 spellings -- what's Apoc/apoc and nnm ???
-                                .replace( '1.','1 ' ).replace( '2.','2 ' ).replace( '3.','3 ' ).replace( '4.','4 ' ) # Should BOS handle this???
-                                .replace( 'I.','1 ' )
-        
-                                .replace( 'Ie', 'Je' )
-                                .replace( 'Io', 'Jo' )
-                                )
-                        xBBB = getBBBFromOETBookName( adjXB )
-                    if not xBBB:
-                        logging.critical( f"Unable to liven cross-reference from {versionAbbreviation} {refTuple} for {xBBB=} {xC=} {xV=} from {adjXB=} from {xrefOriginalMiddle=}" )
-                        # if adjXB not in ('Apoc','apoc','nnm'): halt # What are these???
-                else: # not KJB-1611
-                    xBBB = getBBBFromOETBookName( xB )
-                    if not xBBB:
-                        logging.critical( f"Unable to liven cross-reference from {versionAbbreviation} {refTuple} for {xBBB=} {xC=} {xV=} from {xB=} from {xrefOriginalMiddle=}" )
-                if versionAbbreviation=='KJB-1611' and not xBBB: # still
-                    print( f"  {versionAbbreviation} {xBBB=} {xC=} {xV=} from {xB=} from {xrefOriginalMiddle=}" )
-            lastXBBB = xBBB
-            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"Got {versionAbbreviation} {xBBB} from {refTuple} {match.groups()=} from {xoText=} {xrefLiveMiddle=}" )
-            assert xC.isdigit(), f"{match.groups()}"
-            assert xV.isdigit(), f"{match.groups()}"
-            if versionAbbreviation=='KJB-1611' and not xBBB:
-                logging.critical( f"Unable to make {versionAbbreviation} {BBB} xref: {xBBB=} {xC=} {xV=} from {xrefOriginalMiddle=}" )
-                reStartIx = match.end() # exact number of characters that we add (otherwise we get mistakes/overlaps)
-                continue
-            # Now check for a verse or chapter range and include them in our find
-            matchInner = match.group()
-            matchEnd = match.end()
-            try:
-                while xrefLiveMiddle[matchEnd] in '-–1234567890abc:': # includes en-dash for chapter ranges
-                    # print( f"        Stepping past '{xrefLiveMiddle[matchEnd]}'" )
-                    matchInner = f'{matchInner}{xrefLiveMiddle[matchEnd]}'
-                    matchEnd += 1
-            except IndexError: # (can happen if xref inner doesn't end with a period)
-                pass # Reached end of string
-
-            if xBBB:
-                # assert int(xC) <= BibleOrgSysGlobals.loadedBibleBooksCodes.getMaxChapters( xBBB ), f"Bad xref {xBBB} {match.groups()} from {versionAbbreviation} {refTuple} {segmentType}"
-                if int(xC) > BibleOrgSysGlobals.loadedBibleBooksCodes.getMaxChapters( xBBB ):
-                    logging.critical( f"Not enough chapters in {xBBB} ({BibleOrgSysGlobals.loadedBibleBooksCodes.getMaxChapters(xBBB)}) for {match.groups()} from {versionAbbreviation} {refTuple} {segmentType} {xoText}" )
-                    reStartIx = match.end() # exact number of characters that we add (otherwise we get mistakes/overlaps)
-                    continue
-            else:
-                dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"convertUSFMMarkerListToHtml( {versionAbbreviation} {refTuple} '{segmentType}' {contextList} {len(markerList)} )" )
-                logging.critical( f"Failed to find xref book from '{xB}' from '{xrefOriginalMiddle}' in {match.groups()} for {versionAbbreviation} {segmentType} {basicOnly=} {refTuple}")
-                halt
-            if versionAbbreviation == 'OET-RV': # We want to link to the section page, (not the chapter page)
-                sectionNumber = findSectionNumber( 'OET-RV', xBBB, xC, xV, state )
-                dPrint( 'Info', DEBUGGING_THIS_MODULE, f"convertUSFMMarkerListToHtml for {versionAbbreviation} {refTuple} '{segmentType}' findSectionNumber( 'OET-RV', {xBBB} {xC}:{xV} ) returned {sectionNumber}" )
-                assert sectionNumber is not None, f"Bad OET-RV {refTuple} cross-reference: {xBBB} {xC}:{xV} from {xrefLiveMiddle=}"
-                if not TEST_MODE:
-                    assert sectionNumber > 0, f"ZERO OET-RV {refTuple} cross-reference: {xBBB} {xC}:{xV} from {xrefLiveMiddle=}"
-                # print( f"       {level=} {versionAbbreviation} {refTuple} {segmentType} {basicOnly=} {pathPrefix=}")
-                adjPathPrefix = pathPrefix.replace('byC','bySec') if pathPrefix else '../bySec/'
-                assert 'bySec' in adjPathPrefix, f"{pathPrefix=} {adjPathPrefix=}"
-                inside = f'<a title="View cross reference" href="{adjPathPrefix.replace('byC','bySec')}{xBBB}_S{sectionNumber}.htm#C{xC}V{xV}">{matchInner}</a>'
-                xrefLiveMiddle = f'''{xrefLiveMiddle[:match.start()]}{inside}{xrefLiveMiddle[matchEnd:]}'''
-            else: # not OET-RV -- link to the chapter page
-                inside = f'<a title="View cross reference" href="{pathPrefix}{xBBB}_C{xC}.htm#C{xC}V{xV}">{matchInner}</a>'
-                xrefLiveMiddle = f'{xrefLiveMiddle[:match.start()]}{inside}{xrefLiveMiddle[matchEnd:]}'
-            reStartIx = match.start() + len(inside) # exact number of characters that we add (otherwise we get mistakes/overlaps)
-            # # NOTE: The above code can leave us pointing to a range, e.g., Deu 1:19-2:2 would leave us at the hyphen
-            # while xrefLiveMiddle[reStartIx] in ' -123456789;.,abc':
-            #     print( f"        Stepping past '{xrefLiveMiddle[reStartIx]}'" )
-            #     reStartIx += 1 # Step past extra parts (like a range) so they don't get false thought to be another valid ref
-        else:
-            logging.critical( f"Inner xref loop needed to break for {versionAbbreviation} {segmentType} {basicOnly=} {refTuple}" )
-            inner_xr_loop_needed_to_break
-        # print( f"  {xrefLiveMiddle=}")
+        xrefLiveMiddle = livenXRefField( versionAbbreviation, refTuple, segmentType, pathPrefix, xoText, xrefLiveMiddle, state )
 
         # Now create the caller and the actual xref
         xrefCaller = f'<span class="xrCaller">[<a  title="See also {xrefOriginalMiddle}" href="#xr{crossReferencesCount}">ref</a>]</span>' # was †
@@ -1735,6 +1595,193 @@ def livenIORs( versionAbbreviation:str, refTuple:tuple, segmentType:str, ioLineH
 
     return ioLineHtml
 # end of usfm.livenIORs function
+
+
+myXrefTable = {
+    'Actes':'ACT', 'Acts':'ACT', 'Act':'ACT', 'actes':'ACT', 'acts':'ACT', 'act':'ACT',
+    'Amos':'AMO', 'amos':'AMO',
+    '1. Chron':'CH1', '1.Chron':'CH1','1.chron':'CH1', '1 Chron':'CH1', '1.Chro':'CH1', '1.chro':'CH1', '1 chron':'CH1',
+    '2.Chron':'CH2', '2.Chr':'CH2','2.chr':'CH2',
+    '1.Corin':'CO1','1.corin':'CO1','1.Cor':'CO1','1.cor':'CO1',
+    '2.Cor':'CO2','2.cor':'CO2',
+    'coloss':'COL', 'Col':'COL', 'col':'COL',
+    'Dan':'DAN',
+    'Deut':'DEU','deut':'DEU', 'Deu':'DEU','deu':'DEU',
+    'eccles':'ECC',
+    'Ephes':'EPH', 'ephes':'EPH', 'Eph':'EPH', 'eph':'EPH', 'ephe':'EPH',
+    'Ester':'EST', 'Esth':'EST', 'Es':'EST', 'esth':'EST',
+    'Exod':'EXO','exod':'EXO', 'Exo':'EXO',
+    'Ezech':'EZE','ezech':'EZE', 'Ezek':'EZE','ezek':'EZE',
+    'Ezra':'EZR',
+    'Gene':'GEN','Gen':'GEN',
+    'Galat':'GAL','galat':'GAL', 'Gal':'GAL','gal':'GAL',
+    'Habac':'HAB','hab':'HAB', 'Abak':'HAB', 'Abac':'HAB',
+    'Hagge':'HAG', 'Agge':'HAG',
+    'Hebr':'HEB', 'hebr':'HEB', 'Heb':'HEB', 'heb':'HEB',
+    'Hose':'HOS', 'Hos':'HOS','hos':'HOS', 'Ose':'HOS',
+    'Isai':'ISA','isai':'ISA', 'Esai':'ISA', 'Esa':'ISA','Esay':'ISA','esay':'ISA','Isa':'ISA','isa':'ISA',
+    'Iames':'JAM', 'Iam':'JAM', 'iam':'JAM',
+    'Iude':'JDE',
+    'Iudg':'JDG',
+    'iudith':'JDT',
+    'Ier':'JER','ier':'JER','Ierem':'JER', 'Iere':'JER', 'iere':'JER',
+    'Ioh':'JHN','ioh':'JHN','Iohn':'JHN','iohn':'JHN',
+    '1.Iohn':'JN1','1.iohn':'JN1', 'I.Iohn':'JN1', '1.Ioh':'JN1',
+    'Iob':'JOB','iob':'JOB',
+    'Ioel':'JOL',
+    'Iosh':'JOS','iosh':'JOS','Ios':'JOS','Iosu':'JOS',
+    '1.Kings':'KI1', '1.King':'KI1', '1.Kin':'KI1', '1.king':'KI1', '1 King':'KI1',
+            '1.Reg':'KI1',
+    '2.Kings':'KI2', '2.King':'KI2', '2.Kin':'KI2',
+    'Lam':'LAM', 'lam':'LAM',
+    '4.Esdr':'LES',
+    'Leuit':'LEV','leuit':'LEV', 'Leui':'LEV','leui':'LEV', 'Leu':'LEV',
+    'Luc':'LUK','luc':'LUK', 'Luk':'LUK', 'Luke':'LUK','luke':'LUK','luk':'LUK',
+    '1.Macc':'MA1', '1 macc':'MA1', '1.Mac':'MA1',
+    '2.Macc':'MA2','2.macc':'MA2', '2.mac':'MA2',
+    'Malac':'MAL', 'Mala':'MAL', 'Mal':'MAL',
+    'Matth':'MAT', 'Matt':'MAT','Mat':'MAT','mat':'MAT', 'matth':'MAT', 'matt':'MAT',
+    'mica':'MIC',
+    'Marke':'MRK','marke':'MRK', 'Mark':'MRK','mark':'MRK', 'Marc':'MRK', 'Mar':'MRK','mar':'MRK',
+    'naum':'NAH',
+    'Nehem':'NEH', 'nehem':'NEH', 'Nehe':'NEH', 'nehe':'NEH',
+    'Numb':'NUM','numb':'NUM', 'Num':'NUM', 'num':'NUM',
+    '1.Pet':'PE1', '1.pet':'PE1',
+    '2.Pet':'PE2','2.pet':'PE2',
+    'Phil':'PHP', 'phil':'PHP',
+    'Psal':'PSA', 'psal':'PSA', 'psalme':'PSA', 'Psa':'PSA', 'Ps':'PSA', 'psa':'PSA',
+    'Prou':'PRO', 'Pro':'PRO', 'pro':'PRO', 'prou':'PRO',
+    '1.Sam':'SA1','1.sam':'SA1', '1 Sam':'SA1',
+    '2.Sam':'SA2',
+    'Ecclu':'SIR',
+    '1.Thess':'TH1','1.thess':'TH1', '1 thess':'TH1', '1.Thes':'TH1','1.thes':'TH1',
+    '2.thes':'TH2', '2 thess':'TH2',
+    '1.tim':'TI1',
+    '2.tim':'TI2',
+    'Tit':'TIT',
+    'tob':'TOB',
+    'reuel':'REV', 'Reu':'REV','reu':'REV',
+    'Rom':'ROM', 'rom':'ROM',
+    'ecclus':'SIR', 'Ecclus':'SIR', # Sirach / Ecclesiasticus
+    '1.Tim':'TI1',
+    'Wisd':'WIS', 'Wis':'WIS', 'wisd':'WIS', 'wis':'WIS',
+    'Zach':'ZEC', 'Zac':'ZEC',
+    }
+def livenXRefField( versionAbbreviation:str, refTuple:tuple, segmentType:str, pathPrefix:str, xoText:str, xrefOriginalMiddle:str, state:State ) -> str:
+    """
+    Given the middle of a cross-reference or the xt field from a footnote,
+        return the text but with the xref(s) in it livened.
+    """
+    from createSectionPages import findSectionNumber
+    DEBUGGING_THIS_MODULE = 99 if xoText=='footnoteXT' else False
+    fnPrint( DEBUGGING_THIS_MODULE, f"livenXRefField( {versionAbbreviation}, {refTuple}, {segmentType}, '{pathPrefix}', {xoText=}, {xrefOriginalMiddle=} )" )
+
+    # TODO: The following code does not work for one chapter books (Jude 5), additional Vs (Mrk 3:4,5), or additional CVs (Mrk 3:4; 4:5)
+    # TODO: The following code is untidy, not including combined verses in the link, e.g., Mrk 3:4-5
+    BBB = refTuple[0] # Compulsory
+    xrefLiveMiddle = xrefOriginalMiddle
+
+    reStartIx, lastXBBB = 0, BBB
+    for _safetyCount2 in range( 999 if segmentType=='book' else 99 ):
+        if reStartIx>0: dPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Now searching {refTuple} from {xrefLiveMiddle[reStartIx:]=}" )
+        matchBCV = BCVRefRegEx.search( xrefLiveMiddle, reStartIx ) # Note that this won't find some non-capitalised books in KJB-1611, e.g., in Mark 1: 'Esa. 40.3. luke 3.4. iohn 1.23.
+        matchCV = CVRefRegEx.search( xrefLiveMiddle, reStartIx )
+        if not matchBCV and not matchCV:
+            break # neither one was found - all done here
+        if not matchBCV or (matchCV is not None and matchCV.start()<matchBCV.start()):
+            match = matchCV # process matchCV
+            xC, xV = match.groups()
+            xBBB = lastXBBB
+        else: # process matchBCV
+            match = matchBCV
+            # NOTE: This match also captures chapter ranges, e.g., it gets Lev 1:2, but also Lev 1–2
+            xB, xC, xV = match.groups()
+            if '–' in match.group(): # For a chapter range, change our search to v1
+                # print( f"                       Changed {xB} {xC}–{xV} to {xC}:1")
+                xV = '1' # (rather than thinking the second chapter of the range is the verse number)
+            xB = xB.lstrip() # For books without a book number like 1 Cor, the regex may capture an extra space before the book abbreviation
+            # assert ' ' not in xB, f"{match.groups()}" # False for '2 Kings'
+            if versionAbbreviation=='KJB-1611' and xB=='and':
+                xBBB = lastXBBB # Same as last book
+            elif versionAbbreviation=='KJB-1611' and xB in ('Chap','Cha','chap','cha'):
+                xBBB = BBB # This same book where the xref is located
+            elif versionAbbreviation == 'KJB-1611':
+                try: xBBB = myXrefTable[xB]
+                except KeyError:
+                    print( f"  {versionAbbreviation} {BBB}  '{xB}'  wasn't in the table from '{xrefOriginalMiddle}'")
+                    adjXB = ( xB # Fix KJB-1611 spellings -- what's Apoc/apoc and nnm ???
+                            .replace( '1.','1 ' ).replace( '2.','2 ' ).replace( '3.','3 ' ).replace( '4.','4 ' ) # Should BOS handle this???
+                            .replace( 'I.','1 ' )
+    
+                            .replace( 'Ie', 'Je' )
+                            .replace( 'Io', 'Jo' )
+                            )
+                    xBBB = getBBBFromOETBookName( adjXB )
+                if not xBBB:
+                    logging.critical( f"Unable to liven cross-reference from {versionAbbreviation} {refTuple} for {xBBB=} {xC=} {xV=} from {adjXB=} from {xrefOriginalMiddle=}" )
+                    # if adjXB not in ('Apoc','apoc','nnm'): halt # What are these???
+            else: # not KJB-1611
+                xBBB = getBBBFromOETBookName( xB )
+                if not xBBB:
+                    logging.critical( f"Unable to liven cross-reference from {versionAbbreviation} {refTuple} for {xBBB=} {xC=} {xV=} from {xB=} from {xrefOriginalMiddle=}" )
+            if versionAbbreviation=='KJB-1611' and not xBBB: # still
+                print( f"  {versionAbbreviation} {xBBB=} {xC=} {xV=} from {xB=} from {xrefOriginalMiddle=}" )
+        lastXBBB = xBBB
+        dPrint( 'Info', DEBUGGING_THIS_MODULE, f"Got {versionAbbreviation} {xBBB} from {refTuple} {match.groups()=} from {xoText=} {xrefLiveMiddle=}" )
+        assert xC.isdigit(), f"{match.groups()}"
+        assert xV.isdigit(), f"{match.groups()}"
+        if versionAbbreviation=='KJB-1611' and not xBBB:
+            logging.critical( f"Unable to make {versionAbbreviation} {BBB} xref: {xBBB=} {xC=} {xV=} from {xrefOriginalMiddle=}" )
+            reStartIx = match.end() # exact number of characters that we add (otherwise we get mistakes/overlaps)
+            continue
+        # Now check for a verse or chapter range and include them in our find
+        matchInner = match.group()
+        matchEnd = match.end()
+        try:
+            while xrefLiveMiddle[matchEnd] in '-–1234567890abc:': # includes en-dash for chapter ranges
+                # print( f"        Stepping past '{xrefLiveMiddle[matchEnd]}'" )
+                matchInner = f'{matchInner}{xrefLiveMiddle[matchEnd]}'
+                matchEnd += 1
+        except IndexError: # (can happen if xref inner doesn't end with a period)
+            pass # Reached end of string
+
+        if xBBB:
+            # assert int(xC) <= BibleOrgSysGlobals.loadedBibleBooksCodes.getMaxChapters( xBBB ), f"Bad xref {xBBB} {match.groups()} from {versionAbbreviation} {refTuple} {segmentType}"
+            if int(xC) > BibleOrgSysGlobals.loadedBibleBooksCodes.getMaxChapters( xBBB ):
+                logging.critical( f"Not enough chapters in {xBBB} ({BibleOrgSysGlobals.loadedBibleBooksCodes.getMaxChapters(xBBB)}) for {match.groups()} from {versionAbbreviation} {refTuple} {segmentType} {xoText}" )
+                reStartIx = match.end() # exact number of characters that we add (otherwise we get mistakes/overlaps)
+                continue
+        else:
+            dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"livenXRefField( {versionAbbreviation} {refTuple} '{segmentType}' from {xoText=} {xrefOriginalMiddle=} ) with {BBB=} {xBBB=} {lastXBBB=}" )
+            logging.critical( f"Failed to find xref book from '{xB}' from '{xrefOriginalMiddle}' in {match.groups()} for {versionAbbreviation} {segmentType} {segmentType=} {refTuple}")
+            halt
+        if versionAbbreviation == 'OET-RV': # We want to link to the section page, (not the chapter page)
+            sectionNumber = findSectionNumber( 'OET-RV', xBBB, xC, xV, state )
+            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"convertUSFMMarkerListToHtml for {versionAbbreviation} {refTuple} '{segmentType}' findSectionNumber( 'OET-RV', {xBBB} {xC}:{xV} ) returned {sectionNumber}" )
+            assert sectionNumber is not None, f"Bad OET-RV {refTuple} cross-reference: {xBBB} {xC}:{xV} from {xrefLiveMiddle=}"
+            if not TEST_MODE:
+                assert sectionNumber > 0, f"ZERO OET-RV {refTuple} cross-reference: {xBBB} {xC}:{xV} from {xrefLiveMiddle=}"
+            # print( f"       {level=} {versionAbbreviation} {refTuple} {segmentType} {pathPrefix=}")
+            adjPathPrefix = pathPrefix.replace('byC','bySec') if pathPrefix else '../bySec/'
+            assert 'bySec' in adjPathPrefix, f"{pathPrefix=} {adjPathPrefix=}"
+            inside = f'<a title="View {'' if xoText=='footnoteXT' else 'cross '}reference" href="{adjPathPrefix.replace('byC','bySec')}{xBBB}_S{sectionNumber}.htm#C{xC}V{xV}">{matchInner}</a>'
+            xrefLiveMiddle = f'''{xrefLiveMiddle[:match.start()]}{inside}{xrefLiveMiddle[matchEnd:]}'''
+        else: # not OET-RV -- link to the chapter page
+            inside = f'<a title="View {'' if xoText=='footnoteXT' else 'cross '}reference" href="{pathPrefix}{xBBB}_C{xC}.htm#C{xC}V{xV}">{matchInner}</a>'
+            xrefLiveMiddle = f'{xrefLiveMiddle[:match.start()]}{inside}{xrefLiveMiddle[matchEnd:]}'
+        reStartIx = match.start() + len(inside) # exact number of characters that we add (otherwise we get mistakes/overlaps)
+        # # NOTE: The above code can leave us pointing to a range, e.g., Deu 1:19-2:2 would leave us at the hyphen
+        # while xrefLiveMiddle[reStartIx] in ' -123456789;.,abc':
+        #     print( f"        Stepping past '{xrefLiveMiddle[reStartIx]}'" )
+        #     reStartIx += 1 # Step past extra parts (like a range) so they don't get false thought to be another valid ref
+    else:
+        logging.critical( f"Inner xref loop needed to break for {versionAbbreviation} {segmentType} {segmentType=} {refTuple}" )
+        inner_xr_loop_needed_to_break
+
+    if xoText=='footnoteXT':
+        print( f"  Returning footnoteXT {xrefLiveMiddle=} from {xrefOriginalMiddle=}" )
+    return xrefLiveMiddle
+# end of usfm.livenXRefField function
 
 
 # ROMAN_DICT = { 1000:'M', 900:'CM', 500:'D', 400:'CD', 100:'C', 90:'XC', 50:'L', 40:'XL', 10:'X', 9:'IX', 5:'V', 4:'IV', 1:'I' }
