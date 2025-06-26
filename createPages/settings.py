@@ -53,17 +53,17 @@ PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
 
-OET_VERSION_NUMBER_STRING = 'v0.41.08' # Incremented on most runs
+OET_VERSION_NUMBER_STRING = 'v0.41.11' # Incremented on most runs
 
 TEST_MODE = True # Writes website into 'Test' subfolder if True
 TEST_OT_BOOK_LIST = ['PSA','ECC'] # Books in progress
 TEST_NT_BOOK_LIST = ['MRK'] # Shortest gospel
-TEST_BOOK_LIST_CHANGED = True
+TEST_BOOK_LIST_CHANGED = False
 
 # Many of these settings are used to omit some processing so as to get a speedier conclusion for debugging
 TEST_VERSIONS_ONLY = None #['OET','OET-RV','OET-LV', 'BSB', 'TOSN','UTN'] # Also stops actual site being built
 ALL_PRODUCTION_BOOKS = not TEST_MODE # If set to False, uses the TEST book list (with many less books) for a faster test build
-CREATE_PARALLEL_VERSE_PAGES = 'FIRST' # 'FIRST','LAST', or None -- depending on debugging needs
+CREATE_PARALLEL_VERSE_PAGES = 'LAST' # 'FIRST','LAST', or None -- depending on debugging needs
 CREATE_BOOK_AND_OTHER_PAGES = True # Can be turned off for debugging
 DO_SPELL_CHECKS = True #TEST_MODE # On parallel pages
 REUSE_EXISTING_WORD_PAGES = TEST_MODE and not TEST_BOOK_LIST_CHANGED # Don't recreate word pages
@@ -71,7 +71,7 @@ ALL_TEST_REFERENCE_PAGES = False # If in TEST_MODE, make ALL word/lemma pages, o
 UPDATE_ACTUAL_SITE_WHEN_BUILT = True # The pages are initially built in a tmp folder so need to be copied to the final destination
 
 OET_RV_OT_BOOK_LIST = ['GEN','EXO','JOS','JDG','RUT','SA1','SA2','KI1','KI2',
-                       'EZR','NEH','EST','JOB','PSA','SNG','LAM',
+                       'EZR','NEH','EST','JOB','PSA','ECC','SNG','LAM',
                        'DAN','AMO','OBA','JNA','MIC','NAH','HAB','ZEP','HAG','ZEC','MAL']
 
 TEMP_BUILD_FOLDER = Path( '../buildingHtmlPages/' )

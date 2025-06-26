@@ -102,7 +102,7 @@ from html import makeTop, makeViewNavListParagraph, makeBottom, checkHtml
 from spellCheckEnglish import printSpellCheckSummary
 
 
-LAST_MODIFIED_DATE = '2025-05-24' # by RJH
+LAST_MODIFIED_DATE = '2025-06-24' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData (OBD) Create Site Pages"
 PROGRAM_VERSION = '0.99'
@@ -276,7 +276,7 @@ def _createSitePages() -> bool:
                 with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
                     indexHtmlFile.write( f'''{top}{indexHtml}\n<p class="note"><a href="details.htm">See copyright details.</p>\n{makeBottom( 1, 'site', state )}''' )
                 vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"    {len(indexHtml):,} characters written to {filepath}" )
-            else:
+            else: # these versions should have the full pages
                 if versionAbbreviation == 'TTN': continue # Not actually a Bible version
                 # vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nDoing discovery for {thisBible.abbreviation} ({thisBible.name})…" )
                 # thisBible.discover() # Now that all required books are loaded
@@ -334,7 +334,7 @@ def _createSitePages() -> bool:
 
     state.preloadedBibles = None # Reduce memory use now
 
-    if DO_SPELL_CHECKS:
+    if CREATE_PARALLEL_VERSE_PAGES and DO_SPELL_CHECKS:
         printSpellCheckSummary( state ) # Collected while making parallel verse pages
 
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\n{TEMP_BUILD_FOLDER} is {_getFolderSize(TEMP_BUILD_FOLDER)//1_000_000:,} MB" )

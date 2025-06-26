@@ -109,6 +109,10 @@ p.s4 { margin-top:0; margin-bottom:0; float:right; width:35%; border:1px dotted 
 p.mr { margin-top:0; margin-bottom:0; font-size:1.1em; text-align: center; font-style:italic; } /* Major section reference range */
 p.sr { margin-top:0; margin-bottom:0; font-size:0.9em; text-align: center; font-weight:bold; } /* Section reference range */
 p.r { margin-top:0; margin-bottom:0; font-size:0.75em; text-align: center; font-style:italic; } /* Parallel references */
+p.Full_kingdom { color:blue; }
+p.Northern_kingdom { color:purple; }
+p.Southern_kingdom { color:green; }
+p.Both_kingdoms { color:orange; }
 
 /* Chapters USFM */
 span.c { font-size:1.1em; color:green; }
