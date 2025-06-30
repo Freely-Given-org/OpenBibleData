@@ -594,6 +594,9 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
         nextXrFnLetter = 'b'
         for srBBB,srCVpart in zip( crossReferencesBBBList, crossReferencesCVList, strict=True ):
             dPrint( 'Info', DEBUGGING_THIS_MODULE, f"{BBB} {startC}:{startV} {srBBB=} {srCVpart=}")
+            if srBBB not in thisBible: # don't force that book to be loaded
+                continue
+
             srTidyBbb = getOETTidyBBB( srBBB, titleCase=True, allowFourChars=True )
 
             # TODO: Most of this next block of code should really be in BibleOrgSys

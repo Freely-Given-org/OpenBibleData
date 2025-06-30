@@ -103,7 +103,7 @@ from OETHandlers import getOETTidyBBB, getOETBookName, livenOETWordLinks, getHeb
 from spellCheckEnglish import spellCheckAndMarkHTMLText
 
 
-LAST_MODIFIED_DATE = '2025-06-01' # by RJH
+LAST_MODIFIED_DATE = '2025-06-29' # by RJH
 SHORT_PROGRAM_NAME = "createParallelVersePages"
 PROGRAM_NAME = "OpenBibleData createParallelVersePages functions"
 PROGRAM_VERSION = '0.98'
@@ -427,7 +427,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                 assert checkHtml( f"OET-LV parallel AAA for {parRef}", textHtml, segmentOnly=True ); assert checkHtml( f"OET-LV parallel BBB for {parRef}", footnoteFreeTextHtml, segmentOnly=True ); assert checkHtml( f"OET-LV parallel CCC for {parRef}", footnotesHtml, segmentOnly=True )
                                 # assert textHtml.count('<span class="ul">_</span>HNcbsa') < 2, f'''Here2 ({textHtml.count('<span class="ul">_</span>HNcbsa')}) {textHtml=}'''
                                 # if BBB=='MRK' and C=='7' and V=='16': print( f"DDD {parRef} {versionAbbreviation} {textHtml=}" )
-                            elif versionAbbreviation in ('ULT','UST','NET','BSB','BLB','OEB','FBV','BBE','Moff','JPS','ASV','DRA','YLT','Drby','Wbstr'):
+                            elif versionAbbreviation in ('ULT','UST','NET','BSB','BLB','OEB','FBV','BBE','Moff','JPS','ASV','DRA','YLT','SLT','Drby','Wbstr'):
                                 if DO_SPELL_CHECKS:
                                     textHtml = spellCheckAndMarkHTMLText( versionAbbreviation, parRef, textHtml, textHtml, state ) # Puts spans around mispellings
                             elif versionAbbreviation in ('WEBBE','WEB'): # assuming WEB/WEBBE comes BEFORE WMB/WMBBB

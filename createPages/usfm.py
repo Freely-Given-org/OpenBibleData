@@ -81,6 +81,8 @@ import re
 import unicodedata
 import logging
 
+import sys
+sys.path.append( '../../BibleOrgSys/' )
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, dPrint, vPrint, rreplace
 from BibleOrgSys.Internals.InternalBibleInternals import getLeadingInt
@@ -91,13 +93,14 @@ from html import checkHtml
 from OETHandlers import getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2025-06-24' # by RJH
+LAST_MODIFIED_DATE = '2025-06-30' # by RJH
 SHORT_PROGRAM_NAME = "usfm"
 PROGRAM_NAME = "OpenBibleData USFM to HTML functions"
-PROGRAM_VERSION = '0.91'
+PROGRAM_VERSION = '0.92'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
+
 
 BACKSLASH = '\\'
 NEWLINE = '\n'
@@ -110,8 +113,6 @@ MAX_NET_FOOTNOTE_CHARS = 18_000 # 17,145 in NET ECC
 
 spClassDict = {'The groom':'groom', 'The bride':'bride', 'Yerushalem’s young women':'women','Bride’s older brothers':'brothers'}
 
-BCVRefRegEx = re.compile( '([1234I]?[ .]?[A-Za-z][a-z]{0,12})\\.? ?([1-9][0-9]{0,2})[:.–]([1-9][0-9]{0,2})' ) # Can have en-dash for chapter range
-CVRefRegEx = re.compile( '([1-9][0-9]{0,2})[:.]([1-9][0-9]{0,2})' )
 XRefRegEx = re.compile( '\\\\x .+?\\\\x\\*' )
 spanClassRegEx = re.compile( '<span class=".+?">' )
 def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tuple, segmentType:str, contextList:list, markerList:list, basicOnly:bool, state:State ) -> str:
@@ -690,7 +691,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
             if inTableRow:
                 html = f'{html}</tr>\n'
                 inTableRow = None
-            print( f"{versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} TR {rest=}" )
+            # print( f"{versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} TR {rest=}" )
             if rest and rest.strip():
                 html = f'{html}<tr>{convertUSFMCharacterFormatting( versionAbbreviation, refTuple, segmentType, rest, basicOnly, state )}'
             else:
@@ -968,10 +969,9 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                             fnoteMiddle = f'{fnoteMiddle[:internalStartIx]}{span}{livenedFootnoteXref}' # {fnoteMiddle[internalStartIx+len(fMarker)+2:]}
                         else: # Only go up to the next field
                             fNoteXTrest, fNoteContinuation = fNoteXTrest[:fNoteXTrestEndIx], fNoteXTrest[fNoteXTrestEndIx:]
-                            print( f"{fNoteXTrest=} {fNoteContinuation=}" )
+                            # print( f"{fNoteXTrest=} {fNoteContinuation=}" )
                         livenedFootnoteXref = livenXRefField( versionAbbreviation, refTuple, segmentType, pathPrefix, 'footnoteXT', fNoteXTrest, state )
                         fnoteMiddle = f'{fnoteMiddle[:internalStartIx]}{span}{livenedFootnoteXref}{fNoteContinuation}'
-                        print( f"XT now {fnoteMiddle=} with {fNoteXTrestEndIx=}" )
                     else: # it's a regular footnote format field (not an xt field inside a footnote)
                         fnoteMiddle = f'{fnoteMiddle[:internalStartIx]}{span}{fnoteMiddle[internalStartIx+len(fMarker)+2:]}'
                     inSpan = fMarker
@@ -988,7 +988,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
             if inSpan: # at end
                 fnoteMiddle = f'{fnoteMiddle}</span>'
             assert '\\' not in fnoteMiddle, f"{fnoteMiddle[fnoteMiddle.index(f'{BACKSLASH}x')-10:fnoteMiddle.index(f'{BACKSLASH}x')+12]}"
-        dPrint( 'Normal' if '"xt"' in fnoteMiddle else 'Verbose', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} {segmentType} {refTuple} {fnoteMiddle=}" )
+        dPrint( 'Info' if '"xt"' in fnoteMiddle else 'Verbose', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} {segmentType} {refTuple} {fnoteMiddle=}" )
         if versionAbbreviation == 'OET-LV': # then we don't want equals or underlines in the footnote to get converted into spans later
             fnoteMiddle = fnoteMiddle.replace('.', '--fnPERIOD--').replace(':', '--fnCOLON--') # So we protect them -- gets fixed in do_OET_LV_HTMLcustomisations() in html.py
         assert '<br>' not in fnoteMiddle, f"{versionAbbreviation} {segmentType} {refTuple} {fnoteMiddle=}"
@@ -1102,7 +1102,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
         xrefLiveMiddle = livenXRefField( versionAbbreviation, refTuple, segmentType, pathPrefix, xoText, xrefLiveMiddle, state )
 
         # Now create the caller and the actual xref
-        xrefCaller = f'<span class="xrCaller">[<a  title="See also {xrefOriginalMiddle}" href="#xr{crossReferencesCount}">ref</a>]</span>' # was †
+        xrefCaller = f'<span class="xrCaller">[<a title="See also {xrefOriginalMiddle}" href="#xr{crossReferencesCount}">ref</a>]</span>' # was †
         xrefRef = ''
         if xoText:
             # TODO: The following code is untidy, marking b, c, d, in bold (above), but including a in the first link (which returns to the caller)
@@ -1597,9 +1597,10 @@ def livenIORs( versionAbbreviation:str, refTuple:tuple, segmentType:str, ioLineH
 # end of usfm.livenIORs function
 
 
-myXrefTable = {
+myKJB1611XrefTable = {
     'Actes':'ACT', 'Acts':'ACT', 'Act':'ACT', 'actes':'ACT', 'acts':'ACT', 'act':'ACT',
     'Amos':'AMO', 'amos':'AMO',
+    'Apoc':'REV','apoc':'REV',
     '1. Chron':'CH1', '1.Chron':'CH1','1.chron':'CH1', '1 Chron':'CH1', '1.Chro':'CH1', '1.chro':'CH1', '1 chron':'CH1',
     '2.Chron':'CH2', '2.Chr':'CH2','2.chr':'CH2',
     '1.Corin':'CO1','1.corin':'CO1','1.Cor':'CO1','1.cor':'CO1',
@@ -1619,18 +1620,18 @@ myXrefTable = {
     'Hagge':'HAG', 'Agge':'HAG',
     'Hebr':'HEB', 'hebr':'HEB', 'Heb':'HEB', 'heb':'HEB',
     'Hose':'HOS', 'Hos':'HOS','hos':'HOS', 'Ose':'HOS',
-    'Isai':'ISA','isai':'ISA', 'Esai':'ISA', 'Esa':'ISA','Esay':'ISA','esay':'ISA','Isa':'ISA','isa':'ISA',
+    'Isai':'ISA','isai':'ISA', 'Esai':'ISA', 'Esa':'ISA','Esay':'ISA','esay':'ISA','esai':'ISA','Isa':'ISA','isa':'ISA',
     'Iames':'JAM', 'Iam':'JAM', 'iam':'JAM',
-    'Iude':'JDE',
+    'Iude':'JDE','iude':'JDE',
     'Iudg':'JDG',
     'iudith':'JDT',
     'Ier':'JER','ier':'JER','Ierem':'JER', 'Iere':'JER', 'iere':'JER',
     'Ioh':'JHN','ioh':'JHN','Iohn':'JHN','iohn':'JHN',
-    '1.Iohn':'JN1','1.iohn':'JN1', 'I.Iohn':'JN1', '1.Ioh':'JN1',
+    '1.Iohn':'JN1','1.iohn':'JN1', 'I.Iohn':'JN1', '1.Ioh':'JN1','1.ioh':'JN1',
     'Iob':'JOB','iob':'JOB',
     'Ioel':'JOL',
     'Iosh':'JOS','iosh':'JOS','Ios':'JOS','Iosu':'JOS',
-    '1.Kings':'KI1', '1.King':'KI1', '1.Kin':'KI1', '1.king':'KI1', '1 King':'KI1',
+    '1.Kings':'KI1', '1.King':'KI1', '1.Kin':'KI1','1.kin':'KI1',  '1.king':'KI1', '1 King':'KI1',
             '1.Reg':'KI1',
     '2.Kings':'KI2', '2.King':'KI2', '2.Kin':'KI2',
     'Lam':'LAM', 'lam':'LAM',
@@ -1645,7 +1646,7 @@ myXrefTable = {
     'Marke':'MRK','marke':'MRK', 'Mark':'MRK','mark':'MRK', 'Marc':'MRK', 'Mar':'MRK','mar':'MRK',
     'naum':'NAH',
     'Nehem':'NEH', 'nehem':'NEH', 'Nehe':'NEH', 'nehe':'NEH',
-    'Numb':'NUM','numb':'NUM', 'Num':'NUM', 'num':'NUM',
+    'Numb':'NUM','numb':'NUM', 'Num':'NUM', 'num':'NUM', 'nnm':'NUM',
     '1.Pet':'PE1', '1.pet':'PE1',
     '2.Pet':'PE2','2.pet':'PE2',
     'Phil':'PHP', 'phil':'PHP',
@@ -1667,13 +1668,17 @@ myXrefTable = {
     'Wisd':'WIS', 'Wis':'WIS', 'wisd':'WIS', 'wis':'WIS',
     'Zach':'ZEC', 'Zac':'ZEC',
     }
+BCVRefRegEx = re.compile( '([1234I]?[ .]?[A-Za-z][a-z]{0,12})\\.? ?([1-9][0-9]{0,2})[:.–] ?([1-9][0-9]{0,2})' ) # Can have en-dash for chapter range
+BVRefRegEx = re.compile( '([1234I]?[ .]?[A-Za-z][a-z]{0,12})\\.? ?([1-9][0-9]{0,2})' ) # For single-chapter book or for whole chapter
+CVRefRegEx = re.compile( '([1-9][0-9]{0,2})[:.]([1-9][0-9]{0,2})' )
 def livenXRefField( versionAbbreviation:str, refTuple:tuple, segmentType:str, pathPrefix:str, xoText:str, xrefOriginalMiddle:str, state:State ) -> str:
     """
     Given the middle of a cross-reference or the xt field from a footnote,
         return the text but with the xref(s) in it livened.
+
+    State parameter is only used for the OET-RV.
     """
     from createSectionPages import findSectionNumber
-    DEBUGGING_THIS_MODULE = 99 if xoText=='footnoteXT' else False
     fnPrint( DEBUGGING_THIS_MODULE, f"livenXRefField( {versionAbbreviation}, {refTuple}, {segmentType}, '{pathPrefix}', {xoText=}, {xrefOriginalMiddle=} )" )
 
     # TODO: The following code does not work for one chapter books (Jude 5), additional Vs (Mrk 3:4,5), or additional CVs (Mrk 3:4; 4:5)
@@ -1681,34 +1686,56 @@ def livenXRefField( versionAbbreviation:str, refTuple:tuple, segmentType:str, pa
     BBB = refTuple[0] # Compulsory
     xrefLiveMiddle = xrefOriginalMiddle
 
+    if versionAbbreviation == 'RV':
+        xrefLiveMiddle = xrefLiveMiddle \
+                            .replace( 'xxxix.', '39.' ).replace( 'xxxviii.', '38.' ).replace( 'xxxvii.', '37.' ).replace( 'xxxvi.', '36.' ).replace( 'xxxv.', '35.' ).replace( 'xxxiv.', '34.' ).replace( 'xxxiii.', '33.' ).replace( 'xxxii.', '32.' ).replace( 'xxxi.', '31.' ).replace( 'xxx.', '30.' ) \
+                            .replace( 'xxix.', '29.').replace( 'xxviii.', '28.').replace( 'xxvii.', '27.').replace( 'xxvi.', '26.').replace( 'xxv.', '25.').replace( 'xxiv.', '24.').replace( 'xxiii.', '23.').replace( 'xxii.', '22.').replace( 'xxi.', '21.').replace( 'xx.', '20.') \
+                            .replace( 'xix.', '19.' ).replace( 'xviii.', '18.' ).replace( 'xvii.', '17.' ).replace( 'xvi.', '16.' ).replace( 'xv.', '15.' ).replace( 'xiv.', '14.' ).replace( 'xiii.', '13.' ).replace( 'xii.', '12.' ).replace( 'xi.', '11.' ).replace( 'x.', '10.' ) \
+                            .replace( 'ix.', '9.' ).replace( 'viii.', '8.' ).replace( 'vii.', '7.' ).replace( 'vi.', '6.' ).replace( 'iv.', '4.' ).replace( 'v.', '5.' ).replace( 'iii.', '3.' ).replace( 'ii.', '2.' ).replace( 'i.', '1.' )
+    elif versionAbbreviation == 'KJB-1611':
+        xrefLiveMiddle = xrefLiveMiddle.replace( 'A&s', 'Acts' )
+
     reStartIx, lastXBBB = 0, BBB
     for _safetyCount2 in range( 999 if segmentType=='book' else 99 ):
         if reStartIx>0: dPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Now searching {refTuple} from {xrefLiveMiddle[reStartIx:]=}" )
-        matchBCV = BCVRefRegEx.search( xrefLiveMiddle, reStartIx ) # Note that this won't find some non-capitalised books in KJB-1611, e.g., in Mark 1: 'Esa. 40.3. luke 3.4. iohn 1.23.
+        matchBCV = BCVRefRegEx.search( xrefLiveMiddle, reStartIx )
+        matchBV = BVRefRegEx.search( xrefLiveMiddle, reStartIx )
         matchCV = CVRefRegEx.search( xrefLiveMiddle, reStartIx )
-        if not matchBCV and not matchCV:
+        if not matchBCV and not matchBV and not matchCV:
             break # neither one was found - all done here
-        if not matchBCV or (matchCV is not None and matchCV.start()<matchBCV.start()):
+        try: indexBCV = matchBCV.start()
+        except AttributeError: indexBCV = 999_999
+        try: indexBV = matchBV.start()
+        except AttributeError: indexBV = 999_999
+        try: indexCV = matchCV.start()
+        except AttributeError: indexCV = 999_999
+        firstIndex = min( indexBCV, indexBV, indexCV )
+        # dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} {refTuple} {xrefLiveMiddle=} {firstIndex=} {indexBCV=} {indexBV=} {indexCV=}" )
+        assert firstIndex != 999_999
+
+        xBBB = None
+        if firstIndex == indexCV: # process matchCV
             match = matchCV # process matchCV
             xC, xV = match.groups()
             xBBB = lastXBBB
-        else: # process matchBCV
-            match = matchBCV
-            # NOTE: This match also captures chapter ranges, e.g., it gets Lev 1:2, but also Lev 1–2
-            xB, xC, xV = match.groups()
-            if '–' in match.group(): # For a chapter range, change our search to v1
-                # print( f"                       Changed {xB} {xC}–{xV} to {xC}:1")
-                xV = '1' # (rather than thinking the second chapter of the range is the verse number)
-            xB = xB.lstrip() # For books without a book number like 1 Cor, the regex may capture an extra space before the book abbreviation
-            # assert ' ' not in xB, f"{match.groups()}" # False for '2 Kings'
-            if versionAbbreviation=='KJB-1611' and xB=='and':
+        else: # either matchBCV or matchCV
+            # See if we can find a bookcode
+            match = matchBCV if firstIndex==indexBCV else matchBV
+            xB = match.group( 1 ).lstrip() # For books without a book number like 1 Cor, the BCV regex may capture an extra space before the book abbreviation
+            if xB == 'Songs':
+                xBBB = 'SNG'
+            elif versionAbbreviation=='KJB-1611' and xB=='and':
                 xBBB = lastXBBB # Same as last book
             elif versionAbbreviation=='KJB-1611' and xB in ('Chap','Cha','chap','cha'):
                 xBBB = BBB # This same book where the xref is located
+            # elif versionAbbreviation=='KJB-1611' and xB in ('Verse','Vers'):
+            #     xBBB = BBB # This same book where the xref is located
+            #     print( f"{refTuple=} {BBB} {xB} {xC}:{xV} {firstIndex=} {indexBCV=} {indexBV=} {indexCV=}" )
+            #     halt
             elif versionAbbreviation == 'KJB-1611':
-                try: xBBB = myXrefTable[xB]
+                try: xBBB = myKJB1611XrefTable[xB]
                 except KeyError:
-                    print( f"  {versionAbbreviation} {BBB}  '{xB}'  wasn't in the table from '{xrefOriginalMiddle}'")
+                    # dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  {versionAbbreviation} {BBB}  '{xB}'  wasn't in the table from '{xrefOriginalMiddle}'")
                     adjXB = ( xB # Fix KJB-1611 spellings -- what's Apoc/apoc and nnm ???
                             .replace( '1.','1 ' ).replace( '2.','2 ' ).replace( '3.','3 ' ).replace( '4.','4 ' ) # Should BOS handle this???
                             .replace( 'I.','1 ' )
@@ -1718,20 +1745,67 @@ def livenXRefField( versionAbbreviation:str, refTuple:tuple, segmentType:str, pa
                             )
                     xBBB = getBBBFromOETBookName( adjXB )
                 if not xBBB:
-                    logging.critical( f"Unable to liven cross-reference from {versionAbbreviation} {refTuple} for {xBBB=} {xC=} {xV=} from {adjXB=} from {xrefOriginalMiddle=}" )
-                    # if adjXB not in ('Apoc','apoc','nnm'): halt # What are these???
+                    logging.critical( f"Unable to liven cross-reference from {versionAbbreviation} {refTuple} for {xBBB=} from {xrefLiveMiddle=} from {xoText=} {xrefOriginalMiddle=}" )
             else: # not KJB-1611
                 xBBB = getBBBFromOETBookName( xB )
+            # We can leave this block of code without being successful finding xBBB -- it's checked below
+        if firstIndex==indexBV and firstIndex!=indexBCV: # process matchBV (if it's not also a matchBCV)
+            # dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} {refTuple} {xoText=} {xrefLiveMiddle=} {matchBV.groups()=}" )
+            xCorV = match.group( 2 )
+            if versionAbbreviation=='KJB-1611' and xB in ('Verse','Vers','ver','and'):
+                xBBB, xV = BBB, xCorV # This same book where the xref is located
+                try: xC = refTuple[1]
+                except IndexError: # no chapter number given there -- use the xoText instead
+                    xC = xoText.split( ':' )[0]
+                dPrint( 'Info', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} {refTuple=} {xB=} {BBB} {xC}:{xV}" )
+                assert xC.isdigit(), f"{versionAbbreviation} {refTuple=} {xB=} {BBB} {xC}:{xV} from {xoText=} {xrefOriginalMiddle=}"
+            else: # Could be a single-chapter book
+                # dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Possible single-chapter book: {versionAbbreviation} {refTuple} {xB=}" )
                 if not xBBB:
-                    logging.critical( f"Unable to liven cross-reference from {versionAbbreviation} {refTuple} for {xBBB=} {xC=} {xV=} from {xB=} from {xrefOriginalMiddle=}" )
-            if versionAbbreviation=='KJB-1611' and not xBBB: # still
-                print( f"  {versionAbbreviation} {xBBB=} {xC=} {xV=} from {xB=} from {xrefOriginalMiddle=}" )
+                    logging.critical( f"Unable to liven cross-reference from {versionAbbreviation} {refTuple} for {xBBB=} from {xB=} from {xrefLiveMiddle=} from {xoText=} {xrefOriginalMiddle=}" )
+                try: singleChapterFlag = BibleOrgSysGlobals.loadedBibleBooksCodes.isSingleChapterBook( xBBB )
+                except KeyError: singleChapterFlag = True # default to True
+                if singleChapterFlag:
+                    xC, xV = '1', xCorV
+                else: # it could be a chapter reference (so we link to the first verse only)
+                    # dPrint( 'Info', DEBUGGING_THIS_MODULE, f"Possible chapter reference: {versionAbbreviation} {refTuple} {xB=}" )
+                    xC, xV = xCorV, '1'
+        elif firstIndex != indexCV: # process matchBCV
+            assert firstIndex == indexBCV
+            # match = matchBCV
+            # NOTE: This match also captures chapter ranges, e.g., it gets Lev 1:2, but also Lev 1–2
+            xC, xV = match.group( 2 ), match.group( 3 )
+            if '–' in match.group(): # For a chapter range, change our search to v1
+                # print( f"                       Changed {xB} {xC}–{xV} to {xC}:1")
+                xV = '1' # (rather than thinking the second chapter of the range is the verse number)
+            # elif versionAbbreviation == 'KJB-1611':
+            #     try: xBBB = myKJB1611XrefTable[xB]
+            #     except KeyError:
+            #         dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  {versionAbbreviation} {BBB}  '{xB}'  wasn't in the table from '{xrefOriginalMiddle}'")
+            #         adjXB = ( xB # Fix KJB-1611 spellings -- what's Apoc/apoc and nnm ???
+            #                 .replace( '1.','1 ' ).replace( '2.','2 ' ).replace( '3.','3 ' ).replace( '4.','4 ' ) # Should BOS handle this???
+            #                 .replace( 'I.','1 ' )
+    
+            #                 .replace( 'Ie', 'Je' )
+            #                 .replace( 'Io', 'Jo' )
+            #                 )
+            #         xBBB = getBBBFromOETBookName( adjXB )
+            #     if not xBBB:
+            #         logging.critical( f"Unable to liven cross-reference from {versionAbbreviation} {refTuple} for {xBBB=} {xC=} {xV=} from {adjXB=} from {xrefOriginalMiddle=}" )
+            #         # if adjXB not in ('Apoc','apoc','nnm'): halt # What are these???
+            # else: # not KJB-1611
+            #     xBBB = getBBBFromOETBookName( xB )
+            #     if not xBBB:
+            #         logging.critical( f"Unable to liven cross-reference from {versionAbbreviation} {refTuple} for {xBBB=} {xC=} {xV=} from {xB=} from {xrefOriginalMiddle=}" )
+            # # if versionAbbreviation=='KJB-1611' and not xBBB: # still
+            # #     print( f"  {versionAbbreviation} {xBBB=} {xC=} {xV=} from {xB=} from {xrefOriginalMiddle=}" )
+        assert xBBB, f"{versionAbbreviation} {refTuple} from {xB=} from {xrefOriginalMiddle=}"
         lastXBBB = xBBB
         dPrint( 'Info', DEBUGGING_THIS_MODULE, f"Got {versionAbbreviation} {xBBB} from {refTuple} {match.groups()=} from {xoText=} {xrefLiveMiddle=}" )
-        assert xC.isdigit(), f"{match.groups()}"
-        assert xV.isdigit(), f"{match.groups()}"
+        assert xC.isdigit(), f"{versionAbbreviation} {refTuple} {xC=} {match.groups()}"
+        assert xV.isdigit(), f"{versionAbbreviation} {refTuple} {xV=} {match.groups()}"
         if versionAbbreviation=='KJB-1611' and not xBBB:
-            logging.critical( f"Unable to make {versionAbbreviation} {BBB} xref: {xBBB=} {xC=} {xV=} from {xrefOriginalMiddle=}" )
+            logging.critical( f"Unable to make {versionAbbreviation} {BBB} xref: {xBBB=} {xC=} {xV=} from {xrefLiveMiddle=} from {xoText=} {xrefOriginalMiddle=}" )
             reStartIx = match.end() # exact number of characters that we add (otherwise we get mistakes/overlaps)
             continue
         # Now check for a verse or chapter range and include them in our find
@@ -1754,7 +1828,6 @@ def livenXRefField( versionAbbreviation:str, refTuple:tuple, segmentType:str, pa
         else:
             dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"livenXRefField( {versionAbbreviation} {refTuple} '{segmentType}' from {xoText=} {xrefOriginalMiddle=} ) with {BBB=} {xBBB=} {lastXBBB=}" )
             logging.critical( f"Failed to find xref book from '{xB}' from '{xrefOriginalMiddle}' in {match.groups()} for {versionAbbreviation} {segmentType} {segmentType=} {refTuple}")
-            halt
         if versionAbbreviation == 'OET-RV': # We want to link to the section page, (not the chapter page)
             sectionNumber = findSectionNumber( 'OET-RV', xBBB, xC, xV, state )
             dPrint( 'Info', DEBUGGING_THIS_MODULE, f"convertUSFMMarkerListToHtml for {versionAbbreviation} {refTuple} '{segmentType}' findSectionNumber( 'OET-RV', {xBBB} {xC}:{xV} ) returned {sectionNumber}" )
@@ -1778,8 +1851,6 @@ def livenXRefField( versionAbbreviation:str, refTuple:tuple, segmentType:str, pa
         logging.critical( f"Inner xref loop needed to break for {versionAbbreviation} {segmentType} {segmentType=} {refTuple}" )
         inner_xr_loop_needed_to_break
 
-    if xoText=='footnoteXT':
-        print( f"  Returning footnoteXT {xrefLiveMiddle=} from {xrefOriginalMiddle=}" )
     return xrefLiveMiddle
 # end of usfm.livenXRefField function
 
@@ -1813,7 +1884,7 @@ def briefDemo() -> None:
     BibleOrgSysGlobals.introduceProgram( __name__, PROGRAM_NAME_VERSION, LAST_MODIFIED_DATE )
 
     # Demo the usfm object
-    pass
+
 # end of usfm.briefDemo
 
 def fullDemo() -> None:
@@ -1824,6 +1895,13 @@ def fullDemo() -> None:
 
     # Demo the usfm object
     pass
+
+    # Demo the cross-references
+    state = State()
+    for testField in ( 'Exod. 17.5 and 20:9 &c.', 'Verse. 7', 'Verse.7' ):
+        print( f"\n{testField=}" )
+        result = livenXRefField( 'KJB-1611', ('GEN','1','1'), '', '', '1:1', testField, state )
+        print( f"  {result=}" )
 # end of usfm.fullDemo
 
 if __name__ == '__main__':

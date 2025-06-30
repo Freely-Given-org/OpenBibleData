@@ -265,11 +265,11 @@ def createOETSectionPages( level:int, folder:Path, rvBible:ESFMBible, lvBible:ES
                 assert endV == '?'
                 # numExtrasSkipped += 1
                 continue
-            if BBB=='KI2' and n==5:
-                print( f"{BBB} S{n}")
-                for entry in rvVerseEntryList:
-                    print( f"   {entry}")
-                # halt
+            # if BBB=='KI2' and n==5:
+            #     print( f"{BBB} S{n}")
+            #     for entry in rvVerseEntryList:
+            #         print( f"   {entry}")
+            #     # halt
             # if 'Psalm' in sectionName or 'Songs' in sectionName:
             #     print( f"OET {sectionName=}" ); halt
             # n2 = n1 - numExtrasSkipped
@@ -643,7 +643,7 @@ def findSectionNumber( versionAbbreviation:str, refBBB:str, refC:str, refV:str, 
     intRefV = getLeadingInt( refV )
 
     for n,startC,startV,endC,endV,_sectionName,reasonName,_contextList,_verseEntryList,_filename in state.sectionsLists[versionAbbreviation][refBBB]:
-        dPrint( 'Info', DEBUGGING_THIS_MODULE, f"\nLOOP {n} finding {refBBB} {refC}:{refV} in {startC}:{startV}-{endC}:{endV} {_sectionName=},{reasonName=},_contextList,_verseEntryList,{_filename}" )
+        dPrint( 'Info', DEBUGGING_THIS_MODULE, f"\nLOOP {n} finding {versionAbbreviation} {refBBB} {refC}:{refV} in {startC}:{startV}-{endC}:{endV} {_sectionName=},{reasonName=},_contextList,_verseEntryList,{_filename}" )
         if reasonName.startswith( 'Alternate ' ): continue # ignore these ones
 
         # dPrint( 'Info', DEBUGGING_THIS_MODULE, f"  findSectionNumber for {versionAbbreviation} {refBBB} {refC}:{refV} got {state.sectionsLists[versionAbbreviation][refBBB][n]}")

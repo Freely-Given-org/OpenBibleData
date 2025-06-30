@@ -31,6 +31,7 @@ CHANGELOG:
     2024-11-01 First attempt
     2024-11-09 Added some headings
     2025-02-03 Accept and process lemma page links
+    2025-06-27 Fix bug where we were forcing the load of Bible books where not wanted
 """
 from gettext import gettext as _
 from pathlib import Path
@@ -51,7 +52,7 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
 from OETHandlers import livenOETWordLinks, getOETTidyBBB, getOETBookName, getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2025-05-25' # by RJH
+LAST_MODIFIED_DATE = '2025-06-27' # by RJH
 SHORT_PROGRAM_NAME = "createTopicPages"
 PROGRAM_NAME = "OpenBibleData createTopicPages functions"
 PROGRAM_VERSION = '0.27'
@@ -203,20 +204,27 @@ def createTopicPage( level:int, folder:Path, filename:str, topic:str, refs:list[
 <p class="lemmaLink"> </p>''' ) # Second one is to keep the number of columns matched - put a space in so checkHTML accepts it
         else: # We'll assume it's a scripture reference
             BBB, refRest = ref.split( '_' ) # This split will fail if it's not a valid scripture reference
+            # if BBB not in rvBible or BBB not in lvBible:
+            #     continue # Don't force that book to be loaded
+
             try: C, Vs = refRest.split( ':' )
             except ValueError:
                 assert refRest.isdigit()
                 C, Vs = refRest, None
             # print( f"    {rr} {topic} {ref=} {BBB=} {refRest=} {C=} {Vs=}")
             if Vs is None: # then it's an entire chapter (no verses specified)
-                rvVerseEntryList, rvContextList = rvBible.getContextVerseData( (BBB,C) )
+                if BBB in rvBible: # TODO: Why is RV handled differently here than LV ???
+                    rvVerseEntryList, rvContextList = rvBible.getContextVerseData( (BBB,C) )
+                else: rvVerseEntryList, rvContextList = InternalBibleEntryList(), []
                 try: lvVerseEntryList, lvContextList = lvBible.getContextVerseData( (BBB,C) )
                 except TypeError: # Book appears to be not available
                     assert TEST_MODE
                     lvVerseEntryList, lvContextList = InternalBibleEntryList(), []
             elif '-' in Vs: # then it's a verse range
                 startV, endV = Vs.split( '-' )
-                rvVerseEntryList, rvContextList = rvBible.getContextVerseDataRange( (BBB,C,startV), (BBB,C,endV) )
+                if BBB in rvBible: # TODO: Why is RV handled differently here than LV ???
+                    rvVerseEntryList, rvContextList = rvBible.getContextVerseDataRange( (BBB,C,startV), (BBB,C,endV) )
+                else: rvVerseEntryList, rvContextList = InternalBibleEntryList(), []
                 try: lvVerseEntryList, lvContextList = lvBible.getContextVerseDataRange( (BBB,C,startV), (BBB,C,endV) )
                 except TypeError: # Book appears to be not available
                     assert TEST_MODE
@@ -225,7 +233,9 @@ def createTopicPage( level:int, folder:Path, filename:str, topic:str, refs:list[
                 not_written_yet
             else: # assume it's a single verse
                 assert Vs and Vs.isdigit()
-                rvVerseEntryList, rvContextList = rvBible.getContextVerseData( (BBB,C,Vs) )
+                if BBB in rvBible: # TODO: Why is RV handled differently here than LV ???
+                    rvVerseEntryList, rvContextList = rvBible.getContextVerseData( (BBB,C,Vs) )
+                else: rvVerseEntryList, rvContextList = InternalBibleEntryList(), []
                 try: lvVerseEntryList, lvContextList = lvBible.getContextVerseData( (BBB,C,Vs) )
                 except TypeError: # Book appears to be not available
                     assert TEST_MODE
@@ -233,7 +243,8 @@ def createTopicPage( level:int, folder:Path, filename:str, topic:str, refs:list[
                 startV = Vs # Used to build the HTML anchor below
             # print( f"{rvVerseEntryList=}" )
             # print( f"{lvVerseEntryList=}" )
-            rvVerseEntryList = livenOETWordLinks( level, rvBible, BBB, rvVerseEntryList, state )
+            if BBB in rvBible: # TODO: Why is RV handled differently here than LV ???
+                rvVerseEntryList = livenOETWordLinks( level, rvBible, BBB, rvVerseEntryList, state )
             try: lvVerseEntryList = livenOETWordLinks( level, lvBible, BBB, lvVerseEntryList, state )
             except KeyError: # Missing book
                 assert TEST_MODE

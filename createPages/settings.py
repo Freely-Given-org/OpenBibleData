@@ -37,6 +37,7 @@ CHANGELOG:
     2024-09-23 Change OET OT book order
     2024-10-24 Change WEB and WMB to British spelling WEBBE and WMBB
     2024-11-01 Added topics pages
+    2025-06-29 Added SLT
 """
 from pathlib import Path
 
@@ -45,7 +46,7 @@ from BibleOrgSys.BibleOrgSysGlobals import dPrint, fnPrint
 from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39
 
 
-LAST_MODIFIED_DATE = '2025-06-17' # by RJH
+LAST_MODIFIED_DATE = '2025-06-29' # by RJH
 SHORT_PROGRAM_NAME = "settings"
 PROGRAM_NAME = "OpenBibleData (OBD) Settings"
 PROGRAM_VERSION = '0.98'
@@ -53,7 +54,7 @@ PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
 
-OET_VERSION_NUMBER_STRING = 'v0.41.11' # Incremented on most runs
+OET_VERSION_NUMBER_STRING = 'v0.41.20' # Incremented on most runs
 
 TEST_MODE = True # Writes website into 'Test' subfolder if True
 TEST_OT_BOOK_LIST = ['PSA','ECC'] # Books in progress
@@ -61,7 +62,7 @@ TEST_NT_BOOK_LIST = ['MRK'] # Shortest gospel
 TEST_BOOK_LIST_CHANGED = False
 
 # Many of these settings are used to omit some processing so as to get a speedier conclusion for debugging
-TEST_VERSIONS_ONLY = None #['OET','OET-RV','OET-LV', 'BSB', 'TOSN','UTN'] # Also stops actual site being built
+TEST_VERSIONS_ONLY = None #['OET','OET-RV','OET-LV', 'RV', 'TOSN','UTN'] # Also stops actual site being built
 ALL_PRODUCTION_BOOKS = not TEST_MODE # If set to False, uses the TEST book list (with many less books) for a faster test build
 CREATE_PARALLEL_VERSE_PAGES = 'LAST' # 'FIRST','LAST', or None -- depending on debugging needs
 CREATE_BOOK_AND_OTHER_PAGES = True # Can be turned off for debugging
@@ -160,7 +161,7 @@ class State:
         'NIV','CEV','ESV','NASB','LSB',
         'JQT','2DT','1ST','TPT',
         'WEBBE','WEB','WMBB','WMB','MSG','LSV','FBV','TCNT','T4T','LEB','NRSV','NKJV','NAB','BBE',
-        'Moff','JPS','Wymth','ASV','DRA','YLT','Drby','RV','Wbstr','KJB-1769','KJB-1611','Bshps','Gnva','Cvdl',
+        'Moff','JPS','Wymth','ASV','DRA','YLT','Drby','RV','SLT','Wbstr','KJB-1769','KJB-1611','Bshps','Gnva','Cvdl',
         'TNT','Wycl',
         'Luth','ClVg',
         'SR-GNT','UGNT','SBL-GNT','TC-GNT',
@@ -176,7 +177,7 @@ class State:
         'NIV','CEV','ESV','NASB','LSB',
         'JQT','2DT','1ST','TPT',
         'WEBBE','WEB','WMBB','WMB','MSG','NET','LSV','FBV','TCNT','T4T','LEB','NRSV','NKJV','NAB','BBE',
-        'Moff','JPS','Wymth','ASV','DRA','YLT','Drby','RV','Wbstr','KJB-1769','KJB-1611','Bshps','Gnva','Cvdl',
+        'Moff','JPS','Wymth','ASV','DRA','YLT','Drby','RV','SLT','Wbstr','KJB-1769','KJB-1611','Bshps','Gnva','Cvdl',
         'TNT','Wycl',
         'Luth','ClVg',
         'SR-GNT','UGNT','SBL-GNT','TC-GNT',
@@ -204,7 +205,7 @@ class State:
         'AICNT':('',''), 'OEB':('',''), 'ISV':('',''),
         'WEBBE':('',''),'WEB':('',''),'WMB':('',''),'WMBB':('',''), 'NET':('',''), 'LSV':('',''), 'FBV':('',''), 'TCNT':('<small>','</small>'), 'T4T':('',''),'LEB':('',''),'BBE':('',''),
         'Moff':('<small>','</small>'), 'JPS':('<small>','</small>'), 'Wymth':('<small>','</small>'), 'ASV':('',''), 'DRA':('<small>','</small>'),'YLT':('',''),'Drby':('',''),'RV':('',''),
-        'Wbstr':('<small>','</small>'),
+        'SLT':('',''),'Wbstr':('<small>','</small>'),
         'KJB-1769':('',''),'KJB-1611':('',''), 'Bshps':('',''), 'Gnva':('',''), 'Cvdl':('',''),
         'TNT':('',''), 'Wycl':('',''), #'ClVg':('<small>','</small>'),
         'SR-GNT':('<b>','</b>'), # 'UGNT':('<small>','</small>'),'SBL-GNT':('<small>','</small>'),'TC-GNT':('<small>','</small>'),
@@ -266,6 +267,7 @@ class State:
         'YLT': '../copiedBibles/English/eBible.org/YLT/',
         'Drby': '../copiedBibles/English/eBible.org/DBY/',
         'RV': '../copiedBibles/English/eBible.org/RV/', # with deuterocanon
+        'SLT': '../copiedBibles/English/Berean.Bible/slt.txt',
         'Wbstr': '../copiedBibles/English/eBible.org/WBS/',
         'KJB-1769': '../copiedBibles/English/eBible.org/KJB/', # with deuterocanon -- ALWAYS NEEDED if KJB-1611 and some others are included
         'KJB-1611': '../Bibles/EnglishTranslations/KJB-1611/', # with deuterocanon
@@ -333,6 +335,7 @@ class State:
         'YLT': 'Youngs Literal Translation (1898)',
         'Drby': 'Darby Translation (1890)',
         'RV': 'English Revised Version (1885)',
+        'SLT':'Smith’s Literal Translation (1855)',
         'Wbstr': 'Webster Bible (American, 1833)',
         'KJB-1769': 'King James Bible (1769)',
         'KJB-1611': 'King James Bible (1611)',
@@ -406,6 +409,7 @@ class State:
         'YLT': 'EN-UK',
         'Drby': 'EN-UK',
         'RV': 'EN-UK',
+        'SLT': 'EN-USA',
         'Wbstr': 'EN-USA',
         'KJB-1769': 'EN-UK', # modernised
         'KJB-1611': 'EN-UK', # modernised
@@ -479,6 +483,7 @@ class State:
         'YLT': ['ALL'],
         'Drby': ['ALL'],
         'RV': ['ALL'],
+        'SLT': ['ALL'],
         'Wbstr': ['ALL'],
         'KJB-1769': ['ALL'],
         'KJB-1611': ['ALL'],
@@ -502,7 +507,7 @@ class State:
         'UTN': ['ALL'],
     } if ALL_PRODUCTION_BOOKS else {
         'OET': ['FRT'] + TEST_BOOK_LIST,
-        'OET-RV': ['ALL'], # Load ALL coz we use related sections anyway ['FRT'] + TEST_BOOK_LIST,
+        'OET-RV': ['FRT'] + TEST_BOOK_LIST, #['ALL'], # Load ALL coz we use related sections anyway ['FRT'] + TEST_BOOK_LIST,
         'OET-LV': TEST_BOOK_LIST,
         'ULT': ['FRT'] + TEST_BOOK_LIST,
         'UST': TEST_BOOK_LIST, # Has no FRT for some reason
@@ -545,6 +550,7 @@ class State:
         'YLT': TEST_BOOK_LIST,
         'Drby': TEST_BOOK_LIST,
         'RV': TEST_BOOK_LIST,
+        'SLT': TEST_BOOK_LIST,
         'Wbstr': TEST_BOOK_LIST,
         'KJB-1769': TEST_BOOK_LIST,
         'KJB-1611': ['FRT'] + TEST_BOOK_LIST,
@@ -761,6 +767,11 @@ However, Moffat wasn’t just a <em>follow the crowd</em> person, so he’s like
                 'copyright': '<p class="copyright">Copyright © (coming).</p>',
                 'licence': '<p class="licence">(coming).</p>',
                 'acknowledgements': '<p class="acknwldg">(coming).</p>' },
+        'SLT': {'about': '<p class="about">Smiths Literal Translation (1855).</p>',
+                'copyright': '<p class="copyright">Public Domain.</p>',
+                'licence': '<p class="licence">None required.</p>',
+                'acknowledgements': '''<p class="acknwldg">Thanks to <a href='https://OpenBible.com/downloads.htm'>OpenBible.com</a> for this download.</p>''',
+                'notes': '''<p class="note">See <a href="https://en.wikipedia.org/wiki/Julia_E._Smith_Parker_Translation">Wikipedia</a>.</p>''' },
         'Wbstr': {'about': '<p class="about">Webster Bible (1833).</p>',
                 'copyright': '<p class="copyright">Copyright © (coming).</p>',
                 'licence': '<p class="licence">(coming).</p>',
@@ -776,11 +787,11 @@ Thanks to <a href="https://eBible.org/Scriptures/">eBible.org</a> for supplying 
 including major typographic and formatting changes, and major spelling changes (including gaining the letter ‘j’), as well as hundreds of corrections.
 There are also some verse number changes and some changes to the italicised words, and the marginal notes from 1611 were removed.
 (There’s a lot of information online, but you can start by reading more details <a href="https://www.wayoflife.org/reports/changes_to_kjv_since_1611.html">here</a>.)</p>
-<p class="note">Also note that the apocryphal books were officially removed later in 1885, leaving only 66 ‘books’.
+<p class="note">Also note that the ‘apocryphal books’ were officially removed later in 1885, leaving only 66 ‘books’.
         (The marginal footnotes in all books were also removed.)</p>''' },
         'KJB-1611': {'about': '<p class="about">King James Bible (1611).</p>',
                 'copyright': '<p class="copyright">No copyright statement was included in the early printings as can be seen <a href="https://Archive.org/details/1611TheAuthorizedKingJamesBible/page/n2/mode/1up">here</a>.</p>',
-                'licence': '<p class="licence">Public domain outside of the United Kingdom.</p>',
+                'licence': '<p class="licence">None required outside of the United Kingdom.</p>',
                 'acknowledgements': '''<p class="acknwldg">We’re all very grateful that after disgracing John Wycliffe and brutally executing William Tyndale, England finally got a king who would authorise a quality Bible translation.
 This was the printed book that had more influence on our modern world than any other.</p>''',
                 'notes': '''<p class="note">There were a number of printings of the KJB in 1611—the most famous being the ‘He-Bible’ and the ‘She-Bible’ (named after the ‘he/she went into town’ in <a href="__LEVEL__par/RUT/C3V15.htm#Top">Ruth 3:15</a>).
@@ -793,7 +804,7 @@ Footnote markers PRECEDE the text that they concern,
 <p class="note">Finally, note that the KJB included ‘The Bookes called Apocrypha’ as can be seen <a href="https://archive.org/details/1611TheAuthorizedKingJamesBible/page/n37/mode/1up">here</a>, so an additional fourteen ‘bookes’ beyond the often-expected sixty-six.</p>''' },
         'Bshps': {'about': '<p class="about">Bishops Bible (1568, 1602).</p>',
                 'copyright': '<p class="copyright">Public Domain.</p>',
-                'licence': '<p class="licence">Public Domain.</p>',
+                'licence': '<p class="licence">None required.</p>',
                 'acknowledgements': '<p class="acknwldg">(coming).</p>' },
         'Gnva': {'about': '<p class="about">Geneva Bible (1557-1560, 1599).</p>',
                 'copyright': '<p class="copyright">Copyright © (coming).</p>',
@@ -801,7 +812,7 @@ Footnote markers PRECEDE the text that they concern,
                 'acknowledgements': '<p class="acknwldg">(coming).</p>' },
         'Cvdl': {'about': '<p class="about"><a href="https://en.wikipedia.org/wiki/Coverdale_Bible">Coverdale Bible</a> (1535-1553).</p>',
                 'copyright': '<p class="copyright">Public Domain.</p>',
-                'licence': '<p class="licence">Public Domain.</p>',
+                'licence': '<p class="licence">None required.</p>',
                 'acknowledgements': '<p class="acknwldg">(coming).</p>' },
         'TNT': {'about': '<p class="about">Tyndale New Testament (1526).</p>',
                 'copyright': '<p class="copyright">Copyright © (coming).</p>',
@@ -809,12 +820,12 @@ Footnote markers PRECEDE the text that they concern,
                 'acknowledgements': '<p class="acknwldg">(coming).</p>' },
         'Wycl': {'about': '<p class="about"><a href="https://en.wikipedia.org/wiki/Wycliffe%27s_Bible">Wycliffe Bible</a> (middle-English, 1382).</p>',
                 'copyright': '<p class="copyright">Public Domain.</p>',
-                'licence': '<p class="licence">Public Domain.</p>',
+                'licence': '<p class="licence">None required.</p>',
                 'acknowledgements': '<p class="acknwldg">The entire English-speaking world is indebted to <a href="https://en.wikipedia.org/wiki/John_Wycliffe">John Wycliffe</a> for his brave work to make the Bible available in the language of the common people at a time when most priests insisted that the Bible was only valid in Latin.</p>',
                 'notes': '''<p class="note">The earliest editions were hand-copied because Gutenberg’s printing press didn’t come along until the 1450’s. Chapter divisions had been developed in the 1220’s and the Wycliffe Bible was the first to use those. (Verse divisions didn’t really come until the 1550’s.)</p>''' },
         'Luth': {'about': '<p class="about"><a href="https://en.wikipedia.org/wiki/Luther_Bible">Luther’s German Bible</a> (1545).</p>',
                 'copyright': '<p class="copyright">Public Domain.</p>',
-                'licence': '<p class="licence">Public Domain.</p>',
+                'licence': '<p class="licence">None required.</p>',
                 'acknowledgements': '<p class="acknwldg">The entire German-speaking world is indebted to <a href="https://en.wikipedia.org/wiki/Martin_Luther">Martin Luther</a> for his brave work to make the Bible available in the language of the common people at a time when most priests insisted that the Bible was only valid in Latin.</p>' },
         'ClVg': {'about': '<p class="about"><a href="https://en.wikipedia.org/wiki/Sixto-Clementine_Vulgate">Clementine Vulgate Bible</a> (Latin, 1592).</p>',
                 'copyright': '<p class="copyright">Copyright © (coming).</p>',

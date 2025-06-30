@@ -306,7 +306,7 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
 '''
                 combinedHtml = f'{removeDuplicateCVids( combinedHtml )}</div><!--RVLVcontainer-->'
 
-            # Handle BibleMapper maps and notes -- the function handles chapters automatically
+                # Handle BibleMapper maps and notes -- the function handles chapters automatically
                 bmmHtml = getBibleMapperMaps( level, BBB, c, None, None, None, rvBible ) # Setting verse to None make it look at chapter level
                 if bmmHtml:
                     bmmHtml = f'''<div id="BMM" class="parallelBMM"><a title="Go to BMM copyright page" href="{'../'*level}BMM/details.htm#Top">BMM</a> <b><a href="https://BibleMapper.com" target="_blank" rel="noopener noreferrer">BibleMapper.com</a> Maps</b>: {bmmHtml}</div><!--end of BMM-->'''
@@ -332,6 +332,7 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
                 with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
                     cHtmlFile.write( chapterHtml )
                 vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(chapterHtml):,} characters written to {filepath}" )
+                vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"      Creating chapter pages for OET {BBB} {c}…" )
         else: # This book has no chapters
             # TODO: Not completely finished yet
             dPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"createOETSideBySideChapterPages {BBB} has {numChapters} chapters!!!" )

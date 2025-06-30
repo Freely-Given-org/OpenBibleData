@@ -66,6 +66,8 @@ CHANGELOG:
     2025-03-17 Update mapIndex format to include both high-res and low-res filenames
     2025-03-21 Handle obsolete pickle in OET-LV which has OT and NT in separate folders
     2025-04-16 Add cross-testament quotes to formatVerseDetailsHtml()
+    2025-06-27 Fix bug where getBibleMapperMaps() and getVerseDataListForReference()
+                    were forcing the load of Bible books where not wanted
 """
 from datetime import datetime
 import os, os.path
@@ -104,7 +106,7 @@ from OETHandlers import findLVQuote, getBBBFromOETBookName
 from Dict import loadAndIndexUBSGreekDictJSON, loadAndIndexUBSHebrewDictJSON
 
 
-LAST_MODIFIED_DATE = '2025-04-16' # by RJH
+LAST_MODIFIED_DATE = '2025-06-27' # by RJH
 SHORT_PROGRAM_NAME = "Bibles"
 PROGRAM_NAME = "OpenBibleData Bibles handler"
 PROGRAM_VERSION = '0.89'
@@ -280,7 +282,7 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
         # print( f"{thisBible.settingsDict=}" )
         # verseEntryList, contextList = thisBible.getContextVerseData( ('MAT', '2', '1') )
         # print( f"Mat 2:1 {verseEntryList=} {contextList=}" )
-    elif versionAbbreviation in ('Cvdl','Bshps'): # Custom VPL
+    elif versionAbbreviation in ('Cvdl','Bshps','SLT'): # Custom VPL
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Loading ‘{versionAbbreviation}’ VPL Bible{' in TEST mode' if TEST_MODE else ''}…" )
         thisBible = VPLBible.VPLBible( folderOrFileLocation, givenName=versionName,
                                             givenAbbreviation=versionAbbreviation, encoding='utf-8' )
@@ -1180,6 +1182,8 @@ def getVerseDataListForReference( givenRefString:str, thisBible:Bible, lastBBB:s
             refBBB = lastBBB
             assert not refCVpart
             refCVpart = [refBits]
+    if refBBB not in thisBible: # Don't force that book to be loaded
+        return refBBB, '', InternalBibleEntryList(), []
     # if refBBB is None and thisBible.abbreviation=='OET-RV' and bookAbbreviation[0]=='Y':
     #     refBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromText( f'J{bookAbbreviation[1:]}' ) # Convert Yoel back to Joel, etc.
     #     print( f"{bookAbbreviation=} {refCVpart=} {refBBB=}" )
@@ -1334,6 +1338,8 @@ def getBibleMapperMaps( level:int, BBB:str, startC:str, startV:str|None, endC:st
                 mapRef, hiResMapFilename, lowResMapFilename, supplementaryMapFilename, _optionalComment = line.rstrip( '\n' ).split( '\t' )
                 mapName = hiResMapFilename.split( '_' )[0]
                 mapBBB, mapCVstuff = mapRef.split( '_' )
+                if mapBBB not in referenceBible:
+                    continue # if we continue below, it will force that book to become loaded
                 chapters:set[str] = set()
                 if '–' in mapCVstuff: # enDash: it's a chapter range
                     startCVstuff, endCVstuff = mapCVstuff.split( '–' )

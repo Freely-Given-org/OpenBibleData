@@ -1168,33 +1168,33 @@ def create_Hebrew_word_pages( level:int, outputFolderPath:Path, state:State ) ->
         # parameters = [(level, hh, hebrewWord, columns_string, outputFolderPath, output_filename, state) \
         #                                     for hh,columns_string in enumerate( state.OETRefData['word_tables'][HebrewWordFileName][1:], start=1 ) if columns_string]
 
-        print( f"\n{type(state.__dict__)=} {len(state.__dict__)=} {state.__dict__.keys()=}")
-        print( f"\n{type(vars(state))=} {len(vars(state))=} {vars(state).keys()=}")
-        print( f"\n{type(dir(state))=} {len(dir(state))=} {dir(state)=}")
+        # print( f"\n{type(state.__dict__)=} {len(state.__dict__)=} {state.__dict__.keys()=}")
+        # print( f"\n{type(vars(state))=} {len(vars(state))=} {vars(state).keys()=}")
+        # print( f"\n{type(dir(state))=} {len(dir(state))=} {dir(state)=}")
 
         # import pickle; size_estimate = len( pickle.dumps(state) ) # TypeError: cannot pickle 'dict_keys' object
 
         state_keys = [k for k in dir(state) if not k.startswith('__')]
         # state_keys = filter(lambda a: not a.startswith('__'), dir(state))
-        print( f"\n{type(state_keys)=} {len(state_keys)=} {state_keys=}")
+        # print( f"\n{type(state_keys)=} {len(state_keys)=} {state_keys=}")
 
         import inspect
         wantedStateAttributes = [a for a in inspect.getmembers(state, lambda a:not(inspect.isroutine(a))) if not(a[0].startswith('__') and a[0].endswith('__'))]
         # print( f"\n{type(wantedStateAttributes)=} {len(wantedStateAttributes)=}" ) # {wantedAttributes=}")
         # print( f"{len(str(wantedStateAttributes))//1_000_000:,} MB" )
-        print( f"\nState class is about ({len(wantedStateAttributes)}) {len(str(wantedStateAttributes))//1_000_000:,} MB" )
+        # print( f"\nState class is about ({len(wantedStateAttributes)}) {len(str(wantedStateAttributes))//1_000_000:,} MB" )
 
         small_state = copy.copy( state ) # Shallow copy
         small_state.OETRefData = copy.copy( state.OETRefData )
         wantedSmallStateAttributes = [a for a in inspect.getmembers(small_state, lambda a:not(inspect.isroutine(a))) if not(a[0].startswith('__') and a[0].endswith('__'))]
-        print( f"Small state copied class started at about ({len(wantedSmallStateAttributes)}) {len(str(wantedSmallStateAttributes))//1_000_000:,} MB" )
+        # print( f"Small state copied class started at about ({len(wantedSmallStateAttributes)}) {len(str(wantedSmallStateAttributes))//1_000_000:,} MB" )
 
         small_state.BBBLinks = small_state.BBBsToProcess = small_state.BibleLanguages = small_state.BibleLocations = None
         small_state.BibleNames = small_state.BibleVersionDecorations = small_state.BibleVersions = small_state.wholeBibleVersions = None
         small_state.allBBBs = small_state.allPossibleBibleVersions = small_state.auxilliaryVersions = small_state.booksToLoad = None
         small_state.detailsHtml = small_state.numAllowedSelectedVerses = small_state.preloadedBibles = small_state.sectionsLists = None
         small_state.selectedVersesOnlyVersions = small_state.versionLocation = small_state.versionsWithoutTheirOwnPages = None
-        print( f"({len(small_state.OETRefData.keys()):,=}) {small_state.OETRefData.keys()=}")
+        # print( f"({len(small_state.OETRefData.keys()):,=}) {small_state.OETRefData.keys()=}")
         for tableName in small_state.OETRefData:
             small_state.OETRefData[tableName] = None
         # small_state.OETRefData['OTFormUsageDict'] = None
@@ -1206,11 +1206,11 @@ def create_Hebrew_word_pages( level:int, outputFolderPath:Path, state:State ) ->
         # small_state.OETRefData['OETOTGlossWordDict'] = None
         # small_state.OETRefData['OTLemmaGlossDict'] = None
         wantedSmallStateAttributes = [a for a in inspect.getmembers(small_state, lambda a:not(inspect.isroutine(a))) if not(a[0].startswith('__') and a[0].endswith('__'))]
-        for a,b in wantedSmallStateAttributes:
-            print( f"  {a} is {len(str(b)):,}")
-        print( f"Now small state copied class is about ({len(wantedSmallStateAttributes)}) {len(str(wantedSmallStateAttributes))//1_000:,} KB" )
+        # for a,b in wantedSmallStateAttributes:
+        #     print( f"  {a} is {len(str(b)):,}")
+        # print( f"Now small state copied class is about ({len(wantedSmallStateAttributes)}) {len(str(wantedSmallStateAttributes))//1_000:,} KB" )
         wantedStateAttributes = [a for a in inspect.getmembers(state, lambda a:not(inspect.isroutine(a))) if not(a[0].startswith('__') and a[0].endswith('__'))]
-        print( f" and original state class is still about ({len(wantedStateAttributes)}) {len(str(wantedStateAttributes))//1_000_000:,} MB" )
+        # print( f" and original state class is still about ({len(wantedStateAttributes)}) {len(str(wantedStateAttributes))//1_000_000:,} MB" )
         # for a,b in wantedStateAttributes:
         #     print( f"  {a} is {len(str(b)):,}")
         # import pickle; size_estimate = len( pickle.dumps(small_state) ) # TypeError: cannot pickle 'dict_keys' object

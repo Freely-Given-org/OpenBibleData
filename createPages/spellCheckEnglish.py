@@ -44,10 +44,10 @@ from BibleOrgSys import BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import vPrint, fnPrint, dPrint, rreplace
 
 
-LAST_MODIFIED_DATE = '2025-06-19' # by RJH
+LAST_MODIFIED_DATE = '2025-06-27' # by RJH
 SHORT_PROGRAM_NAME = "spellCheckEnglish"
 PROGRAM_NAME = "English Bible Spell Check"
-PROGRAM_VERSION = '0.49'
+PROGRAM_VERSION = '0.50'
 PROGRAM_NAME_VERSION = '{} v{}'.format( SHORT_PROGRAM_NAME, PROGRAM_VERSION )
 
 DEBUGGING_THIS_MODULE = False
@@ -706,7 +706,7 @@ def printSpellCheckSummary( state ) -> None:
         sortedDict = sorted( badDict.items(), key=lambda item: item[1], reverse=True )
         displayList = [wordCountTuple for wordCountTuple in sortedDict if wordCountTuple[0].islower() and (wordCountTuple[1]>(len(sortedDict)//20) or len(sortedDict)<25)]
         if len(displayList)<10 and len(displayList)<len(sortedDict): displayList += [wordCountTuple for ww,wordCountTuple in enumerate(sortedDict) if ww<10] # Could cause some duplicates
-        print( f"\n{versionAbbreviation} (using {state.BibleLanguages[versionAbbreviation]} dictionary) from {len(MISPELLING_VERSION_REF_DICT[versionAbbreviation]):,} refs got {len(sortedDict):,} unique words (showing {len(displayList):,}): {displayList}\n")
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\n{versionAbbreviation} (using {state.BibleLanguages[versionAbbreviation]} dictionary) from {len(MISPELLING_VERSION_REF_DICT[versionAbbreviation]):,} refs got {len(sortedDict):,} unique words (showing {len(displayList):,}): {displayList}\n")
 
     totalWordsWithRef = 0
     for versionAbbreviation in MISPELLING_VERSION_REF_DICT:
