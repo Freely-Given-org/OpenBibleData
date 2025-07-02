@@ -93,7 +93,7 @@ from html import checkHtml
 from OETHandlers import getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2025-06-30' # by RJH
+LAST_MODIFIED_DATE = '2025-07-02' # by RJH
 SHORT_PROGRAM_NAME = "usfm"
 PROGRAM_NAME = "OpenBibleData USFM to HTML functions"
 PROGRAM_VERSION = '0.92'
@@ -1822,7 +1822,7 @@ def livenXRefField( versionAbbreviation:str, refTuple:tuple, segmentType:str, pa
         if xBBB:
             # assert int(xC) <= BibleOrgSysGlobals.loadedBibleBooksCodes.getMaxChapters( xBBB ), f"Bad xref {xBBB} {match.groups()} from {versionAbbreviation} {refTuple} {segmentType}"
             if int(xC) > BibleOrgSysGlobals.loadedBibleBooksCodes.getMaxChapters( xBBB ):
-                logging.critical( f"Not enough chapters in {xBBB} ({BibleOrgSysGlobals.loadedBibleBooksCodes.getMaxChapters(xBBB)}) for {match.groups()} from {versionAbbreviation} {refTuple} {segmentType} {xoText}" )
+                logging.critical( f"Not enough chapters in {xBBB} ({BibleOrgSysGlobals.loadedBibleBooksCodes.getMaxChapters(xBBB)}) for {match.groups()} from {versionAbbreviation} {refTuple} {segmentType=} {xoText=} {xrefOriginalMiddle=}" )
                 reStartIx = match.end() # exact number of characters that we add (otherwise we get mistakes/overlaps)
                 continue
         else:

@@ -405,7 +405,7 @@ class State:
         'JPS': 'EN-UK',
         'Wymth': 'EN-UK',
         'ASV': 'EN-USA', # A stands for American
-        'DRA': 'EN-USA', # A stands for American
+        'DRA': 'EN-UK', # A stands for American so why British spelling???
         'YLT': 'EN-UK',
         'Drby': 'EN-UK',
         'RV': 'EN-UK',

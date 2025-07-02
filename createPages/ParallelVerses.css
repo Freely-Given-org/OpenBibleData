@@ -137,6 +137,7 @@ span.Gnva_mod { font-family:sans-serif; font-size:0.85em; }
 span.KJB-1769_mod { font-family:sans-serif; font-size:0.85em; }
 span.KJB-1611_mod { font-family:sans-serif; font-size:0.85em; }
 span.Luth_trans { font-family:sans-serif; font-size:0.85em; }
+span.RV_mod { font-family:sans-serif; font-size:0.85em; }
 span.TNT_mod { font-family:sans-serif; font-size:0.85em; }
 span.Wycl_mod { font-family:sans-serif; font-size:0.85em; }
 
@@ -359,7 +360,7 @@ span.spelling { color:orchid }
 span.duplicate { color:orange }
 
 /* Psalms Layer-By-Layer */
-div.PLBL {}
+div.parallelPLBL {}
 
 /* BibleMapper.com Maps */
 div.parallelBMM {}

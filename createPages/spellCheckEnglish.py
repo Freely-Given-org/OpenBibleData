@@ -44,11 +44,11 @@ from BibleOrgSys import BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import vPrint, fnPrint, dPrint, rreplace
 
 
-LAST_MODIFIED_DATE = '2025-06-27' # by RJH
+LAST_MODIFIED_DATE = '2025-07-02' # by RJH
 SHORT_PROGRAM_NAME = "spellCheckEnglish"
 PROGRAM_NAME = "English Bible Spell Check"
-PROGRAM_VERSION = '0.50'
-PROGRAM_NAME_VERSION = '{} v{}'.format( SHORT_PROGRAM_NAME, PROGRAM_VERSION )
+PROGRAM_VERSION = '0.51'
+PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
 
@@ -287,7 +287,7 @@ def load_dict_sources() -> bool:
                     mispelling = True
                     break
             if not mispelling \
-            and word not in ('hade',): # Any technical or other English words which would be mispellings if used in a Bible
+            and word not in ('ego','hade',): # Any technical or other English words which would be mispellings if used in a Bible
                 if language != 'BRI':
                     AMERICAN_WORD_SET.add( word )
                 if language != 'AME':
