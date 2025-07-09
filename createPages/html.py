@@ -107,7 +107,7 @@ from settings import State, TEST_MODE, TEST_VERSIONS_ONLY, SITE_NAME
 from OETHandlers import getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2025-06-19' # by RJH
+LAST_MODIFIED_DATE = '2025-07-05' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
 PROGRAM_VERSION = '0.95'
@@ -115,10 +115,7 @@ PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
 
-# BACKSLASH = '\\'
 NEWLINE = '\n'
-# EM_SPACE = ' '
-# NARROW_NON_BREAK_SPACE = ' '
 
 
 KNOWN_PAGE_TYPES = ('site', 'TopIndex', 'details', 'AllDetails',
@@ -340,7 +337,7 @@ def makeViewNavListParagraph( level:int, versionAbbreviation:str|None, pageType:
     viewLinks = []
     if pageType in ('book','section','chapter', 'details',
                     'workIndex','bookIndex','sectionIndex','chapterIndex') \
-    and versionAbbreviation not in ('PLBL','TOSN','TTN','TOBD','UTN','UBS','THBD','BMM') \
+    and versionAbbreviation not in ('PLBL','HAP','TOSN','TTN','TOBD','UTN','UBS','THBD','BMM') \
     and versionAbbreviation not in state.versionsWithoutTheirOwnPages:
         if TEST_MODE: viewLinks.append( 'TEST' )
         if not versionAbbreviation: versionAbbreviation = 'OET'

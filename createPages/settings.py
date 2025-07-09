@@ -37,7 +37,8 @@ CHANGELOG:
     2024-09-23 Change OET OT book order
     2024-10-24 Change WEB and WMB to British spelling WEBBE and WMBB
     2024-11-01 Added topics pages
-    2025-06-29 Added SLT
+    2025-06-29 v0.41 Added SLT
+    2025-07-05 v0.42 Added HAP (links)
 """
 from pathlib import Path
 
@@ -46,7 +47,7 @@ from BibleOrgSys.BibleOrgSysGlobals import dPrint, fnPrint
 from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39
 
 
-LAST_MODIFIED_DATE = '2025-06-29' # by RJH
+LAST_MODIFIED_DATE = '2025-07-05' # by RJH
 SHORT_PROGRAM_NAME = "settings"
 PROGRAM_NAME = "OpenBibleData (OBD) Settings"
 PROGRAM_VERSION = '0.98'
@@ -54,7 +55,7 @@ PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
 
-OET_VERSION_NUMBER_STRING = 'v0.41.20' # Incremented on most runs
+OET_VERSION_NUMBER_STRING = 'v0.42.04' # Incremented on most runs
 
 TEST_MODE = True # Writes website into 'Test' subfolder if True
 TEST_OT_BOOK_LIST = ['PSA','ECC'] # Books in progress
@@ -356,6 +357,7 @@ class State:
         'BrLXX': '(Brenton’s) Ancient Greek translation of the Hebrew Scriptures (~250 BC)',
         'UHB': 'unfoldingWord® Hebrew Bible (2022)',
         'PLBL': 'Psalms Layer-by-Layer from Scriptura.org',
+        'HAP': 'Hebrew Accents and Phrasing (ongoing)',
         'TOSN': 'Tyndale Open Study Notes (2022)',
         'TOBD': 'Tyndale Open Bible Dictionary (2023)',
         'UTN': 'unfoldingWord® Translation Notes (2023)',
@@ -430,6 +432,7 @@ class State:
         'BrLXX': 'GRK',
         'UHB': 'HEB',
         'PLBL': 'EN-USA',
+        'HAP': 'EN-USA',
         'TOSN': 'EN-USA',
         'TOBD': 'EN-USA',
         'UTN': 'EN-USA',
@@ -867,6 +870,10 @@ Footnote markers PRECEDE the text that they concern,
                 'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution 4.0 International License</a>.</p>',
                 'acknowledgements': '<p class="acknwldg">Thanks to <a href="https://psalms.scriptura.org/w/About">Scriptura</a> for their generous open-licensing of their work on the Songs/Psalms.</p>',
                 'notes': '''<p class="note">The current progress of their ongoing analysis of Songs/Psalms can be seen <a href="https://psalms.scriptura.org/w/Welcome">here</a>.</p>''' },
+        'HAP': {'about': '<p class="about">Hebrew Accents and Phrasing (ongoing).</p>',
+                'copyright': '<p class="copyright">Copyright owned by Allan Johnson.</p>',
+                'licence': '<p class="licence">Coming...</p>',
+                'acknowledgements': '<p class="acknwldg">Thanks to Allan Johnson for all this hard work analysing Hebrew cantillation marks.</p>' },
         'TOSN': {'about': '<p class="about">Tyndale Open Study Notes (2022).</p>',
                 'copyright': '<p class="copyright">Copyright © 2022 by Tyndale House Publishers.</p>',
                 'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',

@@ -70,6 +70,7 @@ CHANGELOG:
     2025-03-14 Tried to improve that colouring so it highlights the FIRST different word, even if it's small like 'a'
     2025-04-02 Add English spell checks in TEST MODE
     2025-05-23 Added link to Scriptura Psalms Layer-by-Layer
+    2025-07-05 Added link to Hebrew Phrasing pages for OT verses
 """
 from pathlib import Path
 import os
@@ -103,7 +104,7 @@ from OETHandlers import getOETTidyBBB, getOETBookName, livenOETWordLinks, getHeb
 from spellCheckEnglish import spellCheckAndMarkHTMLText
 
 
-LAST_MODIFIED_DATE = '2025-06-29' # by RJH
+LAST_MODIFIED_DATE = '2025-07-05' # by RJH
 SHORT_PROGRAM_NAME = "createParallelVersePages"
 PROGRAM_NAME = "OpenBibleData createParallelVersePages functions"
 PROGRAM_VERSION = '0.98'
@@ -207,7 +208,9 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
     fnPrint( DEBUGGING_THIS_MODULE, f"createParallelVersePagesForBook( {level}, {folder}, {BBB}, {BBBLinks}, {state.BibleVersions} )" )
     BBBFolder = folder.joinpath(f'{BBB}/')
     BBBLevel = level + 1
-    # isNT = BibleOrgSysGlobals.loadedBibleBooksCodes.isNewTestament_NR( BBB )
+    isOT = BibleOrgSysGlobals.loadedBibleBooksCodes.isOldTestament_NR( BBB )
+    isDC = BibleOrgSysGlobals.loadedBibleBooksCodes.isDeuterocanon_NR( BBB )
+    isNT = BibleOrgSysGlobals.loadedBibleBooksCodes.isNewTestament_NR( BBB )
 
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createParallelVersePagesForBook {BBBLevel}, {BBBFolder}, {BBB} from {len(BBBLinks)} books, {len(state.BibleVersions)} versions…" )
     try: os.makedirs( BBBFolder )
@@ -291,14 +294,11 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                     if versionAbbreviation == 'OET': continue # Skip this pseudo-version as we have both OET-RV and OET-LV instead
                     if TEST_VERSIONS_ONLY and versionAbbreviation not in TEST_VERSIONS_ONLY:
                         continue
-                    if versionAbbreviation in (VERSIONS_WITHOUT_NT) \
-                    and BibleOrgSysGlobals.loadedBibleBooksCodes.isNewTestament_NR( BBB ):
+                    if versionAbbreviation in (VERSIONS_WITHOUT_NT) and isNT:
                         continue
-                    if versionAbbreviation in (VERSIONS_WITHOUT_OT) \
-                    and BibleOrgSysGlobals.loadedBibleBooksCodes.isOldTestament_NR( BBB ):
+                    if versionAbbreviation in (VERSIONS_WITHOUT_OT) and isOT:
                         continue # Skip non-NT books for Koine Greek NT
-                    if BibleOrgSysGlobals.loadedBibleBooksCodes.isDeuterocanon_NR( BBB ) \
-                    and versionAbbreviation not in VERSIONS_WITH_APOCRYPHA:
+                    if isDC and versionAbbreviation not in VERSIONS_WITH_APOCRYPHA:
                         continue
                     if versionAbbreviation in ('TOSN','TTN','UTN'):
                         continue # We handle the notes separately at the end
@@ -935,11 +935,18 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                         tbiHtml = f'''<div id="TBI" class="parallelTBI"><a title="Go to TSN copyright page" href="{'../'*BBBLevel}TSN/details.htm#Top">TBI</a> <b>Tyndale Book Intro</b>: {tbiHtml}</div><!--end of TBI-->'''
                         parallelHtml = f"{parallelHtml}{NEWLINE if parallelHtml else ''}{tbiHtml}"
 
-                if BBB == 'PSA': # Provide a link to Scriptura Psalms Layer-by-Layer
+                if BBB == 'PSA' and c>=0: # Provide a link to Scriptura Psalms Layer-by-Layer
                     plblHtml = f'''See the Scriptura Psalm Layer-by-Layer <a href="https://psalms.scriptura.org/w/Psalm_Overview_{C}">analysis overview</a>.
 <br>  See the Scriptura Psalm Layer-by-Layer <a href="https://psalms.scriptura.org/w/Psalm_{C}_Verse-by-Verse#v._{V}">analysis for this verse</a>.'''
                     plblHtml = f'''<div id="PLBL" class="parallelPLBL"><a title="Go to PLBL copyright page" href="{'../'*BBBLevel}PLBL/details.htm#Top">PLBL</a> <b>Psalms Layer-by-Layer</b>: {plblHtml}</div><!--end of PLBL-->'''
                     parallelHtml = f'{parallelHtml}\n<hr style="width:50%;margin-left:0;margin-top: 0.3em">\n{plblHtml}'
+
+                if isOT and c>=1: # Provide a link to Hebrew accents and phrasing pages
+                    hapBkName = BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishNameList_NR( BBB )[0]
+                    hapBkAbbrev = hapBkName[:3]
+                    hapHtml = f'''See Allan Johnson's <a href="https://Freely-Given.org/BibleOriginals/Hebrew/AccentsPhrasing/Files/{hapBkName}.html#{hapBkAbbrev}{C}:{V}">Hebrew accents and phrasing analysis</a>.'''
+                    hapHtml = f'''<div id="HAP" class="parallelHAP"><a title="Go to HAP copyright page" href="{'../'*BBBLevel}HAP/details.htm#Top">HAP</a> <b>Hebrew accents and phrasing</b>: {hapHtml}</div><!--end of HAP-->'''
+                    parallelHtml = f'{parallelHtml}\n<hr style="width:50%;margin-left:0;margin-top: 0.3em">\n{hapHtml}'
 
                 # Handle Tyndale open study notes and theme notes
                 tsnHtml = formatTyndaleNotes( 'TOSN', BBBLevel, BBB, C, V, 'parallelVerse', state )

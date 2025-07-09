@@ -102,7 +102,7 @@ from html import makeTop, makeViewNavListParagraph, makeBottom, checkHtml
 from spellCheckEnglish import printSpellCheckSummary
 
 
-LAST_MODIFIED_DATE = '2025-06-24' # by RJH
+LAST_MODIFIED_DATE = '2025-07-05' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData (OBD) Create Site Pages"
 PROGRAM_VERSION = '0.99'
@@ -436,7 +436,7 @@ def _cleanHTMLFolders( folder:Path, state:State ) -> bool:
         except FileNotFoundError: pass
         try: shutil.rmtree( folder.joinpath( 'dct/' ) )
         except FileNotFoundError: pass
-    for versionAbbreviation in state.allPossibleBibleVersions + ['PLBL','UTN','TOSN','TOBD','UBS','THBD','BMM']:
+    for versionAbbreviation in state.allPossibleBibleVersions + ['PLBL','HAP','UTN','TOSN','TOBD','UBS','THBD','BMM']:
         vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Removing tree at {folder.joinpath( f'{versionAbbreviation}/' )}/…")
         try: shutil.rmtree( folder.joinpath( f'{versionAbbreviation}/' ) )
         except FileNotFoundError: pass
@@ -573,7 +573,7 @@ def _createDetailsPages( level:int, buildFolder:Path, state:State ) -> bool:
     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nCreating {'TEST ' if TEST_MODE else ''}details pages for {len(state.BibleVersions)} versions (plus All Details page)…" )
 
     allDetailsHTML = ''
-    for versionAbbreviation in ['OET'] + [versAbbrev for versAbbrev in state.preloadedBibles] + ['UBS','THBD','PLBL','BMM',]:
+    for versionAbbreviation in ['OET'] + [versAbbrev for versAbbrev in state.preloadedBibles] + ['UBS','THBD','PLBL','HAP','BMM',]:
         if versionAbbreviation == 'TTN': # we only need the one for TOSN I think
             versionAbbreviation = 'TOBD' # Put this one in instead
 
