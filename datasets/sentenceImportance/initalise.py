@@ -32,6 +32,7 @@ This bit of code is only ever intended to be run once
 CHANGELOG:
     2024-05-22 Use VariantID and Translatable SR-GNT collation columns from CNTR
     2025-04-10 Use crossTestamentQuotes info
+    2025-07-09 Tried to make more allowance for partial verses
 """
 from pathlib import Path
 from csv import  DictReader
@@ -47,7 +48,7 @@ from load import getIndividualQuotedOTRefs, getIndividualQuotingNTRefs
 
 
 
-LAST_MODIFIED_DATE = '2025-06-15' # by RJH
+LAST_MODIFIED_DATE = '2025-07-09' # by RJH
 SHORT_PROGRAM_NAME = "SentenceImportance_initialisation"
 PROGRAM_NAME = "Sentence Importance initialisation"
 PROGRAM_VERSION = '0.20'
@@ -124,7 +125,7 @@ trivialImportanceRefs = listsOfNames + [
     'EXO_16:36',
     # Jdg 5 is Deborah and Barak's song
     'JDG_5:1','JDG_5:2','JDG_5:3','JDG_5:4','JDG_5:5','JDG_5:6','JDG_5:7','JDG_5:8','JDG_5:9','JDG_5:10',
-        'JDG_5:11a','JDG_5:11b','JDG_5:12','JDG_5:13','JDG_5:14','JDG_5:15','JDG_5:16','JDG_5:17','JDG_5:18','JDG_5:19','JDG_5:20',
+        'JDG_5:11','JDG_5:12','JDG_5:13','JDG_5:14','JDG_5:15','JDG_5:16','JDG_5:17','JDG_5:18','JDG_5:19','JDG_5:20',
         'JDG_5:21','JDG_5:22','JDG_5:23','JDG_5:24','JDG_5:25','JDG_5:26','JDG_5:27','JDG_5:28','JDG_5:29','JDG_5:30',
         'JDG_5:31a',
     ]
@@ -155,6 +156,7 @@ unclearClarityRefs = [ # Mostly sure what's in the Hebrew or Greek, but not sure
     'PSA_16:5', 'PSA_41:9b', 'PSA_55:15a','PSA_55:18', 'PSA_62:3b',
         'PSA_68:12b','PSA_68:13','PSA_68:15','PSA_68:21b', 'PSA_73:9','PSA_73:10',
         'PSA_92:11', 'PSA_93:3a', 'PSA_105:19','PSA_105:28b','PSA_105:32b', 'PSA_108:9', 'PSA_116:13a',
+        'PSA_122:3b',
     'SNG_8:9',
     'DAN_8:12','DAN_8:13a','DAN_11:43b',
     'HOS_11:7b',
@@ -203,7 +205,8 @@ halfRefs = [ref for ref in allRefs if ref[-1] in 'ab']
 for ref in allRefs:
     assert 7 <= len(ref) <= 12, f"{ref=}"
     assert ref.count('_') == 1 and ref.count(':') >= 1, f"{ref=}"
-    if ref in halfRefs: assert ref[:-1] not in allRefs, f"Need to fix '{ref[:-1]}' in tables since we also have '{ref}'"
+    # Hopefully the following line is no longer required (2025-07-09)
+    # if ref in halfRefs: assert ref[:-1] not in allRefs, f"Need to fix '{ref[:-1]}' in tables since we also have '{ref}'"
 
 
 
@@ -214,7 +217,11 @@ def run() -> bool:
     netBible.loadBooks() # So we can iterate through them all later
 
     initialLines, collationVerseDict, splitVerseSet = load()
-    create( initialLines, netBible, collationVerseDict, splitVerseSet, getIndividualQuotedOTRefs(), getIndividualQuotingNTRefs() )
+
+    quotedOTRefs = getIndividualQuotedOTRefs()
+    quotingNTRefs = getIndividualQuotingNTRefs()
+
+    create( initialLines, netBible, collationVerseDict, splitVerseSet, quotedOTRefs, quotingNTRefs )
 # end of initialise.run()
 
 
@@ -412,12 +419,24 @@ def create( initialTSVLines, referenceBible, collationVerseDict, splitVerseSet, 
                 if subRef in vitalImportanceRefs:
                     importance = 'V' # vital = 3/3
                     vitalImportanceRefs.remove( subRef )
+                elif fgRef in vitalImportanceRefs:
+                    importance = 'V' # vital = 3/3
+                    if subRef[-1] == 'b':
+                        vitalImportanceRefs.remove( fgRef )
                 elif subRef in importantRefs:
                     importance = 'I' # important = 2/3
                     importantRefs.remove( subRef )
+                elif fgRef in importantRefs:
+                    importance = 'I' # important = 2/3
+                    if subRef[-1] == 'b':
+                        importantRefs.remove( fgRef )
                 elif subRef in trivialImportanceRefs:
                     importance = 'T' # trivial = 0/3
                     trivialImportanceRefs.remove( subRef )
+                elif fgRef in trivialImportanceRefs:
+                    importance = 'T' # trivial = 0/3
+                    if subRef[-1] == 'b':
+                        trivialImportanceRefs.remove( fgRef )
                 # Now adjust if we have OT quotes
                 if (BBB,C,V) in individualQuotedOTRefs['Possible'] or (BBB,C,V) in individualQuotedOTRefs['Allusion+Possible']:
                     if importance not in ('V','I'): # already
@@ -433,9 +452,17 @@ def create( initialTSVLines, referenceBible, collationVerseDict, splitVerseSet, 
                 if subRef in obscureClarityRefs:
                     clarity = 'O' # obscure = 1/3
                     obscureClarityRefs.remove( subRef )
+                elif fgRef in obscureClarityRefs:
+                    clarity = 'O' # obscure = 1/3
+                    if subRef[-1] == 'b':
+                        obscureClarityRefs.remove( fgRef )
                 elif subRef in unclearClarityRefs:
                     clarity = 'U' # unclear = 2/3
                     unclearClarityRefs.remove( subRef )
+                elif fgRef in unclearClarityRefs:
+                    clarity = 'U' # unclear = 2/3
+                    if subRef[-1] == 'b':
+                        unclearClarityRefs.remove( fgRef )
 
                 outputFile.write( f"{subRef}\t{importance}\t{textualIssue}\t{clarity}\t{comment}\n" )
                 numLinesWritten += 1
