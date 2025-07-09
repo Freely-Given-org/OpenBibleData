@@ -93,7 +93,7 @@ from html import checkHtml
 from OETHandlers import getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2025-07-02' # by RJH
+LAST_MODIFIED_DATE = '2025-07-07' # by RJH
 SHORT_PROGRAM_NAME = "usfm"
 PROGRAM_NAME = "OpenBibleData USFM to HTML functions"
 PROGRAM_VERSION = '0.92'
@@ -1602,7 +1602,7 @@ myKJB1611XrefTable = {
     'Amos':'AMO', 'amos':'AMO',
     'Apoc':'REV','apoc':'REV',
     '1. Chron':'CH1', '1.Chron':'CH1','1.chron':'CH1', '1 Chron':'CH1', '1.Chro':'CH1', '1.chro':'CH1', '1 chron':'CH1',
-    '2.Chron':'CH2', '2.Chr':'CH2','2.chr':'CH2',
+    '2.Chron':'CH2', '2.Chro':'CH2', '2.Chr':'CH2','2.chr':'CH2',
     '1.Corin':'CO1','1.corin':'CO1','1.Cor':'CO1','1.cor':'CO1',
     '2.Cor':'CO2','2.cor':'CO2',
     'coloss':'COL', 'Col':'COL', 'col':'COL',
@@ -1612,15 +1612,15 @@ myKJB1611XrefTable = {
     'Ephes':'EPH', 'ephes':'EPH', 'Eph':'EPH', 'eph':'EPH', 'ephe':'EPH',
     'Ester':'EST', 'Esth':'EST', 'Es':'EST', 'esth':'EST',
     'Exod':'EXO','exod':'EXO', 'Exo':'EXO',
-    'Ezech':'EZE','ezech':'EZE', 'Ezek':'EZE','ezek':'EZE',
+    'Ezech':'EZE','ezech':'EZE', 'Ezek':'EZE','ezek':'EZE', 'ezec':'EZE',
     'Ezra':'EZR',
     'Gene':'GEN','Gen':'GEN',
     'Galat':'GAL','galat':'GAL', 'Gal':'GAL','gal':'GAL',
     'Habac':'HAB','hab':'HAB', 'Abak':'HAB', 'Abac':'HAB',
     'Hagge':'HAG', 'Agge':'HAG',
     'Hebr':'HEB', 'hebr':'HEB', 'Heb':'HEB', 'heb':'HEB',
-    'Hose':'HOS', 'Hos':'HOS','hos':'HOS', 'Ose':'HOS',
-    'Isai':'ISA','isai':'ISA', 'Esai':'ISA', 'Esa':'ISA','Esay':'ISA','esay':'ISA','esai':'ISA','Isa':'ISA','isa':'ISA',
+    'Hose':'HOS', 'Hos':'HOS','hos':'HOS', 'Osee':'HOS', 'Ose':'HOS',
+    'Isai':'ISA','isai':'ISA', 'Esai':'ISA', 'Esa':'ISA','esa':'ISA', 'Esay':'ISA','esay':'ISA', 'esai':'ISA', 'Isa':'ISA','isa':'ISA',
     'Iames':'JAM', 'Iam':'JAM', 'iam':'JAM',
     'Iude':'JDE','iude':'JDE',
     'Iudg':'JDG',
@@ -1628,14 +1628,15 @@ myKJB1611XrefTable = {
     'Ier':'JER','ier':'JER','Ierem':'JER', 'Iere':'JER', 'iere':'JER',
     'Ioh':'JHN','ioh':'JHN','Iohn':'JHN','iohn':'JHN',
     '1.Iohn':'JN1','1.iohn':'JN1', 'I.Iohn':'JN1', '1.Ioh':'JN1','1.ioh':'JN1',
+    'Iona':'JNA',
     'Iob':'JOB','iob':'JOB',
-    'Ioel':'JOL',
+    'Ioel':'JOL','ioel':'JOL',
     'Iosh':'JOS','iosh':'JOS','Ios':'JOS','Iosu':'JOS',
     '1.Kings':'KI1', '1.King':'KI1', '1.Kin':'KI1','1.kin':'KI1',  '1.king':'KI1', '1 King':'KI1',
             '1.Reg':'KI1',
     '2.Kings':'KI2', '2.King':'KI2', '2.Kin':'KI2',
     'Lam':'LAM', 'lam':'LAM',
-    '4.Esdr':'LES',
+    '4.Esdr':'LES','4.Esd':'LES',
     'Leuit':'LEV','leuit':'LEV', 'Leui':'LEV','leui':'LEV', 'Leu':'LEV',
     'Luc':'LUK','luc':'LUK', 'Luk':'LUK', 'Luke':'LUK','luke':'LUK','luk':'LUK',
     '1.Macc':'MA1', '1 macc':'MA1', '1.Mac':'MA1',
@@ -1661,14 +1662,14 @@ myKJB1611XrefTable = {
     '2.tim':'TI2',
     'Tit':'TIT',
     'tob':'TOB',
-    'reuel':'REV', 'Reu':'REV','reu':'REV',
+    'Reuel':'REV','reuel':'REV', 'reue':'REV', 'Reu':'REV','reu':'REV',
     'Rom':'ROM', 'rom':'ROM',
     'ecclus':'SIR', 'Ecclus':'SIR', # Sirach / Ecclesiasticus
     '1.Tim':'TI1',
     'Wisd':'WIS', 'Wis':'WIS', 'wisd':'WIS', 'wis':'WIS',
-    'Zach':'ZEC', 'Zac':'ZEC',
+    'Zach':'ZEC','zach':'ZEC',  'Zac':'ZEC',
     }
-BCVRefRegEx = re.compile( '([1234I]?[ .]?[A-Za-z][a-z]{0,12})\\.? ?([1-9][0-9]{0,2})[:.–] ?([1-9][0-9]{0,2})' ) # Can have en-dash for chapter range
+BCVRefRegEx = re.compile( '(?: ?and)? ?([1234I]?[ .]?[A-Za-z][a-z]{0,12})\\.? ?([1-9][0-9]{0,2})[:.–] ?([1-9][0-9]{0,2})' ) # Can have en-dash for chapter range
 BVRefRegEx = re.compile( '([1234I]?[ .]?[A-Za-z][a-z]{0,12})\\.? ?([1-9][0-9]{0,2})' ) # For single-chapter book or for whole chapter
 CVRefRegEx = re.compile( '([1-9][0-9]{0,2})[:.]([1-9][0-9]{0,2})' )
 def livenXRefField( versionAbbreviation:str, refTuple:tuple, segmentType:str, pathPrefix:str, xoText:str, xrefOriginalMiddle:str, state:State ) -> str:
@@ -1687,11 +1688,13 @@ def livenXRefField( versionAbbreviation:str, refTuple:tuple, segmentType:str, pa
     xrefLiveMiddle = xrefOriginalMiddle
 
     if versionAbbreviation == 'RV':
-        xrefLiveMiddle = xrefLiveMiddle \
-                            .replace( 'xxxix.', '39.' ).replace( 'xxxviii.', '38.' ).replace( 'xxxvii.', '37.' ).replace( 'xxxvi.', '36.' ).replace( 'xxxv.', '35.' ).replace( 'xxxiv.', '34.' ).replace( 'xxxiii.', '33.' ).replace( 'xxxii.', '32.' ).replace( 'xxxi.', '31.' ).replace( 'xxx.', '30.' ) \
-                            .replace( 'xxix.', '29.').replace( 'xxviii.', '28.').replace( 'xxvii.', '27.').replace( 'xxvi.', '26.').replace( 'xxv.', '25.').replace( 'xxiv.', '24.').replace( 'xxiii.', '23.').replace( 'xxii.', '22.').replace( 'xxi.', '21.').replace( 'xx.', '20.') \
-                            .replace( 'xix.', '19.' ).replace( 'xviii.', '18.' ).replace( 'xvii.', '17.' ).replace( 'xvi.', '16.' ).replace( 'xv.', '15.' ).replace( 'xiv.', '14.' ).replace( 'xiii.', '13.' ).replace( 'xii.', '12.' ).replace( 'xi.', '11.' ).replace( 'x.', '10.' ) \
+        xrefLiveMiddle = ( xrefLiveMiddle \
+                            .replace( 'xxxix.', '39.' ).replace( 'xxxviii.', '38.' ).replace( 'xxxvii.', '37.' ).replace( 'xxxvi.', '36.' ).replace( 'xxxv.', '35.' ).replace( 'xxxiv.', '34.' ).replace( 'xxxiii.', '33.' ).replace( 'xxxii.', '32.' ).replace( 'xxxi.', '31.' ).replace( 'xxx.', '30.' )
+                            .replace( 'xxix.', '29.').replace( 'xxviii.', '28.').replace( 'xxvii.', '27.').replace( 'xxvi.', '26.').replace( 'xxv.', '25.').replace( 'xxiv.', '24.').replace( 'xxiii.', '23.').replace( 'xxii.', '22.').replace( 'xxi.', '21.').replace( 'xx.', '20.')
+                            .replace( 'xix.', '19.' ).replace( 'xviii.', '18.' ).replace( 'xvii.', '17.' ).replace( 'xvi.', '16.' ).replace( 'xv.', '15.' ).replace( 'xiv.', '14.' ).replace( 'xiii.', '13.' ).replace( 'xii.', '12.' ).replace( 'xi.', '11.' ).replace( 'x.', '10.' )
                             .replace( 'ix.', '9.' ).replace( 'viii.', '8.' ).replace( 'vii.', '7.' ).replace( 'vi.', '6.' ).replace( 'iv.', '4.' ).replace( 'v.', '5.' ).replace( 'iii.', '3.' ).replace( 'ii.', '2.' ).replace( 'i.', '1.' )
+                            .replace( ' iii ',' iii.') # Fixes an inconsistency
+                        )
     elif versionAbbreviation == 'KJB-1611':
         xrefLiveMiddle = xrefLiveMiddle.replace( 'A&s', 'Acts' )
 
@@ -1735,7 +1738,7 @@ def livenXRefField( versionAbbreviation:str, refTuple:tuple, segmentType:str, pa
             elif versionAbbreviation == 'KJB-1611':
                 try: xBBB = myKJB1611XrefTable[xB]
                 except KeyError:
-                    # dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  {versionAbbreviation} {BBB}  '{xB}'  wasn't in the table from '{xrefOriginalMiddle}'")
+                    dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  {versionAbbreviation} {BBB}  '{xB}'  wasn't in the table from '{xrefOriginalMiddle}'")
                     adjXB = ( xB # Fix KJB-1611 spellings -- what's Apoc/apoc and nnm ???
                             .replace( '1.','1 ' ).replace( '2.','2 ' ).replace( '3.','3 ' ).replace( '4.','4 ' ) # Should BOS handle this???
                             .replace( 'I.','1 ' )
@@ -1750,7 +1753,7 @@ def livenXRefField( versionAbbreviation:str, refTuple:tuple, segmentType:str, pa
                 xBBB = getBBBFromOETBookName( xB )
             # We can leave this block of code without being successful finding xBBB -- it's checked below
         if firstIndex==indexBV and firstIndex!=indexBCV: # process matchBV (if it's not also a matchBCV)
-            # dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} {refTuple} {xoText=} {xrefLiveMiddle=} {matchBV.groups()=}" )
+            dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} {refTuple} {xoText=} {xrefLiveMiddle=} {matchBV.groups()=}" )
             xCorV = match.group( 2 )
             if versionAbbreviation=='KJB-1611' and xB in ('Verse','Vers','ver','and'):
                 xBBB, xV = BBB, xCorV # This same book where the xref is located
@@ -1760,7 +1763,7 @@ def livenXRefField( versionAbbreviation:str, refTuple:tuple, segmentType:str, pa
                 dPrint( 'Info', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} {refTuple=} {xB=} {BBB} {xC}:{xV}" )
                 assert xC.isdigit(), f"{versionAbbreviation} {refTuple=} {xB=} {BBB} {xC}:{xV} from {xoText=} {xrefOriginalMiddle=}"
             else: # Could be a single-chapter book
-                # dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Possible single-chapter book: {versionAbbreviation} {refTuple} {xB=}" )
+                dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Possible single-chapter book: {versionAbbreviation} {refTuple} {xB=}" )
                 if not xBBB:
                     logging.critical( f"Unable to liven cross-reference from {versionAbbreviation} {refTuple} for {xBBB=} from {xB=} from {xrefLiveMiddle=} from {xoText=} {xrefOriginalMiddle=}" )
                 try: singleChapterFlag = BibleOrgSysGlobals.loadedBibleBooksCodes.isSingleChapterBook( xBBB )
@@ -1799,7 +1802,7 @@ def livenXRefField( versionAbbreviation:str, refTuple:tuple, segmentType:str, pa
             #         logging.critical( f"Unable to liven cross-reference from {versionAbbreviation} {refTuple} for {xBBB=} {xC=} {xV=} from {xB=} from {xrefOriginalMiddle=}" )
             # # if versionAbbreviation=='KJB-1611' and not xBBB: # still
             # #     print( f"  {versionAbbreviation} {xBBB=} {xC=} {xV=} from {xB=} from {xrefOriginalMiddle=}" )
-        assert xBBB, f"{versionAbbreviation} {refTuple} from {xB=} from {xrefOriginalMiddle=}"
+        assert xBBB and xBBB not in ('CHR',), f"{versionAbbreviation} {refTuple} from {xB=} from {xrefOriginalMiddle=}"
         lastXBBB = xBBB
         dPrint( 'Info', DEBUGGING_THIS_MODULE, f"Got {versionAbbreviation} {xBBB} from {refTuple} {match.groups()=} from {xoText=} {xrefLiveMiddle=}" )
         assert xC.isdigit(), f"{versionAbbreviation} {refTuple} {xC=} {match.groups()}"
