@@ -104,7 +104,7 @@ from OETHandlers import getOETTidyBBB, getOETBookName, livenOETWordLinks, getHeb
 from spellCheckEnglish import spellCheckAndMarkHTMLText
 
 
-LAST_MODIFIED_DATE = '2025-07-05' # by RJH
+LAST_MODIFIED_DATE = '2025-07-09' # by RJH
 SHORT_PROGRAM_NAME = "createParallelVersePages"
 PROGRAM_NAME = "OpenBibleData createParallelVersePages functions"
 PROGRAM_VERSION = '0.98'
@@ -470,7 +470,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                 modernisedTextHtml = moderniseEnglishWords( footnoteFreeTextHtml, allowOptions=True ) # Can return words like 'hateth/hates'
                                 if versionAbbreviation in ('KJB-1611','Bshps','Gnva','Cvdl','TNT','Wycl'):
                                     modernisedTextHtml = modernisedTextHtml.replace( 'J', 'Y' ).replace( 'Ie', 'Ye' ).replace( 'Io', 'Yo' ) \
-                                                                    .replace( 'Yewel', 'Jewel' ).replace( 'Yudge', 'Judge' ).replace( 'Yust', 'Just' ).replace( 'KYB', 'KJB' ) # Fix overreaches
+                                                                    .replace( 'Yewel', 'Jewel' ).replace( 'Yudge', 'Judge' ).replace( 'Yuniper', 'Juniper' ).replace( 'Yust', 'Just' ).replace( 'KYB', 'KJB' ) # Fix overreaches
                                 modernisedTextDiffers = modernisedTextHtml != footnoteFreeTextHtml # we'll usually only show it if it changed
                                 if DO_SPELL_CHECKS:
                                     modernisedTextHtml = spellCheckAndMarkHTMLText( versionAbbreviation, parRef, modernisedTextHtml, footnoteFreeTextHtml, state ) # Puts spans around mispellings

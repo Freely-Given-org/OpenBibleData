@@ -55,7 +55,7 @@ PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
 
-OET_VERSION_NUMBER_STRING = 'v0.42.04' # Incremented on most runs
+OET_VERSION_NUMBER_STRING = 'v0.42.07' # Incremented on most runs
 
 TEST_MODE = True # Writes website into 'Test' subfolder if True
 TEST_OT_BOOK_LIST = ['PSA','ECC'] # Books in progress
