@@ -75,6 +75,7 @@ CHANGELOG:
     2025-05-30 Tried to improve tables (esp. for T4T Ezra)
     2025-05-31 Add handling of northern/southern kingdom colouring
     2025-06-24 Move livening xrefs into a function, and apply it to xt fields inside footnotes as well.
+    2025-07-11 Try to improve handling of 'ver. 4' in a footnote (not an xref)
 """
 from gettext import gettext as _
 import re
@@ -93,7 +94,7 @@ from html import checkHtml
 from OETHandlers import getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2025-07-07' # by RJH
+LAST_MODIFIED_DATE = '2025-07-11' # by RJH
 SHORT_PROGRAM_NAME = "usfm"
 PROGRAM_NAME = "OpenBibleData USFM to HTML functions"
 PROGRAM_VERSION = '0.92'
@@ -965,12 +966,12 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                         fNoteXTrestEndIx = fNoteXTrest.find( '\\' )
                         if fNoteXTrestEndIx == -1: # no more subfields in this
                             fNoteContinuation = ''
-                            livenedFootnoteXref = livenXRefField( versionAbbreviation, refTuple, segmentType, pathPrefix, 'footnoteXT', fNoteXTrest, state )
+                            livenedFootnoteXref = livenXRefField( 'f', versionAbbreviation, refTuple, segmentType, pathPrefix, frText, fNoteXTrest, state )
                             fnoteMiddle = f'{fnoteMiddle[:internalStartIx]}{span}{livenedFootnoteXref}' # {fnoteMiddle[internalStartIx+len(fMarker)+2:]}
                         else: # Only go up to the next field
                             fNoteXTrest, fNoteContinuation = fNoteXTrest[:fNoteXTrestEndIx], fNoteXTrest[fNoteXTrestEndIx:]
                             # print( f"{fNoteXTrest=} {fNoteContinuation=}" )
-                        livenedFootnoteXref = livenXRefField( versionAbbreviation, refTuple, segmentType, pathPrefix, 'footnoteXT', fNoteXTrest, state )
+                        livenedFootnoteXref = livenXRefField( 'f', versionAbbreviation, refTuple, segmentType, pathPrefix, frText, fNoteXTrest, state )
                         fnoteMiddle = f'{fnoteMiddle[:internalStartIx]}{span}{livenedFootnoteXref}{fNoteContinuation}'
                     else: # it's a regular footnote format field (not an xt field inside a footnote)
                         fnoteMiddle = f'{fnoteMiddle[:internalStartIx]}{span}{fnoteMiddle[internalStartIx+len(fMarker)+2:]}'
@@ -1099,7 +1100,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
         # print( f" {xrefLiveMiddle=}")
         assert xrefLiveMiddle.count('\\xo ') == xrefLiveMiddle.count('\\xo '), f"{xrefLiveMiddle=}"
         xrefLiveMiddle = xrefLiveMiddle.replace('\\xo ','<b>').replace('\\xt ','</b>') # Fix things like "Gen 25:9-10; \\xo b \\xt Gen 35:29."
-        xrefLiveMiddle = livenXRefField( versionAbbreviation, refTuple, segmentType, pathPrefix, xoText, xrefLiveMiddle, state )
+        xrefLiveMiddle = livenXRefField( 'x', versionAbbreviation, refTuple, segmentType, pathPrefix, xoText, xrefLiveMiddle, state )
 
         # Now create the caller and the actual xref
         xrefCaller = f'<span class="xrCaller">[<a title="See also {xrefOriginalMiddle}" href="#xr{crossReferencesCount}">ref</a>]</span>' # was †
@@ -1672,7 +1673,7 @@ myKJB1611XrefTable = {
 BCVRefRegEx = re.compile( '(?: ?and)? ?([1234I]?[ .]?[A-Za-z][a-z]{0,12})\\.? ?([1-9][0-9]{0,2})[:.–] ?([1-9][0-9]{0,2})' ) # Can have en-dash for chapter range
 BVRefRegEx = re.compile( '([1234I]?[ .]?[A-Za-z][a-z]{0,12})\\.? ?([1-9][0-9]{0,2})' ) # For single-chapter book or for whole chapter
 CVRefRegEx = re.compile( '([1-9][0-9]{0,2})[:.]([1-9][0-9]{0,2})' )
-def livenXRefField( versionAbbreviation:str, refTuple:tuple, segmentType:str, pathPrefix:str, xoText:str, xrefOriginalMiddle:str, state:State ) -> str:
+def livenXRefField( fieldType:str, versionAbbreviation:str, refTuple:tuple, segmentType:str, pathPrefix:str, xoText:str, xrefOriginalMiddle:str, state:State ) -> str:
     """
     Given the middle of a cross-reference or the xt field from a footnote,
         return the text but with the xref(s) in it livened.
@@ -1680,7 +1681,8 @@ def livenXRefField( versionAbbreviation:str, refTuple:tuple, segmentType:str, pa
     State parameter is only used for the OET-RV.
     """
     from createSectionPages import findSectionNumber
-    fnPrint( DEBUGGING_THIS_MODULE, f"livenXRefField( {versionAbbreviation}, {refTuple}, {segmentType}, '{pathPrefix}', {xoText=}, {xrefOriginalMiddle=} )" )
+    fnPrint( DEBUGGING_THIS_MODULE, f"livenXRefField( {fieldType}, {versionAbbreviation}, {refTuple}, {segmentType}, '{pathPrefix}', {xoText=}, {xrefOriginalMiddle=} )" )
+    assert fieldType in 'fx'
 
     # TODO: The following code does not work for one chapter books (Jude 5), additional Vs (Mrk 3:4,5), or additional CVs (Mrk 3:4; 4:5)
     # TODO: The following code is untidy, not including combined verses in the link, e.g., Mrk 3:4-5
@@ -1742,7 +1744,7 @@ def livenXRefField( versionAbbreviation:str, refTuple:tuple, segmentType:str, pa
                     adjXB = ( xB # Fix KJB-1611 spellings -- what's Apoc/apoc and nnm ???
                             .replace( '1.','1 ' ).replace( '2.','2 ' ).replace( '3.','3 ' ).replace( '4.','4 ' ) # Should BOS handle this???
                             .replace( 'I.','1 ' )
-    
+
                             .replace( 'Ie', 'Je' )
                             .replace( 'Io', 'Jo' )
                             )
@@ -1759,7 +1761,7 @@ def livenXRefField( versionAbbreviation:str, refTuple:tuple, segmentType:str, pa
                 xBBB, xV = BBB, xCorV # This same book where the xref is located
                 try: xC = refTuple[1]
                 except IndexError: # no chapter number given there -- use the xoText instead
-                    xC = xoText.split( ':' )[0]
+                    xC = xoText.split( ':' )[0] if xoText and xoText.count(':')==1 else '?'
                 dPrint( 'Info', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} {refTuple=} {xB=} {BBB} {xC}:{xV}" )
                 assert xC.isdigit(), f"{versionAbbreviation} {refTuple=} {xB=} {BBB} {xC}:{xV} from {xoText=} {xrefOriginalMiddle=}"
             else: # Could be a single-chapter book
@@ -1788,7 +1790,7 @@ def livenXRefField( versionAbbreviation:str, refTuple:tuple, segmentType:str, pa
             #         adjXB = ( xB # Fix KJB-1611 spellings -- what's Apoc/apoc and nnm ???
             #                 .replace( '1.','1 ' ).replace( '2.','2 ' ).replace( '3.','3 ' ).replace( '4.','4 ' ) # Should BOS handle this???
             #                 .replace( 'I.','1 ' )
-    
+
             #                 .replace( 'Ie', 'Je' )
             #                 .replace( 'Io', 'Jo' )
             #                 )
@@ -1840,10 +1842,10 @@ def livenXRefField( versionAbbreviation:str, refTuple:tuple, segmentType:str, pa
             # print( f"       {level=} {versionAbbreviation} {refTuple} {segmentType} {pathPrefix=}")
             adjPathPrefix = pathPrefix.replace('byC','bySec') if pathPrefix else '../bySec/'
             assert 'bySec' in adjPathPrefix, f"{pathPrefix=} {adjPathPrefix=}"
-            inside = f'<a title="View {'' if xoText=='footnoteXT' else 'cross '}reference" href="{adjPathPrefix.replace('byC','bySec')}{xBBB}_S{sectionNumber}.htm#C{xC}V{xV}">{matchInner}</a>'
+            inside = f'<a title="View {'' if fieldType=='x' else 'cross '}reference" href="{adjPathPrefix.replace('byC','bySec')}{xBBB}_S{sectionNumber}.htm#C{xC}V{xV}">{matchInner}</a>'
             xrefLiveMiddle = f'''{xrefLiveMiddle[:match.start()]}{inside}{xrefLiveMiddle[matchEnd:]}'''
         else: # not OET-RV -- link to the chapter page
-            inside = f'<a title="View {'' if xoText=='footnoteXT' else 'cross '}reference" href="{pathPrefix}{xBBB}_C{xC}.htm#C{xC}V{xV}">{matchInner}</a>'
+            inside = f'<a title="View {'' if fieldType=='x' else 'cross '}reference" href="{pathPrefix}{xBBB}_C{xC}.htm#C{xC}V{xV}">{matchInner}</a>'
             xrefLiveMiddle = f'{xrefLiveMiddle[:match.start()]}{inside}{xrefLiveMiddle[matchEnd:]}'
         reStartIx = match.start() + len(inside) # exact number of characters that we add (otherwise we get mistakes/overlaps)
         # # NOTE: The above code can leave us pointing to a range, e.g., Deu 1:19-2:2 would leave us at the hyphen
@@ -1903,7 +1905,7 @@ def fullDemo() -> None:
     state = State()
     for testField in ( 'Exod. 17.5 and 20:9 &c.', 'Verse. 7', 'Verse.7' ):
         print( f"\n{testField=}" )
-        result = livenXRefField( 'KJB-1611', ('GEN','1','1'), '', '', '1:1', testField, state )
+        result = livenXRefField( 'f', 'KJB-1611', ('GEN','1','1'), '', '', '1:1', testField, state )
         print( f"  {result=}" )
 # end of usfm.fullDemo
 
