@@ -470,7 +470,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                        'ior', 'vp',
                        'nd','wj','d','bk','qt','sc',
                        'qs','sig',
-                        'ft', 'fnRef','fnText', # 'f', # We intentionally omit 'fr'
+                        'ft','fk', 'fnRef','fnText', # 'f', # We intentionally omit 'fr' -- why???
                         'li1','li2','li3',
                         'theb','va', # in NET
                         'ul',
@@ -563,7 +563,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
         except IndexError: nextWord = '' # at end
 
         if word in ('◙','…','…◙','◘'): continue # Untranslated or not-yet-translated verse
-        if word.startswith( '###' ): continue # it's an fr or xo field
+        # if word.startswith( '###' ): continue # it's an fr or xo field BUT COMMENTED OUT ABOVE
         if 'ā' in word or 'ē' in word or 'ī' in word or 'ō' in word or 'ū' in word: continue # It's a transliteration
         if 'Ā' in word or 'Ē' in word or 'Ī' in word or 'Ō' in word or 'Ū' in word: continue # It's a transliteration
         if 'ⱪ' in word or 'ʦ' in word or 'ʸ' in word: continue # It's a transliteration
