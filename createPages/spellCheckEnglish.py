@@ -455,6 +455,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
     for divMarker in ( 'bookHeader','bookIntro',
                       'iot',
                       's1',
+                      'footnotes',
                         ):
         cleanedText =  cleanedText.replace( f'<div class="{divMarker}">', '' ).replace( f'<!--{divMarker}-->', '' )
     for paragraphMarker in ( 'id','rem',
@@ -463,6 +464,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                         'ms1','ms2',
                         's1',
                         'p', # OEB CH1_-1:0 uses p instead of ip!
+                        'fn',
                         ):
         cleanedText =  cleanedText.replace( f'<p class="{paragraphMarker}">', '' )
     for spanMarker in ('add','addArticle','addExtra','addCopula','addDirectObject', # TODO: Why don't these have title fields???
