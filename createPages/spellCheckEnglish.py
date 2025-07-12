@@ -44,10 +44,10 @@ from BibleOrgSys import BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import vPrint, fnPrint, dPrint, rreplace
 
 
-LAST_MODIFIED_DATE = '2025-07-02' # by RJH
+LAST_MODIFIED_DATE = '2025-07-12' # by RJH
 SHORT_PROGRAM_NAME = "spellCheckEnglish"
 PROGRAM_NAME = "English Bible Spell Check"
-PROGRAM_VERSION = '0.51'
+PROGRAM_VERSION = '0.52'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -314,7 +314,7 @@ RV_ADD_REGEX = re.compile( '<span class="RVadd" [^>]+?>' )
 FOOTNOTE_Ps_REGEX = re.compile( '<p class="fn" id="fn[1-9]">' )
 FOOTNOTES_DIV_REGEX = re.compile( '<div id="footnotes" class="footnotes">.+?</div><!--footnotes-->' )
 CROSSREFS_DIV_REGEX = re.compile( '<div id="crossRefs" class="crossRefs">.+?</div><!--crossRefs-->' )
-def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck:str, originalHTMLText:str, state ) -> str:
+def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck:str, originalHTMLTextForDebugging:str, state ) -> str:
     """
     Puts a span around suspected misspelt words
 
@@ -341,7 +341,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
          wordSet = BRITISH_WORD_SET
     else:
         raise ValueError( f"Unknown spell-check language for {versionAbbreviation} {state.BibleLanguages[versionAbbreviation]=}" )
-    
+
 
     # Specific words expected in specific versions
     if versionAbbreviation in ('OET','OET-RV','OET-LV'):
@@ -402,7 +402,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
         cleanedText =  ( cleanedText
                     .replace( '<span title="alternative translation">◄</span>', '' )
                     .replace( '►', '' ) # Delete end of alternative translation
-    
+
                     # Some of these can occur doubly, e.g., [MET, DOU], so that's what the second column here covers (without the square brackets)
                     .replace( '<span class="t4tFoS" title="apostrophe (figure of speech)">[APO]</span>', '' ).replace( '<span class="t4tFoS" title="apostrophe (figure of speech)">APO</span>', '' )
                     .replace( '<span class="t4tFoS" title="chiasmus (figure of speech)">[CHI]</span>', '' ).replace( '<span class="t4tFoS" title="chiasmus (figure of speech)">CHI</span>', '' )
@@ -580,7 +580,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                 or word.endswith('?') or word.endswith('!') \
                 or word.endswith(':') or word.endswith(';') \
                 or word.endswith(')') or word.endswith(']') \
-                or word.endswith('…'): 
+                or word.endswith('…'):
                     word = word[:-1]
             if not word: break
 
@@ -622,14 +622,14 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                         and 'PSA' not in location) # coz Wycl versification doesn't usually match anyway
                             or 'twas' in word )
                         and word not in ('OK','NOT','SURE','TOO','LITERAL')
-                    else 'Info', DEBUGGING_THIS_MODULE, f'''    {word} is suspect {wordSetName} @ {location} from {originalHTMLText=}''' )
+                    else 'Info', DEBUGGING_THIS_MODULE, f'''    {word} is suspect {wordSetName} @ {location} from {originalHTMLTextForDebugging=}''' )
             else: # Luth or ClVg
                 vPrint( 'Normal' if word.upper()==word
                        or word in ('illis','illi','tuum','eis','eo','tuis','aut','Ende','tuæ','mihi','Tu','tu','Domine','meam','yudgment',
                                    'ihn','als','tut','terra','es','childrens','Zeit','macht','loben','sind','yudgement','se','meas',
                                    'dico','tamquam','tuorum','sie','sich','nobis','auf','gentes','irh','nostri',
                                    'sua','suo','Wege','lobet','dich','fuit','regem','ac','seid','euer','er',)
-                    else 'Info', DEBUGGING_THIS_MODULE, f'''    {word} is suspect @ {location} from {originalHTMLText=}''' )
+                    else 'Info', DEBUGGING_THIS_MODULE, f'''    {word} is suspect @ {location} from {originalHTMLTextForDebugging=}''' )
             if versionAbbreviation == 'Luth':
                 BAD_GERMAN_WORD_SET.add( word )
                 BAD_GERMAN_WORD_LIST.append( (word,location) )

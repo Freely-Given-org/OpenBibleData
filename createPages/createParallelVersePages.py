@@ -71,6 +71,7 @@ CHANGELOG:
     2025-04-02 Add English spell checks in TEST MODE
     2025-05-23 Added link to Scriptura Psalms Layer-by-Layer
     2025-07-05 Added link to Hebrew Phrasing pages for OT verses
+    2025-07-12 Spell-check translated Luth and ClVg footnotes
 """
 from pathlib import Path
 import os
@@ -104,7 +105,7 @@ from OETHandlers import getOETTidyBBB, getOETBookName, livenOETWordLinks, getHeb
 from spellCheckEnglish import spellCheckAndMarkHTMLText
 
 
-LAST_MODIFIED_DATE = '2025-07-09' # by RJH
+LAST_MODIFIED_DATE = '2025-07-12' # by RJH
 SHORT_PROGRAM_NAME = "createParallelVersePages"
 PROGRAM_NAME = "OpenBibleData createParallelVersePages functions"
 PROGRAM_VERSION = '0.98'
@@ -642,6 +643,8 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                     adjustedForeignTextHtml = translateFunction( footnoteFreeTextHtml.replace( f'<span class="{versionAbbreviation}_verseTextChunk">', f'<span class="{versionAbbreviation}_trans">') )
                                     if footnotesHtml:
                                         translatedFootnotesHtml = removeDuplicateFNids( parRef, f'{footnotesHtml}__JOIN__{translateFunction( footnotesHtml.replace(f' id="footnotes{versionAbbreviation}"','') )}' ).split( '__JOIN__' )[1]
+                                        if DO_SPELL_CHECKS:
+                                            translatedFootnotesHtml = spellCheckAndMarkHTMLText( versionAbbreviation, parRef, translatedFootnotesHtml, footnotesHtml, state ) # Puts spans around mispellings
                                 if adjustedForeignTextHtml and adjustedForeignTextHtml != textHtml: # only show it if it changed
                                     if DO_SPELL_CHECKS:
                                         adjustedForeignTextHtml = spellCheckAndMarkHTMLText( versionAbbreviation, parRef, adjustedForeignTextHtml, footnoteFreeTextHtml, state ) # Puts spans around mispellings
@@ -914,7 +917,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                         except AssertionError as ae: print( ae )
                     if versionAbbreviation in state.versionComments \
                     and parRef in state.versionComments[versionAbbreviation]:
-                        optionalTextSegment,comment = state.versionComments[versionAbbreviation][parRef]                 
+                        optionalTextSegment,comment = state.versionComments[versionAbbreviation][parRef]
                         parallelHtml = f'''{parallelHtml}{NEWLINE if parallelHtml else ''}<p class="editorsNote"><b>OET editor’s note on {versionAbbreviation}</b>: {f"<i>{optionalTextSegment}</i>: " if optionalTextSegment else ''}{comment}</p>'''
                     try: assert checkHtml( f"End of parallel pass for {versionAbbreviation} {parRef}", parallelHtml.replace('<div class="hideables">\n',''), segmentOnly=True ) # hideables isn't ended yet
                     except AssertionError as ae: print( ae )
