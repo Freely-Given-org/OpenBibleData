@@ -105,7 +105,7 @@ from OETHandlers import getOETTidyBBB, getOETBookName, livenOETWordLinks, getHeb
 from spellCheckEnglish import spellCheckAndMarkHTMLText
 
 
-LAST_MODIFIED_DATE = '2025-07-12' # by RJH
+LAST_MODIFIED_DATE = '2025-07-17' # by RJH
 SHORT_PROGRAM_NAME = "createParallelVersePages"
 PROGRAM_NAME = "OpenBibleData createParallelVersePages functions"
 PROGRAM_VERSION = '0.98'
@@ -940,7 +940,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
 
                 if BBB == 'PSA' and c>=0: # Provide a link to Scriptura Psalms Layer-by-Layer
                     plblHtml = f'''See the Scriptura Psalm Layer-by-Layer <a href="https://psalms.scriptura.org/w/Psalm_Overview_{C}">analysis overview</a>.
-<br>  See the Scriptura Psalm Layer-by-Layer <a href="https://psalms.scriptura.org/w/Psalm_{C}_Verse-by-Verse#v._{V}">analysis for this verse</a>.'''
+<br>  <small>See the Scriptura Psalm Layer-by-Layer <a href="https://psalms.scriptura.org/w/Psalm_{C}_Verse-by-Verse#v._{V}">analysis for this verse</a> (but this link requires making an account there)</small>.'''
                     plblHtml = f'''<div id="PLBL" class="parallelPLBL"><a title="Go to PLBL copyright page" href="{'../'*BBBLevel}PLBL/details.htm#Top">PLBL</a> <b>Psalms Layer-by-Layer</b>: {plblHtml}</div><!--end of PLBL-->'''
                     parallelHtml = f'{parallelHtml}\n<hr style="width:50%;margin-left:0;margin-top: 0.3em">\n{plblHtml}'
 

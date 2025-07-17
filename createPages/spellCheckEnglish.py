@@ -378,7 +378,8 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
     elif versionAbbreviation == 'Luth':
         wordSet.update( ('Yuda',) )
     elif versionAbbreviation == 'ClVg':
-        wordSet.update( ('Moyses','Yuda') )
+        wordSet.update( ('Moyses','Sion','Yuda',
+                         'AUG','CASS','ID','THEOD') )
 
     # vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Checking spelling of {versionAbbreviation} {ref} '{originalHTMLText}' …" )
     # if '0' not in ref and '-1' not in ref: halt
