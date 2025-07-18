@@ -106,10 +106,10 @@ from OETHandlers import findLVQuote, getBBBFromOETBookName
 from Dict import loadAndIndexUBSGreekDictJSON, loadAndIndexUBSHebrewDictJSON
 
 
-LAST_MODIFIED_DATE = '2025-06-27' # by RJH
+LAST_MODIFIED_DATE = '2025-07-17' # by RJH
 SHORT_PROGRAM_NAME = "Bibles"
 PROGRAM_NAME = "OpenBibleData Bibles handler"
-PROGRAM_VERSION = '0.89'
+PROGRAM_VERSION = '0.90'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -1299,7 +1299,7 @@ def getVerseDataListForReference( givenRefString:str, thisBible:Bible, lastBBB:s
                     for refC in range( int(refStartC)+1, int(refFinalC)+1 ):
                         verseEntryList += thisBible.getVerseDataList( (refBBB,str(refC)) )
                 else: noColon2b
-            else: # no comma, hyphen or en-dash, so presumably just a single verse
+            else: # no comma, hyphen or en-dash, so presumably just a single verse or else an entire chapter
                 if ':' in refCVpart:
                     refStartC, refVpart = refCVpart.split( ':' )
                     assert refStartC.isdigit()
@@ -1309,9 +1309,10 @@ def getVerseDataListForReference( givenRefString:str, thisBible:Bible, lastBBB:s
                     refStartC, refStartV = '1', refCVpart
                     assert refStartV.isdigit()
                     verseEntryList, contextList = thisBible.getContextVerseData( (refBBB,refStartC,refStartV) )
-                else: # not a single chapter book, and has no colon
+                else: # not a single chapter book, and has no colon, so let's assume it's an entire chapter
                     print( f"{thisBible.abbreviation} {givenRefString=} {bookAbbreviation=} {refBBB=} {refCVpart=} {refIsSingleChapterBook=} {lastBBB=} {lastC=}" )
-                    noColon3b
+                    refStartC = refCVpart
+                    verseEntryList, contextList = thisBible.getContextVerseData( (refBBB,refStartC) )
     except KeyError: # if can't find any verseEntries
         logging.error( f"getVerseDataListForReference {givenRefString=} was unable to find {refBBB} {refStartC}:{refStartV} from {givenRefString=}" )
 
