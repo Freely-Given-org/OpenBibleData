@@ -44,7 +44,7 @@ from BibleOrgSys import BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import vPrint, fnPrint, dPrint, rreplace
 
 
-LAST_MODIFIED_DATE = '2025-07-12' # by RJH
+LAST_MODIFIED_DATE = '2025-07-20' # by RJH
 SHORT_PROGRAM_NAME = "spellCheckEnglish"
 PROGRAM_NAME = "English Bible Spell Check"
 PROGRAM_VERSION = '0.52'
@@ -379,7 +379,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
         wordSet.update( ('Yuda',) )
     elif versionAbbreviation == 'ClVg':
         wordSet.update( ('Moyses','Sion','Yuda',
-                         'AUG','CAS','CASS','ID','THEOD') )
+                         'AUG','CAS','CASS','HIER','ID','THEOD') )
 
     # vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Checking spelling of {versionAbbreviation} {ref} '{originalHTMLText}' …" )
     # if '0' not in ref and '-1' not in ref: halt
