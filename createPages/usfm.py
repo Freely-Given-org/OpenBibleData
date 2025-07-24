@@ -94,7 +94,7 @@ from html import checkHtml
 from OETHandlers import getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2025-07-11' # by RJH
+LAST_MODIFIED_DATE = '2025-07-24' # by RJH
 SHORT_PROGRAM_NAME = "usfm"
 PROGRAM_NAME = "OpenBibleData USFM to HTML functions"
 PROGRAM_VERSION = '0.92'
@@ -1757,7 +1757,7 @@ def livenXRefField( fieldType:str, versionAbbreviation:str, refTuple:tuple, segm
         if firstIndex==indexBV and firstIndex!=indexBCV: # process matchBV (if it's not also a matchBCV)
             dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} {refTuple} {xoText=} {xrefLiveMiddle=} {matchBV.groups()=}" )
             xCorV = match.group( 2 )
-            if versionAbbreviation=='KJB-1611' and xB in ('Verse','Vers','ver','and'):
+            if versionAbbreviation=='KJB-1611' and xB in ('Verse','Vers','Ver','ver','and'):
                 xBBB, xV = BBB, xCorV # This same book where the xref is located
                 try: xC = refTuple[1]
                 except IndexError: # no chapter number given there -- use the xoText instead
@@ -1842,10 +1842,10 @@ def livenXRefField( fieldType:str, versionAbbreviation:str, refTuple:tuple, segm
             # print( f"       {level=} {versionAbbreviation} {refTuple} {segmentType} {pathPrefix=}")
             adjPathPrefix = pathPrefix.replace('byC','bySec') if pathPrefix else '../bySec/'
             assert 'bySec' in adjPathPrefix, f"{pathPrefix=} {adjPathPrefix=}"
-            inside = f'<a title="View {'' if fieldType=='x' else 'cross '}reference" href="{adjPathPrefix.replace('byC','bySec')}{xBBB}_S{sectionNumber}.htm#C{xC}V{xV}">{matchInner}</a>'
+            inside = f'<a title="View {'cross ' if fieldType=='x' else ''}reference" href="{adjPathPrefix.replace('byC','bySec')}{xBBB}_S{sectionNumber}.htm#C{xC}V{xV}">{matchInner}</a>'
             xrefLiveMiddle = f'''{xrefLiveMiddle[:match.start()]}{inside}{xrefLiveMiddle[matchEnd:]}'''
         else: # not OET-RV -- link to the chapter page
-            inside = f'<a title="View {'' if fieldType=='x' else 'cross '}reference" href="{pathPrefix}{xBBB}_C{xC}.htm#C{xC}V{xV}">{matchInner}</a>'
+            inside = f'<a title="View {'cross ' if fieldType=='x' else ''}reference" href="{pathPrefix}{xBBB}_C{xC}.htm#C{xC}V{xV}">{matchInner}</a>'
             xrefLiveMiddle = f'{xrefLiveMiddle[:match.start()]}{inside}{xrefLiveMiddle[matchEnd:]}'
         reStartIx = match.start() + len(inside) # exact number of characters that we add (otherwise we get mistakes/overlaps)
         # # NOTE: The above code can leave us pointing to a range, e.g., Deu 1:19-2:2 would leave us at the hyphen

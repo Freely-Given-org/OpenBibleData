@@ -48,7 +48,7 @@ from load import getIndividualQuotedOTRefs, getIndividualQuotingNTRefs
 
 
 
-LAST_MODIFIED_DATE = '2025-07-19' # by RJH
+LAST_MODIFIED_DATE = '2025-07-23' # by RJH
 SHORT_PROGRAM_NAME = "SentenceImportance_initialisation"
 PROGRAM_NAME = "Sentence Importance initialisation"
 PROGRAM_VERSION = '0.21'
@@ -102,6 +102,7 @@ importantRefsWithRanges = [ # Often memorised
     'JOS_1:9',
     'PSA_51:10',
     'PRO_4:1-7',
+    'ECC_8:15',
     'MAT_4:4',
     'LUK_24:27',
     'JHN_7:16','JHN_16:33',
