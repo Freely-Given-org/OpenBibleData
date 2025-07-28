@@ -44,7 +44,7 @@ from BibleOrgSys import BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import vPrint, fnPrint, dPrint, rreplace
 
 
-LAST_MODIFIED_DATE = '2025-07-20' # by RJH
+LAST_MODIFIED_DATE = '2025-07-28' # by RJH
 SHORT_PROGRAM_NAME = "spellCheckEnglish"
 PROGRAM_NAME = "English Bible Spell Check"
 PROGRAM_VERSION = '0.52'
@@ -113,7 +113,7 @@ INITIAL_BIBLE_WORD_LIST = ['3.0','UTF','USFM', '©', 'CC0',
                     'Zebedaios','Zekaryah','Zofar',
 
                     # Parts of compound names, e.g., Beth-arbel gets split into two 'words'
-                    'arbel','arbell',
+                    'Abib','abib', 'arbel','arbell',
 
                     # Specialist words
                     'black-grained','building-stone',

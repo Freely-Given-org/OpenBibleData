@@ -158,7 +158,7 @@ unclearClarityRefs = [ # Mostly sure what's in the Hebrew or Greek, but not sure
         'PSA_68:12b','PSA_68:13','PSA_68:15','PSA_68:21b', 'PSA_73:9','PSA_73:10',
         'PSA_92:11', 'PSA_93:3a', 'PSA_105:19','PSA_105:28b','PSA_105:32b', 'PSA_108:9', 'PSA_116:13a',
         'PSA_122:3b', 'PSA_129:4b', 'PSA_141:6',
-    'ECC_5:9',
+    'ECC_5:9', 'ECC_10:15',
     'SNG_8:9',
     'DAN_8:12','DAN_8:13a','DAN_11:43b',
     'HOS_11:7b',
