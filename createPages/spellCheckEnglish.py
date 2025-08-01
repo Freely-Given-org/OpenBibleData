@@ -113,7 +113,7 @@ INITIAL_BIBLE_WORD_LIST = ['3.0','UTF','USFM', '©', 'CC0',
                     'Zebedaios','Zekaryah','Zofar',
 
                     # Parts of compound names, e.g., Beth-arbel gets split into two 'words'
-                    'Abib','abib', 'arbel','arbell',
+                    'Abib','abib', 'arbel','arbell', 'shemesh',
 
                     # Specialist words
                     'black-grained','building-stone',
