@@ -106,7 +106,7 @@ from OETHandlers import findLVQuote, getBBBFromOETBookName
 from Dict import loadAndIndexUBSGreekDictJSON, loadAndIndexUBSHebrewDictJSON
 
 
-LAST_MODIFIED_DATE = '2025-07-17' # by RJH
+LAST_MODIFIED_DATE = '2025-08-12' # by RJH
 SHORT_PROGRAM_NAME = "Bibles"
 PROGRAM_NAME = "OpenBibleData Bibles handler"
 PROGRAM_VERSION = '0.90'
@@ -1488,7 +1488,7 @@ def getVerseMetaInfoHtml( BBB:str, C:str, V:str ) -> str: # html
     return f'''<p class="verseDetails">{verseDetails}{'<br>' if 'Segment' in verseDetails else ' '}<small style="color:grey;">(<a title="See database" href="https://GitHub.com/Freely-Given-org/OpenBibleData/tree/main/datasets/sentenceImportance">All still tentative</a>.)</small></p>'''
 # end of Bibles.getVerseMetaInfoHtml
 
-IMPORTANCE_TABLE = { 'T':'<span style="color:grey;">trivial</span>', 'M':'<span style="color:pink;">normal</span>', 'I':'<span style="color:orange;">important</span>', 'V':'<span style="color:red;">vital</span>' }
+IMPORTANCE_TABLE = { 'T':'<span style="color:grey;">trivial</span>', 'M':'<span style="color:black;">normal</span>', 'I':'<span style="color:orange;">important</span>', 'V':'<span style="color:red;">vital</span>' }
 TEXTUAL_ISSUE_TABLE = { '0':'<span style="color:green;">none</span>', '1':'<span style="color:pink;">minor spelling</span>', '2':'<span style="color:orange;">small word differences</span>', '3':'<span style="color:red;">major</span>' }
 CLARITY_TABLE = { 'O':'<span style="color:red;">obscure</span>', 'U':'<span style="color:orange;">unclear</span>', 'C':'<span style="color:green;">clear</span>' }
 def formatVerseDetailsHtml( verseRef:str ) -> str: # html

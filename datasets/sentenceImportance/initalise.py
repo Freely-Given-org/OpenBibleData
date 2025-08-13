@@ -160,7 +160,7 @@ unclearClarityRefs = [ # Mostly sure what's in the Hebrew or Greek, but not sure
         'PSA_122:3b', 'PSA_129:4b', 'PSA_141:6',
     'ECC_5:9', 'ECC_10:15',
     'SNG_8:9',
-    'EZE_8:17b',
+    'EZE_8:17b', 'EZE_16:24', 'EZE_21:13',
     'DAN_8:12','DAN_8:13a','DAN_11:43b',
     'HOS_11:7b',
     'JOL_2:6b',
