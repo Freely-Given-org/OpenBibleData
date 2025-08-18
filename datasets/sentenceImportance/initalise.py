@@ -137,7 +137,8 @@ obscureClarityRefs = [ # Not really at all sure what the Hebrew or Greek is tryi
     'SNG_6:12',
     'MIC_6:14', # Two unknown Hebrew words
     ]
-unclearClarityRefs = [ # Mostly sure what's in the Hebrew or Greek, but not sure what it means, or what the cultural implications were
+unclearClarityRefs = [ # Mostly sure what's in the Hebrew or Greek,
+        # but not sure what it means, or what the cultural implications were
     'GEN_6:4',
     'EXO_15:25b',
     'JDG_5:13', 'JDG_13:19b', 'JDG_14:11', 'JDG_15:8a', 'JDG_17:3b',
@@ -160,7 +161,7 @@ unclearClarityRefs = [ # Mostly sure what's in the Hebrew or Greek, but not sure
         'PSA_122:3b', 'PSA_129:4b', 'PSA_141:6',
     'ECC_5:9', 'ECC_10:15',
     'SNG_8:9',
-    'EZE_8:17b', 'EZE_16:24', 'EZE_21:13',
+    'EZE_8:17b', 'EZE_16:24', 'EZE_21:13', 'EZE_24:12', 'EZE_24:17b',
     'DAN_8:12','DAN_8:13a','DAN_11:43b',
     'HOS_11:7b',
     'JOL_2:6b',

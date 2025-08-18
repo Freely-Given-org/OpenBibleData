@@ -94,7 +94,7 @@ from html import checkHtml
 from OETHandlers import getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2025-07-24' # by RJH
+LAST_MODIFIED_DATE = '2025-08-17' # by RJH
 SHORT_PROGRAM_NAME = "usfm"
 PROGRAM_NAME = "OpenBibleData USFM to HTML functions"
 PROGRAM_VERSION = '0.92'
@@ -1755,7 +1755,7 @@ def livenXRefField( fieldType:str, versionAbbreviation:str, refTuple:tuple, segm
                 xBBB = getBBBFromOETBookName( xB )
             # We can leave this block of code without being successful finding xBBB -- it's checked below
         if firstIndex==indexBV and firstIndex!=indexBCV: # process matchBV (if it's not also a matchBCV)
-            dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} {refTuple} {xoText=} {xrefLiveMiddle=} {matchBV.groups()=}" )
+            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} {refTuple} {xoText=} {xrefLiveMiddle=} {matchBV.groups()=}" )
             xCorV = match.group( 2 )
             if versionAbbreviation=='KJB-1611' and xB in ('Verse','Vers','Ver','ver','and'):
                 xBBB, xV = BBB, xCorV # This same book where the xref is located
@@ -1765,7 +1765,7 @@ def livenXRefField( fieldType:str, versionAbbreviation:str, refTuple:tuple, segm
                 dPrint( 'Info', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} {refTuple=} {xB=} {BBB} {xC}:{xV}" )
                 assert xC.isdigit(), f"{versionAbbreviation} {refTuple=} {xB=} {BBB} {xC}:{xV} from {xoText=} {xrefOriginalMiddle=}"
             else: # Could be a single-chapter book
-                dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Possible single-chapter book: {versionAbbreviation} {refTuple} {xB=}" )
+                dPrint( 'Info', DEBUGGING_THIS_MODULE, f"Possible single-chapter book: {versionAbbreviation} {refTuple} {xB=}" )
                 if not xBBB:
                     logging.critical( f"Unable to liven cross-reference from {versionAbbreviation} {refTuple} for {xBBB=} from {xB=} from {xrefLiveMiddle=} from {xoText=} {xrefOriginalMiddle=}" )
                 try: singleChapterFlag = BibleOrgSysGlobals.loadedBibleBooksCodes.isSingleChapterBook( xBBB )
