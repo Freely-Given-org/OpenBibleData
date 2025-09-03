@@ -103,14 +103,14 @@ import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39, BOOKLIST_NT27
 
-from settings import State, TEST_MODE, TEST_VERSIONS_ONLY, SITE_NAME
+from settings import State, state
 from OETHandlers import getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2025-07-05' # by RJH
+LAST_MODIFIED_DATE = '2025-08-29' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
-PROGRAM_VERSION = '0.95'
+PROGRAM_VERSION = '0.96'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -161,7 +161,7 @@ def makeTop( level:int, versionAbbreviation:str|None, pageType:str, versionSpeci
         cssFilename = 'BibleSite.css'
     else: unexpected_page_type
 
-    homeLink = f"{SITE_NAME}{' TEST' if TEST_MODE else ''} Home" if pageType=='TopIndex' else f'''<a href="{'../'*level}index.htm#Top">{SITE_NAME}{' TEST' if TEST_MODE else ''} Home</a>'''
+    homeLink = f"{state.SITE_NAME}{' TEST' if state.TEST_MODE else ''} Home" if pageType=='TopIndex' else f'''<a href="{'../'*level}index.htm#Top">{state.SITE_NAME}{' TEST' if state.TEST_MODE else ''} Home</a>'''
     aboutLink = 'About' if pageType=='about' else f'''<a href="{'../'*level}About.htm#Top">About</a>'''
     newsLink = 'News' if pageType=='news' else f'''<a href="{'../'*level}News.htm#Top">News</a>'''
     OETKeyLink = 'OET Key' if pageType=='OETKey' else f'''<a href="{'../'*level}OETKey.htm#Top">OET Key</a>'''
@@ -224,13 +224,13 @@ def _makeWorkNavListParagraph( level:int, versionAbbreviation:str|None, pageType
     # Add all the version abbreviations (except for the selected-verses-only verses)
     #   with their style decorators
     #   and with the more specific links if specified.
-    initialVersionList = ['TEST'] if TEST_MODE else []
+    initialVersionList = ['TEST'] if state.TEST_MODE else []
     for loopVersionAbbreviation in state.BibleVersions:
         if loopVersionAbbreviation in ('TOSN','TTN','UTN'): # Skip notes
             continue
         if loopVersionAbbreviation in state.versionsWithoutTheirOwnPages: # Skip versions without their own pages
             continue
-        if TEST_VERSIONS_ONLY and loopVersionAbbreviation not in TEST_VERSIONS_ONLY:
+        if state.TEST_VERSIONS_ONLY and loopVersionAbbreviation not in state.TEST_VERSIONS_ONLY:
             continue
         if pageType in ('section','section'):
             try:
@@ -299,7 +299,7 @@ def _makeWorkNavListParagraph( level:int, versionAbbreviation:str|None, pageType
             if loopVersionAbbreviation == 'OET': loopVersionAbbreviation = 'OET-RV' # We look here in this case
             try: thisBible = state.preloadedBibles[loopVersionAbbreviation]
             except KeyError:
-                assert TEST_MODE
+                assert state.TEST_MODE
                 thisBible = []
             if entryBBB in thisBible:
                 # if pageType == 'parallelVerse': print( f"    Appended {thisVersionAbbreviation} {entryBBB} as is (from {entry})")
@@ -339,7 +339,7 @@ def makeViewNavListParagraph( level:int, versionAbbreviation:str|None, pageType:
                     'workIndex','bookIndex','sectionIndex','chapterIndex') \
     and versionAbbreviation not in ('PLBL','HAP','TOSN','TTN','TOBD','UTN','UBS','THBD','BMM') \
     and versionAbbreviation not in state.versionsWithoutTheirOwnPages:
-        if TEST_MODE: viewLinks.append( 'TEST' )
+        if state.TEST_MODE: viewLinks.append( 'TEST' )
         if not versionAbbreviation: versionAbbreviation = 'OET'
         viewLinks.append( f'''<a title="Select a different version" href="{'../'*level}">{versionAbbreviation}</a>''' )
         viewLinks.append( f'''<a title="View entire document" href="{'../'*level}{versionAbbreviation}/byDoc/">By Document</a>'''
@@ -351,7 +351,7 @@ def makeViewNavListParagraph( level:int, versionAbbreviation:str|None, pageType:
                             if 'chapter' not in pageType else 'By Chapter' )
         viewLinks.append( f'''<a title="View version details" href="{'../'*level}{versionAbbreviation}/details.htm#Top">Details</a>'''
                             if pageType!='details' else 'Details' )
-        if TEST_MODE and 'OET' in versionAbbreviation:
+        if state.TEST_MODE and 'OET' in versionAbbreviation:
             viewLinks.append( f'''<a title="View verses not included in the OET" href="{'../'*level}OET/missingVerses.htm#Top"><small>Missing verses</small></a>''' )
 
     return f'''<p class="viewLst">{' '.join(viewLinks)}</p>''' if viewLinks else ''
@@ -374,7 +374,7 @@ def makeBookNavListParagraph( linksList:list[str], workAbbrevPlus:str, state:Sta
         or workAbbrevPlus in OET_HTML_PLUS_LIST \
         or workAbbrevPlus == 'Related OET-RV', workAbbrevPlus
 
-    newList = (['TEST',workAbbrevPlus] if TEST_MODE else [workAbbrevPlus]) if workAbbrevPlus else (['TEST'] if TEST_MODE else [])
+    newList = (['TEST',workAbbrevPlus] if state.TEST_MODE else [workAbbrevPlus]) if workAbbrevPlus else (['TEST'] if state.TEST_MODE else [])
     for aLink in linksList:
         # print( f"{aLink=}")
         if ('>FRT<' in aLink or '>INT<' in aLink) \
@@ -435,8 +435,8 @@ def _makeFooter( level:int, pageType:str, state:State ) -> str:
     """
     # fnPrint( DEBUGGING_THIS_MODULE, f"_makeFooter()" )
     html = f"""<div class="footer" id="footer">
-<p class="copyright" id="Bottom"><small><em>{'TEST ' if TEST_MODE else ''}{SITE_NAME}</em> site copyright © 2023–2025 <a href="https://Freely-Given.org">Freely-Given.org</a>.
-<br>Python source code for creating these static pages is available <a href="https://GitHub.com/Freely-Given-org/OpenBibleData">on GitHub</a> under an <a href="https://GitHub.com/Freely-Given-org/OpenBibleData/blob/main/LICENSE">open licence</a>.{datetime.now().strftime('<br> (Page created: %Y-%m-%d %H:%M)') if TEST_MODE else ''}</small></p>
+<p class="copyright" id="Bottom"><small><em>{'TEST ' if state.TEST_MODE else ''}{state.SITE_NAME}</em> site copyright © 2023–2025 <a href="https://Freely-Given.org">Freely-Given.org</a>.
+<br>Python source code for creating these static pages is available <a href="https://GitHub.com/Freely-Given-org/OpenBibleData">on GitHub</a> under an <a href="https://GitHub.com/Freely-Given-org/OpenBibleData/blob/main/LICENSE">open licence</a>.{datetime.now().strftime('<br> (Page created: %Y-%m-%d %H:%M)') if state.TEST_MODE else ''}</small></p>
 <p class="copyright"><small>For Bible data copyrights, see the <a href="{'../'*level}AllDetails.htm#Top">details</a> for each displayed Bible version.</small></p>
 <p class="note"><small>The <em>Open English Translation (OET)</em> main site is at <a href="https://OpenEnglishTranslation.Bible">OpenEnglishTranslation.Bible</a>.</small></p>
 </div><!--footer-->"""
@@ -665,16 +665,16 @@ def checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool:
             dPrint( 'Info', DEBUGGING_THIS_MODULE, f"\nMismatched '{marker}' start and end markers '{where}' {segmentOnly=} {startCount}!={endCount}"
                               f" {'…' if ixMinStart>0 else ''}{htmlToCheck[ixMinStart:ixMinEnd+5]}{'…' if ixMinEnd+5<len(htmlToCheck) else ''}" )
             dPrint( 'Info', DEBUGGING_THIS_MODULE, f"checkHtml: complete {htmlToCheck=}\n")
-            if TEST_MODE and ('JOB' not in where and 'OEB' not in where # why are these bad???
+            if state.TEST_MODE and ('JOB' not in where and 'OEB' not in where # why are these bad???
             and 'UTN' not in where and 'ULT' not in where
             and 'Parallel' not in where and 'Interlinear' not in where ): # Probably it's in UTN on parallel and interlinear pages
                 dPrint( 'Info', DEBUGGING_THIS_MODULE, f"'{where}' {segmentOnly=} {marker=} HTML marker mismatch in {htmlToCheck=}")
                 dPrint( 'Info', DEBUGGING_THIS_MODULE, f"'{where}' {segmentOnly=} {marker=} {startMarker=} {startCount=} {endCount=}")
                 if 'book' not in where.lower():
-                    if 'ULT' not in where and 'UST' not in where and 'PSA' not in where: # UST PSA has totally messed up \\qs encoding
+                    if 'ULT' not in where and 'UST' not in where and 'NET' not in where: # UST PSA has totally messed up \\qs encoding
                         logging.critical( f"Mismatched '{marker}' start and end markers '{where}' {segmentOnly=} {startCount}!={endCount}"
                               f" {'…' if ixMinStart>0 else ''}{htmlToCheck[ixMinStart:ixMinEnd+5]}{'…' if ixMinEnd+5<len(htmlToCheck) else ''}" )
-                        mismatched_start_and_end_markers
+                        raise AssertionError( f"Mismatched '{marker}' start and end markers '{where}' {segmentOnly=} {startCount}!={endCount}" )
             # return False # TODO: Why was this here ???
         # Checked for accidentally doubled nesting
         if startMarker.endswith( '>' ):
@@ -784,7 +784,7 @@ def checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool:
         # so we output extra info here
         for mm,msg in enumerate( collectedMsgs, start=1 ):
             logging.critical( f"Missing CSS style {mm}/{len(collectedMsgs)}: {msg}" )
-        if not TEST_MODE:
+        if not state.TEST_MODE:
             for someStylesheetName,someStyleDict in cachedStyleDicts.items():
                 unusedList = [sdKey[5:] for sdKey,sdValue in someStyleDict.items() if sdKey.startswith( 'used_') and not sdValue]
                 if unusedList:

@@ -57,15 +57,15 @@ sys.path.append( '../../BibleOrgSys/' )
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 
-from settings import State, TEST_MODE, ALTERNATIVE_VERSION
+from settings import State
 from html import makeTop, makeBottom, checkHtml
 from OETHandlers import getOETTidyBBB
 
 
-LAST_MODIFIED_DATE = '2024-07-20' # by RJH
+LAST_MODIFIED_DATE = '2024-08-24' # by RJH
 SHORT_PROGRAM_NAME = "Dictionary"
 PROGRAM_NAME = "OpenBibleData Dictionary handler"
-PROGRAM_VERSION = '0.46'
+PROGRAM_VERSION = '0.47'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -605,12 +605,12 @@ def createTyndaleDictPages( level:int, outputFolderPath, state:State ) -> bool:
         filename = f'{articleLinkName}.htm'
         filepath = outputFolderPath.joinpath( filename )
         top = makeTop( level, None, 'dictionaryEntry', None, state ) \
-                .replace( '__TITLE__', f"Dictionary Article{' TEST' if TEST_MODE else ''}" ) \
+                .replace( '__TITLE__', f"Dictionary Article{' TEST' if state.TEST_MODE else ''}" ) \
                 .replace( '__KEYWORDS__', f'Bible, dictionary, {articleLinkName}' )
 # <h2 id="Top">{articleLinkName}</h2>
         articleHtml = f'''{top}
 {lettersParagraph}
-<h1>{'TEST ' if TEST_MODE else ''}Tyndale Open Bible Dictionary</h1>
+<h1>{'TEST ' if state.TEST_MODE else ''}Tyndale Open Bible Dictionary</h1>
 {navLinks.replace('__ID__','Top')}
 {article}
 {makeBottom( level, 'dictionaryEntry', state )}'''
@@ -639,11 +639,11 @@ def createTyndaleDictPages( level:int, outputFolderPath, state:State ) -> bool:
         filename = f'index_{letter}.htm'
         filepath = outputFolderPath.joinpath( filename )
         top = makeTop( level, None, 'dictionaryLetterIndex', None, state ) \
-                .replace( '__TITLE__', f"Dictionary Index Letter{' TEST' if TEST_MODE else ''}" ) \
+                .replace( '__TITLE__', f"Dictionary Index Letter{' TEST' if state.TEST_MODE else ''}" ) \
                 .replace( '__KEYWORDS__', 'Bible, dictionary' )
         letterIndexHtml = f'''{top}
 {lettersParagraph}
-<h1>{'TEST ' if TEST_MODE else ''}Tyndale Open Bible Dictionary</h1>
+<h1>{'TEST ' if state.TEST_MODE else ''}Tyndale Open Bible Dictionary</h1>
 {navLinks.replace('__ID__','Top')}
 <h2>Index for dictionary letter '{letter}'</h2>
 {articleLinkHtml}
@@ -658,7 +658,7 @@ def createTyndaleDictPages( level:int, outputFolderPath, state:State ) -> bool:
     filename = 'intro.htm'
     filepath = outputFolderPath.joinpath( filename )
     top = makeTop( level, None, 'dictionaryIntro', None, state ) \
-            .replace( '__TITLE__', f"Dictionary Introduction{' TEST' if TEST_MODE else ''}" ) \
+            .replace( '__TITLE__', f"Dictionary Introduction{' TEST' if state.TEST_MODE else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, dictionary, introduction' )
     introHtml = f'''{top}<p class="note"><b>Note</b>: The Tyndale Open Bible Dictionary is included on this site because it contains a wealth of useful information,
 even though it was originally designed to supplement the <i>New Living Translation</i>, not our <em>Open English Translation</em>.</p>
@@ -675,7 +675,7 @@ even though it was originally designed to supplement the <i>New Living Translati
     filename = 'index.htm'
     filepath = outputFolderPath.joinpath( filename )
     top = makeTop( level, None, 'dictionaryMainIndex', None, state ) \
-            .replace( '__TITLE__', f"Dictionary Index{' TEST' if TEST_MODE else ''}" ) \
+            .replace( '__TITLE__', f"Dictionary Index{' TEST' if state.TEST_MODE else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, dictionary' )
 # <p class="dNav"><a id="Go to dict intro" href="intro.htm#Top">Introduction</a></p>
     indexHtml = f'''{top}
@@ -1044,10 +1044,10 @@ def createUBSGreekDictionaryPages( level, outputFolderPath, state:State ) -> Non
 
         filepath = outputFolderPath.joinpath( f"{entry['Lemma']}.htm" )
         top = makeTop( level, None, 'dictionaryEntry', None, state ) \
-                .replace( '__TITLE__', f"UBS Greek Dictionary Article{' TEST' if TEST_MODE else ''}" ) \
+                .replace( '__TITLE__', f"UBS Greek Dictionary Article{' TEST' if state.TEST_MODE else ''}" ) \
                 .replace( '__KEYWORDS__', f'Bible, dictionary, {lemma}' )
         articleHtml = f'''{top}
-<h1>{'TEST ' if TEST_MODE else ''}UBS Dictionary of the Greek New Testament</h1>
+<h1>{'TEST ' if state.TEST_MODE else ''}UBS Dictionary of the Greek New Testament</h1>
 {navLinks.replace('__ID__','Top')}
 {entryHtml}
 {makeBottom( level, 'dictionaryEntry', state )}'''
@@ -1124,10 +1124,10 @@ def createUBSHebrewDictionaryPages( level, outputFolderPath, state:State ) -> No
 
         filepath = outputFolderPath.joinpath( f"{entry['Lemma']}.htm" )
         top = makeTop( level, None, 'dictionaryEntry', None, state ) \
-                .replace( '__TITLE__', f"UBS Hebrew Dictionary Article{' TEST' if TEST_MODE else ''}" ) \
+                .replace( '__TITLE__', f"UBS Hebrew Dictionary Article{' TEST' if state.TEST_MODE else ''}" ) \
                 .replace( '__KEYWORDS__', f'Bible, dictionary, {lemma}' )
         articleHtml = f'''{top}
-<h1>{'TEST ' if TEST_MODE else ''}UBS Dictionary of the Hebrew New Testament</h1>
+<h1>{'TEST ' if state.TEST_MODE else ''}UBS Dictionary of the Hebrew New Testament</h1>
 {navLinks.replace('__ID__','Top')}
 {entryHtml.replace( f'{NEWLINE}</p>', '</p>' )}
 {makeBottom( level, 'dictionaryEntry', state )}'''

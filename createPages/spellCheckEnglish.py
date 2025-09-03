@@ -44,7 +44,7 @@ from BibleOrgSys import BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import vPrint, fnPrint, dPrint, rreplace
 
 
-LAST_MODIFIED_DATE = '2025-08-17' # by RJH
+LAST_MODIFIED_DATE = '2025-09-01' # by RJH
 SHORT_PROGRAM_NAME = "spellCheckEnglish"
 PROGRAM_NAME = "English Bible Spell Check"
 PROGRAM_VERSION = '0.52'
@@ -380,7 +380,8 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
     elif versionAbbreviation == 'ClVg':
         wordSet.update( ('Moyses','Sion','Yuda',
                          'IESVS',
-                         'AUG','BED','BEDA','CAS','CASS','CC','CCC','CCCC','CHRYS','HIER','ID','THEOD', 'XIS','XES') )
+                         # The following are abbreviations of reference works used in the Vulgate footnotes
+                         'AUG','BED','BEDA','CAS','CASS','CC','CCC','CCCC','CHRYS','HIER','ID','RAB','THEOD', 'XIS','XES') )
 
     # vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Checking spelling of {versionAbbreviation} {ref} '{originalHTMLText}' …" )
     # if '0' not in ref and '-1' not in ref: halt

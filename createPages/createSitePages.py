@@ -70,7 +70,7 @@ from pathlib import Path
 import os
 import shutil
 import glob
-from datetime import date #, datetime
+from datetime import date
 import logging
 
 import sys
@@ -82,11 +82,7 @@ from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39, BOOKLIST_NT27
 sys.path.append( '../../BibleTransliterations/Python/' )
 from BibleTransliterations import load_transliteration_table
 
-from settings import State, state, reorderBooksForOETVersions, TEST_MODE, TEST_BOOK_LIST, TEST_VERSIONS_ONLY, \
-    SITE_NAME, SITE_ABBREVIATION, OET_VERSION_NUMBER_STRING, DO_SPELL_CHECKS, \
-    TEMP_BUILD_FOLDER, UPDATE_ACTUAL_SITE_WHEN_BUILT, DESTINATION_FOLDER, \
-    ALL_PRODUCTION_BOOKS, BY_DOCUMENT_HTML_PARAGRAPH, REUSE_EXISTING_WORD_PAGES, \
-    CREATE_PARALLEL_VERSE_PAGES, CREATE_BOOK_AND_OTHER_PAGES
+from settings import State, state, reorderBooksForOETVersions
 from Bibles import preloadVersions
 from OETHandlers import getOETTidyBBB, getOETBookName
 from createBookPages import createOETBookPages, createBookPages
@@ -102,7 +98,7 @@ from html import makeTop, makeViewNavListParagraph, makeBottom, checkHtml
 from spellCheckEnglish import printSpellCheckSummary
 
 
-LAST_MODIFIED_DATE = '2025-07-05' # by RJH
+LAST_MODIFIED_DATE = '2025-08-24' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData (OBD) Create Site Pages"
 PROGRAM_VERSION = '0.99'
@@ -118,14 +114,14 @@ def _createSitePages() -> bool:
     Build all the pages in a temporary location
     """
     fnPrint( DEBUGGING_THIS_MODULE, "_createSitePages()")
-    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"_createSitePages() running in {'TEST' if TEST_MODE else 'production'} mode with {'all production books' if ALL_PRODUCTION_BOOKS else 'reduced books being loaded'} for {f'{len(TEST_VERSIONS_ONLY)}/' if TEST_VERSIONS_ONLY else ''}{len(state.BibleLocations):,} Bible versions…" )
-    if TEST_MODE:
-        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"    {TEST_BOOK_LIST=}" )
+    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"_createSitePages() running in {'TEST' if state.TEST_MODE else 'production'} mode with {'all production books' if state.ALL_PRODUCTION_BOOKS else 'reduced books being loaded'} for {f'{len(state.TEST_VERSIONS_ONLY)}/' if state.TEST_VERSIONS_ONLY else ''}{len(state.BibleLocations):,} Bible versions…" )
+    if state.TEST_MODE:
+        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"    {state.TEST_BOOK_LIST=}" )
 
-    try: os.makedirs( TEMP_BUILD_FOLDER )
+    try: os.makedirs( state.TEMP_BUILD_FOLDER )
     except FileExistsError:
-        assert os.path.isdir( TEMP_BUILD_FOLDER )
-        _cleanHTMLFolders( TEMP_BUILD_FOLDER, state )
+        assert os.path.isdir( state.TEMP_BUILD_FOLDER )
+        _cleanHTMLFolders( state.TEMP_BUILD_FOLDER, state )
 
     # Preload our various Bibles
     for versionAbbreviation in state.BibleVersions:
@@ -181,7 +177,7 @@ def _createSitePages() -> bool:
         for versionAbbreviation in state.BibleVersions:
             if versionAbbreviation == 'OET': continue # OET is a pseudo version (OET-RV plus OET-LV)
             if versionAbbreviation in state.versionsWithoutTheirOwnPages: continue # We don't worry about these few selected verses here
-            if TEST_VERSIONS_ONLY and versionAbbreviation not in TEST_VERSIONS_ONLY: continue # Didn't load these ones
+            if state.TEST_VERSIONS_ONLY and versionAbbreviation not in state.TEST_VERSIONS_ONLY: continue # Didn't load these ones
             if versionAbbreviation == 'TTN': continue
             for bookEntry in state.booksToLoad[versionAbbreviation]:
                 if bookEntry == BBB or bookEntry == 'ALL':
@@ -207,7 +203,7 @@ def _createSitePages() -> bool:
                 ourTidyBBB = getOETTidyBBB( BBB )
                 state.BBBLinks['OET'].append( f'''<a title="{getOETBookName(BBB)}" href="{filename}#Top">{ourTidyBBB}</a>''' )
         else: # not OET
-            if TEST_VERSIONS_ONLY and versionAbbreviation not in TEST_VERSIONS_ONLY: continue # Didn't load these ones
+            if state.TEST_VERSIONS_ONLY and versionAbbreviation not in state.TEST_VERSIONS_ONLY: continue # Didn't load these ones
             thisBible = state.preloadedBibles[versionAbbreviation]
             thisBibleBooksToLoad = state.booksToLoad[versionAbbreviation]
             # print( f'{versionAbbreviation}: {thisBible=} {thisBibleBooksToLoad=}' )
@@ -243,20 +239,20 @@ def _createSitePages() -> bool:
     # Do individual verse pages first because they give more detailed error messages for source Bible formatting errors
     # TODO: We could use multiprocessing to do all these at once
     #   (except that state is quite huge with all preloaded versions and hence expensive to pickle)
-    if CREATE_PARALLEL_VERSE_PAGES == 'FIRST':
-        createParallelVersePages( 1, TEMP_BUILD_FOLDER.joinpath('par/'), state )
-    elif not CREATE_PARALLEL_VERSE_PAGES:
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"NOT GENERATING {'TEST ' if TEST_MODE else ''}parallel verse pages." )
-    elif CREATE_PARALLEL_VERSE_PAGES != 'LAST': have_invalid_value
+    if state.CREATE_PARALLEL_VERSE_PAGES == 'FIRST':
+        createParallelVersePages( 1, state.TEMP_BUILD_FOLDER.joinpath('par/'), state )
+    elif not state.CREATE_PARALLEL_VERSE_PAGES:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"NOT GENERATING {'TEST ' if state.TEST_MODE else ''}parallel verse pages." )
+    elif state.CREATE_PARALLEL_VERSE_PAGES != 'LAST': have_invalid_value
 
-    if CREATE_BOOK_AND_OTHER_PAGES:
+    if state.CREATE_BOOK_AND_OTHER_PAGES:
         if 'OET' in state.BibleVersions: # this is a special case
             # vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\nDoing discovery on OET…" )
             # state.preloadedBibles['OET-RV'].discover() # Now that all required books are loaded
             # state.preloadedBibles['OET-LV'].discover() #     ..ditto..
 
-            vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Creating {'TEST ' if TEST_MODE else ''}version pages for OET…" )
-            versionFolder = TEMP_BUILD_FOLDER.joinpath( f'OET/' )
+            vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Creating {'TEST ' if state.TEST_MODE else ''}version pages for OET…" )
+            versionFolder = state.TEMP_BUILD_FOLDER.joinpath( f'OET/' )
             _createOETVersionPages( 1, versionFolder, state.preloadedBibles['OET-RV'], state.preloadedBibles['OET-LV'], state )
             _createOETMissingVersesPage( 1, versionFolder )
         for versionAbbreviation, thisBible in state.preloadedBibles.items(): # doesn't include OET pseudo-translation
@@ -267,9 +263,9 @@ def _createSitePages() -> bool:
                 versionName = state.BibleNames[versionAbbreviation]
                 indexHtml = f'<h1 id="Top">{versionName}</h1>'
                 top = makeTop( 1, None, 'site', None, state ) \
-                                .replace( '__TITLE__', f"{versionName}{' TEST' if TEST_MODE else ''}" ) \
+                                .replace( '__TITLE__', f"{versionName}{' TEST' if state.TEST_MODE else ''}" ) \
                                 .replace( '__KEYWORDS__', f'Bible, {versionAbbreviation}, {versionName}' )
-                folder = TEMP_BUILD_FOLDER.joinpath( f'{versionAbbreviation}/' )
+                folder = state.TEMP_BUILD_FOLDER.joinpath( f'{versionAbbreviation}/' )
                 os.makedirs( folder )
                 filepath = folder.joinpath( 'index.htm' )
                 assert not filepath.is_file() # Check that we're not overwriting anything
@@ -284,83 +280,83 @@ def _createSitePages() -> bool:
                 if 'haveSectionHeadings' not in thisBible.discoveryResults['ALL']: # probably we have no books that actually loaded
                     dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Adding discoveryResults 'haveSectionHeadings' for {thisBible.abbreviation}: no books loaded?" )
                     thisBible.discoveryResults['ALL']['haveSectionHeadings'] = False # We need this in several places
-                if not TEST_MODE or versionAbbreviation not in ('OEB','WEBBE','WEB','WMBB','WMB','NET','LSV','FBV','TCNT','T4T','LEB',
+                if not state.TEST_MODE or versionAbbreviation not in ('OEB','WEBBE','WEB','WMBB','WMB','NET','LSV','FBV','TCNT','T4T','LEB',
                                                         'BBE','Moff','JPS','ASV','DRA','YLT','Drby','RV','Wbstr',
                                                         'KJB-1769','Bshps','Gnva','Cvdl','TNT','Wycl'):
                     # In test mode, we don't usually need to make all those pages, even just for the test books
-                    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Creating {'TEST ' if TEST_MODE else ''}version pages for {thisBible.abbreviation} ({thisBible.name})…" )
-                    versionFolder = TEMP_BUILD_FOLDER.joinpath( f'{thisBible.abbreviation}/' )
+                    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Creating {'TEST ' if state.TEST_MODE else ''}version pages for {thisBible.abbreviation} ({thisBible.name})…" )
+                    versionFolder = state.TEMP_BUILD_FOLDER.joinpath( f'{thisBible.abbreviation}/' )
                     _createVersionPages( 1, versionFolder, thisBible, state )
 
         if 'OET' in state.BibleVersions: # this is a special case
             rvBible, lvBible = state.preloadedBibles['OET-RV'], state.preloadedBibles['OET-LV']
             if rvBible.discoveryResults['ALL']['haveSectionHeadings'] or lvBible.discoveryResults['ALL']['haveSectionHeadings']:
-                versionFolder = TEMP_BUILD_FOLDER.joinpath( f'OET/' )
+                versionFolder = state.TEMP_BUILD_FOLDER.joinpath( f'OET/' )
                 createOETSectionPages( 2, versionFolder.joinpath('bySec/'), rvBible, lvBible, state )
         for versionAbbreviation, thisBible in state.preloadedBibles.items(): # doesn't include OET pseudo-translation
             if versionAbbreviation not in ('TTN',) \
             and versionAbbreviation in state.versionsWithoutTheirOwnPages: continue # We don't worry about these few selected verses here
             if versionAbbreviation not in ('TOSN','TTN','UTN'): # We don't make separate notes pages
                 if thisBible.discoveryResults['ALL']['haveSectionHeadings']:
-                    versionFolder = TEMP_BUILD_FOLDER.joinpath( f'{thisBible.abbreviation}/' )
+                    versionFolder = state.TEMP_BUILD_FOLDER.joinpath( f'{thisBible.abbreviation}/' )
                     createSectionPages( 2, versionFolder.joinpath('bySec/'), thisBible, state )
 
-        createOETInterlinearPages( 1, TEMP_BUILD_FOLDER.joinpath('ilr/'), state )
-        createParallelPassagePages( 1, TEMP_BUILD_FOLDER.joinpath('rel/'), state )
-        createTopicPages( 1, TEMP_BUILD_FOLDER.joinpath('tpc/'), state )
+        createOETInterlinearPages( 1, state.TEMP_BUILD_FOLDER.joinpath('ilr/'), state )
+        createParallelPassagePages( 1, state.TEMP_BUILD_FOLDER.joinpath('rel/'), state )
+        createTopicPages( 1, state.TEMP_BUILD_FOLDER.joinpath('tpc/'), state )
 
-    if CREATE_PARALLEL_VERSE_PAGES == 'LAST':
-        createParallelVersePages( 1, TEMP_BUILD_FOLDER.joinpath('par/'), state )
-    elif not CREATE_PARALLEL_VERSE_PAGES:
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"NOT GENERATING {'TEST ' if TEST_MODE else ''}parallel verse pages." )
-    elif CREATE_PARALLEL_VERSE_PAGES != 'FIRST': have_invalid_value
+    if state.CREATE_PARALLEL_VERSE_PAGES == 'LAST':
+        createParallelVersePages( 1, state.TEMP_BUILD_FOLDER.joinpath('par/'), state )
+    elif not state.CREATE_PARALLEL_VERSE_PAGES:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"NOT GENERATING {'TEST ' if state.TEST_MODE else ''}parallel verse pages." )
+    elif state.CREATE_PARALLEL_VERSE_PAGES != 'FIRST': have_invalid_value
 
-    if not TEST_MODE \
-    or not REUSE_EXISTING_WORD_PAGES:
-        createOETReferencePages( 1, TEMP_BUILD_FOLDER.joinpath('ref/'), state )
-        createUBSDictionaryPages( 1, TEMP_BUILD_FOLDER.joinpath('UBS/'), state )
-        createTyndaleDictPages( 1, TEMP_BUILD_FOLDER.joinpath('dct/'), state )
+    if not state.TEST_MODE \
+    or not state.REUSE_EXISTING_WORD_PAGES:
+        createOETReferencePages( 1, state.TEMP_BUILD_FOLDER.joinpath('ref/'), state )
+        createUBSDictionaryPages( 1, state.TEMP_BUILD_FOLDER.joinpath('UBS/'), state )
+        createTyndaleDictPages( 1, state.TEMP_BUILD_FOLDER.joinpath('dct/'), state )
     else:
         # Don't rebuild these reference pages -- we'll reuse the existing folders full of pages
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\nNOT GENERATING new {'TEST ' if TEST_MODE else ''}reference pages (OET word pages, UBS dict, Tyndale Dict)." )
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\nNOT GENERATING new {'TEST ' if state.TEST_MODE else ''}reference pages (OET word pages, UBS dict, Tyndale Dict)." )
 
-    _createDetailsPages( 0, TEMP_BUILD_FOLDER, state )
-    _createSearchPage( 0, TEMP_BUILD_FOLDER, state )
-    _createAboutPage( 0, TEMP_BUILD_FOLDER, state )
-    _createNewsPage( 0, TEMP_BUILD_FOLDER, state )
-    _createOETKeyPage( 0, TEMP_BUILD_FOLDER, state )
+    _createDetailsPages( 0, state.TEMP_BUILD_FOLDER, state )
+    _createSearchPage( 0, state.TEMP_BUILD_FOLDER, state )
+    _createAboutPage( 0, state.TEMP_BUILD_FOLDER, state )
+    _createNewsPage( 0, state.TEMP_BUILD_FOLDER, state )
+    _createOETKeyPage( 0, state.TEMP_BUILD_FOLDER, state )
 
-    _createMainIndexPage( 0, TEMP_BUILD_FOLDER, state )
+    _createMainIndexPage( 0, state.TEMP_BUILD_FOLDER, state )
 
     state.preloadedBibles = None # Reduce memory use now
 
-    if CREATE_PARALLEL_VERSE_PAGES and DO_SPELL_CHECKS:
+    if state.CREATE_PARALLEL_VERSE_PAGES and state.DO_SPELL_CHECKS:
         printSpellCheckSummary( state ) # Collected while making parallel verse pages
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\n{TEMP_BUILD_FOLDER} is {_getFolderSize(TEMP_BUILD_FOLDER)//1_000_000:,} MB" )
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\n{state.TEMP_BUILD_FOLDER} is {_getFolderSize(state.TEMP_BUILD_FOLDER)//1_000_000:,} MB" )
 
-    if UPDATE_ACTUAL_SITE_WHEN_BUILT and not TEST_VERSIONS_ONLY and CREATE_PARALLEL_VERSE_PAGES:
+    if state.UPDATE_ACTUAL_SITE_WHEN_BUILT and not state.TEST_VERSIONS_ONLY and state.CREATE_PARALLEL_VERSE_PAGES:
         # Clean away any existing folders so we can copy in the newly built stuff
-        try: os.makedirs( f'{DESTINATION_FOLDER}/' )
+        try: os.makedirs( f'{state.DESTINATION_FOLDER}/' )
         except FileExistsError: # they were already there
-            assert os.path.isdir( DESTINATION_FOLDER )
-            _cleanHTMLFolders( DESTINATION_FOLDER, state )
+            assert os.path.isdir( state.DESTINATION_FOLDER )
+            _cleanHTMLFolders( state.DESTINATION_FOLDER, state )
 
         try: # Now move the site from our temporary build location to overwrite the destination location
-            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Moving files and folders from {TEMP_BUILD_FOLDER}/ to {DESTINATION_FOLDER}/…" )
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Moving files and folders from {state.TEMP_BUILD_FOLDER}/ to {state.DESTINATION_FOLDER}/…" )
             count = 0
-            for fileOrFolderPath in glob.glob( f'{TEMP_BUILD_FOLDER}/*' ):
-                vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Moving {fileOrFolderPath} to {DESTINATION_FOLDER}/…" )
+            for fileOrFolderPath in glob.glob( f'{state.TEMP_BUILD_FOLDER}/*' ):
+                vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Moving {fileOrFolderPath} to {state.DESTINATION_FOLDER}/…" )
                 # Note: shutil.copy2 is the same as copy but keeps metadata like creation and modification times
-                shutil.move( fileOrFolderPath, f'{DESTINATION_FOLDER}/', copy_function=shutil.copy2)
+                shutil.move( fileOrFolderPath, f'{state.DESTINATION_FOLDER}/', copy_function=shutil.copy2)
                 count += 1
-            vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Moved {count:,} folders and files into {DESTINATION_FOLDER}/." )
+            vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Moved {count:,} folders and files into {state.DESTINATION_FOLDER}/." )
         except Exception as e:
-            logging.critical( f"Oops, something went wrong copying folders/files into {DESTINATION_FOLDER}/: {e} with {fileOrFolderPath=}" )
+            logging.critical( f"Oops, something went wrong copying folders/files into {state.DESTINATION_FOLDER}/: {e} with {fileOrFolderPath=}" )
 
         try: # We also need to copy the TOBD maps across
             TOBDmapSourceFolder = os.path.join( state.BibleLocations['TOSN'], '../OBD/Maps/artfiles/' )
-            TOBDmapDestinationFolder = DESTINATION_FOLDER.joinpath( 'dct/' )
+            TOBDmapDestinationFolder = state.DESTINATION_FOLDER.joinpath( 'dct/' )
             try: os.makedirs( TOBDmapDestinationFolder )
             except FileExistsError: pass # it was already there
             vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Copying TOBD maps from {TOBDmapSourceFolder} to {TOBDmapDestinationFolder}/…" )
@@ -375,28 +371,28 @@ def _createSitePages() -> bool:
                     logging.critical( f"TOBD image file problem: {e}" )
             vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Copied {count:,} maps into {TOBDmapDestinationFolder}/." )
         except Exception as e:
-            logging.critical( f"Oops, something went wrong copying image files into {DESTINATION_FOLDER}/: {e} with {imgFilepath=}" )
+            logging.critical( f"Oops, something went wrong copying image files into {state.DESTINATION_FOLDER}/: {e} with {imgFilepath=}" )
 
         try: # We need to copy the .css and .js files across
             count = 0
             for filepath in glob.glob( '*.css' ):
                 vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Copying {filepath}…" )
                 # Note: shutil.copy2 is the same as copy but keeps metadata like creation and modification times
-                shutil.copy2( filepath, DESTINATION_FOLDER )
+                shutil.copy2( filepath, state.DESTINATION_FOLDER )
                 count += 1
-            shutil.copy2( 'Bible.js', DESTINATION_FOLDER )
-            shutil.copy2( 'KB.js', DESTINATION_FOLDER )
+            shutil.copy2( 'Bible.js', state.DESTINATION_FOLDER )
+            shutil.copy2( 'KB.js', state.DESTINATION_FOLDER )
             count += 2
-            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Copied {count:,} stylesheets and scripts into {DESTINATION_FOLDER}/." )
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Copied {count:,} stylesheets and scripts into {state.DESTINATION_FOLDER}/." )
         except Exception as e:
-            logging.critical( f"Oops, something went wrong copying aux files into {DESTINATION_FOLDER}/: {e} with {filepath=}" )
+            logging.critical( f"Oops, something went wrong copying aux files into {state.DESTINATION_FOLDER}/: {e} with {filepath=}" )
 
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f'''\nNOW RUN "npx pagefind --glob "{{OET,par}}/**/*.{{htm}}" --site ../htmlPages{'/Test' if TEST_MODE else ''}/" to create search index!''' )
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f'''\nNOW RUN "npx pagefind --glob "{{OET,par}}/**/*.{{htm}}" --site ../htmlPages{'/Test' if state.TEST_MODE else ''}/" to create search index!''' )
     else:
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"NOT UPDATING the actual {'TEST ' if TEST_MODE else ''}site{'' if UPDATE_ACTUAL_SITE_WHEN_BUILT else ' (as requested)'}." )
-        if TEST_VERSIONS_ONLY:
-            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  (because {TEST_VERSIONS_ONLY=})" )
-        if not CREATE_PARALLEL_VERSE_PAGES:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"NOT UPDATING the actual {'TEST ' if state.TEST_MODE else ''}site{'' if state.UPDATE_ACTUAL_SITE_WHEN_BUILT else ' (as requested)'}." )
+        if state.TEST_VERSIONS_ONLY:
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  (because {state.TEST_VERSIONS_ONLY=})" )
+        if not state.CREATE_PARALLEL_VERSE_PAGES:
             vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  (because no parallel verse pages were built)" )
 # end of createSitePages._createSitePages
 
@@ -427,9 +423,9 @@ def _cleanHTMLFolders( folder:Path, state:State ) -> bool:
     except FileNotFoundError: pass
     try: shutil.rmtree( folder.joinpath( 'tpc/' ) )
     except FileNotFoundError: pass
-    if folder == TEMP_BUILD_FOLDER \
-    or not TEST_MODE \
-    or not REUSE_EXISTING_WORD_PAGES: # Leave the existing folders there if we're not rebuilding these reference pages
+    if folder == state.TEMP_BUILD_FOLDER \
+    or not state.TEST_MODE \
+    or not state.REUSE_EXISTING_WORD_PAGES: # Leave the existing folders there if we're not rebuilding these reference pages
         try: shutil.rmtree( folder.joinpath( 'ref/' ) )
         except FileNotFoundError: pass
         try: shutil.rmtree( folder.joinpath( 'UBS/' ) )
@@ -455,17 +451,17 @@ def _createOETVersionPages( level:int, folder:Path, rvBible, lvBible, state:Stat
 
     versionName = state.BibleNames['OET']
     indexHtml = f'''<h1 id="Top">{versionName}</h1>
-{BY_DOCUMENT_HTML_PARAGRAPH}
+{state.BY_DOCUMENT_HTML_PARAGRAPH}
 {makeViewNavListParagraph( level, 'OET', 'workIndex', state )}
 '''
 # <p class="viewLst">OET <a href="byDoc">By Document</a> <a href="bySec">By Section</a> <a href="byC">By Chapter</a> <a href="details.htm#Top">Details</a></p>
 # ''' if rvBible.discoveryResults['ALL']['haveSectionHeadings'] or lvBible.discoveryResults['ALL']['haveSectionHeadings'] else \
 # f'''<h1 id="Top">{versionName}</h1>
-# {BY_DOCUMENT_HTML_PARAGRAPH}
+# {state.BY_DOCUMENT_HTML_PARAGRAPH}
 # <p class="viewLst">OET <a href="byDoc">By Document</a> <a href="byC">By Chapter</a> <a href="details.htm#Top">Details</a></p>
 # '''
     top = makeTop( level, None, 'site', None, state ) \
-                    .replace( '__TITLE__', f"{versionName}{' TEST' if TEST_MODE else ''}" ) \
+                    .replace( '__TITLE__', f"{versionName}{' TEST' if state.TEST_MODE else ''}" ) \
                     .replace( '__KEYWORDS__', f'Bible, OET, OETBible, {versionName}' ) \
                     .replace( f'''<a title="{versionName}" href="{'../'*level}OET">OET</a>''', 'OET' )
     filepath = folder.joinpath( 'index.htm' )
@@ -490,17 +486,17 @@ def _createVersionPages( level:int, folder:Path, thisBible, state:State ) -> boo
 
     versionName = state.BibleNames[thisBible.abbreviation]
     indexHtml = f'''<h1 id="Top">{versionName}</h1>
-{BY_DOCUMENT_HTML_PARAGRAPH}
+{state.BY_DOCUMENT_HTML_PARAGRAPH}
 {makeViewNavListParagraph( level, thisBible.abbreviation, 'workIndex', state )}
 '''
 # <p class="viewLst">{thisBible.abbreviation} <a href="byDoc">By Document</a> <a href="bySec">By Section</a> <a href="byC">By Chapter</a> <a href="details.htm#Top">Details</a></p>
 # ''' if thisBible.discoveryResults['ALL']['haveSectionHeadings'] else \
 # f'''<h1 id="Top">{versionName}</h1>
-# {BY_DOCUMENT_HTML_PARAGRAPH}
+# {state.BY_DOCUMENT_HTML_PARAGRAPH}
 # <p class="viewLst">{thisBible.abbreviation} <a href="byDoc">By Document</a> <a href="byC">By Chapter</a> <a href="details.htm#Top">Details</a></p>
 # '''
     top = makeTop( level, None, 'site', None, state ) \
-                    .replace( '__TITLE__', f"{versionName}{' TEST' if TEST_MODE else ''}" ) \
+                    .replace( '__TITLE__', f"{versionName}{' TEST' if state.TEST_MODE else ''}" ) \
                     .replace( '__KEYWORDS__', f'Bible, {versionName}' ) \
                     .replace( f'''<a title="{versionName}" href="{'../'*level}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}">{thisBible.abbreviation}</a>''', thisBible.abbreviation )
     filepath = folder.joinpath( 'index.htm' )
@@ -552,7 +548,7 @@ especially in the New Testament era where scribes often were not professionals.<
 </ul>
 '''
     top = makeTop( level, None, 'site', None, state ) \
-                    .replace( '__TITLE__', f"OET Missing Verses{' TEST' if TEST_MODE else ''}" ) \
+                    .replace( '__TITLE__', f"OET Missing Verses{' TEST' if state.TEST_MODE else ''}" ) \
                     .replace( '__KEYWORDS__', 'Bible, OET, missing, verses' ) \
                     .replace( f'''<a title="OET" href="{'../'*level}OET">OET</a>''', 'OET' )
     filepath = buildFolder.joinpath( 'missingVerses.htm' )
@@ -570,7 +566,7 @@ def _createDetailsPages( level:int, buildFolder:Path, state:State ) -> bool:
         plus a summary page of all the versions.
     """
     fnPrint( DEBUGGING_THIS_MODULE, f"_createDetailsPages( {level}, {buildFolder}, {state.BibleVersions} )" )
-    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nCreating {'TEST ' if TEST_MODE else ''}details pages for {len(state.BibleVersions)} versions (plus All Details page)…" )
+    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nCreating {'TEST ' if state.TEST_MODE else ''}details pages for {len(state.BibleVersions)} versions (plus All Details page)…" )
 
     allDetailsHTML = ''
     for versionAbbreviation in ['OET'] + [versAbbrev for versAbbrev in state.preloadedBibles] + ['UBS','THBD','PLBL','HAP','BMM',]:
@@ -609,7 +605,7 @@ def _createDetailsPages( level:int, buildFolder:Path, state:State ) -> bool:
                                 'Thanks to <a href="https://www.BibleSuperSearch.com/bible-downloads/">BibleSuperSearch.com</a> for supplying the source file' )
 
         topHtml = makeTop( level+1, versionAbbreviation, 'details', 'details.htm', state ) \
-                .replace( '__TITLE__', f"{versionName} Details{' TEST' if TEST_MODE else ''}" ) \
+                .replace( '__TITLE__', f"{versionName} Details{' TEST' if state.TEST_MODE else ''}" ) \
                 .replace( '__KEYWORDS__', 'Bible, details, about, copyright, licence, acknowledgements' ) \
                 .replace( f'''<a title="{state.BibleNames[versionAbbreviation]}" href="{'../'*(level+1)}{BibleOrgSysGlobals.makeSafeString(versionAbbreviation)}/details.htm#Top">{versionAbbreviation}</a>''',
                             f'''<a title="Up to {state.BibleNames[versionAbbreviation]}" href="{'../'*(level+1)}{BibleOrgSysGlobals.makeSafeString(versionAbbreviation)}/">↑{versionAbbreviation}</a>''' )
@@ -628,7 +624,7 @@ def _createDetailsPages( level:int, buildFolder:Path, state:State ) -> bool:
             detailsHtml = f'''{detailsHtml}
 <h2>Notes</h2>{state.detailsHtml[versionAbbreviation]['notes']}'''
 
-        if TEST_MODE and versionAbbreviation in state.selectedVersesOnlyVersions:
+        if state.TEST_MODE and versionAbbreviation in state.selectedVersesOnlyVersions:
             # Add a list of links to verses containing this version
             selectedVerseLinksList = [f'<a href="par/{BBB}/C{C}V{V}.htm#{versionAbbreviation}">{getOETTidyBBB( BBB, titleCase=True )} {C}:{V}</a>' for BBB,C,V in state.preloadedBibles[versionAbbreviation]]
             detailsHtml = f'''{detailsHtml}
@@ -680,7 +676,7 @@ def _createDetailsPages( level:int, buildFolder:Path, state:State ) -> bool:
 
     # Make a summary page with details for all versions
     topHtml = makeTop( level, None, 'AllDetails', 'details.htm', state ) \
-            .replace( '__TITLE__', f"All Versions Details{' TEST' if TEST_MODE else ''}" ) \
+            .replace( '__TITLE__', f"All Versions Details{' TEST' if state.TEST_MODE else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, details, about, copyright, licence, acknowledgements' )
             # .replace( f'''<a title="{state.BibleNames[versionAbbreviation]}" href="{'../'*(level+1)}{BibleOrgSysGlobals.makeSafeString(versionAbbreviation)}/details.htm#Top">{versionAbbreviation}</a>''',
             #             f'''<a title="Up to {state.BibleNames[versionAbbreviation]}" href="{'../'*(level+1)}{BibleOrgSysGlobals.makeSafeString(versionAbbreviation)}/">↑{versionAbbreviation}</a>''' )
@@ -714,11 +710,11 @@ def _createSearchPage( level:int, buildFolder:Path, state:State ) -> bool:
     We use https://pagefind.app/
     """
     fnPrint( DEBUGGING_THIS_MODULE, f"_createSearchPage( {level}, {buildFolder}, {state.BibleVersions} )" )
-    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nCreating {'TEST ' if TEST_MODE else ''}search page…" )
+    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nCreating {'TEST ' if state.TEST_MODE else ''}search page…" )
 
-    searchHTML = f'''<h1 id="Top">Search {SITE_NAME}</h1>
+    searchHTML = f'''<h1 id="Top">Search {state.SITE_NAME}</h1>
 <p class="note">Searching should find English and Latin words, plus Hebrew and Greek words and their English transliterations.</p>
-{('<p class="note">Note that only limited Bible books are indexed on these TEST pages.</p>'+NEWLINE) if TEST_MODE else ''}<div id="search"></div>
+{('<p class="note">Note that only limited Bible books are indexed on these TEST pages.</p>'+NEWLINE) if state.TEST_MODE else ''}<div id="search"></div>
 <script>
     window.addEventListener('DOMContentLoaded', (event) => {{
         new PagefindUI({{ element: "#search", showSubResults: false, autofocus: true }});
@@ -726,13 +722,13 @@ def _createSearchPage( level:int, buildFolder:Path, state:State ) -> bool:
 </script>
 '''
     topHtml = makeTop( level, None, 'search', None, state ) \
-                .replace( '__TITLE__', f"Search OBD{' TEST' if TEST_MODE else ''}" ) \
-                .replace( '__KEYWORDS__', f'Bible, search, {SITE_ABBREVIATION}, OET' ) \
+                .replace( '__TITLE__', f"Search OBD{' TEST' if state.TEST_MODE else ''}" ) \
+                .replace( '__KEYWORDS__', f'Bible, search, {state.SITE_ABBREVIATION}, OET' ) \
                 .replace( '</head>', '''  <link rel="stylesheet" href="pagefind/pagefind-ui.css">
   <script src="pagefind/pagefind-ui.js"></script>
 </head>''')
     html = f'''{topHtml}{searchHTML}<p class="note">Search functionality is provided thanks to <a href="https://Pagefind.app/">Pagefind</a>.</p>
-<p class="note"><small>OBD pages last rebuilt: {date.today()} (OET {OET_VERSION_NUMBER_STRING})</small></p>{makeBottom( level, 'search', state )}'''
+<p class="note"><small>OBD pages last rebuilt: {date.today()} (OET {state.OET_VERSION_NUMBER_STRING})</small></p>{makeBottom( level, 'search', state )}'''
     assert checkHtml( 'Search', html )
 
     filepath = buildFolder.joinpath( 'Search.htm' )
@@ -748,10 +744,10 @@ def _createAboutPage( level:int, buildFolder:Path, state:State ) -> bool:
     Creates and saves the About OBD page.
     """
     fnPrint( DEBUGGING_THIS_MODULE, f"_createAboutPage( {level}, {buildFolder}, {state.BibleVersions} )" )
-    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Creating {'TEST ' if TEST_MODE else ''}about page…" )
+    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Creating {'TEST ' if state.TEST_MODE else ''}about page…" )
 
-    aboutHTML = f'''<h1 id="Top">About {SITE_NAME}</h1>
-<p class="about">{SITE_NAME} ({SITE_ABBREVIATION}) is a large set of static webpages created for several main reasons:</p>
+    aboutHTML = f'''<h1 id="Top">About {state.SITE_NAME}</h1>
+<p class="about">{state.SITE_NAME} ({state.SITE_ABBREVIATION}) is a large set of static webpages created for several main reasons:</p>
 <ol>
 <li>As a way to <b>showcase the <em>Open English Translation</em></b> of the Bible which is designed to be read with the <em>Readers’ Version</em> and the very <em>Literal Version</em> side-by-side.
     (Most existing Bible apps don’t allow for this.)
@@ -795,7 +791,7 @@ def _createAboutPage( level:int, buildFolder:Path, state:State ) -> bool:
 </ul>
 <p class="about">We would welcome any others who would like to contribute open datasets or code to this endeavour.
     Please contact us at <b>Freely</b> dot <b>Given</b> dot <b>org</b> (at) <b>gmail</b> dot <b>com</b>.
-    We consider this {SITE_ABBREVIATION} project to be part of the very first stage of contributing to the development of an open-licensed Bible-study app
+    We consider this {state.SITE_ABBREVIATION} project to be part of the very first stage of contributing to the development of an open-licensed Bible-study app
         to rival the commercial ones (like ‘Logos’—not the plural of ‘logo’).</p>
 <p class="about">You’ll possibly notice that not many large, commercial Bible translations are included in these pages because of their strict limits on the use of their texts.
     We highly recommend that our readers find better translations that are more influenced by discipleship priorities, and less by finances.
@@ -814,11 +810,11 @@ def _createAboutPage( level:int, buildFolder:Path, state:State ) -> bool:
 <p class="about">The source code for the Python program that produces these pages can be found at <a href="https://github.com/Freely-Given-org/OpenBibleData">GitHub.com/Freely-Given-org/OpenBibleData</a>.
     You can also advise us of any errors by clicking on <em>New issue</em> <a href="https://github.com/Freely-Given-org/OpenBibleData/issues">here</a> and telling us the problem.</p>'''
     topHtml = makeTop( level, None, 'about', None, state ) \
-                .replace( '__TITLE__', f"About {SITE_ABBREVIATION}{' TEST' if TEST_MODE else ''}" ) \
-                .replace( '__KEYWORDS__', f'Bible, about, {SITE_ABBREVIATION}, {SITE_NAME}, OET, OETBible' )
+                .replace( '__TITLE__', f"About {state.SITE_ABBREVIATION}{' TEST' if state.TEST_MODE else ''}" ) \
+                .replace( '__KEYWORDS__', f'Bible, about, {state.SITE_ABBREVIATION}, {state.SITE_NAME}, OET, OETBible' )
     html = f'''{topHtml}
 {aboutHTML}
-<p class="note"><small>Last rebuilt: {date.today()} (OET {OET_VERSION_NUMBER_STRING})</small></p>
+<p class="note"><small>Last rebuilt: {date.today()} (OET {state.OET_VERSION_NUMBER_STRING})</small></p>
 {makeBottom( level, 'about', state )}'''
     assert checkHtml( 'About', html )
 
@@ -835,21 +831,21 @@ def _createNewsPage( level:int, buildFolder:Path, state:State ) -> bool:
     Creates and saves the OBD News page.
     """
     fnPrint( DEBUGGING_THIS_MODULE, f"_createNewsPage( {level}, {buildFolder}, {state.BibleVersions} )" )
-    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Creating {'TEST ' if TEST_MODE else ''}news page…" )
+    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Creating {'TEST ' if state.TEST_MODE else ''}news page…" )
 
-    newsHTML = f'''<h1 id="Top">{SITE_NAME} News</h1>
-<p class="about">Recent {SITE_NAME} ({SITE_ABBREVIATION}) site developments:</p>
+    newsHTML = f'''<h1 id="Top">{state.SITE_NAME} News</h1>
+<p class="about">Recent {state.SITE_NAME} ({state.SITE_ABBREVIATION}) site developments:</p>
 <ul>
 <li><b>2024-Apr-20</b>: We added the <a href="{'../'*level}AICNT">AI Critical New Testament</a> (AICNT), mainly so that we can start to evaluate (on our <a href="{'../'*level}par/MRK/C1V1.htm#AICNT">Parallel Pages</a>) how well current, so-called ‘AI’ technologies might affect the Bible translation world.</li>
 <li><b>2024-Feb-15</b>: We added <a href="{'../'*level}rel/">Related Passages pages</a>—displaying related passages side-by-side, e.g., <a href="{'../'*level}rel/MRK/MRK_S3.htm#Top">here</a> (if you have a wide screen).</li>
 </ul>
-<p class="about">If you are the copyright owner of a Bible translation or a relevant dataset and would like to see it listed on this {SITE_ABBREVIATION} site,
+<p class="about">If you are the copyright owner of a Bible translation or a relevant dataset and would like to see it listed on this {state.SITE_ABBREVIATION} site,
         please contact us at <b>Freely</b> dot <b>Given</b> dot <b>org</b> (at) <b>gmail</b> dot <b>com</b>.</p>
 <p class="about">The source code for the Python program that produces these pages can be found at <a href="https://github.com/Freely-Given-org/OpenBibleData">GitHub.com/Freely-Given-org/OpenBibleData</a>.
     You can also advise us of any errors by clicking on <em>New issue</em> <a href="https://github.com/Freely-Given-org/OpenBibleData/issues">here</a> and telling us the problem.</p>'''
     topHtml = makeTop( level, None, 'news', None, state ) \
-                .replace( '__TITLE__', f"{SITE_ABBREVIATION} News{' TEST' if TEST_MODE else ''}" ) \
-                .replace( '__KEYWORDS__', f'Bible, news, {SITE_ABBREVIATION}, {SITE_NAME}, OET, OETBible' )
+                .replace( '__TITLE__', f"{state.SITE_ABBREVIATION} News{' TEST' if state.TEST_MODE else ''}" ) \
+                .replace( '__KEYWORDS__', f'Bible, news, {state.SITE_ABBREVIATION}, {state.SITE_NAME}, OET, OETBible' )
     html = f'''{topHtml}
 {newsHTML}
 {makeBottom( level, 'news', state )}'''
@@ -868,7 +864,7 @@ def _createOETKeyPage( level:int, buildFolder:Path, state:State ) -> bool:
     Creates and saves the About OBD page.
     """
     fnPrint( DEBUGGING_THIS_MODULE, f"_createOETKeyPage( {level}, {buildFolder}, {state.BibleVersions} )" )
-    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Creating {'TEST ' if TEST_MODE else ''}OET Key page…" )
+    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Creating {'TEST ' if state.TEST_MODE else ''}OET Key page…" )
 
     keyHTML = f'''<h1 id="Top">Key to the <em>Open English Translation</em></h1>
 <p class="note">The <em>Open English Translation of the Bible</em> is not tied to tradition (and especially not to traditional mistakes or misunderstandings) so it has a number of changes from more common Bible translations.</p>
@@ -975,7 +971,7 @@ The reason why such verses are not included is usually because the original lang
     assert keyHTML.count( '<p' ) == keyHTML.count( '</p>' )
     assert keyHTML.count( '<span' ) == keyHTML.count( '</span>' )
     topHtml = makeTop( level, None, 'OETKey', None, state ) \
-                .replace( '__TITLE__', f"Key to the Open English Translation{' TEST' if TEST_MODE else ''}" ) \
+                .replace( '__TITLE__', f"Key to the Open English Translation{' TEST' if state.TEST_MODE else ''}" ) \
                 .replace( '__KEYWORDS__', 'Bible, key, OET, OETBible' )
     html = f'''{topHtml}
 {keyHTML}
@@ -997,17 +993,17 @@ def _createMainIndexPage( level, folder:Path, state:State ) -> bool:
     fnPrint( DEBUGGING_THIS_MODULE, f"_createMainIndexPage( {level}, {folder}, {state.BibleVersions} )" )
 
     # Create the very top level index file
-    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Creating {'TEST ' if TEST_MODE else ''}main index page for {len(state.BibleVersions)} versions…" )
+    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Creating {'TEST ' if state.TEST_MODE else ''}main index page for {len(state.BibleVersions)} versions…" )
     html = makeTop( level, None, 'TopIndex', None, state ) \
-            .replace( '__TITLE__', f'TEST {SITE_NAME} Home' if TEST_MODE else f'{SITE_NAME} Home') \
-            .replace( '__KEYWORDS__', f'Bible, translation, English, OET, OETBible, {SITE_ABBREVIATION}, {SITE_NAME}' )
-    if TEST_MODE:
+            .replace( '__TITLE__', f'TEST {state.SITE_NAME} Home' if state.TEST_MODE else f'{state.SITE_NAME} Home') \
+            .replace( '__KEYWORDS__', f'Bible, translation, English, OET, OETBible, {state.SITE_ABBREVIATION}, {state.SITE_NAME}' )
+    if state.TEST_MODE:
         html = html.replace( '<body class="container">', '<body class="container"><p class="note"><a href="../">UP TO MAIN NON-TEST SITE</a></p>')
-    bodyHtml = f'<!--_createMainIndexPage--><h1 id="Top">{SITE_NAME} TEST Home</h1>' \
-        if TEST_MODE else f'<!--_createMainIndexPage--><h1 id="Top">{SITE_NAME} Home</h1>'
+    bodyHtml = f'<!--_createMainIndexPage--><h1 id="Top">{state.SITE_NAME} TEST Home</h1>' \
+        if state.TEST_MODE else f'<!--_createMainIndexPage--><h1 id="Top">{state.SITE_NAME} Home</h1>'
     html = f'''{html}
 {bodyHtml}
-<p class="note">Welcome to this <em>{SITE_NAME}</em> site created to share God’s fantastic message with everyone,
+<p class="note">Welcome to this <em>{state.SITE_NAME}</em> site created to share God’s fantastic message with everyone,
     and with a special interest in helping Bible translators around the world.</p>
 <p class="note">Choose a version abbreviation above to view Bible ‘books’ <b>by section</b> (recommended) or <b>by document</b> (might be slow to load for large documents) or <b>by chapter</b> (often arbitrary divisions).</p>
 <p class="note">The <b><a href="rel/">Related</a> passage</b> option shows OET-RV sections with any parallel or related content (especially in the ‘Messiah accounts’: John, Mark, Matthew, and Luke), as well as listing out all of the cross-references. (Because it’s wide, it’s best viewed on a wide-screen or in landscape mode.)</p>
@@ -1015,7 +1011,7 @@ def _createMainIndexPage( level, folder:Path, state:State ) -> bool:
 <p class="note">The <b><a href="ilr/">Interlinear</a> verse</b> view shows the OET-RV and OET-LV aligned with the original Hebrew or Greek words (including a ‘reverse interlinear’).</p>
 <p class="note">The <b><a href="dct/">Dictionary</a></b> link takes you to the <i>Tyndale Bible Dictionary</i>, with UBS dictionaries also coming...</p>
 <p class="note">The <b><a href="Search.htm">Search</a></b> link allows you to find English words (from a range of versions), or even Greek/Hebrew words, within the Bible text.</p>
-<p class="note"><small>Last rebuilt: {date.today()} (OET {OET_VERSION_NUMBER_STRING})</small></p>
+<p class="note"><small>Last rebuilt: {date.today()} (OET {state.OET_VERSION_NUMBER_STRING})</small></p>
 {makeBottom( level, 'TopIndex', state )}'''
     assert checkHtml( 'TopIndex', html )
 
@@ -1026,14 +1022,14 @@ def _createMainIndexPage( level, folder:Path, state:State ) -> bool:
     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  {len(html):,} characters written to {filepath}" )
 
 #     # Create the versions index file (in case it's needed)
-#     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Creating versions {'TEST ' if TEST_MODE else ''}index page for {len(state.BibleVersions)} versions…" )
+#     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Creating versions {'TEST ' if state.TEST_MODE else ''}index page for {len(state.BibleVersions)} versions…" )
 #     html = makeTop( level+1, None, 'TopIndex', None, state ) \
-#             .replace( '__TITLE__', 'TEST {SITE_NAME} Versions' if TEST_MODE else '{SITE_NAME} Versions') \
+#             .replace( '__TITLE__', 'TEST {state.SITE_NAME} Versions' if state.TEST_MODE else '{state.SITE_NAME} Versions') \
 #             .replace( '__KEYWORDS__', 'Bible, translation, English, OET' )
-#     if TEST_MODE:
+#     if state.TEST_MODE:
 #         html = html.replace( '<body class="container">', '<body class="container"><p class="index"><a href="{'../'*level}">UP TO MAIN NON-TEST SITE</a></p>')
-#     bodyHtml = """<!--createVersionsIndexPage--><h1 id="Top">{SITE_NAME} TEST Versions</h1>
-# """ if TEST_MODE else """<!--_createMainIndexPage--><h1 id="Top">{SITE_NAME} Versions</h1>
+#     bodyHtml = """<!--createVersionsIndexPage--><h1 id="Top">{state.SITE_NAME} TEST Versions</h1>
+# """ if state.TEST_MODE else """<!--_createMainIndexPage--><h1 id="Top">{state.SITE_NAME} Versions</h1>
 # """
 
 #     bodyHtml = f'{bodyHtml}<p class="index">Select one of the above Bible version abbreviations for views of entire documents (‘<i>books</i>’) or sections or chapters, or else select either of the Parallel or Interlinear verse views.</p>\n<ol>'
@@ -1041,7 +1037,7 @@ def _createMainIndexPage( level, folder:Path, state:State ) -> bool:
 #         bodyHtml = f'{bodyHtml}<li><b>{versionAbbreviation}</b>: {state.BibleNames[versionAbbreviation]}</li>'
 #     bodyHtml = f'{bodyHtml}</ol>'
 
-#     html += bodyHtml + f'<p class="index"><small>Last rebuilt: {date.today()} (OET {OET_VERSION_NUMBER_STRING})</small></p>' + makeBottom( level, 'TopIndex', state )
+#     html += bodyHtml + f'<p class="index"><small>Last rebuilt: {date.today()} (OET {state.OET_VERSION_NUMBER_STRING})</small></p>' + makeBottom( level, 'TopIndex', state )
 #     assert checkHtml( 'VersionIndex', html )
 
 #     filepath = folder.joinpath( 'index.htm' )

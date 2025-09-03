@@ -89,15 +89,15 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, dPrint, vPrint, rreplace
 from BibleOrgSys.Internals.InternalBibleInternals import getLeadingInt
 from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_NT27
 
-from settings import State, TEST_MODE
+from settings import State
 from html import checkHtml
 from OETHandlers import getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2025-08-17' # by RJH
+LAST_MODIFIED_DATE = '2025-08-29' # by RJH
 SHORT_PROGRAM_NAME = "usfm"
 PROGRAM_NAME = "OpenBibleData USFM to HTML functions"
-PROGRAM_VERSION = '0.92'
+PROGRAM_VERSION = '0.93'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -424,7 +424,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
             # if len(refTuple)>1 and refTuple[1] != '-1':
             #     assert not inParagraph, f"{versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {marker}={rest}"
 
-            # if TEST_MODE and versionAbbreviation != 'SR-GNT':
+            # if state.TEST_MODE and versionAbbreviation != 'SR-GNT':
             #     html = f'{html}<span class="{'cPsa' if BBB=='PSA' else 'c'}">C###{toRomanNumerals(rest) if versionAbbreviation=='KJB-1611' else rest}</span>{NARROW_NON_BREAK_SPACE}'
         elif marker in ('mt1','mt2','mt3','mt4'):
             assert rest
@@ -579,7 +579,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                     # NOTE: In basicOnly mode, we put \\d paragraphs in a SPAN, not in a PARAGRAPH (like we do further below)
                     html = f'{html}<span class="{marker}">{convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state)}</span>\n'
                     if not checkHtml( f'\\d at convertUSFMMarkerListToHtml({versionAbbreviation} {refTuple} {segmentType} {basicOnly=})', html, segmentOnly=True ):
-                        if DEBUGGING_THIS_MODULE or TEST_MODE: halt
+                        if DEBUGGING_THIS_MODULE or state.TEST_MODE: halt
             else: # not basicOnly
                 if cPrinted:
                     cBit = ''
@@ -1603,13 +1603,13 @@ myKJB1611XrefTable = {
     'Amos':'AMO', 'amos':'AMO',
     'Apoc':'REV','apoc':'REV',
     '1. Chron':'CH1', '1.Chron':'CH1','1.chron':'CH1', '1 Chron':'CH1', '1.Chro':'CH1', '1.chro':'CH1', '1 chron':'CH1',
-    '2.Chron':'CH2', '2.Chro':'CH2', '2.Chr':'CH2','2.chr':'CH2',
+    '2.Chron':'CH2','2.chron':'CH2', '2.Chro':'CH2','2.chro':'CH2', '2.Chr':'CH2','2.chr':'CH2',
     '1.Corin':'CO1','1.corin':'CO1','1.Cor':'CO1','1.cor':'CO1',
     '2.Cor':'CO2','2.cor':'CO2',
     'coloss':'COL', 'Col':'COL', 'col':'COL',
     'Dan':'DAN',
     'Deut':'DEU','deut':'DEU', 'Deu':'DEU','deu':'DEU',
-    'eccles':'ECC',
+    'Eccles':'ECC','eccles':'ECC',
     'Ephes':'EPH', 'ephes':'EPH', 'Eph':'EPH', 'eph':'EPH', 'ephe':'EPH',
     'Ester':'EST', 'Esth':'EST', 'Es':'EST', 'esth':'EST',
     'Exod':'EXO','exod':'EXO', 'Exo':'EXO',
@@ -1620,22 +1620,22 @@ myKJB1611XrefTable = {
     'Habac':'HAB','hab':'HAB', 'Abak':'HAB', 'Abac':'HAB',
     'Hagge':'HAG', 'Agge':'HAG',
     'Hebr':'HEB', 'hebr':'HEB', 'Heb':'HEB', 'heb':'HEB',
-    'Hose':'HOS', 'Hos':'HOS','hos':'HOS', 'Osee':'HOS', 'Ose':'HOS',
+    'Hose':'HOS', 'Hos':'HOS','hos':'HOS', 'Osee':'HOS', 'Ose':'HOS', 'Os':'HOS',
     'Isai':'ISA','isai':'ISA', 'Esai':'ISA', 'Esa':'ISA','esa':'ISA', 'Esay':'ISA','esay':'ISA', 'esai':'ISA', 'Isa':'ISA','isa':'ISA',
     'Iames':'JAM', 'Iam':'JAM', 'iam':'JAM',
-    'Iude':'JDE','iude':'JDE',
-    'Iudg':'JDG',
+    'Iude':'JDE','iude':'JDE','Iud':'JDE',
+    'Iudg':'JDG','iudg':'JDG',
     'iudith':'JDT',
-    'Ier':'JER','ier':'JER','Ierem':'JER', 'Iere':'JER', 'iere':'JER',
+    'Ier':'JER','ier':'JER','Ierem':'JER', 'Iere':'JER', 'iere':'JER', 'ierem':'JER', 'Iee':'JER',
     'Ioh':'JHN','ioh':'JHN','Iohn':'JHN','iohn':'JHN',
     '1.Iohn':'JN1','1.iohn':'JN1', 'I.Iohn':'JN1', '1.Ioh':'JN1','1.ioh':'JN1',
     'Iona':'JNA',
     'Iob':'JOB','iob':'JOB',
     'Ioel':'JOL','ioel':'JOL',
     'Iosh':'JOS','iosh':'JOS','Ios':'JOS','Iosu':'JOS',
-    '1.Kings':'KI1', '1.King':'KI1', '1.Kin':'KI1','1.kin':'KI1',  '1.king':'KI1', '1 King':'KI1',
+    '1.Kings':'KI1', '1.King':'KI1', '1.king':'KI1', '1 King':'KI1', '1.Kin':'KI1','1.kin':'KI1', '1 kin':'KI1',
             '1.Reg':'KI1',
-    '2.Kings':'KI2', '2.King':'KI2', '2.Kin':'KI2',
+    '2.Kings':'KI2', '2.King':'KI2','2.king':'KI2', '2 king':'KI2', '2.Kin':'KI2','2.kin':'KI2',
     'Lam':'LAM', 'lam':'LAM',
     '4.Esdr':'LES','4.Esd':'LES',
     'Leuit':'LEV','leuit':'LEV', 'Leui':'LEV','leui':'LEV', 'Leu':'LEV',
@@ -1656,7 +1656,6 @@ myKJB1611XrefTable = {
     'Prou':'PRO', 'Pro':'PRO', 'pro':'PRO', 'prou':'PRO',
     '1.Sam':'SA1','1.sam':'SA1', '1 Sam':'SA1',
     '2.Sam':'SA2',
-    'Ecclu':'SIR',
     '1.Thess':'TH1','1.thess':'TH1', '1 thess':'TH1', '1.Thes':'TH1','1.thes':'TH1',
     '2.thes':'TH2', '2 thess':'TH2',
     '1.tim':'TI1',
@@ -1665,12 +1664,12 @@ myKJB1611XrefTable = {
     'tob':'TOB',
     'Reuel':'REV','reuel':'REV', 'reue':'REV', 'Reu':'REV','reu':'REV',
     'Rom':'ROM', 'rom':'ROM',
-    'ecclus':'SIR', 'Ecclus':'SIR', # Sirach / Ecclesiasticus
+    'ecclus':'SIR', 'Ecclus':'SIR','Ecclu':'SIR','ecclu':'SIR', # Sirach / Ecclesiasticus
     '1.Tim':'TI1',
     'Wisd':'WIS', 'Wis':'WIS', 'wisd':'WIS', 'wis':'WIS',
     'Zach':'ZEC','zach':'ZEC',  'Zac':'ZEC',
     }
-BCVRefRegEx = re.compile( '(?: ?and)? ?([1234I]?[ .]?[A-Za-z][a-z]{0,12})\\.? ?([1-9][0-9]{0,2})[:.–] ?([1-9][0-9]{0,2})' ) # Can have en-dash for chapter range
+BCVRefRegEx = re.compile( '(?: ?and)? ?([1234I]?[ .]?[A-Za-z][a-z]{1,12})\\.? ?([1-9][0-9]{0,2})[:.–] ?([1-9][0-9]{0,2})' ) # Can have en-dash for chapter range
 BVRefRegEx = re.compile( '([1234I]?[ .]?[A-Za-z][a-z]{0,12})\\.? ?([1-9][0-9]{0,2})' ) # For single-chapter book or for whole chapter
 CVRefRegEx = re.compile( '([1-9][0-9]{0,2})[:.]([1-9][0-9]{0,2})' )
 def livenXRefField( fieldType:str, versionAbbreviation:str, refTuple:tuple, segmentType:str, pathPrefix:str, xoText:str, xrefOriginalMiddle:str, state:State ) -> str:
@@ -1729,8 +1728,12 @@ def livenXRefField( fieldType:str, versionAbbreviation:str, refTuple:tuple, segm
             xB = match.group( 1 ).lstrip() # For books without a book number like 1 Cor, the BCV regex may capture an extra space before the book abbreviation
             if xB == 'Songs':
                 xBBB = 'SNG'
-            elif versionAbbreviation=='KJB-1611' and xB=='and':
+            elif versionAbbreviation=='KJB-1611' and xB in ('and','c','ca'): # 'ca' stands for 'circa' = 'around'
                 xBBB = lastXBBB # Same as last book
+            elif versionAbbreviation=='KJB-1611' and xB in ('See','to','Dodo','Elishua','Vzziah'): # First one is a range, 2nd is in a footnote
+                # print( f"{match=} {match.start()=} {match.end()=} {match.groups()=}" )
+                reStartIx = match.end() if xB=='to' else match.start()+len(match.group( 1 ))
+                continue # I think we can just ignore it here
             elif versionAbbreviation=='KJB-1611' and xB in ('Chap','Cha','chap','cha'):
                 xBBB = BBB # This same book where the xref is located
             # elif versionAbbreviation=='KJB-1611' and xB in ('Verse','Vers'):
@@ -1757,7 +1760,7 @@ def livenXRefField( fieldType:str, versionAbbreviation:str, refTuple:tuple, segm
         if firstIndex==indexBV and firstIndex!=indexBCV: # process matchBV (if it's not also a matchBCV)
             dPrint( 'Info', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} {refTuple} {xoText=} {xrefLiveMiddle=} {matchBV.groups()=}" )
             xCorV = match.group( 2 )
-            if versionAbbreviation=='KJB-1611' and xB in ('Verse','Vers','Ver','ver','and'):
+            if versionAbbreviation=='KJB-1611' and xB in ('Verse','Vers','vers','Ver','ver','and'):
                 xBBB, xV = BBB, xCorV # This same book where the xref is located
                 try: xC = refTuple[1]
                 except IndexError: # no chapter number given there -- use the xoText instead
@@ -1837,7 +1840,7 @@ def livenXRefField( fieldType:str, versionAbbreviation:str, refTuple:tuple, segm
             sectionNumber = findSectionNumber( 'OET-RV', xBBB, xC, xV, state )
             dPrint( 'Info', DEBUGGING_THIS_MODULE, f"convertUSFMMarkerListToHtml for {versionAbbreviation} {refTuple} '{segmentType}' findSectionNumber( 'OET-RV', {xBBB} {xC}:{xV} ) returned {sectionNumber}" )
             assert sectionNumber is not None, f"Bad OET-RV {refTuple} cross-reference: {xBBB} {xC}:{xV} from {xrefLiveMiddle=}"
-            if not TEST_MODE:
+            if not state.TEST_MODE:
                 assert sectionNumber > 0, f"ZERO OET-RV {refTuple} cross-reference: {xBBB} {xC}:{xV} from {xrefLiveMiddle=}"
             # print( f"       {level=} {versionAbbreviation} {refTuple} {segmentType} {pathPrefix=}")
             adjPathPrefix = pathPrefix.replace('byC','bySec') if pathPrefix else '../bySec/'

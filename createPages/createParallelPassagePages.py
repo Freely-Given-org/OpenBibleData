@@ -42,8 +42,7 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 import BibleOrgSys.Formats.ESFMBible as ESFMBible
 from BibleOrgSys.Internals.InternalBibleInternals import InternalBibleEntryList, getLeadingInt
 
-from settings import State, TEST_MODE, OET_RV_BOOK_LIST, reorderBooksForOETVersions, \
-                        OET_UNFINISHED_WARNING_HTML_PARAGRAPH, JAMES_NOTE_HTML_PARAGRAPH
+from settings import State, reorderBooksForOETVersions
 from usfm import convertUSFMMarkerListToHtml
 from Bibles import getVerseDataListForReference
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
@@ -53,10 +52,10 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
 from OETHandlers import livenOETWordLinks, getOETTidyBBB, getOETBookName, getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2025-05-25' # by RJH
+LAST_MODIFIED_DATE = '2025-08-24' # by RJH
 SHORT_PROGRAM_NAME = "createParallelPassagePages"
 PROGRAM_NAME = "OpenBibleData createParallelPassagePages functions"
-PROGRAM_VERSION = '0.37'
+PROGRAM_VERSION = '0.38'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -87,7 +86,7 @@ def createParallelPassagePages( level:int, folder:Path, state:State ) -> bool:
     availableRelatedBBBs = []
     availableRelatedBBBLinks = []
     rvBible = state.preloadedBibles['OET-RV']
-    for BBB in reorderBooksForOETVersions( OET_RV_BOOK_LIST ): #state.allBBBs ):
+    for BBB in reorderBooksForOETVersions( state.OET_RV_BOOK_LIST ): #state.allBBBs ):
         try:
             _numBBBSections = len( rvBible[BBB]._SectionIndex )
         except KeyError:
@@ -109,7 +108,7 @@ def createParallelPassagePages( level:int, folder:Path, state:State ) -> bool:
             ourTidyBBB = getOETTidyBBB( BBB )
             availableRelatedBBBLinks.append( f'''<a title="{getOETBookName(BBB)}" href="{BBB}/">{ourTidyBBB}</a>''' )
     # Now create the actual section-reference pages
-    for BBB in reorderBooksForOETVersions( OET_RV_BOOK_LIST ): #state.allBBBs ):
+    for BBB in reorderBooksForOETVersions( state.OET_RV_BOOK_LIST ): #state.allBBBs ):
         if BBB in availableRelatedBBBs:
             createSectionCrossReferencePagesForBook( level, folder, rvBible, BBB, availableRelatedBBBLinks, state )
 
@@ -117,7 +116,7 @@ def createParallelPassagePages( level:int, folder:Path, state:State ) -> bool:
     filename = 'index.htm'
     filepath = folder.joinpath( filename )
     top = makeTop( level, None, 'relatedSectionIndex', None, state ) \
-            .replace( '__TITLE__', f"Related Passage View{' TEST' if TEST_MODE else ''}" ) \
+            .replace( '__TITLE__', f"Related Passage View{' TEST' if state.TEST_MODE else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, related, parallel, synoptic' )
     indexHtml = f'''{top}<h1 id="Top">Related passage pages</h1>
 <h2>Index of books</h2>
@@ -255,7 +254,7 @@ def createParallelPassagePages( level:int, folder:Path, state:State ) -> bool:
 
 #         synopticSectionHtml = f'''<h1><span title="{state.BibleNames[thisBible.abbreviation]}">{thisBible.abbreviation}</span> by synoptic section {ourTidyBBB} {'Intro' if startC=='-1' else startC}:{startV}</h1>
 # <p class="secNav">{leftLink}{documentLink} {startChapterLink}:{startV}–{endChapterLink}:{endV}{rightLink}{parallelLink}{interlinearLink}{detailsLink}</p>
-# {OET_UNFINISHED_WARNING_HTML_PARAGRAPH if 'OET' in thisBible.abbreviation else ''}
+# {state.OET_UNFINISHED_WARNING_HTML_PARAGRAPH if 'OET' in thisBible.abbreviation else ''}
 # <h1>{sectionName}</h1>
 # '''
 #         if isinstance( thisBible, ESFMBible.ESFMBible ): # e.g., OET-RV
@@ -375,7 +374,7 @@ def createParallelPassagePages( level:int, folder:Path, state:State ) -> bool:
 
 #         filepath = BBBFolder.joinpath( sFilename )
 #         top = makeTop( BBBLevel, thisBible.abbreviation, 'relatedPassage', None, state ) \
-#                 .replace( '__TITLE__', f"{thisBible.abbreviation} {ourTidyBBB} section{' TEST' if TEST_MODE else ''}" ) \
+#                 .replace( '__TITLE__', f"{thisBible.abbreviation} {ourTidyBBB} section{' TEST' if state.TEST_MODE else ''}" ) \
 #                 .replace( '__KEYWORDS__', f'Bible, {thisBible.abbreviation}, synoptic, parallel, {ourTidyBBB}' ) \
 #                 .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/rel/{sFilename}#Top">{thisBible.abbreviation}</a>''',
 #                         f'''<a title="Up to {state.BibleNames[thisBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/">↑{thisBible.abbreviation}</a>''' )
@@ -394,14 +393,14 @@ def createParallelPassagePages( level:int, folder:Path, state:State ) -> bool:
 #     filename1 = 'index.htm'
 #     filepath1 = BBBFolder.joinpath( filename1 )
 #     top = makeTop( BBBLevel, thisBible.abbreviation, 'relatedSectionIndex', None, state ) \
-#             .replace( '__TITLE__', f"{thisBible.abbreviation} {ourTidyBBB} sections{' TEST' if TEST_MODE else ''}" ) \
+#             .replace( '__TITLE__', f"{thisBible.abbreviation} {ourTidyBBB} sections{' TEST' if state.TEST_MODE else ''}" ) \
 #             .replace( '__KEYWORDS__', f'Bible, {thisBible.abbreviation}, related, parallel, sections, {ourTidyBBB}' ) \
 #             .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/rel/{filename1}#Top">{thisBible.abbreviation}</a>''',
 #                     f'''<a title="Up to {state.BibleNames[thisBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/">↑{thisBible.abbreviation}</a>''' )
 #     synopticSectionIndexHtml = f'<h1 id="Top">Index of parallel sections for {thisBible.abbreviation} {ourTidyBBB}</h1>'
 #     for _nnn,startC,startV,_endC,_endV,sectionName,reasonName,_contextList,_verseEntryList,sFilename in state.sectionsLists[thisBible.abbreviation][BBB]:
 #         if (startC,startV) not in usedParallels: continue # Only make the index for sections that we made pages for
-#         reasonString = '' if reasonName=='Section heading' and not TEST_MODE else f' ({reasonName})' # Suppress '(Section Heading)' appendages in the list
+#         reasonString = '' if reasonName=='Section heading' and not state.TEST_MODE else f' ({reasonName})' # Suppress '(Section Heading)' appendages in the list
 #         # NOTE: word 'Alternate ' is defined in the above OET function at start of main loop
 #         synopticSectionIndexHtml = f'''{synopticSectionIndexHtml}<p class="{'alternateHeading' if reasonName.startswith('Alternate ') else 'sectionHeading'}"><a title="View section" href="{sFilename}#Top">{'Intro' if startC=='-1' else startC}:{startV} <b>{sectionName}</b>{reasonString}</a></p>'''
 #         # sectionHtml = f'''{sectionHtml}<p class="sectionHeading"><a title="View section" href="{filename}#Top">{'Intro' if startC=='-1' else startC}:{startV} <b>{sectionName}</b>{reasonString}</a></p>'''
@@ -419,14 +418,14 @@ def createParallelPassagePages( level:int, folder:Path, state:State ) -> bool:
 #     filename2 = f'{BBB}.htm'
 #     filepath2 = folder.joinpath( filename2 )
 #     top = makeTop( level, thisBible.abbreviation, 'relatedSectionIndex', None, state ) \
-#             .replace( '__TITLE__', f"{thisBible.abbreviation} {ourTidyBBB} sections{' TEST' if TEST_MODE else ''}" ) \
+#             .replace( '__TITLE__', f"{thisBible.abbreviation} {ourTidyBBB} sections{' TEST' if state.TEST_MODE else ''}" ) \
 #             .replace( '__KEYWORDS__', f'Bible, {thisBible.abbreviation}, related, parallel, sections, {ourTidyBBB}' ) \
 #             .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/rel/{filename2}#Top">{thisBible.abbreviation}</a>''',
 #                       f'''<a title="Up to {state.BibleNames[thisBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/">↑{thisBible.abbreviation}</a>''' )
 #     synopticSectionIndexHtml = f'<h1 id="Top">Index of parallel sections for {thisBible.abbreviation} {ourTidyBBB}</h1>'
 #     for _nnn,startC,startV,_endC,_endV,sectionName,reasonName,_contextList,_verseEntryList,sFilename in state.sectionsLists[thisBible.abbreviation][BBB]:
 #         if (startC,startV) not in usedParallels: continue # Only make the index for sections that we made pages for
-#         reasonString = '' if reasonName=='Section heading' and not TEST_MODE else f' ({reasonName})' # Suppress '(Section Heading)' appendages in the list
+#         reasonString = '' if reasonName=='Section heading' and not state.TEST_MODE else f' ({reasonName})' # Suppress '(Section Heading)' appendages in the list
 #         # NOTE: word 'Alternate ' is defined in the above OET function at start of main loop
 #         synopticSectionIndexHtml = f'''{synopticSectionIndexHtml}<p class="{'alternateHeading' if reasonName.startswith('Alternate ') else 'sectionHeading'}"><a title="View section" href="{BBB}/{sFilename}#Top">{'Intro' if startC=='-1' else startC}:{startV} <b>{sectionName}</b>{reasonString}</a></p>'''
 #         # sectionHtml = f'''{sectionHtml}<p class="sectionHeading"><a title="View section" href="{filename}#Top">{'Intro' if startC=='-1' else startC}:{startV} <b>{sectionName}</b>{reasonString}</a></p>'''
@@ -571,7 +570,7 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
 
         crossReferencedSectionHtml = f'''<h1 id="Top"><span title="{state.BibleNames[thisBible.abbreviation]}">{thisBible.abbreviation}</span> by cross-referenced section {ourTidyBBB} {'Intro' if startC=='-1' else startC}:{startV}</h1>
 <p class="secNav">{sectionIndexLink}{leftLink}{documentLink} {startChapterLink}:{startV}–{endChapterLink}:{endV}{rightLink}{parallelLink}{interlinearLink}{detailsLink}</p>
-{f'{JAMES_NOTE_HTML_PARAGRAPH}{NEWLINE}' if 'OET' in thisBible.abbreviation and BBB=='JAM' else ''}{f'{OET_UNFINISHED_WARNING_HTML_PARAGRAPH}{NEWLINE}' if 'OET' in thisBible.abbreviation else ''}<h1>{'TEST ' if TEST_MODE else ''}{sectionName}</h1>'''
+{f'{state.JAMES_NOTE_HTML_PARAGRAPH}{NEWLINE}' if 'OET' in thisBible.abbreviation and BBB=='JAM' else ''}{f'{state.OET_UNFINISHED_WARNING_HTML_PARAGRAPH}{NEWLINE}' if 'OET' in thisBible.abbreviation else ''}<h1>{'TEST ' if state.TEST_MODE else ''}{sectionName}</h1>'''
         assert '\n\n' not in crossReferencedSectionHtml
         if isinstance( thisBible, ESFMBible.ESFMBible ): # e.g., OET-RV
             verseEntryList = livenOETWordLinks( BBBLevel, thisBible, BBB, verseEntryList, state )
@@ -857,7 +856,7 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
 
         filepath = BBBFolder.joinpath( sFilename )
         top = makeTop( BBBLevel, thisBible.abbreviation, 'relatedPassage', None, state ) \
-                .replace( '__TITLE__', f"{thisBible.abbreviation} {ourTidyBBB} section{' TEST' if TEST_MODE else ''}" ) \
+                .replace( '__TITLE__', f"{thisBible.abbreviation} {ourTidyBBB} section{' TEST' if state.TEST_MODE else ''}" ) \
                 .replace( '__KEYWORDS__', f'Bible, {thisBible.abbreviation}, cross-reference, parallel, {ourTidyBBB}' ) \
                 .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/rel/{sFilename}#Top">{thisBible.abbreviation}</a>''',
                         f'''<a title="Up to {state.BibleNames[thisBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/">↑{thisBible.abbreviation}</a>''' )
@@ -877,14 +876,14 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
     filename1 = 'index.htm'
     filepath1 = BBBFolder.joinpath( filename1 )
     top = makeTop( BBBLevel, thisBible.abbreviation, 'relatedSectionIndex', None, state ) \
-            .replace( '__TITLE__', f"{thisBible.abbreviation} {ourTidyBBB} sections{' TEST' if TEST_MODE else ''}" ) \
+            .replace( '__TITLE__', f"{thisBible.abbreviation} {ourTidyBBB} sections{' TEST' if state.TEST_MODE else ''}" ) \
             .replace( '__KEYWORDS__', f'Bible, {thisBible.abbreviation}, related, parallel, sections, {ourTidyBBB}' ) \
             .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/rel/{filename1}#Top">{thisBible.abbreviation}</a>''',
                     f'''<a title="Up to {state.BibleNames[thisBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/">↑{thisBible.abbreviation}</a>''' )
     crossReferencedSectionIndexHtml = f'<h1 id="Top">Index of parallel sections for {thisBible.abbreviation} {ourTidyBBB}</h1>'
     for _nnn,startC,startV,_endC,_endV,sectionName,reasonName,_contextList,_verseEntryList,sFilename in state.sectionsLists[thisBible.abbreviation][BBB]:
         if (startC,startV) not in usedParallels: continue # Only make the index for sections that we made pages for
-        reasonString = '' if reasonName=='Section heading' and not TEST_MODE else f' ({reasonName})' # Suppress '(Section Heading)' appendages in the list
+        reasonString = '' if reasonName=='Section heading' and not state.TEST_MODE else f' ({reasonName})' # Suppress '(Section Heading)' appendages in the list
         # NOTE: word 'Alternate ' is defined in the above OET function at start of main loop
         crossReferencedSectionIndexHtml = f'''{crossReferencedSectionIndexHtml}<p class="{'alternateHeading' if reasonName.startswith('Alternate ') else 'sectionHeading'}"><a title="View section" href="{sFilename}#Top">{'Intro' if startC=='-1' else startC}:{startV} <b>{sectionName}</b>{reasonString}</a></p>'''
         # sectionHtml = f'''{sectionHtml}<p class="sectionHeading"><a title="View section" href="{filename}#Top">{'Intro' if startC=='-1' else startC}:{startV} <b>{sectionName}</b>{reasonString}</a></p>'''
@@ -902,14 +901,14 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
     filename2 = f'{BBB}.htm'
     filepath2 = folder.joinpath( filename2 )
     top = makeTop( level, thisBible.abbreviation, 'relatedSectionIndex', None, state ) \
-            .replace( '__TITLE__', f"{thisBible.abbreviation} {ourTidyBBB} sections{' TEST' if TEST_MODE else ''}" ) \
+            .replace( '__TITLE__', f"{thisBible.abbreviation} {ourTidyBBB} sections{' TEST' if state.TEST_MODE else ''}" ) \
             .replace( '__KEYWORDS__', f'Bible, {thisBible.abbreviation}, related, parallel, sections, {ourTidyBBB}' ) \
             .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/rel/{filename2}#Top">{thisBible.abbreviation}</a>''',
                       f'''<a title="Up to {state.BibleNames[thisBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/">↑{thisBible.abbreviation}</a>''' )
     crossReferencedSectionIndexHtml = f'<h1 id="Top">Index of parallel sections for {thisBible.abbreviation} {ourTidyBBB}</h1>'
     for _nnn,startC,startV,_endC,_endV,sectionName,reasonName,_contextList,_verseEntryList,sFilename in state.sectionsLists[thisBible.abbreviation][BBB]:
         if (startC,startV) not in usedParallels: continue # Only make the index for sections that we made pages for
-        reasonString = '' if reasonName=='Section heading' and not TEST_MODE else f' ({reasonName})' # Suppress '(Section Heading)' appendages in the list
+        reasonString = '' if reasonName=='Section heading' and not state.TEST_MODE else f' ({reasonName})' # Suppress '(Section Heading)' appendages in the list
         # NOTE: word 'Alternate ' is defined in the above OET function at start of main loop
         crossReferencedSectionIndexHtml = f'''{crossReferencedSectionIndexHtml}<p class="{'alternateHeading' if reasonName.startswith('Alternate ') else 'sectionHeading'}"><a title="View section" href="{BBB}/{sFilename}#Top">{'Intro' if startC=='-1' else startC}:{startV} <b>{sectionName}</b>{reasonString}</a></p>'''
         # sectionHtml = f'''{sectionHtml}<p class="sectionHeading"><a title="View section" href="{filename}#Top">{'Intro' if startC=='-1' else startC}:{startV} <b>{sectionName}</b>{reasonString}</a></p>'''

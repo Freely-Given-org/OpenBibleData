@@ -39,6 +39,8 @@ CHANGELOG:
     2024-11-01 Added topics pages
     2025-06-29 v0.41 Added SLT
     2025-07-05 v0.42 Added HAP (links)
+    2025-08-24 Move rest of settings into State
+    2025-09-02 Added RP (Byz) GNT
 """
 from pathlib import Path
 
@@ -47,111 +49,113 @@ from BibleOrgSys.BibleOrgSysGlobals import dPrint, fnPrint
 from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39
 
 
-LAST_MODIFIED_DATE = '2025-07-05' # by RJH
+LAST_MODIFIED_DATE = '2025-09-02' # by RJH
 SHORT_PROGRAM_NAME = "settings"
 PROGRAM_NAME = "OpenBibleData (OBD) Settings"
-PROGRAM_VERSION = '0.98'
+PROGRAM_VERSION = '0.99'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
-
-OET_VERSION_NUMBER_STRING = 'v0.42.07' # Incremented on most runs
-
-TEST_MODE = True # Writes website into 'Test' subfolder if True
-TEST_OT_BOOK_LIST = ['PSA','ECC'] # Books in progress
-TEST_NT_BOOK_LIST = ['MRK'] # Shortest gospel
-TEST_BOOK_LIST_CHANGED = False
-
-# Many of these settings are used to omit some processing so as to get a speedier conclusion for debugging
-TEST_VERSIONS_ONLY = None #['OET','OET-RV','OET-LV', 'RV', 'TOSN','UTN'] # Also stops actual site being built
-ALL_PRODUCTION_BOOKS = not TEST_MODE # If set to False, uses the TEST book list (with many less books) for a faster test build
-CREATE_PARALLEL_VERSE_PAGES = 'LAST' # 'FIRST','LAST', or None -- depending on debugging needs
-CREATE_BOOK_AND_OTHER_PAGES = True # Can be turned off for debugging
-DO_SPELL_CHECKS = True #TEST_MODE # On parallel pages
-REUSE_EXISTING_WORD_PAGES = TEST_MODE and not TEST_BOOK_LIST_CHANGED # Don't recreate word pages
-ALL_TEST_REFERENCE_PAGES = False # If in TEST_MODE, make ALL word/lemma pages, or just the RELEVANT ones
-UPDATE_ACTUAL_SITE_WHEN_BUILT = True # The pages are initially built in a tmp folder so need to be copied to the final destination
-
-OET_RV_OT_BOOK_LIST = ['GEN','EXO','JOS','JDG','RUT','SA1','SA2','KI1','KI2',
-                       'EZR','NEH','EST','JOB','PSA','ECC','SNG','LAM',
-                       'DAN','AMO','OBA','JNA','MIC','NAH','HAB','ZEP','HAG','ZEC','MAL']
-
-TEMP_BUILD_FOLDER = Path( '../buildingHtmlPages/' )
-NORMAL_DESTINATION_FOLDER = Path( '../htmlPages/' )
-DEBUG_DESTINATION_FOLDER = NORMAL_DESTINATION_FOLDER.joinpath( 'Test/' )
-DESTINATION_FOLDER = DEBUG_DESTINATION_FOLDER if TEST_MODE or BibleOrgSysGlobals.debugFlag \
-                        else NORMAL_DESTINATION_FOLDER
-
-SITE_NAME = 'Open Bible Data'
-SITE_ABBREVIATION = 'OBD'
-
-# We use a rough logical, then chronological 'book' order
-# For the OT, we keep SA1/SA2, etc. together (as a single document) rather than splitting them chronologically
-OET_OT_BOOK_ORDER = ['GEN','EXO','LEV','NUM','DEU',
-                        'JOB', # Where does this belong?
-                        'JOS','JDG','RUT',
-                        'SA1','SA2', 'PSA', 'AMO','HOS',
-                        'KI1','KI2', 'CH1','CH2', 'PRO','ECC','SNG',
-                        'JOL', 'MIC', 'ISA', 'ZEP', 'HAB', 'JER','LAM',
-                        'JNA', 'NAH', 'OBA',
-                        'DAN', 'EZE',
-                        'EZR','EST','NEH', 'HAG','ZEC','MAL',
-                        ]
-assert len(OET_OT_BOOK_ORDER) == 39
-# The following are not necessarily all included in the OET
-OET_APOCRYPHA_BOOK_ORDER = ['LAO',
-                        'GES','LES','ESG','DNG','PS2',
-                        'TOB','JDT','ESA','WIS','SIR','BAR','LJE','PAZ','SUS','BEL','MAN',
-                        'MA1','MA2','MA3','MA4',
-                        'GLS']
-# For the NT, we put JHN first as a parallel to GEN, then ACT ends up better because immediately following LUK
-OET_NT_BOOK_ORDER = ['JHN','MRK','MAT','LUK','ACT',
-                        'JAM', 'GAL', 'TH1','TH2', 'CO1','CO2', 'ROM', 'COL', 'PHM', 'EPH', 'PHP',
-                        'TI1','TIT', 'PE1','PE2',
-                        'TI2', 'HEB', 'JDE',
-                        'JN1','JN2','JN3', 'REV']
-assert len(OET_NT_BOOK_ORDER) == 27
-OET_BOOK_ORDER = ['FRT','INT'] + OET_OT_BOOK_ORDER + OET_APOCRYPHA_BOOK_ORDER + OET_NT_BOOK_ORDER + ['XXA','XXB','XXC','XXD','XXE','CNC','GLO','TDX','NDX','OTH','BAK']
-assert len(OET_BOOK_ORDER) > 68
-
-TEST_BOOK_LIST = TEST_OT_BOOK_LIST + TEST_NT_BOOK_LIST
-OET_LV_BOOK_LIST = BOOKLIST_OT39 + OET_NT_BOOK_ORDER
-OET_RV_BOOK_LIST = TEST_BOOK_LIST if TEST_MODE else (OET_RV_OT_BOOK_LIST + OET_NT_BOOK_ORDER)
-# TODO: What about 'INT' ?
-OET_RV_BOOK_LIST_WITH_FRT = ['FRT'] + OET_RV_BOOK_LIST
-
-# The version to link to when the OET doesn't have that book (yet)
-ALTERNATIVE_VERSION = 'WEB' # Should be a version with all books present
-
-VERSIONS_WITHOUT_NT = ['UHB','JPS', 'BrLXX','BrTr']
-VERSIONS_WITHOUT_OT = ['BLB','AICNT','TCNT','TNT','Wymth', 'SR-GNT','UGNT','SBL-GNT','TC-GNT']
-VERSIONS_WITH_APOCRYPHA = ( 'KJB-1611', 'WEBBE','WEB', 'BrLXX','BrTr')
-
-NUM_EXTRA_MODES = 7 # Related passages, topics, parallel and interlinear verses, reference and (Tyndale Bible) dictionary, and search
-
-OET_UNFINISHED_WARNING_HTML_TEXT = 'This is still a very early look into the unfinished text of the <em>Open English Translation</em> of the Bible. Please double-check the text in advance before using in public.'
-OET_UNFINISHED_WARNING_HTML_PARAGRAPH = f'<p class="rem">{OET_UNFINISHED_WARNING_HTML_TEXT}</p>'
-OET_SINGLE_VERSE_HTML_TEXT = 'This view shows ‘verses’ which are not natural language units and hence sometimes only part of a sentence will be visible. Normally the OET discourages the reading of individual ‘verses’, but this view is only designed as a tool for doing comparisons of different translations.'
-OETS_UNFINISHED_WARNING_HTML_TEXT = 'The OET segments on this page are still very early looks into the unfinished texts of the <em>Open English Translation</em> of the Bible. Please double-check these texts in advance before using in public.'
-# OETS_UNFINISHED_WARNING_HTML_PARAGRAPH = f'<p class="rem">{OETS_UNFINISHED_WARNING_HTML_TEXT}</p>'
-
-JAMES_NOTE_HTML_TEXT = 'Note that the <em>OET</em> uses ‘Yacob’ for ‘The Letter of Jacob’ (wrongly called ‘James’ in older Bibles).'
-JAMES_NOTE_HTML_PARAGRAPH = f'<p class="rem">{JAMES_NOTE_HTML_TEXT}</p>'
-
-BLACK_LETTER_FONT_HTML_TEXT = 'Note that this page will look best (more authentic) if you’ve downloaded a black-letter font like <a href="https://fonts.google.com/specimen/UnifrakturCook">Google’s UnifrakturCook</a>.'
-BLACK_LETTER_FONT_HTML_PARAGRAPH = f'<p class="rem">{BLACK_LETTER_FONT_HTML_TEXT}</p>'
-
-BY_DOCUMENT_HTML_TEXT = 'Remember that ancient letters were meant to be read in their entirety, just like modern letters. We provide a byChapter mode for convenience only, but mostly <b>recommend the byDocument and bySection modes</b> for personal reading.'
-BY_DOCUMENT_HTML_PARAGRAPH = f'<p class="rem">{BY_DOCUMENT_HTML_TEXT}</p>'
-
-PICKLE_FILENAME_END = '.OBD_Bible.pickle'
-
 
 
 class State:
     """
     A place to store some of the global stuff that needs to be passed around.
     """
+    OET_VERSION_NUMBER_STRING = 'v0.43.08' # Incremented on most runs
+
+    TEST_MODE = True # Writes website into 'Test' subfolder if True
+    TEST_OT_BOOK_LIST = ['CH1','PRO','EZE'] # Books in progress
+    TEST_NT_BOOK_LIST = ['MRK'] # Shortest gospel
+    NEW_BOOK_IN_TEST_LIST = False # So that word pages will get rebuilt for TEST_MODE
+
+    # Many of these settings are used to omit some processing so as to get a speedier conclusion for debugging
+    TEST_VERSIONS_ONLY = None #['OET','OET-RV','OET-LV', 'RV', 'TOSN','UTN'] # Also stops actual site being built
+    ALL_PRODUCTION_BOOKS = not TEST_MODE # If set to False, uses the TEST book list (with many less books) for a faster test build
+    CREATE_PARALLEL_VERSE_PAGES = 'LAST' # 'FIRST','LAST', or None -- depending on debugging needs
+    CREATE_BOOK_AND_OTHER_PAGES = True # Can be turned off for debugging
+    DO_SPELL_CHECKS = True #TEST_MODE # On parallel pages
+    REUSE_EXISTING_WORD_PAGES = TEST_MODE and not NEW_BOOK_IN_TEST_LIST # Don't recreate word pages
+    ALL_TEST_REFERENCE_PAGES = False # If in TEST_MODE, make ALL word/lemma pages, or just the RELEVANT ones
+    UPDATE_ACTUAL_SITE_WHEN_BUILT = True # The pages are initially built in a tmp folder so need to be copied to the final destination
+
+    OET_RV_OT_BOOK_LIST = ['GEN','EXO','JOS','JDG','RUT',
+                    'SA1','SA2','KI1','KI2','CH1',
+                    'EZR','NEH','EST','JOB','PSA','PRO','ECC','SNG','LAM',
+                    'EZE','DAN','HOS','JOL','AMO','OBA','JNA',
+                    'MIC','NAH','HAB','ZEP','HAG','ZEC','MAL'] # 33 'LEV','NUM','DEU','CH2','ISA','JER'
+
+    TEMP_BUILD_FOLDER = Path( '../buildingHtmlPages/' )
+    NORMAL_DESTINATION_FOLDER = Path( '../htmlPages/' )
+    DEBUG_DESTINATION_FOLDER = NORMAL_DESTINATION_FOLDER.joinpath( 'Test/' )
+    DESTINATION_FOLDER = DEBUG_DESTINATION_FOLDER if TEST_MODE or BibleOrgSysGlobals.debugFlag \
+                            else NORMAL_DESTINATION_FOLDER
+
+    SITE_NAME = 'Open Bible Data'
+    SITE_ABBREVIATION = 'OBD'
+
+    # We use a rough logical, then chronological 'book' order
+    # For the OT, we keep SA1/SA2, etc. together (as a single document) rather than splitting them chronologically
+    OET_OT_BOOK_ORDER = ['GEN','EXO','LEV','NUM','DEU',
+                            'JOB', # Where does this belong?
+                            'JOS','JDG','RUT',
+                            'SA1','SA2', 'PSA', 'AMO','HOS',
+                            'KI1','KI2', 'CH1','CH2', 'PRO','ECC','SNG',
+                            'JOL', 'MIC', 'ISA', 'ZEP', 'HAB', 'JER','LAM',
+                            'JNA', 'NAH', 'OBA',
+                            'DAN', 'EZE',
+                            'EZR','EST','NEH', 'HAG','ZEC','MAL',
+                            ]
+    assert len(OET_OT_BOOK_ORDER) == 39
+    # The following are not necessarily all included in the OET
+    OET_APOCRYPHA_BOOK_ORDER = ['LAO',
+                            'GES','LES','ESG','DNG','PS2',
+                            'TOB','JDT','ESA','WIS','SIR','BAR','LJE','PAZ','SUS','BEL','MAN',
+                            'MA1','MA2','MA3','MA4',
+                            'GLS']
+    # For the NT, we put JHN first as a parallel to GEN, then ACT ends up better because immediately following LUK
+    OET_NT_BOOK_ORDER = ['JHN','MRK','MAT','LUK','ACT',
+                            'JAM', 'GAL', 'TH1','TH2', 'CO1','CO2', 'ROM', 'COL', 'PHM', 'EPH', 'PHP',
+                            'TI1','TIT', 'PE1','PE2',
+                            'TI2', 'HEB', 'JDE',
+                            'JN1','JN2','JN3', 'REV']
+    assert len(OET_NT_BOOK_ORDER) == 27
+    OET_BOOK_ORDER = ['FRT','INT'] + OET_OT_BOOK_ORDER + OET_APOCRYPHA_BOOK_ORDER + OET_NT_BOOK_ORDER + ['XXA','XXB','XXC','XXD','XXE','CNC','GLO','TDX','NDX','OTH','BAK']
+    assert len(OET_BOOK_ORDER) > 68
+
+    TEST_BOOK_LIST = TEST_OT_BOOK_LIST + TEST_NT_BOOK_LIST
+    OET_LV_BOOK_LIST = BOOKLIST_OT39 + OET_NT_BOOK_ORDER
+    OET_RV_BOOK_LIST = TEST_BOOK_LIST if TEST_MODE else (OET_RV_OT_BOOK_LIST + OET_NT_BOOK_ORDER)
+    # TODO: What about 'INT' ?
+    OET_RV_BOOK_LIST_WITH_FRT = ['FRT'] + OET_RV_BOOK_LIST
+
+    # The version to link to when the OET doesn't have that book (yet)
+    ALTERNATIVE_VERSION = 'WEB' # Should be a version with all books present
+
+    VERSIONS_WITHOUT_NT = ['UHB','JPS', 'BrLXX','BrTr']
+    VERSIONS_WITHOUT_OT = ['BLB','AICNT','TCNT','TNT','Wymth', 'SR-GNT','UGNT','SBL-GNT','TC-GNT']
+    VERSIONS_WITH_APOCRYPHA = ( 'KJB-1611', 'WEBBE','WEB', 'BrLXX','BrTr')
+
+    NUM_EXTRA_MODES = 7 # Related passages, topics, parallel and interlinear verses, reference and (Tyndale Bible) dictionary, and search
+
+    OET_UNFINISHED_WARNING_HTML_TEXT = 'This is still a very early look into the unfinished text of the <em>Open English Translation</em> of the Bible. Please double-check the text in advance before using in public.'
+    OET_UNFINISHED_WARNING_HTML_PARAGRAPH = f'<p class="rem">{OET_UNFINISHED_WARNING_HTML_TEXT}</p>'
+    OET_SINGLE_VERSE_HTML_TEXT = 'This view shows ‘verses’ which are not natural language units and hence sometimes only part of a sentence will be visible. Normally the OET discourages the reading of individual ‘verses’, but this view is only designed as a tool for doing comparisons of different translations.'
+    OETS_UNFINISHED_WARNING_HTML_TEXT = 'The OET segments on this page are still very early looks into the unfinished texts of the <em>Open English Translation</em> of the Bible. Please double-check these texts in advance before using in public.'
+    # OETS_UNFINISHED_WARNING_HTML_PARAGRAPH = f'<p class="rem">{OETS_UNFINISHED_WARNING_HTML_TEXT}</p>'
+
+    JAMES_NOTE_HTML_TEXT = 'Note that the <em>OET</em> uses ‘Yacob’ for ‘The Letter of Jacob’ (wrongly called ‘James’ in older Bibles).'
+    JAMES_NOTE_HTML_PARAGRAPH = f'<p class="rem">{JAMES_NOTE_HTML_TEXT}</p>'
+
+    BLACK_LETTER_FONT_HTML_TEXT = 'Note that this page will look best (more authentic) if you’ve downloaded a black-letter font like <a href="https://fonts.google.com/specimen/UnifrakturCook">Google’s UnifrakturCook</a>.'
+    BLACK_LETTER_FONT_HTML_PARAGRAPH = f'<p class="rem">{BLACK_LETTER_FONT_HTML_TEXT}</p>'
+
+    BY_DOCUMENT_HTML_TEXT = 'Remember that ancient letters were meant to be read in their entirety, just like modern letters. We provide a byChapter mode for convenience only, but mostly <b>recommend the byDocument and bySection modes</b> for personal reading.'
+    BY_DOCUMENT_HTML_PARAGRAPH = f'<p class="rem">{BY_DOCUMENT_HTML_TEXT}</p>'
+
+    PICKLE_FILENAME_END = '.OBD_Bible.pickle'
+
+
     # This first one specifies the order in which everything is processed
     # NOTE: OET is a "pseudo-version" containing both OET-RV and OET-LV side-by-side and handled separately in many places
     BibleVersions = ['OET',
@@ -165,7 +169,7 @@ class State:
         'Moff','JPS','Wymth','ASV','DRA','YLT','Drby','RV','SLT','Wbstr','KJB-1769','KJB-1611','Bshps','Gnva','Cvdl',
         'TNT','Wycl',
         'Luth','ClVg',
-        'SR-GNT','UGNT','SBL-GNT','TC-GNT',
+        'SR-GNT','UGNT','SBL-GNT','RP-GNT','TC-GNT',
         'UHB', 'BrLXX','BrTr', 'NETS',
         # NOTES:
         'TOSN','UTN',
@@ -181,7 +185,7 @@ class State:
         'Moff','JPS','Wymth','ASV','DRA','YLT','Drby','RV','SLT','Wbstr','KJB-1769','KJB-1611','Bshps','Gnva','Cvdl',
         'TNT','Wycl',
         'Luth','ClVg',
-        'SR-GNT','UGNT','SBL-GNT','TC-GNT',
+        'SR-GNT','UGNT','SBL-GNT','RP-GNT','TC-GNT',
         'UHB', 'BrLXX','BrTr', 'NETS',
         # NOTES:
         'TOSN','UTN',
@@ -196,7 +200,7 @@ class State:
     numAllowedSelectedVerses   = (  300,  500,  500,  500,  500,  500,   500, 1000,   20,  300,  300,  250,   300,   300,  250,    250  ) # Order must match above list
     assert len(numAllowedSelectedVerses) == len(selectedVersesOnlyVersions)
     # We want these versions on our parallel pages, but are not interested enough in them for them to have their own version pages
-    versionsWithoutTheirOwnPages = selectedVersesOnlyVersions + ('Luth','ClVg', 'UGNT','SBL-GNT','TC-GNT', 'TOSN','UTN')
+    versionsWithoutTheirOwnPages = selectedVersesOnlyVersions + ('Luth','ClVg', 'UGNT','SBL-GNT','RP-GNT','TC-GNT', 'TOSN','UTN')
 #     if not TEST_MODE: versionsWithoutTheirOwnPages += 'KJB-1611'
 
     # NOTE: We don't display the versionsWithoutTheirOwnPages, so don't need/allow decorations for them
@@ -281,6 +285,7 @@ class State:
         'ClVg': '../copiedBibles/Latin/eBible.org/CLV/',
         'UGNT': '../copiedBibles/Original/unfoldingWord.org/UGNT/',
         'SBL-GNT': '../../Forked/SBLGNT/data/sblgnt/text/',
+        'RP-GNT': '../../Forked/byzantine-majority-text/csv-unicode/no-variants/',
         'TC-GNT': '../copiedBibles/Greek/eBible.org/TC-GNT/',
         'NETS': '../copiedBibles/English/NETS_verses.tsv',
         'BrTr': '../copiedBibles/English/eBible.org/Brenton/', # with deuterocanon and OTH,XXA,XXB,XXC,
@@ -294,7 +299,7 @@ class State:
     BibleNames = {
         'OET': 'Open English Translation (2030)',
         'OET-RV': 'Open English Translation—Readers’ Version (2030)',
-        'OET-LV': 'Open English Translation—Literal Version (2025)',
+        'OET-LV': 'Open English Translation—Literal Version (2026)',
         'ULT': 'unfoldingWord® Literal Text (2023)',
         'UST': 'unfoldingWord® Simplified Text (2023)',
         'BSB': 'Berean Study/Standard Bible (2020)',
@@ -351,6 +356,7 @@ class State:
         'SR-GNT': 'Statistical Restoration Greek New Testament (2022)',
         'UGNT': 'unfoldingWord® Greek New Testament (2022)',
         'SBL-GNT': 'Society for Biblical Literature Greek New Testament (2010)',
+        'RP-GNT': 'Robinson-Pierpont Greek New Testament (2018, Byzantine/Majority text)',
         'TC-GNT': 'Text-Critical Greek New Testament (2010, Byzantine)',
         'NETS': 'New English Translation of the Septuagint (2009,2014)',
         'BrTr': 'Brenton Septuagint Translation (1851)',
@@ -426,7 +432,8 @@ class State:
         'SR-GNT': 'GRK',
         'UGNT': 'GRK',
         'SBL-GNT': 'GRK',
-        'TC-GNT': None,
+        'RP-GNT': 'GRK',
+        'TC-GNT': 'GRK',
         'NETS': None,
         'BrTr': None,
         'BrLXX': 'GRK',
@@ -500,6 +507,7 @@ class State:
         'SR-GNT': ['ALL'],
         'UGNT': ['ALL'],
         'SBL-GNT': ['ALL'],
+        'RP-GNT': ['ALL'],
         'TC-GNT': ['ALL'],
         'NETS': ['ALL'],
         'BrTr': ['ALL'],
@@ -567,6 +575,7 @@ class State:
         'SR-GNT': TEST_NT_BOOK_LIST, # NT only
         'UGNT': TEST_NT_BOOK_LIST, # NT only
         'SBL-GNT': TEST_NT_BOOK_LIST, # NT only
+        'RP-GNT': TEST_NT_BOOK_LIST, # NT only
         'TC-GNT': TEST_NT_BOOK_LIST, # NT only
         'NETS': TEST_OT_BOOK_LIST, # OT only
         'BrTr': TEST_OT_BOOK_LIST, # OT only
@@ -846,6 +855,10 @@ Footnote markers PRECEDE the text that they concern,
                 'copyright': '<p class="copyright">Copyright © 2010 by the Society of Biblical Literature and <a href="http://www.logos.com/">Logos Bible Software</a>.</p>',
                 'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
                 'acknowledgements': '<p class="acknwldg">Thanks to <a href="https://sblgnt.com/">SBL</a> and <a href="https://www.logos.com/">Logos Bible Software</a> for supplying <a href="https://github.com/LogosBible/SBLGNT/">this GNT</a>.</p>' },
+        'RP-GNT': {'about': '<p class="about">Robinson-Pierpont Greek New Testament (2018) Byzantine priority GNT (also known as ‘Majority text’).</p>',
+                'copyright': '<p class="copyright">Public Domain.</p>',
+                'licence': '<p class="licence">None required.</p>',
+                'acknowledgements': '<p class="acknwldg">Thanks to Dr. Maurice A. Robinson for donating their work to the public domain so that it’s available for us all to use and for supplying the <a href="https://github.com/Freely-Given-org/byzantine-majority-text/blob/master/csv-unicode/ccat/no-variants/">CSV files</a>.</p>' },
         'TC-GNT': {'about': '<p class="about">Text-Critical Greek New Testament (2010) based on Robinson/Pierpont Byzantine priority GNT (RP2018).</p>',
                 'copyright': '<p class="copyright">Copyright © (coming).</p>',
                 'licence': '<p class="licence">(coming).</p>',
@@ -930,7 +943,7 @@ def reorderBooksForOETVersions( givenBookList:list[str] ) -> list[str]:
     fnPrint( DEBUGGING_THIS_MODULE, f"reorderBooksForOETVersions( {type(givenBookList)} ({len(givenBookList)}) {givenBookList} )" )
 
     newBookList = []
-    for BBB in OET_BOOK_ORDER:
+    for BBB in state.OET_BOOK_ORDER:
         if BBB in givenBookList:
             newBookList.append( BBB )
 
@@ -947,7 +960,7 @@ def briefDemo() -> None:
     BibleOrgSysGlobals.introduceProgram( __name__, PROGRAM_NAME_VERSION, LAST_MODIFIED_DATE )
 
     # Demo the settings
-    print( f"({len(OET_BOOK_ORDER)}) {OET_BOOK_ORDER=}" )
+    print( f"({len(state.OET_BOOK_ORDER)}) {state.OET_BOOK_ORDER=}" )
 # end of settings.briefDemo
 
 def fullDemo() -> None:
@@ -957,7 +970,7 @@ def fullDemo() -> None:
     BibleOrgSysGlobals.introduceProgram( __name__, PROGRAM_NAME_VERSION, LAST_MODIFIED_DATE )
 
     # Demo the settings
-    print( f"({len(OET_BOOK_ORDER)}) {OET_BOOK_ORDER=}" )
+    print( f"({len(state.OET_BOOK_ORDER)}) {state.OET_BOOK_ORDER=}" )
 # end of settings.fullDemo
 
 if __name__ == '__main__':

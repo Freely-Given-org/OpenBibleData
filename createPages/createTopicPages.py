@@ -43,7 +43,7 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 import BibleOrgSys.Formats.ESFMBible as ESFMBible
 from BibleOrgSys.Internals.InternalBibleInternals import InternalBibleEntryList, getLeadingInt
 
-from settings import State, TEST_MODE, reorderBooksForOETVersions, OET_UNFINISHED_WARNING_HTML_PARAGRAPH, JAMES_NOTE_HTML_PARAGRAPH
+from settings import State, reorderBooksForOETVersions
 from usfm import convertUSFMMarkerListToHtml
 from Bibles import getVerseDataListForReference
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
@@ -161,7 +161,7 @@ def createTopicPages( level:int, folder:Path, state:State ) -> bool:
     filename = 'index.htm'
     filepath = folder.joinpath( filename )
     top = makeTop( level, None, 'topicsIndex', None, state ) \
-            .replace( '__TITLE__', f"Topic View{' TEST' if TEST_MODE else ''}" ) \
+            .replace( '__TITLE__', f"Topic View{' TEST' if state.TEST_MODE else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, topic, topics, topical' )
     indexHtml = f'''{top}<h1 id="Top">Topic pages</h1>
 <p>These pages contain selected passages from the <em>Open English Translation</em> for the given topics. Each page contains the passage from the <em>OET Readers’ Version</em> on the left, with the <em>OET Literal Version</em> on the right. No notes or commentary is included—our aim is simply to conveniently list the passages in one place so that readers can make up their own minds about how the passages should be interpreted.</p>
@@ -218,7 +218,7 @@ def createTopicPage( level:int, folder:Path, filename:str, topic:str, refs:list[
                 else: rvVerseEntryList, rvContextList = InternalBibleEntryList(), []
                 try: lvVerseEntryList, lvContextList = lvBible.getContextVerseData( (BBB,C) )
                 except TypeError: # Book appears to be not available
-                    assert TEST_MODE
+                    assert state.TEST_MODE
                     lvVerseEntryList, lvContextList = InternalBibleEntryList(), []
             elif '-' in Vs: # then it's a verse range
                 startV, endV = Vs.split( '-' )
@@ -227,7 +227,7 @@ def createTopicPage( level:int, folder:Path, filename:str, topic:str, refs:list[
                 else: rvVerseEntryList, rvContextList = InternalBibleEntryList(), []
                 try: lvVerseEntryList, lvContextList = lvBible.getContextVerseDataRange( (BBB,C,startV), (BBB,C,endV) )
                 except TypeError: # Book appears to be not available
-                    assert TEST_MODE
+                    assert state.TEST_MODE
                     lvVerseEntryList, lvContextList = InternalBibleEntryList(), []
             elif '–' in Vs: # en-dash, then it's a chapter range
                 not_written_yet
@@ -238,7 +238,7 @@ def createTopicPage( level:int, folder:Path, filename:str, topic:str, refs:list[
                 else: rvVerseEntryList, rvContextList = InternalBibleEntryList(), []
                 try: lvVerseEntryList, lvContextList = lvBible.getContextVerseData( (BBB,C,Vs) )
                 except TypeError: # Book appears to be not available
-                    assert TEST_MODE
+                    assert state.TEST_MODE
                     lvVerseEntryList, lvContextList = InternalBibleEntryList(), []
                 startV = Vs # Used to build the HTML anchor below
             # print( f"{rvVerseEntryList=}" )
@@ -247,7 +247,7 @@ def createTopicPage( level:int, folder:Path, filename:str, topic:str, refs:list[
                 rvVerseEntryList = livenOETWordLinks( level, rvBible, BBB, rvVerseEntryList, state )
             try: lvVerseEntryList = livenOETWordLinks( level, lvBible, BBB, lvVerseEntryList, state )
             except KeyError: # Missing book
-                assert TEST_MODE
+                assert state.TEST_MODE
             rvTextHtml = convertUSFMMarkerListToHtml( level, rvBible.abbreviation, (BBB,C), 'topicalPassage', rvContextList, rvVerseEntryList, basicOnly=False, state=state )
             # rvTextHtml = livenIORs( BBB, rvTextHtml, sections )
             rvTextHtml = do_OET_RV_HTMLcustomisations( f'Topic={topic}@{BBB}_{C}', rvTextHtml )
@@ -257,7 +257,7 @@ def createTopicPage( level:int, folder:Path, filename:str, topic:str, refs:list[
                 # lvTextHtml = livenIORs( BBB, lvTextHtml, sections )
                 lvTextHtml = do_OET_LV_HTMLcustomisations( f'Topic={topic}@{BBB}_{C}', lvTextHtml )
             else: # We didn't get any LV data
-                assert TEST_MODE
+                assert state.TEST_MODE
                 lvTextHtml = f'<h4>No OET-LV {BBB} book available</h4>'
 
             if rvTextHtml.startswith( '<div class="rightBox">' ):
@@ -280,7 +280,7 @@ def createTopicPage( level:int, folder:Path, filename:str, topic:str, refs:list[
 
     filepath = folder.joinpath( filename )
     top = makeTop( level, None, 'topicPassages', None, state ) \
-            .replace( '__TITLE__', f"{topic}{' TEST' if TEST_MODE else ''}" ) \
+            .replace( '__TITLE__', f"{topic}{' TEST' if state.TEST_MODE else ''}" ) \
             .replace( '__KEYWORDS__', f'Bible, topic, {topic.replace(' ',', ')}' ) 
             # .replace( f'''<a title="{state.BibleNames[thisRvBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisRvBible.abbreviation)}/rel/{sFilename}#Top">{thisRvBible.abbreviation}</a>''',
             #         f'''<a title="Up to {state.BibleNames[thisRvBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisRvBible.abbreviation)}/">↑{thisRvBible.abbreviation}</a>''' )
