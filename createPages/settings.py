@@ -62,7 +62,7 @@ class State:
     """
     A place to store some of the global stuff that needs to be passed around.
     """
-    OET_VERSION_NUMBER_STRING = 'v0.43.08' # Incremented on most runs
+    OET_VERSION_NUMBER_STRING = 'v0.43.14' # Incremented on most runs
 
     TEST_MODE = True # Writes website into 'Test' subfolder if True
     TEST_OT_BOOK_LIST = ['CH1','PRO','EZE'] # Books in progress
@@ -72,7 +72,7 @@ class State:
     # Many of these settings are used to omit some processing so as to get a speedier conclusion for debugging
     TEST_VERSIONS_ONLY = None #['OET','OET-RV','OET-LV', 'RV', 'TOSN','UTN'] # Also stops actual site being built
     ALL_PRODUCTION_BOOKS = not TEST_MODE # If set to False, uses the TEST book list (with many less books) for a faster test build
-    CREATE_PARALLEL_VERSE_PAGES = 'LAST' # 'FIRST','LAST', or None -- depending on debugging needs
+    CREATE_PARALLEL_VERSE_PAGES = 'FIRST' # 'FIRST','LAST', or None -- depending on debugging needs
     CREATE_BOOK_AND_OTHER_PAGES = True # Can be turned off for debugging
     DO_SPELL_CHECKS = True #TEST_MODE # On parallel pages
     REUSE_EXISTING_WORD_PAGES = TEST_MODE and not NEW_BOOK_IN_TEST_LIST # Don't recreate word pages

@@ -290,6 +290,7 @@ span.wrkName {}
 span.wrkNameDiffPunct { background-color:yellow; }
 span.wrkNameDiffAccents { background-color:orange; }
 span.wrkNameDiffText { background-color:red; }
+span.diffGrkWord { background-color:orchid; }
 
 /* Where do these come from??? One of the below! */
 span.sup { vertical-align:super; }

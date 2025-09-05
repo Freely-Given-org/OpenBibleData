@@ -73,6 +73,8 @@ CHANGELOG:
     2025-07-05 Added link to Hebrew Phrasing pages for OT verses
     2025-07-12 Spell-check translated Luth and ClVg footnotes
     2025-09-02 Added RP (Byz) GNT
+    2025-09-04 Highlighted first GNT word that differs from the SR-GNT
+    2025-09-05 Record possible unmatched proper names
 """
 from pathlib import Path
 import os
@@ -104,7 +106,7 @@ from OETHandlers import getOETTidyBBB, getOETBookName, livenOETWordLinks, getHeb
 from spellCheckEnglish import spellCheckAndMarkHTMLText
 
 
-LAST_MODIFIED_DATE = '2025-09-02' # by RJH
+LAST_MODIFIED_DATE = '2025-09-05' # by RJH
 SHORT_PROGRAM_NAME = "createParallelVersePages"
 PROGRAM_NAME = "OpenBibleData createParallelVersePages functions"
 PROGRAM_VERSION = '0.99'
@@ -167,10 +169,12 @@ def createParallelVersePages( level:int, folder:Path, state:State ) -> bool:
             BBBNextLinks.append( f'''<a title="{getOETBookName(BBB)}" href="../{BBB}/">{ourTidyBBBwithNotes}</a>''' )
 
     # Now create the actual parallel pages
+    state.possibleUnmatchedProperNames = set()
     for BBB in reorderBooksForOETVersions( state.allBBBs ):
         if not state.TEST_MODE or BBB in state.TEST_BOOK_LIST: # Don't need parallel pages for non-test books
             if BibleOrgSysGlobals.loadedBibleBooksCodes.isChapterVerseBook( BBB ):
                 createParallelVersePagesForBook( level, folder, BBB, BBBNextLinks, parallelVersions, state )
+    print( f"\nPossible Unmatched Proper Names ({len(state.possibleUnmatchedProperNames):,}) {sorted(state.possibleUnmatchedProperNames)}" )
 
     # Create index page
     filename = 'index.htm'
@@ -378,7 +382,9 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                 # print( f"\n{parRef} {versionAbbreviation}\n{greekWords[f'{versionAbbreviation}_NoPunct']=}\n{greekWords[f'{versionAbbreviation}_NoAccents']=}" )
                             if 'OET' in versionAbbreviation:
                                 assert isinstance( thisBible, ESFMBible.ESFMBible )
-                                if versionAbbreviation == 'OET-RV' and BBB=='PSA' and C not in ('98',):
+                                if versionAbbreviation == 'OET-LV' and c>= 1 and v >= 1:
+                                    markPossibleUnmatchedProperNames( parRef, verseEntryList, state )
+                                elif versionAbbreviation == 'OET-RV' and BBB=='PSA' and C not in ('98',):
                                     # Psa 98 does have a d, but it's in with v1 and the other verses don't change
                                     for entry in verseEntryList:
                                         if entry.getMarker() == 'd':
@@ -802,7 +808,28 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                         spanClassName = 'wrkNameDiffPunct'
                                     elif greekWords[f'{versionAbbreviation}_NoAccents'] == greekWords['SR-GNT_NoAccents']:
                                         spanClassName = 'wrkNameDiffAccents'
-                                    else: spanClassName = 'wrkNameDiffText'
+                                    else:
+                                        spanClassName = 'wrkNameDiffText'
+                                        # Now try to mark the first place where the Greek text differs from the SR-GNT
+                                        srWords, versionWords = greekWords['SR-GNT_NoAccents'].split(), greekWords[f'{versionAbbreviation}_NoAccents'].split()
+                                        for jj, versionWord in enumerate( versionWords ):
+                                            try:
+                                                if versionWord != srWords[jj]:
+                                                    fullVersionWord = greekWords[versionAbbreviation].split()[jj]
+                                                    # print( f"{versionAbbreviation} {parRef} {jj} {fullVersionWord=} {textHtml=}" )
+                                                    if textHtml.count( fullVersionWord ) == 1: # easy case -- no ambiguity
+                                                        textHtml = textHtml.replace( fullVersionWord, f'<span class="diffGrkWord" title="First word different from SR-GNT">{fullVersionWord}</span>', 1 )
+                                                    else: # oh, more work coz the desired word occurs multiple times
+                                                        print( f"\n{versionAbbreviation} {parRef} {jj} {fullVersionWord=} HAVE MULTIPLE IN {textHtml=}" )
+                                                        startStr = f'<span class="{versionAbbreviation}_verseTextChunk">'
+                                                        assert textHtml.startswith( startStr )
+                                                        if 'fn' not in textHtml: # Messes things up -- there's lots in the TC-GNT
+                                                            textHtmlWordList = textHtml[len(startStr):].split( ' ' )
+                                                            assert textHtmlWordList[jj] == fullVersionWord, f"{versionAbbreviation} {parRef} {fullVersionWord=} {jj=} {textHtmlWordList[jj]=} from {textHtmlWordList=}"
+                                                            indexOfDesiredWord = len(startStr) + sum(len(s) for s in textHtmlWordList[:jj]) + jj # For the spaces
+                                                            textHtml = f'{textHtml[:indexOfDesiredWord]}{textHtml[indexOfDesiredWord:].replace( fullVersionWord, f'<span class="diffGrkWord" title="First word different from SR-GNT">{fullVersionWord}</span>', 1 )}'
+                                                    break # Only highlight a maximum of one word
+                                            except IndexError: break # 
                                     greekVersionKeysHtmlSet.add( spanClassName )
                                     versionNameLink = f'''{'../'*BBBLevel}{versionAbbreviation}/details.htm#Top''' if versionAbbreviation in state.versionsWithoutTheirOwnPages else f'''{'../'*BBBLevel}{versionAbbreviation}/byC/{BBB}_{adjC}.htm#V{V}'''
                                     if '<div ' in textHtml: # it might be a book intro or footnotes -- we can't put a <div> INSIDE a <p>, so we append it instead
@@ -1619,6 +1646,44 @@ def brightenUHB( BBB:str, C:str, V:str, brightenUHBTextHtml:str, verseEntryList,
 # end of createParallelVersePages.brightenUHB
 
 
+def markPossibleUnmatchedProperNames( parRef:str, thisVerseEntryList, state:State ) -> None:
+    """
+    """
+    fnPrint( DEBUGGING_THIS_MODULE, f"markPossibleUnmatchedProperNames( {parRef} {thisVerseEntryList}, … )" )
+
+    for verseEntry in thisVerseEntryList:
+        marker, verseText = verseEntry.getMarker(), verseEntry.getCleanText()
+        if verseEntry.getMarker() in ('v~','p~'):
+            for word in verseEntry.getCleanText().split():
+                word = word.split('¦')[0] # Get rid of word number
+                if word[0] in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' \
+                and '/(' not in word \
+                and word not in ('And','Again', 'All', 'Allow', 'Also', 'Am',
+                                 'But','If','Because','As','Be','Though','Thus','Then','May','Or','According',
+                                 'In','To','Of','Under',
+                                 'A','An','The','That','Both','Every','Having',
+                                 'I','He','You','My', 'Many',
+                                 'Why','How','Which', 'Not','Oh',
+                                 'Abandon','Abhor', 'Abhoring','Anger', 'Angry', 'Anguish', 'Another', 'Answer', 'Anxiety', 'Any', 'Anyone', 'Apples', 'Apply', 'Are','Avenge', 'Avoid', 'Awake',
+                                 'Bear', 'Beautiful', 'Became', 'Become', 'Bed[s]',
+                                 'Call', 'Calloused', 'Came', 'Camels', 'Carefully', 'Case', 'Cast', 'Cattle', 'Cause', 'Cease', 'Cedars', 'Certain', 'Certainly', 'Change', 'Charcoal', 'Cheeks', 'Cherish', 'Cherubims', 'Chief', 'Chiefs', 'Child', 'Children', 'Chislon', 'Circumcise', 'Circumcision', 'Cities', 'City', 'Claim', 'Clean', 'Cleanse', 'Close', 'Clothe', 'Clothed', 'Clothing', 'Cloud', 'Clouds', 'Coming', 'Command', 'Commander', 'Complete', 'Completely', 'Completeness', 'Concerning', 'Condemns', 'Confronted',
+                                 'Deliver', 'Desolations', 'Disaster', 'Discipline', 'Discretion', 'Divination',
+                                 'Come','Do','Eat','Judge','Increase','Make','Open','Remember','Say','See','Truly','Yes',
+                                 'Honey', 'Honour', 'Honoured', 'Hope',
+                                 'Oak', 'Oaks', 'Observe', 'Offering', 'Officials', 'Offscouring', 'Oh/the', 'Oil', 'Old', 'Olive', 'On', 'On/upon/above', 'On/upon/above/on', 'Only', 'Other', 'Others', 'Otherwise', 'Out', 'Outside', 'Over', 'Overpower', 'Overseeing', 'Overtake',
+                                 'Recesses', 'Recount', 'Remove', 'Restrain', 'Rightly', 'Rock', 'Roll', 
+                                 'Sacrifices', 'Silver', 'Sing', 'Sinners', 'Sit', 'Six', 'So', 'Some', 'Speak', 'Splendour', 'Still', 'Stone', 'Stretch', 'Struck', 'Sudden', 'Supplications', 'Surely', 'Swallow', 'Swamps',
+                                 'Take', 'Taken',
+                                 'Water', 'Waters', 'We', 'Wealth', 'What', 'Whatever', 'When', 'Where', 'Wherever', 'Whether', 'Who', 'Whoever', 'Whom', 'Whomever', 'Will', 'Wise', 'With', 'Wounds',
+                                 'Behold','YHWH','DOM'):
+                    foundAny = False
+                    for checkChar in 'āēīōūₐₑₒəʸḩʦ':
+                        if checkChar in word:
+                            foundAny = True
+                            break
+                    if not foundAny:
+                        state.possibleUnmatchedProperNames.add( word )
+# end of createParallelVersePages.brightenUHB
 
 def briefDemo() -> None:
     """
