@@ -64,6 +64,7 @@ CHANGELOG:
     2025-02-21 Use function from html.py for making view list bar
     2025-03-03 Allow settings to choose when parallel verse pages are built (early, late, or never)
     2025-03-24 Make TEST verse-only version links point to that particular version on parallel pages
+    2025-09-07 Add Kingdom pages
 """
 from gettext import gettext as _
 from pathlib import Path
@@ -90,7 +91,7 @@ from createChapterPages import createOETSideBySideChapterPages, createChapterPag
 from createSectionPages import createOETSectionLists, createOETSectionPages, createSectionPages
 from createParallelPassagePages import createParallelPassagePages
 from createParallelVersePages import createParallelVersePages
-from createTopicPages import createTopicPages
+from createTopicPages import createTopicPages, createKingdomPages
 from createOETInterlinearPages import createOETInterlinearPages
 from createOETReferencePages import createOETReferencePages
 from Dict import createTyndaleDictPages, createUBSDictionaryPages
@@ -98,7 +99,7 @@ from html import makeTop, makeViewNavListParagraph, makeBottom, checkHtml
 from spellCheckEnglish import printSpellCheckSummary
 
 
-LAST_MODIFIED_DATE = '2025-08-24' # by RJH
+LAST_MODIFIED_DATE = '2025-09-07' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData (OBD) Create Site Pages"
 PROGRAM_VERSION = '0.99'
@@ -304,6 +305,7 @@ def _createSitePages() -> bool:
         createOETInterlinearPages( 1, state.TEMP_BUILD_FOLDER.joinpath('ilr/'), state )
         createParallelPassagePages( 1, state.TEMP_BUILD_FOLDER.joinpath('rel/'), state )
         createTopicPages( 1, state.TEMP_BUILD_FOLDER.joinpath('tpc/'), state )
+        createKingdomPages( 1, state.TEMP_BUILD_FOLDER.joinpath('OET/'), state )
 
     if state.CREATE_PARALLEL_VERSE_PAGES == 'LAST':
         createParallelVersePages( 1, state.TEMP_BUILD_FOLDER.joinpath('par/'), state )

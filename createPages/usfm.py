@@ -76,6 +76,7 @@ CHANGELOG:
     2025-05-31 Add handling of northern/southern kingdom colouring
     2025-06-24 Move livening xrefs into a function, and apply it to xt fields inside footnotes as well.
     2025-07-11 Try to improve handling of 'ver. 4' in a footnote (not an xref)
+    2025-09-12 Display verse range numbers on parallel pages
 """
 from gettext import gettext as _
 import re
@@ -94,7 +95,7 @@ from html import checkHtml
 from OETHandlers import getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2025-08-29' # by RJH
+LAST_MODIFIED_DATE = '2025-09-12' # by RJH
 SHORT_PROGRAM_NAME = "usfm"
 PROGRAM_NAME = "OpenBibleData USFM to HTML functions"
 PROGRAM_VERSION = '0.93'
@@ -106,6 +107,7 @@ DEBUGGING_THIS_MODULE = False
 BACKSLASH = '\\'
 NEWLINE = '\n'
 # EM_SPACE = ' '
+THIN_SPACE = ' '
 NARROW_NON_BREAK_SPACE = ' '
 NON_BREAK_SPACE = ' ' # NBSP
 
@@ -228,8 +230,9 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
             V = rest.strip() # Play safe
             # We don't display the verse number below for verse 1 (after chapter number)
             # NOTE: For sections (which can include multiple chapters), have to take care not to get duplicate V{v} id attributes
-            if segmentType not in ('parallelVerse','interlinearVerse'): # No need for verse numbers at all if we're only displaying one verse
-                if cPrinted:
+            if segmentType not in ('parallelVerse','interlinearVerse') \
+            or '-' in rest: # No need for verse numbers at all if we're only displaying one verse
+                if cPrinted or segmentType in ('parallelVerse','interlinearVerse'):
                     cID = ''
                 else:
                     cID = f'<span id="C{C}"></span>'
@@ -241,12 +244,15 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                     # We want both verse numbers to be searchable
                     if int(V2) != int(V1)+1: # We don't handle 3+ verse reordering well yet
                         logging.warning( f" Not handling 3+ verse bridge well yet at {versionAbbreviation} {refTuple} {C}:{V}" )
-                    vLink = f'''<a title="Go to verse in parallel view" href="{'../'*level}par/{BBB}/C{C}V{V1}.htm#Top">{V1}</a>'''
-                    html = f'{html}{"" if html.endswith(">") else " "}' \
-                            + f'''{f"""{cID}<span class="{'cPsa' if BBB=='PSA' else 'c'}" id="C{C}V1">{toRomanNumerals(C) if versionAbbreviation=='KJB-1611' else C}</span>""" if V1=='1' else f"""<span class="v" id="C{C}V{V1}">{vLink}-</span>"""}''' \
-                            + (f'<span id="V{V1}"></span><span id="V{V2}"></span>' if (segmentType in ('chapter','section','relatedPassage') or isSingleChapterBook) and f'id="V{V1}"' not in html and f'id="V{V2}"' not in html else '') \
-                            + f'<span class="v" id="C{C}V{V2}">{V2}{NARROW_NON_BREAK_SPACE}</span>' \
-                            + (rest if rest else '=◘=')
+                    if segmentType in ('parallelVerse','interlinearVerse'): # We just want the reader to be able to see the verse range
+                        html = f'''{html}{"" if html.endswith(">") else " "}<span class="v">{rest}</span>{THIN_SPACE}'''
+                    else: # it's in a section or book type view
+                        vLink = f'''<a title="Go to verse in parallel view" href="{'../'*level}par/{BBB}/C{C}V{V1}.htm#Top">{V1}</a>'''
+                        html = f'{html}{"" if html.endswith(">") else " "}' \
+                                + f'''{f"""{cID}<span class="{'cPsa' if BBB=='PSA' else 'c'}" id="C{C}V1">{toRomanNumerals(C) if versionAbbreviation=='KJB-1611' else C}</span>""" if V1=='1' else f"""<span class="v" id="C{C}V{V1}">{vLink}-</span>"""}''' \
+                                + (f'<span id="V{V1}"></span><span id="V{V2}"></span>' if (segmentType in ('chapter','section','relatedPassage') or isSingleChapterBook) and f'id="V{V1}"' not in html and f'id="V{V2}"' not in html else '') \
+                                + f'<span class="v" id="C{C}V{V2}">{V2}{NARROW_NON_BREAK_SPACE}</span>' \
+                                + (rest if rest else '=◘=')
                 else: # it's a simple verse number
                     if not V.isdigit():
                         logging.error( f"Expected a verse number digit at {versionAbbreviation} {refTuple} {C}:{V} {rest=}" )
@@ -387,10 +393,12 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                         inSection = marker
                 else: # for s2/3/4 we add a heading, but don't consider it a section division
                     if not basicOnly:
-                        if marker=='s4' and versionAbbreviation in ('OET','OET-RV') and 'KINGDOM' in rest.upper():
-                            additionalClassName = rest.replace( ' ', '_' )
+                        if marker=='s4' and versionAbbreviation in ('OET','OET-RV'): # and 'KINGDOM' in rest.upper(): # it's our kingdom marker
+                            additionalClassName = rest.replace( ' ', '' ).replace( 'king', 'King' ).replace( 'land', 'Land' )
                             html = rreplace( html, 'div class="s1"', f'''div class="s1 {additionalClassName}"''', 1 )
-                            html = f'''{html}<p class="{marker} {additionalClassName}">{convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state)}</p>\n'''
+                            guts = convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state)
+                            guts = f'''<a title="Go to {rest.replace('king','King').replace('land','Land')} information page" href="{'../'*level}OET/{additionalClassName}.htm">{guts}</a>'''
+                            html = f'''{html}<p class="{marker} {additionalClassName}">{guts}</p>\n'''
                         else: html = f'{html}<p class="{marker}">{convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state)}</p>\n'
         elif marker in ('¬s1','¬s2','¬s3','¬s4',):
             assert not rest

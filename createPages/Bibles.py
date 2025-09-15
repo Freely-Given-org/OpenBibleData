@@ -106,7 +106,7 @@ from OETHandlers import findLVQuote, getBBBFromOETBookName
 from Dict import loadAndIndexUBSGreekDictJSON, loadAndIndexUBSHebrewDictJSON
 
 
-LAST_MODIFIED_DATE = '2025-09-02' # by RJH
+LAST_MODIFIED_DATE = '2025-09-09' # by RJH
 SHORT_PROGRAM_NAME = "Bibles"
 PROGRAM_NAME = "OpenBibleData Bibles handler"
 PROGRAM_VERSION = '0.90'
@@ -1392,7 +1392,7 @@ def getBibleMapperMaps( level:int, BBB:str, startC:str, startV:str|None, endC:st
                 # print( f"  Chapter range {BBB} {c}:{v}")
                 mapFilenamesSet.update( BMM_INDEX[f'{BBB}_{c}:{v}'] )
 
-    if not mapFilenamesSet: # No maps for this reference / reference range
+    if not mapFilenamesSet: # No maps for this reference / reference range (or book not loaded in referenceBible TEST_MODE)
         return ''
 
     destinationFolderpath = state.TEMP_BUILD_FOLDER. joinpath( 'BMM/' )

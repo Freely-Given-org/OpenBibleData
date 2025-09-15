@@ -106,17 +106,19 @@ p.s4 { margin-top:0; margin-bottom:0; float:right; width:35%; border:1px dotted 
 /* p.extra_r { margin-top:0.1em; margin-bottom:0; text-align:right; font-size:0.6em; color:grey; } */
 p.sr { margin-top:0; margin-bottom:0; font-size:0.9em; text-align: center; font-weight:bold; } /* Section reference range */
 p.r { margin-top:0; margin-bottom:0; font-size:0.75em; text-align: center; font-style:italic; } /* Parallel references */
-p.Full_kingdom { color:blue; }
-p.Northern_kingdom { color:purple; }
-p.Southern_kingdom { color:green; }
-p.Both_kingdoms { color:orange; }
+p.PromisedLand { color:gold; }
+p.FullKingdom { color:blue; }
+p.NorthernKingdom { color:purple; }
+p.SouthernKingdom { color:green; }
+p.BothKingdoms { color:orange; }
 
 /*** Other divs ***/
 /* For /s4 */
-div.Full_kingdom { background-color:#cce6ff; }
-div.Northern_kingdom { background-color:#ffe6ff; }
-div.Southern_kingdom { background-color:#e6ffe6; }
-div.Both_kingdoms { background-color:#fff5e6; }
+div.PromisedLand { background-color:LightGoldenrodYellow; }
+div.FullKingdom { background-color:#cce6ff; }
+div.NorthernKingdom { background-color:#ffe6ff; }
+div.SouthernKingdom { background-color:#e6ffe6; }
+div.BothKingdoms { background-color:#fff5e6; }
 /* For /sp in SNG */
 div.groom { background-color:#e6f2ff; }
 div.bride { background-color:#ffe6f7; }

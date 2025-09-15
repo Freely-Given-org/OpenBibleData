@@ -62,7 +62,7 @@ class State:
     """
     A place to store some of the global stuff that needs to be passed around.
     """
-    OET_VERSION_NUMBER_STRING = 'v0.43.14' # Incremented on most runs
+    OET_VERSION_NUMBER_STRING = 'v0.44.8' # Incremented on most runs
 
     TEST_MODE = True # Writes website into 'Test' subfolder if True
     TEST_OT_BOOK_LIST = ['CH1','PRO','EZE'] # Books in progress

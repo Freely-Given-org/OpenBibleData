@@ -33,6 +33,7 @@ CHANGELOG:
     2024-05-22 Use VariantID and Translatable SR-GNT collation columns from CNTR
     2025-04-10 Use crossTestamentQuotes info
     2025-07-09 Tried to make more allowance for partial verses
+    2025-09-11 Find Q footnotes in UHB
 """
 from pathlib import Path
 from csv import  DictReader
@@ -42,16 +43,17 @@ import sys
 sys.path.append( '../../../BibleOrgSys/' )
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
+import BibleOrgSys.Formats.USFMBible as USFMBible
 import BibleOrgSys.Formats.USXXMLBible as USXXMLBible
 sys.path.append( '../crossTestamentQuotes/' )
 from load import getIndividualQuotedOTRefs, getIndividualQuotingNTRefs
 
 
 
-LAST_MODIFIED_DATE = '2025-07-23' # by RJH
+LAST_MODIFIED_DATE = '2025-09-11' # by RJH
 SHORT_PROGRAM_NAME = "SentenceImportance_initialisation"
 PROGRAM_NAME = "Sentence Importance initialisation"
-PROGRAM_VERSION = '0.21'
+PROGRAM_VERSION = '0.22'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -67,6 +69,7 @@ BOS_BOOK_ID_MAP = {
     45: 'ROM', 46: 'CO1', 47: 'CO2', 48: 'GAL', 49: 'EPH', 50: 'PHP', 51: 'COL', 52: 'TH1', 53: 'TH2', 54: 'TI1', 55: 'TI2', 56: 'TIT', 57: 'PHM',
     58: 'HEB', 59: 'JAM', 60: 'PE1', 61: 'PE2', 62: 'JN1', 63: 'JN2', 64: 'JN3', 65: 'JDE', 66: 'REV', 99:None}
 
+UHB_PATHNAME = Path( '../../copiedBibles/Original/unfoldingWord.org/UHB/' )
 NET_PATHNAME = Path( '../../copiedBibles/English/NET/' )
 
 
@@ -217,6 +220,10 @@ for ref in allRefs:
 def run() -> bool:
     """
     """
+    uhbBible = USFMBible.USFMBible( UHB_PATHNAME, givenAbbreviation='UHB', encoding='utf-8' )
+    uhbBible.uWencoded = True # TODO: Shouldn't be required ???
+    uhbBible.loadBooks() # So we can iterate through them all later
+
     netBible = USXXMLBible.USXXMLBible( NET_PATHNAME, givenAbbreviation='NET', encoding='utf-8' )
     netBible.loadBooks() # So we can iterate through them all later
 
@@ -225,7 +232,7 @@ def run() -> bool:
     quotedOTRefs = getIndividualQuotedOTRefs()
     quotingNTRefs = getIndividualQuotingNTRefs()
 
-    create( initialLines, netBible, collationVerseDict, splitVerseSet, quotedOTRefs, quotingNTRefs )
+    create( initialLines, uhbBible, netBible, collationVerseDict, splitVerseSet, quotedOTRefs, quotingNTRefs )
 # end of initialise.run()
 
 
@@ -334,18 +341,43 @@ def load():
 # end of initialise.load()
 
 
-def get_reference_text_critical_footnote_score( referenceBible, BBB:str, C:str, V:str ) -> int:
+def get_Hebrew_reference_text_critical_footnote_score( HebrewReferenceBible, BBB:str, C:str, V:str ) -> int:
     """
-    Returns 2 (stronger) if the reference Bible has a TC footnote for this verse.
+    Returns 2 (stronger) if the Hebrew reference Bible has a TC footnote for this verse.
     Returns 1 (weaker) if no TC footnote, but the LXX or similar is mentioned
     """
-    try: verseEntryList, _contextList = referenceBible.getContextVerseData( (BBB,C,V) )
+    try: verseEntryList, _contextList = HebrewReferenceBible.getContextVerseData( (BBB,C,V) )
     except KeyError:
-        logging.critical( f"Seems reference Bible has no verse for {BBB}_{C}:{V}")
+        logging.critical( f"Seems Hebrew reference Bible has no verse for {BBB}_{C}:{V}")
         return False
     except TypeError:
         if C=='1' and V=='1':
-            logging.critical( f"Seems reference Bible has no {BBB} book")
+            logging.critical( f"Seems Hebrew reference Bible has no {BBB} book")
+        return False
+
+    haveEarlyTranslationReference = False
+    for entry in verseEntryList:
+        text = entry.getFullText()
+        if text:
+            if '\\ft K ' in text or '\\ft Q ' in text: return 2
+            # if 'LXX' in text or 'Syriac' in text or 'Peshitta' in text or 'Dead Sea Scrolls' in text or 'Targum' in text or 'Vulgate' in text:
+            #     haveEarlyTranslationReference = True # return 1 Can't return straight away because next line might contain a TC footnote
+    return 1 if haveEarlyTranslationReference else False
+# end of initialise.get_reference_Hebrew_text_critical_footnote_score function
+
+
+def get_English_reference_text_critical_footnote_score( EnglishReferenceBible, BBB:str, C:str, V:str ) -> int:
+    """
+    Returns 2 (stronger) if the English reference Bible has a TC footnote for this verse.
+    Returns 1 (weaker) if no TC footnote, but the LXX or similar is mentioned
+    """
+    try: verseEntryList, _contextList = EnglishReferenceBible.getContextVerseData( (BBB,C,V) )
+    except KeyError:
+        logging.critical( f"Seems English reference Bible has no verse for {BBB}_{C}:{V}")
+        return False
+    except TypeError:
+        if C=='1' and V=='1':
+            logging.critical( f"Seems English reference Bible has no {BBB} book")
         return False
 
     haveEarlyTranslationReference = False
@@ -356,7 +388,7 @@ def get_reference_text_critical_footnote_score( referenceBible, BBB:str, C:str, 
             if 'LXX' in text or 'Syriac' in text or 'Peshitta' in text or 'Dead Sea Scrolls' in text or 'Targum' in text or 'Vulgate' in text:
                 haveEarlyTranslationReference = True # return 1 Can't return straight away because next line might contain a TC footnote
     return 1 if haveEarlyTranslationReference else False
-# end of initialise.get_reference_text_critical_footnote_score function
+# end of initialise.get_reference_English_text_critical_footnote_score function
 
 
 def get_verse_collation_rows(given_collation_rows: list[dict], row_index: int) -> list[list]:
@@ -379,7 +411,7 @@ def get_verse_collation_rows(given_collation_rows: list[dict], row_index: int) -
 # end of initialise.get_verse_collation_rows
 
 
-def create( initialTSVLines, referenceBible, collationVerseDict, splitVerseSet, individualQuotedOTRefs, individualQuotingNTRefs ) -> bool:
+def create( initialTSVLines, HebrewReferenceBible, EnglishReferenceBible, collationVerseDict, splitVerseSet, individualQuotedOTRefs, individualQuotingNTRefs ) -> bool:
     """
     """
     BibleOrgSysGlobals.backupAnyExistingFile( TSV_FILENAME, numBackups=3 )
@@ -394,7 +426,8 @@ def create( initialTSVLines, referenceBible, collationVerseDict, splitVerseSet, 
             C, V = CV.split( ':' )
             fgRef = f'{BBB}_{CV}'
             # print( f"{fgRef}" )
-            TC_footnote_value = get_reference_text_critical_footnote_score( referenceBible, BBB, C, V )
+            heb_TC_footnote_value = get_Hebrew_reference_text_critical_footnote_score( HebrewReferenceBible, BBB, C, V )
+            eng_TC_footnote_value = get_English_reference_text_critical_footnote_score( EnglishReferenceBible, BBB, C, V )
             # print( f"  {has_TC_footnote}")
             # if BBB=='EXO' and has_TC_footnote: print( f"{fgRef} has TC" ); halt
             # print( f"{line=} {fgRef=}" )
@@ -405,7 +438,7 @@ def create( initialTSVLines, referenceBible, collationVerseDict, splitVerseSet, 
 
                 # Look at textual issues 0=None/1=Minor spelling/2=Minor words/3-Major
                 textualIssue = collationVerseDict[subRef] if subRef in collationVerseDict else defaultTextualIssue
-                if TC_footnote_value==2 or subRef in textualCriticismRefs:
+                if heb_TC_footnote_value==2 or eng_TC_footnote_value==2 or subRef in textualCriticismRefs:
                     if textualIssue==defaultTextualIssue: # default is '0'
                         textualIssue = '2' # textualIssue ranges from 0 (None) to 4 (Major)
                     elif textualIssue == '1':
@@ -413,7 +446,7 @@ def create( initialTSVLines, referenceBible, collationVerseDict, splitVerseSet, 
                         textualIssue = '2' # textualIssue ranges from 0 (None) to 4 (Major)
                     else:
                         vPrint( 'Info', DEBUGGING_THIS_MODULE, f"{subRef} TC was already {textualIssue}")
-                elif TC_footnote_value==1:
+                elif eng_TC_footnote_value==1:
                     if textualIssue==defaultTextualIssue: # default is '0'
                         textualIssue = '1' # textualIssue ranges from 0 (None) to 4 (Major)
                     else:

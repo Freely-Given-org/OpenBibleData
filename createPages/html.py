@@ -92,6 +92,7 @@ CHANGELOG:
     2025-05-19 Handle doubled T4T figures of speech
     2025-05-31 Added deferred loading to make kb.js work properly
     2025-06-19 Handle more of the varieties in doubled T4T figures of speech
+    2025-09-09 Allow for 'kingdom' pages
 """
 # from gettext import gettext as _
 import logging
@@ -107,7 +108,7 @@ from settings import State, state
 from OETHandlers import getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2025-08-29' # by RJH
+LAST_MODIFIED_DATE = '2025-09-12' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
 PROGRAM_VERSION = '0.96'
@@ -121,7 +122,7 @@ NEWLINE = '\n'
 KNOWN_PAGE_TYPES = ('site', 'TopIndex', 'details', 'AllDetails',
                     'book','bookIndex', 'chapter','chapterIndex', 'section','sectionIndex',
                     'relatedPassage','relatedSectionIndex',
-                    'topicPassages','topicsIndex',
+                    'topicPassages','topicsIndex', 'kingdom',
                     'parallelVerse', 'interlinearVerse',
                     'dictionaryMainIndex','dictionaryLetterIndex','dictionaryEntry','dictionaryIntro',
                     'word','lemma','morpheme', 'person','location', 'statistics', 'StrongsPage',
@@ -154,7 +155,7 @@ def makeTop( level:int, versionAbbreviation:str|None, pageType:str, versionSpeci
     elif pageType in ('dictionaryLetterIndex', 'dictionaryEntry','dictionaryIntro'):
         cssFilename = 'BibleDict.css'
     elif pageType in ('site', 'details','AllDetails', 'search', 'about', 'news', 'OETKey', 'TopIndex',
-                      'statistics',
+                      'kingdom', 'statistics',
                       'bookIndex','chapterIndex','sectionIndex',
                       'relatedSectionIndex', 'topicsIndex', 'dictionaryMainIndex','StrongsIndex',
                       'wordIndex','lemmaIndex','morphemeIndex','personIndex','locationIndex','statisticsIndex','referenceIndex' ):
@@ -187,7 +188,7 @@ def makeTop( level:int, versionAbbreviation:str|None, pageType:str, versionSpeci
     or pageType in ('parallelVerse','topicPassages'):
         top = top.replace( '__SCRIPT__', f'''<script src="{'../'*level}Bible.js"></script>\n  __SCRIPT__''' )
     if 'Dict' in cssFilename or 'Word' in cssFilename \
-    or pageType in ('chapter','section','book','parallelVerse','interlinearVerse','relatedPassage'):
+    or pageType in ('chapter','section','book','parallelVerse','interlinearVerse','relatedPassage','kingdom'):
         top = top.replace( '__SCRIPT__', f'''<script src="{'../'*level}KB.js" defer></script>\n  __SCRIPT__''' )
     top = top.replace( '\n  __SCRIPT__', '' )
 

@@ -32,6 +32,7 @@ CHANGELOG:
     2024-11-09 Added some headings
     2025-02-03 Accept and process lemma page links
     2025-06-27 Fix bug where we were forcing the load of Bible books where not wanted
+    2025-09-07 Add Kingdom pages
 """
 from gettext import gettext as _
 from pathlib import Path
@@ -40,22 +41,21 @@ import logging
 
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
-import BibleOrgSys.Formats.ESFMBible as ESFMBible
-from BibleOrgSys.Internals.InternalBibleInternals import InternalBibleEntryList, getLeadingInt
+from BibleOrgSys.Internals.InternalBibleInternals import InternalBibleEntryList
 
-from settings import State, reorderBooksForOETVersions
+from settings import State
 from usfm import convertUSFMMarkerListToHtml
-from Bibles import getVerseDataListForReference
+from Bibles import getBibleMapperMaps
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
                     removeDuplicateCVids, \
-                    makeTop, makeBottom, makeBookNavListParagraph, checkHtml
-from OETHandlers import livenOETWordLinks, getOETTidyBBB, getOETBookName, getBBBFromOETBookName
+                    makeTop, makeBottom, checkHtml
+from OETHandlers import livenOETWordLinks, getOETTidyBBB
 
 
-LAST_MODIFIED_DATE = '2025-06-27' # by RJH
+LAST_MODIFIED_DATE = '2025-09-14' # by RJH
 SHORT_PROGRAM_NAME = "createTopicPages"
 PROGRAM_NAME = "OpenBibleData createTopicPages functions"
-PROGRAM_VERSION = '0.27'
+PROGRAM_VERSION = '0.31'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -302,6 +302,73 @@ def createTopicPage( level:int, folder:Path, filename:str, topic:str, refs:list[
     vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    createTopicPage() finished processing '{topic}' with {len(refs):,} references." )
     return True
 # end of createTopicPages.createTopicPage
+
+KINGDOM_INFO_HTML_DICT = {
+    'Promised land':'''<p>After four hundred years in Egypt (Heb. Mitsrayim) and ending up as slaves there, Yahweh told Mosheh (Moses) that he would lead the descendants of Yakov/Yisrael (Jacob/Israel) to the land that he’d promised to them.</p>''',
+    'Intro':'''<p>Yakov (Jacob) was the patriarch of Yisrael (Israel).
+After his descendants left Egpyt (Heb. Mitsrayim) and moved into ‘the promised land’, they were guided by the prophets and by various heroes and guides (traditionally known in English as ‘Judges’, although that describes their role poorly) before they had a king. Shaul (Saul) was their first king, succeeded by King David and then his son King Shelomoh (Solomon).
+However, the more northern tribes disagreed with the leaders of the southern tribes of Yehudah (Judah, David’s tribe) and Benyamin over succession plans.
+They also resented having to travel to Yerushalem (Jerusalem, located in Yehudah's area) several times per year.
+All of that and more eventually resulted in Yisrael splitting into two kingdoms: the northern kingdom which continued to be known as <b>Yisrael</b> with <b>Samaria</b> as its capital city,
+and a southern kingdom that became known by the name of the dominant tribe of <b>Yehudah</b> (Benyamin was a relative small tribe) and which retained <b>Yerushalem</b> (Jerusalem) as its capital.</p>''',
+    'Full kingdom':'''<p>By the ‘Full kingdom’, we mean the full kingdom of Yisrael encompassing all the tribes descending from Yakov's twelve sons plus Yosef's (Joseph's) two sons. The three kings of this kingdom were King Shaul, then King David, and his son King Shelomoh.</p>
+<p>The prophets who spoke to the full kingdom of Yisrael include <a href="bySec/SA1_S20.htm#C7V2">Shemuel (Samuel)</a>, Gad, Natan (Nathan), and Ahiyah (Ahijah).</p>''',
+    'Northern kingdom':'''<p>By the ‘Northern kingdom’, we mean the northern area occupied by the majority ten tribes who then established Samaria as their capital and worship centre.
+Sometimes the northern kingdom also goes by the name ‘Efraim’ (Ephraim, one of the ten tribes).</p>
+<p>The prophets who spoke to the northern kingdom of Yisrael include Eliyyyah (Elijah), Elisha, Yonah (Jonah), Amos, and Hoshea (Hosea).</p>''',
+    'Southern kingdom':'''<p>By the ‘Southern kingdom’, we mean the southern area of what was originally part of the Kingdom of Israel, but when the very large tribe of Yehudah (Judah) and the very small tribe of Benyamin (Benjamin) split off to stay loyal to David’s descendants who continued to rule from Yerushalim (Jerusalem).
+This kingdom of Yehudah continued to be ruled by David’s descendants, although we often saw a pattern of ‘good king’, ‘bad king’ (unlike the Northern Kingdom which pretty much had all bad kings).</p>
+<p>The prophets who spoke to the southern kingdom of Yehudah include Eliyyyah (Elijah), Isaiah, Mikah (Micah), Zefanyah (Zephaniah), Ovadyah (Obadiah), Nahum, Yeremyah (Jeremiah), Yoel (Joel), and Habakkuk.</p>''',
+    'Both kingdoms':'''<p>By the term ‘Both kingdoms’, we mean that the narrative covers both of the two kingdoms of Yisrael and Yehudah (that had originally been united after the Israelis in the ‘<a href="PromisedLand.htm#Top">promised land</a>’ demanded a king, but which split after the death of King Shelomoh).</p>
+<p>The prophets who spoke to both kingdoms (after they had been divided) include Isaiah, ...</p>''',
+    }
+KINGDOM_LIST = (('Promised land',[('JOS','13','1')]),('Full kingdom',[('JOS','13','1'),('JDG','4','4')]),('Northern kingdom',[('JOS','13','1'),('JDG','4','4')]),('Southern kingdom',[('JOS','13','1'),('JDG','4','4')]),('Both kingdoms',[('KI2','14','25')]))
+def createKingdomPages( level:int, folder:Path, state:State ) -> bool:
+    """
+    """
+    fnPrint( DEBUGGING_THIS_MODULE, f"createKingdomPages( {level}, {folder}, {state.BibleVersions} )" )
+    assert level == 1
+
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\ncreateKingdomPages( {level}, {folder} )" )
+    try: os.makedirs( folder )
+    except FileExistsError: pass # they were already there
+
+    for kk, (kingdomName,mapRefList) in enumerate( KINGDOM_LIST ):
+        oneWordKingdomName = kingdomName.replace( ' ', '' ).replace( 'king', 'King' ).replace( 'land', 'Land' )
+        filename = f'{oneWordKingdomName}.htm'
+        filepath = folder.joinpath( filename )
+        top = makeTop( level, None, 'kingdom', None, state ) \
+                .replace( '__TITLE__', f"{kingdomName}{' TEST' if state.TEST_MODE else ''}" ) \
+                .replace( '__KEYWORDS__', f'Bible, {kingdomName.split()[0]}, kingdom' )
+        leftLink = f'<a title="Previous kingdom" href="{KINGDOM_LIST[kk-1][0].replace( ' ', '' ).replace( 'king', 'King' ).replace( 'land', 'Land' )}.htm#Top">←</a> ' if kk>0 else ''
+        rightLink = f' <a title="Next kingdom" href="{KINGDOM_LIST[kk+1][0].replace( ' ', '' ).replace( 'king', 'King' ).replace( 'land', 'Land' )}.htm#Top">→</a>' if kk<len(KINGDOM_LIST)-1 else ''
+
+        # Handle BibleMapper maps and notes
+        mapHtml = ''
+        for BBB,C,V in mapRefList:
+            dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"    Checking {oneWordKingdomName} maps at {BBB} {C}:{V}…" )
+            bmmHtml = getBibleMapperMaps( level, BBB, C, V, None, None, state.preloadedBibles['OET-RV'], state )
+            if bmmHtml:
+                dPrint( 'Info', DEBUGGING_THIS_MODULE, f"     Got some map HTML for {oneWordKingdomName} using {BBB} {C}:{V}" )
+                bmmHtml = f'''<div id="BMM" class="parallelBMM"><a title="Go to BMM copyright page" href="{'../'*level}BMM/details.htm#Top">BMM</a> <b><a href="https://BibleMapper.com" target="_blank" rel="noopener noreferrer">BibleMapper.com</a> Maps</b>: {bmmHtml}</div><!--end of BMM-->'''
+                if not mapHtml:
+                    mapHtml = '<hr style="width:50%;margin-left:0;margin-top: 0.3em">'
+                mapHtml = f'{mapHtml}\n{bmmHtml}'
+
+        html = f'''{top}<div class="{oneWordKingdomName}"><h1 class="{oneWordKingdomName}" id="Top">{kingdomName} details</h1>
+<p class="pageNav">{leftLink} {rightLink}</p>
+{(KINGDOM_INFO_HTML_DICT['Intro']+NEWLINE) if 'kingdom' in kingdomName else ''}{KINGDOM_INFO_HTML_DICT[kingdomName]}
+</div>
+{mapHtml if mapHtml else ''}{makeBottom( level, 'kingdom', state )}'''
+        assert checkHtml( f'{oneWordKingdomName}', html )
+        assert not filepath.is_file() # Check that we're not overwriting anything
+        with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
+            indexHtmlFile.write( html )
+        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(html):,} characters written to {filepath}" )
+
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createKingdomPages() finished processing {len(KINGDOM_LIST)} kingdom pages." )
+    return True
+# end of createTopicPages.createKingdomPages
 
 
 def briefDemo() -> None:

@@ -44,10 +44,10 @@ from BibleOrgSys import BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import vPrint, fnPrint, dPrint, rreplace
 
 
-LAST_MODIFIED_DATE = '2025-09-01' # by RJH
+LAST_MODIFIED_DATE = '2025-09-12' # by RJH
 SHORT_PROGRAM_NAME = "spellCheckEnglish"
 PROGRAM_NAME = "English Bible Spell Check"
-PROGRAM_VERSION = '0.52'
+PROGRAM_VERSION = '0.53'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -477,6 +477,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                        'qs','sig',
                         'ft','fk', 'fnRef','fnText', # 'f', # We intentionally omit 'fr' -- why???
                         'li1','li2','li3',
+                        'v', # for verse spans on parallel and interlinear pages
                         'theb','va', # in NET
                         'ul',
                         ):

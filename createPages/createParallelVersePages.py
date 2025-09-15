@@ -106,7 +106,7 @@ from OETHandlers import getOETTidyBBB, getOETBookName, livenOETWordLinks, getHeb
 from spellCheckEnglish import spellCheckAndMarkHTMLText
 
 
-LAST_MODIFIED_DATE = '2025-09-05' # by RJH
+LAST_MODIFIED_DATE = '2025-09-09' # by RJH
 SHORT_PROGRAM_NAME = "createParallelVersePages"
 PROGRAM_NAME = "OpenBibleData createParallelVersePages functions"
 PROGRAM_VERSION = '0.99'
@@ -1648,6 +1648,7 @@ def brightenUHB( BBB:str, C:str, V:str, brightenUHBTextHtml:str, verseEntryList,
 
 def markPossibleUnmatchedProperNames( parRef:str, thisVerseEntryList, state:State ) -> None:
     """
+    Was 1,650
     """
     fnPrint( DEBUGGING_THIS_MODULE, f"markPossibleUnmatchedProperNames( {parRef} {thisVerseEntryList}, … )" )
 
@@ -1666,18 +1667,39 @@ def markPossibleUnmatchedProperNames( parRef:str, thisVerseEntryList, state:Stat
                                  'Why','How','Which', 'Not','Oh',
                                  'Abandon','Abhor', 'Abhoring','Anger', 'Angry', 'Anguish', 'Another', 'Answer', 'Anxiety', 'Any', 'Anyone', 'Apples', 'Apply', 'Are','Avenge', 'Avoid', 'Awake',
                                  'Bear', 'Beautiful', 'Became', 'Become', 'Bed[s]',
-                                 'Call', 'Calloused', 'Came', 'Camels', 'Carefully', 'Case', 'Cast', 'Cattle', 'Cause', 'Cease', 'Cedars', 'Certain', 'Certainly', 'Change', 'Charcoal', 'Cheeks', 'Cherish', 'Cherubims', 'Chief', 'Chiefs', 'Child', 'Children', 'Chislon', 'Circumcise', 'Circumcision', 'Cities', 'City', 'Claim', 'Clean', 'Cleanse', 'Close', 'Clothe', 'Clothed', 'Clothing', 'Cloud', 'Clouds', 'Coming', 'Command', 'Commander', 'Complete', 'Completely', 'Completeness', 'Concerning', 'Condemns', 'Confronted',
-                                 'Deliver', 'Desolations', 'Disaster', 'Discipline', 'Discretion', 'Divination',
+                                 'Call', 'Calloused', 'Came', 'Camels', 'Carefully', 'Case', 'Cast', 'Cattle', 'Cause', 'Cease', 'Cedars', 'Certain', 'Certainly', 'Change', 'Charcoal', 'Cheeks', 'Cherish', 'Cherubims', 'Chief', 'Chiefs', 'Child', 'Children', 'Chislon', 'Circumcise', 'Circumcision', 'Cities', 'City', 'Claim', 'Clean', 'Cleanse', 'Close', 'Clothe', 'Clothed', 'Clothing', 'Cloud', 'Clouds', 'Coming', 'Command', 'Commander', 'Complete', 'Completely', 'Completeness', 'Concerning', 'Condemns', 'Confronted', 'Correct',
+                                 'Dead',
+                                    'Deliver', 'Desolations', 'Disaster', 'Discipline', 'Discretion', 'Divination',
                                  'Come','Do','Eat','Judge','Increase','Make','Open','Remember','Say','See','Truly','Yes',
+                                 'Good', 'Goodness',
+                                    'Grace', 'Gracious', 'Grain', 'Grass', 'Great', 'Greater', 'Greatly', 'Greet', 'Greetings', 'Groaning', 'Grow',
+                                    'Guard', 'Guards', 'Guilt',
                                  'Honey', 'Honour', 'Honoured', 'Hope',
+                                 'Made', 'Maim', 'Majestic','Male', 'Man', 'Market', 'Master', 'Masters', 'Maxims', 'Memory', 'Men', 'Mercies', 'Merciful', 'Mercy', 'Mesopotamia', 'Might', 'Mighty', 'Milk', 'Mind', 'Miserable', 'Money', 'More', 'Mortal', 'Most', 'Mount', 'Mountain', 'Mountains', 'Mouth', 'Move', 'Much', 'Multitude', 'Mute', 'Mystery',
+                                 'Naked', 'Nard', 'Nation', 'Nations', 'Near', 'Need', 'Neither', 'Networks', 'Never', 'Nevertheless', 'New', 'Night', 'No', 'Nobles', 'Noises', 'None', 'Nor', 'Nothing', 'Now', 'Noʼ',
                                  'Oak', 'Oaks', 'Observe', 'Offering', 'Officials', 'Offscouring', 'Oh/the', 'Oil', 'Old', 'Olive', 'On', 'On/upon/above', 'On/upon/above/on', 'Only', 'Other', 'Others', 'Otherwise', 'Out', 'Outside', 'Over', 'Overpower', 'Overseeing', 'Overtake',
+                                 'Payment', 'People', 'Persuades', 'Perverse', 'Plans', 'Playing', 'Poverty', 'Praise', 'Priests', 'Prophesy',
+                                 'Q',
                                  'Recesses', 'Recount', 'Remove', 'Restrain', 'Rightly', 'Rock', 'Roll', 
-                                 'Sacrifices', 'Silver', 'Sing', 'Sinners', 'Sit', 'Six', 'So', 'Some', 'Speak', 'Splendour', 'Still', 'Stone', 'Stretch', 'Struck', 'Sudden', 'Supplications', 'Surely', 'Swallow', 'Swamps',
-                                 'Take', 'Taken',
+                                 'Sacrifices', 'Salt', 'Scale[s]', 'Seek', 'Send', 'Seven', 
+                                    'Silver', 'Sing', 'Sinners', 'Sit', 'Sitting',
+                                    'Skin',
+                                    'Slave', 'Slaves',
+                                    'Small',
+                                    'Sober', 'Sojourn', 'Someone', 'Songs', 'Sons', 'Soul', 'Sound', 'South', 'Sovereign', 'Sow',
+                                    'Speaking',
+                                    'Square',
+                                    'Stand', 'Standing', 'Stay', 'Steadfast', 'Steal', 'Steps', 'Stiff-necked', 'Stones', 'Stood', 'Straight', 'Straw', 'Streams', 'Strength', 'Strike', 'Strings',
+                                    'Such', 'Suddenly', 'Suffer', 'Sufficient', 'Summon', 'Sun', 'Surrender', 'Surrounded', 'Survive', 'Sustain',
+                                    'Sweep', 'Sword', 'Swore',
+                                    'Six', 'So', 'Some', 'Speak', 'Splendour', 'Still', 'Stone', 'Stretch', 'Struck', 'Sudden', 'Supplications', 'Surely', 'Swallow', 'Swamps',
+                                 'THE', 'Take', 'Taken', 'Teacher', 'Tell', 'Ten', 'Testing', 'There', 'Thereafter', 'Therefore', 'These', 'They', 'This', 'Thorns', 'Three', 'Throw', 'To/for', 'To/from', 'Toil(s)', 'Traders', 'Train', 'Treasure', 'Tremble', 'Trembling', 'Truth', 'Turbans', 'Twelve',
                                  'Water', 'Waters', 'We', 'Wealth', 'What', 'Whatever', 'When', 'Where', 'Wherever', 'Whether', 'Who', 'Whoever', 'Whom', 'Whomever', 'Will', 'Wise', 'With', 'Wounds',
-                                 'Behold','YHWH','DOM'):
+                                 'Behold','YHWH','DOM',
+                                 # Names that only have short vowels and no unusual consonants
+                                 'Melek',):
                     foundAny = False
-                    for checkChar in 'āēīōūₐₑₒəʸḩʦ':
+                    for checkChar in 'āēīōūₐₑₒəʸḩⱪţʦ':
                         if checkChar in word:
                             foundAny = True
                             break
