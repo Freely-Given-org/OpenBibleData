@@ -95,10 +95,10 @@ from html import checkHtml
 from OETHandlers import getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2025-09-12' # by RJH
+LAST_MODIFIED_DATE = '2025-09-22' # by RJH
 SHORT_PROGRAM_NAME = "usfm"
 PROGRAM_NAME = "OpenBibleData USFM to HTML functions"
-PROGRAM_VERSION = '0.93'
+PROGRAM_VERSION = '0.94'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -1626,14 +1626,14 @@ myKJB1611XrefTable = {
     'Gene':'GEN','Gen':'GEN',
     'Galat':'GAL','galat':'GAL', 'Gal':'GAL','gal':'GAL',
     'Habac':'HAB','hab':'HAB', 'Abak':'HAB', 'Abac':'HAB',
-    'Hagge':'HAG', 'Agge':'HAG',
+    'Hagge':'HAG', 'Agge':'HAG','agge':'HAG',
     'Hebr':'HEB', 'hebr':'HEB', 'Heb':'HEB', 'heb':'HEB',
-    'Hose':'HOS', 'Hos':'HOS','hos':'HOS', 'Osee':'HOS', 'Ose':'HOS', 'Os':'HOS',
+    'Hose':'HOS', 'Hos':'HOS','hos':'HOS', 'Osee':'HOS', 'Ose':'HOS','ose':'HOS', 'Os':'HOS',
     'Isai':'ISA','isai':'ISA', 'Esai':'ISA', 'Esa':'ISA','esa':'ISA', 'Esay':'ISA','esay':'ISA', 'esai':'ISA', 'Isa':'ISA','isa':'ISA',
     'Iames':'JAM', 'Iam':'JAM', 'iam':'JAM',
-    'Iude':'JDE','iude':'JDE','Iud':'JDE',
-    'Iudg':'JDG','iudg':'JDG',
-    'iudith':'JDT',
+    'Iude':'JDE','iude':'JDE','Iud':'JDE','iud':'JDE',
+    'iuges':'JDG', 'Iudg':'JDG','iudg':'JDG',
+    'iudith':'JDT', 'iudit':'JDT',
     'Ier':'JER','ier':'JER','Ierem':'JER', 'Iere':'JER', 'iere':'JER', 'ierem':'JER', 'Iee':'JER',
     'Ioh':'JHN','ioh':'JHN','Iohn':'JHN','iohn':'JHN',
     '1.Iohn':'JN1','1.iohn':'JN1', 'I.Iohn':'JN1', '1.Ioh':'JN1','1.ioh':'JN1',
@@ -1698,11 +1698,11 @@ def livenXRefField( fieldType:str, versionAbbreviation:str, refTuple:tuple, segm
 
     if versionAbbreviation == 'RV':
         xrefLiveMiddle = ( xrefLiveMiddle \
+                            .replace( ' iii ',' iii.') # Fixes an inconsistency
                             .replace( 'xxxix.', '39.' ).replace( 'xxxviii.', '38.' ).replace( 'xxxvii.', '37.' ).replace( 'xxxvi.', '36.' ).replace( 'xxxv.', '35.' ).replace( 'xxxiv.', '34.' ).replace( 'xxxiii.', '33.' ).replace( 'xxxii.', '32.' ).replace( 'xxxi.', '31.' ).replace( 'xxx.', '30.' )
                             .replace( 'xxix.', '29.').replace( 'xxviii.', '28.').replace( 'xxvii.', '27.').replace( 'xxvi.', '26.').replace( 'xxv.', '25.').replace( 'xxiv.', '24.').replace( 'xxiii.', '23.').replace( 'xxii.', '22.').replace( 'xxi.', '21.').replace( 'xx.', '20.')
                             .replace( 'xix.', '19.' ).replace( 'xviii.', '18.' ).replace( 'xvii.', '17.' ).replace( 'xvi.', '16.' ).replace( 'xv.', '15.' ).replace( 'xiv.', '14.' ).replace( 'xiii.', '13.' ).replace( 'xii.', '12.' ).replace( 'xi.', '11.' ).replace( 'x.', '10.' )
                             .replace( 'ix.', '9.' ).replace( 'viii.', '8.' ).replace( 'vii.', '7.' ).replace( 'vi.', '6.' ).replace( 'iv.', '4.' ).replace( 'v.', '5.' ).replace( 'iii.', '3.' ).replace( 'ii.', '2.' ).replace( 'i.', '1.' )
-                            .replace( ' iii ',' iii.') # Fixes an inconsistency
                         )
     elif versionAbbreviation == 'KJB-1611':
         xrefLiveMiddle = xrefLiveMiddle.replace( 'A&s', 'Acts' )
@@ -1736,9 +1736,9 @@ def livenXRefField( fieldType:str, versionAbbreviation:str, refTuple:tuple, segm
             xB = match.group( 1 ).lstrip() # For books without a book number like 1 Cor, the BCV regex may capture an extra space before the book abbreviation
             if xB == 'Songs':
                 xBBB = 'SNG'
-            elif versionAbbreviation=='KJB-1611' and xB in ('and','c','ca'): # 'ca' stands for 'circa' = 'around'
+            elif versionAbbreviation in ('KJB-1611','RV') and xB in ('and','c','ca'): # 'ca' stands for 'circa' = 'around'
                 xBBB = lastXBBB # Same as last book
-            elif versionAbbreviation=='KJB-1611' and xB in ('See','to','Dodo','Elishua','Vzziah'): # First one is a range, 2nd is in a footnote
+            elif versionAbbreviation=='KJB-1611' and xB in ('As','See','the','to','Dodo','Elishua','Vzziah'): # First one is a range, 2nd is in a footnote
                 # print( f"{match=} {match.start()=} {match.end()=} {match.groups()=}" )
                 reStartIx = match.end() if xB=='to' else match.start()+len(match.group( 1 ))
                 continue # I think we can just ignore it here
@@ -1768,7 +1768,7 @@ def livenXRefField( fieldType:str, versionAbbreviation:str, refTuple:tuple, segm
         if firstIndex==indexBV and firstIndex!=indexBCV: # process matchBV (if it's not also a matchBCV)
             dPrint( 'Info', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} {refTuple} {xoText=} {xrefLiveMiddle=} {matchBV.groups()=}" )
             xCorV = match.group( 2 )
-            if versionAbbreviation=='KJB-1611' and xB in ('Verse','Vers','vers','Ver','ver','and'):
+            if versionAbbreviation in ('KJB-1611','RV') and xB in ('Verse','verse','Vers','vers','Ver','ver','v','and'):
                 xBBB, xV = BBB, xCorV # This same book where the xref is located
                 try: xC = refTuple[1]
                 except IndexError: # no chapter number given there -- use the xoText instead
@@ -1815,7 +1815,7 @@ def livenXRefField( fieldType:str, versionAbbreviation:str, refTuple:tuple, segm
             #         logging.critical( f"Unable to liven cross-reference from {versionAbbreviation} {refTuple} for {xBBB=} {xC=} {xV=} from {xB=} from {xrefOriginalMiddle=}" )
             # # if versionAbbreviation=='KJB-1611' and not xBBB: # still
             # #     print( f"  {versionAbbreviation} {xBBB=} {xC=} {xV=} from {xB=} from {xrefOriginalMiddle=}" )
-        assert xBBB and xBBB not in ('CHR',), f"{versionAbbreviation} {refTuple} from {xB=} from {xrefOriginalMiddle=}"
+        assert xBBB and xBBB not in ('SAM','CHR',), f"livenXRefField {fieldType} {versionAbbreviation} {refTuple} {xBBB=} from {xB=} from {xrefOriginalMiddle=}"
         lastXBBB = xBBB
         dPrint( 'Info', DEBUGGING_THIS_MODULE, f"Got {versionAbbreviation} {xBBB} from {refTuple} {match.groups()=} from {xoText=} {xrefLiveMiddle=}" )
         assert xC.isdigit(), f"{versionAbbreviation} {refTuple} {xC=} {match.groups()}"

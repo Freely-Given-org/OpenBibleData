@@ -45,6 +45,7 @@ CHANGELOG:
     2024-05-01 Added morphology in popups in livenOETWordLinks()
     2024-11-14 NFC normalise Hebrew title fields
     2025-01-15 Handle NT morphology fields with middle dot instead of period
+    2025-09-18 Add insertChar parameter to getOETTidyBBB
 """
 import logging
 import re
@@ -64,22 +65,25 @@ from BibleTransliterations import transliterate_Hebrew, transliterate_Greek
 from settings import State
 
 
-LAST_MODIFIED_DATE = '2025-05-27' # by RJH
+LAST_MODIFIED_DATE = '2025-09-22' # by RJH
 SHORT_PROGRAM_NAME = "OETHandlers"
 PROGRAM_NAME = "OpenBibleData OET handler"
-PROGRAM_VERSION = '0.63'
+PROGRAM_VERSION = '0.65'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
 
 WJ = '\u2060' # word joiner (makes Hebrew displays on console ugly and hard to read)
+NARROW_NON_BREAK_SPACE = ' '
 
 
-def getOETTidyBBB( BBB:str, titleCase:bool|None=False, allowFourChars:bool|None=True, addNotes:bool|None=False ) -> str:
+def getOETTidyBBB( BBB:str, titleCase:bool|None=False, allowFourChars:bool|None=True, insertChar:str|None=NARROW_NON_BREAK_SPACE, addNotes:bool|None=False ) -> str:
     """
     Our customised version of tidyBBB
     """
-    newBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.tidyBBB( BBB, titleCase=titleCase, allowFourChars=allowFourChars )
+    newBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.tidyBBB( BBB, titleCase=titleCase, allowFourChars=allowFourChars, insertChar=insertChar )
+
+    if insertChar is None: insertChar = ''
     # OT
     if newBBB == 'JNA': return '<span title="Yonah (which is closer to the Hebrew יוֹנָה/Yōnāh)">YNA</span> (JNA)' if addNotes else 'YNA'
     if newBBB == 'Jna': return '<span title="Yonah (which is closer to the Hebrew יוֹנָה/Yōnāh)">Yna</span> (Jna)' if addNotes else 'Yna'
@@ -91,18 +95,18 @@ def getOETTidyBBB( BBB:str, titleCase:bool|None=False, allowFourChars:bool|None=
     if newBBB == 'JAM': return 'YAC (JAM)' if addNotes else 'YAC'
     if newBBB == 'Jam': return 'Yac (Jam)' if addNotes else 'Yac'
     if newBBB == 'ACTS': return 'ACTs'
-    if newBBB == '1JN': return '1<span title="Yohan (which is closer to the Greek Ἰωάννης/Yōannaʸs)">YN</span> (1JN)' if addNotes else '1YN'
-    if newBBB == '2JN': return '2<span title="Yohan (which is closer to the Greek Ἰωάννης/Yōannaʸs)">YN</span> (2JN)' if addNotes else '2YN'
-    if newBBB == '3JN': return '3<span title="Yohan (which is closer to the Greek Ἰωάννης/Yōannaʸs)">YN</span> (3JN)' if addNotes else '3YN'
-    if newBBB == '1Jn': return '1<span title="Yohan (which is closer to the Greek Ἰωάννης/Yōannaʸs)">Yn</span> (1Jn)' if addNotes else '1Yn'
-    if newBBB == '2Jn': return '2<span title="Yohan (which is closer to the Greek Ἰωάννης/Yōannaʸs)">Yn</span> (1Jn)' if addNotes else '2Yn'
-    if newBBB == '3Jn': return '3<span title="Yohan (which is closer to the Greek Ἰωάννης/Yōannaʸs)">Yn</span> (1Jn)' if addNotes else '3Yn'
-    if newBBB == '1JHN': return '1<span title="Yohan (which is closer to the Greek Ἰωάννης/Yōannaʸs)">YHN</span> (1JHN)' if addNotes else '1YHN'
-    if newBBB == '2JHN': return '2<span title="Yohan (which is closer to the Greek Ἰωάννης/Yōannaʸs)">YHN</span> (2JHN)' if addNotes else '2YHN'
-    if newBBB == '3JHN': return '3<span title="Yohan (which is closer to the Greek Ἰωάννης/Yōannaʸs)">YHN</span> (3JHN)' if addNotes else '3YHN'
-    if newBBB == '1Jhn': return '1<span title="Yohan (which is closer to the Greek Ἰωάννης/Yōannaʸs)">Yhn</span> (1Yohan or 1Jhn)' if addNotes else '1Yhn'
-    if newBBB == '2Jhn': return '2<span title="Yohan (which is closer to the Greek Ἰωάννης/Yōannaʸs)">Yhn</span> (2Yohan or 2Jhn)' if addNotes else '2Yhn'
-    if newBBB == '3Jhn': return '3<span title="Yohan (which is closer to the Greek Ἰωάννης/Yōannaʸs)">Yhn</span> (3Yohan or 3Jhn)' if addNotes else '3Yhn'
+    if newBBB == f'1{insertChar}JN': return f'1{insertChar}<span title="Yohan (which is closer to the Greek Ἰωάννης/Yōannaʸs)">YN</span> (1{insertChar}JN)' if addNotes else f'1{insertChar}YN'
+    if newBBB == f'2{insertChar}JN': return f'2{insertChar}<span title="Yohan (which is closer to the Greek Ἰωάννης/Yōannaʸs)">YN</span> (2{insertChar}JN)' if addNotes else f'2{insertChar}YN'
+    if newBBB == f'3{insertChar}JN': return f'3{insertChar}<span title="Yohan (which is closer to the Greek Ἰωάννης/Yōannaʸs)">YN</span> (3{insertChar}JN)' if addNotes else f'3{insertChar}YN'
+    if newBBB == f'1{insertChar}Jn': return f'1{insertChar}<span title="Yohan (which is closer to the Greek Ἰωάννης/Yōannaʸs)">Yn</span> (1{insertChar}Jn)' if addNotes else f'1{insertChar}Yn'
+    if newBBB == f'2{insertChar}Jn': return f'2{insertChar}<span title="Yohan (which is closer to the Greek Ἰωάννης/Yōannaʸs)">Yn</span> (2{insertChar}Jn)' if addNotes else f'2{insertChar}Yn'
+    if newBBB == f'3{insertChar}Jn': return f'3{insertChar}<span title="Yohan (which is closer to the Greek Ἰωάννης/Yōannaʸs)">Yn</span> (3{insertChar}Jn)' if addNotes else f'3{insertChar}Yn'
+    if newBBB == f'1{insertChar}JHN': return f'1{insertChar}<span title="Yohan (which is closer to the Greek Ἰωάννης/Yōannaʸs)">YHN</span> (1{insertChar}JHN)' if addNotes else f'1{insertChar}YHN'
+    if newBBB == f'2{insertChar}JHN': return f'2{insertChar}<span title="Yohan (which is closer to the Greek Ἰωάννης/Yōannaʸs)">YHN</span> (2{insertChar}JHN)' if addNotes else f'2{insertChar}YHN'
+    if newBBB == f'3{insertChar}JHN': return f'3{insertChar}<span title="Yohan (which is closer to the Greek Ἰωάννης/Yōannaʸs)">YHN</span> (3{insertChar}JHN)' if addNotes else f'3{insertChar}YHN'
+    if newBBB == f'1{insertChar}Jhn': return f'1{insertChar}<span title="Yohan (which is closer to the Greek Ἰωάννης/Yōannaʸs)">Yhn</span> (1{insertChar}Yohan or 1{insertChar}Jhn)' if addNotes else f'1{insertChar}Yhn'
+    if newBBB == f'2{insertChar}Jhn': return f'2{insertChar}<span title="Yohan (which is closer to the Greek Ἰωάννης/Yōannaʸs)">Yhn</span> (2{insertChar}Yohan or 2{insertChar}Jhn)' if addNotes else f'2{insertChar}Yhn'
+    if newBBB == f'3{insertChar}Jhn': return f'3{insertChar}<span title="Yohan (which is closer to the Greek Ἰωάννης/Yōannaʸs)">Yhn</span> (3{insertChar}Yohan or 3{insertChar}Jhn)' if addNotes else f'3{insertChar}Yhn'
     if newBBB == 'JUDE': return '<span title="Yudas (which is closer to the Greek Ἰούδας/Youdas)">YUD</span> (JUD)' if addNotes else 'YUD'
     if newBBB == 'Jude': return '<span title="Yudas (which is closer to the Greek Ἰούδας/Youdas)">Yud</span> (Jud)' if addNotes else 'Yud'
     return newBBB
@@ -124,23 +128,51 @@ def getOETBookName( BBB:str ) -> str:
 # end of OETHandlers.getOETBookName
 
 
-def getBBBFromOETBookName( booknameText:str ) -> str:
+# Assumes spaces and final periods already removed and converted to uppercase
+#    TODO: How much of this should be in BibleOrgSys ???
+OET_BBB_DICT = {
+                '1SAMUEL':'SA1', '2SAMUEL':'SA2',
+                '1KINGS':'KI1', '2KINGS':'KI2',
+                '1CHRONICLES':'CH1', '2CHRONICLES':'CH2',
+                'YOB':'JOB', 'YONAH':'JNA','YNA':'JNA', 'YOEL':'JOL',
+                'YOCHANAN':'JHN','YHN':'JHN',
+                '1CORINTHIANS':'CO1', '2CORINTHIANS':'CO2',
+                '1TIMOTHY':'TI1', '2TIMOTHY':'TI2',
+                '1THESSALONIANS':'TH1', '2THESSALONIANS':'TH2',
+                'YAC':'JAM',
+                '1PETER':'PE1', '2PETER':'PE2',
+                '1YHN':'JN1', '2YHN':'JN2', '3YHN':'JN3',
+                'YUD':'JDE',
+                '2PS':'PS2',
+                }
+def getBBBFromOETBookName( originalBooknameText:str ) -> str|None:
     """
-    """
-    if booknameText == '1Yhn': return 'JN1'
-    if booknameText == '2Yhn': return 'JN2'
-    if booknameText == '3Yhn': return 'JN3'
-    if booknameText == 'Yochanan': return 'JHN'
-    if booknameText == 'Yonah': return 'JNA'
-    if booknameText == 'Yob': return 'JOB'
-    if booknameText == 'Yoel': return 'JOL'
+    Can return None.
 
-    return BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromText(
-                booknameText.rstrip( '.' ) # Remove any final period TODO: Should BibleOrgSys do that?
+    TODO: How much of this should be in BibleOrgSys ???
+    """
+    # Too many errors from having this function first, e.g., gives 'NAH' from 'Yonah'
+    # resultBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromText( originalBooknameText )
+    # if resultBBB and resultBBB not in ('SAM','CHR','NAH): return resultBBB
+    # else: dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromText() can't get valid BBB from {originalBooknameText=}" )
+                                                                        
+    booknameText = ( originalBooknameText
+                        .replace( ' ', '' ).replace( NARROW_NON_BREAK_SPACE, '' )
+                        #.rstrip( '.' ) # Remove any final period TODO: Should BibleOrgSys do that?
+                        .replace( '.', '' ) # Actually, we'll get rid of any period, to handle unexpected xrefs like '2.kings' (e.g., from KJB)
+                    ).upper()
+    
+    try: return OET_BBB_DICT[booknameText]
+    except KeyError: pass
+
+    resultBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromText( booknameText
                     # .replace( 'Yob', 'JOB' ).replace( 'Yochanan', 'JHN' ).replace( 'Yoel', 'JOL' ).replace( 'Yonah', 'JNA' )
                     .replace( 'Yhn', 'JHN' ).replace( 'Yud', 'JDE' )
                     # .replace( '1Yhn', 'JN1' ).replace( '2Yhn', 'JN2' ).replace( '3Yhn', 'JN3' )
                 )
+    if resultBBB not in BibleOrgSysGlobals.loadedBibleBooksCodes:
+        dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"getBBBFromOETBookName() can't get valid BBB from {booknameText=}: {resultBBB=} from {originalBooknameText=}" )
+    return resultBBB
 # end of OETHandlers.getOETBookName
 
 

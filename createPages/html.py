@@ -108,10 +108,10 @@ from settings import State, state
 from OETHandlers import getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2025-09-12' # by RJH
+LAST_MODIFIED_DATE = '2025-09-22' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
-PROGRAM_VERSION = '0.96'
+PROGRAM_VERSION = '0.97'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -394,16 +394,9 @@ def makeBookNavListParagraph( linksList:list[str], workAbbrevPlus:str, state:Sta
         ixDisplayLinkEnd = aLink.index( '<', ixDisplayLinkStart )
         displayText = aLink[ixDisplayLinkStart:ixDisplayLinkEnd]
         # print( f"  {aLink=} {displayText=}")
-        assert 3 <= len(displayText) <= 4 # it should be a tidyBBB
-        BBB = ( 'JNA' if displayText=='YNA'
-                else 'JHN' if displayText=='YHN'
-                else 'JAM' if displayText=='YAC'
-                else 'JN1' if displayText=='1YHN' else 'JN2' if displayText=='2YHN' else 'JN3' if displayText=='3YHN'
-                else 'JDE' if displayText=='YUD'
-                else 'PS2' if displayText=='2PS'
-                else getBBBFromOETBookName( displayText ) )
-        # print( f"   {aLink=} {displayText=} {BBB=}")
-        assert BBB, f"{displayText=}"
+        assert 3 <= len(displayText) <= 5, f"{len(displayText)=} {displayText=}" # it should be a tidyBBB, e.g., 'GEN' or '1 COR'
+        BBB = getBBBFromOETBookName( displayText )
+        assert BBB in BibleOrgSysGlobals.loadedBibleBooksCodes, f"Bad {BBB=} from {displayText=} from {aLink=}"
         newALink = f'{aLink[:ixDisplayLinkStart]}{displayText}{aLink[ixDisplayLinkEnd:]}'
         if BBB in ('INT','FRT','OTH','GLS','XXA','XXB','XXC','XXD'):
             newALink = f'<span class="XX">{newALink}</span>'
