@@ -1632,7 +1632,7 @@ myKJB1611XrefTable = {
     'Isai':'ISA','isai':'ISA', 'Esai':'ISA', 'Esa':'ISA','esa':'ISA', 'Esay':'ISA','esay':'ISA', 'esai':'ISA', 'Isa':'ISA','isa':'ISA',
     'Iames':'JAM', 'Iam':'JAM', 'iam':'JAM',
     'Iude':'JDE','iude':'JDE','Iud':'JDE','iud':'JDE',
-    'iuges':'JDG', 'Iudg':'JDG','iudg':'JDG',
+    'iudges':'JDG', 'iuges':'JDG', 'Iudg':'JDG','iudg':'JDG',
     'iudith':'JDT', 'iudit':'JDT',
     'Ier':'JER','ier':'JER','Ierem':'JER', 'Iere':'JER', 'iere':'JER', 'ierem':'JER', 'Iee':'JER',
     'Ioh':'JHN','ioh':'JHN','Iohn':'JHN','iohn':'JHN',
@@ -1663,7 +1663,7 @@ myKJB1611XrefTable = {
     'Psal':'PSA', 'psal':'PSA', 'psalme':'PSA', 'Psa':'PSA', 'Ps':'PSA', 'psa':'PSA',
     'Prou':'PRO', 'Pro':'PRO', 'pro':'PRO', 'prou':'PRO',
     '1.Sam':'SA1','1.sam':'SA1', '1 Sam':'SA1',
-    '2.Sam':'SA2',
+    '2.Sam':'SA2','2.sam':'SA2',
     '1.Thess':'TH1','1.thess':'TH1', '1 thess':'TH1', '1.Thes':'TH1','1.thes':'TH1',
     '2.thes':'TH2', '2 thess':'TH2',
     '1.tim':'TI1',
@@ -1734,11 +1734,12 @@ def livenXRefField( fieldType:str, versionAbbreviation:str, refTuple:tuple, segm
             # See if we can find a bookcode
             match = matchBCV if firstIndex==indexBCV else matchBV
             xB = match.group( 1 ).lstrip() # For books without a book number like 1 Cor, the BCV regex may capture an extra space before the book abbreviation
+            # print( f"livenXRefField() {versionAbbreviation} {refTuple} got {xB=}" )
             if xB == 'Songs':
                 xBBB = 'SNG'
             elif versionAbbreviation in ('KJB-1611','RV') and xB in ('and','c','ca'): # 'ca' stands for 'circa' = 'around'
                 xBBB = lastXBBB # Same as last book
-            elif versionAbbreviation=='KJB-1611' and xB in ('As','See','the','to','Dodo','Elishua','Vzziah'): # First one is a range, 2nd is in a footnote
+            elif versionAbbreviation=='KJB-1611' and xB in ('As','See','the','to','Araunah','Dodo','Elishua','Vzziah'): # One is a range, 2nd is in a footnote
                 # print( f"{match=} {match.start()=} {match.end()=} {match.groups()=}" )
                 reStartIx = match.end() if xB=='to' else match.start()+len(match.group( 1 ))
                 continue # I think we can just ignore it here

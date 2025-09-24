@@ -65,10 +65,10 @@ from BibleTransliterations import transliterate_Hebrew, transliterate_Greek
 from settings import State
 
 
-LAST_MODIFIED_DATE = '2025-09-22' # by RJH
+LAST_MODIFIED_DATE = '2025-09-23' # by RJH
 SHORT_PROGRAM_NAME = "OETHandlers"
 PROGRAM_NAME = "OpenBibleData OET handler"
-PROGRAM_VERSION = '0.65'
+PROGRAM_VERSION = '0.66'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -115,9 +115,27 @@ def getOETTidyBBB( BBB:str, titleCase:bool|None=False, allowFourChars:bool|None=
 
 def getOETBookName( BBB:str ) -> str:
     """
+    Handle our different spelling of well-known book names.
     """
     return ( BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB)
+                .replace('Joshua','Yehoshua/(Joshua)')
+                .replace('‘Judges’','Heroes/(‘Judges’)')
+                .replace('1 Samuel',' 1 Shemuel/(Samuel)')
+                .replace('2 Samuel',' 2 Shemuel/(Samuel)')
+                .replace('Job','Iyyov/(Job)')
+                .replace('Psalms','Songs/(Psalms)')
+                .replace('Isaiah','Yeshayah/(Isaiah)')
+                .replace('Jeremiah','Yermeyah/(Jeremiah)')
+                .replace('Ezekiel','Yehezkel/(Ezekiel)')
+                .replace('Joel','Yoel/(Joel)')
+                .replace('Amos','Amots/(Amos)')
+                .replace('Obadiah','Ovadyah/(Obadiah)')
                 .replace('Jonah','Yonah/(Jonah)')
+                .replace('Micah','Mikah/(Micah)')
+                .replace('Habakkuk','Havakkuk/(Habakkuk)')
+                .replace('Zephaniah','Tsefanyah/(Zephaniah)')
+                .replace('Zechariah','Zekaryah/(Zechariah)')
+                .replace('Malachi','Malaki/(Malachi)')
                 .replace('John','Yohan/(John)')
                 .replace('James','Yacob/Jacob/(James)')
                 .replace('1 John',' 1 Yohan/(John)')

@@ -62,20 +62,19 @@ import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 from BibleOrgSys.Internals.InternalBibleInternals import getLeadingInt
 
-from settings import State
+from settings import State, CNTR_BOOK_ID_MAP
 from usfm import convertUSFMMarkerListToHtml
 from Bibles import formatUnfoldingWordTranslationNotes, formatTyndaleNotes
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
                     makeTop, makeBottom, makeBookNavListParagraph, checkHtml
 from createSectionPages import findSectionNumber
-from createOETReferencePages import CNTR_BOOK_ID_MAP
 from OETHandlers import livenOETWordLinks, getOETBookName, getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
-LAST_MODIFIED_DATE = '2025-06-01' # by RJH
+LAST_MODIFIED_DATE = '2025-09-25' # by RJH
 SHORT_PROGRAM_NAME = "createOETInterlinearPages"
 PROGRAM_NAME = "OpenBibleData createOETInterlinearPages functions"
-PROGRAM_VERSION = '0.61'
+PROGRAM_VERSION = '0.62'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -113,7 +112,7 @@ def createOETInterlinearPages( level:int, folder:Path, state:State ) -> bool:
 <h1 id="Top">OET interlinear verse pages</h1>
 <p class="note">These pages show single OET verses with each Hebrew or Greek word aligned with the English word(s) that it was translated to, along with any translation notes and study notes for the verse. Finally, at the bottom of each page there's a <em>Reverse Interlinear</em> with the same information but in English word order.</p>
 <h2>Index of books</h2>
-{makeBookNavListParagraph(state.BBBLinks['OET-RV'], 'interlinearIndex', state)}
+{makeBookNavListParagraph(state.BBBLinks['OET-RV'], 'InterlinearIndex', state)}
 {makeBottom( level, 'interlinearVerse', state )}'''
     assert checkHtml( 'interlinearIndex', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
@@ -145,7 +144,7 @@ def createOETInterlinearVersePagesForBook( level:int, folder:Path, BBB:str, BBBL
     ourTidyBBBwithNotes = getOETTidyBBB( BBB, addNotes=True )
     ourTidyBbb = getOETTidyBBB( BBB, titleCase=True )
     ourTidyBbbWithNotes = getOETTidyBBB( BBB, titleCase=True, addNotes=True )
-    adjBBBLinksHtml = makeBookNavListParagraph(state.BBBLinks['OET-RV'], 'interlinearVerse', state) \
+    adjBBBLinksHtml = makeBookNavListParagraph(state.BBBLinks['OET-RV'], 'InterlinearVerse', state) \
             .replace( f'''<a title="{getOETBookName(BBB)}" href="../{BBB}/">{ourTidyBBBwithNotes}</a>''', ourTidyBBB )
 
     numChapters = None

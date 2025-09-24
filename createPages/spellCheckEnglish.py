@@ -44,10 +44,10 @@ from BibleOrgSys import BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import vPrint, fnPrint, dPrint, rreplace
 
 
-LAST_MODIFIED_DATE = '2025-09-12' # by RJH
+LAST_MODIFIED_DATE = '2025-09-24' # by RJH
 SHORT_PROGRAM_NAME = "spellCheckEnglish"
 PROGRAM_NAME = "English Bible Spell Check"
-PROGRAM_VERSION = '0.53'
+PROGRAM_VERSION = '0.54'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -711,7 +711,7 @@ def printSpellCheckSummary( state ) -> None:
             badDict[word] += 1
         sortedDict = sorted( badDict.items(), key=lambda item: item[1], reverse=True )
         displayList = [wordCountTuple for wordCountTuple in sortedDict if wordCountTuple[0].islower() and (wordCountTuple[1]>(len(sortedDict)//20) or len(sortedDict)<25)]
-        if len(displayList)<10 and len(displayList)<len(sortedDict): displayList += [wordCountTuple for ww,wordCountTuple in enumerate(sortedDict) if ww<10] # Could cause some duplicates
+        if len(displayList)<25 and len(displayList)<len(sortedDict): displayList += [wordCountTuple for wordCountTuple in sortedDict[:25]] # Could cause some duplicates
         vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\n{versionAbbreviation} (using {state.BibleLanguages[versionAbbreviation]} dictionary) from {len(MISPELLING_VERSION_REF_DICT[versionAbbreviation]):,} refs got {len(sortedDict):,} unique words (showing {len(displayList):,}): {displayList}\n")
 
     totalWordsWithRef = 0

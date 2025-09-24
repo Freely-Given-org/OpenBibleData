@@ -33,10 +33,12 @@ CHANGELOG:
     2024-01-08 Fixed bug when moving to previous/next books for 'ALL' books
     2025-03-03 Tried to improve breaking into sections, esp. handling of /ms1 titles
     2025-03-24 Liven Readers' Version and Literal Version headings
+    2025-09-25 Make all SR-GNT verse text into live links to collation pages
 """
 from gettext import gettext as _
 from pathlib import Path
 import os
+import re
 import logging
 
 # sys.path.append( '../../BibleOrgSys/BibleOrgSys/' )
@@ -46,17 +48,17 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39, BOOKLIST_NT27
 import BibleOrgSys.Formats.ESFMBible as ESFMBible
 
-from settings import State
+from settings import State, CNTR_BOOK_ID_MAP
 from usfm import convertUSFMMarkerListToHtml
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
                     makeTop, makeBottom, makeBookNavListParagraph, removeDuplicateCVids, checkHtml
 from OETHandlers import livenOETWordLinks, getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
-LAST_MODIFIED_DATE = '2025-08-24' # by RJH
+LAST_MODIFIED_DATE = '2025-09-25' # by RJH
 SHORT_PROGRAM_NAME = "createBookPages"
 PROGRAM_NAME = "OpenBibleData createBookPages functions"
-PROGRAM_VERSION = '0.63'
+PROGRAM_VERSION = '0.64'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -346,6 +348,7 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
 # end of createBookPages.createOETBookPages
 
 
+CV_REGEX = re.compile( '/C(\\d{1,3})V(\\d{1,3}).htm' )
 def createBookPages( level:int, folder:Path, thisBible, state:State ) -> list[str]:
     """
     This creates a page for each book for all versions other than 'OET'
@@ -408,6 +411,17 @@ def createBookPages( level:int, folder:Path, thisBible, state:State ) -> list[st
             textHtml = do_LSV_HTMLcustomisations( f'BookB={BBB}', textHtml )
         elif thisBible.abbreviation == 'T4T':
             textHtml = do_T4T_HTMLcustomisations( f'BookB={BBB}', textHtml )
+        elif thisBible.abbreviation == 'SR-GNT':
+            startIndex = 0
+            while True:
+                match = CV_REGEX.search( textHtml, startIndex )
+                if not match: break
+                C, V = match.group(1), match.group(2)
+                # print( f"SR-GNT got {BBB} {C=} {V=}")
+                ix = textHtml.index( '<span class="SR-GNT_verseTextChunk">', match.end() ) + 36 # chars in search string
+                # except ValueError: break # None or no more -- shouldn't happen
+                textHtml = f'''{textHtml[:ix]}<a title="Go to the GreekCNTR collation page" href="https://GreekCNTR.org/collation/?v={CNTR_BOOK_ID_MAP[BBB]}{C.zfill(3)}{V.zfill(3)}">{textHtml[ix:].replace( '</span>', '</a></span>', 1 )}'''
+                startIndex = ix + 99 # Approx number of added characters
         bkHtml = f'{bkHtml}{textHtml}'
         filename = f'{BBB}.htm'
         processedFilenames.append( filename )

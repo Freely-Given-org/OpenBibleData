@@ -76,17 +76,17 @@ NET_PATHNAME = Path( '../../copiedBibles/English/NET/' )
 # Default values are M2=Medium/normal importance, 0:no textual issue, C3:clear enough
 defaultImportance, defaultTextualIssue, defaultClarity = 'M', '0', 'C'
 vitalImportanceRefsWithRanges = [ # Often in doctrinal statements
-    'GEN_1:1','GEN_1:2','GEN_1:3', 'GEN_3:16',
+    'GEN_1:1-3', 'GEN_3:16',
     'EXO_20:11', 'DEU_31:6',
     'PSA_22:1-2','PSA_22:7-18', 'PSA_46:1',
     'PRO_3:5','PRO_3:6',
-    'ISA_53:4','ISA_53:5','ISA_53:6', 'ISA_55:11',
+    'ISA_53:4-6', 'ISA_55:11',
     'JER_29:11',
     'MIC_5:2','MIC_6:8',
     'ZEC_12:10',
-    'MAL_3:8','MAL_3:9','MAL_3:10',
+    'MAL_3:8-10',
 
-    'MAT_6:33', 'MAT_24:35', 'MAT_28:19','MAT_28:20',
+    'MAT_6:33', 'MAT_24:35', 'MAT_28:19-20',
     'JHN_3:16','JHN_5:24','JHN_11:25','JHN_20:31',
 
     'ROM_3:23','ROM_6:23','ROM_8:28', 'ROM_12:2',
@@ -102,6 +102,8 @@ vitalImportanceRefsWithRanges = [ # Often in doctrinal statements
     'JN1_5:11-13',
     ]
 importantRefsWithRanges = [ # Often memorised
+    'GEN_1:4-31','GEN_2:1-3' # Gen 1:1-3 is above
+    'DEU_30:3-5',
     'JOS_1:9',
     'PSA_51:10',
     'PRO_4:1-7',

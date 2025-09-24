@@ -108,7 +108,7 @@ from settings import State, state
 from OETHandlers import getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2025-09-22' # by RJH
+LAST_MODIFIED_DATE = '2025-09-23' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
 PROGRAM_VERSION = '0.97'
@@ -359,7 +359,7 @@ def makeViewNavListParagraph( level:int, versionAbbreviation:str|None, pageType:
 # end of html.makeViewNavListParagraph
 
 
-HTML_PLUS_LIST = ['parallelVerse','interlinearVerse', 'parallelIndex','interlinearIndex']
+HTML_PLUS_LIST = ['ParallelVerse','InterlinearVerse', 'ParallelIndex','InterlinearIndex']
 OET_HTML_PLUS_LIST = ['OET'] + HTML_PLUS_LIST
 def makeBookNavListParagraph( linksList:list[str], workAbbrevPlus:str, state:State ) -> str:
     """

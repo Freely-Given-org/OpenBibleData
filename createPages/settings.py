@@ -49,7 +49,7 @@ from BibleOrgSys.BibleOrgSysGlobals import dPrint, fnPrint
 from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39
 
 
-LAST_MODIFIED_DATE = '2025-09-02' # by RJH
+LAST_MODIFIED_DATE = '2025-09-25' # by RJH
 SHORT_PROGRAM_NAME = "settings"
 PROGRAM_NAME = "OpenBibleData (OBD) Settings"
 PROGRAM_VERSION = '0.99'
@@ -62,9 +62,9 @@ class State:
     """
     A place to store some of the global stuff that needs to be passed around.
     """
-    OET_VERSION_NUMBER_STRING = 'v0.44.16' # Incremented on most runs
+    OET_VERSION_NUMBER_STRING = 'v0.44.21' # Incremented on most runs
 
-    TEST_MODE = False # Writes website into 'Test' subfolder if True
+    TEST_MODE = True # Writes website into 'Test' subfolder if True
     TEST_OT_BOOK_LIST = ['CH1','PRO','EZE'] # Books in progress
     TEST_NT_BOOK_LIST = ['MRK'] # Shortest gospel
     NEW_BOOK_IN_TEST_LIST = False # So that word pages will get rebuilt for TEST_MODE
@@ -934,6 +934,10 @@ Footnote markers PRECEDE the text that they concern,
 
 state = State()
 
+CNTR_BOOK_ID_MAP = {
+    'MAT':40, 'MRK':41, 'LUK':42, 'JHN':43, 'ACT':44,
+    'ROM':45, 'CO1':46, 'CO2':47, 'GAL':48, 'EPH':49, 'PHP':50, 'COL':51, 'TH1':52, 'TH2':53, 'TI1':54, 'TI2':55, 'TIT':56, 'PHM':57,
+    'HEB':58, 'JAM':58, 'PE1':60, 'PE2':61, 'JN1':62, 'JN2':63, 'JN3':64, 'JDE':65, 'REV':66}
 
 def reorderBooksForOETVersions( givenBookList:list[str] ) -> list[str]:
     """
