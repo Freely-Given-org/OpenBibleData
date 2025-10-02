@@ -540,7 +540,7 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
         for sr,sectionReference in enumerate( sectionReferences ):
             bits = sectionReference.split( ' ' )
             bookAbbreviation, cvPart = (bits[0],bits[1:]) if len(bits[0])>1 else (f'{bits[0]} {bits[1]}', bits[2:])
-            xrefBBB = getBBBFromOETBookName( bookAbbreviation )
+            xrefBBB = getBBBFromOETBookName( bookAbbreviation, f"createSectionCrossReferencePagesForBook( {thisBible.abbreviation}, {BBB}, {BBBLinks}, {state.BibleVersions} ) {sectionReference=}" )
             if xrefBBB is None and bookAbbreviation[0].isdigit() and (':' in bookAbbreviation or '-' in bookAbbreviation): # or bookAbbreviation.isdigit() might need to be added
                 # It must be another reference in the same book
                 xrefBBB = crossReferencesBBBList[-1]
@@ -784,7 +784,7 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
                 and not (collectedVerseCrossReference[1]==' ' and collectedVerseCrossReference[0] in '123'):
                     # This is the first crossReference but doesn't start with something like '3 Jn'
                     firstPart = collectedVerseCrossReference.split( ' ')[0]
-                    attemptedBBB = getBBBFromOETBookName( firstPart )
+                    attemptedBBB = getBBBFromOETBookName( firstPart, f"createSectionCrossReferencePagesForBook( {thisBible.abbreviation}, {BBB}, {BBBLinks}, {state.BibleVersions} ) {collectedVerseCrossReference=}" )
                     dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {collectedVerseCrossReference=} {firstPart=} {attemptedBBB=}" )
                     # if attemptedBBB is None and thisBible.abbreviation=='OET-RV' and firstPart[0]=='Y':
                     #     # Maybe we need to convert something like Yoel to Joel

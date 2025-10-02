@@ -41,6 +41,7 @@ CHANGELOG:
     2025-07-05 v0.42 Added HAP (links)
     2025-08-24 Move rest of settings into State
     2025-09-02 Added RP (Byz) GNT
+    2025-09-26 Added MSB
 """
 from pathlib import Path
 
@@ -49,7 +50,7 @@ from BibleOrgSys.BibleOrgSysGlobals import dPrint, fnPrint
 from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39
 
 
-LAST_MODIFIED_DATE = '2025-09-25' # by RJH
+LAST_MODIFIED_DATE = '2025-09-27' # by RJH
 SHORT_PROGRAM_NAME = "settings"
 PROGRAM_NAME = "OpenBibleData (OBD) Settings"
 PROGRAM_VERSION = '0.99'
@@ -62,7 +63,7 @@ class State:
     """
     A place to store some of the global stuff that needs to be passed around.
     """
-    OET_VERSION_NUMBER_STRING = 'v0.44.21' # Incremented on most runs
+    OET_VERSION_NUMBER_STRING = 'v0.45.02' # Incremented on most runs
 
     TEST_MODE = True # Writes website into 'Test' subfolder if True
     TEST_OT_BOOK_LIST = ['CH1','PRO','EZE'] # Books in progress
@@ -72,7 +73,7 @@ class State:
     # Many of these settings are used to omit some processing so as to get a speedier conclusion for debugging
     TEST_VERSIONS_ONLY = None #['OET','OET-RV','OET-LV', 'RV', 'TOSN','UTN'] # Also stops actual site being built
     ALL_PRODUCTION_BOOKS = not TEST_MODE # If set to False, uses the TEST book list (with many less books) for a faster test build
-    CREATE_PARALLEL_VERSE_PAGES = 'LAST' # 'FIRST','LAST', or None -- depending on debugging needs
+    CREATE_PARALLEL_VERSE_PAGES = 'FIRST' # 'FIRST','LAST', or None -- depending on debugging needs
     CREATE_BOOK_AND_OTHER_PAGES = True # Can be turned off for debugging
     DO_SPELL_CHECKS = True #TEST_MODE # On parallel pages
     REUSE_EXISTING_WORD_PAGES = TEST_MODE and not NEW_BOOK_IN_TEST_LIST # Don't recreate word pages
@@ -161,7 +162,7 @@ class State:
     BibleVersions = ['OET',
         'OET-RV','OET-LV',
         'ULT','UST','NET', # We move NET up nearer the top for TEST_MODE
-        'BSB','BLB',
+        'BSB','MSB','BLB',
         'AICNT','OEB','ISV','CSB','NLT',
         'NIV','CEV','ESV','NASB','LSB',
         'JQT','2DT','1ST','TPT',
@@ -177,7 +178,7 @@ class State:
         ['OET',
         'OET-RV','OET-LV',
         'ULT','UST',
-        'BSB','BLB',
+        'BSB','MSB','BLB',
         'AICNT','OEB','ISV','CSB','NLT',
         'NIV','CEV','ESV','NASB','LSB',
         'JQT','2DT','1ST','TPT',
@@ -206,7 +207,7 @@ class State:
     # NOTE: We don't display the versionsWithoutTheirOwnPages, so don't need/allow decorations for them
     BibleVersionDecorations = { 'OET':('<b>','</b>'),'OET-RV':('<b>','</b>'),'OET-LV':('<b>','</b>'),
         'ULT':('',''),'UST':('',''),
-        'BSB':('',''),'BLB':('',''),
+        'BSB':('',''),'MSB':('<small>','</small>'),'BLB':('',''),
         'AICNT':('',''), 'OEB':('',''), 'ISV':('',''),
         'WEBBE':('',''),'WEB':('',''),'WMB':('',''),'WMBB':('',''), 'NET':('',''), 'LSV':('',''), 'FBV':('',''), 'TCNT':('<small>','</small>'), 'T4T':('',''),'LEB':('',''),'BBE':('',''),
         'Moff':('<small>','</small>'), 'JPS':('<small>','</small>'), 'Wymth':('<small>','</small>'), 'ASV':('',''), 'DRA':('<small>','</small>'),'YLT':('',''),'Drby':('',''),'RV':('',''),
@@ -234,7 +235,9 @@ class State:
         # (e.g., this can be done quickly for a faster test run)
         'ULT': '../copiedBibles/English/unfoldingWord.org/ULT/',
         'UST': '../copiedBibles/English/unfoldingWord.org/UST/',
-        'BSB': '../copiedBibles/English/Berean.Bible/BSB/',
+        #'BSB': '../copiedBibles/English/Berean.Bible/BSB/PTX_USFM/',
+        'BSB': '../copiedBibles/English/Berean.Bible/BSB/bsb_tables.exported.modified.tsv',
+        'MSB': ('../copiedBibles/English/Berean.Bible/MSB/','../copiedBibles/English/Berean.Bible/MSB/bsb_tables.exportedOT.modified.tsv','../copiedBibles/English/Berean.Bible/MSB/msb_nt_tables.exported.modified.tsv'),
         'BLB': '../copiedBibles/English/Berean.Bible/BLB/blb.modified.txt', # NT only so far
         # However, if they're all commented out, 'assert doneHideablesDiv' will fail in createParallelVersePages.py if not in test mode
         'AICNT': '../copiedBibles/English/AICNT/', # NT only
@@ -302,7 +305,8 @@ class State:
         'OET-LV': 'Open English Translation—Literal Version (2026)',
         'ULT': 'unfoldingWord® Literal Text (2023)',
         'UST': 'unfoldingWord® Simplified Text (2023)',
-        'BSB': 'Berean Study/Standard Bible (2020)',
+        'BSB': 'Berean Study/Standard Bible (v3, 2025)',
+        'MSB': 'Majority Standard Bible (2025)',
         'BLB': 'Berean Literal Bible NT (2022)',
         'AICNT': 'AI Critical NT (2023)',
         'OEB': 'Open English Bible (in progress)',
@@ -379,6 +383,7 @@ class State:
         'ULT': 'EN-USA',
         'UST': 'EN-USA',
         'BSB': 'EN-USA',
+        'MSB': 'EN-USA',
         'BLB': 'EN-USA',
         'AICNT': 'EN-USA',
         'OEB': 'EN-UK',
@@ -455,6 +460,7 @@ class State:
         'ULT': ['ALL'],
         'UST': ['ALL'], # MRK 13:13 gives \\add error (24Jan2023)
         'BSB': ['ALL'],
+        'MSB': ['ALL'],
         'BLB': ['ALL'], # NT only
         'AICNT': ['ALL'], # NT only
         'OEB': ['ALL'],
@@ -523,6 +529,7 @@ class State:
         'ULT': ['FRT'] + TEST_BOOK_LIST,
         'UST': TEST_BOOK_LIST, # Has no FRT for some reason
         'BSB': TEST_BOOK_LIST,
+        'MSB': TEST_BOOK_LIST,
         'BLB': TEST_NT_BOOK_LIST, # NT only
         'AICNT': TEST_NT_BOOK_LIST, # NT only
         'OEB': TEST_BOOK_LIST,
@@ -623,6 +630,11 @@ We’re also grateful to the <a href="https://www.Biblica.com/clear/">Biblica Cl
                 'licence': '<p class="licence"><a href="https://creativecommons.org/publicdomain/zero/1.0/">CC0</a> licence. All uses are freely permitted.</p>',
                 'acknowledgements': '<p class="acknwldg">Thanks to John Isett and <a href="https://biblehub.com/">BibleHub</a> for the <a href="https://berean.bible/">BSB</a>.</p>',
                 'notes': '<p class="note">According to Dr. Gray Hill, the BSB (originally called ‘The Berean Study Bible’) is intentionally designed <a href="https://www.youtube.com/watch?v=qX-2IMNzUbE">to preserve past traditions</a>. (Full video <a href="https://www.youtube.com/watch?v=hKooIYSq8Ys">here</a>.)</p>' },
+        'MSB': {'about': '<p class="about">Majority Standard Bible (September, 2025).</p>',
+                'copyright': '<p class="copyright"><a href="https://berean.bible/terms.htm">Public domain</a>.</p>',
+                'licence': '<p class="licence"><a href="https://creativecommons.org/publicdomain/zero/1.0/">CC0</a> licence. All uses are freely permitted.</p>',
+                'acknowledgements': '<p class="acknwldg">Thanks to John Isett and <a href="https://biblehub.com/">BibleHub</a> for the <a href="https://berean.bible/">MSB</a>.</p>',
+                'notes': '<p class="note">This version has an identical Old Testament to the BSB, but the New Testament has some changes as it follows the ‘majority’ text rather than the critical text (used by the <em>OET</em>) or the ‘received’ text.</p>' },
         'BLB': {'about': '<p class="about">Berean Literal Bible New Testament (2022).</p>',
                 'copyright': '<p class="copyright">Copyright © 2022 by Bible Hub. Used by Permission. All Rights Reserved Worldwide.</p>',
                 'licence': '<p class="licence">The Berean Bible text is <a href="https://berean.bible/terms.htm#Top">free to use</a> in any electronic form to promote the reading, learning, and understanding of the Holy Bible as the Word of God.</p>',
@@ -917,7 +929,8 @@ Footnote markers PRECEDE the text that they concern,
     if not TEST_MODE and UPDATE_ACTUAL_SITE_WHEN_BUILT:
         assert len(BibleLocations) >= 57, len(BibleLocations)
     for versionLocation in BibleLocations.values():
-        assert versionLocation.startswith('../copiedBibles/') \
+        assert isinstance( versionLocation, tuple ) \
+            or versionLocation.startswith('../copiedBibles/') \
             or versionLocation.startswith('../Bibles/') \
             or versionLocation.startswith('../../OpenEnglishTranslation--OET/') \
             or versionLocation.startswith('../../Forked/'), f"{versionLocation=}"

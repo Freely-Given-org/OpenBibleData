@@ -417,7 +417,6 @@ def createBookPages( level:int, folder:Path, thisBible, state:State ) -> list[st
                 match = CV_REGEX.search( textHtml, startIndex )
                 if not match: break
                 C, V = match.group(1), match.group(2)
-                # print( f"SR-GNT got {BBB} {C=} {V=}")
                 ix = textHtml.index( '<span class="SR-GNT_verseTextChunk">', match.end() ) + 36 # chars in search string
                 # except ValueError: break # None or no more -- shouldn't happen
                 textHtml = f'''{textHtml[:ix]}<a title="Go to the GreekCNTR collation page" href="https://GreekCNTR.org/collation/?v={CNTR_BOOK_ID_MAP[BBB]}{C.zfill(3)}{V.zfill(3)}">{textHtml[ix:].replace( '</span>', '</a></span>', 1 )}'''

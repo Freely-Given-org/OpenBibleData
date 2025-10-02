@@ -69,6 +69,7 @@ CHANGELOG:
     2025-06-27 Fix bug where getBibleMapperMaps() and getVerseDataListForReference()
                     were forcing the load of Bible books where not wanted
     2025-09-02 Added RP (Byz) GNT
+    2025-09-26 Added MSB
 """
 from datetime import datetime
 import os, os.path
@@ -85,6 +86,7 @@ import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 import BibleOrgSys.Formats.USFMBible as USFMBible
 import BibleOrgSys.Formats.ESFMBible as ESFMBible
+import BibleOrgSys.Formats.PTX8Bible as PTX8Bible
 import BibleOrgSys.Formats.USXXMLBible as USXXMLBible
 import BibleOrgSys.Formats.ZefaniaXMLBible as ZefaniaXMLBible
 import BibleOrgSys.Formats.CSVBible as CSVBible
@@ -97,8 +99,6 @@ from BibleOrgSys.Internals.InternalBibleInternals import InternalBibleEntryList,
 
 sys.path.append( '../../BibleTransliterations/Python/' )
 from BibleTransliterations import transliterate_Greek, transliterate_Hebrew
-# sys.path.append( '../datasets/crossTestamentQuotes/' )
-# from load import getIndividualQuotedOTRefs, getIndividualQuotingNTRefs
 
 from settings import State
 from html import checkHtml
@@ -106,10 +106,10 @@ from OETHandlers import findLVQuote, getBBBFromOETBookName
 from Dict import loadAndIndexUBSGreekDictJSON, loadAndIndexUBSHebrewDictJSON
 
 
-LAST_MODIFIED_DATE = '2025-09-09' # by RJH
+LAST_MODIFIED_DATE = '2025-09-27' # by RJH
 SHORT_PROGRAM_NAME = "Bibles"
 PROGRAM_NAME = "OpenBibleData Bibles handler"
-PROGRAM_VERSION = '0.90'
+PROGRAM_VERSION = '0.91'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -143,7 +143,10 @@ def preloadVersions( state:State ) -> int:
             and versionAbbreviation in state.BibleLocations
             ):
             # See if a pickled version is available for a MUCH faster load time
-            folderOrFileLocationPath = Path( state.BibleLocations[versionAbbreviation] )
+            try: folderOrFileLocationPath = Path( state.BibleLocations[versionAbbreviation] )
+            except TypeError:
+                assert versionAbbreviation == 'MSB'
+                folderOrFileLocationPath = Path( state.BibleLocations[versionAbbreviation][0] )
             pickleFilename = f"{versionAbbreviation}__{'_'.join(state.TEST_BOOK_LIST)}{state.PICKLE_FILENAME_END}" \
                                 if state.TEST_MODE and not state.ALL_PRODUCTION_BOOKS and versionAbbreviation not in state.WholeBibleVersions \
                                 else f'{versionAbbreviation}{state.PICKLE_FILENAME_END}'
@@ -200,6 +203,8 @@ def preloadVersions( state:State ) -> int:
             for bookObject in thisBibleNT:
                 # print( type(bookObject), bookObject.BBB )
                 assert bookObject.BBB not in thisBible.books
+                bookObject.containerBibleObject = thisBible
+                bookObject.workName = state.BibleNames[versionAbbreviation]
                 thisBible.books[bookObject.BBB] = bookObject
             # print( f"{len(thisBibleOT)=}" )
             # print( f"{len(thisBibleOT.ESFMWordTables)=}" )
@@ -211,6 +216,7 @@ def preloadVersions( state:State ) -> int:
             thisBible.OTsourceFolder = thisBibleOT.sourceFolder
             thisBible.NTsourceFolder = thisBibleNT.sourceFolder
             thisBible.sourceFolder = None
+            del thisBibleNT
             state.preloadedBibles['OET-LV'] = thisBible
             vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nDoing discovery for {thisBible.abbreviation} ({thisBible.name})…" )
             thisBible.discover()
@@ -256,7 +262,8 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
     #                                         givenAbbreviation=versionAbbreviation, encoding='iso-8859-1' )
     #     thisBible.load()
     #     print( f"{versionAbbreviation} loaded ({len(thisBible.books.keys())}) {thisBible.books.keys()}" )
-    if versionAbbreviation in ('BLB','SBL-GNT','RP-GNT'): # Single (BLB) or multiple (SBL-GNT) TSV .txt file(s)
+    if versionAbbreviation in ('SBL-GNT','RP-GNT') \
+    or ('exported' in folderOrFileLocation and folderOrFileLocation.endswith('.tsv')): # Single (BSB) or multiple (SBL-GNT) TSV (possibly .txt) file(s)
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Loading ‘{versionAbbreviation}’ CSV/TSV Bible{' in TEST mode' if state.TEST_MODE else ''}…" )
         thisBible = CSVBible.CSVBible( folderOrFileLocation, givenName=versionName,
                                             givenAbbreviation=versionAbbreviation, encoding='utf-8' )
@@ -272,6 +279,50 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
     #                                         givenAbbreviation=versionAbbreviation, encoding='utf-8' )
     #     thisBible.loadBooks() # So we can iterate through them all later
     #     print( f"{versionAbbreviation} loaded ({len(thisBible.books.keys())}) {thisBible.books.keys()}" )
+    elif versionAbbreviation == 'MSB': # Custom TSVs
+        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Loading ‘{versionAbbreviation}’ TSV Bible{' in TEST mode' if state.TEST_MODE else ''}…" )
+        print( f"{folderOrFileLocation=}" )
+        assert isinstance( folderOrFileLocation, tuple ) and len(folderOrFileLocation) == 3 # Folder, then two filenames
+
+        thisBibleOT = CSVBible.CSVBible( folderOrFileLocation[1], givenName=versionName,
+                                            givenAbbreviation=versionAbbreviation, encoding='utf-8' )
+        thisBibleOT.loadBooks() # So we can iterate through them all later
+        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} OT loaded ({len(thisBibleOT.books.keys())}) {list(thisBibleOT.books.keys())}" )
+        thisBibleNT = CSVBible.CSVBible( folderOrFileLocation[2], givenName=versionName,
+                                            givenAbbreviation=versionAbbreviation, encoding='utf-8' )
+        thisBibleNT.loadBooks() # So we can iterate through them all later
+        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} NT loaded ({len(thisBibleNT.books.keys())}) {list(thisBibleNT.books.keys())}" )
+
+        thisBible = Bible()
+        thisBible.objectNameString = 'CSV Bible object'
+        thisBible.objectTypeString = 'CSV'
+        thisBible.name = thisBible.givenName = versionName, versionAbbreviation, 'utf-8'
+        thisBible.abbreviation, thisBible.encoding = versionAbbreviation, 'utf-8'
+        # For now, use add custom OT and NT sourceFolder variables so that we can load the two different word files
+        thisBible.OTsourceFolder = thisBibleOT.sourceFolder
+        thisBible.NTsourceFolder = thisBibleNT.sourceFolder
+        thisBible.sourceFolder = None
+
+        for BBB,bookObject in thisBibleOT.books.items():
+            assert BBB not in thisBible.books
+            if 'ALL' in state.booksToLoad[versionAbbreviation] or 'OT' in state.booksToLoad[versionAbbreviation] or BBB in state.booksToLoad[versionAbbreviation]:
+                bookObject.containerBibleObject = thisBible
+                bookObject.workName = versionName
+                thisBible.books[BBB] = bookObject
+        for BBB,bookObject in thisBibleNT.books.items():
+            assert BBB not in thisBible.books
+            if 'ALL' in state.booksToLoad[versionAbbreviation] or 'NT' in state.booksToLoad[versionAbbreviation] or BBB in state.booksToLoad[versionAbbreviation]:
+                bookObject.containerBibleObject = thisBible
+                bookObject.workName = versionName
+                thisBible.books[BBB] = bookObject
+
+        # for wordTableID,wordTable in thisBibleNT.ESFMWordTables.items():
+        #     # print( f"{wordTableID=} {type(wordTable)=}")
+        #     thisBible.ESFMWordTables[wordTableID] = wordTable
+        # # print( f"{len(thisBible.ESFMWordTables)=}" )
+
+        del thisBibleOT, thisBibleNT
+        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} loaded ({len(thisBible.books.keys())}) {list(thisBible.books.keys())}" )
     elif versionAbbreviation == 'LEB': # Custom XML
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Loading ‘{versionAbbreviation}’ XML Bible{' in TEST mode' if state.TEST_MODE else ''}…" )
         thisBible = LEBXMLBible.LEBXMLBible( folderOrFileLocation, givenName=versionName,
@@ -282,7 +333,7 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
         # print( f"{thisBible.settingsDict=}" )
         # verseEntryList, contextList = thisBible.getContextVerseData( ('MAT', '2', '1') )
         # print( f"Mat 2:1 {verseEntryList=} {contextList=}" )
-    elif versionAbbreviation in ('Cvdl','Bshps','SLT'): # Custom VPL
+    elif versionAbbreviation in ('BLB','Cvdl','Bshps','SLT'): # Custom VPL
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Loading ‘{versionAbbreviation}’ VPL Bible{' in TEST mode' if state.TEST_MODE else ''}…" )
         thisBible = VPLBible.VPLBible( folderOrFileLocation, givenName=versionName,
                                             givenAbbreviation=versionAbbreviation, encoding='utf-8' )
@@ -361,12 +412,6 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
 
         loadAndIndexUBSGreekDictJSON( 'UGD', '../../Forked/ubs-open-license/dictionaries/greek/JSON' )
         loadAndIndexUBSHebrewDictJSON( 'UHD', '../../Forked/ubs-open-license/dictionaries/hebrew/JSON' )
-    elif versionAbbreviation in state.selectedVersesOnlyVersions: # small numbers of sample verses
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Loading ‘{versionAbbreviation}’ sample verses…" )
-        thisBible = loadSelectedVersesFile( folderOrFileLocation, givenName=versionName,
-                                            givenAbbreviation=versionAbbreviation, encoding='utf-8' )
-        # NOTE: thisBible is NOT a Bible object here!!!
-        # vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} loaded ({len(thisBible.books.keys())}) {list(thisBible.books.keys())}" )
     elif versionAbbreviation in ('NET',) and 'eBible.org' not in folderOrFileLocation: # USX
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Preloading ‘{versionAbbreviation}’ USX Bible{' in TEST mode' if state.TEST_MODE else ''}…" )
         thisBible = USXXMLBible.USXXMLBible( folderOrFileLocation, givenName=versionName, givenAbbreviation=versionAbbreviation,
@@ -379,6 +424,24 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
             thisBible.preload()
             for BBB in state.booksToLoad[versionAbbreviation]:
                 thisBible.loadBookIfNecessary( BBB )
+    elif versionAbbreviation in ('BSB',) and 'PTX' in folderOrFileLocation: # Paratext
+        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Preloading ‘{versionAbbreviation}’ PTX Bible{' in TEST mode' if state.TEST_MODE else ''}…" )
+        thisBible = PTX8Bible.PTX8Bible( folderOrFileLocation, givenName=versionName, givenAbbreviation=versionAbbreviation,
+                                            encoding='utf-8' )
+        if state.booksToLoad[versionAbbreviation] in (['ALL'],['OT'],['NT']):
+            # We assume that we can load all books, even for OT and NT
+            #  i.e., we assume (but don't check) that only those books will exist (plus maybe intro, etc.)
+            thisBible.loadBooks() # So we can iterate through them all later
+        else: # only load the specific books as we need them
+            thisBible.preload()
+            for BBB in state.booksToLoad[versionAbbreviation]:
+                thisBible.loadBookIfNecessary( BBB )
+    elif versionAbbreviation in state.selectedVersesOnlyVersions: # small numbers of sample verses
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Loading ‘{versionAbbreviation}’ sample verses…" )
+        thisBible = loadSelectedVersesFile( folderOrFileLocation, givenName=versionName,
+                                            givenAbbreviation=versionAbbreviation, encoding='utf-8' )
+        # NOTE: thisBible is NOT a Bible object here!!!
+        # vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} loaded ({len(thisBible.books.keys())}) {list(thisBible.books.keys())}" )
     else: # USFM
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Preloading ‘{versionAbbreviation}’ USFM Bible{' in TEST mode' if state.TEST_MODE else ''}…" )
         thisBible = USFMBible.USFMBible( folderOrFileLocation, givenName=versionName, givenAbbreviation=versionAbbreviation,
@@ -400,13 +463,29 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
     and versionAbbreviation != 'OET-LV' # This one is handled by the calling function because it's more complex (uses two folders)
     and versionAbbreviation != 'TOSN' # This one has different complexities coz it loads various other bits
     ):
-        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nDoing discovery for {thisBible.abbreviation} ({thisBible.name})…" )
+        if state.booksToLoad[versionAbbreviation] != ['ALL']:
+            # Remove unwanted books in this Bible
+            if len(thisBible) > len(state.booksToLoad[versionAbbreviation]):
+                vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Reducing {thisBible.abbreviation} {len(thisBible)} books down to {len(state.booksToLoad[versionAbbreviation])}…" )
+                newBooks = {}
+                for BBB,bookObject in thisBible.books.items():
+                    if BBB in state.booksToLoad[versionAbbreviation]:
+                        newBooks[BBB] = bookObject
+                thisBible.books = newBooks
+            if versionAbbreviation != 'Moff': # Only has scarce books
+                assert len(thisBible) 
+
+        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nDoing discovery for {thisBible.abbreviation} ({thisBible.name}) with {len(thisBible)} books…" )
         thisBible.discover()
+        assert 'discoveryResults' in thisBible.__dict__
 
         pickleFilename = f"{versionAbbreviation}__{'_'.join(state.TEST_BOOK_LIST)}{state.PICKLE_FILENAME_END}" \
                             if state.TEST_MODE and not state.ALL_PRODUCTION_BOOKS and versionAbbreviation not in state.WholeBibleVersions \
                             else f'{versionAbbreviation}{state.PICKLE_FILENAME_END}'
-        pickleFolderPath = folderOrFileLocation if os.path.isdir( folderOrFileLocation ) else Path( folderOrFileLocation ).parent
+        try: pickleFolderPath = folderOrFileLocation if os.path.isdir( folderOrFileLocation ) else Path( folderOrFileLocation ).parent
+        except TypeError:
+                assert versionAbbreviation == 'MSB'
+                pickleFolderPath = folderOrFileLocation[0]
         thisBible.pickle( pickleFilename, pickleFolderPath )
         vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Saved pickle file: {pickleFilename}." )
 
@@ -1171,7 +1250,7 @@ def getVerseDataListForReference( givenRefString:str, thisBible:Bible, lastBBB:s
     if ' ' not in adjRefString: adjRefString = f'{lastBBB} {adjRefString}'
     refBits = adjRefString.split( ' ' )
     bookAbbreviation, refCVpart = (refBits[0],refBits[1:]) if len(refBits[0])>1 else (f'{refBits[0]} {refBits[1]}', refBits[2:])
-    refBBB = getBBBFromOETBookName( bookAbbreviation )
+    refBBB = getBBBFromOETBookName( bookAbbreviation, f"getVerseDataListForReference( {thisBible.abbreviation} {givenRefString} {lastBBB=} {lastC=} )" )
     if refBBB is None:
         # if thisBible.abbreviation=='OET-RV' and bookAbbreviation[0]=='Y':
         #     refBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromText( f'J{bookAbbreviation[1:]}' ) # Convert Yoel back to Joel, etc.
@@ -1285,7 +1364,7 @@ def getVerseDataListForReference( givenRefString:str, thisBible:Bible, lastBBB:s
                         verseEntryList, contextList = thisBible.getContextVerseDataRange( (refBBB,refStartC,refStartV), (refBBB,refEndC,refEndV) )
                     else: # might be a book range like '1Sam 16:1–1Ki 2:11'
                         bookAbbreviation2, refEndC = refEndC.split( ' ' )
-                        refBBB2 = getBBBFromOETBookName( bookAbbreviation2 )
+                        refBBB2 = getBBBFromOETBookName( bookAbbreviation2, f"getVerseDataListForReference( {thisBible.abbreviation} {givenRefString} {lastBBB=} {lastC=} )" )
                         # if refBBB2 is None and thisBible.abbreviation=='OET-RV' and bookAbbreviation2[0]=='Y':
                         #     refBBB2 = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromText( f'J{bookAbbreviation2[1:]}' ) # Convert Yoel back to Joel, etc.
                         #     dPrint( 'Info', DEBUGGING_THIS_MODULE, f"{bookAbbreviation2=} {refCVpart=} {refBBB2=}" )

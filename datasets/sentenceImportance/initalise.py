@@ -50,7 +50,7 @@ from load import getIndividualQuotedOTRefs, getIndividualQuotingNTRefs
 
 
 
-LAST_MODIFIED_DATE = '2025-09-11' # by RJH
+LAST_MODIFIED_DATE = '2025-09-30' # by RJH
 SHORT_PROGRAM_NAME = "SentenceImportance_initialisation"
 PROGRAM_NAME = "Sentence Importance initialisation"
 PROGRAM_VERSION = '0.22'
@@ -150,6 +150,7 @@ unclearClarityRefs = [ # Mostly sure what's in the Hebrew or Greek,
     'SA1_2:23', 'SA1_17:6b', 'SA1_17:29b',
     'SA2_1:18', 'SA2_5:8', 'SA2_7:19', 'SA2_20:8b', 'SA2_23:5',
     'KI1_6:31b', 'KI1_6:33b', 'KI1_7:28', 'KI1_14:10a',
+    'CH1_17:17b',
     'JOB_30:6','JOB_30:7','JOB_30:11a','JOB_30:12','JOB_30:13','JOB_30:14','JOB_30:15','JOB_30:16a','JOB_30:17a','JOB_30:18','JOB_30:28a',
         'JOB_31:12','JOB_31:16b',
         'JOB_33:14','JOB_33:16',

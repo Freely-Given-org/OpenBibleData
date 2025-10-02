@@ -95,10 +95,10 @@ from html import checkHtml
 from OETHandlers import getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2025-09-22' # by RJH
+LAST_MODIFIED_DATE = '2025-09-26' # by RJH
 SHORT_PROGRAM_NAME = "usfm"
 PROGRAM_NAME = "OpenBibleData USFM to HTML functions"
-PROGRAM_VERSION = '0.94'
+PROGRAM_VERSION = '0.95'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -682,7 +682,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                 inListEntry = marker
         elif marker in ('¬li1','¬li2','¬li3','¬li4', '¬ili1','¬ili2','¬ili3','¬ili4'):
             assert not rest
-            if not basicOnly:
+            if not basicOnly and versionAbbreviation not in ('BSB','MSB'): # These ones from spreadsheets are too difficult
                 assert inList, f"{versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} {marker=}"
                 assert inListEntry == marker[1:], f"{versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} {marker=}"
             if inListEntry:
@@ -1414,7 +1414,7 @@ def livenIntroductionLinks( versionAbbreviation:str, refTuple:tuple, segmentType
         preChar, refB, refC, refV, refRest, postChar = match.groups()
         dPrint( 'Info', DEBUGGING_THIS_MODULE, f"Got {versionAbbreviation} intro ref CV match with '{preChar}' '{guts}' '{postChar}' -> {match.groups()=}" )
         if refB.startswith( 'See ' ): refB =refB[4:]
-        refBBB = getBBBFromOETBookName( refB )
+        refBBB = getBBBFromOETBookName( refB, f"livenIntroductionLinks( {versionAbbreviation}, {refTuple}, {segmentType}, '{introHtml}' )" )
         if not refBBB:
             logging.warning( f"livenIntroductionLinks( {versionAbbreviation}, {refTuple}, {segmentType}, '{introHtml}' ) failed to  find BBB for {refB=} from intro ref CV match with '{preChar}' '{guts}' '{postChar}' -> {match.groups()=}")
             # newGuts = guts # Can't make a link
@@ -1760,11 +1760,11 @@ def livenXRefField( fieldType:str, versionAbbreviation:str, refTuple:tuple, segm
                             .replace( 'Ie', 'Je' )
                             .replace( 'Io', 'Jo' )
                             )
-                    xBBB = getBBBFromOETBookName( adjXB )
+                    xBBB = getBBBFromOETBookName( adjXB, f"livenXRefField( {fieldType}, {versionAbbreviation}, {refTuple}, {segmentType}, '{pathPrefix}', {xoText=}, {xrefOriginalMiddle=} )" )
                 if not xBBB:
                     logging.critical( f"Unable to liven cross-reference from {versionAbbreviation} {refTuple} for {xBBB=} from {xrefLiveMiddle=} from {xoText=} {xrefOriginalMiddle=}" )
             else: # not KJB-1611
-                xBBB = getBBBFromOETBookName( xB )
+                xBBB = getBBBFromOETBookName( xB, f"livenXRefField( {fieldType}, {versionAbbreviation}, {refTuple}, {segmentType}, '{pathPrefix}', {xoText=}, {xrefOriginalMiddle=} )" )
             # We can leave this block of code without being successful finding xBBB -- it's checked below
         if firstIndex==indexBV and firstIndex!=indexBCV: # process matchBV (if it's not also a matchBCV)
             dPrint( 'Info', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} {refTuple} {xoText=} {xrefLiveMiddle=} {matchBV.groups()=}" )
@@ -1806,12 +1806,12 @@ def livenXRefField( fieldType:str, versionAbbreviation:str, refTuple:tuple, segm
             #                 .replace( 'Ie', 'Je' )
             #                 .replace( 'Io', 'Jo' )
             #                 )
-            #         xBBB = getBBBFromOETBookName( adjXB )
+            #         xBBB = getBBBFromOETBookName( adjXB, f"livenXRefField( {fieldType}, {versionAbbreviation}, {refTuple}, {segmentType}, '{pathPrefix}', {xoText=}, {xrefOriginalMiddle=} )" )
             #     if not xBBB:
             #         logging.critical( f"Unable to liven cross-reference from {versionAbbreviation} {refTuple} for {xBBB=} {xC=} {xV=} from {adjXB=} from {xrefOriginalMiddle=}" )
             #         # if adjXB not in ('Apoc','apoc','nnm'): halt # What are these???
             # else: # not KJB-1611
-            #     xBBB = getBBBFromOETBookName( xB )
+            #     xBBB = getBBBFromOETBookName( xB, f"livenXRefField( {fieldType}, {versionAbbreviation}, {refTuple}, {segmentType}, '{pathPrefix}', {xoText=}, {xrefOriginalMiddle=} )" )
             #     if not xBBB:
             #         logging.critical( f"Unable to liven cross-reference from {versionAbbreviation} {refTuple} for {xBBB=} {xC=} {xV=} from {xB=} from {xrefOriginalMiddle=}" )
             # # if versionAbbreviation=='KJB-1611' and not xBBB: # still

@@ -75,6 +75,7 @@ CHANGELOG:
     2025-09-02 Added RP (Byz) GNT
     2025-09-04 Highlighted first GNT word that differs from the SR-GNT
     2025-09-05 Record possible unmatched proper names
+    2025-09-26 Added MSB (with comparison to BSB)
 """
 from pathlib import Path
 import os
@@ -106,7 +107,7 @@ from OETHandlers import getOETTidyBBB, getOETBookName, livenOETWordLinks, getHeb
 from spellCheckEnglish import spellCheckAndMarkHTMLText
 
 
-LAST_MODIFIED_DATE = '2025-09-25' # by RJH
+LAST_MODIFIED_DATE = '2025-09-29' # by RJH
 SHORT_PROGRAM_NAME = "createParallelVersePages"
 PROGRAM_NAME = "OpenBibleData createParallelVersePages functions"
 PROGRAM_VERSION = '0.99'
@@ -307,7 +308,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                     if versionAbbreviation in ('TOSN','TTN','UTN'):
                         continue # We handle the notes separately at the end
 
-                    if not doneHideablesDiv and versionAbbreviation not in ('OET-RV','OET-LV', 'SR-GNT','UHB', 'BrLXX','BrTr','NETS', 'ULT','UST', 'NET', 'BSB','BLB'):
+                    if not doneHideablesDiv and versionAbbreviation not in ('OET-RV','OET-LV', 'SR-GNT','UHB', 'BrLXX','BrTr','NETS', 'ULT','UST', 'NET', 'BSB','MSB','BLB'):
                         assert not parallelHtml.endswith( '\n' )
                         parallelHtml = f'{parallelHtml}\n<div class="hideables">\n<hr style="width:60%;margin-left:0;margin-top: 0.3em">'
                         doneHideablesDiv = True
@@ -363,9 +364,21 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                 verseEntryList, contextList = thisBible.getContextVerseDataRange( (BBB, C, V), (BBB, C, '2') ) if v==1 else thisBible.getContextVerseData( (BBB, C, str(v+1)) )
                             else: # the normal, common case
                                 verseEntryList, contextList = thisBible.getContextVerseData( (BBB, C) if c==-1 else (BBB, C, V) )
-                                if versionAbbreviation=='T4T':
-                                    if parRef == 'EZR_2:2': print( f"---- {versionAbbreviation} {parRef} Got {verseEntryList=}" )
-                                    if parRef == 'EZR_2:3': print( f"---- {versionAbbreviation} {parRef} Got {verseEntryList=}" )
+                                # if versionAbbreviation=='BSB':
+                                #     print( f"BSB {parRef}") #  {verseEntryList=}
+                                #     for entry in verseEntryList:
+                                #         print( f"  {entry.getMarker()} '{entry.getOriginalText()}'")
+                                #         # if entry.getExtras():
+                                #         #     print( f"    {entry.getExtras()}")
+                                # elif versionAbbreviation=='MSB':
+                                #     print( f"MSB {parRef}") #  {verseEntryList=}
+                                #     for entry in verseEntryList:
+                                #         print( f"  {entry.getMarker()} '{entry.getOriginalText()}'")
+                                #         # if entry.getExtras():
+                                #         #     print( f"    {entry.getExtras()}")
+                                # elif versionAbbreviation=='T4T':
+                                #     if parRef == 'EZR_2:2': print( f"---- {versionAbbreviation} {parRef} Got {verseEntryList=}" )
+                                #     if parRef == 'EZR_2:3': print( f"---- {versionAbbreviation} {parRef} Got {verseEntryList=}" )
                                 # if parRef in ancientRefsToPrint: print( f"---- {versionAbbreviation} {parRef} Got {verseEntryList=}" )
                             if 'GNT' in versionAbbreviation:
                                 plainGreekText = getPlainText( verseEntryList )
@@ -433,11 +446,46 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                 assert checkHtml( f"OET-LV parallel AAA for {parRef}", textHtml, segmentOnly=True ); assert checkHtml( f"OET-LV parallel BBB for {parRef}", footnoteFreeTextHtml, segmentOnly=True ); assert checkHtml( f"OET-LV parallel CCC for {parRef}", footnotesHtml, segmentOnly=True )
                                 # assert textHtml.count('<span class="ul">_</span>HNcbsa') < 2, f'''Here2 ({textHtml.count('<span class="ul">_</span>HNcbsa')}) {textHtml=}'''
                                 # if BBB=='MRK' and C=='7' and V=='16': print( f"DDD {parRef} {versionAbbreviation} {textHtml=}" )
-                            elif versionAbbreviation in ('ULT','UST','NET','BSB','BLB','OEB','FBV','BBE','Moff','JPS','ASV','DRA','YLT','SLT','Drby','Wbstr'):
+                            elif versionAbbreviation == 'BSB': # assuming BSB comes BEFORE MSB
+                                adjustedTextHtmlBSB = ( textHtml
+                                                    .replace(' ¶ ','')
+                                                    .replace(' § ','')
+                                                    .replace(' ⇔ ','')
+                                                    .replace('&nbsp;<span class="li1">• </span>','')
+                                                    .replace('&nbsp;&nbsp;<span class="li2">• </span>','')
+                                                    .replace('</span><br><span class="BSB_verseTextChunk">', '')
+                                                    .replace( 'BSB', 'MSB' )
+                                                    ) # Save it
+                                footnotesHtmlSaved = footnotesHtml # Save it for later comparison
+                                if state.DO_SPELL_CHECKS:
+                                    textHtml = spellCheckAndMarkHTMLText( versionAbbreviation, parRef, textHtml, textHtml, state ) # Puts spans around mispellings
+                            elif versionAbbreviation == 'MSB': # assuming BSB comes BEFORE MSB
+                                if textHtml and textHtml == adjustedTextHtmlBSB:
+                                    # print( f"Skipping parallel for WMB {parRef} because same as WEB" )
+                                    textHtml = "(Same as above)" # Do we also need to adjust footnotesHtml ???
+                                else: # Try to highlight the first difference (that's not inside a footnote caller)
+                                    fnCallerIx = textHtml.find( '<span class="fnCaller">' )
+                                    for zz1, (msbChar,bsbChar) in enumerate( zip( textHtml, adjustedTextHtmlBSB ) ):
+                                        if fnCallerIx!=-1 and zz1 >= fnCallerIx:
+                                            break # Too hard -- don't bother marking anything more here in this verse
+                                        if msbChar != bsbChar:
+                                            if msbChar in '</': # Could be inside </span> or something like a footnote caller
+                                                break # Too hard -- don't bother marking anything here in this verse
+                                            # print( f"{parRef} {zz1=} {msbChar=} {bsbChar=}\n   {textHtml=}\n{adjustedTextHtmlBSB=}")
+                                            for zz2 in range( zz1+1, len(textHtml) ):
+                                                nextChar = textHtml[zz2]
+                                                # print( f"{zz2=} {nextChar=}" )
+                                                if nextChar in ' <':
+                                                    break
+                                            textHtml = f'''{textHtml[:zz1]}<span title="Word (or format) different in MSB" class="hilite">{textHtml[zz1:zz2]}</span>{textHtml[zz2:]}'''
+                                            break
+                                    if state.DO_SPELL_CHECKS:
+                                        textHtml = spellCheckAndMarkHTMLText( versionAbbreviation, parRef, textHtml, textHtml, state ) # Puts spans around mispellings
+                            elif versionAbbreviation in ('ULT','UST','NET','BLB','OEB','FBV','BBE','Moff','JPS','ASV','DRA','YLT','SLT','Drby','Wbstr'):
                                 if state.DO_SPELL_CHECKS:
                                     textHtml = spellCheckAndMarkHTMLText( versionAbbreviation, parRef, textHtml, textHtml, state ) # Puts spans around mispellings
                             elif versionAbbreviation in ('WEBBE','WEB'): # assuming WEB/WEBBE comes BEFORE WMB/WMBBB
-                                textHtmlWEB, footnotesHtmlWeb = textHtml, footnotesHtml # Save it
+                                textHtmlWEB, footnotesHtmlSaved = textHtml, footnotesHtml # Save it
                                 if state.DO_SPELL_CHECKS:
                                     textHtml = spellCheckAndMarkHTMLText( versionAbbreviation, parRef, textHtml, textHtml, state ) # Puts spans around mispellings
                             elif versionAbbreviation in ('WMBB','WMB'): # assuming WEB/WEBBE comes BEFORE WMB/WMBB
@@ -498,6 +546,17 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                             )
                                 # end of removeVersePunctuationForComparison function
 
+                                # if versionAbbreviation == 'BSB':
+                                #     # if parRef in ancientRefsToPrint: print( f"AA {versionAbbreviation} {parRef} ({len(modernisedTextHtml)}) {modernisedTextHtml=}" )
+                                #     # NOTE: cleanedModernisedKJB1769TextHtml and depunctuatedCleanedModernisedKJB1769TextHtml are only used for comparisons -- they're not displayed on the page anywhere
+                                #     cleanedModernisedBSBTextHtml = ( modernisedTextHtml.replace( versionAbbreviation, '' )
+                                #                                             .replace( '⇔ ', '' )
+                                #                                             .replace( '<br> ', '') # (with en-space) after Psalm titles
+                                #                                             #.replace( 'J', 'Y' ).replace( 'Benjam', 'Benyam' ).replace( 'ij', 'iy' ).replace( 'Ij', 'Iy' ).replace( 'Ie', 'Ye' )
+                                #                                             .replace( '<span class="wj">', '' ).replace( '</span>', '' )
+                                #                                             .replace( '  ', ' ' ).replace( '> ', '>' ).replace( ' \n', '\n')
+                                #                                             .strip() ) # Not sure why there's so many superfluous spaces in this text ???
+                                #     depunctuatedCleanedModernisedBSBTextHtml = removeVersePunctuationForComparison( cleanedModernisedBSBTextHtml )
                                 if versionAbbreviation == 'KJB-1769':
                                     # if parRef in ancientRefsToPrint: print( f"AA {versionAbbreviation} {parRef} ({len(modernisedTextHtml)}) {modernisedTextHtml=}" )
                                     # NOTE: cleanedModernisedKJB1769TextHtml and depunctuatedCleanedModernisedKJB1769TextHtml are only used for comparisons -- they're not displayed on the page anywhere
@@ -521,6 +580,9 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                                                         .replace( 'Yesus/Yeshua', 'Yesus' ) )
                                 depunctuatedCleanedModernisedTextHtml = removeVersePunctuationForComparison( cleanedModernisedTextHtml )
                                 if versionAbbreviation=='KJB-1611' and parRef in ancientRefsToPrint: print( f"DD {versionAbbreviation} {parRef} same={cleanedModernisedTextHtml==cleanedModernisedKJB1769TextHtml} ({len(depunctuatedCleanedModernisedTextHtml)}) {depunctuatedCleanedModernisedTextHtml=}")
+                                # if versionAbbreviation == 'MSB' \
+                                # and cleanedModernisedTextHtml == cleanedModernisedBSBTextHtml:
+                                #     modernisedTextHtml = f"<small>{'Same as BSB above{' apart from footnotes' if footnotesHtml else ''}</small>" # (Will be placed in parentheses below)
                                 if versionAbbreviation in ('Wycl','TNT','Cvdl','Gnva','Bshps','KJB-1611') \
                                 and cleanedModernisedTextHtml == cleanedModernisedKJB1769TextHtml:
                                     modernisedTextHtml = f"<small>{'Modernised spelling is s' if modernisedTextDiffers else 'S'}ame as from KJB-1769 above{' apart from footnotes' if footnotesHtml else ''}</small>" # (Will be placed in parentheses below)
@@ -855,9 +917,9 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                 else: # for all the others
                                     versionNameLink = f'''{'../'*BBBLevel}{versionAbbreviation}/details.htm#Top''' if versionAbbreviation in state.versionsWithoutTheirOwnPages else f'''{'../'*BBBLevel}{versionAbbreviation}/byC/{BBB}_{adjC}.htm#V{V}'''
                                     if textHtml.startswith( "(Same as " ):
-                                        assert versionAbbreviation in ('WMBB','WMB')
-                                        if footnotesHtmlWeb:
-                                            if footnotesHtml == footnotesHtmlWeb.replace( 'WEBBE', 'WMBB' ).replace( 'WEB', 'WMB' ):
+                                        assert versionAbbreviation in ('MSB','WMBB','WMB')
+                                        if footnotesHtmlSaved:
+                                            if footnotesHtml == footnotesHtmlSaved.replace( 'BSB', 'MSB' ).replace( 'WEBBE', 'WMBB' ).replace( 'WEB', 'WMB' ):
                                                 footnotesHtml = '' # No need to repeat these either
                                                 textHtml = textHtml.replace( 'above)', 'above including footnotes)' )
                                             # "closeVerse" class writes WMBB/WMB text on top of WEBBE/WEB footnotes -- probably should be fixed in CSS, but not sure how so will fix it here

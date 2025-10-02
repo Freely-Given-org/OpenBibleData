@@ -65,10 +65,10 @@ from BibleTransliterations import transliterate_Hebrew, transliterate_Greek
 from settings import State
 
 
-LAST_MODIFIED_DATE = '2025-09-23' # by RJH
+LAST_MODIFIED_DATE = '2025-09-29' # by RJH
 SHORT_PROGRAM_NAME = "OETHandlers"
 PROGRAM_NAME = "OpenBibleData OET handler"
-PROGRAM_VERSION = '0.66'
+PROGRAM_VERSION = '0.67'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -150,9 +150,11 @@ def getOETBookName( BBB:str ) -> str:
 #    TODO: How much of this should be in BibleOrgSys ???
 OET_BBB_DICT = {
                 '1SAMUEL':'SA1', '2SAMUEL':'SA2',
-                '1KINGS':'KI1', '2KINGS':'KI2',
+                '1KINGS':'KI1', '2KINGS':'KI2', # However LXX calls 1&2 Samuel, 1&2 Kings
+                '3KINGS':'KI1', '4KINGS':'KI2',
                 '1CHRONICLES':'CH1', '2CHRONICLES':'CH2',
-                'YOB':'JOB', 'YONAH':'JNA','YNA':'JNA', 'YOEL':'JOL',
+                'YOB':'JOB', 'SONGOFSOLOMON':'SNG',
+                'YONAH':'JNA','YNA':'JNA', 'YOEL':'JOL',
                 'YOCHANAN':'JHN','YHN':'JHN',
                 '1CORINTHIANS':'CO1', '2CORINTHIANS':'CO2',
                 '1TIMOTHY':'TI1', '2TIMOTHY':'TI2',
@@ -163,7 +165,7 @@ OET_BBB_DICT = {
                 'YUD':'JDE',
                 '2PS':'PS2',
                 }
-def getBBBFromOETBookName( originalBooknameText:str ) -> str|None:
+def getBBBFromOETBookName( originalBooknameText:str, where:str ) -> str|None:
     """
     Can return None.
 
@@ -189,7 +191,7 @@ def getBBBFromOETBookName( originalBooknameText:str ) -> str|None:
                     # .replace( '1Yhn', 'JN1' ).replace( '2Yhn', 'JN2' ).replace( '3Yhn', 'JN3' )
                 )
     if resultBBB not in BibleOrgSysGlobals.loadedBibleBooksCodes:
-        dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"getBBBFromOETBookName() can't get valid BBB from {booknameText=}: {resultBBB=} from {originalBooknameText=}" )
+        dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"getBBBFromOETBookName( {where} ) can't get valid BBB from {booknameText=}: {resultBBB=} from {originalBooknameText=}" )
     return resultBBB
 # end of OETHandlers.getOETBookName
 

@@ -108,10 +108,10 @@ from settings import State, state
 from OETHandlers import getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2025-09-23' # by RJH
+LAST_MODIFIED_DATE = '2025-09-26' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
-PROGRAM_VERSION = '0.97'
+PROGRAM_VERSION = '0.98'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -395,7 +395,7 @@ def makeBookNavListParagraph( linksList:list[str], workAbbrevPlus:str, state:Sta
         displayText = aLink[ixDisplayLinkStart:ixDisplayLinkEnd]
         # print( f"  {aLink=} {displayText=}")
         assert 3 <= len(displayText) <= 5, f"{len(displayText)=} {displayText=}" # it should be a tidyBBB, e.g., 'GEN' or '1 COR'
-        BBB = getBBBFromOETBookName( displayText )
+        BBB = getBBBFromOETBookName( displayText, f"makeBookNavListParagraph( {workAbbrevPlus} {aLink=} )" )
         assert BBB in BibleOrgSysGlobals.loadedBibleBooksCodes, f"Bad {BBB=} from {displayText=} from {aLink=}"
         newALink = f'{aLink[:ixDisplayLinkStart]}{displayText}{aLink[ixDisplayLinkEnd:]}'
         if BBB in ('INT','FRT','OTH','GLS','XXA','XXB','XXC','XXD'):

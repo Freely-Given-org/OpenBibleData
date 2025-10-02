@@ -73,10 +73,10 @@ from Bibles import getBibleMapperMaps
 from OETHandlers import livenOETWordLinks, getOETTidyBBB, getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2025-08-24' # by RJH
+LAST_MODIFIED_DATE = '2025-09-26' # by RJH
 SHORT_PROGRAM_NAME = "createSectionPages"
 PROGRAM_NAME = "OpenBibleData createSectionPages functions"
-PROGRAM_VERSION = '0.72'
+PROGRAM_VERSION = '0.73'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -763,7 +763,7 @@ def livenSectionReferences( versionAbbreviation:str, refTuple:tuple, segmentType
             # Then we expect the token to start with something like '1 Cor.'
             assert token.count( ' ' ) >= 2, f"Bad {token=} from {versionAbbreviation} {refTuple} {segmentType} {currentBBB} {sectionReferenceText=}"
             bookAbbrev, rest = token.rsplit( ' ', 1 )
-            currentBBB = getBBBFromOETBookName( bookAbbrev )
+            currentBBB = getBBBFromOETBookName( bookAbbrev, f"livenSectionReferences( {versionAbbreviation}, {refTuple}, {segmentType}, '{sectionReferenceText}' ) {token=}" )
             assert currentBBB in BOOKLIST_66, f"{currentBBB=} from {bookAbbrev=} in livenSectionReferences( {versionAbbreviation}, {refTuple}, {segmentType}, '{sectionReferenceText}' ) processing {n}: {token=}…"
             if currentBBB is None:
                 logging.critical( f"livenSectionReferences1 was unable to find a book for '{token}' from '{sectionReferenceText}'" )
@@ -780,7 +780,7 @@ def livenSectionReferences( versionAbbreviation:str, refTuple:tuple, segmentType
             # Then we expect the token to start with a bookname abbreviation
             # assert token.count( ' ' ) == 1, f"livenSectionReferences expected exactly one space in {versionAbbreviation}, {refTuple}, {segmentType}, '{token}' from '{sectionReferenceText}'"
             bookAbbrev, rest = token.split( ' ' ) # Assumes only one space
-            currentBBB = getBBBFromOETBookName( bookAbbrev )
+            currentBBB = getBBBFromOETBookName( bookAbbrev, f"livenSectionReferences( {versionAbbreviation}, {refTuple}, {segmentType}, '{sectionReferenceText}' ) {token=}" )
             if currentBBB is None:
                 logging.error( f"livenSectionReferences2 was unable to find a book for '{token}' from '{sectionReferenceText}'" )
                 liveLink = None

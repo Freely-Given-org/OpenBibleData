@@ -31,6 +31,7 @@ CHANGELOG:
     2024-03-13 Added check for duplicated words
     2025-03-10 Added support for a few more internal USFM markers
     2025-04-16 Added support for removing some technical English words, but which aren't used in Bibles and so should be spelling errors
+    2025-09-26 Handle MSB
 """
 from gettext import gettext as _
 from pathlib import Path
@@ -44,10 +45,10 @@ from BibleOrgSys import BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import vPrint, fnPrint, dPrint, rreplace
 
 
-LAST_MODIFIED_DATE = '2025-09-24' # by RJH
+LAST_MODIFIED_DATE = '2025-09-29' # by RJH
 SHORT_PROGRAM_NAME = "spellCheckEnglish"
 PROGRAM_NAME = "English Bible Spell Check"
-PROGRAM_VERSION = '0.54'
+PROGRAM_VERSION = '0.56'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -174,7 +175,7 @@ INITIAL_BIBLE_WORD_LIST = ['3.0','UTF','USFM', '©', 'CC0',
                     'MENE','MANE','TEKEL','TEQEL','THECEL', 'UPHARSIN','PERES','PHERES','PHARES','PHARSIN','PARSIN',
                     'Tabitha','Talitha','cumi',
 
-                    'ULT','UST','BSB','OEB','NET','NRSV','WEB','WEBBE','WMB','WMBB','LSV','FBV','T4T','LEB','BBE','JPS','VLT','KJV','KJB',
+                    'ULT','UST','BSB','MSB','BLB','OEB','NET','NRSV','WEB','WEBBE','WMB','WMBB','LSV','FBV','T4T','LEB','BBE','JPS','VLT','KJV','KJB',
                     'OSHB',
                     'nlt',
 
@@ -426,7 +427,11 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                     .replace( '<span class="t4tFoS" title="synecdoche (figure of speech)">[SYN]</span>', '' ).replace( '<span class="t4tFoS" title="synecdoche (figure of speech)">SYN</span>', '' )
                     .replace( '<span class="t4tFoS" title="triple (figure of speech)">[TRI]</span>', '' )
                     )
-    if 'OET' in versionAbbreviation:
+    elif versionAbbreviation == 'MSB':
+        cleanedText =  ( cleanedText
+                    .replace( '<span title="Word (or format) different in MSB" class="hilite">', '' )
+                    )
+    elif 'OET' in versionAbbreviation:
         cleanedText =  ( cleanedText
                     .replace( '<span class="synonParr" title="synonymous parallelism">≈</span>', '' )
                     .replace( '<span class="antiParr" title="antithetic parallelism">^</span>', '' )
@@ -493,6 +498,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
         cleanedText = FOOTNOTE_Ps_REGEX.sub( '', cleanedText )
     else: # we won't bother checking footnote content for most versions, so delete the whole thing
         cleanedText = FOOTNOTES_DIV_REGEX.sub( '', cleanedText )
+        assert '#fn' not in cleanedText, f"Unexpected fn in {versionAbbreviation} {ref}\n{cleanedText=}\nfrom {originalHTMLTextForDebugging=}"
     cleanedText = CROSSREFS_DIV_REGEX.sub( '', cleanedText )
     assert '<span' not in cleanedText, f"{versionAbbreviation} {ref} {cleanedText=}"
     assert ' class="' not in cleanedText, f"{versionAbbreviation} {ref} {cleanedText=}"
@@ -502,7 +508,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
     for htmlEntity in ('table','tr','td'):
         cleanedText =  cleanedText.replace( f'<{htmlEntity}>', '' ).replace( f'</{htmlEntity}>', '' )
     cleanedText = cleanedText.replace( '</span>', '' ).replace( '</p>', '' ).replace( '</div>', '' ).replace( '</a>', '' )
-    assert '<' not in cleanedText and '>' not in cleanedText, f"Unexpected html markers in {versionAbbreviation} {ref} {cleanedText=}"
+    assert '<' not in cleanedText and '>' not in cleanedText, f"Unexpected html markers in {versionAbbreviation} {ref}\n{cleanedText=}\nfrom {originalHTMLTextForDebugging=}"
 
     # Now general or punctuation clean-ups
     cleanedText =  ( cleanedText
