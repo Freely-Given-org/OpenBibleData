@@ -146,16 +146,16 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
         BBBs.append( BBB )
 
         numChapters = rvBible.getNumChapters( BBB )
-        cLinks = [f'<a title="Choose “book”" href="./">{ourTidyBBBwithNotes}</a>']
+        chapterLinks = [f'<a title="Choose “book”" href="./">{ourTidyBBBwithNotes}</a>']
         if numChapters >= 1:
             if rvBible.discoveryResults[BBB]['haveIntroductoryText']:
-                cLinks.append( f'<a title="View document introduction" href="{BBB}_Intro.htm#Top">Intro</a>' )
+                chapterLinks.append( f'<a title="View document introduction" href="{BBB}_Intro.htm#Top">Intro</a>' )
             for c in range( 1, numChapters+1 ):
-                cLinks.append( f'<a title="View chapter page" href="{BBB}_C{c}.htm#Top">{'Sg' if BBB=='PSA' else 'C'}{c}</a>' )
+                chapterLinks.append( f'<a title="View chapter page" href="{BBB}_C{c}.htm#Top">{'Sg' if BBB=='PSA' else 'C'}{c}</a>' )
         else:
             c = '0' # TODO: for now
             halt
-        cLinksPar = f'<p class="chLst">{" ".join( cLinks )}</p>'
+        chapterLinksParagraph = f'<p class="chLst">{" ".join( chapterLinks )}</p>'
 
         assert rvBible.getNumVerses( BBB, '-1' ) # OET always has intro
         assert not rvBible.getNumVerses( BBB, '0' ) # OET has no chapter zero
@@ -322,10 +322,10 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
                                   f'''<a title="Up to {state.BibleNames['OET']}" href="{'../'*level}OET">↑OET</a>''' )
                 chapterHtml = f'''{top}<!--chapter page-->
 {navBookListParagraph}
-{cLinksPar.replace( 'class="chLst">', 'class="chLst" id="chLst">', 1 )}
+{chapterLinksParagraph.replace( 'class="chLst">', 'class="chLst" id="chLst">', 1 )}
 {chapterHtml}{combinedHtml}
 {cNav}
-{cLinksPar}
+{chapterLinksParagraph}
 {makeBottom( level, 'chapter', state )}'''
                 assert checkHtml( f'OET {BBB}_C{c}', chapterHtml )
                 assert not filepath.is_file() # Check that we're not overwriting anything
@@ -355,7 +355,7 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
                     .replace( f'''<a title="{state.BibleNames['OET']}" href="{'../'*level}OET/byC/{filename}#Top">OET</a>''',
                                 f'''<a title="Up to {state.BibleNames['OET']}" href="{'../'*level}OET">↑OET</a>''' )
             chapterHtml = f'''{top}<!--chapter page-->
-{cLinksPar}
+{chapterLinksParagraph}
 {chapterHtml}
 {makeBottom( level, 'chapter', state )}'''
             assert checkHtml( 'OET', chapterHtml )
@@ -377,7 +377,7 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
                 .replace( f'''<a title="{state.BibleNames['OET']}" href="{'../'*level}OET">OET</a>''', 'OET' )
         chapterHtml = f'''{top}<!--chapters indexPage-->
 {navBookListParagraph}
-{cLinksPar}
+{chapterLinksParagraph}
 {makeBottom( level, 'chapter', state )}'''
         assert checkHtml( 'OETChaptersIndex', chapterHtml )
         assert not filepath.is_file() # Check that we're not overwriting anything
@@ -453,18 +453,18 @@ def createChapterPages( level:int, folder:Path, thisBible, state:State ) -> list
             logging.critical( f"Can't get number of chapters for {thisBible.abbreviation} {BBB}")
             continue
 
-        cLinks = [f'<a title="Choose “book”" href="./">{ourTidyBBB}</a>']
+        chapterLinks = [f'<a title="Choose “book”" href="./">{ourTidyBBB}</a>']
         if numChapters >= 1:
             if thisBible.discoveryResults[BBB]['haveIntroductoryText']:
-                cLinks.append( f'<a title="View document introduction" href="{BBB}_Intro.htm#Top">Intro</a>' )
+                chapterLinks.append( f'<a title="View document introduction" href="{BBB}_Intro.htm#Top">Intro</a>' )
             for c in range( 1, numChapters+1 ):
                 dPrint( 'Info', DEBUGGING_THIS_MODULE, f"createChapterPages getNumVerses( {thisBible.abbreviation} {BBB} {c} )")
                 numVerses = thisBible.getNumVerses( BBB, c )
                 if numVerses: # make sure it's a normal chapter, e.g., in ESG book which lacks chapters 1-9
-                    cLinks.append( f'<a title="View chapter page" href="{BBB}_C{c}.htm#Top">{'Sg' if 'OET' in thisBible.abbreviation and BBB=='PSA' else 'Ps' if BBB=='PSA' else 'C'}{c}</a>' )
+                    chapterLinks.append( f'<a title="View chapter page" href="{BBB}_C{c}.htm#Top">{'Sg' if 'OET' in thisBible.abbreviation and BBB=='PSA' else 'Ps' if BBB=='PSA' else 'C'}{c}</a>' )
         else:
-            cLinks.append( f'<a title="View document" href="{BBB}.htm#Top">{ourTidyBBB}</a>' )
-        cLinksPar = f'<p class="chLst">{" ".join( cLinks )}</p>'
+            chapterLinks.append( f'<a title="View document" href="{BBB}.htm#Top">{ourTidyBBB}</a>' )
+        chapterLinksParagraph = f'<p class="chLst">{" ".join( chapterLinks )}</p>'
 
         haveBookIntro = thisBible.getNumVerses( BBB, '-1' )
         haveChapterZero = thisBible.getNumVerses( BBB, '0' )
@@ -543,10 +543,10 @@ def createChapterPages( level:int, folder:Path, thisBible, state:State ) -> list
                                   f'''<a title="Up to {state.BibleNames[thisBible.abbreviation]}" href="{'../'*level}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/">↑{thisBible.abbreviation}</a>''' )
                 chapterHtml = f'''{top}<!--chapter page-->
 {navBookListParagraph}
-{cLinksPar.replace( 'class="chLst">', 'class="chLst" id="chLst">', 1 )}
+{chapterLinksParagraph.replace( 'class="chLst">', 'class="chLst" id="chLst">', 1 )}
 {chapterHtml}
 {cNav}
-{cLinksPar}
+{chapterLinksParagraph}
 {makeBottom( level, 'chapter', state )}'''
                 assert checkHtml( f'{thisBible.abbreviation} {BBB}_C{C}', chapterHtml )
                 assert not filepath.is_file() # Check that we're not overwriting anything
@@ -566,7 +566,7 @@ def createChapterPages( level:int, folder:Path, thisBible, state:State ) -> list
                     .replace( '__KEYWORDS__', f'Bible, {thisBible.abbreviation}, chapter, {ourTidyBBB}' ) \
                     .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*level}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}">{thisBible.abbreviation}</a>''', thisBible.abbreviation )
             chapterHtml = f'''{top}<!--chapters indexPage-->
-{cLinksPar}
+{chapterLinksParagraph}
 {makeBottom( level, 'chapter', state )}'''
             assert checkHtml( f'{thisBible.abbreviation}  chapter index', chapterHtml )
             assert not filepath.is_file() # Check that we're not overwriting anything

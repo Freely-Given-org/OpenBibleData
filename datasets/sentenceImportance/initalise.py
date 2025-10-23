@@ -34,9 +34,11 @@ CHANGELOG:
     2025-04-10 Use crossTestamentQuotes info
     2025-07-09 Tried to make more allowance for partial verses
     2025-09-11 Find Q footnotes in UHB
+    2025-10-13 Find appropriate footnotes in OSHB via OET-LV OT files
 """
 from pathlib import Path
 from csv import  DictReader
+import re
 import logging
 
 import sys
@@ -44,16 +46,17 @@ sys.path.append( '../../../BibleOrgSys/' )
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 import BibleOrgSys.Formats.USFMBible as USFMBible
+import BibleOrgSys.Formats.ESFMBible as ESFMBible
 import BibleOrgSys.Formats.USXXMLBible as USXXMLBible
 sys.path.append( '../crossTestamentQuotes/' )
 from load import getIndividualQuotedOTRefs, getIndividualQuotingNTRefs
 
 
 
-LAST_MODIFIED_DATE = '2025-09-30' # by RJH
+LAST_MODIFIED_DATE = '2025-10-13' # by RJH
 SHORT_PROGRAM_NAME = "SentenceImportance_initialisation"
 PROGRAM_NAME = "Sentence Importance initialisation"
-PROGRAM_VERSION = '0.22'
+PROGRAM_VERSION = '0.23'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -70,6 +73,7 @@ BOS_BOOK_ID_MAP = {
     58: 'HEB', 59: 'JAM', 60: 'PE1', 61: 'PE2', 62: 'JN1', 63: 'JN2', 64: 'JN3', 65: 'JDE', 66: 'REV', 99:None}
 
 UHB_PATHNAME = Path( '../../copiedBibles/Original/unfoldingWord.org/UHB/' )
+OET_LV_OT_PATHNAME = Path( '../../../OpenEnglishTranslation--OET/intermediateTexts/auto_edited_OT_ESFM/' )
 NET_PATHNAME = Path( '../../copiedBibles/English/NET/' )
 
 
@@ -101,8 +105,11 @@ vitalImportanceRefsWithRanges = [ # Often in doctrinal statements
 
     'JN1_5:11-13',
     ]
+for ref in vitalImportanceRefsWithRanges:
+    assert ref.count( '_' ) == 1, f"vitalImportanceRefsWithRanges {ref=}"
+
 importantRefsWithRanges = [ # Often memorised
-    'GEN_1:4-31','GEN_2:1-3' # Gen 1:1-3 is above
+    'GEN_1:4-31','GEN_2:1-3', # Gen 1:1-3 is above
     'DEU_30:3-5',
     'JOS_1:9',
     'PSA_51:10',
@@ -124,9 +131,15 @@ importantRefsWithRanges = [ # Often memorised
     'JN1_4:1',
     'JN2_1:9',
     ]
+for ref in importantRefsWithRanges:
+    assert ref.count( '_' ) == 1, f"importantRefsWithRanges {ref=}"
+
 listsOfNames = ['KI1_4:2','KI1_4:3','KI1_4:4','KI1_4:5','KI1_4:6',
                 'KI1_4:8','KI1_4:9','KI1_4:10','KI1_4:11','KI1_4:12','KI1_4:13','KI1_4:14','KI1_4:15','KI1_4:16','KI1_4:17','KI1_4:18','KI1_4:19',
                 ]
+for ref in listsOfNames:
+    assert ref.count( '_' ) == 1, f"listsOfNames {ref=}"
+
 trivialImportanceRefs = listsOfNames + [
     'EXO_16:36',
     # Jdg 5 is Deborah and Barak's song
@@ -135,6 +148,9 @@ trivialImportanceRefs = listsOfNames + [
         'JDG_5:21','JDG_5:22','JDG_5:23','JDG_5:24','JDG_5:25','JDG_5:26','JDG_5:27','JDG_5:28','JDG_5:29','JDG_5:30',
         'JDG_5:31a',
     ]
+for ref in trivialImportanceRefs:
+    assert ref.count( '_' ) == 1, f"trivialImportanceRefs {ref=}"
+
 obscureClarityRefs = [ # Not really at all sure what the Hebrew or Greek is trying to say
     'JDG_5:11a','JDG_5:14',
     'JOB_29:20','JOB_29:24',
@@ -142,6 +158,9 @@ obscureClarityRefs = [ # Not really at all sure what the Hebrew or Greek is tryi
     'SNG_6:12',
     'MIC_6:14', # Two unknown Hebrew words
     ]
+for ref in obscureClarityRefs:
+    assert ref.count( '_' ) == 1, f"obscureClarityRefs {ref=}"
+
 unclearClarityRefs = [ # Mostly sure what's in the Hebrew or Greek,
         # but not sure what it means, or what the cultural implications were
     'GEN_6:4',
@@ -165,6 +184,7 @@ unclearClarityRefs = [ # Mostly sure what's in the Hebrew or Greek,
         'PSA_68:12b','PSA_68:13','PSA_68:15','PSA_68:21b', 'PSA_73:9','PSA_73:10',
         'PSA_92:11', 'PSA_93:3a', 'PSA_105:19','PSA_105:28b','PSA_105:32b', 'PSA_108:9', 'PSA_116:13a',
         'PSA_122:3b', 'PSA_129:4b', 'PSA_141:6',
+    'PRO_2:18',
     'ECC_5:9', 'ECC_10:15',
     'SNG_8:9',
     'EZE_8:17b', 'EZE_16:24', 'EZE_21:13', 'EZE_24:12', 'EZE_24:17b', 'EZE_26:20b',
@@ -176,11 +196,18 @@ unclearClarityRefs = [ # Mostly sure what's in the Hebrew or Greek,
     'HAB_3:15',
     'ZEP_3:10b',
     ]
+for ref in unclearClarityRefs:
+    assert ref.count( '_' ) == 1, f"unclearClarityRefs {ref=}"
+
 textualCriticismRefs = [ # Hebrew or Greek original manuscripts vary
     'SA1_4:2',
     'SA2_6:1',
+    'CH1_24:26', # Beno
     'JOB_39:13a','JOB_39:13b','JOB_39:14','JOB_39:15','JOB_39:16','JOB_39:17','JOB_39:18', # Ostrich section
     ]
+for ref in textualCriticismRefs:
+    assert ref.count( '_' ) == 1, f"textualCriticismRefs {ref=}"
+
 # Handle ranges in some lists
 newList = []
 for entry in vitalImportanceRefsWithRanges:
@@ -227,20 +254,26 @@ def run() -> bool:
     uhbBible.uWencoded = True # TODO: Shouldn't be required ???
     uhbBible.loadBooks() # So we can iterate through them all later
 
+    OETLVOTBible = ESFMBible.ESFMBible( OET_LV_OT_PATHNAME, givenAbbreviation='OET-LV' )
+    OETLVOTBible.loadBooks() # So we can iterate through them all later
+
     netBible = USXXMLBible.USXXMLBible( NET_PATHNAME, givenAbbreviation='NET', encoding='utf-8' )
     netBible.loadBooks() # So we can iterate through them all later
 
-    initialLines, collationVerseDict, splitVerseSet = load()
+    initialLines, splitVerseSet = load_previous_DB()
+
+    collationVerseDict = load_CNTR_collation_DB( splitVerseSet )
 
     quotedOTRefs = getIndividualQuotedOTRefs()
     quotingNTRefs = getIndividualQuotingNTRefs()
 
-    create( initialLines, uhbBible, netBible, collationVerseDict, splitVerseSet, quotedOTRefs, quotingNTRefs )
+    return create( initialLines, uhbBible, OETLVOTBible, netBible, collationVerseDict, splitVerseSet, quotedOTRefs, quotingNTRefs )
 # end of initialise.run()
 
 
-def load():
+def load_previous_DB():
     """
+    Load our previous DB
     """
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Loading original {TSV_FILENAME}…" )
     with open( TSV_FILENAME, 'rt', encoding='utf-8') as inputTSVFile:
@@ -254,7 +287,14 @@ def load():
         if ref[-1] in 'ab':
             splitVerseSet.add( ref[:-1] )
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"{len(splitVerseSet):,} verses need to be split." )
+    return initialTSVLines, splitVerseSet
+# end of initialise.load_previous_DB()
 
+
+def load_CNTR_collation_DB( splitVerseSet ):
+    """
+    Load the CNTR-GNT collation DB
+    """
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Loading {COLLATION_PATHNAME}…" )
     with open( COLLATION_PATHNAME, 'rt', encoding='utf-8') as input_csv_file:
         csv_lines = input_csv_file.readlines()
@@ -340,11 +380,51 @@ def load():
                             translatable = True
                     collationVerseDict[fgRef] = '2' if translatable else '1' if haveVariants else '0'
 
-    return initialTSVLines, collationVerseDict, splitVerseSet
-# end of initialise.load()
+    return collationVerseDict
+# end of initialise.load_CNTR_collation_DB()
 
 
-def get_Hebrew_reference_text_critical_footnote_score( HebrewReferenceBible, BBB:str, C:str, V:str ) -> int:
+FOOTNOTE_REGEX = re.compile( '\\\\f (.+?)\\\\f\\*')
+def get_OSHB_reference_text_critical_footnote_score( OETLV_ReferenceOTBible, BBB:str, C:str, V:str ) -> int:
+    """
+    Returns 2 (stronger) if the Hebrew reference Bible has a TC footnote for this verse.
+    Returns 1 (weaker) if no TC footnote, but the LXX or similar is mentioned
+    """
+    try: verseEntryList, _contextList = OETLV_ReferenceOTBible.getContextVerseData( (BBB,C,V) )
+    except KeyError:
+        logging.critical( f"Seems OET-LV reference OT has no verse for {BBB}_{C}:{V}")
+        return False
+    except TypeError:
+        if C=='1' and V=='1':
+            logging.critical( f"Seems OET-LV reference OT has no {BBB} book")
+        return False
+
+    havePossibleBHSReference = False
+    for entry in verseEntryList:
+        text = entry.getFullText()
+        if text and '\\ft OSHB note: ' in text:
+            startIndex = 0
+            while True:
+                match = FOOTNOTE_REGEX.search( text, startIndex)
+                if not match: break # No (more) footnotes
+                fnText = match.group( 1 )
+                # print( f"get_OSHB_reference_text_critical_footnote_score for {BBB}_{C}:{V} got {fnText=}" )
+                assert '\\f ' not in fnText
+                if 'BHQ' in fnText or 'BHS' in fnText or 'anomalous' in fnText or 'reading' in fnText:
+                    # print( f"get_OSHB_reference_text_critical_footnote_score for {BBB}_{C}:{V} got {fnText=}" )
+                    if (('differ' in fnText or 'error' in fnText) and 'punctuation' not in fnText) \
+                    or 'anomalous' in fnText:
+                        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  get_OSHB_reference_text_critical_footnote_score for {BBB}_{C}:{V} accepted {fnText=}" )
+                        havePossibleBHSReference = True
+                        break
+                startIndex = match.end()
+            if havePossibleBHSReference:
+                break
+    return 1 if havePossibleBHSReference else False
+# end of initialise.get_OSHB_reference_text_critical_footnote_score function
+
+
+def get_UHB_Hebrew_reference_text_critical_footnote_score( HebrewReferenceBible, BBB:str, C:str, V:str ) -> int:
     """
     Returns 2 (stronger) if the Hebrew reference Bible has a TC footnote for this verse.
     Returns 1 (weaker) if no TC footnote, but the LXX or similar is mentioned
@@ -366,7 +446,7 @@ def get_Hebrew_reference_text_critical_footnote_score( HebrewReferenceBible, BBB
             # if 'LXX' in text or 'Syriac' in text or 'Peshitta' in text or 'Dead Sea Scrolls' in text or 'Targum' in text or 'Vulgate' in text:
             #     haveEarlyTranslationReference = True # return 1 Can't return straight away because next line might contain a TC footnote
     return 1 if haveEarlyTranslationReference else False
-# end of initialise.get_reference_Hebrew_text_critical_footnote_score function
+# end of initialise.get_UHB_Hebrew_reference_text_critical_footnote_score function
 
 
 def get_English_reference_text_critical_footnote_score( EnglishReferenceBible, BBB:str, C:str, V:str ) -> int:
@@ -414,7 +494,7 @@ def get_verse_collation_rows(given_collation_rows: list[dict], row_index: int) -
 # end of initialise.get_verse_collation_rows
 
 
-def create( initialTSVLines, HebrewReferenceBible, EnglishReferenceBible, collationVerseDict, splitVerseSet, individualQuotedOTRefs, individualQuotingNTRefs ) -> bool:
+def create( initialTSVLines, HebrewReferenceBible, OET_LT_ReferenceOTBible, EnglishReferenceBible, collationVerseDict, splitVerseSet, individualQuotedOTRefs, individualQuotingNTRefs ) -> bool:
     """
     """
     BibleOrgSysGlobals.backupAnyExistingFile( TSV_FILENAME, numBackups=3 )
@@ -429,7 +509,11 @@ def create( initialTSVLines, HebrewReferenceBible, EnglishReferenceBible, collat
             C, V = CV.split( ':' )
             fgRef = f'{BBB}_{CV}'
             # print( f"{fgRef}" )
-            heb_TC_footnote_value = get_Hebrew_reference_text_critical_footnote_score( HebrewReferenceBible, BBB, C, V )
+            
+            isOT = BibleOrgSysGlobals.loadedBibleBooksCodes.isOldTestament_NR( BBB )
+            if isOT:
+                oshb_TC_footnote_value = get_OSHB_reference_text_critical_footnote_score( OET_LT_ReferenceOTBible, BBB, C, V )
+            heb_TC_footnote_value = get_UHB_Hebrew_reference_text_critical_footnote_score( HebrewReferenceBible, BBB, C, V )
             eng_TC_footnote_value = get_English_reference_text_critical_footnote_score( EnglishReferenceBible, BBB, C, V )
             # print( f"  {has_TC_footnote}")
             # if BBB=='EXO' and has_TC_footnote: print( f"{fgRef} has TC" ); halt
@@ -449,7 +533,7 @@ def create( initialTSVLines, HebrewReferenceBible, EnglishReferenceBible, collat
                         textualIssue = '2' # textualIssue ranges from 0 (None) to 4 (Major)
                     else:
                         vPrint( 'Info', DEBUGGING_THIS_MODULE, f"{subRef} TC was already {textualIssue}")
-                elif eng_TC_footnote_value==1:
+                elif oshb_TC_footnote_value==1 or eng_TC_footnote_value==1:
                     if textualIssue==defaultTextualIssue: # default is '0'
                         textualIssue = '1' # textualIssue ranges from 0 (None) to 4 (Major)
                     else:

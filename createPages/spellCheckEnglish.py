@@ -32,9 +32,11 @@ CHANGELOG:
     2025-03-10 Added support for a few more internal USFM markers
     2025-04-16 Added support for removing some technical English words, but which aren't used in Bibles and so should be spelling errors
     2025-09-26 Handle MSB
+    2025-10-10 Added support for (OET) LV & RV names tables
 """
 from gettext import gettext as _
 from pathlib import Path
+from csv import  DictReader
 from collections import defaultdict
 import re
 
@@ -45,7 +47,7 @@ from BibleOrgSys import BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import vPrint, fnPrint, dPrint, rreplace
 
 
-LAST_MODIFIED_DATE = '2025-09-29' # by RJH
+LAST_MODIFIED_DATE = '2025-10-10' # by RJH
 SHORT_PROGRAM_NAME = "spellCheckEnglish"
 PROGRAM_NAME = "English Bible Spell Check"
 PROGRAM_VERSION = '0.56'
@@ -54,7 +56,14 @@ PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 DEBUGGING_THIS_MODULE = False
 
 
-TED_Dict_folderpath = Path( '../../../Documents/RobH123/TED_Dict/sourceDicts/')
+TED_DICT_FOLDERPATH = Path( '../../../Documents/RobH123/TED_Dict/sourceDicts/')
+assert TED_DICT_FOLDERPATH.is_dir()
+OET_LV_NAMES_TSV_FILEPATH = Path( '../../OpenEnglishTranslation--OET/intermediateTexts/OET-LV_names_table.tsv' )
+assert OET_LV_NAMES_TSV_FILEPATH.is_file()
+EXPECTED_OET_LV_NAMES_TSV_HEADER = 'TraditionalName\tLVName'
+OET_RV_NAMES_TSV_FILEPATH = Path( '../../OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/OET-RV_names_table.tsv' )
+assert OET_RV_NAMES_TSV_FILEPATH.is_file()
+EXPECTED_OET_RV_NAMES_TSV_HEADER = 'TraditionalName\tRVName\tExplained\tComment'
 
 
 # Globals
@@ -67,54 +76,13 @@ INITIAL_BIBLE_WORD_LIST = ['3.0','UTF','USFM', '©', 'CC0',
                     'Deutercanon','Deuterocanonicals',
                     'hb',
 
-                    # OET-LV and OET-RV names
-                    #   Note: OET-LV names often use special characters (e.g., macrons on vowels, plus unusual consonantal forms)
-                    'Abimelek','Abraʼam','Abshalom','Ahimelek','Amatsyah',
-                        'Asaf','Ayyalon','Azaryah',
-                    'Bartimeus','Benyamin','Benyamite','Benyamites', 'Bethania', 'Beyt',
-                    'Dammeseq',
-                    'ʼEfrayim','Efraim','Efron','Elifaz','Eliyyah','Esaw',
-                    'Far\'oh','Far’oh', 'Fəlishtiy', 'Finehas',
-                    'Goliat',
-                    'Hidutun','Hizkiyyah','Hofni','Hoshea',
-                    'Isayah','Ishma\'el','Iyyov',
-                    'Kaisar','Kasdiy','Kayin','Kush',
-                    'Lavan','Lakish','Layish',
-                    'Malaki','Manashsheh','Mənashsheh',
-                    'Metushalah',
-                    'Mikal','Milkah','Mitspah','Mitsrayim',
-                    'Mordekai','Mosheh',
-                    'Natan',
-                    'Paulos','Petros','Potifar',
-                    'Qoraḩ',
-                    'Sha\'ul','Sha’ul', 'Shəkem', 'She’ol',
-                    'Shekem','Shelomoh','Shəlomoh', 'Shemu\'el','Shemu’el',
-                    'Shim’on','Shimshon',
-                    'Shomron',
-                    'Shushan',
-                    'Tsevaot','Tsidon','Tsiklag',
-                    'Tsiyyon','Syon',
-                    'Uriyyah','Uzziyyah',
-                    'Yacob','Yacov','Yakov', # Need a spelling decision here
-                        'Yael',
-                        'Yafet','Yafo',
-                        'Yair',
-                        'Yakob',
-                        'Yareb','Yared',
-                    'Yehoshafat','Yehoshua','Yehu','Yehud','Yericho','Yeroboam','Yerushalem','Yeshayah','Yetro',
-                        'Yesse','Yesu','Yishay',
-                        'Yisrael','Yisra\'el','Yisra’el', # Need a spelling decision here
-                        'Yitshak','Yizre’el',
-                        'Yoash','Yoav',
-                        'Yhn','Yohan','Yohannes','Yochanan','Yohan-the-Immerser',
-                        'Yoel','Yoktan','Yonah','Yonatan','Yoppa','Yordan','Yosef','Yoshua','Yotam',
-                    'Yudah','Yehudah','Youdaia', # Need a spelling decision here
-                    'Yudas','Youdas',
-                    'Yude','Yudea','Yudean','Yudeans',
-                    'Zebedaios','Zekaryah','Zofar',
-
-                    # Parts of compound names, e.g., Beth-arbel gets split into two 'words'
-                    'Abib','abib', 'arbel','arbell', 'shemesh',
+                    # Adjusted names, e.g., from Wycl but had 'Y' substituted for 'J'
+                    'Benyamin',
+                    'Yacob', 'Yames',
+                    'Yebusite', 'Yesse',  'Yerusalem', 'Yesus',
+                    'Yhesus', 'Yhesu',
+                    'Yoab', 'Yohn', 'Yonathan', 'Yordan', 'Yoseph', 'Yoses',
+                    'Yudah',
 
                     # Specialist words
                     'black-grained','building-stone',
@@ -208,18 +176,18 @@ assert len(INITIAL_BIBLE_WORD_SET) == len(INITIAL_BIBLE_WORD_LIST), f"{[w for w 
 
 PREAPPROVED_WORDS_TO_REMOVE = sorted(['God’s','GOD', 'LORD’S','LORD’s','LORD\'S','LORD\'s','LORDS','LORD', # Delete ALL CAPS versions
 
-            # Hyphenated names (would have been split up down below)
-            'Al-tashheth','al-tashcheth','Al-taschith','al- tashcheth',
-                'Aram-zobah',
-            'Beer-sheba',
-                'Ben-hadad',
-                'Beth-aven','Beth-eden', 'Beth-el','Beyt-El','Beth-lehem',
-                'Bikath-Aven','Bikat-Aven',
+            # # Hyphenated names (would have been split up down below)
+            # 'Al-tashheth','al-tashcheth','Al-taschith','al- tashcheth',
+            #     'Aram-zobah',
+            # 'Beer-sheba',
+            #     'Ben-hadad',
+            #     'Beth-aven','Beth-eden', 'Beth-el','Beyt-El','Beth-lehem',
+            #     'Bikath-Aven','Bikat-Aven',
 
-            # Mangled names
-            'Yoab','Yonathan',
-            'Yesus', 'Yhesus', 'Yhesu', 'Yerusalem',
-            'Yacob', 'Yames', 'Yohn', 'Yoseph', 'Yoses',
+            # # Mangled names
+            # 'Yoab','Yonathan',
+            # 'Yesus', 'Yhesus', 'Yhesu', 'Yerusalem',
+            # 'Yacob', 'Yames', 'Yohn', 'Yoseph', 'Yoses',
 
             # Fancy pronouns
             'you_all', #'you(sg)','you(ms)','you(fs)', 'your(sg)','your(pl)','your(ms)', 'yours(sg)','yours(pl)', 'yourself(m)',
@@ -258,17 +226,81 @@ BAD_ENGLISH_COUNTS, BAD_GERMAN_COUNTS, BAD_LATIN_COUNTS = defaultdict(int), defa
 MISPELLING_VERSION_REF_DICT = defaultdict( list )
 
 
+OET_LV_NAMES_SET = set()
+def load_OET_LV_names() -> bool:
+    """
+    Load the names we use from the tsv names table
+    """
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Loading {OET_LV_NAMES_TSV_FILEPATH}…" )
+    with open( OET_LV_NAMES_TSV_FILEPATH, 'rt', encoding='utf-8') as inputTSVFile:
+        initialTSVLines = inputTSVFile.read().rstrip().split( '\n' )
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  {len(initialTSVLines):,} lines loaded from {OET_LV_NAMES_TSV_FILEPATH.name}.\n" )
+
+    # Remove any BOM
+    if initialTSVLines[0].startswith("\ufeff"):
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, "  Handling Byte Order Marker (BOM) at start of TSV file…")
+        initialTSVLines[0] = initialTSVLines[0][1:]
+    assert initialTSVLines[0] == EXPECTED_OET_LV_NAMES_TSV_HEADER
+
+    # crossTestamentQuotes_tsv_rows = []
+    dict_reader = DictReader(initialTSVLines, delimiter='\t' )
+    for n, row in enumerate(dict_reader):
+        lvName = row['LVName']
+        OET_LV_NAMES_SET.add( lvName )
+        if '-' in lvName: # Break up names like Beer-Sheva (as we split them below)
+            for rvNameBit in lvName.split( '-' ):
+                OET_LV_NAMES_SET.add( rvNameBit )
+
+
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Loaded {len(OET_LV_NAMES_SET):,} OET-LV names." )
+    # print( list(OET_LV_NAMES_SET)[:10]); halt
+    return True
+# end of spellCheckEnglish.load_OET_LV_names
+
+
+OET_RV_NAMES_SET = set()
+def load_OET_RV_names() -> bool:
+    """
+    Load the names we use from the tsv names table
+    """
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Loading {OET_RV_NAMES_TSV_FILEPATH}…" )
+    with open( OET_RV_NAMES_TSV_FILEPATH, 'rt', encoding='utf-8') as inputTSVFile:
+        initialTSVLines = inputTSVFile.read().rstrip().split( '\n' )
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  {len(initialTSVLines):,} lines loaded from {OET_RV_NAMES_TSV_FILEPATH.name}.\n" )
+
+    # Remove any BOM
+    if initialTSVLines[0].startswith("\ufeff"):
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, "  Handling Byte Order Marker (BOM) at start of TSV file…")
+        initialTSVLines[0] = initialTSVLines[0][1:]
+    assert initialTSVLines[0] == EXPECTED_OET_RV_NAMES_TSV_HEADER
+
+    # crossTestamentQuotes_tsv_rows = []
+    dict_reader = DictReader(initialTSVLines, delimiter='\t' )
+    for n, row in enumerate(dict_reader):
+        rvName = row['RVName']
+        OET_RV_NAMES_SET.add( rvName )
+        if '-' in rvName: # Break up names like Beer-Sheva (as we split them below)
+            for rvNameBit in rvName.split( '-' ):
+                OET_RV_NAMES_SET.add( rvNameBit )
+
+
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Loaded {len(OET_RV_NAMES_SET):,} OET-RV names." )
+    # print( list(OET_RV_NAMES_SET)[:10]); halt
+    return True
+# end of spellCheckEnglish.load_OET_RV_names
+
+
 AMERICAN_WORD_SET, BRITISH_WORD_SET = set(), set()
 def load_dict_sources() -> bool:
     """
     Load the words from the SIL Toolbox source files.
     """
     global AMERICAN_WORD_SET, BRITISH_WORD_SET
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Load English and Bible words from source dictionaries in {TED_Dict_folderpath}…" )
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Load English and Bible words from source dictionaries in {TED_DICT_FOLDERPATH}…" )
 
     AMERICAN_WORD_SET, BRITISH_WORD_SET = set(INITIAL_BIBLE_WORD_SET), set(INITIAL_BIBLE_WORD_SET)
     for dictFilename in ('EnglishDict.db','BibleDict.db'):
-        dictFilepath = TED_Dict_folderpath.joinpath( dictFilename )
+        dictFilepath = TED_DICT_FOLDERPATH.joinpath( dictFilename )
         with open( dictFilepath, 'rt', encoding='utf-8' ) as dictSourceFile:
             dictText = dictSourceFile.read()
         dictWords = dictText.split( '\n\\wd ')
@@ -330,6 +362,8 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
     location = f'{versionAbbreviation} {ref}'
     if len(AMERICAN_WORD_SET) < 10_000:
         load_dict_sources()
+        load_OET_LV_names()
+        load_OET_RV_names()
 
     #if versionAbbreviation in ( 'ULT','UST', 'NET', 'BSB','BLB', 'WEB','WMB', 'LSV', 'FBV', 'LEB', 'ASV', 'Wbstr' ):
     if state.BibleLanguages[versionAbbreviation] == 'EN-USA':
@@ -346,7 +380,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
 
     # Specific words expected in specific versions
     if versionAbbreviation in ('OET','OET-RV','OET-LV'):
-        wordSet.update( ('OET','ESFM','v0.6','Freely-Given.org','WORDTABLE','LV_NT_word_table.tsv','table.tsv',
+        wordSet.update( ('OET','ESFM','v0.6','Freely-Given.org','WORDTABLE','table.tsv',
                         'ScriptedBibleEditor',
                         '\\jmp', '_', '_\\em*about', '_\\em*all', '_\\em*caring\\em',
                         'href="https','openscriptures.org','en.wikipedia.org', # Website refererences
@@ -355,11 +389,14 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                         'mounce', 'openenglishbible', 'scrollandscreen.com', 'UASVBible.org', 'given.org', 'GitHub.com', 'GreekCNTR.org', # Websites
                         '%E2%80%9Cdivided','%E2%80%9Cjew%E2%80%9D','v=66013018',
                         'Amots','Tsor',
-                        ) )
+                        ),
+                    OET_LV_NAMES_SET )
         if versionAbbreviation == 'OET-LV':
-            wordSet.update( ('LV_OT_word_table.tsv',
-                            'Dawid','Efrayim','Farisaios','Galilaia','Pilatos',
+            wordSet.update( ('LV_OT_word_table.tsv', 'LV_NT_word_table.tsv',
+                            # 'Dawid','Efrayim','Farisaios','Galilaia','Pilatos',
                             ) )
+        if versionAbbreviation == 'OET-RV':
+            wordSet.update( OET_RV_NAMES_SET )
     elif versionAbbreviation in ('UST','ULT','UHB','UGNT'):
         wordSet.update( ('unfoldingWord®','unfoldingWord','tc','en',) )
     elif versionAbbreviation == 'LSV': # Allow their UPPER CASE Psalm headings
@@ -480,7 +517,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                        'ior', 'vp',
                        'nd','wj','d','bk','qt','sc',
                        'qs','sig',
-                        'ft','fk', 'fnRef','fnText', # 'f', # We intentionally omit 'fr' -- why???
+                        'ft','fk', 'fnRef','fnText', 'xt', # 'f', # We intentionally omit 'fr' -- why???
                         'li1','li2','li3',
                         'v', # for verse spans on parallel and interlinear pages
                         'theb','va', # in NET
@@ -576,12 +613,12 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
 
         if word in ('◙','…','…◙','◘'): continue # Untranslated or not-yet-translated verse
         # if word.startswith( '###' ): continue # it's an fr or xo field BUT COMMENTED OUT ABOVE
-        if 'ā' in word or 'ē' in word or 'ī' in word or 'ō' in word or 'ū' in word: continue # It's a transliteration
-        if 'Ā' in word or 'Ē' in word or 'Ī' in word or 'Ō' in word or 'Ū' in word: continue # It's a transliteration
-        if 'ⱪ' in word or 'ʦ' in word or 'ʸ' in word: continue # It's a transliteration
-        if 'ⱪ' in word or 'Ē' in word or 'Ī' in word or 'Ş' in word or 'Ū' in word: continue # It's a transliteration
-        if 'ₐ' in word or 'ₑ' in word or 'ₒ' in word: continue # It's a transliteration
-        if 'ˊ' in word or 'XXX' in word: continue # It's a transliteration
+        # if 'ā' in word or 'ē' in word or 'ī' in word or 'ō' in word or 'ū' in word: continue # It's a transliteration
+        # if 'Ā' in word or 'Ē' in word or 'Ī' in word or 'Ō' in word or 'Ū' in word: continue # It's a transliteration
+        # if 'ⱪ' in word or 'ʦ' in word or 'ʸ' in word: continue # It's a transliteration
+        # if 'ⱪ' in word or 'Ē' in word or 'Ī' in word or 'Ş' in word or 'Ū' in word: continue # It's a transliteration
+        # if 'ₐ' in word or 'ₑ' in word or 'ₒ' in word: continue # It's a transliteration
+        # if 'ˊ' in word or 'XXX' in word: continue # It's a transliteration
         for _x in range( 2 ):
             # We can have nested punctuation, especially at the end of a sentence
             while word.startswith('‘') or word.startswith('“') or word.startswith("'") or word.startswith('"') \

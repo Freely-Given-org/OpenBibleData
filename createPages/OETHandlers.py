@@ -172,9 +172,9 @@ def getBBBFromOETBookName( originalBooknameText:str, where:str ) -> str|None:
     TODO: How much of this should be in BibleOrgSys ???
     """
     # Too many errors from having this function first, e.g., gives 'NAH' from 'Yonah'
-    # resultBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromText( originalBooknameText )
+    # resultBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromEnglishText( originalBooknameText )
     # if resultBBB and resultBBB not in ('SAM','CHR','NAH): return resultBBB
-    # else: dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromText() can't get valid BBB from {originalBooknameText=}" )
+    # else: dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromEnglishText() can't get valid BBB from {originalBooknameText=}" )
                                                                         
     booknameText = ( originalBooknameText
                         .replace( ' ', '' ).replace( NARROW_NON_BREAK_SPACE, '' )
@@ -185,7 +185,7 @@ def getBBBFromOETBookName( originalBooknameText:str, where:str ) -> str|None:
     try: return OET_BBB_DICT[booknameText]
     except KeyError: pass
 
-    resultBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromText( booknameText
+    resultBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromEnglishText( booknameText
                     # .replace( 'Yob', 'JOB' ).replace( 'Yochanan', 'JHN' ).replace( 'Yoel', 'JOL' ).replace( 'Yonah', 'JNA' )
                     .replace( 'Yhn', 'JHN' ).replace( 'Yud', 'JDE' )
                     # .replace( '1Yhn', 'JN1' ).replace( '2Yhn', 'JN2' ).replace( '3Yhn', 'JN3' )

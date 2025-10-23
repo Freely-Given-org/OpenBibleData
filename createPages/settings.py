@@ -63,17 +63,17 @@ class State:
     """
     A place to store some of the global stuff that needs to be passed around.
     """
-    OET_VERSION_NUMBER_STRING = 'v0.45.02' # Incremented on most runs
+    OET_VERSION_NUMBER_STRING = 'v0.45.15' # Incremented on most runs
 
     TEST_MODE = True # Writes website into 'Test' subfolder if True
-    TEST_OT_BOOK_LIST = ['CH1','PRO','EZE'] # Books in progress
+    TEST_OT_BOOK_LIST = ['CH2','PRO'] # Books in progress
     TEST_NT_BOOK_LIST = ['MRK'] # Shortest gospel
     NEW_BOOK_IN_TEST_LIST = False # So that word pages will get rebuilt for TEST_MODE
 
     # Many of these settings are used to omit some processing so as to get a speedier conclusion for debugging
     TEST_VERSIONS_ONLY = None #['OET','OET-RV','OET-LV', 'RV', 'TOSN','UTN'] # Also stops actual site being built
     ALL_PRODUCTION_BOOKS = not TEST_MODE # If set to False, uses the TEST book list (with many less books) for a faster test build
-    CREATE_PARALLEL_VERSE_PAGES = 'FIRST' # 'FIRST','LAST', or None -- depending on debugging needs
+    CREATE_PARALLEL_VERSE_PAGES = 'LAST' # 'FIRST','LAST', or None -- depending on debugging needs
     CREATE_BOOK_AND_OTHER_PAGES = True # Can be turned off for debugging
     DO_SPELL_CHECKS = True #TEST_MODE # On parallel pages
     REUSE_EXISTING_WORD_PAGES = TEST_MODE and not NEW_BOOK_IN_TEST_LIST # Don't recreate word pages
@@ -81,10 +81,10 @@ class State:
     UPDATE_ACTUAL_SITE_WHEN_BUILT = True # The pages are initially built in a tmp folder so need to be copied to the final destination
 
     OET_RV_OT_BOOK_LIST = ['GEN','EXO','JOS','JDG','RUT',
-                    'SA1','SA2','KI1','KI2','CH1',
+                    'SA1','SA2','KI1','KI2','CH1','CH2',
                     'EZR','NEH','EST','JOB','PSA','PRO','ECC','SNG','LAM',
                     'EZE','DAN','HOS','JOL','AMO','OBA','JNA',
-                    'MIC','NAH','HAB','ZEP','HAG','ZEC','MAL'] # 33 'LEV','NUM','DEU','CH2','ISA','JER'
+                    'MIC','NAH','HAB','ZEP','HAG','ZEC','MAL'] # 'LEV','NUM','DEU','ISA','JER'
 
     TEMP_BUILD_FOLDER = Path( '../buildingHtmlPages/' )
     NORMAL_DESTINATION_FOLDER = Path( '../htmlPages/' )

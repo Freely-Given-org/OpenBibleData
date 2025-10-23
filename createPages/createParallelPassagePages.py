@@ -231,7 +231,7 @@ def createParallelPassagePages( level:int, folder:Path, state:State ) -> bool:
 #     # referenceBible = state.preloadedBibles['OET-LV']
 #     # numChapters = referenceBible.getNumChapters( BBB ) # Causes the book to be loaded if not already
 #     # introLinks = [ '<a title="Go to synoptic intro page" href="Intro.htm#Top">Intro</a>' ]
-#     # cLinksPar = f'''<p class="chLst" id="chLst">{EM_SPACE.join( introLinks + [f'<a title="Go to synoptic verse page" href="C{ps}V1.htm#Top">Ps{ps}</a>' for ps in range(1,numChapters+1)] )}</p>''' \
+#     # chapterLinksParagraph = f'''<p class="chLst" id="chLst">{EM_SPACE.join( introLinks + [f'<a title="Go to synoptic verse page" href="C{ps}V1.htm#Top">Ps{ps}</a>' for ps in range(1,numChapters+1)] )}</p>''' \
 #     #     if BBB=='PSA' else \
 #     #         f'''<p class="chLst" id="chLst">{ourTidyBbb if ourTidyBbb!='Yac' else 'Yacob/(James)'} {' '.join( introLinks + [f'<a title="Go to synoptic verse page" href="C{chp}V1.htm#Top">C{chp}</a>' for chp in range(1,numChapters+1)] )}</p>'''
 
@@ -788,7 +788,7 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
                     dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {collectedVerseCrossReference=} {firstPart=} {attemptedBBB=}" )
                     # if attemptedBBB is None and thisBible.abbreviation=='OET-RV' and firstPart[0]=='Y':
                     #     # Maybe we need to convert something like Yoel to Joel
-                    #     attemptedBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromText( f'J{firstPart[1:]}' )
+                    #     attemptedBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromEnglishText( f'J{firstPart[1:]}' )
                     if attemptedBBB is None:
                         # If might be an internal reference to this same book
                         #   so prepend this book code

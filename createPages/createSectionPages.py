@@ -52,6 +52,7 @@ CHANGELOG:
     2025-03-24 Liven Readers' Version and Literal Version headings
     2025-05-21 Remove superfluous section headings in Psalms on the five "book" boundaries (chapters 1,42,73,90,107)
     2025-09-21 Change character in nav row from ◘ (also used for missing verses) to ‴ for 'Related section view'
+    2025-10-06 Add chappter bars to section index pages for books
 """
 from gettext import gettext as _
 from pathlib import Path
@@ -73,10 +74,10 @@ from Bibles import getBibleMapperMaps
 from OETHandlers import livenOETWordLinks, getOETTidyBBB, getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2025-09-26' # by RJH
+LAST_MODIFIED_DATE = '2025-10-05' # by RJH
 SHORT_PROGRAM_NAME = "createSectionPages"
 PROGRAM_NAME = "OpenBibleData createSectionPages functions"
-PROGRAM_VERSION = '0.73'
+PROGRAM_VERSION = '0.74'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -227,16 +228,30 @@ def createOETSectionPages( level:int, folder:Path, rvBible:ESFMBible, lvBible:ES
             continue
 
         numChapters = rvBible.getNumChapters( BBB )
-        cLinks = [f'<a title="Choose “book”" href="./">{ourTidyBBBwithNotes}</a>']
+        # chapterLinks = [f'<a title="Choose “book”" href="./">{ourTidyBBBwithNotes}</a>']
+        # if numChapters >= 1:
+        #     if rvBible.discoveryResults[BBB]['haveIntroductoryText']:
+        #         chapterLinks.append( f'<a title="View document introduction instead" href="../byC/{BBB}_Intro.htm#Top">Intro</a>' )
+        #     for c in range( 1, numChapters+1 ):
+        #         chapterLinks.append( f'<a title="View chapter page instead" href="../byC/{BBB}_C{c}.htm#Top">{'Sg' if BBB=='PSA' else 'C'}{c}</a>' )
+        # else:
+        #     c = '0' # TODO: for now
+        #     halt
+        # chapterLinksParagraph = f'<p class="chLst">{" ".join( chapterLinks )}</p>'
+
+        sectionChapterLinks = [f'<a title="Choose “book”" href="./">{ourTidyBBBwithNotes}</a>']
         if numChapters >= 1:
             if rvBible.discoveryResults[BBB]['haveIntroductoryText']:
-                cLinks.append( f'<a title="View document introduction" href="{BBB}_Intro.htm#Top">Intro</a>' )
+                sectionChapterLinks.append( f'<a title="View document introduction" href="{BBB}_S1.htm#Top">Intro</a>' )
             for c in range( 1, numChapters+1 ):
-                cLinks.append( f'<a title="View chapter page instead" href="../byC/{BBB}_C{c}.htm#Top">{'Sg' if BBB=='PSA' else 'C'}{c}</a>' )
+                C = str( c )
+                s = findSectionNumber( 'OET-RV', BBB, C, '1', state )
+                sectionChapterLinks.append( f'<a title="Select section by chapter number" href="{BBB}_S{s}.htm#C{C}">{'Sg' if BBB=='PSA' else 'C'}{C}</a>' )
         else:
             c = '0' # TODO: for now
             halt
-        cLinksPar = f'<p class="chLst">{" ".join( cLinks )}</p>'
+        sectionChapterLinksParagraph = f'<p class="chLst">{" ".join( sectionChapterLinks )}</p>'
+
 
         # # First, get our list of sections
         BBBs.append( BBB )
@@ -327,11 +342,11 @@ def createOETSectionPages( level:int, folder:Path, rvBible:ESFMBible, lvBible:ES
                             f'''<a title="Up to {state.BibleNames['OET']}" href="{'../'*level}OET/">↑OET</a>''' )
             sectionHtml = f'''{top}<!--section page-->
 {navBookListParagraph}
-{cLinksPar.replace( 'class="chLst">', 'class="chLst" id="chLst">', 1 )}
+{sectionChapterLinksParagraph.replace( 'class="chLst">', 'class="chLst" id="chLst">', 1 )}
 {sectionHtml}
 {combinedHtml}
 <p class="secNav">{sectionIndexLink}{leftLink}{documentLink} {startChapterLink}:{startV}–{endChapterLink}:{endV}{rightLink}{relatedLink}{parallelLink}{interlinearLink}{detailsLink}</p>
-{cLinksPar}
+{sectionChapterLinksParagraph}
 {makeBottom( level, 'section', state )}'''
             assert checkHtml( f'{rvBible.abbreviation} {BBB} section', sectionHtml )
             assert not filepath.is_file() # Check that we're not overwriting anything
@@ -347,16 +362,18 @@ def createOETSectionPages( level:int, folder:Path, rvBible:ESFMBible, lvBible:ES
                 .replace( '__KEYWORDS__', f'Bible, OET, sections, {ourTidyBBB}' ) \
                 .replace( f'''<a title="{state.BibleNames['OET']}" href="{'../'*2}OET/bySec/{indexFilename}#Top">OET</a>''',
                         f'''<a title="Up to {state.BibleNames['OET']}" href="{'../'*2}OET/">↑OET</a>''' )
-        sectionHtml = f'<h1 id="Top">Index of sections for OET {ourTidyBBBwithNotes}</h1>'
+        sectionHtmlBits = [f'<h1 id="Top">Index of sections for OET {ourTidyBBBwithNotes}</h1>']
         for _nnn,startC,startV,_endC,_endV,sectionName,reasonName,_contextList,_verseEntryList,sectionFilename in state.sectionsLists['OET-RV'][BBB]:
             # print( f"HERE8 {BBB} {startC}:{startV} {_endC}:{endV} '{sectionName=}' '{reasonName=}' '{filename=}'" )
             reasonString = '' if reasonName=='Section heading' and not state.TEST_MODE else f' ({reasonName})' # Suppress '(Section Heading)' appendages in the list
             # NOTE: word 'Alternate ' is defined above at start of main loop
-            sectionHtml = f'''{sectionHtml}\n<p class="{'alternateHeading' if reasonName.startswith('Alternate ') else 'sectionHeading'}"><a title="View section" href="{sectionFilename}#Top">{'Intro' if startC=='-1' else startC}:{startV} <b>{sectionName}</b>{reasonString}</a></p>'''
+            sectionHtmlBits.append( f'''<p class="{'alternateHeading' if reasonName.startswith('Alternate ') else 'sectionHeading'}"><a title="View section" href="{sectionFilename}#Top">{'Intro' if startC=='-1' else startC}:{startV} <b>{sectionName}</b>{reasonString}</a></p>''' )
 
         sectionHtml = f'''{top}<!--sections page-->
 {navBookListParagraph}
-{sectionHtml}
+{sectionChapterLinksParagraph.replace( 'class="chLst">', 'class="chLst" id="chLst">', 1 )}
+{'\n'.join( sectionHtmlBits )}
+{sectionChapterLinksParagraph}
 {makeBottom( level, 'sectionIndex', state )}'''
         assert checkHtml( 'OET section index', sectionHtml )
         assert not indexFilepath.is_file() # Check that we're not overwriting anything
@@ -458,16 +475,29 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> list
             continue # Only create pages for the requested books
 
         numChapters = thisBible.getNumChapters( BBB )
+        # if numChapters >= 1:
+        #     chapterLinks = [f'<a title="Choose “book”" href="./">{ourTidyBBB}</a>']
+        #     if thisBible.discoveryResults[BBB]['haveIntroductoryText']:
+        #         chapterLinks.append( f'<a title="View document introduction" href="{BBB}_Intro.htm#Top">Intro</a>' )
+        #     for c in range( 1, numChapters+1 ):
+        #         chapterLinks.append( f'<a title="View chapter page instead" href="../byC/{BBB}_C{c}.htm#Top">{'Sg' if 'OET' in thisBible.abbreviation and BBB=='PSA' else 'Ps' if BBB=='PSA' else 'C'}{c}</a>' )
+        #     chapterLinksParagraph = f'<p class="chLst">{" ".join( chapterLinks )}</p>' if chapterLinks else ''
+        # else:
+        #     # c = '0' # TODO: for now
+        #     chapterLinksParagraph = ''
+
+        sectionChapterLinks = [f'<a title="Choose “book”" href="./">{ourTidyBBB}</a>']
         if numChapters >= 1:
-            cLinks = [f'<a title="Choose “book”" href="./">{ourTidyBBB}</a>']
             if thisBible.discoveryResults[BBB]['haveIntroductoryText']:
-                cLinks.append( f'<a title="View document introduction" href="{BBB}_Intro.htm#Top">Intro</a>' )
+                sectionChapterLinks.append( f'<a title="View document introduction" href="{BBB}_S1.htm#Top">Intro</a>' )
             for c in range( 1, numChapters+1 ):
-                cLinks.append( f'<a title="View chapter page instead" href="../byC/{BBB}_C{c}.htm#Top">{'Sg' if 'OET' in thisBible.abbreviation and BBB=='PSA' else 'Ps' if BBB=='PSA' else 'C'}{c}</a>' )
-            cLinksPar = f'<p class="chLst">{" ".join( cLinks )}</p>' if cLinks else ''
+                C = str( c )
+                s = findSectionNumber( thisBible.abbreviation, BBB, C, '1', state )
+                sectionChapterLinks.append( f'<a title="Select section by chapter number" href="{BBB}_S{s}.htm#C{C}">{'Sg' if BBB=='PSA' else 'C'}{C}</a>' )
         else:
-            # c = '0' # TODO: for now
-            cLinksPar = ''
+            c = '0' # TODO: for now
+            sectionChapterLinksParagraph = ''
+        sectionChapterLinksParagraph = f'<p class="chLst">{" ".join( sectionChapterLinks )}</p>'
 
         dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{thisBible.abbreviation} {type(thisBible[BBB]._SectionIndex)=} {thisBible[BBB]._SectionIndex=}" )
         if not thisBible[BBB]._SectionIndex: # no sections in this book, e.g., FRT
@@ -557,9 +587,9 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> list
                             f'''<a title="Up to {state.BibleNames[thisBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/">↑{thisBible.abbreviation}</a>''' )
             sectionHtml = f'''{top}<!--section page-->
 {navBookListParagraph}
-{cLinksPar.replace( 'class="chLst">', 'class="chLst" id="chLst">', 1 )}
+{sectionChapterLinksParagraph.replace( 'class="chLst">', 'class="chLst" id="chLst">', 1 )}
 {sectionHtml}
-{cLinksPar}
+{sectionChapterLinksParagraph}
 {makeBottom( level, 'section', state )}'''
             assert checkHtml( f'{thisBible.abbreviation} {BBB} section', sectionHtml )
             assert not filepath.is_file() # Check that we're not overwriting anything
@@ -575,15 +605,17 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> list
                 .replace( '__KEYWORDS__', f'Bible, {thisBible.abbreviation}, sections, {ourTidyBBB}' ) \
                 .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/bySec/{sectionFilename}#Top">{thisBible.abbreviation}</a>''',
                         f'''<a title="Up to {state.BibleNames[thisBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/">↑{thisBible.abbreviation}</a>''' )
-        sectionHtml = f'<h1 id="Top">Index of sections for {thisBible.abbreviation} {ourTidyBBB}</h1>\n'
+        sectionHtmlBits = [f'<h1 id="Top">Index of sections for {thisBible.abbreviation} {ourTidyBBB}</h1>']
         for _nnn,startC,startV,_endC,_endV,sectionName,reasonName,_contextList,_verseEntryList,sectionFilename in state.sectionsLists[thisBible.abbreviation][BBB]:
             reasonString = '' if reasonName=='Section heading' and not state.TEST_MODE else f' ({reasonName})' # Suppress '(Section Heading)' appendages in the list
             # NOTE: word 'Alternate ' is defined in the above OET function at start of main loop
-            sectionHtml = f'''{sectionHtml}<p class="{'alternateHeading' if reasonName.startswith('Alternate ') else 'sectionHeading'}"><a title="View section" href="{sectionFilename}#Top">{'Intro' if startC=='-1' else startC}:{startV} <b>{sectionName}</b>{reasonString}</a></p>'''
+            sectionHtmlBits.append( f'''<p class="{'alternateHeading' if reasonName.startswith('Alternate ') else 'sectionHeading'}"><a title="View section" href="{sectionFilename}#Top">{'Intro' if startC=='-1' else startC}:{startV} <b>{sectionName}</b>{reasonString}</a></p>''' )
             # sectionHtml = f'''{sectionHtml}<p class="sectionHeading"><a title="View section" href="{filename}#Top">{'Intro' if startC=='-1' else startC}:{startV} <b>{sectionName}</b>{reasonString}</a></p>\n'''
         sectionHtml = f'''{top}<!--sections page-->
 {navBookListParagraph}
-{sectionHtml}
+{sectionChapterLinksParagraph.replace( 'class="chLst">', 'class="chLst" id="chLst">', 1 )}
+{'\n'.join( sectionHtmlBits )}
+{sectionChapterLinksParagraph}
 {makeBottom( level, 'sectionIndex', state )}'''
         assert checkHtml( f'{thisBible.abbreviation} section index', sectionHtml )
         assert not indexFilepath.is_file() # Check that we're not overwriting anything
@@ -692,7 +724,8 @@ def livenSectionReferences( versionAbbreviation:str, refTuple:tuple, segmentType
         """
         fnPrint( DEBUGGING_THIS_MODULE, f"livenSectionReferencesDigits( {versionAbbreviation}, {refTuple}, {segmentType}, {refBBB}, '{sectionReferenceDigitsText}' )" )
         dPrint( 'Info', DEBUGGING_THIS_MODULE, f"livenSectionReferencesDigits( {versionAbbreviation}, {refTuple}, {segmentType}, {refBBB} '{sectionReferenceDigitsText}' )…" )
-        assert refBBB in BOOKLIST_66, f"livenSectionReferencesDigits( {versionAbbreviation}, {refTuple}, {segmentType}, {refBBB}, '{sectionReferenceDigitsText}' )"
+        if versionAbbreviation not in ('BSB','MSB') or 'PRO' not in refTuple: # PRO 11 = EZT 45:10-12 ???
+            assert refBBB in BOOKLIST_66, f"livenSectionReferencesDigits( {versionAbbreviation}, {refTuple}, {segmentType}, {refBBB}, '{sectionReferenceDigitsText}' )"
         assert ' ' not in sectionReferenceDigitsText and ',' not in sectionReferenceDigitsText and ';' not in sectionReferenceDigitsText
 
         isSingleChapterBook = BibleOrgSysGlobals.loadedBibleBooksCodes.isSingleChapterBook( refBBB )

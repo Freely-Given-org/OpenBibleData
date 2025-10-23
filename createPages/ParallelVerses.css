@@ -104,10 +104,12 @@ span.LEB_verseTextChunk {}
 span.LSV_verseTextChunk {}
 span.Luth_verseTextChunk {}
 span.Moff_verseTextChunk {}
+span.MSB_verseTextChunk {}
 span.NET_verseTextChunk {}
 span.OEB_verseTextChunk {}
 span.OET-LV_verseTextChunk {}
 span.OET-RV_verseTextChunk {}
+span.RP-GNT_verseTextChunk {}
 span.RV_verseTextChunk {}
 span.SBL-GNT_verseTextChunk {}
 span.SLT_verseTextChunk {}
@@ -142,6 +144,7 @@ span.TNT_mod { font-family:sans-serif; font-size:0.85em; }
 span.Wycl_mod { font-family:sans-serif; font-size:0.85em; }
 
 span.BrLXX_trans { font-family:sans-serif; font-size:0.85em; }
+span.RP-GNT_trans { font-family:sans-serif; font-size:0.85em; }
 span.SBL-GNT_trans { font-family:sans-serif; font-size:0.85em; }
 span.SR-GNT_trans { font-family:sans-serif; font-size:0.85em; }
 span.TC-GNT_trans { font-family:sans-serif; font-size:0.85em; }

@@ -580,7 +580,7 @@ def loadTyndaleBookIntrosXML( abbrev:str, XML_filepath ) -> dict[str,str]:
                     OSISBkCode, firstC, firstVs = firstRef.split( '.' )
                     if OSISBkCode.endswith('Thes'):
                         OSISBkCode += 's' # TODO: getBBBFromText should handle '1Thes'
-                    BBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromText( OSISBkCode )
+                    BBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromEnglishText( OSISBkCode )
                     stateCounter += 1
                 elif stateCounter == 2:
                     assert subelement.tag == 'body'
@@ -791,7 +791,7 @@ def fixTyndaleBRefs( abbrev:str, level:int, BBBorArticleName:str, C:str, V:str, 
             assert tC.isdigit()
             tV = getLeadingInt( tV ) # in case there's an a or b or something
             # assert tV.isdigit(), f"'{abbrev}' {level=} {BBBorArticleName} {C}:{V} {tBkCode=} {tC=} {tV=}"
-            tBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromText( tBkCode )
+            tBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromEnglishText( tBkCode )
             if not tBBB:
                 if tBkCode=='Tb': tBBB = 'TOB'
             assert tBBB
@@ -805,7 +805,7 @@ def fixTyndaleBRefs( abbrev:str, level:int, BBBorArticleName:str, C:str, V:str, 
                 tBkCode += 's' # TODO: getBBBFromText should handle '1Thes'
             assert tC.isdigit()
             assert tV.isdigit()
-            tBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromText( tBkCode )
+            tBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromEnglishText( tBkCode )
             if not tBBB:
                 if tBkCode=='Tb': tBBB = 'TOB'
             assert tBBB
@@ -817,7 +817,7 @@ def fixTyndaleBRefs( abbrev:str, level:int, BBBorArticleName:str, C:str, V:str, 
             if tBkCode.endswith('Thes'):
                 tBkCode += 's' # TODO: getBBBFromText should handle '1Thes'
             assert tC.isdigit()
-            tBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromText( tBkCode )
+            tBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromEnglishText( tBkCode )
             if not tBBB:
                 if tBkCode=='Tb': tBBB = 'TOB'
             assert tBBB, f"'{abbrev}' {level=} {BBBorArticleName} {C}:{V} {tBkCode=} {tC=}"
@@ -830,7 +830,7 @@ def fixTyndaleBRefs( abbrev:str, level:int, BBBorArticleName:str, C:str, V:str, 
             assert tC.isdigit()
             tV = getLeadingInt( tV ) # in case there's an a or b or something
             # assert tV.isdigit(), f"'{abbrev}' {level=} {BBBorArticleName} {C}:{V} {tBkCode=} {tC=} {tV=}"
-            tBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromText( tBkCode )
+            tBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromEnglishText( tBkCode )
             if not tBBB:
                 if tBkCode=='Tb': tBBB = 'TOB'
             assert tBBB, f"'{abbrev}' {level=} {BBBorArticleName} {C}:{V} {tBkCode=} {tC=} {tV=}"
@@ -1253,7 +1253,7 @@ def getVerseDataListForReference( givenRefString:str, thisBible:Bible, lastBBB:s
     refBBB = getBBBFromOETBookName( bookAbbreviation, f"getVerseDataListForReference( {thisBible.abbreviation} {givenRefString} {lastBBB=} {lastC=} )" )
     if refBBB is None:
         # if thisBible.abbreviation=='OET-RV' and bookAbbreviation[0]=='Y':
-        #     refBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromText( f'J{bookAbbreviation[1:]}' ) # Convert Yoel back to Joel, etc.
+        #     refBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromEnglishText( f'J{bookAbbreviation[1:]}' ) # Convert Yoel back to Joel, etc.
         #     dPrint( 'Info', DEBUGGING_THIS_MODULE, f"{bookAbbreviation=} {refCVpart=} {refBBB=}" )
         # el
         if bookAbbreviation[0].isdigit() and (':' in bookAbbreviation or '-' in bookAbbreviation): # or bookAbbreviation.isdigit() might need to be added
@@ -1264,7 +1264,7 @@ def getVerseDataListForReference( givenRefString:str, thisBible:Bible, lastBBB:s
     if refBBB not in thisBible: # Don't force that book to be loaded
         return refBBB, '', InternalBibleEntryList(), []
     # if refBBB is None and thisBible.abbreviation=='OET-RV' and bookAbbreviation[0]=='Y':
-    #     refBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromText( f'J{bookAbbreviation[1:]}' ) # Convert Yoel back to Joel, etc.
+    #     refBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromEnglishText( f'J{bookAbbreviation[1:]}' ) # Convert Yoel back to Joel, etc.
     #     print( f"{bookAbbreviation=} {refCVpart=} {refBBB=}" )
     assert refBBB, f"getVerseDataListForReference {givenRefString=} can't get BBB from {bookAbbreviation=} {refCVpart=}"
     refIsSingleChapterBook = BibleOrgSysGlobals.loadedBibleBooksCodes.isSingleChapterBook( refBBB )
@@ -1366,7 +1366,7 @@ def getVerseDataListForReference( givenRefString:str, thisBible:Bible, lastBBB:s
                         bookAbbreviation2, refEndC = refEndC.split( ' ' )
                         refBBB2 = getBBBFromOETBookName( bookAbbreviation2, f"getVerseDataListForReference( {thisBible.abbreviation} {givenRefString} {lastBBB=} {lastC=} )" )
                         # if refBBB2 is None and thisBible.abbreviation=='OET-RV' and bookAbbreviation2[0]=='Y':
-                        #     refBBB2 = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromText( f'J{bookAbbreviation2[1:]}' ) # Convert Yoel back to Joel, etc.
+                        #     refBBB2 = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromEnglishText( f'J{bookAbbreviation2[1:]}' ) # Convert Yoel back to Joel, etc.
                         #     dPrint( 'Info', DEBUGGING_THIS_MODULE, f"{bookAbbreviation2=} {refCVpart=} {refBBB2=}" )
                         assert refBBB2, f"getVerseDataListForReference {givenRefString=} can't get BBB2 from {bookAbbreviation2=} {refCVpart=}"
                         verseEntryList, contextList = thisBible.getContextVerseDataRange( (refBBB,refStartC,refStartV), (refBBB2,refEndC,refEndV) )
@@ -1568,7 +1568,7 @@ def getVerseMetaInfoHtml( BBB:str, C:str, V:str ) -> str: # html
 # end of Bibles.getVerseMetaInfoHtml
 
 IMPORTANCE_TABLE = { 'T':'<span style="color:grey;">trivial</span>', 'M':'<span style="color:black;">normal</span>', 'I':'<span style="color:orange;">important</span>', 'V':'<span style="color:red;">vital</span>' }
-TEXTUAL_ISSUE_TABLE = { '0':'<span style="color:green;">none</span>', '1':'<span style="color:pink;">minor spelling</span>', '2':'<span style="color:orange;">small word differences</span>', '3':'<span style="color:red;">major</span>' }
+TEXTUAL_ISSUE_TABLE = { '0':'<span style="color:green;">none</span>', '1':'<span style="color:pink;">minor/spelling</span>', '2':'<span style="color:orange;">small word differences</span>', '3':'<span style="color:red;">major</span>' }
 CLARITY_TABLE = { 'O':'<span style="color:red;">obscure</span>', 'U':'<span style="color:orange;">unclear</span>', 'C':'<span style="color:green;">clear</span>' }
 def formatVerseDetailsHtml( verseRef:str ) -> str: # html
     """

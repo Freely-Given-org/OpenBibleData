@@ -107,7 +107,7 @@ from OETHandlers import getOETTidyBBB, getOETBookName, livenOETWordLinks, getHeb
 from spellCheckEnglish import spellCheckAndMarkHTMLText
 
 
-LAST_MODIFIED_DATE = '2025-09-29' # by RJH
+LAST_MODIFIED_DATE = '2025-10-16' # by RJH
 SHORT_PROGRAM_NAME = "createParallelVersePages"
 PROGRAM_NAME = "OpenBibleData createParallelVersePages functions"
 PROGRAM_VERSION = '0.99'
@@ -241,7 +241,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
         logging.critical( f"createParallelVersePagesForBook unable to find a valid reference Bible for {BBB}" )
         return False # Need to check what FRT does
     introLinks = [ '<a title="Go to parallel intro page" href="Intro.htm#Top">Intro</a>' ]
-    cLinksPar = f'''<p class="chLst" id="chLst">{ourTidyBBBwithNotes} {' '.join( introLinks + [f'<a title="Go to parallel verse page" href="C{ps}V1.htm#vsLst">Sg{ps}</a>' for ps in range(1,numChapters+1)] )}</p>''' \
+    chapterLinksParagraph = f'''<p class="chLst" id="chLst">{ourTidyBBBwithNotes} {' '.join( introLinks + [f'<a title="Go to parallel verse page" href="C{ps}V1.htm#vsLst">Sg{ps}</a>' for ps in range(1,numChapters+1)] )}</p>''' \
         if BBB=='PSA' else \
             f'''<p class="chLst" id="chLst">{ourTidyBbb if ourTidyBbb!='Yac' else 'Yacob/(James)'} {' '.join( introLinks + [f'<a title="Go to parallel verse page" href="C{chp}V1.htm#vsLst">C{chp}</a>' for chp in range(1,numChapters+1)] )}</p>'''
 
@@ -460,9 +460,10 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                 if state.DO_SPELL_CHECKS:
                                     textHtml = spellCheckAndMarkHTMLText( versionAbbreviation, parRef, textHtml, textHtml, state ) # Puts spans around mispellings
                             elif versionAbbreviation == 'MSB': # assuming BSB comes BEFORE MSB
-                                if textHtml and textHtml == adjustedTextHtmlBSB:
-                                    # print( f"Skipping parallel for WMB {parRef} because same as WEB" )
-                                    textHtml = "(Same as above)" # Do we also need to adjust footnotesHtml ???
+                                if textHtml and textHtml.replace(' ⇔ ','') == adjustedTextHtmlBSB:
+                                    # print( f"Skipping parallel for MSB {parRef} because same as BSB" )
+                                    textHtml = "(Same as <small>BSB</small> above)" # Do we also need to adjust footnotesHtml ???
+                                # if parRef == 'PRO_4:9': print( f"{parRef}\n{adjustedTextHtmlBSB=}\n           {textHtml=}" ); halt
                                 else: # Try to highlight the first difference (that's not inside a footnote caller)
                                     fnCallerIx = textHtml.find( '<span class="fnCaller">' )
                                     for zz1, (msbChar,bsbChar) in enumerate( zip( textHtml, adjustedTextHtmlBSB ) ):
@@ -1070,7 +1071,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                     top = top.replace( f'''href="{'../'*BBBLevel}ilr/"''', f'''href="{'../'*BBBLevel}ilr/{BBB}/C{C}V{V}.htm#Top"''')
                 parallelHtml = f'''{top}<!--parallel verse page-->
 {adjBBBLinksHtml}
-{cLinksPar}
+{chapterLinksParagraph}
 {vLinksPar}
 <h1>Parallel {ourTidyBBB} {'Intro' if c==-1 else f'{C}:{V}'}</h1>
 <p class="rem">Note: {state.OET_SINGLE_VERSE_HTML_TEXT} Click on any Bible version abbreviation down the left-hand side to see the verse in more of its context. {state.OETS_UNFINISHED_WARNING_HTML_TEXT}</p>
@@ -1099,7 +1100,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
             .replace( '__TITLE__', f"{ourTidyBBB} Parallel Verse View{' TEST' if state.TEST_MODE else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, parallel, verse, view, display, index' )
     # For Psalms, we don't list every single verse
-    indexHtml = f'''{top}{adjBBBLinksHtml}{f'{NEWLINE}<h1 id="Top">{ourTidyBBB} parallel songs index</h1>' if BBB=='PSA' else ''}{cLinksPar}{f'{NEWLINE}<h1 id="Top">{ourTidyBBB} parallel verses index</h1>' if BBB!='PSA' else ''}{f'{NEWLINE}<p class="vsLst">{" ".join( vLinksList )}</p>' if BBB!='PSA' else ''}
+    indexHtml = f'''{top}{adjBBBLinksHtml}{f'{NEWLINE}<h1 id="Top">{ourTidyBBB} parallel songs index</h1>' if BBB=='PSA' else ''}{chapterLinksParagraph}{f'{NEWLINE}<h1 id="Top">{ourTidyBBB} parallel verses index</h1>' if BBB!='PSA' else ''}{f'{NEWLINE}<p class="vsLst">{" ".join( vLinksList )}</p>' if BBB!='PSA' else ''}
 {makeBottom( BBBLevel, 'parallelVerse', state )}'''
     assert checkHtml( 'parallelIndex', indexHtml )
     with open( filepath1, 'wt', encoding='utf-8' ) as indexHtmlFile:
@@ -1116,7 +1117,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
             .replace( '__TITLE__', f"{ourTidyBBB} Parallel Verse View{' TEST' if state.TEST_MODE else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, parallel, verse, view, display, index' )
     # For Psalms, we don't list every single verse
-    indexHtml = f'''{top}{adjBBBLinksHtml}{f'{NEWLINE}<h1 id="Top">{ourTidyBBB} parallel songs index</h1>' if BBB=='PSA' else ''}{cLinksPar}{f'{NEWLINE}<h1 id="Top">{ourTidyBBB} parallel verses index</h1>' if BBB!='PSA' else ''}{f'{NEWLINE}<p class="vsLst">{" ".join( newBBBVLinks )}</p>' if BBB!='PSA' else ''}
+    indexHtml = f'''{top}{adjBBBLinksHtml}{f'{NEWLINE}<h1 id="Top">{ourTidyBBB} parallel songs index</h1>' if BBB=='PSA' else ''}{chapterLinksParagraph}{f'{NEWLINE}<h1 id="Top">{ourTidyBBB} parallel verses index</h1>' if BBB!='PSA' else ''}{f'{NEWLINE}<p class="vsLst">{" ".join( newBBBVLinks )}</p>' if BBB!='PSA' else ''}
 {makeBottom( level, 'parallelVerse', state )}'''
     assert checkHtml( 'parallelIndex', indexHtml )
     with open( filepath2, 'wt', encoding='utf-8' ) as indexHtmlFile:
@@ -1722,7 +1723,8 @@ def markPossibleUnmatchedProperNames( parRef:str, thisVerseEntryList, state:Stat
                 if word[0] in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' \
                 and '/(' not in word \
                 and word not in (
-                    'A','An', 'And','Again', 'All', 'Allow', 'Also', 'Am', 'About', 'Accept', 'Acquit', 'Actually', 'Add', 'Addon', 'Adorn', 'Adulteries', 'Adultresses', 'Afflict', 'After', 'Against', 'Alas', 'Alleging', 'Already', 'Although', 'Altogether', 'Always', 'Among', 'Ancestors', 'Answered', 'Antiquity', 'Apart', 'Appoint', 'Approach', 'Arise', 'Arms', 'Arrogant', 'Arrows', 'Asia', 'Asian', 'Assemble', 'Assuredly', 'Attack',
+                    'A','An', 'And','Again', 'All', 'Allow', 'Also', 'Am', 'About', 'Accept', 'Acquit', 'Actually', 'Add', 'Adorn', 'Adulteries', 'Adultresses', 'Afflict', 'After', 'Against', 'Alas', 'Alleging', 'Already',
+                        'Although', 'Altogether', 'Always', 'Among', 'Ancestors', 'Answered', 'Antiquity', 'Apart', 'Appoint', 'Approach', 'Arise', 'Arms', 'Arrogant', 'Arrows', 'Asia', 'Asian', 'Assemble', 'Assuredly', 'Attack',
                         'Abandon','Abhor', 'Abhoring','Abundance', 'Acquire', 'Aha', 'Ascribe', 'Ask', 'At', 'Anger', 'Angry', 'Anguish', 'Another', 'Answer', 'Anxiety', 'Any', 'Anyone', 'Apples', 'Apply', 'Are','Avenge', 'Avoid', 'Awake',
                     'But','If','Because','As','Be','Though','Thus','Then','May','Or','According',
                     'In','To','Of','Under',
@@ -1730,48 +1732,78 @@ def markPossibleUnmatchedProperNames( parRef:str, thisVerseEntryList, state:Stat
                     'I','He','You','My', 'Many',
                     'Why','How','Which', 'Not','Oh',
                     'Bad', 'Balances', 'Before', 'Bind', 'Blessings', 'Boast', 'By','Bear', 'Beautiful', 'Became', 'Become', 'Bed[s]',
-                    'Call', 'Calloused', 'Came', 'Camels', 'Carefully', 'Case', 'Cast', 'Cattle', 'Cause', 'Cease', 'Cedars', 'Certain', 'Certainly', 'Change', 'Charcoal', 'Cheeks', 'Cherish', 'Cherubims', 'Chief', 'Chiefs', 'Child', 'Children', 'Chislon', 'Circumcise', 'Circumcision', 'Cities', 'City', 'Claim', 'Clean', 'Cleanse', 'Close', 'Clothe', 'Clothed', 'Clothing', 'Cloud', 'Clouds', 'Coming', 'Command', 'Commander', 'Complete', 'Completely', 'Completeness', 'Concerning', 'Condemns', 'Confronted', 'Correct','Contentions', 'Coverings',
+                    'Call', 'Calloused', 'Came', 'Camels', 'Carefully', 'Case', 'Cast', 'Cattle', 'Cause', 'Cease', 'Cedars', 'Certain', 'Certainly', 'Change', 'Charcoal', 'Cheeks', 'Cherish', 'Cherubims', 'Chief', 'Chiefs', 'Child',
+                        'Children', 'Chislon', 'Circumcise', 'Circumcision', 'Cities', 'City', 'Claim', 'Clean', 'Cleanse', 'Close', 'Clothe', 'Clothed', 'Clothing', 'Cloud', 'Clouds', 'Coming', 'Command', 'Commander', 'Complete',
+                        'Completely', 'Completeness', 'Concerning', 'Condemns', 'Confronted', 'Correct','Contentions', 'Coverings',
                     'Daughter', 'Daughters', 'Death', 'Deceit', 'Deceitfulness', 'Does', 'Drink', 'Drive', 'Drunkenness', 'Dead', 'Deliver', 'Desolations', 'Disaster', 'Discipline', 'Discretion', 'Divination',
-                    'Eat','End', 'Endure', 'Establish', 'Everything', 'Execute', 'Expressly', 'Eyes',
+                    'Eat','End', 'Endure', 'Establish', 'Everything', 'Execute', 'Expressly', 'Eyes', 'Each', 'Earlier', 'Earnestly', 'Ears', 'Eaten', 'Eggs', 'Either', 'Emperor', 'Encompassed', 'Encourage',
+                        'Enemies', 'Enlarge', 'Enroll', 'Enrolled', 'Enrollment', 'Entered', 'Ephod', 'Even', 'Ever', 'Everyone', 'Evil', 'Evil-', 'Exalt', 'Exceedingly', 'Except', 'Expel', 'Explain', 'Extol', 'Eye',
                     'Come','Do','Judge','Increase','Make','Open','Remember','Truly','Yes',
                     'Fear', 'Feet', 'Fine', 'Fir', 'Five', 'Foolishness', 'Fools', 'For', 'For/Because', 'Four', 'Friend', 'From',
+                        'Face', 'Faces', 'Faithful', 'Fall', 'Falsehood', 'Far', 'Favor', 'Fell', 'Fellow-imitators', 'Fifty', 'Fill', 'Filled', 'Finally', 'Fire', 'First', 'Flash', 'Flee', 'Flies', 'Flocks', 'Food', 'Foolish',
+                         'Foot', 'Forbid', 'Forget', 'Forgets', 'Forgive', 'Formless', 'Forty', 'Found', 'Foxes', 'Freedmen', 'Fruit', 'Fulfill', 'Furthermore', 'Futility',
                     'Gather', 'Girded', 'Give', 'Go','Good', 'Goodness',
-                    'Grace', 'Gracious', 'Grain', 'Grass', 'Great', 'Greater', 'Greatly', 'Greet', 'Greetings', 'Groaning', 'Grow',
-                    'Guard', 'Guards', 'Guilt',
+                        'Grace', 'Gracious', 'Grain', 'Grass', 'Great', 'Greater', 'Greatly', 'Greet', 'Greetings', 'Groaning', 'Grow',
+                        'Guard', 'Guards', 'Guilt', 'Gave', 'Generation', 'Generously', 'Glorious', 'Glory', 'Going',
                     'Hand', 'Hands', 'Harm', 'Has', 'Hatred', 'Haughtiness', 'Healing', 'Her/its', 'Here', 'His/its', 'House', 'Honey', 'Honour', 'Honoured', 'Hope',
-                        'Ha', 'Had', 'Half', 'Half-hearted', 'Happy', 'Harbours', 'Harness', 'Hasten', 'Hate', 'Have', 'Hear', 'Heard', 'Heart', 'Hebrew', 'Help', 'Hide', 'Hiding', 'Hill', 'Him', 'Himself', 'His', 'Hollow', 'Honor', 'Honored', 'Horses', 'Houses', 'However', 'Humankind', 'Hungry', 'Hunt', 'Hurry', 'Husbands', 'Hush', 'Hypocrite', 'Hypocrites',
+                        'Ha', 'Had', 'Half', 'Half-hearted', 'Happy', 'Harbours', 'Harness', 'Hasten', 'Hate', 'Have', 'Hear', 'Heard', 'Heart', 'Hebrew', 'Help', 'Hide', 'Hiding', 'Hill', 'Him', 'Himself',
+                        'His', 'Hollow', 'Honor', 'Honored', 'Horses', 'Houses', 'However', 'Humankind', 'Hungry', 'Hunt', 'Hurry', 'Husbands', 'Hush', 'Hypocrite', 'Hypocrites',
                     'If/because', 'In/on/at/with', 'Incline', 'Iniquities', 'Insight', 'Iron', 'Is', 'It',
+                        'Idols', 'Imitators', 'Immediately', 'In/on', 'Indeed', 'Inheritance', 'Inoffensive', 'Instead',
+                        'Instruct', 'Instruction', 'Integrity', 'Interpret', 'Into', 'Iota', 'Israelite',
                     'Joy', 'Just',
                     'Keep',
-                    'Lastly', 'Laziness', 'Leave', 'Length', 'Lest', 'Let', 'Light', 'Like', 'Likewise', 'Linen', 'Lips', 'Listen', 'Little', 'Loyalty',
-                    'Made', 'Maim', 'Majestic','Male', 'Man', 'Market', 'Master', 'Masters', 'Maxims', 'Memory', 'Men', 'Mercies', 'Merciful', 'Mercy', 'Mesopotamia', 'Might', 'Mighty', 'Milk', 'Mind', 'Miserable', 'Money', 'More', 'Mortal', 'Most', 'Mount', 'Mountain', 'Mountains', 'Mouth', 'Move', 'Much', 'Multitude', 'Mute', 'Mystery',
-                    'Naked', 'Nard', 'Nation', 'Nations', 'Near', 'Need', 'Neither', 'Networks', 'Never', 'Nevertheless', 'New', 'Night', 'No', 'Nobles', 'Noises', 'None', 'Nor', 'Nothing', 'Now', 'Noʼ',
-                    'Oak', 'Oaks', 'Observe', 'Offering', 'Officials', 'Offscouring', 'Oh/the', 'Oil', 'Old', 'Olive', 'On', 'On/upon/above', 'On/upon/above/on', 'Only', 'Other', 'Others', 'Otherwise', 'Out', 'Outside', 'Over', 'Overpower', 'Overseeing', 'Overtake',
-                    'Payment', 'People', 'Persuades', 'Perverse', 'Plans', 'Playing', 'Poverty', 'Praise', 'Priests', 'Prophesy', 'Punish', 'Purim', 'Pursues', 'Put',
-                    'Q',
-                    'Rage', 'Raise','Recesses', 'Recount', 'Remove', 'Restrain', 'Rightly', 'Rock', 'Roll', 'Ravished', 'Really', 'Rebellious', 'Receive', 'Recline', 'Red', 'Redeem', 'Redeemer', 'Redemption', 'Refrain', 'Rejoice', 'Release', 'Religion', 'Remain', 'Remembrance', 'Repay', 'Repent', 'Report', 'Requite', 'Rescue', 'Restore', 'Return', 'Revealed', 'Revive', 'Rewarded', 'Rich', 'Ride', 'Right', 'Rise', 'River', 'Rivers', 'Roar',
+                    'Lastly', 'Laziness', 'Leave', 'Length', 'Lest', 'Let', 'Light', 'Like', 'Likewise', 'Linen', 'Lips', 'Listen', 'Little', 'Loyalty', 'LORD', 'Land', 'Last', 'Law', 'Lay', 'Lead', 'Leaders',
+                        'Learn', 'Led', 'Left', 'Legs', 'Leviathan', 'Levites', 'Libyans', 'Life', 'Lift', 'Lifts', 'Likeness', 'Limit', 'Line', 'Livestock', 'Living', 'Loaves', 'Look',
+                    'Made', 'Maim', 'Majestic','Male', 'Man', 'Market', 'Master', 'Masters', 'Maxims', 'Memory', 'Men', 'Mercies', 'Merciful', 'Mercy', 'Mesopotamia', 'Might',
+                        'Mighty', 'Milk', 'Mind', 'Miserable', 'Money', 'More', 'Mortal', 'Most', 'Mount', 'Mountain', 'Mountains', 'Mouth', 'Move', 'Much', 'Multitude', 'Mute', 'Mystery',
+                    'Naked', 'Nard', 'Nation', 'Nations', 'Near', 'Need', 'Neither', 'Networks', 'Never', 'Nevertheless', 'New', 'Night', 'No', 'Nobles', 'Noises', 'None', 'Nor', 'Nothing', 'Now',
+                    'Oak', 'Oaks', 'Observe', 'Offering', 'Officials', 'Offscouring', 'Oh/the', 'Oil', 'Old', 'Olive',
+                        'On', 'On/upon/above', 'On/upon/above/on', 'Only', 'Other', 'Others', 'Otherwise', 'Out', 'Outside', 'Over', 'Overpower', 'Overseeing', 'Overtake',
+                    'Pay', 'Payment', 'People', 'Persuades', 'Perverse', 'Plans', 'Playing', 'Poverty', 'Praise', 'Priests', 'Prophesy', 'Punish', 'Purim', 'Pursues', 'Put',
+                        'Pardon', 'Parents', 'Part', 'Pass', 'Path', 'Pay', 'Peace', 'Peoples', 'Perhaps', 'Physician', 'Pillars', 'Plan', 'Planted', 'Plead', 'Please', 'Pleased',
+                        'Pleiades', 'Poison', 'Polish', 'Portion', 'Posts', 'Pour', 'Power',
+                        'Pray', 'Prepare', 'Present', 'Preserve', 'Princes', 'Proclaim', 'Profit', 'Profusely', 'Prophesies', 'Prophets', 'Prostitution', 'Prove', 'Provide', 'Provisions',
+                    'Q', 'Queen', 'Quickly', 'Quiver',
+                    'Rage', 'Raise','Recesses', 'Recount', 'Remove', 'Restrain', 'Rightly', 'Rock', 'Roll', 'Ravished', 'Really', 'Rebellious', 'Receive', 'Recline',
+                        'Red', 'Redeem', 'Redeemer', 'Redemption', 'Refrain', 'Rejoice', 'Release', 'Religion', 'Remain', 'Remembrance', 'Repay', 'Repent', 'Report',
+                        'Requite', 'Rescue', 'Restore', 'Return', 'Revealed', 'Revive', 'Rewarded', 'Rich', 'Ride', 'Right', 'Rise', 'River', 'Rivers', 'Roar',
                     'Say','See','Satan','Sacrifices', 'Salt', 'Scale[s]', 'Seek', 'Send', 'Seven', 'She',
-                    'Silver', 'Sing', 'Sinners', 'Sit', 'Sitting',
-                    'Skin',
-                    'Slave', 'Slaves',
-                    'Small',
-                    'Sober', 'Sojourn', 'Someone', 'Songs', 'Sons', 'Soul', 'Sound', 'South', 'Sovereign', 'Sow',
-                    'Speaking',
-                    'Square',
-                    'Stand', 'Standing', 'Stay', 'Steadfast', 'Steal', 'Steps', 'Stiff-necked', 'Stones', 'Stood', 'Straight', 'Straw', 'Streams', 'Strength', 'Strike', 'Strings',
-                    'Such', 'Suddenly', 'Suffer', 'Sufficient', 'Summon', 'Sun', 'Surrender', 'Surrounded', 'Survive', 'Sustain',
-                    'Sweep', 'Sword', 'Swore',
-                    'Six', 'So', 'Some', 'Speak', 'Splendour', 'Still', 'Stone', 'Stretch', 'Struck', 'Sudden', 'Supplications', 'Surely', 'Swallow', 'Swamps',
-                    'THE', 'Take', 'Taken', 'Teacher', 'Tell', 'Ten', 'Testing', 'There', 'Thereafter', 'Therefore', 'These', 'They', 'This', 'Thorns', 'Three', 'Throw', 'To/for', 'To/from', 'Toil(s)', 'Traders', 'Train', 'Treasure', 'Tremble', 'Trembling', 'Truth', 'Turbans', 'Twelve',
+                        'Silver', 'Sing', 'Sinners', 'Sit', 'Sitting',
+                        'Skin',
+                        'Slave', 'Slaves',
+                        'Small',
+                        'Sober', 'Sojourn', 'Someone', 'Songs', 'Sons', 'Soul', 'Sound', 'South', 'Sovereign', 'Sow',
+                        'Speaking',
+                        'Square',
+                        'Stand', 'Standing', 'Stay', 'Steadfast', 'Steal', 'Steps', 'Stiff-necked', 'Stones', 'Stood', 'Straight', 'Straw', 'Streams', 'Strength', 'Strike', 'Strings',
+                        'Such', 'Suddenly', 'Suffer', 'Sufficient', 'Summon', 'Sun', 'Surrender', 'Surrounded', 'Survive', 'Sustain',
+                        'Sweep', 'Sword', 'Swore',
+                        'Six', 'So', 'Some', 'Speak', 'Splendour', 'Still', 'Stone', 'Stretch', 'Struck', 'Sudden', 'Supplications', 'Surely', 'Swallow', 'Swamps',
+                        'Sackcloth', 'Sacrifice', 'Said', 'Sanctify', 'Sat', 'Satisfied', 'Satisfy', 'Save', 'Saw', 'Says', 'Scatter', 'Scorn', 'Sea', 'Seal', 'Search',
+                        'Seed', 'Seeing', 'Seen', 'Sell', 'Separate', 'Serpents', 'Servant', 'Servants', 'Serve', 'Set', 'Sevens', 'Severely',
+                        'Shake', 'Sharp', 'Shepherd', 'Shepherds', 'Shoots', 'Shoulder', 'Shoulder-pieces', 'Shout', 'Show',
+                    'THE', 'Take', 'Taken', 'Teacher', 'Tell', 'Ten', 'Testing', 'There', 'Thereafter', 'Therefore', 'These', 'They', 'This',
+                        'Thorns', 'Three', 'Throw', 'Two',
+                        'To/for', 'To/from', 'Toil(s)', 'Traders', 'Train', 'Treasure', 'Tremble', 'Trembling', 'Truth', 'Turbans', 'Twelve',
+                        'Taverns', 'Teach', 'Teaches', 'Teeth', 'Temptation', 'Tent', 'Tents', 'Terrified', 'Terrify', 'Terror','Testimonies',
+                         'Than', 'Thankfulness', 'Third', 'Threshed', 'Threshing', 'Through', 'Throughout', 'Tie', 'Tightly', 'Time', 'Times',
+                         'Today', 'Together', 'Tomorrow', 'Took', 'Touch', 'Tramples', 'Treat', 'Tribulation', 'Trust', 'Trustworthy', 'Turn',
                     'Understand', 'Until',
-                    'Water', 'Waters', 'We', 'Wealth', 'What', 'Whatever', 'When', 'Where', 'Wherever', 'Whether', 'Who', 'Whoever', 'Whom', 'Whomever', 'Will', 'Wise', 'With', 'Wounds', 'Wail', 'Wait', 'Wake', 'Walk', 'Warrior', 'Wash', 'Watch', 'Webs', 'Weigh', 'Well', 'Were', 'Whence', 'Whenever', 'While', 'White', 'Whole', 'Wickedness', 'Widows', 'Wife', 'Wildly', 'Willing', 'Wine', 'Winnow', 'Within', 'Wives', 'Woe', 'Wolf', 'Woman', 'Women', 'Wonders', 'Wormwood', 'Worthy', 'Would', 'Write', 'Writhe',
+                    'Water', 'Waters', 'We', 'Wealth', 'What', 'Whatever', 'When', 'Where', 'Wherever', 'Whether', 'Who', 'Whoever', 'Whom', 'Whomever',
+                        'Will', 'Wise', 'With', 'Wounds', 'Wail', 'Wait', 'Wake', 'Walk', 'Warrior', 'Wash', 'Watch', 'Webs', 'Weigh', 'Well', 'Were', 'Whence', 'Whenever', 'While', 'White', 'Whole',
+                        'Wickedness', 'Widows', 'Wife', 'Wildly', 'Willing', 'Wine', 'Winnow', 'Within', 'Wives', 'Woe', 'Wolf', 'Woman', 'Women', 'Wonders', 'Wormwood', 'Worthy', 'Would', 'Write', 'Writhe',
                     'Behold','YHWH','DOM',
                     # Names that only have short vowels and no unusual consonants
+                    'Bilgah',
+                    'Dammeseq',
                     'Gezer',
                     'Melek','Meshek','Mosheh',
-                    'Nogah','Nefeg',):
+                    'Nogah','Nefeg',
+                    'Shoham',
+                    ):
                     foundAny = False
-                    for checkChar in 'āēīōūₐₑₒəʸḩⱪţʦ':
+                    for checkChar in 'āēīōūₐₑₒəʸḩⱪţʦˊ':
                         if checkChar in word:
                             foundAny = True
                             break
