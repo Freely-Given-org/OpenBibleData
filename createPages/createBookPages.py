@@ -137,7 +137,7 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
             # BBBLinks.append( f'''<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB)}" href="{filename}#Top">{ourTidyBBBwithNotes}</a>''' )
             filepath = folder.joinpath( filename )
             top = makeTop( level, rvBible.abbreviation, 'book', f'byDoc/{filename}', state ) \
-                    .replace( '__TITLE__', f"{rvBible.abbreviation} {ourTidyBBB} book{' TEST' if state.TEST_MODE else ''}" ) \
+                    .replace( '__TITLE__', f"{rvBible.abbreviation} {ourTidyBBB} book{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
                     .replace( '__KEYWORDS__', f'Bible, {rvBible.abbreviation}, front matter, book, document' ) \
                     .replace( f'''<a title="{state.BibleNames[rvBible.abbreviation]}" href="{'../'*level}{BibleOrgSysGlobals.makeSafeString(rvBible.abbreviation)}/byDoc/{filename}#Top">{rvBible.abbreviation}</a>''',
                             f'''<a title="Up to {state.BibleNames[rvBible.abbreviation]}" href="{'../'*level}{BibleOrgSysGlobals.makeSafeString(rvBible.abbreviation)}/">↑{rvBible.abbreviation}</a>''' )
@@ -309,7 +309,7 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
         processedFilenames.append( filename )
         filepath = folder.joinpath( filename )
         top = makeTop( level, 'OET', 'book', f'byDoc/{filename}', state ) \
-                .replace( '__TITLE__', f"OET {ourTidyBBB}{' TEST' if state.TEST_MODE else ''}" ) \
+                .replace( '__TITLE__', f"OET {ourTidyBBB}{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
                 .replace( '__KEYWORDS__', f'Bible, OET, Open English Translation, book, document, {ourTidyBBB}' ) \
                 .replace( f'''<a title="{state.BibleNames['OET']}" href="{'../'*level}OET/byDoc/{filename}#Top">OET</a>''',
                           f'''<a title="Up to {state.BibleNames['OET']}" href="{'../'*level}OET/">↑OET</a>''' )
@@ -328,7 +328,7 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
     processedFilenames.append( filename )
     filepath = folder.joinpath( filename )
     top = makeTop( level, 'OET', 'bookIndex', 'byDoc', state ) \
-            .replace( '__TITLE__', f"OET Document View{' TEST' if state.TEST_MODE else ''}" ) \
+            .replace( '__TITLE__', f"OET Document View{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, OET, Open English Translation, book, document' ) \
             .replace( f'''<a title="{state.BibleNames['OET']}" href="{'../'*level}OET/byDoc">OET</a>''',
                       f'''<a title="{state.BibleNames['OET']}" href="{'../'*level}OET">↑OET</a>''' )
@@ -427,7 +427,7 @@ def createBookPages( level:int, folder:Path, thisBible, state:State ) -> list[st
         # BBBLinks.append( f'<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB)}" href="{filename}#Top">{ourTidyBBB}</a>' )
         filepath = folder.joinpath( filename )
         top = makeTop( level, thisBible.abbreviation, 'book', f'byDoc/{filename}', state ) \
-                .replace( '__TITLE__', f"{thisBible.abbreviation} {ourTidyBBB} book{' TEST' if state.TEST_MODE else ''}" ) \
+                .replace( '__TITLE__', f"{thisBible.abbreviation} {ourTidyBBB} book{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
                 .replace( '__KEYWORDS__', f'Bible, {thisBible.abbreviation}, book, document, {ourTidyBBB}' ) \
                 .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*level}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/byDoc/{filename}#Top">{thisBible.abbreviation}</a>''',
                           f'''<a title="Up to {state.BibleNames[thisBible.abbreviation]}" href="{'../'*level}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/">↑{thisBible.abbreviation}</a>''' )
@@ -446,7 +446,7 @@ def createBookPages( level:int, folder:Path, thisBible, state:State ) -> list[st
     processedFilenames.append( filename )
     filepath = folder.joinpath( filename )
     top = makeTop( level, thisBible.abbreviation, 'bookIndex', 'byDoc', state ) \
-            .replace( '__TITLE__', f"{thisBible.abbreviation} Book View{' TEST' if state.TEST_MODE else ''}" ) \
+            .replace( '__TITLE__', f"{thisBible.abbreviation} Book View{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', f'Bible, {thisBible.abbreviation}, book, document' ) \
             .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*level}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/byDoc">{thisBible.abbreviation}</a>''',
                       f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*level}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}">↑{thisBible.abbreviation}</a>''' )

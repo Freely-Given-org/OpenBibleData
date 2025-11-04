@@ -77,12 +77,17 @@ INITIAL_BIBLE_WORD_LIST = ['3.0','UTF','USFM', '©', 'CC0',
                     'hb',
 
                     # Adjusted names, e.g., from Wycl but had 'Y' substituted for 'J'
+                    'Abiyah',
                     'Benyamin',
-                    'Yacob', 'Yames',
-                    'Yebusite', 'Yesse',  'Yerusalem', 'Yesus',
-                    'Yhesus', 'Yhesu',
-                    'Yoab', 'Yohn', 'Yonathan', 'Yordan', 'Yoseph', 'Yoses',
-                    'Yudah',
+                    'Yabesh',
+                        'Yacob', 'Yames',
+                        'Yebusite','Yebusites', 'Yehoiakim', 'Yehoiada', 'Yehoshaphat',
+                            'Yephthah',
+                            'Yeremiah', 'Yericho', 'Yeroboam', 'Yerusalem',
+                            'Yesse', 'Yesus', 'Yezebel', 'Yezreel',
+                        'Yhesus', 'Yhesu',
+                        'Yoab', 'Yohn', 'Yonathan', 'Yordan', 'Yoseph', 'Yoses', 'Yoshua', 'Yosiah', 'Yotham',
+                        'Yudah', 'Yudas', 'Yudea', 'Yudeth',
 
                     # Specialist words
                     'black-grained','building-stone',

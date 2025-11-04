@@ -56,7 +56,7 @@ CHANGELOG:
     2024-02-05 Add hide colours button
     2024-02-18 Add hide transliterations button
     2024-02-19 Add verse selection bar
-    2024-04-30 In state.TEST_MODE, only make parallel verse pages for the actual state.TEST_BOOK_LIST
+    2024-04-30 In state.TEST_MODE_FLAG, only make parallel verse pages for the actual state.TEST_BOOK_LIST
     2024-06-05 Allow footnotes (but not cross-references) on these pages
                 which includes moving transliteration spans to be placed BEFORE any footnotes
     2024-06-25 Started work on adding maps from BibleMapper.com
@@ -107,7 +107,7 @@ from OETHandlers import getOETTidyBBB, getOETBookName, livenOETWordLinks, getHeb
 from spellCheckEnglish import spellCheckAndMarkHTMLText
 
 
-LAST_MODIFIED_DATE = '2025-10-16' # by RJH
+LAST_MODIFIED_DATE = '2025-11-03' # by RJH
 SHORT_PROGRAM_NAME = "createParallelVersePages"
 PROGRAM_NAME = "OpenBibleData createParallelVersePages functions"
 PROGRAM_VERSION = '0.99'
@@ -143,7 +143,7 @@ def createParallelVersePages( level:int, folder:Path, state:State ) -> bool:
         parallelVersions.remove('BrTr'); parallelVersions.insert( 6, 'BrTr' )
         parallelVersions.remove('NETS'); parallelVersions.insert( 7, 'NETS' )
     except ValueError as e:
-        if state.UPDATE_ACTUAL_SITE_WHEN_BUILT and not state.TEST_MODE: # Ignore missing versions in test modes
+        if state.UPDATE_ACTUAL_SITE_WHEN_BUILT_FLAG and not state.TEST_MODE_FLAG: # Ignore missing versions in test modes
             raise e
 
     # Load version comments
@@ -172,7 +172,7 @@ def createParallelVersePages( level:int, folder:Path, state:State ) -> bool:
     # Now create the actual parallel pages
     state.possibleUnmatchedProperNames = set()
     for BBB in reorderBooksForOETVersions( state.allBBBs ):
-        if not state.TEST_MODE or BBB in state.TEST_BOOK_LIST: # Don't need parallel pages for non-test books
+        if not state.TEST_MODE_FLAG or BBB in state.TEST_BOOK_LIST: # Don't need parallel pages for non-test books
             if BibleOrgSysGlobals.loadedBibleBooksCodes.isChapterVerseBook( BBB ):
                 createParallelVersePagesForBook( level, folder, BBB, BBBNextLinks, parallelVersions, state )
     print( f"\nPossible Unmatched Proper Names ({len(state.possibleUnmatchedProperNames):,}) {sorted(state.possibleUnmatchedProperNames)}" )
@@ -181,7 +181,7 @@ def createParallelVersePages( level:int, folder:Path, state:State ) -> bool:
     filename = 'index.htm'
     filepath = folder.joinpath( filename )
     top = makeTop( level, None, 'parallelVerse', None, state ) \
-            .replace( '__TITLE__', f"Parallel Verse View{' TEST' if state.TEST_MODE else ''}" ) \
+            .replace( '__TITLE__', f"Parallel Verse View{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, parallel, verse, view, display, index' )
     indexHtml = f'''{top}<h1 id="Top">Parallel verse pages</h1>
 <p class="note">Each page only contains a single verse with minimal formatting, but displays it in a large number of different versions to enable analysis of different translation decisions. Study notes, theme notes, and translation notes will also be displayed, although not every verse has these.</p>
@@ -254,7 +254,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
         for c in range( -1, numChapters+1 ):
             C = str( c )
             adjC = 'Intro' if c==-1 else f'C{C}'
-            vPrint( 'Info', DEBUGGING_THIS_MODULE, f"      Creating {'TEST ' if state.TEST_MODE else ''}parallel pages for {BBB} {C}…" )
+            vPrint( 'Info', DEBUGGING_THIS_MODULE, f"      Creating {'TEST ' if state.TEST_MODE_FLAG else ''}parallel pages for {BBB} {C}…" )
             introLink = f'''<a title="Go to book intro" href="Intro.htm#__ID__">B</a> {f'<a title="Go to chapter intro" href="C{c}V0.htm#__ID__">I</a> ' if c!=-1 else ''}'''
             leftCLink = f'<a title="Go to previous chapter" href="C{c-1}V1.htm#__ID__">◄</a> ' if c>1 else ''
             rightCLink = f' <a title="Go to first chapter" href="C1V1.htm#__ID__">►</a>' if c==-1 \
@@ -328,16 +328,17 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                             if verseText.startswith( '\\s1 ' ):
                                 verseText.replace( '\\s1 ', '\\s1 <b>', 1 ).replace( '\n', '</b>\n', 1 )
                             vHtml = f'{prefix}{verseText}' \
-                                .replace( '\\p ', '\n&nbsp;&nbsp;' ) \
-                                .replace( '\\q1 ', '\n&nbsp;&nbsp;' ) \
-                                .replace( '\\m ', '\n' ) \
-                                .replace( '\\pc ', '\n&nbsp;&nbsp;&nbsp;&nbsp;' ) \
-                                .replace( '\\li1 ', '\n•&nbsp;' ) \
-                                .replace( '\\li2 ', '\n&nbsp;◦&nbsp;' ) \
-                                .replace( '\\li3 ', '\n&nbsp;&nbsp;•&nbsp;' ) \
-                                .replace( '\\s1 ', '\n' ) \
-                                .replace( '\\s2 ', '\n' ) \
-                                .replace( '\\s3 ', '\n' ) \
+                                .replace( '\\p ', '\n<br>&nbsp;&nbsp;' ) \
+                                .replace( '\\q1 ', '\n<br>&nbsp;&nbsp;' ) \
+                                .replace( '\\m ', '\n<br>' ) \
+                                .replace( '\\b', '\n<br> ' ) \
+                                .replace( '\\pc ', '\n<br>&nbsp;&nbsp;&nbsp;&nbsp;' ) \
+                                .replace( '\\li1 ', '\n<br>•&nbsp;' ) \
+                                .replace( '\\li2 ', '\n<br>&nbsp;◦&nbsp;' ) \
+                                .replace( '\\li3 ', '\n<br>&nbsp;&nbsp;•&nbsp;' ) \
+                                .replace( '\\s1 ', '\n<br>' ) \
+                                .replace( '\\s2 ', '\n<br>' ) \
+                                .replace( '\\s3 ', '\n<br>' ) \
                                 .replace( '\n\n', '\n' )
                             # if versionAbbreviation=='CSB' and BBB=='RUT' and 'ORD' in verseText: print( f"{versionAbbreviation} {parRef} {verseText=}" )
                             vHtml = vHtml.strip() \
@@ -348,7 +349,9 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                 .replace( '\\nd LORDE\\nd*', '\\nd L<span class="ndORD">ORDE</span>\\nd*' ) \
                                     .replace( '\\nd ', '<span class="nd">' ).replace( '\\nd*', '</span>' ) \
                                 .replace( '\\wj ', '<span class="wj">' ).replace( '\\wj*', '</span>' ) \
-                                .replace( '\n', '<br>' )
+                                # .replace( '\n', '\n<br>' )
+                            for possiblePrefix in ('\n','<br>','\n'): # only leave these if they're in the middle of the verse
+                                vHtml = vHtml.removeprefix( possiblePrefix )
                             # if versionAbbreviation=='CSB' and BBB=='RUT' and C=='2' and 'ORD' in verseText: print( f"{versionAbbreviation} {parRef} {vHtml=}" ); halt
                             assert '\\' not in vHtml, f"{versionAbbreviation} {parRef} {vHtml=}"
                             assert '<br><br>' not in vHtml, f"{versionAbbreviation} {parRef} {vHtml=}"
@@ -434,14 +437,14 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                             if versionAbbreviation == 'OET-RV':
                                 # if BBB=='MRK' and C=='7' and V=='16': print( f"AAA {parRef} {versionAbbreviation} {textHtml=}" )
                                 textHtml = do_OET_RV_HTMLcustomisations( f'ParallelVerseTxt={parRef}', textHtml )
-                                if state.DO_SPELL_CHECKS and parRef not in ('JOB_24:1','PSA_8:5','EZE_-1:0',): # TODO Check these out
+                                if state.DO_SPELL_CHECKS_FLAG and parRef not in ('JOB_24:1','PSA_8:5','EZE_-1:0',): # TODO Check these out
                                     textHtml = spellCheckAndMarkHTMLText( versionAbbreviation, parRef, textHtml, textHtml, state ) # Puts spans around mispellings
                                 # if BBB=='MRK' and C=='7' and V=='16': print( f"BBB {parRef} {versionAbbreviation} {textHtml=}" )
                             elif versionAbbreviation == 'OET-LV':
                                 # if BBB=='MRK' and C=='7' and V=='16': print( f"CCC {parRef} {versionAbbreviation} {textHtml=}" )
                                 # assert '<span class="ul">_</span>HNcbsa' not in textHtml, f'''Here1 ({textHtml.count('<span class="ul">_</span>HNcbsa')}) {textHtml=}'''
                                 textHtml, footnoteFreeTextHtml, footnotesHtml = do_OET_LV_HTMLcustomisations( f"ParallelVerseTxt={parRef}", textHtml), do_OET_LV_HTMLcustomisations(f"ParallelVerseFF={parRef}", footnoteFreeTextHtml), do_OET_LV_HTMLcustomisations(f"ParallelVerseFN={parRef}", footnotesHtml)
-                                if state.DO_SPELL_CHECKS and parRef not in ('MAT_11:21','LUK_10:13','ACT_7:2','ACT_7:4'): # TODO Check these out
+                                if state.DO_SPELL_CHECKS_FLAG and parRef not in ('MAT_11:21','LUK_10:13','ACT_7:2','ACT_7:4'): # TODO Check these out
                                     textHtml = spellCheckAndMarkHTMLText( versionAbbreviation, parRef, textHtml, textHtml, state ) # Puts spans around mispellings
                                 assert checkHtml( f"OET-LV parallel AAA for {parRef}", textHtml, segmentOnly=True ); assert checkHtml( f"OET-LV parallel BBB for {parRef}", footnoteFreeTextHtml, segmentOnly=True ); assert checkHtml( f"OET-LV parallel CCC for {parRef}", footnotesHtml, segmentOnly=True )
                                 # assert textHtml.count('<span class="ul">_</span>HNcbsa') < 2, f'''Here2 ({textHtml.count('<span class="ul">_</span>HNcbsa')}) {textHtml=}'''
@@ -457,7 +460,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                                     .replace( 'BSB', 'MSB' )
                                                     ) # Save it
                                 footnotesHtmlSaved = footnotesHtml # Save it for later comparison
-                                if state.DO_SPELL_CHECKS:
+                                if state.DO_SPELL_CHECKS_FLAG:
                                     textHtml = spellCheckAndMarkHTMLText( versionAbbreviation, parRef, textHtml, textHtml, state ) # Puts spans around mispellings
                             elif versionAbbreviation == 'MSB': # assuming BSB comes BEFORE MSB
                                 if textHtml and textHtml.replace(' ⇔ ','') == adjustedTextHtmlBSB:
@@ -480,20 +483,20 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                                     break
                                             textHtml = f'''{textHtml[:zz1]}<span title="Word (or format) different in MSB" class="hilite">{textHtml[zz1:zz2]}</span>{textHtml[zz2:]}'''
                                             break
-                                    if state.DO_SPELL_CHECKS:
+                                    if state.DO_SPELL_CHECKS_FLAG:
                                         textHtml = spellCheckAndMarkHTMLText( versionAbbreviation, parRef, textHtml, textHtml, state ) # Puts spans around mispellings
                             elif versionAbbreviation in ('ULT','UST','NET','BLB','OEB','FBV','BBE','Moff','JPS','ASV','DRA','YLT','SLT','Drby','Wbstr'):
-                                if state.DO_SPELL_CHECKS:
+                                if state.DO_SPELL_CHECKS_FLAG:
                                     textHtml = spellCheckAndMarkHTMLText( versionAbbreviation, parRef, textHtml, textHtml, state ) # Puts spans around mispellings
                             elif versionAbbreviation in ('WEBBE','WEB'): # assuming WEB/WEBBE comes BEFORE WMB/WMBBB
                                 textHtmlWEB, footnotesHtmlSaved = textHtml, footnotesHtml # Save it
-                                if state.DO_SPELL_CHECKS:
+                                if state.DO_SPELL_CHECKS_FLAG:
                                     textHtml = spellCheckAndMarkHTMLText( versionAbbreviation, parRef, textHtml, textHtml, state ) # Puts spans around mispellings
                             elif versionAbbreviation in ('WMBB','WMB'): # assuming WEB/WEBBE comes BEFORE WMB/WMBB
                                 if textHtml and textHtml == textHtmlWEB.replace( 'WEBBE', 'WMBB' ).replace( 'WEB', 'WMB' ):
                                     # print( f"Skipping parallel for WMB {parRef} because same as WEB" )
                                     textHtml = "(Same as above)" # Do we also need to adjust footnotesHtml ???
-                                elif state.DO_SPELL_CHECKS:
+                                elif state.DO_SPELL_CHECKS_FLAG:
                                     textHtml = spellCheckAndMarkHTMLText( versionAbbreviation, parRef, textHtml, textHtml, state ) # Puts spans around mispellings
                                 # else:
                                 #     print( f"Using parallel for WMB {parRef} because different from WEB:" )
@@ -501,14 +504,14 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                 #     print( f"     {textHtml=}" )
                             elif versionAbbreviation == 'LSV':
                                 textHtml = do_LSV_HTMLcustomisations( f'ParallelVerseTxt={parRef}', textHtml )
-                                if state.DO_SPELL_CHECKS:
+                                if state.DO_SPELL_CHECKS_FLAG:
                                     textHtml = spellCheckAndMarkHTMLText( versionAbbreviation, parRef, textHtml, textHtml, state ) # Puts spans around mispellings
                             elif versionAbbreviation == 'T4T':
                                 textHtml = do_T4T_HTMLcustomisations( f'ParallelVerseTxt={parRef}', textHtml )
-                                if state.DO_SPELL_CHECKS:
+                                if state.DO_SPELL_CHECKS_FLAG:
                                     textHtml = spellCheckAndMarkHTMLText( versionAbbreviation, parRef, textHtml, textHtml, state ) # Puts spans around mispellings
                             elif versionAbbreviation == 'LEB':
-                                if state.DO_SPELL_CHECKS:
+                                if state.DO_SPELL_CHECKS_FLAG:
                                     textHtml = spellCheckAndMarkHTMLText( versionAbbreviation, parRef, textHtml, textHtml, state ) # Puts spans around mispellings
                                 textHtml = textHtml.replace('⌊','<sub>⌊</sub>').replace('⌋','<sub>⌋</sub>') # Around "idioms"
                             elif footnoteFreeTextHtml and versionAbbreviation in ('RV','KJB-1769','KJB-1611','Bshps','Gnva','Cvdl','TNT','Wycl'):
@@ -527,7 +530,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                     modernisedTextHtml = modernisedTextHtml.replace( 'J', 'Y' ).replace( 'Ie', 'Ye' ).replace( 'Io', 'Yo' ) \
                                                                     .replace( 'Yewel', 'Jewel' ).replace( 'Yudge', 'Judge' ).replace( 'Yuniper', 'Juniper' ).replace( 'Yust', 'Just' ).replace( 'KYB', 'KJB' ) # Fix overreaches
                                 modernisedTextDiffers = modernisedTextHtml != footnoteFreeTextHtml # we'll usually only show it if it changed
-                                if state.DO_SPELL_CHECKS:
+                                if state.DO_SPELL_CHECKS_FLAG:
                                     modernisedTextHtml = spellCheckAndMarkHTMLText( versionAbbreviation, parRef, modernisedTextHtml, footnoteFreeTextHtml, state ) # Puts spans around mispellings
 
                                 def removeVersePunctuationForComparison( htmlText:str ) -> str:
@@ -711,10 +714,10 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                     adjustedForeignTextHtml = translateFunction( footnoteFreeTextHtml.replace( f'<span class="{versionAbbreviation}_verseTextChunk">', f'<span class="{versionAbbreviation}_trans">') )
                                     if footnotesHtml:
                                         translatedFootnotesHtml = removeDuplicateFNids( parRef, f'{footnotesHtml}__JOIN__{translateFunction( footnotesHtml.replace(f' id="footnotes{versionAbbreviation}"','') )}' ).split( '__JOIN__' )[1]
-                                        if state.DO_SPELL_CHECKS:
+                                        if state.DO_SPELL_CHECKS_FLAG:
                                             translatedFootnotesHtml = spellCheckAndMarkHTMLText( versionAbbreviation, parRef, translatedFootnotesHtml, footnotesHtml, state ) # Puts spans around mispellings
                                 if adjustedForeignTextHtml and adjustedForeignTextHtml != textHtml: # only show it if it changed
-                                    if state.DO_SPELL_CHECKS:
+                                    if state.DO_SPELL_CHECKS_FLAG:
                                         adjustedForeignTextHtml = spellCheckAndMarkHTMLText( versionAbbreviation, parRef, adjustedForeignTextHtml, footnoteFreeTextHtml, state ) # Puts spans around mispellings
                                     # No longer true since we're now using getFullText (even for basicOnly), e.g., we may have id fields included in a bookHeader div
                                     # assert '</p>' not in textHtml
@@ -884,11 +887,15 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                                         textHtml = textHtml.replace( fullVersionWord, f'<span class="diffGrkWord" title="First word different from SR-GNT">{fullVersionWord}</span>', 1 )
                                                     else: # oh, more work coz the desired word occurs multiple times
                                                         print( f"\n{versionAbbreviation} {parRef} {jj} {fullVersionWord=} HAVE MULTIPLE IN {textHtml=}" )
+                                                        textHtml = textHtml.lstrip()
+                                                        for possiblePrefix in ('¶\u202f','§\u202f','\u2002⇔\u202f','⇔\u202f'):
+                                                            textHtml = textHtml.removeprefix( possiblePrefix )
                                                         startStr = f'<span class="{versionAbbreviation}_verseTextChunk">'
-                                                        assert textHtml.startswith( startStr )
+                                                        assert textHtml.startswith( startStr ), f"{versionAbbreviation} {parRef} {startStr=} {textHtml=}"
                                                         if 'fn' not in textHtml: # Messes things up -- there's lots in the TC-GNT
-                                                            textHtmlWordList = textHtml[len(startStr):].split( ' ' )
-                                                            assert textHtmlWordList[jj] == fullVersionWord, f"{versionAbbreviation} {parRef} {fullVersionWord=} {jj=} {textHtmlWordList[jj]=} from {textHtmlWordList=}"
+                                                            textHtmlWordList = (textHtml.replace( '<span class="wj">', '' ) if versionAbbreviation=='TC-GNT' else textHtml)[len(startStr):].split( ' ' )
+                                                            if versionAbbreviation not in ('TC-GNT','RP-GNT') or parRef not in ('CO2_10:4','PE1_3:10'): # not sure what's with '-</span><br>\u2003\u2003\u2003' there
+                                                                assert textHtmlWordList[jj] == fullVersionWord, f"{versionAbbreviation} {parRef} {fullVersionWord=} {jj=} {textHtmlWordList[jj]=} from {textHtmlWordList=}"
                                                             indexOfDesiredWord = len(startStr) + sum(len(s) for s in textHtmlWordList[:jj]) + jj # For the spaces
                                                             textHtml = f'{textHtml[:indexOfDesiredWord]}{textHtml[indexOfDesiredWord:].replace( fullVersionWord, f'<span class="diffGrkWord" title="First word different from SR-GNT">{fullVersionWord}</span>', 1 )}'
                                                     break # Only highlight a maximum of one word
@@ -1012,7 +1019,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                     except AssertionError as ae: print( ae ) # Don't halt if the above check failed
 
                 # Close the hideable div
-                if state.UPDATE_ACTUAL_SITE_WHEN_BUILT and not state.TEST_MODE and not state.TEST_VERSIONS_ONLY:
+                if state.UPDATE_ACTUAL_SITE_WHEN_BUILT_FLAG and not state.TEST_MODE_FLAG and not state.TEST_VERSIONS_ONLY:
                     assert doneHideablesDiv # Fails if no Bible versions were included that go in the hideable div
                 if doneHideablesDiv:
                     parallelHtml = f'{parallelHtml}\n</div><!--end of hideables-->'
@@ -1065,7 +1072,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                 # filenames.append( filename )
                 filepath = BBBFolder.joinpath( filename )
                 top = makeTop( BBBLevel, None, 'parallelVerse', None, state ) \
-                        .replace( '__TITLE__', f"{ourTidyBBB} {C}:{V} Parallel Verse View{' TEST' if state.TEST_MODE else ''}" ) \
+                        .replace( '__TITLE__', f"{ourTidyBBB} {C}:{V} Parallel Verse View{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
                         .replace( '__KEYWORDS__', f'Bible, parallel, verse, view, display, {ourTidyBBB}' )
                 if BBB in state.booksToLoad['OET']:
                     top = top.replace( f'''href="{'../'*BBBLevel}ilr/"''', f'''href="{'../'*BBBLevel}ilr/{BBB}/C{C}V{V}.htm#Top"''')
@@ -1097,7 +1104,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
     filename1 = 'index.htm'
     filepath1 = BBBFolder.joinpath( filename1 )
     top = makeTop( BBBLevel, None, 'parallelVerse', None, state) \
-            .replace( '__TITLE__', f"{ourTidyBBB} Parallel Verse View{' TEST' if state.TEST_MODE else ''}" ) \
+            .replace( '__TITLE__', f"{ourTidyBBB} Parallel Verse View{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, parallel, verse, view, display, index' )
     # For Psalms, we don't list every single verse
     indexHtml = f'''{top}{adjBBBLinksHtml}{f'{NEWLINE}<h1 id="Top">{ourTidyBBB} parallel songs index</h1>' if BBB=='PSA' else ''}{chapterLinksParagraph}{f'{NEWLINE}<h1 id="Top">{ourTidyBBB} parallel verses index</h1>' if BBB!='PSA' else ''}{f'{NEWLINE}<p class="vsLst">{" ".join( vLinksList )}</p>' if BBB!='PSA' else ''}
@@ -1114,7 +1121,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
     filename2 = f'{BBB}.htm'
     filepath2 = folder.joinpath( filename2 )
     top = makeTop( level, None, 'parallelVerse', None, state) \
-            .replace( '__TITLE__', f"{ourTidyBBB} Parallel Verse View{' TEST' if state.TEST_MODE else ''}" ) \
+            .replace( '__TITLE__', f"{ourTidyBBB} Parallel Verse View{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, parallel, verse, view, display, index' )
     # For Psalms, we don't list every single verse
     indexHtml = f'''{top}{adjBBBLinksHtml}{f'{NEWLINE}<h1 id="Top">{ourTidyBBB} parallel songs index</h1>' if BBB=='PSA' else ''}{chapterLinksParagraph}{f'{NEWLINE}<h1 id="Top">{ourTidyBBB} parallel verses index</h1>' if BBB!='PSA' else ''}{f'{NEWLINE}<p class="vsLst">{" ".join( newBBBVLinks )}</p>' if BBB!='PSA' else ''}
@@ -1769,7 +1776,7 @@ def markPossibleUnmatchedProperNames( parRef:str, thisVerseEntryList, state:Stat
                         'Red', 'Redeem', 'Redeemer', 'Redemption', 'Refrain', 'Rejoice', 'Release', 'Religion', 'Remain', 'Remembrance', 'Repay', 'Repent', 'Report',
                         'Requite', 'Rescue', 'Restore', 'Return', 'Revealed', 'Revive', 'Rewarded', 'Rich', 'Ride', 'Right', 'Rise', 'River', 'Rivers', 'Roar',
                     'Say','See','Satan','Sacrifices', 'Salt', 'Scale[s]', 'Seek', 'Send', 'Seven', 'She',
-                        'Silver', 'Sing', 'Sinners', 'Sit', 'Sitting',
+                        'Silver', 'Since', 'Sing', 'Sinners', 'Sit', 'Sitting',
                         'Skin',
                         'Slave', 'Slaves',
                         'Small',
@@ -1798,9 +1805,10 @@ def markPossibleUnmatchedProperNames( parRef:str, thisVerseEntryList, state:Stat
                     'Bilgah',
                     'Dammeseq',
                     'Gezer',
+                    'Hinnom',
                     'Melek','Meshek','Mosheh',
                     'Nogah','Nefeg',
-                    'Shoham',
+                    'Shemesh','shemesh', 'Shoham',
                     ):
                     foundAny = False
                     for checkChar in 'āēīōūₐₑₒəʸḩⱪţʦˊ':
@@ -1832,7 +1840,8 @@ def fullDemo() -> None:
 # end of createParallelVersePages.fullDemo
 
 if __name__ == '__main__':
-    from multiprocessing import freeze_support
+    from multiprocessing import set_start_method, freeze_support
+    set_start_method('fork') # The default was changed on POSIX systems from 'fork' to 'forkserver' in Python3.14
     freeze_support() # Multiprocessing support for frozen Windows executables
 
     # Configure basic Bible Organisational System (BOS) set-up

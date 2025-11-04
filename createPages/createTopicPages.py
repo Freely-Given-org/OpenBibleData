@@ -33,6 +33,7 @@ CHANGELOG:
     2025-02-03 Accept and process lemma page links
     2025-06-27 Fix bug where we were forcing the load of Bible books where not wanted
     2025-09-07 Add Kingdom pages
+    2025-10-29 Add an index for kingdom pages
 """
 from gettext import gettext as _
 from pathlib import Path
@@ -52,10 +53,10 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
 from OETHandlers import livenOETWordLinks, getOETTidyBBB
 
 
-LAST_MODIFIED_DATE = '2025-09-14' # by RJH
+LAST_MODIFIED_DATE = '2025-10-29' # by RJH
 SHORT_PROGRAM_NAME = "createTopicPages"
 PROGRAM_NAME = "OpenBibleData createTopicPages functions"
-PROGRAM_VERSION = '0.31'
+PROGRAM_VERSION = '0.33'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -161,7 +162,7 @@ def createTopicPages( level:int, folder:Path, state:State ) -> bool:
     filename = 'index.htm'
     filepath = folder.joinpath( filename )
     top = makeTop( level, None, 'topicsIndex', None, state ) \
-            .replace( '__TITLE__', f"Topic View{' TEST' if state.TEST_MODE else ''}" ) \
+            .replace( '__TITLE__', f"Topic View{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, topic, topics, topical' )
     indexHtml = f'''{top}<h1 id="Top">Topic pages</h1>
 <p>These pages contain selected passages from the <em>Open English Translation</em> for the given topics. Each page contains the passage from the <em>OET Readers’ Version</em> on the left, with the <em>OET Literal Version</em> on the right. No notes or commentary is included—our aim is simply to conveniently list the passages in one place so that readers can make up their own minds about how the passages should be interpreted.</p>
@@ -218,7 +219,7 @@ def createTopicPage( level:int, folder:Path, filename:str, topic:str, refs:list[
                 else: rvVerseEntryList, rvContextList = InternalBibleEntryList(), []
                 try: lvVerseEntryList, lvContextList = lvBible.getContextVerseData( (BBB,C) )
                 except TypeError: # Book appears to be not available
-                    assert state.TEST_MODE
+                    assert state.TEST_MODE_FLAG
                     lvVerseEntryList, lvContextList = InternalBibleEntryList(), []
             elif '-' in Vs: # then it's a verse range
                 startV, endV = Vs.split( '-' )
@@ -227,7 +228,7 @@ def createTopicPage( level:int, folder:Path, filename:str, topic:str, refs:list[
                 else: rvVerseEntryList, rvContextList = InternalBibleEntryList(), []
                 try: lvVerseEntryList, lvContextList = lvBible.getContextVerseDataRange( (BBB,C,startV), (BBB,C,endV) )
                 except TypeError: # Book appears to be not available
-                    assert state.TEST_MODE
+                    assert not state.ALL_PRODUCTION_BOOKS_FLAG
                     lvVerseEntryList, lvContextList = InternalBibleEntryList(), []
             elif '–' in Vs: # en-dash, then it's a chapter range
                 not_written_yet
@@ -238,7 +239,7 @@ def createTopicPage( level:int, folder:Path, filename:str, topic:str, refs:list[
                 else: rvVerseEntryList, rvContextList = InternalBibleEntryList(), []
                 try: lvVerseEntryList, lvContextList = lvBible.getContextVerseData( (BBB,C,Vs) )
                 except TypeError: # Book appears to be not available
-                    assert state.TEST_MODE
+                    assert not state.ALL_PRODUCTION_BOOKS_FLAG
                     lvVerseEntryList, lvContextList = InternalBibleEntryList(), []
                 startV = Vs # Used to build the HTML anchor below
             # print( f"{rvVerseEntryList=}" )
@@ -247,7 +248,7 @@ def createTopicPage( level:int, folder:Path, filename:str, topic:str, refs:list[
                 rvVerseEntryList = livenOETWordLinks( level, rvBible, BBB, rvVerseEntryList, state )
             try: lvVerseEntryList = livenOETWordLinks( level, lvBible, BBB, lvVerseEntryList, state )
             except KeyError: # Missing book
-                assert state.TEST_MODE
+                assert not state.ALL_PRODUCTION_BOOKS_FLAG
             rvTextHtml = convertUSFMMarkerListToHtml( level, rvBible.abbreviation, (BBB,C), 'topicalPassage', rvContextList, rvVerseEntryList, basicOnly=False, state=state )
             # rvTextHtml = livenIORs( BBB, rvTextHtml, sections )
             rvTextHtml = do_OET_RV_HTMLcustomisations( f'Topic={topic}@{BBB}_{C}', rvTextHtml )
@@ -257,7 +258,7 @@ def createTopicPage( level:int, folder:Path, filename:str, topic:str, refs:list[
                 # lvTextHtml = livenIORs( BBB, lvTextHtml, sections )
                 lvTextHtml = do_OET_LV_HTMLcustomisations( f'Topic={topic}@{BBB}_{C}', lvTextHtml )
             else: # We didn't get any LV data
-                assert state.TEST_MODE
+                assert not state.ALL_PRODUCTION_BOOKS_FLAG
                 lvTextHtml = f'<h4>No OET-LV {BBB} book available</h4>'
 
             if rvTextHtml.startswith( '<div class="rightBox">' ):
@@ -280,7 +281,7 @@ def createTopicPage( level:int, folder:Path, filename:str, topic:str, refs:list[
 
     filepath = folder.joinpath( filename )
     top = makeTop( level, None, 'topicPassages', None, state ) \
-            .replace( '__TITLE__', f"{topic}{' TEST' if state.TEST_MODE else ''}" ) \
+            .replace( '__TITLE__', f"{topic}{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', f'Bible, topic, {topic.replace(' ',', ')}' ) 
             # .replace( f'''<a title="{state.BibleNames[thisRvBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisRvBible.abbreviation)}/rel/{sFilename}#Top">{thisRvBible.abbreviation}</a>''',
             #         f'''<a title="Up to {state.BibleNames[thisRvBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisRvBible.abbreviation)}/">↑{thisRvBible.abbreviation}</a>''' )
@@ -303,6 +304,14 @@ def createTopicPage( level:int, folder:Path, filename:str, topic:str, refs:list[
     return True
 # end of createTopicPages.createTopicPage
 
+# The following KINGDOM_LIST is used to determine the number of pages and their titles
+#   The second reference(s) are used to include the maps that would occur at those references
+KINGDOM_LIST = (('Promised land',[('JOS','13','1')]),
+                ('Full kingdom',[('JOS','13','1'),('JDG','4','4')]),
+                ('Northern kingdom',[('JOS','13','1'),('JDG','4','4')]),
+                ('Southern kingdom',[('JOS','13','1'),('JDG','4','4')]),
+                ('Both kingdoms',[('KI2','14','25')]))
+# The following KINGDOM_INFO_HTML_DICT contains the HTML prose paragraphs to go on each page
 KINGDOM_INFO_HTML_DICT = {
     'Promised land':'''<p>After four hundred years in Egypt (Heb. Mitsrayim) and ending up as slaves there, Yahweh told Mosheh (Moses) that he would lead the descendants of Yakov/Yisrael (Jacob/Israel) to the land that he’d promised to them.</p>''',
     'Intro':'''<p>Yakov (Jacob) was the patriarch of Yisrael (Israel).
@@ -322,51 +331,69 @@ This kingdom of Yehudah continued to be ruled by David’s descendants, although
     'Both kingdoms':'''<p>By the term ‘Both kingdoms’, we mean that the narrative covers both of the two kingdoms of Yisrael and Yehudah (that had originally been united after the Israelis in the ‘<a href="PromisedLand.htm#Top">promised land</a>’ demanded a king, but which split after the death of King Shelomoh).</p>
 <p>The prophets who spoke to both kingdoms (after they had been divided) include Isaiah, ...</p>''',
     }
-KINGDOM_LIST = (('Promised land',[('JOS','13','1')]),('Full kingdom',[('JOS','13','1'),('JDG','4','4')]),('Northern kingdom',[('JOS','13','1'),('JDG','4','4')]),('Southern kingdom',[('JOS','13','1'),('JDG','4','4')]),('Both kingdoms',[('KI2','14','25')]))
 def createKingdomPages( level:int, folder:Path, state:State ) -> bool:
     """
     """
     fnPrint( DEBUGGING_THIS_MODULE, f"createKingdomPages( {level}, {folder}, {state.BibleVersions} )" )
-    assert level == 1
 
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\ncreateKingdomPages( {level}, {folder} )" )
     try: os.makedirs( folder )
     except FileExistsError: pass # they were already there
 
+    indexList = []
     for kk, (kingdomName,mapRefList) in enumerate( KINGDOM_LIST ):
         oneWordKingdomName = kingdomName.replace( ' ', '' ).replace( 'king', 'King' ).replace( 'land', 'Land' )
         filename = f'{oneWordKingdomName}.htm'
+        indexList.append( (kingdomName, oneWordKingdomName, filename) )
         filepath = folder.joinpath( filename )
         top = makeTop( level, None, 'kingdom', None, state ) \
-                .replace( '__TITLE__', f"{kingdomName}{' TEST' if state.TEST_MODE else ''}" ) \
+                .replace( '__TITLE__', f"{kingdomName}{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
                 .replace( '__KEYWORDS__', f'Bible, {kingdomName.split()[0]}, kingdom' )
         leftLink = f'<a title="Previous kingdom" href="{KINGDOM_LIST[kk-1][0].replace( ' ', '' ).replace( 'king', 'King' ).replace( 'land', 'Land' )}.htm#Top">←</a> ' if kk>0 else ''
         rightLink = f' <a title="Next kingdom" href="{KINGDOM_LIST[kk+1][0].replace( ' ', '' ).replace( 'king', 'King' ).replace( 'land', 'Land' )}.htm#Top">→</a>' if kk<len(KINGDOM_LIST)-1 else ''
+        homeLink = f' <a title="Kingdom index" href="index.htm">⌂</a>'
 
         # Handle BibleMapper maps and notes
-        mapHtml = ''
-        for BBB,C,V in mapRefList:
+        kingdomHtml = ''
+        for mm, (BBB,C,V) in enumerate( mapRefList ):
             dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"    Checking {oneWordKingdomName} maps at {BBB} {C}:{V}…" )
+            # This can fail if not all books are loaded, e.g., in TEST_MODE_FLAG
             bmmHtml = getBibleMapperMaps( level, BBB, C, V, None, None, state.preloadedBibles['OET-RV'], state )
+            # assert bmmHtml, f"{kk=} {kingdomName=} {mapRefList=} {mm=} {BBB} {C}:{V}"
             if bmmHtml:
                 dPrint( 'Info', DEBUGGING_THIS_MODULE, f"     Got some map HTML for {oneWordKingdomName} using {BBB} {C}:{V}" )
-                bmmHtml = f'''<div id="BMM" class="parallelBMM"><a title="Go to BMM copyright page" href="{'../'*level}BMM/details.htm#Top">BMM</a> <b><a href="https://BibleMapper.com" target="_blank" rel="noopener noreferrer">BibleMapper.com</a> Maps</b>: {bmmHtml}</div><!--end of BMM-->'''
-                if not mapHtml:
-                    mapHtml = '<hr style="width:50%;margin-left:0;margin-top: 0.3em">'
-                mapHtml = f'{mapHtml}\n{bmmHtml}'
+                bmmHtml = f'''<div {'id="BMM" ' if mm==0 else ''}class="parallelBMM"><a title="Go to BMM copyright page" href="{'../'*level}BMM/details.htm#Top">BMM</a> <b><a href="https://BibleMapper.com" target="_blank" rel="noopener noreferrer">BibleMapper.com</a> Maps</b>: {bmmHtml}</div><!--end of BMM-->'''
+                if not kingdomHtml:
+                    kingdomHtml = '<hr style="width:50%;margin-left:0;margin-top: 0.3em">'
+                kingdomHtml = f'{kingdomHtml}\n{bmmHtml}'
 
         html = f'''{top}<div class="{oneWordKingdomName}"><h1 class="{oneWordKingdomName}" id="Top">{kingdomName} details</h1>
-<p class="pageNav">{leftLink} {rightLink}</p>
+<p class="pageNav">{leftLink} {homeLink} {rightLink}</p>
 {(KINGDOM_INFO_HTML_DICT['Intro']+NEWLINE) if 'kingdom' in kingdomName else ''}{KINGDOM_INFO_HTML_DICT[kingdomName]}
 </div>
-{mapHtml if mapHtml else ''}{makeBottom( level, 'kingdom', state )}'''
+{kingdomHtml if kingdomHtml else ''}{makeBottom( level, 'kingdom', state )}'''
         assert checkHtml( f'{oneWordKingdomName}', html )
         assert not filepath.is_file() # Check that we're not overwriting anything
         with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
             indexHtmlFile.write( html )
         vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(html):,} characters written to {filepath}" )
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createKingdomPages() finished processing {len(KINGDOM_LIST)} kingdom pages." )
+    # Now make an index page
+    filename = f'index.htm'
+    filepath = folder.joinpath( filename )
+    top = makeTop( level, None, 'kingdom', None, state ) \
+            .replace( '__TITLE__', f"Kingdoms index{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
+            .replace( '__KEYWORDS__', f'Bible, kingdoms, Israel, Judah' )
+    indexHtml = f'''{top}<h1>Index to ‘Kingdom’ pages</h1>
+<h2>These pages describe the kingdoms after the Israelis entered the ‘promised land’</h2>
+{'\n'.join([f'<div class="{oneWordKingdomName}"><p class="note"><a href="{kFilename}">{kingdomName}</a></p></div>' for kingdomName, oneWordKingdomName, kFilename in indexList])}{makeBottom( level, 'kingdomIndex', state )}'''
+    assert checkHtml( 'kingdomIndex', html )
+    assert not filepath.is_file() # Check that we're not overwriting anything
+    with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
+        indexHtmlFile.write( indexHtml )
+    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(html):,} characters written to {filepath}" )
+
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createKingdomPages() finished processing {len(KINGDOM_LIST)} kingdom pages plus index." )
     return True
 # end of createTopicPages.createKingdomPages
 

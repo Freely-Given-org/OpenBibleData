@@ -69,6 +69,7 @@ CHANGELOG:
     2025-03-11 Put more glosses on Hebrew word pages
     2025-03-15 Start making our own Strongs pages
     2025-06-18 Fix OT person/place links (from tags) which weren't being displayed on the Hebrew word pages
+    2025-10-29 Include kingdom page index in reference index
 """
 from pathlib import Path
 import os
@@ -96,10 +97,10 @@ from html import makeTop, makeBottom, checkHtml
 from OETHandlers import getOETTidyBBB, getOETBookName, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
-LAST_MODIFIED_DATE = '2025-09-25' # by RJH
+LAST_MODIFIED_DATE = '2025-10-29' # by RJH
 SHORT_PROGRAM_NAME = "createOETReferencePages"
 PROGRAM_NAME = "OpenBibleData createOETReferencePages functions"
-PROGRAM_VERSION = '0.89'
+PROGRAM_VERSION = '0.90'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -695,7 +696,7 @@ def createOETReferencePages( level:int, outputFolderPath:Path, state:State ) -> 
     try: os.makedirs( outputFolderPath )
     except FileExistsError: pass # it was already there
 
-    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nCreating {'TEST ' if state.TEST_MODE else ''}reference pages for OET…" )
+    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nCreating {'TEST ' if state.TEST_MODE_FLAG else ''}reference pages for OET…" )
 
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Preprocessing word forms for OET…" )
     # Here we create our Dicts and Lists that we'll make the reference pages from
@@ -710,7 +711,7 @@ def createOETReferencePages( level:int, outputFolderPath:Path, state:State ) -> 
     state.OETRefData['OTLemmaGlossDict'] = {}
     # startTime = time()
     preprocessHebrewWordsLemmasGlosses( [], state ) # Ignores these ones
-    # if state.TEST_MODE: vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      preprocessHebrewWordsLemmasGlosses() took {(time()-startTime)/60:.2f} minutes.")
+    # if state.TEST_MODE_FLAG: vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      preprocessHebrewWordsLemmasGlosses() took {(time()-startTime)/60:.2f} minutes.")
     startTime = time()
     create_Hebrew_word_pages( level+1, outputFolderPath.joinpath( 'HebWrd/' ), state )
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      create_Hebrew_word_pages() took {(time()-startTime)/60:.1f} minutes.")
@@ -732,7 +733,7 @@ def createOETReferencePages( level:int, outputFolderPath:Path, state:State ) -> 
     preprocessGreekWordsLemmasGlosses( 'JHN', state ) # Only processes this book
     preprocessGreekWordsLemmasGlosses( 'MRK', state )
     preprocessGreekWordsLemmasGlosses( ['JHN','MRK'], state ) # Ignores these ones
-    # if state.TEST_MODE: vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      preprocessGreekWordsLemmasGlosses() took {(time()-startTime)/60:.2f} minutes.")
+    # if state.TEST_MODE_FLAG: vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      preprocessGreekWordsLemmasGlosses() took {(time()-startTime)/60:.2f} minutes.")
     startTime = time()
     create_Greek_word_pages( level+1, outputFolderPath.joinpath( 'GrkWrd/' ), state )
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      create_Greek_word_pages() took {(time()-startTime)/60:.1f} minutes.")
@@ -753,7 +754,7 @@ def createOETReferencePages( level:int, outputFolderPath:Path, state:State ) -> 
     filename = 'index.htm'
     filepath = outputFolderPath.joinpath( filename )
     top = makeTop( level, None, 'referenceIndex', None, state) \
-            .replace( '__TITLE__', f"OpenBibleData Reference Contents{' TEST' if state.TEST_MODE else ''}" ) \
+            .replace( '__TITLE__', f"OpenBibleData Reference Contents{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, reference, lists' )
     indexHtml = f'''{top}
 <h1 id="Top">Reference lists main contents page</h1>
@@ -766,6 +767,7 @@ def createOETReferencePages( level:int, outputFolderPath:Path, state:State ) -> 
 <p class="note"><a href="GrkStrng/">Greek Strongs numbers index</a></p>
 <p class="note"><a href="Per/">Bible people index</a></p>
 <p class="note"><a href="Loc/">Bible locations index</a></p>
+<p class="note"><a href="Kingdoms/">Promised land kingdoms index</a></p>
 <p class="note"><a href="Stats/">Bible statistics</a></p>
 {makeBottom( level, 'referenceIndex', state )}'''
     assert checkHtml( 'referenceIndex', indexHtml )
@@ -1223,7 +1225,7 @@ def create_Hebrew_word_pages( level:int, outputFolderPath:Path, state:State ) ->
                 used_word_filenames.append( output_filename )
             ref, _rowType, _morphemeRowList, _lemmaRowList, _strongs, _morphology, word, noCantillations, _morphemeGlosses, _contextualMorphemeGlosses, _wordGloss, _contextualWordGloss, _glossCapitalisation, _glossPunctuation, _glossOrder, _glossInsert, _role, _nesting, _tags = columns_string.split( '\t' )
             BBB, _CVW = ref.split( '_', 1 )
-            if state.TEST_MODE and not state.ALL_TEST_REFERENCE_PAGES and BBB not in state.TEST_BOOK_LIST:
+            if state.TEST_MODE_FLAG and not state.ALL_TEST_REFERENCE_PAGES_FLAG and BBB not in state.TEST_BOOK_LIST:
                 continue # In some test modes, we only make the relevant word pages
             hebrewWord = (noCantillations.replace( ',', '' ) # Remove morpheme breaks
                             if noCantillations else word ) # Segs and notes have nothing in the noCantillations field
@@ -1250,7 +1252,7 @@ def create_Hebrew_word_pages( level:int, outputFolderPath:Path, state:State ) ->
                 used_word_filenames.append( output_filename )
             ref, rowType, _morphemeRowList, _lemmaRowList, _strongs, _morphology, word, noCantillations, _morphemeGlosses, _contextualMorphemeGlosses, _wordGloss, _contextualWordGloss, _glossCapitalisation, _glossPunctuation, _glossOrder, _glossInsert, _role, _nesting, _tags = columns_string.split( '\t' )
             BBB, _CVW = ref.split( '_', 1 )
-            if state.TEST_MODE and not state.ALL_TEST_REFERENCE_PAGES and BBB not in state.TEST_BOOK_LIST:
+            if state.TEST_MODE_FLAG and not state.ALL_TEST_REFERENCE_PAGES_FLAG and BBB not in state.TEST_BOOK_LIST:
                 continue # In some test modes, we only make the relevant word pages
             hebrewWord = (noCantillations.replace( ',', '' ) # Remove morpheme breaks
                             if noCantillations else word ) # Segs and notes have nothing in the noCantillations field
@@ -1264,7 +1266,7 @@ def create_Hebrew_word_pages( level:int, outputFolderPath:Path, state:State ) ->
     # Create index page for this folder
     filepath = outputFolderPath.joinpath( 'index.htm' )
     top = makeTop( level, None, 'wordIndex', None, state) \
-            .replace( '__TITLE__', f"Hebrew Words Index{' TEST' if state.TEST_MODE else ''}" ) \
+            .replace( '__TITLE__', f"Hebrew Words Index{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, Hebrew, words' )
     indexText = ' '.join( wordLinksForIndex )
     indexHtml = f'''{top}
@@ -1277,6 +1279,7 @@ def create_Hebrew_word_pages( level:int, outputFolderPath:Path, state:State ) ->
 <p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a></p>
 <p class="note"><a href="../Per/">Bible people index</a></p>
 <p class="note"><a href="../Loc/">Bible locations index</a></p>
+<p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/">Bible statistics</a></p>
 <h1 id="Top">Hebrew Words Index</h1>
 <p class="note">{indexText}</p>
@@ -1290,7 +1293,7 @@ def create_Hebrew_word_pages( level:int, outputFolderPath:Path, state:State ) ->
     # Create transliterated index page for this folder
     filepath = outputFolderPath.joinpath( 'transIndex.htm' )
     top = makeTop( level, None, 'wordIndex', None, state) \
-            .replace( '__TITLE__', f"Transliterated Hebrew Words Index{' TEST' if state.TEST_MODE else ''}" ) \
+            .replace( '__TITLE__', f"Transliterated Hebrew Words Index{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, Hebrew, words, transliterated' )
     indexText = transliterate_Hebrew( indexText )
     indexHtml = f'''{top}
@@ -1303,6 +1306,7 @@ def create_Hebrew_word_pages( level:int, outputFolderPath:Path, state:State ) ->
 <p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a></p>
 <p class="note"><a href="../Per/">Bible people index</a></p>
 <p class="note"><a href="../Loc/">Bible locations index</a></p>
+<p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/">Bible statistics</a></p>
 <h1 id="Top">Transliterated Hebrew Words Index</h1>
 <p class="note">{indexText}</p>
@@ -1331,8 +1335,8 @@ def create_Hebrew_word_page( level:int, hh:int, hebrewWord:str, columns_string:s
     ref, rowType, morphemeRowList, lemmaRowList, strongs, morphology, word, noCantillations, morphemeGlosses, contextualMorphemeGlosses, wordGloss, contextualWordGloss, glossCapitalisation, glossPunctuation, glossOrder, glossInsert, role, nesting, tagsStr = columns_string.split( '\t' )
 
     BBB, CVW = ref.split( '_', 1 )
-    assert not state.TEST_MODE or state.ALL_TEST_REFERENCE_PAGES or BBB in state.TEST_BOOK_LIST
-    # if state.TEST_MODE and not state.ALL_TEST_REFERENCE_PAGES and BBB not in state.TEST_BOOK_LIST:
+    assert not state.TEST_MODE_FLAG or state.ALL_TEST_REFERENCE_PAGES_FLAG or BBB in state.TEST_BOOK_LIST
+    # if state.TEST_MODE_FLAG and not state.ALL_TEST_REFERENCE_PAGES_FLAG and BBB not in state.TEST_BOOK_LIST:
     #     return False # In some test modes, we only make the relevant word pages
     C, VW = CVW.split( ':', 1 )
     V, W = VW.split( 'w', 1 ) if 'w' in VW else (VW, '') # Segs and Notes don't have word numbers
@@ -1449,7 +1453,7 @@ def create_Hebrew_word_page( level:int, hh:int, hebrewWord:str, columns_string:s
     # Make the navigation links for the top of the page
     prevN = nextN = None
     if hh > 1:
-        if state.TEST_MODE and not state.ALL_TEST_REFERENCE_PAGES:
+        if state.TEST_MODE_FLAG and not state.ALL_TEST_REFERENCE_PAGES_FLAG:
             for nN in range( hh-1, 0, -1 ):
                 nWordRef = state.OETRefData['word_tables'][HebrewWordFileName][nN].split( '\t', 1 )[0]
                 nBBB = nWordRef.split( '_', 1 )[0]
@@ -1458,7 +1462,7 @@ def create_Hebrew_word_page( level:int, hh:int, hebrewWord:str, columns_string:s
                     break
         else: prevN = hh-1
     if hh<len(state.OETRefData['word_tables'][HebrewWordFileName])-1:
-        if state.TEST_MODE and not state.ALL_TEST_REFERENCE_PAGES:
+        if state.TEST_MODE_FLAG and not state.ALL_TEST_REFERENCE_PAGES_FLAG:
             for nN in range( hh+1, len(state.OETRefData['word_tables'][HebrewWordFileName]) ):
                 nWordRef = state.OETRefData['word_tables'][HebrewWordFileName][nN].split( '\t', 1 )[0]
                 nBBB = nWordRef.split( '_', 1 )[0]
@@ -1476,7 +1480,7 @@ def create_Hebrew_word_page( level:int, hh:int, hebrewWord:str, columns_string:s
     wordsHtml = f'''<h2>Open English Translation (OET)</h2>\n<h1 id="Top">Hebrew wordlink #{hh}</h1>{f"{NEWLINE}<h2>{rowTypeField}</h2>" if rowTypeField else ''}
 <p class="pNav">{prevLink}<b>{hebrewWordTitle}</b> <a title="Go to Hebrew word index" href="index.htm">↑</a>{nextLink}{oetLink}{parallelLink}{interlinearLink}</p>
 <p class="link"><a title="Go to Open Scriptures Hebrew verse page" href="https://hb.OpenScriptures.org/structure/OshbVerse/index.html?b={OSISbookCode}&c={C}&v={V}">OSHB {ourTidyBbbWithNotes} {C}:{V}</a> <b>{hebrewWord}</b>{transliterationBit}{StrongsBit} {lemmaLinksStr}
-<br> {translationFields}{capsField if state.TEST_MODE else ''}
+<br> {translationFields}{capsField if state.TEST_MODE_FLAG else ''}
 <br> {tidyMorphologyFields}{f'{NEWLINE}<br>  {semanticExtras}' if semanticExtras else ''}</p>
 <p class="note"><small>Note: These word pages enable you to click through to the <a href="https://hb.OpenScriptures.org">Open Scriptures Hebrew Bible</a> (OSHB) that the <em>Open English Translation</em> Old Testament is translated from.
 The OSHB is based on the <a href="https://www.Tanach.us/Tanach.xml">Westminster Leningrad Codex</a> (WLC).
@@ -1555,7 +1559,7 @@ This is all part of the commitment of the <em>Open English Translation</em> team
             # if other_count == 0:
             wordsHtml = f'''{wordsHtml}\n<p class="wordLine"><a title="View OET {oTidyBBB} text" href="{'../'*level}OET/byC/{oBBB}_C{oC}.htm#C{oC}V{oV}">{oTidyBBBwithNotes} {oC}:{oV}</a>''' \
 f''' {oTranslation} <a title="Go to Open Scriptures Hebrew verse page" href="https://hb.OpenScriptures.org/structure/OshbVerse/index.html?b={oOSISbookCode}&c={oC}&v={oV}">OSHB {oTidyBBBwithNotes} {oC}:{oV} word {oW}</a></p>''' \
-            if not state.TEST_MODE or oBBB in state.preloadedBibles['OET-RV'] else \
+            if not state.TEST_MODE_FLAG or oBBB in state.preloadedBibles['OET-RV'] else \
             f'''{wordsHtml}\n<p class="wordLine">{oTidyBBBwithNotes} {oC}:{oV}''' \
 f''' {oTranslation} <a title="Go to Open Scriptures Hebrew verse page" href="https://hb.OpenScriptures.org/structure/OshbVerse/index.html?b={oOSISbookCode}&c={oC}&v={oV}">OSHB {oTidyBBBwithNotes} {oC}:{oV} word {oW}</a></p>'''
             # other_count += 1
@@ -1632,7 +1636,7 @@ f''' {oTranslation} <a title="Go to Open Scriptures Hebrew verse page" href=
                                 eLemmaLinksStr = f'''Lemmas=<b>{', '.join(eLemmaLinksList)}</b>''' if len(eLemmaLinksList)>1 else f'Lemma=<b>{eLemmaLinksList[0]}</b>'
                                 extraLemmaSet.add( eLemmaLinksStr )
 
-                            eHebrewPossibleLink = f'<a title="Go to word page" href="{getHebrewWordpageFilename(thisN,state)}#Top">{eHebrewWord}</a>' if not state.TEST_MODE or state.ALL_TEST_REFERENCE_PAGES or eBBB in state.TEST_BOOK_LIST else eHebrewWord
+                            eHebrewPossibleLink = f'<a title="Go to word page" href="{getHebrewWordpageFilename(thisN,state)}#Top">{eHebrewWord}</a>' if not state.TEST_MODE_FLAG or state.ALL_TEST_REFERENCE_PAGES_FLAG or eBBB in state.TEST_BOOK_LIST else eHebrewWord
                             extraWordSet.add( eHebrewPossibleLink )
                             eWordGloss = eWordGloss.replace( '=', '_' )
                             eGloss = tidy_Hebrew_word_gloss( eContextualWordGloss if eContextualWordGloss else eWordGloss if eWordGloss else eContextualMorphemeGlosses if eContextualMorphemeGlosses else eMorphemeGlosses )
@@ -1656,7 +1660,7 @@ f''' {oTranslation} <a title="Go to Open Scriptures Hebrew verse page" href=
                             extraHTMLList.append( f'''<p class="wordLine"><a title="View OET {eTidyBBB} text" href="{'../'*level}OET/byC/{eBBB}_C{eC}.htm#C{eC}V{eV}">{eTidyBBB} {eC}:{eV}</a>''' \
 f''' <b>{eHebrewPossibleLink}</b> ({transliterate_Hebrew(eHebrewWord)}) <small>{etidyMorphologyField}</small>{f' {eLemmaLinksStr}' if eLemmaLinksStr else ''} {eTranslation}''' \
 f''' <a title="Go to Open Scriptures Hebrew verse page" href="https://hb.OpenScriptures.org/structure/OshbVerse/index.html?b={eOSISbookCode}&c={eC}&v={eV}">OSHB {eTidyBBB} {eC}:{eV} word {eW}</a></p>'''
-                        if not state.TEST_MODE or eBBB in state.preloadedBibles['OET-RV'] else
+                        if not state.TEST_MODE_FLAG or eBBB in state.preloadedBibles['OET-RV'] else
                             f'''<p class="wordLine">{eTidyBBB} {eC}:{eV} ‘{eHebrewPossibleLink}’ <small>({etidyMorphologyField})</small>{f' Lemma={eLemmaLink}' if eLemmaLink else ''} ‘{eTranslation}’''' \
 f''' <a title="Go to Open Scriptures Hebrew verse page" href="https://hb.OpenScriptures.org/structure/OshbVerse/index.html?b={eOSISbookCode}&c={eC}&v={eV}">OSHB {eTidyBBB} {eC}:{eV} word {eW}</a></p>''' )
         assert not wordsHtml.endswith('\n'), f"{wordsHtml=}"
@@ -1690,7 +1694,7 @@ f''' <a title="Go to Open Scriptures Hebrew verse page" href="https://hb.OpenS
 
     # Now put it all together
     top = makeTop( level, None, 'word', None, state ) \
-                    .replace( '__TITLE__', f"Hebrew word ‘{hebrewWord}’{' TEST' if state.TEST_MODE else ''}" ) \
+                    .replace( '__TITLE__', f"Hebrew word ‘{hebrewWord}’{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
                     .replace( '__KEYWORDS__', 'Bible, word' ) \
                     .replace( 'par/"', f'par/{BBB}/C{C}V{V}.htm#Top"' )
     wordsHtml = f'''{top}{wordsHtml}{keyHtml}{makeBottom( level, 'word', state )}'''
@@ -1752,7 +1756,7 @@ def create_Hebrew_lemma_pages( level:int, outputFolderPath:Path, state:State ) -
         transliteratedLemma = transliterate_Hebrew( hebLemma )
         if transliteratedLemma == 'pitgām': # One is at ll=5803 hebLemma='פִּתְגָם' ll=5804 hebLemma='פִּתְגָּם'
             print( f"      Found pitgām at {ll=} {hebLemma=} {transliteratedLemma=} wordRows={state.OETRefData['OTWordRowNumbersDict'][ll]}" )
-        if state.TEST_MODE and not state.ALL_TEST_REFERENCE_PAGES and hebLemma not in state.OETRefData['usedHebLemmas']:
+        if state.TEST_MODE_FLAG and not state.ALL_TEST_REFERENCE_PAGES_FLAG and hebLemma not in state.OETRefData['usedHebLemmas']:
             continue # Don't make this page
         vowellessLemma = removeHebrewVowelPointing( hebLemma )
         transliteratedVowellessLemma = transliterate_Hebrew( vowellessLemma )
@@ -1770,7 +1774,7 @@ def create_Hebrew_lemma_pages( level:int, outputFolderPath:Path, state:State ) -
 
         prevLL = nextLL = None
         if ll > 1:
-            if state.TEST_MODE and not state.ALL_TEST_REFERENCE_PAGES:
+            if state.TEST_MODE_FLAG and not state.ALL_TEST_REFERENCE_PAGES_FLAG:
                 for LL in range( ll-2, 0, -1 ):
                     # MMLemma = lemmaListWithGlosses[MM][0]
                     # print( f"{mm=} {MM=} {lemmaListWithGlosses[MM]=} {MMLemma=} {list(state.OETRefData['usedHebLemmas'])[:20]=}")
@@ -1780,7 +1784,7 @@ def create_Hebrew_lemma_pages( level:int, outputFolderPath:Path, state:State ) -
                         break
             else: prevLL = ll-1
         if ll<len(lemmaList)-1:
-            if state.TEST_MODE and not state.ALL_TEST_REFERENCE_PAGES:
+            if state.TEST_MODE_FLAG and not state.ALL_TEST_REFERENCE_PAGES_FLAG:
                 for LL in range( ll, len(lemmaList) ):
                     if lemmaList[LL] in state.OETRefData['usedHebLemmas']:
                         nextLL = LL
@@ -1838,9 +1842,9 @@ def create_Hebrew_lemma_pages( level:int, outputFolderPath:Path, state:State ) -
                 if oTidyMorphology != '···': usedMorphologies.add( oTidyMorphology )
                 # if other_count == 0:
                 oOETLink = f'''<a title="View OET {oTidyBBB} text" href="{'../'*level}OET/byC/{oBBB}_C{oC}.htm#C{oC}V{oV}">{oTidyBBBwithNotes} {oC}:{oV}</a>''' \
-                                if not state.TEST_MODE or oBBB in state.preloadedBibles['OET-RV'] \
+                                if not state.TEST_MODE_FLAG or oBBB in state.preloadedBibles['OET-RV'] \
                                     else f'{oTidyBBBwithNotes} {oC}:{oV}'
-                oHebrewWordLink = f'<a title="Go to word page" href="../HebWrd/{oN}.htm#Top">{oHebrewWord}</a>' if not state.TEST_MODE or oBBB in state.preloadedBibles['OET-RV'] else oHebrewWord
+                oHebrewWordLink = f'<a title="Go to word page" href="../HebWrd/{oN}.htm#Top">{oHebrewWord}</a>' if not state.TEST_MODE_FLAG or oBBB in state.preloadedBibles['OET-RV'] else oHebrewWord
                 lemmaHTML = f'''{lemmaHTML}\n<p class="lemmaLine">{oOETLink} <b>{oHebrewWordLink}</b> ({transliterate_Hebrew(oHebrewWord.replace(',',', '))})''' \
                     f" {oTidyMorphology} {translation} " \
                     f'''<a title="Go to Open Scriptures Hebrew verse page" href="https://hb.OpenScriptures.org/structure/OshbVerse/index.html?b={oOSISbookCode}&c={oC}&v={oV}">OSHB {oTidyBBBwithNotes} {oC}:{oV} word {oW}</a></p>'''
@@ -2081,7 +2085,7 @@ def create_Hebrew_lemma_pages( level:int, outputFolderPath:Path, state:State ) -
 
         # Now put it all together
         top = makeTop( level, None, 'lemma', None, state ) \
-                        .replace( '__TITLE__', f"Hebrew lemma ‘{hebLemma}’{' TEST' if state.TEST_MODE else ''}" ) \
+                        .replace( '__TITLE__', f"Hebrew lemma ‘{hebLemma}’{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
                         .replace( '__KEYWORDS__', 'Bible, word' )
         lemmasHtml = f'''{top}{lemmasHtml}{keyHtml}{makeBottom( level, 'lemma', state )}'''
         assert checkHtml( 'HebrewLemmaPage', lemmasHtml )
@@ -2101,7 +2105,7 @@ def create_Hebrew_lemma_pages( level:int, outputFolderPath:Path, state:State ) -
     filename = 'index.htm'
     filepath = outputFolderPath.joinpath( filename )
     top = makeTop( level, None, 'lemmaIndex', None, state) \
-            .replace( '__TITLE__', f"Hebrew Lemma Index{' TEST' if state.TEST_MODE else ''}" ) \
+            .replace( '__TITLE__', f"Hebrew Lemma Index{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, Hebrew, lemmas' )
     indexText = ' '.join( lemmaLinks )
     indexHtml = f'''{top}
@@ -2114,6 +2118,7 @@ def create_Hebrew_lemma_pages( level:int, outputFolderPath:Path, state:State ) -
 <p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a></p>
 <p class="note"><a href="../Per/">Bible people index</a></p>
 <p class="note"><a href="../Loc/">Bible locations index</a></p>
+<p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/">Bible statistics</a></p>
 <h1 id="Top">Hebrew Lemmas Index</h1>
 <p class="note">{indexText}</p>
@@ -2128,7 +2133,7 @@ def create_Hebrew_lemma_pages( level:int, outputFolderPath:Path, state:State ) -
     filename = 'transIndex.htm'
     filepath = outputFolderPath.joinpath( filename )
     top = makeTop( level, None, 'lemmaIndex', None, state) \
-            .replace( '__TITLE__', f"Transliterated Hebrew Lemma Index{' TEST' if state.TEST_MODE else ''}" ) \
+            .replace( '__TITLE__', f"Transliterated Hebrew Lemma Index{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, Hebrew, lemmas' )
     indexText = transliterate_Hebrew( indexText )
     indexHtml = f'''{top}
@@ -2141,6 +2146,7 @@ def create_Hebrew_lemma_pages( level:int, outputFolderPath:Path, state:State ) -
 <p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a></p>
 <p class="note"><a href="../Per/">Bible people index</a></p>
 <p class="note"><a href="../Loc/">Bible locations index</a></p>
+<p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/">Bible statistics</a></p>
 <h1 id="Top">Transliterated Hebrew Lemmas Index</h1>
 <p class="note">{indexText}</p>
@@ -2209,7 +2215,7 @@ def create_Greek_word_pages( level:int, outputFolderPath:Path, state:State ) -> 
         ref, greekWord, SRLemma, GrkLemma, VLTGlossWordsStr, OETGlossWordsStr, glossCaps, probability, extendedStrongs, roleLetter, morphology, tagsStr = columns_string.split( '\t' )
 
         BBB, CVW = ref.split( '_', 1 )
-        if state.TEST_MODE and not state.ALL_TEST_REFERENCE_PAGES and BBB not in state.TEST_BOOK_LIST:
+        if state.TEST_MODE_FLAG and not state.ALL_TEST_REFERENCE_PAGES_FLAG and BBB not in state.TEST_BOOK_LIST:
             continue # In some test modes, we only make the relevant word pages
         C, VW = CVW.split( ':', 1 )
         V, W = VW.split( 'w', 1 )
@@ -2312,7 +2318,7 @@ def create_Greek_word_pages( level:int, outputFolderPath:Path, state:State ) -> 
 
         prevN = nextN = None
         if gg > 1:
-            if state.TEST_MODE and not state.ALL_TEST_REFERENCE_PAGES:
+            if state.TEST_MODE_FLAG and not state.ALL_TEST_REFERENCE_PAGES_FLAG:
                 for nN in range( gg-1, 0, -1 ):
                     nWordRef = state.OETRefData['word_tables'][GreekWordFileName][nN].split( '\t', 1 )[0]
                     nBBB = nWordRef.split( '_', 1 )[0]
@@ -2321,7 +2327,7 @@ def create_Greek_word_pages( level:int, outputFolderPath:Path, state:State ) -> 
                         break
             else: prevN = gg-1
         if gg<len(state.OETRefData['word_tables'][GreekWordFileName])-1:
-            if state.TEST_MODE and not state.ALL_TEST_REFERENCE_PAGES:
+            if state.TEST_MODE_FLAG and not state.ALL_TEST_REFERENCE_PAGES_FLAG:
                 for nN in range( gg+1, len(state.OETRefData['word_tables'][GreekWordFileName]) ):
                     nWordRef = state.OETRefData['word_tables'][GreekWordFileName][nN].split( '\t', 1 )[0]
                     nBBB = nWordRef.split( '_', 1 )[0]
@@ -2338,7 +2344,7 @@ def create_Greek_word_pages( level:int, outputFolderPath:Path, state:State ) -> 
         wordsHtml = f'''{'' if probability else '<div class="unusedWord">'}<h2>Open English Translation (OET)</h2>\n<h1 id="Top">Koine Greek wordlink #{gg}{'' if probability else ' <small>(Unused Greek word variant)</small>'}</h1>
 <p class="pNav">{prevLink}<b>{greekWord}</b> <a title="Go to Greek word index" href="index.htm">↑</a>{nextLink}{oetLink}{parallelLink}{interlinearLink}</p>
 <p class="link"><a title="Go to Statistical Restoration Greek page" href="https://GreekCNTR.org/collation/?v={CNTR_BOOK_ID_MAP[BBB]}{C.zfill(3)}{V.zfill(3)}">SR GNT {tidyBbbb} {C}:{V}</a>
- {probabilityField if state.TEST_MODE else ''}<b>{greekWord}</b> ({transliterate_Greek(greekWord)}) {translation}{capsField if state.TEST_MODE else ''}
+ {probabilityField if state.TEST_MODE_FLAG else ''}<b>{greekWord}</b> ({transliterate_Greek(greekWord)}) {translation}{capsField if state.TEST_MODE_FLAG else ''}
  Strongs=<a title="Goes to Strongs dictionary" href="{'../'*level}ref/GrkStrng/G{strongs}.htm#To">{extendedStrongs}</a> Lemma=<b>{lemmaLink}</b>
 <br> {roleField}{moodField}{tenseField}{voiceField}{personField}{caseField}{genderField}{numberField}{f'{NEWLINE}<br>  {semanticExtras}' if semanticExtras else ''}</p>
 <p class="note"><small>Note: With the help of a companion website, these word pages enable you to click through all the way back to photographs of the original manuscripts that the <em>Open English Translation</em> New Testament is translated from.
@@ -2402,7 +2408,7 @@ This is all part of the commitment of the <em>Open English Translation</em> team
                 translation = '<small>(no English gloss here)</small>' if oOETGlossWords=='-' else f'''‘{tidyGlossOfGreekWord(oFormattedContextGlossWords)}’'''
                 wordsHtml = f'''{wordsHtml}\n<p class="wordLine"><a title="View OET {oTidyBBB} text" href="{'../'*level}OET/byC/{oBBB}_C{oC}.htm#C{oC}V{oV}">{oTidyBbbbWithNotes} {oC}:{oV}</a>''' \
 f''' {translation} <a title="Go to Statistical Restoration Greek page" href="https://GreekCNTR.org/collation/?v={CNTR_BOOK_ID_MAP[oBBB]}{oC.zfill(3)}{oV.zfill(3)}">SR GNT {oTidyBbbbWithNotes} {oC}:{oV} word {oW}</a></p>''' \
-                    if not state.TEST_MODE or oBBB in state.preloadedBibles['OET-RV'] else \
+                    if not state.TEST_MODE_FLAG or oBBB in state.preloadedBibles['OET-RV'] else \
                     f'''{wordsHtml}\n<p class="wordLine">{oTidyBbbbWithNotes} {oC}:{oV}''' \
 f''' {translation} <a title="Go to Statistical Restoration Greek page" href="https://GreekCNTR.org/collation/?v={CNTR_BOOK_ID_MAP[oBBB]}{oC.zfill(3)}{oV.zfill(3)}">SR GNT {oTidyBbbbWithNotes} {oC}:{oV} word {oW}</a></p>'''
                 # other_count += 1
@@ -2449,7 +2455,7 @@ f''' {translation} <a title="Go to Statistical Restoration Greek page" href=
                                 eTidyBBB = getOETTidyBBB( eBBB )
                                 eTidyBbbb = getOETTidyBBB( eBBB, titleCase=True, allowFourChars=True )
 
-                                eGreekPossibleLink = f'<a title="Go to word page" href="{getGreekWordpageFilename(thisN, state)}#Top">{eGreekWord}</a>' if not state.TEST_MODE or state.ALL_TEST_REFERENCE_PAGES or eBBB in state.TEST_BOOK_LIST else eGreekWord
+                                eGreekPossibleLink = f'<a title="Go to word page" href="{getGreekWordpageFilename(thisN, state)}#Top">{eGreekWord}</a>' if not state.TEST_MODE_FLAG or state.ALL_TEST_REFERENCE_PAGES_FLAG or eBBB in state.TEST_BOOK_LIST else eGreekWord
                                 eLemmaLink = f'<a title="View Greek root word" href="../GrkLem/{eSRLemma}.htm#Top">{eSRLemma}</a>' if eSRLemma!=SRLemma else ''
                                 eFormattedContextGlossWords = tidyGlossOfGreekWord( formatNTContextSpansOETGlossWords( thisN, state ) )
                                 assert '\\' not in eFormattedContextGlossWords, f"{gg=} {eFormattedContextGlossWords=}"
@@ -2466,7 +2472,7 @@ f''' {translation} <a title="Go to Statistical Restoration Greek page" href=
 f''' <b>{eGreekPossibleLink}</b> ({transliterate_Greek(eGreekWord)}) <small>{eTidyRoleMorphology}</small>{f' Lemma={eLemmaLink}' if eLemmaLink else ''}'''
 f''' ‘{eFormattedContextGlossWords}’'''
 f''' <a title="Go to Statistical Restoration Greek page" href="https://GreekCNTR.org/collation/?v={CNTR_BOOK_ID_MAP[eBBB]}{eC.zfill(3)}{eV.zfill(3)}">SR GNT {eTidyBbbb} {eC}:{eV} word {eW}</a></p>'''
-                                    if not state.TEST_MODE or eBBB in state.preloadedBibles['OET-RV'] else
+                                    if not state.TEST_MODE_FLAG or eBBB in state.preloadedBibles['OET-RV'] else
                                         f'''<p class="wordLine">{eTidyBBB} {eC}:{eV} ‘{eGreekPossibleLink}’ <small>({eTidyRoleMorphology})</small>{f' Lemma={eLemmaLink}' if eLemmaLink else ''}''' \
 f''' ‘{eFormattedContextGlossWords}’''' \
 f''' <a title="Go to Statistical Restoration Greek page" href="https://GreekCNTR.org/collation/?v={CNTR_BOOK_ID_MAP[eBBB]}{eC.zfill(3)}{eV.zfill(3)}">SR GNT {eTidyBbbb} {eC}:{eV} word {eW}</a></p>''' )
@@ -2494,7 +2500,7 @@ f''' <a title="Go to Statistical Restoration Greek page" href="https://GreekCN
 
         # Now put it all together
         top = makeTop( level, None, 'word', None, state ) \
-                        .replace( '__TITLE__', f"Greek word ‘{greekWord}’{' TEST' if state.TEST_MODE else ''}" ) \
+                        .replace( '__TITLE__', f"Greek word ‘{greekWord}’{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
                         .replace( '__KEYWORDS__', 'Bible, word' ) \
                         .replace( 'par/"', f'par/{BBB}/C{C}V{V}.htm#Top"' )
         wordsHtml = f'''{top}{wordsHtml}{keyHtml}{makeBottom( level, 'word', state )}'''
@@ -2512,7 +2518,7 @@ f''' <a title="Go to Statistical Restoration Greek page" href="https://GreekCN
     filename = 'index.htm'
     filepath = outputFolderPath.joinpath( filename )
     top = makeTop( level, None, 'wordIndex', None, state) \
-            .replace( '__TITLE__', f"Greek Words Index{' TEST' if state.TEST_MODE else ''}" ) \
+            .replace( '__TITLE__', f"Greek Words Index{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, Greek, words' )
     indexText = ' '.join( wordLinksForIndex )
     indexHtml = f'''{top}
@@ -2525,6 +2531,7 @@ f''' <a title="Go to Statistical Restoration Greek page" href="https://GreekCN
 <p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a></p>
 <p class="note"><a href="../Per/">Bible people index</a></p>
 <p class="note"><a href="../Loc/">Bible locations index</a></p>
+<p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/">Bible statistics</a></p>
 <h1 id="Top">Greek Words Index</h1>
 <p class="note">{indexText}</p>
@@ -2539,7 +2546,7 @@ f''' <a title="Go to Statistical Restoration Greek page" href="https://GreekCN
     filename = 'transIndex.htm'
     filepath = outputFolderPath.joinpath( filename )
     top = makeTop( level, None, 'wordIndex', None, state) \
-            .replace( '__TITLE__', f"Transliterated Greek Words Index{' TEST' if state.TEST_MODE else ''}" ) \
+            .replace( '__TITLE__', f"Transliterated Greek Words Index{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, Greek, words, transliterated' )
     indexText = transliterate_Greek( indexText )
     indexHtml = f'''{top}
@@ -2552,6 +2559,7 @@ f''' <a title="Go to Statistical Restoration Greek page" href="https://GreekCN
 <p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a></p>
 <p class="note"><a href="../Per/">Bible people index</a></p>
 <p class="note"><a href="../Loc/">Bible locations index</a></p>
+<p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/">Bible statistics</a></p>
 <h1 id="Top">Transliterated Greek Words Index</h1>
 <p class="note">{indexText}</p>
@@ -2608,7 +2616,7 @@ def create_Greek_lemma_pages( level:int, outputFolderPath:Path, state:State ) ->
             vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      {len(lemmaLinks)+1:,} made out of {ll+1:,} out of {len(lemmaList):,}…" )
         # print( f"Lemma {ll}: {lemma}" )
         grkLemma = state.OETRefData['NTGreekLemmaDict'][lemma]
-        if state.TEST_MODE and not state.ALL_TEST_REFERENCE_PAGES and grkLemma not in state.OETRefData['usedGrkLemmas']:
+        if state.TEST_MODE_FLAG and not state.ALL_TEST_REFERENCE_PAGES_FLAG and grkLemma not in state.OETRefData['usedGrkLemmas']:
             continue # Don't make this page
         grkLemmaWordRowsList = state.OETRefData['NTLemmaDict'][lemma]
         grkLemmaFormsList = sorted( state.OETRefData['NTLemmaFormsDict'][lemma] )
@@ -2623,7 +2631,7 @@ def create_Greek_lemma_pages( level:int, outputFolderPath:Path, state:State ) ->
 
         prevLL = nextLL = None
         if ll > 1:
-            if state.TEST_MODE and not state.ALL_TEST_REFERENCE_PAGES:
+            if state.TEST_MODE_FLAG and not state.ALL_TEST_REFERENCE_PAGES_FLAG:
                 for LL in range( ll-1, 0, -1 ):
                     LLLemma = lemmaList[LL]
                     LLGrkLemma = state.OETRefData['NTGreekLemmaDict'][LLLemma]
@@ -2632,7 +2640,7 @@ def create_Greek_lemma_pages( level:int, outputFolderPath:Path, state:State ) ->
                         break
             else: prevLL = ll-1
         if ll<len(lemmaList)-1:
-            if state.TEST_MODE and not state.ALL_TEST_REFERENCE_PAGES:
+            if state.TEST_MODE_FLAG and not state.ALL_TEST_REFERENCE_PAGES_FLAG:
                 for LL in range( ll+1, len(lemmaList) ):
                     LLLemma = lemmaList[LL]
                     LLGrkLemma = state.OETRefData['NTGreekLemmaDict'][LLLemma]
@@ -2684,9 +2692,9 @@ def create_Greek_lemma_pages( level:int, outputFolderPath:Path, state:State ) ->
                 if oTidyMorphology != '···': usedMorphologies.add( oTidyMorphology )
                 # if other_count == 0:
                 oOETLink = f'''<a title="View OET {oTidyBBB} text" href="{'../'*level}OET/byC/{oBBB}_C{oC}.htm#C{oC}V{oV}">{oTidyBbbbWithNotes} {oC}:{oV}</a>''' \
-                                if not state.TEST_MODE or oBBB in state.preloadedBibles['OET-RV'] \
+                                if not state.TEST_MODE_FLAG or oBBB in state.preloadedBibles['OET-RV'] \
                                     else f'{oTidyBbbbWithNotes} {oC}:{oV}'
-                oGreekWordLink = f'<a title="Go to word page" href="../GrkWrd/{getGreekWordpageFilename(oN, state)}#Top">{oGreekWord}</a>' if not state.TEST_MODE or oBBB in state.preloadedBibles['OET-RV'] else oGreekWord
+                oGreekWordLink = f'<a title="Go to word page" href="../GrkWrd/{getGreekWordpageFilename(oN, state)}#Top">{oGreekWord}</a>' if not state.TEST_MODE_FLAG or oBBB in state.preloadedBibles['OET-RV'] else oGreekWord
                 translation = '<small>(no English gloss here)</small>' if oVLTGlossWords=='-' else f'''‘{tidy_Greek_lemma_gloss(oFormattedContextGlossWords)}’'''
                 lemmaHTML = f'''{lemmaHTML}\n<p class="lemmaLine">{oOETLink} <b>{oGreekWordLink}</b> ({transliterate_Greek(oGreekWord)})''' \
                     f"{f' {CNTR_ROLE_NAME_DICT[oRoleLetter].title()}' if len(oRoleSet)>1 else ''} {oTidyMorphology}" \
@@ -2793,7 +2801,7 @@ def create_Greek_lemma_pages( level:int, outputFolderPath:Path, state:State ) ->
 
         # Now put it all together
         top = makeTop( level, None, 'lemma', None, state ) \
-                        .replace( '__TITLE__', f"Greek lemma ‘{lemma}’{' TEST' if state.TEST_MODE else ''}" ) \
+                        .replace( '__TITLE__', f"Greek lemma ‘{lemma}’{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
                         .replace( '__KEYWORDS__', 'Bible, word' )
         lemmasHtml = f'''{top}{lemmasHtml}{keyHtml}{makeBottom( level, 'lemma', state )}'''
         assert checkHtml( f'GreekLemmaPage for {ll} {lemma=}', lemmasHtml )
@@ -2809,7 +2817,7 @@ def create_Greek_lemma_pages( level:int, outputFolderPath:Path, state:State ) ->
     filename = 'index.htm'
     filepath = outputFolderPath.joinpath( filename )
     top = makeTop( level, None, 'lemmaIndex', None, state) \
-            .replace( '__TITLE__', f"Greek Lemma Index{' TEST' if state.TEST_MODE else ''}" ) \
+            .replace( '__TITLE__', f"Greek Lemma Index{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, Greek, lemmas' )
     indexText = ' '.join( lemmaLinks )
     indexHtml = f'''{top}
@@ -2822,6 +2830,7 @@ def create_Greek_lemma_pages( level:int, outputFolderPath:Path, state:State ) ->
 <p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a></p>
 <p class="note"><a href="../Per/">Bible people index</a></p>
 <p class="note"><a href="../Loc/">Bible locations index</a></p>
+<p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/">Bible statistics</a></p>
 <h1 id="Top">Greek Lemmas Index</h1>
 <p class="note">{indexText}</p>
@@ -2836,7 +2845,7 @@ def create_Greek_lemma_pages( level:int, outputFolderPath:Path, state:State ) ->
     filename = 'transIndex.htm'
     filepath = outputFolderPath.joinpath( filename )
     top = makeTop( level, None, 'lemmaIndex', None, state) \
-            .replace( '__TITLE__', f"Transliterated Greek Lemma Index{' TEST' if state.TEST_MODE else ''}" ) \
+            .replace( '__TITLE__', f"Transliterated Greek Lemma Index{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, Greek, lemmas, transliterated' )
     indexText = transliterate_Greek( indexText)
     indexHtml = f'''{top}
@@ -2849,6 +2858,7 @@ def create_Greek_lemma_pages( level:int, outputFolderPath:Path, state:State ) ->
 <p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a></p>
 <p class="note"><a href="../Per/">Bible people index</a></p>
 <p class="note"><a href="../Loc/">Bible locations index</a></p>
+<p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/">Bible statistics</a></p>
 <h1 id="Top">Greek Lemmas Index</h1>
 <p class="note">{indexText}</p>
@@ -2882,7 +2892,7 @@ def create_Hebrew_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:
     numPagesMade = 0
     for strongsNumber in range( 1, finalStrongsNumber+1 ):
         strongsLetterNumberString = f'H{strongsNumber}'
-        if state.TEST_MODE and not state.ALL_TEST_REFERENCE_PAGES:
+        if state.TEST_MODE_FLAG and not state.ALL_TEST_REFERENCE_PAGES_FLAG:
             if strongsNumber not in state.OETRefData['usedHebStrongs']:
                 # print( f"Skipping {strongsLetterNumberString} because not in {list(state.OETRefData['usedHebStrongs'])[:20]}")
                 continue
@@ -2891,7 +2901,7 @@ def create_Hebrew_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:
         filepath = outputFolderPath.joinpath( output_filename )
 
         top = makeTop( level, None, 'StrongsPage', None, state) \
-                .replace( '__TITLE__', f"Strongs {strongsLetterNumberString}{' TEST' if state.TEST_MODE else ''}" ) \
+                .replace( '__TITLE__', f"Strongs {strongsLetterNumberString}{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
                 .replace( '__KEYWORDS__', 'Strongs, number, {strongsString}, Hebrew' )
 
         prevLink = f'<b><a title="Previous entry" href="H{strongsNumber-1}.htm#Top">←</a></b> ' if strongsNumber>1 else ''
@@ -2927,6 +2937,7 @@ def create_Hebrew_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:
 <p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a></p>
 <p class="note"><a href="../Per/">Bible people index</a></p>
 <p class="note"><a href="../Loc/">Bible locations index</a></p>
+<p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/">Bible statistics index</a></p>
 <h1 id="Top">Strongs {strongsLetterNumberString}</h1>
 <p class="pNav">{prevLink}<b>{strongsLetterNumberString}</b> <a title="Go to Hebrew Strongs index" href="index.htm">↑</a>{nextLink}</p>
@@ -2944,7 +2955,7 @@ def create_Hebrew_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:
     filename = 'index.htm'
     filepath = outputFolderPath.joinpath( filename )
     top = makeTop( level, None, 'StrongsIndex', None, state) \
-            .replace( '__TITLE__', f"Strongs Hebrew Index{' TEST' if state.TEST_MODE else ''}" ) \
+            .replace( '__TITLE__', f"Strongs Hebrew Index{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, Strongs, Hebrew, index' )
     indexHtml = f'''{top}
 <p class="note"><b><a href="../">Reference lists contents page</a></b></p>
@@ -2984,7 +2995,7 @@ def create_Greek_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:B
     numPagesMade = 0
     for strongsNumber in range( 1, finalStrongsNumber+1 ):
         strongsLetterNumberString = f'G{strongsNumber}'
-        if state.TEST_MODE and not state.ALL_TEST_REFERENCE_PAGES:
+        if state.TEST_MODE_FLAG and not state.ALL_TEST_REFERENCE_PAGES_FLAG:
             if strongsNumber not in state.OETRefData['usedGrkStrongs']:
                 # print( f"Skipping {strongsLetterNumberString} because not in {list(state.OETRefData['usedGrkStrongs'])[:20]}")
                 continue
@@ -2993,7 +3004,7 @@ def create_Greek_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:B
         filepath = outputFolderPath.joinpath( output_filename )
 
         top = makeTop( level, None, 'StrongsPage', None, state) \
-                .replace( '__TITLE__', f"Strongs {strongsLetterNumberString}{' TEST' if state.TEST_MODE else ''}" ) \
+                .replace( '__TITLE__', f"Strongs {strongsLetterNumberString}{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
                 .replace( '__KEYWORDS__', 'Strongs, number, {strongsString}, Greek' )
 
         prevLink = f'<b><a title="Previous entry" href="G{strongsNumber-1}.htm#Top">←</a></b> ' if strongsNumber>1 else ''
@@ -3026,6 +3037,7 @@ def create_Greek_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:B
 <p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a></p>
 <p class="note"><a href="../Per/">Bible people index</a></p>
 <p class="note"><a href="../Loc/">Bible locations index</a></p>
+<p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/">Bible statistics index</a></p>
 <h1 id="Top">Strongs {strongsLetterNumberString}</h1>
 <p class="pNav">{prevLink}<b>{strongsLetterNumberString}</b> <a title="Go to Greek Strongs index" href="index.htm">↑</a>{nextLink}</p>
@@ -3043,7 +3055,7 @@ def create_Greek_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:B
     filename = 'index.htm'
     filepath = outputFolderPath.joinpath( filename )
     top = makeTop( level, None, 'StrongsIndex', None, state) \
-            .replace( '__TITLE__', f"Strongs Greek Index{' TEST' if state.TEST_MODE else ''}" ) \
+            .replace( '__TITLE__', f"Strongs Greek Index{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, Strongs, Greek, index' )
     indexHtml = f'''{top}
 <p class="note"><b><a href="../">Reference lists contents page</a></b></p>
@@ -3115,7 +3127,7 @@ def create_person_pages( level:int, outputFolderPath:Path, state:State ) -> int:
         # Now put it all together
         output_filename = f"{personKey[1:]}.htm"
         html = f'''{makeTop( level, None, 'person', None, state )
-                                    .replace( '__TITLE__', f"{personName}{' TEST' if state.TEST_MODE else ''}" )
+                                    .replace( '__TITLE__', f"{personName}{' TEST' if state.TEST_MODE_FLAG else ''}" )
                                     .replace( '__KEYWORDS__', 'Bible, word' )
                                     }
 <p class="prevNextLinks">{previousLink} <a title="Go to person index" href="index.htm">↑</a> {nextLink}</p>
@@ -3133,7 +3145,7 @@ def create_person_pages( level:int, outputFolderPath:Path, state:State ) -> int:
     filename = 'index.htm'
     filepath = outputFolderPath.joinpath( filename )
     top = makeTop( level, None, 'personIndex', None, state) \
-            .replace( '__TITLE__', f"Bible Person Index{' TEST' if state.TEST_MODE else ''}" ) \
+            .replace( '__TITLE__', f"Bible Person Index{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, person, people' )
     indexHtml = f'''{top}
 <p class="note"><b><a href="../">Reference lists contents page</a></b></p>
@@ -3144,6 +3156,7 @@ def create_person_pages( level:int, outputFolderPath:Path, state:State ) -> int:
 <p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
 <p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a></p>
 <p class="note"><a href="../Loc/">Bible locations index</a></p>
+<p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/">Bible statistics</a></p>
 <h1 id="Top">Bible People Index</h1>
 <p class="note">{' '.join(personLinks)}</p>
@@ -3203,7 +3216,7 @@ def create_location_pages( level:int, outputFolderPath:Path, state:State ) -> in
         # Now put it all together
         output_filename = f"{placeKey[1:]}.htm"
         html = f'''{makeTop( level, None, 'location', None, state )
-                                    .replace( '__TITLE__', f"{placeName}{' TEST' if state.TEST_MODE else ''}" )
+                                    .replace( '__TITLE__', f"{placeName}{' TEST' if state.TEST_MODE_FLAG else ''}" )
                                     .replace( '__KEYWORDS__', 'Bible, word' )
                                     }
 <p class="prevNextLinks">{previousLink} <a title="Go to locations index" href="index.htm">↑</a> {nextLink}</p>
@@ -3221,7 +3234,7 @@ def create_location_pages( level:int, outputFolderPath:Path, state:State ) -> in
     filename = 'index.htm'
     filepath = outputFolderPath.joinpath( filename )
     top = makeTop( level, None, 'locationIndex', None, state) \
-            .replace( '__TITLE__', f"Bible Location Index{' TEST' if state.TEST_MODE else ''}" ) \
+            .replace( '__TITLE__', f"Bible Location Index{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, location, locations, place, places' )
     indexHtml = f'''{top}
 <p class="note"><b><a href="../">Reference lists contents page</a></b></p>
@@ -3232,6 +3245,7 @@ def create_location_pages( level:int, outputFolderPath:Path, state:State ) -> in
 <p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
 <p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a></p>
 <p class="note"><a href="../Per/">Bible people index</a></p>
+<p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/">Bible statistics</a></p>
 <h1 id="Top">Bible Locations Index</h1>
 <p class="note">{' '.join(locationLinks)}</p>
@@ -3258,7 +3272,7 @@ def create_statistics_pages( level:int, outputFolderPath:Path, state:State ) -> 
     output_filename = 'Chapters.htm'
     filepath = outputFolderPath.joinpath( output_filename )
     top = makeTop( level, None, 'statistics', None, state) \
-            .replace( '__TITLE__', f"Bible Chapters and Verses{' TEST' if state.TEST_MODE else ''}" ) \
+            .replace( '__TITLE__', f"Bible Chapters and Verses{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, statistics, number, chapters, verses, percentage' )
     # Do it three times to get the right order for us: OT, DC, NT
     chaptersData5columns = [(BBB, getOETBookName(BBB),'OT',bvs.getNumChapters(BBB),bvs.getTotalNumVerses(BBB))
@@ -3348,6 +3362,7 @@ def create_statistics_pages( level:int, outputFolderPath:Path, state:State ) -> 
 <p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a></p>
 <p class="note"><a href="../Per/">Bible people index</a></p>
 <p class="note"><a href="../Loc/">Bible locations index</a></p>
+<p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/">Bible statistics index</a></p>
 <h1 id="Top">Bible Chapters and Verses—Traditional Western Protestant</h1>
 {chapters66Html}
@@ -3371,7 +3386,7 @@ def create_statistics_pages( level:int, outputFolderPath:Path, state:State ) -> 
     filename = 'index.htm'
     filepath = outputFolderPath.joinpath( filename )
     top = makeTop( level, None, 'statisticsIndex', None, state) \
-            .replace( '__TITLE__', f"Bible Statistics Index{' TEST' if state.TEST_MODE else ''}" ) \
+            .replace( '__TITLE__', f"Bible Statistics Index{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, statistics, number, chapters, verses' )
     indexHtml = f'''{top}
 <p class="note"><b><a href="../">Reference lists contents page</a></b></p>

@@ -47,11 +47,16 @@ p.licence { }
 p.acknwldg { }
 p.footnote { font-size:0.85em; }
 
+/* For Kingdom pages, etc. */
 h1.PromisedLand { color:gold; }
 h1.FullKingdom { color:blue; }
 h1.NorthernKingdom { color:purple; }
 h1.SouthernKingdom { color:green; }
 h1.BothKingdoms { color:orange; }
+
+div.parallelBMM {}
+h2.mapTitle {}
+p.mapDescription {}
 
 /* For /s4 */
 div.PromisedLand { background-color:LightGoldenrodYellow; }
