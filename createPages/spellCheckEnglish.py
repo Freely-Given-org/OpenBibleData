@@ -47,7 +47,7 @@ from BibleOrgSys import BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import vPrint, fnPrint, dPrint, rreplace
 
 
-LAST_MODIFIED_DATE = '2025-10-10' # by RJH
+LAST_MODIFIED_DATE = '2025-11-06' # by RJH
 SHORT_PROGRAM_NAME = "spellCheckEnglish"
 PROGRAM_NAME = "English Bible Spell Check"
 PROGRAM_VERSION = '0.56'
@@ -181,13 +181,13 @@ assert len(INITIAL_BIBLE_WORD_SET) == len(INITIAL_BIBLE_WORD_LIST), f"{[w for w 
 
 PREAPPROVED_WORDS_TO_REMOVE = sorted(['God’s','GOD', 'LORD’S','LORD’s','LORD\'S','LORD\'s','LORDS','LORD', # Delete ALL CAPS versions
 
-            # # Hyphenated names (would have been split up down below)
-            # 'Al-tashheth','al-tashcheth','Al-taschith','al- tashcheth',
-            #     'Aram-zobah',
-            # 'Beer-sheba',
-            #     'Ben-hadad',
-            #     'Beth-aven','Beth-eden', 'Beth-el','Beyt-El','Beth-lehem',
-            #     'Bikath-Aven','Bikat-Aven',
+            # Hyphenated names (would have been split up down below)
+            'Al-tashheth','al-tashcheth','Al-taschith','al- tashcheth',
+                'Aram-zobah',
+            'Beer-sheba',
+                'Ben-hadad',
+                'Beth-aven','Beth-eden', 'Beth-el','Beyt-El','Beth-lehem',
+                'Bikath-Aven','Bikat-Aven',
 
             # # Mangled names
             # 'Yoab','Yonathan',
