@@ -106,7 +106,7 @@ def createOETInterlinearPages( level:int, folder:Path, state:State ) -> bool:
     filename = 'index.htm'
     filepath = folder.joinpath( filename )
     top = makeTop( level, None, 'interlinearVerse', None, state ) \
-            .replace( '__TITLE__', f"Interlinear View{' TEST' if state.TEST_MODE else ''}" ) \
+            .replace( '__TITLE__', f"Interlinear View{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, interlinear' )
     indexHtml = f'''{top}
 <h1 id="Top">OET interlinear verse pages</h1>
@@ -150,6 +150,7 @@ def createOETInterlinearVersePagesForBook( level:int, folder:Path, BBB:str, BBBL
     numChapters = None
     for versionAbbreviation in state.BibleVersions:
         if versionAbbreviation == 'OET': continue # that's only a "pseudo-version"!
+        if versionAbbreviation not in state.preloadedBibles: continue # Don't have this one
         referenceBible = state.preloadedBibles[versionAbbreviation]
         if BBB not in referenceBible: continue # don't want to force loading the book
         try: numChapters = referenceBible.getNumChapters( BBB )
@@ -195,7 +196,7 @@ def createOETInterlinearVersePagesForBook( level:int, folder:Path, BBB:str, BBBL
                 # filenames.append( filename )
                 filepath = BBBFolder.joinpath( filename )
                 top = makeTop( BBBLevel, None, 'interlinearVerse', None, state ) \
-                        .replace( '__TITLE__', f"{ourTidyBBB} {C}:{v} Interlinear View{' TEST' if state.TEST_MODE else ''}" ) \
+                        .replace( '__TITLE__', f"{ourTidyBBB} {C}:{v} Interlinear View{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
                         .replace( '__KEYWORDS__', f'Bible, interlinear, {ourTidyBBB}' ) \
                         .replace( f'''href="{'../'*BBBLevel}par/"''', f'''href="{'../'*BBBLevel}par/{BBB}/C{C}V{v}.htm#Top"''')
                 iHtml = f'''{top}<!--interlinear verse page-->
@@ -223,7 +224,7 @@ def createOETInterlinearVersePagesForBook( level:int, folder:Path, BBB:str, BBBL
     filename1 = 'index.htm'
     filepath1 = BBBFolder.joinpath( filename1 )
     top = makeTop( BBBLevel, None, 'interlinearVerse', None, state) \
-            .replace( '__TITLE__', f"{ourTidyBBB} Interlinear View{' TEST' if state.TEST_MODE else ''}" ) \
+            .replace( '__TITLE__', f"{ourTidyBBB} Interlinear View{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, interlinear' )
     # For Psalms, we don't list every single verse
     ourLinks = f'''<h1 id="Top">OET {ourTidyBBBwithNotes} interlinear songs index</h1>
@@ -247,7 +248,7 @@ f'''<p class="chLst" id="chLst">{ourTidyBbb if ourTidyBbb!='Yac' else 'Yacob/(Ja
     filename2 = f'{BBB}.htm'
     filepath2 = folder.joinpath( filename2 )
     top = makeTop( level, None, 'interlinearVerse', None, state) \
-            .replace( '__TITLE__', f"{ourTidyBBB} Interlinear View{' TEST' if state.TEST_MODE else ''}" ) \
+            .replace( '__TITLE__', f"{ourTidyBBB} Interlinear View{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, interlinear' )
     # For Psalms, we don't list every single verse
     ourLinks = f'''<h1 id="Top">OET {ourTidyBBBwithNotes} interlinear songs index</h1>

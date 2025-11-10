@@ -50,7 +50,7 @@ from BibleOrgSys.BibleOrgSysGlobals import dPrint, fnPrint
 from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39
 
 
-LAST_MODIFIED_DATE = '2025-09-27' # by RJH
+LAST_MODIFIED_DATE = '2025-10-30' # by RJH
 SHORT_PROGRAM_NAME = "settings"
 PROGRAM_NAME = "OpenBibleData (OBD) Settings"
 PROGRAM_VERSION = '0.99'
@@ -63,22 +63,22 @@ class State:
     """
     A place to store some of the global stuff that needs to be passed around.
     """
-    OET_VERSION_NUMBER_STRING = 'v0.45.15' # Incremented on most runs
+    OET_VERSION_NUMBER_STRING = 'v0.45.45' # Incremented on most runs
 
-    TEST_MODE = True # Writes website into 'Test' subfolder if True
+    TEST_MODE_FLAG = True # Writes website into 'Test' subfolder if True
     TEST_OT_BOOK_LIST = ['CH2','PRO'] # Books in progress
     TEST_NT_BOOK_LIST = ['MRK'] # Shortest gospel
-    NEW_BOOK_IN_TEST_LIST = False # So that word pages will get rebuilt for TEST_MODE
+    NEW_BOOK_IN_TEST_LIST_FLAG = False # So that word pages will get rebuilt for TEST_MODE_FLAG
 
     # Many of these settings are used to omit some processing so as to get a speedier conclusion for debugging
-    TEST_VERSIONS_ONLY = None #['OET','OET-RV','OET-LV', 'RV', 'TOSN','UTN'] # Also stops actual site being built
-    ALL_PRODUCTION_BOOKS = not TEST_MODE # If set to False, uses the TEST book list (with many less books) for a faster test build
+    TEST_VERSIONS_ONLY = None #['OET','OET-RV','OET-LV', 'RV', 'KJB-1611', 'TOSN','UTN'] # Usually None. Also stops actual site being built
+    ALL_PRODUCTION_BOOKS_FLAG = not TEST_MODE_FLAG # If set to False, uses the TEST book list (with many less books) for a faster test build
     CREATE_PARALLEL_VERSE_PAGES = 'LAST' # 'FIRST','LAST', or None -- depending on debugging needs
-    CREATE_BOOK_AND_OTHER_PAGES = True # Can be turned off for debugging
-    DO_SPELL_CHECKS = True #TEST_MODE # On parallel pages
-    REUSE_EXISTING_WORD_PAGES = TEST_MODE and not NEW_BOOK_IN_TEST_LIST # Don't recreate word pages
-    ALL_TEST_REFERENCE_PAGES = False # If in TEST_MODE, make ALL word/lemma pages, or just the RELEVANT ones
-    UPDATE_ACTUAL_SITE_WHEN_BUILT = True # The pages are initially built in a tmp folder so need to be copied to the final destination
+    CREATE_BOOK_AND_OTHER_PAGES_FLAG = True # Can be turned off for debugging
+    DO_SPELL_CHECKS_FLAG = True #TEST_MODE_FLAG # On parallel pages
+    REUSE_EXISTING_WORD_PAGES_FLAG = 1 or TEST_MODE_FLAG and not NEW_BOOK_IN_TEST_LIST_FLAG # Don't recreate word pages
+    ALL_TEST_REFERENCE_PAGES_FLAG = False # If in TEST_MODE_FLAG, make ALL word/lemma pages, or just the RELEVANT ones
+    UPDATE_ACTUAL_SITE_WHEN_BUILT_FLAG = True # The pages are initially built in a tmp folder so need to be copied to the final destination
 
     OET_RV_OT_BOOK_LIST = ['GEN','EXO','JOS','JDG','RUT',
                     'SA1','SA2','KI1','KI2','CH1','CH2',
@@ -89,7 +89,7 @@ class State:
     TEMP_BUILD_FOLDER = Path( '../buildingHtmlPages/' )
     NORMAL_DESTINATION_FOLDER = Path( '../htmlPages/' )
     DEBUG_DESTINATION_FOLDER = NORMAL_DESTINATION_FOLDER.joinpath( 'Test/' )
-    DESTINATION_FOLDER = DEBUG_DESTINATION_FOLDER if TEST_MODE or BibleOrgSysGlobals.debugFlag \
+    DESTINATION_FOLDER = DEBUG_DESTINATION_FOLDER if TEST_MODE_FLAG or BibleOrgSysGlobals.debugFlag \
                             else NORMAL_DESTINATION_FOLDER
 
     SITE_NAME = 'Open Bible Data'
@@ -126,7 +126,7 @@ class State:
 
     TEST_BOOK_LIST = TEST_OT_BOOK_LIST + TEST_NT_BOOK_LIST
     OET_LV_BOOK_LIST = BOOKLIST_OT39 + OET_NT_BOOK_ORDER
-    OET_RV_BOOK_LIST = TEST_BOOK_LIST if TEST_MODE else (OET_RV_OT_BOOK_LIST + OET_NT_BOOK_ORDER)
+    OET_RV_BOOK_LIST = TEST_BOOK_LIST if TEST_MODE_FLAG else (OET_RV_OT_BOOK_LIST + OET_NT_BOOK_ORDER)
     # TODO: What about 'INT' ?
     OET_RV_BOOK_LIST_WITH_FRT = ['FRT'] + OET_RV_BOOK_LIST
 
@@ -161,7 +161,7 @@ class State:
     # NOTE: OET is a "pseudo-version" containing both OET-RV and OET-LV side-by-side and handled separately in many places
     BibleVersions = ['OET',
         'OET-RV','OET-LV',
-        'ULT','UST','NET', # We move NET up nearer the top for TEST_MODE
+        'ULT','UST','NET', # We move NET up nearer the top for TEST_MODE_FLAG
         'BSB','MSB','BLB',
         'AICNT','OEB','ISV','CSB','NLT',
         'NIV','CEV','ESV','NASB','LSB',
@@ -174,7 +174,7 @@ class State:
         'UHB', 'BrLXX','BrTr', 'NETS',
         # NOTES:
         'TOSN','UTN',
-        ] if TEST_MODE else \
+        ] if TEST_MODE_FLAG else \
         ['OET',
         'OET-RV','OET-LV',
         'ULT','UST',
@@ -202,7 +202,7 @@ class State:
     assert len(numAllowedSelectedVerses) == len(selectedVersesOnlyVersions)
     # We want these versions on our parallel pages, but are not interested enough in them for them to have their own version pages
     versionsWithoutTheirOwnPages = selectedVersesOnlyVersions + ('Luth','ClVg', 'UGNT','SBL-GNT','RP-GNT','TC-GNT', 'TOSN','UTN')
-#     if not TEST_MODE: versionsWithoutTheirOwnPages += 'KJB-1611'
+#     if not TEST_MODE_FLAG: versionsWithoutTheirOwnPages += 'KJB-1611'
 
     # NOTE: We don't display the versionsWithoutTheirOwnPages, so don't need/allow decorations for them
     BibleVersionDecorations = { 'OET':('<b>','</b>'),'OET-RV':('<b>','</b>'),'OET-LV':('<b>','</b>'),
@@ -257,7 +257,7 @@ class State:
         'WEBBE': '../copiedBibles/English/eBible.org/WEBBE/', # British spelling  # 'WEB': '../copiedBibles/English/eBible.org/WEB/', # USA spelling
         'WMBB': '../copiedBibles/English/eBible.org/WMBB/', # British spelling  # 'WMB': '../copiedBibles/English/eBible.org/WMB/', #USA spelling
         'MSG': '../copiedBibles/English/MSG_verses.tsv',
-        'NET': '../copiedBibles/English/NET/' if TEST_MODE else '../copiedBibles/English/eBible.org/NET/',
+        'NET': '../copiedBibles/English/NET/' if TEST_MODE_FLAG else '../copiedBibles/English/eBible.org/NET/',
         'LSV': '../copiedBibles/English/eBible.org/LSV/',
         'FBV': '../copiedBibles/English/eBible.org/FBV/',
         'TCNT': '../copiedBibles/English/eBible.org/TCNT/',
@@ -297,7 +297,7 @@ class State:
         'TOSN': '../copiedBibles/English/Tyndale/OSN/', # This one also loads TTN (Tyndale Theme Notes)
         'UTN': '../copiedBibles/English/unfoldingWord.org/UTN/',
         }
-    WholeBibleVersions = ('LEB','Bshps','Cvdl','Wycl','Luth') # These versions get all books loaded -- no individual book files
+    WholeBibleVersions = ('BSB','MSB','LEB','SLT','Bshps','Cvdl','Wycl','Luth') # These versions get all books loaded -- no individual book files
 
     BibleNames = {
         'OET': 'Open English Translation (2030)',
@@ -522,7 +522,7 @@ class State:
         # NOTES:
         'TOSN': ['ALL'],
         'UTN': ['ALL'],
-    } if ALL_PRODUCTION_BOOKS else {
+    } if ALL_PRODUCTION_BOOKS_FLAG else {
         'OET': ['FRT'] + TEST_BOOK_LIST,
         'OET-RV': ['FRT'] + TEST_BOOK_LIST, #['ALL'], # Load ALL coz we use related sections anyway ['FRT'] + TEST_BOOK_LIST,
         'OET-LV': TEST_BOOK_LIST,
@@ -926,7 +926,7 @@ Footnote markers PRECEDE the text that they concern,
                 'acknowledgements': '<p class="acknwldg">Thanks to David Barrett for researching and designing these and making them available (in his spare time).</p>' },
     }
 
-    if not TEST_MODE and UPDATE_ACTUAL_SITE_WHEN_BUILT:
+    if not TEST_MODE_FLAG and UPDATE_ACTUAL_SITE_WHEN_BUILT_FLAG:
         assert len(BibleLocations) >= 57, len(BibleLocations)
     for versionLocation in BibleLocations.values():
         assert isinstance( versionLocation, tuple ) \
