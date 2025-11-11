@@ -126,6 +126,10 @@ NEWLINE = '\n'
 
 def preloadVersions( state:State ) -> int:
     """
+    Look for a pickled Bible file
+        and look through all the other files in the folder to see if the pickle is current,
+        otherwise call preloadVersion to load the Bible from scratch.
+
     Note this has a side-effect of removing unused entries from state.BibleVersions.
     """
     fnPrint( DEBUGGING_THIS_MODULE, f"preloadVersions( {state.BibleVersions} )" )
@@ -483,7 +487,7 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
         assert 'discoveryResults' in thisBible.__dict__
 
         pickleFilename = f"{versionAbbreviation}__{'_'.join(state.TEST_BOOK_LIST)}{state.PICKLE_FILENAME_END}" \
-                            if state.TEST_MODE_FLAG and not state.ALL_PRODUCTION_BOOKS_FLAG and versionAbbreviation not in state.WholeBibleVersions \
+                            if state.TEST_MODE_FLAG and not state.ALL_PRODUCTION_BOOKS_FLAG \
                             else f'{versionAbbreviation}{state.PICKLE_FILENAME_END}'
         try: pickleFolderPath = folderOrFileLocation if os.path.isdir( folderOrFileLocation ) else Path( folderOrFileLocation ).parent
         except TypeError:

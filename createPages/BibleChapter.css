@@ -100,7 +100,7 @@ p.s3 { margin-top:0.1em; margin-bottom:0; font-size:1.06em; font-weight:bold; }
 p.s4 { margin-top:0.1em; margin-bottom:0; font-size:1.03em; font-weight:bold; }
 p.mr { margin-top:0; margin-bottom:0; font-size:1.1em; text-align: center; font-style:italic; } /* Major section reference range */
 p.sr { margin-top:0; margin-bottom:0; font-size:0.9em; text-align: center; font-weight:bold; } /* Section reference range */
-p.r { margin-top:0; margin-bottom:0; font-size:0.75em; text-align: center; font-style:italic; } /* Parallel references */
+p.r { margin-top:0; margin-bottom:0; font-size:0.75em; font-style:italic; } /* Parallel references */
 p.cl { margin-top:2.0em; margin-bottom:0; text-align:center; font-size:1.2em; }
 p.d { font-style:italic; }
 p.sp { font-weight:bold; } /* Speaker */

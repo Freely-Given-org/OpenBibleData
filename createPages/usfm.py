@@ -77,6 +77,7 @@ CHANGELOG:
     2025-06-24 Move livening xrefs into a function, and apply it to xt fields inside footnotes as well.
     2025-07-11 Try to improve handling of 'ver. 4' in a footnote (not an xref)
     2025-09-12 Display verse range numbers on parallel pages
+    2025-11-10 Fixed PSA d fields which caused chapter numbers to be displayed twice
 """
 from gettext import gettext as _
 import re
@@ -95,7 +96,7 @@ from html import checkHtml
 from OETHandlers import getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2025-11-03' # by RJH
+LAST_MODIFIED_DATE = '2025-11-11' # by RJH
 SHORT_PROGRAM_NAME = "usfm"
 PROGRAM_NAME = "OpenBibleData USFM to HTML functions"
 PROGRAM_VERSION = '0.95'
@@ -590,7 +591,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                     if not checkHtml( f'\\d at convertUSFMMarkerListToHtml({versionAbbreviation} {refTuple} {segmentType} {basicOnly=})', html, segmentOnly=True ):
                         if DEBUGGING_THIS_MODULE or state.TEST_MODE_FLAG: halt
             else: # not basicOnly
-                if cPrinted:
+                if cPrinted or marker == 'd':
                     cBit = ''
                 else:
                     cBit = f'''<span class="{'cPsa' if BBB=='PSA' else 'c'}" id="C{C}">{toRomanNumerals(C) if versionAbbreviation=='KJB-1611' else C}</span> ''' \
@@ -992,7 +993,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                     fnoteMiddle = f'{fnoteMiddle[:internalStartIx]}</span>{fnoteMiddle[internalStartIx+len(fMarker)+2:]}'
                     inSpan = None
                     internalSearchStartIx = internalStartIx + 7
-                else: unexpected_char in footnote
+                else: raise TypeError( f"Unexpected character in footnote: {versionAbbreviation} {refTuple} {segmentType} {basicOnly=} {fnoteMiddle=} from {html=}" )
             else:
                 logging.critical( f"inner_fn_loop_needed_to_break {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {_innerSafetyCount=}" )
                 inner_fn_loop_needed_to_break
