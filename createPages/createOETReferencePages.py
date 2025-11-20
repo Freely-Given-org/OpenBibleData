@@ -97,7 +97,7 @@ from html import makeTop, makeBottom, checkHtml
 from OETHandlers import getOETTidyBBB, getOETBookName, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
-LAST_MODIFIED_DATE = '2025-10-29' # by RJH
+LAST_MODIFIED_DATE = '2025-11-15' # by RJH
 SHORT_PROGRAM_NAME = "createOETReferencePages"
 PROGRAM_NAME = "OpenBibleData createOETReferencePages functions"
 PROGRAM_VERSION = '0.90'
@@ -1244,7 +1244,7 @@ def create_Hebrew_word_pages( level:int, outputFolderPath:Path, state:State ) ->
         for hh, columns_string in enumerate( state.OETRefData['word_tables'][HebrewWordFileName][1:], start=1 ):
             if not columns_string: continue # a blank line (esp. at end)
             if hh % 50_000 == 0:
-                vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      {numWordPagesMade+1:,} made out of {hh:,} out of {len(state.OETRefData['word_tables'][HebrewWordFileName])-1:,}…" )
+                vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      {numWordPagesMade+1:,} made out of {f'{hh:,} out of ' if hh!=numWordPagesMade+1 else ''}{len(state.OETRefData['word_tables'][HebrewWordFileName])-1:,}…" )
             output_filename = getHebrewWordpageFilename( hh, state )
             if DEBUGGING_THIS_MODULE or BibleOrgSysGlobals.debugFlag: # NOTE: This makes the function MUCH slower
                 # Check that we're not creating any duplicate filenames (that will then be overwritten)
@@ -1752,7 +1752,7 @@ def create_Hebrew_lemma_pages( level:int, outputFolderPath:Path, state:State ) -
     # assert len(lemmaListWithGlosses) == len(lemmaList)
     for ll, hebLemma  in enumerate( lemmaList, start=1 ):
         if ll % 2_000 == 0:
-            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      {len(lemmaLinks)+1:,} made out of {ll:,} out of {len(lemmaList)-1:,}…" )
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      {len(lemmaLinks)+1:,} made out of {f'{ll:,} out of ' if ll!=len(lemmaLinks)+1 else ''}{len(lemmaList)-1:,}…" )
         transliteratedLemma = transliterate_Hebrew( hebLemma )
         if transliteratedLemma == 'pitgām': # One is at ll=5803 hebLemma='פִּתְגָם' ll=5804 hebLemma='פִּתְגָּם'
             print( f"      Found pitgām at {ll=} {hebLemma=} {transliteratedLemma=} wordRows={state.OETRefData['OTWordRowNumbersDict'][ll]}" )
@@ -2205,7 +2205,7 @@ def create_Greek_word_pages( level:int, outputFolderPath:Path, state:State ) -> 
     state.OETRefData['usedGrkLemmas'], state.OETRefData['usedGrkStrongs'] = set(), set() # Used in next functions to make lemma and Strongs pages
     for gg, columns_string in enumerate( state.OETRefData['word_tables'][GreekWordFileName][1:], start=1 ):
         if gg % 40_000 == 0:
-            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      {numWordPagesMade+1:,} made out of {gg:,} out of {len(state.OETRefData['word_tables'][GreekWordFileName])-1:,}…" )
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      {numWordPagesMade+1:,} made out of {f'{gg:,} out of ' if gg!=numWordPagesMade+1 else ''}{len(state.OETRefData['word_tables'][GreekWordFileName])-1:,}…" )
         if not columns_string: continue # a blank line (esp. at end)
         # print( f"Word {n}: {columns_string}" )
 
@@ -2612,8 +2612,8 @@ def create_Greek_lemma_pages( level:int, outputFolderPath:Path, state:State ) ->
     # Now make a page for each Greek lemma (including the variants not used in the translation)
     lemmaLinks:list[str] = [] # Used below to make an index page
     for ll, lemma in enumerate( lemmaList ):
-        if (ll+1) % 1_000 == 0:
-            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      {len(lemmaLinks)+1:,} made out of {ll+1:,} out of {len(lemmaList):,}…" )
+        if (ll) % 1_000 == 0:
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      {len(lemmaLinks):,} made out of {f'{ll:,} out of ' if ll!=len(lemmaLinks) else ''}{len(lemmaList):,}…" )
         # print( f"Lemma {ll}: {lemma}" )
         grkLemma = state.OETRefData['NTGreekLemmaDict'][lemma]
         if state.TEST_MODE_FLAG and not state.ALL_TEST_REFERENCE_PAGES_FLAG and grkLemma not in state.OETRefData['usedGrkLemmas']:

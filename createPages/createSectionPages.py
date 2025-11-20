@@ -53,6 +53,7 @@ CHANGELOG:
     2025-05-21 Remove superfluous section headings in Psalms on the five "book" boundaries (chapters 1,42,73,90,107)
     2025-09-21 Change character in nav row from ◘ (also used for missing verses) to ‴ for 'Related section view'
     2025-10-06 Add chappter bars to section index pages for books
+    2025-11-17 Add OET-RV s2 headings to additional section headings list
 """
 from gettext import gettext as _
 from pathlib import Path
@@ -63,7 +64,7 @@ from collections import defaultdict
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_66
-from BibleOrgSys.Internals.InternalBibleInternals import getLeadingInt
+from BibleOrgSys.Internals.InternalBibleInternals import InternalBibleEntryList, getLeadingInt
 from BibleOrgSys.Formats.ESFMBible import ESFMBible as ESFMBible
 
 from settings import State, reorderBooksForOETVersions
@@ -74,10 +75,10 @@ from Bibles import getBibleMapperMaps
 from OETHandlers import livenOETWordLinks, getOETTidyBBB, getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2025-10-28' # by RJH
+LAST_MODIFIED_DATE = '2025-11-17' # by RJH
 SHORT_PROGRAM_NAME = "createSectionPages"
 PROGRAM_NAME = "OpenBibleData createSectionPages functions"
-PROGRAM_VERSION = '0.74'
+PROGRAM_VERSION = '0.76'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -109,6 +110,9 @@ def createOETSectionLists( rvBible:ESFMBible, state:State ) -> bool:
             rest = entry.getText()
             if marker == 'c': C, V = rest, '0'
             elif marker == 'v': V = rest
+            elif marker == 's2':
+                plusOneV = str( getLeadingInt(V) + 1 ) # Also handles verse ranges
+                additionalSectionHeadingsDict[(C,plusOneV)].append( (marker,rest) )
             elif marker == 'rem':
                 if not rest.startswith( '/' ): continue
                 given_marker = rest[1:].split( ' ', 1 )[0]
@@ -314,7 +318,10 @@ def createOETSectionPages( level:int, folder:Path, rvBible:ESFMBible, lvBible:ES
             except KeyError: # this can fail in the introduction which is missing from LV
                 logging.critical( f"Seems OET-LV {BBB} is missing section starting with {startC}:{startV}" )
                 lvVerseEntryList, lvContextList = [], []
-            if isinstance( lvBible, ESFMBible ):
+            except TypeError: # if it returned None
+                logging.critical( f"createOETSectionPages missing book error for {lvBible.abbreviation} {BBB} {c=}" )
+                lvVerseEntryList, lvContextList = InternalBibleEntryList(), []
+            if isinstance( lvBible, ESFMBible ) and lvVerseEntryList:
                 lvVerseEntryList = livenOETWordLinks( level, lvBible, BBB, lvVerseEntryList, state )
             lvHtml = convertUSFMMarkerListToHtml( level, lvBible.abbreviation, (BBB,startC), 'section', lvContextList, lvVerseEntryList, basicOnly=False, state=state )
             lvHtml = do_OET_LV_HTMLcustomisations( f'SectionA={BBB}_{startC}', lvHtml )

@@ -67,7 +67,7 @@ from bos_books_codes_py import english_name_to_reference_abbrev_py  # This is th
 from settings import State
 
 
-LAST_MODIFIED_DATE = '2025-10-28' # by RJH
+LAST_MODIFIED_DATE = '2025-11-20' # by RJH
 SHORT_PROGRAM_NAME = "OETHandlers"
 PROGRAM_NAME = "OpenBibleData OET handler"
 PROGRAM_VERSION = '0.67'
@@ -196,7 +196,7 @@ def getBBBFromOETBookName( originalBooknameText:str, where:str ) -> str|None:
     if resultBBB not in BibleOrgSysGlobals.loadedBibleBooksCodes:
         dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"getBBBFromOETBookName( {where} ) can't get valid BBB from {booknameText=}: {resultBBB=} from {originalBooknameText=}" )
     return resultBBB
-# end of OETHandlers.getOETBookName
+# end of OETHandlers.getBBBFromOETBookName
 
 
 def getHebrewWordpageFilename( wordTableRowNum:int, state:State ) -> str:

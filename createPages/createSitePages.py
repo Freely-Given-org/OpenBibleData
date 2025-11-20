@@ -67,6 +67,7 @@ CHANGELOG:
     2025-09-07 Add Kingdom pages
     2025-10-29 Move kingdom pages into ref/
     2025-11-04 Fix multiprocessing prelude for Python3.14
+    2025-11-16 Don't include un-asked-for OET-RV books (was including all loaded books like for other versions, i.e., all books)
 """
 from gettext import gettext as _
 from pathlib import Path
@@ -101,7 +102,7 @@ from html import makeTop, makeViewNavListParagraph, makeBottom, checkHtml
 from spellCheckEnglish import printSpellCheckSummary
 
 
-LAST_MODIFIED_DATE = '2025-11-04' # by RJH
+LAST_MODIFIED_DATE = '2025-11-16' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData (OBD) Create Site Pages"
 PROGRAM_VERSION = '0.99'
@@ -218,7 +219,7 @@ def _createSitePages() -> bool:
             #             state.BBBsToProcess[versionAbbreviation].append( BBB )
             # else: # not selectedVersesOnlyVersions
             if versionAbbreviation not in state.selectedVersesOnlyVersions:
-                state.BBBsToProcess[versionAbbreviation] = thisBible.books.keys()
+                state.BBBsToProcess[versionAbbreviation] = state.OET_RV_BOOK_LIST_WITH_FRT if versionAbbreviation=='OET-RV' else thisBible.books.keys()
                 if 'OET' in versionAbbreviation:
                     state.BBBsToProcess[versionAbbreviation] = reorderBooksForOETVersions( state.BBBsToProcess[versionAbbreviation] )
                 state.BBBLinks[versionAbbreviation] = []

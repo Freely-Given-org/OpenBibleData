@@ -47,7 +47,7 @@ from BibleOrgSys import BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import vPrint, fnPrint, dPrint, rreplace
 
 
-LAST_MODIFIED_DATE = '2025-11-06' # by RJH
+LAST_MODIFIED_DATE = '2025-11-20' # by RJH
 SHORT_PROGRAM_NAME = "spellCheckEnglish"
 PROGRAM_NAME = "English Bible Spell Check"
 PROGRAM_VERSION = '0.56'
@@ -70,10 +70,11 @@ EXPECTED_OET_RV_NAMES_TSV_HEADER = 'TraditionalName\tRVName\tExplained\tComment'
 # Prepopulate the word set with our exceptions
 INITIAL_BIBLE_WORD_LIST = ['3.0','UTF','USFM', '©', 'CC0',
                     'EN','ENG',
+                    'eBible','org','sfm',
                     'b','c','d','e',
                     's1','s2','r','+','LXX','Grk',
                     'nomina','Nomina','sacra',
-                    'Deutercanon','Deuterocanonicals',
+                    'Deutercanon','Deuterocanonical','Deuterocanonicals',
                     'hb',
 
                     # Adjusted names, e.g., from Wycl but had 'Y' substituted for 'J'
@@ -150,13 +151,14 @@ INITIAL_BIBLE_WORD_LIST = ['3.0','UTF','USFM', '©', 'CC0',
 
                     'ULT','UST','BSB','MSB','BLB','OEB','NET','NRSV','WEB','WEBBE','WMB','WMBB','LSV','FBV','T4T','LEB','BBE','JPS','VLT','KJV','KJB',
                     'OSHB',
-                    'nlt',
+                    'kjv','nlt',
 
                     'GENESIS','EXODUS','LEVITICUS','NUMBERS','DEUTERONOMY','JOSHUA','JUDGES','RUTH',
                     'SAMUEL','KINGS','CHRONICLES','EZRA','NEHEMIAH','ESTHER','JOB','PSALMS','PROVERBS',
                     'ECCLESIASTES','SONG','SONGS','ISAIAH','JEREMIAH','LAMENTATIONS','EZEKIEL',
                     'DANIEL','HOSEA','JOEL','AMOS','OBADIAH','JONAH','MICAH',
                     'NAHUM','HABAKKUK','ZEPHANIAH','HAGGAI','ZECHARIAH','MALACHI',
+                    'TOBIT','MACCABEES',
                     'MATTHEW','MARK','LUKE','JOHN','ACTS','ROMANS','CORINTHIANS',
                     'GALATIANS','EPHESIANS','PHILIPPIANS','COLOSSIANS','THESSALONIANS','TIMOTHY','TITUS','PHILEMON',
                     'HEBREWS','JAMES','PETER','JUDE','REVELATION',
@@ -186,8 +188,9 @@ PREAPPROVED_WORDS_TO_REMOVE = sorted(['God’s','GOD', 'LORD’S','LORD’s','LO
                 'Aram-zobah',
             'Beer-sheba',
                 'Ben-hadad',
-                'Beth-aven','Beth-eden', 'Beth-el','Beyt-El','Beth-lehem',
+                'Beth-aven','Beth-eden', 'Beth-el','Beyt-El','Beth-lehem','Beth-Peor',
                 'Bikath-Aven','Bikat-Aven',
+            'Kadesh-barnea',
 
             # # Mangled names
             # 'Yoab','Yonathan',
@@ -522,7 +525,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                        'ior', 'vp',
                        'nd','wj','d','bk','qt','sc',
                        'qs','sig',
-                        'ft','fk', 'fnRef','fnText', 'xt', # 'f', # We intentionally omit 'fr' -- why???
+                        'ft','fk','fqa','fl', 'fnRef','fnText', 'xt', # 'f', # We intentionally omit 'fr' -- why???
                         'li1','li2','li3',
                         'v', # for verse spans on parallel and interlinear pages
                         'theb','va', # in NET

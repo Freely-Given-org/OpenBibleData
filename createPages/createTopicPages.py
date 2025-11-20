@@ -261,8 +261,8 @@ def createTopicPage( level:int, folder:Path, filename:str, topic:str, refs:list[
                 assert not state.ALL_PRODUCTION_BOOKS_FLAG
                 lvTextHtml = f'<h4>No OET-LV {BBB} book available</h4>'
 
-            if rvTextHtml.startswith( '<div class="rightBox">' ):
-                rvTextHtml = f'<div class="s1">{rvTextHtml}' # This got removed above
+            if rvTextHtml.startswith( '<div class="rightS1Box">' ):
+                rvTextHtml = f'<div class="section">{rvTextHtml}' # This got removed above
             # Handle footnotes and cross-references so the same fn1 doesn't occur for both chunks if they both have footnotes
             rvTextHtml = rvTextHtml.replace( 'id="footnotes', f'id="footnotes{rr}RV' ).replace( 'id="fn', f'id="fn{rr}RV' ).replace( 'href="#fn', f'href="#fn{rr}RV' ) \
                                 .replace( 'id="crossRefs', f'id="crossRefs{rr}RV' ).replace( 'id="xr', f'id="xr{rr}RV' ).replace( 'href="#xr', f'href="#xr{rr}RV' )

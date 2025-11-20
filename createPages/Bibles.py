@@ -109,7 +109,7 @@ from OETHandlers import findLVQuote, getBBBFromOETBookName
 from Dict import loadAndIndexUBSGreekDictJSON, loadAndIndexUBSHebrewDictJSON
 
 
-LAST_MODIFIED_DATE = '2025-10-30' # by RJH
+LAST_MODIFIED_DATE = '2025-11-17' # by RJH
 SHORT_PROGRAM_NAME = "Bibles"
 PROGRAM_NAME = "OpenBibleData Bibles handler"
 PROGRAM_VERSION = '0.92'
@@ -155,10 +155,10 @@ def preloadVersions( state:State ) -> int:
                 assert versionAbbreviation == 'MSB'
                 folderOrFileLocationPath = Path( state.BibleLocations[versionAbbreviation][0] )
             pickleFilename = f"{versionAbbreviation}__{'_'.join(state.TEST_BOOK_LIST)}{state.PICKLE_FILENAME_END}" \
-                                if (state.TEST_MODE_FLAG or not state.ALL_PRODUCTION_BOOKS_FLAG) and versionAbbreviation not in state.WholeBibleVersions \
+                                if state.TEST_MODE_FLAG or not state.ALL_PRODUCTION_BOOKS_FLAG \
                                 else f'{versionAbbreviation}{state.PICKLE_FILENAME_END}'
             pickleFolderPath = folderOrFileLocationPath if folderOrFileLocationPath.is_dir() else folderOrFileLocationPath.parent
-            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\nLooking for a pickle for ‘{versionAbbreviation}’{f' in {pickleFolderPath}' if BibleOrgSysGlobals.verbosityLevel>2 else ''}…" )
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\nLooking for {f"'{pickleFilename}'" if BibleOrgSysGlobals.verbosityLevel>1 else 'pickle'} file for ‘{versionAbbreviation}’{f' in {pickleFolderPath}/' if BibleOrgSysGlobals.verbosityLevel>2 else ''} …" )
             pickleFilePath = pickleFolderPath.joinpath( pickleFilename )
             dPrint( 'Never', DEBUGGING_THIS_MODULE, f"{folderOrFileLocationPath=} {pickleFilename=} {pickleFolderPath=} {pickleFilePath=}" )
             if pickleFilePath.is_file():
@@ -230,7 +230,7 @@ def preloadVersions( state:State ) -> int:
             vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"preloadVersions() loaded {thisBible}" )
 
             pickleFilename = f"OET-LV__{'_'.join(state.TEST_BOOK_LIST)}{state.PICKLE_FILENAME_END}" \
-                                if (state.TEST_MODE_FLAG or not state.ALL_PRODUCTION_BOOKS_FLAG) and versionAbbreviation not in state.WholeBibleVersions \
+                                if state.TEST_MODE_FLAG or not state.ALL_PRODUCTION_BOOKS_FLAG \
                                 else f'{versionAbbreviation}{state.PICKLE_FILENAME_END}'
             pickleFolderPath = state.BibleLocations['OET-LV']
             thisBible.pickle( pickleFilename, pickleFolderPath )
@@ -487,7 +487,7 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
         assert 'discoveryResults' in thisBible.__dict__
 
         pickleFilename = f"{versionAbbreviation}__{'_'.join(state.TEST_BOOK_LIST)}{state.PICKLE_FILENAME_END}" \
-                            if state.TEST_MODE_FLAG and not state.ALL_PRODUCTION_BOOKS_FLAG \
+                            if state.TEST_MODE_FLAG or not state.ALL_PRODUCTION_BOOKS_FLAG \
                             else f'{versionAbbreviation}{state.PICKLE_FILENAME_END}'
         try: pickleFolderPath = folderOrFileLocation if os.path.isdir( folderOrFileLocation ) else Path( folderOrFileLocation ).parent
         except TypeError:

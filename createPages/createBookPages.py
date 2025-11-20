@@ -47,6 +47,7 @@ import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39, BOOKLIST_NT27
 import BibleOrgSys.Formats.ESFMBible as ESFMBible
+from BibleOrgSys.Internals.InternalBibleInternals import InternalBibleEntryList
 
 from settings import State, CNTR_BOOK_ID_MAP
 from usfm import convertUSFMMarkerListToHtml
@@ -55,10 +56,10 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_
 from OETHandlers import livenOETWordLinks, getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
-LAST_MODIFIED_DATE = '2025-09-25' # by RJH
+LAST_MODIFIED_DATE = '2025-11-17' # by RJH
 SHORT_PROGRAM_NAME = "createBookPages"
 PROGRAM_NAME = "OpenBibleData createBookPages functions"
-PROGRAM_VERSION = '0.64'
+PROGRAM_VERSION = '0.65'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -170,11 +171,15 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
 <h2><a title="View just the Readers’ Version by itself" href="{'../'*level}OET-RV/byDoc/{BBB}.htm#Top">Readers’ Version</a></h2>
 <h2><a title="View just the Literal Version by itself" href="{'../'*level}OET-LV/byDoc/{BBB}.htm#Top">Literal Version</a> <button type="button" id="marksButton" title="Hide/Show underline and strike-throughs" onclick="hide_show_marks()">Hide marks</button></h2>'''
         rvVerseEntryList, rvContextList = rvBible.getContextVerseData( (BBB,) )
-        lvVerseEntryList, lvContextList = lvBible.getContextVerseData( (BBB,) )
+        try: lvVerseEntryList, lvContextList = lvBible.getContextVerseData( (BBB,) )
+        except TypeError: # if it returned None
+            logging.critical( f"createOETBookPages missing book error for {lvBible.abbreviation} {BBB}" )
+            lvVerseEntryList, lvContextList = InternalBibleEntryList(), []
         assert isinstance( rvBible, ESFMBible.ESFMBible )
         rvVerseEntryList = livenOETWordLinks( level, rvBible, BBB, rvVerseEntryList, state )
         assert isinstance( lvBible, ESFMBible.ESFMBible )
-        lvVerseEntryList = livenOETWordLinks( level, lvBible, BBB, lvVerseEntryList, state )
+        if lvVerseEntryList:
+            lvVerseEntryList = livenOETWordLinks( level, lvBible, BBB, lvVerseEntryList, state )
         # NOTE: We change the version abbreviation here to give the function more indication where we're coming from
         rvHtml = do_OET_RV_HTMLcustomisations( f'BookA={BBB}', convertUSFMMarkerListToHtml( level, 'OET-RV', (BBB,), 'book', rvContextList, rvVerseEntryList, basicOnly=False, state=state ) )
         tempLVHtml = convertUSFMMarkerListToHtml( level, 'OET-LV', (BBB,), 'book', lvContextList, lvVerseEntryList, basicOnly=False, state=state )
@@ -188,8 +193,8 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
         # First get the header and intro chunks
         ixBHend = rvHtml.index( '<!--bookHeader-->' ) + 17
         ixBIend = rvHtml.index( '<!--bookIntro-->', ixBHend ) + 16
-        rvSections = [ rvHtml[:ixBHend], rvHtml[ixBHend:ixBIend] ] + rvHtml[ixBIend:].split( '<div class="s1">' )
-        if not rvSections[2]: # i.e., that last bit above started with '<div class="s1">' so we got a null entry
+        rvSections = [ rvHtml[:ixBHend], rvHtml[ixBHend:ixBIend] ] + rvHtml[ixBIend:].split( '<div class="section">' )
+        if not rvSections[2]: # i.e., that last bit above started with '<div class="section">' so we got a null entry
             rvSections.pop( 2 ) # delete unnecessary empty section from list[2]
             # print( "Deleted unnecessary empty section from list[2]" )
         # rvSections2 = [ (0,ixBHend), (ixBHend,ixBIend) ]
@@ -200,7 +205,7 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
                             # If too large, might miss a block in a book with untranslated verses (and thus small blocks)
         for _safetyCount in range ( 177 ): # Max number of sections in any book
             # print( f"    {_safetyCount} {BBB} '{rvHtml[ixLast:ixLast+20]}…'")
-            ixS1 = rvHtml[ixLast+minBlockSize:].find( '<div class="s1">' )
+            ixS1 = rvHtml[ixLast+minBlockSize:].find( '<div class="section">' )
             if ixS1 == -1: ixS1 = 99_999_999
             ixMS1 = rvHtml[ixLast+minBlockSize:].find( '<p class="ms1">' )
             if ixMS1 == -1: ixMS1 = 99_999_999
@@ -220,82 +225,85 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
             # if BBB == 'EZE': stop_for_Ezekiel
         rvSections = rvSections2 # Let's use the new system
 
-        ixBHend = lvHtml.index( '<!--bookHeader-->' ) + 17
-        try: ixBIend = lvHtml.index( '<!--bookIntro-->', ixBHend ) + 16 # No intro expected in OET-LV
-        except ValueError: ixBIend = lvHtml.index( '<span id="C', ixBHend )
-        lvChunks, lvRest = [ lvHtml[:ixBHend], lvHtml[ixBHend:ixBIend] ], lvHtml[ixBIend:]
-        # Now try to match the rv sections
-        for n,rvSectionHtml in enumerate( rvSections[2:] ): # continuing on AFTER the headers and introduction
-            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"\n{BBB} {n}: {rvSectionHtml=}/{len(rvSections)-2}" )
-            assert rvSectionHtml
-            try:
-                CclassIndex1 = rvSectionHtml.index( 'id="C' )
-                CclassIndex2 = rvSectionHtml.index( '"', CclassIndex1+4 )
-                rvStartCV = rvSectionHtml[CclassIndex1+4:CclassIndex2]
-                CclassIndex8 = rvSectionHtml.rindex( 'id="C' )
-                CclassIndex9 = rvSectionHtml.index( '"', CclassIndex8+4 )
-                rvEndCV = rvSectionHtml[CclassIndex8+4:CclassIndex9]
-                # dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"\n  {BBB} {n:,}: {rvStartCV=} {rvEndCV=}")
-            except ValueError:
-                dPrint( 'Info', DEBUGGING_THIS_MODULE, f"  createOETBookPages {BBB} {n:,}: No Cid in {rvSectionHtml=}" )
-                rvStartCV, rvEndCV = '', 'C1'
-                # halt
-            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"""\nSearching for OET-RV {BBB} ' id="{rvEndCV}"' in '{lvRest}'""" )
-            try: ixEndCV = lvRest.rindex( f' id="{rvEndCV}"' )
-            except ValueError: # Versification problem if this fails
-                logging.error( f"{BBB} Possible OET versification problem around {rvEndCV} -- we'll try to handle it." )
-                # Let's try for the previous verse -- at least this solves Gen 31:55 not there
-                assert rvEndCV[0] == 'C'
+        if lvVerseEntryList:
+            ixBHend = lvHtml.index( '<!--bookHeader-->' ) + 17
+            try: ixBIend = lvHtml.index( '<!--bookIntro-->', ixBHend ) + 16 # No intro expected in OET-LV
+            except ValueError: ixBIend = lvHtml.index( '<span id="C', ixBHend )
+            lvChunks, lvRest = [ lvHtml[:ixBHend], lvHtml[ixBHend:ixBIend] ], lvHtml[ixBIend:]
+            # Now try to match the rv sections
+            for n,rvSectionHtml in enumerate( rvSections[2:] ): # continuing on AFTER the headers and introduction
+                dPrint( 'Info', DEBUGGING_THIS_MODULE, f"\n{BBB} {n}: {rvSectionHtml=}/{len(rvSections)-2}" )
+                assert rvSectionHtml
                 try:
-                    frontBit, backBit = rvEndCV.split( 'V' )
-                    adjustedRvEndCV = f'{frontBit}V{int(backBit)-1}'
+                    CclassIndex1 = rvSectionHtml.index( 'id="C' )
+                    CclassIndex2 = rvSectionHtml.index( '"', CclassIndex1+4 )
+                    rvStartCV = rvSectionHtml[CclassIndex1+4:CclassIndex2]
+                    CclassIndex8 = rvSectionHtml.rindex( 'id="C' )
+                    CclassIndex9 = rvSectionHtml.index( '"', CclassIndex8+4 )
+                    rvEndCV = rvSectionHtml[CclassIndex8+4:CclassIndex9]
+                    # dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"\n  {BBB} {n:,}: {rvStartCV=} {rvEndCV=}")
                 except ValueError:
-                    previousC = int(rvEndCV[1:]) - 1
-                    adjustedRvEndCV = f'C{previousC}V{rvBible.getNumVerses( BBB, previousC )}'
-                    # print( f"Now {adjustedRvEndCV=}")
-                logging.info( f"{BBB} OET ixEndCV is now decreased by one verse from '{rvEndCV}' to '{adjustedRvEndCV}'" )
-                try: ixEndCV = lvRest.rindex( f' id="{adjustedRvEndCV}"' ) # If this fails, we give up trying to fix versification problem
-                except ValueError: # second level 'except'
-                    logging.error( f"Gave up trying to fix OET book versification for {BBB} section RV {rvStartCV}-{rvEndCV}")
-                    ixEndCV = len(lvRest) - 1 # Will this work???
-            try: ixNextCV = lvRest.index( f' id="C', ixEndCV+5 )
-            except ValueError: ixNextCV = len( lvRest ) - 1
-            # print( f"\n{BBB} {n}: {lvRest[ixEndCV:ixNextCV]=} {lvRest[ixNextCV:ixNextCV+10]=}" )
-            # Find our way back to the start of the HTML marker
-            for x in range( 30 ):
-                lvIndex8 = ixNextCV - x
-                if lvRest[lvIndex8] == '<':
-                    break
-            else:
-                dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{lvRest[lvIndex8-50:lvIndex8+50]}")
-                not_far_enough
-            # print( f"\n{n}: {lvRest[ixEndCV:lvIndex8]=}" )
-            lvEndIx = lvIndex8
-            # TODO: Work out why we need these next two sets of lines
-            if lvRest[lvEndIx:].startswith( '</span>'): # Occurs at end of MRK (perhaps because of missing SR verses in ending) -- not sure if in other places
-                dPrint( 'Info', DEBUGGING_THIS_MODULE, f"\nNOTE: Fixed </span> end of {BBB} {rvStartCV=} {rvEndCV=} chunk in OET!!! {lvEndIx=} {ixNextCV=}" )
-                lvEndIx = ixNextCV + 1
-            elif lvRest[lvEndIx:].startswith( '</a>'): # Occurs at end of MAT Why????
-                dPrint( 'Info', DEBUGGING_THIS_MODULE, f"\nNOTE: Fixed </a> end of {BBB} {rvStartCV=} {rvEndCV=} chunk in OET!!! {lvEndIx=} {ixNextCV=}" )
-                lvEndIx = ixNextCV + 1
-            lvChunk = lvRest[:lvEndIx]
-            # Make sure that our split was at a sensible place
-            rsLvChunk = lvChunk.rstrip()
-            if ixEndCV != len(lvRest)-1: # from second level 'except' above
-                assert rsLvChunk[-1]=='>' \
-                or (rsLvChunk[-2]=='>' and rsLvChunk[-1] in '.,') \
-                or (BBB in ('GENx','RUTx','JNAx','ESTx') and rsLvChunk[-1]=='.'), f"{BBB} {n=} {rvStartCV=} {rvEndCV=} {lvChunk[-40:]=} {lvRest[lvEndIx:lvEndIx+30]=}"
-                # Fails on JNA n=4 rvStartCV='C4' rvEndCV='C4V11' lvChunk[-8:]='eat(fs).'
-            lvChunks.append( lvChunk )
-            lvRest = lvRest[lvEndIx:]
+                    dPrint( 'Info', DEBUGGING_THIS_MODULE, f"  createOETBookPages {BBB} {n:,}: No Cid in {rvSectionHtml=}" )
+                    rvStartCV, rvEndCV = '', 'C1'
+                    # halt
+                dPrint( 'Info', DEBUGGING_THIS_MODULE, f"""\nSearching for OET-RV {BBB} ' id="{rvEndCV}"' in '{lvRest}'""" )
+                try: ixEndCV = lvRest.rindex( f' id="{rvEndCV}"' )
+                except ValueError: # Versification problem if this fails
+                    logging.error( f"{BBB} Possible OET versification problem around {rvEndCV} -- we'll try to handle it." )
+                    # Let's try for the previous verse -- at least this solves Gen 31:55 not there
+                    assert rvEndCV[0] == 'C'
+                    try:
+                        frontBit, backBit = rvEndCV.split( 'V' )
+                        adjustedRvEndCV = f'{frontBit}V{int(backBit)-1}'
+                    except ValueError:
+                        previousC = int(rvEndCV[1:]) - 1
+                        adjustedRvEndCV = f'C{previousC}V{rvBible.getNumVerses( BBB, previousC )}'
+                        # print( f"Now {adjustedRvEndCV=}")
+                    logging.info( f"{BBB} OET ixEndCV is now decreased by one verse from '{rvEndCV}' to '{adjustedRvEndCV}'" )
+                    try: ixEndCV = lvRest.rindex( f' id="{adjustedRvEndCV}"' ) # If this fails, we give up trying to fix versification problem
+                    except ValueError: # second level 'except'
+                        logging.error( f"Gave up trying to fix OET book versification for {BBB} section RV {rvStartCV}-{rvEndCV}")
+                        ixEndCV = len(lvRest) - 1 # Will this work???
+                try: ixNextCV = lvRest.index( f' id="C', ixEndCV+5 )
+                except ValueError: ixNextCV = len( lvRest ) - 1
+                # print( f"\n{BBB} {n}: {lvRest[ixEndCV:ixNextCV]=} {lvRest[ixNextCV:ixNextCV+10]=}" )
+                # Find our way back to the start of the HTML marker
+                for x in range( 30 ):
+                    lvIndex8 = ixNextCV - x
+                    if lvRest[lvIndex8] == '<':
+                        break
+                else:
+                    dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{lvRest[lvIndex8-50:lvIndex8+50]}")
+                    not_far_enough
+                # print( f"\n{n}: {lvRest[ixEndCV:lvIndex8]=}" )
+                lvEndIx = lvIndex8
+                # TODO: Work out why we need these next two sets of lines
+                if lvRest[lvEndIx:].startswith( '</span>'): # Occurs at end of MRK (perhaps because of missing SR verses in ending) -- not sure if in other places
+                    dPrint( 'Info', DEBUGGING_THIS_MODULE, f"\nNOTE: Fixed </span> end of {BBB} {rvStartCV=} {rvEndCV=} chunk in OET!!! {lvEndIx=} {ixNextCV=}" )
+                    lvEndIx = ixNextCV + 1
+                elif lvRest[lvEndIx:].startswith( '</a>'): # Occurs at end of MAT Why????
+                    dPrint( 'Info', DEBUGGING_THIS_MODULE, f"\nNOTE: Fixed </a> end of {BBB} {rvStartCV=} {rvEndCV=} chunk in OET!!! {lvEndIx=} {ixNextCV=}" )
+                    lvEndIx = ixNextCV + 1
+                lvChunk = lvRest[:lvEndIx]
+                # Make sure that our split was at a sensible place
+                rsLvChunk = lvChunk.rstrip()
+                if ixEndCV != len(lvRest)-1: # from second level 'except' above
+                    assert rsLvChunk[-1]=='>' \
+                    or (rsLvChunk[-2]=='>' and rsLvChunk[-1] in '.,') \
+                    or (BBB in ('GENx','RUTx','JNAx','ESTx') and rsLvChunk[-1]=='.'), f"{BBB} {n=} {rvStartCV=} {rvEndCV=} {lvChunk[-40:]=} {lvRest[lvEndIx:lvEndIx+30]=}"
+                    # Fails on JNA n=4 rvStartCV='C4' rvEndCV='C4V11' lvChunk[-8:]='eat(fs).'
+                lvChunks.append( lvChunk )
+                lvRest = lvRest[lvEndIx:]
+        else: # We don't have any LV book
+            lvChunks = ['']*len(rvSections)
 
         assert len(lvChunks) == len(rvSections), f"{len(lvChunks)=} {len(rvSections)=}"
 
         # Now put all the chunks together
         combinedHtml = ''
         for rvSection,lvChunk in zip( rvSections, lvChunks, strict=True ):
-            if rvSection.startswith( '<div class="rightBox">' ):
-                rvSection = f'<div class="s1">{rvSection}' # This got removed above
+            if rvSection.startswith( '<div class="rightS1Box">' ):
+                rvSection = f'<div class="section">{rvSection}' # This got removed above
                 needed_to_add_back_in # Shouldn't be needed any more now
             # Handle footnotes so the same fn1 doesn't occur for both chunks if they both have footnotes
             rvSection = rvSection.replace( 'id="footnotes', 'id="footnotesRV' ).replace( 'id="crossRefs', 'id="crossRefsRV' ).replace( 'id="fn', 'id="fnRV' ).replace( 'href="#fn', 'href="#fnRV' )
@@ -315,7 +323,8 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
                           f'''<a title="Up to {state.BibleNames['OET']}" href="{'../'*level}OET/">↑OET</a>''' )
         bkHtml = f'''{top}<!--book page-->
 {navBookListParagraph}
-{bkHtml}{removeDuplicateCVids( combinedHtml )}</div><!--RVLVcontainer-->
+{bkHtml}
+{removeDuplicateCVids( combinedHtml )}</div><!--RVLVcontainer-->
 {makeBottom( level, 'book', state )}'''
         assert checkHtml( f'OET Book {BBB}', bkHtml )
         assert not filepath.is_file() # Check that we're not overwriting anything

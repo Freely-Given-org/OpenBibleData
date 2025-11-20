@@ -58,10 +58,10 @@ from Bibles import getBibleMapperMaps
 from OETHandlers import livenOETWordLinks, getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
-LAST_MODIFIED_DATE = '2025-09-25' # by RJH
+LAST_MODIFIED_DATE = '2025-11-17' # by RJH
 SHORT_PROGRAM_NAME = "createChapterPages"
 PROGRAM_NAME = "OpenBibleData createChapterPages functions"
-PROGRAM_VERSION = '0.77'
+PROGRAM_VERSION = '0.78'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -203,11 +203,15 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
                 except KeyError:
                     logging.critical( f"createOETSideBySideChapterPages probable versification error for {lvBible.abbreviation} {BBB} {c=}" )
                     lvVerseEntryList, lvContextList = InternalBibleEntryList(), []
+                except TypeError: # if it returned None
+                    logging.critical( f"createOETSideBySideChapterPages missing book error for {lvBible.abbreviation} {BBB} {c=}" )
+                    lvVerseEntryList, lvContextList = InternalBibleEntryList(), []
                 assert isinstance( lvBible, ESFMBible.ESFMBible )
                 for lvEntry in lvVerseEntryList:
                     if lvEntry.getOriginalText():
                         assert '\\nd \\nd ' not in lvEntry.getOriginalText(), f"lvBible {BBB}_{c} {lvEntry=}"
-                lvVerseEntryList = livenOETWordLinks( level, lvBible, BBB, lvVerseEntryList, state )
+                if lvVerseEntryList:
+                    lvVerseEntryList = livenOETWordLinks( level, lvBible, BBB, lvVerseEntryList, state )
                 # rvHtml = livenIORs( BBB, convertUSFMMarkerListToHtml( 'OET', (BBB,c), 'chapter', rvContextList, rvVerseEntryList ), numChapters )
                 # NOTE: We change the version abbreviation here to give the function more indication where we're coming from
                 rvHtml = do_OET_RV_HTMLcustomisations( f'ChapterA={BBB}_{c}', convertUSFMMarkerListToHtml( level, 'OET-RV', (BBB,str(c)), 'chapter', rvContextList, rvVerseEntryList, basicOnly=False, state=state ) )
@@ -219,7 +223,7 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
                     combinedHtml = f'{rvHtml}{lvHtml}'
                 else: # we have a normal chapter
                     # Now we have to divide the RV and the LV into an equal number of chunks (so they mostly line up)
-                    rvSections = rvHtml.split( '<div class="s1">' )
+                    rvSections = rvHtml.split( '<div class="section">' )
                     if not rvSections[0]: rvSections.pop( 0 ) # It must start with a section heading, so remove the first blank 'section'
                     assert 'bookIntro' not in lvHtml
                     lvChunks, lvRest = [], lvHtml
@@ -256,34 +260,35 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
                             ixEndCV = len(lvRest) - 1
                         try: ixNextCV = lvRest.index( f' id="C', ixEndCV+5 )
                         except ValueError: ixNextCV = len(lvRest) - 1
-                        # print( f"\n{BBB} {n}: {lvRest[ixEndCV:ixNextCV]=} {lvRest[ixNextCV:ixNextCV+10]=}" )
-                        # Find our way back to the start of the HTML marker
-                        for x in range( 30 ):
-                            lvIndex8 = ixNextCV - x
-                            if lvRest[lvIndex8] == '<':
+                        if lvRest:
+                            # print( f"\n{BBB} {n}: {len(lvRest)=} {lvRest[ixEndCV:ixNextCV]=} {lvRest[ixNextCV:ixNextCV+10]=}" )
+                            # Find our way back to the start of the HTML marker
+                            for x in range( 30 ):
+                                lvIndex8 = ixNextCV - x
+                                if lvRest[lvIndex8] == '<':
+                                    break
+                            else:
+                                dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{lvRest[lvIndex8-50:lvIndex8+50]}")
+                                if DEBUGGING_THIS_MODULE or BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag: not_far_enough
                                 break
-                        else:
-                            dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{lvRest[lvIndex8-50:lvIndex8+50]}")
-                            if DEBUGGING_THIS_MODULE or BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag: not_far_enough
-                            break
-                        # print( f"\n{n}: {lvRest[ixEndCV:lvIndex8]=}" )
-                        lvEndIx = lvIndex8
-                        # TODO: Work out why we need these next two sets of lines
-                        if lvRest[lvEndIx:].startswith( '</span>'): # Occurs at end of MRK (perhaps because of missing SR verses in ending) -- not sure if in other places
-                            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"\nNOTE: Fixed </span> end of {BBB} {rvStartCV=} {rvEndCV=} chunk in OET!!! {lvEndIx=} {ixNextCV=}" )
-                            lvEndIx = ixNextCV + 1
-                        elif lvRest[lvEndIx:].startswith( '</a>'): # Occurs at end of MAT Why????
-                            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"\nNOTE: Fixed </a> end of {BBB} {rvStartCV=} {rvEndCV=} chunk in OET!!! {lvEndIx=} {ixNextCV=}" )
-                            lvEndIx = ixNextCV + 1
-                        lvChunk = lvRest[:lvEndIx]
-                        # Make sure that our split was at a sensible place
-                        if ixEndCV < len(lvRest)-1 \
-                        and n < len(rvSections)-1:
-                            rsLvChunk = lvChunk.rstrip()
-                            assert rsLvChunk[-1]=='>' \
-                            or (rsLvChunk[-2]=='>' and rsLvChunk[-1] in '.,?'), f"ASSERT createOETChapterPages {BBB} {c=} {n:,}/{len(rvSections):,}: {lvChunk[-8:]=} {rsLvChunk[-5:]=}"
-                        lvChunks.append( lvChunk )
-                        lvRest = lvRest[lvEndIx:]
+                            # print( f"\n{n}: {lvRest[ixEndCV:lvIndex8]=}" )
+                            lvEndIx = lvIndex8
+                            # TODO: Work out why we need these next two sets of lines
+                            if lvRest[lvEndIx:].startswith( '</span>'): # Occurs at end of MRK (perhaps because of missing SR verses in ending) -- not sure if in other places
+                                dPrint( 'Info', DEBUGGING_THIS_MODULE, f"\nNOTE: Fixed </span> end of {BBB} {rvStartCV=} {rvEndCV=} chunk in OET!!! {lvEndIx=} {ixNextCV=}" )
+                                lvEndIx = ixNextCV + 1
+                            elif lvRest[lvEndIx:].startswith( '</a>'): # Occurs at end of MAT Why????
+                                dPrint( 'Info', DEBUGGING_THIS_MODULE, f"\nNOTE: Fixed </a> end of {BBB} {rvStartCV=} {rvEndCV=} chunk in OET!!! {lvEndIx=} {ixNextCV=}" )
+                                lvEndIx = ixNextCV + 1
+                            lvChunk = lvRest[:lvEndIx]
+                            # Make sure that our split was at a sensible place
+                            if ixEndCV < len(lvRest)-1 \
+                            and n < len(rvSections)-1:
+                                rsLvChunk = lvChunk.rstrip()
+                                assert rsLvChunk[-1]=='>' \
+                                or (rsLvChunk[-2]=='>' and rsLvChunk[-1] in '.,?'), f"ASSERT createOETChapterPages {BBB} {c=} {n:,}/{len(rvSections):,}: {lvChunk[-8:]=} {rsLvChunk[-5:]=}"
+                            lvChunks.append( lvChunk )
+                            lvRest = lvRest[lvEndIx:]
                         if not lvRest:
                             logging.error( f"createOETChapterPagesB {BBB} {c=} {n:,}/{len(rvSections):,} seems to have a versification problem around {rvStartCV=} {rvEndCV=}" )
                             while len(lvChunks) < len(rvSections):
@@ -296,11 +301,12 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
                     # Now put all the chunks together
                     combinedHtml = ''
                     for rvSection,lvChunk in zip( rvSections, lvChunks, strict=True ):
-                        if rvSection.startswith( '<div class="rightBox">' ):
-                            rvSection = f'<div class="s1">{rvSection}' # This got removed above
+                        if rvSection.startswith( '<div class="rightS1Box">' ):
+                            rvSection = f'<div class="section">{rvSection}' # This got removed above
                         # Handle footnotes so the same fn1 doesn't occur for both chunks if they both have footnotes
                         rvSection = rvSection.replace( 'id="footnotes', 'id="footnotesRV' ).replace( 'id="crossRefs', 'id="crossRefsRV' ).replace( 'id="fn', 'id="fnRV' ).replace( 'href="#fn', 'href="#fnRV' )
                         lvChunk = lvChunk.replace( 'id="footnotes', 'id="footnotesLV' ).replace( 'id="crossRefs', 'id="crossRefsLV' ).replace( 'id="fn', 'id="fnLV' ).replace( 'href="#fn', 'href="#fnLV' )
+                        if combinedHtml: assert combinedHtml.endswith( '\n' ), f"{combinedHtml[-5:]=}"
                         combinedHtml = f'''{combinedHtml}<div class="chunkRV">{rvSection}</div><!--chunkRV-->
 <div class="chunkLV">{lvChunk}</div><!--chunkLV-->
 '''
@@ -323,7 +329,8 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
                 chapterHtml = f'''{top}<!--chapter page-->
 {navBookListParagraph}
 {chapterLinksParagraph.replace( 'class="chLst">', 'class="chLst" id="chLst">', 1 )}
-{chapterHtml}{combinedHtml}
+{chapterHtml}
+{combinedHtml}
 {cNav}
 {chapterLinksParagraph}
 {makeBottom( level, 'chapter', state )}'''

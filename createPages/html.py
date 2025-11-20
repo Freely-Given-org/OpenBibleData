@@ -108,10 +108,10 @@ from settings import State, state
 from OETHandlers import getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2025-09-26' # by RJH
+LAST_MODIFIED_DATE = '2025-11-17' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
-PROGRAM_VERSION = '0.98'
+PROGRAM_VERSION = '0.99'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -133,12 +133,14 @@ def makeTop( level:int, versionAbbreviation:str|None, pageType:str, versionSpeci
     """
     Create the very top part of an HTML page.
 
-    This is the HTML <head> segment, including assigning the correct CSS stylesheet.
+    This is the HTML <head> segment, including assigning the correct CSS stylesheet
+        with the 'About', 'News', and 'OET Key' links at the top of the page
+            and including the list of versions underneath that line.
 
     Note: versionAbbreviation can be None for parallel, interlinear and word pages, etc.
     """
     fnPrint( DEBUGGING_THIS_MODULE, f"makeTop( {level}, {versionAbbreviation}, {pageType}, {versionSpecificFileOrFolderName} )" )
-    assert pageType in KNOWN_PAGE_TYPES, f"{level=} {versionAbbreviation=} {pageType=}"
+    assert pageType in KNOWN_PAGE_TYPES, f"makeTop {level=} {versionAbbreviation=} {pageType=}"
 
     if pageType in ('chapter','section','book'):
         cssFilename = 'OETChapter.css' if 'OET' in versionAbbreviation else 'BibleChapter.css'
@@ -206,6 +208,7 @@ def _makeNavigationLinks( level:int, versionAbbreviation:str|None, pageType:str,
     Note: versionAbbreviation can be None for parallel, interlinear and word pages, etc.
     """
     fnPrint( DEBUGGING_THIS_MODULE, f"_makeNavigationLinks( {level}, {versionAbbreviation}, {pageType}, {versionSpecificFileOrFolderName} )" )
+    assert pageType in KNOWN_PAGE_TYPES, f"_makeNavigationLinks {level=} {versionAbbreviation=} {pageType=}"
 
     versionHtml = _makeWorkNavListParagraph( level, versionAbbreviation, pageType, versionSpecificFileOrFolderName, state )
     viewHtml = makeViewNavListParagraph( level, versionAbbreviation, pageType, state )
@@ -220,9 +223,11 @@ def _makeWorkNavListParagraph( level:int, versionAbbreviation:str|None, pageType
 
     Note: versionAbbreviation can be None for parallel, interlinear and word pages, etc.
     """
+    # DEBUGGING_THIS_MODULE = 99; print()
     fnPrint( DEBUGGING_THIS_MODULE, f"_makeWorkNavListParagraph( {level}, {versionAbbreviation}, {pageType}, {versionSpecificFileOrFolderName} )" )
+    assert pageType in KNOWN_PAGE_TYPES, f"_makeWorkNavListParagraph {level=} {versionAbbreviation=} {pageType=}"
 
-    # Add all the version abbreviations (except for the selected-verses-only verses)
+    # Add all the version abbreviations (except for the versionsWithoutTheirOwnPages)
     #   with their style decorators
     #   and with the more specific links if specified.
     initialVersionList = ['TEST'] if state.TEST_MODE_FLAG else []
@@ -233,13 +238,14 @@ def _makeWorkNavListParagraph( level:int, versionAbbreviation:str|None, pageType
             continue
         if state.TEST_VERSIONS_ONLY and loopVersionAbbreviation not in state.TEST_VERSIONS_ONLY:
             continue
-        if pageType in ('section','section'):
-            try:
-                thisBible = state.preloadedBibles['OET-RV' if loopVersionAbbreviation=='OET' else loopVersionAbbreviation]
-                if not thisBible.discoveryResults['ALL']['haveSectionHeadings']:
-                    continue # skip this one
-            except AttributeError: # no discoveryResults
-                continue
+        # Rather than leave out versions without sections, we will now point them to chapter pages (further below)
+        # if pageType in ('section','sectionIndex'):
+        #     try:
+        #         thisBible = state.preloadedBibles['OET-RV' if loopVersionAbbreviation=='OET' else loopVersionAbbreviation]
+        #         if not thisBible.discoveryResults['ALL']['haveSectionHeadings']:
+        #             continue # skip this one
+        #     except AttributeError: # no discoveryResults
+        #         continue
 
         # Note: This is not good because not all versions have all books -- we try to fix that below
         vLink = '../'*level if loopVersionAbbreviation == versionAbbreviation else \
@@ -281,14 +287,27 @@ def _makeWorkNavListParagraph( level:int, versionAbbreviation:str|None, pageType
         initialVersionList.append( f'''{state.BibleVersionDecorations['Search'][0]}<a title="Find Bible words" href="{'../'*level}Search.htm">Search</a>{state.BibleVersionDecorations['Search'][1]}''' )
 
     # This code tries to adjust links to books which aren't in a version, e.g., UHB has no NT books, SR-GNT and UGNT have no OT books
-    # It does this by adjusting the potential bad link to the next level higher.
+    # It does this by adjusting the potential bad link to the next level higher
+    #   except for section pages that don't exist will be changed to chapter pages.
     newVersionList = []
     for initial_entry in initialVersionList:
-        # if pageType == 'parallelVerse':
-        #     print( f"  _makeNavigationLinks processing {entry=} ({level=} {versionAbbreviation=} {pageType=} {fileOrFolderName=})" )
+        # if pageType in ('section','sectionIndex'):
+        #     print( f"  _makeNavigationLinks processing {loopVersionAbbreviation=} from {initial_entry=} ({level=} {versionAbbreviation=} {pageType=} {versionSpecificFileOrFolderName=})" )
         if '/par/' in initial_entry or '/ilr/' in initial_entry:
             newVersionList.append( initial_entry )
             continue # Should always be able to link to these
+        elif '/bySec/' in initial_entry:
+            assert pageType in ('section','sectionIndex')
+            startIndex = initial_entry.index('">') + 2
+            loopVersionAbbreviation = initial_entry[startIndex:initial_entry.index('<',startIndex)]
+            try:
+                thisBible = state.preloadedBibles['OET-RV' if loopVersionAbbreviation=='OET' else loopVersionAbbreviation]
+                haveSectionHeadings = thisBible.discoveryResults['ALL']['haveSectionHeadings']
+            except AttributeError: # no discoveryResults
+                haveSectionHeadings = False
+            if not haveSectionHeadings:
+                initial_entry = initial_entry.replace( '/bySec/', '/byC/' )
+                assert '/S' not in initial_entry.replace('/SLT/','/sLT/').replace('/SR-GNT/','/sR-GNT/').replace('/SA','/sA').replace('/SNG','/sNG'), f"Found a possible section reference {initial_entry=}"
         entryBBB = None
         for tryBBB in state.allBBBs: # from all loaded versions
             if f'{tryBBB}.' in initial_entry or f'{tryBBB}_' in initial_entry or f'{tryBBB}/' in initial_entry:
@@ -303,7 +322,7 @@ def _makeWorkNavListParagraph( level:int, versionAbbreviation:str|None, pageType
                 assert state.TEST_MODE_FLAG
                 thisBible = []
             if entryBBB in thisBible:
-                # if pageType == 'parallelVerse': print( f"    Appended {thisVersionAbbreviation} {entryBBB} as is (from {entry})")
+                # if pageType in ('section','sectionIndex'): print( f"    Appended {loopVersionAbbreviation} {entryBBB} as is (from {initial_entry})")
                 newVersionList.append( initial_entry )
                 continue # Should always be able to link to these
             dPrint( 'Info', DEBUGGING_THIS_MODULE, f"      Might not be able to link to {pageType} {loopVersionAbbreviation} {initial_entry}???" )
@@ -321,6 +340,7 @@ def _makeWorkNavListParagraph( level:int, versionAbbreviation:str|None, pageType
             newVersionList.append( initial_entry )
 
     assert len(newVersionList) == len(initialVersionList)
+    # if pageType in ('section','sectionIndex'): print( f"_makeWorkNavListParagraph {'\n'.join(newVersionList)}\n from {'\n'.join(initialVersionList)}" ); halt
     return f'''<p class="wrkLst">{' '.join(newVersionList)}</p>'''
 # end of html._makeWorkNavListParagraph
 
@@ -574,6 +594,13 @@ def checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool:
 
     assert '<span class="ul"><span class="ul">' not in htmlToCheck, f'''Nested <span class="ul"><span class="ul"> '{where}' {segmentOnly=} …{htmlToCheck[htmlToCheck.index('<span class="ul"><span class="ul">')-180:htmlToCheck.index('<span class="ul"><span class="ul">')+180]}…'''
     assert '< /' not in htmlToCheck, f'''Extra space in close span '{where}' {segmentOnly=} …{htmlToCheck[htmlToCheck.index('< /')-180:htmlToCheck.index('< /')+180]}…'''
+
+    # Check divisions
+    # We renamed 'div.s1' to 'div.section'
+    assert '<div class="s1">' not in htmlToCheck, f'''s1 DIVision in '{where}' {segmentOnly=} …{htmlToCheck[htmlToCheck.index('<div class="s1">')-20:htmlToCheck.index('<div class="s1">')+20]}…'''
+    assert '><div class="chunkRV">' not in htmlToCheck, f'''Missing newline in '{where}' {segmentOnly=} …{htmlToCheck[htmlToCheck.index('><div class="chunkRV">')-20:htmlToCheck.index('><div class="chunkRV">')+20]}…'''
+    for divisionName in ('section','chunkRV','rightS1Box','RVLVcontainer'):
+        assert htmlToCheck.count( f'<div class="{divisionName}">' ) == htmlToCheck.count( f'</div><!--{divisionName}-->' ), f"Unmatched '{divisionName}' divs: {htmlToCheck.count(f'<div class="{divisionName}">')} != {htmlToCheck.count(f'</div><!--{divisionName}-->')} {where=}" 
 
     for marker,startMarker in (('html','<html'),('head','<head'),('body','<body')):
         if segmentOnly:

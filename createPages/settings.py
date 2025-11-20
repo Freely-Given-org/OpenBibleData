@@ -42,6 +42,7 @@ CHANGELOG:
     2025-08-24 Move rest of settings into State
     2025-09-02 Added RP (Byz) GNT
     2025-09-26 Added MSB
+    2025-11-13 Added TLB
 """
 from pathlib import Path
 
@@ -50,7 +51,7 @@ from BibleOrgSys.BibleOrgSysGlobals import dPrint, fnPrint
 from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39
 
 
-LAST_MODIFIED_DATE = '2025-10-30' # by RJH
+LAST_MODIFIED_DATE = '2025-11-13' # by RJH
 SHORT_PROGRAM_NAME = "settings"
 PROGRAM_NAME = "OpenBibleData (OBD) Settings"
 PROGRAM_VERSION = '0.99'
@@ -63,10 +64,11 @@ class State:
     """
     A place to store some of the global stuff that needs to be passed around.
     """
-    OET_VERSION_NUMBER_STRING = 'v0.45.54' # Incremented on most runs
+    OET_VERSION_NUMBER_STRING = 'v0.46.14' # Incremented on most runs
 
-    TEST_MODE_FLAG = False # Writes website into 'Test' subfolder if True
-    TEST_OT_BOOK_LIST = ['CH2','PRO'] # Books in progress
+    TEST_MODE_FLAG = True # Writes website into 'Test' subfolder if True
+    TEST_OT_BOOK_LIST = ['DEU','PRO'] # Books in progress
+    TEST_DC_BOOK_LIST = ['TOB'] # Books in progress
     TEST_NT_BOOK_LIST = ['MRK'] # Shortest gospel
     NEW_BOOK_IN_TEST_LIST_FLAG = False # So that word pages will get rebuilt for TEST_MODE_FLAG
 
@@ -80,11 +82,12 @@ class State:
     ALL_TEST_REFERENCE_PAGES_FLAG = False # If in TEST_MODE_FLAG, make ALL word/lemma pages, or just the RELEVANT ones
     UPDATE_ACTUAL_SITE_WHEN_BUILT_FLAG = True # The pages are initially built in a tmp folder so need to be copied to the final destination
 
-    OET_RV_OT_BOOK_LIST = ['GEN','EXO','JOS','JDG','RUT',
+    OET_RV_DC_BOOK_LIST = ['TOB','MA1','MA2']
+    OET_RV_OT_BOOK_LIST = ['GEN','EXO','DEU','JOS','JDG','RUT',
                     'SA1','SA2','KI1','KI2','CH1','CH2',
                     'EZR','NEH','EST','JOB','PSA','PRO','ECC','SNG','LAM',
                     'EZE','DAN','HOS','JOL','AMO','OBA','JNA',
-                    'MIC','NAH','HAB','ZEP','HAG','ZEC','MAL'] # 'LEV','NUM','DEU','ISA','JER'
+                    'MIC','NAH','HAB','ZEP','HAG','ZEC','MAL'] # 'LEV','NUM','ISA','JER'
 
     TEMP_BUILD_FOLDER = Path( '../buildingHtmlPages/' )
     NORMAL_DESTINATION_FOLDER = Path( '../htmlPages/' )
@@ -124,9 +127,9 @@ class State:
     OET_BOOK_ORDER = ['FRT','INT'] + OET_OT_BOOK_ORDER + OET_APOCRYPHA_BOOK_ORDER + OET_NT_BOOK_ORDER + ['XXA','XXB','XXC','XXD','XXE','CNC','GLO','TDX','NDX','OTH','BAK']
     assert len(OET_BOOK_ORDER) > 68
 
-    TEST_BOOK_LIST = TEST_OT_BOOK_LIST + TEST_NT_BOOK_LIST
+    TEST_BOOK_LIST = TEST_OT_BOOK_LIST + TEST_DC_BOOK_LIST + TEST_NT_BOOK_LIST
     OET_LV_BOOK_LIST = BOOKLIST_OT39 + OET_NT_BOOK_ORDER
-    OET_RV_BOOK_LIST = TEST_BOOK_LIST if TEST_MODE_FLAG else (OET_RV_OT_BOOK_LIST + OET_NT_BOOK_ORDER)
+    OET_RV_BOOK_LIST = TEST_BOOK_LIST if TEST_MODE_FLAG else (OET_RV_OT_BOOK_LIST + OET_RV_DC_BOOK_LIST + OET_NT_BOOK_ORDER)
     # TODO: What about 'INT' ?
     OET_RV_BOOK_LIST_WITH_FRT = ['FRT'] + OET_RV_BOOK_LIST
 
@@ -135,14 +138,14 @@ class State:
 
     VERSIONS_WITHOUT_NT = ['UHB','JPS', 'BrLXX','BrTr']
     VERSIONS_WITHOUT_OT = ['BLB','AICNT','TCNT','TNT','Wymth', 'SR-GNT','UGNT','SBL-GNT','TC-GNT']
-    VERSIONS_WITH_APOCRYPHA = ( 'KJB-1611', 'WEBBE','WEB', 'BrLXX','BrTr')
+    VERSIONS_WITH_APOCRYPHA = ( 'OET-RV', 'WEBBE','WEB', 'DRA', 'RV', 'KJB-1769','KJB-1611', 'Wycl', 'BrLXX','BrTr' )
 
     NUM_EXTRA_MODES = 7 # Related passages, topics, parallel and interlinear verses, reference and (Tyndale Bible) dictionary, and search
 
     OET_UNFINISHED_WARNING_HTML_TEXT = 'This is still a very early look into the unfinished text of the <em>Open English Translation</em> of the Bible. Please double-check the text in advance before using in public.'
     OET_UNFINISHED_WARNING_HTML_PARAGRAPH = f'<p class="rem">{OET_UNFINISHED_WARNING_HTML_TEXT}</p>'
-    OET_SINGLE_VERSE_HTML_TEXT = 'This view shows ‘verses’ which are not natural language units and hence sometimes only part of a sentence will be visible. Normally the OET discourages the reading of individual ‘verses’, but this view is only designed as a tool for doing comparisons of different translations.'
-    OETS_UNFINISHED_WARNING_HTML_TEXT = 'The OET segments on this page are still very early looks into the unfinished texts of the <em>Open English Translation</em> of the Bible. Please double-check these texts in advance before using in public.'
+    OET_PARALLEL_PAGE_SINGLE_VERSE_HTML_TEXT = 'This view shows ‘verses’ which are not natural language units and hence sometimes only part of a sentence will be visible—click on any Bible version abbreviation down the left-hand side to see the verse in more of its context. Normally the OET discourages the reading of individual ‘verses’, but this view is only designed as a tool for doing comparisons of different translations—the older translations are further down the page (so you can read up from the bottom to trace the English translation history).'
+    OETS_UNFINISHED_WARNING_HTML_TEXT = 'The OET segments on this page are still very early looks into the unfinished texts of the <em>Open English Translation</em> of the Bible—please double-check these texts in advance before using in public.'
     # OETS_UNFINISHED_WARNING_HTML_PARAGRAPH = f'<p class="rem">{OETS_UNFINISHED_WARNING_HTML_TEXT}</p>'
 
     JAMES_NOTE_HTML_TEXT = 'Note that the <em>OET</em> uses ‘Yacob’ for ‘The Letter of Jacob’ (wrongly called ‘James’ in older Bibles).'
@@ -166,7 +169,7 @@ class State:
         'AICNT','OEB','ISV','CSB','NLT',
         'NIV','CEV','ESV','NASB','LSB',
         'JQT','2DT','1ST','TPT',
-        'WEBBE','WEB','WMBB','WMB','MSG','LSV','FBV','TCNT','T4T','LEB','NRSV','NKJV','NAB','BBE',
+        'WEBBE','WEB','WMBB','WMB','MSG','LSV','FBV','TCNT','T4T','LEB','NRSV','NKJV','TLB','NAB','BBE',
         'Moff','JPS','Wymth','ASV','DRA','YLT','Drby','RV','SLT','Wbstr','KJB-1769','KJB-1611','Bshps','Gnva','Cvdl',
         'TNT','Wycl',
         'Luth','ClVg',
@@ -182,7 +185,7 @@ class State:
         'AICNT','OEB','ISV','CSB','NLT',
         'NIV','CEV','ESV','NASB','LSB',
         'JQT','2DT','1ST','TPT',
-        'WEBBE','WEB','WMBB','WMB','MSG','NET','LSV','FBV','TCNT','T4T','LEB','NRSV','NKJV','NAB','BBE',
+        'WEBBE','WEB','WMBB','WMB','MSG','NET','LSV','FBV','TCNT','T4T','LEB','NRSV','NKJV','TLB','NAB','BBE',
         'Moff','JPS','Wymth','ASV','DRA','YLT','Drby','RV','SLT','Wbstr','KJB-1769','KJB-1611','Bshps','Gnva','Cvdl',
         'TNT','Wycl',
         'Luth','ClVg',
@@ -197,8 +200,8 @@ class State:
     # Specific short lists
     auxilliaryVersions = ('OET','TOBD') # These ones don't have their own Bible locations at all
     # The following three lines are also in selectedVersesVersions.py
-    selectedVersesOnlyVersions = ('CSB','NLT','NIV','CEV','ESV','MSG','NASB','LSB','JQT','2DT','1ST','TPT','NRSV','NKJV','NAB', 'NETS' ) # These ones have .tsv sources (and don't produce Bible objects)
-    numAllowedSelectedVerses   = (  300,  500,  500,  500,  500,  500,   500, 1000,   20,  300,  300,  250,   300,   300,  250,    250  ) # Order must match above list
+    selectedVersesOnlyVersions = ('CSB','NLT','NIV','CEV','ESV','MSG','NASB','LSB','JQT','2DT','1ST','TPT','NRSV','NKJV','TLB','NAB', 'NETS' ) # These ones have .tsv sources (and don't produce Bible objects)
+    numAllowedSelectedVerses   = (  300,  500,  500,  500,  500,  500,   500, 1000,   20,  300,  300,  250,   300,   300,  300,  250,    250 ) # Order must match above list
     assert len(numAllowedSelectedVerses) == len(selectedVersesOnlyVersions)
     # We want these versions on our parallel pages, but are not interested enough in them for them to have their own version pages
     versionsWithoutTheirOwnPages = selectedVersesOnlyVersions + ('Luth','ClVg', 'UGNT','SBL-GNT','RP-GNT','TC-GNT', 'TOSN','UTN')
@@ -265,6 +268,7 @@ class State:
         'LEB': '../copiedBibles/English/LogosBibleSoftware/LEB/LEB.updated.xml', # not OSIS
         'NRSV': '../copiedBibles/English/NRSV_verses.tsv',
         'NKJV': '../copiedBibles/English/NKJV_verses.tsv',
+        'TLB': '../copiedBibles/English/TLB_verses.tsv',
         'NAB': '../copiedBibles/English/NAB_verses.tsv',
         'BBE': '../copiedBibles/English/eBible.org/BBE/',
         'Moff': '../copiedBibles/English/Moffat/',
@@ -335,6 +339,7 @@ class State:
         'LEB': 'Lexham English Bible (2010, 2012)',
         'NRSV': 'New Revised Standard Version (1989)',
         'NKJV': 'New King James Version (1982)',
+        'TLB': 'The Living Bible (1971)',
         'NAB': 'New American Bible (1970, revised 2010)',
         'BBE': 'Bible in Basic English (1965)',
         'Moff': 'The Moffatt Translation of the Bible (1922)',
@@ -412,6 +417,7 @@ class State:
         'LEB': 'EN-USA',
         'NRSV': 'EN-UK',
         'NKJV': 'EN-UK',
+        'TLB': 'EN-USA',
         'NAB': 'EN-USA', # A stands for American
         'BBE': 'EN-UK',
         'Moff': 'EN-UK',
@@ -489,6 +495,7 @@ class State:
         'LEB': ['ALL'],
         'NRSV': ['ALL'],
         'NKJV': ['ALL'],
+        'TLB': ['ALL'],
         'NAB': ['ALL'],
         'BBE': ['ALL'],
         'Moff': ['ALL'],
@@ -558,6 +565,7 @@ class State:
         'LEB': TEST_BOOK_LIST,
         'NRSV': TEST_BOOK_LIST,
         'NKJV': TEST_BOOK_LIST,
+        'TLB': TEST_BOOK_LIST,
         'NAB': TEST_BOOK_LIST,
         'BBE': TEST_BOOK_LIST,
         'Moff': TEST_BOOK_LIST,
@@ -744,6 +752,9 @@ We’re also grateful to the <a href="https://www.Biblica.com/clear/">Biblica Cl
         'NKJV': {'about': '<p class="about">New King James Version (1979).</p>',
                 'copyright': '<p class="copyright">Copyright © (coming).</p>',
                 'licence': '<p class="licence">(coming).</p>' },
+        'TLB': {'about': '<p class="about">The Living Bible (1971).</p>',
+                'copyright': '<p class="copyright">Copyright © 1971 by Tyndale House Publishers, Wheaton, Illinois 60187. All rights reserved.</p>',
+                'licence': '<p class="licence">Copyright 1971—used under ‘fair use’ principles.</p>' },
         'NAB': {'about': '<p class="about">New American Bible (1970, revised 2010).</p>',
                 'copyright': '<p class="copyright">New American Bible, revised edition © 2010, 1991, 1986, 1970 Confraternity of Christian Doctrine, Inc., Washington, DC All Rights Reserved.</p>',
                 'licence': '<p class="licence">No permission is required for use of less than 5,000 words of the NAB in print, sound, or electronic formats.</p>' },

@@ -162,11 +162,11 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
         if marker == 's1':
             rest = '--unknown--'
             if not basicOnly:
-                html = f'{html}<div class="{marker}"><p class="s1">{rest}</p>\n'
-                inSection = marker
+                html = f'{html}<div class="section"><p class="{marker}">{rest}</p>\n'
+                inSection = 'section'
         elif marker == 'p':
             if not basicOnly:
-                html = f'{html}<p class="p">'
+                html = f'{html}<p class="{marker}">'
                 inParagraph = marker
         elif segmentType.endswith('Verse'):
             if marker not in ('chapters', 'c'):
@@ -226,7 +226,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
             html = f'''{html}<span class="{versionAbbreviation}_{'chapterIntro' if V=='0' else 'verseTextChunk'}">{convertUSFMCharacterFormatting( versionAbbreviation, refTuple, segmentType, rest, basicOnly, state )}</span>'''
         elif marker == 'v': # This is where we want the verse marker
             if inRightDiv:
-                html = f'{html}</div><!--rightBox-->\n'
+                html = f'{html}</div><!--{inRightDiv}-->\n'
                 inRightDiv = False
             V = rest.strip() # Play safe
             # We don't display the verse number below for verse 1 (after chapter number)
@@ -273,7 +273,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                 html = f'{html}</div><!--{inMainDiv}-->'
                 inMainDiv = None
             if inRightDiv:
-                html = f'{html}</div><!--rightBox-->\n'
+                html = f'{html}</div><!--{inRightDiv}-->\n'
                 inRightDiv = False
             if inParagraph:
                 logging.warning( f"Already in paragraph {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {marker}={rest}" )
@@ -324,7 +324,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                 assert marker != 's1'
                 if versionAbbreviation not in ('OET','OET-RV') or marker!='s4':
                     # It mustn't be our "kingdom marker", e.g., 'Northern kingdom'
-                    html = f'{html}</div><!--rightBox-->\n'
+                    html = f'{html}</div><!--{inRightDiv}-->\n'
                     inRightDiv = False
             if inTable:
                 logging.warning( f"Table should have been closed already {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} {marker=}" )
@@ -349,11 +349,11 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                     if segmentType=='relatedPassage' and inParagraph: # Can be disjointed verses
                         html = f'{html}</p>\n'
                         inParagraph = None
-                    if inSection == 's1': # Shouldn't happen
+                    if inSection == 'section': # Shouldn't happen
                         logger = logging.warning if segmentType.endswith('Verse') else logging.error
                         logger( f"Why wasn't previous s1 section closed??? {versionAbbreviation} {refTuple} {C}:{V} {inSection=} {inParagraph=} {marker}={rest}" )
                         if not basicOnly:
-                            html = f'{html}</div><!--{marker}-->\n'
+                            html = f'{html}</div><!--section-->\n'
                         inSection = None
                     elif inSection: # seems we had a s2/3/4 that wasn't closed
                         logging.critical( f"Should not be in section '{segmentType}' {basicOnly=} {refTuple} {C}:{V} {inSection=}" )
@@ -383,20 +383,27 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                                 nextV = '1' if V is None else getLeadingInt(V)+1 # Why  do we add 1 ???
                             if ( segmentType == 'section' # Don't want a link to ourself
                             or '\\f' in rest ): # Would otherwise end up with an anchor embedded inside an anchor at Jhn 7:53 (unless we write more code)
-                                html = f'''{html}<div class="{marker}"><div class="rightBox"><p class="{marker}"><span class="s1cv">{C}:{nextV}</span> {convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state)}</p>\n'''
+                                html = f'''{html}<div class="section"><div class="rightS1Box"><p class="{marker}"><span class="s1cv">{C}:{nextV}</span> {convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state)}</p>\n'''
                             else:
                                 sectionNumber = findSectionNumber( 'OET-RV', BBB, C, str(nextV), state )
-                                assert sectionNumber is not None, f"Bad OET-RV {refTuple} /s1 section reference: {rest=}"
-                                html = f'''{html}<div class="{marker}"><div class="rightBox"><p class="{marker}"><span class="s1cv">{C}:{nextV}</span> <a title="Go to section view" href="{'../'*level}OET/bySec/{BBB}_S{sectionNumber}.htm#C{C}V{nextV}">{convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state)}</a></p>\n'''
-                            inRightDiv = True
+                                assert sectionNumber is not None, f"Bad OET-RV {refTuple} {BBB} {C}:{nextV} /s1 section reference: {rest=}"
+                                html = f'''{html}<div class="section"><div class="rightS1Box"><p class="{marker}"><span class="s1cv">{C}:{nextV}</span> <a title="Go to section view" href="{'../'*level}OET/bySec/{BBB}_S{sectionNumber}.htm#C{C}V{nextV}">{convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state)}</a></p>\n'''
+                            inRightDiv = 'rightS1Box'
                         else: # not OET
-                            html = f'{html}<div class="{marker}"><p class="{marker}">{convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state)}</p>\n'
-                        inSection = marker
-                else: # for s2/3/4 we add a heading, but don't consider it a section division
+                            html = f'{html}<div class="section"><p class="{marker}">{convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state)}</p>\n'
+                        inSection = 'section'
+                elif marker == 's2':
+                    if not basicOnly:
+                        if 'OET' in versionAbbreviation:
+                            html = f'{html}<div class="rightS2Box"><p class="{marker}">{convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state)}</p>\n'
+                            inRightDiv = 'rightS2Box'
+                        else:
+                            html = f'{html}<p class="{marker}">{convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state)}</p>\n'
+                else: # for s3/s4 we add a heading, but don't consider it a section division
                     if not basicOnly:
                         if marker=='s4' and versionAbbreviation in ('OET','OET-RV'): # and 'KINGDOM' in rest.upper(): # it's our kingdom marker
                             additionalClassName = rest.replace( ' ', '' ).replace( 'king', 'King' ).replace( 'land', 'Land' )
-                            html = rreplace( html, 'div class="s1"', f'''div class="s1 {additionalClassName}"''', 1 )
+                            html = rreplace( html, 'div class="section"', f'''div class="section {additionalClassName}"''', 1 )
                             guts = convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state)
                             guts = f'''<a title="Go to {rest.replace('king','King').replace('land','Land')} information page" href="{'../'*level}ref/Kingdoms/{additionalClassName}.htm">{guts}</a>'''
                             html = f'''{html}<p class="{marker} {additionalClassName}">{guts}</p>\n'''
@@ -406,7 +413,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
             assert inSection == marker[1:] and not inParagraph, f"{versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {marker=}"
             if not basicOnly:
                 # if inRightDiv: # shouldn't really happen, but just in case
-                #     html = f'{html}</div><!--rightBox-->\n'
+                #     html = f'{html}</div><!--{inRightDiv}-->\n'
                 #     inRightDiv = False
                 #     halt # Why were we in a rightDiv
                 html = f'{html}</div><!--{marker[1:]}-->\n'
@@ -444,8 +451,8 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                 inMainDiv = 'bookHeader'
                 html = f'{html}<div class="{inMainDiv}">'
             if inSection != 'periph':
-                if refTuple[0] == 'JOB' and inSection=='s1' and inParagraph=='q1': # TODO: Fix something for OET-LV
-                    html = f'{html}</q1></div>\n'
+                if refTuple[0] == 'JOB' and inSection=='section' and inParagraph=='q1': # TODO: Fix something for OET-LV
+                    html = f'{html}</q1></div><!--section-->\n'
                     inSection = inParagraph = None
                 assert not inSection and not inParagraph, f"{versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {marker}={rest}"
             if not basicOnly:
@@ -459,8 +466,8 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                 inMainDiv = 'bookIntro'
                 html = f'{html}<div class="{inMainDiv}">'
             if inSection != 'periph':
-                if refTuple[0] == 'JOB' and inSection=='s1' and inParagraph=='q1': # TODO: Fix something for OET-LV
-                    html = f'{html}</q1></div>\n'
+                if refTuple[0] == 'JOB' and inSection=='section' and inParagraph=='q1': # TODO: Fix something for OET-LV
+                    html = f'{html}</q1></div><!--section-->\n'
                     inSection = inParagraph = None
                 assert not inSection and not inParagraph, f"{versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {marker}={rest}"
             if not basicOnly:
@@ -500,11 +507,11 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                 html = f'{html}<p class="{marker}">{convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state)}</p>\n'
             else: # not in periph
                 if marker == 's1':
-                    if inSection == 's1': # Shouldn't happen
+                    if inSection == 'section': # Shouldn't happen
                         logger = logging.warning if segmentType.endswith('Verse') else logging.error
-                        logger( f"Why wasn't previous s1 section closed??? {versionAbbreviation} {refTuple} {C}:{V} {inSection=} {inParagraph=} {marker}={rest}" )
+                        logger( f"Why wasn't previous section closed??? {versionAbbreviation} {refTuple} {C}:{V} {inSection=} {inParagraph=} {marker}={rest}" )
                         if not basicOnly:
-                            html = f'{html}</div><!--{marker}-->\n'
+                            html = f'{html}</div><!--section-->\n'
                         inSection = None
                     elif inSection: # seems we had a s2/3/4 that wasn't closed
                         should_not_be_in_section
@@ -513,12 +520,19 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                 if marker == 's1':
                     if not basicOnly:
                         if 'OET' in versionAbbreviation:
-                            html = f'{html}<div class="{marker}"><div class="rightBox"><p class="{marker}">{convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state)}</p>\n'
-                            inRightDiv = True
+                            html = f'{html}<div class="section"><div class="rightS1Box"><p class="{marker}">{convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state)}</p>\n'
+                            inRightDiv = 'rightS1Box'
                         else:
-                            html = f'{html}<div class="{marker}"><p class="{marker}">{convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state)}</p>\n'
-                    inSection = marker
-                else: # for s2/3/4 we add a heading, but don't consider it a section
+                            html = f'{html}<div class="section"><p class="{marker}">{convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state)}</p>\n'
+                    inSection = 'section'
+                elif marker == 's2':
+                    if not basicOnly:
+                        if 'OET' in versionAbbreviation:
+                            html = f'{html}<div class="rightS2Box"><p class="{marker}">{convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state)}</p>\n'
+                            inRightDiv = 'rightS2Box'
+                        else:
+                            html = f'{html}<p class="{marker}">{convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state)}</p>\n'
+                else: # for s3/s4 we add a heading, but don't consider it a section division
                     if not basicOnly:
                         html = f'{html}<p class="{marker}">{convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state)}</p>\n'
         # We also treat the id field exactly like a rem field
@@ -571,7 +585,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
             if not rest:
                 logging.error( f"Source problem for {versionAbbreviation}: Expected field text {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} {marker=}" )
             if inRightDiv:
-                html = f'{html}</div><!--rightBox-->\n'
+                html = f'{html}</div><!--{inRightDiv}-->\n'
                 inRightDiv = False
             if inParagraph:
                 logging.error( f"Unexpected inParagraph {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {marker}={rest}" )
@@ -715,15 +729,15 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
             halt
         elif segmentType=='chapter' and marker in ('¬c','¬chapters'): # We can ignore this
             # Just do some finishing off
-            if inSection=='s1' and marker == '¬c':
+            if inSection=='section' and marker == '¬c':
                 logging.warning( f"{versionAbbreviation} {refTuple} Finished chapter inside section" )
                 if not basicOnly:
-                    html = f'{html}</div><!--s1-->\n'
+                    html = f'{html}</div><!--section-->\n'
                 inSection = None
-            elif inSection=='s1' and marker == '¬chapters':
+            elif inSection=='section' and marker == '¬chapters':
                 logging.warning( f"{versionAbbreviation} {refTuple} Finished book inside section" )
                 if not basicOnly:
-                    html = f'{html}</div><!--s1-->\n'
+                    html = f'{html}</div><!--section-->\n'
                 inSection = None
             if inParagraph and marker == '¬c':
                 logging.warning( f"{versionAbbreviation} {refTuple} Finished paragraph inside section" )
@@ -887,13 +901,13 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
             inListDepth -= 1
     if inSPdiv:
         html = f'{html}</div><!--SP-->\n'
-    if inSection in ('s1','periph'):
+    if inSection in ('section','periph'):
         if not basicOnly:
             logger( f"convertUSFMMarkerListToHtml final unclosed '{inSection}' section {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} last {marker=}" )
         if inRightDiv:
-            html = f'{html}</div><!--rightBox-->\n'
+            html = f'{html}</div><!--{inRightDiv}-->\n'
             inRightDiv = False
-        html = f'{html}</div><!--{inSection}-->\n'
+        html = f"{html}</div><!--{inSection}-->\n"
     if inMainDiv:
             logger( f"convertUSFMMarkerListToHtml final unclosed '{inMainDiv}' main section {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} last {marker=}" )
             html = f'{html}</div><!--{inMainDiv}-->'

@@ -107,7 +107,7 @@ from OETHandlers import getOETTidyBBB, getOETBookName, livenOETWordLinks, getHeb
 from spellCheckEnglish import spellCheckAndMarkHTMLText
 
 
-LAST_MODIFIED_DATE = '2025-11-03' # by RJH
+LAST_MODIFIED_DATE = '2025-11-13' # by RJH
 SHORT_PROGRAM_NAME = "createParallelVersePages"
 PROGRAM_NAME = "OpenBibleData createParallelVersePages functions"
 PROGRAM_VERSION = '0.99'
@@ -205,6 +205,8 @@ def createParallelVersePages( level:int, folder:Path, state:State ) -> bool:
 class MissingBookError( Exception ): pass
 class UntranslatedVerseError( Exception ): pass
 
+completeFootnoteRegex = re.compile( '\\\\f .+?\\\\f\\*' )
+
 def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:list[str], parallelVersions:list[str], state:State ) -> bool:
     """
     Create a page for every Bible verse
@@ -293,10 +295,10 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                 cleanedModernisedKJB1769TextHtml = depunctuatedCleanedModernisedKJB1769TextHtml = '' # These two are only used for comparisons -- they're not displayed on the page anywhere
                 parallelHtml = getVerseMetaInfoHtml( BBB, C, V )
                 for versionAbbreviation in parallelVersions: # our adjusted order
+                    if versionAbbreviation == 'OET': continue # Skip this pseudo-version as we have both OET-RV and OET-LV instead
                     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"    createParallelVersePagesForBook {parRef} processing {versionAbbreviation}…" )
                     assert not parallelHtml.endswith( '\n' )
 
-                    if versionAbbreviation == 'OET': continue # Skip this pseudo-version as we have both OET-RV and OET-LV instead
                     if state.TEST_VERSIONS_ONLY and versionAbbreviation not in state.TEST_VERSIONS_ONLY:
                         continue
                     if versionAbbreviation in (state.VERSIONS_WITHOUT_NT) and isNT:
@@ -327,6 +329,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                 prefix = f'<b><sup>{prefix}</sup></b>'
                             if verseText.startswith( '\\s1 ' ):
                                 verseText.replace( '\\s1 ', '\\s1 <b>', 1 ).replace( '\n', '</b>\n', 1 )
+                            verseText = completeFootnoteRegex.sub( '*', verseText ) # Just leave an asterisk where the footnotes were
                             vHtml = f'{prefix}{verseText}' \
                                 .replace( '\\p ', '\n<br>&nbsp;&nbsp;' ) \
                                 .replace( '\\q1 ', '\n<br>&nbsp;&nbsp;' ) \
@@ -669,12 +672,12 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                                 changeIndex = max( changeIndex, modernisedTextHtml.find( wordModTxt, changeIndex ))
                                                 # We get problems with 'a' or 'an' which occur inside 'span' and other words
                                                 if modernisedTextHtml[changeIndex:].startswith( f'{wordModTxt} '):
-                                                    modernisedTextHtml = f"{modernisedTextHtml[:changeIndex]}{modernisedTextHtml[changeIndex:].replace('<span','SSSSS').replace('</span>','EEEEEEE').replace( wordModTxt, f'<spanSPAN1>{wordModTxt}</span>' if doneHighlight else f'<spanSPAN2>{wordModTxt}</span>', 1 )}"
+                                                    modernisedTextHtml = f"{modernisedTextHtml[:changeIndex]}{modernisedTextHtml[changeIndex:].replace('<span title="Possible misspelt word" class="spelling">', 'MMMMM' ).replace('<span','SSSSS').replace('</span>','EEEEEEE').replace( wordModTxt, f'<spanSPAN1>{wordModTxt}</span>' if doneHighlight else f'<spanSPAN2>{wordModTxt}</span>', 1 )}"
                                                     changeIndex += len( '<spanSPANx></span>' ) # Number of added characters = 18
                                                     doneHighlight = True
                                                 elif modernisedTextHtml.count(wordModTxt)==1 \
                                                 or (len(wordModTxt)>0 and modernisedTextHtml.count(f' {wordModTxt}')==modernisedTextHtml.count(wordModTxt) and modernisedTextHtml.count(f'{wordModTxt} ')==modernisedTextHtml.count(wordModTxt) ): # Shorter words can occur inside other words too often
-                                                    modernisedTextHtml = ( f"{modernisedTextHtml[:changeIndex]}{modernisedTextHtml[changeIndex:].replace('<span','SSSSS').replace('</span>','EEEEEEE').replace( wordModTxt, f'<spanSPAN1>{wordModTxt}</span>'
+                                                    modernisedTextHtml = ( f"{modernisedTextHtml[:changeIndex]}{modernisedTextHtml[changeIndex:].replace('<span title="Possible misspelt word" class="spelling">', 'MMMMM' ).replace('<span','SSSSS').replace('</span>','EEEEEEE').replace( wordModTxt, f'<spanSPAN1>{wordModTxt}</span>'
                                                              if modernisedTextHtml[changeIndex:].count(wordModTxt)==1 and not doneHighlight # Consecutive words might be just out of step
                                                                                                         else f'<spanSPAN2>{wordModTxt}</span>')}" )
                                                     changeIndex += len( '<spanSPANx></span>' ) # Number of added characters = 18
@@ -693,8 +696,9 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                                 changeIndex += len( '</span>' )
                                     modernisedTextHtml = modernisedTextHtml.replace( 'SPAN1', ' title="Word (or format) changed in KJB-1769" class="hilite"' ) \
                                                                            .replace( 'SPAN2', ' title="Possible word (or format) changed in KJB-1769" class="possibleHilite"' ) \
-                                                                           .replace('SSSSS','<span').replace('EEEEEEE','</span>') # Uncover hidden spans again
-                                    assert checkHtml( f"hilighted {parRef} after replacements: {modernisedTextHtml=}", modernisedTextHtml, segmentOnly=True )
+                                                                           .replace( 'SSSSS', '<span' ).replace( 'EEEEEEE', '</span>' ) \
+                                                                           .replace( 'MMMMM', '<span title="Possible misspelt word" class="spelling">' )# Uncover hidden spans again
+                                    assert checkHtml( f"hilighted {versionAbbreviation} {parRef} after replacements: {modernisedTextHtml=}", modernisedTextHtml, segmentOnly=True )
                                     if not differentWordHighlighted and 'class="nd"' not in depunctuatedCleanedModernisedTextHtml:
                                         if debugKJBCompareBit: print( "CHECK THE ABOVE" )
                                         # halt
@@ -1081,7 +1085,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
 {chapterLinksParagraph}
 {vLinksPar}
 <h1>Parallel {ourTidyBBB} {'Intro' if c==-1 else f'{C}:{V}'}</h1>
-<p class="rem">Note: {state.OET_SINGLE_VERSE_HTML_TEXT} Click on any Bible version abbreviation down the left-hand side to see the verse in more of its context. {state.OETS_UNFINISHED_WARNING_HTML_TEXT}</p>
+<p class="rem">Note: {state.OET_PARALLEL_PAGE_SINGLE_VERSE_HTML_TEXT} {state.OETS_UNFINISHED_WARNING_HTML_TEXT}</p>
 {navLinks.replace('__ID__','Top').replace('__ARROW__','↓').replace('__LINK__','BottomNavs').replace('__WHERE__','bottom')}
 {parallelHtml}
 {navLinks.replace('__ID__','BottomNavs').replace('__ARROW__','↑').replace('__LINK__','Top').replace('__WHERE__','top')}
@@ -1738,11 +1742,12 @@ def markPossibleUnmatchedProperNames( parRef:str, thisVerseEntryList, state:Stat
                     'The','That','Both','Every','Having',
                     'I','He','You','My', 'Many',
                     'Why','How','Which', 'Not','Oh',
-                    'Bad', 'Balances', 'Before', 'Bind', 'Blessings', 'Boast', 'By','Bear', 'Beautiful', 'Became', 'Become', 'Bed[s]',
+                    'Bad', 'Balances', 'Before', 'Bind', 'Blessings', 'Boast', 'By','Bear', 'Beautiful', 'Became', 'Become', 'Bed[s]', 'Blameless',
                     'Call', 'Calloused', 'Came', 'Camels', 'Carefully', 'Case', 'Cast', 'Cattle', 'Cause', 'Cease', 'Cedars', 'Certain', 'Certainly', 'Change', 'Charcoal', 'Cheeks', 'Cherish', 'Cherubims', 'Chief', 'Chiefs', 'Child',
                         'Children', 'Chislon', 'Circumcise', 'Circumcision', 'Cities', 'City', 'Claim', 'Clean', 'Cleanse', 'Close', 'Clothe', 'Clothed', 'Clothing', 'Cloud', 'Clouds', 'Coming', 'Command', 'Commander', 'Complete',
                         'Completely', 'Completeness', 'Concerning', 'Condemns', 'Confronted', 'Correct','Contentions', 'Coverings',
                     'Daughter', 'Daughters', 'Death', 'Deceit', 'Deceitfulness', 'Does', 'Drink', 'Drive', 'Drunkenness', 'Dead', 'Deliver', 'Desolations', 'Disaster', 'Discipline', 'Discretion', 'Divination',
+                        'Draw',
                     'Eat','End', 'Endure', 'Establish', 'Everything', 'Execute', 'Expressly', 'Eyes', 'Each', 'Earlier', 'Earnestly', 'Ears', 'Eaten', 'Eggs', 'Either', 'Emperor', 'Encompassed', 'Encourage',
                         'Enemies', 'Enlarge', 'Enroll', 'Enrolled', 'Enrollment', 'Entered', 'Ephod', 'Even', 'Ever', 'Everyone', 'Evil', 'Evil-', 'Exalt', 'Exceedingly', 'Except', 'Expel', 'Explain', 'Extol', 'Eye',
                     'Come','Do','Judge','Increase','Make','Open','Remember','Truly','Yes',
@@ -1797,9 +1802,11 @@ def markPossibleUnmatchedProperNames( parRef:str, thisVerseEntryList, state:Stat
                          'Than', 'Thankfulness', 'Third', 'Threshed', 'Threshing', 'Through', 'Throughout', 'Tie', 'Tightly', 'Time', 'Times',
                          'Today', 'Together', 'Tomorrow', 'Took', 'Touch', 'Tramples', 'Treat', 'Tribulation', 'Trust', 'Trustworthy', 'Turn',
                     'Understand', 'Until',
+                    'Vineyards',
                     'Water', 'Waters', 'We', 'Wealth', 'What', 'Whatever', 'When', 'Where', 'Wherever', 'Whether', 'Who', 'Whoever', 'Whom', 'Whomever',
                         'Will', 'Wise', 'With', 'Wounds', 'Wail', 'Wait', 'Wake', 'Walk', 'Warrior', 'Wash', 'Watch', 'Webs', 'Weigh', 'Well', 'Were', 'Whence', 'Whenever', 'While', 'White', 'Whole',
                         'Wickedness', 'Widows', 'Wife', 'Wildly', 'Willing', 'Wine', 'Winnow', 'Within', 'Wives', 'Woe', 'Wolf', 'Woman', 'Women', 'Wonders', 'Wormwood', 'Worthy', 'Would', 'Write', 'Writhe',
+                    'You(pl)','Your(pl)',
                     'Behold','YHWH','DOM',
                     # Names that only have short vowels and no unusual consonants
                     'Bilgah',
@@ -1809,6 +1816,7 @@ def markPossibleUnmatchedProperNames( parRef:str, thisVerseEntryList, state:Stat
                     'Melek','Meshek','Mosheh',
                     'Nogah','Nefeg',
                     'Shemesh','shemesh', 'Shoham',
+                    'Zered',
                     ):
                     foundAny = False
                     for checkChar in 'āēīōūₐₑₒəʸḩⱪţʦˊ':

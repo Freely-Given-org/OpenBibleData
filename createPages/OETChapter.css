@@ -46,8 +46,8 @@ span.OT { color:saddlebrown; }
 .OT a { color:inherit; text-decoration:none; }
 span.NT { color:darkgreen; }
 .NT a { color:inherit; text-decoration:none; }
-/* span.DC { color:orange; font-size:smaller; } */
-/* .DC a { color:inherit; text-decoration:none; } */
+span.DC { color:orange; font-size:smaller; }
+.DC a { color:inherit; text-decoration:none; }
 
 /* Navs are the ones with arrows */
 p.bkNav { text-align:center; font-size:2em; }
@@ -96,10 +96,12 @@ span.bk { font-style:italic; }
 /* p.alt_r { margin-top:0.1em; margin-bottom:0; text-align:right; font-size:0.5em; color:silver; } */
 
 /* Inside box */
-div.rightBox { float:right; width:40%; border:3px solid #73AD21; padding:0.2em; }
-div.s1 {}
+div.section {}
+div.rightS1Box { float:right; width:40%; border:3px solid #73AD21; padding:0.2em; }
+div.rightS2Box { float:right; width:35%; border:2px dashed blue; padding:0.2em; }
 p.s1 { margin-top:0.1em; margin-bottom:0; font-size:1.15em; font-weight:bold; }
-p.s2 { margin-top:0; margin-bottom:0; float:right; width:35%; border:2px dashed blue; padding:0.2em; font-size:1.1em; font-weight:bold; }
+p.s2 { margin-top:0.1em; margin-bottom:0; font-size:1.1em; font-weight:bold; }
+/* p.s2 { margin-top:0; margin-bottom:0; float:right; width:35%; border:2px dashed blue; padding:0.2em; font-size:1.1em; font-weight:bold; } */
 p.s3 { margin-top:0; margin-bottom:0; float:right; width:35%; border:1px dotted purple; padding:0.2em;  font-size:1.06em; font-weight:bold; }
 p.s4 { margin-top:0; margin-bottom:0; float:right; width:35%; border:1px dotted black; padding:0.2em;  font-size:1.03em; font-weight:bold; }
 /* p.extra_s1 { margin-top:0.1em; margin-bottom:0; text-align:right; font-size:0.7em; color:grey; font-weight:bold; } */
@@ -155,6 +157,7 @@ span.sc { font-size:0.8em; } /* Small caps */
 span.qs { font-style:italic; } /* Selah */
 span.sig { font-family:cursive; }
 span.rem { font-size:0.8em; color:grey; }
+span.wh {}
 
 span.OET-LV_verseTextChunk {}
 span.OET-RV_verseTextChunk {}
@@ -167,6 +170,9 @@ span.fnCaller { vertical-align:super; font-size:0.7em; color:green; }
 span.fnRef { font-weight:bold; }
 span.fnText {}
 span.ft {}
+span.fq {}
+span.fqa {}
+span.fl {}
 
 /* USFM cross-references */
 div.crossRefs {}
@@ -175,6 +181,7 @@ span.xrText {}
 span.xrCaller { vertical-align:super; font-size:0.7em; color:blue; }
 span.xrRef { font-weight:bold; }
 /* span.xrText { } */
+span.xt {}
 
 /* OET specialist ADD subfields */
 span.addArticle { color:bisque; }
