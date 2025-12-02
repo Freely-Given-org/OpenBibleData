@@ -78,6 +78,7 @@ CHANGELOG:
     2025-07-11 Try to improve handling of 'ver. 4' in a footnote (not an xref)
     2025-09-12 Display verse range numbers on parallel pages
     2025-11-10 Fixed PSA d fields which caused chapter numbers to be displayed twice
+    2025-12-01 Added text 'direct-object marker' to pop-up titles for untranslated DOM
 """
 from gettext import gettext as _
 import re
@@ -96,7 +97,7 @@ from html import checkHtml
 from OETHandlers import getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2025-11-11' # by RJH
+LAST_MODIFIED_DATE = '2025-12-01' # by RJH
 SHORT_PROGRAM_NAME = "usfm"
 PROGRAM_NAME = "OpenBibleData USFM to HTML functions"
 PROGRAM_VERSION = '0.95'
@@ -1380,10 +1381,12 @@ def convertUSFMCharacterFormatting( versionAbbreviation:str, refTuple:tuple, seg
         for _safetyCount in range( 900 ):
             ix = html.find( '<span class="untr"><a title="', searchStartIndex )
             if ix == -1: break # all done
-            ixEnd = html.index( '" href=', ix+29 )
-            html = f'{html[:ixEnd]} (untranslated){html[ixEnd:]}'
+            ixTitleStart = ix + 29
+            ixTitleEnd = html.index( '" href=', ixTitleStart )
+            haveDOMflag = '(ʼēt, To)' in html[ixTitleStart:ixTitleEnd]
+            html = f"{html[:ixTitleEnd]} (untranslated{' direct-object marker' if haveDOMflag else ''}){html[ixTitleEnd:]}"
             # count += 1
-            searchStartIndex = ixEnd + 5
+            searchStartIndex = ixTitleEnd + 5
         else: need_to_increase_loop_count_for_untranslated_words
 
     # Final checking
@@ -1676,7 +1679,7 @@ myKJB1611XrefTable = {
     'Marke':'MRK','marke':'MRK', 'Marc':'MRK', #'Mark':'MRK','mark':'MRK', 'Mar':'MRK','mar':'MRK',
     'naum':'NAH',
     # 'Nehem':'NEH', 'nehem':'NEH', 'Nehe':'NEH', 'nehe':'NEH',
-    'nnm':'NUM', # 'Numb':'NUM','numb':'NUM', 'Num':'NUM', 'num':'NUM', 
+    'nnm':'NUM', # 'Numb':'NUM','numb':'NUM', 'Num':'NUM', 'num':'NUM',
     # '1.Pet':'PE1', '1.pet':'PE1',
     # '2.Pet':'PE2','2.pet':'PE2',
     # 'Phil':'PHP', 'phil':'PHP',
