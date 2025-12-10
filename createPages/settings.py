@@ -51,7 +51,7 @@ from BibleOrgSys.BibleOrgSysGlobals import dPrint, fnPrint
 from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39
 
 
-LAST_MODIFIED_DATE = '2025-11-13' # by RJH
+LAST_MODIFIED_DATE = '2025-12-03' # by RJH
 SHORT_PROGRAM_NAME = "settings"
 PROGRAM_NAME = "OpenBibleData (OBD) Settings"
 PROGRAM_VERSION = '0.99'
@@ -64,7 +64,7 @@ class State:
     """
     A place to store some of the global stuff that needs to be passed around.
     """
-    OET_VERSION_NUMBER_STRING = 'v0.46.14' # Incremented on most runs
+    OET_VERSION_NUMBER_STRING = 'v0.46.31' # Incremented on most runs
 
     TEST_MODE_FLAG = True # Writes website into 'Test' subfolder if True
     TEST_OT_BOOK_LIST = ['DEU','PRO'] # Books in progress
@@ -82,12 +82,12 @@ class State:
     ALL_TEST_REFERENCE_PAGES_FLAG = False # If in TEST_MODE_FLAG, make ALL word/lemma pages, or just the RELEVANT ones
     UPDATE_ACTUAL_SITE_WHEN_BUILT_FLAG = True # The pages are initially built in a tmp folder so need to be copied to the final destination
 
-    OET_RV_DC_BOOK_LIST = ['TOB','MA1','MA2']
     OET_RV_OT_BOOK_LIST = ['GEN','EXO','DEU','JOS','JDG','RUT',
                     'SA1','SA2','KI1','KI2','CH1','CH2',
                     'EZR','NEH','EST','JOB','PSA','PRO','ECC','SNG','LAM',
                     'EZE','DAN','HOS','JOL','AMO','OBA','JNA',
                     'MIC','NAH','HAB','ZEP','HAG','ZEC','MAL'] # 'LEV','NUM','ISA','JER'
+    OET_RV_DC_BOOK_LIST = ['TOB','MA1','MA2']
 
     TEMP_BUILD_FOLDER = Path( '../buildingHtmlPages/' )
     NORMAL_DESTINATION_FOLDER = Path( '../htmlPages/' )

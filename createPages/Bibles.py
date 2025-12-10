@@ -109,10 +109,10 @@ from OETHandlers import findLVQuote, getBBBFromOETBookName
 from Dict import loadAndIndexUBSGreekDictJSON, loadAndIndexUBSHebrewDictJSON
 
 
-LAST_MODIFIED_DATE = '2025-11-17' # by RJH
+LAST_MODIFIED_DATE = '2025-12-08' # by RJH
 SHORT_PROGRAM_NAME = "Bibles"
 PROGRAM_NAME = "OpenBibleData Bibles handler"
-PROGRAM_VERSION = '0.92'
+PROGRAM_VERSION = '0.93'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -276,6 +276,27 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
                                             givenAbbreviation=versionAbbreviation, encoding='utf-8' )
         thisBible.loadBooks() # So we can iterate through them all later
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} loaded ({len(thisBible.books.keys())}) {list(thisBible.books.keys())}" )
+
+        if versionAbbreviation == 'BSB':
+            # Now combine the OT and NT into one ESFM Bible
+            thisESFMBible = ESFMBible.ESFMBible( None )
+            thisESFMBible.name = thisBible.givenName = versionName, versionAbbreviation, 'utf-8'
+            thisESFMBible.abbreviation, thisBible.encoding = versionAbbreviation, 'utf-8'
+            # For now, use add custom OT and NT sourceFolder variables so that we can load the two different word files
+            thisESFMBible.sourceFolder = thisBible.sourceFolder
+            thisESFMBible.ESFMWordTables, thisESFMBible.ESFMColumnNameList = thisBible.ESFMWordTables, thisBible.ESFMColumnNameList
+
+            for BBB,bookObject in thisBible.books.items():
+                assert BBB not in thisESFMBible.books
+                if 'ALL' in state.booksToLoad[versionAbbreviation] \
+                or 'OT' in state.booksToLoad[versionAbbreviation] \
+                or 'NT' in state.booksToLoad[versionAbbreviation] \
+                or BBB in state.booksToLoad[versionAbbreviation]:
+                    bookObject.containerBibleObject = thisESFMBible
+                    bookObject.workName = versionName
+                    thisESFMBible.books[BBB] = bookObject
+            thisESFMBible.lookForAuxilliaryFilenames()
+            thisBible = thisESFMBible
         # print( f"{thisBible.suppliedMetadata=}" )
         # print( f"{thisBible.settingsDict=}" )
         # verseEntryList, contextList = thisBible.getContextVerseData( ('MRK', '10', '45') )
@@ -286,7 +307,7 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
     #                                         givenAbbreviation=versionAbbreviation, encoding='utf-8' )
     #     thisBible.loadBooks() # So we can iterate through them all later
     #     print( f"{versionAbbreviation} loaded ({len(thisBible.books.keys())}) {thisBible.books.keys()}" )
-    elif versionAbbreviation == 'MSB': # Custom TSVs
+    elif versionAbbreviation == 'MSB': # Special case -- two custom TSVs
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Loading ‘{versionAbbreviation}’ TSV Bible{' in TEST mode' if state.TEST_MODE_FLAG else ''}…" )
         print( f"{folderOrFileLocation=}" )
         assert isinstance( folderOrFileLocation, tuple ) and len(folderOrFileLocation) == 3 # Folder, then two filenames
@@ -300,15 +321,15 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
         thisBibleNT.loadBooks() # So we can iterate through them all later
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} NT loaded ({len(thisBibleNT.books.keys())}) {list(thisBibleNT.books.keys())}" )
 
-        thisBible = Bible()
-        thisBible.objectNameString = 'CSV Bible object'
-        thisBible.objectTypeString = 'CSV'
+        # Now combine the OT and NT into one ESFM Bible
+        thisBible = ESFMBible.ESFMBible( None )
         thisBible.name = thisBible.givenName = versionName, versionAbbreviation, 'utf-8'
         thisBible.abbreviation, thisBible.encoding = versionAbbreviation, 'utf-8'
         # For now, use add custom OT and NT sourceFolder variables so that we can load the two different word files
         thisBible.OTsourceFolder = thisBibleOT.sourceFolder
         thisBible.NTsourceFolder = thisBibleNT.sourceFolder
         thisBible.sourceFolder = None
+        thisBible.ESFMWordTables, thisBible.ESFMColumnNameList = thisBibleOT.ESFMWordTables, thisBibleOT.ESFMColumnNameList
 
         for BBB,bookObject in thisBibleOT.books.items():
             assert BBB not in thisBible.books
@@ -322,6 +343,7 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
                 bookObject.containerBibleObject = thisBible
                 bookObject.workName = versionName
                 thisBible.books[BBB] = bookObject
+        thisBible.lookForAuxilliaryFilenames()
 
         # for wordTableID,wordTable in thisBibleNT.ESFMWordTables.items():
         #     # print( f"{wordTableID=} {type(wordTable)=}")

@@ -55,9 +55,9 @@ import sys
 sys.path.append( '../../BibleOrgSys/' )
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
-from BibleOrgSys.Internals.InternalBibleInternals import getLeadingInt
+from BibleOrgSys.Internals.InternalBibleInternals import getLeadingInt, InternalBibleEntryList, InternalBibleEntry
+from BibleOrgSys.Internals.InternalBible import InternalBible
 import BibleOrgSys.Formats.ESFMBible as ESFMBible
-from BibleOrgSys.Internals.InternalBibleInternals import InternalBibleEntryList, InternalBibleEntry
 
 sys.path.append( '../../BibleTransliterations/Python/' )
 from BibleTransliterations import transliterate_Hebrew, transliterate_Greek
@@ -273,7 +273,7 @@ def livenOETWordLinks( level:int, bibleObject:ESFMBible, BBB:str, givenEntryList
 
     # Now add the transliteration to the Greek HTML title popups
     # At the same time, add some colourisation
-    NT = BibleOrgSysGlobals.loadedBibleBooksCodes.isNewTestament_NR( BBB )
+    isNT = BibleOrgSysGlobals.loadedBibleBooksCodes.isNewTestament_NR( BBB )
 
     updatedVerseList = InternalBibleEntryList()
     for n, entry in enumerate( revisedEntryList ):
@@ -300,10 +300,10 @@ def livenOETWordLinks( level:int, bibleObject:ESFMBible, BBB:str, givenEntryList
             wordNumberStr = hrefMatch.group(1)
             wordNumber = int( wordNumberStr )
 
-            if NT:
+            if isNT:
                 # Put in the correct word link
                 originalText = f'''{originalText[:hrefMatch.start()]}="{'../'*level}ref/GrkWrd/{getGreekWordpageFilename(wordNumber,state)}#Top"{originalText[hrefMatch.end():]}'''
-                # print( f"NT {originalText=}" )
+                # print( f"NT {BBB} {originalText=}" )
 
                 # transliteratedWord = transliterate_Greek( placeholderOriginalLanguageWord )
 
@@ -433,6 +433,279 @@ def livenOETWordLinks( level:int, bibleObject:ESFMBible, BBB:str, givenEntryList
             assert '\\nd \\nd ' not in updatedEntry.getOriginalText()
     return updatedVerseList
 # end of OETHandlers.livenOETWordLinks function
+
+
+# Note that single words might include a \\sup \\sup* span as in 'Aʸsaias/(Yəshaˊə\sup yāh\sup*)¦21767' (but we handle that below by substitions)
+linkedWordRegex = re.compile( "([-¬A-za-z0-9,'’ḨŌⱤḩⱪşţʦⱱĀĒāēéīōūəʸʼˊ/()]+)¦([1-9][0-9]{0,5})" )
+def livenOETCompatibleWordLinks( level:int, bibleObject:InternalBible, BBB:str, givenEntryList:InternalBibleEntryList, state:State ) -> InternalBibleEntryList:
+    """
+    Livens wordlinks in the Berean versions (i.e., the words with ¦ numbers suffixed to them).
+
+    Then add the transliteration to the title="§«OrigWord»§" popup.
+
+    NOTE: Now that we no longer use word numbers as word filenames, we have to do an extra step of post-processing
+    """
+    from createParallelVersePages import GREEK_CASE_CLASS_DICT
+
+    assert 1 <= level <= 3, f"{level=}"
+    # if 'ESFMWordTables' not in dir(bibleObject): return givenEntryList # .....................TEMP for MSB
+    assert len(bibleObject.ESFMWordTables) == 2, f"{len(bibleObject.ESFMWordTables)=}"
+    for entry in givenEntryList:
+        if entry.getOriginalText():
+            assert '\\nd \\nd ' not in entry.getOriginalText(), f"Double nd in {bibleObject.abbreviation} {BBB} {entry=}"
+
+    def livenESFMCompatibleWordLinks( self:InternalBible, BBB:str, verseList:InternalBibleEntryList, linkTemplate:str, titleTemplate:str|None=None ) -> tuple[InternalBibleEntryList,list[str]|None]:
+        """
+        The link template can be a filename like 'Word_{n}.htm' or an entire link like 'https://SomeSite/words/page_{n}.html'
+            The '{n}' gets substituted with the actual word link string of digits.
+            Also '{BBB}' gets the book code and '{W}' gets the actual word.
+
+        If specified, the title template can also contain the same patterns
+            as well as a table column name surrounded by « ».
+        """
+        fnPrint( DEBUGGING_THIS_MODULE, f"livenESFMCompatibleWordLinks( {BBB}, ({len(verseList)}) {verseList} )" )
+        assert '{n}' in linkTemplate
+        # bookObject = self.books[BBB]
+        # wordFileName = bookObject.ESFMWordTableFilename
+        if BibleOrgSysGlobals.loadedBibleBooksCodes.isOldTestament_NR( BBB ): wordFileName = 'OET-LV_OT_word_table.tsv'
+        if BibleOrgSysGlobals.loadedBibleBooksCodes.isNewTestament_NR( BBB ): wordFileName = 'OET-LV_NT_word_table.tsv'
+        if wordFileName:
+            assert wordFileName.endswith( '.tsv' )
+            # print( f"ESFMBible.livenESFMCompatibleWordLinks found filename '{wordFileName}' for {self.abbreviation} {BBB}" )
+            # print( f"ESFMBible.livenESFMCompatibleWordLinks found loaded word links: {self.ESFMWordTables[wordFileName]}" )
+            if self.ESFMWordTables[wordFileName] is None:
+                self.loadESFMWordFile( wordFileName )
+
+        updatedVerseList = InternalBibleEntryList()
+        for entry in verseList:
+            originalText = entry.getOriginalText()
+            if originalText is None or '¦' not in originalText:
+                updatedVerseList.append( entry )
+                continue
+            # If we get here, we have at least one ESFM wordlink row number in the text
+            # print( f"{n}: '{originalText}'")
+            searchStartIndex = 0
+            count = 0
+            # Note that single words might include a \\sup \\sup* span as in 'Aʸsaias/(Yəshaˊə\\sup yāh\\sup*)'
+            originalText = originalText.replace( '\\sup ', 'SSsupP' ).replace( '\\sup*', 'ESsupP' ) # We have to temporarily make these into normal word-formation chars for the regex to include them
+            while True:
+                match = linkedWordRegex.search( originalText, searchStartIndex )
+                if not match:
+                    break
+                # print( f"{BBB} word match 1='{match.group(1)}' 2='{match.group(2)}' all='{book_html[match.start():match.end()]}'" )
+                word, digits = match.group(1), match.group(2)
+                assert digits.isdigit()
+                titleHTML = f'''title="{titleTemplate.replace('{W}',word).replace('{BBB}',BBB).replace('{n}', digits)}" ''' if titleTemplate else ''
+                if titleHTML and wordFileName and '«' in titleTemplate:
+                    row_number = int( digits )
+                    rowColumns = self.ESFMWordTables[wordFileName][row_number].split( '\t' )
+                    # print( f"{titleTemplate=} {self.ESFMColumnNameList[wordFileName]=}")
+                    # print( f"  {row_number=} {rowColumns=} {titleHTML=}")
+                    for cc,columnName in enumerate( self.ESFMColumnNameList[wordFileName] ):
+                        titleHTML = titleHTML.replace( f'«{columnName}»', rowColumns[cc] )
+                    # print( f"  {titleHTML=}")
+                # assert '<br>' not in titleHTML, f"{titleTemplate=} {titleHTML=}"
+                # assert '\n' not in titleHTML, f"{titleTemplate=} {titleHTML=}"
+                originalText = f'''{originalText[:match.start()]}<a {titleHTML}href="{linkTemplate.replace('{W}',word).replace('{BBB}',BBB).replace('{n}', digits)}">{word}</a>{originalText[match.end():]}'''
+                searchStartIndex = match.end() + len(linkTemplate) + len(titleHTML) + 4 # We've added at least that many characters
+                count += 1
+            originalText = originalText.replace( 'SSsupP', '\\sup ' ).replace( 'ESsupP', '\\sup*' ) # Restores our 'hidden' HTML markup
+            if count > 0:
+                # print( f"  Now '{originalText}'")
+                vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  Made {count:,} {self.abbreviation} {BBB} ESFM words into live links." )
+                # adjText, cleanText, extras = _processLineFix( self, C:str,V:str, originalMarker:str, text:str, fixErrors:list[str] )
+                # newEntry = InternalBibleEntry( entry.getMarker(), entry.getOriginalMarker(), entry.getAdjustedText(), entry.getCleanText(), entry.getExtras(), originalText )
+                # Since we messed up many of the fields, set them to blank/null entries so that the old/wrong/outdated values can't be accidentally used
+                newEntry = InternalBibleEntry( entry.getMarker(), entry.getOriginalMarker(), '', '', None, originalText )
+                updatedVerseList.append( newEntry )
+            else:
+                logging.critical( f"ESFMBible.livenESFMWordLinks unable to find wordlink in '{originalText}'" )
+                updatedVerseList.append( entry )
+
+        return updatedVerseList, self.ESFMWordTables[wordFileName] if wordFileName else None
+    # end of ESFMBible.livenESFMCompatibleWordLinks
+
+    # Liven the word links using the BibleOrgSys function
+    #   We use unusual word pairs in both templates (we don't actually use titleTemplate as a template)
+    #       so that we can easily find them again in the returned InternalBibleEntryList
+    revisedEntryList = livenESFMCompatibleWordLinks( bibleObject, BBB, givenEntryList, linkTemplate='►{n}◄', titleTemplate='§«OrigWord»§' )[0]
+    for revisedEntry in givenEntryList:
+        if revisedEntry.getOriginalText():
+            assert '\\nd \\nd ' not in revisedEntry.getOriginalText()
+    # We get something back like:
+    #   v=18
+    #   v~=<a title="§καὶ§" href="../../ref/{'GrkWrd' if NT else 'HebWrd'}/33110.htm#Top">And</a> \add +<a title="§Σαδδουκαῖοι§" href="../../ref/{'GrkWrd' if NT else 'HebWrd'}/33112.htm#Top">the</a>\add*<a title="§Σαδδουκαῖοι§" href="../../ref/{'GrkWrd' if NT else 'HebWrd'}/33112.htm#Top">_Saddoukaios</a>_\add <a title="§Σαδδουκαῖοι§" href="../../ref/{'GrkWrd' if NT else 'HebWrd'}/33112.htm#Top">sect</a>\add* <a title="§ἔρχονται§" href="../../ref/{'GrkWrd' if NT else 'HebWrd'}/33111.htm#Top">are</a><a title="§ἔρχονται§" href="../../ref/{'GrkWrd' if NT else 'HebWrd'}/33111.htm#Top">_coming</a> <a title="§πρὸς§" href="../../ref/{'GrkWrd' if NT else 'HebWrd'}/33113.htm#Top">to</a> <a title="§αὐτόν§" href="../../ref/{'GrkWrd' if NT else 'HebWrd'}/33114.htm#Top">him</a>, <a title="§οἵτινες§" href="../../ref/{'GrkWrd' if NT else 'HebWrd'}/33116.htm#Top">who</a> <a title="§λέγουσιν§" href="../../ref/{'GrkWrd' if NT else 'HebWrd'}/33117.htm#Top">are</a><a title="§λέγουσιν§" href="../../ref/{'GrkWrd' if NT else 'HebWrd'}/33117.htm#Top">_saying</a> <a title="§εἶναι§" href="../../ref/{'GrkWrd' if NT else 'HebWrd'}/33120.htm#Top">to</a>_ <a title="§μὴ§" href="../../ref/{'GrkWrd' if NT else 'HebWrd'}/33119.htm#Top">not</a> <a title="§εἶναι§" href="../../ref/{'GrkWrd' if NT else 'HebWrd'}/33120.htm#Top">_be</a> \add +<a title="§ἀνάστασιν§" href="../../ref/{'GrkWrd' if NT else 'HebWrd'}/33118.htm#Top">a</a>\add*<a title="§ἀνάστασιν§" href="../../ref/{'GrkWrd' if NT else 'HebWrd'}/33118.htm#Top">_resurrection</a>, <a title="§καὶ§" href="../../ref/{'GrkWrd' if NT else 'HebWrd'}/33121.htm#Top">and</a> <a title="§ἐπηρώτων§" href="../../ref/{'GrkWrd' if NT else 'HebWrd'}/33122.htm#Top">they</a><a title="§ἐπηρώτων§" href="../../ref/{'GrkWrd' if NT else 'HebWrd'}/33122.htm#Top">_were</a><a title="§ἐπηρώτων§" href="../../ref/{'GrkWrd' if NT else 'HebWrd'}/33122.htm#Top">_asking</a> <a title="§αὐτὸν§" href="../../ref/{'GrkWrd' if NT else 'HebWrd'}/33125.htm#Top">him</a> <a title="§λέγοντες§" href="../../ref/{'GrkWrd' if NT else 'HebWrd'}/33126.htm#Top">saying</a>,
+    #   ¬v=None
+
+    # if len(revisedEntryList) < 10:
+    #     print( f"{BBB}")
+    #     for revisedEntry in revisedEntryList:
+    #         marker = revisedEntry.getMarker()
+    #         if marker not in ('v~','p~'): continue
+    #         print( f"  {marker}={revisedEntry.getOriginalText()}")
+
+    # Now add the transliteration to the Greek HTML title popups
+    # At the same time, add some colourisation
+    isNT = BibleOrgSysGlobals.loadedBibleBooksCodes.isNewTestament_NR( BBB )
+
+    updatedVerseList = InternalBibleEntryList()
+    for n, entry in enumerate( revisedEntryList ):
+        originalText = entry.getOriginalText()
+        if originalText is None or '§' not in originalText:
+            updatedVerseList.append( entry )
+            continue
+        # If we get here, we have at least one ESFM wordlink row number in the text
+        # print( f"livenOETWordLinks {level=} {BBB} {n}: {originalText=}")
+        searchStartIndex = 0
+        transliterationsAdded = colourisationsAdded = 0
+        while True:
+            # Get out all the information we need
+            titleMatch = linkedWordTitleRegex.search( originalText, searchStartIndex )
+            if not titleMatch:
+                break
+            # print( f"livenOETWordLinks {BBB} word match 1='{titleMatch.group(1)}' all='{titleMatch.group(0)}'" )
+            hrefMatch = linkedHrefWordNumberRegex.search( originalText, titleMatch.end() )
+            if not hrefMatch:
+                halt # What went wrong here
+            # print( f"{titleMatch.start()=} {hrefMatch.start()=} {hrefMatch.start()-titleMatch.end()=} {hrefMatch.group(1)=} from {hrefMatch.group(0)=}" )
+            assert hrefMatch.start() - titleMatch.end() == 5 # Should be immediately after href
+            placeholderOriginalLanguageWord = titleMatch.group(1)
+            wordNumberStr = hrefMatch.group(1)
+            wordNumber = int( wordNumberStr )
+
+            if isNT:
+                # Put in the correct word link
+                originalText = f'''{originalText[:hrefMatch.start()]}="{'../'*level}ref/GrkWrd/{getGreekWordpageFilename(wordNumber,state)}#Top"{originalText[hrefMatch.end():]}'''
+                # print( f"livenOETCompatibleWordLinks( {BBB} ) NT now {originalText=}" )
+
+                # transliteratedWord = transliterate_Greek( placeholderOriginalLanguageWord )
+
+                # wordnumberMatch = linkedGreekWordNumberRegex.search( originalText, titleMatch.end()+4 ) # After the following href
+                # assert wordnumberMatch, f"{BBB} {placeholderOriginalLanguageWord=} {originalText=}"
+                # wordNumber = int( wordnumberMatch.group(1) )
+                wordRow = state.OETRefData['word_tables']['OET-LV_NT_word_table.tsv'][wordNumber]
+                # SRLemma = wordRow.split( '\t' )[2]
+                _ref, greekWord, SRLemma, _GrkLemma, _VLTGlossWordsStr, _OETGlossWordsStr, _glossCaps, _probability, extendedStrongs, roleLetter, morphology, _tagsStr = wordRow.split( '\t' )
+                transliteratedWord = transliterate_Greek( greekWord )
+
+                # Do colourisation
+                if roleLetter == 'V':
+                    caseClassName = 'grkVrb'
+                elif extendedStrongs == '37560': # Greek 'οὐ' (ou) 'not'
+                    caseClassName = 'grkNeg'
+                # TODO: Need to find where collation table is imported and change 'None' to None there (and then fix this again)
+                elif morphology!='None' and morphology[4] != '·': # (Middle dot) Two words in table have morphology of 'None' Jhn 5:27 w2
+                    caseClassName = f'''grk{GREEK_CASE_CLASS_DICT[morphology[4]]}'''
+                else: caseClassName = None
+
+                if caseClassName: # Add a clase to the anchor for the English word
+                    # print( f"    livenOETWordLinks {originalText[wordnumberMatch.end():]=}")
+                    # assert originalText[wordnumberMatch.end():].startswith( '#Top">' )
+                    anchorEndIx = originalText.index( '>', hrefMatch.end()+5 ) # Allow for '#Top"'
+                    assert originalText[anchorEndIx] == '>'
+                    originalText = f'''{originalText[:anchorEndIx]} class="{caseClassName}"{originalText[anchorEndIx:]}'''
+                    # print( f"    livenOETWordLinks now '{originalText[wordnumberMatch.end():]}'")
+                    colourisationsAdded += 1
+                    # # Old Code puts a new span inside the anchor containing the English word
+                    # print( f"    livenOETWordLinks {originalText[wordnumberMatch.end():]=}")
+                    # wordStartIx = originalText.index( '>', wordnumberMatch.end()+5 ) + 1 # Allow for '#Top"' plus '>'
+                    # wordEndIx = originalText.index( '<', wordStartIx + 1 )
+                    # print( f"  livenOETWordLinks found {BBB} word '{originalText[wordStartIx:wordEndIx]}'")
+                    # originalText = f'''{originalText[:wordStartIx]}<span class="case{morphology[4]}">{originalText[wordStartIx:wordEndIx]}</span>{originalText[wordEndIx:]}'''
+                    # print( f"    livenOETWordLinks now '{originalText[wordnumberMatch.end():]}'")
+                    # colourisationsAdded += 1
+
+                newTitleGuts = f'''="{greekWord} ({transliteratedWord}, {morphology.removeprefix('····')}){'' if SRLemma==transliteratedWord else f" from {SRLemma}"}"'''
+                originalText = f'''{originalText[:titleMatch.start()]}{newTitleGuts}{originalText[titleMatch.end():]}'''
+
+                searchStartIndex = hrefMatch.end()
+                transliterationsAdded += 1
+            else: # OT
+                # Put in the correct word link
+                originalText = f'''{originalText[:hrefMatch.start()]}="{'../'*level}ref/HebWrd/{getHebrewWordpageFilename(wordNumber,state)}#Top"{originalText[hrefMatch.end():]}'''
+                # print( f"OT {originalText=}" )
+
+                # transliteratedWord = transliterate_Hebrew( placeholderOriginalLanguageWord )
+
+                # wordnumberMatch = linkedHebrewWordNumberRegex.search( originalText, titleMatch.end()+4 ) # After the following href
+                # assert wordnumberMatch, f"{BBB} {originalText=}"
+                # wordNumber = int( wordnumberMatch.group(1) )
+                wordRow = state.OETRefData['word_tables']['OET-LV_OT_word_table.tsv'][wordNumber]
+
+                ref, rowType, morphemeRowList, lemmaRowList, strongs, morphology, word, noCantillations, morphemeGlosses, contextualMorphemeGlosses, wordGloss, contextualWordGloss, glossCapitalisation, glossPunctuation, glossOrder, glossInsert, role, nesting, tags = wordRow.split( '\t' )
+                transliteratedWord = ','.join( [transliterate_Hebrew(part) for part in noCantillations.split(',')] ) # Need to split at commas for correct transliteration
+                transliteratedWordForTitle = transliteratedWord.replace( 'ə', '~~SCHWA~~' ) # Protect it so not adjusted in the title field
+
+                # Do colourisation
+                # NOTE: We have almost identical code in brightenUHB() in createParallelVersePages.py
+                caseClassName = None
+                for subMorph in morphology.split( ',' ):
+                    if subMorph.startswith( 'V' ):
+                        caseClassName = 'hebVrb'
+                        break
+                for subStrong in strongs.split( ',' ):
+                    try: subStrongInt = getLeadingInt( subStrong ) # Ignores suffixes like a,b,c
+                    except ValueError: continue
+                    if subStrongInt in (369, 3808): # Hebrew 'אַיִן' 'ayin' 'no', or 'לֹא' (lo) 'not'
+                        caseClassName = 'hebNeg'
+                        break
+                    if subStrongInt in (430,410,433): # Hebrew 'אֱלֹהִים' 'ʼelohīm', 'אֵל' 'El'
+                        caseClassName = 'hebEl'
+                        break
+                    if subStrongInt in (3068,3050): # Hebrew 'יְהוָה' 'Yahweh', 'יָהּ' 'Yah'
+                        caseClassName = 'hebYhwh'
+                        break
+                # TODO: Need to find where collation table is imported and change 'None' to None there (and then fix this again)
+                # elif morphology!='None' and morphology[4] != '.': # Two words in table have morphology of 'None' Jhn 5:27 w2
+                #     caseClassName = f'''heb{HEBREW_CASE_CLASS_DICT[morphology[4]]}'''
+
+                if caseClassName: # Add a clase to the anchor for the English word
+                    # print( f"    livenOETWordLinks {originalText[wordnumberMatch.end():]=}")
+                    # assert originalText[wordnumberMatch.end():].startswith( '#Top">' )
+                    anchorEndIx = originalText.index( '>', hrefMatch.end()+5 ) # Allow for '#Top"'
+                    assert originalText[anchorEndIx] == '>'
+                    originalText = f'''{originalText[:anchorEndIx]} class="{caseClassName}"{originalText[anchorEndIx:]}'''
+                    # print( f"    livenOETWordLinks now '{originalText[wordnumberMatch.end():]}'")
+                    colourisationsAdded += 1
+                    # # Old Code puts a new span inside the anchor containing the English word
+                    # print( f"    livenOETWordLinks {originalText[wordnumberMatch.end():]=}")
+                    # wordStartIx = originalText.index( '>', wordnumberMatch.end()+5 ) + 1 # Allow for '#Top"' plus '>'
+                    # wordEndIx = originalText.index( '<', wordStartIx + 1 )
+                    # print( f"  livenOETWordLinks found {BBB} word '{originalText[wordStartIx:wordEndIx]}'")
+                    # originalText = f'''{originalText[:wordStartIx]}<span class="case{morphology[4]}">{originalText[wordStartIx:wordEndIx]}</span>{originalText[wordEndIx:]}'''
+                    # print( f"    livenOETWordLinks now '{originalText[wordnumberMatch.end():]}'")
+                    # colourisationsAdded += 1
+
+                # print( f"livenOETWordLinks ({len(noCantillations)}) {noCantillations=} NFC={unicodedata.is_normalized('NFC',noCantillations)} NFKC={unicodedata.is_normalized('NFKC',noCantillations)} NFD={unicodedata.is_normalized('NFD',noCantillations)} NFKD={unicodedata.is_normalized('NFKD',noCantillations)}")
+                # noCantillations = unicodedata.normalize( 'NFC', noCantillations )
+                # print( f"                  ({len(noCantillations)}) {noCantillations=} NFC={unicodedata.is_normalized('NFC',noCantillations)} NFKC={unicodedata.is_normalized('NFKC',noCantillations)} NFD={unicodedata.is_normalized('NFD',noCantillations)} NFKD={unicodedata.is_normalized('NFKD',noCantillations)}")
+                newTitleGuts = f'''="{unicodedata.normalize('NFC',noCantillations)} ({transliteratedWordForTitle}, {morphology})"''' # ({transliteratedWord}){'' if SRLemma==transliteratedWord else f" from {SRLemma}"}"'''
+                originalText = f'''{originalText[:titleMatch.start()]}{newTitleGuts}{originalText[titleMatch.end():]}'''
+
+                searchStartIndex = hrefMatch.end()
+                transliterationsAdded += 1
+
+        if transliterationsAdded > 0 or colourisationsAdded > 0:
+            # print( f"  Now '{originalText}'")
+            if transliterationsAdded > 0:
+                vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  Added {transliterationsAdded:,} {bibleObject.abbreviation} {BBB} transliterations to Greek titles." )
+            if colourisationsAdded > 0:
+                vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  Added {colourisationsAdded:,} {bibleObject.abbreviation} {BBB} colourisations to Greek words." )
+            # adjText, cleanText, extras = _processLineFix( self, C:str,V:str, originalMarker:str, text:str, fixErrors:list[str] )
+            # newEntry = InternalBibleEntry( entry.getMarker(), entry.getOriginalMarker(), entry.getAdjustedText(), entry.getCleanText(), entry.getExtras(), originalText )
+            # Since we messed up many of the fields, set them to blank/null entries so that the old/wrong/outdated values can't be accidentally used
+            newEntry = InternalBibleEntry( entry.getMarker(), entry.getOriginalMarker(), '', '', None, originalText )
+            updatedVerseList.append( newEntry )
+        else:
+            logging.critical( f"ESFMBible.livenESFMWordLinks unable to find wordlink title in '{originalText}'" )
+            updatedVerseList.append( entry )
+            halt
+
+    for updatedEntry in updatedVerseList:
+        if updatedEntry.getOriginalText():
+            assert '\\nd \\nd ' not in updatedEntry.getOriginalText()
+    return updatedVerseList
+# end of OETHandlers.livenOETCompatibleWordLinks function
 
 
 def findLVQuote( level:int, BBB:str, C:str, V:str, occurrenceNumber:int, originalQuote:str, state:State ) -> str: # html

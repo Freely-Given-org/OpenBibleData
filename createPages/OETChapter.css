@@ -210,7 +210,7 @@ span.antiParr { vertical-align:super; font-size:0.8em; color:orangeRed; } /* Heb
 span.synthParr { vertical-align:super; font-size:0.8em; color:blue; } /* Hebrew synthetic parallelism */
 
 /* OSHB cases (also used for OET-RV and OET-LV) */
-/* Used in <a> fields and in spans */
+/* Used in anchors and in spans */
 /* Not sure that we want chapters coloured */
 .hebVrb {} /* { background-color:khaki; } */
 .hebNeg {} /* { background-color:crimson; } */
@@ -218,7 +218,7 @@ span.synthParr { vertical-align:super; font-size:0.8em; color:blue; } /* Hebrew 
 .hebYhwh {} /* { background-color:paleGreen; } */
 
 /* SR-GNT cases (also used for OET-RV and OET-LV) */
-/* Used in <a> fields and in spans */
+/* Used in anchors and in spans */
 /* Not sure that we want chapters coloured */
 .grkNom {} /* { background-color:lightgreen; } */
 .grkAcc {} /* { background-color:orange; } */

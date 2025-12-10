@@ -55,13 +55,13 @@ from usfm import convertUSFMMarkerListToHtml
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
                     makeTop, makeBottom, makeBookNavListParagraph, removeDuplicateCVids, checkHtml
 from Bibles import getBibleMapperMaps
-from OETHandlers import livenOETWordLinks, getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename
+from OETHandlers import livenOETWordLinks, livenOETCompatibleWordLinks, getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
-LAST_MODIFIED_DATE = '2025-11-17' # by RJH
+LAST_MODIFIED_DATE = '2025-12-06' # by RJH
 SHORT_PROGRAM_NAME = "createChapterPages"
 PROGRAM_NAME = "OpenBibleData createChapterPages functions"
-PROGRAM_VERSION = '0.78'
+PROGRAM_VERSION = '0.79'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -519,6 +519,8 @@ def createChapterPages( level:int, folder:Path, thisBible, state:State ) -> list
                     continue
                 if isinstance( thisBible, ESFMBible.ESFMBible ): # e.g., OET-RV and OET-LV
                     verseEntryList = livenOETWordLinks( level, thisBible, BBB, verseEntryList, state )
+                elif thisBible.abbreviation in ('BSB','MSB'):
+                    verseEntryList = livenOETCompatibleWordLinks( level, thisBible, BBB, verseEntryList, state )
                 textHtml = convertUSFMMarkerListToHtml( level, thisBible.abbreviation, (BBB,str(c)), 'chapter', contextList, verseEntryList, basicOnly=False, state=state )
                 # textHtml = livenIORs( BBB, textHtml, numChapters )
                 if thisBible.abbreviation == 'OET-RV':

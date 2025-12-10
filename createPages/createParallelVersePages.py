@@ -103,11 +103,11 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_
                     makeTop, makeBottom, makeBookNavListParagraph, checkHtml
 from createSectionPages import findSectionNumber
 from createOETReferencePages import OSHB_ADJECTIVE_DICT, OSHB_PARTICLE_DICT, OSHB_NOUN_DICT, OSHB_PREPOSITION_DICT, OSHB_PRONOUN_DICT, OSHB_SUFFIX_DICT
-from OETHandlers import getOETTidyBBB, getOETBookName, livenOETWordLinks, getHebrewWordpageFilename, getGreekWordpageFilename
+from OETHandlers import getOETTidyBBB, getOETBookName, livenOETWordLinks, livenOETCompatibleWordLinks, getHebrewWordpageFilename, getGreekWordpageFilename
 from spellCheckEnglish import spellCheckAndMarkHTMLText
 
 
-LAST_MODIFIED_DATE = '2025-11-13' # by RJH
+LAST_MODIFIED_DATE = '2025-12-07' # by RJH
 SHORT_PROGRAM_NAME = "createParallelVersePages"
 PROGRAM_NAME = "OpenBibleData createParallelVersePages functions"
 PROGRAM_VERSION = '0.99'
@@ -411,7 +411,8 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                             break
                                     # We want to save
                                 verseEntryList = livenOETWordLinks( BBBLevel, thisBible, BBB, verseEntryList, state )
-                            else: assert not isinstance( thisBible, ESFMBible.ESFMBible )
+                            elif thisBible.abbreviation in ('BSB','MSB'):
+                                verseEntryList = livenOETCompatibleWordLinks( BBBLevel, thisBible, BBB, verseEntryList, state )
                             textHtml = convertUSFMMarkerListToHtml( BBBLevel, versionAbbreviation, (BBB,C,V), 'parallelVerse', contextList, verseEntryList, basicOnly=(c!=-1), state=state )
                             if versionAbbreviation == 'OET-RV': # This is the only parallel version with cross-references included
                                 footnoteFreeTextHtml = footnotesHtml = '' # Any footnotes have been left in textHtml so no need for a separate container
@@ -471,9 +472,12 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                     textHtml = "(Same as <small>BSB</small> above)" # Do we also need to adjust footnotesHtml ???
                                 # if parRef == 'PRO_4:9': print( f"{parRef}\n{adjustedTextHtmlBSB=}\n           {textHtml=}" ); halt
                                 else: # Try to highlight the first difference (that's not inside a footnote caller)
+                                    anchorIx = textHtml.find( '<a title=' )
                                     fnCallerIx = textHtml.find( '<span class="fnCaller">' )
                                     for zz1, (msbChar,bsbChar) in enumerate( zip( textHtml, adjustedTextHtmlBSB ) ):
                                         if fnCallerIx!=-1 and zz1 >= fnCallerIx:
+                                            break # Too hard -- don't bother marking anything more here in this verse
+                                        if anchorIx!=-1 and zz1 >= anchorIx: # TODO: Because we now add word links, this will likely effectively make the MSB/BSB comparison useless???
                                             break # Too hard -- don't bother marking anything more here in this verse
                                         if msbChar != bsbChar:
                                             if msbChar in '</': # Could be inside </span> or something like a footnote caller
@@ -1811,6 +1815,7 @@ def markPossibleUnmatchedProperNames( parRef:str, thisVerseEntryList, state:Stat
                     # Names that only have short vowels and no unusual consonants
                     'Bilgah',
                     'Dammeseq',
+                    'Edom',
                     'Gezer',
                     'Hinnom',
                     'Melek','Meshek','Mosheh',

@@ -244,3 +244,22 @@ span.heb { font-weight:bold; color:orange; }
 span.grk { font-weight:bold; color:darkgreen; }
 span.theb { color:grey; } /* transliteration */
 span.tgrk { color:grey; } /* transliteration */
+
+/* OSHB cases (also used for BSB and MSB) */
+/* Used in anchors and in spans */
+/* Not sure that we want chapters coloured */
+.hebVrb {} /* { background-color:khaki; } */
+.hebNeg {} /* { background-color:crimson; } */
+.hebEl {} /* { background-color:powderBlue; } */
+.hebYhwh {} /* { background-color:paleGreen; } */
+
+/* SR-GNT cases (also used for BSB and MSB) */
+/* Used in anchors and in spans */
+/* Not sure that we want chapters coloured */
+.grkNom {} /* { background-color:lightgreen; } */
+.grkAcc {} /* { background-color:orange; } */
+.grkGen {} /* { background-color:pink; } */
+.grkDat {} /* { background-color:cyan; } */
+.grkVoc {} /* { background-color:orchid; } */
+.grkVrb {} /* { background-color:khaki; } */
+.grkNeg {} /* { background-color:crimson; } */

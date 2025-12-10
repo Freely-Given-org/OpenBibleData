@@ -52,18 +52,17 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
 from OETHandlers import livenOETWordLinks, getOETTidyBBB, getOETBookName, getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2025-08-24' # by RJH
+LAST_MODIFIED_DATE = '2025-12-04' # by RJH
 SHORT_PROGRAM_NAME = "createParallelPassagePages"
 PROGRAM_NAME = "OpenBibleData createParallelPassagePages functions"
-PROGRAM_VERSION = '0.38'
+PROGRAM_VERSION = '0.40'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
 
-BACKSLASH = '\\'
 NEWLINE = '\n'
 EM_SPACE = ' '
-NARROW_NON_BREAK_SPACE = ' '
+# NARROW_NON_BREAK_SPACE = ' '
 
 
 # PARALLEL_FILE_LOCATION = Path( '../ParallelPassages.tsv' )
@@ -518,7 +517,8 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
                 # elif rText == '2 Chr. 34:3-7, 29-33': rText = '2 Chr. 34:3-33' # From OET-RV KI2_19:20
                 # elif rText == '2 Kgs 18:13-37; 19:14-19, 35-37; Isa 36:1-22; 37:8-38': rText = '2 Kgs 18:13–19:37; Isa 36:1–37:38' # From OET-RV CH2_32:1
                 bits = rText.replace( ', ', '; ' ).split( '; ' )
-                assert not sectionReferences
+                # NOTE: We now allow section references to be with s2 fields, i.e., not necessarily only at the beginning of our (s1-based) sections
+                # assert not sectionReferences, f"Section references should only be at the section beginning {thisBible.abbreviation} {BBB} {rText=} {sectionReferences=}"
                 sectionReferences += bits
             else: # not an 'r' marker, so look for cross-references
                 oText = entry.getOriginalText()
@@ -722,7 +722,7 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
                 #     lastV = oText
                 if oText and '\\x ' in oText: # then extract a list of verse cross-references
                     startIndex = 0
-                    for _safetyCount2 in range( 3 ):
+                    for _safetyCount2 in range( 4 ):
                         try: xStartIx = oText.index( '\\x ', startIndex )
                         except ValueError: break
                         xtIx = oText.index( '\\xt ', xStartIx+6 )

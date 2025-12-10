@@ -47,7 +47,7 @@ from BibleOrgSys import BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import vPrint, fnPrint, dPrint, rreplace
 
 
-LAST_MODIFIED_DATE = '2025-11-20' # by RJH
+LAST_MODIFIED_DATE = '2025-12-09' # by RJH
 SHORT_PROGRAM_NAME = "spellCheckEnglish"
 PROGRAM_NAME = "English Bible Spell Check"
 PROGRAM_VERSION = '0.56'
@@ -69,13 +69,14 @@ EXPECTED_OET_RV_NAMES_TSV_HEADER = 'TraditionalName\tRVName\tExplained\tComment'
 # Globals
 # Prepopulate the word set with our exceptions
 INITIAL_BIBLE_WORD_LIST = ['3.0','UTF','USFM', '©', 'CC0',
+                    'OET','ESFM','v0.6','Freely-Given.org','WORDTABLE','table.tsv', # in BSB and MSB with word-file tables
                     'EN','ENG',
-                    'eBible','org','sfm',
+                    'eBible.org','kjv.sfm',
                     'b','c','d','e',
                     's1','s2','r','+','LXX','Grk',
                     'nomina','Nomina','sacra',
                     'Deutercanon','Deuterocanonical','Deuterocanonicals',
-                    'hb',
+                    'Gr','hb',
 
                     # Adjusted names, e.g., from Wycl but had 'Y' substituted for 'J'
                     'Abiyah',
@@ -107,7 +108,7 @@ INITIAL_BIBLE_WORD_LIST = ['3.0','UTF','USFM', '©', 'CC0',
                     'WHAT','WHICH','WHO','WHEN',
                     'IS','AM','ARE','SHALL','SHOULD','WILL',
                     'IN','OF','TO','FOR','UNTO','ACCORDING','WITH',
-                    'THEY','THY','OUR','US','HIMSELF',
+                    'THEY','THY','YOUR','OUR','US','HIMSELF',
                     'AND','NOT','OR',
 
                     # T4T figurative speech abbreviations -- not required because they get deleted
@@ -117,7 +118,7 @@ INITIAL_BIBLE_WORD_LIST = ['3.0','UTF','USFM', '©', 'CC0',
                     'BEING','CAME','CAUSE','COME','COMING','DO','SENDING','WATCH','PUT','DEATH','DESTROY','BORN',
                     'PRAISE','GIVE','LOVE','SAW','SET','COMMONLY','CALLED','NOW','SILENT','DOVE','FAR','OFF','TAKING','HOLD',
                     'APOSTLE','APOSTLES','CHILD','GOSPEL','ST','PROPHET','PREACHER','BRANCH','EPISTLE','VALLEY','SALT','STRIKES',
-                    'SAVE','SERVANT','SERVANTS','MAN','SONS','BURDEN','RIGHTEOUSNESS','LILY','TESTIMONY','TEACH','STRIVING',
+                    'SAVE','SERVANT','SERVANTS','MAN','MY','SONS','BURDEN','RIGHTEOUSNESS','LILY','TESTIMONY','TEACH','STRIVING',
                     'KING','JEWS','YEWS','HAPPY','HOLY','HOLINESS','THRONE','PEACE','MOTHER','WOMEN','EARTH','GREAT','MYSTERY',
                     'HARLOTS','PROSTITUTES','ABOMINATIONS','EVIL','UNCLEAN','SECRET','MEANING','WILDERNESS','WOMAN','REMEMBER',
                     'BOOK','ORIGINAL','BASE','TEXT','PARABLE','NATIONS','NOTES','RELEASE','STATUS','TAGS','WORD','WORDS','SECTION','PRAYER','VISION',
@@ -149,7 +150,8 @@ INITIAL_BIBLE_WORD_LIST = ['3.0','UTF','USFM', '©', 'CC0',
                     'MENE','MANE','TEKEL','TEQEL','THECEL', 'UPHARSIN','PERES','PHERES','PHARES','PHARSIN','PARSIN',
                     'Tabitha','Talitha','cumi',
 
-                    'ULT','UST','BSB','MSB','BLB','OEB','NET','NRSV','WEB','WEBBE','WMB','WMBB','LSV','FBV','T4T','LEB','BBE','JPS','VLT','KJV','KJB',
+                    'ULT','UST','BSB','MSB','BLB','OEB','NET','NRSV','WEB','WEBBE','WMB','WMBB',
+                    'LSV','FBV','T4T','LEB','BBE','JPS','ASV','VLT','KJV','KJB',
                     'OSHB',
                     'kjv','nlt',
 
@@ -169,7 +171,7 @@ INITIAL_BIBLE_WORD_LIST = ['3.0','UTF','USFM', '©', 'CC0',
                     'LAO','GES','LES','ESG','ADE','PS2','TOB','WIS','SIR','BAR','PAZ','JDT','DAG','SUS',
                     'MAT','MRK','LUK','JHN','YHN','ACT','ROM','CO1','CO2','GAL','EPH','PHP','COL','TH1','TH2','TI1','TI2','TIT',
                     'PHM','HEB','JAM','PE1','PE2','JN1','JN2','JN3','JDE','REV',
-                    'Gen','Exo','Lev','Num','Deu','Chr','Rut','Psa','Prv','Hos','Zech','Mal',
+                    'Gen','Exo','Lev','Num','Deu','Chr','Rut','Psa','Psal','Prv','Hos','Zech','Mal',
                     'Mrk','Luk','Lk','Jhn','Jn','Act','Gal','Eph','Php','Col','Heb','Phm','Rev',
 
                     'v2','v3','v4','v5','v6','v8','v9','v13','v14','v15','v16','v19','v26','v27',
@@ -388,8 +390,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
 
     # Specific words expected in specific versions
     if versionAbbreviation in ('OET','OET-RV','OET-LV'):
-        wordSet.update( ('OET','ESFM','v0.6','Freely-Given.org','WORDTABLE','table.tsv',
-                        'ScriptedBibleEditor',
+        wordSet.update( ('ScriptedBibleEditor',
                         '\\jmp', '_', '_\\em*about', '_\\em*all', '_\\em*caring\\em',
                         'href="https','openscriptures.org','en.wikipedia.org', # Website refererences
                         'wpmu2.azurewebsites.net', 'www.GotQuestions.org', 'www.biblicalarchaeology.org', 'www.billmounce.com', 'www.sil.org','textandcanon.org',
@@ -413,7 +414,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                          'ENEMIES','FROM',
                          'HAS','HOUSE','INSTRUCTION','MIKTAM','MORNING','INSTRUMENTS','HIS',
                          'ON','OVERSEER','PRAYER','PSALM','SAUL','SAYS','SET','SPOKEN',
-                         'HIM','GOES','ALEPH-BET','YAH','ALEPH','BETH','WHO',
+                         'HIM','GOES','ALEPH-BET','YAH','ALEPH','BETH',
                         ) )
     elif versionAbbreviation == 'KJB-1611': # Allow their U P P E R C A S E Book headings
         wordSet.update( ('B','C','D','E','F','G','H','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z') )
@@ -427,7 +428,11 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
         wordSet.update( ('Moyses','Sion','Yuda',
                          'IESVS',
                          # The following are abbreviations of reference works used in the Vulgate footnotes
-                         'AUG','BED','BEDA','CAS','CASS','CC','CCC','CCCC','CHRYS','HIER','ID','RAB','THEOD', 'XIS','XES') )
+                         'ADAMAN','ADAMANT','AMB','AMBR','APOLLI','AUG','BASIL','BED','BEDA',
+                         'CAS','CASS','CC','CCC','CCCC','CHRYS','CHRYSOST',
+                         'EUCH','EUTHYM', 'GERG','GREC','GREG',
+                         'HIER','HIERON','ID','IDEM','IOD','ISICH','ISID', 'JUSTIN','YUSTIN', 'ORIG',
+                         'RAB','REM','REMIG', 'SEPTUAG','STRAB','THEOD', 'XIS','XES') )
 
     # vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Checking spelling of {versionAbbreviation} {ref} '{originalHTMLText}' …" )
     # if '0' not in ref and '-1' not in ref: halt
@@ -507,7 +512,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                     )
     for divMarker in ( 'bookHeader','bookIntro',
                       'iot',
-                      's1',
+                      'section','s1',
                       'footnotes',
                         ):
         cleanedText =  cleanedText.replace( f'<div class="{divMarker}">', '' ).replace( f'<!--{divMarker}-->', '' )
@@ -515,7 +520,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                         'mt1','mt2','mt3','mt4',
                         'imt1','iot','io1','io2','is1','is2','ip','im',
                         'ms1','ms2',
-                        's1',
+                        's1','s2',
                         'p', # OEB CH1_-1:0 uses p instead of ip!
                         'fn',
                         ):
@@ -524,7 +529,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                        'untr','nominaSacra',
                        'ior', 'vp',
                        'nd','wj','d','bk','qt','sc',
-                       'qs','sig',
+                       'qs','sig','sls','tl',
                         'ft','fk','fqa','fl', 'fnRef','fnText', 'xt', # 'f', # We intentionally omit 'fr' -- why???
                         'li1','li2','li3',
                         'v', # for verse spans on parallel and interlinear pages
@@ -536,7 +541,9 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
     for formatField in ('i','b','em','small','sup','sub'):
         cleanedText =  cleanedText.replace( f'<{formatField}>', '' ).replace( f'</{formatField}>', '' )
     cleanedText = FOOTNOTE_OR_XREF_CALLER_REGEX.sub( '', cleanedText )
+    # print(( f"\nspellCheck( {versionAbbreviation} {ref} after fn clean:\n{cleanedText=}\nfrom {HTMLTextToCheck=}\nfrom {originalHTMLTextForDebugging} )"))
     cleanedText = ANCHOR_LINK_REGEX.sub( '', cleanedText )
+    # print(( f"\nspellCheck( {versionAbbreviation} {ref} after anchor clean:\n{cleanedText=}\nfrom {HTMLTextToCheck=}\nfrom {originalHTMLTextForDebugging} )"))
     cleanedText = RV_ADD_REGEX.sub( '', cleanedText )
     if versionAbbreviation in ('OET-RV','OET-LV'): # we want to check the actual footnote content
         cleanedText = cleanedText.replace( '<div id="footnotes" class="footnotes">', '' ).replace( '</div><!--footnotes-->', '' )
@@ -597,6 +604,8 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                             '(m)', '(f)', '(ms)', '(fs)',
                             '(sg)','(pl)',
                             '(aj)', '(n)', '(v)',
+                            '(exc)', # in T4T MAT
+                            'foreign(er)',
                             ]
     for thingToReallyDelete in thingsToReallyDelete:
         cleanedText = cleanedText.replace( thingToReallyDelete, '' )
@@ -746,12 +755,21 @@ def printSpellCheckSummary( state ) -> None:
     Prints some summary results
     """
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, "\n\nSpell-check results:" )
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  TOTAL LATIN WORDS CHECKED = {TOTAL_LATIN_WORDS_CHECKED_COUNT:,} BAD_LATIN WORDS {len(BAD_LATIN_WORD_LIST):,} = {len(BAD_LATIN_WORD_LIST)*100/TOTAL_LATIN_WORDS_CHECKED_COUNT:.1f}% ({len(BAD_LATIN_WORD_SET):,} unique){f': {BAD_LATIN_WORD_SET}' if BibleOrgSysGlobals.verbosityLevel>2 else ''}" )
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    TOTAL BAD LATIN WORDS = {TOTAL_LATIN_MISSPELLING_COUNT:,} WORST LATIN WORDS {[(k, BAD_LATIN_COUNTS[k]) for k in sorted(BAD_LATIN_COUNTS, key=BAD_LATIN_COUNTS.get, reverse=True) if k.islower()][:13]}" )
+
+    ethSet = set()
+    for versionAbbreviation in MISPELLING_VERSION_REF_DICT:
+        if versionAbbreviation not in ('Luth','ClVg'):
+            for word,_ref in MISPELLING_VERSION_REF_DICT[versionAbbreviation]:
+                if word.endswith( 'eth' ) or word.endswith( 'est' ):
+                    ethSet.add( word )
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  ALL English -eth or -est misspelt words: ({len(ethSet):,}) {sorted(ethSet)}\n" )
+
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  TOTAL ENGLISH WORDS CHECKED = {TOTAL_ENGLISH_WORDS_CHECKED_COUNT:,} BAD_ENGLISH WORDS {len(BAD_ENGLISH_WORD_LIST):,} {len(BAD_ENGLISH_WORD_LIST)*100/TOTAL_ENGLISH_WORDS_CHECKED_COUNT:.2f}% ({len(BAD_ENGLISH_WORD_SET):,} unique){f': {BAD_ENGLISH_WORD_SET}' if BibleOrgSysGlobals.verbosityLevel>2 else ''}" )
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    TOTAL BAD ENGLISH WORDS = {TOTAL_ENGLISH_MISSPELLING_COUNT:,} WORST ENGLISH WORDS {[(k, BAD_ENGLISH_COUNTS[k]) for k in sorted(BAD_ENGLISH_COUNTS, key=BAD_ENGLISH_COUNTS.get, reverse=True) if k.islower()][:14]}" )
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  TOTAL GERMAN WORDS CHECKED = {TOTAL_GERMAN_WORDS_CHECKED_COUNT:,} BAD_GERMAN WORDS {len(BAD_GERMAN_WORD_LIST):,} {len(BAD_GERMAN_WORD_LIST)*100/TOTAL_GERMAN_WORDS_CHECKED_COUNT:.1f}% ({len(BAD_GERMAN_WORD_SET):,} unique){f': {BAD_GERMAN_WORD_SET}' if BibleOrgSysGlobals.verbosityLevel>2 else ''}" )
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    TOTAL BAD GERMAN WORDS = {TOTAL_GERMAN_MISSPELLING_COUNT:,} WORST GERMAN WORDS {[(k, BAD_GERMAN_COUNTS[k]) for k in sorted(BAD_GERMAN_COUNTS, key=BAD_GERMAN_COUNTS.get, reverse=True) if k.islower()][:13]}" )
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  TOTAL ENGLISH WORDS CHECKED = {TOTAL_ENGLISH_WORDS_CHECKED_COUNT:,} BAD_ENGLISH WORDS {len(BAD_ENGLISH_WORD_LIST):,} {len(BAD_ENGLISH_WORD_LIST)*100/TOTAL_ENGLISH_WORDS_CHECKED_COUNT:.2f}% ({len(BAD_ENGLISH_WORD_SET):,} unique){f': {BAD_ENGLISH_WORD_SET}' if BibleOrgSysGlobals.verbosityLevel>2 else ''}" )
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    TOTAL BAD ENGLISH WORDS = {TOTAL_ENGLISH_MISSPELLING_COUNT:,} WORST ENGLISH WORDS {[(k, BAD_ENGLISH_COUNTS[k]) for k in sorted(BAD_ENGLISH_COUNTS, key=BAD_ENGLISH_COUNTS.get, reverse=True) if k.islower()][:14]}\n" )
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  TOTAL LATIN WORDS CHECKED = {TOTAL_LATIN_WORDS_CHECKED_COUNT:,} BAD_LATIN WORDS {len(BAD_LATIN_WORD_LIST):,} = {len(BAD_LATIN_WORD_LIST)*100/TOTAL_LATIN_WORDS_CHECKED_COUNT:.1f}% ({len(BAD_LATIN_WORD_SET):,} unique){f': {BAD_LATIN_WORD_SET}' if BibleOrgSysGlobals.verbosityLevel>2 else ''}" )
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    TOTAL BAD LATIN WORDS = {TOTAL_LATIN_MISSPELLING_COUNT:,} WORST LATIN WORDS {[(k, BAD_LATIN_COUNTS[k]) for k in sorted(BAD_LATIN_COUNTS, key=BAD_LATIN_COUNTS.get, reverse=True) if k.islower()][:13]}\n" )
 
     # for versionAbbreviation in ('OET-RV',): # Just out of curiousity # ,'OET-LV', 'ULT','UST'
     #     print( f"\n{versionAbbreviation} [Using {state.BibleLanguages[versionAbbreviation]} dictionary] ({len(MISPELLING_VERSION_REF_DICT[versionAbbreviation]):,}) {MISPELLING_VERSION_REF_DICT[versionAbbreviation]}\n")
@@ -769,15 +787,7 @@ def printSpellCheckSummary( state ) -> None:
     for versionAbbreviation in MISPELLING_VERSION_REF_DICT:
         vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    {versionAbbreviation} misspelt words (with references) = {len(MISPELLING_VERSION_REF_DICT[versionAbbreviation]):,}" )
         totalWordsWithRef += len( MISPELLING_VERSION_REF_DICT[versionAbbreviation] )
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  TOTAL misspelt words (with references) = {totalWordsWithRef:,}\n" )
-
-    ethSet = set()
-    for versionAbbreviation in MISPELLING_VERSION_REF_DICT:
-        if versionAbbreviation not in ('Luth','ClVg'):
-            for word,_ref in MISPELLING_VERSION_REF_DICT[versionAbbreviation]:
-                if word.endswith( 'eth' ) or word.endswith( 'est' ):
-                    ethSet.add( word )
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  ALL English -eth or -est misspelt words: ({len(ethSet):,}) {sorted(ethSet)}\n" )
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  TOTAL misspelt words (with references) = {totalWordsWithRef:,}" )
 # end of spellCheckEnglish.printSpellCheckSummary()
 
 # end of spellCheckEnglish.py

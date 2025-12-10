@@ -72,13 +72,13 @@ from usfm import convertUSFMMarkerListToHtml
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
                     makeTop, makeBottom, makeBookNavListParagraph, removeDuplicateCVids, checkHtml
 from Bibles import getBibleMapperMaps
-from OETHandlers import livenOETWordLinks, getOETTidyBBB, getBBBFromOETBookName
+from OETHandlers import livenOETWordLinks, livenOETCompatibleWordLinks, getOETTidyBBB, getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2025-11-17' # by RJH
+LAST_MODIFIED_DATE = '2025-12-06' # by RJH
 SHORT_PROGRAM_NAME = "createSectionPages"
 PROGRAM_NAME = "OpenBibleData createSectionPages functions"
-PROGRAM_VERSION = '0.76'
+PROGRAM_VERSION = '0.77'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -460,6 +460,8 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> list
             verseEntryList, contextList = bkObject._SectionIndex.getSectionEntriesWithContext( startCV )
             if isinstance( thisBible, ESFMBible ):
                 verseEntryList = livenOETWordLinks( level, thisBible, BBB, verseEntryList, state )
+            elif thisBible.abbreviation in ('BSB','MSB'):
+                verseEntryList = livenOETCompatibleWordLinks( level, thisBible, BBB, verseEntryList, state )
             sectionFilename = f'{BBB}_S{n}.htm'
             state.sectionsLists[thisBible.abbreviation][BBB].append( (n,startC,startV,endC,endV,sectionName,reasonName,contextList,verseEntryList,sectionFilename) )
         assert len(state.sectionsLists[thisBible.abbreviation][BBB]) >= len(bkObject._SectionIndex)

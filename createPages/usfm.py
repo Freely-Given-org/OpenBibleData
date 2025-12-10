@@ -1777,7 +1777,7 @@ def livenXRefField( fieldType:str, versionAbbreviation:str, refTuple:tuple, segm
             # print( f"livenXRefField() BCV or BV {versionAbbreviation} {refTuple} got {xB=} from {match.groups()=}" )
             if xB == 'Songs':
                 xBBB = 'SNG'
-            elif versionAbbreviation in ('KJB-1611','RV') and firstIndex==indexBCV and xB in ('and','c','ca','verse'): # 'ca' stands for 'circa' = 'around'
+            elif versionAbbreviation in ('KJB-1611','RV') and firstIndex==indexBCV and xB in ('and','c','ca','verse','vers','ver'): # 'ca' stands for 'circa' = 'around'
                 xBBB = lastXBBB # Same as last book
             elif versionAbbreviation=='KJB-1611' and xB in ('and','ant','Antiq','As','as','in','lambes','lib','See','the','to','called','Araunah','Dodo','Elishua','Vzziah','Esdr','Ez'): # One is a range, 2nd is in a footnote
                 # Note: 'ant','Antiq' (MA1) and 'lib' (PAZ) refer to non-Biblical documents
@@ -1804,7 +1804,7 @@ def livenXRefField( fieldType:str, versionAbbreviation:str, refTuple:tuple, segm
                             )
                     xBBB = getBBBFromOETBookName( adjXB, f"livenXRefField( {fieldType}, {versionAbbreviation}, {refTuple}, {segmentType}, '{pathPrefix}', {xoText=}, {xrefOriginalMiddle=} )" )
                 if not xBBB:
-                    logging.critical( f"Unable to liven cross-reference from {versionAbbreviation} {refTuple} for {xBBB=} from {xrefLiveMiddle=} from {xoText=} {xrefOriginalMiddle=}" )
+                    logging.critical( f"livenXRefField()A is unable to liven cross-reference from {versionAbbreviation} {refTuple} for {xBBB=} from {xrefLiveMiddle=} from {xoText=} {xrefOriginalMiddle=}" )
             else: # not KJB-1611
                 xBBB = getBBBFromOETBookName( xB, f"livenXRefField( {fieldType}, {versionAbbreviation}, {refTuple}, {segmentType}, '{pathPrefix}', {xoText=}, {xrefOriginalMiddle=} )" )
             # We can leave this block of code without being successful finding xBBB -- it's checked below
@@ -1823,7 +1823,7 @@ def livenXRefField( fieldType:str, versionAbbreviation:str, refTuple:tuple, segm
             else: # Could be a single-chapter book
                 dPrint( 'Info', DEBUGGING_THIS_MODULE, f"Possible single-chapter book: {versionAbbreviation} {refTuple} {xB=}" )
                 if not xBBB:
-                    logging.critical( f"Unable to liven cross-reference from {versionAbbreviation} {refTuple} for {xBBB=} from {xB=} from {xrefLiveMiddle=} from {xoText=} {xrefOriginalMiddle=}" )
+                    logging.critical( f"livenXRefField()B is unable to liven cross-reference from {versionAbbreviation} {refTuple} for {xBBB=} from {xB=} from {xrefLiveMiddle=} from {xoText=} {xrefOriginalMiddle=}" )
                 try: singleChapterFlag = BibleOrgSysGlobals.loadedBibleBooksCodes.isSingleChapterBook( xBBB )
                 except KeyError: singleChapterFlag = True # default to True
                 if singleChapterFlag:

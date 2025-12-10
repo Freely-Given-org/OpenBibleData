@@ -108,7 +108,7 @@ from settings import State, state
 from OETHandlers import getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2025-11-17' # by RJH
+LAST_MODIFIED_DATE = '2025-12-08' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
 PROGRAM_VERSION = '0.99'
@@ -307,7 +307,7 @@ def _makeWorkNavListParagraph( level:int, versionAbbreviation:str|None, pageType
                 haveSectionHeadings = False
             if not haveSectionHeadings:
                 initial_entry = initial_entry.replace( '/bySec/', '/byC/' )
-                assert '/S' not in initial_entry.replace('/SLT/','/sLT/').replace('/SR-GNT/','/sR-GNT/').replace('/SA','/sA').replace('/SNG','/sNG'), f"Found a possible section reference {initial_entry=}"
+                assert '/S' not in initial_entry.replace('/SLT/','/sLT/').replace('/SR-GNT/','/sR-GNT/').replace('/SA','/sA').replace('/SIR','/sIR').replace('/SUS','/sUS').replace('/SNG','/sNG'), f"Found a possible section reference {initial_entry=}"
         entryBBB = None
         for tryBBB in state.allBBBs: # from all loaded versions
             if f'{tryBBB}.' in initial_entry or f'{tryBBB}_' in initial_entry or f'{tryBBB}/' in initial_entry:
@@ -600,7 +600,8 @@ def checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool:
     assert '<div class="s1">' not in htmlToCheck, f'''s1 DIVision in '{where}' {segmentOnly=} …{htmlToCheck[htmlToCheck.index('<div class="s1">')-20:htmlToCheck.index('<div class="s1">')+20]}…'''
     assert '><div class="chunkRV">' not in htmlToCheck, f'''Missing newline in '{where}' {segmentOnly=} …{htmlToCheck[htmlToCheck.index('><div class="chunkRV">')-20:htmlToCheck.index('><div class="chunkRV">')+20]}…'''
     for divisionName in ('section','chunkRV','rightS1Box','RVLVcontainer'):
-        assert htmlToCheck.count( f'<div class="{divisionName}">' ) == htmlToCheck.count( f'</div><!--{divisionName}-->' ), f"Unmatched '{divisionName}' divs: {htmlToCheck.count(f'<div class="{divisionName}">')} != {htmlToCheck.count(f'</div><!--{divisionName}-->')} {where=}" 
+        # NOTE: Some divisions get multiple classes, e.g., '<div class="section PromisedLand">'
+        assert (htmlToCheck.count( f'<div class="{divisionName}">' ) + htmlToCheck.count( f'<div class="{divisionName} ' )) == htmlToCheck.count( f'</div><!--{divisionName}-->' ), f"Unmatched '{divisionName}' divs: {htmlToCheck.count(f'<div class="{divisionName}">')} != {htmlToCheck.count(f'</div><!--{divisionName}-->')} {where=}" 
 
     for marker,startMarker in (('html','<html'),('head','<head'),('body','<body')):
         if segmentOnly:

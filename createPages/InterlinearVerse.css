@@ -38,8 +38,9 @@ span.OT { color:saddlebrown; }
 .OT a { text-decoration:none; }
 span.NT { color:darkgreen; }
 .NT a { text-decoration:none; }
-/* span.DC { color:orange; font-size:smaller; } */
-/* .DC a { text-decoration:none; } */
+span.DC { color:orange; font-size:smaller; }
+.DC a { text-decoration:none; }
+span.noBook {}
 
 /* Navs are the ones with arrows */
 /* p.cNav { text-align:center; font-size:1.8em; background-color:#98a9d4; } */
