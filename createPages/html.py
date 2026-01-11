@@ -7,7 +7,7 @@
 #
 # Module handling OpenBibleData html functions
 #
-# Copyright (C) 2023-2025 Robert Hunt
+# Copyright (C) 2023-2026 Robert Hunt
 # Author: Robert Hunt <Freely.Given.org+OBD@gmail.com>
 # License: See gpl-3.0.txt
 #
@@ -51,8 +51,8 @@ makeViewNavListParagraph( level:int, versionAbbreviation:str|None, pageType:str,
         It can also be the 'OET' pseudo version.
         Can return an empty string.
 makeBookNavListParagraph( linksList:list[str], workAbbrevPlus:str, state:State ) -> str
-makeBottom( level:int, pageType:str, state:State ) -> str
-makeFooter( level:int, pageType:str, state:State ) -> str
+makeBottom( level:int, versionAbbreviation:str|None, pageType:str, state:State ) -> str
+_makeFooter( level:int, versionAbbreviation:str|None, pageType:str, state:State ) -> str
 removeDuplicateCVids( html:str ) -> str
 removeDuplicateFNids( where:str, html:str ) -> str
 checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool
@@ -93,6 +93,8 @@ CHANGELOG:
     2025-05-31 Added deferred loading to make kb.js work properly
     2025-06-19 Handle more of the varieties in doubled T4T figures of speech
     2025-09-09 Allow for 'kingdom' pages
+    2025-12-19 Fix bug that displayed ' 2 YHN2 JHN)' etc. (losing the opening parenthesis) in the book navigation line
+    2026-01-06 Added NNBSpace after parallelism markers at line beginnings
 """
 # from gettext import gettext as _
 import logging
@@ -108,7 +110,7 @@ from settings import State, state
 from OETHandlers import getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2025-12-08' # by RJH
+LAST_MODIFIED_DATE = '2026-01-08' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
 PROGRAM_VERSION = '0.99'
@@ -397,7 +399,7 @@ def makeBookNavListParagraph( linksList:list[str], workAbbrevPlus:str, state:Sta
 
     newList = (['TEST',workAbbrevPlus] if state.TEST_MODE_FLAG else [workAbbrevPlus]) if workAbbrevPlus else (['TEST'] if state.TEST_MODE_FLAG else [])
     for aLink in linksList:
-        # print( f"{aLink=}")
+        # print( f"\n{aLink=}")
         if ('>FRT<' in aLink or '>INT<' in aLink) \
         and workAbbrevPlus in HTML_PLUS_LIST:
             continue # Don't include this
@@ -409,14 +411,32 @@ def makeBookNavListParagraph( linksList:list[str], workAbbrevPlus:str, state:Sta
             assert hrefEndBit.startswith( '.htm#Top">' ), f"{hrefEndBit=} {workAbbrevPlus=}" # This is set in createSitePages._createSitePages()
             # if 'Index' in workAbbrevPlus:
             hrefEndBit = hrefEndBit.replace( '#Top', '#chLst', 1 ) # Show them the chapter and verse choices (because we're going to plonk them in 1:1)
-            aLink = f'''{aLink[:ixHrefStart]}{'' if 'Index' in workAbbrevPlus else '../'}{hrefTextBit}/C1V1{hrefEndBit}'''
+            aLink = f'''{aLink[:ixHrefStart]}{hrefTextBit}/C1V1{hrefEndBit}''' \
+                    .replace( '/index/', '/' ) # Fix error in ParallelIndex
+        # TODO: This is very fragile code !!!
         ixDisplayLinkStart = aLink.index( '>' ) + 1
         ixDisplayLinkEnd = aLink.index( '<', ixDisplayLinkStart )
         displayText = aLink[ixDisplayLinkStart:ixDisplayLinkEnd]
-        # print( f"  {aLink=} {displayText=}")
-        assert 3 <= len(displayText) <= 5, f"{len(displayText)=} {displayText=}" # it should be a tidyBBB, e.g., 'GEN' or '1 COR'
-        BBB = getBBBFromOETBookName( displayText, f"makeBookNavListParagraph( {workAbbrevPlus} {aLink=} )" )
-        assert BBB in BibleOrgSysGlobals.loadedBibleBooksCodes, f"Bad {BBB=} from {displayText=} from {aLink=}"
+        # print( f"  HEREaa {aLink=} {displayText=}")
+        if not displayText: # Then we have a span inside the anchor
+            # e.g., aLink='<a title="Yonah/(Jonah)" href="../JNA/C1V1.htm#chLst"><span title="Yonah (which is closer to the Hebrew hhh/Yōnāh)">YNA</span> (JNA)</a>'
+            ixDisplayLinkStart = aLink.index( '>', ixDisplayLinkEnd ) + 1
+            ixDisplayLinkEnd = aLink.index( '<', ixDisplayLinkStart )
+            displayText = aLink[ixDisplayLinkStart:ixDisplayLinkEnd]
+            # print( f"  HEREbb {aLink=} {displayText=}")
+        if len(displayText)==2 and displayText.endswith('\u202f'): # e.g., 1/2/3/ then NBSP for 1 Jhn etc,
+            # e.g., aLink='<a title="1 Yohan/(John)" href="../JN1/C1V1.htm#chLst">1\u202f<span title="Yohan (which is closer to the Greek Ἰωάννης/Yōannaʸs)">YHN</span> (1\u202fJHN)</a>' displayText='1\u202f'
+            ixDisplayLinkStart = aLink.index( f' ({displayText[0]}', ixDisplayLinkEnd )
+            ixDisplayLinkEnd = aLink.index( ')', ixDisplayLinkStart )
+            displayText = aLink[ixDisplayLinkStart:ixDisplayLinkEnd]
+            # print( f"  HEREcc {aLink=} {displayText=}")
+        adjDisplayText = displayText # We use this one for finding the BBB
+        if ' (' in adjDisplayText:
+            adjDisplayText = adjDisplayText.split(' (')[-1].removesuffix(')')
+            # print( f"  HEREdd {aLink=} {adjDisplayText=}")
+        assert 3 <= len(adjDisplayText) <= 5, f"{len(adjDisplayText)=} {adjDisplayText=}" # it should be a tidyBBB, e.g., 'GEN' or '1 COR'
+        BBB = getBBBFromOETBookName( adjDisplayText, where=f"makeBookNavListParagraph( {workAbbrevPlus} {aLink=} )" )
+        assert BBB in BibleOrgSysGlobals.loadedBibleBooksCodes, f"Bad {BBB=} from {adjDisplayText=} from {aLink=}"
         newALink = f'{aLink[:ixDisplayLinkStart]}{displayText}{aLink[ixDisplayLinkEnd:]}'
         if BBB in ('INT','FRT','OTH','GLS','XXA','XXB','XXC','XXD'):
             newALink = f'<span class="XX">{newALink}</span>'
@@ -427,33 +447,33 @@ def makeBookNavListParagraph( linksList:list[str], workAbbrevPlus:str, state:Sta
         else: # DC book
             newALink = f'<span class="DC">{newALink}</span>'
         # print( f"    {aLink=} {displayText=} {BBB=} {newALink=}")
+        assert newALink.count('(')==newALink.count(')'), f"OOPS, what happened to the parentheses in {workAbbrevPlus}\n{newALink=}\nfrom {aLink=}"
         newList.append( newALink )
 
     return f'''<p class="bkLst">{' '.join( newList )}</p>'''
 # end of html.makeBookNavListParagraph
 
 
-def makeBottom( level:int, pageType:str, state:State ) -> str:
+def makeBottom( level:int, versionAbbreviation:str|None, pageType:str, state:State ) -> str:
     """
     Create the very bottom part of an HTML page.
     """
     # fnPrint( DEBUGGING_THIS_MODULE, f"makeBottom()" )
     assert pageType in KNOWN_PAGE_TYPES, f"{level=} {pageType=}"
 
-    return _makeFooter( level, pageType, state ) + '</body></html>'
+    return _makeFooter( level, versionAbbreviation, pageType, state ) + '</body></html>'
 # end of html.makeBottom
 
-def _makeFooter( level:int, pageType:str, state:State ) -> str:
+def _makeFooter( level:int, versionAbbreviation:str|None, pageType:str, state:State ) -> str:
     """
     Create any links or site map that follow the main content on the page.
     """
     # fnPrint( DEBUGGING_THIS_MODULE, f"_makeFooter()" )
     html = f"""<div class="footer" id="footer">
-<p class="copyright" id="Bottom"><small><em>{'TEST ' if state.TEST_MODE_FLAG else ''}{state.SITE_NAME}</em> site copyright © 2023–2025 <a href="https://Freely-Given.org">Freely-Given.org</a>.
+<p class="copyright" id="Bottom"><small><em>{'TEST ' if state.TEST_MODE_FLAG else ''}{state.SITE_NAME}</em> site {state.SITE_COPYRIGHT} <a href="https://Freely-Given.org">Freely-Given.org</a>.
 <br>Python source code for creating these static pages is available <a href="https://GitHub.com/Freely-Given-org/OpenBibleData">on GitHub</a> under an <a href="https://GitHub.com/Freely-Given-org/OpenBibleData/blob/main/LICENSE">open licence</a>.{datetime.now().strftime('<br> (Page created: %Y-%m-%d %H:%M)') if state.TEST_MODE_FLAG else ''}</small></p>
 <p class="copyright"><small>For Bible data copyrights, see the <a href="{'../'*level}AllDetails.htm#Top">details</a> for each displayed Bible version.</small></p>
-<p class="note"><small>The <em>Open English Translation (OET)</em> main site is at <a href="https://OpenEnglishTranslation.Bible">OpenEnglishTranslation.Bible</a>.</small></p>
-</div><!--footer-->"""
+{f'''<p class="note"><a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="20"> </a><small>The <em>Open English Translation (OET)</em> main site is at <a href="https://OpenEnglishTranslation.Bible">OpenEnglishTranslation.Bible</a>.</small></p>\n''' if not versionAbbreviation or 'OET' not in versionAbbreviation else ''}</div><!--footer-->"""
     return html
 # end of html._makeFooter
 
@@ -653,7 +673,7 @@ def checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool:
                 assert spanNestingLevel > 0, f"Extra close span in '{where}' {segmentOnly=} '{'' if endSpanIx==0 else '…'}{htmlToCheck[endSpanIx:endSpanIx+200]}…'"
                 spanNestingLevel -= 1
                 searchStartIndex = endSpanIx + 7
-        assert spanNestingLevel==0, f"Unclosed span in '{where}' {segmentOnly=} '{'' if lastSpanIx==0 else '…'}{htmlToCheck[lastSpanIx:lastSpanIx+200]}…' FROM {htmlToCheck=}"
+        assert spanNestingLevel==0, f"\ncheckHTML() found unclosed span in '{where}' {segmentOnly=} '{'' if lastSpanIx==0 else '…'}{htmlToCheck[lastSpanIx:lastSpanIx+200]}…' FROM {htmlToCheck=}"
 
     if not segmentOnly or '<span class="add"><' not in htmlToCheck: # < is one of our add field sub-classifiers
         assert '<<' not in htmlToCheck, f"<span> '{where}' {segmentOnly=} …{htmlToCheck[htmlToCheck.index('<<')-180:htmlToCheck.index('<<')+180]}…"
@@ -997,9 +1017,9 @@ def do_OET_RV_HTMLcustomisations( where:str, OET_RV_html:str ) -> str:
             .replace( '<span class="add">≈', '<span class="addReword" title="reworded">' )
             .replace( '<span class="add">?', '<span class="RVadd unsure" title="added info (less certain)">' )
             .replace( '<span class="add">', '<span class="RVadd" title="added info">' )
-            .replace( '≈', '<span class="synonParr" title="synonymous parallelism">≈</span>')
-            .replace( '^', '<span class="antiParr" title="antithetic parallelism">^</span>')
-            .replace( '→', '<span class="synthParr" title="synthetic parallelism">→</span>')
+            .replace( '≈', '<span class="synonParr" title="synonymous parallelism">≈ </span>')
+            .replace( '^', '<span class="antiParr" title="antithetic parallelism">^ </span>')
+            .replace( '→', '<span class="synthParr" title="synthetic parallelism">→ </span>')
             )
 
     # Just do an additional check inside '<span class="RVadd">' spans

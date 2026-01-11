@@ -39,6 +39,7 @@ span.NT { color:darkgreen; }
 .NT a { color:inherit; text-decoration:none; }
 span.DC { color:orange; font-size:smaller; }
 .DC a { color:inherit; text-decoration:none; }
+span.selectedBook { color:Gainsboro; }
 
 /* Navs are the ones with arrows */
 p.cNav { text-align:center; font-size:1.8em; background-color:#98a9d4; }
@@ -181,7 +182,8 @@ span.cv { vertical-align:super; font-size:0.8em; color:orange; }
 span.noVerse {} /* We don't have that verse */
 span.d { color:sienna; }
 div.section {}
-p.s1 { margin-top:0.1em; margin-bottom:0; font-weight:bold; }
+p.s1 { margin-top:0.1em; margin-bottom:0; font-size:1.2em; font-weight:bold; }
+p.s2 { margin-top:0.1em; margin-bottom:0; font-size:1.1em; font-weight:bold; }
 /* p.mr { margin-top:0; margin-bottom:0; font-size:1.1em; text-align: center; font-style:italic; } Major section reference range */
 /* p.sr { margin-top:0; margin-bottom:0; font-size:0.9em; text-align: center; font-weight:bold; } Section reference range */
 p.r { margin-top:0; margin-bottom:0; font-size:0.75em; text-align: center; font-style:italic; } /* Parallel references */
@@ -362,6 +364,9 @@ p.TARef {}
 /* Spell check */
 span.spelling { color:orchid }
 span.duplicate { color:orange }
+
+/* Hebrew accents and Phrasing */
+div.parallelHAP {}
 
 /* Psalms Layer-By-Layer */
 div.parallelPLBL {}

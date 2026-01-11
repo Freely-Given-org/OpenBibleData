@@ -41,6 +41,7 @@ span.NT { color:darkgreen; }
 span.DC { color:orange; font-size:smaller; }
 .DC a { text-decoration:none; }
 span.noBook {}
+span.selectedBook { color:Gainsboro; }
 
 /* Navs are the ones with arrows */
 /* p.cNav { text-align:center; font-size:1.8em; background-color:#98a9d4; } */
@@ -293,6 +294,7 @@ span.fnText { }
 span.ft {}
 /* span.fv { vertical-align:super; } */
 /* span.fw {} */
+span.xt {}
 
 /* USFM cross-references */
 /* div.crossRefs {} */

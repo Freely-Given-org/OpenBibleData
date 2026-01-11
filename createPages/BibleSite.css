@@ -31,6 +31,7 @@ span.NT { color:darkgreen; }
 .NT a { text-decoration:none; }
 span.DC { color:orange; font-size:smaller; }
 .DC a { text-decoration:none; }
+span.selectedBook { color:Gainsboro; }
 
 p.rem { font-size:0.8em; color:grey; }
 

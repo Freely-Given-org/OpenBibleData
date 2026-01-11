@@ -7,7 +7,7 @@
 #
 # Module handling OpenBibleData settings functions
 #
-# Copyright (C) 2023-2025 Robert Hunt
+# Copyright (C) 2023-2026 Robert Hunt
 # Author: Robert Hunt <Freely.Given.org+OBD@gmail.com>
 # License: See gpl-3.0.txt
 #
@@ -51,7 +51,7 @@ from BibleOrgSys.BibleOrgSysGlobals import dPrint, fnPrint
 from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39
 
 
-LAST_MODIFIED_DATE = '2025-12-03' # by RJH
+LAST_MODIFIED_DATE = '2026-01-08' # by RJH
 SHORT_PROGRAM_NAME = "settings"
 PROGRAM_NAME = "OpenBibleData (OBD) Settings"
 PROGRAM_VERSION = '0.99'
@@ -64,10 +64,10 @@ class State:
     """
     A place to store some of the global stuff that needs to be passed around.
     """
-    OET_VERSION_NUMBER_STRING = 'v0.46.31' # Incremented on most runs
+    OET_VERSION_NUMBER_STRING = 'v0.46.97' # Incremented on most runs
 
     TEST_MODE_FLAG = True # Writes website into 'Test' subfolder if True
-    TEST_OT_BOOK_LIST = ['DEU','PRO'] # Books in progress
+    TEST_OT_BOOK_LIST = ['NUM','PRO','ISA'] # Books in progress
     TEST_DC_BOOK_LIST = ['TOB'] # Books in progress
     TEST_NT_BOOK_LIST = ['MRK'] # Shortest gospel
     NEW_BOOK_IN_TEST_LIST_FLAG = False # So that word pages will get rebuilt for TEST_MODE_FLAG
@@ -75,18 +75,19 @@ class State:
     # Many of these settings are used to omit some processing so as to get a speedier conclusion for debugging
     TEST_VERSIONS_ONLY = None #['OET','OET-RV','OET-LV', 'RV', 'KJB-1611', 'TOSN','UTN'] # Usually None. Also stops actual site being built
     ALL_PRODUCTION_BOOKS_FLAG = not TEST_MODE_FLAG # If set to False, uses the TEST book list (with many less books) for a faster test build
-    CREATE_PARALLEL_VERSE_PAGES = 'LAST' # 'FIRST','LAST', or None -- depending on debugging needs
+    CREATE_PARALLEL_VERSE_PAGES = 'LAST' # 'FIRST','LAST', or None -- usually 'LAST' -- depending on debugging needs
     CREATE_BOOK_AND_OTHER_PAGES_FLAG = True # Can be turned off for debugging
     DO_SPELL_CHECKS_FLAG = True #TEST_MODE_FLAG # On parallel pages
     REUSE_EXISTING_WORD_PAGES_FLAG = TEST_MODE_FLAG and not NEW_BOOK_IN_TEST_LIST_FLAG # Don't recreate word pages
     ALL_TEST_REFERENCE_PAGES_FLAG = False # If in TEST_MODE_FLAG, make ALL word/lemma pages, or just the RELEVANT ones
     UPDATE_ACTUAL_SITE_WHEN_BUILT_FLAG = True # The pages are initially built in a tmp folder so need to be copied to the final destination
 
-    OET_RV_OT_BOOK_LIST = ['GEN','EXO','DEU','JOS','JDG','RUT',
+    OET_RV_OT_BOOK_LIST = ['GEN','EXO','NUM','DEU', 'JOS','JDG','RUT',
                     'SA1','SA2','KI1','KI2','CH1','CH2',
-                    'EZR','NEH','EST','JOB','PSA','PRO','ECC','SNG','LAM',
+                    'EZR','NEH','EST', 'JOB','PSA','PRO',
+                    'ECC','SNG','ISA','LAM',
                     'EZE','DAN','HOS','JOL','AMO','OBA','JNA',
-                    'MIC','NAH','HAB','ZEP','HAG','ZEC','MAL'] # 'LEV','NUM','ISA','JER'
+                    'MIC','NAH','HAB','ZEP','HAG','ZEC','MAL'] # 'LEV','JER'
     OET_RV_DC_BOOK_LIST = ['TOB','MA1','MA2']
 
     TEMP_BUILD_FOLDER = Path( '../buildingHtmlPages/' )
@@ -97,6 +98,7 @@ class State:
 
     SITE_NAME = 'Open Bible Data'
     SITE_ABBREVIATION = 'OBD'
+    SITE_COPYRIGHT = "copyright © 2023–2026"
 
     # We use a rough logical, then chronological 'book' order
     # For the OT, we keep SA1/SA2, etc. together (as a single document) rather than splitting them chronologically
@@ -139,6 +141,7 @@ class State:
     VERSIONS_WITHOUT_NT = ['UHB','JPS', 'BrLXX','BrTr']
     VERSIONS_WITHOUT_OT = ['BLB','AICNT','TCNT','TNT','Wymth', 'SR-GNT','UGNT','SBL-GNT','TC-GNT']
     VERSIONS_WITH_APOCRYPHA = ( 'OET-RV', 'WEBBE','WEB', 'DRA', 'RV', 'KJB-1769','KJB-1611', 'Wycl', 'BrLXX','BrTr' )
+    ENGLISH_VERSIONS_WITH_MODERNISED_TEXT = ( 'RV', 'KJB-1769','KJB-1611', 'Bshps','Gnva','Cvdl', 'TNT','Wycl' )
 
     NUM_EXTRA_MODES = 7 # Related passages, topics, parallel and interlinear verses, reference and (Tyndale Bible) dictionary, and search
 
@@ -603,8 +606,8 @@ class State:
 
     detailsHtml = {
         'OET': {'about': f'''<p class="about">The (still unfinished) <em>Open English Translation</em> ({OET_VERSION_NUMBER_STRING}) consists of a <em>Readers’ Version</em> and a <em>Literal Version</em> side-by-side.
-You can read a lot more about the design of the <em>OET</em> at <a href="https://OpenEnglishTranslation.Bible/Design/Overview">OpenEnglishTranslation.Bible/Design/Overview</a>.</p>''',
-                'copyright': '<p class="copyright">Copyright © 2010–2025 <a href="https://Freely-Given.org">Freely-Given.org</a>.</p>',
+You can read a lot more about the design of the <em>OET</em> at <a href="https://OpenEnglishTranslation.Bible/Intro/Overview">OpenEnglishTranslation.Bible/Intro/Overview</a>.</p>''',
+                'copyright': '<p class="copyright">Copyright © 2010–2026 <a href="https://Freely-Given.org">Freely-Given.org</a>.</p>',
                 'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
                 'acknowledgements': '''<p class="acknwldg">Thanks to <a href="https://Freely-Given.org/">Freely-Given.org</a> for creating this exciting, radical, new Bible translation which is viewable from <a href="https://OpenEnglishTranslation.Bible/Reader">OpenEnglishTranslation.Bible</a>.
 We are very grateful to Dr. Alan Bunning of the <a href="https://GreekCNTR.org">Center for New Testament Restoration</a> whose many years of hard work the New Testament part of the <em>OET-LV</em> is adapted from.
@@ -613,12 +616,12 @@ We’re also grateful to the <a href="https://www.Biblica.com/clear/">Biblica Cl
 Also, the Bible translation resources created by <a href="https://www.unfoldingWord.org">unfoldingWord</a> have proven very helpful.</p>''' },
         'OET-RV': {'about': '''<p class="about">The (still unfinished) <em>Open English Translation Readers’ Version</em> is a new, modern-English, easy-to-read translation of the Bible.
 You can read a lot more about the design of the <em>OET-RV</em> at <a href="https://OpenEnglishTranslation.Bible/Design/ReadersVersion">OpenEnglishTranslation.Bible/Design/ReadersVersion</a>.</p>''',
-                'copyright': '<p class="copyright">Copyright © 2010–2025 <a href="https://Freely-Given.org">Freely-Given.org</a>.</p>',
+                'copyright': '<p class="copyright">Copyright © 2010–2026 <a href="https://Freely-Given.org">Freely-Given.org</a>.</p>',
                 'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
                 'acknowledgements': '<p class="acknwldg">Thanks to <a href="https://Freely-Given.org/">Freely-Given.org</a> for creating this exciting, new Bible translation which is viewable from <a href="https://OpenEnglishTranslation.Bible/Reader">OpenEnglishTranslation.Bible</a>.</p>' },
         'OET-LV': {'about': '''<p class="about">The (still unfinished) <em>Open English Translation Literal Version</em> is a tool designed to give a look into what was actually written in the original Hebrew or Greek manuscripts.
 You can read a lot more about the design of the <em>OET-LV</em> at <a href="https://OpenEnglishTranslation.Bible/Design/LiteralVersion">OpenEnglishTranslation.Bible/Design/LiteralVersion</a>.</p>''',
-                'copyright': '<p class="copyright">Copyright © 2010–2025 <a href="https://Freely-Given.org">Freely-Given.org</a>.</p>',
+                'copyright': '<p class="copyright">Copyright © 2010–2026 <a href="https://Freely-Given.org">Freely-Given.org</a>.</p>',
                 'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
                 'acknowledgements': '''<p class="acknwldg">Thanks to <a href="https://Freely-Given.org/">Freely-Given.org</a> for creating this exciting, new Bible translation which is viewable from <a href="https://OpenEnglishTranslation.Bible/Reader">OpenEnglishTranslation.Bible</a>.
 We are very grateful to Dr. Alan Bunning of the <a href="https://GreekCNTR.org">Center for New Testament Restoration</a> whose many years of hard work this literal New Testament is adapted from.
@@ -970,10 +973,11 @@ def reorderBooksForOETVersions( givenBookList:list[str] ) -> list[str]:
     """
     fnPrint( DEBUGGING_THIS_MODULE, f"reorderBooksForOETVersions( {type(givenBookList)} ({len(givenBookList)}) {givenBookList} )" )
 
-    newBookList = []
-    for BBB in state.OET_BOOK_ORDER:
-        if BBB in givenBookList:
-            newBookList.append( BBB )
+#     newBookList = []
+#     for BBB in state.OET_BOOK_ORDER:
+#         if BBB in givenBookList:
+#             newBookList.append( BBB )
+    newBookList = [BBB for BBB in state.OET_BOOK_ORDER if BBB in givenBookList]
 
     assert len(newBookList) == len(givenBookList), f"createSitePages.reorderBooksForOETVersions ({len(newBookList)}) {newBookList=} from ({len(givenBookList)}) {givenBookList=} {[BBB for BBB in givenBookList if BBB not in newBookList]}"
     return newBookList

@@ -7,7 +7,7 @@
 #
 # Module handling OpenBibleData createChapterPages functions
 #
-# Copyright (C) 2023-2025 Robert Hunt
+# Copyright (C) 2023-2026 Robert Hunt
 # Author: Robert Hunt <Freely.Given.org+OBD@gmail.com>
 # License: See gpl-3.0.txt
 #
@@ -39,6 +39,7 @@ CHANGELOG:
     2025-01-30 Display book list on chapter pages (was only working on OET)
     2025-02-02 Added ID to clinksPar (at top of page only)
     2025-09-25 Make all SR-GNT verse text into live links to collation pages
+    2026-01-07 Added OET Logo
 """
 from gettext import gettext as _
 from pathlib import Path
@@ -58,10 +59,10 @@ from Bibles import getBibleMapperMaps
 from OETHandlers import livenOETWordLinks, livenOETCompatibleWordLinks, getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
-LAST_MODIFIED_DATE = '2025-12-06' # by RJH
+LAST_MODIFIED_DATE = '2026-01-12' # by RJH
 SHORT_PROGRAM_NAME = "createChapterPages"
 PROGRAM_NAME = "OpenBibleData createChapterPages functions"
-PROGRAM_VERSION = '0.79'
+PROGRAM_VERSION = '0.80'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -87,7 +88,7 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
     # rvBooks = rvBible.books.keys() if 'ALL' in state.booksToLoad[rvBible.abbreviation] else state.booksToLoad[rvBible.abbreviation]
     # lvBooks = lvBible.books.keys() if 'ALL' in state.booksToLoad[lvBible.abbreviation] else state.booksToLoad[lvBible.abbreviation]
     # BBBsToProcess = reorderBooksForOETVersions( [rvKey for rvKey in rvBooks if rvKey in lvBooks] )
-    navBookListParagraph = makeBookNavListParagraph(state.BBBLinks['OET'], 'OET', state)
+    navBookListParagraph = makeBookNavListParagraph(state.BBBLinks['OET'], 'OET', state )
 
     BBBs, filenames = [], []
     for BBB in state.BBBsToProcess['OET']:
@@ -130,7 +131,7 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
                               f'''<a title="Up to {state.BibleNames[rvBible.abbreviation]}" href="{'../'*level}{BibleOrgSysGlobals.makeSafeString(rvBible.abbreviation)}/">↑{rvBible.abbreviation}</a>''' )
             chapterHtml = f'''{top}<!--chapter page-->
 {chapterHtml}
-{makeBottom( level, 'chapter', state )}'''
+{makeBottom( level, rvBible.abbreviation, 'chapter', state )}'''
             assert checkHtml( f'{rvBible.abbreviation} {BBB}', chapterHtml )
             assert not filepath.is_file() # Check that we're not overwriting anything
             with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
@@ -310,7 +311,7 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
                         combinedHtml = f'''{combinedHtml}<div class="chunkRV">{rvSection}</div><!--chunkRV-->
 <div class="chunkLV">{lvChunk}</div><!--chunkLV-->
 '''
-                combinedHtml = f'{removeDuplicateCVids( combinedHtml )}</div><!--RVLVcontainer-->'
+                combinedHtml = f'{removeDuplicateCVids( combinedHtml )}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="15" style="float:right; margin-left:10px;"></a></div><!--RVLVcontainer-->'
 
                 # Handle BibleMapper maps and notes -- the function handles chapters automatically
                 bmmHtml = getBibleMapperMaps( level, BBB, c, None, None, None, rvBible, state ) # Setting verse to None make it look at chapter level
@@ -329,11 +330,12 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
                 chapterHtml = f'''{top}<!--chapter page-->
 {navBookListParagraph}
 {chapterLinksParagraph.replace( 'class="chLst">', 'class="chLst" id="chLst">', 1 )}
+<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-PrimaryLogo-RGB-FullColor.png" alt="OET primary logo" height="100"></a>
 {chapterHtml}
 {combinedHtml}
 {cNav}
 {chapterLinksParagraph}
-{makeBottom( level, 'chapter', state )}'''
+{makeBottom( level, 'OET', 'chapter', state )}'''
                 assert checkHtml( f'OET {BBB}_C{c}', chapterHtml )
                 assert not filepath.is_file() # Check that we're not overwriting anything
                 with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
@@ -363,8 +365,9 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
                                 f'''<a title="Up to {state.BibleNames['OET']}" href="{'../'*level}OET">↑OET</a>''' )
             chapterHtml = f'''{top}<!--chapter page-->
 {chapterLinksParagraph}
+<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-PrimaryLogo-RGB-FullColor.png" alt="OET primary logo" height="100"></a>
 {chapterHtml}
-{makeBottom( level, 'chapter', state )}'''
+{makeBottom( level, 'OET', 'chapter', state )}'''
             assert checkHtml( 'OET', chapterHtml )
             assert not filepath.is_file() # Check that we're not overwriting anything
             with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
@@ -383,9 +386,10 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
                 .replace( '__KEYWORDS__', f'Bible, OET, Open English Translation, chapter, {ourTidyBBB}' ) \
                 .replace( f'''<a title="{state.BibleNames['OET']}" href="{'../'*level}OET">OET</a>''', 'OET' )
         chapterHtml = f'''{top}<!--chapters indexPage-->
+<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-PrimaryLogo-RGB-FullColor.png" alt="OET primary logo" height="100"></a>
 {navBookListParagraph}
-{chapterLinksParagraph}
-{makeBottom( level, 'chapter', state )}'''
+{chapterLinksParagraph}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="15" style="float:right; margin-left:10px;"></a>
+{makeBottom( level, 'OET', 'chapter', state )}'''
         assert checkHtml( 'OETChaptersIndex', chapterHtml )
         assert not filepath.is_file() # Check that we're not overwriting anything
         with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
@@ -403,10 +407,11 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
             .replace( f'''<a title="{state.BibleNames['OET']}" href="{'../'*level}OET/byC">OET</a>''',
                       f'''<a title="{state.BibleNames['OET']}" href="{'../'*level}OET">↑OET</a>''' )
     indexHtml = f'''{top}
+<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-PrimaryLogo-RGB-FullColor.png" alt="OET primary logo" height="100"></a>
 <h1 id="Top">OET chapter pages</h1>
 <h2>Index of books</h2>
-{navBookListParagraph}
-{makeBottom( level, 'chapterIndex', state )}'''
+{navBookListParagraph}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="15" style="float:right; margin-left:10px;"></a>
+{makeBottom( level, 'OET', 'chapterIndex', state )}'''
     assert checkHtml( 'OETBooksIndex', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
@@ -524,9 +529,9 @@ def createChapterPages( level:int, folder:Path, thisBible, state:State ) -> list
                 textHtml = convertUSFMMarkerListToHtml( level, thisBible.abbreviation, (BBB,str(c)), 'chapter', contextList, verseEntryList, basicOnly=False, state=state )
                 # textHtml = livenIORs( BBB, textHtml, numChapters )
                 if thisBible.abbreviation == 'OET-RV':
-                    textHtml = do_OET_RV_HTMLcustomisations( f'ChapterB={BBB}_{C}', textHtml )
+                    textHtml = f'''{do_OET_RV_HTMLcustomisations( f'ChapterB={BBB}_{C}', textHtml )}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="15" style="float:right; margin-left:10px;"></a>'''
                 elif thisBible.abbreviation == 'OET-LV':
-                    textHtml = do_OET_LV_HTMLcustomisations( f'ChapterB={BBB}_{C}', textHtml )
+                    textHtml =f'''{do_OET_LV_HTMLcustomisations( f'ChapterB={BBB}_{C}', textHtml )}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="15" style="float:right; margin-left:10px;"></a>'''
                 elif thisBible.abbreviation == 'LSV':
                     textHtml = do_LSV_HTMLcustomisations( f'ChapterB={BBB}_{C}', textHtml )
                 elif thisBible.abbreviation == 'T4T':
@@ -553,10 +558,10 @@ def createChapterPages( level:int, folder:Path, thisBible, state:State ) -> list
                 chapterHtml = f'''{top}<!--chapter page-->
 {navBookListParagraph}
 {chapterLinksParagraph.replace( 'class="chLst">', 'class="chLst" id="chLst">', 1 )}
-{chapterHtml}
+{f'<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{"../"*level}OET-PrimaryLogo-RGB-FullColor.png" alt="OET primary logo" height="100"></a>\n' if 'OET' in thisBible.abbreviation else ''}{chapterHtml}
 {cNav}
 {chapterLinksParagraph}
-{makeBottom( level, 'chapter', state )}'''
+{makeBottom( level, thisBible.abbreviation, 'chapter', state )}'''
                 assert checkHtml( f'{thisBible.abbreviation} {BBB}_C{C}', chapterHtml )
                 assert not filepath.is_file() # Check that we're not overwriting anything
                 with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
@@ -576,7 +581,7 @@ def createChapterPages( level:int, folder:Path, thisBible, state:State ) -> list
                     .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*level}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}">{thisBible.abbreviation}</a>''', thisBible.abbreviation )
             chapterHtml = f'''{top}<!--chapters indexPage-->
 {chapterLinksParagraph}
-{makeBottom( level, 'chapter', state )}'''
+{makeBottom( level, thisBible.abbreviation, 'chapter', state )}'''
             assert checkHtml( f'{thisBible.abbreviation}  chapter index', chapterHtml )
             assert not filepath.is_file() # Check that we're not overwriting anything
             with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
@@ -604,7 +609,7 @@ def createChapterPages( level:int, folder:Path, thisBible, state:State ) -> list
                               f'''<a title="Up to {state.BibleNames[thisBible.abbreviation]}" href="{'../'*level}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/">↑{thisBible.abbreviation}</a>''' )
             chapterHtml = f'''{top}<!--chapter page-->
 {chapterHtml}
-{makeBottom( level, 'chapter', state )}'''
+{makeBottom( level, thisBible.abbreviation, 'chapter', state )}'''
             assert checkHtml( f'{thisBible.abbreviation} {BBB}', chapterHtml )
             assert not filepath.is_file() # Check that we're not overwriting anything
             with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
@@ -621,10 +626,10 @@ def createChapterPages( level:int, folder:Path, thisBible, state:State ) -> list
             .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*level}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/byC">{thisBible.abbreviation}</a>''',
                       f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*level}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}">↑{thisBible.abbreviation}</a>''' )
     indexHtml = f'''{top}
-<h1 id="Top">{thisBible.abbreviation} chapter pages</h1>
+{f'<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{"../"*level}OET-PrimaryLogo-RGB-FullColor.png" alt="OET primary logo" height="100"></a>\n' if 'OET' in thisBible.abbreviation else ''}<h1 id="Top">{thisBible.abbreviation} chapter pages</h1>
 <h2>Index of books</h2>
 {navBookListParagraph}
-{makeBottom( level, 'chapterIndex', state)}'''
+{makeBottom( level, thisBible.abbreviation, 'chapterIndex', state )}'''
     assert checkHtml( f'{thisBible.abbreviation} book index', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:

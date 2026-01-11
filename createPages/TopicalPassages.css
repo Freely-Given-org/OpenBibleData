@@ -44,6 +44,7 @@ span.NT { color:darkgreen; }
 .NT a { color:inherit; text-decoration:none; }
 /* span.DC { color:orange; font-size:smaller; } */
 /* .DC a { color:inherit; text-decoration:none; } */
+/* span.selectedBook { color:Gainsboro; } */
 
 /* Navs are the ones with arrows */
 /* p.bkNav { text-align:center; font-size:2em; } */
@@ -91,6 +92,8 @@ span.bk { font-style:italic; }
 /* p.sectionHeading + p.alternateHeading { margin-top:-1.2em; } */
 /* p.alt_s1 { margin-top:0.1em; margin-bottom:0; text-align:right; font-size:0.6em; color:silver; font-weight:bold; } */
 /* p.alt_r { margin-top:0.1em; margin-bottom:0; text-align:right; font-size:0.5em; color:silver; } */
+p.SouthernKingdom { color:green; }
+p.BothKingdoms { color:orange; }
 
 /* Inside box */
 div.section {}

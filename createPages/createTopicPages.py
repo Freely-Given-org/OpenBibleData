@@ -7,7 +7,7 @@
 #
 # Module handling OpenBibleData createTopicPages functions
 #
-# Copyright (C) 2024-2025 Robert Hunt
+# Copyright (C) 2024-2026 Robert Hunt
 # Author: Robert Hunt <Freely.Given.org+OBD@gmail.com>
 # License: See gpl-3.0.txt
 #
@@ -34,6 +34,7 @@ CHANGELOG:
     2025-06-27 Fix bug where we were forcing the load of Bible books where not wanted
     2025-09-07 Add Kingdom pages
     2025-10-29 Add an index for kingdom pages
+    2026-01-07 Added OET Logo
 """
 from gettext import gettext as _
 from pathlib import Path
@@ -53,7 +54,7 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
 from OETHandlers import livenOETWordLinks, getOETTidyBBB
 
 
-LAST_MODIFIED_DATE = '2025-10-29' # by RJH
+LAST_MODIFIED_DATE = '2026-01-12' # by RJH
 SHORT_PROGRAM_NAME = "createTopicPages"
 PROGRAM_NAME = "OpenBibleData createTopicPages functions"
 PROGRAM_VERSION = '0.33'
@@ -164,12 +165,14 @@ def createTopicPages( level:int, folder:Path, state:State ) -> bool:
     top = makeTop( level, None, 'topicsIndex', None, state ) \
             .replace( '__TITLE__', f"Topic View{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, topic, topics, topical' )
-    indexHtml = f'''{top}<h1 id="Top">Topic pages</h1>
+    indexHtml = f'''{top}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-PrimaryLogo-RGB-FullColor.png" alt="OET primary logo" height="100"></a>
+<h1 id="Top">Topic pages</h1>
 <p>These pages contain selected passages from the <em>Open English Translation</em> for the given topics. Each page contains the passage from the <em>OET Readers’ Version</em> on the left, with the <em>OET Literal Version</em> on the right. No notes or commentary is included—our aim is simply to conveniently list the passages in one place so that readers can make up their own minds about how the passages should be interpreted.</p>
 <h2>Index of topics</h2>
 <p>\n{'<br>'.join(topicsHtmlsForIndex)}</p>
 <p class="note">Please contact us at <b>Freely</b> dot <b>Given</b> dot <b>org</b> (at) <b>gmail</b> dot <b>com</b> if there’s any topics that you’d like us to add, or any passages that you’d like us to add to any topic page.</p>
-{makeBottom( level, 'topicsIndex', state )}'''
+<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="15" style="float:right; margin-left:10px;"></a>
+{makeBottom( level, None, 'topicsIndex', state )}'''
     assert checkHtml( 'topicsIndex', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
@@ -287,12 +290,14 @@ def createTopicPage( level:int, folder:Path, filename:str, topic:str, refs:list[
             #         f'''<a title="Up to {state.BibleNames[thisRvBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisRvBible.abbreviation)}/">↑{thisRvBible.abbreviation}</a>''' )
     topicHtml = f'''{top}<!--topic page-->
 <p>&lt;<a href="index.htm">Up to topic index page</a>&gt;</p>
+<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-PrimaryLogo-RGB-FullColor.png" alt="OET primary logo" height="100"></a>
 <h1>{topic}</h1>
 <p>This page contains selected passages from the <em>Open English Translation</em> with the passage from the <em>OET Readers’ Version</em> on the left, and the <em>OET Literal Version</em> on the right. Minimal commentary is included (only some headings)—our aim is simply to conveniently list the passages in one place so that our readers can make up their own minds about what the writer of the passage was intending to communicate.</p>
 {removeDuplicateCVids(combinedHtml)}
 <p class="note"><small>Please contact us at <b>Freely</b> dot <b>Given</b> dot <b>org</b> (at) <b>gmail</b> dot <b>com</b> if there’s any passages that you’d like us to add to this topic page, or any passages that need a little bit more context around them. (We encourage our readers to always view things in their context, so we discourage use of the word ‘verse’, especially in sayings like, “This verse says …”.)</small></p>
 <p>&lt;<a href="index.htm">Go to topic index page</a>&gt;</p>
-{makeBottom( level, 'topicPassages', state )}'''
+<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="15" style="float:right; margin-left:10px;"></a>
+{makeBottom( level, None, 'topicPassages', state )}'''
     assert checkHtml( f'{topic} Topic', topicHtml )
     assert '.htm#aC' not in topicHtml and '.htm#bC' not in topicHtml, topicHtml
     assert not filepath.is_file(), f"{filepath=}" # Check that we're not overwriting anything
@@ -367,11 +372,13 @@ def createKingdomPages( level:int, folder:Path, state:State ) -> bool:
                     kingdomHtml = '<hr style="width:50%;margin-left:0;margin-top: 0.3em">'
                 kingdomHtml = f'{kingdomHtml}\n{bmmHtml}'
 
-        html = f'''{top}<div class="{oneWordKingdomName}"><h1 class="{oneWordKingdomName}" id="Top">{kingdomName} details</h1>
+        html = f'''{top}<div class="{oneWordKingdomName}"><a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-PrimaryLogo-RGB-FullColor.png" alt="OET primary logo" height="100"></a>
+<h1 class="{oneWordKingdomName}" id="Top">{kingdomName} details</h1>
 <p class="pageNav">{leftLink} {homeLink} {rightLink}</p>
 {(KINGDOM_INFO_HTML_DICT['Intro']+NEWLINE) if 'kingdom' in kingdomName else ''}{KINGDOM_INFO_HTML_DICT[kingdomName]}
 </div>
-{kingdomHtml if kingdomHtml else ''}{makeBottom( level, 'kingdom', state )}'''
+{kingdomHtml if kingdomHtml else ''}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="15" style="float:right; margin-left:10px;"></a>
+{makeBottom( level, None, 'kingdom', state )}'''
         assert checkHtml( f'{oneWordKingdomName}', html )
         assert not filepath.is_file() # Check that we're not overwriting anything
         with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
@@ -384,9 +391,11 @@ def createKingdomPages( level:int, folder:Path, state:State ) -> bool:
     top = makeTop( level, None, 'kingdom', None, state ) \
             .replace( '__TITLE__', f"Kingdoms index{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', f'Bible, kingdoms, Israel, Judah' )
-    indexHtml = f'''{top}<h1>Index to ‘Kingdom’ pages</h1>
+    indexHtml = f'''{top}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-PrimaryLogo-RGB-FullColor.png" alt="OET primary logo" height="100"></a>
+<h1>Index to ‘Kingdom’ pages</h1>
 <h2>These pages describe the kingdoms after the Israelis entered the ‘promised land’</h2>
-{'\n'.join([f'<div class="{oneWordKingdomName}"><p class="note"><a href="{kFilename}">{kingdomName}</a></p></div>' for kingdomName, oneWordKingdomName, kFilename in indexList])}{makeBottom( level, 'kingdomIndex', state )}'''
+{'\n'.join([f'<div class="{oneWordKingdomName}"><p class="note"><a href="{kFilename}">{kingdomName}</a></p></div>' for kingdomName, oneWordKingdomName, kFilename in indexList])}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="15" style="float:right; margin-left:10px;"></a>
+{makeBottom( level, None, 'kingdomIndex', state )}'''
     assert checkHtml( 'kingdomIndex', html )
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:

@@ -7,7 +7,7 @@
 #
 # Module handling OpenBibleData createSitePages functions
 #
-# Copyright (C) 2023-2025 Robert Hunt
+# Copyright (C) 2023-2026 Robert Hunt
 # Author: Robert Hunt <Freely.Given.org+OBD@gmail.com>
 # License: See gpl-3.0.txt
 #
@@ -68,6 +68,7 @@ CHANGELOG:
     2025-10-29 Move kingdom pages into ref/
     2025-11-04 Fix multiprocessing prelude for Python3.14
     2025-11-16 Don't include un-asked-for OET-RV books (was including all loaded books like for other versions, i.e., all books)
+    2026-01-07 Added OET Logo
 """
 from gettext import gettext as _
 from pathlib import Path
@@ -102,7 +103,7 @@ from html import makeTop, makeViewNavListParagraph, makeBottom, checkHtml
 from spellCheckEnglish import printSpellCheckSummary
 
 
-LAST_MODIFIED_DATE = '2025-11-16' # by RJH
+LAST_MODIFIED_DATE = '2026-01-08' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData (OBD) Create Site Pages"
 PROGRAM_VERSION = '0.99'
@@ -219,7 +220,7 @@ def _createSitePages() -> bool:
             #             state.BBBsToProcess[versionAbbreviation].append( BBB )
             # else: # not selectedVersesOnlyVersions
             if versionAbbreviation not in state.selectedVersesOnlyVersions:
-                state.BBBsToProcess[versionAbbreviation] = state.OET_RV_BOOK_LIST_WITH_FRT if versionAbbreviation=='OET-RV' else thisBible.books.keys()
+                state.BBBsToProcess[versionAbbreviation] = state.OET_RV_BOOK_LIST_WITH_FRT if versionAbbreviation=='OET-RV' else list( thisBible.books.keys() )
                 if 'OET' in versionAbbreviation:
                     state.BBBsToProcess[versionAbbreviation] = reorderBooksForOETVersions( state.BBBsToProcess[versionAbbreviation] )
                 state.BBBLinks[versionAbbreviation] = []
@@ -274,7 +275,7 @@ def _createSitePages() -> bool:
                 filepath = folder.joinpath( 'index.htm' )
                 assert not filepath.is_file() # Check that we're not overwriting anything
                 with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
-                    indexHtmlFile.write( f'''{top}{indexHtml}\n<p class="note"><a href="details.htm">See copyright details.</p>\n{makeBottom( 1, 'site', state )}''' )
+                    indexHtmlFile.write( f'''{top}{indexHtml}\n<p class="note"><a href="details.htm">See copyright details.</p>\n{makeBottom( 1, None, 'site', state )}''' )
                 vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"    {len(indexHtml):,} characters written to {filepath}" )
             else: # these versions should have the full pages
                 if versionAbbreviation == 'TTN': continue # Not actually a Bible version
@@ -315,8 +316,7 @@ def _createSitePages() -> bool:
         vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"NOT GENERATING {'TEST ' if state.TEST_MODE_FLAG else ''}parallel verse pages." )
     elif state.CREATE_PARALLEL_VERSE_PAGES != 'FIRST': have_invalid_value
 
-    if not state.TEST_MODE_FLAG \
-    or not state.REUSE_EXISTING_WORD_PAGES_FLAG:
+    if not state.REUSE_EXISTING_WORD_PAGES_FLAG:
         createKingdomPages( 2, state.TEMP_BUILD_FOLDER.joinpath('ref/Kingdoms/'), state )
         createUBSDictionaryPages( 1, state.TEMP_BUILD_FOLDER.joinpath('UBS/'), state )
         createTyndaleDictPages( 1, state.TEMP_BUILD_FOLDER.joinpath('dct/'), state )
@@ -429,7 +429,6 @@ def _cleanHTMLFolders( folder:Path, state:State ) -> bool:
     try: shutil.rmtree( folder.joinpath( 'tpc/' ) )
     except FileNotFoundError: pass
     if folder == state.TEMP_BUILD_FOLDER \
-    or not state.TEST_MODE_FLAG \
     or not state.REUSE_EXISTING_WORD_PAGES_FLAG: # Leave the existing folders there if we're not rebuilding these reference pages
         try: shutil.rmtree( folder.joinpath( 'ref/' ) )
         except FileNotFoundError: pass
@@ -455,7 +454,8 @@ def _createOETVersionPages( level:int, folder:Path, rvBible, lvBible, state:Stat
     createOETBookPages( level+1, folder.joinpath('byDoc/'), rvBible, lvBible, state )
 
     versionName = state.BibleNames['OET']
-    indexHtml = f'''<h1 id="Top">{versionName}</h1>
+    indexHtml = f'''<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-PrimaryLogo-RGB-FullColor.png" alt="OET primary logo" height="100"></a>
+<h1 id="Top">{versionName}</h1>
 {state.BY_DOCUMENT_HTML_PARAGRAPH}
 {makeViewNavListParagraph( level, 'OET', 'workIndex', state )}
 '''
@@ -473,7 +473,7 @@ def _createOETVersionPages( level:int, folder:Path, rvBible, lvBible, state:Stat
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
         indexHtmlFile.write( f'''{top}{indexHtml}
-{makeBottom( level, 'site', state )}''' )
+{makeBottom( level, None, 'site', state )}''' )
     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"    {len(indexHtml):,} characters written to {filepath}" )
     return True
 # end of createSitePages._createOETVersionPages
@@ -490,7 +490,7 @@ def _createVersionPages( level:int, folder:Path, thisBible, state:State ) -> boo
     createBookPages( level+1, folder.joinpath('byDoc/'), thisBible, state )
 
     versionName = state.BibleNames[thisBible.abbreviation]
-    indexHtml = f'''<h1 id="Top">{versionName}</h1>
+    indexHtml = f'''{f'<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{"../"*level}OET-PrimaryLogo-RGB-FullColor.png" alt="OET primary logo" height="100"></a>\n' if 'OET' in thisBible.abbreviation else ''}<h1 id="Top">{versionName}</h1>
 {state.BY_DOCUMENT_HTML_PARAGRAPH}
 {makeViewNavListParagraph( level, thisBible.abbreviation, 'workIndex', state )}
 '''
@@ -507,7 +507,7 @@ def _createVersionPages( level:int, folder:Path, thisBible, state:State ) -> boo
     filepath = folder.joinpath( 'index.htm' )
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
-        indexHtmlFile.write( f'''{top}{indexHtml}{makeBottom( level, 'site', state )}''' )
+        indexHtmlFile.write( f'''{top}{indexHtml}{makeBottom( level, None, 'site', state )}''' )
     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"    {len(indexHtml):,} characters written to {filepath}" )
     return True
 # end of createSitePages._createVersionPages
@@ -516,7 +516,8 @@ def _createVersionPages( level:int, folder:Path, thisBible, state:State ) -> boo
 def _createOETMissingVersesPage( level:int, buildFolder:Path ) -> bool:
     """
     """
-    textHtml = '''<h1>OET Missing Verse page</h1>
+    textHtml = '''<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-PrimaryLogo-RGB-FullColor.png" alt="OET primary logo" height="100"></a>
+<h1>OET Missing Verse page</h1>
 <p class="note">The <em>Open English Translation Readers’ Version</em> uses the <b>◘</b> symbol
 to indicate places where we intentionally did not include the translation of an <b>entire</b> verse.
 This is not because we’re trying to trying to hide anything that was in the original scriptures,
@@ -559,7 +560,7 @@ especially in the New Testament era where scribes often were not professionals.<
     filepath = buildFolder.joinpath( 'missingVerses.htm' )
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
-        indexHtmlFile.write( f'''{top}{textHtml}{makeBottom( level, 'site', state )}''' )
+        indexHtmlFile.write( f'''{top}{textHtml}{makeBottom( level, None, 'site', state )}''' )
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    {len(textHtml):,} characters written to {filepath}" )
     return True
 # end of createSitePages._createOETMissingVersesPage
@@ -653,7 +654,9 @@ def _createDetailsPages( level:int, buildFolder:Path, state:State ) -> bool:
 '''
 
         if 'OET' in versionAbbreviation:
-            detailsHtml = f'''{detailsHtml}
+            detailsHtml = f'''<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="__LEVEL__OET-PrimaryLogo-RGB-FullColor.png" alt="OET primary logo" height="100"></a>
+{detailsHtml}
+<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="__LEVEL__OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="60" style="float:right; margin-left:15px;"></a>
 <h2>‘Missing’ verses</h2>
 <p class="note">For a list of verses which are not included in the <em>OET</em>, see our <a href="__LEVEL__OET/missingVerses.htm#Top">‘missing’ verses page</a>.</p>
 '''
@@ -666,7 +669,7 @@ def _createDetailsPages( level:int, buildFolder:Path, state:State ) -> bool:
         allDetailsHTML = f'''{allDetailsHTML}{'<hr style="width:45%;margin-left:0;margin-top: 0.3em">' if allDetailsHTML else ''}<h2 id="{versionAbbreviation}">{versionName}</h2>
 {detailsHtml.replace('h2','h3').replace('href="../OET/bySec/','href="OET/bySec/').replace('__LEVEL__','../'*level)}'''
 
-        html = f"{topHtml}{bodyHtml}{makeBottom( level+1, 'details', state )}"
+        html = f"{topHtml}{bodyHtml}{makeBottom( level+1, versionAbbreviation, 'details', state )}"
         assert checkHtml( f'{versionAbbreviation} details', html )
 
         versionFolder = buildFolder.joinpath( f'{versionAbbreviation}/' )
@@ -697,7 +700,7 @@ def _createDetailsPages( level:int, buildFolder:Path, state:State ) -> bool:
 <p class="rem"><small>So far we’ve only had one translation organisation refuse to allow us to display their work on our <a href="par/MRK/C1V1.htm#Top">parallel verse pages</a> (designed to help Bible students and Bible translators compare versions)
 and that is the <a href="https://www.easyenglish.bible/about-easyenglish/">Easy English Bible</a> who twice refused our application (without giving any reason) despite their translation being developed with donations from the public.
 Sadly, this is the current state of the Bible translation world as discussed over at <a href="https://sellingjesus.org/articles/copyright-jesus-command-to-freely-give">SellingJesus.org</a>
-and what we hope to start to change with this <b>free and open <em>Open English Translation</em> development</b>.</small></p>{makeBottom( level, 'AllDetails', state )}'''
+and what we hope to start to change with this <b>free and open <em>Open English Translation</em> development</b>.</small></p>{makeBottom( level, None, 'AllDetails', state )}'''
     assert checkHtml( 'AllDetails', html )
 
     filepath = buildFolder.joinpath( 'AllDetails.htm' )
@@ -733,7 +736,7 @@ def _createSearchPage( level:int, buildFolder:Path, state:State ) -> bool:
   <script src="pagefind/pagefind-ui.js"></script>
 </head>''')
     html = f'''{topHtml}{searchHTML}<p class="note">Search functionality is provided thanks to <a href="https://Pagefind.app/">Pagefind</a>.</p>
-<p class="note"><small>OBD pages last rebuilt: {date.today()} (OET {state.OET_VERSION_NUMBER_STRING})</small></p>{makeBottom( level, 'search', state )}'''
+<p class="note"><small>OBD pages last rebuilt: {date.today()} (OET {state.OET_VERSION_NUMBER_STRING})</small></p>{makeBottom( level, None, 'search', state )}'''
     assert checkHtml( 'Search', html )
 
     filepath = buildFolder.joinpath( 'Search.htm' )
@@ -820,7 +823,7 @@ def _createAboutPage( level:int, buildFolder:Path, state:State ) -> bool:
     html = f'''{topHtml}
 {aboutHTML}
 <p class="note"><small>Last rebuilt: {date.today()} (OET {state.OET_VERSION_NUMBER_STRING})</small></p>
-{makeBottom( level, 'about', state )}'''
+{makeBottom( level, None, 'about', state )}'''
     assert checkHtml( 'About', html )
 
     filepath = buildFolder.joinpath( 'About.htm' )
@@ -853,7 +856,7 @@ def _createNewsPage( level:int, buildFolder:Path, state:State ) -> bool:
                 .replace( '__KEYWORDS__', f'Bible, news, {state.SITE_ABBREVIATION}, {state.SITE_NAME}, OET, OETBible' )
     html = f'''{topHtml}
 {newsHTML}
-{makeBottom( level, 'news', state )}'''
+{makeBottom( level, None, 'news', state )}'''
     assert checkHtml( 'News', html )
 
     filepath = buildFolder.joinpath( 'News.htm' )
@@ -871,7 +874,8 @@ def _createOETKeyPage( level:int, buildFolder:Path, state:State ) -> bool:
     fnPrint( DEBUGGING_THIS_MODULE, f"_createOETKeyPage( {level}, {buildFolder}, {state.BibleVersions} )" )
     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Creating {'TEST ' if state.TEST_MODE_FLAG else ''}OET Key page…" )
 
-    keyHTML = f'''<h1 id="Top">Key to the <em>Open English Translation</em></h1>
+    keyHTML = f'''<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-PrimaryLogo-RGB-FullColor.png" alt="OET primary logo" height="100"></a>
+<h1 id="Top">Key to the <em>Open English Translation</em></h1>
 <p class="note">The <em>Open English Translation of the Bible</em> is not tied to tradition (and especially not to traditional mistakes or misunderstandings) so it has a number of changes from more common Bible translations.</p>
 <p class="note">We also aim to educate our readers better about how our Bibles get to us and we have many different kinds of links on the site, so that’s a second reason why it differs from usual, and hence requires this key to explain some of the features.</p>
 <p class="note">Note that the <em>OET</em> is being drafted with UK spelling and so we favour those editions on this site, but an edition will also be produced in the future with US spellings (plus any necessary wording changes).</p>
@@ -980,7 +984,7 @@ The reason why such verses are not included is usually because the original lang
                 .replace( '__KEYWORDS__', 'Bible, key, OET, OETBible' )
     html = f'''{topHtml}
 {keyHTML}
-{makeBottom( level, 'OETKey', state )}'''
+{makeBottom( level, None, 'OETKey', state )}'''
     assert checkHtml( 'OETKey', html )
 
     filepath = buildFolder.joinpath( 'OETKey.htm' )
@@ -1017,7 +1021,7 @@ def _createMainIndexPage( level, folder:Path, state:State ) -> bool:
 <p class="note">The <b><a href="dct/">Dictionary</a></b> link takes you to the <i>Tyndale Bible Dictionary</i>, with UBS dictionaries also coming...</p>
 <p class="note">The <b><a href="Search.htm">Search</a></b> link allows you to find English words (from a range of versions), or even Greek/Hebrew words, within the Bible text.</p>
 <p class="note"><small>Last rebuilt: {date.today()} (OET {state.OET_VERSION_NUMBER_STRING})</small></p>
-{makeBottom( level, 'TopIndex', state )}'''
+{makeBottom( level, None, 'TopIndex', state )}'''
     assert checkHtml( 'TopIndex', html )
 
     filepath = folder.joinpath( 'index.htm' )
@@ -1042,7 +1046,7 @@ def _createMainIndexPage( level, folder:Path, state:State ) -> bool:
 #         bodyHtml = f'{bodyHtml}<li><b>{versionAbbreviation}</b>: {state.BibleNames[versionAbbreviation]}</li>'
 #     bodyHtml = f'{bodyHtml}</ol>'
 
-#     html += bodyHtml + f'<p class="index"><small>Last rebuilt: {date.today()} (OET {state.OET_VERSION_NUMBER_STRING})</small></p>' + makeBottom( level, 'TopIndex', state )
+#     html += bodyHtml + f'<p class="index"><small>Last rebuilt: {date.today()} (OET {state.OET_VERSION_NUMBER_STRING})</small></p>' + makeBottom( level, None, 'TopIndex', state )
 #     assert checkHtml( 'VersionIndex', html )
 
 #     filepath = folder.joinpath( 'index.htm' )

@@ -40,6 +40,7 @@ span.NT { color:darkgreen; }
 .NT a { text-decoration:none; }
 span.DC { color:orange; font-size:smaller; }
 .DC a { text-decoration:none; }
+span.selectedBook { color:Gainsboro; }
 
 /* Navs are the ones with arrows */
 p.bkNav { text-align:center; font-size:2em; }

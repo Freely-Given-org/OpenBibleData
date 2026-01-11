@@ -7,7 +7,7 @@
 #
 # Module handling OpenBibleData createOETReferencePages functions
 #
-# Copyright (C) 2023-2025 Robert Hunt
+# Copyright (C) 2023-2026 Robert Hunt
 # Author: Robert Hunt <Freely.Given.org+OBD@gmail.com>
 # License: See gpl-3.0.txt
 #
@@ -97,7 +97,7 @@ from html import makeTop, makeBottom, checkHtml
 from OETHandlers import getOETTidyBBB, getOETBookName, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
-LAST_MODIFIED_DATE = '2025-11-15' # by RJH
+LAST_MODIFIED_DATE = '2026-01-08' # by RJH
 SHORT_PROGRAM_NAME = "createOETReferencePages"
 PROGRAM_NAME = "OpenBibleData createOETReferencePages functions"
 PROGRAM_VERSION = '0.90'
@@ -576,7 +576,7 @@ SIMILAR_GLOSS_WORDS_TABLE = [
     (('grain',),('wheat','barley')),
     (('grave',),('Sheol',)),
     (('heart','hearts'),('mind','minds')),
-    (('heaven','heavens'),('sky','skies')),
+    (('heaven','heavens'),('sky','skies','universe')),
     (('holiness',),('purity',)),
     (('house_servant','house_servants'),('servant','servants','attendant','attendants','slave','slaves')),
     (('illuminate','illuminated','illuminating'),('light','enlighten','enlightened','enlightening')),
@@ -631,13 +631,14 @@ SIMILAR_GLOSS_WORDS_TABLE = [
     (('throne','thrones'),('chair','chairs','seat','seats')),
     (('unclean',),('immoral','prohibited','impure','clean')),
     (('united',),('joined_together',)),
+    (('universe',),('world','heavens')),
     (('way','ways'),('path','paths','road','roads')),
     (('week','weeks'),('Sabbath','Sabbaths')),
     (('wealth',),('riches',)),
     (('weep','weeps''weeping','weeped'),('cry','cries','crying','cried','mourn','mourns','mourning','mourned')),
     (('wheat',),('grain','barley')),
     (('whence',),('therefore','accordingly','consequently')),
-    (('world',),('earth','land')),
+    (('world',),('earth','land','universe')),
     (('worldly',),('fleshly',)),
     (('wrath',),('anger','indignation')),
     ]
@@ -753,7 +754,7 @@ def createOETReferencePages( level:int, outputFolderPath:Path, state:State ) -> 
     # Create index page for this folder
     filename = 'index.htm'
     filepath = outputFolderPath.joinpath( filename )
-    top = makeTop( level, None, 'referenceIndex', None, state) \
+    top = makeTop( level, None, 'referenceIndex', None, state ) \
             .replace( '__TITLE__', f"OpenBibleData Reference Contents{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, reference, lists' )
     indexHtml = f'''{top}
@@ -769,7 +770,7 @@ def createOETReferencePages( level:int, outputFolderPath:Path, state:State ) -> 
 <p class="note"><a href="Loc/">Bible locations index</a></p>
 <p class="note"><a href="Kingdoms/">Promised land kingdoms index</a></p>
 <p class="note"><a href="Stats/">Bible statistics</a></p>
-{makeBottom( level, 'referenceIndex', state )}'''
+{makeBottom( level, None, 'referenceIndex', state )}'''
     assert checkHtml( 'referenceIndex', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
@@ -1163,7 +1164,7 @@ def create_Hebrew_word_pages( level:int, outputFolderPath:Path, state:State ) ->
     and not BibleOrgSysGlobals.alreadyMultiprocessing: # Process all the word pages with different threads
         vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Creating {len(state.OETRefData['word_tables'][HebrewWordFileName])-1:,} Hebrew word pages using {BibleOrgSysGlobals.maxProcesses} processes…" )
         vPrint( 'Normal', DEBUGGING_THIS_MODULE, "  NOTE: Outputs (including error and warning messages) from various words may be interspersed." )
-        # parameters = [(level, hh, hebrewWord, columns_string, outputFolderPath, output_filename, state) \
+        # parameters = [(level, hh, hebrewWord, columns_string, outputFolderPath, output_filename, state ) \
         #                                     for hh,columns_string in enumerate( state.OETRefData['word_tables'][HebrewWordFileName][1:], start=1 ) if columns_string]
 
         # print( f"\n{type(state.__dict__)=} {len(state.__dict__)=} {state.__dict__.keys()=}")
@@ -1265,7 +1266,7 @@ def create_Hebrew_word_pages( level:int, outputFolderPath:Path, state:State ) ->
 
     # Create index page for this folder
     filepath = outputFolderPath.joinpath( 'index.htm' )
-    top = makeTop( level, None, 'wordIndex', None, state) \
+    top = makeTop( level, None, 'wordIndex', None, state ) \
             .replace( '__TITLE__', f"Hebrew Words Index{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, Hebrew, words' )
     indexText = ' '.join( wordLinksForIndex )
@@ -1283,7 +1284,7 @@ def create_Hebrew_word_pages( level:int, outputFolderPath:Path, state:State ) ->
 <p class="note"><a href="../Stats/">Bible statistics</a></p>
 <h1 id="Top">Hebrew Words Index</h1>
 <p class="note">{indexText}</p>
-{makeBottom( level, 'wordIndex', state )}'''
+{makeBottom( level, None, 'wordIndex', state )}'''
     assert checkHtml( 'wordIndex', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
@@ -1292,7 +1293,7 @@ def create_Hebrew_word_pages( level:int, outputFolderPath:Path, state:State ) ->
 
     # Create transliterated index page for this folder
     filepath = outputFolderPath.joinpath( 'transIndex.htm' )
-    top = makeTop( level, None, 'wordIndex', None, state) \
+    top = makeTop( level, None, 'wordIndex', None, state ) \
             .replace( '__TITLE__', f"Transliterated Hebrew Words Index{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, Hebrew, words, transliterated' )
     indexText = transliterate_Hebrew( indexText )
@@ -1310,7 +1311,7 @@ def create_Hebrew_word_pages( level:int, outputFolderPath:Path, state:State ) ->
 <p class="note"><a href="../Stats/">Bible statistics</a></p>
 <h1 id="Top">Transliterated Hebrew Words Index</h1>
 <p class="note">{indexText}</p>
-{makeBottom( level, 'wordIndex', state )}'''
+{makeBottom( level, None, 'wordIndex', state )}'''
     assert checkHtml( 'wordIndex', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
@@ -1697,7 +1698,7 @@ f''' <a title="Go to Open Scriptures Hebrew verse page" href="https://hb.OpenS
                     .replace( '__TITLE__', f"Hebrew word ‘{hebrewWord}’{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
                     .replace( '__KEYWORDS__', 'Bible, word' ) \
                     .replace( 'par/"', f'par/{BBB}/C{C}V{V}.htm#Top"' )
-    wordsHtml = f'''{top}{wordsHtml}{keyHtml}{makeBottom( level, 'word', state )}'''
+    wordsHtml = f'''{top}{wordsHtml}{keyHtml}{makeBottom( level, None, 'word', state )}'''
     assert checkHtml( 'HebrewWordPage', wordsHtml )
     filepath = outputFolderPath.joinpath( output_filename )
     assert not filepath.is_file() # Check that we're not overwriting anything
@@ -2087,7 +2088,7 @@ def create_Hebrew_lemma_pages( level:int, outputFolderPath:Path, state:State ) -
         top = makeTop( level, None, 'lemma', None, state ) \
                         .replace( '__TITLE__', f"Hebrew lemma ‘{hebLemma}’{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
                         .replace( '__KEYWORDS__', 'Bible, word' )
-        lemmasHtml = f'''{top}{lemmasHtml}{keyHtml}{makeBottom( level, 'lemma', state )}'''
+        lemmasHtml = f'''{top}{lemmasHtml}{keyHtml}{makeBottom( level, None, 'lemma', state )}'''
         assert checkHtml( 'HebrewLemmaPage', lemmasHtml )
         filepath = outputFolderPath.joinpath( ll_output_filename )
         # assert not filepath.is_file(), f"{ll} {hebLemma=} {transliteratedLemma=} {filepath=}" # Check that we're not overwriting anything
@@ -2104,7 +2105,7 @@ def create_Hebrew_lemma_pages( level:int, outputFolderPath:Path, state:State ) -
     # Create index page for this folder
     filename = 'index.htm'
     filepath = outputFolderPath.joinpath( filename )
-    top = makeTop( level, None, 'lemmaIndex', None, state) \
+    top = makeTop( level, None, 'lemmaIndex', None, state ) \
             .replace( '__TITLE__', f"Hebrew Lemma Index{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, Hebrew, lemmas' )
     indexText = ' '.join( lemmaLinks )
@@ -2122,7 +2123,7 @@ def create_Hebrew_lemma_pages( level:int, outputFolderPath:Path, state:State ) -
 <p class="note"><a href="../Stats/">Bible statistics</a></p>
 <h1 id="Top">Hebrew Lemmas Index</h1>
 <p class="note">{indexText}</p>
-{makeBottom( level, 'lemmaIndex', state )}'''
+{makeBottom( level, None, 'lemmaIndex', state )}'''
     assert checkHtml( 'lemmaIndex', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
@@ -2132,7 +2133,7 @@ def create_Hebrew_lemma_pages( level:int, outputFolderPath:Path, state:State ) -
     # Create transliterated index page for this folder
     filename = 'transIndex.htm'
     filepath = outputFolderPath.joinpath( filename )
-    top = makeTop( level, None, 'lemmaIndex', None, state) \
+    top = makeTop( level, None, 'lemmaIndex', None, state ) \
             .replace( '__TITLE__', f"Transliterated Hebrew Lemma Index{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, Hebrew, lemmas' )
     indexText = transliterate_Hebrew( indexText )
@@ -2150,7 +2151,7 @@ def create_Hebrew_lemma_pages( level:int, outputFolderPath:Path, state:State ) -
 <p class="note"><a href="../Stats/">Bible statistics</a></p>
 <h1 id="Top">Transliterated Hebrew Lemmas Index</h1>
 <p class="note">{indexText}</p>
-{makeBottom( level, 'lemmaIndex', state )}'''
+{makeBottom( level, None, 'lemmaIndex', state )}'''
     assert checkHtml( 'lemmaIndex', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
@@ -2335,8 +2336,8 @@ def create_Greek_word_pages( level:int, outputFolderPath:Path, state:State ) -> 
                         nextN = nN
                         break
             else: nextN = gg+1
-        prevLink = f'<b><a title="Previous word" href="{getGreekWordpageFilename(prevN, state)}#Top">←</a></b> ' if prevN else ''
-        nextLink = f' <b><a title="Next word" href="{getGreekWordpageFilename(nextN, state)}#Top">→</a></b>' if nextN else ''
+        prevLink = f'<b><a title="Previous word" href="{getGreekWordpageFilename(prevN, state )}#Top">←</a></b> ' if prevN else ''
+        nextLink = f' <b><a title="Next word" href="{getGreekWordpageFilename(nextN, state )}#Top">→</a></b>' if nextN else ''
         oetLink = f''' <a title="View whole chapter" href="{'../'*level}OET/byC/{BBB}_C{C}.htm#C{C}">{ourTidyBbbWithNotes}{NARROW_NON_BREAK_SPACE}{C}</a>'''
         parallelLink = f''' <b><a title="View verse in many parallel versions" href="{'../'*level}par/{BBB}/C{C}V{V}.htm#Top">║</a></b>'''
         interlinearLink = f''' <b><a title="View interlinear verse word-by-word" href="{'../'*level}ilr/{BBB}/C{C}V{V}.htm#Top">═</a></b>''' if BBB in state.booksToLoad['OET'] else ''
@@ -2455,7 +2456,7 @@ f''' {translation} <a title="Go to Statistical Restoration Greek page" href=
                                 eTidyBBB = getOETTidyBBB( eBBB )
                                 eTidyBbbb = getOETTidyBBB( eBBB, titleCase=True, allowFourChars=True )
 
-                                eGreekPossibleLink = f'<a title="Go to word page" href="{getGreekWordpageFilename(thisN, state)}#Top">{eGreekWord}</a>' if not state.TEST_MODE_FLAG or state.ALL_TEST_REFERENCE_PAGES_FLAG or eBBB in state.TEST_BOOK_LIST else eGreekWord
+                                eGreekPossibleLink = f'<a title="Go to word page" href="{getGreekWordpageFilename(thisN, state )}#Top">{eGreekWord}</a>' if not state.TEST_MODE_FLAG or state.ALL_TEST_REFERENCE_PAGES_FLAG or eBBB in state.TEST_BOOK_LIST else eGreekWord
                                 eLemmaLink = f'<a title="View Greek root word" href="../GrkLem/{eSRLemma}.htm#Top">{eSRLemma}</a>' if eSRLemma!=SRLemma else ''
                                 eFormattedContextGlossWords = tidyGlossOfGreekWord( formatNTContextSpansOETGlossWords( thisN, state ) )
                                 assert '\\' not in eFormattedContextGlossWords, f"{gg=} {eFormattedContextGlossWords=}"
@@ -2503,7 +2504,7 @@ f''' <a title="Go to Statistical Restoration Greek page" href="https://GreekCN
                         .replace( '__TITLE__', f"Greek word ‘{greekWord}’{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
                         .replace( '__KEYWORDS__', 'Bible, word' ) \
                         .replace( 'par/"', f'par/{BBB}/C{C}V{V}.htm#Top"' )
-        wordsHtml = f'''{top}{wordsHtml}{keyHtml}{makeBottom( level, 'word', state )}'''
+        wordsHtml = f'''{top}{wordsHtml}{keyHtml}{makeBottom( level, None, 'word', state )}'''
         assert checkHtml( 'GreekWordPage', wordsHtml )
         filepath = outputFolderPath.joinpath( output_filename )
         assert not filepath.is_file(), f"{filepath=}" # Check that we're not overwriting anything
@@ -2517,7 +2518,7 @@ f''' <a title="Go to Statistical Restoration Greek page" href="https://GreekCN
     # Create index page for this folder
     filename = 'index.htm'
     filepath = outputFolderPath.joinpath( filename )
-    top = makeTop( level, None, 'wordIndex', None, state) \
+    top = makeTop( level, None, 'wordIndex', None, state ) \
             .replace( '__TITLE__', f"Greek Words Index{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, Greek, words' )
     indexText = ' '.join( wordLinksForIndex )
@@ -2535,7 +2536,7 @@ f''' <a title="Go to Statistical Restoration Greek page" href="https://GreekCN
 <p class="note"><a href="../Stats/">Bible statistics</a></p>
 <h1 id="Top">Greek Words Index</h1>
 <p class="note">{indexText}</p>
-{makeBottom( level, 'wordIndex', state )}'''
+{makeBottom( level, None, 'wordIndex', state )}'''
     assert checkHtml( 'wordIndex', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
@@ -2545,7 +2546,7 @@ f''' <a title="Go to Statistical Restoration Greek page" href="https://GreekCN
     # Create a transliterated index page for this folder
     filename = 'transIndex.htm'
     filepath = outputFolderPath.joinpath( filename )
-    top = makeTop( level, None, 'wordIndex', None, state) \
+    top = makeTop( level, None, 'wordIndex', None, state ) \
             .replace( '__TITLE__', f"Transliterated Greek Words Index{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, Greek, words, transliterated' )
     indexText = transliterate_Greek( indexText )
@@ -2563,7 +2564,7 @@ f''' <a title="Go to Statistical Restoration Greek page" href="https://GreekCN
 <p class="note"><a href="../Stats/">Bible statistics</a></p>
 <h1 id="Top">Transliterated Greek Words Index</h1>
 <p class="note">{indexText}</p>
-{makeBottom( level, 'wordIndex', state )}'''
+{makeBottom( level, None, 'wordIndex', state )}'''
     assert checkHtml( 'wordIndex', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
@@ -2652,7 +2653,7 @@ def create_Greek_lemma_pages( level:int, outputFolderPath:Path, state:State ) ->
         nextLink = f' <b><a title="Next lemma" href="{lemmaList[nextLL]}.htm#Top">→</a></b>' if nextLL else ''
         lemmasHtml = f'''<h1 id="Top">Greek root word <small>(lemma)</small> ‘{grkLemma}’ ({lemma})</h1>
 <p class="pNav">{prevLink}<b>{lemma}</b> <a title="Go to Greek word index" href="index.htm">↑</a>{nextLink}</p>
-<p class="summary">This root form (lemma) ‘{grkLemma}’ is used in {'only one form' if len(grkLemmaFormsList)==1 else f'{len(grkLemmaFormsList):,} different forms'} in the Greek originals: {', '.join([f'<a title="View Greek word form" href="../GrkWrd/{getGreekWordpageFilename(getFirstGreekWordNumber(grk,roleLetter,morph), state)}#Top">{grk}</a> <small>({roleLetter}-{morph[4:] if morph.startswith("....") else morph})</small>' for grk,roleLetter,morph in grkLemmaFormsList])}.</p>
+<p class="summary">This root form (lemma) ‘{grkLemma}’ is used in {'only one form' if len(grkLemmaFormsList)==1 else f'{len(grkLemmaFormsList):,} different forms'} in the Greek originals: {', '.join([f'<a title="View Greek word form" href="../GrkWrd/{getGreekWordpageFilename(getFirstGreekWordNumber(grk,roleLetter,morph), state )}#Top">{grk}</a> <small>({roleLetter}-{morph[4:] if morph.startswith("....") else morph})</small>' for grk,roleLetter,morph in grkLemmaFormsList])}.</p>
 <p class="summary">It is glossed in {'only one way' if len(grkLemmaOETGlossesList)==1 else f'{len(grkLemmaOETGlossesList):,} different ways'}: ‘<b>{tidy_Greek_lemma_gloss("</b>’, ‘<b>".join(grkLemmaOETGlossesList))}</b>’.</p>'''
         if grkLemmaVLTGlossesList != grkLemmaOETGlossesList:
             lemmasHtml = f'''{lemmasHtml}<p class="summary"><small>(In <span title="the forthcoming Verified Literal Translation">the VLT</span>, it was glossed in {'only one way' if len(grkLemmaVLTGlossesList)==1 else f'{len(grkLemmaVLTGlossesList):,} different ways'}: ‘<b>{"</b>’, ‘<b>".join(grkLemmaVLTGlossesList)}</b>’.)</small></p>'''
@@ -2694,7 +2695,7 @@ def create_Greek_lemma_pages( level:int, outputFolderPath:Path, state:State ) ->
                 oOETLink = f'''<a title="View OET {oTidyBBB} text" href="{'../'*level}OET/byC/{oBBB}_C{oC}.htm#C{oC}V{oV}">{oTidyBbbbWithNotes} {oC}:{oV}</a>''' \
                                 if not state.TEST_MODE_FLAG or oBBB in state.preloadedBibles['OET-RV'] \
                                     else f'{oTidyBbbbWithNotes} {oC}:{oV}'
-                oGreekWordLink = f'<a title="Go to word page" href="../GrkWrd/{getGreekWordpageFilename(oN, state)}#Top">{oGreekWord}</a>' if not state.TEST_MODE_FLAG or oBBB in state.preloadedBibles['OET-RV'] else oGreekWord
+                oGreekWordLink = f'<a title="Go to word page" href="../GrkWrd/{getGreekWordpageFilename(oN, state )}#Top">{oGreekWord}</a>' if not state.TEST_MODE_FLAG or oBBB in state.preloadedBibles['OET-RV'] else oGreekWord
                 translation = '<small>(no English gloss here)</small>' if oVLTGlossWords=='-' else f'''‘{tidy_Greek_lemma_gloss(oFormattedContextGlossWords)}’'''
                 lemmaHTML = f'''{lemmaHTML}\n<p class="lemmaLine">{oOETLink} <b>{oGreekWordLink}</b> ({transliterate_Greek(oGreekWord)})''' \
                     f"{f' {CNTR_ROLE_NAME_DICT[oRoleLetter].title()}' if len(oRoleSet)>1 else ''} {oTidyMorphology}" \
@@ -2803,7 +2804,7 @@ def create_Greek_lemma_pages( level:int, outputFolderPath:Path, state:State ) ->
         top = makeTop( level, None, 'lemma', None, state ) \
                         .replace( '__TITLE__', f"Greek lemma ‘{lemma}’{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
                         .replace( '__KEYWORDS__', 'Bible, word' )
-        lemmasHtml = f'''{top}{lemmasHtml}{keyHtml}{makeBottom( level, 'lemma', state )}'''
+        lemmasHtml = f'''{top}{lemmasHtml}{keyHtml}{makeBottom( level, None, 'lemma', state )}'''
         assert checkHtml( f'GreekLemmaPage for {ll} {lemma=}', lemmasHtml )
         filepath = outputFolderPath.joinpath( output_filename )
         assert not filepath.is_file() # Check that we're not overwriting anything
@@ -2816,7 +2817,7 @@ def create_Greek_lemma_pages( level:int, outputFolderPath:Path, state:State ) ->
     # Create index page for this folder
     filename = 'index.htm'
     filepath = outputFolderPath.joinpath( filename )
-    top = makeTop( level, None, 'lemmaIndex', None, state) \
+    top = makeTop( level, None, 'lemmaIndex', None, state ) \
             .replace( '__TITLE__', f"Greek Lemma Index{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, Greek, lemmas' )
     indexText = ' '.join( lemmaLinks )
@@ -2834,7 +2835,7 @@ def create_Greek_lemma_pages( level:int, outputFolderPath:Path, state:State ) ->
 <p class="note"><a href="../Stats/">Bible statistics</a></p>
 <h1 id="Top">Greek Lemmas Index</h1>
 <p class="note">{indexText}</p>
-{makeBottom( level, 'lemmaIndex', state )}'''
+{makeBottom( level, None, 'lemmaIndex', state )}'''
     assert checkHtml( 'lemmaIndex', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
@@ -2844,7 +2845,7 @@ def create_Greek_lemma_pages( level:int, outputFolderPath:Path, state:State ) ->
     # Create transliterated index page for this folder
     filename = 'transIndex.htm'
     filepath = outputFolderPath.joinpath( filename )
-    top = makeTop( level, None, 'lemmaIndex', None, state) \
+    top = makeTop( level, None, 'lemmaIndex', None, state ) \
             .replace( '__TITLE__', f"Transliterated Greek Lemma Index{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, Greek, lemmas, transliterated' )
     indexText = transliterate_Greek( indexText)
@@ -2862,7 +2863,7 @@ def create_Greek_lemma_pages( level:int, outputFolderPath:Path, state:State ) ->
 <p class="note"><a href="../Stats/">Bible statistics</a></p>
 <h1 id="Top">Greek Lemmas Index</h1>
 <p class="note">{indexText}</p>
-{makeBottom( level, 'lemmaIndex', state )}'''
+{makeBottom( level, None, 'lemmaIndex', state )}'''
     assert checkHtml( 'lemmaIndex', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
@@ -2900,7 +2901,7 @@ def create_Hebrew_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:
         output_filename = f'{strongsLetterNumberString}.htm'
         filepath = outputFolderPath.joinpath( output_filename )
 
-        top = makeTop( level, None, 'StrongsPage', None, state) \
+        top = makeTop( level, None, 'StrongsPage', None, state ) \
                 .replace( '__TITLE__', f"Strongs {strongsLetterNumberString}{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
                 .replace( '__KEYWORDS__', 'Strongs, number, {strongsString}, Hebrew' )
 
@@ -2943,7 +2944,7 @@ def create_Hebrew_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:
 <p class="pNav">{prevLink}<b>{strongsLetterNumberString}</b> <a title="Go to Hebrew Strongs index" href="index.htm">↑</a>{nextLink}</p>
 <p>{middle}</p>
 <p>View on <a href="https://BibleHub.com/hebrew/{strongsNumber}.htm">BibleHub</a>.</p>
-{makeBottom( level, 'StrongsPage', state )}'''
+{makeBottom( level, None, 'StrongsPage', state )}'''
         # assert checkHtml( 'StrongsPage', pageHtml )
         with open( filepath, 'wt', encoding='utf-8' ) as html_output_file:
             html_output_file.write( pageHtml )
@@ -2954,7 +2955,7 @@ def create_Hebrew_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:
     # Create index page for this Strongs folder
     filename = 'index.htm'
     filepath = outputFolderPath.joinpath( filename )
-    top = makeTop( level, None, 'StrongsIndex', None, state) \
+    top = makeTop( level, None, 'StrongsIndex', None, state ) \
             .replace( '__TITLE__', f"Strongs Hebrew Index{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, Strongs, Hebrew, index' )
     indexHtml = f'''{top}
@@ -2968,7 +2969,7 @@ def create_Hebrew_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:
 <p class="note"><a href="../Loc/">Bible locations index</a></p>
 <h1 id="Top">Strongs Hebrew Index</h1>
 <ul>{'\n'.join(indexList)}</ul>
-{makeBottom( level, 'StrongsIndex', state )}'''
+{makeBottom( level, None, 'StrongsIndex', state )}'''
     assert checkHtml( 'StrongsIndex', indexHtml )
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
         indexHtmlFile.write( indexHtml )
@@ -3003,7 +3004,7 @@ def create_Greek_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:B
         output_filename = f'{strongsLetterNumberString}.htm'
         filepath = outputFolderPath.joinpath( output_filename )
 
-        top = makeTop( level, None, 'StrongsPage', None, state) \
+        top = makeTop( level, None, 'StrongsPage', None, state ) \
                 .replace( '__TITLE__', f"Strongs {strongsLetterNumberString}{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
                 .replace( '__KEYWORDS__', 'Strongs, number, {strongsString}, Greek' )
 
@@ -3043,7 +3044,7 @@ def create_Greek_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:B
 <p class="pNav">{prevLink}<b>{strongsLetterNumberString}</b> <a title="Go to Greek Strongs index" href="index.htm">↑</a>{nextLink}</p>
 <p>{middle}</p>
 <p>View on <a href="https://BibleHub.com/greek/{strongsNumber}.htm">BibleHub</a>.</p>
-{makeBottom( level, 'StrongsPage', state )}'''
+{makeBottom( level, None, 'StrongsPage', state )}'''
         assert checkHtml( 'StrongsPage', pageHtml )
         with open( filepath, 'wt', encoding='utf-8' ) as html_output_file:
             html_output_file.write( pageHtml )
@@ -3054,7 +3055,7 @@ def create_Greek_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:B
     # Create index page for this Strongs folder
     filename = 'index.htm'
     filepath = outputFolderPath.joinpath( filename )
-    top = makeTop( level, None, 'StrongsIndex', None, state) \
+    top = makeTop( level, None, 'StrongsIndex', None, state ) \
             .replace( '__TITLE__', f"Strongs Greek Index{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, Strongs, Greek, index' )
     indexHtml = f'''{top}
@@ -3068,7 +3069,7 @@ def create_Greek_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:B
 <p class="note"><a href="../Loc/">Bible locations index</a></p>
 <h1 id="Top">Strongs Greek Index</h1>
 <ul>{'\n'.join(indexList)}</ul>
-{makeBottom( level, 'StrongsIndex', state )}'''
+{makeBottom( level, None, 'StrongsIndex', state )}'''
     assert checkHtml( 'StrongsIndex', indexHtml )
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
         indexHtmlFile.write( indexHtml )
@@ -3133,7 +3134,7 @@ def create_person_pages( level:int, outputFolderPath:Path, state:State ) -> int:
 <p class="prevNextLinks">{previousLink} <a title="Go to person index" href="index.htm">↑</a> {nextLink}</p>
 {bodyHtml}
 <p class="thanks"><small>Grateful thanks to <a href="https://Viz.Bible">Viz.Bible</a> for these links and this data.</small></p>
-{makeBottom( level, 'person', state )}'''
+{makeBottom( level, None, 'person', state )}'''
         filepath = outputFolderPath.joinpath( output_filename )
         assert not filepath.is_file() # Check that we're not overwriting anything
         with open( filepath, 'wt', encoding='utf-8' ) as html_output_file:
@@ -3144,7 +3145,7 @@ def create_person_pages( level:int, outputFolderPath:Path, state:State ) -> int:
     # Create index page for this folder
     filename = 'index.htm'
     filepath = outputFolderPath.joinpath( filename )
-    top = makeTop( level, None, 'personIndex', None, state) \
+    top = makeTop( level, None, 'personIndex', None, state ) \
             .replace( '__TITLE__', f"Bible Person Index{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, person, people' )
     indexHtml = f'''{top}
@@ -3160,7 +3161,7 @@ def create_person_pages( level:int, outputFolderPath:Path, state:State ) -> int:
 <p class="note"><a href="../Stats/">Bible statistics</a></p>
 <h1 id="Top">Bible People Index</h1>
 <p class="note">{' '.join(personLinks)}</p>
-{makeBottom( level, 'personIndex', state )}'''
+{makeBottom( level, None, 'personIndex', state )}'''
     assert checkHtml( 'personIndex', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
@@ -3222,7 +3223,7 @@ def create_location_pages( level:int, outputFolderPath:Path, state:State ) -> in
 <p class="prevNextLinks">{previousLink} <a title="Go to locations index" href="index.htm">↑</a> {nextLink}</p>
 {bodyHtml}
 <p class="thanks"><small>Grateful thanks to <a href="https://Viz.Bible">Viz.Bible</a> for these links and this data.</small></p>
-{makeBottom( level, 'location', state )}'''
+{makeBottom( level, None, 'location', state )}'''
         filepath = outputFolderPath.joinpath( output_filename )
         assert not filepath.is_file() # Check that we're not overwriting anything
         with open( filepath, 'wt', encoding='utf-8' ) as html_output_file:
@@ -3233,7 +3234,7 @@ def create_location_pages( level:int, outputFolderPath:Path, state:State ) -> in
     # Create index page for this folder
     filename = 'index.htm'
     filepath = outputFolderPath.joinpath( filename )
-    top = makeTop( level, None, 'locationIndex', None, state) \
+    top = makeTop( level, None, 'locationIndex', None, state ) \
             .replace( '__TITLE__', f"Bible Location Index{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, location, locations, place, places' )
     indexHtml = f'''{top}
@@ -3249,7 +3250,7 @@ def create_location_pages( level:int, outputFolderPath:Path, state:State ) -> in
 <p class="note"><a href="../Stats/">Bible statistics</a></p>
 <h1 id="Top">Bible Locations Index</h1>
 <p class="note">{' '.join(locationLinks)}</p>
-{makeBottom( level, 'locationIndex', state )}'''
+{makeBottom( level, None, 'locationIndex', state )}'''
     assert checkHtml( 'locationIndex', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
@@ -3271,7 +3272,7 @@ def create_statistics_pages( level:int, outputFolderPath:Path, state:State ) -> 
     # Create chapters page
     output_filename = 'Chapters.htm'
     filepath = outputFolderPath.joinpath( output_filename )
-    top = makeTop( level, None, 'statistics', None, state) \
+    top = makeTop( level, None, 'statistics', None, state ) \
             .replace( '__TITLE__', f"Bible Chapters and Verses{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, statistics, number, chapters, verses, percentage' )
     # Do it three times to get the right order for us: OT, DC, NT
@@ -3375,7 +3376,7 @@ def create_statistics_pages( level:int, outputFolderPath:Path, state:State ) -> 
 <h1>Bible Chapters and Verses—With Deuterocanon/Apocrypha</h1>
 <h2>Sorted by number of verses</h2>
 {sortedChaptersHtml}
-{makeBottom( level, 'statisticsIndex', state )}'''
+{makeBottom( level, None, 'statisticsIndex', state )}'''
     assert checkHtml( 'statisticsIndex', pageHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as html_output_file:
@@ -3385,7 +3386,7 @@ def create_statistics_pages( level:int, outputFolderPath:Path, state:State ) -> 
     # Create index page for this folder
     filename = 'index.htm'
     filepath = outputFolderPath.joinpath( filename )
-    top = makeTop( level, None, 'statisticsIndex', None, state) \
+    top = makeTop( level, None, 'statisticsIndex', None, state ) \
             .replace( '__TITLE__', f"Bible Statistics Index{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, statistics, number, chapters, verses' )
     indexHtml = f'''{top}
@@ -3400,7 +3401,7 @@ def create_statistics_pages( level:int, outputFolderPath:Path, state:State ) -> 
 <p class="note"><a href="../Loc/">Bible locations index</a></p>
 <h1 id="Top">Bible Statistics Index</h1>
 <p class="note"><a href="Chapters.htm">Bible chapters and verses</a></p>
-{makeBottom( level, 'statisticsIndex', state )}'''
+{makeBottom( level, None, 'statisticsIndex', state )}'''
     assert checkHtml( 'statisticsIndex', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:

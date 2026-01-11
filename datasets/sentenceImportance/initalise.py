@@ -7,7 +7,7 @@
 #
 # Module handling SentenceImportance initialisation
 #
-# Copyright (C) 2024-2025 Robert Hunt
+# Copyright (C) 2024-2026 Robert Hunt
 # Author: Robert Hunt <Freely.Given.org+OBD@gmail.com>
 # License: See gpl-3.0.txt
 #
@@ -35,6 +35,7 @@ CHANGELOG:
     2025-07-09 Tried to make more allowance for partial verses
     2025-09-11 Find Q footnotes in UHB
     2025-10-13 Find appropriate footnotes in OSHB via OET-LV OT files
+    2026-01-05 Handle a range crossing a chapter boundary (using en-dash –)
 """
 from pathlib import Path
 from csv import  DictReader
@@ -48,15 +49,16 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 import BibleOrgSys.Formats.USFMBible as USFMBible
 import BibleOrgSys.Formats.ESFMBible as ESFMBible
 import BibleOrgSys.Formats.USXXMLBible as USXXMLBible
+from BibleOrgSys.Reference.BibleOrganisationalSystems import BibleOrganisationalSystem
 sys.path.append( '../crossTestamentQuotes/' )
 from load import getIndividualQuotedOTRefs, getIndividualQuotingNTRefs
 
 
 
-LAST_MODIFIED_DATE = '2025-11-30' # by RJH
+LAST_MODIFIED_DATE = '2026-01-10' # by RJH
 SHORT_PROGRAM_NAME = "SentenceImportance_initialisation"
 PROGRAM_NAME = "Sentence Importance initialisation"
-PROGRAM_VERSION = '0.23'
+PROGRAM_VERSION = '0.24'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -85,7 +87,7 @@ vitalImportanceRefsWithRanges = [ # Often in doctrinal statements
     'DEU_4:6', 'DEU_6:4-5', 'DEU_9:4', 'DEU_31:6',
     'PSA_22:1-2','PSA_22:7-18', 'PSA_46:1',
     'PRO_3:5','PRO_3:6',
-    'ISA_53:4-6', 'ISA_55:11',
+    'ISA_9:6-7', 'ISA_52:13–53:12', 'ISA_55:11',
     'JER_29:11',
     'MIC_5:2','MIC_6:8',
     'ZEC_12:10',
@@ -116,9 +118,10 @@ importantRefsWithRanges = [ # Often memorised
     'PSA_51:10',
     'PRO_4:1-7',
     'ECC_8:15',
+    'ISA_2:2-4','ISA_6:1-8','ISA_11:1-12','ISA_41:10',
     'MAT_4:4',
     'LUK_24:27',
-    'JHN_7:16','JHN_16:33',
+    'JHN_1:1-18','JHN_7:16','JHN_16:33','JHN_17:23',
     'ACT_2:42',
     'CO1_10:6-11',
     'ROM_3:19-22','ROM_5:16-21','ROM_15:4','ROM_16:17',
@@ -166,6 +169,7 @@ unclearClarityRefs = [ # Mostly sure what's in the Hebrew or Greek,
         # but not sure what it means, or what the cultural implications were
     'GEN_6:4',
     'EXO_15:25b',
+    'DEU_33:2b','DEU_33:3','DEU_33:6b','DEU_33:8a','DEU_33:12b','DEU_33:15','DEU_33:16',
     'JDG_5:13', 'JDG_13:19b', 'JDG_14:11', 'JDG_15:8a', 'JDG_17:3b',
     'SA1_2:23', 'SA1_17:6b', 'SA1_17:29b',
     'SA2_1:18', 'SA2_5:8', 'SA2_7:19', 'SA2_20:8b', 'SA2_23:5',
@@ -186,9 +190,10 @@ unclearClarityRefs = [ # Mostly sure what's in the Hebrew or Greek,
         'PSA_68:12b','PSA_68:13','PSA_68:15','PSA_68:21b', 'PSA_73:9','PSA_73:10',
         'PSA_92:11', 'PSA_93:3a', 'PSA_105:19','PSA_105:28b','PSA_105:32b', 'PSA_108:9', 'PSA_116:13a',
         'PSA_122:3b', 'PSA_129:4b', 'PSA_141:6',
-    'PRO_2:18',
+    'PRO_2:18','PRO_12:26a','PRO_12:28b','PRO_13:6b',
     'ECC_5:9', 'ECC_10:15',
     'SNG_8:9',
+    'ISA_4:4b','ISA_5:17b','ISA_9:1','ISA_9:20','ISA_10:18','ISA_10:27b','ISA_53:11a',
     'EZE_8:17b', 'EZE_16:24', 'EZE_21:13', 'EZE_24:12', 'EZE_24:17b', 'EZE_26:20b',
     'DAN_8:12','DAN_8:13a','DAN_11:43b',
     'HOS_11:7b',
@@ -210,42 +215,66 @@ textualCriticismRefs = [ # Hebrew or Greek original manuscripts vary
 for ref in textualCriticismRefs:
     assert ref.count( '_' ) == 1, f"textualCriticismRefs {ref=}"
 
-# Handle ranges in some lists
-newList = []
-for entry in vitalImportanceRefsWithRanges:
-    if '-' in entry:
-        BBB,CVV = entry.split( '_' )
-        C,VV = CVV.split( ':' )
-        V1,V2 = VV.split( '-' )
-        for newV in range( int(V1), int(V2)+1 ):
-            newList.append( f'{BBB}_{C}:{newV}' )
-    else: newList.append( entry )
-vitalImportanceRefs = newList
-newList = []
-for entry in importantRefsWithRanges:
-    if '-' in entry:
-        BBB,CVV = entry.split( '_' )
-        C,VV = CVV.split( ':' )
-        V1,V2 = VV.split( '-' )
-        for newV in range( int(V1), int(V2)+1 ):
-            newList.append( f'{BBB}_{C}:{newV}' )
-    else: newList.append( entry )
-importantRefs = newList
+allRefs, vitalImportanceRefs, importantRefs = [], [], []
+def setup():
+    """
+    Docstring for setup
+    """
+    global allRefs, vitalImportanceRefs, importantRefs
+    genericBibleOrganisationalSystem = BibleOrganisationalSystem( 'GENERIC-KJV-ENG' )
 
-# Just do some basic integrity checking
-importanceRefs = vitalImportanceRefs + importantRefs + trivialImportanceRefs
-assert len( set(importanceRefs) ) == len(importanceRefs) # Otherwise there must be a duplicate
-clarityRefs = obscureClarityRefs + unclearClarityRefs
-assert len( set(clarityRefs) ) == len(clarityRefs) # Otherwise there must be a duplicate
-allRefs = importanceRefs + clarityRefs + textualCriticismRefs
-# assert len( set(allRefs) ) == len(allRefs) # Otherwise there must be a duplicate # SIMPLY NOT TRUE -- duplicates expected here
-halfRefs = [ref for ref in allRefs if ref[-1] in 'ab']
-# assert len( set(halfRefs) ) == len(halfRefs) # Otherwise there must be a duplicate # SIMPLY NOT TRUE -- duplicates expected here
-for ref in allRefs:
-    assert 7 <= len(ref) <= 12, f"{ref=}"
-    assert ref.count('_') == 1 and ref.count(':') >= 1, f"{ref=}"
-    # Hopefully the following line is no longer required (2025-07-09)
-    # if ref in halfRefs: assert ref[:-1] not in allRefs, f"Need to fix '{ref[:-1]}' in tables since we also have '{ref}'"
+    # Handle ranges in some lists
+    newList = []
+    for entry in vitalImportanceRefsWithRanges:
+        if '-' in entry:
+            BBB,CVV = entry.split( '_' )
+            C,VV = CVV.split( ':' )
+            V1,V2 = VV.split( '-' )
+            for newV in range( int(V1), int(V2)+1 ):
+                newList.append( f'{BBB}_{C}:{newV}' )
+        elif '–' in entry:
+            ref1,CV2 = entry.split( '–' )
+            BBB,CV1 = ref1.split( '_' )
+            C1,V1 = CV1.split( ':' )
+            assert '_' not in CV2
+            C2,V2 = CV2.split( ':' )
+            numVerses = genericBibleOrganisationalSystem.getNumVerses( BBB, C1 )
+            for newV in range( int(V1), numVerses+1 ):
+                newList.append( f'{BBB}_{C1}:{newV}' )
+            intC1, intC2 = int(C1), int(C2)
+            for newC in range( intC1+1, intC2+1 ):
+                numVerses = genericBibleOrganisationalSystem.getNumVerses( BBB, str(newC) )
+                for newV in range( 1, numVerses+1 ):
+                    newList.append( f'{BBB}_{C1}:{newV}' )
+                    if newC==intC2 and newV==int(V2):
+                        break # Reached the desired verse in the final chapter
+        else: newList.append( entry )
+    vitalImportanceRefs = newList
+    newList = []
+    for entry in importantRefsWithRanges:
+        if '-' in entry:
+            BBB,CVV = entry.split( '_' )
+            C,VV = CVV.split( ':' )
+            V1,V2 = VV.split( '-' )
+            for newV in range( int(V1), int(V2)+1 ):
+                newList.append( f'{BBB}_{C}:{newV}' )
+        else: newList.append( entry )
+    importantRefs = newList
+
+    # Just do some basic integrity checking
+    importanceRefs = vitalImportanceRefs + importantRefs + trivialImportanceRefs
+    assert len( set(importanceRefs) ) == len(importanceRefs) # Otherwise there must be a duplicate
+    clarityRefs = obscureClarityRefs + unclearClarityRefs
+    assert len( set(clarityRefs) ) == len(clarityRefs) # Otherwise there must be a duplicate
+    allRefs = importanceRefs + clarityRefs + textualCriticismRefs
+    # assert len( set(allRefs) ) == len(allRefs) # Otherwise there must be a duplicate # SIMPLY NOT TRUE -- duplicates expected here
+    halfRefs = [ref for ref in allRefs if ref[-1] in 'ab']
+    # assert len( set(halfRefs) ) == len(halfRefs) # Otherwise there must be a duplicate # SIMPLY NOT TRUE -- duplicates expected here
+    for ref in allRefs:
+        assert 7 <= len(ref) <= 12, f"{ref=}"
+        assert ref.count('_') == 1 and ref.count(':') >= 1, f"{ref=}"
+        # Hopefully the following line is no longer required (2025-07-09)
+        # if ref in halfRefs: assert ref[:-1] not in allRefs, f"Need to fix '{ref[:-1]}' in tables since we also have '{ref}'"
 
 
 
@@ -611,6 +640,7 @@ def briefDemo() -> None:
     """
     BibleOrgSysGlobals.introduceProgram( __name__, PROGRAM_NAME_VERSION, LAST_MODIFIED_DATE )
 
+    setup()
     run()
 # end of initialise.briefDemo()
 
@@ -620,6 +650,7 @@ def fullDemo() -> None:
     """
     BibleOrgSysGlobals.introduceProgram( __name__, PROGRAM_NAME_VERSION, LAST_MODIFIED_DATE )
 
+    setup()
     run()
 # end of initialise.fullDemo()
 
