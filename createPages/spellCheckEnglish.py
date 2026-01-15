@@ -181,7 +181,7 @@ INITIAL_BIBLE_WORD_LIST = ['3.0','UTF','USFM', '©', 'CC0',
                     'MAT','MRK','LUK', 'JHN','YHN', 'ACT','ROM','CO1','CO2','GAL','EPH','PHP','COL','TH1','TH2','TI1','TI2','TIT',
                     'PHM','HEB','JAM','PE1','PE2','JN1','JN2','JN3','JDE','REV',
                     'Gen','Exo','Lev','Num','Deu','Chr','Rut','Psa','Psal','Prv','Hos','Zech','Mal',
-                    'Mrk','Luk','Lk','Jhn','Jn','Act','Gal','Eph','Php','Col','Heb','Phm','Rev',
+                    'Matth','Mrk','Luk','Lk','Jhn','Jn','Act','Gal','Eph','Php','Col','Heb','Phm','Rev',
 
                     'v2','v3','v4','v5','v6','v8','v9','v13','v14','v15','v16','v19','v26','v27',
 
@@ -724,7 +724,6 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
             if versionAbbreviation not in ('Luth','ClVg'): # native or modernised English
                 slightlyCleanedText = slightlyCleanedText.replace('<span class="LEB_verseTextChunk">','').replace('<span class="Wycl_verseTextChunk">','')
                 vPrint( 'Normal' if ((versionAbbreviation!='LSV' and word.upper()==word)
-                            or 'xxxReMoV' in word
                             or (word in ('s','heretage','yelde','deme','maden','virtuees','el','aha','drede','yee',
                                    'fortyth','fulness','digged',"'And",'baptized','holden','hous','stedfast','hee',
                                    'schent','knowe','madist','clepe','veyn','hopide','thouyten','redy','spaken','sixtie',
@@ -742,18 +741,21 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                 slightlyCleanedText = slightlyCleanedText.replace('<span class="ClVg_verseTextChunk">','').replace('<div id="footnotesClVg" class="footnotes">\n','')
                 vPrint( 'Normal' if word.upper()==word
                        or word in (
-                                'Rebe','sie','las','have‘s','wellgefiel',
-                                'grouplaken','yellowr','vinekah','las','sie','spreadse','everyonemann','yegliche','beschneiden',
+                                'have‘s','sie','everyonemann','hin','heb',
                                 'angeln','alle','las','gave‘s','elementer','alei','turnedn','resolven',
-                                    'homegesucht','lag','ones)r','chastiset','understandinger','reasonablelich',
-                                    'have‘s','huntedn','armys','setn',
-                                'hin','sixundforty','nineundfünfzigtausend','fourundsiebenzigtausend','fourundfünfzigtausend',
-                                'sevenundfünfzigtausend','fivetausend','hundredundfünzig','das','basinn','aller',
-                                'ledig','beleidigen','stuffst','dayreisen','flüchtig','äußersten','stieß',
+                                    'homegesucht','lag','ones)r','ones)s','chastiset','understandinger','reasonablelich',
+                                    'have‘s','huntedn','setn',
+                                    'hing','victoryel',
+                                'fourundsechzigtausend','aus',
+                                'hear‘s','wes',
+                                'tente','threezehn','hear‘s','wes','womansbilde','soldiersn','fiftyen','hundredmal','sevenunddreißigtausend','sixunddreißigtausend','thirtytausend','peopleseelen',
+                                'togetreten','sheepfoldn','homekehren','presentr','gegossenen',
 
-                                'l','criedt','resurrectio','divina','servi','sed',
-                                'conversatio','contenti','religio','meo','satis',
-                                'caulas','tormentis','victorym','intelligentiam','adversarius','sublimitas','pocketm','fews','dari','ferro','cessabit','putabant','paucos',
+                                'l',
+                                'ros','moretri','hellor','inde','nos','mel','nostri','congregati',
+                                'downur','oneeach','sixcenta',
+                                'keepis','whoseque','divinum','tradentur',
+                                'fixere','falsa','ventre','visus','nominum','advena',
                                 )
                     else 'Info', DEBUGGING_THIS_MODULE, f'''        {word} is suspect @ {location}\nfrom {slightlyCleanedText=}\n  WHICH GAVE {cleanedText=}''' )
             if versionAbbreviation == 'Luth':

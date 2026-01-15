@@ -1042,7 +1042,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                         if versionAbbreviation in ('OET-RV','OET-LV'):
                             # if BBB=='NUM': print( f"{vHtml=}" )
                             assert '</p>' in vHtml[-35:], f"{vHtml=}" # e.g., 'lic.</p>\n</div><!--bookIntro-->'
-                            vHtml = rreplace( vHtml, '</p>', f'<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*BBBLevel}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="15" style="float:right; margin-left:10px;"></a></p>''', 1 )
+                            vHtml = rreplace( vHtml, '</p>', f'<a title="See design specs on OET main site" href="https://OpenEnglishTranslation.Bible/Design/{'Readers' if versionAbbreviation=='OET-RV' else 'Literal'}Version"><img src="{'../'*BBBLevel}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="15" style="float:right; margin-left:10px;"></a></p>''', 1 )
                         assert not parallelHtml.endswith( '\n' )
                         parallelHtml = f"{parallelHtml}{NEWLINE if parallelHtml else ''}{vHtml}"
                         try: assert checkHtml( f'Parallel parallelHtml {versionAbbreviation} {parRef}', parallelHtml, segmentOnly=True )

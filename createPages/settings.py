@@ -64,11 +64,11 @@ class State:
     """
     A place to store some of the global stuff that needs to be passed around.
     """
-    OET_VERSION_NUMBER_STRING = 'v0.46.97' # Incremented on most runs
+    OET_VERSION_NUMBER_STRING = 'v0.46.99' # Incremented on most runs
 
     TEST_MODE_FLAG = True # Writes website into 'Test' subfolder if True
     TEST_OT_BOOK_LIST = ['NUM','PRO','ISA'] # Books in progress
-    TEST_DC_BOOK_LIST = ['TOB'] # Books in progress
+    TEST_DC_BOOK_LIST = ['MAN'] # Books in progress
     TEST_NT_BOOK_LIST = ['MRK'] # Shortest gospel
     NEW_BOOK_IN_TEST_LIST_FLAG = False # So that word pages will get rebuilt for TEST_MODE_FLAG
 

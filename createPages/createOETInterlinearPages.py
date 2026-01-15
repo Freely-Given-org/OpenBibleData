@@ -675,7 +675,7 @@ def createOETInterlinearVerseInner( level:int, BBB:str, c:int, v:int, state:Stat
 {lvHtml.replace( 'id="footnotes', 'id="footnotesLV' ).replace( 'id="crossRefs', 'id="crossRefsLV' ).replace( 'id="fnLV', 'id="fnRvLV' ).replace( 'href="#fnLV', 'href="#fnRvLV' )}
 {rvHtml.replace( 'id="footnotes', 'id="footnotesRV' ).replace( 'id="crossRefs', 'id="crossRefsRV' ).replace( 'id="fnRV', 'id="fnRvRV' ).replace( 'href="#fnRV', 'href="#fnRvRV' )}
 <p class="note"><small><b>Note</b>: The OET-RV is still only a first draft, and so far only a few words have been (mostly automatically) matched to the Hebrew or Greek words that they’re translated from.</small></p>
-<p class="thanks"><b>Acknowledgements</b>: {f'The SR Greek text, lemmas, morphology, and VLT gloss are all thanks to the <a href="https://GreekCNTR.org/collation/index.htm?v={CNTR_BOOK_ID_MAP[BBB]}{C.zfill(3)}{V.zfill(3)}">SR-GNT</a>.</p>' if BibleOrgSysGlobals.loadedBibleBooksCodes.isNewTestament_NR( BBB )
+<p class="thanks"><b>Acknowledgements</b>: {f'The SR Greek text, lemmas, morphology, and VLT gloss are all thanks to the <a href="https://GreekCNTR.org/collation/index.htm?v={CNTR_BOOK_ID_MAP[BBB]}{C.zfill(3)}{V.zfill(3)}">CNTR</a>.</p>' if BibleOrgSysGlobals.loadedBibleBooksCodes.isNewTestament_NR( BBB )
                                        else f'The Hebrew text, lemmas, and morphology are all thanks to the <a href="https://hb.openscriptures.org/">OSHB</a> and some of the glosses are from <a href="https://GitHub.com/Clear-Bible/macula-hebrew">Macula Hebrew</a>.'}'''
     
     # ivHtml = ivHtml.replace( '<br>\n' , '\n<br>' ) # Make sure it follows our convention (just for tidyness and consistency)
