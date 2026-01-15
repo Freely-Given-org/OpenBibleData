@@ -47,7 +47,7 @@ from BibleOrgSys import BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import vPrint, fnPrint, dPrint, rreplace
 
 
-LAST_MODIFIED_DATE = '2026-01-08' # by RJH
+LAST_MODIFIED_DATE = '2026-01-16' # by RJH
 SHORT_PROGRAM_NAME = "spellCheckEnglish"
 PROGRAM_NAME = "English Bible Spell Check"
 PROGRAM_VERSION = '0.57'
@@ -741,17 +741,19 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                 slightlyCleanedText = slightlyCleanedText.replace('<span class="ClVg_verseTextChunk">','').replace('<div id="footnotesClVg" class="footnotes">\n','')
                 vPrint( 'Normal' if word.upper()==word
                        or word in (
-                                'have‘s','sie','everyonemann','hin','heb','have‘s','huntedn','finem','setn','victoryel','gereiniget','worriest','racee','displayn','teilhaftig','severaln','angesehen',
+                                'have‘s','sie','everyonemann','hin','heb','have‘s','huntedn','finem','setn','victoryel','racee','displayn','severaln',
                                 'angeln','alle','las','gave‘s','elementer','alei','turnedn','resolven',
                                     'homegesucht','lag','ones)r','ones)s','chastiset','understandinger','reasonablelich',
                                     'have‘s','hing','victoryel',
-                                'aus','wes',
-                                'granteden','halfe','enemyschaft','lowrt',
+                                'aus','wes','granteden','halfe','enemyschaft','lowrt',
+                                'beautifulr','innocenceigen','stinginessigen','recke','blasphemesen','shoutst',
+                                'learnst','herzest',
 
-                                'l','preces','talia','responderunt','ita','ætatis','carnales','actionne','velle','knowsis','seeksur','outt','supernæ',
+                                'l','actionne','knowsis','seeksur','outt',
                                 'ros','moretri','hellor','inde','nos','congregati',
-                                'keepis','tradentur',
-                                'inventi','carnalia','palma','conversationis','dieantur','cultus',
+                                'tradentur','inventi','carnalia','dieantur',
+                                'wantt','anotherquin',
+                                'adulterium','respondebit','supplicia','corruptione','qualibet','uvas','separationis','dignitas',
                                 )
                     else 'Info', DEBUGGING_THIS_MODULE, f'''        {word} is suspect @ {location}\nfrom {slightlyCleanedText=}\n  WHICH GAVE {cleanedText=}''' )
             if versionAbbreviation == 'Luth':
