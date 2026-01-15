@@ -741,21 +741,17 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                 slightlyCleanedText = slightlyCleanedText.replace('<span class="ClVg_verseTextChunk">','').replace('<div id="footnotesClVg" class="footnotes">\n','')
                 vPrint( 'Normal' if word.upper()==word
                        or word in (
-                                'have‘s','sie','everyonemann','hin','heb',
+                                'have‘s','sie','everyonemann','hin','heb','have‘s','huntedn','finem','setn','victoryel','gereiniget','worriest','racee','displayn','teilhaftig','severaln','angesehen',
                                 'angeln','alle','las','gave‘s','elementer','alei','turnedn','resolven',
                                     'homegesucht','lag','ones)r','ones)s','chastiset','understandinger','reasonablelich',
-                                    'have‘s','huntedn','setn',
-                                    'hing','victoryel',
-                                'fourundsechzigtausend','aus',
-                                'hear‘s','wes',
-                                'tente','threezehn','hear‘s','wes','womansbilde','soldiersn','fiftyen','hundredmal','sevenunddreißigtausend','sixunddreißigtausend','thirtytausend','peopleseelen',
-                                'togetreten','sheepfoldn','homekehren','presentr','gegossenen',
+                                    'have‘s','hing','victoryel',
+                                'aus','wes',
+                                'granteden','halfe','enemyschaft','lowrt',
 
-                                'l',
-                                'ros','moretri','hellor','inde','nos','mel','nostri','congregati',
-                                'downur','oneeach','sixcenta',
-                                'keepis','whoseque','divinum','tradentur',
-                                'fixere','falsa','ventre','visus','nominum','advena',
+                                'l','preces','talia','responderunt','ita','ætatis','carnales','actionne','velle','knowsis','seeksur','outt','supernæ',
+                                'ros','moretri','hellor','inde','nos','congregati',
+                                'keepis','tradentur',
+                                'inventi','carnalia','palma','conversationis','dieantur','cultus',
                                 )
                     else 'Info', DEBUGGING_THIS_MODULE, f'''        {word} is suspect @ {location}\nfrom {slightlyCleanedText=}\n  WHICH GAVE {cleanedText=}''' )
             if versionAbbreviation == 'Luth':
