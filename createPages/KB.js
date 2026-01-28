@@ -72,21 +72,14 @@ var isKeyPressed = {
 function handleChange( direction ) {
     // direction must be "Previous" or "Next"
     let aLink = document.querySelector(`a[title^="${direction} "]`) // Finds next anchor with title BEGINNING WITH the given string
-    // console.log( `${direction} aLink=${aLink}` );
-    // console.log( `aLink type=${typeof aLink}` );
     if (aLink != null) {
         aLinkStr = aLink.getAttribute('href');
-        // console.log( `${direction} aLinkstr=${aLinkStr}` );
-        // console.log( `aLinkStr type=${typeof aLinkStr}` );
         current = window.location.href;
-        // console.log( `Current=${current} ${current.endsWith('#Top')}` );
         // Something was going wrong here (when pages load slowly) and ending up with multiple # parts
-        // if (current.includes('#') && !current.endsWith('#Top')) {
         if ((current.match(/#/g)||[]).length===1 && !current.endsWith('#Top')) {
-            ix = current.indexOf('#');
-            fragment = current.substring(ix);
-            aLinkStr = `{aLinkStr.substring(0, aLinkStr.length-4)}{fragment==="#vsLst"? "top" : fragment}`;
-            // console.log( `aLinkStr=${aLinkStr}` );
+            fragment = current.substring(current.indexOf('#'));
+            // Change # fragment to Top if they use left or right arrows before selecting a chapter or verse
+            aLinkStr = `${aLinkStr.substring(0, aLinkStr.length-4)}${['#chLst', '#vsLst'].includes(fragment)? "#Top" : fragment}`;
             aLink.setAttribute('href', aLinkStr);
         }
         aLink.click();

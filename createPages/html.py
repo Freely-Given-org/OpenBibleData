@@ -95,6 +95,7 @@ CHANGELOG:
     2025-09-09 Allow for 'kingdom' pages
     2025-12-19 Fix bug that displayed ' 2 YHN2 JHN)' etc. (losing the opening parenthesis) in the book navigation line
     2026-01-06 Added NNBSpace after parallelism markers at line beginnings
+    2026-01-19 Added link to https://OET.Bible
 """
 # from gettext import gettext as _
 import logging
@@ -110,7 +111,7 @@ from settings import State, state
 from OETHandlers import getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2026-01-08' # by RJH
+LAST_MODIFIED_DATE = '2026-01-19' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
 PROGRAM_VERSION = '0.99'
@@ -473,7 +474,7 @@ def _makeFooter( level:int, versionAbbreviation:str|None, pageType:str, state:St
 <p class="copyright" id="Bottom"><small><em>{'TEST ' if state.TEST_MODE_FLAG else ''}{state.SITE_NAME}</em> site {state.SITE_COPYRIGHT} <a href="https://Freely-Given.org">Freely-Given.org</a>.
 <br>Python source code for creating these static pages is available <a href="https://GitHub.com/Freely-Given-org/OpenBibleData">on GitHub</a> under an <a href="https://GitHub.com/Freely-Given-org/OpenBibleData/blob/main/LICENSE">open licence</a>.{datetime.now().strftime('<br> (Page created: %Y-%m-%d %H:%M)') if state.TEST_MODE_FLAG else ''}</small></p>
 <p class="copyright"><small>For Bible data copyrights, see the <a href="{'../'*level}AllDetails.htm#Top">details</a> for each displayed Bible version.</small></p>
-{f'''<p class="note"><a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="20"> </a><small>The <em>Open English Translation (OET)</em> main site is at <a href="https://OpenEnglishTranslation.Bible">OpenEnglishTranslation.Bible</a>.</small></p>\n''' if not versionAbbreviation or 'OET' not in versionAbbreviation else ''}</div><!--footer-->"""
+{f'''<p class="note"><a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="20"> </a><small>The <em>Open English Translation (OET)</em> main site is at <a href="https://OET.Bible">OET.Bible</a> or <a href="https://OpenEnglishTranslation.Bible">OpenEnglishTranslation.Bible</a>.</small></p>\n''' if not versionAbbreviation or 'OET' not in versionAbbreviation else ''}</div><!--footer-->"""
     return html
 # end of html._makeFooter
 
