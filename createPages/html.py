@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S uv run
 # -\*- coding: utf-8 -\*-
 # SPDX-FileCopyrightText: © 2023 Robert Hunt <Freely.Given.org+OBD@gmail.com>
 # SPDX-License-Identifier: GPL-3.0-or-later
@@ -96,6 +96,7 @@ CHANGELOG:
     2025-12-19 Fix bug that displayed ' 2 YHN2 JHN)' etc. (losing the opening parenthesis) in the book navigation line
     2026-01-06 Added NNBSpace after parallelism markers at line beginnings
     2026-01-19 Added link to https://OET.Bible
+    2026-02-03 Allow uncertain ellided markings '\\add ?≡'
 """
 # from gettext import gettext as _
 import logging
@@ -111,7 +112,7 @@ from settings import State, state
 from OETHandlers import getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2026-01-19' # by RJH
+LAST_MODIFIED_DATE = '2026-03-06' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
 PROGRAM_VERSION = '0.99'
@@ -474,7 +475,7 @@ def _makeFooter( level:int, versionAbbreviation:str|None, pageType:str, state:St
 <p class="copyright" id="Bottom"><small><em>{'TEST ' if state.TEST_MODE_FLAG else ''}{state.SITE_NAME}</em> site {state.SITE_COPYRIGHT} <a href="https://Freely-Given.org">Freely-Given.org</a>.
 <br>Python source code for creating these static pages is available <a href="https://GitHub.com/Freely-Given-org/OpenBibleData">on GitHub</a> under an <a href="https://GitHub.com/Freely-Given-org/OpenBibleData/blob/main/LICENSE">open licence</a>.{datetime.now().strftime('<br> (Page created: %Y-%m-%d %H:%M)') if state.TEST_MODE_FLAG else ''}</small></p>
 <p class="copyright"><small>For Bible data copyrights, see the <a href="{'../'*level}AllDetails.htm#Top">details</a> for each displayed Bible version.</small></p>
-{f'''<p class="note"><a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="20"> </a><small>The <em>Open English Translation (OET)</em> main site is at <a href="https://OET.Bible">OET.Bible</a> or <a href="https://OpenEnglishTranslation.Bible">OpenEnglishTranslation.Bible</a>.</small></p>\n''' if not versionAbbreviation or 'OET' not in versionAbbreviation else ''}</div><!--footer-->"""
+{f'''<p class="note"><a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="20"> </a><small>The <em>Open English Translation (OET)</em> main site is at <a href="https://OpenEnglishTranslation.Bible">OpenEnglishTranslation.Bible</a> or <a href="https://OET.Bible">OET.Bible</a>.</small></p>\n''' if not versionAbbreviation or 'OET' not in versionAbbreviation else ''}</div><!--footer-->"""
     return html
 # end of html._makeFooter
 
@@ -917,6 +918,14 @@ def checkHtmlForMissingStyles( where:str, htmlToCheck:str ) -> bool:
                     assert elementName not in lsStyleDict[className]
                     lsStyleDict[className].append( elementName )
                     lsStyleDict[f'used_{className}'] = False
+                elif ssLine.startswith( 'img.' ):
+                    elementName = ssLine[:3]
+                    className = ssLine[4:].split( ' ', 1 )[0]
+                    # print( f"    {elementName} {className=}")
+                    assert ' ' not in className and ',' not in className, f"{className=}"
+                    assert elementName not in lsStyleDict[className]
+                    lsStyleDict[className].append( elementName )
+                    lsStyleDict[f'used_{className}'] = False
                 elif ssLine.startswith( '.' ):
                     className = ssLine[1:].split( ' ', 1 )[0]
                     # print( f"    {className=} {ssLine[len(className)+2:]=}")
@@ -985,12 +994,15 @@ def do_OET_RV_HTMLcustomisations( where:str, OET_RV_html:str ) -> str:
     """
     OET-RV is formatted in paragraphs.
 
+    Handle the various OET-RV "/add" fields,
+        plus the parallelism markers in Psalms and other poetry.
+
     See https://OpenEnglishTranslation.Bible/Resources/Formats for descriptions of add subfields.
     """
     # assert '<span class="add">+' not in OET_RV_html # Only expected in OET-LV
     # assert '<span class="add">-' not in OET_RV_html # Only expected in OET-LV # WE ALLOW IT NOW as HYPHEN (not as a special char)
     assert '<span class="add">=' not in OET_RV_html # Only expected in OET-LV
-    assert '<span class="add">?≡' not in OET_RV_html # Doesn't make sense
+    # assert '<span class="add">?≡' not in OET_RV_html # Doesn't make sense -- used in PRO_21:18
     result = (OET_RV_html \
             # Adjust specialised add markers
             .replace( '<span class="add">?<', '<span class="addDirectObject unsure" title="added direct object (less certain)">' )
@@ -1003,6 +1015,7 @@ def do_OET_RV_HTMLcustomisations( where:str, OET_RV_html:str ) -> str:
             .replace( '<span class="add">>', '<span class="addExtra" title="added implied info">' )
             .replace( '<span class="add">?+', '<span class="addArticle unsure" title="added article (less certain)">' )
             .replace( '<span class="add">+', '<span class="addArticle" title="added article">' )
+            .replace( '<span class="add">?≡', '<span class="addElided unsure" title="added elided info (less certain)">' )
             .replace( '<span class="add">≡', '<span class="addElided" title="added elided info">' )
             .replace( '<span class="add">?&', '<span class="addOwner unsure" title="added ‘owner’ (less certain)">' )
             .replace( '<span class="add">&', '<span class="addOwner" title="added ‘owner’">' )

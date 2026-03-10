@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S uv run
 # -\*- coding: utf-8 -\*-
 # SPDX-FileCopyrightText: © 2023 Robert Hunt <Freely.Given.org+OBD@gmail.com>
 # SPDX-License-Identifier: GPL-3.0-or-later
@@ -7,7 +7,7 @@
 #
 # Module handling OpenBibleData Bibles functions
 #
-# Copyright (C) 2023-2025 Robert Hunt
+# Copyright (C) 2023-2026 Robert Hunt
 # Author: Robert Hunt <Freely.Given.org+OBD@gmail.com>
 # License: See gpl-3.0.txt
 #
@@ -82,7 +82,7 @@ import shutil
 from collections import defaultdict
 
 import sys
-sys.path.append( '../../BibleOrgSys/' )
+# sys.path.append( '../../BibleOrgSys/' )
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 import BibleOrgSys.Formats.USFMBible as USFMBible
@@ -101,7 +101,7 @@ from BibleOrgSys.Internals.InternalBibleInternals import InternalBibleEntryList,
 sys.path.append( '../../BibleTransliterations/Python/' )
 from BibleTransliterations import transliterate_Greek, transliterate_Hebrew
 
-from bos_books_codes_py import english_name_to_reference_abbrev_py  # This is the PyO3/Rust module
+# from bos_books_codes_py import english_name_to_reference_abbrev_py  # This is the PyO3/Rust module
 
 from settings import State
 from html import checkHtml
@@ -109,7 +109,7 @@ from OETHandlers import findLVQuote, getBBBFromOETBookName
 from Dict import loadAndIndexUBSGreekDictJSON, loadAndIndexUBSHebrewDictJSON
 
 
-LAST_MODIFIED_DATE = '2025-12-08' # by RJH
+LAST_MODIFIED_DATE = '2026-02-03' # by RJH
 SHORT_PROGRAM_NAME = "Bibles"
 PROGRAM_NAME = "OpenBibleData Bibles handler"
 PROGRAM_VERSION = '0.93'
@@ -174,7 +174,7 @@ def preloadVersions( state:State ) -> int:
                             vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} pickle is obsolete because {somePath.name} is more recent." )
                             break
                     elif versionAbbreviation == 'OET-LV': # This one has the OT and the NT in separate folders
-                        if str(somePath).endswith ('intermediateTexts/auto_edited_OT_ESFM') or str(somePath).endswith ('intermediateTexts/auto_edited_VLT_ESFM'):
+                        if str(somePath).endswith ('derivedTexts/auto_edited_OT_ESFM') or str(somePath).endswith ('derivedTexts/auto_edited_VLT_ESFM'):
                             for someSubPath in somePath.iterdir():
                                 dPrint( 'Never', DEBUGGING_THIS_MODULE, f"Checking file-times in {somePath=} {someSubPath=} {type(someSubPath)=}" )
                                 if someSubPath.is_file() and not str(someSubPath).endswith( state.PICKLE_FILENAME_END ):
@@ -270,7 +270,7 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
     #     thisBible.load()
     #     print( f"{versionAbbreviation} loaded ({len(thisBible.books.keys())}) {thisBible.books.keys()}" )
     if versionAbbreviation in ('SBL-GNT','RP-GNT') \
-    or ('exported' in folderOrFileLocation and folderOrFileLocation.endswith('.tsv')): # Single (BSB) or multiple (SBL-GNT) TSV (possibly .txt) file(s)
+    or (versionAbbreviation in ('BSB',) and folderOrFileLocation.endswith('.tsv')): # Single (BSB) or multiple (SBL-GNT) TSV (possibly .txt) file(s)
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Loading ‘{versionAbbreviation}’ CSV/TSV Bible{' in TEST mode' if state.TEST_MODE_FLAG else ''}…" )
         thisBible = CSVBible.CSVBible( folderOrFileLocation, givenName=versionName,
                                             givenAbbreviation=versionAbbreviation, encoding='utf-8' )
@@ -609,8 +609,8 @@ def loadTyndaleBookIntrosXML( abbrev:str, XML_filepath ) -> dict[str,str]:
                     OSISBkCode, firstC, firstVs = firstRef.split( '.' )
                     if OSISBkCode.endswith('Thes'):
                         OSISBkCode += 's' # TODO: getBBBFromText should handle '1Thes'
-                    # BBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromEnglishText( OSISBkCode )
-                    BBB = english_name_to_reference_abbrev_py( OSISBkCode )
+                    BBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromEnglishText( OSISBkCode )
+                    # BBB = english_name_to_reference_abbrev_py( OSISBkCode )
                     stateCounter += 1
                 elif stateCounter == 2:
                     assert subelement.tag == 'body'
@@ -821,8 +821,8 @@ def fixTyndaleBRefs( abbrev:str, level:int, BBBorArticleName:str, C:str, V:str, 
             assert tC.isdigit()
             tV = getLeadingInt( tV ) # in case there's an a or b or something
             # assert tV.isdigit(), f"'{abbrev}' {level=} {BBBorArticleName} {C}:{V} {tBkCode=} {tC=} {tV=}"
-            # tBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromEnglishText( tBkCode )
-            tBBB = english_name_to_reference_abbrev_py( tBkCode )
+            tBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromEnglishText( tBkCode )
+            # tBBB = english_name_to_reference_abbrev_py( tBkCode )
             if not tBBB:
                 if tBkCode=='Tb': tBBB = 'TOB'
             assert tBBB
@@ -836,8 +836,8 @@ def fixTyndaleBRefs( abbrev:str, level:int, BBBorArticleName:str, C:str, V:str, 
                 tBkCode += 's' # TODO: getBBBFromText should handle '1Thes'
             assert tC.isdigit()
             assert tV.isdigit()
-            # tBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromEnglishText( tBkCode )
-            tBBB = english_name_to_reference_abbrev_py( tBkCode )
+            tBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromEnglishText( tBkCode )
+            # tBBB = english_name_to_reference_abbrev_py( tBkCode )
             if not tBBB:
                 if tBkCode=='Tb': tBBB = 'TOB'
             assert tBBB
@@ -849,8 +849,8 @@ def fixTyndaleBRefs( abbrev:str, level:int, BBBorArticleName:str, C:str, V:str, 
             if tBkCode.endswith('Thes'):
                 tBkCode += 's' # TODO: getBBBFromText should handle '1Thes'
             assert tC.isdigit()
-            # tBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromEnglishText( tBkCode )
-            tBBB = english_name_to_reference_abbrev_py( tBkCode )
+            tBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromEnglishText( tBkCode )
+            # tBBB = english_name_to_reference_abbrev_py( tBkCode )
             if not tBBB:
                 if tBkCode=='Tb': tBBB = 'TOB'
             assert tBBB, f"'{abbrev}' {level=} {BBBorArticleName} {C}:{V} {tBkCode=} {tC=}"
@@ -863,8 +863,8 @@ def fixTyndaleBRefs( abbrev:str, level:int, BBBorArticleName:str, C:str, V:str, 
             assert tC.isdigit()
             tV = getLeadingInt( tV ) # in case there's an a or b or something
             # assert tV.isdigit(), f"'{abbrev}' {level=} {BBBorArticleName} {C}:{V} {tBkCode=} {tC=} {tV=}"
-            # tBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromEnglishText( tBkCode )
-            tBBB = english_name_to_reference_abbrev_py( tBkCode )
+            tBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromEnglishText( tBkCode )
+            # tBBB = english_name_to_reference_abbrev_py( tBkCode )
             if not tBBB:
                 if tBkCode=='Tb': tBBB = 'TOB'
             assert tBBB, f"'{abbrev}' {level=} {BBBorArticleName} {C}:{V} {tBkCode=} {tC=} {tV=}"

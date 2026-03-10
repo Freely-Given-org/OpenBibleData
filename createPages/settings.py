@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S uv run
 # -\*- coding: utf-8 -\*-
 # SPDX-FileCopyrightText: © 2023 Robert Hunt <Freely.Given.org+OBD@gmail.com>
 # SPDX-License-Identifier: GPL-3.0-or-later
@@ -43,6 +43,7 @@ CHANGELOG:
     2025-09-02 Added RP (Byz) GNT
     2025-09-26 Added MSB
     2025-11-13 Added TLB
+    2026-02-05 Added RP-GNT to VERSIONS_WITHOUT_NT
 """
 from pathlib import Path
 
@@ -51,7 +52,7 @@ from BibleOrgSys.BibleOrgSysGlobals import dPrint, fnPrint
 from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39
 
 
-LAST_MODIFIED_DATE = '2026-01-08' # by RJH
+LAST_MODIFIED_DATE = '2026-02-25' # by RJH
 SHORT_PROGRAM_NAME = "settings"
 PROGRAM_NAME = "OpenBibleData (OBD) Settings"
 PROGRAM_VERSION = '0.99'
@@ -64,10 +65,10 @@ class State:
     """
     A place to store some of the global stuff that needs to be passed around.
     """
-    OET_VERSION_NUMBER_STRING = 'v0.47.07' # Incremented on most runs
+    OET_VERSION_NUMBER_STRING = 'v0.47.48' # Incremented on most runs
 
     TEST_MODE_FLAG = True # Writes website into 'Test' subfolder if True
-    TEST_OT_BOOK_LIST = ['NUM','PRO','ISA'] # Books in progress
+    TEST_OT_BOOK_LIST = ['NUM','ISA'] # Books in progress
     TEST_DC_BOOK_LIST = ['MAN'] # Books in progress
     TEST_NT_BOOK_LIST = ['MRK'] # Shortest gospel
     NEW_BOOK_IN_TEST_LIST_FLAG = False # So that word pages will get rebuilt for TEST_MODE_FLAG
@@ -139,7 +140,7 @@ class State:
     ALTERNATIVE_VERSION = 'WEB' # Should be a version with all books present
 
     VERSIONS_WITHOUT_NT = ['UHB','JPS', 'BrLXX','BrTr']
-    VERSIONS_WITHOUT_OT = ['BLB','AICNT','TCNT','TNT','Wymth', 'SR-GNT','UGNT','SBL-GNT','TC-GNT']
+    VERSIONS_WITHOUT_OT = ['BLB','AICNT','TCNT','TNT','Wymth', 'SR-GNT','UGNT','SBL-GNT','RP-GNT','TC-GNT']
     VERSIONS_WITH_APOCRYPHA = ( 'OET-RV', 'WEBBE','WEB', 'DRA', 'RV', 'KJB-1769','KJB-1611', 'Wycl', 'BrLXX','BrTr' )
     ENGLISH_VERSIONS_WITH_MODERNISED_TEXT = ( 'RV', 'KJB-1769','KJB-1611', 'Bshps','Gnva','Cvdl', 'TNT','Wycl' )
 
@@ -232,18 +233,18 @@ class State:
         ## 'Wycl': '../copiedBibles/English/eBible.org/Wycliffe/',
     BibleLocations = {
         'OET-RV': '../../OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/',
-        'OET-LV': '../../OpenEnglishTranslation--OET/intermediateTexts/', # Only .pickle here
-        'OET-LV-OT': '../../OpenEnglishTranslation--OET/intermediateTexts/auto_edited_OT_ESFM/', # No NT here
-        'OET-LV-NT': '../../OpenEnglishTranslation--OET/intermediateTexts/auto_edited_VLT_ESFM/', # No OT here
+        'OET-LV': '../../OpenEnglishTranslation--OET/derivedTexts/', # Only .pickle here
+        'OET-LV-OT': '../../OpenEnglishTranslation--OET/derivedTexts/auto_edited_OT_ESFM/', # No NT here
+        'OET-LV-NT': '../../OpenEnglishTranslation--OET/derivedTexts/auto_edited_VLT_ESFM/', # No OT here
         'SR-GNT': '../../Forked/CNTR-SR/SR usfm/', # We moved these up in the list because they're now compulsory
         'UHB': '../copiedBibles/Original/unfoldingWord.org/UHB/',
         # NOTE: The program will still run if some of these below are commented out or removed
         # (e.g., this can be done quickly for a faster test run)
         'ULT': '../copiedBibles/English/unfoldingWord.org/ULT/',
         'UST': '../copiedBibles/English/unfoldingWord.org/UST/',
-        #'BSB': '../copiedBibles/English/Berean.Bible/BSB/PTX_USFM/',
-        'BSB': '../copiedBibles/English/Berean.Bible/BSB/bsb_tables.exported.modified.tsv',
-        'MSB': ('../copiedBibles/English/Berean.Bible/MSB/','../copiedBibles/English/Berean.Bible/MSB/bsb_tables.exportedOT.modified.tsv','../copiedBibles/English/Berean.Bible/MSB/msb_nt_tables.exported.modified.tsv'),
+        # 'BSB': '../copiedBibles/English/Berean.Bible/BSB/bsb_tables.exported.modified.tsv',
+        'BSB': '../copiedBibles/English/Berean.Bible/BSB/bsb_tables.tsv',
+        'MSB': ('../copiedBibles/English/Berean.Bible/MSB/','../copiedBibles/English/Berean.Bible/MSB/bsb_tables.OT.tsv','../copiedBibles/English/Berean.Bible/MSB/msb_nt_tables.exported.modified.tsv'),
         'BLB': '../copiedBibles/English/Berean.Bible/BLB/blb.modified.txt', # NT only so far
         # However, if they're all commented out, 'assert doneHideablesDiv' will fail in createParallelVersePages.py if not in test mode
         'AICNT': '../copiedBibles/English/AICNT/', # NT only
@@ -427,7 +428,7 @@ class State:
         'JPS': 'EN-UK',
         'Wymth': 'EN-UK',
         'ASV': 'EN-USA', # A stands for American
-        'DRA': 'EN-UK', # A stands for American so why British spelling???
+        'DRA': 'EN-USA', # A stands for American
         'YLT': 'EN-UK',
         'Drby': 'EN-UK',
         'RV': 'EN-UK',
@@ -639,17 +640,17 @@ We’re also grateful to the <a href="https://www.Biblica.com/clear/">Biblica Cl
         'BSB': {'about': '<p class="about">Berean Standard Bible (Version 3, 2025).</p>',
                 'copyright': '<p class="copyright"><a href="https://berean.bible/terms.htm">Public domain</a>.</p>',
                 'licence': '<p class="licence"><a href="https://creativecommons.org/publicdomain/zero/1.0/">CC0</a> licence. All uses are freely permitted.</p>',
-                'acknowledgements': '<p class="acknwldg">Thanks to John Isett and <a href="https://biblehub.com/">BibleHub</a> for the <a href="https://berean.bible/">BSB</a>.</p>',
+                'acknowledgements': '<p class="acknwldg">Thanks to John Isett and <a href="https://BibleHub.com/">BibleHub</a> for the <a href="https://berean.bible/">BSB</a>.</p>',
                 'notes': '<p class="note">According to Dr. Gray Hill, the BSB (originally called ‘The Berean Study Bible’) is intentionally designed <a href="https://www.youtube.com/watch?v=qX-2IMNzUbE">to preserve past traditions</a>. (Full video <a href="https://www.youtube.com/watch?v=hKooIYSq8Ys">here</a>.)</p>' },
         'MSB': {'about': '<p class="about">Majority Standard Bible (September, 2025).</p>',
                 'copyright': '<p class="copyright"><a href="https://berean.bible/terms.htm">Public domain</a>.</p>',
                 'licence': '<p class="licence"><a href="https://creativecommons.org/publicdomain/zero/1.0/">CC0</a> licence. All uses are freely permitted.</p>',
-                'acknowledgements': '<p class="acknwldg">Thanks to John Isett and <a href="https://biblehub.com/">BibleHub</a> for the <a href="https://berean.bible/">MSB</a>.</p>',
+                'acknowledgements': '<p class="acknwldg">Thanks to John Isett and <a href="https://BibleHub.com/">BibleHub</a> for the <a href="https://berean.bible/">MSB</a>.</p>',
                 'notes': '<p class="note">This version has an identical Old Testament to the BSB, but the New Testament has some changes as it follows the ‘majority’ text rather than the critical text (used by the <em>OET</em>) or the ‘received’ text.</p>' },
         'BLB': {'about': '<p class="about">Berean Literal Bible New Testament (2022).</p>',
                 'copyright': '<p class="copyright">Copyright © 2022 by Bible Hub. Used by Permission. All Rights Reserved Worldwide.</p>',
                 'licence': '<p class="licence">The Berean Bible text is <a href="https://berean.bible/terms.htm#Top">free to use</a> in any electronic form to promote the reading, learning, and understanding of the Holy Bible as the Word of God.</p>',
-                'acknowledgements': '<p class="acknwldg">Thanks to <a href="https://biblehub.com/">BibleHub</a> for the <a href="https://berean.bible/">BLB</a>.</p>' },
+                'acknowledgements': '<p class="acknwldg">Thanks to <a href="https://BibleHub.com/">BibleHub</a> for the <a href="https://berean.bible/">BLB</a>.</p>' },
         'AICNT': {'about': '<p class="about">The <a href="https://AICNT.org/">AI Critical New Testament</a> (AICNT) is a critical English edition carefully compiled to indicate the text of the earliest manuscripts in contrast to later changes and in reference to Greek critical editions. The AICNT provides readers with a rich source of vital information and leverages AI (GPT-4) to translate with optimal transparency. See the preface at <a href="https://aicnt.org/preface">AICNT.org/preface</a>. The site <a href="https://GPT.Bible">GPT.Bible</a> offers enhanced search and viewing functionality for exploring the AICNT.</p>',
                 'copyright': '<p class="copyright">Copyright 2023 <a href="https://IntegritySyndicate.com/">Integrity Syndicate</a>.</p>',
                 'licence': '<p class="licence">Copyrighted. Used with permission.</p>',

@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S uv run
 # -\*- coding: utf-8 -\*-
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
@@ -6,7 +6,7 @@
 #
 # Module handling OpenBibleData OETHandlers functions
 #
-# Copyright (C) 2023-2025 Robert Hunt
+# Copyright (C) 2023-2026 Robert Hunt
 # Author: Robert Hunt <Freely.Given.org+OBD@gmail.com>
 # License: See gpl-3.0.txt
 #
@@ -28,9 +28,11 @@ Module handling OETHandlers functions.
 
 getOETTidyBBB( BBB:str, titleCase:bool|None=False, allowFourChars:bool|None=True ) -> str
 getOETBookName( BBB:str ) -> str
+getBBBFromOETBookName( originalBooknameText:str, where:str ) -> str|None
 getHebrewWordpageFilename( rowNum:int, state:State ) -> str
 getGreekWordpageFilename( rowNum:int, state:State ) -> str
 livenOETWordLinks( level, bibleObject:ESFMBible, BBB:str, givenEntryList:InternalBibleEntryList, state:State ) -> InternalBibleEntryList
+livenOETCompatibleWordLinks( level:int, bibleObject:InternalBible, BBB:str, givenEntryList:InternalBibleEntryList, state:State ) -> InternalBibleEntryList
 findLVQuote( level:int, BBB:str, C:str, V:str, occurrenceNumber:int, originalQuote:str, state:State ) -> str (html)
 briefDemo() -> None
 fullDemo() -> None
@@ -46,15 +48,18 @@ CHANGELOG:
     2024-11-14 NFC normalise Hebrew title fields
     2025-01-15 Handle NT morphology fields with middle dot instead of period
     2025-09-18 Add insertChar parameter to getOETTidyBBB
+    2026-02-10 Upgraded to VLT v3
+    2026-03-06 In TEST_MODE, colour unmatched OET-RV words
 """
 import logging
 import re
 import unicodedata
 
 import sys
-sys.path.append( '../../BibleOrgSys/' )
+# sys.path.append( '../../BibleOrgSys/' )
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
+from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_66
 from BibleOrgSys.Internals.InternalBibleInternals import getLeadingInt, InternalBibleEntryList, InternalBibleEntry
 from BibleOrgSys.Internals.InternalBible import InternalBible
 import BibleOrgSys.Formats.ESFMBible as ESFMBible
@@ -62,15 +67,15 @@ import BibleOrgSys.Formats.ESFMBible as ESFMBible
 sys.path.append( '../../BibleTransliterations/Python/' )
 from BibleTransliterations import transliterate_Hebrew, transliterate_Greek
 
-from bos_books_codes_py import english_name_to_reference_abbrev_py  # This is the PyO3/Rust module
+# from bos_books_codes_py import english_name_to_reference_abbrev_py  # This is the PyO3/Rust module
 
 from settings import State
 
 
-LAST_MODIFIED_DATE = '2025-11-20' # by RJH
+LAST_MODIFIED_DATE = '2026-03-07' # by RJH
 SHORT_PROGRAM_NAME = "OETHandlers"
 PROGRAM_NAME = "OpenBibleData OET handler"
-PROGRAM_VERSION = '0.67'
+PROGRAM_VERSION = '0.68'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -187,8 +192,8 @@ def getBBBFromOETBookName( originalBooknameText:str, where:str ) -> str|None:
     try: return OET_BBB_DICT[booknameText]
     except KeyError: pass
 
-    # resultBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromEnglishText( booknameText
-    resultBBB = english_name_to_reference_abbrev_py( booknameText
+    resultBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromEnglishText( booknameText
+    # resultBBB = english_name_to_reference_abbrev_py( booknameText
                     # .replace( 'Yob', 'JOB' ).replace( 'Yochanan', 'JHN' ).replace( 'Yoel', 'JOL' ).replace( 'Yonah', 'JNA' )
                     .replace( 'Yhn', 'JHN' ).replace( 'Yud', 'JDE' )
                     # .replace( '1Yhn', 'JN1' ).replace( '2Yhn', 'JN2' ).replace( '3Yhn', 'JN3' )
@@ -226,8 +231,11 @@ def getGreekWordpageFilename( rowNum:int, state:State ) -> str:
         although notes and segment punctuation are treated differently
             like JN2n1v3n123456.htm
     """
+    # print( f"getGreekWordpageFilename( {rowNum=}, state )" )
+    # print( f"  {state.OETRefData['word_tables']['OET-LV_NT_word_table.tsv'][rowNum]=} ")
     nWordRef = state.OETRefData['word_tables']['OET-LV_NT_word_table.tsv'][rowNum].split( '\t', 1 )[0]
     result = f"{nWordRef.replace('_','c',1).replace(':','v',1)}.htm" # Don't want underlines coz they're used for many other things, and colon might not be legal in filesystem
+    # print( f" Returning {result=}" )
     return result
 # end of createOETReferencePages.getGreekWordpageFilename
 
@@ -248,14 +256,67 @@ def livenOETWordLinks( level:int, bibleObject:ESFMBible, BBB:str, givenEntryList
 
     assert 1 <= level <= 3, f"{level=}"
     assert len(bibleObject.ESFMWordTables) == 2, f"{len(bibleObject.ESFMWordTables)=}"
-    for entry in givenEntryList:
-        if entry.getOriginalText():
-            assert '\\nd \\nd ' not in entry.getOriginalText(), f"Double nd in {bibleObject.abbreviation} {BBB} {entry=}"
+
+
+    if state.TEST_MODE_FLAG and bibleObject.abbreviation=='OET-RV' and BBB in BOOKLIST_66:
+        # Highlight all OET-RV words that DON'T have a word link (otherwise we have to mouse-over them to find out)
+        preprocessedVerseEntryList = InternalBibleEntryList()
+        for entry in givenEntryList:
+            marker, originalText = entry.getMarker(), entry.getOriginalText()
+            # print( f"livenOETWordLinks0 {bibleObject.abbreviation} {level=} {BBB} {marker=} {originalText=}")
+            if originalText and marker in ('v~','p~'):
+                assert '\\nd \\nd ' not in originalText, f"Double nd in {bibleObject.abbreviation} {BBB} {marker=} {originalText=}"
+                # print( f"livenOETWordLinks1 {bibleObject.abbreviation} {level=} {BBB} {marker=} {originalText=}")
+                newWords = []
+                changeMade = inNote = False
+                for n,oWord in enumerate( originalText.replace('—',' —').split() ):
+                    # print( f"     {BBB} {n} original {oWord=} {inNote=}")
+                    if '\\x*' in oWord and not oWord.startswith('\\x*') and not oWord.endswith('\\x*'):
+                        # There's a cross-ref butted up to the left of a word
+                        # TODO: For now we'll take the easy way and just skip it
+                        # print( f"     Skipping {BBB} {n} original {oWord=} {inNote=}")
+                        newWords.append( oWord )
+                        inNote = False
+                        continue
+
+                    if '¦' in oWord or inNote \
+                    or oWord in ('“','”','’', '+','\\x','\\xo','\\xt','\\f','\\fr','(Heb.','—','i.e.,','≈i.e.,','=','◙','…','◘',
+                                 '\\add','\\+add','“\\add','‘\\add','—\\add','(\\add','≈\\add','^\\add','→\\add','i.e.,\\add*',
+                                 '\\bd','\\em','\\+em', '\\fig','\\it', '\\nd','\\+nd','‘\\nd', '\\wj','“\\wj','\\+wj','’\\wj*','—\\wj*','“\\+wj'):
+                        # print( f"             {BBB} {n} {oWord=} {inNote=}")
+                        pass
+                    else:
+                        # print( f"  {n} {oWord=} {inNote=} in {BBB}")
+                        prefix = suffix = ''
+                        for _ in range( 5 ):
+                            for potentialPrefix in ('“','‘','(','[', '—', '≈','*','@','#','&','<','>','^','≡','→','?'):
+                                if oWord.startswith( potentialPrefix ): oWord, prefix = oWord[len(potentialPrefix):], f'{prefix}{potentialPrefix}'
+                            for potentialSuffix in (',','.','?','!','”','’',':',';',')',']',
+                                            '\\add','\\+add','\\add*','\\+add*','\\x','\\x*','\\f','\\f*',
+                                            '\\bd*','\\em*','\\+em*','\\it*','\\nd*','\\+nd*','\\wj*','\\+wj*'):
+                                if oWord.endswith( potentialSuffix ): oWord, suffix = oWord[:-len(potentialSuffix)], f'{potentialSuffix}{suffix}'
+                        # if prefix or suffix: print( f'    {prefix=} {oWord=} {suffix=}' )
+                        if "'" not in oWord and ',' not in oWord and '-' not in oWord and '/' not in oWord and '(' not in oWord \
+                        and not oWord[0].isdigit():
+                            assert oWord.isalpha(), f'{prefix=} {oWord=} {suffix=}'
+                        oWord = f'{prefix}<span class="noLinkYet">{oWord}</span>{suffix}'
+                        # print( f"        Now {oWord=}")
+                        changeMade = True
+                    newWords.append( oWord )
+                    if oWord.endswith( '\\x' ) or oWord.endswith( '\\f' ) or oWord.endswith( '\\fig' ):
+                        inNote = True
+                    elif oWord.endswith( '\\x*' ) or oWord.endswith( '\\f*' ) or oWord.endswith( '\\fig*' ):
+                        inNote = False
+                if changeMade:
+                    newEntry = InternalBibleEntry( entry.getMarker(), entry.getOriginalMarker(), '', '', None, ' '.join(newWords).replace(' —','—') )
+                preprocessedVerseEntryList.append( newEntry if changeMade else entry )
+            else: preprocessedVerseEntryList.append( entry )
+    else: preprocessedVerseEntryList = givenEntryList
 
     # Liven the word links using the BibleOrgSys function
     #   We use unusual word pairs in both templates (we don't actually use titleTemplate as a template)
     #       so that we can easily find them again in the returned InternalBibleEntryList
-    revisedEntryList = bibleObject.livenESFMWordLinks( BBB, givenEntryList, linkTemplate='►{n}◄', titleTemplate='§«OrigWord»§' )[0]
+    revisedEntryList = bibleObject.livenESFMWordLinks( BBB, preprocessedVerseEntryList, linkTemplate='►{n}◄', titleTemplate='§«OrigWord»§' )[0]
     for revisedEntry in givenEntryList:
         if revisedEntry.getOriginalText():
             assert '\\nd \\nd ' not in revisedEntry.getOriginalText()
@@ -275,14 +336,14 @@ def livenOETWordLinks( level:int, bibleObject:ESFMBible, BBB:str, givenEntryList
     # At the same time, add some colourisation
     isNT = BibleOrgSysGlobals.loadedBibleBooksCodes.isNewTestament_NR( BBB )
 
-    updatedVerseList = InternalBibleEntryList()
+    updatedVerseEntryList = InternalBibleEntryList()
     for n, entry in enumerate( revisedEntryList ):
         originalText = entry.getOriginalText()
+        # print( f"livenOETWordLinksA {bibleObject.abbreviation} {level=} {BBB} {n}: {originalText=}")
         if originalText is None or '§' not in originalText:
-            updatedVerseList.append( entry )
+            updatedVerseEntryList.append( entry )
             continue
         # If we get here, we have at least one ESFM wordlink row number in the text
-        # print( f"livenOETWordLinks {level=} {BBB} {n}: {originalText=}")
         searchStartIndex = 0
         transliterationsAdded = colourisationsAdded = 0
         while True:
@@ -316,6 +377,7 @@ def livenOETWordLinks( level:int, bibleObject:ESFMBible, BBB:str, givenEntryList
                 transliteratedWord = transliterate_Greek( greekWord )
 
                 # Do colourisation
+                # NOTE: We have almost identical code in brightenSRGNT() in createParallelVersePages.py
                 if roleLetter == 'V':
                     caseClassName = 'grkVrb'
                 elif extendedStrongs == '37560': # Greek 'οὐ' (ou) 'not'
@@ -422,16 +484,16 @@ def livenOETWordLinks( level:int, bibleObject:ESFMBible, BBB:str, givenEntryList
             # newEntry = InternalBibleEntry( entry.getMarker(), entry.getOriginalMarker(), entry.getAdjustedText(), entry.getCleanText(), entry.getExtras(), originalText )
             # Since we messed up many of the fields, set them to blank/null entries so that the old/wrong/outdated values can't be accidentally used
             newEntry = InternalBibleEntry( entry.getMarker(), entry.getOriginalMarker(), '', '', None, originalText )
-            updatedVerseList.append( newEntry )
+            updatedVerseEntryList.append( newEntry )
         else:
             logging.critical( f"ESFMBible.livenESFMWordLinks unable to find wordlink title in '{originalText}'" )
-            updatedVerseList.append( entry )
+            updatedVerseEntryList.append( entry )
             halt
 
-    for updatedEntry in updatedVerseList:
-        if updatedEntry.getOriginalText():
-            assert '\\nd \\nd ' not in updatedEntry.getOriginalText()
-    return updatedVerseList
+    # for updatedEntry in updatedVerseEntryList:
+    #     if updatedEntry.getOriginalText():
+    #         assert '\\nd \\nd ' not in updatedEntry.getOriginalText()
+    return updatedVerseEntryList
 # end of OETHandlers.livenOETWordLinks function
 
 
@@ -476,11 +538,11 @@ def livenOETCompatibleWordLinks( level:int, bibleObject:InternalBible, BBB:str, 
             if self.ESFMWordTables[wordFileName] is None:
                 self.loadESFMWordFile( wordFileName )
 
-        updatedVerseList = InternalBibleEntryList()
+        updatedVerseEntryList = InternalBibleEntryList()
         for entry in verseList:
             originalText = entry.getOriginalText()
             if originalText is None or '¦' not in originalText:
-                updatedVerseList.append( entry )
+                updatedVerseEntryList.append( entry )
                 continue
             # If we get here, we have at least one ESFM wordlink row number in the text
             # print( f"{n}: '{originalText}'")
@@ -517,12 +579,12 @@ def livenOETCompatibleWordLinks( level:int, bibleObject:InternalBible, BBB:str, 
                 # newEntry = InternalBibleEntry( entry.getMarker(), entry.getOriginalMarker(), entry.getAdjustedText(), entry.getCleanText(), entry.getExtras(), originalText )
                 # Since we messed up many of the fields, set them to blank/null entries so that the old/wrong/outdated values can't be accidentally used
                 newEntry = InternalBibleEntry( entry.getMarker(), entry.getOriginalMarker(), '', '', None, originalText )
-                updatedVerseList.append( newEntry )
+                updatedVerseEntryList.append( newEntry )
             else:
                 logging.critical( f"ESFMBible.livenESFMWordLinks unable to find wordlink in '{originalText}'" )
-                updatedVerseList.append( entry )
+                updatedVerseEntryList.append( entry )
 
-        return updatedVerseList, self.ESFMWordTables[wordFileName] if wordFileName else None
+        return updatedVerseEntryList, self.ESFMWordTables[wordFileName] if wordFileName else None
     # end of ESFMBible.livenESFMCompatibleWordLinks
 
     # Liven the word links using the BibleOrgSys function
@@ -575,6 +637,7 @@ def livenOETCompatibleWordLinks( level:int, bibleObject:InternalBible, BBB:str, 
 
             if isNT:
                 # Put in the correct word link
+                # NOTE: We have almost identical code in brightenSRGNT() in createParallelVersePages.py
                 originalText = f'''{originalText[:hrefMatch.start()]}="{'../'*level}ref/GrkWrd/{getGreekWordpageFilename(wordNumber,state)}#Top"{originalText[hrefMatch.end():]}'''
                 # print( f"livenOETCompatibleWordLinks( {BBB} ) NT now {originalText=}" )
 
@@ -701,9 +764,9 @@ def livenOETCompatibleWordLinks( level:int, bibleObject:InternalBible, BBB:str, 
             updatedVerseList.append( entry )
             halt
 
-    for updatedEntry in updatedVerseList:
-        if updatedEntry.getOriginalText():
-            assert '\\nd \\nd ' not in updatedEntry.getOriginalText()
+    # for updatedEntry in updatedVerseList:
+    #     if updatedEntry.getOriginalText():
+    #         assert '\\nd \\nd ' not in updatedEntry.getOriginalText()
     return updatedVerseList
 # end of OETHandlers.livenOETCompatibleWordLinks function
 
@@ -826,9 +889,9 @@ def findLVQuote( level:int, BBB:str, C:str, V:str, occurrenceNumber:int, origina
                 #  0    1          2        3           4              5              6          7            8           9     10          11
                 # 'Ref\tGreekWord\tSRLemma\tGreekLemma\tVLTGlossWords\tOETGlossWords\tGlossCaps\tProbability\tStrongsExt\tRole\tMorphology\tTags'
                 # assert rowStr.startswith( f'{ref}w' ), f"{ref} {rowStr=}"
-                if not row[7]: # This Greek word is not in the GNT text
+                if row[7] != 'X': # This Greek word is not in the GNT text
                     continue
-                assert int(row[7]), f"{ref} {row=}"
+                # assert int(row[7]), f"{ref} {row=}"
 
                 # NOTE: We have to replace MODIFIER LETTER APOSTROPHE with RIGHT SINGLE QUOTATION MARK to match correctly
                 if row[1].replace('ʼ','’') == olWord: # we have a Greek word match
@@ -885,9 +948,9 @@ def findLVQuote( level:int, BBB:str, C:str, V:str, occurrenceNumber:int, origina
                     break
                 row = rowStr.split( '\t' )
                 if NT:
-                    if not row[7]: # probability: This Greek word is not in the GNT text
+                    if row[7] != 'X': # SR/probability: This Greek word is not in the GNT text
                         continue
-                    assert int(row[7]), f"{row=}"
+                    # assert int(row[7]), f"{row=}"
                     if matchStart == -wordNumber:
                         matchStart = len(ourWords) # Convert to index of these words
                     ourWords.append( row[1] )

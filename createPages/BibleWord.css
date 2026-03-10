@@ -51,7 +51,7 @@ span.ndORD { font-size:.75em; text-decoration:overline; text-decoration-style:da
 
 /* OET add spans */
 span.addArticle { color:bisque; }
-span.addExtra { color:lightGreen; }
+span.addExtra { color:green; }
 span.add { color:grey; }
 span.untr { font-size:0.8em; color:grey; text-decoration:line-through; }
 

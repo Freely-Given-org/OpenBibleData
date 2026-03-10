@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S uv run
 # -\*- coding: utf-8 -\*-
 # SPDX-FileCopyrightText: © 2023 Robert Hunt <Freely.Given.org+OBD@gmail.com>
 # SPDX-License-Identifier: GPL-3.0-or-later
@@ -77,7 +77,8 @@ CHANGELOG:
     2025-09-05 Record possible unmatched proper names
     2025-09-26 Added MSB (with comparison to BSB)
     2025-12-15 Get parallel book header line displaying all available books (not just OET-RV ones), grey out currently selected book
-    2025-01-10 Add OET logo
+    2026-01-10 Add OET logo
+    2026-02-05 Fixing OET-LV missing verses link
 """
 from pathlib import Path
 import os
@@ -110,7 +111,7 @@ from OETHandlers import getOETTidyBBB, getOETBookName, livenOETWordLinks, livenO
 from spellCheckEnglish import spellCheckAndMarkHTMLText
 
 
-LAST_MODIFIED_DATE = '2026-01-11' # by RJH
+LAST_MODIFIED_DATE = '2026-03-06' # by RJH
 SHORT_PROGRAM_NAME = "createParallelVersePages"
 PROGRAM_NAME = "OpenBibleData createParallelVersePages functions"
 PROGRAM_VERSION = '0.99'
@@ -472,42 +473,39 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                 # assert textHtml.count('<span class="ul">_</span>HNcbsa') < 2, f'''Here2 ({textHtml.count('<span class="ul">_</span>HNcbsa')}) {textHtml=}'''
                                 # if BBB=='MRK' and C=='7' and V=='16': print( f"DDD {parRef} {versionAbbreviation} {textHtml=}" )
                             elif versionAbbreviation == 'BSB': # assuming BSB comes BEFORE MSB
-                                adjustedTextHtmlBSB = ( textHtml
-                                                    .replace(' ¶ ','')
-                                                    .replace(' § ','')
-                                                    .replace(' ⇔ ','')
-                                                    .replace('&nbsp;<span class="li1">• </span>','')
-                                                    .replace('&nbsp;&nbsp;<span class="li2">• </span>','')
-                                                    .replace('</span><br><span class="BSB_verseTextChunk">', '')
-                                                    .replace( 'BSB', 'MSB' )
-                                                    ) # Save it
+                                textHtmlBSB = textHtml
                                 footnotesHtmlSaved = footnotesHtml # Save it for later comparison
                                 if state.DO_SPELL_CHECKS_FLAG:
                                     textHtml = spellCheckAndMarkHTMLText( versionAbbreviation, parRef, textHtml, textHtml, state ) # Puts spans around mispellings
-                            elif versionAbbreviation == 'MSB': # assuming BSB comes BEFORE MSB
-                                if textHtml and textHtml.replace(' ⇔ ','') == adjustedTextHtmlBSB:
+                            elif versionAbbreviation == 'MSB' and textHtml: # assuming BSB comes BEFORE MSB
+                                if textHtml.replace( 'MSB', '' ) == textHtmlBSB.replace( 'BSB', '' ):
                                     # print( f"Skipping parallel for MSB {parRef} because same as BSB" )
                                     textHtml = "(Same as <small>BSB</small> above)" # Do we also need to adjust footnotesHtml ???
-                                # if parRef == 'PRO_4:9': print( f"{parRef}\n{adjustedTextHtmlBSB=}\n           {textHtml=}" ); halt
-                                else: # Try to highlight the first difference (that's not inside a footnote caller)
+                                # if parRef == 'NUM_25:8': print( f"{parRef}\n{adjustedTextHtmlBSB=}\n           {textHtml=}" ); halt
+                                else: # MSB is different -- try to highlight the first difference (that's not inside a footnote caller)
                                     anchorIx = textHtml.find( '<a title=' )
                                     fnCallerIx = textHtml.find( '<span class="fnCaller">' )
-                                    for zz1, (msbChar,bsbChar) in enumerate( zip( textHtml, adjustedTextHtmlBSB ) ):
+                                    insideSpan = 0
+                                    for zz1, (msbChar,bsbChar) in enumerate( zip( textHtml, textHtmlBSB ) ):
                                         if fnCallerIx!=-1 and zz1 >= fnCallerIx:
                                             break # Too hard -- don't bother marking anything more here in this verse
                                         if anchorIx!=-1 and zz1 >= anchorIx: # TODO: Because we now add word links, this will likely effectively make the MSB/BSB comparison useless???
                                             break # Too hard -- don't bother marking anything more here in this verse
+                                        if msbChar == '<': # Could be inside </span> or something like a footnote caller
+                                            insideSpan += 1
+                                            # break # Too hard -- don't bother marking anything here in this verse
+                                        elif msbChar == '>': # Could be inside </span> or something like a footnote caller
+                                            insideSpan -= 1
                                         if msbChar != bsbChar:
-                                            if msbChar in '</': # Could be inside </span> or something like a footnote caller
-                                                break # Too hard -- don't bother marking anything here in this verse
-                                            # print( f"{parRef} {zz1=} {msbChar=} {bsbChar=}\n   {textHtml=}\n{adjustedTextHtmlBSB=}")
-                                            for zz2 in range( zz1+1, len(textHtml) ):
-                                                nextChar = textHtml[zz2]
-                                                # print( f"{zz2=} {nextChar=}" )
-                                                if nextChar in ' <':
-                                                    break
-                                            textHtml = f'''{textHtml[:zz1]}<span title="Word (or format) different in MSB" class="hilite">{textHtml[zz1:zz2]}</span>{textHtml[zz2:]}'''
-                                            break
+                                            # print( f"{parRef} {zz1=} {msbChar=} {bsbChar=}\n   {textHtml=}\n{textHtmlBSB=}")
+                                            if not insideSpan:
+                                                for zz2 in range( zz1+1, len(textHtml) ):
+                                                    nextChar = textHtml[zz2]
+                                                    # print( f"{zz2=} {nextChar=}" )
+                                                    if nextChar in ' <':
+                                                        break
+                                                textHtml = f'''{textHtml[:zz1]}<span title="Word (or format) different in MSB" class="hilite">{textHtml[zz1:zz2]}</span>{textHtml[zz2:]}'''
+                                                break
                                     if state.DO_SPELL_CHECKS_FLAG:
                                         textHtml = spellCheckAndMarkHTMLText( versionAbbreviation, parRef, textHtml, textHtml, state ) # Puts spans around mispellings
                             elif versionAbbreviation in ('ULT','UST','NET','BLB','OEB','FBV','BBE','Moff','JPS','ASV','DRA','YLT','SLT','Drby','Wbstr'):
@@ -556,7 +554,8 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                                                         allowOptions=True ) # Can return words like 'hateth/hates'
                                 if versionAbbreviation in ('KJB-1611','Bshps','Gnva','Cvdl','TNT','Wycl'):
                                     modernisedTextHtml = modernisedTextHtml.replace( 'J', 'Y' ).replace( 'Ie', 'Ye' ).replace( 'Io', 'Yo' ) \
-                                                                    .replace( 'YDG', 'JDG' ).replace( 'YDT', 'JDT' ).replace( 'Yewel', 'Jewel' ).replace( 'Yoy', 'Joy' ).replace( 'Yudge', 'Judge' ).replace( 'Yuniper', 'Juniper' ).replace( 'Yust', 'Just' ).replace( 'KYB', 'KJB' ) # Fix overreaches
+                                                            .replace( 'YDG', 'JDG' ).replace( 'YDT', 'JDT' ).replace( 'Yewel', 'Jewel' ) \
+                                                            .replace( 'Yourney', 'Journey' ).replace( 'Yoy', 'Joy' ).replace( 'Yudge', 'Judge' ).replace( 'Yuniper', 'Juniper' ).replace( 'Yust', 'Just' ).replace( 'KYB', 'KJB' ) # Fix overreaches
                                 modernisedTextDiffers = modernisedTextHtml != footnoteFreeTextHtml # we'll usually only show it if it changed
                                 if state.DO_SPELL_CHECKS_FLAG:
                                     modernisedTextHtml = spellCheckAndMarkHTMLText( versionAbbreviation, parRef, modernisedTextHtml, footnoteFreeTextHtml, state ) # Puts spans around mispellings
@@ -984,7 +983,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                 if c==-1 or v==0: # For these edge cases, we don't want the version abbreviation appearing
                                     vHtml = ''
                                 else:
-                                    vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation]} {'details' if versionAbbreviation in state.versionsWithoutTheirOwnPages else 'chapter'}" href="{versionNameLink}">{versionAbbreviation}</a></span> <a title="Go to missing verses pages" href="{'../'*level}OET/missingVerses.htm">◘</a></p>'''
+                                    vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation]} {'details' if versionAbbreviation in state.versionsWithoutTheirOwnPages else 'chapter'}" href="{versionNameLink}">{versionAbbreviation}</a></span> <a title="Go to missing verses pages" href="{'../'*BBBLevel}OET/missingVerses.htm">◘</a></p>'''
 
                             if versionAbbreviation=='TC-GNT': # the final one that we display, so show the key to the colours
                                 greekVersionKeysHtmlList = []
@@ -1292,14 +1291,16 @@ def brightenSRGNT( BBB:str, C:str, V:str, brightenTextHtml:str, verseEntryList, 
         # print( f"  {brRef} {strippedGrkWord=} {currentWordNumber=} from ({firstWordNumber},{lastWordNumber})" )
         ref, greekWord, SRLemma, _GrkLemma, VLTGlossWordsStr, OETGlossWordsStr, glossCaps, probability, extendedStrongs, roleLetter, morphology, tagsStr = state.OETRefData['word_tables'][wordFileName][currentWordNumber].split( '\t' )
         # print( f"    A {currentWordNumber=} {ref=} {greekWord=}" )
-        while not probability and currentWordNumber < lastWordNumber:
+        while probability!='X' and currentWordNumber < lastWordNumber:
             currentWordNumber += 1
             ref, greekWord, SRLemma, _GrkLemma, VLTGlossWordsStr, OETGlossWordsStr, glossCaps, probability, extendedStrongs, roleLetter, morphology, tagsStr = state.OETRefData['word_tables'][wordFileName][currentWordNumber].split( '\t' )
             # print( f"    B {currentWordNumber=} {ref=} {greekWord=}" )
-        assert probability, f"  {ref} {greekWord=} {currentWordNumber=} {probability=}"
+        assert probability=='X', f"  {ref} {greekWord=} {currentWordNumber=} {probability=}"
         if not greekWord.startswith('κρ') and not greekWord.startswith('μακρ') and not greekWord.startswith('γενν'): # Seems there were some spelling changes
             # and greekWord not in ('κράββατον','κράββατόν'):
-            if greekWord.lower() != strippedGrkWord.lower():
+            w1, w2 = Greek.Greek( greekWord.lower() ), Greek.Greek( strippedGrkWord.lower() )
+            # if greekWord.lower() != strippedGrkWord.lower():
+            if w1.removeAccents() != w2.removeAccents():
                 logging.critical( f"Unable to find word number for {brRef} {currentWordNumber=} {greekWord=} {strippedGrkWord=} {len(punctuatedGrkWords)=} {len(grkWordNumbers)=}" )
                 break # We failed to match -- it's not critical so we'll just stop here (meaning we won't have all the word numbers for this verse)
             # assert greekWord.lower() == strippedGrkWord.lower(), f"{brRef} {currentWordNumber=} {greekWord=} {strippedGrkWord=} {len(punctuatedGrkWords)=} {grkWordNumbers=}"
@@ -1761,7 +1762,8 @@ def markPossibleUnmatchedProperNames( parRef:str, thisVerseEntryList, state:Stat
     for verseEntry in thisVerseEntryList:
         marker, verseText = verseEntry.getMarker(), verseEntry.getCleanText()
         if verseEntry.getMarker() in ('v~','p~'):
-            for word in verseEntry.getCleanText().split():
+            for word in verseText.split():
+                assert '(diy)' not in word, f"   {parRef} {marker=} {word=} from {verseText=}"
                 word = word.split('¦')[0] # Get rid of word number
                 if word[0] in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' \
                 and '/(' not in word \

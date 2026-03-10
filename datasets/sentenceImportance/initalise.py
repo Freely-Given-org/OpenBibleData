@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S uv run
 # -\*- coding: utf-8 -\*-
 # SPDX-FileCopyrightText: © 2024 Robert Hunt <Freely.Given.org+OBD@gmail.com>
 # SPDX-License-Identifier: GPL-3.0-or-later
@@ -75,7 +75,7 @@ BOS_BOOK_ID_MAP = {
     58: 'HEB', 59: 'JAM', 60: 'PE1', 61: 'PE2', 62: 'JN1', 63: 'JN2', 64: 'JN3', 65: 'JDE', 66: 'REV', 99:None}
 
 UHB_PATHNAME = Path( '../../copiedBibles/Original/unfoldingWord.org/UHB/' )
-OET_LV_OT_PATHNAME = Path( '../../../OpenEnglishTranslation--OET/intermediateTexts/auto_edited_OT_ESFM/' )
+OET_LV_OT_PATHNAME = Path( '../../../OpenEnglishTranslation--OET/derivedTexts/auto_edited_OT_ESFM/' )
 NET_PATHNAME = Path( '../../copiedBibles/English/NET/' )
 
 
@@ -191,10 +191,11 @@ unclearClarityRefs = [ # Mostly sure what's in the Hebrew or Greek,
         'PSA_92:11', 'PSA_93:3a', 'PSA_105:19','PSA_105:28b','PSA_105:32b', 'PSA_108:9', 'PSA_116:13a',
         'PSA_122:3b', 'PSA_129:4b', 'PSA_141:6',
     'PRO_2:18','PRO_12:26a','PRO_12:28b','PRO_13:6b','PRO_16:1b','PRO_17:8a','PRO_17:19b','PRO_17:24b','PRO_18:20','PRO_19:19',
-        'PRO_21:6b','PRO_21:12','PRO_21:18','PRO_21:24','PRO_23:5',
+        'PRO_21:6b','PRO_21:12','PRO_21:18','PRO_21:24','PRO_23:5','PRO_29:10b','PRO_29:24b','PRO_30:1',
     'ECC_5:9', 'ECC_10:15',
     'SNG_8:9',
-    'ISA_4:4b','ISA_5:17b','ISA_9:1','ISA_9:20','ISA_10:18','ISA_10:27b','ISA_53:11a',
+    'ISA_4:4b','ISA_5:17b','ISA_9:1','ISA_9:20','ISA_10:18','ISA_10:27b','ISA_14:21',
+        'ISA_53:11a',
     'EZE_8:17b', 'EZE_16:24', 'EZE_21:13', 'EZE_24:12', 'EZE_24:17b', 'EZE_26:20b',
     'DAN_8:12','DAN_8:13a','DAN_11:43b',
     'HOS_11:7b',

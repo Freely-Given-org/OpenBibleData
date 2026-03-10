@@ -170,6 +170,8 @@ p.ip { text-indent:0.5em; margin-top:0.2em; margin-bottom:0.2em; }
 p.im { margin-top:0.2em; margin-bottom:0.2em; }
 span.ior { font-weight:bold; }
 span.bk { font-style:italic; }
+span.sls {}
+
 
 /* Chapters USFM */
 span.c { font-size:1.1em; color:green; }
@@ -232,7 +234,7 @@ span.addArticle { color:bisque; }
 /* span.unusedArticle { color:lavender; } */
 span.addCopula { color:pink; }
 span.addDirectObject { color:brown; }
-span.addExtra { color:lightGreen; }
+span.addExtra { color:green; }
 span.addElided { color:darkgoldenrod; }
 span.addOwner { color:darkOrchid; }
 span.addPronoun { color:darkgreen; }
@@ -289,6 +291,8 @@ span.xt {}
 .grkVoc { background-color:orchid; }
 .grkVrb { background-color:khaki; }
 .grkNeg { background-color:crimson; }
+
+.noLinkYet { background-color:darkgrey; color:white }
 
 /* Other GNT classes */
 span.wrkName {}

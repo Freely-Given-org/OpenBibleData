@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S uv run
 # -\*- coding: utf-8 -\*-
 # SPDX-FileCopyrightText: © 2023 Robert Hunt <Freely.Given.org+OBD@gmail.com>
 # SPDX-License-Identifier: GPL-3.0-or-later
@@ -79,7 +79,7 @@ from datetime import date
 import logging
 
 import sys
-sys.path.append( '../../BibleOrgSys/' )
+# sys.path.append( '../../BibleOrgSys/' )
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39, BOOKLIST_NT27
@@ -103,7 +103,7 @@ from html import makeTop, makeViewNavListParagraph, makeBottom, checkHtml
 from spellCheckEnglish import printSpellCheckSummary
 
 
-LAST_MODIFIED_DATE = '2026-01-08' # by RJH
+LAST_MODIFIED_DATE = '2026-02-05' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData (OBD) Create Site Pages"
 PROGRAM_VERSION = '0.99'
@@ -454,7 +454,7 @@ def _createOETVersionPages( level:int, folder:Path, rvBible, lvBible, state:Stat
     createOETBookPages( level+1, folder.joinpath('byDoc/'), rvBible, lvBible, state )
 
     versionName = state.BibleNames['OET']
-    indexHtml = f'''<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-PrimaryLogo-RGB-FullColor.png" alt="OET primary logo" height="100"></a>
+    indexHtml = f'''<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
 <h1 id="Top">{versionName}</h1>
 {state.BY_DOCUMENT_HTML_PARAGRAPH}
 {makeViewNavListParagraph( level, 'OET', 'workIndex', state )}
@@ -490,7 +490,7 @@ def _createVersionPages( level:int, folder:Path, thisBible, state:State ) -> boo
     createBookPages( level+1, folder.joinpath('byDoc/'), thisBible, state )
 
     versionName = state.BibleNames[thisBible.abbreviation]
-    indexHtml = f'''{f'<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{"../"*level}OET-PrimaryLogo-RGB-FullColor.png" alt="OET primary logo" height="100"></a>\n' if 'OET' in thisBible.abbreviation else ''}<h1 id="Top">{versionName}</h1>
+    indexHtml = f'''{f'<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>\n' if 'OET' in thisBible.abbreviation else ''}<h1 id="Top">{versionName}</h1>
 {state.BY_DOCUMENT_HTML_PARAGRAPH}
 {makeViewNavListParagraph( level, thisBible.abbreviation, 'workIndex', state )}
 '''
@@ -516,10 +516,10 @@ def _createVersionPages( level:int, folder:Path, thisBible, state:State ) -> boo
 def _createOETMissingVersesPage( level:int, buildFolder:Path ) -> bool:
     """
     """
-    textHtml = '''<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-PrimaryLogo-RGB-FullColor.png" alt="OET primary logo" height="100"></a>
+    textHtml = f'''<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
 <h1>OET Missing Verse page</h1>
 <p class="note">The <em>Open English Translation Readers’ Version</em> uses the <b>◘</b> symbol
-to indicate places where we intentionally did not include the translation of an <b>entire</b> verse.
+to indicate places where we intentionally didn’t include the translation of an <b>entire</b> verse.
 This is not because we’re trying to trying to hide anything that was in the original scriptures,
 but rather it’s because the majority of scholars believe that the verse was added later by a scribe
 and most likely was not written by the original author of the document or letter.</p>
@@ -530,10 +530,10 @@ or add additional information that they thought would help the reader.
 And then of course, some of them introduced accidental errors of their own,
 especially in the New Testament era where scribes often were not professionals.</p>
 <p class="note"><small>Note: Your browser back button should return you to your previous page.</small></p>
-<p class="note">In the interest of complete transparency, here is a list of the passages that we didn’t include with a rough, literal translation of each:</p>
+<p class="note">In the interest of complete transparency, here is a list of the passages that we didn’t include, along with a rough, literal translation of each:</p>
 <ul>
 <li><a href="byC/JHN_C5.htm#V4">Yohan (John) 5:4</a>: For a messenger of the master went down into the pool and stirred up the water at certain times, and then the one having first stepped in after the stirring of the water was healed from whatever disease he suffered from.</li>
-<li><a href="bySec/JHN_S28.htm#V53">Yohan (John) 7:53–8:11</a>: Then each went to his own house. Now Yeshua went to the Mount of Olives. Now early in the morning he came to the temple again, and all the people came to him. Now the scribes and the Pharisees brought a woman caught in adultery, and they placed her in the middle. The priests say to him, testing him in order to have an accusation against him, Teacher, this woman has been caught in the act of adultery. Now in the law, Moses commanded us to stone such ones, but what do you say now? But Yeshua, having bent down, began to write on the ground with his finger. But when they continued asking him questions, he stood up and said to them, Let the blameless one among you throw a stone at her first. And again, having stooped down, he wrote on the ground with his finger. But each of the Jews went out, beginning with the oldest, so that they all went out, and he was left alone, with the woman being in the midst. And Yeshua, having stood up, said to the woman, Where are they? Did no one condemn you? And she said to him, No one, master. And he said, Neither do I condemn you. Go, from now sin no longer.</li>
+<li><a href="bySec/JHN_S28.htm#V53">Yohan (John) 7:53–8:11</a>: Then each went to his own house. Now Yeshua went to the Mount of Olives. Now early in the morning he came to the temple again, and all the people came to him. Now the scribes and the Pharisees brought a woman caught in adultery, and they placed her in the middle. The priests say to him, testing him in order to have an accusation against him, Teacher, this woman has been caught in the act of adultery. Now in the law, Mosheh (Moses) commanded us to stone such ones, but what do you say now? But Yeshua, having bent down, began to write on the ground with his finger. But when they continued asking him questions, he stood up and said to them, Let the blameless one among you throw a stone at her first. And again, having stooped down, he wrote on the ground with his finger. But each of the Jews went out, beginning with the oldest, so that they all went out, and he was left alone, with the woman being in the midst. And Yeshua, having stood up, said to the woman, Where are they? Did no one condemn you? And she said to him, No one, master. And he said, Neither do I condemn you. Go, from now sin no longer.</li>
 <li><a href="byC/MRK_C7.htm#V16">Mark 7:16</a>: If anyone has ears to hear, let him hear.</li>
 <li><a href="byC/MRK_C9.htm#V44">Mark 9:44</a>: where their worm does not end, and the fire is not quenched.</li>
 <li><a href="byC/MRK_C9.htm#V46">Mark 9:46</a>: where their worm does not end, and the fire is not quenched.</li>
@@ -654,7 +654,7 @@ def _createDetailsPages( level:int, buildFolder:Path, state:State ) -> bool:
 '''
 
         if 'OET' in versionAbbreviation:
-            detailsHtml = f'''<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="__LEVEL__OET-PrimaryLogo-RGB-FullColor.png" alt="OET primary logo" height="100"></a>
+            detailsHtml = f'''<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="__LEVEL__oet-logo-wide.png" alt="OET wide logo"></a>
 {detailsHtml}
 <a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="__LEVEL__OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="60" style="float:right; margin-left:15px;"></a>
 <h2>‘Missing’ verses</h2>
@@ -874,7 +874,7 @@ def _createOETKeyPage( level:int, buildFolder:Path, state:State ) -> bool:
     fnPrint( DEBUGGING_THIS_MODULE, f"_createOETKeyPage( {level}, {buildFolder}, {state.BibleVersions} )" )
     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Creating {'TEST ' if state.TEST_MODE_FLAG else ''}OET Key page…" )
 
-    keyHTML = f'''<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-PrimaryLogo-RGB-FullColor.png" alt="OET primary logo" height="100"></a>
+    keyHTML = f'''<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
 <h1 id="Top">Key to the <em>Open English Translation</em></h1>
 <p class="note">The <em>Open English Translation of the Bible</em> is not tied to tradition (and especially not to traditional mistakes or misunderstandings) so it has a number of changes from more common Bible translations.</p>
 <p class="note">We also aim to educate our readers better about how our Bibles get to us and we have many different kinds of links on the site, so that’s a second reason why it differs from usual, and hence requires this key to explain some of the features.</p>

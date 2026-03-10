@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S uv run
 # -\*- coding: utf-8 -\*-
 # SPDX-FileCopyrightText: © 2023 Robert Hunt <Freely.Given.org+OBD@gmail.com>
 # SPDX-License-Identifier: GPL-3.0-or-later
@@ -48,6 +48,7 @@ CHANGELOG:
     2025-02-03 Chapter selector now goes to verse selector (#vsLst) not #Top
     2025-12-15 Grey out currently selected book
     2026-01-07 Added OET Logo
+    2026-02-10 Upgraded to VLT v3
 
 TODO:
     Add colour keys for LV and RV words
@@ -74,10 +75,10 @@ from createSectionPages import findSectionNumber
 from OETHandlers import livenOETWordLinks, getOETBookName, getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
-LAST_MODIFIED_DATE = '2026-01-12' # by RJH
+LAST_MODIFIED_DATE = '2026-02-10' # by RJH
 SHORT_PROGRAM_NAME = "createOETInterlinearPages"
 PROGRAM_NAME = "OpenBibleData createOETInterlinearPages functions"
-PROGRAM_VERSION = '0.63'
+PROGRAM_VERSION = '0.64'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -123,7 +124,7 @@ def createOETInterlinearPages( level:int, folder:Path, state:State ) -> bool:
             .replace( '__TITLE__', f"Interlinear View{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, interlinear' )
     indexHtml = f'''{top}
-<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-PrimaryLogo-RGB-FullColor.png" alt="OET primary logo" height="100"></a>
+<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
 <h1 id="Top">OET interlinear verse pages</h1>
 <p class="note">These pages show single OET verses with each Hebrew or Greek word aligned with the English word(s) that it was translated to, along with any translation notes and study notes for the verse. Finally, at the bottom of each page there's a <em>Reverse Interlinear</em> with the same information but in English word order.</p>
 <h2>Index of books</h2>
@@ -252,7 +253,7 @@ def createOETInterlinearVersePagesForBook( level:int, folder:Path, BBB:str, BBBL
 <p class="chLst" id="chLst">{EM_SPACE.join( [f'<a title="Go to interlinear verse page" href="C{ps}V1.htm#Top">Sg{ps}</a>' for ps in range(1,numChapters+1)] )}</p>''' \
                 if BBB=='PSA' else \
 f'''<p class="chLst" id="chLst">{ourTidyBbb if ourTidyBbb!='Yac' else 'Yacob/(James)'} {' '.join( [f'<a title="Go to interlinear verse page" href="C{chp}V1.htm#Top">C{chp}</a>' for chp in range(1,numChapters+1)] )}</p>
-<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*BBBLevel}OET-PrimaryLogo-RGB-FullColor.png" alt="OET primary logo" height="100"></a>
+<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*BBBLevel}oet-logo-wide.png" alt="OET wide logo"></a>
 <h1 id="Top">OET {ourTidyBBBwithNotes} interlinear verses index</h1>
 <p class="vsLst">{' '.join( vLinks )}</p>'''
     indexHtml = f'''{top}{adjBBBLinksHtml}
@@ -277,7 +278,7 @@ f'''<p class="chLst" id="chLst">{ourTidyBbb if ourTidyBbb!='Yac' else 'Yacob/(Ja
 <p class="chLst" id="chLst">{EM_SPACE.join( [f'<a title="Go to interlinear verse page" href="C{ps}V1.htm#Top">Sg{ps}</a>' for ps in range(1,numChapters+1)] )}</p>''' \
                 if BBB=='PSA' else \
 f'''<p class="chLst" id="chLst">{ourTidyBbb if ourTidyBbb!='Yac' else 'Yacob/(James)'} {' '.join( [f'<a title="Go to interlinear verse page" href="C{chp}V1.htm#Top">C{chp}</a>' for chp in range(1,numChapters+1)] )}</p>
-<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-PrimaryLogo-RGB-FullColor.png" alt="OET primary logo" height="100"></a>
+<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
 <h1 id="Top">OET {ourTidyBBBwithNotes} interlinear verses index</h1>
 <p class="vsLst">{' '.join( newBBBVLinks )}</p>'''
     indexHtml = f'''{top}{adjBBBLinksHtml}
@@ -440,11 +441,12 @@ def createOETInterlinearVerseInner( level:int, BBB:str, c:int, v:int, state:Stat
         firstWordNumber,lastWordNumber = state.OETRefData['word_table_indexes'][wordFileName][f'{BBB}_{C}:{V}']
         haveVariants = False
         for wordNumber in range( firstWordNumber, lastWordNumber+1 ):
-            if not wordTable[wordNumber].split('\t')[7]: # probability
+            if wordTable[wordNumber].split('\t')[7] != 'X': # SR/probability
                 haveVariants = True
                 break # no need to look further
 
     # print( f"Found {BBB} {c}:{v} ({len(EnglishWordList)}) {EnglishWordList=}" )
+    # Removed <li lang="en_PERCENT">{row[7]+'%' if row[7]=='X' else 'V'}</li>
     ivHtml = f'''<h2>{'SR Greek' if NT else 'Hebrew'} word order{' <small>(including unused variant words in grey)</small>' if NT and haveVariants else ''}</h2>
 <div class=interlinear><ol class=verse>'''
     if wordNumberStr: # Now we have a word number from the correct verse
@@ -485,7 +487,7 @@ def createOETInterlinearVerseInner( level:int, BBB:str, c:int, v:int, state:Stat
                             tags[t] = f'''Location=<a title="View place details" href="{'../'*level}ref/Loc/{tag}.htm#Top">{tag}</a>'''
                     tagsHtml = '; '.join( tags )
                 else: tagsHtml = '-'
-                GreekList.append( f'''<li><ol class="{'word' if row[7] else 'variant'}">
+                GreekList.append( f'''<li><ol class="{'word' if row[7]=='X' else 'variant'}">
   <li lang="el">{row[1]}</li>
   <li lang="el_LEMMA">{row[2]}</li>
   <li lang="en_TRANS">{'<span class="untr" title="Word typically omitted from English translations">' if row[4][0]=='¬' else '<b>'}{' '.join(lvEnglishWordDict[wordNumber]) if lvEnglishWordDict[wordNumber] else '-'}{'</span>' if row[4][0]=='¬' else '</b>'}</li>
@@ -495,10 +497,9 @@ def createOETInterlinearVerseInner( level:int, BBB:str, c:int, v:int, state:Stat
   <li lang="en_GLOSS">{row[5]}</li>
   <li lang="en_GLOSS">{row[4]}</li>
   <li lang="en_CAPS">{row[6] if row[6] else '-'}</li>
-  <li lang="en_PERCENT">{row[7]+'%' if row[7] else 'V'}</li>
   <li lang="en_TAGS">{tagsHtml}</li>
   <li lang="en_WORDNUM"><a title="View word details" href="{'../'*level}ref/GrkWrd/{getGreekWordpageFilename(wordNumber, state )}#Top">{wordNumber}</a></li>
-</ol><!--{'word' if row[7] else 'variant'}--></li>''' )
+</ol><!--{'word' if row[7]=='X' else 'variant'}--></li>''' )
             ivHtml = f'{ivHtml}{NEWLINE.join( GreekList )}'
         else: # OT
             HebrewList = ['''<li><ol class="titles">
@@ -552,6 +553,7 @@ def createOETInterlinearVerseInner( level:int, BBB:str, c:int, v:int, state:Stat
             ivHtml = f'{ivHtml}{NEWLINE.join( HebrewList )}'
 
     # Now append the OET-RV
+#  <li lang="en_PERCENT">{row[7]+'%' if row[7] else 'V'}</li>
     ivHtml = f'''{ivHtml}
 </ol><!--verse--></div><!--interlinear-->
 {lvHtml}
@@ -633,7 +635,6 @@ def createOETInterlinearVerseInner( level:int, BBB:str, c:int, v:int, state:Stat
   <li lang="en_GLOSS">{row[5]}</li>
   <li lang="en_GLOSS">{row[4]}</li>
   <li lang="en_CAPS">{row[6] if row[6] else '-'}</li>
-  <li lang="en_PERCENT">{row[7]+'%' if row[7] else 'V'}</li>
   <li lang="en_TAGS">{tagsHtml}</li>
   <li lang="en_WORDNUM"><a title="View word details" href="{'../'*level}ref/GrkWrd/{getGreekWordpageFilename(wordNumber, state )}#Top">{wordNumber}</a></li>
 </ol><!--word--></li>''' )

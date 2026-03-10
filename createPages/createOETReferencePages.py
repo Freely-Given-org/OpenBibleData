@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S uv run
 # -\*- coding: utf-8 -\*-
 # SPDX-FileCopyrightText: © 2023 Robert Hunt <Freely.Given.org+OBD@gmail.com>
 # SPDX-License-Identifier: GPL-3.0-or-later
@@ -70,6 +70,9 @@ CHANGELOG:
     2025-03-15 Start making our own Strongs pages
     2025-06-18 Fix OT person/place links (from tags) which weren't being displayed on the Hebrew word pages
     2025-10-29 Include kingdom page index in reference index
+    2026-02-10 Updated to SR/VLT v3
+    2026-02-14 Tried to fix some bugs in prev/next for Hebrew lemma links
+    2026-03-01 Added IMPORTANT people index
 """
 from pathlib import Path
 import os
@@ -95,12 +98,13 @@ from BibleTransliterations import transliterate_Hebrew, transliterate_Greek
 from settings import State, CNTR_BOOK_ID_MAP
 from html import makeTop, makeBottom, checkHtml
 from OETHandlers import getOETTidyBBB, getOETBookName, getHebrewWordpageFilename, getGreekWordpageFilename
+from createSectionPages import findSectionNumber
 
 
-LAST_MODIFIED_DATE = '2026-01-08' # by RJH
+LAST_MODIFIED_DATE = '2026-03-08' # by RJH
 SHORT_PROGRAM_NAME = "createOETReferencePages"
 PROGRAM_NAME = "OpenBibleData createOETReferencePages functions"
-PROGRAM_VERSION = '0.90'
+PROGRAM_VERSION = '0.91'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -116,6 +120,84 @@ project_folderpath = Path(__file__).parent.parent # Find folders relative to thi
 FG_folderpath = project_folderpath.parent # Path to find parallel Freely-Given.org repos
 THEOGRAPHIC_INPUT_FOLDER_PATH = FG_folderpath.joinpath( 'Bible_speaker_identification/outsideSources/TheographicBibleData/derivedFiles/' )
 
+
+IMPORTANT_PEOPLE_CHRONOLOGICAL_LIST = ( # Has the name (in chronological order), plus a verse reference (that will be transformed into a section link)
+    ('Adam', ('GEN_1:26',)),
+    ('Havvah/Eve', ('GEN_3:20',)),
+    ('Kayin/Cain', ('GEN_4:1',)),
+    ('Hevel/Abel', ('GEN_4:2',)),
+    ('Abram', ('GEN_11:26',)),
+    ('Lot', ('GEN_11:27',)),
+    ('Malki-Tsedek/Melchizedek', ('GEN_14:18','PSA_110:4','HEB_5:6','HEB_6:20','HEB_7:1')),
+    ('Abraham', ('GEN_17:5',)),
+    ('Mosheh/Moses', ('EXO_2:10',)),
+    ('Aaron/Aharon', ('EXO_4:14',)),
+    ('Yehoshua/Joshua', ('EXO_17:9',)),
+    ('Bileam/Balaam', ('NUM_22:5',)),
+    ('Naomi', ('RUT_1:2',)),
+    ('Rut/Ruth', ('RUT_1:4','MAT_1:5')),
+    ('Shemuel/Samuel', ('SA1_1:20',)),
+    ('Shaul/Saul', ('SA1_9:1',)),
+    ('David', ('SA1_16:1',)),
+    ('Shelomoh/Solomon', ('SA2_5:14',)),
+    ('Hezekiah', ('KI2_16:20',)),
+    ('Zekaryah/Zechariah', ('LUK_1:5',)),
+    ('Yeshua/Jesus', ('LUK_2:21',)),
+    ('Yohan/John', ('MRK_1:19','MAT_4:21','JHN_1:35')),
+    ('Yonah/Jonah', ('JNA_1:1','KI2_14:25','MAT_12:39','LUK_11:29')),
+    ('Matthew/Levi', ('MAT_9:9',)),
+    )
+for personName, personRefList in IMPORTANT_PEOPLE_CHRONOLOGICAL_LIST:
+    assert isinstance( personName, str ) and ' ' not in personName
+    for personRef in personRefList:
+        assert isinstance( personRef, str ) and 6<len(personRef)<12
+        assert personRef.count('_')==1 and personRef.count(':')==1 and ' ' not in personRef
+IMPORTANT_PEOPLE_ALPHABETICAL_LIST = ( # Has the name (in alphabetical order), plus a verse reference (that will be transformed into a section link)
+    ('Aaron/Aharon', ('EXO_4:14',)),
+    ('Abel/Hevel', ('GEN_4:2',)),
+    ('Abraham', ('GEN_17:5',)),
+    ('Abram', ('GEN_11:26',)),
+    ('Adam', ('GEN_1:26',)),
+    ('Aharon/<small>Aaron</small>', ('EXO_4:14',)),
+    ('Balaam/Bileam', ('NUM_22:5',)),
+    ('Bileam/<small>Balaam</small>', ('NUM_22:5',)),
+    ('Cain/Kayin', ('GEN_4:1',)),
+    ('David', ('SA1_16:1',)),
+    ('Eve/Havvah', ('GEN_3:20',)),
+    ('Havvah/<small>Eve</small>', ('GEN_3:20',)),
+    ('Hevel/<small>Abel</small>', ('GEN_4:2',)),
+    ('Hezekiah', ('KI2_16:20',)),
+    ('Jesus/Yeshua', ('LUK_2:21',)),
+    ('John/Yohan', ('MRK_1:19','MAT_4:21','JHN_1:35')),
+    ('Jonah/Yonah', ('JNA_1:1','KI2_14:25','MAT_12:39','LUK_11:29')),
+    ('Joshua/Yehoshua', ('EXO_17:9',)),
+    ('Kayin/<small>Cain</small>', ('GEN_4:1',)),
+    ('Levi/<small>Matthew</small>', ('MAT_9:9',)),
+    ('Lot', ('GEN_11:27',)),
+    ('Malki-Tsedek/<small>Melchizedek</small>', ('GEN_14:18','PSA_110:4','HEB_5:6','HEB_6:20','HEB_7:1')),
+    ('Matthew/<small>Levi</small>', ('MAT_9:9',)),
+    ('Melchizedek/Malki-Tsedek', ('GEN_14:18','PSA_110:4','HEB_5:6','HEB_6:20','HEB_7:1')),
+    ('Mosheh/<small>Moses</small>', ('EXO_2:10',)),
+    ('Naomi', ('RUT_1:2',)),
+    ('Rut/<small>Ruth</small>', ('RUT_1:4','MAT_1:5')),
+    ('Samuel/Shemuel', ('SA1_1:20',)),
+    ('Saul/Shaul', ('SA1_9:1',)),
+    ('Shaul/<small>Saul</small>', ('SA1_9:1',)),
+    ('Shelomoh/<small>Solomon</small>', ('SA2_5:14',)),
+    ('Shemuel/<small>Samuel</small>', ('SA1_1:20',)),
+    ('Solomon/Shelomoh', ('SA2_5:14',)),
+    ('Yehoshua/<small>Joshua</small>', ('EXO_17:9',)),
+    ('Yeshua/<small>Jesus</small>', ('LUK_2:21',)),
+    ('Yohan/<small>John</small>', ('MRK_1:19','MAT_4:21','JHN_1:35')),
+    ('Yonah/<small>Jonah</small>', ('JNA_1:1','KI2_14:25','MAT_12:39','LUK_11:29')),
+    ('Zechariah/Zekaryah', ('LUK_1:5',)),
+    ('Zekaryah/<small>Zechariah</small>', ('LUK_1:5',)),
+    )
+for personName, personRefList in IMPORTANT_PEOPLE_ALPHABETICAL_LIST:
+    assert isinstance( personName, str ) and ' ' not in personName
+    for personRef in personRefList:
+        assert isinstance( personRef, str ) and 6<len(personRef)<12
+        assert personRef.count('_')==1 and personRef.count(':')==1 and ' ' not in personRef
 
 CNTR_ROLE_NAME_DICT = {'N':'noun', 'S':'substantive adjective', 'A':'adjective', 'E':'determiner/case-marker', 'R':'pronoun',
                   'V':'verb', 'I':'interjection', 'P':'preposition', 'D':'adverb', 'C':'conjunction', 'T':'particle'}
@@ -747,6 +829,7 @@ def createOETReferencePages( level:int, outputFolderPath:Path, state:State ) -> 
     create_Greek_Strongs_pages( level+1, outputFolderPath.joinpath( 'GrkStrng/' ), bibleLexicon, state )
 
     create_person_pages( level+1, outputFolderPath.joinpath( 'Per/' ), state )
+    create_important_person_pages( level+1, outputFolderPath.joinpath( 'Per/' ), state )
     create_location_pages( level+1, outputFolderPath.joinpath( 'Loc/' ), state )
 
     create_statistics_pages( level+1, outputFolderPath.joinpath( 'Stats/' ), state )
@@ -757,7 +840,7 @@ def createOETReferencePages( level:int, outputFolderPath:Path, state:State ) -> 
     top = makeTop( level, None, 'referenceIndex', None, state ) \
             .replace( '__TITLE__', f"OpenBibleData Reference Contents{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, reference, lists' )
-    indexHtml = f'''{top}
+    indexHtml = f'''{top}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
 <h1 id="Top">Reference lists main contents page</h1>
 <h2>{state.SITE_NAME}</h2>
 <p class="note"><a href="HebWrd/">Hebrew words index</a> <a href="HebWrd/transIndex.htm">Transliterated Hebrew words index</a></p>
@@ -766,8 +849,7 @@ def createOETReferencePages( level:int, outputFolderPath:Path, state:State ) -> 
 <p class="note"><a href="GrkWrd/">Greek words index</a> <a href="GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
 <p class="note"><a href="GrkLem/">Greek lemmas index</a> <a href="GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
 <p class="note"><a href="GrkStrng/">Greek Strongs numbers index</a></p>
-<p class="note"><a href="Per/">Bible people index</a></p>
-<p class="note"><a href="Loc/">Bible locations index</a></p>
+<p class="note"><a href="Per/importantIndex.htm">Important people index</a> <a href="Per/">All people index</a> <a href="Loc/">Locations index</a></p>
 <p class="note"><a href="Kingdoms/">Promised land kingdoms index</a></p>
 <p class="note"><a href="Stats/">Bible statistics</a></p>
 {makeBottom( level, None, 'referenceIndex', state )}'''
@@ -1244,7 +1326,7 @@ def create_Hebrew_word_pages( level:int, outputFolderPath:Path, state:State ) ->
     else: # no multi-processing
         for hh, columns_string in enumerate( state.OETRefData['word_tables'][HebrewWordFileName][1:], start=1 ):
             if not columns_string: continue # a blank line (esp. at end)
-            if hh % 50_000 == 0:
+            if numWordPagesMade>0 and hh % 50_000 == 0:
                 vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      {numWordPagesMade+1:,} made out of {f'{hh:,} out of ' if hh!=numWordPagesMade+1 else ''}{len(state.OETRefData['word_tables'][HebrewWordFileName])-1:,}…" )
             output_filename = getHebrewWordpageFilename( hh, state )
             if DEBUGGING_THIS_MODULE or BibleOrgSysGlobals.debugFlag: # NOTE: This makes the function MUCH slower
@@ -1270,16 +1352,15 @@ def create_Hebrew_word_pages( level:int, outputFolderPath:Path, state:State ) ->
             .replace( '__TITLE__', f"Hebrew Words Index{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, Hebrew, words' )
     indexText = ' '.join( wordLinksForIndex )
-    indexHtml = f'''{top}
+    indexHtml = f'''{top}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
 <p class="note"><b><a href="../">Reference lists contents page</a></b></p>
-<p class="note">Hebrew words index <a href="transIndex.htm">Transliterated Hebrew words index</a></p>
+<p class="note"><span class="selectedBook">Hebrew words index</span> <a href="transIndex.htm">Transliterated Hebrew words index</a></p>
 <p class="note"><a href="../HebLem/">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm">Transliterated Hebrew lemmas index</a></p>
 <p class="note"><a href="../HebStrng/">Hebrew Strongs numbers index</a></p>
 <p class="note"><a href="../GrkWrd/">Greek words index</a> <a href="../GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
 <p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
 <p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a></p>
-<p class="note"><a href="../Per/">Bible people index</a></p>
-<p class="note"><a href="../Loc/">Bible locations index</a></p>
+<p class="note"><a href="../Per/importantIndex.htm">Important people index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
 <p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/">Bible statistics</a></p>
 <h1 id="Top">Hebrew Words Index</h1>
@@ -1297,16 +1378,15 @@ def create_Hebrew_word_pages( level:int, outputFolderPath:Path, state:State ) ->
             .replace( '__TITLE__', f"Transliterated Hebrew Words Index{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, Hebrew, words, transliterated' )
     indexText = transliterate_Hebrew( indexText )
-    indexHtml = f'''{top}
+    indexHtml = f'''{top}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
 <p class="note"><b><a href="../">Reference lists contents page</a></b></p>
-<p class="note"><a href="index.htm">Hebrew words index</a> Transliterated Hebrew words index</p>
+<p class="note"><a href="index.htm">Hebrew words index</a> <span class="selectedBook">Transliterated Hebrew words index</span></p>
 <p class="note"><a href="../HebLem/">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm">Transliterated Hebrew lemmas index</a></p>
 <p class="note"><a href="../HebStrng/">Hebrew Strongs numbers index</a></p>
 <p class="note"><a href="../GrkWrd/">Greek words index</a> <a href="../GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
 <p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
 <p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a></p>
-<p class="note"><a href="../Per/">Bible people index</a></p>
-<p class="note"><a href="../Loc/">Bible locations index</a></p>
+<p class="note"><a href="../Per/importantIndex.htm">Important people index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
 <p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/">Bible statistics</a></p>
 <h1 id="Top">Transliterated Hebrew Words Index</h1>
@@ -1751,18 +1831,18 @@ def create_Hebrew_lemma_pages( level:int, outputFolderPath:Path, state:State ) -
     lemmaList = list( state.OETRefData['OTLemmaGlossDict'] )
     # lemmaListWithGlosses = list( state.OETRefData['OTLemmaGlossDict'].items() )
     # assert len(lemmaListWithGlosses) == len(lemmaList)
-    for ll, hebLemma  in enumerate( lemmaList, start=1 ):
-        if ll % 2_000 == 0:
-            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      {len(lemmaLinks)+1:,} made out of {f'{ll:,} out of ' if ll!=len(lemmaLinks)+1 else ''}{len(lemmaList)-1:,}…" )
+    for lemmaIndex, hebLemma  in enumerate( lemmaList ):
+        if (lemmaIndex+1) % 2_000 == 0:
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      {len(lemmaLinks)+1:,} made out of {f'{lemmaIndex:,} out of ' if lemmaIndex!=len(lemmaLinks)+1 else ''}{len(lemmaList)+1:,}…" )
         transliteratedLemma = transliterate_Hebrew( hebLemma )
         if transliteratedLemma == 'pitgām': # One is at ll=5803 hebLemma='פִּתְגָם' ll=5804 hebLemma='פִּתְגָּם'
-            print( f"      Found pitgām at {ll=} {hebLemma=} {transliteratedLemma=} wordRows={state.OETRefData['OTWordRowNumbersDict'][ll]}" )
+            print( f"      Found pitgām at {lemmaIndex=} {hebLemma=} {transliteratedLemma=} wordRows={state.OETRefData['OTWordRowNumbersDict'][lemmaIndex]}" )
         if state.TEST_MODE_FLAG and not state.ALL_TEST_REFERENCE_PAGES_FLAG and hebLemma not in state.OETRefData['usedHebLemmas']:
             continue # Don't make this page
         vowellessLemma = removeHebrewVowelPointing( hebLemma )
         transliteratedVowellessLemma = transliterate_Hebrew( vowellessLemma )
 
-        hebLemmaWordRowsList = state.OETRefData['OTWordRowNumbersDict'][ll]
+        hebLemmaWordRowsList = state.OETRefData['OTWordRowNumbersDict'][lemmaIndex]
         # print( f"\nLemma {mm}: {hebLemma=} {translemma=} {lemmaOETGlossesList=} {hebLemmaWordRowsList=}" )
         # lemmaFormsList = sorted( state.OETRefData['OTLemmaFormsDict'][hebLemma] )
         # lemmaOETGlossesList = state.OETRefData['OTLemmaGlossDict'][hebLemma].split( ';' )
@@ -1774,23 +1854,23 @@ def create_Hebrew_lemma_pages( level:int, outputFolderPath:Path, state:State ) -
         ll_output_filename = f"{'pitggām' if hebLemma=='פִּתְגָּם' else transliteratedLemma}.htm" # Hack to keep transliterations unique
 
         prevLL = nextLL = None
-        if ll > 1:
+        if lemmaIndex > 0:
             if state.TEST_MODE_FLAG and not state.ALL_TEST_REFERENCE_PAGES_FLAG:
-                for LL in range( ll-2, 0, -1 ):
+                for LL in range( lemmaIndex-1, 0, -1 ):
                     # MMLemma = lemmaListWithGlosses[MM][0]
                     # print( f"{mm=} {MM=} {lemmaListWithGlosses[MM]=} {MMLemma=} {list(state.OETRefData['usedHebLemmas'])[:20]=}")
                     # halt
                     if lemmaList[LL] in state.OETRefData['usedHebLemmas']:
                         prevLL = LL
                         break
-            else: prevLL = ll-1
-        if ll<len(lemmaList)-1:
+            else: prevLL = lemmaIndex-1
+        if lemmaIndex<len(lemmaList)-1:
             if state.TEST_MODE_FLAG and not state.ALL_TEST_REFERENCE_PAGES_FLAG:
-                for LL in range( ll, len(lemmaList) ):
+                for LL in range( lemmaIndex+1, len(lemmaList) ):
                     if lemmaList[LL] in state.OETRefData['usedHebLemmas']:
                         nextLL = LL
                         break
-            else: nextLL = ll+1
+            else: nextLL = lemmaIndex+1
         prevLink = f'<b><a title="Previous lemma" href="{transliterate_Hebrew(lemmaList[prevLL])}.htm#Top">←</a></b> ' if prevLL else ''
         nextLink = f' <b><a title="Next lemma" href="{transliterate_Hebrew(lemmaList[nextLL])}.htm#Top">→</a></b>' if nextLL else ''
         lemmasHtml = f'''<h1 id="Top">Hebrew root <small>(lemma)</small> ‘{hebLemma}’ ({transliteratedLemma})</h1>
@@ -1933,7 +2013,7 @@ def create_Hebrew_lemma_pages( level:int, outputFolderPath:Path, state:State ) -
                 # List other lemmas that are glossed as antonyms
                 try:
                     contrastiveWords = CONTRASTIVE_GLOSS_WORDS_DICT[lemmaGloss]
-                    print( f"      {lemmaGloss=} {contrastiveWords=} {ll} {hebLemma=} {lemmaOETGlossesList=}")
+                    print( f"      {lemmaGloss=} {contrastiveWords=} {lemmaIndex} {hebLemma=} {lemmaOETGlossesList=}")
                     NEVER_GETS_HERE
                 except KeyError: contrastiveWords = []
                 for contrastiveWord in contrastiveWords:
@@ -2093,7 +2173,7 @@ def create_Hebrew_lemma_pages( level:int, outputFolderPath:Path, state:State ) -
         filepath = outputFolderPath.joinpath( ll_output_filename )
         # assert not filepath.is_file(), f"{ll} {hebLemma=} {transliteratedLemma=} {filepath=}" # Check that we're not overwriting anything
         if filepath.is_file():
-            logging.critical( f"create_Hebrew_lemma_pages was about to overwrite {filepath} for {ll=} {hebLemma=} {transliteratedLemma=}" )
+            logging.critical( f"create_Hebrew_lemma_pages was about to overwrite {filepath} for {lemmaIndex=} {hebLemma=} {transliteratedLemma=}" )
             filepath = outputFolderPath.joinpath( f'2{ll_output_filename}' )
             logging.critical( f"    Renamed to {filepath}" )
         with open( filepath, 'wt', encoding='utf-8' ) as html_output_file:
@@ -2109,16 +2189,15 @@ def create_Hebrew_lemma_pages( level:int, outputFolderPath:Path, state:State ) -
             .replace( '__TITLE__', f"Hebrew Lemma Index{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, Hebrew, lemmas' )
     indexText = ' '.join( lemmaLinks )
-    indexHtml = f'''{top}
+    indexHtml = f'''{top}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
 <p class="note"><b><a href="../">Reference lists contents page</a></b></p>
 <p class="note"><a href="../HebWrd/">Hebrew words index</a> <a href="../HebWrd/transIndex.htm">Transliterated Hebrew words index</a></p>
-<p class="note">Hebrew lemmas index <a href="transIndex.htm">Transliterated Hebrew lemmas index</a></p>
+<p class="note"><span class="selectedBook">Hebrew lemmas index</span> <a href="transIndex.htm">Transliterated Hebrew lemmas index</a></p>
 <p class="note"><a href="../HebStrng/">Hebrew Strongs numbers index</a></p>
 <p class="note"><a href="../GrkWrd/">Greek words index</a> <a href="../GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
 <p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
 <p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a></p>
-<p class="note"><a href="../Per/">Bible people index</a></p>
-<p class="note"><a href="../Loc/">Bible locations index</a></p>
+<p class="note"><a href="../Per/importantIndex.htm">Important people index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
 <p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/">Bible statistics</a></p>
 <h1 id="Top">Hebrew Lemmas Index</h1>
@@ -2137,16 +2216,15 @@ def create_Hebrew_lemma_pages( level:int, outputFolderPath:Path, state:State ) -
             .replace( '__TITLE__', f"Transliterated Hebrew Lemma Index{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, Hebrew, lemmas' )
     indexText = transliterate_Hebrew( indexText )
-    indexHtml = f'''{top}
+    indexHtml = f'''{top}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
 <p class="note"><b><a href="../">Reference lists contents page</a></b></p>
 <p class="note"><a href="../HebWrd/">Hebrew words index</a> <a href="../HebWrd/transIndex.htm">Transliterated Hebrew words index</a></p>
-<p class="note"><a href="index.htm">Hebrew lemmas index</a> Transliterated Hebrew lemmas index</p>
+<p class="note"><a href="index.htm">Hebrew lemmas index</a> <span class="selectedBook">Transliterated Hebrew lemmas index</span></p>
 <p class="note"><a href="../HebStrng/">Hebrew Strongs numbers index</a></p>
 <p class="note"><a href="../GrkWrd/">Greek words index</a> <a href="../GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
 <p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
 <p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a></p>
-<p class="note"><a href="../Per/">Bible people index</a></p>
-<p class="note"><a href="../Loc/">Bible locations index</a></p>
+<p class="note"><a href="../Per/importantIndex.htm">Important people index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
 <p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/">Bible statistics</a></p>
 <h1 id="Top">Transliterated Hebrew Lemmas Index</h1>
@@ -2240,7 +2318,7 @@ def create_Greek_word_pages( level:int, outputFolderPath:Path, state:State ) -> 
                                 .split( ' ' ):
             # print( f"{someGlossWord=}" )
             if '˱' not in someGlossWord and '˓' not in someGlossWord and '‹' not in someGlossWord: # We only want the main words not gloss helpers, etc.
-                assert not mainGlossWord, f"{someGlossWord=} {mainGlossWord=}" # There should only be ONE mainGlossWord
+                assert not mainGlossWord, f"There should only be ONE {BBB} {C}:{V}w{W} {mainGlossWord=} {someGlossWord=} from {gg} {columns_string=}"
                 mainGlossWord = someGlossWord.split('/(')[0] # Throw away any Hebrew names #.replace('\\add_','\\add ')
         if mainGlossWord and ('\\' in mainGlossWord or '/' in mainGlossWord):
             if '\\' in mainGlossWord: print( f"{gg=} {mainGlossWord=} from {OETGlossWordsStr=}"); halt
@@ -2282,7 +2360,7 @@ def create_Greek_word_pages( level:int, outputFolderPath:Path, state:State ) -> 
             if tidyMorphology != '···': usedMorphologies.add( tidyMorphology )
         else:
             tidyRoleMorphology = roleLetter
-        translation = '<small>(no English gloss here)</small>' if OETGlossWordsStr=='-' else f'''‘{tidyGlossOfGreekWord(formattedContextGlossWords)}’'''
+        translation = '<small>(no English gloss here)</small>' if not OETGlossWordsStr or OETGlossWordsStr=='-' else f'''‘{tidyGlossOfGreekWord(formattedContextGlossWords)}’'''
         capsField = f' <small>(Caps={glossCaps})</small>' if glossCaps else ''
 
         # Add pointers to people, locations, etc.
@@ -2343,10 +2421,10 @@ def create_Greek_word_pages( level:int, outputFolderPath:Path, state:State ) -> 
         interlinearLink = f''' <b><a title="View interlinear verse word-by-word" href="{'../'*level}ilr/{BBB}/C{C}V{V}.htm#Top">═</a></b>''' if BBB in state.booksToLoad['OET'] else ''
 #  Strongs=<a title="Goes to Strongs dictionary" href="https://BibleHub.com/greek/{strongs}.htm">{extendedStrongs}</a> Lemma=<b>{lemmaLink}</b>
         wordsHtml = f'''{'' if probability else '<div class="unusedWord">'}<h2>Open English Translation (OET)</h2>\n<h1 id="Top">Koine Greek wordlink #{gg}{'' if probability else ' <small>(Unused Greek word variant)</small>'}</h1>
-<p class="pNav">{prevLink}<b>{greekWord}</b> <a title="Go to Greek word index" href="index.htm">↑</a>{nextLink}{oetLink}{parallelLink}{interlinearLink}</p>
+<p class="pNav">{prevLink}{f'<b>{greekWord}</b>' if greekWord else '<small>(blank)</small>'} <a title="Go to Greek word index" href="index.htm">↑</a>{nextLink}{oetLink}{parallelLink}{interlinearLink}</p>
 <p class="link"><a title="Go to Statistical Restoration Greek page" href="https://GreekCNTR.org/collation/?v={CNTR_BOOK_ID_MAP[BBB]}{C.zfill(3)}{V.zfill(3)}">SR GNT {tidyBbbb} {C}:{V}</a>
- {probabilityField if state.TEST_MODE_FLAG else ''}<b>{greekWord}</b> ({transliterate_Greek(greekWord)}) {translation}{capsField if state.TEST_MODE_FLAG else ''}
- Strongs=<a title="Goes to Strongs dictionary" href="{'../'*level}ref/GrkStrng/G{strongs}.htm#To">{extendedStrongs}</a> Lemma=<b>{lemmaLink}</b>
+ {probabilityField if state.TEST_MODE_FLAG else ''}{f'<b>{greekWord}</b>' if greekWord else '<small>(blank)</small>'} ({transliterate_Greek(greekWord)}) {translation}{capsField if state.TEST_MODE_FLAG else ''}
+ Strongs={f'<a title="Goes to Strongs dictionary" href="{'../'*level}ref/GrkStrng/G{strongs}.htm#To">{extendedStrongs}</a>' if extendedStrongs else '<small>(none)</small>'} Lemma=<b>{lemmaLink}</b>
 <br> {roleField}{moodField}{tenseField}{voiceField}{personField}{caseField}{genderField}{numberField}{f'{NEWLINE}<br>  {semanticExtras}' if semanticExtras else ''}</p>
 <p class="note"><small>Note: With the help of a companion website, these word pages enable you to click through all the way back to photographs of the original manuscripts that the <em>Open English Translation</em> New Testament is translated from.
 If you go to the <em>Statistical Restoration</em> Greek page (by clicking on the SR Bible reference above), from there you can click on the original manuscript numbers (e.g., 𝔓1, 01, 02, etc.) in the <i>Witness</i> column there, to see their transcription of the original Greek page.
@@ -2522,16 +2600,15 @@ f''' <a title="Go to Statistical Restoration Greek page" href="https://GreekCN
             .replace( '__TITLE__', f"Greek Words Index{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, Greek, words' )
     indexText = ' '.join( wordLinksForIndex )
-    indexHtml = f'''{top}
+    indexHtml = f'''{top}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
 <p class="note"><b><a href="../">Reference lists contents page</a></b></p>
 <p class="note"><a href="../HebWrd/">Hebrew words index</a> <a href="../HebWrd/transIndex.htm">Transliterated Hebrew words index</a></p>
 <p class="note"><a href="../HebLem/">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm">Transliterated Hebrew lemmas index</a></p>
 <p class="note"><a href="../HebStrng/">Hebrew Strongs numbers index</a></p>
-<p class="note">Greek words index <a href="transIndex.htm">Transliterated Greek words index</a></p>
+<p class="note"><span class="selectedBook">Greek words index</span> <a href="transIndex.htm">Transliterated Greek words index</a></p>
 <p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
 <p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a></p>
-<p class="note"><a href="../Per/">Bible people index</a></p>
-<p class="note"><a href="../Loc/">Bible locations index</a></p>
+<p class="note"><a href="../Per/importantIndex.htm">Important people index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
 <p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/">Bible statistics</a></p>
 <h1 id="Top">Greek Words Index</h1>
@@ -2550,16 +2627,15 @@ f''' <a title="Go to Statistical Restoration Greek page" href="https://GreekCN
             .replace( '__TITLE__', f"Transliterated Greek Words Index{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, Greek, words, transliterated' )
     indexText = transliterate_Greek( indexText )
-    indexHtml = f'''{top}
+    indexHtml = f'''{top}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
 <p class="note"><b><a href="../">Reference lists contents page</a></b></p>
 <p class="note"><a href="../HebWrd/">Hebrew words index</a> <a href="../HebWrd/transIndex.htm">Transliterated Hebrew words index</a></p>
 <p class="note"><a href="../HebLem/">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm">Transliterated Hebrew lemmas index</a></p>
 <p class="note"><a href="../HebStrng/">Hebrew Strongs numbers index</a></p>
-<p class="note"><a href="index.htm">Greek words index</a> Transliterated Greek words index</p>
+<p class="note"><a href="index.htm">Greek words index</a> <span class="selectedBook">Transliterated Greek words index</span></p>
 <p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
 <p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a></p>
-<p class="note"><a href="../Per/">Bible people index</a></p>
-<p class="note"><a href="../Loc/">Bible locations index</a></p>
+<p class="note"><a href="../Per/importantIndex.htm">Important people index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
 <p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/">Bible statistics</a></p>
 <h1 id="Top">Transliterated Greek Words Index</h1>
@@ -2613,7 +2689,7 @@ def create_Greek_lemma_pages( level:int, outputFolderPath:Path, state:State ) ->
     # Now make a page for each Greek lemma (including the variants not used in the translation)
     lemmaLinks:list[str] = [] # Used below to make an index page
     for ll, lemma in enumerate( lemmaList ):
-        if (ll) % 1_000 == 0:
+        if (ll+1) % 1_000 == 0:
             vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      {len(lemmaLinks):,} made out of {f'{ll:,} out of ' if ll!=len(lemmaLinks) else ''}{len(lemmaList):,}…" )
         # print( f"Lemma {ll}: {lemma}" )
         grkLemma = state.OETRefData['NTGreekLemmaDict'][lemma]
@@ -2821,16 +2897,15 @@ def create_Greek_lemma_pages( level:int, outputFolderPath:Path, state:State ) ->
             .replace( '__TITLE__', f"Greek Lemma Index{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, Greek, lemmas' )
     indexText = ' '.join( lemmaLinks )
-    indexHtml = f'''{top}
+    indexHtml = f'''{top}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
 <p class="note"><b><a href="../">Reference lists contents page</a></b></p>
 <p class="note"><a href="../HebWrd/">Hebrew words index</a> <a href="../HebWrd/transIndex.htm">Transliterated Hebrew words index</a></p>
 <p class="note"><a href="../HebLem/">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm">Transliterated Hebrew lemmas index</a></p>
 <p class="note"><a href="../HebStrng/">Hebrew Strongs numbers index</a></p>
 <p class="note"><a href="../GrkWrd/">Greek words index</a> <a href="../GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
-<p class="note">Greek lemmas index <a href="transIndex.htm">Transliterated Greek lemmas index</a></p>
+<p class="note"><span class="selectedBook">Greek lemmas index</span> <a href="transIndex.htm">Transliterated Greek lemmas index</a></p>
 <p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a></p>
-<p class="note"><a href="../Per/">Bible people index</a></p>
-<p class="note"><a href="../Loc/">Bible locations index</a></p>
+<p class="note"><a href="../Per/importantIndex.htm">Important people index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
 <p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/">Bible statistics</a></p>
 <h1 id="Top">Greek Lemmas Index</h1>
@@ -2849,16 +2924,15 @@ def create_Greek_lemma_pages( level:int, outputFolderPath:Path, state:State ) ->
             .replace( '__TITLE__', f"Transliterated Greek Lemma Index{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, Greek, lemmas, transliterated' )
     indexText = transliterate_Greek( indexText)
-    indexHtml = f'''{top}
+    indexHtml = f'''{top}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
 <p class="note"><b><a href="../">Reference lists contents page</a></b></p>
 <p class="note"><a href="../HebWrd/">Hebrew words index</a> <a href="../HebWrd/transIndex.htm">Transliterated Hebrew words index</a></p>
 <p class="note"><a href="../HebLem/">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm">Transliterated Hebrew lemmas index</a></p>
 <p class="note"><a href="../HebStrng/">Hebrew Strongs numbers index</a></p>
 <p class="note"><a href="../GrkWrd/">Greek words index</a> <a href="../GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
-<p class="note"><a href="index.htm">Greek lemmas index</a> Transliterated Greek lemmas index</p>
+<p class="note"><a href="index.htm">Greek lemmas index</a> <span class="selectedBook">Transliterated Greek lemmas index</span></p>
 <p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a></p>
-<p class="note"><a href="../Per/">Bible people index</a></p>
-<p class="note"><a href="../Loc/">Bible locations index</a></p>
+<p class="note"><a href="../Per/importantIndex.htm">Important people index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
 <p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/">Bible statistics</a></p>
 <h1 id="Top">Greek Lemmas Index</h1>
@@ -2936,8 +3010,7 @@ def create_Hebrew_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:
 <p class="note"><a href="../GrkWrd/">Greek words index</a> <a href="../GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
 <p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
 <p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a></p>
-<p class="note"><a href="../Per/">Bible people index</a></p>
-<p class="note"><a href="../Loc/">Bible locations index</a></p>
+<p class="note"><a href="../Per/importantIndex.htm">Important people index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
 <p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/">Bible statistics index</a></p>
 <h1 id="Top">Strongs {strongsLetterNumberString}</h1>
@@ -2958,15 +3031,17 @@ def create_Hebrew_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:
     top = makeTop( level, None, 'StrongsIndex', None, state ) \
             .replace( '__TITLE__', f"Strongs Hebrew Index{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, Strongs, Hebrew, index' )
-    indexHtml = f'''{top}
+    indexHtml = f'''{top}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
 <p class="note"><b><a href="../">Reference lists contents page</a></b></p>
 <p class="note"><a href="../HebWrd/">Hebrew words index</a> <a href="../HebWrd/transIndex.htm">Transliterated Hebrew words index</a></p>
 <p class="note"><a href="../HebLem/">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm">Transliterated Hebrew lemmas index</a></p>
+<p class="note"><span class="selectedBook">Hebrew Strongs numbers index</span></p>
 <p class="note"><a href="../GrkWrd/">Greek words index</a> <a href="../GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
 <p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
 <p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a></p>
-<p class="note"><a href="../Per/">Bible people index</a></p>
-<p class="note"><a href="../Loc/">Bible locations index</a></p>
+<p class="note"><a href="../Per/importantIndex.htm">Important people index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
+<p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
+<p class="note"><a href="../Stats/">Bible statistics index</a></p>
 <h1 id="Top">Strongs Hebrew Index</h1>
 <ul>{'\n'.join(indexList)}</ul>
 {makeBottom( level, None, 'StrongsIndex', state )}'''
@@ -3036,8 +3111,7 @@ def create_Greek_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:B
 <p class="note"><a href="../GrkWrd/">Greek words index</a> <a href="../GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
 <p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
 <p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a></p>
-<p class="note"><a href="../Per/">Bible people index</a></p>
-<p class="note"><a href="../Loc/">Bible locations index</a></p>
+<p class="note"><a href="../Per/importantIndex.htm">Important people index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
 <p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/">Bible statistics index</a></p>
 <h1 id="Top">Strongs {strongsLetterNumberString}</h1>
@@ -3058,15 +3132,17 @@ def create_Greek_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:B
     top = makeTop( level, None, 'StrongsIndex', None, state ) \
             .replace( '__TITLE__', f"Strongs Greek Index{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, Strongs, Greek, index' )
-    indexHtml = f'''{top}
+    indexHtml = f'''{top}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
 <p class="note"><b><a href="../">Reference lists contents page</a></b></p>
 <p class="note"><a href="../HebWrd/">Hebrew words index</a> <a href="../HebWrd/transIndex.htm">Transliterated Hebrew words index</a></p>
 <p class="note"><a href="../HebLem/">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm">Transliterated Hebrew lemmas index</a></p>
 <p class="note"><a href="../HebStrng/">Hebrew Strongs numbers index</a></p>
 <p class="note"><a href="../GrkWrd/">Greek words index</a> <a href="../GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
 <p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
-<p class="note"><a href="../Per/">Bible people index</a></p>
-<p class="note"><a href="../Loc/">Bible locations index</a></p>
+<p class="note"><span class="selectedBook">Greek Strongs numbers index</span></p>
+<p class="note"><a href="../Per/importantIndex.htm">Important people index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
+<p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
+<p class="note"><a href="../Stats/">Bible statistics index</a></p>
 <h1 id="Top">Strongs Greek Index</h1>
 <ul>{'\n'.join(indexList)}</ul>
 {makeBottom( level, None, 'StrongsIndex', state )}'''
@@ -3097,13 +3173,13 @@ def create_person_pages( level:int, outputFolderPath:Path, state:State ) -> int:
 
     # Firstly, make a list of all the keys
     peopleKeys = []
-    personLinks:list[str] = []
     for personKey in peopleDict:
         if personKey == '__HEADERS__': continue
         if personKey == '__COLUMN_HEADERS__': continue
         peopleKeys.append( personKey )
 
     # Now make a page for each person
+    personLinks:list[str] = []
     for n,(personKey,entry) in enumerate( peopleDict.items() ):
         if personKey == '__HEADERS__': continue
         if personKey == '__COLUMN_HEADERS__': continue
@@ -3131,7 +3207,7 @@ def create_person_pages( level:int, outputFolderPath:Path, state:State ) -> int:
                                     .replace( '__TITLE__', f"{personName}{' TEST' if state.TEST_MODE_FLAG else ''}" )
                                     .replace( '__KEYWORDS__', 'Bible, word' )
                                     }
-<p class="prevNextLinks">{previousLink} <a title="Go to person index" href="index.htm">↑</a> {nextLink}</p>
+<p class="prevNextLinks">{previousLink} <a title="Go to important people index" href="importantIndex.htm">I</a> <a title="Go to all people index" href="index.htm">↑</a> {nextLink}</p>
 {bodyHtml}
 <p class="thanks"><small>Grateful thanks to <a href="https://Viz.Bible">Viz.Bible</a> for these links and this data.</small></p>
 {makeBottom( level, None, 'person', state )}'''
@@ -3146,9 +3222,9 @@ def create_person_pages( level:int, outputFolderPath:Path, state:State ) -> int:
     filename = 'index.htm'
     filepath = outputFolderPath.joinpath( filename )
     top = makeTop( level, None, 'personIndex', None, state ) \
-            .replace( '__TITLE__', f"Bible Person Index{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
+            .replace( '__TITLE__', f"All Bible People Index{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, person, people' )
-    indexHtml = f'''{top}
+    indexHtml = f'''{top}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
 <p class="note"><b><a href="../">Reference lists contents page</a></b></p>
 <p class="note"><a href="../HebWrd/">Hebrew words index</a> <a href="../HebWrd/transIndex.htm">Transliterated Hebrew words index</a></p>
 <p class="note"><a href="../HebLem/">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm">Transliterated Hebrew lemmas index</a></p>
@@ -3156,10 +3232,10 @@ def create_person_pages( level:int, outputFolderPath:Path, state:State ) -> int:
 <p class="note"><a href="../GrkWrd/">Greek words index</a> <a href="../GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
 <p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
 <p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a></p>
-<p class="note"><a href="../Loc/">Bible locations index</a></p>
+<p class="note"><a href="../Per/importantIndex.htm">Important people index</a> <span class="selectedBook">All people index</span> <a href="../Loc/">Locations index</a></p>
 <p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/">Bible statistics</a></p>
-<h1 id="Top">Bible People Index</h1>
+<h1 id="Top">All Bible People Index</h1>
 <p class="note">{' '.join(personLinks)}</p>
 {makeBottom( level, None, 'personIndex', state )}'''
     assert checkHtml( 'personIndex', indexHtml )
@@ -3168,6 +3244,89 @@ def create_person_pages( level:int, outputFolderPath:Path, state:State ) -> int:
         indexHtmlFile.write( indexHtml )
     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
 # end of createOETReferencePages.create_person_pages function
+
+
+def create_important_person_pages( level:int, outputFolderPath:Path, state:State ) -> int:
+    """
+    Make a person page only listing important people like Adam, Abraham, ...
+
+    This includes links to the person pages (made above)
+        PLUS to the first appropriate OET section
+    """
+    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Making important person pages…" )
+
+    try: os.makedirs( outputFolderPath )
+    except FileExistsError: pass # it was already there
+
+    with open( THEOGRAPHIC_INPUT_FOLDER_PATH.joinpath( 'normalised_People.json' ), 'rb' ) as people_file:
+        peopleDict = json.load( people_file )
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Loaded {len(peopleDict):,} person entries." )
+
+    # Firstly, make a list of all the keys
+    peopleKeys = []
+    for personKey in peopleDict:
+        if personKey == '__HEADERS__': continue
+        if personKey == '__COLUMN_HEADERS__': continue
+        assert personKey[0] == 'P'
+        peopleKeys.append( personKey[1:] )
+        # print( f"{personKey[1:]=}")
+
+    # personLinks:list[str] = []
+    personLinksString, lastPersonName = '', '---'
+    for personName, personRefList in IMPORTANT_PEOPLE_ALPHABETICAL_LIST:
+        # print( f"      {level=} {personName=} {personRef=}" )
+        personPageLinkPart = None
+        if personName == 'Abram': personPageLinkPart = 'Abraham'
+        if personName in peopleKeys:
+            personPageLinkPart = personName
+        elif '/' in personName:
+            name1, name2  = personName.split( '/', 1 )
+            if name1 in peopleKeys: personPageLinkPart = name1
+            else:
+                name2 = name2.replace( '<small>', '' ).replace( '</small>', '' )
+                if name2 in peopleKeys: personPageLinkPart = name2
+        personPageLink = f'<a title="Go to person details page" href="{personPageLinkPart}.htm"><b>{personName}</b></a>' if personPageLinkPart else f'({personName})'
+
+        personRefLinks = []
+        for personRef in personRefList:
+            BBB, CV = personRef.split( '_', 1 )
+            C, V = CV.split( ':', 1 )
+            s = findSectionNumber( 'OET-RV', BBB, C, V, state )
+            tidyBBB = getOETTidyBBB( BBB, titleCase=True, addNotes=True )
+            personRefLink = f'''<a title="Go to first scripture section for person" href="{'../'*level}OET/bySec/{BBB}_S{s}.htm#C{C}V{V}">{tidyBBB} {C}:{V}</a>'''
+            personRefLinks.append( personRefLink )
+        fullPersonLink = f'{personPageLink} {", ".join(personRefLinks)}'
+        # print( f"        {fullPersonLink=}" )
+        # personLinks.append( (personName,fullPersonLink) )
+        personLinksString = f'{personLinksString}{' ' if personName[0]==lastPersonName[0] else '<br>'}{fullPersonLink}'
+        lastPersonName = personName
+
+    # Create this second index page for this folder
+    filename = 'importantIndex.htm'
+    filepath = outputFolderPath.joinpath( filename )
+    top = makeTop( level, None, 'personIndex', None, state ) \
+            .replace( '__TITLE__', f"Important Bible People Index{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
+            .replace( '__KEYWORDS__', 'Bible, person, people' )
+    indexHtml = f'''{top}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
+<p class="note"><b><a href="../">Reference lists contents page</a></b></p>
+<p class="note"><a href="../HebWrd/">Hebrew words index</a> <a href="../HebWrd/transIndex.htm">Transliterated Hebrew words index</a></p>
+<p class="note"><a href="../HebLem/">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm">Transliterated Hebrew lemmas index</a></p>
+<p class="note"><a href="../HebStrng/">Hebrew Strongs numbers index</a></p>
+<p class="note"><a href="../GrkWrd/">Greek words index</a> <a href="../GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
+<p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
+<p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a></p>
+<p class="note"><span class="selectedBook">Important people index</span> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
+<p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
+<p class="note"><a href="../Stats/">Bible statistics</a></p>
+<h1 id="Top">Important Bible People Index</h1>
+<p class="note">{personLinksString}</p>
+{makeBottom( level, None, 'personIndex', state )}'''
+    assert checkHtml( 'personIndex', indexHtml )
+    assert not filepath.is_file() # Check that we're not overwriting anything
+    with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
+        indexHtmlFile.write( indexHtml )
+    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
+# end of createOETReferencePages.create_important_person_pages function
 
 
 def create_location_pages( level:int, outputFolderPath:Path, state:State ) -> int:
@@ -3237,7 +3396,7 @@ def create_location_pages( level:int, outputFolderPath:Path, state:State ) -> in
     top = makeTop( level, None, 'locationIndex', None, state ) \
             .replace( '__TITLE__', f"Bible Location Index{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, location, locations, place, places' )
-    indexHtml = f'''{top}
+    indexHtml = f'''{top}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
 <p class="note"><b><a href="../">Reference lists contents page</a></b></p>
 <p class="note"><a href="../HebWrd/">Hebrew words index</a> <a href="../HebWrd/transIndex.htm">Transliterated Hebrew words index</a></p>
 <p class="note"><a href="../HebLem/">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm">Transliterated Hebrew lemmas index</a></p>
@@ -3245,7 +3404,7 @@ def create_location_pages( level:int, outputFolderPath:Path, state:State ) -> in
 <p class="note"><a href="../GrkWrd/">Greek words index</a> <a href="../GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
 <p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
 <p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a></p>
-<p class="note"><a href="../Per/">Bible people index</a></p>
+<p class="note"><a href="../Per/importantIndex.htm">Important people index</a> <a href="../Per/">All people index</a> <span class="selectedBook">Locations index</span></p>
 <p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/">Bible statistics</a></p>
 <h1 id="Top">Bible Locations Index</h1>
@@ -3353,7 +3512,7 @@ def create_statistics_pages( level:int, outputFolderPath:Path, state:State ) -> 
 <tr><td></td><td></td><td style="text-align:center;"><b>TOTAL</b></td><td style="text-align:right;"><b>{totalChapters:,}</b></td><td style="text-align:right;"><b>{totalVerses:,}</b></td><td></td><td></td></tr>
 </table>'''
 
-    pageHtml = f'''{top}
+    pageHtml = f'''{top}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
 <p class="note"><b><a href="../">Reference lists contents page</a></b></p>
 <p class="note"><a href="../HebWrd/">Hebrew words index</a> <a href="../HebWrd/transIndex.htm">Transliterated Hebrew words index</a></p>
 <p class="note"><a href="../HebLem/">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm">Transliterated Hebrew lemmas index</a></p>
@@ -3361,8 +3520,7 @@ def create_statistics_pages( level:int, outputFolderPath:Path, state:State ) -> 
 <p class="note"><a href="../GrkWrd/">Greek words index</a> <a href="../GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
 <p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
 <p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a></p>
-<p class="note"><a href="../Per/">Bible people index</a></p>
-<p class="note"><a href="../Loc/">Bible locations index</a></p>
+<p class="note"><a href="../Per/importantIndex.htm">Important people index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
 <p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/">Bible statistics index</a></p>
 <h1 id="Top">Bible Chapters and Verses—Traditional Western Protestant</h1>
@@ -3389,7 +3547,7 @@ def create_statistics_pages( level:int, outputFolderPath:Path, state:State ) -> 
     top = makeTop( level, None, 'statisticsIndex', None, state ) \
             .replace( '__TITLE__', f"Bible Statistics Index{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, statistics, number, chapters, verses' )
-    indexHtml = f'''{top}
+    indexHtml = f'''{top}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
 <p class="note"><b><a href="../">Reference lists contents page</a></b></p>
 <p class="note"><a href="../HebWrd/">Hebrew words index</a> <a href="../HebWrd/transIndex.htm">Transliterated Hebrew words index</a></p>
 <p class="note"><a href="../HebLem/">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm">Transliterated Hebrew lemmas index</a></p>
@@ -3397,8 +3555,9 @@ def create_statistics_pages( level:int, outputFolderPath:Path, state:State ) -> 
 <p class="note"><a href="../GrkWrd/">Greek words index</a> <a href="../GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
 <p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
 <p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a></p>
-<p class="note"><a href="../Per/">Bible people index</a></p>
-<p class="note"><a href="../Loc/">Bible locations index</a></p>
+<p class="note"><a href="../Per/importantIndex.htm">Important people index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
+<p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
+<p class="note"><span class="selectedBook">Bible statistics index</span></p>
 <h1 id="Top">Bible Statistics Index</h1>
 <p class="note"><a href="Chapters.htm">Bible chapters and verses</a></p>
 {makeBottom( level, None, 'statisticsIndex', state )}'''

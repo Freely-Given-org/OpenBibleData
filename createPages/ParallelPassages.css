@@ -13,6 +13,7 @@ div.footer { margin:50px; }
 p.site {}
 p.copyright {}
 p.note {}
+img.OETWideLogo { width:calc(100% - 10px); margin:0 auto; display:block; max-height:100px; object-fit:contain; } /* Leaves 5px on each side */
 
 /* p.shortPrayer { text-align:center; } */
 /* p.LVsentence { margin-top:0.2em; margin-bottom:0.2em; } */
@@ -157,7 +158,7 @@ span.addArticle { color:bisque; }
 /* span.unusedArticle { color:lavender; } */
 /* span.addCopula { color:pink; } */
 span.addDirectObject { color:brown; }
-span.addExtra { color:lightGreen; }
+span.addExtra { color:green; }
 span.addElided { color:darkgoldenrod; }
 span.addOwner { color:darkOrchid; }
 span.addPronoun { color:darkgreen; }

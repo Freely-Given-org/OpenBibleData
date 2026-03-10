@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S uv run
 # -\*- coding: utf-8 -\*-
 # SPDX-FileCopyrightText: © 2023 Robert Hunt <Freely.Given.org+OBD@gmail.com>
 # SPDX-License-Identifier: GPL-3.0-or-later
@@ -47,7 +47,7 @@ from BibleOrgSys import BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import vPrint, fnPrint, dPrint, rreplace
 
 
-LAST_MODIFIED_DATE = '2026-01-16' # by RJH
+LAST_MODIFIED_DATE = '2026-02-17' # by RJH
 SHORT_PROGRAM_NAME = "spellCheckEnglish"
 PROGRAM_NAME = "English Bible Spell Check"
 PROGRAM_VERSION = '0.57'
@@ -58,7 +58,7 @@ DEBUGGING_THIS_MODULE = False
 
 TED_DICT_FOLDERPATH = Path( '../../../Documents/RobH123/TED_Dict/sourceDicts/')
 assert TED_DICT_FOLDERPATH.is_dir()
-OET_LV_NAMES_TSV_FILEPATH = Path( '../../OpenEnglishTranslation--OET/intermediateTexts/OET-LV_names_table.tsv' )
+OET_LV_NAMES_TSV_FILEPATH = Path( '../../OpenEnglishTranslation--OET/derivedTexts/OET-LV_names_table.tsv' )
 assert OET_LV_NAMES_TSV_FILEPATH.is_file()
 EXPECTED_OET_LV_NAMES_TSV_HEADER = 'TraditionalName\tLVName'
 OET_RV_NAMES_TSV_FILEPATH = Path( '../../OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/OET-RV_names_table.tsv' )
@@ -82,14 +82,14 @@ INITIAL_BIBLE_WORD_LIST = ['3.0','UTF','USFM', '©', 'CC0',
                     'Abiyah',
                     'Benyamin',
                     'Yabesh',
-                        'Yacob', 'Yames',
+                        'Yacob', 'Yairus', 'Yames',
                         'Yebusite','Yebusites', 'Yehoiakim', 'Yehoiada', 'Yehoshaphat',
                             'Yephthah',
                             'Yeremiah', 'Yericho', 'Yeroboam', 'Yerusalem',
-                            'Yesse', 'Yesus', 'Yezebel', 'Yezreel',
+                            'Yesse', 'Yesus','Yesu', 'Yezebel', 'Yezreel',
                         'Yhesus', 'Yhesu',
                         'Yoab', 'Yohn', 'Yonathan', 'Yordan', 'Yoseph', 'Yoses', 'Yoshua', 'Yosiah', 'Yotham',
-                        'Yudah', 'Yudas', 'Yudea', 'Yudeth',
+                        'Yudah', 'Yudas', 'Yude', 'Yudea', 'Yudeth',
 
                     # Specialist words
                     'black-grained','building-stone',
@@ -115,39 +115,45 @@ INITIAL_BIBLE_WORD_LIST = ['3.0','UTF','USFM', '©', 'CC0',
                     # 'DOU','EUP','HYP','MET','MTY','PRS','RHQ','SIM',
 
                     # Various simple English words used in Psalm headings, etc.
-                    'ALL','ALSO','AMEN','ASSOCIATED',
-                    'BLESSED','BOOK','BRING',
-                    'CAME','CAUSE','COME','COMING',
-                    'DIVINE','DO',
-                    'END',
-                    'GOOD',
-                    'HELP',
-                    'SENDING','WATCH','PUT','DEATH','DESTROY','BORN',
-                    'PRAISE','GIVE','LOVE','SAW','SET','SON','COMMONLY','CALLED','NOW','SILENT','DOVE','FAR','OFF','TAKING','HEAR','HOLD',
-                    'APOSTLE','APOSTLES','CERTAIN','CHILD','GOSPEL','ST','OVER','PROPHET','PREACHER','BRANCH','EPISTLE','VALLEY','SALT','STRIKES',
+                    'ABOMINATIONS','AFTER','ALL','ALSO','AMEN','AN','APOSTLE','APOSTLES','ASSOCIATED','AWAY',
+                    'BASE','BEFORE','BEHOLD','BESEECH','BLESSED','BOOK','BORN','BRING',
+                    'CALLED','CAME','CAPITAL','CAPTIVE','CAUSE','CERTAIN','CHALDEE','CHAP','CHAPTER','CHILD','CHILDREN',
+                        'COME','COMING','COMMONLY',
+                    'DIVINE','DO','DOVE',
+                    'ELDER','END','EPISTLE',
+                    'FALSE','FAR','FOUND','FROM',
+                    'GENERAL','GLORY','GOOD','GOSPEL','GREEK',
+                    'HARLOTS','HEAR','HEBREW','HELD','HELP','HIDING','HISTORY','HOLD','HOUSE',
+                    'SENDING','WATCH','PUT','DEATH','DESTROY',
+                    'PRAISE','GIVE','LOVE','SAW','SET','SON','NOW','SILENT','OFF','TAKING',
                     'SAVE','SERVANT','SERVANTS','MAN','MOON','MY','SONS','BURDEN','RIGHTEOUSNESS','LILY','TESTIMONY','TEACH','STRIVING',
-                    'KING','JEWS','YEWS','HAPPY','HOLY','HOLINESS','THRONE','PEACE','MOTHER','WOMEN','EARTH','GREAT','MYSTERY',
-                    'HARLOTS','PROSTITUTES','ABOMINATIONS','EVIL','UNCLEAN','SECRET','SHEPHERD','MEANING','WILDERNESS','WOMAN','REMEMBER',
-                    'ORIGINAL','BASE','TEXT','PARABLE','PARABLES','NAME','NATIONS','NOTES','RELEASE','STATUS','TAGS','TRULY',
-                    'WORD','WORDS','SECTION','PRAYER','VISION',
-                    'SAID','SAY','SING','BEHOLD','STAR','RISE','STRINGED','SUCCESS',
-                    'UNKNOWN','UP','HIDING','HOUSE',
-                    'VICTORY',
-                    'WAS',
-                    'GENERAL','GLORY','ELDER','WISE','FALSE','SOFT',
+                    'KING','KNOW','KNOWLEDGE','KNOWS',
+                    'JEWS','YEWS','HAPPY','HOLY','HOLINESS','THRONE','PEACE','MOTHER','WOMEN','EARTH','GREAT','MYSTERY',
+                    'EVIL','UNCLEAN','MEANING','REMEMBER',
+                    'LET','LETTERS',
+                    'NAME','NATIONS','NEITHER','NOR','NOTES',
+                    'ORIGINAL','OVER',
+                    'PARABLE','PARABLES','PART','PERTAIN','PLACED','PRAYER','PREACHER','PROPHET','PROSTITUTES',
+                    'RELEASE','RISE',
+                    'SAID','SAY','SECRET','SECTION','SHEPHERD','SING','SOFT','STAR','STATUS','STRINGED','SUCCESS',
+                    'ST','BRANCH','SALT','STRIKES',
+                    'TAGS','TENTH','TEXT','THOSE','TRULY','TURN',
+                    'UNKNOWN','UP','USE',
+                    'VALLEY','VICTORY','VISION',
+                    'WE','WAS','WHEREAS','WHOM','WILDERNESS','WISE','WOMAN','WORD','WORDS',
 
-                    'ABADDON','ADAM','ADONAI','ASAPH',
-                    'BABYLON','BETHLEHEM',
+                    'ABADDON','ADAM','ADONAI','AGUR','ASAPH',
+                    'BABYLON','BARUCH','BETHLEHEM',
                     'CHRIST',
                     'DAVID',
-                    'ESDRAS',
+                    'ECCLESIASTICUS','ESDRAS',
                     'ISRAEL','ISRAELITES',
-                    'JAH','JEHOVAH','JESUS','JOSEPH','JUDAH',
+                    'JAH','JEHOVAH','JESUS','JOSEPH','JUDAH','JUDITH',
                     'LEMUEL','LOGOS',
                     'MOAB','MOSES',
                     'NAZARETH','NAZARENE',
                     'PAUL',
-                    'SETH','SOLOMON',
+                    'SETH','SIRACH','SOLOMON',
                     'YEHOVAH','YESHUA','YESUS','YEWES','YOHN',
 
                     'A.D','B.C',
@@ -182,9 +188,10 @@ INITIAL_BIBLE_WORD_LIST = ['3.0','UTF','USFM', '©', 'CC0',
                     'GEN','EXO','LEV','NUM','DEU', 'JOS','YOS', 'JDG','RUT','SA1','SA2','KI1','KI2','CH1','CH2','EZR','NEH','EST','YOB',
                     'PSA','PSAL','PRO','ECC','SNG','ISA', 'JER','YER', 'LAM','EZE','EZK','DAN','HOS', 'JOL','YOL',
                     'AMO','OBA','JNA','JON','MIC','NAH','NAM','HAB','ZEP','HAG','ZEC','MAL',
-                    'LAO','GES','LES','ESG','ADE','PS2','TOB','WIS','SIR','BAR','PAZ','JDT','DAG','SUS',
+                    'LAO','GES','LES','ESG','ADE','PS2','TOB','WIS','SIR','BAR','PAZ','JDT','DAG',
+                        'SUS','LYE','S3Y','BEL','MA1','MA2','MA3','MA4',
                     'MAT','MRK','LUK', 'JHN','YHN', 'ACT','ROM','CO1','CO2','GAL','EPH','PHP','COL','TH1','TH2','TI1','TI2','TIT',
-                    'PHM','HEB','JAM','PE1','PE2','JN1','JN2','JN3','JDE','REV',
+                    'PHM','HEB', 'JAM','JAS', 'PE1','PE2','JN1','JN2','JN3','JDE','JUD','REV',
                     'Gen','Exo','Lev','Num','Deu','Chr','Rut','Psa','Psal','Prv','Hos','Zech','Mal',
                     'Matth','Mrk','Luk','Lk','Jhn','Jn','Act','Gal','Eph','Php','Col','Heb','Phm','Rev',
 
@@ -200,13 +207,21 @@ assert len(INITIAL_BIBLE_WORD_SET) == len(INITIAL_BIBLE_WORD_LIST), f"{[w for w 
 PREAPPROVED_WORDS_TO_REMOVE = sorted(['God’s','GOD', 'LORD’S','LORD’s','LORD\'S','LORD\'s','LORD', # Delete ALL CAPS versions
 
             # Hyphenated names (would have been split up down below)
-            'Al-tashheth','al-tashcheth','Al-taschith','al- tashcheth',
+            'Almon-diblathaim','Al-tashheth','al-tashcheth','Al-taschith','al- tashcheth',
                 'Aram-zobah',
             'Beer-sheba',
-                'Ben-hadad',
-                'Beth-aven','Beth-eden', 'Beth-el','Beyt-El','Beth-lehem','Beth-Peor',
+                'Ben-hadad','Bene-jaakan',
+                'Beth-aven','Beth-eden', 'Beth-el','Beyt-El','Beth-horon','Beth-lehem','Beth-Peor',
                 'Bikath-Aven','Bikat-Aven',
+            'Hamath-zobah','Hazar-enan',
+            'Iye-abarim',
             'Kadesh-barnea',
+                'Kibroth-hattaavah',
+                'Kiriath-jearim','Kirjath-jearim',
+            'Lebo-hamath',
+            'Maher-shalal-hash-baz',
+            'Obed-edom',
+            'Rab-shakeh','Ramoth-gilead','Rimmon-perez',
 
             # # Mangled names
             # 'Yoab','Yonathan',
@@ -393,6 +408,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
     if state.BibleLanguages[versionAbbreviation] == 'EN-USA':
          wordSetName = 'USA'
          wordSet = AMERICAN_WORD_SET
+         wordSet.add( 'HONORS' )
     # elif versionAbbreviation in ( 'OET-RV','OET-LV', 'OEB', 'WEBBE','WMBB', 'BBE','Moff','JPS','DRA','YLT','Drby','RV', 'KJB-1769','KJB-1611', 'Bshps','Gnva','Cvdl', 'TNT','Wycl', 'Luth','ClVg' ):
     elif state.BibleLanguages[versionAbbreviation] == 'EN-UK' \
     or state.BibleLanguages[versionAbbreviation] in ('GER','LAT'): # These ones should have been translated
@@ -411,21 +427,24 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                         'armstronginstitute.org','bibleDifferences.net','bibleandtech.blogspot.com','bibledifferences.net','biblestudyresources','commentary.html','judas%E2%80%99','tongue%E2%80%9D', 'Yeshua%E2%80%99',
                         'mounce', 'openenglishbible', 'scrollandscreen.com', 'UASVBible.org', 'given.org', 'GitHub.com', 'GreekCNTR.org', # Websites
                         '%E2%80%9Cdivided','%E2%80%9Cjew%E2%80%9D','v=66013018',
-                        'Amots','Tsor',
+                        # 'Amots','Tsor',
+                        'ox[en','ash[es',
                         ),
                     OET_LV_NAMES_SET )
         if versionAbbreviation == 'OET-LV':
             wordSet.update( ('LV_OT_word_table.tsv', 'LV_NT_word_table.tsv',
                             # 'Dawid','Efrayim','Farisaios','Galilaia','Pilatos',
                             ) )
-        if versionAbbreviation == 'OET-RV':
+        elif versionAbbreviation == 'OET-RV':
             wordSet.update( OET_RV_NAMES_SET )
     elif versionAbbreviation in ('UST','ULT','UHB','UGNT'):
         wordSet.update( ('unfoldingWord®','unfoldingWord','tc','en',) )
+    elif versionAbbreviation == 'NET':
+        wordSet.update( ('CAP',) )
     elif versionAbbreviation == 'LSV': # Allow their UPPER CASE Psalm headings
-        wordSet.update( ('A','AN','ABIMELECH','ALL','AND','ASCENTS','AWAY','BEFORE','BEHAVIOR','BET','BY',
+        wordSet.update( ('A','AN','ABIMELECH','ALL','AND','ASCENTS','AWAY','BEHAVIOR','BET','BY',
                          'CHANGING','DEDICATION','DAY','DOE','DRIVES',
-                         'ENEMIES','FROM',
+                         'ENEMIES',
                          'HAS','HOUSE','INSTRUCTION','MIKTAM','MORNING','INSTRUMENTS',
                          'ON','OVERSEER','PRAYER','PSALM','SAUL','SAYS','SET','SPOKEN',
                          'GOES','ALEPH-BET','YAH','ALEPH','BETH',
@@ -437,9 +456,10 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
     elif versionAbbreviation in ('DRA','YLT','RV'):
         wordSet.update( ('baptized',) )
     elif versionAbbreviation == 'Luth':
-        wordSet.update( ('Yuda',) )
+        wordSet.update( ('Yuda','fiancé(e',) ) # (Final parenthesis gets removed)
     elif versionAbbreviation == 'ClVg':
-        wordSet.update( ('Moyses','Sion','Yuda',
+        wordSet.update( ('carmel', # No idea why this isn't capitalised in ClVg ???
+                         'Moyses','Sion','Yuda',
                          'IESVS',
                          'ELLEH','HADDEBARIM',
                          'VAIICRA','ISICHIUS',
@@ -450,7 +470,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                          'DIOD',
                          'EUCHERIUS','EUCH', 'EUTHYM', 'EX',
                          'GERG','GREC','GREG',
-                         'HAYMO','HAYM', 'HIERON','HIER', 'HILAR', 'HIPPOLYT','HIPP',
+                         'HAYMO','HAYM', 'HIERON','HIER', 'HILAR','HIL', 'HIPPOLYT','HIPP',
                          'IDEM','ID', 'IOD', 'IRENÆUS', 'ISICH','ISID', 'JUSTIN','YUSTIN',
                          'LEO',
                          'MAG',
@@ -458,7 +478,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                          'PATERIUS', 'PROCOP',
                          'RAB', 'REMIG','REMI','REM', 'RUPERT',
                          'SEPTUAG', 'SEVERIANUS', 'STRAB', 'STRAR', 'SYM',
-                         'THEOD',
+                         'THEOD', 'THEOPH','THEOP',
                          'XIS', 'XES',
                          'ZACH','ZAC',
                          ) )
@@ -468,7 +488,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
     checkedHTMLText = HTMLTextToCheck
 
     # Clean up spaces
-    cleanedText =  ( HTMLTextToCheck
+    cleanedTextToCheck =  ( HTMLTextToCheck
                     .replace( '\n<br>\u2002⇔\u202f', ' ' )
                     .replace( ' ', ' ' )
                     .replace( ' ', ' ' )
@@ -477,12 +497,12 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                     .replace( '\n<br>', ' ' )
                     .replace( '<br>', ' ' )
                     .replace( '\n', ' ' )
-                    .replace( '  ', ' ' )
+                    .replace( '   ', ' ' ).replace( '  ', ' ' )
                     )
 
     # Remove unwanted HTML crud
     if versionAbbreviation == 'T4T':
-        cleanedText =  ( cleanedText
+        cleanedTextToCheck =  ( cleanedTextToCheck
                     .replace( '<span title="alternative translation">◄</span>', '' )
                     .replace( '►', '' ) # Delete end of alternative translation
 
@@ -507,11 +527,11 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                     .replace( '<span class="t4tFoS" title="triple (figure of speech)">[TRI]</span>', '' )
                     )
     elif versionAbbreviation == 'MSB':
-        cleanedText =  ( cleanedText
+        cleanedTextToCheck =  ( cleanedTextToCheck
                     .replace( '<span title="Word (or format) different in MSB" class="hilite">', '' )
                     )
     elif 'OET' in versionAbbreviation:
-        cleanedText =  ( cleanedText
+        cleanedTextToCheck =  ( cleanedTextToCheck
                     # NOTE: Narrow no-break space in the following three lines has already been changed above to a regular space
                     .replace( '<span class="synonParr" title="synonymous parallelism">≈ </span>', '' )
                     .replace( '<span class="antiParr" title="antithetic parallelism">^ </span>', '' )
@@ -521,6 +541,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                     .replace( '<span class="addDirectObject" title="added direct object">', '' )
                     .replace( '<span class="addDirectObject unsure" title="added direct object (less certain)">', '' )
                     .replace( '<span class="addElided" title="added elided info">', '' )
+                    .replace( '<span class="addElided unsure" title="added elided info (less certain)">', '' )
                     .replace( '<span class="addExtra" title="added implied info">', '' )
                     .replace( '<span class="addNegated" title="negated">', '' )
                     .replace( '<span class="addOwner" title="added ‘owner’">', '' )
@@ -532,7 +553,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                     .replace( '<span class="addReword unsure" title="reworded (less certain)">', '' )
                     .replace( '<span class="RVadd unsure" title="added info (less certain)">', '' ) # (plain) RVadd is removed by RegEx
                     )
-    cleanedText =  ( cleanedText
+    cleanedTextToCheck =  ( cleanedTextToCheck
                     .replace( '<div>', '' )
                     .replace( f'<span class="{versionAbbreviation}_verseTextChunk">', '' ).replace( f'<span class="{versionAbbreviation}_trans">', '' )
                     .replace( '<span class="nd">L<span style="font-size:.75em;">ORD</span></span>s', 'LORDs' )
@@ -547,7 +568,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                     ]
     if 'OET' not in versionAbbreviation: divMarkersToRemove.append( 'footnotes' )
     for divMarker in divMarkersToRemove:
-        cleanedText =  cleanedText.replace( f'<div class="{divMarker}">', '' ).replace( f'<!--{divMarker}-->', '' )
+        cleanedTextToCheck =  cleanedTextToCheck.replace( f'<div class="{divMarker}">', '' ).replace( f'<!--{divMarker}-->', '' )
     for paragraphMarker in ( 'id','rem',
                         'mt1','mt2','mt3','mt4',
                         'imt1','iot','io1','io2','is1','is2','ip','im',
@@ -556,7 +577,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                         'p', # OEB CH1_-1:0 uses p instead of ip!
                         'fn',
                         ):
-        cleanedText =  cleanedText.replace( f'<p class="{paragraphMarker}">', '' )
+        cleanedTextToCheck =  cleanedTextToCheck.replace( f'<p class="{paragraphMarker}">', '' )
     for spanMarker in ('add','addArticle','addExtra','addCopula','addDirectObject', # TODO: Why don't these have title fields???
                        'untr','nominaSacra',
                        'ior', 'vp',
@@ -568,45 +589,46 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                         'theb','va', # in NET
                         'wh', # in DAG/DNG
                         'ul',
+                        'noLinkYet',
                         ):
-        cleanedText =  cleanedText.replace( f'<span class="{spanMarker}">', '' )
-    cleanedText =  cleanedText.replace( f'<span class="{versionAbbreviation}_chapterIntro">', '' )
+        cleanedTextToCheck =  cleanedTextToCheck.replace( f'<span class="{spanMarker}">', '' )
+    cleanedTextToCheck =  cleanedTextToCheck.replace( f'<span class="{versionAbbreviation}_chapterIntro">', '' )
     for formatField in ('i','b','em','small','sup','sub'):
-        cleanedText =  cleanedText.replace( f'<{formatField}>', '' ).replace( f'</{formatField}>', '' )
-    cleanedText = FOOTNOTE_OR_XREF_CALLER_REGEX.sub( '', cleanedText )
+        cleanedTextToCheck =  cleanedTextToCheck.replace( f'<{formatField}>', '' ).replace( f'</{formatField}>', '' )
+    cleanedTextToCheck = FOOTNOTE_OR_XREF_CALLER_REGEX.sub( '', cleanedTextToCheck )
     # print(( f"\nspellCheck( {versionAbbreviation} {ref} after fn clean:\n{cleanedText=}\nfrom {HTMLTextToCheck=}\nfrom {originalHTMLTextForDebugging} )"))
-    assert '<span class="fnCaller"' not in cleanedText, f"Unexpected remaining fnCaller in {versionAbbreviation} {ref}\n{cleanedText=}\nfrom {originalHTMLTextForDebugging=}"
-    cleanedText = ANCHOR_LINK_REGEX.sub( '', cleanedText )
+    assert '<span class="fnCaller"' not in cleanedTextToCheck, f"Unexpected remaining fnCaller in {versionAbbreviation} {ref}\n{cleanedTextToCheck=}\nfrom {originalHTMLTextForDebugging=}"
+    cleanedTextToCheck = ANCHOR_LINK_REGEX.sub( '', cleanedTextToCheck )
     # print(( f"\nspellCheck( {versionAbbreviation} {ref} after anchor clean:\n{cleanedText=}\nfrom {HTMLTextToCheck=}\nfrom {originalHTMLTextForDebugging} )"))
-    assert '<a ' not in cleanedText, f"Unexpected remaining anchor in {versionAbbreviation} {ref}\n{cleanedText=}\nfrom {originalHTMLTextForDebugging=}"
-    cleanedText = RV_ADD_REGEX.sub( '', cleanedText )
-    cleanedText = CROSSREFS_DIV_REGEX.sub( '', cleanedText )
-    assert '<div id="crossRefs"' not in cleanedText, f"Unexpected xref in {versionAbbreviation} {ref}\n{cleanedText=}\nfrom {originalHTMLTextForDebugging=}"
+    assert '<a ' not in cleanedTextToCheck, f"Unexpected remaining anchor in {versionAbbreviation} {ref}\n{cleanedTextToCheck=}\nfrom {originalHTMLTextForDebugging=}"
+    cleanedTextToCheck = RV_ADD_REGEX.sub( '', cleanedTextToCheck )
+    cleanedTextToCheck = CROSSREFS_DIV_REGEX.sub( '', cleanedTextToCheck )
+    assert '<div id="crossRefs"' not in cleanedTextToCheck, f"Unexpected xref in {versionAbbreviation} {ref}\n{cleanedTextToCheck=}\nfrom {originalHTMLTextForDebugging=}"
     if versionAbbreviation in ('OET-RV','OET-LV'): # we want to check the actual footnote content
-        cleanedText = cleanedText.replace( '<div id="footnotes" class="footnotes">', '' ).replace( '</div><!--footnotes-->', '' )
+        cleanedTextToCheck = cleanedTextToCheck.replace( '<div id="footnotes" class="footnotes">', '' ).replace( '</div><!--footnotes-->', '' )
         if '-1' not in ref:
-            assert '<div ' not in cleanedText and '</div>' not in cleanedText, f"Unexpected remaining div in {versionAbbreviation} {ref}\n{cleanedText=}\nfrom {originalHTMLTextForDebugging=}"
-        cleanedText = FOOTNOTE_PARAGRAPHS_REGEX.sub( '', cleanedText )
+            assert '<div ' not in cleanedTextToCheck and '</div>' not in cleanedTextToCheck, f"Unexpected remaining div in {versionAbbreviation} {ref}\n{cleanedTextToCheck=}\nfrom {originalHTMLTextForDebugging=}"
+        cleanedTextToCheck = FOOTNOTE_PARAGRAPHS_REGEX.sub( '', cleanedTextToCheck )
     else: # we won't bother checking footnote content for most versions, so delete the whole thing
-        cleanedText = FOOTNOTES_DIV_REGEX.sub( '', cleanedText )
-        assert '#fn' not in cleanedText, f"Unexpected fn in {versionAbbreviation} {ref}\n{cleanedText=}\nfrom {originalHTMLTextForDebugging=}"
-    if '>9:19<' not in cleanedText and '>13:20<' not in cleanedText and '>30:12<' not in cleanedText \
-    and '>1:54<' not in cleanedText and '>8:11<' not in cleanedText: # LES 9:19, 13:20 and SIR 30:12 and MA1 1:54 and MA2 8:11-- I've been unable to determine the fault here!!!
-        assert '<span' not in cleanedText, f"Unexpected remaining <span in {versionAbbreviation} {ref}\n{cleanedText=}\nfrom {originalHTMLTextForDebugging=}"
-        assert ' class="' not in cleanedText, f"Unexpected remaining class in {versionAbbreviation} {ref}\n{cleanedText=}\nfrom {originalHTMLTextForDebugging=}"
-        assert ' title="' not in cleanedText, f"Unexpected remaining title in {versionAbbreviation} {ref}\n{cleanedText=}\nfrom {originalHTMLTextForDebugging=}"
-        assert ' id="' not in cleanedText, f"Unexpected remaining id in {versionAbbreviation} {ref}\n{cleanedText=}\nfrom {originalHTMLTextForDebugging=}"
-        assert ';margin' not in cleanedText, f"Unexpected remaining margin in {versionAbbreviation} {ref}\n{cleanedText=}\nfrom {originalHTMLTextForDebugging=}"
+        cleanedTextToCheck = FOOTNOTES_DIV_REGEX.sub( '', cleanedTextToCheck )
+        assert '#fn' not in cleanedTextToCheck, f"Unexpected fn in {versionAbbreviation} {ref}\n{cleanedTextToCheck=}\nfrom {originalHTMLTextForDebugging=}"
+    if '>9:19<' not in cleanedTextToCheck and '>13:20<' not in cleanedTextToCheck and '>30:12<' not in cleanedTextToCheck \
+    and '>1:54<' not in cleanedTextToCheck and '>8:11<' not in cleanedTextToCheck: # LES 9:19, 13:20 and SIR 30:12 and MA1 1:54 and MA2 8:11-- I've been unable to determine the fault here!!!
+        assert '<span' not in cleanedTextToCheck, f"Unexpected remaining <span in {versionAbbreviation} {ref}\n{cleanedTextToCheck=}\nfrom {originalHTMLTextForDebugging=}"
+        assert ' class="' not in cleanedTextToCheck, f"Unexpected remaining class in {versionAbbreviation} {ref}\n{cleanedTextToCheck=}\nfrom {originalHTMLTextForDebugging=}"
+        assert ' title="' not in cleanedTextToCheck, f"Unexpected remaining title in {versionAbbreviation} {ref}\n{cleanedTextToCheck=}\nfrom {originalHTMLTextForDebugging=}"
+        assert ' id="' not in cleanedTextToCheck, f"Unexpected remaining id in {versionAbbreviation} {ref}\n{cleanedTextToCheck=}\nfrom {originalHTMLTextForDebugging=}"
+        assert ';margin' not in cleanedTextToCheck, f"Unexpected remaining margin in {versionAbbreviation} {ref}\n{cleanedTextToCheck=}\nfrom {originalHTMLTextForDebugging=}"
     for htmlEntity in ('table','tr','td'):
-        cleanedText =  cleanedText.replace( f'<{htmlEntity}>', '' ).replace( f'</{htmlEntity}>', '' )
-    cleanedText = cleanedText.replace( '</span>', '' ).replace( '</p>', '' ).replace( '</div>', '' ).replace( '</a>', '' )
-    if '>9:19' in cleanedText or '>13:20' in cleanedText or '>30:12' in cleanedText or '>1:54' in cleanedText or '>8:11' in cleanedText: # LES 9:19 and 13:20 -- I've been unable to determine the faults here!!!
-        print( f"WHY!!! Unexpected html markers in {versionAbbreviation} {ref}\n{cleanedText=}\nfrom {originalHTMLTextForDebugging=}" )
+        cleanedTextToCheck =  cleanedTextToCheck.replace( f'<{htmlEntity}>', '' ).replace( f'</{htmlEntity}>', '' )
+    cleanedTextToCheck = cleanedTextToCheck.replace( '</span>', '' ).replace( '</p>', '' ).replace( '</div>', '' ).replace( '</a>', '' )
+    if '>9:19' in cleanedTextToCheck or '>13:20' in cleanedTextToCheck or '>30:12' in cleanedTextToCheck or '>1:54' in cleanedTextToCheck or '>8:11' in cleanedTextToCheck: # LES 9:19 and 13:20 -- I've been unable to determine the faults here!!!
+        print( f"SPELLCHECK: WHY!!! Unexpected html markers in {versionAbbreviation} {ref}\n{cleanedTextToCheck=}\nfrom {originalHTMLTextForDebugging=}" )
     else:
-        assert '<' not in cleanedText and '>' not in cleanedText, f"Unexpected html markers in {versionAbbreviation} {ref}\n{cleanedText=}\nfrom {originalHTMLTextForDebugging=}"
+        assert '<' not in cleanedTextToCheck and '>' not in cleanedTextToCheck, f"Unexpected html markers in {versionAbbreviation} {ref}\n{cleanedTextToCheck=}\nfrom {originalHTMLTextForDebugging=}"
 
     # Now general or punctuation clean-ups
-    cleanedText =  ( cleanedText
+    cleanedTextToCheck =  ( cleanedTextToCheck
                     .replace( '\n', ' ' ) # Treat newlines as spaces
                     .replace( '—', ' ' ).replace( '–', ' ' ) # Treat em-dashes and en-dashes as spaces
                     .replace( '…', ' ').replace( '...', ' ') # Treat ellipsis as spaces
@@ -618,11 +640,11 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                     .replace( '’s', "'s" ) # Change apostrophe
                     )
     if versionAbbreviation == 'OET-LV':
-        cleanedText =  ( cleanedText
+        cleanedTextToCheck =  ( cleanedTextToCheck
                         .replace( '˓', '' ).replace( '˒', '' ) # Around gloss-helpers
                         )
     elif versionAbbreviation == 'LEB':
-        cleanedText =  ( cleanedText
+        cleanedTextToCheck =  ( cleanedTextToCheck
                         .replace( '⌊', '' ).replace( '⌋', '' ) # Floor brackets ('idioms' from LEB)
                         .replace( '〚', '' ).replace( '〛', '' ) # White square brackets (from LEB)
                         )
@@ -651,20 +673,20 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                             'foreign(er)',
                             ]
     for thingToReallyDelete in thingsToReallyDelete:
-        cleanedText = cleanedText.replace( thingToReallyDelete, '' )
+        cleanedTextToCheck = cleanedTextToCheck.replace( thingToReallyDelete, '' )
     for wordToDelete in PREAPPROVED_WORDS_TO_REMOVE:
-        cleanedText = cleanedText.replace( wordToDelete, 'ReMoV' ) # If we really delete them, then our repeated words check does weird things
-    cleanedText =  ( cleanedText
+        cleanedTextToCheck = cleanedTextToCheck.replace( wordToDelete, 'ReMoV' ) # If we really delete them, then our repeated words check does weird things
+    cleanedTextToCheck =  ( cleanedTextToCheck
                     .replace( '-', ' ' ) # Treat hyphens as spaces, i.e., split compound words (both good and bad like 'non-combatant')
                     .replace( '  ', ' ' )
                     )
 
     if versionAbbreviation in ('Luth','ClVg'):
-        cleanedText = cleanedText.replace( '_', ' ' ) # Things like 'he_said'
+        cleanedTextToCheck = cleanedTextToCheck.replace( '_', ' ' ) # Things like 'he_said'
 
-    cleanedText = cleanedText.strip().replace( '  ', ' ' )
+    cleanedTextToCheck = cleanedTextToCheck.strip().replace( '  ', ' ' )
     # vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    About to check spelling of '{cleanedText}' …" )
-    adjWords = cleanedText.split( ' ' )
+    adjWords = cleanedTextToCheck.split( ' ' )
 
     lastLastWord = lastWord = ''
     for ww,word in enumerate( adjWords ):
@@ -721,13 +743,13 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
         elif versionAbbreviation == 'ClVg': TOTAL_LATIN_WORDS_CHECKED_COUNT += 1
         else: TOTAL_ENGLISH_WORDS_CHECKED_COUNT += 1
         if word not in wordSet and f'{word[0].lower()}{word[1:]}' not in wordSet:
-            slightlyCleanedText = originalHTMLTextForDebugging.replace('span class="ft">','').replace('<span class="fk">','').replace('</span>','') \
+            cleanedTextToDisplay = originalHTMLTextForDebugging.replace('span class="ft">','').replace('<span class="fk">','').replace('</span>','') \
                                                             .replace('<a title="Return to text" href="#C','') \
                                                             .replace('<hr style="width:35%;margin-left:0;margin-top: 0.3em">\n','') \
                                                             .replace('<p class="fn" id="fn','').replace('<span class="fnRef">','') \
                                                             .replace('</p>\n</div><!--footnotes-->','')
             if versionAbbreviation not in ('Luth','ClVg'): # native or modernised English
-                slightlyCleanedText = slightlyCleanedText.replace('<span class="LEB_verseTextChunk">','').replace('<span class="Wycl_verseTextChunk">','')
+                cleanedTextToDisplay = cleanedTextToDisplay.replace('<span class="LEB_verseTextChunk">','').replace('<span class="Wycl_verseTextChunk">','')
                 vPrint( 'Normal' if ((versionAbbreviation!='LSV' and word.upper()==word)
                             or (word in ('s','heretage','yelde','deme','maden','virtuees','el','aha','drede','yee',
                                    'fortyth','fulness','digged',"'And",'baptized','holden','hous','stedfast','hee',
@@ -737,28 +759,56 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                    'diy','stablish','puplis','nyle','hertli','eet','saten','gileful','hertli','greces',
                                    'welde','moun','chees','bitake','Cursid','comen','wite','kitte','sien','kepen',
                                    'standerd','purifie','ramme','blossome','beeues','polle','separateth','redeeme','halfe','awayn',
-                                   'meynee','silverne','wem',
+                                   'meynee','silverne','wem','heardn','herde','scall','hilide','wolden','brasun','thes','childed',
+                                   'horon','gilead','edom','jearim',
+                                        'thirtie','releasen','jealousi','fer','whereinto','euen','summe','defie',
+                                        'hile','tother','iacynt','relifs','drooue','woodness','lomb','stonde','defoule','kynde','mentil',
+
                                    ) and 'PSA' not in location ) # coz Wycl versification doesn't usually match anyway
                             or 'twas' in word )
                         and word not in ('OK','NOT','SURE','TOO','LITERAL')
-                    else 'Info', DEBUGGING_THIS_MODULE, f'''        {word} ({wordSetName}) is suspect @ {location}\nfrom {slightlyCleanedText=}\nWHICH GAVE {cleanedText=}''' )
+                    else 'Info', DEBUGGING_THIS_MODULE, f'''        {word} ({wordSetName}) is suspect @ {location}\nfrom {cleanedTextToDisplay=}\nWHICH GAVE {cleanedTextToCheck=}''' )
             else: # Luth or ClVg
-                slightlyCleanedText = slightlyCleanedText.replace('<span class="ClVg_verseTextChunk">','').replace('<div id="footnotesClVg" class="footnotes">\n','')
+                cleanedTextToDisplay = cleanedTextToDisplay.replace('<span class="ClVg_verseTextChunk">','').replace('<div id="footnotesClVg" class="footnotes">\n','').replace('  ',' ').replace(' ',' ')
                 vPrint( 'Normal' if word.upper()==word
                        or word in (
-                                'sie','everyonemann','hin','heb','have‘s','huntedn','setn',
-                                'angeln','alle','las','gave‘s','elementer','alei','turnedn','resolven','insidekam',
-                                    'homegesucht','lag','ones)r','ones)s','chastiset','understandinger','reasonablelich',
-                                    'hing','weaponsträger','one)r','one)n','weh','du','ach','Raube','Raub','bitte',
-                                    'bereden','brokenen','scoldings',
+                                'sie','hin','heb','wir','dem','ich','alle','las','lag','ones)r','ones)s','ones)n','one)s','bis',
+                                'hing','one)r','one)n','weh','du','ach','Raube','Raub','Tal','tue','fiel','sehe','mal','mit',
+                                'bettern','ende','rede','kam','ward','alt','dran','Rede','nur','messen','ging','und','ster',
+                                'tellse','mit','stonen','powerfuln','offeringaltar',
+                                'awakense','psalters',
+                                'whichen','hundredtausend','equipsen',
+                                'fiveundvierzig','ontotund','girdlete','meadownbach',
+                                    'gepflegt','signsn','befestigen','klage','beschere',
 
-                                'l','ros','moretri','hellor','inde','nos','jus','attende','liberati',
-                                'congregati','tua','contra','victi','discretio','sancti','ora','extensio',
-                                'ut','separat','prope','iter','sermo','volunt','distinctio','ne',
-                                'aperiet','falsum','retributionis','thirstenti','audierat','audientium','victum','foreverris',
+                                'ambitio','anima','antiqui','attende',
+                                'beneficia',
+                                'calami','complet','cognitio','cogniti','congregati','contra','conversa','cor','credi','cruci',
+                                'dat','dedi','dem','digni','discretio','divisi','dom','domina',
+                                'expiat','extensio',
+                                'hellor','hoc',
+                                'ibi','ima','infirmi','intentio','introduc','inventi',
+                                'jus',
+                                'liberati',
+                                'magnifice','magni','manifeste','manu','mira','misera','moretri','morti',
+                                'natura','ne',
+                                'operatio','ora',
+                                'patria','patri','pede','pedes','prope',
+                                'separat','serva','servit','sit','sol','soli','solem','stat','statu',
+                                'tribulatio','trium','tua',
+                                'valle','victi'
+                                'l','ros','nos',
+                                'ut','iter','distinctio','lux','pio','humili',
+                                'redempti','rea','cogitatio','congregatio','circumcisio','audi','perthey',
+                                'illum','illuminat','consolati','ei','confessio',
+                                'traditi','Christi','Finis','finis','cum','beati',
+                                'allque','praisesur','churchm','outt',
+                                    'womans','adduxerunt','suggestionem','womanrum','tradentes','pilis','afferat','asinis','asini',
+
                                 )
-                    else 'Info', DEBUGGING_THIS_MODULE, f'''        {word} is suspect @ {location}\nfrom {slightlyCleanedText=}\n  WHICH GAVE {cleanedText=}''' )
+                    else 'Info', DEBUGGING_THIS_MODULE, f'''        {word} is suspect @ {location}\nfrom {cleanedTextToDisplay=}\n  WHICH GAVE {cleanedTextToCheck=}''' )
             if versionAbbreviation == 'Luth':
+                if word=='alle': print( f"\n\nLUTH 'alle' from {originalHTMLTextForDebugging}\n{HTMLTextToCheck=}\n{cleanedTextToCheck=}\n{cleanedTextToDisplay}\n" )
                 BAD_GERMAN_WORD_SET.add( word )
                 BAD_GERMAN_WORD_LIST.append( (word,location) )
                 BAD_GERMAN_COUNTS[word] += 1
@@ -833,7 +883,7 @@ def printSpellCheckSummary( state ) -> None:
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  TOTAL LATIN WORDS CHECKED = {TOTAL_LATIN_WORDS_CHECKED_COUNT:,} BAD_LATIN WORDS {len(BAD_LATIN_WORD_LIST):,} = {len(BAD_LATIN_WORD_LIST)*100/TOTAL_LATIN_WORDS_CHECKED_COUNT:.1f}% ({len(BAD_LATIN_WORD_SET):,} unique){f': {BAD_LATIN_WORD_SET}' if BibleOrgSysGlobals.verbosityLevel>2 else ''}" )
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    TOTAL BAD LATIN WORDS = {TOTAL_LATIN_MISSPELLING_COUNT:,} WORST LATIN WORDS {[(k, BAD_LATIN_COUNTS[k]) for k in sorted(BAD_LATIN_COUNTS, key=BAD_LATIN_COUNTS.get, reverse=True) if k.islower()][:13]}\n" )
 
-    # for versionAbbreviation in ('OET-RV',): # Just out of curiousity # ,'OET-LV', 'ULT','UST'
+    # for versionAbbreviation in ('OET-RV'Hebrew words index,): # Just out of curiousity # ,'OET-LV', 'ULT','UST'
     #     print( f"\n{versionAbbreviation} [Using {state.BibleLanguages[versionAbbreviation]} dictionary] ({len(MISPELLING_VERSION_REF_DICT[versionAbbreviation]):,}) {MISPELLING_VERSION_REF_DICT[versionAbbreviation]}\n")
 
     for versionAbbreviation in ('OET-RV','OET-LV', 'KJB-1611', 'Wycl'): # Just out of curiousity # 'ULT','UST', 'BSB',

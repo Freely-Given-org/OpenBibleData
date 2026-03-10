@@ -9,6 +9,7 @@ p.site {}
 p.copyright {}
 p.note {}
 p.thanks {}
+img.OETWideLogo { width:calc(100% - 10px); margin:0 auto; display:block; max-height:100px; object-fit:contain; } /* Leaves 5px on each side */
 
 /* span.upLink { font-size:1.5em; font-weight:bold; } */
 
@@ -242,6 +243,7 @@ span.d { font-family:sans-serif; font-size:0.85em; color:sienna; }
 /* p.q2 { margin-left:2em; margin-top:0.2em; margin-bottom:0.2em; } */
 /* p.m {  } */
 span.li1 {} /* Why's this a span??? */
+span.li2 {} /* Why's this a span??? */
 
 /* NT spans */
 span.nominaSacra { font-weight:bold; }
@@ -264,7 +266,7 @@ span.addArticle { color:bisque; } */
 /* span.unusedArticle { color:lavender; } */
 span.addCopula { color:pink; }
 span.addDirectObject { color:brown; }
-span.addExtra { color:lightGreen; }
+span.addExtra { color:green; }
 span.addElided { color:darkgoldenrod; }
 span.addOwner { color:darkOrchid; }
 span.addPronoun { color:darkgreen; }
