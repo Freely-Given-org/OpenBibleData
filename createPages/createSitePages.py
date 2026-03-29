@@ -103,7 +103,7 @@ from html import makeTop, makeViewNavListParagraph, makeBottom, checkHtml
 from spellCheckEnglish import printSpellCheckSummary
 
 
-LAST_MODIFIED_DATE = '2026-02-05' # by RJH
+LAST_MODIFIED_DATE = '2026-03-28' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData (OBD) Create Site Pages"
 PROGRAM_VERSION = '0.99'
@@ -301,7 +301,7 @@ def _createSitePages() -> bool:
         for versionAbbreviation, thisBible in state.preloadedBibles.items(): # doesn't include OET pseudo-translation
             if versionAbbreviation not in ('TTN',) \
             and versionAbbreviation in state.versionsWithoutTheirOwnPages: continue # We don't worry about these few selected verses here
-            if versionAbbreviation not in ('TOSN','TTN','UTN'): # We don't make separate notes pages
+            if versionAbbreviation not in ('TOSN','TTN','SOTN','UTN'): # We don't make separate notes pages
                 if thisBible.discoveryResults['ALL']['haveSectionHeadings']:
                     versionFolder = state.TEMP_BUILD_FOLDER.joinpath( f'{thisBible.abbreviation}/' )
                     createSectionPages( 2, versionFolder.joinpath('bySec/'), thisBible, state )
@@ -386,6 +386,7 @@ def _createSitePages() -> bool:
                 shutil.copy2( filepath, state.DESTINATION_FOLDER )
                 count += 1
             shutil.copy2( 'Bible.js', state.DESTINATION_FOLDER )
+            shutil.copy2( 'Dict.js', state.DESTINATION_FOLDER )
             shutil.copy2( 'KB.js', state.DESTINATION_FOLDER )
             count += 2
             vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Copied {count:,} stylesheets and scripts into {state.DESTINATION_FOLDER}/." )
@@ -436,7 +437,7 @@ def _cleanHTMLFolders( folder:Path, state:State ) -> bool:
         except FileNotFoundError: pass
         try: shutil.rmtree( folder.joinpath( 'dct/' ) )
         except FileNotFoundError: pass
-    for versionAbbreviation in state.allPossibleBibleVersions + ['PLBL','HAP','UTN','TOSN','TOBD','UBS','THBD','BMM']:
+    for versionAbbreviation in state.allPossibleBibleVersions + ['PLBL','HAP','SOTN','UTN','TOSN','TOBD','UBS','THBD','BMM']:
         vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Removing tree at {folder.joinpath( f'{versionAbbreviation}/' )}/…")
         try: shutil.rmtree( folder.joinpath( f'{versionAbbreviation}/' ) )
         except FileNotFoundError: pass
@@ -575,7 +576,7 @@ def _createDetailsPages( level:int, buildFolder:Path, state:State ) -> bool:
     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nCreating {'TEST ' if state.TEST_MODE_FLAG else ''}details pages for {len(state.BibleVersions)} versions (plus All Details page)…" )
 
     allDetailsHTML = ''
-    for versionAbbreviation in ['OET'] + [versAbbrev for versAbbrev in state.preloadedBibles] + ['UBS','THBD','PLBL','HAP','BMM',]:
+    for versionAbbreviation in ['OET'] + [versAbbrev for versAbbrev in state.preloadedBibles] + ['SOTN','UBS','THBD','PLBL','HAP','BMM',]:
         if versionAbbreviation == 'TTN': # we only need the one for TOSN I think
             versionAbbreviation = 'TOBD' # Put this one in instead
 
@@ -844,6 +845,7 @@ def _createNewsPage( level:int, buildFolder:Path, state:State ) -> bool:
     newsHTML = f'''<h1 id="Top">{state.SITE_NAME} News</h1>
 <p class="about">Recent {state.SITE_NAME} ({state.SITE_ABBREVIATION}) site developments:</p>
 <ul>
+<li><b>2026-Mar-28</b>: We added the <a href="{'../'*level}SOTN/details.htm#Top">SIL Open Translator’s notes</a> to our parallel verse pages for the Messianic Update (NT) books and nine books from the Hebrew Scriptures (OT).</li>
 <li><b>2024-Apr-20</b>: We added the <a href="{'../'*level}AICNT">AI Critical New Testament</a> (AICNT), mainly so that we can start to evaluate (on our <a href="{'../'*level}par/MRK/C1V1.htm#AICNT">Parallel Pages</a>) how well current, so-called ‘AI’ technologies might affect the Bible translation world.</li>
 <li><b>2024-Feb-15</b>: We added <a href="{'../'*level}rel/">Related Passages pages</a>—displaying related passages side-by-side, e.g., <a href="{'../'*level}rel/MRK/MRK_S3.htm#Top">here</a> (if you have a wide screen).</li>
 </ul>

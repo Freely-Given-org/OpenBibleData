@@ -109,7 +109,7 @@ from OETHandlers import findLVQuote, getBBBFromOETBookName
 from Dict import loadAndIndexUBSGreekDictJSON, loadAndIndexUBSHebrewDictJSON
 
 
-LAST_MODIFIED_DATE = '2026-02-03' # by RJH
+LAST_MODIFIED_DATE = '2026-03-27' # by RJH
 SHORT_PROGRAM_NAME = "Bibles"
 PROGRAM_NAME = "OpenBibleData Bibles handler"
 PROGRAM_VERSION = '0.93'
@@ -139,6 +139,7 @@ def preloadVersions( state:State ) -> int:
     for versionAbbreviation in state.BibleVersions[:]: # copy because we'll be deleting some entries as we go
         if state.TEST_VERSIONS_ONLY and versionAbbreviation not in state.TEST_VERSIONS_ONLY:
             continue # Skip this version not desired for this test
+        if versionAbbreviation == 'SOTN': continue # We handle this one differently
 
         if versionAbbreviation == 'OET':
             # This is a combination of two translations, so nothing to load here

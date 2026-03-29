@@ -75,10 +75,10 @@ from createSectionPages import findSectionNumber
 from OETHandlers import livenOETWordLinks, getOETBookName, getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
-LAST_MODIFIED_DATE = '2026-02-10' # by RJH
+LAST_MODIFIED_DATE = '2026-03-16' # by RJH
 SHORT_PROGRAM_NAME = "createOETInterlinearPages"
 PROGRAM_NAME = "OpenBibleData createOETInterlinearPages functions"
-PROGRAM_VERSION = '0.64'
+PROGRAM_VERSION = '0.65'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -595,11 +595,11 @@ def createOETInterlinearVerseInner( level:int, BBB:str, c:int, v:int, state:Stat
     lastWordNumber = None
     for extendedWord in lvEnglishWordList:
         if not extendedWord:
-            logging.critical( f"{BBB} {c}:{v} why did we get a zero-length word in {lvEnglishWordList}???" )
+            logging.critical( f"OET-LV {BBB} {c}:{v} why did we get a zero-length word in {lvEnglishWordList}???" )
             continue
         try: word,numberStr = extendedWord.split( '¦' )
         except ValueError:
-            logging.critical( f"{BBB} {c}:{v} word/number split failed on '{extendedWord}'" )
+            logging.critical( f"OET-LV {BBB} {c}:{v} word/number split failed on '{extendedWord}'" )
         wordNumber = getLeadingInt( numberStr )
 
         if wordNumber == lastWordNumber: # Put into the last cell

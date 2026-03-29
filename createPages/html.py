@@ -112,7 +112,7 @@ from settings import State, state
 from OETHandlers import getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2026-03-06' # by RJH
+LAST_MODIFIED_DATE = '2026-03-28' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
 PROGRAM_VERSION = '0.99'
@@ -193,6 +193,8 @@ def makeTop( level:int, versionAbbreviation:str|None, pageType:str, versionSpeci
     if (versionAbbreviation and 'OET' in versionAbbreviation) \
     or pageType in ('parallelVerse','topicPassages'):
         top = top.replace( '__SCRIPT__', f'''<script src="{'../'*level}Bible.js"></script>\n  __SCRIPT__''' )
+    if 'Dict' in cssFilename or 'Word' in cssFilename:
+        top = top.replace( '__SCRIPT__', f'''<script src="{'../'*level}Dict.js" defer></script>\n  __SCRIPT__''' )
     if 'Dict' in cssFilename or 'Word' in cssFilename \
     or pageType in ('chapter','section','book','parallelVerse','interlinearVerse','relatedPassage','kingdom'):
         top = top.replace( '__SCRIPT__', f'''<script src="{'../'*level}KB.js" defer></script>\n  __SCRIPT__''' )
@@ -236,7 +238,7 @@ def _makeWorkNavListParagraph( level:int, versionAbbreviation:str|None, pageType
     #   and with the more specific links if specified.
     initialVersionList = ['TEST'] if state.TEST_MODE_FLAG else []
     for loopVersionAbbreviation in state.BibleVersions:
-        if loopVersionAbbreviation in ('TOSN','TTN','UTN'): # Skip notes
+        if loopVersionAbbreviation in ('TOSN','TTN','SOTN','UTN'): # Skip notes
             continue
         if loopVersionAbbreviation in state.versionsWithoutTheirOwnPages: # Skip versions without their own pages
             continue
@@ -362,7 +364,7 @@ def makeViewNavListParagraph( level:int, versionAbbreviation:str|None, pageType:
     viewLinks = []
     if pageType in ('book','section','chapter', 'details',
                     'workIndex','bookIndex','sectionIndex','chapterIndex') \
-    and versionAbbreviation not in ('PLBL','HAP','TOSN','TTN','TOBD','UTN','UBS','THBD','BMM') \
+    and versionAbbreviation not in ('PLBL','HAP','TOSN','TTN','TOBD','SOTN','UTN','UBS','THBD','BMM') \
     and versionAbbreviation not in state.versionsWithoutTheirOwnPages:
         if state.TEST_MODE_FLAG: viewLinks.append( 'TEST' )
         if not versionAbbreviation: versionAbbreviation = 'OET'
@@ -682,7 +684,8 @@ def checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool:
     if not segmentOnly or '<span class="add">>' not in htmlToCheck: # > is one of our add field sub-classifiers
         if where not in ('UTN ZEP_1:0','Parallel ZEP_1:0'):
             assert '>>' not in htmlToCheck, f"<span> '{where}' {segmentOnly=} …{htmlToCheck[htmlToCheck.index('>>')-180:htmlToCheck.index('>>')+180]}…"
-    assert '<span>' not in htmlToCheck, f"<span> '{where}' {segmentOnly=} …{htmlToCheck[htmlToCheck.index('<span>')-180:htmlToCheck.index('<span>')+180]}…"
+    if 'SOTN' not in htmlToCheck: # TODO: Why do SIL notes have unclassed spans? What's the point?
+        assert '<span>' not in htmlToCheck, f"<span> '{where}' {segmentOnly=} …{htmlToCheck[htmlToCheck.index('<span>')-180:htmlToCheck.index('<span>')+180]}…"
     assert '>span class' not in htmlToCheck, f"'>span class' '{where}' {segmentOnly=} …{htmlToCheck[htmlToCheck.index('>span class')-180:htmlToCheck.index('>span class')+180]}…"
     for marker,startMarker in (('div','<div'),('p','<p '),('h1','<h1'),('h2','<h2'),('h3','<h3'),('h4','<h4'),
                                ('span','<span'),
@@ -690,7 +693,7 @@ def checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool:
                                ('em','<em>'),('i','<i>'),('b','<b>'),('small','<small '),('sup','<sup>'),('sub','<sub>')):
         startCount = htmlToCheck.count( startMarker )
         if startCount and 'UTN' not in where and 'UTN' not in htmlToCheck: # uW UTNs have too many formatting errors to bother checking them + NET ISA 43:24 eBible usfm
-            assert f'<{marker}></{marker}>' not in htmlToCheck, f"Empty <{marker}> field {where}' {segmentOnly=} …{htmlToCheck[htmlToCheck.index(f'<{marker}></{marker}>')-180:htmlToCheck.index(f'<{marker}></{marker}>')+180]}…"
+            assert f'<{marker}></{marker}>' not in htmlToCheck, f"Empty <{marker}> field '{where}' {segmentOnly=} …{htmlToCheck[htmlToCheck.index(f'<{marker}></{marker}>')-180:htmlToCheck.index(f'<{marker}></{marker}>')+180]}…"
         if startMarker.endswith( ' ' ): startCount += htmlToCheck.count( f'<{marker}>' )
         endMarker = f'</{marker}>'
         endCount = htmlToCheck.count( endMarker )
@@ -722,13 +725,14 @@ def checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool:
             # return False # TODO: Why was this here ???
         # Checked for accidentally doubled nesting
         if startMarker.endswith( '>' ):
-            assert f'{startMarker}{startMarker}' not in htmlToCheck, f"Doubled {startMarker} in {where}' {segmentOnly=}"
-            assert f'{startMarker} {startMarker}' not in htmlToCheck, f"Doubled {startMarker} in {where}' {segmentOnly=}"
+            assert f'{startMarker}{startMarker}' not in htmlToCheck, f"Doubled {startMarker} in '{where}' {segmentOnly=}"
+            assert f'{startMarker} {startMarker}' not in htmlToCheck, f"Doubled {startMarker} in '{where}' {segmentOnly=}"
         if marker not in ('span','div'): # nested spans and divs are ok
-            assert f'{endMarker}{endMarker}' not in htmlToCheck, f"Doubled end {endMarker} in {where}' {segmentOnly=}"
-            assert f'{endMarker} {endMarker}' not in htmlToCheck, f"Doubled end {endMarker} in {where}' {segmentOnly=}"
+            assert f'{endMarker}{endMarker}' not in htmlToCheck, f"Doubled end {endMarker} in '{where}' {segmentOnly=}"
+            assert f'{endMarker} {endMarker}' not in htmlToCheck, f"Doubled end {endMarker} in '{where}' {segmentOnly=}"
 
     # Should be no <a ...> anchors embedded inside other anchors
+    assert '>a title="' not in htmlToCheck, f"Improperly formed anchor in '{where}' {segmentOnly=}"
     if not segmentOnly or '<span class="add"><a ' not in htmlToCheck: # Temporary fields can confuse our check, e.g., '<span class="add"><a word</span>'
         searchStartIndex = 0
         while True:
@@ -926,6 +930,14 @@ def checkHtmlForMissingStyles( where:str, htmlToCheck:str ) -> bool:
                     assert elementName not in lsStyleDict[className]
                     lsStyleDict[className].append( elementName )
                     lsStyleDict[f'used_{className}'] = False
+                elif ssLine.startswith( 'a.' ):
+                    elementName = ssLine[:1]
+                    className = ssLine[2:].split( ' ', 1 )[0]
+                    # print( f"    {elementName} {className=}")
+                    assert ' ' not in className and ',' not in className, f"{className=}"
+                    assert elementName not in lsStyleDict[className]
+                    lsStyleDict[className].append( elementName )
+                    lsStyleDict[f'used_{className}'] = False
                 elif ssLine.startswith( '.' ):
                     className = ssLine[1:].split( ' ', 1 )[0]
                     # print( f"    {className=} {ssLine[len(className)+2:]=}")
@@ -1003,8 +1015,26 @@ def do_OET_RV_HTMLcustomisations( where:str, OET_RV_html:str ) -> str:
     # assert '<span class="add">-' not in OET_RV_html # Only expected in OET-LV # WE ALLOW IT NOW as HYPHEN (not as a special char)
     assert '<span class="add">=' not in OET_RV_html # Only expected in OET-LV
     # assert '<span class="add">?≡' not in OET_RV_html # Doesn't make sense -- used in PRO_21:18
+    # assert checkHtml( where, OET_RV_html, segmentOnly=True)
+
+    # testResult = (OET_RV_html \
+    #         # Adjust specialised add markers
+    #         .replace( '<span class="add">?<a title=', '<span class="RVadd unsure" title="added info (less certain)"><a title=' ) # Only happens in '\add ?' then a word that got a word number on it
+    #         .replace( '<span class="add">?<span', '<span class="RVadd unsure" title="added info (less certain)"><span' ) # Only happens in TEST_MODE with noLinkYet spans
+    #         .replace( '<span class="add">?<', '<span class="addDirectObject unsure" title="added direct object (less certain)">' )
+    #         .replace( '<span class="add"><span ', '__PROTECT_SPAN__' )
+    #         .replace( '<span class="add"><a title', '__PROTECT_A__' )
+    #         .replace( '<span class="add"><', '<span class="addDirectObject" title="added direct object">' )
+    #         .replace( '__PROTECT_A__', '<span class="add"><a title' )
+    #         .replace( '__PROTECT_SPAN__', '<span class="add"><span ' )
+    #         )
+    # if where == 'ParallelVerseTxt=JOB_24:1': print( f"{testResult=}\nfrom {OET_RV_html=}" )
+    # assert checkHtml( where, testResult, segmentOnly=True)
+
     result = (OET_RV_html \
             # Adjust specialised add markers
+            .replace( '<span class="add">?<a title=', '<span class="RVadd unsure" title="added info (less certain)"><a title=' ) # Only happens in '\add ?' then a word that got a word number on it
+            .replace( '<span class="add">?<span', '<span class="RVadd unsure" title="added info (less certain)"><span' ) # Only happens in TEST_MODE with noLinkYet spans
             .replace( '<span class="add">?<', '<span class="addDirectObject unsure" title="added direct object (less certain)">' )
             .replace( '<span class="add"><span ', '__PROTECT_SPAN__' )
             .replace( '<span class="add"><a title', '__PROTECT_A__' )
@@ -1051,6 +1081,7 @@ def do_OET_RV_HTMLcustomisations( where:str, OET_RV_html:str ) -> str:
             assert nextChar.isalpha() or nextChar in '(,‘’—123☺', f"{startSearchIndex=} {nextChar=} {result[match.start():match.start()+80]}"
     else: NOT_ENOUGH_LOOPS
 
+    assert checkHtml( where, result, segmentOnly=True)
     return result
 # end of html.do_OET_RV_HTMLcustomisations
 
@@ -1206,6 +1237,46 @@ def do_T4T_HTMLcustomisations( where:str, T4T_html:str ) -> str:
         T4T_html = T4T_html.replace( 'LEFTBRACKET', '[' ).replace( 'RIGHTBRACKET', ']' )
     return T4T_html.replace( '◄', '<span title="alternative translation">◄</span>' )
 # end of html.do_T4T_HTMLcustomisations
+
+
+# <span class="fnCaller">[<a title="Note: K אחד" href="#fnUHB4">fn</a>]</span>
+footnoteRegex = re.compile( '<span class="fnCaller">.+?</span>' )
+def handleAndExtractFootnotes( versionAbbreviation:str, verseHtml:str ) -> tuple[str,str,str]:
+    """
+    Given verseHtml that may contain a footnotes division,
+        separate off the footnotes.
+
+    If there's also cross-references, they won't be split off separately.
+        (If they occur after the footnotes, then they'll be included with the footnotes.)
+    """
+    if '<div id="footnotes" class="footnotes">' in verseHtml:
+        assert verseHtml.count('<hr ') >= 1, f"{versionAbbreviation} ({verseHtml.count('<hr ')}) {verseHtml=}"
+        if verseHtml.count('<hr ') > 1:
+            assert '<div id="crossRefs" class="crossRefs">' in verseHtml, f"{versionAbbreviation} ({verseHtml.count('<hr ')}) {verseHtml=}"
+        assert verseHtml.count('</div>') == verseHtml.count( '<div ' )
+
+        # Handle footnotes so the same fn1 doesn't occur for multiple versions
+        verseHtml = verseHtml.replace( 'id="footnotes', f'id="footnotes{versionAbbreviation}' ).replace( 'id="fn', f'id="fn{versionAbbreviation}' ).replace( 'href="#fn', f'href="#fn{versionAbbreviation}' )
+
+        verseHtml, footnoteHtml = verseHtml.split( '<hr ', 1 ) # Split at the first horizontal rule
+        # try: verseHtml, footnoteHtml = verseHtml.split( '<hr ' )
+        # except ValueError as err: # usually too many values to unpack
+        #     ix1 = verseHtml.index( '<hr ' )
+        #     ix2 = verseHtml.index( '<hr ', ix1+5 )
+        #     logging.critical( f"Too many parts: '{versionAbbreviation} {verseHtml[ix1:ix1+30]}'  and also  '{verseHtml[ix2:ix2+30]}'")
+        #     return verseHtml, verseHtml, ''
+
+        verseHtml = verseHtml.rstrip()
+        footnoteFreeVerseHtml, numFootnotesRemoved = footnoteRegex.subn( '', verseHtml )
+        # print( f"{numFootnotesRemoved} footnotes removed from {versionAbbreviation} {verseHtml=} gives {footnoteFreeVerseHtml=}")
+        return verseHtml, footnoteFreeVerseHtml, f'<hr {footnoteHtml}'
+    else:
+        if 'class="footnotes"' in verseHtml: print( "{versionAbbreviation} {verseHtml=}" ); halt
+        if versionAbbreviation != 'OET-RV':
+            assert '<hr ' not in verseHtml, f"{versionAbbreviation=} {verseHtml=}"
+        return verseHtml, verseHtml, ''
+# end of createParallelVersePages.handleAndExtractFootnotes
+
 
 
 def briefDemo() -> None:

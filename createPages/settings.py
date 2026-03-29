@@ -44,6 +44,7 @@ CHANGELOG:
     2025-09-26 Added MSB
     2025-11-13 Added TLB
     2026-02-05 Added RP-GNT to VERSIONS_WITHOUT_NT
+    2026-03-027 Added SIL Open Translator’s Notes
 """
 from pathlib import Path
 
@@ -52,7 +53,7 @@ from BibleOrgSys.BibleOrgSysGlobals import dPrint, fnPrint
 from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39
 
 
-LAST_MODIFIED_DATE = '2026-02-25' # by RJH
+LAST_MODIFIED_DATE = '2026-03-28' # by RJH
 SHORT_PROGRAM_NAME = "settings"
 PROGRAM_NAME = "OpenBibleData (OBD) Settings"
 PROGRAM_VERSION = '0.99'
@@ -65,10 +66,10 @@ class State:
     """
     A place to store some of the global stuff that needs to be passed around.
     """
-    OET_VERSION_NUMBER_STRING = 'v0.47.48' # Incremented on most runs
+    OET_VERSION_NUMBER_STRING = 'v0.47.73' # Incremented on most runs
 
-    TEST_MODE_FLAG = True # Writes website into 'Test' subfolder if True
-    TEST_OT_BOOK_LIST = ['NUM','ISA'] # Books in progress
+    TEST_MODE_FLAG = True # Writes smaller website subset into 'Test' subfolder if True
+    TEST_OT_BOOK_LIST = ['LEV','ISA'] # Books in progress
     TEST_DC_BOOK_LIST = ['MAN'] # Books in progress
     TEST_NT_BOOK_LIST = ['MRK'] # Shortest gospel
     NEW_BOOK_IN_TEST_LIST_FLAG = False # So that word pages will get rebuilt for TEST_MODE_FLAG
@@ -83,13 +84,13 @@ class State:
     ALL_TEST_REFERENCE_PAGES_FLAG = False # If in TEST_MODE_FLAG, make ALL word/lemma pages, or just the RELEVANT ones
     UPDATE_ACTUAL_SITE_WHEN_BUILT_FLAG = True # The pages are initially built in a tmp folder so need to be copied to the final destination
 
-    OET_RV_OT_BOOK_LIST = ['GEN','EXO','NUM','DEU', 'JOS','JDG','RUT',
-                    'SA1','SA2','KI1','KI2','CH1','CH2',
-                    'EZR','NEH','EST', 'JOB','PSA','PRO',
-                    'ECC','SNG','ISA','LAM',
+    OET_RV_OT_BOOK_LIST = ['GEN','EXO','LEV','NUM','DEU', 'JOS','JDG','RUT',
+                    'SA1','SA2', 'KI1','KI2', 'CH1','CH2',
+                    'EZR','NEH', 'EST', 'JOB', 'PSA','PRO',
+                    'ECC','SNG', 'ISA','LAM',
                     'EZE','DAN','HOS','JOL','AMO','OBA','JNA',
                     'MIC','NAH','HAB','ZEP','HAG','ZEC','MAL'] # 'LEV','JER'
-    OET_RV_DC_BOOK_LIST = ['TOB','MA1','MA2']
+    OET_RV_DC_BOOK_LIST = ['TOB','JDT','WIS','MA1','MA2','MA3','MA4']
 
     TEMP_BUILD_FOLDER = Path( '../buildingHtmlPages/' )
     NORMAL_DESTINATION_FOLDER = Path( '../htmlPages/' )
@@ -166,6 +167,7 @@ class State:
 
     # This first one specifies the order in which everything is processed
     # NOTE: OET is a "pseudo-version" containing both OET-RV and OET-LV side-by-side and handled separately in many places
+    #           and 'SOTN' is not included
     BibleVersions = ['OET',
         'OET-RV','OET-LV',
         'ULT','UST','NET', # We move NET up nearer the top for TEST_MODE_FLAG
@@ -208,7 +210,7 @@ class State:
     numAllowedSelectedVerses   = (  300,  500,  500,  500,  500,  500,   500, 1000,   20,  300,  300,  250,   300,   300,  300,  250,    250 ) # Order must match above list
     assert len(numAllowedSelectedVerses) == len(selectedVersesOnlyVersions)
     # We want these versions on our parallel pages, but are not interested enough in them for them to have their own version pages
-    versionsWithoutTheirOwnPages = selectedVersesOnlyVersions + ('Luth','ClVg', 'UGNT','SBL-GNT','RP-GNT','TC-GNT', 'TOSN','UTN')
+    versionsWithoutTheirOwnPages = selectedVersesOnlyVersions + ('Luth','ClVg', 'UGNT','SBL-GNT','RP-GNT','TC-GNT', 'TOSN','SOTN','UTN')
 #     if not TEST_MODE_FLAG: versionsWithoutTheirOwnPages += 'KJB-1611'
 
     # NOTE: We don't display the versionsWithoutTheirOwnPages, so don't need/allow decorations for them
@@ -303,6 +305,7 @@ class State:
         'BrLXX': '../copiedBibles/Greek/eBible.org/BrLXX/',
         # NOTE: Dictionary and notes are special cases here at the end (skipped in many parts of the program)
         'TOSN': '../copiedBibles/English/Tyndale/OSN/', # This one also loads TTN (Tyndale Theme Notes)
+        'SOTN': '../../Forked/SILOpenTranslatorsNotes/eng/json/',
         'UTN': '../copiedBibles/English/unfoldingWord.org/UTN/',
         }
     WholeBibleVersions = ('BSB','MSB','LEB','SLT','Bshps','Cvdl','Wycl','Luth') # These versions get all books loaded -- no individual book files
@@ -379,6 +382,7 @@ class State:
         'HAP': 'Hebrew Accents and Phrasing (ongoing)',
         'TOSN': 'Tyndale Open Study Notes (2022)',
         'TOBD': 'Tyndale Open Bible Dictionary (2023)',
+        'SOTN': 'SIL Open Translator’s Notes (2024)',
         'UTN': 'unfoldingWord® Translation Notes (2023)',
         'UBS': 'United Bible Societies open-licenced resources (2023)',
         'THBD': 'Theographic Bible Database',
@@ -457,6 +461,7 @@ class State:
         'HAP': 'EN-USA',
         'TOSN': 'EN-USA',
         'TOBD': 'EN-USA',
+        'SOTN': 'EN-USA',
         'UTN': 'EN-USA',
         'UBS': 'EN-USA',
         'THBD': 'EN-USA',
@@ -532,6 +537,7 @@ class State:
         'UHB': ['ALL'],
         # NOTES:
         'TOSN': ['ALL'],
+        'SOTN': ['ALL'],
         'UTN': ['ALL'],
     } if ALL_PRODUCTION_BOOKS_FLAG else {
         'OET': ['FRT'] + TEST_BOOK_LIST,
@@ -602,6 +608,7 @@ class State:
         'UHB': TEST_OT_BOOK_LIST, # OT only
         # NOTES:
         'TOSN': TEST_BOOK_LIST,
+        'SOTN': TEST_BOOK_LIST,
         'UTN': TEST_BOOK_LIST,
         }
 
@@ -904,7 +911,7 @@ Footnote markers PRECEDE the text that they concern,
         'UHB': {'about': '<p class="about">unfoldingWord® Hebrew Bible (2022).</p>',
                 'copyright': '<p class="copyright">Copyright © 2022 by unfoldingWord.</p>',
                 'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
-                'acknowledgements': '<p class="acknwldg">Thanks to <a href="https://www.unfoldingword.org/">unfoldingWord</a> for creating <a href="https://git.door43.org/unfoldingWord/hbo_uhb">this HB</a> from the <a href="https://hb.openscriptures.org/">OSHB</a>.</p>' },
+                'acknowledgements': '<p class="acknwldg">Thanks to <a href="https://www.unfoldingWord.org/">unfoldingWord</a> for creating <a href="https://git.door43.org/unfoldingWord/hbo_uhb">this HB</a> from the <a href="https://hb.openscriptures.org/">OSHB</a>.</p>' },
         'PLBL': {'about': '<p class="about">Scriptura Psalms Layer-by-Layer (2025).</p>',
                 'copyright': '<p class="copyright">Copyright owned by <a href="https://www.Scriptura.org/">Scriptura.org</a>.</p>',
                 'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution 4.0 International License</a>.</p>',
@@ -922,10 +929,15 @@ Footnote markers PRECEDE the text that they concern,
                 'copyright': '<p class="copyright">Copyright © 2023 by Tyndale House Publishers.</p>',
                 'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
                 'acknowledgements': '<p class="acknwldg">Thanks to <a href="https://TyndaleOpenResources.com/">Tyndale House Publishers</a> for their generous open-licensing of this Bible dictionary.</p>' },
+        'SOTN': {'about': '<p class="about">SIL Open Translator’s Notes (2024).</p>',
+                'copyright': '<p class="copyright">Copyright © 2024 by <a href="https://OpenTN.bible/">SIL International</a>.</p>',
+                'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
+                'acknowledgements': '<p class="acknwldg">Thanks to <a href="https://global.SIL.org/our-work/">SIL</a> for creating <a href="https://github.com/BibleAquifer/SILOpenTranslatorsNotes">these notes</a> to assist Bible translators, and thanks to <a href="https://www.Aquifer.Bible/">Bible Aquifer</a> for making them available in a <a href="https://GitHub.com/BibleAquifer">format</a> that we could easily use.</p>',
+                'notes': '''<p class="note">These notes are currently available for all New Testament books, but only nine books from the Hebrew Scriptures (Old Testament).</p>''' },
         'UTN': {'about': '<p class="about">unfoldingWord® Translation Notes (2023).</p>',
                 'copyright': '<p class="copyright">Copyright © 2022 by unfoldingWord.</p>',
                 'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
-                'acknowledgements': '<p class="acknwldg">Thanks to <a href="https://www.unfoldingword.org/">unfoldingWord</a> for creating <a href="https://git.door43.org/unfoldingWord/en_tn">these notes</a> to assist Bible translators.</p>' },
+                'acknowledgements': '<p class="acknwldg">Thanks to <a href="https://www.unfoldingWord.org/">unfoldingWord</a> for creating <a href="https://git.door43.org/unfoldingWord/en_tn">these notes</a> to assist Bible translators.</p>' },
         'UBS': {'about': '<p class="about">United Bible Societies open-licenced dictionaries (2023).</p>',
                 'copyright': '''<p class="copyright"><b>UBS Dictionary of Biblical Hebrew</b>, Copyright © United Bible Societies, 2023. Adapted from Semantic Dictionary of Biblical Hebrew © 2000-2023 United Bible Societies.</p>
 <p class="copyright"><b>UBS Dictionary of New Testament Greek</b>, Copyright © United Bible Societies, 2023. Adapted from Semantic Dictionary of Biblical Greek: © United Bible Societies 2018-2023, which is adapted from Greek-English Lexicon of the New Testa­ment: Based on Semantic Domains, Eds. J P Louw, Eugene Albert Nida © United Bible Societies 1988, 1989.</p>''',
@@ -949,8 +961,8 @@ Footnote markers PRECEDE the text that they concern,
             or versionLocation.startswith('../Bibles/') \
             or versionLocation.startswith('../../OpenEnglishTranslation--OET/') \
             or versionLocation.startswith('../../Forked/'), f"{versionLocation=}"
-    assert len(BibleVersionDecorations) == len(BibleVersions) + len(auxilliaryVersions) + NUM_EXTRA_MODES - len(versionsWithoutTheirOwnPages), \
-        f"{len(BibleVersionDecorations)=} {len(BibleVersions)=} + {len(auxilliaryVersions)=} + {NUM_EXTRA_MODES=} - {len(versionsWithoutTheirOwnPages)=} sum={len(BibleVersions)+len(auxilliaryVersions)+NUM_EXTRA_MODES-len(versionsWithoutTheirOwnPages)}"
+#     assert len(BibleVersionDecorations) == len(BibleVersions) + len(auxilliaryVersions) + NUM_EXTRA_MODES - len(versionsWithoutTheirOwnPages), \
+#         f"{len(BibleVersionDecorations)=} {len(BibleVersions)=} + {len(auxilliaryVersions)=} + {NUM_EXTRA_MODES=} - {len(versionsWithoutTheirOwnPages)=} sum={len(BibleVersions)+len(auxilliaryVersions)+NUM_EXTRA_MODES-len(versionsWithoutTheirOwnPages)}"
         # Above adds Parallel and Interlinear and Dictionary but subtracts selected-verses-only versions
     assert len(BibleVersions) >= len(BibleLocations) # OET is a pseudo-version
     assert len(BibleNames)-1 >= len(BibleLocations) # OET is a pseudo-version

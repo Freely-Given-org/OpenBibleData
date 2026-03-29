@@ -79,6 +79,8 @@ CHANGELOG:
     2025-09-12 Display verse range numbers on parallel pages
     2025-11-10 Fixed PSA d fields which caused chapter numbers to be displayed twice
     2025-12-01 Added text 'direct-object marker' to pop-up titles for untranslated DOM
+    2026-03-13 Remove ⇔ symbol at beginning of verse (which indicates the verse text was reordered)
+    2026-03-23 Added special handling for dictVerse segments (no xrefs or CV id fields)
 """
 from gettext import gettext as _
 import re
@@ -97,10 +99,10 @@ from html import checkHtml
 from OETHandlers import getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2026-01-07' # by RJH
+LAST_MODIFIED_DATE = '2026-03-25' # by RJH
 SHORT_PROGRAM_NAME = "usfm"
 PROGRAM_NAME = "OpenBibleData USFM to HTML functions"
-PROGRAM_VERSION = '0.95'
+PROGRAM_VERSION = '0.96'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -119,6 +121,7 @@ MAX_NET_FOOTNOTE_CHARS = 18_000 # 17,145 in NET ECC
 spClassDict = {'The groom':'groom', 'The bride':'bride', 'Yerushalem’s young women':'women','Bride’s older brothers':'brothers'}
 
 XRefRegEx = re.compile( '\\\\x .+?\\\\x\\*' )
+FnRegEx = re.compile( '\\\\f .+?\\\\f\\*' )
 spanClassRegEx = re.compile( '<span class=".+?">' )
 def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tuple, segmentType:str, contextList:list, markerList:list, basicOnly:bool, state:State ) -> str:
     """
@@ -138,7 +141,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
 
     fnPrint( DEBUGGING_THIS_MODULE, f"convertUSFMMarkerListToHtml( {versionAbbreviation} {refTuple} '{segmentType}' {contextList} {markerList} )" )
     dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"convertUSFMMarkerListToHtml( {versionAbbreviation} {refTuple} '{segmentType}' {contextList=} {len(markerList)=} )" )
-    assert segmentType in ('book','section','chapter','parallelVerse','interlinearVerse','relatedPassage','topicalPassage'), f"Unexpected {segmentType=}"
+    assert segmentType in ('book','section','chapter','parallelVerse','interlinearVerse','dictVerse','relatedPassage','topicalPassage'), f"Unexpected {segmentType=}"
     BBB = refTuple[0] # Compulsory
     maxFootnoteChars = MAX_NET_FOOTNOTE_CHARS if versionAbbreviation=='NET' else MAX_FOOTNOTE_CHARS
 
@@ -210,11 +213,15 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
 
             if basicOnly \
             and (versionAbbreviation!='OET-RV' or segmentType!='parallelVerse') \
-            and '\\x ' in rest:
-                # Completely remove cross-references
+            and '\\x ' in rest: # Completely remove cross-references
                 rest, xCount = XRefRegEx.subn( '', rest )
                 # print( f"Removed {xCount} cross-references from {refTuple} {rest=} now {xrest=}")
                 # if xCount > 1: halt
+                # rest = xrest
+            if basicOnly and segmentType=='dictVerse' and '\\f ' in rest: # Completely remove footnotes
+                rest, fCount = FnRegEx.subn( '', rest )
+                # print( f"Removed {fCount} footnotes from {refTuple} {rest=} now {xrest=}")
+                # if fCount > 1: halt
                 # rest = xrest
         # dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"{n}/{len(markerList)} {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V}: {marker}={rest}" )
         # dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  {inList=} {inListEntry=}" )
@@ -224,6 +231,11 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
         if marker in ('p~','v~'): # This has the actual verse text
             if not rest:
                 logging.error( f"Expected verse text {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} {marker=}" )
+            elif versionAbbreviation=='OET-RV' and rest[0]=='⇔': # Reordered verse
+                assert marker == 'v~' # Should only occur at the beginning of the verse
+                rest = rest[1:] # Just delete the reordering marker -- it's completely irrelevant for display use (it's used for connecting words)
+            else:
+                assert '⇔' not in rest, f"Unexpected ⇔ char {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} {marker=} {rest=}" # Check for typos
             html = f'''{html}<span class="{versionAbbreviation}_{'chapterIntro' if V=='0' else 'verseTextChunk'}">{convertUSFMCharacterFormatting( versionAbbreviation, refTuple, segmentType, rest, basicOnly, state )}</span>'''
         elif marker == 'v': # This is where we want the verse marker
             if inRightDiv:
@@ -250,20 +262,23 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                         html = f'''{html}{"" if html.endswith(">") else " "}<span class="v">{rest}</span>{THIN_SPACE}'''
                     else: # it's in a section or book type view
                         vLink = f'''<a title="Go to verse in parallel view" href="{'../'*level}par/{BBB}/C{C}V{V1}.htm#Top">{V1}</a>'''
+                        idField1 = '' if segmentType=='dictVerse' else f' id="C{C}V{V1}"'
+                        idField2 = '' if segmentType=='dictVerse' else f' id="C{C}V{V2}"'
                         html = f'{html}{"" if html.endswith(">") else " "}' \
-                                + f'''{f"""{cID}<span class="{'cPsa' if BBB=='PSA' else 'c'}" id="C{C}V1">{toRomanNumerals(C) if versionAbbreviation=='KJB-1611' else C}</span>""" if V1=='1' else f"""<span class="v" id="C{C}V{V1}">{vLink}-</span>"""}''' \
+                                + f'''{f"""{cID}<span class="{'cPsa' if BBB=='PSA' else 'c'}" id="C{C}V1">{toRomanNumerals(C) if versionAbbreviation=='KJB-1611' else C}</span>""" if V1=='1' else f"""<span class="v"{idField1}>{vLink}-</span>"""}''' \
                                 + (f'<span id="V{V1}"></span><span id="V{V2}"></span>' if (segmentType in ('chapter','section','relatedPassage') or isSingleChapterBook) and f'id="V{V1}"' not in html and f'id="V{V2}"' not in html else '') \
-                                + f'<span class="v" id="C{C}V{V2}">{V2}{NARROW_NON_BREAK_SPACE}</span>' \
+                                + f'<span class="v"{idField2}>{V2}{NARROW_NON_BREAK_SPACE}</span>' \
                                 + (rest if rest else '=◘=')
                 else: # it's a simple verse number
                     if not V.isdigit():
                         logging.error( f"Expected a verse number digit at {versionAbbreviation} {refTuple} {C}:{V} {rest=}" )
                     cLink = f'''<a title="Go to verse in parallel view" href="{'../'*level}par/{BBB}/C{C}V1.htm#Top">{toRomanNumerals(C) if versionAbbreviation=='KJB-1611' else C}</a>'''
                     vLink = f'''<a title="Go to verse in parallel view" href="{'../'*level}par/{BBB}/C{C}V{V}.htm#Top">{V}</a>'''
+                    idField = '' if segmentType=='dictVerse' else f' id="C{C}V{V}"'
                     html = f'''{html}{'' if html.endswith('"p">') or html.endswith('—') or html.endswith('—</span>') else ' '}''' \
                             + (f'<span id="V{V}"></span>' if (segmentType in ('chapter','section','relatedPassage') or isSingleChapterBook) and f'id="V{V}"' not in html else '') \
-                            + f'''{f"""{cID}<span class="{'cPsa' if BBB=='PSA' else 'c'}" id="C{C}V1">{cLink}{NARROW_NON_BREAK_SPACE}</span>""" if V=='1'
-                                   else f"""<span class="v" id="C{C}V{V}">{vLink}{NARROW_NON_BREAK_SPACE}</span>"""}'''
+                            + f'''{f"""{cID}<span class="{'cPsa' if BBB=='PSA' else 'c'}"{idField}>{cLink}{NARROW_NON_BREAK_SPACE}</span>"""
+                                   if V=='1' else f"""<span class="v"{idField}>{vLink}{NARROW_NON_BREAK_SPACE}</span>"""}'''
                 # html = f'{html} <span class="v" id="C{refTuple[1]}V{V}">{V}{NARROW_NON_BREAK_SPACE}</span>'
         elif marker in ('¬v', ): # We can ignore these end markers
             assert not rest
@@ -1086,7 +1101,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
         # searchStartIx = fEndIx + 3
         searchStartIx = fStartIx + len(fnoteCaller)
         # if searchStartIx < fEndIx+3:
-        #     print( f"{versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {fStartIx:,=} {fEndIx+3:,=} {searchStartIx:,=} '{html[searchStartIx:searchStartIx+10]}'" )
+        #     print( f"{versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {fStartIx=:,} {fEndIx+3=:,} {searchStartIx=:,} '{html[searchStartIx:searchStartIx+10]}'" )
     else:
         logging.critical( f"outer_fn_loop_needed_to_break {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {_outerSafetyCount=}" )
         outer_fn_loop_needed_to_break
@@ -1792,12 +1807,12 @@ def livenXRefField( fieldType:str, versionAbbreviation:str, refTuple:tuple, segm
             elif versionAbbreviation=='KJB-1611' and xB in ('Chap','Cha','chap','cha','c'):
                 xBBB = BBB # Probably this same book where the xref is located
             elif versionAbbreviation=='KJB-1611' and xB in ('Verse','Vers','Ver','ver'):
-                print( f"{refTuple=} {BBB} {xB=} {lastXC=} {firstIndex=} {indexBCV=} {indexBV=} {indexCV=} {match.groups()}" )
+                # print( f"{refTuple=} {BBB} {xB=} {lastXC=} {firstIndex=} {indexBCV=} {indexBV=} {indexCV=} {match.groups()}" )
                 xBBB = BBB # This same book and chapter where the xref is located
                 try: xC = refTuple[1]
                 except IndexError: # no chapter number given there -- use the xoText instead
                     xC = xoText.split( ':' )[0] if xoText and xoText.count(':')==1 else '?'
-                print( f"Set {xoText} xref to {xBBB} {xC}:{match.group(1)} for {xrefOriginalMiddle=}" )
+                # print( f"Set {xoText} xref to {xBBB} {xC}:{match.group(1)} for {xrefOriginalMiddle=}" )
             elif versionAbbreviation == 'KJB-1611':
                 try: xBBB = myKJB1611XrefTable[xB]
                 except KeyError:

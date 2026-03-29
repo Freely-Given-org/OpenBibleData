@@ -79,6 +79,7 @@ CHANGELOG:
     2025-12-15 Get parallel book header line displaying all available books (not just OET-RV ones), grey out currently selected book
     2026-01-10 Add OET logo
     2026-02-05 Fixing OET-LV missing verses link
+    2026-03-27 Added SIL Open Translator’s Notes
 """
 from pathlib import Path
 import os
@@ -102,8 +103,9 @@ from BibleTransliterations import transliterate_Hebrew, transliterate_Greek
 from settings import State, CNTR_BOOK_ID_MAP, reorderBooksForOETVersions
 from usfm import convertUSFMMarkerListToHtml
 from Bibles import formatTyndaleBookIntro, formatUnfoldingWordTranslationNotes, formatTyndaleNotes, getBibleMapperMaps, getVerseMetaInfoHtml
+from jsonResources import getFormattedSILOpenTranslationNotes
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
-                    convert_adds_to_italics, removeDuplicateFNids, \
+                    handleAndExtractFootnotes, convert_adds_to_italics, removeDuplicateFNids, \
                     makeTop, makeBottom, makeBookNavListParagraph, checkHtml
 from createSectionPages import findSectionNumber
 from createOETReferencePages import OSHB_ADJECTIVE_DICT, OSHB_PARTICLE_DICT, OSHB_NOUN_DICT, OSHB_PREPOSITION_DICT, OSHB_PRONOUN_DICT, OSHB_SUFFIX_DICT
@@ -111,7 +113,7 @@ from OETHandlers import getOETTidyBBB, getOETBookName, livenOETWordLinks, livenO
 from spellCheckEnglish import spellCheckAndMarkHTMLText
 
 
-LAST_MODIFIED_DATE = '2026-03-06' # by RJH
+LAST_MODIFIED_DATE = '2026-03-27' # by RJH
 SHORT_PROGRAM_NAME = "createParallelVersePages"
 PROGRAM_NAME = "OpenBibleData createParallelVersePages functions"
 PROGRAM_VERSION = '0.99'
@@ -184,7 +186,7 @@ def createParallelVersePages( level:int, folder:Path, state:State ) -> bool:
         if not state.TEST_MODE_FLAG or BBB in state.TEST_BOOK_LIST: # Don't need parallel pages for non-test books
             if BibleOrgSysGlobals.loadedBibleBooksCodes.isChapterVerseBook( BBB ):
                 createParallelVersePagesForBook( level, folder, BBB, BBBNextLinks, parallelVersions, state )
-    print( f"\nPossible Unmatched Proper Names ({len(state.possibleUnmatchedProperNames):,}) {sorted(state.possibleUnmatchedProperNames)}" )
+    vPrint( 'Info', DEBUGGING_THIS_MODULE, f"\nPossible Unmatched Proper Names ({len(state.possibleUnmatchedProperNames):,}) {sorted(state.possibleUnmatchedProperNames)}" )
 
     # Create index page
     filename = 'index.htm'
@@ -326,7 +328,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                         continue # Skip non-NT books for Koine Greek NT
                     if isDC and versionAbbreviation not in state.VERSIONS_WITH_APOCRYPHA:
                         continue
-                    if versionAbbreviation in ('TOSN','TTN','UTN'):
+                    if versionAbbreviation in ('TOSN','TTN','SOTN','UTN'):
                         continue # We handle the notes separately at the end
 
                     if not doneHideablesDiv and versionAbbreviation not in ('OET-RV','OET-LV', 'SR-GNT','UHB', 'BrLXX','BrTr','NETS', 'ULT','UST', 'NET', 'BSB','MSB','BLB'):
@@ -388,7 +390,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                 # For these Psalms, the OET-LV calls the \\d field, verse 1, so everything is one verse out
                                 verseEntryList, contextList = thisBible.getContextVerseDataRange( (BBB, C, V), (BBB, C, '2') ) if v==1 else thisBible.getContextVerseData( (BBB, C, str(v+1)) )
                             else: # the normal, common case
-                                verseEntryList, contextList = thisBible.getContextVerseData( (BBB, C) if c==-1 else (BBB, C, V) )
+                                verseEntryList, contextList = thisBible.getContextVerseData( (BBB,C) if c==-1 else (BBB, C, V) )
                                 # if versionAbbreviation=='BSB':
                                 #     print( f"BSB {parRef}") #  {verseEntryList=}
                                 #     for entry in verseEntryList:
@@ -439,9 +441,12 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                         # An exception is https://Freely-Given.org/OBD/KJB-1611/byC/ESG_Intro.htm#Top
                                 assert textHtml.count('<hr ')<(3 if versionAbbreviation=='KJB-1611' else 2), f"{versionAbbreviation} {BBB} {C}:{V} ({textHtml.count('<hr ')}) {textHtml=}"
                                 textHtml, footnoteFreeTextHtml, footnotesHtml = handleAndExtractFootnotes( versionAbbreviation, textHtml )
-                                if footnoteFreeTextHtml.endswith( ' </span>' ):
-                                    footnoteFreeTextHtml = f'{footnoteFreeTextHtml[:-8]}</span>' # Remove superfluous final space
-                            if textHtml.endswith( ' </span>' ): textHtml = f'{textHtml[:-8]}</span>' # Remove superfluous final space
+                                if footnoteFreeTextHtml.endswith( ' </span>' ): # e.g., in BrLXX
+                                    footnoteFreeTextHtml = f'{footnoteFreeTextHtml[:-8]}</span>'
+                                # assert ' </span>' not in footnoteFreeTextHtml, f"{versionAbbreviation} {parRef} {footnoteFreeTextHtml=}"
+                            if textHtml.endswith( ' </span>' ): # e.g., in BrLXX
+                                textHtml = f'{textHtml[:-8]}</span>'
+                            # assert ' </span>' not in textHtml, f"{versionAbbreviation} {parRef} {textHtml=}"
                             if 'OET' in versionAbbreviation:
                                 textHtml = textHtml.replace( '~~SCHWA~~', 'ə' ) # Restore protected field in title popups
                             if versionAbbreviation not in ('TCNT','TC-GNT'): # They use this character in footnotes
@@ -1091,6 +1096,11 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                 if ttnHtml:
                     ttnHtml = f'''<div id="TTN" class="parallelTTN"><a title="Go to TSN copyright page" href="{'../'*BBBLevel}TSN/details.htm#Top">TTN</a> <b>Tyndale Theme Notes</b>: {ttnHtml}</div><!--end of TTN-->'''
                     parallelHtml = f"{parallelHtml}{NEWLINE if parallelHtml else ''}{ttnHtml}"
+                # Handle SIL open translation notes 'UTN'
+                sotnHtml = getFormattedSILOpenTranslationNotes( BBBLevel, BBB, C, V, 'parallelVerse', state )
+                if sotnHtml:
+                    sotnHtml = f'''<div id="SOTN" class="parallelSOTN"><a title="Go to SOTN copyright page" href="{'../'*BBBLevel}SOTN/details.htm#Top">SOTN</a> <b>SIL Open Translator’s Notes</b>: {sotnHtml}</div><!--end of SOTN-->'''
+                    parallelHtml = f'{parallelHtml}\n<hr style="width:50%;margin-left:0;margin-top: 0.3em">\n{sotnHtml}'
                 # Handle uW translation notes 'UTN'
                 utnHtml = formatUnfoldingWordTranslationNotes( BBBLevel, BBB, C, V, 'parallelVerse', state )
                 if utnHtml:
@@ -1169,45 +1179,6 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
     vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  createParallelVersePagesForBook() finished processing {len(vLinksList):,} {BBB} verses." )
     return True
 # end of createParallelVersePages.createParallelVersePagesForBook
-
-
-# <span class="fnCaller">[<a title="Note: K אחד" href="#fnUHB4">fn</a>]</span>
-footnoteRegex = re.compile( '<span class="fnCaller">.+?</span>' )
-def handleAndExtractFootnotes( versionAbbreviation:str, verseHtml:str ) -> tuple[str,str,str]:
-    """
-    Given verseHtml that may contain a footnotes division,
-        separate off the footnotes.
-
-    If there's also cross-references, they won't be split off separately.
-        (If they occur after the footnotes, then they'll be included with the footnotes.)
-    """
-    if '<div id="footnotes" class="footnotes">' in verseHtml:
-        assert verseHtml.count('<hr ') >= 1, f"{versionAbbreviation} ({verseHtml.count('<hr ')}) {verseHtml=}"
-        if verseHtml.count('<hr ') > 1:
-            assert '<div id="crossRefs" class="crossRefs">' in verseHtml, f"{versionAbbreviation} ({verseHtml.count('<hr ')}) {verseHtml=}"
-        assert verseHtml.count('</div>') == verseHtml.count( '<div ' )
-
-        # Handle footnotes so the same fn1 doesn't occur for multiple versions
-        verseHtml = verseHtml.replace( 'id="footnotes', f'id="footnotes{versionAbbreviation}' ).replace( 'id="fn', f'id="fn{versionAbbreviation}' ).replace( 'href="#fn', f'href="#fn{versionAbbreviation}' )
-
-        verseHtml, footnoteHtml = verseHtml.split( '<hr ', 1 ) # Split at the first horizontal rule
-        # try: verseHtml, footnoteHtml = verseHtml.split( '<hr ' )
-        # except ValueError as err: # usually too many values to unpack
-        #     ix1 = verseHtml.index( '<hr ' )
-        #     ix2 = verseHtml.index( '<hr ', ix1+5 )
-        #     logging.critical( f"Too many parts: '{versionAbbreviation} {verseHtml[ix1:ix1+30]}'  and also  '{verseHtml[ix2:ix2+30]}'")
-        #     return verseHtml, verseHtml, ''
-
-        verseHtml = verseHtml.rstrip()
-        footnoteFreeVerseHtml, numFootnotesRemoved = footnoteRegex.subn( '', verseHtml )
-        # print( f"{numFootnotesRemoved} footnotes removed from {versionAbbreviation} {verseHtml=} gives {footnoteFreeVerseHtml=}")
-        return verseHtml, footnoteFreeVerseHtml, f'<hr {footnoteHtml}'
-    else:
-        if 'class="footnotes"' in verseHtml: print( "{versionAbbreviation} {verseHtml=}" ); halt
-        if versionAbbreviation != 'OET-RV':
-            assert '<hr ' not in verseHtml, f"{versionAbbreviation=} {verseHtml=}"
-        return verseHtml, verseHtml, ''
-# end of createParallelVersePages.handleAndExtractFootnotes
 
 
 def getPlainText( givenVerseEntryList ) -> str:
@@ -1776,12 +1747,16 @@ def markPossibleUnmatchedProperNames( parRef:str, thisVerseEntryList, state:Stat
                     'The','That','Both','Every','Having',
                     'I','He','You','My', 'Many',
                     'Why','How','Which', 'Not','Oh',
-                    'Bad', 'Balances', 'Before', 'Bind', 'Blessings', 'Boast', 'By','Bear', 'Beautiful', 'Became', 'Become', 'Bed[s]', 'Blameless',
+                    'Back', 'Bad', 'Balances', 'Bare', 'Before', 'Bind', 'Blessings', 'Boast', 'By','Bear', 'Beautiful', 'Became', 'Become', 'Bed[s]', 'Blameless',
+                        'Break', 'Bring',
                     'Call', 'Calloused', 'Came', 'Camels', 'Carefully', 'Case', 'Cast', 'Cattle', 'Cause', 'Cease', 'Cedars', 'Certain', 'Certainly', 'Change', 'Charcoal', 'Cheeks', 'Cherish', 'Cherubims', 'Chief', 'Chiefs', 'Child',
                         'Children', 'Chislon', 'Circumcise', 'Circumcision', 'Cities', 'City', 'Claim', 'Clean', 'Cleanse', 'Close', 'Clothe', 'Clothed', 'Clothing', 'Cloud', 'Clouds', 'Coming', 'Command', 'Commander', 'Complete',
                         'Completely', 'Completeness', 'Concerning', 'Condemns', 'Confronted', 'Correct','Contentions', 'Coverings',
-                    'Daughter', 'Daughters', 'Death', 'Deceit', 'Deceitfulness', 'Does', 'Drink', 'Drive', 'Drunkenness', 'Dead', 'Deliver', 'Desolations', 'Disaster', 'Discipline', 'Discretion', 'Divination',
-                        'Draw',
+                    'Daughter', 'Daughters',
+                        'Dead','Death', 'Deceit', 'Deceitfulness', 'Deliver', 'Desolations',
+                        'Did', 'Disaster', 'Discipline', 'Discretion', 'Divination',
+                        'Does',
+                        'Draw', 'Drink', 'Drive', 'Drunkenness',
                     'Eat','End', 'Endure', 'Establish', 'Everything', 'Execute', 'Expressly', 'Eyes', 'Each', 'Earlier', 'Earnestly', 'Ears', 'Eaten', 'Eggs', 'Either', 'Emperor', 'Encompassed', 'Encourage',
                         'Enemies', 'Enlarge', 'Enroll', 'Enrolled', 'Enrollment', 'Entered', 'Ephod', 'Even', 'Ever', 'Everyone', 'Evil', 'Evil-', 'Exalt', 'Exceedingly', 'Except', 'Expel', 'Explain', 'Extol', 'Eye',
                     'Come','Do','Judge','Increase','Make','Open','Remember','Truly','Yes',
@@ -1802,19 +1777,23 @@ def markPossibleUnmatchedProperNames( parRef:str, thisVerseEntryList, state:Stat
                     'Lastly', 'Laziness', 'Leave', 'Length', 'Lest', 'Let', 'Light', 'Like', 'Likewise', 'Linen', 'Lips', 'Listen', 'Little', 'Loyalty', 'LORD', 'Land', 'Last', 'Law', 'Lay', 'Lead', 'Leaders',
                         'Learn', 'Led', 'Left', 'Legs', 'Leviathan', 'Levites', 'Libyans', 'Life', 'Lift', 'Lifts', 'Likeness', 'Limit', 'Line', 'Livestock', 'Living', 'Loaves', 'Look',
                     'Made', 'Maim', 'Majestic','Male', 'Man', 'Market', 'Master', 'Masters', 'Maxims', 'Memory', 'Men', 'Mercies', 'Merciful', 'Mercy', 'Mesopotamia', 'Might',
-                        'Mighty', 'Milk', 'Mind', 'Miserable', 'Money', 'More', 'Mortal', 'Most', 'Mount', 'Mountain', 'Mountains', 'Mouth', 'Move', 'Much', 'Multitude', 'Mute', 'Mystery',
+                        'Mighty', 'Milk', 'Mind', 'Miserable',
+                        'Money', 'Moons', 'More', 'Mortal', 'Most', 'Mount', 'Mountain', 'Mountains', 'Mouth', 'Move', 'Much', 'Multitude', 'Mute', 'Mystery',
                     'Naked', 'Nard', 'Nation', 'Nations', 'Near', 'Need', 'Neither', 'Networks', 'Never', 'Nevertheless', 'New', 'Night', 'No', 'Nobles', 'Noises', 'None', 'Nor', 'Nothing', 'Now',
                     'Oak', 'Oaks', 'Observe', 'Offering', 'Officials', 'Offscouring', 'Oh/the', 'Oil', 'Old', 'Olive',
                         'On', 'On/upon/above', 'On/upon/above/on', 'Only', 'Other', 'Others', 'Otherwise', 'Out', 'Outside', 'Over', 'Overpower', 'Overseeing', 'Overtake',
                     'Pay', 'Payment', 'People', 'Persuades', 'Perverse', 'Plans', 'Playing', 'Poverty', 'Praise', 'Priests', 'Prophesy', 'Punish', 'Purim', 'Pursues', 'Put',
-                        'Pardon', 'Parents', 'Part', 'Pass', 'Path', 'Pay', 'Peace', 'Peoples', 'Perhaps', 'Physician', 'Pillars', 'Plan', 'Planted', 'Plead', 'Please', 'Pleased',
+                        'Pardon', 'Parents', 'Part', 'Pass', 'Path', 'Pay',
+                        'Peace', 'Peoples', 'Perhaps', 'Perversity', 'Physician', 'Pillars', 'Plan', 'Planted', 'Plead', 'Please', 'Pleased',
                         'Pleiades', 'Poison', 'Polish', 'Portion', 'Posts', 'Pour', 'Power',
                         'Pray', 'Prepare', 'Present', 'Preserve', 'Princes', 'Proclaim', 'Profit', 'Profusely', 'Prophesies', 'Prophets', 'Prostitution', 'Prove', 'Provide', 'Provisions',
                     'Q', 'Queen', 'Quickly', 'Quiver',
                     'Rage', 'Raise','Recesses', 'Recount', 'Remove', 'Restrain', 'Rightly', 'Rock', 'Roll', 'Ravished', 'Really', 'Rebellious', 'Receive', 'Recline',
                         'Red', 'Redeem', 'Redeemer', 'Redemption', 'Refrain', 'Rejoice', 'Release', 'Religion', 'Remain', 'Remembrance', 'Repay', 'Repent', 'Report',
-                        'Requite', 'Rescue', 'Restore', 'Return', 'Revealed', 'Revive', 'Rewarded', 'Rich', 'Ride', 'Right', 'Rise', 'River', 'Rivers', 'Roar',
-                    'Say','See','Satan','Sacrifices', 'Salt', 'Scale[s]', 'Seek', 'Send', 'Seven', 'She',
+                        'Requite', 'Rescue', 'Restore', 'Return', 'Revealed', 'Revive', 'Rewarded', 'Rich', 'Ride', 'Right', 'Rise', 'River', 'Rivers',
+                        'Roar','Roaring',
+                    'Say','Satan','Sacrifices', 'Salt', 'Scale[s]', 'Seek', 'Send', 'Seven', 'She',
+                        'See', 'Self',
                         'Silver', 'Since', 'Sing', 'Sinners', 'Sit', 'Sitting',
                         'Skin',
                         'Slave', 'Slaves',
@@ -1835,12 +1814,12 @@ def markPossibleUnmatchedProperNames( parRef:str, thisVerseEntryList, state:Stat
                         'Taverns', 'Teach', 'Teaches', 'Teeth', 'Temptation', 'Tent', 'Tents', 'Terrified', 'Terrify', 'Terror','Testimonies',
                          'Than', 'Thankfulness', 'Third', 'Threshed', 'Threshing', 'Through', 'Throughout', 'Tie', 'Tightly', 'Time', 'Times',
                          'Today', 'Together', 'Tomorrow', 'Took', 'Touch', 'Tramples', 'Treat', 'Tribulation', 'Trust', 'Trustworthy', 'Turn',
-                    'Understand', 'Until',
+                    'Understand', 'Until', 'Utterly',
                     'Vineyards',
                     'Water', 'Waters', 'We', 'Wealth', 'What', 'Whatever', 'When', 'Where', 'Wherever', 'Whether', 'Who', 'Whoever', 'Whom', 'Whomever',
                         'Will', 'Wise', 'With', 'Wounds', 'Wail', 'Wait', 'Wake', 'Walk', 'Warrior', 'Wash', 'Watch', 'Webs', 'Weigh', 'Well', 'Were', 'Whence', 'Whenever', 'While', 'White', 'Whole',
                         'Wickedness', 'Widows', 'Wife', 'Wildly', 'Willing', 'Wine', 'Winnow', 'Within', 'Wives', 'Woe', 'Wolf', 'Woman', 'Women', 'Wonders', 'Wormwood', 'Worthy', 'Would', 'Write', 'Writhe',
-                    'You(pl)','Your(pl)',
+                    'Yet', 'You(pl)','Your(pl)',
                     'Behold','YHWH','DOM',
                     # Names that only have short vowels and no unusual consonants
                     'Bilgah',

@@ -1,5 +1,5 @@
 function hide_show_marks() {
-    classes_to_adjust = ['ul', 'dom', 'untr']; //
+    classes_to_adjust = ['ul', 'dom', 'untr'];
     let btn = document.getElementById('marksButton');
     if (btn.textContent === 'Hide marks') {
         for (let cl of classes_to_adjust) {

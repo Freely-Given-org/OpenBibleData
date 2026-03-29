@@ -30,12 +30,13 @@ Module handling SentenceImportance initialisation.
 This bit of code is only ever intended to be run once
 
 CHANGELOG:
-    2024-05-22 Use VariantID and Translatable SR-GNT collation columns from CNTR
+    2024-05-22 Use SR and Translatable SR-GNT collation columns from CNTR
     2025-04-10 Use crossTestamentQuotes info
     2025-07-09 Tried to make more allowance for partial verses
     2025-09-11 Find Q footnotes in UHB
     2025-10-13 Find appropriate footnotes in OSHB via OET-LV OT files
     2026-01-05 Handle a range crossing a chapter boundary (using en-dash –)
+    2026-03-29 Update for latest collaction DB from GreekCNTR
 """
 from pathlib import Path
 from csv import  DictReader
@@ -55,10 +56,10 @@ from load import getIndividualQuotedOTRefs, getIndividualQuotingNTRefs
 
 
 
-LAST_MODIFIED_DATE = '2026-01-29' # by RJH
+LAST_MODIFIED_DATE = '2026-03-29' # by RJH
 SHORT_PROGRAM_NAME = "SentenceImportance_initialisation"
 PROGRAM_NAME = "Sentence Importance initialisation"
-PROGRAM_VERSION = '0.24'
+PROGRAM_VERSION = '0.25'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -68,7 +69,7 @@ TSV_FILENAME = 'sentenceImportance.tsv'
 NUM_EXPECTED_DATA_LINES = 41_899 # for initial vref.txt file with no split verses
 
 COLLATION_PATHNAME = Path( '../../../CNTR-GNT/sourceExports/collation.csv' )
-NUM_EXPECTED_COLLATION_COLUMNS = 35
+NUM_EXPECTED_COLLATION_COLUMNS = 30
 BOS_BOOK_ID_MAP = {
     40: 'MAT', 41: 'MRK', 42: 'LUK', 43: 'JHN', 44: 'ACT',
     45: 'ROM', 46: 'CO1', 47: 'CO2', 48: 'GAL', 49: 'EPH', 50: 'PHP', 51: 'COL', 52: 'TH1', 53: 'TH2', 54: 'TI1', 55: 'TI2', 56: 'TIT', 57: 'PHM',
@@ -85,6 +86,7 @@ vitalImportanceRefsWithRanges = [ # Often in doctrinal statements
     'GEN_1:1-3', 'GEN_3:16',
     'EXO_20:11',
     'DEU_4:6', 'DEU_6:4-5', 'DEU_9:4', 'DEU_31:6',
+    'CH2_7:14',
     'PSA_22:1-2','PSA_22:7-18', 'PSA_46:1',
     'PRO_3:5','PRO_3:6',
     'ISA_9:6-7', 'ISA_52:13–53:12', 'ISA_55:11',
@@ -194,7 +196,7 @@ unclearClarityRefs = [ # Mostly sure what's in the Hebrew or Greek,
         'PRO_21:6b','PRO_21:12','PRO_21:18','PRO_21:24','PRO_23:5','PRO_29:10b','PRO_29:24b','PRO_30:1',
     'ECC_5:9', 'ECC_10:15',
     'SNG_8:9',
-    'ISA_4:4b','ISA_5:17b','ISA_9:1','ISA_9:20','ISA_10:18','ISA_10:27b','ISA_14:21',
+    'ISA_4:4b','ISA_5:17b','ISA_9:1','ISA_9:20','ISA_10:18','ISA_10:27b','ISA_14:21','ISA_14:31b',
         'ISA_53:11a',
     'EZE_8:17b', 'EZE_16:24', 'EZE_21:13', 'EZE_24:12', 'EZE_24:17b', 'EZE_26:20b',
     'DAN_8:12','DAN_8:13a','DAN_11:43b',
@@ -342,9 +344,9 @@ def load_CNTR_collation_DB( splitVerseSet ):
     # vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Column headers: ({len(collation_csv_column_headers)}): {collation_csv_column_headers}")
     assert len(collation_csv_column_headers) == NUM_EXPECTED_COLLATION_COLUMNS, f"{len(collation_csv_column_headers)=} {NUM_EXPECTED_COLLATION_COLUMNS=}"
     # Check that the columns we use are still there somewhere
-    assert 'CollationID' in collation_csv_column_headers
-    assert 'VerseID' in collation_csv_column_headers
-    assert 'VariantID' in collation_csv_column_headers
+    assert 'CollationId' in collation_csv_column_headers, f"{collation_csv_column_headers=}"
+    assert 'VerseId' in collation_csv_column_headers, f"{collation_csv_column_headers=}"
+    assert 'SR' in collation_csv_column_headers, f"{collation_csv_column_headers=}"
 
     # Read, check the number of columns, and summarise row contents all in one go
     collation_csv_rows = []
@@ -362,7 +364,7 @@ def load_CNTR_collation_DB( splitVerseSet ):
     for collation_row_number, row in enumerate( collation_csv_rows ):
         assert len(row) == len(collation_csv_column_headers)
 
-        collation_id, verse_id, variant_id = row['CollationID'], row['VerseID'], row['VariantID']
+        collation_id, verse_id = row['CollationId'], row['VerseId']
         assert len(collation_id) == 11 and collation_id.isdigit()
         assert collation_id.startswith( verse_id )
         book_number, chapter_number, verse_number, _word_number \
@@ -392,14 +394,14 @@ def load_CNTR_collation_DB( splitVerseSet ):
                     half = len(this_verse_row_list) // 2
                     haveVariants = translatable = False
                     for this_verse_row in this_verse_row_list[:half]:
-                        if this_verse_row['VariantID']:
+                        if this_verse_row['SR'] != 'X':
                             haveVariants = True
                         if this_verse_row['Translatable']:
                             translatable = True
                     collationVerseDict[fgRefA] = '2' if translatable else '1' if haveVariants else '0'
                     haveVariants = translatable = False
                     for this_verse_row in this_verse_row_list[half:]:
-                        if this_verse_row['VariantID']:
+                        if this_verse_row['SR'] != 'X':
                             haveVariants = True
                         if this_verse_row['Translatable']:
                             translatable = True
@@ -407,7 +409,7 @@ def load_CNTR_collation_DB( splitVerseSet ):
                 else: # no split
                     haveVariants = translatable = False
                     for this_verse_row in this_verse_row_list:
-                        if this_verse_row['VariantID']:
+                        if this_verse_row['SR'] != 'X':
                             haveVariants = True
                         if this_verse_row['Translatable']:
                             translatable = True
@@ -515,11 +517,11 @@ def get_verse_collation_rows(given_collation_rows: list[dict], row_index: int) -
     """
     # vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"get_verse_collation_rows({row_index})")
     this_verse_row_list = []
-    this_verseID = given_collation_rows[row_index]['VerseID']
-    if row_index > 0: assert given_collation_rows[row_index-1]['VerseID'] != this_verseID
+    this_verseID = given_collation_rows[row_index]['VerseId']
+    if row_index > 0: assert given_collation_rows[row_index-1]['VerseId'] != this_verseID
     for ix in range(row_index, len(given_collation_rows)):
         row = given_collation_rows[ix]
-        if row['VerseID'] == this_verseID:
+        if row['VerseId'] == this_verseID:
             this_verse_row_list.append(row)
         else: # done
             break

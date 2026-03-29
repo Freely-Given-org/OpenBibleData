@@ -47,7 +47,7 @@ from BibleOrgSys import BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import vPrint, fnPrint, dPrint, rreplace
 
 
-LAST_MODIFIED_DATE = '2026-02-17' # by RJH
+LAST_MODIFIED_DATE = '2026-03-28' # by RJH
 SHORT_PROGRAM_NAME = "spellCheckEnglish"
 PROGRAM_NAME = "English Bible Spell Check"
 PROGRAM_VERSION = '0.57'
@@ -191,7 +191,7 @@ INITIAL_BIBLE_WORD_LIST = ['3.0','UTF','USFM', '©', 'CC0',
                     'LAO','GES','LES','ESG','ADE','PS2','TOB','WIS','SIR','BAR','PAZ','JDT','DAG',
                         'SUS','LYE','S3Y','BEL','MA1','MA2','MA3','MA4',
                     'MAT','MRK','LUK', 'JHN','YHN', 'ACT','ROM','CO1','CO2','GAL','EPH','PHP','COL','TH1','TH2','TI1','TI2','TIT',
-                    'PHM','HEB', 'JAM','JAS', 'PE1','PE2','JN1','JN2','JN3','JDE','JUD','REV',
+                    'PHM','HEB', 'JAM','JAS','YAS', 'PE1','PE2','JN1','JN2','JN3','JDE','JUD','REV',
                     'Gen','Exo','Lev','Num','Deu','Chr','Rut','Psa','Psal','Prv','Hos','Zech','Mal',
                     'Matth','Mrk','Luk','Lk','Jhn','Jn','Act','Gal','Eph','Php','Col','Heb','Phm','Rev',
 
@@ -213,11 +213,12 @@ PREAPPROVED_WORDS_TO_REMOVE = sorted(['God’s','GOD', 'LORD’S','LORD’s','LO
                 'Ben-hadad','Bene-jaakan',
                 'Beth-aven','Beth-eden', 'Beth-el','Beyt-El','Beth-horon','Beth-lehem','Beth-Peor',
                 'Bikath-Aven','Bikat-Aven',
-            'Hamath-zobah','Hazar-enan',
+            'Hamath-zobah','Har-jearim','Hazar-enan',
             'Iye-abarim',
+            'Jabesh-gilead',
             'Kadesh-barnea',
                 'Kibroth-hattaavah',
-                'Kiriath-jearim','Kirjath-jearim',
+                'Kiriath-jearim','Kirjath-jearim','Kirjah-jearim',
             'Lebo-hamath',
             'Maher-shalal-hash-baz',
             'Obed-edom',
@@ -464,7 +465,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                          'ELLEH','HADDEBARIM',
                          'VAIICRA','ISICHIUS',
                          # The following are abbreviations of reference works used in the Vulgate footnotes
-                         'ADAMAN','ADAMANT', 'ÆNEID', 'ALBINUS','ALBIN', 'ALCUIN','ALC', 'ALEX', 'AMB','AMBR', 'ANSELM', 'ANT', 'APOLLI', 'AUG',
+                         'ADAMAN','ADAMANT', 'ÆNEID', 'ALBINUS','ALBIN', 'ALCUIN','ALC', 'ALEX', 'AMB','AMBR','AMBROS', 'ANSELM', 'ANT', 'APOLLI', 'AUG',
                          'BASIL', 'BEDA','BED',
                          'CAS','CASS', 'CC','CCC','CCCC', 'CHARIAT', 'CHRYS','CHRYSOST', 'CYPR', 'CYRILL',
                          'DIOD',
@@ -478,7 +479,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                          'PATERIUS', 'PROCOP',
                          'RAB', 'REMIG','REMI','REM', 'RUPERT',
                          'SEPTUAG', 'SEVERIANUS', 'STRAB', 'STRAR', 'SYM',
-                         'THEOD', 'THEOPH','THEOP',
+                         'TERT', 'THEOD','THEODOR', 'THEOPH','THEOP',
                          'XIS', 'XES',
                          'ZACH','ZAC',
                          ) )
@@ -614,16 +615,16 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
         assert '#fn' not in cleanedTextToCheck, f"Unexpected fn in {versionAbbreviation} {ref}\n{cleanedTextToCheck=}\nfrom {originalHTMLTextForDebugging=}"
     if '>9:19<' not in cleanedTextToCheck and '>13:20<' not in cleanedTextToCheck and '>30:12<' not in cleanedTextToCheck \
     and '>1:54<' not in cleanedTextToCheck and '>8:11<' not in cleanedTextToCheck: # LES 9:19, 13:20 and SIR 30:12 and MA1 1:54 and MA2 8:11-- I've been unable to determine the fault here!!!
-        assert '<span' not in cleanedTextToCheck, f"Unexpected remaining <span in {versionAbbreviation} {ref}\n{cleanedTextToCheck=}\nfrom {originalHTMLTextForDebugging=}"
-        assert ' class="' not in cleanedTextToCheck, f"Unexpected remaining class in {versionAbbreviation} {ref}\n{cleanedTextToCheck=}\nfrom {originalHTMLTextForDebugging=}"
-        assert ' title="' not in cleanedTextToCheck, f"Unexpected remaining title in {versionAbbreviation} {ref}\n{cleanedTextToCheck=}\nfrom {originalHTMLTextForDebugging=}"
-        assert ' id="' not in cleanedTextToCheck, f"Unexpected remaining id in {versionAbbreviation} {ref}\n{cleanedTextToCheck=}\nfrom {originalHTMLTextForDebugging=}"
-        assert ';margin' not in cleanedTextToCheck, f"Unexpected remaining margin in {versionAbbreviation} {ref}\n{cleanedTextToCheck=}\nfrom {originalHTMLTextForDebugging=}"
+        assert '<span' not in cleanedTextToCheck, f"Unexpected remaining <span for spell-check in {versionAbbreviation} {ref}\n{cleanedTextToCheck=}\nfrom {originalHTMLTextForDebugging=}"
+        assert ' class="' not in cleanedTextToCheck, f"Unexpected remaining class for spell-check in {versionAbbreviation} {ref}\n{cleanedTextToCheck=}\nfrom {originalHTMLTextForDebugging=}"
+        assert ' title="' not in cleanedTextToCheck, f"Unexpected remaining title for spell-check in {versionAbbreviation} {ref}\n{cleanedTextToCheck=}\nfrom {originalHTMLTextForDebugging=}"
+        assert ' id="' not in cleanedTextToCheck, f"Unexpected remaining id for spell-check in {versionAbbreviation} {ref}\n{cleanedTextToCheck=}\nfrom {originalHTMLTextForDebugging=}"
+        assert ';margin' not in cleanedTextToCheck, f"Unexpected remaining margin for spell-check in {versionAbbreviation} {ref}\n{cleanedTextToCheck=}\nfrom {originalHTMLTextForDebugging=}"
     for htmlEntity in ('table','tr','td'):
         cleanedTextToCheck =  cleanedTextToCheck.replace( f'<{htmlEntity}>', '' ).replace( f'</{htmlEntity}>', '' )
     cleanedTextToCheck = cleanedTextToCheck.replace( '</span>', '' ).replace( '</p>', '' ).replace( '</div>', '' ).replace( '</a>', '' )
     if '>9:19' in cleanedTextToCheck or '>13:20' in cleanedTextToCheck or '>30:12' in cleanedTextToCheck or '>1:54' in cleanedTextToCheck or '>8:11' in cleanedTextToCheck: # LES 9:19 and 13:20 -- I've been unable to determine the faults here!!!
-        print( f"SPELLCHECK: WHY!!! Unexpected html markers in {versionAbbreviation} {ref}\n{cleanedTextToCheck=}\nfrom {originalHTMLTextForDebugging=}" )
+        print( f"SPELLCHECK: WHY!!! Unexpected html markers for spell-check in {versionAbbreviation} {ref}\n{cleanedTextToCheck=}\nfrom {originalHTMLTextForDebugging=}" )
     else:
         assert '<' not in cleanedTextToCheck and '>' not in cleanedTextToCheck, f"Unexpected html markers in {versionAbbreviation} {ref}\n{cleanedTextToCheck=}\nfrom {originalHTMLTextForDebugging=}"
 
@@ -762,7 +763,11 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                    'meynee','silverne','wem','heardn','herde','scall','hilide','wolden','brasun','thes','childed',
                                    'horon','gilead','edom','jearim',
                                         'thirtie','releasen','jealousi','fer','whereinto','euen','summe','defie',
-                                        'hile','tother','iacynt','relifs','drooue','woodness','lomb','stonde','defoule','kynde','mentil',
+                                        'hile','drooue','woodness','lomb','stonde','kynde',
+                                        'yt','sounde','blinde','broughtst','handmayd','aud','Candlesticke','prophecie',
+                                        'subarbis','bitakun','lepre','breede','hilid','armeris',
+                                        'warpe','woofe','baken','goate','Uaile','kil','wist','kinde','defenced','foules','finnes','Owle','looke','nakednes','sheafe','willowes','Edoma','swines','miter','bewaile','creepe',
+                                        'iubilee','cleene','ayenbouyt','trespas','ayenbie','dow','foundement','quyk','comelyngis','comeling','biere','buk','schuldur','lowere','vyndage','wexith','prijs','membris',
 
                                    ) and 'PSA' not in location ) # coz Wycl versification doesn't usually match anyway
                             or 'twas' in word )
@@ -772,39 +777,41 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                 cleanedTextToDisplay = cleanedTextToDisplay.replace('<span class="ClVg_verseTextChunk">','').replace('<div id="footnotesClVg" class="footnotes">\n','').replace('  ',' ').replace(' ',' ')
                 vPrint( 'Normal' if word.upper()==word
                        or word in (
-                                'sie','hin','heb','wir','dem','ich','alle','las','lag','ones)r','ones)s','ones)n','one)s','bis',
+                                'aß','sie','hin','heb','wir','dem','des','für','ich','alle','las','lag','ones)r','ones)s','ones)n','one)s','bis',
                                 'hing','one)r','one)n','weh','du','ach','Raube','Raub','Tal','tue','fiel','sehe','mal','mit',
-                                'bettern','ende','rede','kam','ward','alt','dran','Rede','nur','messen','ging','und','ster',
-                                'tellse','mit','stonen','powerfuln','offeringaltar',
-                                'awakense','psalters',
-                                'whichen','hundredtausend','equipsen',
-                                'fiveundvierzig','ontotund','girdlete','meadownbach',
-                                    'gepflegt','signsn','befestigen','klage','beschere',
+                                'ende','rede','kam','Korb','ward','alt','dran','Rede','nur','messen','ging','und','ster','tun',
+                                'hüte','examinet','brokeen',
+                                'thirdmal','goißen','groupn','orderede','inheritancen','raiseden','gratitudesagung',
+                                    'wilde','revengeschwert','smelln','scattern','residedt','uncircumcisedes','evenwohl','sixtyste',
+                                    'dignityrung',
 
-                                'ambitio','anima','antiqui','attende',
-                                'beneficia',
-                                'calami','complet','cognitio','cogniti','congregati','contra','conversa','cor','credi','cruci',
-                                'dat','dedi','dem','digni','discretio','divisi','dom','domina',
-                                'expiat','extensio',
-                                'hellor','hoc',
-                                'ibi','ima','infirmi','intentio','introduc','inventi',
+                                'actio','ambitio','anima','antiqui','attende','audi',
+                                'beati','bene','beneficia','bos',
+                                'calami','Christi','circumcisio','cogitatio','cognitio','cogniti','complet',
+                                    'confessio','congregati','congregatio','consecrat','consolati','contra','conversa',
+                                    'cor','correcti','creat','credi','cruci','cum',
+                                'dat','dedi','dem','designat','digni','discretio','distincti','distinctio','divisi','dom','domina',
+                                'ecclesia','ei','expiat','extensio',
+                                'Finis','finis',
+                                'hellor','hoc','humili',
+                                'ibi','illum','illuminat','ima','infirmi','insinuat',
+                                    'intelligi','intentio','introduc','inventi','iter',
                                 'jus',
-                                'liberati',
-                                'magnifice','magni','manifeste','manu','mira','misera','moretri','morti',
-                                'natura','ne',
-                                'operatio','ora',
-                                'patria','patri','pede','pedes','prope',
-                                'separat','serva','servit','sit','sol','soli','solem','stat','statu',
-                                'tribulatio','trium','tua',
-                                'valle','victi'
-                                'l','ros','nos',
-                                'ut','iter','distinctio','lux','pio','humili',
-                                'redempti','rea','cogitatio','congregatio','circumcisio','audi','perthey',
-                                'illum','illuminat','consolati','ei','confessio',
-                                'traditi','Christi','Finis','finis','cum','beati',
-                                'allque','praisesur','churchm','outt',
-                                    'womans','adduxerunt','suggestionem','womanrum','tradentes','pilis','afferat','asinis','asini',
-
+                                'legi','legis','liberati','locus','lux',
+                                'magis','magnifice','magni','manifeste','manu','mater','mira','misera',
+                                    'moretri','mortali','morti',
+                                'nam','natura','ne',
+                                'ob','operatio','ora',
+                                'patria','patri','pede','pedes','persecuti','persecutio',
+                                    'pio','prope','propitiatio',
+                                'rea','redempti','ros',
+                                'securi','separat','separati','serva','servit','sex','sexta','sit','sol','soli','solem','stat','statu',
+                                'tempora','tradit','traditi','traditio','tribulatio','trium','tua',
+                                'valle','vas','victi','visitat','visitatio','vita',
+                                'l','nos','ut','perthey',
+                                'wasis','sacramento','citius','perit','persecutus','voce','corruptionm','crevit','prioribus','erexit','participes',
+                                    'churchestical','healthyri','fieldscola','impuretiis',
+                                    'kinshipm','pollues','idolo','findis','tomorrowtino',
                                 )
                     else 'Info', DEBUGGING_THIS_MODULE, f'''        {word} is suspect @ {location}\nfrom {cleanedTextToDisplay=}\n  WHICH GAVE {cleanedTextToCheck=}''' )
             if versionAbbreviation == 'Luth':
@@ -874,7 +881,7 @@ def printSpellCheckSummary( state ) -> None:
             for word,_ref in MISPELLING_VERSION_REF_DICT[versionAbbreviation]:
                 if word.endswith( 'eth' ) or word.endswith( 'est' ):
                     ethSet.add( word )
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  ALL English -eth or -est misspelt words: ({len(ethSet):,}) {sorted(ethSet)}\n" )
+    vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  ALL English -eth or -est misspelt words: ({len(ethSet):,}) {sorted(ethSet)}\n" )
 
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  TOTAL ENGLISH WORDS CHECKED = {TOTAL_ENGLISH_WORDS_CHECKED_COUNT:,} BAD_ENGLISH WORDS {len(BAD_ENGLISH_WORD_LIST):,} {len(BAD_ENGLISH_WORD_LIST)*100/TOTAL_ENGLISH_WORDS_CHECKED_COUNT:.2f}% ({len(BAD_ENGLISH_WORD_SET):,} unique){f': {BAD_ENGLISH_WORD_SET}' if BibleOrgSysGlobals.verbosityLevel>2 else ''}" )
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    TOTAL BAD ENGLISH WORDS = {TOTAL_ENGLISH_MISSPELLING_COUNT:,} WORST ENGLISH WORDS {[(k, BAD_ENGLISH_COUNTS[k]) for k in sorted(BAD_ENGLISH_COUNTS, key=BAD_ENGLISH_COUNTS.get, reverse=True) if k.islower()][:14]}" )

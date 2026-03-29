@@ -13,6 +13,8 @@ div.unusedWord { color:grey; }
 
 a { text-decoration:none; }
 
+/* .btn { text-decoration:none; padding:0.5rem; border:1px solid #333333; } */
+
 /* Navigational lists at top of page */
 p.wrkLst { background-color:#904471; color:#98a9d4; }
 .wrkLst a { text-decoration:none; color:white; }
@@ -28,7 +30,8 @@ p.wrkLst { background-color:#904471; color:#98a9d4; }
 /* Navs are the ones with arrows */
 /* p.cNav { text-align:center; font-size:1.8em; background-color:#98a9d4; } */
 /* p.vNav { text-align:center; font-size:1.8em; } */
-p.pNav { text-align:center; font-size:1.8em; }
+p.pgNav { margin-top:0.6em; text-align:center; font-size:1.8em; }
+p.btnBar { margin-top:0.6em; margin-bottom:0.1em; text-align:center; font-size:0.9em; }
 
 h2.otherGreek {}
 h2.otherHebrew {}
@@ -41,6 +44,48 @@ span.glossPre { color:lightGreen; }
 span.glossHelper { color:grey; }
 span.glossPost { color:brown; }
 
+/* For our verses embedded in word pages */
+p.vRef { margin-bottom:0.2em; }
+p.LVVerseText { margin-top:0.1em; margin-bottom:0.2em; margin-left:3em; font-size:0.7em; }
+p.RVVerseText { margin-top:0.1em; margin-bottom:0.2em; margin-left:3em; font-size:0.7em; }
+span.OET-LV_verseTextChunk {}
+span.OET-RV_verseTextChunk {}
+span.c { font-size:1.1em; color:green; }
+span.cPsa { font-size:1.6em; font-weight:bold; color:green; }
+span.v { vertical-align:super; font-size:0.5em; color:red; }
+.hebVrb { background-color:khaki; }
+.hebNeg { background-color:crimson; }
+.hebEl { background-color:powderBlue; }
+.hebYhwh { background-color:paleGreen; }
+span.addArticle { color:bisque; }
+span.addCopula { color:pink; }
+span.addDirectObject { color:brown; }
+span.addExtra { color:green; }
+span.addElided { color:darkgoldenrod; }
+span.addOwner { color:darkOrchid; }
+span.addPronoun { color:darkgreen; }
+span.addReferent { color:darkblue; }
+span.addPluralised { color:darkcyan; }
+span.addNegated { color:darkred; }
+span.addReword { text-decoration:underline; text-decoration-style: dotted; text-decoration-color:grey; }
+span.RVadd { color:#505050; } /* Darker than dimGrey which is #696969 (black is #000000) */
+span.add { color:grey; }
+span.untr { font-size:0.8em; color:grey; text-decoration:line-through; }
+span.unsure { text-decoration:underline; text-decoration-style: dotted; text-decoration-color: orange; }
+span.noLinkYet { background-color:darkgrey; color:white }
+span.nominaSacra { font-weight:bold; }
+span.synonParr { vertical-align:super; font-size:0.8em; color:green; } /* Hebrew synonymous parallelism */
+span.antiParr { vertical-align:super; font-size:0.8em; color:orangeRed; } /* Hebrew antithetic parallelism */
+span.synthParr { vertical-align:super; font-size:0.8em; color:blue; } /* Hebrew synthetic parallelism */
+.grkNom { background-color:lightgreen; }
+.grkAcc { background-color:orange; }
+.grkGen { background-color:pink; }
+.grkDat { background-color:cyan; }
+.grkVoc { background-color:orchid; }
+.grkVrb { background-color:khaki; }
+.grkNeg { background-color:crimson; }
+span.wj { color:saddlebrown; }
+
 /* For our Strongs pages */
 span.GreekWord {}
 span.StrongsRef {}
@@ -48,11 +93,5 @@ span.StrongsRef {}
 /* NT spans */
 span.nd {}
 span.ndORD { font-size:.75em; text-decoration:overline; text-decoration-style:dashed; text-decoration-color:purple; }
-
-/* OET add spans */
-span.addArticle { color:bisque; }
-span.addExtra { color:green; }
-span.add { color:grey; }
-span.untr { font-size:0.8em; color:grey; text-decoration:line-through; }
 
 span.ul { color:darkGrey; }

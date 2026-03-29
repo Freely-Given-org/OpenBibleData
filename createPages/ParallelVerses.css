@@ -292,7 +292,7 @@ span.xt {}
 .grkVrb { background-color:khaki; }
 .grkNeg { background-color:crimson; }
 
-.noLinkYet { background-color:darkgrey; color:white }
+span.noLinkYet { background-color:darkgrey; color:white }
 
 /* Other GNT classes */
 span.wrkName {}

@@ -1,7 +1,7 @@
 // Adapted from https://ralzohairi.medium.com/adding-custom-keyboard-shortcuts-to-your-website-b4151fda2e7a
 //  and from https://stackoverflow.com/questions/53192433/how-to-detect-swipe-in-javascript
 //
-// Last modified by RJH: 2026-01-17
+// Last modified by RJH: 2026-03-22
 
 var initialX = null;
 var initialY = null;

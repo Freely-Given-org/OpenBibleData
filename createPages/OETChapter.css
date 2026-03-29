@@ -230,6 +230,8 @@ span.synthParr { vertical-align:super; font-size:0.8em; color:blue; } /* Hebrew 
 .grkVrb {} /* { background-color:khaki; } */
 .grkNeg {} /* { background-color:crimson; } */
 
+span.noLinkYet { background-color:darkgrey; color:white }
+
 /* BibleMapper.com Maps */
 div.parallelBMM {}
 h2.mapTitle {}

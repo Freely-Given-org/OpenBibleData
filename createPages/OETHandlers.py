@@ -50,6 +50,7 @@ CHANGELOG:
     2025-09-18 Add insertChar parameter to getOETTidyBBB
     2026-02-10 Upgraded to VLT v3
     2026-03-06 In TEST_MODE, colour unmatched OET-RV words
+    2026-03-20 Handle OET-RV lines beginning with ⇔ (verse halves were swapped in the translation)
 """
 import logging
 import re
@@ -72,10 +73,10 @@ from BibleTransliterations import transliterate_Hebrew, transliterate_Greek
 from settings import State
 
 
-LAST_MODIFIED_DATE = '2026-03-07' # by RJH
+LAST_MODIFIED_DATE = '2026-03-20' # by RJH
 SHORT_PROGRAM_NAME = "OETHandlers"
 PROGRAM_NAME = "OpenBibleData OET handler"
-PROGRAM_VERSION = '0.68'
+PROGRAM_VERSION = '0.70'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -270,7 +271,7 @@ def livenOETWordLinks( level:int, bibleObject:ESFMBible, BBB:str, givenEntryList
                 newWords = []
                 changeMade = inNote = False
                 for n,oWord in enumerate( originalText.replace('—',' —').split() ):
-                    # print( f"     {BBB} {n} original {oWord=} {inNote=}")
+                    # print( f"     livenOETWordLinks {BBB} {n} original {oWord=} {inNote=}")
                     if '\\x*' in oWord and not oWord.startswith('\\x*') and not oWord.endswith('\\x*'):
                         # There's a cross-ref butted up to the left of a word
                         # TODO: For now we'll take the easy way and just skip it
@@ -289,15 +290,16 @@ def livenOETWordLinks( level:int, bibleObject:ESFMBible, BBB:str, givenEntryList
                         # print( f"  {n} {oWord=} {inNote=} in {BBB}")
                         prefix = suffix = ''
                         for _ in range( 5 ):
-                            for potentialPrefix in ('“','‘','(','[', '—', '≈','*','@','#','&','<','>','^','≡','→','?'):
+                            for potentialPrefix in ('“','‘','(','[', '—', '≈','*','@','#','&','<','>','^','≡','→','?','⇔'):
                                 if oWord.startswith( potentialPrefix ): oWord, prefix = oWord[len(potentialPrefix):], f'{prefix}{potentialPrefix}'
                             for potentialSuffix in (',','.','?','!','”','’',':',';',')',']',
                                             '\\add','\\+add','\\add*','\\+add*','\\x','\\x*','\\f','\\f*',
                                             '\\bd*','\\em*','\\+em*','\\it*','\\nd*','\\+nd*','\\wj*','\\+wj*'):
                                 if oWord.endswith( potentialSuffix ): oWord, suffix = oWord[:-len(potentialSuffix)], f'{potentialSuffix}{suffix}'
                         # if prefix or suffix: print( f'    {prefix=} {oWord=} {suffix=}' )
-                        if "'" not in oWord and ',' not in oWord and '-' not in oWord and '/' not in oWord and '(' not in oWord \
-                        and not oWord[0].isdigit():
+                        if oWord \
+                        and "'" not in oWord and ',' not in oWord and '-' not in oWord and '/' not in oWord and '(' not in oWord \
+                        and not oWord[0].isdigit() and oWord not in ('i.e','e.g'):
                             assert oWord.isalpha(), f'{prefix=} {oWord=} {suffix=}'
                         oWord = f'{prefix}<span class="noLinkYet">{oWord}</span>{suffix}'
                         # print( f"        Now {oWord=}")
