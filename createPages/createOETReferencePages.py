@@ -108,7 +108,7 @@ from OETHandlers import getOETTidyBBB, getOETBookName, getHebrewWordpageFilename
 from createSectionPages import findSectionNumber
 
 
-LAST_MODIFIED_DATE = '2026-03-25' # by RJH
+LAST_MODIFIED_DATE = '2026-04-02' # by RJH
 SHORT_PROGRAM_NAME = "createOETReferencePages"
 PROGRAM_NAME = "OpenBibleData createOETReferencePages functions"
 PROGRAM_VERSION = '0.93'
@@ -824,9 +824,9 @@ def createOETReferencePages( level:int, outputFolderPath:Path, state:State ) -> 
     startTime = time()
     create_Hebrew_lemma_pages( level+1, outputFolderPath.joinpath( 'HebLem/' ), state )
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      create_Hebrew_lemma_pages() took {(time()-startTime)/60:.1f} minutes.")
-    del state.OETRefData['OTFormUsageDict'], state.OETRefData['OTLemmaRowNumbersDict'], state.OETRefData['OTWordRowNumbersDict']
-    del state.OETRefData['OTFormOETGlossesDict'], state.OETRefData['OTLemmaOETGlossesDict'], state.OETRefData['OTLemmasForRootDict']
-    del state.OETRefData['OETOTGlossWordDict'], state.OETRefData['OTLemmaGlossDict']
+    # del state.OETRefData['OTFormUsageDict'], state.OETRefData['OTLemmaRowNumbersDict'], state.OETRefData['OTWordRowNumbersDict']
+    # del state.OETRefData['OTFormOETGlossesDict'], state.OETRefData['OTLemmaOETGlossesDict'], state.OETRefData['OTLemmasForRootDict']
+    # del state.OETRefData['OETOTGlossWordDict'], state.OETRefData['OTLemmaGlossDict']
 
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Preprocessing NT word forms for OET…" )
     state.OETRefData['NTFormUsageDict'], state.OETRefData['NTLemmaDict'] = defaultdict(list), defaultdict(list)
@@ -851,9 +851,9 @@ def createOETReferencePages( level:int, outputFolderPath:Path, state:State ) -> 
 
     bibleLexicon = BibleLexicon.BibleLexicon()
     create_Hebrew_Strongs_pages( level+1, outputFolderPath.joinpath( 'HebStrng/' ), bibleLexicon, state )
-    del state.OETRefData['OTStrongsRefs']
+    # del state.OETRefData['OTStrongsRefs']
     create_Greek_Strongs_pages( level+1, outputFolderPath.joinpath( 'GrkStrng/' ), bibleLexicon, state )
-    del state.OETRefData['NTStrongsRefs']
+    # del state.OETRefData['NTStrongsRefs']
 
     create_person_pages( level+1, outputFolderPath.joinpath( 'Per/' ), state )
     create_important_person_pages( level+1, outputFolderPath.joinpath( 'Per/' ), state )
@@ -886,7 +886,7 @@ def createOETReferencePages( level:int, outputFolderPath:Path, state:State ) -> 
         indexHtmlFile.write( indexHtml )
     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
 
-    del state.OETRefData # No longer needed
+    # del state.OETRefData # No longer needed
     return True
 # end of createOETReferencePages.createOETReferencePages
 
@@ -1542,7 +1542,7 @@ def create_Hebrew_word_page( level:int, hh:int, hebrewWord:str, columns_string:s
                                                             else GLOSS_TYPE_STRING_DICT[extraGlossType]
                     extraGlossString = tidy_Hebrew_word_gloss( extraGlossString.replace(',',', ').replace('</','PRoTecT').replace('/', ' / ').replace('PRoTecT', '</') ) # looks much nicer
                     translationFields = f'''{translationFields} {extraGlossTypeString}=‘<b>{extraGlossString[0].upper() if glossCapitalisation=='S' else extraGlossString[0]}{extraGlossString[1:]}</b>’'''
-            translationFields = translationFields
+            # translationFields = translationFields ???
         else:
             translationFields = '<small>Oops, <a href="https://GitHub.com/Clear-Bible/macula-hebrew/issues/121">no gloss available</a>!</small>'
             logging.error( f"create_Hebrew_word_page: {ref} {rowType} No gloss available for '{word}'" )
@@ -2389,7 +2389,6 @@ def create_Greek_word_pages( level:int, outputFolderPath:Path, state:State ) -> 
         if not columns_string: continue # a blank line (esp. at end)
         # print( f"Word {n}: {columns_string}" )
 
-        # dPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Got '{columns_string}' for '{output_filename}'" )
         usedRoleLetters, usedMorphologies = set(), set()
 
         ref, greekWord, SRLemma, GrkLemma, VLTGlossWordsStr, OETGlossWordsStr, glossCaps, probability, extendedStrongs, roleLetter, morphology, tagsStr = columns_string.split( '\t' )
@@ -2405,6 +2404,7 @@ def create_Greek_word_pages( level:int, outputFolderPath:Path, state:State ) -> 
         tidyBbbb = getOETTidyBBB( BBB, titleCase=True, allowFourChars=True )
 
         output_filename = getGreekWordpageFilename( gg, state )
+        # dPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Got '{columns_string}' for '{output_filename}'" )
         if DEBUGGING_THIS_MODULE or BibleOrgSysGlobals.debugFlag: # NOTE: this makes the function quite a bit slower
             # Check that we're not creating any duplicate filenames (that will then be overwritten)
             assert output_filename not in used_word_filenames, f"Greek {gg} {output_filename}"
@@ -2441,7 +2441,7 @@ def create_Greek_word_pages( level:int, outputFolderPath:Path, state:State ) -> 
 
         nominaSacraField = 'Marked with <b>Nomina Sacra</b>' if 'N' in glossCaps else ''
 
-        probabilityField = f'<small>(P={probability}%)</small> ' if probability else ''
+        # probabilityField = f'<small>(P={probability}%)</small> ' if probability else ''
 
         # morphologyField =
         tidyRoleMorphology = tidyMorphology = moodField = tenseField = voiceField = personField = caseField = genderField = numberField = ''
@@ -2525,8 +2525,8 @@ def create_Greek_word_pages( level:int, outputFolderPath:Path, state:State ) -> 
 <p class="pgNav">{prevLink}{f'<b>{greekWord}</b>' if greekWord else '<small>(blank)</small>'} <a title="Go to Greek word index" href="index.htm">↑</a>{nextLink}{oetLink}{parallelLink}{interlinearLink}</p>
 <p class="btnBar"><button type="button" id="wordsButton" title="Hide/Show word lines" onclick="hide_show_words()">Hide words</button> <button type="button" id="versesButton" title="Hide/Show verse lines" onclick="hide_show_verses()">Hide verses</button> <button type="button" id="coloursButton" title="Hide/Show verse colours" onclick="hide_show_colours()">Hide verse colours</button></p>
 <p class="link"><a title="Go to Statistical Restoration Greek page" href="https://GreekCNTR.org/collation/?v={CNTR_BOOK_ID_MAP[BBB]}{C.zfill(3)}{V.zfill(3)}">SR GNT {tidyBbbb} {C}:{V}</a>
- {probabilityField if state.TEST_MODE_FLAG else ''}{f'<b>{greekWord}</b>' if greekWord else '<small>(blank)</small>'} ({transliterate_Greek(greekWord)}) {translation}{capsField if state.TEST_MODE_FLAG else ''}
- Strongs={f'<a title="Goes to Strongs dictionary" href="{'../'*level}ref/GrkStrng/G{strongs}.htm#To">{extendedStrongs}</a>' if extendedStrongs else '<small>(none)</small>'} Lemma=<b>{lemmaLink}</b>
+ {f'<b>{greekWord}</b>' if greekWord else '<small>(blank)</small>'} ({transliterate_Greek(greekWord)}) {translation}{capsField if state.TEST_MODE_FLAG else ''}
+ Strongs={f'<a title="Goes to Strongs dictionary" href="{'../'*level}ref/GrkStrng/G{strongs}.htm#Top">{extendedStrongs}</a>' if extendedStrongs else '<small>(none)</small>'} Lemma=<b>{lemmaLink}</b>
 <br> {roleField}{moodField}{tenseField}{voiceField}{personField}{caseField}{genderField}{numberField}{f'{NEWLINE}<br>  {semanticExtras}' if semanticExtras else ''}</p>
 <p class="note"><small>Note: With the help of a companion website, these word pages enable you to click through all the way back to photographs of the original manuscripts that the <em>Open English Translation</em> New Testament is translated from.
 If you go to the <em>Statistical Restoration</em> Greek page (by clicking on the SR Bible reference above), from there you can click on the original manuscript numbers (e.g., 𝔓1, 01, 02, etc.) in the <i>Witness</i> column there, to see their transcription of the original Greek page.

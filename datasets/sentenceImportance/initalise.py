@@ -56,7 +56,7 @@ from load import getIndividualQuotedOTRefs, getIndividualQuotingNTRefs
 
 
 
-LAST_MODIFIED_DATE = '2026-03-29' # by RJH
+LAST_MODIFIED_DATE = '2026-04-02' # by RJH
 SHORT_PROGRAM_NAME = "SentenceImportance_initialisation"
 PROGRAM_NAME = "Sentence Importance initialisation"
 PROGRAM_VERSION = '0.25'
@@ -171,6 +171,7 @@ unclearClarityRefs = [ # Mostly sure what's in the Hebrew or Greek,
         # but not sure what it means, or what the cultural implications were
     'GEN_6:4',
     'EXO_15:25b',
+    'LEV_19:16','LEV_19:20',
     'DEU_33:2b','DEU_33:3','DEU_33:6b','DEU_33:8a','DEU_33:12b','DEU_33:15','DEU_33:16',
     'JDG_5:13', 'JDG_13:19b', 'JDG_14:11', 'JDG_15:8a', 'JDG_17:3b',
     'SA1_2:23', 'SA1_17:6b', 'SA1_17:29b',

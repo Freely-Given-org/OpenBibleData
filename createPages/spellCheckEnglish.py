@@ -767,7 +767,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                         'yt','sounde','blinde','broughtst','handmayd','aud','Candlesticke','prophecie',
                                         'subarbis','bitakun','lepre','breede','hilid','armeris',
                                         'warpe','woofe','baken','goate','Uaile','kil','wist','kinde','defenced','foules','finnes','Owle','looke','nakednes','sheafe','willowes','Edoma','swines','miter','bewaile','creepe',
-                                        'iubilee','cleene','ayenbouyt','trespas','ayenbie','dow','foundement','quyk','comelyngis','comeling','biere','buk','schuldur','lowere','vyndage','wexith','prijs','membris',
+                                        'iubilee','cleene','ayenbouyt','trespas','ayenbie','dow','quyk','comelyngis','comeling','biere','buk','schuldur','lowere','vyndage','wexith','prijs','membris',
 
                                    ) and 'PSA' not in location ) # coz Wycl versification doesn't usually match anyway
                             or 'twas' in word )
@@ -778,12 +778,11 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                 vPrint( 'Normal' if word.upper()==word
                        or word in (
                                 'aß','sie','hin','heb','wir','dem','des','für','ich','alle','las','lag','ones)r','ones)s','ones)n','one)s','bis',
-                                'hing','one)r','one)n','weh','du','ach','Raube','Raub','Tal','tue','fiel','sehe','mal','mit',
+                                'hing','one)r','one)n','weh','du','ach','Raube','Raub','Tal','tue','fiel','sehe','mal','mit','Mord',
                                 'ende','rede','kam','Korb','ward','alt','dran','Rede','nur','messen','ging','und','ster','tun',
-                                'hüte','examinet','brokeen',
-                                'thirdmal','goißen','groupn','orderede','inheritancen','raiseden','gratitudesagung',
-                                    'wilde','revengeschwert','smelln','scattern','residedt','uncircumcisedes','evenwohl','sixtyste',
-                                    'dignityrung',
+                                'abovewunden','voicen','orderede','raiseden','completede','abovehand','goatl','thirteenten','attentione',
+                                'wellgefällt','bunte','toagte',
+                                    'waterflut','festivalss','throughdringen','tochreiet',
 
                                 'actio','ambitio','anima','antiqui','attende','audi',
                                 'beati','bene','beneficia','bos',
@@ -791,7 +790,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                     'confessio','congregati','congregatio','consecrat','consolati','contra','conversa',
                                     'cor','correcti','creat','credi','cruci','cum',
                                 'dat','dedi','dem','designat','digni','discretio','distincti','distinctio','divisi','dom','domina',
-                                'ecclesia','ei','expiat','extensio',
+                                'ecclesia','ecclesias','ei','expiat','extensio',
                                 'Finis','finis',
                                 'hellor','hoc','humili',
                                 'ibi','illum','illuminat','ima','infirmi','insinuat',
@@ -809,9 +808,10 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                 'tempora','tradit','traditi','traditio','tribulatio','trium','tua',
                                 'valle','vas','victi','visitat','visitatio','vita',
                                 'l','nos','ut','perthey',
-                                'wasis','sacramento','citius','perit','persecutus','voce','corruptionm','crevit','prioribus','erexit','participes',
-                                    'churchestical','healthyri','fieldscola','impuretiis',
-                                    'kinshipm','pollues','idolo','findis','tomorrowtino',
+                                'alicuyus','ephi','consolatio',
+                                'janitores','temporaliter','conditione','spinis','fullnessm',
+                                    'didrachmas','obolos',
+                                    'ownm','burnque','si','imitationem','contemplantur',
                                 )
                     else 'Info', DEBUGGING_THIS_MODULE, f'''        {word} is suspect @ {location}\nfrom {cleanedTextToDisplay=}\n  WHICH GAVE {cleanedTextToCheck=}''' )
             if versionAbbreviation == 'Luth':

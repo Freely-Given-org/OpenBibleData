@@ -69,6 +69,7 @@ CHANGELOG:
     2025-11-04 Fix multiprocessing prelude for Python3.14
     2025-11-16 Don't include un-asked-for OET-RV books (was including all loaded books like for other versions, i.e., all books)
     2026-01-07 Added OET Logo
+    2026-04-01 Added JSON word files in app/
 """
 from gettext import gettext as _
 from pathlib import Path
@@ -98,12 +99,13 @@ from createParallelVersePages import createParallelVersePages
 from createTopicPages import createTopicPages, createKingdomPages
 from createOETInterlinearPages import createOETInterlinearPages
 from createOETReferencePages import createOETReferencePages
+from createAppJsonFiles import createAppJsonFiles
 from Dict import createTyndaleDictPages, createUBSDictionaryPages
 from html import makeTop, makeViewNavListParagraph, makeBottom, checkHtml
 from spellCheckEnglish import printSpellCheckSummary
 
 
-LAST_MODIFIED_DATE = '2026-03-28' # by RJH
+LAST_MODIFIED_DATE = '2026-04-01' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData (OBD) Create Site Pages"
 PROGRAM_VERSION = '0.99'
@@ -321,6 +323,7 @@ def _createSitePages() -> bool:
         createUBSDictionaryPages( 1, state.TEMP_BUILD_FOLDER.joinpath('UBS/'), state )
         createTyndaleDictPages( 1, state.TEMP_BUILD_FOLDER.joinpath('dct/'), state )
         createOETReferencePages( 1, state.TEMP_BUILD_FOLDER.joinpath('ref/'), state )
+        createAppJsonFiles( 1, state.TEMP_BUILD_FOLDER.joinpath('app/'), state )
     else:
         # Don't rebuild these reference pages -- we'll reuse the existing folders full of pages
         vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\nNOT GENERATING new {'TEST ' if state.TEST_MODE_FLAG else ''}reference pages (OET word pages, UBS dict, Tyndale Dict)." )
@@ -432,6 +435,8 @@ def _cleanHTMLFolders( folder:Path, state:State ) -> bool:
     if folder == state.TEMP_BUILD_FOLDER \
     or not state.REUSE_EXISTING_WORD_PAGES_FLAG: # Leave the existing folders there if we're not rebuilding these reference pages
         try: shutil.rmtree( folder.joinpath( 'ref/' ) )
+        except FileNotFoundError: pass
+        try: shutil.rmtree( folder.joinpath( 'app/' ) )
         except FileNotFoundError: pass
         try: shutil.rmtree( folder.joinpath( 'UBS/' ) )
         except FileNotFoundError: pass

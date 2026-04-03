@@ -310,6 +310,9 @@ p.intro-title { text-align:center; font-size:1.8em; }
 p.intro-sidebar-h1 { font-weight:bold; }
 p.intro-h1 { font-weight:bold; }
 
+/* SIL Open translation notes */
+div.parallelSOTN {}
+
 /* Tyndale book intros */
 div.parallelTBI {}
 p.intro-body-fl {}
