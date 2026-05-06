@@ -91,7 +91,7 @@ import logging
 # sys.path.append( '../../BibleOrgSys/' )
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, dPrint, vPrint, rreplace
-from BibleOrgSys.Internals.InternalBibleInternals import getLeadingInt
+from bible_organisational_system import getSmallLeadingInt
 from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_NT27
 
 from settings import State
@@ -99,7 +99,7 @@ from html import checkHtml
 from OETHandlers import getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2026-03-25' # by RJH
+LAST_MODIFIED_DATE = '2026-05-05' # by RJH
 SHORT_PROGRAM_NAME = "usfm"
 PROGRAM_NAME = "OpenBibleData USFM to HTML functions"
 PROGRAM_VERSION = '0.96'
@@ -194,9 +194,10 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
         # rest = entry.getText() if basicOnly and 'OET' not in versionAbbreviation else entry.getFullText() # getText() has notes removed but doesn't work with wordlink numbers in OET
         # The following line means we get all footnotes, etc.
         rest = entry.getFullText() # getText() has notes removed but doesn't work with wordlink numbers in OET
-        if rest: # Special handling for some versions
+        if rest:
             assert '\\nd \\nd ' not in rest, f"Unexpected doubled nd’s in verse text {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {marker=} {rest=}"
             assert '\\nd*\\nd*' not in rest, f"Unexpected closing nd’s in verse text {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {marker=} {rest=}"
+            # Special handling for some versions
             if 'OET' in versionAbbreviation:
                 rest = rest.replace( "'", "’" ) # Replace apostrophes
             elif versionAbbreviation in ('ULT','UST'):
@@ -280,8 +281,9 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                             + f'''{f"""{cID}<span class="{'cPsa' if BBB=='PSA' else 'c'}"{idField}>{cLink}{NARROW_NON_BREAK_SPACE}</span>"""
                                    if V=='1' else f"""<span class="v"{idField}>{vLink}{NARROW_NON_BREAK_SPACE}</span>"""}'''
                 # html = f'{html} <span class="v" id="C{refTuple[1]}V{V}">{V}{NARROW_NON_BREAK_SPACE}</span>'
-        elif marker in ('¬v', ): # We can ignore these end markers
-            assert not rest
+        elif marker == '¬v': # We can ignore these end markers
+            # Sections can cross chapters
+            assert not rest or rest==V or segmentType=='section', f"Why does {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} '¬v' have {rest=} from {markerList=}"
         elif marker in ('p', 'q1','q2','q3','q4', 'm','mi', 'nb',
                             'pi1','pi2', 'pc','pm','pmc','pmo','po','pr', 'qm1','qm2', 'qr', 'cls'):
             assert not rest, f"Unexpected rest {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {marker}={rest}"
@@ -396,7 +398,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                                 #     print( f"{nextV=}")
                                 #     halt
                             else:
-                                nextV = '1' if V is None else getLeadingInt(V)+1 # Why  do we add 1 ???
+                                nextV = '1' if V is None else getSmallLeadingInt(V)+1 # Why  do we add 1 ???
                             if ( segmentType == 'section' # Don't want a link to ourself
                             or '\\f' in rest ): # Would otherwise end up with an anchor embedded inside an anchor at Jhn 7:53 (unless we write more code)
                                 html = f'''{html}<div class="section"><div class="rightS1Box"><p class="{marker}"><span class="s1cv">{C}:{nextV}</span> {convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state )}</p>\n'''
@@ -634,6 +636,9 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                     assert BBB == 'SNG'
                     if inSPdiv:
                         html = f'{html}</div><!--SP_{inSPdiv}-->\n'
+                    print( f"sp {rest=} from {markerList=}")
+                    for eeee, entry in enumerate( markerList ):
+                        print( f"  {eeee} {entry=}" )
                     spClass = spClassDict[rest]
                     # except KeyError:
                     #     logging.critical( f"No SP (speaker) dict entry for {rest=} {versionAbbreviation} {refTuple} {segmentType}" )
@@ -1038,6 +1043,8 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
         if versionAbbreviation == 'OET-LV': # then we don't want equals or underlines in the footnote to get converted into spans later
             fnoteMiddle = fnoteMiddle.replace('.', '--fnPERIOD--').replace(':', '--fnCOLON--') # So we protect them -- gets fixed in do_OET_LV_HTMLcustomisations() in html.py
         assert '<br>' not in fnoteMiddle, f"{versionAbbreviation} {segmentType} {refTuple} {fnoteMiddle=}"
+
+        # Can't allow HTML formatting into the footnote popup (title) text
         sanitisedFnoteMiddle = fnoteMiddle
         if versionAbbreviation == 'OET-LV':
             if ' note--fnCOLON--' not in sanitisedFnoteMiddle and 'Note--fnCOLON--' not in sanitisedFnoteMiddle:
@@ -1067,6 +1074,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                 and '_' not in sanitisedFnoteMiddle and '=' not in sanitisedFnoteMiddle
         assert '"' not in sanitisedFnoteMiddle and '<' not in sanitisedFnoteMiddle and '>' not in sanitisedFnoteMiddle, f"Left-over HTML chars in {versionAbbreviation} {refTuple} {sanitisedFnoteMiddle=}"
         footnotePopup = sanitisedFnoteMiddle if len(sanitisedFnoteMiddle) < 1010 else f'{sanitisedFnoteMiddle[:999]}…'
+
         fnoteCaller = f'<span class="fnCaller">[<a title="{unicodedata.normalize('NFC',footnotePopup)}" href="#fn{footnotesCount}">fn</a>]</span>'
         fnoteRef = ''
         if frText:
@@ -1125,7 +1133,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
     for _safetyCount1 in range( 999 if segmentType=='book' else 99 ):
         xStartIx = html.find( '\\x ', searchStartIx )
         if xStartIx == -1: break # all done
-        # if versionAbbreviation=='KJB-1611': print( f"{versionAbbreviation} {refTuple} {segmentType=} got {xStartIx=}" )
+        if versionAbbreviation=='KJB-1611': print( f"{versionAbbreviation} {refTuple} {segmentType=} got {xStartIx=}" )
         crossReferencesCount += 1
         xoIx = html.find( '\\xo ', xStartIx+3 ) # Might be absent
         xtIx = html.find( '\\xt ', xStartIx+3 )
@@ -1140,9 +1148,9 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
 
         # Liven the cross-references (xrefs) themselves
         xrefLiveMiddle = xrefOriginalMiddle = html[xtIx+4:xEndIx]
-        # if versionAbbreviation=='KJB-1611': print( f"{versionAbbreviation} {refTuple} {segmentType=} got {xrefOriginalMiddle}" )
+        if versionAbbreviation=='KJB-1611': print( f"{versionAbbreviation} {refTuple} {segmentType=} got {xrefOriginalMiddle}" )
         xrefOriginalMiddle = xrefOriginalMiddle.replace('\\xo ','').replace('\\xt ','') # Fix things like "Gen 25:9-10; \\xo b \\xt Gen 35:29."
-        # print( f" {xrefLiveMiddle=}")
+        dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f" {xrefLiveMiddle=}" )
         assert xrefLiveMiddle.count('\\xo ') == xrefLiveMiddle.count('\\xo '), f"{xrefLiveMiddle=}"
         xrefLiveMiddle = xrefLiveMiddle.replace('\\xo ','<b>').replace('\\xt ','</b>') # Fix things like "Gen 25:9-10; \\xo b \\xt Gen 35:29."
         xrefLiveMiddle = livenXRefField( 'x', versionAbbreviation, refTuple, segmentType, pathPrefix, xoText, xrefLiveMiddle, state )
@@ -1168,7 +1176,11 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
         crossReferencesHtml = f'{crossReferencesHtml}{xrefText}'
         html = f'{html[:xStartIx]}{xrefCaller}{html[xEndIx+3:]}'
         searchStartIx = xEndIx + 3
-    else: outer_xr_loop_needed_to_break
+    else:
+        dPrint( 'Info', DEBUGGING_THIS_MODULE, f"Processing xref {_safetyCount1} loop break {versionAbbreviation} {refTuple} {segmentType=} {xoText=} {xrefOriginalMiddle=}" )
+        dPrint( 'Info', DEBUGGING_THIS_MODULE, f"{markerList=}" )
+        dPrint( 'Info', DEBUGGING_THIS_MODULE,  f"{html[xStartIx:]=}" )
+        # outer_xr_loop_needed_to_break
     if crossReferencesHtml:
         if not checkHtml( f"Cross-references for {versionAbbreviation} {segmentType} {basicOnly=} {refTuple}", crossReferencesHtml, segmentOnly=True ):
             if DEBUGGING_THIS_MODULE: halt
@@ -1235,6 +1247,8 @@ def convertUSFMCharacterFormatting( versionAbbreviation:str, refTuple:tuple, seg
     from createSectionPages import findSectionNumber
     fnPrint( DEBUGGING_THIS_MODULE, f"convertUSFMCharacterFormatting( {versionAbbreviation}, {refTuple}, {segmentType}, {usfmField}, {basicOnly=} )" )
     dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"convertUSFMCharacterFormatting( {versionAbbreviation}, {refTuple}, {segmentType}, {usfmField}, {basicOnly=} )" )
+    if '\\add <<' not in usfmField and '\\add ?<<' not in usfmField:
+        assert '<<' not in usfmField, f"{versionAbbreviation} {refTuple} {segmentType} {basicOnly=} {usfmField=}"
     for charMarker in BibleOrgSysGlobals.USFMAllExpandedCharacterMarkers + ['untr','fig']:
         openCount, closeCount = usfmField.count( f'\\{charMarker} ' ), usfmField.count( f'\\{charMarker}*' )
         if openCount != closeCount:
@@ -1300,17 +1314,17 @@ def convertUSFMCharacterFormatting( versionAbbreviation:str, refTuple:tuple, seg
                         # try: # Now find which section that reference starts in
                             # print( f"{state.sectionsLists[versionAbbreviation][ourBBB]=}" )
                             n = findSectionNumber( versionAbbreviation, ourBBB, refC, refV, state )
-                            # intV = getLeadingInt( refV )
+                            # intV = getSmallLeadingInt( refV )
                             # found = False
                             # for n, (startC,startV,endC,endV,sectionName,reasonName,contextList,verseEntryList,sFilename) in enumerate( state.sectionsLists[versionAbbreviation][ourBBB] ):
                             #     if startC==refC and endC==refC:
-                            #         if getLeadingInt(startV) <= intV <= getLeadingInt(endV): # It's in this single chapter
+                            #         if getSmallLeadingInt(startV) <= intV <= getSmallLeadingInt(endV): # It's in this single chapter
                             #             found = True
                             #             break
-                            #     elif startC==refC and intV>=getLeadingInt(startV): # It's in the first chapter
+                            #     elif startC==refC and intV>=getSmallLeadingInt(startV): # It's in the first chapter
                             #         found = True
                             #         break
-                            #     elif endC==refC and intV<=getLeadingInt(endV): # It's in the second chapter
+                            #     elif endC==refC and intV<=getSmallLeadingInt(endV): # It's in the second chapter
                             #         found = True
                             #         break
                             # if found:
@@ -1472,17 +1486,17 @@ def livenIntroductionLinks( versionAbbreviation:str, refTuple:tuple, segmentType
             # try: # Now find which section that reference starts in
                 # print( f"{state.sectionsLists[versionAbbreviation][refBBB]=}" )
                 n = findSectionNumber( versionAbbreviation, refBBB, refC, refV, state )
-                # intV = getLeadingInt(refV)
+                # intV = getSmallLeadingInt(refV)
                 # found = False
                 # for n, (startC,startV,endC,endV,sectionName,reasonName,contextList,verseEntryList,sFilename) in enumerate( state.sectionsLists[versionAbbreviation][refBBB] ):
                 #     if startC==refC and endC==refC:
-                #         if getLeadingInt(startV) <= intV <= getLeadingInt(endV): # It's in this single chapter
+                #         if getSmallLeadingInt(startV) <= intV <= getSmallLeadingInt(endV): # It's in this single chapter
                 #             found = True
                 #             break
-                #     elif startC==refC and intV>=getLeadingInt(startV): # It's in the first chapter
+                #     elif startC==refC and intV>=getSmallLeadingInt(startV): # It's in the first chapter
                 #         found = True
                 #         break
-                #     elif endC==refC and intV<=getLeadingInt(endV): # It's in the second chapter
+                #     elif endC==refC and intV<=getSmallLeadingInt(endV): # It's in the second chapter
                 #         found = True
                 #         break
                 # if found:
@@ -1531,17 +1545,17 @@ def livenIntroductionLinks( versionAbbreviation:str, refTuple:tuple, segmentType
             if 1:
             # try: # Now find which section that reference starts in
                 n = findSectionNumber( versionAbbreviation, ourBBB, refC, refV, state )
-                # intV = getLeadingInt(refV)
+                # intV = getSmallLeadingInt(refV)
                 # found = False
                 # for n, (startC,startV,endC,endV,sectionName,reasonName,contextList,verseEntryList,sFilename) in enumerate( state.sectionsLists[versionAbbreviation][ourBBB] ):
                 #     if startC==refC and endC==refC:
-                #         if getLeadingInt(startV) <= intV <= getLeadingInt(endV): # It's in this single chapter
+                #         if getSmallLeadingInt(startV) <= intV <= getSmallLeadingInt(endV): # It's in this single chapter
                 #             found = True
                 #             break
-                #     elif startC==refC and intV>=getLeadingInt(startV): # It's in the first chapter
+                #     elif startC==refC and intV>=getSmallLeadingInt(startV): # It's in the first chapter
                 #         found = True
                 #         break
-                #     elif endC==refC and intV<=getLeadingInt(endV): # It's in the second chapter
+                #     elif endC==refC and intV<=getSmallLeadingInt(endV): # It's in the second chapter
                 #         found = True
                 #         break
                 # if found:
@@ -1608,18 +1622,18 @@ def livenIORs( versionAbbreviation:str, refTuple:tuple, segmentType:str, ioLineH
             if 1:
             # try: # Now find which section that IOR starts in
                 n = findSectionNumber( versionAbbreviation, ourBBB, Cstr, Vstr, state )
-                # intV = getLeadingInt(Vstr)
+                # intV = getSmallLeadingInt(Vstr)
                 # found = False
                 # for n, (startC,startV,endC,endV,sectionName,reasonName,contextList,verseEntryList,sFilename) in enumerate( state.sectionsLists[versionAbbreviation][ourBBB] ):
                 #     if startC==Cstr and endC==Cstr:
-                #         # print( f"Single chapter {startC}=={Cstr}=={endC} {getLeadingInt(startV)=} {intV=} {getLeadingInt(endV)=}")
-                #         if getLeadingInt(startV) <= intV <= getLeadingInt(endV): # It's in this single chapter
+                #         # print( f"Single chapter {startC}=={Cstr}=={endC} {getSmallLeadingInt(startV)=} {intV=} {getSmallLeadingInt(endV)=}")
+                #         if getSmallLeadingInt(startV) <= intV <= getSmallLeadingInt(endV): # It's in this single chapter
                 #             found = True
                 #             break
-                #     elif startC==Cstr and intV>=getLeadingInt(startV): # It's in the first chapter
+                #     elif startC==Cstr and intV>=getSmallLeadingInt(startV): # It's in the first chapter
                 #         found = True
                 #         break
-                #     elif endC==Cstr and intV<=getLeadingInt(endV): # It's in the second chapter
+                #     elif endC==Cstr and intV<=getSmallLeadingInt(endV): # It's in the second chapter
                 #         found = True
                 #         break
                 # if found:
@@ -1882,7 +1896,7 @@ def livenXRefField( fieldType:str, versionAbbreviation:str, refTuple:tuple, segm
             #         logging.critical( f"Unable to liven cross-reference from {versionAbbreviation} {refTuple} for {xBBB=} {xC=} {xV=} from {xB=} from {xrefOriginalMiddle=}" )
             # # if versionAbbreviation=='KJB-1611' and not xBBB: # still
             # #     print( f"  {versionAbbreviation} {xBBB=} {xC=} {xV=} from {xB=} from {xrefOriginalMiddle=}" )
-        assert xBBB and xBBB not in ('SAM','CHR',), f"livenXRefField {fieldType} {versionAbbreviation} {refTuple} {xoText=} {xBBB=} from {xB=} from {xrefOriginalMiddle=}"
+        assert xBBB and xBBB not in ('SAM','CHR'), f"livenXRefField {fieldType} {versionAbbreviation} {refTuple} {xoText=} {xBBB=} from {xB=} from {xrefOriginalMiddle=}"
         if versionAbbreviation == 'KJB-1611':
             if xB in ('As','in','and'):
                 xBBB = lastXBBB

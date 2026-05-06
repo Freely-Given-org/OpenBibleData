@@ -41,7 +41,7 @@ import logging
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 import BibleOrgSys.Formats.ESFMBible as ESFMBible
-from BibleOrgSys.Internals.InternalBibleInternals import InternalBibleEntryList, getLeadingInt
+from bible_organisational_system import InternalBibleEntryList, getSmallLeadingInt
 
 from settings import State, reorderBooksForOETVersions
 from usfm import convertUSFMMarkerListToHtml
@@ -675,8 +675,8 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
                     elif ':' in srStartV and ':' not in srEndV:
                         srStartC, srStartV = srStartV.split( ':' )
                         assert srStartC.isdigit() or srStartC == '-1'
-                        srStartV = str( getLeadingInt( srStartV ) )
-                        srEndC, srEndV = srStartC, str( getLeadingInt( srEndV ) )
+                        srStartV = str( getSmallLeadingInt( srStartV ) )
+                        srEndC, srEndV = srStartC, str( getSmallLeadingInt( srEndV ) )
                         assert srStartV.isdigit() and srEndV.isdigit()
                         try:
                             verseEntryList, contextList = thisBible.getContextVerseDataRange( (srBBB,srStartC,srStartV), (srBBB,srEndC,srEndV), strict=False )
@@ -687,9 +687,9 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
                         logging.critical( f"Expected en-dash (not hyphen) in {BBB} {startC}:{startV} section cross-reference {srBBB} {srCVpart}" )
                         halt
                         srStartC, srStartV = srStartV.split( ':' )
-                        srStartV = str( getLeadingInt( srStartV ) )
+                        srStartV = str( getSmallLeadingInt( srStartV ) )
                         srEndC, srEndV = srEndV.split( ':' )
-                        srEndV = str( getLeadingInt( srEndV ) )
+                        srEndV = str( getSmallLeadingInt( srEndV ) )
                         assert srStartC.isdigit() and srStartV.isdigit() and srEndC.isdigit() and srEndV.isdigit()
                         verseEntryList, contextList = thisBible.getContextVerseDataRange( (srBBB,srStartC,srStartV), (srBBB,srEndC,srEndV), strict=False )
                     else: noColon1b
@@ -706,7 +706,7 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
                     if ':' in srCVpart:
                         srStartC, srVpart = srCVpart.split( ':' )
                         assert srStartC.isdigit()
-                        srStartV = str( getLeadingInt(srVpart) )
+                        srStartV = str( getSmallLeadingInt(srVpart) )
                         srEndC, srEndV = srStartC, srStartV
                         verseEntryList, contextList = thisBible.getContextVerseData( (srBBB,srStartC) if srStartC=='-1' else (srBBB,srStartC,srStartV) )
                     else: # no colon -- must be a whole chapter

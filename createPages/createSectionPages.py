@@ -55,6 +55,7 @@ CHANGELOG:
     2025-10-06 Add chappter bars to section index pages for books
     2025-11-17 Add OET-RV s2 headings to additional section headings list
     2026-01-07 Added OET Logo
+    2026-04-22 Section indexes are now made BEFORE pickling
 """
 from gettext import gettext as _
 from pathlib import Path
@@ -65,7 +66,7 @@ from collections import defaultdict
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_66
-from BibleOrgSys.Internals.InternalBibleInternals import InternalBibleEntryList, getLeadingInt
+from bible_organisational_system import InternalBibleEntryList, getSmallLeadingInt
 from BibleOrgSys.Formats.ESFMBible import ESFMBible as ESFMBible
 
 from settings import State
@@ -76,10 +77,10 @@ from Bibles import getBibleMapperMaps
 from OETHandlers import livenOETWordLinks, livenOETCompatibleWordLinks, getOETTidyBBB, getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2026-02-23' # by RJH
+LAST_MODIFIED_DATE = '2026-05-05' # by RJH
 SHORT_PROGRAM_NAME = "createSectionPages"
 PROGRAM_NAME = "OpenBibleData createSectionPages functions"
-PROGRAM_VERSION = '0.79'
+PROGRAM_VERSION = '0.80'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -87,17 +88,33 @@ DEBUGGING_THIS_MODULE = False
 NEWLINE = '\n'
 
 SECTION_REASON_NAME_DICT = { 'Headers':'Headers', 'is1':'Introduction section heading',
+                            'iex':'Chapter introduction','c/iex':'Chapter introduction',
                          'c':'Start of chapter', 's1':'Section heading', 'c/s1':'Section heading',
-                         'ms1':'Main section', 'ms1/c':'Main section', 'ms1/s1':'Main section with section heading', 'ms1/c/s1':'Main section with section heading' }
+                         'ms1':'Main section', 'c/ms1':'Main section', 'ms1/s1':'Main section with section heading', 'ms1/c/s1':'Main section with section heading' }
 
 
 def createOETSectionLists( rvBible:ESFMBible, state:State ) -> bool:
     """
     Make our list of section headings
        The BibleOrgSys section index already contains a list of sections
-    """
-    rvBible.makeSectionIndex() # These aren't made automatically
 
+    Here is the expected section index data for the two chapter book OET-RV Haggai:
+        0 startCV=('-1', '0') sectionIndexEntry=(inclusive) endCV=-1:12 ix=0–12 (cnt=13) Headers='HAG'
+        1 startCV=('-1', '13') sectionIndexEntry=(inclusive) endCV=-1:22 ix=13–22 (cnt=10) is1='Introduction'
+        2 startCV=('1', '1') sectionIndexEntry=(inclusive) endCV=1:11 ix=24–69 (cnt=46) s1='God's command to rebuild the temple'
+        3 startCV=('1', '12') sectionIndexEntry=(inclusive) endCV=1:15 ix=70–87 (cnt=18) s1='The people start rebuilding'
+        4 startCV=('2', '1') sectionIndexEntry=(inclusive) endCV=2:9 ix=88–119 (cnt=32) s1='The splendour of the new temple'
+        5 startCV=('2', '10') sectionIndexEntry=(inclusive) endCV=2:19 ix=120–164 (cnt=45) s1='Haggai consults the priests'
+        6 startCV=('2', '20') sectionIndexEntry=(inclusive) endCV=2:23 ix=165–182 (cnt=18) s1='God's promise to Zerubavel'
+    With Rust BOS internals:
+        0 startCV=('-1', '0') sectionIndexEntry=(inclusive) endCV=-1:12 ix=0–12 (cnt=13) Headers='HAG'
+        1 startCV=('-1', '13') sectionIndexEntry=(inclusive) endCV=-1:22 ix=13–22 (cnt=10) is1='Introduction'
+        2 startCV=('1', '1') sectionIndexEntry=(inclusive) endCV=1:11 ix=23–69 (cnt=47) s1='God's command to rebuild the temple'
+        3 startCV=('1', '12') sectionIndexEntry=(inclusive) endCV=2:0 ix=70–87 (cnt=18) s1='The people start rebuilding'
+        4 startCV=('2', '1') sectionIndexEntry=(inclusive) endCV=2:9 ix=88–119 (cnt=32) s1='The splendour of the new temple'
+        5 startCV=('2', '10') sectionIndexEntry=(inclusive) endCV=2:19 ix=120–164 (cnt=45) s1='Haggai consults the priests'
+        6 startCV=('2', '20') sectionIndexEntry=(inclusive) endCV=2:23 ix=165–182 (cnt=18) s1='God's promise to Zerubavel'
+    """
     state.sectionsLists = {}
     state.sectionsLists['OET-RV'] = {}
     for BBB in state.BBBsToProcess['OET']:
@@ -112,32 +129,53 @@ def createOETSectionLists( rvBible:ESFMBible, state:State ) -> bool:
             if marker == 'c': C, V = rest, '0'
             elif marker == 'v': V = rest
             elif marker == 's2':
-                plusOneV = str( getLeadingInt(V) + 1 ) # Also handles verse ranges
+                plusOneV = str( getSmallLeadingInt(V) + 1 ) # Also handles verse ranges
                 additionalSectionHeadingsDict[(C,plusOneV)].append( (marker,rest) )
             elif marker == 'rem':
                 if not rest.startswith( '/' ): continue
                 given_marker = rest[1:].split( ' ', 1 )[0]
                 assert given_marker in ('s1','r','s2','s3','d'), f"OET-RV {BBB} {C}:{V} {given_marker=}"
                 rest = rest[len(given_marker)+2:] # Drop the '/marker ' from the displayed portion
-                plusOneV = str( getLeadingInt(V) + 1 ) # Also handles verse ranges
+                plusOneV = str( getSmallLeadingInt(V) + 1 ) # Also handles verse ranges
                 for sectionChunk in rest.split( '; ' ):
                     additionalSectionHeadingsDict[(C,plusOneV)].append( (given_marker,sectionChunk) )
         # if additionalSectionHeadingsDict: print( f"HERE1 {BBB} {additionalSectionHeadingsDict}" )
 
         if not rvBible[BBB]._SectionIndex: # no sections in this book, e.g., FRT
             continue
+        # # RUST IMPLEMENTATION TEST
+        # if BBB in ('HAG','MRK'):
+        #     if 0: # writing
+        #         with open( f'OET-RV_{BBB}_sections.txt', 'wt', encoding='utf-8') as test_file:
+        #             test_file.write( f"OET-RV {BBB} {len(rvBible[BBB]._SectionIndex)}\n" )
+        #             for n,(startCV, sectionIndexEntry) in enumerate( rvBible[BBB]._SectionIndex.items() ):
+        #                 test_file.write( f"{n} {startCV=} {sectionIndexEntry=}\n" )
+        #     else: # Reading and checking
+        #         for ii, internalBibleEntry in enumerate( rvBible[BBB] ):
+        #             print( f"OET-RV {BBB} {ii} {internalBibleEntry.marker=} {internalBibleEntry.cleanText=}")
+        #         for n,(startCV, sectionIndexEntry) in enumerate( rvBible[BBB]._SectionIndex.items() ):
+        #             print( f"  {n} {BBB} {startCV=} {sectionIndexEntry=}" )
+        #         with open( f'OET-RV_{BBB}_sections.txt', 'rt', encoding='utf-8') as test_file:
+        #             fileChunks = test_file.read().split( '\n' )
+        #         expectedCntStr = f"OET-RV {BBB} {len(rvBible[BBB]._SectionIndex)}"
+        #         assert expectedCntStr == fileChunks[0], f"{expectedCntStr=} {fileChunks[0]=}"
+        #         for n,(startCV, sectionIndexEntry) in enumerate( rvBible[BBB]._SectionIndex.items() ):
+        #             currentEntry = f"{n} {startCV=} {sectionIndexEntry=}"
+        #             assert currentEntry == fileChunks[n+1], f"Section index mismatch for OET-RV {BBB} {n} {startCV=}\n   {currentEntry=}\n{fileChunks[n+1]=}"
 
         # Now create the main sections list for this book
         bkObject = rvBible[BBB]
         state.sectionsLists['OET-RV'][BBB] = []
         for n,(startCV, sectionIndexEntry) in enumerate( bkObject._SectionIndex.items() ):
+            if BBB == 'HAG':
+                print( f"  {n} {startCV=} {sectionIndexEntry=}" )
             startC,startV = startCV
             # if additionalSectionHeadingsDict: print( f"{startCV=} {startC}:{startV}" )
             endC,endV = sectionIndexEntry.getEndCV()
             # if additionalSectionHeadingsDict: print( f"End {endC}:{endV}" )
             if additionalSectionHeadingsDict:
                 # print( f"{startCV=} {startC}:{startV} {sectionIndexEntry=}" )
-                intStartC, intStartV = int(startC), getLeadingInt(startV)
+                intStartC, intStartV = int(startC), getSmallLeadingInt(startV)
                 # dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"OET {NEWLINE*2}createOETSectionPages {n}: {BBB}_{startC}:{startV} {type(sectionIndexEntry)} {sectionIndexEntry=}" )
                 # Insert any additional section headings BEFORE this one
                 for (c,v),additionalFieldList in additionalSectionHeadingsDict.copy().items():
@@ -300,7 +338,7 @@ def createOETSectionPages( level:int, folder:Path, rvBible:ESFMBible, lvBible:ES
             parallelLink = f''' <a title="Parallel verse view" href="{'../'*level}par/{BBB}/C{'1' if startC=='-1' else startC}V{startV}.htm#Top">║</a>'''
             interlinearLink = f''' <a title="Interlinear verse view" href="{'../'*level}ilr/{BBB}/C{'1' if startC=='-1' else startC}V{startV}.htm#Top">═</a>''' if BBB in state.booksToLoad['OET'] else ''
 
-            sectionHtml = f'''<h1 id="Top"><span title="Open English Translation">OET</span> by section {ourTidyBBBwithNotes} {'Intro' if startC=='-1' else startC}:{startV}</h1>
+            sectionHtml = f'''<h1 id="Top"><span title="Open English Translation">OET</span> by section {ourTidyBBBwithNotes.replace('YHN','YOHAN')} {'Intro' if startC=='-1' else startC}:{startV}</h1>
 <p class="secNav">{sectionIndexLink}{leftLink}{documentLink} {startChapterLink}:{startV}–{endChapterLink}:{endV}{rightLink}{relatedLink}{parallelLink}{interlinearLink}{detailsLink}</p>
 <h1>{'TEST ' if state.TEST_MODE_FLAG else ''}{sectionName}</h1>
 {state.OET_UNFINISHED_WARNING_HTML_PARAGRAPH}
@@ -370,7 +408,7 @@ def createOETSectionPages( level:int, folder:Path, rvBible:ESFMBible, lvBible:ES
                 .replace( '__KEYWORDS__', f'Bible, OET, sections, {ourTidyBBB}' ) \
                 .replace( f'''<a title="{state.BibleNames['OET']}" href="{'../'*2}OET/bySec/{indexFilename}#Top">OET</a>''',
                         f'''<a title="Up to {state.BibleNames['OET']}" href="{'../'*2}OET/">↑OET</a>''' )
-        sectionHtmlBits = [f'<h1 id="Top">Index of sections for OET {ourTidyBBBwithNotes}</h1>']
+        sectionHtmlBits = [f'''<h1 id="Top">Index of sections for OET {ourTidyBBBwithNotes.replace('YHN','YOHAN')}</h1>''']
         for _nnn,startC,startV,_endC,_endV,sectionName,reasonName,_contextList,_verseEntryList,sectionFilename in state.sectionsLists['OET-RV'][BBB]:
             # print( f"HERE8 {BBB} {startC}:{startV} {_endC}:{endV} '{sectionName=}' '{reasonName=}' '{filename=}'" )
             reasonString = '' if reasonName=='Section heading' and not state.TEST_MODE_FLAG else f' ({reasonName})' # Suppress '(Section Heading)' appendages in the list
@@ -422,7 +460,6 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> list
     fnPrint( DEBUGGING_THIS_MODULE, f"createSectionPages( {level}, {folder}, {thisBible.abbreviation} )" )
     assert thisBible.abbreviation != 'OET'
     assert thisBible.discoveryResults['ALL']['haveSectionHeadings']
-    thisBible.makeSectionIndex() # These aren't made automatically by BibleOrgSys
 
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createSectionPages( {level}, {folder}, {thisBible.abbreviation} )…" )
     try: os.makedirs( folder )
@@ -684,7 +721,7 @@ def findSectionNumber( versionAbbreviation:str, refBBB:str, refC:str, refV:str, 
     if refV == '0':
         dPrint( 'Info', DEBUGGING_THIS_MODULE, f"findSectionNumber: adjusting {versionAbbreviation} search for {refBBB} {refC}:{refV} to verse 1" )
         refV = '1'
-    intRefV = getLeadingInt( refV )
+    intRefV = getSmallLeadingInt( refV )
 
     for n,startC,startV,endC,endV,_sectionName,reasonName,_contextList,_verseEntryList,_filename in state.sectionsLists[versionAbbreviation][refBBB]:
         dPrint( 'Info', DEBUGGING_THIS_MODULE, f"\nLOOP {n} finding {versionAbbreviation} {refBBB} {refC}:{refV} in {startC}:{startV}-{endC}:{endV} {_sectionName=},{reasonName=},_contextList,_verseEntryList,{_filename}" )
@@ -692,13 +729,13 @@ def findSectionNumber( versionAbbreviation:str, refBBB:str, refC:str, refV:str, 
 
         # dPrint( 'Info', DEBUGGING_THIS_MODULE, f"  findSectionNumber for {versionAbbreviation} {refBBB} {refC}:{refV} got {state.sectionsLists[versionAbbreviation][refBBB][n]}")
         if startC==refC and endC==refC: # This section only spans a single chapter (or part of a chapter)
-            if getLeadingInt(startV) <= intRefV <= getLeadingInt(endV): # It's in this single chapter
+            if getSmallLeadingInt(startV) <= intRefV <= getSmallLeadingInt(endV): # It's in this single chapter
                 return n
         else: # This section spans two or more chapters
-            if startC==refC and intRefV>=getLeadingInt(startV): # It's in the first chapter
+            if startC==refC and intRefV>=getSmallLeadingInt(startV): # It's in the first chapter
                 dPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Found {refBBB} {refC}:{refV} in first chapter of {startC}:{startV}-{endC}:{endV}" )
                 return n
-            elif endC==refC and intRefV<=getLeadingInt(endV): # It's in the last chapter
+            elif endC==refC and intRefV<=getSmallLeadingInt(endV): # It's in the last chapter
                 dPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Found {refBBB} {refC}:{refV} in last chapter of {startC}:{startV}-{endC}:{endV}" )
                 return n
             elif int(startC) < int(refC) < int(endC): # It's in one of the middle chapters

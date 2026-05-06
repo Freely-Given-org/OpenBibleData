@@ -54,7 +54,7 @@ import BibleOrgSys.Formats.VPLBible as VPLBible
 import BibleOrgSys.Formats.uWNotesBible as uWNotesBible
 import BibleOrgSys.Formats.TyndaleNotesBible as TyndaleNotesBible
 from BibleOrgSys.Bible import Bible
-from BibleOrgSys.Internals.InternalBibleInternals import InternalBibleEntryList, getLeadingInt
+from bible_organisational_system import InternalBibleEntryList, getSmallLeadingInt
 
 sys.path.append( '../../BibleTransliterations/Python/' )
 from BibleTransliterations import transliterate_Greek, transliterate_Hebrew

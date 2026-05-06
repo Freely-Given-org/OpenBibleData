@@ -44,7 +44,7 @@ import logging
 
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
-from BibleOrgSys.Internals.InternalBibleInternals import InternalBibleEntryList
+from bible_organisational_system import InternalBibleEntryList
 
 from settings import State
 from usfm import convertUSFMMarkerListToHtml

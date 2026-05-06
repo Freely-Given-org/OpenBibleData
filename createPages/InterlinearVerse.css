@@ -58,13 +58,6 @@ p.vNav { text-align:center; font-size:1.8em; }
     overflow:auto;
     margin:1em 0;
 } */
-div.UTN {
-    background:hsla(55, 99%, 80%, 50);
-    padding:5px;
-    overflow:auto;
-    margin:1em 0;
-    display: block;
-}
 div.LV {
     background:hsla(55, 99%, 80%, 50);
     padding:5px;
@@ -292,7 +285,7 @@ span.fnText { }
 /* span.fm { vertical-align:super; } */
 /* span.fp {} */
 /* span.fq { font-style:italic; } */
-/* span.fqa { font-style:italic; } */
+span.fqa { font-style:italic; }
 span.ft {}
 /* span.fv { vertical-align:super; } */
 /* span.fw {} */
@@ -340,7 +333,24 @@ span.latin { font-weight:bold; color:darkblue; }
 span.divine-name-ital { font-style:italic; }
 
 span.OET-LV_verseTextChunk {}
+span.OET-RV_vdiv.LV {
+    background:hsla(55, 99%, 80%, 50);
+    padding:5px;
+    overflow:auto;
+    margin:1em 0;
+    display: block;
+}
 span.OET-RV_verseTextChunk {}
+
+/* Translation notes */
+div.UTN {
+    background:hsla(55, 99%, 80%, 50);
+    padding:5px;
+    overflow:auto;
+    margin:1em 0;
+    display: block;
+}
+div.SOTN {}
 
 /* unfoldingWord translation notes (UTNs) */
 p.UTN {}

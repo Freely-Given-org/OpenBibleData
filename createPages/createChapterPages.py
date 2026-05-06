@@ -48,7 +48,7 @@ import logging
 
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
-from BibleOrgSys.Internals.InternalBibleInternals import InternalBibleEntryList
+from bible_organisational_system import InternalBibleEntryList
 import BibleOrgSys.Formats.ESFMBible as ESFMBible
 
 from settings import State, CNTR_BOOK_ID_MAP
@@ -242,6 +242,7 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
                         except ValueError as e:
                             dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createOETChapterPages {BBB} {c=} {n:,}/{len(rvSections):,}: No Cid in {rvSectionHtml=} {e=}" )
                             rvStartCV, rvEndCV = '', 'C1'
+                            # halt
                         # dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"""Searching for ' id="{rvEndCV}"' in '{lvRest}'""" )
                         try:
                             ixEndCV = lvRest.rindex( f' id="{rvEndCV}"' ) # Versification problem if this fails

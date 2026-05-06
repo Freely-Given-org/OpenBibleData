@@ -80,6 +80,7 @@ CHANGELOG:
     2026-01-10 Add OET logo
     2026-02-05 Fixing OET-LV missing verses link
     2026-03-27 Added SIL Open Translator’s Notes
+    2026-04-13 Add 'OET' id tag (as well as existing 'OET-RV' id tag)
 """
 from pathlib import Path
 import os
@@ -89,7 +90,7 @@ import re
 
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint, rreplace
-from BibleOrgSys.Internals.InternalBibleInternals import getLeadingInt
+from bible_organisational_system import getSmallLeadingInt
 from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_66
 import BibleOrgSys.Formats.ESFMBible as ESFMBible
 import BibleOrgSys.OriginalLanguages.Greek as Greek
@@ -113,7 +114,7 @@ from OETHandlers import getOETTidyBBB, getOETBookName, livenOETWordLinks, livenO
 from spellCheckEnglish import spellCheckAndMarkHTMLText
 
 
-LAST_MODIFIED_DATE = '2026-03-27' # by RJH
+LAST_MODIFIED_DATE = '2026-04-29' # by RJH
 SHORT_PROGRAM_NAME = "createParallelVersePages"
 PROGRAM_NAME = "OpenBibleData createParallelVersePages functions"
 PROGRAM_VERSION = '0.99'
@@ -352,8 +353,10 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                 verseText.replace( '\\s1 ', '\\s1 <b>', 1 ).replace( '\n', '</b>\n', 1 )
                             verseText = completeFootnoteRegex.sub( '*', verseText ) # Just leave an asterisk where the footnotes were
                             vHtml = f'{prefix}{verseText}' \
-                                .replace( '\\p ', '\n<br>&nbsp;&nbsp;' ) \
+                                .replace( '\\p ', '\n<br>¶&nbsp;' ) \
                                 .replace( '\\q1 ', '\n<br>&nbsp;&nbsp;' ) \
+                                .replace( '\\q2 ', '\n<br>&nbsp;&nbsp;&nbsp;&nbsp;⇔' ) \
+                                .replace( '\\q3 ', '\n<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;⇔' ) \
                                 .replace( '\\m ', '\n<br>' ) \
                                 .replace( '\\b', '\n<br> ' ) \
                                 .replace( '\\pc ', '\n<br>&nbsp;&nbsp;&nbsp;&nbsp;' ) \
@@ -407,6 +410,26 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                 #     if parRef == 'EZR_2:2': print( f"---- {versionAbbreviation} {parRef} Got {verseEntryList=}" )
                                 #     if parRef == 'EZR_2:3': print( f"---- {versionAbbreviation} {parRef} Got {verseEntryList=}" )
                                 # if parRef in ancientRefsToPrint: print( f"---- {versionAbbreviation} {parRef} Got {verseEntryList=}" )
+                            # # RUST IMPLEMENTATION TEST
+                            # if 0 and parRef in ('GEN_1:0','GEN_1:1', 'LEV_25:34', 'HAG_-1:0','HAG_1:1','HAG_2:2', 'MRK_3:21'):
+                            #     with open( f'{versionAbbreviation}_{parRef}_parallel.txt', 'rt', encoding='utf-8') as test_file:
+                            #         fileChunks = test_file.read().split( '\n\n' )
+                            #     for ff, fileChunk in enumerate( fileChunks[:4] ):
+                            #         if ff==0:
+                            #             expectedStr = f"{versionAbbreviation=} {parRef=}"
+                            #             assert expectedStr == fileChunk, f"{expectedStr=} {fileChunk=}"
+                            #         elif ff==1:
+                            #             expectedStr = f"{len(contextList)=}"
+                            #             assert expectedStr == fileChunk, f"{expectedStr=} {fileChunk=}"
+                            #         elif ff==2:
+                            #             expectedStr = f"{versionAbbreviation} {BBB} {contextList=}"
+                            #             assert expectedStr == fileChunk, f"{expectedStr=} {fileChunk=}"
+                            #         elif ff==3:
+                            #             expectedStr = f"{len(verseEntryList)=}"
+                            #             assert expectedStr == fileChunk, f"{expectedStr=} {fileChunk=}"
+                            #     for n,(verseEntry) in enumerate( verseEntryList ):
+                            #         expectedStr = f"{n} {verseEntry=}"
+                            #         assert expectedStr == fileChunks[n+4], f"CV index mismatch for {versionAbbreviation=} {parRef=}\n{expectedStr=}\n{fileChunks[n+4]=}"
                             if 'GNT' in versionAbbreviation:
                                 plainGreekText = getPlainText( verseEntryList )
                                 if versionAbbreviation == 'SBL-GNT':
@@ -765,6 +788,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                 SRtranscription = grammaticalKeysHtmlList = None
                                 if C!='-1' and V!='0' and textHtml:
                                     # print( f"{parRef} SR-GNT {verseEntryList=} {textHtml=} {footnoteFreeTextHtml=}" )
+                                    # for verseEntry in verseEntryList: print( f"  {verseEntry=}")
                                     # if '<' in textHtml or '>' in textHtml or '=' in textHtml or '"' in textHtml:
                                     #     if '<br>' not in textHtml: # Some verses have a sentence break
                                     #         print( f"\nunexpected fields in SR-GNT textHtml {parRef} {textHtml}" ); halt
@@ -830,7 +854,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                             elif versionAbbreviation == 'UHB':
                                 if BBB=='PSA' and 'class="d"' in textHtml:
                                     # There's no special formatting in the original Hebrew, so we don't want it here either
-                                    # print( f"\nWas PSA {C} d {textHtml=}" )
+                                    # print( f"\nWas UHB PSA {C} d {textHtml=}" )
                                     dIx = textHtml.index( '<span class="d">')
                                     firstVaIx = textHtml.index( '<span class="va">', dIx+15 )
                                     spanIx1 = textHtml.index( '</span>', firstVaIx+15 ) # Should be the closing "va" span
@@ -841,7 +865,9 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                     #     lastVaIx = textHtml.index( '<span class="va">', lastVaIx+5 )
                                     # spanIxN = textHtml.index( '</span>', lastVaIx ) # Should be the last closing "va" span
                                     # NOTE: The va end spans ARE NOT FOLLOWED BY NEWLINE, only the d span is
-                                    spanEndDIx = textHtml.index( '</span>\n', spanIx1+7 ) # Should be the closing "d" span
+                                    if '</span>\n' not in textHtml and textHtml.endswith( '</span>'): # No final newline with Rust code -- WHY???
+                                        spanEndDIx = len(textHtml) - 7
+                                    else: spanEndDIx = textHtml.index( '</span>\n', spanIx1+7 ) # Should be the closing "d" span
                                     textHtml = f'{textHtml[:dIx]}{textHtml[dIx+16:spanEndDIx]}{textHtml[spanEndDIx+7:]}'
                                     # print( f"Now {textHtml=}" )
                                     # assert textHtml.count( 'class="va"' ) == textHtml.count( '</span>' ), f"{parRef} {textHtml=}" # Not true if there's a footnote caller
@@ -942,7 +968,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                         assert '</div>' not in textHtml
                                         vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="{spanClassName}"><a title="View {state.BibleNames[versionAbbreviation]} {'details' if versionAbbreviation in state.versionsWithoutTheirOwnPages else 'chapter'}" href="{versionNameLink}">{versionAbbreviation}</a></span> {textHtml}</p>'''
                                 elif versionAbbreviation=='OET-RV':
-                                    # Label it as 'OET (OET-RV) and slip in id's for CV (so footnote returns work) and also for C and V (just in case)
+                                    # Label it as 'OET (OET-RV) and slip in id's for CV (so footnote returns work) and also for C and V (just in case). Also ensure both 'OET-RV' and 'OET' work as # ids on the URL
                                     sectionNumber = findSectionNumber( 'OET-RV', BBB, C, V, state )
                                     if BBB in BOOKLIST_66:
                                         assert sectionNumber is not None, f"Bad OET-RV parallel verse section {BBB} {C} {V}"
@@ -950,10 +976,10 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                         logging.critical( f"Bad OET-RV parallel verse section {BBB} {C} {V}" )
                                     if '<div ' in textHtml: # it might be a book intro or footnotes -- we can't put a <div> INSIDE a <p>, so we append it instead
                                         assert '</div>' in textHtml
-                                        vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span id="C{C}V{V}" class="wrkName"><a id="C{C}" title="View {state.BibleNames['OET']} section (side-by-side versions)" href="{'../'*BBBLevel}OET/bySec/{BBB}_S{sectionNumber}.htm#V{V}">OET</a> <small>(<a id="V{V}" title="View {state.BibleNames['OET-RV']} section (by itself)" href="{'../'*BBBLevel}OET-RV/bySec/{BBB}_S{sectionNumber}.htm#V{V}">OET-RV</a>)</small></span>{'' if textHtml.startswith('<p ') or textHtml.startswith('<div') else ' '}{textHtml.replace('<div','</p><div',1)}'''
+                                        vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span id="OET"></span><span id="C{C}V{V}" class="wrkName"><a id="C{C}" title="View {state.BibleNames['OET']} section (side-by-side versions)" href="{'../'*BBBLevel}OET/bySec/{BBB}_S{sectionNumber}.htm#V{V}">OET</a> <small>(<a id="V{V}" title="View {state.BibleNames['OET-RV']} section (by itself)" href="{'../'*BBBLevel}OET-RV/bySec/{BBB}_S{sectionNumber}.htm#V{V}">OET-RV</a>)</small></span>{'' if textHtml.startswith('<p ') or textHtml.startswith('<div') else ' '}{textHtml.replace('<div','</p><div',1)}'''
                                     else: # no <div>s so should be ok to put inside a paragraph
                                         assert '</div>' not in textHtml
-                                        vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span id="C{C}V{V}" class="wrkName"><a id="C{C}" title="View {state.BibleNames['OET']} section (side-by-side versions)" href="{'../'*BBBLevel}OET/bySec/{BBB}_S{sectionNumber}.htm#V{V}">OET</a> <small>(<a id="V{V}" title="View {state.BibleNames['OET-RV']} section (by itself)" href="{'../'*BBBLevel}OET-RV/bySec/{BBB}_S{sectionNumber}.htm#V{V}">OET-RV</a>)</small></span> {textHtml}</p>'''
+                                        vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span id="OET"></span><span id="C{C}V{V}" class="wrkName"><a id="C{C}" title="View {state.BibleNames['OET']} section (side-by-side versions)" href="{'../'*BBBLevel}OET/bySec/{BBB}_S{sectionNumber}.htm#V{V}">OET</a> <small>(<a id="V{V}" title="View {state.BibleNames['OET-RV']} section (by itself)" href="{'../'*BBBLevel}OET-RV/bySec/{BBB}_S{sectionNumber}.htm#V{V}">OET-RV</a>)</small></span> {textHtml}</p>'''
                                 elif versionAbbreviation=='Wycl': # Just add a bit about it being translated from the Latin (not the Greek)
                                     versionNameLink = f'''{'../'*BBBLevel}{versionAbbreviation}/details.htm#Top''' if versionAbbreviation in state.versionsWithoutTheirOwnPages else f'''{'../'*BBBLevel}{versionAbbreviation}/byC/{BBB}_{adjC}.htm#V{V}'''
                                     assert '<div' not in textHtml, f"{versionAbbreviation} {parRef} {textHtml=}"
@@ -1600,8 +1626,8 @@ def brightenUHB( BBB:str, C:str, V:str, brightenUHBTextHtml:str, verseEntryList,
                                         #    .replace( 'בְּאֵר לַחַי רֹאִי', 'בְּאֵר_לַחַי_רֹאִי' ) # Need special handling for Be’er-Lahai-Roi (Gen 24:62 onwards) with a space in the lemma
                                         #    .replace( 'בֵּית לֶחֶם', 'בֵּית_לֶחֶם' ) # Need special handling for Beth Lechem / Bethlehem (Gen 35:19 onwards) with a space in the lemma
                                         #    .replace( 'בַּעַל חָנָן', 'בַּעַל_חָנָן' ) # Need special handling for Ba'al Hanan (Gen 36:38 onwards) with a space in the lemma
-                                            .split( '" ' ) ): # Use the double quote so we don't need every special case with a space in the UHB 'lemma' field
-                        # print( f"    {extraTextChunk=}")
+                                            .rstrip().split( '" ' ) ): # Use the double quote so we don't need every special case with a space in the UHB 'lemma' field
+                        # print( f"    UHB {BBB} {C}:{V} {extraTextChunk=} from {extraText=}")
                         fieldName, fieldValue = extraTextChunk.split( '=', 1 )
                         fieldValue = fieldValue.strip( '"' )
                         if fieldName.startswith( 'x-' ): fieldName = fieldName[2:]
@@ -1656,7 +1682,7 @@ def brightenUHB( BBB:str, C:str, V:str, brightenUHBTextHtml:str, verseEntryList,
             try:
                 for subStrong in attribDict['strong']:
                     # print( f"{subStrong=}" )
-                    try: subStrongInt = getLeadingInt( subStrong ) # Ignores suffixes like a,b,c
+                    try: subStrongInt = getSmallLeadingInt( subStrong ) # Ignores suffixes like a,b,c
                     except ValueError: continue
                     if subStrongInt in (369, 3808): # Hebrew 'אַיִן' 'ayin' 'no', or 'לֹא' (lo) 'not'
                         caseClassName = 'hebNeg'

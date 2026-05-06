@@ -53,7 +53,7 @@ from BibleOrgSys.BibleOrgSysGlobals import dPrint, fnPrint
 from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39
 
 
-LAST_MODIFIED_DATE = '2026-03-28' # by RJH
+LAST_MODIFIED_DATE = '2026-04-29' # by RJH
 SHORT_PROGRAM_NAME = "settings"
 PROGRAM_NAME = "OpenBibleData (OBD) Settings"
 PROGRAM_VERSION = '0.99'
@@ -66,16 +66,17 @@ class State:
     """
     A place to store some of the global stuff that needs to be passed around.
     """
-    OET_VERSION_NUMBER_STRING = 'v0.47.78' # Incremented on most runs
+    OET_VERSION_NUMBER_STRING = 'v0.48.04' # Incremented on most runs
 
-    TEST_MODE_FLAG = False # Writes smaller website subset into 'Test' subfolder if True
-    TEST_OT_BOOK_LIST = ['LEV','ISA'] # Books in progress
-    TEST_DC_BOOK_LIST = ['MAN'] # Books in progress
+    TEST_MODE_FLAG = True # Writes smaller website subset into 'Test' subfolder if True
+    TEST_OT_BOOK_LIST = ['ISA','JER'] # Books in progress
+    TEST_DC_BOOK_LIST = [] # Books in progress
     TEST_NT_BOOK_LIST = ['MRK'] # Shortest gospel
     NEW_BOOK_IN_TEST_LIST_FLAG = False # So that word pages will get rebuilt for TEST_MODE_FLAG
+    LOAD_RESOURCES_FROM_PICKLES_FLAG = True # Might have to disable if they need updating (new code or data)
 
     # Many of these settings are used to omit some processing so as to get a speedier conclusion for debugging
-    TEST_VERSIONS_ONLY = None #['OET','OET-RV','OET-LV', 'RV', 'KJB-1611', 'TOSN','UTN'] # Usually None. Also stops actual site being built
+    TEST_VERSIONS_ONLY = None #['OET','OET-RV','OET-LV', 'KJB-1611', 'TOSN','UTN'] # Usually None. Also stops actual site being built
     ALL_PRODUCTION_BOOKS_FLAG = not TEST_MODE_FLAG # If set to False, uses the TEST book list (with many less books) for a faster test build
     CREATE_PARALLEL_VERSE_PAGES = 'LAST' # 'FIRST','LAST', or None -- usually 'LAST' -- depending on debugging needs
     CREATE_BOOK_AND_OTHER_PAGES_FLAG = True # Can be turned off for debugging
@@ -84,12 +85,6 @@ class State:
     ALL_TEST_REFERENCE_PAGES_FLAG = False # If in TEST_MODE_FLAG, make ALL word/lemma pages, or just the RELEVANT ones
     UPDATE_ACTUAL_SITE_WHEN_BUILT_FLAG = True # The pages are initially built in a tmp folder so need to be copied to the final destination
 
-    OET_RV_OT_BOOK_LIST = ['GEN','EXO','LEV','NUM','DEU', 'JOS','JDG','RUT',
-                    'SA1','SA2', 'KI1','KI2', 'CH1','CH2',
-                    'EZR','NEH', 'EST', 'JOB', 'PSA','PRO',
-                    'ECC','SNG', 'ISA','LAM',
-                    'EZE','DAN','HOS','JOL','AMO','OBA','JNA',
-                    'MIC','NAH','HAB','ZEP','HAG','ZEC','MAL'] # 'LEV','JER'
     OET_RV_DC_BOOK_LIST = ['TOB','JDT','WIS','MA1','MA2','MA3','MA4']
 
     TEMP_BUILD_FOLDER = Path( '../buildingHtmlPages/' )
@@ -133,7 +128,7 @@ class State:
 
     TEST_BOOK_LIST = TEST_OT_BOOK_LIST + TEST_DC_BOOK_LIST + TEST_NT_BOOK_LIST
     OET_LV_BOOK_LIST = BOOKLIST_OT39 + OET_NT_BOOK_ORDER
-    OET_RV_BOOK_LIST = TEST_BOOK_LIST if TEST_MODE_FLAG else (OET_RV_OT_BOOK_LIST + OET_RV_DC_BOOK_LIST + OET_NT_BOOK_ORDER)
+    OET_RV_BOOK_LIST = TEST_BOOK_LIST if TEST_MODE_FLAG else (OET_OT_BOOK_ORDER + OET_RV_DC_BOOK_LIST + OET_NT_BOOK_ORDER)
     # TODO: What about 'INT' ?
     OET_RV_BOOK_LIST_WITH_FRT = ['FRT'] + OET_RV_BOOK_LIST
 
@@ -170,12 +165,12 @@ class State:
     #           and 'SOTN' is not included
     BibleVersions = ['OET',
         'OET-RV','OET-LV',
-        'ULT','UST','NET', # We move NET up nearer the top for TEST_MODE_FLAG
+        'AHB', 'ULT','UST', 'NET', # We move NET up nearer the top for TEST_MODE_FLAG
         'BSB','MSB','BLB',
         'AICNT','OEB','ISV','CSB','NLT',
         'NIV','CEV','ESV','NASB','LSB',
         'JQT','2DT','1ST','TPT',
-        'WEBBE','WEB','WMBB','WMB','MSG','LSV','FBV','TCNT','T4T','LEB','NRSV','NKJV','TLB','NAB','BBE',
+        'WEBBE','WEB','WMBB','WMB','MSG','LSV','FBV','TCNT','T4T','LEB','NRSVue','NRSV','NKJV','TLB','NAB','BBE',
         'Moff','JPS','Wymth','ASV','DRA','YLT','Drby','RV','SLT','Wbstr','KJB-1769','KJB-1611','Bshps','Gnva','Cvdl',
         'TNT','Wycl',
         'Luth','ClVg',
@@ -186,12 +181,12 @@ class State:
         ] if TEST_MODE_FLAG else \
         ['OET',
         'OET-RV','OET-LV',
-        'ULT','UST',
+        'AHB', 'ULT','UST',
         'BSB','MSB','BLB',
         'AICNT','OEB','ISV','CSB','NLT',
         'NIV','CEV','ESV','NASB','LSB',
         'JQT','2DT','1ST','TPT',
-        'WEBBE','WEB','WMBB','WMB','MSG','NET','LSV','FBV','TCNT','T4T','LEB','NRSV','NKJV','TLB','NAB','BBE',
+        'WEBBE','WEB','WMBB','WMB','MSG','NET','LSV','FBV','TCNT','T4T','LEB','NRSVue','NRSV','NKJV','TLB','NAB','BBE',
         'Moff','JPS','Wymth','ASV','DRA','YLT','Drby','RV','SLT','Wbstr','KJB-1769','KJB-1611','Bshps','Gnva','Cvdl',
         'TNT','Wycl',
         'Luth','ClVg',
@@ -206,8 +201,8 @@ class State:
     # Specific short lists
     auxilliaryVersions = ('OET','TOBD') # These ones don't have their own Bible locations at all
     # The following three lines are also in selectedVersesVersions.py
-    selectedVersesOnlyVersions = ('CSB','NLT','NIV','CEV','ESV','MSG','NASB','LSB','JQT','2DT','1ST','TPT','NRSV','NKJV','TLB','NAB', 'NETS' ) # These ones have .tsv sources (and don't produce Bible objects)
-    numAllowedSelectedVerses   = (  300,  500,  500,  500,  500,  500,   500, 1000,   20,  300,  300,  250,   300,   300,  300,  250,    250 ) # Order must match above list
+    selectedVersesOnlyVersions = ('AHB','CSB','NLT','NIV','CEV','ESV','MSG','NASB','LSB','JQT','2DT','1ST','TPT','NRSVue','NRSV','NKJV','TLB','NAB', 'NETS' ) # These ones have .tsv sources (and don't produce Bible objects)
+    numAllowedSelectedVerses   = (  20,  300,  500,  500,  500,  500,  500,   500, 1000,   20,  300,  300,  250,     300,   300,   300,  300,  250,    250 ) # Order must match above list
     assert len(numAllowedSelectedVerses) == len(selectedVersesOnlyVersions)
     # We want these versions on our parallel pages, but are not interested enough in them for them to have their own version pages
     versionsWithoutTheirOwnPages = selectedVersesOnlyVersions + ('Luth','ClVg', 'UGNT','SBL-GNT','RP-GNT','TC-GNT', 'TOSN','SOTN','UTN')
@@ -252,6 +247,7 @@ class State:
         'AICNT': '../copiedBibles/English/AICNT/', # NT only
         'OEB': '../copiedBibles/English/OEB/',
         # 'ISV': '', # Seems dead and gone :-(
+        'AHB': '../copiedBibles/English/AHB_verses.tsv',
         'CSB': '../copiedBibles/English/CSB_verses.tsv',
         'NLT': '../copiedBibles/English/NLT_verses.tsv',
         'NIV': '../copiedBibles/English/NIV_verses.tsv',
@@ -272,6 +268,7 @@ class State:
         'TCNT': '../copiedBibles/English/eBible.org/TCNT/',
         'T4T': '../copiedBibles/English/eBible.org/T4T/',
         'LEB': '../copiedBibles/English/LogosBibleSoftware/LEB/LEB.updated.xml', # not OSIS
+        'NRSVue': '../copiedBibles/English/NRSVue_verses.tsv',
         'NRSV': '../copiedBibles/English/NRSV_verses.tsv',
         'NKJV': '../copiedBibles/English/NKJV_verses.tsv',
         'TLB': '../copiedBibles/English/TLB_verses.tsv',
@@ -322,6 +319,7 @@ class State:
         'AICNT': 'AI Critical NT (2023)',
         'OEB': 'Open English Bible (in progress)',
         'ISV': 'International Standard Version (2020?)',
+        'AHB': 'Robert Alter Hebrew Bible (2018/2019)',
         'CSB': 'Christian Standard Bible (2017)',
         'NLT': 'New Living Translation (2015)',
         'NIV': 'New International Version (2011)',
@@ -344,6 +342,7 @@ class State:
         'TCNT': 'Text-Critical New Testament (2022, Byzantine)',
         'T4T': 'Translation for Translators (2017)',
         'LEB': 'Lexham English Bible (2010, 2012)',
+        'NRSVue': 'New Revised Standard Version (2021)',
         'NRSV': 'New Revised Standard Version (1989)',
         'NKJV': 'New King James Version (1982)',
         'TLB': 'The Living Bible (1971)',
@@ -401,6 +400,7 @@ class State:
         'AICNT': 'EN-USA',
         'OEB': 'EN-UK',
         'ISV': 'EN-USA',
+        'AHB': 'EN-USA',
         'CSB': 'EN-USA',
         'NLT': 'EN-USA',
         'NIV': 'EN-USA',
@@ -423,6 +423,7 @@ class State:
         'TCNT': 'EN-UK',
         'T4T': 'EN-USA',
         'LEB': 'EN-USA',
+        'NRSVue': 'EN-UK',
         'NRSV': 'EN-UK',
         'NKJV': 'EN-UK',
         'TLB': 'EN-USA',
@@ -480,6 +481,7 @@ class State:
         'AICNT': ['ALL'], # NT only
         'OEB': ['ALL'],
         'ISV': ['ALL'],
+        'AHB': ['ALL'],
         'CSB': ['ALL'],
         'NLT': ['ALL'],
         'NIV': ['ALL'],
@@ -502,6 +504,7 @@ class State:
         'TCNT': ['ALL'],
         'T4T': ['ALL'],
         'LEB': ['ALL'],
+        'NRSVue': ['ALL'],
         'NRSV': ['ALL'],
         'NKJV': ['ALL'],
         'TLB': ['ALL'],
@@ -551,6 +554,7 @@ class State:
         'AICNT': TEST_NT_BOOK_LIST, # NT only
         'OEB': TEST_BOOK_LIST,
         'ISV': TEST_BOOK_LIST,
+        'AHB': TEST_BOOK_LIST,
         'CSB': TEST_BOOK_LIST,
         'NLT': TEST_BOOK_LIST,
         'NIV': TEST_BOOK_LIST,
@@ -573,6 +577,7 @@ class State:
         'TCNT': TEST_NT_BOOK_LIST, # NT only
         'T4T': TEST_BOOK_LIST,
         'LEB': TEST_BOOK_LIST,
+        'NRSVue': TEST_BOOK_LIST,
         'NRSV': TEST_BOOK_LIST,
         'NKJV': TEST_BOOK_LIST,
         'TLB': TEST_BOOK_LIST,
@@ -636,7 +641,7 @@ We are very grateful to Dr. Alan Bunning of the <a href="https://GreekCNTR.org">
 The Old Testament Hebrew text (and the morphology analysis) is adapted from the work of the <a href="https://hb.OpenScriptures.org/">Open Scriptures Hebrew Bible</a> team.
 We’re also grateful to the <a href="https://www.Biblica.com/clear/">Biblica Clear Bible team</a> who provide the pronoun referential information as part of their <a href="https://GitHub.com/Clear-Bible/macula-greek">Macula Greek</a> project and also some of the OT glosses as part of their <a href="https://GitHub.com/Clear-Bible/macula-hebrew">Macula Hebrew</a> project.</p>''',
                 'notes' : '''<p class="note">Note that the <em>OET-LV</em> is VERY literal (even including Hebrew and Greek words that are not normally translated into English) because it’s designed to be used in conjunction with our <em>Readers’ Version</em>.</p>''' },
-        'ULT': {'about': '<p class="about">unfoldingWord® Literal Text (2023) and derived from the 1901 ASV.</p>',
+        'ULT': {'about': '<p class="about">unfoldingWord® Literal Text (2023), originally derived from the 1901 ASV.</p>',
                 'copyright': '<p class="copyright">Copyright © 2023 by unfoldingWord.</p>',
                 'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
                 'acknowledgements': '<p class="acknwldg">Thanks to <a href="https://www.unfoldingword.org/">unfoldingWord</a> for creating this Bible translation which is designed to be a tool for Bible translators.</p>' },
@@ -670,6 +675,10 @@ We’re also grateful to the <a href="https://www.Biblica.com/clear/">Biblica Cl
                 'copyright': '<p class="copyright">Copyright © (coming).</p>',
                 'licence': '<p class="licence">(coming).</p>',
                 'acknowledgements': '<p class="acknwldg">(coming).</p>' },
+        'AHB': {'about': '<p class="about">(Robert Alter) The Hebrew Bible: A Translation with Commentary (2018/2019).</p>',
+                'copyright': '<p class="copyright">Copyright © Robert Alter 2018/2019.</p>',
+                'licence': '<p class="licence">Normal copyright—a few verses used under fair use conventions.</p>',
+                'notes': '<p class="note">Alter’s work is renowned for its focus on literary style and the nuanced meaning of the original Hebrew, covering the Torah, Prophets, and Writings.</p>' },
         'CSB': {'about': '<p class="about">(Holmes) Christian Standard Bible (2017).</p>',
                 'copyright': '<p class="copyright">Copyright © (coming).</p>',
                 'licence': '<p class="licence">(coming).</p>' },
@@ -743,7 +752,7 @@ We’re also grateful to the <a href="https://www.Biblica.com/clear/">Biblica Cl
         'FBV': {'about': '<p class="about">Free Bible Version (2018).</p>',
                 'copyright': '<p class="copyright">Copyright © (coming).</p>',
                 'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
-                'acknowledgements': '<p class="acknwldg">Thanks to <a href="http://www.freebibleversion.org/">Free Bible Ministry</a> for this translation. (coming).</p>' },
+                'acknowledgements': '<p class="acknwldg">Thanks to <a href="http://www.freebibleversion.org/">Free Bible Ministry</a> (associated with the Seventh Day Adventist church) for this translation. (coming).</p>' },
         'TCNT': {'about': '''<p class="about">Text-Critical New Testament: Byzantine Text Version (2022) from their own Byzantine-priority Greek New Testament.</p>
 <p class="about">Adam Boyd released the Byzantine Text Version in 2022. It is based on the Robinson-Pierpont third edition (RP2018). Boyd describes it as following the “‘optimal equivalence’ philosophy of translation, employing a literary style that is reminiscent of the Tyndale-King James legacy while flowing smoothly and naturally in modern English.” He added: “On the literal to dynamic scale, I would put it somewhere between ESV and CSB (but closer to ESV).”</p>''',
                 'copyright': '<p class="copyright">Copyright © (coming).</p>',
@@ -757,6 +766,9 @@ We’re also grateful to the <a href="https://www.Biblica.com/clear/">Biblica Cl
                 'copyright': '<p class="copyright">Copyright © 2012 <a href="http://www.logos.com/">Logos Bible Software</a>. Lexham is a registered trademark of <a href="http://www.logos.com/">Logos Bible Software</a>.</p>',
                 'licence': '<p class="licence">You can give away the <a href="https://lexhampress.com/LEB-License">Lexham English Bible</a>, but you can’t sell it on its own. If the LEB comprises less than 25% of the content of a larger work, you can sell it as part of that work.</p>',
                 'acknowledgements': '<p class="acknwldg">Thanks to <a href="http://www.logos.com/">Logos Bible Software</a> for supplying a XML file.</p>' },
+        'NRSVue': {'about': '<p class="about">New Revised Standard Version Updated Edition (2021).</p>',
+                'copyright': '<p class="copyright">Copyright © (coming).</p>',
+                'licence': '<p class="licence">(coming).</p>' },
         'NRSV': {'about': '<p class="about">New Revised Standard Version (1989).</p>',
                 'copyright': '<p class="copyright">Copyright © (coming).</p>',
                 'licence': '<p class="licence">(coming).</p>' },

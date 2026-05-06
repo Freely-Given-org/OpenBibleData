@@ -45,6 +45,7 @@ fullDemo() -> None
 CHANGELOG:
     2024-01-30 Load UBS Dictionary of Greek New Testament
     2024-02-22 Load UBS Dictionary of Biblical Hebrew
+    2024-04-29 TOSN and UBS dictionaries have been moved into state (rather than global variables in this module)
 """
 from gettext import gettext as _
 import os.path
@@ -57,12 +58,12 @@ import json
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 
-from settings import State
+from settings import State, state
 from html import makeTop, makeBottom, checkHtml
 from OETHandlers import getOETTidyBBB
 
 
-LAST_MODIFIED_DATE = '2026-01-08' # by RJH
+LAST_MODIFIED_DATE = '2026-04-26' # by RJH
 SHORT_PROGRAM_NAME = "Dictionary"
 PROGRAM_NAME = "OpenBibleData Dictionary handler"
 PROGRAM_VERSION = '0.47'
@@ -73,19 +74,18 @@ DEBUGGING_THIS_MODULE = False
 NEWLINE = '\n'
 
 
-TOBDData = {}
 def loadTyndaleOpenBibleDictXML( abbrev:str, folderpath ) -> None:
     """
     """
-    global TOBDData
     fnPrint( DEBUGGING_THIS_MODULE, f"loadTyndaleOpenBibleDictXML( '{abbrev}', '{folderpath}', ... )")
-    TOBDData['Letters'], TOBDData['Articles'], TOBDData['Textboxes'], TOBDData['Maps'] = {}, {}, {}, {}
+    state.TOBDData = {}
+    state.TOBDData['Letters'], state.TOBDData['Articles'], state.TOBDData['Textboxes'], state.TOBDData['Maps'] = {}, {}, {}, {}
 
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Preloading Tyndale Open Bible Dictionary from {folderpath}…" )
     for letter in 'ABCDEFGHIJKLMNOPQRSTUVWXZ': # Y is ommitted
         if letter=='X': letter = 'XY'
         loadDictLetterXML( letter, folderpath )
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  loadTyndaleOpenBibleDictXML() loaded {len(TOBDData['Letters']):,} letter sets with {len(TOBDData['Articles']):,} total articles." )
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  loadTyndaleOpenBibleDictXML() loaded {len(state.TOBDData['Letters']):,} letter sets with {len(state.TOBDData['Articles']):,} total articles." )
 
 
     # Now load the introduction
@@ -188,8 +188,8 @@ def loadTyndaleOpenBibleDictXML( abbrev:str, folderpath ) -> None:
                     stateCounter += 1
                 else: halt
             # print( f"Intro {thisEntry=}" )
-            assert 'Intro' not in TOBDData
-            TOBDData['Intro'] = thisEntry
+            assert 'Intro' not in state.TOBDData
+            state.TOBDData['Intro'] = thisEntry
 
 
     # Now load the textboxes
@@ -287,9 +287,9 @@ def loadTyndaleOpenBibleDictXML( abbrev:str, folderpath ) -> None:
                     stateCounter += 1
                 else: halt
             # print( f"Textbox {thisEntry=}" )
-            assert name not in TOBDData['Textboxes']
-            TOBDData['Textboxes'][name] = thisEntry
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Loaded Tyndale Open Bible Dictionary {len(TOBDData['Textboxes']):,} textboxes from {folderpath}." )
+            assert name not in state.TOBDData['Textboxes']
+            state.TOBDData['Textboxes'][name] = thisEntry
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Loaded Tyndale Open Bible Dictionary {len(state.TOBDData['Textboxes']):,} textboxes from {folderpath}." )
 
     # Now load the maps
     vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Preloading Tyndale Open Bible Dictionary maps from {folderpath}…" )
@@ -383,16 +383,15 @@ def loadTyndaleOpenBibleDictXML( abbrev:str, folderpath ) -> None:
                     stateCounter += 1
                 else: halt
             # print( f"Map {thisEntry=}" )
-            assert name not in TOBDData['Maps']
-            TOBDData['Maps'][name] = thisEntry
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Loaded Tyndale Open Bible Dictionary {len(TOBDData['Maps']):,} maps from {folderpath}." )
+            assert name not in state.TOBDData['Maps']
+            state.TOBDData['Maps'][name] = thisEntry
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Loaded Tyndale Open Bible Dictionary {len(state.TOBDData['Maps']):,} maps from {folderpath}." )
 # end of Dict.loadTyndaleOpenBibleDictXML
 
 
 def loadDictLetterXML( letter:str, folderpath ) -> None:
     """
     """
-    global TOBDData
     fnPrint( DEBUGGING_THIS_MODULE, f"loadDictLetterXML( '{letter}', '{folderpath}', ... )")
 
     vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Preloading Tyndale Open Bible Dictionary '{letter}' from {folderpath}…" )
@@ -415,8 +414,8 @@ def loadDictLetterXML( letter:str, folderpath ) -> None:
                 if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.errorOnXMLWarning: halt
         assert releaseVersion == '1.6'
 
-        assert letter not in TOBDData['Letters']
-        TOBDData['Letters'][letter] = []
+        assert letter not in state.TOBDData['Letters']
+        state.TOBDData['Letters'][letter] = []
         for element in XMLTree:
             location = f"{topLocation}-{element.tag}"
             dPrint( 'Info', DEBUGGING_THIS_MODULE, f"{element} {element.text=}" )
@@ -558,11 +557,11 @@ def loadDictLetterXML( letter:str, folderpath ) -> None:
                         stateCounter += 1
                     else: halt
                 if thisEntry:
-                    TOBDData['Letters'][letter].append( (name,title) )
-                    assert name not in TOBDData['Articles']
-                    TOBDData['Articles'][name] = thisEntry
+                    state.TOBDData['Letters'][letter].append( (name,title) )
+                    assert name not in state.TOBDData['Articles']
+                    state.TOBDData['Articles'][name] = thisEntry
 
-    vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    loadDictLetterXML() loaded {len(TOBDData['Letters'][letter]):,} '{letter}' dict entries." )
+    vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    loadDictLetterXML() loaded {len(state.TOBDData['Letters'][letter]):,} '{letter}' dict entries." )
 # end of Dict.loadDictLetterXML
 
 
@@ -583,12 +582,12 @@ def createTyndaleDictPages( level:int, outputFolderPath, state:State ) -> bool:
     TOBD_detailsLink = f'''<a title="Show details" href="{'../'*(level)}AllDetails.htm#TOBD">©</a>'''
     UBS_detailsLink = f'''<a title="Show details" href="{'../'*(level)}UBS/details.htm">©</a>'''
 
-    letterLinkList = [f'''<a title="Go to index page for letter '{l}'" href="index_{l}.htm#Top">{l}</a>''' for l in TOBDData['Letters']]
+    letterLinkList = [f'''<a title="Go to index page for letter '{l}'" href="index_{l}.htm#Top">{l}</a>''' for l in state.TOBDData['Letters']]
     lettersParagraph = f'''<p class="dctLtrs">{' '.join(letterLinkList)}</p>'''
 
     # Make dictionary article pages
-    articleList = [a for a in TOBDData['Articles']]
-    for j,(articleLinkName,article) in enumerate( TOBDData['Articles'].items() ):
+    articleList = [a for a in state.TOBDData['Articles']]
+    for j,(articleLinkName,article) in enumerate( state.TOBDData['Articles'].items() ):
         dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"Making article page for '{articleLinkName}'…" )
         leftLink = f'''<a title="Previous article" href="{articleList[j-1]}.htm#__ID__">←</a> ''' if j>0 else ''
         rightLink = f''' <a title="Next article" href="{articleList[j+1]}.htm#__ID__">→</a>''' if j<len(articleList)-1 else ''
@@ -621,8 +620,8 @@ def createTyndaleDictPages( level:int, outputFolderPath, state:State ) -> bool:
         vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(articleHtml):,} characters written to {filepath}" )
 
     # Make letter index pages
-    letterList = [l for l in TOBDData['Letters']]
-    for j,(letter,articleList) in enumerate( TOBDData['Letters'].items() ):
+    letterList = [l for l in state.TOBDData['Letters']]
+    for j,(letter,articleList) in enumerate( state.TOBDData['Letters'].items() ):
         dPrint( 'Info', DEBUGGING_THIS_MODULE, f"Making letter summary page for '{letter}'…" )
         leftLink = f'''<a title="Previous letter" href="index_{letterList[j-1]}.htm#__ID__">←</a> ''' if j>0 else ''
         rightLink = f''' <a title="Next letter" href="index_{letterList[j+1]}.htm#__ID__">→</a>''' if j<len(letterList)-1 else ''
@@ -663,7 +662,7 @@ def createTyndaleDictPages( level:int, outputFolderPath, state:State ) -> bool:
     introHtml = f'''{top}<p class="note"><b>Note</b>: The Tyndale Open Bible Dictionary is included on this site because it contains a wealth of useful information,
 even though it was originally designed to supplement the <i>New Living Translation</i>, not our <em>Open English Translation</em>.</p>
 <h1 id="Top">Tyndale Open Bible Dictionary <small>{TOBD_detailsLink}</small></h1>
-{TOBDData['Intro']}
+{state.TOBDData['Intro']}
 {makeBottom( level, None, 'dictionaryIntro', state )}'''
     assert checkHtml( 'DictionaryIntro', introHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
@@ -695,7 +694,7 @@ even though it was originally designed to supplement the <i>New Living Translati
         indexHtmlFile.write( indexHtml )
     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Created {len(TOBDData['Articles']):,} Tyndale Bible Dict articles pages." )
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Created {len(state.TOBDData['Articles']):,} Tyndale Bible Dict articles pages." )
     return True
 # end of Dict.createTyndaleDictPages
 
@@ -757,7 +756,7 @@ def livenTyndaleTextboxRefs( abbrev:str, level:int, articleLinkName:str, html:st
         assert ixCloseQuote != -1
         textboxName = html[ixStart+54:ixCloseQuote].replace( 'AbrahamSBosom', 'AbrahamsBosom' )
         # print( f"  {articleLinkName=} {textboxName=}" )
-        try: textboxData = TOBDData['Textboxes'][textboxName]
+        try: textboxData = state.TOBDData['Textboxes'][textboxName]
         except KeyError: # there's a systematic error in the data
             fixed = False
             # Find a S that should be lowercase, e.g., AbrahamSBosom
@@ -767,7 +766,7 @@ def livenTyndaleTextboxRefs( abbrev:str, level:int, articleLinkName:str, html:st
                 if ixS == -1: break
                 if textboxName[ixS+1].isupper():
                     textboxName = f'{textboxName[:ixS]}s{textboxName[ixS+1:]}' # Convert things like AbrahamSBosom to a lowercase s
-                    textboxData = TOBDData['Textboxes'][textboxName]
+                    textboxData = state.TOBDData['Textboxes'][textboxName]
                     vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Fixed S {articleLinkName=} {textboxName=}")
                     fixed = True
                     break
@@ -781,7 +780,7 @@ def livenTyndaleTextboxRefs( abbrev:str, level:int, articleLinkName:str, html:st
                     if ixT == -1: break
                     if textboxName[ixT+1].isupper():
                         textboxName = f'{textboxName[:ixT]}t{textboxName[ixT+1:]}' # Convert things like AntilegomenaTheBooksThatDidnTMakeIt to lowercase t
-                        textboxData = TOBDData['Textboxes'][textboxName]
+                        textboxData = state.TOBDData['Textboxes'][textboxName]
                         vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Fixed T {articleLinkName=} {textboxName=}")
                         fixed = True
                     tSearchStartIndex = ixT + 1
@@ -821,7 +820,7 @@ def livenTyndaleMapRefs( abbrev:str, level:int, articleLinkName:str, html:str, s
         mapName = html[ixStart+44:ixCloseQuote].replace( 'TheDeathofMoses', 'TheDeathOfMoses' ) \
                     .replace( 'TheSevenChurchesofRevelation', 'TheSevenChurchesOfRevelation' ).replace( 'UroftheChaldeans', 'UrOfTheChaldeans' )
         # print( f"{articleLinkName=} {mapName=}" )
-        mapData = TOBDData['Maps'][mapName].replace( 'src="artfiles/', 'src="' ).replace( '.pdf"', '.pdf-1.png"' ).replace( '></img>', '/>' )
+        mapData = state.TOBDData['Maps'][mapName].replace( 'src="artfiles/', 'src="' ).replace( '.pdf"', '.pdf-1.png"' ).replace( '></img>', '/>' )
         # print( f"{articleLinkName} {mapData=}" )
         ourNewLink = f'''<div class="Mapbox">{mapData}</div><!--end of Mapbox-->'''
         # print( f"   {ourNewLink=}" )
@@ -833,12 +832,9 @@ def livenTyndaleMapRefs( abbrev:str, level:int, articleLinkName:str, html:str, s
 # end of Bibles.livenTyndaleMapRefs
 
 
-USB_GNT_DATA = []
-USB_GNT_ID_INDEX, USB_GNT_LEMMA_INDEX = {}, {}
 def loadAndIndexUBSGreekDictJSON( abbrev:str, folderpath ) -> None:
     """
     """
-    global USB_GNT_DATA, USB_GNT_ID_INDEX, USB_GNT_LEMMA_INDEX
     # print( f"loadAndIndexUBSGreekDictJSON( '{abbrev}', {type(folderpath)} {folderpath=}, ... )" )
     fnPrint( DEBUGGING_THIS_MODULE, f"loadAndIndexUBSGreekDictJSON( '{abbrev}', '{folderpath}', ... )")
 
@@ -857,12 +853,13 @@ def loadAndIndexUBSGreekDictJSON( abbrev:str, folderpath ) -> None:
     # print( f"{abbrev} entry -1/{len(tempList)}: {tempList[-1]=}")
 
     # Index and remove Chinese comments at the same time
-    USB_GNT_DATA = []
+    state.UBS_GNT_DATA = []
+    state.UBS_GNT_ID_INDEX, state.UBS_GNT_LEMMA_INDEX = {}, {}
     for n,entry in enumerate( tempList ):
         # print( f"\n\n{n}: {entry}")
-        assert entry['MainId'] not in USB_GNT_ID_INDEX
-        assert entry['Lemma'] not in USB_GNT_LEMMA_INDEX
-        USB_GNT_ID_INDEX[entry['MainId']] = USB_GNT_LEMMA_INDEX['Lemma'] = n
+        assert entry['MainId'] not in state.UBS_GNT_ID_INDEX
+        assert entry['Lemma'] not in state.UBS_GNT_LEMMA_INDEX
+        state.UBS_GNT_ID_INDEX[entry['MainId']] = state.UBS_GNT_LEMMA_INDEX['Lemma'] = n
         for b, baseForm in enumerate( entry['BaseForms'] ):
             # print( f"  {b}: {type(baseForm)} {baseForm=}" )
             if baseForm['Inflections']:
@@ -874,36 +871,32 @@ def loadAndIndexUBSGreekDictJSON( abbrev:str, folderpath ) -> None:
                             # print( f"        Deleting {c}: {type(comment)} {comment=}" )
                             inflection['Comments'].pop( c )
                             # print( f"  {n}: {entry}")
-        USB_GNT_DATA.append( entry )
+        state.UBS_GNT_DATA.append( entry )
     del tempList
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  loadAndIndexUBSGreekDictJSON() loaded {len(USB_GNT_DATA):,} GNT Dictionary entries." )
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  loadAndIndexUBSGreekDictJSON() loaded {len(state.UBS_GNT_DATA):,} GNT Dictionary entries." )
 # end of Bibles.loadAndIndexUBSGreekDictJSON
 
 
-USB_HEB_DOMAIN_DATA, USB_HEB_DATA = [], []
-USB_HEB_ID_INDEX, USB_HEB_LEMMA_INDEX = {}, {}
 def loadAndIndexUBSHebrewDictJSON( abbrev:str, folderpath ) -> None:
     """
     """
-    global USB_HEB_DOMAIN_DATA, USB_HEB_DATA, USB_HEB_ID_INDEX, USB_HEB_LEMMA_INDEX
-    # print( f"loadAndIndexUBSHebrewDictJSON( '{abbrev}', {type(folderpath)} {folderpath=}, ... )" )
     fnPrint( DEBUGGING_THIS_MODULE, f"loadAndIndexUBSHebrewDictJSON( '{abbrev}', '{folderpath}', ... )")
 
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Preloading UBS Dictionary of the Biblical Hebrew from {folderpath}…" )
     filepath = os.path.join( folderpath, 'UBSHebrewDicLexicalDomains-v0.9.1-en.JSON')
     # print( f"{filepath=}" )
     with open( filepath, 'rt', encoding='utf-8' ) as json_file:
-        USB_HEB_DOMAIN_DATA = json.load(json_file)
+        state.UBS_HEB_DOMAIN_DATA = json.load(json_file)
 
     # Something like
-    # UHD domain entry 0/417: USB_HEB_DOMAIN_DATA[0]={'SemanticDomainLocalizations': [{'LanguageCode': 'en', 'Label': 'Objects', 'Description': 'All animate and inanimate entities, both natural and supernatural', 'Opposite': '', 'Comment': ''}], 'Level': 1, 'Prototype': '', 'Reference': '', 'Code': '001', 'HasSubDomains': True, 'Entries': []}
-    # UHD domain entry 1/417: USB_HEB_DOMAIN_DATA[1]={'SemanticDomainLocalizations': [{'LanguageCode': 'en', 'Label': 'Beings', 'Description': 'All living beings, whether natural or supernatural', 'Opposite': '', 'Comment': ''}], 'Level': 2, 'Prototype': '', 'Reference': '', 'Code': '001001', 'HasSubDomains': True, 'Entries': []}
-    # UHD domain entry -1/417: USB_HEB_DOMAIN_DATA[-1]={'SemanticDomainLocalizations': [{'LanguageCode': 'en', 'Label': 'Timers', 'Description': '', 'Opposite': '', 'Comment': ''}], 'Level': 2, 'Prototype': '', 'Reference': '', 'Code': '004009', 'HasSubDomains': False, 'Entries': []}
-    # print( f"{abbrev} domain entry 0/{len(USB_HEB_DOMAIN_DATA)}: {USB_HEB_DOMAIN_DATA[0]=}")
-    # print( f"{abbrev} domain entry 1/{len(USB_HEB_DOMAIN_DATA)}: {USB_HEB_DOMAIN_DATA[1]=}")
-    # print( f"{abbrev} domain entry -1/{len(USB_HEB_DOMAIN_DATA)}: {USB_HEB_DOMAIN_DATA[-1]=}")
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  loadAndIndexUBSHebrewDictJSON() loaded {len(USB_HEB_DOMAIN_DATA):,} HEB Domain entries." )
+    # UHD domain entry 0/417: UBS_HEB_DOMAIN_DATA[0]={'SemanticDomainLocalizations': [{'LanguageCode': 'en', 'Label': 'Objects', 'Description': 'All animate and inanimate entities, both natural and supernatural', 'Opposite': '', 'Comment': ''}], 'Level': 1, 'Prototype': '', 'Reference': '', 'Code': '001', 'HasSubDomains': True, 'Entries': []}
+    # UHD domain entry 1/417: UBS_HEB_DOMAIN_DATA[1]={'SemanticDomainLocalizations': [{'LanguageCode': 'en', 'Label': 'Beings', 'Description': 'All living beings, whether natural or supernatural', 'Opposite': '', 'Comment': ''}], 'Level': 2, 'Prototype': '', 'Reference': '', 'Code': '001001', 'HasSubDomains': True, 'Entries': []}
+    # UHD domain entry -1/417: UBS_HEB_DOMAIN_DATA[-1]={'SemanticDomainLocalizations': [{'LanguageCode': 'en', 'Label': 'Timers', 'Description': '', 'Opposite': '', 'Comment': ''}], 'Level': 2, 'Prototype': '', 'Reference': '', 'Code': '004009', 'HasSubDomains': False, 'Entries': []}
+    # print( f"{abbrev} domain entry 0/{len(UBS_HEB_DOMAIN_DATA)}: {UBS_HEB_DOMAIN_DATA[0]=}")
+    # print( f"{abbrev} domain entry 1/{len(UBS_HEB_DOMAIN_DATA)}: {UBS_HEB_DOMAIN_DATA[1]=}")
+    # print( f"{abbrev} domain entry -1/{len(UBS_HEB_DOMAIN_DATA)}: {UBS_HEB_DOMAIN_DATA[-1]=}")
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  loadAndIndexUBSHebrewDictJSON() loaded {len(state.UBS_HEB_DOMAIN_DATA):,} HEB Domain entries." )
 
     filepath = os.path.join( folderpath, 'UBSHebrewDic-v0.9.1-en.JSON')
     # print( f"{filepath=}" )
@@ -919,12 +912,13 @@ def loadAndIndexUBSHebrewDictJSON( abbrev:str, folderpath ) -> None:
     # print( f"{abbrev} entry -1/{len(tempList)}: {tempList[-1]=}")
 
     # Index and remove Chinese comments at the same time
-    USB_HEB_DATA = []
+    state.UBS_HEB_DATA = []
+    state.UBS_HEB_ID_INDEX, state.UBS_HEB_LEMMA_INDEX = {}, {}
     for n,entry in enumerate( tempList ):
         # print( f"\n\n{n}: {entry}")
-        assert entry['MainId'] not in USB_HEB_ID_INDEX
-        assert entry['Lemma'] not in USB_HEB_LEMMA_INDEX
-        USB_HEB_ID_INDEX[entry['MainId']] = USB_HEB_LEMMA_INDEX['Lemma'] = n
+        assert entry['MainId'] not in state.UBS_HEB_ID_INDEX
+        assert entry['Lemma'] not in state.UBS_HEB_LEMMA_INDEX
+        state.UBS_HEB_ID_INDEX[entry['MainId']] = state.UBS_HEB_LEMMA_INDEX['Lemma'] = n
         for b, baseForm in enumerate( entry['BaseForms'] ):
             # print( f"  {b}: {type(baseForm)} {baseForm=}" )
             if baseForm['Inflections']:
@@ -936,10 +930,10 @@ def loadAndIndexUBSHebrewDictJSON( abbrev:str, folderpath ) -> None:
                             vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"        Deleting {c}: {type(comment)} {comment=}" )
                             inflection['Comments'].pop( c )
                             # print( f"  {n}: {entry}")
-        USB_HEB_DATA.append( entry )
+        state.UBS_HEB_DATA.append( entry )
     del tempList
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  loadAndIndexUBSHebrewDictJSON() loaded {len(USB_HEB_DATA):,} HEB Dictionary entries." )
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  loadAndIndexUBSHebrewDictJSON() loaded {len(state.UBS_HEB_DATA):,} HEB Dictionary entries." )
 # end of Bibles.loadAndIndexUBSHebrewDictJSON
 
 
@@ -983,7 +977,6 @@ def getLexReferencesHtmlList( level, lexRefs ) -> list[str]:
 def createUBSGreekDictionaryPages( level, outputFolderPath, state:State ) -> None:
     """
     """
-    global USB_GNT_DATA, USB_GNT_ID_INDEX, USB_GNT_LEMMA_INDEX
     fnPrint( DEBUGGING_THIS_MODULE, f"createUBSGreekDictionaryPages( {level}, '{outputFolderPath}', ... )")
 
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, "  Creating UBS Greek Bible Dict pages…" )
@@ -996,8 +989,8 @@ def createUBSGreekDictionaryPages( level, outputFolderPath, state:State ) -> Non
     detailsLink = f'''<a title="Show details" href="{'../'*(level)}AllDetails.htm#UBS">©</a>'''
 
     # Make dictionary article pages
-    lemmaList = [a['Lemma'] for a in USB_GNT_DATA]
-    for e,entry in enumerate( USB_GNT_DATA ): # each entry is a dict
+    lemmaList = [a['Lemma'] for a in state.UBS_GNT_DATA]
+    for e,entry in enumerate( state.UBS_GNT_DATA ): # each entry is a dict
         lemma = entry['Lemma']
         dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"Making article page for '{lemma}'…" )
         leftLink = f'''<a title="Previous article" href="{lemmaList[e-1]}.htm#__ID__">←</a> ''' if e>0 else ''
@@ -1062,7 +1055,6 @@ def createUBSGreekDictionaryPages( level, outputFolderPath, state:State ) -> Non
 def createUBSHebrewDictionaryPages( level, outputFolderPath, state:State ) -> None:
     """
     """
-    global USB_HEB_DOMAIN_DATA, USB_HEB_DATA, USB_HEB_ID_INDEX, USB_HEB_LEMMA_INDEX
 
     fnPrint( DEBUGGING_THIS_MODULE, f"createUBSHebrewDictionaryPages( {level}, '{outputFolderPath}', ... )")
 
@@ -1076,8 +1068,8 @@ def createUBSHebrewDictionaryPages( level, outputFolderPath, state:State ) -> No
     detailsLink = f'''<a title="Show details" href="{'../'*(level)}AllDetails.htm#UBS">©</a>'''
 
     # Make dictionary article pages
-    lemmaList = [a['Lemma'] for a in USB_HEB_DATA]
-    for e,entry in enumerate( USB_HEB_DATA ): # each entry is a dict
+    lemmaList = [a['Lemma'] for a in state.UBS_HEB_DATA]
+    for e,entry in enumerate( state.UBS_HEB_DATA ): # each entry is a dict
         lemma = entry['Lemma']
         dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"Making article page for '{lemma}'…" )
         leftLink = f'''<a title="Previous article" href="{lemmaList[e-1]}.htm#__ID__">←</a> ''' if e>0 else ''

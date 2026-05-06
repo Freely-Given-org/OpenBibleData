@@ -49,6 +49,8 @@ CHANGELOG:
     2025-12-15 Grey out currently selected book
     2026-01-07 Added OET Logo
     2026-02-10 Upgraded to VLT v3
+    2026-04-09 Changed to use getPositiveLeadingInt
+    2026-04-19 Added SOTN (SIL Open Translators Notes)
 
 TODO:
     Add colour keys for LV and RV words
@@ -64,7 +66,7 @@ import re
 # import BibleOrgSysGlobals
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
-from BibleOrgSys.Internals.InternalBibleInternals import getLeadingInt
+from bible_organisational_system import getPositiveLeadingInt
 
 from settings import State, CNTR_BOOK_ID_MAP, reorderBooksForOETVersions
 from usfm import convertUSFMMarkerListToHtml
@@ -73,12 +75,13 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
                     makeTop, makeBottom, makeBookNavListParagraph, checkHtml
 from createSectionPages import findSectionNumber
 from OETHandlers import livenOETWordLinks, getOETBookName, getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename
+from jsonResources import getFormattedSILOpenTranslationNotes
 
 
-LAST_MODIFIED_DATE = '2026-03-16' # by RJH
+LAST_MODIFIED_DATE = '2026-04-19' # by RJH
 SHORT_PROGRAM_NAME = "createOETInterlinearPages"
 PROGRAM_NAME = "OpenBibleData createOETInterlinearPages functions"
-PROGRAM_VERSION = '0.65'
+PROGRAM_VERSION = '0.67'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -351,7 +354,9 @@ def createOETInterlinearVerseInner( level:int, BBB:str, c:int, v:int, state:Stat
             rvHtml = f'''< class="ilNote"><span class="wrkName">OET-RV</span> <span class="noBook"><small>{warningText}</small></span></p>'''
         logging.warning( warningText )
         rvVerseEntryList = []
-    # Handle (uW) translation notes and (Tyndale) study notes
+    # Handle (SIL and uW) translation notes and (Tyndale) study notes
+    sotnHtml = getFormattedSILOpenTranslationNotes( level, BBB, C, V, 'interlinearVerse', state )
+    if sotnHtml: sotnHtml = f'<div class="SOTN"><b>SIL Open Translator’s Notes</b>: {sotnHtml}</div><!--end of SOTN-->\n'
     utnHtml = formatUnfoldingWordTranslationNotes( level, BBB, C, V, 'interlinearVerse', state )
     if utnHtml: utnHtml = f'<div class="UTN"><b>uW Translation Notes</b>: {utnHtml}</div><!--end of UTN-->\n'
     tsnHtml = formatTyndaleNotes( 'TOSN', level, BBB, C, V, 'interlinearVerse', state )
@@ -414,7 +419,7 @@ def createOETInterlinearVerseInner( level:int, BBB:str, c:int, v:int, state:Stat
             logging.warning( f"OET-LV {BBB} {c}:{v} word/number split failed on '{extendedWord}'" )
             # print( f"OET-LV {BBB} {c}:{v} {text=} {lvEnglishWordList=}")
             continue
-        number = getLeadingInt( numberStr )
+        number = getPositiveLeadingInt( numberStr )
         if number < 1 or number >= len(wordTable):
             logging.critical( f"OET-LV {BBB} {c}:{v} word/number out of range from '{extendedWord}'" )
             # print( f"OET-LV {BBB} {c}:{v} {text=} {lvEnglishWordList=}")
@@ -430,7 +435,7 @@ def createOETInterlinearVerseInner( level:int, BBB:str, c:int, v:int, state:Stat
             logging.warning( f"OET-RV {BBB} {c}:{v} word/number split failed on '{extendedWord}'" )
             # print( f"OET-RV {BBB} {c}:{v} {text=} {lvEnglishWordList=}")
             continue
-        number = getLeadingInt( numberStr )
+        number = getPositiveLeadingInt( numberStr )
         if number < 1 or number >= len(wordTable):
             logging.critical( f"OET-RV {BBB} {c}:{v} word/number out of range from '{extendedWord}'" )
             # print( f"OET-RV {BBB} {c}:{v} {text=} {rvEnglishWordList=}")
@@ -558,6 +563,7 @@ def createOETInterlinearVerseInner( level:int, BBB:str, c:int, v:int, state:Stat
 </ol><!--verse--></div><!--interlinear-->
 {lvHtml}
 {rvHtml}
+{sotnHtml}
 {utnHtml}
 {tsnHtml}
 <h2>OET-LV English word order (‘Reverse’ interlinear)</h2><div class=interlinear><ol class=verse>'''
@@ -600,7 +606,7 @@ def createOETInterlinearVerseInner( level:int, BBB:str, c:int, v:int, state:Stat
         try: word,numberStr = extendedWord.split( '¦' )
         except ValueError:
             logging.critical( f"OET-LV {BBB} {c}:{v} word/number split failed on '{extendedWord}'" )
-        wordNumber = getLeadingInt( numberStr )
+        wordNumber = getPositiveLeadingInt( numberStr )
 
         if wordNumber == lastWordNumber: # Put into the last cell
             lastEntry = reverseList.pop()

@@ -43,20 +43,21 @@ from csv import  DictReader
 import re
 import logging
 
-import sys
-sys.path.append( '../../../BibleOrgSys/' )
+# import sys
+# sys.path.append( '../../../BibleOrgSys/' )
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 import BibleOrgSys.Formats.USFMBible as USFMBible
 import BibleOrgSys.Formats.ESFMBible as ESFMBible
 import BibleOrgSys.Formats.USXXMLBible as USXXMLBible
 from BibleOrgSys.Reference.BibleOrganisationalSystems import BibleOrganisationalSystem
+import sys
 sys.path.append( '../crossTestamentQuotes/' )
 from load import getIndividualQuotedOTRefs, getIndividualQuotingNTRefs
 
 
 
-LAST_MODIFIED_DATE = '2026-04-02' # by RJH
+LAST_MODIFIED_DATE = '2026-04-12' # by RJH
 SHORT_PROGRAM_NAME = "SentenceImportance_initialisation"
 PROGRAM_NAME = "Sentence Importance initialisation"
 PROGRAM_VERSION = '0.25'
@@ -120,7 +121,7 @@ importantRefsWithRanges = [ # Often memorised
     'PSA_51:10',
     'PRO_4:1-7',
     'ECC_8:15',
-    'ISA_2:2-4','ISA_6:1-8','ISA_11:1-12','ISA_41:10',
+    'ISA_2:2-4','ISA_6:1-8','ISA_11:1-12','ISA_27:6','ISA_28:16','ISA_41:10',
     'MAT_4:4',
     'LUK_24:27',
     'JHN_1:1-18','JHN_7:16','JHN_16:33','JHN_17:23',
@@ -128,11 +129,12 @@ importantRefsWithRanges = [ # Often memorised
     'CO1_10:6-11',
     'ROM_3:19-22','ROM_5:16-21','ROM_15:4','ROM_16:17',
     'GAL_3:21-22',
-    'EPH_4:14',
+    'EPH_4:14','EPH_6:4',
     'TI1_4:13','TI1_4:16','TI1_6:3',
     'TI2_2:15','TI2_4:3-4',
     'TIT_1:9','TIT_2:1',
     'HEB_4:12-13','HEB_13:9',
+    'PE1_2:2',
     'PE2_3:15-16',
     'JN1_4:1',
     'JN2_1:9',
@@ -171,7 +173,7 @@ unclearClarityRefs = [ # Mostly sure what's in the Hebrew or Greek,
         # but not sure what it means, or what the cultural implications were
     'GEN_6:4',
     'EXO_15:25b',
-    'LEV_19:16','LEV_19:20',
+    'LEV_19:16','LEV_19:20','LEV_21:4','LEV_25:33a','LEV_26:38b','LEV_27:2b','LEV_27:9b','LEV_27:20',
     'DEU_33:2b','DEU_33:3','DEU_33:6b','DEU_33:8a','DEU_33:12b','DEU_33:15','DEU_33:16',
     'JDG_5:13', 'JDG_13:19b', 'JDG_14:11', 'JDG_15:8a', 'JDG_17:3b',
     'SA1_2:23', 'SA1_17:6b', 'SA1_17:29b',
@@ -197,8 +199,12 @@ unclearClarityRefs = [ # Mostly sure what's in the Hebrew or Greek,
         'PRO_21:6b','PRO_21:12','PRO_21:18','PRO_21:24','PRO_23:5','PRO_29:10b','PRO_29:24b','PRO_30:1',
     'ECC_5:9', 'ECC_10:15',
     'SNG_8:9',
-    'ISA_4:4b','ISA_5:17b','ISA_9:1','ISA_9:20','ISA_10:18','ISA_10:27b','ISA_14:21','ISA_14:31b',
+    'ISA_4:4b','ISA_5:17b','ISA_9:1','ISA_9:20','ISA_10:18','ISA_10:27b','ISA_14:21','ISA_14:31b','ISA_17:3b','ISA_17:9',
+        'ISA_19:10a','ISA_19:13b','ISA_22:3a','ISA_22:5','ISA_23:7','ISA_24:23b','ISA_25:7','ISA_25:11',
+        'ISA_27:4','ISA_27:7','ISA_27:8','ISA_27:9','ISA_27:10b','ISA_28:10','ISA_28:16b','ISA_29:2b','ISA_29:17',
+        'ISA_36:9','ISA_37:25','ISA_38:16a',
         'ISA_53:11a',
+    'JER_1:15b',
     'EZE_8:17b', 'EZE_16:24', 'EZE_21:13', 'EZE_24:12', 'EZE_24:17b', 'EZE_26:20b',
     'DAN_8:12','DAN_8:13a','DAN_11:43b',
     'HOS_11:7b',
@@ -216,6 +222,7 @@ textualCriticismRefs = [ # Hebrew or Greek original manuscripts vary
     'SA2_6:1',
     'CH1_24:26', # Beno
     'JOB_39:13a','JOB_39:13b','JOB_39:14','JOB_39:15','JOB_39:16','JOB_39:17','JOB_39:18', # Ostrich section
+    'ISA_21:8a', # lion
     ]
 for ref in textualCriticismRefs:
     assert ref.count( '_' ) == 1, f"textualCriticismRefs {ref=}"

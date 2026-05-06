@@ -70,6 +70,7 @@ CHANGELOG:
     2025-11-16 Don't include un-asked-for OET-RV books (was including all loaded books like for other versions, i.e., all books)
     2026-01-07 Added OET Logo
     2026-04-01 Added JSON word files in app/
+    2026-04-22 Section indexes are now made BEFORE pickling
 """
 from gettext import gettext as _
 from pathlib import Path
@@ -79,12 +80,12 @@ import glob
 from datetime import date
 import logging
 
-import sys
 # sys.path.append( '../../BibleOrgSys/' )
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39, BOOKLIST_NT27
 
+import sys
 sys.path.append( '../../BibleTransliterations/Python/' )
 from BibleTransliterations import load_transliteration_table
 
@@ -105,7 +106,7 @@ from html import makeTop, makeViewNavListParagraph, makeBottom, checkHtml
 from spellCheckEnglish import printSpellCheckSummary
 
 
-LAST_MODIFIED_DATE = '2026-04-01' # by RJH
+LAST_MODIFIED_DATE = '2026-04-22' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData (OBD) Create Site Pages"
 PROGRAM_VERSION = '0.99'
@@ -254,10 +255,6 @@ def _createSitePages() -> bool:
 
     if state.CREATE_BOOK_AND_OTHER_PAGES_FLAG:
         if 'OET' in state.BibleVersions: # this is a special case
-            # vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\nDoing discovery on OET…" )
-            # state.preloadedBibles['OET-RV'].discover() # Now that all required books are loaded
-            # state.preloadedBibles['OET-LV'].discover() #     ..ditto..
-
             vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Creating {'TEST ' if state.TEST_MODE_FLAG else ''}version pages for OET…" )
             versionFolder = state.TEMP_BUILD_FOLDER.joinpath( f'OET/' )
             _createOETVersionPages( 1, versionFolder, state.preloadedBibles['OET-RV'], state.preloadedBibles['OET-LV'], state )
@@ -282,7 +279,6 @@ def _createSitePages() -> bool:
             else: # these versions should have the full pages
                 if versionAbbreviation == 'TTN': continue # Not actually a Bible version
                 # vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nDoing discovery for {thisBible.abbreviation} ({thisBible.name})…" )
-                # thisBible.discover() # Now that all required books are loaded
                 assert 'discoveryResults' in thisBible.__dict__
                 if 'haveSectionHeadings' not in thisBible.discoveryResults['ALL']: # probably we have no books that actually loaded
                     dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Adding discoveryResults 'haveSectionHeadings' for {thisBible.abbreviation}: no books loaded?" )

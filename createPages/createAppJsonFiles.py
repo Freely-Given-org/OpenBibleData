@@ -52,7 +52,7 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39, BOOKLIST_NT27, BOOKLIST_66
 from BibleOrgSys.Reference.BibleVersificationSystems import BibleVersificationSystem
 from BibleOrgSys.OriginalLanguages import Hebrew, BibleLexicon
-from BibleOrgSys.Internals.InternalBibleInternals import getLeadingInt
+from bible_organisational_system import getPositiveLeadingInt
 
 import sys
 sys.path.append( '../../BibleTransliterations/Python/' )
@@ -61,17 +61,17 @@ from BibleTransliterations import transliterate_Hebrew, transliterate_Greek
 from settings import State, state, CNTR_BOOK_ID_MAP
 from OETHandlers import getOETTidyBBB, getOETBookName, getHebrewWordpageFilename, getGreekWordpageFilename, livenOETWordLinks
 from createSectionPages import findSectionNumber
-from createOETReferencePages import HebrewWordFileName, tidy_Hebrew_word_gloss, tidy_Hebrew_morphology, \
+from createOETReferencePages import HebrewWordFileName, convert_Hebrew_word_gloss_spans, tidy_Hebrew_morphology, \
                     GLOSS_TYPE_STRING_DICT,\
                 GreekWordFileName, formatNTContextSpansOETGlossWords, \
                     CNTR_ROLE_NAME_DICT, CNTR_MOOD_NAME_DICT, CNTR_TENSE_NAME_DICT, CNTR_VOICE_NAME_DICT, CNTR_PERSON_NAME_DICT, \
                     CNTR_CASE_NAME_DICT, CNTR_GENDER_NAME_DICT, CNTR_NUMBER_NAME_DICT
 
 
-LAST_MODIFIED_DATE = '2026-04-02' # by RJH
+LAST_MODIFIED_DATE = '2026-04-26' # by RJH
 SHORT_PROGRAM_NAME = "createAppJsonFiles"
 PROGRAM_NAME = "OpenBibleData createAppJsonFiles functions"
-PROGRAM_VERSION = '0.10'
+PROGRAM_VERSION = '0.12'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -245,7 +245,7 @@ def create_Hebrew_word_json( level:int, hh:int, hebrewWord:str, columns_string:s
     # NOTE: segs don't have glosses, plus some glosses might be missing
     gloss = contextualWordGloss if contextualWordGloss else wordGloss if wordGloss else contextualMorphemeGlosses if contextualMorphemeGlosses else morphemeGlosses
     chosenGlossType = 'cWG' if contextualWordGloss else 'wG' if wordGloss else 'cMGs' if contextualMorphemeGlosses else 'mGs'
-    gloss = tidy_Hebrew_word_gloss( gloss.replace(',',', ').replace('</','PRoTecT').replace('/', ' / ').replace('PRoTecT', '</') ) # looks much nicer
+    gloss = convert_Hebrew_word_gloss_spans( gloss.replace(',',', ').replace('</','PRoTecT').replace('/', ' / ').replace('PRoTecT', '</') ) # looks much nicer
     # NOT TRUE assert rowType in ('seg',) or gloss, f"{ref=} {rowType=} {morphemeRowList=} {lemmaRowList=} {strongs=} {morphology=} {word=} {noCantillations=} {morphemeGlosses=} {contextualMorphemeGlosses=} {wordGloss=} {contextualWordGloss=} {glossCapitalisation=} {glossPunctuation=} {glossOrder=} {glossInsert=} {role=} {nesting=} {tags=}"
     if isMultipleLemmas:
         if contextualMorphemeGlosses:
@@ -269,7 +269,7 @@ def create_Hebrew_word_json( level:int, hh:int, hebrewWord:str, columns_string:s
                 if extraGlossType != chosenGlossType and extraGlossString:
                     extraGlossTypeString = 'possible word glosses' if extraGlossType=='wG' and '/' in extraGlossString \
                                                             else GLOSS_TYPE_STRING_DICT[extraGlossType]
-                    extraGlossString = tidy_Hebrew_word_gloss( extraGlossString.replace(',',', ').replace('</','PRoTecT').replace('/', ' / ').replace('PRoTecT', '</') ) # looks much nicer
+                    extraGlossString = convert_Hebrew_word_gloss_spans( extraGlossString.replace(',',', ').replace('</','PRoTecT').replace('/', ' / ').replace('PRoTecT', '</') ) # looks much nicer
                     translationFields = f'''{translationFields} {extraGlossTypeString}=‘<b>{extraGlossString[0].upper() if glossCapitalisation=='S' else extraGlossString[0]}{extraGlossString[1:]}</b>’'''
             # translationFields = translationFields
         else:
@@ -391,7 +391,7 @@ def create_Hebrew_word_json( level:int, hh:int, hebrewWord:str, columns_string:s
 #         other_count = 0
 #         thisWordNumberList = state.OETRefData['OTFormUsageDict'][(hebrewWord,morphology)]
 #         if len(wordOETGlossesList)>1:
-#             wordGlossesStr = tidy_Hebrew_word_gloss( "</b>’, ‘<b>".join(wordOETGlossesList) )
+#             wordGlossesStr = convert_Hebrew_word_gloss_spans( "</b>’, ‘<b>".join(wordOETGlossesList) )
 #             assert '\\' not in wordGlossesStr
 #         if len(thisWordNumberList) > 100: # too many to list
 #             maxWordsToShow = 50
@@ -436,7 +436,7 @@ def create_Hebrew_word_json( level:int, hh:int, hebrewWord:str, columns_string:s
 #             oWordGloss = oWordGloss.replace( '=', '_' )
 #             # oHebrewWord = (oNoCantillations.replace( ',', '' ) # Remove morpheme breaks
 #             #                 if oNoCantillations else oWord ) # Segs and notes have nothing in the noCantillations field
-#             oGloss = tidy_Hebrew_word_gloss( oContextualWordGloss if oContextualWordGloss else oWordGloss if oWordGloss else oContextualMorphemeGlosses if oContextualMorphemeGlosses else oMorphemeGlosses )
+#             oGloss = convert_Hebrew_word_gloss_spans( oContextualWordGloss if oContextualWordGloss else oWordGloss if oWordGloss else oContextualMorphemeGlosses if oContextualMorphemeGlosses else oMorphemeGlosses )
 #             oChosenGlossType = 'cWG' if oContextualWordGloss else 'wG' if oWordGloss else 'cMGs' if oContextualMorphemeGlosses else 'mGs'
 #             oTranslation = '<small>(no English gloss here)</small>' if not oGloss or oGloss=='-' \
 #                                 else f'''{GLOSS_TYPE_STRING_DICT[oChosenGlossType]}=‘<b>{oGloss}</b>’'''
@@ -513,7 +513,7 @@ def create_Hebrew_word_json( level:int, hh:int, hebrewWord:str, columns_string:s
 #                         eHebrewWord = (eNoCantillations.replace( ',', '' ) # Remove morpheme breaks
 #                                         if eNoCantillations else eWord ) # Segs and notes have nothing in the noCantillations field
 #                         # eWordGloss = eWordGloss.replace( '=', '_' )
-#                         # eGloss = tidy_Hebrew_word_gloss( eContextualWordGloss if eContextualWordGloss else eWordGloss if eWordGloss else eContextualMorphemeGlosses if eContextualMorphemeGlosses else eMorphemeGlosses )
+#                         # eGloss = convert_Hebrew_word_gloss_spans( eContextualWordGloss if eContextualWordGloss else eWordGloss if eWordGloss else eContextualMorphemeGlosses if eContextualMorphemeGlosses else eMorphemeGlosses )
 #                         eLemmaLink = ''
 #                         if eHebrewWord!=hebrewWord or eMorphology!=morphology:
 #                             eBBB, eCVW = eWordRef.split( '_', 1 )
@@ -540,7 +540,7 @@ def create_Hebrew_word_json( level:int, hh:int, hebrewWord:str, columns_string:s
 #                             eHebrewPossibleLink = f'<a title="Go to word page" href="../HebWrd/{getHebrewWordpageFilename(thisN,state)}#Top">{eHebrewWord}</a>' if not state.TEST_MODE_FLAG or state.ALL_TEST_REFERENCE_PAGES_FLAG or eBBB in state.TEST_BOOK_LIST else eHebrewWord
 #                             extraWordSet.add( eHebrewPossibleLink )
 #                             eWordGloss = eWordGloss.replace( '=', '_' )
-#                             eGloss = tidy_Hebrew_word_gloss( eContextualWordGloss if eContextualWordGloss else eWordGloss if eWordGloss else eContextualMorphemeGlosses if eContextualMorphemeGlosses else eMorphemeGlosses )
+#                             eGloss = convert_Hebrew_word_gloss_spans( eContextualWordGloss if eContextualWordGloss else eWordGloss if eWordGloss else eContextualMorphemeGlosses if eContextualMorphemeGlosses else eMorphemeGlosses )
 #                             eChosenGlossType = 'cWG' if eContextualWordGloss else 'wG' if eWordGloss else 'cMGs' if eContextualMorphemeGlosses else 'mGs'
 #                             assert '\\' not in eGloss, f"{hh=} {eGloss=}"
 #                             eTranslation = '<small>(no English gloss here)</small>' if not eGloss or eGloss=='-' \
@@ -706,7 +706,7 @@ def create_Greek_words_json( level:int, outputFolderPath:Path, state:State ) -> 
 
         strongs = extendedStrongs[:-1] if extendedStrongs else None # drop the last digit
         if strongs:
-            state.OETRefData['usedGrkStrongs'].add( getLeadingInt(strongs) ) # Used in next function to make Strongs pages
+            state.OETRefData['usedGrkStrongs'].add( getPositiveLeadingInt(strongs) ) # Used in next function to make Strongs pages
         jsonDict['extended_Strongs'] = extendedStrongs
         jsonDict['Strongs_number'] = strongs
 
@@ -1101,7 +1101,7 @@ def create_Hebrew_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:
             versesHtml = [f'\n<p class="note">Displaying only every {sMod}<sup>th</sup> verse out of {numRefs}:</p>']
         else:
             sMod = None
-            versesHtml = [f'\n<p class="note">Appears in a total of {numRefs} verses:</p>']
+            versesHtml = [f'''\n<p class="note">Appears in {'only one verse' if numRefs==1 else f'a total of {numRefs} verses'}:</p>''']
         for ss,sRef in enumerate( state.OETRefData['OTStrongsRefs'][strongsStr] ):
             if sMod is None or ss % sMod == 0: # The first one is always displayed
                 sBBB, sCV = sRef.split( '_', 1 )
@@ -1224,7 +1224,7 @@ def create_Greek_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:B
             versesHtml = [f'\n<p class="note">Displaying only every {sMod}<sup>th</sup> verse out of {numRefs}.</p>']
         else:
             sMod = None
-            versesHtml = [f'\n<p class="note">Appears in a total of {numRefs} verses:</p>']
+            versesHtml = [f'''\n<p class="note">Appears in {'only one verse' if numRefs==1 else f'a total of {numRefs} verses'}:</p>''']
         for ss,sRef in enumerate( state.OETRefData['NTStrongsRefs'][strongsStr] ):
             if sMod is None or ss % sMod == 0: # The first one is always displayed
                 sBBB, sCV = sRef.split( '_', 1 )

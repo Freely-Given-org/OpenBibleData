@@ -48,7 +48,7 @@ import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39, BOOKLIST_NT27
 import BibleOrgSys.Formats.ESFMBible as ESFMBible
-from BibleOrgSys.Internals.InternalBibleInternals import InternalBibleEntryList
+from bible_organisational_system import InternalBibleEntryList
 
 from settings import State, CNTR_BOOK_ID_MAP
 from usfm import convertUSFMMarkerListToHtml
@@ -102,6 +102,30 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
         NT = BibleOrgSysGlobals.loadedBibleBooksCodes.isNewTestament_NR( BBB )
         ourTidyBBB = getOETTidyBBB( BBB )
         ourTidyBBBwithNotes = getOETTidyBBB( BBB, addNotes=True )
+
+        # # RUST IMPLEMENTATION TEST
+        # if BBB in ('HAG','MRK'):
+        #     if 0: # writing
+        #         with open( f'OET-RV_{BBB}_CVs.txt', 'wt', encoding='utf-8') as test_file:
+        #             test_file.write( f"OET-RV {BBB} {len(rvBible[BBB]._CVIndex)}\n" )
+        #             for n,(startCV, CVIndexEntry) in enumerate( rvBible[BBB]._CVIndex.items() ):
+        #                 test_file.write( f"{n} {startCV=} {CVIndexEntry=}\n" )
+        #         with open( f'OET-LV_{BBB}_CVs.txt', 'wt', encoding='utf-8') as test_file:
+        #             test_file.write( f"OET-RV {BBB} {len(lvBible[BBB]._CVIndex)}\n" )
+        #             for n,(startCV, CVIndexEntry) in enumerate( lvBible[BBB]._CVIndex.items() ):
+        #                 test_file.write( f"{n} {startCV=} {CVIndexEntry=}\n" )
+        #     else: # Reading and checking
+        #         for ii, internalBibleEntry in enumerate( rvBible[BBB] ):
+        #             print( f"OET-RV {BBB} {ii} {internalBibleEntry.marker=} {internalBibleEntry.cleanText=}")
+        #         for n,(startCV, CVIndexEntry) in enumerate( rvBible[BBB]._SectionIndex.items() ):
+        #             print( f"  {n} {BBB} {startCV=} {CVIndexEntry=}" )
+        #         with open( f'OET-RV_{BBB}_CVs.txt', 'rt', encoding='utf-8') as test_file:
+        #             fileChunks = test_file.read().split( '\n' )
+        #         expectedStr = f"OET-RV {BBB} {len(rvBible[BBB]._CVIndex)}"
+        #         assert expectedStr == fileChunks[0], f"{expectedStr=} {fileChunks[0]=}"
+        #         for n,(startCV, CVIndexEntry) in enumerate( rvBible[BBB]._CVIndex.items() ):
+        #             expectedStr = f"{n} {startCV=} {CVIndexEntry=}"
+        #             assert expectedStr == fileChunks[n+1], f"Section index mismatch for OET-RV {BBB} {n} {startCV=}\n    {expectedStr=}\n{fileChunks[n+1]=}"
 
         if rvBible.abbreviation in state.booksToLoad \
         and 'ALL' not in state.booksToLoad[rvBible.abbreviation] \

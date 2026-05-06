@@ -112,7 +112,7 @@ from settings import State, state
 from OETHandlers import getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2026-03-28' # by RJH
+LAST_MODIFIED_DATE = '2026-04-29' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
 PROGRAM_VERSION = '0.99'
@@ -679,7 +679,7 @@ def checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool:
                 searchStartIndex = endSpanIx + 7
         assert spanNestingLevel==0, f"\ncheckHTML() found unclosed span in '{where}' {segmentOnly=} '{'' if lastSpanIx==0 else '…'}{htmlToCheck[lastSpanIx:lastSpanIx+200]}…' FROM {htmlToCheck=}"
 
-    if not segmentOnly or '<span class="add"><' not in htmlToCheck: # < is one of our add field sub-classifiers
+    if not segmentOnly or ('<span class="add"><' not in htmlToCheck and '<span class="add">?<' not in htmlToCheck): # < is one of our add field sub-classifiers
         assert '<<' not in htmlToCheck, f"<span> '{where}' {segmentOnly=} …{htmlToCheck[htmlToCheck.index('<<')-180:htmlToCheck.index('<<')+180]}…"
     if not segmentOnly or '<span class="add">>' not in htmlToCheck: # > is one of our add field sub-classifiers
         if where not in ('UTN ZEP_1:0','Parallel ZEP_1:0'):
@@ -794,7 +794,7 @@ def checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool:
         if not match:
             break
         titleGuts = match.group(1) # Can be an entire footnote or can be a parsing of a word (with some fields still expanded like --fnColon--)
-        assert len(titleGuts) <= (1010 if titleGuts.startswith('OSHB ') or titleGuts.startswith('Note') or 'NET' in where or 'TCNT' in where or 'TC-GNT' in where or 'T4T' in where or 'Parallel' in where or 'End of parallel' in where or '1611' in where else 150), f"{where=} {segmentOnly=} title is too long ({len(titleGuts)}) {titleGuts=}"
+        assert len(titleGuts) <= (1010 if titleGuts.lstrip().startswith('OSHB ') or titleGuts.startswith('Note') or 'NET' in where or 'TCNT' in where or 'TC-GNT' in where or 'T4T' in where or 'Parallel' in where or 'End of parallel' in where or '1611' in where else 150), f"{where=} {segmentOnly=} title is too long ({len(titleGuts)}) {titleGuts=}"
         assert '\n' not in titleGuts, f"'{where}' {segmentOnly=} Bad HTML title with newline in {titleGuts=}\nFROM {htmlToCheck=}"
         assert '<br' not in titleGuts, f"'{where}' {segmentOnly=} Bad HTML title with BR in {titleGuts=}\nFROM {htmlToCheck=}"
         assert '<span' not in titleGuts, f"'{where}' {segmentOnly=} Bad HTML title with SPAN in {titleGuts=}\nFROM {htmlToCheck=}"
@@ -1065,7 +1065,7 @@ def do_OET_RV_HTMLcustomisations( where:str, OET_RV_html:str ) -> str:
             .replace( '^', '<span class="antiParr" title="antithetic parallelism">^ </span>')
             .replace( '→', '<span class="synthParr" title="synthetic parallelism">→ </span>')
             )
-
+    
     # Just do an additional check inside '<span class="RVadd">' spans
     startSearchIndex = 0
     for _safetyCount in range( 3_000 ): # 2_000 wasn't enough

@@ -71,6 +71,11 @@ CHANGELOG:
     2025-09-02 Added RP (Byz) GNT
     2025-09-26 Added MSB
     2025-10-30 Attempt to fix pickle filenames if state.ALL_PRODUCTION_BOOKS_FLAG is false
+    2026-04-08 Ignore failure to pickle a Bible (when we use Rust internals) and add USE_PICKLES_FLAG
+    2026-04-22 Make section index BEFORE pickling
+    2026-04-26 Pickle TOSN etc.
+    2026-04-27 Split USE_PICKLES_FLAG into state.LOAD_RESOURCES_FROM_PICKLES_FLAG and WRITE_PICKLES_FLAG
+                (Usually it's only reading that we want to temporarily disable, e.g., if indexing code has changed)
 """
 from datetime import datetime
 import os, os.path
@@ -80,9 +85,8 @@ import re
 from xml.etree.ElementTree import ElementTree, ParseError
 import shutil
 from collections import defaultdict
+import pickle
 
-import sys
-# sys.path.append( '../../BibleOrgSys/' )
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 import BibleOrgSys.Formats.USFMBible as USFMBible
@@ -96,8 +100,9 @@ import BibleOrgSys.Formats.VPLBible as VPLBible
 import BibleOrgSys.Formats.uWNotesBible as uWNotesBible
 import BibleOrgSys.Formats.TyndaleNotesBible as TyndaleNotesBible
 from BibleOrgSys.Bible import Bible
-from BibleOrgSys.Internals.InternalBibleInternals import InternalBibleEntryList, getLeadingInt
+from bible_organisational_system import InternalBibleEntryList, getSmallLeadingInt
 
+import sys
 sys.path.append( '../../BibleTransliterations/Python/' )
 from BibleTransliterations import transliterate_Greek, transliterate_Hebrew
 
@@ -109,14 +114,16 @@ from OETHandlers import findLVQuote, getBBBFromOETBookName
 from Dict import loadAndIndexUBSGreekDictJSON, loadAndIndexUBSHebrewDictJSON
 
 
-LAST_MODIFIED_DATE = '2026-03-27' # by RJH
+LAST_MODIFIED_DATE = '2026-05-03' # by RJH
 SHORT_PROGRAM_NAME = "Bibles"
 PROGRAM_NAME = "OpenBibleData Bibles handler"
-PROGRAM_VERSION = '0.93'
+PROGRAM_VERSION = '0.94'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
 
+
+WRITE_PICKLES_FLAG = True # Won't write new faster-loading pickle files for resources if False
 
 BIBLE_MAPPER_PATH = Path( '../copiedBibles/maps/' )
 
@@ -126,8 +133,8 @@ NEWLINE = '\n'
 
 def preloadVersions( state:State ) -> int:
     """
-    Look for a pickled Bible file
-        and look through all the other files in the folder to see if the pickle is current,
+    Look for a serialised Bible file
+        and look through all the other files in the folder to see if the serialised version is current,
         otherwise call preloadVersion to load the Bible from scratch.
 
     Note this has a side-effect of removing unused entries from state.BibleVersions.
@@ -147,7 +154,6 @@ def preloadVersions( state:State ) -> int:
             continue
 
         if ( versionAbbreviation not in state.selectedVersesOnlyVersions
-            and versionAbbreviation != 'TOSN' # coz TOSN loads lots of other things as well
             and versionAbbreviation in state.BibleLocations
             ):
             # See if a pickled version is available for a MUCH faster load time
@@ -155,50 +161,77 @@ def preloadVersions( state:State ) -> int:
             except TypeError:
                 assert versionAbbreviation == 'MSB'
                 folderOrFileLocationPath = Path( state.BibleLocations[versionAbbreviation][0] )
-            pickleFilename = f"{versionAbbreviation}__{'_'.join(state.TEST_BOOK_LIST)}{state.PICKLE_FILENAME_END}" \
+
+            if state.LOAD_RESOURCES_FROM_PICKLES_FLAG:
+                pickleFilename = f'{versionAbbreviation}{state.PICKLE_FILENAME_END}' if versionAbbreviation in ('TOSN',) \
+                                else f"{versionAbbreviation}__{'_'.join(state.TEST_BOOK_LIST)}{state.PICKLE_FILENAME_END}" \
                                 if state.TEST_MODE_FLAG or not state.ALL_PRODUCTION_BOOKS_FLAG \
                                 else f'{versionAbbreviation}{state.PICKLE_FILENAME_END}'
-            pickleFolderPath = folderOrFileLocationPath if folderOrFileLocationPath.is_dir() else folderOrFileLocationPath.parent
-            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\nLooking for {f"'{pickleFilename}'" if BibleOrgSysGlobals.verbosityLevel>1 else 'pickle'} file for ‘{versionAbbreviation}’{f' in {pickleFolderPath}/' if BibleOrgSysGlobals.verbosityLevel>2 else ''} …" )
-            pickleFilePath = pickleFolderPath.joinpath( pickleFilename )
-            dPrint( 'Never', DEBUGGING_THIS_MODULE, f"{folderOrFileLocationPath=} {pickleFilename=} {pickleFolderPath=} {pickleFilePath=}" )
-            if pickleFilePath.is_file():
-                pickleIsObsolete = False
-                pickleMTime = pickleFilePath.stat().st_mtime # A large integer
-                dPrint( 'Info', DEBUGGING_THIS_MODULE, f"preloadVersions found {pickleFilename=}" )
-                for somePath in pickleFolderPath.iterdir():
-                    dPrint( 'Never', DEBUGGING_THIS_MODULE, f"{pickleFolderPath=} {somePath=} {type(somePath)=}" )
-                    if somePath.is_file() and not str(somePath).endswith( state.PICKLE_FILENAME_END ):
-                        fileMTime = somePath.stat().st_mtime # A large integer
-                        if fileMTime > pickleMTime:
-                            pickleIsObsolete = True
-                            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} pickle is obsolete because {somePath.name} is more recent." )
-                            break
-                    elif versionAbbreviation == 'OET-LV': # This one has the OT and the NT in separate folders
-                        if str(somePath).endswith ('derivedTexts/auto_edited_OT_ESFM') or str(somePath).endswith ('derivedTexts/auto_edited_VLT_ESFM'):
-                            for someSubPath in somePath.iterdir():
-                                dPrint( 'Never', DEBUGGING_THIS_MODULE, f"Checking file-times in {somePath=} {someSubPath=} {type(someSubPath)=}" )
-                                if someSubPath.is_file() and not str(someSubPath).endswith( state.PICKLE_FILENAME_END ):
-                                    fileMTime = someSubPath.stat().st_mtime # A large integer
-                                    if fileMTime > pickleMTime:
-                                        pickleIsObsolete = True
-                                        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} pickle is obsolete because {someSubPath.name} is more recent." )
-                                        break
-                    else:
-                        dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"Ignoring pickle file or folder {somePath=} {somePath.name=}")
-                if not pickleIsObsolete:
-                    try:
-                        newBibleObj = BibleOrgSysGlobals.unpickleObject( pickleFilename, pickleFolderPath )
-                        # dPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"newObj is {newBibleObj}" )
-                        # dPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Loaded {versionAbbreviation} {type(newBibleObj)} pickle file: {pickleFilename}." )
-                        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"preloadVersions() loaded pickled {newBibleObj if BibleOrgSysGlobals.verbosityLevel>=2 else versionAbbreviation}" )
-                        assert 'discoveryResults' in newBibleObj.__dict__ # .discover() should have been called before it was saved
-                        state.preloadedBibles[versionAbbreviation] = newBibleObj
-                        continue
-                    except EOFError:
-                        logging.critical( f"Failed to load {versionAbbreviation} pickle file: Ran out of input from {pickleFilename} in {pickleFolderPath}")
-            else:
-                vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  No pickle file for {versionAbbreviation}." )
+                pickleFolderPath = folderOrFileLocationPath if folderOrFileLocationPath.is_dir() else folderOrFileLocationPath.parent
+                vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\nLooking for {f"'{pickleFilename}'" if BibleOrgSysGlobals.verbosityLevel>1 else 'pickle'} file for ‘{versionAbbreviation}’{f' in {pickleFolderPath}/' if BibleOrgSysGlobals.verbosityLevel>2 else ''} …" )
+                pickleFilePath = pickleFolderPath.joinpath( pickleFilename )
+                dPrint( 'Never', DEBUGGING_THIS_MODULE, f"{folderOrFileLocationPath=} {pickleFilename=} {pickleFolderPath=} {pickleFilePath=}" )
+                if pickleFilePath.is_file():
+                    pickleIsObsolete = False
+                    pickleMTime = pickleFilePath.stat().st_mtime # A large integer
+                    dPrint( 'Info', DEBUGGING_THIS_MODULE, f"preloadVersions found {pickleFilename=}" )
+                    for somePath in pickleFolderPath.iterdir():
+                        dPrint( 'Never', DEBUGGING_THIS_MODULE, f"{pickleFolderPath=} {somePath=} {type(somePath)=}" )
+                        if somePath.is_file() and not str(somePath).endswith( state.PICKLE_FILENAME_END ):
+                            fileMTime = somePath.stat().st_mtime # A large integer
+                            if fileMTime > pickleMTime:
+                                pickleIsObsolete = True
+                                vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} pickle is obsolete because {somePath.name} is more recent." )
+                                break
+                        elif versionAbbreviation == 'OET-LV': # This one has the OT and the NT in separate folders
+                            if str(somePath).endswith ('derivedTexts/auto_edited_OT_ESFM') or str(somePath).endswith ('derivedTexts/auto_edited_VLT_ESFM'):
+                                for someSubPath in somePath.iterdir():
+                                    dPrint( 'Never', DEBUGGING_THIS_MODULE, f"Checking file-times in {somePath=} {someSubPath=} {type(someSubPath)=}" )
+                                    if someSubPath.is_file() and not str(someSubPath).endswith( state.PICKLE_FILENAME_END ):
+                                        fileMTime = someSubPath.stat().st_mtime # A large integer
+                                        if fileMTime > pickleMTime:
+                                            pickleIsObsolete = True
+                                            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} pickle is obsolete because {someSubPath.name} is more recent." )
+                                            break
+                        else:
+                            dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"Ignoring pickle file or folder {somePath=} {somePath.name=}")
+                    if not pickleIsObsolete:
+                        try:
+                            if versionAbbreviation == 'TOSN':
+                                with open( pickleFolderPath.joinpath(pickleFilename), 'rb' ) as pickleInputFile:
+                                    state.TyndaleBookIntrosDict = pickle.load( pickleInputFile )
+                                    state.TyndaleBookIntroSummariesDict = pickle.load( pickleInputFile )
+                                    state.TOBDData = pickle.load( pickleInputFile )
+                                    # UBS Greek
+                                    state.UBS_GNT_DATA = pickle.load( pickleInputFile )
+                                    state.UBS_GNT_ID_INDEX = pickle.load( pickleInputFile )
+                                    state.UBS_GNT_LEMMA_INDEX = pickle.load( pickleInputFile )
+                                    # UBS Hebrew
+                                    state.UBS_HEB_DOMAIN_DATA = pickle.load( pickleInputFile )
+                                    state.UBS_HEB_DATA = pickle.load( pickleInputFile )
+                                    state.UBS_HEB_ID_INDEX = pickle.load( pickleInputFile )
+                                    state.UBS_HEB_LEMMA_INDEX = pickle.load( pickleInputFile )
+                                vPrint( 'Quiet', DEBUGGING_THIS_MODULE, "preloadVersions() loaded pickled TOSN and UBS reference data" )
+                                state.BibleVersions.remove( versionAbbreviation )
+                                continue
+                            else: # for Bibles
+                                newBibleObj = BibleOrgSysGlobals.unpickleObject( pickleFilename, pickleFolderPath )
+                                # dPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"newObj is {newBibleObj}" )
+                                # dPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Loaded {versionAbbreviation} {type(newBibleObj)} pickle file: {pickleFilename}." )
+                                vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"preloadVersions() loaded pickled {newBibleObj if BibleOrgSysGlobals.verbosityLevel>=2 else versionAbbreviation}" )
+                                assert 'discoveryResults' in newBibleObj.__dict__ # .discover() should have been called before it was saved
+                                state.preloadedBibles[versionAbbreviation] = newBibleObj
+                                continue
+                        except pickle.UnpicklingError as e:
+                            logging.critical( f"Failed to load {versionAbbreviation} pickle file: Got UnpicklingError from {pickleFilename} in {pickleFolderPath}: {e}")
+                        except TypeError as e:
+                            logging.critical( f"Failed to load {versionAbbreviation} pickle file: Got TypeError from {pickleFilename} in {pickleFolderPath}: {e}")
+                        except ModuleNotFoundError as e:
+                            logging.critical( f"Failed to load {versionAbbreviation} pickle file: Got ModuleNotFoundError from {pickleFilename} in {pickleFolderPath}: {e}")
+                        except EOFError:
+                            logging.critical( f"Failed to load {versionAbbreviation} pickle file: Ran out of input from {pickleFilename} in {pickleFolderPath}")
+                else:
+                    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  No pickle file for {versionAbbreviation}." )
 
         if versionAbbreviation == 'OET-LV':
             # Load the OT and NT from separate folders, and then combine them into one ESFM Bible object
@@ -226,15 +259,22 @@ def preloadVersions( state:State ) -> int:
             thisBible.sourceFolder = None
             del thisBibleNT
             state.preloadedBibles['OET-LV'] = thisBible
-            vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nDoing discovery for {thisBible.abbreviation} ({thisBible.name})…" )
+            vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Doing discovery for {thisBible.abbreviation} ({thisBible.name})…" )
             thisBible.discover()
+            thisBible.makeSectionIndex() # These aren't made automatically by BibleOrgSys
             vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"preloadVersions() loaded {thisBible}" )
 
-            pickleFilename = f"OET-LV__{'_'.join(state.TEST_BOOK_LIST)}{state.PICKLE_FILENAME_END}" \
-                                if state.TEST_MODE_FLAG or not state.ALL_PRODUCTION_BOOKS_FLAG \
-                                else f'{versionAbbreviation}{state.PICKLE_FILENAME_END}'
-            pickleFolderPath = state.BibleLocations['OET-LV']
-            thisBible.pickle( pickleFilename, pickleFolderPath )
+            if WRITE_PICKLES_FLAG:
+                pickleFilename = f"OET-LV__{'_'.join(state.TEST_BOOK_LIST)}{state.PICKLE_FILENAME_END}" \
+                                    if state.TEST_MODE_FLAG or not state.ALL_PRODUCTION_BOOKS_FLAG \
+                                    else f'{versionAbbreviation}{state.PICKLE_FILENAME_END}'
+                pickleFolderPath = state.BibleLocations['OET-LV']
+                try:
+                    thisBible.pickle( pickleFilename, pickleFolderPath )
+                    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Saved pickle file: {pickleFilename}.\n" )
+                except TypeError:
+                    logging.critical( f"Warning: Unable to pickle OET-LV Bible to {pickleFilename}" )
+                    # But we ignore it (the program will just run slower again next time when it reloads the Bible)
 
         # Everything other than OET-LV
         elif versionAbbreviation in state.BibleLocations:
@@ -252,14 +292,12 @@ def preloadVersions( state:State ) -> int:
     return len(state.preloadedBibles)
 # end of Bibles.preloadVersions
 
-TyndaleBookIntrosDict, TyndaleBookIntroSummariesDict = {}, {}
 def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:State ) -> Bible:
     """
     Loads the requested Bible into memory
         and return the Bible object.
     """
     from Dict import loadTyndaleOpenBibleDictXML
-    global TyndaleBookIntrosDict, TyndaleBookIntroSummariesDict
 
     fnPrint( DEBUGGING_THIS_MODULE, f"preloadVersion( ‘{versionAbbreviation}’, '{folderOrFileLocation}', … ){' in TEST mode' if state.TEST_MODE_FLAG else ''}" )
     versionName = state.BibleNames[versionAbbreviation]
@@ -296,7 +334,7 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
                     bookObject.containerBibleObject = thisESFMBible
                     bookObject.workName = versionName
                     thisESFMBible.books[BBB] = bookObject
-            thisESFMBible.lookForAuxilliaryFilenames()
+            thisESFMBible.lookForAuxiliaryFilenames()
             thisBible = thisESFMBible
         # print( f"{thisBible.suppliedMetadata=}" )
         # print( f"{thisBible.settingsDict=}" )
@@ -344,7 +382,7 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
                 bookObject.containerBibleObject = thisBible
                 bookObject.workName = versionName
                 thisBible.books[BBB] = bookObject
-        thisBible.lookForAuxilliaryFilenames()
+        thisBible.lookForAuxiliaryFilenames()
 
         # for wordTableID,wordTable in thisBibleNT.ESFMWordTables.items():
         #     # print( f"{wordTableID=} {type(wordTable)=}")
@@ -387,16 +425,14 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
     elif 'OET' in versionAbbreviation or 'ESFM' in folderOrFileLocation: # ESFM
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Preloading ‘{versionAbbreviation}’ ESFM Bible{' in TEST mode' if state.TEST_MODE_FLAG else ''}…" )
         thisBible = ESFMBible.ESFMBible( folderOrFileLocation, givenName=versionName, givenAbbreviation=versionAbbreviation )
-        thisBible.loadAuxilliaryFiles = True
-        # if versionAbbreviation in ('ULT','UST','UHB','UGNT','SR-GNT'):
-        #     thisBible.uWencoded = True # TODO: Shouldn't be required ???
+        thisBible.loadAuxiliaryFiles = True
         if 'ALL' in state.booksToLoad[versionAbbreviation]:
             thisBible.loadBooks() # So we can iterate through them all later
         else: # only load the specific books as we need them
             thisBible.preload()
             for BBB in state.booksToLoad[versionAbbreviation]:
                 thisBible.loadBookIfNecessary( BBB )
-            thisBible.lookForAuxilliaryFilenames()
+            thisBible.lookForAuxiliaryFilenames()
     elif versionAbbreviation == 'UTN':
         vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Preloading uW translation notes{' in TEST mode' if state.TEST_MODE_FLAG else ''}…" )
         thisBible = uWNotesBible.uWNotesBible( state.BibleLocations[versionAbbreviation], givenName='uWTranslationNotes',
@@ -416,11 +452,11 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
         vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Preloading Tyndale book intros from {sourceFolder}…" )
         sourceFilename = 'BookIntros.xml'
         thisExtraAbbreviation = 'TBI'
-        TyndaleBookIntrosDict = loadTyndaleBookIntrosXML( thisExtraAbbreviation, os.path.join( sourceFolder, sourceFilename ) )
+        state.TyndaleBookIntrosDict = loadTyndaleBookIntrosXML( thisExtraAbbreviation, os.path.join( sourceFolder, sourceFilename ) )
         vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Preloading Tyndale book intro summaries from {sourceFolder}…" )
         sourceFilename = 'BookIntroSummaries.xml'
         thisExtraAbbreviation = 'TBIS'
-        TyndaleBookIntroSummariesDict = loadTyndaleBookIntrosXML( thisExtraAbbreviation, os.path.join( sourceFolder, sourceFilename ) )
+        state.TyndaleBookIntroSummariesDict = loadTyndaleBookIntrosXML( thisExtraAbbreviation, os.path.join( sourceFolder, sourceFilename ) )
         vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Preloading Tyndale Open Bible Dictionary from {sourceFolder}…" )
         thisExtraAbbreviation = 'TOBD'
         loadTyndaleOpenBibleDictXML( thisExtraAbbreviation, os.path.join( sourceFolder, '../OBD/' ) )
@@ -442,6 +478,24 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
 
         loadAndIndexUBSGreekDictJSON( 'UGD', '../../Forked/ubs-open-license/dictionaries/greek/JSON' )
         loadAndIndexUBSHebrewDictJSON( 'UHD', '../../Forked/ubs-open-license/dictionaries/hebrew/JSON' )
+
+        if WRITE_PICKLES_FLAG:
+            pickleFolderPath = Path( state.BibleLocations[versionAbbreviation] )
+            pickleFilename = f'{versionAbbreviation}{state.PICKLE_FILENAME_END}'
+            with open( pickleFolderPath.joinpath( pickleFilename ), 'wb' ) as pickleOutputFile:
+                pickle.dump( state.TyndaleBookIntrosDict, pickleOutputFile )
+                pickle.dump( state.TyndaleBookIntroSummariesDict, pickleOutputFile )
+                pickle.dump( state.TOBDData, pickleOutputFile )
+                # UBS Greek
+                pickle.dump( state.UBS_GNT_DATA, pickleOutputFile )
+                pickle.dump( state.UBS_GNT_ID_INDEX, pickleOutputFile )
+                pickle.dump( state.UBS_GNT_LEMMA_INDEX, pickleOutputFile )
+                # UBS Hebrew
+                pickle.dump( state.UBS_HEB_DOMAIN_DATA, pickleOutputFile )
+                pickle.dump( state.UBS_HEB_DATA, pickleOutputFile )
+                pickle.dump( state.UBS_HEB_ID_INDEX, pickleOutputFile )
+                pickle.dump( state.UBS_HEB_LEMMA_INDEX, pickleOutputFile )
+
     elif versionAbbreviation in ('NET',) and 'eBible.org' not in folderOrFileLocation: # USX
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Preloading ‘{versionAbbreviation}’ USX Bible{' in TEST mode' if state.TEST_MODE_FLAG else ''}…" )
         thisBible = USXXMLBible.USXXMLBible( folderOrFileLocation, givenName=versionName, givenAbbreviation=versionAbbreviation,
@@ -505,19 +559,25 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
             if versionAbbreviation != 'Moff': # Only has scarce books
                 assert len(thisBible) 
 
-        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nDoing discovery for {thisBible.abbreviation} ({thisBible.name}) with {len(thisBible)} books…" )
+        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Doing discovery for {thisBible.abbreviation} ({thisBible.name}) with {len(thisBible)} books…" )
         thisBible.discover()
         assert 'discoveryResults' in thisBible.__dict__
+        thisBible.makeSectionIndex() # These aren't made automatically by BibleOrgSys
 
-        pickleFilename = f"{versionAbbreviation}__{'_'.join(state.TEST_BOOK_LIST)}{state.PICKLE_FILENAME_END}" \
-                            if state.TEST_MODE_FLAG or not state.ALL_PRODUCTION_BOOKS_FLAG \
-                            else f'{versionAbbreviation}{state.PICKLE_FILENAME_END}'
-        try: pickleFolderPath = folderOrFileLocation if os.path.isdir( folderOrFileLocation ) else Path( folderOrFileLocation ).parent
-        except TypeError:
-                assert versionAbbreviation == 'MSB'
-                pickleFolderPath = folderOrFileLocation[0]
-        thisBible.pickle( pickleFilename, pickleFolderPath )
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Saved pickle file: {pickleFilename}." )
+        if WRITE_PICKLES_FLAG:
+            pickleFilename = f"{versionAbbreviation}__{'_'.join(state.TEST_BOOK_LIST)}{state.PICKLE_FILENAME_END}" \
+                                if state.TEST_MODE_FLAG or not state.ALL_PRODUCTION_BOOKS_FLAG \
+                                else f'{versionAbbreviation}{state.PICKLE_FILENAME_END}'
+            try: pickleFolderPath = folderOrFileLocation if os.path.isdir( folderOrFileLocation ) else Path( folderOrFileLocation ).parent
+            except TypeError:
+                    assert versionAbbreviation == 'MSB'
+                    pickleFolderPath = folderOrFileLocation[0]
+            try:
+                thisBible.pickle( pickleFilename, pickleFolderPath )
+                vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Saved pickle file: {pickleFilename}.\n" )
+            except TypeError:
+                logging.critical( f"Warning: Unable to pickle {versionAbbreviation} Bible to {pickleFilename}" )
+                # But we ignore it (the program will just run slower again next time when it reloads the Bible)
 
     return thisBible
 # end of Bibles.preloadVersion
@@ -664,13 +724,11 @@ def loadTyndaleBookIntrosXML( abbrev:str, XML_filepath ) -> dict[str,str]:
 def formatTyndaleBookIntro( abbrev:str, level:int, BBB:str, segmentType:str, state:State ) -> str:
     """
     """
-    global TyndaleBookIntrosDict, TyndaleBookIntroSummariesDict
-
     fnPrint( DEBUGGING_THIS_MODULE, f"formatTyndaleBookIntro( {abbrev}, {BBB}, … )" )
     assert abbrev in ('TBI','TBIS')
     assert segmentType == 'parallelVerse'
 
-    sourceDict = {'TBI':TyndaleBookIntrosDict, 'TBIS':TyndaleBookIntroSummariesDict}[abbrev]
+    sourceDict = {'TBI':state.TyndaleBookIntrosDict, 'TBIS':state.TyndaleBookIntroSummariesDict}[abbrev]
     if BBB not in sourceDict:
         logging.warning( f'No Tyndale book intro for {abbrev} {BBB}' )
         return ''
@@ -711,7 +769,8 @@ def formatTyndaleNotes( abbrev:str, level:int, BBB:str, C:str, V:str, segmentTyp
         marker, rest = entry.getMarker(), entry.getText()
         # dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"{abbrev} {ftnRef} {marker}='{rest}'" )
         if marker in ('¬v','¬c','¬p','¬pi1','¬pi2','¬li1','¬chapters'):
-            assert not rest; continue # most end markers not needed here
+            # assert not rest or rest.isdigit() or '-' in rest, f"{BBB} {C}:{V} {marker}={rest=}"
+            continue # most end markers not needed here
         # if marker == 'v':
         #     if '-' in rest: # It's often a verse range
         #         snHtml = f'{snHtml}<p class="TSNv">Verses {rest}</p>'
@@ -767,8 +826,9 @@ def formatTyndaleNotes( abbrev:str, level:int, BBB:str, C:str, V:str, segmentTyp
             if inList:
                 nHtml = f'{nHtml}</ol>'
                 inList = False
-        elif marker not in ('id','usfm','ide','intro','c','c#','c~','v','v='):
+        elif marker not in ('id','usfm','ide','intro','chapters','c','c#','c~','v','v='):
             dPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"{abbrev} {ftnRef} {marker}={rest}" )
+            logging.critical( f"Unknown Tyndale notes marker: {abbrev} {ftnRef} {marker}={rest}" )
             unknown_Tyndale_notes_marker
         assert '<class=' not in nHtml, f"{marker=} {rest=} {lastMarker=} {nHtml=}"
         lastMarker = marker
@@ -820,7 +880,7 @@ def fixTyndaleBRefs( abbrev:str, level:int, BBBorArticleName:str, C:str, V:str, 
             if tBkCode.endswith('Thes'):
                 tBkCode += 's' # TODO: getBBBFromText should handle '1Thes'
             assert tC.isdigit()
-            tV = getLeadingInt( tV ) # in case there's an a or b or something
+            tV = getSmallLeadingInt( tV ) # in case there's an a or b or something
             # assert tV.isdigit(), f"'{abbrev}' {level=} {BBBorArticleName} {C}:{V} {tBkCode=} {tC=} {tV=}"
             tBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromEnglishText( tBkCode )
             # tBBB = english_name_to_reference_abbrev_py( tBkCode )
@@ -862,7 +922,7 @@ def fixTyndaleBRefs( abbrev:str, level:int, BBBorArticleName:str, C:str, V:str, 
             if tBkCode.endswith('Thes'):
                 tBkCode += 's' # TODO: getBBBFromText should handle '1Thes'
             assert tC.isdigit()
-            tV = getLeadingInt( tV ) # in case there's an a or b or something
+            tV = getSmallLeadingInt( tV ) # in case there's an a or b or something
             # assert tV.isdigit(), f"'{abbrev}' {level=} {BBBorArticleName} {C}:{V} {tBkCode=} {tC=} {tV=}"
             tBBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromEnglishText( tBkCode )
             # tBBB = english_name_to_reference_abbrev_py( tBkCode )
@@ -943,7 +1003,9 @@ def formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segme
     occurrenceNumber = 1
     for entry in verseEntryList:
         marker, rest = entry.getMarker(), entry.getText()
-        if marker.startswith( '¬' ): assert not rest; continue # end markers not needed here
+        if marker.startswith( '¬' ):
+            # assert not rest or rest.isdigit() or '-' in rest, f"{BBB} {C}:{V} {marker}={rest=}"
+            continue # end markers not needed here
         if marker in ('c','c#'):
             assert rest
             # print( f"UTN {utnRef} ignored {marker}='{rest}'" )
@@ -993,7 +1055,7 @@ def formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segme
                 if rest!='-1' and not rest.isdigit():
                     logging.error( f"getContextVerseData ({utnRef}) has unexpected {lastMarker=} {marker=} {rest=}" )
                 # assert rest.isdigit() or rest=='-1', f"getContextVerseData ({utnRef}) has unexpected {marker=} {rest=}" # Jhn 12:15 or 16???
-                occurrenceNumber = getLeadingInt(rest) # Shouldn't be necessary but uW stuff isn't well checked/validated
+                occurrenceNumber = getSmallLeadingInt(rest) # Shouldn't be necessary but uW stuff isn't well checked/validated
 
             elif lastMarker in ('q1','iq1'): # An original language quote
                 assert rest
@@ -1374,17 +1436,17 @@ def getVerseDataListForReference( givenRefString:str, thisBible:Bible, lastBBB:s
                     verseEntryList, contextList = thisBible.getContextVerseDataRange( (refBBB,refStartC,refStartV), (refBBB,refStartC,refEndV) )
                 elif ':' in part1 and ':' not in part2:
                     refStartC, refStartV = part1.split( ':' )
-                    refStartV = str( getLeadingInt( refStartV ) )
-                    refEndV = str( getLeadingInt( part2 ) )
+                    refStartV = str( getSmallLeadingInt( refStartV ) )
+                    refEndV = str( getSmallLeadingInt( part2 ) )
                     assert refStartC.isdigit() and refStartV.isdigit() and refEndV.isdigit()
                     verseEntryList, contextList = thisBible.getContextVerseDataRange( (refBBB,refStartC,refStartV), (refBBB,refStartC,refEndV), strict=False )
                 elif ':' in part1 and ':' in part2:
                     logging.critical( f"Expected en-dash (not hyphen) in {givenRefString=} section cross-reference {refBBB} {refCVpart}" )
                     halt
                     refStartC, refStartV = part1.split( ':' )
-                    refStartV = str( getLeadingInt( refStartV ) )
+                    refStartV = str( getSmallLeadingInt( refStartV ) )
                     refEndC, refEndV = part2.split( ':' )
-                    refEndV = str( getLeadingInt( refEndV ) )
+                    refEndV = str( getSmallLeadingInt( refEndV ) )
                     assert refStartC.isdigit() and refStartV.isdigit() and refEndC.isdigit() and refEndV.isdigit()
                     verseEntryList, contextList = thisBible.getContextVerseDataRange( (refBBB,refStartC,refStartV), (refBBB,refStartC,refEndV), strict=False )
                 else: noColon1b
@@ -1417,7 +1479,7 @@ def getVerseDataListForReference( givenRefString:str, thisBible:Bible, lastBBB:s
                 if ':' in refCVpart:
                     refStartC, refVpart = refCVpart.split( ':' )
                     assert refStartC.isdigit()
-                    refStartV = str( getLeadingInt(refVpart) )
+                    refStartV = str( getSmallLeadingInt(refVpart) )
                     verseEntryList, contextList = thisBible.getContextVerseData( (refBBB,refStartC) if refStartC=='-1' else (refBBB,refStartC,refStartV) )
                 elif refIsSingleChapterBook:
                     refStartC, refStartV = '1', refCVpart
@@ -1502,7 +1564,7 @@ def getBibleMapperMaps( level:int, BBB:str, startC:str, startV:str|None, endC:st
     else: # it must be a chapter range
         assert startV and endV # Neither of these can be None (can be string '0', shouldn't be integer 0)
         for c in range( int(startC), int(endC)+1 ):
-            for v in range( getLeadingInt(startV) if c==int(startC) else 1, (getLeadingInt(endV) if c==int(endC) else referenceBible.getNumVerses( BBB, c ))+1 ):
+            for v in range( getSmallLeadingInt(startV) if c==int(startC) else 1, (getSmallLeadingInt(endV) if c==int(endC) else referenceBible.getNumVerses( BBB, c ))+1 ):
                 # print( f"  Chapter range {BBB} {c}:{v}")
                 mapFilenamesSet.update( BMM_INDEX[f'{BBB}_{c}:{v}'] )
 

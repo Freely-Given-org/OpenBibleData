@@ -61,7 +61,7 @@ import sys
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_66
-from BibleOrgSys.Internals.InternalBibleInternals import getLeadingInt, InternalBibleEntryList, InternalBibleEntry
+from bible_organisational_system import getSmallLeadingInt, InternalBibleEntryList, InternalBibleEntry
 from BibleOrgSys.Internals.InternalBible import InternalBible
 import BibleOrgSys.Formats.ESFMBible as ESFMBible
 
@@ -73,10 +73,10 @@ from BibleTransliterations import transliterate_Hebrew, transliterate_Greek
 from settings import State
 
 
-LAST_MODIFIED_DATE = '2026-03-20' # by RJH
+LAST_MODIFIED_DATE = '2026-04-09' # by RJH
 SHORT_PROGRAM_NAME = "OETHandlers"
 PROGRAM_NAME = "OpenBibleData OET handler"
-PROGRAM_VERSION = '0.70'
+PROGRAM_VERSION = '0.71'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -300,7 +300,7 @@ def livenOETWordLinks( level:int, bibleObject:ESFMBible, BBB:str, givenEntryList
                         if oWord \
                         and "'" not in oWord and ',' not in oWord and '-' not in oWord and '/' not in oWord and '(' not in oWord \
                         and not oWord[0].isdigit() and oWord not in ('i.e','e.g'):
-                            assert oWord.isalpha(), f'{prefix=} {oWord=} {suffix=}'
+                            assert oWord.isalpha(), f'{BBB} {prefix=} {oWord=} {suffix=}'
                         oWord = f'{prefix}<span class="noLinkYet">{oWord}</span>{suffix}'
                         # print( f"        Now {oWord=}")
                         changeMade = True
@@ -319,7 +319,7 @@ def livenOETWordLinks( level:int, bibleObject:ESFMBible, BBB:str, givenEntryList
     #   We use unusual word pairs in both templates (we don't actually use titleTemplate as a template)
     #       so that we can easily find them again in the returned InternalBibleEntryList
     revisedEntryList = bibleObject.livenESFMWordLinks( BBB, preprocessedVerseEntryList, linkTemplate='►{n}◄', titleTemplate='§«OrigWord»§' )[0]
-    for revisedEntry in givenEntryList:
+    for revisedEntry in revisedEntryList:
         if revisedEntry.getOriginalText():
             assert '\\nd \\nd ' not in revisedEntry.getOriginalText()
     # We get something back like:
@@ -435,7 +435,7 @@ def livenOETWordLinks( level:int, bibleObject:ESFMBible, BBB:str, givenEntryList
                         caseClassName = 'hebVrb'
                         break
                 for subStrong in strongs.split( ',' ):
-                    try: subStrongInt = getLeadingInt( subStrong ) # Ignores suffixes like a,b,c
+                    try: subStrongInt = getSmallLeadingInt( subStrong ) # Ignores suffixes like a,b,c
                     except ValueError: continue
                     if subStrongInt in (369, 3808): # Hebrew 'אַיִן' 'ayin' 'no', or 'לֹא' (lo) 'not'
                         caseClassName = 'hebNeg'
@@ -709,7 +709,7 @@ def livenOETCompatibleWordLinks( level:int, bibleObject:InternalBible, BBB:str, 
                         caseClassName = 'hebVrb'
                         break
                 for subStrong in strongs.split( ',' ):
-                    try: subStrongInt = getLeadingInt( subStrong ) # Ignores suffixes like a,b,c
+                    try: subStrongInt = getSmallLeadingInt( subStrong ) # Ignores suffixes like a,b,c
                     except ValueError: continue
                     if subStrongInt in (369, 3808): # Hebrew 'אַיִן' 'ayin' 'no', or 'לֹא' (lo) 'not'
                         caseClassName = 'hebNeg'
@@ -820,7 +820,7 @@ def findLVQuote( level:int, BBB:str, C:str, V:str, occurrenceNumber:int, origina
         wordTable = state.OETRefData['word_tables'][wordFileName]
         firstWordNumber,lastWordNumber = state.OETRefData['word_table_indexes'][wordFileName][ref]
         # # Go backwards through the ESFM table until we find the first word in this B/C/V
-        # firstWordNumber = getLeadingInt( wordNumberStr )
+        # firstWordNumber = getSmallLeadingInt( wordNumberStr )
         # rowStr = wordTable[firstWordNumber]
         # #  0    1          2        3           4              5              6          7            8           9     10          11
         # # 'Ref\tGreekWord\tSRLemma\tGreekLemma\tVLTGlossWords\tOETGlossWords\tGlossCaps\tProbability\tStrongsExt\tRole\tMorphology\tTags'
