@@ -62,11 +62,10 @@ import logging
 from collections import defaultdict
 import re
 
-# sys.path.append( '../../BibleOrgSys/BibleOrgSys/' )
-# import BibleOrgSysGlobals
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 from bible_organisational_system import getPositiveLeadingInt
+import bos_books_codes_py
 
 from settings import State, CNTR_BOOK_ID_MAP, reorderBooksForOETVersions
 from usfm import convertUSFMMarkerListToHtml
@@ -108,7 +107,7 @@ def createOETInterlinearPages( level:int, folder:Path, state:State ) -> bool:
     BBBLinks, BBBNextLinks = [], []
     for BBB in reorderBooksForOETVersions( state.allBBBs ):
         # Removes INT, FRT, GLS, XXA, XXB, XXC, XXD, OTH, BAK
-        if BibleOrgSysGlobals.loadedBibleBooksCodes.isChapterVerseBook( BBB ):
+        if bos_books_codes_py.is_chapter_verse_book_py( BBB ):
             ourTidyBBB = getOETTidyBBB( BBB )
             ourTidyBBBwithNotes = getOETTidyBBB( BBB, addNotes=True )
             BBBLinks.append( f'''<a title="{getOETBookName(BBB)}" href="{BBB}/index.htm#Top">{ourTidyBBBwithNotes}</a>''' )
@@ -117,7 +116,7 @@ def createOETInterlinearPages( level:int, folder:Path, state:State ) -> bool:
 
     # Now create the actual interlinear pages
     for BBB in state.booksToLoad['OET']:
-        if BibleOrgSysGlobals.loadedBibleBooksCodes.isChapterVerseBook( BBB ):
+        if bos_books_codes_py.is_chapter_verse_book_py( BBB ):
             createOETInterlinearVersePagesForBook( level, folder, BBB, BBBNextLinks, state )
 
     # Create index page
@@ -305,7 +304,7 @@ def createOETInterlinearVerseInner( level:int, BBB:str, c:int, v:int, state:Stat
 
     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"createOETInterlinearVerseInner {level}, {BBB} {c}:{v}, …" )
 
-    NT = BibleOrgSysGlobals.loadedBibleBooksCodes.isNewTestament_NR( BBB )
+    NT = bos_books_codes_py.is_nt_nr_py( BBB )
     wordFileName = 'OET-LV_NT_word_table.tsv' if NT else 'OET-LV_OT_word_table.tsv'
 
     # We don't want the book link for this book to be a recursive link, so remove <a> marking
@@ -682,7 +681,7 @@ def createOETInterlinearVerseInner( level:int, BBB:str, c:int, v:int, state:Stat
 {lvHtml.replace( 'id="footnotes', 'id="footnotesLV' ).replace( 'id="crossRefs', 'id="crossRefsLV' ).replace( 'id="fnLV', 'id="fnRvLV' ).replace( 'href="#fnLV', 'href="#fnRvLV' )}
 {rvHtml.replace( 'id="footnotes', 'id="footnotesRV' ).replace( 'id="crossRefs', 'id="crossRefsRV' ).replace( 'id="fnRV', 'id="fnRvRV' ).replace( 'href="#fnRV', 'href="#fnRvRV' )}
 <p class="note"><small><b>Note</b>: The OET-RV is still only a first draft, and so far only a few words have been (mostly automatically) matched to the Hebrew or Greek words that they’re translated from.</small></p>
-<p class="thanks"><b>Acknowledgements</b>: {f'The SR Greek text, lemmas, morphology, and VLT gloss are all thanks to the <a href="https://GreekCNTR.org/collation/index.htm?v={CNTR_BOOK_ID_MAP[BBB]}{C.zfill(3)}{V.zfill(3)}">CNTR</a>.</p>' if BibleOrgSysGlobals.loadedBibleBooksCodes.isNewTestament_NR( BBB )
+<p class="thanks"><b>Acknowledgements</b>: {f'The SR Greek text, lemmas, morphology, and VLT gloss are all thanks to the <a href="https://GreekCNTR.org/collation/index.htm?v={CNTR_BOOK_ID_MAP[BBB]}{C.zfill(3)}{V.zfill(3)}">CNTR</a>.</p>' if bos_books_codes_py.is_nt_nr_py( BBB )
                                        else f'The Hebrew text, lemmas, and morphology are all thanks to the <a href="https://hb.openscriptures.org/">OSHB</a> and some of the glosses are from <a href="https://GitHub.com/Clear-Bible/macula-hebrew">Macula Hebrew</a>.'}'''
     
     # ivHtml = ivHtml.replace( '<br>\n' , '\n<br>' ) # Make sure it follows our convention (just for tidyness and consistency)

@@ -68,6 +68,7 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_66
 from bible_organisational_system import InternalBibleEntryList, getSmallLeadingInt
 from BibleOrgSys.Formats.ESFMBible import ESFMBible as ESFMBible
+import bos_books_codes_py
 
 from settings import State
 from usfm import convertUSFMMarkerListToHtml
@@ -244,7 +245,7 @@ def createOETSectionPages( level:int, folder:Path, rvBible:ESFMBible, lvBible:ES
     BBBs = []
     state.sectionsWithMaps = defaultdict( list )
     for BBB in state.BBBsToProcess['OET']:
-        NT = BibleOrgSysGlobals.loadedBibleBooksCodes.isNewTestament_NR( BBB )
+        NT = bos_books_codes_py.is_nt_nr_py( BBB )
         ourTidyBBB = getOETTidyBBB( BBB )
         ourTidyBBBwithNotes = getOETTidyBBB( BBB, addNotes=True )
         # dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"OET {BBB=} {state.BBBsToProcess['OET']}/{len(state.BBBsToProcess['OET'])}")
@@ -474,7 +475,7 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> list
         assert thisBible.abbreviation not in state.sectionsLists, f"{thisBible.abbreviation=} {state.sectionsLists.keys()=}"
         state.sectionsLists[thisBible.abbreviation] = {}
     for BBB in state.BBBsToProcess[thisBible.abbreviation]:
-        NT = BibleOrgSysGlobals.loadedBibleBooksCodes.isNewTestament_NR( BBB )
+        NT = bos_books_codes_py.is_nt_nr_py( BBB )
         # if thisBible.abbreviation=='OET-LV' \
         # and BBB in ('FRT','INT','NUM','SA1','SA2','CH1','EZR','NEH','JOB','SNG','JER','DAN'):
         #     logging.critical( f"AA Skipped OET sections difficult book: OET-LV {BBB}")
@@ -509,7 +510,7 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> list
     # Now, make the actual pages
     BBBs = []
     for BBB in state.BBBsToProcess[thisBible.abbreviation]:
-        NT = BibleOrgSysGlobals.loadedBibleBooksCodes.isNewTestament_NR( BBB )
+        NT = bos_books_codes_py.is_nt_nr_py( BBB )
         ourTidyBBB = getOETTidyBBB( BBB )
         # dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{thisBible.abbreviation} {BBB=} {state.BBBsToProcess[thisBible.abbreviation]}/{len(state.BBBsToProcess[thisBible.abbreviation])}")
 
@@ -777,7 +778,7 @@ def livenSectionReferences( versionAbbreviation:str, refTuple:tuple, segmentType
             assert refBBB in BOOKLIST_66, f"livenSectionReferencesDigits( {versionAbbreviation}, {refTuple}, {segmentType}, {refBBB}, '{sectionReferenceDigitsText}' )"
         assert ' ' not in sectionReferenceDigitsText and ',' not in sectionReferenceDigitsText and ';' not in sectionReferenceDigitsText
 
-        isSingleChapterBook = BibleOrgSysGlobals.loadedBibleBooksCodes.isSingleChapterBook( refBBB )
+        is_single_chapter_book_py = bos_books_codes_py.is_single_chapter_book_py( refBBB )
 
         # The link will always be to the beginning of a span
         if '-' in sectionReferenceDigitsText or '–' in sectionReferenceDigitsText or '—' in sectionReferenceDigitsText:

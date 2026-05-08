@@ -50,6 +50,7 @@ import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 from bible_organisational_system import InternalBibleEntryList
 import BibleOrgSys.Formats.ESFMBible as ESFMBible
+import bos_books_codes_py
 
 from settings import State, CNTR_BOOK_ID_MAP
 from usfm import convertUSFMMarkerListToHtml
@@ -93,7 +94,7 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
     BBBs, filenames = [], []
     for BBB in state.BBBsToProcess['OET']:
         vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Creating chapter pages for OET {BBB}…" )
-        NT = BibleOrgSysGlobals.loadedBibleBooksCodes.isNewTestament_NR( BBB )
+        NT = bos_books_codes_py.is_nt_nr_py( BBB )
         ourTidyBBB = getOETTidyBBB( BBB )
         ourTidyBBBwithNotes = getOETTidyBBB( BBB, addNotes=True )
         # print( f"{BBB=} {BBBsToProcess}"); print( len(state.BBBsToProcess[thisBible.abbreviation]) )
@@ -122,7 +123,7 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
             chapterHtml = f'''{chapterHtml}{convertUSFMMarkerListToHtml( level, rvBible.abbreviation, (BBB,'-1'), 'chapter', contextList, verseEntryList, basicOnly=False, state=state )}'''
             filename = f'{BBB}.htm'
             filenames.append( filename )
-            # BBBLinks.append( f'''<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB)}" href="{filename}#Top">{ourTidyBBBwithNotes}</a>''' )
+            # BBBLinks.append( f'''<a title="{bos_books_codes_py.get_english_name_nr_py(BBB)}" href="{filename}#Top">{ourTidyBBBwithNotes}</a>''' )
             filepath = folder.joinpath( filename )
             top = makeTop( level, rvBible.abbreviation, 'chapter', f'byC/{filename}', state ) \
                     .replace( '__TITLE__', f"{rvBible.abbreviation} {ourTidyBBB}{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
@@ -446,7 +447,7 @@ def createChapterPages( level:int, folder:Path, thisBible, state:State ) -> list
     BBBs, filenames = [], []
     for BBB in state.BBBsToProcess[thisBible.abbreviation]:
         vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Creating chapter pages for {thisBible.abbreviation} {BBB}…" )
-        NT = BibleOrgSysGlobals.loadedBibleBooksCodes.isNewTestament_NR( BBB )
+        NT = bos_books_codes_py.is_nt_nr_py( BBB )
         ourTidyBBB = getOETTidyBBB( BBB )
         # print( f"{BBB=} {state.BBBsToProcess[thisBible.abbreviation]}"); print( len(state.BBBsToProcess[thisBible.abbreviation]) )
         # if not allBooksFlag: thisBible.loadBookIfNecessary( BBB )
@@ -575,7 +576,7 @@ def createChapterPages( level:int, folder:Path, thisBible, state:State ) -> list
             filename = f'{BBB}.htm'
             filenames.append( filename )
             filepath = folder.joinpath( filename )
-            # BBBLinks.append( f'<a title="{BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishName_NR(BBB)}" href="{filename}#Top">{ourTidyBBB}</a>' )
+            # BBBLinks.append( f'<a title="{bos_books_codes_py.get_english_name_nr_py(BBB)}" href="{filename}#Top">{ourTidyBBB}</a>' )
             top = makeTop( level, thisBible.abbreviation, 'chapter', 'byC/', state ) \
                     .replace( '__TITLE__', f"{thisBible.abbreviation} {ourTidyBBB}{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
                     .replace( '__KEYWORDS__', f'Bible, {thisBible.abbreviation}, chapter, {ourTidyBBB}' ) \

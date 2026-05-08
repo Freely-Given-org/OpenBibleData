@@ -80,10 +80,10 @@ import glob
 from datetime import date
 import logging
 
-# sys.path.append( '../../BibleOrgSys/' )
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39, BOOKLIST_NT27
+import bos_books_codes_py
 
 import sys
 sys.path.append( '../../BibleTransliterations/Python/' )
@@ -181,7 +181,7 @@ def _createSitePages() -> bool:
 
     # Determine our inclusive list of books for all versions
     allBBBs = set()
-    for BBB in BibleOrgSysGlobals.loadedBibleBooksCodes:
+    for BBB in bos_books_codes_py.get_all_reference_abbreviations_py():
         for versionAbbreviation in state.BibleVersions:
             if versionAbbreviation == 'OET': continue # OET is a pseudo version (OET-RV plus OET-LV)
             if versionAbbreviation in state.versionsWithoutTheirOwnPages: continue # We don't worry about these few selected verses here
@@ -192,7 +192,7 @@ def _createSitePages() -> bool:
                     if BBB in state.preloadedBibles[versionAbbreviation]:
                         allBBBs.add( BBB )
     # Now put them in the proper print order
-    state.allBBBs = BibleOrgSysGlobals.loadedBibleBooksCodes.getSequenceList( allBBBs )
+    state.allBBBs = bos_books_codes_py.get_sequence_list_py( list(allBBBs) )
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\nDiscovered {len(state.allBBBs)} books across {len(state.preloadedBibles)} versions: {state.allBBBs}" )
 
     # Determine our list of books to process for each version

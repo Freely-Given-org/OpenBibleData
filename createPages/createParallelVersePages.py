@@ -96,6 +96,7 @@ import BibleOrgSys.Formats.ESFMBible as ESFMBible
 import BibleOrgSys.OriginalLanguages.Greek as Greek
 from BibleOrgSys.Reference.OldBiblicalEnglish import moderniseEnglishWords
 from BibleOrgSys.Reference.EuropeanToEnglish import translateGerman, translateLatin
+import bos_books_codes_py
 
 import sys
 sys.path.append( '../../BibleTransliterations/Python/' )
@@ -174,7 +175,7 @@ def createParallelVersePages( level:int, folder:Path, state:State ) -> bool:
     BBBLinks, BBBNextLinks = [], []
     for BBB in reorderBooksForOETVersions( state.allBBBs ):
         # Removes INT, FRT, GLS, XXA, XXB, XXC, XXD, OTH, BAK
-        if BibleOrgSysGlobals.loadedBibleBooksCodes.isChapterVerseBook( BBB ):
+        if bos_books_codes_py.is_chapter_verse_book_py( BBB ):
             ourTidyBBB = getOETTidyBBB( BBB )
             ourTidyBBBwithNotes = getOETTidyBBB( BBB, addNotes=True )
             BBBLinks.append( f'''<a title="{getOETBookName(BBB)}" href="{BBB}/index.htm#Top">{ourTidyBBBwithNotes}</a>''' )
@@ -185,7 +186,7 @@ def createParallelVersePages( level:int, folder:Path, state:State ) -> bool:
     state.possibleUnmatchedProperNames = set()
     for BBB in reorderBooksForOETVersions( state.allBBBs ):
         if not state.TEST_MODE_FLAG or BBB in state.TEST_BOOK_LIST: # Don't need parallel pages for non-test books
-            if BibleOrgSysGlobals.loadedBibleBooksCodes.isChapterVerseBook( BBB ):
+            if bos_books_codes_py.is_chapter_verse_book_py( BBB ):
                 createParallelVersePagesForBook( level, folder, BBB, BBBNextLinks, parallelVersions, state )
     vPrint( 'Info', DEBUGGING_THIS_MODULE, f"\nPossible Unmatched Proper Names ({len(state.possibleUnmatchedProperNames):,}) {sorted(state.possibleUnmatchedProperNames)}" )
 
@@ -228,9 +229,9 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
     fnPrint( DEBUGGING_THIS_MODULE, f"createParallelVersePagesForBook( {level}, {folder}, {BBB}, {BBBLinks}, {state.BibleVersions} )" )
     BBBFolder = folder.joinpath(f'{BBB}/')
     BBBLevel = level + 1
-    isOT = BibleOrgSysGlobals.loadedBibleBooksCodes.isOldTestament_NR( BBB )
-    isDC = BibleOrgSysGlobals.loadedBibleBooksCodes.isDeuterocanon_NR( BBB )
-    isNT = BibleOrgSysGlobals.loadedBibleBooksCodes.isNewTestament_NR( BBB )
+    isOT = bos_books_codes_py.is_ot_nr_py( BBB )
+    isDC = bos_books_codes_py.is_dc_nr_py( BBB )
+    isNT = bos_books_codes_py.is_nt_nr_py( BBB )
 
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createParallelVersePagesForBook {BBBLevel}, {BBBFolder}, {BBB} from {len(BBBLinks)} books, {len(state.BibleVersions)} versions…" )
     try: os.makedirs( BBBFolder )
@@ -900,7 +901,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                         uhbTranscription = uhbTranscription[:-1] # Drop the final discourse mark
                                     assert checkHtml( f'uhbTranscription {parRef}', uhbTranscription, segmentOnly=True )
                                     # if C=='2': halt
-                                collationHref = f'https://hb.OpenScriptures.org/structure/OshbVerse/index.html?b={BibleOrgSysGlobals.loadedBibleBooksCodes.getOSISAbbreviation(BBB)}&c={C}&v={V}'
+                                collationHref = f'https://hb.OpenScriptures.org/structure/OshbVerse/index.html?b={bos_books_codes_py.get_osis_abbreviation_py(BBB)}&c={C}&v={V}'
                                 try:
                                     keysHtml = f'''</p>\n<p class="key"><b>Key</b>: <button type="button" id="coloursButton" title="Hide grammatical colours above" onclick="hide_show_colours()">C</button> {', '.join(grammaticalKeysHtmlList)}.
 <br><small>Note: Automatic aligning of the OET-RV to the LV is done by some temporary software, hence the OET-RV alignments are incomplete (and may occasionally be wrong).</small>'''
@@ -1107,7 +1108,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                     parallelHtml = f'{parallelHtml}\n<hr style="width:50%;margin-left:0;margin-top: 0.3em">\n{plblHtml}'
 
                 if isOT and c>=1: # Provide a link to Hebrew accents and phrasing pages
-                    hapBkName = BibleOrgSysGlobals.loadedBibleBooksCodes.getEnglishNameList_NR( BBB )[0]
+                    hapBkName = bos_books_codes_py.get_english_name_list_nr_py( BBB )[0]
                     hapBkAbbrev = hapBkName[:3]
                     hapHtml = f'''See Allan Johnson's <a href="https://Freely-Given.org/BibleOriginals/Hebrew/AccentsPhrasing/Files/{hapBkName}.html#{hapBkAbbrev}{C}:{V}">Hebrew accents and phrasing analysis</a>.'''
                     hapHtml = f'''<div id="HAP" class="parallelHAP"><a title="Go to HAP copyright page" href="{'../'*BBBLevel}HAP/details.htm#Top">HAP</a> <b>Hebrew accents and phrasing</b>: {hapHtml}</div><!--end of HAP-->'''

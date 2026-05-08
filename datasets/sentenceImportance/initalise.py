@@ -202,7 +202,7 @@ unclearClarityRefs = [ # Mostly sure what's in the Hebrew or Greek,
     'ISA_4:4b','ISA_5:17b','ISA_9:1','ISA_9:20','ISA_10:18','ISA_10:27b','ISA_14:21','ISA_14:31b','ISA_17:3b','ISA_17:9',
         'ISA_19:10a','ISA_19:13b','ISA_22:3a','ISA_22:5','ISA_23:7','ISA_24:23b','ISA_25:7','ISA_25:11',
         'ISA_27:4','ISA_27:7','ISA_27:8','ISA_27:9','ISA_27:10b','ISA_28:10','ISA_28:16b','ISA_29:2b','ISA_29:17',
-        'ISA_36:9','ISA_37:25','ISA_38:16a',
+        'ISA_36:9','ISA_37:25','ISA_38:16a','ISA_41:1','ISA_41:2','ISA_41:3',
         'ISA_53:11a',
     'JER_1:15b',
     'EZE_8:17b', 'EZE_16:24', 'EZE_21:13', 'EZE_24:12', 'EZE_24:17b', 'EZE_26:20b',
@@ -548,12 +548,12 @@ def create( initialTSVLines, HebrewReferenceBible, OET_LT_ReferenceOTBible, Engl
         numLinesWritten += 1
         for line in initialTSVLines:
             UUU, CV = line.split(' ')
-            BBB = BibleOrgSysGlobals.loadedBibleBooksCodes.getBBBFromUSFMAbbreviation( UUU )
+            BBB = bos_books_codes_py.usfm_abbrev_to_reference_abbrev_py( UUU )
             C, V = CV.split( ':' )
             fgRef = f'{BBB}_{CV}'
             # print( f"{fgRef}" )
 
-            isOT = BibleOrgSysGlobals.loadedBibleBooksCodes.isOldTestament_NR( BBB )
+            isOT = bos_books_codes_py.is_ot_nr_py( BBB )
             if isOT:
                 oshb_TC_footnote_value = get_OSHB_reference_text_critical_footnote_score( OET_LT_ReferenceOTBible, BBB, C, V )
             heb_TC_footnote_value = get_UHB_Hebrew_reference_text_critical_footnote_score( HebrewReferenceBible, BBB, C, V )

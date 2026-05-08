@@ -66,14 +66,14 @@ class State:
     """
     A place to store some of the global stuff that needs to be passed around.
     """
-    OET_VERSION_NUMBER_STRING = 'v0.48.04' # Incremented on most runs
+    OET_VERSION_NUMBER_STRING = 'v0.48.05' # Incremented on most runs
 
     TEST_MODE_FLAG = True # Writes smaller website subset into 'Test' subfolder if True
     TEST_OT_BOOK_LIST = ['ISA','JER'] # Books in progress
     TEST_DC_BOOK_LIST = [] # Books in progress
     TEST_NT_BOOK_LIST = ['MRK'] # Shortest gospel
     NEW_BOOK_IN_TEST_LIST_FLAG = False # So that word pages will get rebuilt for TEST_MODE_FLAG
-    LOAD_RESOURCES_FROM_PICKLES_FLAG = True # Might have to disable if they need updating (new code or data)
+    LOAD_RESOURCES_FROM_PICKLES_FLAG = True # Might have to disable loading pickles if they need updating (new code or data)
 
     # Many of these settings are used to omit some processing so as to get a speedier conclusion for debugging
     TEST_VERSIONS_ONLY = None #['OET','OET-RV','OET-LV', 'KJB-1611', 'TOSN','UTN'] # Usually None. Also stops actual site being built

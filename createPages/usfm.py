@@ -93,6 +93,7 @@ import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, dPrint, vPrint, rreplace
 from bible_organisational_system import getSmallLeadingInt
 from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_NT27
+import bos_books_codes_py
 
 from settings import State
 from html import checkHtml
@@ -185,7 +186,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
     if len(refTuple) > 2:
         V = refTuple[2]
         assert isinstance(V, str), f"{refTuple=}"
-    isSingleChapterBook = BibleOrgSysGlobals.loadedBibleBooksCodes.isSingleChapterBook( BBB )
+    is_single_chapter_book_py = bos_books_codes_py.is_single_chapter_book_py( BBB )
 
     # numChapters = 0
     cPrinted = True
@@ -267,7 +268,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                         idField2 = '' if segmentType=='dictVerse' else f' id="C{C}V{V2}"'
                         html = f'{html}{"" if html.endswith(">") else " "}' \
                                 + f'''{f"""{cID}<span class="{'cPsa' if BBB=='PSA' else 'c'}" id="C{C}V1">{toRomanNumerals(C) if versionAbbreviation=='KJB-1611' else C}</span>""" if V1=='1' else f"""<span class="v"{idField1}>{vLink}-</span>"""}''' \
-                                + (f'<span id="V{V1}"></span><span id="V{V2}"></span>' if (segmentType in ('chapter','section','relatedPassage') or isSingleChapterBook) and f'id="V{V1}"' not in html and f'id="V{V2}"' not in html else '') \
+                                + (f'<span id="V{V1}"></span><span id="V{V2}"></span>' if (segmentType in ('chapter','section','relatedPassage') or is_single_chapter_book_py) and f'id="V{V1}"' not in html and f'id="V{V2}"' not in html else '') \
                                 + f'<span class="v"{idField2}>{V2}{NARROW_NON_BREAK_SPACE}</span>' \
                                 + (rest if rest else '=◘=')
                 else: # it's a simple verse number
@@ -277,7 +278,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                     vLink = f'''<a title="Go to verse in parallel view" href="{'../'*level}par/{BBB}/C{C}V{V}.htm#Top">{V}</a>'''
                     idField = '' if segmentType=='dictVerse' else f' id="C{C}V{V}"'
                     html = f'''{html}{'' if html.endswith('"p">') or html.endswith('—') or html.endswith('—</span>') else ' '}''' \
-                            + (f'<span id="V{V}"></span>' if (segmentType in ('chapter','section','relatedPassage') or isSingleChapterBook) and f'id="V{V}"' not in html else '') \
+                            + (f'<span id="V{V}"></span>' if (segmentType in ('chapter','section','relatedPassage') or is_single_chapter_book_py) and f'id="V{V}"' not in html else '') \
                             + f'''{f"""{cID}<span class="{'cPsa' if BBB=='PSA' else 'c'}"{idField}>{cLink}{NARROW_NON_BREAK_SPACE}</span>"""
                                    if V=='1' else f"""<span class="v"{idField}>{vLink}{NARROW_NON_BREAK_SPACE}</span>"""}'''
                 # html = f'{html} <span class="v" id="C{refTuple[1]}V{V}">{V}{NARROW_NON_BREAK_SPACE}</span>'
@@ -1591,7 +1592,7 @@ def livenIORs( versionAbbreviation:str, refTuple:tuple, segmentType:str, ioLineH
     assert '\\ior' not in ioLineHtml
 
     ourBBB = refTuple[0]
-    isSingleChapterBook = BibleOrgSysGlobals.loadedBibleBooksCodes.isSingleChapterBook( ourBBB )
+    is_single_chapter_book_py = bos_books_codes_py.is_single_chapter_book_py( ourBBB )
 
     searchStartIx = 0
     for _safetyCount in range( 15 ):
@@ -1606,7 +1607,7 @@ def livenIORs( versionAbbreviation:str, refTuple:tuple, segmentType:str, ioLineH
         if ':' in startGuts:
             assert startGuts.count(':') == 1 # We expect a single C:V at this stage
             Cstr, Vstr = startGuts.strip().split( ':' )
-        elif isSingleChapterBook:
+        elif is_single_chapter_book_py:
             Cstr, Vstr = '1', startGuts.strip() # Only a verse was given
         else: Cstr, Vstr = startGuts.strip(), '1' # Only a chapter was given
         if segmentType == 'book':
@@ -1860,7 +1861,7 @@ def livenXRefField( fieldType:str, versionAbbreviation:str, refTuple:tuple, segm
                 dPrint( 'Info', DEBUGGING_THIS_MODULE, f"Possible single-chapter book: {versionAbbreviation} {refTuple} {xB=}" )
                 if not xBBB:
                     logging.critical( f"livenXRefField()B is unable to liven cross-reference from {versionAbbreviation} {refTuple} for {xBBB=} from {xB=} from {xrefLiveMiddle=} from {xoText=} {xrefOriginalMiddle=}" )
-                try: singleChapterFlag = BibleOrgSysGlobals.loadedBibleBooksCodes.isSingleChapterBook( xBBB )
+                try: singleChapterFlag = bos_books_codes_py.is_single_chapter_book_py( xBBB )
                 except KeyError: singleChapterFlag = True # default to True
                 if singleChapterFlag:
                     xC, xV = '1', xCorV
@@ -1901,7 +1902,7 @@ def livenXRefField( fieldType:str, versionAbbreviation:str, refTuple:tuple, segm
             if xB in ('As','in','and'):
                 xBBB = lastXBBB
             if xC in ('ver','Ver'):
-                if BibleOrgSysGlobals.loadedBibleBooksCodes.isSingleChapterBook( xBBB ):
+                if bos_books_codes_py.is_single_chapter_book_py( xBBB ):
                     dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"YYY KJB-1611 got {xBBB=} {xC=} from {xB=} from {refTuple} {match.groups()=} from {xoText=} {xrefLiveMiddle=}" )
                     xC = '1'
                     dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Handled {versionAbbreviation} {xBBB} {xC}:{xV} from {refTuple} {match.groups()=} from {xoText=} {xrefLiveMiddle=}" )
@@ -1930,16 +1931,16 @@ def livenXRefField( fieldType:str, versionAbbreviation:str, refTuple:tuple, segm
             pass # Reached end of string
 
         if xBBB:
-            # assert int(xC) <= BibleOrgSysGlobals.loadedBibleBooksCodes.getMaxChapters( xBBB ), f"Bad xref {xBBB} {match.groups()} from {versionAbbreviation} {refTuple} {segmentType}"
-            if int(xC) > BibleOrgSysGlobals.loadedBibleBooksCodes.getMaxChapters( xBBB ):
-                logging.critical( f"Not enough chapters in {xBBB} ({BibleOrgSysGlobals.loadedBibleBooksCodes.getMaxChapters(xBBB)}) for {match.groups()} from {versionAbbreviation} {refTuple} {segmentType=} {xoText=} {xrefOriginalMiddle=}" )
+            # assert int(xC) <= bos_books_codes_py.get_max_chapters_py( xBBB ), f"Bad xref {xBBB} {match.groups()} from {versionAbbreviation} {refTuple} {segmentType}"
+            if int(xC) > bos_books_codes_py.get_max_chapters_py( xBBB ):
+                logging.critical( f"Not enough chapters in {xBBB} ({bos_books_codes_py.get_max_chapters_py(xBBB)}) for {match.groups()} from {versionAbbreviation} {refTuple} {segmentType=} {xoText=} {xrefOriginalMiddle=}" )
                 reStartIx = match.end() # exact number of characters that we add (otherwise we get mistakes/overlaps)
                 continue
         else:
             dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"livenXRefField( {versionAbbreviation} {refTuple} '{segmentType}' from {xoText=} {xrefOriginalMiddle=} ) with {BBB=} {xBBB=} {lastXBBB=}" )
             logging.critical( f"Failed to find xref book from '{xB}' from '{xrefOriginalMiddle}' in {match.groups()} for {versionAbbreviation} {segmentType} {segmentType=} {refTuple}")
         if versionAbbreviation == 'OET-RV' and xBBB in state.preloadedBibles['OET-RV'] \
-        and (BibleOrgSysGlobals.loadedBibleBooksCodes.isOldTestament_NR( xBBB ) or BibleOrgSysGlobals.loadedBibleBooksCodes.isNewTestament_NR( xBBB )): # We want to link to the section page, (not the chapter page)
+        and (bos_books_codes_py.is_ot_nr_py( xBBB ) or bos_books_codes_py.is_nt_nr_py( xBBB )): # We want to link to the section page, (not the chapter page)
             sectionNumber = findSectionNumber( 'OET-RV', xBBB, xC, xV, state )
             dPrint( 'Info', DEBUGGING_THIS_MODULE, f"convertUSFMMarkerListToHtml for {versionAbbreviation} {refTuple} '{segmentType}' findSectionNumber( 'OET-RV', {xBBB} {xC}:{xV} ) returned {sectionNumber}" )
             assert sectionNumber is not None, f"Bad OET-RV {refTuple} cross-reference: {xBBB} {xC}:{xV} from {xrefLiveMiddle=}"

@@ -46,9 +46,10 @@ if __name__ == '__main__':
     sys.path.insert( 0, '../../BibleOrgSys/' )
 from BibleOrgSys import BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import vPrint, fnPrint, dPrint, rreplace
+import bos_books_codes_py
 
 
-LAST_MODIFIED_DATE = '2026-04-20' # by RJH
+LAST_MODIFIED_DATE = '2026-05-06' # by RJH
 SHORT_PROGRAM_NAME = "spellCheckEnglish"
 PROGRAM_NAME = "English Bible Spell Check"
 PROGRAM_VERSION = '0.59'
@@ -793,13 +794,12 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                 'hing','one)r','one)n','weh','du','ach','Raube','Raub','Tal','tue','fiel','sehe','Mal','mal','mit','Mord',
                                 'ende','rede','kam','Korb','ward','alt','dran','Rede','nun','nur','messen','ging','und','ster','tun','wer','zu',
                                 'refusese','overgehen',
-                                'testifyn','illnessen','nastye','hiddenen',
-                                    'goneripped','yauchze','widowsschaft','youngs','comfortlose','chosenn','tobläset','dampt','grownd','gladlocken',
-                                    'mutee',
+                                'nastye','hiddenen',
+                                    'waterquelle','returnst','habiten','injusticees','eggsn','darknessn','brummen','backgewichen','alonggehen','verwundert','vertritt','togehaltener',
 
                                 'actio','ambitio','anima','antiqui','apprehendi','attende','audi',
                                 'beati','bene','beneficia','bos',
-                                'calami','capti','Christi','circumcisio','cogitatio','cognitio','cogniti','complet',
+                                'calami','capti','Christi','circumcisio','cognitio','cogniti','complet',
                                     'confessio','confusi','congregati','congregatio','consecrat','consecrati','considerat','consolati','consolatio','contra','contriti','conversa',
                                         'cor','correcti',
                                     'creat','credi','cruci',
@@ -821,7 +821,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                 'passi','patria','patri','pede','pedes','perfecti','persecuti','persecutio',
                                     'pio','polluti','prope','propitiatio','publica',
                                 'questio','qui',
-                                'rea','redempti','regula','repente','ros',
+                                'rea','redempti','regula','rei','repente','ros',
                                 'securi','separat','separati','seu','serva','servit','sex','sexta',
                                     'si','sit','sol','soli','solem','stat','statu','summo',
                                 'tempora','tradit','traditi','traditio','tres','tribulatio','trium','tua','turba',
@@ -829,10 +829,8 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                 'valle','vas','victi','visitat','visitatio','vita',
                                 'l','nos','ut','didrachmas',
                                 'litt','blessingnis','perfectis','natu',
-                                'condemnationm','manyies','tookque','considerat','comparisonm','somewheres','rei',
-                                    'bigs','thinksio','inhabitantm','tribulationum','thisrum',
-                                    'defeatedmini','sayis','somewheres',
-                                    'decipula','apostolicis','fugit',
+                                'manyies','tookque','considerat',
+                                    'doese','killedonem','plorabo','gatheringm','drinkes','generat','parvus','acervus','exterreat','translati','planttio','comthey','divines',
                                 )
                     else 'Info', DEBUGGING_THIS_MODULE, f'''        {word} is suspect @ {location}\nfrom {cleanedTextToDisplay=}\n  WHICH GAVE {cleanedTextToCheck=}''' )
             if versionAbbreviation == 'Luth':
@@ -858,7 +856,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                 BAD_ENGLISH_COUNTS[word] += 1
                 TOTAL_ENGLISH_MISSPELLING_COUNT += 1
                 if versionAbbreviation not in ('KJB-1611',) \
-                or BibleOrgSysGlobals.loadedBibleBooksCodes.isDeuterocanon_NR(BBB): # We don't do this coz for KJB-1611 (except Apocrypha) it messes up later addition of hilites
+                or bos_books_codes_py.is_dc_nr_py(BBB): # We don't do this coz for KJB-1611 (except Apocrypha) it messes up later addition of hilites
                     if checkedHTMLText.count( word ) == 1:
                         dPrint( 'Info', DEBUGGING_THIS_MODULE, f"MARKING {versionAbbreviation} {word=} in {ref} {checkedHTMLText=}" )
                         checkedHTMLText = checkedHTMLText.replace( word, f'<span title="Possible misspelt word" class="spelling">{word}</span>', 1 )

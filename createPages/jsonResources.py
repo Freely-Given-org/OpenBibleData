@@ -39,8 +39,6 @@ from pathlib import Path
 import json
 import logging
 
-import sys
-# sys.path.append( '../../BibleOrgSys/' )
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 import BibleOrgSys.Formats.USFMBible as USFMBible
@@ -55,7 +53,9 @@ import BibleOrgSys.Formats.uWNotesBible as uWNotesBible
 import BibleOrgSys.Formats.TyndaleNotesBible as TyndaleNotesBible
 from BibleOrgSys.Bible import Bible
 from bible_organisational_system import InternalBibleEntryList, getSmallLeadingInt
+import bos_books_codes_py
 
+import sys
 sys.path.append( '../../BibleTransliterations/Python/' )
 from BibleTransliterations import transliterate_Greek, transliterate_Hebrew
 
@@ -92,7 +92,7 @@ def load_SIL_OTN( BBB:str, state:State ) -> str | None:
     if status == 'Failed': return None # We couldn't load this book
 
     if status is None: # We haven't tried getting this book yet
-        bookNumber = BibleOrgSysGlobals.loadedBibleBooksCodes.getReferenceNumber( BBB )
+        bookNumber = bos_books_codes_py.get_reference_number_py( BBB )
         # print( f"  Got {bookNumber=}" )
         if bookNumber > 66:
             state.SOTN[BBB] = ('Failed',None)
@@ -117,7 +117,7 @@ def load_SIL_OTN( BBB:str, state:State ) -> str | None:
             # print( f"      {indexReference=}")
             assert len(indexReference) == 8
             bookNumber, chapterNumber, verseNumber = indexReference[:2], indexReference[2:5], indexReference[5:]
-            assert int(bookNumber) == BibleOrgSysGlobals.loadedBibleBooksCodes.getReferenceNumber( BBB )
+            assert int(bookNumber) == bos_books_codes_py.get_reference_number_py( BBB )
             c, v = int(chapterNumber), int(verseNumber)
             indexedBookJsonData[(str(c),str(v))] = entryDict
         state.SOTN[BBB] = ('Loaded',indexedBookJsonData)

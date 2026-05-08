@@ -272,7 +272,7 @@ def createTopicPage( level:int, folder:Path, filename:str, topic:str, refs:list[
                                 .replace( 'id="crossRefs', f'id="crossRefs{rr}RV' ).replace( 'id="xr', f'id="xr{rr}RV' ).replace( 'href="#xr', f'href="#xr{rr}RV' )
             lvTextHtml = lvTextHtml.replace( 'id="footnotes', f'id="footnotes{rr}LV' ).replace( 'id="fn', f'id="fn{rr}LV' ).replace( 'href="#fn', f'href="#fn{rr}LV' ) \
                                 .replace( 'id="crossRefs', f'id="crossRefs{rr}LV' ).replace( 'id="xr', f'id="xr{rr}LV' ).replace( 'href="#xr', f'href="#xr{rr}LV' )
-            combinedHtmlChunks.append( f'''<h3>OET <a title="View in context of whole book" href="{'../'*level}OET/byDoc/{BBB}.htm#C{C}V{startV}">{getOETTidyBBB(BBB,True,True,True)}</a> <a title="View in context of whole chapter" href="{'../'*level}OET/byC/{BBB}_C{C}.htm#V{startV}">{refRest}</a></h3>
+            combinedHtmlChunks.append( f'''<h3>OET <a title="View in context of whole book" href="{'../'*level}OET/byDoc/{BBB}.htm#C{C}V{startV}">{getOETTidyBBB(BBB,True,True,'\u202f')}</a> <a title="View in context of whole chapter" href="{'../'*level}OET/byC/{BBB}_C{C}.htm#V{startV}">{refRest}</a></h3>
 <h3> </h3>
 <div class="chunkRV">{rvTextHtml}</div><!--chunkRV-->
 <div class="chunkLV">{lvTextHtml}</div><!--chunkLV-->''' )
