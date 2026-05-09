@@ -92,8 +92,7 @@ import multiprocessing, copy
 from functools import cache
 
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
-from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
-from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39, BOOKLIST_NT27, BOOKLIST_66
+from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint, BOOKLIST_OT39, BOOKLIST_NT27, BOOKLIST_66
 from BibleOrgSys.Reference.BibleVersificationSystems import BibleVersificationSystem
 from BibleOrgSys.OriginalLanguages import Hebrew, BibleLexicon
 from bible_organisational_system import getPositiveLeadingInt
@@ -918,7 +917,7 @@ def preprocessHebrewWordsLemmasGlosses( BBBSelection:str|list[str], state ) -> b
     if isinstance( BBBSelection, str ):
         processBBB = BBBSelection
         ignoreBBBs = BOOKLIST_OT39.remove( processBBB )
-        assert bos_books_codes_py.is_ot_nr_py( processBBB )
+        assert bos_books_codes_py.is_ot_nr( processBBB )
     else:
         assert isinstance( BBBSelection, list )
         processBBB = None
@@ -1054,7 +1053,7 @@ def preprocessGreekWordsLemmasGlosses( BBBSelection:str|list[str], state ) -> bo
     if isinstance( BBBSelection, str ):
         processBBB = BBBSelection
         ignoreBBBs = BOOKLIST_NT27.remove( processBBB )
-        assert bos_books_codes_py.is_nt_nr_py( processBBB )
+        assert bos_books_codes_py.is_nt_nr( processBBB )
     else:
         assert isinstance( BBBSelection, list )
         processBBB = None
@@ -1140,7 +1139,7 @@ def formatNTContextSpansOETGlossWords( rowNum:int, state:State ) -> str:
 
     TODO: Need to take GlossOrder into account
     """
-    # NT = bos_books_codes_py.is_nt_nr_py( BBB )
+    # NT = bos_books_codes_py.is_nt_nr( BBB )
 
     fOriginalWordRef, _fGreekWord, _fSRLemma, _fGrkLemma, _fVLTGlossWords, fOETGlossWords, _fGlossCaps, fProbability, _fExtendedStrongs, _fRoleLetter, _fMorphology, _fTagsStr = state.OETRefData['word_tables'][GreekWordFileName][rowNum].split( '\t' )
     # print( f"formatNTContextSpansOETGlossWords( {rowNum:,} ) at {fOriginalWordRef}" )
@@ -1523,7 +1522,7 @@ def create_Hebrew_word_page( level:int, hh:int, hebrewWord:str, columns_string:s
     ourTidyBBBwithNotes = getOETTidyBBB( BBB, addNotes=True )
     ourTidyBbb = getOETTidyBBB( BBB, titleCase=True )
     ourTidyBbbWithNotes = getOETTidyBBB( BBB, titleCase=True, addNotes=True )
-    OSISbookCode = bos_books_codes_py.get_osis_abbreviation_py( BBB )
+    OSISbookCode = bos_books_codes_py.get_osis_abbreviation( BBB )
 
     isMultipleLemmas = ',' in lemmaRowList
     # print( f"{ref} '{rowType}' ({lemmaRowList}) got '{word}' ({noCantillations}) morphology='{morphology}'" )
@@ -1738,7 +1737,7 @@ This is all part of the commitment of the <em>Open English Translation</em> team
             oV, oW = oVW.split( 'w', 1 )
             oTidyBBB = getOETTidyBBB( oBBB )
             oTidyBBBwithNotes = getOETTidyBBB( oBBB, addNotes=True )
-            oOSISbookCode = bos_books_codes_py.get_osis_abbreviation_py( oBBB )
+            oOSISbookCode = bos_books_codes_py.get_osis_abbreviation( oBBB )
             oOET_LV_verse_HTML = oOET_RV_verse_HTML = None
             if not state.TEST_MODE_FLAG or oBBB in state.preloadedBibles['OET-RV']:
                 oOET_LV_verse_HTML = get_OET_LV_verse_HTML( level, oBBB, oC, oV )
@@ -1807,7 +1806,7 @@ f''' {oTranslation} <a title="Go to Open Scriptures Hebrew verse page" href=
                             eV, eW = eVW.split( 'w', 1 )
                             eTidyBBB = getOETTidyBBB( eBBB )
                             eTidyBBBwithNotes = getOETTidyBBB( eBBB, addNotes=True )
-                            eOSISbookCode = bos_books_codes_py.get_osis_abbreviation_py( eBBB )
+                            eOSISbookCode = bos_books_codes_py.get_osis_abbreviation( eBBB )
 
                             eLemmaLinksList, eLemmaLinksStr = [], ''
                             for eLemmaRowNumberStr in eLemmaRowList.split( ',' ):
@@ -2029,10 +2028,10 @@ def create_Hebrew_lemma_pages( level:int, outputFolderPath:Path, state:State ) -
                 oBBB, oCVW = oWordRef.split( '_', 1 )
                 oC, oVW = oCVW.split( ':', 1 )
                 oV, oW = oVW.split( 'w', 1 ) if 'w' in oVW else (oVW, '')
-                oOSISbookCode = bos_books_codes_py.get_osis_abbreviation_py( oBBB )
+                oOSISbookCode = bos_books_codes_py.get_osis_abbreviation( oBBB )
                 oTidyBBB = getOETTidyBBB( oBBB )
                 oTidyBBBwithNotes = getOETTidyBBB( oBBB, addNotes=True )
-                oOSISbookCode = bos_books_codes_py.get_osis_abbreviation_py( oBBB )
+                oOSISbookCode = bos_books_codes_py.get_osis_abbreviation( oBBB )
                 oTidyMorphology = oMorphology[4:] if oMorphology.startswith('····') else oMorphology
                 if oTidyMorphology != '···': usedMorphologies.add( oTidyMorphology )
                 oOET_LV_verse_HTML = oOET_RV_verse_HTML = None
@@ -3619,23 +3618,23 @@ def create_statistics_pages( level:int, outputFolderPath:Path, state:State ) -> 
             .replace( '__KEYWORDS__', 'Bible, statistics, number, chapters, verses, percentage' )
     # Do it three times to get the right order for us: OT, DC, NT
     chaptersData5columns = [(BBB, getOETBookName(BBB),'OT',bvs.getNumChapters(BBB),bvs.getTotalNumVerses(BBB))
-                        for BBB in bvs if bos_books_codes_py.is_ot_nr_py(BBB)]
+                        for BBB in bvs if bos_books_codes_py.is_ot_nr(BBB)]
     chaptersData5columns += [(BBB, getOETBookName(BBB),'DC',bvs.getNumChapters(BBB),bvs.getTotalNumVerses(BBB))
-                        for BBB in bvs if bos_books_codes_py.is_dc_nr_py(BBB)]
+                        for BBB in bvs if bos_books_codes_py.is_dc_nr(BBB)]
     chaptersData5columns += [(BBB, getOETBookName(BBB),'NT',bvs.getNumChapters(BBB),bvs.getTotalNumVerses(BBB))
-                        for BBB in bvs if bos_books_codes_py.is_nt_nr_py(BBB)]
+                        for BBB in bvs if bos_books_codes_py.is_nt_nr(BBB)]
     # print( f"({len(chaptersData5columns)}) {chaptersData5columns=}" )
     totalChapters = total66Chapters = totalOTChapters = totalDCChapters = totalNTChapters = 0
     totalVerses = total66Verses = totalOTVerses = totalDCVerses = totalNTVerses = 0
     for BBB,_bkName,_testamentAbbrev,numChaps,numVerses in chaptersData5columns:
-        if bos_books_codes_py.is_ot_nr_py(BBB):
+        if bos_books_codes_py.is_ot_nr(BBB):
             totalOTChapters += numChaps; totalOTVerses += numVerses
             total66Chapters += numChaps; total66Verses += numVerses
             totalChapters += numChaps; totalVerses += numVerses
-        elif bos_books_codes_py.is_dc_nr_py(BBB):
+        elif bos_books_codes_py.is_dc_nr(BBB):
             totalDCChapters += numChaps; totalDCVerses += numVerses
             totalChapters += numChaps; totalVerses += numVerses
-        elif bos_books_codes_py.is_nt_nr_py(BBB):
+        elif bos_books_codes_py.is_nt_nr(BBB):
             totalNTChapters += numChaps; totalNTVerses += numVerses
             total66Chapters += numChaps; total66Verses += numVerses
             totalChapters += numChaps; totalVerses += numVerses
@@ -3652,7 +3651,7 @@ def create_statistics_pages( level:int, outputFolderPath:Path, state:State ) -> 
 
     chapters66HtmlTableLines = []
     for BBB,bkName,testamentAbbrev,numChaps,numVerses,verseTotalPercent66,verseTotalPercent,verseTestamentPercent in chaptersData8columns:
-        if bos_books_codes_py.is_ot_nr_py(BBB) or bos_books_codes_py.is_nt_nr_py(BBB):
+        if bos_books_codes_py.is_ot_nr(BBB) or bos_books_codes_py.is_nt_nr(BBB):
             chapters66HtmlTableLines.append( f'''<tr><td style="text-align:center;">{len(chapters66HtmlTableLines)+1}</td><td>{BBB}</td><td style="text-align:center;">{bkName}</td><td style="text-align:right;">{numChaps}</td><td style="text-align:right;">{numVerses:,}</td><td style="text-align:right;">{verseTotalPercent66}%</td><td style="text-align:right;">{verseTestamentPercent}% {testamentAbbrev}</td></tr>''' )
     # print( f"({len(chapters66HtmlTableLines)}) {chapters66HtmlTableLines=}" )
     chapters66Html = f'''<table style="width:95%;">
@@ -3663,7 +3662,7 @@ def create_statistics_pages( level:int, outputFolderPath:Path, state:State ) -> 
 
     chaptersHtmlTableLines = []
     for BBB,bkName,testamentAbbrev,numChaps,numVerses,verseTotalPercent66,verseTotalPercent,verseTestamentPercent in chaptersData8columns:
-        if bos_books_codes_py.is_ot_nr_py(BBB) or bos_books_codes_py.is_dc_nr_py(BBB) or bos_books_codes_py.is_nt_nr_py(BBB):
+        if bos_books_codes_py.is_ot_nr(BBB) or bos_books_codes_py.is_dc_nr(BBB) or bos_books_codes_py.is_nt_nr(BBB):
             chaptersHtmlTableLines.append( f'''<tr><td style="text-align:center;">{len(chaptersHtmlTableLines)+1}</td><td>{BBB}</td><td style="text-align:center;">{bkName}</td><td style="text-align:right;">{numChaps}</td><td style="text-align:right;">{numVerses:,}</td><td style="text-align:right;">{verseTotalPercent}%</td><td style="text-align:right;">{verseTestamentPercent}% {testamentAbbrev}</td></tr>''' )
     # print( f"({len(chaptersHtmlTableLines)}) {chaptersHtmlTableLines=}" )
     chaptersHtml = f'''<table style="width:95%;">
@@ -3675,7 +3674,7 @@ def create_statistics_pages( level:int, outputFolderPath:Path, state:State ) -> 
     chaptersData8columns.sort(key=lambda x:x[4], reverse=False) # Sort in place
     sortedChapters66HtmlTableLines = []
     for BBB,bkName,testamentAbbrev,numChaps,numVerses,verseTotalPercent66,verseTotalPercent,verseTestamentPercent in chaptersData8columns:
-        if bos_books_codes_py.is_ot_nr_py(BBB) or bos_books_codes_py.is_nt_nr_py(BBB):
+        if bos_books_codes_py.is_ot_nr(BBB) or bos_books_codes_py.is_nt_nr(BBB):
             sortedChapters66HtmlTableLines.append( f'''<tr><td style="text-align:center;">{len(sortedChapters66HtmlTableLines)+1}</td><td>{BBB}</td><td style="text-align:center;">{bkName}</td><td style="text-align:right;">{numChaps}</td><td style="text-align:right;">{numVerses:,}</td><td style="text-align:right;">{verseTotalPercent66}%</td><td style="text-align:right;">{verseTestamentPercent}% {testamentAbbrev}</td></tr>''' )
     # print( f"({len(chapters66HtmlTableLines)}) {chapters66HtmlTableLines=}" )
     sortedChapters66Html = f'''<table style="width:95%;">
@@ -3686,7 +3685,7 @@ def create_statistics_pages( level:int, outputFolderPath:Path, state:State ) -> 
 
     sortedChaptersHtmlTableLines = []
     for BBB,bkName,testamentAbbrev,numChaps,numVerses,verseTotalPercent66,verseTotalPercent,verseTestamentPercent in chaptersData8columns:
-        if bos_books_codes_py.is_ot_nr_py(BBB) or bos_books_codes_py.is_dc_nr_py(BBB) or bos_books_codes_py.is_nt_nr_py(BBB):
+        if bos_books_codes_py.is_ot_nr(BBB) or bos_books_codes_py.is_dc_nr(BBB) or bos_books_codes_py.is_nt_nr(BBB):
             sortedChaptersHtmlTableLines.append( f'''<tr><td style="text-align:center;">{len(sortedChaptersHtmlTableLines)+1}</td><td>{BBB}</td><td style="text-align:center;">{bkName}</td><td style="text-align:right;">{numChaps}</td><td style="text-align:right;">{numVerses:,}</td><td style="text-align:right;">{verseTotalPercent}%</td><td style="text-align:right;">{verseTestamentPercent}% {testamentAbbrev}</td></tr>''' )
     # print( f"({len(chaptersHtmlTableLines)}) {chaptersHtmlTableLines=}" )
     sortedChaptersHtml = f'''<table style="width:95%;">
@@ -3777,12 +3776,12 @@ def livenMD( level:int, mdText:str ) -> str:
         mdLinkTarget = mdLinkTarget.split( '#', 1 )[1]
         if mdLinkTarget.count( '.' ) == 2: # Then it's almost certainly an OSIS B/C/V ref
             OSISBkCode, C, V = mdLinkTarget.split( '.' )
-            BBB = bos_books_codes_py.osis_abbrev_to_reference_abbrev_py( OSISBkCode )
+            BBB = bos_books_codes_py.osis_abbrev_to_reference_abbrev( OSISBkCode )
             ourLinkTarget = f"{'../'*level}OET/byC/{BBB}_C{C}.htm#C{C}V{V}"
         else:
             assert mdLinkTarget.count( '.' ) == 1 # Then it's almost certainly an OSIS B/C ref
             OSISBkCode, C = mdLinkTarget.split( '.' )
-            BBB = bos_books_codes_py.osis_abbrev_to_reference_abbrev_py( OSISBkCode )
+            BBB = bos_books_codes_py.osis_abbrev_to_reference_abbrev( OSISBkCode )
             ourLinkTarget = f'{BBB}.htm#C{C}'
         ourLink = f'<a title="View OET reference" href="{ourLinkTarget}">{readableRef}</a>'
         mdText = f'''{mdText[:match.start()]}{ourLink}{mdText[match.end():]}'''

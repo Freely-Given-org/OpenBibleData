@@ -455,7 +455,7 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
     fnPrint( DEBUGGING_THIS_MODULE, f"createSectionCrossReferencePagesForBook( {level}, {folder}, {thisBible.abbreviation}, {BBB}, {BBBLinks}, {state.BibleVersions} )" )
     BBBFolder = folder.joinpath(f'{BBB}/')
     BBBLevel = level + 1
-    NT = bos_books_codes_py.is_nt_nr_py( BBB )
+    NT = bos_books_codes_py.is_nt_nr( BBB )
 
 
     vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  createSectionCrossReferencePagesForBook {BBBLevel}, {BBBFolder}, {BBB} from {len(BBBLinks)} books, {len(state.BibleVersions)} versions…" )
@@ -791,7 +791,7 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
                     dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {collectedVerseCrossReference=} {firstPart=} {attemptedBBB=}" )
                     # if attemptedBBB is None and thisBible.abbreviation=='OET-RV' and firstPart[0]=='Y':
                     #     # Maybe we need to convert something like Yoel to Joel
-                    #     attemptedBBB = bos_books_codes_py.english_name_to_reference_abbrev_py( f'J{firstPart[1:]}' )
+                    #     attemptedBBB = bos_books_codes_py.english_name_to_reference_abbrev( f'J{firstPart[1:]}' )
                     if attemptedBBB is None:
                         # If might be an internal reference to this same book
                         #   so prepend this book code
@@ -825,7 +825,7 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
                         collectedVerseCrossReference = collectedVerseCrossReference[:-1]
                     assert '\\' not in collectedVerseCrossReference, f"{BBB} {startC}:{startV} got {collectedVerseCrossReference=}"
                     lastXrefBBB, lastXrefC, verseEntryList, contextList = getVerseDataListForReference( collectedVerseCrossReference, thisBible, lastXrefBBB, lastXrefC )
-                    # lastXrefNT = bos_books_codes_py.is_nt_nr_py( lastXrefBBB )
+                    # lastXrefNT = bos_books_codes_py.is_nt_nr( lastXrefBBB )
                     if verseEntryList:
                         if isinstance( thisBible, ESFMBible.ESFMBible ): # e.g., OET-RV
                             verseEntryList = livenOETWordLinks( BBBLevel, thisBible, lastXrefBBB, verseEntryList, state )

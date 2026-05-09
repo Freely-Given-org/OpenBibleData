@@ -548,12 +548,12 @@ def create( initialTSVLines, HebrewReferenceBible, OET_LT_ReferenceOTBible, Engl
         numLinesWritten += 1
         for line in initialTSVLines:
             UUU, CV = line.split(' ')
-            BBB = bos_books_codes_py.usfm_abbrev_to_reference_abbrev_py( UUU )
+            BBB = bos_books_codes_py.usfm_abbrev_to_reference_abbrev( UUU )
             C, V = CV.split( ':' )
             fgRef = f'{BBB}_{CV}'
             # print( f"{fgRef}" )
 
-            isOT = bos_books_codes_py.is_ot_nr_py( BBB )
+            isOT = bos_books_codes_py.is_ot_nr( BBB )
             if isOT:
                 oshb_TC_footnote_value = get_OSHB_reference_text_critical_footnote_score( OET_LT_ReferenceOTBible, BBB, C, V )
             heb_TC_footnote_value = get_UHB_Hebrew_reference_text_critical_footnote_score( HebrewReferenceBible, BBB, C, V )

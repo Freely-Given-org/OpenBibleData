@@ -92,7 +92,7 @@ def load_SIL_OTN( BBB:str, state:State ) -> str | None:
     if status == 'Failed': return None # We couldn't load this book
 
     if status is None: # We haven't tried getting this book yet
-        bookNumber = bos_books_codes_py.get_reference_number_py( BBB )
+        bookNumber = bos_books_codes_py.get_reference_number( BBB )
         # print( f"  Got {bookNumber=}" )
         if bookNumber > 66:
             state.SOTN[BBB] = ('Failed',None)
@@ -117,7 +117,7 @@ def load_SIL_OTN( BBB:str, state:State ) -> str | None:
             # print( f"      {indexReference=}")
             assert len(indexReference) == 8
             bookNumber, chapterNumber, verseNumber = indexReference[:2], indexReference[2:5], indexReference[5:]
-            assert int(bookNumber) == bos_books_codes_py.get_reference_number_py( BBB )
+            assert int(bookNumber) == bos_books_codes_py.get_reference_number( BBB )
             c, v = int(chapterNumber), int(verseNumber)
             indexedBookJsonData[(str(c),str(v))] = entryDict
         state.SOTN[BBB] = ('Loaded',indexedBookJsonData)

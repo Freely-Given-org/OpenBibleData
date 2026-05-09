@@ -45,8 +45,7 @@ import logging
 # sys.path.append( '../../BibleOrgSys/BibleOrgSys/' )
 # import BibleOrgSysGlobals
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
-from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
-from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39, BOOKLIST_NT27
+from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint, BOOKLIST_OT39, BOOKLIST_NT27
 import BibleOrgSys.Formats.ESFMBible as ESFMBible
 from bible_organisational_system import InternalBibleEntryList
 import bos_books_codes_py
@@ -100,7 +99,7 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
     processedBBBs, processedFilenames = [], []
     for BBB in state.BBBsToProcess['OET']:
         dPrint( 'Info', DEBUGGING_THIS_MODULE, f"    createOETBookPages {BBB=} {state.BBBsToProcess['OET']} out of {len(state.BBBsToProcess['OET'])}" )
-        NT = bos_books_codes_py.is_nt_nr_py( BBB )
+        NT = bos_books_codes_py.is_nt_nr( BBB )
         ourTidyBBB = getOETTidyBBB( BBB )
         ourTidyBBBwithNotes = getOETTidyBBB( BBB, addNotes=True )
 
@@ -157,7 +156,7 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
             bkHtml = f'{bkHtml}{textHtml}'
             filename = f'{BBB}.htm'
             processedFilenames.append( filename )
-            # BBBLinks.append( f'''<a title="{bos_books_codes_py.get_english_name_nr_py(BBB)}" href="{filename}#Top">{ourTidyBBBwithNotes}</a>''' )
+            # BBBLinks.append( f'''<a title="{bos_books_codes_py.get_english_name_nr(BBB)}" href="{filename}#Top">{ourTidyBBBwithNotes}</a>''' )
             filepath = folder.joinpath( filename )
             top = makeTop( level, rvBible.abbreviation, 'book', f'byDoc/{filename}', state ) \
                     .replace( '__TITLE__', f"{rvBible.abbreviation} {ourTidyBBB} book{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
@@ -407,7 +406,7 @@ def createBookPages( level:int, folder:Path, thisBible, state:State ) -> list[st
     processedBBBs, processedFilenames = [], []
     for BBB in state.BBBsToProcess[thisBible.abbreviation]:
         ourTidyBBB = getOETTidyBBB( BBB )
-        NT = bos_books_codes_py.is_nt_nr_py( BBB )
+        NT = bos_books_codes_py.is_nt_nr( BBB )
         # print( f"{BBB=} {state.BBBsToProcess[thisBible.abbreviation]}"); print( len(BBBsToProcess) )
         # if not allBooksFlag: thisBible.loadBookIfNecessary( BBB )
 
@@ -460,7 +459,7 @@ def createBookPages( level:int, folder:Path, thisBible, state:State ) -> list[st
         bkHtml = f'{bkHtml}{textHtml}'
         filename = f'{BBB}.htm'
         processedFilenames.append( filename )
-        # BBBLinks.append( f'<a title="{bos_books_codes_py.get_english_name_nr_py(BBB)}" href="{filename}#Top">{ourTidyBBB}</a>' )
+        # BBBLinks.append( f'<a title="{bos_books_codes_py.get_english_name_nr(BBB)}" href="{filename}#Top">{ourTidyBBB}</a>' )
         filepath = folder.joinpath( filename )
         top = makeTop( level, thisBible.abbreviation, 'book', f'byDoc/{filename}', state ) \
                 .replace( '__TITLE__', f"{thisBible.abbreviation} {ourTidyBBB} book{' TEST' if state.TEST_MODE_FLAG else ''}" ) \

@@ -81,6 +81,7 @@ CHANGELOG:
     2025-12-01 Added text 'direct-object marker' to pop-up titles for untranslated DOM
     2026-03-13 Remove ⇔ symbol at beginning of verse (which indicates the verse text was reordered)
     2026-03-23 Added special handling for dictVerse segments (no xrefs or CV id fields)
+    2026-05-09 Upgraded to bos_books_codes_py
 """
 from gettext import gettext as _
 import re
@@ -90,9 +91,8 @@ import logging
 # import sys
 # sys.path.append( '../../BibleOrgSys/' )
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
-from BibleOrgSys.BibleOrgSysGlobals import fnPrint, dPrint, vPrint, rreplace
+from BibleOrgSys.BibleOrgSysGlobals import fnPrint, dPrint, vPrint, rreplace, BOOKLIST_NT27
 from bible_organisational_system import getSmallLeadingInt
-from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_NT27
 import bos_books_codes_py
 
 from settings import State
@@ -100,7 +100,7 @@ from html import checkHtml
 from OETHandlers import getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2026-05-05' # by RJH
+LAST_MODIFIED_DATE = '2026-05-09' # by RJH
 SHORT_PROGRAM_NAME = "usfm"
 PROGRAM_NAME = "OpenBibleData USFM to HTML functions"
 PROGRAM_VERSION = '0.96'
@@ -186,7 +186,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
     if len(refTuple) > 2:
         V = refTuple[2]
         assert isinstance(V, str), f"{refTuple=}"
-    is_single_chapter_book_py = bos_books_codes_py.is_single_chapter_book_py( BBB )
+    is_single_chapter_book_py = bos_books_codes_py.is_single_chapter_book( BBB )
 
     # numChapters = 0
     cPrinted = True
@@ -1592,7 +1592,7 @@ def livenIORs( versionAbbreviation:str, refTuple:tuple, segmentType:str, ioLineH
     assert '\\ior' not in ioLineHtml
 
     ourBBB = refTuple[0]
-    is_single_chapter_book_py = bos_books_codes_py.is_single_chapter_book_py( ourBBB )
+    is_single_chapter_book_py = bos_books_codes_py.is_single_chapter_book( ourBBB )
 
     searchStartIx = 0
     for _safetyCount in range( 15 ):
@@ -1811,6 +1811,8 @@ def livenXRefField( fieldType:str, versionAbbreviation:str, refTuple:tuple, segm
             # print( f"livenXRefField() BCV or BV {versionAbbreviation} {refTuple} got {xB=} from {match.groups()=}" )
             if xB == 'Songs':
                 xBBB = 'SNG'
+            elif xB == 'Yohan':
+                xBBB = 'JHN'
             elif versionAbbreviation in ('KJB-1611','RV') and firstIndex==indexBCV and xB in ('and','c','ca','verse','vers','ver'): # 'ca' stands for 'circa' = 'around'
                 xBBB = lastXBBB # Same as last book
             elif versionAbbreviation=='KJB-1611' and xB in ('and','ant','Antiq','As','as','in','lambes','lib','See','the','to','called','Araunah','Dodo','Elishua','Vzziah','Esdr','Ez'): # One is a range, 2nd is in a footnote
@@ -1861,7 +1863,7 @@ def livenXRefField( fieldType:str, versionAbbreviation:str, refTuple:tuple, segm
                 dPrint( 'Info', DEBUGGING_THIS_MODULE, f"Possible single-chapter book: {versionAbbreviation} {refTuple} {xB=}" )
                 if not xBBB:
                     logging.critical( f"livenXRefField()B is unable to liven cross-reference from {versionAbbreviation} {refTuple} for {xBBB=} from {xB=} from {xrefLiveMiddle=} from {xoText=} {xrefOriginalMiddle=}" )
-                try: singleChapterFlag = bos_books_codes_py.is_single_chapter_book_py( xBBB )
+                try: singleChapterFlag = bos_books_codes_py.is_single_chapter_book( xBBB )
                 except KeyError: singleChapterFlag = True # default to True
                 if singleChapterFlag:
                     xC, xV = '1', xCorV
@@ -1902,7 +1904,7 @@ def livenXRefField( fieldType:str, versionAbbreviation:str, refTuple:tuple, segm
             if xB in ('As','in','and'):
                 xBBB = lastXBBB
             if xC in ('ver','Ver'):
-                if bos_books_codes_py.is_single_chapter_book_py( xBBB ):
+                if bos_books_codes_py.is_single_chapter_book( xBBB ):
                     dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"YYY KJB-1611 got {xBBB=} {xC=} from {xB=} from {refTuple} {match.groups()=} from {xoText=} {xrefLiveMiddle=}" )
                     xC = '1'
                     dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Handled {versionAbbreviation} {xBBB} {xC}:{xV} from {refTuple} {match.groups()=} from {xoText=} {xrefLiveMiddle=}" )
@@ -1931,16 +1933,16 @@ def livenXRefField( fieldType:str, versionAbbreviation:str, refTuple:tuple, segm
             pass # Reached end of string
 
         if xBBB:
-            # assert int(xC) <= bos_books_codes_py.get_max_chapters_py( xBBB ), f"Bad xref {xBBB} {match.groups()} from {versionAbbreviation} {refTuple} {segmentType}"
-            if int(xC) > bos_books_codes_py.get_max_chapters_py( xBBB ):
-                logging.critical( f"Not enough chapters in {xBBB} ({bos_books_codes_py.get_max_chapters_py(xBBB)}) for {match.groups()} from {versionAbbreviation} {refTuple} {segmentType=} {xoText=} {xrefOriginalMiddle=}" )
+            # assert int(xC) <= bos_books_codes_py.get_max_chapters( xBBB ), f"Bad xref {xBBB} {match.groups()} from {versionAbbreviation} {refTuple} {segmentType}"
+            if int(xC) > bos_books_codes_py.get_max_chapters( xBBB ):
+                logging.critical( f"Not enough chapters in {xBBB} ({bos_books_codes_py.get_max_chapters(xBBB)}) for {match.groups()} from {versionAbbreviation} {refTuple} {segmentType=} {xoText=} {xrefOriginalMiddle=}" )
                 reStartIx = match.end() # exact number of characters that we add (otherwise we get mistakes/overlaps)
                 continue
         else:
             dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"livenXRefField( {versionAbbreviation} {refTuple} '{segmentType}' from {xoText=} {xrefOriginalMiddle=} ) with {BBB=} {xBBB=} {lastXBBB=}" )
             logging.critical( f"Failed to find xref book from '{xB}' from '{xrefOriginalMiddle}' in {match.groups()} for {versionAbbreviation} {segmentType} {segmentType=} {refTuple}")
         if versionAbbreviation == 'OET-RV' and xBBB in state.preloadedBibles['OET-RV'] \
-        and (bos_books_codes_py.is_ot_nr_py( xBBB ) or bos_books_codes_py.is_nt_nr_py( xBBB )): # We want to link to the section page, (not the chapter page)
+        and (bos_books_codes_py.is_ot_nr( xBBB ) or bos_books_codes_py.is_nt_nr( xBBB )): # We want to link to the section page, (not the chapter page)
             sectionNumber = findSectionNumber( 'OET-RV', xBBB, xC, xV, state )
             dPrint( 'Info', DEBUGGING_THIS_MODULE, f"convertUSFMMarkerListToHtml for {versionAbbreviation} {refTuple} '{segmentType}' findSectionNumber( 'OET-RV', {xBBB} {xC}:{xV} ) returned {sectionNumber}" )
             assert sectionNumber is not None, f"Bad OET-RV {refTuple} cross-reference: {xBBB} {xC}:{xV} from {xrefLiveMiddle=}"

@@ -795,9 +795,10 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                 'ende','rede','kam','Korb','ward','alt','dran','Rede','nun','nur','messen','ging','und','ster','tun','wer','zu',
                                 'refusese','overgehen',
                                 'nastye','hiddenen',
-                                    'waterquelle','returnst','habiten','injusticees','eggsn','darknessn','brummen','backgewichen','alonggehen','verwundert','vertritt','togehaltener',
+                                    'appeart','pleasanten','oflängst',
+                                    'heregeführet','gebückt','woodes','delightsöl','tobringen','erneuen','räuberische','priestlyem','gezieret',
 
-                                'actio','ambitio','anima','antiqui','apprehendi','attende','audi',
+                                'actio','ambit','ambitio','anima','antiqui','apprehendi','attende','audi',
                                 'beati','bene','beneficia','bos',
                                 'calami','capti','Christi','circumcisio','cognitio','cogniti','complet',
                                     'confessio','confusi','congregati','congregatio','consecrat','consecrati','considerat','consolati','consolatio','contra','contriti','conversa',
@@ -807,6 +808,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                 'dat','dedi','dem','designat','desolati','digni','discretio','distincti','distinctio','divisi','dom','domina',
                                 'ecclesia','ecclesias','editio','ei','evangelica','expiat','extensio',
                                 'fac','Finis','finis','forti','fugit',
+                                'generat',
                                 'hellor','hoc','humili',
                                 'ibi','illum','illinat','ima','infirmi','insinuat',
                                     'intellige','intelligi','intentio','introduc','inventi','invocatio','Isaia','iter',
@@ -830,7 +832,8 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                 'l','nos','ut','didrachmas',
                                 'litt','blessingnis','perfectis','natu',
                                 'manyies','tookque','considerat',
-                                    'doese','killedonem','plorabo','gatheringm','drinkes','generat','parvus','acervus','exterreat','translati','planttio','comthey','divines',
+                                    'comee','healthybit',
+                                    'cilicio','capiatur','despicientes','afflicta','watchtowerm','tradiderunt','subversione','draco','pharetram','equitis','lignea',
                                 )
                     else 'Info', DEBUGGING_THIS_MODULE, f'''        {word} is suspect @ {location}\nfrom {cleanedTextToDisplay=}\n  WHICH GAVE {cleanedTextToCheck=}''' )
             if versionAbbreviation == 'Luth':
@@ -856,7 +859,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                 BAD_ENGLISH_COUNTS[word] += 1
                 TOTAL_ENGLISH_MISSPELLING_COUNT += 1
                 if versionAbbreviation not in ('KJB-1611',) \
-                or bos_books_codes_py.is_dc_nr_py(BBB): # We don't do this coz for KJB-1611 (except Apocrypha) it messes up later addition of hilites
+                or bos_books_codes_py.is_dc_nr(BBB): # We don't do this coz for KJB-1611 (except Apocrypha) it messes up later addition of hilites
                     if checkedHTMLText.count( word ) == 1:
                         dPrint( 'Info', DEBUGGING_THIS_MODULE, f"MARKING {versionAbbreviation} {word=} in {ref} {checkedHTMLText=}" )
                         checkedHTMLText = checkedHTMLText.replace( word, f'<span title="Possible misspelt word" class="spelling">{word}</span>', 1 )

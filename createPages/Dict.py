@@ -963,7 +963,7 @@ def getLexReferencesHtmlList( level, lexRefs ) -> list[str]:
         assert len(lexRef) == 14
         assert lexRef.isdigit()
         bkNum, C, V, last5Digits = int(lexRef[0:3]), int(lexRef[3:6]), int(lexRef[6:9]), lexRef[9:]
-        BBB = bos_books_codes_py.get_bbb_from_reference_number_py( bkNum )
+        BBB = bos_books_codes_py.get_bbb_from_reference_number( bkNum )
         ourTidyBBB = getOETTidyBBB( BBB )
         # TODO: We're not yet using last5Digits, e.g., '00046', or lexRefExtra, e.g., '{N:001}'
         lexLink = f'''<a href="{'../'*level}par/{BBB}/C{C}V{V}.htm#Top">{ourTidyBBB} {C}:{V}</a>'''

@@ -97,6 +97,7 @@ CHANGELOG:
     2026-01-06 Added NNBSpace after parallelism markers at line beginnings
     2026-01-19 Added link to https://OET.Bible
     2026-02-03 Allow uncertain ellided markings '\\add ?≡'
+    2026-05-09 Upgraded to bos_books_codes_py
 """
 # from gettext import gettext as _
 import logging
@@ -105,14 +106,14 @@ import re
 from collections import defaultdict
 
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
-from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
-from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39, BOOKLIST_NT27
+from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint, BOOKLIST_OT39, BOOKLIST_NT27
+import bos_books_codes_py
 
 from settings import State, state
 from OETHandlers import getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2026-04-29' # by RJH
+LAST_MODIFIED_DATE = '2026-05-09' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
 PROGRAM_VERSION = '0.99'
@@ -440,7 +441,7 @@ def makeBookNavListParagraph( linksList:list[str], workAbbrevPlus:str, state:Sta
             # print( f"  HEREdd {aLink=} {adjDisplayText=}")
         assert 3 <= len(adjDisplayText) <= 5, f"{len(adjDisplayText)=} {adjDisplayText=}" # it should be a tidyBBB, e.g., 'GEN' or '1 COR'
         BBB = getBBBFromOETBookName( adjDisplayText, where=f"makeBookNavListParagraph( {workAbbrevPlus} {aLink=} )" )
-        assert BBB in BibleOrgSysGlobals.loadedBibleBooksCodes, f"Bad {BBB=} from {adjDisplayText=} from {aLink=}"
+        assert bos_books_codes_py.is_valid_reference_abbreviation( BBB ), f"Bad {BBB=} from {adjDisplayText=} from {aLink=}"
         newALink = f'{aLink[:ixDisplayLinkStart]}{displayText}{aLink[ixDisplayLinkEnd:]}'
         if BBB in ('INT','FRT','OTH','GLS','XXA','XXB','XXC','XXD'):
             newALink = f'<span class="XX">{newALink}</span>'

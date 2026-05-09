@@ -49,8 +49,7 @@ CHANGELOG:
 from pathlib import Path
 
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
-from BibleOrgSys.BibleOrgSysGlobals import dPrint, fnPrint
-from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39
+from BibleOrgSys.BibleOrgSysGlobals import dPrint, fnPrint, BOOKLIST_OT39
 
 
 LAST_MODIFIED_DATE = '2026-04-29' # by RJH

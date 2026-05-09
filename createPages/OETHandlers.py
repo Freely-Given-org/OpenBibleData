@@ -57,8 +57,7 @@ import re
 import unicodedata
 
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
-from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
-from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_66
+from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint, BOOKLIST_66
 from bible_organisational_system import getSmallLeadingInt, InternalBibleEntryList, InternalBibleEntry
 from BibleOrgSys.Internals.InternalBible import InternalBible
 import BibleOrgSys.Formats.ESFMBible as ESFMBible
@@ -91,7 +90,7 @@ def getOETTidyBBB( BBB:str, titleCase:bool|None=False, allowFourChars:bool|None=
     """
     # print( f"getOETTidyBBB() {BBB=} {titleCase=} {allowFourChars=} {insertChar=} {addNotes=}" )
     assert insertChar is None or isinstance( insertChar, str )
-    newBBB = bos_books_codes_py.tidy_bbb_py( BBB, title_case=titleCase, allow_four_chars=allowFourChars, insert_char=insertChar)
+    newBBB = bos_books_codes_py.tidy_bbb( BBB, title_case=titleCase, allow_four_chars=allowFourChars, insert_char=insertChar)
 
     if insertChar is None: insertChar = ''
     # OT
@@ -127,7 +126,7 @@ def getOETBookName( BBB:str ) -> str:
     """
     Handle our different spelling of well-known book names.
     """
-    return ( bos_books_codes_py.get_english_name_nr_py(BBB)
+    return ( bos_books_codes_py.get_english_name_nr(BBB)
                 .replace('Joshua','Yehoshua/(Joshua)')
                 .replace('‘Judges’','Heroes/(‘Judges’)')
                 .replace('1 Samuel',' 1 Shemuel/(Samuel)')
@@ -182,9 +181,9 @@ def getBBBFromOETBookName( originalBooknameText:str, where:str ) -> str|None:
     TODO: How much of this should be in BibleOrgSys ???
     """
     # Too many errors from having this function first, e.g., gives 'NAH' from 'Yonah'
-    # resultBBB = bos_books_codes_py.english_name_to_reference_abbrev_py( originalBooknameText )
+    # resultBBB = bos_books_codes_py.english_name_to_reference_abbrev( originalBooknameText )
     # if resultBBB and resultBBB not in ('SAM','CHR','NAH): return resultBBB
-    # else: dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"bos_books_codes_py.english_name_to_reference_abbrev_py() can't get valid BBB from {originalBooknameText=}" )
+    # else: dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"bos_books_codes_py.english_name_to_reference_abbrev() can't get valid BBB from {originalBooknameText=}" )
                                                                         
     booknameText = ( originalBooknameText
                         .replace( ' ', '' ).replace( NARROW_NON_BREAK_SPACE, '' )
@@ -195,13 +194,13 @@ def getBBBFromOETBookName( originalBooknameText:str, where:str ) -> str|None:
     try: return OET_BBB_DICT[booknameText]
     except KeyError: pass
 
-    resultBBB = bos_books_codes_py.english_name_to_reference_abbrev_py( booknameText
-    # resultBBB = english_name_to_reference_abbrev_py( booknameText
+    resultBBB = bos_books_codes_py.english_name_to_reference_abbrev( booknameText
+    # resultBBB = english_name_to_reference_abbrev( booknameText
                     # .replace( 'Yob', 'JOB' ).replace( 'Yochanan', 'JHN' ).replace( 'Yoel', 'JOL' ).replace( 'Yonah', 'JNA' )
                     .replace( 'Yhn', 'JHN' ).replace( 'Yud', 'JDE' )
                     # .replace( '1Yhn', 'JN1' ).replace( '2Yhn', 'JN2' ).replace( '3Yhn', 'JN3' )
                 )
-    if not resultBBB or not bos_books_codes_py.is_valid_reference_abbreviation_py( resultBBB ):
+    if not resultBBB or not bos_books_codes_py.is_valid_reference_abbreviation( resultBBB ):
         dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"getBBBFromOETBookName( {where} ) can't get valid BBB from {booknameText=}: {resultBBB=} from {originalBooknameText=}" )
     return resultBBB
 # end of OETHandlers.getBBBFromOETBookName
@@ -338,7 +337,7 @@ def livenOETWordLinks( level:int, bibleObject:ESFMBible, BBB:str, givenEntryList
 
     # Now add the transliteration to the Greek HTML title popups
     # At the same time, add some colourisation
-    isNT = bos_books_codes_py.is_nt_nr_py( BBB )
+    isNT = bos_books_codes_py.is_nt_nr( BBB )
 
     updatedVerseEntryList = InternalBibleEntryList()
     for n, entry in enumerate( revisedEntryList ):
@@ -533,8 +532,8 @@ def livenOETCompatibleWordLinks( level:int, bibleObject:InternalBible, BBB:str, 
         assert '{n}' in linkTemplate
         # bookObject = self.books[BBB]
         # wordFileName = bookObject.ESFMWordTableFilename
-        if bos_books_codes_py.is_ot_nr_py( BBB ): wordFileName = 'OET-LV_OT_word_table.tsv'
-        if bos_books_codes_py.is_nt_nr_py( BBB ): wordFileName = 'OET-LV_NT_word_table.tsv'
+        if bos_books_codes_py.is_ot_nr( BBB ): wordFileName = 'OET-LV_OT_word_table.tsv'
+        if bos_books_codes_py.is_nt_nr( BBB ): wordFileName = 'OET-LV_NT_word_table.tsv'
         if wordFileName:
             assert wordFileName.endswith( '.tsv' )
             # print( f"ESFMBible.livenESFMCompatibleWordLinks found filename '{wordFileName}' for {self.abbreviation} {BBB}" )
@@ -612,7 +611,7 @@ def livenOETCompatibleWordLinks( level:int, bibleObject:InternalBible, BBB:str, 
 
     # Now add the transliteration to the Greek HTML title popups
     # At the same time, add some colourisation
-    isNT = bos_books_codes_py.is_nt_nr_py( BBB )
+    isNT = bos_books_codes_py.is_nt_nr( BBB )
 
     updatedVerseList = InternalBibleEntryList()
     for n, entry in enumerate( revisedEntryList ):
@@ -792,7 +791,7 @@ def findLVQuote( level:int, BBB:str, C:str, V:str, occurrenceNumber:int, origina
     dPrint( 'Info', DEBUGGING_THIS_MODULE, f"formatUnfoldingWordTranslationNotes( {level=}, {ref}, {occurrenceNumber=} {originalQuote=}, … )")
     currentOccurrenceNumber = occurrenceNumber
 
-    NT = bos_books_codes_py.is_nt_nr_py( BBB )
+    NT = bos_books_codes_py.is_nt_nr( BBB )
     wordFileName = 'OET-LV_NT_word_table.tsv' if NT else 'OET-LV_OT_word_table.tsv'
 
     try:

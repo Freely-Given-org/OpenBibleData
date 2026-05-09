@@ -47,8 +47,7 @@ import multiprocessing, copy
 from functools import cache
 
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
-from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
-from BibleOrgSys.Reference.BibleBooksCodes import BOOKLIST_OT39, BOOKLIST_NT27, BOOKLIST_66
+from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint, BOOKLIST_OT39, BOOKLIST_NT27, BOOKLIST_66
 from BibleOrgSys.Reference.BibleVersificationSystems import BibleVersificationSystem
 from BibleOrgSys.OriginalLanguages import Hebrew, BibleLexicon
 from bible_organisational_system import getPositiveLeadingInt
@@ -228,7 +227,7 @@ def create_Hebrew_word_json( level:int, hh:int, hebrewWord:str, columns_string:s
     ourTidyBBBwithNotes = getOETTidyBBB( BBB, addNotes=True )
     ourTidyBbb = getOETTidyBBB( BBB, titleCase=True )
     ourTidyBbbWithNotes = getOETTidyBBB( BBB, titleCase=True, addNotes=True )
-    OSISbookCode = bos_books_codes_py.get_osis_abbreviation_py( BBB )
+    OSISbookCode = bos_books_codes_py.get_osis_abbreviation( BBB )
 
     jsonDict = { 'word_number':hh, 'book_abbreviation':ourTidyBbbWithNotes, 'ref':ref,
                 'entry_type':rowType, 'morpheme_row_list':morphemeRowList, 'lemma_row_list':lemmaRowList,
@@ -452,7 +451,7 @@ def create_Hebrew_word_json( level:int, hh:int, hebrewWord:str, columns_string:s
 #             oV, oW = oVW.split( 'w', 1 )
 #             oTidyBBB = getOETTidyBBB( oBBB )
 #             oTidyBBBwithNotes = getOETTidyBBB( oBBB, addNotes=True )
-#             oOSISbookCode = bos_books_codes_py.get_osis_abbreviation_py( oBBB )
+#             oOSISbookCode = bos_books_codes_py.get_osis_abbreviation( oBBB )
 #             oOET_LV_verse_HTML = oOET_RV_verse_HTML = None
 #             if not state.TEST_MODE_FLAG or oBBB in state.preloadedBibles['OET-RV']:
 #                 oOET_LV_verse_HTML = get_OET_LV_verse_HTML( level, oBBB, oC, oV )
@@ -521,7 +520,7 @@ def create_Hebrew_word_json( level:int, hh:int, hebrewWord:str, columns_string:s
 #                             eV, eW = eVW.split( 'w', 1 )
 #                             eTidyBBB = getOETTidyBBB( eBBB )
 #                             eTidyBBBwithNotes = getOETTidyBBB( eBBB, addNotes=True )
-#                             eOSISbookCode = bos_books_codes_py.get_osis_abbreviation_py( eBBB )
+#                             eOSISbookCode = bos_books_codes_py.get_osis_abbreviation( eBBB )
 
 #                             eLemmaLinksList, eLemmaLinksStr = [], ''
 #                             for eLemmaRowNumberStr in eLemmaRowList.split( ',' ):
