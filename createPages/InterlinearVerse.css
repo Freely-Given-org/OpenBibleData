@@ -284,7 +284,7 @@ span.fnText { }
 /* span.fl { font-style:italic; font-weight:bold; } */
 /* span.fm { vertical-align:super; } */
 /* span.fp {} */
-/* span.fq { font-style:italic; } */
+span.fq { font-style:italic; }
 span.fqa { font-style:italic; }
 span.ft {}
 /* span.fv { vertical-align:super; } */

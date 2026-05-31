@@ -27,9 +27,9 @@
 """
 Module handling usfm to html functions for OpenBibleData package.
 
-convertUSFMMarkerListToHtml( level:str, versionAbbreviation:str, refTuple:tuple, segmentType:str,
+convertVerseEntryListToHtml( level:str, versionAbbreviation:str, refTuple:tuple, segmentType:str,
                         contextList:list, markerList:list, basicOnly:bool=False ) -> str
-convertUSFMCharacterFormatting( versionAbbreviation:str, refTuple:tuple, segmentType:str,
+_convertUSFMCharacterFormatting( versionAbbreviation:str, refTuple:tuple, segmentType:str,
                                                     usfmField, basicOnly=False, state:State ) -> str
 livenIntroductionLinks( versionAbbreviation:str, refTuple:tuple, segmentType:str,
                                                         introHtml:str, state:State ) -> str
@@ -82,8 +82,9 @@ CHANGELOG:
     2026-03-13 Remove ⇔ symbol at beginning of verse (which indicates the verse text was reordered)
     2026-03-23 Added special handling for dictVerse segments (no xrefs or CV id fields)
     2026-05-09 Upgraded to bos_books_codes_py
+    2026-05-27 Improve handling of 'nb' paragraphs
+    2026-05-31 Adding background colouring for OET-RV PSA segments
 """
-from gettext import gettext as _
 import re
 import unicodedata
 import logging
@@ -100,7 +101,7 @@ from html import checkHtml
 from OETHandlers import getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2026-05-09' # by RJH
+LAST_MODIFIED_DATE = '2026-05-31' # by RJH
 SHORT_PROGRAM_NAME = "usfm"
 PROGRAM_NAME = "OpenBibleData USFM to HTML functions"
 PROGRAM_VERSION = '0.96'
@@ -124,9 +125,9 @@ spClassDict = {'The groom':'groom', 'The bride':'bride', 'Yerushalem’s young w
 XRefRegEx = re.compile( '\\\\x .+?\\\\x\\*' )
 FnRegEx = re.compile( '\\\\f .+?\\\\f\\*' )
 spanClassRegEx = re.compile( '<span class=".+?">' )
-def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tuple, segmentType:str, contextList:list, markerList:list, basicOnly:bool, state:State ) -> str:
+def convertVerseEntryListToHtml( level:int, versionAbbreviation:str, refTuple:tuple, segmentType:str, contextList:list, verseEntryList:list, basicOnly:bool, state:State ) -> str:
     """
-    Loops through the given list of USFM lines
+    Loops through the given list of processed USFM lines (verseEntryList)
         and converts to a HTML segment as required.
 
     basicOnly ignores things like section headings (s1),
@@ -140,34 +141,278 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
     # if segmentType=='relatedPassage' and refTuple[0]=='JHN' and refTuple[1]=='1':
     #     print( f"\n{refTuple}\n{contextList=}\n{markerList=}")
 
-    fnPrint( DEBUGGING_THIS_MODULE, f"convertUSFMMarkerListToHtml( {versionAbbreviation} {refTuple} '{segmentType}' {contextList} {markerList} )" )
-    dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"convertUSFMMarkerListToHtml( {versionAbbreviation} {refTuple} '{segmentType}' {contextList=} {len(markerList)=} )" )
+    fnPrint( DEBUGGING_THIS_MODULE, f"convertVerseEntryListToHtml( {versionAbbreviation} {refTuple} '{segmentType}' {contextList} {verseEntryList} )" )
+    dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"convertVerseEntryListToHtml( {versionAbbreviation} {refTuple} '{segmentType}' {contextList=} {len(verseEntryList)=} )" )
     assert segmentType in ('book','section','chapter','parallelVerse','interlinearVerse','dictVerse','relatedPassage','topicalPassage'), f"Unexpected {segmentType=}"
     BBB = refTuple[0] # Compulsory
     maxFootnoteChars = MAX_NET_FOOTNOTE_CHARS if versionAbbreviation=='NET' else MAX_FOOTNOTE_CHARS
 
     # if 'KJB' in versionAbbreviation and BBB=='PSA' and len(refTuple)>1 and refTuple[1] in ('98','99','100'):
-    #     print( f"\nconvertUSFMMarkerListToHtml( {versionAbbreviation} {refTuple} '{segmentType}' {contextList=} {[(entry.getMarker(),entry.getFullText()) for entry in markerList]} )\n" )
+    #     print( f"\nconvertVerseEntryListToHtml( {versionAbbreviation} {refTuple} '{segmentType}' {contextList=} {[(entry.getMarker(),entry.getFullText()) for entry in markerList]} )\n" )
         # if refTuple[2] == '2': halt
-    # if versionAbbreviation=='NET' and refTuple==('JOB','36','4'): print( f"\nconvertUSFMMarkerListToHtml( {versionAbbreviation} {refTuple} '{segmentType}' {contextList=} {[entry.getFullText() for entry in markerList]} )\n" )
-    # if versionAbbreviation=='OET-RV' and refTuple==('CH2','23'): print( f"\nconvertUSFMMarkerListToHtml( {versionAbbreviation} {refTuple} '{segmentType}' {contextList=} {[(entry.getMarker(),entry.getFullText()) for entry in markerList]} )\n" )
+    # if versionAbbreviation=='NET' and refTuple==('JOB','36','4'): print( f"\nconvertVerseEntryListToHtml( {versionAbbreviation} {refTuple} '{segmentType}' {contextList=} {[entry.getFullText() for entry in markerList]} )\n" )
+    # if versionAbbreviation=='OET-RV' and refTuple==('CH2','23'): print( f"\nconvertVerseEntryListToHtml( {versionAbbreviation} {refTuple} '{segmentType}' {contextList=} {[(entry.getMarker(),entry.getFullText()) for entry in markerList]} )\n" )
     # # Check that we don't have any duplicated verses in the segment
     # lastV = None
     # for entry in markerList:
     #     marker, text = entry.getMarker(), entry.getFullText()
-    #     print( f"convertUSFMMarkerListToHtml {versionAbbreviation} {refTuple} {segmentType} {marker}={text}" )
+    #     print( f"convertVerseEntryListToHtml {versionAbbreviation} {refTuple} {segmentType} {marker}={text}" )
     #     if marker == 'v':
     #         assert text != lastV
     #         lastV = text
 
+
+    def _convertUSFMCharacterFormatting( versionAbbreviation:str, refTuple:tuple, segmentType:str, usfmField:str, basicOnly:bool, state:State ) -> str:
+        """
+        Handles character formatting inside USFM lines.
+
+        This includes \\fig and \\jmp
+
+        Automatically changes \\nd to Nomina Sacra for OET NT books
+
+        Seems that the basicOnly flag doesn't currently affect anything???
+
+        Side-effect: in PSA, this function can alter backgroundColour variable in the surrounding context
+        """
+        nonlocal backgroundColour
+        from createSectionPages import findSectionNumber
+        fnPrint( DEBUGGING_THIS_MODULE, f"_convertUSFMCharacterFormatting( {versionAbbreviation}, {refTuple}, {segmentType}, {usfmField}, {basicOnly=} )" )
+        dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"_convertUSFMCharacterFormatting( {versionAbbreviation}, {refTuple}, {segmentType}, {usfmField}, {basicOnly=} )" )
+        if '\\add <<' not in usfmField and '\\add ?<<' not in usfmField:
+            assert '<<' not in usfmField, f"{versionAbbreviation} {refTuple} {segmentType} {basicOnly=} {usfmField=}"
+        for charMarker in BibleOrgSysGlobals.USFMAllExpandedCharacterMarkers + ['untr','fig']:
+            openCount, closeCount = usfmField.count( f'\\{charMarker} ' ), usfmField.count( f'\\{charMarker}*' )
+            if openCount != closeCount:
+                logging.error( f"Mismatched USFM character markers: '{charMarker}' open={openCount} close={closeCount} from {versionAbbreviation} {refTuple} '{usfmField}'" )
+
+        ourBBB = refTuple[0]
+
+        html = usfmField.replace( '\\+', '\\') # We don't want the embedded USFM marker style here
+
+        # Handle verse colouring in OET-RV Psalms/Songs
+        if versionAbbreviation=='OET-RV' and ourBBB=='PSA':
+            if basicOnly:
+                if '\\z' in html:
+                    html = html.replace( '\\zr ', '' ).replace( '\\z1 ', '' ).replace( '\\z2 ', '' ).replace( '\\z3 ', '' ).replace( '\\z4 ', '' ) \
+                                .replace( '\\zrhilite ', '' ).replace( '\\z1hilite ', '' ).replace( '\\z2hilite ', '' ).replace( '\\z3hilite ', '' ).replace( '\\z4hilite ', '' ) \
+                                .replace( '\\zrhilite*', '' ).replace( '\\z1hilite*', '' ).replace( '\\z2hilite*', '' ).replace( '\\z3hilite*', '' ).replace( '\\z4hilite*', '' )
+            else: # not basicOnly
+                if '\\z' in html:
+                    # print( f"Have active \\z in {versionAbbreviation} {refTuple} {segmentType} {basicOnly=}\n{usfmField=}")
+                    if '\\zr ' in html:
+                        # html = f'{html.replace('\\zr ','<span class="zr">')}</span><!--z-->'
+                        backgroundColour = 'zr'
+                    elif '\\z1 ' in html:
+                        # html = f'{html.replace('\\z1 ','<span class="z1">')}</span><!--z-->'
+                        backgroundColour = 'z1'
+                    elif '\\z2 ' in html:
+                        # html = f'{html.replace('\\z2 ','<span class="z2">')}</span><!--z-->'
+                        backgroundColour = 'z2'
+                    elif '\\z3 ' in html:
+                        # html = f'{html.replace('\\z3 ','<span class="z3">')}</span><!--z-->'
+                        backgroundColour = 'z3'
+                    elif '\\z4 ' in html:
+                        # html = f'{html.replace('\\z3 ','<span class="z3">')}</span><!--z-->'
+                        backgroundColour = 'z4'
+                if backgroundColour: # No /z in this line, but still might be coloured
+                    html = f'<span class="{backgroundColour}">{html}</span><!--{backgroundColour}-->'
+                html = html.replace( '\\zr ', '' ).replace( '\\z1 ', '' ).replace( '\\z2 ', '' ).replace( '\\z3 ', '' ).replace( '\\z4 ', '' ) \
+                            .replace( '\\zrhilite ', '<span class="zrhilite">' ).replace( '\\z1hilite ', '<span class="z1hilite">' ).replace( '\\z2hilite ', '<span class="z2hilite">' ).replace( '\\z3hilite ', '<span class="z3hilite">' ).replace( '\\z4hilite ', '<span class="z4hilite">' ) \
+                            .replace( '\\zrhilite*', '</span>' ).replace( '\\z1hilite*', '</span>' ).replace( '\\z2hilite*', '</span>' ).replace( '\\z3hilite*', '</span>' ).replace( '\\z4hilite*', '</span>' )
+        assert '\\z' not in html, f"{versionAbbreviation} {refTuple} {segmentType} {basicOnly=}\n{usfmField=}"
+
+        # For now, we just remove \\fig entries
+        if '\\fig' in usfmField: # e.g., \fig Jesus was immersed by John.|src="41_Mk_01_06_RG.jpg" size="col" loc="1:9" copy="© Sweet Publishing" ref="1:9"\fig*
+            searchStartIx = 0
+            for _safetyCount in range( 99 ):
+                figStartIx = html.find( '\\fig ', searchStartIx )
+                if figStartIx == -1: break # no more to find -- all done
+                figPipeIx = html.find( '|', figStartIx+5 )
+                assert figPipeIx != -1
+                figEndIx = html.find( '\\fig*', figPipeIx+1 )
+                assert figEndIx != -1
+                # dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"Handling fig {versionAbbreviation} {refTuple} {segmentType} {searchStartIx} {figStartIx} {figPipeIx} {figEndIx} '{html[figStartIx:figEndIx+5]}'" )
+                figGuts = html[figStartIx+5:figEndIx]
+                dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"Got fig {versionAbbreviation} {refTuple} {segmentType} '{figGuts}' from '{html[figStartIx:figEndIx+5]}'" )
+                word = '(Figure skipped)'
+                html = f'{html[:figStartIx]}{word}{html[figEndIx+5:]}'
+                searchStartIx = figStartIx + len(word) # coz we've made the html much shorter
+            else: fig_loop_needed_to_break
+
+        # Turn \\jmp entries into active links
+        if '\\jmp' in usfmField: # e.g., \jmp debating|link-href="https://textandcanon.org/a-case-for-the-longer-ending-of-mark"\jmp*
+            searchStartIx = 0
+            for _safetyCount in range( 99 ):
+                jmpStartIx = html.find( '\\jmp ', searchStartIx )
+                if jmpStartIx == -1: break # no more to find -- all done
+                jmpPipeIx = html.find( '|', jmpStartIx+5 )
+                assert jmpPipeIx != -1
+                jmpEndIx = html.find( '\\jmp*', jmpPipeIx+1 )
+                assert jmpEndIx != -1
+                # dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"Handling jmp {versionAbbreviation} {refTuple} {segmentType} {searchStartIx} {jmpStartIx} {jmpPipeIx} {jmpEndIx} '{html[jmpStartIx:jmpEndIx+5]}'" )
+                jmpDisplay, jmpLinkBit = html[jmpStartIx+5:jmpPipeIx], html[jmpPipeIx+1:jmpEndIx]
+                dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"Got jmp {versionAbbreviation} {refTuple} {segmentType} {jmpDisplay=} and {jmpLinkBit=} from '{html[jmpStartIx:jmpEndIx+5]}'" )
+                assert jmpLinkBit.startswith( 'link-href="' ) and jmpLinkBit.endswith( '"' )
+                jmpLink = jmpLinkBit[11:-1]
+                if jmpLink.startswith( 'http' ): # then it's an external internet link
+                    newLink = f'<a title="Go to external jump link" href="{jmpLink}">{jmpDisplay}</a>'
+                else: # it's likely to be a link into another work
+                    vPrint( 'Info', DEBUGGING_THIS_MODULE, f"What is this '{jmpDisplay}' link to '{jmpLink}' expecting to jump to?" )
+                    if jmpLink.startswith( '#' ):
+                        assert jmpLink.startswith( '#C' ), f"Got internal jmp {versionAbbreviation} {refTuple} {segmentType} {jmpDisplay=} and {jmpLink=} from '{html[jmpStartIx:jmpEndIx+5]}'"
+                        assert 'V' in jmpLink, f"Got internal jmp {versionAbbreviation} {refTuple} {segmentType} {jmpDisplay=} and {jmpLink=} from '{html[jmpStartIx:jmpEndIx+5]}'"
+                        Vix = jmpLink.index( 'V' )
+                        refC, refV = jmpLink[2:Vix], jmpLink[Vix+1:]
+                        # print( f"{jmpLink=} {ourBBB=} {refC=} {refV=}")
+                        if segmentType == 'book':
+                            newLink = f'<a title="Go to internal jump link reference document" href="{jmpLink}">{jmpDisplay}</a>'
+                        elif segmentType == 'chapter':
+                            newLink = f'<a title="Go to internal jump link reference chapter" href="{ourBBB}_C{refC}.htm#C{refC}V{refV}">{jmpDisplay}</a>'
+                        elif segmentType.endswith( 'Verse' ):
+                            # dPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"_convertUSFMCharacterFormatting( {versionAbbreviation}, {refTuple}, {segmentType}, '{introHtml}' )" )
+                            # print( f"{versionAbbreviation}, {refTuple}, {ourBBB=} {refC=} {refV=} {jmpDisplay=}" )
+                            newLink = f'<a title="Go to internal jump link reference verse" href="C{refC}V{refV}.htm#Top">{jmpDisplay}</a>'
+                        elif segmentType in ('section','relatedPassage'):
+                            if 1:
+                            # try: # Now find which section that reference starts in
+                                # print( f"{state.sectionsLists[versionAbbreviation][ourBBB]=}" )
+                                n = findSectionNumber( versionAbbreviation, ourBBB, refC, refV, state )
+                                # intV = getSmallLeadingInt( refV )
+                                # found = False
+                                # for n, (startC,startV,endC,endV,sectionName,reasonName,contextList,verseEntryList,sFilename) in enumerate( state.sectionsLists[versionAbbreviation][ourBBB] ):
+                                #     if startC==refC and endC==refC:
+                                #         if getSmallLeadingInt(startV) <= intV <= getSmallLeadingInt(endV): # It's in this single chapter
+                                #             found = True
+                                #             break
+                                #     elif startC==refC and intV>=getSmallLeadingInt(startV): # It's in the first chapter
+                                #         found = True
+                                #         break
+                                #     elif endC==refC and intV<=getSmallLeadingInt(endV): # It's in the second chapter
+                                #         found = True
+                                #         break
+                                # if found:
+                                if n is not None:
+                                    newLink = f'<a title="Go to to section page with reference" href="{ourBBB}_S{n}.htm#Top">{jmpDisplay}</a>'
+                                else:
+                                    logging.critical( f"unable_to_find_reference for {ourBBB} {refC}:{refV} {[f'{startC}:{startV}…{endC}:{endV}' for startC,startV,endC,endV,_sectionName,_reasonName,_contextList,_verseEntryList,_sFilename in state.sectionsLists[versionAbbreviation]]}" )
+                                    newLink = jmpDisplay # Can't make a link
+                                    unable_to_find_reference # Need to write more code
+                            # except KeyError:
+                            #     logging.critical( f"_convertUSFMCharacterFormatting for {versionAbbreviation}, {refTuple}, {segmentType} can't find section list for {ourBBB}" )
+                            #     newLink = guts # Can't make a link
+                        else:
+                            dPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"_convertUSFMCharacterFormatting( {versionAbbreviation}, {refTuple}, {segmentType}, '{usfmField}' )" )
+                            jmp_ooopsie
+                        newLink = f'<a title="Go to internal jump link" href="{jmpLink}">{jmpDisplay}</a>'
+                        # print( f"Got {newLink=}")
+                    else: # unknown link type
+                        unknown_jmp_link_type
+                html = f'{html[:jmpStartIx]}{newLink}{html[jmpEndIx+5:]}'
+                searchStartIx = jmpStartIx + len(newLink) # coz we've changed the size of the html
+            else: jmp_loop_needed_to_break
+
+        # Handle \\w markers (mostly only occur if basicOnly is false)
+        if '\\w ' in usfmField or '\\+w ' in usfmField:
+            # if versionAbbreviation in ('NET',): # \\w fields in NET seem to now only contain the English word
+                # assert '|' not in usfmField, f"Found pipe {versionAbbreviation=} {refTuple=} {segmentType=} '{usfmField=}' {basicOnly=} '{html}'"
+            if '|' not in usfmField:
+                usfmField = usfmField.replace( '\\w ', '' ).replace( '\\w*', '' ) \
+                                    .replace( '\\+w ', '' ).replace( '\\+w*', '' )
+            else: # Fields like \\w of|x-occurrence="1" x-occurrences="3"\\w* for ULT/UST, WEB has strongs
+                # NET from eBible.org seems to have a mix,
+                #   e.g., "\\w So|strong="H6213"\\w* \\w the king\\w* \\w stayed\\w*"
+                searchStartIx = 0
+                for _safetyCount in range( 299 ):
+                    searchString = '\\w '
+                    wStartIx = html.find( searchString, searchStartIx )
+                    if wStartIx == -1:
+                        searchString = '\\+w '
+                        wStartIx = html.find( searchString, searchStartIx )
+                    if wStartIx == -1: # still
+                        break # no more to find -- all done
+                    pipeIx = html.find( '|', wStartIx+len(searchString) ) # Might be -1 if there's no more, or might be more than wEndIx if there's none in this word
+                    wEndIx = html.find( f'{searchString[:-1]}*', wStartIx+len(searchString) )
+                    assert wEndIx != -1
+                    if pipeIx > wEndIx: # then it must be in the next word!
+                        pipeIx = -1 # so just act as if there wasn't one :)
+                    if pipeIx != -1:
+                        assert wStartIx+len(searchString) < pipeIx < wEndIx, f"{searchStartIx=} {wStartIx=} {pipeIx=} {wEndIx=}"
+                    word = html[wStartIx+len(searchString):wEndIx] if pipeIx==-1 else html[wStartIx+len(searchString):pipeIx]
+                    html = f'{html[:wStartIx]}{word}{html[wEndIx+len(searchString):]}'
+                    searchStartIx += len(word) # coz we've made the html much shorter
+                else:
+                    wCount = usfmField.count( '\\w ' ) + usfmField.count( '\\+w ' )
+                    raise Exception( f"_convertUSFMCharacterFormatting() w loop needed to break at {versionAbbreviation} {refTuple} '{segmentType}' with ({wCount:,}) '{usfmField}'" )
+                assert '\\w ' not in html and '\\+w ' not in html, f"{html[html.index(f'{BACKSLASH}x')-10:html.index(f'{BACKSLASH}x')+12]}" # Note: can still be \\wj in text
+
+        if '\\tc' in usfmField:
+            html = html.replace( '\\tc1 ', '<td>' ).replace( '\\tc2 ', '</td><td>' ).replace( '\\tc3 ', '</td><td>' ).replace( '\\tc4 ', '</td><td>' ).replace( '\\tc5 ', '</td><td>' )
+        assert '\\tr' not in html, f"TR {versionAbbreviation} {refTuple} {segmentType} {basicOnly=} {usfmField=} {html=}"
+
+        # Replace the character markers which have specific HMTL equivalents
+        # NOTE: Embedded markers like \\+em have already had the + removed above
+        html = html \
+                .replace( '\\bdit ', '<b><i>' ).replace( '\\bdit*', '</i></b>' ) \
+                .replace( '\\bd ', '<b>' ).replace( '\\bd*', '</b>' ) \
+                .replace( '\\it ', '<i>' ).replace( '\\it*', '</i>' ) \
+                .replace( '\\em ', '<em>' ).replace( '\\em*', '</em>' ) \
+                .replace( '\\sup ', '<sup>' ).replace( '\\sup*', '</sup>' )
+
+        # Special handling for OT '\\nd LORD\\nd*' (this is also in createParallelVersePages)
+        html = html.replace( '\\nd LORD\\nd*', '\\nd L<span style="font-size:.75em;">ORD</span>\\nd*' )
+
+        # Now replace all the other character markers into HTML spans, e.g., \\add \\nd \\bk
+        expandedCharMarkers = BibleOrgSysGlobals.USFMAllExpandedCharacterMarkers + ['untr'] # Our custom addition
+        if versionAbbreviation == 'NET': expandedCharMarkers += ['heb','theb','grk','tgrk','ver','src','fx']
+        # assert 'qac' in expandedCharMarkers, f"({len(expandedCharMarkers)}) {expandedCharMarkers}"
+        for charMarker in expandedCharMarkers:
+            if charMarker=='nd' and 'OET' in versionAbbreviation and ourBBB in BOOKLIST_NT27:
+                html = html.replace( '\\nd ', '<span class="nominaSacra">' ).replace( '\\nd*', '</span>' )
+            else:
+                html = html.replace( f'\\{charMarker} ', f'<span class="{charMarker}">' ).replace( f'\\{charMarker}*', '</span>' )
+
+        if 'OET' in versionAbbreviation: # Append "untranslated" to titles/popup-boxes for untranslated words in OET-LV
+            # count = 0
+            searchStartIndex = 0
+            for _safetyCount in range( 900 ):
+                ix = html.find( '<span class="untr"><a title="', searchStartIndex )
+                if ix == -1: break # all done
+                ixTitleStart = ix + 29
+                ixTitleEnd = html.index( '" href=', ixTitleStart )
+                haveDOMflag = '(ʼēt, To)' in html[ixTitleStart:ixTitleEnd]
+                html = f"{html[:ixTitleEnd]} (untranslated{' direct-object marker' if haveDOMflag else ''}){html[ixTitleEnd:]}"
+                # count += 1
+                searchStartIndex = ixTitleEnd + 5
+            else: need_to_increase_loop_count_for_untranslated_words
+
+        # Final checking
+        if versionAbbreviation not in ('UST','ULT'): # uW stuff has too many USFM encoding errors and inconsistencies
+            assert 'strong="' not in html, f"‘{versionAbbreviation}’ {refTuple} {segmentType=} {basicOnly=} {usfmField=}\n  html='{html if len(html)<4000 else f'{html[:2000]} ....... {html[-2000:]}'}'"
+        if '\\ts\\*' in html:
+            logging.critical( f"Removing ts marker in {versionAbbreviation} {refTuple} {segmentType} {basicOnly=}…")
+            html = html.replace( '\\ts\\*', '' )
+        if '\\f ' not in html and '\\x ' not in html:
+            # AssertionError: versionAbbreviation='ULT' refTuple=('ISA',) segmentType='book' 'usfmField='\\w to|x-occurrence="1" x-occurrences="2"\\w* \\w dishonor|x-occurrence="1" x-occurrences="1"\\w* \\zaln-s |x-strong="H1347" x-lemma="גָּאוֹן" x-morph='' basicOnly=False 'to dishonor \zaln-s |x-strong="H1347" x-lemma="גָּאוֹן" x-morph='
+            if (versionAbbreviation not in ('TCNT','TC-GNT') or 'INT' not in refTuple) \
+            and (versionAbbreviation not in ('ULT','UST') \
+                or ('GEN' not in refTuple and 'MAT' not in refTuple and 'PSA' not in refTuple and 'ISA' not in refTuple and 'JER' not in refTuple and 'DEU' not in refTuple and 'JOB' not in refTuple and 'SNG' not in refTuple)): # ULT Gen 14:20, ISA and UST MAT has an encoding fault in 12:20 14Feb2023
+                assert '\\' not in html, f"{versionAbbreviation=} {refTuple=} {segmentType=} '{usfmField=}' {basicOnly=} '{html}'"
+        if not checkHtml( f'_convertUSFMCharacterFormatting({versionAbbreviation} {refTuple} {segmentType} {basicOnly=})', html, segmentOnly=True ):
+            if DEBUGGING_THIS_MODULE and versionAbbreviation!='OEB': # OEB ISA has a \\em mismatch
+                halt
+        return html
+    # end of usfm._convertUSFMCharacterFormatting
+
+
     inMainDiv = inParagraph = inSection = inList = inListEntry = inTable = inTableRow = inSPdiv = None
     inRightDiv = False
+    backgroundColour = None
     html = ''
     for marker in contextList:
         if marker == 's1':
             rest = '--unknown--'
             if not basicOnly:
-                html = f'{html}<div class="section"><p class="{marker}">{rest}</p>\n'
+                html = f'{html}<div class="section"><p class="{marker}">{rest}</p><!--section-->\n'
                 inSection = 'section'
         elif marker == 'p':
             if not basicOnly:
@@ -190,7 +435,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
 
     # numChapters = 0
     cPrinted = True
-    for MLIndex, entry in enumerate( markerList ):
+    for MLIndex, entry in enumerate( verseEntryList ):
         marker = entry.getMarker()
         # rest = entry.getText() if basicOnly and 'OET' not in versionAbbreviation else entry.getFullText() # getText() has notes removed but doesn't work with wordlink numbers in OET
         # The following line means we get all footnotes, etc.
@@ -238,7 +483,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                 rest = rest[1:] # Just delete the reordering marker -- it's completely irrelevant for display use (it's used for connecting words)
             else:
                 assert '⇔' not in rest, f"Unexpected ⇔ char {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} {marker=} {rest=}" # Check for typos
-            html = f'''{html}<span class="{versionAbbreviation}_{'chapterIntro' if V=='0' else 'verseTextChunk'}">{convertUSFMCharacterFormatting( versionAbbreviation, refTuple, segmentType, rest, basicOnly, state )}</span>'''
+            html = f'''{html}<span class="{versionAbbreviation}_{'chapterIntro' if V=='0' else 'verseTextChunk'}">{_convertUSFMCharacterFormatting( versionAbbreviation, refTuple, segmentType, rest, basicOnly, state )}</span>'''
         elif marker == 'v': # This is where we want the verse marker
             if inRightDiv:
                 html = f'{html}</div><!--{inRightDiv}-->\n'
@@ -258,6 +503,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                     assert ':' not in V # We don't handle chapter ranges here yet (and probably don't need to)
                     V1, V2 = V.split( '-' )
                     # We want both verse numbers to be searchable
+                    # print( f"{versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} {marker=} {rest=}\n{[ve for ve in verseEntryList]}" )
                     if int(V2) != int(V1)+1: # We don't handle 3+ verse reordering well yet
                         logging.warning( f" Not handling 3+ verse bridge well yet at {versionAbbreviation} {refTuple} {C}:{V}" )
                     if segmentType in ('parallelVerse','interlinearVerse'): # We just want the reader to be able to see the verse range
@@ -284,8 +530,8 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                 # html = f'{html} <span class="v" id="C{refTuple[1]}V{V}">{V}{NARROW_NON_BREAK_SPACE}</span>'
         elif marker == '¬v': # We can ignore these end markers
             # Sections can cross chapters
-            assert not rest or rest==V or segmentType=='section', f"Why does {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} '¬v' have {rest=} from {markerList=}"
-        elif marker in ('p', 'q1','q2','q3','q4', 'm','mi', 'nb',
+            assert not rest or rest==V or segmentType=='section', f"Why does {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} '¬v' have {rest=} from {verseEntryList=}"
+        elif marker in ('p', 'q1','q2','q3','q4', 'm','mi',
                             'pi1','pi2', 'pc','pm','pmc','pmo','po','pr', 'qm1','qm2', 'qr', 'cls'):
             assert not rest, f"Unexpected rest {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {marker}={rest}"
             if inMainDiv: # this can happen in INT module
@@ -297,7 +543,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
             if inParagraph:
                 logging.warning( f"Already in paragraph {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {marker}={rest}" )
                 assert not basicOnly, f"{versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {marker}={rest}"
-                html = f'{html}</p>\n'
+                html = f'{html}</p><!--{inParagraph}-->\n'
                 inParagraph = None
             if inTableRow:
                 assert inTable
@@ -325,13 +571,26 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
             elif versionAbbreviation != 'OET-LV': # not basicOnly and not OET-LV (we ignore them there)
                 html = f'{html}<p class="{marker}">'
                 inParagraph = marker
-        elif marker in ('¬p', '¬q1','¬q2','¬q3','¬q4', '¬m','¬mi', '¬nb',
+        elif marker == '¬nb': # We should normally hit this one before the 'nb' because it should be at the end of the previous chapter
+                              #  except that in the OET-LV, every chapter starts with a 'nb' marker (including chapter 1) and none of them are given end markers
+            assert not rest
+            assert versionAbbreviation != 'OET-LV'
+            assert basicOnly or (inParagraph and inParagraph != '¬nb'), f"Have nb: {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inRightDiv=} {inParagraph=}"
+        elif marker == 'nb': # This one will be closed at some point by the ORIGINAL paragraph marker (that crossed chapters)
+                             #  except that the OET-LV has NO other paragraph markers
+            assert not rest, f"Unexpected rest {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {marker}={rest}"
+            # print( f"Have nb: {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inRightDiv=} {inParagraph=}" )
+            if versionAbbreviation != 'OET-LV': # In OET-LV each chapter starts with a 'nb' which is effectively a NOP
+                assert basicOnly or inParagraph
+                assert not (inRightDiv or inTableRow or inTable or inList), f"nb {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inRightDiv=} {inTable=} {inList=}{rest=}"
+        elif marker in ('¬p', '¬q1','¬q2','¬q3','¬q4', '¬m','¬mi',
                             '¬pi1','¬pi2', '¬pc','¬pm','¬pmc','¬pmo','¬po','¬pr', '¬qm1','¬qm2', '¬qr', '¬cls'):
             assert not rest
             if inParagraph and inParagraph != marker[1:]:
                 logging.error( f"Closing wrong paragraph {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {marker=}" )
+            if basicOnly: assert not inParagraph
             if not basicOnly and inParagraph:
-                html = f'{html}</p>\n'
+                html = f'{html}</p><!--{inParagraph}-->\n'
                 inParagraph = None
         elif marker in ('s1','s2','s3','s4'):
             if not rest:
@@ -340,7 +599,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                 html = f'{html}</div><!--SP_{inSPdiv}-->\n'
                 inSPdiv = None
             if inRightDiv:
-                assert marker != 's1'
+                assert marker != 's1', f"Unexpected s1 inRightDiv {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=}\n{[m for m in verseEntryList]}"
                 if versionAbbreviation not in ('OET','OET-RV') or marker!='s4':
                     # It mustn't be our "kingdom marker", e.g., 'Northern kingdom'
                     html = f'{html}</div><!--{inRightDiv}-->\n'
@@ -362,22 +621,21 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                     inListDepth -= 1
                 inList = None
             if inSection == 'periph': # We don't put s1 in sections here
-                html = f'{html}<p class="{marker}">{convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state )}</p>\n'
+                html = f'{html}<p class="{marker}">{_convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state )}</p><!--{marker}-->\n'
             else: # not in periph
                 if marker == 's1':
                     if segmentType=='relatedPassage' and inParagraph: # Can be disjointed verses
-                        html = f'{html}</p>\n'
+                        html = f'{html}</p><!--{inParagraph}-->\n'
                         inParagraph = None
                     if inSection == 'section': # Shouldn't happen
-                        logger = logging.warning if segmentType.endswith('Verse') else logging.error
-                        logger( f"Why wasn't previous s1 section closed??? {versionAbbreviation} {refTuple} {C}:{V} {inSection=} {inParagraph=} {marker}={rest}" )
+                        (logging.warning if segmentType.endswith('Verse') else logging.error)( f"Why wasn't previous s1 section closed??? {versionAbbreviation} {refTuple} {C}:{V} {inSection=} {inParagraph=} {marker}={rest}" )
                         if not basicOnly:
                             html = f'{html}</div><!--section-->\n'
                         inSection = None
                     elif inSection: # seems we had a s2/3/4 that wasn't closed
                         logging.critical( f"Should not be in section '{segmentType}' {basicOnly=} {refTuple} {C}:{V} {inSection=}" )
                         should_not_be_in_section
-                    assert not inParagraph, f"{versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {marker}={rest} {contextList=}"
+                    assert not inParagraph, f"Why are we getting s1 while still in a paragraph: {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {marker}={rest} {contextList=} {[ve for ve in verseEntryList]}"
                 else: logging.warning( f"Section heading levels might not work yet: {versionAbbreviation} {refTuple} {C}:{V} {inSection=} {inParagraph=} {marker}={rest}" )
                 if marker == 's1':
                     rest = rest.replace( ' / ', f'{NON_BREAK_SPACE}/ ' ) # Stop forward slash from starting next line in section boxes
@@ -388,7 +646,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                             if segmentType in ('section','relatedPassage'):
                                 # print( f"\n  {C=} {V=} {marker}='{rest}'")
                                 if V is None:
-                                    for nextEntry in markerList[MLIndex+1:]: # Skip through next markers
+                                    for nextEntry in verseEntryList[MLIndex+1:]: # Skip through next markers
                                         nextMarker = nextEntry.getMarker()
                                         if nextMarker == 'v':
                                             nextV = nextEntry.getCleanText()
@@ -402,31 +660,31 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                                 nextV = '1' if V is None else getSmallLeadingInt(V)+1 # Why  do we add 1 ???
                             if ( segmentType == 'section' # Don't want a link to ourself
                             or '\\f' in rest ): # Would otherwise end up with an anchor embedded inside an anchor at Jhn 7:53 (unless we write more code)
-                                html = f'''{html}<div class="section"><div class="rightS1Box"><p class="{marker}"><span class="s1cv">{C}:{nextV}</span> {convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state )}</p>\n'''
+                                html = f'''{html}<div class="section"><div class="rightS1Box"><p class="{marker}"><span class="s1cv">{C}:{nextV}</span> {_convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state )}</p><!--{marker}-->\n'''
                             else:
                                 sectionNumber = findSectionNumber( 'OET-RV', BBB, C, str(nextV), state )
                                 assert sectionNumber is not None, f"Bad OET-RV {refTuple} {BBB} {C}:{nextV} /s1 section reference: {rest=}"
-                                html = f'''{html}<div class="section"><div class="rightS1Box"><p class="{marker}"><span class="s1cv">{C}:{nextV}</span> <a title="Go to section view" href="{'../'*level}OET/bySec/{BBB}_S{sectionNumber}.htm#C{C}V{nextV}">{convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state )}</a></p>\n'''
+                                html = f'''{html}<div class="section"><div class="rightS1Box"><p class="{marker}"><span class="s1cv">{C}:{nextV}</span> <a title="Go to section view" href="{'../'*level}OET/bySec/{BBB}_S{sectionNumber}.htm#C{C}V{nextV}">{_convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state )}</a></p><!--{marker}-->\n'''
                             inRightDiv = 'rightS1Box'
                         else: # not OET
-                            html = f'{html}<div class="section"><p class="{marker}">{convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state )}</p>\n'
+                            html = f'{html}<div class="section"><p class="{marker}">{_convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state )}</p><!--{marker}-->\n'
                         inSection = 'section'
                 elif marker == 's2':
                     if not basicOnly:
                         if 'OET' in versionAbbreviation:
-                            html = f'{html}<div class="rightS2Box"><p class="{marker}">{convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state )}</p>\n'
+                            html = f'{html}<div class="rightS2Box"><p class="{marker}">{_convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state )}</p><!--{marker}-->\n'
                             inRightDiv = 'rightS2Box'
                         else:
-                            html = f'{html}<p class="{marker}">{convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state )}</p>\n'
+                            html = f'{html}<p class="{marker}">{_convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state )}</p><!--{marker}-->\n'
                 else: # for s3/s4 we add a heading, but don't consider it a section division
                     if not basicOnly:
                         if marker=='s4' and versionAbbreviation in ('OET','OET-RV'): # and 'KINGDOM' in rest.upper(): # it's our kingdom marker
                             additionalClassName = rest.replace( ' ', '' ).replace( 'king', 'King' ).replace( 'land', 'Land' )
                             html = rreplace( html, 'div class="section"', f'''div class="section {additionalClassName}"''', 1 )
-                            guts = convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state )
+                            guts = _convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state )
                             guts = f'''<a title="Go to {rest.replace('king','King').replace('land','Land')} information page" href="{'../'*level}ref/Kingdoms/{additionalClassName}.htm">{guts}</a>'''
-                            html = f'''{html}<p class="{marker} {additionalClassName}">{guts}</p>\n'''
-                        else: html = f'{html}<p class="{marker}">{convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state )}</p>\n'
+                            html = f'''{html}<p class="{marker} {additionalClassName}">{guts}</p><!--{marker}-->\n'''
+                        else: html = f'{html}<p class="{marker}">{_convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state )}</p><!--{marker}-->\n'
         elif marker in ('¬s1','¬s2','¬s3','¬s4',):
             assert not rest
             assert inSection == marker[1:] and not inParagraph, f"{versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {marker=}"
@@ -446,14 +704,15 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                 if segmentType != 'relatedPassage': # because these can jump in anywhere
                     assert inSection, f"{versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {marker}={rest}"
                     if 'OET' in versionAbbreviation:
-                        assert inRightDiv, f"{versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {marker}={rest} prevEntry={markerList[MLIndex-1]} {html[-50:]}"
-                html = f'{html}<p class="{marker}">{livenSectionReferences( versionAbbreviation, refTuple, segmentType, rest, state )}</p>\n'
+                        assert inRightDiv, f"{versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {marker}={rest} prevEntry={verseEntryList[MLIndex-1]} {html[-50:]}"
+                html = f'{html}<p class="{marker}">{livenSectionReferences( versionAbbreviation, refTuple, segmentType, rest, state )}</p><!--{marker}-->\n'
         elif marker == 'c':
             # if segmentType == 'chapter':
             C, V = rest.strip(), '0' # Play safe
             # html = f'{html}<span class="{marker}" id="C{C}">{C}{NARROW_NON_BREAK_SPACE}</span>'
             # numChapters += 1
             cPrinted = False
+            backgroundColour = None
         elif marker == 'c#':
             assert rest and rest.isdigit()
             # Below is not necessarily true -- fails on OET-RV chapter basicOnly=False ('PSA', '1') 1:0 inSection='s1' inParagraph='p' c#=1
@@ -475,7 +734,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                     inSection = inParagraph = None
                 assert not inSection and not inParagraph, f"{versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {marker}={rest}"
             if not basicOnly:
-                html = f'{html}<p class="{marker}">{convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state )}</p>\n'
+                html = f'{html}<p class="{marker}">{_convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state )}</p><!--{marker}-->\n'
         elif marker in ('imt1','imt2','imt3','imt4'):
             assert rest
             if inMainDiv == 'bookHeader':
@@ -490,7 +749,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                     inSection = inParagraph = None
                 assert not inSection and not inParagraph, f"{versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {marker}={rest}"
             if not basicOnly:
-                html = f'{html}<p class="{marker}">{convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state )}</p>\n'
+                html = f'{html}<p class="{marker}">{_convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state )}</p><!--{marker}-->\n'
         elif marker in ('is1','is2','is3'):
             assert rest
             # if not rest:
@@ -517,18 +776,17 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                     inListDepth -= 1
                 inList = None
             if inParagraph:
-                html = f'{html}</p>\n'
+                html = f'{html}</p><!--{inParagraph}-->\n'
                 inParagraph = None
             if not inMainDiv:
                 inMainDiv = 'bookIntro'
                 html = f'{html}<div class="{inMainDiv}">'
             if inSection == 'periph': # We don't put s1 in sections here
-                html = f'{html}<p class="{marker}">{convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state )}</p>\n'
+                html = f'{html}<p class="{marker}">{_convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state )}</p><!--{marker}-->\n'
             else: # not in periph
                 if marker == 's1':
                     if inSection == 'section': # Shouldn't happen
-                        logger = logging.warning if segmentType.endswith('Verse') else logging.error
-                        logger( f"Why wasn't previous section closed??? {versionAbbreviation} {refTuple} {C}:{V} {inSection=} {inParagraph=} {marker}={rest}" )
+                        (logging.warning if segmentType.endswith('Verse') else logging.error)( f"Why wasn't previous section closed??? {versionAbbreviation} {refTuple} {C}:{V} {inSection=} {inParagraph=} {marker}={rest}" )
                         if not basicOnly:
                             html = f'{html}</div><!--section-->\n'
                         inSection = None
@@ -539,21 +797,21 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                 if marker == 's1':
                     if not basicOnly:
                         if 'OET' in versionAbbreviation:
-                            html = f'{html}<div class="section"><div class="rightS1Box"><p class="{marker}">{convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state )}</p>\n'
+                            html = f'{html}<div class="section"><div class="rightS1Box"><p class="{marker}">{_convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state )}</p><!--{marker}-->\n'
                             inRightDiv = 'rightS1Box'
                         else:
-                            html = f'{html}<div class="section"><p class="{marker}">{convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state )}</p>\n'
+                            html = f'{html}<div class="section"><p class="{marker}">{_convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state )}</p><!--{marker}-->\n'
                     inSection = 'section'
                 elif marker == 's2':
                     if not basicOnly:
                         if 'OET' in versionAbbreviation:
-                            html = f'{html}<div class="rightS2Box"><p class="{marker}">{convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state )}</p>\n'
+                            html = f'{html}<div class="rightS2Box"><p class="{marker}">{_convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state )}</p><!--{marker}-->\n'
                             inRightDiv = 'rightS2Box'
                         else:
-                            html = f'{html}<p class="{marker}">{convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state )}</p>\n'
+                            html = f'{html}<p class="{marker}">{_convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state )}</p><!--{marker}-->\n'
                 else: # for s3/s4 we add a heading, but don't consider it a section division
                     if not basicOnly:
-                        html = f'{html}<p class="{marker}">{convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state )}</p>\n'
+                        html = f'{html}<p class="{marker}">{_convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state )}</p><!--{marker}-->\n'
         # We also treat the id field exactly like a rem field
         elif marker in ('rem','id'): # rem's can sort of be anywhere!
             assert rest
@@ -569,7 +827,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                     # rest = rest[len(given_marker)+2:] # Drop the '/marker ' from the displayed portion
                     # if not basicOnly:
                     #     for sectionChunk in rest.split( '; ' ):
-                    #         html = f'{html}<p class="{marker}">{convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, sectionChunk, basicOnly, state )}</p>\n'
+                    #         html = f'{html}<p class="{marker}">{_convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, sectionChunk, basicOnly, state )}</p><!--{marker}-->\n'
                 else: # it's probably a section marker added at a different spot
                     given_marker = rest[1:].split( ' ', 1 )[0]
                     assert given_marker in ('s1','s2','s3','r','d','qa'), f"Unexpected REM {given_marker=} text for {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} {marker=} {rest=}"
@@ -586,11 +844,11 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                     # if not inParagraph \
                     # or nextMarker in ('p','m','¬p'):
                     #     if inParagraph:
-                    #         html = f'{html}</p>\n'
+                    #         html = f'{html}</p><!--{inParagraph}-->\n'
                     #         inParagraph = None
                     #     if not basicOnly:
                     #         for sectionChunk in rest.split( '; ' ):
-                    #             html = f'{html}<p class="{marker}">{convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, sectionChunk, basicOnly, state )}</p>\n'
+                    #             html = f'{html}<p class="{marker}">{_convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, sectionChunk, basicOnly, state )}</p><!--{marker}-->\n'
                     # else:
                     #     print( f"{BBB} {C}:{V} {inParagraph=} {nextMarker=} has UNUSED INFLOW ALTERNATIVE {given_marker}={rest}")
             elif rest.startswith( 'was /' ): # That's how we comment out USFM lines
@@ -598,9 +856,9 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
             else:
                 assert not inRightDiv
                 if inParagraph:
-                    html = f'{html}<span class="{marker}">{convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state )}</span>\n'
+                    html = f'{html}<span class="{marker}">{_convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state )}</span>\n'
                 elif not basicOnly:
-                    html = f'{html}<p class="{marker}">{convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state )}</p>\n'
+                    html = f'{html}<p class="{marker}">{_convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state )}</p><!--{marker}-->\n'
         # The following should all have their own data and get converted to a simple <p class="xx">…</p> field
         elif marker in ('mr','sr', 'cl', 'd', 'sp', 'cp', 'qa','qc','qd'):
             if not rest:
@@ -611,19 +869,19 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
             if inParagraph:
                 logging.error( f"Unexpected inParagraph {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {marker}={rest}" )
                 assert not basicOnly
-                html = f'{html}</p>\n'
+                html = f'{html}</p><!--{inParagraph}-->\n'
                 inParagraph = None
             if marker == 'cl' and not basicOnly:
                 if segmentType == 'chapter':
-                    html = f'{html}<p class="cl" id="C{C}">{convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state )}</p>\n'
+                    html = f'{html}<p class="cl" id="C{C}">{_convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state )}</p><!--cl-->\n'
                 else: # probably whole document/book, so make a chapter link
-                    html = f'{html}<p class="cl" id="C{C}"><a title="View single {'Psalm' if BBB=='PSA' else 'chapter'}" href="../byC/{BBB}_C{C}.htm#Top">{convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state )}</a></p>\n'
+                    html = f'{html}<p class="cl" id="C{C}"><a title="View single {'Psalm' if BBB=='PSA' else 'chapter'}" href="../byC/{BBB}_C{C}.htm#Top">{_convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state )}</a></p><!--cl-->\n'
                 cPrinted = True
             elif basicOnly:
                 if marker == 'd': # These are canonical so MUST be included
                     # NOTE: In basicOnly mode, we put \\d paragraphs in a SPAN, not in a PARAGRAPH (like we do further below)
-                    html = f'{html}<span class="{marker}">{convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state )}</span>\n'
-                    if not checkHtml( f'\\d at convertUSFMMarkerListToHtml({versionAbbreviation} {refTuple} {segmentType} {basicOnly=})', html, segmentOnly=True ):
+                    html = f'{html}<span class="{marker}">{_convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state )}</span>\n'
+                    if not checkHtml( f'\\d at convertVerseEntryListToHtml({versionAbbreviation} {refTuple} {segmentType} {basicOnly=})', html, segmentOnly=True ):
                         if DEBUGGING_THIS_MODULE or state.TEST_MODE_FLAG: halt
             else: # not basicOnly
                 if cPrinted or marker == 'd':
@@ -637,16 +895,16 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                     assert BBB == 'SNG'
                     if inSPdiv:
                         html = f'{html}</div><!--SP_{inSPdiv}-->\n'
-                    print( f"sp {rest=} from {markerList=}")
-                    for eeee, entry in enumerate( markerList ):
-                        print( f"  {eeee} {entry=}" )
+                    # print( f"sp {rest=} from {markerList=}")
+                    # for eeee, entry in enumerate( markerList ):
+                    #     print( f"  {eeee} {entry=}" )
                     spClass = spClassDict[rest]
                     # except KeyError:
                     #     logging.critical( f"No SP (speaker) dict entry for {rest=} {versionAbbreviation} {refTuple} {segmentType}" )
                     #     spClass = 'None'
                     html = f'{html}<div class={spClass}>'
                     inSPdiv = spClass
-                html = f'{html}<p class="{marker}">{cBit}{convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state )}</p>\n'
+                html = f'{html}<p class="{marker}">{cBit}{_convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state )}</p><!--{marker}-->\n'
         elif marker in ('b','ib'):
             html = f'{html}<br>'
         elif marker in ('list','ilist'):
@@ -679,7 +937,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
             assert 0 <= currentListLevel <= 4
             if basicOnly:
                 # We only do it with a span (because a list couldn't go inside a paragraph anyway, and most snippets end up put inside paragraphs)
-                html = f'''{html}{'<br>' if '•' in html else ''}{'&nbsp;'*markerListLevel}<span class="{marker}">•{' ' if markerListLevel==1 else ' '}{convertUSFMCharacterFormatting( versionAbbreviation, refTuple, segmentType, rest, basicOnly, state )}</span>'''
+                html = f'''{html}{'<br>' if '•' in html else ''}{'&nbsp;'*markerListLevel}<span class="{marker}">•{' ' if markerListLevel==1 else ' '}{_convertUSFMCharacterFormatting( versionAbbreviation, refTuple, segmentType, rest, basicOnly, state )}</span>'''
             else: # not basic only
                 if markerListLevel > currentListLevel:
                     logging.warning( f"Not inList B {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} {marker}={rest}" )
@@ -718,7 +976,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                     logging.warning( f"already inListEntry {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} {marker}={rest}" )
                     html = f'{html}</li>\n'
                     inListEntry = None
-                html = f"{html}{' '*markerListLevel}<li>{convertUSFMCharacterFormatting( versionAbbreviation, refTuple, segmentType, rest, basicOnly, state )}"
+                html = f"{html}{' '*markerListLevel}<li>{_convertUSFMCharacterFormatting( versionAbbreviation, refTuple, segmentType, rest, basicOnly, state )}"
                 inListEntry = marker
         elif marker in ('¬li1','¬li2','¬li3','¬li4', '¬ili1','¬ili2','¬ili3','¬ili4'):
             assert not rest
@@ -733,7 +991,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
             assert not inList and not inListEntry, f"{versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} {marker=} {rest=}"
             if not inTable:
                 if inParagraph:
-                    html = f'{html}</p>\n'
+                    html = f'{html}</p><!--{inParagraph}-->\n'
                     inParagraph = None
                 html = f'{html}<table>'
                 inTable = 'table'
@@ -743,7 +1001,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                 inTableRow = None
             # print( f"{versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} TR {rest=}" )
             if rest and rest.strip():
-                html = f'{html}<tr>{convertUSFMCharacterFormatting( versionAbbreviation, refTuple, segmentType, rest, basicOnly, state )}'
+                html = f'{html}<tr>{_convertUSFMCharacterFormatting( versionAbbreviation, refTuple, segmentType, rest, basicOnly, state )}'
             else:
                 html = f'{html}<tr>'
                 inTableRow = 'tr'
@@ -766,13 +1024,13 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
             if inParagraph and marker == '¬c':
                 logging.warning( f"{versionAbbreviation} {refTuple} Finished paragraph inside section" )
                 # if not basicOnly:
-                html = f'{html}</p>\n'
+                html = f'{html}</p><!--{inParagraph}-->\n'
                 inParagraph = None
             assert not inSection and not inParagraph, f"{versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {marker}={rest}"
         elif marker in ('ms1','ms2','ms3','ms4'):
             if inParagraph:
                 logging.warning( f"Why still in paragraph {versionAbbreviation} '{segmentType}' {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {marker}={rest}" )
-                html = f'{html}</p>\n'
+                html = f'{html}</p><!--{inParagraph}-->\n'
                 inParagraph = None
             if inSection:
                 logging.warning( f"Why still in section {versionAbbreviation} '{segmentType}' {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {marker}={rest}" )
@@ -784,7 +1042,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
             # assert not inSection and not inParagraph, f"{versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {marker}={rest}"
             if not basicOnly:
                 # NOTE: We don't treat it like a large section (which it is), but simply as a heading
-                html = f'{html}<p class="{marker}">{convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state )}</p>\n'
+                html = f'{html}<p class="{marker}">{_convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state )}</p><!--{marker}-->\n'
         elif marker in ('¬ms1','¬ms2','¬ms3','¬ms4'):
             assert not rest
             # Nothing else to do here, because not treated (above) as a large section
@@ -795,21 +1053,21 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
         elif marker == 'c~': # Stuff after the chapter number
             assert rest
             assert not inRightDiv
-            html = f'{html}{NARROW_NON_BREAK_SPACE}{convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state )}{NARROW_NON_BREAK_SPACE}'
+            html = f'{html}{NARROW_NON_BREAK_SPACE}{_convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state )}{NARROW_NON_BREAK_SPACE}'
         # The following should all have their own data and get converted to a simple <p>…</p> field
         elif marker in ('ip','ipi','ipq','ipr', 'im','imi','imq', 'iq1','iq2','iq3', 'io1','io2','io3','io4'):
             assert rest, f"{versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {marker}='{rest}'"
             assert not inSection and not inParagraph, f"{versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {marker}={rest}"
-            introHtml = convertUSFMCharacterFormatting( versionAbbreviation, refTuple, segmentType, rest, basicOnly, state )
+            introHtml = _convertUSFMCharacterFormatting( versionAbbreviation, refTuple, segmentType, rest, basicOnly, state )
             if marker in ('io1','io2','io3','io4'):
                 introHtml = livenIORs( versionAbbreviation, refTuple, segmentType, introHtml, state )
             else:
                 introHtml = livenIntroductionLinks( versionAbbreviation, refTuple, segmentType, introHtml, state )
-            html = f'{html}<p class="{marker}">{introHtml}</p>\n'
+            html = f'{html}<p class="{marker}">{introHtml}</p><!--{marker}-->\n'
         elif marker in ('iot',):
             assert rest, f"{versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {marker}='{rest}'"
             assert not inSection and not inParagraph, f"{versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {marker}={rest}"
-            html = f'{html}<div class="{marker}"><p class="{marker}">{convertUSFMCharacterFormatting( versionAbbreviation, refTuple, segmentType, rest, basicOnly, state )}</p>\n'
+            html = f'{html}<div class="{marker}"><p class="{marker}">{_convertUSFMCharacterFormatting( versionAbbreviation, refTuple, segmentType, rest, basicOnly, state )}</p><!--{marker}-->\n'
         elif marker in ('¬iot',):
             assert not rest
             assert not inSection and not inParagraph, f"{versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {marker}={rest}"
@@ -833,12 +1091,12 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                         if segmentType == 'chapter' else \
                             f'''<span class="{'cPsa' if BBB=='PSA' else 'c'}" id="C{C}"><a title="View single {'Psalm' if BBB=='PSA' else 'chapter'}" href="../byC/{BBB}_C{C}.htm#Top">{toRomanNumerals(C) if versionAbbreviation=='KJB-1611' else C}</a></span> '''
                     cPrinted = True
-                html = f'''{html}<p class="{versionAbbreviation}_chapterIntro">{cBit}{convertUSFMCharacterFormatting( versionAbbreviation, refTuple, segmentType, rest, basicOnly, state )}</p>\n'''
+                html = f'''{html}<p class="{versionAbbreviation}_chapterIntro">{cBit}{_convertUSFMCharacterFormatting( versionAbbreviation, refTuple, segmentType, rest, basicOnly, state )}</p><!--{versionAbbreviation}_chapterIntro-->\n'''
         elif marker in ('periph',):
             assert rest
             assert not basicOnly
             if inParagraph:
-                html = f'{html}</p>\n'
+                html = f'{html}</p><!--{inParagraph}-->\n'
                 inParagraph = None
             if inSection == 'periph':
                 html = f'{html}</div><!--periph-->\n'
@@ -858,7 +1116,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
         elif marker == 'intro':
             assert not rest
             if C != '-1' :
-                assert segmentType not in ('parallelVerse','interlinearVerse'), f"{versionAbbreviation} {segmentType=} {refTuple} {C}:{V} {markerList=}"
+                assert segmentType not in ('parallelVerse','interlinearVerse'), f"{versionAbbreviation} {segmentType=} {refTuple} {C}:{V} {verseEntryList=}"
                 assert not basicOnly
             if inMainDiv == 'bookHeader':
                 html = f'{html}</div><!--{inMainDiv}-->'
@@ -866,7 +1124,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
             assert not inMainDiv
             assert not inTable and not inList
             if inParagraph:
-                html = f'{html}</p>\n'
+                html = f'{html}</p><!--{inParagraph}-->\n'
                 inParagraph = None
             inMainDiv = 'bookIntro'
             html = f'{html}<div class="{inMainDiv}">'
@@ -890,30 +1148,30 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
         if '\\f ' not in html and '\\x ' not in html: # they're handled down below
             if '\\' in html:
                 (logging.warning if versionAbbreviation in ('ULT','UST') else logging.error)( f"Left-over backslash in {versionAbbreviation} '{segmentType}' {basicOnly=} {refTuple} {C}:{V} '{html if len(html)<4000 else f'{html[:2000]} ....... {html[-2000:]}'}'" )
-                if versionAbbreviation not in ('ULT','UST') \
-                or ('GEN' not in refTuple and 'MAT' not in refTuple and 'PSA' not in refTuple and 'ISA' not in refTuple and 'JER' not in refTuple and 'DEU' not in refTuple and 'JOB' not in refTuple and 'SNG' not in refTuple): # ULT Gen 14:21, ISA and UST MAT has an encoding fault in 12:20 14Feb2023
-                    raise Exception( f"Left-over backslash {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} '{html}'" )
+                if versionAbbreviation not in ('ULT','UST'):
+                # or ('GEN' not in refTuple and 'MAT' not in refTuple and 'PSA' not in refTuple and 'ISA' not in refTuple and 'JER' not in refTuple and 'DEU' not in refTuple and 'JOB' not in refTuple and 'SNG' not in refTuple): # ULT Gen 14:21, ISA and UST MAT has an encoding fault in 12:20 14Feb2023
+                    raise Exception( f"Left-over backslash {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} '{html}'\nfrom {[ve for ve in verseEntryList]}" )
 
     # Check for left-over unclosed segments
     logger = logging.error if segmentType=='book' else logging.warning
     if inParagraph:
         if not basicOnly:
-            logger( f"convertUSFMMarkerListToHtml final unclosed paragraph {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} last {marker=}" )
-        html = f'{html}</p>\n'
+            logger( f"convertVerseEntryListToHtml final unclosed paragraph {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} last {marker=}" )
+        html = f'{html}</p><!--{inParagraph}-->\n'
     if inTableRow:
         assert inTable
         html = f'{html}</tr>\n'
     if inTable:
         if not basicOnly:
-            logger( f"convertUSFMMarkerListToHtml final unclosed table {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} last {marker=}" )
+            logger( f"convertVerseEntryListToHtml final unclosed table {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} last {marker=}" )
         html = f'{html}</table>\n'
     if inListEntry:
         if not basicOnly:
-            logger( f"convertUSFMMarkerListToHtml final unclosed listEntry {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} last {marker=}" )
+            logger( f"convertVerseEntryListToHtml final unclosed listEntry {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} last {marker=}" )
         html = f'{html}</li>\n'
     if inList:
         if not basicOnly:
-            logger( f"convertUSFMMarkerListToHtml final unclosed list {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} last {marker=}" )
+            logger( f"convertVerseEntryListToHtml final unclosed list {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} last {marker=}" )
         inListMarker, inListDepth = inList.split( '_', 1 )
         inListDepth = int( inListDepth )
         while inListDepth > 0:
@@ -927,13 +1185,13 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
         html = f'{html}</div><!--SP-->\n'
     if inSection in ('section','periph'):
         if not basicOnly:
-            logger( f"convertUSFMMarkerListToHtml final unclosed '{inSection}' section {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} last {marker=}" )
+            logger( f"convertVerseEntryListToHtml final unclosed '{inSection}' section {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} last {marker=}" )
         if inRightDiv:
             html = f'{html}</div><!--{inRightDiv}-->\n'
             inRightDiv = False
         html = f"{html}</div><!--{inSection}-->\n"
     if inMainDiv:
-            logger( f"convertUSFMMarkerListToHtml final unclosed '{inMainDiv}' main section {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} last {marker=}" )
+            logger( f"convertVerseEntryListToHtml final unclosed '{inMainDiv}' main section {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} last {marker=}" )
             html = f'{html}</div><!--{inMainDiv}-->'
 
 
@@ -1095,13 +1353,13 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
             fnoteRef = f'<span class="fnRef"><a title="Return to text" href="{frCV}">{frText}</a></span> '
         if versionAbbreviation=='OET-LV' and fnoteMiddle.startswith( 'OSHB '):
             fnoteMiddle = fnoteMiddle.replace( 'OSHB ', '<a href="https://hb.OpenScriptures.org">OSHB</a> ', 1 ) # Make it a live link
-        fnoteText = f'<p class="fn" id="fn{footnotesCount}">{fnoteRef}<span class="fnText">{fnoteMiddle}</span></p>\n'
-        if segmentType.endswith('Verse') and f'">{fnoteRef}<span class="fnText">{fnoteMiddle}</span></p>\n' in footnotesHtml:
+        fnoteText = f'<p class="fn" id="fn{footnotesCount}">{fnoteRef}<span class="fnText">{fnoteMiddle}</span></p><!--fn-->\n'
+        if segmentType.endswith('Verse') and f'">{fnoteRef}<span class="fnText">{fnoteMiddle}</span></p><!--fn-->\n' in footnotesHtml:
             # We already have an identical footnote created, e.g., in OET-LV Job 8:16
             #   so all we have to do, is add the additional id to the existing note
             #       but can't have multiple id's on one element, so have to add an extra empty span.
             #   We only do this for single verses because the backwards link can't work for both.
-            dupIx = footnotesHtml.index( f'">{fnoteRef}<span class="fnText">{fnoteMiddle}</span></p>\n' )
+            dupIx = footnotesHtml.index( f'">{fnoteRef}<span class="fnText">{fnoteMiddle}</span></p><!--fn-->\n' )
             footnotesHtml = f'{footnotesHtml[:dupIx]}"><span id="fn{footnotesCount}"></span>{footnotesHtml[dupIx+2:]}'
             dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {footnotesHtml=}" )
         else: # append this footnote to go at the bottom
@@ -1134,7 +1392,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
     for _safetyCount1 in range( 999 if segmentType=='book' else 99 ):
         xStartIx = html.find( '\\x ', searchStartIx )
         if xStartIx == -1: break # all done
-        if versionAbbreviation=='KJB-1611': print( f"{versionAbbreviation} {refTuple} {segmentType=} got {xStartIx=}" )
+        # if versionAbbreviation=='KJB-1611': print( f"{versionAbbreviation} {refTuple} {segmentType=} got {xStartIx=}" )
         crossReferencesCount += 1
         xoIx = html.find( '\\xo ', xStartIx+3 ) # Might be absent
         xtIx = html.find( '\\xt ', xStartIx+3 )
@@ -1149,7 +1407,7 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
 
         # Liven the cross-references (xrefs) themselves
         xrefLiveMiddle = xrefOriginalMiddle = html[xtIx+4:xEndIx]
-        if versionAbbreviation=='KJB-1611': print( f"{versionAbbreviation} {refTuple} {segmentType=} got {xrefOriginalMiddle}" )
+        # if versionAbbreviation=='KJB-1611': print( f"{versionAbbreviation} {refTuple} {segmentType=} got {xrefOriginalMiddle}" )
         xrefOriginalMiddle = xrefOriginalMiddle.replace('\\xo ','').replace('\\xt ','') # Fix things like "Gen 25:9-10; \\xo b \\xt Gen 35:29."
         dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f" {xrefLiveMiddle=}" )
         assert xrefLiveMiddle.count('\\xo ') == xrefLiveMiddle.count('\\xo '), f"{xrefLiveMiddle=}"
@@ -1173,13 +1431,13 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                 logging.critical( f"What is CV ref for xref ref: '{xoText}'")
                 xrCV = ''
             xrefRef = f'<span class="xrRef"><a title="Return to text" href="{xrCV}">{xoText}</a></span> '
-        xrefText = f'<p class="xr" id="xr{crossReferencesCount}">{xrefRef}<span class="xrText">{xrefLiveMiddle}</span></p>\n'
+        xrefText = f'<p class="xr" id="xr{crossReferencesCount}">{xrefRef}<span class="xrText">{xrefLiveMiddle}</span></p><!--xr-->\n'
         crossReferencesHtml = f'{crossReferencesHtml}{xrefText}'
         html = f'{html[:xStartIx]}{xrefCaller}{html[xEndIx+3:]}'
         searchStartIx = xEndIx + 3
     else:
         dPrint( 'Info', DEBUGGING_THIS_MODULE, f"Processing xref {_safetyCount1} loop break {versionAbbreviation} {refTuple} {segmentType=} {xoText=} {xrefOriginalMiddle=}" )
-        dPrint( 'Info', DEBUGGING_THIS_MODULE, f"{markerList=}" )
+        dPrint( 'Info', DEBUGGING_THIS_MODULE, f"{verseEntryList=}" )
         dPrint( 'Info', DEBUGGING_THIS_MODULE,  f"{html[xStartIx:]=}" )
         # outer_xr_loop_needed_to_break
     if crossReferencesHtml:
@@ -1226,220 +1484,13 @@ def convertUSFMMarkerListToHtml( level:int, versionAbbreviation:str, refTuple:tu
 
     # Some final checks
     if versionAbbreviation not in ('ULT','UST'): # uW stuff has too many USFM encoding errors
-        assert 'strong="' not in html, f"{level=} ‘{versionAbbreviation}’ {refTuple} {segmentType=} {len(contextList)=} {len(markerList)=} {basicOnly=} '{html if len(html)<4000 else f'{html[:2000]} ....... {html[-2000:]}'}'"
-    if not checkHtml( f'convertUSFMMarkerListToHtml({versionAbbreviation} {refTuple} {segmentType} {basicOnly=})', html, segmentOnly=True ):
+        assert 'strong="' not in html, f"{level=} ‘{versionAbbreviation}’ {refTuple} {segmentType=} {len(contextList)=} {len(verseEntryList)=} {basicOnly=} '{html if len(html)<4000 else f'{html[:2000]} ....... {html[-2000:]}'}'"
+    if not checkHtml( f'convertVerseEntryListToHtml({versionAbbreviation} {refTuple} {segmentType} {basicOnly=})', html, segmentOnly=True ):
         if DEBUGGING_THIS_MODULE and versionAbbreviation!='OEB': # OEB has error in Job 26:14
             halt
-    # print( f"convertUSFMMarkerListToHtml({versionAbbreviation} {refTuple} {segmentType} {basicOnly=}) ended with newline: {html.endswith(NEWLINE)}" )
+    # print( f"convertVerseEntryListToHtml({versionAbbreviation} {refTuple} {segmentType} {basicOnly=}) ended with newline: {html.endswith(NEWLINE)}" )
     return html
-# end of usfm.convertUSFMMarkerListToHtml
-
-
-def convertUSFMCharacterFormatting( versionAbbreviation:str, refTuple:tuple, segmentType:str, usfmField:str, basicOnly:bool, state:State ) -> str:
-    """
-    Handles character formatting inside USFM lines.
-
-    This includes \\fig and \\jmp
-
-    Automatically changes \\nd to Nomina Sacra for OET NT books
-
-    Seems that the basicOnly flag doesn't currently affect anything???
-    """
-    from createSectionPages import findSectionNumber
-    fnPrint( DEBUGGING_THIS_MODULE, f"convertUSFMCharacterFormatting( {versionAbbreviation}, {refTuple}, {segmentType}, {usfmField}, {basicOnly=} )" )
-    dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"convertUSFMCharacterFormatting( {versionAbbreviation}, {refTuple}, {segmentType}, {usfmField}, {basicOnly=} )" )
-    if '\\add <<' not in usfmField and '\\add ?<<' not in usfmField:
-        assert '<<' not in usfmField, f"{versionAbbreviation} {refTuple} {segmentType} {basicOnly=} {usfmField=}"
-    for charMarker in BibleOrgSysGlobals.USFMAllExpandedCharacterMarkers + ['untr','fig']:
-        openCount, closeCount = usfmField.count( f'\\{charMarker} ' ), usfmField.count( f'\\{charMarker}*' )
-        if openCount != closeCount:
-            logging.error( f"Mismatched USFM character markers: '{charMarker}' open={openCount} close={closeCount} from {versionAbbreviation} {refTuple} '{usfmField}'" )
-
-    ourBBB = refTuple[0]
-
-    html = usfmField.replace( '\\+', '\\') # We don't want the embedded USFM marker style here
-
-    # For now, we just remove \\fig entries
-    if '\\fig' in usfmField: # e.g., \fig Jesus was immersed by John.|src="41_Mk_01_06_RG.jpg" size="col" loc="1:9" copy="© Sweet Publishing" ref="1:9"\fig*
-        searchStartIx = 0
-        for _safetyCount in range( 99 ):
-            figStartIx = html.find( '\\fig ', searchStartIx )
-            if figStartIx == -1: break # no more to find -- all done
-            figPipeIx = html.find( '|', figStartIx+5 )
-            assert figPipeIx != -1
-            figEndIx = html.find( '\\fig*', figPipeIx+1 )
-            assert figEndIx != -1
-            # dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"Handling fig {versionAbbreviation} {refTuple} {segmentType} {searchStartIx} {figStartIx} {figPipeIx} {figEndIx} '{html[figStartIx:figEndIx+5]}'" )
-            figGuts = html[figStartIx+5:figEndIx]
-            dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"Got fig {versionAbbreviation} {refTuple} {segmentType} '{figGuts}' from '{html[figStartIx:figEndIx+5]}'" )
-            word = '(Figure skipped)'
-            html = f'{html[:figStartIx]}{word}{html[figEndIx+5:]}'
-            searchStartIx = figStartIx + len(word) # coz we've made the html much shorter
-        else: fig_loop_needed_to_break
-
-    # Turn \\jmp entries into active links
-    if '\\jmp' in usfmField: # e.g., \jmp debating|link-href="https://textandcanon.org/a-case-for-the-longer-ending-of-mark"\jmp*
-        searchStartIx = 0
-        for _safetyCount in range( 99 ):
-            jmpStartIx = html.find( '\\jmp ', searchStartIx )
-            if jmpStartIx == -1: break # no more to find -- all done
-            jmpPipeIx = html.find( '|', jmpStartIx+5 )
-            assert jmpPipeIx != -1
-            jmpEndIx = html.find( '\\jmp*', jmpPipeIx+1 )
-            assert jmpEndIx != -1
-            # dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"Handling jmp {versionAbbreviation} {refTuple} {segmentType} {searchStartIx} {jmpStartIx} {jmpPipeIx} {jmpEndIx} '{html[jmpStartIx:jmpEndIx+5]}'" )
-            jmpDisplay, jmpLinkBit = html[jmpStartIx+5:jmpPipeIx], html[jmpPipeIx+1:jmpEndIx]
-            dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"Got jmp {versionAbbreviation} {refTuple} {segmentType} {jmpDisplay=} and {jmpLinkBit=} from '{html[jmpStartIx:jmpEndIx+5]}'" )
-            assert jmpLinkBit.startswith( 'link-href="' ) and jmpLinkBit.endswith( '"' )
-            jmpLink = jmpLinkBit[11:-1]
-            if jmpLink.startswith( 'http' ): # then it's an external internet link
-                newLink = f'<a title="Go to external jump link" href="{jmpLink}">{jmpDisplay}</a>'
-            else: # it's likely to be a link into another work
-                vPrint( 'Info', DEBUGGING_THIS_MODULE, f"What is this '{jmpDisplay}' link to '{jmpLink}' expecting to jump to?" )
-                if jmpLink.startswith( '#' ):
-                    assert jmpLink.startswith( '#C' ), f"Got internal jmp {versionAbbreviation} {refTuple} {segmentType} {jmpDisplay=} and {jmpLink=} from '{html[jmpStartIx:jmpEndIx+5]}'"
-                    assert 'V' in jmpLink, f"Got internal jmp {versionAbbreviation} {refTuple} {segmentType} {jmpDisplay=} and {jmpLink=} from '{html[jmpStartIx:jmpEndIx+5]}'"
-                    Vix = jmpLink.index( 'V' )
-                    refC, refV = jmpLink[2:Vix], jmpLink[Vix+1:]
-                    # print( f"{jmpLink=} {ourBBB=} {refC=} {refV=}")
-                    if segmentType == 'book':
-                        newLink = f'<a title="Go to internal jump link reference document" href="{jmpLink}">{jmpDisplay}</a>'
-                    elif segmentType == 'chapter':
-                        newLink = f'<a title="Go to internal jump link reference chapter" href="{ourBBB}_C{refC}.htm#C{refC}V{refV}">{jmpDisplay}</a>'
-                    elif segmentType.endswith( 'Verse' ):
-                        # dPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"convertUSFMCharacterFormatting( {versionAbbreviation}, {refTuple}, {segmentType}, '{introHtml}' )" )
-                        # print( f"{versionAbbreviation}, {refTuple}, {ourBBB=} {refC=} {refV=} {jmpDisplay=}" )
-                        newLink = f'<a title="Go to internal jump link reference verse" href="C{refC}V{refV}.htm#Top">{jmpDisplay}</a>'
-                    elif segmentType in ('section','relatedPassage'):
-                        if 1:
-                        # try: # Now find which section that reference starts in
-                            # print( f"{state.sectionsLists[versionAbbreviation][ourBBB]=}" )
-                            n = findSectionNumber( versionAbbreviation, ourBBB, refC, refV, state )
-                            # intV = getSmallLeadingInt( refV )
-                            # found = False
-                            # for n, (startC,startV,endC,endV,sectionName,reasonName,contextList,verseEntryList,sFilename) in enumerate( state.sectionsLists[versionAbbreviation][ourBBB] ):
-                            #     if startC==refC and endC==refC:
-                            #         if getSmallLeadingInt(startV) <= intV <= getSmallLeadingInt(endV): # It's in this single chapter
-                            #             found = True
-                            #             break
-                            #     elif startC==refC and intV>=getSmallLeadingInt(startV): # It's in the first chapter
-                            #         found = True
-                            #         break
-                            #     elif endC==refC and intV<=getSmallLeadingInt(endV): # It's in the second chapter
-                            #         found = True
-                            #         break
-                            # if found:
-                            if n is not None:
-                                newLink = f'<a title="Go to to section page with reference" href="{ourBBB}_S{n}.htm#Top">{jmpDisplay}</a>'
-                            else:
-                                logging.critical( f"unable_to_find_reference for {ourBBB} {refC}:{refV} {[f'{startC}:{startV}…{endC}:{endV}' for startC,startV,endC,endV,_sectionName,_reasonName,_contextList,_verseEntryList,_sFilename in state.sectionsLists[versionAbbreviation]]}" )
-                                newLink = jmpDisplay # Can't make a link
-                                unable_to_find_reference # Need to write more code
-                        # except KeyError:
-                        #     logging.critical( f"convertUSFMCharacterFormatting for {versionAbbreviation}, {refTuple}, {segmentType} can't find section list for {ourBBB}" )
-                        #     newLink = guts # Can't make a link
-                    else:
-                        dPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"convertUSFMCharacterFormatting( {versionAbbreviation}, {refTuple}, {segmentType}, '{usfmField}' )" )
-                        jmp_ooopsie
-                    newLink = f'<a title="Go to internal jump link" href="{jmpLink}">{jmpDisplay}</a>'
-                    # print( f"Got {newLink=}")
-                else: # unknown link type
-                    unknown_jmp_link_type
-            html = f'{html[:jmpStartIx]}{newLink}{html[jmpEndIx+5:]}'
-            searchStartIx = jmpStartIx + len(newLink) # coz we've changed the size of the html
-        else: jmp_loop_needed_to_break
-
-    # Handle \\w markers (mostly only occur if basicOnly is false)
-    if '\\w ' in usfmField or '\\+w ' in usfmField:
-        # if versionAbbreviation in ('NET',): # \\w fields in NET seem to now only contain the English word
-            # assert '|' not in usfmField, f"Found pipe {versionAbbreviation=} {refTuple=} {segmentType=} '{usfmField=}' {basicOnly=} '{html}'"
-        if '|' not in usfmField:
-            usfmField = usfmField.replace( '\\w ', '' ).replace( '\\w*', '' ) \
-                                 .replace( '\\+w ', '' ).replace( '\\+w*', '' )
-        else: # Fields like \\w of|x-occurrence="1" x-occurrences="3"\\w* for ULT/UST, WEB has strongs
-            # NET from eBible.org seems to have a mix,
-            #   e.g., "\\w So|strong="H6213"\\w* \\w the king\\w* \\w stayed\\w*"
-            searchStartIx = 0
-            for _safetyCount in range( 299 ):
-                searchString = '\\w '
-                wStartIx = html.find( searchString, searchStartIx )
-                if wStartIx == -1:
-                    searchString = '\\+w '
-                    wStartIx = html.find( searchString, searchStartIx )
-                if wStartIx == -1: # still
-                    break # no more to find -- all done
-                pipeIx = html.find( '|', wStartIx+len(searchString) ) # Might be -1 if there's no more, or might be more than wEndIx if there's none in this word
-                wEndIx = html.find( f'{searchString[:-1]}*', wStartIx+len(searchString) )
-                assert wEndIx != -1
-                if pipeIx > wEndIx: # then it must be in the next word!
-                    pipeIx = -1 # so just act as if there wasn't one :)
-                if pipeIx != -1:
-                    assert wStartIx+len(searchString) < pipeIx < wEndIx, f"{searchStartIx=} {wStartIx=} {pipeIx=} {wEndIx=}"
-                word = html[wStartIx+len(searchString):wEndIx] if pipeIx==-1 else html[wStartIx+len(searchString):pipeIx]
-                html = f'{html[:wStartIx]}{word}{html[wEndIx+len(searchString):]}'
-                searchStartIx += len(word) # coz we've made the html much shorter
-            else:
-                wCount = usfmField.count( '\\w ' ) + usfmField.count( '\\+w ' )
-                raise Exception( f"convertUSFMCharacterFormatting() w loop needed to break at {versionAbbreviation} {refTuple} '{segmentType}' with ({wCount:,}) '{usfmField}'" )
-            assert '\\w ' not in html and '\\+w ' not in html, f"{html[html.index(f'{BACKSLASH}x')-10:html.index(f'{BACKSLASH}x')+12]}" # Note: can still be \\wj in text
-
-    if '\\tc' in usfmField:
-        html = html.replace( '\\tc1 ', '<td>' ).replace( '\\tc2 ', '</td><td>' ).replace( '\\tc3 ', '</td><td>' ).replace( '\\tc4 ', '</td><td>' ).replace( '\\tc5 ', '</td><td>' )
-    assert '\\tr' not in html, f"TR {versionAbbreviation} {refTuple} {segmentType} {basicOnly=} {usfmField=} {html=}"
-
-    # Replace the character markers which have specific HMTL equivalents
-    # NOTE: Embedded markers like \\+em have already had the + removed above
-    html = html \
-            .replace( '\\bdit ', '<b><i>' ).replace( '\\bdit*', '</i></b>' ) \
-            .replace( '\\bd ', '<b>' ).replace( '\\bd*', '</b>' ) \
-            .replace( '\\it ', '<i>' ).replace( '\\it*', '</i>' ) \
-            .replace( '\\em ', '<em>' ).replace( '\\em*', '</em>' ) \
-            .replace( '\\sup ', '<sup>' ).replace( '\\sup*', '</sup>' )
-
-    # Special handling for OT '\\nd LORD\\nd*' (this is also in createParallelVersePages)
-    html = html.replace( '\\nd LORD\\nd*', '\\nd L<span style="font-size:.75em;">ORD</span>\\nd*' )
-
-    # Now replace all the other character markers into HTML spans, e.g., \\add \\nd \\bk
-    expandedCharMarkers = BibleOrgSysGlobals.USFMAllExpandedCharacterMarkers + ['untr'] # Our custom addition
-    if versionAbbreviation == 'NET': expandedCharMarkers += ['heb','theb','grk','tgrk','ver','src','fx']
-    # assert 'qac' in expandedCharMarkers, f"({len(expandedCharMarkers)}) {expandedCharMarkers}"
-    for charMarker in expandedCharMarkers:
-        if charMarker=='nd' and 'OET' in versionAbbreviation and ourBBB in BOOKLIST_NT27:
-            html = html.replace( '\\nd ', '<span class="nominaSacra">' ).replace( '\\nd*', '</span>' )
-        else:
-            html = html.replace( f'\\{charMarker} ', f'<span class="{charMarker}">' ).replace( f'\\{charMarker}*', '</span>' )
-
-    if 'OET' in versionAbbreviation: # Append "untranslated" to titles/popup-boxes for untranslated words in OET-LV
-        # count = 0
-        searchStartIndex = 0
-        for _safetyCount in range( 900 ):
-            ix = html.find( '<span class="untr"><a title="', searchStartIndex )
-            if ix == -1: break # all done
-            ixTitleStart = ix + 29
-            ixTitleEnd = html.index( '" href=', ixTitleStart )
-            haveDOMflag = '(ʼēt, To)' in html[ixTitleStart:ixTitleEnd]
-            html = f"{html[:ixTitleEnd]} (untranslated{' direct-object marker' if haveDOMflag else ''}){html[ixTitleEnd:]}"
-            # count += 1
-            searchStartIndex = ixTitleEnd + 5
-        else: need_to_increase_loop_count_for_untranslated_words
-
-    # Final checking
-    if versionAbbreviation not in ('UST','ULT'): # uW stuff has too many USFM encoding errors and inconsistencies
-        assert 'strong="' not in html, f"‘{versionAbbreviation}’ {refTuple} {segmentType=} {basicOnly=} {usfmField=}\n  html='{html if len(html)<4000 else f'{html[:2000]} ....... {html[-2000:]}'}'"
-    if '\\ts\\*' in html:
-        logging.critical( f"Removing ts marker in {versionAbbreviation} {refTuple} {segmentType} {basicOnly=}…")
-        html = html.replace( '\\ts\\*', '' )
-    if '\\f ' not in html and '\\x ' not in html:
-        # AssertionError: versionAbbreviation='ULT' refTuple=('ISA',) segmentType='book' 'usfmField='\\w to|x-occurrence="1" x-occurrences="2"\\w* \\w dishonor|x-occurrence="1" x-occurrences="1"\\w* \\zaln-s |x-strong="H1347" x-lemma="גָּאוֹן" x-morph='' basicOnly=False 'to dishonor \zaln-s |x-strong="H1347" x-lemma="גָּאוֹן" x-morph='
-        if (versionAbbreviation not in ('TCNT','TC-GNT') or 'INT' not in refTuple) \
-        and (versionAbbreviation not in ('ULT','UST') \
-            or ('GEN' not in refTuple and 'MAT' not in refTuple and 'PSA' not in refTuple and 'ISA' not in refTuple and 'JER' not in refTuple and 'DEU' not in refTuple and 'JOB' not in refTuple and 'SNG' not in refTuple)): # ULT Gen 14:20, ISA and UST MAT has an encoding fault in 12:20 14Feb2023
-            assert '\\' not in html, f"{versionAbbreviation=} {refTuple=} {segmentType=} '{usfmField=}' {basicOnly=} '{html}'"
-    if not checkHtml( f'convertUSFMCharacterFormatting({versionAbbreviation} {refTuple} {segmentType} {basicOnly=})', html, segmentOnly=True ):
-        if DEBUGGING_THIS_MODULE and versionAbbreviation!='OEB': # OEB ISA has a \\em mismatch
-            halt
-    return html
-# end of usfm.convertUSFMCharacterFormatting
+# end of usfm.convertVerseEntryListToHtml
 
 
 # TODO: Currently 'about Jesus the messiah (Acts 12:25, 13:13).' this wrongly thinks 13:13 is in the current book!
@@ -1467,8 +1518,10 @@ def livenIntroductionLinks( versionAbbreviation:str, refTuple:tuple, segmentType
         guts = match.group(0)[1:-1] # Remove the parentheses or other surrounding chars
         preChar, refB, refC, refV, refRest, postChar = match.groups()
         dPrint( 'Info', DEBUGGING_THIS_MODULE, f"Got {versionAbbreviation} intro ref CV match with '{preChar}' '{guts}' '{postChar}' -> {match.groups()=}" )
-        if refB.startswith( 'See ' ): refB =refB[4:]
+        if refB.startswith( 'See ' ) or refB.startswith( 'see ' ): refB =refB[4:]
+        elif refB.startswith( 'as in ' ): refB =refB[6:]
         refBBB = getBBBFromOETBookName( refB, f"livenIntroductionLinks( {versionAbbreviation}, {refTuple}, {segmentType}, '{introHtml}' )" )
+        # print( f"{refBBB=} from {refB=}" )
         if not refBBB:
             logging.warning( f"livenIntroductionLinks( {versionAbbreviation}, {refTuple}, {segmentType}, '{introHtml}' ) failed to  find BBB for {refB=} from intro ref CV match with '{preChar}' '{guts}' '{postChar}' -> {match.groups()=}")
             # newGuts = guts # Can't make a link
@@ -1504,7 +1557,7 @@ def livenIntroductionLinks( versionAbbreviation:str, refTuple:tuple, segmentType
                 if n is not None:
                     newGuts = f'<a title="Go to to section page with reference" href="{refBBB}_S{n}.htm#Top">{guts}</a>'
                 else:
-                    logging.critical( f"unable_to_find_reference for {versionAbbreviation} {refBBB} {refC}:{refV}" )
+                    logging.critical( f"unable_to_find_reference for {versionAbbreviation} {segmentType=} {refBBB} {refC}:{refV}" )
                     # logging.critical( f"   {[f'{startC}:{startV}…{endC}:{endV}' for startC,startV,endC,endV,_sectionName,_reasonName,_contextList,_verseEntryList,_sFilename in state.sectionsLists[versionAbbreviation][refBBB]]}" )
                     # for n, something in enumerate( state.sectionsLists[versionAbbreviation][refBBB] ):
                     #     logging.critical( f"  {n}: {something}")
@@ -1905,14 +1958,14 @@ def livenXRefField( fieldType:str, versionAbbreviation:str, refTuple:tuple, segm
                 xBBB = lastXBBB
             if xC in ('ver','Ver'):
                 if bos_books_codes_py.is_single_chapter_book( xBBB ):
-                    dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"YYY KJB-1611 got {xBBB=} {xC=} from {xB=} from {refTuple} {match.groups()=} from {xoText=} {xrefLiveMiddle=}" )
+                    dPrint( 'Info', DEBUGGING_THIS_MODULE, f"YYY KJB-1611 got {xBBB=} {xC=} from {xB=} from {refTuple} {match.groups()=} from {xoText=} {xrefLiveMiddle=}" )
                     xC = '1'
-                    dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Handled {versionAbbreviation} {xBBB} {xC}:{xV} from {refTuple} {match.groups()=} from {xoText=} {xrefLiveMiddle=}" )
+                    dPrint( 'Info', DEBUGGING_THIS_MODULE, f"Handled {versionAbbreviation} {xBBB} {xC}:{xV} from {refTuple} {match.groups()=} from {xoText=} {xrefLiveMiddle=}" )
                 elif xB == 'and':
-                    dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"ZZZ KJB-1611 got {xBBB=} {xC=} ({lastXC=}) from {xB=} from {refTuple} {match.groups()=} from {xoText=} {xrefLiveMiddle=}" )
+                    dPrint( 'Info', DEBUGGING_THIS_MODULE, f"ZZZ KJB-1611 got {xBBB=} {xC=} ({lastXC=}) from {xB=} from {refTuple} {match.groups()=} from {xoText=} {xrefLiveMiddle=}" )
                     xC = lastXC
                 else:
-                    dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"zzz KJB-1611 got {xBBB=} {xC=} ({lastXC=}) from {xB=} from {refTuple} {match.groups()=} from {xoText=} {xrefLiveMiddle=}" )
+                    dPrint( 'Info', DEBUGGING_THIS_MODULE, f"zzz KJB-1611 got {xBBB=} {xC=} ({lastXC=}) from {xB=} from {refTuple} {match.groups()=} from {xoText=} {xrefLiveMiddle=}" )
                     xC = refTuple[1] # Assume it's a verse number in the current chapter
         assert xC.isdigit(), f"{versionAbbreviation} {refTuple} {xBBB=} {xC=} {xV=} {match.groups()} from {xoText=} {xrefLiveMiddle=}"
         assert xV.isdigit(), f"{versionAbbreviation} {refTuple} {xBBB=} {xC=} {xV=} {match.groups()} from {xoText=} {xrefLiveMiddle=}"
@@ -1942,9 +1995,9 @@ def livenXRefField( fieldType:str, versionAbbreviation:str, refTuple:tuple, segm
             dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"livenXRefField( {versionAbbreviation} {refTuple} '{segmentType}' from {xoText=} {xrefOriginalMiddle=} ) with {BBB=} {xBBB=} {lastXBBB=}" )
             logging.critical( f"Failed to find xref book from '{xB}' from '{xrefOriginalMiddle}' in {match.groups()} for {versionAbbreviation} {segmentType} {segmentType=} {refTuple}")
         if versionAbbreviation == 'OET-RV' and xBBB in state.preloadedBibles['OET-RV'] \
-        and (bos_books_codes_py.is_ot_nr( xBBB ) or bos_books_codes_py.is_nt_nr( xBBB )): # We want to link to the section page, (not the chapter page)
+        and (bos_books_codes_py.is_old_testament_nr( xBBB ) or bos_books_codes_py.is_new_testament_nr( xBBB )): # We want to link to the section page, (not the chapter page)
             sectionNumber = findSectionNumber( 'OET-RV', xBBB, xC, xV, state )
-            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"convertUSFMMarkerListToHtml for {versionAbbreviation} {refTuple} '{segmentType}' findSectionNumber( 'OET-RV', {xBBB} {xC}:{xV} ) returned {sectionNumber}" )
+            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"convertVerseEntryListToHtml for {versionAbbreviation} {refTuple} '{segmentType}' findSectionNumber( 'OET-RV', {xBBB} {xC}:{xV} ) returned {sectionNumber}" )
             assert sectionNumber is not None, f"Bad OET-RV {refTuple} cross-reference: {xBBB} {xC}:{xV} from {xrefLiveMiddle=}"
             if not state.TEST_MODE_FLAG:
                 assert sectionNumber > 0, f"ZERO OET-RV {refTuple} cross-reference: {xBBB} {xC}:{xV} from {xrefLiveMiddle=}"

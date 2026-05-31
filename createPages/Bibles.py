@@ -103,11 +103,9 @@ from BibleOrgSys.Bible import Bible
 from bible_organisational_system import InternalBibleEntryList, getSmallLeadingInt
 import bos_books_codes_py
 
-import sys
-sys.path.append( '../../BibleTransliterations/Python/' )
-from BibleTransliterations import transliterate_Greek, transliterate_Hebrew
+from bible_transliterations import transliterate_Greek, transliterate_Hebrew
 
-# from bos_books_codes_py import english_name_to_reference_abbrev_py  # This is the PyO3/Rust module
+# from bos_books_codes_py import english_name_to_bos_book_code_py  # This is the PyO3/Rust module
 
 from settings import State
 from html import checkHtml
@@ -541,6 +539,14 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
             thisBible.preload()
             for BBB in state.booksToLoad[versionAbbreviation]:
                 thisBible.loadBookIfNecessary( BBB )
+        # if versionAbbreviation == 'ULT':
+        #     jerLines, _jerContext = thisBible.getContextVerseData( ('JER','4') )
+        #     for line in jerLines: print( f"  JER 4 {line=}" )
+        #     jer = thisBible.books['JER']
+        #     for C,V in jer._CVIndex:
+        #         if C == '4':
+        #             print( f"JER {C}:{V} {jer._CVIndex[(C,V)]}")
+        #     halt
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  preloadVersion() loaded {len(thisBible):,} {versionAbbreviation} verses" if versionAbbreviation in state.selectedVersesOnlyVersions else f"preloadVersion() loaded {thisBible}" )
 
     if ( versionAbbreviation not in state.selectedVersesOnlyVersions # they're dicts not Bible objects
@@ -671,8 +677,8 @@ def loadTyndaleBookIntrosXML( abbrev:str, XML_filepath ) -> dict[str,str]:
                     OSISBkCode, firstC, firstVs = firstRef.split( '.' )
                     if OSISBkCode.endswith('Thes'):
                         OSISBkCode += 's' # TODO: getBBBFromText should handle '1Thes'
-                    BBB = bos_books_codes_py.english_name_to_reference_abbrev( OSISBkCode )
-                    # BBB = english_name_to_reference_abbrev( OSISBkCode )
+                    BBB = bos_books_codes_py.english_name_to_bos_book_code( OSISBkCode )
+                    # BBB = english_name_to_bos_book_code( OSISBkCode )
                     stateCounter += 1
                 elif stateCounter == 2:
                     assert subelement.tag == 'body'
@@ -883,8 +889,8 @@ def fixTyndaleBRefs( abbrev:str, level:int, BBBorArticleName:str, C:str, V:str, 
             assert tC.isdigit()
             tV = getSmallLeadingInt( tV ) # in case there's an a or b or something
             # assert tV.isdigit(), f"'{abbrev}' {level=} {BBBorArticleName} {C}:{V} {tBkCode=} {tC=} {tV=}"
-            tBBB = bos_books_codes_py.english_name_to_reference_abbrev( tBkCode )
-            # tBBB = english_name_to_reference_abbrev( tBkCode )
+            tBBB = bos_books_codes_py.english_name_to_bos_book_code( tBkCode )
+            # tBBB = english_name_to_bos_book_code( tBkCode )
             if not tBBB:
                 if tBkCode=='Tb': tBBB = 'TOB'
             assert tBBB
@@ -898,8 +904,8 @@ def fixTyndaleBRefs( abbrev:str, level:int, BBBorArticleName:str, C:str, V:str, 
                 tBkCode += 's' # TODO: getBBBFromText should handle '1Thes'
             assert tC.isdigit()
             assert tV.isdigit()
-            tBBB = bos_books_codes_py.english_name_to_reference_abbrev( tBkCode )
-            # tBBB = english_name_to_reference_abbrev( tBkCode )
+            tBBB = bos_books_codes_py.english_name_to_bos_book_code( tBkCode )
+            # tBBB = english_name_to_bos_book_code( tBkCode )
             if not tBBB:
                 if tBkCode=='Tb': tBBB = 'TOB'
             assert tBBB
@@ -911,8 +917,8 @@ def fixTyndaleBRefs( abbrev:str, level:int, BBBorArticleName:str, C:str, V:str, 
             if tBkCode.endswith('Thes'):
                 tBkCode += 's' # TODO: getBBBFromText should handle '1Thes'
             assert tC.isdigit()
-            tBBB = bos_books_codes_py.english_name_to_reference_abbrev( tBkCode )
-            # tBBB = english_name_to_reference_abbrev( tBkCode )
+            tBBB = bos_books_codes_py.english_name_to_bos_book_code( tBkCode )
+            # tBBB = english_name_to_bos_book_code( tBkCode )
             if not tBBB:
                 if tBkCode=='Tb': tBBB = 'TOB'
             assert tBBB, f"'{abbrev}' {level=} {BBBorArticleName} {C}:{V} {tBkCode=} {tC=}"
@@ -925,8 +931,8 @@ def fixTyndaleBRefs( abbrev:str, level:int, BBBorArticleName:str, C:str, V:str, 
             assert tC.isdigit()
             tV = getSmallLeadingInt( tV ) # in case there's an a or b or something
             # assert tV.isdigit(), f"'{abbrev}' {level=} {BBBorArticleName} {C}:{V} {tBkCode=} {tC=} {tV=}"
-            tBBB = bos_books_codes_py.english_name_to_reference_abbrev( tBkCode )
-            # tBBB = english_name_to_reference_abbrev( tBkCode )
+            tBBB = bos_books_codes_py.english_name_to_bos_book_code( tBkCode )
+            # tBBB = english_name_to_bos_book_code( tBkCode )
             if not tBBB:
                 if tBkCode=='Tb': tBBB = 'TOB'
             assert tBBB, f"'{abbrev}' {level=} {BBBorArticleName} {C}:{V} {tBkCode=} {tC=} {tV=}"
@@ -991,12 +997,12 @@ def formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segme
         logging.warning( f"uW TNs has no notes for {utnRef}" )
         return ''
 
-    NT = bos_books_codes_py.is_nt_nr( BBB )
+    NT = bos_books_codes_py.is_new_testament_nr( BBB )
     # opposite = 'interlinear' if segmentType=='parallelVerse' else 'parallelVerse'
     # oppositeFolder = 'il' if segmentType=='parallelVerse' else 'pa'
 
     # We tried this, but think it's better to customise our own HTML
-    # tnHtml = convertUSFMMarkerListToHtml( level, 'UTN', (BBB,C,V), 'notes', contextList, verseEntryList, basicOnly=True, state=state )
+    # tnHtml = convertVerseEntryListToHtml( level, 'UTN', (BBB,C,V), 'notes', contextList, verseEntryList, basicOnly=True, state=state )
 
     tnHtml = ''
     lastMarker = None
@@ -1142,7 +1148,7 @@ def formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segme
                             try: lV = int(lV)
                             except ValueError:
                                 if lV.startswith('.'): lV = int(lV[1:])
-                            lBBB = bos_books_codes_py.usfm_abbrev_to_reference_abbrev( lUUU )
+                            lBBB = bos_books_codes_py.usfm_abbrev_to_bos_book_code( lUUU )
                             newLink = f'<a href="../{lBBB}/C{lC}V{lV}.htm#Top">{match.group(1)}</a>'
                         elif linkTarget.count('/') == 1:
                             lC, lV = linkTarget.split( '/' ) # Something like '01' '17'
@@ -1351,7 +1357,7 @@ def getVerseDataListForReference( givenRefString:str, thisBible:Bible, lastBBB:s
     refBBB = getBBBFromOETBookName( bookAbbreviation, f"getVerseDataListForReference( {thisBible.abbreviation} {givenRefString} {lastBBB=} {lastC=} )" )
     if refBBB is None:
         # if thisBible.abbreviation=='OET-RV' and bookAbbreviation[0]=='Y':
-        #     refBBB = bos_books_codes_py.english_name_to_reference_abbrev( f'J{bookAbbreviation[1:]}' ) # Convert Yoel back to Joel, etc.
+        #     refBBB = bos_books_codes_py.english_name_to_bos_book_code( f'J{bookAbbreviation[1:]}' ) # Convert Yoel back to Joel, etc.
         #     dPrint( 'Info', DEBUGGING_THIS_MODULE, f"{bookAbbreviation=} {refCVpart=} {refBBB=}" )
         # el
         if bookAbbreviation[0].isdigit() and (':' in bookAbbreviation or '-' in bookAbbreviation): # or bookAbbreviation.isdigit() might need to be added
@@ -1362,7 +1368,7 @@ def getVerseDataListForReference( givenRefString:str, thisBible:Bible, lastBBB:s
     if refBBB not in thisBible: # Don't force that book to be loaded
         return refBBB, '', InternalBibleEntryList(), []
     # if refBBB is None and thisBible.abbreviation=='OET-RV' and bookAbbreviation[0]=='Y':
-    #     refBBB = bos_books_codes_py.english_name_to_reference_abbrev( f'J{bookAbbreviation[1:]}' ) # Convert Yoel back to Joel, etc.
+    #     refBBB = bos_books_codes_py.english_name_to_bos_book_code( f'J{bookAbbreviation[1:]}' ) # Convert Yoel back to Joel, etc.
     #     print( f"{bookAbbreviation=} {refCVpart=} {refBBB=}" )
     assert refBBB, f"getVerseDataListForReference {givenRefString=} can't get BBB from {bookAbbreviation=} {refCVpart=}"
     refIsSingleChapterBook = bos_books_codes_py.is_single_chapter_book( refBBB )
@@ -1464,7 +1470,7 @@ def getVerseDataListForReference( givenRefString:str, thisBible:Bible, lastBBB:s
                         bookAbbreviation2, refEndC = refEndC.split( ' ' )
                         refBBB2 = getBBBFromOETBookName( bookAbbreviation2, f"getVerseDataListForReference( {thisBible.abbreviation} {givenRefString} {lastBBB=} {lastC=} )" )
                         # if refBBB2 is None and thisBible.abbreviation=='OET-RV' and bookAbbreviation2[0]=='Y':
-                        #     refBBB2 = bos_books_codes_py.english_name_to_reference_abbrev( f'J{bookAbbreviation2[1:]}' ) # Convert Yoel back to Joel, etc.
+                        #     refBBB2 = bos_books_codes_py.english_name_to_bos_book_code( f'J{bookAbbreviation2[1:]}' ) # Convert Yoel back to Joel, etc.
                         #     dPrint( 'Info', DEBUGGING_THIS_MODULE, f"{bookAbbreviation2=} {refCVpart=} {refBBB2=}" )
                         assert refBBB2, f"getVerseDataListForReference {givenRefString=} can't get BBB2 from {bookAbbreviation2=} {refCVpart=}"
                         verseEntryList, contextList = thisBible.getContextVerseDataRange( (refBBB,refStartC,refStartV), (refBBB2,refEndC,refEndV) )

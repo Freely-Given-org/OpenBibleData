@@ -36,7 +36,6 @@ CHANGELOG:
     2025-09-25 Make all SR-GNT verse text into live links to collation pages
     2026-01-07 Added OET Logo
 """
-from gettext import gettext as _
 from pathlib import Path
 import os
 import re
@@ -51,7 +50,7 @@ from bible_organisational_system import InternalBibleEntryList
 import bos_books_codes_py
 
 from settings import State, CNTR_BOOK_ID_MAP
-from usfm import convertUSFMMarkerListToHtml
+from usfm import convertVerseEntryListToHtml
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
                     makeTop, makeBottom, makeBookNavListParagraph, removeDuplicateCVids, checkHtml
 from OETHandlers import livenOETWordLinks, livenOETCompatibleWordLinks, getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename
@@ -99,7 +98,7 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
     processedBBBs, processedFilenames = [], []
     for BBB in state.BBBsToProcess['OET']:
         dPrint( 'Info', DEBUGGING_THIS_MODULE, f"    createOETBookPages {BBB=} {state.BBBsToProcess['OET']} out of {len(state.BBBsToProcess['OET'])}" )
-        NT = bos_books_codes_py.is_nt_nr( BBB )
+        NT = bos_books_codes_py.is_new_testament_nr( BBB )
         ourTidyBBB = getOETTidyBBB( BBB )
         ourTidyBBBwithNotes = getOETTidyBBB( BBB, addNotes=True )
 
@@ -150,7 +149,7 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
             verseEntryList, contextList = rvBible.getContextVerseData( (BBB,) )
             assert isinstance( rvBible, ESFMBible.ESFMBible )
             verseEntryList = livenOETWordLinks( level, rvBible, BBB, verseEntryList, state )
-            textHtml = convertUSFMMarkerListToHtml( level, rvBible.abbreviation, (BBB,), 'book', contextList, verseEntryList, basicOnly=False, state=state )
+            textHtml = convertVerseEntryListToHtml( level, rvBible.abbreviation, (BBB,), 'book', contextList, verseEntryList, basicOnly=False, state=state )
             # textHtml = livenIORs( BBB, textHtml )
             textHtml = do_OET_RV_HTMLcustomisations( f'BookA={BBB}', textHtml )
             bkHtml = f'{bkHtml}{textHtml}'
@@ -202,13 +201,13 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
         if lvVerseEntryList:
             lvVerseEntryList = livenOETWordLinks( level, lvBible, BBB, lvVerseEntryList, state )
         # NOTE: We change the version abbreviation here to give the function more indication where we're coming from
-        rvHtml = do_OET_RV_HTMLcustomisations( f'BookA={BBB}', convertUSFMMarkerListToHtml( level, 'OET-RV', (BBB,), 'book', rvContextList, rvVerseEntryList, basicOnly=False, state=state ) )
-        tempLVHtml = convertUSFMMarkerListToHtml( level, 'OET-LV', (BBB,), 'book', lvContextList, lvVerseEntryList, basicOnly=False, state=state )
+        rvHtml = do_OET_RV_HTMLcustomisations( f'BookA={BBB}', convertVerseEntryListToHtml( level, 'OET-RV', (BBB,), 'book', rvContextList, rvVerseEntryList, basicOnly=False, state=state ) )
+        tempLVHtml = convertVerseEntryListToHtml( level, 'OET-LV', (BBB,), 'book', lvContextList, lvVerseEntryList, basicOnly=False, state=state )
         # if '+' in tempLVHtml: print( f"HAVE_PLUS {tempLVHtml[max(0,tempLVHtml.index('+')-30):tempLVHtml.index('+')+90]}" )
         # if '^' in tempLVHtml: print( f"HAVE_HAT {tempLVHtml[max(0,tempLVHtml.index('^')-30):tempLVHtml.index('^')+90]}" )
         # if '~' in tempLVHtml: print( f"HAVE_SQUIG {tempLVHtml[max(0,tempLVHtml.index('~')-30):tempLVHtml.index('~')+90]}" )
         lvHtml = do_OET_LV_HTMLcustomisations( f'BookA={BBB}', tempLVHtml )
-        # lvHtml = do_OET_LV_HTMLcustomisations( f"BookA={BBB}", convertUSFMMarkerListToHtml( level, 'OET', (BBB,), 'book', lvContextList, lvVerseEntryList, basicOnly=False, state=state ) )
+        # lvHtml = do_OET_LV_HTMLcustomisations( f"BookA={BBB}", convertVerseEntryListToHtml( level, 'OET', (BBB,), 'book', lvContextList, lvVerseEntryList, basicOnly=False, state=state ) )
 
         # Now we have to divide the RV and the LV into an equal number of chunks (so they mostly line up)
         # First get the header and intro chunks
@@ -406,7 +405,7 @@ def createBookPages( level:int, folder:Path, thisBible, state:State ) -> list[st
     processedBBBs, processedFilenames = [], []
     for BBB in state.BBBsToProcess[thisBible.abbreviation]:
         ourTidyBBB = getOETTidyBBB( BBB )
-        NT = bos_books_codes_py.is_nt_nr( BBB )
+        NT = bos_books_codes_py.is_new_testament_nr( BBB )
         # print( f"{BBB=} {state.BBBsToProcess[thisBible.abbreviation]}"); print( len(BBBsToProcess) )
         # if not allBooksFlag: thisBible.loadBookIfNecessary( BBB )
 
@@ -436,7 +435,7 @@ def createBookPages( level:int, folder:Path, thisBible, state:State ) -> list[st
             verseEntryList = livenOETWordLinks( level, thisBible, BBB, verseEntryList, state )
         elif thisBible.abbreviation in ('BSB','MSB'):
             verseEntryList = livenOETCompatibleWordLinks( level, thisBible, BBB, verseEntryList, state )
-        textHtml = convertUSFMMarkerListToHtml( level, thisBible.abbreviation, (BBB,), 'book', contextList, verseEntryList, basicOnly=False, state=state )
+        textHtml = convertVerseEntryListToHtml( level, thisBible.abbreviation, (BBB,), 'book', contextList, verseEntryList, basicOnly=False, state=state )
         # textHtml = livenIORs( BBB, textHtml )
         if thisBible.abbreviation == 'OET-RV':
             textHtml = f'''{do_OET_RV_HTMLcustomisations( f'BookB={BBB}', textHtml )}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="15" style="float:right; margin-left:10px;"></a>'''

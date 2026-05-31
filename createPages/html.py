@@ -99,7 +99,6 @@ CHANGELOG:
     2026-02-03 Allow uncertain ellided markings '\\add ?≡'
     2026-05-09 Upgraded to bos_books_codes_py
 """
-# from gettext import gettext as _
 import logging
 from datetime import datetime
 import re
@@ -113,7 +112,7 @@ from settings import State, state
 from OETHandlers import getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2026-05-09' # by RJH
+LAST_MODIFIED_DATE = '2026-05-15' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
 PROGRAM_VERSION = '0.99'
@@ -173,7 +172,7 @@ def makeTop( level:int, versionAbbreviation:str|None, pageType:str, versionSpeci
     aboutLink = 'About' if pageType=='about' else f'''<a href="{'../'*level}About.htm#Top">About</a>'''
     newsLink = 'News' if pageType=='news' else f'''<a href="{'../'*level}News.htm#Top">News</a>'''
     OETKeyLink = 'OET Key' if pageType=='OETKey' else f'''<a href="{'../'*level}OETKey.htm#Top">OET Key</a>'''
-    topLink = f'<p class="site">{homeLink}  {aboutLink}  {newsLink}  {OETKeyLink}</p>'
+    topLink = f'<p class="site">{homeLink}  {aboutLink}  {newsLink}  {OETKeyLink}</p><!--site-->'
 
     top = f"""<!DOCTYPE html>
 <html lang="en-US">
@@ -348,7 +347,7 @@ def _makeWorkNavListParagraph( level:int, versionAbbreviation:str|None, pageType
 
     assert len(newVersionList) == len(initialVersionList)
     # if pageType in ('section','sectionIndex'): print( f"_makeWorkNavListParagraph {'\n'.join(newVersionList)}\n from {'\n'.join(initialVersionList)}" ); halt
-    return f'''<p class="wrkLst">{' '.join(newVersionList)}</p>'''
+    return f'''<p class="wrkLst">{' '.join(newVersionList)}</p><!--wrkLst-->'''
 # end of html._makeWorkNavListParagraph
 
 
@@ -382,7 +381,7 @@ def makeViewNavListParagraph( level:int, versionAbbreviation:str|None, pageType:
         if state.TEST_MODE_FLAG and 'OET' in versionAbbreviation:
             viewLinks.append( f'''<a title="View verses not included in the OET" href="{'../'*level}OET/missingVerses.htm#Top"><small>Missing verses</small></a>''' )
 
-    return f'''<p class="viewLst">{' '.join(viewLinks)}</p>''' if viewLinks else ''
+    return f'''<p class="viewLst">{' '.join(viewLinks)}</p><!--viewLst-->''' if viewLinks else ''
 # end of html.makeViewNavListParagraph
 
 
@@ -441,7 +440,7 @@ def makeBookNavListParagraph( linksList:list[str], workAbbrevPlus:str, state:Sta
             # print( f"  HEREdd {aLink=} {adjDisplayText=}")
         assert 3 <= len(adjDisplayText) <= 5, f"{len(adjDisplayText)=} {adjDisplayText=}" # it should be a tidyBBB, e.g., 'GEN' or '1 COR'
         BBB = getBBBFromOETBookName( adjDisplayText, where=f"makeBookNavListParagraph( {workAbbrevPlus} {aLink=} )" )
-        assert bos_books_codes_py.is_valid_reference_abbreviation( BBB ), f"Bad {BBB=} from {adjDisplayText=} from {aLink=}"
+        assert bos_books_codes_py.is_valid_bos_book_code( BBB ), f"Bad {BBB=} from {adjDisplayText=} from {aLink=}"
         newALink = f'{aLink[:ixDisplayLinkStart]}{displayText}{aLink[ixDisplayLinkEnd:]}'
         if BBB in ('INT','FRT','OTH','GLS','XXA','XXB','XXC','XXD'):
             newALink = f'<span class="XX">{newALink}</span>'
@@ -455,7 +454,7 @@ def makeBookNavListParagraph( linksList:list[str], workAbbrevPlus:str, state:Sta
         assert newALink.count('(')==newALink.count(')'), f"OOPS, what happened to the parentheses in {workAbbrevPlus}\n{newALink=}\nfrom {aLink=}"
         newList.append( newALink )
 
-    return f'''<p class="bkLst">{' '.join( newList )}</p>'''
+    return f'''<p class="bkLst">{' '.join( newList )}</p><!--bkLst-->'''
 # end of html.makeBookNavListParagraph
 
 
@@ -478,7 +477,7 @@ def _makeFooter( level:int, versionAbbreviation:str|None, pageType:str, state:St
 <p class="copyright" id="Bottom"><small><em>{'TEST ' if state.TEST_MODE_FLAG else ''}{state.SITE_NAME}</em> site {state.SITE_COPYRIGHT} <a href="https://Freely-Given.org">Freely-Given.org</a>.
 <br>Python source code for creating these static pages is available <a href="https://GitHub.com/Freely-Given-org/OpenBibleData">on GitHub</a> under an <a href="https://GitHub.com/Freely-Given-org/OpenBibleData/blob/main/LICENSE">open licence</a>.{datetime.now().strftime('<br> (Page created: %Y-%m-%d %H:%M)') if state.TEST_MODE_FLAG else ''}</small></p>
 <p class="copyright"><small>For Bible data copyrights, see the <a href="{'../'*level}AllDetails.htm#Top">details</a> for each displayed Bible version.</small></p>
-{f'''<p class="note"><a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="20"> </a><small>The <em>Open English Translation (OET)</em> main site is at <a href="https://OpenEnglishTranslation.Bible">OpenEnglishTranslation.Bible</a> or <a href="https://OET.Bible">OET.Bible</a>.</small></p>\n''' if not versionAbbreviation or 'OET' not in versionAbbreviation else ''}</div><!--footer-->"""
+{f'''<p class="note"><a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="20"> </a><small>The <em>Open English Translation (OET)</em> main site is at <a href="https://OpenEnglishTranslation.Bible">OpenEnglishTranslation.Bible</a> or <a href="https://OET.Bible">OET.Bible</a>.</small></p><!--note-->\n''' if not versionAbbreviation or 'OET' not in versionAbbreviation else ''}</div><!--footer-->"""
     return html
 # end of html._makeFooter
 
@@ -619,6 +618,7 @@ def checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool:
 
     assert '<span class="ul"><span class="ul">' not in htmlToCheck, f'''Nested <span class="ul"><span class="ul"> '{where}' {segmentOnly=} …{htmlToCheck[htmlToCheck.index('<span class="ul"><span class="ul">')-180:htmlToCheck.index('<span class="ul"><span class="ul">')+180]}…'''
     assert '< /' not in htmlToCheck, f'''Extra space in close span '{where}' {segmentOnly=} …{htmlToCheck[htmlToCheck.index('< /')-180:htmlToCheck.index('< /')+180]}…'''
+    assert '.ht#' not in htmlToCheck
 
     # Check divisions
     # We renamed 'div.s1' to 'div.section'

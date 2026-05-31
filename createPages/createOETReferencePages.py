@@ -98,18 +98,16 @@ from BibleOrgSys.OriginalLanguages import Hebrew, BibleLexicon
 from bible_organisational_system import getPositiveLeadingInt
 import bos_books_codes_py
 
-import sys
-sys.path.append( '../../BibleTransliterations/Python/' )
-from BibleTransliterations import transliterate_Hebrew, transliterate_Greek
+from bible_transliterations import transliterate_Hebrew, transliterate_Greek
 
 from settings import State, state, CNTR_BOOK_ID_MAP
 from html import makeTop, makeBottom, checkHtml, do_OET_LV_HTMLcustomisations, do_OET_RV_HTMLcustomisations
-from usfm import convertUSFMMarkerListToHtml
+from usfm import convertVerseEntryListToHtml
 from OETHandlers import getOETTidyBBB, getOETBookName, getHebrewWordpageFilename, getGreekWordpageFilename, livenOETWordLinks
 from createSectionPages import findSectionNumber
 
 
-LAST_MODIFIED_DATE = '2026-04-26' # by RJH
+LAST_MODIFIED_DATE = '2026-05-25' # by RJH
 SHORT_PROGRAM_NAME = "createOETReferencePages"
 PROGRAM_NAME = "OpenBibleData createOETReferencePages functions"
 PROGRAM_VERSION = '0.95'
@@ -129,7 +127,8 @@ FG_folderpath = project_folderpath.parent # Path to find parallel Freely-Given.o
 THEOGRAPHIC_INPUT_FOLDER_PATH = FG_folderpath.joinpath( 'Bible_speaker_identification/outsideSources/TheographicBibleData/derivedFiles/' )
 
 
-IMPORTANT_PEOPLE_CHRONOLOGICAL_LIST = ( # Has the name (in chronological order), plus a verse reference (that will be transformed into a section link)
+IMPORTANT_PEOPLE_CHRONOLOGICAL_LIST = (
+    # Has the name (in chronological order), plus a verse reference (that will be transformed into a section link)
     ('Adam', ('GEN_1:26',)),
     ('Havvah/Eve', ('GEN_3:20',)),
     ('Kayin/Cain', ('GEN_4:1',)),
@@ -137,7 +136,8 @@ IMPORTANT_PEOPLE_CHRONOLOGICAL_LIST = ( # Has the name (in chronological order),
     ('Abram', ('GEN_11:26',)),
     ('Lot', ('GEN_11:27',)),
     ('Malki-Tsedek/Melchizedek', ('GEN_14:18','PSA_110:4','HEB_5:6','HEB_6:20','HEB_7:1')),
-    ('Abraham', ('GEN_17:5',)),
+    ('Abraham', ('GEN_30:24',)),
+    ('Yosef/Joseph (one of twelve)', ('GEN_17:5','GEN_30:22','GEN_37:1','JHN_4:5','ACT_7:9','HEB_11:21','REV_7:8')),
     ('Mosheh/Moses', ('EXO_2:10',)),
     ('Aaron/Aharon', ('EXO_4:14',)),
     ('Yehoshua/Joshua', ('EXO_17:9',)),
@@ -162,7 +162,7 @@ IMPORTANT_PEOPLE_CHRONOLOGICAL_LIST = ( # Has the name (in chronological order),
 for personName, personRefList in IMPORTANT_PEOPLE_CHRONOLOGICAL_LIST:
     assert isinstance( personName, str )# and ' ' not in personName, f"{personName=}"
     for personRef in personRefList:
-        assert isinstance( personRef, str ) and 6<len(personRef)<12
+        assert isinstance( personRef, str ) and 6<len(personRef)<12, f"{personName} {personRef=}"
         assert personRef.count('_')==1 and personRef.count(':')==1 and ' ' not in personRef
 IMPORTANT_PEOPLE_ALPHABETICAL_LIST = ( # Has the name (in alphabetical order), plus a verse reference (that will be transformed into a section link)
     ('Aaron/Aharon', ('EXO_4:14',)),
@@ -183,6 +183,7 @@ IMPORTANT_PEOPLE_ALPHABETICAL_LIST = ( # Has the name (in alphabetical order), p
     ('Jesus/Yeshua', ('LUK_2:21',)),
     ('John/Yohan', ('MRK_1:19','MAT_4:21','JHN_1:35')),
     ('Jonah/Yonah', ('JNA_1:1','KI2_14:25','MAT_12:39','LUK_11:29')),
+    ('Joseph/Yosef (one of twelve)', ('GEN_17:5','GEN_30:22','GEN_37:1','JHN_4:5','ACT_7:9','HEB_11:21','REV_7:8')),
     ('Joshua/Yehoshua', ('EXO_17:9',)),
     ('Kayin/<small>Cain</small>', ('GEN_4:1',)),
     ('Lazarus (from Bethany)', ('JHN_11:1','JHN_12:1')),
@@ -207,13 +208,14 @@ IMPORTANT_PEOPLE_ALPHABETICAL_LIST = ( # Has the name (in alphabetical order), p
     ('Yeshua/<small>Jesus</small>', ('LUK_2:21',)),
     ('Yohan/<small>John</small>', ('MRK_1:19','MAT_4:21','JHN_1:35')),
     ('Yonah/<small>Jonah</small>', ('JNA_1:1','KI2_14:25','MAT_12:39','LUK_11:29')),
+    ('Yosef/<small>Joseph</small> (one of twelve)', ('GEN_17:5','GEN_30:22','GEN_37:1','JHN_4:5','ACT_7:9','HEB_11:21','REV_7:8')),
     ('Zechariah/Zekaryah', ('LUK_1:5',)),
     ('Zekaryah/<small>Zechariah</small>', ('LUK_1:5',)),
     )
 for personName, personRefList in IMPORTANT_PEOPLE_ALPHABETICAL_LIST:
     assert isinstance( personName, str )# and ' ' not in personName
     for personRef in personRefList:
-        assert isinstance( personRef, str ) and 6<len(personRef)<12
+        assert isinstance( personRef, str ) and 6<len(personRef)<12, f"{personName} {personRef=}"
         assert personRef.count('_')==1 and personRef.count(':')==1 and ' ' not in personRef
         BBB,CV = personRef.split( '_', 1 )
         assert BBB in BOOKLIST_66, f"{personName} {BBB=}"
@@ -917,7 +919,7 @@ def preprocessHebrewWordsLemmasGlosses( BBBSelection:str|list[str], state ) -> b
     if isinstance( BBBSelection, str ):
         processBBB = BBBSelection
         ignoreBBBs = BOOKLIST_OT39.remove( processBBB )
-        assert bos_books_codes_py.is_ot_nr( processBBB )
+        assert bos_books_codes_py.is_old_testament_nr( processBBB )
     else:
         assert isinstance( BBBSelection, list )
         processBBB = None
@@ -1053,7 +1055,7 @@ def preprocessGreekWordsLemmasGlosses( BBBSelection:str|list[str], state ) -> bo
     if isinstance( BBBSelection, str ):
         processBBB = BBBSelection
         ignoreBBBs = BOOKLIST_NT27.remove( processBBB )
-        assert bos_books_codes_py.is_nt_nr( processBBB )
+        assert bos_books_codes_py.is_new_testament_nr( processBBB )
     else:
         assert isinstance( BBBSelection, list )
         processBBB = None
@@ -1139,7 +1141,7 @@ def formatNTContextSpansOETGlossWords( rowNum:int, state:State ) -> str:
 
     TODO: Need to take GlossOrder into account
     """
-    # NT = bos_books_codes_py.is_nt_nr( BBB )
+    # NT = bos_books_codes_py.is_new_testament_nr( BBB )
 
     fOriginalWordRef, _fGreekWord, _fSRLemma, _fGrkLemma, _fVLTGlossWords, fOETGlossWords, _fGlossCaps, fProbability, _fExtendedStrongs, _fRoleLetter, _fMorphology, _fTagsStr = state.OETRefData['word_tables'][GreekWordFileName][rowNum].split( '\t' )
     # print( f"formatNTContextSpansOETGlossWords( {rowNum:,} ) at {fOriginalWordRef}" )
@@ -1279,11 +1281,11 @@ def get_OET_LV_verse_HTML( level:int, BBB:str, C:str, V:str ) -> str:
         without footnotes or cross-references.
     """
     thisBible = state.preloadedBibles['OET-LV']
-    try: verseEntryList, contextList = thisBible.getContextVerseData( (BBB,C,V) )
+    try: verseEntryList, contextList = thisBible.getContextVerseData( (BBB,C,V) ) # Can return None if the book doesn't exist, but that shouldn't happen here
     except KeyError: return ''
-    verseEntryList = livenOETWordLinks( level, thisBible, BBB, verseEntryList, state )
+    verseEntryList = livenOETWordLinks( level, thisBible, BBB, verseEntryList, state ) 
     # 'dictVerse' causes all footnotes and xrefs to be fully removed
-    textHtml = convertUSFMMarkerListToHtml( level, 'OET-LV', (BBB,C,V), 'dictVerse', contextList, verseEntryList, basicOnly=True, state=state )
+    textHtml = convertVerseEntryListToHtml( level, 'OET-LV', (BBB,C,V), 'dictVerse', contextList, verseEntryList, basicOnly=True, state=state )
     assert 'footnotes' not in textHtml and 'fnCaller' not in textHtml
     assert ' </span>' not in textHtml, f"OET-LV {BBB}_{C}:{V} {textHtml=}"
     textHtml = do_OET_LV_HTMLcustomisations( f"DictVerse={BBB}_{C}:{V}", textHtml ).replace( '<br>', ' ' ) # Replace newline (between sentences) with em-space to make these verses display more compactly
@@ -1302,7 +1304,7 @@ def get_OET_RV_verse_HTML( level:int, BBB:str, C:str, V:str ) -> str:
     except KeyError: return ''
     verseEntryList = livenOETWordLinks( level, thisBible, BBB, verseEntryList, state )
     # 'dictVerse' causes all footnotes and xrefs to be fully removed
-    textHtml = convertUSFMMarkerListToHtml( level, 'OET-RV', (BBB,C,V), 'dictVerse', contextList, verseEntryList, basicOnly=True, state=state )
+    textHtml = convertVerseEntryListToHtml( level, 'OET-RV', (BBB,C,V), 'dictVerse', contextList, verseEntryList, basicOnly=True, state=state )
     assert 'footnotes' not in textHtml and 'fnCaller' not in textHtml
     assert ' </span>' not in textHtml, f"OET-RV {BBB}_{C}:{V} {textHtml=}"
     textHtml = do_OET_RV_HTMLcustomisations( f"DictVerse={BBB}_{C}:{V}", textHtml )
@@ -1522,7 +1524,7 @@ def create_Hebrew_word_page( level:int, hh:int, hebrewWord:str, columns_string:s
     ourTidyBBBwithNotes = getOETTidyBBB( BBB, addNotes=True )
     ourTidyBbb = getOETTidyBBB( BBB, titleCase=True )
     ourTidyBbbWithNotes = getOETTidyBBB( BBB, titleCase=True, addNotes=True )
-    OSISbookCode = bos_books_codes_py.get_osis_abbreviation( BBB )
+    OSISbookCode = bos_books_codes_py.bos_to_osis_book_code( BBB )
 
     isMultipleLemmas = ',' in lemmaRowList
     # print( f"{ref} '{rowType}' ({lemmaRowList}) got '{word}' ({noCantillations}) morphology='{morphology}'" )
@@ -1737,7 +1739,7 @@ This is all part of the commitment of the <em>Open English Translation</em> team
             oV, oW = oVW.split( 'w', 1 )
             oTidyBBB = getOETTidyBBB( oBBB )
             oTidyBBBwithNotes = getOETTidyBBB( oBBB, addNotes=True )
-            oOSISbookCode = bos_books_codes_py.get_osis_abbreviation( oBBB )
+            oOSISbookCode = bos_books_codes_py.bos_to_osis_book_code( oBBB )
             oOET_LV_verse_HTML = oOET_RV_verse_HTML = None
             if not state.TEST_MODE_FLAG or oBBB in state.preloadedBibles['OET-RV']:
                 oOET_LV_verse_HTML = get_OET_LV_verse_HTML( level, oBBB, oC, oV )
@@ -1806,7 +1808,7 @@ f''' {oTranslation} <a title="Go to Open Scriptures Hebrew verse page" href=
                             eV, eW = eVW.split( 'w', 1 )
                             eTidyBBB = getOETTidyBBB( eBBB )
                             eTidyBBBwithNotes = getOETTidyBBB( eBBB, addNotes=True )
-                            eOSISbookCode = bos_books_codes_py.get_osis_abbreviation( eBBB )
+                            eOSISbookCode = bos_books_codes_py.bos_to_osis_book_code( eBBB )
 
                             eLemmaLinksList, eLemmaLinksStr = [], ''
                             for eLemmaRowNumberStr in eLemmaRowList.split( ',' ):
@@ -2028,10 +2030,10 @@ def create_Hebrew_lemma_pages( level:int, outputFolderPath:Path, state:State ) -
                 oBBB, oCVW = oWordRef.split( '_', 1 )
                 oC, oVW = oCVW.split( ':', 1 )
                 oV, oW = oVW.split( 'w', 1 ) if 'w' in oVW else (oVW, '')
-                oOSISbookCode = bos_books_codes_py.get_osis_abbreviation( oBBB )
+                oOSISbookCode = bos_books_codes_py.bos_to_osis_book_code( oBBB )
                 oTidyBBB = getOETTidyBBB( oBBB )
                 oTidyBBBwithNotes = getOETTidyBBB( oBBB, addNotes=True )
-                oOSISbookCode = bos_books_codes_py.get_osis_abbreviation( oBBB )
+                oOSISbookCode = bos_books_codes_py.bos_to_osis_book_code( oBBB )
                 oTidyMorphology = oMorphology[4:] if oMorphology.startswith('····') else oMorphology
                 if oTidyMorphology != '···': usedMorphologies.add( oTidyMorphology )
                 oOET_LV_verse_HTML = oOET_RV_verse_HTML = None
@@ -3453,7 +3455,7 @@ def create_important_person_pages( level:int, outputFolderPath:Path, state:State
         # print( f"{personKey[1:]=}")
 
     # personLinks:list[str] = []
-    personLinksString, lastPersonName = '', '---'
+    personLinksString, lastPersonName = '', 'Anyone' # Must start with 'A' so don't get extra line spaces before first entry
     for personNameBit, personRefList in IMPORTANT_PEOPLE_ALPHABETICAL_LIST:
         # print( f"      {level=} {personName=} {personRef=}" )
         personPageLinkPart = None
@@ -3618,23 +3620,23 @@ def create_statistics_pages( level:int, outputFolderPath:Path, state:State ) -> 
             .replace( '__KEYWORDS__', 'Bible, statistics, number, chapters, verses, percentage' )
     # Do it three times to get the right order for us: OT, DC, NT
     chaptersData5columns = [(BBB, getOETBookName(BBB),'OT',bvs.getNumChapters(BBB),bvs.getTotalNumVerses(BBB))
-                        for BBB in bvs if bos_books_codes_py.is_ot_nr(BBB)]
+                        for BBB in bvs if bos_books_codes_py.is_old_testament_nr(BBB)]
     chaptersData5columns += [(BBB, getOETBookName(BBB),'DC',bvs.getNumChapters(BBB),bvs.getTotalNumVerses(BBB))
-                        for BBB in bvs if bos_books_codes_py.is_dc_nr(BBB)]
+                        for BBB in bvs if bos_books_codes_py.is_deuterocanon_nr(BBB)]
     chaptersData5columns += [(BBB, getOETBookName(BBB),'NT',bvs.getNumChapters(BBB),bvs.getTotalNumVerses(BBB))
-                        for BBB in bvs if bos_books_codes_py.is_nt_nr(BBB)]
+                        for BBB in bvs if bos_books_codes_py.is_new_testament_nr(BBB)]
     # print( f"({len(chaptersData5columns)}) {chaptersData5columns=}" )
     totalChapters = total66Chapters = totalOTChapters = totalDCChapters = totalNTChapters = 0
     totalVerses = total66Verses = totalOTVerses = totalDCVerses = totalNTVerses = 0
     for BBB,_bkName,_testamentAbbrev,numChaps,numVerses in chaptersData5columns:
-        if bos_books_codes_py.is_ot_nr(BBB):
+        if bos_books_codes_py.is_old_testament_nr(BBB):
             totalOTChapters += numChaps; totalOTVerses += numVerses
             total66Chapters += numChaps; total66Verses += numVerses
             totalChapters += numChaps; totalVerses += numVerses
-        elif bos_books_codes_py.is_dc_nr(BBB):
+        elif bos_books_codes_py.is_deuterocanon_nr(BBB):
             totalDCChapters += numChaps; totalDCVerses += numVerses
             totalChapters += numChaps; totalVerses += numVerses
-        elif bos_books_codes_py.is_nt_nr(BBB):
+        elif bos_books_codes_py.is_new_testament_nr(BBB):
             totalNTChapters += numChaps; totalNTVerses += numVerses
             total66Chapters += numChaps; total66Verses += numVerses
             totalChapters += numChaps; totalVerses += numVerses
@@ -3651,7 +3653,7 @@ def create_statistics_pages( level:int, outputFolderPath:Path, state:State ) -> 
 
     chapters66HtmlTableLines = []
     for BBB,bkName,testamentAbbrev,numChaps,numVerses,verseTotalPercent66,verseTotalPercent,verseTestamentPercent in chaptersData8columns:
-        if bos_books_codes_py.is_ot_nr(BBB) or bos_books_codes_py.is_nt_nr(BBB):
+        if bos_books_codes_py.is_old_testament_nr(BBB) or bos_books_codes_py.is_new_testament_nr(BBB):
             chapters66HtmlTableLines.append( f'''<tr><td style="text-align:center;">{len(chapters66HtmlTableLines)+1}</td><td>{BBB}</td><td style="text-align:center;">{bkName}</td><td style="text-align:right;">{numChaps}</td><td style="text-align:right;">{numVerses:,}</td><td style="text-align:right;">{verseTotalPercent66}%</td><td style="text-align:right;">{verseTestamentPercent}% {testamentAbbrev}</td></tr>''' )
     # print( f"({len(chapters66HtmlTableLines)}) {chapters66HtmlTableLines=}" )
     chapters66Html = f'''<table style="width:95%;">
@@ -3662,7 +3664,7 @@ def create_statistics_pages( level:int, outputFolderPath:Path, state:State ) -> 
 
     chaptersHtmlTableLines = []
     for BBB,bkName,testamentAbbrev,numChaps,numVerses,verseTotalPercent66,verseTotalPercent,verseTestamentPercent in chaptersData8columns:
-        if bos_books_codes_py.is_ot_nr(BBB) or bos_books_codes_py.is_dc_nr(BBB) or bos_books_codes_py.is_nt_nr(BBB):
+        if bos_books_codes_py.is_old_testament_nr(BBB) or bos_books_codes_py.is_deuterocanon_nr(BBB) or bos_books_codes_py.is_new_testament_nr(BBB):
             chaptersHtmlTableLines.append( f'''<tr><td style="text-align:center;">{len(chaptersHtmlTableLines)+1}</td><td>{BBB}</td><td style="text-align:center;">{bkName}</td><td style="text-align:right;">{numChaps}</td><td style="text-align:right;">{numVerses:,}</td><td style="text-align:right;">{verseTotalPercent}%</td><td style="text-align:right;">{verseTestamentPercent}% {testamentAbbrev}</td></tr>''' )
     # print( f"({len(chaptersHtmlTableLines)}) {chaptersHtmlTableLines=}" )
     chaptersHtml = f'''<table style="width:95%;">
@@ -3674,7 +3676,7 @@ def create_statistics_pages( level:int, outputFolderPath:Path, state:State ) -> 
     chaptersData8columns.sort(key=lambda x:x[4], reverse=False) # Sort in place
     sortedChapters66HtmlTableLines = []
     for BBB,bkName,testamentAbbrev,numChaps,numVerses,verseTotalPercent66,verseTotalPercent,verseTestamentPercent in chaptersData8columns:
-        if bos_books_codes_py.is_ot_nr(BBB) or bos_books_codes_py.is_nt_nr(BBB):
+        if bos_books_codes_py.is_old_testament_nr(BBB) or bos_books_codes_py.is_new_testament_nr(BBB):
             sortedChapters66HtmlTableLines.append( f'''<tr><td style="text-align:center;">{len(sortedChapters66HtmlTableLines)+1}</td><td>{BBB}</td><td style="text-align:center;">{bkName}</td><td style="text-align:right;">{numChaps}</td><td style="text-align:right;">{numVerses:,}</td><td style="text-align:right;">{verseTotalPercent66}%</td><td style="text-align:right;">{verseTestamentPercent}% {testamentAbbrev}</td></tr>''' )
     # print( f"({len(chapters66HtmlTableLines)}) {chapters66HtmlTableLines=}" )
     sortedChapters66Html = f'''<table style="width:95%;">
@@ -3685,7 +3687,7 @@ def create_statistics_pages( level:int, outputFolderPath:Path, state:State ) -> 
 
     sortedChaptersHtmlTableLines = []
     for BBB,bkName,testamentAbbrev,numChaps,numVerses,verseTotalPercent66,verseTotalPercent,verseTestamentPercent in chaptersData8columns:
-        if bos_books_codes_py.is_ot_nr(BBB) or bos_books_codes_py.is_dc_nr(BBB) or bos_books_codes_py.is_nt_nr(BBB):
+        if bos_books_codes_py.is_old_testament_nr(BBB) or bos_books_codes_py.is_deuterocanon_nr(BBB) or bos_books_codes_py.is_new_testament_nr(BBB):
             sortedChaptersHtmlTableLines.append( f'''<tr><td style="text-align:center;">{len(sortedChaptersHtmlTableLines)+1}</td><td>{BBB}</td><td style="text-align:center;">{bkName}</td><td style="text-align:right;">{numChaps}</td><td style="text-align:right;">{numVerses:,}</td><td style="text-align:right;">{verseTotalPercent}%</td><td style="text-align:right;">{verseTestamentPercent}% {testamentAbbrev}</td></tr>''' )
     # print( f"({len(chaptersHtmlTableLines)}) {chaptersHtmlTableLines=}" )
     sortedChaptersHtml = f'''<table style="width:95%;">
@@ -3776,12 +3778,12 @@ def livenMD( level:int, mdText:str ) -> str:
         mdLinkTarget = mdLinkTarget.split( '#', 1 )[1]
         if mdLinkTarget.count( '.' ) == 2: # Then it's almost certainly an OSIS B/C/V ref
             OSISBkCode, C, V = mdLinkTarget.split( '.' )
-            BBB = bos_books_codes_py.osis_abbrev_to_reference_abbrev( OSISBkCode )
+            BBB = bos_books_codes_py.osis_book_code_to_bos_book_code( OSISBkCode )
             ourLinkTarget = f"{'../'*level}OET/byC/{BBB}_C{C}.htm#C{C}V{V}"
         else:
             assert mdLinkTarget.count( '.' ) == 1 # Then it's almost certainly an OSIS B/C ref
             OSISBkCode, C = mdLinkTarget.split( '.' )
-            BBB = bos_books_codes_py.osis_abbrev_to_reference_abbrev( OSISBkCode )
+            BBB = bos_books_codes_py.osis_book_code_to_bos_book_code( OSISBkCode )
             ourLinkTarget = f'{BBB}.htm#C{C}'
         ourLink = f'<a title="View OET reference" href="{ourLinkTarget}">{readableRef}</a>'
         mdText = f'''{mdText[:match.start()]}{ourLink}{mdText[match.end():]}'''

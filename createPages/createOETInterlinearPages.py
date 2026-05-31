@@ -55,7 +55,6 @@ CHANGELOG:
 TODO:
     Add colour keys for LV and RV words
 """
-# from gettext import gettext as _
 from pathlib import Path
 import os
 import logging
@@ -68,7 +67,7 @@ from bible_organisational_system import getPositiveLeadingInt
 import bos_books_codes_py
 
 from settings import State, CNTR_BOOK_ID_MAP, reorderBooksForOETVersions
-from usfm import convertUSFMMarkerListToHtml
+from usfm import convertVerseEntryListToHtml
 from Bibles import formatUnfoldingWordTranslationNotes, formatTyndaleNotes
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
                     makeTop, makeBottom, makeBookNavListParagraph, checkHtml
@@ -128,7 +127,7 @@ def createOETInterlinearPages( level:int, folder:Path, state:State ) -> bool:
     indexHtml = f'''{top}
 <a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
 <h1 id="Top">OET interlinear verse pages</h1>
-<p class="note">These pages show single OET verses with each Hebrew or Greek word aligned with the English word(s) that it was translated to, along with any translation notes and study notes for the verse. Finally, at the bottom of each page there's a <em>Reverse Interlinear</em> with the same information but in English word order.</p>
+<p class="note">These pages show single OET verses with each Hebrew or Greek word aligned with the English word(s) that it was translated to, along with any translation notes and study notes for the verse. Finally, at the bottom of each page there's a <em>Reverse Interlinear</em> with the same information but in English word order.</p><!--note-->
 <h2>Index of books</h2>
 {makeBookNavListParagraph(state.BBBLinks['OET-RV'], 'InterlinearIndex', state )}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="15" style="float:right; margin-left:10px;"></a>
 {makeBottom( level, None, 'interlinearVerse', state )}'''
@@ -184,9 +183,9 @@ def createOETInterlinearVersePagesForBook( level:int, folder:Path, BBB:str, BBBL
         logging.critical( f"createOETInterlinearVersePagesForBook unable to find a valid reference Bible for {BBB}" )
         return False # Need to check what FRT does
     chapterLinks = []
-    chapterLinksParagraph = f'''<p class="chLst" id="chLst">{EM_SPACE.join( chapterLinks + [f'<a title="Go to interlinear verse page" href="C{ps}V1.htm#vsLst">Sg{ps}</a>' for ps in range(1,numChapters+1)] )}</p>''' \
+    chapterLinksParagraph = f'''<p class="chLst" id="chLst">{EM_SPACE.join( chapterLinks + [f'<a title="Go to interlinear verse page" href="C{ps}V1.htm#vsLst">Sg{ps}</a>' for ps in range(1,numChapters+1)] )}</p><!--chLst-->''' \
         if BBB=='PSA' else \
-            f'''<p class="chLst" id="chLst">{ourTidyBbb if ourTidyBbb!='Yac' else 'Yacob/(James)'} {' '.join( chapterLinks + [f'<a title="Go to interlinear verse page" href="C{chp}V1.htm#vsLst">C{chp}</a>' for chp in range(1,numChapters+1)] )}</p>'''
+            f'''<p class="chLst" id="chLst">{ourTidyBbb if ourTidyBbb!='Yac' else 'Yacob/(James)'} {' '.join( chapterLinks + [f'<a title="Go to interlinear verse page" href="C{chp}V1.htm#vsLst">C{chp}</a>' for chp in range(1,numChapters+1)] )}</p><!--chLst-->'''
 
     vLinks = []
     if numChapters >= 1:
@@ -200,7 +199,7 @@ def createOETInterlinearVersePagesForBook( level:int, folder:Path, BBB:str, BBBL
                 continue
             for v in range( 1, numVerses+1 ):
                 vLinksPar = f'''<p class="vsLst" id="vsLst">{ourTidyBbb} {C} {' '.join( [f'<a title="Go to interlinear verse page" href="C{C}V{vv}.htm#Top">V{vv}</a>'
-                                for vv in range(1,numVerses+1,5 if numVerses>100 else 4 if numVerses>80 else 3 if numVerses>60 else 2 if numVerses>40 else 1) if vv!=v] )}</p>'''
+                                for vv in range(1,numVerses+1,5 if numVerses>100 else 4 if numVerses>80 else 3 if numVerses>60 else 2 if numVerses>40 else 1) if vv!=v] )}</p><!--vsLst-->'''
 
                 # The following all have a __ID__ string than needs to be replaced
                 leftVLink = f'<a title="Previous verse" href="C{C}V{v-1}.htm#__ID__">←</a> ' if v>1 \
@@ -252,12 +251,12 @@ def createOETInterlinearVersePagesForBook( level:int, folder:Path, BBB:str, BBBL
             .replace( '__KEYWORDS__', 'Bible, interlinear' )
     # For Psalms, we don't list every single verse
     ourLinks = f'''<h1 id="Top">OET {ourTidyBBBwithNotes} interlinear songs index</h1>
-<p class="chLst" id="chLst">{EM_SPACE.join( [f'<a title="Go to interlinear verse page" href="C{ps}V1.htm#Top">Sg{ps}</a>' for ps in range(1,numChapters+1)] )}</p>''' \
+<p class="chLst" id="chLst">{EM_SPACE.join( [f'<a title="Go to interlinear verse page" href="C{ps}V1.htm#Top">Sg{ps}</a>' for ps in range(1,numChapters+1)] )}</p><!--chLst-->''' \
                 if BBB=='PSA' else \
-f'''<p class="chLst" id="chLst">{ourTidyBbb if ourTidyBbb!='Yac' else 'Yacob/(James)'} {' '.join( [f'<a title="Go to interlinear verse page" href="C{chp}V1.htm#Top">C{chp}</a>' for chp in range(1,numChapters+1)] )}</p>
+f'''<p class="chLst" id="chLst">{ourTidyBbb if ourTidyBbb!='Yac' else 'Yacob/(James)'} {' '.join( [f'<a title="Go to interlinear verse page" href="C{chp}V1.htm#Top">C{chp}</a>' for chp in range(1,numChapters+1)] )}</p><!--chLst-->
 <a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*BBBLevel}oet-logo-wide.png" alt="OET wide logo"></a>
 <h1 id="Top">OET {ourTidyBBBwithNotes} interlinear verses index</h1>
-<p class="vsLst">{' '.join( vLinks )}</p>'''
+<p class="vsLst">{' '.join( vLinks )}</p><!--vsLst-->'''
     indexHtml = f'''{top}{adjBBBLinksHtml}
 {ourLinks}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*BBBLevel}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="15" style="float:right; margin-left:10px;"></a>
 {makeBottom( BBBLevel, None, 'interlinearVerse', state )}'''
@@ -277,12 +276,12 @@ f'''<p class="chLst" id="chLst">{ourTidyBbb if ourTidyBbb!='Yac' else 'Yacob/(Ja
             .replace( '__KEYWORDS__', 'Bible, interlinear' )
     # For Psalms, we don't list every single verse
     ourLinks = f'''<h1 id="Top">OET {ourTidyBBBwithNotes} interlinear songs index</h1>
-<p class="chLst" id="chLst">{EM_SPACE.join( [f'<a title="Go to interlinear verse page" href="C{ps}V1.htm#Top">Sg{ps}</a>' for ps in range(1,numChapters+1)] )}</p>''' \
+<p class="chLst" id="chLst">{EM_SPACE.join( [f'<a title="Go to interlinear verse page" href="C{ps}V1.htm#Top">Sg{ps}</a>' for ps in range(1,numChapters+1)] )}</p><!--chLst-->''' \
                 if BBB=='PSA' else \
-f'''<p class="chLst" id="chLst">{ourTidyBbb if ourTidyBbb!='Yac' else 'Yacob/(James)'} {' '.join( [f'<a title="Go to interlinear verse page" href="C{chp}V1.htm#Top">C{chp}</a>' for chp in range(1,numChapters+1)] )}</p>
+f'''<p class="chLst" id="chLst">{ourTidyBbb if ourTidyBbb!='Yac' else 'Yacob/(James)'} {' '.join( [f'<a title="Go to interlinear verse page" href="C{chp}V1.htm#Top">C{chp}</a>' for chp in range(1,numChapters+1)] )}</p><!--chLst-->
 <a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
 <h1 id="Top">OET {ourTidyBBBwithNotes} interlinear verses index</h1>
-<p class="vsLst">{' '.join( newBBBVLinks )}</p>'''
+<p class="vsLst">{' '.join( newBBBVLinks )}</p><!--vsLst-->'''
     indexHtml = f'''{top}{adjBBBLinksHtml}
 {ourLinks}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="15" style="float:right; margin-left:10px;"></a>
 {makeBottom( level, None, 'interlinearVerse', state )}'''
@@ -304,7 +303,7 @@ def createOETInterlinearVerseInner( level:int, BBB:str, c:int, v:int, state:Stat
 
     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"createOETInterlinearVerseInner {level}, {BBB} {c}:{v}, …" )
 
-    NT = bos_books_codes_py.is_nt_nr( BBB )
+    NT = bos_books_codes_py.is_new_testament_nr( BBB )
     wordFileName = 'OET-LV_NT_word_table.tsv' if NT else 'OET-LV_OT_word_table.tsv'
 
     # We don't want the book link for this book to be a recursive link, so remove <a> marking
@@ -326,7 +325,7 @@ def createOETInterlinearVerseInner( level:int, BBB:str, c:int, v:int, state:Stat
     try:
         lvVerseEntryList, lvContextList = lvBible.getContextVerseData( (BBB, C, V) )
         livenedLvVerseEntryList = livenOETWordLinks( level, lvBible, BBB, lvVerseEntryList, state )
-        lvTextHtml = do_OET_LV_HTMLcustomisations( f'Interlinear={BBB}_{C}:{V}', convertUSFMMarkerListToHtml( level, 'OET-LV', (BBB,C,V), 'interlinearVerse', lvContextList, livenedLvVerseEntryList, basicOnly=True, state=state ) )
+        lvTextHtml = do_OET_LV_HTMLcustomisations( f'Interlinear={BBB}_{C}:{V}', convertVerseEntryListToHtml( level, 'OET-LV', (BBB,C,V), 'interlinearVerse', lvContextList, livenedLvVerseEntryList, basicOnly=True, state=state ) )
         lvTextHtml = lvTextHtml.replace( 'id="footnotes', 'id="footnotesLV' ).replace( 'id="crossRefs', 'id="crossRefsLV' ).replace( 'id="fn', 'id="fnLV' ).replace( 'href="#fn', 'href="#fnLV' )
         lvHtml = f'''<div class="LV"><p class="LV"><span class="wrkName"><a title="View {state.BibleNames['OET']} section" href="{'../'*level}OET/bySec/{BBB}_S{sectionNumber}.htm#V{V}">OET</a> (<a title="{state.BibleNames['OET-LV']}" href="{'../'*level}OET-LV/byC/{BBB}_C{C}.htm#V{V}">OET-LV</a>)</span> {lvTextHtml}</p></div><!--LV-->'''
     except (KeyError, TypeError):
@@ -341,7 +340,7 @@ def createOETInterlinearVerseInner( level:int, BBB:str, c:int, v:int, state:Stat
     try:
         rvVerseEntryList, rvContextList = rvBible.getContextVerseData( (BBB, C, V) )
         livenedRvVerseEntryList = livenOETWordLinks( level, lvBible, BBB, rvVerseEntryList, state )
-        rvTextHtml = do_OET_RV_HTMLcustomisations( f'Interlinear={BBB}_{C}:{V}', convertUSFMMarkerListToHtml( level, 'OET-RV', (BBB,C,V), 'interlinearVerse', rvContextList, livenedRvVerseEntryList, basicOnly=True, state=state ) )
+        rvTextHtml = do_OET_RV_HTMLcustomisations( f'Interlinear={BBB}_{C}:{V}', convertVerseEntryListToHtml( level, 'OET-RV', (BBB,C,V), 'interlinearVerse', rvContextList, livenedRvVerseEntryList, basicOnly=True, state=state ) )
         rvTextHtml = rvTextHtml.replace( 'id="footnotes', 'id="footnotesRV' ).replace( 'id="crossRefs', 'id="crossRefsRV' ).replace( 'id="fn', 'id="fnRV' ).replace( 'href="#fn', 'href="#fnRV' )
         rvHtml = f'''<div class="RV"><p class="RV"><span class="wrkName"><a title="View {state.BibleNames['OET']} section" href="{'../'*level}OET/bySec/{BBB}_S{sectionNumber}.htm#V{V}">OET</a> (<a title="{state.BibleNames['OET-RV']}" href="{'../'*level}OET-RV/bySec/{BBB}_S{sectionNumber}.htm#V{V}">OET-RV</a>)</span> {rvTextHtml}</p></div><!--RV-->'''
     except (KeyError, TypeError):
@@ -680,8 +679,8 @@ def createOETInterlinearVerseInner( level:int, BBB:str, c:int, v:int, state:Stat
 </ol><!--verse--></div><!--interlinear-->
 {lvHtml.replace( 'id="footnotes', 'id="footnotesLV' ).replace( 'id="crossRefs', 'id="crossRefsLV' ).replace( 'id="fnLV', 'id="fnRvLV' ).replace( 'href="#fnLV', 'href="#fnRvLV' )}
 {rvHtml.replace( 'id="footnotes', 'id="footnotesRV' ).replace( 'id="crossRefs', 'id="crossRefsRV' ).replace( 'id="fnRV', 'id="fnRvRV' ).replace( 'href="#fnRV', 'href="#fnRvRV' )}
-<p class="note"><small><b>Note</b>: The OET-RV is still only a first draft, and so far only a few words have been (mostly automatically) matched to the Hebrew or Greek words that they’re translated from.</small></p>
-<p class="thanks"><b>Acknowledgements</b>: {f'The SR Greek text, lemmas, morphology, and VLT gloss are all thanks to the <a href="https://GreekCNTR.org/collation/index.htm?v={CNTR_BOOK_ID_MAP[BBB]}{C.zfill(3)}{V.zfill(3)}">CNTR</a>.</p>' if bos_books_codes_py.is_nt_nr( BBB )
+<p class="note"><small><b>Note</b>: The OET-RV is still only a first draft, and so far only a few words have been (mostly automatically) matched to the Hebrew or Greek words that they’re translated from.</small></p><!--note-->
+<p class="thanks"><b>Acknowledgements</b>: {f'The SR Greek text, lemmas, morphology, and VLT gloss are all thanks to the <a href="https://GreekCNTR.org/collation/index.htm?v={CNTR_BOOK_ID_MAP[BBB]}{C.zfill(3)}{V.zfill(3)}">CNTR</a>.</p>' if bos_books_codes_py.is_new_testament_nr( BBB )
                                        else f'The Hebrew text, lemmas, and morphology are all thanks to the <a href="https://hb.openscriptures.org/">OSHB</a> and some of the glosses are from <a href="https://GitHub.com/Clear-Bible/macula-hebrew">Macula Hebrew</a>.'}'''
     
     # ivHtml = ivHtml.replace( '<br>\n' , '\n<br>' ) # Make sure it follows our convention (just for tidyness and consistency)

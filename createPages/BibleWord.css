@@ -53,6 +53,8 @@ span.OET-RV_verseTextChunk {}
 span.c { font-size:1.1em; color:green; }
 span.cPsa { font-size:1.6em; font-weight:bold; color:green; }
 span.v { vertical-align:super; font-size:0.5em; color:red; }
+span.d { color:sienna; }
+span.qs { font-style:italic; } /* Selah */
 span.li1 {} /* Why's this a span??? */
 .hebVrb { background-color:khaki; }
 .hebNeg { background-color:crimson; }

@@ -81,12 +81,12 @@ CHANGELOG:
     2026-02-05 Fixing OET-LV missing verses link
     2026-03-27 Added SIL Open Translator’s Notes
     2026-04-13 Add 'OET' id tag (as well as existing 'OET-RV' id tag)
+    2026-05-26 Reducing some logging verbosity
 """
 from pathlib import Path
 import os
 import logging
 import re
-# import multiprocessing
 
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint, rreplace, BOOKLIST_66
@@ -97,12 +97,10 @@ from BibleOrgSys.Reference.OldBiblicalEnglish import moderniseEnglishWords
 from BibleOrgSys.Reference.EuropeanToEnglish import translateGerman, translateLatin
 import bos_books_codes_py
 
-import sys
-sys.path.append( '../../BibleTransliterations/Python/' )
-from BibleTransliterations import transliterate_Hebrew, transliterate_Greek
+from bible_transliterations import transliterate_Hebrew, transliterate_Greek
 
 from settings import State, CNTR_BOOK_ID_MAP, reorderBooksForOETVersions
-from usfm import convertUSFMMarkerListToHtml
+from usfm import convertVerseEntryListToHtml
 from Bibles import formatTyndaleBookIntro, formatUnfoldingWordTranslationNotes, formatTyndaleNotes, getBibleMapperMaps, getVerseMetaInfoHtml
 from jsonResources import getFormattedSILOpenTranslationNotes
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
@@ -114,7 +112,7 @@ from OETHandlers import getOETTidyBBB, getOETBookName, livenOETWordLinks, livenO
 from spellCheckEnglish import spellCheckAndMarkHTMLText
 
 
-LAST_MODIFIED_DATE = '2026-04-29' # by RJH
+LAST_MODIFIED_DATE = '2026-05-30' # by RJH
 SHORT_PROGRAM_NAME = "createParallelVersePages"
 PROGRAM_NAME = "OpenBibleData createParallelVersePages functions"
 PROGRAM_VERSION = '0.99'
@@ -228,9 +226,9 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
     fnPrint( DEBUGGING_THIS_MODULE, f"createParallelVersePagesForBook( {level}, {folder}, {BBB}, {BBBLinks}, {state.BibleVersions} )" )
     BBBFolder = folder.joinpath(f'{BBB}/')
     BBBLevel = level + 1
-    isOT = bos_books_codes_py.is_ot_nr( BBB )
-    isDC = bos_books_codes_py.is_dc_nr( BBB )
-    isNT = bos_books_codes_py.is_nt_nr( BBB )
+    isOT = bos_books_codes_py.is_old_testament_nr( BBB )
+    isDC = bos_books_codes_py.is_deuterocanon_nr( BBB )
+    isNT = bos_books_codes_py.is_new_testament_nr( BBB )
 
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createParallelVersePagesForBook {BBBLevel}, {BBBFolder}, {BBB} from {len(BBBLinks)} books, {len(state.BibleVersions)} versions…" )
     try: os.makedirs( BBBFolder )
@@ -265,9 +263,9 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
         logging.critical( f"createParallelVersePagesForBook unable to find a valid reference Bible for {BBB}" )
         return False # Need to check what FRT does
     introLinks = [ '<a title="Go to parallel intro page" href="Intro.htm#Top">Intro</a>' ]
-    chapterLinksParagraph = f'''<p class="chLst" id="chLst">{ourTidyBBBwithNotes} {' '.join( introLinks + [f'<a title="Go to parallel verse page" href="C{ps}V1.htm#vsLst">Sg{ps}</a>' for ps in range(1,numChapters+1)] )}</p>''' \
+    chapterLinksParagraph = f'''<p class="chLst" id="chLst">{ourTidyBBBwithNotes} {' '.join( introLinks + [f'<a title="Go to parallel verse page" href="C{ps}V1.htm#vsLst">Sg{ps}</a>' for ps in range(1,numChapters+1)] )}</p><!--chLst-->''' \
         if BBB=='PSA' else \
-            f'''<p class="chLst" id="chLst">{ourTidyBbb if ourTidyBbb!='Yac' else 'Yacob/(James)'} {' '.join( introLinks + [f'<a title="Go to parallel verse page" href="C{chp}V1.htm#vsLst">C{chp}</a>' for chp in range(1,numChapters+1)] )}</p>'''
+            f'''<p class="chLst" id="chLst">{ourTidyBbb if ourTidyBbb!='Yac' else 'Yacob/(James)'} {' '.join( introLinks + [f'<a title="Go to parallel verse page" href="C{chp}V1.htm#vsLst">C{chp}</a>' for chp in range(1,numChapters+1)] )}</p><!--chLst-->'''
 
     vLinksList = []
     detailsLink = f''' <a title="Show details about these works" href="{'../'*(BBBLevel)}AllDetails.htm#Top">©</a>'''
@@ -294,7 +292,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                 parRef = f'{BBB}_{C}:{V}'
                 # There's an EM_SPACE and an EN_SPACE (for the join) in the following line
                 vLinksPar = f'''<p class="vsLst" id="vsLst">{ourTidyBbb} {C} {' '.join( [f'<a title="Go to parallel verse page" href="C{C}V{vv}.htm#Top">V{vv}</a>'
-                                for vv in range(1,numVerses+1,5 if numVerses>100 else 4 if numVerses>80 else 3 if numVerses>60 else 2 if numVerses>40 else 1) if vv!=v] )}</p>'''
+                                for vv in range(1,numVerses+1,5 if numVerses>100 else 4 if numVerses>80 else 3 if numVerses>60 else 2 if numVerses>40 else 1) if vv!=v] )}</p><!--vsLst-->'''
                 doneHideablesDiv = False
                 greekWords = {}; greekVersionKeysHtmlSet = set()
 
@@ -363,6 +361,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                 .replace( '\\li1 ', '\n<br>•&nbsp;' ) \
                                 .replace( '\\li2 ', '\n<br>&nbsp;◦&nbsp;' ) \
                                 .replace( '\\li3 ', '\n<br>&nbsp;&nbsp;•&nbsp;' ) \
+                                .replace( '\\d ', '◊ ' ) \
                                 .replace( '\\s1 ', '\n<br>' ) \
                                 .replace( '\\s2 ', '\n<br>' ) \
                                 .replace( '\\s3 ', '\n<br>' ) \
@@ -376,6 +375,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                 .replace( '\\nd LORDE\\nd*', '\\nd L<span class="ndORD">ORDE</span>\\nd*' ) \
                                     .replace( '\\nd ', '<span class="nd">' ).replace( '\\nd*', '</span>' ) \
                                 .replace( '\\wj ', '<span class="wj">' ).replace( '\\wj*', '</span>' ) \
+                                .replace( '\\qs ', '<span class="qs">' ).replace( '\\qs*', '</span>' )
                                 # .replace( '\n', '\n<br>' )
                             for possiblePrefix in ('\n','<br>','\n'): # only leave these if they're in the middle of the verse
                                 vHtml = vHtml.removeprefix( possiblePrefix )
@@ -457,7 +457,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                 verseEntryList = livenOETWordLinks( BBBLevel, thisBible, BBB, verseEntryList, state )
                             elif thisBible.abbreviation in ('BSB','MSB'):
                                 verseEntryList = livenOETCompatibleWordLinks( BBBLevel, thisBible, BBB, verseEntryList, state )
-                            textHtml = convertUSFMMarkerListToHtml( BBBLevel, versionAbbreviation, (BBB,C,V), 'parallelVerse', contextList, verseEntryList, basicOnly=(c!=-1), state=state )
+                            textHtml = convertVerseEntryListToHtml( BBBLevel, versionAbbreviation, (BBB,C,V), 'parallelVerse', contextList, verseEntryList, basicOnly=(c!=-1), state=state )
                             if versionAbbreviation == 'OET-RV': # This is the only parallel version with cross-references included
                                 footnoteFreeTextHtml = footnotesHtml = '' # Any footnotes have been left in textHtml so no need for a separate container
                             else: # no cross-references were asked for here for other version
@@ -816,7 +816,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                 collationHref = f'https://GreekCNTR.org/collation/?v={CNTR_BOOK_ID_MAP[BBB]}{C.zfill(3)}{V.zfill(3)}'
                                 try:
                                     # NOTE: We close the previous paragraph, but leave the key paragraph open
-                                    keysHtml = f'''</p>\n<p class="key"><b>Key</b>: <button type="button" id="coloursButton" title="Hide grammatical colours above" onclick="hide_show_colours()">C</button> {', '.join(grammaticalKeysHtmlList)}.
+                                    keysHtml = f'''</p><!--?-->\n<p class="key"><b>Key</b>: <button type="button" id="coloursButton" title="Hide grammatical colours above" onclick="hide_show_colours()">C</button> {', '.join(grammaticalKeysHtmlList)}.
 <br><small>Note: Automatic aligning of the <em>OET-RV</em> to the <em>LV</em> is done by some temporary software, hence the <em>RV</em> alignments are incomplete (and may occasionally be wrong).</small>'''
                                 except (UnboundLocalError, TypeError): # grammaticalKeysHtmlList
                                     keysHtml = ''
@@ -900,9 +900,9 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                         uhbTranscription = uhbTranscription[:-1] # Drop the final discourse mark
                                     assert checkHtml( f'uhbTranscription {parRef}', uhbTranscription, segmentOnly=True )
                                     # if C=='2': halt
-                                collationHref = f'https://hb.OpenScriptures.org/structure/OshbVerse/index.html?b={bos_books_codes_py.get_osis_abbreviation(BBB)}&c={C}&v={V}'
+                                collationHref = f'https://hb.OpenScriptures.org/structure/OshbVerse/index.html?b={bos_books_codes_py.bos_to_osis_book_code(BBB)}&c={C}&v={V}'
                                 try:
-                                    keysHtml = f'''</p>\n<p class="key"><b>Key</b>: <button type="button" id="coloursButton" title="Hide grammatical colours above" onclick="hide_show_colours()">C</button> {', '.join(grammaticalKeysHtmlList)}.
+                                    keysHtml = f'''</p><!--?-->\n<p class="key"><b>Key</b>: <button type="button" id="coloursButton" title="Hide grammatical colours above" onclick="hide_show_colours()">C</button> {', '.join(grammaticalKeysHtmlList)}.
 <br><small>Note: Automatic aligning of the OET-RV to the LV is done by some temporary software, hence the OET-RV alignments are incomplete (and may occasionally be wrong).</small>'''
                                 except (UnboundLocalError, TypeError): # grammaticalKeysHtmlList
                                     keysHtml = ''
@@ -973,7 +973,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                     if BBB in BOOKLIST_66:
                                         assert sectionNumber is not None, f"Bad OET-RV parallel verse section {BBB} {C} {V}"
                                     elif sectionNumber is None:
-                                        logging.critical( f"Bad OET-RV parallel verse section {BBB} {C} {V}" )
+                                        (logging.critical if isOT or isNT else logging.warning)( f"Bad OET-RV parallel verse section {BBB} {C} {V}" )
                                     if '<div ' in textHtml: # it might be a book intro or footnotes -- we can't put a <div> INSIDE a <p>, so we append it instead
                                         assert '</div>' in textHtml
                                         vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span id="OET"></span><span id="C{C}V{V}" class="wrkName"><a id="C{C}" title="View {state.BibleNames['OET']} section (side-by-side versions)" href="{'../'*BBBLevel}OET/bySec/{BBB}_S{sectionNumber}.htm#V{V}">OET</a> <small>(<a id="V{V}" title="View {state.BibleNames['OET-RV']} section (by itself)" href="{'../'*BBBLevel}OET-RV/bySec/{BBB}_S{sectionNumber}.htm#V{V}">OET-RV</a>)</small></span>{'' if textHtml.startswith('<p ') or textHtml.startswith('<div') else ' '}{textHtml.replace('<div','</p><div',1)}'''
@@ -1071,7 +1071,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                         assert not vHtml.endswith( '\n' )
                         if versionAbbreviation in ('OET-RV','OET-LV'):
                             # if BBB=='NUM': print( f"{vHtml=}" )
-                            assert '</p>' in vHtml[-35:], f"{vHtml=}" # e.g., 'lic.</p>\n</div><!--bookIntro-->'
+                            assert '</p>' in vHtml[-45:], f"\n{vHtml[-45:]=}\n{vHtml=}" # e.g., 'lic.</p><!--class-->\n</div><!--bookIntro-->'
                             vHtml = rreplace( vHtml, '</p>', f'<a title="See design specs on OET main site" href="https://OpenEnglishTranslation.Bible/Design/{'Readers' if versionAbbreviation=='OET-RV' else 'Literal'}Version"><img src="{'../'*BBBLevel}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="15" style="float:right; margin-left:10px;"></a></p>''', 1 )
                         assert not parallelHtml.endswith( '\n' )
                         parallelHtml = f"{parallelHtml}{NEWLINE if parallelHtml else ''}{vHtml}"
@@ -1178,7 +1178,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
             .replace( '__TITLE__', f"{ourTidyBBB} Parallel Verse View{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, parallel, verse, view, display, index' )
     # For Psalms, we don't list every single verse
-    indexHtml = f'''{top}{adjBBBLinksHtml}{f'{NEWLINE}<h1 id="Top">{ourTidyBBB} parallel songs index</h1>' if BBB=='PSA' else ''}{chapterLinksParagraph}{f'{NEWLINE}<h1 id="Top">{ourTidyBBB} parallel verses index</h1>' if BBB!='PSA' else ''}{f'{NEWLINE}<p class="vsLst">{" ".join( vLinksList )}</p>' if BBB!='PSA' else ''}
+    indexHtml = f'''{top}{adjBBBLinksHtml}{f'{NEWLINE}<h1 id="Top">{ourTidyBBB} parallel songs index</h1>' if BBB=='PSA' else ''}{chapterLinksParagraph}{f'{NEWLINE}<h1 id="Top">{ourTidyBBB} parallel verses index</h1>' if BBB!='PSA' else ''}{f'{NEWLINE}<p class="vsLst">{" ".join( vLinksList )}</p><!--vsLst-->' if BBB!='PSA' else ''}
 {makeBottom( BBBLevel, None, 'parallelVerse', state )}'''
     assert checkHtml( 'parallelIndex', indexHtml )
     with open( filepath1, 'wt', encoding='utf-8' ) as indexHtmlFile:
@@ -1195,7 +1195,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
             .replace( '__TITLE__', f"{ourTidyBBB} Parallel Verse View{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, parallel, verse, view, display, index' )
     # For Psalms, we don't list every single verse
-    indexHtml = f'''{top}{adjBBBLinksHtml}{f'{NEWLINE}<h1 id="Top">{ourTidyBBB} parallel songs index</h1>' if BBB=='PSA' else ''}{chapterLinksParagraph}{f'{NEWLINE}<h1 id="Top">{ourTidyBBB} parallel verses index</h1>' if BBB!='PSA' else ''}{f'{NEWLINE}<p class="vsLst">{" ".join( newBBBVLinks )}</p>' if BBB!='PSA' else ''}
+    indexHtml = f'''{top}{adjBBBLinksHtml}{f'{NEWLINE}<h1 id="Top">{ourTidyBBB} parallel songs index</h1>' if BBB=='PSA' else ''}{chapterLinksParagraph}{f'{NEWLINE}<h1 id="Top">{ourTidyBBB} parallel verses index</h1>' if BBB!='PSA' else ''}{f'{NEWLINE}<p class="vsLst">{" ".join( newBBBVLinks )}</p><!--vsLst-->' if BBB!='PSA' else ''}
 {makeBottom( level, None, 'parallelVerse', state )}'''
     assert checkHtml( 'parallelIndex', indexHtml )
     with open( filepath2, 'wt', encoding='utf-8' ) as indexHtmlFile:

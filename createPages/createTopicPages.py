@@ -37,7 +37,6 @@ CHANGELOG:
     2026-01-07 Added OET Logo
     2026-03-01 Added IMPORTANT people index
 """
-from gettext import gettext as _
 from pathlib import Path
 import os
 import logging
@@ -47,7 +46,7 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 from bible_organisational_system import InternalBibleEntryList
 
 from settings import State
-from usfm import convertUSFMMarkerListToHtml
+from usfm import convertVerseEntryListToHtml
 from Bibles import getBibleMapperMaps
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
                     removeDuplicateCVids, \
@@ -253,12 +252,12 @@ def createTopicPage( level:int, folder:Path, filename:str, topic:str, refs:list[
             try: lvVerseEntryList = livenOETWordLinks( level, lvBible, BBB, lvVerseEntryList, state )
             except KeyError: # Missing book
                 assert not state.ALL_PRODUCTION_BOOKS_FLAG
-            rvTextHtml = convertUSFMMarkerListToHtml( level, rvBible.abbreviation, (BBB,C), 'topicalPassage', rvContextList, rvVerseEntryList, basicOnly=False, state=state )
+            rvTextHtml = convertVerseEntryListToHtml( level, rvBible.abbreviation, (BBB,C), 'topicalPassage', rvContextList, rvVerseEntryList, basicOnly=False, state=state )
             # rvTextHtml = livenIORs( BBB, rvTextHtml, sections )
             rvTextHtml = do_OET_RV_HTMLcustomisations( f'Topic={topic}@{BBB}_{C}', rvTextHtml )
 
             if lvVerseEntryList:
-                lvTextHtml = convertUSFMMarkerListToHtml( level, lvBible.abbreviation, (BBB,C), 'topicalPassage', lvContextList, lvVerseEntryList, basicOnly=False, state=state )
+                lvTextHtml = convertVerseEntryListToHtml( level, lvBible.abbreviation, (BBB,C), 'topicalPassage', lvContextList, lvVerseEntryList, basicOnly=False, state=state )
                 # lvTextHtml = livenIORs( BBB, lvTextHtml, sections )
                 lvTextHtml = do_OET_LV_HTMLcustomisations( f'Topic={topic}@{BBB}_{C}', lvTextHtml )
             else: # We didn't get any LV data

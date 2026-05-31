@@ -44,7 +44,8 @@ CHANGELOG:
     2025-09-26 Added MSB
     2025-11-13 Added TLB
     2026-02-05 Added RP-GNT to VERSIONS_WITHOUT_NT
-    2026-03-027 Added SIL Open Translator’s Notes
+    2026-03-27 Added SIL Open Translator’s Notes
+    2026-05-30 Added Scriptura Layer-by-layer 'close-but-clear-translations'
 """
 from pathlib import Path
 
@@ -52,7 +53,7 @@ import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import dPrint, fnPrint, BOOKLIST_OT39
 
 
-LAST_MODIFIED_DATE = '2026-04-29' # by RJH
+LAST_MODIFIED_DATE = '2026-05-30' # by RJH
 SHORT_PROGRAM_NAME = "settings"
 PROGRAM_NAME = "OpenBibleData (OBD) Settings"
 PROGRAM_VERSION = '0.99'
@@ -65,10 +66,10 @@ class State:
     """
     A place to store some of the global stuff that needs to be passed around.
     """
-    OET_VERSION_NUMBER_STRING = 'v0.48.05' # Incremented on most runs
+    OET_VERSION_NUMBER_STRING = 'v0.48.26' # Incremented on most runs
 
     TEST_MODE_FLAG = True # Writes smaller website subset into 'Test' subfolder if True
-    TEST_OT_BOOK_LIST = ['ISA','JER'] # Books in progress
+    TEST_OT_BOOK_LIST = ['JER'] # Books in progress
     TEST_DC_BOOK_LIST = [] # Books in progress
     TEST_NT_BOOK_LIST = ['MRK'] # Shortest gospel
     NEW_BOOK_IN_TEST_LIST_FLAG = False # So that word pages will get rebuilt for TEST_MODE_FLAG
@@ -79,9 +80,9 @@ class State:
     ALL_PRODUCTION_BOOKS_FLAG = not TEST_MODE_FLAG # If set to False, uses the TEST book list (with many less books) for a faster test build
     CREATE_PARALLEL_VERSE_PAGES = 'LAST' # 'FIRST','LAST', or None -- usually 'LAST' -- depending on debugging needs
     CREATE_BOOK_AND_OTHER_PAGES_FLAG = True # Can be turned off for debugging
-    DO_SPELL_CHECKS_FLAG = True #TEST_MODE_FLAG # On parallel pages
+    DO_SPELL_CHECKS_FLAG = True # On parallel pages
     REUSE_EXISTING_WORD_PAGES_FLAG = TEST_MODE_FLAG and not NEW_BOOK_IN_TEST_LIST_FLAG # Don't recreate word pages
-    ALL_TEST_REFERENCE_PAGES_FLAG = False # If in TEST_MODE_FLAG, make ALL word/lemma pages, or just the RELEVANT ones
+    ALL_TEST_REFERENCE_PAGES_FLAG = False # If have TEST_MODE_FLAG, make ALL word/lemma pages, or just the RELEVANT ones
     UPDATE_ACTUAL_SITE_WHEN_BUILT_FLAG = True # The pages are initially built in a tmp folder so need to be copied to the final destination
 
     OET_RV_DC_BOOK_LIST = ['TOB','JDT','WIS','MA1','MA2','MA3','MA4']
@@ -143,7 +144,7 @@ class State:
 
     OET_UNFINISHED_WARNING_HTML_TEXT = 'This is still a very early look into the unfinished text of the <em>Open English Translation</em> of the Bible. Please double-check the text in advance before using in public.'
     OET_UNFINISHED_WARNING_HTML_PARAGRAPH = f'<p class="rem">{OET_UNFINISHED_WARNING_HTML_TEXT}</p>'
-    OET_PARALLEL_PAGE_SINGLE_VERSE_HTML_TEXT = 'This view shows ‘verses’ which are not natural language units and hence sometimes only part of a sentence will be visible—click on any Bible version abbreviation down the left-hand side to see the verse in more of its context. Normally the OET discourages the reading of individual ‘verses’, but this view is only designed as a tool for doing comparisons of different translations—the older translations are further down the page (so you can read up from the bottom to trace the English translation history).'
+    OET_PARALLEL_PAGE_SINGLE_VERSE_HTML_TEXT = 'This view shows ‘verses’ which are not natural language units and hence sometimes only part of a sentence will be visible—click on any Bible version abbreviation down the left-hand side to see the verse in more of its context. Normally the OET discourages the reading of individual ‘verses’, but this view is only designed as a tool for Bible-translators and others doing comparisons of different translations—the older translations are further down the page (so you can read up from the bottom to trace the English translation history).'
     OETS_UNFINISHED_WARNING_HTML_TEXT = 'The OET segments on this page are still very early looks into the unfinished texts of the <em>Open English Translation</em> of the Bible—please double-check these texts in advance before using in public.'
     # OETS_UNFINISHED_WARNING_HTML_PARAGRAPH = f'<p class="rem">{OETS_UNFINISHED_WARNING_HTML_TEXT}</p>'
 
@@ -164,7 +165,7 @@ class State:
     #           and 'SOTN' is not included
     BibleVersions = ['OET',
         'OET-RV','OET-LV',
-        'AHB', 'ULT','UST', 'NET', # We move NET up nearer the top for TEST_MODE_FLAG
+        'AHB', 'SLBL', 'ULT','UST', 'NET', # We move NET up nearer the top for TEST_MODE_FLAG
         'BSB','MSB','BLB',
         'AICNT','OEB','ISV','CSB','NLT',
         'NIV','CEV','ESV','NASB','LSB',
@@ -180,7 +181,7 @@ class State:
         ] if TEST_MODE_FLAG else \
         ['OET',
         'OET-RV','OET-LV',
-        'AHB', 'ULT','UST',
+        'AHB', 'SLBL', 'ULT','UST',
         'BSB','MSB','BLB',
         'AICNT','OEB','ISV','CSB','NLT',
         'NIV','CEV','ESV','NASB','LSB',
@@ -200,8 +201,8 @@ class State:
     # Specific short lists
     auxilliaryVersions = ('OET','TOBD') # These ones don't have their own Bible locations at all
     # The following three lines are also in selectedVersesVersions.py
-    selectedVersesOnlyVersions = ('AHB','CSB','NLT','NIV','CEV','ESV','MSG','NASB','LSB','JQT','2DT','1ST','TPT','NRSVue','NRSV','NKJV','TLB','NAB', 'NETS' ) # These ones have .tsv sources (and don't produce Bible objects)
-    numAllowedSelectedVerses   = (  20,  300,  500,  500,  500,  500,  500,   500, 1000,   20,  300,  300,  250,     300,   300,   300,  300,  250,    250 ) # Order must match above list
+    selectedVersesOnlyVersions = ('AHB','CSB','NLT','NIV','CEV','ESV','MSG','NASB','LSB','JQT','2DT','1ST','SLBL', 'TPT','NRSVue','NRSV','NKJV','TLB','NAB', 'NETS' ) # These ones have .tsv sources (and don't produce Bible objects)
+    numAllowedSelectedVerses   = (  20,  300,  500,  500,  500,  500,  500,   500, 1000,   20,  300,  300,  9999,   250,     300,   300,   300,  300,  250,    250 ) # Order must match above list
     assert len(numAllowedSelectedVerses) == len(selectedVersesOnlyVersions)
     # We want these versions on our parallel pages, but are not interested enough in them for them to have their own version pages
     versionsWithoutTheirOwnPages = selectedVersesOnlyVersions + ('Luth','ClVg', 'UGNT','SBL-GNT','RP-GNT','TC-GNT', 'TOSN','SOTN','UTN')
@@ -246,32 +247,33 @@ class State:
         'AICNT': '../copiedBibles/English/AICNT/', # NT only
         'OEB': '../copiedBibles/English/OEB/',
         # 'ISV': '', # Seems dead and gone :-(
-        'AHB': '../copiedBibles/English/AHB_verses.tsv',
-        'CSB': '../copiedBibles/English/CSB_verses.tsv',
-        'NLT': '../copiedBibles/English/NLT_verses.tsv',
-        'NIV': '../copiedBibles/English/NIV_verses.tsv',
-        'CEV': '../copiedBibles/English/CEV_verses.tsv',
-        'ESV': '../copiedBibles/English/ESV_verses.tsv',
-        'NASB': '../copiedBibles/English/NASB_verses.tsv',
-        'LSB': '../copiedBibles/English/LSB_verses.tsv',
-        'JQT': '../copiedBibles/English/JQT_verses.tsv',
-        '2DT': '../copiedBibles/English/2DT_verses.tsv',
-        '1ST': '../copiedBibles/English/1ST_verses.tsv',
-        'TPT': '../copiedBibles/English/TPT_verses.tsv',
+        'AHB': '../copiedBibles/English/Selected_verses_versions/AHB_verses.tsv',
+        'CSB': '../copiedBibles/English/Selected_verses_versions/CSB_verses.tsv',
+        'NLT': '../copiedBibles/English/Selected_verses_versions/NLT_verses.tsv',
+        'NIV': '../copiedBibles/English/Selected_verses_versions/NIV_verses.tsv',
+        'CEV': '../copiedBibles/English/Selected_verses_versions/CEV_verses.tsv',
+        'ESV': '../copiedBibles/English/Selected_verses_versions/ESV_verses.tsv',
+        'NASB': '../copiedBibles/English/Selected_verses_versions/NASB_verses.tsv',
+        'LSB': '../copiedBibles/English/Selected_verses_versions/LSB_verses.tsv',
+        'JQT': '../copiedBibles/English/Selected_verses_versions/JQT_verses.tsv',
+        '2DT': '../copiedBibles/English/Selected_verses_versions/2DT_verses.tsv',
+        '1ST': '../copiedBibles/English/Selected_verses_versions/1ST_verses.tsv',
+        'SLBL': '../copiedBibles/English/Selected_verses_versions/SLBL_verses.tsv',
+        'TPT': '../copiedBibles/English/Selected_verses_versions/TPT_verses.tsv',
         'WEBBE': '../copiedBibles/English/eBible.org/WEBBE/', # British spelling  # 'WEB': '../copiedBibles/English/eBible.org/WEB/', # USA spelling
         'WMBB': '../copiedBibles/English/eBible.org/WMBB/', # British spelling  # 'WMB': '../copiedBibles/English/eBible.org/WMB/', #USA spelling
-        'MSG': '../copiedBibles/English/MSG_verses.tsv',
+        'MSG': '../copiedBibles/English/Selected_verses_versions/MSG_verses.tsv',
         'NET': '../copiedBibles/English/NET/' if TEST_MODE_FLAG else '../copiedBibles/English/eBible.org/NET/',
         'LSV': '../copiedBibles/English/eBible.org/LSV/',
         'FBV': '../copiedBibles/English/eBible.org/FBV/',
         'TCNT': '../copiedBibles/English/eBible.org/TCNT/',
         'T4T': '../copiedBibles/English/eBible.org/T4T/',
         'LEB': '../copiedBibles/English/LogosBibleSoftware/LEB/LEB.updated.xml', # not OSIS
-        'NRSVue': '../copiedBibles/English/NRSVue_verses.tsv',
-        'NRSV': '../copiedBibles/English/NRSV_verses.tsv',
-        'NKJV': '../copiedBibles/English/NKJV_verses.tsv',
-        'TLB': '../copiedBibles/English/TLB_verses.tsv',
-        'NAB': '../copiedBibles/English/NAB_verses.tsv',
+        'NRSVue': '../copiedBibles/English/Selected_verses_versions/NRSVue_verses.tsv',
+        'NRSV': '../copiedBibles/English/Selected_verses_versions/NRSV_verses.tsv',
+        'NKJV': '../copiedBibles/English/Selected_verses_versions/NKJV_verses.tsv',
+        'TLB': '../copiedBibles/English/Selected_verses_versions/TLB_verses.tsv',
+        'NAB': '../copiedBibles/English/Selected_verses_versions/NAB_verses.tsv',
         'BBE': '../copiedBibles/English/eBible.org/BBE/',
         'Moff': '../copiedBibles/English/Moffat/',
         'JPS': '../copiedBibles/English/eBible.org/JPS/',
@@ -296,7 +298,7 @@ class State:
         'SBL-GNT': '../../Forked/SBLGNT/data/sblgnt/text/',
         'RP-GNT': '../../Forked/byzantine-majority-text/csv-unicode/no-variants/',
         'TC-GNT': '../copiedBibles/Greek/eBible.org/TC-GNT/',
-        'NETS': '../copiedBibles/English/NETS_verses.tsv',
+        'NETS': '../copiedBibles/English/Selected_verses_versions/NETS_verses.tsv',
         'BrTr': '../copiedBibles/English/eBible.org/Brenton/', # with deuterocanon and OTH,XXA,XXB,XXC,
         'BrLXX': '../copiedBibles/Greek/eBible.org/BrLXX/',
         # NOTE: Dictionary and notes are special cases here at the end (skipped in many parts of the program)
@@ -329,6 +331,7 @@ class State:
         'JQT': 'James Quiggle Translation New Testament (2023)',
         '2DT': 'The Second Testament (2023)',
         '1ST': 'The First Testament (2018)',
+        'SLBL': 'Scriptura Layer by Layer ‘Close-but-Clear Translation’ (2026)',
         'TPT': 'The Passion Translation (2017)',
         'WEBBE': 'World English Bible (2023) British Edition',
         'WEB': 'World English Bible (2023)',
@@ -410,6 +413,7 @@ class State:
         'JQT': 'EN-USA',
         '2DT': 'EN-USA',
         '1ST': 'EN-USA',
+        'SLBL': 'EN-USA',
         'TPT': 'EN-USA',
         'WEBBE': 'EN-UK',
         'WEB': 'EN-USA',
@@ -491,6 +495,7 @@ class State:
         'JQT': ['ALL'],
         '2DT': ['ALL'],
         '1ST': ['ALL'],
+        'SLBL': ['ALL'],
         'TPT': ['ALL'],
         'WEBBE': ['ALL'],
         'WEB': ['ALL'],
@@ -564,6 +569,7 @@ class State:
         'JQT': TEST_BOOK_LIST,
         '2DT': TEST_BOOK_LIST,
         '1ST': TEST_BOOK_LIST,
+        'SLBL': TEST_BOOK_LIST,
         'TPT': TEST_BOOK_LIST,
         'WEBBE': TEST_BOOK_LIST,
         'WEB': TEST_BOOK_LIST,
@@ -639,7 +645,7 @@ You can read a lot more about the design of the <em>OET-LV</em> at <a href="http
 We are very grateful to Dr. Alan Bunning of the <a href="https://GreekCNTR.org">Center for New Testament Restoration</a> whose many years of hard work this literal New Testament is adapted from.
 The Old Testament Hebrew text (and the morphology analysis) is adapted from the work of the <a href="https://hb.OpenScriptures.org/">Open Scriptures Hebrew Bible</a> team.
 We’re also grateful to the <a href="https://www.Biblica.com/clear/">Biblica Clear Bible team</a> who provide the pronoun referential information as part of their <a href="https://GitHub.com/Clear-Bible/macula-greek">Macula Greek</a> project and also some of the OT glosses as part of their <a href="https://GitHub.com/Clear-Bible/macula-hebrew">Macula Hebrew</a> project.</p>''',
-                'notes' : '''<p class="note">Note that the <em>OET-LV</em> is VERY literal (even including Hebrew and Greek words that are not normally translated into English) because it’s designed to be used in conjunction with our <em>Readers’ Version</em>.</p>''' },
+                'notes' : '''<p class="note">Note that the <em>OET-LV</em> is VERY literal (even including Hebrew and Greek words that are not normally translated into English) because it’s designed to be used in conjunction with our <em>Readers’ Version</em>.</p><!--note-->''' },
         'ULT': {'about': '<p class="about">unfoldingWord® Literal Text (2023), originally derived from the 1901 ASV.</p>',
                 'copyright': '<p class="copyright">Copyright © 2023 by unfoldingWord.</p>',
                 'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
@@ -652,12 +658,12 @@ We’re also grateful to the <a href="https://www.Biblica.com/clear/">Biblica Cl
                 'copyright': '<p class="copyright"><a href="https://berean.bible/terms.htm">Public domain</a>.</p>',
                 'licence': '<p class="licence"><a href="https://creativecommons.org/publicdomain/zero/1.0/">CC0</a> licence. All uses are freely permitted.</p>',
                 'acknowledgements': '<p class="acknwldg">Thanks to John Isett and <a href="https://BibleHub.com/">BibleHub</a> for the <a href="https://berean.bible/">BSB</a>.</p>',
-                'notes': '<p class="note">According to Dr. Gray Hill, the BSB (originally called ‘The Berean Study Bible’) is intentionally designed <a href="https://www.youtube.com/watch?v=qX-2IMNzUbE">to preserve past traditions</a>. (Full video <a href="https://www.youtube.com/watch?v=hKooIYSq8Ys">here</a>.)</p>' },
+                'notes': '<p class="note">According to Dr. Gray Hill, the BSB (originally called ‘The Berean Study Bible’) is intentionally designed <a href="https://www.youtube.com/watch?v=qX-2IMNzUbE">to preserve past traditions</a>. (Full video <a href="https://www.youtube.com/watch?v=hKooIYSq8Ys">here</a>.)</p><!--note-->' },
         'MSB': {'about': '<p class="about">Majority Standard Bible (September, 2025).</p>',
                 'copyright': '<p class="copyright"><a href="https://berean.bible/terms.htm">Public domain</a>.</p>',
                 'licence': '<p class="licence"><a href="https://creativecommons.org/publicdomain/zero/1.0/">CC0</a> licence. All uses are freely permitted.</p>',
                 'acknowledgements': '<p class="acknwldg">Thanks to John Isett and <a href="https://BibleHub.com/">BibleHub</a> for the <a href="https://berean.bible/">MSB</a>.</p>',
-                'notes': '<p class="note">This version has an identical Old Testament to the BSB, but the New Testament has some changes as it follows the ‘majority’ text rather than the critical text (used by the <em>OET</em>) or the ‘received’ text.</p>' },
+                'notes': '<p class="note">This version has an identical Old Testament to the BSB, but the New Testament has some changes as it follows the ‘majority’ text rather than the critical text (used by the <em>OET</em>) or the ‘received’ text.</p><!--note-->' },
         'BLB': {'about': '<p class="about">Berean Literal Bible New Testament (2022).</p>',
                 'copyright': '<p class="copyright">Copyright © 2022 by Bible Hub. Used by Permission. All Rights Reserved Worldwide.</p>',
                 'licence': '<p class="licence">The Berean Bible text is <a href="https://berean.bible/terms.htm#Top">free to use</a> in any electronic form to promote the reading, learning, and understanding of the Holy Bible as the Word of God.</p>',
@@ -677,7 +683,7 @@ We’re also grateful to the <a href="https://www.Biblica.com/clear/">Biblica Cl
         'AHB': {'about': '<p class="about">(Robert Alter) The Hebrew Bible: A Translation with Commentary (2018/2019).</p>',
                 'copyright': '<p class="copyright">Copyright © Robert Alter 2018/2019.</p>',
                 'licence': '<p class="licence">Normal copyright—a few verses used under fair use conventions.</p>',
-                'notes': '<p class="note">Alter’s work is renowned for its focus on literary style and the nuanced meaning of the original Hebrew, covering the Torah, Prophets, and Writings.</p>' },
+                'notes': '<p class="note">Alter’s work is renowned for its focus on literary style and the nuanced meaning of the original Hebrew, covering the Torah, Prophets, and Writings.</p><!--note-->' },
         'CSB': {'about': '<p class="about">(Holmes) Christian Standard Bible (2017).</p>',
                 'copyright': '<p class="copyright">Copyright © (coming).</p>',
                 'licence': '<p class="licence">(coming).</p>' },
@@ -717,10 +723,14 @@ We’re also grateful to the <a href="https://www.Biblica.com/clear/">Biblica Cl
                 'copyright': '<p class="copyright">Copyright © 2018 by IVP Academic. Used by Permission. All Rights Reserved Worldwide.</p>',
                 'licence': '<p class="licence">Up to 300 verses may be used.</p>',
                  },
+        'SLBL': {'about': '<p class="about">Scriptura Layer by Layer ‘Close-but-Clear Translation’ (2026).</p>',
+                'copyright': '<p class="copyright">(Unspecified).</p>',
+                'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution License</a>.</p>',
+                'notes': '<p class="note">Grateful thanks to the Scriptura project for their expert exegesis of the Psalms/Songs, and for making their work openly available (albeit needing to register and log-in for some access).</p><!--note-->' },
         'TPT': {'about': '<p class="about">The Passion Translation (2017) by Brian Simmons.</p>',
                 'copyright': '<p class="copyright">Scripture quotations marked TPT are from The Passion Translation®. Copyright © 2017, 2018, 2020 by Passion & Fire Ministries, Inc. Used by permission. All rights reserved. ThePassionTranslation.com.</p>',
                 'licence': '<p class="licence">Up to 250 verses may be used.</p>',
-                'notes': '<p class="note">A few selected verses included here for reference purposes only—this is not a recommended as a reliable Bible translation.</p>' },
+                'notes': '<p class="note">A few selected verses included here for reference purposes only—this is not a recommended as a reliable Bible translation.</p><!--note-->' },
         'WEBBE': {'about': '<p class="about">World English Bible (2023) British Edition.</p>',
                 'copyright': '<p class="copyright">Copyright © (coming).</p>',
                 'licence': '<p class="licence">(coming).</p>',
@@ -789,7 +799,7 @@ We’re also grateful to the <a href="https://www.Biblica.com/clear/">Biblica Cl
                 'licence': '<p class="licence">Copyright expired. Public domain.</p>',
                 'acknowledgements': '<p class="acknwldg">Thanks to the <a href="https://github.com/openenglishbible/usfm-bibles/tree/master/Moffat">OEB team</a> for their <a href="https://github.com/openenglishbible/Open-English-Bible/discussions/348">USFM transcriptions</a> of Moffat’s work.</p>',
                 'notes': '''<p class="note">Please note that including Moffat’s work on these pages doesn’t mean that we endorse <a href="https://en.wikipedia.org/wiki/Documentary_hypothesis">The Documentary Hypothesis</a> or other things that he espoused.
-However, Moffat wasn’t just a <em>follow the crowd</em> person, so he’s likely to have had at least <em>some</em> good ideas that we all might be able to learn from.</p>''' },
+However, Moffat wasn’t just a <em>follow the crowd</em> person, so he’s likely to have had at least <em>some</em> good ideas that we all might be able to learn from.</p><!--note-->''' },
         'JPS': {'about': '<p class="about">Jewish Publication Society TaNaKH (1917).</p>',
                 'copyright': '<p class="copyright">Copyright © (coming).</p>',
                 'licence': '<p class="licence">(coming).</p>',
@@ -808,17 +818,17 @@ However, Moffat wasn’t just a <em>follow the crowd</em> person, so he’s like
                 'copyright': '<p class="copyright">Copyright © (coming).</p>',
                 'licence': '<p class="licence">(coming).</p>',
                 'acknowledgements': '<p class="acknwldg">(coming).</p>',
-                'notes': '''<p class="note">See <a href="https://en.wikipedia.org/wiki/Douay%E2%80%93Rheims_Bible">Wikipedia</a>.</p>''' },
+                'notes': '''<p class="note">See <a href="https://en.wikipedia.org/wiki/Douay%E2%80%93Rheims_Bible">Wikipedia</a>.</p><!--note-->''' },
         'YLT': {'about': '<p class="about">Youngs Literal Translation (1898).</p>',
                 'copyright': '<p class="copyright">Copyright © (coming).</p>',
                 'licence': '<p class="licence">(coming).</p>',
                 'acknowledgements': '<p class="acknwldg">(coming).</p>',
-                'notes': '''<p class="note">See <a href="https://en.wikipedia.org/wiki/Young%27s_Literal_Translation">Wikipedia</a>.</p>''' },
+                'notes': '''<p class="note">See <a href="https://en.wikipedia.org/wiki/Young%27s_Literal_Translation">Wikipedia</a>.</p><!--note-->''' },
         'Drby': {'about': '<p class="about">Darby Translation (1890).</p>',
                 'copyright': '<p class="copyright">Copyright © (coming).</p>',
                 'licence': '<p class="licence">(coming).</p>',
                 'acknowledgements': '<p class="acknwldg">(coming).</p>',
-                'notes': '''<p class="note">See <a href="https://en.wikipedia.org/wiki/Darby_Bible">Wikipedia</a>.</p>''' },
+                'notes': '''<p class="note">See <a href="https://en.wikipedia.org/wiki/Darby_Bible">Wikipedia</a>.</p><!--note-->''' },
         'RV': {'about': '''<p class="about">The English Revised Version (1885) was an officially authorised revision of the King James Bible.
                             (See <a href="https://en.wikipedia.org/wiki/Revised_Version">Wikipedia entry</a>.)</p>''',
                 'copyright': '<p class="copyright">Copyright © (coming).</p>',
@@ -845,7 +855,7 @@ including major typographic and formatting changes, and major spelling changes (
 There are also some verse number changes and some changes to the italicised words, and the marginal notes from 1611 were removed.
 (There’s a lot of information online, but you can start by reading more details <a href="https://www.wayoflife.org/reports/changes_to_kjv_since_1611.html">here</a>.)</p>
 <p class="note">Also note that the ‘apocryphal books’ were officially removed later in 1885, leaving only 66 ‘books’.
-        (The marginal footnotes in all books were also removed.)</p>''' },
+        (The marginal footnotes in all books were also removed.)</p><!--note-->''' },
         'KJB-1611': {'about': '<p class="about">King James Bible (1611).</p>',
                 'copyright': '<p class="copyright">No copyright statement was included in the early printings as can be seen <a href="https://Archive.org/details/1611TheAuthorizedKingJamesBible/page/n2/mode/1up">here</a>.</p>',
                 'licence': '<p class="licence">None required outside of the United Kingdom.</p>',
@@ -856,9 +866,9 @@ You’ll notice that there are no speech marks in the 1611 KJB (just as there ar
         but they were added by the time of the 1769 printings.
 Also note that there was no letter ‘J’ in the 1611 KJB, e.g., ‘John’ was spelt as ‘Iohn’ (and would have most likely still been pronounced as ‘Yon’ although that pronunciation was probably already beginning to change).
 Footnote markers PRECEDE the text that they concern,
-        rather than the modern practice of having footnote markers follow the text.</p>
-<p class="note">The 1611 KJB will look more original/authentic on your computer/device if you install a black-letter font such as <a href="https://fonts.google.com/specimen/UnifrakturCook">Unifraktur Cook from Google</a>.</p>
-<p class="note">Finally, note that the KJB included ‘The Bookes called Apocrypha’ as can be seen <a href="https://archive.org/details/1611TheAuthorizedKingJamesBible/page/n37/mode/1up">here</a>, so an additional fourteen ‘bookes’ beyond the often-expected sixty-six.</p>''' },
+        rather than the modern practice of having footnote markers follow the text.</p><!--note-->
+<p class="note">The 1611 KJB will look more original/authentic on your computer/device if you install a black-letter font such as <a href="https://fonts.google.com/specimen/UnifrakturCook">Unifraktur Cook from Google</a>.</p><!--note-->
+<p class="note">Finally, note that the KJB included ‘The Bookes called Apocrypha’ as can be seen <a href="https://archive.org/details/1611TheAuthorizedKingJamesBible/page/n37/mode/1up">here</a>, so an additional fourteen ‘bookes’ beyond the often-expected sixty-six.</p><!--note-->''' },
         'Bshps': {'about': '<p class="about">Bishops Bible (1568, 1602).</p>',
                 'copyright': '<p class="copyright">Public Domain.</p>',
                 'licence': '<p class="licence">None required.</p>',

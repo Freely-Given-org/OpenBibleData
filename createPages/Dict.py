@@ -47,7 +47,6 @@ CHANGELOG:
     2024-02-22 Load UBS Dictionary of Biblical Hebrew
     2024-04-29 TOSN and UBS dictionaries have been moved into state (rather than global variables in this module)
 """
-from gettext import gettext as _
 import os.path
 import logging
 from xml.etree.ElementTree import ElementTree
@@ -678,14 +677,14 @@ even though it was originally designed to supplement the <i>New Living Translati
 # <p class="dNav"><a id="Go to dict intro" href="intro.htm#Top">Introduction</a></p>
     indexHtml = f'''{top}
 <h1 id="Top">Tyndale Open Bible Dictionary <small>{TOBD_detailsLink}</small></h1>
-<p class="note">This is a comprehensive Bible dictionary with articles for each Bible ‘book’ as well as for significant people and places and terms. (Read the <a title="Go to dict intro" href="intro.htm#Top">full introduction</a> for more details.)</p>
-<p class="note">Note that some of the comments refer specifically to the ‘New Living Translation’ (which we don’t have permission to display on this site), but many of the articles are generally applicable, even to <b>OET</b> issues.</p>
+<p class="note">This is a comprehensive Bible dictionary with articles for each Bible ‘book’ as well as for significant people and places and terms. (Read the <a title="Go to dict intro" href="intro.htm#Top">full introduction</a> for more details.)</p><!--note-->
+<p class="note">Note that some of the comments refer specifically to the ‘New Living Translation’ (which we don’t have permission to display on this site), but many of the articles are generally applicable, even to <b>OET</b> issues.</p><!--note-->
 <h2>Index of dictionary letters</h2>
 {lettersParagraph}
 <h1>UBS Dictionary of New Testament Greek <small>{UBS_detailsLink}</small></h1>
-<p class="note">This isn’t fully formatted and implemented yet, but something might be visible <a href="{'../'*(level)}UBS/Grk/">here</a>.</p>
+<p class="note">This isn’t fully formatted and implemented yet, but something might be visible <a href="{'../'*(level)}UBS/Grk/">here</a>.</p><!--note-->
 <h1>UBS Dictionary of Biblical Hebrew <small>{UBS_detailsLink}</small></h1>
-<p class="note">This isn’t fully formatted and implemented yet, but something might be visible <a href="{'../'*(level)}UBS/Heb/">here</a>.</p>
+<p class="note">This isn’t fully formatted and implemented yet, but something might be visible <a href="{'../'*(level)}UBS/Heb/">here</a>.</p><!--note-->
 {makeBottom( level, None, 'dictionaryMainIndex', state )}'''
     assert checkHtml( 'DictionaryIndex', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
@@ -963,7 +962,7 @@ def getLexReferencesHtmlList( level, lexRefs ) -> list[str]:
         assert len(lexRef) == 14
         assert lexRef.isdigit()
         bkNum, C, V, last5Digits = int(lexRef[0:3]), int(lexRef[3:6]), int(lexRef[6:9]), lexRef[9:]
-        BBB = bos_books_codes_py.get_bbb_from_reference_number( bkNum )
+        BBB = bos_books_codes_py.get_bos_book_code_from_reference_number( bkNum )
         ourTidyBBB = getOETTidyBBB( BBB )
         # TODO: We're not yet using last5Digits, e.g., '00046', or lexRefExtra, e.g., '{N:001}'
         lexLink = f'''<a href="{'../'*level}par/{BBB}/C{C}V{V}.htm#Top">{ourTidyBBB} {C}:{V}</a>'''

@@ -230,6 +230,18 @@ span.synthParr { vertical-align:super; font-size:0.8em; color:blue; } /* Hebrew 
 .grkVrb {} /* { background-color:khaki; } */
 .grkNeg {} /* { background-color:crimson; } */
 
+/* OET-RV uses these for highlighting Psalm/Song segments */
+span.zr { background-color:thistle; }
+span.zrhilite { background-color:plum; }
+span.z1 { background-color:lemonchiffon; }
+span.z1hilite { background-color:#ffff22; }
+span.z2 { background-color:powderblue; }
+span.z2hilite { background-color:aquamarine; }
+span.z3 { background-color:palegreen; }
+span.z3hilite { background-color:greenyellow; }
+span.z4 { background-color:lightsalmon; }
+span.z4hilite { background-color:salmon; }
+
 span.noLinkYet { background-color:darkgrey; color:white }
 
 /* BibleMapper.com Maps */

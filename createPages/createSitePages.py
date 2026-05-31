@@ -72,7 +72,6 @@ CHANGELOG:
     2026-04-01 Added JSON word files in app/
     2026-04-22 Section indexes are now made BEFORE pickling
 """
-from gettext import gettext as _
 from pathlib import Path
 import os
 import shutil
@@ -83,10 +82,6 @@ import logging
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint, BOOKLIST_OT39, BOOKLIST_NT27
 import bos_books_codes_py
-
-import sys
-sys.path.append( '../../BibleTransliterations/Python/' )
-from BibleTransliterations import load_transliteration_table
 
 from settings import State, state, reorderBooksForOETVersions
 from Bibles import preloadVersions
@@ -175,12 +170,9 @@ def _createSitePages() -> bool:
                 lastBCVref = BCVref
         state.OETRefData['word_table_indexes'][wordTableFilename][lastBCVref] = (startIx,n) # Save the final one
 
-    load_transliteration_table( 'Greek' )
-    load_transliteration_table( 'Hebrew' )
-
     # Determine our inclusive list of books for all versions
     allBBBs = set()
-    for BBB in bos_books_codes_py.get_all_reference_abbreviations():
+    for BBB in bos_books_codes_py.get_all_bos_book_codes():
         for versionAbbreviation in state.BibleVersions:
             if versionAbbreviation == 'OET': continue # OET is a pseudo version (OET-RV plus OET-LV)
             if versionAbbreviation in state.versionsWithoutTheirOwnPages: continue # We don't worry about these few selected verses here
@@ -273,7 +265,7 @@ def _createSitePages() -> bool:
                 filepath = folder.joinpath( 'index.htm' )
                 assert not filepath.is_file() # Check that we're not overwriting anything
                 with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
-                    indexHtmlFile.write( f'''{top}{indexHtml}\n<p class="note"><a href="details.htm">See copyright details.</p>\n{makeBottom( 1, None, 'site', state )}''' )
+                    indexHtmlFile.write( f'''{top}{indexHtml}\n<p class="note"><a href="details.htm">See copyright details.</p><!--note-->\n{makeBottom( 1, None, 'site', state )}''' )
                 vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"    {len(indexHtml):,} characters written to {filepath}" )
             else: # these versions should have the full pages
                 if versionAbbreviation == 'TTN': continue # Not actually a Bible version
@@ -645,7 +637,7 @@ def _createDetailsPages( level:int, buildFolder:Path, state:State ) -> bool:
             BBBMapLinkParagraphs = []
             for BBB in state.sectionsWithMaps:
                 BBBMapLinks = [f'<a href="../OET/bySec/{BBB}_S{n}.htm#BMM">S{n}</a>' for n in state.sectionsWithMaps[BBB]]
-                BBBMapLinkHtml = f'''<p class="selectedLinks"><b>{BBB}</b>: {' '.join(BBBMapLinks)}</p>'''
+                BBBMapLinkHtml = f'''<p class="selectedLinks"><b>{BBB}</b>: {' '.join(BBBMapLinks)}</p><!--selectedLinks-->'''
                 BBBMapLinkParagraphs.append( BBBMapLinkHtml )
             if BBBMapLinkParagraphs:
                 detailsHtml = f'''{detailsHtml}
@@ -723,7 +715,7 @@ def _createSearchPage( level:int, buildFolder:Path, state:State ) -> bool:
 
     searchHTML = f'''<h1 id="Top">Search {state.SITE_NAME}</h1>
 <p class="note">Searching should find English and Latin words, plus Hebrew and Greek words and their English transliterations.</p>
-{('<p class="note">Note that only limited Bible books are indexed on these TEST pages.</p>'+NEWLINE) if state.TEST_MODE_FLAG else ''}<div id="search"></div>
+{('<p class="note">Note that only limited Bible books are indexed on these TEST pages.</p><!--note-->'+NEWLINE) if state.TEST_MODE_FLAG else ''}<div id="search"></div>
 <script>
     window.addEventListener('DOMContentLoaded', (event) => {{
         new PagefindUI({{ element: "#search", showSubResults: false, autofocus: true }});
@@ -1043,7 +1035,7 @@ def _createMainIndexPage( level, folder:Path, state:State ) -> bool:
 # """ if state.TEST_MODE_FLAG else """<!--_createMainIndexPage--><h1 id="Top">{state.SITE_NAME} Versions</h1>
 # """
 
-#     bodyHtml = f'{bodyHtml}<p class="index">Select one of the above Bible version abbreviations for views of entire documents (‘<i>books</i>’) or sections or chapters, or else select either of the Parallel or Interlinear verse views.</p>\n<ol>'
+#     bodyHtml = f'{bodyHtml}<p class="index">Select one of the above Bible version abbreviations for views of entire documents (‘<i>books</i>’) or sections or chapters, or else select either of the Parallel or Interlinear verse views.</p><!--index-->\n<ol>'
 #     for versionAbbreviation in state.BibleVersions:
 #         bodyHtml = f'{bodyHtml}<li><b>{versionAbbreviation}</b>: {state.BibleNames[versionAbbreviation]}</li>'
 #     bodyHtml = f'{bodyHtml}</ol>'

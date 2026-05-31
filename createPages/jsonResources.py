@@ -55,11 +55,9 @@ from BibleOrgSys.Bible import Bible
 from bible_organisational_system import InternalBibleEntryList, getSmallLeadingInt
 import bos_books_codes_py
 
-import sys
-sys.path.append( '../../BibleTransliterations/Python/' )
-from BibleTransliterations import transliterate_Greek, transliterate_Hebrew
+from bible_transliterations import transliterate_Greek, transliterate_Hebrew
 
-# from bos_books_codes_py import english_name_to_reference_abbrev_py  # This is the PyO3/Rust module
+# from bos_books_codes_py import english_name_to_bos_book_code_py  # This is the PyO3/Rust module
 
 from settings import State
 from html import checkHtml
