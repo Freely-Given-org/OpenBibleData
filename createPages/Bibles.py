@@ -113,10 +113,10 @@ from OETHandlers import findLVQuote, getBBBFromOETBookName
 from Dict import loadAndIndexUBSGreekDictJSON, loadAndIndexUBSHebrewDictJSON
 
 
-LAST_MODIFIED_DATE = '2026-05-03' # by RJH
+LAST_MODIFIED_DATE = '2026-06-15' # by RJH
 SHORT_PROGRAM_NAME = "Bibles"
 PROGRAM_NAME = "OpenBibleData Bibles handler"
-PROGRAM_VERSION = '0.94'
+PROGRAM_VERSION = '0.95'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -227,6 +227,8 @@ def preloadVersions( state:State ) -> int:
                             logging.critical( f"Failed to load {versionAbbreviation} pickle file: Got TypeError from {pickleFilename} in {pickleFolderPath}: {e}")
                         except ModuleNotFoundError as e:
                             logging.critical( f"Failed to load {versionAbbreviation} pickle file: Got ModuleNotFoundError from {pickleFilename} in {pickleFolderPath}: {e}")
+                        except RuntimeError as e:
+                            logging.critical( f"Failed to load {versionAbbreviation} pickle file: Got RuntimeError from {pickleFilename} in {pickleFolderPath}: {e}")
                         except EOFError:
                             logging.critical( f"Failed to load {versionAbbreviation} pickle file: Ran out of input from {pickleFilename} in {pickleFolderPath}")
                 else:
@@ -282,7 +284,7 @@ def preloadVersions( state:State ) -> int:
             or versionAbbreviation in state.selectedVersesOnlyVersions:
                 state.preloadedBibles[versionAbbreviation] = thisBible
             else:
-                halt # preloadVersion failed
+                assert False, "We want to stop here" # preloadVersion failed
 
         else:
             logging.critical( f"createPages preloadVersions() has no folder location to find ‘{versionAbbreviation}’" )
@@ -420,7 +422,7 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
         # print( f"{versionAbbreviation} {thisBible.settingsDict=}" )
         # verseEntryList, contextList = thisBible.getContextVerseData( ('MAT', '2', '1') )
         # print( f"{versionAbbreviation} Mat 2:1 {verseEntryList=} {contextList=}" )
-        # if versionAbbreviation=='Luth': halt
+        # if versionAbbreviation=='Luth': assert False, "We want to stop here"
     elif 'OET' in versionAbbreviation or 'ESFM' in folderOrFileLocation: # ESFM
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Preloading ‘{versionAbbreviation}’ ESFM Bible{' in TEST mode' if state.TEST_MODE_FLAG else ''}…" )
         thisBible = ESFMBible.ESFMBible( folderOrFileLocation, givenName=versionName, givenAbbreviation=versionAbbreviation )
@@ -546,7 +548,7 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
         #     for C,V in jer._CVIndex:
         #         if C == '4':
         #             print( f"JER {C}:{V} {jer._CVIndex[(C,V)]}")
-        #     halt
+        #     assert False, "We want to stop here"
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  preloadVersion() loaded {len(thisBible):,} {versionAbbreviation} verses" if versionAbbreviation in state.selectedVersesOnlyVersions else f"preloadVersion() loaded {thisBible}" )
 
     if ( versionAbbreviation not in state.selectedVersesOnlyVersions # they're dicts not Bible objects
@@ -629,7 +631,7 @@ def loadTyndaleBookIntrosXML( abbrev:str, XML_filepath ) -> dict[str,str]:
             else:
                 logging.warning( "fv6g Unprocessed {} attribute ({}) in {}".format( attrib, value, topLocation ) )
                 loadErrors.append( "Unprocessed {} attribute ({}) in {} (fv6g)".format( attrib, value, topLocation ) )
-                if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.errorOnXMLWarning: halt
+                if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.errorOnXMLWarning: assert False, "We want to stop here"
         assert releaseVersion == '1.25'
 
         for element in XMLTree:
@@ -649,7 +651,7 @@ def loadTyndaleBookIntrosXML( abbrev:str, XML_filepath ) -> dict[str,str]:
                 else:
                     logging.warning( "fv6g Unprocessed {} attribute ({}) in {}".format( attrib, value, topLocation ) )
                     loadErrors.append( "Unprocessed {} attribute ({}) in {} (fv6g)".format( attrib, value, topLocation ) )
-                    if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.errorOnXMLWarning: halt
+                    if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.errorOnXMLWarning: assert False, "We want to stop here"
             assert name
 
             # Now work thru each item
@@ -704,7 +706,7 @@ def loadTyndaleBookIntrosXML( abbrev:str, XML_filepath ) -> dict[str,str]:
                             else:
                                 logging.warning( "fv6g Unprocessed {} attribute ({}) in {}".format( attrib, value, bodyLocation ) )
                                 loadErrors.append( "Unprocessed {} attribute ({}) in {} (fv6g)".format( attrib, value, bodyLocation ) )
-                                if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.errorOnXMLWarning: halt
+                                if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.errorOnXMLWarning: assert False, "We want to stop here"
                         # So we want to extract this as an HTML paragraph
                         htmlSegment = BibleOrgSysGlobals.getFlattenedXML( bodyelement, bodyLocation ) \
 				                                                .replace( '<a href="  \\?', '<a href="?') # Fix encoding mistake in 1 Tim
@@ -719,7 +721,7 @@ def loadTyndaleBookIntrosXML( abbrev:str, XML_filepath ) -> dict[str,str]:
                         thisEntry = f"{thisEntry}{NEWLINE if thisEntry else ''}{htmlSegment}"
                         pCount += 1
                     stateCounter += 1
-                else: halt
+                else: assert False, "We want to stop here"
             if thisEntry:
                 dataDict[BBB] = thisEntry
 
@@ -773,7 +775,7 @@ def formatTyndaleNotes( abbrev:str, level:int, BBB:str, C:str, V:str, segmentTyp
     lastMarker = None
     inList = False
     for entry in verseEntryList:
-        marker, rest = entry.getMarker(), entry.getText()
+        marker, rest = entry.getMarker(), entry.getOriginalText()
         # dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"{abbrev} {ftnRef} {marker}='{rest}'" )
         if marker in ('¬v','¬c','¬p','¬pi1','¬pi2','¬li1','¬chapters'):
             # assert not rest or rest.isdigit() or '-' in rest, f"{BBB} {C}:{V} {marker}={rest=}"
@@ -849,7 +851,7 @@ def formatTyndaleNotes( abbrev:str, level:int, BBB:str, C:str, V:str, segmentTyp
     nHtml = nHtml.replace( '<br>\n' , '\n<br>' ) # Make sure it follows our convention (just for tidyness and consistency)
     while '\n\n' in nHtml: nHtml = nHtml.replace( '\n\n', '\n' ) # Remove useless extra newline characters
     assert checkHtml( f'{abbrev} {ftnRef}', nHtml, segmentOnly=True )
-    # if abbrev=='TTN' and BBB=='MRK' and C=='1' and V=='14': halt
+    # if abbrev=='TTN' and BBB=='MRK' and C=='1' and V=='14': assert False, "We want to stop here"
     return nHtml
 # end of Bibles.formatTyndaleNotes
 
@@ -1009,7 +1011,7 @@ def formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segme
     noteCount = 0
     occurrenceNumber = 1
     for entry in verseEntryList:
-        marker, rest = entry.getMarker(), entry.getText()
+        marker, rest = entry.getMarker(), entry.getOriginalText()
         if marker.startswith( '¬' ):
             # assert not rest or rest.isdigit() or '-' in rest, f"{BBB} {C}:{V} {marker}={rest=}"
             continue # end markers not needed here
@@ -1022,7 +1024,7 @@ def formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segme
             dPrint( 'Info', DEBUGGING_THIS_MODULE, f"formatUnfoldingWordTranslationNotes( {utnRef}, {segmentType=} ) skipped UTN {marker}='{rest}'" )
             lastMarker = marker
             continue
-        assert rest == entry.getFullText().rstrip(), f"UTN {utnRef} {marker}='{rest}' ft='{entry.getFullText()}'" # Just checking that we're not missing anything here
+        assert rest == entry.getOriginalText().rstrip(), f"UTN {utnRef} {marker}='{rest}' ft='{entry.getOriginalText()}'" # Just checking that we're not missing anything here
         assert marker in ('v', 'm','q1','p','pi1', 'p~', 'im','iq1','ip','ipi'), f"Unexpected marker UTN {utnRef} {marker}='{rest}' ({lastMarker=})" # We expect a very limited subset
         if '\\r' in rest: # TODO: Should this be in BibleOrgSys (when the UTNs are loaded???)
             logging.warning( f"Removed CR from UTN {utnRef}" )
@@ -1449,7 +1451,7 @@ def getVerseDataListForReference( givenRefString:str, thisBible:Bible, lastBBB:s
                     verseEntryList, contextList = thisBible.getContextVerseDataRange( (refBBB,refStartC,refStartV), (refBBB,refStartC,refEndV), strict=False )
                 elif ':' in part1 and ':' in part2:
                     logging.critical( f"Expected en-dash (not hyphen) in {givenRefString=} section cross-reference {refBBB} {refCVpart}" )
-                    halt
+                    assert False, "We want to stop here"
                     refStartC, refStartV = part1.split( ':' )
                     refStartV = str( getSmallLeadingInt( refStartV ) )
                     refEndC, refEndV = part2.split( ':' )

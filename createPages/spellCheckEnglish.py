@@ -34,24 +34,22 @@ CHANGELOG:
     2025-09-26 Handle MSB
     2025-10-10 Added support for (OET) LV & RV names tables
     2026-04-08 Handle divide by zero (TOTAL_GERMAN_WORDS_CHECKED_COUNT)
+    2026-06-11 Handle new % (changed person) \\add format
 """
 from pathlib import Path
 from csv import  DictReader
 from collections import defaultdict
 import re
 
-if __name__ == '__main__':
-    import sys
-    sys.path.insert( 0, '../../BibleOrgSys/' )
 from BibleOrgSys import BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import vPrint, fnPrint, dPrint, rreplace
 import bos_books_codes_py
 
 
-LAST_MODIFIED_DATE = '2026-05-31' # by RJH
+LAST_MODIFIED_DATE = '2026-06-11' # by RJH
 SHORT_PROGRAM_NAME = "spellCheckEnglish"
 PROGRAM_NAME = "English Bible Spell Check"
-PROGRAM_VERSION = '0.60'
+PROGRAM_VERSION = '0.61'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -134,12 +132,12 @@ INITIAL_BIBLE_WORD_LIST = ['3.0','UTF','USFM', '©', 'CC0',
                     'KING','KNOW','KNOWLEDGE','KNOWS',
                     'JEWS','YEWS','HAPPY','HOLY','HOLINESS','THRONE','PEACE','MOTHER','WOMEN','EARTH','GREAT','MYSTERY',
                     'EVIL','UNCLEAN','MEANING','REMEMBER',
-                    'LET','LETTERS',
+                    'LET','LETTERS','LO',
                     'NAME','NATIONS','NEITHER','NOR','NOTES',
                     'ORIGINAL','OVER',
                     'PARABLE','PARABLES','PART','PERTAIN','PLACED','PRAYER','PREACHER','PROPHET','PROSTITUTES',
                     'RELEASE','RISE',
-                    'SAID','SAY','SECRET','SECTION','SHEPHERD','SING','SOFT','STAR','STATUS','STRINGED','SUCCESS',
+                    'SAID','SAY','SECRET','SECTION','SEE','SHEPHERD','SING','SOFT','STAR','STATUS','STRINGED','SUCCESS',
                     'ST','BRANCH','SALT','STRIKES',
                     'TAGS','TENTH','TEXT','THOSE','TRULY','TURN',
                     'UNKNOWN','UP','USE',
@@ -297,7 +295,7 @@ def load_OET_LV_names() -> bool:
 
 
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Loaded {len(OET_LV_NAMES_SET):,} OET-LV names." )
-    # print( list(OET_LV_NAMES_SET)[:10]); halt
+    # print( list(OET_LV_NAMES_SET)[:10]); assert False, "We want to stop here"
     return True
 # end of spellCheckEnglish.load_OET_LV_names
 
@@ -329,7 +327,7 @@ def load_OET_RV_names() -> bool:
 
 
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Loaded {len(OET_RV_NAMES_SET):,} OET-RV names." )
-    # print( list(OET_RV_NAMES_SET)[:10]); halt
+    # print( list(OET_RV_NAMES_SET)[:10]); assert False, "We want to stop here"
     return True
 # end of spellCheckEnglish.load_OET_RV_names
 
@@ -348,7 +346,7 @@ def load_dict_sources() -> bool:
         with open( dictFilepath, 'rt', encoding='utf-8' ) as dictSourceFile:
             dictText = dictSourceFile.read()
         dictWords = dictText.split( '\n\\wd ')
-        # print( f"{dictWords[0]=} {dictWords[1]=} {dictWords[2]=} {dictWords[-1]=}"); halt
+        # print( f"{dictWords[0]=} {dictWords[1]=} {dictWords[2]=} {dictWords[-1]=}"); assert False, "We want to stop here"
         for entryStr in dictWords[1:]:
             entryLines = entryStr.rstrip().split( '\n' )
             # print( f"{entryLines=}")
@@ -379,7 +377,7 @@ def load_dict_sources() -> bool:
         #         BIBLE_WORD_SET.add( word )
 
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Loaded {len(AMERICAN_WORD_SET):,} American and {len(BRITISH_WORD_SET):,} British and Bible words." )
-    # print( BIBLE_WORD_LIST[:10]); halt
+    # print( BIBLE_WORD_LIST[:10]); assert False, "We want to stop here"
     return True
 # end of spellCheckEnglish.load_dict_sources
 
@@ -425,7 +423,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
 
     # Specific words expected in specific versions
     if versionAbbreviation in ('OET','OET-RV','OET-LV'):
-        wordSet.update( ('ScriptedBibleEditor',
+        wordSet.update( (
                         '\\jmp', '_', '_\\em*about', '_\\em*all', '_\\em*caring\\em',
                         'href="https','openscriptures.org','en.wikipedia.org', # Website refererences
                         'wpmu2.azurewebsites.net', 'www.GotQuestions.org', 'www.biblicalarchaeology.org', 'www.billmounce.com', 'www.sil.org','textandcanon.org',
@@ -437,7 +435,9 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                         ),
                     OET_LV_NAMES_SET )
         if versionAbbreviation == 'OET-LV':
-            wordSet.update( ('LV_OT_word_table.tsv', 'LV_NT_word_table.tsv',
+            wordSet.update( (
+                            'ScriptedBibleEditor', 'ScriptedOTUpdates','ScriptedVLTUpdates',
+                            'LV_OT_word_table.tsv', 'LV_NT_word_table.tsv',
                             # 'Dawid','Efrayim','Farisaios','Galilaia','Pilatos',
                             ) )
         elif versionAbbreviation == 'OET-RV':
@@ -489,7 +489,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                          ) )
 
     # vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Checking spelling of {versionAbbreviation} {ref} '{originalHTMLText}' …" )
-    # if '0' not in ref and '-1' not in ref: halt
+    # if '0' not in ref and '-1' not in ref: assert False, "We want to stop here"
     checkedHTMLText = HTMLTextToCheck
 
     # Clean up spaces
@@ -551,7 +551,8 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                     .replace( '<span class="addExtra unsure" title="added implied info (less certain)">', '' )
                     .replace( '<span class="addNegated" title="negated">', '' )
                     .replace( '<span class="addOwner" title="added ‘owner’">', '' )
-                    .replace( '<span class="addPluralised" title="changed number">', '' )
+                    .replace( '<span class="addNumberChange" title="changed number">', '' )
+                    .replace( '<span class="addPersonChange" title="changed person">', '' )
                     .replace( '<span class="addPronoun" title="used pronoun">', '' )
                     .replace( '<span class="addReferent" title="inserted referent">', '' )
                     .replace( '<span class="addReferent unsure" title="inserted referent (less certain)">', '' )
@@ -780,7 +781,8 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                         'hautiness','Seraphims','flie','Remaliahs','praye','jubile','inwardes','preuytie','tippe','lowse','owen',
                                         'drinke','euidence','burne','fanne','returne','arme','dismaied',
                                         'wolfe','howle','leendis','abididen','sudenli','scryuen','boord','bischop','balme',
-                                        'compassio','herdst','shittim','vail',
+                                        'compassio','herdst','shittim',
+                                        'ark','arcke','arke',
                                         # 'tabrets','defenced','fif','ayenbie','jearim',
 
                                    ) and 'PSA' not in location ) # coz Wycl versification doesn't usually match anyway
@@ -791,24 +793,31 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                 cleanedTextToDisplay = cleanedTextToDisplay.replace('<span class="ClVg_verseTextChunk">','').replace('<div id="footnotesClVg" class="footnotes">\n','').replace('  ',' ').replace(' ',' ')
                 vPrint( 'Normal' if word.upper()==word
                        or word in ( #  \d{1,3}\), \(
-                                'aß','sie','hin','heb','wir','dem','des','für','ich','ist','alle','las','lag','ones)r','ones)s','ones)n','one)s','bis',
+                                'an','aß','sie','hin','heb','wir','dem','des','für','hub','ich','ist','alle','las','lag','ones)r','ones)s','ones)n','one)s','bis',
                                 'hing','one)r','one)n','weh','du','ach','Raube','Raub','Tal','tue','fiel','sehe','Mal','mal','mit','Mord',
                                 'ende','rede','kam','Korb','ward','alt','dran','Rede','nun','nur','messen','ging','und','ster','tun','von','wer','zu',
-                                'verspared','herget','getse','uncircumcisedn','sevenzehn','herovercome','youngestr','liftr','firstr',
-                                    'wineet','beerben','reapern','barleynernte','therest','stirbst','homegebracht','outgeworfen','nistest','sealring','violateder',
-                                    'herexecuted',
-                                    'shieldst','stepst','abgenommen','throughläutert','ofgesetzt','stepe','strangee','umfingen','abovewältigten','windss','lightningn','blitzen',
-                                    'hatern',
+                                'angeres', # ???
+                                'wineet','stirbst','votern','bettere','menn','praisese','letterss','writingen',
+                                    'throughläutert','abovewältigten',
+                                    'downwälzen','rosee','hohl','countryvolk','maintainse','wickelte','begab','rawerten','drang','wealthyer',
+                                    'armycharen','trainn','beardholomäus','found‘s','wanted‘','zagen','der','hopse',
+                                    'mustern','countryvolks','twounddreißig',
+                                    'songe','showst','lovet','forgaveest',
 
                                 'actio','ambit','ambitio','anima','antiqui','apprehendi','ascendi','attende','audi',
                                 'beati','bene','beneficia','bos',
-                                'calami','capti','Christi','circumcisio','cognitio','cogniti','complet',
-                                    'confessio','confusi','congregati','congregatio','consecrat','consecrati','considerat','consolati','consolatio','contra','contriti','conversa',
+                                'calami','capti',
+                                    'centurio',
+                                    'Christi',
+                                    'circumcisio','cis',
+                                    'cognitio','cogniti','complet',
+                                        'confessio','confusi','congregati','congregatio','consecrat','consecrati','considerat','consolati','consolatio','contra','contriti','conversa',
                                         'cor','correcti',
                                     'creat','credi','cruci',
                                     'cultu','cum',
-                                'dat','dedi','dem','designat','desolati','digni','discretio','distincti','distinctio','divisi','dom','domina',
-                                'ecclesia','ecclesias','editio','ei','evangelica','expiat','extensio',
+                                'dat','dedi','dem','designat','desolati',
+                                    'disco','digni','discretio','distincti','distinctio','divisi','dom','domi','domina',
+                                'ecclesia','ecclesias','editio','ei','esca','evangelica','expiat','extensio',
                                 'fac','Finis','finis','forti','fugit','fur',
                                 'generat',
                                 'hellor','hoc','humili',
@@ -826,17 +835,20 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                     'pio','polluti','prope','propitiatio','publica',
                                 'questio','qui',
                                 'rea','redempti','regula','rei','repente','ros',
-                                'salva','salvat','salvati',
+                                'salva','salvat','salvati','sanctifica',
                                     'securi','separat','separati','seu','serva','servit','sex','sexta',
                                     'si','sit','sol','soli','solem','stat','statu','summo',
-                                'tempora','Tod','tradit','traditi','traditio','transmigratio','tres','tribulatio','trium','tua','turba',
+                                'tempora','Tod','tradit','traditi','traditio','transmigratio','tres','tribulatio','trium','tu','tua','tuam','turba',
                                 'usu',
-                                'valle','vas','victi','visitat','visitatio','vita',
+                                'valle','vas','victi','visita','visitat','visitatio','vita',
                                 'l','nos','ut','didrachmas',
-                                'judgeur','faithlis','tentari','goodtate','gaveque','effectum','meipsum','submitis','sis','necnon','sacramenti','ignorantiæ','answeredque','ashm',
-                                    'doorns','relativesor','relativestatis','putes','timebo','praisebo','dolum','affirmat','psalmss','requestn',
-                                    'foodpe','resinam','pavere','losesus',
-                                    'psalterio','tituli',
+                                'tentari', # ????
+                                'loveus','interioris','bodilys','fatherfamilias','interiori',
+                                    'relativestatis','sinebat','sayto','beforedicandi','rightsbis','sed','moisturem','plantem','allowsur',
+                                    'drinkns','worki','praisent','hymnus','liberatus','leadsur','prophett','seent','requirens',
+                                    'mnas','thesereticus','fillsi','cleansus','touchesur','lampm','fatherfamilias','condemnsorum',
+                                    'beforesepio','sinem','carryis','inimico','propitieris','fecerint','residentum','yudici',
+                                    'sayur','rightæ','appetit','enumerat','miserableæ','erue',
                                 )
                     else 'Info', DEBUGGING_THIS_MODULE, f'''        {word} is suspect @ {location}\nfrom {cleanedTextToDisplay=}\n  WHICH GAVE {cleanedTextToCheck=}''' )
             if versionAbbreviation == 'Luth':

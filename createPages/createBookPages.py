@@ -84,7 +84,7 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
     # rvBooks = rvBible.books.keys() if 'ALL' in state.booksToLoad[rvBible.abbreviation] else state.booksToLoad[rvBible.abbreviation]
     # lvBooks = lvBible.books.keys() if 'ALL' in state.booksToLoad[lvBible.abbreviation] else state.booksToLoad[lvBible.abbreviation]
     # BBBsToProcess = reorderBooksForOETVersions( [rvKey for rvKey in rvBooks if rvKey in lvBooks] )
-    # print( f"{rvBooks=} {lvBooks=} {BBBsToProcess=}" ); halt
+    # print( f"{rvBooks=} {lvBooks=} {BBBsToProcess=}" ); assert False, "We want to stop here"
     # iBkList1 = ['index'] + ( list(state.preloadedBibles[rvBible.abbreviation].books.keys()) 
     #                         if len(state.preloadedBibles[rvBible.abbreviation].books)<len(state.preloadedBibles[lvBible.abbreviation].books)
     #                         else list(state.preloadedBibles[lvBible.abbreviation].books.keys()) )
@@ -92,7 +92,7 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
     # print( f"OET {BBBsToProcess=} {iBkList=}" )
     iBkList = ['index'] + state.BBBsToProcess['OET']
     # print( f"createOETBookPages {state.BBBsToProcess['OET']=}" )
-    # print( f"createOETBookPages {iBkList=}" ); halt
+    # print( f"createOETBookPages {iBkList=}" ); assert False, "We want to stop here"
     navBookListParagraph = makeBookNavListParagraph(state.BBBLinks['OET'], 'OET', state )
 
     processedBBBs, processedFilenames = [], []
@@ -265,7 +265,7 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
                 except ValueError:
                     dPrint( 'Info', DEBUGGING_THIS_MODULE, f"  createOETBookPages {BBB} {n:,}: No Cid in {rvSectionHtml=}" )
                     rvStartCV, rvEndCV = '', 'C1'
-                    # halt
+                    # assert False, "We want to stop here"
                 dPrint( 'Info', DEBUGGING_THIS_MODULE, f"""\nSearching for OET-RV {BBB} ' id="{rvEndCV}"' in '{lvRest}'""" )
                 try: ixEndCV = lvRest.rindex( f' id="{rvEndCV}"' )
                 except ValueError: # Versification problem if this fails
@@ -399,7 +399,7 @@ def createBookPages( level:int, folder:Path, thisBible, state:State ) -> list[st
     #     BBBsToProcess = reorderBooksForOETVersions( BBBsToProcess )
     # iBkList = ['index'] + list( state.preloadedBibles[thisBible.abbreviation].books.keys() )
     iBkList = ['index'] + state.BBBsToProcess[thisBible.abbreviation]
-    # print( f"createBookPages {thisBible.abbreviation=} {state.BBBsToProcess[thisBible.abbreviation]=} {iBkList=}" ); halt
+    # print( f"createBookPages {thisBible.abbreviation=} {state.BBBsToProcess[thisBible.abbreviation]=} {iBkList=}" ); assert False, "We want to stop here"
     navBookListParagraph = makeBookNavListParagraph( state.BBBLinks[thisBible.abbreviation], thisBible.abbreviation, state )
 
     processedBBBs, processedFilenames = [], []

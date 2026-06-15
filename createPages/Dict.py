@@ -104,7 +104,7 @@ def loadTyndaleOpenBibleDictXML( abbrev:str, folderpath ) -> None:
             else:
                 logging.warning( "fv6g Unprocessed {} attribute ({}) in {}".format( attrib, value, topLocation ) )
                 loadErrors.append( "Unprocessed {} attribute ({}) in {} (fv6g)".format( attrib, value, topLocation ) )
-                if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.errorOnXMLWarning: halt
+                if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.errorOnXMLWarning: assert False, "We want to stop here"
         assert releaseVersion == '1.6'
 
         for element in XMLTree:
@@ -124,7 +124,7 @@ def loadTyndaleOpenBibleDictXML( abbrev:str, folderpath ) -> None:
                 else:
                     logging.warning( "fv6g Unprocessed {} attribute ({}) in {}".format( attrib, value, location ) )
                     loadErrors.append( "Unprocessed {} attribute ({}) in {} (fv6g)".format( attrib, value, location ) )
-                    if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.errorOnXMLWarning: halt
+                    if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.errorOnXMLWarning: assert False, "We want to stop here"
             stateCounter = 0
             title = None
             thisEntry = ''
@@ -160,7 +160,7 @@ def loadTyndaleOpenBibleDictXML( abbrev:str, folderpath ) -> None:
                                 else:
                                     logging.warning( "fv6g Unprocessed {} attribute ({}) in {}".format( attrib, value, bodyLocation ) )
                                     loadErrors.append( "Unprocessed {} attribute ({}) in {} (fv6g)".format( attrib, value, bodyLocation ) )
-                                    if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.errorOnXMLWarning: halt
+                                    if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.errorOnXMLWarning: assert False, "We want to stop here"
                             # So we want to extract this as an HTML paragraph
                             htmlSegment = BibleOrgSysGlobals.getFlattenedXML( bodyelement, bodyLocation )
                                                                     # .replace( '<a href="  \?', '<a href="?') # Fix encoding mistake in 1 Tim
@@ -181,10 +181,10 @@ def loadTyndaleOpenBibleDictXML( abbrev:str, folderpath ) -> None:
                             assert '\\' not in htmlSegment, f"Intro {partCount=} {htmlSegment=}"
                             htmlSegment = f'<table>{htmlSegment}</table>'
                             thisEntry = f"{thisEntry}{NEWLINE if thisEntry else ''}{htmlSegment}"
-                        else: halt
+                        else: assert False, "We want to stop here"
                         partCount += 1
                     stateCounter += 1
-                else: halt
+                else: assert False, "We want to stop here"
             # print( f"Intro {thisEntry=}" )
             assert 'Intro' not in state.TOBDData
             state.TOBDData['Intro'] = thisEntry
@@ -208,7 +208,7 @@ def loadTyndaleOpenBibleDictXML( abbrev:str, folderpath ) -> None:
             else:
                 logging.warning( "fv6g Unprocessed {} attribute ({}) in {}".format( attrib, value, topLocation ) )
                 loadErrors.append( "Unprocessed {} attribute ({}) in {} (fv6g)".format( attrib, value, topLocation ) )
-                if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.errorOnXMLWarning: halt
+                if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.errorOnXMLWarning: assert False, "We want to stop here"
         assert releaseVersion == '1.6'
 
         for element in XMLTree:
@@ -229,7 +229,7 @@ def loadTyndaleOpenBibleDictXML( abbrev:str, folderpath ) -> None:
                 else:
                     logging.warning( "fv6g Unprocessed {} attribute ({}) in {}".format( attrib, value, location ) )
                     loadErrors.append( "Unprocessed {} attribute ({}) in {} (fv6g)".format( attrib, value, location ) )
-                    if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.errorOnXMLWarning: halt
+                    if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.errorOnXMLWarning: assert False, "We want to stop here"
             assert name
 
             stateCounter = 0
@@ -268,7 +268,7 @@ def loadTyndaleOpenBibleDictXML( abbrev:str, folderpath ) -> None:
                                 else:
                                     logging.warning( "fv6g Unprocessed {} attribute ({}) in {}".format( attrib, value, bodyLocation ) )
                                     loadErrors.append( "Unprocessed {} attribute ({}) in {} (fv6g)".format( attrib, value, bodyLocation ) )
-                                    if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.errorOnXMLWarning: halt
+                                    if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.errorOnXMLWarning: assert False, "We want to stop here"
                             # So we want to extract this as an HTML paragraph
                             htmlSegment = BibleOrgSysGlobals.getFlattenedXML( bodyelement, bodyLocation )
                                                                     # .replace( '<a href="  \?', '<a href="?') # Fix encoding mistake in 1 Tim
@@ -280,10 +280,10 @@ def loadTyndaleOpenBibleDictXML( abbrev:str, folderpath ) -> None:
                                 htmlSegment = htmlSegment[ixClose+2:]
                             htmlSegment = f'<p class="{theirClass}">{htmlSegment}</p>'
                             thisEntry = f"{thisEntry}{NEWLINE if thisEntry else ''}{htmlSegment}"
-                        else: halt
+                        else: assert False, "We want to stop here"
                         partCount += 1
                     stateCounter += 1
-                else: halt
+                else: assert False, "We want to stop here"
             # print( f"Textbox {thisEntry=}" )
             assert name not in state.TOBDData['Textboxes']
             state.TOBDData['Textboxes'][name] = thisEntry
@@ -307,7 +307,7 @@ def loadTyndaleOpenBibleDictXML( abbrev:str, folderpath ) -> None:
             else:
                 logging.warning( "fv6g Unprocessed {} attribute ({}) in {}".format( attrib, value, topLocation ) )
                 loadErrors.append( "Unprocessed {} attribute ({}) in {} (fv6g)".format( attrib, value, topLocation ) )
-                if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.errorOnXMLWarning: halt
+                if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.errorOnXMLWarning: assert False, "We want to stop here"
         assert releaseVersion == '1.6'
 
         for element in XMLTree:
@@ -328,7 +328,7 @@ def loadTyndaleOpenBibleDictXML( abbrev:str, folderpath ) -> None:
                 else:
                     logging.warning( "fv6g Unprocessed {} attribute ({}) in {}".format( attrib, value, location ) )
                     loadErrors.append( "Unprocessed {} attribute ({}) in {} (fv6g)".format( attrib, value, location ) )
-                    if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.errorOnXMLWarning: halt
+                    if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.errorOnXMLWarning: assert False, "We want to stop here"
             assert name
 
             stateCounter = 0
@@ -364,7 +364,7 @@ def loadTyndaleOpenBibleDictXML( abbrev:str, folderpath ) -> None:
                                 else:
                                     logging.warning( "fv6g Unprocessed {} attribute ({}) in {}".format( attrib, value, bodyLocation ) )
                                     loadErrors.append( "Unprocessed {} attribute ({}) in {} (fv6g)".format( attrib, value, bodyLocation ) )
-                                    if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.errorOnXMLWarning: halt
+                                    if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.errorOnXMLWarning: assert False, "We want to stop here"
                             # So we want to extract this as an HTML paragraph
                             htmlSegment = BibleOrgSysGlobals.getFlattenedXML( bodyelement, bodyLocation )
                                                                     # .replace( '<a href="  \?', '<a href="?') # Fix encoding mistake in 1 Tim
@@ -376,10 +376,10 @@ def loadTyndaleOpenBibleDictXML( abbrev:str, folderpath ) -> None:
                                 htmlSegment = htmlSegment[ixClose+2:]
                             htmlSegment = f'<p class="{theirClass}">{htmlSegment}</p>'
                             thisEntry = f"{thisEntry}{NEWLINE if thisEntry else ''}{htmlSegment}"
-                        else: halt
+                        else: assert False, "We want to stop here"
                         partCount += 1
                     stateCounter += 1
-                else: halt
+                else: assert False, "We want to stop here"
             # print( f"Map {thisEntry=}" )
             assert name not in state.TOBDData['Maps']
             state.TOBDData['Maps'][name] = thisEntry
@@ -409,7 +409,7 @@ def loadDictLetterXML( letter:str, folderpath ) -> None:
             else:
                 logging.warning( "fv6g Unprocessed {} attribute ({}) in {}".format( attrib, value, topLocation ) )
                 loadErrors.append( "Unprocessed {} attribute ({}) in {} (fv6g)".format( attrib, value, topLocation ) )
-                if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.errorOnXMLWarning: halt
+                if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.errorOnXMLWarning: assert False, "We want to stop here"
         assert releaseVersion == '1.6'
 
         assert letter not in state.TOBDData['Letters']
@@ -432,7 +432,7 @@ def loadDictLetterXML( letter:str, folderpath ) -> None:
                 else:
                     logging.warning( "fv6g Unprocessed {} attribute ({}) in {}".format( attrib, value, location ) )
                     loadErrors.append( "Unprocessed {} attribute ({}) in {} (fv6g)".format( attrib, value, location ) )
-                    if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.errorOnXMLWarning: halt
+                    if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.errorOnXMLWarning: assert False, "We want to stop here"
             assert name
             assert typeName
 
@@ -467,7 +467,7 @@ def loadDictLetterXML( letter:str, folderpath ) -> None:
                 #             else:
                 #                 logging.warning( "fv6g Unprocessed {} attribute ({}) in {}".format( attrib, value, topLocation ) )
                 #                 loadErrors.append( "Unprocessed {} attribute ({}) in {} (fv6g)".format( attrib, value, topLocation ) )
-                #                 if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.errorOnXMLWarning: halt
+                #                 if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.errorOnXMLWarning: assert False, "We want to stop here"
                 #         assert name
                 #         assert typeName
             else:
@@ -511,7 +511,7 @@ def loadDictLetterXML( letter:str, folderpath ) -> None:
                                     else:
                                         logging.warning( "fv6g Unprocessed {} attribute ({}) in {}".format( attrib, value, bodyLocation ) )
                                         loadErrors.append( "Unprocessed {} attribute ({}) in {} (fv6g)".format( attrib, value, bodyLocation ) )
-                                        if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.errorOnXMLWarning: halt
+                                        if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.errorOnXMLWarning: assert False, "We want to stop here"
                                 # So we want to extract this as an HTML paragraph
                                 htmlSegment = BibleOrgSysGlobals.getFlattenedXML( bodyelement, bodyLocation )
                                                                         # .replace( '<a href="  \?', '<a href="?') # Fix encoding mistake in 1 Tim
@@ -537,7 +537,7 @@ def loadDictLetterXML( letter:str, folderpath ) -> None:
                                     else:
                                         logging.warning( "fv6g Unprocessed {} attribute ({}) in {}".format( attrib, value, bodyLocation ) )
                                         loadErrors.append( "Unprocessed {} attribute ({}) in {} (fv6g)".format( attrib, value, bodyLocation ) )
-                                        if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.errorOnXMLWarning: halt
+                                        if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.errorOnXMLWarning: assert False, "We want to stop here"
                                 if 'Textbox' in iiSrc:
                                     assert iiSrc == '../Textboxes/Textboxes.xml'
                                     # So we want to save this as an XML paragraph to insert textbox later
@@ -550,10 +550,10 @@ def loadDictLetterXML( letter:str, folderpath ) -> None:
                                     thisEntry = f"{thisEntry}{NEWLINE if thisEntry else ''}{htmlSegment}"
                                 else: # They don't supply pictures or charts so might as well discard those here for now
                                     pass
-                            else: halt
+                            else: assert False, "We want to stop here"
                             partCount += 1
                         stateCounter += 1
-                    else: halt
+                    else: assert False, "We want to stop here"
                 if thisEntry:
                     state.TOBDData['Letters'][letter].append( (name,title) )
                     assert name not in state.TOBDData['Articles']

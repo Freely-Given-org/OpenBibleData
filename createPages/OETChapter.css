@@ -195,7 +195,8 @@ span.addElided { color:darkgoldenrod; }
 span.addOwner { color:darkOrchid; }
 span.addPronoun { color:darkgreen; }
 span.addReferent { color:darkblue; }
-span.addPluralised { color:darkcyan; }
+span.addNumberChange { color:darkcyan; }
+span.addPersonChange { color:darkkhaki; }
 span.addNegated { color:darkred; }
 span.addReword { text-decoration:underline; text-decoration-style: dotted; text-decoration-color:grey; }
 span.RVadd { color:#505050; } /* Darker than dimGrey which is #696969 (black is #000000) */

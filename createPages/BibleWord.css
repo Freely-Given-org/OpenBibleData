@@ -68,7 +68,8 @@ span.addElided { color:darkgoldenrod; }
 span.addOwner { color:darkOrchid; }
 span.addPronoun { color:darkgreen; }
 span.addReferent { color:darkblue; }
-span.addPluralised { color:darkcyan; }
+span.addNumberChange { color:darkcyan; }
+span.addPersonChange { color:darkkhaki; }
 span.addNegated { color:darkred; }
 span.addReword { text-decoration:underline; text-decoration-style: dotted; text-decoration-color:grey; }
 span.RVadd { color:#505050; } /* Darker than dimGrey which is #696969 (black is #000000) */
@@ -89,7 +90,26 @@ span.synthParr { vertical-align:super; font-size:0.8em; color:blue; } /* Hebrew 
 .grkNeg { background-color:crimson; }
 span.wj { color:saddlebrown; }
 
-/* For our Strongs pages */
+/* For our Hebrew Strongs pages */
+p.Key { font-weight:bold; }
+span.HebrewWord {}
+span.Def { font-weight:bold; }
+span.Stem { font-style:italic; }
+span.Source {}
+span.Meaning {}
+span.KJVUsage {}
+span.word {}
+span.POS { background-color:pink; }
+li.Sense {}
+span.senseNum { vertical-align:super; font-size:0.75em; font-weight:bold; color:darkgreen; }
+span.foreign {}
+span.Asp {}
+span.ref { background-color:cyan; }
+span.Em {}
+span.Strongs { background-color:khaki; }
+span.Hebrew {}
+
+/* For our Greek Strongs pages */
 span.GreekWord {}
 span.StrongsRef {}
 

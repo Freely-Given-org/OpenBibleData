@@ -365,7 +365,8 @@ def createOETInterlinearVerseInner( level:int, BBB:str, c:int, v:int, state:Stat
     wordNumberStr = None # in case there's no words
     lvEnglishWordList = []
     for lvVerseEntry in lvVerseEntryList:
-        cleanLVText, fullLVText = lvVerseEntry.getCleanText(), lvVerseEntry.getFullText()
+        cleanLVText, fullLVText = lvVerseEntry.getCleanText(), lvVerseEntry.getOriginalText()
+        # if not cleanLVText: print( f"createOETInterlinearVerseInner {BBB} {c}:{v} {lvVerseEntry.getMarker()} {fullLVText=} {cleanLVText=}" )
         if not fullLVText or '¦' not in fullLVText: continue # no interest to us here
 
         # Remove sentence punctuation, break "chosen/messiah"
@@ -393,7 +394,7 @@ def createOETInterlinearVerseInner( level:int, BBB:str, c:int, v:int, state:Stat
         # break
     rvEnglishWordList = []
     for rvVerseEntry in rvVerseEntryList:
-        fullRVText = rvVerseEntry.getFullText()
+        fullRVText = rvVerseEntry.getOriginalText()
         if not fullRVText or '¦' not in fullRVText: continue # no interest to us here
 
         # Remove sentence punctuation,

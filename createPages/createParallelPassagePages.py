@@ -53,7 +53,7 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
 from OETHandlers import livenOETWordLinks, getOETTidyBBB, getOETBookName, getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2026-01-12' # by RJH
+LAST_MODIFIED_DATE = '2026-06-13' # by RJH
 SHORT_PROGRAM_NAME = "createParallelPassagePages"
 PROGRAM_NAME = "OpenBibleData createParallelPassagePages functions"
 PROGRAM_VERSION = '0.41'
@@ -292,7 +292,7 @@ def createParallelPassagePages( level:int, folder:Path, state:State ) -> bool:
 #             try: numVerses = thisBible.getNumVerses( BBB, intC )
 #             except KeyError:
 #                 logging.critical( f"Can't get number of verses for {thisBible.abbreviation} {BBB} {intC}")
-#                 halt
+#                 assert False, "We want to stop here"
 #                 continue
 #             if intV > numVerses:
 #                 intC += 1
@@ -353,7 +353,7 @@ def createParallelPassagePages( level:int, folder:Path, state:State ) -> bool:
 #             try: numVerses = thisBible.getNumVerses( BBB, intC )
 #             except KeyError:
 #                 logging.critical( f"Can't get number of verses for {thisBible.abbreviation} {BBB} {intC}")
-#                 halt
+#                 assert False, "We want to stop here"
 #                 continue
 #             if intV > numVerses:
 #                 intC += 1
@@ -496,7 +496,7 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
     detailsLink = f''' <a title="Show details about this work" href="{'../'*(BBBLevel)}OET-RV/details.htm#Top">©</a>'''
     usedParallels = []
     for n,startC,startV,endC,endV,sectionName,reasonName,contextList,verseEntryList,sFilename in availableSections:
-        dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"      MakeLoop{n} {startC}:{startV}-{endC}:{endV} '{sectionName}' {reasonName} {len(contextList)} {len(verseEntryList)} '{sFilename}'" )
+        # dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"     createSectionCrossReferencePagesForBook makeLoop{n} {startC}:{startV}-{endC}:{endV} '{sectionName}' {reasonName} {len(contextList)} {len(verseEntryList)} '{sFilename}'" )
         if endC == '?': # Then these are the OET-RV additional/alternative headings
             assert thisBible.abbreviation == 'OET-RV'
             assert endV == '?'
@@ -514,6 +514,7 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
         for entry in verseEntryList:
             if entry.getMarker() == 'r':
                 rText = entry.getCleanText()
+                # print( f"createSectionCrossReferencePagesForBook {BBB} {startC}:{startV}-{endC}:{endV} {rText=}")
                 if rText[0]=='(' and rText[-1]==')': rText = rText[1:-1]
                 # if rText == '1 Chr. 13:1-14; 15:25–16:6, 43': rText = '1 Chr. 13:1-14; 15:25–16:43' # From OET-RV SA2_6:1
                 # elif rText == '2 Chr. 34:3-7, 29-33': rText = '2 Chr. 34:3-33' # From OET-RV KI2_19:20
@@ -594,7 +595,7 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
         # Ok, now actually form the parallel sections
         nextXrFnLetter = 'b'
         for srBBB,srCVpart in zip( crossReferencesBBBList, crossReferencesCVList, strict=True ):
-            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"{BBB} {startC}:{startV} {srBBB=} {srCVpart=}")
+            dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"Parallel sections loop for {BBB} {startC}:{startV} -> {srBBB=} {srCVpart=}")
             if srBBB not in thisBible: # don't force that book to be loaded
                 continue
 
@@ -665,7 +666,7 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
                     if srCVpart.startswith( '-1:'):
                         assert srCVpart.count( '-' ) == 2
                         srStartV, srEndV = srCVpart.rsplit( '-', 1 )
-                        # print( f"{srCVpart=} {srStartV=} {srEndV=}"); halt
+                        # print( f"{srCVpart=} {srStartV=} {srEndV=}"); assert False, "We want to stop here"
                     else: srStartV, srEndV = srCVpart.split( '-' )
                     if ':' not in srCVpart: # it must just be two verse numbers
                         assert srStartC.isdigit() # From previous loop
@@ -682,10 +683,10 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
                             verseEntryList, contextList = thisBible.getContextVerseDataRange( (srBBB,srStartC,srStartV), (srBBB,srEndC,srEndV), strict=False )
                         except KeyError:
                             logging.critical( f"createSectionCrossReferencePagesForBook {BBB} {startC}:{startV} was unable to find {srBBB} {srStartC}:{srStartV}" )
-                            halt
+                            assert False, "We want to stop here"
                     elif ':' in srStartV and ':' in srEndV:
                         logging.critical( f"Expected en-dash (not hyphen) in {BBB} {startC}:{startV} section cross-reference {srBBB} {srCVpart}" )
-                        halt
+                        assert False, "We want to stop here"
                         srStartC, srStartV = srStartV.split( ':' )
                         srStartV = str( getSmallLeadingInt( srStartV ) )
                         srEndC, srEndV = srEndV.split( ':' )
@@ -848,7 +849,7 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
                     assert '.htm#aV' not in thisXrefHtml and '.htm#bV' not in thisXrefHtml, thisXrefHtml
                     assert '.htm#gC' not in thisXrefHtml and '.htm#hC' not in thisXrefHtml, thisXrefHtml
                     # print( f"{thisXrefHtml=}" )
-                    # if 'Fn' in thisXrefHtml or 'Xr' in thisXrefHtml: halt
+                    # if 'Fn' in thisXrefHtml or 'Xr' in thisXrefHtml: assert False, "We want to stop here"
                     xrefHtml = f"{xrefHtml}{NEWLINE if xrefHtml else ''}{thisXrefHtml}"
                     doneCrossReferences.append( collectedVerseCrossReference )
             assert '.htm#aC' not in xrefHtml and '.htm#bC' not in xrefHtml, xrefHtml

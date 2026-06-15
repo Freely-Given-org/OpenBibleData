@@ -210,7 +210,7 @@ unclearClarityRefs = [ # Mostly sure what's in the Hebrew or Greek,
         'ISA_27:4','ISA_27:7','ISA_27:8','ISA_27:9','ISA_27:10b','ISA_28:10','ISA_28:16b','ISA_29:2b','ISA_29:17',
         'ISA_36:9','ISA_37:25','ISA_38:16a','ISA_41:1','ISA_41:2','ISA_41:3','ISA_48:2a','ISA_49:7','ISA_49:8b',
         'ISA_49:17a','ISA_53:11a','ISA_64:5b',
-    'JER_1:15b',
+    'JER_1:15b','JER_6:2b','JER_6:18b','JER_6:27','JER_8:8b','JER_10:19','JER_14:18b','JER_15:12',
     'EZE_8:17b', 'EZE_16:24', 'EZE_21:13', 'EZE_24:12', 'EZE_24:17b', 'EZE_26:20b',
     'DAN_8:12','DAN_8:13a','DAN_11:43b',
     'HOS_11:7b',
@@ -466,7 +466,7 @@ def get_OSHB_reference_text_critical_footnote_score( OETLV_ReferenceOTBible, BBB
 
     havePossibleBHSReference = False
     for entry in verseEntryList:
-        text = entry.getFullText()
+        text = entry.getOriginalText()
         if text and '\\ft OSHB note: ' in text:
             startIndex = 0
             while True:
@@ -505,7 +505,7 @@ def get_UHB_Hebrew_reference_text_critical_footnote_score( HebrewReferenceBible,
 
     haveEarlyTranslationReference = False
     for entry in verseEntryList:
-        text = entry.getFullText()
+        text = entry.getOriginalText()
         if text:
             if '\\ft K ' in text or '\\ft Q ' in text: return 2
             # if 'LXX' in text or 'Syriac' in text or 'Peshitta' in text or 'Dead Sea Scrolls' in text or 'Targum' in text or 'Vulgate' in text:
@@ -530,7 +530,7 @@ def get_English_reference_text_critical_footnote_score( EnglishReferenceBible, B
 
     haveEarlyTranslationReference = False
     for entry in verseEntryList:
-        text = entry.getFullText()
+        text = entry.getOriginalText()
         if text:
             if 'Textual Criticism' in text: return 2
             if 'LXX' in text or 'Syriac' in text or 'Peshitta' in text or 'Dead Sea Scrolls' in text or 'Targum' in text or 'Vulgate' in text:
@@ -581,7 +581,7 @@ def create( initialTSVLines, HebrewReferenceBible, OET_LT_ReferenceOTBible, Engl
             heb_TC_footnote_value = get_UHB_Hebrew_reference_text_critical_footnote_score( HebrewReferenceBible, BBB, C, V )
             eng_TC_footnote_value = get_English_reference_text_critical_footnote_score( EnglishReferenceBible, BBB, C, V )
             # print( f"  {has_TC_footnote}")
-            # if BBB=='EXO' and has_TC_footnote: print( f"{fgRef} has TC" ); halt
+            # if BBB=='EXO' and has_TC_footnote: print( f"{fgRef} has TC" ); assert False, "We want to stop here"
             # print( f"{line=} {fgRef=}" )
             subRefs = [f'{fgRef}a',f'{fgRef}b'] if fgRef in splitVerseSet else [fgRef]
 

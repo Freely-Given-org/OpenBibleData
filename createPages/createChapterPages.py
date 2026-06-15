@@ -155,7 +155,7 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
                 chapterLinks.append( f'<a title="View chapter page" href="{BBB}_C{c}.htm#Top">{'Sg' if BBB=='PSA' else 'C'}{c}</a>' )
         else:
             c = '0' # TODO: for now
-            halt
+            assert False, "We want to stop here"
         chapterLinksParagraph = f'<p class="chLst">{" ".join( chapterLinks )}</p><!--chLst-->'
 
         assert rvBible.getNumVerses( BBB, '-1' ) # OET always has intro
@@ -193,7 +193,7 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
                 except KeyError:
                     if c == 0: continue # Usually no chapter zero
                     logging.critical( f"No chapter found for {rvBible.abbreviation} {BBB} {c=}" )
-                    halt # continue
+                    assert False, "We want to stop here" # continue
                 assert isinstance( rvBible, ESFMBible.ESFMBible )
                 for rvEntry in rvVerseEntryList:
                     if rvEntry.getOriginalText():
@@ -242,7 +242,7 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
                         except ValueError as e:
                             dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createOETChapterPages {BBB} {c=} {n:,}/{len(rvSections):,}: No Cid in {rvSectionHtml=} {e=}" )
                             rvStartCV, rvEndCV = '', 'C1'
-                            # halt
+                            # assert False, "We want to stop here"
                         # dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"""Searching for ' id="{rvEndCV}"' in '{lvRest}'""" )
                         try:
                             ixEndCV = lvRest.rindex( f' id="{rvEndCV}"' ) # Versification problem if this fails
@@ -272,7 +272,7 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
                             else:
                                 dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{lvRest[lvIndex8-50:lvIndex8+50]}")
                                 if DEBUGGING_THIS_MODULE or BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag: not_far_enough
-                                halt
+                                assert False, "We want to stop here"
                                 break
                             # print( f"\n{n}: {lvRest[ixEndCV:lvIndex8]=}" )
                             lvEndIx = lvIndex8
@@ -389,7 +389,7 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
             with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
                 cHtmlFile.write( chapterHtml )
             vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"    {len(chapterHtml):,} characters written to {filepath}" )
-            halt
+            assert False, "We want to stop here"
 
         # Now create an index page for this book
         vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Creating chapter index page for OET {BBB}…" )

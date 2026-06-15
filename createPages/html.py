@@ -90,7 +90,7 @@ CHANGELOG:
     2025-02-21 Created functions
     2025-03-11 Add a couple more checks of spans in checkHtml()
     2025-05-19 Handle doubled T4T figures of speech
-    2025-05-31 Added deferred loading to make kb.js work properly
+    2025-05-31 Added deferred loading to make KB.js work properly
     2025-06-19 Handle more of the varieties in doubled T4T figures of speech
     2025-09-09 Allow for 'kingdom' pages
     2025-12-19 Fix bug that displayed ' 2 YHN2 JHN)' etc. (losing the opening parenthesis) in the book navigation line
@@ -98,6 +98,7 @@ CHANGELOG:
     2026-01-19 Added link to https://OET.Bible
     2026-02-03 Allow uncertain ellided markings '\\add ?≡'
     2026-05-09 Upgraded to bos_books_codes_py
+    2026-06-11 Handle new % (changed person) \\add format
 """
 import logging
 from datetime import datetime
@@ -112,10 +113,10 @@ from settings import State, state
 from OETHandlers import getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2026-05-15' # by RJH
+LAST_MODIFIED_DATE = '2026-06-11' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
-PROGRAM_VERSION = '0.99'
+PROGRAM_VERSION = '1.0.0'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -196,7 +197,7 @@ def makeTop( level:int, versionAbbreviation:str|None, pageType:str, versionSpeci
     if 'Dict' in cssFilename or 'Word' in cssFilename:
         top = top.replace( '__SCRIPT__', f'''<script src="{'../'*level}Dict.js" defer></script>\n  __SCRIPT__''' )
     if 'Dict' in cssFilename or 'Word' in cssFilename \
-    or pageType in ('chapter','section','book','parallelVerse','interlinearVerse','relatedPassage','kingdom'):
+    or pageType in ('chapter','section','book','parallelVerse','interlinearVerse','relatedPassage','topicPassages','kingdom'):
         top = top.replace( '__SCRIPT__', f'''<script src="{'../'*level}KB.js" defer></script>\n  __SCRIPT__''' )
     top = top.replace( '\n  __SCRIPT__', '' )
 
@@ -346,7 +347,7 @@ def _makeWorkNavListParagraph( level:int, versionAbbreviation:str|None, pageType
             newVersionList.append( initial_entry )
 
     assert len(newVersionList) == len(initialVersionList)
-    # if pageType in ('section','sectionIndex'): print( f"_makeWorkNavListParagraph {'\n'.join(newVersionList)}\n from {'\n'.join(initialVersionList)}" ); halt
+    # if pageType in ('section','sectionIndex'): print( f"_makeWorkNavListParagraph {'\n'.join(newVersionList)}\n from {'\n'.join(initialVersionList)}" ); assert False, "We want to stop here"
     return f'''<p class="wrkLst">{' '.join(newVersionList)}</p><!--wrkLst-->'''
 # end of html._makeWorkNavListParagraph
 
@@ -675,7 +676,7 @@ def checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool:
                 lastSpanIx = spanIx
                 searchStartIndex = spanIx + 7
             else: # endSpanIx < spanIx
-                assert spanNestingLevel > 0, f"Extra close span in '{where}' {segmentOnly=} '{'' if endSpanIx==0 else '…'}{htmlToCheck[endSpanIx:endSpanIx+200]}…'"
+                assert spanNestingLevel > 0, f"Extra close span in '{where}' {segmentOnly=} '{'' if endSpanIx==0 else '…'}{htmlToCheck[endSpanIx:endSpanIx+200]}…'\nfrom {htmlToCheck}"
                 spanNestingLevel -= 1
                 searchStartIndex = endSpanIx + 7
         assert spanNestingLevel==0, f"\ncheckHTML() found unclosed span in '{where}' {segmentOnly=} '{'' if lastSpanIx==0 else '…'}{htmlToCheck[lastSpanIx:lastSpanIx+200]}…' FROM {htmlToCheck=}"
@@ -728,9 +729,12 @@ def checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool:
         if startMarker.endswith( '>' ):
             assert f'{startMarker}{startMarker}' not in htmlToCheck, f"Doubled {startMarker} in '{where}' {segmentOnly=}"
             assert f'{startMarker} {startMarker}' not in htmlToCheck, f"Doubled {startMarker} in '{where}' {segmentOnly=}"
-        if marker not in ('span','div'): # nested spans and divs are ok
-            assert f'{endMarker}{endMarker}' not in htmlToCheck, f"Doubled end {endMarker} in '{where}' {segmentOnly=}"
+        if marker not in ('span','div','ol','ul'): # nested spans and divs and lists (esp. in dictionary entries) are ok
+            assert f'{endMarker}{endMarker}' not in htmlToCheck, f"Doubled end {endMarker} in '{where}' {segmentOnly=}\n{htmlToCheck=}"
             assert f'{endMarker} {endMarker}' not in htmlToCheck, f"Doubled end {endMarker} in '{where}' {segmentOnly=}"
+        if marker in ('ol','ul'): # don't want reopened lists
+            assert f'{endMarker}{startMarker}' not in htmlToCheck, f"Reopened {marker} list in '{where}' {segmentOnly=}\n{htmlToCheck=}"
+            assert f'{endMarker}\n{startMarker}' not in htmlToCheck, f"Reopened {marker} list in '{where}' {segmentOnly=}\n{htmlToCheck=}"
 
     # Should be no <a ...> anchors embedded inside other anchors
     assert '>a title="' not in htmlToCheck, f"Improperly formed anchor in '{where}' {segmentOnly=}"
@@ -746,15 +750,15 @@ def checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool:
             searchStartIndex = endIx + 4
 
     if '<li>' in htmlToCheck or '<li ' in htmlToCheck or '</li>' in htmlToCheck:
-        assert '<ol>' in htmlToCheck or '<ol ' in htmlToCheck or '<ul>' in htmlToCheck or '<ul ' in htmlToCheck
-        assert '</ol>' in htmlToCheck or '</ul>' in htmlToCheck
+        assert '<ol>' in htmlToCheck or '<ol ' in htmlToCheck or '<ul>' in htmlToCheck or '<ul ' in htmlToCheck, f"Missing list OPEN marker in '{where}' {segmentOnly=}\n{htmlToCheck=}"
+        assert '</ol>' in htmlToCheck or '</ul>' in htmlToCheck, f"Missing list CLOSE marker in '{where}' {segmentOnly=}\n{htmlToCheck=}"
 
     if '\n<br></p>' in htmlToCheck or '\n<br></span>' in htmlToCheck:
         logging.warning( f"checkHtml '{where}' {segmentOnly=} needed to fix wasted <br> in {htmlToCheck=}" )
         htmlToCheck = htmlToCheck.replace( '\n<br></span></span></p>', '</span></span></p>' ).replace( '\n<br></span></p>', '</span></p>' ).replace( '\n<br></p>', '</p>' )
     if '\n</a>' in htmlToCheck:
         logging.critical( f"'{where}' {segmentOnly=} has unexpected newline before anchor close in {htmlToCheck=}" )
-        halt
+        assert False, "We want to stop here"
 
     # Check classes
     searchStartIndex = 0
@@ -1054,8 +1058,10 @@ def do_OET_RV_HTMLcustomisations( where:str, OET_RV_html:str ) -> str:
             .replace( '<span class="add">@', '<span class="addReferent" title="inserted referent">' )
             .replace( '<span class="add">?*', '<span class="addPronoun unsure" title="used pronoun (less certain)">' )
             .replace( '<span class="add">*', '<span class="addPronoun" title="used pronoun">' )
-            .replace( '<span class="add">?#', '<span class="addPluralised unsure" title="changed number (less certain)">' )
-            .replace( '<span class="add">#', '<span class="addPluralised" title="changed number">' )
+            .replace( '<span class="add">?#', '<span class="addNumberChange unsure" title="changed number (less certain)">' )
+            .replace( '<span class="add">#', '<span class="addNumberChange" title="changed number">' )
+            .replace( '<span class="add">?%', '<span class="addPersonChange unsure" title="changed person (less certain)">' )
+            .replace( '<span class="add">%', '<span class="addPersonChange" title="changed person">' )
             .replace( '<span class="add">?^', '<span class="addNegated unsure" title="negated (less certain)">' )
             .replace( '<span class="add">^', '<span class="addNegated" title="negated">' )
             .replace( '<span class="add">?≈', '<span class="addReword unsure" title="reworded (less certain)">' )
@@ -1272,7 +1278,7 @@ def handleAndExtractFootnotes( versionAbbreviation:str, verseHtml:str ) -> tuple
         # print( f"{numFootnotesRemoved} footnotes removed from {versionAbbreviation} {verseHtml=} gives {footnoteFreeVerseHtml=}")
         return verseHtml, footnoteFreeVerseHtml, f'<hr {footnoteHtml}'
     else:
-        if 'class="footnotes"' in verseHtml: print( "{versionAbbreviation} {verseHtml=}" ); halt
+        if 'class="footnotes"' in verseHtml: print( "{versionAbbreviation} {verseHtml=}" ); assert False, "We want to stop here"
         if versionAbbreviation != 'OET-RV':
             assert '<hr ' not in verseHtml, f"{versionAbbreviation=} {verseHtml=}"
         return verseHtml, verseHtml, ''

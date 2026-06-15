@@ -338,7 +338,7 @@ def create_Hebrew_word_json( level:int, hh:int, hebrewWord:str, columns_string:s
     lemmaGlossesList = sorted( state.OETRefData['OTLemmaOETGlossesDict'][noCantillations] )
     try: lemmaGlossesList.remove( '' ) # TODO: Check how this gets in there
     except ValueError: pass
-    # print( f"{len(lemmaGlossesList)=}"); halt
+    # print( f"{len(lemmaGlossesList)=}"); assert False, "We want to stop here"
     wordOETGlossesList = sorted( state.OETRefData['OTFormOETGlossesDict'][(hebrewWord,morphology)] )
     # wordVLTGlossesList = sorted( state.OETRefData['OTFormVLTGlossesDict'][(hebrewWord,morphology)] )
 
@@ -696,7 +696,7 @@ def create_Greek_words_json( level:int, outputFolderPath:Path, state:State ) -> 
                 assert not mainGlossWord, f"There should only be ONE {BBB} {C}:{V}w{W} {mainGlossWord=} {someGlossWord=} from {gg} {columns_string=}"
                 mainGlossWord = someGlossWord.split('/(')[0] # Throw away any Hebrew names #.replace('\\add_','\\add ')
         if mainGlossWord and ('\\' in mainGlossWord or '/' in mainGlossWord):
-            if '\\' in mainGlossWord: print( f"{gg=} {mainGlossWord=} from {OETGlossWordsStr=}"); halt
+            if '\\' in mainGlossWord: print( f"{gg=} {mainGlossWord=} from {OETGlossWordsStr=}"); assert False, "We want to stop here"
         if extendedStrongs == 'None': extendedStrongs = None
         if roleLetter == 'None': roleLetter = None
         if morphology == 'None': morphology = None

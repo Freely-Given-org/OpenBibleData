@@ -52,6 +52,7 @@ CHANGELOG:
     2026-03-06 In TEST_MODE, colour unmatched OET-RV words
     2026-03-20 Handle OET-RV lines beginning with ⇔ (verse halves were swapped in the translation)
     2026-05-30 Handle OET-RV PSA lines beginning with /zz (for background colouring)
+    2026-06-11 Handle new % (changed person) \\add format
 """
 import logging
 import re
@@ -71,10 +72,10 @@ from bible_transliterations import transliterate_Hebrew, transliterate_Greek
 from settings import State
 
 
-LAST_MODIFIED_DATE = '2026-05-30' # by RJH
+LAST_MODIFIED_DATE = '2026-06-13' # by RJH
 SHORT_PROGRAM_NAME = "OETHandlers"
 PROGRAM_NAME = "OpenBibleData OET handler"
-PROGRAM_VERSION = '0.72'
+PROGRAM_VERSION = '0.74'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -162,6 +163,7 @@ OET_BBB_DICT = {
                 '3KINGS':'KI1', '4KINGS':'KI2',
                 '1CHRONICLES':'CH1', '2CHRONICLES':'CH2',
                 'YOB':'JOB', 'SONGOFSOLOMON':'SNG',
+                'YESHAYAH':'ISA', 'YIRMEYAH':'JER',
                 'YONAH':'JNA','YNA':'JNA', 'YOEL':'JOL',
                 'YOCHANAN':'JHN','YHN':'JHN',
                 '1CORINTHIANS':'CO1', '2CORINTHIANS':'CO2',
@@ -184,23 +186,18 @@ def getBBBFromOETBookName( originalBooknameText:str, where:str ) -> str|None:
     # if resultBBB and resultBBB not in ('SAM','CHR','NAH): return resultBBB
     # else: dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"bos_books_codes_py.english_name_to_bos_book_code() can't get valid BBB from {originalBooknameText=}" )
                                                                         
-    booknameText = ( originalBooknameText
+    upperedBooknameText = ( originalBooknameText
                         .replace( ' ', '' ).replace( NARROW_NON_BREAK_SPACE, '' )
                         #.rstrip( '.' ) # Remove any final period TODO: Should BibleOrgSys do that?
                         .replace( '.', '' ) # Actually, we'll get rid of any period, to handle unexpected xrefs like '2.kings' (e.g., from KJB)
                     ).upper()
     
-    try: return OET_BBB_DICT[booknameText]
+    try: return OET_BBB_DICT[upperedBooknameText]
     except KeyError: pass
 
-    resultBBB = bos_books_codes_py.english_name_to_bos_book_code( booknameText
-    # resultBBB = english_name_to_bos_book_code( booknameText
-                    # .replace( 'Yob', 'JOB' ).replace( 'Yochanan', 'JHN' ).replace( 'Yoel', 'JOL' ).replace( 'Yonah', 'JNA' )
-                    .replace( 'Yhn', 'JHN' ).replace( 'Yud', 'JDE' )
-                    # .replace( '1Yhn', 'JN1' ).replace( '2Yhn', 'JN2' ).replace( '3Yhn', 'JN3' )
-                )
+    resultBBB = bos_books_codes_py.english_name_to_bos_book_code( upperedBooknameText )
     if not resultBBB or not bos_books_codes_py.is_valid_bos_book_code( resultBBB ):
-        dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"getBBBFromOETBookName can't get valid BBB from {booknameText=} {where=}: {resultBBB=} from {originalBooknameText=}" )
+        dPrint( 'Info' if upperedBooknameText[0].isdigit() else 'Normal', DEBUGGING_THIS_MODULE, f"getBBBFromOETBookName can't get valid BBB from {upperedBooknameText=} {where=}: {resultBBB=} from {originalBooknameText=}" )
     return resultBBB
 # end of OETHandlers.getBBBFromOETBookName
 
@@ -251,6 +248,8 @@ def livenOETWordLinks( level:int, bibleObject:ESFMBible, BBB:str, givenEntryList
 
     Then add the transliteration to the title="§«OrigWord»§" popup.
 
+    Also, in TEST_MODE, marks OET-RV words which don't yet have a word number.
+
     NOTE: Now that we no longer use word numbers as word filenames, we have to do an extra step of post-processing
     """
     from createParallelVersePages import GREEK_CASE_CLASS_DICT
@@ -264,7 +263,7 @@ def livenOETWordLinks( level:int, bibleObject:ESFMBible, BBB:str, givenEntryList
         preprocessedVerseEntryList = InternalBibleEntryList()
         for entry in givenEntryList:
             marker, original_text = entry.getMarker(), entry.getOriginalText()
-            # print( f"livenOETWordLinks0 {bibleObject.abbreviation} {level=} {BBB} {marker=} {original_text=}")
+            if marker in ('v~','p~') and not original_text and marker[0]!='¬': print( f"livenOETWordLinks0 {bibleObject.abbreviation} {level=} {BBB} {marker=} {original_text=}")
             if original_text and marker in ('v~','p~'):
                 assert '\\nd \\nd ' not in original_text, f"Double nd in {bibleObject.abbreviation} {BBB} {marker=} {original_text=}"
                 # print( f"livenOETWordLinks1 {bibleObject.abbreviation} {level=} {BBB} {marker=} {original_text=}")
@@ -283,14 +282,17 @@ def livenOETWordLinks( level:int, bibleObject:ESFMBible, BBB:str, givenEntryList
                     if '¦' in oWord or inNote \
                     or oWord in ('“','”','’', '+','\\x','\\xo','\\xt','\\f','\\fr','(Heb.','—','i.e.,','≈i.e.,','=','◙','…','◘',
                                  '\\add','\\+add','“\\add','‘\\add','—\\add','(\\add','≈\\add','^\\add','→\\add','i.e.,\\add*',
-                                 '\\bd','\\em','\\+em', '\\fig','\\it', '\\nd','\\+nd','‘\\nd', '\\wj','“\\wj','\\+wj','’\\wj*','—\\wj*','“\\+wj'):
+                                 '\\qs',
+                                 '\\bd','\\em','\\+em', '\\fig','\\it', '\\nd','\\+nd','‘\\nd',
+                                 '\\wj','“\\wj','\\+wj','’\\wj*','—\\wj*','“\\+wj',
+                                 '\\z1','\\z2','\\z3','\\z4','\\zr',):
                         # print( f"             {BBB} {n} {oWord=} {inNote=}")
                         pass
-                    else:
+                    elif BBB not in ('PSA','LUK'): # We have no ¦ character, i.e., an unmatched word (not sure why OET-RV LUK fails in chapter 11)
                         # print( f"  {n} {oWord=} {inNote=} in {BBB}")
                         prefix = suffix = ''
                         for _ in range( 5 ):
-                            for potentialPrefix in ('“','‘','(','[', '—', '≈','*','@','#','&','<','>','^','≡','→','?','⇔'):
+                            for potentialPrefix in ('“','‘','(','[', '—', '≈','*','@','#','%','&','<','>','^','≡','→','?','⇔'):
                                 if oWord.startswith( potentialPrefix ): oWord, prefix = oWord[len(potentialPrefix):], f'{prefix}{potentialPrefix}'
                             for potentialSuffix in (',','.','?','!','”','’',':',';',')',']',
                                             '\\add','\\+add','\\add*','\\+add*','\\x','\\x*','\\f','\\f*',
@@ -301,20 +303,20 @@ def livenOETWordLinks( level:int, bibleObject:ESFMBible, BBB:str, givenEntryList
                                 if oWord.endswith( potentialSuffix ): oWord, suffix = oWord[:-len(potentialSuffix)], f'{potentialSuffix}{suffix}'
                                 if potentialSuffix in oWord: oWord, suffix = oWord[:oWord.index(potentialSuffix)], f'{oWord[oWord.index(potentialSuffix):]}{suffix}'
                         # if prefix or suffix: print( f'    {prefix=} {oWord=} {suffix=}' )
-                        if oWord \
-                        and "'" not in oWord and ',' not in oWord and '-' not in oWord and '/' not in oWord and '(' not in oWord \
-                        and not oWord[0].isdigit() and oWord not in ('i.e','e.g'):
-                            assert oWord.isalpha(), f'{BBB} {prefix=} {oWord=} {suffix=}'
-                        oWord = f'{prefix}<span class="noLinkYet">{oWord}</span>{suffix}'
-                        # print( f"        Now {oWord=}")
-                        changeMade = True
+                        if oWord and oWord[0] != '\\':
+                            if "'" not in oWord and ',' not in oWord and '-' not in oWord and '/' not in oWord and '(' not in oWord \
+                            and not oWord[0].isdigit() and oWord not in ('i.e','e.g'):
+                                assert oWord.isalpha(), f'{BBB} {prefix=} {oWord=} {suffix=}'
+                            oWord = f'{prefix}<span class="noLinkYet">{oWord}</span>{suffix}'
+                            # print( f"        Now {oWord=}")
+                            changeMade = True
                     newWords.append( oWord )
                     if oWord.endswith( '\\x' ) or oWord.endswith( '\\f' ) or oWord.endswith( '\\fig' ):
                         inNote = True
                     elif oWord.endswith( '\\x*' ) or oWord.endswith( '\\f*' ) or oWord.endswith( '\\fig*' ):
                         inNote = False
                 if changeMade:
-                    newEntry = InternalBibleEntry( entry.getMarker(), entry.getOriginalMarker(), '', '', None, ' '.join(newWords).replace(' —','—') )
+                    newEntry = InternalBibleEntry( entry.getMarker(), entry.getOriginalMarker(), ' '.join(newWords).replace(' —','—'), '', None, '' )
                 preprocessedVerseEntryList.append( newEntry if changeMade else entry )
             else: preprocessedVerseEntryList.append( entry )
     else: preprocessedVerseEntryList = givenEntryList
@@ -360,7 +362,7 @@ def livenOETWordLinks( level:int, bibleObject:ESFMBible, BBB:str, givenEntryList
             # print( f"livenOETWordLinks {BBB} word match 1='{titleMatch.group(1)}' all='{titleMatch.group(0)}'" )
             hrefMatch = linkedHrefWordNumberRegex.search( original_text, titleMatch.end() )
             if not hrefMatch:
-                halt # What went wrong here
+                assert False, "We want to stop here" # What went wrong here
             # print( f"{titleMatch.start()=} {hrefMatch.start()=} {hrefMatch.start()-titleMatch.end()=} {hrefMatch.group(1)=} from {hrefMatch.group(0)=}" )
             assert hrefMatch.start() - titleMatch.end() == 5 # Should be immediately after href
             placeholderOriginalLanguageWord = titleMatch.group(1)
@@ -489,12 +491,12 @@ def livenOETWordLinks( level:int, bibleObject:ESFMBible, BBB:str, givenEntryList
             # adjText, cleanText, extras = _processLineFix( self, C:str,V:str, originalMarker:str, text:str, fixErrors:list[str] )
             # newEntry = InternalBibleEntry( entry.getMarker(), entry.getOriginalMarker(), entry.getAdjustedText(), entry.getCleanText(), entry.getExtras(), original_text )
             # Since we messed up many of the fields, set them to blank/null entries so that the old/wrong/outdated values can't be accidentally used
-            newEntry = InternalBibleEntry( entry.getMarker(), entry.getOriginalMarker(), '', '', None, original_text )
+            newEntry = InternalBibleEntry( entry.getMarker(), entry.getOriginalMarker(), original_text, '', None, '' )
             updatedVerseEntryList.append( newEntry )
         else:
             logging.critical( f"ESFMBible.livenESFMWordLinks unable to find wordlink title in '{original_text}'" )
             updatedVerseEntryList.append( entry )
-            halt
+            assert False, "We want to stop here"
 
     # for updatedEntry in updatedVerseEntryList:
     #     if updatedEntry.getOriginalText():
@@ -584,7 +586,7 @@ def livenOETCompatibleWordLinks( level:int, bibleObject:InternalBible, BBB:str, 
                 # adjText, cleanText, extras = _processLineFix( self, C:str,V:str, originalMarker:str, text:str, fixErrors:list[str] )
                 # newEntry = InternalBibleEntry( entry.getMarker(), entry.getOriginalMarker(), entry.getAdjustedText(), entry.getCleanText(), entry.getExtras(), original_text )
                 # Since we messed up many of the fields, set them to blank/null entries so that the old/wrong/outdated values can't be accidentally used
-                newEntry = InternalBibleEntry( entry.getMarker(), entry.getOriginalMarker(), '', '', None, original_text )
+                newEntry = InternalBibleEntry( entry.getMarker(), entry.getOriginalMarker(), original_text, '', None, '' )
                 updatedVerseEntryList.append( newEntry )
             else:
                 logging.critical( f"ESFMBible.livenESFMWordLinks unable to find wordlink in '{original_text}'" )
@@ -634,7 +636,7 @@ def livenOETCompatibleWordLinks( level:int, bibleObject:InternalBible, BBB:str, 
             # print( f"livenOETWordLinks {BBB} word match 1='{titleMatch.group(1)}' all='{titleMatch.group(0)}'" )
             hrefMatch = linkedHrefWordNumberRegex.search( original_text, titleMatch.end() )
             if not hrefMatch:
-                halt # What went wrong here
+                assert False, "We want to stop here" # What went wrong here
             # print( f"{titleMatch.start()=} {hrefMatch.start()=} {hrefMatch.start()-titleMatch.end()=} {hrefMatch.group(1)=} from {hrefMatch.group(0)=}" )
             assert hrefMatch.start() - titleMatch.end() == 5 # Should be immediately after href
             placeholderOriginalLanguageWord = titleMatch.group(1)
@@ -763,12 +765,12 @@ def livenOETCompatibleWordLinks( level:int, bibleObject:InternalBible, BBB:str, 
             # adjText, cleanText, extras = _processLineFix( self, C:str,V:str, originalMarker:str, text:str, fixErrors:list[str] )
             # newEntry = InternalBibleEntry( entry.getMarker(), entry.getOriginalMarker(), entry.getAdjustedText(), entry.getCleanText(), entry.getExtras(), original_text )
             # Since we messed up many of the fields, set them to blank/null entries so that the old/wrong/outdated values can't be accidentally used
-            newEntry = InternalBibleEntry( entry.getMarker(), entry.getOriginalMarker(), '', '', None, original_text )
+            newEntry = InternalBibleEntry( entry.getMarker(), entry.getOriginalMarker(), original_text, '', None, '' )
             updatedVerseList.append( newEntry )
         else:
             logging.critical( f"ESFMBible.livenESFMWordLinks unable to find wordlink title in '{original_text}'" )
             updatedVerseList.append( entry )
-            halt
+            assert False, "We want to stop here"
 
     # for updatedEntry in updatedVerseList:
     #     if updatedEntry.getOriginalText():
@@ -806,7 +808,7 @@ def findLVQuote( level:int, BBB:str, C:str, V:str, occurrenceNumber:int, origina
     # Find a ESFM word number that belongs with this B/C/V
     wordNumberStr = None
     for lvVerseEntry in lvVerseEntryList:
-        text = lvVerseEntry.getFullText()
+        text = lvVerseEntry.getOriginalText()
         if not text or '¦' not in text: continue # no interest to us here
         # print( f"findLVQuote found {BBB} {C}:{V} {lvVerseEntry=}" )
         ixMarker = text.index( '¦' )
@@ -851,7 +853,7 @@ def findLVQuote( level:int, BBB:str, C:str, V:str, occurrenceNumber:int, origina
         #     for char in adjustedOriginalQuote:
         #         if char not in ' &’' and 'GREEK' not in unicodedata.name(char):
         #             print( f"findLVQuote: uW UTN has unexpected char {BBB} {C}:{V} '{char}' ({unicodedata.name(char)}) from '{adjustedOriginalQuote}' from '{originalQuote}'" )
-        #             halt
+        #             assert False, "We want to stop here"
         olWords = adjustedOriginalQuote.split( ' ' )
         assert '' not in olWords, f"findLVQuote: uW UTN has unexpected empty string {ref} {olWords=} from '{adjustedOriginalQuote}' from '{originalQuote}'"
         olIndex = wordNumberOffset = 0
@@ -970,7 +972,7 @@ def findLVQuote( level:int, BBB:str, C:str, V:str, occurrenceNumber:int, origina
             lvEnglishWords.append( f'''(Some words not found in {'<a href="#SR-GNT">SR-GNT</a>' if NT else '<a href="#UHB">UHB</a>'}: {' '.join( ourWords )})''' )
             logging.warning( f"findLVQuote unable to match {ref} '{originalQuote}' {occurrenceNumber=} {currentOccurrenceNumber=} {inGap=}\n  {olWords=}  {olIndex=}\n  {ourWords=} {matchStart=}" )
             # if BBB not in ('MRK',) or C not in ('1',) or V not in ('5','8','14'):
-            # halt
+            # assert False, "We want to stop here"
 
         assembledHtml = ' '.join(lvEnglishWords)
         # assert checkHtml( f'LV {BBB} {C}:{V}', html, segmentOnly=True )

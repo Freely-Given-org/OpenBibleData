@@ -107,7 +107,7 @@ from OETHandlers import getOETTidyBBB, getOETBookName, getHebrewWordpageFilename
 from createSectionPages import findSectionNumber
 
 
-LAST_MODIFIED_DATE = '2026-05-25' # by RJH
+LAST_MODIFIED_DATE = '2026-06-13' # by RJH
 SHORT_PROGRAM_NAME = "createOETReferencePages"
 PROGRAM_NAME = "OpenBibleData createOETReferencePages functions"
 PROGRAM_VERSION = '0.95'
@@ -115,10 +115,8 @@ PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
 
-# BACKSLASH = '\\'
 NEWLINE = '\n'
 TAB = '\t'
-# EM_SPACE = ' '
 NARROW_NON_BREAK_SPACE = ' '
 
 
@@ -128,96 +126,101 @@ THEOGRAPHIC_INPUT_FOLDER_PATH = FG_folderpath.joinpath( 'Bible_speaker_identific
 
 
 IMPORTANT_PEOPLE_CHRONOLOGICAL_LIST = (
-    # Has the name (in chronological order), plus a verse reference (that will be transformed into a section link)
-    ('Adam', ('GEN_1:26',)),
-    ('Havvah/Eve', ('GEN_3:20',)),
-    ('Kayin/Cain', ('GEN_4:1',)),
-    ('Hevel/Abel', ('GEN_4:2',)),
-    ('Abram', ('GEN_11:26',)),
-    ('Lot', ('GEN_11:27',)),
-    ('Malki-Tsedek/Melchizedek', ('GEN_14:18','PSA_110:4','HEB_5:6','HEB_6:20','HEB_7:1')),
-    ('Abraham', ('GEN_30:24',)),
-    ('Yosef/Joseph (one of twelve)', ('GEN_17:5','GEN_30:22','GEN_37:1','JHN_4:5','ACT_7:9','HEB_11:21','REV_7:8')),
-    ('Mosheh/Moses', ('EXO_2:10',)),
-    ('Aaron/Aharon', ('EXO_4:14',)),
-    ('Yehoshua/Joshua', ('EXO_17:9',)),
-    ('Bileam/Balaam', ('NUM_22:5',)),
-    ('Shimshon/Samson', ('JDG_13:24','HEB_11:32')),
-    ('Naomi', ('RUT_1:2',)),
-    ('Rut/Ruth', ('RUT_1:4','MAT_1:5')),
-    ('Shemuel/Samuel', ('SA1_1:20',)),
-    ('Shaul/Saul', ('SA1_9:1',)),
-    ('David', ('SA1_16:1',)),
-    ('Shelomoh/Solomon', ('SA2_5:14','MAT_6:29','LUK_12:27','ACT_7:47')),
-    ('Hezekiah', ('KI2_16:20',)),
-    ('Zekaryah/Zechariah', ('LUK_1:5',)),
-    ('Yeshua/Jesus', ('LUK_2:21',)),
-    ('Yohan/John', ('MRK_1:19','MAT_4:21','JHN_1:35')),
-    ('Yonah/Jonah', ('JNA_1:1','KI2_14:25','MAT_12:39','LUK_11:29')),
-    ('Matthew/Levi', ('MAT_9:9',)),
-    ('Lazarus (from Bethany)', ('JHN_11:1','JHN_12:1')),
-    ('Lazarus (in parable)', ('LUK_16:20',)),
-    ('Barnabas/Yosef', ('ACT_4:36','ACT_9:26','ACT_11:22','ACT_13:1','ACT_15:1','CO1_9:6','GAL_2:1','COL_4:10')),
+    # Has the name (in chronological order), plus one or more verse references (that will be transformed into section link(s))
+    ('Adam', 'Adam', ('GEN_1:26',)),
+    ('Havvah/Eve', 'Eve', ('GEN_3:20',)),
+    ('Kayin/Cain', 'Cain', ('GEN_4:1',)),
+    ('Hevel/Abel', 'Abel', ('GEN_4:2',)),
+    ('Abram', 'Abraham', ('GEN_11:26',)),
+    ('Lot', 'Lot', ('GEN_11:27',)),
+    ('Malki-Tsedek/Melchizedek', 'Melchizedek', ('GEN_14:18','PSA_110:4','HEB_5:6','HEB_6:20','HEB_7:1')),
+    ('Abraham', 'Abraham', ('GEN_30:24',)),
+    ('Yosef/Joseph (one of twelve)', 'Joseph', ('GEN_17:5','GEN_30:22','GEN_37:1','JHN_4:5','ACT_7:9','HEB_11:21','REV_7:8')),
+    ('Mosheh/Moses', 'Moses', ('EXO_2:10',)),
+    ('Aaron/Aharon', 'Aaron', ('EXO_4:14',)),
+    ('Yehoshua/Joshua', 'Joshua', ('EXO_17:9',)),
+    ('Bileam/Balaam', 'Balaam', ('NUM_22:5',)),
+    ('Shimshon/Samson', 'Samson', ('JDG_13:24','HEB_11:32')),
+    ('Naomi', 'Naomi', ('RUT_1:2',)),
+    ('Rut/Ruth', 'Ruth', ('RUT_1:4','MAT_1:5')),
+    ('Shemuel/Samuel', 'Samuel', ('SA1_1:20',)),
+    ('Shaul/Saul', 'Saul', ('SA1_9:1',)),
+    ('David', 'David', ('SA1_16:1',)),
+    ('Shelomoh/Solomon', 'Solomon', ('SA2_5:14','MAT_6:29','LUK_12:27','ACT_7:47')),
+    ('Hezekiah', 'Hezekiah', ('KI2_16:20',)),
+    ('Yirmeyah/Jeremiah', 'Jeremiah', ('JER_1:1','CH2_35:25','CH2_36:12','CH2_36:21-22','EZR_1:1','DAN_9:2','MAT_2:17','MAT_16:14','MAT_27:9','HEB_8:8-12')),
+    ('Zekaryah/Zechariah', 'Zacharias', ('LUK_1:5',)),
+    ('Yeshua/Jesus', 'Jesus', ('LUK_2:21',)),
+    ('Yohan/John', 'John2', ('MRK_1:19','MAT_4:21','JHN_1:35')),
+    ('Yonah/Jonah', 'Jonah', ('JNA_1:1','KI2_14:25','MAT_12:39','LUK_11:29')),
+    ('Matthew/Levi', 'Matthew', ('MAT_9:9',)),
+    ('Lazarus (from Bethany)', 'Lazarus', ('JHN_11:1','JHN_12:1')),
+    ('Lazarus (in parable)', '', ('LUK_16:20',)),
+    ('Barnabas/Yosef', 'Barnabas', ('ACT_4:36','ACT_9:26','ACT_11:22','ACT_13:1','ACT_15:1','CO1_9:6','GAL_2:1','COL_4:10')),
     )
-for personName, personRefList in IMPORTANT_PEOPLE_CHRONOLOGICAL_LIST:
-    assert isinstance( personName, str )# and ' ' not in personName, f"{personName=}"
+for personName, personRefName, personRefList in IMPORTANT_PEOPLE_CHRONOLOGICAL_LIST:
+    assert isinstance( personName, str )
+    assert isinstance( personRefName, str )
     for personRef in personRefList:
-        assert isinstance( personRef, str ) and 6<len(personRef)<12, f"{personName} {personRef=}"
-        assert personRef.count('_')==1 and personRef.count(':')==1 and ' ' not in personRef
-IMPORTANT_PEOPLE_ALPHABETICAL_LIST = ( # Has the name (in alphabetical order), plus a verse reference (that will be transformed into a section link)
-    ('Aaron/Aharon', ('EXO_4:14',)),
-    ('Abel/Hevel', ('GEN_4:2',)),
-    ('Abraham', ('GEN_17:5',)),
-    ('Abram', ('GEN_11:26',)),
-    ('Adam', ('GEN_1:26',)),
-    ('Aharon/<small>Aaron</small>', ('EXO_4:14',)),
-    ('Balaam/Bileam', ('NUM_22:5',)),
-    ('Barnabas/Yosef', ('ACT_4:36','ACT_9:26','ACT_11:22','ACT_13:1','ACT_15:1','CO1_9:6','GAL_2:1','COL_4:10')),
-    ('Bileam/<small>Balaam</small>', ('NUM_22:5',)),
-    ('Cain/Kayin', ('GEN_4:1',)),
-    ('David', ('SA1_16:1',)),
-    ('Eve/Havvah', ('GEN_3:20',)),
-    ('Havvah/<small>Eve</small>', ('GEN_3:20',)),
-    ('Hevel/<small>Abel</small>', ('GEN_4:2',)),
-    ('Hezekiah', ('KI2_16:20',)),
-    ('Jesus/Yeshua', ('LUK_2:21',)),
-    ('John/Yohan', ('MRK_1:19','MAT_4:21','JHN_1:35')),
-    ('Jonah/Yonah', ('JNA_1:1','KI2_14:25','MAT_12:39','LUK_11:29')),
-    ('Joseph/Yosef (one of twelve)', ('GEN_17:5','GEN_30:22','GEN_37:1','JHN_4:5','ACT_7:9','HEB_11:21','REV_7:8')),
-    ('Joshua/Yehoshua', ('EXO_17:9',)),
-    ('Kayin/<small>Cain</small>', ('GEN_4:1',)),
-    ('Lazarus (from Bethany)', ('JHN_11:1','JHN_12:1')),
-    ('Lazarus (in parable)', ('LUK_16:20',)),
-    ('Levi/<small>Matthew</small>', ('MAT_9:9',)),
-    ('Lot', ('GEN_11:27',)),
-    ('Malki-Tsedek/<small>Melchizedek</small>', ('GEN_14:18','PSA_110:4','HEB_5:6','HEB_6:20','HEB_7:1')),
-    ('Matthew/<small>Levi</small>', ('MAT_9:9',)),
-    ('Melchizedek/Malki-Tsedek', ('GEN_14:18','PSA_110:4','HEB_5:6','HEB_6:20','HEB_7:1')),
-    ('Mosheh/<small>Moses</small>', ('EXO_2:10',)),
-    ('Naomi', ('RUT_1:2',)),
-    ('Rut/<small>Ruth</small>', ('RUT_1:4','MAT_1:5')),
-    ('Samuel/Shemuel', ('SA1_1:20',)),
-    ('Samson/Shimshon', ('JDG_13:24','HEB_11:32')),
-    ('Saul/Shaul', ('SA1_9:1',)),
-    ('Shaul/<small>Saul</small>', ('SA1_9:1',)),
-    ('Shelomoh/<small>Solomon</small>', ('SA2_5:14','MAT_6:29','LUK_12:27','ACT_7:47')),
-    ('Shemuel/<small>Samuel</small>', ('SA1_1:20',)),
-    ('Shimshon/<small>Samson</small>', ('JDG_13:24','HEB_11:32')),
-    ('Solomon/Shelomoh', ('SA2_5:14','MAT_6:29','LUK_12:27','ACT_7:47')),
-    ('Yehoshua/<small>Joshua</small>', ('EXO_17:9',)),
-    ('Yeshua/<small>Jesus</small>', ('LUK_2:21',)),
-    ('Yohan/<small>John</small>', ('MRK_1:19','MAT_4:21','JHN_1:35')),
-    ('Yonah/<small>Jonah</small>', ('JNA_1:1','KI2_14:25','MAT_12:39','LUK_11:29')),
-    ('Yosef/<small>Joseph</small> (one of twelve)', ('GEN_17:5','GEN_30:22','GEN_37:1','JHN_4:5','ACT_7:9','HEB_11:21','REV_7:8')),
-    ('Zechariah/Zekaryah', ('LUK_1:5',)),
-    ('Zekaryah/<small>Zechariah</small>', ('LUK_1:5',)),
+        assert isinstance( personRef, str ) and 6<len(personRef)<15, f"{personName} {personRef=}"
+        assert personRef.count('_')==1 and personRef.count(':')==1 and personRef.count('-')<=1 and ' ' not in personRef
+IMPORTANT_PEOPLE_ALPHABETICAL_LIST = ( # Has both forms of the name (in alphabetical order), plus one or more verse references (that will be transformed into section link(s))
+    ('Aaron/Aharon', 'Aaron', ('EXO_4:14',)),
+    ('Abel/Hevel', 'Abel', ('GEN_4:2',)),
+    ('Abraham', 'Abraham', ('GEN_17:5',)),
+    ('Abram', 'Abraham', ('GEN_11:26',)),
+    ('Adam', 'Adam', ('GEN_1:26',)),
+    ('Aharon/<small>Aaron</small>', 'Aaron', ('EXO_4:14',)),
+    ('Balaam/Bileam', 'Balaam', ('NUM_22:5',)),
+    ('Barnabas/Yosef', 'Barnabas', ('ACT_4:36','ACT_9:26','ACT_11:22','ACT_13:1','ACT_15:1','CO1_9:6','GAL_2:1','COL_4:10')),
+    ('Bileam/<small>Balaam</small>', 'Balaam', ('NUM_22:5',)),
+    ('Cain/Kayin', 'Cain', ('GEN_4:1',)),
+    ('David', 'David', ('SA1_16:1',)),
+    ('Eve/Havvah', 'Eve', ('GEN_3:20',)),
+    ('Havvah/<small>Eve</small>', 'Eve', ('GEN_3:20',)),
+    ('Hevel/<small>Abel</small>', 'Abel', ('GEN_4:2',)),
+    ('Hezekiah', 'Hezekiah', ('KI2_16:20',)),
+    ('Jeremiah/Yirmeyah', 'Jeremiah', ('JER_1:1','CH2_35:25','CH2_36:12','CH2_36:21-22','EZR_1:1','DAN_9:2','MAT_2:17','MAT_16:14','MAT_27:9','HEB_8:8-12')),
+    ('Jesus/Yeshua', 'Jesus', ('LUK_2:21',)),
+    ('John/Yohan', 'John2', ('MRK_1:19','MAT_4:21','JHN_1:35')),
+    ('Jonah/Yonah', 'Jonah', ('JNA_1:1','KI2_14:25','MAT_12:39','LUK_11:29')),
+    ('Joseph/Yosef (one of twelve)', 'Joseph', ('GEN_17:5','GEN_30:22','GEN_37:1','JHN_4:5','ACT_7:9','HEB_11:21','REV_7:8')),
+    ('Joshua/Yehoshua', 'Joshua', ('EXO_17:9',)),
+    ('Kayin/<small>Cain</small>', 'Cain', ('GEN_4:1',)),
+    ('Lazarus (from Bethany)', 'Lazarus', ('JHN_11:1','JHN_12:1')),
+    ('Lazarus (in parable)', '', ('LUK_16:20',)),
+    ('Levi/<small>Matthew</small>', 'Matthew', ('MAT_9:9',)),
+    ('Lot', 'Lot', ('GEN_11:27',)),
+    ('Malki-Tsedek/<small>Melchizedek</small>', 'Melchizedek', ('GEN_14:18','PSA_110:4','HEB_5:6','HEB_6:20','HEB_7:1')),
+    ('Matthew/<small>Levi</small>', 'Matthew', ('MAT_9:9',)),
+    ('Melchizedek/Malki-Tsedek', 'Melchizedek', ('GEN_14:18','PSA_110:4','HEB_5:6','HEB_6:20','HEB_7:1')),
+    ('Mosheh/<small>Moses</small>', 'Moses', ('EXO_2:10',)),
+    ('Naomi', 'Naomi', ('RUT_1:2',)),
+    ('Rut/<small>Ruth</small>', 'Ruth', ('RUT_1:4','MAT_1:5')),
+    ('Samuel/Shemuel', 'Samuel', ('SA1_1:20',)),
+    ('Samson/Shimshon', 'Samson', ('JDG_13:24','HEB_11:32')),
+    ('Saul/Shaul', 'Saul', ('SA1_9:1',)),
+    ('Shaul/<small>Saul</small>', 'Saul', ('SA1_9:1',)),
+    ('Shelomoh/<small>Solomon</small>', 'Solomon', ('SA2_5:14','MAT_6:29','LUK_12:27','ACT_7:47')),
+    ('Shemuel/<small>Samuel</small>', 'Samuel', ('SA1_1:20',)),
+    ('Shimshon/<small>Samson</small>', 'Samson', ('JDG_13:24','HEB_11:32')),
+    ('Solomon/Shelomoh', 'Solomon', ('SA2_5:14','MAT_6:29','LUK_12:27','ACT_7:47')),
+    ('Yehoshua/<small>Joshua</small>', 'Joshua', ('EXO_17:9',)),
+    ('Yeshua/<small>Jesus</small>', 'Jesus', ('LUK_2:21',)),
+    ('Yirmeyah/<small>Jeremiah</small>', 'Jeremiah', ('JER_1:1','CH2_35:25','CH2_36:12','CH2_36:21-22','EZR_1:1','DAN_9:2','MAT_2:17','MAT_16:14','MAT_27:9','HEB_8:8-12')),
+    ('Yohan/<small>John</small>', 'John2', ('MRK_1:19','MAT_4:21','JHN_1:35')),
+    ('Yonah/<small>Jonah</small>', 'Jonah', ('JNA_1:1','KI2_14:25','MAT_12:39','LUK_11:29')),
+    ('Yosef/<small>Joseph</small> (one of twelve)', 'Joseph', ('GEN_17:5','GEN_30:22','GEN_37:1','JHN_4:5','ACT_7:9','HEB_11:21','REV_7:8')),
+    ('Zechariah/Zekaryah', 'Zacharias', ('LUK_1:5',)),
+    ('Zekaryah/<small>Zechariah</small>', 'Zacharias', ('LUK_1:5',)),
     )
-for personName, personRefList in IMPORTANT_PEOPLE_ALPHABETICAL_LIST:
-    assert isinstance( personName, str )# and ' ' not in personName
+for personName, personRefName, personRefList in IMPORTANT_PEOPLE_ALPHABETICAL_LIST:
+    assert isinstance( personName, str )
+    assert isinstance( personRefName, str )
     for personRef in personRefList:
-        assert isinstance( personRef, str ) and 6<len(personRef)<12, f"{personName} {personRef=}"
-        assert personRef.count('_')==1 and personRef.count(':')==1 and ' ' not in personRef
-        BBB,CV = personRef.split( '_', 1 )
+        assert isinstance( personRef, str ) and 6<len(personRef)<15, f"{personName} {personRef=}"
+        assert personRef.count('_')==1 and personRef.count(':')==1 and personRef.count('-')<=1 and ' ' not in personRef
+        BBB,CV = personRef.split('-')[0].split( '_', 1 )
         assert BBB in BOOKLIST_66, f"{personName} {BBB=}"
         C,V = CV.split( ':', 1 )
         assert C.isdigit() and V.isdigit()
@@ -888,7 +891,7 @@ def createOETReferencePages( level:int, outputFolderPath:Path, state:State ) -> 
 <p class="note"><a href="GrkWrd/">Greek words index</a> <a href="GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
 <p class="note"><a href="GrkLem/">Greek lemmas index</a> <a href="GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
 <p class="note"><a href="GrkStrng/">Greek Strongs numbers index</a></p>
-<p class="note"><a href="Per/importantIndex.htm">Important people index</a> <a href="Per/">All people index</a> <a href="Loc/">Locations index</a></p>
+<p class="note"><a href="Per/importantPeopleAlphabeticalIndex.htm">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm">Important people chronological index</a> <a href="Per/">All people index</a> <a href="Loc/">Locations index</a></p>
 <p class="note"><a href="Kingdoms/">Promised land kingdoms index</a></p>
 <p class="note"><a href="Stats/">Bible statistics</a></p>
 {makeBottom( level, None, 'referenceIndex', state )}'''
@@ -985,11 +988,11 @@ def preprocessHebrewWordsLemmasGlosses( BBBSelection:str|list[str], state ) -> b
                         state.OETRefData['OTLemmaRowNumbersDict'][noCantillations].append( lemmaRowNumber )
                         state.OETRefData['OTWordRowNumbersDict'][lemmaRowNumber].append( n )
                     except ValueError: # '###MISSING-B3###'
-                        # print( f"preprocessHebrewWordsLemmasGlosses ignored {lemmaRowNumberStr=} from {n} {columns_string=}" ); halt
+                        # print( f"preprocessHebrewWordsLemmasGlosses ignored {lemmaRowNumberStr=} from {n} {columns_string=}" ); assert False, "We want to stop here"
                         pass
             # print( f"{_word=} {noCantillations=} {_morphemeRowList=} {lemmaRowList=} {state.OETRefData['OTLemmaRowNumbersDict'][noCantillations]=}" )
             # for lrn in state.OETRefData['OTLemmaRowNumbersDict'][noCantillations]: print( f"  {lrn=}: {state.OETRefData['OTWordRowNumbersDict'][lrn]=}")
-            # if noCantillations == 'נִין': halt
+            # if noCantillations == 'נִין': assert False, "We want to stop here"
             # else:
             #     state.OETRefData['OTLemmaRowNumbersDict'][noCantillations].append( n )
             #     state.OETRefData['OTLemmaFormsDict'][noCantillations].add( formMorph2Tuple )
@@ -1116,7 +1119,7 @@ def formatNTSpansGlossWords( glossWords:str ) -> str:
     #     while (match := forward_slash_regex.search( adjustedGlossWords )):
     #         # print( f"Found match {match} in {adjustedGlossWords=}")
     #         adjustedGlossWords = f'{adjustedGlossWords[:match.start()+1]}__SLASH__{adjustedGlossWords[match.end()-1:]}'
-    #         # print( f"{adjustedGlossWords=}" ); halt
+    #         # print( f"{adjustedGlossWords=}" ); assert False, "We want to stop here"
     # assert adjustedGlossWords.count('/') in (0,2,4), f"{adjustedGlossWords=} from {glossWords=}"
 
     result = ( adjustedGlossWords
@@ -1458,7 +1461,7 @@ def create_Hebrew_word_pages( level:int, outputFolderPath:Path, state:State ) ->
 <p class="note"><a href="../GrkWrd/">Greek words index</a> <a href="../GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
 <p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
 <p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a></p>
-<p class="note"><a href="../Per/importantIndex.htm">Important people index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
+<p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm">Important people chronological index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
 <p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/">Bible statistics</a></p>
 <h1 id="Top">Hebrew Words Index ({len(wordLinksForIndex):,})</h1>
@@ -1484,7 +1487,7 @@ def create_Hebrew_word_pages( level:int, outputFolderPath:Path, state:State ) ->
 <p class="note"><a href="../GrkWrd/">Greek words index</a> <a href="../GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
 <p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
 <p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a></p>
-<p class="note"><a href="../Per/importantIndex.htm">Important people index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
+<p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm">Important people chronological index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
 <p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/">Bible statistics</a></p>
 <h1 id="Top">Transliterated Hebrew Words Index ({len(wordLinksForIndex):,})</h1>
@@ -1626,7 +1629,7 @@ def create_Hebrew_word_page( level:int, hh:int, hebrewWord:str, columns_string:s
     lemmaGlossesList = sorted( state.OETRefData['OTLemmaOETGlossesDict'][noCantillations] )
     try: lemmaGlossesList.remove( '' ) # TODO: Check how this gets in there
     except ValueError: pass
-    # print( f"{len(lemmaGlossesList)=}"); halt
+    # print( f"{len(lemmaGlossesList)=}"); assert False, "We want to stop here"
 
     numWordOETGlossesList = len( state.OETRefData['OTFormOETGlossesDict'][(hebrewWord,morphology)] )
     wordOETGlossesStrList = [f'‘<b>{wordGloss}</b>’({state.OETRefData['OTFormOETGlossesCountDict'][(hebrewWord,morphology,wordGloss)]:,})'
@@ -1947,7 +1950,7 @@ def create_Hebrew_lemma_pages( level:int, outputFolderPath:Path, state:State ) -
         #     print( f"create_Hebrew_lemma_pages: {lemmaIndex} {hebLemma=}")
         # if hebLemma == 'בָּרָד':
         #     print( f"create_Hebrew_lemma_pages: {lemmaIndex} {hebLemma=}")
-        #     halt
+        #     assert False, "We want to stop here"
         if (lemmaIndex+1) % 2_000 == 0:
             vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      {len(lemmaLinks)+1:,} made out of {f'{lemmaIndex+1:,} out of ' if lemmaIndex!=len(lemmaLinks) else ''}{len(lemmaList):,}…" )
         transliteratedLemma = transliterate_Hebrew( hebLemma )
@@ -1960,7 +1963,7 @@ def create_Hebrew_lemma_pages( level:int, outputFolderPath:Path, state:State ) -
 
         hebLemmaWordRowsList = state.OETRefData['OTWordRowNumbersDict'][lemmaIndex+1]
         # print( f"\n{lemmaIndex=} {len(lemmaList)=} {hebLemma=} {transliteratedLemma=} {state.OETRefData['OTWordRowNumbersDict'][lemmaIndex+1]=}\n{lemmaList[lemmaIndex]=}")
-        # if hebLemma == 'בָּרָא': print( f"\ncreate_Hebrew_lemma_pages: lemma {lemmaIndex}: {hebLemma=} {vowellessLemma=} {transliteratedLemma=} {transliteratedVowellessLemma=} ({len(hebLemmaWordRowsList)}) {hebLemmaWordRowsList=}" ); halt
+        # if hebLemma == 'בָּרָא': print( f"\ncreate_Hebrew_lemma_pages: lemma {lemmaIndex}: {hebLemma=} {vowellessLemma=} {transliteratedLemma=} {transliteratedVowellessLemma=} ({len(hebLemmaWordRowsList)}) {hebLemmaWordRowsList=}" ); assert False, "We want to stop here"
         # lemmaFormsList = sorted( state.OETRefData['OTLemmaFormsDict'][hebLemma] )
         # lemmaOETGlossesList = state.OETRefData['OTLemmaGlossDict'][hebLemma].split( ';' )
 
@@ -2316,7 +2319,7 @@ def create_Hebrew_lemma_pages( level:int, outputFolderPath:Path, state:State ) -
 <p class="note"><a href="../GrkWrd/">Greek words index</a> <a href="../GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
 <p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
 <p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a></p>
-<p class="note"><a href="../Per/importantIndex.htm">Important people index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
+<p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm">Important people chronological index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
 <p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/">Bible statistics</a></p>
 <h1 id="Top">Hebrew Lemmas Index ({len(lemmaLinks):,})</h1>
@@ -2343,7 +2346,7 @@ def create_Hebrew_lemma_pages( level:int, outputFolderPath:Path, state:State ) -
 <p class="note"><a href="../GrkWrd/">Greek words index</a> <a href="../GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
 <p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
 <p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a></p>
-<p class="note"><a href="../Per/importantIndex.htm">Important people index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
+<p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm">Important people chronological index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
 <p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/">Bible statistics</a></p>
 <h1 id="Top">Transliterated Hebrew Lemmas Index ({len(lemmaLinks):,})</h1>
@@ -2440,7 +2443,7 @@ def create_Greek_word_pages( level:int, outputFolderPath:Path, state:State ) -> 
                 assert not mainGlossWord, f"There should only be ONE {BBB} {C}:{V}w{W} {mainGlossWord=} {someGlossWord=} from {gg} {columns_string=}"
                 mainGlossWord = someGlossWord.split('/(')[0] # Throw away any Hebrew names #.replace('\\add_','\\add ')
         if mainGlossWord and ('\\' in mainGlossWord or '/' in mainGlossWord):
-            if '\\' in mainGlossWord: print( f"{gg=} {mainGlossWord=} from {OETGlossWordsStr=}"); halt
+            if '\\' in mainGlossWord: print( f"{gg=} {mainGlossWord=} from {OETGlossWordsStr=}"); assert False, "We want to stop here"
         if extendedStrongs == 'None': extendedStrongs = None
         if roleLetter == 'None': roleLetter = None
         if morphology == 'None': morphology = None
@@ -2739,7 +2742,7 @@ f''' <a title="Go to Statistical Restoration Greek page" href="https://GreekCN
 <p class="note"><span class="selectedBook">Greek words index</span> <a href="transIndex.htm">Transliterated Greek words index</a></p>
 <p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
 <p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a></p>
-<p class="note"><a href="../Per/importantIndex.htm">Important people index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
+<p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm">Important people chronological index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
 <p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/">Bible statistics</a></p>
 <h1 id="Top">Greek Words Index ({len(wordLinksForIndex):,})</h1>
@@ -2766,7 +2769,7 @@ f''' <a title="Go to Statistical Restoration Greek page" href="https://GreekCN
 <p class="note"><a href="index.htm">Greek words index</a> <span class="selectedBook">Transliterated Greek words index</span></p>
 <p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
 <p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a></p>
-<p class="note"><a href="../Per/importantIndex.htm">Important people index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
+<p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm">Important people chronological index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
 <p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/">Bible statistics</a></p>
 <h1 id="Top">Transliterated Greek Words Index ({len(wordLinksForIndex):,})</h1>
@@ -3044,7 +3047,7 @@ def create_Greek_lemma_pages( level:int, outputFolderPath:Path, state:State ) ->
 <p class="note"><a href="../GrkWrd/">Greek words index</a> <a href="../GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
 <p class="note"><span class="selectedBook">Greek lemmas index</span> <a href="transIndex.htm">Transliterated Greek lemmas index</a></p>
 <p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a></p>
-<p class="note"><a href="../Per/importantIndex.htm">Important people index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
+<p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm">Important people chronological index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
 <p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/">Bible statistics</a></p>
 <h1 id="Top">Greek Lemmas Index ({len(lemmaLinks):,})</h1>
@@ -3071,7 +3074,7 @@ def create_Greek_lemma_pages( level:int, outputFolderPath:Path, state:State ) ->
 <p class="note"><a href="../GrkWrd/">Greek words index</a> <a href="../GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
 <p class="note"><a href="index.htm">Greek lemmas index</a> <span class="selectedBook">Transliterated Greek lemmas index</span></p>
 <p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a></p>
-<p class="note"><a href="../Per/importantIndex.htm">Important people index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
+<p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm">Important people chronological index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
 <p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/">Bible statistics</a></p>
 <h1 id="Top">Greek Lemmas Index ({len(lemmaLinks):,})</h1>
@@ -3123,8 +3126,10 @@ def create_Hebrew_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:
         nextLink = f' <b><a title="Next entry" href="H{strongsNumber+1}.htm#Top">→</a></b>' if strongsNumber<finalStrongsNumber else ''
 
         middle = bibleLexicon.getStrongsEntryHTML( strongsLetterNumberStr ) # Strongs entry
+        assert checkHtml( f'Strongs-{strongsLetterNumberStr}', middle, segmentOnly=True )
         bdDrBrEntry = bibleLexicon.getBrDrBrEntryHTML( strongsLetterNumberStr ) # Brown, Driver, Briggs entry
         if bdDrBrEntry:
+            assert checkHtml( f'BrDrBr-{strongsLetterNumberStr}', bdDrBrEntry, segmentOnly=True )
             middle = f'''{middle}
 <h2>Brown, Driver, Briggs lexicon entry</h2>
 {bdDrBrEntry}'''
@@ -3170,16 +3175,16 @@ def create_Hebrew_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:
 <p class="note"><a href="../GrkWrd/">Greek words index</a> <a href="../GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
 <p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
 <p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a></p>
-<p class="note"><a href="../Per/importantIndex.htm">Important people index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
+<p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm">Important people chronological index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
 <p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/">Bible statistics index</a></p>
 <h1 id="Top">Strongs {strongsLetterNumberStr}</h1>
 <p class="pgNav">{prevLink}<b>{strongsLetterNumberStr}</b> <a title="Go to Hebrew Strongs index" href="index.htm">↑</a>{nextLink}</p>
 <p class="btnBar"><button type="button" id="wordsButton" title="Hide/Show verse refs" onclick="hide_show_words()">Hide verse refs</button> <button type="button" id="versesButton" title="Hide/Show verse lines" onclick="hide_show_verses()">Hide verses</button> <button type="button" id="coloursButton" title="Hide/Show verse colours" onclick="hide_show_colours()">Hide verse colours</button></p>
-<p>{middle}</p>{''.join(versesHtml)}
+{middle}{''.join(versesHtml)}
 <p>View on <a href="https://BibleHub.com/hebrew/{strongsNumber}.htm">BibleHub</a>.</p>
 {makeBottom( level, None, 'StrongsPage', state )}'''
-        # assert checkHtml( 'StrongsPage', pageHtml )
+        assert checkHtml( 'StrongsPage', pageHtml )
         with open( filepath, 'wt', encoding='utf-8' ) as html_output_file:
             html_output_file.write( pageHtml )
         vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  Wrote {len(pageHtml):,} characters to {output_filename}" )
@@ -3200,7 +3205,7 @@ def create_Hebrew_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:
 <p class="note"><a href="../GrkWrd/">Greek words index</a> <a href="../GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
 <p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
 <p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a></p>
-<p class="note"><a href="../Per/importantIndex.htm">Important people index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
+<p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm">Important people chronological index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
 <p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/">Bible statistics index</a></p>
 <h1 id="Top">Strongs Hebrew Index ({len(indexList):,})</h1>
@@ -3293,7 +3298,7 @@ def create_Greek_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:B
 <p class="note"><a href="../GrkWrd/">Greek words index</a> <a href="../GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
 <p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
 <p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a></p>
-<p class="note"><a href="../Per/importantIndex.htm">Important people index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
+<p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm">Important people chronological index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
 <p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/">Bible statistics index</a></p>
 <h1 id="Top">Strongs {strongsLetterNumberStr}</h1>
@@ -3323,7 +3328,7 @@ def create_Greek_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:B
 <p class="note"><a href="../GrkWrd/">Greek words index</a> <a href="../GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
 <p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
 <p class="note"><span class="selectedBook">Greek Strongs numbers index</span></p>
-<p class="note"><a href="../Per/importantIndex.htm">Important people index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
+<p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm">Important people chronological index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
 <p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/">Bible statistics index</a></p>
 <h1 id="Top">Strongs Greek Index ({len(indexList):,})</h1>
@@ -3390,7 +3395,7 @@ def create_person_pages( level:int, outputFolderPath:Path, state:State ) -> int:
                                     .replace( '__TITLE__', f"{personName}{' TEST' if state.TEST_MODE_FLAG else ''}" )
                                     .replace( '__KEYWORDS__', 'Bible, word' )
                                     }
-<p class="prevNextLinks">{previousLink} <a title="Go to important people index" href="importantIndex.htm">I</a> <a title="Go to all people index" href="index.htm">↑</a> {nextLink}</p>
+<p class="prevNextLinks">{previousLink} <a title="Go to important people alphabetical index" href="importantPeopleAlphabeticalIndex.htm">IA</a> <a title="Go to important people chronological index" href="importantPeoplechronologicalIndex.htm">IC</a> <a title="Go to all people index" href="index.htm">↑</a> {nextLink}</p>
 {bodyHtml}
 <p class="thanks"><small>Grateful thanks to <a href="https://Viz.Bible">Viz.Bible</a> for these links and this data.</small></p>
 {makeBottom( level, None, 'person', state )}'''
@@ -3415,7 +3420,7 @@ def create_person_pages( level:int, outputFolderPath:Path, state:State ) -> int:
 <p class="note"><a href="../GrkWrd/">Greek words index</a> <a href="../GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
 <p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
 <p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a></p>
-<p class="note"><a href="../Per/importantIndex.htm">Important people index</a> <span class="selectedBook">All people index</span> <a href="../Loc/">Locations index</a></p>
+<p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm">Important people chronological index</a> <span class="selectedBook">All people index</span> <a href="../Loc/">Locations index</a></p>
 <p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/">Bible statistics</a></p>
 <h1 id="Top">All Bible People Index ({len(personLinks):,})</h1>
@@ -3441,11 +3446,10 @@ def create_important_person_pages( level:int, outputFolderPath:Path, state:State
     try: os.makedirs( outputFolderPath )
     except FileExistsError: pass # it was already there
 
+    # Firstly, make a list of all the Theographic keys
     with open( THEOGRAPHIC_INPUT_FOLDER_PATH.joinpath( 'normalised_People.json' ), 'rb' ) as people_file:
         peopleDict = json.load( people_file )
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Loaded {len(peopleDict):,} person entries." )
-
-    # Firstly, make a list of all the keys
     peopleKeys = []
     for personKey in peopleDict:
         if personKey == '__HEADERS__': continue
@@ -3454,26 +3458,89 @@ def create_important_person_pages( level:int, outputFolderPath:Path, state:State
         peopleKeys.append( personKey[1:] )
         # print( f"{personKey[1:]=}")
 
-    # personLinks:list[str] = []
-    personLinksString, lastPersonName = '', 'Anyone' # Must start with 'A' so don't get extra line spaces before first entry
-    for personNameBit, personRefList in IMPORTANT_PEOPLE_ALPHABETICAL_LIST:
-        # print( f"      {level=} {personName=} {personRef=}" )
+    # Now make the important people CHRONOLOGICAL list
+    personLinksStrings = []
+    for personNameBit, personRefName, personRefList in IMPORTANT_PEOPLE_CHRONOLOGICAL_LIST:
+        # print( f"      {level=} {personName=} {personRefName=} {personRef=}" )
         personPageLinkPart = None
-        if personNameBit == 'Abram': personPageLinkPart = 'Abraham'
-        elif personNameBit in ('Malki-Tsedek/<small>Melchizedek</small>','Melchizedek/Malki-Tsedek'): personPageLinkPart = 'Melchisedec'
-        if personNameBit in peopleKeys:
-            personPageLinkPart = personNameBit
-        elif '/' in personNameBit:
-            name1, name2  = personNameBit.split( '/', 1 )
-            if name1 in peopleKeys: personPageLinkPart = name1
-            else:
-                name2 = name2.replace( '<small>', '' ).replace( '</small>', '' )
-                if name2 in peopleKeys: personPageLinkPart = name2
+        if personRefName in peopleKeys:
+            personPageLinkPart = personRefName
+        # else:
+        #     if personNameBit == 'Abram': personPageLinkPart = 'Abraham'
+        #     elif personNameBit in ('Malki-Tsedek/<small>Melchizedek</small>','Melchizedek/Malki-Tsedek'): personPageLinkPart = 'Melchisedec'
+        #     if personNameBit in peopleKeys:
+        #         personPageLinkPart = personNameBit
+        #     elif '/' in personNameBit:
+        #         name1, name2  = personNameBit.split( '/', 1 )
+        #         if name1 in peopleKeys: personPageLinkPart = name1
+        #         else:
+        #             name2 = name2.replace( '<small>', '' ).replace( '</small>', '' )
+        #             if name2 in peopleKeys: personPageLinkPart = name2
         personPageLink = f'<a title="Go to person details page" href="{personPageLinkPart}.htm"><b>{personNameBit}</b></a>' if personPageLinkPart else f'({personNameBit})'
 
         personRefLinks = []
         for personRef in personRefList:
-            BBB, CV = personRef.split( '_', 1 )
+            BBB, CV = personRef.split('-')[0].split( '_', 1 )
+            C, V = CV.split( ':', 1 )
+            s = findSectionNumber( 'OET-RV', BBB, C, V, state )
+            tidyBBB = getOETTidyBBB( BBB, titleCase=True, addNotes=True )
+            personRefLink = f'''<a title="Go to first scripture section for person" href="{'../'*level}OET/bySec/{BBB}_S{s}.htm#C{C}V{V}">{tidyBBB} {C}:{V}</a>'''
+            personRefLinks.append( personRefLink )
+        fullPersonLink = f'{personPageLink} {", ".join(personRefLinks)}'
+        # print( f"        {fullPersonLink=}" )
+        # personLinks.append( (personName,fullPersonLink) )
+        personLinksStrings.append( f'<p class="note">{fullPersonLink}</p>' )
+
+    # Create this second index page for this folder (there's already one for ALL people)
+    filename = 'importantPeopleChronologicalIndex.htm'
+    filepath = outputFolderPath.joinpath( filename )
+    top = makeTop( level, None, 'personIndex', None, state ) \
+            .replace( '__TITLE__', f"Important Bible People Chronological Index{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
+            .replace( '__KEYWORDS__', 'Bible, person, people' )
+    indexHtml = f'''{top}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
+<p class="note"><b><a href="../">Reference lists contents page</a></b></p>
+<p class="note"><a href="../HebWrd/">Hebrew words index</a> <a href="../HebWrd/transIndex.htm">Transliterated Hebrew words index</a></p>
+<p class="note"><a href="../HebLem/">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm">Transliterated Hebrew lemmas index</a></p>
+<p class="note"><a href="../HebStrng/">Hebrew Strongs numbers index</a></p>
+<p class="note"><a href="../GrkWrd/">Greek words index</a> <a href="../GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
+<p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
+<p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a></p>
+<p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm">Important people alphabetical index</a> <span class="selectedBook">Important people chronological index</span> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
+<p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
+<p class="note"><a href="../Stats/">Bible statistics</a></p>
+<h1 id="Top">Important Bible People Chronological Index ({len(IMPORTANT_PEOPLE_ALPHABETICAL_LIST):,})</h1>
+{'\n'.join(personLinksStrings)}
+{makeBottom( level, None, 'personIndex', state )}'''
+    assert checkHtml( 'personIndex', indexHtml )
+    assert not filepath.is_file() # Check that we're not overwriting anything
+    with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
+        indexHtmlFile.write( indexHtml )
+    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
+
+
+    # Now make the important people ALPHABETICAL list
+    personLinksString, lastPersonName = '', 'Anyone' # Must start with 'A' so don't get extra line spaces before first entry
+    for personNameBit, personRefName, personRefList in IMPORTANT_PEOPLE_ALPHABETICAL_LIST:
+        # print( f"      {level=} {personName=} {personRefName=} {personRef=}" )
+        personPageLinkPart = None
+        if personRefName in peopleKeys:
+            personPageLinkPart = personRefName
+        # else:
+        #     if personNameBit == 'Abram': personPageLinkPart = 'Abraham'
+        #     elif personNameBit in ('Malki-Tsedek/<small>Melchizedek</small>','Melchizedek/Malki-Tsedek'): personPageLinkPart = 'Melchisedec'
+        #     if personNameBit in peopleKeys:
+        #         personPageLinkPart = personNameBit
+        #     elif '/' in personNameBit:
+        #         name1, name2  = personNameBit.split( '/', 1 )
+        #         if name1 in peopleKeys: personPageLinkPart = name1
+        #         else:
+        #             name2 = name2.replace( '<small>', '' ).replace( '</small>', '' )
+        #             if name2 in peopleKeys: personPageLinkPart = name2
+        personPageLink = f'<a title="Go to person details page" href="{personPageLinkPart}.htm"><b>{personNameBit}</b></a>' if personPageLinkPart else f'({personNameBit})'
+
+        personRefLinks = []
+        for personRef in personRefList:
+            BBB, CV = personRef.split('-')[0].split( '_', 1 )
             C, V = CV.split( ':', 1 )
             s = findSectionNumber( 'OET-RV', BBB, C, V, state )
             tidyBBB = getOETTidyBBB( BBB, titleCase=True, addNotes=True )
@@ -3485,11 +3552,11 @@ def create_important_person_pages( level:int, outputFolderPath:Path, state:State
         personLinksString = f'{personLinksString}{' ' if personNameBit[0]==lastPersonName[0] else '<br><br>'}{fullPersonLink}'
         lastPersonName = personNameBit
 
-    # Create this second index page for this folder (there's already one for ALL people)
-    filename = 'importantIndex.htm'
+    # Create this third index page for this folder (there's already one for ALL people)
+    filename = 'importantPeopleAlphabeticalIndex.htm'
     filepath = outputFolderPath.joinpath( filename )
     top = makeTop( level, None, 'personIndex', None, state ) \
-            .replace( '__TITLE__', f"Important Bible People Index{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
+            .replace( '__TITLE__', f"Important Bible People Alphabetical Index{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, person, people' )
     indexHtml = f'''{top}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
 <p class="note"><b><a href="../">Reference lists contents page</a></b></p>
@@ -3499,10 +3566,10 @@ def create_important_person_pages( level:int, outputFolderPath:Path, state:State
 <p class="note"><a href="../GrkWrd/">Greek words index</a> <a href="../GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
 <p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
 <p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a></p>
-<p class="note"><span class="selectedBook">Important people index</span> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
+<p class="note"><span class="selectedBook">Important people alphabetical index</span> <a href="../Per/importantPeopleChronologicalIndex.htm">Important people chronological index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
 <p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/">Bible statistics</a></p>
-<h1 id="Top">Important Bible People Index ({len(IMPORTANT_PEOPLE_ALPHABETICAL_LIST):,})</h1>
+<h1 id="Top">Important Bible People Alphabetical Index ({len(IMPORTANT_PEOPLE_ALPHABETICAL_LIST):,})</h1>
 <p class="note">{personLinksString}</p>
 {makeBottom( level, None, 'personIndex', state )}'''
     assert checkHtml( 'personIndex', indexHtml )
@@ -3588,7 +3655,7 @@ def create_location_pages( level:int, outputFolderPath:Path, state:State ) -> in
 <p class="note"><a href="../GrkWrd/">Greek words index</a> <a href="../GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
 <p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
 <p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a></p>
-<p class="note"><a href="../Per/importantIndex.htm">Important people index</a> <a href="../Per/">All people index</a> <span class="selectedBook">Locations index</span></p>
+<p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm">Important people chronological index</a> <a href="../Per/">All people index</a> <span class="selectedBook">Locations index</span></p>
 <p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/">Bible statistics</a></p>
 <h1 id="Top">Bible Locations Index ({len(locationLinks):,})</h1>
@@ -3704,7 +3771,7 @@ def create_statistics_pages( level:int, outputFolderPath:Path, state:State ) -> 
 <p class="note"><a href="../GrkWrd/">Greek words index</a> <a href="../GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
 <p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
 <p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a></p>
-<p class="note"><a href="../Per/importantIndex.htm">Important people index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
+<p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm">Important people chronological index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
 <p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/">Bible statistics index</a></p>
 <h1 id="Top">Bible Chapters and Verses—Traditional Western Protestant</h1>
@@ -3739,7 +3806,7 @@ def create_statistics_pages( level:int, outputFolderPath:Path, state:State ) -> 
 <p class="note"><a href="../GrkWrd/">Greek words index</a> <a href="../GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
 <p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
 <p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a></p>
-<p class="note"><a href="../Per/importantIndex.htm">Important people index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
+<p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm">Important people chronological index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
 <p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
 <p class="note"><span class="selectedBook">Bible statistics index</span></p>
 <h1 id="Top">Bible Statistics Index</h1>
