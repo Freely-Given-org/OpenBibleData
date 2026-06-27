@@ -57,7 +57,7 @@ from load import getIndividualQuotedOTRefs, getIndividualQuotingNTRefs
 
 
 
-LAST_MODIFIED_DATE = '2026-05-29' # by RJH
+LAST_MODIFIED_DATE = '2026-06-26' # by RJH
 SHORT_PROGRAM_NAME = "SentenceImportance_initialisation"
 PROGRAM_NAME = "Sentence Importance initialisation"
 PROGRAM_VERSION = '0.25'
@@ -127,6 +127,7 @@ importantRefsWithRanges = [ # Often quoted and/or memorised by Christians
     'ISA_2:2-4','ISA_6:1-8','ISA_11:1-12','ISA_27:6','ISA_28:16','ISA_41:10',
     'ISA_42:1-9', 'ISA_49:1-13', 'ISA_50:4-11', # The other three servant songs 'ISA_52:13–53:12',
     'ISA_54:17','ISA_66:8',
+    'JER_23:5-6',
 
     'MAT_4:4',
     'LUK_24:27',
@@ -210,7 +211,7 @@ unclearClarityRefs = [ # Mostly sure what's in the Hebrew or Greek,
         'ISA_27:4','ISA_27:7','ISA_27:8','ISA_27:9','ISA_27:10b','ISA_28:10','ISA_28:16b','ISA_29:2b','ISA_29:17',
         'ISA_36:9','ISA_37:25','ISA_38:16a','ISA_41:1','ISA_41:2','ISA_41:3','ISA_48:2a','ISA_49:7','ISA_49:8b',
         'ISA_49:17a','ISA_53:11a','ISA_64:5b',
-    'JER_1:15b','JER_6:2b','JER_6:18b','JER_6:27','JER_8:8b','JER_10:19','JER_14:18b','JER_15:12',
+    'JER_1:15b','JER_6:2b','JER_6:18b','JER_6:27','JER_8:8b','JER_10:19','JER_14:18b','JER_15:12','JER_17:3',
     'EZE_8:17b', 'EZE_16:24', 'EZE_21:13', 'EZE_24:12', 'EZE_24:17b', 'EZE_26:20b',
     'DAN_8:12','DAN_8:13a','DAN_11:43b',
     'HOS_11:7b',
@@ -316,7 +317,7 @@ def run() -> bool:
     """
     """
     uhbBible = USFMBible.USFMBible( UHB_PATHNAME, givenAbbreviation='UHB', encoding='utf-8' )
-    uhbBible.uWencoded = True # TODO: Shouldn't be required ???
+    # uhbBible.uWencoded = True # TODO: Shouldn't be required ???
     uhbBible.loadBooks() # So we can iterate through them all later
 
     OETLVOTBible = ESFMBible.ESFMBible( OET_LV_OT_PATHNAME, givenAbbreviation='OET-LV' )

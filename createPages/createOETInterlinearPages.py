@@ -76,10 +76,10 @@ from OETHandlers import livenOETWordLinks, getOETBookName, getOETTidyBBB, getHeb
 from jsonResources import getFormattedSILOpenTranslationNotes
 
 
-LAST_MODIFIED_DATE = '2026-04-19' # by RJH
+LAST_MODIFIED_DATE = '2026-06-16' # by RJH
 SHORT_PROGRAM_NAME = "createOETInterlinearPages"
 PROGRAM_NAME = "OpenBibleData createOETInterlinearPages functions"
-PROGRAM_VERSION = '0.67'
+PROGRAM_VERSION = '0.68'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -323,8 +323,8 @@ def createOETInterlinearVerseInner( level:int, BBB:str, c:int, v:int, state:Stat
     wordTable = state.OETRefData['word_tables'][wordFileName]
 
     try:
-        lvVerseEntryList, lvContextList = lvBible.getContextVerseData( (BBB, C, V) )
-        livenedLvVerseEntryList = livenOETWordLinks( level, lvBible, BBB, lvVerseEntryList, state )
+        lvVerseEntryList, lvContextList = lvBible.getContextVerseData( (BBB,C,V) )
+        livenedLvVerseEntryList = livenOETWordLinks( level, lvBible, (BBB,C,V), lvVerseEntryList, state )
         lvTextHtml = do_OET_LV_HTMLcustomisations( f'Interlinear={BBB}_{C}:{V}', convertVerseEntryListToHtml( level, 'OET-LV', (BBB,C,V), 'interlinearVerse', lvContextList, livenedLvVerseEntryList, basicOnly=True, state=state ) )
         lvTextHtml = lvTextHtml.replace( 'id="footnotes', 'id="footnotesLV' ).replace( 'id="crossRefs', 'id="crossRefsLV' ).replace( 'id="fn', 'id="fnLV' ).replace( 'href="#fn', 'href="#fnLV' )
         lvHtml = f'''<div class="LV"><p class="LV"><span class="wrkName"><a title="View {state.BibleNames['OET']} section" href="{'../'*level}OET/bySec/{BBB}_S{sectionNumber}.htm#V{V}">OET</a> (<a title="{state.BibleNames['OET-LV']}" href="{'../'*level}OET-LV/byC/{BBB}_C{C}.htm#V{V}">OET-LV</a>)</span> {lvTextHtml}</p></div><!--LV-->'''
@@ -338,8 +338,8 @@ def createOETInterlinearVerseInner( level:int, BBB:str, c:int, v:int, state:Stat
         logging.warning( warningText )
         lvVerseEntryList = []
     try:
-        rvVerseEntryList, rvContextList = rvBible.getContextVerseData( (BBB, C, V) )
-        livenedRvVerseEntryList = livenOETWordLinks( level, lvBible, BBB, rvVerseEntryList, state )
+        rvVerseEntryList, rvContextList = rvBible.getContextVerseData( (BBB,C,V) )
+        livenedRvVerseEntryList = livenOETWordLinks( level, lvBible, (BBB,C,V), rvVerseEntryList, state )
         rvTextHtml = do_OET_RV_HTMLcustomisations( f'Interlinear={BBB}_{C}:{V}', convertVerseEntryListToHtml( level, 'OET-RV', (BBB,C,V), 'interlinearVerse', rvContextList, livenedRvVerseEntryList, basicOnly=True, state=state ) )
         rvTextHtml = rvTextHtml.replace( 'id="footnotes', 'id="footnotesRV' ).replace( 'id="crossRefs', 'id="crossRefsRV' ).replace( 'id="fn', 'id="fnRV' ).replace( 'href="#fn', 'href="#fnRV' )
         rvHtml = f'''<div class="RV"><p class="RV"><span class="wrkName"><a title="View {state.BibleNames['OET']} section" href="{'../'*level}OET/bySec/{BBB}_S{sectionNumber}.htm#V{V}">OET</a> (<a title="{state.BibleNames['OET-RV']}" href="{'../'*level}OET-RV/bySec/{BBB}_S{sectionNumber}.htm#V{V}">OET-RV</a>)</span> {rvTextHtml}</p></div><!--RV-->'''

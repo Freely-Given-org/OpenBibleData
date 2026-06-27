@@ -79,6 +79,7 @@ CHANGELOG:
     2026-03-21 Added OET LV and RV verses to lexicon word and lemma pages
     2026-03-24 Added OET LV and RV verses to Hebrew and Greek Strongs pages
     2026-04-13 Added frequency counts for glosses in word pages and NT lemma pages
+    2026-06-24 Don't exclude the current verse from Hebrew & Greek word & lemma page example & verse lines
 """
 from pathlib import Path
 import os
@@ -107,10 +108,10 @@ from OETHandlers import getOETTidyBBB, getOETBookName, getHebrewWordpageFilename
 from createSectionPages import findSectionNumber
 
 
-LAST_MODIFIED_DATE = '2026-06-13' # by RJH
+LAST_MODIFIED_DATE = '2026-06-24' # by RJH
 SHORT_PROGRAM_NAME = "createOETReferencePages"
 PROGRAM_NAME = "OpenBibleData createOETReferencePages functions"
-PROGRAM_VERSION = '0.95'
+PROGRAM_VERSION = '0.97'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -982,7 +983,6 @@ def preprocessHebrewWordsLemmasGlosses( BBBSelection:str|list[str], state ) -> b
             # print( f"{lemmaRowList=}" )
             if lemmaRowList: # (Doesn't exist for 'seg' rows)
                 for lemmaRowNumberStr in lemmaRowList.split( ',' ):
-                    # if 'MISSING' in lemmaRowNumberStr: continue
                     try:
                         lemmaRowNumber = int( lemmaRowNumberStr )
                         state.OETRefData['OTLemmaRowNumbersDict'][noCantillations].append( lemmaRowNumber )
@@ -1286,7 +1286,7 @@ def get_OET_LV_verse_HTML( level:int, BBB:str, C:str, V:str ) -> str:
     thisBible = state.preloadedBibles['OET-LV']
     try: verseEntryList, contextList = thisBible.getContextVerseData( (BBB,C,V) ) # Can return None if the book doesn't exist, but that shouldn't happen here
     except KeyError: return ''
-    verseEntryList = livenOETWordLinks( level, thisBible, BBB, verseEntryList, state ) 
+    verseEntryList = livenOETWordLinks( level, thisBible, (BBB,C,V), verseEntryList, state ) 
     # 'dictVerse' causes all footnotes and xrefs to be fully removed
     textHtml = convertVerseEntryListToHtml( level, 'OET-LV', (BBB,C,V), 'dictVerse', contextList, verseEntryList, basicOnly=True, state=state )
     assert 'footnotes' not in textHtml and 'fnCaller' not in textHtml
@@ -1305,7 +1305,7 @@ def get_OET_RV_verse_HTML( level:int, BBB:str, C:str, V:str ) -> str:
     thisBible = state.preloadedBibles['OET-RV']
     try: verseEntryList, contextList = thisBible.getContextVerseData( (BBB,C,V) )
     except KeyError: return ''
-    verseEntryList = livenOETWordLinks( level, thisBible, BBB, verseEntryList, state )
+    verseEntryList = livenOETWordLinks( level, thisBible, (BBB,C,V), verseEntryList, state )
     # 'dictVerse' causes all footnotes and xrefs to be fully removed
     textHtml = convertVerseEntryListToHtml( level, 'OET-RV', (BBB,C,V), 'dictVerse', contextList, verseEntryList, basicOnly=True, state=state )
     assert 'footnotes' not in textHtml and 'fnCaller' not in textHtml
@@ -1666,7 +1666,7 @@ def create_Hebrew_word_page( level:int, hh:int, hebrewWord:str, columns_string:s
 
     word_output_filenames = {'words':f'words/{word_output_filename}', 'verses':f'verses/{word_output_filename}','both':f'both/{word_output_filename}' }
     wordsHtml = f'''<h2>Open English Translation (OET)</h2>\n<h1 id="Top">Hebrew wordlink #{hh}</h1>{f"{NEWLINE}<h2>{rowTypeField}</h2>" if rowTypeField else ''}
-<p class="pgNav">{prevLink}<b>{hebrewWordTitle}</b> <a title="Go to Hebrew word index" href="index.htm">↑</a>{nextLink}{oetLink}{parallelLink}{interlinearLink}</p>{buttonBar}
+<p class="pgNav">{prevLink}<b>{hebrewWordTitle}</b> <a title="Go to Hebrew word index" href="index.htm">⌂</a>{nextLink}{oetLink}{parallelLink}{interlinearLink}</p>{buttonBar}
 <p class="link"><a title="Go to Open Scriptures Hebrew verse page" href="https://hb.OpenScriptures.org/structure/OshbVerse/index.html?b={OSISbookCode}&c={C}&v={V}">OSHB {ourTidyBbbWithNotes} {C}:{V}</a> <b>{hebrewWord}</b>{transliterationBit}{StrongsBit} {lemmaLinksStr}
 <br> {translationFields}{capsField if state.TEST_MODE_FLAG else ''}
 <br> {tidyMorphologyFields}{f'{NEWLINE}<br>  {semanticExtras}' if semanticExtras else ''}</p>
@@ -1720,7 +1720,7 @@ This is all part of the commitment of the <em>Open English Translation</em> team
                 #     wordsHtml = f'{wordsHtml}\n<p class="summary"><small>(In the VLT, the word form ‘{hebrewWord}’ <small>({tidyMorphologyField})</small> was always and only glossed as ‘<b>{formattedVLTGlossWords}</b>’)</small>.</p>'
         displayCounter = 0 # Don't use enumerate on the next line, because there is a condition inside the loop
         for oN in thisWordNumberList:
-            if oN==hh: continue # don't duplicate the word we're making the page for
+            # if oN==hh: continue # don't duplicate the word we're making the page for
             # print( f"HERE: ({len(state.OETRefData['word_tables'][wordFileName][oN].split( TAB ))}) {state.OETRefData['word_tables'][wordFileName][oN]}")
             oWordRef, oRowType, oMorphemeRowList, oLemmaRowList, oStrongs, oMorphology, oWord, oNoCantillations, oMorphemeGlosses, oContextualMorphemeGlosses, oWordGloss, oContextualWordGloss, oGlossCapitalisation, oGlossPunctuation, oGlossOrder, oGlossInsert, oRole, oNesting, oTags = state.OETRefData['word_tables'][HebrewWordFileName][oN].split( '\t' )
             oWordGloss = oWordGloss.replace( '=', '_' )
@@ -1798,7 +1798,7 @@ f''' {oTranslation} <a title="Go to Open Scriptures Hebrew verse page" href=
                         if len(nList)>400:
                             dPrint( 'Info', DEBUGGING_THIS_MODULE, f"preprocessHebrewWordsLemmasGlosses has EXCESSIVE {len(nList):,} entries for {mainGlossWord=} from {similarWord=}")
                     for thisN in nList:
-                        if thisN == hh: continue # That's the current word row
+                        # if thisN == hh: continue # That's the current word row
                         eWordRef, eRowType, eMorphemeRowList, eLemmaRowList, eStrongs, eMorphology, eWord, eNoCantillations, eMorphemeGlosses, eContextualMorphemeGlosses, eWordGloss, eContextualWordGloss, eGlossCapitalisation, eGlossPunctuation, eGlossOrder, eGlossInsert, eRole, eNesting, eTags = state.OETRefData['word_tables'][HebrewWordFileName][thisN].split( '\t' )
                         eHebrewWord = (eNoCantillations.replace( ',', '' ) # Remove morpheme breaks
                                         if eNoCantillations else eWord ) # Segs and notes have nothing in the noCantillations field
@@ -1991,7 +1991,7 @@ def create_Hebrew_lemma_pages( level:int, outputFolderPath:Path, state:State ) -
         prevLink = f'<b><a title="Previous lemma" href="{transliterate_Hebrew(lemmaList[prevLemmaIndex])}.htm#Top">←</a></b> ' if prevLemmaIndex is not None else ''
         nextLink = f' <b><a title="Next lemma" href="{transliterate_Hebrew(lemmaList[nextLemmaIndex])}.htm#Top">→</a></b>' if nextLemmaIndex else ''
         lemmasHtml = f'''<h1 id="Top">Hebrew root <small>(lemma)</small> ‘{hebLemma}’ ({transliteratedLemma})</h1>
-<p class="pgNav">{prevLink}<b>{hebLemma}</b> <a title="Go to Hebrew word index" href="index.htm">↑</a>{nextLink}</p>
+<p class="pgNav">{prevLink}<b>{hebLemma}</b> <a title="Go to Hebrew word index" href="index.htm">⌂</a>{nextLink}</p>
 <p class="btnBar"><button type="button" id="wordsButton" title="Hide/Show word lines" onclick="hide_show_words()">Hide words</button> <button type="button" id="versesButton" title="Hide/Show verse lines" onclick="hide_show_verses()">Hide verses</button> <button type="button" id="coloursButton" title="Hide/Show verse colours" onclick="hide_show_colours()">Hide verse colours</button></p>'''
 # <p class="summary">This root form (lemma) ‘{hebLemma}’ is used in {'only one form' if len(lemmaFormsList)==1 else f'{len(lemmaFormsList):,} different forms'} in the Hebrew originals: {', '.join([f'<a title="View Hebrew word form" href="../HebWrd/{getFirstHebrewWordNumber(heb,morph)}.htm#Top">{heb}</a> <small>({morph[4:] if morph.startswith("....") else morph})</small>' for heb,morph in lemmaFormsList])}.</p>
 # <p class="summary">It is glossed in {'only one way' if len(lemmaOETGlossesList)==1 else f'{len(lemmaOETGlossesList):,} different ways'}: ‘<b>{"</b>’, ‘<b>".join(lemmaOETGlossesList)}</b>’.</p>
@@ -2546,7 +2546,7 @@ def create_Greek_word_pages( level:int, outputFolderPath:Path, state:State ) -> 
         interlinearLink = f''' <b><a title="View interlinear verse word-by-word" href="{'../'*level}ilr/{BBB}/C{C}V{V}.htm#Top">═</a></b>''' if BBB in state.booksToLoad['OET'] else ''
 #  Strongs=<a title="Goes to Strongs dictionary" href="https://BibleHub.com/greek/{strongs}.htm">{extendedStrongs}</a> Lemma=<b>{lemmaLink}</b>
         wordsHtml = f'''{'' if probability else '<div class="unusedWord">'}<h2>Open English Translation (OET)</h2>\n<h1 id="Top">Koine Greek wordlink #{gg}{'' if probability else ' <small>(Unused Greek word variant)</small>'}</h1>
-<p class="pgNav">{prevLink}{f'<b>{greekWord}</b>' if greekWord else '<small>(blank)</small>'} <a title="Go to Greek word index" href="index.htm">↑</a>{nextLink}{oetLink}{parallelLink}{interlinearLink}</p>
+<p class="pgNav">{prevLink}{f'<b>{greekWord}</b>' if greekWord else '<small>(blank)</small>'} <a title="Go to Greek word index" href="index.htm">⌂</a>{nextLink}{oetLink}{parallelLink}{interlinearLink}</p>
 <p class="btnBar"><button type="button" id="wordsButton" title="Hide/Show word lines" onclick="hide_show_words()">Hide words</button> <button type="button" id="versesButton" title="Hide/Show verse lines" onclick="hide_show_verses()">Hide verses</button> <button type="button" id="coloursButton" title="Hide/Show verse colours" onclick="hide_show_colours()">Hide verse colours</button></p>
 <p class="link"><a title="Go to Statistical Restoration Greek page" href="https://GreekCNTR.org/collation/?v={CNTR_BOOK_ID_MAP[BBB]}{C.zfill(3)}{V.zfill(3)}">SR GNT {tidyBbbb} {C}:{V}</a>
  {f'<b>{greekWord}</b>' if greekWord else '<small>(blank)</small>'} ({transliterate_Greek(greekWord)}) {translation}{capsField if state.TEST_MODE_FLAG else ''}
@@ -2599,7 +2599,7 @@ This is all part of the commitment of the <em>Open English Translation</em> team
                         wordsHtml = f'{wordsHtml}\n<p class="summary"><small>(In <span title="the forthcoming Verified Literal Translation">the VLT</span>, the word form ‘{greekWord}’ <small>({tidyRoleMorphology})</small> was always and only glossed as ‘<b>{formattedVLTGlossWords}</b>’)</small>.</p>'
             displayCounter = 0 # Don't use enumerate on the next line, because there is a condition inside the loop
             for oN in thisWordNumberList:
-                if oN==gg: continue # don't duplicate the word we're making the page for
+                # if oN==gg: continue # don't duplicate the word we're making the page for
                 oWordRef, _oGreekWord, _oSRLemma, _oGrkLemma, _oVLTGlossWords, oOETGlossWords, _oGlossCaps,_oProbability, _oExtendedStrongs, _oRoleLetter, _oMorphology, _oTagsStr = state.OETRefData['word_tables'][GreekWordFileName][oN].split( '\t' )
                 oFormattedContextGlossWords = formatNTContextSpansOETGlossWords( oN, state )
                 oBBB, oCVW = oWordRef.split( '_', 1 )
@@ -2653,7 +2653,7 @@ f''' {translation} <a title="Go to Statistical Restoration Greek page" href=
                         if len(nList)>400:
                             dPrint( 'Info', DEBUGGING_THIS_MODULE, f"create_Greek_word_pages has EXCESSIVE {len(nList):,} entries for '{mainGlossWord}' from {similarWord=}")
                         for thisN in nList:
-                            if thisN == gg: continue # That's the current word row
+                            # if thisN == gg: continue # That's the current word row
                             eWordRef, eGreekWord, eSRLemma, _eGrkLemma, _eVLTGlossWordsStr, _eOETGlossWordsStr, _eGlossCaps, _eProbability, _eExtendedStrongs, eRoleLetter, eMorphology, _eTagsStr = state.OETRefData['word_tables'][GreekWordFileName][thisN].split( '\t' )
                             if eRoleLetter == 'None': eRoleLetter = None
                             if eMorphology == 'None': eMorphology = None
@@ -2865,7 +2865,7 @@ def create_Greek_lemma_pages( level:int, outputFolderPath:Path, state:State ) ->
         prevLink = f'<b><a title="Previous lemma" href="{lemmaList[prevLemmaIndex]}.htm#Top">←</a></b> ' if prevLemmaIndex is not None else ''
         nextLink = f' <b><a title="Next lemma" href="{lemmaList[nextLemmaIndex]}.htm#Top">→</a></b>' if nextLemmaIndex else ''
         lemmasHtml = f'''<h1 id="Top">Greek root word <small>(lemma)</small> ‘{grkLemma}’ ({lemma})</h1>
-<p class="pgNav">{prevLink}<b>{lemma}</b> <a title="Go to Greek word index" href="index.htm">↑</a>{nextLink}</p>
+<p class="pgNav">{prevLink}<b>{lemma}</b> <a title="Go to Greek word index" href="index.htm">⌂</a>{nextLink}</p>
 <p class="btnBar"><button type="button" id="wordsButton" title="Hide/Show word lines" onclick="hide_show_words()">Hide words</button> <button type="button" id="versesButton" title="Hide/Show verse lines" onclick="hide_show_verses()">Hide verses</button> <button type="button" id="coloursButton" title="Hide/Show verse colours" onclick="hide_show_colours()">Hide verse colours</button></p>
 <p class="summary">This root form (lemma) ‘{grkLemma}’ is used in {'only one form' if len(grkLemmaFormsList)==1 else f'{len(grkLemmaFormsList):,} different forms'} in the Greek originals: {', '.join([f'<a title="View Greek word form" href="../GrkWrd/{getGreekWordpageFilename(getFirstGreekWordNumber(grk,roleLetter,morph), state )}#Top">{grk}</a> <small>({state.OETRefData['NTLemmaFormsCountDict'][(lemma,grk,roleLetter,morph)]:,}, {roleLetter}-{morph[4:] if morph.startswith("....") else morph})</small>' for grk,roleLetter,morph in grkLemmaFormsList])}.</p>
 <p class="summary">It is glossed in {'only one way' if numGrkLemmaOETGlossesList==1 else f'{numGrkLemmaOETGlossesList:,} different ways'}: {tidy_Greek_lemma_gloss(', '.join(grkLemmaOETGlossesStrList))}.</p>'''
@@ -3179,7 +3179,7 @@ def create_Hebrew_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:
 <p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/">Bible statistics index</a></p>
 <h1 id="Top">Strongs {strongsLetterNumberStr}</h1>
-<p class="pgNav">{prevLink}<b>{strongsLetterNumberStr}</b> <a title="Go to Hebrew Strongs index" href="index.htm">↑</a>{nextLink}</p>
+<p class="pgNav">{prevLink}<b>{strongsLetterNumberStr}</b> <a title="Go to Hebrew Strongs index" href="index.htm">⌂</a>{nextLink}</p>
 <p class="btnBar"><button type="button" id="wordsButton" title="Hide/Show verse refs" onclick="hide_show_words()">Hide verse refs</button> <button type="button" id="versesButton" title="Hide/Show verse lines" onclick="hide_show_verses()">Hide verses</button> <button type="button" id="coloursButton" title="Hide/Show verse colours" onclick="hide_show_colours()">Hide verse colours</button></p>
 {middle}{''.join(versesHtml)}
 <p>View on <a href="https://BibleHub.com/hebrew/{strongsNumber}.htm">BibleHub</a>.</p>
@@ -3302,7 +3302,7 @@ def create_Greek_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:B
 <p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/">Bible statistics index</a></p>
 <h1 id="Top">Strongs {strongsLetterNumberStr}</h1>
-<p class="pgNav">{prevLink}<b>{strongsLetterNumberStr}</b> <a title="Go to Greek Strongs index" href="index.htm">↑</a>{nextLink}</p>
+<p class="pgNav">{prevLink}<b>{strongsLetterNumberStr}</b> <a title="Go to Greek Strongs index" href="index.htm">⌂</a>{nextLink}</p>
 <p class="btnBar"><button type="button" id="wordsButton" title="Hide/Show verse refs" onclick="hide_show_words()">Hide verse refs</button> <button type="button" id="versesButton" title="Hide/Show verse lines" onclick="hide_show_verses()">Hide verses</button> <button type="button" id="coloursButton" title="Hide/Show verse colours" onclick="hide_show_colours()">Hide verse colours</button></p>
 <p>{middle}</p>{''.join(versesHtml)}
 <p>View on <a href="https://BibleHub.com/greek/{strongsNumber}.htm">BibleHub</a>.</p>
@@ -3395,7 +3395,7 @@ def create_person_pages( level:int, outputFolderPath:Path, state:State ) -> int:
                                     .replace( '__TITLE__', f"{personName}{' TEST' if state.TEST_MODE_FLAG else ''}" )
                                     .replace( '__KEYWORDS__', 'Bible, word' )
                                     }
-<p class="prevNextLinks">{previousLink} <a title="Go to important people alphabetical index" href="importantPeopleAlphabeticalIndex.htm">IA</a> <a title="Go to important people chronological index" href="importantPeoplechronologicalIndex.htm">IC</a> <a title="Go to all people index" href="index.htm">↑</a> {nextLink}</p>
+<p class="prevNextLinks">{previousLink} <a title="Go to important people alphabetical index" href="importantPeopleAlphabeticalIndex.htm">IA</a> <a title="Go to important people chronological index" href="importantPeoplechronologicalIndex.htm">IC</a> <a title="Go to all people index" href="index.htm">⌂</a> {nextLink}</p>
 {bodyHtml}
 <p class="thanks"><small>Grateful thanks to <a href="https://Viz.Bible">Viz.Bible</a> for these links and this data.</small></p>
 {makeBottom( level, None, 'person', state )}'''
@@ -3630,7 +3630,7 @@ def create_location_pages( level:int, outputFolderPath:Path, state:State ) -> in
                                     .replace( '__TITLE__', f"{placeName}{' TEST' if state.TEST_MODE_FLAG else ''}" )
                                     .replace( '__KEYWORDS__', 'Bible, word' )
                                     }
-<p class="prevNextLinks">{previousLink} <a title="Go to locations index" href="index.htm">↑</a> {nextLink}</p>
+<p class="prevNextLinks">{previousLink} <a title="Go to locations index" href="index.htm">⌂</a> {nextLink}</p>
 {bodyHtml}
 <p class="thanks"><small>Grateful thanks to <a href="https://Viz.Bible">Viz.Bible</a> for these links and this data.</small></p>
 {makeBottom( level, None, 'location', state )}'''

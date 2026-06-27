@@ -113,10 +113,10 @@ from settings import State, state
 from OETHandlers import getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2026-06-11' # by RJH
+LAST_MODIFIED_DATE = '2026-06-18' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
-PROGRAM_VERSION = '1.0.0'
+PROGRAM_VERSION = '1.0.1'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -191,13 +191,13 @@ def makeTop( level:int, versionAbbreviation:str|None, pageType:str, versionSpeci
     if pageType == 'OETKey':
         top = top.replace( '__SCRIPT__', f'''<link rel="stylesheet" type="text/css" href="{'../'*level}OETChapter.css">\n  __SCRIPT__''' )
     # Insert javascript file(s) if required
-    if (versionAbbreviation and 'OET' in versionAbbreviation) \
+    if (versionAbbreviation and 'OET' in versionAbbreviation and pageType!='sectionIndex') \
     or pageType in ('parallelVerse','topicPassages'):
         top = top.replace( '__SCRIPT__', f'''<script src="{'../'*level}Bible.js"></script>\n  __SCRIPT__''' )
     if 'Dict' in cssFilename or 'Word' in cssFilename:
         top = top.replace( '__SCRIPT__', f'''<script src="{'../'*level}Dict.js" defer></script>\n  __SCRIPT__''' )
     if 'Dict' in cssFilename or 'Word' in cssFilename \
-    or pageType in ('chapter','section','book','parallelVerse','interlinearVerse','relatedPassage','topicPassages','kingdom'):
+    or pageType in ('chapter','section','sectionIndex','book','parallelVerse','interlinearVerse','relatedPassage','topicPassages','kingdom'):
         top = top.replace( '__SCRIPT__', f'''<script src="{'../'*level}KB.js" defer></script>\n  __SCRIPT__''' )
     top = top.replace( '\n  __SCRIPT__', '' )
 
@@ -673,13 +673,14 @@ def checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool:
                 # print( f"Found new span in '{where}' {segmentOnly=} '{'' if spanIx==0 else '…'}{htmlToCheck[spanIx:spanIx+200]}…'"
                 #             if spanNestingLevel == 1 else
                 #        f"Found nested level{spanNestingLevel} span in '{where}' {segmentOnly=} '{'' if spanIx==0 else '…'}{htmlToCheck[spanIx:spanIx+200]}…' then …{htmlToCheck[lastSpanIx:lastSpanIx+200]}" )
-                lastSpanIx = spanIx
+                # lastSpanIx = spanIx
                 searchStartIndex = spanIx + 7
             else: # endSpanIx < spanIx
                 assert spanNestingLevel > 0, f"Extra close span in '{where}' {segmentOnly=} '{'' if endSpanIx==0 else '…'}{htmlToCheck[endSpanIx:endSpanIx+200]}…'\nfrom {htmlToCheck}"
                 spanNestingLevel -= 1
+                if spanNestingLevel == 0: lastUnnestedSpanIx = spanIx
                 searchStartIndex = endSpanIx + 7
-        assert spanNestingLevel==0, f"\ncheckHTML() found unclosed span in '{where}' {segmentOnly=} '{'' if lastSpanIx==0 else '…'}{htmlToCheck[lastSpanIx:lastSpanIx+200]}…' FROM {htmlToCheck=}"
+        assert spanNestingLevel==0, f"\ncheckHTML() found unclosed span in '{where}' {segmentOnly=} '{'' if lastUnnestedSpanIx==0 else '…'}{htmlToCheck[lastUnnestedSpanIx:lastUnnestedSpanIx+300]}…'\nFROM {htmlToCheck=}"
 
     if not segmentOnly or ('<span class="add"><' not in htmlToCheck and '<span class="add">?<' not in htmlToCheck): # < is one of our add field sub-classifiers
         assert '<<' not in htmlToCheck, f"<span> '{where}' {segmentOnly=} …{htmlToCheck[htmlToCheck.index('<<')-180:htmlToCheck.index('<<')+180]}…"

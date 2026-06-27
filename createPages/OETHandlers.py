@@ -72,10 +72,10 @@ from bible_transliterations import transliterate_Hebrew, transliterate_Greek
 from settings import State
 
 
-LAST_MODIFIED_DATE = '2026-06-13' # by RJH
+LAST_MODIFIED_DATE = '2026-06-16' # by RJH
 SHORT_PROGRAM_NAME = "OETHandlers"
 PROGRAM_NAME = "OpenBibleData OET handler"
-PROGRAM_VERSION = '0.74'
+PROGRAM_VERSION = '0.75'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -242,7 +242,7 @@ linkedWordTitleRegex = re.compile( '="§(.+?)§"' ) # We inserted those § marke
 linkedHrefWordNumberRegex = re.compile( '="►([1-9][0-9]{0,5})◄"' )
 # linkedHebrewWordNumberRegex = re.compile( '/HebWrd/([1-9][0-9]{0,5}).htm' ) # /HebWrd/ is the Hebrew words folder
 # linkedGreekWordNumberRegex  = re.compile( '/GrkWrd/([1-9][0-9]{0,5}).htm' ) # /GrkWrd/ is the Greek words folder
-def livenOETWordLinks( level:int, bibleObject:ESFMBible, BBB:str, givenEntryList:InternalBibleEntryList, state:State ) -> InternalBibleEntryList:
+def livenOETWordLinks( level:int, bibleObject:ESFMBible, refTuple:tuple, givenEntryList:InternalBibleEntryList, state:State ) -> InternalBibleEntryList:
     """
     Livens ESFM wordlinks in the OET versions (i.e., the words with ¦ numbers suffixed to them).
 
@@ -256,6 +256,8 @@ def livenOETWordLinks( level:int, bibleObject:ESFMBible, BBB:str, givenEntryList
 
     assert 1 <= level <= 3, f"{level=}"
     assert len(bibleObject.ESFMWordTables) == 2, f"{len(bibleObject.ESFMWordTables)=}"
+    assert isinstance( refTuple, tuple )
+    BBB = refTuple[0]
 
 
     if state.TEST_MODE_FLAG and bibleObject.abbreviation=='OET-RV' and BBB in BOOKLIST_66:
@@ -263,8 +265,8 @@ def livenOETWordLinks( level:int, bibleObject:ESFMBible, BBB:str, givenEntryList
         preprocessedVerseEntryList = InternalBibleEntryList()
         for entry in givenEntryList:
             marker, original_text = entry.getMarker(), entry.getOriginalText()
-            if marker in ('v~','p~') and not original_text and marker[0]!='¬': print( f"livenOETWordLinks0 {bibleObject.abbreviation} {level=} {BBB} {marker=} {original_text=}")
-            if original_text and marker in ('v~','p~'):
+            if marker in ('v~','XXXp~') and not original_text and marker[0]!='¬': print( f"livenOETWordLinks0 {bibleObject.abbreviation} {level=} {BBB} {marker=} {original_text=}")
+            if original_text and marker in ('v~','XXXp~'):
                 assert '\\nd \\nd ' not in original_text, f"Double nd in {bibleObject.abbreviation} {BBB} {marker=} {original_text=}"
                 # print( f"livenOETWordLinks1 {bibleObject.abbreviation} {level=} {BBB} {marker=} {original_text=}")
                 newWords = []
@@ -288,7 +290,17 @@ def livenOETWordLinks( level:int, bibleObject:ESFMBible, BBB:str, givenEntryList
                                  '\\z1','\\z2','\\z3','\\z4','\\zr',):
                         # print( f"             {BBB} {n} {oWord=} {inNote=}")
                         pass
-                    elif BBB not in ('PSA','LUK'): # We have no ¦ character, i.e., an unmatched word (not sure why OET-RV LUK fails in chapter 11)
+                    elif refTuple not in (
+                            ('EZR',),('EZR','5'),('EZR','5','1'),('EZR','5','12'),
+                            ('PSA',),('PSA','18'),('PSA','47'),('PSA','67'),('PSA','106'),('PSA','109'),
+                                ('PSA','18','1'),('PSA','47','1'),('PSA','47','4'),('PSA','67','1'),('PSA','106','1'),('PSA','106','24'),('PSA','109','1'),
+                            ('JER','11'),
+                            ('LUK',),('LUK','11'),('LUK','16'),('LUK','17'),('LUK','18'),('LUK','22'),('LUK','24'),
+                                ('LUK','11','24'),('LUK','11','37'),('LUK','11','44'),('LUK','16','1'),('LUK','16','3'),('LUK','16','31'),('LUK','16','19'),
+                                ('LUK','17','7'),('LUK','18','1'),('LUK','18','3'),('LUK','22','47'),('LUK','22','51'),('LUK','24','36'),('LUK','24','47'),
+                            ):
+                        # The above have some more complex spanning that gets messed up when adding "noLinkYet" in TEST_MODE
+                        # TODO: Seems related to multiword added text
                         # print( f"  {n} {oWord=} {inNote=} in {BBB}")
                         prefix = suffix = ''
                         for _ in range( 5 ):
@@ -303,7 +315,7 @@ def livenOETWordLinks( level:int, bibleObject:ESFMBible, BBB:str, givenEntryList
                                 if oWord.endswith( potentialSuffix ): oWord, suffix = oWord[:-len(potentialSuffix)], f'{potentialSuffix}{suffix}'
                                 if potentialSuffix in oWord: oWord, suffix = oWord[:oWord.index(potentialSuffix)], f'{oWord[oWord.index(potentialSuffix):]}{suffix}'
                         # if prefix or suffix: print( f'    {prefix=} {oWord=} {suffix=}' )
-                        if oWord and oWord[0] != '\\':
+                        if oWord and oWord[0] != '\\' and not oWord.isdigit():
                             if "'" not in oWord and ',' not in oWord and '-' not in oWord and '/' not in oWord and '(' not in oWord \
                             and not oWord[0].isdigit() and oWord not in ('i.e','e.g'):
                                 assert oWord.isalpha(), f'{BBB} {prefix=} {oWord=} {suffix=}'
@@ -337,7 +349,7 @@ def livenOETWordLinks( level:int, bibleObject:ESFMBible, BBB:str, givenEntryList
     #     print( f"{BBB}")
     #     for revisedEntry in revisedEntryList:
     #         marker = revisedEntry.getMarker()
-    #         if marker not in ('v~','p~'): continue
+    #         if marker not in ('v~','XXXp~'): continue
     #         print( f"  {marker}={revisedEntry.getOriginalText()}")
 
     # Now add the transliteration to the Greek HTML title popups
@@ -429,7 +441,7 @@ def livenOETWordLinks( level:int, bibleObject:ESFMBible, BBB:str, givenEntryList
                 # wordNumber = int( wordnumberMatch.group(1) )
                 wordRow = state.OETRefData['word_tables']['OET-LV_OT_word_table.tsv'][wordNumber]
 
-                ref, rowType, morphemeRowList, lemmaRowList, strongs, morphology, word, noCantillations, morphemeGlosses, contextualMorphemeGlosses, wordGloss, contextualWordGloss, glossCapitalisation, glossPunctuation, glossOrder, glossInsert, role, nesting, tags = wordRow.split( '\t' )
+                refTuple, rowType, morphemeRowList, lemmaRowList, strongs, morphology, word, noCantillations, morphemeGlosses, contextualMorphemeGlosses, wordGloss, contextualWordGloss, glossCapitalisation, glossPunctuation, glossOrder, glossInsert, role, nesting, tags = wordRow.split( '\t' )
                 transliteratedWord = ','.join( [transliterate_Hebrew(part) for part in noCantillations.split(',')] ) # Need to split at commas for correct transliteration
                 transliteratedWordForTitle = transliteratedWord.replace( 'ə', '~~SCHWA~~' ) # Protect it so not adjusted in the title field
 
@@ -611,7 +623,7 @@ def livenOETCompatibleWordLinks( level:int, bibleObject:InternalBible, BBB:str, 
     #     print( f"{BBB}")
     #     for revisedEntry in revisedEntryList:
     #         marker = revisedEntry.getMarker()
-    #         if marker not in ('v~','p~'): continue
+    #         if marker not in ('v~','XXXp~'): continue
     #         print( f"  {marker}={revisedEntry.getOriginalText()}")
 
     # Now add the transliteration to the Greek HTML title popups

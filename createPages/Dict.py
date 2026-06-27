@@ -61,10 +61,10 @@ from html import makeTop, makeBottom, checkHtml
 from OETHandlers import getOETTidyBBB
 
 
-LAST_MODIFIED_DATE = '2026-04-26' # by RJH
+LAST_MODIFIED_DATE = '2026-06-27' # by RJH
 SHORT_PROGRAM_NAME = "Dictionary"
 PROGRAM_NAME = "OpenBibleData Dictionary handler"
-PROGRAM_VERSION = '0.47'
+PROGRAM_VERSION = '0.48'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -508,6 +508,8 @@ def loadDictLetterXML( letter:str, folderpath ) -> None:
                                                           'h2-list',
                                                           'extract','extract-fl-space','extract-fl',
                                                           'poetry-1-sp','poetry-1','poetry-2','poetry-3'), f"{name} {pClass=} {bodyLocation}"
+                                    elif attrib == 'id':
+                                        logging.warning( f"Dict id {value=} is currently ignored" )
                                     else:
                                         logging.warning( "fv6g Unprocessed {} attribute ({}) in {}".format( attrib, value, bodyLocation ) )
                                         loadErrors.append( "Unprocessed {} attribute ({}) in {} (fv6g)".format( attrib, value, bodyLocation ) )

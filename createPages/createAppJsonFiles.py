@@ -373,7 +373,7 @@ def create_Hebrew_word_json( level:int, hh:int, hebrewWord:str, columns_string:s
 
 #     word_output_filenames = {'words':f'words/{word_output_filename}', 'verses':f'verses/{word_output_filename}','both':f'both/{word_output_filename}' }
 #     wordsHtml = f'''<h2>Open English Translation (OET)</h2>\n<h1 id="Top">Hebrew wordlink #{hh}</h1>{f"{NEWLINE}<h2>{rowTypeField}</h2>" if rowTypeField else ''}
-# <p class="pgNav">{prevLink}<b>{hebrewWordTitle}</b> <a title="Go to Hebrew word index" href="index.htm">↑</a>{nextLink}{oetLink}{parallelLink}{interlinearLink}</p>{buttonBar}
+# <p class="pgNav">{prevLink}<b>{hebrewWordTitle}</b> <a title="Go to Hebrew word index" href="index.htm">⌂</a>{nextLink}{oetLink}{parallelLink}{interlinearLink}</p>{buttonBar}
 # <p class="link"><a title="Go to Open Scriptures Hebrew verse page" href="https://hb.OpenScriptures.org/structure/OshbVerse/index.html?b={OSISbookCode}&c={C}&v={V}">OSHB {ourTidyBbbWithNotes} {C}:{V}</a> <b>{hebrewWord}</b>{transliterationBit}{StrongsBit} {lemmaLinksStr}
 # <br> {translationFields}{capsField if state.TEST_MODE_FLAG else ''}
 # <br> {tidyMorphologyFields}{f'{NEWLINE}<br>  {semanticExtras}' if semanticExtras else ''}</p>
@@ -801,7 +801,7 @@ def create_Greek_words_json( level:int, outputFolderPath:Path, state:State ) -> 
 #         interlinearLink = f''' <b><a title="View interlinear verse word-by-word" href="{'../'*level}ilr/{BBB}/C{C}V{V}.htm#Top">═</a></b>''' if BBB in state.booksToLoad['OET'] else ''
 # #  Strongs=<a title="Goes to Strongs dictionary" href="https://BibleHub.com/greek/{strongs}.htm">{extendedStrongs}</a> Lemma=<b>{lemmaLink}</b>
 #         wordsHtml = f'''{'' if probability else '<div class="unusedWord">'}<h2>Open English Translation (OET)</h2>\n<h1 id="Top">Koine Greek wordlink #{gg}{'' if probability else ' <small>(Unused Greek word variant)</small>'}</h1>
-# <p class="pgNav">{prevLink}{f'<b>{greekWord}</b>' if greekWord else '<small>(blank)</small>'} <a title="Go to Greek word index" href="index.htm">↑</a>{nextLink}{oetLink}{parallelLink}{interlinearLink}</p>
+# <p class="pgNav">{prevLink}{f'<b>{greekWord}</b>' if greekWord else '<small>(blank)</small>'} <a title="Go to Greek word index" href="index.htm">⌂</a>{nextLink}{oetLink}{parallelLink}{interlinearLink}</p>
 # <p class="btnBar"><button type="button" id="wordsButton" title="Hide/Show word lines" onclick="hide_show_words()">Hide words</button> <button type="button" id="versesButton" title="Hide/Show verse lines" onclick="hide_show_verses()">Hide verses</button> <button type="button" id="coloursButton" title="Hide/Show verse colours" onclick="hide_show_colours()">Hide verse colours</button></p>
 # <p class="link"><a title="Go to Statistical Restoration Greek page" href="https://GreekCNTR.org/collation/?v={CNTR_BOOK_ID_MAP[BBB]}{C.zfill(3)}{V.zfill(3)}">SR GNT {tidyBbbb} {C}:{V}</a>
 #  {f'<b>{greekWord}</b>' if greekWord else '<small>(blank)</small>'} ({transliterate_Greek(greekWord)}) {translation}{capsField if state.TEST_MODE_FLAG else ''}
@@ -1121,7 +1121,7 @@ def create_Hebrew_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:
 <p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/">Bible statistics index</a></p>
 <h1 id="Top">Strongs {strongsLetterNumberStr}</h1>
-<p class="pgNav">{prevLink}<b>{strongsLetterNumberStr}</b> <a title="Go to Hebrew Strongs index" href="index.htm">↑</a>{nextLink}</p>
+<p class="pgNav">{prevLink}<b>{strongsLetterNumberStr}</b> <a title="Go to Hebrew Strongs index" href="index.htm">⌂</a>{nextLink}</p>
 <p class="btnBar"><button type="button" id="wordsButton" title="Hide/Show verse refs" onclick="hide_show_words()">Hide verse refs</button> <button type="button" id="versesButton" title="Hide/Show verse lines" onclick="hide_show_verses()">Hide verses</button> <button type="button" id="coloursButton" title="Hide/Show verse colours" onclick="hide_show_colours()">Hide verse colours</button></p>
 <p>{middle}</p>{''.join(versesHtml)}
 <p>View on <a href="https://BibleHub.com/hebrew/{strongsNumber}.htm">BibleHub</a>.</p>
@@ -1244,7 +1244,7 @@ def create_Greek_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:B
 <p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/">Bible statistics index</a></p>
 <h1 id="Top">Strongs {strongsLetterNumberStr}</h1>
-<p class="pgNav">{prevLink}<b>{strongsLetterNumberStr}</b> <a title="Go to Greek Strongs index" href="index.htm">↑</a>{nextLink}</p>
+<p class="pgNav">{prevLink}<b>{strongsLetterNumberStr}</b> <a title="Go to Greek Strongs index" href="index.htm">⌂</a>{nextLink}</p>
 <p class="btnBar"><button type="button" id="wordsButton" title="Hide/Show verse refs" onclick="hide_show_words()">Hide verse refs</button> <button type="button" id="versesButton" title="Hide/Show verse lines" onclick="hide_show_verses()">Hide verses</button> <button type="button" id="coloursButton" title="Hide/Show verse colours" onclick="hide_show_colours()">Hide verse colours</button></p>
 <p>{middle}</p>{''.join(versesHtml)}
 <p>View on <a href="https://BibleHub.com/greek/{strongsNumber}.htm">BibleHub</a>.</p>

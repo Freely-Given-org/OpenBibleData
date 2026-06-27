@@ -55,10 +55,10 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
 from OETHandlers import livenOETWordLinks, getOETTidyBBB
 
 
-LAST_MODIFIED_DATE = '2026-06-02' # by RJH
+LAST_MODIFIED_DATE = '2026-06-16' # by RJH
 SHORT_PROGRAM_NAME = "createTopicPages"
 PROGRAM_NAME = "OpenBibleData createTopicPages functions"
-PROGRAM_VERSION = '0.36'
+PROGRAM_VERSION = '0.37'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -262,8 +262,8 @@ def createTopicPage( level:int, folder:Path, topicNumber:int, state:State ) -> b
             # print( f"{rvVerseEntryList=}" )
             # print( f"{lvVerseEntryList=}" )
             if BBB in rvBible: # TODO: Why is RV handled differently here than LV ???
-                rvVerseEntryList = livenOETWordLinks( level, rvBible, BBB, rvVerseEntryList, state )
-            try: lvVerseEntryList = livenOETWordLinks( level, lvBible, BBB, lvVerseEntryList, state )
+                rvVerseEntryList = livenOETWordLinks( level, rvBible, (BBB,C), rvVerseEntryList, state )
+            try: lvVerseEntryList = livenOETWordLinks( level, lvBible, (BBB,C), lvVerseEntryList, state )
             except KeyError: # Missing book
                 assert not state.ALL_PRODUCTION_BOOKS_FLAG
             rvTextHtml = convertVerseEntryListToHtml( level, rvBible.abbreviation, (BBB,C), 'topicalPassage', rvContextList, rvVerseEntryList, basicOnly=False, state=state )

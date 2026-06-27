@@ -112,10 +112,10 @@ from OETHandlers import getOETTidyBBB, getOETBookName, livenOETWordLinks, livenO
 from spellCheckEnglish import spellCheckAndMarkHTMLText
 
 
-LAST_MODIFIED_DATE = '2026-06-12' # by RJH
+LAST_MODIFIED_DATE = '2026-06-16' # by RJH
 SHORT_PROGRAM_NAME = "createParallelVersePages"
 PROGRAM_NAME = "OpenBibleData createParallelVersePages functions"
-PROGRAM_VERSION = '0.99'
+PROGRAM_VERSION = '1.0.0'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -389,7 +389,9 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                             vHtml = None # We display nothing at all for these versions that only have a few selected verses
                     else: # should be a Bible object
                         try:
-                            if BBB not in thisBible: raise MissingBookError # Requested book is not in this Bible
+                            if BBB not in thisBible:
+                                # print( f"{versionAbbreviation} doesn't have {BBB} available{' in TEST_MODE' if state.TEST_MODE_FLAG else ''}")
+                                raise MissingBookError # Requested book is not in this Bible
                             # NOTE: For the book intro, we fetch the whole lot in one go (not line by line)
                             if versionAbbreviation == 'OET-LV' and oetRvPsaHasD and c >= 1: # TODO: Fix with proper versification TEMP TEMP TEMP XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
                                 # For these Psalms, the OET-LV calls the \\d field, verse 1, so everything is one verse out
@@ -460,7 +462,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                             oetRvPsaHasD = True
                                             break
                                     # We want to save
-                                verseEntryList = livenOETWordLinks( BBBLevel, thisBible, BBB, verseEntryList, state )
+                                verseEntryList = livenOETWordLinks( BBBLevel, thisBible, (BBB,C,V), verseEntryList, state )
                             elif thisBible.abbreviation in ('BSB','MSB'):
                                 verseEntryList = livenOETCompatibleWordLinks( BBBLevel, thisBible, BBB, verseEntryList, state )
                             textHtml = convertVerseEntryListToHtml( BBBLevel, versionAbbreviation, (BBB,C,V), 'parallelVerse', contextList, verseEntryList, basicOnly=(c!=-1), state=state )
@@ -1061,7 +1063,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                             if c==-1 or v==0:
                                 vHtml = ''
                             elif BBB in thisBible:
-                                # print( f"No verse inKT {versionAbbreviation} {BBB} in {thisBible}"); assert False, "We want to stop here"
+                                # print( f"No {c}:{v} verse in {versionAbbreviation} {BBB} in {thisBible}"); assert False, "We want to stop here"
                                 warningText = f'No {versionAbbreviation} {ourTidyBBBwithNotes} {C}:{V} verse available'
                                 versionNameLink = f'''{'../'*BBBLevel}{versionAbbreviation}/details.htm#Top''' if versionAbbreviation in state.versionsWithoutTheirOwnPages else f'''{'../'*BBBLevel}{versionAbbreviation}/byC/{BBB}_{adjC}.htm#V{V}'''
                                 vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName"><a title="{state.BibleNames[versionAbbreviation]}" href="{versionNameLink}">{versionAbbreviation}</a></span> <span class="noVerse"><small>{warningText}</small></span></p>'''
@@ -1224,7 +1226,7 @@ def getPlainText( givenVerseEntryList ) -> str:
         # print( entry )
         marker, cleanText = entry.getMarker(), entry.getCleanText()
         # if not cleanText and marker[0]!='¬' and marker not in ('p',): print( f"getPlainText {marker=} {cleanText=}")
-        if marker in ('v~','p~'):
+        if marker in ('v~','XXXp~'):
             plainTextStringBits.append( cleanText )
 
     return ' '.join( plainTextStringBits )
@@ -1269,7 +1271,7 @@ def brightenSRGNT( BBB:str, C:str, V:str, brightenTextHtml:str, verseEntryList, 
     Parameter brightenTextHtml might be something like this (Mrk 14:63):
         '<span class="SR-GNT_verseTextChunk">Ὁ δὲ ἀρχιερεὺς διαρρήξας τοὺς χιτῶνας αὐτοῦ λέγει, “Τί ἔτι χρείαν ἔχομεν μαρτύρων;</span>'
     """
-    # dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"brightenSRGNT( {BBB} {C}:{V} {brightenTextHtml}, {verseEntryList}, … )…" )
+    # dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"brightenSRGNT( {BBB} {C}:{V} {brightenTextHtml}, {verseEntryList}, … )…" )
     brRef = f'{BBB}_{C}:{V}'
 
     wordFileName = 'OET-LV_NT_word_table.tsv'
@@ -1765,7 +1767,7 @@ def rememberPossibleUnmatchedProperNames( parRef:str, thisVerseEntryList, state:
     for verseEntry in thisVerseEntryList:
         marker, verseText = verseEntry.getMarker(), verseEntry.getCleanText()
         # if not verseText: print( f"rememberPossibleUnmatchedProperNames {marker=} {verseText=}")
-        if verseEntry.getMarker() in ('v~','p~'):
+        if verseEntry.getMarker() in ('v~','XXXp~'):
             for word in verseText.split():
                 assert '(diy)' not in word, f"   {parRef} {marker=} {word=} from {verseText=}"
                 word = word.split('¦')[0] # Get rid of word number

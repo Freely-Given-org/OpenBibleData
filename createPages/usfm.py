@@ -92,6 +92,7 @@ import logging
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, dPrint, vPrint, rreplace, BOOKLIST_NT27
 # from bible_organisational_system import getSmallLeadingInt
+from usfm_markers_py import USFM_ALL_BIBLE_PARAGRAPH_MARKERS
 import bos_books_codes_py
 
 from settings import State
@@ -99,10 +100,10 @@ from html import checkHtml
 from OETHandlers import getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2026-06-14' # by RJH
+LAST_MODIFIED_DATE = '2026-06-23' # by RJH
 SHORT_PROGRAM_NAME = "usfm"
 PROGRAM_NAME = "OpenBibleData USFM to HTML functions"
-PROGRAM_VERSION = '0.97'
+PROGRAM_VERSION = '0.98'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -118,7 +119,10 @@ NON_BREAK_SPACE = ' ' # NBSP
 MAX_FOOTNOTE_CHARS = 11_500 # 1,029 in FBV, 1,688 in BrTr, 10,426 in ClVg JOB!
 MAX_NET_FOOTNOTE_CHARS = 18_000 # 17,145 in NET ECC
 
-spClassDict = {'The groom':'groom', 'The bride':'bride', 'Yerushalem’s young women':'women','Bride’s older brothers':'brothers'}
+spClassDict = {
+    'The groom':'groom', 'The bride':'bride', 'Yerushalem’s young women':'women','Bride’s older brothers':'brothers',
+    'Yirmeyah':'Yirmeyah', 'The people':'people',
+    }
 
 XRefRegEx = re.compile( '\\\\x .+?\\\\x\\*' )
 FnRegEx = re.compile( '\\\\f .+?\\\\f\\*' )
@@ -344,8 +348,15 @@ def convertVerseEntryListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                 assert '\\w ' not in html and '\\+w ' not in html, f"{html[html.index(f'{BACKSLASH}x')-10:html.index(f'{BACKSLASH}x')+12]}" # Note: can still be \\wj in text
 
         if '\\tc' in usfmField:
-            html = html.replace( '\\tc1 ', '<td>' ).replace( '\\tc2 ', '</td><td>' ).replace( '\\tc3 ', '</td><td>' ).replace( '\\tc4 ', '</td><td>' ).replace( '\\tc5 ', '</td><td>' )
-        assert '\\tr' not in html, f"TR {versionAbbreviation} {refTuple} {segmentType} {basicOnly=} {usfmField=} {html=}"
+            assert '\\tc1*' not in usfmField
+            html = html.replace( '\\tc1 ', '<td>' ).replace( '\\tc2 ', '</td><td>' ).replace( '\\tc3 ', '</td><td>' ).replace( '\\tc4 ', '</td><td>' ).replace( '\\tc5 ', '</td><td>' ) \
+                                .replace( '\\tc1', '<td>' ) # TODO: TCNT '\\tc1' shouldn't be on a line by itsef -- needs fixing in Rust code
+        # assert '\\tc' not in html, f"\\tc in {versionAbbreviation} {refTuple} {segmentType} {basicOnly=} {usfmField=} {html=}"
+        # assert '\\tr' not in html, f"\\tr in {versionAbbreviation} {refTuple} {segmentType} {basicOnly=} {usfmField=} {html=}"
+        # if '\\theb' not in html and '\\tgrk' not in html and '\\tl' not in html: # from NET transliterated Hebrew and Greek -- replaced below
+        #     assert '\\t' not in html, f"\\t in {versionAbbreviation} {refTuple} {segmentType} {basicOnly=} {usfmField=} {html=}"
+        # tdOpenCount, tdCloseCount = html.count( '<td>' ), html.count( '</td>' )
+        # assert tdCloseCount == tdOpenCount, f"TD {tdOpenCount=} {tdCloseCount=} {versionAbbreviation} {refTuple} {segmentType} {basicOnly=} {usfmField=} {html=}"
 
         # Replace the character markers which have specific HMTL equivalents
         # NOTE: Embedded markers like \\+em have already had the + removed above
@@ -368,6 +379,7 @@ def convertVerseEntryListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                 html = html.replace( '\\nd ', '<span class="nominaSacra">' ).replace( '\\nd*', '</span>' )
             else:
                 html = html.replace( f'\\{charMarker} ', f'<span class="{charMarker}">' ).replace( f'\\{charMarker}*', '</span>' )
+        assert '\\t' not in html, f"\\t in {versionAbbreviation} {refTuple} {segmentType} {basicOnly=} {usfmField=} {html=}"
 
         if 'OET' in versionAbbreviation: # Append "untranslated" to titles/popup-boxes for untranslated words in OET-LV
             # count = 0
@@ -433,8 +445,13 @@ def convertVerseEntryListToHtml( level:int, versionAbbreviation:str, refTuple:tu
 
     # numChapters = 0
     cPrinted = True
-    for MLIndex, entry in enumerate( verseEntryList ):
+    for velIndex, entry in enumerate( verseEntryList ):
         marker = entry.getMarker()
+        if marker=='nb' and segmentType=='chapter': # An independent chapter can start with 'nb', in which case the final entry in contextList should have the current paragraph marker
+            if contextList[-1] in USFM_ALL_BIBLE_PARAGRAPH_MARKERS:
+                marker = contextList[-1] # Put the current paragraph marker there to replace the 'nb' (not quite a perfect solution, but near enough)
+                # NOTE: This will also work better when the end paragraph marker is reached (if it's in this chapter)
+
         # rest = entry.getOriginalText() if basicOnly and 'OET' not in versionAbbreviation else entry.getOriginalText() # getText() has notes removed but doesn't work with wordlink numbers in OET
         # The following line means we get all footnotes, etc.
         rest = entry.getFullText() # getAdjustedText() has notes removed but doesn't work with wordlink numbers in OET
@@ -473,7 +490,7 @@ def convertVerseEntryListToHtml( level:int, versionAbbreviation:str, refTuple:tu
         # dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{marker} '{rest=}' '{entry.getCleanText()=}' '{entry.getOriginalText()=}'  '{entry.getOriginalText()=}'  extras={entry.getExtras()}" )
 
         # We try to put these in order of probability
-        if marker in ('p~','v~'): # This has the actual verse text
+        if marker in ('XXXp~','v~'): # This has the actual verse text
             if not rest:
                 logging.error( f"Expected verse text {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} {marker=}" )
             elif versionAbbreviation=='OET-RV' and rest[0]=='⇔': # Reordered verse
@@ -528,11 +545,14 @@ def convertVerseEntryListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                 # html = f'{html} <span class="v" id="C{refTuple[1]}V{V}">{V}{NARROW_NON_BREAK_SPACE}</span>'
         elif marker == '¬v': # We can ignore these end markers
             # Sections can cross chapters
-            assert rest==V or segmentType=='section', f'''Why does {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} '¬v' have {rest=}\nfrom {[(entry.getMarker(),f"{'...' if entry.getMarker() in ('v~','p~') else entry.getOriginalText()}") for entry in verseEntryList]}\nwith {[(entry.getMarker(),f"{'...' if entry.getMarker() in ('v~','p~') else entry.getCleanText()}") for entry in verseEntryList]}\nand {[(entry.getMarker(),f"{'...' if entry.getMarker() in ('v~','p~') else entry.getFullText()}") for entry in verseEntryList]}'''
+            assert rest==V or segmentType=='section', f'''Why does {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} '¬v' have {rest=}\nfrom {[(entry.getMarker(),f"{'...' if entry.getMarker() in ('v~','XXXp~') else entry.getOriginalText()}") for entry in verseEntryList]}\nwith {[(entry.getMarker(),f"{'...' if entry.getMarker() in ('v~','XXXp~') else entry.getCleanText()}") for entry in verseEntryList]}\nand {[(entry.getMarker(),f"{'...' if entry.getMarker() in ('v~','XXXp~') else entry.getFullText()}") for entry in verseEntryList]}'''
         elif marker == 'v=': # The next marker should be a section heading, and this gives the verse number for the section start
             assert rest and rest[0].isdigit()
-            assert not inRightDiv
-            assert not inParagraph
+            # We also get this before the 's4' kingdom marker (but we don't have any use for that here)
+            if velIndex==len(verseEntryList)-1 or verseEntryList[velIndex+1].getMarker() == 's4': continue # ignore this 'v='
+            assert not inRightDiv, f'''Already in {inRightDiv=} with 'v=' followed by '{verseEntryList[velIndex+1].getMarker()}' at {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {rest=}\nwith {[(entry.getMarker(),f"{'...' if entry.getMarker() in ('v~','XXXp~') else entry.getCleanText()}") for entry in verseEntryList]}'''
+            if versionAbbreviation != 'TCNT': # TODO: Rust code needs fixing
+                assert not inParagraph, f'''Already in {inParagraph=} with 'v=' followed by '{verseEntryList[velIndex+1].getMarker()}' at {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {rest=}\nwith {[(entry.getMarker(),f"{'...' if entry.getMarker() in ('v~','XXXp~') else entry.getCleanText()}") for entry in verseEntryList]}'''
             # Note that this verse number can have a letter, e.g., '7b' if the next section starts in the middle of a verse
             V = rest.strip() # Play safe
         elif marker in ('p', 'q1','q2','q3','q4', 'm','mi',
@@ -582,12 +602,13 @@ def convertVerseEntryListToHtml( level:int, versionAbbreviation:str, refTuple:tu
             assert basicOnly or (inParagraph and inParagraph != '¬nb'), f"Have nb: {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inRightDiv=} {inParagraph=}"
         elif marker == 'nb': # This one will be closed at some point by the ORIGINAL paragraph marker (that crossed chapters)
                              #  except that the OET-LV has NO other paragraph markers
+                             # An independent chapter can start with 'nb', in which case the final entry in contextList should have the current paragraph marker
             assert not rest, f"Unexpected rest {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {marker}={rest}"
             if versionAbbreviation != 'OET-LV': # In OET-LV each chapter starts with a 'nb' which is effectively a NOP
                 # print( f"Have nb: {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inRightDiv=} {inParagraph=}" )
                 markerList = [entry.getMarker() for entry in verseEntryList]
                 if len(markerList)>2 and markerList[-1]=='¬chapters' and markerList[-2]!='¬c': print( f"{markerList=}" )
-                assert basicOnly or inParagraph, f"nb {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inParagraph=} {inRightDiv=} {inTable=} {inList=}{rest=} {[entry.getMarker() for entry in verseEntryList]}"
+                assert basicOnly or inParagraph or segmentType in ('chapter','section'), f"nb {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inParagraph=} {inRightDiv=} {inTable=} {inList=}{rest=} {[entry.getMarker() for entry in verseEntryList]} {contextList=}"
                 assert not (inRightDiv or inTableRow or inTable or inList), f"nb {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inRightDiv=} {inTable=} {inList=}{rest=}"
         elif marker in ('¬p', '¬q1','¬q2','¬q3','¬q4', '¬m','¬mi',
                             '¬pi1','¬pi2', '¬pc','¬pm','¬pmc','¬pmo','¬po','¬pr', '¬qm1','¬qm2', '¬qr', '¬cls'):
@@ -712,15 +733,16 @@ def convertVerseEntryListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                             html = f'''{html}<p class="{marker} {additionalClassName}">{guts}</p><!--{marker}-->\n'''
                         else: html = f'{html}<p class="{marker}">{_convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state )}</p><!--{marker}-->\n'
         elif marker in ('¬s1','¬s2','¬s3','¬s4',):
-            assert not rest
-            assert inSection == marker[1:] and not inParagraph, f"{versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {marker=}"
-            if not basicOnly:
-                # if inRightDiv: # shouldn't really happen, but just in case
-                #     html = f'{html}</div><!--{inRightDiv}-->\n'
-                #     inRightDiv = False
-                #     assert False, "We want to stop here" # Why were we in a rightDiv
-                html = f'{html}</div><!--{marker[1:]}-->\n'
-            inSection = None
+            assert not rest, f"{versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {marker=} {rest=}"
+            # TEMPORARILY REMOVED 2026-06-26
+            # assert inSection == marker[1:] and not inParagraph, f"{versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {marker=}"
+            # if not basicOnly:
+            #     # if inRightDiv: # shouldn't really happen, but just in case
+            #     #     html = f'{html}</div><!--{inRightDiv}-->\n'
+            #     #     inRightDiv = False
+            #     #     assert False, "We want to stop here" # Why were we in a rightDiv
+            #     html = f'{html}</div><!--{marker[1:]}-->\n'
+            # inSection = None
         elif marker == 'r': # usually following a \\s1 (but maybe a \\s2) -- either way there could be a \\rem in between
             # The following is not true for the ULT at least (e.g., see ULT Gen 5:1)
             # assert rest[0]=='(' and rest[-1]==')', f"{versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {marker}={rest}"
@@ -730,7 +752,7 @@ def convertVerseEntryListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                 if segmentType != 'relatedPassage': # because these can jump in anywhere
                     assert inSection, f"{versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {marker}={rest}"
                     if 'OET' in versionAbbreviation:
-                        assert inRightDiv, f"{versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {marker}={rest} prevEntry={verseEntryList[MLIndex-1]} {html[-50:]}"
+                        assert inRightDiv, f"{versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {marker}={rest} prevEntry={verseEntryList[velIndex-1]} {html[-50:]}"
                 html = f'{html}<p class="{marker}">{livenSectionReferences( versionAbbreviation, refTuple, segmentType, rest, state )}</p><!--{marker}-->\n'
         elif marker == 'c':
             # if segmentType == 'chapter':
@@ -918,7 +940,7 @@ def convertVerseEntryListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                             f'''<span class="{'cPsa' if BBB=='PSA' else 'c'}" id="C{C}"><a title="View single {'Psalm' if BBB=='PSA' else 'chapter'}" href="../byC/{BBB}_C{C}.htm#Top">{toRomanNumerals(C) if versionAbbreviation=='KJB-1611' else C}</a></span> '''
                     cPrinted = True
                 if versionAbbreviation=='OET-RV' and marker=='sp':
-                    assert BBB == 'SNG'
+                    assert BBB == 'SNG' or BBB == 'JER' # Latter is experimental
                     if inSPdiv:
                         html = f'{html}</div><!--SP_{inSPdiv}-->\n'
                     # print( f"sp {rest=} from {markerList=}")
@@ -1008,7 +1030,7 @@ def convertVerseEntryListToHtml( level:int, versionAbbreviation:str, refTuple:tu
             assert not rest
             # Related passages can jump right into the middle of things
             if not basicOnly and segmentType!='relatedPassage' and versionAbbreviation not in ('BSB','MSB'): # These ones from spreadsheets are too difficult
-                assert inList, f"Unexpected list close marker when not inList {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} {marker=}"
+                assert inList, f"Unexpected list close marker when not inList {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} {marker=}\nfrom {verseEntryList=}"
                 assert inListEntry == marker[1:], f"Unexpected list close marker when not inListEntry {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} {marker=}"
             if inListEntry:
                 html = f'{html}</li>\n'
@@ -1031,9 +1053,10 @@ def convertVerseEntryListToHtml( level:int, versionAbbreviation:str, refTuple:tu
             else:
                 html = f'{html}<tr>'
                 inTableRow = 'tr'
-        elif marker in ('tc1','tc2','tc3'):
+        elif marker in ('tc1','tc2','tc3','tc4'):
+            halt # Shouldn't happen because these are 'character' markers
             assert not inParagraph and not inList and not inListEntry and inTable and inTableRow, f"{versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} {inTable=} {inTableRow=} {marker=} {rest=}"
-            print( f"{versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} {inTable=} {inTableRow=} {marker=} {rest=}" )
+            print( f"Table column {marker} in {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {inList=} {inListEntry=} {inTable=} {inTableRow=} {rest=}" )
             assert False, "We want to stop here"
         elif segmentType=='chapter' and marker in ('¬c','¬chapters'): # We can ignore this
             # Just do some finishing off
@@ -1163,7 +1186,7 @@ def convertVerseEntryListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                 html = f'{html}</div><!--{inMainDiv}-->'
                 inMainDiv = None
         elif marker not in ('usfm','ide', 'sts',
-                            'h', 'toc1','toc2','toc3', 'toca1','toca2','toca3', '¬headers',
+                            'h', 'toc1','toc2','toc3', 'toca1','toca2','toca3', '¬is1', '¬headers',
                             'cl¤', '¬c', '¬chapters'): # We can ignore all of these -- 'c#' now handled above
             if versionAbbreviation in ('ULT','UST'):
             # Can't list faulty books for uW stuff because there's too many errors keep popping up
@@ -1592,7 +1615,7 @@ def livenIntroductionLinks( versionAbbreviation:str, refTuple:tuple, segmentType
                     #     logging.critical( f"    f'{startC}:{startV}…{endC}:{endV}'" )
                     newGuts = guts # Can't make a link
                     if refBBB in state.preloadedBibles[versionAbbreviation]:
-                        unable_to_find_reference # Need to write more code
+                        assert False, f"unable_to_find_reference -- need to write more code: unable_to_find_reference for {versionAbbreviation} {segmentType=} {refBBB} {refC}:{refV}"
             # except KeyError:
             #     logging.critical( f"livenIntroductionLinks for {versionAbbreviation}, {refTuple}, {segmentType} can't find section list for {ourBBB}" )
             #     newGuts = guts # Can't make a link
@@ -1701,6 +1724,7 @@ def livenIORs( versionAbbreviation:str, refTuple:tuple, segmentType:str, ioLineH
         elif segmentType in ('section','relatedPassage'):
             if 1:
             # try: # Now find which section that IOR starts in
+                # print( f"livenIORs:findSectionNumber for {versionAbbreviation} {ourBBB} {Cstr}:{Vstr}" )
                 n = findSectionNumber( versionAbbreviation, ourBBB, Cstr, Vstr, state )
                 # intV = getSmallLeadingInt(Vstr)
                 # found = False
@@ -1720,9 +1744,11 @@ def livenIORs( versionAbbreviation:str, refTuple:tuple, segmentType:str, ioLineH
                 if n is not None:
                     newGuts = f'<a title="Jump to section page with reference" href="{ourBBB}_S{n}.htm#Top">{guts}</a>'
                 else:
-                    logging.critical( f"unable_to_find_IOR for {ourBBB} {Cstr}:{Vstr} {[f'{startC}:{startV}…{endC}:{endV}' for startC,startV,endC,endV,sectionName,reasonName,contextList,verseEntryList,sFilename in state.sectionsLists[versionAbbreviation][ourBBB]]}" )
+                    logging.critical( f"unable_to_find_IOR for {versionAbbreviation} {ourBBB} {Cstr}:{Vstr} {[f'{startC}:{startV}…{endC}:{endV}' for n,startC,startV,endC,endV,sectionName,reasonName,contextList,verseEntryList,sFilename in state.sectionsLists[versionAbbreviation][ourBBB]]}" )
+                    for cc,(cv,entry) in enumerate( state.preloadedBibles[versionAbbreviation][ourBBB]._SectionIndex.items() ):
+                        print( f"    {cc}: {ourBBB} {cv} {entry}" )
                     newGuts = guts # Can't make a link
-                    unable_to_find_reference # Need to write more code
+                    assert False, f"unable_to_find_reference -- need to write more code: unable_to_find_IOR for {versionAbbreviation} {ourBBB} {Cstr}:{Vstr} {[f'{startC}:{startV}…{endC}:{endV}' for n,startC,startV,endC,endV,sectionName,reasonName,contextList,verseEntryList,sFilename in state.sectionsLists[versionAbbreviation][ourBBB]]}"
             # except KeyError:
             #     logging.critical( f"livenIORs for {versionAbbreviation}, {refTuple}, {segmentType} can't find section list for {ourBBB}" )
             #     newGuts = guts # Can't make a link

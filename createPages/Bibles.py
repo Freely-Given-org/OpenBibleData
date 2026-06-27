@@ -113,10 +113,10 @@ from OETHandlers import findLVQuote, getBBBFromOETBookName
 from Dict import loadAndIndexUBSGreekDictJSON, loadAndIndexUBSHebrewDictJSON
 
 
-LAST_MODIFIED_DATE = '2026-06-15' # by RJH
+LAST_MODIFIED_DATE = '2026-06-27' # by RJH
 SHORT_PROGRAM_NAME = "Bibles"
 PROGRAM_NAME = "OpenBibleData Bibles handler"
-PROGRAM_VERSION = '0.95'
+PROGRAM_VERSION = '0.97'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -262,7 +262,7 @@ def preloadVersions( state:State ) -> int:
             state.preloadedBibles['OET-LV'] = thisBible
             vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Doing discovery for {thisBible.abbreviation} ({thisBible.name})…" )
             thisBible.discover()
-            thisBible.makeSectionIndex() # These aren't made automatically by BibleOrgSys
+            thisBible.makeSectionIndex() # For OET-LV -- this isn't made automatically by BibleOrgSys
             vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"preloadVersions() loaded {thisBible}" )
 
             if WRITE_PICKLES_FLAG:
@@ -531,8 +531,6 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Preloading ‘{versionAbbreviation}’ USFM Bible{' in TEST mode' if state.TEST_MODE_FLAG else ''}…" )
         thisBible = USFMBible.USFMBible( folderOrFileLocation, givenName=versionName, givenAbbreviation=versionAbbreviation,
                                             encoding='utf-8' )
-        if versionAbbreviation in ('ULT','UST','UHB','UGNT','SR-GNT'):
-            thisBible.uWencoded = True # TODO: Shouldn't be required ???
         if state.booksToLoad[versionAbbreviation] in (['ALL'],['OT'],['NT']):
             # We assume that we can load all books, even for OT and NT
             #  i.e., we assume (but don't check) that only those books will exist (plus maybe intro, etc.)
@@ -572,6 +570,11 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
         thisBible.discover()
         assert 'discoveryResults' in thisBible.__dict__
         thisBible.makeSectionIndex() # These aren't made automatically by BibleOrgSys
+        # if versionAbbreviation=='OET-RV':
+        #     testBBB = 'SA2'
+        #     for ee,cv in enumerate( thisBible[testBBB]._SectionIndex ):
+        #         print( f"    {ee}/ {cv} {thisBible[testBBB]._SectionIndex[cv]}" )
+        #     halt
 
         if WRITE_PICKLES_FLAG:
             pickleFilename = f"{versionAbbreviation}__{'_'.join(state.TEST_BOOK_LIST)}{state.PICKLE_FILENAME_END}" \
@@ -703,9 +706,11 @@ def loadTyndaleBookIntrosXML( abbrev:str, XML_filepath ) -> dict[str,str]:
                                         'intro-extract') if abbrev=='TBI' \
                                     else ('intro-title','intro-sidebar-h1','intro-sidebar-body-fl')
                                 assert pClass in classList, f"{refs} {pClass=} {bodyLocation}"
+                            elif attrib == 'id':
+                                logging.warning( f"TOSN id {value=} is currently ignored" )
                             else:
-                                logging.warning( "fv6g Unprocessed {} attribute ({}) in {}".format( attrib, value, bodyLocation ) )
-                                loadErrors.append( "Unprocessed {} attribute ({}) in {} (fv6g)".format( attrib, value, bodyLocation ) )
+                                logging.warning( "fv6g Unprocessed '{}' attribute ({}) in {}".format( attrib, value, bodyLocation ) )
+                                loadErrors.append( "Unprocessed '{}' attribute ({}) in {} (fv6g)".format( attrib, value, bodyLocation ) )
                                 if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.errorOnXMLWarning: assert False, "We want to stop here"
                         # So we want to extract this as an HTML paragraph
                         htmlSegment = BibleOrgSysGlobals.getFlattenedXML( bodyelement, bodyLocation ) \
@@ -775,7 +780,7 @@ def formatTyndaleNotes( abbrev:str, level:int, BBB:str, C:str, V:str, segmentTyp
     lastMarker = None
     inList = False
     for entry in verseEntryList:
-        marker, rest = entry.getMarker(), entry.getOriginalText()
+        marker, rest = entry.getMarker(), entry.getFullText()
         # dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"{abbrev} {ftnRef} {marker}='{rest}'" )
         if marker in ('¬v','¬c','¬p','¬pi1','¬pi2','¬li1','¬chapters'):
             # assert not rest or rest.isdigit() or '-' in rest, f"{BBB} {C}:{V} {marker}={rest=}"
@@ -785,16 +790,24 @@ def formatTyndaleNotes( abbrev:str, level:int, BBB:str, C:str, V:str, segmentTyp
         #         snHtml = f'{snHtml}<p class="TSNv">Verses {rest}</p>'
         if marker == 'v~':
             assert rest
-            assert abbrev == 'TOSN'
-            rest = rest.replace( '•', '<br>•' )
+            # assert abbrev == 'TOSN', f"{abbrev=} {rest=}"
             theirClass = None
-            if rest.startswith( '<class="'): # e.g., <class="theme-list">The new covenant…
-                ixClose = rest.index( '">', 10 )
-                theirClass = rest[8:ixClose]
-                rest = rest[ixClose+2:]
-            rest = rest.replace( ' <class="sn-text">', '</p>\n<p class="sn-text">')
-                        # .replace( '<class="sn-text">', '</p>\n<p class="sn-text">')
-            nHtml = f'{nHtml}<p class="{theirClass if theirClass else abbrev}">{rest}</p>'
+            if abbrev == 'TOSN':
+                rest = rest.replace( '•', '<br>•' )
+                if rest.startswith( '<class="'): # e.g., <class="theme-list">The new covenant…
+                    ixClose = rest.index( '">', 10 )
+                    theirClass = rest[8:ixClose]
+                    rest = rest[ixClose+2:]
+                rest = rest.replace( ' <class="sn-text">', '</p>\n<p class="sn-text">')
+                            # .replace( '<class="sn-text">', '</p>\n<p class="sn-text">')
+                nHtml = f'{nHtml}<p class="{theirClass if theirClass else abbrev}">{rest}</p>'
+            else: # was p~ code
+                if rest.startswith( '<class="'): # e.g., <class="theme-list">The new covenant…
+                    ixClose = rest.index( '">', 10 )
+                    theirClass = rest[8:ixClose]
+                    rest = rest[ixClose+2:]
+                nHtml = f'{nHtml}\n<li>{rest}</li>' if lastMarker=='li1' \
+                            else f'{nHtml}\n<p class="{theirClass if theirClass else lastMarker}">{rest}</p>'
         elif marker in ('s1','s2','s3'): # These have the text in the same entry
             assert rest
             assert abbrev == 'TTN'
@@ -809,15 +822,16 @@ def formatTyndaleNotes( abbrev:str, level:int, BBB:str, C:str, V:str, segmentTyp
             assert not rest
             if marker!='li1': assert abbrev == 'TTN'
             # will be saved as lastMarker for later use
-        elif marker == 'p~':
-            assert rest
-            theirClass = None
-            if rest.startswith( '<class="'): # e.g., <class="theme-list">The new covenant…
-                ixClose = rest.index( '">', 10 )
-                theirClass = rest[8:ixClose]
-                rest = rest[ixClose+2:]
-            nHtml = f'{nHtml}\n<li>{rest}</li>' if lastMarker=='li1' \
-                        else f'{nHtml}\n<p class="{theirClass if theirClass else lastMarker}">{rest}</p>'
+        # elif marker == 'XXXp~':
+        #     halt
+        #     assert rest
+        #     theirClass = None
+        #     if rest.startswith( '<class="'): # e.g., <class="theme-list">The new covenant…
+        #         ixClose = rest.index( '">', 10 )
+        #         theirClass = rest[8:ixClose]
+        #         rest = rest[ixClose+2:]
+        #     nHtml = f'{nHtml}\n<li>{rest}</li>' if lastMarker=='li1' \
+        #                 else f'{nHtml}\n<p class="{theirClass if theirClass else lastMarker}">{rest}</p>'
         elif marker == 'b':
             assert not rest
             assert abbrev == 'TTN'
@@ -835,7 +849,7 @@ def formatTyndaleNotes( abbrev:str, level:int, BBB:str, C:str, V:str, segmentTyp
             if inList:
                 nHtml = f'{nHtml}</ol>'
                 inList = False
-        elif marker not in ('id','usfm','ide','intro','chapters','c','c#','c~','v','v='):
+        elif marker not in ('id','usfm','ide','intro','chapters','c','c#','c~','v','v=', '¬s1'):
             dPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"{abbrev} {ftnRef} {marker}={rest}" )
             logging.critical( f"Unknown Tyndale notes marker: {abbrev} {ftnRef} {marker}={rest}" )
             unknown_Tyndale_notes_marker
@@ -960,23 +974,23 @@ def formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segme
         0/ v = '8'
 
         1/ m = ''
-        2/ p~ = 'rc://*/ta/man/translate/figs-go'
+        2/ v~ = 'rc://*/ta/man/translate/figs-go'
         3/ ¬m = ''
         4/ q1 = ''
-        5/ p~ = 'ἐξελθοῦσαι'
+        5/ v~ = 'ἐξελθοῦσαι'
         6/ ¬q1 = ''
         7/ p = ''
-        8/ p~ = 'Your language may say “come” rather than **gone** … natural. Alternate translation: “having come out”'
+        8/ v~ = 'Your language may say “come” rather than **gone** … natural. Alternate translation: “having come out”'
         9/ ¬p = ''
 
         10/ m = ''
-        11/ p~ = 'rc://*/ta/man/translate/figs-abstractnouns'
+        11/ v~ = 'rc://*/ta/man/translate/figs-abstractnouns'
         12/ ¬m = ''
         13/ q1 = ''
-        14/ p~ = 'εἶχεν γὰρ αὐτὰς τρόμος καὶ ἔκστασις'
+        14/ v~ = 'εἶχεν γὰρ αὐτὰς τρόμος καὶ ἔκστασις'
         15/ ¬q1 = ''
         16/ p = ''
-        17/ p~ = 'If your language does not use an abstract noun for… “for they were greatly amazed, and they trembled”'
+        17/ v~ = 'If your language does not use an abstract noun for… “for they were greatly amazed, and they trembled”'
         18/ ¬p = ''
 
         19/ m = ''
@@ -1011,7 +1025,7 @@ def formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segme
     noteCount = 0
     occurrenceNumber = 1
     for entry in verseEntryList:
-        marker, rest = entry.getMarker(), entry.getOriginalText()
+        marker, rest = entry.getMarker(), entry.getFullText()
         if marker.startswith( '¬' ):
             # assert not rest or rest.isdigit() or '-' in rest, f"{BBB} {C}:{V} {marker}={rest=}"
             continue # end markers not needed here
@@ -1024,8 +1038,8 @@ def formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segme
             dPrint( 'Info', DEBUGGING_THIS_MODULE, f"formatUnfoldingWordTranslationNotes( {utnRef}, {segmentType=} ) skipped UTN {marker}='{rest}'" )
             lastMarker = marker
             continue
-        assert rest == entry.getOriginalText().rstrip(), f"UTN {utnRef} {marker}='{rest}' ft='{entry.getOriginalText()}'" # Just checking that we're not missing anything here
-        assert marker in ('v', 'm','q1','p','pi1', 'p~', 'im','iq1','ip','ipi'), f"Unexpected marker UTN {utnRef} {marker}='{rest}' ({lastMarker=})" # We expect a very limited subset
+        assert rest == entry.getFullText().rstrip(), f"UTN {utnRef} {marker}='{rest}' ft='{entry.getFullText()}'" # Just checking that we're not missing anything here
+        assert marker in ('v','v~', 'm','q1','p','pi1', 'intro','im','iq1','ip','ipi'), f"Unexpected marker UTN {utnRef} {marker}='{rest}' ({lastMarker=})" # We expect a very limited subset
         if '\\r' in rest: # TODO: Should this be in BibleOrgSys (when the UTNs are loaded???)
             logging.warning( f"Removed CR from UTN {utnRef}" )
             rest = rest.replace( '\\r', '' )
@@ -1037,7 +1051,7 @@ def formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segme
                 tnHtml = f'''{' ' if tnHtml else ''}{tnHtml}<span class="v">{V} </span>'''
             # assert rest==V or '-' in rest, f"UTN {utnRef} {marker}='{rest}' from {verseEntryList=}"
 
-        elif marker == 'p~': # This has the text
+        elif marker == 'v~': # This has the text was 'XXXp~'
             if lastMarker in ('m','im'):  # TA reference
                 assert rest
                 if rest.startswith( 'rc://*/ta/man/translate/' ):

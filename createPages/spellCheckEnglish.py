@@ -461,7 +461,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
     elif versionAbbreviation in ('DRA','YLT','RV'):
         wordSet.update( ('baptized',) )
     elif versionAbbreviation == 'Luth':
-        wordSet.update( ('Yuda','fiancé(e',) ) # (Final parenthesis gets removed)
+        wordSet.update( ('Yuda','fiancé(e','asabthani','kumi') ) # (Final parenthesis gets removed)
     elif versionAbbreviation == 'ClVg':
         wordSet.update( ('carmel', # No idea why this isn't capitalised in ClVg ???
                          'Moyses','Sion','Yuda',
@@ -793,62 +793,45 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                 cleanedTextToDisplay = cleanedTextToDisplay.replace('<span class="ClVg_verseTextChunk">','').replace('<div id="footnotesClVg" class="footnotes">\n','').replace('  ',' ').replace(' ',' ')
                 vPrint( 'Normal' if word.upper()==word
                        or word in ( #  \d{1,3}\), \(
-                                'an','aß','sie','hin','heb','wir','dem','des','für','hub','ich','ist','alle','las','lag','ones)r','ones)s','ones)n','one)s','bis',
+                                'an','aß','Bart','sie','hin','heb','wir','dem','des','für','hub','ich','ist','alle','las','lag','ones)r','ones)s','ones)n','one)s','bis',
                                 'hing','one)r','one)n','weh','du','ach','Raube','Raub','Tal','tue','fiel','sehe','Mal','mal','mit','Mord',
                                 'ende','rede','kam','Korb','ward','alt','dran','Rede','nun','nur','messen','ging','und','ster','tun','von','wer','zu',
                                 'angeres', # ???
-                                'wineet','stirbst','votern','bettere','menn','praisese','letterss','writingen',
-                                    'throughläutert','abovewältigten',
-                                    'downwälzen','rosee','hohl','countryvolk','maintainse','wickelte','begab','rawerten','drang','wealthyer',
-                                    'armycharen','trainn','beardholomäus','found‘s','wanted‘','zagen','der','hopse',
-                                    'mustern','countryvolks','twounddreißig',
-                                    'songe','showst','lovet','forgaveest',
+                                'wineet','votern','praisese',
+                                'reisen','chasesen','erstgeborne','dagewesen','ownr','indicatee',
+                                    'throughläutert','abovewältigten','wickelte','gratitudes',
+                                    'begab','winkten','strengthrer','homelande','insidebrächten','toconfessed','rightfertigen',
 
                                 'actio','ambit','ambitio','anima','antiqui','apprehendi','ascendi','attende','audi',
                                 'beati','bene','beneficia','bos',
-                                'calami','capti',
-                                    'centurio',
-                                    'Christi',
-                                    'circumcisio','cis',
-                                    'cognitio','cogniti','complet',
-                                        'confessio','confusi','congregati','congregatio','consecrat','consecrati','considerat','consolati','consolatio','contra','contriti','conversa',
+                                'calami','capti',       'centurio',     'Christi',      'circumcisio','cis',        'cognitio','cogniti','complet',
+                                        'competit',
+                                        'confessio','confusi','congregati','congregatio','consecrat','consecrati','considerat','consolati','consolatio','contra','contriti','conversa','conversi',
                                         'cor','correcti',
-                                    'creat','credi','cruci',
-                                    'cultu','cum',
+                                    'creat','credi','cruci',        'cultu','cum',
                                 'dat','dedi','dem','designat','desolati',
                                     'disco','digni','discretio','distincti','distinctio','divisi','dom','domi','domina',
-                                'ecclesia','ecclesias','editio','ei','esca','evangelica','expiat','extensio',
-                                'fac','Finis','finis','forti','fugit','fur',
-                                'generat',
-                                'hellor','hoc','humili',
-                                'ibi','illum','illinat','ima','infirmi','insinuat',
-                                    'intellige','intelligi','intentio','introduc','inventi','invocatio','Isaia','iter',
-                                'ja','jus',
-                                'legi','legis','liberati','locus','lux',
+                                'ecclesia','ecclesias','editio','ei','enumerat','esca','evangelica','expiat','extensio',
+                                'fac','famis', 'fel', 'Finis','finis','forti','fugit','fur',     'generat',     'hellor','hoc','humili','humiliati',
+                                'ibi', 'illum','illinat', 'ima','impie', 'infirmi','insinuat',
+                                    'intellige','intelligi','intentio','introduc','inventi','invocatio','Isaia','iter','Ite',
+                                'ja','jus',     'legi','legis','liberati','liberat','locus','lux',
                                 'magis','magnifice','magni','manifeste','manu','mater','materia',
-                                    'medici','menstrua',
-                                    'mira','misera',
-                                    'moretri','mortali','morti',
-                                'nam','natu','natura','ne',
-                                'ob','obsessi','operatio','ora',
+                                    'medici','menstrua',        'mira','misera',        'moretri','mortali','morti',
+                                'nam','natu','natura','ne',     'ob','obsessi','operatio','ora',
                                 'passi','patria','patri','pede','pedes','perfecti','persecuti','persecutio',
-                                    'pio','polluti','prope','propitiatio','publica',
-                                'questio','qui',
-                                'rea','redempti','regula','rei','repente','ros',
+                                    'pio','polluti','prope','propitiatio','provocat','publica',
+                                'questio','qui',        'rea','redempti','regula','rei','repente','ros',
                                 'salva','salvat','salvati','sanctifica',
                                     'securi','separat','separati','seu','serva','servit','sex','sexta',
                                     'si','sit','sol','soli','solem','stat','statu','summo',
                                 'tempora','Tod','tradit','traditi','traditio','transmigratio','tres','tribulatio','trium','tu','tua','tuam','turba',
-                                'usu',
-                                'valle','vas','victi','visita','visitat','visitatio','vita',
+                                'usu',      'valle','vas','victi','visita','visitat','visitatio','vita',
                                 'l','nos','ut','didrachmas',
-                                'tentari', # ????
-                                'loveus','interioris','bodilys','fatherfamilias','interiori',
-                                    'relativestatis','sinebat','sayto','beforedicandi','rightsbis','sed','moisturem','plantem','allowsur',
-                                    'drinkns','worki','praisent','hymnus','liberatus','leadsur','prophett','seent','requirens',
-                                    'mnas','thesereticus','fillsi','cleansus','touchesur','lampm','fatherfamilias','condemnsorum',
-                                    'beforesepio','sinem','carryis','inimico','propitieris','fecerint','residentum','yudici',
-                                    'sayur','rightæ','appetit','enumerat','miserableæ','erue',
+                                'resistit'
+                                    'prophesyem','sinis','gelu','lawfullyns','knowe','sents','livent','milkns',
+                                    'reprimandsur','worki','shouldur','treelnea','obvioustur','paini','convenientia',
+                                    'inhabitabilis','properabunt',
                                 )
                     else 'Info', DEBUGGING_THIS_MODULE, f'''        {word} is suspect @ {location}\nfrom {cleanedTextToDisplay=}\n  WHICH GAVE {cleanedTextToCheck=}''' )
             if versionAbbreviation == 'Luth':
@@ -924,7 +907,11 @@ def printSpellCheckSummary( state ) -> None:
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    TOTAL BAD ENGLISH WORDS = {TOTAL_ENGLISH_MISSPELLING_COUNT:,} WORST ENGLISH WORDS {[(k, BAD_ENGLISH_COUNTS[k]) for k in sorted(BAD_ENGLISH_COUNTS, key=BAD_ENGLISH_COUNTS.get, reverse=True) if k.islower()][:14]}" )
     if TOTAL_GERMAN_WORDS_CHECKED_COUNT > 0:
         vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  TOTAL GERMAN WORDS CHECKED = {TOTAL_GERMAN_WORDS_CHECKED_COUNT:,} BAD_GERMAN WORDS {len(BAD_GERMAN_WORD_LIST):,} {len(BAD_GERMAN_WORD_LIST)*100/TOTAL_GERMAN_WORDS_CHECKED_COUNT:.1f}% ({len(BAD_GERMAN_WORD_SET):,} unique){f': {BAD_GERMAN_WORD_SET}' if BibleOrgSysGlobals.verbosityLevel>2 else ''}" )
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    TOTAL BAD GERMAN WORDS = {TOTAL_GERMAN_MISSPELLING_COUNT:,} WORST GERMAN WORDS {[(k, BAD_GERMAN_COUNTS[k]) for k in sorted(BAD_GERMAN_COUNTS, key=BAD_GERMAN_COUNTS.get, reverse=True) if k.islower()][:13]}" )
+        GermanWordsToShow = [(k, BAD_GERMAN_COUNTS[k]) for k in sorted(BAD_GERMAN_COUNTS, key=BAD_GERMAN_COUNTS.get, reverse=True) if k.islower()][:13]
+        if len(GermanWordsToShow) < 12: # Show captalised words then (although they will include names / proper nouns)
+            GermanWordsToShow = [(k, BAD_GERMAN_COUNTS[k]) for k in sorted(BAD_GERMAN_COUNTS, key=BAD_GERMAN_COUNTS.get, reverse=True)
+                                 if k not in ('Tsevaot','Yeremia','Yohannes','Yoyakims')][:13]
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    TOTAL BAD GERMAN WORDS = {TOTAL_GERMAN_MISSPELLING_COUNT:,} WORST GERMAN WORDS {GermanWordsToShow}" )
     if TOTAL_LATIN_WORDS_CHECKED_COUNT > 0:
         vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  TOTAL LATIN WORDS CHECKED = {TOTAL_LATIN_WORDS_CHECKED_COUNT:,} BAD_LATIN WORDS {len(BAD_LATIN_WORD_LIST):,} = {len(BAD_LATIN_WORD_LIST)*100/TOTAL_LATIN_WORDS_CHECKED_COUNT:.1f}% ({len(BAD_LATIN_WORD_SET):,} unique){f': {BAD_LATIN_WORD_SET}' if BibleOrgSysGlobals.verbosityLevel>2 else ''}" )
         vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    TOTAL BAD LATIN WORDS = {TOTAL_LATIN_MISSPELLING_COUNT:,} WORST LATIN WORDS {[(k, BAD_LATIN_COUNTS[k]) for k in sorted(BAD_LATIN_COUNTS, key=BAD_LATIN_COUNTS.get, reverse=True) if k.islower()][:13]}\n" )

@@ -100,10 +100,10 @@ from html import makeTop, makeViewNavListParagraph, makeBottom, checkHtml
 from spellCheckEnglish import printSpellCheckSummary
 
 
-LAST_MODIFIED_DATE = '2026-06-11' # by RJH
+LAST_MODIFIED_DATE = '2026-06-23' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData (OBD) Create Site Pages"
-PROGRAM_VERSION = '1.0.0'
+PROGRAM_VERSION = '1.0.2'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
@@ -295,10 +295,6 @@ def _createSitePages() -> bool:
                     versionFolder = state.TEMP_BUILD_FOLDER.joinpath( f'{thisBible.abbreviation}/' )
                     createSectionPages( 2, versionFolder.joinpath('bySec/'), thisBible, state )
 
-        createOETInterlinearPages( 1, state.TEMP_BUILD_FOLDER.joinpath('ilr/'), state )
-        createParallelPassagePages( 1, state.TEMP_BUILD_FOLDER.joinpath('rel/'), state )
-        createTopicPages( 1, state.TEMP_BUILD_FOLDER.joinpath('tpc/'), state )
-
     if state.CREATE_PARALLEL_VERSE_PAGES == 'LAST':
         createParallelVersePages( 1, state.TEMP_BUILD_FOLDER.joinpath('par/'), state )
     elif not state.CREATE_PARALLEL_VERSE_PAGES:
@@ -306,6 +302,9 @@ def _createSitePages() -> bool:
     elif state.CREATE_PARALLEL_VERSE_PAGES != 'FIRST': have_invalid_value
 
     if not state.REUSE_EXISTING_WORD_PAGES_FLAG:
+        createOETInterlinearPages( 1, state.TEMP_BUILD_FOLDER.joinpath('ilr/'), state )
+        createParallelPassagePages( 1, state.TEMP_BUILD_FOLDER.joinpath('rel/'), state )
+        createTopicPages( 1, state.TEMP_BUILD_FOLDER.joinpath('tpc/'), state )
         createKingdomPages( 2, state.TEMP_BUILD_FOLDER.joinpath('ref/Kingdoms/'), state )
         createUBSDictionaryPages( 1, state.TEMP_BUILD_FOLDER.joinpath('UBS/'), state )
         createTyndaleDictPages( 1, state.TEMP_BUILD_FOLDER.joinpath('dct/'), state )
@@ -313,7 +312,7 @@ def _createSitePages() -> bool:
         createAppJsonFiles( 1, state.TEMP_BUILD_FOLDER.joinpath('app/'), state )
     else:
         # Don't rebuild these reference pages -- we'll reuse the existing folders full of pages
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\nNOT GENERATING new {'TEST ' if state.TEST_MODE_FLAG else ''}reference pages (OET word pages, UBS dict, Tyndale Dict)." )
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\nNOT GENERATING new {'TEST ' if state.TEST_MODE_FLAG else ''}reference pages (Interlinear & parallel passages, topic and kingdom pages, OET html & json word pages, UBS dict, Tyndale Dict)." )
 
     _createDetailsPages( 0, state.TEMP_BUILD_FOLDER, state )
     _createSearchPage( 0, state.TEMP_BUILD_FOLDER, state )
@@ -1098,7 +1097,8 @@ if __name__ == '__main__':
     fullDemo()
 
     BibleOrgSysGlobals.closedown( PROGRAM_NAME, PROGRAM_VERSION )
-    WAS_ENABLED = False
-    assert WAS_ENABLED, "This build of the site (WHICH COMPLETED) was done with ASSERT statements ENABLED."
-    print( "This build of the site (which completed) was done with assert statements DISABLED." )
+    print( f"\nThis build of the site (which completed) was done with {'STRICT' if BibleOrgSysGlobals.strictCheckingFlag else 'NON-strict'} checking" )
+    WAS_ENABLED = False # Do this just so the next line displays more readably
+    assert WAS_ENABLED, "   and this build (WHICH COMPLETED) was done with ASSERT statements ENABLED."
+    print( "   and with assert statements DISABLED." )
 # end of createSitePages.py
