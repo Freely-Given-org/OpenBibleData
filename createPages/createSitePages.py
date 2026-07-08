@@ -71,6 +71,7 @@ CHANGELOG:
     2026-01-07 Added OET Logo
     2026-04-01 Added JSON word files in app/
     2026-04-22 Section indexes are now made BEFORE pickling
+    2026-07-04 Added OBI pictures and a few more version numbers on About page, etc.
 """
 from pathlib import Path
 import os
@@ -78,6 +79,7 @@ import shutil
 import glob
 from datetime import date
 import logging
+from collections import defaultdict
 
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint, BOOKLIST_OT39, BOOKLIST_NT27
@@ -100,7 +102,7 @@ from html import makeTop, makeViewNavListParagraph, makeBottom, checkHtml
 from spellCheckEnglish import printSpellCheckSummary
 
 
-LAST_MODIFIED_DATE = '2026-06-23' # by RJH
+LAST_MODIFIED_DATE = '2026-07-08' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData (OBD) Create Site Pages"
 PROGRAM_VERSION = '1.0.2'
@@ -245,6 +247,7 @@ def _createSitePages() -> bool:
     elif state.CREATE_PARALLEL_VERSE_PAGES != 'LAST': have_invalid_value
 
     if state.CREATE_BOOK_AND_OTHER_PAGES_FLAG:
+        state.chaptersWithImages = defaultdict( list )
         if 'OET' in state.BibleVersions: # this is a special case
             vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Creating {'TEST ' if state.TEST_MODE_FLAG else ''}version pages for OET…" )
             versionFolder = state.TEMP_BUILD_FOLDER.joinpath( f'OET/' )
@@ -287,6 +290,7 @@ def _createSitePages() -> bool:
             if rvBible.discoveryResults['ALL']['haveSectionHeadings'] or lvBible.discoveryResults['ALL']['haveSectionHeadings']:
                 versionFolder = state.TEMP_BUILD_FOLDER.joinpath( f'OET/' )
                 createOETSectionPages( 2, versionFolder.joinpath('bySec/'), rvBible, lvBible, state )
+        state.sectionsWithImages = defaultdict( list )
         for versionAbbreviation, thisBible in state.preloadedBibles.items(): # doesn't include OET pseudo-translation
             if versionAbbreviation not in ('TTN',) \
             and versionAbbreviation in state.versionsWithoutTheirOwnPages: continue # We don't worry about these few selected verses here
@@ -428,7 +432,7 @@ def _cleanHTMLFolders( folder:Path, state:State ) -> bool:
         except FileNotFoundError: pass
         try: shutil.rmtree( folder.joinpath( 'dct/' ) )
         except FileNotFoundError: pass
-    for versionAbbreviation in state.allPossibleBibleVersions + ['PLBL','HAP','SOTN','UTN','TOSN','TOBD','UBS','THBD','BMM']:
+    for versionAbbreviation in state.allPossibleBibleVersions + ['PLBL','HAP','SOTN','UTN','TOSN','TOBD','UBS','THBD','BMM','OBI']:
         vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Removing tree at {folder.joinpath( f'{versionAbbreviation}/' )}/…")
         try: shutil.rmtree( folder.joinpath( f'{versionAbbreviation}/' ) )
         except FileNotFoundError: pass
@@ -459,7 +463,7 @@ def _createOETVersionPages( level:int, folder:Path, rvBible, lvBible, state:Stat
 # '''
     top = makeTop( level, None, 'site', None, state ) \
                     .replace( '__TITLE__', f"{versionName}{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
-                    .replace( '__KEYWORDS__', f'Bible, OET, OETBible, {versionName}' ) \
+                    .replace( '__KEYWORDS__', f'Bible, OET, OETBible, {versionName}, modern English, open' ) \
                     .replace( f'''<a title="{versionName}" href="{'../'*level}OET">OET</a>''', 'OET' )
     filepath = folder.joinpath( 'index.htm' )
     assert not filepath.is_file() # Check that we're not overwriting anything
@@ -567,7 +571,7 @@ def _createDetailsPages( level:int, buildFolder:Path, state:State ) -> bool:
     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nCreating {'TEST ' if state.TEST_MODE_FLAG else ''}details pages for {len(state.BibleVersions)} versions (plus All Details page)…" )
 
     allDetailsHTML = ''
-    for versionAbbreviation in ['OET'] + [versAbbrev for versAbbrev in state.preloadedBibles] + ['SOTN','UBS','THBD','PLBL','HAP','BMM',]:
+    for versionAbbreviation in ['OET'] + [versAbbrev for versAbbrev in state.preloadedBibles] + ['SOTN','UBS','THBD','PLBL','HAP','BMM','OBI']:
         if versionAbbreviation == 'TTN': # we only need the one for TOSN I think
             versionAbbreviation = 'TOBD' # Put this one in instead
 
@@ -628,8 +632,7 @@ def _createDetailsPages( level:int, buildFolder:Path, state:State ) -> bool:
             detailsHtml = f'''{detailsHtml}
 <h2>Available selections</h2>
 <p class="rem">The following parallel verse pages feature this version:</p>
-<p class="selectedLinks">{' '.join(selectedVerseLinksList)}</p>
-'''
+<p class="selectedLinks">{' '.join(selectedVerseLinksList)}</p>'''
 
         if versionAbbreviation == 'BMM' and 'sectionsWithMaps' in vars(state): # Won't exist if no section pages processed
             # List section pages with maps
@@ -639,19 +642,58 @@ def _createDetailsPages( level:int, buildFolder:Path, state:State ) -> bool:
                 BBBMapLinkHtml = f'''<p class="selectedLinks"><b>{BBB}</b>: {' '.join(BBBMapLinks)}</p><!--selectedLinks-->'''
                 BBBMapLinkParagraphs.append( BBBMapLinkHtml )
             if BBBMapLinkParagraphs:
+                assert not detailsHtml.endswith( '\n' )
                 detailsHtml = f'''{detailsHtml}
 <h2>Available selections</h2>
 <p class="note">The following <em>OET</em> section pages feature maps at the bottom:</p>
-{NEWLINE.join( BBBMapLinkParagraphs )}
-'''
+{NEWLINE.join( BBBMapLinkParagraphs )}'''
 
+        if versionAbbreviation == 'OBI' \
+        and ('sectionsWithImages' in vars(state) or 'chaptersWithImages' in vars(state) or 'versesWithImages' in vars(state)):
+            detailsHtml = f'''{detailsHtml}
+<h2>Available selections</h2>'''
+            if 'sectionsWithImages' in vars(state) and state.sectionsWithImages: # List section pages with images
+                BBBImageLinkParagraphs = []
+                for BBB in state.sectionsWithImages:
+                    BBBImageLinks = [f'<a href="../OET-RV/bySec/{BBB}_S{n}.htm#Top">S{n}</a>' for n in state.sectionsWithImages[BBB]]
+                    BBBImageLinkHtml = f'''<p class="selectedLinks"><b>{BBB}</b>: {' '.join(BBBImageLinks)}</p><!--selectedLinks-->'''
+                    BBBImageLinkParagraphs.append( BBBImageLinkHtml )
+                if BBBImageLinkParagraphs:
+                    assert not detailsHtml.endswith( '\n' )
+                    detailsHtml = f'''{detailsHtml}
+<p class="note">The following <b>section pages</b> feature pictures near the top:</p>
+{NEWLINE.join( BBBImageLinkParagraphs )}'''
+            if 'chaptersWithImages' in vars(state) and state.chaptersWithImages: # List chapter pages with images
+                BBBImageLinkParagraphs = []
+                for BBB in state.chaptersWithImages:
+                    BBBImageLinks = [f'<a href="../OET-RV/byC/{BBB}_C{C}.htm#Top">C{C}</a>' for C in state.chaptersWithImages[BBB]]
+                    BBBImageLinkHtml = f'''<p class="selectedLinks"><b>{BBB}</b>: {' '.join(BBBImageLinks)}</p><!--selectedLinks-->'''
+                    BBBImageLinkParagraphs.append( BBBImageLinkHtml )
+                if BBBImageLinkParagraphs:
+                    assert not detailsHtml.endswith( '\n' )
+                    detailsHtml = f'''{detailsHtml}
+<p class="note">The following <b>chapter pages</b> feature pictures near the top:</p>
+{NEWLINE.join( BBBImageLinkParagraphs )}'''
+            if 'versesWithImages' in vars(state) and state.versesWithImages: # List parallel verse pages with images
+                BBBImageLinkParagraphs = []
+                for BBB in state.versesWithImages:
+                    BBBImageLinks = [f'<a href="../par/{BBB}/C{C}V{V}.htm#OET">{C}:{V}</a>' for C,V in state.versesWithImages[BBB]]
+                    BBBImageLinkHtml = f'''<p class="selectedLinks"><b>{BBB}</b>: {' '.join(BBBImageLinks)}</p><!--selectedLinks-->'''
+                    BBBImageLinkParagraphs.append( BBBImageLinkHtml )
+                if BBBImageLinkParagraphs:
+                    assert not detailsHtml.endswith( '\n' )
+                    detailsHtml = f'''{detailsHtml}
+<p class="note">The following <b>parallel verse pages</b> feature pictures near the top:</p>
+{NEWLINE.join( BBBImageLinkParagraphs )}'''
+
+        assert not detailsHtml.startswith( '\n' )
+        assert not detailsHtml.endswith( '\n' )
         if 'OET' in versionAbbreviation:
             detailsHtml = f'''<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="__LEVEL__oet-logo-wide.png" alt="OET wide logo"></a>
 {detailsHtml}
 <a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="__LEVEL__OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="60" style="float:right; margin-left:15px;"></a>
 <h2>‘Missing’ verses</h2>
-<p class="note">For a list of verses which are not included in the <em>OET</em>, see our <a href="__LEVEL__OET/missingVerses.htm#Top">‘missing’ verses page</a>.</p>
-'''
+<p class="note">For a list of verses which are not included in the <em>OET</em>, see our <a href="__LEVEL__OET/missingVerses.htm#Top">‘missing’ verses page</a>.</p>'''
 
         bodyHtml = f'''<!--_createDetailsPages--><h1 id="Top">{versionName} Details</h1>
 {detailsHtml.replace('__LEVEL__','../'*(level+1))}<hr style="width:45%;margin-left:0;margin-top: 0.3em">
@@ -747,7 +789,7 @@ def _createAboutPage( level:int, buildFolder:Path, state:State ) -> bool:
     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Creating {'TEST ' if state.TEST_MODE_FLAG else ''}about page…" )
 
     aboutHTML = f'''<h1 id="Top">About {state.SITE_NAME}</h1>
-<p class="about">{state.SITE_NAME} ({state.SITE_ABBREVIATION}) is a large set of static webpages created for several main reasons:</p>
+<p class="about">{state.SITE_NAME} ({state.SITE_ABBREVIATION} v{PROGRAM_VERSION}) is a large set of static webpages created for several main reasons:</p>
 <ol>
 <li>As a way to <b>showcase the <em>Open English Translation</em></b> of the Bible which is designed to be read with the <em>Readers’ Version</em> and the very <em>Literal Version</em> side-by-side.
     (Most existing Bible apps don’t allow for this.)
@@ -814,7 +856,7 @@ def _createAboutPage( level:int, buildFolder:Path, state:State ) -> bool:
                 .replace( '__KEYWORDS__', f'Bible, about, {state.SITE_ABBREVIATION}, {state.SITE_NAME}, OET, OETBible' )
     html = f'''{topHtml}
 {aboutHTML}
-<p class="note"><small>Last rebuilt: {date.today()} (OET {state.OET_VERSION_NUMBER_STRING})</small></p>
+<p class="note"><small>Last rebuilt: {date.today()} (with OET {state.OET_VERSION_NUMBER_STRING}) by {PROGRAM_NAME_VERSION}</small></p>
 {makeBottom( level, None, 'about', state )}'''
     assert checkHtml( 'About', html )
 
@@ -836,6 +878,8 @@ def _createNewsPage( level:int, buildFolder:Path, state:State ) -> bool:
     newsHTML = f'''<h1 id="Top">{state.SITE_NAME} News</h1>
 <p class="about">Recent {state.SITE_NAME} ({state.SITE_ABBREVIATION}) site developments:</p>
 <ul>
+<li><b>2027-July-6</b>: In cooperation with <a href="https://OpenBibleImages.org">OpenBibleImages.org</a>, we’ve tested some images on <em>OET-RV</em> and parallel verse pages.</li>
+<li><b>2027-June-10</b>: We now have a draft of all <em>OET-RV</em> documents/‘books’ other than Yirmeyah/Jeremiah.</li>
 <li><b>2026-Mar-28</b>: We added the <a href="{'../'*level}SOTN/details.htm#Top">SIL Open Translator’s notes</a> to our parallel verse pages for the Messianic Update (NT) books and nine books from the Hebrew Scriptures (OT).</li>
 <li><b>2024-Apr-20</b>: We added the <a href="{'../'*level}AICNT">AI Critical New Testament</a> (AICNT), mainly so that we can start to evaluate (on our <a href="{'../'*level}par/MRK/C1V1.htm#AICNT">Parallel Pages</a>) how well current, so-called ‘AI’ technologies might affect the Bible translation world.</li>
 <li><b>2024-Feb-15</b>: We added <a href="{'../'*level}rel/">Related Passages pages</a>—displaying related passages side-by-side, e.g., <a href="{'../'*level}rel/MRK/MRK_S3.htm#Top">here</a> (if you have a wide screen).</li>
@@ -869,7 +913,7 @@ def _createOETKeyPage( level:int, buildFolder:Path, state:State ) -> bool:
 
     keyHTML = f'''<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
 <h1 id="Top">Key to the <em>Open English Translation</em></h1>
-<p class="note">The <em>Open English Translation of the Bible</em> is not tied to tradition (and especially not to traditional mistakes or misunderstandings) so it has a number of changes from more common Bible translations.</p>
+<p class="note">The <em>Open English Translation of the Bible</em> (currently at {state.OET_VERSION_NUMBER_STRING}) is not tied to tradition (and especially not to traditional mistakes or misunderstandings) so it has a number of changes from more common Bible translations.</p>
 <p class="note">We also aim to educate our readers better about how our Bibles get to us and we have many different kinds of links on the site, so that’s a second reason why it differs from usual, and hence requires this key to explain some of the features.</p>
 <p class="note">Note that the <em>OET</em> is being drafted with UK spelling and so we favour those editions on this site, but an edition will also be produced in the future with US spellings (plus any necessary wording changes).</p>
 <h1>The Hebrew Scriptures <small>(Old Testament)</small><sup>*</sup></h1>
@@ -1013,7 +1057,7 @@ def _createMainIndexPage( level, folder:Path, state:State ) -> bool:
 <p class="note">The <b><a href="ilr/">Interlinear</a> verse</b> view shows the OET-RV and OET-LV aligned with the original Hebrew or Greek words (including a ‘reverse interlinear’).</p>
 <p class="note">The <b><a href="dct/">Dictionary</a></b> link takes you to the <i>Tyndale Bible Dictionary</i>, with UBS dictionaries also coming...</p>
 <p class="note">The <b><a href="Search.htm">Search</a></b> link allows you to find English words (from a range of versions), or even Greek/Hebrew words, within the Bible text.</p>
-<p class="note"><small>Last rebuilt: {date.today()} (OET {state.OET_VERSION_NUMBER_STRING})</small></p>
+<p class="note"><small>Last rebuilt: {date.today()} (with OET {state.OET_VERSION_NUMBER_STRING}) by {PROGRAM_NAME_VERSION}</small></p>
 {makeBottom( level, None, 'TopIndex', state )}'''
     assert checkHtml( 'TopIndex', html )
 

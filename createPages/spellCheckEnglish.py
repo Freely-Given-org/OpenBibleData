@@ -46,10 +46,10 @@ from BibleOrgSys.BibleOrgSysGlobals import vPrint, fnPrint, dPrint, rreplace
 import bos_books_codes_py
 
 
-LAST_MODIFIED_DATE = '2026-06-11' # by RJH
+LAST_MODIFIED_DATE = '2026-07-09' # by RJH
 SHORT_PROGRAM_NAME = "spellCheckEnglish"
 PROGRAM_NAME = "English Bible Spell Check"
-PROGRAM_VERSION = '0.61'
+PROGRAM_VERSION = '0.62'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -111,7 +111,7 @@ INITIAL_BIBLE_WORD_LIST = ['3.0','UTF','USFM', '©', 'CC0',
                     'IS','AM','ARE','BE','BEING','SHALL','SHOULD','WILL',
                     'IN','OF','TO','FOR','UNTO','ACCORDING','WITH',
                     'THEY','THY','YOUR','OUR','US','HIMSELF','HIM','HIS','THEE',
-                    'AND','NOT','OR',
+                    'AND','NO','NOT','OR',
 
                     # T4T figurative speech abbreviations -- not required because they get deleted
                     # 'DOU','EUP','HYP','MET','MTY','PRS','RHQ','SIM',
@@ -144,10 +144,10 @@ INITIAL_BIBLE_WORD_LIST = ['3.0','UTF','USFM', '©', 'CC0',
                     'VALLEY','VICTORY','VISION',
                     'WE','WAS','WHEREAS','WHOM','WILDERNESS','WISE','WOMAN','WORD','WORDS',
 
-                    'ABADDON','ADAM','ADONAI','AGUR','ASAPH',
+                    'ABADDON','ADAM','ADONAI','AGUR','ARTAHSHASHTE', 'ASAPH',
                     'BABYLON','BARUCH','BETHLEHEM',
                     'CHRIST',
-                    'DAVID',
+                    'DAVID','DARIUS',
                     'ECCLESIASTICUS','ESDRAS',
                     'ISRAEL','ISRAELITES',
                     'JAH','JEHOVAH','JESUS','JOSEPH','JUDAH','JUDITH',
@@ -384,7 +384,8 @@ def load_dict_sources() -> bool:
 
 USFM_CLOSED_FIELDS_TO_COMPLETELY_REMOVED = ('x','fig')
 FOOTNOTE_OR_XREF_CALLER_REGEX = re.compile( '<span class="(fn|xr)Caller".+?</span>' ) # e.g., <span class="fnCaller">[<a title="Note: So the Syriac." href="#fn1">fn</a>]</span>
-ANCHOR_LINK_REGEX = re.compile( '<a ([^>]+?)>' )
+IMAGE_REGEX = re.compile( '<img [^<>]+?>' )
+ANCHOR_LINK_REGEX = re.compile( '<a ([^<>]+?)>' )
 RV_ADD_REGEX = re.compile( '<span class="RVadd" [^>]+?>' )
 FOOTNOTE_PARAGRAPHS_REGEX = re.compile( '<p class="fn" id="fn[1-9][0-9]?">' )
 FOOTNOTES_DIV_REGEX = re.compile( '<div id="footnotes" class="footnotes">.+?</div><!--footnotes-->' )
@@ -606,6 +607,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
     cleanedTextToCheck = FOOTNOTE_OR_XREF_CALLER_REGEX.sub( '', cleanedTextToCheck )
     # print(( f"\nspellCheck( {versionAbbreviation} {ref} after fn clean:\n{cleanedText=}\nfrom {HTMLTextToCheck=}\nfrom {originalHTMLTextForDebugging} )"))
     assert '<span class="fnCaller"' not in cleanedTextToCheck, f"Unexpected remaining fnCaller in {versionAbbreviation} {ref}\n{cleanedTextToCheck=}\nfrom {originalHTMLTextForDebugging=}"
+    cleanedTextToCheck = IMAGE_REGEX.sub( '', cleanedTextToCheck )
     cleanedTextToCheck = ANCHOR_LINK_REGEX.sub( '', cleanedTextToCheck )
     # print(( f"\nspellCheck( {versionAbbreviation} {ref} after anchor clean:\n{cleanedText=}\nfrom {HTMLTextToCheck=}\nfrom {originalHTMLTextForDebugging} )"))
     assert '<a ' not in cleanedTextToCheck, f"Unexpected remaining anchor in {versionAbbreviation} {ref}\n{cleanedTextToCheck=}\nfrom {originalHTMLTextForDebugging=}"
@@ -793,45 +795,43 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                 cleanedTextToDisplay = cleanedTextToDisplay.replace('<span class="ClVg_verseTextChunk">','').replace('<div id="footnotesClVg" class="footnotes">\n','').replace('  ',' ').replace(' ',' ')
                 vPrint( 'Normal' if word.upper()==word
                        or word in ( #  \d{1,3}\), \(
-                                'an','aß','Bart','sie','hin','heb','wir','dem','des','für','hub','ich','ist','alle','las','lag','ones)r','ones)s','ones)n','one)s','bis',
+                                'an','aß','Bart','sie','hin','heb','wir','dem','des','für','hub','ich','ist','ja','alle','las','lag','ones)r','ones)s','ones)n','one)s','bis',
                                 'hing','one)r','one)n','weh','du','ach','Raube','Raub','Tal','tue','fiel','sehe','Mal','mal','mit','Mord',
-                                'ende','rede','kam','Korb','ward','alt','dran','Rede','nun','nur','messen','ging','und','ster','tun','von','wer','zu',
-                                'angeres', # ???
-                                'wineet','votern','praisese',
-                                'reisen','chasesen','erstgeborne','dagewesen','ownr','indicatee',
-                                    'throughläutert','abovewältigten','wickelte','gratitudes',
-                                    'begab','winkten','strengthrer','homelande','insidebrächten','toconfessed','rightfertigen',
+                                'ende','rede','kam','Korb','ward','alt','dran','Rede','nun','nur','messen','ging','und','ster','streng','tun','von','wer','zu',
+                                'tozutun','fatr','keepern','hundredtausend','faitht',
+                                    'throughläutert','abovewältigten','gratitudes',
 
                                 'actio','ambit','ambitio','anima','antiqui','apprehendi','ascendi','attende','audi',
                                 'beati','bene','beneficia','bos',
                                 'calami','capti',       'centurio',     'Christi',      'circumcisio','cis',        'cognitio','cogniti','complet',
                                         'competit',
-                                        'confessio','confusi','congregati','congregatio','consecrat','consecrati','considerat','consolati','consolatio','contra','contriti','conversa','conversi',
-                                        'cor','correcti',
-                                    'creat','credi','cruci',        'cultu','cum',
-                                'dat','dedi','dem','designat','desolati',
+                                        'confessio','confusi','confusio','congregati','congregatio','consecrat','consecrati','considerat','consolati','consolatio',
+                                            'contra','contriti','conversa','conversi','conversio',
+                                        'cor','correcti','correctio',
+                                    'creat','credi','cruci',        'cultu','cum','cura','curat',
+                                'dat','dedi','dei','dem','designat','desolati','determinat',
                                     'disco','digni','discretio','distincti','distinctio','divisi','dom','domi','domina',
                                 'ecclesia','ecclesias','editio','ei','enumerat','esca','evangelica','expiat','extensio',
-                                'fac','famis', 'fel', 'Finis','finis','forti','fugit','fur',     'generat',     'hellor','hoc','humili','humiliati',
+                                'fac', 'fel', 'Finis','finis','forti','fugit','fur',     'generat',     'hellor','hoc','humili','humiliati',
                                 'ibi', 'illum','illinat', 'ima','impie', 'infirmi','insinuat',
                                     'intellige','intelligi','intentio','introduc','inventi','invocatio','Isaia','iter','Ite',
-                                'ja','jus',     'legi','legis','liberati','liberat','locus','lux',
+                                'ja','jus','Justi','justi','justis','justificat',     'legi','legis','liberati','liberat','liber','locus','lux',
                                 'magis','magnifice','magni','manifeste','manu','mater','materia',
                                     'medici','menstrua',        'mira','misera',        'moretri','mortali','morti',
-                                'nam','natu','natura','ne',     'ob','obsessi','operatio','ora',
+                                'nam','natu','natura','ne','nota','Nota',     'ob','obsessi','operatio','ora',
                                 'passi','patria','patri','pede','pedes','perfecti','persecuti','persecutio',
-                                    'pio','polluti','prope','propitiatio','provocat','publica',
-                                'questio','qui',        'rea','redempti','regula','rei','repente','ros',
-                                'salva','salvat','salvati','sanctifica',
+                                    'pio','plura','polluti','prope','propitiatio','provocat','publica',
+                                'questio','qui',        'rea','redempti','regi','regio','regula','rei','repente','ros',
+                                'salva','salvat','salvati','sanctifi', 'ca',
                                     'securi','separat','separati','seu','serva','servit','sex','sexta',
                                     'si','sit','sol','soli','solem','stat','statu','summo',
-                                'tempora','Tod','tradit','traditi','traditio','transmigratio','tres','tribulatio','trium','tu','tua','tuam','turba',
+                                'tempora','Tod','tradit','traditi','traditio','transmigratio','tres','tribulatio','tributa','trium','tu','tua','tuam','turba',
                                 'usu',      'valle','vas','victi','visita','visitat','visitatio','vita',
                                 'l','nos','ut','didrachmas',
-                                'resistit'
-                                    'prophesyem','sinis','gelu','lawfullyns','knowe','sents','livent','milkns',
-                                    'reprimandsur','worki','shouldur','treelnea','obvioustur','paini','convenientia',
-                                    'inhabitabilis','properabunt',
+                                'respondebo','greatere','seriousa',
+                                'horrea','consortio','comeus','clausa','scribens','iret',
+                                    'prophesyem','psalterii','deceitfuls','joytur','freedr','fatheris','exploretur','interpretum','firmata',
+                                    'securos','religione','cameur','vallante','meansminus','mallens',
                                 )
                     else 'Info', DEBUGGING_THIS_MODULE, f'''        {word} is suspect @ {location}\nfrom {cleanedTextToDisplay=}\n  WHICH GAVE {cleanedTextToCheck=}''' )
             if versionAbbreviation == 'Luth':

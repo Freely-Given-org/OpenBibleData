@@ -40,6 +40,7 @@ p.dctLtrs {}
 p.selectedLinks {}
 
 /* Section headings list */
+p.mainSectionHeading { font-size:1.6em; }
 /* p.sectionHeading { } */
 p.alternateHeading { margin-top:0.1em; margin-bottom:0.1em; margin-left:1em; font-size:0.8em; color:grey; }
 p.sectionHeading + p.alternateHeading { margin-top:-1.2em; }

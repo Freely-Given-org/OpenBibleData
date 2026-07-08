@@ -239,7 +239,7 @@ def createParallelPassagePages( level:int, folder:Path, state:State ) -> bool:
 #     # Now, make the actual pages
 #     vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Creating synoptic section pages for {thisBible.abbreviation} {BBB}…" )
 #     usedParallels = []
-#     for n,startC,startV,endC,endV,sectionName,reasonName,contextList,verseEntryList,sFilename in state.sectionsLists[thisBible.abbreviation][BBB]:
+#     for n,startC,startV,endC,endV,sectionName,reasonName,contextList,verseEntryList,sFilename in state.sectionsListsForSections[thisBible.abbreviation][BBB]:
 #         if endC == '?': # Then these are the OET-RV additional/alternative headings
 #             assert thisBible.abbreviation == 'OET-RV'
 #             assert endV == '?'
@@ -399,7 +399,7 @@ def createParallelPassagePages( level:int, folder:Path, state:State ) -> bool:
 #             .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/rel/{filename1}#Top">{thisBible.abbreviation}</a>''',
 #                     f'''<a title="Up to {state.BibleNames[thisBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/">↑{thisBible.abbreviation}</a>''' )
 #     synopticSectionIndexHtml = f'<h1 id="Top">Index of parallel sections for {thisBible.abbreviation} {ourTidyBBB}</h1>'
-#     for _nnn,startC,startV,_endC,_endV,sectionName,reasonName,_contextList,_verseEntryList,sFilename in state.sectionsLists[thisBible.abbreviation][BBB]:
+#     for _nnn,startC,startV,_endC,_endV,sectionName,reasonName,_contextList,_verseEntryList,sFilename in state.sectionsListsForSections[thisBible.abbreviation][BBB]:
 #         if (startC,startV) not in usedParallels: continue # Only make the index for sections that we made pages for
 #         reasonString = '' if reasonName=='Section heading' and not state.TEST_MODE_FLAG else f' ({reasonName})' # Suppress '(Section Heading)' appendages in the list
 #         # NOTE: word 'Alternate ' is defined in the above OET function at start of main loop
@@ -424,7 +424,7 @@ def createParallelPassagePages( level:int, folder:Path, state:State ) -> bool:
 #             .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/rel/{filename2}#Top">{thisBible.abbreviation}</a>''',
 #                       f'''<a title="Up to {state.BibleNames[thisBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/">↑{thisBible.abbreviation}</a>''' )
 #     synopticSectionIndexHtml = f'<h1 id="Top">Index of parallel sections for {thisBible.abbreviation} {ourTidyBBB}</h1>'
-#     for _nnn,startC,startV,_endC,_endV,sectionName,reasonName,_contextList,_verseEntryList,sFilename in state.sectionsLists[thisBible.abbreviation][BBB]:
+#     for _nnn,startC,startV,_endC,_endV,sectionName,reasonName,_contextList,_verseEntryList,sFilename in state.sectionsListsForSections[thisBible.abbreviation][BBB]:
 #         if (startC,startV) not in usedParallels: continue # Only make the index for sections that we made pages for
 #         reasonString = '' if reasonName=='Section heading' and not state.TEST_MODE_FLAG else f' ({reasonName})' # Suppress '(Section Heading)' appendages in the list
 #         # NOTE: word 'Alternate ' is defined in the above OET function at start of main loop
@@ -475,7 +475,7 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
     # First make a list of sections that we wish to display
     if ONLY_MAKE_PAGES_WHICH_HAVE_PARALLELS:
         availableSections = []
-        for n,startC,startV,endC,endV,sectionName,reasonName,contextList,verseEntryList,sFilename in state.sectionsLists[thisBible.abbreviation][BBB]:
+        for n,startC,startV,endC,endV,sectionName,reasonName,contextList,verseEntryList,sFilename in state.sectionsListsForSections[thisBible.abbreviation][BBB]:
             if endC == '?': # Then these are the OET-RV additional/alternative headings
                 assert thisBible.abbreviation == 'OET-RV'
                 assert endV == '?'
@@ -488,7 +488,7 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
                         availableSections.append( (n,startC,startV,endC,endV,sectionName,reasonName,contextList,verseEntryList,sFilename) )
                         break
     else: # make a page for every section
-        availableSections = state.sectionsLists[thisBible.abbreviation][BBB]
+        availableSections = state.sectionsListsForSections[thisBible.abbreviation][BBB]
 
     # Now, make the actual pages
     vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Creating section cross-reference pages for {thisBible.abbreviation} {BBB}…" )
@@ -885,7 +885,7 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
             .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/rel/{filename1}#Top">{thisBible.abbreviation}</a>''',
                     f'''<a title="Up to {state.BibleNames[thisBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/">↑{thisBible.abbreviation}</a>''' )
     crossReferencedSectionIndexHtml = f'<h1 id="Top">Index of parallel sections for {thisBible.abbreviation} {ourTidyBBB}</h1>'
-    for _nnn,startC,startV,_endC,_endV,sectionName,reasonName,_contextList,_verseEntryList,sFilename in state.sectionsLists[thisBible.abbreviation][BBB]:
+    for _nnn,startC,startV,_endC,_endV,sectionName,reasonName,_contextList,_verseEntryList,sFilename in state.sectionsListsForSections[thisBible.abbreviation][BBB]:
         if (startC,startV) not in usedParallels: continue # Only make the index for sections that we made pages for
         reasonString = '' if reasonName=='Section heading' and not state.TEST_MODE_FLAG else f' ({reasonName})' # Suppress '(Section Heading)' appendages in the list
         # NOTE: word 'Alternate ' is defined in the above OET function at start of main loop
@@ -911,7 +911,7 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
             .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/rel/{filename2}#Top">{thisBible.abbreviation}</a>''',
                       f'''<a title="Up to {state.BibleNames[thisBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/">↑{thisBible.abbreviation}</a>''' )
     crossReferencedSectionIndexHtml = f'<h1 id="Top">Index of parallel sections for {thisBible.abbreviation} {ourTidyBBB}</h1>'
-    for _nnn,startC,startV,_endC,_endV,sectionName,reasonName,_contextList,_verseEntryList,sFilename in state.sectionsLists[thisBible.abbreviation][BBB]:
+    for _nnn,startC,startV,_endC,_endV,sectionName,reasonName,_contextList,_verseEntryList,sFilename in state.sectionsListsForSections[thisBible.abbreviation][BBB]:
         if (startC,startV) not in usedParallels: continue # Only make the index for sections that we made pages for
         reasonString = '' if reasonName=='Section heading' and not state.TEST_MODE_FLAG else f' ({reasonName})' # Suppress '(Section Heading)' appendages in the list
         # NOTE: word 'Alternate ' is defined in the above OET function at start of main loop

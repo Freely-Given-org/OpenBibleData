@@ -113,7 +113,7 @@ from settings import State, state
 from OETHandlers import getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2026-06-18' # by RJH
+LAST_MODIFIED_DATE = '2026-07-06' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
 PROGRAM_VERSION = '1.0.1'
@@ -365,7 +365,7 @@ def makeViewNavListParagraph( level:int, versionAbbreviation:str|None, pageType:
     viewLinks = []
     if pageType in ('book','section','chapter', 'details',
                     'workIndex','bookIndex','sectionIndex','chapterIndex') \
-    and versionAbbreviation not in ('PLBL','HAP','TOSN','TTN','TOBD','SOTN','UTN','UBS','THBD','BMM') \
+    and versionAbbreviation not in ('PLBL','HAP','TOSN','TTN','TOBD','SOTN','UTN','UBS','THBD','BMM','OBI') \
     and versionAbbreviation not in state.versionsWithoutTheirOwnPages:
         if state.TEST_MODE_FLAG: viewLinks.append( 'TEST' )
         if not versionAbbreviation: versionAbbreviation = 'OET'
@@ -473,10 +473,13 @@ def _makeFooter( level:int, versionAbbreviation:str|None, pageType:str, state:St
     """
     Create any links or site map that follow the main content on the page.
     """
+    from createSitePages import PROGRAM_NAME_VERSION as SITE_PROGRAM_NAME_VERSION
+
     # fnPrint( DEBUGGING_THIS_MODULE, f"_makeFooter()" )
+
     html = f"""<div class="footer" id="footer">
 <p class="copyright" id="Bottom"><small><em>{'TEST ' if state.TEST_MODE_FLAG else ''}{state.SITE_NAME}</em> site {state.SITE_COPYRIGHT} <a href="https://Freely-Given.org">Freely-Given.org</a>.
-<br>Python source code for creating these static pages is available <a href="https://GitHub.com/Freely-Given-org/OpenBibleData">on GitHub</a> under an <a href="https://GitHub.com/Freely-Given-org/OpenBibleData/blob/main/LICENSE">open licence</a>.{datetime.now().strftime('<br> (Page created: %Y-%m-%d %H:%M)') if state.TEST_MODE_FLAG else ''}</small></p>
+<br>Python source code for creating these static pages is available <a href="https://GitHub.com/Freely-Given-org/OpenBibleData">on GitHub</a> under an <a href="https://GitHub.com/Freely-Given-org/OpenBibleData/blob/main/LICENSE">open licence</a>.{f'{datetime.now().strftime('<br> (Page created: %Y-%m-%d %H:%M')} by OBD {SITE_PROGRAM_NAME_VERSION} with OET {state.OET_VERSION_NUMBER_STRING})' if state.TEST_MODE_FLAG else ''}</small></p>
 <p class="copyright"><small>For Bible data copyrights, see the <a href="{'../'*level}AllDetails.htm#Top">details</a> for each displayed Bible version.</small></p>
 {f'''<p class="note"><a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="20"> </a><small>The <em>Open English Translation (OET)</em> main site is at <a href="https://OpenEnglishTranslation.Bible">OpenEnglishTranslation.Bible</a> or <a href="https://OET.Bible">OET.Bible</a>.</small></p><!--note-->\n''' if not versionAbbreviation or 'OET' not in versionAbbreviation else ''}</div><!--footer-->"""
     return html
@@ -622,12 +625,13 @@ def checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool:
     assert '.ht#' not in htmlToCheck
 
     # Check divisions
-    # We renamed 'div.s1' to 'div.section'
-    assert '<div class="s1">' not in htmlToCheck, f'''s1 DIVision in '{where}' {segmentOnly=} …{htmlToCheck[htmlToCheck.index('<div class="s1">')-20:htmlToCheck.index('<div class="s1">')+20]}…'''
+    # We renamed 'div.s1' to 'div.section' then unrenamed it in 2026-06-29
+    # assert '<div class="s1">' not in htmlToCheck, f'''s1 DIVision in '{where}' {segmentOnly=} …{htmlToCheck[htmlToCheck.index('<div class="s1">')-20:htmlToCheck.index('<div class="s1">')+20]}…'''
     assert '><div class="chunkRV">' not in htmlToCheck, f'''Missing newline in '{where}' {segmentOnly=} …{htmlToCheck[htmlToCheck.index('><div class="chunkRV">')-20:htmlToCheck.index('><div class="chunkRV">')+20]}…'''
-    for divisionName in ('section','chunkRV','rightS1Box','RVLVcontainer'):
+    for divisionName in ('section','s1','chunkRV','rightS1Box','RVLVcontainer'):
         # NOTE: Some divisions get multiple classes, e.g., '<div class="section PromisedLand">'
-        assert (htmlToCheck.count( f'<div class="{divisionName}">' ) + htmlToCheck.count( f'<div class="{divisionName} ' )) == htmlToCheck.count( f'</div><!--{divisionName}-->' ), f"Unmatched '{divisionName}' divs: {htmlToCheck.count(f'<div class="{divisionName}">')} != {htmlToCheck.count(f'</div><!--{divisionName}-->')} {where=}" 
+        assert (htmlToCheck.count( f'<div class="{divisionName}">' ) + htmlToCheck.count( f'<div class="{divisionName} ' )) == htmlToCheck.count( f'</div><!--{divisionName}-->' ), \
+            f"Unmatched '{divisionName}' divs: {htmlToCheck.count(f'<div class="{divisionName}">')} != {htmlToCheck.count(f'</div><!--{divisionName}-->')} {where=}"
 
     for marker,startMarker in (('html','<html'),('head','<head'),('body','<body')):
         if segmentOnly:
@@ -710,7 +714,8 @@ def checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool:
             ixRStartMarker = htmlToCheck.rfind( startMarker )
             ixREndMarker = htmlToCheck.rfind( f'</{marker}>' )
             ixMinEnd = min( ixRStartMarker, ixREndMarker )
-            logging.error( f"Mismatched '{marker}' start and end markers '{where}' {segmentOnly=} {startCount}!={endCount}"
+            logger = logging.critical if 'OET' in where else logging.warning if 'ULT' in where or 'UST' in where else logging.error
+            logger( f"Mismatched '{marker}' start and end markers '{where}' {segmentOnly=} {startCount}!={endCount}"
                               f" {'…' if ixMinStart>0 else ''}{htmlToCheck[ixMinStart:ixMinEnd+5]}{'…' if ixMinEnd+5<len(htmlToCheck) else ''}" )
             dPrint( 'Info', DEBUGGING_THIS_MODULE, f"\nMismatched '{marker}' start and end markers '{where}' {segmentOnly=} {startCount}!={endCount}"
                               f" {'…' if ixMinStart>0 else ''}{htmlToCheck[ixMinStart:ixMinEnd+5]}{'…' if ixMinEnd+5<len(htmlToCheck) else ''}" )
@@ -724,7 +729,7 @@ def checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool:
                     if 'ULT' not in where and 'UST' not in where and 'NET' not in where: # UST PSA has totally messed up \\qs encoding
                         logging.critical( f"Mismatched '{marker}' start and end markers '{where}' {segmentOnly=} {startCount}!={endCount}"
                               f" {'…' if ixMinStart>0 else ''}{htmlToCheck[ixMinStart:ixMinEnd+5]}{'…' if ixMinEnd+5<len(htmlToCheck) else ''}" )
-                        raise AssertionError( f"Mismatched '{marker}' start and end markers '{where}' {segmentOnly=} {startCount}!={endCount}" )
+                        raise AssertionError( f"Mismatched '{marker}' start and end markers '{where}' {segmentOnly=} {startCount}!={endCount}\nfrom {htmlToCheck=}" )
             # return False # TODO: Why was this here ???
         # Checked for accidentally doubled nesting
         if startMarker.endswith( '>' ):

@@ -53,10 +53,10 @@ import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import dPrint, fnPrint, BOOKLIST_OT39
 
 
-LAST_MODIFIED_DATE = '2026-06-10' # by RJH
+LAST_MODIFIED_DATE = '2026-07-09' # by RJH
 SHORT_PROGRAM_NAME = "settings"
 PROGRAM_NAME = "OpenBibleData (OBD) Settings"
-PROGRAM_VERSION = '0.99'
+PROGRAM_VERSION = '1.0.0'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
@@ -66,13 +66,13 @@ class State:
     """
     A place to store some of the global stuff that needs to be passed around.
     """
-    OET_VERSION_NUMBER_STRING = 'v0.48.41' # Incremented on most runs
+    OET_VERSION_NUMBER_STRING = 'v0.48.52' # Incremented on most runs
 
     TEST_MODE_FLAG = True # Writes smaller website subset into 'Test' subfolder if True
     TEST_OT_BOOK_LIST = ['JER'] # Books in progress
     TEST_DC_BOOK_LIST = [] # Books in progress
     TEST_NT_BOOK_LIST = ['MRK'] # Shortest gospel
-    NEW_BOOK_IN_TEST_LIST_FLAG = False # So that word pages will get rebuilt for TEST_MODE_FLAG
+    NEW_BOOK_IN_TEST_LIST_FLAG = False # So that interlinear, parallel passages, topic, kingdom, and dict & word pages will get rebuilt for TEST_MODE_FLAG
 
     # Many of these settings are used to omit some processing so as to get a speedier conclusion for debugging
     LOAD_RESOURCES_FROM_PICKLES_FLAG = True # Might have to disable loading pickles if they need updating (new code or data)
@@ -89,7 +89,7 @@ class State:
 
     TEMP_BUILD_FOLDER = Path( '../buildingHtmlPages/' )
     NORMAL_DESTINATION_FOLDER = Path( '../htmlPages/' )
-    DEBUG_DESTINATION_FOLDER = NORMAL_DESTINATION_FOLDER.joinpath( 'Test/' )
+    DEBUG_DESTINATION_FOLDER = NORMAL_DESTINATION_FOLDER.joinpath( 'Testa/' )
     DESTINATION_FOLDER = DEBUG_DESTINATION_FOLDER if TEST_MODE_FLAG or BibleOrgSysGlobals.debugFlag \
                             else NORMAL_DESTINATION_FOLDER
 
@@ -142,8 +142,14 @@ class State:
 
     NUM_EXTRA_MODES = 7 # Related passages, topics, parallel and interlinear verses, reference and (Tyndale Bible) dictionary, and search
 
+    WHOLE_BOOK_WARNING_TEXT = "This view displays the entire ‘book’ so it may be very long to scroll through."
+    WHOLE_BOOK_WARNING_HTML_PARAGRAPH = f'<p class="rem">{WHOLE_BOOK_WARNING_TEXT}</p>'
+    WHOLE_BOOKS_WARNING_HTML_PARAGRAPH = '<p class="rem">Warning: some of these Bible ‘books’ are large, so their ‘book’ pages might take a while to load.</p>'
+    
     OET_UNFINISHED_WARNING_HTML_TEXT = 'This is still an early look into the drafted text of the <em>Open English Translation</em> of the Bible. Please double-check the text in advance before using in public.'
     OET_UNFINISHED_WARNING_HTML_PARAGRAPH = f'<p class="rem">{OET_UNFINISHED_WARNING_HTML_TEXT}</p>'
+    OET_UNFINISHED_BOOK_WARNING_HTML_PARAGRAPH = f'<p class="rem">{OET_UNFINISHED_WARNING_HTML_TEXT} {WHOLE_BOOK_WARNING_TEXT}</p>'
+    
     OET_PARALLEL_PAGE_SINGLE_VERSE_HTML_TEXT = 'This view shows ‘verses’ which are not natural language units and hence sometimes only part of a sentence will be visible—click on any Bible version abbreviation down the left-hand side to see the verse in more of its context. Normally the OET discourages the reading of individual ‘verses’, but this view is only designed as a tool for Bible-translators and others doing comparisons of different translations—the older translations are further down the page (so you can read up from the bottom to trace the English translation history).'
     OETS_UNFINISHED_WARNING_HTML_TEXT = 'The OET segments on this page are still early looks into the drafted texts of the <em>Open English Translation</em> of the Bible—please double-check these texts in advance before using in public.'
     # OETS_UNFINISHED_WARNING_HTML_PARAGRAPH = f'<p class="rem">{OETS_UNFINISHED_WARNING_HTML_TEXT}</p>'
@@ -388,6 +394,7 @@ class State:
         'UBS': 'United Bible Societies open-licenced resources (2023)',
         'THBD': 'Theographic Bible Database',
         'BMM': 'BibleMapper.com Maps',
+        'OBI': 'OpenBibleImages.org Pictures',
         }
 
     BibleLanguages = {
@@ -631,7 +638,7 @@ You can read a lot more about the design of the <em>OET</em> at <a href="https:/
 We are very grateful to Dr. Alan Bunning of the <a href="https://GreekCNTR.org">Center for New Testament Restoration</a> whose many years of hard work the New Testament part of the <em>OET-LV</em> is adapted from.
 The Old Testament part of the <em>OET-LV</em> uses the morphology analysis from the work of the <a href="https://hb.OpenScriptures.org/">Open Scriptures Hebrew Bible</a> team.
 We’re also grateful to the <a href="https://www.Biblica.com/clear/">Biblica Clear Bible team</a> who provide the pronoun referential information as part of their <a href="https://GitHub.com/Clear-Bible/macula-greek">Macula Greek</a> project and also some of the OT glosses as part of their <a href="https://GitHub.com/Clear-Bible/macula-hebrew">Macula Hebrew</a> project.
-Also, the Bible translation resources created by <a href="https://www.unfoldingWord.org">unfoldingWord</a> have proven very helpful.</p>''' },
+Also, the Bible translation resources created by <a href="https://www.unfoldingWord.org">unfoldingWord</a> and those by <a href="https://global.SIL.org/about/">SIL</a> have proven very helpful.</p>''' },
         'OET-RV': {'about': '''<p class="about">The (still unfinished) <em>Open English Translation Readers’ Version</em> is a new, modern-English, easy-to-read translation of the Bible.
 You can read a lot more about the design of the <em>OET-RV</em> at <a href="https://OpenEnglishTranslation.Bible/Design/ReadersVersion">OpenEnglishTranslation.Bible/Design/ReadersVersion</a>.</p>''',
                 'copyright': '<p class="copyright">Copyright © 2010–2026 <a href="https://Freely-Given.org">Freely-Given.org</a>.</p>',
@@ -968,10 +975,14 @@ Footnote markers PRECEDE the text that they concern,
                 'copyright': '''<p class="copyright">Developed by Robert Rouse and others, but no copyright statement discovered.</p>''',
                 'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a> according to <a href="https://github.com/robertrouse/theographic-bible-metadata#license">this</a>.</p>',
                 'acknowledgements': '<p class="acknwldg">Thanks to Robert Rouse for being an early and innovative <a href="https://www.airtable.com/universe/expnj1m8PhSHJ5W3M/theographic-bible-database-info">collector and organiser</a> of this information, as well as his impressive presentations and designs at <a href="https://Viz.Bible/">Viz.Bible</a>.</p>' },
-        'BMM': {'about': '<p class="about"><a href="https://BibleMapper.com">BibleMapper.com</a> Maps.</p>',
+        'BMM': {'about': '<p class="about"><a href="https://BibleMapper.com">BibleMapper.com</a> maps.</p>',
                 'copyright': '''<p class="copyright">All maps and text, copyright © by David P. Barrett. All rights reserved.</p>''',
                 'licence': '<p class="licence">You are welcome to use these maps for any non-commercial purposes.</p>',
                 'acknowledgements': '<p class="acknwldg">Thanks to David Barrett for researching and designing these and making them available (in his spare time).</p>' },
+        'OBI': {'about': '<p class="about"><a href="https://OpenBibleImages.org">OpenBibleImages.org</a> pictures.</p>',
+                'copyright': '''<p class="copyright">All images, copyright © by <a href="https://OpenBibleImages.org">Open Bible Images</a>.</p>''',
+                'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
+                'acknowledgements': '<p class="acknwldg">Thanks to the <a href="https://OpenBibleImages.org">OpenBibleImages.org</a> team for researching and specifying these and making them available under an open licence.</p>' },
     }
 
     if not TEST_MODE_FLAG and UPDATE_ACTUAL_SITE_WHEN_BUILT_FLAG:

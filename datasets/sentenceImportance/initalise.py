@@ -57,7 +57,7 @@ from load import getIndividualQuotedOTRefs, getIndividualQuotingNTRefs
 
 
 
-LAST_MODIFIED_DATE = '2026-06-26' # by RJH
+LAST_MODIFIED_DATE = '2026-07-09' # by RJH
 SHORT_PROGRAM_NAME = "SentenceImportance_initialisation"
 PROGRAM_NAME = "Sentence Importance initialisation"
 PROGRAM_VERSION = '0.25'
@@ -93,7 +93,7 @@ vitalImportanceRefsWithRanges = [ # Often in doctrinal statements
     'ISA_9:6-7',
     'ISA_52:13–53:12', # The fourth and best-known servant song
     'ISA_55:11',
-    'JER_29:11',
+    'JER_29:11-13',
     'DAN_7:13-14',
     'MIC_5:2','MIC_6:8',
     'ZEC_12:10',
@@ -119,7 +119,7 @@ for ref in vitalImportanceRefsWithRanges:
 
 importantRefsWithRanges = [ # Often quoted and/or memorised by Christians
     'GEN_1:4-31','GEN_2:1-3', # Gen 1:1-3 is above
-    'DEU_30:3-5',
+    'DEU_29:24-29', 'DEU_30:3-5',
     'JOS_1:9',
     'PSA_51:10',
     'PRO_4:1-7',
@@ -212,6 +212,7 @@ unclearClarityRefs = [ # Mostly sure what's in the Hebrew or Greek,
         'ISA_36:9','ISA_37:25','ISA_38:16a','ISA_41:1','ISA_41:2','ISA_41:3','ISA_48:2a','ISA_49:7','ISA_49:8b',
         'ISA_49:17a','ISA_53:11a','ISA_64:5b',
     'JER_1:15b','JER_6:2b','JER_6:18b','JER_6:27','JER_8:8b','JER_10:19','JER_14:18b','JER_15:12','JER_17:3',
+        'JER_23:33','JER_23:34','JER_23:35','JER_23:36b','JER_23:37','JER_23:38','JER_23:39','JER_23:40',
     'EZE_8:17b', 'EZE_16:24', 'EZE_21:13', 'EZE_24:12', 'EZE_24:17b', 'EZE_26:20b',
     'DAN_8:12','DAN_8:13a','DAN_11:43b',
     'HOS_11:7b',

@@ -82,26 +82,29 @@ CHANGELOG:
     2026-03-27 Added SIL Open Translator’s Notes
     2026-04-13 Add 'OET' id tag (as well as existing 'OET-RV' id tag)
     2026-05-26 Reducing some logging verbosity
+    2026-07-05 Added OpenBibleImages
 """
 from pathlib import Path
 import os
 import logging
 import re
+from collections import defaultdict
 
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint, rreplace, BOOKLIST_66
-from bible_organisational_system import getSmallLeadingInt
 import BibleOrgSys.Formats.ESFMBible as ESFMBible
 import BibleOrgSys.OriginalLanguages.Greek as Greek
 from BibleOrgSys.Reference.OldBiblicalEnglish import moderniseEnglishWords
 from BibleOrgSys.Reference.EuropeanToEnglish import translateGerman, translateLatin
+from bible_organisational_system import getSmallLeadingInt
 import bos_books_codes_py
 
 from bible_transliterations import transliterate_Hebrew, transliterate_Greek
 
 from settings import State, CNTR_BOOK_ID_MAP, reorderBooksForOETVersions
 from usfm import convertVerseEntryListToHtml
-from Bibles import formatTyndaleBookIntro, formatUnfoldingWordTranslationNotes, formatTyndaleNotes, getBibleMapperMaps, getVerseMetaInfoHtml
+from Bibles import formatTyndaleBookIntro, formatUnfoldingWordTranslationNotes, formatTyndaleNotes, \
+                    getBibleMapperMaps, getOpenBibleImages, getVerseMetaInfoHtml
 from jsonResources import getFormattedSILOpenTranslationNotes
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
                     handleAndExtractFootnotes, convert_adds_to_italics, removeDuplicateFNids, \
@@ -112,10 +115,10 @@ from OETHandlers import getOETTidyBBB, getOETBookName, livenOETWordLinks, livenO
 from spellCheckEnglish import spellCheckAndMarkHTMLText
 
 
-LAST_MODIFIED_DATE = '2026-06-16' # by RJH
+LAST_MODIFIED_DATE = '2026-07-05' # by RJH
 SHORT_PROGRAM_NAME = "createParallelVersePages"
 PROGRAM_NAME = "OpenBibleData createParallelVersePages functions"
-PROGRAM_VERSION = '1.0.0'
+PROGRAM_VERSION = '1.0.1'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -167,8 +170,8 @@ def createParallelVersePages( level:int, folder:Path, state:State ) -> bool:
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Loaded {ll:,} version comments for {len(state.versionComments)} different versions." )
 
     # Prepare the book links
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\nDiscovered par {len(state.allBBBs)} books across {len(state.preloadedBibles)} versions: {state.allBBBs}" )
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Reordered to par {len(reorderBooksForOETVersions(state.allBBBs))} books across {len(state.preloadedBibles)} versions: {reorderBooksForOETVersions(state.allBBBs)}" )
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Discovered par {len(state.allBBBs)} books across {len(state.preloadedBibles)} versions: {state.allBBBs}" )
+    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"Reordered to par {len(reorderBooksForOETVersions(state.allBBBs))} books across {len(state.preloadedBibles)} versions: {reorderBooksForOETVersions(state.allBBBs)}" )
     BBBLinks, BBBNextLinks = [], []
     for BBB in reorderBooksForOETVersions( state.allBBBs ):
         # Removes INT, FRT, GLS, XXA, XXB, XXC, XXD, OTH, BAK
@@ -180,6 +183,7 @@ def createParallelVersePages( level:int, folder:Path, state:State ) -> bool:
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Have par {len(BBBNextLinks)} book links: {BBBNextLinks}" )
 
     # Now create the actual parallel pages
+    state.versesWithImages = defaultdict( list )
     state.possibleUnmatchedProperNames = set()
     for BBB in reorderBooksForOETVersions( state.allBBBs ):
         if not state.TEST_MODE_FLAG or BBB in state.TEST_BOOK_LIST: # Don't need parallel pages for non-test books
@@ -498,7 +502,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                 textHtml = do_OET_RV_HTMLcustomisations( f'ParallelVerseTxt={parRef}', textHtml )
                                 if state.DO_SPELL_CHECKS_FLAG and parRef not in ('JOB_24:1','PSA_8:5','EZE_-1:0',): # TODO Check these out
                                     textHtml = spellCheckAndMarkHTMLText( versionAbbreviation, parRef, textHtml, textHtml, state ) # Puts spans around mispellings
-                                # if BBB=='MRK' and C=='7' and V=='16': print( f"BBB {parRef} {versionAbbreviation} {textHtml=}" )
+                                    
                             elif versionAbbreviation == 'OET-LV':
                                 # if BBB=='MRK' and C=='7' and V=='16': print( f"CCC {parRef} {versionAbbreviation} {textHtml=}" )
                                 # assert '<span class="ul">_</span>HNcbsa' not in textHtml, f'''Here1 ({textHtml.count('<span class="ul">_</span>HNcbsa')}) {textHtml=}'''
@@ -976,6 +980,10 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                         assert '</div>' not in textHtml
                                         vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="{spanClassName}"><a title="View {state.BibleNames[versionAbbreviation]} {'details' if versionAbbreviation in state.versionsWithoutTheirOwnPages else 'chapter'}" href="{versionNameLink}">{versionAbbreviation}</a></span> {textHtml}</p>'''
                                 elif versionAbbreviation=='OET-RV':
+                                    if obiHtml := getOpenBibleImages( BBBLevel, 'verse', BBB, C, V, None, None, state.preloadedBibles['OET-RV'], state ):
+                                        textHtml = f'{obiHtml}\n{textHtml}'
+                                        state.versesWithImages[BBB].append( (C,V) )
+
                                     # Label it as 'OET (OET-RV) and slip in id's for CV (so footnote returns work) and also for C and V (just in case). Also ensure both 'OET-RV' and 'OET' work as # ids on the URL
                                     sectionNumber = findSectionNumber( 'OET-RV', BBB, C, V, state )
                                     if BBB in BOOKLIST_66:
@@ -1099,12 +1107,10 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                     parallelHtml = f'{parallelHtml}\n</div><!--end of hideables-->'
 
                 if c == -1: # Handle Tyndale book intro summaries and book intros
-                    tbisHtml = formatTyndaleBookIntro( 'TBIS', BBBLevel, BBB, 'parallelVerse', state )
-                    if tbisHtml:
+                    if tbisHtml := formatTyndaleBookIntro( 'TBIS', BBBLevel, BBB, 'parallelVerse', state ):
                         tbisHtml = f'''<div id="TBIS" class="parallelTBI"><a title="Go to TSN copyright page" href="{'../'*BBBLevel}TSN/details.htm#Top">TBIS</a> <b>Tyndale Book Intro Summary</b>: {tbisHtml}</div><!--end of TBI-->'''
                         parallelHtml = f"{parallelHtml}{NEWLINE if parallelHtml else ''}{tbisHtml}"
-                    tbiHtml = formatTyndaleBookIntro( 'TBI', BBBLevel, BBB, 'parallelVerse', state )
-                    if tbiHtml:
+                    if tbiHtml := formatTyndaleBookIntro( 'TBI', BBBLevel, BBB, 'parallelVerse', state ):
                         tbiHtml = f'''<div id="TBI" class="parallelTBI"><a title="Go to TSN copyright page" href="{'../'*BBBLevel}TSN/details.htm#Top">TBI</a> <b>Tyndale Book Intro</b>: {tbiHtml}</div><!--end of TBI-->'''
                         parallelHtml = f"{parallelHtml}{NEWLINE if parallelHtml else ''}{tbiHtml}"
 
@@ -1122,28 +1128,23 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                     parallelHtml = f'{parallelHtml}\n<hr style="width:50%;margin-left:0;margin-top: 0.3em">\n{hapHtml}'
 
                 # Handle Tyndale open study notes and theme notes
-                tsnHtml = formatTyndaleNotes( 'TOSN', BBBLevel, BBB, C, V, 'parallelVerse', state )
-                if tsnHtml:
+                if tsnHtml := formatTyndaleNotes( 'TOSN', BBBLevel, BBB, C, V, 'parallelVerse', state ):
                     tsnHtml = f'''<div id="TSN" class="parallelTSN"><a title="Go to TOSN copyright page" href="{'../'*BBBLevel}TOSN/details.htm#Top">TSN</a> <b>Tyndale Study Notes</b>: {tsnHtml}</div><!--end of TSN-->'''
                     parallelHtml = f'{parallelHtml}\n<hr style="width:50%;margin-left:0;margin-top: 0.3em">\n{tsnHtml}'
-                ttnHtml = formatTyndaleNotes( 'TTN', BBBLevel, BBB, C, V, 'parallelVerse', state )
-                if ttnHtml:
+                if ttnHtml := formatTyndaleNotes( 'TTN', BBBLevel, BBB, C, V, 'parallelVerse', state ):
                     ttnHtml = f'''<div id="TTN" class="parallelTTN"><a title="Go to TSN copyright page" href="{'../'*BBBLevel}TSN/details.htm#Top">TTN</a> <b>Tyndale Theme Notes</b>: {ttnHtml}</div><!--end of TTN-->'''
                     parallelHtml = f"{parallelHtml}{NEWLINE if parallelHtml else ''}{ttnHtml}"
                 # Handle SIL open translation notes 'UTN'
-                sotnHtml = getFormattedSILOpenTranslationNotes( BBBLevel, BBB, C, V, 'parallelVerse', state )
-                if sotnHtml:
+                if sotnHtml := getFormattedSILOpenTranslationNotes( BBBLevel, BBB, C, V, 'parallelVerse', state ):
                     sotnHtml = f'''<div id="SOTN" class="parallelSOTN"><a title="Go to SOTN copyright page" href="{'../'*BBBLevel}SOTN/details.htm#Top">SOTN</a> <b>SIL Open Translator’s Notes</b>: {sotnHtml}</div><!--end of SOTN-->'''
                     parallelHtml = f'{parallelHtml}\n<hr style="width:50%;margin-left:0;margin-top: 0.3em">\n{sotnHtml}'
                 # Handle uW translation notes 'UTN'
-                utnHtml = formatUnfoldingWordTranslationNotes( BBBLevel, BBB, C, V, 'parallelVerse', state )
-                if utnHtml:
+                if utnHtml := formatUnfoldingWordTranslationNotes( BBBLevel, BBB, C, V, 'parallelVerse', state ):
                     utnHtml = f'''<div id="UTN" class="parallelUTN"><a title="Go to UTN copyright page" href="{'../'*BBBLevel}UTN/details.htm#Top">UTN</a> <b>uW Translation Notes</b>: {utnHtml}</div><!--end of UTN-->'''
                     parallelHtml = f'{parallelHtml}\n<hr style="width:50%;margin-left:0;margin-top: 0.3em">\n{utnHtml}'
 
                 # Handle BibleMapper maps and notes
-                bmmHtml = getBibleMapperMaps( BBBLevel, BBB, C, V, None, None, state.preloadedBibles['OET-RV'], state )
-                if bmmHtml:
+                if bmmHtml := getBibleMapperMaps( BBBLevel, BBB, C, V, None, None, state.preloadedBibles['OET-RV'], state ):
                     bmmHtml = f'''<div id="BMM" class="parallelBMM"><a title="Go to BMM copyright page" href="{'../'*BBBLevel}BMM/details.htm#Top">BMM</a> <b><a href="https://BibleMapper.com" target="_blank" rel="noopener noreferrer">BibleMapper.com</a> Maps</b>: {bmmHtml}</div><!--end of BMM-->'''
                     parallelHtml = f'{parallelHtml}\n<hr style="width:50%;margin-left:0;margin-top: 0.3em">\n{bmmHtml}'
 

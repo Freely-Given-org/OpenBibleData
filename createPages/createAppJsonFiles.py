@@ -38,13 +38,10 @@ CHANGELOG:
 """
 from pathlib import Path
 import os
-from collections import defaultdict
 import re
 import json
 import logging
 from time import time
-import multiprocessing, copy
-from functools import cache
 
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint, BOOKLIST_OT39, BOOKLIST_NT27, BOOKLIST_66

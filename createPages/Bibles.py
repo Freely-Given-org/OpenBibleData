@@ -76,6 +76,7 @@ CHANGELOG:
     2026-04-26 Pickle TOSN etc.
     2026-04-27 Split USE_PICKLES_FLAG into state.LOAD_RESOURCES_FROM_PICKLES_FLAG and WRITE_PICKLES_FLAG
                 (Usually it's only reading that we want to temporarily disable, e.g., if indexing code has changed)
+    2026-07-04 Added OpenBibleImages and getOpenBibleImages
 """
 from datetime import datetime
 import os, os.path
@@ -113,10 +114,10 @@ from OETHandlers import findLVQuote, getBBBFromOETBookName
 from Dict import loadAndIndexUBSGreekDictJSON, loadAndIndexUBSHebrewDictJSON
 
 
-LAST_MODIFIED_DATE = '2026-06-27' # by RJH
+LAST_MODIFIED_DATE = '2026-07-05' # by RJH
 SHORT_PROGRAM_NAME = "Bibles"
 PROGRAM_NAME = "OpenBibleData Bibles handler"
-PROGRAM_VERSION = '0.97'
+PROGRAM_VERSION = '0.98'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -125,6 +126,7 @@ DEBUGGING_THIS_MODULE = False
 WRITE_PICKLES_FLAG = True # Won't write new faster-loading pickle files for resources if False
 
 BIBLE_MAPPER_PATH = Path( '../copiedBibles/maps/' )
+BIBLE_IMAGES_PATH = Path( '../copiedBibles/images/' )
 
 NEWLINE = '\n'
 
@@ -349,7 +351,7 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
     #     print( f"{versionAbbreviation} loaded ({len(thisBible.books.keys())}) {thisBible.books.keys()}" )
     elif versionAbbreviation == 'MSB': # Special case -- two custom TSVs
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Loading ‘{versionAbbreviation}’ TSV Bible{' in TEST mode' if state.TEST_MODE_FLAG else ''}…" )
-        print( f"{folderOrFileLocation=}" )
+        # print( f"{folderOrFileLocation=}" )
         assert isinstance( folderOrFileLocation, tuple ) and len(folderOrFileLocation) == 3 # Folder, then two filenames
 
         thisBibleOT = CSVBible.CSVBible( folderOrFileLocation[1], givenName=versionName,
@@ -1280,7 +1282,7 @@ def formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segme
 
             else: # not a marker that we were expecting
                 logging.critical( f"formatUnfoldingWordTranslationNotesA ({utnRef}) has unhandled {marker=} {rest=} {lastMarker=}" )
-        elif marker in ('m','q1','p','pi1'):
+        elif marker in ('intro','m','q1','p','pi1'):
             assert not rest # Just ignore these markers (but they influence lastMarker)
         else:
             logging.critical( f"formatUnfoldingWordTranslationNotesB ({utnRef}) has unhandled {marker=} {rest=} {lastMarker=}" )
@@ -1524,6 +1526,8 @@ BMM_TEXT_CACHE = {}
 def getBibleMapperMaps( level:int, BBB:str, startC:str, startV:str|None, endC:str|None, endV:str|None, referenceBible:Bible, state:State ) -> str: # html
     """
     Can be called for a verse, a chapter, or a section
+
+    Returns the html that will display a Bible map.
     """
     global BMM_INDEX, BMM_TEXT_CACHE
 
@@ -1535,9 +1539,14 @@ def getBibleMapperMaps( level:int, BBB:str, startC:str, startV:str|None, endC:st
         with open( mapIndexFilepath, 'rt', encoding='utf-8' ) as tsvFile:
             for line in tsvFile: # Five-column TSV
                 if line.startswith( 'ReferenceRange' ): continue # It's the header line
-                mapRef, hiResMapFilename, lowResMapFilename, supplementaryMapFilename, _optionalComment = line.rstrip( '\n' ).split( '\t' )
+                bits = line.rstrip( '\n' ).split( '\t' )
+                if len(bits) == 5:
+                    mapRefsRange, hiResMapFilename, lowResMapFilename, supplementaryMapFilename, _optionalComment = bits
+                else:
+                    mapRefsRange, hiResMapFilename, lowResMapFilename, supplementaryMapFilename = bits
+                    _optionalComment = ''
                 mapName = hiResMapFilename.split( '_' )[0]
-                mapBBB, mapCVstuff = mapRef.split( '_' )
+                mapBBB, mapCVstuff = mapRefsRange.split( '_' )
                 if mapBBB not in referenceBible:
                     continue # if we continue below, it will force that book to become loaded
                 chapters:set[str] = set()
@@ -1567,7 +1576,7 @@ def getBibleMapperMaps( level:int, BBB:str, startC:str, startV:str|None, endC:st
                     # print( f"Single verse: {mapBBB} {mapCVstuff} = '{mapFilename}'")
                     mapC = mapCVstuff.split( ':' )[0]
                     chapters.add( mapC )
-                    BMM_INDEX[mapRef].add( (mapName,hiResMapFilename,lowResMapFilename,supplementaryMapFilename) )
+                    BMM_INDEX[mapRefsRange].add( (mapName,hiResMapFilename,lowResMapFilename,supplementaryMapFilename) )
                 else: # it's a single chapter
                     mapC = mapCVstuff
                     # print( f"Single chapter: {mapBBB} {mapC} = '{mapFilename}'")
@@ -1583,13 +1592,17 @@ def getBibleMapperMaps( level:int, BBB:str, startC:str, startV:str|None, endC:st
     mapFilenamesSet = set()
     if endC is None: # Then it's not a chapter range
         assert endV is None
-        mapFilenamesSet = BMM_INDEX[f'{BBB}_{startC}:{startV}'] # Either a single verse or a single chapter
+        desiredKey = f'{BBB}_{startC}:{startV}'
+        if desiredKey in BMM_INDEX: # We have to do it this way to prevent the triggering of a new default entry into the index
+            mapFilenamesSet = BMM_INDEX[desiredKey] # Either a single verse or a single chapter
     else: # it must be a chapter range
         assert startV and endV # Neither of these can be None (can be string '0', shouldn't be integer 0)
         for c in range( int(startC), int(endC)+1 ):
             for v in range( getSmallLeadingInt(startV) if c==int(startC) else 1, (getSmallLeadingInt(endV) if c==int(endC) else referenceBible.getNumVerses( BBB, c ))+1 ):
                 # print( f"  Chapter range {BBB} {c}:{v}")
-                mapFilenamesSet.update( BMM_INDEX[f'{BBB}_{c}:{v}'] )
+                desiredKey = f'{BBB}_{c}:{v}'
+                if desiredKey in BMM_INDEX: # We have to do it this way to prevent the triggering of a new default entry into the index
+                    mapFilenamesSet.update( BMM_INDEX[desiredKey] )
 
     if not mapFilenamesSet: # No maps for this reference / reference range (or book not loaded in referenceBible TEST_MODE_FLAG)
         dPrint( 'Info', DEBUGGING_THIS_MODULE, f"    getBibleMapperMaps: No maps available for reference {BBB} {startC}:{startV}–{endC}:{endV} with {len(BMM_INDEX):,} index entries loaded" )
@@ -1651,6 +1664,144 @@ def getBibleMapperMaps( level:int, BBB:str, startC:str, startV:str|None, endC:st
     assert checkHtml( f'BibleMapperMap@{BBB}_{startC}:{startV}–{endC}:{endV} with {mapFilenamesSet}', ourHtml, segmentOnly=True )
     return ourHtml
 # end of Bibles.getBibleMapperMaps
+
+
+OBI_IMAGE_LIST = [] # Contains the image details
+OBI_ALL_VERSES_INDEX, OBI_FIRST_VERSES_INDEX = defaultdict( set ), defaultdict( set ) # Points to the above details
+def getOpenBibleImages( level:int, segmentType:str, BBB:str, startC:str, startV:str|None, endC:str|None, endV:str|None, referenceBible:Bible, state:State ) -> str: # html
+    """
+    Can be called for a verse, a chapter, or a section
+
+    Returns the HTML that will display a Bible image.
+    """
+    global OBI_IMAGE_LIST, OBI_ALL_VERSES_INDEX, OBI_FIRST_VERSES_INDEX
+
+    fnPrint( DEBUGGING_THIS_MODULE, f"getOpenBibleImages( {level} {segmentType=} {BBB} {startC}:{startV}–{endC}:{endV} ) with {len(OBI_ALL_VERSES_INDEX):,} index entries loaded" )
+    assert segmentType in ('verse','chapter','section','book','relatedPassage'), f"{segmentType=}"
+    # print( f"getOpenBibleImages( {level} {segmentType=} {BBB} {startC}:{startV}–{endC}:{endV} ) with {len(OBI_ALL_VERSES_INDEX):,} index entries loaded" )
+
+    if not OBI_ALL_VERSES_INDEX:
+        vPrint( 'Info', DEBUGGING_THIS_MODULE, f"getOpenBibleImages() needs to load image index…")
+        imageIndexFilepath = Path( '../copiedBibles/images/imageIndex.tsv' )
+        with open( imageIndexFilepath, 'rt', encoding='utf-8' ) as tsvFile:
+            for line in tsvFile: # Five-column TSV
+                if line.startswith( 'ReferenceRange' ): continue # It's the header line
+                bits = line.rstrip( '\n' ).split( '\t' )
+                if len(bits) == 6:
+                    imageRefsRange, primeRef, hiResImageFilename, lowResImageFilename, altText, optionalComment = bits
+                else:
+                    imageRefsRange, primeRef, hiResImageFilename, lowResImageFilename, altText = bits
+                    optionalComment = ''
+                imageName = hiResImageFilename.split( '.' )[0]
+                imageBBB, imageCVstuff = imageRefsRange.split( '_' )
+                if imageBBB not in referenceBible:
+                    continue # if we continue below, it will force that book to become loaded
+
+                imageListIndex = len(OBI_IMAGE_LIST)
+                OBI_IMAGE_LIST.append( (imageRefsRange, primeRef, hiResImageFilename, lowResImageFilename, altText, optionalComment) )
+
+                chapters:set[str] = set()
+                if '–' in imageCVstuff: # enDash: it's a chapter range
+                    startCVstuff, endCVstuff = imageCVstuff.split( '–' )
+                    # print( f"Chapter range: {mapBBB} {startCVstuff} to {endCVstuff} = '{mapFilename}'")
+                    try: iStartC, iStartV = startCVstuff.split( ':' )
+                    except ValueError: iStartC, iStartV = startCVstuff, '1'
+                    try: iEndC, iEndV = endCVstuff.split( ':' )
+                    except ValueError: iEndC, iEndV = endCVstuff, referenceBible.getNumVerses( imageBBB, endCVstuff )
+                    # print( f"   so {startC}:{startV} to {endC}:{endV}" )
+                    for c in range( int(iStartC), int(iEndC)+1 ):
+                        chapters.add( str(c) )
+                        for v in range( int(iStartV) if c==int(iStartC) else 1, (int(iEndV) if c==int(iEndC) else referenceBible.getNumVerses( imageBBB, c ))+1 ):
+                            OBI_ALL_VERSES_INDEX[f'{imageBBB}_{c}:{v}'].add( imageListIndex )
+                    OBI_FIRST_VERSES_INDEX[f'{imageBBB}_{iStartC}:{iStartV}'].add( imageListIndex )
+                elif '-' in imageCVstuff: # hyphen: it's a verse range
+                    startCVstuff, endCVstuff = imageCVstuff.split( '-' )
+                    # print( f"Verse range: {mapBBB} {startCVstuff} to {endCVstuff} = '{mapFilename}'")
+                    assert ':' not in endCVstuff
+                    imageC, iStartV = startCVstuff.split( ':' )
+                    chapters.add( imageC )
+                    iEndV = endCVstuff
+                    # print( f"   so {mapC}:{startV} to {mapC}:{endV}" )
+                    for v in range( int(iStartV), int(iEndV)+1 ):
+                        OBI_ALL_VERSES_INDEX[f'{imageBBB}_{imageC}:{v}'].add( imageListIndex )
+                    OBI_FIRST_VERSES_INDEX[f'{imageBBB}_{imageC}:{iStartV}'].add( imageListIndex )
+                elif ':' in imageCVstuff: # it's a single verse
+                    # print( f"Single verse: {mapBBB} {mapCVstuff} = '{mapFilename}'")
+                    imageC = imageCVstuff.split( ':' )[0]
+                    # chapters.add( imageC )
+                    OBI_ALL_VERSES_INDEX[imageRefsRange].add( imageListIndex )
+                    OBI_FIRST_VERSES_INDEX[imageRefsRange].add( imageListIndex )
+                else: # it's a single chapter
+                    imageC = imageCVstuff
+                    # print( f"Single chapter: {mapBBB} {mapC} = '{mapFilename}'")
+                    chapters.add( imageC )
+                    for v in range( 1, referenceBible.getNumVerses( imageBBB, imageC)+1 ):
+                        OBI_ALL_VERSES_INDEX[f'{imageBBB}_{imageC}:{v}'].add( imageListIndex )
+                        if v == 1: OBI_FIRST_VERSES_INDEX[f'{imageBBB}_{imageC}:{v}'].add( imageListIndex )
+                for imageC in chapters:
+                    OBI_ALL_VERSES_INDEX[f'{imageBBB}_{imageC}:None'].add( imageListIndex )
+        # print( f"({len(OBI_INDEX)}) {OBI_INDEX.keys()=}" )
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  getOpenBibleImages() loaded {len(OBI_FIRST_VERSES_INDEX):,} first and {len(OBI_ALL_VERSES_INDEX):,} total verse and chapter entries for {len(OBI_IMAGE_LIST):,} images.")
+
+    indexToUse = OBI_ALL_VERSES_INDEX if segmentType == 'verse' else OBI_FIRST_VERSES_INDEX
+
+    # First get the range of verses that we want to scan and collect all the map filenames for that set
+    imageFilenamesSet = set()
+    if endC is None: # Then it's not a chapter range
+        assert endV is None
+        desiredKey = f'{BBB}_{startC}:{startV}'
+        if desiredKey in indexToUse: # We have to do it this way to prevent the triggering of a new default entry into the index
+            imageFilenamesSet = indexToUse[desiredKey] # Either a single verse or a single chapter
+    else: # it must be a chapter range
+        assert startV and endV # Neither of these can be None (can be string '0', shouldn't be integer 0)
+        for c in range( int(startC), int(endC)+1 ):
+            for v in range( getSmallLeadingInt(startV) if c==int(startC) else 1, (getSmallLeadingInt(endV) if c==int(endC) else referenceBible.getNumVerses( BBB, c ))+1 ):
+                # print( f"  Chapter range {BBB} {c}:{v}")
+                desiredKey = f'{BBB}_{c}:{v}'
+                if desiredKey in indexToUse: # We have to do it this way to prevent the triggering of a new default entry into the index
+                    imageFilenamesSet.update( indexToUse[desiredKey] )
+
+    if not imageFilenamesSet: # No images for this reference / reference range (or book not loaded in referenceBible TEST_MODE_FLAG)
+        dPrint( 'Info', DEBUGGING_THIS_MODULE, f"    getOpenBibleImages: No images available for reference {BBB} {startC}:{startV}–{endC}:{endV} with {len(OBI_ALL_VERSES_INDEX):,} index entries loaded" )
+        return ''
+
+    destinationFolderpath = state.TEMP_BUILD_FOLDER. joinpath( 'OBI/' )
+    try: os.makedirs( destinationFolderpath )
+    except FileExistsError: pass
+
+    dPrint( 'Info', DEBUGGING_THIS_MODULE, f"getOpenBibleImages( {level}, {startC}:{startV}–{endC}:{endV} ) got {imageFilenamesSet=}" )
+    ourHtml = ''
+    for imageListIndex in imageFilenamesSet:
+        imageRefsRange, primeRef, hiResFilename, loResFilename, altText, optionalComment = OBI_IMAGE_LIST[imageListIndex]
+        dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"getOpenBibleImages( {level}, {startC}:{startV}–{endC}:{endV} ) got {hiResFilename=}" )
+
+        if loResFilename: # Display the low-res image but link it to the hi-res one
+            imageFilename = loResFilename
+            imageHtml = f'''<p><a title="Click to view high-resolution image" href="{'../'*level}OBI/{hiResFilename}"><img src="{'../'*level}OBI/{imageFilename}" alt="{altText}" style="float:right; margin-left:15px; width:400px; max-width:50%; height:auto;"></a>'''
+            if not destinationFolderpath.joinpath( hiResFilename ).is_file():
+                # Save the hi-res image file here (the default one is saved below)
+                # print( f"    getOpenBibleImages( {level}, {BBB} {startC}:{startV}–{endC}:{endV} ): Saving hi-res {destinationFolderpath}/{hiResFilename}…" )
+                # assert not destinationFolderpath.joinpath( hiResFilename ).is_file(), f"getOpenBibleImages( {level}, {BBB} {startC}:{startV}–{endC}:{endV} ): Why does hi-res {destinationFolderpath}/{hiResFilename} already exist?"
+                sourceImageFilepath = BIBLE_IMAGES_PATH.joinpath( hiResFilename )
+                # Note: shutil.copy2 is the same as copy but keeps metadata like creation and modification times
+                shutil.copy2( sourceImageFilepath, destinationFolderpath )
+        else: # Only seem to have a hi-res file
+            imageFilename = hiResFilename
+            imageHtml = f'''<img src="{'../'*level}OBI/{imageFilename}" alt="{altText}" style="float:right; margin-left:15px; width:400px; max-width:50%; height:auto;">'''
+            imageLinkHtml = f'<a title="Click for copyright details" href="{'../'*level}OBI/details.htm#Top">{imageHtml}</a>'
+        if not destinationFolderpath.joinpath( imageFilename ).is_file():
+            # Save the default image file
+            # print( f"    getOpenBibleImages( {level}, {BBB} {startC}:{startV}–{endC}:{endV} ): Saving default {destinationFolderpath}/{imageFilename}…" )
+            # assert not destinationFolderpath.joinpath( imageFilename ).is_file(), f"getOpenBibleImages( {level}, {BBB} {startC}:{startV}–{endC}:{endV} ): Why does default {destinationFolderpath}/{imageFilename} already exist?"
+            sourceImageFilepath = BIBLE_IMAGES_PATH.joinpath( imageFilename )
+            # Note: shutil.copy2 is the same as copy but keeps metadata like creation and modification times
+            shutil.copy2( sourceImageFilepath, destinationFolderpath )
+
+        ourHtml = f'''{ourHtml}{imageLinkHtml}'''
+
+    assert checkHtml( f'OpenBibleImage-{segmentType}@{BBB}_{startC}:{startV}–{endC}:{endV} with {imageFilenamesSet}', ourHtml, segmentOnly=True )
+    return ourHtml
+# end of Bibles.getOpenBibleImages
 
 
 VERSE_DETAILS_TABLE_FILEPATH = Path( '../datasets/sentenceImportance/sentenceImportance.tsv' )

@@ -53,6 +53,7 @@ CHANGELOG:
     2026-03-20 Handle OET-RV lines beginning with ⇔ (verse halves were swapped in the translation)
     2026-05-30 Handle OET-RV PSA lines beginning with /zz (for background colouring)
     2026-06-11 Handle new % (changed person) \\add format
+    2026-06-29 Fix bug that mishandled digit strings in OET
 """
 import logging
 import re
@@ -72,10 +73,10 @@ from bible_transliterations import transliterate_Hebrew, transliterate_Greek
 from settings import State
 
 
-LAST_MODIFIED_DATE = '2026-06-16' # by RJH
+LAST_MODIFIED_DATE = '2026-06-29' # by RJH
 SHORT_PROGRAM_NAME = "OETHandlers"
 PROGRAM_NAME = "OpenBibleData OET handler"
-PROGRAM_VERSION = '0.75'
+PROGRAM_VERSION = '0.76'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -265,8 +266,9 @@ def livenOETWordLinks( level:int, bibleObject:ESFMBible, refTuple:tuple, givenEn
         preprocessedVerseEntryList = InternalBibleEntryList()
         for entry in givenEntryList:
             marker, original_text = entry.getMarker(), entry.getOriginalText()
-            if marker in ('v~','XXXp~') and not original_text and marker[0]!='¬': print( f"livenOETWordLinks0 {bibleObject.abbreviation} {level=} {BBB} {marker=} {original_text=}")
-            if original_text and marker in ('v~','XXXp~'):
+            if marker == 'v~' and not original_text and marker[0]!='¬': print( f"livenOETWordLinks0 {bibleObject.abbreviation} {level=} {BBB} {marker=} {original_text=}")
+            assert original_text.count('\\add ')==original_text.count('\\add*'), f"Bad add counts in OET {bibleObject.abbreviation} {BBB} {marker} line: {original_text.count('\\add ')} != {original_text.count('\\add*')}"
+            if original_text and marker == 'v~':
                 assert '\\nd \\nd ' not in original_text, f"Double nd in {bibleObject.abbreviation} {BBB} {marker=} {original_text=}"
                 # print( f"livenOETWordLinks1 {bibleObject.abbreviation} {level=} {BBB} {marker=} {original_text=}")
                 newWords = []
@@ -303,23 +305,24 @@ def livenOETWordLinks( level:int, bibleObject:ESFMBible, refTuple:tuple, givenEn
                         # TODO: Seems related to multiword added text
                         # print( f"  {n} {oWord=} {inNote=} in {BBB}")
                         prefix = suffix = ''
+                        adjWord = oWord
                         for _ in range( 5 ):
                             for potentialPrefix in ('“','‘','(','[', '—', '≈','*','@','#','%','&','<','>','^','≡','→','?','⇔'):
-                                if oWord.startswith( potentialPrefix ): oWord, prefix = oWord[len(potentialPrefix):], f'{prefix}{potentialPrefix}'
+                                if adjWord.startswith( potentialPrefix ): adjWord, prefix = adjWord[len(potentialPrefix):], f'{prefix}{potentialPrefix}'
                             for potentialSuffix in (',','.','?','!','”','’',':',';',')',']',
                                             '\\add','\\+add','\\add*','\\+add*','\\x','\\x*','\\f','\\f*',
                                             '\\bd*','\\em*','\\+em*','\\it*','\\nd*','\\+nd*',
                                             '\\wj*','\\+wj*', '\\qs','\\qs*',
                                             '\\z1','\\z2','\\z3','\\z4','\\zr',
                                             '☺'):
-                                if oWord.endswith( potentialSuffix ): oWord, suffix = oWord[:-len(potentialSuffix)], f'{potentialSuffix}{suffix}'
-                                if potentialSuffix in oWord: oWord, suffix = oWord[:oWord.index(potentialSuffix)], f'{oWord[oWord.index(potentialSuffix):]}{suffix}'
+                                if adjWord.endswith( potentialSuffix ): adjWord, suffix = adjWord[:-len(potentialSuffix)], f'{potentialSuffix}{suffix}'
+                                if potentialSuffix in adjWord: adjWord, suffix = adjWord[:adjWord.index(potentialSuffix)], f'{adjWord[adjWord.index(potentialSuffix):]}{suffix}'
                         # if prefix or suffix: print( f'    {prefix=} {oWord=} {suffix=}' )
-                        if oWord and oWord[0] != '\\' and not oWord.isdigit():
-                            if "'" not in oWord and ',' not in oWord and '-' not in oWord and '/' not in oWord and '(' not in oWord \
-                            and not oWord[0].isdigit() and oWord not in ('i.e','e.g'):
-                                assert oWord.isalpha(), f'{BBB} {prefix=} {oWord=} {suffix=}'
-                            oWord = f'{prefix}<span class="noLinkYet">{oWord}</span>{suffix}'
+                        if adjWord and adjWord[0] != '\\' and not adjWord.isdigit():
+                            if "'" not in adjWord and ',' not in adjWord and '-' not in adjWord and '/' not in adjWord and '(' not in adjWord \
+                            and not adjWord[0].isdigit() and adjWord not in ('i.e','e.g'):
+                                assert adjWord.isalpha(), f'{BBB} {prefix=} {adjWord=} {suffix=}'
+                            oWord = f'{prefix}<span class="noLinkYet">{adjWord}</span>{suffix}'
                             # print( f"        Now {oWord=}")
                             changeMade = True
                     newWords.append( oWord )
@@ -329,6 +332,8 @@ def livenOETWordLinks( level:int, bibleObject:ESFMBible, refTuple:tuple, givenEn
                         inNote = False
                 if changeMade:
                     newEntry = InternalBibleEntry( entry.getMarker(), entry.getOriginalMarker(), ' '.join(newWords).replace(' —','—'), '', None, '' )
+                    oT = newEntry.getOriginalText()
+                    assert oT.count('\\add ')==oT.count('\\add*'), f"Bad add counts in OET {bibleObject.abbreviation} {BBB} line: {oT.count('\\add ')} != {oT.count('\\add*')} {oT=}"
                 preprocessedVerseEntryList.append( newEntry if changeMade else entry )
             else: preprocessedVerseEntryList.append( entry )
     else: preprocessedVerseEntryList = givenEntryList
@@ -338,8 +343,9 @@ def livenOETWordLinks( level:int, bibleObject:ESFMBible, refTuple:tuple, givenEn
     #       so that we can easily find them again in the returned InternalBibleEntryList
     revisedEntryList = bibleObject.livenESFMWordLinks( BBB, preprocessedVerseEntryList, linkTemplate='►{n}◄', titleTemplate='§«OrigWord»§' )[0]
     for revisedEntry in revisedEntryList:
-        if revisedEntry.getOriginalText():
-            assert '\\nd \\nd ' not in revisedEntry.getOriginalText()
+        if oT := revisedEntry.getOriginalText():
+            assert '\\nd \\nd ' not in oT
+            assert oT.count('\\add ')==oT.count('\\add*'), f"Bad add counts in OET {bibleObject.abbreviation} {BBB} line: {oT.count('\\add ')} != {oT.count('\\add*')} {oT=}"
     # We get something back like:
     #   v=18
     #   v~=<a title="§καὶ§" href="../../ref/{'GrkWrd' if NT else 'HebWrd'}/33110.htm#Top">And</a> \add +<a title="§Σαδδουκαῖοι§" href="../../ref/{'GrkWrd' if NT else 'HebWrd'}/33112.htm#Top">the</a>\add*<a title="§Σαδδουκαῖοι§" href="../../ref/{'GrkWrd' if NT else 'HebWrd'}/33112.htm#Top">_Saddoukaios</a>_\add <a title="§Σαδδουκαῖοι§" href="../../ref/{'GrkWrd' if NT else 'HebWrd'}/33112.htm#Top">sect</a>\add* <a title="§ἔρχονται§" href="../../ref/{'GrkWrd' if NT else 'HebWrd'}/33111.htm#Top">are</a><a title="§ἔρχονται§" href="../../ref/{'GrkWrd' if NT else 'HebWrd'}/33111.htm#Top">_coming</a> <a title="§πρὸς§" href="../../ref/{'GrkWrd' if NT else 'HebWrd'}/33113.htm#Top">to</a> <a title="§αὐτόν§" href="../../ref/{'GrkWrd' if NT else 'HebWrd'}/33114.htm#Top">him</a>, <a title="§οἵτινες§" href="../../ref/{'GrkWrd' if NT else 'HebWrd'}/33116.htm#Top">who</a> <a title="§λέγουσιν§" href="../../ref/{'GrkWrd' if NT else 'HebWrd'}/33117.htm#Top">are</a><a title="§λέγουσιν§" href="../../ref/{'GrkWrd' if NT else 'HebWrd'}/33117.htm#Top">_saying</a> <a title="§εἶναι§" href="../../ref/{'GrkWrd' if NT else 'HebWrd'}/33120.htm#Top">to</a>_ <a title="§μὴ§" href="../../ref/{'GrkWrd' if NT else 'HebWrd'}/33119.htm#Top">not</a> <a title="§εἶναι§" href="../../ref/{'GrkWrd' if NT else 'HebWrd'}/33120.htm#Top">_be</a> \add +<a title="§ἀνάστασιν§" href="../../ref/{'GrkWrd' if NT else 'HebWrd'}/33118.htm#Top">a</a>\add*<a title="§ἀνάστασιν§" href="../../ref/{'GrkWrd' if NT else 'HebWrd'}/33118.htm#Top">_resurrection</a>, <a title="§καὶ§" href="../../ref/{'GrkWrd' if NT else 'HebWrd'}/33121.htm#Top">and</a> <a title="§ἐπηρώτων§" href="../../ref/{'GrkWrd' if NT else 'HebWrd'}/33122.htm#Top">they</a><a title="§ἐπηρώτων§" href="../../ref/{'GrkWrd' if NT else 'HebWrd'}/33122.htm#Top">_were</a><a title="§ἐπηρώτων§" href="../../ref/{'GrkWrd' if NT else 'HebWrd'}/33122.htm#Top">_asking</a> <a title="§αὐτὸν§" href="../../ref/{'GrkWrd' if NT else 'HebWrd'}/33125.htm#Top">him</a> <a title="§λέγοντες§" href="../../ref/{'GrkWrd' if NT else 'HebWrd'}/33126.htm#Top">saying</a>,
