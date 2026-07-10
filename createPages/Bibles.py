@@ -76,6 +76,7 @@ CHANGELOG:
     2026-04-26 Pickle TOSN etc.
     2026-04-27 Split USE_PICKLES_FLAG into state.LOAD_RESOURCES_FROM_PICKLES_FLAG and WRITE_PICKLES_FLAG
                 (Usually it's only reading that we want to temporarily disable, e.g., if indexing code has changed)
+    2026-07-04 Added OpenBibleImages and getOpenBibleImages
 """
 from datetime import datetime
 import os, os.path
@@ -103,11 +104,9 @@ from BibleOrgSys.Bible import Bible
 from bible_organisational_system import InternalBibleEntryList, getSmallLeadingInt
 import bos_books_codes_py
 
-import sys
-sys.path.append( '../../BibleTransliterations/Python/' )
-from BibleTransliterations import transliterate_Greek, transliterate_Hebrew
+from bible_transliterations import transliterate_Greek, transliterate_Hebrew
 
-# from bos_books_codes_py import english_name_to_reference_abbrev_py  # This is the PyO3/Rust module
+# from bos_books_codes_py import english_name_to_bos_book_code_py  # This is the PyO3/Rust module
 
 from settings import State
 from html import checkHtml
@@ -115,10 +114,10 @@ from OETHandlers import findLVQuote, getBBBFromOETBookName
 from Dict import loadAndIndexUBSGreekDictJSON, loadAndIndexUBSHebrewDictJSON
 
 
-LAST_MODIFIED_DATE = '2026-05-03' # by RJH
+LAST_MODIFIED_DATE = '2026-07-05' # by RJH
 SHORT_PROGRAM_NAME = "Bibles"
 PROGRAM_NAME = "OpenBibleData Bibles handler"
-PROGRAM_VERSION = '0.94'
+PROGRAM_VERSION = '0.98'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -127,6 +126,7 @@ DEBUGGING_THIS_MODULE = False
 WRITE_PICKLES_FLAG = True # Won't write new faster-loading pickle files for resources if False
 
 BIBLE_MAPPER_PATH = Path( '../copiedBibles/maps/' )
+BIBLE_IMAGES_PATH = Path( '../copiedBibles/images/' )
 
 NEWLINE = '\n'
 
@@ -229,6 +229,8 @@ def preloadVersions( state:State ) -> int:
                             logging.critical( f"Failed to load {versionAbbreviation} pickle file: Got TypeError from {pickleFilename} in {pickleFolderPath}: {e}")
                         except ModuleNotFoundError as e:
                             logging.critical( f"Failed to load {versionAbbreviation} pickle file: Got ModuleNotFoundError from {pickleFilename} in {pickleFolderPath}: {e}")
+                        except RuntimeError as e:
+                            logging.critical( f"Failed to load {versionAbbreviation} pickle file: Got RuntimeError from {pickleFilename} in {pickleFolderPath}: {e}")
                         except EOFError:
                             logging.critical( f"Failed to load {versionAbbreviation} pickle file: Ran out of input from {pickleFilename} in {pickleFolderPath}")
                 else:
@@ -262,7 +264,7 @@ def preloadVersions( state:State ) -> int:
             state.preloadedBibles['OET-LV'] = thisBible
             vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Doing discovery for {thisBible.abbreviation} ({thisBible.name})…" )
             thisBible.discover()
-            thisBible.makeSectionIndex() # These aren't made automatically by BibleOrgSys
+            thisBible.makeSectionIndex() # For OET-LV -- this isn't made automatically by BibleOrgSys
             vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"preloadVersions() loaded {thisBible}" )
 
             if WRITE_PICKLES_FLAG:
@@ -284,7 +286,7 @@ def preloadVersions( state:State ) -> int:
             or versionAbbreviation in state.selectedVersesOnlyVersions:
                 state.preloadedBibles[versionAbbreviation] = thisBible
             else:
-                halt # preloadVersion failed
+                assert False, "We want to stop here" # preloadVersion failed
 
         else:
             logging.critical( f"createPages preloadVersions() has no folder location to find ‘{versionAbbreviation}’" )
@@ -349,7 +351,7 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
     #     print( f"{versionAbbreviation} loaded ({len(thisBible.books.keys())}) {thisBible.books.keys()}" )
     elif versionAbbreviation == 'MSB': # Special case -- two custom TSVs
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Loading ‘{versionAbbreviation}’ TSV Bible{' in TEST mode' if state.TEST_MODE_FLAG else ''}…" )
-        print( f"{folderOrFileLocation=}" )
+        # print( f"{folderOrFileLocation=}" )
         assert isinstance( folderOrFileLocation, tuple ) and len(folderOrFileLocation) == 3 # Folder, then two filenames
 
         thisBibleOT = CSVBible.CSVBible( folderOrFileLocation[1], givenName=versionName,
@@ -422,7 +424,7 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
         # print( f"{versionAbbreviation} {thisBible.settingsDict=}" )
         # verseEntryList, contextList = thisBible.getContextVerseData( ('MAT', '2', '1') )
         # print( f"{versionAbbreviation} Mat 2:1 {verseEntryList=} {contextList=}" )
-        # if versionAbbreviation=='Luth': halt
+        # if versionAbbreviation=='Luth': assert False, "We want to stop here"
     elif 'OET' in versionAbbreviation or 'ESFM' in folderOrFileLocation: # ESFM
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Preloading ‘{versionAbbreviation}’ ESFM Bible{' in TEST mode' if state.TEST_MODE_FLAG else ''}…" )
         thisBible = ESFMBible.ESFMBible( folderOrFileLocation, givenName=versionName, givenAbbreviation=versionAbbreviation )
@@ -531,8 +533,6 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Preloading ‘{versionAbbreviation}’ USFM Bible{' in TEST mode' if state.TEST_MODE_FLAG else ''}…" )
         thisBible = USFMBible.USFMBible( folderOrFileLocation, givenName=versionName, givenAbbreviation=versionAbbreviation,
                                             encoding='utf-8' )
-        if versionAbbreviation in ('ULT','UST','UHB','UGNT','SR-GNT'):
-            thisBible.uWencoded = True # TODO: Shouldn't be required ???
         if state.booksToLoad[versionAbbreviation] in (['ALL'],['OT'],['NT']):
             # We assume that we can load all books, even for OT and NT
             #  i.e., we assume (but don't check) that only those books will exist (plus maybe intro, etc.)
@@ -541,6 +541,14 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
             thisBible.preload()
             for BBB in state.booksToLoad[versionAbbreviation]:
                 thisBible.loadBookIfNecessary( BBB )
+        # if versionAbbreviation == 'ULT':
+        #     jerLines, _jerContext = thisBible.getContextVerseData( ('JER','4') )
+        #     for line in jerLines: print( f"  JER 4 {line=}" )
+        #     jer = thisBible.books['JER']
+        #     for C,V in jer._CVIndex:
+        #         if C == '4':
+        #             print( f"JER {C}:{V} {jer._CVIndex[(C,V)]}")
+        #     assert False, "We want to stop here"
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  preloadVersion() loaded {len(thisBible):,} {versionAbbreviation} verses" if versionAbbreviation in state.selectedVersesOnlyVersions else f"preloadVersion() loaded {thisBible}" )
 
     if ( versionAbbreviation not in state.selectedVersesOnlyVersions # they're dicts not Bible objects
@@ -564,6 +572,11 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
         thisBible.discover()
         assert 'discoveryResults' in thisBible.__dict__
         thisBible.makeSectionIndex() # These aren't made automatically by BibleOrgSys
+        # if versionAbbreviation=='OET-RV':
+        #     testBBB = 'SA2'
+        #     for ee,cv in enumerate( thisBible[testBBB]._SectionIndex ):
+        #         print( f"    {ee}/ {cv} {thisBible[testBBB]._SectionIndex[cv]}" )
+        #     halt
 
         if WRITE_PICKLES_FLAG:
             pickleFilename = f"{versionAbbreviation}__{'_'.join(state.TEST_BOOK_LIST)}{state.PICKLE_FILENAME_END}" \
@@ -623,7 +636,7 @@ def loadTyndaleBookIntrosXML( abbrev:str, XML_filepath ) -> dict[str,str]:
             else:
                 logging.warning( "fv6g Unprocessed {} attribute ({}) in {}".format( attrib, value, topLocation ) )
                 loadErrors.append( "Unprocessed {} attribute ({}) in {} (fv6g)".format( attrib, value, topLocation ) )
-                if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.errorOnXMLWarning: halt
+                if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.errorOnXMLWarning: assert False, "We want to stop here"
         assert releaseVersion == '1.25'
 
         for element in XMLTree:
@@ -643,7 +656,7 @@ def loadTyndaleBookIntrosXML( abbrev:str, XML_filepath ) -> dict[str,str]:
                 else:
                     logging.warning( "fv6g Unprocessed {} attribute ({}) in {}".format( attrib, value, topLocation ) )
                     loadErrors.append( "Unprocessed {} attribute ({}) in {} (fv6g)".format( attrib, value, topLocation ) )
-                    if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.errorOnXMLWarning: halt
+                    if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.errorOnXMLWarning: assert False, "We want to stop here"
             assert name
 
             # Now work thru each item
@@ -671,8 +684,8 @@ def loadTyndaleBookIntrosXML( abbrev:str, XML_filepath ) -> dict[str,str]:
                     OSISBkCode, firstC, firstVs = firstRef.split( '.' )
                     if OSISBkCode.endswith('Thes'):
                         OSISBkCode += 's' # TODO: getBBBFromText should handle '1Thes'
-                    BBB = bos_books_codes_py.english_name_to_reference_abbrev( OSISBkCode )
-                    # BBB = english_name_to_reference_abbrev( OSISBkCode )
+                    BBB = bos_books_codes_py.english_name_to_bos_book_code( OSISBkCode )
+                    # BBB = english_name_to_bos_book_code( OSISBkCode )
                     stateCounter += 1
                 elif stateCounter == 2:
                     assert subelement.tag == 'body'
@@ -695,10 +708,12 @@ def loadTyndaleBookIntrosXML( abbrev:str, XML_filepath ) -> dict[str,str]:
                                         'intro-extract') if abbrev=='TBI' \
                                     else ('intro-title','intro-sidebar-h1','intro-sidebar-body-fl')
                                 assert pClass in classList, f"{refs} {pClass=} {bodyLocation}"
+                            elif attrib == 'id':
+                                logging.warning( f"TOSN id {value=} is currently ignored" )
                             else:
-                                logging.warning( "fv6g Unprocessed {} attribute ({}) in {}".format( attrib, value, bodyLocation ) )
-                                loadErrors.append( "Unprocessed {} attribute ({}) in {} (fv6g)".format( attrib, value, bodyLocation ) )
-                                if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.errorOnXMLWarning: halt
+                                logging.warning( "fv6g Unprocessed '{}' attribute ({}) in {}".format( attrib, value, bodyLocation ) )
+                                loadErrors.append( "Unprocessed '{}' attribute ({}) in {} (fv6g)".format( attrib, value, bodyLocation ) )
+                                if BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag and BibleOrgSysGlobals.errorOnXMLWarning: assert False, "We want to stop here"
                         # So we want to extract this as an HTML paragraph
                         htmlSegment = BibleOrgSysGlobals.getFlattenedXML( bodyelement, bodyLocation ) \
 				                                                .replace( '<a href="  \\?', '<a href="?') # Fix encoding mistake in 1 Tim
@@ -713,7 +728,7 @@ def loadTyndaleBookIntrosXML( abbrev:str, XML_filepath ) -> dict[str,str]:
                         thisEntry = f"{thisEntry}{NEWLINE if thisEntry else ''}{htmlSegment}"
                         pCount += 1
                     stateCounter += 1
-                else: halt
+                else: assert False, "We want to stop here"
             if thisEntry:
                 dataDict[BBB] = thisEntry
 
@@ -767,7 +782,7 @@ def formatTyndaleNotes( abbrev:str, level:int, BBB:str, C:str, V:str, segmentTyp
     lastMarker = None
     inList = False
     for entry in verseEntryList:
-        marker, rest = entry.getMarker(), entry.getText()
+        marker, rest = entry.getMarker(), entry.getFullText()
         # dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"{abbrev} {ftnRef} {marker}='{rest}'" )
         if marker in ('¬v','¬c','¬p','¬pi1','¬pi2','¬li1','¬chapters'):
             # assert not rest or rest.isdigit() or '-' in rest, f"{BBB} {C}:{V} {marker}={rest=}"
@@ -777,16 +792,24 @@ def formatTyndaleNotes( abbrev:str, level:int, BBB:str, C:str, V:str, segmentTyp
         #         snHtml = f'{snHtml}<p class="TSNv">Verses {rest}</p>'
         if marker == 'v~':
             assert rest
-            assert abbrev == 'TOSN'
-            rest = rest.replace( '•', '<br>•' )
+            # assert abbrev == 'TOSN', f"{abbrev=} {rest=}"
             theirClass = None
-            if rest.startswith( '<class="'): # e.g., <class="theme-list">The new covenant…
-                ixClose = rest.index( '">', 10 )
-                theirClass = rest[8:ixClose]
-                rest = rest[ixClose+2:]
-            rest = rest.replace( ' <class="sn-text">', '</p>\n<p class="sn-text">')
-                        # .replace( '<class="sn-text">', '</p>\n<p class="sn-text">')
-            nHtml = f'{nHtml}<p class="{theirClass if theirClass else abbrev}">{rest}</p>'
+            if abbrev == 'TOSN':
+                rest = rest.replace( '•', '<br>•' )
+                if rest.startswith( '<class="'): # e.g., <class="theme-list">The new covenant…
+                    ixClose = rest.index( '">', 10 )
+                    theirClass = rest[8:ixClose]
+                    rest = rest[ixClose+2:]
+                rest = rest.replace( ' <class="sn-text">', '</p>\n<p class="sn-text">')
+                            # .replace( '<class="sn-text">', '</p>\n<p class="sn-text">')
+                nHtml = f'{nHtml}<p class="{theirClass if theirClass else abbrev}">{rest}</p>'
+            else: # was p~ code
+                if rest.startswith( '<class="'): # e.g., <class="theme-list">The new covenant…
+                    ixClose = rest.index( '">', 10 )
+                    theirClass = rest[8:ixClose]
+                    rest = rest[ixClose+2:]
+                nHtml = f'{nHtml}\n<li>{rest}</li>' if lastMarker=='li1' \
+                            else f'{nHtml}\n<p class="{theirClass if theirClass else lastMarker}">{rest}</p>'
         elif marker in ('s1','s2','s3'): # These have the text in the same entry
             assert rest
             assert abbrev == 'TTN'
@@ -801,15 +824,16 @@ def formatTyndaleNotes( abbrev:str, level:int, BBB:str, C:str, V:str, segmentTyp
             assert not rest
             if marker!='li1': assert abbrev == 'TTN'
             # will be saved as lastMarker for later use
-        elif marker == 'p~':
-            assert rest
-            theirClass = None
-            if rest.startswith( '<class="'): # e.g., <class="theme-list">The new covenant…
-                ixClose = rest.index( '">', 10 )
-                theirClass = rest[8:ixClose]
-                rest = rest[ixClose+2:]
-            nHtml = f'{nHtml}\n<li>{rest}</li>' if lastMarker=='li1' \
-                        else f'{nHtml}\n<p class="{theirClass if theirClass else lastMarker}">{rest}</p>'
+        # elif marker == 'XXXp~':
+        #     halt
+        #     assert rest
+        #     theirClass = None
+        #     if rest.startswith( '<class="'): # e.g., <class="theme-list">The new covenant…
+        #         ixClose = rest.index( '">', 10 )
+        #         theirClass = rest[8:ixClose]
+        #         rest = rest[ixClose+2:]
+        #     nHtml = f'{nHtml}\n<li>{rest}</li>' if lastMarker=='li1' \
+        #                 else f'{nHtml}\n<p class="{theirClass if theirClass else lastMarker}">{rest}</p>'
         elif marker == 'b':
             assert not rest
             assert abbrev == 'TTN'
@@ -827,7 +851,7 @@ def formatTyndaleNotes( abbrev:str, level:int, BBB:str, C:str, V:str, segmentTyp
             if inList:
                 nHtml = f'{nHtml}</ol>'
                 inList = False
-        elif marker not in ('id','usfm','ide','intro','chapters','c','c#','c~','v','v='):
+        elif marker not in ('id','usfm','ide','intro','chapters','c','c#','c~','v','v=', '¬s1'):
             dPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"{abbrev} {ftnRef} {marker}={rest}" )
             logging.critical( f"Unknown Tyndale notes marker: {abbrev} {ftnRef} {marker}={rest}" )
             unknown_Tyndale_notes_marker
@@ -843,7 +867,7 @@ def formatTyndaleNotes( abbrev:str, level:int, BBB:str, C:str, V:str, segmentTyp
     nHtml = nHtml.replace( '<br>\n' , '\n<br>' ) # Make sure it follows our convention (just for tidyness and consistency)
     while '\n\n' in nHtml: nHtml = nHtml.replace( '\n\n', '\n' ) # Remove useless extra newline characters
     assert checkHtml( f'{abbrev} {ftnRef}', nHtml, segmentOnly=True )
-    # if abbrev=='TTN' and BBB=='MRK' and C=='1' and V=='14': halt
+    # if abbrev=='TTN' and BBB=='MRK' and C=='1' and V=='14': assert False, "We want to stop here"
     return nHtml
 # end of Bibles.formatTyndaleNotes
 
@@ -883,8 +907,8 @@ def fixTyndaleBRefs( abbrev:str, level:int, BBBorArticleName:str, C:str, V:str, 
             assert tC.isdigit()
             tV = getSmallLeadingInt( tV ) # in case there's an a or b or something
             # assert tV.isdigit(), f"'{abbrev}' {level=} {BBBorArticleName} {C}:{V} {tBkCode=} {tC=} {tV=}"
-            tBBB = bos_books_codes_py.english_name_to_reference_abbrev( tBkCode )
-            # tBBB = english_name_to_reference_abbrev( tBkCode )
+            tBBB = bos_books_codes_py.english_name_to_bos_book_code( tBkCode )
+            # tBBB = english_name_to_bos_book_code( tBkCode )
             if not tBBB:
                 if tBkCode=='Tb': tBBB = 'TOB'
             assert tBBB
@@ -898,8 +922,8 @@ def fixTyndaleBRefs( abbrev:str, level:int, BBBorArticleName:str, C:str, V:str, 
                 tBkCode += 's' # TODO: getBBBFromText should handle '1Thes'
             assert tC.isdigit()
             assert tV.isdigit()
-            tBBB = bos_books_codes_py.english_name_to_reference_abbrev( tBkCode )
-            # tBBB = english_name_to_reference_abbrev( tBkCode )
+            tBBB = bos_books_codes_py.english_name_to_bos_book_code( tBkCode )
+            # tBBB = english_name_to_bos_book_code( tBkCode )
             if not tBBB:
                 if tBkCode=='Tb': tBBB = 'TOB'
             assert tBBB
@@ -911,8 +935,8 @@ def fixTyndaleBRefs( abbrev:str, level:int, BBBorArticleName:str, C:str, V:str, 
             if tBkCode.endswith('Thes'):
                 tBkCode += 's' # TODO: getBBBFromText should handle '1Thes'
             assert tC.isdigit()
-            tBBB = bos_books_codes_py.english_name_to_reference_abbrev( tBkCode )
-            # tBBB = english_name_to_reference_abbrev( tBkCode )
+            tBBB = bos_books_codes_py.english_name_to_bos_book_code( tBkCode )
+            # tBBB = english_name_to_bos_book_code( tBkCode )
             if not tBBB:
                 if tBkCode=='Tb': tBBB = 'TOB'
             assert tBBB, f"'{abbrev}' {level=} {BBBorArticleName} {C}:{V} {tBkCode=} {tC=}"
@@ -925,8 +949,8 @@ def fixTyndaleBRefs( abbrev:str, level:int, BBBorArticleName:str, C:str, V:str, 
             assert tC.isdigit()
             tV = getSmallLeadingInt( tV ) # in case there's an a or b or something
             # assert tV.isdigit(), f"'{abbrev}' {level=} {BBBorArticleName} {C}:{V} {tBkCode=} {tC=} {tV=}"
-            tBBB = bos_books_codes_py.english_name_to_reference_abbrev( tBkCode )
-            # tBBB = english_name_to_reference_abbrev( tBkCode )
+            tBBB = bos_books_codes_py.english_name_to_bos_book_code( tBkCode )
+            # tBBB = english_name_to_bos_book_code( tBkCode )
             if not tBBB:
                 if tBkCode=='Tb': tBBB = 'TOB'
             assert tBBB, f"'{abbrev}' {level=} {BBBorArticleName} {C}:{V} {tBkCode=} {tC=} {tV=}"
@@ -952,23 +976,23 @@ def formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segme
         0/ v = '8'
 
         1/ m = ''
-        2/ p~ = 'rc://*/ta/man/translate/figs-go'
+        2/ v~ = 'rc://*/ta/man/translate/figs-go'
         3/ ¬m = ''
         4/ q1 = ''
-        5/ p~ = 'ἐξελθοῦσαι'
+        5/ v~ = 'ἐξελθοῦσαι'
         6/ ¬q1 = ''
         7/ p = ''
-        8/ p~ = 'Your language may say “come” rather than **gone** … natural. Alternate translation: “having come out”'
+        8/ v~ = 'Your language may say “come” rather than **gone** … natural. Alternate translation: “having come out”'
         9/ ¬p = ''
 
         10/ m = ''
-        11/ p~ = 'rc://*/ta/man/translate/figs-abstractnouns'
+        11/ v~ = 'rc://*/ta/man/translate/figs-abstractnouns'
         12/ ¬m = ''
         13/ q1 = ''
-        14/ p~ = 'εἶχεν γὰρ αὐτὰς τρόμος καὶ ἔκστασις'
+        14/ v~ = 'εἶχεν γὰρ αὐτὰς τρόμος καὶ ἔκστασις'
         15/ ¬q1 = ''
         16/ p = ''
-        17/ p~ = 'If your language does not use an abstract noun for… “for they were greatly amazed, and they trembled”'
+        17/ v~ = 'If your language does not use an abstract noun for… “for they were greatly amazed, and they trembled”'
         18/ ¬p = ''
 
         19/ m = ''
@@ -991,19 +1015,19 @@ def formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segme
         logging.warning( f"uW TNs has no notes for {utnRef}" )
         return ''
 
-    NT = bos_books_codes_py.is_nt_nr( BBB )
+    NT = bos_books_codes_py.is_new_testament_nr( BBB )
     # opposite = 'interlinear' if segmentType=='parallelVerse' else 'parallelVerse'
     # oppositeFolder = 'il' if segmentType=='parallelVerse' else 'pa'
 
     # We tried this, but think it's better to customise our own HTML
-    # tnHtml = convertUSFMMarkerListToHtml( level, 'UTN', (BBB,C,V), 'notes', contextList, verseEntryList, basicOnly=True, state=state )
+    # tnHtml = convertVerseEntryListToHtml( level, 'UTN', (BBB,C,V), 'notes', contextList, verseEntryList, basicOnly=True, state=state )
 
     tnHtml = ''
     lastMarker = None
     noteCount = 0
     occurrenceNumber = 1
     for entry in verseEntryList:
-        marker, rest = entry.getMarker(), entry.getText()
+        marker, rest = entry.getMarker(), entry.getFullText()
         if marker.startswith( '¬' ):
             # assert not rest or rest.isdigit() or '-' in rest, f"{BBB} {C}:{V} {marker}={rest=}"
             continue # end markers not needed here
@@ -1017,7 +1041,7 @@ def formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segme
             lastMarker = marker
             continue
         assert rest == entry.getFullText().rstrip(), f"UTN {utnRef} {marker}='{rest}' ft='{entry.getFullText()}'" # Just checking that we're not missing anything here
-        assert marker in ('v', 'm','q1','p','pi1', 'p~', 'im','iq1','ip','ipi'), f"Unexpected marker UTN {utnRef} {marker}='{rest}' ({lastMarker=})" # We expect a very limited subset
+        assert marker in ('v','v~', 'm','q1','p','pi1', 'intro','im','iq1','ip','ipi'), f"Unexpected marker UTN {utnRef} {marker}='{rest}' ({lastMarker=})" # We expect a very limited subset
         if '\\r' in rest: # TODO: Should this be in BibleOrgSys (when the UTNs are loaded???)
             logging.warning( f"Removed CR from UTN {utnRef}" )
             rest = rest.replace( '\\r', '' )
@@ -1029,7 +1053,7 @@ def formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segme
                 tnHtml = f'''{' ' if tnHtml else ''}{tnHtml}<span class="v">{V} </span>'''
             # assert rest==V or '-' in rest, f"UTN {utnRef} {marker}='{rest}' from {verseEntryList=}"
 
-        elif marker == 'p~': # This has the text
+        elif marker == 'v~': # This has the text was 'XXXp~'
             if lastMarker in ('m','im'):  # TA reference
                 assert rest
                 if rest.startswith( 'rc://*/ta/man/translate/' ):
@@ -1142,7 +1166,7 @@ def formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segme
                             try: lV = int(lV)
                             except ValueError:
                                 if lV.startswith('.'): lV = int(lV[1:])
-                            lBBB = bos_books_codes_py.usfm_abbrev_to_reference_abbrev( lUUU )
+                            lBBB = bos_books_codes_py.usfm_abbrev_to_bos_book_code( lUUU )
                             newLink = f'<a href="../{lBBB}/C{lC}V{lV}.htm#Top">{match.group(1)}</a>'
                         elif linkTarget.count('/') == 1:
                             lC, lV = linkTarget.split( '/' ) # Something like '01' '17'
@@ -1258,7 +1282,7 @@ def formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segme
 
             else: # not a marker that we were expecting
                 logging.critical( f"formatUnfoldingWordTranslationNotesA ({utnRef}) has unhandled {marker=} {rest=} {lastMarker=}" )
-        elif marker in ('m','q1','p','pi1'):
+        elif marker in ('intro','m','q1','p','pi1'):
             assert not rest # Just ignore these markers (but they influence lastMarker)
         else:
             logging.critical( f"formatUnfoldingWordTranslationNotesB ({utnRef}) has unhandled {marker=} {rest=} {lastMarker=}" )
@@ -1351,7 +1375,7 @@ def getVerseDataListForReference( givenRefString:str, thisBible:Bible, lastBBB:s
     refBBB = getBBBFromOETBookName( bookAbbreviation, f"getVerseDataListForReference( {thisBible.abbreviation} {givenRefString} {lastBBB=} {lastC=} )" )
     if refBBB is None:
         # if thisBible.abbreviation=='OET-RV' and bookAbbreviation[0]=='Y':
-        #     refBBB = bos_books_codes_py.english_name_to_reference_abbrev( f'J{bookAbbreviation[1:]}' ) # Convert Yoel back to Joel, etc.
+        #     refBBB = bos_books_codes_py.english_name_to_bos_book_code( f'J{bookAbbreviation[1:]}' ) # Convert Yoel back to Joel, etc.
         #     dPrint( 'Info', DEBUGGING_THIS_MODULE, f"{bookAbbreviation=} {refCVpart=} {refBBB=}" )
         # el
         if bookAbbreviation[0].isdigit() and (':' in bookAbbreviation or '-' in bookAbbreviation): # or bookAbbreviation.isdigit() might need to be added
@@ -1362,7 +1386,7 @@ def getVerseDataListForReference( givenRefString:str, thisBible:Bible, lastBBB:s
     if refBBB not in thisBible: # Don't force that book to be loaded
         return refBBB, '', InternalBibleEntryList(), []
     # if refBBB is None and thisBible.abbreviation=='OET-RV' and bookAbbreviation[0]=='Y':
-    #     refBBB = bos_books_codes_py.english_name_to_reference_abbrev( f'J{bookAbbreviation[1:]}' ) # Convert Yoel back to Joel, etc.
+    #     refBBB = bos_books_codes_py.english_name_to_bos_book_code( f'J{bookAbbreviation[1:]}' ) # Convert Yoel back to Joel, etc.
     #     print( f"{bookAbbreviation=} {refCVpart=} {refBBB=}" )
     assert refBBB, f"getVerseDataListForReference {givenRefString=} can't get BBB from {bookAbbreviation=} {refCVpart=}"
     refIsSingleChapterBook = bos_books_codes_py.is_single_chapter_book( refBBB )
@@ -1443,7 +1467,7 @@ def getVerseDataListForReference( givenRefString:str, thisBible:Bible, lastBBB:s
                     verseEntryList, contextList = thisBible.getContextVerseDataRange( (refBBB,refStartC,refStartV), (refBBB,refStartC,refEndV), strict=False )
                 elif ':' in part1 and ':' in part2:
                     logging.critical( f"Expected en-dash (not hyphen) in {givenRefString=} section cross-reference {refBBB} {refCVpart}" )
-                    halt
+                    assert False, "We want to stop here"
                     refStartC, refStartV = part1.split( ':' )
                     refStartV = str( getSmallLeadingInt( refStartV ) )
                     refEndC, refEndV = part2.split( ':' )
@@ -1464,7 +1488,7 @@ def getVerseDataListForReference( givenRefString:str, thisBible:Bible, lastBBB:s
                         bookAbbreviation2, refEndC = refEndC.split( ' ' )
                         refBBB2 = getBBBFromOETBookName( bookAbbreviation2, f"getVerseDataListForReference( {thisBible.abbreviation} {givenRefString} {lastBBB=} {lastC=} )" )
                         # if refBBB2 is None and thisBible.abbreviation=='OET-RV' and bookAbbreviation2[0]=='Y':
-                        #     refBBB2 = bos_books_codes_py.english_name_to_reference_abbrev( f'J{bookAbbreviation2[1:]}' ) # Convert Yoel back to Joel, etc.
+                        #     refBBB2 = bos_books_codes_py.english_name_to_bos_book_code( f'J{bookAbbreviation2[1:]}' ) # Convert Yoel back to Joel, etc.
                         #     dPrint( 'Info', DEBUGGING_THIS_MODULE, f"{bookAbbreviation2=} {refCVpart=} {refBBB2=}" )
                         assert refBBB2, f"getVerseDataListForReference {givenRefString=} can't get BBB2 from {bookAbbreviation2=} {refCVpart=}"
                         verseEntryList, contextList = thisBible.getContextVerseDataRange( (refBBB,refStartC,refStartV), (refBBB2,refEndC,refEndV) )
@@ -1502,6 +1526,8 @@ BMM_TEXT_CACHE = {}
 def getBibleMapperMaps( level:int, BBB:str, startC:str, startV:str|None, endC:str|None, endV:str|None, referenceBible:Bible, state:State ) -> str: # html
     """
     Can be called for a verse, a chapter, or a section
+
+    Returns the html that will display a Bible map.
     """
     global BMM_INDEX, BMM_TEXT_CACHE
 
@@ -1513,9 +1539,14 @@ def getBibleMapperMaps( level:int, BBB:str, startC:str, startV:str|None, endC:st
         with open( mapIndexFilepath, 'rt', encoding='utf-8' ) as tsvFile:
             for line in tsvFile: # Five-column TSV
                 if line.startswith( 'ReferenceRange' ): continue # It's the header line
-                mapRef, hiResMapFilename, lowResMapFilename, supplementaryMapFilename, _optionalComment = line.rstrip( '\n' ).split( '\t' )
+                bits = line.rstrip( '\n' ).split( '\t' )
+                if len(bits) == 5:
+                    mapRefsRange, hiResMapFilename, lowResMapFilename, supplementaryMapFilename, _optionalComment = bits
+                else:
+                    mapRefsRange, hiResMapFilename, lowResMapFilename, supplementaryMapFilename = bits
+                    _optionalComment = ''
                 mapName = hiResMapFilename.split( '_' )[0]
-                mapBBB, mapCVstuff = mapRef.split( '_' )
+                mapBBB, mapCVstuff = mapRefsRange.split( '_' )
                 if mapBBB not in referenceBible:
                     continue # if we continue below, it will force that book to become loaded
                 chapters:set[str] = set()
@@ -1545,7 +1576,7 @@ def getBibleMapperMaps( level:int, BBB:str, startC:str, startV:str|None, endC:st
                     # print( f"Single verse: {mapBBB} {mapCVstuff} = '{mapFilename}'")
                     mapC = mapCVstuff.split( ':' )[0]
                     chapters.add( mapC )
-                    BMM_INDEX[mapRef].add( (mapName,hiResMapFilename,lowResMapFilename,supplementaryMapFilename) )
+                    BMM_INDEX[mapRefsRange].add( (mapName,hiResMapFilename,lowResMapFilename,supplementaryMapFilename) )
                 else: # it's a single chapter
                     mapC = mapCVstuff
                     # print( f"Single chapter: {mapBBB} {mapC} = '{mapFilename}'")
@@ -1561,13 +1592,17 @@ def getBibleMapperMaps( level:int, BBB:str, startC:str, startV:str|None, endC:st
     mapFilenamesSet = set()
     if endC is None: # Then it's not a chapter range
         assert endV is None
-        mapFilenamesSet = BMM_INDEX[f'{BBB}_{startC}:{startV}'] # Either a single verse or a single chapter
+        desiredKey = f'{BBB}_{startC}:{startV}'
+        if desiredKey in BMM_INDEX: # We have to do it this way to prevent the triggering of a new default entry into the index
+            mapFilenamesSet = BMM_INDEX[desiredKey] # Either a single verse or a single chapter
     else: # it must be a chapter range
         assert startV and endV # Neither of these can be None (can be string '0', shouldn't be integer 0)
         for c in range( int(startC), int(endC)+1 ):
             for v in range( getSmallLeadingInt(startV) if c==int(startC) else 1, (getSmallLeadingInt(endV) if c==int(endC) else referenceBible.getNumVerses( BBB, c ))+1 ):
                 # print( f"  Chapter range {BBB} {c}:{v}")
-                mapFilenamesSet.update( BMM_INDEX[f'{BBB}_{c}:{v}'] )
+                desiredKey = f'{BBB}_{c}:{v}'
+                if desiredKey in BMM_INDEX: # We have to do it this way to prevent the triggering of a new default entry into the index
+                    mapFilenamesSet.update( BMM_INDEX[desiredKey] )
 
     if not mapFilenamesSet: # No maps for this reference / reference range (or book not loaded in referenceBible TEST_MODE_FLAG)
         dPrint( 'Info', DEBUGGING_THIS_MODULE, f"    getBibleMapperMaps: No maps available for reference {BBB} {startC}:{startV}–{endC}:{endV} with {len(BMM_INDEX):,} index entries loaded" )
@@ -1629,6 +1664,144 @@ def getBibleMapperMaps( level:int, BBB:str, startC:str, startV:str|None, endC:st
     assert checkHtml( f'BibleMapperMap@{BBB}_{startC}:{startV}–{endC}:{endV} with {mapFilenamesSet}', ourHtml, segmentOnly=True )
     return ourHtml
 # end of Bibles.getBibleMapperMaps
+
+
+OBI_IMAGE_LIST = [] # Contains the image details
+OBI_ALL_VERSES_INDEX, OBI_FIRST_VERSES_INDEX = defaultdict( set ), defaultdict( set ) # Points to the above details
+def getOpenBibleImages( level:int, segmentType:str, BBB:str, startC:str, startV:str|None, endC:str|None, endV:str|None, referenceBible:Bible, state:State ) -> str: # html
+    """
+    Can be called for a verse, a chapter, or a section
+
+    Returns the HTML that will display a Bible image.
+    """
+    global OBI_IMAGE_LIST, OBI_ALL_VERSES_INDEX, OBI_FIRST_VERSES_INDEX
+
+    fnPrint( DEBUGGING_THIS_MODULE, f"getOpenBibleImages( {level} {segmentType=} {BBB} {startC}:{startV}–{endC}:{endV} ) with {len(OBI_ALL_VERSES_INDEX):,} index entries loaded" )
+    assert segmentType in ('verse','chapter','section','book','relatedPassage'), f"{segmentType=}"
+    # print( f"getOpenBibleImages( {level} {segmentType=} {BBB} {startC}:{startV}–{endC}:{endV} ) with {len(OBI_ALL_VERSES_INDEX):,} index entries loaded" )
+
+    if not OBI_ALL_VERSES_INDEX:
+        vPrint( 'Info', DEBUGGING_THIS_MODULE, f"getOpenBibleImages() needs to load image index…")
+        imageIndexFilepath = Path( '../copiedBibles/images/imageIndex.tsv' )
+        with open( imageIndexFilepath, 'rt', encoding='utf-8' ) as tsvFile:
+            for line in tsvFile: # Five-column TSV
+                if line.startswith( 'ReferenceRange' ): continue # It's the header line
+                bits = line.rstrip( '\n' ).split( '\t' )
+                if len(bits) == 6:
+                    imageRefsRange, primeRef, hiResImageFilename, lowResImageFilename, altText, optionalComment = bits
+                else:
+                    imageRefsRange, primeRef, hiResImageFilename, lowResImageFilename, altText = bits
+                    optionalComment = ''
+                imageName = hiResImageFilename.split( '.' )[0]
+                imageBBB, imageCVstuff = imageRefsRange.split( '_' )
+                if imageBBB not in referenceBible:
+                    continue # if we continue below, it will force that book to become loaded
+
+                imageListIndex = len(OBI_IMAGE_LIST)
+                OBI_IMAGE_LIST.append( (imageRefsRange, primeRef, hiResImageFilename, lowResImageFilename, altText, optionalComment) )
+
+                chapters:set[str] = set()
+                if '–' in imageCVstuff: # enDash: it's a chapter range
+                    startCVstuff, endCVstuff = imageCVstuff.split( '–' )
+                    # print( f"Chapter range: {mapBBB} {startCVstuff} to {endCVstuff} = '{mapFilename}'")
+                    try: iStartC, iStartV = startCVstuff.split( ':' )
+                    except ValueError: iStartC, iStartV = startCVstuff, '1'
+                    try: iEndC, iEndV = endCVstuff.split( ':' )
+                    except ValueError: iEndC, iEndV = endCVstuff, referenceBible.getNumVerses( imageBBB, endCVstuff )
+                    # print( f"   so {startC}:{startV} to {endC}:{endV}" )
+                    for c in range( int(iStartC), int(iEndC)+1 ):
+                        chapters.add( str(c) )
+                        for v in range( int(iStartV) if c==int(iStartC) else 1, (int(iEndV) if c==int(iEndC) else referenceBible.getNumVerses( imageBBB, c ))+1 ):
+                            OBI_ALL_VERSES_INDEX[f'{imageBBB}_{c}:{v}'].add( imageListIndex )
+                    OBI_FIRST_VERSES_INDEX[f'{imageBBB}_{iStartC}:{iStartV}'].add( imageListIndex )
+                elif '-' in imageCVstuff: # hyphen: it's a verse range
+                    startCVstuff, endCVstuff = imageCVstuff.split( '-' )
+                    # print( f"Verse range: {mapBBB} {startCVstuff} to {endCVstuff} = '{mapFilename}'")
+                    assert ':' not in endCVstuff
+                    imageC, iStartV = startCVstuff.split( ':' )
+                    chapters.add( imageC )
+                    iEndV = endCVstuff
+                    # print( f"   so {mapC}:{startV} to {mapC}:{endV}" )
+                    for v in range( int(iStartV), int(iEndV)+1 ):
+                        OBI_ALL_VERSES_INDEX[f'{imageBBB}_{imageC}:{v}'].add( imageListIndex )
+                    OBI_FIRST_VERSES_INDEX[f'{imageBBB}_{imageC}:{iStartV}'].add( imageListIndex )
+                elif ':' in imageCVstuff: # it's a single verse
+                    # print( f"Single verse: {mapBBB} {mapCVstuff} = '{mapFilename}'")
+                    imageC = imageCVstuff.split( ':' )[0]
+                    # chapters.add( imageC )
+                    OBI_ALL_VERSES_INDEX[imageRefsRange].add( imageListIndex )
+                    OBI_FIRST_VERSES_INDEX[imageRefsRange].add( imageListIndex )
+                else: # it's a single chapter
+                    imageC = imageCVstuff
+                    # print( f"Single chapter: {mapBBB} {mapC} = '{mapFilename}'")
+                    chapters.add( imageC )
+                    for v in range( 1, referenceBible.getNumVerses( imageBBB, imageC)+1 ):
+                        OBI_ALL_VERSES_INDEX[f'{imageBBB}_{imageC}:{v}'].add( imageListIndex )
+                        if v == 1: OBI_FIRST_VERSES_INDEX[f'{imageBBB}_{imageC}:{v}'].add( imageListIndex )
+                for imageC in chapters:
+                    OBI_ALL_VERSES_INDEX[f'{imageBBB}_{imageC}:None'].add( imageListIndex )
+        # print( f"({len(OBI_INDEX)}) {OBI_INDEX.keys()=}" )
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  getOpenBibleImages() loaded {len(OBI_FIRST_VERSES_INDEX):,} first and {len(OBI_ALL_VERSES_INDEX):,} total verse and chapter entries for {len(OBI_IMAGE_LIST):,} images.")
+
+    indexToUse = OBI_ALL_VERSES_INDEX if segmentType == 'verse' else OBI_FIRST_VERSES_INDEX
+
+    # First get the range of verses that we want to scan and collect all the map filenames for that set
+    imageFilenamesSet = set()
+    if endC is None: # Then it's not a chapter range
+        assert endV is None
+        desiredKey = f'{BBB}_{startC}:{startV}'
+        if desiredKey in indexToUse: # We have to do it this way to prevent the triggering of a new default entry into the index
+            imageFilenamesSet = indexToUse[desiredKey] # Either a single verse or a single chapter
+    else: # it must be a chapter range
+        assert startV and endV # Neither of these can be None (can be string '0', shouldn't be integer 0)
+        for c in range( int(startC), int(endC)+1 ):
+            for v in range( getSmallLeadingInt(startV) if c==int(startC) else 1, (getSmallLeadingInt(endV) if c==int(endC) else referenceBible.getNumVerses( BBB, c ))+1 ):
+                # print( f"  Chapter range {BBB} {c}:{v}")
+                desiredKey = f'{BBB}_{c}:{v}'
+                if desiredKey in indexToUse: # We have to do it this way to prevent the triggering of a new default entry into the index
+                    imageFilenamesSet.update( indexToUse[desiredKey] )
+
+    if not imageFilenamesSet: # No images for this reference / reference range (or book not loaded in referenceBible TEST_MODE_FLAG)
+        dPrint( 'Info', DEBUGGING_THIS_MODULE, f"    getOpenBibleImages: No images available for reference {BBB} {startC}:{startV}–{endC}:{endV} with {len(OBI_ALL_VERSES_INDEX):,} index entries loaded" )
+        return ''
+
+    destinationFolderpath = state.TEMP_BUILD_FOLDER. joinpath( 'OBI/' )
+    try: os.makedirs( destinationFolderpath )
+    except FileExistsError: pass
+
+    dPrint( 'Info', DEBUGGING_THIS_MODULE, f"getOpenBibleImages( {level}, {startC}:{startV}–{endC}:{endV} ) got {imageFilenamesSet=}" )
+    ourHtml = ''
+    for imageListIndex in imageFilenamesSet:
+        imageRefsRange, primeRef, hiResFilename, loResFilename, altText, optionalComment = OBI_IMAGE_LIST[imageListIndex]
+        dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"getOpenBibleImages( {level}, {startC}:{startV}–{endC}:{endV} ) got {hiResFilename=}" )
+
+        if loResFilename: # Display the low-res image but link it to the hi-res one
+            imageFilename = loResFilename
+            imageHtml = f'''<p><a title="Click to view high-resolution image" href="{'../'*level}OBI/{hiResFilename}"><img src="{'../'*level}OBI/{imageFilename}" alt="{altText}" style="float:right; margin-left:15px; width:400px; max-width:50%; height:auto;"></a>'''
+            if not destinationFolderpath.joinpath( hiResFilename ).is_file():
+                # Save the hi-res image file here (the default one is saved below)
+                # print( f"    getOpenBibleImages( {level}, {BBB} {startC}:{startV}–{endC}:{endV} ): Saving hi-res {destinationFolderpath}/{hiResFilename}…" )
+                # assert not destinationFolderpath.joinpath( hiResFilename ).is_file(), f"getOpenBibleImages( {level}, {BBB} {startC}:{startV}–{endC}:{endV} ): Why does hi-res {destinationFolderpath}/{hiResFilename} already exist?"
+                sourceImageFilepath = BIBLE_IMAGES_PATH.joinpath( hiResFilename )
+                # Note: shutil.copy2 is the same as copy but keeps metadata like creation and modification times
+                shutil.copy2( sourceImageFilepath, destinationFolderpath )
+        else: # Only seem to have a hi-res file
+            imageFilename = hiResFilename
+            imageHtml = f'''<img src="{'../'*level}OBI/{imageFilename}" alt="{altText}" style="float:right; margin-left:15px; width:400px; max-width:50%; height:auto;">'''
+            imageLinkHtml = f'<a title="Click for copyright details" href="{'../'*level}OBI/details.htm#Top">{imageHtml}</a>'
+        if not destinationFolderpath.joinpath( imageFilename ).is_file():
+            # Save the default image file
+            # print( f"    getOpenBibleImages( {level}, {BBB} {startC}:{startV}–{endC}:{endV} ): Saving default {destinationFolderpath}/{imageFilename}…" )
+            # assert not destinationFolderpath.joinpath( imageFilename ).is_file(), f"getOpenBibleImages( {level}, {BBB} {startC}:{startV}–{endC}:{endV} ): Why does default {destinationFolderpath}/{imageFilename} already exist?"
+            sourceImageFilepath = BIBLE_IMAGES_PATH.joinpath( imageFilename )
+            # Note: shutil.copy2 is the same as copy but keeps metadata like creation and modification times
+            shutil.copy2( sourceImageFilepath, destinationFolderpath )
+
+        ourHtml = f'''{ourHtml}{imageLinkHtml}'''
+
+    assert checkHtml( f'OpenBibleImage-{segmentType}@{BBB}_{startC}:{startV}–{endC}:{endV} with {imageFilenamesSet}', ourHtml, segmentOnly=True )
+    return ourHtml
+# end of Bibles.getOpenBibleImages
 
 
 VERSE_DETAILS_TABLE_FILEPATH = Path( '../datasets/sentenceImportance/sentenceImportance.tsv' )

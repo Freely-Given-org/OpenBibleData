@@ -228,7 +228,7 @@ span.v { vertical-align:super; font-size:0.5em; color:red; }
 span.noVerse {} /* We don't have that verse */
 span.d { font-family:sans-serif; font-size:0.85em; color:sienna; }
 /* p.s1 { margin-top:0.1em; margin-bottom:0; font-weight:bold; } */
-/* p.mr { margin-top:0; margin-bottom:0; font-size:1.1em; text-align: center; font-style:italic; } Major section reference range */
+/* p.mr { margin-top:-0.5em; margin-bottom:0.2em; font-size:1.3em; text-align: center; font-style:italic; } Major section reference range */
 /* p.sr { margin-top:0; margin-bottom:0; font-size:0.9em; text-align: center; font-weight:bold; } Section reference range */
 /* p.r { margin-top:0; margin-bottom:0; font-size:0.75em; text-align: center; font-style:italic; } Parallel references */
 /* p.p { text-indent:0.5em; margin-top:0.2em; margin-bottom:0.2em; } */
@@ -264,7 +264,8 @@ span.addElided { color:darkgoldenrod; }
 span.addOwner { color:darkOrchid; }
 span.addPronoun { color:darkgreen; }
 span.addReferent { color:darkblue; }
-span.addPluralised { color:darkcyan; }
+span.addNumberChange { color:darkcyan; }
+span.addPersonChange { color:darkkhaki; }
 span.addNegated { color:darkred; }
 span.addReword { text-decoration:underline; text-decoration-style: dotted; text-decoration-color:grey; }
 span.RVadd { color:#505050; } /* Darker than dimGrey which is #696969 (black is #000000) */
@@ -284,7 +285,7 @@ span.fnText { }
 /* span.fl { font-style:italic; font-weight:bold; } */
 /* span.fm { vertical-align:super; } */
 /* span.fp {} */
-/* span.fq { font-style:italic; } */
+span.fq { font-style:italic; }
 span.fqa { font-style:italic; }
 span.ft {}
 /* span.fv { vertical-align:super; } */

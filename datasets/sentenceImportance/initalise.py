@@ -43,21 +43,21 @@ from csv import  DictReader
 import re
 import logging
 
-# import sys
-# sys.path.append( '../../../BibleOrgSys/' )
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 import BibleOrgSys.Formats.USFMBible as USFMBible
 import BibleOrgSys.Formats.ESFMBible as ESFMBible
 import BibleOrgSys.Formats.USXXMLBible as USXXMLBible
 from BibleOrgSys.Reference.BibleOrganisationalSystems import BibleOrganisationalSystem
+import bos_books_codes_py
+
 import sys
 sys.path.append( '../crossTestamentQuotes/' )
 from load import getIndividualQuotedOTRefs, getIndividualQuotingNTRefs
 
 
 
-LAST_MODIFIED_DATE = '2026-04-12' # by RJH
+LAST_MODIFIED_DATE = '2026-07-09' # by RJH
 SHORT_PROGRAM_NAME = "SentenceImportance_initialisation"
 PROGRAM_NAME = "Sentence Importance initialisation"
 PROGRAM_VERSION = '0.25'
@@ -90,8 +90,11 @@ vitalImportanceRefsWithRanges = [ # Often in doctrinal statements
     'CH2_7:14',
     'PSA_22:1-2','PSA_22:7-18', 'PSA_46:1',
     'PRO_3:5','PRO_3:6',
-    'ISA_9:6-7', 'ISA_52:13–53:12', 'ISA_55:11',
-    'JER_29:11',
+    'ISA_9:6-7',
+    'ISA_52:13–53:12', # The fourth and best-known servant song
+    'ISA_55:11',
+    'JER_29:11-13',
+    'DAN_7:13-14',
     'MIC_5:2','MIC_6:8',
     'ZEC_12:10',
     'MAL_3:8-10',
@@ -114,14 +117,18 @@ vitalImportanceRefsWithRanges = [ # Often in doctrinal statements
 for ref in vitalImportanceRefsWithRanges:
     assert ref.count( '_' ) == 1, f"vitalImportanceRefsWithRanges {ref=}"
 
-importantRefsWithRanges = [ # Often memorised
+importantRefsWithRanges = [ # Often quoted and/or memorised by Christians
     'GEN_1:4-31','GEN_2:1-3', # Gen 1:1-3 is above
-    'DEU_30:3-5',
+    'DEU_29:24-29', 'DEU_30:3-5',
     'JOS_1:9',
     'PSA_51:10',
     'PRO_4:1-7',
     'ECC_8:15',
     'ISA_2:2-4','ISA_6:1-8','ISA_11:1-12','ISA_27:6','ISA_28:16','ISA_41:10',
+    'ISA_42:1-9', 'ISA_49:1-13', 'ISA_50:4-11', # The other three servant songs 'ISA_52:13–53:12',
+    'ISA_54:17','ISA_66:8',
+    'JER_23:5-6',
+
     'MAT_4:4',
     'LUK_24:27',
     'JHN_1:1-18','JHN_7:16','JHN_16:33','JHN_17:23',
@@ -202,9 +209,10 @@ unclearClarityRefs = [ # Mostly sure what's in the Hebrew or Greek,
     'ISA_4:4b','ISA_5:17b','ISA_9:1','ISA_9:20','ISA_10:18','ISA_10:27b','ISA_14:21','ISA_14:31b','ISA_17:3b','ISA_17:9',
         'ISA_19:10a','ISA_19:13b','ISA_22:3a','ISA_22:5','ISA_23:7','ISA_24:23b','ISA_25:7','ISA_25:11',
         'ISA_27:4','ISA_27:7','ISA_27:8','ISA_27:9','ISA_27:10b','ISA_28:10','ISA_28:16b','ISA_29:2b','ISA_29:17',
-        'ISA_36:9','ISA_37:25','ISA_38:16a','ISA_41:1','ISA_41:2','ISA_41:3',
-        'ISA_53:11a',
-    'JER_1:15b',
+        'ISA_36:9','ISA_37:25','ISA_38:16a','ISA_41:1','ISA_41:2','ISA_41:3','ISA_48:2a','ISA_49:7','ISA_49:8b',
+        'ISA_49:17a','ISA_53:11a','ISA_64:5b',
+    'JER_1:15b','JER_6:2b','JER_6:18b','JER_6:27','JER_8:8b','JER_10:19','JER_14:18b','JER_15:12','JER_17:3',
+        'JER_23:33','JER_23:34','JER_23:35','JER_23:36b','JER_23:37','JER_23:38','JER_23:39','JER_23:40',
     'EZE_8:17b', 'EZE_16:24', 'EZE_21:13', 'EZE_24:12', 'EZE_24:17b', 'EZE_26:20b',
     'DAN_8:12','DAN_8:13a','DAN_11:43b',
     'HOS_11:7b',
@@ -270,6 +278,22 @@ def setup():
             V1,V2 = VV.split( '-' )
             for newV in range( int(V1), int(V2)+1 ):
                 newList.append( f'{BBB}_{C}:{newV}' )
+        elif '–' in entry:
+            BBB,CVCV = entry.split( '_' )
+            CV1,CV2 = CVCV.split( '–' )
+            C1,V1 = CV1.split( ':' )
+            assert '_' not in CV2
+            C2,V2 = CV2.split( ':' )
+            numVerses = genericBibleOrganisationalSystem.getNumVerses( BBB, C1 )
+            for newV in range( int(V1), numVerses+1 ):
+                newList.append( f'{BBB}_{C1}:{newV}' )
+            intC1, intC2 = int(C1), int(C2)
+            for newC in range( intC1+1, intC2+1 ):
+                numVerses = genericBibleOrganisationalSystem.getNumVerses( BBB, str(newC) )
+                for newV in range( 1, numVerses+1 ):
+                    newList.append( f'{BBB}_{C1}:{newV}' )
+                    if newC==intC2 and newV==int(V2):
+                        break # Reached the desired verse in the final chapter
         else: newList.append( entry )
     importantRefs = newList
 
@@ -283,7 +307,7 @@ def setup():
     halfRefs = [ref for ref in allRefs if ref[-1] in 'ab']
     # assert len( set(halfRefs) ) == len(halfRefs) # Otherwise there must be a duplicate # SIMPLY NOT TRUE -- duplicates expected here
     for ref in allRefs:
-        assert 7 <= len(ref) <= 12, f"{ref=}"
+        assert 7 <= len(ref) <= 15, f"{ref=}"
         assert ref.count('_') == 1 and ref.count(':') >= 1, f"{ref=}"
         # Hopefully the following line is no longer required (2025-07-09)
         # if ref in halfRefs: assert ref[:-1] not in allRefs, f"Need to fix '{ref[:-1]}' in tables since we also have '{ref}'"
@@ -294,7 +318,7 @@ def run() -> bool:
     """
     """
     uhbBible = USFMBible.USFMBible( UHB_PATHNAME, givenAbbreviation='UHB', encoding='utf-8' )
-    uhbBible.uWencoded = True # TODO: Shouldn't be required ???
+    # uhbBible.uWencoded = True # TODO: Shouldn't be required ???
     uhbBible.loadBooks() # So we can iterate through them all later
 
     OETLVOTBible = ESFMBible.ESFMBible( OET_LV_OT_PATHNAME, givenAbbreviation='OET-LV' )
@@ -444,7 +468,7 @@ def get_OSHB_reference_text_critical_footnote_score( OETLV_ReferenceOTBible, BBB
 
     havePossibleBHSReference = False
     for entry in verseEntryList:
-        text = entry.getFullText()
+        text = entry.getOriginalText()
         if text and '\\ft OSHB note: ' in text:
             startIndex = 0
             while True:
@@ -483,7 +507,7 @@ def get_UHB_Hebrew_reference_text_critical_footnote_score( HebrewReferenceBible,
 
     haveEarlyTranslationReference = False
     for entry in verseEntryList:
-        text = entry.getFullText()
+        text = entry.getOriginalText()
         if text:
             if '\\ft K ' in text or '\\ft Q ' in text: return 2
             # if 'LXX' in text or 'Syriac' in text or 'Peshitta' in text or 'Dead Sea Scrolls' in text or 'Targum' in text or 'Vulgate' in text:
@@ -508,7 +532,7 @@ def get_English_reference_text_critical_footnote_score( EnglishReferenceBible, B
 
     haveEarlyTranslationReference = False
     for entry in verseEntryList:
-        text = entry.getFullText()
+        text = entry.getOriginalText()
         if text:
             if 'Textual Criticism' in text: return 2
             if 'LXX' in text or 'Syriac' in text or 'Peshitta' in text or 'Dead Sea Scrolls' in text or 'Targum' in text or 'Vulgate' in text:
@@ -548,18 +572,18 @@ def create( initialTSVLines, HebrewReferenceBible, OET_LT_ReferenceOTBible, Engl
         numLinesWritten += 1
         for line in initialTSVLines:
             UUU, CV = line.split(' ')
-            BBB = bos_books_codes_py.usfm_abbrev_to_reference_abbrev( UUU )
+            BBB = bos_books_codes_py.usfm_abbrev_to_bos_book_code( UUU )
             C, V = CV.split( ':' )
             fgRef = f'{BBB}_{CV}'
             # print( f"{fgRef}" )
 
-            isOT = bos_books_codes_py.is_ot_nr( BBB )
+            isOT = bos_books_codes_py.is_old_testament_nr( BBB )
             if isOT:
                 oshb_TC_footnote_value = get_OSHB_reference_text_critical_footnote_score( OET_LT_ReferenceOTBible, BBB, C, V )
             heb_TC_footnote_value = get_UHB_Hebrew_reference_text_critical_footnote_score( HebrewReferenceBible, BBB, C, V )
             eng_TC_footnote_value = get_English_reference_text_critical_footnote_score( EnglishReferenceBible, BBB, C, V )
             # print( f"  {has_TC_footnote}")
-            # if BBB=='EXO' and has_TC_footnote: print( f"{fgRef} has TC" ); halt
+            # if BBB=='EXO' and has_TC_footnote: print( f"{fgRef} has TC" ); assert False, "We want to stop here"
             # print( f"{line=} {fgRef=}" )
             subRefs = [f'{fgRef}a',f'{fgRef}b'] if fgRef in splitVerseSet else [fgRef]
 

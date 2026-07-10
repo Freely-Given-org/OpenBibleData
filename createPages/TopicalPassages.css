@@ -36,6 +36,8 @@ p.bkLst {background-color:#F9F871; }
 /* p.vsLst {background-color:mistyRose; } */
 /* .vsLst a { text-decoration:none; } */
 
+p.pageNav { text-align:center; font-size:1.8em; }
+
 /* For bkList class */
 /* span.XX { color:purple; } */
 /* .XX a { text-decoration:none; } */
@@ -69,8 +71,6 @@ p.mt2 { text-align:center; font-size:1.3em; }
 p.mt3 { text-align:center; font-size:1.2em; }
 p.mt4 { text-align:center; font-size:1.1em; }
 p.mt1 + p.mt2, p.mt2 + p.mt1, p.mt2 + p.mt3, p.mt3 + p.mt2, p.mt1 + p.mt3, p.mt3 + p.mt1 { margin-top:-0.5em; }
-p.ms1 { font-weight:bold; font-size:1.5em; }
-/* p.ms2 { font-weight:bold; font-size:1.3em; } */
 
 /* Book intro USFM */
 /* li.intro { margin-top:0.5em; margin-bottom:0.5em; } */
@@ -88,6 +88,7 @@ span.ior { font-weight:bold; } /* font-style:italic; */
 span.bk { font-style:italic; }
 
 /* Section headings list */
+p.mainSectionHeading { font-size:1.6em; }
 /* p.sectionHeading { } */
 /* p.alternateHeading { margin-top:0.1em; margin-bottom:0.1em; margin-left:1em; font-size:0.8em; color:grey; } */
 /* p.sectionHeading + p.alternateHeading { margin-top:-1.2em; } */
@@ -97,7 +98,8 @@ p.SouthernKingdom { color:green; }
 p.BothKingdoms { color:orange; }
 
 /* Inside box */
-div.section {}
+/* div.section {} */
+div.s1 {}
 div.rightS1Box { float:right; width:40%; border:3px solid #73AD21; padding:0.2em; }
 div.rightS2Box { float:right; width:35%; border:2px dashed blue; padding:0.2em; }
 div.PromisedLand { background-color:LightGoldenrodYellow; }
@@ -105,12 +107,15 @@ div.FullKingdom { background-color:#cce6ff; }
 div.NorthernKingdom { background-color:#ffe6ff; }
 div.SouthernKingdom { background-color:#e6ffe6; }
 div.BothKingdoms { background-color:#fff5e6; }
+p.ms1 { text-align:center; font-weight:bold; font-size:1.5em; }
+/* p.ms2 { font-weight:bold; font-size:1.3em; } */
+p.ms1 + p.mr, p.ms2 + p.mr { margin-top:-1.1em; }
 p.s1 { margin-top:0.1em; margin-bottom:0; font-size:1.15em; font-weight:bold; }
 p.s2 { margin-top:0.1em; margin-bottom:0; font-size:1.1em; font-weight:bold; }
 /* p.s2 { margin-top:0; margin-bottom:0; float:right; width:35%; border:2px dashed blue; padding:0.2em; font-size:1.1em; font-weight:bold; } */
 p.s3 { margin-top:0; margin-bottom:0; float:right; width:35%; border:1px dotted black; padding:0.2em;  font-size:1.06em; font-weight:bold; }
 p.s4 { margin-top:0; margin-bottom:0; float:right; width:35%; border:1px dotted black; padding:0.2em;  font-size:1.03em; font-weight:bold; }
-p.mr { margin-top:0; margin-bottom:0; font-size:1.1em; text-align: center; font-style:italic; } /* Major section reference range */
+p.mr { margin-top:0; margin-bottom:0.2em; font-size:1.3em; text-align: center; font-style:italic; } /* Major section reference range */
 p.sr { margin-top:0; margin-bottom:0; font-size:0.9em; text-align: center; font-weight:bold; } /* Section reference range */
 p.r { margin-top:0; margin-bottom:0; font-size:0.75em; text-align: center; font-style:italic; } /* Parallel references */
 
@@ -156,7 +161,8 @@ span.addElided { color:darkgoldenrod; }
 span.addOwner { color:darkOrchid; }
 span.addPronoun { color:darkgreen; }
 span.addReferent { color:darkblue; }
-span.addPluralised { color:darkcyan; }
+span.addNumberChange { color:darkcyan; }
+span.addPersonChange { color:darkkhaki; }
 span.addNegated { color:darkred; }
 span.addReword { text-decoration:underline; text-decoration-style: dotted; text-decoration-color:grey; }
 span.RVadd { color:#505050; } /* Darker than dimGrey which is #696969 (black is #000000) */

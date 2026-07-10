@@ -36,7 +36,6 @@ CHANGELOG:
     2025-09-25 Make all SR-GNT verse text into live links to collation pages
     2026-01-07 Added OET Logo
 """
-from gettext import gettext as _
 from pathlib import Path
 import os
 import re
@@ -51,16 +50,16 @@ from bible_organisational_system import InternalBibleEntryList
 import bos_books_codes_py
 
 from settings import State, CNTR_BOOK_ID_MAP
-from usfm import convertUSFMMarkerListToHtml
+from usfm import convertVerseEntryListToHtml
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
                     makeTop, makeBottom, makeBookNavListParagraph, removeDuplicateCVids, checkHtml
 from OETHandlers import livenOETWordLinks, livenOETCompatibleWordLinks, getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
-LAST_MODIFIED_DATE = '2026-01-11' # by RJH
+LAST_MODIFIED_DATE = '2026-06-28' # by RJH
 SHORT_PROGRAM_NAME = "createBookPages"
 PROGRAM_NAME = "OpenBibleData createBookPages functions"
-PROGRAM_VERSION = '0.67'
+PROGRAM_VERSION = '0.69'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -85,7 +84,7 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
     # rvBooks = rvBible.books.keys() if 'ALL' in state.booksToLoad[rvBible.abbreviation] else state.booksToLoad[rvBible.abbreviation]
     # lvBooks = lvBible.books.keys() if 'ALL' in state.booksToLoad[lvBible.abbreviation] else state.booksToLoad[lvBible.abbreviation]
     # BBBsToProcess = reorderBooksForOETVersions( [rvKey for rvKey in rvBooks if rvKey in lvBooks] )
-    # print( f"{rvBooks=} {lvBooks=} {BBBsToProcess=}" ); halt
+    # print( f"{rvBooks=} {lvBooks=} {BBBsToProcess=}" ); assert False, "We want to stop here"
     # iBkList1 = ['index'] + ( list(state.preloadedBibles[rvBible.abbreviation].books.keys()) 
     #                         if len(state.preloadedBibles[rvBible.abbreviation].books)<len(state.preloadedBibles[lvBible.abbreviation].books)
     #                         else list(state.preloadedBibles[lvBible.abbreviation].books.keys()) )
@@ -93,13 +92,13 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
     # print( f"OET {BBBsToProcess=} {iBkList=}" )
     iBkList = ['index'] + state.BBBsToProcess['OET']
     # print( f"createOETBookPages {state.BBBsToProcess['OET']=}" )
-    # print( f"createOETBookPages {iBkList=}" ); halt
+    # print( f"createOETBookPages {iBkList=}" ); assert False, "We want to stop here"
     navBookListParagraph = makeBookNavListParagraph(state.BBBLinks['OET'], 'OET', state )
 
     processedBBBs, processedFilenames = [], []
     for BBB in state.BBBsToProcess['OET']:
         dPrint( 'Info', DEBUGGING_THIS_MODULE, f"    createOETBookPages {BBB=} {state.BBBsToProcess['OET']} out of {len(state.BBBsToProcess['OET'])}" )
-        NT = bos_books_codes_py.is_nt_nr( BBB )
+        NT = bos_books_codes_py.is_new_testament_nr( BBB )
         ourTidyBBB = getOETTidyBBB( BBB )
         ourTidyBBBwithNotes = getOETTidyBBB( BBB, addNotes=True )
 
@@ -146,11 +145,11 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
 
             bkHtml = f'''<p class="bkNav">{bkPrevNav}<span class="bkHead" id="Top">{rvBible.abbreviation} {ourTidyBBBwithNotes}</span>{bkNextNav}</p>
 {state.JAMES_NOTE_HTML_PARAGRAPH}
-{state.OET_UNFINISHED_WARNING_HTML_PARAGRAPH}'''
+{state.OET_UNFINISHED_BOOK_WARNING_HTML_PARAGRAPH}'''
             verseEntryList, contextList = rvBible.getContextVerseData( (BBB,) )
             assert isinstance( rvBible, ESFMBible.ESFMBible )
-            verseEntryList = livenOETWordLinks( level, rvBible, BBB, verseEntryList, state )
-            textHtml = convertUSFMMarkerListToHtml( level, rvBible.abbreviation, (BBB,), 'book', contextList, verseEntryList, basicOnly=False, state=state )
+            verseEntryList = livenOETWordLinks( level, rvBible, (BBB,), verseEntryList, state )
+            textHtml = convertVerseEntryListToHtml( level, rvBible.abbreviation, (BBB,), 'book', contextList, verseEntryList, basicOnly=False, state=state )
             # textHtml = livenIORs( BBB, textHtml )
             textHtml = do_OET_RV_HTMLcustomisations( f'BookA={BBB}', textHtml )
             bkHtml = f'{bkHtml}{textHtml}'
@@ -187,7 +186,7 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
         bkNextNav = f' <a title="Next book" href="{iBkList[bkIx+1]}.htm#Top">►</a>' if bkIx<len(iBkList)-1 else ''
 
         bkHtml = f'''<p class="bkNav">{bkPrevNav}<span class="bkHead" id="Top">Open English Translation {ourTidyBBBwithNotes}</span>{bkNextNav}</p>
-{f'{state.JAMES_NOTE_HTML_PARAGRAPH}{NEWLINE}' if BBB=='JAM' else ''}{state.OET_UNFINISHED_WARNING_HTML_PARAGRAPH}
+{f'{state.JAMES_NOTE_HTML_PARAGRAPH}{NEWLINE}' if BBB=='JAM' else ''}{state.OET_UNFINISHED_BOOK_WARNING_HTML_PARAGRAPH}
 <div class="RVLVcontainer">
 <h2><a title="View just the Readers’ Version by itself" href="{'../'*level}OET-RV/byDoc/{BBB}.htm#Top">Readers’ Version</a></h2>
 <h2><a title="View just the Literal Version by itself" href="{'../'*level}OET-LV/byDoc/{BBB}.htm#Top">Literal Version</a> <button type="button" id="marksButton" title="Hide/Show underline and strike-throughs" onclick="hide_show_marks()">Hide marks</button></h2>'''
@@ -197,27 +196,27 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
             logging.critical( f"createOETBookPages missing book error for {lvBible.abbreviation} {BBB}" )
             lvVerseEntryList, lvContextList = InternalBibleEntryList(), []
         assert isinstance( rvBible, ESFMBible.ESFMBible )
-        rvVerseEntryList = livenOETWordLinks( level, rvBible, BBB, rvVerseEntryList, state )
+        rvVerseEntryList = livenOETWordLinks( level, rvBible, (BBB,), rvVerseEntryList, state )
         assert isinstance( lvBible, ESFMBible.ESFMBible )
         if lvVerseEntryList:
-            lvVerseEntryList = livenOETWordLinks( level, lvBible, BBB, lvVerseEntryList, state )
+            lvVerseEntryList = livenOETWordLinks( level, lvBible, (BBB,), lvVerseEntryList, state )
         # NOTE: We change the version abbreviation here to give the function more indication where we're coming from
-        rvHtml = do_OET_RV_HTMLcustomisations( f'BookA={BBB}', convertUSFMMarkerListToHtml( level, 'OET-RV', (BBB,), 'book', rvContextList, rvVerseEntryList, basicOnly=False, state=state ) )
-        tempLVHtml = convertUSFMMarkerListToHtml( level, 'OET-LV', (BBB,), 'book', lvContextList, lvVerseEntryList, basicOnly=False, state=state )
+        rvHtml = do_OET_RV_HTMLcustomisations( f'BookA={BBB}', convertVerseEntryListToHtml( level, 'OET-RV', (BBB,), 'book', rvContextList, rvVerseEntryList, basicOnly=False, state=state ) )
+        tempLVHtml = convertVerseEntryListToHtml( level, 'OET-LV', (BBB,), 'book', lvContextList, lvVerseEntryList, basicOnly=False, state=state )
         # if '+' in tempLVHtml: print( f"HAVE_PLUS {tempLVHtml[max(0,tempLVHtml.index('+')-30):tempLVHtml.index('+')+90]}" )
         # if '^' in tempLVHtml: print( f"HAVE_HAT {tempLVHtml[max(0,tempLVHtml.index('^')-30):tempLVHtml.index('^')+90]}" )
         # if '~' in tempLVHtml: print( f"HAVE_SQUIG {tempLVHtml[max(0,tempLVHtml.index('~')-30):tempLVHtml.index('~')+90]}" )
         lvHtml = do_OET_LV_HTMLcustomisations( f'BookA={BBB}', tempLVHtml )
-        # lvHtml = do_OET_LV_HTMLcustomisations( f"BookA={BBB}", convertUSFMMarkerListToHtml( level, 'OET', (BBB,), 'book', lvContextList, lvVerseEntryList, basicOnly=False, state=state ) )
+        # lvHtml = do_OET_LV_HTMLcustomisations( f"BookA={BBB}", convertVerseEntryListToHtml( level, 'OET', (BBB,), 'book', lvContextList, lvVerseEntryList, basicOnly=False, state=state ) )
 
         # Now we have to divide the RV and the LV into an equal number of chunks (so they mostly line up)
         # First get the header and intro chunks
         ixBHend = rvHtml.index( '<!--bookHeader-->' ) + 17
         ixBIend = rvHtml.index( '<!--bookIntro-->', ixBHend ) + 16
-        rvSections = [ rvHtml[:ixBHend], rvHtml[ixBHend:ixBIend] ] + rvHtml[ixBIend:].split( '<div class="section">' )
-        if not rvSections[2]: # i.e., that last bit above started with '<div class="section">' so we got a null entry
+        rvSections = [ rvHtml[:ixBHend], rvHtml[ixBHend:ixBIend] ] + rvHtml[ixBIend:].split( '<div class="s1">' )
+        if not rvSections[2]: # i.e., that last bit above started with '<div class="s1">' so we got a null entry
             rvSections.pop( 2 ) # delete unnecessary empty section from list[2]
-            # print( "Deleted unnecessary empty section from list[2]" )
+            print( "Deleted unnecessary empty section from list[2]" )
         # rvSections2 = [ (0,ixBHend), (ixBHend,ixBIend) ]
         rvSections2 = [ rvHtml[:ixBHend], rvHtml[ixBHend:ixBIend] ]
         ixLast = ixBIend
@@ -226,9 +225,9 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
                             # If too large, might miss a block in a book with untranslated verses (and thus small blocks)
         for _safetyCount in range ( 177 ): # Max number of sections in any book
             # print( f"    {_safetyCount} {BBB} '{rvHtml[ixLast:ixLast+20]}…'")
-            ixS1 = rvHtml[ixLast+minBlockSize:].find( '<div class="section">' )
+            ixS1 = rvHtml[ixLast+minBlockSize:].find( '<div class="s1">' )
             if ixS1 == -1: ixS1 = 99_999_999
-            ixMS1 = rvHtml[ixLast+minBlockSize:].find( '<p class="ms1">' )
+            ixMS1 = rvHtml[ixLast+minBlockSize:].find( '<p class="XXXms1">' )
             if ixMS1 == -1: ixMS1 = 99_999_999
             ixMin = min( ixS1, ixMS1 ) + minBlockSize
             # print( f"    {_safetyCount} {ixS1=} {ixMS1=} {ixMin=} {ixLast=} {len(rvHtml)=:,} '{rvHtml[ixLast:ixLast+20]}…{rvHtml[ixMin-20:ixMin]}'")
@@ -243,13 +242,15 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
         # assert len(rvSections2)==len(rvSections), f"{BBB} {len(rvSections)=} {len(rvSections2)=}"
         if len(rvSections2) != len(rvSections):
             dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"OET {BBB} Mismatched number of sections: {len(rvSections)=} vs {len(rvSections2)=}")
-            # if BBB == 'EZE': stop_for_Ezekiel
         rvSections = rvSections2 # Let's use the new system
+        # if BBB == 'DAN': stop_for_Daniel
 
         if lvVerseEntryList:
             ixBHend = lvHtml.index( '<!--bookHeader-->' ) + 17
             try: ixBIend = lvHtml.index( '<!--bookIntro-->', ixBHend ) + 16 # No intro expected in OET-LV
-            except ValueError: ixBIend = lvHtml.index( '<span id="C', ixBHend )
+            except ValueError:
+                logging.warning( f"Unable to find end of book Intro {lvHtml[ixBHend:ixBHend+3999]=}" )
+                ixBIend = lvHtml.index( '<span id="C', ixBHend )
             lvChunks, lvRest = [ lvHtml[:ixBHend], lvHtml[ixBHend:ixBIend] ], lvHtml[ixBIend:]
             # Now try to match the rv sections
             for n,rvSectionHtml in enumerate( rvSections[2:] ): # continuing on AFTER the headers and introduction
@@ -266,7 +267,7 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
                 except ValueError:
                     dPrint( 'Info', DEBUGGING_THIS_MODULE, f"  createOETBookPages {BBB} {n:,}: No Cid in {rvSectionHtml=}" )
                     rvStartCV, rvEndCV = '', 'C1'
-                    # halt
+                    # assert False, "We want to stop here"
                 dPrint( 'Info', DEBUGGING_THIS_MODULE, f"""\nSearching for OET-RV {BBB} ' id="{rvEndCV}"' in '{lvRest}'""" )
                 try: ixEndCV = lvRest.rindex( f' id="{rvEndCV}"' )
                 except ValueError: # Versification problem if this fails
@@ -367,7 +368,8 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
 <a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
 <h1 id="Top">OET book pages</h1>
 <h2>Index of books</h2>
-{navBookListParagraph}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="15" style="float:right; margin-left:10px;"></a>
+{navBookListParagraph}
+{state.WHOLE_BOOKS_WARNING_HTML_PARAGRAPH}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="15" style="float:right; margin-left:10px;"></a>
 {makeBottom( level, 'OET', 'bookIndex', state )}'''
     assert checkHtml( 'OETBooksIndex', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
@@ -400,13 +402,13 @@ def createBookPages( level:int, folder:Path, thisBible, state:State ) -> list[st
     #     BBBsToProcess = reorderBooksForOETVersions( BBBsToProcess )
     # iBkList = ['index'] + list( state.preloadedBibles[thisBible.abbreviation].books.keys() )
     iBkList = ['index'] + state.BBBsToProcess[thisBible.abbreviation]
-    # print( f"createBookPages {thisBible.abbreviation=} {state.BBBsToProcess[thisBible.abbreviation]=} {iBkList=}" ); halt
+    # print( f"createBookPages {thisBible.abbreviation=} {state.BBBsToProcess[thisBible.abbreviation]=} {iBkList=}" ); assert False, "We want to stop here"
     navBookListParagraph = makeBookNavListParagraph( state.BBBLinks[thisBible.abbreviation], thisBible.abbreviation, state )
 
     processedBBBs, processedFilenames = [], []
     for BBB in state.BBBsToProcess[thisBible.abbreviation]:
         ourTidyBBB = getOETTidyBBB( BBB )
-        NT = bos_books_codes_py.is_nt_nr( BBB )
+        NT = bos_books_codes_py.is_new_testament_nr( BBB )
         # print( f"{BBB=} {state.BBBsToProcess[thisBible.abbreviation]}"); print( len(BBBsToProcess) )
         # if not allBooksFlag: thisBible.loadBookIfNecessary( BBB )
 
@@ -430,13 +432,13 @@ def createBookPages( level:int, folder:Path, thisBible, state:State ) -> list[st
             bkPrevNav = f'''<a title="Previous (book index)" href="index.htm#Top">◄</a> '''
             bkNextNav = f' <a title="Next (first existing book)" href="{iBkList[1]}.htm#Top">►</a>'
 
-        bkHtml = f'''<p class="bkNav">{bkPrevNav}<span class="bkHead" id="Top">{thisBible.abbreviation} {ourTidyBBB}</span>{bkNextNav}</p>{f'{NEWLINE}{state.JAMES_NOTE_HTML_PARAGRAPH}' if 'OET' in thisBible.abbreviation and BBB=='JAM' else ''}{f'{NEWLINE}{state.OET_UNFINISHED_WARNING_HTML_PARAGRAPH}' if 'OET' in thisBible.abbreviation else ''}{f'{state.BLACK_LETTER_FONT_HTML_PARAGRAPH}{NEWLINE}' if thisBible.abbreviation=='KJB-1611' else ''}'''
+        bkHtml = f'''<p class="bkNav">{bkPrevNav}<span class="bkHead" id="Top">{thisBible.abbreviation} {ourTidyBBB}</span>{bkNextNav}</p>{f'{NEWLINE}{state.JAMES_NOTE_HTML_PARAGRAPH}' if 'OET' in thisBible.abbreviation and BBB=='JAM' else ''}{'' if bos_books_codes_py.is_single_chapter_book(BBB) else f'{NEWLINE}{state.OET_UNFINISHED_BOOK_WARNING_HTML_PARAGRAPH}' if 'OET' in thisBible.abbreviation else state.WHOLE_BOOK_WARNING_HTML_PARAGRAPH}{f'{state.BLACK_LETTER_FONT_HTML_PARAGRAPH}{NEWLINE}' if thisBible.abbreviation=='KJB-1611' else ''}'''
         verseEntryList, contextList = thisBible.getContextVerseData( (BBB,) )
         if isinstance( thisBible, ESFMBible.ESFMBible ):
-            verseEntryList = livenOETWordLinks( level, thisBible, BBB, verseEntryList, state )
+            verseEntryList = livenOETWordLinks( level, thisBible, (BBB,), verseEntryList, state )
         elif thisBible.abbreviation in ('BSB','MSB'):
             verseEntryList = livenOETCompatibleWordLinks( level, thisBible, BBB, verseEntryList, state )
-        textHtml = convertUSFMMarkerListToHtml( level, thisBible.abbreviation, (BBB,), 'book', contextList, verseEntryList, basicOnly=False, state=state )
+        textHtml = convertVerseEntryListToHtml( level, thisBible.abbreviation, (BBB,), 'book', contextList, verseEntryList, basicOnly=False, state=state )
         # textHtml = livenIORs( BBB, textHtml )
         if thisBible.abbreviation == 'OET-RV':
             textHtml = f'''{do_OET_RV_HTMLcustomisations( f'BookB={BBB}', textHtml )}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="15" style="float:right; margin-left:10px;"></a>'''
@@ -447,6 +449,7 @@ def createBookPages( level:int, folder:Path, thisBible, state:State ) -> list[st
         elif thisBible.abbreviation == 'T4T':
             textHtml = do_T4T_HTMLcustomisations( f'BookB={BBB}', textHtml )
         elif thisBible.abbreviation == 'SR-GNT':
+            # print( f"Have SR-GNT {BBB} book {verseEntryList=}" )
             startIndex = 0
             while True:
                 match = CV_REGEX.search( textHtml, startIndex )
@@ -489,6 +492,7 @@ def createBookPages( level:int, folder:Path, thisBible, state:State ) -> list[st
 {f'<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>\n' if 'OET' in thisBible.abbreviation else ''}<h1 id="Top">{thisBible.abbreviation} book pages</h1>
 <h2>Index of books</h2>
 {navBookListParagraph}
+{state.WHOLE_BOOKS_WARNING_HTML_PARAGRAPH}{f'<a title="See design specs on OET main site" href="https://OpenEnglishTranslation.Bible/Design/{'Readers' if thisBible.abbreviation=='OET-RV' else 'Literal'}Version"><img src="{'../'*level}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="15" style="float:right; margin-left:10px;"></a>' if 'OET' in thisBible.abbreviation else ''}
 {makeBottom( level, thisBible.abbreviation, 'bookIndex', state )}'''
     assert checkHtml( f'{thisBible.abbreviation} book index', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything

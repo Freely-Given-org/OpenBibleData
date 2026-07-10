@@ -33,7 +33,6 @@ CHANGELOG:
     2025-04-25 Allow for /r field that's not a true section reference (e.g., at top of Psalm 43)
     2026-01-07 Added OET Logo
 """
-from gettext import gettext as _
 from pathlib import Path
 import os
 import logging
@@ -45,7 +44,7 @@ from bible_organisational_system import InternalBibleEntryList, getSmallLeadingI
 import bos_books_codes_py
 
 from settings import State, reorderBooksForOETVersions
-from usfm import convertUSFMMarkerListToHtml
+from usfm import convertVerseEntryListToHtml
 from Bibles import getVerseDataListForReference
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
                     do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
@@ -54,10 +53,10 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
 from OETHandlers import livenOETWordLinks, getOETTidyBBB, getOETBookName, getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2026-01-12' # by RJH
+LAST_MODIFIED_DATE = '2026-06-16' # by RJH
 SHORT_PROGRAM_NAME = "createParallelPassagePages"
 PROGRAM_NAME = "OpenBibleData createParallelPassagePages functions"
-PROGRAM_VERSION = '0.41'
+PROGRAM_VERSION = '0.42'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -233,14 +232,14 @@ def createParallelPassagePages( level:int, folder:Path, state:State ) -> bool:
 #     # referenceBible = state.preloadedBibles['OET-LV']
 #     # numChapters = referenceBible.getNumChapters( BBB ) # Causes the book to be loaded if not already
 #     # introLinks = [ '<a title="Go to synoptic intro page" href="Intro.htm#Top">Intro</a>' ]
-#     # chapterLinksParagraph = f'''<p class="chLst" id="chLst">{EM_SPACE.join( introLinks + [f'<a title="Go to synoptic verse page" href="C{ps}V1.htm#Top">Ps{ps}</a>' for ps in range(1,numChapters+1)] )}</p>''' \
+#     # chapterLinksParagraph = f'''<p class="chLst" id="chLst">{EM_SPACE.join( introLinks + [f'<a title="Go to synoptic verse page" href="C{ps}V1.htm#Top">Ps{ps}</a>' for ps in range(1,numChapters+1)] )}</p><!--chLst-->''' \
 #     #     if BBB=='PSA' else \
-#     #         f'''<p class="chLst" id="chLst">{ourTidyBbb if ourTidyBbb!='Yac' else 'Yacob/(James)'} {' '.join( introLinks + [f'<a title="Go to synoptic verse page" href="C{chp}V1.htm#Top">C{chp}</a>' for chp in range(1,numChapters+1)] )}</p>'''
+#     #         f'''<p class="chLst" id="chLst">{ourTidyBbb if ourTidyBbb!='Yac' else 'Yacob/(James)'} {' '.join( introLinks + [f'<a title="Go to synoptic verse page" href="C{chp}V1.htm#Top">C{chp}</a>' for chp in range(1,numChapters+1)] )}</p><!--chLst-->'''
 
 #     # Now, make the actual pages
 #     vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Creating synoptic section pages for {thisBible.abbreviation} {BBB}…" )
 #     usedParallels = []
-#     for n,startC,startV,endC,endV,sectionName,reasonName,contextList,verseEntryList,sFilename in state.sectionsLists[thisBible.abbreviation][BBB]:
+#     for n,startC,startV,endC,endV,sectionName,reasonName,contextList,verseEntryList,sFilename in state.sectionsListsForSections[thisBible.abbreviation][BBB]:
 #         if endC == '?': # Then these are the OET-RV additional/alternative headings
 #             assert thisBible.abbreviation == 'OET-RV'
 #             assert endV == '?'
@@ -261,7 +260,7 @@ def createParallelPassagePages( level:int, folder:Path, state:State ) -> bool:
 # '''
 #         if isinstance( thisBible, ESFMBible.ESFMBible ): # e.g., OET-RV
 #             verseEntryList = livenOETWordLinks( thisBible, BBB, verseEntryList, f"{'../'*BBBLevel}ref/{'GrkWrd' if NT else 'HebWrd'}/{{n}}.htm#Top", state )
-#         textHtml = convertUSFMMarkerListToHtml( BBBLevel, thisBible.abbreviation, (BBB,startC), 'relatedPassage', contextList, verseEntryList, basicOnly=False, state=state )
+#         textHtml = convertVerseEntryListToHtml( BBBLevel, thisBible.abbreviation, (BBB,startC), 'relatedPassage', contextList, verseEntryList, basicOnly=False, state=state )
 #         # textHtml = livenIORs( BBB, textHtml, sections )
 #         if thisBible.abbreviation == 'OET-RV':
 #             textHtml = do_OET_RV_HTMLcustomisations( textHtml )
@@ -293,7 +292,7 @@ def createParallelPassagePages( level:int, folder:Path, state:State ) -> bool:
 #             try: numVerses = thisBible.getNumVerses( BBB, intC )
 #             except KeyError:
 #                 logging.critical( f"Can't get number of verses for {thisBible.abbreviation} {BBB} {intC}")
-#                 halt
+#                 assert False, "We want to stop here"
 #                 continue
 #             if intV > numVerses:
 #                 intC += 1
@@ -345,7 +344,7 @@ def createParallelPassagePages( level:int, folder:Path, state:State ) -> bool:
 #                 verseEntryList, contextList = thisBible.getContextVerseData( (refBBB, refC) if refC=='-1' else (refBBB, refC, refV) )
 #                 if isinstance( thisBible, ESFMBible.ESFMBible ):
 #                     verseEntryList = livenOETWordLinks( thisBible, refBBB, verseEntryList, f"{'../'*BBBLevel}ref/{'GrkWrd' if NT else 'HebWrd'}/{{n}}.htm#Top", state )
-#                 refHtml = convertUSFMMarkerListToHtml( BBBLevel, thisBible.abbreviation, (refBBB,refC,refV), 'verse', contextList, verseEntryList, basicOnly=(refC!='-1'), state=state )
+#                 refHtml = convertVerseEntryListToHtml( BBBLevel, thisBible.abbreviation, (refBBB,refC,refV), 'verse', contextList, verseEntryList, basicOnly=(refC!='-1'), state=state )
 #                 print( f"{BBB} {strC}:{strV} {refBBB} {refC}:{refV} {refHtml=}")
 #                 BBBix = sectionBBBList.index( refBBB )
 #                 sectionHtmlList[BBBix] = f'{sectionHtmlList[BBBix]}\n<span class="parCV">{refC}:{refV}</span> {refHtml}'
@@ -354,7 +353,7 @@ def createParallelPassagePages( level:int, folder:Path, state:State ) -> bool:
 #             try: numVerses = thisBible.getNumVerses( BBB, intC )
 #             except KeyError:
 #                 logging.critical( f"Can't get number of verses for {thisBible.abbreviation} {BBB} {intC}")
-#                 halt
+#                 assert False, "We want to stop here"
 #                 continue
 #             if intV > numVerses:
 #                 intC += 1
@@ -400,7 +399,7 @@ def createParallelPassagePages( level:int, folder:Path, state:State ) -> bool:
 #             .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/rel/{filename1}#Top">{thisBible.abbreviation}</a>''',
 #                     f'''<a title="Up to {state.BibleNames[thisBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/">↑{thisBible.abbreviation}</a>''' )
 #     synopticSectionIndexHtml = f'<h1 id="Top">Index of parallel sections for {thisBible.abbreviation} {ourTidyBBB}</h1>'
-#     for _nnn,startC,startV,_endC,_endV,sectionName,reasonName,_contextList,_verseEntryList,sFilename in state.sectionsLists[thisBible.abbreviation][BBB]:
+#     for _nnn,startC,startV,_endC,_endV,sectionName,reasonName,_contextList,_verseEntryList,sFilename in state.sectionsListsForSections[thisBible.abbreviation][BBB]:
 #         if (startC,startV) not in usedParallels: continue # Only make the index for sections that we made pages for
 #         reasonString = '' if reasonName=='Section heading' and not state.TEST_MODE_FLAG else f' ({reasonName})' # Suppress '(Section Heading)' appendages in the list
 #         # NOTE: word 'Alternate ' is defined in the above OET function at start of main loop
@@ -425,7 +424,7 @@ def createParallelPassagePages( level:int, folder:Path, state:State ) -> bool:
 #             .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/rel/{filename2}#Top">{thisBible.abbreviation}</a>''',
 #                       f'''<a title="Up to {state.BibleNames[thisBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/">↑{thisBible.abbreviation}</a>''' )
 #     synopticSectionIndexHtml = f'<h1 id="Top">Index of parallel sections for {thisBible.abbreviation} {ourTidyBBB}</h1>'
-#     for _nnn,startC,startV,_endC,_endV,sectionName,reasonName,_contextList,_verseEntryList,sFilename in state.sectionsLists[thisBible.abbreviation][BBB]:
+#     for _nnn,startC,startV,_endC,_endV,sectionName,reasonName,_contextList,_verseEntryList,sFilename in state.sectionsListsForSections[thisBible.abbreviation][BBB]:
 #         if (startC,startV) not in usedParallels: continue # Only make the index for sections that we made pages for
 #         reasonString = '' if reasonName=='Section heading' and not state.TEST_MODE_FLAG else f' ({reasonName})' # Suppress '(Section Heading)' appendages in the list
 #         # NOTE: word 'Alternate ' is defined in the above OET function at start of main loop
@@ -455,7 +454,7 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
     fnPrint( DEBUGGING_THIS_MODULE, f"createSectionCrossReferencePagesForBook( {level}, {folder}, {thisBible.abbreviation}, {BBB}, {BBBLinks}, {state.BibleVersions} )" )
     BBBFolder = folder.joinpath(f'{BBB}/')
     BBBLevel = level + 1
-    NT = bos_books_codes_py.is_nt_nr( BBB )
+    NT = bos_books_codes_py.is_new_testament_nr( BBB )
 
 
     vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  createSectionCrossReferencePagesForBook {BBBLevel}, {BBBFolder}, {BBB} from {len(BBBLinks)} books, {len(state.BibleVersions)} versions…" )
@@ -476,7 +475,7 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
     # First make a list of sections that we wish to display
     if ONLY_MAKE_PAGES_WHICH_HAVE_PARALLELS:
         availableSections = []
-        for n,startC,startV,endC,endV,sectionName,reasonName,contextList,verseEntryList,sFilename in state.sectionsLists[thisBible.abbreviation][BBB]:
+        for n,startC,startV,endC,endV,sectionName,reasonName,contextList,verseEntryList,sFilename in state.sectionsListsForSections[thisBible.abbreviation][BBB]:
             if endC == '?': # Then these are the OET-RV additional/alternative headings
                 assert thisBible.abbreviation == 'OET-RV'
                 assert endV == '?'
@@ -489,7 +488,7 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
                         availableSections.append( (n,startC,startV,endC,endV,sectionName,reasonName,contextList,verseEntryList,sFilename) )
                         break
     else: # make a page for every section
-        availableSections = state.sectionsLists[thisBible.abbreviation][BBB]
+        availableSections = state.sectionsListsForSections[thisBible.abbreviation][BBB]
 
     # Now, make the actual pages
     vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Creating section cross-reference pages for {thisBible.abbreviation} {BBB}…" )
@@ -497,7 +496,7 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
     detailsLink = f''' <a title="Show details about this work" href="{'../'*(BBBLevel)}OET-RV/details.htm#Top">©</a>'''
     usedParallels = []
     for n,startC,startV,endC,endV,sectionName,reasonName,contextList,verseEntryList,sFilename in availableSections:
-        dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"      MakeLoop{n} {startC}:{startV}-{endC}:{endV} '{sectionName}' {reasonName} {len(contextList)} {len(verseEntryList)} '{sFilename}'" )
+        # dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"     createSectionCrossReferencePagesForBook makeLoop{n} {startC}:{startV}-{endC}:{endV} '{sectionName}' {reasonName} {len(contextList)} {len(verseEntryList)} '{sFilename}'" )
         if endC == '?': # Then these are the OET-RV additional/alternative headings
             assert thisBible.abbreviation == 'OET-RV'
             assert endV == '?'
@@ -515,6 +514,7 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
         for entry in verseEntryList:
             if entry.getMarker() == 'r':
                 rText = entry.getCleanText()
+                # print( f"createSectionCrossReferencePagesForBook {BBB} {startC}:{startV}-{endC}:{endV} {rText=}")
                 if rText[0]=='(' and rText[-1]==')': rText = rText[1:-1]
                 # if rText == '1 Chr. 13:1-14; 15:25–16:6, 43': rText = '1 Chr. 13:1-14; 15:25–16:43' # From OET-RV SA2_6:1
                 # elif rText == '2 Chr. 34:3-7, 29-33': rText = '2 Chr. 34:3-33' # From OET-RV KI2_19:20
@@ -576,8 +576,8 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
 {f'{state.JAMES_NOTE_HTML_PARAGRAPH}{NEWLINE}' if 'OET' in thisBible.abbreviation and BBB=='JAM' else ''}{f'{state.OET_UNFINISHED_WARNING_HTML_PARAGRAPH}{NEWLINE}' if 'OET' in thisBible.abbreviation else ''}<h1>{'TEST ' if state.TEST_MODE_FLAG else ''}{sectionName}</h1>'''
         assert '\n\n' not in crossReferencedSectionHtml
         if isinstance( thisBible, ESFMBible.ESFMBible ): # e.g., OET-RV
-            verseEntryList = livenOETWordLinks( BBBLevel, thisBible, BBB, verseEntryList, state )
-        textHtml = convertUSFMMarkerListToHtml( BBBLevel, thisBible.abbreviation, (BBB,startC), 'relatedPassage', contextList, verseEntryList, basicOnly=False, state=state )
+            verseEntryList = livenOETWordLinks( BBBLevel, thisBible, (BBB,startC), verseEntryList, state )
+        textHtml = convertVerseEntryListToHtml( BBBLevel, thisBible.abbreviation, (BBB,startC), 'relatedPassage', contextList, verseEntryList, basicOnly=False, state=state )
         # textHtml = livenIORs( BBB, textHtml, sections )
         if thisBible.abbreviation == 'OET-RV':
             textHtml = do_OET_RV_HTMLcustomisations( f'ParallelPassageA={BBB}_{startC}', textHtml )
@@ -595,7 +595,7 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
         # Ok, now actually form the parallel sections
         nextXrFnLetter = 'b'
         for srBBB,srCVpart in zip( crossReferencesBBBList, crossReferencesCVList, strict=True ):
-            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"{BBB} {startC}:{startV} {srBBB=} {srCVpart=}")
+            dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"Parallel sections loop for {BBB} {startC}:{startV} -> {srBBB=} {srCVpart=}")
             if srBBB not in thisBible: # don't force that book to be loaded
                 continue
 
@@ -666,7 +666,7 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
                     if srCVpart.startswith( '-1:'):
                         assert srCVpart.count( '-' ) == 2
                         srStartV, srEndV = srCVpart.rsplit( '-', 1 )
-                        # print( f"{srCVpart=} {srStartV=} {srEndV=}"); halt
+                        # print( f"{srCVpart=} {srStartV=} {srEndV=}"); assert False, "We want to stop here"
                     else: srStartV, srEndV = srCVpart.split( '-' )
                     if ':' not in srCVpart: # it must just be two verse numbers
                         assert srStartC.isdigit() # From previous loop
@@ -683,10 +683,10 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
                             verseEntryList, contextList = thisBible.getContextVerseDataRange( (srBBB,srStartC,srStartV), (srBBB,srEndC,srEndV), strict=False )
                         except KeyError:
                             logging.critical( f"createSectionCrossReferencePagesForBook {BBB} {startC}:{startV} was unable to find {srBBB} {srStartC}:{srStartV}" )
-                            halt
+                            assert False, "We want to stop here"
                     elif ':' in srStartV and ':' in srEndV:
                         logging.critical( f"Expected en-dash (not hyphen) in {BBB} {startC}:{startV} section cross-reference {srBBB} {srCVpart}" )
-                        halt
+                        assert False, "We want to stop here"
                         srStartC, srStartV = srStartV.split( ':' )
                         srStartV = str( getSmallLeadingInt( srStartV ) )
                         srEndC, srEndV = srEndV.split( ':' )
@@ -738,8 +738,8 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
             sectionHeadingsList.append( (srTidyBbb,srStartC,f'{srTidyBbb} {srStartC}:{srStartV}{f"–{srEndV}" if srEndC==srStartC else f"—{srEndC}:{srEndV}"}') ) # We use en-dash and em-dash onscreen
 
             if isinstance( thisBible, ESFMBible.ESFMBible ): # e.g., OET-RV
-                verseEntryList = livenOETWordLinks( BBBLevel, thisBible, srBBB, verseEntryList, state )
-            textHtml = convertUSFMMarkerListToHtml( BBBLevel, thisBible.abbreviation, (srBBB,srStartC), 'relatedPassage', contextList, verseEntryList, basicOnly=False, state=state )
+                verseEntryList = livenOETWordLinks( BBBLevel, thisBible, (srBBB,srStartC), verseEntryList, state )
+            textHtml = convertVerseEntryListToHtml( BBBLevel, thisBible.abbreviation, (srBBB,srStartC), 'relatedPassage', contextList, verseEntryList, basicOnly=False, state=state )
             # textHtml = livenIORs( BBB, textHtml, sections )
             if thisBible.abbreviation == 'OET-RV':
                 textHtml = do_OET_RV_HTMLcustomisations( f'ParallelPassageB={srBBB}_{srStartC}', textHtml )
@@ -791,7 +791,7 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
                     dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {collectedVerseCrossReference=} {firstPart=} {attemptedBBB=}" )
                     # if attemptedBBB is None and thisBible.abbreviation=='OET-RV' and firstPart[0]=='Y':
                     #     # Maybe we need to convert something like Yoel to Joel
-                    #     attemptedBBB = bos_books_codes_py.english_name_to_reference_abbrev( f'J{firstPart[1:]}' )
+                    #     attemptedBBB = bos_books_codes_py.english_name_to_bos_book_code( f'J{firstPart[1:]}' )
                     if attemptedBBB is None:
                         # If might be an internal reference to this same book
                         #   so prepend this book code
@@ -825,11 +825,11 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
                         collectedVerseCrossReference = collectedVerseCrossReference[:-1]
                     assert '\\' not in collectedVerseCrossReference, f"{BBB} {startC}:{startV} got {collectedVerseCrossReference=}"
                     lastXrefBBB, lastXrefC, verseEntryList, contextList = getVerseDataListForReference( collectedVerseCrossReference, thisBible, lastXrefBBB, lastXrefC )
-                    # lastXrefNT = bos_books_codes_py.is_nt_nr( lastXrefBBB )
+                    # lastXrefNT = bos_books_codes_py.is_new_testament_nr( lastXrefBBB )
                     if verseEntryList:
                         if isinstance( thisBible, ESFMBible.ESFMBible ): # e.g., OET-RV
-                            verseEntryList = livenOETWordLinks( BBBLevel, thisBible, lastXrefBBB, verseEntryList, state )
-                        textHtml = convertUSFMMarkerListToHtml( BBBLevel, thisBible.abbreviation, (lastXrefBBB,lastXrefC), 'relatedPassage', contextList, verseEntryList, basicOnly=False, state=state )
+                            verseEntryList = livenOETWordLinks( BBBLevel, thisBible, (lastXrefBBB,lastXrefC), verseEntryList, state )
+                        textHtml = convertVerseEntryListToHtml( BBBLevel, thisBible.abbreviation, (lastXrefBBB,lastXrefC), 'relatedPassage', contextList, verseEntryList, basicOnly=False, state=state )
                         # NOTE: textHtml can be empty here
                         # textHtml = livenIORs( BBB, textHtml, sections )
                         if thisBible.abbreviation == 'OET-RV':
@@ -849,7 +849,7 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
                     assert '.htm#aV' not in thisXrefHtml and '.htm#bV' not in thisXrefHtml, thisXrefHtml
                     assert '.htm#gC' not in thisXrefHtml and '.htm#hC' not in thisXrefHtml, thisXrefHtml
                     # print( f"{thisXrefHtml=}" )
-                    # if 'Fn' in thisXrefHtml or 'Xr' in thisXrefHtml: halt
+                    # if 'Fn' in thisXrefHtml or 'Xr' in thisXrefHtml: assert False, "We want to stop here"
                     xrefHtml = f"{xrefHtml}{NEWLINE if xrefHtml else ''}{thisXrefHtml}"
                     doneCrossReferences.append( collectedVerseCrossReference )
             assert '.htm#aC' not in xrefHtml and '.htm#bC' not in xrefHtml, xrefHtml
@@ -885,7 +885,7 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
             .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/rel/{filename1}#Top">{thisBible.abbreviation}</a>''',
                     f'''<a title="Up to {state.BibleNames[thisBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/">↑{thisBible.abbreviation}</a>''' )
     crossReferencedSectionIndexHtml = f'<h1 id="Top">Index of parallel sections for {thisBible.abbreviation} {ourTidyBBB}</h1>'
-    for _nnn,startC,startV,_endC,_endV,sectionName,reasonName,_contextList,_verseEntryList,sFilename in state.sectionsLists[thisBible.abbreviation][BBB]:
+    for _nnn,startC,startV,_endC,_endV,sectionName,reasonName,_contextList,_verseEntryList,sFilename in state.sectionsListsForSections[thisBible.abbreviation][BBB]:
         if (startC,startV) not in usedParallels: continue # Only make the index for sections that we made pages for
         reasonString = '' if reasonName=='Section heading' and not state.TEST_MODE_FLAG else f' ({reasonName})' # Suppress '(Section Heading)' appendages in the list
         # NOTE: word 'Alternate ' is defined in the above OET function at start of main loop
@@ -911,7 +911,7 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
             .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/rel/{filename2}#Top">{thisBible.abbreviation}</a>''',
                       f'''<a title="Up to {state.BibleNames[thisBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/">↑{thisBible.abbreviation}</a>''' )
     crossReferencedSectionIndexHtml = f'<h1 id="Top">Index of parallel sections for {thisBible.abbreviation} {ourTidyBBB}</h1>'
-    for _nnn,startC,startV,_endC,_endV,sectionName,reasonName,_contextList,_verseEntryList,sFilename in state.sectionsLists[thisBible.abbreviation][BBB]:
+    for _nnn,startC,startV,_endC,_endV,sectionName,reasonName,_contextList,_verseEntryList,sFilename in state.sectionsListsForSections[thisBible.abbreviation][BBB]:
         if (startC,startV) not in usedParallels: continue # Only make the index for sections that we made pages for
         reasonString = '' if reasonName=='Section heading' and not state.TEST_MODE_FLAG else f' ({reasonName})' # Suppress '(Section Heading)' appendages in the list
         # NOTE: word 'Alternate ' is defined in the above OET function at start of main loop

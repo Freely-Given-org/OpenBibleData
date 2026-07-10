@@ -36,8 +36,8 @@ CHANGELOG:
     2025-10-29 Add an index for kingdom pages
     2026-01-07 Added OET Logo
     2026-03-01 Added IMPORTANT people index
+    2026-06-01 Improve unusual book codes (like Yac) and improve navigation
 """
-from gettext import gettext as _
 from pathlib import Path
 import os
 import logging
@@ -47,7 +47,7 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 from bible_organisational_system import InternalBibleEntryList
 
 from settings import State
-from usfm import convertUSFMMarkerListToHtml
+from usfm import convertVerseEntryListToHtml
 from Bibles import getBibleMapperMaps
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
                     removeDuplicateCVids, \
@@ -55,10 +55,10 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
 from OETHandlers import livenOETWordLinks, getOETTidyBBB
 
 
-LAST_MODIFIED_DATE = '2026-03-01' # by RJH
+LAST_MODIFIED_DATE = '2026-06-16' # by RJH
 SHORT_PROGRAM_NAME = "createTopicPages"
 PROGRAM_NAME = "OpenBibleData createTopicPages functions"
-PROGRAM_VERSION = '0.35'
+PROGRAM_VERSION = '0.37'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -141,9 +141,11 @@ for topic,refs in TOPIC_TABLE.items():
                 except ValueError:
                     assert refRest.isdigit()
 
+TOPIC_LIST = []
 def createTopicPages( level:int, folder:Path, state:State ) -> bool:
     """
     """
+    global TOPIC_LIST
     fnPrint( DEBUGGING_THIS_MODULE, f"createTopicPages( {level}, {folder}, {state.BibleVersions} )" )
     assert level == 1
 
@@ -151,14 +153,17 @@ def createTopicPages( level:int, folder:Path, state:State ) -> bool:
     try: os.makedirs( folder )
     except FileExistsError: pass # they were already there
 
-    # topics = []
-    topicsHtmlsForIndex = []
-    for topic,refs in TOPIC_TABLE.items():
+    # First make our list of topics (mostly for the Prev/Next links)
+    assert len(TOPIC_LIST) == 0
+    for topic,refsList in TOPIC_TABLE.items():
         topicWords = [x.title() for x in topic.replace(', ',' ').replace('/','⁄').split()]
         topicFilename = BibleOrgSysGlobals.makeSafeFilename( f'''{''.join(topicWords)}.htm''' )
-        createTopicPage( level, folder, topicFilename, topic, refs, state )
-        # topics.append( (topic,topicFilename) )
-        topicsHtmlsForIndex.append( f'''<a href="{topicFilename}">{topic}</a>''' )
+        TOPIC_LIST.append( (topic,topicFilename,refsList) )
+
+    topicsHtmlsForIndex = []
+    for tt in range( 0, len(TOPIC_LIST) ):
+        createTopicPage( level, folder, tt, state )
+        topicsHtmlsForIndex.append( f'''<a href="{TOPIC_LIST[tt][1]}">{TOPIC_LIST[tt][0]}</a>''' )
 
     # Create topic index page
     filename = 'index.htm'
@@ -185,20 +190,28 @@ def createTopicPages( level:int, folder:Path, state:State ) -> bool:
 # end of createTopicPages.createTopicPages
 
 
-def createTopicPage( level:int, folder:Path, filename:str, topic:str, refs:list[str], state:State ) -> bool:
+def createTopicPage( level:int, folder:Path, topicNumber:int, state:State ) -> bool:
     """
     Create a page for each Bible topic.
 
-    Note: refs parameter can include Bible refs, e,g, 'MRK_1:2', and word refs, e.g., 'HebLem/nāḩam'
+    topicNumber is an index into the global TOPIC_LISTS[ (topic,topicFilename,refsList) ]
+
+    Note: The above refsList can include Bible refs, e,g, 'MRK_1:2', and word refs, e.g., 'HebLem/nāḩam'
             as well as headings, e.g., 'H3 Only God can do that'
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"createTopicPage( {level}, {folder}, '{filename}', '{topic}', {len(refs)}, {state.BibleVersions} )" )
+    fnPrint( DEBUGGING_THIS_MODULE, f"createTopicPage( {level}, {folder}, {topicNumber} {state.BibleVersions} )" )
 
-    vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  createTopicPage for '{topic}' ({filename}) with {len(refs)} Bible passages…" )
+    topic,topicFilename,refsList = TOPIC_LIST[topicNumber]
+
+    vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  createTopicPage for '{topic}' ({topicFilename}) with {len(refs)} Bible passages…" )
     rvBible, lvBible = state.preloadedBibles['OET-RV'], state.preloadedBibles['OET-LV']
 
+    leftLink = f'<a title="Previous kingdom" href="{TOPIC_LIST[topicNumber-1][1]}#Top">←</a> ' if topicNumber>0 else ''
+    rightLink = f' <a title="Next kingdom" href="{TOPIC_LIST[topicNumber+1][1]}#Top">→</a>' if topicNumber<len(TOPIC_LIST)-1 else ''
+    homeLink = f' <a title="Topic index" href="index.htm">⌂</a>'
+
     combinedHtmlChunks = []
-    for rr,ref in enumerate( refs, start=1 ):
+    for rr,ref in enumerate( refsList, start=1 ):
         dPrint( 'Never', DEBUGGING_THIS_MODULE, f"  {rr} ‘{topic}’ {ref=}")
         if ref.startswith( 'H3 '): # Then it's a heading (we'll remove this initial part of the string)
             combinedHtmlChunks.append( f'''<h3>{ref[3:]}</h3>
@@ -249,16 +262,16 @@ def createTopicPage( level:int, folder:Path, filename:str, topic:str, refs:list[
             # print( f"{rvVerseEntryList=}" )
             # print( f"{lvVerseEntryList=}" )
             if BBB in rvBible: # TODO: Why is RV handled differently here than LV ???
-                rvVerseEntryList = livenOETWordLinks( level, rvBible, BBB, rvVerseEntryList, state )
-            try: lvVerseEntryList = livenOETWordLinks( level, lvBible, BBB, lvVerseEntryList, state )
+                rvVerseEntryList = livenOETWordLinks( level, rvBible, (BBB,C), rvVerseEntryList, state )
+            try: lvVerseEntryList = livenOETWordLinks( level, lvBible, (BBB,C), lvVerseEntryList, state )
             except KeyError: # Missing book
                 assert not state.ALL_PRODUCTION_BOOKS_FLAG
-            rvTextHtml = convertUSFMMarkerListToHtml( level, rvBible.abbreviation, (BBB,C), 'topicalPassage', rvContextList, rvVerseEntryList, basicOnly=False, state=state )
+            rvTextHtml = convertVerseEntryListToHtml( level, rvBible.abbreviation, (BBB,C), 'topicalPassage', rvContextList, rvVerseEntryList, basicOnly=False, state=state )
             # rvTextHtml = livenIORs( BBB, rvTextHtml, sections )
             rvTextHtml = do_OET_RV_HTMLcustomisations( f'Topic={topic}@{BBB}_{C}', rvTextHtml )
 
             if lvVerseEntryList:
-                lvTextHtml = convertUSFMMarkerListToHtml( level, lvBible.abbreviation, (BBB,C), 'topicalPassage', lvContextList, lvVerseEntryList, basicOnly=False, state=state )
+                lvTextHtml = convertVerseEntryListToHtml( level, lvBible.abbreviation, (BBB,C), 'topicalPassage', lvContextList, lvVerseEntryList, basicOnly=False, state=state )
                 # lvTextHtml = livenIORs( BBB, lvTextHtml, sections )
                 lvTextHtml = do_OET_LV_HTMLcustomisations( f'Topic={topic}@{BBB}_{C}', lvTextHtml )
             else: # We didn't get any LV data
@@ -272,7 +285,7 @@ def createTopicPage( level:int, folder:Path, filename:str, topic:str, refs:list[
                                 .replace( 'id="crossRefs', f'id="crossRefs{rr}RV' ).replace( 'id="xr', f'id="xr{rr}RV' ).replace( 'href="#xr', f'href="#xr{rr}RV' )
             lvTextHtml = lvTextHtml.replace( 'id="footnotes', f'id="footnotes{rr}LV' ).replace( 'id="fn', f'id="fn{rr}LV' ).replace( 'href="#fn', f'href="#fn{rr}LV' ) \
                                 .replace( 'id="crossRefs', f'id="crossRefs{rr}LV' ).replace( 'id="xr', f'id="xr{rr}LV' ).replace( 'href="#xr', f'href="#xr{rr}LV' )
-            combinedHtmlChunks.append( f'''<h3>OET <a title="View in context of whole book" href="{'../'*level}OET/byDoc/{BBB}.htm#C{C}V{startV}">{getOETTidyBBB(BBB,True,True,'\u202f')}</a> <a title="View in context of whole chapter" href="{'../'*level}OET/byC/{BBB}_C{C}.htm#V{startV}">{refRest}</a></h3>
+            combinedHtmlChunks.append( f'''<h3>OET <a title="View in context of whole book" href="{'../'*level}OET/byDoc/{BBB}.htm#C{C}V{startV}">{getOETTidyBBB(BBB,True,True,'\u202f',True)}</a> <a title="View in context of whole chapter" href="{'../'*level}OET/byC/{BBB}_C{C}.htm#V{startV}">{refRest}</a></h3>
 <h3> </h3>
 <div class="chunkRV">{rvTextHtml}</div><!--chunkRV-->
 <div class="chunkLV">{lvTextHtml}</div><!--chunkLV-->''' )
@@ -283,20 +296,20 @@ def createTopicPage( level:int, folder:Path, filename:str, topic:str, refs:list[
 <h2>Literal Version <button type="button" id="marksButton" title="Hide/Show underline and strike-throughs" onclick="hide_show_marks()">Hide marks</button></h2>
 {NEWLINE.join(combinedHtmlChunks)}</div><!--RVLVcontainer-->'''
 
-    filepath = folder.joinpath( filename )
+    filepath = folder.joinpath( topicFilename )
     top = makeTop( level, None, 'topicPassages', None, state ) \
             .replace( '__TITLE__', f"{topic}{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', f'Bible, topic, {topic.replace(' ',', ')}' ) 
             # .replace( f'''<a title="{state.BibleNames[thisRvBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisRvBible.abbreviation)}/rel/{sFilename}#Top">{thisRvBible.abbreviation}</a>''',
             #         f'''<a title="Up to {state.BibleNames[thisRvBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisRvBible.abbreviation)}/">↑{thisRvBible.abbreviation}</a>''' )
     topicHtml = f'''{top}<!--topic page-->
-<p>&lt;<a href="index.htm">Up to topic index page</a>&gt;</p>
 <a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
+<p class="pageNav">{leftLink} {homeLink} {rightLink}</p>
 <h1>{topic}</h1>
 <p>This page contains selected passages from the <em>Open English Translation</em> with the passage from the <em>OET Readers’ Version</em> on the left, and the <em>OET Literal Version</em> on the right. Minimal commentary is included (only some headings)—our aim is simply to conveniently list the passages in one place so that our readers can make up their own minds about what the writer of the passage was intending to communicate.</p>
 {removeDuplicateCVids(combinedHtml)}
 <p class="note"><small>Please contact us at <b>Freely</b> dot <b>Given</b> dot <b>org</b> (at) <b>gmail</b> dot <b>com</b> if there’s any passages that you’d like us to add to this topic page, or any passages that need a little bit more context around them. (We encourage our readers to always view things in their context, so we discourage use of the word ‘verse’, especially in sayings like, “This verse says …”.)</small></p>
-<p>&lt;<a href="index.htm">Go to topic index page</a>&gt;</p>
+<p class="pageNav">{leftLink} {homeLink} {rightLink}</p>
 <a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="15" style="float:right; margin-left:10px;"></a>
 {makeBottom( level, None, 'topicPassages', state )}'''
     assert checkHtml( f'{topic} Topic', topicHtml )
@@ -309,6 +322,8 @@ def createTopicPage( level:int, folder:Path, filename:str, topic:str, refs:list[
     vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    createTopicPage() finished processing '{topic}' with {len(refs):,} references." )
     return True
 # end of createTopicPages.createTopicPage
+
+
 
 # The following KINGDOM_LIST is used to determine the number of pages and their titles
 #   The second reference(s) are used to include the maps that would occur at those references
