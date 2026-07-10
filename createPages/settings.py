@@ -53,10 +53,10 @@ import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import dPrint, fnPrint, BOOKLIST_OT39
 
 
-LAST_MODIFIED_DATE = '2026-07-09' # by RJH
+LAST_MODIFIED_DATE = '2026-07-10' # by RJH
 SHORT_PROGRAM_NAME = "settings"
 PROGRAM_NAME = "OpenBibleData (OBD) Settings"
-PROGRAM_VERSION = '1.0.0'
+PROGRAM_VERSION = '1.0.1'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
@@ -66,9 +66,9 @@ class State:
     """
     A place to store some of the global stuff that needs to be passed around.
     """
-    OET_VERSION_NUMBER_STRING = 'v0.48.52' # Incremented on most runs
+    OET_VERSION_NUMBER_STRING = 'v0.48.53' # Incremented on most runs
 
-    TEST_MODE_FLAG = True # Writes smaller website subset into 'Test' subfolder if True
+    TEST_MODE_FLAG = False # Writes smaller website subset into 'Test' subfolder if True
     TEST_OT_BOOK_LIST = ['JER'] # Books in progress
     TEST_DC_BOOK_LIST = [] # Books in progress
     TEST_NT_BOOK_LIST = ['MRK'] # Shortest gospel
@@ -145,11 +145,11 @@ class State:
     WHOLE_BOOK_WARNING_TEXT = "This view displays the entire ‘book’ so it may be very long to scroll through."
     WHOLE_BOOK_WARNING_HTML_PARAGRAPH = f'<p class="rem">{WHOLE_BOOK_WARNING_TEXT}</p>'
     WHOLE_BOOKS_WARNING_HTML_PARAGRAPH = '<p class="rem">Warning: some of these Bible ‘books’ are large, so their ‘book’ pages might take a while to load.</p>'
-    
+
     OET_UNFINISHED_WARNING_HTML_TEXT = 'This is still an early look into the drafted text of the <em>Open English Translation</em> of the Bible. Please double-check the text in advance before using in public.'
     OET_UNFINISHED_WARNING_HTML_PARAGRAPH = f'<p class="rem">{OET_UNFINISHED_WARNING_HTML_TEXT}</p>'
     OET_UNFINISHED_BOOK_WARNING_HTML_PARAGRAPH = f'<p class="rem">{OET_UNFINISHED_WARNING_HTML_TEXT} {WHOLE_BOOK_WARNING_TEXT}</p>'
-    
+
     OET_PARALLEL_PAGE_SINGLE_VERSE_HTML_TEXT = 'This view shows ‘verses’ which are not natural language units and hence sometimes only part of a sentence will be visible—click on any Bible version abbreviation down the left-hand side to see the verse in more of its context. Normally the OET discourages the reading of individual ‘verses’, but this view is only designed as a tool for Bible-translators and others doing comparisons of different translations—the older translations are further down the page (so you can read up from the bottom to trace the English translation history).'
     OETS_UNFINISHED_WARNING_HTML_TEXT = 'The OET segments on this page are still early looks into the drafted texts of the <em>Open English Translation</em> of the Bible—please double-check these texts in advance before using in public.'
     # OETS_UNFINISHED_WARNING_HTML_PARAGRAPH = f'<p class="rem">{OETS_UNFINISHED_WARNING_HTML_TEXT}</p>'
@@ -175,7 +175,7 @@ class State:
         'BSB','MSB','BLB',
         'AICNT','OEB','ISV','CSB','NLT',
         'NIV','CEV','ESV','NASB','LSB',
-        'JQT','2DT','1ST','TPT',
+        'JQT','2DT','1ST',
         'WEBBE','WEB','WMBB','WMB','MSG','LSV','FBV','TCNT','T4T','LEB','NRSVue','NRSV','NKJV','TLB','NAB','BBE',
         'Moff','JPS','Wymth','ASV','DRA','YLT','Drby','RV','SLT','Wbstr','KJB-1769','KJB-1611','Bshps','Gnva','Cvdl',
         'TNT','Wycl',
@@ -191,7 +191,7 @@ class State:
         'BSB','MSB','BLB',
         'AICNT','OEB','ISV','CSB','NLT',
         'NIV','CEV','ESV','NASB','LSB',
-        'JQT','2DT','1ST','TPT',
+        'JQT','2DT','1ST',
         'WEBBE','WEB','WMBB','WMB','MSG','NET','LSV','FBV','TCNT','T4T','LEB','NRSVue','NRSV','NKJV','TLB','NAB','BBE',
         'Moff','JPS','Wymth','ASV','DRA','YLT','Drby','RV','SLT','Wbstr','KJB-1769','KJB-1611','Bshps','Gnva','Cvdl',
         'TNT','Wycl',
@@ -207,8 +207,8 @@ class State:
     # Specific short lists
     auxilliaryVersions = ('OET','TOBD') # These ones don't have their own Bible locations at all
     # The following three lines are also in selectedVersesVersions.py
-    selectedVersesOnlyVersions = ('AHB','CSB','NLT','NIV','CEV','ESV','MSG','NASB','LSB','JQT','2DT','1ST','SLBL', 'TPT','NRSVue','NRSV','NKJV','TLB','NAB', 'NETS' ) # These ones have .tsv sources (and don't produce Bible objects)
-    numAllowedSelectedVerses   = (  20,  300,  500,  500,  500,  500,  500,   500, 1000,   20,  300,  300,  9999,   250,     300,   300,   300,  300,  250,    250 ) # Order must match above list
+    selectedVersesOnlyVersions = ('AHB','CSB','NLT','NIV','CEV','ESV','MSG','NASB','LSB','JQT','2DT','1ST','SLBL', 'NRSVue','NRSV','NKJV','TLB','NAB', 'NETS' ) # These ones have .tsv sources (and don't produce Bible objects)
+    numAllowedSelectedVerses   = (  20,  300,  500,  500,  500,  500,  500,   500, 1000,   20,  300,  300,  9999,       300,   300,   300,  300,  250,    250 ) # Order must match above list
     assert len(numAllowedSelectedVerses) == len(selectedVersesOnlyVersions)
     # We want these versions on our parallel pages, but are not interested enough in them for them to have their own version pages
     versionsWithoutTheirOwnPages = selectedVersesOnlyVersions + ('Luth','ClVg', 'UGNT','SBL-GNT','RP-GNT','TC-GNT', 'TOSN','SOTN','UTN')
@@ -265,7 +265,6 @@ class State:
         '2DT': '../copiedBibles/English/Selected_verses_versions/2DT_verses.tsv',
         '1ST': '../copiedBibles/English/Selected_verses_versions/1ST_verses.tsv',
         'SLBL': '../copiedBibles/English/Selected_verses_versions/SLBL_verses.tsv',
-        'TPT': '../copiedBibles/English/Selected_verses_versions/TPT_verses.tsv',
         'WEBBE': '../copiedBibles/English/eBible.org/WEBBE/', # British spelling  # 'WEB': '../copiedBibles/English/eBible.org/WEB/', # USA spelling
         'WMBB': '../copiedBibles/English/eBible.org/WMBB/', # British spelling  # 'WMB': '../copiedBibles/English/eBible.org/WMB/', #USA spelling
         'MSG': '../copiedBibles/English/Selected_verses_versions/MSG_verses.tsv',
@@ -338,7 +337,6 @@ class State:
         '2DT': 'The Second Testament (2023)',
         '1ST': 'The First Testament (2018)',
         'SLBL': 'Scriptura Layer by Layer ‘Close-but-Clear Translation’ (2026)',
-        'TPT': 'The Passion Translation (2017)',
         'WEBBE': 'World English Bible (2023) British Edition',
         'WEB': 'World English Bible (2023)',
         'WMBB': 'World Messianic Bible (2023) British Edition / Hebrew Names Version (HNV)',
@@ -421,7 +419,6 @@ class State:
         '2DT': 'EN-USA',
         '1ST': 'EN-USA',
         'SLBL': 'EN-USA',
-        'TPT': 'EN-USA',
         'WEBBE': 'EN-UK',
         'WEB': 'EN-USA',
         'WMBB': 'EN-UK',
@@ -503,7 +500,6 @@ class State:
         '2DT': ['ALL'],
         '1ST': ['ALL'],
         'SLBL': ['ALL'],
-        'TPT': ['ALL'],
         'WEBBE': ['ALL'],
         'WEB': ['ALL'],
         'WMBB': ['ALL'],
@@ -577,7 +573,6 @@ class State:
         '2DT': TEST_BOOK_LIST,
         '1ST': TEST_BOOK_LIST,
         'SLBL': TEST_BOOK_LIST,
-        'TPT': TEST_BOOK_LIST,
         'WEBBE': TEST_BOOK_LIST,
         'WEB': TEST_BOOK_LIST,
         'WMBB': TEST_BOOK_LIST,
@@ -734,10 +729,6 @@ We’re also grateful to the <a href="https://www.Biblica.com/clear/">Biblica Cl
                 'copyright': '<p class="copyright">(Unspecified).</p>',
                 'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution License</a>.</p>',
                 'notes': '<p class="note">Grateful thanks to the Scriptura project for their expert exegesis of the Psalms/Songs, and for making their work openly available (albeit needing to register and log-in for some access).</p><!--note-->' },
-        'TPT': {'about': '<p class="about">The Passion Translation (2017) by Brian Simmons.</p>',
-                'copyright': '<p class="copyright">Scripture quotations marked TPT are from The Passion Translation®. Copyright © 2017, 2018, 2020 by Passion & Fire Ministries, Inc. Used by permission. All rights reserved. ThePassionTranslation.com.</p>',
-                'licence': '<p class="licence">Up to 250 verses may be used.</p>',
-                'notes': '<p class="note">A few selected verses included here for reference purposes only—this is not a recommended as a reliable Bible translation.</p><!--note-->' },
         'WEBBE': {'about': '<p class="about">World English Bible (2023) British Edition.</p>',
                 'copyright': '<p class="copyright">Copyright © (coming).</p>',
                 'licence': '<p class="licence">(coming).</p>',
