@@ -829,8 +829,8 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                 'usu',      'valle','vas','victi','visita','visitat','visitatio','vita',
                                 'l','nos','ut','didrachmas',
                                 'respondebo','greatere','seriousa',
-                                'horrea','consortio','clausa','scribens',
-                                    'prophesyem','psalterii','deceitfuls','joytur','freedr','fatheris','exploretur',
+                                'consortio','clausa','scribens',
+                                    'prophesyem','psalterii','deceitfuls','joytur','freedr','fatheris',
                                     'delinquentes','eleveni',
                                 )
                     else 'Info', DEBUGGING_THIS_MODULE, f'''        {word} is suspect @ {location}\nfrom {cleanedTextToDisplay=}\n  WHICH GAVE {cleanedTextToCheck=}''' )
