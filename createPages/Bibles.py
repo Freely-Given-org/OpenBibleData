@@ -114,7 +114,7 @@ from OETHandlers import findLVQuote, getBBBFromOETBookName
 from Dict import loadAndIndexUBSGreekDictJSON, loadAndIndexUBSHebrewDictJSON
 
 
-LAST_MODIFIED_DATE = '2026-07-05' # by RJH
+LAST_MODIFIED_DATE = '2026-07-13' # by RJH
 SHORT_PROGRAM_NAME = "Bibles"
 PROGRAM_NAME = "OpenBibleData Bibles handler"
 PROGRAM_VERSION = '0.98'
@@ -566,7 +566,7 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
                         newBooks[BBB] = bookObject
                 thisBible.books = newBooks
             if versionAbbreviation != 'Moff': # Only has scarce books
-                assert len(thisBible) 
+                assert len(thisBible)
 
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Doing discovery for {thisBible.abbreviation} ({thisBible.name}) with {len(thisBible)} books…" )
         thisBible.discover()
@@ -824,16 +824,6 @@ def formatTyndaleNotes( abbrev:str, level:int, BBB:str, C:str, V:str, segmentTyp
             assert not rest
             if marker!='li1': assert abbrev == 'TTN'
             # will be saved as lastMarker for later use
-        # elif marker == 'XXXp~':
-        #     halt
-        #     assert rest
-        #     theirClass = None
-        #     if rest.startswith( '<class="'): # e.g., <class="theme-list">The new covenant…
-        #         ixClose = rest.index( '">', 10 )
-        #         theirClass = rest[8:ixClose]
-        #         rest = rest[ixClose+2:]
-        #     nHtml = f'{nHtml}\n<li>{rest}</li>' if lastMarker=='li1' \
-        #                 else f'{nHtml}\n<p class="{theirClass if theirClass else lastMarker}">{rest}</p>'
         elif marker == 'b':
             assert not rest
             assert abbrev == 'TTN'
@@ -1053,7 +1043,7 @@ def formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segme
                 tnHtml = f'''{' ' if tnHtml else ''}{tnHtml}<span class="v">{V} </span>'''
             # assert rest==V or '-' in rest, f"UTN {utnRef} {marker}='{rest}' from {verseEntryList=}"
 
-        elif marker == 'v~': # This has the text was 'XXXp~'
+        elif marker == 'v~': # This has the text
             if lastMarker in ('m','im'):  # TA reference
                 assert rest
                 if rest.startswith( 'rc://*/ta/man/translate/' ):

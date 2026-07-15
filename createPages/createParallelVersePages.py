@@ -502,7 +502,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                 textHtml = do_OET_RV_HTMLcustomisations( f'ParallelVerseTxt={parRef}', textHtml )
                                 if state.DO_SPELL_CHECKS_FLAG and parRef not in ('JOB_24:1','PSA_8:5','EZE_-1:0',): # TODO Check these out
                                     textHtml = spellCheckAndMarkHTMLText( versionAbbreviation, parRef, textHtml, textHtml, state ) # Puts spans around mispellings
-                                    
+
                             elif versionAbbreviation == 'OET-LV':
                                 # if BBB=='MRK' and C=='7' and V=='16': print( f"CCC {parRef} {versionAbbreviation} {textHtml=}" )
                                 # assert '<span class="ul">_</span>HNcbsa' not in textHtml, f'''Here1 ({textHtml.count('<span class="ul">_</span>HNcbsa')}) {textHtml=}'''
@@ -970,7 +970,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                                             indexOfDesiredWord = len(startStr) + sum(len(s) for s in textHtmlWordList[:jj]) + jj # For the spaces
                                                             textHtml = f'{textHtml[:indexOfDesiredWord]}{textHtml[indexOfDesiredWord:].replace( fullVersionWord, f'<span class="diffGrkWord" title="First word different from SR-GNT">{fullVersionWord}</span>', 1 )}'
                                                     break # Only highlight a maximum of one word
-                                            except IndexError: break # 
+                                            except IndexError: break #
                                     greekVersionKeysHtmlSet.add( spanClassName )
                                     versionNameLink = f'''{'../'*BBBLevel}{versionAbbreviation}/details.htm#Top''' if versionAbbreviation in state.versionsWithoutTheirOwnPages else f'''{'../'*BBBLevel}{versionAbbreviation}/byC/{BBB}_{adjC}.htm#V{V}'''
                                     if '<div ' in textHtml: # it might be a book intro or footnotes -- we can't put a <div> INSIDE a <p>, so we append it instead
@@ -1227,7 +1227,7 @@ def getPlainText( givenVerseEntryList ) -> str:
         # print( entry )
         marker, cleanText = entry.getMarker(), entry.getCleanText()
         # if not cleanText and marker[0]!='¬' and marker not in ('p',): print( f"getPlainText {marker=} {cleanText=}")
-        if marker in ('v~','XXXp~'):
+        if marker == 'v~':
             plainTextStringBits.append( cleanText )
 
     return ' '.join( plainTextStringBits )
@@ -1768,7 +1768,7 @@ def rememberPossibleUnmatchedProperNames( parRef:str, thisVerseEntryList, state:
     for verseEntry in thisVerseEntryList:
         marker, verseText = verseEntry.getMarker(), verseEntry.getCleanText()
         # if not verseText: print( f"rememberPossibleUnmatchedProperNames {marker=} {verseText=}")
-        if verseEntry.getMarker() in ('v~','XXXp~'):
+        if verseEntry.getMarker() == 'v~':
             for word in verseText.split():
                 assert '(diy)' not in word, f"   {parRef} {marker=} {word=} from {verseText=}"
                 word = word.split('¦')[0] # Get rid of word number

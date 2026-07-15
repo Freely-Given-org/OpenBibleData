@@ -102,10 +102,10 @@ from html import makeTop, makeViewNavListParagraph, makeBottom, checkHtml
 from spellCheckEnglish import printSpellCheckSummary
 
 
-LAST_MODIFIED_DATE = '2026-07-08' # by RJH
+LAST_MODIFIED_DATE = '2026-07-12' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData (OBD) Create Site Pages"
-PROGRAM_VERSION = '1.0.2'
+PROGRAM_VERSION = '1.0.3'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
@@ -850,7 +850,7 @@ def _createAboutPage( level:int, buildFolder:Path, state:State ) -> bool:
 <p class="about">If you are the copyright owner of a Bible translation or a relevant dataset and would like to see it listed on this site,
         please contact us at <b>Freely</b> dot <b>Given</b> dot <b>org</b> (at) <b>gmail</b> dot <b>com</b>.</p>
 <p class="about">The source code for the Python program that produces these pages can be found at <a href="https://github.com/Freely-Given-org/OpenBibleData">GitHub.com/Freely-Given-org/OpenBibleData</a>.
-    You can also advise us of any errors by clicking on <em>New issue</em> <a href="https://github.com/Freely-Given-org/OpenBibleData/issues">here</a> and telling us the problem.</p>'''
+    You can also advise us of any errors by clicking on <em>New issue</em> <a href="https://GitHub.com/Freely-Given-org/OpenBibleData/issues">here at GitHub</a> and telling us the problem.</p>'''
     topHtml = makeTop( level, None, 'about', None, state ) \
                 .replace( '__TITLE__', f"About {state.SITE_ABBREVIATION}{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
                 .replace( '__KEYWORDS__', f'Bible, about, {state.SITE_ABBREVIATION}, {state.SITE_NAME}, OET, OETBible' )
@@ -887,7 +887,7 @@ def _createNewsPage( level:int, buildFolder:Path, state:State ) -> bool:
 <p class="about">If you are the copyright owner of a Bible translation or a relevant dataset and would like to see it listed on this {state.SITE_ABBREVIATION} site,
         please contact us at <b>Freely</b> dot <b>Given</b> dot <b>org</b> (at) <b>gmail</b> dot <b>com</b>.</p>
 <p class="about">The source code for the Python program that produces these pages can be found at <a href="https://github.com/Freely-Given-org/OpenBibleData">GitHub.com/Freely-Given-org/OpenBibleData</a>.
-    You can also advise us of any errors by clicking on <em>New issue</em> <a href="https://github.com/Freely-Given-org/OpenBibleData/issues">here</a> and telling us the problem.</p>'''
+    You can also advise us of any errors by clicking on <em>New issue</em> <a href="https://GitHub.com/Freely-Given-org/OpenBibleData/issues">here at GitHub</a> and telling us the problem.</p>'''
     topHtml = makeTop( level, None, 'news', None, state ) \
                 .replace( '__TITLE__', f"{state.SITE_ABBREVIATION} News{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
                 .replace( '__KEYWORDS__', f'Bible, news, {state.SITE_ABBREVIATION}, {state.SITE_NAME}, OET, OETBible' )

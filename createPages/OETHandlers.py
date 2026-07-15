@@ -186,13 +186,13 @@ def getBBBFromOETBookName( originalBooknameText:str, where:str ) -> str|None:
     # resultBBB = bos_books_codes_py.english_name_to_bos_book_code( originalBooknameText )
     # if resultBBB and resultBBB not in ('SAM','CHR','NAH): return resultBBB
     # else: dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"bos_books_codes_py.english_name_to_bos_book_code() can't get valid BBB from {originalBooknameText=}" )
-                                                                        
+
     upperedBooknameText = ( originalBooknameText
                         .replace( ' ', '' ).replace( NARROW_NON_BREAK_SPACE, '' )
                         #.rstrip( '.' ) # Remove any final period TODO: Should BibleOrgSys do that?
                         .replace( '.', '' ) # Actually, we'll get rid of any period, to handle unexpected xrefs like '2.kings' (e.g., from KJB)
                     ).upper()
-    
+
     try: return OET_BBB_DICT[upperedBooknameText]
     except KeyError: pass
 
@@ -355,7 +355,7 @@ def livenOETWordLinks( level:int, bibleObject:ESFMBible, refTuple:tuple, givenEn
     #     print( f"{BBB}")
     #     for revisedEntry in revisedEntryList:
     #         marker = revisedEntry.getMarker()
-    #         if marker not in ('v~','XXXp~'): continue
+    #         if marker not == 'v~': continue
     #         print( f"  {marker}={revisedEntry.getOriginalText()}")
 
     # Now add the transliteration to the Greek HTML title popups
@@ -629,7 +629,7 @@ def livenOETCompatibleWordLinks( level:int, bibleObject:InternalBible, BBB:str, 
     #     print( f"{BBB}")
     #     for revisedEntry in revisedEntryList:
     #         marker = revisedEntry.getMarker()
-    #         if marker not in ('v~','XXXp~'): continue
+    #         if marker not == 'v~': continue
     #         print( f"  {marker}={revisedEntry.getOriginalText()}")
 
     # Now add the transliteration to the Greek HTML title popups

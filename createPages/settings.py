@@ -66,9 +66,9 @@ class State:
     """
     A place to store some of the global stuff that needs to be passed around.
     """
-    OET_VERSION_NUMBER_STRING = 'v0.48.53' # Incremented on most runs
+    OET_VERSION_NUMBER_STRING = 'v0.48.56' # Incremented on most runs
 
-    TEST_MODE_FLAG = False # Writes smaller website subset into 'Test' subfolder if True
+    TEST_MODE_FLAG = True # Writes smaller website subset into 'Test' subfolder if True
     TEST_OT_BOOK_LIST = ['JER'] # Books in progress
     TEST_DC_BOOK_LIST = [] # Books in progress
     TEST_NT_BOOK_LIST = ['MRK'] # Shortest gospel
@@ -81,7 +81,7 @@ class State:
     CREATE_PARALLEL_VERSE_PAGES = 'LAST' # 'FIRST','LAST', or None -- usually 'LAST' -- depending on debugging needs
     CREATE_BOOK_AND_OTHER_PAGES_FLAG = True # Can be turned off for debugging
     DO_SPELL_CHECKS_FLAG = True # On parallel pages
-    REUSE_EXISTING_WORD_PAGES_FLAG = TEST_MODE_FLAG and not NEW_BOOK_IN_TEST_LIST_FLAG # Don't recreate word pages
+    REUSE_EXISTING_WORD_PAGES_FLAG = 1 or TEST_MODE_FLAG and not NEW_BOOK_IN_TEST_LIST_FLAG # Don't recreate word pages
     ALL_TEST_REFERENCE_PAGES_FLAG = False # If have TEST_MODE_FLAG, make ALL word/lemma pages, or just the RELEVANT ones
     UPDATE_ACTUAL_SITE_WHEN_BUILT_FLAG = True # The pages are initially built in a tmp folder so need to be copied to the final destination
 

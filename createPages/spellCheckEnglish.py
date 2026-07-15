@@ -462,7 +462,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
     elif versionAbbreviation in ('DRA','YLT','RV'):
         wordSet.update( ('baptized',) )
     elif versionAbbreviation == 'Luth':
-        wordSet.update( ('Yuda','fiancé(e','asabthani','kumi') ) # (Final parenthesis gets removed)
+        wordSet.update( ('EI','Yuda','fiancé(e','asabthani','kumi') ) # (Final parenthesis gets removed)
     elif versionAbbreviation == 'ClVg':
         wordSet.update( ('carmel', # No idea why this isn't capitalised in ClVg ???
                          'Moyses','Sion','Yuda',
@@ -798,7 +798,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                 'an','aß','Bart','sie','hin','heb','wir','dem','des','für','hub','ich','ist','ja','alle','las','lag','ones)r','ones)s','ones)n','one)s','bis',
                                 'hing','one)r','one)n','weh','du','ach','Raube','Raub','Tal','tue','fiel','sehe','Mal','mal','mit','Mord',
                                 'ende','rede','kam','Korb','ward','alt','dran','Rede','nun','nur','messen','ging','und','ster','streng','tun','von','wer','zu',
-                                'tozutun','fatr','keepern','hundredtausend','faitht',
+                                'wineäufer','managern','blamener',
                                     'throughläutert','abovewältigten','gratitudes',
 
                                 'actio','ambit','ambitio','anima','antiqui','apprehendi','ascendi','attende','audi',
@@ -815,7 +815,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                 'fac', 'fel', 'Finis','finis','forti','fugit','fur',     'generat',     'hellor','hoc','humili','humiliati',
                                 'ibi', 'illum','illinat', 'ima','impie', 'infirmi','insinuat',
                                     'intellige','intelligi','intentio','introduc','inventi','invocatio','Isaia','iter','Ite',
-                                'ja','jus','Justi','justi','justis','justificat',     'legi','legis','liberati','liberat','liber','locus','lux',
+                                'ja','jus','Justi','justi','justis','justificat',     'legi','legis','liberati','liberato','liberat','liber','locus','lux',
                                 'magis','magnifice','magni','manifeste','manu','mater','materia',
                                     'medici','menstrua',        'mira','misera',        'moretri','mortali','morti',
                                 'nam','natu','natura','ne','nota','Nota',     'ob','obsessi','operatio','ora',
@@ -828,10 +828,10 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                 'tempora','Tod','tradit','traditi','traditio','transmigratio','tres','tribulatio','tributa','trium','tu','tua','tuam','turba',
                                 'usu',      'valle','vas','victi','visita','visitat','visitatio','vita',
                                 'l','nos','ut','didrachmas',
-                                'respondebo','greatere','seriousa',
-                                'consortio','clausa','scribens',
-                                    'prophesyem','psalterii','deceitfuls','joytur','freedr','fatheris',
-                                    'delinquentes','eleveni',
+                                'consortio',
+                                'tot','latenter','sanctificati','credat','libertatis',
+                                    'prophesyem','psalterii',
+                                    'conceptionem','beforescivit','formrem','robustæ','ibis','commandvero'
                                 )
                     else 'Info', DEBUGGING_THIS_MODULE, f'''        {word} is suspect @ {location}\nfrom {cleanedTextToDisplay=}\n  WHICH GAVE {cleanedTextToCheck=}''' )
             if versionAbbreviation == 'Luth':

@@ -603,14 +603,14 @@ def convertVerseEntryListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                     if segmentType == 'chapter': state.chaptersWithImages[BBB].append( C )
         elif marker == '¬v': # We can ignore these end markers
             # Sections can cross chapters
-            assert rest==V or segmentType=='section', f'''Why does {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} '¬v' have {rest=}\nfrom {[(entry.getMarker(),f"{'...' if entry.getMarker() in ('v~','XXXp~') else entry.getOriginalText()}") for entry in verseEntryList]}\nwith {[(entry.getMarker(),f"{'...' if entry.getMarker() in ('v~','XXXp~') else entry.getCleanText()}") for entry in verseEntryList]}\nand {[(entry.getMarker(),f"{'...' if entry.getMarker() in ('v~','XXXp~') else entry.getFullText()}") for entry in verseEntryList]}'''
+            assert rest==V or segmentType=='section', f'''Why does {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} '¬v' have {rest=}\nfrom {[(entry.getMarker(),f"{'...' if entry.getMarker() == 'v~' else entry.getOriginalText()}") for entry in verseEntryList]}\nwith {[(entry.getMarker(),f"{'...' if entry.getMarker() == 'v~' else entry.getCleanText()}") for entry in verseEntryList]}\nand {[(entry.getMarker(),f"{'...' if entry.getMarker() == 'v~' else entry.getFullText()}") for entry in verseEntryList]}'''
         elif marker == 'v=': # The next marker should be a section heading, and this gives the verse number for the section start
             assert rest and rest[0].isdigit()
             # We also get this before the 's4' kingdom marker (but we don't have any use for that here)
             if velIndex==len(verseEntryList)-1 or verseEntryList[velIndex+1].getMarker() == 's4': continue # ignore this 'v='
-            assert not inRightDiv, f'''Already in {inRightDiv=} with 'v=' followed by '{verseEntryList[velIndex+1].getMarker()}' at {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {rest=}\nwith {[(entry.getMarker(),f"{'...' if entry.getMarker() in ('v~','XXXp~') else entry.getCleanText()}") for entry in verseEntryList]}'''
+            assert not inRightDiv, f'''Already in {inRightDiv=} with 'v=' followed by '{verseEntryList[velIndex+1].getMarker()}' at {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {rest=}\nwith {[(entry.getMarker(),f"{'...' if entry.getMarker() == 'v~' else entry.getCleanText()}") for entry in verseEntryList]}'''
             if versionAbbreviation != 'TCNT': # TODO: Rust code needs fixing
-                assert not inParagraph, f'''Already in {inParagraph=} with 'v=' followed by '{verseEntryList[velIndex+1].getMarker()}' at {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {rest=}\nwith {[(entry.getMarker(),f"{'...' if entry.getMarker() in ('v~','XXXp~') else entry.getCleanText()}") for entry in verseEntryList]}'''
+                assert not inParagraph, f'''Already in {inParagraph=} with 'v=' followed by '{verseEntryList[velIndex+1].getMarker()}' at {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {rest=}\nwith {[(entry.getMarker(),f"{'...' if entry.getMarker() == 'v~' else entry.getCleanText()}") for entry in verseEntryList]}'''
             # Note that this verse number can have a letter, e.g., '7b' if the next section starts in the middle of a verse
             V = rest.strip() # Play safe
         elif marker in ('p', 'q1','q2','q3','q4', 'm','mi',
@@ -2119,7 +2119,7 @@ def livenXRefField( fieldType:str, versionAbbreviation:str, refTuple:tuple, segm
         elif firstIndex==indexBV and firstIndex!=indexBCV: # process matchBV (if it's not also a matchBCV)
             dPrint( 'Info', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} {refTuple} {xoText=} {xrefLiveMiddle=} {matchBV.groups()=}" )
             xCorV = match.group( 2 )
-            if xB in ('verses','Verse','verse','Vers','vers','Ver','ver','V','v','and'): # versionAbbreviation in ('KJB-1611','RV') and 
+            if xB in ('verses','Verse','verse','Vers','vers','Ver','ver','V','v','and'): # versionAbbreviation in ('KJB-1611','RV') and
                 xBBB, xV = BBB, xCorV # This same book where the xref is located
                 try: xC = refTuple[1]
                 except IndexError: # no chapter number given there -- use the xoText instead
