@@ -46,7 +46,7 @@ from BibleOrgSys.BibleOrgSysGlobals import vPrint, fnPrint, dPrint, rreplace
 import bos_books_codes_py
 
 
-LAST_MODIFIED_DATE = '2026-07-09' # by RJH
+LAST_MODIFIED_DATE = '2026-07-18' # by RJH
 SHORT_PROGRAM_NAME = "spellCheckEnglish"
 PROGRAM_NAME = "English Bible Spell Check"
 PROGRAM_VERSION = '0.62'
@@ -798,12 +798,12 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                 'an','aß','Bart','sie','hin','heb','wir','dem','des','für','hub','ich','ist','ja','alle','las','lag','ones)r','ones)s','ones)n','one)s','bis',
                                 'hing','one)r','one)n','weh','du','ach','Raube','Raub','Tal','tue','fiel','sehe','Mal','mal','mit','Mord',
                                 'ende','rede','kam','Korb','ward','alt','dran','Rede','nun','nur','messen','ging','und','ster','streng','tun','von','wer','zu',
-                                'wineäufer','managern','blamener',
+                                'wineäufer','managern',
                                     'throughläutert','abovewältigten','gratitudes',
 
                                 'actio','ambit','ambitio','anima','antiqui','apprehendi','ascendi','attende','audi',
                                 'beati','bene','beneficia','bos',
-                                'calami','capti',       'centurio',     'Christi',      'circumcisio','cis',        'cognitio','cogniti','complet',
+                                'ca','calami','capti',       'centurio',     'Christi',      'circumcisio','cis',        'cognitio','cogniti','complet',
                                         'competit',
                                         'confessio','confusi','confusio','congregati','congregatio','consecrat','consecrati','considerat','consolati','consolatio',
                                             'contra','contriti','conversa','conversi','conversio',
@@ -822,16 +822,15 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                 'passi','patria','patri','pede','pedes','perfecti','persecuti','persecutio',
                                     'pio','plura','polluti','prope','propitiatio','provocat','publica',
                                 'questio','qui',        'rea','redempti','regi','regio','regula','rei','repente','ros',
-                                'salva','salvat','salvati','sanctifi', 'ca',
+                                'salva','salvat','salvati','sanctifi','sanctificati',
                                     'securi','separat','separati','seu','serva','servit','sex','sexta',
                                     'si','sit','sol','soli','solem','stat','statu','summo',
                                 'tempora','Tod','tradit','traditi','traditio','transmigratio','tres','tribulatio','tributa','trium','tu','tua','tuam','turba',
                                 'usu',      'valle','vas','victi','visita','visitat','visitatio','vita',
                                 'l','nos','ut','didrachmas',
-                                'consortio',
-                                'tot','latenter','sanctificati','credat','libertatis',
-                                    'prophesyem','psalterii',
-                                    'conceptionem','beforescivit','formrem','robustæ','ibis','commandvero'
+                                'tot','sanctificati',
+                                    'prophesyem','psalterii','formrem','robustæ','commandvero',
+                                    'plantes',
                                 )
                     else 'Info', DEBUGGING_THIS_MODULE, f'''        {word} is suspect @ {location}\nfrom {cleanedTextToDisplay=}\n  WHICH GAVE {cleanedTextToCheck=}''' )
             if versionAbbreviation == 'Luth':
