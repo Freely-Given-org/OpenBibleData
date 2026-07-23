@@ -79,10 +79,10 @@ from Bibles import getBibleMapperMaps, getOpenBibleImages
 from OETHandlers import livenOETWordLinks, livenOETCompatibleWordLinks, getOETTidyBBB, getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2026-07-06' # by RJH
+LAST_MODIFIED_DATE = '2026-07-22' # by RJH
 SHORT_PROGRAM_NAME = "createSectionPages"
 PROGRAM_NAME = "OpenBibleData createSectionPages functions"
-PROGRAM_VERSION = '0.85'
+PROGRAM_VERSION = '0.86'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -154,7 +154,9 @@ def createOETSectionLists( rvBible:ESFMBible, state:State ) -> bool:
                 plusOneV = str( getSmallLeadingInt(V) + 1 ) # Also handles verse ranges
                 for sectionChunk in rest.split( '; ' ):
                     additionalSectionHeadingsDict[(C,plusOneV)].append( (given_marker,sectionChunk) )
-        # if additionalSectionHeadingsDict: print( f"HERE1 {BBB} {additionalSectionHeadingsDict}" )
+        if additionalSectionHeadingsDict \
+        and BBB in ('GEN','EXO','LEV','NUM','DEU', 'SA2', 'CH1','CH2', 'JOB','PRO', 'ISA','JER', 'EZE','AMO','DAN',):
+            print( f"HERE1 with s2 {BBB} {additionalSectionHeadingsDict}" )
 
         if not rvBible[BBB]._SectionIndex: # no sections in this book, e.g., FRT
             continue
@@ -178,9 +180,9 @@ def createOETSectionLists( rvBible:ESFMBible, state:State ) -> bool:
         #             currentEntry = f"{n} {startCV=} {sectionIndexEntry=}"
         #             assert currentEntry == fileChunks[n+1], f"Section index mismatch for OET-RV {BBB} {n} {startCV=}\n   {currentEntry=}\n{fileChunks[n+1]=}"
 
-        # Now create the main sections list for this book
+        # Now create the main sections lists for this book
         bkObject = rvBible[BBB]
-        # The headers include ms1 and alternate heading, the sections only includes the s1
+        # The headers include ms1, s2, and alternate headings, the sections only includes the s1
         state.sectionsListsForHeaders['OET-RV'][BBB], state.sectionsListsForSections['OET-RV'][BBB] = [], []
         offset = 0
         hadMS1 = None
@@ -191,7 +193,7 @@ def createOETSectionLists( rvBible:ESFMBible, state:State ) -> bool:
             # if additionalSectionHeadingsDict: print( f"End {endC}:{endV}" )
             sectionName, reasonMarker = sectionIndexEntry.getSectionNameReason()
             # print( f'''OET {BBB} Section {n} processing: {startC}:{startV}-{endC}:{endV} {f'{len(hadMS1)=}' if isinstance(hadMS1, InternalBibleEntryList) else f'{hadMS1=}'} {reasonMarker=} {sectionName=}''' )
-    
+
             # Header list has ms1 separately
             if 'ms1' in reasonMarker:
                 # print( f"  OET {BBB} Section {n} has ms1: {startC}:{startV}-{endC}:{endV} {reasonMarker=} {sectionName=}" )
@@ -226,12 +228,9 @@ def createOETSectionLists( rvBible:ESFMBible, state:State ) -> bool:
                             else:
                                 logging.warning( f"createOETSectionPages ignored additional \\{additionalMarker} at OET-RV {BBB} {c}:{v}" )
                         del additionalSectionHeadingsDict[(c,v)]
-        
+
             sectionName = sectionName.replace( "'", "’" ) # Replace apostrophes
             sectionFilename = f'{BBB}_S{n-offset}.htm'
-            # if additionalSectionHeadingsDict:
-            #     dPrint( 'Verbose', DEBUGGING_THIS_MODULE,  f"{sectionName=} {reasonMarker=}" )
-            # reasonName = SECTION_REASON_NAME_DICT[reasonMarker]
             rvVerseEntryList, rvContextList = bkObject._SectionIndex.getSectionEntriesWithContext( startCV )
             if hadMS1 is True:
                 assert len(rvVerseEntryList) > 0
@@ -442,7 +441,7 @@ def createOETSectionPages( level:int, folder:Path, rvBible:ESFMBible, lvBible:ES
 <div class="chunkLV">{lvHtml}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="15" style="float:right; margin-left:10px;"></a></div><!--chunkLV-->
 '''
             combinedHtml = f'{removeDuplicateCVids( combinedHtml )}</div><!--RVLVcontainer-->'
-            
+
             # Handle BibleMapper maps and notes -- could be zero or more for any one section
             bmmHtml = getBibleMapperMaps( level, BBB, startC, startV, endC, endV, state.preloadedBibles['OET-RV'], state )
             if bmmHtml:
@@ -932,7 +931,7 @@ def livenSectionReferences( versionAbbreviation:str, refTuple:tuple, segmentType
         # dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  livenSectionReferences( {versionAbbreviation}, {refTuple}, {segmentType}, '{sectionReferenceText}' ) about to return {sectionReferenceLink=}" )
         return sectionReferenceLink
     # end of usfm.livenSectionReferences.livenSectionReferencesDigits function
-        
+
     sectionReferenceHtml = ''
     currentBBB = None
     for n,token in enumerate( tokens ):
@@ -984,7 +983,7 @@ def livenSectionReferences( versionAbbreviation:str, refTuple:tuple, segmentType
     if not sectionReferenceHtml: sectionReferenceHtml = sectionReferenceText # At least return the original text rather than nothing
     dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  livenSectionReferences( {versionAbbreviation}, {refTuple}, {segmentType}, '{sectionReferenceText}' ) about to return {sectionReferenceHtml=}" )
     assert len(sectionReferenceHtml)+(2 if enclosedByParentheses else 0) >= len(sectionReferenceText), f"livenSectionReferences( {versionAbbreviation}, {refTuple}, {segmentType}, ({len(sectionReferenceText)}) {sectionReferenceText=} ) => ({len(sectionReferenceHtml)}) {sectionReferenceHtml}"
-    return f'({sectionReferenceHtml})' if enclosedByParentheses else sectionReferenceHtml 
+    return f'({sectionReferenceHtml})' if enclosedByParentheses else sectionReferenceHtml
 # end of usfm.livenSectionReferences function
 
 

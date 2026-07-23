@@ -826,10 +826,10 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                     'securi','separat','separati','seu','serva','servit','sex','sexta',
                                     'si','sit','sol','soli','solem','stat','statu','summo',
                                 'tempora','Tod','tradit','traditi','traditio','transmigratio','tres','tribulatio','tributa','trium','tu','tua','tuam','turba',
-                                'usu',      'valle','vas','victi','visita','visitat','visitatio','vita',
+                                'usu',      'valle','vani','vas','victi','visita','visitat','visitatio','vita',
                                 'l','nos','ut','didrachmas',
-                                    'prophesyem',
-                                    'tellsur','mothermonio','mountaintret',
+                                'prophesyem',
+                                    'adolescencem','saytus','roadm',
                                 )
                     else 'Info', DEBUGGING_THIS_MODULE, f'''        {word} is suspect @ {location}\nfrom {cleanedTextToDisplay=}\n  WHICH GAVE {cleanedTextToCheck=}''' )
             if versionAbbreviation == 'Luth':
