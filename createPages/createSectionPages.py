@@ -139,7 +139,7 @@ def createOETSectionLists( rvBible:ESFMBible, state:State ) -> bool:
         for n, entry in enumerate( rvVerseEntryList ):
             # if n < 7: print( f"OET-RV {BBB} section index {n}: {entry}" )
             marker = entry.getMarker()
-            if marker not in ('c','v','rem'): continue
+            if marker not in ('c','v','s2','rem'): continue
             rest = entry.getOriginalText()
             if marker == 'c': C, V = rest, '0'
             elif marker == 'v': V = rest
