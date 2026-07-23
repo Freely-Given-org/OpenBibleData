@@ -154,9 +154,9 @@ def createOETSectionLists( rvBible:ESFMBible, state:State ) -> bool:
                 plusOneV = str( getSmallLeadingInt(V) + 1 ) # Also handles verse ranges
                 for sectionChunk in rest.split( '; ' ):
                     additionalSectionHeadingsDict[(C,plusOneV)].append( (given_marker,sectionChunk) )
-        if additionalSectionHeadingsDict \
-        and BBB in ('GEN','EXO','LEV','NUM','DEU', 'SA2', 'CH1','CH2', 'JOB','PRO', 'ISA','JER', 'EZE','AMO','DAN',):
-            print( f"HERE1 with s2 {BBB} {additionalSectionHeadingsDict}" )
+        # if additionalSectionHeadingsDict \
+        # and BBB in ('GEN','EXO','LEV','NUM','DEU', 'SA2', 'CH1','CH2', 'JOB','PRO', 'ISA','JER', 'EZE','AMO','DAN'):
+        #     print( f"HERE1 with s2 {BBB} {additionalSectionHeadingsDict}" )
 
         if not rvBible[BBB]._SectionIndex: # no sections in this book, e.g., FRT
             continue
@@ -195,7 +195,7 @@ def createOETSectionLists( rvBible:ESFMBible, state:State ) -> bool:
             # print( f'''OET {BBB} Section {n} processing: {startC}:{startV}-{endC}:{endV} {f'{len(hadMS1)=}' if isinstance(hadMS1, InternalBibleEntryList) else f'{hadMS1=}'} {reasonMarker=} {sectionName=}''' )
 
             # Header list has ms1 separately
-            if 'ms1' in reasonMarker:
+            if 'ms1' in reasosectionsListsForHeadersnMarker:
                 # print( f"  OET {BBB} Section {n} has ms1: {startC}:{startV}-{endC}:{endV} {reasonMarker=} {sectionName=}" )
                 assert hadMS1 is None, f"    OET {BBB} Section {n} didn't expect 2nd ms1: {startC}:{startV}-{endC}:{endV} {reasonMarker=} {sectionName=} {len(state.sectionsListsForHeaders['OET-RV'][BBB])=} {len(state.sectionsListsForSections['OET-RV'][BBB])=}"
                 hadMS1 = True
@@ -271,6 +271,9 @@ def createOETSectionLists( rvBible:ESFMBible, state:State ) -> bool:
                 dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"{BBB} didn't use {additionalSectionHeadingsDict=}")
                 assert False, "We want to stop here"
         assert len(state.sectionsListsForHeaders['OET-RV'][BBB]) >= len(bkObject._SectionIndex), f"{BBB}: {len(state.sectionsListsForHeaders['OET-RV'][BBB])=} {len(bkObject._SectionIndex)=}"
+
+        if BBB in ('GEN','EXO','LEV','NUM','DEU', 'SA2', 'CH1','CH2', 'JOB','PRO', 'ISA','JER', 'EZE','AMO','DAN'):
+            print( f"Looking for s2 in OET-RV {BBB}: ({len(state.sectionsListsForHeaders['OET-RV'][BBB])}) {state.sectionsListsForHeaders['OET-RV'][BBB]=} " )
 
         # if hadMS1:
         #     halt

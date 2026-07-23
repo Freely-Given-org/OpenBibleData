@@ -830,6 +830,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                 'l','nos','ut','didrachmas',
                                 'prophesyem',
                                     'eattis','killalium','partium','anthropophormitæ','linementis',
+                                    'exhibuistis','formtione','compositam','pertinaciter','desolamini','vitales','turbidis','impluviis',
                                 )
                     else 'Info', DEBUGGING_THIS_MODULE, f'''        {word} is suspect @ {location}\nfrom {cleanedTextToDisplay=}\n  WHICH GAVE {cleanedTextToCheck=}''' )
             if versionAbbreviation == 'Luth':
