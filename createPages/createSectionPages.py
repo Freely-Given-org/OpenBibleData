@@ -79,7 +79,7 @@ from Bibles import getBibleMapperMaps, getOpenBibleImages
 from OETHandlers import livenOETWordLinks, livenOETCompatibleWordLinks, getOETTidyBBB, getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2026-07-22' # by RJH
+LAST_MODIFIED_DATE = '2026-07-23' # by RJH
 SHORT_PROGRAM_NAME = "createSectionPages"
 PROGRAM_NAME = "OpenBibleData createSectionPages functions"
 PROGRAM_VERSION = '0.86'
@@ -154,9 +154,9 @@ def createOETSectionLists( rvBible:ESFMBible, state:State ) -> bool:
                 plusOneV = str( getSmallLeadingInt(V) + 1 ) # Also handles verse ranges
                 for sectionChunk in rest.split( '; ' ):
                     additionalSectionHeadingsDict[(C,plusOneV)].append( (given_marker,sectionChunk) )
-        # if additionalSectionHeadingsDict \
-        # and BBB in ('GEN','EXO','LEV','NUM','DEU', 'SA2', 'CH1','CH2', 'JOB','PRO', 'ISA','JER', 'EZE','AMO','DAN'):
-        #     print( f"HERE1 with s2 {BBB} {additionalSectionHeadingsDict}" )
+        if additionalSectionHeadingsDict \
+        and BBB in ('GEN','EXO','LEV','NUM','DEU', 'SA2', 'CH1','CH2', 'JOB','PRO', 'ISA','JER', 'EZE','AMO','DAN'):
+            print( f"\nHERE1 with s2 {BBB} {additionalSectionHeadingsDict}" )
 
         if not rvBible[BBB]._SectionIndex: # no sections in this book, e.g., FRT
             continue
@@ -263,7 +263,7 @@ def createOETSectionLists( rvBible:ESFMBible, state:State ) -> bool:
             for (c,v),additionalFieldList in additionalSectionHeadingsDict.copy().items():
                 # print( f"{c}:{v} {additionalFieldList}" )
                 for additionalMarker,additionalFieldText in additionalFieldList:
-                    additionalMarkerName = { 's1':'section heading', 's3':'sub-heading3', 'r':'section cross-reference', 'd':'song/Psalm details' }[additionalMarker]
+                    additionalMarkerName = { 's1':'section heading', 's2':'sub-heading', 's3':'sub-heading3', 'r':'section cross-reference', 'd':'song/Psalm details' }[additionalMarker]
                     # NOTE: word 'Alternate ' is searched for below and in findSectionNumber()
                     state.sectionsListsForHeaders['OET-RV'][BBB].append( (c,v,additionalFieldText,f'Alternate {additionalMarkerName}',sectionFilename) )
                 del additionalSectionHeadingsDict[(c,v)]
@@ -273,7 +273,7 @@ def createOETSectionLists( rvBible:ESFMBible, state:State ) -> bool:
         assert len(state.sectionsListsForHeaders['OET-RV'][BBB]) >= len(bkObject._SectionIndex), f"{BBB}: {len(state.sectionsListsForHeaders['OET-RV'][BBB])=} {len(bkObject._SectionIndex)=}"
 
         if BBB in ('GEN','EXO','LEV','NUM','DEU', 'SA2', 'CH1','CH2', 'JOB','PRO', 'ISA','JER', 'EZE','AMO','DAN'):
-            print( f"Looking for s2 in OET-RV {BBB}: ({len(state.sectionsListsForHeaders['OET-RV'][BBB])}) {state.sectionsListsForHeaders['OET-RV'][BBB]=} " )
+            print( f"\nHERE9 with s2 in {BBB}: ({len(state.sectionsListsForHeaders['OET-RV'][BBB])}) {state.sectionsListsForHeaders['OET-RV'][BBB]=} " )
 
         # if hadMS1:
         #     halt
