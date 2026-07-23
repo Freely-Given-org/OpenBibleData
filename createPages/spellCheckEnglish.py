@@ -797,8 +797,8 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                        or word in ( #  \d{1,3}\), \(
                                 'an','aß','Bart','sie','hin','heb','wir','dem','des','für','hub','ich','ist','ja','alle','las','lag','ones)r','ones)s','ones)n','one)s','bis',
                                 'hing','one)r','one)n','weh','du','ach','Raube','Raub','Tal','tue','fiel','sehe','Mal','mal','mit','Mord',
-                                'ende','rede','kam','Korb','ward','alt','dran','Rede','nun','nur','messen','ging','und','ster','streng','tun','von','wer','zu',
-                                'hallluyah','said‘s','scribesr','happeneden','followst',
+                                'ende','rede','kam','Korb','ward','alt','dran','Rede','nun','nur','messen','ging','Halle','und','ster','streng','tun','von','wer','zu',
+                                'impeccable','spirituale','erinnere','abundancee','abovewinden','issest','ähnlich',
                                     'throughläutert','abovewältigten','gratitudes',
 
                                 'actio','ambit','ambitio','anima','antiqui','apprehendi','ascendi','attende','audi',
@@ -818,19 +818,18 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                 'ja','jus','Justi','justi','justis','justificat',     'legi','legis','liberati','liberato','liberat','liber','locus','lux',
                                 'magis','magnifice','magni','manifeste','manu','mater','materia',
                                     'medici','menstrua',        'mira','misera',        'moretri','mortali','morti',
-                                'nam','natu','natura','ne','nota','Nota',     'ob','obsessi','operatio','ora',
+                                'nam','natu','natura','ne','nota','Nota',     'ob','obsessi','operatio','ora','ori',
                                 'passi','patria','patri','pede','pedes','perfecti','persecuti','persecutio',
                                     'pio','plura','polluti','prope','propitiatio','provocat','publica',
-                                'questio','qui',        'rea','redempti','regi','regio','regula','rei','repente','ros',
+                                'questio','qui',        'rea','redempti','rege','regi','regio','regula','rei','repente','ros',
                                 'salva','salvat','salvati','sanctifi','sanctificati',
                                     'securi','separat','separati','seu','serva','servit','sex','sexta',
                                     'si','sit','sol','soli','solem','stat','statu','summo',
                                 'tempora','Tod','tradit','traditi','traditio','transmigratio','tres','tribulatio','tributa','trium','tu','tua','tuam','turba',
                                 'usu',      'valle','vas','victi','visita','visitat','visitatio','vita',
                                 'l','nos','ut','didrachmas',
-                                'believeis','killur','kingneration','obedientes','superiorem','submiti','ori','defeatedt','letterola','reflectionnis',
                                     'prophesyem',
-                                    'thoughtur','communionis','ironm','freelym',
+                                    'tellsur','mothermonio','mountaintret',
                                 )
                     else 'Info', DEBUGGING_THIS_MODULE, f'''        {word} is suspect @ {location}\nfrom {cleanedTextToDisplay=}\n  WHICH GAVE {cleanedTextToCheck=}''' )
             if versionAbbreviation == 'Luth':
