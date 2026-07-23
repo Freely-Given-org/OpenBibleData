@@ -798,7 +798,8 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                 'an','aß','Bart','sie','hin','heb','wir','dem','des','für','hub','ich','ist','ja','alle','las','lag','ones)r','ones)s','ones)n','one)s','bis',
                                 'hing','one)r','one)n','weh','du','ach','Raube','Raub','Tal','tue','fiel','sehe','Mal','mal','mit','Mord',
                                 'ende','rede','kam','Korb','ward','alt','dran','Rede','nun','nur','messen','ging','Halle','und','ster','streng','tun','von','wer','zu',
-                                'impeccable','spirituale','erinnere','abundancee','abovewinden','issest','ähnlich',
+                                'impeccable','spirituale','abundancee','abovewinden','',
+                                'hundredunddreißig','hertwillen','conducteden',
                                     'throughläutert','abovewältigten','gratitudes',
 
                                 'actio','ambit','ambitio','anima','antiqui','apprehendi','ascendi','attende','audi',
@@ -829,8 +830,9 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                 'usu',      'valle','vani','vas','victi','visita','visitat','visitatio','vita',
                                 'l','nos','ut','didrachmas',
                                 'prophesyem',
-                                    'eattis','killalium','partium','anthropophormitæ','linementis',
-                                    'exhibuistis','formtione','compositam','pertinaciter','desolamini','vitales','turbidis','impluviis',
+                                'believeis','mortalis','darknessia','outque','corruptionis','killur',
+                                    'eattis','killalium','partium','linementis',
+                                    'exhibuistis','formtione','compositam','vitales','turbidis',
                                 )
                     else 'Info', DEBUGGING_THIS_MODULE, f'''        {word} is suspect @ {location}\nfrom {cleanedTextToDisplay=}\n  WHICH GAVE {cleanedTextToCheck=}''' )
             if versionAbbreviation == 'Luth':

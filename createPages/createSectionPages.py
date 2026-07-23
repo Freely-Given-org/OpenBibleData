@@ -82,7 +82,7 @@ from OETHandlers import livenOETWordLinks, livenOETCompatibleWordLinks, getOETTi
 LAST_MODIFIED_DATE = '2026-07-23' # by RJH
 SHORT_PROGRAM_NAME = "createSectionPages"
 PROGRAM_NAME = "OpenBibleData createSectionPages functions"
-PROGRAM_VERSION = '0.86'
+PROGRAM_VERSION = '0.87'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -139,11 +139,11 @@ def createOETSectionLists( rvBible:ESFMBible, state:State ) -> bool:
         for n, entry in enumerate( rvVerseEntryList ):
             # if n < 7: print( f"OET-RV {BBB} section index {n}: {entry}" )
             marker = entry.getMarker()
-            if marker not in ('c','v','s2','rem'): continue
+            if marker not in ('c','v','s2','s3','s4','rem'): continue
             rest = entry.getOriginalText()
             if marker == 'c': C, V = rest, '0'
             elif marker == 'v': V = rest
-            elif marker == 's2':
+            elif marker in ('s2','s3','s4'):
                 plusOneV = str( getSmallLeadingInt(V) + 1 ) # Also handles verse ranges
                 additionalSectionHeadingsDict[(C,plusOneV)].append( (marker,rest) )
             elif marker == 'rem':
@@ -153,10 +153,10 @@ def createOETSectionLists( rvBible:ESFMBible, state:State ) -> bool:
                 rest = rest[len(given_marker)+2:] # Drop the '/marker ' from the displayed portion
                 plusOneV = str( getSmallLeadingInt(V) + 1 ) # Also handles verse ranges
                 for sectionChunk in rest.split( '; ' ):
-                    additionalSectionHeadingsDict[(C,plusOneV)].append( (given_marker,sectionChunk) )
-        if additionalSectionHeadingsDict \
-        and BBB in ('GEN','EXO','LEV','NUM','DEU', 'SA2', 'CH1','CH2', 'JOB','PRO', 'ISA','JER', 'EZE','AMO','DAN'):
-            print( f"\nHERE1 with s2 {BBB} {additionalSectionHeadingsDict}" )
+                    additionalSectionHeadingsDict[(C,plusOneV)].append( (f'alt_{given_marker}',sectionChunk) )
+        # if additionalSectionHeadingsDict \
+        # and BBB in ('GEN','EXO','LEV','NUM','DEU', 'SA2', 'CH1','CH2', 'JOB','PRO', 'ISA','JER', 'EZE','AMO','DAN'):
+        #     print( f"\nHERE1 with s2 {BBB} {additionalSectionHeadingsDict}" )
 
         if not rvBible[BBB]._SectionIndex: # no sections in this book, e.g., FRT
             continue
@@ -212,8 +212,9 @@ def createOETSectionLists( rvBible:ESFMBible, state:State ) -> bool:
                     if int(c) < intStartC \
                     or c==startC and int(v) < intStartV:
                         for additionalMarker,additionalFieldText in additionalFieldList:
-                            if additionalMarker in ('s1','s2','s3'):
-                                additionalMarkerName = { 's1':'section heading', 's2':'2nd level section heading', 's3':'3rd level section heading' }[additionalMarker]
+                            if additionalMarker in ('alt_s1','alt_s2','alt_s3','alt_s4'):
+                                # NOTE: word 'Alternate ' is searched for below
+                                additionalMarkerTextName = { 'alt_s1':'Alternate section heading', 's2':'Alternate sub-heading', 's3':'Alternate 3rd level section heading', 's4':'Alternate 4th level section heading' }[additionalMarker]
                                 if additionalFieldText in thisAltHeadings:
                                     logging.critical( f"Have duplicate '{additionalFieldText}' alternative heading in OET-RV {BBB} {c}:{v}" )
                                 else:
@@ -222,11 +223,13 @@ def createOETSectionLists( rvBible:ESFMBible, state:State ) -> bool:
                                             logging.error( f"Have contained '{additionalFieldText}' vs '{previousAltHeading}' alternative headings in OET-RV {BBB} {c}:{v}" )
                                 if sectionName.lower() in additionalFieldText.lower() or additionalFieldText.lower() in sectionName.lower():
                                     logging.warning( f"Have contained '{additionalFieldText}' vs '{sectionName}' alternative headings in OET-RV {BBB} {c}:{v}" )
-                                # NOTE: word 'Alternate ' is searched for below
-                                state.sectionsListsForHeaders['OET-RV'][BBB].append( (c,v,additionalFieldText,f'Alternate {additionalMarkerName}',sectionFilename) )
+                                state.sectionsListsForHeaders['OET-RV'][BBB].append( (c,v,additionalFieldText,additionalMarkerTextName',sectionFilename) )
                                 thisAltHeadings.append( additionalFieldText )
+                            elif additionalMarker in ('s2','s3','s4'):
+                                additionalMarkerTextName = { 's2':'sub-heading', 's3':'3rd level section heading', 's4':'4th level section heading' }[additionalMarker]
+                                state.sectionsListsForHeaders['OET-RV'][BBB].append( (c,v,additionalFieldText,additionalMarkerTextName',sectionFilename) )
                             else:
-                                logging.warning( f"createOETSectionPages ignored additional \\{additionalMarker} at OET-RV {BBB} {c}:{v}" )
+                                logging.critical( f"createOETSectionPages ignored additional \\{additionalMarker} at OET-RV {BBB} {c}:{v}" )
                         del additionalSectionHeadingsDict[(c,v)]
 
             sectionName = sectionName.replace( "'", "’" ) # Replace apostrophes
@@ -257,13 +260,12 @@ def createOETSectionLists( rvBible:ESFMBible, state:State ) -> bool:
             state.sectionsListsForHeaders['OET-RV'][BBB].append( (startC,startV,sectionName,reasonMarker,sectionFilename) )
         assert len(state.sectionsListsForHeaders['OET-RV'][BBB]) >= len(state.sectionsListsForSections['OET-RV'][BBB])
 
-        if additionalSectionHeadingsDict:
+        if additionalSectionHeadingsDict: # Handle left-over additions
             dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"OET-RV {BBB} didn't originally use {additionalSectionHeadingsDict=}")
-            # Handle left-over additions
             for (c,v),additionalFieldList in additionalSectionHeadingsDict.copy().items():
                 # print( f"{c}:{v} {additionalFieldList}" )
                 for additionalMarker,additionalFieldText in additionalFieldList:
-                    additionalMarkerName = { 's1':'section heading', 's2':'sub-heading', 's3':'sub-heading3', 'r':'section cross-reference', 'd':'song/Psalm details' }[additionalMarker]
+                    additionalMarkerTextName = { 's1':'section heading', 's2':'sub-heading', 's3':'sub-heading3', 'r':'section cross-reference', 'd':'song/Psalm details' }[additionalMarker]
                     # NOTE: word 'Alternate ' is searched for below and in findSectionNumber()
                     state.sectionsListsForHeaders['OET-RV'][BBB].append( (c,v,additionalFieldText,f'Alternate {additionalMarkerName}',sectionFilename) )
                 del additionalSectionHeadingsDict[(c,v)]
