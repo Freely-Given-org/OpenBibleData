@@ -195,7 +195,7 @@ def createOETSectionLists( rvBible:ESFMBible, state:State ) -> bool:
             # print( f'''OET {BBB} Section {n} processing: {startC}:{startV}-{endC}:{endV} {f'{len(hadMS1)=}' if isinstance(hadMS1, InternalBibleEntryList) else f'{hadMS1=}'} {reasonMarker=} {sectionName=}''' )
 
             # Header list has ms1 separately
-            if 'ms1' in reasosectionsListsForHeadersnMarker:
+            if 'ms1' in reasonMarker:
                 # print( f"  OET {BBB} Section {n} has ms1: {startC}:{startV}-{endC}:{endV} {reasonMarker=} {sectionName=}" )
                 assert hadMS1 is None, f"    OET {BBB} Section {n} didn't expect 2nd ms1: {startC}:{startV}-{endC}:{endV} {reasonMarker=} {sectionName=} {len(state.sectionsListsForHeaders['OET-RV'][BBB])=} {len(state.sectionsListsForSections['OET-RV'][BBB])=}"
                 hadMS1 = True
