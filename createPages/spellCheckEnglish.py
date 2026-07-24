@@ -830,9 +830,8 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                 'usu',      'valle','vani','vas','victi','visita','visitat','visitatio','vita',
                                 'l','nos','ut','didrachmas',
                                 'prophesyem',
-                                'believeis','mortalis','darknessia','outque','corruptionis','killur',
-                                    'eattis','killalium','partium','linementis',
-                                    'exhibuistis','formtione','compositam','vitales','turbidis',
+                                'believeis','outque','killur',
+                                    'anthropomorphites','anthropomorphists','adulteressntes',
                                 )
                     else 'Info', DEBUGGING_THIS_MODULE, f'''        {word} is suspect @ {location}\nfrom {cleanedTextToDisplay=}\n  WHICH GAVE {cleanedTextToCheck=}''' )
             if versionAbbreviation == 'Luth':

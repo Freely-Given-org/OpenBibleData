@@ -94,8 +94,11 @@ SECTION_REASON_NAME_DICT = { 'Headers':'Headers', 'is1':'Introduction section he
                          'c':'Start of chapter', 's1':'Section heading', 'c/s1':'Section heading', 's1/c':'Section heading',
                          'ms1':'Main section', 'c/ms1':'Main section', 'ms1/c':'Main section',
                          'ms1/s1':'Main section with section heading', 'ms1/c/s1':'Main section with section heading' }
-SECTION_HEADING_NAME_DICT = { 's1':'section heading', 's2':'sub-heading', 's3':'sub-heading3', 'r':'section cross-reference', 'd':'song/Psalm details',
-                            'alt_s1':'Alternate section heading', 'alt_s2':'Alternate sub-heading', 'alt_s3':'Alternate 3rd level section heading', 'alt_s4':'Alternate 4th level section heading' }
+SECTION_HEADING_NAME_DICT = { 'r':'section cross-reference', 'd':'song/Psalm details',
+                             's1':'section heading', 's2':'sub-heading', 's3':'sub-heading3', 's4':'sub-heading4',
+                            'alt_s1':'Alternate section heading', 'alt_s2':'Alternate sub-heading', 'alt_s3':'Alternate 3rd level section heading', 'alt_s4':'Alternate 4th level section heading', }
+# NOTE: word 'Alternate ' is searched for below and in findSectionNumber()
+
 
 def createOETSectionLists( rvBible:ESFMBible, state:State ) -> bool:
     """
@@ -266,9 +269,9 @@ def createOETSectionLists( rvBible:ESFMBible, state:State ) -> bool:
             for (c,v),additionalFieldList in additionalSectionHeadingsDict.copy().items():
                 # print( f"{c}:{v} {additionalFieldList}" )
                 for additionalMarker,additionalFieldText in additionalFieldList:
-                    additionalMarkerTextName = SECTION_HEADING_NAME_DICT[additionalMarker]
                     # NOTE: word 'Alternate ' is searched for below and in findSectionNumber()
-                    state.sectionsListsForHeaders['OET-RV'][BBB].append( (c,v,additionalFieldText,f'Alternate {additionalMarkerName}',sectionFilename) )
+                    additionalMarkerTextName = SECTION_HEADING_NAME_DICT[additionalMarker]
+                    state.sectionsListsForHeaders['OET-RV'][BBB].append( (c,v,additionalFieldText,additionalMarkerTextName,sectionFilename) )
                 del additionalSectionHeadingsDict[(c,v)]
             if additionalSectionHeadingsDict:
                 dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"{BBB} didn't use {additionalSectionHeadingsDict=}")
@@ -491,15 +494,16 @@ def createOETSectionPages( level:int, folder:Path, rvBible:ESFMBible, lvBible:ES
         sectionHtmlBits = [f'''<h1>Index of sections for OET {ourTidyBBBwithNotes.replace('YHN','YOHAN')}</h1>''']
         for startC,startV,sectionName,reasonMarker,sectionFilename in state.sectionsListsForHeaders['OET-RV'][BBB]:
             # print( f"HERE8 {BBB} {startC}:{startV} {sectionName=} {reasonMarker=} {sectionFilename=}" )
-            reasonName = reasonMarker if reasonMarker.startswith('Alternate ') else SECTION_REASON_NAME_DICT[reasonMarker]
+            reasonName = reasonMarker if 'heading' in reasonMarker else SECTION_REASON_NAME_DICT[reasonMarker]
             reasonString = '' if reasonName=='Section heading' and not state.TEST_MODE_FLAG else f' ({reasonName})' # Suppress '(Section Heading)' appendages in the list
             sectionNumber = sectionFilename[5:-4] # Section filename is something like 'DAN_S10.htm'
             # NOTE: word 'Alternate ' is defined above in createOETSectionLists()
             if 'ms1' in reasonMarker: # We adjust the destination link
                 # print( f"MS1 {startC}:{startV}, {sectionName}, {reasonMarker}, {reasonName}, {sectionFilename=}" )
                 sectionHtmlBits.append( f'''<p class="mainSectionHeading"><a title="View section {sectionNumber}" href="{sectionFilename}#Top">{'Intro' if startC=='-1' else startC}:{startV} <b>{sectionName}</b>{reasonString}</a></p>''' )
-            else:
-                sectionHtmlBits.append( f'''<p class="{'alternateHeading' if reasonName.startswith('Alternate ') else 'sectionHeading'}"><a title="View section {sectionNumber}" href="{sectionFilename}#Top">{'Intro' if startC=='-1' else startC}:{startV} <b>{sectionName}</b>{reasonString}</a></p>''' )
+            else: # .startswith('Alternate ')
+                sectionHtmlBits.append( f'''<p class="{'sectionHeading' if reasonName in ('section heading','Section heading') \
+                                            else 'alternateHeading'}"><a title="View section {sectionNumber}" href="{sectionFilename}#Top">{'Intro' if startC=='-1' else startC}:{startV} <b>{sectionName}</b>{reasonString}</a></p>''' )
 
         sectionHtml = f'''{top}<!--sections page-->
 {navBookListParagraph}
