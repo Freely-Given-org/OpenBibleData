@@ -831,7 +831,8 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                 'l','nos','ut','didrachmas',
                                 'prophesyem',
                                 'believeis','outque','killur',
-                                    'anthropomorphites','anthropomorphists','adulteressntes',
+                                    'anthropomorphites','anthropomorphists',
+                                    'formtively','watersturbid','clibanus','rugierunt','exustæ','puritatem','turpitudine','constupraverunt','ducebat','turbidam',
                                 )
                     else 'Info', DEBUGGING_THIS_MODULE, f'''        {word} is suspect @ {location}\nfrom {cleanedTextToDisplay=}\n  WHICH GAVE {cleanedTextToCheck=}''' )
             if versionAbbreviation == 'Luth':

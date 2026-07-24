@@ -503,7 +503,7 @@ def createOETSectionPages( level:int, folder:Path, rvBible:ESFMBible, lvBible:ES
                 sectionHtmlBits.append( f'''<p class="mainSectionHeading"><a title="View section {sectionNumber}" href="{sectionFilename}#Top">{'Intro' if startC=='-1' else startC}:{startV} <b>{sectionName}</b>{reasonString}</a></p>''' )
             else: # .startswith('Alternate ')
                 sectionHtmlBits.append( f'''<p class="{'sectionHeading' if reasonName in ('section heading','Section heading') \
-                                            else 'alternateHeading'}"><a title="View section {sectionNumber}" href="{sectionFilename}#Top">{'Intro' if startC=='-1' else startC}:{startV} <b>{sectionName}</b>{reasonString}</a></p>''' )
+                                            else 'alternateHeading'}"><a title="View section {sectionNumber}" href="{sectionFilename}#V{startV}">{'Intro' if startC=='-1' else startC}:{startV} <b>{sectionName}</b>{reasonString}</a></p>''' )
 
         sectionHtml = f'''{top}<!--sections page-->
 {navBookListParagraph}
