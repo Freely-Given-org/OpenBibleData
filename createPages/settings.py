@@ -66,10 +66,10 @@ class State:
     """
     A place to store some of the global stuff that needs to be passed around.
     """
-    OET_VERSION_NUMBER_STRING = 'v0.48.61' # Incremented on most runs
+    OET_VERSION_NUMBER_STRING = 'v0.48.62' # Incremented on most runs
 
     TEST_MODE_FLAG = True # Writes smaller website subset into 'Test' subfolder if True
-    TEST_OT_BOOK_LIST = ['JER'] # Books in progress
+    TEST_OT_BOOK_LIST = ['PSA','JER'] # Books in progress
     TEST_DC_BOOK_LIST = [] # Books in progress
     TEST_NT_BOOK_LIST = ['MRK'] # Shortest gospel
     NEW_BOOK_IN_TEST_LIST_FLAG = False # So that interlinear, parallel passages, topic, kingdom, and dict & word pages will get rebuilt for TEST_MODE_FLAG

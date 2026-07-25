@@ -798,11 +798,11 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                 'an','aß','Bart','sie','hin','heb','wir','dem','des','für','hub','ich','ist','ja','alle','las','lag','ones)r','ones)s','ones)n','one)s','bis',
                                 'hing','one)r','one)n','weh','du','ach','Raube','Raub','Tal','tue','fiel','sehe','Mal','mal','mit','Mord',
                                 'ende','rede','kam','Korb','ward','alt','dran','Rede','nun','nur','messen','ging','Halle','und','ster','streng','tun','von','wer','zu',
-                                'impeccable','spirituale','abundancee','abovewinden','',
-                                'hundredunddreißig','hertwillen','conducteden',
+                                'impeccable','spirituale','abundancee','abovewinden','hundredunddreißig','hertwillen','conducteden',
+                                'fireflamme','maye','therehin','mournte',
                                     'throughläutert','abovewältigten','gratitudes',
 
-                                'actio','ambit','ambitio','anima','antiqui','apprehendi','ascendi','attende','audi',
+                                'actio','ambit','ambitio','anima','antiqui','apprehendi','ascendi','attende','audi', 'aversio',
                                 'beati','bene','beneficia','bos',
                                 'ca','calami','capti',       'centurio',     'Christi',      'circumcisio','cis',        'cognitio','cogniti','complet',
                                         'competit',
@@ -829,10 +829,11 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                 'tempora','Tod','tradit','traditi','traditio','transmigratio','tres','tribulatio','tributa','trium','tu','tua','tuam','turba',
                                 'usu',      'valle','vani','vas','victi','visita','visitat','visitatio','vita',
                                 'l','nos','ut','didrachmas',
+                                'anthropomorphites','anthropomorphists',
                                 'prophesyem',
                                 'believeis','outque','killur',
-                                    'anthropomorphites','anthropomorphists',
-                                    'formtively','watersturbid','clibanus','rugierunt','exustæ','puritatem','turpitudine','constupraverunt','ducebat','turbidam',
+                                    'formtively','watersturbid',
+                                    'transgressedo',
                                 )
                     else 'Info', DEBUGGING_THIS_MODULE, f'''        {word} is suspect @ {location}\nfrom {cleanedTextToDisplay=}\n  WHICH GAVE {cleanedTextToCheck=}''' )
             if versionAbbreviation == 'Luth':
