@@ -72,17 +72,17 @@ from BibleOrgSys.Formats.ESFMBible import ESFMBible, ESFM_WORD_NUMBER_REGEX
 import bos_books_codes_py
 
 from settings import State
-from usfm import convertVerseEntryListToHtml
+from usfm import convertVerseEntryListToHtml, XREF_REGEX, FOOTNOTE_REGEX
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
                     makeTop, makeBottom, makeBookNavListParagraph, removeDuplicateCVids, checkHtml
 from Bibles import getBibleMapperMaps, getOpenBibleImages
 from OETHandlers import livenOETWordLinks, livenOETCompatibleWordLinks, getOETTidyBBB, getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2026-07-25' # by RJH
+LAST_MODIFIED_DATE = '2026-07-26' # by RJH
 SHORT_PROGRAM_NAME = "createSectionPages"
 PROGRAM_NAME = "OpenBibleData createSectionPages functions"
-PROGRAM_VERSION = '0.88'
+PROGRAM_VERSION = '0.89'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -152,8 +152,11 @@ def createOETSectionLists( rvBible:ESFMBible, state:State ) -> bool:
                 additionalSectionHeadingsDict[(C,plusOneV)].append( (marker,rest) )
             elif marker == 'd':
                 plusOneV = str( getSmallLeadingInt(V) ) # Also handles verse ranges
-                # We'll handle the formatting here in advance -- delete word numbers and handle add markers
-                rest = ESFM_WORD_NUMBER_REGEX.sub( '', rest ) \
+                # We'll handle the formatting here in advance --
+                #    delete word numbers, xrefs, & footnotes, and handle add markers
+                rest = ESFM_WORD_NUMBER_REGEX.sub( '', rest )
+                rest = XREF_REGEX.sub( '', rest )
+                rest = FOOTNOTE_REGEX.sub( '', rest ) \
                     .replace( '\\add ', '<span class="add">' ).replace( '\\add*', '</span>' ) \
                     .replace( '<span class="add">?≈', '<span class="addReword unsure" title="reworded (less certain)">' )
                 additionalSectionHeadingsDict[(C,plusOneV)].append( (marker,rest) )

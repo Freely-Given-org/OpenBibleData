@@ -106,10 +106,10 @@ from OETHandlers import getBBBFromOETBookName
 from Bibles import getOpenBibleImages
 
 
-LAST_MODIFIED_DATE = '2026-07-08' # by RJH
+LAST_MODIFIED_DATE = '2026-07-26' # by RJH
 SHORT_PROGRAM_NAME = "usfm"
 PROGRAM_NAME = "OpenBibleData USFM to HTML functions"
-PROGRAM_VERSION = '1.1.1'
+PROGRAM_VERSION = '1.1.2'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -124,20 +124,24 @@ NON_BREAK_SPACE = ' ' # NBSP
 MAX_FOOTNOTE_CHARS = 11_500 # 1,029 in FBV, 1,688 in BrTr, 10,426 in ClVg JOB!
 MAX_NET_FOOTNOTE_CHARS = 18_000 # 17,145 in NET ECC
 
-spClassDict = {
+XREF_REGEX = re.compile( '\\\\x .+?\\\\x\\*' )
+FOOTNOTE_REGEX = re.compile( '\\\\f .+?\\\\f\\*' )
+
+SPAN_CLASS_REGEX = re.compile( '<span class=".+?">' )
+
+FIG_SRC_REGEX = re.compile( 'src="([^"]+?)"' )
+FIG_SIZE_REGEX = re.compile( 'size="([^"]+?)"' )
+FIG_REF_REGEX = re.compile( 'ref="([^"]+?)"' )
+FIG_ALT_REGEX = re.compile( 'alt="([^"]+?)"' )
+FIG_LOC_REGEX = re.compile( 'loc="([^"]+?)"' )
+FIG_COPY_REGEX = re.compile( 'copy="([^"]+?)"' )
+
+SP_CLASS_DICT = {
     'The groom':'groom', 'The bride':'bride', 'Yerushalem’s young women':'women','Bride’s older brothers':'brothers',
     'Yirmeyah':'Yirmeyah', 'The people':'people',
     }
 
-XRefRegEx = re.compile( '\\\\x .+?\\\\x\\*' )
-FnRegEx = re.compile( '\\\\f .+?\\\\f\\*' )
-spanClassRegEx = re.compile( '<span class=".+?">' )
-figSrcRegex = re.compile( 'src="([^"]+?)"' )
-figSizeRegex = re.compile( 'size="([^"]+?)"' )
-figRefRegex = re.compile( 'ref="([^"]+?)"' )
-figAltRegex = re.compile( 'alt="([^"]+?)"' )
-figLocRegex = re.compile( 'loc="([^"]+?)"' )
-figCopyRegex = re.compile( 'copy="([^"]+?)"' )
+
 def convertVerseEntryListToHtml( level:int, versionAbbreviation:str, refTuple:tuple, segmentType:str, contextList:list, verseEntryList:list, basicOnly:bool, state:State ) -> str:
     """
     Loops through the given list of processed USFM lines (verseEntryList)
@@ -257,7 +261,7 @@ def convertVerseEntryListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                     not_written_yet
                 else: # it must be a USFM v3 figure that we have to parse
                     assert figRest.lstrip().startswith( 'src="' )
-                    if match := figSrcRegex.search( figRest ):
+                    if match := FIG_SRC_REGEX.search( figRest ):
                         figSrc = match.group(1)
                         figSrcPath = Path( figSrc )
                         assert figSrcPath.is_file(), f"{figSrcPath=}"
@@ -271,19 +275,19 @@ def convertVerseEntryListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                             shutil.copy2( figSrcPath, imagesDestinationFolder )
                             print( f"Fig: starting with {figSrcPath=}, copied '{figSrc}' image to {imagesDestinationFolder=}" )
                     figSize = None
-                    if match := figSizeRegex.search( figRest ):
+                    if match := FIG_SIZE_REGEX.search( figRest ):
                         figSize = match.group(1)
                     figRef = None
-                    if match := figRefRegex.search( figRest ):
+                    if match := FIG_REF_REGEX.search( figRest ):
                         figRef = match.group(1)
                     figAltText = figSrc.replace( '.jpg', '' ).replace( '.png', '' ).replace( '_', ' ' )
-                    if match := figAltRegex.search( figRest ):
+                    if match := FIG_ALT_REGEX.search( figRest ):
                         figAltText = match.group(1)
                     figLocation = None
-                    if match := figLocRegex.search( figRest ):
+                    if match := FIG_LOC_REGEX.search( figRest ):
                         figLocation = match.group(1)
                     figCopyright = None
-                    if match := figCopyRegex.search( figRest ):
+                    if match := FIG_COPY_REGEX.search( figRest ):
                         figCopyright = match.group(1)
                     # dPrint( 'Info', DEBUGGING_THIS_MODULE, f"Got fig {versionAbbreviation} {refTuple} {segmentType=} {figCaption=} {figSrc=} {figSize=} {figRef=} {figAltText=} {figLocation=} {figCopyright=}" )
                     figureHtml = f'''<img src="{'../'*level}images/{figSrc}"{f' alt="{figAltText}"' if figAltText else ''} style="max-height:280px;">'''
@@ -527,12 +531,12 @@ def convertVerseEntryListToHtml( level:int, versionAbbreviation:str, refTuple:tu
             if basicOnly \
             and (versionAbbreviation!='OET-RV' or segmentType!='parallelVerse') \
             and '\\x ' in rest: # Completely remove cross-references
-                rest, xCount = XRefRegEx.subn( '', rest )
+                rest, xCount = XREF_REGEX.subn( '', rest )
                 # print( f"Removed {xCount} cross-references from {refTuple} {rest=} now {xrest=}")
                 # if xCount > 1: assert False, "We want to stop here"
                 # rest = xrest
             if basicOnly and segmentType=='dictVerse' and '\\f ' in rest: # Completely remove footnotes
-                rest, fCount = FnRegEx.subn( '', rest )
+                rest, fCount = FOOTNOTE_REGEX.subn( '', rest )
                 # print( f"Removed {fCount} footnotes from {refTuple} {rest=} now {xrest=}")
                 # if fCount > 1: assert False, "We want to stop here"
                 # rest = xrest
@@ -1039,7 +1043,7 @@ def convertVerseEntryListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                     # print( f"sp {rest=} from {markerList=}")
                     # for eeee, entry in enumerate( markerList ):
                     #     print( f"  {eeee} {entry=}" )
-                    spClass = spClassDict[rest]
+                    spClass = SP_CLASS_DICT[rest]
                     # except KeyError:
                     #     logging.critical( f"No SP (speaker) dict entry for {rest=} {versionAbbreviation} {refTuple} {segmentType}" )
                     #     spClass = 'None'
@@ -1523,7 +1527,7 @@ def convertVerseEntryListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                 sanitisedFnoteMiddle = f'Note: {sanitisedFnoteMiddle}'
         if '"' in sanitisedFnoteMiddle or '<' in sanitisedFnoteMiddle or '>' in sanitisedFnoteMiddle:
             sanitisedFnoteMiddle = sanitisedFnoteMiddle.replace( '</span>', '' )
-            sanitisedFnoteMiddle = spanClassRegEx.sub( '', sanitisedFnoteMiddle )
+            sanitisedFnoteMiddle = SPAN_CLASS_REGEX.sub( '', sanitisedFnoteMiddle )
             for charMarker in ('em','i','b', 'sup','sub'): # These are HTML markers
                 sanitisedFnoteMiddle = sanitisedFnoteMiddle.replace( f'<{charMarker}>', '' ).replace( f'</{charMarker}>', '' )
             # if versionAbbreviation == 'OET-LV': # then we don't want equals or underlines in the sanitised footnote to get converted into spans later
