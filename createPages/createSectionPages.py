@@ -59,6 +59,7 @@ CHANGELOG:
     2026-06-17 Added prev/next links on section index pages
     2026-06-29 Improved handling of ms1 fields in conjunction with new BibleOrgSys (Rust) code
     2026-07-06 Added OBI images to OET-RV
+    2026-07-26 Added d and s4 lines to OET and OET-RV section heading index pages
 """
 from pathlib import Path
 import os
@@ -505,7 +506,6 @@ def createOETSectionPages( level:int, folder:Path, rvBible:ESFMBible, lvBible:ES
                 # print( f"MS1 {startC}:{startV}, {sectionName}, {reasonMarker}, {reasonName}, {sectionFilename=}" )
                 sectionHtmlBits.append( f'''<p class="mainSectionHeading"><a title="View section {sectionNumber}" href="{sectionFilename}#Top">{'Intro' if startC=='-1' else startC}:{startV} <b>{sectionName}</b>{reasonString}</a></p>''' )
             else:
-                # was .startswith('Alternate ')
                 pClass = 'sectionHeading' if reasonName in ('section heading','Section heading') else 'alternateHeading'
                 if '4' in reasonMarker: # it's our kingdom marker -- add an additional HTML class marker
                     assert 'kingdom' in sectionName
@@ -755,19 +755,35 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> list
         BBBindex = availableBBBs.index( BBB )
         leftLink = f'<a title="Previous book: {getOETTidyBBB(availableBBBs[BBBindex-1])}" href="{availableBBBs[BBBindex-1]}.htm#Top">←</a> ' if BBBindex>0 else ''
         rightLink = f' <a title="Next book: {getOETTidyBBB(availableBBBs[BBBindex+1])}" href="{availableBBBs[BBBindex+1]}.htm#Top">→</a>' if BBBindex<len(availableBBBs)-1 else ''
-        sectionFilename = f'{BBB}.htm'
-        indexFilepath = folder.joinpath( sectionFilename )
+        indexFilename = f'{BBB}.htm'
+        indexFilepath = folder.joinpath( indexFilename )
         top = makeTop( level, thisBible.abbreviation, 'sectionIndex', f'bySec/{sectionFilename}', state ) \
                 .replace( '__TITLE__', f"{thisBible.abbreviation} {ourTidyBBB} sections{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
                 .replace( '__KEYWORDS__', f'Bible, {thisBible.abbreviation}, sections, {ourTidyBBB}' ) \
                 .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/bySec/{sectionFilename}#Top">{thisBible.abbreviation}</a>''',
                         f'''<a title="Up to {state.BibleNames[thisBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/">↑{thisBible.abbreviation}</a>''' )
         sectionHtmlBits = [f'<h1>Index of sections for {thisBible.abbreviation} {ourTidyBBB}</h1>']
-        for _nnn,startC,startV,_endC,_endV,sectionName,reasonName,_contextList,_verseEntryList,sectionFilename in state.sectionsListsForSections[thisBible.abbreviation][BBB]:
-            reasonString = '' if reasonName=='Section heading' and not state.TEST_MODE_FLAG else f' ({reasonName})' # Suppress '(Section Heading)' appendages in the list
-            # NOTE: word 'Alternate ' is defined in the above OET function at start of main loop
-            sectionHtmlBits.append( f'''<p class="{'alternateHeading' if reasonName.startswith('Alternate ') else 'sectionHeading'}"><a title="View section" href="{sectionFilename}#Top">{'Intro' if startC=='-1' else startC}:{startV} <b>{sectionName}</b>{reasonString}</a></p>''' )
-            # sectionHtml = f'''{sectionHtml}<p class="sectionHeading"><a title="View section" href="{filename}#Top">{'Intro' if startC=='-1' else startC}:{startV} <b>{sectionName}</b>{reasonString}</a></p><!--sectionHeading-->\n'''
+        if thisBible.abbreviation == 'OET-RV':
+            for startC,startV,sectionName,reasonMarker,sectionFilename in state.sectionsListsForHeaders['OET-RV'][BBB]:
+                # print( f"HERE8 {BBB} {startC}:{startV} {sectionName=} {reasonMarker=} {sectionFilename=}" )
+                reasonName = reasonMarker if 'heading' in reasonMarker or reasonMarker not in SECTION_REASON_NAME_DICT else SECTION_REASON_NAME_DICT[reasonMarker]
+                reasonString = '' if reasonName=='Section heading' and not state.TEST_MODE_FLAG else f' ({reasonName})' # Suppress '(Section Heading)' appendages in the list
+                sectionNumber = sectionFilename[5:-4] # Section filename is something like 'DAN_S10.htm'
+                if 'ms1' in reasonMarker: # We adjust the destination link
+                    # print( f"MS1 {startC}:{startV}, {sectionName}, {reasonMarker}, {reasonName}, {sectionFilename=}" )
+                    sectionHtmlBits.append( f'''<p class="mainSectionHeading"><a title="View section {sectionNumber}" href="{sectionFilename}#Top">{'Intro' if startC=='-1' else startC}:{startV} <b>{sectionName}</b>{reasonString}</a></p>''' )
+                else:
+                    pClass = 'sectionHeading' if reasonName in ('section heading','Section heading') else 'alternateHeading'
+                    if '4' in reasonMarker: # it's our kingdom marker -- add an additional HTML class marker
+                        assert 'kingdom' in sectionName
+                        pClass = f"{pClass} {sectionName.replace( ' ', '' ).replace( 'king', 'King' ).replace( 'land', 'Land' )}"
+                    sectionHtmlBits.append( f'''<p class="{pClass}"><a title="View section {sectionNumber}" href="{sectionFilename}#V{startV}">{'Intro' if startC=='-1' else startC}:{startV} <b>{sectionName}</b>{reasonString}</a></p>''' )
+        else: # not OET-RV
+            for _nnn,startC,startV,_endC,_endV,sectionName,reasonName,_contextList,_verseEntryList,indexFilename in state.sectionsListsForSections[thisBible.abbreviation][BBB]:
+                reasonString = '' if reasonName=='Section heading' and not state.TEST_MODE_FLAG else f' ({reasonName})' # Suppress '(Section Heading)' appendages in the list
+                # NOTE: word 'Alternate ' is defined in the above OET function at start of main loop
+                sectionHtmlBits.append( f'''<p class="{'alternateHeading' if reasonName.startswith('Alternate ') else 'sectionHeading'}"><a title="View section" href="{sectionFilename}#Top">{'Intro' if startC=='-1' else startC}:{startV} <b>{sectionName}</b>{reasonString}</a></p>''' )
+                # sectionHtml = f'''{sectionHtml}<p class="sectionHeading"><a title="View section" href="{filename}#Top">{'Intro' if startC=='-1' else startC}:{startV} <b>{sectionName}</b>{reasonString}</a></p><!--sectionHeading-->\n'''
         sectionHtml = f'''{top}<!--sections page-->
 {navBookListParagraph}
 {f'<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>\n' if 'OET' in thisBible.abbreviation else ''}<p class="pageNav" id="Top">{leftLink}{ourTidyBBB} <a title="Go to bottom of page" href=#Bottom>↓</a>{rightLink}</p>
