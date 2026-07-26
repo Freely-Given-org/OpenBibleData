@@ -50,13 +50,6 @@ p.licence { }
 p.acknwldg { }
 p.footnote { font-size:0.85em; }
 
-/* For Kingdom pages, etc. */
-h1.PromisedLand { color:gold; }
-h1.FullKingdom { color:blue; }
-h1.NorthernKingdom { color:purple; }
-h1.SouthernKingdom { color:green; }
-h1.BothKingdoms { color:orange; }
-
 div.parallelBMM {}
 h2.mapTitle {}
 p.mapSubtitle {}
@@ -69,3 +62,10 @@ div.FullKingdom { background-color:#cce6ff; }
 div.NorthernKingdom { background-color:#ffe6ff; }
 div.SouthernKingdom { background-color:#e6ffe6; }
 div.BothKingdoms { background-color:#fff5e6; }
+
+/* For Kingdom pages, etc. (h1 and p) */
+h1.PromisedLand, p.PromisedLand { color:gold; }
+h1.FullKingdom, p.FullKingdom { color:blue; }
+h1.NorthernKingdom, p.NorthernKingdom { color:purple; }
+h1.SouthernKingdom, p.SouthernKingdom { color:green; }
+h1.BothKingdoms, p.BothKingdoms { color:orange; }

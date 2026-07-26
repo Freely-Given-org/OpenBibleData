@@ -802,6 +802,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                 'fireflamme','maye','therehin','mournte',
                                     'throughläutert','abovewältigten','gratitudes',
                                     'peoplewerk','footsteigen','abovewältige','humblee','fillst','songss','moveen','blacke','separatedn','watergüsse',
+                                    'humbleest','springen',
 
                                 'actio','ambit','ambitio','anima','antiqui','apprehendi','ascendi','attende','audi', 'aversio',
                                 'beati','bene','beneficia','bos',
@@ -834,7 +835,8 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                 'prophesyem',
                                 'believeis','outque','killur',
                                     'watersturbid',
-                                    'listenes','inthey','justificat','praiseus','lubricum','lugens','desinit','disturbsum','cervus','mansuetus','lovedsti','penitentbus','asksur',
+                                    'listenes','inthey','justificat','praiseus','lubricum','lugens','desinit','disturbsum','lovedsti','penitentbus',
+                                    'inscriptionnem',
                                 )
                     else 'Info', DEBUGGING_THIS_MODULE, f'''        {word} is suspect @ {location}\nfrom {cleanedTextToDisplay=}\n  WHICH GAVE {cleanedTextToCheck=}''' )
             if versionAbbreviation == 'Luth':
