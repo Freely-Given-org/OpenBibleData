@@ -798,9 +798,10 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                 'an','aß','Bart','sie','hin','heb','wir','dem','des','für','hub','ich','ist','ja','alle','las','lag','ones)r','ones)s','ones)n','one)s','bis',
                                 'hing','one)r','one)n','weh','du','ach','Raube','Raub','Tal','tue','fiel','sehe','Mal','mal','mit','Mord',
                                 'ende','rede','kam','Korb','ward','alt','dran','Rede','nun','nur','messen','ging','Halle','und','ster','streng','tun','von','wer','zu',
-                                'impeccable','spirituale','abundancee','abovewinden','hundredunddreißig','hertwillen','conducteden',
+                                'impeccable','spirituale','abundancee','abovewinden','hundredunddreißig','conducteden',
                                 'fireflamme','maye','therehin','mournte',
                                     'throughläutert','abovewältigten','gratitudes',
+                                    'peoplewerk','footsteigen','abovewältige','humblee','fillst','songss','moveen','blacke','separatedn','watergüsse',
 
                                 'actio','ambit','ambitio','anima','antiqui','apprehendi','ascendi','attende','audi', 'aversio',
                                 'beati','bene','beneficia','bos',
@@ -813,7 +814,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                 'dat','dedi','dei','dem','designat','desolati','determinat',
                                     'disco','digni','discretio','distincti','distinctio','divisi','dom','domi','domina',
                                 'ecclesia','ecclesias','editio','ei','enumerat','esca','evangelica','expiat','extensio',
-                                'fac', 'fel', 'Finis','finis','forti','fugit','fur',     'generat',     'hellor','hoc','humili','humiliati',
+                                'fac', 'fel', 'figura','Finis','finis','forti','fugit','fur',     'generat',     'hellor','hoc','humili','humiliati',
                                 'ibi', 'illum','illinat', 'ima','impie', 'infirmi','insinuat',
                                     'intellige','intelligi','intentio','introduc','inventi','invocatio','Isaia','iter','Ite',
                                 'ja','jus','Justi','justi','justis','justificat',     'legi','legis','liberati','liberato','liberat','liber','locus','lux',
@@ -832,8 +833,8 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                 'anthropomorphites','anthropomorphists',
                                 'prophesyem',
                                 'believeis','outque','killur',
-                                    'formtively','watersturbid',
-                                    'transgressedo',
+                                    'watersturbid',
+                                    'listenes','inthey','justificat','praiseus','lubricum','lugens','desinit','disturbsum','cervus','mansuetus','lovedsti','penitentbus','asksur',
                                 )
                     else 'Info', DEBUGGING_THIS_MODULE, f'''        {word} is suspect @ {location}\nfrom {cleanedTextToDisplay=}\n  WHICH GAVE {cleanedTextToCheck=}''' )
             if versionAbbreviation == 'Luth':
