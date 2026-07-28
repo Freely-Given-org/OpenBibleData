@@ -46,7 +46,7 @@ from BibleOrgSys.BibleOrgSysGlobals import vPrint, fnPrint, dPrint, rreplace
 import bos_books_codes_py
 
 
-LAST_MODIFIED_DATE = '2026-07-20' # by RJH
+LAST_MODIFIED_DATE = '2026-07-27' # by RJH
 SHORT_PROGRAM_NAME = "spellCheckEnglish"
 PROGRAM_NAME = "English Bible Spell Check"
 PROGRAM_VERSION = '0.62'
@@ -798,12 +798,8 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                 'an','aß','Bart','sie','hin','heb','wir','dem','des','für','hub','ich','ist','ja','alle','las','lag','ones)r','ones)s','ones)n','one)s','bis',
                                 'hing','one)r','one)n','weh','du','ach','Raube','Raub','Tal','tue','fiel','sehe','Mal','mal','mit','Mord',
                                 'ende','rede','kam','Korb','ward','alt','dran','Rede','nun','nur','messen','ging','Halle','und','ster','streng','tun','von','wer','zu',
-                                'impeccable','spirituale','abundancee','abovewinden','hundredunddreißig','conducteden',
-                                'fireflamme','maye','therehin','mournte',
-                                'erkenne','morningland',
+                                'morningland',
                                     'throughläutert','abovewältigten','gratitudes',
-                                    'peoplewerk','footsteigen','abovewältige','humblee','fillst','songss','moveen','blacke','separatedn','watergüsse',
-                                    'humbleest','springen',
                                     'deern',
 
                                 'actio','ambit','ambitio','anima','antiqui','apprehendi','ascendi','attende','audi', 'aversio',
@@ -818,7 +814,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                     'disco','digni','discretio','distincti','distinctio','divisi','dom','domi','domina',
                                 'ecclesia','ecclesias','editio','ei','enumerat','esca','evangelica','expiat','extensio',
                                 'fac', 'fel', 'figura','Finis','finis','forti','fugit','fur',     'generat',     'hellor','hoc','humili','humiliati',
-                                'ibi', 'illum','illinat', 'ima','impie', 'infirmi','insinuat',
+                                'ibi', 'illum','illinat', 'ima','impie', 'infirmi','inscriptio','insinuat',
                                     'intellige','intelligi','intentio','introduc','inventi','invocatio','Isaia','iter','Ite',
                                 'ja','jus','Justi','justi','justis','justificat',     'legi','legis','liberati','liberato','liberat','liber','locus','lux',
                                 'magis','magnifice','magni','manifeste','manu','mater','materia',
@@ -833,15 +829,13 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                 'tempora','Tod','tradit','traditi','traditio','transmigratio','tres','tribulatio','tributa','trium','tu','tua','tuam','turba',
                                 'usu',      'valle','vani','vas','victi','visita','visitat','visitatio','vita',
                                 'l','nos','ut','didrachmas',
-                                'anthropomorphites','anthropomorphists',
-                                'prophesyem','believeis','outque','killur',
-                                'wearsur','knowur','terrenæ','cœperat','bibat','farinæ','sciam','montana','thirstt','pepercit',
-                                    'watersturbid','listenes','inthey','justificat','praiseus','lubricum','lugens','desinit','disturbsum','lovedsti','penitentbus','inscriptionnem',
-                                    'inferiora','læti','opprobria',
+                                'prophesyem','outque',
+                                'wearsur','knowur','farinæ','thirstt',
+                                    'watersturbid','inferiora',
                                 )
                     else 'Info', DEBUGGING_THIS_MODULE, f'''        {word} is suspect @ {location}\nfrom {cleanedTextToDisplay=}\n  WHICH GAVE {cleanedTextToCheck=}''' )
             if versionAbbreviation == 'Luth':
-                if word=='alle': print( f"\n\nLUTH 'alle' from {originalHTMLTextForDebugging}\n{HTMLTextToCheck=}\n{cleanedTextToCheck=}\n{cleanedTextToDisplay}\n" )
+                # if word=='alle': print( f"\n\nLUTH 'alle' from {originalHTMLTextForDebugging}\n{HTMLTextToCheck=}\n{cleanedTextToCheck=}\n{cleanedTextToDisplay}\n" )
                 BAD_GERMAN_WORD_SET.add( word )
                 BAD_GERMAN_WORD_LIST.append( (word,location) )
                 BAD_GERMAN_COUNTS[word] += 1
