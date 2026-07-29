@@ -171,6 +171,7 @@ obscureClarityRefs = [ # Not really at all sure what the Hebrew or Greek is tryi
     'JOB_29:20','JOB_29:24',
     'PSA_22:16b', 'PSA_35:16a', 'PSA_56:10',
     'SNG_6:12',
+    'JER_48:34',
     'MIC_6:14', # Two unknown Hebrew words
     ]
 for ref in obscureClarityRefs:

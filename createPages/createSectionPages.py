@@ -80,10 +80,10 @@ from Bibles import getBibleMapperMaps, getOpenBibleImages
 from OETHandlers import livenOETWordLinks, livenOETCompatibleWordLinks, getOETTidyBBB, getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2026-07-26' # by RJH
+LAST_MODIFIED_DATE = '2026-07-27' # by RJH
 SHORT_PROGRAM_NAME = "createSectionPages"
 PROGRAM_NAME = "OpenBibleData createSectionPages functions"
-PROGRAM_VERSION = '0.89'
+PROGRAM_VERSION = '0.90'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -159,6 +159,7 @@ def createOETSectionLists( rvBible:ESFMBible, state:State ) -> bool:
                 rest = XREF_REGEX.sub( '', rest )
                 rest = FOOTNOTE_REGEX.sub( '', rest ) \
                     .replace( '\\add ', '<span class="add">' ).replace( '\\add*', '</span>' ) \
+                    .replace( '<span class="add">≈', '<span class="addReword" title="reworded">' ) \
                     .replace( '<span class="add">?≈', '<span class="addReword unsure" title="reworded (less certain)">' )
                 additionalSectionHeadingsDict[(C,plusOneV)].append( (marker,rest) )
             elif marker == 'rem':
@@ -763,7 +764,7 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> list
                 .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/bySec/{sectionFilename}#Top">{thisBible.abbreviation}</a>''',
                         f'''<a title="Up to {state.BibleNames[thisBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/">↑{thisBible.abbreviation}</a>''' )
         sectionHtmlBits = [f'<h1>Index of sections for {thisBible.abbreviation} {ourTidyBBB}</h1>']
-        if thisBible.abbreviation == 'OET-RV':
+        if thisBible.abbreviation=='OET-RV' and BBB in state.sectionsListsForHeaders['OET-RV']:
             for startC,startV,sectionName,reasonMarker,sectionFilename in state.sectionsListsForHeaders['OET-RV'][BBB]:
                 # print( f"HERE8 {BBB} {startC}:{startV} {sectionName=} {reasonMarker=} {sectionFilename=}" )
                 reasonName = reasonMarker if 'heading' in reasonMarker or reasonMarker not in SECTION_REASON_NAME_DICT else SECTION_REASON_NAME_DICT[reasonMarker]
@@ -778,7 +779,7 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> list
                         assert 'kingdom' in sectionName
                         pClass = f"{pClass} {sectionName.replace( ' ', '' ).replace( 'king', 'King' ).replace( 'land', 'Land' )}"
                     sectionHtmlBits.append( f'''<p class="{pClass}"><a title="View section {sectionNumber}" href="{sectionFilename}#V{startV}">{'Intro' if startC=='-1' else startC}:{startV} <b>{sectionName}</b>{reasonString}</a></p>''' )
-        else: # not OET-RV
+        else: # not OET-RV or don't seem to have section headings in state.sectionsListsForHeaders
             for _nnn,startC,startV,_endC,_endV,sectionName,reasonName,_contextList,_verseEntryList,indexFilename in state.sectionsListsForSections[thisBible.abbreviation][BBB]:
                 reasonString = '' if reasonName=='Section heading' and not state.TEST_MODE_FLAG else f' ({reasonName})' # Suppress '(Section Heading)' appendages in the list
                 # NOTE: word 'Alternate ' is defined in the above OET function at start of main loop
