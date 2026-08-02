@@ -46,7 +46,7 @@ from BibleOrgSys.BibleOrgSysGlobals import vPrint, fnPrint, dPrint, rreplace
 import bos_books_codes_py
 
 
-LAST_MODIFIED_DATE = '2026-08-01' # by RJH
+LAST_MODIFIED_DATE = '2026-08-02' # by RJH
 SHORT_PROGRAM_NAME = "spellCheckEnglish"
 PROGRAM_NAME = "English Bible Spell Check"
 PROGRAM_VERSION = '0.62'
@@ -799,8 +799,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                 'hing','one)r','one)n','weh','du','ach','Raube','Raub','Tal','tue','fiel','sehe','Mal','mal','mit','Mord',
                                 'ende','rede','kam','Korb','ward','alt','dran','Rede','nun','nur','messen','ging','Halle','und','ster','streng','tun','von','wer','zu',
                                 'dreamse',
-                                'authoritymann','dressese','litt','researche','housetür',
-                                'lastse','tohöre','goneten','fordere',
+                                'goatshaar',
                                     'throughläutert','abovewältigten','gratitudes',
 
                                 'actio','ambit','ambitio','anima','antiqui','apprehendi','ascendi','attende','audi', 'aversio',
@@ -830,8 +829,9 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                 'tempora','Tod','tradit','traditi','traditio','transmigratio','tres','tribulatio','tributa','trium','tu','tua','tuam','turba',
                                 'usu',      'valle','vani','vas','victi','visita','visitat','visitatio','vita',
                                 'l','nos','ut','didrachmas',
-                                'prophesyem','outque','postmodum','talentum',
+                                'rethey','instructi','sacramentrum','rightst',
                                     'watersturbid','soreth',
+                                    'borith','tont','adamavi','walkbo',
                                 )
                     else 'Info', DEBUGGING_THIS_MODULE, f'''        {word} is suspect @ {location}\nfrom {cleanedTextToDisplay=}\n  WHICH GAVE {cleanedTextToCheck=}''' )
             if versionAbbreviation == 'Luth':

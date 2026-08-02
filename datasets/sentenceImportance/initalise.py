@@ -57,10 +57,10 @@ from load import getIndividualQuotedOTRefs, getIndividualQuotingNTRefs
 
 
 
-LAST_MODIFIED_DATE = '2026-07-09' # by RJH
+LAST_MODIFIED_DATE = '2026-08-01' # by RJH
 SHORT_PROGRAM_NAME = "SentenceImportance_initialisation"
 PROGRAM_NAME = "Sentence Importance initialisation"
-PROGRAM_VERSION = '0.25'
+PROGRAM_VERSION = '0.26'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -176,7 +176,7 @@ obscureClarityRefs = [ # Not really at all sure what the Hebrew or Greek is tryi
     'JOB_29:20','JOB_29:24',
     'PSA_22:16b', 'PSA_35:16a', 'PSA_56:10',
     'SNG_6:12',
-    'JER_48:34',
+    'JER_48:34','JER_50:36a',
     'MIC_6:14', # Two unknown Hebrew words
     ]
 for ref in obscureClarityRefs:

@@ -53,7 +53,7 @@ import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import dPrint, fnPrint, BOOKLIST_OT39
 
 
-LAST_MODIFIED_DATE = '2026-07-10' # by RJH
+LAST_MODIFIED_DATE = '2026-08-01' # by RJH
 SHORT_PROGRAM_NAME = "settings"
 PROGRAM_NAME = "OpenBibleData (OBD) Settings"
 PROGRAM_VERSION = '1.0.1'
@@ -66,7 +66,7 @@ class State:
     """
     A place to store some of the global stuff that needs to be passed around.
     """
-    OET_VERSION_NUMBER_STRING = 'v0.48.63' # Incremented on most runs
+    OET_VERSION_NUMBER_STRING = 'v0.48.65' # Incremented on most runs
 
     TEST_MODE_FLAG = True # Writes smaller website subset into 'Test' subfolder if True
     TEST_OT_BOOK_LIST = ['JER'] # Books in progress
