@@ -46,7 +46,7 @@ from BibleOrgSys.BibleOrgSysGlobals import vPrint, fnPrint, dPrint, rreplace
 import bos_books_codes_py
 
 
-LAST_MODIFIED_DATE = '2026-08-02' # by RJH
+LAST_MODIFIED_DATE = '2026-08-04' # by RJH
 SHORT_PROGRAM_NAME = "spellCheckEnglish"
 PROGRAM_NAME = "English Bible Spell Check"
 PROGRAM_VERSION = '0.62'
@@ -795,11 +795,12 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                 cleanedTextToDisplay = cleanedTextToDisplay.replace('<span class="ClVg_verseTextChunk">','').replace('<div id="footnotesClVg" class="footnotes">\n','').replace('  ',' ').replace(' ',' ')
                 vPrint( 'Normal' if word.upper()==word
                        or word in ( #  \d{1,3}\), \(
-                                'an','aß','Bart','sie','hin','heb','wir','dem','des','für','hub','ich','ist','ja','alle','las','lag','ones)r','ones)s','ones)n','one)s','bis',
-                                'hing','one)r','one)n','weh','du','ach','Raube','Raub','Tal','tue','fiel','sehe','Mal','mal','mit','Mord',
+                                'an','aß','Bart','bis','sie','hin','heb','wir','dem','des','für','hub','ich','ist','ja','alle','las','lag','litt',
+                                'one)r','one)n','ones)r','ones)s','ones)n','one)s',
+                                'hing','weh','du','ach','Raube','Raub','Tal','tue','fiel','sehe','Mal','mal','mit','Mord',
                                 'ende','rede','kam','Korb','ward','alt','dran','Rede','nun','nur','messen','ging','Halle','und','ster','streng','tun','von','wer','zu',
                                 'dreamse',
-                                'goatshaar',
+                                'wheelsn','staplesen','distributione','pulledest','believedt','outbringen','yeden',
                                     'throughläutert','abovewältigten','gratitudes',
 
                                 'actio','ambit','ambitio','anima','antiqui','apprehendi','ascendi','attende','audi', 'aversio',
@@ -822,16 +823,18 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                 'nam','natu','natura','ne','nota','Nota',     'ob','obsessi','operatio','ora','ori',
                                 'passi','patria','patri','pede','pedes','perfecti','persecuti','persecutio',
                                     'pio','plura','polluti','prope','propitiatio','provocat','publica',
-                                'questio','qui',        'rea','redempti','rege','regi','regio','regula','rei','repente','ros',
+                                'questio','qui',        'rea','redempti','rege','r78uyegi','regio','regula','rei','repente','ros',
                                 'salva','salvat','salvati','sanctifi','sanctificati',
                                     'securi','separat','separati','seu','serva','servit','sex','sexta',
                                     'si','sit','sol','soli','solem','stat','statu','summo',
                                 'tempora','Tod','tradit','traditi','traditio','transmigratio','tres','tribulatio','tributa','trium','tu','tua','tuam','turba',
                                 'usu',      'valle','vani','vas','victi','visita','visitat','visitatio','vita',
                                 'l','nos','ut','didrachmas',
-                                'rethey','instructi','sacramentrum','rightst',
+                                'instructi','sacramentrum','rightst',
+                                'sanctitatis','beforesumit','rogo','navem','abundantius','inferiores','paulo',
                                     'watersturbid','soreth',
-                                    'borith','tont','adamavi','walkbo',
+                                    'borith','adamavi','walkbo',
+                                    'takeur','tumorem','lapidi','diversos','colebant','fightns','superstitio',
                                 )
                     else 'Info', DEBUGGING_THIS_MODULE, f'''        {word} is suspect @ {location}\nfrom {cleanedTextToDisplay=}\n  WHICH GAVE {cleanedTextToCheck=}''' )
             if versionAbbreviation == 'Luth':
