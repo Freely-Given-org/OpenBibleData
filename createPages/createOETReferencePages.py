@@ -80,6 +80,7 @@ CHANGELOG:
     2026-03-24 Added OET LV and RV verses to Hebrew and Greek Strongs pages
     2026-04-13 Added frequency counts for glosses in word pages and NT lemma pages
     2026-06-24 Don't exclude the current verse from Hebrew & Greek word & lemma page example & verse lines
+    2026-08-10 Added UHG and UGG
 """
 from pathlib import Path
 import os
@@ -91,6 +92,9 @@ import unicodedata
 from time import time
 import multiprocessing, copy
 from functools import cache
+import docutils.core
+from docutils.parsers.rst import roles
+from docutils import nodes
 
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint, BOOKLIST_OT39, BOOKLIST_NT27, BOOKLIST_66
@@ -108,10 +112,10 @@ from OETHandlers import getOETTidyBBB, getOETBookName, getHebrewWordpageFilename
 from createSectionPages import findSectionNumber
 
 
-LAST_MODIFIED_DATE = '2026-06-24' # by RJH
+LAST_MODIFIED_DATE = '2026-08-13' # by RJH
 SHORT_PROGRAM_NAME = "createOETReferencePages"
 PROGRAM_NAME = "OpenBibleData createOETReferencePages functions"
-PROGRAM_VERSION = '0.97'
+PROGRAM_VERSION = '0.98'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -871,6 +875,9 @@ def createOETReferencePages( level:int, outputFolderPath:Path, state:State ) -> 
     create_Greek_Strongs_pages( level+1, outputFolderPath.joinpath( 'GrkStrng/' ), bibleLexicon, state )
     # del state.OETRefData['NTStrongsRefs']
 
+    create_Hebrew_grammar_pages( level+1, outputFolderPath.joinpath( 'UHG/' ), state )
+    create_Greek_grammar_pages( level+1, outputFolderPath.joinpath( 'UGG/' ), state )
+
     create_person_pages( level+1, outputFolderPath.joinpath( 'Per/' ), state )
     create_important_person_pages( level+1, outputFolderPath.joinpath( 'Per/' ), state )
     create_location_pages( level+1, outputFolderPath.joinpath( 'Loc/' ), state )
@@ -888,10 +895,10 @@ def createOETReferencePages( level:int, outputFolderPath:Path, state:State ) -> 
 <h2>{state.SITE_NAME}</h2>
 <p class="note"><a href="HebWrd/">Hebrew words index</a> <a href="HebWrd/transIndex.htm">Transliterated Hebrew words index</a></p>
 <p class="note"><a href="HebLem/">Hebrew lemmas index</a> <a href="HebLem/transIndex.htm">Transliterated Hebrew lemmas index</a></p>
-<p class="note"><a href="HebStrng/">Hebrew Strongs numbers index</a></p>
+<p class="note"><a href="HebStrng/">Hebrew Strongs numbers index</a> <a href="UHG/">Hebrew grammar index</a></p>
 <p class="note"><a href="GrkWrd/">Greek words index</a> <a href="GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
 <p class="note"><a href="GrkLem/">Greek lemmas index</a> <a href="GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
-<p class="note"><a href="GrkStrng/">Greek Strongs numbers index</a></p>
+<p class="note"><a href="GrkStrng/">Greek Strongs numbers index</a> <a href="UGG/">Greek grammar index</a></p>
 <p class="note"><a href="Per/importantPeopleAlphabeticalIndex.htm">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm">Important people chronological index</a> <a href="Per/">All people index</a> <a href="Loc/">Locations index</a></p>
 <p class="note"><a href="Kingdoms/">Promised land kingdoms index</a></p>
 <p class="note"><a href="Stats/">Bible statistics</a></p>
@@ -905,6 +912,216 @@ def createOETReferencePages( level:int, outputFolderPath:Path, state:State ) -> 
     # del state.OETRefData # No longer needed
     return True
 # end of createOETReferencePages.createOETReferencePages
+
+
+def create_Hebrew_grammar_pages( level:int, outputFolderPath:Path, state:State ) -> bool:
+    """
+    Take the unfoldingWord Grammar which is rST files (with many errors)
+        and convert them to HTML using the docutils library
+    """
+    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Making Hebrew grammar pages…" )
+
+    try: os.makedirs( outputFolderPath )
+    except FileExistsError: pass # it was already there
+
+    # Register the 'ref' role ---
+    def fallback_ref_role(name, rawtext, text, lineno, inliner, options={}, content=[]):
+        # Cleans up Sphinx refs like "Click Here <target_label>" down to just "Click Here"
+        clean_text = text.split("<")[0].strip()
+        return [nodes.inline(rawtext, clean_text)], []
+
+    roles.register_local_role("ref", fallback_ref_role)
+
+
+    # Provide context path to publish_string
+    rst_folderpath = Path( '/srv/Bibles/unfoldingWordHelps/en_uhg/content/' )
+    docutils_settings = {
+        'report_level': 3 if state.TEST_MODE_FLAG else 5, # 1 shows every warning, 5 is completely quiet
+        'halt_level': 5, # Prevents small warnings from breaking execution
+        'strip_elements_with_classes': ['github-url'], # This automatically finds and deletes the :github_url: element from the output tree
+        }
+
+    # parts = docutils.core.publish_parts(source=rst_content, writer_name='html')
+    # print( f"{parts.keys()=}")
+    # parts.keys()= ['whole', 'encoding', 'errors', 'version', 'head_prefix', 'head', 'stylesheet', 'body_prefix', 'body_pre_docinfo',
+    #   'docinfo', 'body', 'body_suffix', 'title', 'subtitle', 'header', 'footer', 'meta', 'fragment',
+    #   'html_prolog', 'html_head', 'html_title', 'html_subtitle', 'html_body']
+
+    # Process all the .rst files in that 'content' folder
+    num_pages = 0
+    for rst_filename in rst_folderpath.iterdir():
+        if not rst_filename.is_file() or not rst_filename.name.endswith('.rst'): continue
+        if state.TEST_MODE_FLAG: dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Processing UHG {rst_filename.name}…" )
+
+        # Read the .rst file
+        rst_filepath = rst_folderpath.joinpath( rst_filename )
+        with open( rst_filepath, 'rt', encoding='utf-8' ) as rstFile:
+            # Fix systematic errors in the unfoldingWord file names
+            rst_content = rstFile.read().replace( '.txt', '.rst' ) \
+                .replace( 'ci_flexible..rst', 'ci_flexible..txt' ) \
+                .replace( 'consult_dictionary.rst', 'consult_dictionary.txt' ) \
+                .replace( 'language.rst', 'language.txt' ) \
+                .replace( 'particle_summary.rst', 'particle_summary.txt' ) \
+                .replace( 'suffix_summary.rst', 'suffix_summary.txt' ) \
+                .replace( 'noun_summary', 'noun-summary' ) \
+                .replace( 'image:: images/', f'image:: {rst_folderpath}/images/' ) \
+                .replace( 'include:: includes/', f'include:: {rst_folderpath}/includes/' ) # This last one makes the include path absolute
+            if rst_filename.stem == 'index':
+                rst_content = rst_content.replace( '.. toctree::\n   :maxdepth: 2\n', '' ) # Only Sphinx knows about that, not docutils
+
+        # Convert the rst to html using docutils package
+        html_bytes = docutils.core.publish_string( source=rst_content, writer_name='html', settings_overrides=docutils_settings )
+        html_text = html_bytes.decode( 'utf-8' )
+
+        # Do our customisations
+        if rst_filename.stem == 'index':
+            there_yet = False
+            new_lines = []
+            for line in html_text.replace('</blockquote>','\n</blockquote>').split( '\n' ): # Implement a simple index structure
+                new_lines.append( line )
+                if line.startswith( '<blockquote>' ):
+                    there_yet = True
+                    continue
+                if not there_yet: continue
+                if ' ' not in line and '<' not in line and len(line)>=4:
+                    new_lines[-1] = f'<br><a href="{line}.htm#Top">{line}</a>'
+            html_text = '\n'.join( new_lines )
+        # TODO: What should 'wordIndex' be below
+        top = makeTop( level, None, 'wordIndex', None, state ) \
+            .replace( '__TITLE__', f"Hebrew Grammar{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
+            .replace( '__KEYWORDS__', 'Bible, Hebrew, grammar' )
+        if 'Docutils 0.23:' not in html_text: we_need_to_update_the_next_lines
+        html_text = html_text \
+                    .replace( '''<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.23: https://docutils.sourceforge.io/" />
+<title>&lt;string&gt;</title>''', f'''{top}
+<h1 id="Top">unfoldingWord Hebrew Grammar <a title="Go to {'contents' if rst_filename.stem=='index' else 'index'} page" href="{'../' if rst_filename.stem=='index' else 'index.htm#Top'}">⌂</a></h1>''' ) \
+                    .replace( '</body>\n</html>', makeBottom( level, None, 'word', state ) ) # TODO: What should 'word' be???
+
+        # Save the HTML file
+        html_filepath = outputFolderPath.joinpath( rst_filename.name.replace( 'rst', 'htm' ) )
+        with open( html_filepath, 'wt', encoding='utf-8' ) as uhgHtmlFile:
+            uhgHtmlFile.write( html_text )
+        num_pages += 1
+
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Wrote {num_pages:,} Hebrew grammar pages." )
+    return True
+# end of createOETReferencePages.create_Hebrew_grammar_pages
+
+
+def create_Greek_grammar_pages( level:int, outputFolderPath:Path, state:State ) -> bool:
+    """
+    Take the unfoldingWord Grammar which is rST files (with many errors)
+        and convert them to HTML using the docutils library
+    """
+    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Making Greek grammar pages…" )
+
+    try: os.makedirs( outputFolderPath )
+    except FileExistsError: pass # it was already there
+
+    # Register the 'ref' role ---
+    def fallback_ref_role(name, rawtext, text, lineno, inliner, options={}, content=[]):
+        # Cleans up Sphinx refs like "Click Here <target_label>" down to just "Click Here"
+        clean_text = text.split("<")[0].strip()
+        return [nodes.inline(rawtext, clean_text)], []
+
+    roles.register_local_role("ref", fallback_ref_role)
+
+
+    # Provide context path to publish_string
+    rst_folderpath = Path( '/srv/Bibles/unfoldingWordHelps/en_ugg/content/' )
+    docutils_settings = {
+        'report_level': 3 if state.TEST_MODE_FLAG else 5, # 1 shows every warning, 5 is completely quiet
+        'halt_level': 5, # Prevents small warnings from breaking execution
+        'strip_elements_with_classes': ['github-url'], # This automatically finds and deletes the :github_url: element from the output tree
+        }
+
+    # parts = docutils.core.publish_parts(source=rst_content, writer_name='html')
+    # print( f"{parts.keys()=}")
+    # parts.keys()= ['whole', 'encoding', 'errors', 'version', 'head_prefix', 'head', 'stylesheet', 'body_prefix', 'body_pre_docinfo',
+    #   'docinfo', 'body', 'body_suffix', 'title', 'subtitle', 'header', 'footer', 'meta', 'fragment',
+    #   'html_prolog', 'html_head', 'html_title', 'html_subtitle', 'html_body']
+
+    # Process all the .rst files in that 'content' folder
+    num_pages = 0
+    for rst_filename in rst_folderpath.iterdir():
+        if not rst_filename.is_file() or not rst_filename.name.endswith('.rst'): continue
+        if state.TEST_MODE_FLAG: dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Processing UGG {rst_filename.name}…" )
+
+        # Read the .rst file
+        rst_filepath = rst_folderpath.joinpath( rst_filename )
+        with open( rst_filepath, 'rt', encoding='utf-8' ) as rstFile:
+            # Fix systematic errors in the unfoldingWord file names
+            rst_content = rstFile.read().replace( '.txt', '.rst' ) \
+                .replace( 'include:: en_uhg/content/', 'include:: /srv/Bibles/unfoldingWordHelps/en_uhg/content/' ) \
+                .replace( 'image:: images/', f'image:: {rst_folderpath}/images/' ) \
+                .replace( 'include:: includes/', f'include:: {rst_folderpath}/includes/' ) # This last one makes the include path absolute
+            if rst_filename.stem == 'index':
+                rst_content = rst_content.replace( '.. toctree::\n   :maxdepth: 2\n', '' ) # Only Sphinx knows about that, not docutils
+
+        # Convert the rst to html using docutils package
+        html_bytes = docutils.core.publish_string( source=rst_content, writer_name='html', settings_overrides=docutils_settings )
+        html_text = html_bytes.decode( 'utf-8' )
+
+        # Do our customisations
+        if rst_filename.stem == 'index':
+            there_yet = False
+            new_lines = []
+            for line in html_text.replace('</blockquote>','\n</blockquote>').split( '\n' ): # Implement a simple index structure
+                if 'system-message' in line \
+                or 'Unexpected indentation' in line or 'unexpected unindent' in line \
+                or '<dl class' in line or '</dl>' in line:
+                    continue # These docutils error and warning lines will simply be omitted
+                new_lines.append( line )
+                if not there_yet and line.startswith( '<blockquote>' ):
+                    there_yet = True
+                    continue
+                if not there_yet: continue
+                if line.startswith( '<blockquote>' ) or line.startswith( '</blockquote>' ): # don't want multiples of these
+                    new_lines.pop()
+                    continue
+                if line.startswith( '</div>'):
+                    there_yet = False
+                    new_lines.insert( -1, '</blockquote>' ) # Put one back in because we deleted them all
+                    continue
+                if '&lt;' in line: # It's a second level content line
+                    line = line.replace( '<dd>', '' ).replace( '</dd>', '' ) # Not sure what these mean?
+                    entry_name, link_name = line.replace( '&gt;', '' ).split( ' &lt;' )
+                    new_lines[-1] = f'<br>  <a href="{link_name}.htm#Top">{entry_name}</a>'
+                else: # it's a main level content line
+                    line = line.replace( '<p>', '' ).replace( '</p>', '' ) \
+                                .replace( '<dt>', '' ).replace( '</dt>', '' ) # Not sure what these mean?
+                    new_lines[-1] = f'<br><a href="{line}.htm#Top">{line}</a>'
+            html_text = '\n'.join( new_lines )
+        # TODO: What should 'wordIndex' be below
+        top = makeTop( level, None, 'wordIndex', None, state ) \
+            .replace( '__TITLE__', f"Greek Grammar{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
+            .replace( '__KEYWORDS__', 'Bible, Greek, grammar' )
+        if 'Docutils 0.23:' not in html_text: we_need_to_update_the_next_lines
+        html_text = html_text \
+                    .replace( '''<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.23: https://docutils.sourceforge.io/" />
+<title>&lt;string&gt;</title>''', f'''{top}
+<h1 id="Top">unfoldingWord Greek Grammar <a title="Go to {'contents' if rst_filename.stem=='index' else 'index'} page" href="{'../' if rst_filename.stem=='index' else 'index.htm#Top'}">⌂</a></h1>''' ) \
+                    .replace( '</body>\n</html>', makeBottom( level, None, 'word', state ) ) # TODO: What should 'word' be???
+
+        # Save the HTML file
+        html_filepath = outputFolderPath.joinpath( rst_filename.name.replace( 'rst', 'htm' ) )
+        with open( html_filepath, 'wt', encoding='utf-8' ) as uggHtmlFile:
+            uggHtmlFile.write( html_text )
+        num_pages += 1
+
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Wrote {num_pages:,} Greek grammar pages." )
+    return True
+# end of createOETReferencePages.create_Greek_grammar_pages
 
 
 HebrewWordFileName = 'OET-LV_OT_word_table.tsv'
@@ -1199,6 +1416,21 @@ def convert_Hebrew_word_gloss_spans( engGloss:str ) -> str:
     return result
 # end of createOETReferencePages.convert_Hebrew_word_gloss_spans
 
+HEBREW_NOUN_TYPE_TABLE = {
+    'common_noun': '<a title="Go to grammar page" href="../UHG/noun_common.htm#Top">common_noun</a>',
+    'proper_noun': '<a title="Go to grammar page" href="../UHG/noun_proper_name.htm#Top">proper_noun</a>',
+}
+HEBREW_VERB_TYPE_TABLE = {
+    'qal_verb': '<a title="Go to grammar page" href="../UHG/stem_qal.htm#Top">qal_verb</a>',
+    'piel_verb': '<a title="Go to grammar page" href="../UHG/stem_piel.htm#Top">piel_verb</a>',
+}
+HEBREW_ADJECTIVE_TYPE_TABLE = {
+    'adjective': '<a title="Go to grammar page" href="../UHG/adjective.htm#Top">adjective</a>',
+}
+HEBREW_PREPOSITION_TYPE_TABLE = {
+    'preposition': '<a title="Go to grammar page" href="../UHG/preposition.htm#Top">preposition</a>',
+    'preposition_with_definite_article': '<a title="Go to grammar page" href="../UHG/preposition_definite_article.htm#Top">preposition_with_definite_article</a>',
+}
 def tidy_Hebrew_morphology( tHM_rowType:str, tHM_morphology:str ) -> str:
     """
     """
@@ -1215,7 +1447,9 @@ def tidy_Hebrew_morphology( tHM_rowType:str, tHM_morphology:str ) -> str:
             if tHM_PoS == 'N': # noun
                 assert len(tHM_individualMorphology) in (2, 5)
                 noun_type = OSHB_NOUN_DICT[tHM_PoS_with_type]
-                tHM_word_details_field = f'PoS=<b>{noun_type}</b>'
+                try: noun_type_field = HEBREW_NOUN_TYPE_TABLE[noun_type] # returns a link to the UHG
+                except KeyError: noun_type_field = noun_type
+                tHM_word_details_field = f'PoS=<b>{noun_type_field}</b>'
                 if len(tHM_individualMorphology) > 2:
                     tHM_word_details_field = f'{tHM_word_details_field} Gender={OSHB_GENDER_DICT[tHM_individualMorphology[2]]} Number={OSHB_NUMBER_DICT[tHM_individualMorphology[3]]} State={OSHB_STATE_DICT[tHM_individualMorphology[4]]}'
 
@@ -1226,7 +1460,9 @@ def tidy_Hebrew_morphology( tHM_rowType:str, tHM_morphology:str ) -> str:
                 # except KeyError: # 'Va'
                 #     print( f"Why did tidy_Hebrew_morphology({morphology}) fail with {rowType=} {PoS_with_type=} ???")
                 #     verb_type = f'UNKNOWN {PoS_with_type=}'
-                tHM_word_details_field = f'PoS=<b>{verb_type}</b> Type={OSHB_VERB_CONJUGATION_TYPE_DICT[tHM_individualMorphology[2]]}'
+                try: verb_type_field = HEBREW_VERB_TYPE_TABLE[verb_type] # returns a link to the UHG
+                except KeyError: verb_type_field = verb_type
+                tHM_word_details_field = f'PoS=<b>{verb_type_field}</b> Type={OSHB_VERB_CONJUGATION_TYPE_DICT[tHM_individualMorphology[2]]}'
                 if len(tHM_individualMorphology) == 6:
                     if tHM_individualMorphology[2] in 'rs': # active or passive PARTICIPLE (has no person field but does have a state)
                         tHM_word_details_field = f'{tHM_word_details_field} Gender={OSHB_GENDER_DICT[tHM_individualMorphology[3]]} Number={OSHB_NUMBER_DICT[tHM_individualMorphology[4]]} State={OSHB_STATE_DICT[tHM_individualMorphology[5]]}'
@@ -1241,7 +1477,9 @@ def tidy_Hebrew_morphology( tHM_rowType:str, tHM_morphology:str ) -> str:
             elif tHM_PoS == 'A': # adjective
                 assert len(tHM_individualMorphology) == 5
                 adjective_type = OSHB_ADJECTIVE_DICT[tHM_PoS_with_type]
-                tHM_word_details_field = f'PoS=<b>{adjective_type}</b> Gender={OSHB_GENDER_DICT[tHM_individualMorphology[2]]} Number={OSHB_NUMBER_DICT[tHM_individualMorphology[3]]} State={OSHB_STATE_DICT[tHM_individualMorphology[4]]}'
+                try: adjective_type_field = HEBREW_ADJECTIVE_TYPE_TABLE[adjective_type] # returns a link to the UHG
+                except KeyError: adjective_type_field = adjective_type
+                tHM_word_details_field = f'PoS=<b>{adjective_type_field}</b> Gender={OSHB_GENDER_DICT[tHM_individualMorphology[2]]} Number={OSHB_NUMBER_DICT[tHM_individualMorphology[3]]} State={OSHB_STATE_DICT[tHM_individualMorphology[4]]}'
             elif tHM_PoS == 'P': # pronoun: person, gender, number and state are the same wherever they apply.
                 assert 2 <= len(tHM_individualMorphology) <= 5
                 pronoun_type = OSHB_PRONOUN_DICT[tHM_PoS_with_type]
@@ -1257,7 +1495,10 @@ def tidy_Hebrew_morphology( tHM_rowType:str, tHM_morphology:str ) -> str:
                     tHM_word_details_field = f'PoS=<b>{particle_type}</b>'
             elif tHM_PoS == 'R': # preposition: the preposition type is only used when the inseparable preposition is pointed in such a way to indicate the presence of the definite article.
                 assert 1 <= len(tHM_individualMorphology) <= 2, f"'{tHM_PoS}' ({len(tHM_individualMorphology)}) {tHM_individualMorphology=}"
-                tHM_word_details_field = f'PoS=<b>{OSHB_PREPOSITION_DICT[tHM_PoS_with_type]}</b>' if len(tHM_individualMorphology)==2 else f'PoS=<b>{OSHB_POS_DICT[tHM_PoS]}</b>'
+                preposition_type = OSHB_PREPOSITION_DICT[tHM_PoS_with_type] if len(tHM_individualMorphology)==2 else OSHB_POS_DICT[tHM_PoS]
+                try: preposition_type_field = HEBREW_PREPOSITION_TYPE_TABLE[preposition_type] # returns a link to the UHG
+                except KeyError: preposition_type_field = preposition_type
+                tHM_word_details_field = f'PoS=<b>{preposition_type_field}</b>'
             elif tHM_PoS == 'S': # suffix
                 assert 2 <= len(tHM_individualMorphology) <= 5
                 suffix_type = OSHB_SUFFIX_DICT[tHM_PoS_with_type]
@@ -1457,10 +1698,10 @@ def create_Hebrew_word_pages( level:int, outputFolderPath:Path, state:State ) ->
 <p class="note"><b><a href="../">Reference lists contents page</a></b></p>
 <p class="note"><span class="selectedBook">Hebrew words index</span> <a href="transIndex.htm">Transliterated Hebrew words index</a></p>
 <p class="note"><a href="../HebLem/">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm">Transliterated Hebrew lemmas index</a></p>
-<p class="note"><a href="../HebStrng/">Hebrew Strongs numbers index</a></p>
+<p class="note"><a href="../HebStrng/">Hebrew Strongs numbers index</a> <a href="../UHG/">Hebrew grammar index</a></p>
 <p class="note"><a href="../GrkWrd/">Greek words index</a> <a href="../GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
 <p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
-<p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a></p>
+<p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a> <a href="../UGG/">Greek grammar index</a></p>
 <p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm">Important people chronological index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
 <p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/">Bible statistics</a></p>
@@ -1483,10 +1724,10 @@ def create_Hebrew_word_pages( level:int, outputFolderPath:Path, state:State ) ->
 <p class="note"><b><a href="../">Reference lists contents page</a></b></p>
 <p class="note"><a href="index.htm">Hebrew words index</a> <span class="selectedBook">Transliterated Hebrew words index</span></p>
 <p class="note"><a href="../HebLem/">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm">Transliterated Hebrew lemmas index</a></p>
-<p class="note"><a href="../HebStrng/">Hebrew Strongs numbers index</a></p>
+<p class="note"><a href="../HebStrng/">Hebrew Strongs numbers index</a> <a href="../UHG/">Hebrew grammar index</a></p>
 <p class="note"><a href="../GrkWrd/">Greek words index</a> <a href="../GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
 <p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
-<p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a></p>
+<p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a> <a href="../UGG/">Greek grammar index</a></p>
 <p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm">Important people chronological index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
 <p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/">Bible statistics</a></p>
@@ -2315,10 +2556,10 @@ def create_Hebrew_lemma_pages( level:int, outputFolderPath:Path, state:State ) -
 <p class="note"><b><a href="../">Reference lists contents page</a></b></p>
 <p class="note"><a href="../HebWrd/">Hebrew words index</a> <a href="../HebWrd/transIndex.htm">Transliterated Hebrew words index</a></p>
 <p class="note"><span class="selectedBook">Hebrew lemmas index</span> <a href="transIndex.htm">Transliterated Hebrew lemmas index</a></p>
-<p class="note"><a href="../HebStrng/">Hebrew Strongs numbers index</a></p>
+<p class="note"><a href="../HebStrng/">Hebrew Strongs numbers index</a> <a href="../UHG/">Hebrew grammar index</a></p>
 <p class="note"><a href="../GrkWrd/">Greek words index</a> <a href="../GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
 <p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
-<p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a></p>
+<p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a> <a href="../UGG/">Greek grammar index</a></p>
 <p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm">Important people chronological index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
 <p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/">Bible statistics</a></p>
@@ -2342,10 +2583,10 @@ def create_Hebrew_lemma_pages( level:int, outputFolderPath:Path, state:State ) -
 <p class="note"><b><a href="../">Reference lists contents page</a></b></p>
 <p class="note"><a href="../HebWrd/">Hebrew words index</a> <a href="../HebWrd/transIndex.htm">Transliterated Hebrew words index</a></p>
 <p class="note"><a href="index.htm">Hebrew lemmas index</a> <span class="selectedBook">Transliterated Hebrew lemmas index</span></p>
-<p class="note"><a href="../HebStrng/">Hebrew Strongs numbers index</a></p>
+<p class="note"><a href="../HebStrng/">Hebrew Strongs numbers index</a> <a href="../UHG/">Hebrew grammar index</a></p>
 <p class="note"><a href="../GrkWrd/">Greek words index</a> <a href="../GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
 <p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
-<p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a></p>
+<p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a> <a href="../UGG/">Greek grammar index</a></p>
 <p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm">Important people chronological index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
 <p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/">Bible statistics</a></p>
@@ -2362,6 +2603,10 @@ def create_Hebrew_lemma_pages( level:int, outputFolderPath:Path, state:State ) -
 # end of createOETReferencePages.create_Hebrew_lemma_pages
 
 
+GREEK_ROLE_TYPE_TABLE = {
+    'noun': '<a title="Go to grammar page" href="../UGG/noun.htm#Top">noun</a>',
+    'pronoun': '<a title="Go to grammar page" href="../UGG/pronoun.htm#Top">pronoun</a>',
+}
 def create_Greek_word_pages( level:int, outputFolderPath:Path, state:State ) -> None:
     """
     """
@@ -2457,7 +2702,9 @@ def create_Greek_word_pages( level:int, outputFolderPath:Path, state:State ) -> 
             roleName = CNTR_ROLE_NAME_DICT[roleLetter]
             if roleName=='noun' and 'U' in glossCaps:
                 roleName = 'proper noun'
-            roleField = f' Word role=<b>{roleName}</b>'
+            try: roleNameField = GREEK_ROLE_TYPE_TABLE[roleName]
+            except KeyError: roleNameField = roleName
+            roleField = f' Word role=<b>{roleNameField}</b>'
             usedRoleLetters.add( roleLetter )
 
         nominaSacraField = 'Marked with <b>Nomina Sacra</b>' if 'N' in glossCaps else ''
@@ -2738,10 +2985,10 @@ f''' <a title="Go to Statistical Restoration Greek page" href="https://GreekCN
 <p class="note"><b><a href="../">Reference lists contents page</a></b></p>
 <p class="note"><a href="../HebWrd/">Hebrew words index</a> <a href="../HebWrd/transIndex.htm">Transliterated Hebrew words index</a></p>
 <p class="note"><a href="../HebLem/">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm">Transliterated Hebrew lemmas index</a></p>
-<p class="note"><a href="../HebStrng/">Hebrew Strongs numbers index</a></p>
+<p class="note"><a href="../HebStrng/">Hebrew Strongs numbers index</a> <a href="../UHG/">Hebrew grammar index</a></p>
 <p class="note"><span class="selectedBook">Greek words index</span> <a href="transIndex.htm">Transliterated Greek words index</a></p>
 <p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
-<p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a></p>
+<p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a> <a href="../UGG/">Greek grammar index</a></p>
 <p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm">Important people chronological index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
 <p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/">Bible statistics</a></p>
@@ -2765,10 +3012,10 @@ f''' <a title="Go to Statistical Restoration Greek page" href="https://GreekCN
 <p class="note"><b><a href="../">Reference lists contents page</a></b></p>
 <p class="note"><a href="../HebWrd/">Hebrew words index</a> <a href="../HebWrd/transIndex.htm">Transliterated Hebrew words index</a></p>
 <p class="note"><a href="../HebLem/">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm">Transliterated Hebrew lemmas index</a></p>
-<p class="note"><a href="../HebStrng/">Hebrew Strongs numbers index</a></p>
+<p class="note"><a href="../HebStrng/">Hebrew Strongs numbers index</a> <a href="../UHG/">Hebrew grammar index</a></p>
 <p class="note"><a href="index.htm">Greek words index</a> <span class="selectedBook">Transliterated Greek words index</span></p>
 <p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
-<p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a></p>
+<p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a> <a href="../UGG/">Greek grammar index</a></p>
 <p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm">Important people chronological index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
 <p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/">Bible statistics</a></p>
@@ -3043,10 +3290,10 @@ def create_Greek_lemma_pages( level:int, outputFolderPath:Path, state:State ) ->
 <p class="note"><b><a href="../">Reference lists contents page</a></b></p>
 <p class="note"><a href="../HebWrd/">Hebrew words index</a> <a href="../HebWrd/transIndex.htm">Transliterated Hebrew words index</a></p>
 <p class="note"><a href="../HebLem/">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm">Transliterated Hebrew lemmas index</a></p>
-<p class="note"><a href="../HebStrng/">Hebrew Strongs numbers index</a></p>
+<p class="note"><a href="../HebStrng/">Hebrew Strongs numbers index</a> <a href="../UHG/">Hebrew grammar index</a></p>
 <p class="note"><a href="../GrkWrd/">Greek words index</a> <a href="../GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
 <p class="note"><span class="selectedBook">Greek lemmas index</span> <a href="transIndex.htm">Transliterated Greek lemmas index</a></p>
-<p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a></p>
+<p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a> <a href="../UGG/">Greek grammar index</a></p>
 <p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm">Important people chronological index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
 <p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/">Bible statistics</a></p>
@@ -3070,10 +3317,10 @@ def create_Greek_lemma_pages( level:int, outputFolderPath:Path, state:State ) ->
 <p class="note"><b><a href="../">Reference lists contents page</a></b></p>
 <p class="note"><a href="../HebWrd/">Hebrew words index</a> <a href="../HebWrd/transIndex.htm">Transliterated Hebrew words index</a></p>
 <p class="note"><a href="../HebLem/">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm">Transliterated Hebrew lemmas index</a></p>
-<p class="note"><a href="../HebStrng/">Hebrew Strongs numbers index</a></p>
+<p class="note"><a href="../HebStrng/">Hebrew Strongs numbers index</a> <a href="../UHG/">Hebrew grammar index</a></p>
 <p class="note"><a href="../GrkWrd/">Greek words index</a> <a href="../GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
 <p class="note"><a href="index.htm">Greek lemmas index</a> <span class="selectedBook">Transliterated Greek lemmas index</span></p>
-<p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a></p>
+<p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a> <a href="../UGG/">Greek grammar index</a></p>
 <p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm">Important people chronological index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
 <p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/">Bible statistics</a></p>
@@ -3171,10 +3418,10 @@ def create_Hebrew_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:
 <p class="note"><b><a href="../">Reference lists contents page</a></b></p>
 <p class="note"><a href="../HebWrd/">Hebrew words index</a> <a href="../HebWrd/transIndex.htm">Transliterated Hebrew words index</a></p>
 <p class="note"><a href="../HebLem/">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm">Transliterated Hebrew lemmas index</a></p>
-<p class="note"><a href="../HebStrng/">Hebrew Strongs numbers index</a></p>
+<p class="note"><a href="../HebStrng/">Hebrew Strongs numbers index</a> <a href="../UHG/">Hebrew grammar index</a></p>
 <p class="note"><a href="../GrkWrd/">Greek words index</a> <a href="../GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
 <p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
-<p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a></p>
+<p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a> <a href="../UGG/">Greek grammar index</a></p>
 <p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm">Important people chronological index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
 <p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/">Bible statistics index</a></p>
@@ -3201,10 +3448,10 @@ def create_Hebrew_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:
 <p class="note"><b><a href="../">Reference lists contents page</a></b></p>
 <p class="note"><a href="../HebWrd/">Hebrew words index</a> <a href="../HebWrd/transIndex.htm">Transliterated Hebrew words index</a></p>
 <p class="note"><a href="../HebLem/">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm">Transliterated Hebrew lemmas index</a></p>
-<p class="note"><span class="selectedBook">Hebrew Strongs numbers index</span></p>
+<p class="note"><span class="selectedBook">Hebrew Strongs numbers index</span> <a href="../UHG/">Hebrew grammar index</a></p>
 <p class="note"><a href="../GrkWrd/">Greek words index</a> <a href="../GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
 <p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
-<p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a></p>
+<p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a> <a href="../UGG/">Greek grammar index</a></p>
 <p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm">Important people chronological index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
 <p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/">Bible statistics index</a></p>
@@ -3294,10 +3541,10 @@ def create_Greek_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:B
 <p class="note"><b><a href="../">Reference lists contents page</a></b></p>
 <p class="note"><a href="../HebWrd/">Hebrew words index</a> <a href="../HebWrd/transIndex.htm">Transliterated Hebrew words index</a></p>
 <p class="note"><a href="../HebLem/">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm">Transliterated Hebrew lemmas index</a></p>
-<p class="note"><a href="../HebStrng/">Hebrew Strongs numbers index</a></p>
+<p class="note"><a href="../HebStrng/">Hebrew Strongs numbers index</a> <a href="../UHG/">Hebrew grammar index</a></p>
 <p class="note"><a href="../GrkWrd/">Greek words index</a> <a href="../GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
 <p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
-<p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a></p>
+<p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a> <a href="../UGG/">Greek grammar index</a></p>
 <p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm">Important people chronological index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
 <p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/">Bible statistics index</a></p>
@@ -3324,10 +3571,10 @@ def create_Greek_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:B
 <p class="note"><b><a href="../">Reference lists contents page</a></b></p>
 <p class="note"><a href="../HebWrd/">Hebrew words index</a> <a href="../HebWrd/transIndex.htm">Transliterated Hebrew words index</a></p>
 <p class="note"><a href="../HebLem/">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm">Transliterated Hebrew lemmas index</a></p>
-<p class="note"><a href="../HebStrng/">Hebrew Strongs numbers index</a></p>
+<p class="note"><a href="../HebStrng/">Hebrew Strongs numbers index</a> <a href="../UHG/">Hebrew grammar index</a></p>
 <p class="note"><a href="../GrkWrd/">Greek words index</a> <a href="../GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
 <p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
-<p class="note"><span class="selectedBook">Greek Strongs numbers index</span></p>
+<p class="note"><span class="selectedBook">Greek Strongs numbers index</span> <a href="../UGG/">Greek grammar index</a></p>
 <p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm">Important people chronological index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
 <p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/">Bible statistics index</a></p>
@@ -3416,10 +3663,10 @@ def create_person_pages( level:int, outputFolderPath:Path, state:State ) -> int:
 <p class="note"><b><a href="../">Reference lists contents page</a></b></p>
 <p class="note"><a href="../HebWrd/">Hebrew words index</a> <a href="../HebWrd/transIndex.htm">Transliterated Hebrew words index</a></p>
 <p class="note"><a href="../HebLem/">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm">Transliterated Hebrew lemmas index</a></p>
-<p class="note"><a href="../HebStrng/">Hebrew Strongs numbers index</a></p>
+<p class="note"><a href="../HebStrng/">Hebrew Strongs numbers index</a> <a href="../UHG/">Hebrew grammar index</a></p>
 <p class="note"><a href="../GrkWrd/">Greek words index</a> <a href="../GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
 <p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
-<p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a></p>
+<p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a> <a href="../UGG/">Greek grammar index</a></p>
 <p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm">Important people chronological index</a> <span class="selectedBook">All people index</span> <a href="../Loc/">Locations index</a></p>
 <p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/">Bible statistics</a></p>
@@ -3501,10 +3748,10 @@ def create_important_person_pages( level:int, outputFolderPath:Path, state:State
 <p class="note"><b><a href="../">Reference lists contents page</a></b></p>
 <p class="note"><a href="../HebWrd/">Hebrew words index</a> <a href="../HebWrd/transIndex.htm">Transliterated Hebrew words index</a></p>
 <p class="note"><a href="../HebLem/">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm">Transliterated Hebrew lemmas index</a></p>
-<p class="note"><a href="../HebStrng/">Hebrew Strongs numbers index</a></p>
+<p class="note"><a href="../HebStrng/">Hebrew Strongs numbers index</a> <a href="../UHG/">Hebrew grammar index</a></p>
 <p class="note"><a href="../GrkWrd/">Greek words index</a> <a href="../GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
 <p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
-<p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a></p>
+<p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a> <a href="../UGG/">Greek grammar index</a></p>
 <p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm">Important people alphabetical index</a> <span class="selectedBook">Important people chronological index</span> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
 <p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/">Bible statistics</a></p>
@@ -3562,10 +3809,10 @@ def create_important_person_pages( level:int, outputFolderPath:Path, state:State
 <p class="note"><b><a href="../">Reference lists contents page</a></b></p>
 <p class="note"><a href="../HebWrd/">Hebrew words index</a> <a href="../HebWrd/transIndex.htm">Transliterated Hebrew words index</a></p>
 <p class="note"><a href="../HebLem/">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm">Transliterated Hebrew lemmas index</a></p>
-<p class="note"><a href="../HebStrng/">Hebrew Strongs numbers index</a></p>
+<p class="note"><a href="../HebStrng/">Hebrew Strongs numbers index</a> <a href="../UHG/">Hebrew grammar index</a></p>
 <p class="note"><a href="../GrkWrd/">Greek words index</a> <a href="../GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
 <p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
-<p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a></p>
+<p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a> <a href="../UGG/">Greek grammar index</a></p>
 <p class="note"><span class="selectedBook">Important people alphabetical index</span> <a href="../Per/importantPeopleChronologicalIndex.htm">Important people chronological index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
 <p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/">Bible statistics</a></p>
@@ -3651,10 +3898,10 @@ def create_location_pages( level:int, outputFolderPath:Path, state:State ) -> in
 <p class="note"><b><a href="../">Reference lists contents page</a></b></p>
 <p class="note"><a href="../HebWrd/">Hebrew words index</a> <a href="../HebWrd/transIndex.htm">Transliterated Hebrew words index</a></p>
 <p class="note"><a href="../HebLem/">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm">Transliterated Hebrew lemmas index</a></p>
-<p class="note"><a href="../HebStrng/">Hebrew Strongs numbers index</a></p>
+<p class="note"><a href="../HebStrng/">Hebrew Strongs numbers index</a> <a href="../UHG/">Hebrew grammar index</a></p>
 <p class="note"><a href="../GrkWrd/">Greek words index</a> <a href="../GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
 <p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
-<p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a></p>
+<p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a> <a href="../UGG/">Greek grammar index</a></p>
 <p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm">Important people chronological index</a> <a href="../Per/">All people index</a> <span class="selectedBook">Locations index</span></p>
 <p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/">Bible statistics</a></p>
@@ -3767,10 +4014,10 @@ def create_statistics_pages( level:int, outputFolderPath:Path, state:State ) -> 
 <p class="note"><b><a href="../">Reference lists contents page</a></b></p>
 <p class="note"><a href="../HebWrd/">Hebrew words index</a> <a href="../HebWrd/transIndex.htm">Transliterated Hebrew words index</a></p>
 <p class="note"><a href="../HebLem/">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm">Transliterated Hebrew lemmas index</a></p>
-<p class="note"><a href="../HebStrng/">Hebrew Strongs numbers index</a></p>
+<p class="note"><a href="../HebStrng/">Hebrew Strongs numbers index</a> <a href="../UHG/">Hebrew grammar index</a></p>
 <p class="note"><a href="../GrkWrd/">Greek words index</a> <a href="../GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
 <p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
-<p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a></p>
+<p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a> <a href="../UGG/">Greek grammar index</a></p>
 <p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm">Important people chronological index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
 <p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
 <p class="note"><a href="../Stats/">Bible statistics index</a></p>
@@ -3802,10 +4049,10 @@ def create_statistics_pages( level:int, outputFolderPath:Path, state:State ) -> 
 <p class="note"><b><a href="../">Reference lists contents page</a></b></p>
 <p class="note"><a href="../HebWrd/">Hebrew words index</a> <a href="../HebWrd/transIndex.htm">Transliterated Hebrew words index</a></p>
 <p class="note"><a href="../HebLem/">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm">Transliterated Hebrew lemmas index</a></p>
-<p class="note"><a href="../HebStrng/">Hebrew Strongs numbers index</a></p>
+<p class="note"><a href="../HebStrng/">Hebrew Strongs numbers index</a> <a href="../UHG/">Hebrew grammar index</a></p>
 <p class="note"><a href="../GrkWrd/">Greek words index</a> <a href="../GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
 <p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
-<p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a></p>
+<p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a> <a href="../UGG/">Greek grammar index</a></p>
 <p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm">Important people chronological index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
 <p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
 <p class="note"><span class="selectedBook">Bible statistics index</span></p>

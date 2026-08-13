@@ -53,7 +53,7 @@ import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import dPrint, fnPrint, BOOKLIST_OT39
 
 
-LAST_MODIFIED_DATE = '2026-08-01' # by RJH
+LAST_MODIFIED_DATE = '2026-08-05' # by RJH
 SHORT_PROGRAM_NAME = "settings"
 PROGRAM_NAME = "OpenBibleData (OBD) Settings"
 PROGRAM_VERSION = '1.0.1'
@@ -66,12 +66,12 @@ class State:
     """
     A place to store some of the global stuff that needs to be passed around.
     """
-    OET_VERSION_NUMBER_STRING = 'v0.48.65' # Incremented on most runs
+    OET_VERSION_NUMBER_STRING = 'v0.48.70' # Incremented on most runs
 
-    TEST_MODE_FLAG = True # Writes smaller website subset into 'Test' subfolder if True
-    TEST_OT_BOOK_LIST = ['JER'] # Books in progress
-    TEST_DC_BOOK_LIST = [] # Books in progress
-    TEST_NT_BOOK_LIST = ['MRK'] # Shortest gospel
+    TEST_MODE_FLAG = True # Writes smaller website subset into DEBUG_DESTINATION_FOLDER if True
+    TEST_OT_BOOK_LIST = ['EZR','NEH']
+    TEST_DC_BOOK_LIST = []
+    TEST_NT_BOOK_LIST = ['MRK','GAL'] # Shortest gospel
     NEW_BOOK_IN_TEST_LIST_FLAG = False # So that interlinear, parallel passages, topic, kingdom, and dict & word pages will get rebuilt for TEST_MODE_FLAG
 
     # Many of these settings are used to omit some processing so as to get a speedier conclusion for debugging
@@ -81,11 +81,11 @@ class State:
     CREATE_PARALLEL_VERSE_PAGES = 'LAST' # 'FIRST','LAST', or None -- usually 'LAST' -- depending on debugging needs
     CREATE_BOOK_AND_OTHER_PAGES_FLAG = True # Can be turned off for debugging
     DO_SPELL_CHECKS_FLAG = True # On parallel pages
-    REUSE_EXISTING_WORD_PAGES_FLAG = 1 or TEST_MODE_FLAG and not NEW_BOOK_IN_TEST_LIST_FLAG # Don't recreate word pages
+    REUSE_EXISTING_WORD_PAGES_FLAG = TEST_MODE_FLAG and not NEW_BOOK_IN_TEST_LIST_FLAG # Don't recreate word pages
     ALL_TEST_REFERENCE_PAGES_FLAG = False # If have TEST_MODE_FLAG, make ALL word/lemma pages, or just the RELEVANT ones
     UPDATE_ACTUAL_SITE_WHEN_BUILT_FLAG = True # The pages are initially built in a tmp folder so need to be copied to the final destination
 
-    OET_RV_DC_BOOK_LIST = ['TOB','JDT','WIS','MA1','MA2','MA3','MA4']
+    OET_RV_DC_BOOK_LIST = ['TOB','JDT','ESG','WIS','SIR','BAR','MA1','MA2','MA3','MA4','MAN']
 
     TEMP_BUILD_FOLDER = Path( '../buildingHtmlPages/' )
     NORMAL_DESTINATION_FOLDER = Path( '../htmlPages/' )

@@ -29,6 +29,8 @@ Module handling SentenceImportance initialisation.
 
 This bit of code is only ever intended to be run once
 
+TODO: Define what versification these references are in
+
 CHANGELOG:
     2024-05-22 Use SR and Translatable SR-GNT collation columns from CNTR
     2025-04-10 Use crossTestamentQuotes info
@@ -57,10 +59,10 @@ from load import getIndividualQuotedOTRefs, getIndividualQuotingNTRefs
 
 
 
-LAST_MODIFIED_DATE = '2026-08-01' # by RJH
+LAST_MODIFIED_DATE = '2026-08-11' # by RJH
 SHORT_PROGRAM_NAME = "SentenceImportance_initialisation"
 PROGRAM_NAME = "Sentence Importance initialisation"
-PROGRAM_VERSION = '0.26'
+PROGRAM_VERSION = '0.28'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -104,8 +106,8 @@ vitalImportanceRefsWithRanges = [ # Often in doctrinal statements
 
     'ROM_3:23','ROM_6:23','ROM_8:28', 'ROM_12:2',
     'CO2_5:21','CO2_12:9',
-    'GAL_3:10','GAL_3:13-14','GAL_5:22','GAL_5:23', 'EPH_2:9',
-    'PHP_4:6','PHP_4:7','PHP_4:8', 'PHP_4:13',
+    'GAL_3:10','GAL_3:13-14','GAL_5:22-23', 'EPH_2:9',
+    'PHP_4:6-8', 'PHP_4:13',
     'TI2_3:16-17',
 
     'HEB_11:6','HEB_13:5',
@@ -121,7 +123,7 @@ importantRefsWithRanges = [ # Often quoted and/or memorised by Christians
     'GEN_1:4-31','GEN_2:1-3', # Gen 1:1-3 is above
     'DEU_29:24-29', 'DEU_30:3-5',
     'JOS_1:9',
-    'PSA_51:5','PSA_51:10',
+    'PSA_23:1-6', 'PSA_51:5','PSA_51:10',
     'PRO_4:1-7',
     'ECC_8:15',
     'ISA_2:2-4','ISA_6:1-8','ISA_11:1-12','ISA_27:6','ISA_28:16','ISA_41:10', 'ISA_46:9-10',
@@ -136,8 +138,8 @@ importantRefsWithRanges = [ # Often quoted and/or memorised by Christians
     'ACT_2:42',
     'CO1_10:6-11',
     'ROM_3:19-22','ROM_5:16-21','ROM_15:4','ROM_16:17',
-    'GAL_3:21-22',
-    'EPH_2:8-10','EPH_4:14','EPH_6:4','EPH_6:17',
+    'GAL_3:21-22', 'GAL_6:16',
+    'EPH_2:8','EPH_2:10', 'EPH_4:14','EPH_6:4','EPH_6:17',
     'PHP_2:12-13',
     'CO2_9:7',
     'TH1_1:10','TH1_5:9',
@@ -145,7 +147,7 @@ importantRefsWithRanges = [ # Often quoted and/or memorised by Christians
     'TI2_2:15','TI2_4:3-4',
     'TIT_1:9','TIT_2:1',
     'HEB_4:12-13','HEB_13:9',
-    'PE1_2:2',
+    'PE1_2:2', 'PE1_2:9-10',
     'PE2_3:15-16',
     'JN1_2:19','JN1_4:1',
     'JN2_1:9',
@@ -219,7 +221,7 @@ unclearClarityRefs = [ # Mostly sure what's in the Hebrew or Greek,
         'ISA_49:17a','ISA_53:11a','ISA_64:5b',
     'JER_1:15b','JER_6:2b','JER_6:18b','JER_6:27','JER_8:8b','JER_10:19','JER_14:18b','JER_15:12','JER_17:3',
         'JER_23:33','JER_23:34','JER_23:35','JER_23:36b','JER_23:37','JER_23:38','JER_23:39','JER_23:40',
-        'JER_31:33b','JER_48:6b','JER_48:9a',
+        'JER_31:33b','JER_48:6b','JER_48:9a','JER_51:13b',
     'EZE_8:17b', 'EZE_16:24', 'EZE_21:13', 'EZE_24:12', 'EZE_24:17b', 'EZE_26:20b',
     'DAN_8:12','DAN_8:13a','DAN_11:43b',
     'HOS_11:7b',
@@ -306,7 +308,7 @@ def setup():
 
     # Just do some basic integrity checking
     importanceRefs = vitalImportanceRefs + importantRefs + trivialImportanceRefs
-    assert len( set(importanceRefs) ) == len(importanceRefs) # Otherwise there must be a duplicate
+    assert len( set(importanceRefs) ) == len(importanceRefs), [ref for ref in importanceRefs if importanceRefs.count(ref)>1] # Otherwise there must be a duplicate
     clarityRefs = obscureClarityRefs + unclearClarityRefs
     assert len( set(clarityRefs) ) == len(clarityRefs) # Otherwise there must be a duplicate
     allRefs = importanceRefs + clarityRefs + textualCriticismRefs
@@ -668,7 +670,7 @@ def create( initialTSVLines, HebrewReferenceBible, OET_LT_ReferenceOTBible, Engl
     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  {numLinesWritten:,} lines written to {TSV_FILENAME}." )
     assert numLinesWritten == 1+NUM_EXPECTED_DATA_LINES+len(splitVerseSet), f"{NUM_EXPECTED_DATA_LINES=:,} {len(splitVerseSet)=:,} {numLinesWritten=:,}"
     assert len(vitalImportanceRefs) == 0, f"({len(vitalImportanceRefs)}) {vitalImportanceRefs=}" # They should all have been used
-    assert len(importantRefs) == 0, f"({len(importantRefs)}) {importantRefs=}" # They should all have been used
+    assert len(importantRefs) == 0, f"({len(importantRefs)}) {importantRefs=}" # They should all have been used (but might have versification issues with Deu 29:29, etc.)
     assert len(trivialImportanceRefs) == 0, f"({len(trivialImportanceRefs)}) {trivialImportanceRefs=}" # They should all have been used
     assert len(obscureClarityRefs) == 0, f"({len(obscureClarityRefs)}) {obscureClarityRefs=}" # They should all have been used
     assert len(unclearClarityRefs) == 0, f"({len(unclearClarityRefs)}) {unclearClarityRefs=}" # They should all have been used

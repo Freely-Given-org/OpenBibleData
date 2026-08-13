@@ -113,10 +113,10 @@ from settings import State, state
 from OETHandlers import getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2026-07-06' # by RJH
+LAST_MODIFIED_DATE = '2026-08-11' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
-PROGRAM_VERSION = '1.0.1'
+PROGRAM_VERSION = '1.0.2'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -466,7 +466,7 @@ def makeBottom( level:int, versionAbbreviation:str|None, pageType:str, state:Sta
     # fnPrint( DEBUGGING_THIS_MODULE, f"makeBottom()" )
     assert pageType in KNOWN_PAGE_TYPES, f"{level=} {pageType=}"
 
-    return _makeFooter( level, versionAbbreviation, pageType, state ) + '</body></html>'
+    return f'{_makeFooter( level, versionAbbreviation, pageType, state )}</body></html>'
 # end of html.makeBottom
 
 def _makeFooter( level:int, versionAbbreviation:str|None, pageType:str, state:State ) -> str:
@@ -772,11 +772,12 @@ def checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool:
         match = classAttributeRegex.search( htmlToCheck, searchStartIndex )
         if not match:
             break
-        classGuts = match.group(1) # might be something like 'KJB-1611_verseTextChunk'
-        assert len(classGuts) <= 23, f"'{where}' {segmentOnly=} class is too long ({len(classGuts)}) {classGuts=}"
+        classGuts = match.group(1) # might be something like 'KJB-1611_verseTextChunk' or alternateHeading NorthernKingdom' (two class names separated by spaces)
         assert '\n' not in classGuts, f"'{where}' {segmentOnly=} Bad class with newline in {classGuts=} FROM {htmlToCheck=}"
         assert '<' not in classGuts, f"'{where}' {segmentOnly=} Bad class with < in {classGuts=} FROM {htmlToCheck=}"
         assert '>' not in classGuts, f"'{where}' {segmentOnly=} Bad class with > in {classGuts=} FROM {htmlToCheck=}"
+        for className in classGuts.split( ' ' ):
+            assert len(className) <= 23, f"'{where}' {segmentOnly=} class is too long ({len(className)}) {className=}"
         searchStartIndex = match.end()
 
     # Check IDs
@@ -904,6 +905,7 @@ def checkHtmlForMissingStyles( where:str, htmlToCheck:str ) -> bool:
                     elementName = ssLine[:2]
                     className = ssLine[3:].split( ' ', 1 )[0]
                     # print( f"    {elementName} {className=}")
+                    if className.endswith( ',' ): className = className[:-1] # Can have h1.PromisedLand, p.PromisedLand { color:gold; }
                     assert ' ' not in className and ',' not in className, f"{className=}"
                     assert elementName not in lsStyleDict[className]
                     lsStyleDict[className].append( elementName )

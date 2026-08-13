@@ -87,6 +87,7 @@ CHANGELOG:
     2026-06-29 Improved handling of 'mr' lines, plus removed extra space from processed footnote xt fields
     2026-06-30 In Psalms, display C before d field if it exists (rather than before v1)
     2026-07-07 Added OBI images and got USFM figures working
+    2026-08-12 Improved handling of jmp links and of usfm pb lines
 """
 import re
 import unicodedata
@@ -106,10 +107,10 @@ from OETHandlers import getBBBFromOETBookName
 from Bibles import getOpenBibleImages
 
 
-LAST_MODIFIED_DATE = '2026-07-26' # by RJH
+LAST_MODIFIED_DATE = '2026-08-12' # by RJH
 SHORT_PROGRAM_NAME = "usfm"
 PROGRAM_NAME = "OpenBibleData USFM to HTML functions"
-PROGRAM_VERSION = '1.1.2'
+PROGRAM_VERSION = '1.1.4'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -272,8 +273,11 @@ def convertVerseEntryListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                         figSrc = figSrcPath.name # Lose the path info
                         figDestinationFilepath = imagesDestinationFolder.joinpath( figSrc )
                         if not figDestinationFilepath.is_file(): # it might have already been copied
-                            shutil.copy2( figSrcPath, imagesDestinationFolder )
-                            print( f"Fig: starting with {figSrcPath=}, copied '{figSrc}' image to {imagesDestinationFolder=}" )
+                            try:
+                                shutil.copy2( figSrcPath, imagesDestinationFolder )
+                                print( f"Fig: starting with {figSrcPath=}, copied '{figSrc}' image to {imagesDestinationFolder=}" )
+                            except FileNotFoundError:
+                                logging.critical( f"Fig: starting with {figSrcPath=} was unable to find '{figSrc}' image" )
                     figSize = None
                     if match := FIG_SIZE_REGEX.search( figRest ):
                         figSize = match.group(1)
@@ -305,23 +309,30 @@ def convertVerseEntryListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                 assert jmpPipeIx != -1
                 jmpEndIx = html.find( '\\jmp*', jmpPipeIx+1 )
                 assert jmpEndIx != -1
-                # dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"Handling jmp {versionAbbreviation} {refTuple} {segmentType} {searchStartIx} {jmpStartIx} {jmpPipeIx} {jmpEndIx} '{html[jmpStartIx:jmpEndIx+5]}'" )
+                # dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Handling jmp {versionAbbreviation} {segmentType} {refTuple} {searchStartIx} {jmpStartIx} {jmpPipeIx} {jmpEndIx} '{html[jmpStartIx:jmpEndIx+5]}'" )
                 jmpDisplay, jmpLinkBit = html[jmpStartIx+5:jmpPipeIx], html[jmpPipeIx+1:jmpEndIx]
-                dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"Got jmp {versionAbbreviation} {refTuple} {segmentType} {jmpDisplay=} and {jmpLinkBit=} from '{html[jmpStartIx:jmpEndIx+5]}'" )
-                assert jmpLinkBit.startswith( 'link-href="' ) and jmpLinkBit.endswith( '"' )
-                jmpLink = jmpLinkBit[11:-1]
-                if jmpLink.startswith( 'http' ): # then it's an external internet link
+                dPrint( 'Info', DEBUGGING_THIS_MODULE, f"Got jmp {versionAbbreviation} {segmentType} {refTuple} {jmpDisplay=} and {jmpLinkBit=} from '{html[jmpStartIx:jmpEndIx+5]}'" )
+                if 'http' in jmpLinkBit or 'href' in jmpLinkBit: # then it's an external internet link
+                    # TODO: We're still not handling link-title and link-id
+                    if jmpLinkBit.startswith( 'link-href="' ) and jmpLinkBit.endswith( '"' ):
+                        jmpLink = jmpLinkBit[11:-1]
+                    elif jmpLinkBit.startswith( 'href="' ) and jmpLinkBit.endswith( '"' ):
+                        jmpLink = jmpLinkBit[6:-1]
+                    else: jmpLink = jmpLinkBit
+                    if not jmpDisplay:
+                        jmpDisplay = jmpLink.replace( 'https://www.', '' ).replace( 'http://www.', '' ).replace( 'https://', '' ).replace( 'http://', '' )
+                    dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Creating external {versionAbbreviation} {segmentType} {refTuple} link: {jmpDisplay=} {jmpLink=}" )
                     newLink = f'<a title="Go to external jump link" href="{jmpLink}">{jmpDisplay}</a>'
                 else: # it's likely to be a link into another work
-                    vPrint( 'Info', DEBUGGING_THIS_MODULE, f"What is this '{jmpDisplay}' link to '{jmpLink}' expecting to jump to?" )
-                    if jmpLink.startswith( '#' ):
-                        assert jmpLink.startswith( '#C' ), f"Got internal jmp {versionAbbreviation} {refTuple} {segmentType} {jmpDisplay=} and {jmpLink=} from '{html[jmpStartIx:jmpEndIx+5]}'"
-                        assert 'V' in jmpLink, f"Got internal jmp {versionAbbreviation} {refTuple} {segmentType} {jmpDisplay=} and {jmpLink=} from '{html[jmpStartIx:jmpEndIx+5]}'"
-                        Vix = jmpLink.index( 'V' )
-                        refC, refV = jmpLink[2:Vix], jmpLink[Vix+1:]
+                    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  What is this {jmpDisplay=} link to {jmpLinkBit=} expecting to jump to?" )
+                    if jmpLinkBit.startswith( '#' ):
+                        assert jmpLinkBit.startswith( '#C' ), f"Got internal jmp {versionAbbreviation} {segmentType} {refTuple} {jmpDisplay=} and {jmpLinkBit=} from '{html[jmpStartIx:jmpEndIx+5]}'"
+                        assert 'V' in jmpLinkBit, f"Got internal jmp {versionAbbreviation} {segmentType} {refTuple} {jmpDisplay=} and {jmpLinkBit=} from '{html[jmpStartIx:jmpEndIx+5]}'"
+                        Vix = jmpLinkBit.index( 'V' )
+                        refC, refV = jmpLinkBit[2:Vix], jmpLinkBit[Vix+1:]
                         # print( f"{jmpLink=} {ourBBB=} {refC=} {refV=}")
                         if segmentType == 'book':
-                            newLink = f'<a title="Go to internal jump link reference document" href="{jmpLink}">{jmpDisplay}</a>'
+                            newLink = f'<a title="Go to internal jump link reference document" href="{jmpLinkBit}">{jmpDisplay}</a>'
                         elif segmentType == 'chapter':
                             newLink = f'<a title="Go to internal jump link reference chapter" href="{ourBBB}_C{refC}.htm#C{refC}V{refV}">{jmpDisplay}</a>'
                         elif segmentType.endswith( 'Verse' ):
@@ -359,7 +370,7 @@ def convertVerseEntryListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                         else:
                             dPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"_convertUSFMCharacterFormatting( {versionAbbreviation}, {refTuple}, {segmentType}, '{usfmField}' )" )
                             jmp_ooopsie
-                        newLink = f'<a title="Go to internal jump link" href="{jmpLink}">{jmpDisplay}</a>'
+                        newLink = f'<a title="Go to internal jump link" href="{jmpLinkBit}">{jmpDisplay}</a>'
                         # print( f"Got {newLink=}")
                     else: # unknown link type
                         unknown_jmp_link_type
@@ -1050,8 +1061,13 @@ def convertVerseEntryListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                     html = f'{html}<div class={spClass}>'
                     inSPdiv = spClass
                 html = f'{html}<p class="{marker}">{cBit}{_convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state )}</p><!--{marker}-->\n'
+
         elif marker in ('b','ib'):
+            assert not rest
             html = f'{html}<br>'
+        elif marker == 'pb': # page-break
+            assert not rest
+            html = f'{html}<br><!--Should be PAGE BREAK-->' # TODO: How should we be handling this???
 
         # Handle lists
         elif marker in ('list','ilist'):
@@ -1348,6 +1364,9 @@ def convertVerseEntryListToHtml( level:int, versionAbbreviation:str, refTuple:tu
             if inMainDiv:
                 html = f'{html}</div><!--{inMainDiv}-->'
                 inMainDiv = None
+        elif marker == 'pb': # page-break
+            assert not rest
+            html = f'{html}<br><!--Should be PAGE BREAK-->' # TODO: How should we be handling this???
         elif marker not in ('usfm','ide', 'sts',
                             'h', 'toc1','toc2','toc3', 'toca1','toca2','toca3', '¬is1', '¬headers',
                             'cl¤', '¬c', '¬chapters'): # We can ignore all of these -- 'c#' now handled above
@@ -1602,8 +1621,11 @@ def convertVerseEntryListToHtml( level:int, versionAbbreviation:str, refTuple:tu
     # Now handle all cross-references in one go (we don't check for matching \xo fields)
     crossReferencesCount = 0
     crossReferencesHtml = ''
-    searchStartIx = 0
-    for _safetyCount1 in range( 999 if segmentType=='book' else 99 ):
+    searchStartIx, lastSearchStartIx = 0, -1
+    for _safetyCount1 in range( 599 if segmentType=='book' else 99 ):
+        if searchStartIx == lastSearchStartIx: # then we didn't make any progress in the last loop iteration
+            logging.critical( f"Seems we made no progress with {versionAbbreviation} {refTuple} {segmentType=} xref handling at '{html[searchStartIx:searchStartIx+30]}…'" )
+            break # Better than an infinite loop
         xStartIx = html.find( '\\x ', searchStartIx )
         if xStartIx == -1: break # all done
         # if versionAbbreviation=='KJB-1611': print( f"{versionAbbreviation} {refTuple} {segmentType=} got {xStartIx=}" )
@@ -1621,7 +1643,7 @@ def convertVerseEntryListToHtml( level:int, versionAbbreviation:str, refTuple:tu
 
         # Liven the cross-references (xrefs) themselves
         xrefLiveMiddle = xrefOriginalMiddle = html[xtIx+4:xEndIx]
-        if len(xrefOriginalMiddle) > 165: # OET-RV HOS 1 is 162 (although will eventually be split into 5 pieces)
+        if len(xrefOriginalMiddle) > 165 and (BBB!='JER' or versionAbbreviation!='UST'): # OET-RV HOS 1 is 162 (although will eventually be split into 5 pieces)
             print( f"Suspiciously long {versionAbbreviation} {refTuple} {segmentType=} got ({len(xrefOriginalMiddle)}) {xrefOriginalMiddle=}" ); halt
         xrefOriginalMiddle = xrefOriginalMiddle.replace('\\xo ','').replace('\\xt ','') # Fix things like "Gen 25:9-10; \\xo b \\xt Gen 35:29."
         dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f" {xrefLiveMiddle=}" )
@@ -1649,6 +1671,7 @@ def convertVerseEntryListToHtml( level:int, versionAbbreviation:str, refTuple:tu
         xrefText = f'<p class="xr" id="xr{crossReferencesCount}">{xrefRef}<span class="xrText">{xrefLiveMiddle}</span></p><!--xr-->\n'
         crossReferencesHtml = f'{crossReferencesHtml}{xrefText}'
         html = f'{html[:xStartIx]}{xrefCaller}{html[xEndIx+3:]}'
+        lastSearchStartIx = searchStartIx
         searchStartIx = xEndIx + 3
     else:
         dPrint( 'Info', DEBUGGING_THIS_MODULE, f"Processing xref {_safetyCount1} loop break {versionAbbreviation} {refTuple} {segmentType=} {xoText=} {xrefOriginalMiddle=}" )
@@ -2019,6 +2042,7 @@ def livenXRefField( fieldType:str, versionAbbreviation:str, refTuple:tuple, segm
     State parameter is only used for the OET-RV.
     """
     from createSectionPages import findSectionNumber
+    DEBUGGING_THIS_MODULE = 99 if versionAbbreviation == 'KJB-1611' else False
     fnPrint( DEBUGGING_THIS_MODULE, f"livenXRefField( {fieldType}, {versionAbbreviation}, {refTuple}, {segmentType}, '{pathPrefix}', {xoText=}, {xrefOriginalMiddle=} )" )
     assert fieldType in 'fx'
 
@@ -2039,8 +2063,13 @@ def livenXRefField( fieldType:str, versionAbbreviation:str, refTuple:tuple, segm
         xrefLiveMiddle = xrefLiveMiddle.replace( 'A&s', 'Acts' )
 
     reStartIx, lastXBBB, lastXC = 0, BBB, 0
-    for _safetyCount2 in range( 999 if segmentType=='book' else 50 ): # was 99
-        if reStartIx>0: dPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Now searching {refTuple} from {xrefLiveMiddle[reStartIx:]=}" )
+    for _safetyCount2 in range( 599 if segmentType=='book' else 50 ):
+        if reStartIx>0: dPrint( 'Info' if versionAbbreviation=='KJB-1611' else 'Verbose', DEBUGGING_THIS_MODULE, f"Now searching {refTuple} from {xrefLiveMiddle[reStartIx:]=}" )
+        for possiblePrefix in ('. and ','. &c.','.&c. ','. & ','. ',', ','.',','):
+            if xrefLiveMiddle[reStartIx:].startswith( possiblePrefix ):
+                reStartIx += len( possiblePrefix ) # Skip past it
+                dPrint( 'Info' if versionAbbreviation=='KJB-1611' else 'Verbose', DEBUGGING_THIS_MODULE, f"  but now searching {refTuple} from {xrefLiveMiddle[reStartIx:]=}" )
+        if reStartIx >= len(xrefLiveMiddle)-1: break
         matchBCV = BCVRefRegEx.search( xrefLiveMiddle, reStartIx )
         matchBV = BVRefRegEx.search( xrefLiveMiddle, reStartIx )
         matchCV = CVRefRegEx.search( xrefLiveMiddle, reStartIx )
@@ -2104,7 +2133,7 @@ def livenXRefField( fieldType:str, versionAbbreviation:str, refTuple:tuple, segm
             elif versionAbbreviation == 'KJB-1611':
                 try: xBBB = myKJB1611XrefTable[xB]
                 except KeyError:
-                    dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  {versionAbbreviation} {BBB}  '{xB}'  wasn't in the table from '{xrefOriginalMiddle}'")
+                    dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  {versionAbbreviation} {BBB}  '{xB}'  wasn't in our local table from '{xrefOriginalMiddle}'")
                     adjXB = ( xB # Fix KJB-1611 spellings -- what's Apoc/apoc and nnm ???
                             .replace( '1.','1 ' ).replace( '2.','2 ' ).replace( '3.','3 ' ).replace( '4.','4 ' ) # Should BOS handle this???
                             .replace( 'I.','1 ' )
@@ -2172,7 +2201,9 @@ def livenXRefField( fieldType:str, versionAbbreviation:str, refTuple:tuple, segm
             #         logging.critical( f"Unable to liven cross-reference from {versionAbbreviation} {refTuple} for {xBBB=} {xC=} {xV=} from {xB=} from {xrefOriginalMiddle=}" )
             # # if versionAbbreviation=='KJB-1611' and not xBBB: # still
             # #     print( f"  {versionAbbreviation} {xBBB=} {xC=} {xV=} from {xB=} from {xrefOriginalMiddle=}" )
-        assert xBBB and xBBB not in ('SAM','CHR'), f"livenXRefField {fieldType} {versionAbbreviation} {refTuple} {xoText=} {xBBB=} from {xB=} from {xrefOriginalMiddle=}"
+        if not xBBB or xBBB in ('SAM','KGS','CHR'):
+            logging.critical( f"livenXRefField failed with {fieldType} {versionAbbreviation} {refTuple} {xoText=} {xBBB=} from {xB=} from {xrefOriginalMiddle=}" )
+        assert xBBB and xBBB not in ('SAM','KGS','CHR'), f"livenXRefField {fieldType} {versionAbbreviation} {refTuple} {xoText=} {xBBB=} from {xB=} from {xrefOriginalMiddle=}"
         if versionAbbreviation == 'KJB-1611':
             if xB in ('As','in','and'):
                 xBBB = lastXBBB
@@ -2207,13 +2238,17 @@ def livenXRefField( fieldType:str, versionAbbreviation:str, refTuple:tuple, segm
 
         if xBBB:
             # assert int(xC) <= bos_books_codes_py.get_max_chapters( xBBB ), f"Bad xref {xBBB} {match.groups()} from {versionAbbreviation} {refTuple} {segmentType}"
-            if int(xC) > bos_books_codes_py.get_max_chapters( xBBB ):
+            try: intXC = int(xC)
+            except ValueError:
+                logging.critical( f"Have {versionAbbreviation} {refTuple} {segmentType=} non-int chapter number {xC=}" )
+                intXC = 0
+            if intXC > bos_books_codes_py.get_max_chapters( xBBB ):
                 logging.critical( f"Not enough chapters in {xBBB} ({bos_books_codes_py.get_max_chapters(xBBB)}) for {match.groups()} from {versionAbbreviation} {refTuple} {segmentType=} {xoText=} {xrefOriginalMiddle=}" )
                 reStartIx = match.end() # exact number of characters that we add (otherwise we get mistakes/overlaps)
                 continue
         else:
             dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"livenXRefField( {versionAbbreviation} {refTuple} '{segmentType}' from {xoText=} {xrefOriginalMiddle=} ) with {BBB=} {xBBB=} {lastXBBB=}" )
-            logging.critical( f"Failed to find xref book from '{xB}' from '{xrefOriginalMiddle}' in {match.groups()} for {versionAbbreviation} {segmentType} {segmentType=} {refTuple}")
+            logging.critical( f"Failed to find xref book from '{xB}' from '{xrefOriginalMiddle}' in {match.groups()} for {versionAbbreviation} {refTuple} {segmentType=}")
         if versionAbbreviation == 'OET-RV' and xBBB in state.preloadedBibles['OET-RV'] \
         and (bos_books_codes_py.is_old_testament_nr( xBBB ) or bos_books_codes_py.is_new_testament_nr( xBBB )): # We want to link to the section page, (not the chapter page)
             sectionNumber = findSectionNumber( 'OET-RV', xBBB, xC, xV, state )
@@ -2235,7 +2270,7 @@ def livenXRefField( fieldType:str, versionAbbreviation:str, refTuple:tuple, segm
         #     print( f"        Stepping past '{xrefLiveMiddle[reStartIx]}'" )
         #     reStartIx += 1 # Step past extra parts (like a range) so they don't get false thought to be another valid ref
     else:
-        logging.critical( f"Inner xref loop needed to break for {versionAbbreviation} {segmentType} {segmentType=} {refTuple} {xrefOriginalMiddle=} {xrefLiveMiddle=}" ); halt
+        logging.critical( f"Inner xref loop needed to break for {versionAbbreviation} {segmentType} {segmentType=} {refTuple} {xrefOriginalMiddle=} {xrefLiveMiddle=}" )
         assert False, f"Inner xref loop needed to break for {versionAbbreviation} {segmentType} {segmentType=} {refTuple} after {_safetyCount2} loops"
 
     if xrefLiveMiddle == xrefOriginalMiddle: # this could possibly cause infinite loops in the calling function???
