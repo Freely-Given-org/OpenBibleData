@@ -46,10 +46,10 @@ from BibleOrgSys.BibleOrgSysGlobals import vPrint, fnPrint, dPrint, rreplace
 import bos_books_codes_py
 
 
-LAST_MODIFIED_DATE = '2026-08-14' # by RJH
+LAST_MODIFIED_DATE = '2026-08-17' # by RJH
 SHORT_PROGRAM_NAME = "spellCheckEnglish"
 PROGRAM_NAME = "English Bible Spell Check"
-PROGRAM_VERSION = '0.62'
+PROGRAM_VERSION = '0.63'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -566,7 +566,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                     .replace( f'<span class="{versionAbbreviation}_verseTextChunk">', '' ).replace( f'<span class="{versionAbbreviation}_trans">', '' )
                     .replace( '<span class="nd">L<span style="font-size:.75em;">ORD</span></span>s', 'LORDs' )
                     .replace( '<span class="nd">L<span style="font-size:.75em;">ORD</span></span>', 'LORD' )
-                    .replace( '<hr style="width:30%;margin-left:0;margin-top: 0.3em">', '' ).replace( '<hr style="width:35%;margin-left:0;margin-top: 0.3em">', '' )
+                    .replace( '<hr class="line-before-footnotes">', '' ).replace( '<hr class="line-before-xrefs">', '' )
 
                     .replace( '</span>s ', '</span> ' ).replace( '</span>s:', '</span>:' ) # LORDs
                     )
@@ -755,7 +755,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
         if word not in wordSet and f'{word[0].lower()}{word[1:]}' not in wordSet:
             cleanedTextToDisplay = originalHTMLTextForDebugging.replace('span class="ft">','').replace('<span class="fk">','').replace('</span>','') \
                                                             .replace('<a title="Return to text" href="#C','') \
-                                                            .replace('<hr style="width:35%;margin-left:0;margin-top: 0.3em">\n','') \
+                                                            .replace('<hr class="line-before-footnotes">\n','') \
                                                             .replace('<p class="fn" id="fn','').replace('<span class="fnRef">','') \
                                                             .replace('</p>\n</div><!--footnotes-->','')
             if versionAbbreviation not in ('Luth','ClVg'): # native or modernised English
@@ -799,13 +799,13 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                 'one)r','one)n','ones)r','ones)s','ones)n','one)s',
                                 'hing','weh','du','ach','Raube','Raub','Tal','tue','fiel','sehe','Mal','mal','mit','Mord','Natur',
                                 'ende','rede','kam','Korb','ward','alt','dran','Rede','nun','nur','messen','ging','Halle','und','ster','streng','tun','von','wer','zu',
-                                'unobedient','distributione','opense','whoren','lockn','sharedn','againststanden','gorrschet','goatsböcklein',
-                                'saddenede','slepten','fiftytausend',
+                                'unobedient','distributione','opense','whoren','sharedn','againststanden','gorrschet','goatsböcklein','saddenede','slepten','fiftytausend',
                                     'tearinger','fragmentn','throughgraben','freshn',
-                                    'wanderte','ointmentst','seae','leadt','vainn','blooddürstigen','deckt','hideet','correcter','quietst',
-                                    'loseten','tooket','ofhalte','zealn','meansn','farmhandschaft','runningt',
-                                    'grainstädte','stiftete','chainswerk','humiliatedn','seventytausend','eightytausend','cartstädte','ratet','togewachsen',
-                                    'prieströcke','interesten','treasurye','springtor','stalkor','heresiehet','fourmal','sevenundsechzig','abandonedest','cleanedn','strengthenedn','eightundneunzig','fiveundneunzig',
+                                    'wanderte','ointmentst','seae','leadt','vainn','blooddürstigen','deckt','hideet','correcter','quietst','loseten',
+                                    'grainstädte','stiftete','chainswerk','seventytausend','eightytausend','cartstädte','ratet','togewachsen','wroteen',
+                                    'blasphemyen','shopsn','nineunddreißig','soundedn','hinderte','frightenedn','preventeden',
+                                    'fragmentn','throughgraben','freshn','wanderte','ointmentst','leadt','vainn','blooddürstigen','deckt','hideet','correcter','quietst',
+                                    'doenen',
 
                                 'actio','ambit','ambitio','anima','antiqui','apprehendi','ascendi','attende','audi', 'aversio',
                                 'beati','bene','beneficia','bos',
@@ -817,33 +817,31 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                     'creat','credi','cruci',        'cultu','cum','cura','curat',
                                 'dat','dedi','dei','dem','designat','desolati','determinat',
                                     'disco','digni','discretio','distincti','distinctio','divisi','dom','domi','domina',
-                                'ecclesia','ecclesias','editio','ei','enumerat','esca','evangelica','expiat','extensio',
+                                'ecclesia','ecclesias','editio','ei','enumerat','esca','evangelica', 'exclamat','expiat','extensio',
                                 'fac','falli', 'fel', 'figura','Finis','finis','forti','fugit','fur',     'generat',     'hellor','hoc','humili','humiliati',
                                 'ibi', 'illum','illinat', 'ima','impie', 'infirmi','inscriptio','insinuat','instructi',
                                     'intellige','intelligi','intentio','introduc','inventi','invocatio','Isaia','iter','Ite',
                                 'ja','jus','Justi','justi','justis','justificat',     'legi','legis','liberati','liberato','liberat','libera','liber','locus','lux',
                                 'magis','magnifice','magni','manifeste','manu','mater','materia',
-                                    'medici','menstrua',        'mira','misera',        'moretri','mortali','morti',
+                                    'media','medici','menstrua',        'mira','misera',        'moretri','mortali','morti',
                                 'nam','natu','natura','ne','nota','Nota',     'ob','obsessi','omnis','operatio','ora','ori',
                                 'passi','patria','patri','pede','pedes','perfecti','persecuti','persecutio',
                                     'pio','plura','polluti','prope','propitiatio','provocat','publica',
-                                'questio','qui',        'rea','redempti','rege','regi','regio','regula','rei','repente','ros',
+                                'questio','qui',        'rea','redempti','rege','regi','regio','regula','remun','remunerat','rei','repente','ros',
                                 'salva','salvat','salvati','sanctifi','sanctificati',
                                     'securi','separat','separati','seu','serva','servit','sex','sexta',
                                     'si','sit','sol','soli','solem','stat','statu','summo',
-                                'tempora','Tod','tradit','traditi','traditio','transmigratio','tres','tribulatio','tributa','trium','tu','tua','tuam','turba',
+                                'tempora','Tod','tradit','traditi','traditio','transito','transmigratio','tres','tribulatio','tributa','trium','tu','tua','tuam','turba',
                                 'usu',      'valle','vani','vas', 'victi','visita','visitat','visitatio','vita', 'Voca','voca',
                                 'l','nos','ut','didrachmas',
-                                'tum',
-                                'holdur','killur','giveium',
-                                'golds','inactivitym','seerat',
-                                    'exclamat','passry','prospere','instrumentum','meansio',
-                                    'revengene','proyicit','judgeur','carriese','adwill',
-                                    'repromise','middletor','adoptionem','falli','perficietis','changesa','intumescebat','hedera',
-                                    'believesum','devotio','fornicatio',
-                                    'magicis','beforedixi',
-                                    'lucos','signsnt','talentis','basilicam','exposita','organis','habitculo','equitatus','establishedque','lastrum','tauros','offeringrum','buildt',
-                                    'valvas','devotio','letterolæ','buildsa','cantoribus','fontis','vici','nongenti','uprant','priestlys','planstores','ædificio','praiseium',
+                                'tum','holdur','killur','giveium','golds','inactivitym',
+                                'sealur','announcent','fraudem','subjoinsur','perpetuall',
+                                    'instrumentum','revengene','judgeur','carriese','adwill',
+                                    'changesa','hedera','fornicatio','talentis','habitculo','equitatus','establishedque','lastrum','buildt','buildsa','solidos',
+                                    'buildingus','buildri','dedicatione','planstorum','yearnas','myrti',
+                                    'remunerat','instrumentum','judgeur','itur','listensus','equaltas',
+                                    'passedum','attentionrunt','obscuro','tricksus',
+                                    'usuram','dispositione','hards',
                                 )
                     else 'Info', DEBUGGING_THIS_MODULE, f'''        {word} is suspect @ {location}\nfrom {cleanedTextToDisplay=}\n  WHICH GAVE {cleanedTextToCheck=}''' )
             if versionAbbreviation == 'Luth':

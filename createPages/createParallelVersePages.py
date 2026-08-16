@@ -83,6 +83,7 @@ CHANGELOG:
     2026-04-13 Add 'OET' id tag (as well as existing 'OET-RV' id tag)
     2026-05-26 Reducing some logging verbosity
     2026-07-05 Added OpenBibleImages
+    2026-08-16 If second paired version is the same as the first, combine them
 """
 from pathlib import Path
 import os
@@ -115,10 +116,10 @@ from OETHandlers import getOETTidyBBB, getOETBookName, livenOETWordLinks, livenO
 from spellCheckEnglish import spellCheckAndMarkHTMLText
 
 
-LAST_MODIFIED_DATE = '2026-07-05' # by RJH
+LAST_MODIFIED_DATE = '2026-08-16' # by RJH
 SHORT_PROGRAM_NAME = "createParallelVersePages"
 PROGRAM_NAME = "OpenBibleData createParallelVersePages functions"
-PROGRAM_VERSION = '1.0.1'
+PROGRAM_VERSION = '1.0.2'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -220,8 +221,8 @@ def createParallelVersePages( level:int, folder:Path, state:State ) -> bool:
 class MissingBookError( Exception ): pass
 class UntranslatedVerseError( Exception ): pass
 
-completeFootnoteRegex = re.compile( '\\\\f .+?\\\\f\\*' )
-
+ENTIRE_FOOTNOTE_REGEX = re.compile( '\\\\f .+?\\\\f\\*' )
+FIRST_PAIRED_VERSIONS, SECOND_PAIRED_VERSIONS = ('BSB','WEBBE'), ('MSB','WMBB')
 def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:list[str], parallelVersions:list[str], state:State ) -> bool:
     """
     Create a page for every Bible verse
@@ -353,7 +354,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                 prefix = f'<b><sup>{prefix}</sup></b>'
                             if verseText.startswith( '\\s1 ' ):
                                 verseText.replace( '\\s1 ', '\\s1 <b>', 1 ).replace( '\n', '</b>\n', 1 )
-                            verseText = completeFootnoteRegex.sub( '*', verseText ) # Just leave an asterisk where the footnotes were
+                            verseText = ENTIRE_FOOTNOTE_REGEX.sub( '*', verseText ) # Just leave an asterisk where the footnotes were
                             vHtml = f'{prefix}{verseText}' \
                                 .replace( '\\p ', '\n<br>¶&nbsp;' ) \
                                 .replace( '\\q1 ', '\n<br>&nbsp;&nbsp;' ) \
@@ -551,12 +552,12 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                             elif versionAbbreviation in ('ULT','UST','NET','BLB','OEB','FBV','BBE','Moff','JPS','ASV','DRA','YLT','SLT','Drby','Wbstr'):
                                 if state.DO_SPELL_CHECKS_FLAG:
                                     textHtml = spellCheckAndMarkHTMLText( versionAbbreviation, parRef, textHtml, textHtml, state ) # Puts spans around mispellings
-                            elif versionAbbreviation in ('WEBBE','WEB'): # assuming WEB/WEBBE comes BEFORE WMB/WMBBB
+                            elif versionAbbreviation == 'WEBBE': # assuming WEB/WEBBE comes BEFORE WMB/WMBBB
                                 textHtmlWEB, footnotesHtmlSaved = textHtml, footnotesHtml # Save it
                                 if state.DO_SPELL_CHECKS_FLAG:
                                     textHtml = spellCheckAndMarkHTMLText( versionAbbreviation, parRef, textHtml, textHtml, state ) # Puts spans around mispellings
-                            elif versionAbbreviation in ('WMBB','WMB'): # assuming WEB/WEBBE comes BEFORE WMB/WMBB
-                                if textHtml and textHtml == textHtmlWEB.replace( 'WEBBE', 'WMBB' ).replace( 'WEB', 'WMB' ):
+                            elif versionAbbreviation == 'WMBB': # assuming WEB/WEBBE comes BEFORE WMB/WMBB
+                                if textHtml and textHtml == textHtmlWEB.replace( 'WEBBE', 'WMBB' ):
                                     # print( f"Skipping parallel for WMB {parRef} because same as WEB" )
                                     textHtml = "(Same as above)" # Do we also need to adjust footnotesHtml ???
                                 elif state.DO_SPELL_CHECKS_FLAG:
@@ -1003,15 +1004,23 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                 else: # for all the others
                                     versionNameLink = f'''{'../'*BBBLevel}{versionAbbreviation}/details.htm#Top''' if versionAbbreviation in state.versionsWithoutTheirOwnPages else f'''{'../'*BBBLevel}{versionAbbreviation}/byC/{BBB}_{adjC}.htm#V{V}'''
                                     if textHtml.startswith( "(Same as " ):
-                                        assert versionAbbreviation in ('MSB','WMBB','WMB')
+                                        assert versionAbbreviation in SECOND_PAIRED_VERSIONS
+                                        versionAbbreviation1 = FIRST_PAIRED_VERSIONS[SECOND_PAIRED_VERSIONS.index(versionAbbreviation)]
+                                        versionNameLink1 = f'''{'../'*BBBLevel}{versionAbbreviation1}/details.htm#Top''' if versionAbbreviation1 in state.versionsWithoutTheirOwnPages else f'''{'../'*BBBLevel}{versionAbbreviation1}/byC/{BBB}_{adjC}.htm#V{V}'''
                                         if footnotesHtmlSaved:
-                                            if footnotesHtml == footnotesHtmlSaved.replace( 'BSB', 'MSB' ).replace( 'WEBBE', 'WMBB' ).replace( 'WEB', 'WMB' ):
-                                                footnotesHtml = '' # No need to repeat these either
-                                                textHtml = textHtml.replace( 'above)', 'above including footnotes)' )
+                                            if footnotesHtml == footnotesHtmlSaved.replace( versionAbbreviation1, versionAbbreviation ): # Both versions with footnotes are identical, so combine into one line
+                                                # footnotesHtml = '' # No need to repeat these either
+                                                # textHtml = textHtml.replace( 'above)', 'above including footnotes)' )
+                                                parallelHtml = parallelHtml.replace( f'''<span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation1]} {'details' if versionAbbreviation1 in state.versionsWithoutTheirOwnPages else 'chapter'}" href="{versionNameLink1}">{versionAbbreviation1}</a></span>''',
+                                                                                f'''<span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation1]} {'details' if versionAbbreviation1 in state.versionsWithoutTheirOwnPages else 'chapter'}" href="{versionNameLink1}">{versionAbbreviation1}</a></span> & <span id="{versionAbbreviation}" class="wrkName"><a title="View {state.BibleNames[versionAbbreviation]} {'details' if versionAbbreviation in state.versionsWithoutTheirOwnPages else 'chapter'}" href="{versionNameLink}">{versionAbbreviation}</a></span>''' )
+                                                continue # Nothing else to add for (this identical verse for) this version
                                             # "closeVerse" class writes WMBB/WMB text on top of WEBBE/WEB footnotes -- probably should be fixed in CSS, but not sure how so will fix it here
                                             vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation]} {'details' if versionAbbreviation in state.versionsWithoutTheirOwnPages else 'chapter'}" href="{versionNameLink}">{versionAbbreviation}</a></span> {textHtml}</p>'''
-                                        else: # WEB had no footnotes, so ok to use "closeVerse" class
-                                            vHtml = f'''<p id="{versionAbbreviation}" class="closeVerse"><span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation]} {'details' if versionAbbreviation in state.versionsWithoutTheirOwnPages else 'chapter'}" href="{versionNameLink}">{versionAbbreviation}</a></span> {textHtml}</p>'''
+                                        else: # Both versions (without footnotes) are identical, so combine into one line
+                                            # vHtml = f'''<p id="{versionAbbreviation}" class="closeVerse"><span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation]} {'details' if versionAbbreviation in state.versionsWithoutTheirOwnPages else 'chapter'}" href="{versionNameLink}">{versionAbbreviation}</a></span> {textHtml}</p>'''
+                                            parallelHtml = parallelHtml.replace( f'''<span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation1]} {'details' if versionAbbreviation1 in state.versionsWithoutTheirOwnPages else 'chapter'}" href="{versionNameLink1}">{versionAbbreviation1}</a></span>''',
+                                                                                f'''<span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation1]} {'details' if versionAbbreviation1 in state.versionsWithoutTheirOwnPages else 'chapter'}" href="{versionNameLink1}">{versionAbbreviation1}</a></span> & <span id="{versionAbbreviation}" class="wrkName"><a title="View {state.BibleNames[versionAbbreviation]} {'details' if versionAbbreviation in state.versionsWithoutTheirOwnPages else 'chapter'}" href="{versionNameLink}">{versionAbbreviation}</a></span>''' )
+                                            continue # Nothing else to add for (this identical verse for) this version
                                     elif '<div ' in textHtml: # it might be a book intro XXXor footnotesXXX wrong it seems
                                         assert '</div>' in textHtml
                                         assert c == -1 # Book intro
@@ -1019,7 +1028,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                         vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation]} {'details' if versionAbbreviation in state.versionsWithoutTheirOwnPages else 'chapter'}" href="{versionNameLink}">{versionAbbreviation}</a></span></p>{textHtml}''' # .replace('<hr','</p><hr')
                                     else: # no <div>s so should be ok to put inside a paragraph
                                         assert '</div>' not in textHtml
-                                        vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation]} {'details' if versionAbbreviation in state.versionsWithoutTheirOwnPages else 'chapter'}" href="{versionNameLink}">{versionAbbreviation}</a></span> {textHtml}</p>'''
+                                        vHtml = f'''<p id="{versionAbbreviation}" class="{'closeVerse' if versionAbbreviation=='UST' else 'parallelVerse'}"><span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation]} {'details' if versionAbbreviation in state.versionsWithoutTheirOwnPages else 'chapter'}" href="{versionNameLink}">{versionAbbreviation}</a></span> {textHtml}</p>'''
                                 # Now append the footnotes (if any) for this version
                                 vHtml = f'{vHtml}{footnotesHtml}'
                                 if translatedFootnotesHtml and translatedFootnotesHtml!=footnotesHtml: # can happen with ClVg
@@ -1526,7 +1535,7 @@ def brightenUHB( BBB:str, C:str, V:str, brightenUHBTextHtml:str, verseEntryList,
                         #   .replace( '\n<hr style="width:40%;margin-left:0;margin-top: 0.3em">\n', '' )
                           )
     try:
-        cleanedAdjustedBrightenUHBTextHtml, _footnoteStuff = cleanedAdjustedBrightenUHBTextHtml.split( '<hr style="width:35%;margin-left:0;margin-top: 0.3em">\n' )
+        cleanedAdjustedBrightenUHBTextHtml, _footnoteStuff = cleanedAdjustedBrightenUHBTextHtml.split( '<hr class="line-before-footnotes">\n' )
         # print( f"{_footnoteStuff}" )
     except ValueError: # No footnotes
         assert 'class="fn"' not in cleanedAdjustedBrightenUHBTextHtml

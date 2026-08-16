@@ -100,6 +100,7 @@ import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, dPrint, vPrint, rreplace, BOOKLIST_NT27
 from usfm_markers_py import USFM_ALL_BIBLE_PARAGRAPH_MARKERS
 import bos_books_codes_py
+import openbibledata_rust
 
 from settings import State
 from html import checkHtml
@@ -107,10 +108,10 @@ from OETHandlers import getBBBFromOETBookName
 from Bibles import getOpenBibleImages
 
 
-LAST_MODIFIED_DATE = '2026-08-12' # by RJH
+LAST_MODIFIED_DATE = '2026-08-17' # by RJH
 SHORT_PROGRAM_NAME = "usfm"
 PROGRAM_NAME = "OpenBibleData USFM to HTML functions"
-PROGRAM_VERSION = '1.1.4'
+PROGRAM_VERSION = '1.1.5'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -1612,7 +1613,7 @@ def convertVerseEntryListToHtml( level:int, versionAbbreviation:str, refTuple:tu
         #     nIx = html.index( '<a title="Variant note' )
         #     print( f"FOUND FN TITLE {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} '{html[nIx:nIx+80]}'" )
         assert '<a title="Variant note:\n<br>' not in html # Check this before we append the actual footnote content to the end.
-        html = f'{html}<hr style="width:35%;margin-left:0;margin-top: 0.3em">\n<div id="footnotes" class="footnotes">\n{footnotesHtml}</div><!--footnotes-->\n'
+        html = f'{html}<hr class="line-before-footnotes">\n<div id="footnotes" class="footnotes">\n{footnotesHtml}</div><!--footnotes-->\n'
     # TODO: Find out why these following exceptions occur
     if versionAbbreviation not in ('T4T','BrTr','ClVg','TCNT','TC-GNT'): # T4T ISA 33:8, BrTr KI1 6:36a, ClVg MRK 3:10, TCNT&TC-GNT INT \\fp Why???
         assert '\\f' not in html, f"{versionAbbreviation} {refTuple} html='…{html[html.index(f'{BACKSLASH}f')-10:html.index(f'{BACKSLASH}f')+maxFootnoteChars]}…'"
@@ -1681,7 +1682,7 @@ def convertVerseEntryListToHtml( level:int, versionAbbreviation:str, refTuple:tu
     if crossReferencesHtml:
         if not checkHtml( f"Cross-references for {versionAbbreviation} {segmentType} {basicOnly=} {refTuple}", crossReferencesHtml, segmentOnly=True ):
             if DEBUGGING_THIS_MODULE: assert False, "We want to stop here"
-        html = f'{html}<hr style="width:30%;margin-left:0;margin-top: 0.3em">\n<div id="crossRefs" class="crossRefs">\n{crossReferencesHtml}</div><!--crossRefs-->\n'
+        html = f'{html}<hr class="line-before-xrefs">\n<div id="crossRefs" class="crossRefs">\n{crossReferencesHtml}</div><!--crossRefs-->\n'
     if versionAbbreviation not in ('BrTr',): # BrTr ISA 52
         assert '\\x' not in html, f"{html[html.index(f'{BACKSLASH}x')-10:html.index(f'{BACKSLASH}x')+12]}"
     # if refTuple==('DAN','1','2') or refTuple==('DAN','1','18'): assert False, "We want to stop here"
@@ -2218,6 +2219,8 @@ def livenXRefField( fieldType:str, versionAbbreviation:str, refTuple:tuple, segm
                 else:
                     dPrint( 'Info', DEBUGGING_THIS_MODULE, f"zzz KJB-1611 got {xBBB=} {xC=} ({lastXC=}) from {xB=} from {refTuple} {match.groups()=} from {xoText=} {xrefLiveMiddle=}" )
                     xC = refTuple[1] # Assume it's a verse number in the current chapter
+            if xrefOriginalMiddle == 'Nehem.':
+                xBBB, xC, xV = 'NEH', '1', '1'
         assert xC.isdigit(), f"{versionAbbreviation} {refTuple} {xBBB=} {xC=} {xV=} {match.groups()} from {xoText=} {xrefLiveMiddle=}"
         assert xV.isdigit(), f"{versionAbbreviation} {refTuple} {xBBB=} {xC=} {xV=} {match.groups()} from {xoText=} {xrefLiveMiddle=}"
         lastXBBB, lastXC = xBBB, xC
@@ -2243,9 +2246,13 @@ def livenXRefField( fieldType:str, versionAbbreviation:str, refTuple:tuple, segm
                 logging.critical( f"Have {versionAbbreviation} {refTuple} {segmentType=} non-int chapter number {xC=}" )
                 intXC = 0
             if intXC > bos_books_codes_py.get_max_chapters( xBBB ):
-                logging.critical( f"Not enough chapters in {xBBB} ({bos_books_codes_py.get_max_chapters(xBBB)}) for {match.groups()} from {versionAbbreviation} {refTuple} {segmentType=} {xoText=} {xrefOriginalMiddle=}" )
-                reStartIx = match.end() # exact number of characters that we add (otherwise we get mistakes/overlaps)
-                continue
+                if versionAbbreviation=='KJB-1611' and BBB=='EZR' and xoText=='3:10' and match.groups() in (('cha','16','7'),('25','1')):
+                    xBBB = 'CH1' # Special case
+                    print( "FIXED IT" )
+                else:
+                    logging.critical( f"Not enough chapters in {xBBB} ({bos_books_codes_py.get_max_chapters(xBBB)}) for {match.groups()} from {versionAbbreviation} {refTuple} {segmentType=} {xoText=} {xrefOriginalMiddle=}" )
+                    reStartIx = match.end() # exact number of characters that we add (otherwise we get mistakes/overlaps)
+                    continue
         else:
             dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"livenXRefField( {versionAbbreviation} {refTuple} '{segmentType}' from {xoText=} {xrefOriginalMiddle=} ) with {BBB=} {xBBB=} {lastXBBB=}" )
             logging.critical( f"Failed to find xref book from '{xB}' from '{xrefOriginalMiddle}' in {match.groups()} for {versionAbbreviation} {refTuple} {segmentType=}")

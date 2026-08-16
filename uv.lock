@@ -3,13 +3,14 @@ revision = 3
 requires-python = ">=3.12"
 
 [options]
-exclude-newer = "2026-08-02T20:21:00.122723883Z"
+exclude-newer = "2026-08-09T22:41:08.878148117Z"
 exclude-newer-span = "P7D"
 
 [manifest]
 members = [
     "bos-books-codes-py",
     "openbibledata",
+    "openbibledata-rust",
 ]
 
 [[package]]
@@ -145,6 +146,7 @@ dependencies = [
     { name = "bibleorgsys" },
     { name = "bos-books-codes-py" },
     { name = "docutils" },
+    { name = "openbibledata-rust" },
 ]
 
 [package.metadata]
@@ -153,7 +155,12 @@ requires-dist = [
     { name = "bibleorgsys", editable = "../BibleOrgSys" },
     { name = "bos-books-codes-py", editable = "../BibleOrgSys/Rust/bos_books_codes_py" },
     { name = "docutils", specifier = ">=0.23" },
+    { name = "openbibledata-rust", editable = "createPages/Rust" },
 ]
+
+[[package]]
+name = "openbibledata-rust"
+source = { editable = "createPages/Rust" }
 
 [[package]]
 name = "pyyaml"
