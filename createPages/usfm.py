@@ -37,7 +37,7 @@ livenIORs( versionAbbreviation:str, refTuple:tuple, segmentType:str, ioLineHtml:
                                                                         state:State ) -> str
 livenXRefField( versionAbbreviation:str, refTuple:tuple, segmentType:str,
                     pathPrefix:str, xoText:str, xrefOriginalMiddle:str, state:State ) -> str
-toRomanNumerals( num:int|str ) -> str
+to_roman_numerals( num:int|str ) -> str
 
 briefDemo() -> None
 fullDemo() -> None
@@ -101,6 +101,7 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, dPrint, vPrint, rreplace, BO
 from usfm_markers_py import USFM_ALL_BIBLE_PARAGRAPH_MARKERS
 import bos_books_codes_py
 import openbibledata_rust
+from openbibledata_rust import liven_introduction_links, to_roman_numerals
 
 from settings import State
 from html import checkHtml
@@ -581,7 +582,7 @@ def convertVerseEntryListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                     cLink = ''
                 else:
                     cID = f'<span id="C{C}"></span>'
-                    cLink = f'''<a title="Go to verse in parallel view" href="{'../'*level}par/{BBB}/C{C}V1.htm#Top">{toRomanNumerals(C) if versionAbbreviation=='KJB-1611' else C}</a>'''
+                    cLink = f'''<a title="Go to verse in parallel view" href="{'../'*level}par/{BBB}/C{C}V1.htm#Top">{to_roman_numerals(C) if versionAbbreviation=='KJB-1611' else C}</a>'''
                     cPrinted = True
                 if '-' in V: # it's a verse range
                     assert V[0].isdigit() and V[-1].isdigit(), f"Expected a verse number digit with {BBB} {C}:{V=} {rest=}"
@@ -598,7 +599,7 @@ def convertVerseEntryListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                         idField1 = '' if segmentType=='dictVerse' else f' id="C{C}V{V1}"'
                         idField2 = '' if segmentType=='dictVerse' else f' id="C{C}V{V2}"'
                         html = f'{html}{"" if html.endswith(">") else " "}' \
-                                + f'''{f"""{cID}<span class="{'cPsa' if BBB=='PSA' else 'c'}" id="C{C}V1">{toRomanNumerals(C) if versionAbbreviation=='KJB-1611' else C}</span>""" if V1=='1' and not cPrinted else f"""<span class="v"{idField1}>{vLink}-</span>"""}''' \
+                                + f'''{f"""{cID}<span class="{'cPsa' if BBB=='PSA' else 'c'}" id="C{C}V1">{to_roman_numerals(C) if versionAbbreviation=='KJB-1611' else C}</span>""" if V1=='1' and not cPrinted else f"""<span class="v"{idField1}>{vLink}-</span>"""}''' \
                                 + (f'<span id="V{V1}"></span><span id="V{V2}"></span>' if (segmentType in ('chapter','section','relatedPassage') or is_single_chapter_book_py) and f'id="V{V1}"' not in html and f'id="V{V2}"' not in html else '') \
                                 + f'<span class="v"{idField2}>{V2}{NARROW_NON_BREAK_SPACE}</span>' \
                                 + (rest if rest else '=◘=')
@@ -857,7 +858,7 @@ def convertVerseEntryListToHtml( level:int, versionAbbreviation:str, refTuple:tu
             #     assert not inParagraph, f"{versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {marker}={rest}"
 
             # if state.TEST_MODE_FLAG and versionAbbreviation != 'SR-GNT':
-            #     html = f'{html}<span class="{'cPsa' if BBB=='PSA' else 'c'}">C###{toRomanNumerals(rest) if versionAbbreviation=='KJB-1611' else rest}</span>{NARROW_NON_BREAK_SPACE}'
+            #     html = f'{html}<span class="{'cPsa' if BBB=='PSA' else 'c'}">C###{to_roman_numerals(rest) if versionAbbreviation=='KJB-1611' else rest}</span>{NARROW_NON_BREAK_SPACE}'
         elif marker in ('mt1','mt2','mt3','mt4'):
             assert rest
             if versionAbbreviation == 'KJB-1611':
@@ -1015,9 +1016,9 @@ def convertVerseEntryListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                 if cPrinted or segmentType in ('parallelVerse','interlinearVerse'):
                     cBit = ''
                 else: # We need to display the chapter number here
-                    cBit = f'''<span class="{'cPsa' if BBB=='PSA' else 'c'}" id="C{C}">{toRomanNumerals(C) if versionAbbreviation=='KJB-1611' else C}</span> ''' \
+                    cBit = f'''<span class="{'cPsa' if BBB=='PSA' else 'c'}" id="C{C}">{to_roman_numerals(C) if versionAbbreviation=='KJB-1611' else C}</span> ''' \
                         if segmentType == 'chapter' else \
-                            f'''<span class="{'cPsa' if BBB=='PSA' else 'c'}" id="C{C}"><a title="View single {'Psalm' if BBB=='PSA' else 'chapter'}" href="../byC/{BBB}_C{C}.htm#Top">{toRomanNumerals(C) if versionAbbreviation=='KJB-1611' else C}</a></span> '''
+                            f'''<span class="{'cPsa' if BBB=='PSA' else 'c'}" id="C{C}"><a title="View single {'Psalm' if BBB=='PSA' else 'chapter'}" href="../byC/{BBB}_C{C}.htm#Top">{to_roman_numerals(C) if versionAbbreviation=='KJB-1611' else C}</a></span> '''
                     cPrinted = True
                 html = f'{html}<p class="d">{cBit}{_convertUSFMCharacterFormatting(versionAbbreviation, refTuple, segmentType, rest, basicOnly, state )}</p><!--d-->\n'
             just_had_d = True
@@ -1044,9 +1045,9 @@ def convertVerseEntryListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                 if cPrinted or marker == 'd':
                     cBit = ''
                 else:
-                    cBit = f'''<span class="{'cPsa' if BBB=='PSA' else 'c'}" id="C{C}">{toRomanNumerals(C) if versionAbbreviation=='KJB-1611' else C}</span> ''' \
+                    cBit = f'''<span class="{'cPsa' if BBB=='PSA' else 'c'}" id="C{C}">{to_roman_numerals(C) if versionAbbreviation=='KJB-1611' else C}</span> ''' \
                         if segmentType == 'chapter' else \
-                            f'''<span class="{'cPsa' if BBB=='PSA' else 'c'}" id="C{C}"><a title="View single {'Psalm' if BBB=='PSA' else 'chapter'}" href="../byC/{BBB}_C{C}.htm#Top">{toRomanNumerals(C) if versionAbbreviation=='KJB-1611' else C}</a></span> '''
+                            f'''<span class="{'cPsa' if BBB=='PSA' else 'c'}" id="C{C}"><a title="View single {'Psalm' if BBB=='PSA' else 'chapter'}" href="../byC/{BBB}_C{C}.htm#Top">{to_roman_numerals(C) if versionAbbreviation=='KJB-1611' else C}</a></span> '''
                     cPrinted = True
                 if versionAbbreviation=='OET-RV' and marker=='sp':
                     assert BBB == 'SNG' or BBB == 'JER' # Latter is experimental
@@ -1288,7 +1289,7 @@ def convertVerseEntryListToHtml( level:int, versionAbbreviation:str, refTuple:tu
             if marker in ('io1','io2','io3','io4'):
                 introHtml = livenIORs( versionAbbreviation, refTuple, segmentType, introHtml, state )
             else:
-                introHtml = livenIntroductionLinks( versionAbbreviation, refTuple, segmentType, introHtml, state )
+                introHtml = liven_introduction_links( versionAbbreviation, refTuple, segmentType, introHtml, state )
             html = f'{html}<p class="{marker}">{introHtml}</p><!--{marker}-->\n'
         elif marker == 'iot':
             assert rest, f"{versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {C}:{V} {inSection=} {inParagraph=} {marker}='{rest}'"
@@ -1316,9 +1317,9 @@ def convertVerseEntryListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                 if cPrinted:
                     cBit = ''
                 else:
-                    cBit = f'''<span class="{'cPsa' if BBB=='PSA' else 'c'}" id="C{C}">{toRomanNumerals(C) if versionAbbreviation=='KJB-1611' else C}</span> ''' \
+                    cBit = f'''<span class="{'cPsa' if BBB=='PSA' else 'c'}" id="C{C}">{to_roman_numerals(C) if versionAbbreviation=='KJB-1611' else C}</span> ''' \
                         if segmentType == 'chapter' else \
-                            f'''<span class="{'cPsa' if BBB=='PSA' else 'c'}" id="C{C}"><a title="View single {'Psalm' if BBB=='PSA' else 'chapter'}" href="../byC/{BBB}_C{C}.htm#Top">{toRomanNumerals(C) if versionAbbreviation=='KJB-1611' else C}</a></span> '''
+                            f'''<span class="{'cPsa' if BBB=='PSA' else 'c'}" id="C{C}"><a title="View single {'Psalm' if BBB=='PSA' else 'chapter'}" href="../byC/{BBB}_C{C}.htm#Top">{to_roman_numerals(C) if versionAbbreviation=='KJB-1611' else C}</a></span> '''
                     cPrinted = True
                 html = f'''{html}<p class="{versionAbbreviation}_chapterIntro">{cBit}{_convertUSFMCharacterFormatting( versionAbbreviation, refTuple, segmentType, rest, basicOnly, state )}</p><!--{versionAbbreviation}_chapterIntro-->\n'''
         elif marker in ('periph',):
@@ -1613,7 +1614,7 @@ def convertVerseEntryListToHtml( level:int, versionAbbreviation:str, refTuple:tu
         #     nIx = html.index( '<a title="Variant note' )
         #     print( f"FOUND FN TITLE {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} '{html[nIx:nIx+80]}'" )
         assert '<a title="Variant note:\n<br>' not in html # Check this before we append the actual footnote content to the end.
-        html = f'{html}<hr class="line-before-footnotes">\n<div id="footnotes" class="footnotes">\n{footnotesHtml}</div><!--footnotes-->\n'
+        html = f'{html}\n<hr class="line-before-footnotes"><div id="footnotes" class="footnotes">\n{footnotesHtml}</div><!--footnotes-->\n'
     # TODO: Find out why these following exceptions occur
     if versionAbbreviation not in ('T4T','BrTr','ClVg','TCNT','TC-GNT'): # T4T ISA 33:8, BrTr KI1 6:36a, ClVg MRK 3:10, TCNT&TC-GNT INT \\fp Why???
         assert '\\f' not in html, f"{versionAbbreviation} {refTuple} html='…{html[html.index(f'{BACKSLASH}f')-10:html.index(f'{BACKSLASH}f')+maxFootnoteChars]}…'"
@@ -1682,7 +1683,7 @@ def convertVerseEntryListToHtml( level:int, versionAbbreviation:str, refTuple:tu
     if crossReferencesHtml:
         if not checkHtml( f"Cross-references for {versionAbbreviation} {segmentType} {basicOnly=} {refTuple}", crossReferencesHtml, segmentOnly=True ):
             if DEBUGGING_THIS_MODULE: assert False, "We want to stop here"
-        html = f'{html}<hr class="line-before-xrefs">\n<div id="crossRefs" class="crossRefs">\n{crossReferencesHtml}</div><!--crossRefs-->\n'
+        html = f'{html}\n<hr class="line-before-xrefs"><div id="crossRefs" class="crossRefs">\n{crossReferencesHtml}</div><!--crossRefs-->\n'
     if versionAbbreviation not in ('BrTr',): # BrTr ISA 52
         assert '\\x' not in html, f"{html[html.index(f'{BACKSLASH}x')-10:html.index(f'{BACKSLASH}x')+12]}"
     # if refTuple==('DAN','1','2') or refTuple==('DAN','1','18'): assert False, "We want to stop here"
@@ -1732,144 +1733,13 @@ def convertVerseEntryListToHtml( level:int, versionAbbreviation:str, refTuple:tu
 # end of usfm.convertVerseEntryListToHtml
 
 
-# TODO: Currently 'about Jesus the messiah (Acts 12:25, 13:13).' this wrongly thinks 13:13 is in the current book!
-singleBCVRefRegex = re.compile( '([(])([^()]+?) ([1-9][0-9]{0,2}):([1-9][0-9]{0,2})([-–][1-9][0-9]{0,2})?([ ,.?!:;)])' )
-singleCVRefRegex = re.compile( '([ (])([1-9][0-9]{0,2}):([1-9][0-9]{0,2})([-–][1-9][0-9]{0,2})?([ ,.?!:;)])' )
 def livenIntroductionLinks( versionAbbreviation:str, refTuple:tuple, segmentType:str, introHtml:str, state:State ) -> str:
     """
     Liven general links in the introduction, e.g., 'was named Mary (Acts 12:12)' or 'accompanied Peter (1 Peter 5:13)'
         or 'about Jesus the messiah (Acts 12:25, 13:13).'
     """
-    from createSectionPages import findSectionNumber
     fnPrint( DEBUGGING_THIS_MODULE, f"livenIntroductionLinks( {versionAbbreviation}, {refTuple}, {segmentType}, '{introHtml}' )" )
-    # dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"livenIntroductionLinks( {versionAbbreviation}, {refTuple}, {segmentType}, '{introHtml}' )…" )
-    assert '\\ior' not in introHtml
-    assert 'class="ior"' not in introHtml
-
-    ourBBB = refTuple[0]
-
-    # Search for B/C/V string in parentheses, e.g., '(Acts 12:12)' or '(Col. 4:10)' or '(1 Peter 5:13)'
-    #   or surrounded by spaces or space and punctuation
-    searchStartIx = 0
-    while True:
-        match = singleBCVRefRegex.search( introHtml, searchStartIx )
-        if not match: break
-        guts = match.group(0)[1:-1] # Remove the parentheses or other surrounding chars
-        preChar, refB, refC, refV, refRest, postChar = match.groups()
-        dPrint( 'Info', DEBUGGING_THIS_MODULE, f"Got {versionAbbreviation} intro ref CV match with '{preChar}' '{guts}' '{postChar}' -> {match.groups()=}" )
-        if refB.startswith( 'See ' ) or refB.startswith( 'see ' ): refB =refB[4:]
-        elif refB.startswith( 'as in ' ): refB =refB[6:]
-        refBBB = getBBBFromOETBookName( refB, f"livenIntroductionLinks( {versionAbbreviation}, {refTuple}, {segmentType}, '{introHtml}' )" )
-        # print( f"{refBBB=} from {refB=}" )
-        if not refBBB:
-            logging.warning( f"livenIntroductionLinks( {versionAbbreviation}, {refTuple}, {segmentType}, '{introHtml}' ) failed to  find BBB for {refB=} from intro ref CV match with '{preChar}' '{guts}' '{postChar}' -> {match.groups()=}")
-            # newGuts = guts # Can't make a link
-            refBBB = ourBBB # Assume it's an internal link to this book
-        if segmentType == 'book':
-            newGuts = f'<a title="Go to reference document" href="{refBBB}.htm#C{refC}V{refV}">{guts}</a>'
-        elif segmentType == 'chapter':
-            newGuts = f'<a title="Go to reference chapter" href="{refBBB}_C{refC}.htm#C{refC}V{refV}">{guts}</a>'
-        elif segmentType.endswith( 'Verse' ): # For an introduction (so 'verse' is 'line')
-            # dPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"livenIntroductionLinks( {versionAbbreviation}, {refTuple}, {segmentType}, '{introHtml}' )" )
-            assert refTuple[1] == '-1', f"{refTuple=}"
-            # print( f"{versionAbbreviation}, {refTuple}, {refBBB=} {refC=} {refV=} {guts=}" )
-            newGuts = f'<a title="Go to reference verse" href="C{refC}V{refV}.htm#Top">{guts}</a>'
-        elif segmentType in ('section','relatedPassage'):
-            if 1:
-            # try: # Now find which section that reference starts in
-                # print( f"{state.sectionsListsForSections[versionAbbreviation][refBBB]=}" )
-                n = findSectionNumber( versionAbbreviation, refBBB, refC, refV, state )
-                # intV = getSmallLeadingInt(refV)
-                # found = False
-                # for n, (startC,startV,endC,endV,sectionName,reasonName,contextList,verseEntryList,sFilename) in enumerate( state.sectionsListsForSections[versionAbbreviation][refBBB] ):
-                #     if startC==refC and endC==refC:
-                #         if getSmallLeadingInt(startV) <= intV <= getSmallLeadingInt(endV): # It's in this single chapter
-                #             found = True
-                #             break
-                #     elif startC==refC and intV>=getSmallLeadingInt(startV): # It's in the first chapter
-                #         found = True
-                #         break
-                #     elif endC==refC and intV<=getSmallLeadingInt(endV): # It's in the second chapter
-                #         found = True
-                #         break
-                # if found:
-                if n is not None:
-                    newGuts = f'<a title="Go to to section page with reference" href="{refBBB}_S{n}.htm#Top">{guts}</a>'
-                else:
-                    logging.critical( f"unable_to_find_reference for {versionAbbreviation} {segmentType=} {refBBB} {refC}:{refV}" )
-                    # logging.critical( f"   {[f'{startC}:{startV}…{endC}:{endV}' for startC,startV,endC,endV,_sectionName,_reasonName,_contextList,_verseEntryList,_sFilename in state.sectionsListsForSections[versionAbbreviation][refBBB]]}" )
-                    # for n, something in enumerate( state.sectionsListsForSections[versionAbbreviation][refBBB] ):
-                    #     logging.critical( f"  {n}: {something}")
-                    #     assert isinstance( something, tuple )
-                    #     startC,startV,endC,endV,_sectionName,_reasonName,_contextList,_verseEntryList,_filename = something
-                    #     logging.critical( f"    f'{startC}:{startV}…{endC}:{endV}'" )
-                    newGuts = guts # Can't make a link
-                    if refBBB in state.preloadedBibles[versionAbbreviation]:
-                        assert False, f"unable_to_find_reference -- need to write more code: unable_to_find_reference for {versionAbbreviation} {segmentType=} {refBBB} {refC}:{refV}"
-            # except KeyError:
-            #     logging.critical( f"livenIntroductionLinks for {versionAbbreviation}, {refTuple}, {segmentType} can't find section list for {ourBBB}" )
-            #     newGuts = guts # Can't make a link
-        else:
-            dPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"livenIntroductionLinks( {versionAbbreviation}, {refTuple}, {segmentType}, '{introHtml}' )" )
-            ooopsie1
-        introHtml = f"{introHtml[:match.start()]}{preChar}{newGuts}{postChar}{introHtml[match.end():]}"
-        searchStartIx = match.end() + len(newGuts)+2 - len(guts) # Approx chars that we added
-
-    # Search for C/V string in parentheses, e.g., '(12:12)' or '(16:9-20)'
-    #   or surrounded by spaces or space and punctuation
-    searchStartIx = 0
-    while True:
-        match = singleCVRefRegex.search( introHtml, searchStartIx )
-        if not match: break
-        guts = match.group(0)[1:-1] # Remove the parentheses or other surrounding chars
-        preChar, refC, refV, refRest, postChar = match.groups()
-        dPrint( 'Info', DEBUGGING_THIS_MODULE, f"Got {versionAbbreviation} intro ref CV match with '{preChar}' '{guts}' '{postChar}' -> {match.groups()=}" )
-        logging.warning( f"Assuming {versionAbbreviation} {ourBBB} intro '{guts}' ref is a self-reference BUT THIS COULD EASILY BE WRONG" )
-        if segmentType == 'book':
-            newGuts = f'<a title="Jump down to reference" href="#C{refC}V{refV}">{guts}</a>'
-        elif segmentType == 'chapter':
-            newGuts = f'<a title="Jump to chapter page with reference" href="{ourBBB}_C{refC}.htm#C{refC}V{refV}">{guts}</a>'
-        elif segmentType.endswith( 'Verse' ): # For an introduction (so 'verse' is 'line')
-            # dPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"livenIntroductionLinks( {versionAbbreviation}, {refTuple}, {segmentType}, '{introHtml}' )" )
-            assert refTuple[1] == '-1', f"{refTuple=}"
-            # print( f"{versionAbbreviation}, {refTuple}, {refBBB=} {refC=} {refV=} {guts=}" )
-            newGuts = f'<a title="Go to reference verse" href="C{refC}V{refV}.htm#Top">{guts}</a>'
-        elif segmentType in ('section','relatedPassage'):
-            if 1:
-            # try: # Now find which section that reference starts in
-                n = findSectionNumber( versionAbbreviation, ourBBB, refC, refV, state )
-                # intV = getSmallLeadingInt(refV)
-                # found = False
-                # for n, (startC,startV,endC,endV,sectionName,reasonName,contextList,verseEntryList,sFilename) in enumerate( state.sectionsListsForSections[versionAbbreviation][ourBBB] ):
-                #     if startC==refC and endC==refC:
-                #         if getSmallLeadingInt(startV) <= intV <= getSmallLeadingInt(endV): # It's in this single chapter
-                #             found = True
-                #             break
-                #     elif startC==refC and intV>=getSmallLeadingInt(startV): # It's in the first chapter
-                #         found = True
-                #         break
-                #     elif endC==refC and intV<=getSmallLeadingInt(endV): # It's in the second chapter
-                #         found = True
-                #         break
-                # if found:
-                if n is not None:
-                    newGuts = f'<a title="Jump to section page with reference" href="{ourBBB}_S{n}.htm#Top">{guts}</a>'
-                else:
-                    # for something in state.sectionsListsForSections[versionAbbreviation][ourBBB]:
-                    #     print( f"  {type(something)=} {len(something)=} {something=}" )
-                    logging.error( f"PROBABLY WRONGLY GUESSED BOOK: unable_to_find_reference for {ourBBB=} {refC}:{refV} {[f'{startC}:{startV}…{endC}:{endV}' for _n,startC,startV,endC,endV,_sectionName,_reasonName,_contextList,_verseEntryList,_sFilename in state.sectionsListsForSections[versionAbbreviation][ourBBB]]}" )
-                    newGuts = guts # Can't make a link
-                    # unable_to_find_reference # Need to write more code
-            # except KeyError:
-            #     logging.critical( f"livenIntroductionLinks for {versionAbbreviation}, {refTuple}, {segmentType} can't find section list for {ourBBB}" )
-            #     newGuts = guts # Can't make a link
-        else:
-            dPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"livenIntroductionLinks( {versionAbbreviation}, {refTuple}, {segmentType}, '{introHtml}' )" )
-            ooopsie2
-        introHtml = f"{introHtml[:match.start()]}{preChar}{newGuts}{postChar}{introHtml[match.end():]}"
-        searchStartIx = match.end() + len(newGuts)+2 - len(guts) # Approx chars that we added
-
-    return introHtml
+    return liven_introduction_links( versionAbbreviation, refTuple, segmentType, introHtml, state )
 # end of usfm.livenIntroductionLinks
 
 
@@ -1907,7 +1777,7 @@ def livenIORs( versionAbbreviation:str, refTuple:tuple, segmentType:str, ioLineH
         elif segmentType == 'chapter':
             newGuts = f'<a title="Jump to chapter page with reference" href="{ourBBB}_C{Cstr}.htm#C{Cstr}V{Vstr}">{guts}</a>'
         elif segmentType.endswith( 'Verse' ): # For an introduction (so 'verse' is 'line')
-            # dPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"livenIntroductionLinks( {versionAbbreviation}, {refTuple}, {segmentType}, '{introHtml}' )" )
+            # dPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"liven_introduction_links( {versionAbbreviation}, {refTuple}, {segmentType}, '{introHtml}' )" )
             assert refTuple[1] == '-1', f"{refTuple=}"
             # print( f"{versionAbbreviation}, {refTuple}, {refBBB=} {refC=} {refV=} {guts=}" )
             newGuts = f'<a title="Go to reference verse" href="C{Cstr}V{Vstr}.htm#Top">{guts}</a>'
@@ -2286,24 +2156,11 @@ def livenXRefField( fieldType:str, versionAbbreviation:str, refTuple:tuple, segm
 # end of usfm.livenXRefField function
 
 
-# ROMAN_DICT = { 1000:'M', 900:'CM', 500:'D', 400:'CD', 100:'C', 90:'XC', 50:'L', 40:'XL', 10:'X', 9:'IX', 5:'V', 4:'IV', 1:'I' }
-# We only use this for chapter numbers, so maximum is 151
-ROMAN_DICT = { 100:'C', 90:'XC', 50:'L', 40:'XL', 10:'X', 9:'IX', 5:'V', 4:'IV', 1:'I' }
 def toRomanNumerals( num:int|str ) -> str:
     """
-    Adapted from https://stackoverflow.com/questions/28777219/basic-program-to-convert-integer-to-roman-numerals
+    Convert an integer or string integer into a Roman numeral.
     """
-    if not isinstance(num, int): num = int( num )
-
-    def roman_num(num):
-        for r in ROMAN_DICT.keys():
-            x, y = divmod(num, r)
-            yield ROMAN_DICT[r] * x
-            num -= (r * x)
-            if num <= 0:
-                break
-
-    return ''.join([a for a in roman_num(num)])
+    return openbibledata_rust.to_roman_numerals( num )
 # end of usfm.toRomanNumerals function
 
 
@@ -2333,6 +2190,28 @@ def fullDemo() -> None:
         print( f"\n{testField=}" )
         result = livenXRefField( 'f', 'KJB-1611', ('GEN','1','1'), '', '', '1:1', testField, state )
         print( f"  {result=}" )
+
+    # Demo liven_introduction_links (Rust implementation)
+    print( "\nTesting liven_introduction_links (Rust PyO3)..." )
+    for testIntro, ourBBB, segType, expectedResult in (
+        ( 'was named Mary (Acts 12:12)', 'MAT', 'book', 'was named Mary (<a title="Go to reference document" href="ACT.htm#C12V12">Acts 12:12</a>)' ),
+        ( 'accompanied Peter (1 Peter 5:13)', 'MAT', 'chapter', 'accompanied Peter (<a title="Go to reference chapter" href="PE1_C5.htm#C5V13">1 Peter 5:13</a>)' ),
+        ( 'see (Col. 4:10).', 'COL', 'Verse', 'see (<a title="Go to reference verse" href="C4V10.htm#Top">Col. 4:10</a>).' ),
+        ( 'see (Col. 4:10).', 'MAT', 'Verse', 'see (<a title="Go to reference verse" href="../COL/C4V10.htm#Top">Col. 4:10</a>).' ),
+        ( 'about Yeshua the messiah (Acts 12:25, 13:13).', 'MRK', 'book', 'about Yeshua the messiah (<a title="Go to reference document" href="ACT.htm#C12V25">Acts 12:25</a>, <a title="Go to reference document" href="ACT.htm#C13V13">13:13</a>).' ),
+        ( 'about Yeshua the messiah (Acts 12:25, 13:13).', 'MRK', 'chapter','about Yeshua the messiah (<a title="Go to reference chapter" href="ACT_C12.htm#C12V25">Acts 12:25</a>, <a title="Go to reference chapter" href="ACT_C13.htm#C13V13">13:13</a>).' ),
+        ( 'something (12:25)', 'MRK', 'chapter', 'something (<a title="Jump to chapter page with reference" href="MRK_C12.htm#C12V25">12:25</a>)' ),
+    ):
+        print( f"\n{testIntro=} ({ourBBB=}, {segType=})" )
+        result = liven_introduction_links( 'OET-RV', (ourBBB, '-1', '1'), segType, testIntro, state )
+        print( f"{'Expected' if result==expectedResult else 'DIFFERENT'} {result=}{f' {expectedResult=}' if result!=expectedResult else ''}")
+        assert result == expectedResult, f"  {result=}"
+
+    # Demo to_roman_numerals (Rust implementation)
+    print( "\nTesting to_roman_numerals (Rust PyO3)..." )
+    for testNum in ( 0, 1, 4, 9, 14, 40, 50, 90, 99, 100, 119, 150, '151' ):
+        result = to_roman_numerals( testNum )
+        print( f"  {testNum} -> {result}" )
 # end of usfm.fullDemo
 
 if __name__ == '__main__':

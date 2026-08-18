@@ -29,6 +29,22 @@ Module handling SentenceImportance initialisation.
 
 This bit of code is only ever intended to be run once
 
+Sets:
+    Importance
+        V   Vital
+        I   Important
+        M   Medium (default)
+        T   Trivial
+    TextualIssue
+        0   None (default)
+        1   Spelling differences
+        2   Small word differences
+        3   Major issues 
+    Clarity
+        C   Clear (default)
+        U   Unclear
+        O   Obscure
+
 TODO: Define what versification these references are in
 
 CHANGELOG:
@@ -132,7 +148,7 @@ importantRefsWithRanges = [ # Often quoted and/or memorised by Christians
     'JER_23:5-6', 'JER_33:2-3', 'JER_33:14-18',
     'DAN_7:10','DAN_12:1',
 
-    'MAT_4:4',
+    'MAT_4:4','MAT_24:44',
     'LUK_21:28','LUK_24:27',
     'JHN_1:1-18','JHN_3:18','JHN_7:16','JHN_10:28','JHN_16:33','JHN_17:23',
     'ACT_2:42',

@@ -64,8 +64,8 @@ p.mt1 + p.mt2, p.mt2 + p.mt1, p.mt2 + p.mt3, p.mt3 + p.mt2, p.mt1 + p.mt3, p.mt3
 p.verseDetails { text-align:right; font-size:0.8em; color:lightseagreen; }
 p.parallelVerse {}
 /* p.moddedVerse { margin-top:-1em; margin-left:3em; font-size:0.8em; } /* includes translations */
-p.closeVerse { margin-top:0em; }
-p.parallelVerse + p.closeVerse { margin-top:-1em; }
+p.closeVerse {}
+p.parallelVerse + p.closeVerse { margin-top:-0.8em; }
 
 p.KJB-1611_chapterIntro { font-size:0.8em; color: grey; font-family:UnifrakturCook,"New Rocker","Unifraktur Maguntia","Germania One",Astloch,textura,schwabacher,rotunda,bastarda,blankenburg,cursive; }
 
@@ -254,8 +254,9 @@ span.unsure { text-decoration:underline; text-decoration-style: dotted; text-dec
 p.key { background-color:seaShell; font-size:0.8em; }
 
 /* USFM footnotes */
-hr.line-before-footnotes { width:35%; margin-left:0; margin-top:-1em; border:0; border-top:1px solid green; }
-div.footnotes { margin-top:-0.1em; }
+p.parallelVerse + hr { margin-top:-0.6em; }
+hr.line-before-footnotes { width:35%; margin-left:0; margin-top:0em; border:0; border-top:1px solid green; }
+div.footnotes {} /* margin-top:-0.1em; } */
 p.fn { margin-top:0.1em; margin-bottom:0.2em; font-size:0.75em; }
 span.fnCaller { vertical-align:super; font-size:0.7em; color:green; }
 /* span.enCaller { vertical-align:super; font-size:0.7em; color:green; } */
@@ -273,7 +274,7 @@ span.fv { vertical-align:super; }
 span.fw {}
 
 /* USFM cross-references */
-hr.line-before-xrefs { width:35%; margin-left:0; margin-top:-1em; border:0; border-top:1px solid blue; }
+hr.line-before-xrefs { width:35%; margin-left:0; margin-top:0em; border:0; border-top:1px solid blue; }
 div.crossRefs {}
 p.xr { margin-top:0.2em; margin-bottom:0.2em; font-size:0.75em; }
 span.xrCaller { vertical-align:super; font-size:0.7em; color:blue; }

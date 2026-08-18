@@ -41,6 +41,7 @@ CHANGELOG:
     2025-09-25 Make all SR-GNT verse text into live links to collation pages
     2026-01-07 Added OET Logo
     2026-07-06 Added OBI images to OET-RV
+    2026-08-17 Remove current chapter from chLst (chapter links)
 """
 from pathlib import Path
 import os
@@ -60,10 +61,10 @@ from Bibles import getBibleMapperMaps, getOpenBibleImages
 from OETHandlers import livenOETWordLinks, livenOETCompatibleWordLinks, getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
-LAST_MODIFIED_DATE = '2026-07-06' # by RJH
+LAST_MODIFIED_DATE = '2026-08-17' # by RJH
 SHORT_PROGRAM_NAME = "createChapterPages"
 PROGRAM_NAME = "OpenBibleData createChapterPages functions"
-PROGRAM_VERSION = '0.82'
+PROGRAM_VERSION = '0.83'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -148,22 +149,30 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
         BBBs.append( BBB )
 
         numChapters = rvBible.getNumChapters( BBB )
-        chapterLinks = [f'<a title="Choose “book”" href="./">{ourTidyBBBwithNotes}</a>']
-        if numChapters >= 1:
-            if rvBible.discoveryResults[BBB]['haveIntroductoryText']:
-                chapterLinks.append( f'<a title="View document introduction" href="{BBB}_Intro.htm#Top">Intro</a>' )
-            for c in range( 1, numChapters+1 ):
-                chapterLinks.append( f'<a title="View chapter page" href="{BBB}_C{c}.htm#Top">{'Sg' if BBB=='PSA' else 'C'}{c}</a>' )
-        else:
-            c = '0' # TODO: for now
-            assert False, "We want to stop here"
-        chapterLinksParagraph = f'<p class="chLst">{" ".join( chapterLinks )}</p><!--chLst-->'
+        # chapterLinks = [f'<a title="Choose “book”" href="./">{ourTidyBBBwithNotes}</a>']
+        # if numChapters >= 1:
+        #     if rvBible.discoveryResults[BBB]['haveIntroductoryText']:
+        #         chapterLinks.append( f'<a title="View document introduction" href="{BBB}_Intro.htm#Top">Intro</a>' )
+        #     for c in range( 1, numChapters+1 ):
+        #         chapterLinks.append( f'<a title="View chapter page" href="{BBB}_C{c}.htm#Top">{'Sg' if BBB=='PSA' else 'C'}{c}</a>' )
+        # else:
+        #     c = '0' # TODO: for now
+        #     assert False, "We want to stop here"
+        # chapterLinksParagraph = f'<p class="chLst">{" ".join( chapterLinks )}</p><!--chLst-->'
 
         assert rvBible.getNumVerses( BBB, '-1' ) # OET always has intro
         assert not rvBible.getNumVerses( BBB, '0' ) # OET has no chapter zero
         if numChapters >= 1:
             for c in range( -1, numChapters+1 ):
                 vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"      Creating chapter pages for OET {BBB} {c}…" )
+
+                intialChapterLinks = [f'<a title="Choose “book”" href="./">{ourTidyBBBwithNotes}</a>']
+                if rvBible.discoveryResults[BBB]['haveIntroductoryText']:
+                    intialChapterLinks.append( f'<a title="View document introduction" href="{BBB}_Intro.htm#Top">Intro</a>' )
+                realChapterLinks = [f'<a title="View chapter page" href="{BBB}_C{ccc}.htm#Top">{'Sg' if BBB=='PSA' else 'C'}{ccc}</a>'
+                                    for ccc in range( 1, numChapters+1 ) if ccc != c]
+                chapterLinksParagraph = f'<p class="chLst">{" ".join( intialChapterLinks+realChapterLinks )}</p><!--chLst-->'
+
                 documentLink = f'<a title="Whole document view" href="../byDoc/{BBB}.htm#Top">{ourTidyBBBwithNotes}</a>'
                 if c == -1: # Intro
                     leftLink = ''
