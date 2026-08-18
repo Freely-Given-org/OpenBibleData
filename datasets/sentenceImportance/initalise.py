@@ -157,6 +157,7 @@ importantRefsWithRanges = [ # Often quoted and/or memorised by Christians
     'GAL_3:21-22', 'GAL_6:16',
     'EPH_2:8','EPH_2:10', 'EPH_4:14','EPH_6:4','EPH_6:17',
     'PHP_2:12-13',
+    'CO1_3:14-15',
     'CO2_9:7',
     'TH1_1:10','TH1_5:9',
     'TI1_4:13','TI1_4:16','TI1_6:3',

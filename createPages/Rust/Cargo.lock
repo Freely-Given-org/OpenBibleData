@@ -110,6 +110,7 @@ name = "openbibledata-rust"
 version = "0.1.0"
 dependencies = [
  "bos_books_codes",
+ "once_cell",
  "pyo3",
  "regex",
 ]

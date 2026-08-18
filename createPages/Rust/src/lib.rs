@@ -7,11 +7,13 @@ pub mod intro_links;
 pub mod ior_links;
 pub mod oet_books;
 pub mod roman_numerals;
+pub mod character_formatting;
 
 pub use intro_links::{liven_introduction_links_core, IntroLinkError};
 pub use ior_links::{liven_iors_core, IORLinkError};
 pub use oet_books::get_bbb_from_oet_book_name;
 pub use roman_numerals::to_roman_numerals;
+pub use character_formatting::{convert_usfm_character_formatting, CharacterFormattingResult};
 
 /// Convert an original book name to its 3-character BOS Book Code (BBB).
 #[pyfunction]
@@ -178,6 +180,67 @@ fn liven_iors_camel_py(
     liven_iors_py(our_bbb, segment_type, ior_html, is_single_chapter)
 }
 
+/// Convert USFM character formatting to HTML using Rust.
+#[pyfunction]
+#[pyo3(name = "convert_usfm_character_formatting")]
+fn convert_usfm_character_formatting_py(
+    py: Python,
+    version_abbrev: &str,
+    bbb: &str,
+    segment_type: &str,
+    usfm_field: &str,
+    basic_only: bool,
+    expanded_char_markers: Vec<String>,
+    booklist_nt27: Vec<String>,
+    is_net_version: bool,
+) -> PyResult<Py<PyAny>> {
+    use pyo3::types::PyDict;
+    
+    let result = convert_usfm_character_formatting(
+        version_abbrev,
+        bbb,
+        segment_type,
+        usfm_field,
+        basic_only,
+        &expanded_char_markers,
+        &booklist_nt27,
+        is_net_version,
+    );
+
+    let dict = PyDict::new(py);
+    dict.set_item("html", result.html)?;
+    dict.set_item("background_colour", result.background_colour)?;
+    dict.set_item("files_to_copy", result.files_to_copy)?;
+    Ok(dict.into())
+}
+
+/// CamelCase alias for convert_usfm_character_formatting.
+#[pyfunction]
+#[pyo3(name = "convertUSFMCharacterFormatting")]
+fn convert_usfm_character_formatting_camel_py(
+    py: Python,
+    version_abbrev: &str,
+    bbb: &str,
+    segment_type: &str,
+    usfm_field: &str,
+    basic_only: bool,
+    expanded_char_markers: Vec<String>,
+    booklist_nt27: Vec<String>,
+    is_net_version: bool,
+) -> PyResult<Py<PyAny>> {
+    convert_usfm_character_formatting_py(
+        py,
+        version_abbrev,
+        bbb,
+        segment_type,
+        usfm_field,
+        basic_only,
+        expanded_char_markers,
+        booklist_nt27,
+        is_net_version,
+    )
+}
+
 #[pymodule]
 fn openbibledata_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(liven_introduction_links_py, m)?)?;
@@ -188,5 +251,7 @@ fn openbibledata_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(to_roman_numerals_camel_py, m)?)?;
     m.add_function(wrap_pyfunction!(liven_iors_py, m)?)?;
     m.add_function(wrap_pyfunction!(liven_iors_camel_py, m)?)?;
+    m.add_function(wrap_pyfunction!(convert_usfm_character_formatting_py, m)?)?;
+    m.add_function(wrap_pyfunction!(convert_usfm_character_formatting_camel_py, m)?)?;
     Ok(())
 }
