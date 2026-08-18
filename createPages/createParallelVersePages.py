@@ -1030,7 +1030,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                         vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation]} {'details' if versionAbbreviation in state.versionsWithoutTheirOwnPages else 'chapter'}" href="{versionNameLink}">{versionAbbreviation}</a></span></p>{textHtml}''' # .replace('<hr','</p><hr')
                                     else: # no <div>s so should be ok to put inside a paragraph
                                         assert '</div>' not in textHtml
-                                        vHtml = f'''<p id="{versionAbbreviation}" class="{'closeVerse' if versionAbbreviation=='UST' else 'parallelVerse'}"><span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation]} {'details' if versionAbbreviation in state.versionsWithoutTheirOwnPages else 'chapter'}" href="{versionNameLink}">{versionAbbreviation}</a></span> {textHtml}</p>'''
+                                        vHtml = f'''<p id="{versionAbbreviation}" class="{'closeVerse' if versionAbbreviation in ('UST','MSB','WMBB') else 'parallelVerse'}"><span class="wrkName"><a title="View {state.BibleNames[versionAbbreviation]} {'details' if versionAbbreviation in state.versionsWithoutTheirOwnPages else 'chapter'}" href="{versionNameLink}">{versionAbbreviation}</a></span> {textHtml}</p>'''
                                 # Now append the footnotes (if any) for this version
                                 vHtml = f'{vHtml}{footnotesHtml}'
                                 if translatedFootnotesHtml and translatedFootnotesHtml!=footnotesHtml: # can happen with ClVg

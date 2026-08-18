@@ -100,8 +100,7 @@ import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, dPrint, vPrint, rreplace, BOOKLIST_NT27
 from usfm_markers_py import USFM_ALL_BIBLE_PARAGRAPH_MARKERS
 import bos_books_codes_py
-import openbibledata_rust
-from openbibledata_rust import liven_introduction_links, to_roman_numerals
+from openbibledata_rust import liven_introduction_links, liven_iors, to_roman_numerals
 
 from settings import State
 from html import checkHtml
@@ -1747,82 +1746,56 @@ def livenIORs( versionAbbreviation:str, refTuple:tuple, segmentType:str, ioLineH
     """
     Given some html, search for <span class="ior"> (these are usually in introduction \\iot lines)
         and liven those IOR links.
+    Uses the Rust implementation for performance.
     """
-    from createSectionPages import findSectionNumber
     fnPrint( DEBUGGING_THIS_MODULE, f"livenIORs( {versionAbbreviation}, {refTuple}, {segmentType}, '{ioLineHtml}' )" )
-    # dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"livenIORs( {versionAbbreviation}, {refTuple}, {segmentType}, '{ioLineHtml}' )…" )
     assert '\\ior' not in ioLineHtml
 
     ourBBB = refTuple[0]
-    is_single_chapter_book_py = bos_books_codes_py.is_single_chapter_book( ourBBB )
+    is_single_chapter_book = bos_books_codes_py.is_single_chapter_book( ourBBB )
 
-    searchStartIx = 0
-    for _safetyCount in range( 15 ):
-        ixSpanStart = ioLineHtml.find( '<span class="ior">', searchStartIx ) # Length of this string is 18 chars (used below)
-        if ixSpanStart == -1: break
-        ixEnd = ioLineHtml.find( '</span>', ixSpanStart+18 )
-        assert ixEnd != -1
-        guts = ioLineHtml[ixSpanStart+18:ixEnd].replace('–','-') # Convert any en-dash to hyphen
-        # print(f"{BBB} {guts=} {bookHTML[ix-20:ix+20]} {searchStartIx=} {ixSpanStart=} {ixEnd=}")
-        startGuts = guts.split('-')[0]
-        # print(f"  Now {guts=}")
-        if ':' in startGuts:
-            assert startGuts.count(':') == 1 # We expect a single C:V at this stage
-            Cstr, Vstr = startGuts.strip().split( ':' )
-        elif is_single_chapter_book_py:
-            Cstr, Vstr = '1', startGuts.strip() # Only a verse was given
-        else: Cstr, Vstr = startGuts.strip(), '1' # Only a chapter was given
-        if segmentType == 'book':
-            newGuts = f'<a title="Jump down to reference" href="#C{Cstr}V{Vstr}">{guts}</a>'
-        elif segmentType == 'chapter':
-            newGuts = f'<a title="Jump to chapter page with reference" href="{ourBBB}_C{Cstr}.htm#C{Cstr}V{Vstr}">{guts}</a>'
-        elif segmentType.endswith( 'Verse' ): # For an introduction (so 'verse' is 'line')
-            # dPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"liven_introduction_links( {versionAbbreviation}, {refTuple}, {segmentType}, '{introHtml}' )" )
-            assert refTuple[1] == '-1', f"{refTuple=}"
-            # print( f"{versionAbbreviation}, {refTuple}, {refBBB=} {refC=} {refV=} {guts=}" )
-            newGuts = f'<a title="Go to reference verse" href="C{Cstr}V{Vstr}.htm#Top">{guts}</a>'
-        elif segmentType in ('section','relatedPassage'):
-            if 1:
-            # try: # Now find which section that IOR starts in
-                # print( f"livenIORs:findSectionNumber for {versionAbbreviation} {ourBBB} {Cstr}:{Vstr}" )
-                n = findSectionNumber( versionAbbreviation, ourBBB, Cstr, Vstr, state )
-                # intV = getSmallLeadingInt(Vstr)
-                # found = False
-                # for n, (startC,startV,endC,endV,sectionName,reasonName,contextList,verseEntryList,sFilename) in enumerate( state.sectionsListsForSections[versionAbbreviation][ourBBB] ):
-                #     if startC==Cstr and endC==Cstr:
-                #         # print( f"Single chapter {startC}=={Cstr}=={endC} {getSmallLeadingInt(startV)=} {intV=} {getSmallLeadingInt(endV)=}")
-                #         if getSmallLeadingInt(startV) <= intV <= getSmallLeadingInt(endV): # It's in this single chapter
-                #             found = True
-                #             break
-                #     elif startC==Cstr and intV>=getSmallLeadingInt(startV): # It's in the first chapter
-                #         found = True
-                #         break
-                #     elif endC==Cstr and intV<=getSmallLeadingInt(endV): # It's in the second chapter
-                #         found = True
-                #         break
-                # if found:
-                if n is not None:
-                    newGuts = f'<a title="Jump to section page with reference" href="{ourBBB}_S{n}.htm#Top">{guts}</a>'
+    # Use Rust implementation for book, chapter, and verse segment types
+    if segmentType in ('book', 'chapter') or segmentType.endswith('Verse'):
+        try:
+            return liven_iors( ourBBB, segmentType, ioLineHtml, is_single_chapter_book )
+        except Exception as e:
+            logging.error( f"Error in Rust liven_iors for {versionAbbreviation} {refTuple} {segmentType}: {e}" )
+            raise
+
+    # For section and relatedPassage types, use Python implementation with section lookup
+    elif segmentType in ('section', 'relatedPassage'):
+        from createSectionPages import findSectionNumber
+        import re
+        
+        def process_ior_sections():
+            result_html = ioLineHtml
+            for match in re.finditer(r'<span class="ior">(.*?)</span>', result_html):
+                guts = match.group(1).replace('–', '-')  # Convert en-dash to hyphen
+                start_ref = guts.split('-')[0]
+                
+                # Parse chapter:verse
+                if ':' in start_ref:
+                    c_str, v_str = start_ref.strip().split(':')
+                elif is_single_chapter_book:
+                    c_str, v_str = '1', start_ref.strip()
                 else:
-                    logging.critical( f"unable_to_find_IOR for {versionAbbreviation} {ourBBB} {Cstr}:{Vstr} {[f'{startC}:{startV}…{endC}:{endV}' for n,startC,startV,endC,endV,sectionName,reasonName,contextList,verseEntryList,sFilename in state.sectionsListsForSections[versionAbbreviation][ourBBB]]}" )
-                    for cc,(cv,entry) in enumerate( state.preloadedBibles[versionAbbreviation][ourBBB]._SectionIndex.items() ):
-                        print( f"    {cc}: {ourBBB} {cv} {entry}" )
-                    newGuts = guts # Can't make a link
-                    assert False, f"unable_to_find_reference -- need to write more code: unable_to_find_IOR for {versionAbbreviation} {ourBBB} {Cstr}:{Vstr} {[f'{startC}:{startV}…{endC}:{endV}' for n,startC,startV,endC,endV,sectionName,reasonName,contextList,verseEntryList,sFilename in state.sectionsListsForSections[versionAbbreviation][ourBBB]]}"
-            # except KeyError:
-            #     logging.critical( f"livenIORs for {versionAbbreviation}, {refTuple}, {segmentType} can't find section list for {ourBBB}" )
-            #     newGuts = guts # Can't make a link
-        else:
-            dPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"livenIORs( {versionAbbreviation}, {refTuple}, {segmentType}, '{ioLineHtml}' )" )
-            ooops
+                    c_str, v_str = start_ref.strip(), '1'
+                
+                # Find section number
+                section_num = findSectionNumber( versionAbbreviation, ourBBB, c_str, v_str, state )
+                if section_num is not None:
+                    new_link = f'<a title="Jump to section page with reference" href="{ourBBB}_S{section_num}.htm#Top">{guts}</a>'
+                    result_html = result_html.replace(match.group(0), new_link, 1)
+                else:
+                    logging.critical( f"unable_to_find_IOR for {versionAbbreviation} {ourBBB} {c_str}:{v_str}" )
+            
+            return result_html
+        
+        return process_ior_sections()
 
-        ioLineHtml = f'{ioLineHtml[:ixSpanStart+18]}{newGuts}{ioLineHtml[ixEnd:]}'
-        searchStartIx = ixEnd + len(newGuts) - len(guts) # Approx number of chars that we add
     else:
-        # logging.critical( f"inner_fn_loop_needed_to_break {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {_innerSafetyCount=}" )
-        usfm_liven_IOR_loop_needed_to_break
-
-    return ioLineHtml
+        dPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"livenIORs( {versionAbbreviation}, {refTuple}, {segmentType}, '{ioLineHtml}' )" )
+        raise ValueError(f"Unsupported segmentType: {segmentType}")
 # end of usfm.livenIORs function
 
 
@@ -2154,14 +2127,6 @@ def livenXRefField( fieldType:str, versionAbbreviation:str, refTuple:tuple, segm
         print( f"livenXRefField wanting to return unchanged field for {versionAbbreviation} {segmentType} {segmentType=} {refTuple} {xrefOriginalMiddle=}" )
     return xrefLiveMiddle
 # end of usfm.livenXRefField function
-
-
-def toRomanNumerals( num:int|str ) -> str:
-    """
-    Convert an integer or string integer into a Roman numeral.
-    """
-    return openbibledata_rust.to_roman_numerals( num )
-# end of usfm.toRomanNumerals function
 
 
 def briefDemo() -> None:

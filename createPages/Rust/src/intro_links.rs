@@ -386,7 +386,7 @@ mod tests {
     fn test_bcv_verse_segment() {
         let input = "see (Col. 4:10).";
         let output = liven_introduction_links_core("OET-RV", "MAT", "Verse", input, |_, _, _, _| None).unwrap();
-        assert_eq!(output, r##"see (<a title="Go to reference verse" href="C4V10.htm#Top">Col. 4:10</a>)."##);
+        assert_eq!(output, r##"see (<a title="Go to reference verse" href="../COL/C4V10.htm#Top">Col. 4:10</a>)."##);
     }
 
     #[test]

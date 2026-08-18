@@ -4,10 +4,12 @@ use pyo3::exceptions::{PyAssertionError, PyTypeError, PyValueError};
 use pyo3::prelude::*;
 
 pub mod intro_links;
+pub mod ior_links;
 pub mod oet_books;
 pub mod roman_numerals;
 
 pub use intro_links::{liven_introduction_links_core, IntroLinkError};
+pub use ior_links::{liven_iors_core, IORLinkError};
 pub use oet_books::get_bbb_from_oet_book_name;
 pub use roman_numerals::to_roman_numerals;
 
@@ -146,6 +148,36 @@ fn to_roman_numerals_camel_py(num: &Bound<'_, PyAny>) -> PyResult<String> {
     to_roman_numerals_py(num)
 }
 
+/// Liven IOR (Introduction Outline Reference) links in HTML text using Rust.
+#[pyfunction]
+#[pyo3(name = "liven_iors")]
+fn liven_iors_py(
+    our_bbb: &str,
+    segment_type: &str,
+    ior_html: &str,
+    is_single_chapter: bool,
+) -> PyResult<String> {
+    match liven_iors_core(our_bbb, segment_type, ior_html, is_single_chapter) {
+        Ok(res) => Ok(res),
+        Err(IORLinkError::InvalidSegmentType(seg)) => {
+            Err(PyValueError::new_err(format!("Unsupported segmentType: {seg}")))
+        }
+        Err(IORLinkError::Custom(msg)) => Err(PyValueError::new_err(msg)),
+    }
+}
+
+/// CamelCase alias for liven_iors.
+#[pyfunction]
+#[pyo3(name = "livenIORs")]
+fn liven_iors_camel_py(
+    our_bbb: &str,
+    segment_type: &str,
+    ior_html: &str,
+    is_single_chapter: bool,
+) -> PyResult<String> {
+    liven_iors_py(our_bbb, segment_type, ior_html, is_single_chapter)
+}
+
 #[pymodule]
 fn openbibledata_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(liven_introduction_links_py, m)?)?;
@@ -154,5 +186,7 @@ fn openbibledata_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(get_bbb_from_oet_book_name_camel_py, m)?)?;
     m.add_function(wrap_pyfunction!(to_roman_numerals_py, m)?)?;
     m.add_function(wrap_pyfunction!(to_roman_numerals_camel_py, m)?)?;
+    m.add_function(wrap_pyfunction!(liven_iors_py, m)?)?;
+    m.add_function(wrap_pyfunction!(liven_iors_camel_py, m)?)?;
     Ok(())
 }

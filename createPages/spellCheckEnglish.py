@@ -801,9 +801,8 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                 'ende','rede','kam','Korb','ward','alt','dran','Rede','nun','nur','messen','ging','Halle','und','ster','streng','tun','von','wer','zu',
                                 'unobedient','distributione','opense','whoren','sharedn','againststanden','gorrschet','goatsböcklein','saddenede','slepten','fiftytausend',
                                     'tearinger','grainstädte','stiftete','chainswerk','seventytausend','eightytausend','cartstädte','ratet','togewachsen','wroteen',
-                                    'blasphemyen','shopsn','nineunddreißig','soundedn','hinderte','frightenedn','preventeden',
-                                    'stands‘s','goneging','pricest','allem','silencen',
-                                    'spiritwille','fortgehet','eranger',
+                                    'blasphemyen','shopsn','nineunddreißig','soundedn','hinderte','frightenedn','preventeden','milde',
+                                    'dover','wellmachen','highgelobt','my‘s','carry‘s','boysstück',
 
                                 'actio','ambit','ambitio','anima','antiqui','apprehendi','ascendi','attende','audi', 'aversio',
                                 'beati','bene','beneficia','bos',
@@ -835,10 +834,9 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                 'tum','holdur','killur','giveium','golds','inactivitym',
                                 'announcent','subjoinsur','perpetuall','instrumentum','carriese','adwill',
                                     'changesa','fornicatio','talentis','habitculo','equitatus','establishedque','lastrum','buildt','buildsa','solidos',
-                                    'buildingus','buildri','dedicatione','planstorum','yearnas','myrti','hards','inhabitem','illuminatio',
-                                    'praisendo','prosperitas','recallsione','supergaudeant','injust',
-                                    'moveat','malignantes',
-                                    'disturbsum',
+                                    'buildingus','buildri','dedicatione','planstorum','yearnas','myrti','illuminatio',
+                                    'prosperitas','recallsione','injust','moveat','malignantes',
+                                    'deliberat',
                                 )
                     else 'Info', DEBUGGING_THIS_MODULE, f'''        {word} is suspect @ {location}\nfrom {cleanedTextToDisplay=}\n  WHICH GAVE {cleanedTextToCheck=}''' )
             if versionAbbreviation == 'Luth':
