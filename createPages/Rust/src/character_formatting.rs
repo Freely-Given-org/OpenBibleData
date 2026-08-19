@@ -1,5 +1,4 @@
-use once_cell::sync::Lazy;
-use regex::Regex;
+use crate::constants::{FIG_ALT_REGEX, FIG_SRC_REGEX};
 
 /// Result type for character formatting
 pub struct CharacterFormattingResult {
@@ -7,13 +6,6 @@ pub struct CharacterFormattingResult {
     pub background_colour: Option<String>,
     pub files_to_copy: Vec<(String, String)>, // (src_path, dest_filename)
 }
-
-static FIG_SRC_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r#"src="([^"]+?)""#).unwrap());
-static FIG_SIZE_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r#"size="([^"]+?)""#).unwrap());
-static FIG_REF_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r#"ref="([^"]+?)""#).unwrap());
-static FIG_ALT_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r#"alt="([^"]+?)""#).unwrap());
-static FIG_LOC_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r#"loc="([^"]+?)""#).unwrap());
-static FIG_COPY_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r#"copy="([^"]+?)""#).unwrap());
 
 pub fn convert_usfm_character_formatting(
     version_abbrev: &str,

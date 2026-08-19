@@ -52,13 +52,17 @@ fn parse_cv_reference(guts: &str, is_single_chapter: bool) -> (String, String) {
 }
 
 /// Format an HTML reference link for IOR according to segment_type.
-fn format_ior_link(
+fn format_ior_link<F>(
     our_bbb: &str,
     ref_c: &str,
     ref_v: &str,
     guts: &str,
     segment_type: &str,
-) -> Result<String, IORLinkError> {
+    find_section_fn: &F,
+) -> Result<String, IORLinkError>
+where
+    F: Fn(&str, &str, &str, &str) -> Option<usize>,
+{
     match segment_type {
         "book" => {
             Ok(format!(
@@ -77,21 +81,35 @@ fn format_ior_link(
             ))
         }
         "section" | "relatedPassage" => {
-            // For sections, we would need section number lookup
-            // For now, return the original guts (section number lookup would be passed as a closure)
-            Ok(guts.to_string())
+            // Look up the section number via the callback
+            if let Some(section_num) = find_section_fn("OET-RV", our_bbb, ref_c, ref_v) {
+                Ok(format!(
+                    r##"<a title="Jump to section page with reference" href="{our_bbb}_S{section_num}.htm#Top">{guts}</a>"##
+                ))
+            } else {
+                // Fallback: return the guts unchanged (matching Python behaviour which logs a critical error)
+                Ok(guts.to_string())
+            }
         }
         other => Err(IORLinkError::InvalidSegmentType(other.to_string())),
     }
 }
 
 /// Liven IOR (Introduction Outline Reference) links in HTML text.
-pub fn liven_iors_core(
+///
+/// For `section` and `relatedPassage` segment types, the `find_section_fn` callback
+/// is called as `find_section_fn(version_abbrev, bbb, c, v)` and should return
+/// `Some(section_number)` if found.  For other segment types the callback is ignored.
+pub fn liven_iors_core<F>(
     our_bbb: &str,
     segment_type: &str,
     ior_html: &str,
     is_single_chapter: bool,
-) -> Result<String, IORLinkError> {
+    find_section_fn: F,
+) -> Result<String, IORLinkError>
+where
+    F: Fn(&str, &str, &str, &str) -> Option<usize>,
+{
     let mut result_html = ior_html.to_string();
     let mut search_start_ix = 0;
 
@@ -112,7 +130,7 @@ pub fn liven_iors_core(
         let (ref_c, ref_v) = parse_cv_reference(&guts, is_single_chapter);
 
         // Format the link
-        let new_span = format_ior_link(our_bbb, &ref_c, &ref_v, &guts, segment_type)?;
+        let new_span = format_ior_link(our_bbb, &ref_c, &ref_v, &guts, segment_type, &find_section_fn)?;
 
         result_html.replace_range(match_start..match_end, &new_span);
         search_start_ix = match_start + new_span.len();
@@ -125,10 +143,15 @@ pub fn liven_iors_core(
 mod tests {
     use super::*;
 
+    /// No-op section finder for tests that don't exercise section lookup.
+    fn noop_section_finder(_v: &str, _b: &str, _c: &str, _v2: &str) -> Option<usize> {
+        None
+    }
+
     #[test]
     fn test_ior_book_segment() {
         let input = r#"See also <span class="ior">12:12</span> for more."#;
-        let output = liven_iors_core("MAT", "book", input, false).unwrap();
+        let output = liven_iors_core("MAT", "book", input, false, noop_section_finder).unwrap();
         assert_eq!(
             output,
             r##"See also <a title="Jump down to reference" href="#C12V12">12:12</a> for more."##
@@ -138,7 +161,7 @@ mod tests {
     #[test]
     fn test_ior_chapter_segment() {
         let input = r#"Find it in <span class="ior">5:13</span> section."#;
-        let output = liven_iors_core("MAT", "chapter", input, false).unwrap();
+        let output = liven_iors_core("MAT", "chapter", input, false, noop_section_finder).unwrap();
         assert_eq!(
             output,
             r##"Find it in <a title="Jump to chapter page with reference" href="MAT_C5.htm#C5V13">5:13</a> section."##
@@ -148,7 +171,7 @@ mod tests {
     #[test]
     fn test_ior_verse_segment() {
         let input = r#"Reference: <span class="ior">4:10</span>."#;
-        let output = liven_iors_core("COL", "Verse", input, false).unwrap();
+        let output = liven_iors_core("COL", "Verse", input, false, noop_section_finder).unwrap();
         assert_eq!(
             output,
             r##"Reference: <a title="Go to reference verse" href="C4V10.htm#Top">4:10</a>."##
@@ -158,7 +181,7 @@ mod tests {
     #[test]
     fn test_ior_single_chapter_verse_only() {
         let input = r#"See <span class="ior">4</span> for details."#;
-        let output = liven_iors_core("OBD", "Verse", input, true).unwrap();
+        let output = liven_iors_core("OBD", "Verse", input, true, noop_section_finder).unwrap();
         assert_eq!(
             output,
             r##"See <a title="Go to reference verse" href="C1V4.htm#Top">4</a> for details."##
@@ -168,7 +191,7 @@ mod tests {
     #[test]
     fn test_ior_multi_chapter_chapter_only() {
         let input = r#"See <span class="ior">4</span> for details."#;
-        let output = liven_iors_core("MAT", "chapter", input, false).unwrap();
+        let output = liven_iors_core("MAT", "chapter", input, false, noop_section_finder).unwrap();
         assert_eq!(
             output,
             r##"See <a title="Jump to chapter page with reference" href="MAT_C4.htm#C4V1">4</a> for details."##
@@ -178,7 +201,7 @@ mod tests {
     #[test]
     fn test_ior_multiple_spans() {
         let input = r#"In <span class="ior">3:16</span> and <span class="ior">5:7</span> we find this."#;
-        let output = liven_iors_core("JHN", "book", input, false).unwrap();
+        let output = liven_iors_core("JHN", "book", input, false, noop_section_finder).unwrap();
         assert_eq!(
             output,
             r##"In <a title="Jump down to reference" href="#C3V16">3:16</a> and <a title="Jump down to reference" href="#C5V7">5:7</a> we find this."##
@@ -188,7 +211,7 @@ mod tests {
     #[test]
     fn test_ior_with_range() {
         let input = r#"Found in <span class="ior">12:12-15</span> section."#;
-        let output = liven_iors_core("MRK", "book", input, false).unwrap();
+        let output = liven_iors_core("MRK", "book", input, false, noop_section_finder).unwrap();
         assert_eq!(
             output,
             r##"Found in <a title="Jump down to reference" href="#C12V12">12:12-15</a> section."##
@@ -198,7 +221,7 @@ mod tests {
     #[test]
     fn test_ior_with_endash() {
         let input = r#"Range: <span class="ior">5:3–8</span>."#;
-        let output = liven_iors_core("ROM", "chapter", input, false).unwrap();
+        let output = liven_iors_core("ROM", "chapter", input, false, noop_section_finder).unwrap();
         assert_eq!(
             output,
             r##"Range: <a title="Jump to chapter page with reference" href="ROM_C5.htm#C5V3">5:3-8</a>."##
@@ -208,7 +231,46 @@ mod tests {
     #[test]
     fn test_ior_empty_input() {
         let input = "No IOR tags here.";
-        let output = liven_iors_core("MAT", "book", input, false).unwrap();
+        let output = liven_iors_core("MAT", "book", input, false, noop_section_finder).unwrap();
         assert_eq!(output, input);
+    }
+
+    #[test]
+    fn test_ior_section_segment_with_finder() {
+        let input = r#"See <span class="ior">5:13</span> for context."#;
+        let finder = |_v: &str, _b: &str, c: &str, v: &str| -> Option<usize> {
+            // Pretend section 42 exists for 5:13
+            if c == "5" && v == "13" { Some(42) } else { None }
+        };
+        let output = liven_iors_core("OET-RV", "section", input, false, finder).unwrap();
+        assert_eq!(
+            output,
+            r##"See <a title="Jump to section page with reference" href="OET-RV_S42.htm#Top">5:13</a> for context."##
+        );
+    }
+
+    #[test]
+    fn test_ior_section_segment_finder_returns_none() {
+        let input = r#"See <span class="ior">99:1</span> for context."#;
+        let finder = |_v: &str, _b: &str, _c: &str, _v2: &str| -> Option<usize> { None };
+        let output = liven_iors_core("OET-RV", "section", input, false, finder).unwrap();
+        // When section not found, guts are returned unchanged
+        assert_eq!(
+            output,
+            r#"See 99:1 for context."#
+        );
+    }
+
+    #[test]
+    fn test_ior_related_passage_segment() {
+        let input = r#"Ref: <span class="ior">3:16</span>."#;
+        let finder = |_v: &str, _b: &str, c: &str, v: &str| -> Option<usize> {
+            if c == "3" && v == "16" { Some(7) } else { None }
+        };
+        let output = liven_iors_core("MAT", "relatedPassage", input, false, finder).unwrap();
+        assert_eq!(
+            output,
+            r##"Ref: <a title="Jump to section page with reference" href="MAT_S7.htm#Top">3:16</a>."##
+        );
     }
 }

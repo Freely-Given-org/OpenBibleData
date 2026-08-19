@@ -255,7 +255,7 @@ p.key { background-color:seaShell; font-size:0.8em; }
 
 /* USFM footnotes */
 p.parallelVerse + hr { margin-top:-0.6em; }
-hr.line-before-footnotes { width:35%; margin-left:0; margin-top:0em; border:0; border-top:1px solid green; }
+hr.line-before-footnotes { width:45%; margin-left:0; margin-top:0em; margin-bottom:0.2em; border:0; border-top:1px solid green; }
 div.footnotes {} /* margin-top:-0.1em; } */
 p.fn { margin-top:0.1em; margin-bottom:0.2em; font-size:0.75em; }
 span.fnCaller { vertical-align:super; font-size:0.7em; color:green; }
@@ -274,7 +274,7 @@ span.fv { vertical-align:super; }
 span.fw {}
 
 /* USFM cross-references */
-hr.line-before-xrefs { width:35%; margin-left:0; margin-top:0em; border:0; border-top:1px solid blue; }
+hr.line-before-xrefs { width:35%; margin-left:0; margin-top:0em; margin-bottom:0.2em; border:0; border-top:1px solid blue; }
 div.crossRefs {}
 p.xr { margin-top:0.2em; margin-bottom:0.2em; font-size:0.75em; }
 span.xrCaller { vertical-align:super; font-size:0.7em; color:blue; }

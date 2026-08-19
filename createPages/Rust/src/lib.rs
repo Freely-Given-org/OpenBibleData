@@ -3,17 +3,20 @@
 use pyo3::exceptions::{PyAssertionError, PyTypeError, PyValueError};
 use pyo3::prelude::*;
 
+pub mod constants;
 pub mod intro_links;
 pub mod ior_links;
 pub mod oet_books;
 pub mod roman_numerals;
 pub mod character_formatting;
+pub mod xref_links;
 
 pub use intro_links::{liven_introduction_links_core, IntroLinkError};
 pub use ior_links::{liven_iors_core, IORLinkError};
 pub use oet_books::get_bbb_from_oet_book_name;
 pub use roman_numerals::to_roman_numerals;
 pub use character_formatting::{convert_usfm_character_formatting, CharacterFormattingResult};
+pub use xref_links::{liven_xref_field_core, XRefError};
 
 /// Convert an original book name to its 3-character BOS Book Code (BBB).
 #[pyfunction]
@@ -152,14 +155,35 @@ fn to_roman_numerals_camel_py(num: &Bound<'_, PyAny>) -> PyResult<String> {
 
 /// Liven IOR (Introduction Outline Reference) links in HTML text using Rust.
 #[pyfunction]
-#[pyo3(name = "liven_iors")]
-fn liven_iors_py(
+#[pyo3(
+    name = "liven_iors",
+    signature = (our_bbb, segment_type, ior_html, is_single_chapter, state=None)
+)]
+fn liven_iors_py<'py>(
+    _py: Python<'py>,
     our_bbb: &str,
     segment_type: &str,
     ior_html: &str,
     is_single_chapter: bool,
+    state: Option<&Bound<'py, PyAny>>,
 ) -> PyResult<String> {
-    match liven_iors_core(our_bbb, segment_type, ior_html, is_single_chapter) {
+    let find_section_fn = |v_abbr: &str, bbb: &str, c: &str, v: &str| -> Option<usize> {
+        if let Some(state_obj) = state {
+            let py_env = state_obj.py();
+            if let Ok(module) = py_env.import("createSectionPages") {
+                if let Ok(func) = module.getattr("findSectionNumber") {
+                    if let Ok(res) = func.call1((v_abbr, bbb, c, v, state_obj)) {
+                        if let Ok(opt_num) = res.extract::<Option<usize>>() {
+                            return opt_num;
+                        }
+                    }
+                }
+            }
+        }
+        None
+    };
+
+    match liven_iors_core(our_bbb, segment_type, ior_html, is_single_chapter, find_section_fn) {
         Ok(res) => Ok(res),
         Err(IORLinkError::InvalidSegmentType(seg)) => {
             Err(PyValueError::new_err(format!("Unsupported segmentType: {seg}")))
@@ -170,14 +194,19 @@ fn liven_iors_py(
 
 /// CamelCase alias for liven_iors.
 #[pyfunction]
-#[pyo3(name = "livenIORs")]
-fn liven_iors_camel_py(
+#[pyo3(
+    name = "livenIORs",
+    signature = (our_bbb, segment_type, ior_html, is_single_chapter, state=None)
+)]
+fn liven_iors_camel_py<'py>(
+    py: Python<'py>,
     our_bbb: &str,
     segment_type: &str,
     ior_html: &str,
     is_single_chapter: bool,
+    state: Option<&Bound<'py, PyAny>>,
 ) -> PyResult<String> {
-    liven_iors_py(our_bbb, segment_type, ior_html, is_single_chapter)
+    liven_iors_py(py, our_bbb, segment_type, ior_html, is_single_chapter, state)
 }
 
 /// Convert USFM character formatting to HTML using Rust.
@@ -241,6 +270,90 @@ fn convert_usfm_character_formatting_camel_py(
     )
 }
 
+/// Liven a cross-reference or footnote xt field using Rust.
+///
+/// Parameters match the Python `livenXRefField` signature:
+///   field_type, version_abbreviation, bbb, c, v, segment_type,
+///   path_prefix, xo_text, xref_original_middle, state=None
+#[pyfunction]
+#[pyo3(
+    name = "liven_xref_field",
+    signature = (field_type, version_abbreviation, bbb, c, v, segment_type, path_prefix, xo_text, xref_original_middle, state=None)
+)]
+fn liven_xref_field_py<'py>(
+    _py: Python<'py>,
+    field_type: &str,
+    version_abbreviation: &str,
+    bbb: &str,
+    c: &str,
+    v: &str,
+    segment_type: &str,
+    path_prefix: &str,
+    xo_text: &str,
+    xref_original_middle: &str,
+    state: Option<&Bound<'py, PyAny>>,
+) -> PyResult<String> {
+    let find_section_fn = |v_abbr: &str, target_bbb: &str, target_c: &str, target_v: &str| -> Option<usize> {
+        if let Some(state_obj) = state {
+            let py_env = state_obj.py();
+            if let Ok(module) = py_env.import("createSectionPages") {
+                if let Ok(func) = module.getattr("findSectionNumber") {
+                    if let Ok(res) = func.call1((v_abbr, target_bbb, target_c, target_v, state_obj)) {
+                        if let Ok(opt_num) = res.extract::<Option<usize>>() {
+                            return opt_num;
+                        }
+                    }
+                }
+            }
+        }
+        None
+    };
+
+    match liven_xref_field_core(
+        field_type,
+        version_abbreviation,
+        bbb,
+        c,
+        v,
+        segment_type,
+        path_prefix,
+        xo_text,
+        xref_original_middle,
+        find_section_fn,
+    ) {
+        Ok(result) => Ok(result),
+        Err(XRefError::InvalidFieldType(ft)) => {
+            Err(PyValueError::new_err(format!("Invalid fieldType: {ft}")))
+        }
+        Err(XRefError::InvalidSegmentType(seg)) => {
+            Err(PyValueError::new_err(format!("Unsupported segmentType: {seg}")))
+        }
+        Err(XRefError::Custom(msg)) => Err(PyValueError::new_err(msg)),
+    }
+}
+
+/// CamelCase alias for liven_xref_field.
+#[pyfunction]
+#[pyo3(
+    name = "livenXRefField",
+    signature = (field_type, version_abbreviation, bbb, c, v, segment_type, path_prefix, xo_text, xref_original_middle, state=None)
+)]
+fn liven_xref_field_camel_py<'py>(
+    py: Python<'py>,
+    field_type: &str,
+    version_abbreviation: &str,
+    bbb: &str,
+    c: &str,
+    v: &str,
+    segment_type: &str,
+    path_prefix: &str,
+    xo_text: &str,
+    xref_original_middle: &str,
+    state: Option<&Bound<'py, PyAny>>,
+) -> PyResult<String> {
+    liven_xref_field_py(py, field_type, version_abbreviation, bbb, c, v, segment_type, path_prefix, xo_text, xref_original_middle, state)
+}
+
 #[pymodule]
 fn openbibledata_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(liven_introduction_links_py, m)?)?;
@@ -253,5 +366,7 @@ fn openbibledata_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(liven_iors_camel_py, m)?)?;
     m.add_function(wrap_pyfunction!(convert_usfm_character_formatting_py, m)?)?;
     m.add_function(wrap_pyfunction!(convert_usfm_character_formatting_camel_py, m)?)?;
+    m.add_function(wrap_pyfunction!(liven_xref_field_py, m)?)?;
+    m.add_function(wrap_pyfunction!(liven_xref_field_camel_py, m)?)?;
     Ok(())
 }

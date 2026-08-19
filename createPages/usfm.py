@@ -100,11 +100,11 @@ import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, dPrint, vPrint, rreplace, BOOKLIST_NT27
 from usfm_markers_py import USFM_ALL_BIBLE_PARAGRAPH_MARKERS
 import bos_books_codes_py
-from openbibledata_rust import liven_introduction_links, liven_iors, to_roman_numerals, convert_usfm_character_formatting
+from openbibledata_rust import liven_introduction_links, liven_iors, to_roman_numerals, convert_usfm_character_formatting, liven_xref_field
 
 from settings import State
 from html import checkHtml
-from OETHandlers import getBBBFromOETBookName
+#from OETHandlers import getBBBFromOETBookName
 from Bibles import getOpenBibleImages
 
 
@@ -1518,53 +1518,17 @@ def livenIORs( versionAbbreviation:str, refTuple:tuple, segmentType:str, ioLineH
     Uses the Rust implementation for performance.
     """
     fnPrint( DEBUGGING_THIS_MODULE, f"livenIORs( {versionAbbreviation}, {refTuple}, {segmentType}, '{ioLineHtml}' )" )
-    assert '\\ior' not in ioLineHtml
+    assert '\ior' not in ioLineHtml
 
     ourBBB = refTuple[0]
     is_single_chapter_book = bos_books_codes_py.is_single_chapter_book( ourBBB )
 
-    # Use Rust implementation for book, chapter, and verse segment types
-    if segmentType in ('book', 'chapter') or segmentType.endswith('Verse'):
-        try:
-            return liven_iors( ourBBB, segmentType, ioLineHtml, is_single_chapter_book )
-        except Exception as e:
-            logging.error( f"Error in Rust liven_iors for {versionAbbreviation} {refTuple} {segmentType}: {e}" )
-            raise
-
-    # For section and relatedPassage types, use Python implementation with section lookup
-    elif segmentType in ('section', 'relatedPassage'):
-        from createSectionPages import findSectionNumber
-        import re
-        
-        def process_ior_sections():
-            result_html = ioLineHtml
-            for match in re.finditer(r'<span class="ior">(.*?)</span>', result_html):
-                guts = match.group(1).replace('–', '-')  # Convert en-dash to hyphen
-                start_ref = guts.split('-')[0]
-                
-                # Parse chapter:verse
-                if ':' in start_ref:
-                    c_str, v_str = start_ref.strip().split(':')
-                elif is_single_chapter_book:
-                    c_str, v_str = '1', start_ref.strip()
-                else:
-                    c_str, v_str = start_ref.strip(), '1'
-                
-                # Find section number
-                section_num = findSectionNumber( versionAbbreviation, ourBBB, c_str, v_str, state )
-                if section_num is not None:
-                    new_link = f'<a title="Jump to section page with reference" href="{ourBBB}_S{section_num}.htm#Top">{guts}</a>'
-                    result_html = result_html.replace(match.group(0), new_link, 1)
-                else:
-                    logging.critical( f"unable_to_find_IOR for {versionAbbreviation} {ourBBB} {c_str}:{v_str}" )
-            
-            return result_html
-        
-        return process_ior_sections()
-
-    else:
-        dPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"livenIORs( {versionAbbreviation}, {refTuple}, {segmentType}, '{ioLineHtml}' )" )
-        raise ValueError(f"Unsupported segmentType: {segmentType}")
+    # Use Rust implementation for all segment types (including section/relatedPassage via findSectionNumber callback)
+    try:
+        return liven_iors( ourBBB, segmentType, ioLineHtml, is_single_chapter_book, state )
+    except Exception as e:
+        logging.error( f"Error in Rust liven_iors for {versionAbbreviation} {refTuple} {segmentType}: {e}" )
+        raise
 # end of usfm.livenIORs function
 
 
@@ -1653,248 +1617,12 @@ def livenXRefField( fieldType:str, versionAbbreviation:str, refTuple:tuple, segm
         return the text but with the xref(s) in it livened.
 
     State parameter is only used for the OET-RV.
+    Uses the Rust implementation for performance.
     """
-    from createSectionPages import findSectionNumber
-    DEBUGGING_THIS_MODULE = 99 if versionAbbreviation == 'KJB-1611' else False
-    fnPrint( DEBUGGING_THIS_MODULE, f"livenXRefField( {fieldType}, {versionAbbreviation}, {refTuple}, {segmentType}, '{pathPrefix}', {xoText=}, {xrefOriginalMiddle=} )" )
-    assert fieldType in 'fx'
-
-    # TODO: The following code does not work for one chapter books (Jude 5), additional Vs (Mrk 3:4,5), or additional CVs (Mrk 3:4; 4:5)
-    # TODO: The following code is untidy, not including combined verses in the link, e.g., Mrk 3:4-5
-    BBB = refTuple[0] # Compulsory
-    xrefLiveMiddle = xrefOriginalMiddle
-
-    if versionAbbreviation == 'RV':
-        xrefLiveMiddle = ( xrefLiveMiddle \
-                            .replace( ' iii ',' iii.') # Fixes an inconsistency
-                            .replace( 'xxxix.', '39.' ).replace( 'xxxviii.', '38.' ).replace( 'xxxvii.', '37.' ).replace( 'xxxvi.', '36.' ).replace( 'xxxv.', '35.' ).replace( 'xxxiv.', '34.' ).replace( 'xxxiii.', '33.' ).replace( 'xxxii.', '32.' ).replace( 'xxxi.', '31.' ).replace( 'xxx.', '30.' )
-                            .replace( 'xxix.', '29.').replace( 'xxviii.', '28.').replace( 'xxvii.', '27.').replace( 'xxvi.', '26.').replace( 'xxv.', '25.').replace( 'xxiv.', '24.').replace( 'xxiii.', '23.').replace( 'xxii.', '22.').replace( 'xxi.', '21.').replace( 'xx.', '20.')
-                            .replace( 'xix.', '19.' ).replace( 'xviii.', '18.' ).replace( 'xvii.', '17.' ).replace( 'xvi.', '16.' ).replace( 'xv.', '15.' ).replace( 'xiv.', '14.' ).replace( 'xiii.', '13.' ).replace( 'xii.', '12.' ).replace( 'xi.', '11.' ).replace( 'x.', '10.' )
-                            .replace( 'ix.', '9.' ).replace( 'viii.', '8.' ).replace( 'vii.', '7.' ).replace( 'vi.', '6.' ).replace( 'iv.', '4.' ).replace( 'v.', '5.' ).replace( 'iii.', '3.' ).replace( 'ii.', '2.' ).replace( 'i.', '1.' )
-                        )
-    elif versionAbbreviation == 'KJB-1611':
-        xrefLiveMiddle = xrefLiveMiddle.replace( 'A&s', 'Acts' )
-
-    reStartIx, lastXBBB, lastXC = 0, BBB, 0
-    for _safetyCount2 in range( 599 if segmentType=='book' else 50 ):
-        if reStartIx>0: dPrint( 'Info' if versionAbbreviation=='KJB-1611' else 'Verbose', DEBUGGING_THIS_MODULE, f"Now searching {refTuple} from {xrefLiveMiddle[reStartIx:]=}" )
-        for possiblePrefix in ('. and ','. &c.','.&c. ','. & ','. ',', ','.',','):
-            if xrefLiveMiddle[reStartIx:].startswith( possiblePrefix ):
-                reStartIx += len( possiblePrefix ) # Skip past it
-                dPrint( 'Info' if versionAbbreviation=='KJB-1611' else 'Verbose', DEBUGGING_THIS_MODULE, f"  but now searching {refTuple} from {xrefLiveMiddle[reStartIx:]=}" )
-        if reStartIx >= len(xrefLiveMiddle)-1: break
-        matchBCV = BCVRefRegEx.search( xrefLiveMiddle, reStartIx )
-        matchBV = BVRefRegEx.search( xrefLiveMiddle, reStartIx )
-        matchCV = CVRefRegEx.search( xrefLiveMiddle, reStartIx )
-        matchV = NextVRefRegEx.search( xrefLiveMiddle, reStartIx )
-        if not matchBCV and not matchBV and not matchCV and not matchV:
-            break # neither one was found - all done here
-        try: indexBCV = matchBCV.start()
-        except AttributeError: indexBCV = 999_999
-        try: indexBV = matchBV.start()
-        except AttributeError: indexBV = 999_999
-        try: indexCV = matchCV.start()
-        except AttributeError: indexCV = 999_999
-        try: indexV = matchV.start()
-        except AttributeError: indexV = 999_999
-        firstIndex = min( indexBCV, indexBV, indexCV, indexV )
-        if versionAbbreviation in ('KJB-1611',):
-            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} {refTuple} got {xrefLiveMiddle[firstIndex:]=} from {xrefLiveMiddle=} {firstIndex=} {indexBCV=} {indexBV=} {indexCV=} {indexV=}" )
-        assert firstIndex != 999_999
-
-        xBBB = xB = None
-        if firstIndex == indexV: # process matchV
-            if versionAbbreviation=='BrTr' and 'JDG' in refTuple:
-                xC = '1' # Try to remedy mistake in file
-            else:
-                assert _safetyCount2 > 0, f"Shouldn't happen on first loop! {versionAbbreviation} {refTuple} got {xrefLiveMiddle[firstIndex:]=} from {xrefLiveMiddle=} {firstIndex=} {indexBCV=} {indexBV=} {indexCV=} {indexV=}"
-            match = matchV # process matchV
-            xV = match.group(1)
-            assert xC, f"Missing xC! {versionAbbreviation} {refTuple} got {xrefLiveMiddle[firstIndex:]=} from {xrefLiveMiddle=} {firstIndex=} {indexBCV=} {indexBV=} {indexCV=} {indexV=}"
-            assert xC.isdigit() # xC remains unchanged
-            xBBB = lastXBBB
-        elif firstIndex == indexCV: # process matchCV
-            match = matchCV # process matchCV
-            xC, xV = match.groups()
-            xBBB = lastXBBB
-        else: # either matchBCV or matchBV
-            # See if we can find a bookcode
-            match = matchBCV if firstIndex==indexBCV else matchBV
-            xB = match.group(1).lstrip() # For books without a book number like 1 Cor, the BCV regex may capture an extra space before the book abbreviation
-            # print( f"livenXRefField() BCV or BV {versionAbbreviation} {refTuple} got {xB=} from {match.groups()=}" )
-            if xB == 'Songs':
-                xBBB = 'SNG'
-            elif xB == 'Yohan':
-                xBBB = 'JHN'
-            elif versionAbbreviation in ('KJB-1611','RV') and firstIndex==indexBCV and xB in ('and','c','ca','verse','vers','ver'): # 'ca' stands for 'circa' = 'around'
-                xBBB = lastXBBB # Same as last book
-            elif versionAbbreviation=='KJB-1611' and xB in ('and','ant','Antiq','As','as','in','lambes','lib','See','the','to','called','Araunah','Dodo','Elishua','Vzziah','Esdr','Ez'): # One is a range, 2nd is in a footnote
-                # Note: 'ant','Antiq' (MA1) and 'lib' (PAZ) refer to non-Biblical documents
-                #       For 'Esdr' (GES 7:9) and 'Ez' (GES 8:41), we're not sure what book it's referring to
-                # print( f"KJB-1611 word {match=} {match.start()=} {match.end()=} {match.groups()=}" )
-                reStartIx = match.end() if xB=='to' else match.start()+len(match.group(1))
-                continue # I think we can just ignore it here
-            elif versionAbbreviation=='KJB-1611' and xB in ('Chap','Cha','chap','cha','c'):
-                xBBB = BBB # Probably this same book where the xref is located
-            elif versionAbbreviation=='KJB-1611' and xB in ('Verse','Vers','Ver','ver'):
-                # print( f"{refTuple=} {BBB} {xB=} {lastXC=} {firstIndex=} {indexBCV=} {indexBV=} {indexCV=} {match.groups()}" )
-                xBBB = BBB # This same book and chapter where the xref is located
-                try: xC = refTuple[1]
-                except IndexError: # no chapter number given there -- use the xoText instead
-                    xC = xoText.split( ':' )[0] if xoText and xoText.count(':')==1 else '?'
-                # print( f"Set {xoText} xref to {xBBB} {xC}:{match.group(1)} for {xrefOriginalMiddle=}" )
-            elif versionAbbreviation == 'KJB-1611':
-                try: xBBB = myKJB1611XrefTable[xB]
-                except KeyError:
-                    dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  {versionAbbreviation} {BBB}  '{xB}'  wasn't in our local table from '{xrefOriginalMiddle}'")
-                    adjXB = ( xB # Fix KJB-1611 spellings -- what's Apoc/apoc and nnm ???
-                            .replace( '1.','1 ' ).replace( '2.','2 ' ).replace( '3.','3 ' ).replace( '4.','4 ' ) # Should BOS handle this???
-                            .replace( 'I.','1 ' )
-
-                            .replace( 'Ie', 'Je' )
-                            .replace( 'Io', 'Jo' )
-                            )
-                    xBBB = getBBBFromOETBookName( adjXB, f"KJB-1611 livenXRefField( {fieldType}, {refTuple}, {segmentType}, '{pathPrefix}', {xoText=}, {xrefOriginalMiddle=} )" )
-                if not xBBB:
-                    logging.critical( f"KJB livenXRefField() is unable to liven cross-reference from {versionAbbreviation} {refTuple} for {xBBB=} from {xrefLiveMiddle=} from {xoText=} {xrefOriginalMiddle=}" )
-            else: # not KJB-1611
-                xBBB = getBBBFromOETBookName( xB, f"Other livenXRefField( {fieldType}, {versionAbbreviation}, {refTuple}, {segmentType}, '{pathPrefix}', {xoText=}, {xrefOriginalMiddle=} )" )
-            # We can leave this block of code without being successful finding xBBB -- it's checked below
-        if firstIndex == indexV: # process matchV
-            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} {refTuple} {xoText=} {xrefLiveMiddle=} {matchV.groups()=}" )
-        elif firstIndex==indexBV and firstIndex!=indexBCV: # process matchBV (if it's not also a matchBCV)
-            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} {refTuple} {xoText=} {xrefLiveMiddle=} {matchBV.groups()=}" )
-            xCorV = match.group( 2 )
-            if xB in ('verses','Verse','verse','Vers','vers','Ver','ver','V','v','and'): # versionAbbreviation in ('KJB-1611','RV') and
-                xBBB, xV = BBB, xCorV # This same book where the xref is located
-                try: xC = refTuple[1]
-                except IndexError: # no chapter number given there -- use the xoText instead
-                    xC = xoText.split( ':' )[0] if xoText and xoText.count(':')==1 else '?'
-                dPrint( 'Info', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} {refTuple=} {xB=} {BBB} {xC}:{xV}" )
-                assert xC.isdigit(), f"{versionAbbreviation} {refTuple=} {xB=} {BBB} {xC}:{xV} from {xoText=} {xrefOriginalMiddle=}"
-            else: # Could be a single-chapter book
-                dPrint( 'Info', DEBUGGING_THIS_MODULE, f"Possible single-chapter book: {versionAbbreviation} {refTuple} {xB=}" )
-                if xBBB:
-                    try: singleChapterFlag = bos_books_codes_py.is_single_chapter_book( xBBB )
-                    except KeyError: singleChapterFlag = True # default to True
-                else:
-                    logging.critical( f"livenXRefField()B is unable to liven cross-reference from {versionAbbreviation} {refTuple} for {xBBB=} from {xB=} from {xrefLiveMiddle=} from {xoText=} {xrefOriginalMiddle=}" )
-                    singleChapterFlag = True # default to True
-                if singleChapterFlag:
-                    xC, xV = '1', xCorV
-                else: # it could be a chapter reference (so we link to the first verse only)
-                    # dPrint( 'Info', DEBUGGING_THIS_MODULE, f"Possible chapter reference: {versionAbbreviation} {refTuple} {xB=}" )
-                    xC, xV = xCorV, '1'
-        elif firstIndex != indexCV: # process matchBCV (may also have matchBV)
-            assert firstIndex == indexBCV
-            # match = matchBCV
-            # NOTE: This match also captures chapter ranges, e.g., it gets Lev 1:2, but also Lev 1–2
-            xC, xV = match.group( 2 ), match.group( 3 )
-            if '–' in match.group(): # For a chapter range, change our search to v1
-                # print( f"                       Changed {xB} {xC}–{xV} to {xC}:1")
-                xV = '1' # (rather than thinking the second chapter of the range is the verse number)
-            # elif versionAbbreviation == 'KJB-1611':
-            #     try: xBBB = myKJB1611XrefTable[xB]
-            #     except KeyError:
-            #         dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  {versionAbbreviation} {BBB}  '{xB}'  wasn't in the table from '{xrefOriginalMiddle}'")
-            #         adjXB = ( xB # Fix KJB-1611 spellings -- what's Apoc/apoc and nnm ???
-            #                 .replace( '1.','1 ' ).replace( '2.','2 ' ).replace( '3.','3 ' ).replace( '4.','4 ' ) # Should BOS handle this???
-            #                 .replace( 'I.','1 ' )
-
-            #                 .replace( 'Ie', 'Je' )
-            #                 .replace( 'Io', 'Jo' )
-            #                 )
-            #         xBBB = getBBBFromOETBookName( adjXB, f"livenXRefField( {fieldType}, {versionAbbreviation}, {refTuple}, {segmentType}, '{pathPrefix}', {xoText=}, {xrefOriginalMiddle=} )" )
-            #     if not xBBB:
-            #         logging.critical( f"Unable to liven cross-reference from {versionAbbreviation} {refTuple} for {xBBB=} {xC=} {xV=} from {adjXB=} from {xrefOriginalMiddle=}" )
-            #         # if adjXB not in ('Apoc','apoc','nnm'): assert False, "We want to stop here" # What are these???
-            # else: # not KJB-1611
-            #     xBBB = getBBBFromOETBookName( xB, f"livenXRefField( {fieldType}, {versionAbbreviation}, {refTuple}, {segmentType}, '{pathPrefix}', {xoText=}, {xrefOriginalMiddle=} )" )
-            #     if not xBBB:
-            #         logging.critical( f"Unable to liven cross-reference from {versionAbbreviation} {refTuple} for {xBBB=} {xC=} {xV=} from {xB=} from {xrefOriginalMiddle=}" )
-            # # if versionAbbreviation=='KJB-1611' and not xBBB: # still
-            # #     print( f"  {versionAbbreviation} {xBBB=} {xC=} {xV=} from {xB=} from {xrefOriginalMiddle=}" )
-        if not xBBB or xBBB in ('SAM','KGS','CHR'):
-            logging.critical( f"livenXRefField failed with {fieldType} {versionAbbreviation} {refTuple} {xoText=} {xBBB=} from {xB=} from {xrefOriginalMiddle=}" )
-        assert xBBB and xBBB not in ('SAM','KGS','CHR'), f"livenXRefField {fieldType} {versionAbbreviation} {refTuple} {xoText=} {xBBB=} from {xB=} from {xrefOriginalMiddle=}"
-        if versionAbbreviation == 'KJB-1611':
-            if xB in ('As','in','and'):
-                xBBB = lastXBBB
-            if xC in ('ver','Ver'):
-                if bos_books_codes_py.is_single_chapter_book( xBBB ):
-                    dPrint( 'Info', DEBUGGING_THIS_MODULE, f"YYY KJB-1611 got {xBBB=} {xC=} from {xB=} from {refTuple} {match.groups()=} from {xoText=} {xrefLiveMiddle=}" )
-                    xC = '1'
-                    dPrint( 'Info', DEBUGGING_THIS_MODULE, f"Handled {versionAbbreviation} {xBBB} {xC}:{xV} from {refTuple} {match.groups()=} from {xoText=} {xrefLiveMiddle=}" )
-                elif xB == 'and':
-                    dPrint( 'Info', DEBUGGING_THIS_MODULE, f"ZZZ KJB-1611 got {xBBB=} {xC=} ({lastXC=}) from {xB=} from {refTuple} {match.groups()=} from {xoText=} {xrefLiveMiddle=}" )
-                    xC = lastXC
-                else:
-                    dPrint( 'Info', DEBUGGING_THIS_MODULE, f"zzz KJB-1611 got {xBBB=} {xC=} ({lastXC=}) from {xB=} from {refTuple} {match.groups()=} from {xoText=} {xrefLiveMiddle=}" )
-                    xC = refTuple[1] # Assume it's a verse number in the current chapter
-            if xrefOriginalMiddle == 'Nehem.':
-                xBBB, xC, xV = 'NEH', '1', '1'
-        assert xC.isdigit(), f"{versionAbbreviation} {refTuple} {xBBB=} {xC=} {xV=} {match.groups()} from {xoText=} {xrefLiveMiddle=}"
-        assert xV.isdigit(), f"{versionAbbreviation} {refTuple} {xBBB=} {xC=} {xV=} {match.groups()} from {xoText=} {xrefLiveMiddle=}"
-        lastXBBB, lastXC = xBBB, xC
-        if versionAbbreviation=='KJB-1611' and not xBBB:
-            logging.critical( f"Unable to make {versionAbbreviation} {BBB} xref: {xBBB=} {xC=} {xV=} from {xrefLiveMiddle=} from {xoText=} {xrefOriginalMiddle=}" )
-            reStartIx = match.end() # exact number of characters that we add (otherwise we get mistakes/overlaps)
-            continue
-        # Now check for a verse or chapter range and include them in our find
-        matchInner = match.group()
-        matchEnd = match.end()
-        try:
-            while xrefLiveMiddle[matchEnd] in '-–1234567890abc:': # includes en-dash for chapter ranges
-                # print( f"        Stepping past '{xrefLiveMiddle[matchEnd]}'" )
-                matchInner = f'{matchInner}{xrefLiveMiddle[matchEnd]}'
-                matchEnd += 1
-        except IndexError: # (can happen if xref inner doesn't end with a period)
-            pass # Reached end of string
-
-        if xBBB:
-            # assert int(xC) <= bos_books_codes_py.get_max_chapters( xBBB ), f"Bad xref {xBBB} {match.groups()} from {versionAbbreviation} {refTuple} {segmentType}"
-            try: intXC = int(xC)
-            except ValueError:
-                logging.critical( f"Have {versionAbbreviation} {refTuple} {segmentType=} non-int chapter number {xC=}" )
-                intXC = 0
-            if intXC > bos_books_codes_py.get_max_chapters( xBBB ):
-                if versionAbbreviation=='KJB-1611' and BBB=='EZR' and xoText=='3:10' and match.groups() in (('cha','16','7'),('25','1')):
-                    xBBB = 'CH1' # Special case
-                    print( "FIXED IT" )
-                else:
-                    logging.critical( f"Not enough chapters in {xBBB} ({bos_books_codes_py.get_max_chapters(xBBB)}) for {match.groups()} from {versionAbbreviation} {refTuple} {segmentType=} {xoText=} {xrefOriginalMiddle=}" )
-                    reStartIx = match.end() # exact number of characters that we add (otherwise we get mistakes/overlaps)
-                    continue
-        else:
-            dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"livenXRefField( {versionAbbreviation} {refTuple} '{segmentType}' from {xoText=} {xrefOriginalMiddle=} ) with {BBB=} {xBBB=} {lastXBBB=}" )
-            logging.critical( f"Failed to find xref book from '{xB}' from '{xrefOriginalMiddle}' in {match.groups()} for {versionAbbreviation} {refTuple} {segmentType=}")
-        if versionAbbreviation == 'OET-RV' and xBBB in state.preloadedBibles['OET-RV'] \
-        and (bos_books_codes_py.is_old_testament_nr( xBBB ) or bos_books_codes_py.is_new_testament_nr( xBBB )): # We want to link to the section page, (not the chapter page)
-            sectionNumber = findSectionNumber( 'OET-RV', xBBB, xC, xV, state )
-            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"convertVerseEntryListToHtml for {versionAbbreviation} {refTuple} '{segmentType}' findSectionNumber( 'OET-RV', {xBBB} {xC}:{xV} ) returned {sectionNumber}" )
-            assert sectionNumber is not None, f"Bad OET-RV {refTuple} cross-reference: {xBBB} {xC}:{xV} from {xrefLiveMiddle=}"
-            if not state.TEST_MODE_FLAG:
-                assert sectionNumber > 0, f"ZERO OET-RV {refTuple} cross-reference: {xBBB} {xC}:{xV} from {xrefLiveMiddle=}"
-            # print( f"       {level=} {versionAbbreviation} {refTuple} {segmentType} {pathPrefix=}")
-            adjPathPrefix = pathPrefix.replace('byC','bySec') if pathPrefix else '../bySec/'
-            assert 'bySec' in adjPathPrefix, f"{pathPrefix=} {adjPathPrefix=}"
-            inside = f'<a title="View {'cross ' if fieldType=='x' else ''}reference" href="{adjPathPrefix.replace('byC','bySec')}{xBBB}_S{sectionNumber}.htm#C{xC}V{xV}">{matchInner}</a>'
-            xrefLiveMiddle = f'''{xrefLiveMiddle[:match.start()]}{inside}{xrefLiveMiddle[matchEnd:]}'''
-        else: # not OET-RV -- link to the chapter page
-            inside = f'<a title="View {'cross ' if fieldType=='x' else ''}reference" href="{pathPrefix}{xBBB}_C{xC}.htm#C{xC}V{xV}">{matchInner}</a>'
-            xrefLiveMiddle = f'{xrefLiveMiddle[:match.start()]}{inside}{xrefLiveMiddle[matchEnd:]}'
-        reStartIx = match.start() + len(inside) # exact number of characters that we add (otherwise we get mistakes/overlaps)
-        # # NOTE: The above code can leave us pointing to a range, e.g., Deu 1:19-2:2 would leave us at the hyphen
-        # while xrefLiveMiddle[reStartIx] in ' -123456789;.,abc':
-        #     print( f"        Stepping past '{xrefLiveMiddle[reStartIx]}'" )
-        #     reStartIx += 1 # Step past extra parts (like a range) so they don't get false thought to be another valid ref
-    else:
-        logging.critical( f"Inner xref loop needed to break for {versionAbbreviation} {segmentType} {segmentType=} {refTuple} {xrefOriginalMiddle=} {xrefLiveMiddle=}" )
-        assert False, f"Inner xref loop needed to break for {versionAbbreviation} {segmentType} {segmentType=} {refTuple} after {_safetyCount2} loops"
-
-    if xrefLiveMiddle == xrefOriginalMiddle: # this could possibly cause infinite loops in the calling function???
-        print( f"livenXRefField wanting to return unchanged field for {versionAbbreviation} {segmentType} {segmentType=} {refTuple} {xrefOriginalMiddle=}" )
-    return xrefLiveMiddle
+    BBB = refTuple[0]
+    C = refTuple[1] if len(refTuple) > 1 else '0'
+    V = refTuple[2] if len(refTuple) > 2 else '0'
+    return liven_xref_field( fieldType, versionAbbreviation, BBB, C, V, segmentType, pathPrefix, xoText, xrefOriginalMiddle, state )
 # end of usfm.livenXRefField function
 
 
