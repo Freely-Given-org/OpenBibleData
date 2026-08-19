@@ -144,7 +144,7 @@ importantRefsWithRanges = [ # Often quoted and/or memorised by Christians
     'ECC_8:15',
     'ISA_2:2-4','ISA_6:1-8','ISA_11:1-12','ISA_27:6','ISA_28:16','ISA_41:10', 'ISA_46:9-10',
     'ISA_42:1-9', 'ISA_49:1-13', 'ISA_50:4-11', # The other three servant songs 'ISA_52:13–53:12',
-    'ISA_54:17','ISA_66:8',
+    'ISA_54:17','ISA_55:1-13','ISA_66:8',
     'JER_23:5-6', 'JER_33:2-3', 'JER_33:14-18',
     'DAN_7:10','DAN_12:1',
 

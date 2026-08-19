@@ -6,7 +6,6 @@
 # Tests for USFM introduction link livening (Rust PyO3 implementation)
 
 import unittest
-#from usfm import livenIntroductionLinks, toRomanNumerals
 from settings import State
 from openbibledata_rust import liven_introduction_links, to_roman_numerals
 

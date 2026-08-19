@@ -10,6 +10,7 @@ pub mod oet_books;
 pub mod roman_numerals;
 pub mod character_formatting;
 pub mod xref_links;
+pub mod verse_to_html;
 
 pub use intro_links::{liven_introduction_links_core, IntroLinkError};
 pub use ior_links::{liven_iors_core, IORLinkError};
@@ -354,6 +355,126 @@ fn liven_xref_field_camel_py<'py>(
     liven_xref_field_py(py, field_type, version_abbreviation, bbb, c, v, segment_type, path_prefix, xo_text, xref_original_middle, state)
 }
 
+// ── verse_to_html PyO3 wrappers ───────────────────────────────────────────
+
+/// Process cross-references in HTML, replacing `\x…\x*` markers with live links.
+///
+/// Returns `(html, cross_references_html)`.
+#[pyfunction]
+#[pyo3(name = "process_cross_references")]
+#[pyo3(signature = (html, version_abbreviation, bbb, c, segment_type, path_prefix, state=None))]
+fn process_cross_references_py<'py>(
+    _py: Python<'py>,
+    html: &str,
+    version_abbreviation: &str,
+    bbb: &str,
+    c: Option<&str>,
+    segment_type: &str,
+    path_prefix: &str,
+    state: Option<&Bound<'py, PyAny>>,
+) -> PyResult<(String, String)> {
+    let c = c.unwrap_or("");
+    let find_section_fn = |v_abbr: &str, target_bbb: &str, target_c: &str, target_v: &str| -> Option<usize> {
+        if let Some(state_obj) = state {
+            let py_env = state_obj.py();
+            if let Ok(module) = py_env.import("createSectionPages") {
+                if let Ok(func) = module.getattr("findSectionNumber") {
+                    if let Ok(res) = func.call1((v_abbr, target_bbb, target_c, target_v, state_obj)) {
+                        if let Ok(opt_num) = res.extract::<Option<usize>>() {
+                            return opt_num;
+                        }
+                    }
+                }
+            }
+        }
+        None
+    };
+
+    match verse_to_html::process_cross_references_core(
+        html, version_abbreviation, bbb, c, segment_type, path_prefix, find_section_fn,
+    ) {
+        Ok(result) => Ok(result),
+        Err(e) => Err(PyValueError::new_err(format!("process_cross_references failed: {e}"))),
+    }
+}
+
+/// CamelCase alias.
+#[pyfunction]
+#[pyo3(name = "processCrossReferences")]
+#[pyo3(signature = (html, version_abbreviation, bbb, c, segment_type, path_prefix, state=None))]
+fn process_cross_references_camel_py<'py>(
+    py: Python<'py>,
+    html: &str,
+    version_abbreviation: &str,
+    bbb: &str,
+    c: Option<&str>,
+    segment_type: &str,
+    path_prefix: &str,
+    state: Option<&Bound<'py, PyAny>>,
+) -> PyResult<(String, String)> {
+    process_cross_references_py(py, html, version_abbreviation, bbb, c, segment_type, path_prefix, state)
+}
+
+/// Process footnotes in HTML, replacing `\f…\f*` markers with caller links.
+///
+/// Returns `(html, footnotes_html)`.
+#[pyfunction]
+#[pyo3(name = "process_footnotes")]
+#[pyo3(signature = (html, version_abbreviation, bbb, c, segment_type, path_prefix, max_footnote_chars, state=None))]
+fn process_footnotes_py<'py>(
+    _py: Python<'py>,
+    html: &str,
+    version_abbreviation: &str,
+    bbb: &str,
+    c: Option<&str>,
+    segment_type: &str,
+    path_prefix: &str,
+    max_footnote_chars: usize,
+    state: Option<&Bound<'py, PyAny>>,
+) -> PyResult<(String, String)> {
+    let c = c.unwrap_or("");
+    let find_section_fn = |v_abbr: &str, target_bbb: &str, target_c: &str, target_v: &str| -> Option<usize> {
+        if let Some(state_obj) = state {
+            let py_env = state_obj.py();
+            if let Ok(module) = py_env.import("createSectionPages") {
+                if let Ok(func) = module.getattr("findSectionNumber") {
+                    if let Ok(res) = func.call1((v_abbr, target_bbb, target_c, target_v, state_obj)) {
+                        if let Ok(opt_num) = res.extract::<Option<usize>>() {
+                            return opt_num;
+                        }
+                    }
+                }
+            }
+        }
+        None
+    };
+
+    match verse_to_html::process_footnotes_core(
+        html, version_abbreviation, bbb, c, segment_type, path_prefix, max_footnote_chars, find_section_fn,
+    ) {
+        Ok(result) => Ok(result),
+        Err(e) => Err(PyValueError::new_err(format!("process_footnotes failed: {e}"))),
+    }
+}
+
+/// CamelCase alias.
+#[pyfunction]
+#[pyo3(name = "processFootnotes")]
+#[pyo3(signature = (html, version_abbreviation, bbb, c, segment_type, path_prefix, max_footnote_chars, state=None))]
+fn process_footnotes_camel_py<'py>(
+    py: Python<'py>,
+    html: &str,
+    version_abbreviation: &str,
+    bbb: &str,
+    c: Option<&str>,
+    segment_type: &str,
+    path_prefix: &str,
+    max_footnote_chars: usize,
+    state: Option<&Bound<'py, PyAny>>,
+) -> PyResult<(String, String)> {
+    process_footnotes_py(py, html, version_abbreviation, bbb, c, segment_type, path_prefix, max_footnote_chars, state)
+}
+
 #[pymodule]
 fn openbibledata_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(liven_introduction_links_py, m)?)?;
@@ -368,5 +489,9 @@ fn openbibledata_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(convert_usfm_character_formatting_camel_py, m)?)?;
     m.add_function(wrap_pyfunction!(liven_xref_field_py, m)?)?;
     m.add_function(wrap_pyfunction!(liven_xref_field_camel_py, m)?)?;
+    m.add_function(wrap_pyfunction!(process_cross_references_py, m)?)?;
+    m.add_function(wrap_pyfunction!(process_cross_references_camel_py, m)?)?;
+    m.add_function(wrap_pyfunction!(process_footnotes_py, m)?)?;
+    m.add_function(wrap_pyfunction!(process_footnotes_camel_py, m)?)?;
     Ok(())
 }

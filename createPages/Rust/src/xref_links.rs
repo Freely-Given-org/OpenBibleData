@@ -426,20 +426,23 @@ where
             && (bos_books_codes::is_old_testament_nr(&xbbb) || bos_books_codes::is_new_testament_nr(&xbbb))
         {
             // Link to section page
-            if let Some(section_number) = find_section_fn(version_abbreviation, &xbbb, &xc, &xv) {
-                let adj_path = if path_prefix.is_empty() {
-                    "../bySec/".to_string()
-                } else {
-                    path_prefix.replace("byC", "bySec")
-                };
-                format!(
-                    r#"<a title="View {title_prefix}reference" href="{adj_path}{xbbb}_S{section_number}.htm#C{xc}V{xv}">{match_inner}</a>"#
-                )
-            } else {
-                // Fallback to chapter page
-                format!(
-                    r#"<a title="View {title_prefix}reference" href="{path_prefix}{xbbb}_C{xc}.htm#C{xc}V{xv}">{match_inner}</a>"#
-                )
+            match find_section_fn(version_abbreviation, &xbbb, &xc, &xv) {
+                Some(section_number) => {
+                    let adj_path = if path_prefix.is_empty() {
+                        "../bySec/".to_string()
+                    } else {
+                        path_prefix.replace("byC", "bySec")
+                    };
+                    format!(
+                        r#"<a title="View {title_prefix}reference" href="{adj_path}{xbbb}_S{section_number}.htm#C{xc}V{xv}">{match_inner}</a>"#
+                    )
+                }
+                _ => {
+                    // Fallback to chapter page
+                    format!(
+                        r#"<a title="View {title_prefix}reference" href="{path_prefix}{xbbb}_C{xc}.htm#C{xc}V{xv}">{match_inner}</a>"#
+                    )
+                }
             }
         } else {
             // Link to chapter page

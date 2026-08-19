@@ -100,7 +100,7 @@ import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, dPrint, vPrint, rreplace, BOOKLIST_NT27
 from usfm_markers_py import USFM_ALL_BIBLE_PARAGRAPH_MARKERS
 import bos_books_codes_py
-from openbibledata_rust import liven_introduction_links, liven_iors, to_roman_numerals, convert_usfm_character_formatting, liven_xref_field
+from openbibledata_rust import liven_introduction_links, liven_iors, to_roman_numerals, convert_usfm_character_formatting, liven_xref_field, process_footnotes, process_cross_references
 
 from settings import State
 from html import checkHtml
@@ -1203,185 +1203,11 @@ def convertVerseEntryListToHtml( level:int, versionAbbreviation:str, refTuple:tu
                         else '../OET/byC/' if segmentType in ('topicalPassage',) \
                         else '' if segmentType=='chapter' \
                         else '../byC/'
-    footnotesCount = 0
-    footnotesHtml = ''
-    searchStartIx = 0
-    for _outerSafetyCount in range( 6_900 if segmentType in ('book','section','relatedPassage') else 260 ): # max number of footnotes in segment (more than 250 in LEB DEU 12, more than 8,000 in NET PSA)
-        fStartIx = html.find( '\\f ', searchStartIx )
-        if fStartIx == -1: break # all done
-        footnotesCount += 1
-        fEndIx = html.find( '\\f*', fStartIx+3 )
-        assert fEndIx != -1, f"Can't find footnote end {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {footnotesCount=} {fStartIx=} {html[fStartIx:fStartIx+2*maxFootnoteChars]}"
-        assert fEndIx < 9_999_999 # Or logic in next dozen lines below won't work
-        assert fStartIx+4 < fEndIx < fStartIx+maxFootnoteChars, f"Unexpected footnote size {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {footnotesCount=} {fEndIx-fStartIx} {html[fStartIx:fStartIx+2*maxFootnoteChars]}"
-        frIx = html.find( '\\fr ', fStartIx+3 ) # Might be absent or in the next footnote
-        if frIx > fEndIx: frIx = -1 # If it's in the next footnote, then there's no fr in this one
-
-        # Find the first \f(something) or \xt field
-        fFirstContentIx = html.find( '\\f', fStartIx+3 if frIx==-1 else frIx+3 )
-        if fFirstContentIx >= fEndIx: fFirstContentIx = -1
-        if fFirstContentIx == -1: fFirstContentIx = 9_999_999
-        xFirstContentIx = html.find( '\\xt ', fStartIx+3 if frIx==-1 else frIx+3 )
-        if xFirstContentIx >= fEndIx: xFirstContentIx = -1
-        if xFirstContentIx == -1: xFirstContentIx = 9_999_999
-        firstContentIx = min( fFirstContentIx, xFirstContentIx )
-        if firstContentIx == 9_999_999:
-            logging.warning( f"No internal footnote markers {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {footnotesCount=} {html[fStartIx:fStartIx+2*maxFootnoteChars]}" )
-            firstContentIx = fStartIx + (5 if html[fStartIx:].startswith( '\\f + ') else 3)
-        else:
-            fFirstMarkerLength = 3 if html[firstContentIx+3]==' ' else 4 if html[firstContentIx+4]==' ' else 2 if html[firstContentIx+2]==' ' else 99
-            fFirstMarker = html[firstContentIx+1:firstContentIx+fFirstMarkerLength]
-            assert fFirstMarker != '\\f*'
-            assert fFirstMarker in ('ft','fq','fk','fl','fw','fp','fv', 'fn') if versionAbbreviation=='NET' else ('ft','fq','fk','fl','fw','fp','fv'), \
-                f"Unexpected {fFirstMarker=} in {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {footnotesCount=} {html[fStartIx:fStartIx+2*maxFootnoteChars]}"
-        if fStartIx+5 > firstContentIx > fStartIx+16:
-            logging.error( f"Unexpected footnote start {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {footnotesCount=} {fStartIx=} {firstContentIx=} '{html[fStartIx:fStartIx+20]}'" ) # Skips ' + \\fr c:v '
-        if frIx == -1:
-            frText = ''
-        else: # we have one
-            assert fStartIx+5 <= frIx <= fStartIx+6, f"{versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {fStartIx=} {frIx=} '{html[fStartIx:fStartIx+20]}'" # Skips ' + '
-            frText = html[frIx+3:firstContentIx].strip()
-        fnoteMiddle = html[firstContentIx:fEndIx]
-        internalOpenCount = fnoteMiddle.count( '\\ft ') + fnoteMiddle.count( '\\fq ') + fnoteMiddle.count( '\\fqa ') + fnoteMiddle.count( '\\fk ') + fnoteMiddle.count( '\\fl ') + fnoteMiddle.count( '\\fp ') \
-                                + fnoteMiddle.count( '\\xt ') \
-                                + fnoteMiddle.count( '\\it ') + fnoteMiddle.count( '\\bd ') + fnoteMiddle.count( '\\bdit ') + fnoteMiddle.count( '\\em ')
-        if versionAbbreviation=='NET': internalOpenCount += fnoteMiddle.count( '\\fn ') # Seems to be a NET Bible special
-        dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"\nProcessing {versionAbbreviation} {segmentType} {refTuple} footnote from '{fnoteMiddle}'" )
-        if internalOpenCount > 0:
-            if DEBUGGING_THIS_MODULE:
-                internalCloseCount = fnoteMiddle.count( '\\ft*') + fnoteMiddle.count( '\\fq*') + fnoteMiddle.count( '\\fqa*') + fnoteMiddle.count( '\\fk*') + fnoteMiddle.count( '\\xt*')
-                internalMarkerCount = internalOpenCount - internalCloseCount
-                dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"Footnote middle has {internalOpenCount=} {internalCloseCount=} {internalMarkerCount=} '{fnoteMiddle}'" )
-            inSpan = None
-            internalSearchStartIx = 0
-            for _innerSafetyCount in range( 520 ): # max number of fields in footnote -- 25 not enough for ClVg, 400 not enough for NET ECC
-                dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"    Searching from {internalSearchStartIx}: '{fnoteMiddle[internalSearchStartIx:]}' from {fnoteMiddle=}")
-                internalStartIx = fnoteMiddle.find( '\\', internalSearchStartIx )
-                if internalStartIx == -1: break # all done
-                dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"Found backslash at index {internalStartIx} in '{fnoteMiddle}'" )
-                fMarker = ''
-                while internalStartIx + len(fMarker) < len(fnoteMiddle):
-                    if fnoteMiddle[internalStartIx+len(fMarker)+1].islower():
-                        fMarker = f'{fMarker}{fnoteMiddle[internalStartIx+len(fMarker)+1]}'
-                        dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"Forming {fMarker=} from '{fnoteMiddle[internalStartIx:internalStartIx+20]}…'" )
-                    else: break
-                if fnoteMiddle[internalStartIx+len(fMarker)+1] == ' ': # It's an opening marker
-                    dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"Got {versionAbbreviation} {refTuple} opening {fMarker=} with {inSpan=} from '{fnoteMiddle[internalStartIx:internalStartIx+20]}…'" )
-                    span = f'<span class="{fMarker}">' # 15 characters + len(fMarker)
-                    internalSearchStartIx = internalStartIx + 15 + len(fMarker)
-                    if inSpan:
-                        span = f'</span>{span}'
-                        internalSearchStartIx += 7
-                        inSpan = None
-                    if fMarker == 'xt':
-                        fNoteXTrest = fnoteMiddle[internalStartIx+len(fMarker)+2:] # Go past the space that's part of the marker
-                        fNoteXTrestEndIx = fNoteXTrest.find( '\\' )
-                        if fNoteXTrestEndIx == -1: # no more subfields in this
-                            fNoteContinuation = ''
-                            livenedFootnoteXref = livenXRefField( 'f', versionAbbreviation, refTuple, segmentType, pathPrefix, frText, fNoteXTrest, state )
-                            fnoteMiddle = f'{fnoteMiddle[:internalStartIx]}{span}{livenedFootnoteXref}' # {fnoteMiddle[internalStartIx+len(fMarker)+2:]}
-                        else: # Only go up to the next field
-                            fNoteXTrest, fNoteContinuation = fNoteXTrest[:fNoteXTrestEndIx], fNoteXTrest[fNoteXTrestEndIx:]
-                            # print( f"{fNoteXTrest=} {fNoteContinuation=}" )
-                        livenedFootnoteXref = livenXRefField( 'f', versionAbbreviation, refTuple, segmentType, pathPrefix, frText, fNoteXTrest, state )
-                        fnoteMiddle = f'{fnoteMiddle[:internalStartIx]}{span}{livenedFootnoteXref}{fNoteContinuation}'
-                    else: # it's a regular footnote format field (not an xt field inside a footnote)
-                        fnoteMiddle = f'{fnoteMiddle[:internalStartIx]}{span}{fnoteMiddle[internalStartIx+len(fMarker)+2:]}'
-                    inSpan = fMarker
-                elif fnoteMiddle[internalStartIx+len(fMarker)+1] == '*': # It's a closing marker
-                    dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"Got closing {fMarker=} with {inSpan=} from '{fnoteMiddle[internalStartIx:internalStartIx+20]}…'" )
-                    assert inSpan
-                    fnoteMiddle = f'{fnoteMiddle[:internalStartIx]}</span>{fnoteMiddle[internalStartIx+len(fMarker)+2:]}'
-                    inSpan = None
-                    internalSearchStartIx = internalStartIx + 7
-                else: raise TypeError( f"Unexpected character in footnote: {versionAbbreviation} {refTuple} {segmentType} {basicOnly=} {fnoteMiddle=} from {html=}" )
-            else:
-                logging.critical( f"inner_fn_loop_needed_to_break {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {_innerSafetyCount=}" )
-                inner_fn_loop_needed_to_break
-            if inSpan: # at end
-                fnoteMiddle = f'{fnoteMiddle}</span>'
-            assert '\\' not in fnoteMiddle, f"{fnoteMiddle[fnoteMiddle.index(f'{BACKSLASH}x')-10:fnoteMiddle.index(f'{BACKSLASH}x')+12]}"
-        dPrint( 'Info' if '"xt"' in fnoteMiddle else 'Verbose', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} {segmentType} {refTuple} {fnoteMiddle=}" )
-        if versionAbbreviation == 'OET-LV': # then we don't want equals or underlines in the footnote to get converted into spans later
-            fnoteMiddle = fnoteMiddle.replace('.', '--fnPERIOD--').replace(':', '--fnCOLON--') # So we protect them -- gets fixed in do_OET_LV_HTMLcustomisations() in html.py
-        assert '<br>' not in fnoteMiddle, f"{versionAbbreviation} {segmentType} {refTuple} {fnoteMiddle=}"
-
-        # Can't allow HTML formatting into the footnote popup (title) text
-        sanitisedFnoteMiddle = fnoteMiddle
-        if versionAbbreviation == 'OET-LV':
-            if ' note--fnCOLON--' not in sanitisedFnoteMiddle and 'Note--fnCOLON--' not in sanitisedFnoteMiddle:
-                sanitisedFnoteMiddle = f'Note--fnCOLON-- {sanitisedFnoteMiddle}'
-        else: # not OET-LV
-            if ' note:' not in sanitisedFnoteMiddle and 'Note:' not in sanitisedFnoteMiddle:
-                sanitisedFnoteMiddle = f'Note: {sanitisedFnoteMiddle}'
-        if '"' in sanitisedFnoteMiddle or '<' in sanitisedFnoteMiddle or '>' in sanitisedFnoteMiddle:
-            sanitisedFnoteMiddle = sanitisedFnoteMiddle.replace( '</span>', '' )
-            sanitisedFnoteMiddle = SPAN_CLASS_REGEX.sub( '', sanitisedFnoteMiddle )
-            for charMarker in ('em','i','b', 'sup','sub'): # These are HTML markers
-                sanitisedFnoteMiddle = sanitisedFnoteMiddle.replace( f'<{charMarker}>', '' ).replace( f'</{charMarker}>', '' )
-            # if versionAbbreviation == 'OET-LV': # then we don't want equals or underlines in the sanitised footnote to get converted into spans later
-            #     sanitisedFnoteMiddle = sanitisedFnoteMiddle.replace('_', '--fnUNDERLINE--').replace('=', '--fnEQUAL--') # So we protect them -- gets fixed in do_OET_LV_HTMLcustomisations() in html.py
-            dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} {segmentType} {refTuple} {sanitisedFnoteMiddle=}" )
-            # if '_' in sanitisedFnoteMiddle or 'UNDERLINE' in sanitisedFnoteMiddle \
-            # or '=' in sanitisedFnoteMiddle or 'EQUAL' in sanitisedFnoteMiddle: assert False, "We want to stop here"
-            if '"' in sanitisedFnoteMiddle or '<' in sanitisedFnoteMiddle or '>' in sanitisedFnoteMiddle:
-                logging.warning( f"Left-over HTML chars in {versionAbbreviation} {refTuple} {sanitisedFnoteMiddle=}" )
-                sanitisedFnoteMiddle = sanitisedFnoteMiddle.replace( '"', '&quot;' ).replace( '<', '&lt;' ).replace( '>', '&gt;' )
-                # if versionAbbreviation != 'LEB': # LEB MRK has sanitisedFnoteMiddle='Note: A quotation from Isa 40:3|link-href="None"'
-                #     assert False, "We want to stop here" # in case it's a systematic problem
-        if versionAbbreviation == 'OET-LV': # then we don't want equals or underlines in the sanitised footnote to get converted into spans later
-            sanitisedFnoteMiddle = sanitisedFnoteMiddle.replace('.', '--fnPERIOD--').replace(':', '--fnCOLON--') # So we protect them -- gets fixed in do_OET_LV_HTMLcustomisations() in html.py
-            sanitisedFnoteMiddle = sanitisedFnoteMiddle.replace('_', '--fnUNDERLINE--').replace('=', '--fnEQUAL--') # So we protect them -- gets fixed in do_OET_LV_HTMLcustomisations() in html.py
-            assert ':' not in sanitisedFnoteMiddle and '.' not in sanitisedFnoteMiddle \
-                and '_' not in sanitisedFnoteMiddle and '=' not in sanitisedFnoteMiddle
-        assert '"' not in sanitisedFnoteMiddle and '<' not in sanitisedFnoteMiddle and '>' not in sanitisedFnoteMiddle, f"Left-over HTML chars in {versionAbbreviation} {refTuple} {sanitisedFnoteMiddle=}"
-        footnotePopup = sanitisedFnoteMiddle if len(sanitisedFnoteMiddle) < 1010 else f'{sanitisedFnoteMiddle[:999]}…'
-
-        fnoteCaller = f'<span class="fnCaller">[<a title="{unicodedata.normalize('NFC',footnotePopup)}" href="#fn{footnotesCount}">fn</a>]</span>'
-        fnoteRef = ''
-        if frText:
-            frCV = frText
-            if '-' in frText or '–' in frText:
-                frCV = frText.replace('–','-').split('-',1)[0]
-            if ':' in frCV:
-                frC, frV = frCV.split(':',1)
-                frCV = f'#C{frC}V{frV}'
-            elif '.' in frCV:
-                frC, frV = frCV.split('.',1)
-                frCV = f'#C{frC}V{frV}'
-            else:
-                logging.critical( f"What is CV ref for footnote ref: '{frText}'")
-                frCV = ''
-            assert frText[-1] != '\n'
-            fnoteRef = f'<span class="fnRef"><a title="Return to text" href="{frCV}">{frText}</a></span> '
-        if versionAbbreviation=='OET-LV' and fnoteMiddle.startswith( 'OSHB '):
-            fnoteMiddle = fnoteMiddle.replace( 'OSHB ', '<a href="https://hb.OpenScriptures.org">OSHB</a> ', 1 ) # Make it a live link
-        fnoteText = f'<p class="fn" id="fn{footnotesCount}">{fnoteRef}<span class="fnText">{fnoteMiddle}</span></p><!--fn-->\n'
-        if segmentType.endswith('Verse') and f'">{fnoteRef}<span class="fnText">{fnoteMiddle}</span></p><!--fn-->\n' in footnotesHtml:
-            # We already have an identical footnote created, e.g., in OET-LV Job 8:16
-            #   so all we have to do, is add the additional id to the existing note
-            #       but can't have multiple id's on one element, so have to add an extra empty span.
-            #   We only do this for single verses because the backwards link can't work for both.
-            dupIx = footnotesHtml.index( f'">{fnoteRef}<span class="fnText">{fnoteMiddle}</span></p><!--fn-->\n' )
-            footnotesHtml = f'{footnotesHtml[:dupIx]}"><span id="fn{footnotesCount}"></span>{footnotesHtml[dupIx+2:]}'
-            dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {footnotesHtml=}" )
-        else: # append this footnote to go at the bottom
-            footnotesHtml = f'{footnotesHtml}{fnoteText}'
-        html = f'{html[:fStartIx]}{fnoteCaller}{html[fEndIx+3:]}'
-        # searchStartIx = fEndIx + 3
-        searchStartIx = fStartIx + len(fnoteCaller)
-        # if searchStartIx < fEndIx+3:
-        #     print( f"{versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {fStartIx=:,} {fEndIx+3=:,} {searchStartIx=:,} '{html[searchStartIx:searchStartIx+10]}'" )
-    else:
-        logging.critical( f"outer_fn_loop_needed_to_break {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {_outerSafetyCount=}" )
-        outer_fn_loop_needed_to_break
+    # Note that C can be None if we're processing an entire book
+    html, footnotesHtml = process_footnotes( html, versionAbbreviation, BBB, C or '', segmentType, pathPrefix, maxFootnoteChars, state )
     if footnotesHtml:
-        if not checkHtml( f"Footnotes for {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} {fnoteMiddle=}", footnotesHtml, segmentOnly=True ):
+        if not checkHtml( f"Footnotes for {versionAbbreviation} {segmentType} {basicOnly=} {refTuple}", footnotesHtml, segmentOnly=True ):
             if DEBUGGING_THIS_MODULE: assert False, "We want to stop here"
-        # if '<a title="Variant note' in html:
-        #     nIx = html.index( '<a title="Variant note' )
-        #     print( f"FOUND FN TITLE {versionAbbreviation} {segmentType} {basicOnly=} {refTuple} '{html[nIx:nIx+80]}'" )
-        assert '<a title="Variant note:\n<br>' not in html # Check this before we append the actual footnote content to the end.
         html = f'{html}\n<hr class="line-before-footnotes"><div id="footnotes" class="footnotes">\n{footnotesHtml}</div><!--footnotes-->\n'
     # TODO: Find out why these following exceptions occur
     if versionAbbreviation not in ('T4T','BrTr','ClVg','TCNT','TC-GNT'): # T4T ISA 33:8, BrTr KI1 6:36a, ClVg MRK 3:10, TCNT&TC-GNT INT \\fp Why???
@@ -1389,65 +1215,7 @@ def convertVerseEntryListToHtml( level:int, versionAbbreviation:str, refTuple:tu
 
 
     # Now handle all cross-references in one go (we don't check for matching \xo fields)
-    crossReferencesCount = 0
-    crossReferencesHtml = ''
-    searchStartIx, lastSearchStartIx = 0, -1
-    for _safetyCount1 in range( 599 if segmentType=='book' else 99 ):
-        if searchStartIx == lastSearchStartIx: # then we didn't make any progress in the last loop iteration
-            logging.critical( f"Seems we made no progress with {versionAbbreviation} {refTuple} {segmentType=} xref handling at '{html[searchStartIx:searchStartIx+30]}…'" )
-            break # Better than an infinite loop
-        xStartIx = html.find( '\\x ', searchStartIx )
-        if xStartIx == -1: break # all done
-        # if versionAbbreviation=='KJB-1611': print( f"{versionAbbreviation} {refTuple} {segmentType=} got {xStartIx=}" )
-        crossReferencesCount += 1
-        xoIx = html.find( '\\xo ', xStartIx+3 ) # Might be absent
-        xtIx = html.find( '\\xt ', xStartIx+3 )
-        assert xtIx != -1
-        if xoIx == -1:
-            xoText = ''
-        else: # we have one
-            assert xStartIx+5 <= xoIx <= xStartIx+6, f"Is this an xref (\\xo) encoding error? {xStartIx=} {xoIx=} '{html[xStartIx:xStartIx+20]}'" # Skips ' + '
-            xoText = html[xoIx+3:xtIx].strip()
-        xEndIx = html.find( '\\x*', xtIx+3 )
-        assert xEndIx != -1
-
-        # Liven the cross-references (xrefs) themselves
-        xrefLiveMiddle = xrefOriginalMiddle = html[xtIx+4:xEndIx]
-        if len(xrefOriginalMiddle) > 165 and (BBB!='JER' or versionAbbreviation!='UST'): # OET-RV HOS 1 is 162 (although will eventually be split into 5 pieces)
-            print( f"Suspiciously long {versionAbbreviation} {refTuple} {segmentType=} got ({len(xrefOriginalMiddle)}) {xrefOriginalMiddle=}" ); halt
-        xrefOriginalMiddle = xrefOriginalMiddle.replace('\\xo ','').replace('\\xt ','') # Fix things like "Gen 25:9-10; \\xo b \\xt Gen 35:29."
-        dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f" {xrefLiveMiddle=}" )
-        assert xrefLiveMiddle.count('\\xo ') == xrefLiveMiddle.count('\\xo '), f"{xrefLiveMiddle=}"
-        xrefLiveMiddle = xrefLiveMiddle.replace('\\xo ','<b>').replace('\\xt ','</b>') # Fix things like "Gen 25:9-10; \\xo b \\xt Gen 35:29."
-        xrefLiveMiddle = livenXRefField( 'x', versionAbbreviation, refTuple, segmentType, pathPrefix, xoText, xrefLiveMiddle, state )
-
-        # Now create the caller and the actual xref
-        xrefCaller = f'<span class="xrCaller">[<a title="See also {xrefOriginalMiddle}" href="#xr{crossReferencesCount}">ref</a>]</span>' # was †
-        xrefRef = ''
-        if xoText:
-            # TODO: The following code is untidy, marking b, c, d, in bold (above), but including a in the first link (which returns to the caller)
-            xrCV = xoText
-            if '-' in xoText or '–' in xoText:
-                xrCV = xoText.replace('–','-').split('-',1)[0]
-            if ':' in xrCV:
-                xrC, xrV = xrCV.split(':',1)
-                if ':' in xrV: # still -- presumably at end
-                    xrV = xrV.split(':',1)[0]
-                xrCV = f'#C{xrC}V{xrV}'
-            else:
-                logging.critical( f"What is CV ref for xref ref: '{xoText}'")
-                xrCV = ''
-            xrefRef = f'<span class="xrRef"><a title="Return to text" href="{xrCV}">{xoText}</a></span> '
-        xrefText = f'<p class="xr" id="xr{crossReferencesCount}">{xrefRef}<span class="xrText">{xrefLiveMiddle}</span></p><!--xr-->\n'
-        crossReferencesHtml = f'{crossReferencesHtml}{xrefText}'
-        html = f'{html[:xStartIx]}{xrefCaller}{html[xEndIx+3:]}'
-        lastSearchStartIx = searchStartIx
-        searchStartIx = xEndIx + 3
-    else:
-        dPrint( 'Info', DEBUGGING_THIS_MODULE, f"Processing xref {_safetyCount1} loop break {versionAbbreviation} {refTuple} {segmentType=} {xoText=} {xrefOriginalMiddle=}" )
-        dPrint( 'Info', DEBUGGING_THIS_MODULE, f"{verseEntryList=}" )
-        dPrint( 'Info', DEBUGGING_THIS_MODULE,  f"{html[xStartIx:]=}" )
-        # outer_xr_loop_needed_to_break
+    html, crossReferencesHtml = process_cross_references( html, versionAbbreviation, BBB, C or '', segmentType, pathPrefix, state )
     if crossReferencesHtml:
         if not checkHtml( f"Cross-references for {versionAbbreviation} {segmentType} {basicOnly=} {refTuple}", crossReferencesHtml, segmentOnly=True ):
             if DEBUGGING_THIS_MODULE: assert False, "We want to stop here"

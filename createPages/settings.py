@@ -53,10 +53,10 @@ import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import dPrint, fnPrint, BOOKLIST_OT39
 
 
-LAST_MODIFIED_DATE = '2026-08-05' # by RJH
+LAST_MODIFIED_DATE = '2026-08-20' # by RJH
 SHORT_PROGRAM_NAME = "settings"
 PROGRAM_NAME = "OpenBibleData (OBD) Settings"
-PROGRAM_VERSION = '1.0.1'
+PROGRAM_VERSION = '1.0.2'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
@@ -68,7 +68,7 @@ class State:
     """
     OET_VERSION_NUMBER_STRING = 'v0.48.71' # Incremented on most runs
 
-    TEST_MODE_FLAG = True # Writes smaller website subset into DEBUG_DESTINATION_FOLDER if True
+    TEST_MODE_FLAG = True # Writes smaller website subset into DEBUG_DESTINATION_FOLDER_PATH if True
     TEST_OT_BOOK_LIST = ['PSA']
     TEST_DC_BOOK_LIST = []
     TEST_NT_BOOK_LIST = ['MRK','GAL'] # Shortest gospel
@@ -89,8 +89,9 @@ class State:
 
     TEMP_BUILD_FOLDER = Path( '../buildingHtmlPages/' )
     NORMAL_DESTINATION_FOLDER = Path( '../htmlPages/' )
-    DEBUG_DESTINATION_FOLDER = NORMAL_DESTINATION_FOLDER.joinpath( 'Testa/' )
-    DESTINATION_FOLDER = DEBUG_DESTINATION_FOLDER if TEST_MODE_FLAG or BibleOrgSysGlobals.debugFlag \
+    DEBUG_DESTINATION_FOLDER_NAME = 'Testa'
+    DEBUG_DESTINATION_FOLDER_PATH = NORMAL_DESTINATION_FOLDER.joinpath( DEBUG_DESTINATION_FOLDER_NAME )
+    DESTINATION_FOLDER = DEBUG_DESTINATION_FOLDER_PATH if TEST_MODE_FLAG or BibleOrgSysGlobals.debugFlag \
                             else NORMAL_DESTINATION_FOLDER
 
     SITE_NAME = 'Open Bible Data'
