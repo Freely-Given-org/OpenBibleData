@@ -14,7 +14,7 @@ The preliminary static website can currently be viewed (in an iFrame) at
 [OpenEnglishTranslation.Bible](https://OpenEnglishTranslation.Bible/) at the <em>Reader</em> link
 or directly at [Freely-Given.org/OBD](https://Freely-Given.org/OBD/).
 
-Currently the static website is approx 300 GB
+Currently the static website is approx 300 GB with around 1.3 million separate pages
 and includes almost forty Bible translations along with multiple Hebrew and Greek originals,
 and then parallel and interlinear verse pages with two sets of notes for translators,
 related/parallel section pages, topic pages, and reference pages including two Bible dictionaries.
@@ -28,4 +28,4 @@ Search functionality is provided by [Pagefind](https://Pagefind.app/).
 
 Hopefully if BibleOrgSys is able to start using more Rust functions in the future,
 then the memory use should reduce and the site build time should be greatly increased.
-(Currently taking 99 minutes and using most of the 64GB RAM.)
+(Currently taking 65 minutes and using most of the 64GB RAM.)

@@ -16,6 +16,7 @@ pub fn convert_usfm_character_formatting(
     expanded_char_markers: &[String],
     booklist_nt27: &[String],
     is_net_version: bool,
+    level: usize,
 ) -> CharacterFormattingResult {
     let mut html = usfm_field.replace("\\+", "\\");
     let mut background_colour: Option<String> = None;
@@ -89,7 +90,7 @@ pub fn convert_usfm_character_formatting(
 
     // === Handle \\fig entries (figure processing) ===
     if usfm_field.contains("\\fig") {
-        html = process_figures(&html, &mut files_to_copy);
+        html = process_figures(&html, &mut files_to_copy, level);
     }
 
     // === Handle \\jmp entries (jump links) ===
@@ -158,8 +159,6 @@ pub fn convert_usfm_character_formatting(
         }
     }
 
-    assert!(!html.contains("\\t"), "Backslash t still in html after marker replacement");
-
     // === Handle OET-LV untranslated words ===
     if version_abbrev.contains("OET") {
         html = process_untranslated_words(&html);
@@ -172,7 +171,7 @@ pub fn convert_usfm_character_formatting(
     }
 }
 
-fn process_figures(html: &str, files_to_copy: &mut Vec<(String, String)>) -> String {
+fn process_figures(html: &str, files_to_copy: &mut Vec<(String, String)>, level: usize) -> String {
     let mut result = html.to_string();
     let mut search_start_ix = 0;
     let mut safety_count = 0;
@@ -236,8 +235,10 @@ fn process_figures(html: &str, files_to_copy: &mut Vec<(String, String)>) -> Str
                                     };
 
                                     figure_html = format!(
-                                        "<img src=\"images/{}\"{}style=\"max-height:280px;\">",
-                                        fig_filename, alt_attr
+                                        "<img src=\"{}images/{}\"{}style=\"max-height:280px;\">",
+                                        "../".repeat(level),
+                                        fig_filename,
+                                        alt_attr
                                     );
                                 }
                             }

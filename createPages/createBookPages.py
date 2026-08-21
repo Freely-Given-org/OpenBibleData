@@ -50,7 +50,7 @@ from bible_organisational_system import InternalBibleEntryList
 import bos_books_codes_py
 
 from settings import State, CNTR_BOOK_ID_MAP
-from usfm import convertVerseEntryListToHtml
+from convert import convertVerseEntryListToHtml
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
                     makeTop, makeBottom, makeBookNavListParagraph, removeDuplicateCVids, checkHtml
 from OETHandlers import livenOETWordLinks, livenOETCompatibleWordLinks, getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename
@@ -247,10 +247,10 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
 
         if lvVerseEntryList:
             ixBHend = lvHtml.index( '<!--bookHeader-->' ) + 17
-            try: ixBIend = lvHtml.index( '<!--bookIntro-->', ixBHend ) + 16 # No intro expected in OET-LV
-            except ValueError:
-                logging.warning( f"Unable to find end of book Intro {lvHtml[ixBHend:ixBHend+3999]=}" )
-                ixBIend = lvHtml.index( '<span id="C', ixBHend )
+            try: ixBIend = lvHtml.index( '<!--bookIntro-->', ixBHend ) + 16
+            except ValueError: # No intro expected in OET-LV
+                # logging.warning( f"Unable to find end of OET-LV book Intro {lvHtml[ixBHend:ixBHend+3999]=}" )
+                ixBIend = lvHtml.index( '<span id="C', ixBHend ) # Use this instead
             lvChunks, lvRest = [ lvHtml[:ixBHend], lvHtml[ixBHend:ixBIend] ], lvHtml[ixBIend:]
             # Now try to match the rv sections
             for n,rvSectionHtml in enumerate( rvSections[2:] ): # continuing on AFTER the headers and introduction

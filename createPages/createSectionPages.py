@@ -63,6 +63,7 @@ CHANGELOG:
 """
 from pathlib import Path
 import os
+import re
 import logging
 from collections import defaultdict
 
@@ -73,17 +74,17 @@ from BibleOrgSys.Formats.ESFMBible import ESFMBible, ESFM_WORD_NUMBER_REGEX
 import bos_books_codes_py
 
 from settings import State
-from usfm import convertVerseEntryListToHtml, XREF_REGEX, FOOTNOTE_REGEX
+from convert import convertVerseEntryListToHtml
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
                     makeTop, makeBottom, makeBookNavListParagraph, removeDuplicateCVids, checkHtml
 from Bibles import getBibleMapperMaps, getOpenBibleImages
 from OETHandlers import livenOETWordLinks, livenOETCompatibleWordLinks, getOETTidyBBB, getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2026-07-27' # by RJH
+LAST_MODIFIED_DATE = '2026-08-20' # by RJH
 SHORT_PROGRAM_NAME = "createSectionPages"
 PROGRAM_NAME = "OpenBibleData createSectionPages functions"
-PROGRAM_VERSION = '0.90'
+PROGRAM_VERSION = '0.91'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -100,6 +101,8 @@ SECTION_HEADING_NAME_DICT = { 'r':'section cross-reference', 'd':'song/Psalm det
                             'alt_r':'Alternate section cross-reference', 'alt_d':'Alternate song/Psalm details',
                             'alt_s1':'Alternate section heading', 'alt_s2':'Alternate sub-heading', 'alt_s3':'Alternate 3rd level section heading', 'alt_s4':'Alternate 4th level section heading', }
 
+XREF_REGEX = re.compile( r'\\x .+?\\x\*' )
+FOOTNOTE_REGEX = re.compile( r'\\f .+?\\f\*' )
 
 def createOETSectionLists( rvBible:ESFMBible, state:State ) -> bool:
     """

@@ -54,7 +54,7 @@ import BibleOrgSys.Formats.ESFMBible as ESFMBible
 import bos_books_codes_py
 
 from settings import State, CNTR_BOOK_ID_MAP
-from usfm import convertVerseEntryListToHtml
+from convert import convertVerseEntryListToHtml
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
                     makeTop, makeBottom, makeBookNavListParagraph, removeDuplicateCVids, checkHtml
 from Bibles import getBibleMapperMaps, getOpenBibleImages

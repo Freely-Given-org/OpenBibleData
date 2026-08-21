@@ -47,7 +47,7 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 from bible_organisational_system import InternalBibleEntryList
 
 from settings import State
-from usfm import convertVerseEntryListToHtml
+from convert import convertVerseEntryListToHtml
 from Bibles import getBibleMapperMaps
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
                     removeDuplicateCVids, \

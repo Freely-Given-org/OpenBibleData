@@ -67,7 +67,7 @@ from bible_organisational_system import getPositiveLeadingInt
 import bos_books_codes_py
 
 from settings import State, CNTR_BOOK_ID_MAP, reorderBooksForOETVersions
-from usfm import convertVerseEntryListToHtml
+from convert import convertVerseEntryListToHtml
 from Bibles import formatUnfoldingWordTranslationNotes, formatTyndaleNotes
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
                     makeTop, makeBottom, makeBookNavListParagraph, checkHtml

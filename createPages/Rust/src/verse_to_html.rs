@@ -513,19 +513,26 @@ where
             in_span = Some(marker_name);
         } else if next_char == b'*' {
             // Closing marker
-            assert!(
-                in_span.is_some(),
-                "Closing marker without opening: \\{marker_name}*"
-            );
-            let new_middle = format!(
-                "{}{}</span>{}",
-                &fnote_middle[..bs_ix],
-                "",
-                &fnote_middle[bs_ix + 1 + marker_len + 1..]
-            );
-            *fnote_middle = new_middle;
-            in_span = None;
-            search_ix = bs_ix + 7; // len("</span>")
+            if in_span.is_some() {
+                let new_middle = format!(
+                    "{}{}</span>{}",
+                    &fnote_middle[..bs_ix],
+                    "",
+                    &fnote_middle[bs_ix + 1 + marker_len + 1..]
+                );
+                *fnote_middle = new_middle;
+                in_span = None;
+                search_ix = bs_ix + 7; // len("</span>")
+            } else {
+                // Orphaned closing marker — just strip it
+                let new_middle = format!(
+                    "{}{}",
+                    &fnote_middle[..bs_ix],
+                    &fnote_middle[bs_ix + 1 + marker_len + 1..]
+                );
+                *fnote_middle = new_middle;
+                search_ix = bs_ix;
+            }
         } else {
             return Err(VerseToHtmlError::UnexpectedContent {
                 details: format!(

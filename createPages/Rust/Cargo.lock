@@ -113,6 +113,7 @@ dependencies = [
  "once_cell",
  "pyo3",
  "regex",
+ "usfm_markers",
 ]
 
 [[package]]
@@ -413,3 +414,11 @@ name = "unicode-ident"
 version = "1.0.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e6e4313cd5fcd3dad5cafa179702e2b244f760991f45397d14d4ebf38247da75"
+
+[[package]]
+name = "usfm_markers"
+version = "0.3.0"
+dependencies = [
+ "compact_str",
+ "phf",
+]

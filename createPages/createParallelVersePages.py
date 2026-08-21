@@ -103,7 +103,7 @@ import bos_books_codes_py
 from bible_transliterations import transliterate_Hebrew, transliterate_Greek
 
 from settings import State, CNTR_BOOK_ID_MAP, reorderBooksForOETVersions
-from usfm import convertVerseEntryListToHtml
+from convert import convertVerseEntryListToHtml
 from Bibles import formatTyndaleBookIntro, formatUnfoldingWordTranslationNotes, formatTyndaleNotes, \
                     getBibleMapperMaps, getOpenBibleImages, getVerseMetaInfoHtml
 from jsonResources import getFormattedSILOpenTranslationNotes
@@ -882,7 +882,8 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                     # NOTE: The va end spans ARE NOT FOLLOWED BY NEWLINE, only the d span is
                                     if '</span>\n' not in textHtml and textHtml.endswith( '</span>'): # No final newline with Rust code -- WHY???
                                         spanEndDIx = len(textHtml) - 7
-                                    else: spanEndDIx = textHtml.index( '</span>\n', spanIx1+7 ) # Should be the closing "d" span
+                                    else:
+                                        spanEndDIx = textHtml.index( '</span>\n', spanIx1+7 ) # Should be the closing "d" span
                                     textHtml = f'{textHtml[:dIx]}{textHtml[dIx+16:spanEndDIx]}{textHtml[spanEndDIx+7:]}'
                                     # print( f"Now {textHtml=}" )
                                     # assert textHtml.count( 'class="va"' ) == textHtml.count( '</span>' ), f"{parRef} {textHtml=}" # Not true if there's a footnote caller

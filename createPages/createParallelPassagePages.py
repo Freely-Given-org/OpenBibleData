@@ -44,7 +44,7 @@ from bible_organisational_system import InternalBibleEntryList, getSmallLeadingI
 import bos_books_codes_py
 
 from settings import State, reorderBooksForOETVersions
-from usfm import convertVerseEntryListToHtml
+from convert import convertVerseEntryListToHtml
 from Bibles import getVerseDataListForReference
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
                     do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
