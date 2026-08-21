@@ -1,0 +1,49 @@
+[project]
+name = "openbibledata"
+version = "0.1.1"
+description = "Open Bible Data — create static website"
+readme = "README.md"
+requires-python = ">=3.12"
+license = "GPL-3.0-or-later"
+authors = [
+    { name = "Robert Hunt", email = "Freely.Given.org+OBD@gmail.com" },
+]
+keywords = ["Bible", "Scripture", "check", "import", "export", "index", "book", "chapter", "verse"]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Religion",
+    "Topic :: Religion",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "bibleorgsys",
+    "bible-transliterations",
+    "bos-books-codes-py",
+    "docutils>=0.23",
+    "openbibledata-rust",
+]
+
+[project.urls]
+Homepage = "https://Freely-Given.org/Software/OpenBibleData/"
+Source = "https://github.com/Freely-Given-org/OpenBibleData"
+
+[tool.uv]
+config-settings = { "build-args" = "--profile=release" }
+exclude-newer = "7 days"
+
+[tool.uv.sources]
+bibleorgsys = { path = "../BibleOrgSys", editable = true }
+bible-transliterations = { path = "../BibleTransliterations/Rust", editable = true }
+bos-books-codes-py = { workspace = true }
+openbibledata-rust = { workspace = true }
+
+[tool.uv.workspace]
+members = [
+    "/srv/FreelyGiven/BibleOrgSys/Rust/bos_books_codes_py",
+    "createPages/Rust",
+]

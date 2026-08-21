@@ -5,6 +5,7 @@ body.container {}
 div.header {}
 div.footer { margin:50px; }
 div.periph {}
+hr.periph { border:none; border-top:2px solid purple; }
 
 p.site {}
 p.copyright {}

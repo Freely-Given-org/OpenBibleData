@@ -1016,7 +1016,7 @@ where
                         version_abbreviation, bbb, segment_type, rest_str, basic_only,
                         &mut state.background_colour,
                     )?;
-                    html.push_str(&format!("{}<li>{guts}\n", " ".repeat(marker_level)));
+                    html.push_str(&format!("{}<li>{guts}", " ".repeat(marker_level)));
                     state.in_list_entry = ListEntry::Specific(marker.to_string());
                 }
             }
@@ -1026,11 +1026,10 @@ where
                     html.push_str("</li>\n");
                     state.in_list_entry = ListEntry::None;
                 } else if state.in_list.as_deref() == Some("ul_2") || state.in_list.as_deref() == Some("ul_3") {
-                    html.push_str("</ul>\n");
-                    if let Some(ref l) = state.in_list {
-                        let depth: usize = l.chars().last().unwrap().to_digit(10).unwrap_or(1) as usize;
-                        state.in_list = Some(format!("ul_{}", depth - 1));
-                    }
+                    // if let Some(ref l) = state.in_list {
+                    let depth: usize = state.in_list.as_deref().unwrap_or("").chars().last().unwrap().to_digit(10).unwrap_or(1) as usize;
+                    html.push_str(&format!("{}</ul>\n", " ".repeat(depth)));
+                    state.in_list = Some(format!("ul_{}", depth - 1));
                 }
             }
 
@@ -1090,11 +1089,10 @@ where
                 }
                 if state.in_section.as_deref() == Some("periph") {
                     state.in_section = None;
+                    html.push_str("</div><!--periph-->\n");
                 }
                 html.push_str(&(format!(
-                    r#"<hr style="width:60%;margin-left:0;margin-top: 0.3em">"#
-                ) + "
-"));
+                    r#"<hr class="periph">"#) + "\n"));
                 html.push_str(&(format!(r#"<div class="periph">"#) + "\n"));
                 html.push_str(&format!("<h1>{rest_str}</h1>\n"));
                 state.in_section = Some("periph".to_string());

@@ -789,7 +789,8 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                    ) and 'PSA' not in location ) # coz Wycl versification doesn't usually match anyway
                             or 'twas' in word )
                         and word not in ('OK','NOT','SURE','TOO','LITERAL')
-                    else 'Info', DEBUGGING_THIS_MODULE, f'''        {word} ({wordSetName}) is suspect @ {location}\nfrom {originalHTMLTextForDebugging=}\nfrom {cleanedTextToDisplay=}\nWHICH GAVE {cleanedTextToCheck=}''' )
+                    # else 'Info', DEBUGGING_THIS_MODULE, f'''        {word} ({wordSetName}) is suspect @ {location}\nfrom {originalHTMLTextForDebugging=}\nfrom {cleanedTextToDisplay=}\nWHICH GAVE {cleanedTextToCheck=}''' )
+                    else 'Info', DEBUGGING_THIS_MODULE, f'''        {word} ({wordSetName}) is suspect @ {location}\nfrom {cleanedTextToDisplay=}\nWHICH GAVE {cleanedTextToCheck=}''' )
             else: # Luth or ClVg
                 cleanedTextToDisplay = cleanedTextToDisplay.replace('<span class="ClVg_verseTextChunk">','').replace('<div id="footnotesClVg" class="footnotes">\n','').replace('  ',' ').replace(' ',' ')
                 vPrint( 'Normal' if word.upper()==word
@@ -800,8 +801,8 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                 'ende','rede','kam','Korb','ward','alt','dran','Rede','nun','nur','messen','ging','Halle','und','ster','streng','tun','von','wer','zu',
                                 'unobedient','distributione','opense','whoren','sharedn','againststanden','gorrschet','goatsböcklein','saddenede','slepten','fiftytausend',
                                     'tearinger','grainstädte','stiftete','chainswerk','seventytausend','eightytausend','cartstädte','ratet','togewachsen','wroteen',
-                                    'blasphemyen','shopsn','nineunddreißig','soundedn','hinderte','frightenedn','preventeden',
-                                    'plainlyds','unfree','sleepender','calledest','listige','longm','defiantlich','look‘s','attention‘s',
+                                    'blasphemyen','shopsn','nineunddreißig','soundedn','hinderte','frightenedn','preventeden','plainlyds','listige','humblet',
+                                    'anhast','widthst','reasonsst','widthn','fieldwerk','geordnet','totust',
                     
                                 'actio','ambit','ambitio','anima','antiqui','apprehendi','ascendi','attende','audi', 'aversio',
                                 'beati','bene','beneficia','bos',
@@ -811,16 +812,16 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                             'contra','contriti','conversa','conversi','conversio',
                                         'cor','correcti','correctio',
                                     'creat','credi','cruci',        'cultu','cum','cura','curat',
-                                'dat','dedi','dei','dem','designat','desolati','determinat',
+                                'dat','dedi','deduc','dei','dem','designat','desolati','determinat',
                                     'disco','digni','discretio','distincti','distinctio','divisi','dom','domi','domina',
-                                'ecclesia','ecclesias','editio','ei','enumerat','esca','evangelica', 'exalta','exclamat','expiat','extensio',
+                                'ecclesia','ecclesias','editio','ei','enumerat','esca','evangelica', 'exalta','exaltat','exaltatio','exclamat','expiat','extensio',
                                 'fac','falli', 'fel', 'figura','Finis','finis','fornicatio','forti','fugit','fur',     'generat','generatio',     'hellor','hoc','humili','humiliati',
                                 'ibi', 'illum','illuminat','illuminatio', 'ima','impie', 'infirmi','inscriptio','insinuat','instructi',
                                     'intellige','intelligi','intentio','introduc','inventi','invocat','invocatio','Isaia','iter','Ite',
                                 'ja','jus','Justi','justi','justis','justificat',     'legi','legis','liberati','liberato','liberat','libera','liber','locus','lux',
                                 'magis','magnifice','magni', 'mane','manifeste','manu', 'mater','materia',
                                     'media','medici','memor','menstrua',        'mira','misera',        'moretri','mortali','morti',
-                                'nam','natu','natura','ne','nota','Nota',     'ob','obsessi','omnis','operatio','ora','ori',
+                                'nam','natu','natura','ne','nota','Nota',     'ob','obsessi','offen','omnis','operatio','ora','ori',
                                 'passi','patria','patri','pede','pedes','perfecti','persecuti','persecutio',
                                     'pio','plura','polluti','prope','propitiatio','provocat','publica',
                                 'questio','qui',        'rea','redempti','rege','regi','regio','regula','remun','remunerat','rei','repente','ros',
@@ -833,9 +834,10 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                 'tum','holdur','killur','giveium','golds','inactivitym',
                                 'announcent','subjoinsur','perpetuall','carriese','adwill',
                                     'changesa','talentis','habitculo','establishedque','lastrum','buildt','buildsa','solidos',
-                                    'buildingus','buildri','dedicatione','planstorum','yearnas','myrti','recallsione','memoria',
-                                    'inhabitem','exaltsion','eighthm','beforemissa',
-                                    'angercatur','exaltsa',
+                                    'buildingus','buildri','planstorum','yearnas','myrti','recallsione','memoria','exaltsion','eternaltas',
+                                    'exaltare','adducit','infantium','agi','posteris','leftsti',
+                                    'scaresur','conventibus',
+
                                 )
                     else 'Info', DEBUGGING_THIS_MODULE, f'''        {word} is suspect @ {location}\nfrom {cleanedTextToDisplay=}\n  WHICH GAVE {cleanedTextToCheck=}''' )
             if versionAbbreviation == 'Luth':
