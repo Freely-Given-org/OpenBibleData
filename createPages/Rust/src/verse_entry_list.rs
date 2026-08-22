@@ -996,16 +996,22 @@ where
                     let br = if html.is_empty() { "" } else { "<br>" };
                     html.push_str(&format!("{br}{indent}<span class=\"{marker}\">\u{2022}{spacing}{guts}</span>\n"));
                 } else {
-                    let current_level = match &state.in_list {
+                    let mut current_level = match &state.in_list {
                         Some(l) => l.chars().last().unwrap().to_digit(10).unwrap_or(0) as usize,
                         None => 0,
                     };
                     if marker_level > current_level {
-                        html.push_str(&format!("{}<ul>\n", " ".repeat(marker_level - 1)));
+                        html.push_str(&format!("\n{}<ul>\n", " ".repeat(marker_level - 1)));
                         state.in_list = Some(format!("ul_{}", current_level + 1));
                     } else if marker_level < current_level {
-                        html.push_str(&format!("{}<ul>\n", " ".repeat(current_level - 1)));
-                        state.in_list = Some(format!("ul_{}", marker_level));
+                        if marker_level < current_level - 1 { // it's more than one level down
+                            html.push_str(&format!("{}</ul>\n", " ".repeat(current_level - 1)));
+                            current_level -= 1;
+                        }
+                        debug_assert_eq!(marker_level, current_level - 1); // Always true by construction (cf. Python assert)
+                        eprintln!("Warning: Not inList C {version_abbreviation} {bbb} {segment_type} marker_level={marker_level} current_level={current_level} {marker}={rest_str}");
+                        html.push_str(&format!("{}</ul>\n", " ".repeat(current_level - 1)));
+                        state.in_list = Some(format!("ul_{}", current_level - 1));
                     }
                     // Close previous list entry if any
                     if state.in_list_entry != ListEntry::None {

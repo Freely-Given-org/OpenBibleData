@@ -58,6 +58,7 @@ CHANGELOG:
     2026-04-22 Section indexes are now made BEFORE pickling
     2026-06-17 Added prev/next links on section index pages
     2026-06-29 Improved handling of ms1 fields in conjunction with new BibleOrgSys (Rust) code
+    2026-08-22 Import convertVerseEntryListToHtml directly from openbibledata_rust (convert.py deleted)
     2026-07-06 Added OBI images to OET-RV
     2026-07-26 Added d and s4 lines to OET and OET-RV section heading index pages
 """
@@ -74,7 +75,7 @@ from BibleOrgSys.Formats.ESFMBible import ESFMBible, ESFM_WORD_NUMBER_REGEX
 import bos_books_codes_py
 
 from settings import State
-from convert import convertVerseEntryListToHtml
+from openbibledata_rust import convertVerseEntryListToHtml
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
                     makeTop, makeBottom, makeBookNavListParagraph, removeDuplicateCVids, checkHtml
 from Bibles import getBibleMapperMaps, getOpenBibleImages

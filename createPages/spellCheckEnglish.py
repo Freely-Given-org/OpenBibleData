@@ -803,6 +803,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                     'tearinger','grainstädte','stiftete','chainswerk','seventytausend','eightytausend','cartstädte','ratet','togewachsen','wroteen',
                                     'blasphemyen','shopsn','nineunddreißig','soundedn','hinderte','frightenedn','preventeden','plainlyds','listige','humblet',
                                     'anhast','widthst','reasonsst','widthn','fieldwerk','geordnet','totust',
+                                    'purifiede',
                     
                                 'actio','ambit','ambitio','anima','antiqui','apprehendi','ascendi','attende','audi', 'aversio',
                                 'beati','bene','beneficia','bos',
@@ -835,8 +836,8 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                 'announcent','subjoinsur','perpetuall','carriese','adwill',
                                     'changesa','talentis','habitculo','establishedque','lastrum','buildt','buildsa','solidos',
                                     'buildingus','buildri','planstorum','yearnas','myrti','recallsione','memoria','exaltsion','eternaltas',
-                                    'exaltare','adducit','infantium','agi','posteris','leftsti',
-                                    'scaresur','conventibus',
+                                    'exaltare','adducit','infantium','agi','posteris','leftsti','scaresur','conventibus',
+                                    'luna','groanm','gaudeat',
 
                                 )
                     else 'Info', DEBUGGING_THIS_MODULE, f'''        {word} is suspect @ {location}\nfrom {cleanedTextToDisplay=}\n  WHICH GAVE {cleanedTextToCheck=}''' )

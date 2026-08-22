@@ -58,6 +58,7 @@ CHANGELOG:
     2024-02-19 Add verse selection bar
     2024-04-30 In state.TEST_MODE_FLAG, only make parallel verse pages for the actual state.TEST_BOOK_LIST
     2024-06-05 Allow footnotes (but not cross-references) on these pages
+    2026-08-22 Import convertVerseEntryListToHtml directly from openbibledata_rust (convert.py deleted)
                 which includes moving transliteration spans to be placed BEFORE any footnotes
     2024-06-25 Started work on adding maps from BibleMapper.com
     2024-09-20 Split out language data tables
@@ -103,7 +104,7 @@ import bos_books_codes_py
 from bible_transliterations import transliterate_Hebrew, transliterate_Greek
 
 from settings import State, CNTR_BOOK_ID_MAP, reorderBooksForOETVersions
-from convert import convertVerseEntryListToHtml
+from openbibledata_rust import convertVerseEntryListToHtml
 from Bibles import formatTyndaleBookIntro, formatUnfoldingWordTranslationNotes, formatTyndaleNotes, \
                     getBibleMapperMaps, getOpenBibleImages, getVerseMetaInfoHtml
 from jsonResources import getFormattedSILOpenTranslationNotes

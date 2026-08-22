@@ -58,6 +58,7 @@ CHANGELOG:
     2023-12-31 Appended a key to word and lemma pages with roles and morphology abbreviations
     2024-01-03 Added other Greek lemmas with similar glosses
     2024-02-06 Remove some of the unnecessary static text on word and lemma pages
+    2026-08-22 Import convertVerseEntryListToHtml directly from openbibledata_rust (convert.py deleted)
     2024-03-22 Add OT Hebrew word and lemma pages
     2024-04-23 Use ref for Heb and Grk word page filenames (instead of row number)
     2024-05-27 Try adding word connections for Hebrew roots
@@ -107,7 +108,7 @@ from bible_transliterations import transliterate_Hebrew, transliterate_Greek
 
 from settings import State, state, CNTR_BOOK_ID_MAP
 from html import makeTop, makeBottom, checkHtml, do_OET_LV_HTMLcustomisations, do_OET_RV_HTMLcustomisations
-from convert import convertVerseEntryListToHtml
+from openbibledata_rust import convertVerseEntryListToHtml
 from OETHandlers import getOETTidyBBB, getOETBookName, getHebrewWordpageFilename, getGreekWordpageFilename, livenOETWordLinks
 from createSectionPages import findSectionNumber
 

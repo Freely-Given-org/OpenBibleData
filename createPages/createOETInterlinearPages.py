@@ -51,6 +51,7 @@ CHANGELOG:
     2026-02-10 Upgraded to VLT v3
     2026-04-09 Changed to use getPositiveLeadingInt
     2026-04-19 Added SOTN (SIL Open Translators Notes)
+    2026-08-22 Import convertVerseEntryListToHtml directly from openbibledata_rust (convert.py deleted)
 
 TODO:
     Add colour keys for LV and RV words
@@ -67,7 +68,7 @@ from bible_organisational_system import getPositiveLeadingInt
 import bos_books_codes_py
 
 from settings import State, CNTR_BOOK_ID_MAP, reorderBooksForOETVersions
-from convert import convertVerseEntryListToHtml
+from openbibledata_rust import convertVerseEntryListToHtml
 from Bibles import formatUnfoldingWordTranslationNotes, formatTyndaleNotes
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
                     makeTop, makeBottom, makeBookNavListParagraph, checkHtml

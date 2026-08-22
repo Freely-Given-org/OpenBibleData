@@ -35,6 +35,7 @@ CHANGELOG:
     2025-03-24 Liven Readers' Version and Literal Version headings
     2025-09-25 Make all SR-GNT verse text into live links to collation pages
     2026-01-07 Added OET Logo
+    2026-08-22 Import convertVerseEntryListToHtml directly from openbibledata_rust (convert.py deleted)
 """
 from pathlib import Path
 import os
@@ -50,7 +51,7 @@ from bible_organisational_system import InternalBibleEntryList
 import bos_books_codes_py
 
 from settings import State, CNTR_BOOK_ID_MAP
-from convert import convertVerseEntryListToHtml
+from openbibledata_rust import convertVerseEntryListToHtml
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
                     makeTop, makeBottom, makeBookNavListParagraph, removeDuplicateCVids, checkHtml
 from OETHandlers import livenOETWordLinks, livenOETCompatibleWordLinks, getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename

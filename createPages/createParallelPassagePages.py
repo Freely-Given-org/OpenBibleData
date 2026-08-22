@@ -32,6 +32,7 @@ CHANGELOG:
     2024-11-20 Try to prevent some duplicate cross-references
     2025-04-25 Allow for /r field that's not a true section reference (e.g., at top of Psalm 43)
     2026-01-07 Added OET Logo
+    2026-08-22 Import convertVerseEntryListToHtml directly from openbibledata_rust (convert.py deleted)
 """
 from pathlib import Path
 import os
@@ -44,7 +45,7 @@ from bible_organisational_system import InternalBibleEntryList, getSmallLeadingI
 import bos_books_codes_py
 
 from settings import State, reorderBooksForOETVersions
-from convert import convertVerseEntryListToHtml
+from openbibledata_rust import convertVerseEntryListToHtml
 from Bibles import getVerseDataListForReference
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
                     do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \

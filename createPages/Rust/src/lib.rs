@@ -2,7 +2,7 @@
 
 use pyo3::exceptions::{PyAssertionError, PyTypeError, PyValueError};
 use pyo3::prelude::*;
-use pyo3::types::{PyAny, PyDict};
+use pyo3::types::PyAny;
 
 pub mod constants;
 pub mod intro_links;
@@ -373,55 +373,76 @@ fn liven_xref_field_camel_py<'py>(
 
 /// Convert a list of verse entries to HTML using Rust.
 ///
-/// This is the Rust port of `convertVerseEntryListToHtml` from `usfm.py`.
-/// Heavy processing is done in Rust; file I/O and validation callbacks
-/// remain in Python via the `convert_char_formatting_fn`, `copy_fig_files_fn`,
-/// `get_open_bible_images_fn`, and `check_html_fn` parameters.
+/// This is the Rust port of `convertVerseEntryListToHtml` from `usfm.py`;
+/// the former thin Python wrapper (`convert.py`) has been absorbed into this
+/// function. Character formatting, footnotes, cross-references, and figure
+/// copying are handled here in Rust; Python is only called back for OBI
+/// images, HTML validation, and section-number lookup.
 ///
-/// Returns a JSON string with keys: `html`, `cross_references`, `footnotes`.
+/// The single-chapter-book flag is looked up directly from the parallel
+/// bos_books_codes crate, so it doesn't need to be passed as a parameter.
 #[pyfunction]
-#[pyo3(name = "convert_verse_entry_list_to_html")]
+#[pyo3(name = "convertVerseEntryListToHtml")]
 #[pyo3(signature = (
     level,
-    version_abbreviation,
-    bbb,
-    c,
-    v,
-    segment_type,
-    context_list,
-    verse_entries,
-    basic_only,
-    is_single_chapter_book,
-    convert_char_formatting_fn,
-    _copy_fig_files_fn,
-    _get_open_bible_images_fn,
-    _check_html_fn,
+    versionAbbreviation,
+    refTuple,
+    segmentType,
+    contextList=None,
+    verseEntryList=None,
+    basicOnly=false,
     state=None,
 ))]
+#[allow(non_snake_case)]
 fn convert_verse_entry_list_to_html_py<'py>(
-    py: Python<'py>,
     level: usize,
-    version_abbreviation: &str,
-    bbb: &str,
-    c: Option<&str>,
-    v: Option<&str>,
-    segment_type: &str,
-    context_list: Vec<String>,
-    verse_entries: Vec<Bound<'py, PyAny>>,
-    basic_only: bool,
-    is_single_chapter_book: bool,
-    convert_char_formatting_fn: &Bound<'py, PyAny>,
-    _copy_fig_files_fn: &Bound<'py, PyAny>,
-    _get_open_bible_images_fn: &Bound<'py, PyAny>,
-    _check_html_fn: &Bound<'py, PyAny>,
+    versionAbbreviation: &str,
+    refTuple: Vec<String>,
+    segmentType: &str,
+    contextList: Option<Vec<String>>,
+    verseEntryList: Option<Vec<Bound<'py, PyAny>>>,
+    basicOnly: bool,
     state: Option<&Bound<'py, PyAny>>,
-) -> PyResult<Py<PyAny>> {
-    // Extract verse entries
+) -> PyResult<String> {
+    let context_list = contextList.unwrap_or_default();
+    let verse_entries = verseEntryList.unwrap_or_default();
+
+    // Split up the reference tuple: (BBB,), (BBB,C), or (BBB,C,V)
+    let bbb = refTuple.first().map(String::as_str)
+        .ok_or_else(|| PyValueError::new_err("Empty refTuple"))?;
+    let c = refTuple.get(1).map(String::as_str);
+    let v = refTuple.get(2).map(String::as_str);
+
+    // bos_books_codes is linked in directly, so we don't need this passed as a parameter
+    let is_single_chapter_book = bos_books_codes::is_single_chapter_book(bbb);
+
+    // Formerly done in convert.py
+    let destination_folder: Option<String> = match state {
+        Some(state_obj) => match state_obj.getattr("DESTINATION_FOLDER") {
+            Ok(dest) if !dest.is_none() => {
+                let py_str = dest.str()?;
+                Some(py_str.to_str()?.to_owned())
+            }
+            _ => None,
+        },
+        None => None,
+    };
+
+    // Extract verse entries — accept both InternalBibleEntry (methods) and simple objects (attributes)
     let mut entries = Vec::with_capacity(verse_entries.len());
     for py_entry in &verse_entries {
-        let marker: String = py_entry.getattr("marker")?.extract()?;
-        let full_text: String = py_entry.getattr("full_text")?.extract()?;
-        let clean_text: String = py_entry.getattr("clean_text")?.extract()?;
+        // Try InternalBibleEntry methods first, fall back to attributes
+        let (marker, full_text, clean_text) = if let Ok(m) = py_entry.call_method0("getMarker") {
+            let marker: String = m.extract()?;
+            let full_text: String = py_entry.call_method0("getFullText")?.extract()?;
+            let clean_text: String = py_entry.call_method0("getCleanText")?.extract()?;
+            (marker, full_text, clean_text)
+        } else {
+            let marker: String = py_entry.getattr("marker")?.extract()?;
+            let full_text: String = py_entry.getattr("full_text")?.extract()?;
+            let clean_text: String = py_entry.getattr("clean_text")?.extract()?;
+            (marker, full_text, clean_text)
+        };
         entries.push(verse_entry_list::VerseEntry { marker, full_text, clean_text });
     }
 
@@ -442,127 +463,33 @@ fn convert_verse_entry_list_to_html_py<'py>(
         None
     };
 
-    // Build convert_char_formatting callback (calls Python)
-    let convert_char_formatting = |
-        va: &str, bbb_inner: &str, st: &str, field: &str, bo: bool,
-        bg: &mut Option<String>,
-    | -> Result<String, verse_entry_list::ConvertError> {
-        let py_ref_tuple = (bbb_inner, c.unwrap_or(""), v.unwrap_or(""));
-        let result = convert_char_formatting_fn.call1((
-            va, py_ref_tuple, st, field, bo,
-        ));
-        match result {
-            Ok(obj) => {
-                if let Ok(dict) = obj.extract::<Bound<'_, PyDict>>() {
-                    if let Ok(html_out) = dict.get_item("html") {
-                        if let Some(h) = html_out {
-                            if let Ok(s) = h.extract::<String>() {
-                                if let Ok(bc) = dict.get_item("background_colour") {
-                                    if let Some(b) = bc {
-                                        *bg = b.extract::<Option<String>>().ok().flatten();
-                                    }
-                                }
-                                return Ok(s);
-                            }
-                        }
-                    }
-                }
-                // Fallback: try extracting as string directly
-                if let Ok(s) = obj.extract::<String>() {
-                    return Ok(s);
-                }
-                Err(verse_entry_list::ConvertError::AssertionFailed(
-                    format!("convert_char_formatting returned unexpected type for '{field}'")
-                ))
-            }
-            Err(e) => Err(verse_entry_list::ConvertError::AssertionFailed(
-                format!("convert_char_formatting call failed: {e}")
-            )),
-        }
-    };
-
-    let no_op_fig = |_files: &[(String, String)]| {};
     let no_op_obi = |_l: usize, _st: &str, _b: &str, _c: &str, _v: &str| -> Option<String> { None };
     let no_op_check = |_w: &str, _h: &str| -> bool { true };
 
     let context_refs: Vec<&str> = context_list.iter().map(|s| s.as_str()).collect();
 
-    let result = verse_entry_list::convert_verse_entry_list_to_html_core(
+    let result = verse_entry_list::convert_verse_entry_list_to_html_standalone(
         level,
-        version_abbreviation,
+        versionAbbreviation,
         bbb,
         c,
         v,
-        segment_type,
+        segmentType,
         &context_refs,
         &entries,
-        basic_only,
+        basicOnly,
         is_single_chapter_book,
-        convert_char_formatting,
-        no_op_fig,
         find_section_fn,
-        no_op_obi,
-        no_op_check,
+        &no_op_obi,
+        &no_op_check,
+        destination_folder.as_deref(),
     );
 
     match result {
-        Ok(html) => {
-            let dict = PyDict::new(py);
-            dict.set_item("html", html)?;
-            dict.set_item("cross_references", "")?;
-            dict.set_item("footnotes", "")?;
-            Ok(dict.unbind().into_any())
-        }
-        Err(e) => Err(PyValueError::new_err(format!("convert_verse_entry_list_to_html failed: {e}"))),
+        Ok(html) => Ok(html),
+        Err(e) => Err(PyValueError::new_err(format!("convertVerseEntryListToHtml failed: {e}"))),
     }
 }
-
-/// CamelCase alias for convert_verse_entry_list_to_html.
-#[pyfunction]
-#[pyo3(name = "convertVerseEntryListToHtml")]
-#[pyo3(signature = (
-    level,
-    version_abbreviation,
-    bbb,
-    c,
-    v,
-    segment_type,
-    context_list,
-    verse_entries,
-    basic_only,
-    is_single_chapter_book,
-    convert_char_formatting_fn,
-    copy_fig_files_fn,
-    get_open_bible_images_fn,
-    check_html_fn,
-    state=None,
-))]
-fn convert_verse_entry_list_to_html_camel_py<'py>(
-    py: Python<'py>,
-    level: usize,
-    version_abbreviation: &str,
-    bbb: &str,
-    c: Option<&str>,
-    v: Option<&str>,
-    segment_type: &str,
-    context_list: Vec<String>,
-    verse_entries: Vec<Bound<'py, PyAny>>,
-    basic_only: bool,
-    is_single_chapter_book: bool,
-    convert_char_formatting_fn: &Bound<'py, PyAny>,
-    copy_fig_files_fn: &Bound<'py, PyAny>,
-    get_open_bible_images_fn: &Bound<'py, PyAny>,
-    check_html_fn: &Bound<'py, PyAny>,
-    state: Option<&Bound<'py, PyAny>>,
-) -> PyResult<Py<PyAny>> {
-    convert_verse_entry_list_to_html_py(
-        py, level, version_abbreviation, bbb, c, v, segment_type,
-        context_list, verse_entries, basic_only, is_single_chapter_book,
-        convert_char_formatting_fn, copy_fig_files_fn, get_open_bible_images_fn,
-        check_html_fn, state,
-    )
-}
-
 // ── verse_to_html PyO3 wrappers ───────────────────────────────────────────
 
 /// Process cross-references in HTML, replacing `\x…\x*` markers with live links.
@@ -683,152 +610,6 @@ fn process_footnotes_camel_py<'py>(
     process_footnotes_py(py, html, version_abbreviation, bbb, c, segment_type, path_prefix, max_footnote_chars, state)
 }
 
-// ── standalone verse_entry_list (no Python char-formatting callback needed) ─
-
-/// Convert verse entries to HTML — standalone version.
-///
-/// Calls `convert_usfm_character_formatting` directly in Rust (no Python
-/// callback), handles figure-file copying via `destination_folder`, and
-/// keeps Python callbacks only for OBI images, HTML validation, and
-/// section-number lookup.
-///
-/// Parameters `get_open_bible_images_fn` and `check_html_fn` can be `None`.
-#[pyfunction]
-#[pyo3(name = "convertVerseEntryListToHtml2")]
-#[pyo3(signature = (
-    level,
-    version_abbreviation,
-    bbb,
-    c=None,
-    v=None,
-    segment_type="chapter",
-    context_list=None,
-    verse_entries=None,
-    basic_only=false,
-    is_single_chapter_book=false,
-    get_open_bible_images_fn=None,
-    check_html_fn=None,
-    destination_folder=None,
-    state=None,
-))]
-fn convert_verse_entry_list_to_html_standalone_py<'py>(
-    py: Python<'py>,
-    level: usize,
-    version_abbreviation: &str,
-    bbb: &str,
-    c: Option<&str>,
-    v: Option<&str>,
-    segment_type: &str,
-    context_list: Option<Vec<String>>,
-    verse_entries: Option<Vec<Bound<'py, PyAny>>>,
-    basic_only: bool,
-    is_single_chapter_book: bool,
-    get_open_bible_images_fn: Option<&Bound<'py, PyAny>>,
-    check_html_fn: Option<&Bound<'py, PyAny>>,
-    destination_folder: Option<&str>,
-    state: Option<&Bound<'py, PyAny>>,
-) -> PyResult<Py<PyAny>> {
-    let context_list = context_list.unwrap_or_default();
-    let verse_entries = verse_entries.unwrap_or_default();
-
-    // Extract verse entries — accept both InternalBibleEntry (methods) and simple objects (attributes)
-    let mut entries = Vec::with_capacity(verse_entries.len());
-    for py_entry in &verse_entries {
-        // Try InternalBibleEntry methods first, fall back to attributes
-        let (marker, full_text, clean_text) = if let Ok(m) = py_entry.call_method0("getMarker") {
-            let marker: String = m.extract()?;
-            let full_text: String = py_entry.call_method0("getFullText")?.extract()?;
-            let clean_text: String = py_entry.call_method0("getCleanText")?.extract()?;
-            (marker, full_text, clean_text)
-        } else {
-            let marker: String = py_entry.getattr("marker")?.extract()?;
-            let full_text: String = py_entry.getattr("full_text")?.extract()?;
-            let clean_text: String = py_entry.getattr("clean_text")?.extract()?;
-            (marker, full_text, clean_text)
-        };
-        entries.push(verse_entry_list::VerseEntry { marker, full_text, clean_text });
-    }
-
-    // Build find_section_fn callback
-    let find_section_fn = |v_abbr: &str, target_bbb: &str, target_c: &str, target_v: &str| -> Option<usize> {
-        if let Some(state_obj) = state {
-            let py_env = state_obj.py();
-            if let Ok(module) = py_env.import("createSectionPages") {
-                if let Ok(func) = module.getattr("findSectionNumber") {
-                    if let Ok(res) = func.call1((v_abbr, target_bbb, target_c, target_v, state_obj)) {
-                        if let Ok(opt_num) = res.extract::<Option<usize>>() {
-                            return opt_num;
-                        }
-                    }
-                }
-            }
-        }
-        None
-    };
-
-    // Build get_open_bible_images callback
-    let no_op_obi = |_l: usize, _st: &str, _b: &str, _c: &str, _v: &str| -> Option<String> { None };
-    let obi_fn;
-    let obi_ref: &dyn Fn(usize, &str, &str, &str, &str) -> Option<String>;
-    if let Some(obi_callable) = get_open_bible_images_fn {
-        let obi_owned = obi_callable.clone();
-        obi_fn = move |l: usize, st: &str, b: &str, c: &str, v: &str| -> Option<String> {
-            if let Ok(res) = obi_owned.call1((l, st, b, c, v)) {
-                res.extract::<Option<String>>().ok().flatten()
-            } else {
-                None
-            }
-        };
-        obi_ref = &obi_fn;
-    } else {
-        obi_ref = &no_op_obi;
-    }
-
-    // Build check_html callback
-    let no_op_check = |_w: &str, _h: &str| -> bool { true };
-    let chk_fn;
-    let chk_ref: &dyn Fn(&str, &str) -> bool;
-    if let Some(chk_callable) = check_html_fn {
-        let chk_owned = chk_callable.clone();
-        chk_fn = move |w: &str, h: &str| -> bool {
-            chk_owned.call1((w, h)).is_ok()
-        };
-        chk_ref = &chk_fn;
-    } else {
-        chk_ref = &no_op_check;
-    }
-
-    let context_refs: Vec<&str> = context_list.iter().map(|s| s.as_str()).collect();
-
-    let result = verse_entry_list::convert_verse_entry_list_to_html_standalone(
-        level,
-        version_abbreviation,
-        bbb,
-        c,
-        v,
-        segment_type,
-        &context_refs,
-        &entries,
-        basic_only,
-        is_single_chapter_book,
-        find_section_fn,
-        obi_ref,
-        chk_ref,
-        destination_folder,
-    );
-
-    match result {
-        Ok(html) => {
-            let dict = PyDict::new(py);
-            dict.set_item("html", html)?;
-            dict.set_item("cross_references", "")?;
-            dict.set_item("footnotes", "")?;
-            Ok(dict.unbind().into_any())
-        }
-        Err(e) => Err(PyValueError::new_err(format!("convertVerseEntryListToHtml failed: {e}"))),
-    }
-}
-
 #[pymodule]
 fn openbibledata_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(liven_introduction_links_py, m)?)?;
@@ -848,7 +629,5 @@ fn openbibledata_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(process_footnotes_py, m)?)?;
     m.add_function(wrap_pyfunction!(process_footnotes_camel_py, m)?)?;
     m.add_function(wrap_pyfunction!(convert_verse_entry_list_to_html_py, m)?)?;
-    m.add_function(wrap_pyfunction!(convert_verse_entry_list_to_html_camel_py, m)?)?;
-    m.add_function(wrap_pyfunction!(convert_verse_entry_list_to_html_standalone_py, m)?)?;
     Ok(())
 }

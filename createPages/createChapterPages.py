@@ -42,6 +42,7 @@ CHANGELOG:
     2026-01-07 Added OET Logo
     2026-07-06 Added OBI images to OET-RV
     2026-08-17 Remove current chapter from chLst (chapter links)
+    2026-08-22 Import convertVerseEntryListToHtml directly from openbibledata_rust (convert.py deleted)
 """
 from pathlib import Path
 import os
@@ -54,7 +55,7 @@ import BibleOrgSys.Formats.ESFMBible as ESFMBible
 import bos_books_codes_py
 
 from settings import State, CNTR_BOOK_ID_MAP
-from convert import convertVerseEntryListToHtml
+from openbibledata_rust import convertVerseEntryListToHtml
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
                     makeTop, makeBottom, makeBookNavListParagraph, removeDuplicateCVids, checkHtml
 from Bibles import getBibleMapperMaps, getOpenBibleImages

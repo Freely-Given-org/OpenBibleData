@@ -37,6 +37,7 @@ CHANGELOG:
     2026-01-07 Added OET Logo
     2026-03-01 Added IMPORTANT people index
     2026-06-01 Improve unusual book codes (like Yac) and improve navigation
+    2026-08-22 Import convertVerseEntryListToHtml directly from openbibledata_rust (convert.py deleted)
 """
 from pathlib import Path
 import os
@@ -47,7 +48,7 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 from bible_organisational_system import InternalBibleEntryList
 
 from settings import State
-from convert import convertVerseEntryListToHtml
+from openbibledata_rust import convertVerseEntryListToHtml
 from Bibles import getBibleMapperMaps
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
                     removeDuplicateCVids, \
