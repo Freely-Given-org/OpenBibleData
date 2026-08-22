@@ -42,7 +42,7 @@ CHANGELOG:
     2026-01-07 Added OET Logo
     2026-07-06 Added OBI images to OET-RV
     2026-08-17 Remove current chapter from chLst (chapter links)
-    2026-08-22 Import convertVerseEntryListToHtml directly from openbibledata_rust (convert.py deleted)
+    2026-08-22 Use Rust equivalent of convertVerseEntryListToHtml, and add bkLst to FRT chapter pages
 """
 from pathlib import Path
 import os
@@ -62,10 +62,10 @@ from Bibles import getBibleMapperMaps, getOpenBibleImages
 from OETHandlers import livenOETWordLinks, livenOETCompatibleWordLinks, getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
-LAST_MODIFIED_DATE = '2026-08-17' # by RJH
+LAST_MODIFIED_DATE = '2026-08-22' # by RJH
 SHORT_PROGRAM_NAME = "createChapterPages"
 PROGRAM_NAME = "OpenBibleData createChapterPages functions"
-PROGRAM_VERSION = '0.83'
+PROGRAM_VERSION = '0.84'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -391,6 +391,7 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
                     .replace( f'''<a title="{state.BibleNames['OET']}" href="{'../'*level}OET/byC/{filename}#Top">OET</a>''',
                                 f'''<a title="Up to {state.BibleNames['OET']}" href="{'../'*level}OET">↑OET</a>''' )
             chapterHtml = f'''{top}<!--chapter page-->
+{navBookListParagraph}
 {chapterLinksParagraph}
 <a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
 {chapterHtml}
@@ -608,7 +609,8 @@ def createChapterPages( level:int, folder:Path, thisBible, state:State ) -> list
                     .replace( '__KEYWORDS__', f'Bible, {thisBible.abbreviation}, chapter, {ourTidyBBB}' ) \
                     .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*level}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}">{thisBible.abbreviation}</a>''', thisBible.abbreviation )
             chapterHtml = f'''{top}<!--chapters indexPage-->
-{f'<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>\n' if 'OET' in thisBible.abbreviation else ''}{chapterLinksParagraph}
+{f'<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>\n' if 'OET' in thisBible.abbreviation else ''}{navBookListParagraph}
+{chapterLinksParagraph}
 {makeBottom( level, thisBible.abbreviation, 'chapter', state )}'''
             assert checkHtml( f'{thisBible.abbreviation}  chapter index', chapterHtml )
             assert not filepath.is_file() # Check that we're not overwriting anything
@@ -623,6 +625,7 @@ def createChapterPages( level:int, folder:Path, thisBible, state:State ) -> list
             vPrint( 'Info', DEBUGGING_THIS_MODULE, f"      Creating (non)chapter pages for {thisBible.abbreviation} {BBB}…" )
             chapterHtml = f'<h1 id="Top">{thisBible.abbreviation} {BBB}</h1>\n'
             verseEntryList, contextList = thisBible.getContextVerseData( (BBB, '-1') )
+            # if thisBible.abbreviation == 'OET-RV' and BBB == 'FRT': print( f"OET-RV FRT has: {verseEntryList=} {[ve for ve in verseEntryList]=}" ); halt
             if isinstance( thisBible, ESFMBible.ESFMBible ):
                 verseEntryList = livenOETWordLinks( level, thisBible, (BBB,'-1'), verseEntryList, state )
             dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{thisBible.abbreviation} {BBB} {verseEntryList} {contextList}" )
@@ -636,6 +639,7 @@ def createChapterPages( level:int, folder:Path, thisBible, state:State ) -> list
                     .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*level}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/byC/{filename}#Top">{thisBible.abbreviation}</a>''',
                               f'''<a title="Up to {state.BibleNames[thisBible.abbreviation]}" href="{'../'*level}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/">↑{thisBible.abbreviation}</a>''' )
             chapterHtml = f'''{top}<!--chapter page-->
+{navBookListParagraph}
 {chapterHtml}
 {makeBottom( level, thisBible.abbreviation, 'chapter', state )}'''
             assert checkHtml( f'{thisBible.abbreviation} {BBB}', chapterHtml )

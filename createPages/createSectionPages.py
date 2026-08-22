@@ -33,8 +33,6 @@ createOETSectionLists( rvBible:ESFMBible, state:State ) -> bool
 createOETSectionPages( level:int, folder:Path, rvBible:ESFMBible, lvBible:ESFMBible, state:State ) -> list[str]
 createSectionPages( level:int, folder:Path, thisBible, state:State ) -> list[str]
 findSectionNumber( versionAbbreviation:str, refBBB:str, refC:str, refV:str, state:State ) -> int|None
-livenSectionReferences( versionAbbreviation:str, refTuple:tuple, segmentType:str,
-                                                sectionReferenceText:str, state:State ) -> str
 briefDemo() -> None
 fullDemo() -> None
 main calls fullDemo()
@@ -59,6 +57,9 @@ CHANGELOG:
     2026-06-17 Added prev/next links on section index pages
     2026-06-29 Improved handling of ms1 fields in conjunction with new BibleOrgSys (Rust) code
     2026-08-22 Import convertVerseEntryListToHtml directly from openbibledata_rust (convert.py deleted)
+    2026-08-22 livenSectionReferences() deleted -- dead code since the convert.py deletion
+                (the Rust convertVerseEntryListToHtml now livens \r fields itself,
+                using liven_section_references_core with a booksToLoad availability check)
     2026-07-06 Added OBI images to OET-RV
     2026-07-26 Added d and s4 lines to OET and OET-RV section heading index pages
 """
@@ -79,10 +80,10 @@ from openbibledata_rust import convertVerseEntryListToHtml
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
                     makeTop, makeBottom, makeBookNavListParagraph, removeDuplicateCVids, checkHtml
 from Bibles import getBibleMapperMaps, getOpenBibleImages
-from OETHandlers import livenOETWordLinks, livenOETCompatibleWordLinks, getOETTidyBBB, getBBBFromOETBookName
+from OETHandlers import livenOETWordLinks, livenOETCompatibleWordLinks, getOETTidyBBB
 
 
-LAST_MODIFIED_DATE = '2026-08-20' # by RJH
+LAST_MODIFIED_DATE = '2026-08-22' # by RJH
 SHORT_PROGRAM_NAME = "createSectionPages"
 PROGRAM_NAME = "OpenBibleData createSectionPages functions"
 PROGRAM_VERSION = '0.91'
@@ -876,154 +877,6 @@ def findSectionNumber( versionAbbreviation:str, refBBB:str, refC:str, refV:str, 
     dPrint( 'Info', DEBUGGING_THIS_MODULE, "findSectionNumber: Couldn't find a section match -- returning None" )
     return None
 # end of createSectionPages.findSectionNumber
-
-
-def livenSectionReferences( versionAbbreviation:str, refTuple:tuple, segmentType:str, sectionReferenceText:str, state:State ) -> str:
-    """
-    Given some text (from USFM \\r field),
-        convert the list of references (often enclosed in parenthesis) into live links
-
-    NOTE: We remove any spaces after commas, which means we can't necessarily restore them exactly the same
-    """
-    fnPrint( DEBUGGING_THIS_MODULE, f"livenSectionReferences( {versionAbbreviation}, {refTuple}, {segmentType}, '{sectionReferenceText}' )" )
-    dPrint( 'Info', DEBUGGING_THIS_MODULE, f"livenSectionReferences( {versionAbbreviation}, {refTuple}, {segmentType}, '{sectionReferenceText}' )…" )
-    assert '\\' not in sectionReferenceText
-
-    # ourBBB = refTuple[0]
-
-    # Remove enclosing parentheses if any, e.g., in '(Luk. 3:23-38)'
-    enclosedByParentheses = sectionReferenceText[0]=='(' and sectionReferenceText[-1]==')'
-    if enclosedByParentheses: sectionReferenceText = sectionReferenceText[1:-1]
-
-    # Tokenise
-    # NOTE: We remove any spaces after commas, which means we can't necessarily restore them exactly the same
-    tokens = sectionReferenceText.replace(';',',,').replace(', ',',').split( ',' )
-
-    def livenSectionReferencesDigits( versionAbbreviation:str, refTuple:tuple, segmentType:str, refBBB:str, sectionReferenceDigitsText:str, state:State ) -> str:
-        """
-        """
-        fnPrint( DEBUGGING_THIS_MODULE, f"livenSectionReferencesDigits( {versionAbbreviation}, {refTuple}, {segmentType}, {refBBB}, '{sectionReferenceDigitsText}' )" )
-        dPrint( 'Info', DEBUGGING_THIS_MODULE, f"livenSectionReferencesDigits( {versionAbbreviation}, {refTuple}, {segmentType}, {refBBB} '{sectionReferenceDigitsText}' )…" )
-        if versionAbbreviation not in ('BSB','MSB') or 'PRO' not in refTuple: # PRO 11 = EZT 45:10-12 ???
-            assert refBBB in BOOKLIST_66, f"livenSectionReferencesDigits( {versionAbbreviation}, {refTuple}, {segmentType}, {refBBB}, '{sectionReferenceDigitsText}' )"
-        assert ' ' not in sectionReferenceDigitsText and ',' not in sectionReferenceDigitsText and ';' not in sectionReferenceDigitsText
-
-        is_single_chapter_book_py = bos_books_codes_py.is_single_chapter_book( refBBB )
-
-        # The link will always be to the beginning of a span
-        if '-' in sectionReferenceDigitsText or '–' in sectionReferenceDigitsText or '—' in sectionReferenceDigitsText:
-            # so throw away anything after the beginning of the reference
-            sectionReferenceDigitsText = sectionReferenceDigitsText.replace('–','-').replace('—','-').split( '-' )[0]
-
-        # sectionReferenceLink = ''
-        sectionReferenceLink = sectionReferenceDigitsText
-        if sectionReferenceDigitsText.count( ':' ) == 1:
-            refC,refV = sectionReferenceDigitsText.split( ':' )
-            # assert segmentType in ('book','chapter','section')
-            if segmentType == 'relatedPassage':
-                # print( f"{state.sectionsListsForSections[versionAbbreviation]}")
-                sectionNumber = findSectionNumber( versionAbbreviation, refBBB, refC, refV, state )
-                if sectionNumber is not None:
-                    sectionReferenceLink = f'../{refBBB}/{refBBB}_S{sectionNumber}.htm#V{refV}'
-                else:
-                    logging.critical( f"unable_to_find_section_reference for {refBBB} {refC}:{refV}" )
-                    sectionReferenceLink = f'{refBBB}_C{refC}.htm#V{refV}' # Do a chapter link instead
-                    if refBBB in state.preloadedBibles[versionAbbreviation]:
-                        logging.critical( f"      {[f'{n} {startC}:{startV}…{endC}:{endV}' for n,startC,startV,endC,endV,_sectionName,_reasonName,_contextList,_verseEntryList,_sFilename in state.sectionsListsForSections[versionAbbreviation][refBBB]]}" )
-                        assert False, f"unable_to_find_reference -- need to write more code: unable_to_find_IOR for {versionAbbreviation} {refBBB} {refC}:{refV} {[f'{startC}:{startV}…{endC}:{endV}' for n,startC,startV,endC,endV,sectionName,reasonName,contextList,verseEntryList,sFilename in state.sectionsListsForSections[versionAbbreviation][refBBB]]}"
-                # print( f"  {sectionNumber=} {sectionReferenceLink=}")
-            elif segmentType == 'topicalPassage':
-                sectionReferenceLink = f'{refBBB}.htm#C{refC}V{refV}' # What's expected here ??? TMP XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-            elif 'OET' in versionAbbreviation \
-            and segmentType in ('book','chapter','section') and refBBB in state.preloadedBibles['OET-RV']:
-                # Always go to a related passage display
-                # print( f"{state.sectionsListsForSections[versionAbbreviation]}")
-                sectionNumber = findSectionNumber( versionAbbreviation, refBBB, refC, refV, state )
-                if sectionNumber is not None:
-                    sectionReferenceLink = f'../../rel/{refBBB}/{refBBB}_S{sectionNumber}.htm#V{refV}'
-                else:
-                    logging.critical( f"unable_to_find_reference for {versionAbbreviation} {refBBB} {refC}:{refV} {[f'{startC}:{startV}…{endC}:{endV}' for n, startC,startV,endC,endV,_sectionName,_reasonName,_contextList,_verseEntryList,_sFilename in state.sectionsListsForSections[versionAbbreviation][refBBB]]}" )
-                    assert False, f"unable_to_find_reference -- need to write more code: unable_to_find_IOR for {versionAbbreviation} {refBBB} {refC}:{refV} {[f'{startC}:{startV}…{endC}:{endV}' for n,startC,startV,endC,endV,sectionName,reasonName,contextList,verseEntryList,sFilename in state.sectionsListsForSections[versionAbbreviation][refBBB]]}"
-                # print( f"  {sectionNumber=} {sectionReferenceLink=}")
-            elif segmentType == 'book':
-                sectionReferenceLink = f'{refBBB}.htm#C{refC}V{refV}'
-            elif segmentType == 'chapter':
-                sectionReferenceLink = f'{refBBB}_C{refC}.htm#V{refV}'
-            elif segmentType == 'section':
-                # print( f"{state.sectionsListsForSections[versionAbbreviation]}")
-                sectionNumber = findSectionNumber( versionAbbreviation, refBBB, refC, refV, state )
-                if sectionNumber is not None:
-                    sectionReferenceLink = f'{refBBB}_S{sectionNumber}.htm#V{refV}'
-                else:
-                    logging.critical( f"unable_to_find_section_reference for {refBBB} {refC}:{refV}" )
-                    sectionReferenceLink = f'{refBBB}_C{refC}.htm#V{refV}' # Do a chapter link instead
-                    if refBBB in state.preloadedBibles[versionAbbreviation]:
-                        logging.critical( f"  {[f'{startC}:{startV}…{endC}:{endV}' for startC,startV,endC,endV,_sectionName,_reasonName,_contextList,_verseEntryList,_sFilename in state.sectionsListsForSections[versionAbbreviation]]}" )
-                        unable_to_find_section_reference # Need to write more code
-                # print( f"  {sectionNumber=} {sectionReferenceLink=}")
-            else: raise ValueError( f"Not a recognised {segmentType=}" )
-        # else:
-        #     # logging.warning( f"Not one colon from livenSectionReferencesDigits( {versionAbbreviation}, {refTuple}, {segmentType}, {refBBB} '{sectionReferenceDigitsText}' )" )
-        #     sectionReferenceLink = sectionReferenceDigitsText
-
-        # dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  livenSectionReferences( {versionAbbreviation}, {refTuple}, {segmentType}, '{sectionReferenceText}' ) about to return {sectionReferenceLink=}" )
-        return sectionReferenceLink
-    # end of usfm.livenSectionReferences.livenSectionReferencesDigits function
-
-    sectionReferenceHtml = ''
-    currentBBB = None
-    for n,token in enumerate( tokens ):
-        dPrint( 'Info', DEBUGGING_THIS_MODULE, f" livenSectionReferences( {versionAbbreviation}, {refTuple}, {segmentType}, '{sectionReferenceText}' ) processing {n}: {token=}…" )
-        if not token: # then the previous one was ended by a semi-colon
-            # Usually this means a change of book or chapter
-            pass # We don't actually need to do anything here
-        elif token.startswith('1 ') or token.startswith('2 ') or token.startswith('3 ') \
-          or token.startswith('I ') or token.startswith('II ') or token.startswith('III ') \
-          or token.startswith('Song of'):
-            # Then we expect the token to start with something like '1 Cor.'
-            assert token.count( ' ' ) >= 2, f"Bad {token=} from {versionAbbreviation} {refTuple} {segmentType} {currentBBB} {sectionReferenceText=}"
-            bookAbbrev, rest = token.rsplit( ' ', 1 )
-            currentBBB = getBBBFromOETBookName( bookAbbrev, f"livenSectionReferences( {versionAbbreviation}, {refTuple}, {segmentType}, '{sectionReferenceText}' ) {token=}" )
-            assert currentBBB in BOOKLIST_66, f"{currentBBB=} from {bookAbbrev=} in livenSectionReferences( {versionAbbreviation}, {refTuple}, {segmentType}, '{sectionReferenceText}' ) processing {n}: {token=}…"
-            if currentBBB is None:
-                logging.critical( f"livenSectionReferences1 was unable to find a book for '{token}' from '{sectionReferenceText}'" )
-                liveLink = None
-            elif currentBBB not in state.preloadedBibles[versionAbbreviation]:
-                liveLink = None
-            else:
-                liveLink = livenSectionReferencesDigits( versionAbbreviation, refTuple, segmentType, currentBBB, rest, state )
-            tokenSectionReferenceHtml = f'<a href="{liveLink}">{token}</a>' \
-                if liveLink and ('ALL' in state.booksToLoad[versionAbbreviation] or currentBBB in state.booksToLoad[versionAbbreviation]) \
-                else token
-            delimiter = '' if not sectionReferenceHtml else ', ' if n<2 or token[n-1] else '; '
-            sectionReferenceHtml = f'{sectionReferenceHtml}{delimiter}{tokenSectionReferenceHtml}'
-        elif (currentBBB is None or token[0].isalpha()) \
-        and token.count(' ') == 1:
-            # Then we expect the token to start with a bookname abbreviation
-            # assert token.count( ' ' ) == 1, f"livenSectionReferences expected exactly one space in {versionAbbreviation}, {refTuple}, {segmentType}, '{token}' from '{sectionReferenceText}'"
-            bookAbbrev, rest = token.split( ' ' ) # Assumes only one space
-            currentBBB = getBBBFromOETBookName( bookAbbrev, f"livenSectionReferences( {versionAbbreviation}, {refTuple}, {segmentType}, '{sectionReferenceText}' ) {token=}" )
-            if currentBBB is None:
-                logging.error( f"livenSectionReferences2 was unable to find a book for '{token}' from '{sectionReferenceText}'" )
-                liveLink = None
-            else:
-                liveLink = livenSectionReferencesDigits( versionAbbreviation, refTuple, segmentType, currentBBB, rest, state )
-            tokenSectionReferenceHtml = f'<a href="{liveLink}">{token}</a>' \
-                if liveLink and ('ALL' in state.booksToLoad[versionAbbreviation] or currentBBB in state.booksToLoad[versionAbbreviation]) \
-                else token
-            delimiter = '' if not sectionReferenceHtml else ', ' if n<2 or tokens[n-1] else '; '
-            sectionReferenceHtml = f'{sectionReferenceHtml}{delimiter}{tokenSectionReferenceHtml}'
-        else:
-            logging.error( f"livenSectionReferences was unable to parse '{token}' from {versionAbbreviation} {refTuple} {segmentType} '{sectionReferenceText}'" )
-            delimiter = '' if not sectionReferenceHtml else ', ' if n<2 or tokens[n-1] else '; '
-            sectionReferenceHtml = f'{sectionReferenceHtml}{delimiter}{token}'
-
-    if not sectionReferenceHtml: sectionReferenceHtml = sectionReferenceText # At least return the original text rather than nothing
-    dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  livenSectionReferences( {versionAbbreviation}, {refTuple}, {segmentType}, '{sectionReferenceText}' ) about to return {sectionReferenceHtml=}" )
-    assert len(sectionReferenceHtml)+(2 if enclosedByParentheses else 0) >= len(sectionReferenceText), f"livenSectionReferences( {versionAbbreviation}, {refTuple}, {segmentType}, ({len(sectionReferenceText)}) {sectionReferenceText=} ) => ({len(sectionReferenceHtml)}) {sectionReferenceHtml}"
-    return f'({sectionReferenceHtml})' if enclosedByParentheses else sectionReferenceHtml
-# end of usfm.livenSectionReferences function
-
 
 
 def briefDemo() -> None:

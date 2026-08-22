@@ -3,6 +3,13 @@
 //! This module contains the main verse-entry-to-HTML conversion pipeline
 //! which loops through processed USFM line entries and produces a complete
 //! HTML segment.
+//!
+//! Changelog:
+//!  2026-08-22: Fixed list-close ordering bugs inherited from usfm.py — an
+//!              open <li> is now closed BEFORE its enclosing </ul>, both in
+//!              close_list() and in the li level-drop recovery branch.
+//!  2026-08-22: PSA background colours (\zN) now persist across following
+//!              lines like Python's nonlocal backgroundColour (reset by 'c').
 
 use crate::character_formatting::convert_usfm_character_formatting;
 use crate::constants::*;
@@ -321,7 +328,7 @@ where
 ///
 /// Takes flat data extracted from Python's `InternalBibleEntry` objects
 /// and closure callbacks for operations that must remain in Python.
-pub fn convert_verse_entry_list_to_html_core<FCFmt, CCopyFig, FSect, FGetOBI, CCheckHtml>(
+pub fn convert_verse_entry_list_to_html_core<FCFmt, CCopyFig, FSect, FAvail, FGetOBI, CCheckHtml>(
     level: usize,
     version_abbreviation: &str,
     bbb: &str,
@@ -335,6 +342,7 @@ pub fn convert_verse_entry_list_to_html_core<FCFmt, CCopyFig, FSect, FGetOBI, CC
     convert_char_formatting: FCFmt,
     _copy_fig_files: CCopyFig,
     find_section_fn: FSect,
+    is_book_available: FAvail,
     get_open_bible_images: FGetOBI,
     _check_html: CCheckHtml,
 ) -> Result<String, ConvertError>
@@ -342,6 +350,7 @@ where
     FCFmt: Fn(&str, &str, &str, &str, bool, &mut Option<String>) -> Result<String, ConvertError>,
     CCopyFig: Fn(&[(String, String)]),
     FSect: Fn(&str, &str, &str, &str) -> Option<usize>,
+    FAvail: Fn(&str, &str) -> bool,
     FGetOBI: Fn(usize, &str, &str, &str, &str) -> Option<String>,
     CCheckHtml: Fn(&str, &str) -> bool,
 {
@@ -832,7 +841,7 @@ where
                     let guts = liven_section_references_core(
                         version_abbreviation, (bbb, c, v), segment_type, rest_str,
                         &find_section_fn,
-                        |_, _| true, // simplified: always available
+                        &is_book_available,
                     );
                     html.push_str(&(format!(r#"<p class="r">{guts}</p><!--r-->"#) + "\n"));
                 }
@@ -1004,6 +1013,13 @@ where
                         html.push_str(&format!("\n{}<ul>\n", " ".repeat(marker_level - 1)));
                         state.in_list = Some(format!("ul_{}", current_level + 1));
                     } else if marker_level < current_level {
+                        // Close the still-open previous <li> BEFORE the </ul>(s),
+                        // otherwise we'd emit </ul> while the item is still open.
+                        // (Python's original emitted these in the wrong order here.)
+                        if state.in_list_entry != ListEntry::None {
+                            html.push_str("</li>\n");
+                            state.in_list_entry = ListEntry::None;
+                        }
                         if marker_level < current_level - 1 { // it's more than one level down
                             html.push_str(&format!("{}</ul>\n", " ".repeat(current_level - 1)));
                             current_level -= 1;
@@ -1265,7 +1281,7 @@ fn expanded_char_markers_list() -> Vec<String> {
 /// callback), handles figure-file copying via `destination_folder`, and
 /// keeps Python callbacks only for OBI images, HTML validation, and
 /// section-number lookup.
-pub fn convert_verse_entry_list_to_html_standalone<FSect, FGetOBI, CCheckHtml>(
+pub fn convert_verse_entry_list_to_html_standalone<FSect, FAvail, FGetOBI, CCheckHtml>(
     level: usize,
     version_abbreviation: &str,
     bbb: &str,
@@ -1277,12 +1293,14 @@ pub fn convert_verse_entry_list_to_html_standalone<FSect, FGetOBI, CCheckHtml>(
     basic_only: bool,
     is_single_chapter_book: bool,
     find_section_fn: FSect,
+    is_book_available: FAvail,
     get_open_bible_images: FGetOBI,
     check_html: CCheckHtml,
     destination_folder: Option<&str>,
 ) -> Result<String, ConvertError>
 where
     FSect: Fn(&str, &str, &str, &str) -> Option<usize> + Clone,
+    FAvail: Fn(&str, &str) -> bool,
     FGetOBI: Fn(usize, &str, &str, &str, &str) -> Option<String>,
     CCheckHtml: Fn(&str, &str) -> bool,
 {
@@ -1299,10 +1317,11 @@ where
         bo: bool,
         bg: &mut Option<String>,
     | -> Result<String, ConvertError> {
+        // `bg` is passed straight through as an in/out parameter so that a \zN
+        // colour persists across lines (like Python's nonlocal backgroundColour)
         let result = convert_usfm_character_formatting(
-            va, inner_bbb, st, field, bo, &char_markers, &nt27, is_net, level,
+            va, inner_bbb, st, field, bo, bg, &char_markers, &nt27, is_net, level,
         );
-        *bg = result.background_colour;
         Ok(result.html)
     };
 
@@ -1329,6 +1348,7 @@ where
         convert_char_formatting,
         copy_fig_files,
         find_section_fn,
+        is_book_available,
         get_open_bible_images,
         check_html,
     )?;
@@ -1382,7 +1402,11 @@ fn close_list(html: &mut String, state: &mut ConvertState) {
         let marker = parts[0];
         let mut depth: usize = parts.get(1).and_then(|s| s.parse().ok()).unwrap_or(1);
         while depth > 0 {
-            if depth > 1 && state.in_list_entry == ListEntry::Generic {
+            // Close any open list entry BEFORE its enclosing </ul>, otherwise
+            // we'd emit </ul> while the last <li> is still open.
+            // (Python's original only closed legacy generic entries here, so
+            // specific li entries were never closed — ported verbatim.)
+            if state.in_list_entry != ListEntry::None {
                 html.push_str("</li>\n");
                 state.in_list_entry = ListEntry::None;
             }
@@ -1413,6 +1437,7 @@ mod tests {
     }
     fn no_op_fig(_files: &[(String, String)]) {}
     fn no_op_sect(_va: &str, _bbb: &str, _c: &str, _v: &str) -> Option<usize> { None }
+    fn no_op_avail(_va: &str, _bbb: &str) -> bool { true }
     fn no_op_obi(_l: usize, _st: &str, _b: &str, _c: &str, _v: &str) -> Option<String> { None }
     fn no_op_check(_w: &str, _h: &str) -> bool { true }
 
@@ -1424,7 +1449,7 @@ mod tests {
         let result = convert_verse_entry_list_to_html_core(
             1, "KJB", "GEN", Some("1"), Some("1"),
             "parallelVerse", &["chapters"], &entries, false, false,
-            no_op_char_fmt, no_op_fig, no_op_sect, no_op_obi, no_op_check,
+            no_op_char_fmt, no_op_fig, no_op_sect, no_op_avail, no_op_obi, no_op_check,
         ).unwrap();
         assert!(result.contains("In the beginning."));
         assert!(result.contains("KJB_verseTextChunk"));
@@ -1438,7 +1463,7 @@ mod tests {
         let result = convert_verse_entry_list_to_html_core(
             1, "KJB", "GEN", Some("1"), Some("1"),
             "parallelVerse", &["chapters"], &entries, true, false,
-            no_op_char_fmt, no_op_fig, no_op_sect, no_op_obi, no_op_check,
+            no_op_char_fmt, no_op_fig, no_op_sect, no_op_avail, no_op_obi, no_op_check,
         ).unwrap();
         assert!(result.contains("God created."));
     }
@@ -1448,6 +1473,71 @@ mod tests {
         assert_eq!(rreplace("a-b-c-d", "-", "/", 2), "a-b/c/d");
         assert_eq!(rreplace("hello", "x", "y", 1), "hello");
         assert_eq!(rreplace("aaa", "a", "b", 2), "abb");
+    }
+
+    #[test]
+    fn test_psa_background_colour_persists_across_lines() {
+        // Regression: Python's nonlocal backgroundColour persists after a \z1
+        // line, so following lines stay coloured until a new chapter resets it.
+        let entries = vec![
+            VerseEntry { marker: "v".into(), full_text: "1".into(), clean_text: "1".into() },
+            VerseEntry { marker: "v~".into(), full_text: "\\z1 Coloured line.".into(), clean_text: "Coloured line.".into() },
+            VerseEntry { marker: "\u{AC}v".into(), full_text: String::new(), clean_text: String::new() },
+            VerseEntry { marker: "v".into(), full_text: "2".into(), clean_text: "2".into() },
+            VerseEntry { marker: "v~".into(), full_text: "Still coloured line.".into(), clean_text: "Still coloured line.".into() },
+            VerseEntry { marker: "\u{AC}v".into(), full_text: String::new(), clean_text: String::new() },
+        ];
+        let result = convert_verse_entry_list_to_html_standalone(
+            0, "OET-RV", "PSA", Some("23"), Some("1"),
+            "chapter", &["chapters"], &entries, false, false,
+            |_, _, _, _| None,           // find_section_fn
+            |_, _| true,                 // is_book_available
+            |_, _, _, _, _| None,        // get_open_bible_images
+            |_, _| true,                 // check_html
+            None,                        // destination_folder
+        ).unwrap();
+        assert!(result.contains("<span class=\"z1\">"), "first line should be coloured:\n{result}");
+        assert_eq!(result.matches("<!--z1-->").count(), 2, "colour should persist onto second line:\n{result}");
+    }
+
+    #[test]
+    fn test_list_close_emits_li_before_ul() {
+        // Regression: ¬list with the last <li> still open used to emit </ul>
+        // without ever closing the item (ListEntry::Generic was never set).
+        let entries = vec![
+            VerseEntry { marker: "list".into(), full_text: String::new(), clean_text: String::new() },
+            VerseEntry { marker: "li1".into(), full_text: "Alpha.".into(), clean_text: "Alpha.".into() },
+            VerseEntry { marker: "\u{AC}li1".into(), full_text: String::new(), clean_text: String::new() },
+            VerseEntry { marker: "li1".into(), full_text: "Beta.".into(), clean_text: "Beta.".into() },
+            VerseEntry { marker: "\u{AC}list".into(), full_text: String::new(), clean_text: String::new() },
+        ];
+        let result = convert_verse_entry_list_to_html_core(
+            1, "KJB", "GEN", Some("1"), Some("1"),
+            "book", &["chapters"], &entries, false, false,
+            no_op_char_fmt, no_op_fig, no_op_sect, no_op_avail, no_op_obi, no_op_check,
+        ).unwrap();
+        assert!(result.contains("Beta.</li>\n</ul>"), "expected </li> before </ul>, got:\n{result}");
+    }
+
+    #[test]
+    fn test_li_drop_closes_li_before_ul() {
+        // Regression: dropping from li2 back to li1 without an intervening
+        // end-marker (Python's 'Not inList C' recovery path) emitted </ul>
+        // while the previous item's <li> was still open.
+        let entries = vec![
+            VerseEntry { marker: "list".into(), full_text: String::new(), clean_text: String::new() },
+            VerseEntry { marker: "li1".into(), full_text: "Top.".into(), clean_text: "Top.".into() },
+            VerseEntry { marker: "li2".into(), full_text: "Nested.".into(), clean_text: "Nested.".into() },
+            VerseEntry { marker: "li1".into(), full_text: "Back top.".into(), clean_text: "Back top.".into() },
+            VerseEntry { marker: "\u{AC}li1".into(), full_text: String::new(), clean_text: String::new() },
+            VerseEntry { marker: "\u{AC}list".into(), full_text: String::new(), clean_text: String::new() },
+        ];
+        let result = convert_verse_entry_list_to_html_core(
+            1, "KJB", "GEN", Some("1"), Some("1"),
+            "book", &["chapters"], &entries, false, false,
+            no_op_char_fmt, no_op_fig, no_op_sect, no_op_avail, no_op_obi, no_op_check,
+        ).unwrap();
+        assert!(result.contains("Nested.</li>\n </ul>"), "expected </li> closed before </ul> on drop, got:\n{result}");
     }
 
     #[test]

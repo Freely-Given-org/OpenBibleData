@@ -72,6 +72,7 @@ CHANGELOG:
     2026-04-01 Added JSON word files in app/
     2026-04-22 Section indexes are now made BEFORE pickling
     2026-07-04 Added OBI pictures and a few more version numbers on About page, etc.
+    2026-08-22 Added FRT to OET books (even though no OET-LV version)
 """
 from pathlib import Path
 import os
@@ -102,10 +103,10 @@ from html import makeTop, makeViewNavListParagraph, makeBottom, checkHtml
 from spellCheckEnglish import printSpellCheckSummary
 
 
-LAST_MODIFIED_DATE = '2026-08-20' # by RJH
+LAST_MODIFIED_DATE = '2026-08-22' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData (OBD) Create Site Pages"
-PROGRAM_VERSION = '1.0.4'
+PROGRAM_VERSION = '1.0.5'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
@@ -197,7 +198,7 @@ def _createSitePages() -> bool:
             rvBible = state.preloadedBibles['OET-RV']
             rvBooks = rvBible.books.keys() if 'ALL' in state.booksToLoad[rvBible.abbreviation] else state.booksToLoad[rvBible.abbreviation]
             lvBooks = lvBible.books.keys() if 'ALL' in state.booksToLoad[lvBible.abbreviation] else state.booksToLoad[lvBible.abbreviation]
-            state.BBBsToProcess['OET'] = reorderBooksForOETVersions( [rvKey for rvKey in rvBooks if rvKey in lvBooks] )
+            state.BBBsToProcess['OET'] = reorderBooksForOETVersions( [rvKey for rvKey in rvBooks if rvKey in lvBooks or rvKey=='FRT'] )
             state.BBBLinks['OET'] = []
             for BBB in state.BBBsToProcess['OET']:
                 filename = f'{BBB}.htm'

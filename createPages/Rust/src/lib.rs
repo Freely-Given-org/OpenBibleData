@@ -16,26 +16,73 @@ pub mod verse_entry_list;
 
 pub use intro_links::{liven_introduction_links_core, IntroLinkError};
 pub use ior_links::{liven_iors_core, IORLinkError};
-pub use oet_books::get_bbb_from_oet_book_name;
 pub use roman_numerals::to_roman_numerals;
 pub use character_formatting::{convert_usfm_character_formatting, CharacterFormattingResult};
-pub use xref_links::{liven_xref_field_core, XRefError};
 
-/// Convert an original book name to its 3-character BOS Book Code (BBB).
-#[pyfunction]
-#[pyo3(name = "get_bbb_from_oet_book_name")]
-fn get_bbb_from_oet_book_name_py(book_name: &str) -> PyResult<Option<&'static str>> {
-    Ok(get_bbb_from_oet_book_name(book_name))
+/// Build a section-number lookup callback that calls back into Python's
+/// `createSectionPages.findSectionNumber` via the optional State object.
+///
+/// All PyO3 wrappers that need live section numbers use this shared helper;
+/// the actual linking logic lives in the pure-Rust `*_core` functions.
+fn py_find_section_fn<'s>(
+    state: Option<&'s Bound<'_, PyAny>>,
+) -> impl Fn(&str, &str, &str, &str) -> Option<usize> + Clone + 's {
+    move |v_abbr: &str, bbb: &str, c: &str, v: &str| -> Option<usize> {
+        if let Some(state_obj) = state {
+            let py_env = state_obj.py();
+            if let Ok(module) = py_env.import("createSectionPages") {
+                if let Ok(func) = module.getattr("findSectionNumber") {
+                    if let Ok(res) = func.call1((v_abbr, bbb, c, v, state_obj)) {
+                        if let Ok(opt_num) = res.extract::<Option<usize>>() {
+                            return opt_num;
+                        }
+                    }
+                }
+            }
+        }
+        None
+    }
 }
 
-/// CamelCase alias for get_bbb_from_oet_book_name.
-#[pyfunction]
-#[pyo3(name = "getBBBFromOETBookName")]
-fn get_bbb_from_oet_book_name_camel_py(book_name: &str) -> PyResult<Option<&'static str>> {
-    Ok(get_bbb_from_oet_book_name(book_name))
+/// Build a book-availability callback that checks the optional State object's
+/// `booksToLoad` (mirroring Python's
+/// `'ALL' in state.booksToLoad[vAbbr] or bbb in state.booksToLoad[vAbbr]`).
+///
+/// Returns true when no State is supplied (e.g., from test programs), so that
+/// behaviour stays permissive there.
+fn py_is_book_available_fn<'s>(
+    state: Option<&'s Bound<'_, PyAny>>,
+) -> impl Fn(&str, &str) -> bool + Clone + 's {
+    move |v_abbr: &str, bbb: &str| -> bool {
+        if let Some(state_obj) = state {
+            let books_to_load = match state_obj.getattr("booksToLoad") {
+                Ok(btl) if !btl.is_none() => btl,
+                _ => return true, // can't determine -- stay permissive
+            };
+            let book_list = match books_to_load.get_item(v_abbr) {
+                Ok(list) if !list.is_none() => list,
+                _ => return true,
+            };
+            if let Ok(iter) = book_list.try_iter() {
+                for item in iter.flatten() {
+                    if let Ok(entry) = item.extract::<String>() {
+                        if entry == "ALL" || entry == bbb {
+                            return true;
+                        }
+                    }
+                }
+            }
+            return false;
+        }
+        true
+    }
 }
 
 /// Liven introduction links in HTML text using Rust.
+///
+/// Currently only called from Python test programs — production Python reaches
+/// this logic via `convertVerseEntryListToHtml`, which calls
+/// `intro_links::liven_introduction_links_core` internally.
 #[pyfunction]
 #[pyo3(
     name = "liven_introduction_links",
@@ -68,21 +115,7 @@ fn liven_introduction_links_py<'py>(
         ));
     };
 
-    let find_section_fn = |v_abbr: &str, bbb: &str, c: &str, v: &str| -> Option<usize> {
-        if let Some(state_obj) = state {
-            let py_env = state_obj.py();
-            if let Ok(module) = py_env.import("createSectionPages") {
-                if let Ok(func) = module.getattr("findSectionNumber") {
-                    if let Ok(res) = func.call1((v_abbr, bbb, c, v, state_obj)) {
-                        if let Ok(opt_num) = res.extract::<Option<usize>>() {
-                            return opt_num;
-                        }
-                    }
-                }
-            }
-        }
-        None
-    };
+    let find_section_fn = py_find_section_fn(state);
 
     match liven_introduction_links_core(
         version_abbreviation,
@@ -102,24 +135,11 @@ fn liven_introduction_links_py<'py>(
     }
 }
 
-/// CamelCase alias for liven_introduction_links.
-#[pyfunction]
-#[pyo3(
-    name = "livenIntroductionLinks",
-    signature = (version_abbreviation, ref_tuple, segment_type, intro_html, state=None)
-)]
-fn liven_introduction_links_camel_py<'py>(
-    py: Python<'py>,
-    version_abbreviation: &str,
-    ref_tuple: &Bound<'py, PyAny>,
-    segment_type: &str,
-    intro_html: &str,
-    state: Option<&Bound<'py, PyAny>>,
-) -> PyResult<String> {
-    liven_introduction_links_py(py, version_abbreviation, ref_tuple, segment_type, intro_html, state)
-}
-
 /// Convert an integer or integer string to Roman numerals.
+///
+/// Currently only called from Python test programs — production Python reaches
+/// this logic via `convertVerseEntryListToHtml`, which calls
+/// `roman_numerals::to_roman_numerals` internally.
 #[pyfunction]
 #[pyo3(name = "to_roman_numerals")]
 fn to_roman_numerals_py(num: &Bound<'_, PyAny>) -> PyResult<String> {
@@ -149,14 +169,11 @@ fn to_roman_numerals_py(num: &Bound<'_, PyAny>) -> PyResult<String> {
     Ok(to_roman_numerals(val))
 }
 
-/// CamelCase alias for to_roman_numerals.
-#[pyfunction]
-#[pyo3(name = "toRomanNumerals")]
-fn to_roman_numerals_camel_py(num: &Bound<'_, PyAny>) -> PyResult<String> {
-    to_roman_numerals_py(num)
-}
-
 /// Liven IOR (Introduction Outline Reference) links in HTML text using Rust.
+///
+/// Currently only called from Python test programs — production Python reaches
+/// this logic via `convertVerseEntryListToHtml`, which calls
+/// `ior_links::liven_iors_core` internally.
 #[pyfunction]
 #[pyo3(
     name = "liven_iors",
@@ -171,21 +188,7 @@ fn liven_iors_py<'py>(
     is_single_chapter: bool,
     state: Option<&Bound<'py, PyAny>>,
 ) -> PyResult<String> {
-    let find_section_fn = |v_abbr: &str, bbb: &str, c: &str, v: &str| -> Option<usize> {
-        if let Some(state_obj) = state {
-            let py_env = state_obj.py();
-            if let Ok(module) = py_env.import("createSectionPages") {
-                if let Ok(func) = module.getattr("findSectionNumber") {
-                    if let Ok(res) = func.call1((v_abbr, bbb, c, v, state_obj)) {
-                        if let Ok(opt_num) = res.extract::<Option<usize>>() {
-                            return opt_num;
-                        }
-                    }
-                }
-            }
-        }
-        None
-    };
+    let find_section_fn = py_find_section_fn(state);
 
     match liven_iors_core(version_abbreviation, our_bbb, segment_type, ior_html, is_single_chapter, find_section_fn) {
         Ok(res) => Ok(res),
@@ -196,25 +199,11 @@ fn liven_iors_py<'py>(
     }
 }
 
-/// CamelCase alias for liven_iors.
-#[pyfunction]
-#[pyo3(
-    name = "livenIORs",
-    signature = (version_abbreviation, our_bbb, segment_type, ior_html, is_single_chapter, state=None)
-)]
-fn liven_iors_camel_py<'py>(
-    py: Python<'py>,
-    version_abbreviation: &str,
-    our_bbb: &str,
-    segment_type: &str,
-    ior_html: &str,
-    is_single_chapter: bool,
-    state: Option<&Bound<'py, PyAny>>,
-) -> PyResult<String> {
-    liven_iors_py(py, version_abbreviation, our_bbb, segment_type, ior_html, is_single_chapter, state)
-}
-
 /// Convert USFM character formatting to HTML using Rust.
+///
+/// Currently only called from Python test programs — production Python reaches
+/// this logic via `convertVerseEntryListToHtml`, which calls
+/// `character_formatting::convert_usfm_character_formatting` internally.
 #[pyfunction]
 #[pyo3(
     name = "convert_usfm_character_formatting",
@@ -234,12 +223,14 @@ fn convert_usfm_character_formatting_py(
 ) -> PyResult<Py<PyAny>> {
     use pyo3::types::PyDict;
 
+    let mut background_colour: Option<String> = None;
     let result = convert_usfm_character_formatting(
         version_abbrev,
         bbb,
         segment_type,
         usfm_field,
         basic_only,
+        &mut background_colour,
         &expanded_char_markers,
         &booklist_nt27,
         is_net_version,
@@ -248,125 +239,9 @@ fn convert_usfm_character_formatting_py(
 
     let dict = PyDict::new(py);
     dict.set_item("html", result.html)?;
-    dict.set_item("background_colour", result.background_colour)?;
+    dict.set_item("background_colour", background_colour)?;
     dict.set_item("files_to_copy", result.files_to_copy)?;
     Ok(dict.into())
-}
-
-/// CamelCase alias for convert_usfm_character_formatting.
-#[pyfunction]
-#[pyo3(
-    name = "convertUSFMCharacterFormatting",
-    signature = (version_abbrev, bbb, segment_type, usfm_field, basic_only, expanded_char_markers, booklist_nt27, is_net_version, level=0)
-)]
-fn convert_usfm_character_formatting_camel_py(
-    py: Python,
-    version_abbrev: &str,
-    bbb: &str,
-    segment_type: &str,
-    usfm_field: &str,
-    basic_only: bool,
-    expanded_char_markers: Vec<String>,
-    booklist_nt27: Vec<String>,
-    is_net_version: bool,
-    level: usize,
-) -> PyResult<Py<PyAny>> {
-    convert_usfm_character_formatting_py(
-        py,
-        version_abbrev,
-        bbb,
-        segment_type,
-        usfm_field,
-        basic_only,
-        expanded_char_markers,
-        booklist_nt27,
-        is_net_version,
-        level,
-    )
-}
-
-/// Liven a cross-reference or footnote xt field using Rust.
-///
-/// Parameters match the Python `livenXRefField` signature:
-///   field_type, version_abbreviation, bbb, c, v, segment_type,
-///   path_prefix, xo_text, xref_original_middle, state=None
-#[pyfunction]
-#[pyo3(
-    name = "liven_xref_field",
-    signature = (field_type, version_abbreviation, bbb, c, v, segment_type, path_prefix, xo_text, xref_original_middle, state=None)
-)]
-fn liven_xref_field_py<'py>(
-    _py: Python<'py>,
-    field_type: &str,
-    version_abbreviation: &str,
-    bbb: &str,
-    c: &str,
-    v: &str,
-    segment_type: &str,
-    path_prefix: &str,
-    xo_text: &str,
-    xref_original_middle: &str,
-    state: Option<&Bound<'py, PyAny>>,
-) -> PyResult<String> {
-    let find_section_fn = |v_abbr: &str, target_bbb: &str, target_c: &str, target_v: &str| -> Option<usize> {
-        if let Some(state_obj) = state {
-            let py_env = state_obj.py();
-            if let Ok(module) = py_env.import("createSectionPages") {
-                if let Ok(func) = module.getattr("findSectionNumber") {
-                    if let Ok(res) = func.call1((v_abbr, target_bbb, target_c, target_v, state_obj)) {
-                        if let Ok(opt_num) = res.extract::<Option<usize>>() {
-                            return opt_num;
-                        }
-                    }
-                }
-            }
-        }
-        None
-    };
-
-    match liven_xref_field_core(
-        field_type,
-        version_abbreviation,
-        bbb,
-        c,
-        v,
-        segment_type,
-        path_prefix,
-        xo_text,
-        xref_original_middle,
-        find_section_fn,
-    ) {
-        Ok(result) => Ok(result),
-        Err(XRefError::InvalidFieldType(ft)) => {
-            Err(PyValueError::new_err(format!("Invalid fieldType: {ft}")))
-        }
-        Err(XRefError::InvalidSegmentType(seg)) => {
-            Err(PyValueError::new_err(format!("Unsupported segmentType: {seg}")))
-        }
-        Err(XRefError::Custom(msg)) => Err(PyValueError::new_err(msg)),
-    }
-}
-
-/// CamelCase alias for liven_xref_field.
-#[pyfunction]
-#[pyo3(
-    name = "livenXRefField",
-    signature = (field_type, version_abbreviation, bbb, c, v, segment_type, path_prefix, xo_text, xref_original_middle, state=None)
-)]
-fn liven_xref_field_camel_py<'py>(
-    py: Python<'py>,
-    field_type: &str,
-    version_abbreviation: &str,
-    bbb: &str,
-    c: &str,
-    v: &str,
-    segment_type: &str,
-    path_prefix: &str,
-    xo_text: &str,
-    xref_original_middle: &str,
-    state: Option<&Bound<'py, PyAny>>,
-) -> PyResult<String> {
-    liven_xref_field_py(py, field_type, version_abbreviation, bbb, c, v, segment_type, path_prefix, xo_text, xref_original_middle, state)
 }
 
 // ── verse_entry_list PyO3 wrapper ──────────────────────────────────────────
@@ -447,21 +322,8 @@ fn convert_verse_entry_list_to_html_py<'py>(
     }
 
     // Build find_section_fn callback
-    let find_section_fn = |v_abbr: &str, target_bbb: &str, target_c: &str, target_v: &str| -> Option<usize> {
-        if let Some(state_obj) = state {
-            let py_env = state_obj.py();
-            if let Ok(module) = py_env.import("createSectionPages") {
-                if let Ok(func) = module.getattr("findSectionNumber") {
-                    if let Ok(res) = func.call1((v_abbr, target_bbb, target_c, target_v, state_obj)) {
-                        if let Ok(opt_num) = res.extract::<Option<usize>>() {
-                            return opt_num;
-                        }
-                    }
-                }
-            }
-        }
-        None
-    };
+    let find_section_fn = py_find_section_fn(state);
+    let is_book_available = py_is_book_available_fn(state);
 
     let no_op_obi = |_l: usize, _st: &str, _b: &str, _c: &str, _v: &str| -> Option<String> { None };
     let no_op_check = |_w: &str, _h: &str| -> bool { true };
@@ -480,6 +342,7 @@ fn convert_verse_entry_list_to_html_py<'py>(
         basicOnly,
         is_single_chapter_book,
         find_section_fn,
+        is_book_available,
         &no_op_obi,
         &no_op_check,
         destination_folder.as_deref(),
@@ -495,6 +358,10 @@ fn convert_verse_entry_list_to_html_py<'py>(
 /// Process cross-references in HTML, replacing `\x…\x*` markers with live links.
 ///
 /// Returns `(html, cross_references_html)`.
+///
+/// Currently only called from Python test programs — production Python reaches
+/// this logic via `convertVerseEntryListToHtml`, which calls
+/// `verse_to_html::process_cross_references_core` internally.
 #[pyfunction]
 #[pyo3(name = "process_cross_references")]
 #[pyo3(signature = (html, version_abbreviation, bbb, c, segment_type, path_prefix, state=None))]
@@ -509,21 +376,7 @@ fn process_cross_references_py<'py>(
     state: Option<&Bound<'py, PyAny>>,
 ) -> PyResult<(String, String)> {
     let c = c.unwrap_or("");
-    let find_section_fn = |v_abbr: &str, target_bbb: &str, target_c: &str, target_v: &str| -> Option<usize> {
-        if let Some(state_obj) = state {
-            let py_env = state_obj.py();
-            if let Ok(module) = py_env.import("createSectionPages") {
-                if let Ok(func) = module.getattr("findSectionNumber") {
-                    if let Ok(res) = func.call1((v_abbr, target_bbb, target_c, target_v, state_obj)) {
-                        if let Ok(opt_num) = res.extract::<Option<usize>>() {
-                            return opt_num;
-                        }
-                    }
-                }
-            }
-        }
-        None
-    };
+    let find_section_fn = py_find_section_fn(state);
 
     match verse_to_html::process_cross_references_core(
         html, version_abbreviation, bbb, c, segment_type, path_prefix, find_section_fn,
@@ -533,26 +386,13 @@ fn process_cross_references_py<'py>(
     }
 }
 
-/// CamelCase alias.
-#[pyfunction]
-#[pyo3(name = "processCrossReferences")]
-#[pyo3(signature = (html, version_abbreviation, bbb, c, segment_type, path_prefix, state=None))]
-fn process_cross_references_camel_py<'py>(
-    py: Python<'py>,
-    html: &str,
-    version_abbreviation: &str,
-    bbb: &str,
-    c: Option<&str>,
-    segment_type: &str,
-    path_prefix: &str,
-    state: Option<&Bound<'py, PyAny>>,
-) -> PyResult<(String, String)> {
-    process_cross_references_py(py, html, version_abbreviation, bbb, c, segment_type, path_prefix, state)
-}
-
 /// Process footnotes in HTML, replacing `\f…\f*` markers with caller links.
 ///
 /// Returns `(html, footnotes_html)`.
+///
+/// Currently only called from Python test programs — production Python reaches
+/// this logic via `convertVerseEntryListToHtml`, which calls
+/// `verse_to_html::process_footnotes_core` internally.
 #[pyfunction]
 #[pyo3(name = "process_footnotes")]
 #[pyo3(signature = (html, version_abbreviation, bbb, c, segment_type, path_prefix, max_footnote_chars, state=None))]
@@ -568,21 +408,7 @@ fn process_footnotes_py<'py>(
     state: Option<&Bound<'py, PyAny>>,
 ) -> PyResult<(String, String)> {
     let c = c.unwrap_or("");
-    let find_section_fn = |v_abbr: &str, target_bbb: &str, target_c: &str, target_v: &str| -> Option<usize> {
-        if let Some(state_obj) = state {
-            let py_env = state_obj.py();
-            if let Ok(module) = py_env.import("createSectionPages") {
-                if let Ok(func) = module.getattr("findSectionNumber") {
-                    if let Ok(res) = func.call1((v_abbr, target_bbb, target_c, target_v, state_obj)) {
-                        if let Ok(opt_num) = res.extract::<Option<usize>>() {
-                            return opt_num;
-                        }
-                    }
-                }
-            }
-        }
-        None
-    };
+    let find_section_fn = py_find_section_fn(state);
 
     match verse_to_html::process_footnotes_core(
         html, version_abbreviation, bbb, c, segment_type, path_prefix, max_footnote_chars, find_section_fn,
@@ -592,42 +418,14 @@ fn process_footnotes_py<'py>(
     }
 }
 
-/// CamelCase alias.
-#[pyfunction]
-#[pyo3(name = "processFootnotes")]
-#[pyo3(signature = (html, version_abbreviation, bbb, c, segment_type, path_prefix, max_footnote_chars, state=None))]
-fn process_footnotes_camel_py<'py>(
-    py: Python<'py>,
-    html: &str,
-    version_abbreviation: &str,
-    bbb: &str,
-    c: Option<&str>,
-    segment_type: &str,
-    path_prefix: &str,
-    max_footnote_chars: usize,
-    state: Option<&Bound<'py, PyAny>>,
-) -> PyResult<(String, String)> {
-    process_footnotes_py(py, html, version_abbreviation, bbb, c, segment_type, path_prefix, max_footnote_chars, state)
-}
-
 #[pymodule]
 fn openbibledata_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(liven_introduction_links_py, m)?)?;
-    m.add_function(wrap_pyfunction!(liven_introduction_links_camel_py, m)?)?;
-    m.add_function(wrap_pyfunction!(get_bbb_from_oet_book_name_py, m)?)?;
-    m.add_function(wrap_pyfunction!(get_bbb_from_oet_book_name_camel_py, m)?)?;
     m.add_function(wrap_pyfunction!(to_roman_numerals_py, m)?)?;
-    m.add_function(wrap_pyfunction!(to_roman_numerals_camel_py, m)?)?;
     m.add_function(wrap_pyfunction!(liven_iors_py, m)?)?;
-    m.add_function(wrap_pyfunction!(liven_iors_camel_py, m)?)?;
     m.add_function(wrap_pyfunction!(convert_usfm_character_formatting_py, m)?)?;
-    m.add_function(wrap_pyfunction!(convert_usfm_character_formatting_camel_py, m)?)?;
-    m.add_function(wrap_pyfunction!(liven_xref_field_py, m)?)?;
-    m.add_function(wrap_pyfunction!(liven_xref_field_camel_py, m)?)?;
     m.add_function(wrap_pyfunction!(process_cross_references_py, m)?)?;
-    m.add_function(wrap_pyfunction!(process_cross_references_camel_py, m)?)?;
     m.add_function(wrap_pyfunction!(process_footnotes_py, m)?)?;
-    m.add_function(wrap_pyfunction!(process_footnotes_camel_py, m)?)?;
     m.add_function(wrap_pyfunction!(convert_verse_entry_list_to_html_py, m)?)?;
     Ok(())
 }

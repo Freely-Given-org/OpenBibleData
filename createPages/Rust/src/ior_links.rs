@@ -171,7 +171,7 @@ mod tests {
         let output = liven_iors_core("OET-RV", "MAT", "book", input, false, noop_section_finder).unwrap();
         assert_eq!(
             output,
-            r##"See also <a title="Jump down to reference" href="#C12V12">12:12</a> for more."##
+            r##"See also <span class="ior"><a title="Jump down to reference" href="#C12V12">12:12</a></span> for more."##
         );
     }
 
@@ -181,7 +181,7 @@ mod tests {
         let output = liven_iors_core("OET-RV", "MAT", "chapter", input, false, noop_section_finder).unwrap();
         assert_eq!(
             output,
-            r##"Find it in <a title="Jump to chapter page with reference" href="MAT_C5.htm#C5V13">5:13</a> section."##
+            r##"Find it in <span class="ior"><a title="Jump to chapter page with reference" href="MAT_C5.htm#C5V13">5:13</a></span> section."##
         );
     }
 
@@ -191,7 +191,7 @@ mod tests {
         let output = liven_iors_core("OET-RV", "COL", "Verse", input, false, noop_section_finder).unwrap();
         assert_eq!(
             output,
-            r##"Reference: <a title="Go to reference verse" href="C4V10.htm#Top">4:10</a>."##
+            r##"Reference: <span class="ior"><a title="Go to reference verse" href="C4V10.htm#Top">4:10</a></span>."##
         );
     }
 
@@ -201,7 +201,7 @@ mod tests {
         let output = liven_iors_core("OET-RV", "OBD", "Verse", input, true, noop_section_finder).unwrap();
         assert_eq!(
             output,
-            r##"See <a title="Go to reference verse" href="C1V4.htm#Top">4</a> for details."##
+            r##"See <span class="ior"><a title="Go to reference verse" href="C1V4.htm#Top">4</a></span> for details."##
         );
     }
 
@@ -211,7 +211,7 @@ mod tests {
         let output = liven_iors_core("OET-RV", "MAT", "chapter", input, false, noop_section_finder).unwrap();
         assert_eq!(
             output,
-            r##"See <a title="Jump to chapter page with reference" href="MAT_C4.htm#C4V1">4</a> for details."##
+            r##"See <span class="ior"><a title="Jump to chapter page with reference" href="MAT_C4.htm#C4V1">4</a></span> for details."##
         );
     }
 
@@ -221,7 +221,7 @@ mod tests {
         let output = liven_iors_core("OET-RV", "JHN", "book", input, false, noop_section_finder).unwrap();
         assert_eq!(
             output,
-            r##"In <a title="Jump down to reference" href="#C3V16">3:16</a> and <a title="Jump down to reference" href="#C5V7">5:7</a> we find this."##
+            r##"In <span class="ior"><a title="Jump down to reference" href="#C3V16">3:16</a></span> and <span class="ior"><a title="Jump down to reference" href="#C5V7">5:7</a></span> we find this."##
         );
     }
 
@@ -231,7 +231,7 @@ mod tests {
         let output = liven_iors_core("OET-RV", "MRK", "book", input, false, noop_section_finder).unwrap();
         assert_eq!(
             output,
-            r##"Found in <a title="Jump down to reference" href="#C12V12">12:12-15</a> section."##
+            r##"Found in <span class="ior"><a title="Jump down to reference" href="#C12V12">12:12-15</a></span> section."##
         );
     }
 
@@ -241,7 +241,7 @@ mod tests {
         let output = liven_iors_core("OET-RV", "ROM", "chapter", input, false, noop_section_finder).unwrap();
         assert_eq!(
             output,
-            r##"Range: <a title="Jump to chapter page with reference" href="ROM_C5.htm#C5V3">5:3-8</a>."##
+            r##"Range: <span class="ior"><a title="Jump to chapter page with reference" href="ROM_C5.htm#C5V3">5:3-8</a></span>."##
         );
     }
 
@@ -259,10 +259,10 @@ mod tests {
             // Pretend section 42 exists for 5:13
             if c == "5" && v == "13" { Some(42) } else { None }
         };
-        let output = liven_iors_core("OET-RV", "section", input, false, finder).unwrap();
+        let output = liven_iors_core("OET-RV", "MAT", "section", input, false, finder).unwrap();
         assert_eq!(
             output,
-            r##"See <a title="Jump to section page with reference" href="OET-RV_S42.htm#Top">5:13</a> for context."##
+            r##"See <span class="ior"><a title="Jump to section page with reference" href="MAT_S42.htm#Top">5:13</a></span> for context."##
         );
     }
 
@@ -270,11 +270,11 @@ mod tests {
     fn test_ior_section_segment_finder_returns_none() {
         let input = r#"See <span class="ior">99:1</span> for context."#;
         let finder = |_v: &str, _b: &str, _c: &str, _v2: &str| -> Option<usize> { None };
-        let output = liven_iors_core("OET-RV", "section", input, false, finder).unwrap();
+        let output = liven_iors_core("OET-RV", "JHN", "section", input, false, finder).unwrap();
         // When section not found, guts are returned unchanged
         assert_eq!(
             output,
-            r#"See 99:1 for context."#
+            r#"See <span class="ior">99:1</span> for context."#
         );
     }
 
@@ -287,7 +287,7 @@ mod tests {
         let output = liven_iors_core("OET-RV", "MAT", "relatedPassage", input, false, finder).unwrap();
         assert_eq!(
             output,
-            r##"Ref: <a title="Jump to section page with reference" href="MAT_S7.htm#Top">3:16</a>."##
+            r##"Ref: <span class="ior"><a title="Jump to section page with reference" href="MAT_S7.htm#Top">3:16</a></span>."##
         );
     }
 }

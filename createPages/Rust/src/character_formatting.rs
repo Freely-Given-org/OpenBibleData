@@ -13,13 +13,13 @@ pub fn convert_usfm_character_formatting(
     segment_type: &str,
     usfm_field: &str,
     basic_only: bool,
+    background_colour: &mut Option<String>,
     expanded_char_markers: &[String],
     booklist_nt27: &[String],
     is_net_version: bool,
     level: usize,
 ) -> CharacterFormattingResult {
     let mut html = usfm_field.replace("\\+", "\\");
-    let mut background_colour: Option<String> = None;
     let mut files_to_copy: Vec<(String, String)> = Vec::new();
 
     // Validation
@@ -28,6 +28,9 @@ pub fn convert_usfm_character_formatting(
     }
 
     // === Handle verse colouring in OET-RV Psalms/Songs ===
+    // NOTE: `background_colour` is an in/out parameter (like Python's nonlocal
+    // variable): once set by a \zN marker it persists for all following lines
+    // until a new chapter ('c' marker) resets it.
     if version_abbrev == "OET-RV" && bbb == "PSA" {
         if basic_only {
             if html.contains("\\z") {
@@ -51,20 +54,22 @@ pub fn convert_usfm_character_formatting(
         } else {
             // not basicOnly
             if html.contains("\\z") {
+                // Only *change* the colour if this line carries a plain \zN marker
                 if html.contains("\\zr ") {
-                    background_colour = Some("zr".to_string());
+                    *background_colour = Some("zr".to_string());
                 } else if html.contains("\\z1 ") {
-                    background_colour = Some("z1".to_string());
+                    *background_colour = Some("z1".to_string());
                 } else if html.contains("\\z2 ") {
-                    background_colour = Some("z2".to_string());
+                    *background_colour = Some("z2".to_string());
                 } else if html.contains("\\z3 ") {
-                    background_colour = Some("z3".to_string());
+                    *background_colour = Some("z3".to_string());
                 } else if html.contains("\\z4 ") {
-                    background_colour = Some("z4".to_string());
+                    *background_colour = Some("z4".to_string());
                 }
             }
 
-            if let Some(ref bg_color) = background_colour {
+            // No \z in this line, but we might still be coloured (persisted from before)
+            if let Some(ref bg_color) = *background_colour {
                 html = format!("<span class=\"{}\">{}</span><!--{}-->", bg_color, html, bg_color);
             }
 
@@ -166,7 +171,7 @@ pub fn convert_usfm_character_formatting(
 
     CharacterFormattingResult {
         html,
-        background_colour,
+        background_colour: background_colour.clone(),
         files_to_copy,
     }
 }
