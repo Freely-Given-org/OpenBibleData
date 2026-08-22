@@ -8,6 +8,7 @@ pub mod constants;
 pub mod intro_links;
 pub mod ior_links;
 pub mod oet_books;
+pub mod page_chrome;
 pub mod roman_numerals;
 pub mod character_formatting;
 pub mod xref_links;
@@ -418,6 +419,187 @@ fn process_footnotes_py<'py>(
     }
 }
 
+// ── page_chrome PyO3 wrappers ──────────────────────────────────────────────
+
+/// Build a [`page_chrome::PageChromeConfig`] snapshot from a Python State
+/// object by extracting every attribute that html.makeTop needs.
+fn page_chrome_config_from_state(
+    state: &Bound<'_, PyAny>,
+) -> PyResult<page_chrome::PageChromeConfig> {
+    let py = state.py();
+
+    let test_mode_flag: bool = state.getattr("TEST_MODE_FLAG")?.extract()?;
+    let site_name: String = state.getattr("SITE_NAME")?.extract()?;
+
+    let bible_versions: Vec<String> = state
+        .getattr("BibleVersions")?
+        .try_iter()?
+        .map(|item| item?.extract())
+        .collect::<PyResult<Vec<String>>>()?;
+
+    let versions_without_their_own_pages: std::collections::HashSet<String> = state
+        .getattr("versionsWithoutTheirOwnPages")?
+        .try_iter()?
+        .map(|item| item?.extract())
+        .collect::<PyResult<Vec<String>>>()?
+        .into_iter()
+        .collect();
+
+    let test_versions_only_obj = state.getattr("TEST_VERSIONS_ONLY")?;
+    let test_versions_only = if test_versions_only_obj.is_none() {
+        None
+    } else {
+        Some(
+            test_versions_only_obj
+                .try_iter()?
+                .map(|item| item?.extract())
+                .collect::<PyResult<Vec<String>>>()?
+                .into_iter()
+                .collect::<std::collections::HashSet<String>>(),
+        )
+    };
+
+    let all_bbbs: Vec<String> = state
+        .getattr("allBBBs")?
+        .try_iter()?
+        .map(|item| item?.extract())
+        .collect::<PyResult<Vec<String>>>()?;
+
+    // Decorations and names are plain dicts keyed by version abbreviation
+    let decorations_dict = state.getattr("BibleVersionDecorations")?;
+    let mut decorations = std::collections::HashMap::new();
+    for key in decorations_dict.try_iter()? {
+        let key: String = key?.extract()?;
+        let pair: Vec<String> = decorations_dict.get_item(&key)?.extract()?;
+        if pair.len() != 2 {
+            return Err(PyValueError::new_err(format!(
+                "BibleVersionDecorations['{key}'] must be a (prefix, suffix) pair"
+            )));
+        }
+        decorations.insert(key, [pair[0].clone(), pair[1].clone()]);
+    }
+
+    let names_dict = state.getattr("BibleNames")?;
+    let mut bible_names = std::collections::HashMap::new();
+    for key in names_dict.try_iter()? {
+        let key: String = key?.extract()?;
+        bible_names.insert(key.clone(), names_dict.get_item(&key)?.extract()?);
+    }
+
+    // Precompute makeSafeString for each version like the Python code does per call
+    let bos_globals = py.import("BibleOrgSys.BibleOrgSysGlobals")?;
+    let mut safe_names = std::collections::HashMap::new();
+    for va in &bible_versions {
+        let safe = bos_globals.call_method1("makeSafeString", (va,))?;
+        safe_names.insert(va.clone(), safe.extract::<String>()?);
+    }
+
+    // preloadedBibles: discovery flags plus book membership sets
+    let preloaded = state.getattr("preloadedBibles")?;
+    let mut have_section_headings = std::collections::HashSet::new();
+    let mut version_books = std::collections::HashMap::new();
+    for key in preloaded.try_iter()? {
+        let key: String = key?.extract()?;
+        let bible = preloaded.get_item(&key)?;
+        let has_sections = match bible.getattr("discoveryResults") {
+            Ok(dr) => match dr.get_item("ALL") {
+                Ok(dr_all) => dr_all
+                    .get_item("haveSectionHeadings")
+                    .and_then(|v| v.is_truthy())
+                    .unwrap_or(false),
+                Err(_) => false,
+            },
+            Err(_) => false,
+        };
+        if has_sections {
+            have_section_headings.insert(key.clone());
+        }
+        let mut books = std::collections::HashSet::new();
+        for bbb in &all_bbbs {
+            if bible.call_method1("__contains__", (bbb,))?.is_truthy()? {
+                books.insert(bbb.clone());
+            }
+        }
+        version_books.insert(key, books);
+    }
+
+    Ok(page_chrome::PageChromeConfig {
+        test_mode_flag,
+        site_name,
+        bible_versions,
+        versions_without_their_own_pages,
+        test_versions_only,
+        safe_names,
+        decorations,
+        bible_names,
+        all_bbbs,
+        have_section_headings,
+        version_books,
+    })
+}
+
+/// Snapshot of the State data needed to build page tops, extracted once so
+/// that generating each page needs no Python interaction.
+#[pyclass]
+#[pyo3(name = "PageChromeConfig")]
+struct PyPageChromeConfig {
+    inner: page_chrome::PageChromeConfig,
+}
+
+#[pymethods]
+impl PyPageChromeConfig {
+    #[new]
+    fn new(state: &Bound<'_, PyAny>) -> PyResult<Self> {
+        Ok(Self {
+            inner: page_chrome_config_from_state(state)?,
+        })
+    }
+}
+
+/// Create the very top part of an HTML page (Rust port of html.makeTop).
+///
+/// The config should be created once per State via
+/// `openbibledata_rust.PageChromeConfig(state)` and reused across pages.
+#[pyfunction]
+#[pyo3(
+    name = "make_top",
+    signature = (config, level, pageType, versionAbbreviation=None, versionSpecificFileOrFolderName=None)
+)]
+#[allow(non_snake_case)]
+fn make_top_py(
+    config: &PyPageChromeConfig,
+    level: usize,
+    pageType: &str,
+    versionAbbreviation: Option<&str>,
+    versionSpecificFileOrFolderName: Option<&str>,
+) -> PyResult<String> {
+    page_chrome::make_top_core(
+        &config.inner,
+        level,
+        versionAbbreviation,
+        pageType,
+        versionSpecificFileOrFolderName,
+    )
+    .map_err(|e| PyValueError::new_err(format!("make_top failed: {e}")))
+}
+
+/// Create the "ByDocument/BySection" navigation bar (Rust port of
+/// html.makeViewNavListParagraph). Can return an empty string.
+#[pyfunction]
+#[pyo3(
+    name = "make_view_nav_list",
+    signature = (config, level, pageType, versionAbbreviation=None)
+)]
+#[allow(non_snake_case)]
+fn make_view_nav_list_py(
+    config: &PyPageChromeConfig,
+    level: usize,
+    pageType: &str,
+    versionAbbreviation: Option<&str>,
+) -> String {
+    page_chrome::view_nav_list_core(&config.inner, level, versionAbbreviation, pageType)
+}
+
 #[pymodule]
 fn openbibledata_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(liven_introduction_links_py, m)?)?;
@@ -427,5 +609,8 @@ fn openbibledata_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(process_cross_references_py, m)?)?;
     m.add_function(wrap_pyfunction!(process_footnotes_py, m)?)?;
     m.add_function(wrap_pyfunction!(convert_verse_entry_list_to_html_py, m)?)?;
+    m.add_function(wrap_pyfunction!(make_top_py, m)?)?;
+    m.add_function(wrap_pyfunction!(make_view_nav_list_py, m)?)?;
+    m.add_class::<PyPageChromeConfig>()?;
     Ok(())
 }

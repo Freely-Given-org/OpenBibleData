@@ -33,17 +33,7 @@ makeTop( level:int, versionAbbreviation:str|None, pageType:str, versionSpecificF
     This is the HTML <head> segment, including assigning the correct CSS stylesheet.
 
     Note: versionAbbreviation can be None for parallel, interlinear and word pages, etc.
-_makeNavigationLinks( level:int, versionAbbreviation:str|None, pageType:str, versionSpecificFileOrFolderName:str|None, state:State ) -> str
-    Create the navigation that goes before the page content.
-
-    This includes the list of versions, and possibly the "ByDocument/BySection" bar as well.
-        (It doesn't include book, chapter, or verse selector bars.)
-
-    Note: versionAbbreviation can be None for parallel, interlinear and word pages, etc.
-_makeWorkNavListParagraph( level:int, versionAbbreviation:str|None, pageType:str, versionSpecificFileOrFolderName:str|None, state:State ) -> str
-    Create the list of available versions.
-
-    Note: versionAbbreviation can be None for parallel, interlinear and word pages, etc.
+    (Implemented in Rust -- see createPages/Rust/src/page_chrome.rs.)
 makeViewNavListParagraph( level:int, versionAbbreviation:str|None, pageType:str, state:State ) -> str
     Make the "ByDocument/BySection" bar.
 
@@ -99,6 +89,10 @@ CHANGELOG:
     2026-02-03 Allow uncertain ellided markings '\\add ?≡'
     2026-05-09 Upgraded to bos_books_codes_py
     2026-06-11 Handle new % (changed person) \\add format
+    2026-08-22 makeTop and makeViewNavListParagraph now delegate to the Rust
+        openbibledata_rust module (page_chrome); deleted the superseded Python
+        _makeNavigationLinks and _makeWorkNavListParagraph implementations.
+        Output byte-fidelity is checked by golden_makeTop.py.
 """
 import logging
 from datetime import datetime
@@ -108,15 +102,16 @@ from collections import defaultdict
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint, BOOKLIST_OT39, BOOKLIST_NT27
 import bos_books_codes_py
+import openbibledata_rust
 
 from settings import State, state
 from OETHandlers import getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2026-08-11' # by RJH
+LAST_MODIFIED_DATE = '2026-08-22' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
-PROGRAM_VERSION = '1.0.2'
+PROGRAM_VERSION = '1.0.3'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -134,6 +129,24 @@ KNOWN_PAGE_TYPES = ('site', 'TopIndex', 'details', 'AllDetails',
                     'wordIndex','lemmaIndex','morphemeIndex', 'personIndex','locationIndex',
                         'statisticsIndex', 'referenceIndex','StrongsIndex', 'kingdomIndex',
                     'search', 'about', 'news', 'OETKey')
+
+_pageChromeConfigCache = None # (id(state), openbibledata_rust.PageChromeConfig) -- see _getPageChromeConfig
+
+def _getPageChromeConfig( state:State ):
+    """
+    Return the Rust snapshot of the State data needed by the page-top builders.
+
+    The snapshot (version list, decorations, names, safe names, preloaded
+    book sets, etc.) is extracted once per State object and reused for every
+    page, so generating page tops involves no Python attribute access at all.
+    Assumes those State fields are settled before page creation starts
+    (which Bibles.loadBibles guarantees).
+    """
+    global _pageChromeConfigCache
+    if _pageChromeConfigCache is None or _pageChromeConfigCache[0] != id(state):
+        _pageChromeConfigCache = (id(state), openbibledata_rust.PageChromeConfig(state))
+    return _pageChromeConfigCache[1]
+
 def makeTop( level:int, versionAbbreviation:str|None, pageType:str, versionSpecificFileOrFolderName:str|None, state:State ) -> str:
     """
     Create the very top part of an HTML page.
@@ -143,213 +156,18 @@ def makeTop( level:int, versionAbbreviation:str|None, pageType:str, versionSpeci
             and including the list of versions underneath that line.
 
     Note: versionAbbreviation can be None for parallel, interlinear and word pages, etc.
+
+    The actual work is done by the Rust make_top in openbibledata_rust.
     """
     fnPrint( DEBUGGING_THIS_MODULE, f"makeTop( {level}, {versionAbbreviation}, {pageType}, {versionSpecificFileOrFolderName} )" )
     assert pageType in KNOWN_PAGE_TYPES, f"makeTop {level=} {versionAbbreviation=} {pageType=}"
 
-    if pageType in ('chapter','section','book'):
-        cssFilename = 'OETChapter.css' if 'OET' in versionAbbreviation else 'BibleChapter.css'
-    elif pageType == 'relatedPassage':
-        cssFilename = 'ParallelPassages.css'
-    elif pageType == 'topicPassages':
-        cssFilename = 'TopicalPassages.css'
-    elif pageType == 'parallelVerse':
-        cssFilename = 'ParallelVerses.css'
-    elif pageType == 'interlinearVerse':
-        cssFilename = 'InterlinearVerse.css'
-    elif pageType in ('word','lemma','morpheme', 'person','location','StrongsPage'):
-        cssFilename = 'BibleWord.css'
-    elif pageType in ('dictionaryLetterIndex', 'dictionaryEntry','dictionaryIntro'):
-        cssFilename = 'BibleDict.css'
-    elif pageType in ('site', 'details','AllDetails', 'search', 'about', 'news', 'OETKey', 'TopIndex',
-                      'kingdom', 'statistics',
-                      'bookIndex','chapterIndex','sectionIndex',
-                      'relatedSectionIndex', 'topicsIndex', 'dictionaryMainIndex','StrongsIndex',
-                      'wordIndex','lemmaIndex','morphemeIndex','personIndex','locationIndex','statisticsIndex','referenceIndex' ):
-        cssFilename = 'BibleSite.css'
-    else: unexpected_page_type
-
-    homeLink = f"{state.SITE_NAME}{' TEST' if state.TEST_MODE_FLAG else ''} Home" if pageType=='TopIndex' else f'''<a href="{'../'*level}index.htm#Top">{state.SITE_NAME}{' TEST' if state.TEST_MODE_FLAG else ''} Home</a>'''
-    aboutLink = 'About' if pageType=='about' else f'''<a href="{'../'*level}About.htm#Top">About</a>'''
-    newsLink = 'News' if pageType=='news' else f'''<a href="{'../'*level}News.htm#Top">News</a>'''
-    OETKeyLink = 'OET Key' if pageType=='OETKey' else f'''<a href="{'../'*level}OETKey.htm#Top">OET Key</a>'''
-    topLink = f'<p class="site">{homeLink}  {aboutLink}  {newsLink}  {OETKeyLink}</p><!--site-->'
-
-    top = f"""<!DOCTYPE html>
-<html lang="en-US">
-<head>
-  <title>__TITLE__</title>
-  <meta charset="utf-8">
-  <meta name="viewport" content="user-scalable=yes, initial-scale=1, minimum-scale=1, width=device-width">
-  <meta name="keywords" content="__KEYWORDS__">
-  <link rel="stylesheet" type="text/css" href="{'../'*level}{cssFilename}">
-  __SCRIPT__
-</head>
-<body class="container"><!--Level{level}-->{topLink}
-"""
-    # Insert second stylesheet if required
-    if pageType == 'OETKey':
-        top = top.replace( '__SCRIPT__', f'''<link rel="stylesheet" type="text/css" href="{'../'*level}OETChapter.css">\n  __SCRIPT__''' )
-    # Insert javascript file(s) if required
-    if (versionAbbreviation and 'OET' in versionAbbreviation and pageType!='sectionIndex') \
-    or pageType in ('parallelVerse','topicPassages'):
-        top = top.replace( '__SCRIPT__', f'''<script src="{'../'*level}Bible.js"></script>\n  __SCRIPT__''' )
-    if 'Dict' in cssFilename or 'Word' in cssFilename:
-        top = top.replace( '__SCRIPT__', f'''<script src="{'../'*level}Dict.js" defer></script>\n  __SCRIPT__''' )
-    if 'Dict' in cssFilename or 'Word' in cssFilename \
-    or pageType in ('chapter','section','sectionIndex','book','parallelVerse','interlinearVerse','relatedPassage','topicPassages','kingdom'):
-        top = top.replace( '__SCRIPT__', f'''<script src="{'../'*level}KB.js" defer></script>\n  __SCRIPT__''' )
-    top = top.replace( '\n  __SCRIPT__', '' )
-
-    return f'{top}{_makeNavigationLinks( level, versionAbbreviation, pageType, versionSpecificFileOrFolderName, state )}'
+    return openbibledata_rust.make_top( _getPageChromeConfig(state), level, pageType, versionAbbreviation, versionSpecificFileOrFolderName )
 # end of html.makeTop
 
 
-def _makeNavigationLinks( level:int, versionAbbreviation:str|None, pageType:str, versionSpecificFileOrFolderName:str|None, state:State ) -> str:
-    """
-    Create the navigation that goes before the page content.
-
-    This includes the list of versions, and possibly the "ByDocument/BySection" bar as well.
-        (It doesn't include book, chapter, or verse selector bars.)
-
-    Note: versionAbbreviation can be None for parallel, interlinear and word pages, etc.
-    """
-    fnPrint( DEBUGGING_THIS_MODULE, f"_makeNavigationLinks( {level}, {versionAbbreviation}, {pageType}, {versionSpecificFileOrFolderName} )" )
-    assert pageType in KNOWN_PAGE_TYPES, f"_makeNavigationLinks {level=} {versionAbbreviation=} {pageType=}"
-
-    versionHtml = _makeWorkNavListParagraph( level, versionAbbreviation, pageType, versionSpecificFileOrFolderName, state )
-    viewHtml = makeViewNavListParagraph( level, versionAbbreviation, pageType, state )
-
-    return f'''<div class="header">{versionHtml}{NEWLINE if viewHtml else ''}{viewHtml}</div><!--header-->'''
-# end of html._makeNavigationLinks
 
 
-def _makeWorkNavListParagraph( level:int, versionAbbreviation:str|None, pageType:str, versionSpecificFileOrFolderName:str|None, state:State ) -> str:
-    """
-    Create the list of available versions.
-
-    Note: versionAbbreviation can be None for parallel, interlinear and word pages, etc.
-    """
-    # DEBUGGING_THIS_MODULE = 99; print()
-    fnPrint( DEBUGGING_THIS_MODULE, f"_makeWorkNavListParagraph( {level}, {versionAbbreviation}, {pageType}, {versionSpecificFileOrFolderName} )" )
-    assert pageType in KNOWN_PAGE_TYPES, f"_makeWorkNavListParagraph {level=} {versionAbbreviation=} {pageType=}"
-
-    # Add all the version abbreviations (except for the versionsWithoutTheirOwnPages)
-    #   with their style decorators
-    #   and with the more specific links if specified.
-    initialVersionList = ['TEST'] if state.TEST_MODE_FLAG else []
-    for loopVersionAbbreviation in state.BibleVersions:
-        if loopVersionAbbreviation in ('TOSN','TTN','SOTN','UTN'): # Skip notes
-            continue
-        if loopVersionAbbreviation in state.versionsWithoutTheirOwnPages: # Skip versions without their own pages
-            continue
-        if state.TEST_VERSIONS_ONLY and loopVersionAbbreviation not in state.TEST_VERSIONS_ONLY:
-            continue
-        # Rather than leave out versions without sections, we will now point them to chapter pages (further below)
-        # if pageType in ('section','sectionIndex'):
-        #     try:
-        #         thisBible = state.preloadedBibles['OET-RV' if loopVersionAbbreviation=='OET' else loopVersionAbbreviation]
-        #         if not thisBible.discoveryResults['ALL']['haveSectionHeadings']:
-        #             continue # skip this one
-        #     except AttributeError: # no discoveryResults
-        #         continue
-
-        # Note: This is not good because not all versions have all books -- we try to fix that below
-        vLink = '../'*level if loopVersionAbbreviation == versionAbbreviation else \
-                f"{'../'*level}{BibleOrgSysGlobals.makeSafeString(loopVersionAbbreviation)}/{versionSpecificFileOrFolderName}" \
-                    if versionSpecificFileOrFolderName else \
-                f"{'../'*level}{BibleOrgSysGlobals.makeSafeString(loopVersionAbbreviation)}"
-        initialVersionList.append( f'{state.BibleVersionDecorations[loopVersionAbbreviation][0]}'
-                            f'<a title="{state.BibleNames[loopVersionAbbreviation]}" '
-                            f'href="{vLink}">{loopVersionAbbreviation}</a>'
-                            f'{state.BibleVersionDecorations[loopVersionAbbreviation][1]}'
-                            )
-    if pageType in ('relatedPassage','relatedSectionIndex'):
-        initialVersionList.append( 'Related' )
-    else: # add a link for related
-        initialVersionList.append( f'''{state.BibleVersionDecorations['Related'][0]}<a title="Single OET-RV section with related verses from other books" href="{'../'*level}rel/">Related</a>{state.BibleVersionDecorations['Related'][1]}''' )
-    if pageType in ('topicPassages','topicsIndex'):
-        initialVersionList.append( 'Topics' )
-    else: # add a link for topics
-        initialVersionList.append( f'''{state.BibleVersionDecorations['Topics'][0]}<a title="Collections of OET passages organised by topic" href="{'../'*level}tpc/">Topics</a>{state.BibleVersionDecorations['Topics'][1]}''' )
-    if pageType == 'parallelVerse':
-        initialVersionList.append( 'Parallel' )
-    else: # add a link for parallel
-        initialVersionList.append( f'''{state.BibleVersionDecorations['Parallel'][0]}<a title="Single verse in many different translations" href="{'../'*level}par/">Parallel</a>{state.BibleVersionDecorations['Parallel'][1]}''' )
-    if pageType == 'interlinearVerse':
-        initialVersionList.append( 'Interlinear' )
-    else: # add a link for interlinear
-        initialVersionList.append( f'''{state.BibleVersionDecorations['Interlinear'][0]}<a title="Single verse in interlinear word view" href="{'../'*level}ilr/">Interlinear</a>{state.BibleVersionDecorations['Interlinear'][1]}''' )
-    if pageType == 'referenceIndex':
-        initialVersionList.append( 'Reference' )
-    else: # add a link for reference
-        initialVersionList.append( f'''{state.BibleVersionDecorations['Reference'][0]}<a title="Reference index" href="{'../'*level}ref/">Reference</a>{state.BibleVersionDecorations['Reference'][1]}''' )
-    if pageType == 'dictionaryMainIndex':
-        initialVersionList.append( 'Dictionary' )
-    else: # add a link for dictionary
-        initialVersionList.append( f'''{state.BibleVersionDecorations['Dictionary'][0]}<a title="Dictionary index" href="{'../'*level}dct/">Dictionary</a>{state.BibleVersionDecorations['Dictionary'][1]}''' )
-    if pageType == 'search':
-        initialVersionList.append( 'Search' )
-    else: # add a link for search
-        initialVersionList.append( f'''{state.BibleVersionDecorations['Search'][0]}<a title="Find Bible words" href="{'../'*level}Search.htm">Search</a>{state.BibleVersionDecorations['Search'][1]}''' )
-
-    # This code tries to adjust links to books which aren't in a version, e.g., UHB has no NT books, SR-GNT and UGNT have no OT books
-    # It does this by adjusting the potential bad link to the next level higher
-    #   except for section pages that don't exist will be changed to chapter pages.
-    newVersionList = []
-    for initial_entry in initialVersionList:
-        # if pageType in ('section','sectionIndex'):
-        #     print( f"  _makeNavigationLinks processing {loopVersionAbbreviation=} from {initial_entry=} ({level=} {versionAbbreviation=} {pageType=} {versionSpecificFileOrFolderName=})" )
-        if '/par/' in initial_entry or '/ilr/' in initial_entry:
-            newVersionList.append( initial_entry )
-            continue # Should always be able to link to these
-        elif '/bySec/' in initial_entry:
-            assert pageType in ('section','sectionIndex')
-            startIndex = initial_entry.index('">') + 2
-            loopVersionAbbreviation = initial_entry[startIndex:initial_entry.index('<',startIndex)]
-            try:
-                thisBible = state.preloadedBibles['OET-RV' if loopVersionAbbreviation=='OET' else loopVersionAbbreviation]
-                haveSectionHeadings = thisBible.discoveryResults['ALL']['haveSectionHeadings']
-            except AttributeError: # no discoveryResults
-                haveSectionHeadings = False
-            if not haveSectionHeadings:
-                initial_entry = initial_entry.replace( '/bySec/', '/byC/' )
-                assert '/S' not in initial_entry.replace('/SLT/','/sLT/').replace('/SR-GNT/','/sR-GNT/').replace('/SA','/sA').replace('/SIR','/sIR').replace('/SUS','/sUS').replace('/SNG','/sNG'), f"Found a possible section reference {initial_entry=}"
-        entryBBB = None
-        for tryBBB in state.allBBBs: # from all loaded versions
-            if f'{tryBBB}.' in initial_entry or f'{tryBBB}_' in initial_entry or f'{tryBBB}/' in initial_entry:
-                assert not entryBBB # Make sure we only found exactly one of them
-                entryBBB = tryBBB
-        if entryBBB:
-            startIndex = initial_entry.index('">') + 2
-            loopVersionAbbreviation = initial_entry[startIndex:initial_entry.index('<',startIndex)]
-            if loopVersionAbbreviation == 'OET': loopVersionAbbreviation = 'OET-RV' # We look here in this case
-            try: thisBible = state.preloadedBibles[loopVersionAbbreviation]
-            except KeyError:
-                assert state.TEST_MODE_FLAG
-                thisBible = []
-            if entryBBB in thisBible:
-                # if pageType in ('section','sectionIndex'): print( f"    Appended {loopVersionAbbreviation} {entryBBB} as is (from {initial_entry})")
-                newVersionList.append( initial_entry )
-                continue # Should always be able to link to these
-            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"      Might not be able to link to {pageType} {loopVersionAbbreviation} {initial_entry}???" )
-            replacement = ''
-            if '/' in versionSpecificFileOrFolderName:
-                ix = versionSpecificFileOrFolderName.index( '/' )
-                if ix>0 and ix<len(versionSpecificFileOrFolderName)-1: # The slash is in the middle -- not at the beginning or the end
-                    replacement = versionSpecificFileOrFolderName[:ix+1]
-                    dPrint( 'Info', DEBUGGING_THIS_MODULE, f"          Can we adapt {pageType} '{versionSpecificFileOrFolderName}' to '{replacement}'" )
-            newEntry = initial_entry.replace( versionSpecificFileOrFolderName, replacement ) # Effectively links to a higher level folder
-            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"       Changed {pageType} link entry to {newEntry}")
-            newVersionList.append( newEntry )
-        else:
-            dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        Couldn't find a BBB so should be able to link ok to {pageType} {initial_entry}" )
-            newVersionList.append( initial_entry )
-
-    assert len(newVersionList) == len(initialVersionList)
-    # if pageType in ('section','sectionIndex'): print( f"_makeWorkNavListParagraph {'\n'.join(newVersionList)}\n from {'\n'.join(initialVersionList)}" ); assert False, "We want to stop here"
-    return f'''<p class="wrkLst">{' '.join(newVersionList)}</p><!--wrkLst-->'''
-# end of html._makeWorkNavListParagraph
 
 
 def makeViewNavListParagraph( level:int, versionAbbreviation:str|None, pageType:str, state:State ) -> str:
@@ -359,30 +177,12 @@ def makeViewNavListParagraph( level:int, versionAbbreviation:str|None, pageType:
     Note: versionAbbreviation can be None for parallel, interlinear and word pages, etc.
         It can also be the 'OET' pseudo version.
         Can return an empty string.
+
+    The actual work is done by the Rust make_view_nav_list in openbibledata_rust.
     """
     fnPrint( DEBUGGING_THIS_MODULE, f"makeViewNavListParagraph( {level}, {versionAbbreviation}, {pageType} )" )
 
-    viewLinks = []
-    if pageType in ('book','section','chapter', 'details',
-                    'workIndex','bookIndex','sectionIndex','chapterIndex') \
-    and versionAbbreviation not in ('PLBL','HAP','TOSN','TTN','TOBD','SOTN','UTN','UBS','THBD','BMM','OBI') \
-    and versionAbbreviation not in state.versionsWithoutTheirOwnPages:
-        if state.TEST_MODE_FLAG: viewLinks.append( 'TEST' )
-        if not versionAbbreviation: versionAbbreviation = 'OET'
-        viewLinks.append( f'''<a title="Select a different version" href="{'../'*level}">{versionAbbreviation}</a>''' )
-        viewLinks.append( f'''<a title="View entire document" href="{'../'*level}{versionAbbreviation}/byDoc/">By Document</a>'''
-                            if 'book' not in pageType else 'By Document' )
-        if state.preloadedBibles['OET-RV' if versionAbbreviation=='OET' else versionAbbreviation].discoveryResults['ALL']['haveSectionHeadings']:
-            viewLinks.append( f'''<a title="View section" href="{'../'*level}{versionAbbreviation}/bySec/">By Section</a>'''
-                            if 'section' not in pageType else 'By Section' )
-        viewLinks.append( f'''<a title="View chapter" href="{'../'*level}{versionAbbreviation}/byC/">By Chapter</a>'''
-                            if 'chapter' not in pageType else 'By Chapter' )
-        viewLinks.append( f'''<a title="View version details" href="{'../'*level}{versionAbbreviation}/details.htm#Top">Details</a>'''
-                            if pageType!='details' else 'Details' )
-        if state.TEST_MODE_FLAG and 'OET' in versionAbbreviation:
-            viewLinks.append( f'''<a title="View verses not included in the OET" href="{'../'*level}OET/missingVerses.htm#Top"><small>Missing verses</small></a>''' )
-
-    return f'''<p class="viewLst">{' '.join(viewLinks)}</p><!--viewLst-->''' if viewLinks else ''
+    return openbibledata_rust.make_view_nav_list( _getPageChromeConfig(state), level, pageType, versionAbbreviation )
 # end of html.makeViewNavListParagraph
 
 
