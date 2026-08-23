@@ -803,8 +803,9 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                     'tearinger','grainstädte','stiftete','chainswerk','seventytausend','eightytausend','cartstädte','ratet','togewachsen','wroteen',
                                     'blasphemyen','shopsn','nineunddreißig','soundedn','hinderte','frightenedn','preventeden','plainlyds',
                                     'strengthr','siegen','yest','ward‘s','singt','hilf','wellgelingen','liemäulern','downfällt','hingo',
+                                    'undergedrückt',#'kleben','verstörte',
                     
-                                'actio', 'agi', 'ambit','ambitio','anima','antiqui','apprehendi','ascendi','attende','audi', 'aversio',
+                                'actio', 'agi', 'ambit','ambitio','amputa', 'anima','antiqui','apprehendi','ascendi','attende','audi', 'aversio',
                                 'beati','bene','beneficia','bos',
                                 'ca','calami','capti',       'centurio',     'Christi',      'circumcisio','cis',        'cognitio','cogniti','complet',
                                         'commemorat','competit',
@@ -835,7 +836,8 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                 'announcent','subjoinsur','perpetuall','carriese','adwill',
                                     'changesa','talentis','habitculo','establishedque','lastrum','buildt','buildsa','solidos',
                                     'buildingus','buildri','planstorum','yearnas','myrti','recallsione','exaltsion','groanm','differentur', 'poors',
-                                    'boldnessm','moveantur','inthey','det','joybimur','tellsio','fallit','sentionum',
+                                    'boldnessm','moveantur','inthey','det','tellsio','fallit','sentionum',
+                                    'turn(ed','beforesumptio',
         
                                 )
                     else 'Info', DEBUGGING_THIS_MODULE, f'''        {word} is suspect @ {location}\nfrom {cleanedTextToDisplay=}\n  WHICH GAVE {cleanedTextToCheck=}''' )

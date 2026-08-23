@@ -93,6 +93,11 @@ CHANGELOG:
                 create_Hebrew_lemma_page() (with the makeHebrewLemmaHTML closure hoisted to a
                 module-level _make_hebrew_lemma_HTML_segment()), and previous/next lemma links
                 are now precomputed once by the parent so forked page builders are independent.
+                Also extended it to the Greek word pages (workers return used Strongs numbers /
+                lemmas for the parent to merge, like the Hebrew word pages) and the Greek lemma
+                pages (tidyGlossOfGreekWord / tidy_Greek_lemma_gloss / getFirstGreekWordNumber /
+                makeGreekLemmaHTML hoisted to module level; prev/next precomputed by the parent,
+                preserving the original quirk of never linking back to the very first lemma).
  """
 from pathlib import Path
 import os
@@ -127,7 +132,7 @@ from createSectionPages import findSectionNumber
 LAST_MODIFIED_DATE = '2026-08-23' # by RJH
 SHORT_PROGRAM_NAME = "createOETReferencePages"
 PROGRAM_NAME = "OpenBibleData createOETReferencePages functions"
-PROGRAM_VERSION = '0.99'
+PROGRAM_VERSION = '1.00'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -1725,7 +1730,7 @@ def create_Hebrew_word_page( level:int, hh:int, hebrewWord:str, columns_string:s
         instead of being added directly to the state sets (which child changes would be lost).
     """
     fnPrint( DEBUGGING_THIS_MODULE, f"create_Hebrew_word_page( {level}, {hh}, {hebrewWord}, ..., {word_output_filename} ... )" )
-    dPrint( 'Normal' if BibleOrgSysGlobals.alreadyMultiprocessing else 'Verbose', DEBUGGING_THIS_MODULE, f"Word {hh}: {columns_string}" )
+    # dPrint( 'Normal' if BibleOrgSysGlobals.alreadyMultiprocessing else 'Verbose', DEBUGGING_THIS_MODULE, f"Word {hh}: {columns_string}" )
     assert hebrewWord
     # print( f"create_Hebrew_word_page( ..., {hh}, {hebrewWord}, ..., {word_output_filename} ... )" )
 
@@ -2124,7 +2129,7 @@ f''' <a title="Go to Open Scriptures Hebrew verse page" href="https://hb.OpenS
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as html_output_file:
         html_output_file.write( wordsHtml )
-    vPrint( 'Normal' if BibleOrgSysGlobals.alreadyMultiprocessing else 'Verbose', DEBUGGING_THIS_MODULE, f"      Wrote {len(wordsHtml):,} characters to {word_output_filename}" )
+    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"      Wrote {len(wordsHtml):,} characters to {word_output_filename}" )
     return True
 # end of createOETReferencePages.create_Hebrew_word_page
 
@@ -2642,17 +2647,7 @@ GREEK_ROLE_TYPE_TABLE = {
     'noun': '<a title="Go to grammar page" href="../UGG/noun.htm#Top">noun</a>',
     'pronoun': '<a title="Go to grammar page" href="../UGG/pronoun.htm#Top">pronoun</a>',
 }
-def create_Greek_word_pages( level:int, outputFolderPath:Path, state:State ) -> None:
-    """
-    """
-    fnPrint( DEBUGGING_THIS_MODULE, f"create_Greek_word_pages( {outputFolderPath}, {state.BibleVersions} )" )
-
-    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Checking/Making {len(state.OETRefData['word_tables'][GreekWordFileName])-1:,} Greek word pages…" )
-
-    try: os.makedirs( outputFolderPath )
-    except FileExistsError: pass # it was already there
-
-    def tidyGlossOfGreekWord( engGloss:str ) -> str:
+def tidyGlossOfGreekWord( engGloss:str ) -> str:
         """
         The gloss might be the OET-LV gloss,
             or the original VLT gloss.
@@ -2677,26 +2672,254 @@ def create_Greek_word_pages( level:int, outputFolderPath:Path, state:State ) -> 
             .replace( '_', '<span class="ul">_</span>')
             )
         return result
-    # end of createOETReferencePages.tidyGlossOfGreekWord
+# end of createOETReferencePages.tidyGlossOfGreekWord
+
+
+def tidy_Greek_lemma_gloss( engGloss:str ) -> str:
+        """
+        """
+            # .replace( '\\untr ', '<span class="untr">').replace( '\\untr*', '</span>') \
+            # .replace( '\\nd ', '<span class="nd">').replace( '\\nd*', '</span>') \
+            # .replace( '\\add ', '<span class="add">').replace( '\\add*', '</span>') \
+        assert '<span class="ul">' not in engGloss # already
+        result = ( engGloss
+            .replace( '\\add +', '<span class="addArticle">' )
+            # .replace( '\\add ¿', '<span class="unusedArticle">' )
+            # .replace( '\\add =', '<span class="addCopula">' )
+            # .replace( '\\add <a title', '__PROTECT__' ) # Enable if required
+            # .replace( '\\add <', '<span class="addDirectObject">' )
+            # .replace( '__PROTECT__', '\\add <a title' )
+            .replace( '\\add >', '<span class="addExtra">' )
+            # .replace( '\\add &', '<span class="addOwner">' )
+            .replace( '\\add ', '<span class="add">').replace( '\\add*', '</span>')
+            # .replace( '_', '<span class="ul">_</span>')
+            )
+        return result
+# end of createOETReferencePages.tidy_Greek_lemma_gloss
+
+
+def getFirstGreekWordNumber( grk:str, roleLetter:str, morph:str ):
+    return state.OETRefData['NTFormUsageDict'][(grk,roleLetter,morph)][0]
+# end of createOETReferencePages.getFirstGreekWordNumber
+
+
+def _make_greek_lemma_HTML_segment( thisLemmaStr:str, thisLemmaRowsList, level:int, usedRoleLetters:set, usedMorphologies:set ) -> str:
+            """
+            The guts of making a Greek lemma page (or a section of one for related words).
+
+            Side-effects: adds entries to usedRoleLetters and usedMorphologies
+            """
+            oRoleSet = set()
+            for oN in thisLemmaRowsList:
+                _oWordRef, _oGreekWord, _oSRLemma, _oGrkLemma, _oVLTGlossWords, _oOETGlossWords, _oGlossCaps,_oProbability, _oExtendedStrongs, oRoleLetter, _oMorphology, _oTagsStr = state.OETRefData['word_tables'][GreekWordFileName][oN].split( '\t' )
+                oRoleSet.add( oRoleLetter )
+                # usedRoleLetters.add( oRoleLetter )
+            # oRoleLetter remains set to the last value added to the set (which is the only value if len(oRoleSet)==1)
+
+            if len(thisLemmaRowsList) > 100: # too many to list
+                maxWordsToShow = 50
+                lemmaHTML = f"<h2>Showing the first {maxWordsToShow} out of {len(thisLemmaRowsList)-1:,} uses of Greek root word <small>(lemma)</small> ‘{thisLemmaStr}’ {f'<small>({CNTR_ROLE_NAME_DICT[oRoleLetter]})</small> ' if len(oRoleSet)==1 else ''}in the Greek originals</h2>"
+            else: # we can list all uses of the word
+                maxWordsToShow = 100
+                lemmaHTML = f"<h2>Have {len(thisLemmaRowsList):,} {'use' if len(thisLemmaRowsList)==1 else 'uses'} of Greek root word <small>(lemma)</small> ‘{thisLemmaStr}’ {f'<small>({CNTR_ROLE_NAME_DICT[oRoleLetter]})</small> ' if len(oRoleSet)==1 else ''}in the Greek originals</h2>"
+            for displayCounter,oN in enumerate( thisLemmaRowsList, start=1 ):
+                oWordRef, oGreekWord, _oSRLemma, _oGrkLemma, oVLTGlossWords, oOETGlossWords, _oGlossCaps,_oProbability, _oExtendedStrongs, oRoleLetter, oMorphology, _oTagsStr = state.OETRefData['word_tables'][GreekWordFileName][oN].split( '\t' )
+                oFormattedContextGlossWords = formatNTContextSpansOETGlossWords( oN, state )
+                oBBB, oCVW = oWordRef.split( '_', 1 )
+                oC, oVW = oCVW.split( ':', 1 )
+                oV, oW = oVW.split( 'w', 1 )
+                oTidyBBB = getOETTidyBBB( oBBB )
+                oTidyBBBwithNotes = getOETTidyBBB( oBBB, addNotes=True )
+                oTidyBbbb = getOETTidyBBB( oBBB, titleCase=True, allowFourChars=True )
+                oTidyBbbbWithNotes = getOETTidyBBB( oBBB, titleCase=True, allowFourChars=True, addNotes=True )
+                oTidyMorphology = oMorphology[4:] if oMorphology.startswith('····') else oMorphology
+                usedRoleLetters.add( oRoleLetter )
+                if oTidyMorphology != '···': usedMorphologies.add( oTidyMorphology )
+                # if other_count == 0:
+                oOETLink = f'''<a title="View OET {oTidyBBB} text" href="{'../'*level}OET/byC/{oBBB}_C{oC}.htm#C{oC}V{oV}">{oTidyBbbbWithNotes} {oC}:{oV}</a>''' \
+                                if not state.TEST_MODE_FLAG or oBBB in state.preloadedBibles['OET-RV'] \
+                                    else f'{oTidyBbbbWithNotes} {oC}:{oV}'
+                oGreekWordLink = f'<a title="Go to word page" href="../GrkWrd/{getGreekWordpageFilename(oN, state )}#Top">{oGreekWord}</a>' if not state.TEST_MODE_FLAG or oBBB in state.preloadedBibles['OET-RV'] else oGreekWord
+                translation = '<small>(no English gloss here)</small>' if oVLTGlossWords=='-' else f'''‘{tidy_Greek_lemma_gloss(oFormattedContextGlossWords)}’'''
+                oOET_LV_verse_HTML = oOET_RV_verse_HTML = None
+                if not state.TEST_MODE_FLAG or oBBB in state.preloadedBibles['OET-RV']:
+                    oOET_LV_verse_HTML = get_OET_LV_verse_HTML( level, oBBB, oC, oV )
+                    oOET_RV_verse_HTML = get_OET_RV_verse_HTML( level, oBBB, oC, oV )
+                lemmaHTML = f'''{lemmaHTML}\n<p class="lemmaLine">{oOETLink} <b>{oGreekWordLink}</b> ({transliterate_Greek(oGreekWord)})''' \
+                    f"{f' {CNTR_ROLE_NAME_DICT[oRoleLetter].title()}' if len(oRoleSet)>1 else ''} {oTidyMorphology}" \
+                    f''' {translation} <a title="Go to Statistical Restoration Greek page" href="https://GreekCNTR.org/collation/?v={CNTR_BOOK_ID_MAP[oBBB]}{oC.zfill(3)}{oV.zfill(3)}">SR GNT {oTidyBbbb} {oC}:{oV} word {oW}</a></p>{f'\n{oOET_LV_verse_HTML}' if oOET_LV_verse_HTML else ''}{f'\n{oOET_RV_verse_HTML}' if oOET_RV_verse_HTML else ''}'''
+                # other_count += 1
+                # if other_count >= 120:
+                #     lemmaHTML = f'{lemmaHTML}\n<p class="summary">({len(thisWordNumberList)-other_count-1:,} more examples not listed)</p>'
+                #     break
+                if displayCounter >= maxWordsToShow: break
+            assert '\\' not in lemmaHTML, f"{lemmaHTML=}"
+            return lemmaHTML
+    # end of createOETReferencePages._make_greek_lemma_HTML_segment
+
+
+def create_Greek_word_pages( level:int, outputFolderPath:Path, state:State ) -> None:
+    """
+    """
+    fnPrint( DEBUGGING_THIS_MODULE, f"create_Greek_word_pages( {outputFolderPath}, {state.BibleVersions} )" )
+
+    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Checking/Making {len(state.OETRefData['word_tables'][GreekWordFileName])-1:,} Greek word pages…" )
+
+    try: os.makedirs( outputFolderPath )
+    except FileExistsError: pass # it was already there
 
 
     # Now make a page for each Greek word (including the variants not used in the translation)
     numWordPagesMade = 0
     wordLinksForIndex:list[str] = [] # Used below to make an index page
     state.OETRefData['usedGrkLemmas'], state.OETRefData['usedGrkStrongs'] = set(), set() # Used in next functions to make lemma and Strongs pages
-    for gg, columns_string in enumerate( state.OETRefData['word_tables'][GreekWordFileName][1:], start=1 ):
-        if gg % 40_000 == 0:
-            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      {numWordPagesMade+1:,} made out of {f'{gg:,} out of ' if gg!=numWordPagesMade+1 else ''}{len(state.OETRefData['word_tables'][GreekWordFileName])-1:,}…" )
-        if not columns_string: continue # a blank line (esp. at end)
-        # print( f"Word {n}: {columns_string}" )
+    grkWordTable = state.OETRefData['word_tables'][GreekWordFileName]
+    testFilterFlag = state.TEST_MODE_FLAG and not state.ALL_TEST_REFERENCE_PAGES_FLAG
 
+    # Precompute the previous/next links for every word page. This produces exactly the same
+    #  results as the old in-loop scans over the word table, just computed in one pass here
+    #  so that the (possibly forked) page builders can be completely independent.
+    prevUsedIndexes:list = [None] * len(grkWordTable)
+    nextUsedIndexes:list = [None] * len(grkWordTable)
+    if testFilterFlag: # Only the TEST_BOOK_LIST rows get pages, so we search for the nearest ones
+        lastUsedIndex = None
+        for i in range( 1, len(grkWordTable) ):
+            prevUsedIndexes[i] = lastUsedIndex
+            if grkWordTable[i].split( '\t', 1 )[0].split( '_', 1 )[0] in state.TEST_BOOK_LIST:
+                lastUsedIndex = i
+        nextUsedIndex = None
+        for i in range( len(grkWordTable)-1, 0, -1 ):
+            nextUsedIndexes[i] = nextUsedIndex
+            if grkWordTable[i].split( '\t', 1 )[0].split( '_', 1 )[0] in state.TEST_BOOK_LIST:
+                nextUsedIndex = i
+    else:
+        for i in range( 2, len(grkWordTable) ): prevUsedIndexes[i] = i - 1
+        for i in range( 1, len(grkWordTable)-1 ): nextUsedIndexes[i] = i + 1
+
+    # Build the task list (used by both the multiprocessing and sequential paths below)
+    parameters, taskMetaList = [], []
+    for gg, columns_string in enumerate( grkWordTable[1:], start=1 ):
+        if not columns_string: continue # a blank line (esp. at end)
+        ref, greekWord, _SRLemma, _GrkLemma, _VLTGlossWordsStr, _OETGlossWordsStr, _glossCaps, _probability, _extendedStrongs, _roleLetter, _morphology, _tagsStr = columns_string.split( '\t' )
+        BBB, _CVW = ref.split( '_', 1 )
+        if testFilterFlag and BBB not in state.TEST_BOOK_LIST:
+            continue # In some test modes, we only make the relevant word pages
+        output_filename = getGreekWordpageFilename( gg, state )
+        if DEBUGGING_THIS_MODULE or BibleOrgSysGlobals.debugFlag: # NOTE: this makes the function quite a bit slower
+            # Check that we're not creating any duplicate filenames (that will then be overwritten)
+            assert output_filename not in used_word_filenames, f"Greek {gg} {output_filename}"
+            used_word_filenames.append( output_filename )
+        prevLI, nextLI = prevUsedIndexes[gg], nextUsedIndexes[gg]
+        prevLink = f'<b><a title="Previous word" href="{getGreekWordpageFilename(prevLI, state )}#Top">←</a></b> ' if prevLI is not None else ''
+        nextLink = f' <b><a title="Next word" href="{getGreekWordpageFilename(nextLI, state )}#Top">→</a></b>' if nextLI else ''
+        parameters.append( (level, gg, columns_string, prevLink, nextLink, outputFolderPath, output_filename) )
+        taskMetaList.append( (output_filename, greekWord) )
+
+    if BibleOrgSysGlobals.maxProcesses > 1 \
+    and not BibleOrgSysGlobals.alreadyMultiprocessing: # Process all the word pages with different processes
+        # NOTE: We use an explicit 'fork' context because Python 3.14 changed the default start method
+        #        to 'forkserver' which would NOT inherit our huge module-level state (12 GiB of Bibles).
+        #        Forked children share that memory copy-on-write, so this costs almost nothing extra.
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Creating {len(parameters):,} Greek word pages using {BibleOrgSysGlobals.maxProcesses} forked processes…" )
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, "  NOTE: Outputs (including error and warning messages) from various words may be interspersed." )
+        BibleOrgSysGlobals.alreadyMultiprocessing = True
+        with multiprocessing.get_context('fork').Pool( processes=BibleOrgSysGlobals.maxProcesses ) as pool: # start worker processes
+            results = pool.map( _create_Greek_word_page_MP, parameters ) # have the pool do our loads
+            assert len(results) == len(parameters)
+        BibleOrgSysGlobals.alreadyMultiprocessing = False
+        for n,((result, usedStrongsNumbers, usedLemmas),(output_filename,greekWord)) in enumerate( zip(results,taskMetaList), start=1 ):
+            assert result, f"{n} {output_filename} {greekWord}"
+            state.OETRefData['usedGrkStrongs'].update( usedStrongsNumbers ) # Used in next function to make Strongs pages
+            state.OETRefData['usedGrkLemmas'].update( usedLemmas ) # Used in next function to make lemma pages
+            wordLinksForIndex.append( f'<a href="{output_filename}">{greekWord}</a>')
+            numWordPagesMade += 1
+            if numWordPagesMade % 20_000 == 0:
+                vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      {numWordPagesMade:,} made out of {len(parameters):,}…" )
+    else: # no multi-processing
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Creating {len(parameters):,} Greek word pages sequentially…" )
+        for n,oneParameterSet in enumerate( parameters, start=1 ):
+            output_filename, greekWord = taskMetaList[n-1]
+            if create_Greek_word_page( *oneParameterSet, state ):
+                wordLinksForIndex.append( f'<a href="{output_filename}">{greekWord}</a>')
+                numWordPagesMade += 1
+            if n % 40_000 == 0:
+                vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      {numWordPagesMade:,} made out of {len(parameters):,}…" )
+    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f'''    Created {numWordPagesMade:,}{f"/{len(state.OETRefData['word_tables'][GreekWordFileName])-1:,}" if numWordPagesMade < len(state.OETRefData['word_tables'][GreekWordFileName])-1 else ''} Greek word pages (using {len(state.OETRefData['usedGrkLemmas']):,} Greek lemmas).''' )
+
+    # Create index page for this folder
+    filename = 'index.htm'
+    filepath = outputFolderPath.joinpath( filename )
+    top = makeTop( level, None, 'wordIndex', None, state ) \
+            .replace( '__TITLE__', f"Greek Words Index{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
+            .replace( '__KEYWORDS__', 'Bible, Greek, words' )
+    indexText = ' '.join( wordLinksForIndex )
+    indexHtml = f'''{top}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
+<p class="note"><b><a href="../">Reference lists contents page</a></b></p>
+<p class="note"><a href="../HebWrd/">Hebrew words index</a> <a href="../HebWrd/transIndex.htm">Transliterated Hebrew words index</a></p>
+<p class="note"><a href="../HebLem/">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm">Transliterated Hebrew lemmas index</a></p>
+<p class="note"><a href="../HebStrng/">Hebrew Strongs numbers index</a> <a href="../UHG/">Hebrew grammar index</a></p>
+<p class="note"><span class="selectedBook">Greek words index</span> <a href="transIndex.htm">Transliterated Greek words index</a></p>
+<p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
+<p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a> <a href="../UGG/">Greek grammar index</a></p>
+<p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm">Important people chronological index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
+<p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
+<p class="note"><a href="../Stats/">Bible statistics</a></p>
+<h1 id="Top">Greek Words Index ({len(wordLinksForIndex):,})</h1>
+<p class="note">{indexText}</p>
+{makeBottom( level, None, 'wordIndex' )}'''
+    assert checkHtml( 'wordIndex', indexHtml )
+    assert not filepath.is_file() # Check that we're not overwriting anything
+    with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
+        indexHtmlFile.write( indexHtml )
+    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
+
+    # Create a transliterated index page for this folder
+    filename = 'transIndex.htm'
+    filepath = outputFolderPath.joinpath( filename )
+    top = makeTop( level, None, 'wordIndex', None, state ) \
+            .replace( '__TITLE__', f"Transliterated Greek Words Index{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
+            .replace( '__KEYWORDS__', 'Bible, Greek, words, transliterated' )
+    indexText = transliterate_Greek( indexText )
+    indexHtml = f'''{top}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
+<p class="note"><b><a href="../">Reference lists contents page</a></b></p>
+<p class="note"><a href="../HebWrd/">Hebrew words index</a> <a href="../HebWrd/transIndex.htm">Transliterated Hebrew words index</a></p>
+<p class="note"><a href="../HebLem/">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm">Transliterated Hebrew lemmas index</a></p>
+<p class="note"><a href="../HebStrng/">Hebrew Strongs numbers index</a> <a href="../UHG/">Hebrew grammar index</a></p>
+<p class="note"><a href="index.htm">Greek words index</a> <span class="selectedBook">Transliterated Greek words index</span></p>
+<p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
+<p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a> <a href="../UGG/">Greek grammar index</a></p>
+<p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm">Important people chronological index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
+<p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
+<p class="note"><a href="../Stats/">Bible statistics</a></p>
+<h1 id="Top">Transliterated Greek Words Index ({len(wordLinksForIndex):,})</h1>
+<p class="note">{indexText}</p>
+{makeBottom( level, None, 'wordIndex' )}'''
+    assert checkHtml( 'wordIndex', indexHtml )
+    assert not filepath.is_file() # Check that we're not overwriting anything
+    with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
+        indexHtmlFile.write( indexHtml )
+    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
+# end of createOETReferencePages.create_Greek_word_pages
+
+
+def create_Greek_word_page( level:int, gg:int, columns_string:str, prevLink:str, nextLink:str, outputFolderPath:Path, output_filename:str, state:State,
+                            usedStrongsAccumulator:list[int]|None=None, usedLemmasAccumulator:list[str]|None=None ) -> bool:
+        """
+        Makes the one Greek word page (extracted from create_Greek_word_pages so that it can also be
+            called by forked worker processes -- they inherit our module-level state copy-on-write).
+        If the two accumulators are supplied (multiprocessing mode), used Strongs numbers / Greek lemmas
+            are appended to them (and merged into state by the parent process)
+            instead of being added directly to the state sets (which child changes would be lost).
+        Assumes any TEST_MODE filtering has already been done by the caller.
+        Returns True when the page has been written.
+        """
+        fnPrint( DEBUGGING_THIS_MODULE, f"create_Greek_word_page( {level}, {gg}, ..., {output_filename} ... )" )
         usedRoleLetters, usedMorphologies = set(), set()
 
         ref, greekWord, SRLemma, GrkLemma, VLTGlossWordsStr, OETGlossWordsStr, glossCaps, probability, extendedStrongs, roleLetter, morphology, tagsStr = columns_string.split( '\t' )
 
         BBB, CVW = ref.split( '_', 1 )
-        if state.TEST_MODE_FLAG and not state.ALL_TEST_REFERENCE_PAGES_FLAG and BBB not in state.TEST_BOOK_LIST:
-            continue # In some test modes, we only make the relevant word pages
+        assert not state.TEST_MODE_FLAG or state.ALL_TEST_REFERENCE_PAGES_FLAG or BBB in state.TEST_BOOK_LIST
         C, VW = CVW.split( ':', 1 )
         V, W = VW.split( 'w', 1 )
         # ourTidyBBB = getOETTidyBBB( BBB, addNotes=True )
@@ -2704,12 +2927,7 @@ def create_Greek_word_pages( level:int, outputFolderPath:Path, state:State ) -> 
         ourTidyBbbWithNotes = getOETTidyBBB( BBB, titleCase=True, addNotes=True )
         tidyBbbb = getOETTidyBBB( BBB, titleCase=True, allowFourChars=True )
 
-        output_filename = getGreekWordpageFilename( gg, state )
         # dPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Got '{columns_string}' for '{output_filename}'" )
-        if DEBUGGING_THIS_MODULE or BibleOrgSysGlobals.debugFlag: # NOTE: this makes the function quite a bit slower
-            # Check that we're not creating any duplicate filenames (that will then be overwritten)
-            assert output_filename not in used_word_filenames, f"Greek {gg} {output_filename}"
-            used_word_filenames.append( output_filename )
         formattedOETGlossWords = formatNTSpansGlossWords( OETGlossWordsStr )
         formattedVLTGlossWords = formatNTSpansGlossWords( VLTGlossWordsStr )
         formattedContextGlossWords = formatNTContextSpansOETGlossWords( gg, state )
@@ -2730,7 +2948,10 @@ def create_Greek_word_pages( level:int, outputFolderPath:Path, state:State ) -> 
 
         strongs = extendedStrongs[:-1] if extendedStrongs else None # drop the last digit
         if strongs:
-            state.OETRefData['usedGrkStrongs'].add( getPositiveLeadingInt(strongs) ) # Used in next function to make Strongs pages
+            if usedStrongsAccumulator is not None:
+                usedStrongsAccumulator.append( getPositiveLeadingInt(strongs) ) # Parent merges into state.OETRefData['usedGrkStrongs'] (multiprocessing mode)
+            else:
+                state.OETRefData['usedGrkStrongs'].add( getPositiveLeadingInt(strongs) ) # Used in next function to make Strongs pages
 
         roleField = ''
         if roleLetter:
@@ -2793,7 +3014,10 @@ def create_Greek_word_pages( level:int, outputFolderPath:Path, state:State ) -> 
                 else:
                     logging.critical( f"Unknown '{tagPrefix}' word tag in {gg}: {columns_string}")
                     unknownTag
-        state.OETRefData['usedGrkLemmas'].add( GrkLemma ) # Used in next function to make lemma pages
+        if usedLemmasAccumulator is not None:
+            usedLemmasAccumulator.append( GrkLemma ) # Parent merges into state.OETRefData['usedGrkLemmas'] (multiprocessing mode)
+        else:
+            state.OETRefData['usedGrkLemmas'].add( GrkLemma ) # Used in next function to make lemma pages
         lemmaLink = f'<a title="View Greek root word" href="../GrkLem/{SRLemma}.htm#Top">{SRLemma}</a>'
         lemmaGlossesList = sorted( state.OETRefData['NTLemmaOETGlossesDict'][SRLemma] )
         numWordOETGlossesList = len( state.OETRefData['NTFormOETGlossesDict'][(greekWord,roleLetter,morphology)] )
@@ -2802,27 +3026,7 @@ def create_Greek_word_pages( level:int, outputFolderPath:Path, state:State ) -> 
                         for wordGloss in sorted( state.OETRefData['NTFormOETGlossesDict'][(greekWord,roleLetter,morphology)], key=lambda wg: -state.OETRefData['NTFormOETGlossesCountDict'][(greekWord,roleLetter,morphology,wg)] ) ]
         wordVLTGlossesList = sorted( state.OETRefData['NTFormVLTGlossesDict'][(greekWord,roleLetter,morphology)] )
 
-        prevN = nextN = None
-        if gg > 1:
-            if state.TEST_MODE_FLAG and not state.ALL_TEST_REFERENCE_PAGES_FLAG:
-                for nN in range( gg-1, 0, -1 ):
-                    nWordRef = state.OETRefData['word_tables'][GreekWordFileName][nN].split( '\t', 1 )[0]
-                    nBBB = nWordRef.split( '_', 1 )[0]
-                    if nBBB in state.TEST_BOOK_LIST:
-                        prevN = nN
-                        break
-            else: prevN = gg-1
-        if gg<len(state.OETRefData['word_tables'][GreekWordFileName])-1:
-            if state.TEST_MODE_FLAG and not state.ALL_TEST_REFERENCE_PAGES_FLAG:
-                for nN in range( gg+1, len(state.OETRefData['word_tables'][GreekWordFileName]) ):
-                    nWordRef = state.OETRefData['word_tables'][GreekWordFileName][nN].split( '\t', 1 )[0]
-                    nBBB = nWordRef.split( '_', 1 )[0]
-                    if nBBB in state.TEST_BOOK_LIST:
-                        nextN = nN
-                        break
-            else: nextN = gg+1
-        prevLink = f'<b><a title="Previous word" href="{getGreekWordpageFilename(prevN, state )}#Top">←</a></b> ' if prevN is not None else ''
-        nextLink = f' <b><a title="Next word" href="{getGreekWordpageFilename(nextN, state )}#Top">→</a></b>' if nextN else ''
+
         oetLink = f''' <a title="View whole chapter" href="{'../'*level}OET/byC/{BBB}_C{C}.htm#C{C}">{ourTidyBbbWithNotes}{NARROW_NON_BREAK_SPACE}{C}</a>'''
         parallelLink = f''' <b><a title="View verse in many parallel versions" href="{'../'*level}par/{BBB}/C{C}V{V}.htm#Top">║</a></b>'''
         interlinearLink = f''' <b><a title="View interlinear verse word-by-word" href="{'../'*level}ilr/{BBB}/C{C}V{V}.htm#Top">═</a></b>''' if BBB in state.booksToLoad['OET'] else ''
@@ -3005,64 +3209,22 @@ f''' <a title="Go to Statistical Restoration Greek page" href="https://GreekCN
         with open( filepath, 'wt', encoding='utf-8' ) as html_output_file:
             html_output_file.write( wordsHtml )
         vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"      Wrote {len(wordsHtml):,} characters to {output_filename}" )
-        wordLinksForIndex.append( f'<a href="{output_filename}">{greekWord}</a>')
-        numWordPagesMade += 1
-    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f'''    Created {numWordPagesMade:,}{f"/{len(state.OETRefData['word_tables'][GreekWordFileName])-1:,}" if numWordPagesMade < len(state.OETRefData['word_tables'][GreekWordFileName])-1 else ''} Greek word pages (using {len(state.OETRefData['usedGrkLemmas']):,} Greek lemmas).''' )
+        return True
+# end of createOETReferencePages.create_Greek_word_page
 
-    # Create index page for this folder
-    filename = 'index.htm'
-    filepath = outputFolderPath.joinpath( filename )
-    top = makeTop( level, None, 'wordIndex', None, state ) \
-            .replace( '__TITLE__', f"Greek Words Index{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
-            .replace( '__KEYWORDS__', 'Bible, Greek, words' )
-    indexText = ' '.join( wordLinksForIndex )
-    indexHtml = f'''{top}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
-<p class="note"><b><a href="../">Reference lists contents page</a></b></p>
-<p class="note"><a href="../HebWrd/">Hebrew words index</a> <a href="../HebWrd/transIndex.htm">Transliterated Hebrew words index</a></p>
-<p class="note"><a href="../HebLem/">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm">Transliterated Hebrew lemmas index</a></p>
-<p class="note"><a href="../HebStrng/">Hebrew Strongs numbers index</a> <a href="../UHG/">Hebrew grammar index</a></p>
-<p class="note"><span class="selectedBook">Greek words index</span> <a href="transIndex.htm">Transliterated Greek words index</a></p>
-<p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
-<p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a> <a href="../UGG/">Greek grammar index</a></p>
-<p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm">Important people chronological index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
-<p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
-<p class="note"><a href="../Stats/">Bible statistics</a></p>
-<h1 id="Top">Greek Words Index ({len(wordLinksForIndex):,})</h1>
-<p class="note">{indexText}</p>
-{makeBottom( level, None, 'wordIndex' )}'''
-    assert checkHtml( 'wordIndex', indexHtml )
-    assert not filepath.is_file() # Check that we're not overwriting anything
-    with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
-        indexHtmlFile.write( indexHtml )
-    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
 
-    # Create a transliterated index page for this folder
-    filename = 'transIndex.htm'
-    filepath = outputFolderPath.joinpath( filename )
-    top = makeTop( level, None, 'wordIndex', None, state ) \
-            .replace( '__TITLE__', f"Transliterated Greek Words Index{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
-            .replace( '__KEYWORDS__', 'Bible, Greek, words, transliterated' )
-    indexText = transliterate_Greek( indexText )
-    indexHtml = f'''{top}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
-<p class="note"><b><a href="../">Reference lists contents page</a></b></p>
-<p class="note"><a href="../HebWrd/">Hebrew words index</a> <a href="../HebWrd/transIndex.htm">Transliterated Hebrew words index</a></p>
-<p class="note"><a href="../HebLem/">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm">Transliterated Hebrew lemmas index</a></p>
-<p class="note"><a href="../HebStrng/">Hebrew Strongs numbers index</a> <a href="../UHG/">Hebrew grammar index</a></p>
-<p class="note"><a href="index.htm">Greek words index</a> <span class="selectedBook">Transliterated Greek words index</span></p>
-<p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
-<p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a> <a href="../UGG/">Greek grammar index</a></p>
-<p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm">Important people chronological index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
-<p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
-<p class="note"><a href="../Stats/">Bible statistics</a></p>
-<h1 id="Top">Transliterated Greek Words Index ({len(wordLinksForIndex):,})</h1>
-<p class="note">{indexText}</p>
-{makeBottom( level, None, 'wordIndex' )}'''
-    assert checkHtml( 'wordIndex', indexHtml )
-    assert not filepath.is_file() # Check that we're not overwriting anything
-    with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
-        indexHtmlFile.write( indexHtml )
-    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
-# end of createOETReferencePages.create_Greek_word_pages
+def _create_Greek_word_page_MP( parameters ): # Used by create_Greek_word_pages
+    """
+    Multiprocessing version! (forked children inherit our module-level state copy-on-write)
+
+    Parameter is a 7-tuple containing the parameters (WITHOUT state -- use the inherited one).
+    Returns a (result, strongsNumbersUsed, greekLemmasUsed) 3-tuple because changes that a
+        child process makes to the inherited state are lost on exit.
+    """
+    strongsAccumulator, lemmasAccumulator = [], []
+    result = create_Greek_word_page( *parameters, state, strongsAccumulator, lemmasAccumulator )
+    return result, strongsAccumulator, lemmasAccumulator
+# end of createOETReferencePages._create_Greek_word_page_MP
 
 
 def create_Greek_lemma_pages( level:int, outputFolderPath:Path, state:State ) -> None:
@@ -3077,241 +3239,71 @@ def create_Greek_lemma_pages( level:int, outputFolderPath:Path, state:State ) ->
     try: os.makedirs( outputFolderPath )
     except FileExistsError: pass # it was already there
 
-    def tidy_Greek_lemma_gloss( engGloss:str ) -> str:
-        """
-        """
-            # .replace( '\\untr ', '<span class="untr">').replace( '\\untr*', '</span>') \
-            # .replace( '\\nd ', '<span class="nd">').replace( '\\nd*', '</span>') \
-            # .replace( '\\add ', '<span class="add">').replace( '\\add*', '</span>') \
-        assert '<span class="ul">' not in engGloss # already
-        result = ( engGloss
-            .replace( '\\add +', '<span class="addArticle">' )
-            # .replace( '\\add ¿', '<span class="unusedArticle">' )
-            # .replace( '\\add =', '<span class="addCopula">' )
-            # .replace( '\\add <a title', '__PROTECT__' ) # Enable if required
-            # .replace( '\\add <', '<span class="addDirectObject">' )
-            # .replace( '__PROTECT__', '\\add <a title' )
-            .replace( '\\add >', '<span class="addExtra">' )
-            # .replace( '\\add &', '<span class="addOwner">' )
-            .replace( '\\add ', '<span class="add">').replace( '\\add*', '</span>')
-            # .replace( '_', '<span class="ul">_</span>')
-            )
-        return result
-    # end of createOETReferencePages.tidy_Greek_lemma_gloss
-
 
     lemmaList = sorted( [lemma for lemma in state.OETRefData['NTLemmaDict']] )
 
     # Now make a page for each Greek lemma (including the variants not used in the translation)
     lemmaLinks:list[str] = [] # Used below to make an index page
-    for lemmaIndex, lemma in enumerate( lemmaList ):
-        if (lemmaIndex+1) % 1_000 == 0:
-            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      {len(lemmaLinks):,} made out of {f'{lemmaIndex:,} out of ' if lemmaIndex!=len(lemmaLinks) else ''}{len(lemmaList):,}…" )
-        # print( f"Lemma {ll}: {lemma}" )
-        grkLemma = state.OETRefData['NTGreekLemmaDict'][lemma]
-        if state.TEST_MODE_FLAG and not state.ALL_TEST_REFERENCE_PAGES_FLAG and grkLemma not in state.OETRefData['usedGrkLemmas']:
+    testFilterFlag = state.TEST_MODE_FLAG and not state.ALL_TEST_REFERENCE_PAGES_FLAG
+
+    # Precompute the previous/next links for every lemma page. This produces exactly the same
+    #  results as the old in-loop searches (including their quirk of never linking back to the
+    #  very first lemma), just computed in one pass here so that the (possibly forked) page
+    #  builders can be completely independent.
+    prevUsedIndexes:list = [None] * len(lemmaList)
+    nextUsedIndexes:list = [None] * len(lemmaList)
+    if testFilterFlag: # Only the used lemmas get pages, so we search for the nearest ones
+        usedGrkLemmasSet = state.OETRefData['usedGrkLemmas']
+        lastUsedIndex = None
+        for i,lEntry in enumerate( lemmaList ):
+            prevUsedIndexes[i] = lastUsedIndex
+            if i >= 1 and state.OETRefData['NTGreekLemmaDict'][lEntry] in usedGrkLemmasSet:
+                lastUsedIndex = i
+        nextUsedIndex = None
+        for i in range( len(lemmaList)-1, -1, -1 ):
+            nextUsedIndexes[i] = nextUsedIndex
+            if state.OETRefData['NTGreekLemmaDict'][lemmaList[i]] in usedGrkLemmasSet:
+                nextUsedIndex = i
+    else:
+        for i in range( 2, len(lemmaList) ): prevUsedIndexes[i] = i - 1
+        for i in range( len(lemmaList)-1 ): nextUsedIndexes[i] = i + 1
+
+    # Build the task list (used by both the multiprocessing and sequential paths below)
+    parameters, taskMetaList = [], []
+    for lemmaIndex,lemma in enumerate( lemmaList ):
+        if testFilterFlag and state.OETRefData['NTGreekLemmaDict'][lemma] not in state.OETRefData['usedGrkLemmas']:
             continue # Don't make this page
-        grkLemmaWordRowsList = state.OETRefData['NTLemmaDict'][lemma]
-        grkLemmaFormsList = sorted( state.OETRefData['NTLemmaFormsDict'][lemma], key=lambda t3: -state.OETRefData['NTLemmaFormsCountDict'][(lemma,*t3)] )
-        numGrkLemmaOETGlossesList = len( state.OETRefData['NTLemmaOETGlossesDict'][lemma] )
-        grkLemmaOETGlossesList = sorted( state.OETRefData['NTLemmaOETGlossesDict'][lemma] ) # Only used for comparison later with grkLemmaVLTGlossesList
-        grkLemmaOETGlossesStrList = [f'‘<b>{lemmaGloss}</b>’({state.OETRefData['NTLemmaOETGlossesCountDict'][(lemma,lemmaGloss)]:,})'
-                        for lemmaGloss in sorted( state.OETRefData['NTLemmaOETGlossesDict'][lemma], key=lambda lg: -state.OETRefData['NTLemmaOETGlossesCountDict'][(lemma,lg)] ) ]
-        grkLemmaVLTGlossesList = sorted( state.OETRefData['NTLemmaVLTGlossesDict'][lemma] )
+        prevLI, nextLI = prevUsedIndexes[lemmaIndex], nextUsedIndexes[lemmaIndex]
+        prevLink = f'<b><a title="Previous lemma" href="{lemmaList[prevLI]}.htm#Top">←</a></b> ' if prevLI is not None else ''
+        nextLink = f' <b><a title="Next lemma" href="{lemmaList[nextLI]}.htm#Top">→</a></b>' if nextLI else ''
+        parameters.append( (level, lemmaIndex, lemma, prevLink, nextLink, outputFolderPath, f'{lemma}.htm') )
+        taskMetaList.append( (f'{lemma}.htm', lemma) )
 
-        def getFirstGreekWordNumber(grk:str,roleLetter:str,morph:str):
-            return state.OETRefData['NTFormUsageDict'][(grk,roleLetter,morph)][0]
+    if BibleOrgSysGlobals.maxProcesses > 1 \
+    and not BibleOrgSysGlobals.alreadyMultiprocessing: # Process all the lemma pages with different processes
+        # NOTE: We use an explicit 'fork' context because Python 3.14 changed the default start method
+        #        to 'forkserver' which would NOT inherit our huge module-level state (12 GiB of Bibles).
+        #        Forked children share that memory copy-on-write, so this costs almost nothing extra.
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Creating {len(parameters):,} Greek lemma pages using {BibleOrgSysGlobals.maxProcesses} forked processes…" )
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, "  NOTE: Outputs (including error and warning messages) from various lemmas may be interspersed." )
+        BibleOrgSysGlobals.alreadyMultiprocessing = True
+        with multiprocessing.get_context('fork').Pool( processes=BibleOrgSysGlobals.maxProcesses ) as pool: # start worker processes
+            results = pool.map( _create_Greek_lemma_page_MP, parameters ) # have the pool do our loads
+            assert len(results) == len(parameters)
+        BibleOrgSysGlobals.alreadyMultiprocessing = False
+    else: # no multi-processing
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Creating {len(parameters):,} Greek lemma pages sequentially…" )
+        results = []
+        for n,oneParameterSet in enumerate( parameters, start=1 ):
+            results.append( create_Greek_lemma_page( *oneParameterSet ) )
+            if n % 500 == 0:
+                vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      {n:,} made out of {len(parameters):,}…" )
 
-        usedRoleLetters, usedMorphologies = set(), set()
-        output_filename = f'{lemma}.htm'
-
-        prevLemmaIndex = nextLemmaIndex = None
-        if lemmaIndex > 1:
-            if state.TEST_MODE_FLAG and not state.ALL_TEST_REFERENCE_PAGES_FLAG:
-                for LL in range( lemmaIndex-1, 0, -1 ):
-                    LLLemma = lemmaList[LL]
-                    LLGrkLemma = state.OETRefData['NTGreekLemmaDict'][LLLemma]
-                    if LLGrkLemma in state.OETRefData['usedGrkLemmas']:
-                        prevLemmaIndex = LL
-                        break
-            else: prevLemmaIndex = lemmaIndex-1
-        if lemmaIndex<len(lemmaList)-1:
-            if state.TEST_MODE_FLAG and not state.ALL_TEST_REFERENCE_PAGES_FLAG:
-                for LL in range( lemmaIndex+1, len(lemmaList) ):
-                    LLLemma = lemmaList[LL]
-                    LLGrkLemma = state.OETRefData['NTGreekLemmaDict'][LLLemma]
-                    if LLGrkLemma in state.OETRefData['usedGrkLemmas']:
-                        nextLemmaIndex = LL
-                        break
-            else: nextLemmaIndex = lemmaIndex+1
-        prevLink = f'<b><a title="Previous lemma" href="{lemmaList[prevLemmaIndex]}.htm#Top">←</a></b> ' if prevLemmaIndex is not None else ''
-        nextLink = f' <b><a title="Next lemma" href="{lemmaList[nextLemmaIndex]}.htm#Top">→</a></b>' if nextLemmaIndex else ''
-        lemmasHtml = f'''<h1 id="Top">Greek root word <small>(lemma)</small> ‘{grkLemma}’ ({lemma})</h1>
-<p class="pgNav">{prevLink}<b>{lemma}</b> <a title="Go to Greek word index" href="index.htm">⌂</a>{nextLink}</p>
-<p class="btnBar"><button type="button" id="wordsButton" title="Hide/Show word lines" onclick="hide_show_words()">Hide words</button> <button type="button" id="versesButton" title="Hide/Show verse lines" onclick="hide_show_verses()">Hide verses</button> <button type="button" id="coloursButton" title="Hide/Show verse colours" onclick="hide_show_colours()">Hide verse colours</button></p>
-<p class="summary">This root form (lemma) ‘{grkLemma}’ is used in {'only one form' if len(grkLemmaFormsList)==1 else f'{len(grkLemmaFormsList):,} different forms'} in the Greek originals: {', '.join([f'<a title="View Greek word form" href="../GrkWrd/{getGreekWordpageFilename(getFirstGreekWordNumber(grk,roleLetter,morph), state )}#Top">{grk}</a> <small>({state.OETRefData['NTLemmaFormsCountDict'][(lemma,grk,roleLetter,morph)]:,}, {roleLetter}-{morph[4:] if morph.startswith("....") else morph})</small>' for grk,roleLetter,morph in grkLemmaFormsList])}.</p>
-<p class="summary">It is glossed in {'only one way' if numGrkLemmaOETGlossesList==1 else f'{numGrkLemmaOETGlossesList:,} different ways'}: {tidy_Greek_lemma_gloss(', '.join(grkLemmaOETGlossesStrList))}.</p>'''
-        if grkLemmaVLTGlossesList != grkLemmaOETGlossesList:
-            lemmasHtml = f'''{lemmasHtml}<p class="summary"><small>(In <span title="the forthcoming Verified Literal Translation">the VLT</span>, it was glossed in {'only one way' if len(grkLemmaVLTGlossesList)==1 else f'{len(grkLemmaVLTGlossesList):,} different ways'}: ‘<b>{"</b>’, ‘<b>".join(grkLemmaVLTGlossesList)}</b>’.)</small></p>'''
-
-        def makeGreekLemmaHTML( thisLemmaStr:str, thisLemmaRowsList ) -> str:
-            """
-            The guts of making the lemma page
-                put into a function so that we can also re-use it for related words
-
-            Side-effects: udates usedRoleLetters and usedMorphologies
-            """
-            oRoleSet = set()
-            for oN in thisLemmaRowsList:
-                _oWordRef, _oGreekWord, _oSRLemma, _oGrkLemma, _oVLTGlossWords, _oOETGlossWords, _oGlossCaps,_oProbability, _oExtendedStrongs, oRoleLetter, _oMorphology, _oTagsStr = state.OETRefData['word_tables'][GreekWordFileName][oN].split( '\t' )
-                oRoleSet.add( oRoleLetter )
-                # usedRoleLetters.add( oRoleLetter )
-            # oRoleLetter remains set to the last value added to the set (which is the only value if len(oRoleSet)==1)
-
-            if len(thisLemmaRowsList) > 100: # too many to list
-                maxWordsToShow = 50
-                lemmaHTML = f"<h2>Showing the first {maxWordsToShow} out of {len(thisLemmaRowsList)-1:,} uses of Greek root word <small>(lemma)</small> ‘{thisLemmaStr}’ {f'<small>({CNTR_ROLE_NAME_DICT[oRoleLetter]})</small> ' if len(oRoleSet)==1 else ''}in the Greek originals</h2>"
-            else: # we can list all uses of the word
-                maxWordsToShow = 100
-                lemmaHTML = f"<h2>Have {len(thisLemmaRowsList):,} {'use' if len(thisLemmaRowsList)==1 else 'uses'} of Greek root word <small>(lemma)</small> ‘{thisLemmaStr}’ {f'<small>({CNTR_ROLE_NAME_DICT[oRoleLetter]})</small> ' if len(oRoleSet)==1 else ''}in the Greek originals</h2>"
-            for displayCounter,oN in enumerate( thisLemmaRowsList, start=1 ):
-                oWordRef, oGreekWord, _oSRLemma, _oGrkLemma, oVLTGlossWords, oOETGlossWords, _oGlossCaps,_oProbability, _oExtendedStrongs, oRoleLetter, oMorphology, _oTagsStr = state.OETRefData['word_tables'][GreekWordFileName][oN].split( '\t' )
-                oFormattedContextGlossWords = formatNTContextSpansOETGlossWords( oN, state )
-                oBBB, oCVW = oWordRef.split( '_', 1 )
-                oC, oVW = oCVW.split( ':', 1 )
-                oV, oW = oVW.split( 'w', 1 )
-                oTidyBBB = getOETTidyBBB( oBBB )
-                oTidyBBBwithNotes = getOETTidyBBB( oBBB, addNotes=True )
-                oTidyBbbb = getOETTidyBBB( oBBB, titleCase=True, allowFourChars=True )
-                oTidyBbbbWithNotes = getOETTidyBBB( oBBB, titleCase=True, allowFourChars=True, addNotes=True )
-                oTidyMorphology = oMorphology[4:] if oMorphology.startswith('····') else oMorphology
-                usedRoleLetters.add( oRoleLetter )
-                if oTidyMorphology != '···': usedMorphologies.add( oTidyMorphology )
-                # if other_count == 0:
-                oOETLink = f'''<a title="View OET {oTidyBBB} text" href="{'../'*level}OET/byC/{oBBB}_C{oC}.htm#C{oC}V{oV}">{oTidyBbbbWithNotes} {oC}:{oV}</a>''' \
-                                if not state.TEST_MODE_FLAG or oBBB in state.preloadedBibles['OET-RV'] \
-                                    else f'{oTidyBbbbWithNotes} {oC}:{oV}'
-                oGreekWordLink = f'<a title="Go to word page" href="../GrkWrd/{getGreekWordpageFilename(oN, state )}#Top">{oGreekWord}</a>' if not state.TEST_MODE_FLAG or oBBB in state.preloadedBibles['OET-RV'] else oGreekWord
-                translation = '<small>(no English gloss here)</small>' if oVLTGlossWords=='-' else f'''‘{tidy_Greek_lemma_gloss(oFormattedContextGlossWords)}’'''
-                oOET_LV_verse_HTML = oOET_RV_verse_HTML = None
-                if not state.TEST_MODE_FLAG or oBBB in state.preloadedBibles['OET-RV']:
-                    oOET_LV_verse_HTML = get_OET_LV_verse_HTML( level, oBBB, oC, oV )
-                    oOET_RV_verse_HTML = get_OET_RV_verse_HTML( level, oBBB, oC, oV )
-                lemmaHTML = f'''{lemmaHTML}\n<p class="lemmaLine">{oOETLink} <b>{oGreekWordLink}</b> ({transliterate_Greek(oGreekWord)})''' \
-                    f"{f' {CNTR_ROLE_NAME_DICT[oRoleLetter].title()}' if len(oRoleSet)>1 else ''} {oTidyMorphology}" \
-                    f''' {translation} <a title="Go to Statistical Restoration Greek page" href="https://GreekCNTR.org/collation/?v={CNTR_BOOK_ID_MAP[oBBB]}{oC.zfill(3)}{oV.zfill(3)}">SR GNT {oTidyBbbb} {oC}:{oV} word {oW}</a></p>{f'\n{oOET_LV_verse_HTML}' if oOET_LV_verse_HTML else ''}{f'\n{oOET_RV_verse_HTML}' if oOET_RV_verse_HTML else ''}'''
-                # other_count += 1
-                # if other_count >= 120:
-                #     lemmaHTML = f'{lemmaHTML}\n<p class="summary">({len(thisWordNumberList)-other_count-1:,} more examples not listed)</p>'
-                #     break
-                if displayCounter >= maxWordsToShow: break
-            assert '\\' not in lemmaHTML, f"{lemmaHTML=}"
-            return lemmaHTML
-        # end of createOETReferencePages.create_Greek_lemma_pages.makeGreekLemmaHTML
-
-        lemmasHtml = f"{lemmasHtml}\n{makeGreekLemmaHTML(lemma, grkLemmaWordRowsList)}"
-
-        # Consider related lemmas, e.g., with or without prefix
-        this_extended_lemma_list = [lemma]
-        for mm, this_second_lemma in enumerate( lemmaList ):
-            if this_second_lemma and len(this_second_lemma)>1 and this_second_lemma not in this_extended_lemma_list:
-                prefix = None
-                if this_second_lemma.endswith( lemma ):
-                    prefix = this_second_lemma[:len(this_second_lemma)-len(lemma)]
-                elif lemma.endswith( this_second_lemma ):
-                    prefix = lemma[:len(lemma)-len(this_second_lemma)]
-                if prefix and len(prefix) < 6:
-                    if prefix in KNOWN_GREEK_PREFIXES:
-                        # print(f"create_Greek_lemma_pages also got lemma '{this_second_lemma}' with prefix '{prefix}' (cf. '{lemma}')")
-                        grkLemmaWordRowsList = state.OETRefData['NTLemmaDict'][this_second_lemma]
-                        # lemmaFormsList = sorted( state.OETRefData['NTLemmaFormsDict'][this_second_lemma] )
-                        # lemmaGlossesList = sorted( state.OETRefData['NTLemmaOETGlossesDict'][this_second_lemma] )
-                        this_second_lemma_link = f'<a title="Go to lemma page" href="{this_second_lemma}.htm#Top">{this_second_lemma}</a>'
-                        if len(this_extended_lemma_list) == 1:
-                            lemmasHtml = f"{lemmasHtml}\n<h1>Other possible lexically-related lemmas</h1>"
-                        lemmasHtml = f'''{lemmasHtml}
-<h2>Greek root word <small>(lemma)</small> ‘{this_second_lemma}’ <small>with prefix=‘{prefix}’</small></h2>
-{makeGreekLemmaHTML(this_second_lemma_link, grkLemmaWordRowsList)}'''
-                        this_extended_lemma_list.append( this_second_lemma )
-                    # else:
-                    #     print(f"create_Greek_lemma_pages ignored potential lemma '{this_second_lemma}' with unrecognised prefix '{prefix}' (cf. '{lemma}')")
-        # if len(this_extended_lemma_list) > 1:
-        #     print( f"Got {this_extended_lemma_list=}" )
-
-        # Consider other lemmas with similar English glosses
-        similarLemmaSet = set()
-        for lemmaGloss in grkLemmaOETGlossesList:
-            if lemmaGloss not in COMMON_ENGLISH_WORDS_LIST: # Ignore the most common words
-                # List other lemmas that are glossed similarly
-                try:
-                    similarWords = (lemmaGloss,) + SIMILAR_GLOSS_WORDS_DICT[lemmaGloss]
-                    # print( f"      {lemmaGloss=} {similarWords=} {ll} {lemma=} {lemmaGlossesList=}")
-                except KeyError: similarWords = (lemmaGloss,)
-                for similarWord in similarWords:
-                    for otherLemma,otherLemmaGlosses in state.OETRefData['NTLemmaOETGlossesDict'].items():
-                        # NOTE: otherLemmaGlosses contains raw words and well as HTML spans for gloss helpers, etc.
-                        if otherLemma != lemma:
-                            # print( f"{otherLemma=} {otherLemmaGlosses=}")
-                            if similarWord in otherLemmaGlosses:
-                                similarLemmaSet.add( otherLemma )
-        if similarLemmaSet:
-            # print( f"{lemma=} {lemmaGlossesList=} {extraLemmaSet=}" )
-            lemmasHtml = f'''{lemmasHtml}
-<h1>Lemmas with similar glosses to ‘{grkLemma}’ ({lemma})</h1>'''
-            for extraLemma in similarLemmaSet:
-                extra_lemma_link = f'<a title="Go to lemma page" href="{extraLemma}.htm#Top">{extraLemma}</a>'
-                lemmasHtml = f"{lemmasHtml}\n{makeGreekLemmaHTML(extra_lemma_link, state.OETRefData['NTLemmaDict'][extraLemma])}"
-
-        # Consider other lemmas with contrastive English glosses
-        contrastiveLemmaSet = set()
-        for lemmaGloss in grkLemmaOETGlossesList:
-            if lemmaGloss not in COMMON_ENGLISH_WORDS_LIST: # Ignore the most common words
-                # List other lemmas that are glossed as antonyms
-                try:
-                    contrastiveWords = CONTRASTIVE_GLOSS_WORDS_DICT[lemmaGloss]
-                    # print( f"      {lemmaGloss=} {contrastiveWords=} {ll} {lemma=} {lemmaGlossesList=}")
-                except KeyError: contrastiveWords = []
-                for contrastiveWord in contrastiveWords:
-                    for otherLemma,otherLemmaGlosses in state.OETRefData['NTLemmaOETGlossesDict'].items():
-                        # NOTE: otherLemmaGlosses contains raw words and well as HTML spans for gloss helpers, etc.
-                        if otherLemma != lemma:
-                            # print( f"{otherLemma=} {otherLemmaGlosses=}")
-                            if contrastiveWord in otherLemmaGlosses:
-                                assert otherLemma not in similarLemmaSet
-                                contrastiveLemmaSet.add( otherLemma )
-        if contrastiveLemmaSet:
-            # print( f"{lemma=} {lemmaGlossesList=} {extraLemmaSet=}" )
-            lemmasHtml = f'''{lemmasHtml}
-<h1>Lemmas with contrastive glosses to ‘{grkLemma}’ ({lemma})</h1>'''
-            for contrastiveLemma in contrastiveLemmaSet:
-                extra_lemma_link = f'<a title="Go to lemma page" href="{contrastiveLemma}.htm#Top">{contrastiveLemma}</a>'
-                lemmasHtml = f"{lemmasHtml}\n{makeGreekLemmaHTML(extra_lemma_link, state.OETRefData['NTLemmaDict'][contrastiveLemma])}"
-        assert '\\' not in lemmasHtml, f"{lemmalemmasHtmlHTML=}"
-
-        keyHtml = ''
-        if usedRoleLetters or usedMorphologies: # Add a key at the bottom
-            for usedRoleLetter in sorted( usedRoleLetters ):
-                keyHtml = f'{keyHtml} <b>{usedRoleLetter}</b>={CNTR_ROLE_NAME_DICT[usedRoleLetter]}'
-            for usedMorphology in sorted( usedMorphologies ):
-                try:
-                    keyHtml = f"{keyHtml} <b>{usedMorphology}</b>={CNTR_MORPHOLOGY_NAME_DICT[usedMorphology.upper()]}"
-                except KeyError:
-                    logging.warning( f"Missing {usedMorphology=}")
-            if keyHtml:
-                keyHtml = f'\n<p class="key" id="Key"><b>Key</b>:{keyHtml}</p>'
-
-        # Now put it all together
-        top = makeTop( level, None, 'lemma', None, state ) \
-                        .replace( '__TITLE__', f"Greek lemma ‘{lemma}’{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
-                        .replace( '__KEYWORDS__', 'Bible, word' )
-        lemmasHtml = f'''{top}{lemmasHtml}{keyHtml}{makeBottom( level, None, 'lemma' )}'''
-        assert checkHtml( f'GreekLemmaPage for {lemmaIndex} {lemma=}', lemmasHtml )
-        filepath = outputFolderPath.joinpath( output_filename )
-        assert not filepath.is_file() # Check that we're not overwriting anything
-        with open( filepath, 'wt', encoding='utf-8' ) as html_output_file:
-            html_output_file.write( lemmasHtml )
-        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  Wrote {len(lemmasHtml):,} characters to {output_filename}" )
+    for n,(result,(output_filename,lemma)) in enumerate( zip(results,taskMetaList), start=1 ):
+        assert result, f"{n} {output_filename} {lemma}"
         lemmaLinks.append( f'<a href="{output_filename}">{lemma}</a>')
+        if n % 1_000 == 0:
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      {n:,} lemma page links collected out of {len(taskMetaList):,}…" )
     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"    Created {len(lemmaLinks):,}{f'/{len(lemmaList):,}' if len(lemmaLinks) < len(lemmaList) else ''} Greek lemma pages." )
 
     # Create index page for this folder
@@ -3370,6 +3362,154 @@ def create_Greek_lemma_pages( level:int, outputFolderPath:Path, state:State ) ->
 
     del state.OETRefData['usedGrkLemmas']
 # end of createOETReferencePages.create_Greek_lemma_pages
+
+
+def create_Greek_lemma_page( level:int, lemmaIndex:int, lemma:str, prevLink:str, nextLink:str, outputFolderPath:Path, output_filename:str ) -> bool:
+        """
+        Makes the one Greek lemma page (extracted from create_Greek_lemma_pages so that it can
+            also be called by forked worker processes -- they inherit our module-level state).
+        Assumes any TEST_MODE filtering has already been done by the caller.
+        Returns True when the page has been written.
+        """
+        fnPrint( DEBUGGING_THIS_MODULE, f"create_Greek_lemma_page( {level}, {lemmaIndex}, {lemma}, ..., {output_filename} ... )" )
+        lemmaList = sorted( [lemma for lemma in state.OETRefData['NTLemmaDict']] ) # was a local of create_Greek_lemma_pages before the multiprocessing extraction
+        grkLemma = state.OETRefData['NTGreekLemmaDict'][lemma]
+        grkLemmaWordRowsList = state.OETRefData['NTLemmaDict'][lemma]
+        grkLemmaFormsList = sorted( state.OETRefData['NTLemmaFormsDict'][lemma], key=lambda t3: -state.OETRefData['NTLemmaFormsCountDict'][(lemma,*t3)] )
+        numGrkLemmaOETGlossesList = len( state.OETRefData['NTLemmaOETGlossesDict'][lemma] )
+        grkLemmaOETGlossesList = sorted( state.OETRefData['NTLemmaOETGlossesDict'][lemma] ) # Only used for comparison later with grkLemmaVLTGlossesList
+        grkLemmaOETGlossesStrList = [f'‘<b>{lemmaGloss}</b>’({state.OETRefData['NTLemmaOETGlossesCountDict'][(lemma,lemmaGloss)]:,})'
+                        for lemmaGloss in sorted( state.OETRefData['NTLemmaOETGlossesDict'][lemma], key=lambda lg: -state.OETRefData['NTLemmaOETGlossesCountDict'][(lemma,lg)] ) ]
+        grkLemmaVLTGlossesList = sorted( state.OETRefData['NTLemmaVLTGlossesDict'][lemma] )
+        usedRoleLetters, usedMorphologies = set(), set()
+
+        lemmasHtml = f'''<h1 id="Top">Greek root word <small>(lemma)</small> ‘{grkLemma}’ ({lemma})</h1>
+<p class="pgNav">{prevLink}<b>{lemma}</b> <a title="Go to Greek word index" href="index.htm">⌂</a>{nextLink}</p>
+<p class="btnBar"><button type="button" id="wordsButton" title="Hide/Show word lines" onclick="hide_show_words()">Hide words</button> <button type="button" id="versesButton" title="Hide/Show verse lines" onclick="hide_show_verses()">Hide verses</button> <button type="button" id="coloursButton" title="Hide/Show verse colours" onclick="hide_show_colours()">Hide verse colours</button></p>
+<p class="summary">This root form (lemma) ‘{grkLemma}’ is used in {'only one form' if len(grkLemmaFormsList)==1 else f'{len(grkLemmaFormsList):,} different forms'} in the Greek originals: {', '.join([f'<a title="View Greek word form" href="../GrkWrd/{getGreekWordpageFilename(getFirstGreekWordNumber(grk,roleLetter,morph), state )}#Top">{grk}</a> <small>({state.OETRefData['NTLemmaFormsCountDict'][(lemma,grk,roleLetter,morph)]:,}, {roleLetter}-{morph[4:] if morph.startswith("....") else morph})</small>' for grk,roleLetter,morph in grkLemmaFormsList])}.</p>
+<p class="summary">It is glossed in {'only one way' if numGrkLemmaOETGlossesList==1 else f'{numGrkLemmaOETGlossesList:,} different ways'}: {tidy_Greek_lemma_gloss(', '.join(grkLemmaOETGlossesStrList))}.</p>'''
+        if grkLemmaVLTGlossesList != grkLemmaOETGlossesList:
+            lemmasHtml = f'''{lemmasHtml}<p class="summary"><small>(In <span title="the forthcoming Verified Literal Translation">the VLT</span>, it was glossed in {'only one way' if len(grkLemmaVLTGlossesList)==1 else f'{len(grkLemmaVLTGlossesList):,} different ways'}: ‘<b>{"</b>’, ‘<b>".join(grkLemmaVLTGlossesList)}</b>’.)</small></p>'''
+
+        lemmasHtml = f"{lemmasHtml}\n{_make_greek_lemma_HTML_segment(lemma, grkLemmaWordRowsList, level, usedRoleLetters, usedMorphologies)}"
+
+        # Consider related lemmas, e.g., with or without prefix
+        this_extended_lemma_list = [lemma]
+        for mm, this_second_lemma in enumerate( lemmaList ):
+            if this_second_lemma and len(this_second_lemma)>1 and this_second_lemma not in this_extended_lemma_list:
+                prefix = None
+                if this_second_lemma.endswith( lemma ):
+                    prefix = this_second_lemma[:len(this_second_lemma)-len(lemma)]
+                elif lemma.endswith( this_second_lemma ):
+                    prefix = lemma[:len(lemma)-len(this_second_lemma)]
+                if prefix and len(prefix) < 6:
+                    if prefix in KNOWN_GREEK_PREFIXES:
+                        # print(f"create_Greek_lemma_pages also got lemma '{this_second_lemma}' with prefix '{prefix}' (cf. '{lemma}')")
+                        grkLemmaWordRowsList = state.OETRefData['NTLemmaDict'][this_second_lemma]
+                        # lemmaFormsList = sorted( state.OETRefData['NTLemmaFormsDict'][this_second_lemma] )
+                        # lemmaGlossesList = sorted( state.OETRefData['NTLemmaOETGlossesDict'][this_second_lemma] )
+                        this_second_lemma_link = f'<a title="Go to lemma page" href="{this_second_lemma}.htm#Top">{this_second_lemma}</a>'
+                        if len(this_extended_lemma_list) == 1:
+                            lemmasHtml = f"{lemmasHtml}\n<h1>Other possible lexically-related lemmas</h1>"
+                        lemmasHtml = f'''{lemmasHtml}
+<h2>Greek root word <small>(lemma)</small> ‘{this_second_lemma}’ <small>with prefix=‘{prefix}’</small></h2>
+{_make_greek_lemma_HTML_segment(this_second_lemma_link, grkLemmaWordRowsList, level, usedRoleLetters, usedMorphologies)}'''
+                        this_extended_lemma_list.append( this_second_lemma )
+                    # else:
+                    #     print(f"create_Greek_lemma_pages ignored potential lemma '{this_second_lemma}' with unrecognised prefix '{prefix}' (cf. '{lemma}')")
+        # if len(this_extended_lemma_list) > 1:
+        #     print( f"Got {this_extended_lemma_list=}" )
+
+        # Consider other lemmas with similar English glosses
+        similarLemmaSet = set()
+        for lemmaGloss in grkLemmaOETGlossesList:
+            if lemmaGloss not in COMMON_ENGLISH_WORDS_LIST: # Ignore the most common words
+                # List other lemmas that are glossed similarly
+                try:
+                    similarWords = (lemmaGloss,) + SIMILAR_GLOSS_WORDS_DICT[lemmaGloss]
+                    # print( f"      {lemmaGloss=} {similarWords=} {ll} {lemma=} {lemmaGlossesList=}")
+                except KeyError: similarWords = (lemmaGloss,)
+                for similarWord in similarWords:
+                    for otherLemma,otherLemmaGlosses in state.OETRefData['NTLemmaOETGlossesDict'].items():
+                        # NOTE: otherLemmaGlosses contains raw words and well as HTML spans for gloss helpers, etc.
+                        if otherLemma != lemma:
+                            # print( f"{otherLemma=} {otherLemmaGlosses=}")
+                            if similarWord in otherLemmaGlosses:
+                                similarLemmaSet.add( otherLemma )
+        if similarLemmaSet:
+            # print( f"{lemma=} {lemmaGlossesList=} {extraLemmaSet=}" )
+            lemmasHtml = f'''{lemmasHtml}
+<h1>Lemmas with similar glosses to ‘{grkLemma}’ ({lemma})</h1>'''
+            for extraLemma in similarLemmaSet:
+                extra_lemma_link = f'<a title="Go to lemma page" href="{extraLemma}.htm#Top">{extraLemma}</a>'
+                lemmasHtml = f"{lemmasHtml}\n{_make_greek_lemma_HTML_segment(extra_lemma_link, state.OETRefData['NTLemmaDict'][extraLemma], level, usedRoleLetters, usedMorphologies)}"
+
+        # Consider other lemmas with contrastive English glosses
+        contrastiveLemmaSet = set()
+        for lemmaGloss in grkLemmaOETGlossesList:
+            if lemmaGloss not in COMMON_ENGLISH_WORDS_LIST: # Ignore the most common words
+                # List other lemmas that are glossed as antonyms
+                try:
+                    contrastiveWords = CONTRASTIVE_GLOSS_WORDS_DICT[lemmaGloss]
+                    # print( f"      {lemmaGloss=} {contrastiveWords=} {ll} {lemma=} {lemmaGlossesList=}")
+                except KeyError: contrastiveWords = []
+                for contrastiveWord in contrastiveWords:
+                    for otherLemma,otherLemmaGlosses in state.OETRefData['NTLemmaOETGlossesDict'].items():
+                        # NOTE: otherLemmaGlosses contains raw words and well as HTML spans for gloss helpers, etc.
+                        if otherLemma != lemma:
+                            # print( f"{otherLemma=} {otherLemmaGlosses=}")
+                            if contrastiveWord in otherLemmaGlosses:
+                                assert otherLemma not in similarLemmaSet
+                                contrastiveLemmaSet.add( otherLemma )
+        if contrastiveLemmaSet:
+            # print( f"{lemma=} {lemmaGlossesList=} {extraLemmaSet=}" )
+            lemmasHtml = f'''{lemmasHtml}
+<h1>Lemmas with contrastive glosses to ‘{grkLemma}’ ({lemma})</h1>'''
+            for contrastiveLemma in contrastiveLemmaSet:
+                extra_lemma_link = f'<a title="Go to lemma page" href="{contrastiveLemma}.htm#Top">{contrastiveLemma}</a>'
+                lemmasHtml = f"{lemmasHtml}\n{_make_greek_lemma_HTML_segment(extra_lemma_link, state.OETRefData['NTLemmaDict'][contrastiveLemma], level, usedRoleLetters, usedMorphologies)}"
+        assert '\\' not in lemmasHtml, f"{lemmalemmasHtmlHTML=}"
+
+        keyHtml = ''
+        if usedRoleLetters or usedMorphologies: # Add a key at the bottom
+            for usedRoleLetter in sorted( usedRoleLetters ):
+                keyHtml = f'{keyHtml} <b>{usedRoleLetter}</b>={CNTR_ROLE_NAME_DICT[usedRoleLetter]}'
+            for usedMorphology in sorted( usedMorphologies ):
+                try:
+                    keyHtml = f"{keyHtml} <b>{usedMorphology}</b>={CNTR_MORPHOLOGY_NAME_DICT[usedMorphology.upper()]}"
+                except KeyError:
+                    logging.warning( f"Missing {usedMorphology=}")
+            if keyHtml:
+                keyHtml = f'\n<p class="key" id="Key"><b>Key</b>:{keyHtml}</p>'
+
+        # Now put it all together
+        top = makeTop( level, None, 'lemma', None, state ) \
+                        .replace( '__TITLE__', f"Greek lemma ‘{lemma}’{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
+                        .replace( '__KEYWORDS__', 'Bible, word' )
+        lemmasHtml = f'''{top}{lemmasHtml}{keyHtml}{makeBottom( level, None, 'lemma' )}'''
+        assert checkHtml( f'GreekLemmaPage for {lemmaIndex} {lemma=}', lemmasHtml )
+        filepath = outputFolderPath.joinpath( output_filename )
+        assert not filepath.is_file() # Check that we're not overwriting anything
+        with open( filepath, 'wt', encoding='utf-8' ) as html_output_file:
+            html_output_file.write( lemmasHtml )
+        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  Wrote {len(lemmasHtml):,} characters to {output_filename}" )
+        return True
+# end of createOETReferencePages.create_Greek_lemma_page
+
+
+def _create_Greek_lemma_page_MP( parameters ): # Used by create_Greek_lemma_pages
+    """
+    Multiprocessing version! (forked children inherit our module-level state copy-on-write)
+
+    Parameter is a 7-tuple containing the parameters (WITHOUT state -- use the inherited one).
+    Returns True because changes that a child process makes to the inherited state are lost
+        on exit (and this function doesn\'t need to accumulate anything for the parent).
+    """
+    result = create_Greek_lemma_page( *parameters )
+    return result
+# end of createOETReferencePages._create_Greek_lemma_page_MP
+
+
 
 
 NUM_STRONGS_INDEX_ENTRIES = 60
