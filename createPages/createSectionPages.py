@@ -484,7 +484,7 @@ def createOETSectionPages( level:int, folder:Path, rvBible:ESFMBible, lvBible:ES
 {combinedHtml}
 <p class="secNav">{sectionIndexLink}{leftLink}{documentLink} {startChapterLink}:{startV}–{endChapterLink}:{endV}{rightLink}{relatedLink}{parallelLink}{interlinearLink}{detailsLink}</p>
 {sectionChapterLinksParagraph}
-{makeBottom( level, 'OET', 'section', state )}'''
+{makeBottom( level, 'OET', 'section' )}'''
             assert checkHtml( f'{rvBible.abbreviation} {BBB} section', sectionHtml )
             assert not filepath.is_file() # Check that we're not overwriting anything
             with open( filepath, 'wt', encoding='utf-8' ) as sectionHtmlFile:
@@ -526,7 +526,7 @@ def createOETSectionPages( level:int, folder:Path, rvBible:ESFMBible, lvBible:ES
 {'\n'.join( sectionHtmlBits )}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="15" style="float:right; margin-left:10px;"></a>
 {sectionChapterLinksParagraph}
 <p class="pageNav">{leftLink}{getOETTidyBBB( BBB, titleCase=True, allowFourChars=True, insertChar=' ', addNotes=True)} <a title="Go to top of page" href=#Top>↑</a>{rightLink}</p>
-{makeBottom( level, 'OET', 'sectionIndex', state )}'''
+{makeBottom( level, 'OET', 'sectionIndex' )}'''
         assert checkHtml( 'OET section index', sectionHtml )
         assert not indexFilepath.is_file() # Check that we're not overwriting anything
         with open( indexFilepath, 'wt', encoding='utf-8' ) as sectionHtmlFile:
@@ -546,7 +546,7 @@ def createOETSectionPages( level:int, folder:Path, rvBible:ESFMBible, lvBible:ES
 <h1 id="Top">OET section pages</h1>
 <h2>Index of OET books</h2>
 {navBookListParagraph}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="15" style="float:right; margin-left:10px;"></a>
-{makeBottom( level, 'OET', 'sectionIndex', state )}'''
+{makeBottom( level, 'OET', 'sectionIndex' )}'''
     assert checkHtml( 'OET sections index', indexHtml )
     assert not indexFilepath.is_file() # Check that we're not overwriting anything
     with open( indexFilepath, 'wt', encoding='utf-8' ) as sectionHtmlFile:
@@ -671,7 +671,7 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> list
             sectionHtml = f'''{top}<!--no sections page-->
 {navBookListParagraph}
 {f'<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>\n' if 'OET' in thisBible.abbreviation else ''}{sectionHtml}
-{makeBottom( level, thisBible.abbreviation, 'section', state )}'''
+{makeBottom( level, thisBible.abbreviation, 'section' )}'''
             assert checkHtml( f'{thisBible.abbreviation} {BBB} section', sectionHtml )
             assert not filepath.is_file() # Check that we're not overwriting anything
             with open( filepath, 'wt', encoding='utf-8' ) as sectionHtmlFile:
@@ -750,7 +750,7 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> list
 {sectionChapterLinksParagraph.replace( 'class="chLst">', 'class="chLst" id="chLst">', 1 )}
 {sectionHtml}
 {sectionChapterLinksParagraph}
-{makeBottom( level, thisBible.abbreviation, 'section', state )}'''
+{makeBottom( level, thisBible.abbreviation, 'section' )}'''
             assert checkHtml( f'{thisBible.abbreviation} {BBB} section', sectionHtml )
             assert not filepath.is_file() # Check that we're not overwriting anything
             with open( filepath, 'wt', encoding='utf-8' ) as sectionHtmlFile:
@@ -797,7 +797,7 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> list
 {'\n'.join( sectionHtmlBits )}
 {sectionChapterLinksParagraph}
 <p class="pageNav">{leftLink}{ourTidyBBB} <a title="Go to top of page" href=#Top>↑</a>{rightLink}</p>
-{makeBottom( level, thisBible.abbreviation, 'sectionIndex', state )}'''
+{makeBottom( level, thisBible.abbreviation, 'sectionIndex' )}'''
         assert checkHtml( f'{thisBible.abbreviation} section index', sectionHtml )
         assert not indexFilepath.is_file() # Check that we're not overwriting anything
         with open( indexFilepath, 'wt', encoding='utf-8' ) as sectionHtmlFile:
@@ -816,7 +816,7 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> list
 {f'<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>\n' if 'OET' in thisBible.abbreviation else ''}<h1 id="Top">{thisBible.abbreviation} section pages</h1>
 <h2>Index of {thisBible.abbreviation} books</h2>
 {navBookListParagraph}
-{makeBottom( level, thisBible.abbreviation, 'sectionIndex', state )}'''
+{makeBottom( level, thisBible.abbreviation, 'sectionIndex' )}'''
     assert checkHtml( f'{thisBible.abbreviation} sections index', indexHtml )
     assert not indexFilepath.is_file() # Check that we're not overwriting anything
     with open( indexFilepath, 'wt', encoding='utf-8' ) as sectionHtmlFile:

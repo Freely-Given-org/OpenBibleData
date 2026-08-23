@@ -89,15 +89,15 @@ CHANGELOG:
     2026-02-03 Allow uncertain ellided markings '\\add ?≡'
     2026-05-09 Upgraded to bos_books_codes_py
     2026-06-11 Handle new % (changed person) \\add format
-    2026-08-22 makeTop and makeViewNavListParagraph now delegate to the Rust
-        openbibledata_rust module (page_chrome); deleted the superseded Python
-        _makeNavigationLinks and _makeWorkNavListParagraph implementations.
-        Output byte-fidelity is checked by golden_makeTop.py.
+    2026-08-22 makeTop and makeViewNavListParagraph now delegate to the Rust openbibledata_rust module (page_chrome);
+                    deleted the superseded Python _makeNavigationLinks and _makeWorkNavListParagraph implementations.
+    2026-08-23 Cached the output of makeBottom (by relying on the global import of state)
 """
 import logging
 from datetime import datetime
 import re
 from collections import defaultdict
+from functools import cache
 
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint, BOOKLIST_OT39, BOOKLIST_NT27
@@ -259,17 +259,19 @@ def makeBookNavListParagraph( linksList:list[str], workAbbrevPlus:str, state:Sta
 # end of html.makeBookNavListParagraph
 
 
-def makeBottom( level:int, versionAbbreviation:str|None, pageType:str, state:State ) -> str:
+# NOTE: We imported state at the module level so it didn't have to be a parameter
+@cache
+def makeBottom( level:int, versionAbbreviation:str|None, pageType:str ) -> str:
     """
     Create the very bottom part of an HTML page.
     """
     # fnPrint( DEBUGGING_THIS_MODULE, f"makeBottom()" )
     assert pageType in KNOWN_PAGE_TYPES, f"{level=} {pageType=}"
 
-    return f'{_makeFooter( level, versionAbbreviation, pageType, state )}</body></html>'
+    return f'{_makeFooter( level, versionAbbreviation, pageType )}</body></html>'
 # end of html.makeBottom
 
-def _makeFooter( level:int, versionAbbreviation:str|None, pageType:str, state:State ) -> str:
+def _makeFooter( level:int, versionAbbreviation:str|None, pageType:str ) -> str:
     """
     Create any links or site map that follow the main content on the page.
     """

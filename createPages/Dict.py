@@ -612,7 +612,7 @@ def createTyndaleDictPages( level:int, outputFolderPath, state:State ) -> bool:
 <h1>{'TEST ' if state.TEST_MODE_FLAG else ''}Tyndale Open Bible Dictionary</h1>
 {navLinks.replace('__ID__','Top')}
 {article}
-{makeBottom( level, None, 'dictionaryEntry', state )}'''
+{makeBottom( level, None, 'dictionaryEntry' )}'''
         assert checkHtml( 'DictionaryArticle', articleHtml )
         assert not filepath.is_file() # Check that we're not overwriting anything
         with open( filepath, 'wt', encoding='utf-8' ) as articleHtmlFile:
@@ -646,7 +646,7 @@ def createTyndaleDictPages( level:int, outputFolderPath, state:State ) -> bool:
 {navLinks.replace('__ID__','Top')}
 <h2>Index for dictionary letter '{letter}'</h2>
 {articleLinkHtml}
-{makeBottom( level, None, 'dictionaryLetterIndex', state )}'''
+{makeBottom( level, None, 'dictionaryLetterIndex' )}'''
         assert checkHtml( 'DictionaryLetterIndex', letterIndexHtml )
         assert not filepath.is_file() # Check that we're not overwriting anything
         with open( filepath, 'wt', encoding='utf-8' ) as letterIndexHtmlFile:
@@ -663,7 +663,7 @@ def createTyndaleDictPages( level:int, outputFolderPath, state:State ) -> bool:
 even though it was originally designed to supplement the <i>New Living Translation</i>, not our <em>Open English Translation</em>.</p>
 <h1 id="Top">Tyndale Open Bible Dictionary <small>{TOBD_detailsLink}</small></h1>
 {state.TOBDData['Intro']}
-{makeBottom( level, None, 'dictionaryIntro', state )}'''
+{makeBottom( level, None, 'dictionaryIntro' )}'''
     assert checkHtml( 'DictionaryIntro', introHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as introHtmlFile:
@@ -687,7 +687,7 @@ even though it was originally designed to supplement the <i>New Living Translati
 <p class="note">This isn’t fully formatted and implemented yet, but something might be visible <a href="{'../'*(level)}UBS/Grk/">here</a>.</p><!--note-->
 <h1>UBS Dictionary of Biblical Hebrew <small>{UBS_detailsLink}</small></h1>
 <p class="note">This isn’t fully formatted and implemented yet, but something might be visible <a href="{'../'*(level)}UBS/Heb/">here</a>.</p><!--note-->
-{makeBottom( level, None, 'dictionaryMainIndex', state )}'''
+{makeBottom( level, None, 'dictionaryMainIndex' )}'''
     assert checkHtml( 'DictionaryIndex', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
@@ -1043,7 +1043,7 @@ def createUBSGreekDictionaryPages( level, outputFolderPath, state:State ) -> Non
 <h1>{'TEST ' if state.TEST_MODE_FLAG else ''}UBS Dictionary of the Greek New Testament</h1>
 {navLinks.replace('__ID__','Top')}
 {entryHtml}
-{makeBottom( level, None, 'dictionaryEntry', state )}'''
+{makeBottom( level, None, 'dictionaryEntry' )}'''
         assert checkHtml( 'DictionaryArticle', articleHtml )
         assert not filepath.is_file() # Check that we're not overwriting anything
         with open( filepath, 'wt', encoding='utf-8' ) as articleHtmlFile:
@@ -1122,7 +1122,7 @@ def createUBSHebrewDictionaryPages( level, outputFolderPath, state:State ) -> No
 <h1>{'TEST ' if state.TEST_MODE_FLAG else ''}UBS Dictionary of the Hebrew New Testament</h1>
 {navLinks.replace('__ID__','Top')}
 {entryHtml.replace( f'{NEWLINE}</p>', '</p>' )}
-{makeBottom( level, None, 'dictionaryEntry', state )}'''
+{makeBottom( level, None, 'dictionaryEntry' )}'''
         assert checkHtml( 'DictionaryArticle', articleHtml )
         assert not filepath.is_file() # Check that we're not overwriting anything
         with open( filepath, 'wt', encoding='utf-8' ) as articleHtmlFile:

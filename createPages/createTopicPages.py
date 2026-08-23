@@ -179,7 +179,7 @@ def createTopicPages( level:int, folder:Path, state:State ) -> bool:
 <p>\n{'<br>'.join(topicsHtmlsForIndex)}</p>
 <p class="note">Please contact us at <b>Freely</b> dot <b>Given</b> dot <b>org</b> (at) <b>gmail</b> dot <b>com</b> if there’s any topics that you’d like us to add, or any passages that you’d like us to add to any topic page.</p>
 <a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="15" style="float:right; margin-left:10px;"></a>
-{makeBottom( level, None, 'topicsIndex', state )}'''
+{makeBottom( level, None, 'topicsIndex' )}'''
     assert checkHtml( 'topicsIndex', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
@@ -312,7 +312,7 @@ def createTopicPage( level:int, folder:Path, topicNumber:int, state:State ) -> b
 <p class="note"><small>Please contact us at <b>Freely</b> dot <b>Given</b> dot <b>org</b> (at) <b>gmail</b> dot <b>com</b> if there’s any passages that you’d like us to add to this topic page, or any passages that need a little bit more context around them. (We encourage our readers to always view things in their context, so we discourage use of the word ‘verse’, especially in sayings like, “This verse says …”.)</small></p>
 <p class="pageNav">{leftLink} {homeLink} {rightLink}</p>
 <a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="15" style="float:right; margin-left:10px;"></a>
-{makeBottom( level, None, 'topicPassages', state )}'''
+{makeBottom( level, None, 'topicPassages' )}'''
     assert checkHtml( f'{topic} Topic', topicHtml )
     assert '.htm#aC' not in topicHtml and '.htm#bC' not in topicHtml, topicHtml
     assert not filepath.is_file(), f"{filepath=}" # Check that we're not overwriting anything
@@ -395,7 +395,7 @@ def createKingdomPages( level:int, folder:Path, state:State ) -> bool:
 {(KINGDOM_INFO_HTML_DICT['Intro']+NEWLINE) if 'kingdom' in kingdomName else ''}{KINGDOM_INFO_HTML_DICT[kingdomName]}
 </div>
 {kingdomHtml if kingdomHtml else ''}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="15" style="float:right; margin-left:10px;"></a>
-{makeBottom( level, None, 'kingdom', state )}'''
+{makeBottom( level, None, 'kingdom' )}'''
         assert checkHtml( f'{oneWordKingdomName}', html )
         assert not filepath.is_file() # Check that we're not overwriting anything
         with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
@@ -422,7 +422,7 @@ def createKingdomPages( level:int, folder:Path, state:State ) -> bool:
 <h1>Index to ‘Kingdom’ pages</h1>
 <h2>These pages describe the kingdoms after the Israelis entered the ‘promised land’</h2>
 {'\n'.join([f'<div class="{oneWordKingdomName}"><p class="note"><a href="{kFilename}">{kingdomName}</a></p></div>' for kingdomName, oneWordKingdomName, kFilename in indexList])}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="15" style="float:right; margin-left:10px;"></a>
-{makeBottom( level, None, 'kingdomIndex', state )}'''
+{makeBottom( level, None, 'kingdomIndex' )}'''
     assert checkHtml( 'kingdomIndex', html )
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:

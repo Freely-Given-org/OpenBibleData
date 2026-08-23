@@ -134,7 +134,7 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
                               f'''<a title="Up to {state.BibleNames[rvBible.abbreviation]}" href="{'../'*level}{BibleOrgSysGlobals.makeSafeString(rvBible.abbreviation)}/">↑{rvBible.abbreviation}</a>''' )
             chapterHtml = f'''{top}<!--chapter page-->
 {chapterHtml}
-{makeBottom( level, rvBible.abbreviation, 'chapter', state )}'''
+{makeBottom( level, rvBible.abbreviation, 'chapter' )}'''
             assert checkHtml( f'{rvBible.abbreviation} {BBB}', chapterHtml )
             assert not filepath.is_file() # Check that we're not overwriting anything
             with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
@@ -362,7 +362,7 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
 {combinedHtml}
 {cNav}
 {chapterLinksParagraph}
-{makeBottom( level, 'OET', 'chapter', state )}'''
+{makeBottom( level, 'OET', 'chapter' )}'''
                 assert checkHtml( f'OET {BBB}_C{c}', chapterHtml )
                 assert not filepath.is_file() # Check that we're not overwriting anything
                 with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
@@ -395,7 +395,7 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
 {chapterLinksParagraph}
 <a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
 {chapterHtml}
-{makeBottom( level, 'OET', 'chapter', state )}'''
+{makeBottom( level, 'OET', 'chapter' )}'''
             assert checkHtml( 'OET', chapterHtml )
             assert not filepath.is_file() # Check that we're not overwriting anything
             with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
@@ -417,7 +417,7 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
 <a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
 {navBookListParagraph}
 {chapterLinksParagraph}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="15" style="float:right; margin-left:10px;"></a>
-{makeBottom( level, 'OET', 'chapter', state )}'''
+{makeBottom( level, 'OET', 'chapter' )}'''
         assert checkHtml( 'OETChaptersIndex', chapterHtml )
         assert not filepath.is_file() # Check that we're not overwriting anything
         with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
@@ -439,7 +439,7 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
 <h1 id="Top">OET chapter pages</h1>
 <h2>Index of books</h2>
 {navBookListParagraph}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="15" style="float:right; margin-left:10px;"></a>
-{makeBottom( level, 'OET', 'chapterIndex', state )}'''
+{makeBottom( level, 'OET', 'chapterIndex' )}'''
     assert checkHtml( 'OETBooksIndex', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
@@ -590,7 +590,7 @@ def createChapterPages( level:int, folder:Path, thisBible, state:State ) -> list
 {f'<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>\n' if 'OET' in thisBible.abbreviation else ''}{chapterHtml}
 {cNav}
 {chapterLinksParagraph}
-{makeBottom( level, thisBible.abbreviation, 'chapter', state )}'''
+{makeBottom( level, thisBible.abbreviation, 'chapter' )}'''
                 assert checkHtml( f'{thisBible.abbreviation} {BBB}_C{C}', chapterHtml )
                 assert not filepath.is_file() # Check that we're not overwriting anything
                 with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
@@ -611,7 +611,7 @@ def createChapterPages( level:int, folder:Path, thisBible, state:State ) -> list
             chapterHtml = f'''{top}<!--chapters indexPage-->
 {f'<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>\n' if 'OET' in thisBible.abbreviation else ''}{navBookListParagraph}
 {chapterLinksParagraph}
-{makeBottom( level, thisBible.abbreviation, 'chapter', state )}'''
+{makeBottom( level, thisBible.abbreviation, 'chapter' )}'''
             assert checkHtml( f'{thisBible.abbreviation}  chapter index', chapterHtml )
             assert not filepath.is_file() # Check that we're not overwriting anything
             with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
@@ -641,7 +641,7 @@ def createChapterPages( level:int, folder:Path, thisBible, state:State ) -> list
             chapterHtml = f'''{top}<!--chapter page-->
 {navBookListParagraph}
 {chapterHtml}
-{makeBottom( level, thisBible.abbreviation, 'chapter', state )}'''
+{makeBottom( level, thisBible.abbreviation, 'chapter' )}'''
             assert checkHtml( f'{thisBible.abbreviation} {BBB}', chapterHtml )
             assert not filepath.is_file() # Check that we're not overwriting anything
             with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
@@ -661,7 +661,7 @@ def createChapterPages( level:int, folder:Path, thisBible, state:State ) -> list
 {f'<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>\n' if 'OET' in thisBible.abbreviation else ''}<h1 id="Top">{thisBible.abbreviation} chapter pages</h1>
 <h2>Index of books</h2>
 {navBookListParagraph}
-{makeBottom( level, thisBible.abbreviation, 'chapterIndex', state )}'''
+{makeBottom( level, thisBible.abbreviation, 'chapterIndex' )}'''
     assert checkHtml( f'{thisBible.abbreviation} book index', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:

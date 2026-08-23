@@ -802,7 +802,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                 'unobedient','distributione','opense','whoren','sharedn','againststanden','gorrschet','goatsböcklein','saddenede','slepten','fiftytausend',
                                     'tearinger','grainstädte','stiftete','chainswerk','seventytausend','eightytausend','cartstädte','ratet','togewachsen','wroteen',
                                     'blasphemyen','shopsn','nineunddreißig','soundedn','hinderte','frightenedn','preventeden','plainlyds',
-                                    'ward‘s','hatese','slimete','grabsen','eradicatedn',
+                                    'strengthr','siegen','yest','ward‘s','singt','hilf','wellgelingen','liemäulern','downfällt','hingo',
                     
                                 'actio', 'agi', 'ambit','ambitio','anima','antiqui','apprehendi','ascendi','attende','audi', 'aversio',
                                 'beati','bene','beneficia','bos',
@@ -820,7 +820,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                     'intellige','intelligi','intentio','introduc','inventi','invocat','invocatio','Isaia','iter','Ite',
                                 'ja','jus','Justi','justi','justis','justificat',     'legi','legis','liberati','liberato','liberat','libera','liber','locus','lux',
                                 'magis','magnifice','magni', 'mane','manifeste','manu', 'mater','materia',
-                                    'media','medici','memor','menstrua',        'mira','misera',        'moretri','mortali','morti',
+                                    'media','medici','memor','memoria','menstrua',        'mira','misera',        'moretri','mortali','morti',
                                 'nam','natu','natura','ne','nota','Nota',     'ob','obsessi','offen','omnis','operatio','ora','ori',
                                 'passi','patria','patri','pede','pedes','perfecti','persecuti','persecutio',
                                     'pio','plura','polluti','prope','propitiatio','provocat','publica',
@@ -834,10 +834,9 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                 'tum','holdur','killur','giveium','golds','inactivitym',
                                 'announcent','subjoinsur','perpetuall','carriese','adwill',
                                     'changesa','talentis','habitculo','establishedque','lastrum','buildt','buildsa','solidos',
-                                    'buildingus','buildri','planstorum','yearnas','myrti','recallsione','memoria','exaltsion','scaresur','groanm','differentur', 'poors',
-                                    'boldnessm','moveantur','inthey','intonuit',
-                                    'evenire',
-
+                                    'buildingus','buildri','planstorum','yearnas','myrti','recallsione','exaltsion','groanm','differentur', 'poors',
+                                    'boldnessm','moveantur','inthey','det','joybimur','tellsio','fallit','sentionum',
+        
                                 )
                     else 'Info', DEBUGGING_THIS_MODULE, f'''        {word} is suspect @ {location}\nfrom {cleanedTextToDisplay=}\n  WHICH GAVE {cleanedTextToCheck=}''' )
             if versionAbbreviation == 'Luth':

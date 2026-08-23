@@ -131,7 +131,7 @@ def createOETInterlinearPages( level:int, folder:Path, state:State ) -> bool:
 <p class="note">These pages show single OET verses with each Hebrew or Greek word aligned with the English word(s) that it was translated to, along with any translation notes and study notes for the verse. Finally, at the bottom of each page there's a <em>Reverse Interlinear</em> with the same information but in English word order.</p><!--note-->
 <h2>Index of books</h2>
 {makeBookNavListParagraph(state.BBBLinks['OET-RV'], 'InterlinearIndex', state )}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="15" style="float:right; margin-left:10px;"></a>
-{makeBottom( level, None, 'interlinearVerse', state )}'''
+{makeBottom( level, None, 'interlinearVerse' )}'''
     assert checkHtml( 'interlinearIndex', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
@@ -231,7 +231,7 @@ def createOETInterlinearVersePagesForBook( level:int, folder:Path, BBB:str, BBBL
 {navLinks.replace('__ID__','Top').replace('__ARROW__','↓').replace('__LINK__','BottomNavs').replace('__WHERE__','bottom')}
 {iHtml}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*BBBLevel}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="15" style="float:right; margin-left:10px;"></a>
 {navLinks.replace('__ID__','BottomNavs').replace('__ARROW__','↑').replace('__LINK__','Top').replace('__WHERE__','top')}
-{makeBottom( BBBLevel, None, 'interlinearVerse', state )}'''
+{makeBottom( BBBLevel, None, 'interlinearVerse' )}'''
                 assert checkHtml( f'Interlinear page {BBB} {C}:{v}', iHtml )
                 assert not filepath.is_file() # Check that we're not overwriting anything
                 with open( filepath, 'wt', encoding='utf-8' ) as iHtmlFile:
@@ -260,7 +260,7 @@ f'''<p class="chLst" id="chLst">{ourTidyBbb if ourTidyBbb!='Yac' else 'Yacob/(Ja
 <p class="vsLst">{' '.join( vLinks )}</p><!--vsLst-->'''
     indexHtml = f'''{top}{adjBBBLinksHtml}
 {ourLinks}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*BBBLevel}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="15" style="float:right; margin-left:10px;"></a>
-{makeBottom( BBBLevel, None, 'interlinearVerse', state )}'''
+{makeBottom( BBBLevel, None, 'interlinearVerse' )}'''
     assert checkHtml( 'interlinearIndex', indexHtml )
     with open( filepath1, 'wt', encoding='utf-8' ) as indexHtmlFile:
         indexHtmlFile.write( indexHtml )
@@ -285,7 +285,7 @@ f'''<p class="chLst" id="chLst">{ourTidyBbb if ourTidyBbb!='Yac' else 'Yacob/(Ja
 <p class="vsLst">{' '.join( newBBBVLinks )}</p><!--vsLst-->'''
     indexHtml = f'''{top}{adjBBBLinksHtml}
 {ourLinks}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="15" style="float:right; margin-left:10px;"></a>
-{makeBottom( level, None, 'interlinearVerse', state )}'''
+{makeBottom( level, None, 'interlinearVerse' )}'''
     assert checkHtml( 'interlinearIndex', indexHtml )
     with open( filepath2, 'wt', encoding='utf-8' ) as indexHtmlFile:
         indexHtmlFile.write( indexHtml )

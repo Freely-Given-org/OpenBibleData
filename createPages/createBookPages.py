@@ -166,7 +166,7 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
             bkHtml = f'''{top}<!--book page-->
 {navBookListParagraph}
 {bkHtml}
-{makeBottom( level, rvBible.abbreviation, 'book', state )}'''
+{makeBottom( level, rvBible.abbreviation, 'book' )}'''
             assert checkHtml( f'OET Book FRT {rvBible.abbreviation} {BBB}', bkHtml )
             assert not filepath.is_file() # Check that we're not overwriting anything
             with open( filepath, 'wt', encoding='utf-8' ) as bkHtmlFile:
@@ -349,7 +349,7 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
 <a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
 {bkHtml}
 {removeDuplicateCVids( combinedHtml )}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="15" style="float:right; margin-left:10px;"></a></div><!--RVLVcontainer-->
-{makeBottom( level, 'OET', 'book', state )}'''
+{makeBottom( level, 'OET', 'book' )}'''
         assert checkHtml( f'OET Book {BBB}', bkHtml )
         assert not filepath.is_file() # Check that we're not overwriting anything
         with open( filepath, 'wt', encoding='utf-8' ) as bkHtmlFile:
@@ -371,7 +371,7 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
 <h2>Index of books</h2>
 {navBookListParagraph}
 {state.WHOLE_BOOKS_WARNING_HTML_PARAGRAPH}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="15" style="float:right; margin-left:10px;"></a>
-{makeBottom( level, 'OET', 'bookIndex', state )}'''
+{makeBottom( level, 'OET', 'bookIndex' )}'''
     assert checkHtml( 'OETBooksIndex', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as bkHtmlFile:
@@ -473,7 +473,7 @@ def createBookPages( level:int, folder:Path, thisBible, state:State ) -> list[st
         bkHtml = f'''{top}<!--book page-->
 {f'<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>\n' if 'OET' in thisBible.abbreviation else ''}{navBookListParagraph}
 {bkHtml}
-{makeBottom( level, thisBible.abbreviation, 'book', state )}'''
+{makeBottom( level, thisBible.abbreviation, 'book' )}'''
         assert checkHtml( f'Book {thisBible.abbreviation} {BBB}', bkHtml )
         assert not filepath.is_file() # Check that we're not overwriting anything
         with open( filepath, 'wt', encoding='utf-8' ) as bkHtmlFile:
@@ -494,7 +494,7 @@ def createBookPages( level:int, folder:Path, thisBible, state:State ) -> list[st
 <h2>Index of books</h2>
 {navBookListParagraph}
 {state.WHOLE_BOOKS_WARNING_HTML_PARAGRAPH}{f'<a title="See design specs on OET main site" href="https://OpenEnglishTranslation.Bible/Design/{'Readers' if thisBible.abbreviation=='OET-RV' else 'Literal'}Version"><img src="{'../'*level}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="15" style="float:right; margin-left:10px;"></a>' if 'OET' in thisBible.abbreviation else ''}
-{makeBottom( level, thisBible.abbreviation, 'bookIndex', state )}'''
+{makeBottom( level, thisBible.abbreviation, 'bookIndex' )}'''
     assert checkHtml( f'{thisBible.abbreviation} book index', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as bkHtmlFile:
