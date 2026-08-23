@@ -12,7 +12,7 @@ use crate::oet_books::get_bbb_from_oet_book_name;
 // Static data
 // ---------------------------------------------------------------------------
 
-/// KJB-1611 abbreviation → BBB lookup table (non-commented entries from Python).
+/// KJB-1611 abbreviation → bos_book_code lookup table (non-commented entries from Python).
 static KJB_1611_XREF_TABLE: LazyLock<HashMap<&'static str, &'static str>> = LazyLock::new(|| {
     let pairs: &[(&str, &str)] = &[
         ("Actes", "ACT"), ("actes", "ACT"),
@@ -122,17 +122,17 @@ fn is_range_char(c: char) -> bool {
 ///
 /// - `field_type`: `"f"` (footnote) or `"x"` (cross-reference)
 /// - `version_abbreviation`: e.g. `"KJB-1611"`, `"OET-RV"`, `"RV"`, etc.
-/// - `bbb`: the BOS book code of the *current* book (where the xref appears)
+/// - `bos_book_code`: the BOS book code of the *current* book (where the xref appears)
 /// - `c`, `v`: current chapter and verse (as strings)
 /// - `segment_type`: the segment type string
 /// - `path_prefix`: HTML path prefix for links
 /// - `xo_text`: the `\xo` reference text (e.g. `"1:1"`)
 /// - `xref_original_middle`: the `\xt` content (may contain `\xo`/`\xt` markers)
-/// - `find_section_fn`: optional callback `(version_abbrev, bbb, c, v) -> Option<usize>` for OET-RV section lookup
+/// - `find_section_fn`: optional callback `(version_abbrev, bos_book_code, c, v) -> Option<usize>` for OET-RV section lookup
 pub fn liven_xref_field_core<F>(
     field_type: &str,
     version_abbreviation: &str,
-    bbb: &str,
+    bos_book_code: &str,
     c: &str,
     _v: &str,
     segment_type: &str,
@@ -171,7 +171,7 @@ where
 
     // --- Main loop ---
     let mut re_start_ix: usize = 0;
-    let mut last_xbbb = bbb.to_string();
+    let mut last_xr_bos_book_code = bos_book_code.to_string();
     let mut last_xc: String = c.to_string();
     let mut current_c = c.to_string(); // track xC within the loop
 
@@ -244,7 +244,7 @@ where
         let first_end   = best_end   + re_start_ix;
 
         // --- Determine xBBB, xC, xV from the match ---
-        let mut xbbb: Option<String> = None;
+        let mut xr_bos_book_code: Option<String> = None;
         let mut xc = current_c.clone();
         let mut xv = String::new();
         let mut xb_name = String::new();
@@ -253,15 +253,15 @@ where
             Kind::V => {
                 // Just a verse number, use current book + chapter
                 xv = captures.get(1).unwrap().as_str().to_string();
-                xbbb = Some(last_xbbb.clone());
-                if version_abbreviation == "BrTr" && bbb == "JDG" {
+                xr_bos_book_code = Some(last_xr_bos_book_code.clone());
+                if version_abbreviation == "BrTr" && bos_book_code == "JDG" {
                     xc = "1".to_string();
                 }
             }
             Kind::CV => {
                 xc = captures.get(1).unwrap().as_str().to_string();
                 xv = captures.get(2).unwrap().as_str().to_string();
-                xbbb = Some(last_xbbb.clone());
+                xr_bos_book_code = Some(last_xr_bos_book_code.clone());
             }
             Kind::BV => {
                 xb_name = captures.get(1).unwrap().as_str().trim().to_string();
@@ -270,20 +270,20 @@ where
                 // Check for verse-like words
                 let xb_lower = xb_name.to_lowercase();
                 if matches!(xb_lower.as_str(), "verses" | "verse" | "vers" | "ver" | "v" | "and") {
-                    xbbb = Some(bbb.to_string());
+                    xr_bos_book_code = Some(bos_book_code.to_string());
                     xv = x_cor_v;
                     xc = current_c.clone();
                 } else {
                     // Try single-chapter book lookup
-                    if let Some(found_bbb) = resolve_book_name(&xb_name, version_abbreviation, bbb) {
-                        if bos_books_codes::is_single_chapter_book(&found_bbb) {
+                    if let Some(found_bos_book_code) = resolve_book_name(&xb_name, version_abbreviation, bos_book_code) {
+                        if bos_books_codes::is_single_chapter_book(&found_bos_book_code) {
                             xc = "1".to_string();
                             xv = x_cor_v;
                         } else {
                             xc = x_cor_v;
                             xv = "1".to_string();
                         }
-                        xbbb = Some(found_bbb);
+                        xr_bos_book_code = Some(found_bos_book_code);
                     }
                 }
             }
@@ -298,7 +298,7 @@ where
                     xv = "1".to_string();
                 }
 
-                xbbb = resolve_book_name(&xb_name, version_abbreviation, bbb).map(|s| s.to_string());
+                xr_bos_book_code = resolve_book_name(&xb_name, version_abbreviation, bos_book_code).map(|s| s.to_string());
             }
         }
 
@@ -311,10 +311,10 @@ where
                 continue;
             }
             if matches!(xb_lower.as_str(), "chap" | "cha" | "c") {
-                xbbb = Some(bbb.to_string());
+                xr_bos_book_code = Some(bos_book_code.to_string());
             }
             if matches!(xb_lower.as_str(), "verse" | "vers" | "ver") {
-                xbbb = Some(bbb.to_string());
+                xr_bos_book_code = Some(bos_book_code.to_string());
                 xc = if !xo_text.is_empty() && xo_text.contains(':') {
                     xo_text.split(':').next().unwrap_or("?").to_string()
                 } else {
@@ -326,10 +326,10 @@ where
         }
 
         // --- KJB-1611 book lookup fallback ---
-        if xbbb.is_none() && kind == Kind::BCV {
+        if xr_bos_book_code.is_none() && kind == Kind::BCV {
             if version_abbreviation == "KJB-1611" {
                 if let Some(found) = KJB_1611_XREF_TABLE.get(xb_name.as_str()) {
-                    xbbb = Some(found.to_string());
+                    xr_bos_book_code = Some(found.to_string());
                 } else {
                     // Fix KJB-1611 spellings
                     let adj_xb = xb_name
@@ -337,25 +337,25 @@ where
                         .replace("I.", "1 ")
                         .replace("Ie", "Je")
                         .replace("Io", "Jo");
-                    xbbb = get_bbb_from_oet_book_name(&adj_xb).map(|s| s.to_string());
+                    xr_bos_book_code = get_bbb_from_oet_book_name(&adj_xb).map(|s| s.to_string());
                 }
             } else {
-                xbbb = get_bbb_from_oet_book_name(&xb_name).map(|s| s.to_string());
+                xr_bos_book_code = get_bbb_from_oet_book_name(&xb_name).map(|s| s.to_string());
             }
         }
 
         // If we still don't have xBBB, try resolving via get_bbb_from_oet_book_name
-        if xbbb.is_none() && !xb_name.is_empty() && kind != Kind::V && kind != Kind::CV {
-            xbbb = get_bbb_from_oet_book_name(&xb_name).map(|s| s.to_string());
+        if xr_bos_book_code.is_none() && !xb_name.is_empty() && kind != Kind::V && kind != Kind::CV {
+            xr_bos_book_code = get_bbb_from_oet_book_name(&xb_name).map(|s| s.to_string());
         }
 
         // --- KJB-1611 special post-processing ---
         if version_abbreviation == "KJB-1611" {
             if matches!(xb_name.as_str(), "As" | "in" | "and") {
-                xbbb = Some(last_xbbb.clone());
+                xr_bos_book_code = Some(last_xr_bos_book_code.clone());
             }
             if xc == "ver" || xc == "Ver" {
-                if let Some(ref b) = xbbb {
+                if let Some(ref b) = xr_bos_book_code {
                     if bos_books_codes::is_single_chapter_book(b) {
                         xc = "1".to_string();
                     } else if xb_name == "and" {
@@ -366,14 +366,14 @@ where
                 }
             }
             if xref_original_middle == "Nehem." {
-                xbbb = Some("NEH".to_string());
+                xr_bos_book_code = Some("NEH".to_string());
                 xc = "1".to_string();
                 xv = "1".to_string();
             }
         }
 
         // --- Validate xBBB ---
-        let xbbb = match xbbb {
+        let xr_bos_book_code = match xr_bos_book_code {
             Some(b) if !b.is_empty() && !matches!(b.as_str(), "SAM" | "KGS" | "CHR") => b,
             _ => {
                 // Failed to find book — skip past this match
@@ -388,7 +388,7 @@ where
             continue;
         }
 
-        last_xbbb = xbbb.clone();
+        last_xr_bos_book_code = xr_bos_book_code.clone();
         last_xc = xc.clone();
 
         // --- Capture the full match text (including range tail) ---
@@ -405,8 +405,8 @@ where
 
         // --- Validate chapter count ---
         let int_xc: i32 = xc.parse().unwrap_or(0);
-        if int_xc > bos_books_codes::get_max_chapters(&xbbb) as i32 {
-            if version_abbreviation == "KJB-1611" && bbb == "EZR"
+        if int_xc > bos_books_codes::get_max_chapters(&xr_bos_book_code) as i32 {
+            if version_abbreviation == "KJB-1611" && bos_book_code == "EZR"
                 && xo_text == "3:10"
                 && (xc == "16" || xc == "25")
             {
@@ -423,10 +423,10 @@ where
         let title_prefix = if field_type == "x" { "cross " } else { "" };
 
         let inside = if version_abbreviation == "OET-RV"
-            && (bos_books_codes::is_old_testament_nr(&xbbb) || bos_books_codes::is_new_testament_nr(&xbbb))
+            && (bos_books_codes::is_old_testament_nr(&xr_bos_book_code) || bos_books_codes::is_new_testament_nr(&xr_bos_book_code))
         {
             // Link to section page
-            match find_section_fn(version_abbreviation, &xbbb, &xc, &xv) {
+            match find_section_fn(version_abbreviation, &xr_bos_book_code, &xc, &xv) {
                 Some(section_number) => {
                     let adj_path = if path_prefix.is_empty() {
                         "../bySec/".to_string()
@@ -434,20 +434,20 @@ where
                         path_prefix.replace("byC", "bySec")
                     };
                     format!(
-                        r#"<a title="View {title_prefix}reference" href="{adj_path}{xbbb}_S{section_number}.htm#C{xc}V{xv}">{match_inner}</a>"#
+                        r#"<a title="View {title_prefix}reference" href="{adj_path}{xr_bos_book_code}_S{section_number}.htm#C{xc}V{xv}">{match_inner}</a>"#
                     )
                 }
                 _ => {
                     // Fallback to chapter page
                     format!(
-                        r#"<a title="View {title_prefix}reference" href="{path_prefix}{xbbb}_C{xc}.htm#C{xc}V{xv}">{match_inner}</a>"#
+                        r#"<a title="View {title_prefix}reference" href="{path_prefix}{xr_bos_book_code}_C{xc}.htm#C{xc}V{xv}">{match_inner}</a>"#
                     )
                 }
             }
         } else {
             // Link to chapter page
             format!(
-                r#"<a title="View {title_prefix}reference" href="{path_prefix}{xbbb}_C{xc}.htm#C{xc}V{xv}">{match_inner}</a>"#
+                r#"<a title="View {title_prefix}reference" href="{path_prefix}{xr_bos_book_code}_C{xc}.htm#C{xc}V{xv}">{match_inner}</a>"#
             )
         };
 
@@ -460,10 +460,10 @@ where
     Ok(xref_live_middle)
 }
 
-/// Resolve a book name from xref text to a BBB code.
-/// Returns `None` if the name refers to the *current* book (caller should use its own BBB).
-/// Returns `Some(bbb.to_string())` where bbb is the same as `current_bbb` for "same book" cases.
-fn resolve_book_name(name: &str, version_abbreviation: &str, current_bbb: &str) -> Option<String> {
+/// Resolve a book name from xref text to a bos_book_code code.
+/// Returns `None` if the name refers to the *current* book (caller should use its own bos_book_code).
+/// Returns `Some(bos_book_code.to_string())` where bos_book_code is the same as `current_bos_book_code` for "same book" cases.
+fn resolve_book_name(name: &str, version_abbreviation: &str, current_bos_book_code: &str) -> Option<String> {
     let lower = name.to_lowercase();
 
     // Special cases
@@ -473,14 +473,14 @@ fn resolve_book_name(name: &str, version_abbreviation: &str, current_bbb: &str) 
     // KJB-1611 / RV "same book" words → caller must handle
     if version_abbreviation == "KJB-1611" || version_abbreviation == "RV" {
         if matches!(lower.as_str(), "and" | "c" | "ca" | "verse" | "vers" | "ver") {
-            return Some(current_bbb.to_string());
+            return Some(current_bos_book_code.to_string());
         }
     }
 
     // KJB-1611 specific table lookup
     if version_abbreviation == "KJB-1611" {
-        if let Some(&bbb) = KJB_1611_XREF_TABLE.get(name) {
-            return Some(bbb.to_string());
+        if let Some(&bos_book_code) = KJB_1611_XREF_TABLE.get(name) {
+            return Some(bos_book_code.to_string());
         }
         // Fix KJB-1611 spellings
         let adj = name

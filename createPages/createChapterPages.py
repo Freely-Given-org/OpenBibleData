@@ -59,7 +59,7 @@ from openbibledata_rust import convertVerseEntryListToHtml
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
                     makeTop, makeBottom, makeBookNavListParagraph, removeDuplicateCVids, checkHtml
 from Bibles import getBibleMapperMaps, getOpenBibleImages
-from OETHandlers import livenOETWordLinks, livenOETCompatibleWordLinks, getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename
+from OETHandlers import livenOETWordLinks, livenOETCompatibleBereanWordLinks, getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
 LAST_MODIFIED_DATE = '2026-08-22' # by RJH
@@ -553,7 +553,7 @@ def createChapterPages( level:int, folder:Path, thisBible, state:State ) -> list
                 if isinstance( thisBible, ESFMBible.ESFMBible ): # e.g., OET-RV and OET-LV
                     verseEntryList = livenOETWordLinks( level, thisBible, (BBB,str(c)), verseEntryList, state )
                 elif thisBible.abbreviation in ('BSB','MSB'):
-                    verseEntryList = livenOETCompatibleWordLinks( level, thisBible, BBB, verseEntryList, state )
+                    verseEntryList = livenOETCompatibleBereanWordLinks( level, thisBible, BBB, verseEntryList, state )
                 # print( f"createChapterPages for {thisBible.abbreviation} {BBB} {c} {contextList=} {verseEntryList=}" )
                 textHtml = convertVerseEntryListToHtml( level, thisBible.abbreviation, (BBB,str(c)), 'chapter', contextList, verseEntryList, basicOnly=False, state=state )
                 # textHtml = livenIORs( BBB, textHtml, numChapters )

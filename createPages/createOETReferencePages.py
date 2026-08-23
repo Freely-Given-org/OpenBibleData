@@ -98,6 +98,13 @@ CHANGELOG:
                 pages (tidyGlossOfGreekWord / tidy_Greek_lemma_gloss / getFirstGreekWordNumber /
                 makeGreekLemmaHTML hoisted to module level; prev/next precomputed by the parent,
                 preserving the original quirk of never linking back to the very first lemma).
+    2026-08-23 Extended the fork-context multiprocessing to the Hebrew and Greek Strongs pages
+                too: the per-number loop bodies were extracted into create_Hebrew_Strongs_page()
+                and create_Greek_Strongs_page(), the identical nested replFunction closures were
+                hoisted into one module-level _strongs_ref_repl(), and the bibleLexicon is passed
+                to forked children via a module-level _strongsPageBibleLexicon global. Each page
+                builder now also returns its index-page entry (if any) so the parent can still
+                assemble the Strongs index pages in numeric order.
  """
 from pathlib import Path
 import os
@@ -132,7 +139,7 @@ from createSectionPages import findSectionNumber
 LAST_MODIFIED_DATE = '2026-08-23' # by RJH
 SHORT_PROGRAM_NAME = "createOETReferencePages"
 PROGRAM_NAME = "OpenBibleData createOETReferencePages functions"
-PROGRAM_VERSION = '1.00'
+PROGRAM_VERSION = '1.01'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -886,10 +893,14 @@ def createOETReferencePages( level:int, outputFolderPath:Path, state:State ) -> 
     del state.OETRefData['NTLemmaFormsCountDict'], state.OETRefData['NTLemmaOETGlossesCountDict']
 
     bibleLexicon = BibleLexicon.BibleLexicon()
+    startTime = time()
     create_Hebrew_Strongs_pages( level+1, outputFolderPath.joinpath( 'HebStrng/' ), bibleLexicon, state )
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      create_Hebrew_Strongs_pages() took {(time()-startTime)/60:.1f} minutes.")
     # Don't delete these as they're now required for creating the JSON word files for Bibleside reference pages
     # del state.OETRefData['OTStrongsRefs']
+    startTime = time()
     create_Greek_Strongs_pages( level+1, outputFolderPath.joinpath( 'GrkStrng/' ), bibleLexicon, state )
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      create_Greek_Strongs_pages() took {(time()-startTime)/60:.1f} minutes.")
     # del state.OETRefData['NTStrongsRefs']
 
     create_Hebrew_grammar_pages( level+1, outputFolderPath.joinpath( 'UHG/' ), state )
@@ -1595,7 +1606,7 @@ def create_Hebrew_word_pages( level:int, outputFolderPath:Path, state:State ) ->
     """
     """
     fnPrint( DEBUGGING_THIS_MODULE, f"create_Hebrew_word_pages( {outputFolderPath}, {state.BibleVersions} )" )
-    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Checking/Making {len(state.OETRefData['word_tables'][HebrewWordFileName])-1:,} Hebrew word pages…" )
+    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Checking/Making{'' if not state.TEST_MODE_FLAG or state.ALL_TEST_REFERENCE_PAGES_FLAG else ' up to'} {len(state.OETRefData['word_tables'][HebrewWordFileName])-1:,} Hebrew word pages…" )
 
     try: os.makedirs( outputFolderPath )
     except FileExistsError: pass # it was already there
@@ -1609,8 +1620,8 @@ def create_Hebrew_word_pages( level:int, outputFolderPath:Path, state:State ) ->
         # NOTE: We use an explicit 'fork' context because Python 3.14 changed the default start method
         #        to 'forkserver' which would NOT inherit our huge module-level state (12 GiB of Bibles).
         #        Forked children share that memory copy-on-write, so this costs almost nothing extra.
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Creating {len(state.OETRefData['word_tables'][HebrewWordFileName])-1:,} Hebrew word pages using {BibleOrgSysGlobals.maxProcesses} forked processes…" )
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, "  NOTE: Outputs (including error and warning messages) from various words may be interspersed." )
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Creating{'' if not state.TEST_MODE_FLAG or state.ALL_TEST_REFERENCE_PAGES_FLAG else ' up to'} {len(state.OETRefData['word_tables'][HebrewWordFileName])-1:,} Hebrew word pages using {BibleOrgSysGlobals.maxProcesses} forked processes…" )
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, "    NOTE: Outputs (including error and warning messages) from various words may be interspersed." )
 
         parameters, taskMetaList = [], []
         for hh, columns_string in enumerate( state.OETRefData['word_tables'][HebrewWordFileName][1:], start=1 ):
@@ -2516,7 +2527,7 @@ def create_Hebrew_lemma_pages( level:int, outputFolderPath:Path, state:State ) -
     TODO: Add related lemma info (not just prefixed ones, but adding synonyms, etc.)
     """
     fnPrint( DEBUGGING_THIS_MODULE, f"create_Hebrew_lemma_pages( {outputFolderPath}, {state.BibleVersions} )" )
-    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Making {len(state.OETRefData['OTLemmaGlossDict']):,} Hebrew lemma pages…" )
+    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Checking/Making{'' if not state.TEST_MODE_FLAG or state.ALL_TEST_REFERENCE_PAGES_FLAG else ' up to'} {len(state.OETRefData['OTLemmaGlossDict']):,} Hebrew lemma pages…" )
 
     try: os.makedirs( outputFolderPath )
     except FileExistsError: pass # it was already there
@@ -2563,8 +2574,8 @@ def create_Hebrew_lemma_pages( level:int, outputFolderPath:Path, state:State ) -
         # NOTE: We use an explicit 'fork' context because Python 3.14 changed the default start method
         #        to 'forkserver' which would NOT inherit our huge module-level state (12 GiB of Bibles).
         #        Forked children share that memory copy-on-write, so this costs almost nothing extra.
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Creating {len(parameters):,} Hebrew lemma pages using {BibleOrgSysGlobals.maxProcesses} forked processes…" )
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, "  NOTE: Outputs (including error and warning messages) from various lemmas may be interspersed." )
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Creating{'' if not state.TEST_MODE_FLAG or state.ALL_TEST_REFERENCE_PAGES_FLAG else ' up to'} {len(parameters):,} Hebrew lemma pages using {BibleOrgSysGlobals.maxProcesses} forked processes…" )
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, "    NOTE: Outputs (including error and warning messages) from various lemmas may be interspersed." )
         BibleOrgSysGlobals.alreadyMultiprocessing = True
         with multiprocessing.get_context('fork').Pool( processes=BibleOrgSysGlobals.maxProcesses ) as pool: # start worker processes
             results = pool.map( _create_Hebrew_lemma_page_MP, parameters ) # have the pool do our loads
@@ -2820,8 +2831,8 @@ def create_Greek_word_pages( level:int, outputFolderPath:Path, state:State ) -> 
         # NOTE: We use an explicit 'fork' context because Python 3.14 changed the default start method
         #        to 'forkserver' which would NOT inherit our huge module-level state (12 GiB of Bibles).
         #        Forked children share that memory copy-on-write, so this costs almost nothing extra.
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Creating {len(parameters):,} Greek word pages using {BibleOrgSysGlobals.maxProcesses} forked processes…" )
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, "  NOTE: Outputs (including error and warning messages) from various words may be interspersed." )
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Creating {len(parameters):,} Greek word pages using {BibleOrgSysGlobals.maxProcesses} forked processes…" )
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, "    NOTE: Outputs (including error and warning messages) from various words may be interspersed." )
         BibleOrgSysGlobals.alreadyMultiprocessing = True
         with multiprocessing.get_context('fork').Pool( processes=BibleOrgSysGlobals.maxProcesses ) as pool: # start worker processes
             results = pool.map( _create_Greek_word_page_MP, parameters ) # have the pool do our loads
@@ -2844,7 +2855,7 @@ def create_Greek_word_pages( level:int, outputFolderPath:Path, state:State ) -> 
                 numWordPagesMade += 1
             if n % 40_000 == 0:
                 vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      {numWordPagesMade:,} made out of {len(parameters):,}…" )
-    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f'''    Created {numWordPagesMade:,}{f"/{len(state.OETRefData['word_tables'][GreekWordFileName])-1:,}" if numWordPagesMade < len(state.OETRefData['word_tables'][GreekWordFileName])-1 else ''} Greek word pages (using {len(state.OETRefData['usedGrkLemmas']):,} Greek lemmas).''' )
+    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f'''      Created {numWordPagesMade:,}{f"/{len(state.OETRefData['word_tables'][GreekWordFileName])-1:,}" if numWordPagesMade < len(state.OETRefData['word_tables'][GreekWordFileName])-1 else ''} Greek word pages (using {len(state.OETRefData['usedGrkLemmas']):,} Greek lemmas).''' )
 
     # Create index page for this folder
     filename = 'index.htm'
@@ -3284,8 +3295,8 @@ def create_Greek_lemma_pages( level:int, outputFolderPath:Path, state:State ) ->
         # NOTE: We use an explicit 'fork' context because Python 3.14 changed the default start method
         #        to 'forkserver' which would NOT inherit our huge module-level state (12 GiB of Bibles).
         #        Forked children share that memory copy-on-write, so this costs almost nothing extra.
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Creating {len(parameters):,} Greek lemma pages using {BibleOrgSysGlobals.maxProcesses} forked processes…" )
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, "  NOTE: Outputs (including error and warning messages) from various lemmas may be interspersed." )
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Creating {len(parameters):,} Greek lemma pages using {BibleOrgSysGlobals.maxProcesses} forked processes…" )
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, "    NOTE: Outputs (including error and warning messages) from various lemmas may be interspersed." )
         BibleOrgSysGlobals.alreadyMultiprocessing = True
         with multiprocessing.get_context('fork').Pool( processes=BibleOrgSysGlobals.maxProcesses ) as pool: # start worker processes
             results = pool.map( _create_Greek_lemma_page_MP, parameters ) # have the pool do our loads
@@ -3304,7 +3315,7 @@ def create_Greek_lemma_pages( level:int, outputFolderPath:Path, state:State ) ->
         lemmaLinks.append( f'<a href="{output_filename}">{lemma}</a>')
         if n % 1_000 == 0:
             vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      {n:,} lemma page links collected out of {len(taskMetaList):,}…" )
-    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"    Created {len(lemmaLinks):,}{f'/{len(lemmaList):,}' if len(lemmaLinks) < len(lemmaList) else ''} Greek lemma pages." )
+    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"      Created {len(lemmaLinks):,}{f'/{len(lemmaList):,}' if len(lemmaLinks) < len(lemmaList) else ''} Greek lemma pages." )
 
     # Create index page for this folder
     filename = 'index.htm'
@@ -3515,81 +3526,79 @@ def _create_Greek_lemma_page_MP( parameters ): # Used by create_Greek_lemma_page
 NUM_STRONGS_INDEX_ENTRIES = 60
 STRONGS_NUMBER_REGEX = re.compile( '>[GH][1-9][0-9]{0,4}<' ) # It's inside a span
 STRONGS_FOLDER_DICT = {'G':'GrkStrng', 'H':'HebStrng'}
-def create_Hebrew_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:BibleLexicon, state:State ) -> int:
+
+def _strongs_ref_repl( strongsMatch:re.Match ) -> str:
     """
+    Hoisted helper (formerly a nested function in both Strongs page creators below) that livens internal
+        Strongs references (like >H1234<) into links to the corresponding Strongs page.
     """
-    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Making Hebrew Strongs pages…" )
+    # print( f"     Matched '{strongsMatch.group(0)}' Regex" )
+    strongsLetterAndNumber = strongsMatch.group(0)[1:-1]
+    return f'><a href="../{STRONGS_FOLDER_DICT[strongsLetterAndNumber[0]]}/{strongsLetterAndNumber}.htm#Top">{strongsLetterAndNumber}</a><'
+# end of createOETReferencePages._strongs_ref_repl
 
-    try: os.makedirs( outputFolderPath )
-    except FileExistsError: pass # it was already there
+_strongsPageBibleLexicon:BibleLexicon|None = None # Set by the create_*_Strongs_pages functions below for access by their forked children
 
-    indexList = []
-    finalStrongsNumber = 8674
-    # indexDistance = finalStrongsNumber // NUM_STRONGS_INDEX_ENTRIES
-    # print( f"  Hebrew: {finalStrongsNumber=} {NUM_STRONGS_INDEX_ENTRIES=} {indexDistance=}" )
-    indexDistance = 150 # was 144 for NUM_STRONGS_INDEX_ENTRIES=60
-    numPagesMade = 0
-    for strongsNumber in range( 1, finalStrongsNumber+1 ):
-        strongsStr = str( strongsNumber )
-        strongsLetterNumberStr = f'H{strongsStr}'
-        if state.TEST_MODE_FLAG and not state.ALL_TEST_REFERENCE_PAGES_FLAG:
-            if strongsNumber not in state.OETRefData['usedHebStrongsSet']:
-                # print( f"Skipping {strongsLetterNumberString} because not in {list(state.OETRefData['usedHebStrongsSet'])[:20]}")
-                continue
-        # dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Making Hebrew Strongs {strongsString} page…" )
-        output_filename = f'{strongsLetterNumberStr}.htm'
-        filepath = outputFolderPath.joinpath( output_filename )
+def create_Hebrew_Strongs_page( level:int, strongsNumber:int, finalStrongsNumber:int, indexDistance:int,
+                                outputFolderPath:Path, bibleLexicon:BibleLexicon, state:State ) -> tuple[bool,str|None]:
+    """
+    Create one individual Hebrew Strongs number page.
 
-        top = makeTop( level, None, 'StrongsPage', None, state ) \
-                .replace( '__TITLE__', f"Strongs {strongsLetterNumberStr}{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
-                .replace( '__KEYWORDS__', 'Strongs, number, {strongsString}, Hebrew' )
+    Returns a (result,indexEntryHtml) 2-tuple where indexEntryHtml is only non-None when this
+        strongsNumber is one of those to be listed in the folder's index page.
+    """
+    strongsStr = str( strongsNumber )
+    strongsLetterNumberStr = f'H{strongsStr}'
+    # dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Making Hebrew Strongs {strongsString} page…" )
+    output_filename = f'{strongsLetterNumberStr}.htm'
+    filepath = outputFolderPath.joinpath( output_filename )
 
-        prevLink = f'<b><a title="Previous entry" href="H{strongsNumber-1}.htm#Top">←</a></b> ' if strongsNumber>1 else ''
-        nextLink = f' <b><a title="Next entry" href="H{strongsNumber+1}.htm#Top">→</a></b>' if strongsNumber<finalStrongsNumber else ''
+    top = makeTop( level, None, 'StrongsPage', None, state ) \
+            .replace( '__TITLE__', f"Strongs {strongsLetterNumberStr}{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
+            .replace( '__KEYWORDS__', 'Strongs, number, {strongsString}, Hebrew' )
 
-        middle = bibleLexicon.getStrongsEntryHTML( strongsLetterNumberStr ) # Strongs entry
-        assert checkHtml( f'Strongs-{strongsLetterNumberStr}', middle, segmentOnly=True )
-        bdDrBrEntry = bibleLexicon.getBrDrBrEntryHTML( strongsLetterNumberStr ) # Brown, Driver, Briggs entry
-        if bdDrBrEntry:
-            assert checkHtml( f'BrDrBr-{strongsLetterNumberStr}', bdDrBrEntry, segmentOnly=True )
-            middle = f'''{middle}
+    prevLink = f'<b><a title="Previous entry" href="H{strongsNumber-1}.htm#Top">←</a></b> ' if strongsNumber>1 else ''
+    nextLink = f' <b><a title="Next entry" href="H{strongsNumber+1}.htm#Top">→</a></b>' if strongsNumber<finalStrongsNumber else ''
+
+    middle = bibleLexicon.getStrongsEntryHTML( strongsLetterNumberStr ) # Strongs entry
+    assert checkHtml( f'Strongs-{strongsLetterNumberStr}', middle, segmentOnly=True )
+    bdDrBrEntry = bibleLexicon.getBrDrBrEntryHTML( strongsLetterNumberStr ) # Brown, Driver, Briggs entry
+    if bdDrBrEntry:
+        assert checkHtml( f'BrDrBr-{strongsLetterNumberStr}', bdDrBrEntry, segmentOnly=True )
+        middle = f'''{middle}
 <h2>Brown, Driver, Briggs lexicon entry</h2>
 {bdDrBrEntry}'''
-            
-        # Liven internal Strongs references
-        def replFunction( strongsMatch:re.Match ) -> str:
-            # print( f"     Matched '{strongsMatch.group(0)}' Regex from {strongsLetterNumberString}" )
-            strongsLetterAndNumber = strongsMatch.group(0)[1:-1]
-            return f'><a href="../{STRONGS_FOLDER_DICT[strongsLetterAndNumber[0]]}/{strongsLetterAndNumber}.htm#Top">{strongsLetterAndNumber}</a><'
-        middle = STRONGS_NUMBER_REGEX.sub( replFunction, middle )
+    # Liven internal Strongs references
+    middle = STRONGS_NUMBER_REGEX.sub( _strongs_ref_repl, middle )
 
-        if strongsNumber in (1,finalStrongsNumber) or strongsNumber % indexDistance == 0:
-            strongsWordEntry = bibleLexicon.getStrongsEntryField( strongsLetterNumberStr, 'word' )
-            assert isinstance( strongsWordEntry, tuple ) # heb,morph,pronunciation,transliteration,none
-            strongsWordEntry = f'<b>{strongsWordEntry[0]}</b> ({strongsWordEntry[3]})'
-            indexList.append( f'<li><a href="{strongsLetterNumberStr}.htm#Top">{strongsLetterNumberStr}: {strongsWordEntry}</a></li>' )
+    indexEntryHtml = None
+    if strongsNumber in (1,finalStrongsNumber) or strongsNumber % indexDistance == 0:
+        strongsWordEntry = bibleLexicon.getStrongsEntryField( strongsLetterNumberStr, 'word' )
+        assert isinstance( strongsWordEntry, tuple ) # heb,morph,pronunciation,transliteration,none
+        strongsWordEntry = f'<b>{strongsWordEntry[0]}</b> ({strongsWordEntry[3]})'
+        indexEntryHtml = f'<li><a href="{strongsLetterNumberStr}.htm#Top">{strongsLetterNumberStr}: {strongsWordEntry}</a></li>'
 
-        numRefs = len( state.OETRefData['OTStrongsRefs'][strongsStr] )
-        if numRefs > 500:
-            sMod = 20
-            versesHtml = [f'\n<p class="note">Displaying only every {sMod}<sup>th</sup> verse out of {numRefs:,}:</p>']
-        elif numRefs > 120:
-            sMod = 10
-            versesHtml = [f'\n<p class="note">Displaying only every {sMod}<sup>th</sup> verse out of {numRefs}:</p>']
-        else:
-            sMod = None
-            versesHtml = [f'''\n<p class="note">Appears in {'only one verse' if numRefs==1 else f'a total of {numRefs} verses'}:</p>''']
-        for ss,sRef in enumerate( state.OETRefData['OTStrongsRefs'][strongsStr] ):
-            if sMod is None or ss % sMod == 0: # The first one is always displayed
-                sBBB, sCV = sRef.split( '_', 1 )
-                sC, sV = sCV.split( ':', 1 )
-                sOET_LV_verse_HTML = sOET_RV_verse_HTML = None
-                if not state.TEST_MODE_FLAG or sBBB in state.preloadedBibles['OET-RV']:
-                    sOET_LV_verse_HTML = get_OET_LV_verse_HTML( level, sBBB, sC, sV )
-                    sOET_RV_verse_HTML = get_OET_RV_verse_HTML( level, sBBB, sC, sV )
-                    versesHtml.append( f'''\n<p class="vRef">{sBBB} {sC}:{sV}</p>{f'\n{sOET_LV_verse_HTML}' if sOET_LV_verse_HTML else ''}{f'\n{sOET_RV_verse_HTML}' if sOET_RV_verse_HTML else ''}''' )
+    numRefs = len( state.OETRefData['OTStrongsRefs'][strongsStr] )
+    if numRefs > 500:
+        sMod = 20
+        versesHtml = [f'\n<p class="note">Displaying only every {sMod}<sup>th</sup> verse out of {numRefs:,}:</p>']
+    elif numRefs > 120:
+        sMod = 10
+        versesHtml = [f'\n<p class="note">Displaying only every {sMod}<sup>th</sup> verse out of {numRefs}:</p>']
+    else:
+        sMod = None
+        versesHtml = [f'''\n<p class="note">Appears in {'only one verse' if numRefs==1 else f'a total of {numRefs} verses'}:</p>''']
+    for ss,sRef in enumerate( state.OETRefData['OTStrongsRefs'][strongsStr] ):
+        if sMod is None or ss % sMod == 0: # The first one is always displayed
+            sBBB, sCV = sRef.split( '_', 1 )
+            sC, sV = sCV.split( ':', 1 )
+            sOET_LV_verse_HTML = sOET_RV_verse_HTML = None
+            if not state.TEST_MODE_FLAG or sBBB in state.preloadedBibles['OET-RV']:
+                sOET_LV_verse_HTML = get_OET_LV_verse_HTML( level, sBBB, sC, sV )
+                sOET_RV_verse_HTML = get_OET_RV_verse_HTML( level, sBBB, sC, sV )
+                versesHtml.append( f'''\n<p class="vRef">{sBBB} {sC}:{sV}</p>{f'\n{sOET_LV_verse_HTML}' if sOET_LV_verse_HTML else ''}{f'\n{sOET_RV_verse_HTML}' if sOET_RV_verse_HTML else ''}''' )
 
-        pageHtml = f'''{top}
+    pageHtml = f'''{top}
 <p class="note"><b><a href="../">Reference lists contents page</a></b></p>
 <p class="note"><a href="../HebWrd/">Hebrew words index</a> <a href="../HebWrd/transIndex.htm">Transliterated Hebrew words index</a></p>
 <p class="note"><a href="../HebLem/">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm">Transliterated Hebrew lemmas index</a></p>
@@ -3606,11 +3615,77 @@ def create_Hebrew_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:
 {middle}{''.join(versesHtml)}
 <p>View on <a href="https://BibleHub.com/hebrew/{strongsNumber}.htm">BibleHub</a>.</p>
 {makeBottom( level, None, 'StrongsPage' )}'''
-        assert checkHtml( 'StrongsPage', pageHtml )
-        with open( filepath, 'wt', encoding='utf-8' ) as html_output_file:
-            html_output_file.write( pageHtml )
-        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  Wrote {len(pageHtml):,} characters to {output_filename}" )
-        numPagesMade += 1
+    assert checkHtml( 'StrongsPage', pageHtml )
+    with open( filepath, 'wt', encoding='utf-8' ) as html_output_file:
+        html_output_file.write( pageHtml )
+    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  Wrote {len(pageHtml):,} characters to {output_filename}" )
+
+    return True, indexEntryHtml
+# end of createOETReferencePages.create_Hebrew_Strongs_page
+
+def _create_Hebrew_Strongs_page_MP( parameters ):
+    """
+    Multiprocessing version! (forked children inherit our module-level state copy-on-write)
+
+    Parameter is a 5-tuple containing the parameters (WITHOUT state or bibleLexicon -- use the inherited ones).
+    Returns the (result,indexEntryHtml) 2-tuple from create_Hebrew_Strongs_page because changes that a
+        child process makes to the inherited state are lost on exit.
+    """
+    # fnPrint( DEBUGGING_THIS_MODULE, f"_create_Hebrew_Strongs_page_MP( {parameters} )" )
+    return create_Hebrew_Strongs_page( *parameters, _strongsPageBibleLexicon, state )
+# end of ESFMBible._create_Hebrew_Strongs_page_MP
+
+def create_Hebrew_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:BibleLexicon, state:State ) -> int:
+    """
+    """
+    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Making Hebrew Strongs pages…" )
+
+    try: os.makedirs( outputFolderPath )
+    except FileExistsError: pass # it was already there
+
+    indexList = []
+    finalStrongsNumber = 8674
+    # indexDistance = finalStrongsNumber // NUM_STRONGS_INDEX_ENTRIES
+    # print( f"  Hebrew: {finalStrongsNumber=} {NUM_STRONGS_INDEX_ENTRIES=} {indexDistance=}" )
+    indexDistance = 150 # was 144 for NUM_STRONGS_INDEX_ENTRIES=60
+    numPagesMade = 0
+    global _strongsPageBibleLexicon
+    _strongsPageBibleLexicon = bibleLexicon # Make it available to our forked children (see wrapper above)
+    if BibleOrgSysGlobals.maxProcesses > 1 \
+    and not BibleOrgSysGlobals.alreadyMultiprocessing: # Process all the Strongs pages with different processes
+        # NOTE: We use an explicit 'fork' context because Python 3.14 changed the default start method
+        #        to 'forkserver' which would NOT inherit our huge module-level state (12 GiB of Bibles).
+        #        Forked children share that memory copy-on-write, so this costs almost nothing extra.
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Creating{'' if not state.TEST_MODE_FLAG or state.ALL_TEST_REFERENCE_PAGES_FLAG else ' up to'} {finalStrongsNumber:,} Hebrew Strongs pages using {BibleOrgSysGlobals.maxProcesses} forked processes…" )
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, "    NOTE: Outputs (including error and warning messages) from various words may be interspersed." )
+
+        parameters, taskMetaList = [], []
+        for strongsNumber in range( 1, finalStrongsNumber+1 ):
+            if state.TEST_MODE_FLAG and not state.ALL_TEST_REFERENCE_PAGES_FLAG:
+                if strongsNumber not in state.OETRefData['usedHebStrongsSet']:
+                    # print( f"Skipping {strongsLetterNumberString} because not in {list(state.OETRefData['usedHebStrongsSet'])[:20]}")
+                    continue
+            parameters.append( (level, strongsNumber, finalStrongsNumber, indexDistance, outputFolderPath) )
+            taskMetaList.append( strongsNumber )
+        assert len(parameters) == len(taskMetaList)
+        BibleOrgSysGlobals.alreadyMultiprocessing = True
+        with multiprocessing.get_context('fork').Pool( processes=BibleOrgSysGlobals.maxProcesses ) as pool: # start worker processes
+            results = pool.map( _create_Hebrew_Strongs_page_MP, parameters ) # have the pool do our loads
+            assert len(results) == len(parameters)
+        BibleOrgSysGlobals.alreadyMultiprocessing = False
+        for (result,indexEntryHtml),_unusedStrongNumber in zip( results, taskMetaList ):
+            if result: numPagesMade += 1
+            if indexEntryHtml is not None: indexList.append( indexEntryHtml )
+    else: # no multi-processing
+        for strongsNumber in range( 1, finalStrongsNumber+1 ):
+            if state.TEST_MODE_FLAG and not state.ALL_TEST_REFERENCE_PAGES_FLAG:
+                if strongsNumber not in state.OETRefData['usedHebStrongsSet']:
+                    # print( f"Skipping {strongsLetterNumberString} because not in {list(state.OETRefData['usedHebStrongsSet'])[:20]}")
+                    continue
+            result,indexEntryHtml = create_Hebrew_Strongs_page( level, strongsNumber, finalStrongsNumber, indexDistance, outputFolderPath, bibleLexicon, state )
+            if result: numPagesMade += 1
+            if indexEntryHtml is not None: indexList.append( indexEntryHtml )
+
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Made {numPagesMade:,} {f'out of {finalStrongsNumber:,} ' if numPagesMade<finalStrongsNumber else ''}Hebrew Strongs pages." )
 
     # Create index page for this Strongs folder
@@ -3643,76 +3718,60 @@ def create_Hebrew_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:
 # end of createOETReferencePages.create_Hebrew_Strongs_pages function
 
 
-def create_Greek_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:BibleLexicon, state:State ) -> int:
+def create_Greek_Strongs_page( level:int, strongsNumber:int, finalStrongsNumber:int, indexDistance:int,
+                                outputFolderPath:Path, bibleLexicon:BibleLexicon, state:State ) -> tuple[bool,str|None]:
     """
+    Create one individual Greek Strongs number page.
+
+    Returns a (result,indexEntryHtml) 2-tuple where indexEntryHtml is only non-None when this
+        strongsNumber is one of those to be listed in the folder's index page.
     """
-    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Making Greek Strongs pages…" )
+    strongsStr = str( strongsNumber )
+    strongsLetterNumberStr = f'G{strongsNumber}'
+    # dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Making Greek Strongs {strongsString} page…" )
+    output_filename = f'{strongsLetterNumberStr}.htm'
+    filepath = outputFolderPath.joinpath( output_filename )
 
-    try: os.makedirs( outputFolderPath )
-    except FileExistsError: pass # it was already there
+    top = makeTop( level, None, 'StrongsPage', None, state ) \
+            .replace( '__TITLE__', f"Strongs {strongsLetterNumberStr}{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
+            .replace( '__KEYWORDS__', 'Strongs, number, {strongsString}, Greek' )
 
-    indexList = []
-    finalStrongsNumber = 5624
-    # indexDistance = finalStrongsNumber // NUM_STRONGS_INDEX_ENTRIES
-    # print( f"  Greek: {finalStrongsNumber=} {NUM_STRONGS_INDEX_ENTRIES=} {indexDistance=}" )
-    indexDistance = 100 # was 94
-    numPagesMade = 0
-    for strongsNumber in range( 1, finalStrongsNumber+1 ):
-        strongsStr = str( strongsNumber )
-        strongsLetterNumberStr = f'G{strongsNumber}'
-        if state.TEST_MODE_FLAG and not state.ALL_TEST_REFERENCE_PAGES_FLAG:
-            if strongsNumber not in state.OETRefData['usedGrkStrongs']:
-                # print( f"Skipping {strongsLetterNumberString} because not in {list(state.OETRefData['usedGrkStrongs'])[:20]}")
-                continue
-        # dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Making Greek Strongs {strongsString} page…" )
-        output_filename = f'{strongsLetterNumberStr}.htm'
-        filepath = outputFolderPath.joinpath( output_filename )
+    prevLink = f'<b><a title="Previous entry" href="G{strongsNumber-1}.htm#Top">←</a></b> ' if strongsNumber>1 else ''
+    nextLink = f' <b><a title="Next entry" href="G{strongsNumber+1}.htm#Top">→</a></b>' if strongsNumber<finalStrongsNumber else ''
 
-        top = makeTop( level, None, 'StrongsPage', None, state ) \
-                .replace( '__TITLE__', f"Strongs {strongsLetterNumberStr}{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
-                .replace( '__KEYWORDS__', 'Strongs, number, {strongsString}, Greek' )
+    middle = bibleLexicon.getStrongsEntryHTML( strongsLetterNumberStr )
+    # Liven internal Strongs references
+    if middle: middle = STRONGS_NUMBER_REGEX.sub( _strongs_ref_repl, middle )
 
-        prevLink = f'<b><a title="Previous entry" href="G{strongsNumber-1}.htm#Top">←</a></b> ' if strongsNumber>1 else ''
-        nextLink = f' <b><a title="Next entry" href="G{strongsNumber+1}.htm#Top">→</a></b>' if strongsNumber<finalStrongsNumber else ''
+    indexEntryHtml = None
+    if strongsNumber in (1,finalStrongsNumber) or strongsNumber % indexDistance == 0:
+        strongsWordEntry = bibleLexicon.getStrongsEntryField( strongsLetterNumberStr, 'word' )
+        if strongsWordEntry:
+            assert isinstance( strongsWordEntry, tuple ) # grk,transliteration,OTHER
+            strongsWordEntry = f'<b>{strongsWordEntry[0]}</b> ({strongsWordEntry[1]})'
+            indexEntryHtml = f'<li><a href="{strongsLetterNumberStr}.htm#Top">{strongsLetterNumberStr}: {strongsWordEntry}</a></li>'
 
-        middle = bibleLexicon.getStrongsEntryHTML( strongsLetterNumberStr )
+    numRefs = len( state.OETRefData['NTStrongsRefs'][strongsStr] )
+    if numRefs > 500:
+        sMod = 20
+        versesHtml = [f'\n<p class="note">Displaying only every {sMod}<sup>th</sup> verse out of {numRefs:,}.</p>']
+    elif numRefs > 120:
+        sMod = 10
+        versesHtml = [f'\n<p class="note">Displaying only every {sMod}<sup>th</sup> verse out of {numRefs}.</p>']
+    else:
+        sMod = None
+        versesHtml = [f'''\n<p class="note">Appears in {'only one verse' if numRefs==1 else f'a total of {numRefs} verses'}:</p>''']
+    for ss,sRef in enumerate( state.OETRefData['NTStrongsRefs'][strongsStr] ):
+        if sMod is None or ss % sMod == 0: # The first one is always displayed
+            sBBB, sCV = sRef.split( '_', 1 )
+            sC, sV = sCV.split( ':', 1 )
+            sOET_LV_verse_HTML = sOET_RV_verse_HTML = None
+            if not state.TEST_MODE_FLAG or sBBB in state.preloadedBibles['OET-RV']:
+                sOET_LV_verse_HTML = get_OET_LV_verse_HTML( level, sBBB, sC, sV )
+                sOET_RV_verse_HTML = get_OET_RV_verse_HTML( level, sBBB, sC, sV )
+                versesHtml.append( f'''\n<p class="vRef">{sBBB} {sC}:{sV}</p>{f'\n{sOET_LV_verse_HTML}' if sOET_LV_verse_HTML else ''}{f'\n{sOET_RV_verse_HTML}' if sOET_RV_verse_HTML else ''}''' )
 
-        # Liven internal Strongs references
-        def replFunction( strongsMatch:re.Match ) -> str:
-            # print( f"     Matched '{strongsMatch.group(0)}' Regex from {strongsLetterNumberString}" )
-            strongsLetterAndNumber = strongsMatch.group(0)[1:-1]
-            return f'><a href="../{STRONGS_FOLDER_DICT[strongsLetterAndNumber[0]]}/{strongsLetterAndNumber}.htm#Top">{strongsLetterAndNumber}</a><'
-        if middle:
-            middle = STRONGS_NUMBER_REGEX.sub( replFunction, middle )
-
-        if strongsNumber in (1,finalStrongsNumber) or strongsNumber % indexDistance == 0:
-            strongsWordEntry = bibleLexicon.getStrongsEntryField( strongsLetterNumberStr, 'word' )
-            if strongsWordEntry:
-                assert isinstance( strongsWordEntry, tuple ) # grk,transliteration,OTHER
-                strongsWordEntry = f'<b>{strongsWordEntry[0]}</b> ({strongsWordEntry[1]})'
-                indexList.append( f'<li><a href="{strongsLetterNumberStr}.htm#Top">{strongsLetterNumberStr}: {strongsWordEntry}</a></li>' )
-
-        numRefs = len( state.OETRefData['NTStrongsRefs'][strongsStr] )
-        if numRefs > 500:
-            sMod = 20
-            versesHtml = [f'\n<p class="note">Displaying only every {sMod}<sup>th</sup> verse out of {numRefs:,}.</p>']
-        elif numRefs > 120:
-            sMod = 10
-            versesHtml = [f'\n<p class="note">Displaying only every {sMod}<sup>th</sup> verse out of {numRefs}.</p>']
-        else:
-            sMod = None
-            versesHtml = [f'''\n<p class="note">Appears in {'only one verse' if numRefs==1 else f'a total of {numRefs} verses'}:</p>''']
-        for ss,sRef in enumerate( state.OETRefData['NTStrongsRefs'][strongsStr] ):
-            if sMod is None or ss % sMod == 0: # The first one is always displayed
-                sBBB, sCV = sRef.split( '_', 1 )
-                sC, sV = sCV.split( ':', 1 )
-                sOET_LV_verse_HTML = sOET_RV_verse_HTML = None
-                if not state.TEST_MODE_FLAG or sBBB in state.preloadedBibles['OET-RV']:
-                    sOET_LV_verse_HTML = get_OET_LV_verse_HTML( level, sBBB, sC, sV )
-                    sOET_RV_verse_HTML = get_OET_RV_verse_HTML( level, sBBB, sC, sV )
-                    versesHtml.append( f'''\n<p class="vRef">{sBBB} {sC}:{sV}</p>{f'\n{sOET_LV_verse_HTML}' if sOET_LV_verse_HTML else ''}{f'\n{sOET_RV_verse_HTML}' if sOET_RV_verse_HTML else ''}''' )
-
-        pageHtml = f'''{top}
+    pageHtml = f'''{top}
 <p class="note"><b><a href="../">Reference lists contents page</a></b></p>
 <p class="note"><a href="../HebWrd/">Hebrew words index</a> <a href="../HebWrd/transIndex.htm">Transliterated Hebrew words index</a></p>
 <p class="note"><a href="../HebLem/">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm">Transliterated Hebrew lemmas index</a></p>
@@ -3729,11 +3788,77 @@ def create_Greek_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:B
 <p>{middle}</p>{''.join(versesHtml)}
 <p>View on <a href="https://BibleHub.com/greek/{strongsNumber}.htm">BibleHub</a>.</p>
 {makeBottom( level, None, 'StrongsPage' )}'''
-        assert checkHtml( 'StrongsPage', pageHtml )
-        with open( filepath, 'wt', encoding='utf-8' ) as html_output_file:
-            html_output_file.write( pageHtml )
-        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  Wrote {len(pageHtml):,} characters to {output_filename}" )
-        numPagesMade += 1
+    assert checkHtml( 'StrongsPage', pageHtml )
+    with open( filepath, 'wt', encoding='utf-8' ) as html_output_file:
+        html_output_file.write( pageHtml )
+    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  Wrote {len(pageHtml):,} characters to {output_filename}" )
+
+    return True, indexEntryHtml
+# end of createOETReferencePages.create_Greek_Strongs_page
+
+def _create_Greek_Strongs_page_MP( parameters ):
+    """
+    Multiprocessing version! (forked children inherit our module-level state copy-on-write)
+
+    Parameter is a 5-tuple containing the parameters (WITHOUT state or bibleLexicon -- use the inherited ones).
+    Returns the (result,indexEntryHtml) 2-tuple from create_Greek_Strongs_page because changes that a
+        child process makes to the inherited state are lost on exit.
+    """
+    # fnPrint( DEBUGGING_THIS_MODULE, f"_create_Greek_Strongs_page_MP( {parameters} )" )
+    return create_Greek_Strongs_page( *parameters, _strongsPageBibleLexicon, state )
+# end of ESFMBible._create_Greek_Strongs_page_MP
+
+def create_Greek_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:BibleLexicon, state:State ) -> int:
+    """
+    """
+    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Making Greek Strongs pages…" )
+
+    try: os.makedirs( outputFolderPath )
+    except FileExistsError: pass # it was already there
+
+    indexList = []
+    finalStrongsNumber = 5624
+    # indexDistance = finalStrongsNumber // NUM_STRONGS_INDEX_ENTRIES
+    # print( f"  Greek: {finalStrongsNumber=} {NUM_STRONGS_INDEX_ENTRIES=} {indexDistance=}" )
+    indexDistance = 100 # was 94
+    numPagesMade = 0
+    global _strongsPageBibleLexicon
+    _strongsPageBibleLexicon = bibleLexicon # Make it available to our forked children (see wrapper above)
+    if BibleOrgSysGlobals.maxProcesses > 1 \
+    and not BibleOrgSysGlobals.alreadyMultiprocessing: # Process all the Strongs pages with different processes
+        # NOTE: We use an explicit 'fork' context because Python 3.14 changed the default start method
+        #        to 'forkserver' which would NOT inherit our huge module-level state (12 GiB of Bibles).
+        #        Forked children share that memory copy-on-write, so this costs almost nothing extra.
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Creating{'' if not state.TEST_MODE_FLAG or state.ALL_TEST_REFERENCE_PAGES_FLAG else ' up to'} {finalStrongsNumber:,} Greek Strongs pages using {BibleOrgSysGlobals.maxProcesses} forked processes…" )
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, "    NOTE: Outputs (including error and warning messages) from various words may be interspersed." )
+
+        parameters, taskMetaList = [], []
+        for strongsNumber in range( 1, finalStrongsNumber+1 ):
+            if state.TEST_MODE_FLAG and not state.ALL_TEST_REFERENCE_PAGES_FLAG:
+                if strongsNumber not in state.OETRefData['usedGrkStrongs']:
+                    # print( f"Skipping {strongsLetterNumberString} because not in {list(state.OETRefData['usedGrkStrongs'])[:20]}")
+                    continue
+            parameters.append( (level, strongsNumber, finalStrongsNumber, indexDistance, outputFolderPath) )
+            taskMetaList.append( strongsNumber )
+        assert len(parameters) == len(taskMetaList)
+        BibleOrgSysGlobals.alreadyMultiprocessing = True
+        with multiprocessing.get_context('fork').Pool( processes=BibleOrgSysGlobals.maxProcesses ) as pool: # start worker processes
+            results = pool.map( _create_Greek_Strongs_page_MP, parameters ) # have the pool do our loads
+            assert len(results) == len(parameters)
+        BibleOrgSysGlobals.alreadyMultiprocessing = False
+        for (result,indexEntryHtml),_unusedStrongNumber in zip( results, taskMetaList ):
+            if result: numPagesMade += 1
+            if indexEntryHtml is not None: indexList.append( indexEntryHtml )
+    else: # no multi-processing
+        for strongsNumber in range( 1, finalStrongsNumber+1 ):
+            if state.TEST_MODE_FLAG and not state.ALL_TEST_REFERENCE_PAGES_FLAG:
+                if strongsNumber not in state.OETRefData['usedGrkStrongs']:
+                    # print( f"Skipping {strongsLetterNumberString} because not in {list(state.OETRefData['usedGrkStrongs'])[:20]}")
+                    continue
+            result,indexEntryHtml = create_Greek_Strongs_page( level, strongsNumber, finalStrongsNumber, indexDistance, outputFolderPath, bibleLexicon, state )
+            if result: numPagesMade += 1
+            if indexEntryHtml is not None: indexList.append( indexEntryHtml )
+
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Made {numPagesMade:,} {f'out of {finalStrongsNumber:,} ' if numPagesMade<finalStrongsNumber else ''}Greek Strongs pages." )
 
     # Create index page for this Strongs folder
@@ -3764,6 +3889,10 @@ def create_Greek_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:B
     try: del state.OETRefData['usedGrkStrongs']
     except KeyError: pass # ignore if it never existed
 # end of createOETReferencePages.create_Greek_Strongs_pages function
+
+
+
+
 
 
 def create_person_pages( level:int, outputFolderPath:Path, state:State ) -> int:

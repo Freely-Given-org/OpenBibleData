@@ -55,7 +55,7 @@ pub struct PageChromeConfig {
     /// Version abbreviation -> long Bible name (state.BibleNames).
     pub bible_names: HashMap<String, String>,
     /// All book codes loaded across versions (state.allBBBs).
-    pub all_bbbs: Vec<String>,
+    pub all_bos_book_codes: Vec<String>,
     /// Preloaded versions whose discoveryResults say they have section
     /// headings. Keys match state.preloadedBibles keys (e.g. 'OET-RV').
     pub have_section_headings: HashSet<String>,
@@ -82,9 +82,9 @@ impl PageChromeConfig {
     /// Book-set membership check (`entryBBB in thisBible`). Returns an error
     /// for versions that aren't preloaded unless we're in TEST mode, where
     /// Python substitutes an empty list.
-    fn book_available(&self, version_key: &str, bbb: &str) -> Result<bool, PageChromeError> {
+    fn book_available(&self, version_key: &str, bos_book_code: &str) -> Result<bool, PageChromeError> {
         match self.version_books.get(version_key) {
-            Some(books) => Ok(books.contains(bbb)),
+            Some(books) => Ok(books.contains(bos_book_code)),
             None => {
                 if self.test_mode_flag {
                     Ok(false)
@@ -121,7 +121,7 @@ impl std::fmt::Display for PageChromeError {
                 write!(f, "Version not preloaded (and not TEST mode): {key}")
             }
             PageChromeError::MultipleBbbMatches(entry) => {
-                write!(f, "Found more than one BBB in nav entry: {entry}")
+                write!(f, "Found more than one bos_book_code in nav entry: {entry}")
             }
             PageChromeError::NoFilenameForAdaptation(entry) => {
                 write!(f, "Need a filename to adapt bad link: {entry}")
@@ -180,23 +180,23 @@ fn extract_displayed_version(entry: &str) -> Result<&str, PageChromeError> {
     Ok(&entry[start_ix..end_ix])
 }
 
-/// Find the BBB code embedded in a nav entry by checking `<BBB>.`, `<BBB>_`,
-/// and `<BBB>/` substrings against every loaded book code, exactly like
+/// Find the bos_book_code code embedded in a nav entry by checking `<bos_book_code>.`, `<bos_book_code>_`,
+/// and `<bos_book_code>/` substrings against every loaded book code, exactly like
 /// html._makeWorkNavListParagraph's detection loop.
-fn find_embedded_bbb<'a>(all_bbbs: &'a [String], entry: &str) -> Result<Option<&'a str>, PageChromeError> {
-    let mut found_bbb: Option<&str> = None;
-    for try_bbb in all_bbbs {
-        let found = entry.contains(&format!("{try_bbb}."))
-            || entry.contains(&format!("{try_bbb}_"))
-            || entry.contains(&format!("{try_bbb}/"));
+fn find_embedded_bos_book_code<'a>(all_bos_book_codes: &'a [String], entry: &str) -> Result<Option<&'a str>, PageChromeError> {
+    let mut found_bos_book_code: Option<&str> = None;
+    for try_bos_book_code in all_bos_book_codes {
+        let found = entry.contains(&format!("{try_bos_book_code}."))
+            || entry.contains(&format!("{try_bos_book_code}_"))
+            || entry.contains(&format!("{try_bos_book_code}/"));
         if found {
-            if found_bbb.is_some() {
+            if found_bos_book_code.is_some() {
                 return Err(PageChromeError::MultipleBbbMatches(entry.to_string()));
             }
-            found_bbb = Some(try_bbb);
+            found_bos_book_code = Some(try_bos_book_code);
         }
     }
-    Ok(found_bbb)
+    Ok(found_bos_book_code)
 }
 
 /// Pure-Rust equivalent of html.makeTop (including _makeNavigationLinks).
@@ -448,13 +448,13 @@ fn work_nav_list_core(
                 }
             }
         }
-        let entry_bbb = find_embedded_bbb(&config.all_bbbs, &entry)?;
-        if let Some(bbb) = entry_bbb {
+        let entry_bos_book_code = find_embedded_bos_book_code(&config.all_bos_book_codes, &entry)?;
+        if let Some(bos_book_code) = entry_bos_book_code {
             let mut displayed = extract_displayed_version(&entry)?.to_string();
             if displayed == "OET" {
                 displayed = "OET-RV".to_string(); // We look here in this case
             }
-            if config.book_available(&displayed, bbb)? {
+            if config.book_available(&displayed, bos_book_code)? {
                 new_version_list.push(entry);
                 continue; // Should always be able to link to these
             }
@@ -566,7 +566,7 @@ mod tests {
     /// Build a config mirroring the stub State used by golden_makeTop.py so
     /// expectations stay aligned between the two test approaches.
     pub(crate) fn test_config() -> PageChromeConfig {
-        let bbbs = ["FRT", "GEN", "EXO", "PSA", "ISA", "MRK", "GAL"]
+        let bos_book_codes = ["FRT", "GEN", "EXO", "PSA", "ISA", "MRK", "GAL"]
             .iter()
             .map(|s| s.to_string())
             .collect::<Vec<_>>();
@@ -580,7 +580,7 @@ mod tests {
             .collect::<HashSet<_>>();
         let bold = ["<b>".to_string(), "</b>".to_string()];
         let plain = [String::new(), String::new()];
-        let all_books = bbbs.iter().cloned().collect::<HashSet<_>>();
+        let all_books = bos_book_codes.iter().cloned().collect::<HashSet<_>>();
         PageChromeConfig {
             test_mode_flag: true,
             site_name: "Open Bible Data".to_string(),
@@ -638,7 +638,7 @@ mod tests {
             .iter()
             .map(|(k, v)| (k.to_string(), v.to_string()))
             .collect(),
-            all_bbbs: bbbs,
+            all_bos_book_codes: bos_book_codes,
             have_section_headings: ["OET-RV", "OET-LV", "UHB", "SR-GNT"]
                 .iter()
                 .map(|s| s.to_string())

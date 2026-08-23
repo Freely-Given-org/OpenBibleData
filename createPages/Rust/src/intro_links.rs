@@ -42,7 +42,7 @@ impl std::error::Error for IntroLinkError {}
 
 struct BookMatch<'a> {
     prefix_and_book: &'a str,
-    bbb: &'static str,
+    bos_book_code: &'static str,
 }
 
 /// Helper to identify book names and optional prefixes in text preceding a C:V reference.
@@ -77,10 +77,10 @@ fn find_book_in_prefix(text: &str) -> Option<BookMatch<'_>> {
     }
 
     // Try whole book_part first (e.g. "1 Peter", "Song of Solomon", "Acts")
-    if let Some(bbb) = get_bbb_from_oet_book_name(book_part) {
+    if let Some(bos_book_code) = get_bbb_from_oet_book_name(book_part) {
         return Some(BookMatch {
             prefix_and_book: whole_candidate,
-            bbb,
+            bos_book_code,
         });
     }
 
@@ -88,11 +88,11 @@ fn find_book_in_prefix(text: &str) -> Option<BookMatch<'_>> {
     let words: Vec<&str> = book_part.split_whitespace().collect();
     for i in 1..words.len() {
         let sub_part = words[i..].join(" ");
-        if let Some(bbb) = get_bbb_from_oet_book_name(&sub_part) {
+        if let Some(bos_book_code) = get_bbb_from_oet_book_name(&sub_part) {
             if let Some(pos) = whole_candidate.find(&sub_part) {
                 return Some(BookMatch {
                     prefix_and_book: &whole_candidate[pos..],
-                    bbb,
+                    bos_book_code,
                 });
             }
         }
@@ -101,11 +101,11 @@ fn find_book_in_prefix(text: &str) -> Option<BookMatch<'_>> {
     None
 }
 
-/// Format an HTML reference link according to segment_type and target BBB vs our BBB.
+/// Format an HTML reference link according to segment_type and target bos_book_code vs our bos_book_code.
 fn format_ref_link<F>(
     version_abbreviation: &str,
-    our_bbb: &str,
-    ref_bbb: &str,
+    our_bos_book_code: &str,
+    ref_bos_book_code: &str,
     ref_c: &str,
     ref_v: &str,
     guts: &str,
@@ -115,21 +115,21 @@ fn format_ref_link<F>(
 where
     F: Fn(&str, &str, &str, &str) -> Option<usize>,
 {
-    if ref_bbb == our_bbb {
+    if ref_bos_book_code == our_bos_book_code {
         match segment_type {
             "book" => {
                 Ok(format!(r##"<a title="Jump down to reference" href="#C{ref_c}V{ref_v}">{guts}</a>"##))
             }
             "chapter" => {
-                Ok(format!(r##"<a title="Jump to chapter page with reference" href="{our_bbb}_C{ref_c}.htm#C{ref_c}V{ref_v}">{guts}</a>"##))
+                Ok(format!(r##"<a title="Jump to chapter page with reference" href="{our_bos_book_code}_C{ref_c}.htm#C{ref_c}V{ref_v}">{guts}</a>"##))
             }
             s if s.ends_with("Verse") => {
                 Ok(format!(r##"<a title="Go to reference verse" href="C{ref_c}V{ref_v}.htm#Top">{guts}</a>"##))
             }
             "section" | "relatedPassage" => {
-                let n = find_section_number(version_abbreviation, our_bbb, ref_c, ref_v);
+                let n = find_section_number(version_abbreviation, our_bos_book_code, ref_c, ref_v);
                 if let Some(section_idx) = n {
-                    Ok(format!(r##"<a title="Jump to section page with reference" href="{our_bbb}_S{section_idx}.htm#Top">{guts}</a>"##))
+                    Ok(format!(r##"<a title="Jump to section page with reference" href="{our_bos_book_code}_S{section_idx}.htm#Top">{guts}</a>"##))
                 } else {
                     Ok(guts.to_string())
                 }
@@ -139,18 +139,18 @@ where
     } else {
         match segment_type {
             "book" => {
-                Ok(format!(r##"<a title="Go to reference document" href="{ref_bbb}.htm#C{ref_c}V{ref_v}">{guts}</a>"##))
+                Ok(format!(r##"<a title="Go to reference document" href="{ref_bos_book_code}.htm#C{ref_c}V{ref_v}">{guts}</a>"##))
             }
             "chapter" => {
-                Ok(format!(r##"<a title="Go to reference chapter" href="{ref_bbb}_C{ref_c}.htm#C{ref_c}V{ref_v}">{guts}</a>"##))
+                Ok(format!(r##"<a title="Go to reference chapter" href="{ref_bos_book_code}_C{ref_c}.htm#C{ref_c}V{ref_v}">{guts}</a>"##))
             }
             s if s.ends_with("Verse") => {
-                Ok(format!(r##"<a title="Go to reference verse" href="../{ref_bbb}/C{ref_c}V{ref_v}.htm#Top">{guts}</a>"##))
+                Ok(format!(r##"<a title="Go to reference verse" href="../{ref_bos_book_code}/C{ref_c}V{ref_v}.htm#Top">{guts}</a>"##))
             }
             "section" | "relatedPassage" => {
-                let n = find_section_number(version_abbreviation, ref_bbb, ref_c, ref_v);
+                let n = find_section_number(version_abbreviation, ref_bos_book_code, ref_c, ref_v);
                 if let Some(section_idx) = n {
-                    Ok(format!(r##"<a title="Go to to section page with reference" href="{ref_bbb}_S{section_idx}.htm#Top">{guts}</a>"##))
+                    Ok(format!(r##"<a title="Go to to section page with reference" href="{ref_bos_book_code}_S{section_idx}.htm#Top">{guts}</a>"##))
                 } else {
                     Ok(guts.to_string())
                 }
@@ -164,7 +164,7 @@ where
 fn process_parenthetical<F>(
     inner: &str,
     version_abbreviation: &str,
-    our_bbb: &str,
+    our_bos_book_code: &str,
     segment_type: &str,
     find_section_number: &F,
 ) -> Result<String, IntroLinkError>
@@ -173,7 +173,7 @@ where
 {
     let mut result = String::new();
     let mut prev_end = 0;
-    let mut current_bbb: Option<&str> = None;
+    let mut current_bos_book_code: Option<&str> = None;
 
     let matches: Vec<_> = CV_PATTERN.find_iter(inner).collect();
     if matches.is_empty() {
@@ -191,8 +191,8 @@ where
         let before_text = &inner[prev_end..cv_start];
 
         if let Some(book_match) = find_book_in_prefix(before_text) {
-            current_bbb = Some(book_match.bbb);
-            let ref_bbb = book_match.bbb;
+            current_bos_book_code = Some(book_match.bos_book_code);
+            let ref_bos_book_code = book_match.bos_book_code;
 
             let book_start_in_before = before_text.rfind(book_match.prefix_and_book).unwrap();
             let unlinked_before = &before_text[..book_start_in_before];
@@ -201,8 +201,8 @@ where
             let guts = format!("{}{}", &before_text[book_start_in_before..], m.as_str());
             let link = format_ref_link(
                 version_abbreviation,
-                our_bbb,
-                ref_bbb,
+                our_bos_book_code,
+                ref_bos_book_code,
                 ref_c,
                 ref_v,
                 &guts,
@@ -211,13 +211,13 @@ where
             )?;
             result.push_str(&link);
         } else {
-            let ref_bbb = current_bbb.unwrap_or(our_bbb);
+            let ref_bos_book_code = current_bos_book_code.unwrap_or(our_bos_book_code);
             result.push_str(before_text);
             let guts = m.as_str();
             let link = format_ref_link(
                 version_abbreviation,
-                our_bbb,
-                ref_bbb,
+                our_bos_book_code,
+                ref_bos_book_code,
                 ref_c,
                 ref_v,
                 guts,
@@ -237,7 +237,7 @@ where
 /// Liven general links in the introduction.
 pub fn liven_introduction_links_core<F>(
     version_abbreviation: &str,
-    our_bbb: &str,
+    our_bos_book_code: &str,
     segment_type: &str,
     intro_html: &str,
     find_section_number: F,
@@ -266,7 +266,7 @@ where
         let processed_inner = process_parenthetical(
             inner,
             version_abbreviation,
-            our_bbb,
+            our_bos_book_code,
             segment_type,
             &find_section_number,
         )?;
@@ -313,12 +313,12 @@ where
 
         // Look for book prefix before the CV match
         let before_match = &result_html[..match_start];
-        let mut ref_bbb = our_bbb;
+        let mut ref_bos_book_code = our_bos_book_code;
         let mut final_guts = guts.to_string();
         let mut actual_match_start = match_start;
 
         if let Some(book_match) = find_book_in_prefix(before_match) {
-            ref_bbb = book_match.bbb;
+            ref_bos_book_code = book_match.bos_book_code;
             // Find where the book prefix starts in the text before the match
             if let Some(_book_pos) = before_match.rfind(book_match.prefix_and_book) {
                 // Strip prefix words like "See", "see", "as in" from prefix_and_book
@@ -341,8 +341,8 @@ where
 
         let new_guts = format_ref_link(
             version_abbreviation,
-            our_bbb,
-            ref_bbb,
+            our_bos_book_code,
+            ref_bos_book_code,
             ref_c,
             ref_v,
             &final_guts,
@@ -449,12 +449,12 @@ mod tests {
 
     #[test]
     fn test_section_segment_type() {
-        let dummy_section_finder = |ver: &str, bbb: &str, c: &str, v: &str| -> Option<usize> {
-            if ver == "OET-RV" && bbb == "ACT" && c == "12" && v == "25" {
+        let dummy_section_finder = |ver: &str, bos_book_code: &str, c: &str, v: &str| -> Option<usize> {
+            if ver == "OET-RV" && bos_book_code == "ACT" && c == "12" && v == "25" {
                 Some(5)
-            } else if ver == "OET-RV" && bbb == "ACT" && c == "13" && v == "13" {
+            } else if ver == "OET-RV" && bos_book_code == "ACT" && c == "13" && v == "13" {
                 Some(6)
-            } else if ver == "OET-RV" && bbb == "MAT" && c == "13" && v == "13" {
+            } else if ver == "OET-RV" && bos_book_code == "MAT" && c == "13" && v == "13" {
                 Some(10)
             } else {
                 None

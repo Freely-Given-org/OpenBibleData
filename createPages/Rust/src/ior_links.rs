@@ -57,7 +57,7 @@ const MAX_IORS: usize = 15;
 /// Format an HTML reference link for IOR according to segment_type.
 fn format_ior_link<F>(
     version_abbreviation: &str,
-    our_bbb: &str,
+    our_bos_book_code: &str,
     ref_c: &str,
     ref_v: &str,
     guts: &str,
@@ -75,7 +75,7 @@ where
         }
         "chapter" => {
             Ok(format!(
-                r##"<a title="Jump to chapter page with reference" href="{our_bbb}_C{ref_c}.htm#C{ref_c}V{ref_v}">{guts}</a>"##
+                r##"<a title="Jump to chapter page with reference" href="{our_bos_book_code}_C{ref_c}.htm#C{ref_c}V{ref_v}">{guts}</a>"##
             ))
         }
         s if s.ends_with("Verse") => {
@@ -87,10 +87,10 @@ where
         "section" | "relatedPassage" => {
             // Look up the section number via the callback
             if let Some(section_num) =
-                find_section_fn(version_abbreviation, our_bbb, ref_c, ref_v)
+                find_section_fn(version_abbreviation, our_bos_book_code, ref_c, ref_v)
             {
                 Ok(format!(
-                    r##"<a title="Jump to section page with reference" href="{our_bbb}_S{section_num}.htm#Top">{guts}</a>"##
+                    r##"<a title="Jump to section page with reference" href="{our_bos_book_code}_S{section_num}.htm#Top">{guts}</a>"##
                 ))
             } else {
                 // Fallback: return the guts unchanged (matching Python behaviour which logs a critical error)
@@ -104,11 +104,11 @@ where
 /// Liven IOR (Introduction Outline Reference) links in HTML text.
 ///
 /// For `section` and `relatedPassage` segment types, the `find_section_fn` callback
-/// is called as `find_section_fn(version_abbrev, bbb, c, v)` and should return
+/// is called as `find_section_fn(version_abbrev, bos_book_code, c, v)` and should return
 /// `Some(section_number)` if found.  For other segment types the callback is ignored.
 pub fn liven_iors_core<F>(
     version_abbreviation: &str,
-    our_bbb: &str,
+    our_bos_book_code: &str,
     segment_type: &str,
     ior_html: &str,
     is_single_chapter: bool,
@@ -145,7 +145,7 @@ where
 
         // Format the link (the <span class="ior"> wrapper is kept around it, as in Python)
         let new_link = format_ior_link(
-            version_abbreviation, our_bbb, &ref_c, &ref_v, &guts, segment_type, &find_section_fn,
+            version_abbreviation, our_bos_book_code, &ref_c, &ref_v, &guts, segment_type, &find_section_fn,
         )?;
         let new_span = format!("<span class=\"ior\">{new_link}</span>");
 

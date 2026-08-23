@@ -32,8 +32,8 @@ getBBBFromOETBookName( originalBooknameText:str, where:str ) -> str|None
 getHebrewWordpageFilename( rowNum:int, state:State ) -> str
 getGreekWordpageFilename( rowNum:int, state:State ) -> str
 livenOETWordLinks( level, bibleObject:ESFMBible, BBB:str, givenEntryList:InternalBibleEntryList, state:State ) -> InternalBibleEntryList
-livenOETCompatibleWordLinks( level:int, bibleObject:InternalBible, BBB:str, givenEntryList:InternalBibleEntryList, state:State ) -> InternalBibleEntryList
-findLVQuote( level:int, BBB:str, C:str, V:str, occurrenceNumber:int, originalQuote:str, state:State ) -> str (html)
+livenOETCompatibleBereanWordLinks( level:int, bibleObject:InternalBible, BBB:str, givenEntryList:InternalBibleEntryList, state:State ) -> InternalBibleEntryList
+findOLQuoteInLV( level:int, BBB:str, C:str, V:str, occurrenceNumber:int, originalQuote:str, state:State ) -> str (html)
 briefDemo() -> None
 fullDemo() -> None
 main calls fullDemo()
@@ -73,10 +73,10 @@ from bible_transliterations import transliterate_Hebrew, transliterate_Greek
 from settings import State
 
 
-LAST_MODIFIED_DATE = '2026-06-29' # by RJH
+LAST_MODIFIED_DATE = '2026-08-24' # by RJH
 SHORT_PROGRAM_NAME = "OETHandlers"
 PROGRAM_NAME = "OpenBibleData OET handler"
-PROGRAM_VERSION = '0.76'
+PROGRAM_VERSION = '0.77'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -525,7 +525,7 @@ def livenOETWordLinks( level:int, bibleObject:ESFMBible, refTuple:tuple, givenEn
 
 # Note that single words might include a \\sup \\sup* span as in 'Aʸsaias/(Yəshaˊə\sup yāh\sup*)¦21767' (but we handle that below by substitions)
 linkedWordRegex = re.compile( "([-¬A-za-z0-9,'’ḨŌⱤḩⱪşţʦⱱĀĒāēéīōūəʸʼˊ/()]+)¦([1-9][0-9]{0,5})" )
-def livenOETCompatibleWordLinks( level:int, bibleObject:InternalBible, BBB:str, givenEntryList:InternalBibleEntryList, state:State ) -> InternalBibleEntryList:
+def livenOETCompatibleBereanWordLinks( level:int, bibleObject:InternalBible, BBB:str, givenEntryList:InternalBibleEntryList, state:State ) -> InternalBibleEntryList:
     """
     Livens wordlinks in the Berean versions (i.e., the words with ¦ numbers suffixed to them).
 
@@ -542,7 +542,7 @@ def livenOETCompatibleWordLinks( level:int, bibleObject:InternalBible, BBB:str, 
         if entry.getOriginalText():
             assert '\\nd \\nd ' not in entry.getOriginalText(), f"Double nd in {bibleObject.abbreviation} {BBB} {entry=}"
 
-    def livenESFMCompatibleWordLinks( self:InternalBible, BBB:str, verseList:InternalBibleEntryList, linkTemplate:str, titleTemplate:str|None=None ) -> tuple[InternalBibleEntryList,list[str]|None]:
+    def livenESFMCompatibleBereanWordLinks( self:InternalBible, BBB:str, verseList:InternalBibleEntryList, linkTemplate:str, titleTemplate:str|None=None ) -> tuple[InternalBibleEntryList,list[str]|None]:
         """
         The link template can be a filename like 'Word_{n}.htm' or an entire link like 'https://SomeSite/words/page_{n}.html'
             The '{n}' gets substituted with the actual word link string of digits.
@@ -551,7 +551,7 @@ def livenOETCompatibleWordLinks( level:int, bibleObject:InternalBible, BBB:str, 
         If specified, the title template can also contain the same patterns
             as well as a table column name surrounded by « ».
         """
-        fnPrint( DEBUGGING_THIS_MODULE, f"livenESFMCompatibleWordLinks( {BBB}, ({len(verseList)}) {verseList} )" )
+        fnPrint( DEBUGGING_THIS_MODULE, f"livenESFMCompatibleBereanWordLinks( {BBB}, ({len(verseList)}) {verseList} )" )
         assert '{n}' in linkTemplate
         # bookObject = self.books[BBB]
         # wordFileName = bookObject.ESFMWordTableFilename
@@ -559,8 +559,8 @@ def livenOETCompatibleWordLinks( level:int, bibleObject:InternalBible, BBB:str, 
         if bos_books_codes_py.is_new_testament_nr( BBB ): wordFileName = 'OET-LV_NT_word_table.tsv'
         if wordFileName:
             assert wordFileName.endswith( '.tsv' )
-            # print( f"ESFMBible.livenESFMCompatibleWordLinks found filename '{wordFileName}' for {self.abbreviation} {BBB}" )
-            # print( f"ESFMBible.livenESFMCompatibleWordLinks found loaded word links: {self.ESFMWordTables[wordFileName]}" )
+            # print( f"ESFMBible.livenESFMCompatibleBereanWordLinks found filename '{wordFileName}' for {self.abbreviation} {BBB}" )
+            # print( f"ESFMBible.livenESFMCompatibleBereanWordLinks found loaded word links: {self.ESFMWordTables[wordFileName]}" )
             if self.ESFMWordTables[wordFileName] is None:
                 self.loadESFMWordFile( wordFileName )
 
@@ -611,12 +611,12 @@ def livenOETCompatibleWordLinks( level:int, bibleObject:InternalBible, BBB:str, 
                 updatedVerseEntryList.append( entry )
 
         return updatedVerseEntryList, self.ESFMWordTables[wordFileName] if wordFileName else None
-    # end of ESFMBible.livenESFMCompatibleWordLinks
+    # end of ESFMBible.livenESFMCompatibleBereanWordLinks
 
     # Liven the word links using the BibleOrgSys function
     #   We use unusual word pairs in both templates (we don't actually use titleTemplate as a template)
     #       so that we can easily find them again in the returned InternalBibleEntryList
-    revisedEntryList = livenESFMCompatibleWordLinks( bibleObject, BBB, givenEntryList, linkTemplate='►{n}◄', titleTemplate='§«OrigWord»§' )[0]
+    revisedEntryList = livenESFMCompatibleBereanWordLinks( bibleObject, BBB, givenEntryList, linkTemplate='►{n}◄', titleTemplate='§«OrigWord»§' )[0]
     for revisedEntry in givenEntryList:
         if revisedEntry.getOriginalText():
             assert '\\nd \\nd ' not in revisedEntry.getOriginalText()
@@ -665,7 +665,7 @@ def livenOETCompatibleWordLinks( level:int, bibleObject:InternalBible, BBB:str, 
                 # Put in the correct word link
                 # NOTE: We have almost identical code in brightenSRGNT() in createParallelVersePages.py
                 original_text = f'''{original_text[:hrefMatch.start()]}="{'../'*level}ref/GrkWrd/{getGreekWordpageFilename(wordNumber,state)}#Top"{original_text[hrefMatch.end():]}'''
-                # print( f"livenOETCompatibleWordLinks( {BBB} ) NT now {original_text=}" )
+                # print( f"livenOETCompatibleBereanWordLinks( {BBB} ) NT now {original_text=}" )
 
                 # transliteratedWord = transliterate_Greek( placeholderOriginalLanguageWord )
 
@@ -794,10 +794,10 @@ def livenOETCompatibleWordLinks( level:int, bibleObject:InternalBible, BBB:str, 
     #     if updatedEntry.getOriginalText():
     #         assert '\\nd \\nd ' not in updatedEntry.getOriginalText()
     return updatedVerseList
-# end of OETHandlers.livenOETCompatibleWordLinks function
+# end of OETHandlers.livenOETCompatibleBereanWordLinks function
 
 
-def findLVQuote( level:int, BBB:str, C:str, V:str, occurrenceNumber:int, originalQuote:str, state:State ) -> str: # html
+def findOLQuoteInLV( level:int, BBB:str, C:str, V:str, occurrenceNumber:int, originalLanguageQuote:str, state:State ) -> str: # html
     """
     Given an original language (Heb/Grk) quote,
         find the OET-LV English words that match the OL words.
@@ -808,10 +808,9 @@ def findLVQuote( level:int, BBB:str, C:str, V:str, occurrenceNumber:int, origina
     """
     from html import checkHtml
 
-    # DEBUGGING_THIS_MODULE = 99
-    fnPrint( DEBUGGING_THIS_MODULE, f"formatUnfoldingWordTranslationNotes( {level=}, {BBB} {C}:{V}, {occurrenceNumber=} {originalQuote=}, … )")
+    fnPrint( DEBUGGING_THIS_MODULE, f"findOLQuoteInLV( {level=}, {BBB} {C}:{V}, {occurrenceNumber=} {originalLanguageQuote=}, … )")
     ref = f'{BBB}_{C}:{V}'
-    dPrint( 'Info', DEBUGGING_THIS_MODULE, f"formatUnfoldingWordTranslationNotes( {level=}, {ref}, {occurrenceNumber=} {originalQuote=}, … )")
+    dPrint( 'Info', DEBUGGING_THIS_MODULE, f"findOLQuoteInLV( {level=}, {ref}, {occurrenceNumber=} {originalLanguageQuote=}, … )")
     currentOccurrenceNumber = occurrenceNumber
 
     NT = bos_books_codes_py.is_new_testament_nr( BBB )
@@ -820,7 +819,7 @@ def findLVQuote( level:int, BBB:str, C:str, V:str, occurrenceNumber:int, origina
     try:
         lvVerseEntryList, _lvContextList = state.preloadedBibles['OET-LV'].getContextVerseData( (BBB, C, V) )
     except (KeyError, TypeError): # TypeError is if None is returned
-        (logging.error if BBB in state.booksToLoad['OET-LV'] else logging.warning)( f"findLVQuote: OET-LV has no text for {ref}")
+        (logging.error if BBB in state.booksToLoad['OET-LV'] else logging.warning)( f"findOLQuoteInLV: OET-LV has no text for {ref}")
         return ''
 
     # Find a ESFM word number that belongs with this B/C/V
@@ -828,7 +827,7 @@ def findLVQuote( level:int, BBB:str, C:str, V:str, occurrenceNumber:int, origina
     for lvVerseEntry in lvVerseEntryList:
         text = lvVerseEntry.getOriginalText()
         if not text or '¦' not in text: continue # no interest to us here
-        # print( f"findLVQuote found {BBB} {C}:{V} {lvVerseEntry=}" )
+        # print( f"findOLQuoteInLV found {BBB} {C}:{V} {lvVerseEntry=}" )
         ixMarker = text.index( '¦' )
         if not wordNumberStr: # We only need to find one word number (preferably the first one) here
             wordNumberStr = ''
@@ -858,7 +857,7 @@ def findLVQuote( level:int, BBB:str, C:str, V:str, occurrenceNumber:int, origina
 
         # Ok, now we can trying to match the given Greek words
         #   Note: We don't try to match punctuation, only the clean words
-        adjustedOriginalQuote = originalQuote.strip() \
+        adjustedOriginalQuote = originalLanguageQuote.strip() \
                                     .replace( ',', '' ).replace( '.', '' ).replace( '?', '' ).replace( '!', '' ) \
                                     .replace( ';', '' ).replace( ':', '' ).replace( '—', '' ) \
                                     .replace( '(', '' ).replace( ')', '' )
@@ -870,10 +869,10 @@ def findLVQuote( level:int, BBB:str, C:str, V:str, occurrenceNumber:int, origina
         #     import unicodedata
         #     for char in adjustedOriginalQuote:
         #         if char not in ' &’' and 'GREEK' not in unicodedata.name(char):
-        #             print( f"findLVQuote: uW UTN has unexpected char {BBB} {C}:{V} '{char}' ({unicodedata.name(char)}) from '{adjustedOriginalQuote}' from '{originalQuote}'" )
+        #             print( f"findOLQuoteInLV: uW UTN has unexpected char {BBB} {C}:{V} '{char}' ({unicodedata.name(char)}) from '{adjustedOriginalQuote}' from '{originalQuote}'" )
         #             assert False, "We want to stop here"
         olWords = adjustedOriginalQuote.split( ' ' )
-        assert '' not in olWords, f"findLVQuote: uW UTN has unexpected empty string {ref} {olWords=} from '{adjustedOriginalQuote}' from '{originalQuote}'"
+        assert '' not in olWords, f"findOLQuoteInLV: uW UTN has unexpected empty string {ref} {olWords=} from '{adjustedOriginalQuote}' from '{originalLanguageQuote}'"
         olIndex = wordNumberOffset = 0
         lvEnglishWords = []
         inGap = False
@@ -887,9 +886,9 @@ def findLVQuote( level:int, BBB:str, C:str, V:str, occurrenceNumber:int, origina
                 lvEnglishWords.append( '&' )
                 olIndex += 1
                 if olIndex == 0:
-                    logging.critical( f"findLVQuote: uW UTN has ampersand at beginning {ref} '{originalQuote}'" )
+                    logging.critical( f"findOLQuoteInLV: uW UTN has ampersand at beginning {ref} '{originalLanguageQuote}'" )
                 elif olIndex == len(olWords):
-                    logging.critical( f"findLVQuote: uW UTN has ampersand at end {ref} '{originalQuote}'" )
+                    logging.critical( f"findOLQuoteInLV: uW UTN has ampersand at end {ref} '{originalLanguageQuote}'" )
                     break # finished
                 inGap = True
                 continue # Pass over whatever this SR row was (i.e., sort of match the ampersand)
@@ -988,7 +987,7 @@ def findLVQuote( level:int, BBB:str, C:str, V:str, occurrenceNumber:int, origina
                     # assert gloss, f"{BBB} {C}:{V} {row=}"
                     ourWords.append( gloss )
             lvEnglishWords.append( f'''(Some words not found in {'<a href="#SR-GNT">SR-GNT</a>' if NT else '<a href="#UHB">UHB</a>'}: {' '.join( ourWords )})''' )
-            logging.warning( f"findLVQuote unable to match {ref} '{originalQuote}' {occurrenceNumber=} {currentOccurrenceNumber=} {inGap=}\n  {olWords=}  {olIndex=}\n  {ourWords=} {matchStart=}" )
+            logging.warning( f"findOLQuoteInLV unable to match {ref} '{originalLanguageQuote}' {occurrenceNumber=} {currentOccurrenceNumber=} {inGap=}\n  {olWords=}  {olIndex=}\n  {ourWords=} {matchStart=}" )
             # if BBB not in ('MRK',) or C not in ('1',) or V not in ('5','8','14'):
             # assert False, "We want to stop here"
 
@@ -1003,9 +1002,9 @@ def findLVQuote( level:int, BBB:str, C:str, V:str, occurrenceNumber:int, origina
         assert checkHtml( 'LVQuote', assembledHtml, segmentOnly=True )
         return assembledHtml
     else:
-        logging.error( f"findLVQuote: OET-LV can't find a starting word number for {ref}")
+        logging.error( f"findOLQuoteInLV: OET-LV can't find a starting word number for {ref}")
         return ''
-# end of OETHandlers.findLVQuote
+# end of OETHandlers.findOLQuoteInLV
 
 
 
@@ -1016,7 +1015,7 @@ def briefDemo() -> None:
     BibleOrgSysGlobals.introduceProgram( __name__, PROGRAM_NAME_VERSION, LAST_MODIFIED_DATE )
 
     # Demo the OETHandlers object
-    findLVQuote( ['OET','OET-RV','OET-LV', 'ULT','UST'] )
+    findOLQuoteInLV( ['OET','OET-RV','OET-LV', 'ULT','UST'] )
 # end of OETHandlers.briefDemo
 
 def fullDemo() -> None:
@@ -1026,7 +1025,7 @@ def fullDemo() -> None:
     BibleOrgSysGlobals.introduceProgram( __name__, PROGRAM_NAME_VERSION, LAST_MODIFIED_DATE )
 
     # Demo the OETHandlers object
-    findLVQuote( ['OET','OET-RV','OET-LV', 'ULT','UST'] )
+    findOLQuoteInLV( ['OET','OET-RV','OET-LV', 'ULT','UST'] )
 # end of OETHandlers.fullDemo
 
 if __name__ == '__main__':

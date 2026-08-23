@@ -139,12 +139,12 @@ importantRefsWithRanges = [ # Often quoted and/or memorised by Christians
     'GEN_1:4-31','GEN_2:1-3', # Gen 1:1-3 is above
     'DEU_29:24-29', 'DEU_30:3-5',
     'JOS_1:9',
-    'PSA_23:1-6', 'PSA_51:5','PSA_51:10',
+    'PSA_23:1-6', 'PSA_51:5','PSA_51:10', 'PSA_119:89',
     'PRO_4:1-7',
     'ECC_8:15',
     'ISA_2:2-4','ISA_6:1-8','ISA_11:1-12','ISA_27:6','ISA_28:16','ISA_41:10', 'ISA_46:9-10',
     'ISA_42:1-9', 'ISA_48:12-13','ISA_48:16', 'ISA_49:1-13', 'ISA_50:4-11', # The other three servant songs 'ISA_52:13–53:12',
-    'ISA_54:17','ISA_55:1-13','ISA_66:8',
+    'ISA_54:17', 'ISA_55:1-10','ISA_55:12-13', 'ISA_66:8',
     'JER_23:5-6', 'JER_33:2-3', 'JER_33:14-18',
     'DAN_7:10','DAN_12:1',
 

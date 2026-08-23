@@ -113,7 +113,7 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_
                     makeTop, makeBottom, makeBookNavListParagraph, checkHtml
 from createSectionPages import findSectionNumber
 from createOETReferencePages import OSHB_ADJECTIVE_DICT, OSHB_PARTICLE_DICT, OSHB_NOUN_DICT, OSHB_PREPOSITION_DICT, OSHB_PRONOUN_DICT, OSHB_SUFFIX_DICT
-from OETHandlers import getOETTidyBBB, getOETBookName, livenOETWordLinks, livenOETCompatibleWordLinks, getHebrewWordpageFilename, getGreekWordpageFilename
+from OETHandlers import getOETTidyBBB, getOETBookName, livenOETWordLinks, livenOETCompatibleBereanWordLinks, getHebrewWordpageFilename, getGreekWordpageFilename
 from spellCheckEnglish import spellCheckAndMarkHTMLText
 
 
@@ -472,7 +472,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                     # We want to save
                                 verseEntryList = livenOETWordLinks( BBBLevel, thisBible, (BBB,C,V), verseEntryList, state )
                             elif thisBible.abbreviation in ('BSB','MSB'):
-                                verseEntryList = livenOETCompatibleWordLinks( BBBLevel, thisBible, BBB, verseEntryList, state )
+                                verseEntryList = livenOETCompatibleBereanWordLinks( BBBLevel, thisBible, BBB, verseEntryList, state )
                             textHtml = convertVerseEntryListToHtml( BBBLevel, versionAbbreviation, (BBB,C,V), 'parallelVerse', contextList, verseEntryList, basicOnly=(c!=-1), state=state )
                             if versionAbbreviation == 'OET-RV': # This is the only parallel version with cross-references included
                                 footnoteFreeTextHtml = footnotesHtml = '' # Any footnotes have been left in textHtml so no need for a separate container

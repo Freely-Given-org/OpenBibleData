@@ -80,7 +80,7 @@ from openbibledata_rust import convertVerseEntryListToHtml
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
                     makeTop, makeBottom, makeBookNavListParagraph, removeDuplicateCVids, checkHtml
 from Bibles import getBibleMapperMaps, getOpenBibleImages
-from OETHandlers import livenOETWordLinks, livenOETCompatibleWordLinks, getOETTidyBBB
+from OETHandlers import livenOETWordLinks, livenOETCompatibleBereanWordLinks, getOETTidyBBB
 
 
 LAST_MODIFIED_DATE = '2026-08-22' # by RJH
@@ -606,7 +606,7 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> list
             if isinstance( thisBible, ESFMBible ):
                 verseEntryList = livenOETWordLinks( level, thisBible, (BBB,startC, startV), verseEntryList, state )
             elif thisBible.abbreviation in ('BSB','MSB'):
-                verseEntryList = livenOETCompatibleWordLinks( level, thisBible, BBB, verseEntryList, state )
+                verseEntryList = livenOETCompatibleBereanWordLinks( level, thisBible, BBB, verseEntryList, state )
             sectionFilename = f'{BBB}_S{n}.htm'
             state.sectionsListsForSections[thisBible.abbreviation][BBB].append( (n,startC,startV,endC,endV,sectionName,reasonMarker,contextList,verseEntryList,sectionFilename) )
         assert len(state.sectionsListsForSections[thisBible.abbreviation][BBB]) >= len(bkObject._SectionIndex)

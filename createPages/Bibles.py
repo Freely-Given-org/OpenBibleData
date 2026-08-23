@@ -110,7 +110,7 @@ from bible_transliterations import transliterate_Greek, transliterate_Hebrew
 
 from settings import State
 from html import checkHtml
-from OETHandlers import findLVQuote, getBBBFromOETBookName
+from OETHandlers import findOLQuoteInLV, getBBBFromOETBookName
 from Dict import loadAndIndexUBSGreekDictJSON, loadAndIndexUBSHebrewDictJSON
 
 
@@ -1082,7 +1082,7 @@ def formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segme
                     #     assert occurrenceNumber != 0, f"UTN {utnRef} {occurrenceNumber=} {marker}='{rest}'"
                     if occurrenceNumber == 0:
                         logging.error( f"UTN occurrenceNumber is zero with {utnRef} '{rest}'" )
-                    lvQuoteHtml = findLVQuote( level, BBB, C, V, occurrenceNumber, rest, state ) \
+                    lvQuoteHtml = findOLQuoteInLV( level, BBB, C, V, occurrenceNumber, rest, state ) \
                                         .replace(' & ',' <small>&amp;</small> ')
                     transQuoteHtml = ( lvQuoteHtml if lvQuoteHtml else f'({transliterate_Greek(rest)})' if NT else f'({transliterate_Hebrew(rest)})' ) \
                                         .replace( '\\sup ', '<sup>' ).replace( '\\sup*', '</sup>' ) # TODO: Check space isn't already _, e.g., http://freely-given.org/OBD/Test/par/JDG/C1V13.htm#Top

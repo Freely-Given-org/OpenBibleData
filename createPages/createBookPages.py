@@ -54,7 +54,7 @@ from settings import State, CNTR_BOOK_ID_MAP
 from openbibledata_rust import convertVerseEntryListToHtml
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
                     makeTop, makeBottom, makeBookNavListParagraph, removeDuplicateCVids, checkHtml
-from OETHandlers import livenOETWordLinks, livenOETCompatibleWordLinks, getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename
+from OETHandlers import livenOETWordLinks, livenOETCompatibleBereanWordLinks, getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
 LAST_MODIFIED_DATE = '2026-06-28' # by RJH
@@ -438,7 +438,7 @@ def createBookPages( level:int, folder:Path, thisBible, state:State ) -> list[st
         if isinstance( thisBible, ESFMBible.ESFMBible ):
             verseEntryList = livenOETWordLinks( level, thisBible, (BBB,), verseEntryList, state )
         elif thisBible.abbreviation in ('BSB','MSB'):
-            verseEntryList = livenOETCompatibleWordLinks( level, thisBible, BBB, verseEntryList, state )
+            verseEntryList = livenOETCompatibleBereanWordLinks( level, thisBible, BBB, verseEntryList, state )
         textHtml = convertVerseEntryListToHtml( level, thisBible.abbreviation, (BBB,), 'book', contextList, verseEntryList, basicOnly=False, state=state )
         # textHtml = livenIORs( BBB, textHtml )
         if thisBible.abbreviation == 'OET-RV':

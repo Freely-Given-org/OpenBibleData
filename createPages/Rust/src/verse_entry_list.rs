@@ -173,7 +173,7 @@ where
     let normalised = inner.replace(';', ",,").replace(", ", ",");
     let tokens: Vec<&str> = normalised.split(',').collect();
     let mut result_html = String::new();
-    let mut current_bbb: Option<&str> = None;
+    let mut current_bos_book_code: Option<&str> = None;
 
     for (n, token) in tokens.iter().enumerate() {
         if token.is_empty() {
@@ -195,10 +195,10 @@ where
                     .filter(|c| !c.is_whitespace() && *c != NARROW_NON_BREAK_SPACE && *c != '.')
                     .map(|c| c.to_ascii_uppercase())
                     .collect();
-                if let Some(bbb) = get_bbb_from_oet_book_name(&book_upper) {
-                    current_bbb = Some(bbb);
+                if let Some(bos_book_code) = get_bbb_from_oet_book_name(&book_upper) {
+                    current_bos_book_code = Some(bos_book_code);
                     let link = build_section_ref_link(
-                        version_abbreviation, segment_type, bbb, rest_part,
+                        version_abbreviation, segment_type, bos_book_code, rest_part,
                         &find_section_fn, &is_book_available,
                     );
                     result_html.push_str(delimiter);
@@ -215,7 +215,7 @@ where
                 result_html.push_str(delimiter);
                 result_html.push_str(token);
             }
-        } else if (current_bbb.is_none() || token.chars().next().map_or(false, |c| c.is_ascii_alphabetic()))
+        } else if (current_bos_book_code.is_none() || token.chars().next().map_or(false, |c| c.is_ascii_alphabetic()))
             && token.matches(' ').count() == 1
         {
             if let Some((book_part, rest_part)) = token.split_once(' ') {
@@ -223,10 +223,10 @@ where
                     .filter(|c| !c.is_whitespace() && *c != NARROW_NON_BREAK_SPACE && *c != '.')
                     .map(|c| c.to_ascii_uppercase())
                     .collect();
-                if let Some(bbb) = get_bbb_from_oet_book_name(&book_upper) {
-                    current_bbb = Some(bbb);
+                if let Some(bos_book_code) = get_bbb_from_oet_book_name(&book_upper) {
+                    current_bos_book_code = Some(bos_book_code);
                     let link = build_section_ref_link(
-                        version_abbreviation, segment_type, bbb, rest_part,
+                        version_abbreviation, segment_type, bos_book_code, rest_part,
                         &find_section_fn, &is_book_available,
                     );
                     result_html.push_str(delimiter);
@@ -263,7 +263,7 @@ where
 fn build_section_ref_link<FSect, FAvail>(
     version_abbreviation: &str,
     segment_type: &str,
-    bbb: &str,
+    bos_book_code: &str,
     digits_text: &str,
     find_section_fn: &FSect,
     is_book_available: &FAvail,
@@ -272,7 +272,7 @@ where
     FSect: Fn(&str, &str, &str, &str) -> Option<usize>,
     FAvail: Fn(&str, &str) -> bool,
 {
-    if !is_book_available(version_abbreviation, bbb) {
+    if !is_book_available(version_abbreviation, bos_book_code) {
         return None;
     }
     let adj_digits = digits_text
@@ -289,36 +289,36 @@ where
         return None;
     }
     let (ref_c, ref_v) = cv_part.split_once(':')?;
-    let section_number = find_section_fn(version_abbreviation, bbb, ref_c, ref_v);
+    let section_number = find_section_fn(version_abbreviation, bos_book_code, ref_c, ref_v);
 
     match segment_type {
         "relatedPassage" => {
             if let Some(sn) = section_number {
-                Some(format!("../{bbb}/{bbb}_S{sn}.htm#V{ref_v}"))
+                Some(format!("../{bos_book_code}/{bos_book_code}_S{sn}.htm#V{ref_v}"))
             } else {
-                Some(format!("{bbb}_C{ref_c}.htm#V{ref_v}"))
+                Some(format!("{bos_book_code}_C{ref_c}.htm#V{ref_v}"))
             }
         }
-        "topicalPassage" => Some(format!("{bbb}.htm#C{ref_c}V{ref_v}")),
-        "book" => Some(format!("{bbb}.htm#C{ref_c}V{ref_v}")),
-        "chapter" => Some(format!("{bbb}_C{ref_c}.htm#V{ref_v}")),
+        "topicalPassage" => Some(format!("{bos_book_code}.htm#C{ref_c}V{ref_v}")),
+        "book" => Some(format!("{bos_book_code}.htm#C{ref_c}V{ref_v}")),
+        "chapter" => Some(format!("{bos_book_code}_C{ref_c}.htm#V{ref_v}")),
         "section" => {
             if let Some(sn) = section_number {
-                Some(format!("{bbb}_S{sn}.htm#V{ref_v}"))
+                Some(format!("{bos_book_code}_S{sn}.htm#V{ref_v}"))
             } else {
-                Some(format!("{bbb}_C{ref_c}.htm#V{ref_v}"))
+                Some(format!("{bos_book_code}_C{ref_c}.htm#V{ref_v}"))
             }
         }
         _ if version_abbreviation.contains("OET")
             && matches!(segment_type, "book" | "chapter" | "section") =>
         {
             if let Some(sn) = section_number {
-                Some(format!("../../rel/{bbb}/{bbb}_S{sn}.htm#V{ref_v}"))
+                Some(format!("../../rel/{bos_book_code}/{bos_book_code}_S{sn}.htm#V{ref_v}"))
             } else {
                 None
             }
         }
-        _ => Some(format!("{bbb}.htm#C{ref_c}V{ref_v}")),
+        _ => Some(format!("{bos_book_code}.htm#C{ref_c}V{ref_v}")),
     }
 }
 
@@ -331,7 +331,7 @@ where
 pub fn convert_verse_entry_list_to_html_core<FCFmt, CCopyFig, FSect, FAvail, FGetOBI, CCheckHtml>(
     level: usize,
     version_abbreviation: &str,
-    bbb: &str,
+    bos_book_code: &str,
     c_init: Option<&str>,
     v_init: Option<&str>,
     segment_type: &str,
@@ -463,7 +463,7 @@ where
             "v~" => {
                 // Verse text content
                 let formatted = convert_char_formatting(
-                    version_abbreviation, bbb, segment_type, rest_str, basic_only,
+                    version_abbreviation, bos_book_code, segment_type, rest_str, basic_only,
                     &mut state.background_colour,
                 )?;
                 let span_class = if v == "0" {
@@ -492,16 +492,16 @@ where
                         } else {
                             let id_v1 = if segment_type == "dictVerse" { "" } else { &format!(" id=\"C{c}V{v1}\"") };
                             let id_v2 = if segment_type == "dictVerse" { "" } else { &format!(" id=\"C{c}V{v2}\"") };
-                            let psa_class = if bbb == "PSA" { "cPsa" } else { "c" };
+                            let psa_class = if bos_book_code == "PSA" { "cPsa" } else { "c" };
                             let mut verse_html = String::new();
                             if v1 == "1" && !state.c_printed {
                                 let c_id = format!(r#"<span id="C{c}"></span>"#);
-                                let c_link = format!(r#"<a title="Go to verse in parallel view" href="{}par/{bbb}/C{c}V1.htm#Top">{}</a>"#,
+                                let c_link = format!(r#"<a title="Go to verse in parallel view" href="{}par/{bos_book_code}/C{c}V1.htm#Top">{}</a>"#,
                                     "../".repeat(level), fmt_chapter(version_abbreviation, c));
                                 state.c_printed = true;
                                 verse_html.push_str(&format!("{c_id}<span class=\"{psa_class}\" id=\"C{c}V1\">{c_link}</span>"));
                             } else {
-                                let v_link = format!(r#"<a title="Go to verse in parallel view" href="{}par/{bbb}/C{c}V{v1}.htm#Top">{v1}</a>"#, "../".repeat(level));
+                                let v_link = format!(r#"<a title="Go to verse in parallel view" href="{}par/{bos_book_code}/C{c}V{v1}.htm#Top">{v1}</a>"#, "../".repeat(level));
                                 verse_html.push_str(&format!(r#"<span class="v"{id_v1}>{v_link}-</span>"#));
                             }
                             // V anchor IDs
@@ -523,9 +523,9 @@ where
                         }
                     } else {
                         // Simple verse number
-                        let v_link = format!(r#"<a title="Go to verse in parallel view" href="{}par/{bbb}/C{c}V{v}.htm#Top">{v}</a>"#, "../".repeat(level));
+                        let v_link = format!(r#"<a title="Go to verse in parallel view" href="{}par/{bos_book_code}/C{c}V{v}.htm#Top">{v}</a>"#, "../".repeat(level));
                         let id_field = if segment_type == "dictVerse" { "" } else { &format!(" id=\"C{c}V{v}\"") };
-                        let psa_class = if bbb == "PSA" { "cPsa" } else { "c" };
+                        let psa_class = if bos_book_code == "PSA" { "cPsa" } else { "c" };
                         let mut verse_html = String::new();
                         // Anchor IDs
                         if matches!(segment_type, "chapter" | "section" | "relatedPassage") || is_single_chapter_book {
@@ -539,7 +539,7 @@ where
                                 &format!(r#"<span id="C{c}"></span>"#)
                             };
                             let c_link = if state.c_printed && v == "1" {
-                                format!(r#"<a title="Go to verse in parallel view" href="{}par/{bbb}/C{c}V1.htm#Top">{}</a>"#,
+                                format!(r#"<a title="Go to verse in parallel view" href="{}par/{bos_book_code}/C{c}V1.htm#Top">{}</a>"#,
                                     "../".repeat(level), fmt_chapter(version_abbreviation, c))
                             } else {
                                 v_link.clone()
@@ -554,7 +554,7 @@ where
                 state.just_had_d = false;
                 // OET-RV images
                 if version_abbreviation == "OET-RV" && matches!(segment_type, "chapter" | "section" | "book" | "relatedPassage") {
-                    if let Some(obi_html) = get_open_bible_images(level, segment_type, bbb, c, v) {
+                    if let Some(obi_html) = get_open_bible_images(level, segment_type, bos_book_code, c, v) {
                         html.push_str(&obi_html);
                     }
                 }
@@ -658,7 +658,7 @@ where
                 }
                 if state.in_section.as_deref() == Some("periph") {
                     let guts = convert_char_formatting(
-                        version_abbreviation, bbb, segment_type, rest_str, basic_only,
+                        version_abbreviation, bos_book_code, segment_type, rest_str, basic_only,
                         &mut state.background_colour,
                     )?;
                     html.push_str(&(format!(r#"<p class="s1">{guts}</p><!--s1-->"#) + "\n"));
@@ -668,7 +668,7 @@ where
                     }
                     if !basic_only {
                         let guts = convert_char_formatting(
-                            version_abbreviation, bbb, segment_type, rest_str, basic_only,
+                            version_abbreviation, bos_book_code, segment_type, rest_str, basic_only,
                             &mut state.background_colour,
                         )?;
                         if version_abbreviation.contains("OET") {
@@ -679,10 +679,10 @@ where
                                 ) + "
 "));
                             } else {
-                                let section_number = find_section_fn(version_abbreviation, bbb, c, display_v);
+                                let section_number = find_section_fn(version_abbreviation, bos_book_code, c, display_v);
                                 if let Some(sn) = section_number {
                                     html.push_str(&(format!(
-                                        r#"<div class="s1"><div class="rightS1Box"><p class="s1"><span class="s1cv">{c}:{display_v}</span> <a title="Go to section view" href="{}OET/bySec/{bbb}_S{sn}.htm#C{c}V{display_v}">{guts}</a></p><!--s1-->"#,
+                                        r#"<div class="s1"><div class="rightS1Box"><p class="s1"><span class="s1cv">{c}:{display_v}</span> <a title="Go to section view" href="{}OET/bySec/{bos_book_code}_S{sn}.htm#C{c}V{display_v}">{guts}</a></p><!--s1-->"#,
                                         "../".repeat(level)
                                     ) + "
 "));
@@ -707,7 +707,7 @@ where
             "s2" => {
                 if !basic_only {
                     let guts = convert_char_formatting(
-                        version_abbreviation, bbb, segment_type, rest_str, basic_only,
+                        version_abbreviation, bos_book_code, segment_type, rest_str, basic_only,
                         &mut state.background_colour,
                     )?;
                     if version_abbreviation.contains("OET") {
@@ -727,7 +727,7 @@ where
             "s3" | "s4" => {
                 if !basic_only {
                     let guts = convert_char_formatting(
-                        version_abbreviation, bbb, segment_type, rest_str, basic_only,
+                        version_abbreviation, bos_book_code, segment_type, rest_str, basic_only,
                         &mut state.background_colour,
                     )?;
                     if marker == "s4" && (version_abbreviation == "OET" || version_abbreviation == "OET-RV") {
@@ -778,7 +778,7 @@ where
                 }
                 if !basic_only {
                     let guts = convert_char_formatting(
-                        version_abbreviation, bbb, segment_type, &display_rest, basic_only,
+                        version_abbreviation, bos_book_code, segment_type, &display_rest, basic_only,
                         &mut state.background_colour,
                     )?;
                     html.push_str(&(format!(r#"<p class="{marker}">{guts}</p><!--{marker}-->"#) + "\n"));
@@ -795,7 +795,7 @@ where
                 }
                 if !basic_only {
                     let guts = convert_char_formatting(
-                        version_abbreviation, bbb, segment_type, rest_str, basic_only,
+                        version_abbreviation, bos_book_code, segment_type, rest_str, basic_only,
                         &mut state.background_colour,
                     )?;
                     html.push_str(&(format!(r#"<p class="{marker}">{guts}</p><!--{marker}-->"#) + "\n"));
@@ -812,24 +812,24 @@ where
                 }
                 if basic_only {
                     let guts = convert_char_formatting(
-                        version_abbreviation, bbb, segment_type, rest_str, basic_only,
+                        version_abbreviation, bos_book_code, segment_type, rest_str, basic_only,
                         &mut state.background_colour,
                     )?;
                     html.push_str(&(format!(r#"<span class="d">{guts}</span>"#) + "\n"));
                 } else {
                     let guts = convert_char_formatting(
-                        version_abbreviation, bbb, segment_type, rest_str, basic_only,
+                        version_abbreviation, bos_book_code, segment_type, rest_str, basic_only,
                         &mut state.background_colour,
                     )?;
                     let c_bit = if state.c_printed || segment_type == "parallelVerse" || segment_type == "interlinearVerse" {
                         String::new()
                     } else {
-                        let psa_class = if bbb == "PSA" { "cPsa" } else { "c" };
+                        let psa_class = if bos_book_code == "PSA" { "cPsa" } else { "c" };
                         state.c_printed = true;
                         if segment_type == "chapter" {
                             format!(r#"<span class="{psa_class}" id="C{c}">{}</span> &emsp;"#, fmt_chapter(version_abbreviation, c))
                         } else {
-                            format!(r#"<span class="{psa_class}" id="C{c}"><a title="View single chapter" href="../byC/{bbb}_C{c}.htm#Top">{}</a></span> &emsp;"#, fmt_chapter(version_abbreviation, c))
+                            format!(r#"<span class="{psa_class}" id="C{c}"><a title="View single chapter" href="../byC/{bos_book_code}_C{c}.htm#Top">{}</a></span> &emsp;"#, fmt_chapter(version_abbreviation, c))
                         }
                     };
                     html.push_str(&(format!(r#"<p class="d">{c_bit}{guts}</p><!--d-->"#) + "\n"));
@@ -839,7 +839,7 @@ where
             "r" => {
                 if !basic_only {
                     let guts = liven_section_references_core(
-                        version_abbreviation, (bbb, c, v), segment_type, rest_str,
+                        version_abbreviation, (bos_book_code, c, v), segment_type, rest_str,
                         &find_section_fn,
                         &is_book_available,
                     );
@@ -860,7 +860,7 @@ where
             "c~" => {
                 if !rest_str.is_empty() {
                     let guts = convert_char_formatting(
-                        version_abbreviation, bbb, segment_type, rest_str, basic_only,
+                        version_abbreviation, bos_book_code, segment_type, rest_str, basic_only,
                         &mut state.background_colour,
                     )?;
                     html.push_str(&format!("{NARROW_NON_BREAK_SPACE}{guts}{NARROW_NON_BREAK_SPACE}\n"));
@@ -877,7 +877,7 @@ where
                 }
                 if !basic_only {
                     let guts = convert_char_formatting(
-                        version_abbreviation, bbb, segment_type, rest_str, basic_only,
+                        version_abbreviation, bos_book_code, segment_type, rest_str, basic_only,
                         &mut state.background_colour,
                     )?;
                     html.push_str(&(format!(r#"<p class="{marker}">{guts}</p><!--{marker}-->"#) + "\n"));
@@ -886,7 +886,7 @@ where
             "mr" => {
                 if !basic_only {
                     let guts = convert_char_formatting(
-                        version_abbreviation, bbb, segment_type, rest_str, basic_only,
+                        version_abbreviation, bos_book_code, segment_type, rest_str, basic_only,
                         &mut state.background_colour,
                     )?;
                     html.push_str(&(format!(r#"<p class="mr">{guts}</p><!--mr-->"#) + "\n"));
@@ -906,18 +906,18 @@ where
                 }
                 if !basic_only {
                     let guts = convert_char_formatting(
-                        version_abbreviation, bbb, segment_type, rest_str, basic_only,
+                        version_abbreviation, bos_book_code, segment_type, rest_str, basic_only,
                         &mut state.background_colour,
                     )?;
                     let c_bit = if state.c_printed || marker == "d" {
                         String::new()
                     } else {
-                        let psa_class = if bbb == "PSA" { "cPsa" } else { "c" };
+                        let psa_class = if bos_book_code == "PSA" { "cPsa" } else { "c" };
                         state.c_printed = true;
                         if segment_type == "chapter" {
                             format!(r#"<span class="{psa_class}" id="C{c}">{}</span> &emsp;"#, fmt_chapter(version_abbreviation, c))
                         } else {
-                            format!(r#"<span class="{psa_class}" id="C{c}"><a title="View single chapter" href="../byC/{bbb}_C{c}.htm#Top">{}</a></span> &emsp;"#, fmt_chapter(version_abbreviation, c))
+                            format!(r#"<span class="{psa_class}" id="C{c}"><a title="View single chapter" href="../byC/{bos_book_code}_C{c}.htm#Top">{}</a></span> &emsp;"#, fmt_chapter(version_abbreviation, c))
                         }
                     };
                     if version_abbreviation == "OET-RV" && marker == "sp" {
@@ -951,17 +951,17 @@ where
             | "iq1" | "iq2" | "iq3" | "io1" | "io2" | "io3" | "io4" => {
                 if !basic_only {
                     let intro_html = convert_char_formatting(
-                        version_abbreviation, bbb, segment_type, rest_str, basic_only,
+                        version_abbreviation, bos_book_code, segment_type, rest_str, basic_only,
                         &mut state.background_colour,
                     )?;
                     let final_html = if marker.starts_with("io") {
                         liven_iors_core(
-                            bbb, segment_type, segment_type, &intro_html, is_single_chapter_book,
+                            bos_book_code, segment_type, segment_type, &intro_html, is_single_chapter_book,
                             &find_section_fn,
                         ).unwrap_or(intro_html)
                     } else {
                         liven_introduction_links_core(
-                            version_abbreviation, bbb, segment_type, &intro_html,
+                            version_abbreviation, bos_book_code, segment_type, &intro_html,
                             &find_section_fn,
                         ).unwrap_or(intro_html)
                     };
@@ -971,7 +971,7 @@ where
             "iot" => {
                 if !basic_only {
                     let guts = convert_char_formatting(
-                        version_abbreviation, bbb, segment_type, rest_str, basic_only,
+                        version_abbreviation, bos_book_code, segment_type, rest_str, basic_only,
                         &mut state.background_colour,
                     )?;
                     html.push_str(&(format!(r#"<div class="iot"><p class="iot">{guts}</p><!--iot-->"#) + "\n"));
@@ -999,7 +999,7 @@ where
                     let indent = "\u{00A0}".repeat(marker_level);
                     let spacing = if marker_level == 1 { "\u{2002}" } else { "\u{2003}" };
                     let guts = convert_char_formatting(
-                        version_abbreviation, bbb, segment_type, rest_str, basic_only,
+                        version_abbreviation, bos_book_code, segment_type, rest_str, basic_only,
                         &mut state.background_colour,
                     )?;
                     let br = if html.is_empty() { "" } else { "<br>" };
@@ -1025,7 +1025,7 @@ where
                             current_level -= 1;
                         }
                         debug_assert_eq!(marker_level, current_level - 1); // Always true by construction (cf. Python assert)
-                        eprintln!("Warning: Not inList C {version_abbreviation} {bbb} {segment_type} marker_level={marker_level} current_level={current_level} {marker}={rest_str}");
+                        eprintln!("Warning: Not inList C {version_abbreviation} {bos_book_code} {segment_type} marker_level={marker_level} current_level={current_level} {marker}={rest_str}");
                         html.push_str(&format!("{}</ul>\n", " ".repeat(current_level - 1)));
                         state.in_list = Some(format!("ul_{}", current_level - 1));
                     }
@@ -1035,7 +1035,7 @@ where
                         state.in_list_entry = ListEntry::None;
                     }
                     let guts = convert_char_formatting(
-                        version_abbreviation, bbb, segment_type, rest_str, basic_only,
+                        version_abbreviation, bos_book_code, segment_type, rest_str, basic_only,
                         &mut state.background_colour,
                     )?;
                     html.push_str(&format!("{}<li>{guts}", " ".repeat(marker_level)));
@@ -1070,7 +1070,7 @@ where
                 }
                 if !rest_str.trim().is_empty() {
                     let guts = convert_char_formatting(
-                        version_abbreviation, bbb, segment_type, rest_str, basic_only,
+                        version_abbreviation, bos_book_code, segment_type, rest_str, basic_only,
                         &mut state.background_colour,
                     )?;
                     html.push_str(&format!("<tr>{guts}\n"));
@@ -1129,7 +1129,7 @@ where
                 } else if !display_rest.is_empty() {
                     if !basic_only {
                         let guts = convert_char_formatting(
-                            version_abbreviation, bbb, segment_type, &display_rest, basic_only,
+                            version_abbreviation, bos_book_code, segment_type, &display_rest, basic_only,
                             &mut state.background_colour,
                         )?;
                         if state.in_paragraph.is_some() {
@@ -1167,7 +1167,7 @@ where
             _ => {
                 if !rest_str.is_empty() && !basic_only {
                     let guts = convert_char_formatting(
-                        version_abbreviation, bbb, segment_type, rest_str, basic_only,
+                        version_abbreviation, bos_book_code, segment_type, rest_str, basic_only,
                         &mut state.background_colour,
                     )?;
                     html.push_str(&(format!(r#"<p class="{marker}">{guts}</p><!--{marker}-->"#) + "\n"));
@@ -1284,7 +1284,7 @@ fn expanded_char_markers_list() -> Vec<String> {
 pub fn convert_verse_entry_list_to_html_standalone<FSect, FAvail, FGetOBI, CCheckHtml>(
     level: usize,
     version_abbreviation: &str,
-    bbb: &str,
+    bos_book_code: &str,
     c: Option<&str>,
     v: Option<&str>,
     segment_type: &str,
@@ -1311,7 +1311,7 @@ where
 
     let convert_char_formatting = |
         va: &str,
-        inner_bbb: &str,
+        inner_bos_book_code: &str,
         st: &str,
         field: &str,
         bo: bool,
@@ -1320,7 +1320,7 @@ where
         // `bg` is passed straight through as an in/out parameter so that a \zN
         // colour persists across lines (like Python's nonlocal backgroundColour)
         let result = convert_usfm_character_formatting(
-            va, inner_bbb, st, field, bo, bg, &char_markers, &nt27, is_net, level,
+            va, inner_bos_book_code, st, field, bo, bg, &char_markers, &nt27, is_net, level,
         );
         Ok(result.html)
     };
@@ -1337,7 +1337,7 @@ where
     let mut html = convert_verse_entry_list_to_html_core(
         level,
         version_abbreviation,
-        bbb,
+        bos_book_code,
         c,
         v,
         segment_type,
@@ -1364,7 +1364,7 @@ where
     let (html_with_xrefs, cross_refs_html) = crate::verse_to_html::process_cross_references_core(
         &html,
         version_abbreviation,
-        bbb,
+        bos_book_code,
         c.unwrap_or(""),
         segment_type,
         path_prefix,
@@ -1375,7 +1375,7 @@ where
     let (html_with_fn, footnotes_html) = crate::verse_to_html::process_footnotes_core(
         &html,
         version_abbreviation,
-        bbb,
+        bos_book_code,
         c.unwrap_or(""),
         segment_type,
         path_prefix,
@@ -1431,13 +1431,13 @@ mod tests {
     use super::*;
 
     fn no_op_char_fmt(
-        _va: &str, _bbb: &str, _st: &str, field: &str, _bo: bool, _bg: &mut Option<String>,
+        _va: &str, _bos_book_code: &str, _st: &str, field: &str, _bo: bool, _bg: &mut Option<String>,
     ) -> Result<String, ConvertError> {
         Ok(field.to_string())
     }
     fn no_op_fig(_files: &[(String, String)]) {}
-    fn no_op_sect(_va: &str, _bbb: &str, _c: &str, _v: &str) -> Option<usize> { None }
-    fn no_op_avail(_va: &str, _bbb: &str) -> bool { true }
+    fn no_op_sect(_va: &str, _bos_book_code: &str, _c: &str, _v: &str) -> Option<usize> { None }
+    fn no_op_avail(_va: &str, _bos_book_code: &str) -> bool { true }
     fn no_op_obi(_l: usize, _st: &str, _b: &str, _c: &str, _v: &str) -> Option<String> { None }
     fn no_op_check(_w: &str, _h: &str) -> bool { true }
 
@@ -1554,7 +1554,7 @@ mod tests {
             "OET-RV", ("GEN", "1", "1"), "chapter",
             "Gen 1:1",
             no_op_sect,
-            |_va, _bbb| true,
+            |_va, _bos_book_code| true,
         );
         assert!(result.contains("Gen 1:1"));
     }

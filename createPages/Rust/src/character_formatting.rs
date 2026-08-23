@@ -9,7 +9,7 @@ pub struct CharacterFormattingResult {
 
 pub fn convert_usfm_character_formatting(
     version_abbrev: &str,
-    bbb: &str,
+    bos_book_code: &str,
     segment_type: &str,
     usfm_field: &str,
     basic_only: bool,
@@ -31,7 +31,7 @@ pub fn convert_usfm_character_formatting(
     // NOTE: `background_colour` is an in/out parameter (like Python's nonlocal
     // variable): once set by a \zN marker it persists for all following lines
     // until a new chapter ('c' marker) resets it.
-    if version_abbrev == "OET-RV" && bbb == "PSA" {
+    if version_abbrev == "OET-RV" && bos_book_code == "PSA" {
         if basic_only {
             if html.contains("\\z") {
                 html = html
@@ -100,7 +100,7 @@ pub fn convert_usfm_character_formatting(
 
     // === Handle \\jmp entries (jump links) ===
     if usfm_field.contains("\\jmp") {
-        html = process_jump_links(&html, segment_type, bbb);
+        html = process_jump_links(&html, segment_type, bos_book_code);
     }
 
     // === Handle \\w markers (word markers) ===
@@ -153,7 +153,7 @@ pub fn convert_usfm_character_formatting(
     }
 
     for marker in &all_markers {
-        if marker == "nd" && version_abbrev.contains("OET") && booklist_nt27.contains(&bbb.to_string()) {
+        if marker == "nd" && version_abbrev.contains("OET") && booklist_nt27.contains(&bos_book_code.to_string()) {
             html = html
                 .replace(&format!("\\{} ", marker), "<span class=\"nominaSacra\">")
                 .replace(&format!("\\{}*", marker), "</span>");
@@ -270,7 +270,7 @@ fn process_figures(html: &str, files_to_copy: &mut Vec<(String, String)>, level:
     result
 }
 
-fn process_jump_links(html: &str, segment_type: &str, bbb: &str) -> String {
+fn process_jump_links(html: &str, segment_type: &str, bos_book_code: &str) -> String {
     let mut result = html.to_string();
     let mut search_start_ix = 0;
     let mut safety_count = 0;
@@ -322,7 +322,7 @@ fn process_jump_links(html: &str, segment_type: &str, bbb: &str) -> String {
                                         format!("<a title=\"Go to internal jump link reference document\" href=\"{}\">{}</a>", jmp_link_bit, jmp_display)
                                     }
                                     "chapter" => {
-                                        format!("<a title=\"Go to internal jump link reference chapter\" href=\"{}_C{}.htm#C{}V{}\">{}</a>", bbb, ref_c, ref_c, ref_v, jmp_display)
+                                        format!("<a title=\"Go to internal jump link reference chapter\" href=\"{}_C{}.htm#C{}V{}\">{}</a>", bos_book_code, ref_c, ref_c, ref_v, jmp_display)
                                     }
                                     seg_type if seg_type.ends_with("Verse") => {
                                         format!("<a title=\"Go to internal jump link reference verse\" href=\"C{}V{}.htm#Top\">{}</a>", ref_c, ref_v, jmp_display)

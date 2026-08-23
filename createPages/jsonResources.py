@@ -61,7 +61,7 @@ from bible_transliterations import transliterate_Greek, transliterate_Hebrew
 
 from settings import State
 from html import checkHtml
-from OETHandlers import findLVQuote, getBBBFromOETBookName
+from OETHandlers import findOLQuoteInLV, getBBBFromOETBookName
 from Dict import loadAndIndexUBSGreekDictJSON, loadAndIndexUBSHebrewDictJSON
 
 

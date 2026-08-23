@@ -1,6 +1,6 @@
 //! Book code lookup utilities matching OpenBibleData conventions.
 
-/// Look up BBB 3-letter code from OET custom book names table.
+/// Look up bos_book_code 3-letter code from OET custom book names table.
 pub fn get_oet_bbb(uppered_name: &str) -> Option<&'static str> {
     match uppered_name {
         "1SAMUEL" => Some("SA1"),
@@ -36,7 +36,7 @@ pub fn get_oet_bbb(uppered_name: &str) -> Option<&'static str> {
     }
 }
 
-/// Convert an original book name string to a 3-character BOS Book Code (BBB).
+/// Convert an original book name string to a 3-character BOS Book Code (bos_book_code).
 ///
 /// Removes spaces, narrow non-breaking spaces, and periods, then checks the OET
 /// table and falls back to BibleOrgSys book code mappings.
@@ -47,13 +47,13 @@ pub fn get_bbb_from_oet_book_name(original_book_name: &str) -> Option<&'static s
         .flat_map(|c| c.to_uppercase())
         .collect();
 
-    if let Some(bbb) = get_oet_bbb(&uppered) {
-        return Some(bbb);
+    if let Some(bos_book_code) = get_oet_bbb(&uppered) {
+        return Some(bos_book_code);
     }
 
-    if let Some(bbb) = bos_books_codes::english_name_to_bos_book_code(&uppered) {
-        if bos_books_codes::is_valid_bos_book_code(bbb) {
-            return Some(bbb);
+    if let Some(bos_book_code) = bos_books_codes::english_name_to_bos_book_code(&uppered) {
+        if bos_books_codes::is_valid_bos_book_code(bos_book_code) {
+            return Some(bos_book_code);
         }
     }
     None

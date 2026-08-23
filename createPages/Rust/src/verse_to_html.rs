@@ -56,7 +56,7 @@ pub fn compute_path_prefix(segment_type: &str) -> &'static str {
 pub fn process_cross_references_core<F>(
     html: &str,
     version_abbrev: &str,
-    bbb: &str,
+    bos_book_code: &str,
     c: &str,
     segment_type: &str,
     path_prefix: &str,
@@ -126,7 +126,7 @@ where
         live_middle = liven_xref_field_core(
             "x",
             version_abbrev,
-            bbb,
+            bos_book_code,
             c,
             "",
             segment_type,
@@ -201,13 +201,13 @@ fn build_cv_ref(xo_text: &str) -> String {
 /// caller links and collecting the content into a footnotes HTML block.
 ///
 /// TODO: We don't yet compare the contents of the fr text to the current verse reference (to help detect human errors in the USFM)
-///         We will need the whole referenceTuple to do that, so it probably needs to be passed as a parameter instead of just bbb and c
+///         We will need the whole referenceTuple to do that, so it probably needs to be passed as a parameter instead of just bos_book_code and c
 /// 
 /// Returns `(modified_html, footnotes_html)`.
 pub fn process_footnotes_core<F>(
     html: &str,
     version_abbrev: &str,
-    bbb: &str,
+    bos_book_code: &str,
     c: &str,
     segment_type: &str,
     path_prefix: &str,
@@ -282,7 +282,7 @@ where
             (None, None) => None,
         };
 
-        let first_content_ix = match first_content_ix {
+        let mut first_content_ix = match first_content_ix {
             Some(ix) => ix,
             None => {
                 // No internal markers found — skip past the `\f + ` or `\f ` prefix
@@ -296,9 +296,20 @@ where
         };
 
         // --- Extract \fr text ---
-        let fr_text = if let Some(fr_ix) = fr_ix {
+        // TODO: Should first_content_ix be checked further above
+        //  as we still want to extract the \fr text if \fr is present yet there's no content
+        // TODO: Note that the ULT has footnotes with no \fr fields (e.g., \f + \ft …\f*), so we need to handle that case gracefully.
+        // TODO: The following debugging print line doesn't handle Unicode multibyte characters correctly, so it may panic if the slice boundaries are in the middle of a multibyte character.  It is commented out for now.
+        // println!("{} {} '{}' fr_ix={:?}, first_content_ix={}: '{}'", version_abbrev, bos_book_code, segment_type,
+        //         fr_ix, first_content_ix, if fr_ix.is_none() {result_html[first_content_ix..first_content_ix+12].trim()} else {result_html[fr_ix.unwrap()..fr_ix.unwrap()+25].trim()});
+        let fr_text = if let Some(fr_ix) = fr_ix && first_content_ix > fr_ix + 3 {
             result_html[fr_ix + 3..first_content_ix].trim().to_string()
         } else {
+            if fr_ix.is_some() {
+                println!("{} {} '{}' fr_ix={:?}, first_content_ix={}: '{}'", version_abbrev, bos_book_code, segment_type,
+                    fr_ix, first_content_ix, result_html[fr_ix.unwrap()..fr_ix.unwrap()+25].trim());
+                first_content_ix = fr_ix.unwrap() + 3; // TEMP: If no content, set first_content_ix to after \fr
+            }
             String::new()
         };
 
@@ -311,7 +322,7 @@ where
             process_internal_footnote_markers(
                 &mut fnote_middle,
                 version_abbrev,
-                bbb,
+                bos_book_code,
                 c,
                 segment_type,
                 path_prefix,
@@ -414,7 +425,7 @@ fn count_internal_openers(fnote_middle: &str, is_net: bool) -> usize {
 fn process_internal_footnote_markers<F>(
     fnote_middle: &mut String,
     version_abbrev: &str,
-    bbb: &str,
+    bos_book_code: &str,
     c: &str,
     segment_type: &str,
     path_prefix: &str,
@@ -477,7 +488,7 @@ where
                 let livened = liven_xref_field_core(
                     "f",
                     version_abbrev,
-                    bbb,
+                    bos_book_code,
                     c,
                     "",
                     segment_type,

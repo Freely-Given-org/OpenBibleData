@@ -28,12 +28,12 @@ pub use character_formatting::{convert_usfm_character_formatting, CharacterForma
 fn py_find_section_fn<'s>(
     state: Option<&'s Bound<'_, PyAny>>,
 ) -> impl Fn(&str, &str, &str, &str) -> Option<usize> + Clone + 's {
-    move |v_abbr: &str, bbb: &str, c: &str, v: &str| -> Option<usize> {
+    move |v_abbr: &str, bos_book_code: &str, c: &str, v: &str| -> Option<usize> {
         if let Some(state_obj) = state {
             let py_env = state_obj.py();
             if let Ok(module) = py_env.import("createSectionPages") {
                 if let Ok(func) = module.getattr("findSectionNumber") {
-                    if let Ok(res) = func.call1((v_abbr, bbb, c, v, state_obj)) {
+                    if let Ok(res) = func.call1((v_abbr, bos_book_code, c, v, state_obj)) {
                         if let Ok(opt_num) = res.extract::<Option<usize>>() {
                             return opt_num;
                         }
@@ -47,14 +47,14 @@ fn py_find_section_fn<'s>(
 
 /// Build a book-availability callback that checks the optional State object's
 /// `booksToLoad` (mirroring Python's
-/// `'ALL' in state.booksToLoad[vAbbr] or bbb in state.booksToLoad[vAbbr]`).
+/// `'ALL' in state.booksToLoad[vAbbr] or bos_book_code in state.booksToLoad[vAbbr]`).
 ///
 /// Returns true when no State is supplied (e.g., from test programs), so that
 /// behaviour stays permissive there.
 fn py_is_book_available_fn<'s>(
     state: Option<&'s Bound<'_, PyAny>>,
 ) -> impl Fn(&str, &str) -> bool + Clone + 's {
-    move |v_abbr: &str, bbb: &str| -> bool {
+    move |v_abbr: &str, bos_book_code: &str| -> bool {
         if let Some(state_obj) = state {
             let books_to_load = match state_obj.getattr("booksToLoad") {
                 Ok(btl) if !btl.is_none() => btl,
@@ -67,7 +67,7 @@ fn py_is_book_available_fn<'s>(
             if let Ok(iter) = book_list.try_iter() {
                 for item in iter.flatten() {
                     if let Ok(entry) = item.extract::<String>() {
-                        if entry == "ALL" || entry == bbb {
+                        if entry == "ALL" || entry == bos_book_code {
                             return true;
                         }
                     }
@@ -97,7 +97,7 @@ fn liven_introduction_links_py<'py>(
     intro_html: &str,
     state: Option<&Bound<'py, PyAny>>,
 ) -> PyResult<String> {
-    let our_bbb: String = if let Ok(tuple) = ref_tuple.extract::<Vec<String>>() {
+    let our_bos_book_code: String = if let Ok(tuple) = ref_tuple.extract::<Vec<String>>() {
         if tuple.is_empty() {
             return Err(PyValueError::new_err("ref_tuple must not be empty"));
         }
@@ -120,7 +120,7 @@ fn liven_introduction_links_py<'py>(
 
     match liven_introduction_links_core(
         version_abbreviation,
-        &our_bbb,
+        &our_bos_book_code,
         segment_type,
         intro_html,
         find_section_fn,
@@ -178,12 +178,12 @@ fn to_roman_numerals_py(num: &Bound<'_, PyAny>) -> PyResult<String> {
 #[pyfunction]
 #[pyo3(
     name = "liven_iors",
-    signature = (version_abbreviation, our_bbb, segment_type, ior_html, is_single_chapter, state=None)
+    signature = (version_abbreviation, our_bos_book_code, segment_type, ior_html, is_single_chapter, state=None)
 )]
 fn liven_iors_py<'py>(
     _py: Python<'py>,
     version_abbreviation: &str,
-    our_bbb: &str,
+    our_bos_book_code: &str,
     segment_type: &str,
     ior_html: &str,
     is_single_chapter: bool,
@@ -191,7 +191,7 @@ fn liven_iors_py<'py>(
 ) -> PyResult<String> {
     let find_section_fn = py_find_section_fn(state);
 
-    match liven_iors_core(version_abbreviation, our_bbb, segment_type, ior_html, is_single_chapter, find_section_fn) {
+    match liven_iors_core(version_abbreviation, our_bos_book_code, segment_type, ior_html, is_single_chapter, find_section_fn) {
         Ok(res) => Ok(res),
         Err(IORLinkError::InvalidSegmentType(seg)) => {
             Err(PyValueError::new_err(format!("Unsupported segmentType: {seg}")))
@@ -208,12 +208,12 @@ fn liven_iors_py<'py>(
 #[pyfunction]
 #[pyo3(
     name = "convert_usfm_character_formatting",
-    signature = (version_abbrev, bbb, segment_type, usfm_field, basic_only, expanded_char_markers, booklist_nt27, is_net_version, level=0)
+    signature = (version_abbrev, bos_book_code, segment_type, usfm_field, basic_only, expanded_char_markers, booklist_nt27, is_net_version, level=0)
 )]
 fn convert_usfm_character_formatting_py(
     py: Python,
     version_abbrev: &str,
-    bbb: &str,
+    bos_book_code: &str,
     segment_type: &str,
     usfm_field: &str,
     basic_only: bool,
@@ -227,7 +227,7 @@ fn convert_usfm_character_formatting_py(
     let mut background_colour: Option<String> = None;
     let result = convert_usfm_character_formatting(
         version_abbrev,
-        bbb,
+        bos_book_code,
         segment_type,
         usfm_field,
         basic_only,
@@ -283,14 +283,14 @@ fn convert_verse_entry_list_to_html_py<'py>(
     let context_list = contextList.unwrap_or_default();
     let verse_entries = verseEntryList.unwrap_or_default();
 
-    // Split up the reference tuple: (BBB,), (BBB,C), or (BBB,C,V)
-    let bbb = refTuple.first().map(String::as_str)
+    // Split up the reference tuple: (bos_book_code,), (bos_book_code,C), or (bos_book_code,C,V)
+    let bos_book_code = refTuple.first().map(String::as_str)
         .ok_or_else(|| PyValueError::new_err("Empty refTuple"))?;
     let c = refTuple.get(1).map(String::as_str);
     let v = refTuple.get(2).map(String::as_str);
 
     // bos_books_codes is linked in directly, so we don't need this passed as a parameter
-    let is_single_chapter_book = bos_books_codes::is_single_chapter_book(bbb);
+    let is_single_chapter_book = bos_books_codes::is_single_chapter_book(bos_book_code);
 
     // Formerly done in convert.py
     let destination_folder: Option<String> = match state {
@@ -334,7 +334,7 @@ fn convert_verse_entry_list_to_html_py<'py>(
     let result = verse_entry_list::convert_verse_entry_list_to_html_standalone(
         level,
         versionAbbreviation,
-        bbb,
+        bos_book_code,
         c,
         v,
         segmentType,
@@ -365,12 +365,12 @@ fn convert_verse_entry_list_to_html_py<'py>(
 /// `verse_to_html::process_cross_references_core` internally.
 #[pyfunction]
 #[pyo3(name = "process_cross_references")]
-#[pyo3(signature = (html, version_abbreviation, bbb, c, segment_type, path_prefix, state=None))]
+#[pyo3(signature = (html, version_abbreviation, bos_book_code, c, segment_type, path_prefix, state=None))]
 fn process_cross_references_py<'py>(
     _py: Python<'py>,
     html: &str,
     version_abbreviation: &str,
-    bbb: &str,
+    bos_book_code: &str,
     c: Option<&str>,
     segment_type: &str,
     path_prefix: &str,
@@ -380,7 +380,7 @@ fn process_cross_references_py<'py>(
     let find_section_fn = py_find_section_fn(state);
 
     match verse_to_html::process_cross_references_core(
-        html, version_abbreviation, bbb, c, segment_type, path_prefix, find_section_fn,
+        html, version_abbreviation, bos_book_code, c, segment_type, path_prefix, find_section_fn,
     ) {
         Ok(result) => Ok(result),
         Err(e) => Err(PyValueError::new_err(format!("process_cross_references failed: {e}"))),
@@ -396,12 +396,12 @@ fn process_cross_references_py<'py>(
 /// `verse_to_html::process_footnotes_core` internally.
 #[pyfunction]
 #[pyo3(name = "process_footnotes")]
-#[pyo3(signature = (html, version_abbreviation, bbb, c, segment_type, path_prefix, max_footnote_chars, state=None))]
+#[pyo3(signature = (html, version_abbreviation, bos_book_code, c, segment_type, path_prefix, max_footnote_chars, state=None))]
 fn process_footnotes_py<'py>(
     _py: Python<'py>,
     html: &str,
     version_abbreviation: &str,
-    bbb: &str,
+    bos_book_code: &str,
     c: Option<&str>,
     segment_type: &str,
     path_prefix: &str,
@@ -412,7 +412,7 @@ fn process_footnotes_py<'py>(
     let find_section_fn = py_find_section_fn(state);
 
     match verse_to_html::process_footnotes_core(
-        html, version_abbreviation, bbb, c, segment_type, path_prefix, max_footnote_chars, find_section_fn,
+        html, version_abbreviation, bos_book_code, c, segment_type, path_prefix, max_footnote_chars, find_section_fn,
     ) {
         Ok(result) => Ok(result),
         Err(e) => Err(PyValueError::new_err(format!("process_footnotes failed: {e}"))),
@@ -459,7 +459,7 @@ fn page_chrome_config_from_state(
         )
     };
 
-    let all_bbbs: Vec<String> = state
+    let all_bos_book_codes: Vec<String> = state
         .getattr("allBBBs")?
         .try_iter()?
         .map(|item| item?.extract())
@@ -515,9 +515,9 @@ fn page_chrome_config_from_state(
             have_section_headings.insert(key.clone());
         }
         let mut books = std::collections::HashSet::new();
-        for bbb in &all_bbbs {
-            if bible.call_method1("__contains__", (bbb,))?.is_truthy()? {
-                books.insert(bbb.clone());
+        for bos_book_code in &all_bos_book_codes {
+            if bible.call_method1("__contains__", (bos_book_code,))?.is_truthy()? {
+                books.insert(bos_book_code.clone());
             }
         }
         version_books.insert(key, books);
@@ -532,7 +532,7 @@ fn page_chrome_config_from_state(
         safe_names,
         decorations,
         bible_names,
-        all_bbbs,
+        all_bos_book_codes,
         have_section_headings,
         version_books,
     })
