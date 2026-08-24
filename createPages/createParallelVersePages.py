@@ -91,6 +91,7 @@ CHANGELOG:
                 NOTE: The printed spell-check summary can differ very slightly from sequential
                 builds because the shared word-set warming in spellCheckAndMarkHTMLText
                 is order-dependent -- page output is unaffected
+    2026-08-25 The OETHandlers functions are now imported from the Rust openbibledata_rust module (the Python OETHandlers.py was deleted).
 """
 from pathlib import Path
 import os
@@ -120,11 +121,11 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_
                     makeTop, makeBottom, makeBookNavListParagraph, checkHtml
 from createSectionPages import findSectionNumber
 from createOETReferencePages import OSHB_ADJECTIVE_DICT, OSHB_PARTICLE_DICT, OSHB_NOUN_DICT, OSHB_PREPOSITION_DICT, OSHB_PRONOUN_DICT, OSHB_SUFFIX_DICT
-from OETHandlers import getOETTidyBBB, getOETBookName, livenOETWordLinks, livenOETCompatibleBereanWordLinks, getHebrewWordpageFilename, getGreekWordpageFilename
+from openbibledata_rust import getOETTidyBBB, getOETBookName, livenOETWordLinks, livenOETCompatibleBereanWordLinks, getHebrewWordpageFilename, getGreekWordpageFilename
 from spellCheckEnglish import spellCheckAndMarkHTMLText, collectSpellCheckResults, mergeSpellCheckResults
 
 
-LAST_MODIFIED_DATE = '2026-08-24' # by RJH
+LAST_MODIFIED_DATE = '2026-08-25' # by RJH
 SHORT_PROGRAM_NAME = "createParallelVersePages"
 PROGRAM_NAME = "OpenBibleData createParallelVersePages functions"
 PROGRAM_VERSION = '1.0.5'
@@ -1742,7 +1743,7 @@ def brightenUHB( BBB:str, C:str, V:str, brightenUHBTextHtml:str, verseEntryList,
                 wordLink = f'../../ref/HebWrd/{getHebrewWordpageFilename(hebWordNumbers[_safetyCount1], state )}#Top' # We'd prefer to link to our own word pages
             except IndexError:
                 wordLink = f'''https://BibleHub.com/greek/{attribDict['strong'][:-1]}.htm''' # default to BibleHub by Strongs number if we don't know the word number
-            # NOTE: We have almost identical code in livenOETWordLinks() in OETHandlers.py
+            # NOTE: We have almost identical code in liven_berean_text in the Rust openbibledata_rust module (was livenOETWordLinks in OETHandlers.py)
             caseClassName = None
             try:
                 for subMorph in attribDict['morph']:

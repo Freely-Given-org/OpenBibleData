@@ -92,6 +92,7 @@ CHANGELOG:
     2026-08-22 makeTop and makeViewNavListParagraph now delegate to the Rust openbibledata_rust module (page_chrome);
                     deleted the superseded Python _makeNavigationLinks and _makeWorkNavListParagraph implementations.
     2026-08-23 Cached the output of makeBottom (by relying on the global import of state)
+    2026-08-25 The OETHandlers functions are now imported from the Rust openbibledata_rust module (the Python OETHandlers.py was deleted).
 """
 import logging
 from datetime import datetime
@@ -105,10 +106,10 @@ import bos_books_codes_py
 import openbibledata_rust
 
 from settings import State, state
-from OETHandlers import getBBBFromOETBookName
+from openbibledata_rust import getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2026-08-22' # by RJH
+LAST_MODIFIED_DATE = '2026-08-25' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
 PROGRAM_VERSION = '1.0.3'
@@ -240,7 +241,7 @@ def makeBookNavListParagraph( linksList:list[str], workAbbrevPlus:str, state:Sta
             adjDisplayText = adjDisplayText.split(' (')[-1].removesuffix(')')
             # print( f"  HEREdd {aLink=} {adjDisplayText=}")
         assert 3 <= len(adjDisplayText) <= 5, f"{len(adjDisplayText)=} {adjDisplayText=}" # it should be a tidyBBB, e.g., 'GEN' or '1 COR'
-        BBB = getBBBFromOETBookName( adjDisplayText, where=f"makeBookNavListParagraph( {workAbbrevPlus} {aLink=} )" )
+        BBB = getBBBFromOETBookName( adjDisplayText, f"makeBookNavListParagraph( {workAbbrevPlus} {aLink=} )" )
         assert bos_books_codes_py.is_valid_bos_book_code( BBB ), f"Bad {BBB=} from {adjDisplayText=} from {aLink=}"
         newALink = f'{aLink[:ixDisplayLinkStart]}{displayText}{aLink[ixDisplayLinkEnd:]}'
         if BBB in ('INT','FRT','OTH','GLS','XXA','XXB','XXC','XXD'):

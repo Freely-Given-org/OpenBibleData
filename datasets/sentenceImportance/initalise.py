@@ -146,7 +146,8 @@ importantRefsWithRanges = [ # Often quoted and/or memorised by Christians
     'ISA_42:1-9', 'ISA_48:12-13','ISA_48:16', 'ISA_49:1-13', 'ISA_50:4-11', # The other three servant songs 'ISA_52:13–53:12',
     'ISA_54:17', 'ISA_55:1-10','ISA_55:12-13', 'ISA_66:8',
     'JER_23:5-6', 'JER_33:2-3', 'JER_33:14-18',
-    'DAN_7:10','DAN_12:1',
+    'DAN_7:10','DAN_9:24','DAN_12:1',
+    'ZEC_12:8-9',
 
     'MAT_4:4','MAT_24:44',
     'LUK_21:28','LUK_24:27',
@@ -156,7 +157,7 @@ importantRefsWithRanges = [ # Often quoted and/or memorised by Christians
     'ROM_3:19-22','ROM_5:8','ROM_5:16-21','ROM_10:13','ROM_15:4','ROM_16:17',
     'GAL_3:21-22', 'GAL_6:16',
     'EPH_2:8','EPH_2:10', 'EPH_4:14','EPH_6:4','EPH_6:17',
-    'PHP_2:12-13',
+    'PHP_2:12-13', 'PHP_3:20-21',
     'CO1_3:14-15',
     'CO2_9:7',
     'TH1_1:10','TH1_4:16-17','TH1_5:9',
@@ -168,7 +169,7 @@ importantRefsWithRanges = [ # Often quoted and/or memorised by Christians
     'PE2_3:15-16',
     'JN1_2:19','JN1_4:1',
     'JN2_1:9',
-    'REV_1:17-18', 'REV_3:5', 'REV_20:12','REV_20:15',
+    'REV_1:17-18', 'REV_3:5', 'REV_13:7', 'REV_20:12','REV_20:15',
     ]
 for ref in importantRefsWithRanges:
     assert ref.count( '_' ) == 1, f"importantRefsWithRanges {ref=}"

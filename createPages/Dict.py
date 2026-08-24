@@ -46,6 +46,7 @@ CHANGELOG:
     2024-01-30 Load UBS Dictionary of Greek New Testament
     2024-02-22 Load UBS Dictionary of Biblical Hebrew
     2024-04-29 TOSN and UBS dictionaries have been moved into state (rather than global variables in this module)
+    2026-08-25 The OETHandlers functions are now imported from the Rust openbibledata_rust module (the Python OETHandlers.py was deleted).
 """
 import os.path
 import logging
@@ -58,10 +59,10 @@ import bos_books_codes_py
 
 from settings import State, state
 from html import makeTop, makeBottom, checkHtml
-from OETHandlers import getOETTidyBBB
+from openbibledata_rust import getOETTidyBBB
 
 
-LAST_MODIFIED_DATE = '2026-06-27' # by RJH
+LAST_MODIFIED_DATE = '2026-08-25' # by RJH
 SHORT_PROGRAM_NAME = "Dictionary"
 PROGRAM_NAME = "OpenBibleData Dictionary handler"
 PROGRAM_VERSION = '0.48'

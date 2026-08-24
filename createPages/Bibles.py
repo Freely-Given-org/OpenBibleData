@@ -77,6 +77,7 @@ CHANGELOG:
     2026-04-27 Split USE_PICKLES_FLAG into state.LOAD_RESOURCES_FROM_PICKLES_FLAG and WRITE_PICKLES_FLAG
                 (Usually it's only reading that we want to temporarily disable, e.g., if indexing code has changed)
     2026-07-04 Added OpenBibleImages and getOpenBibleImages
+    2026-08-25 The OETHandlers functions are now imported from the Rust openbibledata_rust module (the Python OETHandlers.py was deleted).
 """
 from datetime import datetime
 import os, os.path
@@ -110,11 +111,11 @@ from bible_transliterations import transliterate_Greek, transliterate_Hebrew
 
 from settings import State
 from html import checkHtml
-from OETHandlers import findOLQuoteInLV, getBBBFromOETBookName
+from openbibledata_rust import findOLQuoteInLV, getBBBFromOETBookName
 from Dict import loadAndIndexUBSGreekDictJSON, loadAndIndexUBSHebrewDictJSON
 
 
-LAST_MODIFIED_DATE = '2026-07-13' # by RJH
+LAST_MODIFIED_DATE = '2026-08-25' # by RJH
 SHORT_PROGRAM_NAME = "Bibles"
 PROGRAM_NAME = "OpenBibleData Bibles handler"
 PROGRAM_VERSION = '0.98'

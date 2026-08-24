@@ -55,6 +55,7 @@ CHANGELOG:
 
 TODO:
     Add colour keys for LV and RV words
+    2026-08-25 The OETHandlers functions are now imported from the Rust openbibledata_rust module (the Python OETHandlers.py was deleted).
 """
 from pathlib import Path
 import os
@@ -73,11 +74,11 @@ from Bibles import formatUnfoldingWordTranslationNotes, formatTyndaleNotes
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
                     makeTop, makeBottom, makeBookNavListParagraph, checkHtml
 from createSectionPages import findSectionNumber
-from OETHandlers import livenOETWordLinks, getOETBookName, getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename
+from openbibledata_rust import livenOETWordLinks, getOETBookName, getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename
 from jsonResources import getFormattedSILOpenTranslationNotes
 
 
-LAST_MODIFIED_DATE = '2026-06-16' # by RJH
+LAST_MODIFIED_DATE = '2026-08-25' # by RJH
 SHORT_PROGRAM_NAME = "createOETInterlinearPages"
 PROGRAM_NAME = "OpenBibleData createOETInterlinearPages functions"
 PROGRAM_VERSION = '0.68'

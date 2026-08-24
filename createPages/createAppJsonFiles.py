@@ -35,6 +35,7 @@ main calls fullDemo()
 
 
 CHANGELOG:
+    2026-08-25 The OETHandlers functions are now imported from the Rust openbibledata_rust module (the Python OETHandlers.py was deleted).
 """
 from pathlib import Path
 import os
@@ -53,7 +54,7 @@ import bos_books_codes_py
 from bible_transliterations import transliterate_Hebrew, transliterate_Greek
 
 from settings import State, state, CNTR_BOOK_ID_MAP
-from OETHandlers import getOETTidyBBB, getOETBookName, getHebrewWordpageFilename, getGreekWordpageFilename, livenOETWordLinks
+from openbibledata_rust import getOETTidyBBB, getOETBookName, getHebrewWordpageFilename, getGreekWordpageFilename, livenOETWordLinks
 from createSectionPages import findSectionNumber
 from createOETReferencePages import HebrewWordFileName, convert_Hebrew_word_gloss_spans, tidy_Hebrew_morphology, \
                     GLOSS_TYPE_STRING_DICT,\
@@ -62,7 +63,7 @@ from createOETReferencePages import HebrewWordFileName, convert_Hebrew_word_glos
                     CNTR_CASE_NAME_DICT, CNTR_GENDER_NAME_DICT, CNTR_NUMBER_NAME_DICT
 
 
-LAST_MODIFIED_DATE = '2026-04-26' # by RJH
+LAST_MODIFIED_DATE = '2026-08-25' # by RJH
 SHORT_PROGRAM_NAME = "createAppJsonFiles"
 PROGRAM_NAME = "OpenBibleData createAppJsonFiles functions"
 PROGRAM_VERSION = '0.12'

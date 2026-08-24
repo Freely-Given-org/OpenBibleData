@@ -1,6 +1,8 @@
 //! PyO3 module exposing OpenBibleData Rust extensions.
 
-use pyo3::exceptions::{PyAssertionError, PyTypeError, PyValueError};
+use pyo3::exceptions::{
+    PyAssertionError, PyIndexError, PyKeyError, PyTypeError, PyUnboundLocalError, PyValueError,
+};
 use pyo3::prelude::*;
 use pyo3::types::PyAny;
 
@@ -8,6 +10,7 @@ pub mod constants;
 pub mod intro_links;
 pub mod ior_links;
 pub mod oet_books;
+pub mod oet_handlers;
 pub mod page_chrome;
 pub mod roman_numerals;
 pub mod section_numbers;
@@ -718,6 +721,666 @@ fn make_view_nav_list_py(
     page_chrome::view_nav_list_core(&config.inner, level, versionAbbreviation, pageType)
 }
 
+// ── OETHandlers PyO3 wrappers ───────────────────────────────────────────────
+
+const NARROW_NON_BREAK_SPACE: &str = "\u{202F}";
+
+/// Turn a core `Err(String)` into the closest matching Python exception,
+/// based on the message prefix conventions used by the oet_handlers cores.
+fn err_to_pyerr(message: String) -> PyErr {
+    if let Some(rest) = message.strip_prefix("AssertionError:") {
+        PyAssertionError::new_err(rest.trim_start().to_string())
+    } else if let Some(rest) = message.strip_prefix("IndexError:") {
+        PyIndexError::new_err(rest.trim_start().to_string())
+    } else if let Some(rest) = message.strip_prefix("KeyError:") {
+        PyKeyError::new_err(rest.trim_start().to_string())
+    } else if let Some(rest) = message.strip_prefix("ValueError:") {
+        PyValueError::new_err(rest.trim_start().to_string())
+    } else if let Some(rest) = message.strip_prefix("UnboundLocalError:") {
+        PyUnboundLocalError::new_err(rest.trim_start().to_string())
+    } else {
+        PyValueError::new_err(message)
+    }
+}
+
+/// Our customised version of tidyBBB (Rust port of OETHandlers.getOETTidyBBB).
+#[pyfunction]
+#[pyo3(
+    name = "getOETTidyBBB",
+    signature = (BBB, titleCase=false, allowFourChars=true, insertChar=NARROW_NON_BREAK_SPACE, addNotes=false)
+)]
+#[allow(non_snake_case)]
+fn get_oet_tidy_bbb_py(
+    BBB: &str,
+    titleCase: bool,
+    allowFourChars: bool,
+    insertChar: Option<&str>,
+    addNotes: bool,
+) -> String {
+    // The binding maps None to '' before calling the pure function
+    let new_bbb =
+        bos_books_codes::tidy_bbb(BBB, titleCase, allowFourChars, insertChar.unwrap_or(""));
+    oet_handlers::apply_oet_tidy_renames(&new_bbb, insertChar.unwrap_or(""), addNotes)
+}
+
+/// Handle our different spelling of well-known book names
+/// (Rust port of OETHandlers.getOETBookName).
+#[pyfunction]
+#[pyo3(name = "getOETBookName", signature = (BBB))]
+#[allow(non_snake_case)]
+fn get_oet_book_name_py(BBB: &str) -> PyResult<String> {
+    oet_handlers::oet_book_name(BBB)
+        .ok_or_else(|| PyValueError::new_err(format!("Unknown BBB book code '{BBB}'")))
+}
+
+/// Look up a BBB from an English/OET bookname; can return None
+/// (Rust port of OETHandlers.getBBBFromOETBookName).
+#[pyfunction]
+#[pyo3(name = "getBBBFromOETBookName", signature = (originalBooknameText, _location=""))]
+#[allow(non_snake_case)]
+fn get_bbb_from_oet_book_name_py(
+    py: Python<'_>,
+    originalBooknameText: &str,
+    _location: &str,
+) -> PyResult<Option<&'static str>> {
+    let lookup = oet_handlers::get_bbb_from_oet_book_name_core(originalBooknameText);
+    // Python logs a diagnostic whenever no VALID book code was produced
+    // ("not resultBBB or not is_valid_bos_book_code(resultBBB)")
+    let needs_diagnostic = matches!(
+        lookup,
+        oet_handlers::BbbLookup::InvalidFallback(_) | oet_handlers::BbbLookup::NotFound
+    );
+    if !needs_diagnostic {
+        return Ok(lookup.code());
+    }
+    let uppered: String = originalBooknameText
+        .chars()
+        .filter(|&c| c != ' ' && c != '\u{202F}' && c != '.')
+        .flat_map(char::to_uppercase)
+        .collect();
+    // Faithful crash: Python's f-string indexes upperedBooknameText[0]
+    if uppered.is_empty() {
+        return Err(PyIndexError::new_err("string index out of range"));
+    }
+    // dPrint('Info'/'Normal', …) prints when verbosityLevel >= requested
+    // ('Info'=3, 'Normal'=2); the site build runs at the default level 2.
+    let requested_level = if uppered.as_bytes()[0].is_ascii_digit() { 3 } else { 2 };
+    let globals = py.import("BibleOrgSys.BibleOrgSysGlobals")?;
+    let verbosity_level: i64 = globals.getattr("verbosityLevel")?.extract()?;
+    if verbosity_level >= requested_level {
+        py.import("builtins")?
+            .call_method1(
+                "print",
+                (format!(
+                    "getBBBFromOETBookName can't get valid BBB from upperedBooknameText='{uppered}' where='{_location}': {} from originalBooknameText='{originalBooknameText}'",
+                    match lookup.code() {
+                        Some(code) => format!("resultBBB='{code}'"),
+                        None => "resultBBB=None".to_string(),
+                    },
+                ),),
+            )?;
+    }
+    Ok(lookup.code())
+}
+
+/// Take an OT word-table row number and make it into a wordpage filename
+/// like `KI2c1v3w4.htm` (Rust port of OETHandlers.getHebrewWordpageFilename).
+#[pyfunction]
+#[pyo3(name = "getHebrewWordpageFilename", signature = (wordTableRowNum, state))]
+#[allow(non_snake_case)]
+fn get_hebrew_wordpage_filename_py<'py>(
+    wordTableRowNum: i64,
+    state: &Bound<'py, PyAny>,
+) -> PyResult<String> {
+    let row_object = state
+        .getattr("OETRefData")?
+        .get_item("word_tables")?
+        .get_item("OET-LV_OT_word_table.tsv")?
+        .get_item(wordTableRowNum)?; // IndexError propagates (incl. negatives)
+    let row: String = row_object.extract()?;
+    oet_handlers::hebrew_wordpage_filename_from_row(&row).map_err(err_to_pyerr)
+}
+
+/// Take an NT word-table row number and make it into a wordpage filename
+/// like `JN2c1v3w4.htm` (Rust port of OETHandlers.getGreekWordpageFilename).
+#[pyfunction]
+#[pyo3(name = "getGreekWordpageFilename", signature = (rowNum, state))]
+#[allow(non_snake_case)]
+fn get_greek_wordpage_filename_py<'py>(
+    rowNum: i64,
+    state: &Bound<'py, PyAny>,
+) -> PyResult<String> {
+    let row_object = state
+        .getattr("OETRefData")?
+        .get_item("word_tables")?
+        .get_item("OET-LV_NT_word_table.tsv")?
+        .get_item(rowNum)?; // IndexError propagates (incl. negatives)
+    let row: String = row_object.extract()?;
+    oet_handlers::greek_wordpage_filename_from_row(&row).map_err(err_to_pyerr)
+}
+
+/// Build a new `InternalBibleEntry(marker, originalMarker, text, '', None, '')`
+/// via the Python class (same class as the entries we iterate).
+fn make_new_entry<'py>(
+    py: Python<'py>,
+    marker: &str,
+    original_marker: &str,
+    text: &str,
+) -> PyResult<Bound<'py, PyAny>> {
+    py.import("bible_organisational_system")?
+        .getattr("InternalBibleEntry")?
+        .call1((marker, original_marker, text, "", py.None(), ""))
+}
+
+/// Get `entry.getOriginalText()` as an owned string ('' for None).
+fn entry_original_text(entry: &Bound<'_, PyAny>) -> PyResult<String> {
+    entry.call_method0("getOriginalText")?.extract()
+}
+
+/// Shared second half of livenOETWordLinks / livenOETCompatibleBereanWordLinks:
+/// replace the `§…§ … ►NNNN◄` placeholders with real hrefs, transliterated
+/// titles, and colourisation classes.
+///
+/// Returns the new InternalBibleEntryList (or raises AssertionError
+/// "We want to stop here" when nothing could be processed).
+#[allow(non_snake_case)]
+fn postprocess_word_link_entries<'py>(
+    py: Python<'py>,
+    revised_list: &Bound<'py, PyAny>,
+    bible_abbreviation: &str,
+    BBB: &str,
+    level: usize,
+    word_file_name: &str,
+    state: &Bound<'py, PyAny>,
+) -> PyResult<Bound<'py, PyAny>> {
+    let is_nt = bos_books_codes::is_new_testament_nr(BBB);
+    let table = state
+        .getattr("OETRefData")?
+        .get_item("word_tables")?
+        .get_item(word_file_name)?;
+    let unicodedata = py.import("unicodedata")?;
+
+    let get_row = |number: i64| -> Result<String, String> {
+        table
+            .get_item(number)
+            .map_err(|e| e.to_string())?
+            .extract::<String>()
+            .map_err(|e| e.to_string())
+    };
+    let nfc_normalise = |s: &str| -> String {
+        unicodedata
+            .call_method1("normalize", ("NFC", s))
+            .and_then(|r| r.extract())
+            .unwrap_or_else(|_| s.to_string())
+    };
+
+    let mut updated_entries: Vec<Bound<'py, PyAny>> = Vec::with_capacity(16);
+    for entry in revised_list.try_iter()? {
+        let entry = entry?;
+        let original_text_owned = entry_original_text(&entry)?;
+        if !original_text_owned.contains('§') {
+            updated_entries.push(entry);
+            continue;
+        }
+        match oet_handlers::postprocess_word_link_titles(
+            &original_text_owned,
+            level,
+            is_nt,
+            &get_row,
+            &nfc_normalise,
+        ) {
+            Ok(oet_handlers::TitlePostprocess::Updated { text, transliterations_added, colourisations_added })
+                if transliterations_added > 0 || colourisations_added > 0 =>
+            {
+                log_message(
+                    py,
+                    "info",
+                    &format!(
+                        "Added {transliterations_added} {bible_abbreviation} {BBB} transliterations and {colourisations_added} colourisations to titles."
+                    ),
+                );
+                updated_entries.push(make_new_entry(
+                    py,
+                    &entry.call_method0("getMarker")?.extract::<String>()?,
+                    &entry.call_method0("getOriginalMarker")?.extract::<String>()?,
+                    &text,
+                )?);
+            }
+            Ok(_) => {
+                // No title matched at all (or nothing changed)
+                log_message(
+                    py,
+                    "critical",
+                    &format!(
+                        "ESFMBible.livenESFMWordLinks unable to find wordlink title in '{original_text_owned}'"
+                    ),
+                );
+                updated_entries.push(entry);
+                return Err(PyAssertionError::new_err("We want to stop here"));
+            }
+            Err(message) => return Err(err_to_pyerr(message)),
+        }
+    }
+
+    let list_module = py.import("builtins")?;
+    let python_list = list_module.call_method1("list", (updated_entries,))?;
+    py.import("bible_organisational_system")?
+        .getattr("InternalBibleEntryList")?
+        .call1((python_list,))
+}
+
+/// Livens ESFM wordlinks in the OET versions (Rust port of
+/// OETHandlers.livenOETWordLinks).
+#[pyfunction]
+#[pyo3(
+    name = "livenOETWordLinks",
+    signature = (level, bibleObject, refTuple, givenEntryList, state)
+)]
+#[allow(non_snake_case)]
+fn liven_oet_word_links_py<'py>(
+    py: Python<'py>,
+    level: usize,
+    bibleObject: &Bound<'py, PyAny>,
+    refTuple: &Bound<'py, PyAny>,
+    givenEntryList: &Bound<'py, PyAny>,
+    state: &Bound<'py, PyAny>,
+) -> PyResult<Bound<'py, PyAny>> {
+    if !(1..=3).contains(&level) {
+        return Err(PyAssertionError::new_err(format!("level={level}")));
+    }
+    let word_tables_count: usize = bibleObject
+        .getattr("ESFMWordTables")?
+        .len()?;
+    if word_tables_count != 2 {
+        return Err(PyAssertionError::new_err(format!(
+            "len(bibleObject.ESFMWordTables)={word_tables_count}"
+        )));
+    }
+    if !refTuple.is_instance_of::<pyo3::types::PyTuple>() {
+        return Err(PyTypeError::new_err("refTuple must be a tuple"));
+    }
+    let BBB: String = refTuple.get_item(0)?.extract()?;
+
+    let abbreviation: String = bibleObject.getattr("abbreviation")?.extract()?;
+    let test_mode_flag: bool = state
+        .getattr("TEST_MODE_FLAG")
+        .and_then(|v| v.extract())
+        .unwrap_or(false);
+
+    let mut preprocessed_entries: Vec<Bound<'py, PyAny>> = Vec::with_capacity(16);
+    let mut preprocessed_list_object: Option<Bound<'py, PyAny>> = None;
+    if test_mode_flag
+        && abbreviation == "OET-RV"
+        && (bos_books_codes::is_old_testament_nr(&BBB)
+            || bos_books_codes::is_new_testament_nr(&BBB))
+    {
+        // Highlight all OET-RV words that DON'T have a word link
+        for entry in givenEntryList.try_iter()? {
+            let entry = entry?;
+            let marker: String = entry.call_method0("getMarker")?.extract()?;
+            let original_text = entry_original_text(&entry)?;
+            let opening_count = original_text.matches("\\add ").count();
+            let closing_count = original_text.matches("\\add*").count();
+            if opening_count != closing_count {
+                return Err(PyAssertionError::new_err(format!(
+                    "Bad add counts in OET {abbreviation} {BBB} {marker} line: {opening_count} != {closing_count}"
+                )));
+            }
+            if !original_text.is_empty() && marker == "v~" {
+                if original_text.contains("\\nd \\nd ") {
+                    return Err(PyAssertionError::new_err(format!(
+                        "Double nd in {abbreviation} {BBB} {marker:?} {original_text:?}"
+                    )));
+                }
+                let ref_elements: Vec<String> = refTuple
+                    .try_iter()?
+                    .map(|item| item.and_then(|i| i.extract()))
+                    .collect::<PyResult<Vec<String>>>()?;
+                let ref_strings: Vec<&str> = ref_elements.iter().map(String::as_str).collect();
+                match oet_handlers::preprocess_oet_rv_entry(
+                    &marker,
+                    &original_text,
+                    &abbreviation,
+                    &ref_strings,
+                ) {
+                    Ok(Some(new_text)) => {
+                        preprocessed_entries.push(make_new_entry(
+                            py,
+                            &marker,
+                            &entry.call_method0("getOriginalMarker")?.extract::<String>()?,
+                            &new_text,
+                        )?);
+                        continue;
+                    }
+                    Ok(None) => {}
+                    Err(message) => return Err(err_to_pyerr(message)),
+                }
+            }
+            preprocessed_entries.push(entry);
+        }
+        let builtins = py.import("builtins")?;
+        preprocessed_list_object = Some(
+            py.import("bible_organisational_system")?
+                .getattr("InternalBibleEntryList")?
+                .call1((builtins.call_method1("list", (preprocessed_entries,))?,))?,
+        );
+    }
+
+    // Liven the word links using the BibleOrgSys method
+    //     We use unusual word pairs in both templates so that we can easily
+    //     find them again in the returned InternalBibleEntryList
+    let kwargs = pyo3::types::PyDict::new(py);
+    kwargs.set_item("linkTemplate", format!("►{{n}}◄"))?;
+    kwargs.set_item("titleTemplate", "§«OrigWord»§")?;
+    let verse_list = preprocessed_list_object
+        .as_ref()
+        .unwrap_or(givenEntryList);
+    let revised_result =
+        bibleObject.call_method("livenESFMWordLinks", (&BBB, verse_list), Some(&kwargs))?;
+    let revised_list = revised_result.get_item(0)?;
+
+    // Post-liven sanity checks
+    for revised_entry in revised_list.try_iter()? {
+        let revised_entry = revised_entry?;
+        let original_text = entry_original_text(&revised_entry)?;
+        if !original_text.is_empty() {
+            if original_text.contains("\\nd \\nd ") {
+                return Err(PyAssertionError::new_err("'\\nd \\nd ' found in text"));
+            }
+            let opening_count = original_text.matches("\\add ").count();
+            let closing_count = original_text.matches("\\add*").count();
+            if opening_count != closing_count {
+                return Err(PyAssertionError::new_err(format!(
+                    "Bad add counts in OET {abbreviation} {BBB} line: {opening_count} != {closing_count} {original_text:?}"
+                )));
+            }
+        }
+    }
+
+    let is_nt = bos_books_codes::is_new_testament_nr(&BBB);
+    let word_file_name = if is_nt {
+        "OET-LV_NT_word_table.tsv"
+    } else {
+        "OET-LV_OT_word_table.tsv"
+    };
+    postprocess_word_link_entries(
+        py, &revised_list, &abbreviation, &BBB, level, word_file_name, state,
+    )
+}
+
+/// Livens wordlinks in Berean-compatible versions (Rust port of
+/// OETHandlers.livenOETCompatibleBereanWordLinks).
+#[pyfunction]
+#[pyo3(
+    name = "livenOETCompatibleBereanWordLinks",
+    signature = (level, bibleObject, BBB, givenEntryList, state)
+)]
+#[allow(non_snake_case)]
+fn liven_oet_compatible_berean_word_links_py<'py>(
+    py: Python<'py>,
+    level: usize,
+    bibleObject: &Bound<'py, PyAny>,
+    BBB: &str,
+    givenEntryList: &Bound<'py, PyAny>,
+    state: &Bound<'py, PyAny>,
+) -> PyResult<Bound<'py, PyAny>> {
+    if !(1..=3).contains(&level) {
+        return Err(PyAssertionError::new_err(format!("level={level}")));
+    }
+    let esfm_word_tables = bibleObject.getattr("ESFMWordTables")?;
+    let word_tables_count: usize = esfm_word_tables.len()?;
+    if word_tables_count != 2 {
+        return Err(PyAssertionError::new_err(format!(
+            "len(bibleObject.ESFMWordTables)={word_tables_count}"
+        )));
+    }
+    let abbreviation: String = bibleObject.getattr("abbreviation")?.extract()?;
+
+    // Pre-liven double-nd check over the GIVEN entries
+    for entry in givenEntryList.try_iter()? {
+        let entry = entry?;
+        let original_text = entry_original_text(&entry)?;
+        if !original_text.is_empty() && original_text.contains("\\nd \\nd ") {
+            return Err(PyAssertionError::new_err(format!(
+                "Double nd in {abbreviation} {BBB} {original_text:?}"
+            )));
+        }
+    }
+
+    // Determine which word table to use (faithful quirk: any other book
+    // leaves the variable unbound -- UnboundLocalError)
+    let is_ot = bos_books_codes::is_old_testament_nr(BBB);
+    let is_nt = bos_books_codes::is_new_testament_nr(BBB);
+    let word_file_name = if is_ot {
+        "OET-LV_OT_word_table.tsv"
+    } else if is_nt {
+        "OET-LV_NT_word_table.tsv"
+    } else {
+        return Err(PyUnboundLocalError::new_err(
+            "local variable 'wordFileName' referenced before assignment",
+        ));
+    };
+    let word_table = esfm_word_tables.get_item(word_file_name)?;
+    if word_table.is_none() {
+        bibleObject.call_method1("loadESFMWordFile", (word_file_name,))?;
+    }
+    let column_names: Vec<String> = bibleObject
+        .getattr("ESFMColumnNameList")?
+        .get_item(word_file_name)?
+        .extract()?;
+    let table_for_rows = bibleObject
+        .getattr("ESFMWordTables")?
+        .get_item(word_file_name)?;
+
+    let get_row = |number: i64| -> Result<String, String> {
+        table_for_rows
+            .get_item(number)
+            .map_err(|e| e.to_string())?
+            .extract::<String>()
+            .map_err(|e| e.to_string())
+    };
+
+    // Liven the word links using our port of the BibleOrgSys inner function
+    //     We use unusual word pairs in both templates so that we can easily
+    //     find them again in the returned InternalBibleEntryList
+    let mut revised_entries: Vec<Bound<'py, PyAny>> = Vec::with_capacity(16);
+    for entry in givenEntryList.try_iter()? {
+        let entry = entry?;
+        let marker: String = entry.call_method0("getMarker")?.extract()?;
+        let original_marker: String = entry.call_method0("getOriginalMarker")?.extract()?;
+        let original_text = entry_original_text(&entry)?;
+        if !original_text.contains('¦') {
+            revised_entries.push(entry);
+            continue;
+        }
+        match oet_handlers::liven_berean_text(
+            &original_text,
+            BBB,
+            "►{n}◄",
+            Some("§«OrigWord»§"),
+            &column_names,
+            &get_row,
+        ) {
+            Ok(Some(new_text)) => {
+                revised_entries.push(make_new_entry(py, &marker, &original_marker, &new_text)?);
+            }
+            Ok(None) => {
+                log_message(
+                    py,
+                    "critical",
+                    &format!(
+                        "ESFMBible.livenESFMWordLinks unable to find wordlink in '{original_text}'"
+                    ),
+                );
+                revised_entries.push(entry);
+            }
+            Err(message) => return Err(err_to_pyerr(message)),
+        }
+    }
+    let builtins = py.import("builtins")?;
+    let revised_list = py
+        .import("bible_organisational_system")?
+        .getattr("InternalBibleEntryList")?
+        .call1((builtins.call_method1("list", (revised_entries,))?,))?;
+
+    // NOTE (faithful): the original checks the GIVEN list here, not the
+    // revised one -- preserved as-is.
+    for given_entry in givenEntryList.try_iter()? {
+        let original_text = entry_original_text(&given_entry?)?;
+        if !original_text.is_empty() && original_text.contains("\\nd \\nd ") {
+            return Err(PyAssertionError::new_err("'\\nd \\nd ' found in text"));
+        }
+    }
+
+    postprocess_word_link_entries(
+        py, &revised_list, &abbreviation, BBB, level, word_file_name, state,
+    )
+}
+
+/// Given an original language quote, find the matching OET-LV English words
+/// and return them as html (Rust port of OETHandlers.findOLQuoteInLV).
+#[pyfunction]
+#[pyo3(
+    name = "findOLQuoteInLV",
+    signature = (level, BBB, C, V, occurrenceNumber, originalLanguageQuote, state)
+)]
+#[allow(non_snake_case)]
+fn find_ol_quote_in_lv_py<'py>(
+    py: Python<'py>,
+    level: usize,
+    BBB: &str,
+    C: &str,
+    V: &str,
+    occurrenceNumber: i64,
+    originalLanguageQuote: &str,
+    state: &Bound<'py, PyAny>,
+) -> PyResult<String> {
+    let _ = level;
+    let reference = format!("{BBB}_{C}:{V}");
+    let is_nt = bos_books_codes::is_new_testament_nr(BBB);
+    let word_file_name = if is_nt {
+        "OET-LV_NT_word_table.tsv"
+    } else {
+        "OET-LV_OT_word_table.tsv"
+    };
+
+    let context_data = match state
+        .getattr("preloadedBibles")?
+        .get_item("OET-LV")?
+        .call_method1("getContextVerseData", ((BBB, C, V),))
+        .and_then(|data| data.get_item(0)) // TypeError if None is returned
+    {
+        Ok(data) => data,
+        Err(error)
+            if error
+                .get_type(py)
+                .name()
+                .is_ok_and(|name| name == "KeyError" || name == "TypeError") =>
+        {
+            let books_to_load = state.getattr("booksToLoad")?.get_item("OET-LV")?;
+            let has_book = books_to_load.call_method1("__contains__", (BBB,))?.is_truthy()?;
+            log_message(
+                py,
+                if has_book { "error" } else { "warning" },
+                &format!("findOLQuoteInLV: OET-LV has no text for {reference}"),
+            );
+            return Ok(String::new());
+        }
+        Err(error) => return Err(error),
+    };
+    // Collect the texts we might find a starting word number in
+    let mut lv_texts: Vec<String> = Vec::with_capacity(8);
+    for entry in context_data.try_iter()? {
+        lv_texts.push(entry_original_text(&entry?)?);
+    }
+
+    let word_table = state
+        .getattr("OETRefData")?
+        .get_item("word_tables")?
+        .get_item(word_file_name)?;
+    let table_len: usize = word_table.len()?;
+    // Python only looks up word_table_indexes when a starting word number was
+    // found; KeyError propagates to the caller in that case.
+    let indexes_root = state
+        .getattr("OETRefData")?
+        .get_item("word_table_indexes")?
+        .get_item(word_file_name)?;
+    let get_indexes = |ref_: &str| -> Result<(i64, i64), String> {
+        let pair = indexes_root
+            .get_item(ref_)
+            .map_err(|error: PyErr| format!("KeyError: {ref_} ({error})"))?;
+        let first: i64 = pair
+            .get_item(0)
+            .map_err(|e: PyErr| e.to_string())?
+            .extract()
+            .map_err(|e: PyErr| e.to_string())?;
+        let last: i64 = pair
+            .get_item(1)
+            .map_err(|e: PyErr| e.to_string())?
+            .extract()
+            .map_err(|e: PyErr| e.to_string())?;
+        Ok((first, last))
+    };
+
+    let get_row = |number: i64| -> Result<String, String> {
+        word_table
+            .get_item(number)
+            .map_err(|e| e.to_string())?
+            .extract::<String>()
+            .map_err(|e| e.to_string())
+    };
+    let log = |log_level: &str, message: &str| log_message(py, log_level, message);
+
+    let outcome = oet_handlers::find_ol_quote_in_lv_core(
+        &reference,
+        &lv_texts,
+        table_len,
+        &get_row,
+        &get_indexes,
+        occurrenceNumber,
+        originalLanguageQuote,
+        is_nt,
+        &log,
+    )
+    .map_err(err_to_pyerr)?;
+
+    match outcome {
+        oet_handlers::OlQuoteOutcome::Html(assembled_html) => {
+            // assert checkHtml( 'LVQuote', assembledHtml, segmentOnly=True )
+            // NOTE: this resolves to the LOCAL createPages/html.py module
+            // (already cached under the 'html' sys.modules key by earlier
+            // imports in every caller).
+            let check_html_kwargs = pyo3::types::PyDict::new(py);
+            check_html_kwargs.set_item("segmentOnly", true)?;
+            let check_html_result = py
+                .import("html")?
+                .call_method(
+                    "checkHtml",
+                    ("LVQuote", assembled_html.as_str()),
+                    Some(&check_html_kwargs),
+                )?
+                .is_truthy()?;
+            if !check_html_result {
+                return Err(PyAssertionError::new_err(format!(
+                    "checkHtml failed for LVQuote {reference}: '{assembled_html}'"
+                )));
+            }
+            Ok(assembled_html)
+        }
+        oet_handlers::OlQuoteOutcome::NoStartingWord => {
+            log_message(
+                py,
+                "error",
+                &format!(
+                    "findOLQuoteInLV: OET-LV can't find a starting word number for {reference}"
+                ),
+            );
+            Ok(String::new())
+        }
+    }
+}
+
+
 #[pymodule]
 fn openbibledata_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(liven_introduction_links_py, m)?)?;
@@ -730,6 +1393,14 @@ fn openbibledata_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(find_section_number_py, m)?)?;
     m.add_function(wrap_pyfunction!(make_top_py, m)?)?;
     m.add_function(wrap_pyfunction!(make_view_nav_list_py, m)?)?;
+    m.add_function(wrap_pyfunction!(get_oet_tidy_bbb_py, m)?)?;
+    m.add_function(wrap_pyfunction!(get_oet_book_name_py, m)?)?;
+    m.add_function(wrap_pyfunction!(get_bbb_from_oet_book_name_py, m)?)?;
+    m.add_function(wrap_pyfunction!(get_hebrew_wordpage_filename_py, m)?)?;
+    m.add_function(wrap_pyfunction!(get_greek_wordpage_filename_py, m)?)?;
+    m.add_function(wrap_pyfunction!(liven_oet_word_links_py, m)?)?;
+    m.add_function(wrap_pyfunction!(liven_oet_compatible_berean_word_links_py, m)?)?;
+    m.add_function(wrap_pyfunction!(find_ol_quote_in_lv_py, m)?)?;
     m.add_class::<PyPageChromeConfig>()?;
     Ok(())
 }

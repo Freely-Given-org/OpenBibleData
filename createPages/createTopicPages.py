@@ -38,6 +38,7 @@ CHANGELOG:
     2026-03-01 Added IMPORTANT people index
     2026-06-01 Improve unusual book codes (like Yac) and improve navigation
     2026-08-22 Import convertVerseEntryListToHtml directly from openbibledata_rust (convert.py deleted)
+    2026-08-25 The OETHandlers functions are now imported from the Rust openbibledata_rust module (the Python OETHandlers.py was deleted).
 """
 from pathlib import Path
 import os
@@ -53,10 +54,10 @@ from Bibles import getBibleMapperMaps
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
                     removeDuplicateCVids, \
                     makeTop, makeBottom, checkHtml
-from OETHandlers import livenOETWordLinks, getOETTidyBBB
+from openbibledata_rust import livenOETWordLinks, getOETTidyBBB
 
 
-LAST_MODIFIED_DATE = '2026-06-16' # by RJH
+LAST_MODIFIED_DATE = '2026-08-25' # by RJH
 SHORT_PROGRAM_NAME = "createTopicPages"
 PROGRAM_NAME = "OpenBibleData createTopicPages functions"
 PROGRAM_VERSION = '0.37'

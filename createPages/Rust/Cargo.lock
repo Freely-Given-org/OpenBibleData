@@ -12,6 +12,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "bible-transliterations"
+version = "0.8.0"
+dependencies = [
+ "pyo3",
+]
+
+[[package]]
 name = "bos_books_codes"
 version = "0.6.3"
 dependencies = [
@@ -109,6 +116,7 @@ checksum = "9f7c3e4beb33f85d45ae3e3a1792185706c8e16d043238c593331cc7cd313b50"
 name = "openbibledata-rust"
 version = "0.1.0"
 dependencies = [
+ "bible-transliterations",
  "bos_books_codes",
  "once_cell",
  "pyo3",

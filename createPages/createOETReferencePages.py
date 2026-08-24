@@ -105,6 +105,7 @@ CHANGELOG:
                 to forked children via a module-level _strongsPageBibleLexicon global. Each page
                 builder now also returns its index-page entry (if any) so the parent can still
                 assemble the Strongs index pages in numeric order.
+    2026-08-25 The OETHandlers functions are now imported from the Rust openbibledata_rust module (the Python OETHandlers.py was deleted).
  """
 from pathlib import Path
 import os
@@ -132,11 +133,11 @@ from bible_transliterations import transliterate_Hebrew, transliterate_Greek
 from settings import State, state, CNTR_BOOK_ID_MAP
 from html import makeTop, makeBottom, checkHtml, do_OET_LV_HTMLcustomisations, do_OET_RV_HTMLcustomisations
 from openbibledata_rust import convertVerseEntryListToHtml
-from OETHandlers import getOETTidyBBB, getOETBookName, getHebrewWordpageFilename, getGreekWordpageFilename, livenOETWordLinks
+from openbibledata_rust import getOETTidyBBB, getOETBookName, getHebrewWordpageFilename, getGreekWordpageFilename, livenOETWordLinks
 from createSectionPages import findSectionNumber
 
 
-LAST_MODIFIED_DATE = '2026-08-23' # by RJH
+LAST_MODIFIED_DATE = '2026-08-25' # by RJH
 SHORT_PROGRAM_NAME = "createOETReferencePages"
 PROGRAM_NAME = "OpenBibleData createOETReferencePages functions"
 PROGRAM_VERSION = '1.01'

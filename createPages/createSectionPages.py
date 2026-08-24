@@ -67,6 +67,7 @@ CHANGELOG:
     2026-07-26 Added d and s4 lines to OET and OET-RV section heading index pages
     2026-08-25 findSectionNumber() converted to Rust (openbibledata_rust.findSectionNumber,
                 see Rust/src/section_numbers.rs) -- the Python function is now a thin wrapper
+    2026-08-25 The OETHandlers functions are now imported from the Rust openbibledata_rust module (the Python OETHandlers.py was deleted).
 """
 from pathlib import Path
 import os
@@ -85,7 +86,7 @@ from openbibledata_rust import convertVerseEntryListToHtml, findSectionNumber as
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
                     makeTop, makeBottom, makeBookNavListParagraph, removeDuplicateCVids, checkHtml
 from Bibles import getBibleMapperMaps, getOpenBibleImages
-from OETHandlers import livenOETWordLinks, livenOETCompatibleBereanWordLinks, getOETTidyBBB
+from openbibledata_rust import livenOETWordLinks, livenOETCompatibleBereanWordLinks, getOETTidyBBB
 
 
 LAST_MODIFIED_DATE = '2026-08-25' # by RJH

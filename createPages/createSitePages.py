@@ -74,6 +74,7 @@ CHANGELOG:
     2026-07-04 Added OBI pictures and a few more version numbers on About page, etc.
     2026-08-22 Added FRT to OET books (even though no OET-LV version)
     2026-08-24 Implemented multiprocessing for creating the per-version book, chapter, and section pages
+    2026-08-25 The OETHandlers functions are now imported from the Rust openbibledata_rust module (the Python OETHandlers.py was deleted).
 """
 from pathlib import Path
 import os
@@ -90,7 +91,7 @@ import bos_books_codes_py
 
 from settings import State, state, reorderBooksForOETVersions
 from Bibles import preloadVersions
-from OETHandlers import getOETTidyBBB, getOETBookName
+from openbibledata_rust import getOETTidyBBB, getOETBookName
 from createBookPages import createOETBookPages, createBookPages
 from createChapterPages import createOETSideBySideChapterPages, createChapterPages
 from createSectionPages import createOETSectionLists, createOETSectionPages, createSectionLists, createSectionPages
@@ -105,7 +106,7 @@ from html import makeTop, makeViewNavListParagraph, makeBottom, checkHtml
 from spellCheckEnglish import printSpellCheckSummary
 
 
-LAST_MODIFIED_DATE = '2026-08-24' # by RJH
+LAST_MODIFIED_DATE = '2026-08-25' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData (OBD) Create Site Pages"
 PROGRAM_VERSION = '2.0.0'

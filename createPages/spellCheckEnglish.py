@@ -37,6 +37,8 @@ CHANGELOG:
     2026-06-11 Handle new % (changed person) \\add format
     2026-08-24 Added collectSpellCheckResults and mergeSpellCheckResults so that results
                 collected by forked multiprocessing children can be merged back into the parent
+    2026-08-25 Added the six missing 'unsure' addPersonChange/addNegated/etc. span replacements
+                (html.py has been emitting them with title attributes since 2026-08-22)
 """
 from pathlib import Path
 from csv import  DictReader
@@ -546,6 +548,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                     .replace( '<span class="synthParr" title="synthetic parallelism">→ </span>', '' )
 
                     .replace( '<span class="addArticle" title="added article">', '' )
+                    .replace( '<span class="addArticle unsure" title="added article (less certain)">', '' )
                     .replace( '<span class="addDirectObject" title="added direct object">', '' )
                     .replace( '<span class="addDirectObject unsure" title="added direct object (less certain)">', '' )
                     .replace( '<span class="addElided" title="added elided info">', '' )
@@ -553,10 +556,15 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                     .replace( '<span class="addExtra" title="added implied info">', '' )
                     .replace( '<span class="addExtra unsure" title="added implied info (less certain)">', '' )
                     .replace( '<span class="addNegated" title="negated">', '' )
+                    .replace( '<span class="addNegated unsure" title="negated (less certain)">', '' )
                     .replace( '<span class="addOwner" title="added ‘owner’">', '' )
+                    .replace( '<span class="addOwner unsure" title="added ‘owner’ (less certain)">', '' )
                     .replace( '<span class="addNumberChange" title="changed number">', '' )
+                    .replace( '<span class="addNumberChange unsure" title="changed number (less certain)">', '' )
                     .replace( '<span class="addPersonChange" title="changed person">', '' )
+                    .replace( '<span class="addPersonChange unsure" title="changed person (less certain)">', '' )
                     .replace( '<span class="addPronoun" title="used pronoun">', '' )
+                    .replace( '<span class="addPronoun unsure" title="used pronoun (less certain)">', '' )
                     .replace( '<span class="addReferent" title="inserted referent">', '' )
                     .replace( '<span class="addReferent unsure" title="inserted referent (less certain)">', '' )
                     .replace( '<span class="addReword" title="reworded">', '' )
@@ -804,16 +812,15 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                 'whoren','outen',
                                 'picturead','getreu','noticedn','aboveaus',
                                     'tearinger','chainswerk','eightytausend','cartstädte','ratet','wroteen',
-                                    'blasphemyen','shopsn','nineunddreißig','soundedn','hinderte','frightenedn','preventeden','plainlyds','yest','routest',
-                                    'crossess','gangn','lustn','vainr',
-                                    'Yakobs','Yesum','Abrahams','Da','Zebedäus','Baptiser','Githith',
+                                    'blasphemyen','shopsn','nineunddreißig','soundedn','hinderte','frightenedn','preventeden','plainlyds','yest',
+                                    'Maket','Scheu','Teurung','Yeduthun',
                     
                                 'actio', 'agi', 'ambit','ambitio','amputa', 'anima','antiqui','apprehendi','ascendi','attende','audi', 'aversio',
                                 'beati','bene','beneficia','bos',
                                 'ca','calami','capti',       'centurio',     'Christi',      'circumcisio','cis',        'cognitio','cogniti','complet',
                                         'commemorat','competit',
                                         'conclusi', 'confessio','confusi','confusio','congregati','congregatio','consecrat','consecrati','considerat','consolati','consolatio',
-                                            'contra','contriti','conversa','conversi','conversio',
+                                            'contra','contriti','conversa','conversi','conversio','converti',
                                         'cor','correcti','correctio',
                                     'creat','credi','cruci',        'cultu','cum','cura','curat',
                                 'dat','dedi','deduc','dei','dem','designat','desolati','det','determinat','devotio',
@@ -838,8 +845,8 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                 'tum','holdur','killur','giveium','inactivitym',
                                 'orientali','ingressum','passionbus','proposito',
                                     'changesa','talentis','habitculo','establishedque','lastrum','buildt','buildsa','solidos',
-                                    'buildingus','buildri','planstorum','yearnas','myrti','recallsione','exaltsion','labi',
-                                    'harmes','alti','defectu','precedesur','utre','ponens','utiliter','reprobat','converti','nec',
+                                    'buildingus','buildri','planstorum','yearnas','myrti','recallsione','exaltsion',
+                                    'hopesur',
         
                                 )
                     else 'Info', DEBUGGING_THIS_MODULE, f'''        {word} is suspect @ {location}\nfrom {cleanedTextToDisplay=}\n  WHICH GAVE {cleanedTextToCheck=}''' )

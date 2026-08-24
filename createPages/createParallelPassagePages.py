@@ -33,6 +33,7 @@ CHANGELOG:
     2025-04-25 Allow for /r field that's not a true section reference (e.g., at top of Psalm 43)
     2026-01-07 Added OET Logo
     2026-08-22 Import convertVerseEntryListToHtml directly from openbibledata_rust (convert.py deleted)
+    2026-08-25 The OETHandlers functions are now imported from the Rust openbibledata_rust module (the Python OETHandlers.py was deleted).
 """
 from pathlib import Path
 import os
@@ -51,10 +52,10 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
                     do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
                     removeDuplicateCVids, \
                     makeTop, makeBottom, makeBookNavListParagraph, checkHtml
-from OETHandlers import livenOETWordLinks, getOETTidyBBB, getOETBookName, getBBBFromOETBookName
+from openbibledata_rust import livenOETWordLinks, getOETTidyBBB, getOETBookName, getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2026-06-16' # by RJH
+LAST_MODIFIED_DATE = '2026-08-25' # by RJH
 SHORT_PROGRAM_NAME = "createParallelPassagePages"
 PROGRAM_NAME = "OpenBibleData createParallelPassagePages functions"
 PROGRAM_VERSION = '0.42'
