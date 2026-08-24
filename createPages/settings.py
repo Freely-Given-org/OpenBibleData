@@ -66,13 +66,13 @@ class State:
     """
     A place to store some of the global stuff that needs to be passed around.
     """
-    OET_VERSION_NUMBER_STRING = 'v0.48.72' # Incremented on most runs
+    OET_VERSION_NUMBER_STRING = 'v0.48.73' # Incremented on most runs
 
-    TEST_MODE_FLAG = True # Writes smaller website subset into DEBUG_DESTINATION_FOLDER_PATH if True
+    TEST_MODE_FLAG = False # Writes smaller website subset into DEBUG_DESTINATION_FOLDER_PATH if True
     TEST_OT_BOOK_LIST = ['PSA']
     TEST_DC_BOOK_LIST = []
     TEST_NT_BOOK_LIST = ['MRK','GAL'] # Shortest gospel
-    NEW_BOOK_IN_TEST_LIST_FLAG = True # So that interlinear, parallel passages, topic, kingdom, and dict & word pages will get rebuilt for TEST_MODE_FLAG
+    NEW_BOOK_IN_TEST_LIST_FLAG = False # So that interlinear, parallel passages, topic, kingdom, and dict & word pages will get rebuilt for TEST_MODE_FLAG
 
     # Many of these settings are used to omit some processing so as to get a speedier conclusion for debugging
     LOAD_RESOURCES_FROM_PICKLES_FLAG = True # Might have to disable loading pickles if they need updating (new code or data)

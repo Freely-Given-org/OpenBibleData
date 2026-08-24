@@ -73,6 +73,9 @@ CHANGELOG:
     2026-04-22 Section indexes are now made BEFORE pickling
     2026-07-04 Added OBI pictures and a few more version numbers on About page, etc.
     2026-08-22 Added FRT to OET books (even though no OET-LV version)
+    2026-08-24 Moved haveSectionHeadings fixup + section list prebuilding into an early sequential pass
+                (forked children can't hand state changes back), then multiprocessing for the version pages
+    2026-08-24 Multiprocessing for the per-version section pages as well (lists are prebuilt by the early pass)
 """
 from pathlib import Path
 import os
@@ -80,6 +83,7 @@ import shutil
 import glob
 from datetime import date
 import logging
+import multiprocessing
 from collections import defaultdict
 
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
@@ -91,7 +95,7 @@ from Bibles import preloadVersions
 from OETHandlers import getOETTidyBBB, getOETBookName
 from createBookPages import createOETBookPages, createBookPages
 from createChapterPages import createOETSideBySideChapterPages, createChapterPages
-from createSectionPages import createOETSectionLists, createOETSectionPages, createSectionPages
+from createSectionPages import createOETSectionLists, createOETSectionPages, createSectionLists, createSectionPages
 from createParallelPassagePages import createParallelPassagePages
 from createParallelVersePages import createParallelVersePages
 from createTopicPages import createTopicPages, createKingdomPages
@@ -103,10 +107,10 @@ from html import makeTop, makeViewNavListParagraph, makeBottom, checkHtml
 from spellCheckEnglish import printSpellCheckSummary
 
 
-LAST_MODIFIED_DATE = '2026-08-22' # by RJH
+LAST_MODIFIED_DATE = '2026-08-24' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData (OBD) Create Site Pages"
-PROGRAM_VERSION = '1.1.1'
+PROGRAM_VERSION = '1.1.3'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
@@ -248,14 +252,29 @@ def _createSitePages() -> bool:
     elif state.CREATE_PARALLEL_VERSE_PAGES != 'LAST': have_invalid_value
 
     if state.CREATE_BOOK_AND_OTHER_PAGES_FLAG:
+        # Fix up any missing haveSectionHeadings discovery flags and prebuild each version's section lists
+        #   sequentially BEFORE we start creating pages using forked processes
+        #   (forked children inherit our state, but any changes they make to their copy are lost when they exit)
+        for versionAbbreviation, thisBible in state.preloadedBibles.items():
+            if versionAbbreviation not in ('TTN',) \
+            and versionAbbreviation in state.versionsWithoutTheirOwnPages: continue # We don't worry about these few selected verses here
+            assert 'discoveryResults' in thisBible.__dict__
+            if 'haveSectionHeadings' not in thisBible.discoveryResults['ALL']: # probably we have no books that actually loaded
+                dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Adding discoveryResults 'haveSectionHeadings' for {thisBible.abbreviation}: no books loaded?" )
+                thisBible.discoveryResults['ALL']['haveSectionHeadings'] = False # We need this in several places
+            if versionAbbreviation not in ('TOSN','TTN','SOTN','UTN') \
+            and thisBible.discoveryResults['ALL']['haveSectionHeadings']:
+                createSectionLists( 2, thisBible, state ) # Prebuild the section lists (see note above)
+
         state.chaptersWithImages = defaultdict( list )
         if 'OET' in state.BibleVersions: # this is a special case
             vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Creating {'TEST ' if state.TEST_MODE_FLAG else ''}version pages for OET…" )
             versionFolder = state.TEMP_BUILD_FOLDER.joinpath( f'OET/' )
             _createOETVersionPages( 1, versionFolder, state.preloadedBibles['OET-RV'], state.preloadedBibles['OET-LV'], state )
             _createOETMissingVersesPage( 1, versionFolder )
+
+        mpParameters = [] # (versionAbbreviation,) tuples for the forked workers
         for versionAbbreviation, thisBible in state.preloadedBibles.items(): # doesn't include OET pseudo-translation
-            # if versionAbbreviation not in ('TTN',) \
             if versionAbbreviation in state.versionsWithoutTheirOwnPages:
                 if versionAbbreviation == 'TTN': continue # These ones don't even have a folder
                 # We just write a very bland index page here
@@ -273,18 +292,29 @@ def _createSitePages() -> bool:
                 vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"    {len(indexHtml):,} characters written to {filepath}" )
             else: # these versions should have the full pages
                 if versionAbbreviation == 'TTN': continue # Not actually a Bible version
-                # vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nDoing discovery for {thisBible.abbreviation} ({thisBible.name})…" )
-                assert 'discoveryResults' in thisBible.__dict__
-                if 'haveSectionHeadings' not in thisBible.discoveryResults['ALL']: # probably we have no books that actually loaded
-                    dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Adding discoveryResults 'haveSectionHeadings' for {thisBible.abbreviation}: no books loaded?" )
-                    thisBible.discoveryResults['ALL']['haveSectionHeadings'] = False # We need this in several places
                 if not state.TEST_MODE_FLAG or versionAbbreviation not in ('OEB','WEBBE','WEB','WMBB','WMB','NET','LSV','FBV','TCNT','T4T','LEB',
                                                         'BBE','Moff','JPS','ASV','DRA','YLT','Drby','RV','Wbstr',
                                                         'KJB-1769','Bshps','Gnva','Cvdl','TNT','Wycl'):
                     # In test mode, we don't usually need to make all those pages, even just for the test books
-                    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Creating {'TEST ' if state.TEST_MODE_FLAG else ''}version pages for {thisBible.abbreviation} ({thisBible.name})…" )
-                    versionFolder = state.TEMP_BUILD_FOLDER.joinpath( f'{thisBible.abbreviation}/' )
-                    _createVersionPages( 1, versionFolder, thisBible, state )
+                    if BibleOrgSysGlobals.maxProcesses > 1 \
+                    and not BibleOrgSysGlobals.alreadyMultiprocessing: # Use multiprocessing for these full version pages
+                        mpParameters.append( (versionAbbreviation,) )
+                    else: # no multiprocessing available -- do this version sequentially
+                        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Creating {'TEST ' if state.TEST_MODE_FLAG else ''}version pages for {thisBible.abbreviation} ({thisBible.name})…" )
+                        versionFolder = state.TEMP_BUILD_FOLDER.joinpath( f'{thisBible.abbreviation}/' )
+                        _createVersionPages( 1, versionFolder, thisBible, state )
+        if mpParameters:
+            # NOTE: We use an explicit 'fork' context because Python 3.14 changed the default start method
+            #        to 'forkserver' which would NOT inherit our huge module-level state (12 GiB of Bibles).
+            #        Forked children share that memory copy-on-write, so this costs almost nothing extra.
+            # NOTE: Outputs (including error and warning messages) from the various versions may be interspersed.
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\nCreating {'TEST ' if state.TEST_MODE_FLAG else ''}version pages for {len(mpParameters):,} versions using {BibleOrgSysGlobals.maxProcesses:,} forked processes…" )
+            BibleOrgSysGlobals.alreadyMultiprocessing = True
+            with multiprocessing.get_context('fork').Pool( processes=BibleOrgSysGlobals.maxProcesses ) as pool: # start worker processes
+                results = pool.map( _createVersionPages_MP, mpParameters ) # have the pool create the pages
+                assert len(results) == len(mpParameters)
+            BibleOrgSysGlobals.alreadyMultiprocessing = False
+            assert all(results)
 
         if 'OET' in state.BibleVersions: # this is a special case
             rvBible, lvBible = state.preloadedBibles['OET-RV'], state.preloadedBibles['OET-LV']
@@ -292,13 +322,28 @@ def _createSitePages() -> bool:
                 versionFolder = state.TEMP_BUILD_FOLDER.joinpath( f'OET/' )
                 createOETSectionPages( 2, versionFolder.joinpath('bySec/'), rvBible, lvBible, state )
         state.sectionsWithImages = defaultdict( list )
+        mpSectionParameters = [] # (versionAbbreviation,) tuples for the forked workers
         for versionAbbreviation, thisBible in state.preloadedBibles.items(): # doesn't include OET pseudo-translation
             if versionAbbreviation not in ('TTN',) \
             and versionAbbreviation in state.versionsWithoutTheirOwnPages: continue # We don't worry about these few selected verses here
-            if versionAbbreviation not in ('TOSN','TTN','SOTN','UTN'): # We don't make separate notes pages
-                if thisBible.discoveryResults['ALL']['haveSectionHeadings']:
+            if versionAbbreviation not in ('TOSN','TTN','SOTN','UTN') \
+            and thisBible.discoveryResults['ALL']['haveSectionHeadings']: # We don't make separate notes pages
+                if BibleOrgSysGlobals.maxProcesses > 1 \
+                and not BibleOrgSysGlobals.alreadyMultiprocessing: # Use multiprocessing for these section pages
+                    mpSectionParameters.append( (versionAbbreviation,) )
+                else: # no multiprocessing available -- do this version sequentially
                     versionFolder = state.TEMP_BUILD_FOLDER.joinpath( f'{thisBible.abbreviation}/' )
                     createSectionPages( 2, versionFolder.joinpath('bySec/'), thisBible, state )
+        if mpSectionParameters:
+            # NOTE: The section lists were prebuilt sequentially by the earlier pass above,
+            #        so the forked children only need to read them while writing each version's own bySec/ folder.
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\nCreating {'TEST ' if state.TEST_MODE_FLAG else ''}section pages for {len(mpSectionParameters):,} versions using {BibleOrgSysGlobals.maxProcesses:,} forked processes…" )
+            BibleOrgSysGlobals.alreadyMultiprocessing = True
+            with multiprocessing.get_context('fork').Pool( processes=BibleOrgSysGlobals.maxProcesses ) as pool: # start worker processes
+                results = pool.map( _createSectionPages_MP, mpSectionParameters ) # have the pool create the pages
+                assert len(results) == len(mpSectionParameters)
+            BibleOrgSysGlobals.alreadyMultiprocessing = False
+            assert all(results)
 
     if state.CREATE_PARALLEL_VERSE_PAGES == 'LAST':
         createParallelVersePages( 1, state.TEMP_BUILD_FOLDER.joinpath('par/'), state )
@@ -474,6 +519,36 @@ def _createOETVersionPages( level:int, folder:Path, rvBible, lvBible, state:Stat
     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"    {len(indexHtml):,} characters written to {filepath}" )
     return True
 # end of createSitePages._createOETVersionPages
+
+def _createVersionPages_MP( parameters ):
+    """
+    Multiprocessing version! (forked children inherit our module-level state copy-on-write)
+
+    Parameter is a 1-tuple containing the version abbreviation.
+    Returns the True result from _createVersionPages because changes that a
+        child process makes to the inherited state are lost when it exits.
+    """
+    # fnPrint( DEBUGGING_THIS_MODULE, f"_createVersionPages_MP( {parameters} )" )
+    versionAbbreviation, = parameters
+    return _createVersionPages( 1, state.TEMP_BUILD_FOLDER.joinpath( f'{versionAbbreviation}/' ), state.preloadedBibles[versionAbbreviation], state )
+# end of createSitePages._createVersionPages_MP
+
+
+def _createSectionPages_MP( parameters ):
+    """
+    Multiprocessing version! (forked children inherit our module-level state copy-on-write)
+
+    Parameter is a 1-tuple containing the version abbreviation.
+    The section lists were already prebuilt sequentially (see the early pass in _createSitePages),
+        so each child only reads them and writes that version's own bySec/ pages.
+    Returns True because changes that a child process makes to the inherited state are lost when it exits.
+    """
+    # fnPrint( DEBUGGING_THIS_MODULE, f"_createSectionPages_MP( {parameters} )" )
+    versionAbbreviation, = parameters
+    createSectionPages( 2, state.TEMP_BUILD_FOLDER.joinpath( f'{versionAbbreviation}/bySec/' ), state.preloadedBibles[versionAbbreviation], state )
+    return True
+# end of createSitePages._createSectionPages_MP
+
 
 def _createVersionPages( level:int, folder:Path, thisBible, state:State ) -> bool:
     """

@@ -41,8 +41,9 @@ CHANGELOG:
     2025-09-25 Make all SR-GNT verse text into live links to collation pages
     2026-01-07 Added OET Logo
     2026-07-06 Added OBI images to OET-RV
-    2026-08-17 Remove current chapter from chLst (chapter links)
+    2026-08-17 Remove current chapter from chLst (chapter links) for OET
     2026-08-22 Use Rust equivalent of convertVerseEntryListToHtml, and add bkLst to FRT chapter pages
+    2026-08-24 Fixed missing last chapter link on book chapter index page, and removed current chapter for other versions as well
 """
 from pathlib import Path
 import os
@@ -62,10 +63,10 @@ from Bibles import getBibleMapperMaps, getOpenBibleImages
 from OETHandlers import livenOETWordLinks, livenOETCompatibleBereanWordLinks, getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
-LAST_MODIFIED_DATE = '2026-08-22' # by RJH
+LAST_MODIFIED_DATE = '2026-08-24' # by RJH
 SHORT_PROGRAM_NAME = "createChapterPages"
 PROGRAM_NAME = "OpenBibleData createChapterPages functions"
-PROGRAM_VERSION = '0.84'
+PROGRAM_VERSION = '0.85'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -405,7 +406,8 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
 
         # Now create an index page for this book
         vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Creating chapter index page for OET {BBB}…" )
-        # filename = f'{BBB}_index.htm' if numChapters>0 else f'{BBB}.htm' # for FRT, etc.
+        realChapterLinks = [f'<a title="View chapter page" href="{BBB}_C{ccc}.htm#Top">{'Sg' if BBB=='PSA' else 'C'}{ccc}</a>' for ccc in range(1, numChapters+1)]
+        chapterLinksParagraph = f'<p class="chLst">{" ".join( intialChapterLinks+realChapterLinks )}</p><!--chLst-->'
         filename = f'{BBB}.htm'
         filenames.append( filename )
         filepath = folder.joinpath( filename )

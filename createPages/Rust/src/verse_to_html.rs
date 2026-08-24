@@ -306,8 +306,9 @@ where
             result_html[fr_ix + 3..first_content_ix].trim().to_string()
         } else {
             if fr_ix.is_some() {
-                println!("{} {} '{}' fr_ix={:?}, first_content_ix={}: '{}'", version_abbrev, bos_book_code, segment_type,
-                    fr_ix, first_content_ix, result_html[fr_ix.unwrap()..fr_ix.unwrap()+25].trim());
+                // TODO: The following debugging print line doesn't handle Unicode multibyte characters correctly, so it may panic if the slice boundaries are in the middle of a multibyte character.  It is commented out for now.
+                // println!("{} {} '{}' fr_ix={:?}, first_content_ix={}: '{}'", version_abbrev, bos_book_code, segment_type,
+                //     fr_ix, first_content_ix, result_html[fr_ix.unwrap()..fr_ix.unwrap()+25].trim());
                 first_content_ix = fr_ix.unwrap() + 3; // TEMP: If no content, set first_content_ix to after \fr
             }
             String::new()

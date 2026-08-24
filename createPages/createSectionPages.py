@@ -557,27 +557,25 @@ def createOETSectionPages( level:int, folder:Path, rvBible:ESFMBible, lvBible:ES
 # end of createSectionPages.createOETSectionPages
 
 
-def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> list[str]:
+def createSectionLists( level:int, thisBible, state:State ) -> None:
     """
-    This creates a page for each section for all versions other than 'OET' (dual columns)
-                                which is considerably more complex (above).
+    Make (or reuse) the state.sectionsListsForSections entries for all books of this Bible version.
+
+
+    This is deliberately a separate function so that the lists can be prebuilt sequentially
+        (before we start creating pages using forked processes -- forked children inherit our state,
+        but any changes they make to their copy are lost when they exit).
+    Books already present in the lists are skipped, so calling this a second time is cheap.
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"createSectionPages( {level}, {folder}, {thisBible.abbreviation} )" )
-    assert thisBible.abbreviation != 'OET'
-    assert thisBible.discoveryResults['ALL']['haveSectionHeadings']
-
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createSectionPages( {level}, {folder}, {thisBible.abbreviation} )…" )
-    try: os.makedirs( folder )
-    except FileExistsError: pass # they were already there
-
+    fnPrint( DEBUGGING_THIS_MODULE, f"createSectionLists( {level}, {thisBible.abbreviation} )" )
     thisBibleBooksToLoad = state.booksToLoad[thisBible.abbreviation]
-    navBookListParagraph = makeBookNavListParagraph(state.BBBLinks[thisBible.abbreviation], thisBible.abbreviation, state )
 
     # Firstly make our list of section headings
     # if thisBible.abbreviation != 'OET-RV': # that's been done already in the above function WRONG Might not have been done for all books
-    if thisBible.abbreviation != 'OET-RV':
+    if thisBible.abbreviation != 'OET-RV': # that's been done already by createOETSectionLists
         assert thisBible.abbreviation not in state.sectionsLists, f"{thisBible.abbreviation=} {state.sectionsLists.keys()=}"
-        state.sectionsListsForSections[thisBible.abbreviation] = {}
+        if thisBible.abbreviation not in state.sectionsListsForSections:
+            state.sectionsListsForSections[thisBible.abbreviation] = {}
     for BBB in state.BBBsToProcess[thisBible.abbreviation]:
         NT = bos_books_codes_py.is_new_testament_nr( BBB )
         # if thisBible.abbreviation=='OET-LV' \
@@ -588,7 +586,7 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> list
         and BBB not in state.booksToLoad[thisBible.abbreviation]:
             logging.critical( f"VV Skipped sections difficult book: {thisBible.abbreviation} {BBB}")
             continue # Only create pages for the requested books
-        if thisBible.abbreviation=='OET-RV' and BBB in state.sectionsListsForSections[thisBible.abbreviation]:
+        if BBB in state.sectionsListsForSections[thisBible.abbreviation]:
             continue # We've already done it
         bkObject = thisBible[BBB]
         state.sectionsListsForSections[thisBible.abbreviation][BBB] = []
@@ -610,6 +608,28 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> list
             sectionFilename = f'{BBB}_S{n}.htm'
             state.sectionsListsForSections[thisBible.abbreviation][BBB].append( (n,startC,startV,endC,endV,sectionName,reasonMarker,contextList,verseEntryList,sectionFilename) )
         assert len(state.sectionsListsForSections[thisBible.abbreviation][BBB]) >= len(bkObject._SectionIndex)
+# end of createSectionPages.createSectionLists
+
+
+def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> list[str]:
+    """
+    This creates a page for each section for all versions other than 'OET' (dual columns)
+                                which is considerably more complex (above).
+    """
+    fnPrint( DEBUGGING_THIS_MODULE, f"createSectionPages( {level}, {folder}, {thisBible.abbreviation} )" )
+    assert thisBible.abbreviation != 'OET'
+    assert thisBible.discoveryResults['ALL']['haveSectionHeadings']
+
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createSectionPages( {level}, {folder}, {thisBible.abbreviation} )…" )
+    try: os.makedirs( folder )
+    except FileExistsError: pass # they were already there
+
+    thisBibleBooksToLoad = state.booksToLoad[thisBible.abbreviation]
+    navBookListParagraph = makeBookNavListParagraph(state.BBBLinks[thisBible.abbreviation], thisBible.abbreviation, state )
+
+    # Make sure we have our list of section headings
+    #   (normally prebuilt earlier by the sequential pass in createSitePages -- this call is then cheap)
+    createSectionLists( level, thisBible, state )
 
     availableBBBs = []
     for BBB in state.BBBsToProcess[thisBible.abbreviation]:
