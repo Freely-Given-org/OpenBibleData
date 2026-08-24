@@ -73,9 +73,7 @@ CHANGELOG:
     2026-04-22 Section indexes are now made BEFORE pickling
     2026-07-04 Added OBI pictures and a few more version numbers on About page, etc.
     2026-08-22 Added FRT to OET books (even though no OET-LV version)
-    2026-08-24 Moved haveSectionHeadings fixup + section list prebuilding into an early sequential pass
-                (forked children can't hand state changes back), then multiprocessing for the version pages
-    2026-08-24 Multiprocessing for the per-version section pages as well (lists are prebuilt by the early pass)
+    2026-08-24 Implemented multiprocessing for creating the per-version book, chapter, and section pages
 """
 from pathlib import Path
 import os
@@ -110,7 +108,7 @@ from spellCheckEnglish import printSpellCheckSummary
 LAST_MODIFIED_DATE = '2026-08-24' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData (OBD) Create Site Pages"
-PROGRAM_VERSION = '1.1.3'
+PROGRAM_VERSION = '2.0.0'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output

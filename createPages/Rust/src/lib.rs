@@ -10,6 +10,7 @@ pub mod ior_links;
 pub mod oet_books;
 pub mod page_chrome;
 pub mod roman_numerals;
+pub mod section_numbers;
 pub mod character_formatting;
 pub mod xref_links;
 pub mod verse_to_html;
@@ -77,6 +78,123 @@ fn py_is_book_available_fn<'s>(
         }
         true
     }
+}
+
+/// Log a message through Python's logging module so that it appears in the
+/// same place as the messages logged by the Python build scripts.
+fn log_message(py: Python<'_>, level: &str, message: &str) {
+    if let Ok(logging) = py.import("logging") {
+        let _ = logging.call_method1(level, (message,));
+    }
+}
+
+// ── section_numbers PyO3 wrapper ───────────────────────────────────────────
+
+/// Find the section number containing the given BCV reference
+/// (Rust port of `createSectionPages.findSectionNumber`).
+///
+/// Reads the prebuilt `state.sectionsListsForSections[versionAbbreviation][refBBB]`
+/// list (tuples of `(n,startC,startV,endC,endV,sectionName,reasonMarker,…)`)
+/// and runs the search loop from `section_numbers::find_section_number_core`.
+#[pyfunction]
+#[pyo3(
+    name = "findSectionNumber",
+    signature = (versionAbbreviation, refBBB, refC, refV, state=None)
+)]
+#[allow(non_snake_case)]
+fn find_section_number_py<'py>(
+    py: Python<'py>,
+    versionAbbreviation: &str,
+    refBBB: &str,
+    refC: &str,
+    refV: &str,
+    state: Option<&Bound<'py, PyAny>>,
+) -> PyResult<Option<usize>> {
+    let Some(state_obj) = state else {
+        return Ok(None); // Can't do anything without State to read the sections lists from
+    };
+    if refBBB.is_empty() {
+        return Ok(None); // Can't do anything without a valid BBB
+    }
+
+    // BOOKLIST_66 membership via the linked-in bos_books_codes crate
+    // (reference numbers 1..66 are exactly the 66 canonical books).
+    if !bos_books_codes::is_old_testament_nr(refBBB) && !bos_books_codes::is_new_testament_nr(refBBB)
+    {
+        // Only continue for versions that include the Apocrypha books
+        let mut is_version_with_apocrypha = false;
+        if let Ok(apocrypha_versions) = state_obj.getattr("VERSIONS_WITH_APOCRYPHA") {
+            if let Ok(iter) = apocrypha_versions.try_iter() {
+                for item in iter.flatten() {
+                    if let Ok(va) = item.extract::<String>() {
+                        if va == versionAbbreviation {
+                            is_version_with_apocrypha = true;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        if !is_version_with_apocrypha {
+            log_message(
+                py,
+                "warning",
+                &format!(
+                    "Unable to continue in findSectionNumber( {versionAbbreviation}, {refBBB} {refC}:{refV} )"
+                ),
+            );
+            return Ok(None); // Can't do anything here
+        }
+    }
+
+    // This raises KeyError like the original Python code when we have no
+    // sectionsLists at all for this version.
+    let version_sections_lists = state_obj.getattr("sectionsListsForSections")?.get_item(versionAbbreviation)?;
+
+    let test_mode_flag: bool = state_obj
+        .getattr("TEST_MODE_FLAG")
+        .and_then(|v| v.extract())
+        .unwrap_or(false);
+
+    let has_book = version_sections_lists
+        .call_method1("__contains__", (refBBB,))?
+        .is_truthy()?;
+    if !has_book {
+        // No section headings for this book
+        if test_mode_flag {
+            return Ok(Some(0)); // default to introduction for testing (because it doesn't contain all the books)
+        }
+        let available_keys: Vec<String> = version_sections_lists
+            .try_iter()?
+            .filter_map(|item| item.ok())
+            .filter_map(|item| item.extract().ok())
+            .collect();
+        log_message(
+            py,
+            "error",
+            &format!(
+                "findSectionNumber: No {versionAbbreviation} sectionsLists for {refBBB} -- only have {available_keys:?} -- returning None"
+            ),
+        );
+        return Ok(None);
+    }
+
+    // Extract just the fields that the search needs from each
+    // (n,startC,startV,endC,endV,sectionName,reasonMarker,contextList,verseEntryList,filename) tuple.
+    let book_sections_list = version_sections_lists.get_item(refBBB)?;
+    let mut sections = Vec::with_capacity(64);
+    for item in book_sections_list.try_iter()? {
+        let item = item?;
+        sections.push(section_numbers::SectionEntry {
+            start_c: item.get_item(1)?.extract()?,
+            start_v: item.get_item(2)?.extract()?,
+            end_c: item.get_item(3)?.extract()?,
+            end_v: item.get_item(4)?.extract()?,
+            reason_marker: item.get_item(6)?.extract()?,
+        });
+    }
+
+    Ok(section_numbers::find_section_number_core(&sections, refC, refV))
 }
 
 /// Liven introduction links in HTML text using Rust.
@@ -609,6 +727,7 @@ fn openbibledata_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(process_cross_references_py, m)?)?;
     m.add_function(wrap_pyfunction!(process_footnotes_py, m)?)?;
     m.add_function(wrap_pyfunction!(convert_verse_entry_list_to_html_py, m)?)?;
+    m.add_function(wrap_pyfunction!(find_section_number_py, m)?)?;
     m.add_function(wrap_pyfunction!(make_top_py, m)?)?;
     m.add_function(wrap_pyfunction!(make_view_nav_list_py, m)?)?;
     m.add_class::<PyPageChromeConfig>()?;

@@ -68,7 +68,7 @@ class State:
     """
     OET_VERSION_NUMBER_STRING = 'v0.48.73' # Incremented on most runs
 
-    TEST_MODE_FLAG = False # Writes smaller website subset into DEBUG_DESTINATION_FOLDER_PATH if True
+    TEST_MODE_FLAG = True # Writes smaller website subset into DEBUG_DESTINATION_FOLDER_PATH if True
     TEST_OT_BOOK_LIST = ['PSA']
     TEST_DC_BOOK_LIST = []
     TEST_NT_BOOK_LIST = ['MRK','GAL'] # Shortest gospel

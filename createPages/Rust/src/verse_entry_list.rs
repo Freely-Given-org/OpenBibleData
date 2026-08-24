@@ -10,6 +10,13 @@
 //!              close_list() and in the li level-drop recovery branch.
 //!  2026-08-22: PSA background colours (\zN) now persist across following
 //!              lines like Python's nonlocal backgroundColour (reset by 'c').
+//!  2026-08-24: Embedded lists are now properly nested: BibleOrgSys brackets
+//!              each embedded list with 'list'/'¬list' entries whose text
+//!              carries the nesting depth ('1','2',…). A deeper <ul> is
+//!              emitted INSIDE its still-open outer <li> (valid HTML), and
+//!              '¬list' closes only that one level, restoring the enclosing
+//!              list context (previously it collapsed every open list and a
+//!              stray duplicate <ul>/misplaced </li> was emitted).
 
 use crate::character_formatting::convert_usfm_character_formatting;
 use crate::constants::*;
@@ -51,6 +58,9 @@ struct ConvertState {
     in_section: Option<String>,
     in_list: Option<String>,
     in_list_entry: ListEntry,
+    /// Items of ENCLOSING lists still open while we're inside a nested list
+    /// (their <li> must only be closed by their own '¬liN' after our '¬list').
+    open_enclosing_items: usize,
     in_table: Option<String>,
     in_table_row: Option<String>,
     in_sp_div: Option<String>,
@@ -366,6 +376,7 @@ where
         in_section: None,
         in_list: None,
         in_list_entry: ListEntry::None,
+        open_enclosing_items: 0,
         in_table: None,
         in_table_row: None,
         in_sp_div: None,
@@ -984,13 +995,47 @@ where
             // ── List markers ──
             "list" | "ilist" => {
                 if segment_type != "parallelVerse" {
-                    html.push_str("<ul>\n");
-                    state.in_list = Some("ul_1".to_string());
+                    // BibleOrgSys brackets embedded lists with 'list'/'¬list'
+                    // entries whose text carries the nesting depth ('1','2',…).
+                    let list_level: usize = rest_str
+                        .trim()
+                        .chars()
+                        .last()
+                        .and_then(|c| c.to_digit(10))
+                        .map(|d| d as usize)
+                        .unwrap_or(1)
+                        .max(1);
+                    // A deeper list nests INSIDE the still-open outer <li>
+                    // (valid HTML), so we deliberately do NOT close it here.
+                    // Remember it so its own '¬liN' can close it later.
+                    if state.in_list_entry != ListEntry::None {
+                        state.open_enclosing_items += 1;
+                    }
+                    html.push_str(&format!("\n{}<ul>\n", " ".repeat(list_level - 1)));
+                    state.in_list = Some(format!("ul_{}", list_level));
                 }
             }
             "\u{AC}list" | "\u{AC}ilist" => {
                 if state.in_list.is_some() {
-                    close_list(&mut html, &mut state);
+                    let closed_level: usize = rest_str
+                        .trim()
+                        .chars()
+                        .last()
+                        .and_then(|c| c.to_digit(10))
+                        .map(|d| d as usize)
+                        .unwrap_or(1);
+                    // Only THIS one list ends here: close its last <li> (if
+                    // any), then its own </ul>; an enclosing list stays open.
+                    if state.in_list_entry != ListEntry::None {
+                        html.push_str("</li>\n");
+                        state.in_list_entry = ListEntry::None;
+                    }
+                    html.push_str(&format!("{}</ul>{}", " ".repeat(closed_level - 1), if closed_level < 2 { "\n" } else { "" }));
+                    state.in_list = if closed_level > 1 {
+                        Some(format!("ul_{}", closed_level - 1))
+                    } else {
+                        None
+                    };
                 }
             }
             "li1" | "li2" | "li3" | "li4" | "ili1" | "ili2" => {
@@ -1021,16 +1066,31 @@ where
                             state.in_list_entry = ListEntry::None;
                         }
                         if marker_level < current_level - 1 { // it's more than one level down
-                            html.push_str(&format!("{}</ul>\n", " ".repeat(current_level - 1)));
+                            html.push_str(&format!("{}</ul>{}", " ".repeat(current_level - 1), if current_level < 2 { "\n" } else { "" }));
                             current_level -= 1;
                         }
                         debug_assert_eq!(marker_level, current_level - 1); // Always true by construction (cf. Python assert)
                         eprintln!("Warning: Not inList C {version_abbreviation} {bos_book_code} {segment_type} marker_level={marker_level} current_level={current_level} {marker}={rest_str}");
-                        html.push_str(&format!("{}</ul>\n", " ".repeat(current_level - 1)));
+                        html.push_str(&format!("{}</ul>{}", " ".repeat(current_level - 1), if current_level < 2 { "\n" } else { "" }));
                         state.in_list = Some(format!("ul_{}", current_level - 1));
                     }
-                    // Close previous list entry if any
-                    if state.in_list_entry != ListEntry::None {
+                    // Close previous list entry if any — but ONLY if it
+                    // belongs to this same (or an outer-collapsed) level.
+                    // A still-open item of an ENCLOSING list must stay open:
+                    // our nested list lives inside it, and its own '¬liN'
+                    // closes it after our '¬list'.
+                    if let ListEntry::Specific(ref prev_marker) = state.in_list_entry {
+                        let prev_level = prev_marker
+                            .chars()
+                            .last()
+                            .and_then(|c| c.to_digit(10))
+                            .map(|d| d as usize)
+                            .unwrap_or(marker_level);
+                        if marker_level <= prev_level {
+                            html.push_str("</li>\n");
+                            state.in_list_entry = ListEntry::None;
+                        }
+                    } else if state.in_list_entry != ListEntry::None {
                         html.push_str("</li>\n");
                         state.in_list_entry = ListEntry::None;
                     }
@@ -1044,13 +1104,26 @@ where
             }
             "\u{AC}li1" | "\u{AC}li2" | "\u{AC}li3" | "\u{AC}li4"
             | "\u{AC}ili1" | "\u{AC}ili2" => {
+                // The digit tells us the nesting level of the item being closed
+                let item_level: usize = marker
+                    .chars()
+                    .last()
+                    .and_then(|c| c.to_digit(10))
+                    .map(|d| d as usize)
+                    .unwrap_or(1);
                 if state.in_list_entry != ListEntry::None {
                     html.push_str("</li>\n");
                     state.in_list_entry = ListEntry::None;
+                } else if state.open_enclosing_items > 0 {
+                    // An enclosing item's own closer: our nested list is done
+                    // ('¬list' already restored the outer level), so now the
+                    // outer <li> that contains it finally gets closed.
+                    html.push_str("</li>\n");
+                    state.open_enclosing_items -= 1;
                 } else if state.in_list.as_deref() == Some("ul_2") || state.in_list.as_deref() == Some("ul_3") {
                     // if let Some(ref l) = state.in_list {
                     let depth: usize = state.in_list.as_deref().unwrap_or("").chars().last().unwrap().to_digit(10).unwrap_or(1) as usize;
-                    html.push_str(&format!("{}</ul>\n", " ".repeat(depth)));
+                    html.push_str(&format!("{}</ul>{}", " ".repeat(depth), if depth < 2 { "\n" } else { "" }));
                     state.in_list = Some(format!("ul_{}", depth - 1));
                 }
             }
@@ -1189,6 +1262,15 @@ where
         html.push_str("</table>\n");
     }
     if state.in_list_entry != ListEntry::None {
+        let item_level = match &state.in_list_entry {
+            ListEntry::Specific(m) => m
+                .chars()
+                .last()
+                .and_then(|c| c.to_digit(10))
+                .map(|d| d as usize)
+                .unwrap_or(1),
+            _ => 1,
+        };
         html.push_str("</li>\n");
     }
     if state.in_list.is_some() {
@@ -1401,16 +1483,14 @@ fn close_list(html: &mut String, state: &mut ConvertState) {
         let parts: Vec<&str> = l.split('_').collect();
         let marker = parts[0];
         let mut depth: usize = parts.get(1).and_then(|s| s.parse().ok()).unwrap_or(1);
+        // Close any open list entry BEFORE its enclosing </ul>, otherwise
+        // we'd emit </ul> while the last <li> is still open.
+        if state.in_list_entry != ListEntry::None {
+            html.push_str("</li>\n");
+            state.in_list_entry = ListEntry::None;
+        }
         while depth > 0 {
-            // Close any open list entry BEFORE its enclosing </ul>, otherwise
-            // we'd emit </ul> while the last <li> is still open.
-            // (Python's original only closed legacy generic entries here, so
-            // specific li entries were never closed — ported verbatim.)
-            if state.in_list_entry != ListEntry::None {
-                html.push_str("</li>\n");
-                state.in_list_entry = ListEntry::None;
-            }
-            html.push_str(&format!("</{marker}>\n"));
+            html.push_str(&format!("{}</{marker}>\n", " ".repeat(depth - 1)));
             depth -= 1;
         }
     }
@@ -1516,7 +1596,7 @@ mod tests {
             "book", &["chapters"], &entries, false, false,
             no_op_char_fmt, no_op_fig, no_op_sect, no_op_avail, no_op_obi, no_op_check,
         ).unwrap();
-        assert!(result.contains("Beta.</li>\n</ul>"), "expected </li> before </ul>, got:\n{result}");
+        assert!(result.contains("Beta.</li>\n</ul>"), "expected </li> at end of previous line before </ul>, got:\n{result}");
     }
 
     #[test]
@@ -1537,7 +1617,7 @@ mod tests {
             "book", &["chapters"], &entries, false, false,
             no_op_char_fmt, no_op_fig, no_op_sect, no_op_avail, no_op_obi, no_op_check,
         ).unwrap();
-        assert!(result.contains("Nested.</li>\n </ul>"), "expected </li> closed before </ul> on drop, got:\n{result}");
+        assert!(result.contains("Nested.</li>\n </ul>"), "expected level-2 </li> closed before </ul> on drop, got:\n{result}");
     }
 
     #[test]

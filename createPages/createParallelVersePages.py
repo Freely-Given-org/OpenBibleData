@@ -85,10 +85,17 @@ CHANGELOG:
     2026-05-26 Reducing some logging verbosity
     2026-07-05 Added OpenBibleImages
     2026-08-16 If second paired version is the same as the first, combine them (BSB/MSB & WEBBE/WMBB)
+    2026-08-24 Use multiprocessing for creating the per-book parallel verse pages
+                (children return their collected versesWithImages, possibleUnmatchedProperNames,
+                and spell-check results for merging back into the parent state)
+                NOTE: The printed spell-check summary can differ very slightly from sequential
+                builds because the shared word-set warming in spellCheckAndMarkHTMLText
+                is order-dependent -- page output is unaffected
 """
 from pathlib import Path
 import os
 import logging
+import multiprocessing
 import re
 from collections import defaultdict
 
@@ -103,7 +110,7 @@ import bos_books_codes_py
 
 from bible_transliterations import transliterate_Hebrew, transliterate_Greek
 
-from settings import State, CNTR_BOOK_ID_MAP, reorderBooksForOETVersions
+from settings import State, state, CNTR_BOOK_ID_MAP, reorderBooksForOETVersions
 from openbibledata_rust import convertVerseEntryListToHtml
 from Bibles import formatTyndaleBookIntro, formatUnfoldingWordTranslationNotes, formatTyndaleNotes, \
                     getBibleMapperMaps, getOpenBibleImages, getVerseMetaInfoHtml
@@ -114,13 +121,13 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_
 from createSectionPages import findSectionNumber
 from createOETReferencePages import OSHB_ADJECTIVE_DICT, OSHB_PARTICLE_DICT, OSHB_NOUN_DICT, OSHB_PREPOSITION_DICT, OSHB_PRONOUN_DICT, OSHB_SUFFIX_DICT
 from OETHandlers import getOETTidyBBB, getOETBookName, livenOETWordLinks, livenOETCompatibleBereanWordLinks, getHebrewWordpageFilename, getGreekWordpageFilename
-from spellCheckEnglish import spellCheckAndMarkHTMLText
+from spellCheckEnglish import spellCheckAndMarkHTMLText, collectSpellCheckResults, mergeSpellCheckResults
 
 
-LAST_MODIFIED_DATE = '2026-08-19' # by RJH
+LAST_MODIFIED_DATE = '2026-08-24' # by RJH
 SHORT_PROGRAM_NAME = "createParallelVersePages"
 PROGRAM_NAME = "OpenBibleData createParallelVersePages functions"
-PROGRAM_VERSION = '1.0.4'
+PROGRAM_VERSION = '1.0.5'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -187,10 +194,32 @@ def createParallelVersePages( level:int, folder:Path, state:State ) -> bool:
     # Now create the actual parallel pages
     state.versesWithImages = defaultdict( list )
     state.possibleUnmatchedProperNames = set()
+    mpBookParameters = [] # (level, folder, BBB, BBBNextLinks, parallelVersions) tuples for the forked workers
     for BBB in reorderBooksForOETVersions( state.allBBBs ):
         if not state.TEST_MODE_FLAG or BBB in state.TEST_BOOK_LIST: # Don't need parallel pages for non-test books
             if bos_books_codes_py.is_chapter_verse_book( BBB ):
-                createParallelVersePagesForBook( level, folder, BBB, BBBNextLinks, parallelVersions, state )
+                if BibleOrgSysGlobals.maxProcesses > 1 \
+                and not BibleOrgSysGlobals.alreadyMultiprocessing: # Use multiprocessing for these parallel verse pages
+                    mpBookParameters.append( (level, folder, BBB, BBBNextLinks, parallelVersions) )
+                else: # no multiprocessing available -- do this book sequentially
+                    createParallelVersePagesForBook( level, folder, BBB, BBBNextLinks, parallelVersions, state )
+    if mpBookParameters:
+        # NOTE: We use an explicit 'fork' context because Python 3.14 changed the default start method
+        #        to 'forkserver' which would NOT inherit our huge module-level state (12 GiB of Bibles).
+        #        Forked children share that memory copy-on-write, so this costs almost nothing extra.
+        # NOTE: Outputs (including error and warning messages) from the various books may be interspersed.
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\nCreating {'TEST ' if state.TEST_MODE_FLAG else ''}parallel verse pages for {len(mpBookParameters):,} books using {BibleOrgSysGlobals.maxProcesses:,} forked processes…" )
+        BibleOrgSysGlobals.alreadyMultiprocessing = True
+        with multiprocessing.get_context('fork').Pool( processes=BibleOrgSysGlobals.maxProcesses ) as pool: # start worker processes
+            results = pool.map( _createParallelVersePagesForBook_MP, mpBookParameters ) # have the pool create the pages
+            assert len(results) == len(mpBookParameters)
+        BibleOrgSysGlobals.alreadyMultiprocessing = False
+        # Merge back into OUR state what the children collected for us (their state changes died when they exited)
+        for resultBool, BBB, versesWithImagesList, possibleUnmatchedProperNamesSet, spellCheckResults in results:
+            assert resultBool is True
+            if versesWithImagesList: state.versesWithImages[BBB].extend( versesWithImagesList )
+            state.possibleUnmatchedProperNames.update( possibleUnmatchedProperNamesSet )
+            mergeSpellCheckResults( spellCheckResults )
     vPrint( 'Info', DEBUGGING_THIS_MODULE, f"\nPossible Unmatched Proper Names ({len(state.possibleUnmatchedProperNames):,}) {sorted(state.possibleUnmatchedProperNames)}" )
 
     # Create index page
@@ -217,6 +246,26 @@ def createParallelVersePages( level:int, folder:Path, state:State ) -> bool:
 
     return True
 # end of createParallelVersePages.createParallelVersePages
+
+
+def _createParallelVersePagesForBook_MP( parameters ) -> tuple[bool,str,list,set,tuple]:
+    """
+    Multiprocessing version! (forked children inherit our module-level state copy-on-write)
+
+    Parameter is a 5-tuple containing the level, destination folder, BBB book code,
+        next-book links, and the reordered list of parallel version abbreviations.
+    Returns a 5-tuple containing the True result of createParallelVersePagesForBook plus the BBB,
+        this book's versesWithImages list, its possibleUnmatchedProperNames set, and its
+        collected spell-check results -- because changes that a child process makes
+        to the inherited state are lost when it exits.
+    """
+    # fnPrint( DEBUGGING_THIS_MODULE, f"_createParallelVersePagesForBook_MP( {parameters[:3]}… )" )
+    level, folder, BBB, BBBNextLinks, parallelVersions = parameters
+    resultBool = createParallelVersePagesForBook( level, folder, BBB, BBBNextLinks, parallelVersions, state )
+    assert resultBool is True
+    return ( resultBool, BBB, list(state.versesWithImages.get(BBB,())),
+                set(state.possibleUnmatchedProperNames), collectSpellCheckResults() )
+# end of createParallelVersePages._createParallelVersePagesForBook_MP
 
 
 class MissingBookError( Exception ): pass

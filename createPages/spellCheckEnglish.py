@@ -35,6 +35,8 @@ CHANGELOG:
     2025-10-10 Added support for (OET) LV & RV names tables
     2026-04-08 Handle divide by zero (TOTAL_GERMAN_WORDS_CHECKED_COUNT)
     2026-06-11 Handle new % (changed person) \\add format
+    2026-08-24 Added collectSpellCheckResults and mergeSpellCheckResults so that results
+                collected by forked multiprocessing children can be merged back into the parent
 """
 from pathlib import Path
 from csv import  DictReader
@@ -799,11 +801,12 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                 'one)r','one)n','ones)r','ones)s','ones)n','one)s',
                                 'hing','weh','du','ach','Raube','Raub','Tal','tue','fiel','sehe','Mal','mal','milde','mit','Mord','Natur',
                                 'ende','rede','kam','Korb','ward','alt','dran','Rede','nun','nur','messen','ging','Halle','und','ster','streng','tun','von','wer','zu',
-                                'whoren','sharedn','goatsböcklein','saddenede',
-                                'outen',
+                                'whoren','outen',
+                                'picturead','getreu','noticedn','aboveaus',
                                     'tearinger','chainswerk','eightytausend','cartstädte','ratet','wroteen',
                                     'blasphemyen','shopsn','nineunddreißig','soundedn','hinderte','frightenedn','preventeden','plainlyds','yest','routest',
-                                    'bedte','towache','killedst','flatr','outn','woen','tauet‘s','winde',
+                                    'crossess','gangn','lustn','vainr',
+                                    'Yakobs','Yesum','Abrahams','Da','Zebedäus','Baptiser','Githith',
                     
                                 'actio', 'agi', 'ambit','ambitio','amputa', 'anima','antiqui','apprehendi','ascendi','attende','audi', 'aversio',
                                 'beati','bene','beneficia','bos',
@@ -825,7 +828,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                 'nam','narrat','natu','natura','ne','nota','Nota',     'ob','obsessi','offen','omnis','operatio','ora','ori',
                                 'passi','patria','patri','pede','pedes','perpetua','perfecti','persecuti','persecutio',
                                     'pio','plura','polluti','prope','propitiatio','provocat','publica',
-                                'questio','qui',        'rea','redempti','rege','regi','regio','regula','remun','remunerat','rei','repente','ros',
+                                'questio','qui',        'rea','redempti','rege','regi','regio','regula','remun','remunerat','rei','repente','reprobat','ros',
                                 'salva','salvat','salvati','sanctifi','sanctificati',
                                     'securi','separat','separati','seu','serva','servit','sex','sexta',
                                     'si','sit','sol','soli','solem','stat','statu','summo',
@@ -833,11 +836,10 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                 'usu',      'valle','vani','vas', 'victi','visita','visitat','visitatio','vita', 'Voca','voca',
                                 'l','nos','ut','didrachmas',
                                 'tum','holdur','killur','giveium','inactivitym',
-                                #'announcent','relibecauses',
+                                'orientali','ingressum','passionbus','proposito',
                                     'changesa','talentis','habitculo','establishedque','lastrum','buildt','buildsa','solidos',
                                     'buildingus','buildri','planstorum','yearnas','myrti','recallsione','exaltsion','labi',
-                                    'harmes','petii','peto','petere','alti','defectu','precedesur',
-                                    'confundar','sparesur',
+                                    'harmes','alti','defectu','precedesur','utre','ponens','utiliter','reprobat','converti','nec',
         
                                 )
                     else 'Info', DEBUGGING_THIS_MODULE, f'''        {word} is suspect @ {location}\nfrom {cleanedTextToDisplay=}\n  WHICH GAVE {cleanedTextToCheck=}''' )
@@ -941,5 +943,62 @@ def printSpellCheckSummary( state ) -> None:
         totalWordsWithRef += len( MISPELLING_VERSION_REF_DICT[versionAbbreviation] )
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  TOTAL misspelt words (with references) = {totalWordsWithRef:,}" )
 # end of spellCheckEnglish.printSpellCheckSummary()
+
+
+def collectSpellCheckResults() -> tuple:
+    """
+    Snapshot all our accumulated spell-check results so that they can be
+        transferred from a forked child process back to the parent process.
+    """
+    return ( MISPELLING_VERSION_REF_DICT,
+                BAD_ENGLISH_WORD_LIST, BAD_ENGLISH_WORD_SET, BAD_ENGLISH_COUNTS,
+                TOTAL_ENGLISH_WORDS_CHECKED_COUNT, TOTAL_ENGLISH_MISSPELLING_COUNT,
+                BAD_GERMAN_WORD_LIST, BAD_GERMAN_WORD_SET, BAD_GERMAN_COUNTS,
+                TOTAL_GERMAN_WORDS_CHECKED_COUNT, TOTAL_GERMAN_MISSPELLING_COUNT,
+                BAD_LATIN_WORD_LIST, BAD_LATIN_WORD_SET, BAD_LATIN_COUNTS,
+                TOTAL_LATIN_WORDS_CHECKED_COUNT, TOTAL_LATIN_MISSPELLING_COUNT )
+# end of spellCheckEnglish.collectSpellCheckResults
+
+
+def mergeSpellCheckResults( collectedResults ) -> None:
+    """
+    Merge the results collected by one (or more) child processes into this process' accumulators.
+
+        NOTE: The results are merged in pool.map order which preserves the sequential processing order.
+    """
+    global TOTAL_ENGLISH_WORDS_CHECKED_COUNT, TOTAL_ENGLISH_MISSPELLING_COUNT, \
+            TOTAL_GERMAN_WORDS_CHECKED_COUNT, TOTAL_GERMAN_MISSPELLING_COUNT, \
+            TOTAL_LATIN_WORDS_CHECKED_COUNT, TOTAL_LATIN_MISSPELLING_COUNT
+    ( collectedMispellingVersionRefDict,
+        collectedBadEnglishWordList, collectedBadEnglishWordSet, collectedBadEnglishCounts,
+        collectedTotalEnglishWordsCheckedCount, collectedTotalEnglishMisspellingCount,
+        collectedBadGermanWordList, collectedBadGermanWordSet, collectedBadGermanCounts,
+        collectedTotalGermanWordsCheckedCount, collectedTotalGermanMisspellingCount,
+        collectedBadLatinWordList, collectedBadLatinWordSet, collectedBadLatinCounts,
+        collectedTotalLatinWordsCheckedCount, collectedTotalLatinMisspellingCount ) = collectedResults
+
+    for versionAbbreviation,collectedMispellings in collectedMispellingVersionRefDict.items():
+        MISPELLING_VERSION_REF_DICT[versionAbbreviation].extend( collectedMispellings )
+
+    BAD_ENGLISH_WORD_LIST.extend( collectedBadEnglishWordList )
+    BAD_ENGLISH_WORD_SET.update( collectedBadEnglishWordSet )
+    for word,count in collectedBadEnglishCounts.items(): BAD_ENGLISH_COUNTS[word] += count
+    TOTAL_ENGLISH_WORDS_CHECKED_COUNT += collectedTotalEnglishWordsCheckedCount
+    TOTAL_ENGLISH_MISSPELLING_COUNT += collectedTotalEnglishMisspellingCount
+
+    if collectedTotalGermanWordsCheckedCount or collectedTotalGermanMisspellingCount:
+        BAD_GERMAN_WORD_LIST.extend( collectedBadGermanWordList )
+        BAD_GERMAN_WORD_SET.update( collectedBadGermanWordSet )
+        for word,count in collectedBadGermanCounts.items(): BAD_GERMAN_COUNTS[word] += count
+        TOTAL_GERMAN_WORDS_CHECKED_COUNT += collectedTotalGermanWordsCheckedCount
+        TOTAL_GERMAN_MISSPELLING_COUNT += collectedTotalGermanMisspellingCount
+
+    if collectedTotalLatinWordsCheckedCount or collectedTotalLatinMisspellingCount:
+        BAD_LATIN_WORD_LIST.extend( collectedBadLatinWordList )
+        BAD_LATIN_WORD_SET.update( collectedBadLatinWordSet )
+        for word,count in collectedBadLatinCounts.items(): BAD_LATIN_COUNTS[word] += count
+        TOTAL_LATIN_WORDS_CHECKED_COUNT += collectedTotalLatinWordsCheckedCount
+        TOTAL_LATIN_MISSPELLING_COUNT += collectedTotalLatinMisspellingCount
+# end of spellCheckEnglish.mergeSpellCheckResults
 
 # end of spellCheckEnglish.py

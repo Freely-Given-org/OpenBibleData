@@ -150,30 +150,20 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
 
         BBBs.append( BBB )
 
-        numChapters = rvBible.getNumChapters( BBB )
-        # chapterLinks = [f'<a title="Choose “book”" href="./">{ourTidyBBBwithNotes}</a>']
-        # if numChapters >= 1:
-        #     if rvBible.discoveryResults[BBB]['haveIntroductoryText']:
-        #         chapterLinks.append( f'<a title="View document introduction" href="{BBB}_Intro.htm#Top">Intro</a>' )
-        #     for c in range( 1, numChapters+1 ):
-        #         chapterLinks.append( f'<a title="View chapter page" href="{BBB}_C{c}.htm#Top">{'Sg' if BBB=='PSA' else 'C'}{c}</a>' )
-        # else:
-        #     c = '0' # TODO: for now
-        #     assert False, "We want to stop here"
-        # chapterLinksParagraph = f'<p class="chLst">{" ".join( chapterLinks )}</p><!--chLst-->'
-
+        initialChapterLinks = [f'<a title="Choose “book”" href="./">{ourTidyBBBwithNotes}</a>']
         assert rvBible.getNumVerses( BBB, '-1' ) # OET always has intro
         assert not rvBible.getNumVerses( BBB, '0' ) # OET has no chapter zero
+        if rvBible.discoveryResults[BBB]['haveIntroductoryText']:
+            initialChapterLinks.append( f'<a title="View document introduction" href="{BBB}_Intro.htm#Top">Intro</a>' )
+
+        numChapters = rvBible.getNumChapters( BBB )
         if numChapters >= 1:
             for c in range( -1, numChapters+1 ):
                 vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"      Creating chapter pages for OET {BBB} {c}…" )
 
-                intialChapterLinks = [f'<a title="Choose “book”" href="./">{ourTidyBBBwithNotes}</a>']
-                if rvBible.discoveryResults[BBB]['haveIntroductoryText']:
-                    intialChapterLinks.append( f'<a title="View document introduction" href="{BBB}_Intro.htm#Top">Intro</a>' )
                 realChapterLinks = [f'<a title="View chapter page" href="{BBB}_C{ccc}.htm#Top">{'Sg' if BBB=='PSA' else 'C'}{ccc}</a>'
                                     for ccc in range( 1, numChapters+1 ) if ccc != c]
-                chapterLinksParagraph = f'<p class="chLst">{" ".join( intialChapterLinks+realChapterLinks )}</p><!--chLst-->'
+                chapterLinksParagraph = f'<p class="chLst">{" ".join( initialChapterLinks+realChapterLinks )}</p><!--chLst-->'
 
                 documentLink = f'<a title="Whole document view" href="../byDoc/{BBB}.htm#Top">{ourTidyBBBwithNotes}</a>'
                 if c == -1: # Intro
@@ -407,7 +397,7 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
         # Now create an index page for this book
         vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Creating chapter index page for OET {BBB}…" )
         realChapterLinks = [f'<a title="View chapter page" href="{BBB}_C{ccc}.htm#Top">{'Sg' if BBB=='PSA' else 'C'}{ccc}</a>' for ccc in range(1, numChapters+1)]
-        chapterLinksParagraph = f'<p class="chLst">{" ".join( intialChapterLinks+realChapterLinks )}</p><!--chLst-->'
+        chapterLinksParagraph = f'<p class="chLst">{" ".join( initialChapterLinks+realChapterLinks )}</p><!--chLst-->'
         filename = f'{BBB}.htm'
         filenames.append( filename )
         filepath = folder.joinpath( filename )
@@ -495,24 +485,29 @@ def createChapterPages( level:int, folder:Path, thisBible, state:State ) -> list
             logging.critical( f"Can't get number of chapters for {thisBible.abbreviation} {BBB}")
             continue
 
-        chapterLinks = [f'<a title="Choose “book”" href="./">{ourTidyBBB}</a>']
+        initialChapterLinks = [f'<a title="Choose “book”" href="./">{ourTidyBBB}</a>']
         if numChapters >= 1:
             if thisBible.discoveryResults[BBB]['haveIntroductoryText']:
-                chapterLinks.append( f'<a title="View document introduction" href="{BBB}_Intro.htm#Top">Intro</a>' )
-            for c in range( 1, numChapters+1 ):
-                dPrint( 'Info', DEBUGGING_THIS_MODULE, f"createChapterPages getNumVerses( {thisBible.abbreviation} {BBB} {c} )")
-                numVerses = thisBible.getNumVerses( BBB, c )
-                if numVerses: # make sure it's a normal chapter, e.g., in ESG book which lacks chapters 1-9
-                    chapterLinks.append( f'<a title="View chapter page" href="{BBB}_C{c}.htm#Top">{'Sg' if 'OET' in thisBible.abbreviation and BBB=='PSA' else 'Ps' if BBB=='PSA' else 'C'}{c}</a>' )
-        else:
-            chapterLinks.append( f'<a title="View document" href="{BBB}.htm#Top">{ourTidyBBB}</a>' )
-        chapterLinksParagraph = f'<p class="chLst">{" ".join( chapterLinks )}</p><!--chLst-->'
+                initialChapterLinks.append( f'<a title="View document introduction" href="{BBB}_Intro.htm#Top">Intro</a>' )
+        #     for c in range( 1, numChapters+1 ):
+        #         dPrint( 'Info', DEBUGGING_THIS_MODULE, f"createChapterPages getNumVerses( {thisBible.abbreviation} {BBB} {c} )")
+        #         numVerses = thisBible.getNumVerses( BBB, c )
+        #         if numVerses: # make sure it's a normal chapter, e.g., in ESG book which lacks chapters 1-9
+        #             chapterLinks.append( f'<a title="View chapter page" href="{BBB}_C{c}.htm#Top">{'Sg' if 'OET' in thisBible.abbreviation and BBB=='PSA' else 'Ps' if BBB=='PSA' else 'C'}{c}</a>' )
+        # else:
+        #     chapterLinks.append( f'<a title="View document" href="{BBB}.htm#Top">{ourTidyBBB}</a>' )
+        # chapterLinksParagraph = f'<p class="chLst">{" ".join( chapterLinks )}</p><!--chLst-->'
 
         haveBookIntro = thisBible.getNumVerses( BBB, '-1' )
         haveChapterZero = thisBible.getNumVerses( BBB, '0' )
         if numChapters >= 1:
             for c in range( -1, numChapters+1 ):
                 C = str( c )
+
+                realChapterLinks = [f'<a title="View chapter page" href="{BBB}_C{ccc}.htm#Top">{'Sg' if BBB=='PSA' else 'C'}{ccc}</a>'
+                                    for ccc in range( 1, numChapters+1 ) if ccc != c and thisBible.getNumVerses( BBB, c )] # make sure it's a normal chapter, e.g., in ESG book which lacks chapters 1-9
+                chapterLinksParagraph = f'<p class="chLst">{" ".join( initialChapterLinks+realChapterLinks )}</p><!--chLst-->'
+
                 try: numVerses = thisBible.getNumVerses( BBB, c )
                 except KeyError:
                     logging.critical( f"Can't get number of verses for {thisBible.abbreviation} {BBB} {C}")
@@ -601,7 +596,9 @@ def createChapterPages( level:int, folder:Path, thisBible, state:State ) -> list
 
             # Now create an index page for this book
             vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Creating chapter index page for {thisBible.abbreviation} {BBB}…" )
-            # filename = f'{BBB}_index.htm' if numChapters>0 else f'{BBB}.htm' # for FRT, etc.
+            realChapterLinks = [f'<a title="View chapter page" href="{BBB}_C{ccc}.htm#Top">{'Sg' if BBB=='PSA' else 'C'}{ccc}</a>'
+                                for ccc in range( 1, numChapters+1 ) if thisBible.getNumVerses( BBB, c )] # make sure it's a normal chapter, e.g., in ESG book which lacks chapters 1-9
+            chapterLinksParagraph = f'<p class="chLst">{" ".join( initialChapterLinks+realChapterLinks )}</p><!--chLst-->'
             filename = f'{BBB}.htm'
             filenames.append( filename )
             filepath = folder.joinpath( filename )

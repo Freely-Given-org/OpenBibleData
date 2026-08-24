@@ -60,8 +60,13 @@ CHANGELOG:
     2026-08-22 livenSectionReferences() deleted -- dead code since the convert.py deletion
                 (the Rust convertVerseEntryListToHtml now livens \r fields itself,
                 using liven_section_references_core with a booksToLoad availability check)
+    2026-08-24 Flatten \add exegesis markers (e.g., '#Rest Days' in the Psalm 92 title)
+                to plain text in section names/lists -- that specialised formatting
+                isn't relevant in the section lists displayed on the index pages
     2026-07-06 Added OBI images to OET-RV
     2026-07-26 Added d and s4 lines to OET and OET-RV section heading index pages
+    2026-08-25 findSectionNumber() converted to Rust (openbibledata_rust.findSectionNumber,
+                see Rust/src/section_numbers.rs) -- the Python function is now a thin wrapper
 """
 from pathlib import Path
 import os
@@ -70,23 +75,23 @@ import logging
 from collections import defaultdict
 
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
-from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint, BOOKLIST_66
+from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 from bible_organisational_system import InternalBibleEntryList, getSmallLeadingInt
 from BibleOrgSys.Formats.ESFMBible import ESFMBible, ESFM_WORD_NUMBER_REGEX
 import bos_books_codes_py
 
 from settings import State
-from openbibledata_rust import convertVerseEntryListToHtml
+from openbibledata_rust import convertVerseEntryListToHtml, findSectionNumber as rustFindSectionNumber
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
                     makeTop, makeBottom, makeBookNavListParagraph, removeDuplicateCVids, checkHtml
 from Bibles import getBibleMapperMaps, getOpenBibleImages
 from OETHandlers import livenOETWordLinks, livenOETCompatibleBereanWordLinks, getOETTidyBBB
 
 
-LAST_MODIFIED_DATE = '2026-08-22' # by RJH
+LAST_MODIFIED_DATE = '2026-08-25' # by RJH
 SHORT_PROGRAM_NAME = "createSectionPages"
 PROGRAM_NAME = "OpenBibleData createSectionPages functions"
-PROGRAM_VERSION = '0.91'
+PROGRAM_VERSION = '0.93'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -102,6 +107,19 @@ SECTION_HEADING_NAME_DICT = { 'r':'section cross-reference', 'd':'song/Psalm det
                             's1':'section heading', 's2':'sub-heading', 's3':'sub-heading3', 's4':'sub-heading4',
                             'alt_r':'Alternate section cross-reference', 'alt_d':'Alternate song/Psalm details',
                             'alt_s1':'Alternate section heading', 'alt_s2':'Alternate sub-heading', 'alt_s3':'Alternate 3rd level section heading', 'alt_s4':'Alternate 4th level section heading', }
+
+def removeAddSpanFormatting( headingTextHtml:str ) -> str:
+    """
+    Convert leftover \\add segments (e.g., from '\\d An accompanied song for \\add #Rest Days\\add*.')
+        into plain text by removing the <span class="add">…</span> wrapper
+        and any specialised exegesis prefix character (like # for 'changed number').
+        (That specialised formatting isn't relevant in the section lists displayed on the index pages.)
+    """
+    cleanedTextHtml = re.sub( r'<span class="add">\??[-+=≡&@*#%^≈>]?(.*?)</span>', r'\1', headingTextHtml )
+    assert '<span class="add' not in cleanedTextHtml, f"Unhandled add segment: {headingTextHtml=} -> {cleanedTextHtml=}"
+    return cleanedTextHtml
+# end of createSectionPages.removeAddSpanFormatting
+
 
 XREF_REGEX = re.compile( r'\\x .+?\\x\*' )
 FOOTNOTE_REGEX = re.compile( r'\\f .+?\\f\*' )
@@ -163,9 +181,8 @@ def createOETSectionLists( rvBible:ESFMBible, state:State ) -> bool:
                 rest = ESFM_WORD_NUMBER_REGEX.sub( '', rest )
                 rest = XREF_REGEX.sub( '', rest )
                 rest = FOOTNOTE_REGEX.sub( '', rest ) \
-                    .replace( '\\add ', '<span class="add">' ).replace( '\\add*', '</span>' ) \
-                    .replace( '<span class="add">≈', '<span class="addReword" title="reworded">' ) \
-                    .replace( '<span class="add">?≈', '<span class="addReword unsure" title="reworded (less certain)">' )
+                    .replace( '\\add ', '<span class="add">' ).replace( '\\add*', '</span>' )
+                rest = removeAddSpanFormatting( rest ) # e.g., '\add #Rest Days\add*' --> 'Rest Days'
                 additionalSectionHeadingsDict[(C,plusOneV)].append( (marker,rest) )
             elif marker == 'rem':
                 if not rest.startswith( '/' ): continue
@@ -213,6 +230,8 @@ def createOETSectionLists( rvBible:ESFMBible, state:State ) -> bool:
             endC,endV = sectionIndexEntry.getEndCV()
             # if additionalSectionHeadingsDict: print( f"End {endC}:{endV}" )
             sectionName, reasonMarker = sectionIndexEntry.getSectionNameReason()
+            if '<span class="add"' in sectionName: # e.g., from \d psalm titles -- flatten to plain text for our section lists
+                sectionName = removeAddSpanFormatting( sectionName )
             # print( f'''OET {BBB} Section {n} processing: {startC}:{startV}-{endC}:{endV} {f'{len(hadMS1)=}' if isinstance(hadMS1, InternalBibleEntryList) else f'{hadMS1=}'} {reasonMarker=} {sectionName=}''' )
 
             # Header list has ms1 separately
@@ -594,6 +613,8 @@ def createSectionLists( level:int, thisBible, state:State ) -> None:
             # if thisBible.abbreviation == 'BSB' and BBB=='PSA':
             #     dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"{thisBible.abbreviation} {NEWLINE}createSectionPages {n}: {BBB}_{startCV} {type(sectionIndexEntry)} {sectionIndexEntry=}" )
             sectionName, reasonMarker = sectionIndexEntry.getSectionNameReason()
+            if '<span class="add"' in sectionName: # e.g., from \d psalm titles -- flatten to plain text for our section lists
+                sectionName = removeAddSpanFormatting( sectionName )
             if 'OET' in thisBible.abbreviation:
                 sectionName = sectionName.replace( "'", "’" ) # Replace apostrophes
             dPrint( 'Verbose', DEBUGGING_THIS_MODULE,  f"{sectionName=} {reasonMarker=}" )
@@ -852,50 +873,15 @@ def findSectionNumber( versionAbbreviation:str, refBBB:str, refC:str, refV:str, 
     """
     Given a BCV reference and a Bible that has s1 section headings,
         return the section number containing the given reference.
+
+    The implementation now lives in the Rust openbibledata_rust extension
+        (see createPages/Rust/src/section_numbers.rs);
+        this wrapper is kept so that all existing callers
+        (including the Rust livening code that calls back into this module)
+        can keep using exactly the same interface.
     """
     fnPrint( DEBUGGING_THIS_MODULE, f"findSectionNumber( {versionAbbreviation}, {refBBB} {refC}:{refV} )" )
-    # print( f"findSectionNumber( {versionAbbreviation}, {refBBB} {refC}:{refV} )..." )
-
-    if not refBBB:
-        dPrint( 'Info', DEBUGGING_THIS_MODULE, "findSectionNumber: No refBBB parameter given -- returning None" )
-        return None # Can't do anything without a valid BBB
-    if refBBB not in BOOKLIST_66 and versionAbbreviation not in state.VERSIONS_WITH_APOCRYPHA:
-        logging.warning( f"Unable to continue in findSectionNumber( {versionAbbreviation}, {refBBB} {refC}:{refV} )" )
-        return None # Can't do anything here
-    if refBBB not in state.sectionsListsForSections[versionAbbreviation]: # No section headings for this book
-        if state.TEST_MODE_FLAG:
-            dPrint( 'Info', DEBUGGING_THIS_MODULE, "default to introduction for state.TEST_MODE_FLAG (because it doesn't contain all the books)" )
-            return 0 # default to introduction for testing (because it doesn't contain all the books)
-        else:
-            (logging.critical if DEBUGGING_THIS_MODULE else logging.error)( f"findSectionNumber: No {versionAbbreviation} sectionsLists for {refBBB} -- only have {state.sectionsListsForSections[versionAbbreviation].keys()} -- returning None" )
-            return None
-
-    if refV == '0':
-        dPrint( 'Info', DEBUGGING_THIS_MODULE, f"findSectionNumber: adjusting {versionAbbreviation} search for {refBBB} {refC}:{refV} to verse 1" )
-        refV = '1'
-    intRefV = getSmallLeadingInt( refV )
-
-    for n,startC,startV,endC,endV,_sectionName,reasonName,_contextList,_verseEntryList,_filename in state.sectionsListsForSections[versionAbbreviation][refBBB]:
-        # dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\nLOOP {n} finding {versionAbbreviation} {refBBB} {refC}:{refV} in {startC}:{startV}-{endC}:{endV} {_sectionName=},{reasonName=},_contextList,_verseEntryList,{_filename}" )
-        if reasonName.startswith( 'Alternate ' ): continue # ignore these ones
-
-        # dPrint( 'Info', DEBUGGING_THIS_MODULE, f"  findSectionNumber for {versionAbbreviation} {refBBB} {refC}:{refV} got {state.sectionsListsForSections[versionAbbreviation][refBBB][n]}")
-        if startC==refC and endC==refC: # This section only spans a single chapter (or part of a chapter)
-            if getSmallLeadingInt(startV) <= intRefV <= getSmallLeadingInt(endV): # It's in this single chapter
-                return n
-        else: # This section spans two or more chapters
-            if startC==refC and intRefV>=getSmallLeadingInt(startV): # It's in the first chapter
-                dPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Found {refBBB} {refC}:{refV} in first chapter of {startC}:{startV}-{endC}:{endV}" )
-                return n
-            elif endC==refC and intRefV<=getSmallLeadingInt(endV): # It's in the last chapter
-                dPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Found {refBBB} {refC}:{refV} in last chapter of {startC}:{startV}-{endC}:{endV}" )
-                return n
-            elif int(startC) < int(refC) < int(endC): # It's in one of the middle chapters
-                dPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Found {refBBB} {refC}:{refV} in middle chapter of {startC}:{startV}-{endC}:{endV}" )
-                return n
-
-    dPrint( 'Info', DEBUGGING_THIS_MODULE, "findSectionNumber: Couldn't find a section match -- returning None" )
-    return None
+    return rustFindSectionNumber( versionAbbreviation, refBBB, refC, refV, state )
 # end of createSectionPages.findSectionNumber
 
 
