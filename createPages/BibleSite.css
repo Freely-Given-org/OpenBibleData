@@ -69,3 +69,9 @@ h1.FullKingdom, p.FullKingdom { color:blue; }
 h1.NorthernKingdom, p.NorthernKingdom { color:purple; }
 h1.SouthernKingdom, p.SouthernKingdom { color:green; }
 h1.BothKingdoms, p.BothKingdoms { color:orange; }
+
+p.PromisedLand { color:gold; }
+p.FullKingdom { color:blue; }
+p.NorthernKingdom { color:purple; }
+p.SouthernKingdom { color:green; }
+p.BothKingdoms { color:orange; }

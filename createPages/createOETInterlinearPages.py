@@ -69,13 +69,12 @@ from bible_organisational_system import getPositiveLeadingInt
 import bos_books_codes_py
 
 from settings import State, CNTR_BOOK_ID_MAP, reorderBooksForOETVersions
-from openbibledata_rust import convertVerseEntryListToHtml
 from Bibles import formatUnfoldingWordTranslationNotes, formatTyndaleNotes
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
                     makeTop, makeBottom, makeBookNavListParagraph, checkHtml
 from createSectionPages import findSectionNumber
-from openbibledata_rust import livenOETWordLinks, getOETBookName, getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename
 from jsonResources import getFormattedSILOpenTranslationNotes
+from openbibledata_rust import convertVerseEntryListToHtml, livenOETWordLinks, getOETBookName, getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
 LAST_MODIFIED_DATE = '2026-08-25' # by RJH

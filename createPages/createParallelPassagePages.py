@@ -46,13 +46,12 @@ from bible_organisational_system import InternalBibleEntryList, getSmallLeadingI
 import bos_books_codes_py
 
 from settings import State, reorderBooksForOETVersions
-from openbibledata_rust import convertVerseEntryListToHtml
 from Bibles import getVerseDataListForReference
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
                     do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
                     removeDuplicateCVids, \
                     makeTop, makeBottom, makeBookNavListParagraph, checkHtml
-from openbibledata_rust import livenOETWordLinks, getOETTidyBBB, getOETBookName, getBBBFromOETBookName
+from openbibledata_rust import convertVerseEntryListToHtml, livenOETWordLinks, getOETTidyBBB, getOETBookName, getBBBFromOETBookName
 
 
 LAST_MODIFIED_DATE = '2026-08-25' # by RJH

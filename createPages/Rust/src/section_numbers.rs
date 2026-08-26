@@ -3,6 +3,13 @@
 //! Given a BCV reference and the list of prebuilt section entries for one
 //! book of one Bible version, return the index of the section that contains
 //! the reference (or `None` if no section covers it).
+//!
+//! Changelog:
+//!  2026-08-26: Added `SectionLookupCache` and `cached_find_section_fn` for
+//!              pre-extracting section data into Rust, eliminating per-verse
+//!              Python callbacks during footnote/cross-reference processing.
+
+use std::collections::HashMap;
 
 /// Minimal data for one entry of a `state.sectionsListsForSections` list --
 /// exactly the fields that the section-number search needs.
@@ -105,6 +112,57 @@ pub fn find_section_number_core(
         }
     }
     None
+}
+
+// ── Pre-extracted section lookup cache ─────────────────────────────────────
+
+/// Pre-extracted section data for one book of one version.
+#[derive(Debug, Clone)]
+pub struct BookSections {
+    pub sections: Vec<SectionEntry>,
+}
+
+/// Pre-extracted section lookup cache: version_abbreviation → bos_book_code → sections.
+///
+/// Built once per `convertVerseEntryListToHtml` call from `state.sectionsListsForSections`,
+/// then used as a pure-Rust closure — no Python callbacks needed for section lookups.
+#[derive(Debug, Clone)]
+pub struct SectionLookupCache {
+    data: HashMap<String, HashMap<String, BookSections>>,
+}
+
+impl SectionLookupCache {
+    pub fn new() -> Self {
+        Self { data: HashMap::new() }
+    }
+
+    pub fn insert(&mut self, version_abbrev: String, bos_book_code: String, sections: Vec<SectionEntry>) {
+        self.data.entry(version_abbrev)
+            .or_default()
+            .insert(bos_book_code, BookSections { sections });
+    }
+
+    pub fn lookup(&self, version_abbrev: &str, bos_book_code: &str, ref_c: &str, ref_v: &str) -> Option<usize> {
+        let book_sections = self.data.get(version_abbrev)?.get(bos_book_code)?;
+        find_section_number_core(&book_sections.sections, ref_c, ref_v)
+    }
+
+    /// Returns true if the cache contains data for the given version and book.
+    pub fn has_entry(&self, version_abbrev: &str, bos_book_code: &str) -> bool {
+        self.data.get(version_abbrev)
+            .and_then(|books| books.get(bos_book_code))
+            .is_some()
+    }
+}
+
+/// Create a pure-Rust section lookup closure from a pre-extracted cache.
+///
+/// This eliminates the Python callback overhead (import + getattr + call per verse)
+/// that `py_find_section_fn` incurs. Falls back to `None` for entries not in the cache.
+pub fn cached_find_section_fn(cache: &SectionLookupCache) -> impl Fn(&str, &str, &str, &str) -> Option<usize> + '_ {
+    move |version_abbrev: &str, bos_book_code: &str, ref_c: &str, ref_v: &str| -> Option<usize> {
+        cache.lookup(version_abbrev, bos_book_code, ref_c, ref_v)
+    }
 }
 
 #[cfg(test)]
@@ -272,5 +330,54 @@ mod tests {
     fn unknown_reference_chapter_returns_none() {
         let secs = sections(&[("1", "1", "1", "31", "s1"), ("2", "1", "2", "25", "s1")]);
         assert_eq!(find_section_number_core(&secs, "9", "9"), None);
+    }
+
+    // ── SectionLookupCache ────────────────────────────────────────────────
+
+    #[test]
+    fn cache_lookup_basic() {
+        let mut cache = SectionLookupCache::new();
+        cache.insert(
+            "OET-RV".into(), "GEN".into(),
+            sections(&[("1", "1", "1", "31", "s1"), ("2", "1", "2", "25", "s1")]),
+        );
+        assert_eq!(cache.lookup("OET-RV", "GEN", "1", "15"), Some(0));
+        assert_eq!(cache.lookup("OET-RV", "GEN", "2", "10"), Some(1));
+    }
+
+    #[test]
+    fn cache_lookup_missing_version_returns_none() {
+        let cache = SectionLookupCache::new();
+        assert_eq!(cache.lookup("MISSING", "GEN", "1", "1"), None);
+    }
+
+    #[test]
+    fn cache_lookup_missing_book_returns_none() {
+        let mut cache = SectionLookupCache::new();
+        cache.insert("OET-RV".into(), "GEN".into(), sections(&[("1", "1", "1", "31", "s1")]));
+        assert_eq!(cache.lookup("OET-RV", "EXO", "1", "1"), None);
+    }
+
+    #[test]
+    fn cache_has_entry() {
+        let mut cache = SectionLookupCache::new();
+        cache.insert("OET-RV".into(), "GEN".into(), sections(&[("1", "1", "1", "31", "s1")]));
+        assert!(cache.has_entry("OET-RV", "GEN"));
+        assert!(!cache.has_entry("OET-RV", "EXO"));
+        assert!(!cache.has_entry("KJB", "GEN"));
+    }
+
+    #[test]
+    fn cached_find_section_fn_works() {
+        let mut cache = SectionLookupCache::new();
+        cache.insert(
+            "OET-RV".into(), "GEN".into(),
+            sections(&[("1", "1", "1", "31", "s1"), ("2", "1", "2", "25", "s1")]),
+        );
+        let closure = cached_find_section_fn(&cache);
+        assert_eq!(closure("OET-RV", "GEN", "1", "15"), Some(0));
+        assert_eq!(closure("OET-RV", "GEN", "2", "10"), Some(1));
+        assert_eq!(closure("OET-RV", "EXO", "1", "1"), None);
+        assert_eq!(closure("KJB", "GEN", "1", "1"), None);
     }
 }

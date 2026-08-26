@@ -82,17 +82,16 @@ from BibleOrgSys.Formats.ESFMBible import ESFMBible, ESFM_WORD_NUMBER_REGEX
 import bos_books_codes_py
 
 from settings import State
-from openbibledata_rust import convertVerseEntryListToHtml, findSectionNumber as rustFindSectionNumber
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
                     makeTop, makeBottom, makeBookNavListParagraph, removeDuplicateCVids, checkHtml
 from Bibles import getBibleMapperMaps, getOpenBibleImages
-from openbibledata_rust import livenOETWordLinks, livenOETCompatibleBereanWordLinks, getOETTidyBBB
+from openbibledata_rust import convertVerseEntryListToHtml, findSectionNumber as rustFindSectionNumber, livenOETWordLinks, livenOETCompatibleBereanWordLinks, getOETTidyBBB
 
 
-LAST_MODIFIED_DATE = '2026-08-25' # by RJH
+LAST_MODIFIED_DATE = '2026-08-26' # by RJH
 SHORT_PROGRAM_NAME = "createSectionPages"
 PROGRAM_NAME = "OpenBibleData createSectionPages functions"
-PROGRAM_VERSION = '0.93'
+PROGRAM_VERSION = '0.94'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -534,7 +533,7 @@ def createOETSectionPages( level:int, folder:Path, rvBible:ESFMBible, lvBible:ES
             else:
                 pClass = 'sectionHeading' if reasonName in ('section heading','Section heading') else 'alternateHeading'
                 if '4' in reasonMarker: # it's our kingdom marker -- add an additional HTML class marker
-                    assert 'kingdom' in sectionName
+                    assert sectionName in ('Promised land','Full kingdom','Northern kingdom','Southern kingdom','Both kingdoms'), f"Unexpected OET-RV {BBB} s4 (kingdom) marker: {sectionName}"
                     pClass = f"{pClass} {sectionName.replace( ' ', '' ).replace( 'king', 'King' ).replace( 'land', 'Land' )}"
                 sectionHtmlBits.append( f'''<p class="{pClass}"><a title="View section {sectionNumber}" href="{sectionFilename}#V{startV}">{'Intro' if startC=='-1' else startC}:{startV} <b>{sectionName}</b>{reasonString}</a></p>''' )
 
@@ -823,7 +822,7 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> list
                 else:
                     pClass = 'sectionHeading' if reasonName in ('section heading','Section heading') else 'alternateHeading'
                     if '4' in reasonMarker: # it's our kingdom marker -- add an additional HTML class marker
-                        assert 'kingdom' in sectionName
+                        assert sectionName in ('Promised land','Full kingdom','Northern kingdom','Southern kingdom','Both kingdoms'), f"Unexpected OET-RV {BBB} s4 (kingdom) marker: {sectionName}"
                         pClass = f"{pClass} {sectionName.replace( ' ', '' ).replace( 'king', 'King' ).replace( 'land', 'Land' )}"
                     sectionHtmlBits.append( f'''<p class="{pClass}"><a title="View section {sectionNumber}" href="{sectionFilename}#V{startV}">{'Intro' if startC=='-1' else startC}:{startV} <b>{sectionName}</b>{reasonString}</a></p>''' )
         else: # not OET-RV or don't seem to have section headings in state.sectionsListsForHeaders

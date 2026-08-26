@@ -111,14 +111,14 @@ from bible_transliterations import transliterate_Greek, transliterate_Hebrew
 
 from settings import State
 from html import checkHtml
-from openbibledata_rust import findOLQuoteInLV, getBBBFromOETBookName
 from Dict import loadAndIndexUBSGreekDictJSON, loadAndIndexUBSHebrewDictJSON
+from openbibledata_rust import findOLQuoteInLV, getBBBFromOETBookName
 
 
 LAST_MODIFIED_DATE = '2026-08-25' # by RJH
 SHORT_PROGRAM_NAME = "Bibles"
 PROGRAM_NAME = "OpenBibleData Bibles handler"
-PROGRAM_VERSION = '0.98'
+PROGRAM_VERSION = '0.99'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -128,7 +128,6 @@ WRITE_PICKLES_FLAG = True # Won't write new faster-loading pickle files for reso
 
 BIBLE_MAPPER_PATH = Path( '../copiedBibles/maps/' )
 BIBLE_IMAGES_PATH = Path( '../copiedBibles/images/' )
-
 NEWLINE = '\n'
 
 
@@ -357,11 +356,15 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
 
         thisBibleOT = CSVBible.CSVBible( folderOrFileLocation[1], givenName=versionName,
                                             givenAbbreviation=versionAbbreviation, encoding='utf-8' )
-        thisBibleOT.loadBooks() # So we can iterate through them all later
+        if 1 or 'ALL' in state.booksToLoad[versionAbbreviation] or 'OT' in state.booksToLoad[versionAbbreviation]:
+            thisBibleOT.loadBooks() # So we can iterate through them all later
+        else: not_done_yet
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} OT loaded ({len(thisBibleOT.books.keys())}) {list(thisBibleOT.books.keys())}" )
         thisBibleNT = CSVBible.CSVBible( folderOrFileLocation[2], givenName=versionName,
                                             givenAbbreviation=versionAbbreviation, encoding='utf-8' )
-        thisBibleNT.loadBooks() # So we can iterate through them all later
+        if 1 or 'ALL' in state.booksToLoad[versionAbbreviation] or 'NT' in state.booksToLoad[versionAbbreviation]:
+            thisBibleNT.loadBooks() # So we can iterate through them all later
+        else: not_done_yet
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} NT loaded ({len(thisBibleNT.books.keys())}) {list(thisBibleNT.books.keys())}" )
 
         # Now combine the OT and NT into one ESFM Bible
@@ -472,6 +475,8 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
                                             givenAbbreviation=thisExtraAbbreviation, encoding='utf-8' )
         thisBible.loadBooks() # So we can iterate through them all later
         if isinstance(thisBible, Bible):
+            thisBible.discover()
+            assert 'discoveryResults' in thisBible.__dict__
             state.preloadedBibles[thisExtraAbbreviation] = thisBible
 
         vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Preloading Tyndale study notes from {sourceFolder}…" )
@@ -830,13 +835,13 @@ def formatTyndaleNotes( abbrev:str, level:int, BBB:str, C:str, V:str, segmentTyp
             assert abbrev == 'TTN'
             nHtml = f'{nHtml}\n<br>'
         elif marker == 'list':
-            assert not rest
+            assert rest,isdigit()
             assert not inList
             # assert abbrev == 'TTN'
             nHtml = f'{nHtml}\n<ol>'
             inList = True
         elif marker == '¬list':
-            assert not rest
+            assert rest,isdigit()
             # assert inList, f"{ftnRef}" # Fails in Romans I think
             # assert abbrev == 'TTN'
             if inList:

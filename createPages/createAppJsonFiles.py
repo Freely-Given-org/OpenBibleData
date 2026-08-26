@@ -54,13 +54,13 @@ import bos_books_codes_py
 from bible_transliterations import transliterate_Hebrew, transliterate_Greek
 
 from settings import State, state, CNTR_BOOK_ID_MAP
-from openbibledata_rust import getOETTidyBBB, getOETBookName, getHebrewWordpageFilename, getGreekWordpageFilename, livenOETWordLinks
 from createSectionPages import findSectionNumber
 from createOETReferencePages import HebrewWordFileName, convert_Hebrew_word_gloss_spans, tidy_Hebrew_morphology, \
                     GLOSS_TYPE_STRING_DICT,\
                 GreekWordFileName, formatNTContextSpansOETGlossWords, \
                     CNTR_ROLE_NAME_DICT, CNTR_MOOD_NAME_DICT, CNTR_TENSE_NAME_DICT, CNTR_VOICE_NAME_DICT, CNTR_PERSON_NAME_DICT, \
                     CNTR_CASE_NAME_DICT, CNTR_GENDER_NAME_DICT, CNTR_NUMBER_NAME_DICT
+from openbibledata_rust import getOETTidyBBB, getOETBookName, getHebrewWordpageFilename, getGreekWordpageFilename, livenOETWordLinks
 
 
 LAST_MODIFIED_DATE = '2026-08-25' # by RJH

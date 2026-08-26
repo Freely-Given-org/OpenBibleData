@@ -169,8 +169,7 @@ p.ip { text-indent:0.5em; margin-top:0.2em; margin-bottom:0.2em; }
 p.im { margin-top:0.2em; margin-bottom:0.2em; }
 span.ior { font-weight:bold; }
 span.bk { font-style:italic; }
-span.sls {}
-
+span.sls { background-color:#fced86; } /* Moff */
 
 /* Chapters USFM */
 span.c { font-size:1.1em; color:green; }

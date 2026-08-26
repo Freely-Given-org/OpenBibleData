@@ -35,10 +35,8 @@ CHANGELOG:
     2025-10-10 Added support for (OET) LV & RV names tables
     2026-04-08 Handle divide by zero (TOTAL_GERMAN_WORDS_CHECKED_COUNT)
     2026-06-11 Handle new % (changed person) \\add format
-    2026-08-24 Added collectSpellCheckResults and mergeSpellCheckResults so that results
-                collected by forked multiprocessing children can be merged back into the parent
-    2026-08-25 Added the six missing 'unsure' addPersonChange/addNegated/etc. span replacements
-                (html.py has been emitting them with title attributes since 2026-08-22)
+    2026-08-24 Added collectSpellCheckResults and mergeSpellCheckResults so that results collected by forked multiprocessing children can be merged back into the parent
+    2026-08-25 Added the six missing 'unsure' addPersonChange/addNegated/etc. span replacements (html.py had been emitting them with title attributes since 2026-08-22)
 """
 from pathlib import Path
 from csv import  DictReader
@@ -50,10 +48,10 @@ from BibleOrgSys.BibleOrgSysGlobals import vPrint, fnPrint, dPrint, rreplace
 import bos_books_codes_py
 
 
-LAST_MODIFIED_DATE = '2026-08-17' # by RJH
+LAST_MODIFIED_DATE = '2026-08-26' # by RJH
 SHORT_PROGRAM_NAME = "spellCheckEnglish"
 PROGRAM_NAME = "English Bible Spell Check"
-PROGRAM_VERSION = '0.63'
+PROGRAM_VERSION = '0.64'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -590,9 +588,11 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
     for paragraphMarker in ( 'id','rem',
                         'mt1','mt2','mt3','mt4',
                         'imt1','iot','io1','io2','is1','is2','ip','im',
-                        'ms1','ms2',
+                        'iex', # For KJB-1611
+                        'ms1','ms2', 'mr',
                         's1','s2',
                         'p', # OEB CH1_-1:0 uses p instead of ip!
+                        'q1', # Not sure why I had to add this for Moffat HOS
                         'fn',
                         ):
         cleanedTextToCheck =  cleanedTextToCheck.replace( f'<p class="{paragraphMarker}">', '' ).replace( f'<!--{paragraphMarker}-->', '' )
@@ -807,13 +807,14 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                        or word in ( #  \d{1,3}\), \(
                                 'an','aß','Bart','Bild','bis','sie','hin','heb','wir','dem','des','für','hub','ich','ist','ja','alle','las','lag','litt',
                                 'one)r','one)n','ones)r','ones)s','ones)n','one)s',
-                                'hing','weh','du','ach','Raube','Raub','Tal','tue','fiel','sehe','Mal','mal','milde','mit','Mord','Natur',
-                                'ende','rede','kam','Korb','ward','alt','dran','Rede','nun','nur','messen','ging','Halle','und','ster','streng','tun','von','wer','zu',
-                                'whoren','outen',
-                                'picturead','getreu','noticedn','aboveaus',
+                                'ach','alt','dran','ende','irrig','hing','weh','du','Raube','Raub','Tal','tue','fiel','sehe',
+                                'Mal','mal','milde','mit','Mord','Natur','nun','nur',
+                                'rede','kam','Korb','ward','Rede','messen','ging','Halle','und','ster','streng','tun','von','wer','zu','zwo',
+                                'whoren','ofhatte','oilkrug','zeals','shye','harmoniouslich','hiddenen',
                                     'tearinger','chainswerk','eightytausend','cartstädte','ratet','wroteen',
                                     'blasphemyen','shopsn','nineunddreißig','soundedn','hinderte','frightenedn','preventeden','plainlyds','yest',
-                                    'Maket','Scheu','Teurung','Yeduthun',
+                                    'hertorn','summerhaus','undertretet','treesn','rejectse','fatn','setes',
+                                    'broughtet','ointmentt','flieh','cowhirte','mouthbeeren','ablieset',
                     
                                 'actio', 'agi', 'ambit','ambitio','amputa', 'anima','antiqui','apprehendi','ascendi','attende','audi', 'aversio',
                                 'beati','bene','beneficia','bos',
@@ -842,11 +843,13 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                 'tempora','Tod','tradit','traditi','traditio','transito','transmigratio','tres','tribulatio','tributa','trium','tu','tua','tuam','turba',
                                 'usu',      'valle','vani','vas', 'victi','visita','visitat','visitatio','vita', 'Voca','voca',
                                 'l','nos','ut','didrachmas',
-                                'tum','holdur','killur','giveium','inactivitym',
-                                'orientali','ingressum','passionbus','proposito',
-                                    'changesa','talentis','habitculo','establishedque','lastrum','buildt','buildsa','solidos',
-                                    'buildingus','buildri','planstorum','yearnas','myrti','recallsione','exaltsion',
-                                    'hopesur',
+                                'tum','holdur','giveium',
+                                'myrrha','myrrham','cypri','apte','dona','cera','commissa',
+                                    'changesa','lastrum','buildri','planstorum','yearnas','myrti','recallsione','exaltsion',
+                                    'superstitionnes','liberatio','res','knowti','beatum',
+                                    'reconciliationis','boxnis','disturbsæ','plui','commandbo','holdem','ateis',
+                                    'holdem','concluderent','concluserint','recordati','viowash','servaverit','dissecuerit','beforegnantes',
+                                    'clange','abyecerit',
         
                                 )
                     else 'Info', DEBUGGING_THIS_MODULE, f'''        {word} is suspect @ {location}\nfrom {cleanedTextToDisplay=}\n  WHICH GAVE {cleanedTextToCheck=}''' )

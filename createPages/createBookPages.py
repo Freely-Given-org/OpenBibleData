@@ -43,8 +43,6 @@ import os
 import re
 import logging
 
-# sys.path.append( '../../BibleOrgSys/BibleOrgSys/' )
-# import BibleOrgSysGlobals
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint, BOOKLIST_OT39, BOOKLIST_NT27
 import BibleOrgSys.Formats.ESFMBible as ESFMBible
@@ -52,23 +50,21 @@ from bible_organisational_system import InternalBibleEntryList
 import bos_books_codes_py
 
 from settings import State, CNTR_BOOK_ID_MAP
-from openbibledata_rust import convertVerseEntryListToHtml
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
                     makeTop, makeBottom, makeBookNavListParagraph, removeDuplicateCVids, checkHtml
-from openbibledata_rust import livenOETWordLinks, livenOETCompatibleBereanWordLinks, getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename
+from openbibledata_rust import convertVerseEntryListToHtml, livenOETWordLinks, livenOETCompatibleBereanWordLinks, getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
-LAST_MODIFIED_DATE = '2026-08-25' # by RJH
+LAST_MODIFIED_DATE = '2026-08-26' # by RJH
 SHORT_PROGRAM_NAME = "createBookPages"
 PROGRAM_NAME = "OpenBibleData createBookPages functions"
-PROGRAM_VERSION = '0.69'
+PROGRAM_VERSION = '0.70'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
 
 BACKSLASH = '\\'
 NEWLINE = '\n'
-# EM_SPACE = ' '
 NARROW_NON_BREAK_SPACE = ' '
 
 
@@ -458,7 +454,6 @@ def createBookPages( level:int, folder:Path, thisBible, state:State ) -> list[st
                 if not match: break
                 C, V = match.group(1), match.group(2)
                 ix = textHtml.index( '<span class="SR-GNT_verseTextChunk">', match.end() ) + 36 # chars in search string
-                # except ValueError: break # None or no more -- shouldn't happen
                 textHtml = f'''{textHtml[:ix]}<a title="Go to the GreekCNTR collation page" href="https://GreekCNTR.org/collation/?v={CNTR_BOOK_ID_MAP[BBB]}{C.zfill(3)}{V.zfill(3)}">{textHtml[ix:].replace( '</span>', '</a></span>', 1 )}'''
                 startIndex = ix + 99 # Approx number of added characters
         bkHtml = f'{bkHtml}{textHtml}'

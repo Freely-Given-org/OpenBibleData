@@ -93,6 +93,7 @@ CHANGELOG:
                     deleted the superseded Python _makeNavigationLinks and _makeWorkNavListParagraph implementations.
     2026-08-23 Cached the output of makeBottom (by relying on the global import of state)
     2026-08-25 The OETHandlers functions are now imported from the Rust openbibledata_rust module (the Python OETHandlers.py was deleted).
+    2026-08-26 Using (hopefully more efficient) Python @cache decorator on loadCSSStyles instead of our own manual caching
 """
 import logging
 from datetime import datetime
@@ -106,13 +107,13 @@ import bos_books_codes_py
 import openbibledata_rust
 
 from settings import State, state
-from openbibledata_rust import getBBBFromOETBookName
+from openbibledata_rust import getBBBFromOETBookName, checkHtml as _rustCheckHtml
 
 
-LAST_MODIFIED_DATE = '2026-08-25' # by RJH
+LAST_MODIFIED_DATE = '2026-08-26' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
-PROGRAM_VERSION = '1.0.3'
+PROGRAM_VERSION = '1.0.4'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -394,252 +395,34 @@ def removeDuplicateFNids( where:str, html:str ) -> str:
 
 
 # These regexs have an extra bit to also allow for a nl inside the double-quotes (re.MULTILINE didn't seem to work for us)
-classAttributeRegex = re.compile( 'class="([^"]+?)"|class="([^"]+?)$' )
-idAttributeRegex = re.compile( 'id="([^"]+?)"|id="([^"]+?)$' )
-titleAttributeRegex = re.compile( 'title="([^"]+?)"|title="([^"]+?)$' )
+# classAttributeRegex = re.compile( 'class="([^"]+?)"|class="([^"]+?)$' )
+# idAttributeRegex = re.compile( 'id="([^"]+?)"|id="([^"]+?)$' )
+# titleAttributeRegex = re.compile( 'title="([^"]+?)"|title="([^"]+?)$' )
 def checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool:
     """
     Just do some very quick and basic tests
         that our HTML makes some sense.
 
     Throws an AssertError or a ValueError for any problems.
+
+    The core validation logic is implemented in Rust (openbibledata_rust.checkHtml) for speed.
+    This Python wrapper handles:
+      - The wasted <br> fix (mutation of htmlToCheck)
+      - CSS style checking (checkHtmlForMissingStyles)
+      - TopIndex summary output
     """
     fnPrint( DEBUGGING_THIS_MODULE, f"checkHtml( {where}, {len(htmlToCheck)} )" )
 
-    if '\n\n' in htmlToCheck:
-        ix = htmlToCheck.index( '\n\n' )
-        # print( f"checkHtml({where=} {segmentOnly=}) found \\n\\n in …{htmlToCheck[ix-30:ix]}{htmlToCheck[ix:ix+50]}…" )
-        raise ValueError( f"checkHtml({where}) found unexpected double newlines in …{htmlToCheck[ix-30:ix]}{htmlToCheck[ix:ix+50]}…" )
-    if '<br>\n' in htmlToCheck:
-        ix = htmlToCheck.index( '<br>\n' )
-        # print( f"checkHtml({where=} {segmentOnly=}) found <br> in …{htmlToCheck[ix-30:ix]}{htmlToCheck[ix:ix+50]}…" )
-        raise ValueError( f"checkHtml({where}) found <br> followed by unexpected newline in …{htmlToCheck[ix-30:ix]}{htmlToCheck[ix:ix+50]}…" )
-    # if '.\n<br>.\n<br>' in htmlToCheck:
-    #     ix = htmlToCheck.index( '.\n<br>.\n<br>' )
-    #     # print( f"checkHtml({where=} {segmentOnly=}) found <br> in …{htmlToCheck[ix-30:ix]}{htmlToCheck[ix:ix+50]}…" )
-    #     raise ValueError( f"checkHtml({where}) found multiple .\\n<br>s in …{htmlToCheck[ix-30:ix]}{htmlToCheck[ix:ix+50]}…" )
-
-    if ( 'TCNT' not in where and 'TC-GNT' not in where  # These two versions use the '¦' character in their footnotes
-    and not where.startswith('Parallel ') and not where.startswith('End of parallel') ): # and they also appear on parallel pages
-        assert '¦' not in htmlToCheck, f"checkHtml() found unprocessed word number marker in '{where}' {htmlToCheck=}"
-
-    assert '<span class="ul"><span class="ul">' not in htmlToCheck, f'''Nested <span class="ul"><span class="ul"> '{where}' {segmentOnly=} …{htmlToCheck[htmlToCheck.index('<span class="ul"><span class="ul">')-180:htmlToCheck.index('<span class="ul"><span class="ul">')+180]}…'''
-    assert '< /' not in htmlToCheck, f'''Extra space in close span '{where}' {segmentOnly=} …{htmlToCheck[htmlToCheck.index('< /')-180:htmlToCheck.index('< /')+180]}…'''
-    assert '.ht#' not in htmlToCheck
-
-    # Check divisions
-    # We renamed 'div.s1' to 'div.section' then unrenamed it in 2026-06-29
-    # assert '<div class="s1">' not in htmlToCheck, f'''s1 DIVision in '{where}' {segmentOnly=} …{htmlToCheck[htmlToCheck.index('<div class="s1">')-20:htmlToCheck.index('<div class="s1">')+20]}…'''
-    assert '><div class="chunkRV">' not in htmlToCheck, f'''Missing newline in '{where}' {segmentOnly=} …{htmlToCheck[htmlToCheck.index('><div class="chunkRV">')-20:htmlToCheck.index('><div class="chunkRV">')+20]}…'''
-    for divisionName in ('section','s1','chunkRV','rightS1Box','RVLVcontainer'):
-        # NOTE: Some divisions get multiple classes, e.g., '<div class="section PromisedLand">'
-        assert (htmlToCheck.count( f'<div class="{divisionName}">' ) + htmlToCheck.count( f'<div class="{divisionName} ' )) == htmlToCheck.count( f'</div><!--{divisionName}-->' ), \
-            f"Unmatched '{divisionName}' divs: {htmlToCheck.count(f'<div class="{divisionName}">')} != {htmlToCheck.count(f'</div><!--{divisionName}-->')} {where=}"
-
-    for marker,startMarker in (('html','<html'),('head','<head'),('body','<body')):
-        if segmentOnly:
-            assert htmlToCheck.count( startMarker ) == htmlToCheck.count( f'</{marker}>' ), htmlToCheck[htmlToCheck.index(startMarker):]
-        else:
-            assert htmlToCheck.count( startMarker ) == 1, f"checkHtml() found {htmlToCheck.count( startMarker )} '{marker}' markers in '{where}'"
-            assert htmlToCheck.count( f'</{marker}>' ) == 1
-
-    if ('ULT' not in where and 'UST' not in where
-    and 'UTN' not in where and '"UTN"' not in htmlToCheck
-    and 'OEB' not in where
-    # Parallel pages
-    and 'PSA' not in where # uW really messes up \\qs Selah\\qs* amongst other things
-    and 'JOB' not in where # UST I think
-    and 'PRO' not in where # UST I think
-    and 'JOL' not in where # UST I think
-    and 'MAT' not in where # UST I think
-    and 'ROM' not in where # Maybe AICNT Rom 9:32, but probably UST
-    and 'CO2' not in where # Maybe AICNT 2 Cor 8:22, but probably UST
-    and 'GAL' not in where # Maybe AICNT Gal 2:2, but probably UST
-    and 'HEB' not in where # Heb 4:3
-    and 'REV' not in where # Rev 2:9
-    # and 'JOB_17:5' not in where # UST I think
-    # and 'JOB_24:18' not in where # UST maybe or BSB???
-    # and 'JOB_29:12' not in where # UST maybe or BSB???
-    # and 'JOB_30:26' not in where # UST maybe or BSB???
-    # and 'JOB_30:26' not in where # UST maybe or BSB???
-    ):
-        # Check (nested) spans
-        spanNestingLevel = searchStartIndex = 0
-        while True:
-            # print( f"{spanNestingLevel=} {searchStartIndex=} {len(htmlToCheck)=}")
-            spanIx = htmlToCheck.find( '<span', searchStartIndex )
-            if spanIx == -1: spanIx = 99_999_999
-            endSpanIx = htmlToCheck.find( '</span>', searchStartIndex )
-            if endSpanIx == -1: endSpanIx = 99_999_999
-            if spanIx == endSpanIx: # No more spans or end spans
-                assert spanIx == 99_999_999
-                break
-            elif spanIx < endSpanIx: # it's a new span
-                assert spanNestingLevel < 8, f"Too many nested spans {spanNestingLevel} '{where}' {segmentOnly=} {htmlToCheck=}"
-                spanNestingLevel += 1
-                # print( f"Found new span in '{where}' {segmentOnly=} '{'' if spanIx==0 else '…'}{htmlToCheck[spanIx:spanIx+200]}…'"
-                #             if spanNestingLevel == 1 else
-                #        f"Found nested level{spanNestingLevel} span in '{where}' {segmentOnly=} '{'' if spanIx==0 else '…'}{htmlToCheck[spanIx:spanIx+200]}…' then …{htmlToCheck[lastSpanIx:lastSpanIx+200]}" )
-                # lastSpanIx = spanIx
-                searchStartIndex = spanIx + 7
-            else: # endSpanIx < spanIx
-                assert spanNestingLevel > 0, f"Extra close span in '{where}' {segmentOnly=} '{'' if endSpanIx==0 else '…'}{htmlToCheck[endSpanIx:endSpanIx+200]}…'\nfrom {htmlToCheck}"
-                spanNestingLevel -= 1
-                if spanNestingLevel == 0: lastUnnestedSpanIx = spanIx
-                searchStartIndex = endSpanIx + 7
-        assert spanNestingLevel==0, f"\ncheckHTML() found unclosed span in '{where}' {segmentOnly=} '{'' if lastUnnestedSpanIx==0 else '…'}{htmlToCheck[lastUnnestedSpanIx:lastUnnestedSpanIx+300]}…'\nFROM {htmlToCheck=}"
-
-    if not segmentOnly or ('<span class="add"><' not in htmlToCheck and '<span class="add">?<' not in htmlToCheck): # < is one of our add field sub-classifiers
-        assert '<<' not in htmlToCheck, f"<span> '{where}' {segmentOnly=} …{htmlToCheck[htmlToCheck.index('<<')-180:htmlToCheck.index('<<')+180]}…"
-    if not segmentOnly or '<span class="add">>' not in htmlToCheck: # > is one of our add field sub-classifiers
-        if where not in ('UTN ZEP_1:0','Parallel ZEP_1:0'):
-            assert '>>' not in htmlToCheck, f"<span> '{where}' {segmentOnly=} …{htmlToCheck[htmlToCheck.index('>>')-180:htmlToCheck.index('>>')+180]}…"
-    if 'SOTN' not in htmlToCheck: # TODO: Why do SIL notes have unclassed spans? What's the point?
-        assert '<span>' not in htmlToCheck, f"<span> '{where}' {segmentOnly=} …{htmlToCheck[htmlToCheck.index('<span>')-180:htmlToCheck.index('<span>')+180]}…"
-    assert '>span class' not in htmlToCheck, f"'>span class' '{where}' {segmentOnly=} …{htmlToCheck[htmlToCheck.index('>span class')-180:htmlToCheck.index('>span class')+180]}…"
-    for marker,startMarker in (('div','<div'),('p','<p '),('h1','<h1'),('h2','<h2'),('h3','<h3'),('h4','<h4'),
-                               ('span','<span'),
-                               ('ol','<ol'),('ul','<ul'),
-                               ('em','<em>'),('i','<i>'),('b','<b>'),('small','<small '),('sup','<sup>'),('sub','<sub>')):
-        startCount = htmlToCheck.count( startMarker )
-        if startCount and 'UTN' not in where and 'UTN' not in htmlToCheck: # uW UTNs have too many formatting errors to bother checking them + NET ISA 43:24 eBible usfm
-            assert f'<{marker}></{marker}>' not in htmlToCheck, f"Empty <{marker}> field '{where}' {segmentOnly=} …{htmlToCheck[htmlToCheck.index(f'<{marker}></{marker}>')-180:htmlToCheck.index(f'<{marker}></{marker}>')+180]}…"
-        if startMarker.endswith( ' ' ): startCount += htmlToCheck.count( f'<{marker}>' )
-        endMarker = f'</{marker}>'
-        endCount = htmlToCheck.count( endMarker )
-        if startCount != endCount:
-            # try: errMsg = f"Mismatched '{marker}' start and end markers '{where}' {segmentOnly=} {html.count(startMarker)}!={html.count(f'</{marker}>')} …{html[html.index(startMarker):]}"
-            # except ValueError: errMsg = f"Mismatched '{marker}' start and end markers '{where}' {segmentOnly=} {html.count(startMarker)}!={html.count(f'</{marker}>')} {html[:html.index(f'</{marker}>')]}…"
-            # logging.critical( errMsg )
-            ixStartMarker = htmlToCheck.find( startMarker )
-            ixEndMarker = htmlToCheck.find( f'</{marker}>' )
-            ixMinStart = min( 9999999 if ixStartMarker==-1 else ixStartMarker, 9999999 if ixEndMarker==-1 else ixEndMarker )
-            ixRStartMarker = htmlToCheck.rfind( startMarker )
-            ixREndMarker = htmlToCheck.rfind( f'</{marker}>' )
-            ixMinEnd = min( ixRStartMarker, ixREndMarker )
-            logger = logging.critical if 'OET' in where else logging.warning if 'ULT' in where or 'UST' in where else logging.error
-            logger( f"Mismatched '{marker}' start and end markers '{where}' {segmentOnly=} {startCount}!={endCount}"
-                              f" {'…' if ixMinStart>0 else ''}{htmlToCheck[ixMinStart:ixMinEnd+5]}{'…' if ixMinEnd+5<len(htmlToCheck) else ''}" )
-            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"\nMismatched '{marker}' start and end markers '{where}' {segmentOnly=} {startCount}!={endCount}"
-                              f" {'…' if ixMinStart>0 else ''}{htmlToCheck[ixMinStart:ixMinEnd+5]}{'…' if ixMinEnd+5<len(htmlToCheck) else ''}" )
-            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"checkHtml: complete {htmlToCheck=}\n")
-            if state.TEST_MODE_FLAG and ('JOB' not in where and 'OEB' not in where # why are these bad???
-            and 'UTN' not in where and 'ULT' not in where
-            and 'Parallel' not in where and 'Interlinear' not in where ): # Probably it's in UTN on parallel and interlinear pages
-                dPrint( 'Info', DEBUGGING_THIS_MODULE, f"'{where}' {segmentOnly=} {marker=} HTML marker mismatch in {htmlToCheck=}")
-                dPrint( 'Info', DEBUGGING_THIS_MODULE, f"'{where}' {segmentOnly=} {marker=} {startMarker=} {startCount=} {endCount=}")
-                if 'book' not in where.lower():
-                    if 'ULT' not in where and 'UST' not in where and 'NET' not in where: # UST PSA has totally messed up \\qs encoding
-                        logging.critical( f"Mismatched '{marker}' start and end markers '{where}' {segmentOnly=} {startCount}!={endCount}"
-                              f" {'…' if ixMinStart>0 else ''}{htmlToCheck[ixMinStart:ixMinEnd+5]}{'…' if ixMinEnd+5<len(htmlToCheck) else ''}" )
-                        raise AssertionError( f"Mismatched '{marker}' start and end markers '{where}' {segmentOnly=} {startCount}!={endCount}\nfrom {htmlToCheck=}" )
-            # return False # TODO: Why was this here ???
-        # Checked for accidentally doubled nesting
-        if startMarker.endswith( '>' ):
-            assert f'{startMarker}{startMarker}' not in htmlToCheck, f"Doubled {startMarker} in '{where}' {segmentOnly=}"
-            assert f'{startMarker} {startMarker}' not in htmlToCheck, f"Doubled {startMarker} in '{where}' {segmentOnly=}"
-        if marker not in ('span','div','ol','ul'): # nested spans and divs and lists (esp. in dictionary entries) are ok
-            assert f'{endMarker}{endMarker}' not in htmlToCheck, f"Doubled end {endMarker} in '{where}' {segmentOnly=}\n{htmlToCheck=}"
-            assert f'{endMarker} {endMarker}' not in htmlToCheck, f"Doubled end {endMarker} in '{where}' {segmentOnly=}"
-        if marker in ('ol','ul'): # don't want reopened lists
-            assert f'{endMarker}{startMarker}' not in htmlToCheck, f"Reopened {marker} list in '{where}' {segmentOnly=}\n{htmlToCheck=}"
-            assert f'{endMarker}\n{startMarker}' not in htmlToCheck, f"Reopened {marker} list in '{where}' {segmentOnly=}\n{htmlToCheck=}"
-
-    # Should be no <a ...> anchors embedded inside other anchors
-    assert '>a title="' not in htmlToCheck, f"Improperly formed anchor in '{where}' {segmentOnly=}"
-    if not segmentOnly or '<span class="add"><a ' not in htmlToCheck: # Temporary fields can confuse our check, e.g., '<span class="add"><a word</span>'
-        searchStartIndex = 0
-        while True:
-            aIx = htmlToCheck.find( '<a ', searchStartIndex )
-            if aIx == -1: break
-            endIx = htmlToCheck.index( '</a>', aIx+3 )
-            nextAIx = htmlToCheck.find( '<a ', aIx+3 )
-            if nextAIx != -1:
-                assert endIx < nextAIx, f"Nested anchors in '{where}' {segmentOnly=} '{'' if aIx==0 else '…'}{htmlToCheck[aIx:aIx+200]}…'"
-            searchStartIndex = endIx + 4
-
-    if '<li>' in htmlToCheck or '<li ' in htmlToCheck or '</li>' in htmlToCheck:
-        assert '<ol>' in htmlToCheck or '<ol ' in htmlToCheck or '<ul>' in htmlToCheck or '<ul ' in htmlToCheck, f"Missing list OPEN marker in '{where}' {segmentOnly=}\n{htmlToCheck=}"
-        assert '</ol>' in htmlToCheck or '</ul>' in htmlToCheck, f"Missing list CLOSE marker in '{where}' {segmentOnly=}\n{htmlToCheck=}"
-
+    # Fix wasted <br> before close tags (Python-side mutation)
     if '\n<br></p>' in htmlToCheck or '\n<br></span>' in htmlToCheck:
         logging.warning( f"checkHtml '{where}' {segmentOnly=} needed to fix wasted <br> in {htmlToCheck=}" )
         htmlToCheck = htmlToCheck.replace( '\n<br></span></span></p>', '</span></span></p>' ).replace( '\n<br></span></p>', '</span></p>' ).replace( '\n<br></p>', '</p>' )
-    if '\n</a>' in htmlToCheck:
-        logging.critical( f"'{where}' {segmentOnly=} has unexpected newline before anchor close in {htmlToCheck=}" )
-        assert False, "We want to stop here"
 
-    # Check classes
-    searchStartIndex = 0
-    while True:
-        match = classAttributeRegex.search( htmlToCheck, searchStartIndex )
-        if not match:
-            break
-        classGuts = match.group(1) # might be something like 'KJB-1611_verseTextChunk' or alternateHeading NorthernKingdom' (two class names separated by spaces)
-        assert '\n' not in classGuts, f"'{where}' {segmentOnly=} Bad class with newline in {classGuts=} FROM {htmlToCheck=}"
-        assert '<' not in classGuts, f"'{where}' {segmentOnly=} Bad class with < in {classGuts=} FROM {htmlToCheck=}"
-        assert '>' not in classGuts, f"'{where}' {segmentOnly=} Bad class with > in {classGuts=} FROM {htmlToCheck=}"
-        for className in classGuts.split( ' ' ):
-            assert len(className) <= 23, f"'{where}' {segmentOnly=} class is too long ({len(className)}) {className=}"
-        searchStartIndex = match.end()
-
-    # Check IDs
-    idDict = {} # Used to make sure that they're all unique
-    searchStartIndex = 0
-    while True:
-        match = idAttributeRegex.search( htmlToCheck, searchStartIndex )
-        if not match:
-            break
-        idGuts = match.group(1) # might be something like 'C18V27' or 'BottomTransliterationsButton' or Tyndale dict 'The18thand19thCenturiesNewDiscoveriesofEarlierManuscriptsandIncreasedKnowledgeoftheOriginalLanguages'
-        assert len(idGuts) <= (100 if where=='DictionaryArticle' else 32), f"'{where}' {segmentOnly=} id is too long ({len(idGuts)}) {idGuts=}"
-        assert ' ' not in idGuts, f"'{where}' {segmentOnly=} Bad id with space in {idGuts=} FROM {htmlToCheck=}"
-        assert '\n' not in idGuts, f"'{where}' {segmentOnly=} Bad id with newline in {idGuts=} FROM {htmlToCheck=}"
-        assert '<' not in idGuts, f"'{where}' {segmentOnly=} Bad id with < in {idGuts=} FROM {htmlToCheck=}"
-        assert '>' not in idGuts, f"'{where}' {segmentOnly=} Bad id with > in {idGuts=} FROM {htmlToCheck=}"
-        if 'OEB' not in where and 'Moff' not in where and 'Wycl' not in where: # OEB SNG,JER and Moff PSA and Wyc SA2 have verse number problems
-            assert idGuts not in idDict, f'''Duplicate id="{idGuts}" FROM '{where}' {segmentOnly=} ‘…{htmlToCheck[max(0,idDict[idGuts][0]-300):idDict[idGuts][1]+300]}…’ THEN FROM ‘…{htmlToCheck[match.start()-300:match.end()+300]}…’'''
-        idDict[idGuts] = (match.start(),match.end())
-        searchStartIndex = match.end()
-    del idDict
-
-    # Check for illegal characters in title popups
-    searchStartIndex = 0
-    while True:
-        match = titleAttributeRegex.search( htmlToCheck, searchStartIndex )
-        if not match:
-            break
-        titleGuts = match.group(1) # Can be an entire footnote or can be a parsing of a word (with some fields still expanded like --fnColon--)
-        assert len(titleGuts) <= (1010 if titleGuts.lstrip().startswith('OSHB ') or titleGuts.startswith('Note') or 'NET' in where or 'TCNT' in where or 'TC-GNT' in where or 'T4T' in where or 'Parallel' in where or 'End of parallel' in where or '1611' in where else 150), f"{where=} {segmentOnly=} title is too long ({len(titleGuts)}) {titleGuts=}"
-        assert '\n' not in titleGuts, f"'{where}' {segmentOnly=} Bad HTML title with newline in {titleGuts=}\nFROM {htmlToCheck=}"
-        assert '<br' not in titleGuts, f"'{where}' {segmentOnly=} Bad HTML title with BR in {titleGuts=}\nFROM {htmlToCheck=}"
-        assert '<span' not in titleGuts, f"'{where}' {segmentOnly=} Bad HTML title with SPAN in {titleGuts=}\nFROM {htmlToCheck=}"
-        assert 'class="' not in titleGuts, f"'{where}' {segmentOnly=} Bad HTML title with CLASS in {titleGuts=}\nFROM {htmlToCheck=}"
-        searchStartIndex = match.end()
-
-    assert '<span class="nd"><span class="nd">' not in htmlToCheck, f"""'{where}' {segmentOnly=} Found {htmlToCheck.count('<span class="nd"><span class="nd">')} doubled ND spans in {htmlToCheck}""" # in case we accidentally apply it twice
+    # Delegate all validation checks to the Rust implementation
+    _rustCheckHtml( where, htmlToCheck, segmentOnly )
 
     if segmentOnly:
         return True
-
-    # The following are not actual HTML errors, but rather, our own processing errors
-    #   (We don't check segments, because some of these things are processed later on)
-    if 'OET' in where or 'Parallel' in where:
-        for char,reason in (('+','added article'),('-','dropped article'),('=','added copula'),('>','implied object'),
-                    ('≡','repeat ellided'),('≡','repeat ellided'),('&','added ‘owner’'),('@','expanded pronoun'),('*','reduced to pronoun'),
-                    ('#','changed number'),('^','used opposite'),('≈','reworded'),('?','unsure'),):
-            if 'NAH_2:7' not in where and 'GAL_5:10' not in where \
-            and 'CO1_10:24' not in where and 'EPH_2:22' not in where: # LEB has 'added text' starting with '='   :)
-                assert f'<span class="add">{char}' not in htmlToCheck, f''''{where}' {segmentOnly=} Missed ADD {reason} in …{htmlToCheck[max(0,htmlToCheck.index(f'<span class="add">{char}')-50):htmlToCheck.index(f'<span class="add">{char}')+100]}…'''
-        # We have to check this one separately: ('<','implied direct object') because it might be the start of the next field
-        searchStartIndex = 0
-        while True:
-            try: ix = htmlToCheck.index( '<span class="add"><', searchStartIndex )
-            except ValueError: # substring not found
-                break
-            next = htmlToCheck[ix+18:ix+50]
-            if not next.startswith( '<a title=' ) and not next.startswith( '<span ' ):
-                raise ValueError( f"Unprocessed add field with {next=} '{where}' {segmentOnly=}" )
-            searchStartIndex = ix + 18
 
     # See if all our classes/styles exist in the stylesheet
     result = checkHtmlForMissingStyles( where, htmlToCheck )
@@ -656,8 +439,121 @@ def checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool:
     return result
 # end of html.checkHtml
 
+
 classRegex = re.compile( '<([^>]+?) [^>]*?class="([^>"]+?)"' )
-cachedStyleDicts = {}
+# cachedStyleDicts = {}
+@cache
+def loadCSSStyles( lsStylesheetName:str ) -> dict[str,bool|list[str]]:
+    """
+    Load the stylesheet and cache it for next time.
+
+    Adds a used_{} entry (set to False) so we can set at the end,
+        which stylesheet entries are never used.
+    """
+    # print( f"loadCSSStyles {lsStylesheetName=}" )
+    # if lsStylesheetName in cachedStyleDicts:
+    #     return cachedStyleDicts[lsStylesheetName]
+    with open( f'../htmlPages/{lsStylesheetName}' if 'pagefind' in lsStylesheetName else lsStylesheetName, 'rt', encoding='utf-8') as ssFile:
+        lsStyleDict = defaultdict( list )
+        for ssLine in ssFile:
+            if ' + ' in ssLine: continue # Don't need these
+            # print( f"  {ssLine=}" )
+            if ssLine.startswith( 'span.' ):
+                className = ssLine[5:].split( ' ', 1 )[0]
+                # print( f"    span {className=}")
+                assert ' ' not in className and ',' not in className, f"{className=}"
+                assert 'span' not in lsStyleDict[className], f"{lsStylesheetName=} {className=} {lsStyleDict[className]=}"
+                lsStyleDict[className].append( 'span' )
+                lsStyleDict[f'used_{className}'] = False
+            elif ssLine.startswith( 'p.' ):
+                classNames = ssLine[2:].split( ' ', 1 )[0]
+                # print( f"    p {classNames=} {ssLine[len(classNames)+4:]=}")
+                for className in classNames.split( ',' ):
+                    className = className.replace( 'p.', '' )
+                    # if not ssLine[len(className)+4:].startswith( '+ '): # p.mt1 + p.mt2, p.mt2 + p.mt1 { margin-top:-0.5em; }
+                    assert ' ' not in className and ',' not in className, f"{lsStylesheetName=} {className=}"
+                    assert 'p' not in lsStyleDict[className], f"{lsStylesheetName=} {className=} {lsStyleDict[className]=}"
+                    lsStyleDict[className].append( 'p' )
+                    lsStyleDict[f'used_{className}'] = False
+            elif ssLine.startswith( 'div.' ):
+                className = ssLine[4:].split( ' ', 1 )[0]
+                # print( f"    div {className=}")
+                assert ' ' not in className and ',' not in className, f"{className=}"
+                assert 'div' not in lsStyleDict[className], f"DIV in {lsStyleDict[className]=} {ssLine=}"
+                lsStyleDict[className].append( 'div' )
+                lsStyleDict[f'used_{className}'] = False
+            elif ssLine.startswith( 'h1.' ) or ssLine.startswith( 'h2.' ):
+                elementName = ssLine[:2]
+                className = ssLine[3:].split( ' ', 1 )[0]
+                # print( f"    {elementName} {className=}")
+                if className.endswith( ',' ): className = className[:-1] # Can have h1.PromisedLand, p.PromisedLand { color:gold; }
+                assert ' ' not in className and ',' not in className, f"{className=}"
+                assert elementName not in lsStyleDict[className]
+                lsStyleDict[className].append( elementName )
+                lsStyleDict[f'used_{className}'] = False
+            elif ssLine.startswith( 'ol.' ):
+                elementName = ssLine[:2]
+                className = ssLine[3:].split( ' ', 1 )[0]
+                # print( f"    {elementName} {className=}")
+                assert ' ' not in className and ',' not in className, f"{className=}"
+                if className not in ('verse',): # In InterlinearVerse.css these are specified for each language
+                    assert 'ol' not in lsStyleDict[className], f"{className=} {lsStyleDict[className]=} {ssLine=}"
+                if 'ol' not in lsStyleDict[className]:
+                    lsStyleDict[className].append( 'ol' )
+                    lsStyleDict[f'used_{className}'] = False
+            elif ssLine.startswith( 'li.' ):
+                elementName = ssLine[:2]
+                className = ssLine[3:].split( ' ', 1 )[0]
+                # print( f"    {elementName} {className=}")
+                assert ' ' not in className and ',' not in className, f"{className=}"
+                assert elementName not in lsStyleDict[className]
+                lsStyleDict[className].append( elementName )
+                lsStyleDict[f'used_{className}'] = False
+            elif ssLine.startswith( 'body.' ):
+                elementName = ssLine[:4]
+                className = ssLine[5:].split( ' ', 1 )[0]
+                # print( f"    {elementName} {className=}")
+                assert ' ' not in className and ',' not in className, f"{className=}"
+                assert elementName not in lsStyleDict[className]
+                lsStyleDict[className].append( elementName )
+                lsStyleDict[f'used_{className}'] = False
+            elif ssLine.startswith( 'img.' ):
+                elementName = ssLine[:3]
+                className = ssLine[4:].split( ' ', 1 )[0]
+                # print( f"    {elementName} {className=}")
+                assert ' ' not in className and ',' not in className, f"{className=}"
+                assert elementName not in lsStyleDict[className]
+                lsStyleDict[className].append( elementName )
+                lsStyleDict[f'used_{className}'] = False
+            elif ssLine.startswith( 'hr.' ):
+                elementName = ssLine[:2]
+                className = ssLine[3:].split( ' ', 1 )[0]
+                # print( f"    {lsStylesheetName} {elementName} {className=}")
+                assert ' ' not in className and ',' not in className, f"{className=}"
+                assert elementName not in lsStyleDict[className]
+                lsStyleDict[className].append( elementName )
+                lsStyleDict[f'used_{className}'] = False
+            elif ssLine.startswith( 'a.' ):
+                elementName = ssLine[:1]
+                className = ssLine[2:].split( ' ', 1 )[0]
+                # print( f"    {elementName} {className=}")
+                assert ' ' not in className and ',' not in className, f"{className=}"
+                assert elementName not in lsStyleDict[className]
+                lsStyleDict[className].append( elementName )
+                lsStyleDict[f'used_{className}'] = False
+            elif ssLine.startswith( '.' ):
+                className = ssLine[1:].split( ' ', 1 )[0]
+                # print( f"    {className=} {ssLine[len(className)+2:]=}")
+                assert ' ' not in className and ',' not in className, f"{className=}"
+                if not ssLine[len(className)+2:].startswith( 'a {'): # .wrkLst a { text-decoration:none; color:white; }
+                    assert '' not in lsStyleDict[className]
+                    lsStyleDict[className].append( '' )
+                    lsStyleDict[f'used_{className}'] = False
+    # print( f"{lsStylesheetName=} ({len(lsStyleDict)//2}) {lsStyleDict=}" )
+    # cachedStyleDicts[lsStylesheetName] = lsStyleDict
+    return lsStyleDict
+# end of loadCSSStyles function
+
 collectedMsgs = []
 def checkHtmlForMissingStyles( where:str, htmlToCheck:str ) -> bool:
     """
@@ -665,108 +561,6 @@ def checkHtmlForMissingStyles( where:str, htmlToCheck:str ) -> bool:
         determine the stylesheet and load it if not already cached,
         and then check that all classes are in the stylesheet.
     """
-    def loadCSSStyles( lsStylesheetName:str ) -> dict[str,bool|list[str]]:
-        """
-        Load the stylesheet and cache it for next time.
-
-        Adds a used_{} entry (set to False) so we can set at the end,
-            which stylesheet entries are never used.
-        """
-        # print( f"loadCSSStyles {lsStylesheetName=}" )
-        if lsStylesheetName in cachedStyleDicts:
-            return cachedStyleDicts[lsStylesheetName]
-        with open( f'../htmlPages/{lsStylesheetName}' if 'pagefind' in lsStylesheetName else lsStylesheetName, 'rt', encoding='utf-8') as ssFile:
-            lsStyleDict = defaultdict( list )
-            for ssLine in ssFile:
-                if ' + ' in ssLine: continue # Don't need these
-                # print( f"  {ssLine=}" )
-                if ssLine.startswith( 'span.' ):
-                    className = ssLine[5:].split( ' ', 1 )[0]
-                    # print( f"    span {className=}")
-                    assert ' ' not in className and ',' not in className, f"{className=}"
-                    assert 'span' not in lsStyleDict[className], f"{lsStylesheetName=} {className=} {lsStyleDict[className]=}"
-                    lsStyleDict[className].append( 'span' )
-                    lsStyleDict[f'used_{className}'] = False
-                elif ssLine.startswith( 'p.' ):
-                    classNames = ssLine[2:].split( ' ', 1 )[0]
-                    # print( f"    p {classNames=} {ssLine[len(classNames)+4:]=}")
-                    for className in classNames.split( ',' ):
-                        className = className.replace( 'p.', '' )
-                        # if not ssLine[len(className)+4:].startswith( '+ '): # p.mt1 + p.mt2, p.mt2 + p.mt1 { margin-top:-0.5em; }
-                        assert ' ' not in className and ',' not in className, f"{lsStylesheetName=} {className=}"
-                        assert 'p' not in lsStyleDict[className], f"{lsStylesheetName=} {className=} {lsStyleDict[className]=}"
-                        lsStyleDict[className].append( 'p' )
-                        lsStyleDict[f'used_{className}'] = False
-                elif ssLine.startswith( 'div.' ):
-                    className = ssLine[4:].split( ' ', 1 )[0]
-                    # print( f"    div {className=}")
-                    assert ' ' not in className and ',' not in className, f"{className=}"
-                    assert 'div' not in lsStyleDict[className], f"DIV in {lsStyleDict[className]=} {ssLine=}"
-                    lsStyleDict[className].append( 'div' )
-                    lsStyleDict[f'used_{className}'] = False
-                elif ssLine.startswith( 'h1.' ) or ssLine.startswith( 'h2.' ):
-                    elementName = ssLine[:2]
-                    className = ssLine[3:].split( ' ', 1 )[0]
-                    # print( f"    {elementName} {className=}")
-                    if className.endswith( ',' ): className = className[:-1] # Can have h1.PromisedLand, p.PromisedLand { color:gold; }
-                    assert ' ' not in className and ',' not in className, f"{className=}"
-                    assert elementName not in lsStyleDict[className]
-                    lsStyleDict[className].append( elementName )
-                    lsStyleDict[f'used_{className}'] = False
-                elif ssLine.startswith( 'ol.' ):
-                    className = ssLine[3:].split( ' ', 1 )[0]
-                    # print( f"    ol {className=}")
-                    assert ' ' not in className and ',' not in className, f"{className=}"
-                    if className not in ('verse',): # In InterlinearVerse.css these are specified for each language
-                        assert 'ol' not in lsStyleDict[className], f"{className=} {lsStyleDict[className]=} {ssLine=}"
-                    if 'ol' not in lsStyleDict[className]:
-                        lsStyleDict[className].append( 'ol' )
-                        lsStyleDict[f'used_{className}'] = False
-                elif ssLine.startswith( 'li.' ):
-                    elementName = ssLine[:2]
-                    className = ssLine[3:].split( ' ', 1 )[0]
-                    # print( f"    {elementName} {className=}")
-                    assert ' ' not in className and ',' not in className, f"{className=}"
-                    assert elementName not in lsStyleDict[className]
-                    lsStyleDict[className].append( elementName )
-                    lsStyleDict[f'used_{className}'] = False
-                elif ssLine.startswith( 'body.' ):
-                    elementName = ssLine[:4]
-                    className = ssLine[5:].split( ' ', 1 )[0]
-                    # print( f"    {elementName} {className=}")
-                    assert ' ' not in className and ',' not in className, f"{className=}"
-                    assert elementName not in lsStyleDict[className]
-                    lsStyleDict[className].append( elementName )
-                    lsStyleDict[f'used_{className}'] = False
-                elif ssLine.startswith( 'img.' ):
-                    elementName = ssLine[:3]
-                    className = ssLine[4:].split( ' ', 1 )[0]
-                    # print( f"    {elementName} {className=}")
-                    assert ' ' not in className and ',' not in className, f"{className=}"
-                    assert elementName not in lsStyleDict[className]
-                    lsStyleDict[className].append( elementName )
-                    lsStyleDict[f'used_{className}'] = False
-                elif ssLine.startswith( 'a.' ):
-                    elementName = ssLine[:1]
-                    className = ssLine[2:].split( ' ', 1 )[0]
-                    # print( f"    {elementName} {className=}")
-                    assert ' ' not in className and ',' not in className, f"{className=}"
-                    assert elementName not in lsStyleDict[className]
-                    lsStyleDict[className].append( elementName )
-                    lsStyleDict[f'used_{className}'] = False
-                elif ssLine.startswith( '.' ):
-                    className = ssLine[1:].split( ' ', 1 )[0]
-                    # print( f"    {className=} {ssLine[len(className)+2:]=}")
-                    assert ' ' not in className and ',' not in className, f"{className=}"
-                    if not ssLine[len(className)+2:].startswith( 'a {'): # .wrkLst a { text-decoration:none; color:white; }
-                        assert '' not in lsStyleDict[className]
-                        lsStyleDict[className].append( '' )
-                        lsStyleDict[f'used_{className}'] = False
-        # print( f"{lsStylesheetName=} ({len(lsStyleDict)//2}) {lsStyleDict=}" )
-        cachedStyleDicts[lsStylesheetName] = lsStyleDict
-        return lsStyleDict
-    # end of loadCSSStyles function
-
     startedCheck = False
     styleDict = {}
     for line in htmlToCheck.split( '\n' ):

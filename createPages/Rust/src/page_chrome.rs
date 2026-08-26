@@ -432,7 +432,9 @@ fn work_nav_list_core(
             continue; // Should always be able to link to these
         }
         if entry.contains("/bySec/") {
-            debug_assert!(page_type == "section" || page_type == "sectionIndex");
+            if bos_internals::have_strict_checking_flag() || cfg!(debug_assertions) {
+                assert!(page_type == "section" || page_type == "sectionIndex");
+            }
             let displayed = extract_displayed_version(&entry)?;
             if !config.have_sections(displayed) {
                 entry = entry.replace("/bySec/", "/byC/");

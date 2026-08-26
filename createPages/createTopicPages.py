@@ -49,12 +49,11 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 from bible_organisational_system import InternalBibleEntryList
 
 from settings import State
-from openbibledata_rust import convertVerseEntryListToHtml
 from Bibles import getBibleMapperMaps
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
                     removeDuplicateCVids, \
                     makeTop, makeBottom, checkHtml
-from openbibledata_rust import livenOETWordLinks, getOETTidyBBB
+from openbibledata_rust import convertVerseEntryListToHtml, livenOETWordLinks, getOETTidyBBB
 
 
 LAST_MODIFIED_DATE = '2026-08-25' # by RJH

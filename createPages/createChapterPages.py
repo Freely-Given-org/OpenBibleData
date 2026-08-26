@@ -57,11 +57,10 @@ import BibleOrgSys.Formats.ESFMBible as ESFMBible
 import bos_books_codes_py
 
 from settings import State, CNTR_BOOK_ID_MAP
-from openbibledata_rust import convertVerseEntryListToHtml
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
                     makeTop, makeBottom, makeBookNavListParagraph, removeDuplicateCVids, checkHtml
 from Bibles import getBibleMapperMaps, getOpenBibleImages
-from openbibledata_rust import livenOETWordLinks, livenOETCompatibleBereanWordLinks, getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename
+from openbibledata_rust import convertVerseEntryListToHtml, livenOETWordLinks, livenOETCompatibleBereanWordLinks, getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
 LAST_MODIFIED_DATE = '2026-08-25' # by RJH
@@ -218,8 +217,8 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
                     lvVerseEntryList = livenOETWordLinks( level, lvBible, (BBB,str(c)), lvVerseEntryList, state )
                 # rvHtml = livenIORs( BBB, convertVerseEntryListToHtml( 'OET', (BBB,c), 'chapter', rvContextList, rvVerseEntryList ), numChapters )
                 # NOTE: We change the version abbreviation here to give the function more indication where we're coming from
-                rvHtml = do_OET_RV_HTMLcustomisations( f'ChapterA={BBB}_{c}', convertVerseEntryListToHtml( level, 'OET-RV', (BBB,str(c)), 'chapter', rvContextList, rvVerseEntryList, basicOnly=False, state=state ) )
-                lvHtml = do_OET_LV_HTMLcustomisations( f'ChapterA={BBB}_{c}', convertVerseEntryListToHtml( level, 'OET-LV', (BBB,str(c)), 'chapter', lvContextList, lvVerseEntryList, basicOnly=False, state=state ) )
+                rvHtml = do_OET_RV_HTMLcustomisations( f'OET-RV1 chapter={BBB}_{c}', convertVerseEntryListToHtml( level, 'OET-RV', (BBB,str(c)), 'chapter', rvContextList, rvVerseEntryList, basicOnly=False, state=state ) )
+                lvHtml = do_OET_LV_HTMLcustomisations( f'OET-LV1 chapter={BBB}_{c}', convertVerseEntryListToHtml( level, 'OET-LV', (BBB,str(c)), 'chapter', lvContextList, lvVerseEntryList, basicOnly=False, state=state ) )
 
                 if c < 1:
                     rvHtml = f'''<div class="chunkRV">{rvHtml}</div><!--chunkRV-->\n'''
@@ -556,13 +555,13 @@ def createChapterPages( level:int, folder:Path, thisBible, state:State ) -> list
                 textHtml = convertVerseEntryListToHtml( level, thisBible.abbreviation, (BBB,str(c)), 'chapter', contextList, verseEntryList, basicOnly=False, state=state )
                 # textHtml = livenIORs( BBB, textHtml, numChapters )
                 if thisBible.abbreviation == 'OET-RV':
-                    textHtml = f'''{do_OET_RV_HTMLcustomisations( f'ChapterB={BBB}_{C}', textHtml )}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="15" style="float:right; margin-left:10px;"></a>'''
+                    textHtml = f'''{do_OET_RV_HTMLcustomisations( f'OET-RV2 chapter={BBB}_{C}', textHtml )}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="15" style="float:right; margin-left:10px;"></a>'''
                 elif thisBible.abbreviation == 'OET-LV':
-                    textHtml =f'''{do_OET_LV_HTMLcustomisations( f'ChapterB={BBB}_{C}', textHtml )}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="15" style="float:right; margin-left:10px;"></a>'''
+                    textHtml =f'''{do_OET_LV_HTMLcustomisations( f'OET-LV2 chapter={BBB}_{C}', textHtml )}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="15" style="float:right; margin-left:10px;"></a>'''
                 elif thisBible.abbreviation == 'LSV':
-                    textHtml = do_LSV_HTMLcustomisations( f'ChapterB={BBB}_{C}', textHtml )
+                    textHtml = do_LSV_HTMLcustomisations( f'LSV chapter={BBB}_{C}', textHtml )
                 elif thisBible.abbreviation == 'T4T':
-                    textHtml = do_T4T_HTMLcustomisations( f'ChapterB={BBB}_{C}', textHtml )
+                    textHtml = do_T4T_HTMLcustomisations( f'T4T chapter={BBB}_{C}', textHtml )
                 elif thisBible.abbreviation == 'KJB-1611':
                     textHtml = textHtml.replace( 'class="add"', 'class="add_KJB-1611"' )
                 elif thisBible.abbreviation == 'SR-GNT':

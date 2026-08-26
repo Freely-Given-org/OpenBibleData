@@ -5,6 +5,7 @@
 //! USFM markers (`\f…\f*` and `\x…\x*`) with live HTML links and collect the
 //! content into footnotes / cross-reference sections appended to the output.
 
+use crate::verbosity_println;
 use crate::constants::SPAN_CLASS_REGEX;
 use crate::xref_links::liven_xref_field_core;
 
@@ -300,15 +301,15 @@ where
         //  as we still want to extract the \fr text if \fr is present yet there's no content
         // TODO: Note that the ULT has footnotes with no \fr fields (e.g., \f + \ft …\f*), so we need to handle that case gracefully.
         // TODO: The following debugging print line doesn't handle Unicode multibyte characters correctly, so it may panic if the slice boundaries are in the middle of a multibyte character.  It is commented out for now.
-        // println!("{} {} '{}' fr_ix={:?}, first_content_ix={}: '{}'", version_abbrev, bos_book_code, segment_type,
-        //         fr_ix, first_content_ix, if fr_ix.is_none() {result_html[first_content_ix..first_content_ix+12].trim()} else {result_html[fr_ix.unwrap()..fr_ix.unwrap()+25].trim()});
+        verbosity_println!(3, "{} {} '{}' fr_ix={:?}, first_content_ix={}: '{}'", version_abbrev, bos_book_code, segment_type,
+                fr_ix, first_content_ix, if fr_ix.is_none() {result_html[first_content_ix..first_content_ix+12].trim()} else {result_html[fr_ix.unwrap()..fr_ix.unwrap()+25].trim()});
         let fr_text = if let Some(fr_ix) = fr_ix && first_content_ix > fr_ix + 3 {
             result_html[fr_ix + 3..first_content_ix].trim().to_string()
         } else {
             if fr_ix.is_some() {
                 // TODO: The following debugging print line doesn't handle Unicode multibyte characters correctly, so it may panic if the slice boundaries are in the middle of a multibyte character.  It is commented out for now.
-                // println!("{} {} '{}' fr_ix={:?}, first_content_ix={}: '{}'", version_abbrev, bos_book_code, segment_type,
-                //     fr_ix, first_content_ix, result_html[fr_ix.unwrap()..fr_ix.unwrap()+25].trim());
+                verbosity_println!(3, "{} {} '{}' fr_ix={:?}, first_content_ix={}: '{}'", version_abbrev, bos_book_code, segment_type,
+                    fr_ix, first_content_ix, result_html[fr_ix.unwrap()..fr_ix.unwrap()+25].trim());
                 first_content_ix = fr_ix.unwrap() + 3; // TEMP: If no content, set first_content_ix to after \fr
             }
             String::new()

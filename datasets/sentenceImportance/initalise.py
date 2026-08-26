@@ -137,7 +137,7 @@ for ref in vitalImportanceRefsWithRanges:
 
 importantRefsWithRanges = [ # Often quoted and/or memorised by Christians
     'GEN_1:4-31','GEN_2:1-3', # Gen 1:1-3 is above
-    'DEU_29:24-29', 'DEU_30:3-5',
+    'DEU_29:24-29', 'DEU_30:3-5','DEU_30:19',
     'JOS_1:9',
     'PSA_23:1-6', 'PSA_51:5','PSA_51:10', 'PSA_119:89',
     'PRO_4:1-7',
@@ -145,7 +145,7 @@ importantRefsWithRanges = [ # Often quoted and/or memorised by Christians
     'ISA_2:2-4','ISA_6:1-8','ISA_11:1-12','ISA_27:6','ISA_28:16','ISA_41:10', 'ISA_46:9-10',
     'ISA_42:1-9', 'ISA_48:12-13','ISA_48:16', 'ISA_49:1-13', 'ISA_50:4-11', # The other three servant songs 'ISA_52:13–53:12',
     'ISA_54:17', 'ISA_55:1-10','ISA_55:12-13', 'ISA_66:8',
-    'JER_23:5-6', 'JER_33:2-3', 'JER_33:14-18',
+    'JER_17:9', 'JER_23:5-6', 'JER_33:2-3', 'JER_33:14-18',
     'DAN_7:10','DAN_9:24','DAN_12:1',
     'ZEC_12:8-9',
 
@@ -155,11 +155,12 @@ importantRefsWithRanges = [ # Often quoted and/or memorised by Christians
     'ACT_2:42',
     'CO1_10:6-11',
     'ROM_3:19-22','ROM_5:8','ROM_5:16-21','ROM_10:13','ROM_15:4','ROM_16:17',
+    'CO1_3:14-15',
+    'CO2_9:7',
     'GAL_3:21-22', 'GAL_6:16',
     'EPH_2:8','EPH_2:10', 'EPH_4:14','EPH_6:4','EPH_6:17',
     'PHP_2:12-13', 'PHP_3:20-21',
-    'CO1_3:14-15',
-    'CO2_9:7',
+    'COL_3:2',
     'TH1_1:10','TH1_4:16-17','TH1_5:9',
     'TI1_4:13','TI1_4:16','TI1_6:3',
     'TI2_2:15','TI2_4:3-4',

@@ -15,6 +15,7 @@ pub mod page_chrome;
 pub mod roman_numerals;
 pub mod section_numbers;
 pub mod character_formatting;
+pub mod html_validation;
 pub mod xref_links;
 pub mod verse_to_html;
 pub mod verse_entry_list;
@@ -23,6 +24,7 @@ pub use intro_links::{liven_introduction_links_core, IntroLinkError};
 pub use ior_links::{liven_iors_core, IORLinkError};
 pub use roman_numerals::to_roman_numerals;
 pub use character_formatting::{convert_usfm_character_formatting, CharacterFormattingResult};
+pub use html_validation::check_html;
 
 /// Build a section-number lookup callback that calls back into Python's
 /// `createSectionPages.findSectionNumber` via the optional State object.
@@ -89,6 +91,70 @@ fn log_message(py: Python<'_>, level: &str, message: &str) {
     if let Ok(logging) = py.import("logging") {
         let _ = logging.call_method1(level, (message,));
     }
+}
+
+// ── Section lookup cache ──────────────────────────────────────────────────
+
+/// Pre-extract section lookup data from `state.sectionsListsForSections` into
+/// a pure-Rust `SectionLookupCache`.  This eliminates per-verse Python
+/// callbacks for section lookups during footnote/cross-reference processing.
+///
+/// Returns `None` if state is `None` or the attribute is missing.
+fn build_section_lookup_cache(state: Option<&Bound<'_, PyAny>>) -> Option<section_numbers::SectionLookupCache> {
+    let state_obj = state?;
+    let sections_lists = state_obj.getattr("sectionsListsForSections").ok()?;
+
+    let mut cache = section_numbers::SectionLookupCache::new();
+
+    // Collect version keys first to avoid borrowing issues
+    let version_keys: Vec<String> = sections_lists.try_iter().ok()?
+        .filter_map(|item| item.ok())
+        .filter_map(|item| item.extract().ok())
+        .collect();
+
+    for version_abbrev in version_keys {
+        let version_dict = match sections_lists.get_item(&version_abbrev) {
+            Ok(v) => v,
+            Err(_) => continue,
+        };
+
+        // Collect book keys for this version
+        let book_keys: Vec<String> = match version_dict.try_iter() {
+            Ok(iter) => iter.filter_map(|item| item.ok())
+                .filter_map(|item| item.extract().ok())
+                .collect(),
+            Err(_) => continue,
+        };
+
+        for bos_book_code in book_keys {
+            let book_list = match version_dict.get_item(&bos_book_code) {
+                Ok(v) => v,
+                Err(_) => continue,
+            };
+
+            // Extract section entries (same fields as find_section_number_py)
+            let mut sections = Vec::new();
+            if let Ok(iter) = book_list.try_iter() {
+                for item in iter.flatten() {
+                    if let (Ok(start_c), Ok(start_v), Ok(end_c), Ok(end_v), Ok(reason_marker)) = (
+                        item.get_item(1).and_then(|v| v.extract()),
+                        item.get_item(2).and_then(|v| v.extract()),
+                        item.get_item(3).and_then(|v| v.extract()),
+                        item.get_item(4).and_then(|v| v.extract()),
+                        item.get_item(6).and_then(|v| v.extract()),
+                    ) {
+                        sections.push(section_numbers::SectionEntry {
+                            start_c, start_v, end_c, end_v, reason_marker,
+                        });
+                    }
+                }
+            }
+
+            cache.insert(version_abbrev.clone(), bos_book_code, sections);
+        }
+    }
+
+    Some(cache)
 }
 
 // ── section_numbers PyO3 wrapper ───────────────────────────────────────────
@@ -443,8 +509,17 @@ fn convert_verse_entry_list_to_html_py<'py>(
         entries.push(verse_entry_list::VerseEntry { marker, full_text, clean_text });
     }
 
-    // Build find_section_fn callback
-    let find_section_fn = py_find_section_fn(state);
+    // Build find_section_fn callback — pre-extract section data into Rust
+    // to eliminate per-verse Python callbacks during footnote/xref processing.
+    let section_cache = build_section_lookup_cache(state)
+        .unwrap_or_else(section_numbers::SectionLookupCache::new);
+    let section_cache_rc = std::rc::Rc::new(section_cache);
+    let find_section_fn = {
+        let cache = section_cache_rc.clone();
+        move |va: &str, bbb: &str, c: &str, v: &str| -> Option<usize> {
+            cache.lookup(va, bbb, c, v)
+        }
+    };
     let is_book_available = py_is_book_available_fn(state);
 
     let no_op_obi = |_l: usize, _st: &str, _b: &str, _c: &str, _v: &str| -> Option<String> { None };
@@ -1380,7 +1455,6 @@ fn find_ol_quote_in_lv_py<'py>(
     }
 }
 
-
 #[pymodule]
 fn openbibledata_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(liven_introduction_links_py, m)?)?;
@@ -1401,6 +1475,17 @@ fn openbibledata_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(liven_oet_word_links_py, m)?)?;
     m.add_function(wrap_pyfunction!(liven_oet_compatible_berean_word_links_py, m)?)?;
     m.add_function(wrap_pyfunction!(find_ol_quote_in_lv_py, m)?)?;
+    m.add_function(wrap_pyfunction!(html_validation::check_html_py, m)?)?;
     m.add_class::<PyPageChromeConfig>()?;
     Ok(())
+}
+
+// Internal Rust macro for displaying user messages based on verbosity level
+#[macro_export]
+macro_rules! verbosity_println {
+    ($level:expr, $($arg:tt)*) => {
+        if bos_internals::get_verbosity_level() >= $level {
+            println!($($arg)*);
+        }
+    };
 }

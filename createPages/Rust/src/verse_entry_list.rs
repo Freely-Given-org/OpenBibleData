@@ -17,6 +17,15 @@
 //!              '¬list' closes only that one level, restoring the enclosing
 //!              list context (previously it collapsed every open list and a
 //!              stray duplicate <ul>/misplaced </li> was emitted).
+//!  2026-08-25: Added missing leading spaces before verse numbers (and verse
+//!              range spans) — matching the Python endswith() guard that the
+//!              original usfm.py used.  Also closed rightS1Box when an s2
+//!              follows an s1 for OET versions.
+//!  2026-08-26: Added rightS1Box closure in the "v" handler (matching
+//!              usfm.py:570-573) and in the "list" handler.  Without this,
+//!              an \s1 followed by nesting.rs's "list" + \li1 entries and
+//!              then \c (chapter end) left the div unclosed, producing
+//!              "Unmatched 'rightS1Box' divs" errors.
 
 use crate::character_formatting::convert_usfm_character_formatting;
 use crate::constants::*;
@@ -117,12 +126,6 @@ fn rreplace(s: &str, old: &str, new: &str, count: usize) -> String {
         result.push_str(parts[i]);
     }
     result
-}
-
-/// Parse the leading integer from a string (like Python's `getSmallLeadingInt`).
-fn get_small_leading_int(s: &str) -> usize {
-    let digits: String = s.chars().take_while(|c| c.is_ascii_digit()).collect();
-    digits.parse().unwrap_or(0)
 }
 
 /// Check if a marker is in the USFM Bible paragraph markers list.
@@ -485,6 +488,9 @@ where
                 html.push_str(&format!(r#"<span class="{span_class}">{formatted}</span>"#));
             }
             "v" => {
+                if let Some(ref_right) = state.in_right_div.take() {
+                    html.push_str(&format!("</div><!--{ref_right}-->\n"));
+                }
                 state.v_value = rest_str.trim().to_string();
                 let v = state.v_value.as_str();  // use the current verse number, not the stale clone
                 // Show verse numbers except for single parallel/interlinear verses
@@ -497,6 +503,9 @@ where
                         let v1 = parts[0];
                         let v2 = if parts.len() > 1 { parts[1] } else { "" };
                         if segment_type == "parallelVerse" || segment_type == "interlinearVerse" {
+                            if !html.ends_with('>') {
+                                html.push(' ');
+                            }
                             html.push_str(&format!(
                                 r#"{rest_str}<span class="v">{v1}</span>{THIN_SPACE}"#
                             ));
@@ -530,6 +539,9 @@ where
                             } else {
                                 verse_html.push_str("=Opaque=");
                             }
+                            if !html.ends_with('>') {
+                                html.push(' ');
+                            }
                             html.push_str(&verse_html);
                         }
                     } else {
@@ -558,6 +570,9 @@ where
                             verse_html.push_str(&format!("{c_id}<span class=\"{psa_class}\"{id_field}>{c_link}{NARROW_NON_BREAK_SPACE}</span>"));
                         } else {
                             verse_html.push_str(&format!(r#"<span class="v"{id_field}>{v_link}{NARROW_NON_BREAK_SPACE}</span>"#));
+                        }
+                        if !html.ends_with("\"p\">") && !html.ends_with('\u{2014}') && !html.ends_with("\u{2014}</span>") {
+                            html.push(' ');
                         }
                         html.push_str(&verse_html);
                     }
@@ -722,6 +737,9 @@ where
                         &mut state.background_colour,
                     )?;
                     if version_abbreviation.contains("OET") {
+                        if let Some(ref_right) = state.in_right_div.take() {
+                            html.push_str(&format!("</div><!--{ref_right}-->\n"));
+                        }
                         html.push_str(&(format!(
                             r#"<div class="rightS2Box"><p class="s2">{guts}</p><!--s2-->"#
                         ) + "
@@ -994,6 +1012,9 @@ where
 
             // ── List markers ──
             "list" | "ilist" => {
+                if let Some(ref_right) = state.in_right_div.take() {
+                    html.push_str(&format!("</div><!--{ref_right}-->\n"));
+                }
                 if segment_type != "parallelVerse" {
                     // BibleOrgSys brackets embedded lists with 'list'/'¬list'
                     // entries whose text carries the nesting depth ('1','2',…).
@@ -1069,7 +1090,9 @@ where
                             html.push_str(&format!("{}</ul>{}", " ".repeat(current_level - 1), if current_level < 2 { "\n" } else { "" }));
                             current_level -= 1;
                         }
-                        debug_assert_eq!(marker_level, current_level - 1); // Always true by construction (cf. Python assert)
+                        if bos_internals::have_strict_checking_flag() || cfg!(debug_assertions) {
+                            assert_eq!(marker_level, current_level - 1); // Always true by construction (cf. Python assert)
+                        }
                         eprintln!("Warning: Not inList C {version_abbreviation} {bos_book_code} {segment_type} marker_level={marker_level} current_level={current_level} {marker}={rest_str}");
                         html.push_str(&format!("{}</ul>{}", " ".repeat(current_level - 1), if current_level < 2 { "\n" } else { "" }));
                         state.in_list = Some(format!("ul_{}", current_level - 1));
@@ -1105,12 +1128,6 @@ where
             "\u{AC}li1" | "\u{AC}li2" | "\u{AC}li3" | "\u{AC}li4"
             | "\u{AC}ili1" | "\u{AC}ili2" => {
                 // The digit tells us the nesting level of the item being closed
-                let item_level: usize = marker
-                    .chars()
-                    .last()
-                    .and_then(|c| c.to_digit(10))
-                    .map(|d| d as usize)
-                    .unwrap_or(1);
                 if state.in_list_entry != ListEntry::None {
                     html.push_str("</li>\n");
                     state.in_list_entry = ListEntry::None;
@@ -1262,15 +1279,6 @@ where
         html.push_str("</table>\n");
     }
     if state.in_list_entry != ListEntry::None {
-        let item_level = match &state.in_list_entry {
-            ListEntry::Specific(m) => m
-                .chars()
-                .last()
-                .and_then(|c| c.to_digit(10))
-                .map(|d| d as usize)
-                .unwrap_or(1),
-            _ => 1,
-        };
         html.push_str("</li>\n");
     }
     if state.in_list.is_some() {
@@ -1621,11 +1629,131 @@ mod tests {
     }
 
     #[test]
-    fn test_get_small_leading_int() {
-        assert_eq!(get_small_leading_int("123abc"), 123);
-        assert_eq!(get_small_leading_int("0"), 0);
-        assert_eq!(get_small_leading_int("abc"), 0);
-        assert_eq!(get_small_leading_int("42"), 42);
+    fn test_s2_closes_right_s1_box_for_oet() {
+        // Regression: when \s1 opens a <div class="rightS1Box"> for OET and
+        // \s2 follows immediately, the s2 handler must close the still-open
+        // rightS1Box before opening its own rightS2Box — otherwise we get
+        // mismatched div open/close markers in the HTML.
+        let entries = vec![
+            VerseEntry { marker: "s1".into(), full_text: "Judgement".into(), clean_text: "Judgement".into() },
+            VerseEntry { marker: "s2".into(), full_text: "Syria".into(), clean_text: "Syria".into() },
+            VerseEntry { marker: "p".into(), full_text: String::new(), clean_text: String::new() },
+            VerseEntry { marker: "v".into(), full_text: "3".into(), clean_text: "3".into() },
+            VerseEntry { marker: "v~".into(), full_text: "Verse text.".into(), clean_text: "Verse text.".into() },
+        ];
+        let result = convert_verse_entry_list_to_html_core(
+            1, "OET-RV", "AMO", Some("1"), Some("2"),
+            "chapter", &["chapters"], &entries, false, false,
+            no_op_char_fmt, no_op_fig, no_op_sect, no_op_avail, no_op_obi, no_op_check,
+        ).unwrap();
+        let s1_opens = result.matches(r#"div class="rightS1Box""#).count();
+        let s1_closes = result.matches("<!--rightS1Box-->").count();
+        assert_eq!(s1_opens, s1_closes,
+            "rightS1Box divs must be balanced (opens={s1_opens}, closes={s1_closes}):\n{result}");
+        let s2_opens = result.matches(r#"div class="rightS2Box""#).count();
+        let s2_closes = result.matches("<!--rightS2Box-->").count();
+        assert_eq!(s2_opens, s2_closes,
+            "rightS2Box divs must be balanced (opens={s2_opens}, closes={s2_closes}):\n{result}");
+        assert_eq!(s1_opens, 1, "expected exactly one rightS1Box:\n{result}");
+        assert_eq!(s2_opens, 1, "expected exactly one rightS2Box:\n{result}");
+    }
+
+    #[test]
+    fn test_verse_marker_closes_right_s1_box_for_oet() {
+        // Regression: in the Python code, the "v" handler closes inRightDiv
+        // (usfm.py:570-573).  Without this, an \s1 that opens a rightS1Box
+        // followed by \li1 entries and then \c (chapter end) leaves the div
+        // unclosed — producing "Unmatched 'rightS1Box' divs" errors.
+        let entries = vec![
+            VerseEntry { marker: "s1".into(), full_text: "Officials".into(), clean_text: "Officials".into() },
+            VerseEntry { marker: "li1".into(), full_text: "One.".into(), clean_text: "One.".into() },
+            VerseEntry { marker: "v".into(), full_text: "1".into(), clean_text: "1".into() },
+            VerseEntry { marker: "v~".into(), full_text: "Verse text.".into(), clean_text: "Verse text.".into() },
+        ];
+        let result = convert_verse_entry_list_to_html_core(
+            1, "OET-RV", "1CH", Some("27"), Some("32"),
+            "chapter", &["chapters"], &entries, false, false,
+            no_op_char_fmt, no_op_fig, no_op_sect, no_op_avail, no_op_obi, no_op_check,
+        ).unwrap();
+        let s1_opens = result.matches(r#"div class="rightS1Box""#).count();
+        let s1_closes = result.matches("<!--rightS1Box-->").count();
+        assert_eq!(s1_opens, s1_closes,
+            "rightS1Box divs must be balanced after verse closes right div (opens={s1_opens}, closes={s1_closes}):\n{result}");
+    }
+
+    #[test]
+    fn test_list_marker_closes_right_s1_box_for_oet() {
+        // Regression: nesting.rs inserts a 'list' marker before each 'li1'.
+        // The list handler must close an open rightS1Box so the div is
+        // balanced before the list begins.
+        let entries = vec![
+            VerseEntry { marker: "s1".into(), full_text: "Officials".into(), clean_text: "Officials".into() },
+            VerseEntry { marker: "list".into(), full_text: "1".into(), clean_text: "1".into() },
+            VerseEntry { marker: "li1".into(), full_text: "One.".into(), clean_text: "One.".into() },
+            VerseEntry { marker: "v".into(), full_text: "1".into(), clean_text: "1".into() },
+            VerseEntry { marker: "v~".into(), full_text: "Verse text.".into(), clean_text: "Verse text.".into() },
+        ];
+        let result = convert_verse_entry_list_to_html_core(
+            1, "OET-RV", "1CH", Some("27"), Some("32"),
+            "chapter", &["chapters"], &entries, false, false,
+            no_op_char_fmt, no_op_fig, no_op_sect, no_op_avail, no_op_obi, no_op_check,
+        ).unwrap();
+        let s1_opens = result.matches(r#"div class="rightS1Box""#).count();
+        let s1_closes = result.matches("<!--rightS1Box-->").count();
+        assert_eq!(s1_opens, s1_closes,
+            "rightS1Box divs must be balanced after list closes right div (opens={s1_opens}, closes={s1_closes}):\n{result}");
+    }
+
+    #[test]
+    fn test_verse_numbers_have_leading_spaces() {
+        // Regression: the original Python code adds a space before each verse
+        // number (unless the previous html ends with a paragraph-open tag,
+        // an em-dash, or an em-dash-in-span).  The Rust port initially
+        // omitted this, producing collapsed verse numbers like
+        //   …</span><span class="v"…>  instead of
+        //   …</span> <span class="v"…
+        let entries = vec![
+            VerseEntry { marker: "v".into(), full_text: "1".into(), clean_text: "1".into() },
+            VerseEntry { marker: "v~".into(), full_text: "First verse.".into(), clean_text: "First verse.".into() },
+            VerseEntry { marker: "\u{AC}v".into(), full_text: String::new(), clean_text: String::new() },
+            VerseEntry { marker: "v".into(), full_text: "2".into(), clean_text: "2".into() },
+            VerseEntry { marker: "v~".into(), full_text: "Second verse.".into(), clean_text: "Second verse.".into() },
+            VerseEntry { marker: "\u{AC}v".into(), full_text: String::new(), clean_text: String::new() },
+            VerseEntry { marker: "v".into(), full_text: "3".into(), clean_text: "3".into() },
+            VerseEntry { marker: "v~".into(), full_text: "Third verse.".into(), clean_text: "Third verse.".into() },
+        ];
+        let result = convert_verse_entry_list_to_html_core(
+            1, "KJB", "GEN", Some("1"), Some("1"),
+            "chapter", &["chapters"], &entries, false, false,
+            no_op_char_fmt, no_op_fig, no_op_sect, no_op_avail, no_op_obi, no_op_check,
+        ).unwrap();
+        // Verse 1 comes right after the <p class="p"> open tag — no leading space needed.
+        // Verses 2 and 3 come after the previous verse text chunk's </span> — must have a leading space.
+        // The anchor ID span (<span id="V2">) is prepended inside verse_html, so
+        // the space appears between the prior </span> and that anchor span.
+        assert!(result.contains("</span> <span id=\"V2\""),
+            "expected a space before verse 2, got:\n{result}");
+        assert!(result.contains("</span> <span id=\"V3\""),
+            "expected a space before verse 3, got:\n{result}");
+    }
+
+    #[test]
+    fn test_verse_range_leading_space_after_paragraph() {
+        // Same regression but for verse ranges (e.g., "2-3").
+        // After a paragraph open tag (<p class="p">), a space should appear
+        // before the verse range span — matching the Python html.endswith(">") logic.
+        let entries = vec![
+            VerseEntry { marker: "v".into(), full_text: "1-2".into(), clean_text: "1-2".into() },
+            VerseEntry { marker: "v~".into(), full_text: "First verses.".into(), clean_text: "First verses.".into() },
+        ];
+        let result = convert_verse_entry_list_to_html_core(
+            1, "KJB", "GEN", Some("1"), Some("1"),
+            "chapter", &["p"], &entries, false, false,
+            no_op_char_fmt, no_op_fig, no_op_sect, no_op_avail, no_op_obi, no_op_check,
+        ).unwrap();
+        // After <p class="p">, the range span should have a leading space.
+        assert!(result.contains("p\">\n <span") || result.contains("p\"> <span"),
+            "expected a space after paragraph and before verse range, got:\n{result}");
     }
 
     #[test]

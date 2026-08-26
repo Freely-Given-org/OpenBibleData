@@ -92,6 +92,7 @@ CHANGELOG:
                 builds because the shared word-set warming in spellCheckAndMarkHTMLText
                 is order-dependent -- page output is unaffected
     2026-08-25 The OETHandlers functions are now imported from the Rust openbibledata_rust module (the Python OETHandlers.py was deleted).
+    2026-08-27 Pre-load spell-check dictionaries/names in parent before forking so children don't redundantly reload them per book.
 """
 from pathlib import Path
 import os
@@ -112,7 +113,6 @@ import bos_books_codes_py
 from bible_transliterations import transliterate_Hebrew, transliterate_Greek
 
 from settings import State, state, CNTR_BOOK_ID_MAP, reorderBooksForOETVersions
-from openbibledata_rust import convertVerseEntryListToHtml
 from Bibles import formatTyndaleBookIntro, formatUnfoldingWordTranslationNotes, formatTyndaleNotes, \
                     getBibleMapperMaps, getOpenBibleImages, getVerseMetaInfoHtml
 from jsonResources import getFormattedSILOpenTranslationNotes
@@ -121,14 +121,15 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_
                     makeTop, makeBottom, makeBookNavListParagraph, checkHtml
 from createSectionPages import findSectionNumber
 from createOETReferencePages import OSHB_ADJECTIVE_DICT, OSHB_PARTICLE_DICT, OSHB_NOUN_DICT, OSHB_PREPOSITION_DICT, OSHB_PRONOUN_DICT, OSHB_SUFFIX_DICT
-from openbibledata_rust import getOETTidyBBB, getOETBookName, livenOETWordLinks, livenOETCompatibleBereanWordLinks, getHebrewWordpageFilename, getGreekWordpageFilename
-from spellCheckEnglish import spellCheckAndMarkHTMLText, collectSpellCheckResults, mergeSpellCheckResults
+from spellCheckEnglish import spellCheckAndMarkHTMLText, collectSpellCheckResults, mergeSpellCheckResults, \
+                            load_dict_sources, load_OET_LV_names, load_OET_RV_names
+from openbibledata_rust import convertVerseEntryListToHtml, getOETTidyBBB, getOETBookName, livenOETWordLinks, livenOETCompatibleBereanWordLinks, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
-LAST_MODIFIED_DATE = '2026-08-25' # by RJH
+LAST_MODIFIED_DATE = '2026-08-27' # by RJH
 SHORT_PROGRAM_NAME = "createParallelVersePages"
 PROGRAM_NAME = "OpenBibleData createParallelVersePages functions"
-PROGRAM_VERSION = '1.0.5'
+PROGRAM_VERSION = '1.0.6'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -205,13 +206,21 @@ def createParallelVersePages( level:int, folder:Path, state:State ) -> bool:
                 else: # no multiprocessing available -- do this book sequentially
                     createParallelVersePagesForBook( level, folder, BBB, BBBNextLinks, parallelVersions, state )
     if mpBookParameters:
+        # Pre-load spell-check dictionaries and name sets in the parent process before forking.
+        # Each forked child inherits these via copy-on-write, so the lazy-load guard inside
+        # spellCheckAndMarkHTMLText() (which checks len(AMERICAN_WORD_SET) < 10_000) will be
+        # False in every child — avoiding redundant file I/O per book.
+        if state.DO_SPELL_CHECKS_FLAG:
+            load_dict_sources()
+            load_OET_LV_names()
+            load_OET_RV_names()
         # NOTE: We use an explicit 'fork' context because Python 3.14 changed the default start method
         #        to 'forkserver' which would NOT inherit our huge module-level state (12 GiB of Bibles).
         #        Forked children share that memory copy-on-write, so this costs almost nothing extra.
         # NOTE: Outputs (including error and warning messages) from the various books may be interspersed.
         vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\nCreating {'TEST ' if state.TEST_MODE_FLAG else ''}parallel verse pages for {len(mpBookParameters):,} books using {BibleOrgSysGlobals.maxProcesses:,} forked processes…" )
         BibleOrgSysGlobals.alreadyMultiprocessing = True
-        with multiprocessing.get_context('fork').Pool( processes=BibleOrgSysGlobals.maxProcesses ) as pool: # start worker processes
+        with multiprocessing.get_context('fork').Pool( processes=BibleOrgSysGlobals.maxProcesses, maxtasksperchild=1 ) as pool: # start worker processes (maxtasksperchild=1 so each worker starts with fresh spell-check accumulators)
             results = pool.map( _createParallelVersePagesForBook_MP, mpBookParameters ) # have the pool create the pages
             assert len(results) == len(mpBookParameters)
         BibleOrgSysGlobals.alreadyMultiprocessing = False
@@ -1017,7 +1026,9 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                                         for possiblePrefix in ('¶\u202f','§\u202f','\u2002⇔\u202f','⇔\u202f'):
                                                             textHtml = textHtml.removeprefix( possiblePrefix )
                                                         startStr = f'<span class="{versionAbbreviation}_verseTextChunk">'
-                                                        assert textHtml.startswith( startStr ), f"{versionAbbreviation} {parRef} {startStr=} {textHtml=}"
+                                                        assert textHtml.startswith( startStr ) \
+                                                                or (versionAbbreviation!='TC-GNT' and textHtml.startswith( f'\n{startStr}' )), \
+                                                                    f"{versionAbbreviation} {parRef} {startStr=} {textHtml=}" # \b \m causes a \n it seems TODO: Check this out
                                                         if 'fn' not in textHtml: # Messes things up -- there's lots in the TC-GNT
                                                             textHtmlWordList = (textHtml.replace( '<span class="wj">', '' ) if versionAbbreviation=='TC-GNT' else textHtml)[len(startStr):].split( ' ' )
                                                             if versionAbbreviation not in ('TC-GNT','RP-GNT') or parRef not in ('CO2_10:4','PE1_3:10'): # not sure what's with '-</span><br>\u2003\u2003\u2003' there
