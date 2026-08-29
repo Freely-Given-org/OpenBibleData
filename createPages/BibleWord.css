@@ -2,6 +2,7 @@ body.container {}
 div.header {}
 div.footer { margin:50px; }
 
+div.topLine {}
 p.site {}
 p.copyright {}
 p.note {}
@@ -116,5 +117,6 @@ span.StrongsRef {}
 /* NT spans */
 span.nd {}
 span.ndORD { font-size:.75em; text-decoration:overline; text-decoration-style:dashed; text-decoration-color:purple; }
+span.sig { font-family:cursive; }
 
 span.ul { color:darkGrey; }

@@ -7,6 +7,7 @@ div.footer { margin:50px; }
 div.periph {}
 hr.periph { border:none; border-top:2px solid purple; }
 
+div.topLine {}
 p.site {}
 p.copyright {}
 p.note {}
@@ -78,6 +79,7 @@ p.iot { font-weight:bold; }
 p.io1 { text-indent:2em; margin-top:0.2em; margin-bottom:0.2em; }
 p.io2 { text-indent:4em; margin-top:0.2em; margin-bottom:0.2em; }
 p.ip { text-indent:0.5em; margin-top:0.2em; margin-bottom:0.2em; }
+p.ipq { text-indent:0.5em; margin-top:0.2em; margin-bottom:0.2em; font-style:italic; } /* Used in AICNT FRT */
 p.im { margin-top:0.2em; margin-bottom:0.2em; }
 p.imi { text-indent:1em; margin-top:0.2em; margin-bottom:0.2em; }
 span.ior { font-weight:bold; } /* font-style:italic; */
@@ -149,6 +151,7 @@ span.sls { background-color:#fced86; } /* Moff */
 
 p.KJB-1611_chapterIntro { font-size:0.8em; color: grey; font-family:UnifrakturCook,"New Rocker","Unifraktur Maguntia","Germania One",Astloch,textura,schwabacher,rotunda,bastarda,blankenburg,cursive; }
 
+span.AICNT_chapterIntro {}
 span.BrTr_chapterIntro {}
 span.BSB_chapterIntro {}
 span.FBV_chapterIntro {}
@@ -222,8 +225,8 @@ span.fq { font-style:italic; }
 span.fqa { font-style:italic; }
 span.ft {}
 span.fv { vertical-align:super; }
-span.f {} /* KJB-1611 EST C2 Why ??? */
-span.fr {} /* KJB-1611 EST C2 Why ??? */
+span.f {} /* KJB-1611 EST 2:21 Why ??? */
+span.fr {} /* KJB-1611 EST 2:21 Why ??? */
 /* span.fw {} */
 
 /* USFM cross-references */

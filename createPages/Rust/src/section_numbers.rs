@@ -66,6 +66,30 @@ fn get_small_leading_int(s: &str) -> i64 {
     }
 }
 
+/// Extract the trailing integer from a verse-range string.
+///
+/// For a combined verse like `"20-21"`, returns `21` (the end of the range).
+/// For non-range strings like `"17"` or `"17a"`, behaves like `get_small_leading_int`.
+/// This is needed because `end_v` from the section index can be a range
+/// (e.g., OET-RV EPH 3 ends with `\v 20-21`).
+fn get_trailing_int(s: &str) -> i64 {
+    let leading = get_small_leading_int(s);
+    // Find the position after the leading integer
+    let unsigned = s.strip_prefix('-').unwrap_or(s);
+    let sign_len: usize = if s.starts_with('-') { 1 } else { 0 };
+    let digit_count = unsigned
+        .bytes()
+        .take_while(|b| b.is_ascii_digit())
+        .count();
+    let rest = &s[sign_len + digit_count..];
+    if rest.starts_with('-') {
+        if let Ok(trailing) = rest[1..].parse::<i64>() {
+            return trailing;
+        }
+    }
+    leading
+}
+
 /// Parse a complete chapter number string like Python's `int()`
 /// (returns `0` for unparseable strings instead of raising).
 fn parse_chapter_int(s: &str) -> i64 {
@@ -94,7 +118,7 @@ pub fn find_section_number_core(
         if entry.start_c == ref_c && entry.end_c == ref_c {
             // This section only spans a single chapter (or part of a chapter)
             if get_small_leading_int(&entry.start_v) <= int_ref_v
-                && int_ref_v <= get_small_leading_int(&entry.end_v)
+                && int_ref_v <= get_trailing_int(&entry.end_v)
             {
                 return Some(n); // It's in this single chapter
             }
@@ -102,7 +126,7 @@ pub fn find_section_number_core(
             // This section spans two or more chapters
             if entry.start_c == ref_c && int_ref_v >= get_small_leading_int(&entry.start_v) {
                 return Some(n); // It's in the first chapter
-            } else if entry.end_c == ref_c && int_ref_v <= get_small_leading_int(&entry.end_v) {
+            } else if entry.end_c == ref_c && int_ref_v <= get_trailing_int(&entry.end_v) {
                 return Some(n); // It's in the last chapter
             } else if parse_chapter_int(&entry.start_c) < parse_chapter_int(ref_c)
                 && parse_chapter_int(ref_c) < parse_chapter_int(&entry.end_c)
@@ -185,6 +209,35 @@ mod tests {
         assert_eq!(get_small_leading_int("-1"), -1);
         assert_eq!(get_small_leading_int(""), 0);
         assert_eq!(get_small_leading_int("abc"), 0);
+    }
+
+    // ── get_trailing_int ─────────────────────────────────────────────────
+
+    #[test]
+    fn trailing_int_basics() {
+        assert_eq!(get_trailing_int("20-21"), 21);
+        assert_eq!(get_trailing_int("1-5"), 5);
+        assert_eq!(get_trailing_int("17a"), 17);
+        assert_eq!(get_trailing_int("5"), 5);
+        assert_eq!(get_trailing_int("-1"), -1);
+        assert_eq!(get_trailing_int("0"), 0);
+        assert_eq!(get_trailing_int(""), 0);
+    }
+
+    // ── Verse-range end_v sections ────────────────────────────────────────
+
+    #[test]
+    fn verse_range_end_v_matches() {
+        // EPH-style: section ends with a combined verse "20-21"
+        let secs = sections(&[
+            ("3", "14", "3", "20-21", "s1"),
+            ("4", "1", "6", "24", "s1/c"),
+        ]);
+        assert_eq!(find_section_number_core(&secs, "3", "14"), Some(0));
+        assert_eq!(find_section_number_core(&secs, "3", "20"), Some(0));
+        assert_eq!(find_section_number_core(&secs, "3", "21"), Some(0)); // trailing of range
+        assert_eq!(find_section_number_core(&secs, "3", "22"), None); // past the range
+        assert_eq!(find_section_number_core(&secs, "4", "1"), Some(1));
     }
 
     // ── Single-chapter sections ────────────────────────────────────────────

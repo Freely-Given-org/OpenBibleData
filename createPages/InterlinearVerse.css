@@ -5,6 +5,7 @@ body.container { background-color:powderblue; display:grid; }
 div.header {}
 div.footer { margin:50px; }
 
+div.topLine {}
 p.site {}
 p.copyright {}
 p.note {}
@@ -274,6 +275,7 @@ span.untr { font-size:0.8em; color:grey; text-decoration:line-through; }
 span.unsure { text-decoration:underline; text-decoration-style: dotted; text-decoration-color: orange; }
 
 /* USFM footnotes */
+hr.line-before-footnotes { width:60%; margin-left:0; margin-top:0em; margin-bottom:0.2em; border:0; border-top:1px solid green; }
 div.footnotes {}
 p.fn { margin-top:0.2em; margin-bottom:0.2em; font-size:0.75em; }
 span.fnCaller { vertical-align:super; font-size:0.7em; color:green; }

@@ -27,6 +27,26 @@ def makeSectionsList( sectionSpecTuples ):
             for n,(startC, startV, endC, endV, reasonMarker) in enumerate( sectionSpecTuples )]
 
 
+def getTrailingInt( s:str ) -> int:
+    """
+    Get the trailing integer from a verse-range string like '20-21' → 21.
+    For non-range strings like '17' or '17a', behaves like getSmallLeadingInt.
+    Needed because end_v from the section index can be a range
+    (e.g., OET-RV EPH 3 ends with \\v 20-21).
+    """
+    leading = getSmallLeadingInt( s )
+    # Find the position after the leading integer
+    i = 0
+    if s.startswith( '-' ):
+        i = 1
+    while i < len(s) and s[i].isdigit():
+        i += 1
+    rest = s[i:]
+    if rest.startswith( '-' ) and rest[1:].isdigit():
+        return int( rest[1:] )
+    return leading
+
+
 def referenceImplementation( sectionsList, refC, refV ):
     """
     Inline copy of the ORIGINAL Python search loop from
@@ -42,13 +62,14 @@ def referenceImplementation( sectionsList, refC, refV ):
         reasonName = entry[6]
         if reasonName.startswith( 'Alternate ' ): continue # ignore these ones
 
+        endVInt = getTrailingInt( endV ) # Handle verse ranges like '20-21'
         if startC==refC and endC==refC: # This section only spans a single chapter (or part of a chapter)
-            if getSmallLeadingInt(startV) <= intRefV <= getSmallLeadingInt(endV): # It's in this single chapter
+            if getSmallLeadingInt(startV) <= intRefV <= endVInt: # It's in this single chapter
                 return n
         else: # This section spans two or more chapters
             if startC==refC and intRefV>=getSmallLeadingInt(startV): # It's in the first chapter
                 return n
-            elif endC==refC and intRefV<=getSmallLeadingInt(endV): # It's in the last chapter
+            elif endC==refC and intRefV<=endVInt: # It's in the last chapter
                 return n
             elif int(startC) < int(refC) < int(endC): # It's in one of the middle chapters
                 return n
@@ -72,6 +93,18 @@ COMPLEX_SECTIONS = makeSectionsList( [
                         ('1', '5', '1', '99', 'Alternate section heading'),
                         ('3', '10', '4', '20', 's1'),
                     ] )
+
+
+# EPH-style sections: last verse is a range like '20-21' (combined verse entry)
+EPH_SECTIONS = makeSectionsList( [
+                    ('-1', '0', '-1', '30', 'is1'),       # 0: Introduction
+                    ('1', '1', '1', '23', 's1/c'),        # 1: Spiritual blessings  (1:1-1:23)
+                    ('1', '24', '2', '10', 's1'),          # 2: God's mercy (1:24-2:10)
+                    ('2', '11', '2', '22', 's1'),          # 3: Jews and non-Jews (2:11-2:22)
+                    ('3', '1', '3', '13', 's1/c'),         # 4: Paul's assignment (3:1-3:13)
+                    ('3', '14', '3', '20-21', 's1'),       # 5: Paul prays (3:14-3:20-21) — endV is a range!
+                    ('4', '1', '6', '24', 's1/c'),         # 6: Rest of letter (4:1-6:24)
+                ] )
 
 
 class TestFindSectionNumberBasics(unittest.TestCase):
@@ -204,6 +237,43 @@ class TestRustMatchesReferenceImplementation(unittest.TestCase):
                 expected = referenceImplementation( COMPLEX_SECTIONS, refC, refV )
                 self.assertEqual( findSectionNumber( 'TST', 'DAN', refC, refV, self.state ),
                                   expected, f'DAN {refC}:{refV}' )
+
+
+class TestVerseRangeEndV(unittest.TestCase):
+    """
+    When endV is a range like '20-21' (combined verse entry),
+    the trailing integer (21) must be used for comparison, not the leading one (20).
+    This matches EPH 3:20-21 in the OET-RV.
+    """
+    def setUp(self):
+        self.state = State()
+        self.state.TEST_MODE_FLAG = False
+        self.state.sectionsListsForSections = {
+            'TST': { 'EPH': EPH_SECTIONS } }
+
+    def test_verse_at_end_of_range_matches(self):
+        """EPH 3:21 should match the section ending at '20-21'"""
+        self.assertEqual( findSectionNumber( 'TST', 'EPH', '3', '21', self.state ), 5 )
+
+    def test_verse_at_start_of_range_matches(self):
+        """EPH 3:20 should also match the section ending at '20-21'"""
+        self.assertEqual( findSectionNumber( 'TST', 'EPH', '3', '20', self.state ), 5 )
+
+    def test_verse_before_range_matches(self):
+        """EPH 3:14 should match (start of the section)"""
+        self.assertEqual( findSectionNumber( 'TST', 'EPH', '3', '14', self.state ), 5 )
+
+    def test_verse_just_after_range_misses(self):
+        """EPH 3:22 should NOT match (past the end of section 5)"""
+        self.assertIsNone( findSectionNumber( 'TST', 'EPH', '3', '22', self.state ) )
+
+    def test_parity_with_reference(self):
+        """Rust must agree with the Python reference over the full grid"""
+        for refC in ('-1','1','2','3','4','5','6'):
+            for refV in ('0','1','10','13','14','20','21','22','24','25'):
+                expected = referenceImplementation( EPH_SECTIONS, refC, refV )
+                self.assertEqual( findSectionNumber( 'TST', 'EPH', refC, refV, self.state ),
+                                  expected, f'EPH {refC}:{refV}' )
 
 
 if __name__ == '__main__':

@@ -7,6 +7,7 @@ div.footer { margin:50px; }
 div.periph {}
 hr.periph { border:none; border-top:2px solid purple; }
 
+div.topLine {}
 p.site {}
 p.copyright {}
 p.note {}
@@ -155,6 +156,7 @@ p.m { margin-top:0.2em; margin-bottom:0.2em; }
 p.mi {}
 p.q1 { margin-left:1em; margin-top:0.2em; margin-bottom:0.2em; }
 p.q2 { margin-left:2em; margin-top:0.2em; margin-bottom:0.2em; }
+p.q3 { margin-left:3em; margin-top:0.2em; margin-bottom:0.2em; } /* Used in SIR C38 */
 p.qa { font-size:0.9em; text-align: right; margin-top:0.2em; margin-bottom:0.1em; } /* Acrostic heading */
 p.nb {}
 
@@ -259,3 +261,5 @@ h2.mapTitle {}
 p.mapSubtitle {}
 p.mapRefs { font-weight:bold; }
 p.mapDescription {}
+
+p.error { background-color:#fc8686; } /* OET MAL C4 Why??? */

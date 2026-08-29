@@ -225,6 +225,7 @@ def createParallelVersePages( level:int, folder:Path, state:State ) -> bool:
             assert len(results) == len(mpBookParameters)
         BibleOrgSysGlobals.alreadyMultiprocessing = False
         # Merge back into OUR state what the children collected for us (their state changes died when they exited)
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Collecting {'TEST ' if state.TEST_MODE_FLAG else ''}parallel verse page results after processing {len(mpBookParameters):,} books using {BibleOrgSysGlobals.maxProcesses:,} forked processes…" )
         for resultBool, BBB, versesWithImagesList, possibleUnmatchedProperNamesSet, spellCheckResults in results:
             assert resultBool is True
             if versesWithImagesList: state.versesWithImages[BBB].extend( versesWithImagesList )
@@ -1027,8 +1028,8 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                                             textHtml = textHtml.removeprefix( possiblePrefix )
                                                         startStr = f'<span class="{versionAbbreviation}_verseTextChunk">'
                                                         assert textHtml.startswith( startStr ) \
-                                                                or (versionAbbreviation!='TC-GNT' and textHtml.startswith( f'\n{startStr}' )), \
-                                                                    f"{versionAbbreviation} {parRef} {startStr=} {textHtml=}" # \b \m causes a \n it seems TODO: Check this out
+                                                            or (versionAbbreviation=='TC-GNT' and textHtml.startswith( f'\n{startStr}' )), \
+                                                                f"{versionAbbreviation} {parRef} {startStr=} {textHtml=}" # \b \m causes a \n it seems TODO: Check this out
                                                         if 'fn' not in textHtml: # Messes things up -- there's lots in the TC-GNT
                                                             textHtmlWordList = (textHtml.replace( '<span class="wj">', '' ) if versionAbbreviation=='TC-GNT' else textHtml)[len(startStr):].split( ' ' )
                                                             if versionAbbreviation not in ('TC-GNT','RP-GNT') or parRef not in ('CO2_10:4','PE1_3:10'): # not sure what's with '-</span><br>\u2003\u2003\u2003' there
@@ -1058,10 +1059,10 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                         (logging.critical if isOT or isNT else logging.warning)( f"Bad OET-RV parallel verse section {BBB} {C} {V}" )
                                     if '<div ' in textHtml: # it might be a book intro or footnotes -- we can't put a <div> INSIDE a <p>, so we append it instead
                                         assert '</div>' in textHtml
-                                        vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span id="OET"></span><span id="C{C}V{V}" class="wrkName"><a id="C{C}" title="View {state.BibleNames['OET']} section (side-by-side versions)" href="{'../'*BBBLevel}OET/bySec/{BBB}_S{sectionNumber}.htm#V{V}">OET</a> <small>(<a id="V{V}" title="View {state.BibleNames['OET-RV']} section (by itself)" href="{'../'*BBBLevel}OET-RV/bySec/{BBB}_S{sectionNumber}.htm#V{V}">OET-RV</a>)</small></span>{'' if textHtml.startswith('<p ') or textHtml.startswith('<div') else ' '}{textHtml.replace('<div','</p><div',1)}'''
+                                        vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span id="OET"></span><span id="C{C}V{V}" class="wrkName"><a id="C{C}" title="View {state.BibleNames['OET']} section (side-by-side versions)" href="{'../'*BBBLevel}OET/bySec/{BBB}_S{sectionNumber}.htm#V{V}">OET</a> <small>(<a id="V{V}" title="View {state.BibleNames['OET-RV']} section (by itself)" href="{'../'*BBBLevel}OET-RV/bySec/{BBB}_S{sectionNumber}.htm#V{V}">OET-RV</a>)</small></span>{'' if textHtml.startswith('<p ') or textHtml.startswith('<div') else ' '}{textHtml.replace('<div','</p><div',1)}'''
                                     else: # no <div>s so should be ok to put inside a paragraph
                                         assert '</div>' not in textHtml
-                                        vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span id="OET"></span><span id="C{C}V{V}" class="wrkName"><a id="C{C}" title="View {state.BibleNames['OET']} section (side-by-side versions)" href="{'../'*BBBLevel}OET/bySec/{BBB}_S{sectionNumber}.htm#V{V}">OET</a> <small>(<a id="V{V}" title="View {state.BibleNames['OET-RV']} section (by itself)" href="{'../'*BBBLevel}OET-RV/bySec/{BBB}_S{sectionNumber}.htm#V{V}">OET-RV</a>)</small></span> {textHtml}</p>'''
+                                        vHtml = f'''<p id="{versionAbbreviation}" class="parallelVerse"><span id="OET"></span><span id="C{C}V{V}" class="wrkName"><a id="C{C}" title="View {state.BibleNames['OET']} section (side-by-side versions)" href="{'../'*BBBLevel}OET/bySec/{BBB}_S{sectionNumber}.htm#V{V}">OET</a> <small>(<a id="V{V}" title="View {state.BibleNames['OET-RV']} section (by itself)" href="{'../'*BBBLevel}OET-RV/bySec/{BBB}_S{sectionNumber}.htm#V{V}">OET-RV</a>)</small></span> {textHtml}</p>'''
                                 elif versionAbbreviation=='Wycl': # Just add a bit about it being translated from the Latin (not the Greek)
                                     versionNameLink = f'''{'../'*BBBLevel}{versionAbbreviation}/details.htm#Top''' if versionAbbreviation in state.versionsWithoutTheirOwnPages else f'''{'../'*BBBLevel}{versionAbbreviation}/byC/{BBB}_{adjC}.htm#V{V}'''
                                     assert '<div' not in textHtml, f"{versionAbbreviation} {parRef} {textHtml=}"
@@ -1661,7 +1662,10 @@ def brightenUHB( BBB:str, C:str, V:str, brightenUHBTextHtml:str, verseEntryList,
             rawHebWord = strippedHebWords[verseWordNumberIndex]
             dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"Start of {UHBRef} loop1 {_safetyCount1=} {verseWordNumberIndex=} {rawHebWord=}" )
             # assert 'span' not in rawHebWord # No longer true now that we have footnotes included for display
-            assert '\n' not in rawHebWord
+            if rawHebWord.startswith( '\n' ):
+                assert UHBRef in ('NUM_26:1','SA1_20:42'), f"brightenUHB {UHBRef} {rawHebWord=} from {brightenUHBTextHtml=}"
+                rawHebWord = rawHebWord[1:]
+            assert '\n' not in rawHebWord, f"brightenUHB {UHBRef} {rawHebWord=} from {brightenUHBTextHtml=}"
             attribDict = {}
             if rawHebWord in '־׀': # maqaf and paseq
                 attribDict['lang'] = 'He'

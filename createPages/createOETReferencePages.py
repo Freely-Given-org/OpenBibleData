@@ -106,6 +106,26 @@ CHANGELOG:
                 builder now also returns its index-page entry (if any) so the parent can still
                 assemble the Strongs index pages in numeric order.
     2026-08-25 The OETHandlers functions are now imported from the Rust openbibledata_rust module (the Python OETHandlers.py was deleted).
+    2026-08-27 Added more links to UGG
+                Consolidated OSHB_HEBREW_VERB_STEM_DICT/HEBREW_VERB_TYPE_TABLE (fixed
+                'hothpaal' consistency bug, expanded verb stem table to 23 stems with
+                UHG pages), added HEBREW_CONJUGATION_TYPE_TABLE, HEBREW_PERSON_TYPE_TABLE,
+                HEBREW_GENDER_TYPE_TABLE, HEBREW_PRONOUN_TYPE_TABLE, HEBREW_PARTICLE_TYPE_TABLE,
+                HEBREW_SUFFIX_TYPE_TABLE, expanded HEBREW_NOUN_TYPE_TABLE and
+                HEBREW_ADJECTIVE_TYPE_TABLE, and updated tidy_Hebrew_morphology to link
+                all morphology fields (conjugation type, person, gender, number for all
+                PoS types, particle type, suffix type, noun/adj gender+number) to UHG
+                grammar pages.
+                Also expanded GREEK_ROLE_TYPE_TABLE to all 12 roles (fixed 'propoer_noun'
+                typo), added GREEK_MOOD_TYPE_TABLE, GREEK_TENSE_TYPE_TABLE,
+                GREEK_VOICE_TYPE_TABLE, GREEK_PERSON_TYPE_TABLE, GREEK_GENDER_TYPE_TABLE,
+                GREEK_NUMBER_TYPE_TABLE, and updated create_Greek_word_page inline
+                morphology to link mood, tense, voice, person, gender, number to UGG
+                grammar pages.
+                Also linked the Key section at the bottom of Greek word and lemma pages:
+                role letters now link to UGG role pages, and each morphology description
+                term (mood, tense, voice, case, gender, number, person) links to its
+                corresponding UGG grammar page via _link_greek_morphology_desc_to_grammar_pages().
  """
 from pathlib import Path
 import os
@@ -136,10 +156,10 @@ from createSectionPages import findSectionNumber
 from openbibledata_rust import convertVerseEntryListToHtml, getOETTidyBBB, getOETBookName, getHebrewWordpageFilename, getGreekWordpageFilename, livenOETWordLinks
 
 
-LAST_MODIFIED_DATE = '2026-08-25' # by RJH
+LAST_MODIFIED_DATE = '2026-08-28' # by RJH
 SHORT_PROGRAM_NAME = "createOETReferencePages"
 PROGRAM_NAME = "OpenBibleData createOETReferencePages functions"
-PROGRAM_VERSION = '1.01'
+PROGRAM_VERSION = '1.0.3'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -595,7 +615,7 @@ OSHB_HEBREW_VERB_STEM_DICT = { # 'V':'verb',
                    'Vq':'qal_verb', 'VN':'niphal_verb', 'Vp':'piel_verb', 'VP':'pual_verb', 'Vh':'hiphil_verb', 'VH':'hophal_verb', 'Vt':'hithpael_verb',
                    'Vo':'polel_verb', 'VO':'polal_verb', 'Vr':'hithpolel_verb', 'Vm':'poel_verb', 'VM':'poel_verb', 'Vk':'pael_verb', 'VK':'pulal_verb',
                    'VQ':'qal_passive_verb', 'Vl':'pilpel_verb', 'VL':'polpal_verb', 'Vf':'hithpalpel_verb', 'VD':'nithpael_verb', 'Vj':'pealal_verb',
-                   'Vi':'pilel_verb', 'Vu':'hothpaal', 'Vc':'tiphil_verb', 'Vv':'hishtaphel_verb', 'Vw':'nithpael_verb', 'Vy':'nithpoel_verb', 'Vz':'hithpoel_verb',
+                   'Vi':'pilel_verb', 'Vu':'hothpaal_verb', 'Vc':'tiphil_verb', 'Vv':'hishtaphel_verb', 'Vw':'nithpael_verb', 'Vy':'nithpoel_verb', 'Vz':'hithpoel_verb',
                    'Vx':'verb_(unknown_stem)' }
 OSHB_ARAMAIC_VERB_STEM_DICT = { # 'V':'verb',
                   # Aramaic verb stems
@@ -1031,7 +1051,7 @@ def create_Hebrew_grammar_pages( level:int, outputFolderPath:Path, state:State )
                     .replace( '</body>\n</html>', makeBottom( level, None, 'word' ) ) # TODO: What should 'word' be???
 
         # Save the HTML file
-        html_filepath = outputFolderPath.joinpath( rst_filename.name.replace( 'rst', 'htm' ) )
+        html_filepath = outputFolderPath.joinpath( rst_filename.name.replace( 'rst', 'htm' ).replace( 'fihtm', 'first' ) )
         with open( html_filepath, 'wt', encoding='utf-8' ) as uhgHtmlFile:
             uhgHtmlFile.write( html_text )
         num_pages += 1
@@ -1142,7 +1162,7 @@ def create_Greek_grammar_pages( level:int, outputFolderPath:Path, state:State ) 
                     .replace( '</body>\n</html>', makeBottom( level, None, 'word' ) ) # TODO: What should 'word' be???
 
         # Save the HTML file
-        html_filepath = outputFolderPath.joinpath( rst_filename.name.replace( 'rst', 'htm' ) )
+        html_filepath = outputFolderPath.joinpath( rst_filename.name.replace( 'rst', 'htm' ).replace( 'fihtm', 'first' ) )
         with open( html_filepath, 'wt', encoding='utf-8' ) as uggHtmlFile:
             uggHtmlFile.write( html_text )
         num_pages += 1
@@ -1444,20 +1464,115 @@ def convert_Hebrew_word_gloss_spans( engGloss:str ) -> str:
     return result
 # end of createOETReferencePages.convert_Hebrew_word_gloss_spans
 
+HEBREW_POS_TYPE_TABLE = { # Maps broad PoS names to UHG links (used in the else branch for conjunction/adverb)
+    'adverb': '<a title="Go to grammar page" href="../UHG/adverb.htm#Top">adverb</a>',
+    'conjunction': '<a title="Go to grammar page" href="../UHG/conjunction.htm#Top">conjunction</a>',
+    'noun': '<a title="Go to grammar page" href="../UHG/noun.htm#Top">noun</a>',
+    'adjective': '<a title="Go to grammar page" href="../UHG/adjective.htm#Top">adjective</a>',
+    'pronoun': '<a title="Go to grammar page" href="../UHG/pronoun.htm#Top">pronoun</a>',
+    'particle': '<a title="Go to grammar page" href="../UHG/particle.htm#Top">particle</a>',
+    'preposition': '<a title="Go to grammar page" href="../UHG/preposition.htm#Top">preposition</a>',
+    'suffix': '<a title="Go to grammar page" href="../UHG/suffix.htm#Top">suffix</a>',
+    'verb': '<a title="Go to grammar page" href="../UHG/verb.htm#Top">verb</a>',
+}
 HEBREW_NOUN_TYPE_TABLE = {
+    'noun': '<a title="Go to grammar page" href="../UHG/noun.htm#Top">noun</a>',
     'common_noun': '<a title="Go to grammar page" href="../UHG/noun_common.htm#Top">common_noun</a>',
+    'noun_(gentilic)': '<a title="Go to grammar page" href="../UHG/noun_gentilic.htm#Top">noun_(gentilic)</a>',
     'proper_noun': '<a title="Go to grammar page" href="../UHG/noun_proper_name.htm#Top">proper_noun</a>',
 }
-HEBREW_VERB_TYPE_TABLE = {
-    'qal_verb': '<a title="Go to grammar page" href="../UHG/stem_qal.htm#Top">qal_verb</a>',
+HEBREW_VERB_TYPE_TABLE = { # Maps verb stem names (from OSHB_HEBREW_VERB_STEM_DICT) to UHG links
+    'hiphil_verb': '<a title="Go to grammar page" href="../UHG/stem_hiphil.htm#Top">hiphil_verb</a>',
+    'hishtaphel_verb': '<a title="Go to grammar page" href="../UHG/stem_hishtaphel.htm#Top">hishtaphel_verb</a>',
+    'hithpael_verb': '<a title="Go to grammar page" href="../UHG/stem_hithpael.htm#Top">hithpael_verb</a>',
+    'hithpalpel_verb': '<a title="Go to grammar page" href="../UHG/stem_hithpalpel.htm#Top">hithpalpel_verb</a>',
+    'hithpoel_verb': '<a title="Go to grammar page" href="../UHG/stem_hithpoel.htm#Top">hithpoel_verb</a>',
+    'hithpolel_verb': '<a title="Go to grammar page" href="../UHG/stem_hithpolel.htm#Top">hithpolel_verb</a>',
+    'hophal_verb': '<a title="Go to grammar page" href="../UHG/stem_hophal.htm#Top">hophal_verb</a>',
+    'hothpaal_verb': '<a title="Go to grammar page" href="../UHG/stem_hothpaal.htm#Top">hothpaal_verb</a>',
+    'niphal_verb': '<a title="Go to grammar page" href="../UHG/stem_niphal.htm#Top">niphal_verb</a>',
+    'nithpael_verb': '<a title="Go to grammar page" href="../UHG/stem_nithpael.htm#Top">nithpael_verb</a>',
+    'pealal_verb': '<a title="Go to grammar page" href="../UHG/stem_pealal.htm#Top">pealal_verb</a>',
     'piel_verb': '<a title="Go to grammar page" href="../UHG/stem_piel.htm#Top">piel_verb</a>',
+    'pilel_verb': '<a title="Go to grammar page" href="../UHG/stem_pilel.htm#Top">pilel_verb</a>',
+    'pilpel_verb': '<a title="Go to grammar page" href="../UHG/stem_pilpel.htm#Top">pilpel_verb</a>',
+    'poel_verb': '<a title="Go to grammar page" href="../UHG/stem_poel.htm#Top">poel_verb</a>',
+    'polal_verb': '<a title="Go to grammar page" href="../UHG/stem_polal.htm#Top">polal_verb</a>',
+    'polel_verb': '<a title="Go to grammar page" href="../UHG/stem_polel.htm#Top">polel_verb</a>',
+    'polpal_verb': '<a title="Go to grammar page" href="../UHG/stem_polpal.htm#Top">polpal_verb</a>',
+    'pual_verb': '<a title="Go to grammar page" href="../UHG/stem_pual.htm#Top">pual_verb</a>',
+    'pulal_verb': '<a title="Go to grammar page" href="../UHG/stem_pulal.htm#Top">pulal_verb</a>',
+    'qal_verb': '<a title="Go to grammar page" href="../UHG/stem_qal.htm#Top">qal_verb</a>',
+    'qal_passive_verb': '<a title="Go to grammar page" href="../UHG/stem_qal_passive.htm#Top">qal_passive_verb</a>',
+    'tiphil_verb': '<a title="Go to grammar page" href="../UHG/stem_tiphil.htm#Top">tiphil_verb</a>',
+}
+HEBREW_CONJUGATION_TYPE_TABLE = { # Maps verb conjugation types (from OSHB_VERB_CONJUGATION_TYPE_DICT) to UHG links
+    'perfect_(<i>qatal</i>)': '<a title="Go to grammar page" href="../UHG/verb_perfect.htm#Top">perfect_(<i>qatal</i>)</a>',
+    'sequential_perfect_(<i>weqatal</i>)': '<a title="Go to grammar page" href="../UHG/verb_sequential_perfect.htm#Top">sequential_perfect_(<i>weqatal</i>)</a>',
+    'imperfect_(<i>yiqtol</i>)': '<a title="Go to grammar page" href="../UHG/verb_imperfect.htm#Top">imperfect_(<i>yiqtol</i>)</a>',
+    'sequential_imperfect_(<i>wayyiqtol</i>)': '<a title="Go to grammar page" href="../UHG/verb_sequential_imperfect.htm#Top">sequential_imperfect_(<i>wayyiqtol</i>)</a>',
+    'cohortative': '<a title="Go to grammar page" href="../UHG/verb_cohortative.htm#Top">cohortative</a>',
+    'jussive': '<a title="Go to grammar page" href="../UHG/verb_jussive.htm#Top">jussive</a>',
+    'imperative': '<a title="Go to grammar page" href="../UHG/verb_imperative.htm#Top">imperative</a>',
+    'active_participle': '<a title="Go to grammar page" href="../UHG/participle_active.htm#Top">active_participle</a>',
+    'passive_participle': '<a title="Go to grammar page" href="../UHG/participle_passive.htm#Top">passive_participle</a>',
+    'infinitive_absolute': '<a title="Go to grammar page" href="../UHG/infinitive_absolute.htm#Top">infinitive_absolute</a>',
+    'infinitive_construct': '<a title="Go to grammar page" href="../UHG/infinitive_construct.htm#Top">infinitive_construct</a>',
+}
+HEBREW_PERSON_TYPE_TABLE = { # Maps person names (from OSHB_PERSON_DICT) to UHG links
+    'first': '<a title="Go to grammar page" href="../UHG/person_first.htm#Top">first</a>',
+    'second': '<a title="Go to grammar page" href="../UHG/person_second.htm#Top">second</a>',
+    'third': '<a title="Go to grammar page" href="../UHG/person_third.htm#Top">third</a>',
+}
+HEBREW_GENDER_TYPE_TABLE = { # Maps gender names (from OSHB_GENDER_DICT) to UHG links
+    'both': '<a title="Go to grammar page" href="../UHG/gender_both.htm#Top">both</a>',
+    'common': '<a title="Go to grammar page" href="../UHG/gender_common.htm#Top">common</a>',
+    'feminine': '<a title="Go to grammar page" href="../UHG/gender_feminine.htm#Top">feminine</a>',
+    'masculine': '<a title="Go to grammar page" href="../UHG/gender_masculine.htm#Top">masculine</a>',
+}
+HEBREW_PRONOUN_TYPE_TABLE = { # Maps pronoun types (from OSHB_PRONOUN_DICT) to UHG links
+    'demonstrative_pronoun': '<a title="Go to grammar page" href="../UHG/pronoun_demonstrative.htm#Top">demonstrative_pronoun</a>',
+    'indefinite_pronoun': '<a title="Go to grammar page" href="../UHG/pronoun_indefinite.htm#Top">indefinite_pronoun</a>',
+    'interrogative_pronoun': '<a title="Go to grammar page" href="../UHG/pronoun_interrogative.htm#Top">interrogative_pronoun</a>',
+    'personal_pronoun': '<a title="Go to grammar page" href="../UHG/pronoun_personal.htm#Top">personal_pronoun</a>',
+    'relative_pronoun': '<a title="Go to grammar page" href="../UHG/pronoun_relative.htm#Top">relative_pronoun</a>',
+}
+HEBREW_PARTICLE_TYPE_TABLE = { # Maps particle types (from OSHB_PARTICLE_DICT) to UHG links
+    'particle': '<a title="Go to grammar page" href="../UHG/particle.htm#Top">particle</a>',
+    'affirmation_particle': '<a title="Go to grammar page" href="../UHG/particle_affirmation.htm#Top">affirmation_particle</a>',
+    'definite_article': '<a title="Go to grammar page" href="../UHG/particle_definite_article.htm#Top">definite_article</a>',
+    'demonstrative_particle': '<a title="Go to grammar page" href="../UHG/particle_demonstrative.htm#Top">demonstrative_particle</a>',
+    'direct_object_marker': '<a title="Go to grammar page" href="../UHG/particle_direct_object_marker.htm#Top">direct_object_marker</a>',
+    'exhortation_particle': '<a title="Go to grammar page" href="../UHG/particle_exhortation.htm#Top">exhortation_particle</a>',
+    'interjection_particle': '<a title="Go to grammar page" href="../UHG/particle_interjection.htm#Top">interjection_particle</a>',
+    'interrogative_particle': '<a title="Go to grammar page" href="../UHG/particle_interrogative.htm#Top">interrogative_particle</a>',
+    'negative_particle': '<a title="Go to grammar page" href="../UHG/particle_negative.htm#Top">negative_particle</a>',
+    'relative_particle': '<a title="Go to grammar page" href="../UHG/particle_relative.htm#Top">relative_particle</a>',
+}
+HEBREW_SUFFIX_TYPE_TABLE = { # Maps suffix types (from OSHB_SUFFIX_DICT) to UHG links
+    'directional_<i>he</i>_suffix': '<a title="Go to grammar page" href="../UHG/suffix_directional_he.htm#Top">directional_<i>he</i>_suffix</a>',
+    'paragogic_<i>he</i>_suffix': '<a title="Go to grammar page" href="../UHG/suffix_paragogic_he.htm#Top">paragogic_<i>he</i>_suffix</a>',
+    'paragogic_<i>nun</i>_suffix': '<a title="Go to grammar page" href="../UHG/suffix_paragogic_nun.htm#Top">paragogic_<i>nun</i>_suffix</a>',
+    'pronominal_suffix': '<a title="Go to grammar page" href="../UHG/suffix_pronominal.htm#Top">pronominal_suffix</a>',
 }
 HEBREW_ADJECTIVE_TYPE_TABLE = {
     'adjective': '<a title="Go to grammar page" href="../UHG/adjective.htm#Top">adjective</a>',
+    'adjective_(cardinal_number)': '<a title="Go to grammar page" href="../UHG/adjective_cardinal_number.htm#Top">adjective_(cardinal_number)</a>',
+    'adjective_(gentilic)': '<a title="Go to grammar page" href="../UHG/adjective_gentilic.htm#Top">adjective_(gentilic)</a>',
+    'adjective_(ordinal_number)': '<a title="Go to grammar page" href="../UHG/adjective_ordinal_number.htm#Top">adjective_(ordinal_number)</a>',
 }
 HEBREW_PREPOSITION_TYPE_TABLE = {
     'preposition': '<a title="Go to grammar page" href="../UHG/preposition.htm#Top">preposition</a>',
     'preposition_with_definite_article': '<a title="Go to grammar page" href="../UHG/preposition_definite_article.htm#Top">preposition_with_definite_article</a>',
+}
+HEBREW_STATE_TYPE_TABLE = {
+    'construct': '<a title="Go to grammar page" href="../UHG/state_construct.htm#Top">construct</a>',
+    'absolute': '<a title="Go to grammar page" href="../UHG/state_absolute.htm#Top">absolute</a>',
+}
+HEBREW_NUMBER_TYPE_TABLE = {
+    'dual': '<a title="Go to grammar page" href="../UHG/number_dual.htm#Top">dual</a>',
+    'plural': '<a title="Go to grammar page" href="../UHG/number_plural.htm#Top">plural</a>',
+    'singular': '<a title="Go to grammar page" href="../UHG/number_singular.htm#Top">singular</a>',
 }
 def tidy_Hebrew_morphology( tHM_rowType:str, tHM_morphology:str ) -> str:
     """
@@ -1479,7 +1594,16 @@ def tidy_Hebrew_morphology( tHM_rowType:str, tHM_morphology:str ) -> str:
                 except KeyError: noun_type_field = noun_type
                 tHM_word_details_field = f'PoS=<b>{noun_type_field}</b>'
                 if len(tHM_individualMorphology) > 2:
-                    tHM_word_details_field = f'{tHM_word_details_field} Gender={OSHB_GENDER_DICT[tHM_individualMorphology[2]]} Number={OSHB_NUMBER_DICT[tHM_individualMorphology[3]]} State={OSHB_STATE_DICT[tHM_individualMorphology[4]]}'
+                    gender_type = OSHB_GENDER_DICT[tHM_individualMorphology[2]]
+                    try: gender_type_field = HEBREW_GENDER_TYPE_TABLE[gender_type] # returns a link to the UHG
+                    except KeyError: gender_type_field = gender_type
+                    number_type = OSHB_NUMBER_DICT[tHM_individualMorphology[3]]
+                    try: number_type_field = HEBREW_NUMBER_TYPE_TABLE[number_type] # returns a link to the UHG
+                    except KeyError: number_type_field = number_type
+                    state_type = OSHB_STATE_DICT[tHM_individualMorphology[4]]
+                    try: state_type_field = HEBREW_STATE_TYPE_TABLE[state_type] # returns a link to the UHG
+                    except KeyError: state_type_field = state_type
+                    tHM_word_details_field = f'{tHM_word_details_field}  Gender={gender_type_field}  Number={number_type_field}  State={state_type_field}'
 
             elif tHM_PoS == 'V': # verb: Generally verbs require no state. Participles, on the other hand, require no person, though they do take a state.
                 assert 3 <= len(tHM_individualMorphology) <= 7
@@ -1490,14 +1614,47 @@ def tidy_Hebrew_morphology( tHM_rowType:str, tHM_morphology:str ) -> str:
                 #     verb_type = f'UNKNOWN {PoS_with_type=}'
                 try: verb_type_field = HEBREW_VERB_TYPE_TABLE[verb_type] # returns a link to the UHG
                 except KeyError: verb_type_field = verb_type
-                tHM_word_details_field = f'PoS=<b>{verb_type_field}</b> Type={OSHB_VERB_CONJUGATION_TYPE_DICT[tHM_individualMorphology[2]]}'
+                conj_type = OSHB_VERB_CONJUGATION_TYPE_DICT[tHM_individualMorphology[2]]
+                try: conj_type_field = HEBREW_CONJUGATION_TYPE_TABLE[conj_type] # returns a link to the UHG
+                except KeyError: conj_type_field = conj_type
+                tHM_word_details_field = f'PoS=<b>{verb_type_field}</b>  Type={conj_type_field}'
                 if len(tHM_individualMorphology) == 6:
                     if tHM_individualMorphology[2] in 'rs': # active or passive PARTICIPLE (has no person field but does have a state)
-                        tHM_word_details_field = f'{tHM_word_details_field} Gender={OSHB_GENDER_DICT[tHM_individualMorphology[3]]} Number={OSHB_NUMBER_DICT[tHM_individualMorphology[4]]} State={OSHB_STATE_DICT[tHM_individualMorphology[5]]}'
+                        state_type = OSHB_STATE_DICT[tHM_individualMorphology[5]]
+                        try: state_type_field = HEBREW_STATE_TYPE_TABLE[state_type] # returns a link to the UHG
+                        except KeyError: state_type_field = state_type
+                        gender_type = OSHB_GENDER_DICT[tHM_individualMorphology[3]]
+                        try: gender_type_field = HEBREW_GENDER_TYPE_TABLE[gender_type] # returns a link to the UHG
+                        except KeyError: gender_type_field = gender_type
+                        number_type = OSHB_NUMBER_DICT[tHM_individualMorphology[4]]
+                        try: number_type_field = HEBREW_NUMBER_TYPE_TABLE[number_type] # returns a link to the UHG
+                        except KeyError: number_type_field = number_type
+                        tHM_word_details_field = f'{tHM_word_details_field}  Gender={gender_type_field}  Number={number_type_field}  State={state_type_field}'
                     else:
-                        tHM_word_details_field = f'{tHM_word_details_field} Person={OSHB_PERSON_DICT[tHM_individualMorphology[3]]} Gender={OSHB_GENDER_DICT[tHM_individualMorphology[4]]} Number={OSHB_NUMBER_DICT[tHM_individualMorphology[5]]}'
+                        person_type = OSHB_PERSON_DICT[tHM_individualMorphology[3]]
+                        try: person_type_field = HEBREW_PERSON_TYPE_TABLE[person_type] # returns a link to the UHG
+                        except KeyError: person_type_field = person_type
+                        gender_type = OSHB_GENDER_DICT[tHM_individualMorphology[4]]
+                        try: gender_type_field = HEBREW_GENDER_TYPE_TABLE[gender_type] # returns a link to the UHG
+                        except KeyError: gender_type_field = gender_type
+                        number_type = OSHB_NUMBER_DICT[tHM_individualMorphology[5]]
+                        try: number_type_field = HEBREW_NUMBER_TYPE_TABLE[number_type] # returns a link to the UHG
+                        except KeyError: number_type_field = number_type
+                        tHM_word_details_field = f'{tHM_word_details_field}  Person={person_type_field}  Gender={gender_type_field}  Number={number_type_field}'
                 elif len(tHM_individualMorphology) == 7: # then we have a state as well
-                    tHM_word_details_field = f'{tHM_word_details_field} Person={OSHB_PERSON_DICT[tHM_individualMorphology[3]]} Gender={OSHB_GENDER_DICT[tHM_individualMorphology[4]]} Number={OSHB_NUMBER_DICT[tHM_individualMorphology[5]]} State={OSHB_STATE_DICT[tHM_individualMorphology[6]]}'
+                    person_type = OSHB_PERSON_DICT[tHM_individualMorphology[3]]
+                    try: person_type_field = HEBREW_PERSON_TYPE_TABLE[person_type] # returns a link to the UHG
+                    except KeyError: person_type_field = person_type
+                    gender_type = OSHB_GENDER_DICT[tHM_individualMorphology[4]]
+                    try: gender_type_field = HEBREW_GENDER_TYPE_TABLE[gender_type] # returns a link to the UHG
+                    except KeyError: gender_type_field = gender_type
+                    number_type = OSHB_NUMBER_DICT[tHM_individualMorphology[5]]
+                    try: number_type_field = HEBREW_NUMBER_TYPE_TABLE[number_type] # returns a link to the UHG
+                    except KeyError: number_type_field = number_type
+                    state_type = OSHB_STATE_DICT[tHM_individualMorphology[6]]
+                    try: state_type_field = HEBREW_STATE_TYPE_TABLE[state_type] # returns a link to the UHG
+                    except KeyError: state_type_field = state_type
+                    tHM_word_details_field = f'{tHM_word_details_field}  Person={person_type_field}  Gender={gender_type_field}  Number={number_type_field}  State={state_type_field}'
                 elif len(tHM_individualMorphology) == 3:
                     assert tHM_individualMorphology[2] in 'ac' # infinitive absolute or construct
                     # We've already got the verb + stem + conjugation type above
@@ -1507,20 +1664,44 @@ def tidy_Hebrew_morphology( tHM_rowType:str, tHM_morphology:str ) -> str:
                 adjective_type = OSHB_ADJECTIVE_DICT[tHM_PoS_with_type]
                 try: adjective_type_field = HEBREW_ADJECTIVE_TYPE_TABLE[adjective_type] # returns a link to the UHG
                 except KeyError: adjective_type_field = adjective_type
-                tHM_word_details_field = f'PoS=<b>{adjective_type_field}</b> Gender={OSHB_GENDER_DICT[tHM_individualMorphology[2]]} Number={OSHB_NUMBER_DICT[tHM_individualMorphology[3]]} State={OSHB_STATE_DICT[tHM_individualMorphology[4]]}'
+                gender_type = OSHB_GENDER_DICT[tHM_individualMorphology[2]]
+                try: gender_type_field = HEBREW_GENDER_TYPE_TABLE[gender_type] # returns a link to the UHG
+                except KeyError: gender_type_field = gender_type
+                number_type = OSHB_NUMBER_DICT[tHM_individualMorphology[3]]
+                try: number_type_field = HEBREW_NUMBER_TYPE_TABLE[number_type] # returns a link to the UHG
+                except KeyError: number_type_field = number_type
+                state_type = OSHB_STATE_DICT[tHM_individualMorphology[4]]
+                try: state_type_field = HEBREW_STATE_TYPE_TABLE[state_type] # returns a link to the UHG
+                except KeyError: state_type_field = state_type
+                tHM_word_details_field = f'PoS=<b>{adjective_type_field}</b>  Gender={gender_type_field}  Number={number_type_field}  State={state_type_field}'
             elif tHM_PoS == 'P': # pronoun: person, gender, number and state are the same wherever they apply.
                 assert 2 <= len(tHM_individualMorphology) <= 5
                 pronoun_type = OSHB_PRONOUN_DICT[tHM_PoS_with_type]
-                tHM_word_details_field = f'PoS=<b>{pronoun_type}</b>'
+                try: pronoun_type_field = HEBREW_PRONOUN_TYPE_TABLE[pronoun_type] # returns a link to the UHG
+                except KeyError: pronoun_type_field = pronoun_type
+                tHM_word_details_field = f'PoS=<b>{pronoun_type_field}</b>'
                 if len(tHM_individualMorphology) > 2:
-                    tHM_word_details_field = f'{tHM_word_details_field} Person={OSHB_PERSON_DICT[tHM_individualMorphology[2]]} Gender={OSHB_GENDER_DICT[tHM_individualMorphology[3]]} Number={OSHB_NUMBER_DICT[tHM_individualMorphology[4]]}'
+                    person_type = OSHB_PERSON_DICT[tHM_individualMorphology[2]]
+                    try: person_type_field = HEBREW_PERSON_TYPE_TABLE[person_type] # returns a link to the UHG
+                    except KeyError: person_type_field = person_type
+                    gender_type = OSHB_GENDER_DICT[tHM_individualMorphology[3]]
+                    try: gender_type_field = HEBREW_GENDER_TYPE_TABLE[gender_type] # returns a link to the UHG
+                    except KeyError: gender_type_field = gender_type
+                    number_type = OSHB_NUMBER_DICT[tHM_individualMorphology[4]]
+                    try: number_type_field = HEBREW_NUMBER_TYPE_TABLE[number_type] # returns a link to the UHG
+                    except KeyError: number_type_field = number_type
+                    tHM_word_details_field = f'{tHM_word_details_field}  Person={person_type_field}  Gender={gender_type_field}  Number={number_type_field}'
             elif tHM_PoS == 'T': # particle
                 if len(tHM_individualMorphology) == 1: # e.g., at Aramaic DAN_4:12w11
-                    tHM_word_details_field = f'PoS=<b>particle</b>'
+                    try: particle_type_field = HEBREW_PARTICLE_TYPE_TABLE['particle'] # returns a link to the UHG
+                    except KeyError: particle_type_field = 'particle'
+                    tHM_word_details_field = f'PoS=<b>{particle_type_field}</b>'
                 else:
                     assert len(tHM_individualMorphology) == 2
                     particle_type = OSHB_PARTICLE_DICT[tHM_PoS_with_type]
-                    tHM_word_details_field = f'PoS=<b>{particle_type}</b>'
+                    try: particle_type_field = HEBREW_PARTICLE_TYPE_TABLE[particle_type] # returns a link to the UHG
+                    except KeyError: particle_type_field = particle_type
+                    tHM_word_details_field = f'PoS=<b>{particle_type_field}</b>'
             elif tHM_PoS == 'R': # preposition: the preposition type is only used when the inseparable preposition is pointed in such a way to indicate the presence of the definite article.
                 assert 1 <= len(tHM_individualMorphology) <= 2, f"'{tHM_PoS}' ({len(tHM_individualMorphology)}) {tHM_individualMorphology=}"
                 preposition_type = OSHB_PREPOSITION_DICT[tHM_PoS_with_type] if len(tHM_individualMorphology)==2 else OSHB_POS_DICT[tHM_PoS]
@@ -1530,13 +1711,27 @@ def tidy_Hebrew_morphology( tHM_rowType:str, tHM_morphology:str ) -> str:
             elif tHM_PoS == 'S': # suffix
                 assert 2 <= len(tHM_individualMorphology) <= 5
                 suffix_type = OSHB_SUFFIX_DICT[tHM_PoS_with_type]
-                tHM_word_details_field = f'PoS=<b>{suffix_type}</b>'
+                try: suffix_type_field = HEBREW_SUFFIX_TYPE_TABLE[suffix_type] # returns a link to the UHG
+                except KeyError: suffix_type_field = suffix_type
+                tHM_word_details_field = f'PoS=<b>{suffix_type_field}</b>'
                 if len(tHM_individualMorphology) > 2:
-                    tHM_word_details_field = f'{tHM_word_details_field} Person={OSHB_PERSON_DICT[tHM_individualMorphology[2]]} Gender={OSHB_GENDER_DICT[tHM_individualMorphology[3]]} Number={OSHB_NUMBER_DICT[tHM_individualMorphology[4]]}'
+                    person_type = OSHB_PERSON_DICT[tHM_individualMorphology[2]]
+                    try: person_type_field = HEBREW_PERSON_TYPE_TABLE[person_type] # returns a link to the UHG
+                    except KeyError: person_type_field = person_type
+                    gender_type = OSHB_GENDER_DICT[tHM_individualMorphology[3]]
+                    try: gender_type_field = HEBREW_GENDER_TYPE_TABLE[gender_type] # returns a link to the UHG
+                    except KeyError: gender_type_field = gender_type
+                    number_type = OSHB_NUMBER_DICT[tHM_individualMorphology[4]]
+                    try: number_type_field = HEBREW_NUMBER_TYPE_TABLE[number_type] # returns a link to the UHG
+                    except KeyError: number_type_field = number_type
+                    tHM_word_details_field = f'{tHM_word_details_field}  Person={person_type_field}  Gender={gender_type_field}  Number={number_type_field}'
             else:
                 if tHM_PoS in ('C','D'): # conjunction or adverb
                     assert len(tHM_individualMorphology) == 1 # We only have the PoS
-                tHM_word_details_field = f'PoS=<b>{OSHB_POS_DICT[tHM_PoS]}</b>'
+                pos_type = OSHB_POS_DICT[tHM_PoS]
+                try: pos_type_field = HEBREW_POS_TYPE_TABLE[pos_type] # returns a link to the UHG
+                except KeyError: pos_type_field = pos_type
+                tHM_word_details_field = f'PoS=<b>{pos_type_field}</b>'
             tHM_tidyMorphologyField = f'''{'Aramaic ' if 'A' in tHM_rowType else ''}{tHM_tidyMorphologyField} {tHM_word_details_field}'''
         else: # individualMorphology is blank (AMO_6:14w14)
             tHM_tidyMorphologyField = '(MISSING)'
@@ -1645,6 +1840,7 @@ def create_Hebrew_word_pages( level:int, outputFolderPath:Path, state:State ) ->
             results = pool.map( _create_Hebrew_word_page_MP, parameters ) # have the pool do our loads
             assert len(results) == len(parameters)
         BibleOrgSysGlobals.alreadyMultiprocessing = False
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Collecting{'' if not state.TEST_MODE_FLAG or state.ALL_TEST_REFERENCE_PAGES_FLAG else ' up to'} {len(parameters):,} Hebrew word page results…" )
         for (result, usedStrongsNumbers, usedLemmas), (rowType,hebrewWord,output_filename) in zip( results, taskMetaList ):
             state.OETRefData['usedHebStrongsSet'].update( usedStrongsNumbers ) # Used in next function to make Strongs pages
             state.OETRefData['usedHebLemmasSet'].update( usedLemmas ) # Used in next function to make lemma pages
@@ -2592,8 +2788,8 @@ def create_Hebrew_lemma_pages( level:int, outputFolderPath:Path, state:State ) -
     for n,(result,(ll_output_filename,hebLemma)) in enumerate( zip(results,taskMetaList), start=1 ):
         assert result, f"{n} {ll_output_filename} {hebLemma}"
         lemmaLinks.append( f'<a href="{ll_output_filename}">{hebLemma}</a>')
-        if n % 2_000 == 0:
-            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      {n:,} lemma page links collected out of {len(taskMetaList):,}…" )
+        # if n % 2_000 == 0:
+        #     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      {n:,} lemma page links collected out of {len(taskMetaList):,}…" )
     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f'''    Created {len(lemmaLinks):,}{f"/{len(state.OETRefData['OTLemmaGlossDict']):,}" if len(lemmaLinks) < len(state.OETRefData['OTLemmaGlossDict']) else ''} Hebrew lemma pages.''' )
 
     # Create index page for this folder
@@ -2654,10 +2850,87 @@ def create_Hebrew_lemma_pages( level:int, outputFolderPath:Path, state:State ) -
 # end of createOETReferencePages.create_Hebrew_lemma_pages
 
 
-GREEK_ROLE_TYPE_TABLE = {
+GREEK_ROLE_TYPE_TABLE = { # Maps role names (from CNTR_ROLE_NAME_DICT) to UGG links
     'noun': '<a title="Go to grammar page" href="../UGG/noun.htm#Top">noun</a>',
+    'substantive adjective': '<a title="Go to grammar page" href="../UGG/noun_substantive_adj.htm#Top">substantive adjective</a>',
+    'adjective': '<a title="Go to grammar page" href="../UGG/adjective.htm#Top">adjective</a>',
+    'determiner/case-marker': '<a title="Go to grammar page" href="../UGG/determiner.htm#Top">determiner/case-marker</a>',
     'pronoun': '<a title="Go to grammar page" href="../UGG/pronoun.htm#Top">pronoun</a>',
+    'verb': '<a title="Go to grammar page" href="../UGG/verb.htm#Top">verb</a>',
+    'interjection': '<a title="Go to grammar page" href="../UGG/interjection.htm#Top">interjection</a>',
+    'preposition': '<a title="Go to grammar page" href="../UGG/preposition.htm#Top">preposition</a>',
+    'adverb': '<a title="Go to grammar page" href="../UGG/adverb.htm#Top">adverb</a>',
+    'conjunction': '<a title="Go to grammar page" href="../UGG/conjunction.htm#Top">conjunction</a>',
+    'particle': '<a title="Go to grammar page" href="../UGG/particle.htm#Top">particle</a>',
+    'proper noun': '<a title="Go to grammar page" href="../UGG/proper_noun.htm#Top">proper noun</a>',
 }
+GREEK_CASE_TYPE_TABLE = {
+    'accusative': '<a title="Go to grammar page" href="../UGG/case_accusative.htm#Top">accusative</a>',
+    'dative': '<a title="Go to grammar page" href="../UGG/case_dative.htm#Top">dative</a>',
+    'genitive': '<a title="Go to grammar page" href="../UGG/case_genitive.htm#Top">genitive</a>',
+    'nominative': '<a title="Go to grammar page" href="../UGG/case_nominative.htm#Top">nominative</a>',
+    'vocative': '<a title="Go to grammar page" href="../UGG/case_vocative.htm#Top">vocative</a>',
+}
+GREEK_MOOD_TYPE_TABLE = { # Maps mood names (from CNTR_MOOD_NAME_DICT) to UGG links
+    'indicative': '<a title="Go to grammar page" href="../UGG/mood_indicative.htm#Top">indicative</a>',
+    'imperative': '<a title="Go to grammar page" href="../UGG/mood_imperative.htm#Top">imperative</a>',
+    'subjunctive': '<a title="Go to grammar page" href="../UGG/mood_subjunctive.htm#Top">subjunctive</a>',
+    'optative': '<a title="Go to grammar page" href="../UGG/mood_optative.htm#Top">optative</a>',
+    'infinitive': '<a title="Go to grammar page" href="../UGG/mood_infinitive.htm#Top">infinitive</a>',
+    'participle': '<a title="Go to grammar page" href="../UGG/mood_participle.htm#Top">participle</a>',
+}
+GREEK_TENSE_TYPE_TABLE = { # Maps tense names (from CNTR_TENSE_NAME_DICT) to UGG links
+    'present': '<a title="Go to grammar page" href="../UGG/tense_present.htm#Top">present</a>',
+    'imperfect': '<a title="Go to grammar page" href="../UGG/tense_imperfect.htm#Top">imperfect</a>',
+    'future': '<a title="Go to grammar page" href="../UGG/tense_future.htm#Top">future</a>',
+    'aorist': '<a title="Go to grammar page" href="../UGG/tense_aorist.htm#Top">aorist</a>',
+    'perfect': '<a title="Go to grammar page" href="../UGG/tense_perfect.htm#Top">perfect</a>',
+    'pluperfect': '<a title="Go to grammar page" href="../UGG/tense_pluperfect.htm#Top">pluperfect</a>',
+}
+GREEK_VOICE_TYPE_TABLE = { # Maps voice names (from CNTR_VOICE_NAME_DICT) to UGG links
+    'active': '<a title="Go to grammar page" href="../UGG/voice_active.htm#Top">active</a>',
+    'middle': '<a title="Go to grammar page" href="../UGG/voice_middle.htm#Top">middle</a>',
+    'passive': '<a title="Go to grammar page" href="../UGG/voice_passive.htm#Top">passive</a>',
+}
+GREEK_PERSON_TYPE_TABLE = { # Maps person names (from CNTR_PERSON_NAME_DICT) to UGG links
+    '1st': '<a title="Go to grammar page" href="../UGG/person_first.htm#Top">1st</a>',
+    '2nd': '<a title="Go to grammar page" href="../UGG/person_second.htm#Top">2nd</a>',
+    '3rd': '<a title="Go to grammar page" href="../UGG/person_third.htm#Top">3rd</a>',
+}
+GREEK_GENDER_TYPE_TABLE = { # Maps gender names (from CNTR_GENDER_NAME_DICT) to UGG links
+    'masculine': '<a title="Go to grammar page" href="../UGG/gender_masculine.htm#Top">masculine</a>',
+    'feminine': '<a title="Go to grammar page" href="../UGG/gender_feminine.htm#Top">feminine</a>',
+    'neuter': '<a title="Go to grammar page" href="../UGG/gender_neuter.htm#Top">neuter</a>',
+}
+GREEK_NUMBER_TYPE_TABLE = { # Maps number names (from CNTR_NUMBER_NAME_DICT) to UGG links
+    'singular': '<a title="Go to grammar page" href="../UGG/number_singular.htm#Top">singular</a>',
+    'plural': '<a title="Go to grammar page" href="../UGG/number_plural.htm#Top">plural</a>',
+}
+GREEK_GRAMMAR_TABLES = (GREEK_ROLE_TYPE_TABLE, GREEK_MOOD_TYPE_TABLE, GREEK_TENSE_TYPE_TABLE,
+                        GREEK_VOICE_TYPE_TABLE, GREEK_PERSON_TYPE_TABLE, GREEK_CASE_TYPE_TABLE,
+                        GREEK_GENDER_TYPE_TABLE, GREEK_NUMBER_TYPE_TABLE)
+def _link_greek_morphology_desc_to_grammar_pages( desc_str:str ) -> str:
+    """
+    Takes a comma-separated morphology description string (e.g.,
+    'indicative,present,active,3rd person plural') and wraps each
+    recognized grammar term in a link to the appropriate UGG page.
+    """
+    combined = {}
+    for table in GREEK_GRAMMAR_TABLES:
+        combined.update( table )
+    result_parts = []
+    for piece in desc_str.split( ',' ):
+        piece = piece.strip()
+        if piece in combined:
+            result_parts.append( combined[piece] )
+        else:
+            words = piece.split()
+            linked_words = []
+            for word in words:
+                linked_words.append( combined.get( word, word ) )
+            result_parts.append( ' '.join( linked_words ) )
+    return ',&hairsp;'.join( result_parts )
+# end of createOETReferencePages._link_greek_morphology_desc_to_grammar_pages
 def tidyGlossOfGreekWord( engGloss:str ) -> str:
         """
         The gloss might be the OET-LV gloss,
@@ -2838,14 +3111,13 @@ def create_Greek_word_pages( level:int, outputFolderPath:Path, state:State ) -> 
             results = pool.map( _create_Greek_word_page_MP, parameters ) # have the pool do our loads
             assert len(results) == len(parameters)
         BibleOrgSysGlobals.alreadyMultiprocessing = False
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Collecting{'' if not state.TEST_MODE_FLAG or state.ALL_TEST_REFERENCE_PAGES_FLAG else ' up to'} {len(parameters):,} Greek word page results…" )
         for n,((result, usedStrongsNumbers, usedLemmas),(output_filename,greekWord)) in enumerate( zip(results,taskMetaList), start=1 ):
             assert result, f"{n} {output_filename} {greekWord}"
             state.OETRefData['usedGrkStrongs'].update( usedStrongsNumbers ) # Used in next function to make Strongs pages
             state.OETRefData['usedGrkLemmas'].update( usedLemmas ) # Used in next function to make lemma pages
             wordLinksForIndex.append( f'<a href="{output_filename}">{greekWord}</a>')
             numWordPagesMade += 1
-            if numWordPagesMade % 20_000 == 0:
-                vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      {numWordPagesMade:,} made out of {len(parameters):,}…" )
     else: # no multi-processing
         vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Creating {len(parameters):,} Greek word pages sequentially…" )
         for n,oneParameterSet in enumerate( parameters, start=1 ):
@@ -2986,13 +3258,41 @@ def create_Greek_word_page( level:int, gg:int, columns_string:str, prevLink:str,
             tidyRoleMorphology = f'{roleLetter}-{tidyMorphology}'
             assert len(morphology) == 7, f"Got {ref} '{greekWord}' morphology ({len(morphology)}) = '{morphology}'"
             mood,tense,voice,person,case,gender,number = morphology
-            if mood!='·': moodField = f' mood=<b>{CNTR_MOOD_NAME_DICT[mood]}</b>'
-            if tense!='·': tenseField = f' tense=<b>{CNTR_TENSE_NAME_DICT[tense]}</b>'
-            if voice!='·': voiceField = f' voice=<b>{CNTR_VOICE_NAME_DICT[voice]}</b>'
-            if person!='·': personField = f' person=<b>{CNTR_PERSON_NAME_DICT[person]}</b>'
-            if case!='·': caseField = f' case=<b>{CNTR_CASE_NAME_DICT[case]}</b>'
-            if gender!='·': genderField = f' gender=<b>{CNTR_GENDER_NAME_DICT[gender]}</b>'
-            if number!='·': numberField = f' number=<b>{CNTR_NUMBER_NAME_DICT[number]}</b>' # or № ???
+            if mood!='·':
+                moodName = CNTR_MOOD_NAME_DICT[mood]
+                try: moodNameField = GREEK_MOOD_TYPE_TABLE[moodName] # returns a link to the UGG
+                except KeyError: moodNameField = moodName
+                moodField = f'  mood=<b>{moodNameField}</b>'
+            if tense!='·':
+                tenseName = CNTR_TENSE_NAME_DICT[tense]
+                try: tenseNameField = GREEK_TENSE_TYPE_TABLE[tenseName] # returns a link to the UGG
+                except KeyError: tenseNameField = tenseName
+                tenseField = f'  tense=<b>{tenseNameField}</b>'
+            if voice!='·':
+                voiceName = CNTR_VOICE_NAME_DICT[voice]
+                try: voiceNameField = GREEK_VOICE_TYPE_TABLE[voiceName] # returns a link to the UGG
+                except KeyError: voiceNameField = voiceName
+                voiceField = f'  voice=<b>{voiceNameField}</b>'
+            if person!='·':
+                personName = CNTR_PERSON_NAME_DICT[person]
+                try: personNameField = GREEK_PERSON_TYPE_TABLE[personName] # returns a link to the UGG
+                except KeyError: personNameField = personName
+                personField = f'  person=<b>{personNameField}</b>'
+            if case!='·':
+                caseName = CNTR_CASE_NAME_DICT[case]
+                try: caseNameField = GREEK_CASE_TYPE_TABLE[caseName] # returns a link to the UGG
+                except KeyError: caseNameField = caseName
+                caseField = f'  case=<b>{caseNameField}</b>'
+            if gender!='·':
+                genderName = CNTR_GENDER_NAME_DICT[gender]
+                try: genderNameField = GREEK_GENDER_TYPE_TABLE[genderName] # returns a link to the UGG
+                except KeyError: genderNameField = genderName
+                genderField = f'  gender=<b>{genderNameField}</b>'
+            if number!='·':
+                numberName = CNTR_NUMBER_NAME_DICT[number]
+                try: numberNameField = GREEK_NUMBER_TYPE_TABLE[numberName] # returns a link to the UGG
+                except KeyError: numberNameField = numberName
+                numberField = f'  number=<b>{numberNameField}</b>'
             if tidyMorphology != '···': usedMorphologies.add( tidyMorphology )
         else:
             tidyRoleMorphology = roleLetter
@@ -3199,10 +3499,14 @@ f''' <a title="Go to Statistical Restoration Greek page" href="https://GreekCN
         keyHtml = ''
         if usedRoleLetters or usedMorphologies: # Add a key at the bottom
             for usedRoleLetter in sorted( usedRoleLetters ):
-                keyHtml = f'{keyHtml} <b>{usedRoleLetter}</b>={CNTR_ROLE_NAME_DICT[usedRoleLetter]}'
+                roleName = CNTR_ROLE_NAME_DICT[usedRoleLetter]
+                try: roleNameField = GREEK_ROLE_TYPE_TABLE[roleName] # returns a link to the UGG
+                except KeyError: roleNameField = roleName
+                keyHtml = f'{keyHtml} <b>{usedRoleLetter}</b>={roleNameField}'
             for usedMorphology in sorted( usedMorphologies ):
                 try:
-                    keyHtml = f"{keyHtml} <b>{usedMorphology}</b>={CNTR_MORPHOLOGY_NAME_DICT[usedMorphology.upper()]}"
+                    morphDesc = CNTR_MORPHOLOGY_NAME_DICT[usedMorphology.upper()]
+                    keyHtml = f"{keyHtml}  <b>{usedMorphology}</b>={_link_greek_morphology_desc_to_grammar_pages(morphDesc)}"
                 except KeyError:
                     logging.warning( f"create_Greek_word_pages: Missing {usedMorphology=}")
             if keyHtml:
@@ -3313,8 +3617,8 @@ def create_Greek_lemma_pages( level:int, outputFolderPath:Path, state:State ) ->
     for n,(result,(output_filename,lemma)) in enumerate( zip(results,taskMetaList), start=1 ):
         assert result, f"{n} {output_filename} {lemma}"
         lemmaLinks.append( f'<a href="{output_filename}">{lemma}</a>')
-        if n % 1_000 == 0:
-            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      {n:,} lemma page links collected out of {len(taskMetaList):,}…" )
+        # if n % 1_000 == 0:
+        #     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      {n:,} lemma page links collected out of {len(taskMetaList):,}…" )
     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"      Created {len(lemmaLinks):,}{f'/{len(lemmaList):,}' if len(lemmaLinks) < len(lemmaList) else ''} Greek lemma pages." )
 
     # Create index page for this folder
@@ -3484,10 +3788,14 @@ def create_Greek_lemma_page( level:int, lemmaIndex:int, lemma:str, prevLink:str,
         keyHtml = ''
         if usedRoleLetters or usedMorphologies: # Add a key at the bottom
             for usedRoleLetter in sorted( usedRoleLetters ):
-                keyHtml = f'{keyHtml} <b>{usedRoleLetter}</b>={CNTR_ROLE_NAME_DICT[usedRoleLetter]}'
+                roleName = CNTR_ROLE_NAME_DICT[usedRoleLetter]
+                try: roleNameField = GREEK_ROLE_TYPE_TABLE[roleName] # returns a link to the UGG
+                except KeyError: roleNameField = roleName
+                keyHtml = f'{keyHtml} <b>{usedRoleLetter}</b>={roleNameField}'
             for usedMorphology in sorted( usedMorphologies ):
                 try:
-                    keyHtml = f"{keyHtml} <b>{usedMorphology}</b>={CNTR_MORPHOLOGY_NAME_DICT[usedMorphology.upper()]}"
+                    morphDesc = CNTR_MORPHOLOGY_NAME_DICT[usedMorphology.upper()]
+                    keyHtml = f"{keyHtml}  <b>{usedMorphology}</b>={_link_greek_morphology_desc_to_grammar_pages(morphDesc)}"
                 except KeyError:
                     logging.warning( f"Missing {usedMorphology=}")
             if keyHtml:

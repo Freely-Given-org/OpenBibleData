@@ -75,6 +75,8 @@ CHANGELOG:
     2026-08-22 Added FRT to OET books (even though no OET-LV version)
     2026-08-24 Implemented multiprocessing for creating the per-version book, chapter, and section pages
     2026-08-25 The OETHandlers functions are now imported from the Rust openbibledata_rust module (the Python OETHandlers.py was deleted).
+    2026-08-28 Preload all CSS stylesheets in the parent before creating forked workers so
+                    they share one copy-on-write cache instead of each re-loading them.
 """
 from pathlib import Path
 import os
@@ -102,14 +104,14 @@ from createOETInterlinearPages import createOETInterlinearPages
 from createOETReferencePages import createOETReferencePages
 from createAppJsonFiles import createAppJsonFiles
 from Dict import createTyndaleDictPages, createUBSDictionaryPages
-from html import makeTop, makeViewNavListParagraph, makeBottom, checkHtml
+from html import makeTop, makeViewNavListParagraph, makeBottom, checkHtml, preloadCSSStyles
 from spellCheckEnglish import printSpellCheckSummary
 
 
-LAST_MODIFIED_DATE = '2026-08-26' # by RJH
+LAST_MODIFIED_DATE = '2026-08-28' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData (OBD) Create Site Pages"
-PROGRAM_VERSION = '2.0.1'
+PROGRAM_VERSION = '2.1.3'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
@@ -266,6 +268,10 @@ def _createSitePages() -> bool:
                 createSectionLists( 2, thisBible, state ) # Prebuild the section lists (see note above)
 
         state.chaptersWithImages = defaultdict( list )
+        # Parse every stylesheet on the parent side now, BEFORE any forked
+        #   multiprocessing children are created, so they all inherit the same
+        #   already-cached CSS instead of each re-reading the files independently.
+        preloadCSSStyles()
         if 'OET' in state.BibleVersions: # this is a special case
             vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Creating {'TEST ' if state.TEST_MODE_FLAG else ''}version pages for OET…" )
             versionFolder = state.TEMP_BUILD_FOLDER.joinpath( f'OET/' )
@@ -864,7 +870,7 @@ def _createAboutPage( level:int, buildFolder:Path, state:State ) -> bool:
     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Creating {'TEST ' if state.TEST_MODE_FLAG else ''}about page…" )
 
     aboutHTML = f'''<h1 id="Top">About {state.SITE_NAME}</h1>
-<p class="about">{state.SITE_NAME} ({state.SITE_ABBREVIATION} v{PROGRAM_VERSION}) is a large set of static webpages created for several main reasons:</p>
+<p class="about">{state.SITE_NAME} ({state.SITE_ABBREVIATION} v{PROGRAM_VERSION}) is a large set of static webpages (just under 1.3 million of them) created for several main reasons:</p>
 <ol>
 <li>As a way to <b>showcase the <em>Open English Translation</em></b> of the Bible which is designed to be read with the <em>Readers’ Version</em> and the very <em>Literal Version</em> side-by-side.
     (Most existing Bible apps don’t allow for this.)
@@ -953,8 +959,9 @@ def _createNewsPage( level:int, buildFolder:Path, state:State ) -> bool:
     newsHTML = f'''<h1 id="Top">{state.SITE_NAME} News</h1>
 <p class="about">Recent {state.SITE_NAME} ({state.SITE_ABBREVIATION}) site developments:</p>
 <ul>
-<li><b>2027-July-6</b>: In cooperation with <a href="https://OpenBibleImages.org">OpenBibleImages.org</a>, we’ve tested some images on <em>OET-RV</em> and parallel verse pages.</li>
-<li><b>2027-June-10</b>: We now have a draft of all <em>OET-RV</em> documents/‘books’ other than Yirmeyah/Jeremiah.</li>
+<li><b>2026-Aug-25</b>: We now include a preliminary draft of unfoldingWord’s <a href="{'../'*level}ref/UHG">Hebrew</a> and <a href="{'../'*level}ref/UGG">Greek</a> grammars in our <a href="{'../'*level}ref">extensive reference section</a>.</li>
+<li><b>2026-Aug-10</b>: We now have a COMPLETE draft of the <em>OET-RV</em> for you to make use of (as we move on to consistency and accuracy checks and updates).</li>
+<li><b>2026-July-6</b>: In cooperation with <a href="https://OpenBibleImages.org">OpenBibleImages.org</a>, we’ve tested some images on <em>OET-RV</em> and parallel verse pages.</li>
 <li><b>2026-Mar-28</b>: We added the <a href="{'../'*level}SOTN/details.htm#Top">SIL Open Translator’s notes</a> to our parallel verse pages for the Messianic Update (NT) books and nine books from the Hebrew Scriptures (OT).</li>
 <li><b>2024-Apr-20</b>: We added the <a href="{'../'*level}AICNT">AI Critical New Testament</a> (AICNT), mainly so that we can start to evaluate (on our <a href="{'../'*level}par/MRK/C1V1.htm#AICNT">Parallel Pages</a>) how well current, so-called ‘AI’ technologies might affect the Bible translation world.</li>
 <li><b>2024-Feb-15</b>: We added <a href="{'../'*level}rel/">Related Passages pages</a>—displaying related passages side-by-side, e.g., <a href="{'../'*level}rel/MRK/MRK_S3.htm#Top">here</a> (if you have a wide screen).</li>
@@ -988,7 +995,7 @@ def _createOETKeyPage( level:int, buildFolder:Path, state:State ) -> bool:
 
     keyHTML = f'''<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
 <h1 id="Top">Key to the <em>Open English Translation</em></h1>
-<p class="note">The <em>Open English Translation of the Bible</em> (currently at {state.OET_VERSION_NUMBER_STRING}) is not tied to tradition (and especially not to traditional mistakes or misunderstandings) so it has a number of changes from more common Bible translations.</p>
+<p class="note">The <em>Open English Translation of the Bible</em> (currently at {state.OET_VERSION_NUMBER_STRING}) is not tied to tradition (and especially not to traditional mistakes or misunderstandings) so it has a number of changes from older and from more common Bible translations.</p>
 <p class="note">We also aim to educate our readers better about how our Bibles get to us and we have many different kinds of links on the site, so that’s a second reason why it differs from usual, and hence requires this key to explain some of the features.</p>
 <p class="note">Note that the <em>OET</em> is being drafted with UK spelling and so we favour those editions on this site, but an edition will also be produced in the future with US spellings (plus any necessary wording changes).</p>
 <h1>The Hebrew Scriptures <small>(Old Testament)</small><sup>*</sup></h1>
@@ -1126,7 +1133,7 @@ def _createMainIndexPage( level, folder:Path, state:State ) -> bool:
 {bodyHtml}
 <p class="note">Welcome to this <em>{state.SITE_NAME}</em> site created to share God’s fantastic message with everyone,
     and with a special interest in helping Bible translators around the world.</p>
-<p class="note">Choose a version abbreviation above to view Bible ‘books’ <b>by section</b> (recommended) or <b>by document</b> (might be slow to load for large documents) or <b>by chapter</b> (often arbitrary divisions).</p>
+<p class="note">Choose a version abbreviation above to view Bible ‘books’ <b>by section</b> (recommended) or <b>by document</b> (might be slow to load for large documents) or <b>by chapter</b> (often rather arbitrary divisions).</p>
 <p class="note">The <b><a href="rel/">Related</a> passage</b> option shows OET-RV sections with any parallel or related content (especially in the ‘Messiah accounts’: John, Mark, Matthew, and Luke), as well as listing out all of the cross-references. (Because it’s wide, it’s best viewed on a wide-screen or in landscape mode.)</p>
 <p class="note">For individual ‘verses’ you can see the OET-RV with the OET-LV underneath it, plus many other different translations, plus some translation notes in the <b><a href="par/">Parallel</a> verse</b> view (best viewed in portrait mode).</p>
 <p class="note">The <b><a href="ilr/">Interlinear</a> verse</b> view shows the OET-RV and OET-LV aligned with the original Hebrew or Greek words (including a ‘reverse interlinear’).</p>

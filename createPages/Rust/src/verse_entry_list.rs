@@ -26,6 +26,12 @@
 //!              an \s1 followed by nesting.rs's "list" + \li1 entries and
 //!              then \c (chapter end) left the div unclosed, producing
 //!              "Unmatched 'rightS1Box' divs" errors.
+//!  2026-08-28: Fixed stray verse-range duplication: the non-parallel
+//!              verse-range branch emitted rest_str (e.g. "20-21") as if it
+//!              were the verse text.  OET splits a bridged \v into a "v"
+//!              entry (number) plus a following "v~" entry (text), so the
+//!              number was printed twice.  Like the simple-verse branch, we
+//!              now rely on the following "v~" entry for the text.
 
 use crate::character_formatting::convert_usfm_character_formatting;
 use crate::constants::*;
@@ -534,11 +540,11 @@ where
                                 }
                             }
                             verse_html.push_str(&format!(r#"<span class="v"{id_v2}>{v2}{NARROW_NON_BREAK_SPACE}</span>"#));
-                            if !rest_str.is_empty() {
-                                verse_html.push_str(rest_str);
-                            } else {
-                                verse_html.push_str("=Opaque=");
-                            }
+                            // NOTE: We deliberately do NOT append rest_str here. The
+                            // verse text for a bridged range comes from the following
+                            // 'v~' entry (as it does for a simple verse), whereas
+                            // rest_str is just the verse-range number ("20-21") and
+                            // would otherwise be emitted as a stray duplicate text node.
                             if !html.ends_with('>') {
                                 html.push(' ');
                             }
@@ -1765,5 +1771,39 @@ mod tests {
             |_va, _bos_book_code| true,
         );
         assert!(result.contains("Gen 1:1"));
+    }
+
+    #[test]
+    fn test_verse_range_does_not_emit_duplicate_number_as_text() {
+        // Regression: for OET, a bridged verse range (`\v 20-21`) is split into a
+        // `v` entry whose full_text is just "20-21" and a following `v~` entry
+        // carrying the actual verse text. The non-parallel verse-range branch used
+        // to append `rest_str` after the bridged numbers as if it were the verse
+        // text, producing a stray "20-21" text node between the `<span class="v">
+        // 21 </span>` and the verse text chunk:
+        //   …<span class="v" id="C3V21">21 </span>20-21<span class="OET-RV_verseTextChunk">…
+        // The verse text comes from the separate `v~` entry (as it does for simple
+        // verses), so the range number must not be emitted as text.
+        let entries = vec![
+            VerseEntry { marker: "v".into(), full_text: "20-21".into(), clean_text: "20-21".into() },
+            VerseEntry { marker: "v~".into(), full_text: "Now we offer praise.".into(), clean_text: "Now we offer praise.".into() },
+            VerseEntry { marker: "\u{AC}v".into(), full_text: String::new(), clean_text: String::new() },
+        ];
+        let result = convert_verse_entry_list_to_html_core(
+            2, "OET-RV", "EPH", Some("3"), Some("19"),
+            "chapter", &["p"], &entries, false, false,
+            no_op_char_fmt, no_op_fig, no_op_sect, no_op_avail, no_op_obi, no_op_check,
+        ).unwrap();
+        // The range numbers themselves (as linked <span class="v">) are fine.
+        assert!(result.contains(">20</a>-</span>"), "expected first bridged number, got:\n{result}");
+        assert!(result.contains(">21\u{202F}</span>"), "expected second bridged number, got:\n{result}");
+        // But "20-21" must not be repeated as a raw text node after the bridged
+        // number (it would duplicate the range as if it were the verse text).
+        assert!(
+            !result.contains("21\u{202F}</span>20-21"),
+            "verse range number was emitted as stray text: {result}"
+        );
+        // The actual verse text should still come through from the v~ entry.
+        assert!(result.contains("Now we offer praise."), "expected verse text, got:\n{result}");
     }
 }

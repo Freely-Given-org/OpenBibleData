@@ -235,8 +235,8 @@ pub fn make_top_core(
     } else {
         format!(r#"<a href="{prefix}OETKey.htm#Top">OET Key</a>"#)
     };
-    let top_link = format!(
-        "<p class=\"site\">{home_link}{EM_SPACE}{EM_SPACE}{about_link}{EM_SPACE}{EM_SPACE}{news_link}{EM_SPACE}{EM_SPACE}{oet_key_link}</p><!--site-->"
+    let top_line = format!(
+        "<div class=\"topLine\"><p class=\"site\">{home_link}{EM_SPACE}{EM_SPACE}{about_link}{EM_SPACE}{EM_SPACE}{news_link}{EM_SPACE}{EM_SPACE}{oet_key_link}</p><!--site--></div><!--topLine-->"
     );
 
     let mut top = format!(
@@ -248,7 +248,8 @@ pub fn make_top_core(
          \x20 <link rel=\"stylesheet\" type=\"text/css\" href=\"{prefix}{css_filename}\">\n\
          \x20 __SCRIPT__\n\
          </head>\n\
-         <body class=\"container\"><!--Level{level}-->{top_link}\n"
+         <body class=\"container\"><!--Level{level}-->\n\
+         {top_line}\n"
     );
 
     // Insert second stylesheet if required

@@ -2,6 +2,7 @@ body.container {}
 div.header {}
 div.footer { margin:50px; }
 
+div.topLine {}
 p.site {}
 p.copyright {}
 p.note {}
@@ -182,6 +183,7 @@ span.OET-LV_verseTextChunk {}
 span.OET-RV_verseTextChunk {}
 
 /* USFM footnotes */
+hr.line-before-footnotes { width:60%; margin-left:0; margin-top:0em; margin-bottom:0.2em; border:0; border-top:1px solid green; }
 div.footnotes {}
 p.fn { margin-top:0.2em; margin-bottom:0.2em; font-size:0.75em; }
 span.fnCaller { vertical-align:super; font-size:0.7em; color:green; }
@@ -200,6 +202,7 @@ span.ft {}
 /* span.fw {} */
 
 /* USFM cross-references */
+hr.line-before-xrefs { width:30%; margin-left:0; margin-top:0em; margin-bottom:0.2em; border:0; border-top:1px solid blue; }
 div.crossRefs {}
 p.xr { margin-top:0.2em; margin-bottom:0.2em; font-size:0.75em; }
 span.xrCaller { vertical-align:super; font-size:0.7em; color:blue; }

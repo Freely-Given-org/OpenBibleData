@@ -93,7 +93,8 @@ CHANGELOG:
                     deleted the superseded Python _makeNavigationLinks and _makeWorkNavListParagraph implementations.
     2026-08-23 Cached the output of makeBottom (by relying on the global import of state)
     2026-08-25 The OETHandlers functions are now imported from the Rust openbibledata_rust module (the Python OETHandlers.py was deleted).
-    2026-08-26 Using (hopefully more efficient) Python @cache decorator on loadCSSStyles instead of our own manual caching
+    2026-08-28 Added preloadCSSStyles() so stylesheet caches are built in the parent before
+                    forked multiprocessing children are created (they inherit the cache copy-on-write).
 """
 import logging
 from datetime import datetime
@@ -110,7 +111,7 @@ from settings import State, state
 from openbibledata_rust import getBBBFromOETBookName, checkHtml as _rustCheckHtml
 
 
-LAST_MODIFIED_DATE = '2026-08-26' # by RJH
+LAST_MODIFIED_DATE = '2026-08-29' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
 PROGRAM_VERSION = '1.0.4'
@@ -133,7 +134,6 @@ KNOWN_PAGE_TYPES = ('site', 'TopIndex', 'details', 'AllDetails',
                     'search', 'about', 'news', 'OETKey')
 
 _pageChromeConfigCache = None # (id(state), openbibledata_rust.PageChromeConfig) -- see _getPageChromeConfig
-
 def _getPageChromeConfig( state:State ):
     """
     Return the Rust snapshot of the State data needed by the page-top builders.
@@ -148,6 +148,7 @@ def _getPageChromeConfig( state:State ):
     if _pageChromeConfigCache is None or _pageChromeConfigCache[0] != id(state):
         _pageChromeConfigCache = (id(state), openbibledata_rust.PageChromeConfig(state))
     return _pageChromeConfigCache[1]
+# end of html._getPageChromeConfig
 
 def makeTop( level:int, versionAbbreviation:str|None, pageType:str, versionSpecificFileOrFolderName:str|None, state:State ) -> str:
     """
@@ -166,10 +167,6 @@ def makeTop( level:int, versionAbbreviation:str|None, pageType:str, versionSpeci
 
     return openbibledata_rust.make_top( _getPageChromeConfig(state), level, pageType, versionAbbreviation, versionSpecificFileOrFolderName )
 # end of html.makeTop
-
-
-
-
 
 
 def makeViewNavListParagraph( level:int, versionAbbreviation:str|None, pageType:str, state:State ) -> str:
@@ -430,19 +427,46 @@ def checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool:
         # so we output extra info here
         for mm,msg in enumerate( collectedMsgs, start=1 ):
             logging.critical( f"Missing CSS style {mm}/{len(collectedMsgs)}: {msg}" )
-        if not state.TEST_MODE_FLAG:
-            for someStylesheetName,someStyleDict in cachedStyleDicts.items():
-                unusedList = [sdKey[5:] for sdKey,sdValue in someStyleDict.items() if sdKey.startswith( 'used_') and not sdValue]
-                if unusedList:
-                    logging.warning( f"UNUSED STYLES in {someStylesheetName} were ({len(unusedList)})/({len(someStyleDict)}) {unusedList=}" )
+        # if 1 or not state.TEST_MODE_FLAG:
+        for someStylesheetName,someStyleDict in cachedStyleDicts.items():
+            # Only report stylesheets that were actually used by (parent-side) pages,
+            #   otherwise a stylesheet preloaded for forked children but never used by
+            #   the parent itself would look spuriously all-unused.
+            anyUsed = any( sdValue for sdKey,sdValue in someStyleDict.items() if sdKey.startswith( 'used_' ) )
+            unusedList = [sdKey[5:] for sdKey,sdValue in someStyleDict.items() if sdKey.startswith( 'used_') and not sdValue]
+            if anyUsed and unusedList:
+                logging.warning( f"UNUSED STYLES in {someStylesheetName} were ({len(unusedList)})/({len(someStyleDict)}) {unusedList=}" )
 
     return result
 # end of html.checkHtml
 
 
 classRegex = re.compile( '<([^>]+?) [^>]*?class="([^>"]+?)"' )
-# cachedStyleDicts = {}
-@cache
+cachedStyleDicts = {}
+
+# Every stylesheet that can appear in a page's <head>.
+#   (Hand-kept in step with the Rust css_filename_for mapping in page_chrome.rs.)
+PAGE_STYLESHEET_NAMES = (
+    'OETChapter.css', 'BibleChapter.css',
+    'ParallelPassages.css', 'TopicalPassages.css',
+    'ParallelVerses.css', 'InterlinearVerse.css',
+    'BibleWord.css', 'BibleDict.css', 'BibleSite.css',
+)
+
+def preloadCSSStyles() -> None:
+    """
+    Load every stylesheet into the module-level cache BEFORE any forked
+    multiprocessing children are created.
+
+    Forked children inherit cachedStyleDicts copy-on-write; doing this in the
+    parent means each child (and the parent) shares the same already-parsed
+    dictionaries instead of each re-reading the CSS files independently.
+    """
+    for stylesheetName in PAGE_STYLESHEET_NAMES:
+        loadCSSStyles( stylesheetName )
+# end of html.preloadCSSStyles
+
+
 def loadCSSStyles( lsStylesheetName:str ) -> dict[str,bool|list[str]]:
     """
     Load the stylesheet and cache it for next time.
@@ -450,9 +474,10 @@ def loadCSSStyles( lsStylesheetName:str ) -> dict[str,bool|list[str]]:
     Adds a used_{} entry (set to False) so we can set at the end,
         which stylesheet entries are never used.
     """
-    # print( f"loadCSSStyles {lsStylesheetName=}" )
-    # if lsStylesheetName in cachedStyleDicts:
-    #     return cachedStyleDicts[lsStylesheetName]
+    if lsStylesheetName in cachedStyleDicts:
+        return cachedStyleDicts[lsStylesheetName]
+    
+    print( f"loadCSSStyles {lsStylesheetName=}" )
     with open( f'../htmlPages/{lsStylesheetName}' if 'pagefind' in lsStylesheetName else lsStylesheetName, 'rt', encoding='utf-8') as ssFile:
         lsStyleDict = defaultdict( list )
         for ssLine in ssFile:
@@ -550,7 +575,7 @@ def loadCSSStyles( lsStylesheetName:str ) -> dict[str,bool|list[str]]:
                     lsStyleDict[className].append( '' )
                     lsStyleDict[f'used_{className}'] = False
     # print( f"{lsStylesheetName=} ({len(lsStyleDict)//2}) {lsStyleDict=}" )
-    # cachedStyleDicts[lsStylesheetName] = lsStyleDict
+    cachedStyleDicts[lsStylesheetName] = lsStyleDict
     return lsStyleDict
 # end of loadCSSStyles function
 
