@@ -7,10 +7,16 @@
 //     in localStorage under key `obd-theme`. On first visit (no saved choice)
 //     it follows the operating system preference (prefers-color-scheme).
 //
-//   * The "theme" dropdown selects a verse-number layout via a separate
-//     `data-verses` attribute ("default"/"left") on <html>. common.css moves
-//     the verse numbers to the left margin in "left" mode. It persists under
-//     its own key `obd-theme-layout` and is unaffected by light/dark mode.
+//   * The "theme" dropdown selects one of three global themes via `data-verses`
+//     and `data-size` attributes on <html>:
+//        "default"        -> normal verse layout, normal size
+//        "left"           -> verse numbers moved to the left margin
+//                            (data-verses="left"; verse page types only)
+//        "large"          -> "Large print" theme (data-size="large"; all pages)
+//                            big fonts get slightly larger, small fonts get an
+//                            extra size boost. Scaled entirely by common.css.
+//     It persists under localStorage key `obd-theme-layout` and is unaffected
+//     by light/dark mode.
 //
 // The <script> is included in <head> so both attributes are applied before the
 // page paints (avoiding a flash of the wrong theme). DOM wiring for the
@@ -22,7 +28,7 @@
 
     var THEME_KEY = 'obd-theme';
     var LAYOUT_KEY = 'obd-theme-layout';
-    var LAYOUTS = { 'default': true, 'left': true };
+    var THEMES = { 'default': true, 'left': true, 'large': true };
 
     // ---- Dark / Light mode ---------------------------------------------------
 
@@ -70,37 +76,45 @@
         applyTheme(next);
     }
 
-    // ---- Theme (verse-number layout) dropdown --------------------------------
+    // ---- Theme dropdown (Default / Left verse nums / Large print) ------------
 
-    function savedLayout() {
+    function savedThemeChoice() {
         try {
             var l = localStorage.getItem(LAYOUT_KEY);
-            if (l && LAYOUTS[l]) return l;
+            if (l && THEMES[l]) return l;
         } catch (e) { /* localStorage unavailable */ }
         return 'default';
     }
 
-    function applyLayout(layout) {
-        layout = LAYOUTS[layout] ? layout : 'default';
-        document.documentElement.setAttribute('data-verses', layout);
+    function applyThemeChoice(choice) {
+        choice = THEMES[choice] ? choice : 'default';
+        // Verse-number layout: only "left" moves them into the margin.
+        var verses = choice === 'left' ? 'left' : 'default';
+        document.documentElement.setAttribute('data-verses', verses);
+        // Font size: only "large" switches on the Large print theme.
+        if (choice === 'large') {
+            document.documentElement.setAttribute('data-size', 'large');
+        } else {
+            document.documentElement.removeAttribute('data-size');
+        }
         var sel = document.getElementById('themeSelect');
         if (sel) {
-            sel.value = layout;
+            sel.value = choice;
         }
     }
 
-    function onLayoutChange() {
+    function onThemeChoiceChange() {
         var sel = document.getElementById('themeSelect');
         if (!sel) return;
-        var layout = sel.value;
-        try { localStorage.setItem(LAYOUT_KEY, layout); } catch (e) { /* ignore */ }
-        applyLayout(layout);
+        var choice = sel.value;
+        try { localStorage.setItem(LAYOUT_KEY, choice); } catch (e) { /* ignore */ }
+        applyThemeChoice(choice);
     }
 
     // ---- Initialise (before first paint) --------------------------------------
 
     applyTheme(currentTheme());
-    applyLayout(savedLayout());
+    applyThemeChoice(savedThemeChoice());
 
     // ---- Wire up the controls once the body is parsed -------------------------
 
@@ -117,7 +131,7 @@
         }
         var sel = document.getElementById('themeSelect');
         if (sel) {
-            sel.addEventListener('change', onLayoutChange);
+            sel.addEventListener('change', onThemeChoiceChange);
         }
     }
 })();

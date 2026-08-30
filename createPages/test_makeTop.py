@@ -100,24 +100,19 @@ def _ref_makeTop( level:int, versionAbbreviation:str|None, pageType:str, version
     newsLink = 'News' if pageType=='news' else f'''<a href="{'../'*level}News.htm#Top">News</a>'''
     OETKeyLink = 'OET Key' if pageType=='OETKey' else f'''<a href="{'../'*level}OETKey.htm#Top">OET Key</a>'''
     topLink = f'<p class="site">{homeLink}  {aboutLink}  {newsLink}  {OETKeyLink}</p><!--site-->'
-    # Two right-justified, fully independent controls (wired up by theme.js):
+    # Two right-justified, independent controls (wired up by theme.js):
     # a Dark/Light toggle (shows current mode) and a theme dropdown that selects
-    # the verse-number layout ("Default" or "Left verse nums").
+    # a global theme: "Default", "Left verse nums", or "Large print".
     themeControls = ( '<div class="themeControls">'
                         '<button type="button" id="themeToggle" class="themeToggle" '
                         'title="Switch to dark mode" aria-pressed="false">Light</button>'
                         f'<select id="themeSelect" class="themeSelect" title="Choose a theme">'
                             '<option value="default">Default</option>'
                             '<option value="left">Left verse nums</option>'
+                            '<option value="large">Large print</option>'
                         '</select>'
                       '</div><!--themeControls-->' )
     topLink = f'<div class="topLine">{topLink}{themeControls}</div><!--topLine-->'
-
-    # OET two-column (OET-RV/OET-LV side-by-side) verse pages get data-layout="RVLV"
-    _oet_two_col = versionAbbreviation == 'OET' and pageType in (
-        'book','chapter','section','sectionIndex','parallelVerse','interlinearVerse',
-        'relatedPassage','topicPassages', )
-    _layout_attr = ' data-layout="RVLV"' if _oet_two_col else ''
 
     top = f"""<!DOCTYPE html>
 <html lang="en-US">
@@ -130,7 +125,7 @@ def _ref_makeTop( level:int, versionAbbreviation:str|None, pageType:str, version
   <link rel="stylesheet" type="text/css" href="{'../'*level}common.css">
   __SCRIPT__
 </head>
-<body class="container" data-page-type="{pageType}"{_layout_attr}><!--Level{level}-->
+<body class="container" data-page-type="{pageType}"><!--Level{level}-->
 {topLink}
 """
     # theme.js must run before paint so the saved/system theme applies without a flash

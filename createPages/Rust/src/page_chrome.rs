@@ -235,15 +235,15 @@ pub fn make_top_core(
     } else {
         format!(r#"<a href="{prefix}OETKey.htm#Top">OET Key</a>"#)
     };
-    // Two right-justified, fully independent controls for the top line:
+    // Two right-justified, independent controls for the top line:
     //   * a Dark/Light mode toggle (wired up by theme.js, shows current mode),
-    //   * a "theme" dropdown (theme.js) which selects the verse-number layout
-    //     ("Default" or "Left verse nums") and is independent of light/dark.
-    // Both default to the current printed look and are remembered by theme.js.
+    //   * a "theme" dropdown (theme.js) which selects a global theme:
+    //       "Default", "Left verse nums", or "Large print".
+    //     It is independent of the light/dark toggle and remembered by theme.js.
     let theme_controls = format!(
         "<div class=\"themeControls\">\
          <button type=\"button\" id=\"themeToggle\" class=\"themeToggle\" title=\"Switch to dark mode\" aria-pressed=\"false\">Light</button>\
-         <select id=\"themeSelect\" class=\"themeSelect\" title=\"Choose a theme\"><option value=\"default\">Default</option><option value=\"left\">Left verse nums</option></select>\
+         <select id=\"themeSelect\" class=\"themeSelect\" title=\"Choose a theme\"><option value=\"default\">Default</option><option value=\"left\">Left verse nums</option><option value=\"large\">Large print</option></select>\
          </div><!--themeControls-->"
     );
     let top_line = format!(
@@ -252,19 +252,10 @@ pub fn make_top_core(
 
     // The OET pseudo-version renders the OET-RV and OET-LV side-by-side in a
     // two-column <div class="RVLVcontainer"> (with .chunkRV/.chunkLV cells) on
-    // its book/chapter/section/sectionIndex pages. A "left verse nums" layout
-    // does not make sense there (each column is too narrow), so we tag such
-    // pages with data-layout="RVLV" and common.css excludes them.
-    let verse_page_types = ["book", "chapter", "section", "sectionIndex",
-                            "parallelVerse", "interlinearVerse",
-                            "relatedPassage", "topicPassages"];
-    let is_oet_twocol = version_abbreviation == Some("OET")
-        && verse_page_types.contains(&page_type);
-    let layout_attr = if is_oet_twocol {
-        " data-layout=\"RVLV\""
-    } else {
-        ""
-    };
+    // its book/chapter/section/sectionIndex pages. The "left verse nums" theme
+    // now applies there too: the floated gutter is anchored to each paragraph
+    // inside its own grid cell, so both columns get their own left gutter
+    // (the old position:absolute approach escaped the cells and overlapped).
 
     let mut top = format!(
         "<!DOCTYPE html>\n<html lang=\"en-US\">\n<head>\n\
@@ -276,7 +267,7 @@ pub fn make_top_core(
          \x20 <link rel=\"stylesheet\" type=\"text/css\" href=\"{prefix}common.css\">\n\
          \x20 __SCRIPT__\n\
          </head>\n\
-         <body class=\"container\" data-page-type=\"{page_type}\"{layout_attr}><!--Level{level}-->\n\
+         <body class=\"container\" data-page-type=\"{page_type}\"><!--Level{level}-->\n\
          {top_line}\n"
     );
 
@@ -725,28 +716,27 @@ mod tests {
         assert!(top.contains("id=\"themeSelect\""));
         assert!(top.contains("<option value=\"default\">Default</option>"));
         assert!(top.contains("<option value=\"left\">Left verse nums</option>"));
+        assert!(top.contains("<option value=\"large\">Large print</option>"));
         assert!(!top.contains("disabled title=\"Choose a theme\"")); // dropdown is now live
     }
 
     #[test]
-    fn test_oet_two_column_page_gets_layout_rvlv_body_marker() {
+    fn test_no_data_layout_rvlv_body_marker_anymore() {
         let cfg = test_config();
-        // OET pseudo-version book/chapter/section pages are two-column
-        // (OET-RV + OET-LV side-by-side) and must be excluded from the
-        // "left verse nums" theme via data-layout="RVLV" on <body>.
-        for pt in ["book", "chapter", "section"] {
-            let top = make_top_core(&cfg, 1, Some("OET"), pt, None).unwrap();
-            assert!(
-                top.contains(&format!("data-page-type=\"{pt}\" data-layout=\"RVLV\">")),
-                "OET {pt} page should be tagged data-layout=RVLV"
-            );
-        }
-        // Standalone / other-version verse pages must NOT get the marker.
-        for (va, pt) in [("OET-RV", "chapter"), ("OET-LV", "chapter"), ("UHB", "chapter"), ("OET", "OETKey")] {
+        // "left verse nums" now applies to the OET two-column pages too (the
+        // floated gutter works inside each grid cell), so no page should carry
+        // a data-layout="RVLV" exclusion marker on <body> any more.
+        for (va, pt) in [
+            ("OET", "book"), ("OET", "chapter"), ("OET", "section"),
+            ("OET", "sectionIndex"), ("OET", "parallelVerse"),
+            ("OET", "interlinearVerse"), ("OET", "relatedPassage"),
+            ("OET", "topicPassages"), ("OET-RV", "chapter"),
+            ("OET-LV", "chapter"), ("UHB", "chapter"), ("OET", "OETKey"),
+        ] {
             let top = make_top_core(&cfg, 1, Some(va), pt, None).unwrap();
             assert!(
                 !top.contains("data-layout=\"RVLV\""),
-                "{va} {pt} page should NOT be tagged data-layout=RVLV"
+                "{va} {pt} page should no longer carry data-layout=RVLV"
             );
         }
     }

@@ -152,76 +152,130 @@ select.themeSelect:focus-visible {
  * The generated pages carry a data-page-type attribute on <body> (set by
  * make_top_core in page_chrome.rs) which scopes the rules below.
  *
- * It is also NOT applied to the OET pseudo-version's two-column pages (the
- * OET-RV / OET-LV side-by-side book/chapter/section view) -- each column is
- * too narrow for a left margin, so make_top_core tags those with
- * data-layout="RVLV" and we exclude them here. */
+ * This DOES apply to the OET pseudo-version's two-column pages (the OET-RV /
+ * OET-LV side-by-side view). Unlike the old position:absolute approach (which
+ * escaped the grid cells and piled the numbers up), these floats are anchored
+ * to each paragraph inside its own cell, so each of the two columns gets its
+ * own left gutter. */
 /* Verse (and chapter / Psalm / parallelism) numbers become a fixed left
  * "gutter" column instead of inline text. Each number is floated left and
  * cleared, so consecutive numbers that begin on the same line (common when
  * the window is wide) stack vertically DOWN the gutter rather than rendering
  * on top of each other (the old position:absolute approach overlapped them).
- * The paragraph's left padding below reserves room for the column. */
+ * The paragraph's left padding below reserves room for the column.
+ *
+ * IMPORTANT: the gutter box is sized in `rem` (root-relative), NOT `em`.
+ * `em` would resolve against the verse number's own tiny font-size (0.5em /
+ * 0.7em of the paragraph), collapsing the box to ~13px so two/three-digit
+ * numbers overflow to the left and get clipped at the page edge (losing the
+ * leading digit). Using `rem` keeps the gutter a constant, font-independent
+ * width that comfortably holds three-digit verse numbers like "176". */
 html[data-verses="left"]
-body:not([data-layout="RVLV"]):is(
+body:is(
         [data-page-type="book"],[data-page-type="chapter"],[data-page-type="section"],
         [data-page-type="relatedPassage"],[data-page-type="topicPassages"])
 span.v,
 html[data-verses="left"]
-body:not([data-layout="RVLV"]):is(
+body:is(
         [data-page-type="book"],[data-page-type="chapter"],[data-page-type="section"],
         [data-page-type="relatedPassage"],[data-page-type="topicPassages"])
 span.c,
 html[data-verses="left"]
-body:not([data-layout="RVLV"]):is(
+body:is(
         [data-page-type="book"],[data-page-type="chapter"],[data-page-type="section"],
         [data-page-type="relatedPassage"],[data-page-type="topicPassages"])
 span.cPsa,
 html[data-verses="left"]
-body:not([data-layout="RVLV"]):is(
+body:is(
         [data-page-type="book"],[data-page-type="chapter"],[data-page-type="section"],
         [data-page-type="relatedPassage"],[data-page-type="topicPassages"])
 span.synonParr {
     float: left;
     clear: left;
-    width: 1.6em;
+    width: 2.6rem;
     text-align: right;
-    margin-left: -2em;
-    margin-right: 0.2em;
+    margin-left: -2.95rem;
+    margin-right: 0.35rem;
 }
 
 /* Give the verse/citation paragraphs some side padding so the floated
-   verse-number column has room to its left (the gutter). */
+   verse-number column has room to its left (the gutter). The verse-hosting
+   paragraphs share the same gutter; poetry (q1/q2) stays further indented so
+   its numbers never clip. */
 html[data-verses="left"]
-body:not([data-layout="RVLV"]):is(
+body:is(
         [data-page-type="book"],[data-page-type="chapter"],[data-page-type="section"],
         [data-page-type="relatedPassage"],[data-page-type="topicPassages"])
 p.p,
 html[data-verses="left"]
-body:not([data-layout="RVLV"]):is(
+body:is(
         [data-page-type="book"],[data-page-type="chapter"],[data-page-type="section"],
         [data-page-type="relatedPassage"],[data-page-type="topicPassages"])
 p.m,
 html[data-verses="left"]
-body:not([data-layout="RVLV"]):is(
+body:is(
         [data-page-type="book"],[data-page-type="chapter"],[data-page-type="section"],
         [data-page-type="relatedPassage"],[data-page-type="topicPassages"])
 p.nb,
 html[data-verses="left"]
-body:not([data-layout="RVLV"]):is(
+body:is(
         [data-page-type="book"],[data-page-type="chapter"],[data-page-type="section"],
         [data-page-type="relatedPassage"],[data-page-type="topicPassages"])
 p.d {
-    padding-left: 2em;
+    padding-left: 2.95rem;
     padding-right: 1.75em;
 }
 html[data-verses="left"]
-body:not([data-layout="RVLV"]):is(
+body:is(
         [data-page-type="book"],[data-page-type="chapter"],[data-page-type="section"],
         [data-page-type="relatedPassage"],[data-page-type="topicPassages"])
-p.q1 { padding-left: 2.5em; }
+p.q1 { padding-left: 3.7rem; }
 html[data-verses="left"]
-body:not([data-layout="RVLV"]):is(
+body:is(
         [data-page-type="book"],[data-page-type="chapter"],[data-page-type="section"],
         [data-page-type="relatedPassage"],[data-page-type="topicPassages"])
-p.q2 { padding-left: 3.5em; }
+p.q2 { padding-left: 4.45rem; }
+
+/* ---- "Large print" theme (data-size="large") ----
+ * All font sizes across the site are em-relative (no px sizes anywhere), so
+ * raising the root <html> font-size scales every page family (chapters,
+ * dictionaries, word pages, indexes, ...) proportionally and uniformly.
+ *
+ * We apply TWO effects, as requested:
+ *   * larger/body fonts get slightly larger (the uniform root scale), and
+ *   * smaller "fine print" fonts (verse numbers, footnote/ref markers, small
+ *     caps, grey notes, ...) get an extra size boost on top of that so they
+ *     remain comfortably readable.
+ * theme.js sets data-size="large" on <html>, mutually exclusive with the
+ * "Left verse nums" theme (both live in the same dropdown). */
+html[data-size="large"] {
+    font-size: 120%; /* default 16px -> 19.2px; raises all em sizes, base boost */
+}
+
+/* Extra size boost for the smallest/default-small fonts. These override the
+   per-family default font-size, so combined with the root scale they grow
+   noticeably more than the larger body/heading text above. */
+html[data-size="large"] span.v,
+html[data-size="large"] span.va,
+html[data-size="large"] span.vp { font-size: 0.8em; }       /* was 0.5em   */
+html[data-size="large"] span.cv { font-size: 1.15em; }      /* was 0.8em   */
+html[data-size="large"] span.fnCaller,
+html[data-size="large"] span.xrCaller { font-size: 1.05em; }/* was 0.7em   */
+html[data-size="large"] p.fn,
+html[data-size="large"] p.xr,
+html[data-size="large"] p.r { font-size: 1.1em; }           /* was 0.75em  */
+html[data-size="large"] p.id,
+html[data-size="large"] p.rem,
+html[data-size="large"] span.rem,
+html[data-size="large"] span.sc,
+html[data-size="large"] span.nd,
+html[data-size="large"] span.ndORD,
+html[data-size="large"] span.untr,
+html[data-size="large"] p.key,
+html[data-size="large"] p.alternateHeading { font-size: 1.15em; } /* was ~0.8em */
+html[data-size="large"] p.qa,
+html[data-size="large"] p.btnBar,
+html[data-size="large"] p.wordLine,
+html[data-size="large"] p.lemmaLine { font-size: 1.2em; }   /* was 0.9em   */
+html[data-size="large"] p.LVVerseText,
+html[data-size="large"] p.RVVerseText { font-size: 1.05em; }/* was 0.7em   */
