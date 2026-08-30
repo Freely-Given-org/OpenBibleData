@@ -111,10 +111,10 @@ from settings import State, state
 from openbibledata_rust import getBBBFromOETBookName, checkHtml as _rustCheckHtml
 
 
-LAST_MODIFIED_DATE = '2026-08-29' # by RJH
+LAST_MODIFIED_DATE = '2026-08-30' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
-PROGRAM_VERSION = '1.0.4'
+PROGRAM_VERSION = '1.0.5'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -425,8 +425,8 @@ def checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool:
     result = checkHtmlForMissingStyles( where, htmlToCheck )
     if where == 'TopIndex': # that's the final page that we build
         # so we output extra info here
-        for mm,msg in enumerate( collectedMsgs, start=1 ):
-            logging.critical( f"Missing CSS style {mm}/{len(collectedMsgs)}: {msg}" )
+        for mm,msg in enumerate( COLLECTED_MESSAGES, start=1 ):
+            logging.critical( f"Missing CSS style {mm}/{len(COLLECTED_MESSAGES)}: {msg}" )
         # if 1 or not state.TEST_MODE_FLAG:
         for someStylesheetName,someStyleDict in cachedStyleDicts.items():
             # Only report stylesheets that were actually used by (parent-side) pages,
@@ -483,11 +483,32 @@ def loadCSSStyles( lsStylesheetName:str ) -> dict[str,bool|list[str]]:
         for ssLine in ssFile:
             if ' + ' in ssLine: continue # Don't need these
             # print( f"  {ssLine=}" )
-            if ssLine.startswith( 'span.' ):
+            if ssLine.startswith( 'select.' ):
+                className = ssLine[7:].split( ' ', 1 )[0]
+                if lsStylesheetName == 'common.css':
+                    className = className.removesuffix( ',\n' )
+                print( f"    select {className=}")
+                assert ' ' not in className and ',' not in className, f"{className=}"
+                # assert 'select' not in lsStyleDict[className], f"{lsStylesheetName=} {className=} {lsStyleDict[className]=}"
+                if 'select' not in lsStyleDict[className]:
+                    lsStyleDict[className].append( 'select' )
+                    lsStyleDict[f'used_{className}'] = False
+            elif ssLine.startswith( 'button.' ):
+                className = ssLine[7:].replace(':',',').split( ',', 1 )[0]
+                print( f"    button {className=}")
+                assert ' ' not in className and ',' not in className, f"{className=}"
+                # assert 'button' not in lsStyleDict[className], f"{lsStylesheetName=} {className=} {lsStyleDict[className]=}"
+                if 'button' not in lsStyleDict[className]:
+                    lsStyleDict[className].append( 'button' )
+                    lsStyleDict[f'used_{className}'] = False
+            elif ssLine.startswith( 'span.' ):
                 className = ssLine[5:].split( ' ', 1 )[0]
                 # print( f"    span {className=}")
+                if lsStylesheetName == 'common.css':
+                    className = className.removesuffix( ',\n' )
                 assert ' ' not in className and ',' not in className, f"{className=}"
-                assert 'span' not in lsStyleDict[className], f"{lsStylesheetName=} {className=} {lsStyleDict[className]=}"
+                if lsStylesheetName != 'common.css':
+                    assert 'span' not in lsStyleDict[className], f"{lsStylesheetName=} {className=} {lsStyleDict[className]=}"
                 lsStyleDict[className].append( 'span' )
                 lsStyleDict[f'used_{className}'] = False
             elif ssLine.startswith( 'p.' ):
@@ -497,14 +518,16 @@ def loadCSSStyles( lsStylesheetName:str ) -> dict[str,bool|list[str]]:
                     className = className.replace( 'p.', '' )
                     # if not ssLine[len(className)+4:].startswith( '+ '): # p.mt1 + p.mt2, p.mt2 + p.mt1 { margin-top:-0.5em; }
                     assert ' ' not in className and ',' not in className, f"{lsStylesheetName=} {className=}"
-                    assert 'p' not in lsStyleDict[className], f"{lsStylesheetName=} {className=} {lsStyleDict[className]=}"
+                    if lsStylesheetName != 'common.css':
+                        assert 'p' not in lsStyleDict[className], f"{lsStylesheetName=} {className=} {lsStyleDict[className]=}"
                     lsStyleDict[className].append( 'p' )
                     lsStyleDict[f'used_{className}'] = False
             elif ssLine.startswith( 'div.' ):
                 className = ssLine[4:].split( ' ', 1 )[0]
                 # print( f"    div {className=}")
                 assert ' ' not in className and ',' not in className, f"{className=}"
-                assert 'div' not in lsStyleDict[className], f"DIV in {lsStyleDict[className]=} {ssLine=}"
+                if lsStylesheetName != 'common.css':
+                    assert 'div' not in lsStyleDict[className], f"DIV already in {lsStyleDict[className]=} {ssLine=}"
                 lsStyleDict[className].append( 'div' )
                 lsStyleDict[f'used_{className}'] = False
             elif ssLine.startswith( 'h1.' ) or ssLine.startswith( 'h2.' ):
@@ -579,7 +602,7 @@ def loadCSSStyles( lsStylesheetName:str ) -> dict[str,bool|list[str]]:
     return lsStyleDict
 # end of loadCSSStyles function
 
-collectedMsgs = []
+COLLECTED_MESSAGES = []
 def checkHtmlForMissingStyles( where:str, htmlToCheck:str ) -> bool:
     """
     Given an html page,
@@ -595,6 +618,7 @@ def checkHtmlForMissingStyles( where:str, htmlToCheck:str ) -> bool:
                 ixEnd = line.index( '">', ixStart+6 )
                 stylesheetName = line[ixStart+6:ixEnd].replace( '../', '' )
                 styleDict.update( loadCSSStyles( stylesheetName ) )
+                styleDict.update( loadCSSStyles( 'common.css' ) )
             # Search.htm has two stylesheets, but we're only interested in the first one
             # elif '</head>' in line:
                 startedCheck = True
@@ -606,9 +630,9 @@ def checkHtmlForMissingStyles( where:str, htmlToCheck:str ) -> bool:
                     if className not in styleDict \
                     or (elementName not in styleDict[className] and '' not in styleDict[className]):
                         msg = f"{elementName}.{className} not in {stylesheetName}"
-                        if msg not in collectedMsgs:
-                            collectedMsgs.append( msg )
-                            logging.critical( f"{len(collectedMsgs)}: CSS style {msg} in {where=}" )
+                        if msg not in COLLECTED_MESSAGES:
+                            COLLECTED_MESSAGES.append( msg )
+                            logging.critical( f"{len(COLLECTED_MESSAGES)}: CSS style {msg} in {where=}" )
                     styleDict[f'used_{className}'] = True
 
     # # The unused CSS entries should get less and less with each page checked

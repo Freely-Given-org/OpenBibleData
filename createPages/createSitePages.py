@@ -432,7 +432,8 @@ def _createSitePages() -> bool:
             shutil.copy2( 'Bible.js', state.DESTINATION_FOLDER )
             shutil.copy2( 'Dict.js', state.DESTINATION_FOLDER )
             shutil.copy2( 'KB.js', state.DESTINATION_FOLDER )
-            count += 2
+            shutil.copy2( 'theme.js', state.DESTINATION_FOLDER )
+            count += 3
             vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Copied {count:,} stylesheets and scripts into {state.DESTINATION_FOLDER}/." )
         except Exception as e:
             logging.critical( f"Oops, something went wrong copying aux files into {state.DESTINATION_FOLDER}/: {e} with {filepath=}" )

@@ -1,0 +1,227 @@
+/* common.css -- page chrome shared by every OBD page.
+ *
+ * This is the single home for the page chrome that previously appeared
+ * verbatim at the top of each of the nine per-family stylesheets (BibleSite,
+ * BibleChapter, OETChapter, ParallelPassages, ParallelVerses, TopicalPassages,
+ * InterlinearVerse, BibleWord, BibleDict). Those stylesheets retain their
+ * content-specific rules; the shared chrome (head/header/footer/top line,
+ * navigation bars, and the site-wide colour palette) lives here.
+ *
+ * All styles remain defined even when empty (entry "{}") on purpose, so that
+ * users editing with a CSS tool can see which styles are available to change.
+ *
+ * Site-wide colours are exposed as CSS custom properties so that the
+ * dark/light mode toggle (and a future theme dropdown) can restyle the whole
+ * chrome from one place. The document <html> element carries a data-theme
+ * attribute ("light" or "dark") set by theme.js.
+ */
+
+/* ---- Site-wide colour palette (CSS custom properties) ---- */
+:root {
+    /* Light theme (the default) */
+    color-scheme: light;
+    --chrome-bg-body: #ffffff;
+    --chrome-bg-header: transparent;
+    --chrome-fg-body: #000000;
+    --chrome-fg-link: inherit;
+    --chrome-bg-wrkLst: #904471;
+    --chrome-fg-wrkLst: #98a9d4;
+    --chrome-fg-wrkLst-link: #ffffff;
+    --chrome-bg-viewLst: #936ea1;
+    --chrome-fg-viewLst: #98a9d4;
+    --chrome-fg-viewLst-link: #ffffff;
+    --chrome-bg-bkLst: #f9f871;
+    --chrome-bg-chLst: palegreen;
+    --chrome-bg-vsLst: mistyrose;
+    --chrome-fg-cnav: #98a9d4;
+}
+
+/* Dark theme */
+html[data-theme="dark"] {
+    color-scheme: dark;
+    --chrome-bg-body: #121212;
+    --chrome-bg-header: #1e1e1e;
+    --chrome-fg-body: #e0e0e0;
+    --chrome-fg-link: #a8c7fa;
+    --chrome-bg-wrkLst: #5b2d49;
+    --chrome-fg-wrkLst: #b9c4e8;
+    --chrome-fg-wrkLst-link: #ffffff;
+    --chrome-bg-viewLst: #5f436a;
+    --chrome-fg-viewLst: #b9c4e8;
+    --chrome-fg-viewLst-link: #ffffff;
+    --chrome-bg-bkLst: #7a7838;
+    --chrome-bg-chLst: #2f6b43;
+    --chrome-bg-vsLst: #7a4f52;
+    --chrome-fg-cnav: #b9c4e8;
+}
+
+/* ---- Page chrome ---- */
+/* The per-family stylesheets still own body.container background (e.g. the
+   interlinear powderblue). We set the base text/background on <html> so we
+   don't clobber those; dark mode then overrides body explicitly. */
+html { background-color:var(--chrome-bg-body); color:var(--chrome-fg-body); }
+html[data-theme="dark"] body { background-color:var(--chrome-bg-body); color:var(--chrome-fg-body); }
+div.header {
+    background-color:var(--chrome-bg-header);
+}
+div.footer { margin:50px; }
+
+/* Top line (site name + About/News/OET Key links + theme controls) */
+div.topLine {
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    flex-wrap:wrap;
+}
+div.topLine p.site {}
+div.topLine div.themeControls {
+    display:flex;
+    align-items:center;
+    gap:0.4em;
+    margin-left:auto;
+}
+
+p.copyright {}
+p.note {}
+p.rem { font-size:0.8em; color:grey; }
+
+/* Don't highlight links */
+a { color:var(--chrome-fg-link); text-decoration:none; }
+
+/* Navigational lists at top of page */
+p.wrkLst { background-color:var(--chrome-bg-wrkLst); color:var(--chrome-fg-wrkLst); }
+.wrkLst a { text-decoration:none; color:var(--chrome-fg-wrkLst-link); }
+p.viewLst { background-color:var(--chrome-bg-viewLst); color:var(--chrome-fg-viewLst); }
+.viewLst a { text-decoration:none; color:var(--chrome-fg-viewLst-link); }
+p.bkLst { background-color:var(--chrome-bg-bkLst); }
+.bkLst a { color:inherit; text-decoration:none; }
+p.chLst { background-color:var(--chrome-bg-chLst); }
+.chLst a { text-decoration:none; }
+p.vsLst { background-color:var(--chrome-bg-vsLst); }
+.vsLst a { text-decoration:none; }
+
+p.cNav { font-size:1.8em; background-color:var(--chrome-fg-cnav); }
+p.vNav { font-size:1.8em; }
+p.pgNav { margin-top:0.6em; text-align:center; font-size:1.8em; }
+
+/* ---- Theme controls in the top line ----
+ * Explicit, readable colors on every state. We use fixed dark-on-light for the
+ * controls themselves (rather than variable-driven chrome colors) so the
+ * toggle/dropdown text is never invisible under color-scheme: dark, which can
+ * otherwise make native form controls render unpredictably. */
+button.themeToggle,
+select.themeSelect {
+    color-scheme: light; /* keep the controls' native palette light in dark mode too */
+    font-size:0.85em;
+    padding:0.15em 0.5em;
+    border:1px solid #666;
+    border-radius:0.3em;
+    background-color:#ffffff;
+    color:#000000;
+    cursor:pointer;
+}
+select.themeSelect {
+    padding:0.15em 0.4em;
+    color:#000000;
+    background-color:#ffffff;
+}
+select.themeSelect option {
+    color:#000000;
+    background-color:#ffffff;
+}
+button.themeToggle:hover,
+button.themeToggle:focus-visible,
+select.themeSelect:hover,
+select.themeSelect:focus-visible {
+    border-color:var(--chrome-bg-wrkLst);
+    background-color:#ffffff;
+    color:#000000;
+}
+
+/* ---- "Left verse nums" theme (data-verses="left") ----
+ * Moves verse (and chapter) numbers into the left margin, keeping the body
+ * text clear of them. Based on the Stylebot example in the OET discussion
+ * (https://github.com/Freely-Given-org/OpenEnglishTranslation--OET/discussions/129).
+ * Applied independently of the light/dark toggle via the data-verses attribute
+ * that theme.js sets on <html>.
+ *
+ * This only makes sense on page types that show a flowing verse number in the
+ * text: book / chapter / section and the OET-RV related & topic verse readers.
+ * It is deliberately NOT applied to parallel-verse, interlinear, or any of the
+ * reference/dictionary/index/site pages (no verse numbers in reading flow).
+ * The generated pages carry a data-page-type attribute on <body> (set by
+ * make_top_core in page_chrome.rs) which scopes the rules below.
+ *
+ * It is also NOT applied to the OET pseudo-version's two-column pages (the
+ * OET-RV / OET-LV side-by-side book/chapter/section view) -- each column is
+ * too narrow for a left margin, so make_top_core tags those with
+ * data-layout="RVLV" and we exclude them here. */
+/* Verse (and chapter / Psalm / parallelism) numbers become a fixed left
+ * "gutter" column instead of inline text. Each number is floated left and
+ * cleared, so consecutive numbers that begin on the same line (common when
+ * the window is wide) stack vertically DOWN the gutter rather than rendering
+ * on top of each other (the old position:absolute approach overlapped them).
+ * The paragraph's left padding below reserves room for the column. */
+html[data-verses="left"]
+body:not([data-layout="RVLV"]):is(
+        [data-page-type="book"],[data-page-type="chapter"],[data-page-type="section"],
+        [data-page-type="relatedPassage"],[data-page-type="topicPassages"])
+span.v,
+html[data-verses="left"]
+body:not([data-layout="RVLV"]):is(
+        [data-page-type="book"],[data-page-type="chapter"],[data-page-type="section"],
+        [data-page-type="relatedPassage"],[data-page-type="topicPassages"])
+span.c,
+html[data-verses="left"]
+body:not([data-layout="RVLV"]):is(
+        [data-page-type="book"],[data-page-type="chapter"],[data-page-type="section"],
+        [data-page-type="relatedPassage"],[data-page-type="topicPassages"])
+span.cPsa,
+html[data-verses="left"]
+body:not([data-layout="RVLV"]):is(
+        [data-page-type="book"],[data-page-type="chapter"],[data-page-type="section"],
+        [data-page-type="relatedPassage"],[data-page-type="topicPassages"])
+span.synonParr {
+    float: left;
+    clear: left;
+    width: 1.6em;
+    text-align: right;
+    margin-left: -2em;
+    margin-right: 0.2em;
+}
+
+/* Give the verse/citation paragraphs some side padding so the floated
+   verse-number column has room to its left (the gutter). */
+html[data-verses="left"]
+body:not([data-layout="RVLV"]):is(
+        [data-page-type="book"],[data-page-type="chapter"],[data-page-type="section"],
+        [data-page-type="relatedPassage"],[data-page-type="topicPassages"])
+p.p,
+html[data-verses="left"]
+body:not([data-layout="RVLV"]):is(
+        [data-page-type="book"],[data-page-type="chapter"],[data-page-type="section"],
+        [data-page-type="relatedPassage"],[data-page-type="topicPassages"])
+p.m,
+html[data-verses="left"]
+body:not([data-layout="RVLV"]):is(
+        [data-page-type="book"],[data-page-type="chapter"],[data-page-type="section"],
+        [data-page-type="relatedPassage"],[data-page-type="topicPassages"])
+p.nb,
+html[data-verses="left"]
+body:not([data-layout="RVLV"]):is(
+        [data-page-type="book"],[data-page-type="chapter"],[data-page-type="section"],
+        [data-page-type="relatedPassage"],[data-page-type="topicPassages"])
+p.d {
+    padding-left: 2em;
+    padding-right: 1.75em;
+}
+html[data-verses="left"]
+body:not([data-layout="RVLV"]):is(
+        [data-page-type="book"],[data-page-type="chapter"],[data-page-type="section"],
+        [data-page-type="relatedPassage"],[data-page-type="topicPassages"])
+p.q1 { padding-left: 2.5em; }
+html[data-verses="left"]
+body:not([data-layout="RVLV"]):is(
+        [data-page-type="book"],[data-page-type="chapter"],[data-page-type="section"],
+        [data-page-type="relatedPassage"],[data-page-type="topicPassages"])
+p.q2 { padding-left: 3.5em; }

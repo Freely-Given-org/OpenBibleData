@@ -818,7 +818,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                 cleanedTextToDisplay = cleanedTextToDisplay.replace('<span class="ClVg_verseTextChunk">','').replace('<div id="footnotesClVg" class="footnotes">\n','').replace('  ',' ').replace(' ',' ')
                 vPrint( 'Normal' if word.upper()==word
                        or word in ( #  \d{1,3}\), \(
-                                'an','aß','Bart','Bild','bis','sie','hin','heb','wir','dem','des','für','hub','ich','ist','ja','alle','las','lag','litt',
+                                'an','aß','Bart','Bild','bis','bittern','sie','hin','heb','wir','dem','des','für','hub','ich','ist','ja','alle','las','lag','litt',
                                 'one)r','one)n','ones)r','ones)s','ones)n','one)s',
                                 'ach','alt','dran','ende','irrig','hing','weh','du','Raube','Raub','Tal','tue','fiel','sehe',
                                 'Mal','mal','milde','mit','Mord','Natur','nun','nur',
@@ -829,9 +829,9 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                     'blasphemyen','shopsn','nineunddreißig','soundedn','hinderte','frightenedn','preventeden','plainlyds','yest',
                                     'hertorn','summerhaus','undertretet','treesn','rejectse','fatn','setes','sulfurstrom','proudr','birdn','tubestab',
                                     'summerhaus','undertretet','treesn','rejectse','fatn','setes','gonetragen','abovelaufen',
-                                    'believeset','loseten','illuminatede','producede','exuberantn','becamet',
-                                    'unfathomableen','mysteryses','principalitiesn','reignen','mannigfaltige',
-                                    'beuge','internaln',
+                                    'drinkt','unordentlich','waterbad','',
+                                    'cunningn','gestiefelt','person)wichts','joyfulm','samewillen',
+                                    'Gemeinde','Ninive','Kürbis','Zebedäus','Baptiser','Kranken','Alphäus','Yudäa','Philippus',
                     
                                 'actio', 'agi', 'ambit','ambitio','amputa', 'anima','antiqui','apprehendi', 'argui','ascendi','attende','audi', 'aversio',
                                 'beati','bene','beneficia','bos',
@@ -861,14 +861,14 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                 'usu',      'valle','vani','vas', 'victi','visita','visitat','visitatio','vita', 'Voca','voca',
                                 'l','nos','ut','didrachmas',
                                 'tum','holdur','giveium',
-                                'myrrha','myrrham','cypri','dona','cera',
+                                'myrrham','cypri','dona','cera',
                                 'guilts','slipum','peacefuls','sicut','weaponstus','parce','pietas','roadrum','eternitym','longius','sawque',
                                 'treacherynis',
-                                    'lastrum','buildri','yearnas','myrti','recallsione','exaltsion','res','knowti','boxnis','disturbsæ','holdem',
-                                    'holdem','concluderent','recordati','viowash','beforegnantes',
-                                    'clange','abyecerit','reados','sectus','undis','worksis','burdensti','manifestur',
-                                    'holdem','lovese','patienti','virginali','affectibus','meum','maof','communio','illuminati','blindtatem','putentur','effici',
-                                    'themque','psallentes',
+                                    'lastrum','buildri','yearnas','myrti','recallsione','exaltsion','res','knowti','boxnis','disturbsæ',
+                                    'concluderent','recordati','viowash','beforegnantes',
+                                    'clange','abyecerit','reados','sectus','undis','worksis','burdensti',
+                                    'holdem','lovese','meum','maof','communio','outi','antiquæ','acknowledgesur',
+                                    'helperem','meruisse','beforedestinavit','gratificavit','superabounded',
         
                                 )
                     else 'Info', DEBUGGING_THIS_MODULE, f'''  {word} is suspect @ {location}\n      from {cleanedTextToDisplay=}\n      WHICH GAVE cleanedTextToCheck={_truncate_for_display(cleanedTextToCheck,word)}''' )

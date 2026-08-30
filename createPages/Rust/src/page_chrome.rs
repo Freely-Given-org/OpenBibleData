@@ -235,9 +235,36 @@ pub fn make_top_core(
     } else {
         format!(r#"<a href="{prefix}OETKey.htm#Top">OET Key</a>"#)
     };
-    let top_line = format!(
-        "<div class=\"topLine\"><p class=\"site\">{home_link}{EM_SPACE}{EM_SPACE}{about_link}{EM_SPACE}{EM_SPACE}{news_link}{EM_SPACE}{EM_SPACE}{oet_key_link}</p><!--site--></div><!--topLine-->"
+    // Two right-justified, fully independent controls for the top line:
+    //   * a Dark/Light mode toggle (wired up by theme.js, shows current mode),
+    //   * a "theme" dropdown (theme.js) which selects the verse-number layout
+    //     ("Default" or "Left verse nums") and is independent of light/dark.
+    // Both default to the current printed look and are remembered by theme.js.
+    let theme_controls = format!(
+        "<div class=\"themeControls\">\
+         <button type=\"button\" id=\"themeToggle\" class=\"themeToggle\" title=\"Switch to dark mode\" aria-pressed=\"false\">Light</button>\
+         <select id=\"themeSelect\" class=\"themeSelect\" title=\"Choose a theme\"><option value=\"default\">Default</option><option value=\"left\">Left verse nums</option></select>\
+         </div><!--themeControls-->"
     );
+    let top_line = format!(
+        "<div class=\"topLine\"><p class=\"site\">{home_link}{EM_SPACE}{EM_SPACE}{about_link}{EM_SPACE}{EM_SPACE}{news_link}{EM_SPACE}{EM_SPACE}{oet_key_link}</p><!--site-->{theme_controls}</div><!--topLine-->"
+    );
+
+    // The OET pseudo-version renders the OET-RV and OET-LV side-by-side in a
+    // two-column <div class="RVLVcontainer"> (with .chunkRV/.chunkLV cells) on
+    // its book/chapter/section/sectionIndex pages. A "left verse nums" layout
+    // does not make sense there (each column is too narrow), so we tag such
+    // pages with data-layout="RVLV" and common.css excludes them.
+    let verse_page_types = ["book", "chapter", "section", "sectionIndex",
+                            "parallelVerse", "interlinearVerse",
+                            "relatedPassage", "topicPassages"];
+    let is_oet_twocol = version_abbreviation == Some("OET")
+        && verse_page_types.contains(&page_type);
+    let layout_attr = if is_oet_twocol {
+        " data-layout=\"RVLV\""
+    } else {
+        ""
+    };
 
     let mut top = format!(
         "<!DOCTYPE html>\n<html lang=\"en-US\">\n<head>\n\
@@ -246,12 +273,21 @@ pub fn make_top_core(
          \x20 <meta name=\"viewport\" content=\"user-scalable=yes, initial-scale=1, minimum-scale=1, width=device-width\">\n\
          \x20 <meta name=\"keywords\" content=\"__KEYWORDS__\">\n\
          \x20 <link rel=\"stylesheet\" type=\"text/css\" href=\"{prefix}{css_filename}\">\n\
+         \x20 <link rel=\"stylesheet\" type=\"text/css\" href=\"{prefix}common.css\">\n\
          \x20 __SCRIPT__\n\
          </head>\n\
-         <body class=\"container\"><!--Level{level}-->\n\
+         <body class=\"container\" data-page-type=\"{page_type}\"{layout_attr}><!--Level{level}-->\n\
          {top_line}\n"
     );
 
+    // theme.js must run before the page paints (and before the body is
+    // parsed) so the saved/system theme is applied without a flash. We put it
+    // in the <head> before any other script.
+    top = top.replacen(
+        "__SCRIPT__",
+        &format!("<script src=\"{prefix}theme.js\"></script>\n  __SCRIPT__"),
+        1,
+    );
     // Insert second stylesheet if required
     if page_type == "OETKey" {
         top = top.replacen(
@@ -667,7 +703,10 @@ mod tests {
             .expect("should build");
         assert!(top.starts_with("<!DOCTYPE html>\n<html lang=\"en-US\">\n<head>\n  <title>__TITLE__</title>"));
         assert!(top.contains("href=\"../../OETChapter.css\""));
+        assert!(top.contains("href=\"../../common.css\"")); // shared chrome loaded on every page
+        assert!(top.contains("<script src=\"../../theme.js\"></script>")); // theme before paint
         assert!(top.contains("<!--Level2-->"));
+        assert!(top.contains(r#"<body class="container" data-page-type="chapter">"#)); // scopes left-verse-nums theme
         assert!(top.contains("__KEYWORDS__"));
         assert!(!top.contains("__SCRIPT__")); // placeholders must be resolved
         // Bible.js because OET version + KB.js because chapter page type
@@ -678,6 +717,38 @@ mod tests {
         assert!(top.contains(r#"<div class="header"><p class="wrkLst">"#));
         assert!(top.contains("</div><!--header-->"));
         assert!(top.contains("<p class=\"site\">"));
+        // Top line carries the right-justified theme controls (dark/light
+        // toggle + the independent theme/verse-layout dropdown)
+        assert!(top.contains(r#"<div class="topLine"><p class="site">"#));
+        assert!(top.contains(r#"<div class="themeControls">"#));
+        assert!(top.contains("id=\"themeToggle\""));
+        assert!(top.contains("id=\"themeSelect\""));
+        assert!(top.contains("<option value=\"default\">Default</option>"));
+        assert!(top.contains("<option value=\"left\">Left verse nums</option>"));
+        assert!(!top.contains("disabled title=\"Choose a theme\"")); // dropdown is now live
+    }
+
+    #[test]
+    fn test_oet_two_column_page_gets_layout_rvlv_body_marker() {
+        let cfg = test_config();
+        // OET pseudo-version book/chapter/section pages are two-column
+        // (OET-RV + OET-LV side-by-side) and must be excluded from the
+        // "left verse nums" theme via data-layout="RVLV" on <body>.
+        for pt in ["book", "chapter", "section"] {
+            let top = make_top_core(&cfg, 1, Some("OET"), pt, None).unwrap();
+            assert!(
+                top.contains(&format!("data-page-type=\"{pt}\" data-layout=\"RVLV\">")),
+                "OET {pt} page should be tagged data-layout=RVLV"
+            );
+        }
+        // Standalone / other-version verse pages must NOT get the marker.
+        for (va, pt) in [("OET-RV", "chapter"), ("OET-LV", "chapter"), ("UHB", "chapter"), ("OET", "OETKey")] {
+            let top = make_top_core(&cfg, 1, Some(va), pt, None).unwrap();
+            assert!(
+                !top.contains("data-layout=\"RVLV\""),
+                "{va} {pt} page should NOT be tagged data-layout=RVLV"
+            );
+        }
     }
 
     #[test]
@@ -687,6 +758,24 @@ mod tests {
         assert!(top.contains("BibleChapter.css"));
         assert!(!top.contains("Bible.js")); // UHB doesn't contain 'OET'
         assert!(top.contains("KB.js"));
+    }
+
+    #[test]
+    fn test_common_css_and_theme_js_load_on_every_page_type() {
+        let cfg = test_config();
+        // A non-OET chapter page: common.css and theme.js must still be present.
+        let top = make_top_core(&cfg, 1, Some("UHB"), "chapter", Some("byC/GEN_C1.htm")).unwrap();
+        assert!(top.contains("href=\"../common.css\""));
+        assert!(top.contains("<script src=\"../theme.js\"></script>"));
+        assert!(top.contains(r#"<div class="themeControls">"#));
+        assert!(top.contains("id=\"themeToggle\""));
+        assert!(top.contains("id=\"themeSelect\""));
+
+        // A site-level page (BibleSite.css) must also carry them.
+        let site = make_top_core(&cfg, 0, None, "search", None).unwrap();
+        assert!(site.contains("href=\"common.css\""));
+        assert!(site.contains("<script src=\"theme.js\"></script>"));
+        assert!(site.contains("id=\"themeToggle\""));
     }
 
     #[test]

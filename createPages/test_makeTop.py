@@ -33,6 +33,12 @@ port must match byte-for-byte across a wide matrix of parameters.
 
 CHANGELOG:
     2026-08-22 Created to lock down the Rust page-chrome port.
+    2026-08-29 Updated _ref_makeTop to the deliberately-changed chrome: every page
+        now loads common.css (shared chrome + theme CSS variables) and theme.js,
+        and div.topLine carries a right-justified Dark/Light toggle plus an
+        independent theme dropdown ("Default" / "Left verse nums"). The header
+        record previously noted the reference was frozen; it is regenerated here
+        because the page chrome behaviour itself was intentionally extended.
 """
 import unittest
 
@@ -94,6 +100,24 @@ def _ref_makeTop( level:int, versionAbbreviation:str|None, pageType:str, version
     newsLink = 'News' if pageType=='news' else f'''<a href="{'../'*level}News.htm#Top">News</a>'''
     OETKeyLink = 'OET Key' if pageType=='OETKey' else f'''<a href="{'../'*level}OETKey.htm#Top">OET Key</a>'''
     topLink = f'<p class="site">{homeLink}  {aboutLink}  {newsLink}  {OETKeyLink}</p><!--site-->'
+    # Two right-justified, fully independent controls (wired up by theme.js):
+    # a Dark/Light toggle (shows current mode) and a theme dropdown that selects
+    # the verse-number layout ("Default" or "Left verse nums").
+    themeControls = ( '<div class="themeControls">'
+                        '<button type="button" id="themeToggle" class="themeToggle" '
+                        'title="Switch to dark mode" aria-pressed="false">Light</button>'
+                        f'<select id="themeSelect" class="themeSelect" title="Choose a theme">'
+                            '<option value="default">Default</option>'
+                            '<option value="left">Left verse nums</option>'
+                        '</select>'
+                      '</div><!--themeControls-->' )
+    topLink = f'<div class="topLine">{topLink}{themeControls}</div><!--topLine-->'
+
+    # OET two-column (OET-RV/OET-LV side-by-side) verse pages get data-layout="RVLV"
+    _oet_two_col = versionAbbreviation == 'OET' and pageType in (
+        'book','chapter','section','sectionIndex','parallelVerse','interlinearVerse',
+        'relatedPassage','topicPassages', )
+    _layout_attr = ' data-layout="RVLV"' if _oet_two_col else ''
 
     top = f"""<!DOCTYPE html>
 <html lang="en-US">
@@ -103,10 +127,14 @@ def _ref_makeTop( level:int, versionAbbreviation:str|None, pageType:str, version
   <meta name="viewport" content="user-scalable=yes, initial-scale=1, minimum-scale=1, width=device-width">
   <meta name="keywords" content="__KEYWORDS__">
   <link rel="stylesheet" type="text/css" href="{'../'*level}{cssFilename}">
+  <link rel="stylesheet" type="text/css" href="{'../'*level}common.css">
   __SCRIPT__
 </head>
-<body class="container"><!--Level{level}-->{topLink}
+<body class="container" data-page-type="{pageType}"{_layout_attr}><!--Level{level}-->
+{topLink}
 """
+    # theme.js must run before paint so the saved/system theme applies without a flash
+    top = top.replace( '__SCRIPT__', f'''<script src="{'../'*level}theme.js"></script>\n  __SCRIPT__''' )
     # Insert second stylesheet if required
     if pageType == 'OETKey':
         top = top.replace( '__SCRIPT__', f'''<link rel="stylesheet" type="text/css" href="{'../'*level}OETChapter.css">\n  __SCRIPT__''' )
