@@ -26,6 +26,7 @@ dependencies = [
     "bos-books-codes-py",
     "docutils>=0.23",
     "openbibledata-rust",
+    "bs4>=0.0.2",
 ]
 
 [project.urls]

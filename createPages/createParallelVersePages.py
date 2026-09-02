@@ -93,6 +93,7 @@ CHANGELOG:
                 is order-dependent -- page output is unaffected
     2026-08-25 The OETHandlers functions are now imported from the Rust openbibledata_rust module (the Python OETHandlers.py was deleted).
     2026-08-27 Pre-load spell-check dictionaries/names in parent before forking so children don't redundantly reload them per book.
+    2026-09-01 Fixed bad links on second book index page
 """
 from pathlib import Path
 import os
@@ -1271,16 +1272,19 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath1}" )
 
     # Write a second copy of the index page up a level
-    newBBBVLinks = []
-    for vLink in vLinksList:
-        newBBBVLinks.append( vLink.replace('href="', f'href="{BBB}/') )
+    # newBBBVLinks = []
+    # for vLink in vLinksList:
+    #     newBBBVLinks.append( vLink.replace('href="', f'href="{BBB}/') )
+    # print( f"\n{vLinksList=}" )
+    # print( f"\n{adjBBBLinksHtml=}" )
+    # print( f"\n{chapterLinksParagraph=}" )
     filename2 = f'{BBB}.htm'
     filepath2 = folder.joinpath( filename2 )
     top = makeTop( level, None, 'parallelVerse', None, state ) \
             .replace( '__TITLE__', f"{ourTidyBBB} Parallel Verse View{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, parallel, verse, view, display, index' )
     # For Psalms, we don't list every single verse
-    indexHtml = f'''{top}{adjBBBLinksHtml}{f'{NEWLINE}<h1 id="Top">{ourTidyBBB} parallel songs index</h1>' if BBB=='PSA' else ''}{chapterLinksParagraph}{f'{NEWLINE}<h1 id="Top">{ourTidyBBB} parallel verses index</h1>' if BBB!='PSA' else ''}{f'{NEWLINE}<p class="vsLst">{" ".join( newBBBVLinks )}</p><!--vsLst-->' if BBB!='PSA' else ''}
+    indexHtml = f'''{top}{adjBBBLinksHtml.replace('href="../', f'href="')}{f'{NEWLINE}<h1 id="Top">{ourTidyBBB} parallel songs index</h1>' if BBB=='PSA' else ''}{chapterLinksParagraph.replace('href="', f'href="{BBB}/')}{f'{NEWLINE}<h1 id="Top">{ourTidyBBB} parallel verses index</h1>' if BBB!='PSA' else ''}{f'''{NEWLINE}<p class="vsLst">{" ".join( vLinksList ).replace('href="', f'href="{BBB}/')}</p><!--vsLst-->''' if BBB!='PSA' else ''}
 {makeBottom( level, None, 'parallelVerse' )}'''
     assert checkHtml( 'parallelIndex', indexHtml )
     with open( filepath2, 'wt', encoding='utf-8' ) as indexHtmlFile:

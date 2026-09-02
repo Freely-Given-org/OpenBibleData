@@ -48,10 +48,10 @@ from BibleOrgSys.BibleOrgSysGlobals import vPrint, fnPrint, dPrint, rreplace
 import bos_books_codes_py
 
 
-LAST_MODIFIED_DATE = '2026-08-27' # by RJH
+LAST_MODIFIED_DATE = '2026-09-01' # by RJH
 SHORT_PROGRAM_NAME = "spellCheckEnglish"
 PROGRAM_NAME = "English Bible Spell Check"
-PROGRAM_VERSION = '0.65'
+PROGRAM_VERSION = '0.67'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -581,6 +581,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
     divMarkersToRemove = [ 'bookHeader','bookIntro',
                       'iot',
                       'section','s1',
+                      'verseText',
                     ]
     if 'OET' not in versionAbbreviation: divMarkersToRemove.append( 'footnotes' )
     for divMarker in divMarkersToRemove:
@@ -818,26 +819,21 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                 cleanedTextToDisplay = cleanedTextToDisplay.replace('<span class="ClVg_verseTextChunk">','').replace('<div id="footnotesClVg" class="footnotes">\n','').replace('  ',' ').replace(' ',' ')
                 vPrint( 'Normal' if word.upper()==word
                        or word in ( #  \d{1,3}\), \(
-                                'an','aß','Bart','Bild','bis','bittern','sie','hin','heb','wir','dem','des','für','hub','ich','ist','ja','alle','las','lag','litt',
+                                'an','aß','Bart','Bild','bis','bittern', 'Chor', 'sie','hin','heb','wir','dem','des','für','hub','ich','ist','ja','alle','las','lag','litt',
                                 'one)r','one)n','ones)r','ones)s','ones)n','one)s',
                                 'ach','alt','dran','ende','irrig','hing','weh','du','Raube','Raub','Tal','tue','fiel','sehe',
                                 'Mal','mal','milde','mit','Mord','Natur','nun','nur',
-                                'rede','kam','Korb','ward','Rede','messen','ging','Halle','und','ster','streng','tun','von','wer','zu','zwo',
-                                'hesitationne','outen','imploret','overte','cleverr','savioure','starseher','fewe','losem','aboveflüssig',
-                                'movede','peoplesohnes','faithst',
-                                    'tearinger','chainswerk','eightytausend','wroteen',
-                                    'blasphemyen','shopsn','nineunddreißig','soundedn','hinderte','frightenedn','preventeden','plainlyds','yest',
-                                    'hertorn','summerhaus','undertretet','treesn','rejectse','fatn','setes','sulfurstrom','proudr','birdn','tubestab',
-                                    'summerhaus','undertretet','treesn','rejectse','fatn','setes','gonetragen','abovelaufen',
-                                    'Ninive','Kürbis','Zebedäus','Baptiser','Kranken','Alphäus','Yudäa','Philippus',
-                                    'Ischariot','Answerst',
+                                'rede','kam','Korb','ward','Rat','Rede','messen','ging','Halle','und','ster','streng','tun','von','wer','zu','zwo',
+                                'splitse','headstadt','realisese',
+                                    'Yudäa','Philippus','Ischariot','Amithais','Yapho','Ninevehs','Jewishe',
+                                    'Tut',
                     
                                 'actio', 'agi', 'ambit','ambitio','amputa', 'anima','antiqui','apprehendi', 'argui','ascendi','attende','audi', 'aversio',
                                 'beati','bene','beneficia','bos',
                                 'ca','calami','capti',       'celebrat','centurio',     'Christi',      'circumcisio','cis',        'cognitio','cogniti','complet',
-                                        'commemorat','competit',
+                                        'commemorat','communio','competit',
                                         'conclusi', 'confessio','confusi','confusio','congregati','congregatio','consecrat','consecrati','considerat','consolati','consolatio',
-                                            'contra','contriti','conversa','conversi','conversio','converti',
+                                            'constituti','contra','contriti','conversa','conversi','conversio','converti',
                                         'cor','correcti','correctio',
                                     'creat','creati','credi','cruci',        'cultu','cum','cura','curat',
                                 'dat','dedi','deduc','dei','dem','designat','desolati','det','determinat','devotio',
@@ -851,22 +847,21 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                     'media','medici','memor','memoria','menstrua','mens',        'mira','misera',        'moretri','mortali','morti',
                                 'nam','narrat','natu','natura','ne','nota','Nota',     'ob','obsessi','offen','omnis','operatio','ora','ori',
                                 'passi','patria','patri','pede','pedes','perpetua','perfecti','persecuti','persecutio',
-                                    'pio','plura','polluti','prope','propitiatio','provocat','publica',
+                                    'pio','plura','polluti','prope','propitiatio','provocat', 'psalmi','psalmis', 'publica',
                                 'questio','qui',        'rea','redempti','rege','regi','regio','regula','remun','remunerat','rei','repente','reprobat','ros',
                                 'salva','salvat','salvati','sanctifi','sanctificati',
                                     'securi','separat','separati','seu','serva','servit','sex','sexta',
-                                    'si','sit','sol','soli','solem','stat','statu','summo','superstitio',
+                                    'si','sit','sol','soli','solem','stat','statu', 'subjecti','summo','superstitio',
                                 'tempora','Tod','tradit','traditi','traditio','transito','transmigratio','tres','tribulatio','tributa','trium','tu','tua','tuam','turba',
-                                'usu',      'valle','vani','vas', 'victi','visita','visitat','visitatio','vita', 'Voca','voca',
+                                'usu',      'valle','vani','varie','vas', 'victi','visita','visitat','visitatio','vita', 'Voca','voca',
                                 'l','nos','ut','didrachmas',
-                                'tum','holdur','giveium','myrrham','cypri','dona',
-                                'sicut','weaponstus','parce','pietas','roadrum','eternitym','longius','sawque','treacherynis',
-                                    'lastrum','buildri','yearnas','myrti','recallsione','exaltsion','res','knowti','boxnis','disturbsæ',
-                                    'concluderent','recordati','viowash','beforegnantes',
-                                    'clange','abyecerit','reados','sectus','undis','worksis','burdensti',
-                                    'holdem','lovese','meum','maof','communio','outi',
-                                    'heardis',
-        
+                                'cypri','dona',
+                                'contractt',
+                                    'res','knowti','boxnis',
+                                    'recordati','viowash','clange','reados','sectus','undis',
+                                    'lovese','meum','weres','multiformis','professio','reprimandse','halfnt','stringit',
+                                    'foreignted','impleamini','naulum','periclitabatur','alleviaretur','sleepebat',
+
                                 )
                     else 'Info', DEBUGGING_THIS_MODULE, f'''  {word} is suspect @ {location}\n      from {cleanedTextToDisplay=}\n      WHICH GAVE cleanedTextToCheck={_truncate_for_display(cleanedTextToCheck,word)}''' )
             if versionAbbreviation == 'Luth':

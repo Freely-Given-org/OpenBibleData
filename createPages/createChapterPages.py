@@ -63,10 +63,10 @@ from Bibles import getBibleMapperMaps, getOpenBibleImages
 from openbibledata_rust import convertVerseEntryListToHtml, livenOETWordLinks, livenOETCompatibleBereanWordLinks, getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
-LAST_MODIFIED_DATE = '2026-08-25' # by RJH
+LAST_MODIFIED_DATE = '2026-09-02' # by RJH
 SHORT_PROGRAM_NAME = "createChapterPages"
 PROGRAM_NAME = "OpenBibleData createChapterPages functions"
-PROGRAM_VERSION = '0.85'
+PROGRAM_VERSION = '0.86'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -142,11 +142,13 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
                 cHtmlFile.write( chapterHtml )
             vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"    {len(chapterHtml):,} characters written to {filepath}" )
             continue
-        elif lvBible.abbreviation in state.booksToLoad \
-        and 'ALL' not in state.booksToLoad[lvBible.abbreviation] \
-        and BBB not in state.booksToLoad[lvBible.abbreviation]:
-            logging.critical( f"C Skipped OET chapters not-included book: OET-LV {BBB}")
-            continue # Only create pages for the requested LV books
+
+        # This code used to prevent building of OET-RV DC books as there's no OET-LV version -- removed 2026-09-02
+        # elif lvBible.abbreviation in state.booksToLoad \
+        # and 'ALL' not in state.booksToLoad[lvBible.abbreviation] \
+        # and BBB not in state.booksToLoad[lvBible.abbreviation]:
+        #     logging.critical( f"C Skipped OET chapters not-included book: OET-LV {BBB}")
+        #     continue # Only create pages for the requested LV books
 
         BBBs.append( BBB )
 

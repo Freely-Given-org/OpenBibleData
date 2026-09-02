@@ -113,10 +113,10 @@ from Dict import loadAndIndexUBSGreekDictJSON, loadAndIndexUBSHebrewDictJSON
 from openbibledata_rust import findOLQuoteInLV, getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2026-08-27' # by RJH
+LAST_MODIFIED_DATE = '2026-09-02' # by RJH
 SHORT_PROGRAM_NAME = "Bibles"
 PROGRAM_NAME = "OpenBibleData Bibles handler"
-PROGRAM_VERSION = '1.0.0'
+PROGRAM_VERSION = '1.0.1'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -524,7 +524,7 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
                 thisBible.loadBookIfNecessary( BBB )
 
     elif versionAbbreviation in state.selectedVersesOnlyVersions: # small numbers of sample verses
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Loading ‘{versionAbbreviation}’ sample verses…" )
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\nLoading ‘{versionAbbreviation}’ sample verses…" )
         thisBible = loadSelectedVersesFile( folderOrFileLocation, givenName=versionName,
                                             givenAbbreviation=versionAbbreviation, encoding='utf-8' )
         # NOTE: thisBible is NOT a Bible object here!!!

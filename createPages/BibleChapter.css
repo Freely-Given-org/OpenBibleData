@@ -145,7 +145,7 @@ span.qs { font-style:italic; } /* Selah */
 span.qac { color:darkOrchid; font-style:italic; } /* Acrostic letter */
 span.jmp {}
 span.t4tFoS { color:seaGreen; } /* T4T Figure of Speech */
-span.add { color:grey; font-style:italic; }
+span.add { color:#6b6b6b; font-style:italic; }
 span.k {} /* keyterm used in WEB GLS */
 span.sls { background-color:#fced86; } /* Moff */
 
@@ -179,7 +179,7 @@ span.FBV_verseTextChunk {}
 span.Gnva_verseTextChunk {}
 span.JPS_verseTextChunk {}
 span.KJB-1611_verseTextChunk { font-family:UnifrakturCook,"New Rocker","Unifraktur Maguntia","Germania One",Astloch,textura,schwabacher,rotunda,bastarda,blankenburg,cursive; }
-span.add_KJB-1611 { vertical-align:middle; position:relative; top:-0.1em; font-size:0.8em; color: grey; }
+span.add_KJB-1611 { vertical-align:middle; position:relative; top:-0.1em; font-size:0.8em; color: #6b6b6b; }
 span.KJB-1769_verseTextChunk {}
 span.LEB_verseTextChunk {}
 span.LSV_verseTextChunk {}
@@ -207,6 +207,7 @@ span.WMBB_verseTextChunk {}
 span.WMB_verseTextChunk {}
 span.Wycl_verseTextChunk {}
 span.YLT_verseTextChunk {}
+div.verseText {}
 
 /* USFM footnotes */
 hr.line-before-footnotes { width:60%; margin-left:0; margin-top:0em; margin-bottom:0.2em; border:0; border-top:1px solid green; }

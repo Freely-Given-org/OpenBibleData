@@ -77,6 +77,7 @@ CHANGELOG:
     2026-08-25 The OETHandlers functions are now imported from the Rust openbibledata_rust module (the Python OETHandlers.py was deleted).
     2026-08-28 Preload all CSS stylesheets in the parent before creating forked workers so
                     they share one copy-on-write cache instead of each re-loading them.
+    2026-09-01 Fixed some bad links on the details page(s)
 """
 from pathlib import Path
 import os
@@ -108,10 +109,10 @@ from html import makeTop, makeViewNavListParagraph, makeBottom, checkHtml, prelo
 from spellCheckEnglish import printSpellCheckSummary
 
 
-LAST_MODIFIED_DATE = '2026-08-30' # by RJH
+LAST_MODIFIED_DATE = '2026-09-02' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData (OBD) Create Site Pages"
-PROGRAM_VERSION = '2.2.0'
+PROGRAM_VERSION = '2.3.0'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
@@ -203,7 +204,8 @@ def _createSitePages() -> bool:
             rvBible = state.preloadedBibles['OET-RV']
             rvBooks = rvBible.books.keys() if 'ALL' in state.booksToLoad[rvBible.abbreviation] else state.booksToLoad[rvBible.abbreviation]
             lvBooks = lvBible.books.keys() if 'ALL' in state.booksToLoad[lvBible.abbreviation] else state.booksToLoad[lvBible.abbreviation]
-            state.BBBsToProcess['OET'] = reorderBooksForOETVersions( [rvKey for rvKey in rvBooks if rvKey in lvBooks or rvKey=='FRT'] )
+            # state.BBBsToProcess['OET'] = reorderBooksForOETVersions( [rvKey for rvKey in rvBooks if rvKey in lvBooks or rvKey=='FRT'] )
+            state.BBBsToProcess['OET'] = reorderBooksForOETVersions( rvBooks )
             state.BBBLinks['OET'] = []
             for BBB in state.BBBsToProcess['OET']:
                 filename = f'{BBB}.htm'
@@ -297,7 +299,7 @@ def _createSitePages() -> bool:
                 vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"    {len(indexHtml):,} characters written to {filepath}" )
             else: # these versions should have the full pages
                 if versionAbbreviation == 'TTN': continue # Not actually a Bible version
-                if not state.TEST_MODE_FLAG or versionAbbreviation not in ('OEB','WEBBE','WEB','WMBB','WMB','NET','LSV','FBV','TCNT','T4T','LEB',
+                if not state.TEST_MODE_FLAG or versionAbbreviation not in ('OEB','WEBBE','WMBB','NET','LSV','FBV','TCNT','T4T','LEB',
                                                         'BBE','Moff','JPS','ASV','DRA','YLT','Drby','RV','Wbstr',
                                                         'KJB-1769','Bshps','Gnva','Cvdl','TNT','Wycl'):
                     # In test mode, we don't usually need to make all those pages, even just for the test books
@@ -445,6 +447,8 @@ def _createSitePages() -> bool:
             vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  (because {state.TEST_VERSIONS_ONLY=})" )
         if not state.CREATE_PARALLEL_VERSE_PAGES:
             vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  (because no parallel verse pages were built)" )
+
+    return True
 # end of createSitePages._createSitePages
 
 
@@ -466,16 +470,17 @@ def _cleanHTMLFolders( folder:Path, state:State ) -> bool:
     except FileNotFoundError: pass
     try: os.unlink( folder.joinpath( 'Search.htm' ) )
     except FileNotFoundError: pass
-    try: shutil.rmtree( folder.joinpath( 'par/' ) )
-    except FileNotFoundError: pass
-    try: shutil.rmtree( folder.joinpath( 'ilr/' ) )
-    except FileNotFoundError: pass
-    try: shutil.rmtree( folder.joinpath( 'rel/' ) )
-    except FileNotFoundError: pass
-    try: shutil.rmtree( folder.joinpath( 'tpc/' ) )
-    except FileNotFoundError: pass
+    if state.CREATE_PARALLEL_VERSE_PAGES is not None:
+        try: shutil.rmtree( folder.joinpath( 'par/' ) )
+        except FileNotFoundError: pass
     if folder == state.TEMP_BUILD_FOLDER \
     or not state.REUSE_EXISTING_WORD_PAGES_FLAG: # Leave the existing folders there if we're not rebuilding these reference pages
+        try: shutil.rmtree( folder.joinpath( 'ilr/' ) )
+        except FileNotFoundError: pass
+        try: shutil.rmtree( folder.joinpath( 'rel/' ) )
+        except FileNotFoundError: pass
+        try: shutil.rmtree( folder.joinpath( 'tpc/' ) )
+        except FileNotFoundError: pass
         try: shutil.rmtree( folder.joinpath( 'ref/' ) )
         except FileNotFoundError: pass
         try: shutil.rmtree( folder.joinpath( 'app/' ) )
@@ -595,7 +600,7 @@ def _createOETMissingVersesPage( level:int, buildFolder:Path ) -> bool:
     """
     """
     textHtml = f'''<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
-<h1>OET Missing Verse page</h1>
+<h1>OET Missing Verses page</h1>
 <p class="note">The <em>Open English Translation Readers’ Version</em> uses the <b>◘</b> symbol
 to indicate places where we intentionally didn’t include the translation of an <b>entire</b> verse.
 This is not because we’re trying to trying to hide anything that was in the original scriptures,
@@ -691,14 +696,16 @@ def _createDetailsPages( level:int, buildFolder:Path, state:State ) -> bool:
         topHtml = makeTop( level+1, versionAbbreviation, 'details', 'details.htm', state ) \
                 .replace( '__TITLE__', f"{versionName} Details{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
                 .replace( '__KEYWORDS__', 'Bible, details, about, copyright, licence, acknowledgements' ) \
-                .replace( f'''<a title="{state.BibleNames[versionAbbreviation]}" href="{'../'*(level+1)}{BibleOrgSysGlobals.makeSafeString(versionAbbreviation)}/details.htm#Top">{versionAbbreviation}</a>''',
-                            f'''<a title="Up to {state.BibleNames[versionAbbreviation]}" href="{'../'*(level+1)}{BibleOrgSysGlobals.makeSafeString(versionAbbreviation)}/">↑{versionAbbreviation}</a>''' )
+                .replace( f'''<a title="{state.BibleNames[versionAbbreviation]}" href="__LEVEL__{BibleOrgSysGlobals.makeSafeString(versionAbbreviation)}/details.htm#Top">{versionAbbreviation}</a>''',
+                            f'''<a title="Up to {state.BibleNames[versionAbbreviation]}" href="__LEVEL__{BibleOrgSysGlobals.makeSafeString(versionAbbreviation)}/">↑{versionAbbreviation}</a>''' )
 
-        extraHTML = '''<h2>Key to Abbreviations</h2>
-<p class="note">See key and more information <a href="byDoc/FRT.htm#Top">here</a>.</p>
+        extraHTML = f'''<h2>Key to T4T Abbreviations</h2>
+<p class="note">See key and more information <a href="__LEVEL__T4T/byDoc/FRT.htm#Top">here</a>.</p>
 ''' if versionAbbreviation == 'T4T' else ''
 
-        detailsHtml = f'''{extraHTML}<h2>About the ‘{versionAbbreviation}’</h2>{state.detailsHtml[versionAbbreviation]['about']}
+        aboutLink = f'<a href="__LEVEL__{versionAbbreviation}/">{versionAbbreviation}</a>' \
+                        if versionAbbreviation=='OET' or versionAbbreviation in state.preloadedBibles else versionAbbreviation
+        detailsHtml = f'''{extraHTML}<h2>About the ‘{aboutLink}’</h2>{state.detailsHtml[versionAbbreviation]['about']}
 <h2>Copyright</h2>{state.detailsHtml[versionAbbreviation]['copyright']}
 <h2>Licence</h2>{state.detailsHtml[versionAbbreviation]['licence']}'''
         if 'acknowledgements' in state.detailsHtml[versionAbbreviation]:
@@ -710,7 +717,7 @@ def _createDetailsPages( level:int, buildFolder:Path, state:State ) -> bool:
 
         if state.TEST_MODE_FLAG and versionAbbreviation in state.selectedVersesOnlyVersions:
             # Add a list of links to verses containing this version
-            selectedVerseLinksList = [f'<a href="par/{BBB}/C{C}V{V}.htm#{versionAbbreviation}">{getOETTidyBBB( BBB, titleCase=True )} {C}:{V}</a>' for BBB,C,V in state.preloadedBibles[versionAbbreviation]]
+            selectedVerseLinksList = [f'<a href="__LEVEL__par/{BBB}/C{C}V{V}.htm#{versionAbbreviation}">{getOETTidyBBB( BBB, titleCase=True )} {C}:{V}</a>' for BBB,C,V in state.preloadedBibles[versionAbbreviation]]
             detailsHtml = f'''{detailsHtml}
 <h2>Available selections</h2>
 <p class="rem">The following parallel verse pages feature this version:</p>
@@ -720,7 +727,7 @@ def _createDetailsPages( level:int, buildFolder:Path, state:State ) -> bool:
             # List section pages with maps
             BBBMapLinkParagraphs = []
             for BBB in state.sectionsWithMaps:
-                BBBMapLinks = [f'<a href="../OET/bySec/{BBB}_S{n}.htm#BMM">S{n}</a>' for n in state.sectionsWithMaps[BBB]]
+                BBBMapLinks = [f'<a href="__LEVEL__OET/bySec/{BBB}_S{n}.htm#BMM">S{n}</a>' for n in state.sectionsWithMaps[BBB]]
                 BBBMapLinkHtml = f'''<p class="selectedLinks"><b>{BBB}</b>: {' '.join(BBBMapLinks)}</p><!--selectedLinks-->'''
                 BBBMapLinkParagraphs.append( BBBMapLinkHtml )
             if BBBMapLinkParagraphs:
@@ -737,7 +744,7 @@ def _createDetailsPages( level:int, buildFolder:Path, state:State ) -> bool:
             if 'sectionsWithImages' in vars(state) and state.sectionsWithImages: # List section pages with images
                 BBBImageLinkParagraphs = []
                 for BBB in state.sectionsWithImages:
-                    BBBImageLinks = [f'<a href="../OET-RV/bySec/{BBB}_S{n}.htm#Top">S{n}</a>' for n in state.sectionsWithImages[BBB]]
+                    BBBImageLinks = [f'<a href="__LEVEL__OET-RV/bySec/{BBB}_S{n}.htm#Top">S{n}</a>' for n in state.sectionsWithImages[BBB]]
                     BBBImageLinkHtml = f'''<p class="selectedLinks"><b>{BBB}</b>: {' '.join(BBBImageLinks)}</p><!--selectedLinks-->'''
                     BBBImageLinkParagraphs.append( BBBImageLinkHtml )
                 if BBBImageLinkParagraphs:
@@ -748,7 +755,7 @@ def _createDetailsPages( level:int, buildFolder:Path, state:State ) -> bool:
             if 'chaptersWithImages' in vars(state) and state.chaptersWithImages: # List chapter pages with images
                 BBBImageLinkParagraphs = []
                 for BBB in state.chaptersWithImages:
-                    BBBImageLinks = [f'<a href="../OET-RV/byC/{BBB}_C{C}.htm#Top">C{C}</a>' for C in state.chaptersWithImages[BBB]]
+                    BBBImageLinks = [f'<a href="__LEVEL__OET-RV/byC/{BBB}_C{C}.htm#Top">C{C}</a>' for C in state.chaptersWithImages[BBB]]
                     BBBImageLinkHtml = f'''<p class="selectedLinks"><b>{BBB}</b>: {' '.join(BBBImageLinks)}</p><!--selectedLinks-->'''
                     BBBImageLinkParagraphs.append( BBBImageLinkHtml )
                 if BBBImageLinkParagraphs:
@@ -759,7 +766,7 @@ def _createDetailsPages( level:int, buildFolder:Path, state:State ) -> bool:
             if 'versesWithImages' in vars(state) and state.versesWithImages: # List parallel verse pages with images
                 BBBImageLinkParagraphs = []
                 for BBB in state.versesWithImages:
-                    BBBImageLinks = [f'<a href="../par/{BBB}/C{C}V{V}.htm#OET">{C}:{V}</a>' for C,V in state.versesWithImages[BBB]]
+                    BBBImageLinks = [f'<a href="__LEVEL__par/{BBB}/C{C}V{V}.htm#OET">{C}:{V}</a>' for C,V in state.versesWithImages[BBB]]
                     BBBImageLinkHtml = f'''<p class="selectedLinks"><b>{BBB}</b>: {' '.join(BBBImageLinks)}</p><!--selectedLinks-->'''
                     BBBImageLinkParagraphs.append( BBBImageLinkHtml )
                 if BBBImageLinkParagraphs:
@@ -782,8 +789,9 @@ def _createDetailsPages( level:int, buildFolder:Path, state:State ) -> bool:
 <p class="note">See details for <a title="All versions’ details" href="../AllDetails.htm#Top">ALL</a> included translations and reference materials.</p>
 '''
 
-        allDetailsHTML = f'''{allDetailsHTML}{'<hr style="width:45%;margin-left:0;margin-top: 0.3em">' if allDetailsHTML else ''}<h2 id="{versionAbbreviation}">{versionName}</h2>
-{detailsHtml.replace('h2','h3').replace('href="../OET/bySec/','href="OET/bySec/').replace('__LEVEL__','../'*level)}'''
+        # Also append to the 'ALL DETAILS' page which goes at the top level (so some links have to be adjusted)
+        allDetailsHTML = f'''{allDetailsHTML}{'\n' if allDetailsHTML else ''}{'<hr style="width:80%;margin-left:0;margin-top: 0.3em">' if allDetailsHTML else ''}<h2 id="{versionAbbreviation}">{versionName}</h2>
+{detailsHtml.replace('h2','h3').replace('__LEVEL__','../'*level)}''' # .replace('href="../par/','href="par/').replace('href="../OET','href="OET')
 
         html = f"{topHtml}{bodyHtml}{makeBottom( level+1, versionAbbreviation, 'details' )}"
         assert checkHtml( f'{versionAbbreviation} details', html )

@@ -11,9 +11,14 @@
  * users editing with a CSS tool can see which styles are available to change.
  *
  * Site-wide colours are exposed as CSS custom properties so that the
- * dark/light mode toggle (and a future theme dropdown) can restyle the whole
- * chrome from one place. The document <html> element carries a data-theme
- * attribute ("light" or "dark") set by theme.js.
+ * settings panel (colour scheme, verse-number position, text size, and the
+ * colour of Jesus'-words spans) can restyle the whole chrome from one place.
+ * The document <html> element carries data-* attributes set by theme.js:
+ *   data-theme     "light" | "dark"          (resolved from the "system"
+ *                                             setting if chosen)
+ *   data-verses    "default" | "left"
+ *   data-size      "large" | "xlarge" (absent otherwise)
+ *   data-wj        "red" | "off" (absent = default brown)
  */
 
 /* ---- Site-wide colour palette (CSS custom properties) ---- */
@@ -66,7 +71,7 @@ div.header {
 }
 div.footer { margin:50px; }
 
-/* Top line (site name + About/News/OET Key links + theme controls) */
+/* Top line (site name + About/News/OET Key links + Settings button) */
 div.topLine {
     display:flex;
     align-items:center;
@@ -104,14 +109,13 @@ p.cNav { font-size:1.8em; background-color:var(--chrome-fg-cnav); }
 p.vNav { font-size:1.8em; }
 p.pgNav { margin-top:0.6em; text-align:center; font-size:1.8em; }
 
-/* ---- Theme controls in the top line ----
- * Explicit, readable colors on every state. We use fixed dark-on-light for the
- * controls themselves (rather than variable-driven chrome colors) so the
- * toggle/dropdown text is never invisible under color-scheme: dark, which can
- * otherwise make native form controls render unpredictably. */
-button.themeToggle,
-select.themeSelect {
-    color-scheme: light; /* keep the controls' native palette light in dark mode too */
+/* ---- Settings button in the top line ----
+ * Explicit, readable colors. We use a fixed dark-on-light button (rather than
+ * variable-driven chrome colors) so its label is never invisible under
+ * color-scheme: dark, which can otherwise make native form controls render
+ * unpredictably. */
+button.themeSettings {
+    color-scheme: light; /* keep the button's native palette light in dark mode too */
     font-size:0.85em;
     padding:0.15em 0.5em;
     border:1px solid #666;
@@ -120,22 +124,69 @@ select.themeSelect {
     color:#000000;
     cursor:pointer;
 }
-select.themeSelect {
-    padding:0.15em 0.4em;
-    color:#000000;
-    background-color:#ffffff;
-}
-select.themeSelect option {
-    color:#000000;
-    background-color:#ffffff;
-}
-button.themeToggle:hover,
-button.themeToggle:focus-visible,
-select.themeSelect:hover,
-select.themeSelect:focus-visible {
+button.themeSettings:hover,
+button.themeSettings:focus-visible {
     border-color:var(--chrome-bg-wrkLst);
     background-color:#ffffff;
     color:#000000;
+}
+
+/* ---- Settings panel (injected into each page by theme.js) ----
+ * A fixed full-screen overlay with a centred panel of independent, combinable
+ * options (colour scheme, verse numbers, text size, Jesus'-words colour --
+ * e.g. "Left verse nums" + "Large print" + red words all at once). The panel
+ * follows the site palette/custom properties so it reads correctly in both
+ * light and dark mode. It is hidden by default and shown via the data-open
+ * attribute that theme.js toggles on the overlay. */
+div.settingsPanel {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5em;
+    background: rgba(0, 0, 0, 0.4);
+}
+div.settingsPanel[data-open="true"] { display: flex; }
+div.settingsPanel div.settingsPanel-content {
+    width: min(28em, 100vw - 1.5em);
+    max-height: 90vh;
+    overflow: auto;
+    background-color: var(--chrome-bg-body);
+    color: var(--chrome-fg-body);
+    border: 1px solid var(--chrome-fg-cnav);
+    border-radius: 0.5em;
+    padding: 0.9em 1.4em 1em;
+    box-shadow: 0 0.5em 2em rgba(0, 0, 0, 0.5);
+}
+div.settingsPanel h2 {
+    margin: 0 0 0.6em;
+    font-size: 1.1em;
+}
+div.settingsPanel fieldset {
+    border: 1px solid var(--chrome-fg-cnav);
+    border-radius: 0.4em;
+    margin: 0 0 0.6em;
+    padding: 0.4em 0.7em 0.5em;
+}
+div.settingsPanel legend {
+    padding: 0 0.35em;
+}
+div.settingsPanel label {
+    display: block;
+    margin: 0.2em 0;
+    cursor: pointer;
+}
+div.settingsPanel span.settingsNote {
+    font-size: 0.8em;
+    color: grey;
+}
+div.settingsPanel div.settingsActions {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5em;
+    margin-top: 0.7em;
 }
 
 /* ---- "Left verse nums" theme (data-verses="left") ----
@@ -221,7 +272,15 @@ html[data-verses="left"]
 body:is(
         [data-page-type="book"],[data-page-type="chapter"],[data-page-type="section"],
         [data-page-type="relatedPassage"],[data-page-type="topicPassages"])
-p.d {
+p.d,
+/* Paragraph-less verse flows (OET-LV, BLB, ...) are wrapped (by the Rust
+   converter) in per-verse <div class="verseText"> blocks; they need the same
+   gutter side-padding as the paragraph-hosting verses above. */
+html[data-verses="left"]
+body:is(
+        [data-page-type="book"],[data-page-type="chapter"],[data-page-type="section"],
+        [data-page-type="relatedPassage"],[data-page-type="topicPassages"])
+div.verseText {
     padding-left: 2.95rem;
     padding-right: 1.75em;
 }
@@ -236,7 +295,7 @@ body:is(
         [data-page-type="relatedPassage"],[data-page-type="topicPassages"])
 p.q2 { padding-left: 4.45rem; }
 
-/* ---- "Large print" theme (data-size="large") ----
+/* ---- "Large print" themes (data-size="large" / "xlarge") ----
  * All font sizes across the site are em-relative (no px sizes anywhere), so
  * raising the root <html> font-size scales every page family (chapters,
  * dictionaries, word pages, indexes, ...) proportionally and uniformly.
@@ -246,36 +305,127 @@ p.q2 { padding-left: 4.45rem; }
  *   * smaller "fine print" fonts (verse numbers, footnote/ref markers, small
  *     caps, grey notes, ...) get an extra size boost on top of that so they
  *     remain comfortably readable.
- * theme.js sets data-size="large" on <html>, mutually exclusive with the
- * "Left verse nums" theme (both live in the same dropdown). */
+ * theme.js sets data-size="large" or "xlarge" on <html> for the two print
+ * sizes; it combines independently with the "Left verse nums" theme and every
+ * other setting (they are no longer mutually-exclusive alternatives in a
+ * single dropdown). */
 html[data-size="large"] {
     font-size: 120%; /* default 16px -> 19.2px; raises all em sizes, base boost */
+}
+html[data-size="xlarge"] {
+    font-size: 145%; /* default 16px -> 23.2px; the extra large print base boost */
 }
 
 /* Extra size boost for the smallest/default-small fonts. These override the
    per-family default font-size, so combined with the root scale they grow
    noticeably more than the larger body/heading text above. */
 html[data-size="large"] span.v,
+html[data-size="xlarge"] span.v,
 html[data-size="large"] span.va,
-html[data-size="large"] span.vp { font-size: 0.8em; }       /* was 0.5em   */
-html[data-size="large"] span.cv { font-size: 1.15em; }      /* was 0.8em   */
+html[data-size="xlarge"] span.va,
+html[data-size="large"] span.vp,
+html[data-size="xlarge"] span.vp { font-size: 0.8em; }       /* was 0.5em   */
+html[data-size="large"] span.cv,
+html[data-size="xlarge"] span.cv { font-size: 1.15em; }      /* was 0.8em   */
 html[data-size="large"] span.fnCaller,
-html[data-size="large"] span.xrCaller { font-size: 1.05em; }/* was 0.7em   */
+html[data-size="xlarge"] span.fnCaller,
+html[data-size="large"] span.xrCaller,
+html[data-size="xlarge"] span.xrCaller { font-size: 1.05em; }/* was 0.7em   */
 html[data-size="large"] p.fn,
+html[data-size="xlarge"] p.fn,
 html[data-size="large"] p.xr,
-html[data-size="large"] p.r { font-size: 1.1em; }           /* was 0.75em  */
+html[data-size="xlarge"] p.xr,
+html[data-size="large"] p.r,
+html[data-size="xlarge"] p.r { font-size: 1.1em; }           /* was 0.75em  */
 html[data-size="large"] p.id,
+html[data-size="xlarge"] p.id,
 html[data-size="large"] p.rem,
+html[data-size="xlarge"] p.rem,
 html[data-size="large"] span.rem,
+html[data-size="xlarge"] span.rem,
 html[data-size="large"] span.sc,
+html[data-size="xlarge"] span.sc,
 html[data-size="large"] span.nd,
+html[data-size="xlarge"] span.nd,
 html[data-size="large"] span.ndORD,
+html[data-size="xlarge"] span.ndORD,
 html[data-size="large"] span.untr,
+html[data-size="xlarge"] span.untr,
 html[data-size="large"] p.key,
-html[data-size="large"] p.alternateHeading { font-size: 1.15em; } /* was ~0.8em */
+html[data-size="xlarge"] p.key,
+html[data-size="large"] p.alternateHeading,
+html[data-size="xlarge"] p.alternateHeading { font-size: 1.15em; } /* was ~0.8em */
 html[data-size="large"] p.qa,
+html[data-size="xlarge"] p.qa,
 html[data-size="large"] p.btnBar,
+html[data-size="xlarge"] p.btnBar,
 html[data-size="large"] p.wordLine,
-html[data-size="large"] p.lemmaLine { font-size: 1.2em; }   /* was 0.9em   */
+html[data-size="xlarge"] p.wordLine,
+html[data-size="large"] p.lemmaLine,
+html[data-size="xlarge"] p.lemmaLine { font-size: 1.2em; }   /* was 0.9em   */
 html[data-size="large"] p.LVVerseText,
-html[data-size="large"] p.RVVerseText { font-size: 1.05em; }/* was 0.7em   */
+html[data-size="xlarge"] p.LVVerseText,
+html[data-size="large"] p.RVVerseText,
+html[data-size="xlarge"] p.RVVerseText { font-size: 1.05em; }/* was 0.7em   */
+
+/* ---- "Dark mode" character colours (html[data-theme="dark"]) ----
+ * The per-family stylesheets colour the character/semantic spans with fixed
+ * (mostly "dark*") colours that are easy to read on white paper but nearly
+ * invisible on the #121212 dark background. These overrides switch each one to
+ * a lighter variant of the SAME hue (so the classes stay tell-apart), while
+ * the chrome/navigation bars are already handled by the custom properties at
+ * the top of this file. Selectors here have higher specificity than the
+ * family rules, so they win regardless of load order. */
+html[data-theme="dark"] span.addArticle,
+html[data-theme="dark"] span.wj { color:#d0946e; }
+html[data-theme="dark"] span.addCopula { color:#7fc2ba; }
+html[data-theme="dark"] span.addDirectObject { color:#bf8a68; }
+html[data-theme="dark"] span.addExtra,
+html[data-theme="dark"] span.NT,
+html[data-theme="dark"] span.grk,
+html[data-theme="dark"] span.senseNum { color:#6fbe6f; }
+html[data-theme="dark"] span.addElided { color:#d6b04c; }
+html[data-theme="dark"] span.addOwner,
+html[data-theme="dark"] span.qac,
+html[data-theme="dark"] span.aramaic { color:#d1a3ea; }
+html[data-theme="dark"] span.addPronoun { color:#85cc85; }
+html[data-theme="dark"] span.addReferent,
+html[data-theme="dark"] span.cp,
+html[data-theme="dark"] p.cp,
+html[data-theme="dark"] span.latin,
+html[data-theme="dark"] span.synthParr { color:#8db6ff; }
+html[data-theme="dark"] span.addNumberChange { color:#4fb3b3; }
+html[data-theme="dark"] span.addPersonChange { color:#c9bd6e; }
+html[data-theme="dark"] span.addNegated,
+html[data-theme="dark"] span.possibleHilite { color:#e08a8a; }
+html[data-theme="dark"] span.add,
+html[data-theme="dark"] span.addReword,
+html[data-theme="dark"] span.add_KJB-1611 { color:#b0b0b0; }
+html[data-theme="dark"] span.RVadd { color:#909090; }
+html[data-theme="dark"] span.addReword { text-decoration-color:#b0b0b0; }
+html[data-theme="dark"] p.cNav { color:#1a1a1a; } /* light-blue bar; dark text */
+
+/* Light-background highlight spans keep their pale boxes; inherit the
+   near-white body text in dark mode, so force dark text on them there. */
+html[data-theme="dark"] .grkNom, html[data-theme="dark"] .grkVrb,
+html[data-theme="dark"] .hebVrb, html[data-theme="dark"] .hebEl,
+html[data-theme="dark"] .hebYhwh, html[data-theme="dark"] span.Strongs,
+html[data-theme="dark"] span.sls, html[data-theme="dark"] p.iex,
+html[data-theme="dark"] span.wrkNameDiffPunct,
+html[data-theme="dark"] div.PromisedLand { color:#1a1a1a; }
+
+/* span.noLinkYet is a mid-grey box with white text: unreadable in BOTH modes
+   (about 2.3:1), so give it dark text in light mode too. */
+span.noLinkYet { color:#1a1a1a; }
+
+/* ---- "Words of Jesus" colour (data-wj) ----
+ * The per-family stylesheets colour span.wj saddlebrown by default. These
+ * overrides are loaded after those family sheets and switch the colour on
+ * preference via the data-wj attribute that theme.js sets on <html>:
+ *   "red" -> classic red-letter colour
+ *   "off" -> no special colour (inherit the surrounding text colour)
+ * A missing attribute means the default brown. This applies site-wide,
+ * including the parallel-verse and interlinear pages that also carry span.wj. */
+html[data-wj="red"] span.wj { color: #cc0000; }
+html[data-theme="dark"][data-wj="red"] span.wj { color: #e54545; } /* lighter red for dark mode */
+html[data-wj="off"] span.wj { color: inherit; }

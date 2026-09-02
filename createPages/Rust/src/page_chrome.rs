@@ -235,15 +235,16 @@ pub fn make_top_core(
     } else {
         format!(r#"<a href="{prefix}OETKey.htm#Top">OET Key</a>"#)
     };
-    // Two right-justified, independent controls for the top line:
-    //   * a Dark/Light mode toggle (wired up by theme.js, shows current mode),
-    //   * a "theme" dropdown (theme.js) which selects a global theme:
-    //       "Default", "Left verse nums", or "Large print".
-    //     It is independent of the light/dark toggle and remembered by theme.js.
+    // One right-justified control for the top line: a "Settings" button
+    // (wired up by theme.js). It replaces the old Dark/Light toggle and the
+    // mutually-exclusive theme dropdown: the settings panel it opens (built
+    // and injected at run-time by theme.js) carries independent, combinable
+    // options -- colour scheme, verse-number position, text size, and the
+    // colour of Jesus'-words spans -- remembered by theme.js in localStorage
+    // under key `obd-settings`.
     let theme_controls = format!(
         "<div class=\"themeControls\">\
-         <button type=\"button\" id=\"themeToggle\" class=\"themeToggle\" title=\"Switch to dark mode\" aria-pressed=\"false\">Light</button>\
-         <select id=\"themeSelect\" class=\"themeSelect\" title=\"Choose a theme\"><option value=\"default\">Default</option><option value=\"left\">Left verse nums</option><option value=\"large\">Large print</option></select>\
+         <button type=\"button\" id=\"settingsButton\" class=\"themeSettings\" title=\"Settings\" aria-haspopup=\"dialog\" aria-expanded=\"false\" aria-controls=\"obdSettingsPanel\">Settings</button>\
          </div><!--themeControls-->"
     );
     let top_line = format!(
@@ -708,16 +709,15 @@ mod tests {
         assert!(top.contains(r#"<div class="header"><p class="wrkLst">"#));
         assert!(top.contains("</div><!--header-->"));
         assert!(top.contains("<p class=\"site\">"));
-        // Top line carries the right-justified theme controls (dark/light
-        // toggle + the independent theme/verse-layout dropdown)
+        // Top line carries the right-justified Settings button (it replaces
+        // the old Dark/Light toggle + theme dropdown; the option controls live
+        // in a settings panel injected at run-time by theme.js)
         assert!(top.contains(r#"<div class="topLine"><p class="site">"#));
         assert!(top.contains(r#"<div class="themeControls">"#));
-        assert!(top.contains("id=\"themeToggle\""));
-        assert!(top.contains("id=\"themeSelect\""));
-        assert!(top.contains("<option value=\"default\">Default</option>"));
-        assert!(top.contains("<option value=\"left\">Left verse nums</option>"));
-        assert!(top.contains("<option value=\"large\">Large print</option>"));
-        assert!(!top.contains("disabled title=\"Choose a theme\"")); // dropdown is now live
+        assert!(top.contains("id=\"settingsButton\""));
+        assert!(top.contains("class=\"themeSettings\""));
+        assert!(!top.contains("id=\"themeToggle\"")); // toggle replaced
+        assert!(!top.contains("id=\"themeSelect\"")); // dropdown replaced
     }
 
     #[test]
@@ -758,14 +758,13 @@ mod tests {
         assert!(top.contains("href=\"../common.css\""));
         assert!(top.contains("<script src=\"../theme.js\"></script>"));
         assert!(top.contains(r#"<div class="themeControls">"#));
-        assert!(top.contains("id=\"themeToggle\""));
-        assert!(top.contains("id=\"themeSelect\""));
+        assert!(top.contains("id=\"settingsButton\""));
 
         // A site-level page (BibleSite.css) must also carry them.
         let site = make_top_core(&cfg, 0, None, "search", None).unwrap();
         assert!(site.contains("href=\"common.css\""));
         assert!(site.contains("<script src=\"theme.js\"></script>"));
-        assert!(site.contains("id=\"themeToggle\""));
+        assert!(site.contains("id=\"settingsButton\""));
     }
 
     #[test]

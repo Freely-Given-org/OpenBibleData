@@ -136,9 +136,11 @@ for ref in vitalImportanceRefsWithRanges:
     assert ref.count( '_' ) == 1, f"vitalImportanceRefsWithRanges {ref=}"
 
 importantRefsWithRanges = [ # Often quoted and/or memorised by Christians
-    'GEN_1:4-31','GEN_2:1-3', # Gen 1:1-3 is above
+    'GEN_1:4-31', # Gen 1:1-3 is above
+        'GEN_2:1-3', 'GEN_12:3',
     'DEU_29:24-29', 'DEU_30:3-5','DEU_30:19',
     'JOS_1:9',
+    'EST_4:14',
     'PSA_9:17', 'PSA_23:1-6', 'PSA_51:5','PSA_51:10', 'PSA_119:89',
     'PRO_4:1-7', 'PRO_14:34',
     'ECC_8:15',
@@ -146,22 +148,23 @@ importantRefsWithRanges = [ # Often quoted and/or memorised by Christians
     'ISA_42:1-9', 'ISA_48:12-13','ISA_48:16', 'ISA_49:1-13', 'ISA_50:4-11', # The other three servant songs 'ISA_52:13–53:12',
     'ISA_54:17', 'ISA_55:1-10','ISA_55:12-13', 'ISA_66:8',
     'JER_17:9', 'JER_23:5-6', 'JER_33:2-3', 'JER_33:14-18',
-    'DAN_7:10', 'DAN_9:5','DAN_9:19','DAN_9:24', 'DAN_12:1',
+    'DAN_7:10', 'DAN_9:5','DAN_9:19','DAN_9:24', 'DAN_12:1','DAN_12:4',
     'ZEC_12:8-9',
 
-    'MAT_4:4','MAT_24:44',
+    'MAT_4:4', 'MAT_16:1-3', 'MAT_24:32-33','MAT_24:44',
     'LUK_21:28','LUK_24:27',
-    'JHN_1:1-18','JHN_3:18','JHN_6:68-69','JHN_7:16', 'JHN_8:58', 'JHN_10:28','JHN_16:33', 'JHN_17:5','JHN_17:23',
+    'JHN_1:1-18','JHN_3:18','JHN_6:68-69','JHN_7:16', 'JHN_8:36','JHN_8:58', 'JHN_10:28','JHN_16:33', 'JHN_17:5','JHN_17:23',
     'ACT_2:42',
     'CO1_10:6-11',
-    'ROM_3:19-22','ROM_5:8','ROM_5:16-21','ROM_10:13','ROM_15:4','ROM_16:17',
-    'CO1_3:14-15',
+    'ROM_3:19-22','ROM_5:8','ROM_5:16-21', 'ROM_10:2','ROM_10:13', 'ROM_15:4', 'ROM_16:17',
+    'CO1_2:14', 'CO1_3:14-15',
     'CO2_9:7',
     'GAL_3:21-22', 'GAL_6:16',
     'EPH_2:8','EPH_2:10', 'EPH_4:14','EPH_6:4','EPH_6:17',
     'PHP_2:12-13', 'PHP_3:20-21',
     'COL_3:2',
     'TH1_1:10','TH1_4:16-17','TH1_5:9',
+    'TH2_2:9-12',
     'TI1_4:13','TI1_4:16','TI1_6:3',
     'TI2_2:15','TI2_4:3-4',
     'TIT_1:9','TIT_2:1',

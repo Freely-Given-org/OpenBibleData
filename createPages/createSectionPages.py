@@ -88,10 +88,10 @@ from Bibles import getBibleMapperMaps, getOpenBibleImages
 from openbibledata_rust import convertVerseEntryListToHtml, findSectionNumber as rustFindSectionNumber, livenOETWordLinks, livenOETCompatibleBereanWordLinks, getOETTidyBBB
 
 
-LAST_MODIFIED_DATE = '2026-08-26' # by RJH
+LAST_MODIFIED_DATE = '2026-09-02' # by RJH
 SHORT_PROGRAM_NAME = "createSectionPages"
 PROGRAM_NAME = "OpenBibleData createSectionPages functions"
-PROGRAM_VERSION = '0.94'
+PROGRAM_VERSION = '0.95'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -365,11 +365,13 @@ def createOETSectionPages( level:int, folder:Path, rvBible:ESFMBible, lvBible:ES
         and BBB not in state.booksToLoad[rvBible.abbreviation]:
             logging.critical( f"B Skipped OET sections not-included book: OET-RV {BBB}")
             continue # Only create pages for the requested RV books
-        if lvBible.abbreviation in state.booksToLoad \
-        and 'ALL' not in state.booksToLoad[lvBible.abbreviation] \
-        and BBB not in state.booksToLoad[lvBible.abbreviation]:
-            logging.critical( f"C Skipped OET sections not-included book: OET-LV {BBB}")
-            continue # Only create pages for the requested LV books
+
+        # This code used to prevent building of OET-RV DC books as there's no OET-LV version -- removed 2026-09-02
+        # if lvBible.abbreviation in state.booksToLoad \
+        # and 'ALL' not in state.booksToLoad[lvBible.abbreviation] \
+        # and BBB not in state.booksToLoad[lvBible.abbreviation]:
+        #     logging.critical( f"C Skipped OET sections not-included book: OET-LV {BBB}")
+        #     continue # Only create pages for the requested LV books
 
         dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{rvBible.abbreviation} {type(rvBible[BBB]._SectionIndex)=} {rvBible[BBB]._SectionIndex=}" )
         if not rvBible[BBB]._SectionIndex: # no sections in this book, e.g., FRT

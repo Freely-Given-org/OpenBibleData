@@ -39,6 +39,12 @@ CHANGELOG:
         independent theme dropdown ("Default" / "Left verse nums"). The header
         record previously noted the reference was frozen; it is regenerated here
         because the page chrome behaviour itself was intentionally extended.
+    2026-09-02 Updated _ref_makeTop again for deliberately-changed chrome: the
+        Dark/Light toggle and the mutually-exclusive theme dropdown are replaced
+        by a single right-justified "Settings" button. The settings panel (with
+        independent, combinable options: colour scheme, verse-number position,
+        text size, Jesus'-words colour) is injected at run-time by theme.js and
+        persists as JSON under localStorage key `obd-settings`.
 """
 import unittest
 
@@ -100,17 +106,16 @@ def _ref_makeTop( level:int, versionAbbreviation:str|None, pageType:str, version
     newsLink = 'News' if pageType=='news' else f'''<a href="{'../'*level}News.htm#Top">News</a>'''
     OETKeyLink = 'OET Key' if pageType=='OETKey' else f'''<a href="{'../'*level}OETKey.htm#Top">OET Key</a>'''
     topLink = f'<p class="site">{homeLink}  {aboutLink}  {newsLink}  {OETKeyLink}</p><!--site-->'
-    # Two right-justified, independent controls (wired up by theme.js):
-    # a Dark/Light toggle (shows current mode) and a theme dropdown that selects
-    # a global theme: "Default", "Left verse nums", or "Large print".
+    # A single right-justified Settings button (wired up by theme.js). It
+    # replaces the old Dark/Light toggle and the mutually-exclusive theme
+    # dropdown; the actual options (colour scheme, verse-number position, text
+    # size, Jesus'-words colour) live in an in-page settings panel injected by
+    # theme.js, combine freely, and persist as JSON under localStorage key
+    # `obd-settings`.
     themeControls = ( '<div class="themeControls">'
-                        '<button type="button" id="themeToggle" class="themeToggle" '
-                        'title="Switch to dark mode" aria-pressed="false">Light</button>'
-                        f'<select id="themeSelect" class="themeSelect" title="Choose a theme">'
-                            '<option value="default">Default</option>'
-                            '<option value="left">Left verse nums</option>'
-                            '<option value="large">Large print</option>'
-                        '</select>'
+                        '<button type="button" id="settingsButton" class="themeSettings" '
+                        'title="Settings" aria-haspopup="dialog" aria-expanded="false" '
+                        'aria-controls="obdSettingsPanel">Settings</button>'
                       '</div><!--themeControls-->' )
     topLink = f'<div class="topLine">{topLink}{themeControls}</div><!--topLine-->'
 

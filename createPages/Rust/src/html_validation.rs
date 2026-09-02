@@ -61,6 +61,18 @@ pub fn check_html(html: &str, where_: &str, segment_only: bool) -> HtmlCheckResu
         ));
     }
 
+    // ── 2b. <br> immediately before a closing </span> ──────────────────────
+    //  A <br> is a self-closing void element; putting one right before the
+    //  closing </span> of a surrounding span leaves that tag orphaned after the
+    //  break (the same class of problem as a <br> before a newline, above).
+    if let Some(ix) = html.find("<br></span>") {
+        return Err(format!(
+            "checkHtml({}) found <br> immediately before </span> in {}",
+            where_,
+            snippet(html, ix, 30, 50),
+        ));
+    }
+
     // ── 3. Unprocessed word number marker ──────────────────────────────────
     //  (These two versions use ¦ in footnotes; parallel pages also have them.)
     if strict {
@@ -702,6 +714,18 @@ mod tests {
     #[test]
     fn test_br_newline() {
         assert!(!ok("<html><head></head><body><br>\n</body></html>"));
+    }
+
+    // -- <br></span> --
+    #[test]
+    fn test_br_before_close_span() {
+        assert!(!ok("<html><head></head><body><span>text<br></span></body></html>"));
+        assert!(!ok_seg("<span>text<br></span>"));
+    }
+
+    #[test]
+    fn test_no_br_before_close_span_ok() {
+        assert!(ok_seg(r#"<span class="x">text</span>"#));
     }
 
     // -- Word number marker --

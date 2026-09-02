@@ -51,6 +51,7 @@ p.LVVerseText { margin-top:0.1em; margin-bottom:0.2em; margin-left:3em; font-siz
 p.RVVerseText { margin-top:0.1em; margin-bottom:0.2em; margin-left:3em; font-size:0.7em; }
 span.OET-LV_verseTextChunk {}
 span.OET-RV_verseTextChunk {}
+div.verseText {}
 span.c { font-size:1.1em; color:green; }
 span.cPsa { font-size:1.6em; font-weight:bold; color:green; }
 span.v { vertical-align:super; font-size:0.5em; color:red; }
@@ -61,20 +62,20 @@ span.li1 {} /* Why's this a span??? */
 .hebNeg { background-color:crimson; }
 .hebEl { background-color:powderBlue; }
 .hebYhwh { background-color:paleGreen; }
-span.addArticle { color:bisque; }
-span.addCopula { color:pink; }
+span.addArticle { color:#b55f5f; }
+span.addCopula { color:#55847c; }
 span.addDirectObject { color:brown; }
 span.addExtra { color:green; }
-span.addElided { color:darkgoldenrod; }
+span.addElided { color:#9c740b; }
 span.addOwner { color:darkOrchid; }
 span.addPronoun { color:darkgreen; }
 span.addReferent { color:darkblue; }
 span.addNumberChange { color:darkcyan; }
-span.addPersonChange { color:darkkhaki; }
+span.addPersonChange { color:#807625; }
 span.addNegated { color:darkred; }
-span.addReword { text-decoration:underline; text-decoration-style: dotted; text-decoration-color:grey; }
+span.addReword { text-decoration:underline; text-decoration-style: dotted; text-decoration-color:#6b6b6b; }
 span.RVadd { color:#505050; } /* Darker than dimGrey which is #696969 (black is #000000) */
-span.add { color:grey; }
+span.add { color:#6b6b6b; }
 span.untr { font-size:0.8em; color:grey; text-decoration:line-through; }
 span.unsure { text-decoration:underline; text-decoration-style: dotted; text-decoration-color: orange; }
 span.noLinkYet { background-color:darkgrey; color:white }

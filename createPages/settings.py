@@ -72,7 +72,7 @@ class State:
     TEST_OT_BOOK_LIST = ['JNA']
     TEST_DC_BOOK_LIST = []
     TEST_NT_BOOK_LIST = ['MRK','EPH'] # Shortest gospel
-    NEW_BOOK_IN_TEST_LIST_FLAG = False # So that interlinear, parallel passages, topic, kingdom, and dict & word pages will get rebuilt for TEST_MODE_FLAG
+    NEW_BOOK_IN_TEST_LIST_FLAG = True # So that interlinear, parallel passages, topic, kingdom, and dict & word pages will get rebuilt for TEST_MODE_FLAG
 
     # Many of these settings are used to omit some processing so as to get a speedier conclusion for debugging
     LOAD_RESOURCES_FROM_PICKLES_FLAG = True # Might have to disable loading pickles if they need updating (new code or data)
@@ -81,7 +81,7 @@ class State:
     CREATE_PARALLEL_VERSE_PAGES = 'LAST' # 'FIRST','LAST', or None -- usually 'LAST' -- depending on debugging needs
     CREATE_BOOK_AND_OTHER_PAGES_FLAG = True # Can be turned off for debugging
     DO_SPELL_CHECKS_FLAG = True # On parallel pages
-    REUSE_EXISTING_WORD_PAGES_FLAG = TEST_MODE_FLAG and not NEW_BOOK_IN_TEST_LIST_FLAG # Don't recreate word pages
+    REUSE_EXISTING_WORD_PAGES_FLAG = TEST_MODE_FLAG and not NEW_BOOK_IN_TEST_LIST_FLAG # Don't recreate word pages (dangerous for main site coz no ilr!!!)
     ALL_TEST_REFERENCE_PAGES_FLAG = False # If have TEST_MODE_FLAG, make ALL word/lemma pages, or just the RELEVANT ones
     UPDATE_ACTUAL_SITE_WHEN_BUILT_FLAG = True # The pages are initially built in a tmp folder so need to be copied to the final destination
 
@@ -113,7 +113,7 @@ class State:
     assert len(OET_OT_BOOK_ORDER) == 39
     # The following are not necessarily all included in the OET
     OET_APOCRYPHA_BOOK_ORDER = ['LAO',
-                            'GES','LES','ESG','DNG','PS2',
+                            'GES','LES','ES1','ES2','ESG','DAG','DNG','PS2',
                             'TOB','JDT','ESA','WIS','SIR','BAR','LJE','PAZ','SUS','BEL','MAN',
                             'MA1','MA2','MA3','MA4',
                             'GLS']
@@ -124,8 +124,9 @@ class State:
                             'TI2', 'HEB', 'JDE',
                             'JN1','JN2','JN3', 'REV']
     assert len(OET_NT_BOOK_ORDER) == 27
+    # Having these books in our book order variables doesn't necessarily mean that the books exist
     OET_BOOK_ORDER = ['FRT','INT'] + OET_OT_BOOK_ORDER + OET_APOCRYPHA_BOOK_ORDER + OET_NT_BOOK_ORDER + ['XXA','XXB','XXC','XXD','XXE','CNC','GLO','TDX','NDX','OTH','BAK']
-    assert len(OET_BOOK_ORDER) > 68
+    assert len(OET_BOOK_ORDER) >= 88
 
     TEST_BOOK_LIST = TEST_OT_BOOK_LIST + TEST_DC_BOOK_LIST + TEST_NT_BOOK_LIST
     OET_LV_BOOK_LIST = BOOKLIST_OT39 + OET_NT_BOOK_ORDER
@@ -134,11 +135,11 @@ class State:
     OET_RV_BOOK_LIST_WITH_FRT = ['FRT'] + OET_RV_BOOK_LIST
 
     # The version to link to when the OET doesn't have that book (yet)
-    ALTERNATIVE_VERSION = 'WEB' # Should be a version with all books present
+    ALTERNATIVE_VERSION = 'WEBBE' # Should be a version with all books present
 
     VERSIONS_WITHOUT_NT = ['UHB','JPS', 'BrLXX','BrTr']
     VERSIONS_WITHOUT_OT = ['BLB','AICNT','TCNT','TNT','Wymth', 'SR-GNT','UGNT','SBL-GNT','RP-GNT','TC-GNT']
-    VERSIONS_WITH_APOCRYPHA = ( 'OET-RV', 'WEBBE','WEB', 'DRA', 'RV', 'KJB-1769','KJB-1611', 'Wycl', 'BrLXX','BrTr' )
+    VERSIONS_WITH_APOCRYPHA = ( 'OET-RV', 'WEBBE','WEBBM', 'DRA', 'RV', 'KJB-1769','KJB-1611', 'Wycl', 'BrLXX','BrTr' )
     ENGLISH_VERSIONS_WITH_MODERNISED_TEXT = ( 'RV', 'KJB-1769','KJB-1611', 'Bshps','Gnva','Cvdl', 'TNT','Wycl' )
 
     NUM_EXTRA_MODES = 7 # Related passages, topics, parallel and interlinear verses, reference and (Tyndale Bible) dictionary, and search
@@ -177,7 +178,7 @@ class State:
         'AICNT','OEB','ISV','CSB','NLT',
         'NIV','CEV','ESV','NASB','LSB',
         'JQT','2DT','1ST',
-        'WEBBE','WEB','WMBB','WMB','MSG','LSV','FBV','TCNT','T4T','LEB','NRSVue','NRSV','NKJV','TLB','NAB','BBE',
+        'WEBBE','WMBB','MSG','LSV','FBV','TCNT','T4T','LEB','NRSVue','NRSV','NKJV','TLB','NAB','BBE',
         'Moff','JPS','Wymth','ASV','DRA','YLT','Drby','RV','SLT','Wbstr','KJB-1769','KJB-1611','Bshps','Gnva','Cvdl',
         'TNT','Wycl',
         'Luth','ClVg',
@@ -193,7 +194,7 @@ class State:
         'AICNT','OEB','ISV','CSB','NLT',
         'NIV','CEV','ESV','NASB','LSB',
         'JQT','2DT','1ST',
-        'WEBBE','WEB','WMBB','WMB','MSG','NET','LSV','FBV','TCNT','T4T','LEB','NRSVue','NRSV','NKJV','TLB','NAB','BBE',
+        'WEBBE','WMBB','MSG','NET','LSV','FBV','TCNT','T4T','LEB','NRSVue','NRSV','NKJV','TLB','NAB','BBE',
         'Moff','JPS','Wymth','ASV','DRA','YLT','Drby','RV','SLT','Wbstr','KJB-1769','KJB-1611','Bshps','Gnva','Cvdl',
         'TNT','Wycl',
         'Luth','ClVg',
@@ -220,7 +221,7 @@ class State:
         'ULT':('',''),'UST':('',''),
         'BSB':('',''),'MSB':('<small>','</small>'),'BLB':('',''),
         'AICNT':('',''), 'OEB':('',''), 'ISV':('',''),
-        'WEBBE':('',''),'WEB':('',''),'WMB':('',''),'WMBB':('',''), 'NET':('',''), 'LSV':('',''), 'FBV':('',''), 'TCNT':('<small>','</small>'), 'T4T':('',''),'LEB':('',''),'BBE':('',''),
+        'WEBBE':('',''),'WMBB':('',''), 'NET':('',''), 'LSV':('',''), 'FBV':('',''), 'TCNT':('<small>','</small>'), 'T4T':('',''),'LEB':('',''),'BBE':('',''),
         'Moff':('<small>','</small>'), 'JPS':('<small>','</small>'), 'Wymth':('<small>','</small>'), 'ASV':('',''), 'DRA':('<small>','</small>'),'YLT':('',''),'Drby':('',''),'RV':('',''),
         'SLT':('',''),'Wbstr':('<small>','</small>'),
         'KJB-1769':('',''),'KJB-1611':('',''), 'Bshps':('',''), 'Gnva':('',''), 'Cvdl':('',''),
@@ -339,9 +340,9 @@ class State:
         '1ST': 'The First Testament (2018)',
         'SLBL': 'Scriptura Layer by Layer ‘Close-but-Clear Translation’ (2026)',
         'WEBBE': 'World English Bible (2023) British Edition',
-        'WEB': 'World English Bible (2023)',
+        # 'WEB': 'World English Bible (2023)',
         'WMBB': 'World Messianic Bible (2023) British Edition / Hebrew Names Version (HNV)',
-        'WMB': 'World Messianic Bible (2023) / Hebrew Names Version (HNV)',
+        # 'WMB': 'World Messianic Bible (2023) / Hebrew Names Version (HNV)',
         'MSG': 'The Message (2018)',
         'NET': 'New English Translation (2016)',
         'LSV': 'Literal Standard Version (2020)',
@@ -421,9 +422,9 @@ class State:
         '1ST': 'EN-USA',
         'SLBL': 'EN-USA',
         'WEBBE': 'EN-UK',
-        'WEB': 'EN-USA',
+        # 'WEB': 'EN-USA',
         'WMBB': 'EN-UK',
-        'WMB': 'EN-USA',
+        # 'WMB': 'EN-USA',
         'MSG': 'EN-USA',
         'NET': 'EN-USA',
         'LSV': 'EN-USA',
@@ -502,9 +503,9 @@ class State:
         '1ST': ['ALL'],
         'SLBL': ['ALL'],
         'WEBBE': ['ALL'],
-        'WEB': ['ALL'],
+        # 'WEB': ['ALL'],
         'WMBB': ['ALL'],
-        'WMB': ['ALL'],
+        # 'WMB': ['ALL'],
         'MSG': ['ALL'],
         'NET': ['ALL'],
         'LSV': ['ALL'],
@@ -575,9 +576,9 @@ class State:
         '1ST': TEST_BOOK_LIST,
         'SLBL': TEST_BOOK_LIST,
         'WEBBE': TEST_BOOK_LIST,
-        'WEB': TEST_BOOK_LIST,
+        # 'WEB': TEST_BOOK_LIST,
         'WMBB': TEST_BOOK_LIST,
-        'WMB': TEST_BOOK_LIST,
+        # 'WMB': TEST_BOOK_LIST,
         'MSG': TEST_BOOK_LIST,
         'NET': TEST_BOOK_LIST,
         'LSV': TEST_BOOK_LIST,
@@ -734,18 +735,18 @@ We’re also grateful to the <a href="https://www.Biblica.com/clear/">Biblica Cl
                 'copyright': '<p class="copyright">Copyright © (coming).</p>',
                 'licence': '<p class="licence">(coming).</p>',
                 'acknowledgements': '<p class="acknwldg">(coming).</p>' },
-        'WEB': {'about': '<p class="about">World English Bible (2023).</p>',
-                'copyright': '<p class="copyright">Copyright © (coming).</p>',
-                'licence': '<p class="licence">(coming).</p>',
-                'acknowledgements': '<p class="acknwldg">(coming).</p>' },
+        # 'WEB': {'about': '<p class="about">World English Bible (2023).</p>',
+        #         'copyright': '<p class="copyright">Copyright © (coming).</p>',
+        #         'licence': '<p class="licence">(coming).</p>',
+        #         'acknowledgements': '<p class="acknwldg">(coming).</p>' },
         'WMBB': {'about': '<p class="about">World Messianic Bible (2023) British Edition also known as the HNV: Hebrew Names Version.</p>',
                 'copyright': '<p class="copyright">Copyright © (coming).</p>',
                 'licence': '<p class="licence">(coming).</p>',
                 'acknowledgements': '<p class="acknwldg">(coming).</p>' },
-        'WMB': {'about': '<p class="about">World Messianic Bible (2023) also known as the HNV: Hebrew Names Version.</p>',
-                'copyright': '<p class="copyright">Copyright © (coming).</p>',
-                'licence': '<p class="licence">(coming).</p>',
-                'acknowledgements': '<p class="acknwldg">(coming).</p>' },
+        # 'WMB': {'about': '<p class="about">World Messianic Bible (2023) also known as the HNV: Hebrew Names Version.</p>',
+        #         'copyright': '<p class="copyright">Copyright © (coming).</p>',
+        #         'licence': '<p class="licence">(coming).</p>',
+        #         'acknowledgements': '<p class="acknwldg">(coming).</p>' },
         'MSG': {'about': '<p class="about">The Message (2018).</p>',
                 'copyright': '<p class="copyright">Copyright © 1993,2002,2018 by Eugene H. Peterson. Used by permission of NavPress. All rights reserved. Represented by Tyndale House Publishers, Inc.</p>',
                 'licence': '''<p class="licence">The Message text may be quoted in any form (written, visual, electronic, or audio), up to and inclusive of five hundred (500) verses, without express written permission of the publisher, NavPress Publishing Group, providing the verses quoted do not amount to a complete book of the Bible and do not account for twenty-five percent (25%) or more of the total text of the work in which they are quoted.</p>''' },
@@ -988,7 +989,7 @@ Footnote markers PRECEDE the text that they concern,
 #     assert len(BibleVersionDecorations) == len(BibleVersions) + len(auxilliaryVersions) + NUM_EXTRA_MODES - len(versionsWithoutTheirOwnPages), \
 #         f"{len(BibleVersionDecorations)=} {len(BibleVersions)=} + {len(auxilliaryVersions)=} + {NUM_EXTRA_MODES=} - {len(versionsWithoutTheirOwnPages)=} sum={len(BibleVersions)+len(auxilliaryVersions)+NUM_EXTRA_MODES-len(versionsWithoutTheirOwnPages)}"
         # Above adds Parallel and Interlinear and Dictionary but subtracts selected-verses-only versions
-    assert len(BibleVersions) >= len(BibleLocations) # OET is a pseudo-version
+    assert len(BibleVersions)+1 >= len(BibleLocations), f"{len(BibleVersions)=} {len(BibleLocations)=}" # OET is a pseudo-version
     assert len(BibleNames)-1 >= len(BibleLocations) # OET is a pseudo-version
     assert len(booksToLoad) >= len(BibleLocations) # OET is a pseudo-version
 
@@ -1001,7 +1002,7 @@ state = State()
 CNTR_BOOK_ID_MAP = {
     'MAT':40, 'MRK':41, 'LUK':42, 'JHN':43, 'ACT':44,
     'ROM':45, 'CO1':46, 'CO2':47, 'GAL':48, 'EPH':49, 'PHP':50, 'COL':51, 'TH1':52, 'TH2':53, 'TI1':54, 'TI2':55, 'TIT':56, 'PHM':57,
-    'HEB':58, 'JAM':58, 'PE1':60, 'PE2':61, 'JN1':62, 'JN2':63, 'JN3':64, 'JDE':65, 'REV':66}
+    'HEB':58, 'JAM':58, 'PE1':60, 'PE2':61, 'JN1':62, 'JN2':63, 'JN3':64, 'JDE':65, 'REV':66 }
 
 def reorderBooksForOETVersions( givenBookList:list[str] ) -> list[str]:
     """

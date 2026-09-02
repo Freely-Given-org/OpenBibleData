@@ -32,6 +32,13 @@
 //!              entry (number) plus a following "v~" entry (text), so the
 //!              number was printed twice.  Like the simple-verse branch, we
 //!              now rely on the following "v~" entry for the text.
+//!  2026-08-31: Each verse (its number + text chunk) is now wrapped in its own
+//!              <div class="verseText"> whenever it is not already inside a real
+//!              <p> paragraph.  This gives paragraph-less verse flows (OET-LV,
+//!              BLB, ...) a block container which page layout (e.g. the "Left
+//!              verse nums" gutter) can target.  basic_only flows are unchanged.
+//!              The wrapper is opened in the "v" handler and closed by the
+//!              adjacent "v~" handler, so it never spans a block boundary.
 
 use crate::character_formatting::convert_usfm_character_formatting;
 use crate::constants::*;
@@ -70,6 +77,11 @@ pub enum ListEntry {
 struct ConvertState {
     in_main_div: Option<String>,
     in_paragraph: Option<String>,
+    /// True while a per-verse `<div class="verseText">` container is open.
+    /// This wraps each verse's number + text so paragraph-less verse flows
+    /// (OET-LV, BLB, …) still live inside a block container that layout code
+    /// (e.g. the "Left verse nums" gutter) can target.
+    in_verse_div: bool,
     in_section: Option<String>,
     in_list: Option<String>,
     in_list_entry: ListEntry,
@@ -382,6 +394,7 @@ where
     let mut state = ConvertState {
         in_main_div: None,
         in_paragraph: None,
+        in_verse_div: false,
         in_section: None,
         in_list: None,
         in_list_entry: ListEntry::None,
@@ -491,7 +504,21 @@ where
                 } else {
                     format!("{version_abbreviation}_verseTextChunk")
                 };
+                // A preceding "v" handler will already have opened the verse div.
+                // If instead this is intro text with no preceding verse number
+                // (v == "0"), open the div here so it still gets a container.
+                if !basic_only && state.in_paragraph.is_none() && !state.in_verse_div {
+                    html.push_str("<div class=\"verseText\">\n");
+                    state.in_verse_div = true;
+                }
                 html.push_str(&format!(r#"<span class="{span_class}">{formatted}</span>"#));
+                // Close the per-verse div after the text chunk. In normal flow a
+                // "v" opened it and we close it here; the two are always adjacent
+                // entries, so the div never wraps a paragraph/section/list.
+                if !basic_only && state.in_paragraph.is_none() && state.in_verse_div {
+                    html.push_str("</div><!--verseText-->\n");
+                    state.in_verse_div = false;
+                }
             }
             "v" => {
                 if let Some(ref_right) = state.in_right_div.take() {
@@ -499,6 +526,21 @@ where
                 }
                 state.v_value = rest_str.trim().to_string();
                 let v = state.v_value.as_str();  // use the current verse number, not the stale clone
+                // Wrap each verse's number (and its following "v~" text chunk) in
+                // its own block-level <div class="verseText"> whenever we're not
+                // already inside a real <p> paragraph. This gives paragraph-less
+                // verse flows (OET-LV, BLB, ...) a container the layout can target.
+                // The div is closed by the adjacent "v~" handler, so it never
+                // spans a paragraph / section / list boundary. basic_only (parallel
+                // / interlinear / dictVerse) flows are left unmodified.
+                if !basic_only && state.in_paragraph.is_none() {
+                    if state.in_verse_div {
+                        html.push_str("</div><!--verseText-->\n");
+                        state.in_verse_div = false;
+                    }
+                    html.push_str("<div class=\"verseText\">\n");
+                    state.in_verse_div = true;
+                }
                 // Show verse numbers except for single parallel/interlinear verses
                 if !(segment_type == "parallelVerse" || segment_type == "interlinearVerse")
                     || v.contains('-')
@@ -1278,6 +1320,11 @@ where
     if let Some(ref_ip) = state.in_paragraph.take() {
         html.push_str(&format!("</p><!--{ip}-->\n", ip = ref_ip));
     }
+    // Safety: a trailing verse with no following "v~" would leave one open.
+    if state.in_verse_div {
+        html.push_str("</div><!--verseText-->\n");
+        state.in_verse_div = false;
+    }
     if state.in_table_row.is_some() {
         html.push_str("</tr>\n");
     }
@@ -1730,7 +1777,7 @@ mod tests {
         ];
         let result = convert_verse_entry_list_to_html_core(
             1, "KJB", "GEN", Some("1"), Some("1"),
-            "chapter", &["chapters"], &entries, false, false,
+            "chapter", &["p"], &entries, false, false,
             no_op_char_fmt, no_op_fig, no_op_sect, no_op_avail, no_op_obi, no_op_check,
         ).unwrap();
         // Verse 1 comes right after the <p class="p"> open tag — no leading space needed.
@@ -1741,6 +1788,46 @@ mod tests {
             "expected a space before verse 2, got:\n{result}");
         assert!(result.contains("</span> <span id=\"V3\""),
             "expected a space before verse 3, got:\n{result}");
+    }
+
+    #[test]
+    fn test_paragraph_less_verses_wrapped_in_verseText_div() {
+        // Paragraph-less verse flows (OET-LV, BLB, ...) must have each verse
+        // (number + text chunk) wrapped in its own balanced <div class="verseText">.
+        let entries = vec![
+            VerseEntry { marker: "c".into(), full_text: "1".into(), clean_text: "1".into() },
+            VerseEntry { marker: "v".into(), full_text: "1".into(), clean_text: "1".into() },
+            VerseEntry { marker: "v~".into(), full_text: "First verse.".into(), clean_text: "First verse.".into() },
+            VerseEntry { marker: "\u{AC}v".into(), full_text: String::new(), clean_text: String::new() },
+            VerseEntry { marker: "v".into(), full_text: "2".into(), clean_text: "2".into() },
+            VerseEntry { marker: "v~".into(), full_text: "Second verse.".into(), clean_text: "Second verse.".into() },
+        ];
+        let result = convert_verse_entry_list_to_html_core(
+            1, "KJB", "GEN", Some("1"), Some("1"),
+            "chapter", &["chapters"], &entries, false, false,
+            no_op_char_fmt, no_op_fig, no_op_sect, no_op_avail, no_op_obi, no_op_check,
+        ).unwrap();
+        // Each verse gets its own block div (open + balanced close).
+        assert_eq!(result.matches("<div class=\"verseText\">").count(), 2);
+        assert_eq!(result.matches("</div><!--verseText-->").count(), 2);
+        // The verse numbers must sit INSIDE the wrapper (so the gutter can pad them).
+        assert!(result.contains("<div class=\"verseText\">\n <span id=\"V1\""));
+    }
+
+    #[test]
+    fn test_paragraph_verses_not_wrapped_in_verseText_div() {
+        // Verses that are inside a real <p> paragraph (OET-RV, UHB, ...) must NOT
+        // get a verseText wrapper — output stays unchanged.
+        let entries = vec![
+            VerseEntry { marker: "v".into(), full_text: "1".into(), clean_text: "1".into() },
+            VerseEntry { marker: "v~".into(), full_text: "First verse.".into(), clean_text: "First verse.".into() },
+        ];
+        let result = convert_verse_entry_list_to_html_core(
+            1, "KJB", "GEN", Some("1"), Some("1"),
+            "chapter", &["p"], &entries, false, false,
+            no_op_char_fmt, no_op_fig, no_op_sect, no_op_avail, no_op_obi, no_op_check,
+        ).unwrap();
+        assert!(!result.contains("class=\"verseText\""));
     }
 
     #[test]
