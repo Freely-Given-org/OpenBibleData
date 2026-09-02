@@ -55,10 +55,10 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_
 from openbibledata_rust import convertVerseEntryListToHtml, livenOETWordLinks, livenOETCompatibleBereanWordLinks, getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
-LAST_MODIFIED_DATE = '2026-08-26' # by RJH
+LAST_MODIFIED_DATE = '2026-09-02' # by RJH
 SHORT_PROGRAM_NAME = "createBookPages"
 PROGRAM_NAME = "OpenBibleData createBookPages functions"
-PROGRAM_VERSION = '0.70'
+PROGRAM_VERSION = '0.71'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -129,6 +129,7 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
         and BBB not in state.booksToLoad[rvBible.abbreviation]:
             logging.critical( f"B Skipped OET chapters not-included book: OET-RV {BBB}")
             continue # Only create pages for the requested RV books
+
         if BBB == 'FRT': # We want this, even though the LV doesn't (yet?) have any FRT
             vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Creating book page for OET {BBB}…" )
             processedBBBs.append( BBB )
@@ -170,11 +171,13 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
                 bkHtmlFile.write( bkHtml )
             vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(bkHtml):,} characters written to {filepath}" )
             continue
-        elif lvBible.abbreviation in state.booksToLoad \
-        and 'ALL' not in state.booksToLoad[lvBible.abbreviation] \
-        and BBB not in state.booksToLoad[lvBible.abbreviation]:
-            logging.critical( f"C Skipped OET chapters not-included book: OET-LV {BBB}")
-            continue # Only create pages for the requested LV books
+
+        # This code used to prevent building of OET-RV DC books as there's no OET-LV version -- removed 2026-09-02
+        # elif lvBible.abbreviation in state.booksToLoad \
+        # and 'ALL' not in state.booksToLoad[lvBible.abbreviation] \
+        # and BBB not in state.booksToLoad[lvBible.abbreviation]:
+        #     logging.critical( f"C Skipped OET chapters not-included book: OET-LV {BBB}")
+        #     continue # Only create pages for the requested LV books
 
         vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Creating book pages for OET {BBB}…" )
         processedBBBs.append( BBB )
@@ -248,7 +251,7 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
             try: ixBIend = lvHtml.index( '<!--bookIntro-->', ixBHend ) + 16
             except ValueError: # No intro expected in OET-LV
                 # logging.warning( f"Unable to find end of OET-LV book Intro {lvHtml[ixBHend:ixBHend+3999]=}" )
-                ixBIend = lvHtml.index( '<span id="C', ixBHend ) # Use this instead
+                ixBIend = ixBHend # Keep intro chunk empty; the verseText wrapper around the first verse must not be split here
             lvChunks, lvRest = [ lvHtml[:ixBHend], lvHtml[ixBHend:ixBIend] ], lvHtml[ixBIend:]
             # Now try to match the rv sections
             for n,rvSectionHtml in enumerate( rvSections[2:] ): # continuing on AFTER the headers and introduction
@@ -288,13 +291,19 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
                 except ValueError: ixNextCV = len( lvRest ) - 1
                 # print( f"\n{BBB} {n}: {lvRest[ixEndCV:ixNextCV]=} {lvRest[ixNextCV:ixNextCV+10]=}" )
                 # Find our way back to the start of the HTML marker
-                for x in range( 30 ):
+                for x in range( 60 ): # Increased range to reach back past <div class="verseText"> wrappers
                     lvIndex8 = ixNextCV - x
-                    if lvRest[lvIndex8] == '<':
+                    if lvRest[lvIndex8:lvIndex8+4] == '<div':
                         break
                 else:
-                    dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{lvRest[lvIndex8-50:lvIndex8+50]}")
-                    not_far_enough
+                    # Fallback for LV HTML without <div class="verseText"> wrappers
+                    for x in range( 30 ):
+                        lvIndex8 = ixNextCV - x
+                        if lvRest[lvIndex8] == '<':
+                            break
+                    else:
+                        dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{lvRest[lvIndex8-50:lvIndex8+50]}")
+                        not_far_enough
                 # print( f"\n{n}: {lvRest[ixEndCV:lvIndex8]=}" )
                 lvEndIx = lvIndex8
                 # TODO: Work out why we need these next two sets of lines

@@ -86,6 +86,14 @@ CHANGELOG:
     2025-12-19 Fix bug that displayed ' 2 YHN2 JHN)' etc. (losing the opening parenthesis) in the book navigation line
     2026-01-06 Added NNBSpace after parallelism markers at line beginnings
     2026-01-19 Added link to https://OET.Bible
+    2026-08-31 Moved a verse-text chunk's closing </span> before the sentence-break
+        <br> in do_OET_LV_HTMLcustomisations so the tag is no longer left after the
+        <br> (and drop any <br> that would land directly before a newline).
+    2026-08-31 The Rust verse converter now wraps each paragraph-less verse in its
+        own <div class="verseText"> block (closed as "</div><!--verseText-->").  The
+        companion customisation moves any sentence-break <br> that lands before such
+        a block's closing tag to after it, keeping </div><!--verseText--> contiguous
+        and dropping the now-redundant trailing <br>.
     2026-02-03 Allow uncertain ellided markings '\\add ?≡'
     2026-05-09 Upgraded to bos_books_codes_py
     2026-06-11 Handle new % (changed person) \\add format
@@ -494,7 +502,7 @@ def loadCSSStyles( lsStylesheetName:str ) -> dict[str,bool|list[str]]:
                     lsStyleDict[className].append( 'select' )
                     lsStyleDict[f'used_{className}'] = False
             elif ssLine.startswith( 'button.' ):
-                className = ssLine[7:].replace(':',',').split( ',', 1 )[0]
+                className = ssLine[7:].split( '{', 1 )[0].replace(':',',').split( ',', 1 )[0].rstrip()
                 print( f"    button {className=}")
                 assert ' ' not in className and ',' not in className, f"{className=}"
                 # assert 'button' not in lsStyleDict[className], f"{lsStylesheetName=} {className=} {lsStyleDict[className]=}"
@@ -815,6 +823,26 @@ def do_OET_LV_HTMLcustomisations( where:str, OET_LV_html:str ) -> str:
     # TODO: I was unable to figure out why this is happening to one particular exegesis footnote in 2 Kings 6:25
     # assert '\n<br></p>' not in OET_LV_html and '\n<br></span>' not in OET_LV_html, f"Wasted <br> in {OET_LV_html=}"
     OET_LV_html = OET_LV_html.replace( '\n<br></span></span></p>', '</span></span></p>' ).replace( '\n<br></span></p>', '</span></p>' ).replace( '\n<br></p>', '</p>' )
+    # The punctuation replacement above turns every period into ".\n<br>", so a
+    # sentence that ends a verse-text-chunk leaves the <br> right before that
+    # chunk's closing </span> (e.g. "...them.\n<br></span>"). Move the closing
+    # </span> before the <br> so the span still wraps its text cleanly and the
+    # <br> just breaks the line for the next verse.
+    OET_LV_html = OET_LV_html.replace( '\n<br></span>', '</span>\n<br>' )
+    # Paragraph-less verse flows (OET-LV, BLB, ...) have every verse wrapped by
+    # the Rust converter in its own <div class="verseText"> block (closed as
+    # "</div><!--verseText-->").  The punctuation replacement above can likewise
+    # leave a sentence-ending <br> right before that block's closing tag
+    # (e.g. "...them.</span>\n<br></div><!--verseText-->").  Move the whole
+    # closing block (div + its comment) before the <br> so it stays contiguous;
+    # the trailing <br> is then redundant and dropped by the next replacement.
+    OET_LV_html = OET_LV_html.replace( '\n<br></div><!--verseText-->', '</div><!--verseText-->\n<br>' )
+    # The move above can leave that <br> right before a following newline (e.g.
+    # when the last verse is followed by the footnote <hr>, which starts on its
+    # own line: "...them.</span>\n<br>\n<hr..."). checkHtml rejects a <br> that is
+    # immediately followed by a newline, and such a <br> is redundant anyway
+    # (an empty line), so drop it.
+    OET_LV_html = OET_LV_html.replace( '\n<br>\n', '\n' )
 
     # Tidyup
     if OET_LV_html.endswith( '\n' ): OET_LV_html = OET_LV_html[:-1] # We don't end our html with a newline
