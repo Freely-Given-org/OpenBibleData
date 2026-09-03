@@ -119,10 +119,10 @@ from settings import State, state
 from openbibledata_rust import getBBBFromOETBookName, checkHtml as _rustCheckHtml
 
 
-LAST_MODIFIED_DATE = '2026-08-30' # by RJH
+LAST_MODIFIED_DATE = '2026-09-03' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
-PROGRAM_VERSION = '1.0.5'
+PROGRAM_VERSION = '1.0.6'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -485,7 +485,7 @@ def loadCSSStyles( lsStylesheetName:str ) -> dict[str,bool|list[str]]:
     if lsStylesheetName in cachedStyleDicts:
         return cachedStyleDicts[lsStylesheetName]
     
-    print( f"loadCSSStyles {lsStylesheetName=}" )
+    dPrint( 'Info', DEBUGGING_THIS_MODULE, f"loadCSSStyles {lsStylesheetName=}" )
     with open( f'../htmlPages/{lsStylesheetName}' if 'pagefind' in lsStylesheetName else lsStylesheetName, 'rt', encoding='utf-8') as ssFile:
         lsStyleDict = defaultdict( list )
         for ssLine in ssFile:
@@ -503,7 +503,7 @@ def loadCSSStyles( lsStylesheetName:str ) -> dict[str,bool|list[str]]:
                     lsStyleDict[f'used_{className}'] = False
             elif ssLine.startswith( 'button.' ):
                 className = ssLine[7:].split( '{', 1 )[0].replace(':',',').split( ',', 1 )[0].rstrip()
-                print( f"    button {className=}")
+                # print( f"    button {className=}")
                 assert ' ' not in className and ',' not in className, f"{className=}"
                 # assert 'button' not in lsStyleDict[className], f"{lsStylesheetName=} {className=} {lsStyleDict[className]=}"
                 if 'button' not in lsStyleDict[className]:

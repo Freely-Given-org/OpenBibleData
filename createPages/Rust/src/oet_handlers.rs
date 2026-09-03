@@ -17,6 +17,9 @@
 //!   for real Strong's numbers like '3068'. Preserved as-is.
 //! * `get_bbb_from_oet_book_name_core` still returns the fallback book code
 //!   even when it isn't a valid BOS book code (only the old dPrint differed).
+//! * The OET-RV TEST_MODE preprocessing now leaves any word containing the
+//!   missing/untranslated-verse placeholders `◘`/`◙` untouched (they can sit
+//!   next to a footnote marker, e.g. `◘\f`, and must never be alpha-checked).
 
 use std::sync::LazyLock;
 
@@ -377,7 +380,7 @@ fn check_add_counts(text: &str, abbreviation: &str, bbb: &str, marker: &str) -> 
     let closing_count = text.matches("\\add*").count();
     if opening_count != closing_count {
         return Err(format!(
-            "Bad add counts in OET {abbreviation} {bbb} {marker} line: {opening_count} != {closing_count}"
+            "Bad add open/close counts in OET {abbreviation} {bbb} {marker} line: {opening_count} != {closing_count}"
         ));
     }
     Ok(())
@@ -424,8 +427,15 @@ pub fn preprocess_oet_rv_entry(
             continue;
         }
 
-        if o_word.contains('¦') || in_note || NO_LINK_YET_SKIP_SET.contains(&o_word.as_str()) {
-            // Leave it alone
+        if o_word.contains('¦')
+            || o_word.contains('◘')
+            || o_word.contains('◙')
+            || in_note
+            || NO_LINK_YET_SKIP_SET.contains(&o_word.as_str())
+        {
+            // Leave it alone ('¦' is the word-link marker; '◘'/'◙' are the
+            // missing/untranslated-verse placeholders, which can sit next to a
+            // footnote marker like '\f' -- they must never be alpha-checked)
             new_word = o_word.clone();
         } else if !in_no_link_yet_exception_list(ref_tuple) {
             let mut prefix = String::new();
@@ -573,12 +583,19 @@ fn find_byte(text: &str, byte: u8, from: usize) -> Option<usize> {
 /// `title_match.end()`, so those stay valid; and advancing the next search to
 /// the pre-edit `href_match.end()` only ever skips ahead inside the freshly
 /// inserted (pure ASCII) href, never over real content.
+/// `colourise_word_classes` controls whether the grammatical marker classes
+/// (e.g. `hebVrb`/`grkVrb`/`hebEl`/`hebYhwh`/`grkNom`) are added to the word
+/// anchors. Only the page families whose stylesheets actually style those
+/// classes (parallel-verse, interlinear, reference) should pass `true`; the
+/// chapter/book/section/parallel-passage/topic families leave them emitted but
+/// unstyled, and the shared dark-mode rules then paint them unreadably.
 pub fn postprocess_word_link_titles(
     original_text: &str,
     level: usize,
     is_nt: bool,
     get_row: &dyn Fn(i64) -> Result<String, String>,
     nfc_normalise: &dyn Fn(&str) -> String,
+    colourise_word_classes: bool,
 ) -> Result<TitlePostprocess, String> {
     let mut text = original_text.to_string();
     let mut transliterations_added = 0usize;
@@ -642,30 +659,33 @@ pub fn postprocess_word_link_titles(
             // Do colourisation
             // NOTE: We have almost identical code in brightenSRGNT()
             //       in createParallelVersePages.py
-            let case_class_name: Option<String> = if role_letter == "V" {
-                Some("grkVrb".to_string())
-            } else if extended_strongs == "37560" {
-                // Greek 'οὐ' (ou) 'not'
-                Some("grkNeg".to_string())
-            } else if morphology != "None" {
-                let fourth_char = morphology.chars().nth(4).ok_or_else(|| {
-                    format!("IndexError: morphology '{morphology}' has no fifth character")
-                })?;
-                if fourth_char != '·' {
-                    // (Middle dot) Two words in table have morphology of
-                    // 'None' Jhn 5:27 w2
-                    let class = greek_case_class(fourth_char).ok_or_else(|| {
-                        format!(
-                            "KeyError: unknown Greek case character '{fourth_char}' in morphology '{morphology}'"
-                        )
+            let mut case_class_name: Option<String> = None;
+            if colourise_word_classes {
+                case_class_name = if role_letter == "V" {
+                    Some("grkVrb".to_string())
+                } else if extended_strongs == "37560" {
+                    // Greek 'οὐ' (ou) 'not'
+                    Some("grkNeg".to_string())
+                } else if morphology != "None" {
+                    let fourth_char = morphology.chars().nth(4).ok_or_else(|| {
+                        format!("IndexError: morphology '{morphology}' has no fifth character")
                     })?;
-                    Some(format!("grk{class}"))
+                    if fourth_char != '·' {
+                        // (Middle dot) Two words in table have morphology of
+                        // 'None' Jhn 5:27 w2
+                        let class = greek_case_class(fourth_char).ok_or_else(|| {
+                            format!(
+                                "KeyError: unknown Greek case character '{fourth_char}' in morphology '{morphology}'"
+                            )
+                        })?;
+                        Some(format!("grk{class}"))
+                    } else {
+                        None
+                    }
                 } else {
                     None
-                }
-            } else {
-                None
-            };
+                };
+            }
 
             if let Some(class_name) = case_class_name {
                 // Add a class to the anchor for the English word
@@ -739,32 +759,34 @@ pub fn postprocess_word_link_titles(
             // NOTE: We have almost identical code in brightenUHB()
             //       in createParallelVersePages.py
             let mut case_class_name: Option<&'static str> = None;
-            for sub_morphology in morphology.split(',') {
-                if sub_morphology.starts_with('V') {
-                    case_class_name = Some("hebVrb");
-                    break;
+            if colourise_word_classes {
+                for sub_morphology in morphology.split(',') {
+                    if sub_morphology.starts_with('V') {
+                        case_class_name = Some("hebVrb");
+                        break;
+                    }
                 }
-            }
-            for sub_strong in strongs.split(',') {
-                // Ignores suffixes like a,b,c -- but numbers > 200 raise in
-                // BOS getSmallLeadingInt and are skipped (quirk kept)
-                let Ok(sub_strong_int) = strict_small_leading_int(sub_strong) else {
-                    continue;
-                };
-                if sub_strong_int == 369 || sub_strong_int == 3808 {
-                    // Hebrew 'אַיִן' 'ayin' 'no', or 'לֹא' (lo) 'not'
-                    case_class_name = Some("hebNeg");
-                    break;
-                }
-                if sub_strong_int == 430 || sub_strong_int == 410 || sub_strong_int == 433 {
-                    // Hebrew 'אֱלֹהִים' 'ʼelohīm', 'אֵל' 'El'
-                    case_class_name = Some("hebEl");
-                    break;
-                }
-                if sub_strong_int == 3068 || sub_strong_int == 3050 {
-                    // Hebrew 'יְהוָה' 'Yahweh', 'יָהּ' 'Yah'
-                    case_class_name = Some("hebYhwh");
-                    break;
+                for sub_strong in strongs.split(',') {
+                    // Ignores suffixes like a,b,c -- but numbers > 200 raise in
+                    // BOS getSmallLeadingInt and are skipped (quirk kept)
+                    let Ok(sub_strong_int) = strict_small_leading_int(sub_strong) else {
+                        continue;
+                    };
+                    if sub_strong_int == 369 || sub_strong_int == 3808 {
+                        // Hebrew 'אַיִן' 'ayin' 'no', or 'לֹא' (lo) 'not'
+                        case_class_name = Some("hebNeg");
+                        break;
+                    }
+                    if sub_strong_int == 430 || sub_strong_int == 410 || sub_strong_int == 433 {
+                        // Hebrew 'אֱלֹהִים' 'ʼelohīm', 'אֵל' 'El'
+                        case_class_name = Some("hebEl");
+                        break;
+                    }
+                    if sub_strong_int == 3068 || sub_strong_int == 3050 {
+                        // Hebrew 'יְהוָה' 'Yahweh', 'יָהּ' 'Yah'
+                        case_class_name = Some("hebYhwh");
+                        break;
+                    }
                 }
             }
 
@@ -1451,6 +1473,23 @@ mod tests {
     }
 
     #[test]
+    fn test_preprocess_missing_verse_placeholder_skipped() {
+        // The ◘/◙ (missing/untranslated-verse) placeholders must never be
+        // alpha-checked or wrapped, even when adjacent to a footnote marker.
+        let result = preprocess_oet_rv_entry(
+            "v~",
+            "Words here.◘\\f See note\\f*",
+            "OET-RV",
+            &["MAT", "1", "1"],
+        )
+        .unwrap();
+        assert_eq!(
+            result.unwrap(),
+            "<span class=\"noLinkYet\">Words</span> here.◘\\f See note\\f*"
+        );
+    }
+
+    #[test]
     fn test_preprocess_numbers_and_ie() {
         // '123' is left alone (digits never wrapped), but bare 'i.e' is NOT
         // protected -- the '.' suffix stripping cuts it down to 'i'. This
@@ -1470,7 +1509,7 @@ mod tests {
             preprocess_oet_rv_entry("v~", "+\\add*", "OET-RV", &["GEN", "1", "1"]).unwrap_err();
         assert_eq!(
             result,
-            "Bad add counts in OET OET-RV GEN v~ line: 0 != 1"
+            "Bad add open/close counts in OET OET-RV GEN v~ line: 0 != 1"
         );
     }
 
@@ -1537,7 +1576,7 @@ mod tests {
         let row = nt_row("MRK_1:1w1", "καὶ", "kai", "1", "24560", "C", "ABCDGfghi");
         let get_row = make_get_row(vec![(11, row)]);
         let text = "<a title=\"§καὶ§\" href=\"►11◄\">And</a>";
-        match postprocess_word_link_titles(text, 1, true, &get_row, &IDENTITY_NFC).unwrap() {
+        match postprocess_word_link_titles(text, 1, true, &get_row, &IDENTITY_NFC, true).unwrap() {
             TitlePostprocess::Updated { text, transliterations_added, colourisations_added } => {
                 assert_eq!(transliterations_added, 1);
                 assert_eq!(colourisations_added, 1);
@@ -1556,7 +1595,7 @@ mod tests {
         let row = nt_row("MRK_1:1w1", "καὶ", "kaí", "1", "24560", "N", "None");
         let get_row = make_get_row(vec![(11, row)]);
         let text = "x<a title=\"§καὶ§\" href=\"►11◄\">And</a>y";
-        match postprocess_word_link_titles(text, 2, true, &get_row, &IDENTITY_NFC).unwrap() {
+        match postprocess_word_link_titles(text, 2, true, &get_row, &IDENTITY_NFC, true).unwrap() {
             TitlePostprocess::Updated { text, .. } => assert_eq!(
                 text,
                 "x<a title=\"καὶ (kai, None) from kaí\" href=\"../../ref/GrkWrd/MRKc1v1w1.htm#Top\">And</a>y"
@@ -1578,7 +1617,7 @@ mod tests {
             let get_row = make_get_row(vec![(11, row)]);
             let text = "<a title=\"§καὶ§\" href=\"►11◄\">And</a>";
             let outcome =
-                postprocess_word_link_titles(text, 1, true, &get_row, &IDENTITY_NFC).unwrap();
+                postprocess_word_link_titles(text, 1, true, &get_row, &IDENTITY_NFC, true).unwrap();
             let TitlePostprocess::Updated { text, colourisations_added, .. } = outcome else {
                 panic!("Expected Updated for {expected_class:?}");
             };
@@ -1601,7 +1640,7 @@ mod tests {
         let row2 = nt_row("MRK_1:1w2", "δὲ", "de", "1", "11610", "C", "None");
         let get_row = make_get_row(vec![(11, row1), (12, row2)]);
         let text = "<a title=\"§καὶ§\" href=\"►11◄\">And</a> <a title=\"§δὲ§\" href=\"►12◄\">but</a>";
-        let outcome = postprocess_word_link_titles(text, 1, true, &get_row, &IDENTITY_NFC).unwrap();
+        let outcome = postprocess_word_link_titles(text, 1, true, &get_row, &IDENTITY_NFC, true).unwrap();
         let TitlePostprocess::Updated { text, transliterations_added, .. } = outcome else {
             panic!("Expected Updated");
         };
@@ -1611,11 +1650,31 @@ mod tests {
     }
 
     #[test]
+    fn test_postprocess_no_colourise_skips_classes() {
+        // With colourise_word_classes=false, no grammatical marker classes are
+        // added to the anchors, but transliteration still happens.
+        let row = nt_row("MRK_1:1w1", "καὶ", "kai", "1", "24560", "V", "ABCDGfghi");
+        let get_row = make_get_row(vec![(11, row)]);
+        let text = "<a title=\"§καὶ§\" href=\"►11◄\">And</a>";
+        let outcome =
+            postprocess_word_link_titles(text, 1, true, &get_row, &IDENTITY_NFC, false).unwrap();
+        let TitlePostprocess::Updated { text, transliterations_added, colourisations_added } =
+            outcome
+        else {
+            panic!("Expected Updated");
+        };
+        assert_eq!(transliterations_added, 1);
+        assert_eq!(colourisations_added, 0);
+        assert!(!text.contains("class=\"grk"), "{text}");
+        assert!(text.contains("(kai, ABCDGfghi)"), "{text}");
+    }
+
+    #[test]
     fn test_postprocess_ot_basic() {
         let row = ot_row("GEN_1:1w2", "WORD", "הָאָרֶץ").replacen("\tMO\t", "\tV-qwc-3ms\t", 1);
         let get_row = make_get_row(vec![(21, row)]);
         let text = "<a title=\"§הָאָרֶץ§\" href=\"►21◄\">earth</a>";
-        match postprocess_word_link_titles(text, 1, false, &get_row, &IDENTITY_NFC).unwrap() {
+        match postprocess_word_link_titles(text, 1, false, &get_row, &IDENTITY_NFC, true).unwrap() {
             TitlePostprocess::Updated { text, transliterations_added, colourisations_added } => {
                 assert_eq!(transliterations_added, 1);
                 assert_eq!(colourisations_added, 1); // verb morphology
@@ -1637,7 +1696,7 @@ mod tests {
             let get_row = make_get_row(vec![(21, row)]);
             let text = "<a title=\"§הָאָרֶץ§\" href=\"►21◄\">earth</a>";
             let outcome =
-                postprocess_word_link_titles(text, 1, false, &get_row, &IDENTITY_NFC).unwrap();
+                postprocess_word_link_titles(text, 1, false, &get_row, &IDENTITY_NFC, true).unwrap();
             let TitlePostprocess::Updated { text, colourisations_added, .. } = outcome else {
                 panic!("Expected Updated");
             };
@@ -1653,7 +1712,7 @@ mod tests {
         let row = ot_row("GEN_1:1w2", "WORD", "əə").replacen("\tMO\t", "\tN-x\t", 1);
         let get_row = make_get_row(vec![(21, row)]);
         let text = "<a title=\"§x§\" href=\"►21◄\">earth</a>";
-        let outcome = postprocess_word_link_titles(text, 1, false, &get_row, &IDENTITY_NFC).unwrap();
+        let outcome = postprocess_word_link_titles(text, 1, false, &get_row, &IDENTITY_NFC, true).unwrap();
         let TitlePostprocess::Updated { text, .. } = outcome else { panic!() };
         assert!(text.contains("(~~SCHWA~~~~SCHWA~~, N-x)"), "{text}");
     }
@@ -1661,7 +1720,7 @@ mod tests {
     #[test]
     fn test_postprocess_no_title_matches() {
         let get_row = make_get_row(vec![]);
-        let outcome = postprocess_word_link_titles("plain § text", 1, true, &get_row, &IDENTITY_NFC).unwrap();
+        let outcome = postprocess_word_link_titles("plain § text", 1, true, &get_row, &IDENTITY_NFC, true).unwrap();
         assert_eq!(outcome, TitlePostprocess::NoTitleMatches);
     }
 
@@ -1669,7 +1728,7 @@ mod tests {
     fn test_postprocess_missing_href_is_error() {
         let get_row = make_get_row(vec![]);
         assert!(
-            postprocess_word_link_titles("<a title=\"§καὶ§\"", 1, true, &get_row, &IDENTITY_NFC)
+            postprocess_word_link_titles("<a title=\"§καὶ§\"", 1, true, &get_row, &IDENTITY_NFC, true)
                 .is_err()
         );
     }
@@ -1681,7 +1740,7 @@ mod tests {
         assert!(
             postprocess_word_link_titles(
                 "<a title=\"§καὶ§\"href=\"►11◄\"",
-                1, true, &get_row, &IDENTITY_NFC
+                1, true, &get_row, &IDENTITY_NFC, true
             )
             .is_err()
         );

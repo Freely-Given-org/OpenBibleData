@@ -967,6 +967,7 @@ fn postprocess_word_link_entries<'py>(
     level: usize,
     word_file_name: &str,
     state: &Bound<'py, PyAny>,
+    colourise_word_classes: bool,
 ) -> PyResult<Bound<'py, PyAny>> {
     let is_nt = bos_books_codes::is_new_testament_nr(BBB);
     let table = state
@@ -1003,6 +1004,7 @@ fn postprocess_word_link_entries<'py>(
             is_nt,
             &get_row,
             &nfc_normalise,
+            colourise_word_classes,
         ) {
             Ok(oet_handlers::TitlePostprocess::Updated { text, transliterations_added, colourisations_added })
                 if transliterations_added > 0 || colourisations_added > 0 =>
@@ -1044,12 +1046,12 @@ fn postprocess_word_link_entries<'py>(
         .call1((python_list,))
 }
 
-/// Livens ESFM wordlinks in the OET versions (Rust port of
-/// OETHandlers.livenOETWordLinks).
+/// Livens ESFM wordlinks in the OET versions
+///     (Rust port of OETHandlers.livenOETWordLinks).
 #[pyfunction]
 #[pyo3(
     name = "livenOETWordLinks",
-    signature = (level, bibleObject, refTuple, givenEntryList, state)
+    signature = (level, bibleObject, refTuple, givenEntryList, state, colouriseWordClasses=true)
 )]
 #[allow(non_snake_case)]
 fn liven_oet_word_links_py<'py>(
@@ -1059,6 +1061,7 @@ fn liven_oet_word_links_py<'py>(
     refTuple: &Bound<'py, PyAny>,
     givenEntryList: &Bound<'py, PyAny>,
     state: &Bound<'py, PyAny>,
+    colouriseWordClasses: bool,
 ) -> PyResult<Bound<'py, PyAny>> {
     if !(1..=3).contains(&level) {
         return Err(PyAssertionError::new_err(format!("level={level}")));
@@ -1098,7 +1101,7 @@ fn liven_oet_word_links_py<'py>(
             let closing_count = original_text.matches("\\add*").count();
             if opening_count != closing_count {
                 return Err(PyAssertionError::new_err(format!(
-                    "Bad add counts in OET {abbreviation} {BBB} {marker} line: {opening_count} != {closing_count}"
+                    "Bad add open/close counts in OET {abbreviation} {BBB} {marker} line: {opening_count} != {closing_count}"
                 )));
             }
             if !original_text.is_empty() && marker == "v~" {
@@ -1166,7 +1169,7 @@ fn liven_oet_word_links_py<'py>(
             let closing_count = original_text.matches("\\add*").count();
             if opening_count != closing_count {
                 return Err(PyAssertionError::new_err(format!(
-                    "Bad add counts in OET {abbreviation} {BBB} line: {opening_count} != {closing_count} {original_text:?}"
+                    "Bad add open/close counts in OET {abbreviation} {BBB} line: {opening_count} != {closing_count} {original_text:?}"
                 )));
             }
         }
@@ -1179,7 +1182,7 @@ fn liven_oet_word_links_py<'py>(
         "OET-LV_OT_word_table.tsv"
     };
     postprocess_word_link_entries(
-        py, &revised_list, &abbreviation, &BBB, level, word_file_name, state,
+        py, &revised_list, &abbreviation, &BBB, level, word_file_name, state, colouriseWordClasses,
     )
 }
 
@@ -1188,7 +1191,7 @@ fn liven_oet_word_links_py<'py>(
 #[pyfunction]
 #[pyo3(
     name = "livenOETCompatibleBereanWordLinks",
-    signature = (level, bibleObject, BBB, givenEntryList, state)
+    signature = (level, bibleObject, BBB, givenEntryList, state, colouriseWordClasses=true)
 )]
 #[allow(non_snake_case)]
 fn liven_oet_compatible_berean_word_links_py<'py>(
@@ -1198,6 +1201,7 @@ fn liven_oet_compatible_berean_word_links_py<'py>(
     BBB: &str,
     givenEntryList: &Bound<'py, PyAny>,
     state: &Bound<'py, PyAny>,
+    colouriseWordClasses: bool,
 ) -> PyResult<Bound<'py, PyAny>> {
     if !(1..=3).contains(&level) {
         return Err(PyAssertionError::new_err(format!("level={level}")));
@@ -1308,7 +1312,7 @@ fn liven_oet_compatible_berean_word_links_py<'py>(
     }
 
     postprocess_word_link_entries(
-        py, &revised_list, &abbreviation, BBB, level, word_file_name, state,
+        py, &revised_list, &abbreviation, BBB, level, word_file_name, state, colouriseWordClasses,
     )
 }
 

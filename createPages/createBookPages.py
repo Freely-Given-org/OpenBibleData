@@ -37,6 +37,7 @@ CHANGELOG:
     2026-01-07 Added OET Logo
     2026-08-22 Import convertVerseEntryListToHtml directly from openbibledata_rust (convert.py deleted)
     2026-08-25 The OETHandlers functions are now imported from the Rust openbibledata_rust module (the Python OETHandlers.py was deleted).
+    2026-09-03 Stop applying the Heb/Grk grammatical colourisation classes on book pages because their CSS doesn't style them -- the shared dark-mode rules were painting those words unreadably.
 """
 from pathlib import Path
 import os
@@ -130,7 +131,7 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
             logging.critical( f"B Skipped OET chapters not-included book: OET-RV {BBB}")
             continue # Only create pages for the requested RV books
 
-        if BBB == 'FRT': # We want this, even though the LV doesn't (yet?) have any FRT
+        if BBB in ('INT','FRT'): # We want these, even though the LV doesn't (yet?) have any FRT
             vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Creating book page for OET {BBB}…" )
             processedBBBs.append( BBB )
             # iBkList = ['index'] + state.booksToLoad[rvBible.abbreviation]
@@ -147,7 +148,7 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
 {state.OET_UNFINISHED_BOOK_WARNING_HTML_PARAGRAPH}'''
             verseEntryList, contextList = rvBible.getContextVerseData( (BBB,) )
             assert isinstance( rvBible, ESFMBible.ESFMBible )
-            verseEntryList = livenOETWordLinks( level, rvBible, (BBB,), verseEntryList, state )
+            verseEntryList = livenOETWordLinks( level, rvBible, (BBB,), verseEntryList, state, colouriseWordClasses=False )
             textHtml = convertVerseEntryListToHtml( level, rvBible.abbreviation, (BBB,), 'book', contextList, verseEntryList, basicOnly=False, state=state )
             # textHtml = livenIORs( BBB, textHtml )
             textHtml = do_OET_RV_HTMLcustomisations( f'BookA={BBB}', textHtml )
@@ -172,7 +173,7 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
             vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(bkHtml):,} characters written to {filepath}" )
             continue
 
-        # This code used to prevent building of OET-RV DC books as there's no OET-LV version -- removed 2026-09-02
+        # This obsolete code used to prevent building of OET-RV DC books as there's no OET-LV version -- removed 2026-09-02
         # elif lvBible.abbreviation in state.booksToLoad \
         # and 'ALL' not in state.booksToLoad[lvBible.abbreviation] \
         # and BBB not in state.booksToLoad[lvBible.abbreviation]:
@@ -181,7 +182,6 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
 
         vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Creating book pages for OET {BBB}…" )
         processedBBBs.append( BBB )
-
         bkIx = iBkList.index( BBB )
         bkPrevNav = f'''<a title="Previous {'(book index)' if bkIx==1 else 'book'}" href="{iBkList[bkIx-1]}.htm#Top">◄</a> ''' if bkIx>0 else ''
         bkNextNav = f' <a title="Next book" href="{iBkList[bkIx+1]}.htm#Top">►</a>' if bkIx<len(iBkList)-1 else ''
@@ -197,10 +197,10 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
             logging.critical( f"createOETBookPages missing book error for {lvBible.abbreviation} {BBB}" )
             lvVerseEntryList, lvContextList = InternalBibleEntryList(), []
         assert isinstance( rvBible, ESFMBible.ESFMBible )
-        rvVerseEntryList = livenOETWordLinks( level, rvBible, (BBB,), rvVerseEntryList, state )
+        rvVerseEntryList = livenOETWordLinks( level, rvBible, (BBB,), rvVerseEntryList, state, colouriseWordClasses=False )
         assert isinstance( lvBible, ESFMBible.ESFMBible )
         if lvVerseEntryList:
-            lvVerseEntryList = livenOETWordLinks( level, lvBible, (BBB,), lvVerseEntryList, state )
+            lvVerseEntryList = livenOETWordLinks( level, lvBible, (BBB,), lvVerseEntryList, state, colouriseWordClasses=False )
         # NOTE: We change the version abbreviation here to give the function more indication where we're coming from
         rvHtml = do_OET_RV_HTMLcustomisations( f'BookA={BBB}', convertVerseEntryListToHtml( level, 'OET-RV', (BBB,), 'book', rvContextList, rvVerseEntryList, basicOnly=False, state=state ) )
         tempLVHtml = convertVerseEntryListToHtml( level, 'OET-LV', (BBB,), 'book', lvContextList, lvVerseEntryList, basicOnly=False, state=state )
@@ -442,9 +442,9 @@ def createBookPages( level:int, folder:Path, thisBible, state:State ) -> list[st
         bkHtml = f'''<p class="bkNav">{bkPrevNav}<span class="bkHead" id="Top">{thisBible.abbreviation} {ourTidyBBB}</span>{bkNextNav}</p>{f'{NEWLINE}{state.JAMES_NOTE_HTML_PARAGRAPH}' if 'OET' in thisBible.abbreviation and BBB=='JAM' else ''}{'' if bos_books_codes_py.is_single_chapter_book(BBB) else f'{NEWLINE}{state.OET_UNFINISHED_BOOK_WARNING_HTML_PARAGRAPH}' if 'OET' in thisBible.abbreviation else state.WHOLE_BOOK_WARNING_HTML_PARAGRAPH}{f'{state.BLACK_LETTER_FONT_HTML_PARAGRAPH}{NEWLINE}' if thisBible.abbreviation=='KJB-1611' else ''}'''
         verseEntryList, contextList = thisBible.getContextVerseData( (BBB,) )
         if isinstance( thisBible, ESFMBible.ESFMBible ):
-            verseEntryList = livenOETWordLinks( level, thisBible, (BBB,), verseEntryList, state )
+            verseEntryList = livenOETWordLinks( level, thisBible, (BBB,), verseEntryList, state, colouriseWordClasses=False )
         elif thisBible.abbreviation in ('BSB','MSB'):
-            verseEntryList = livenOETCompatibleBereanWordLinks( level, thisBible, BBB, verseEntryList, state )
+            verseEntryList = livenOETCompatibleBereanWordLinks( level, thisBible, BBB, verseEntryList, state, colouriseWordClasses=False )
         textHtml = convertVerseEntryListToHtml( level, thisBible.abbreviation, (BBB,), 'book', contextList, verseEntryList, basicOnly=False, state=state )
         # textHtml = livenIORs( BBB, textHtml )
         if thisBible.abbreviation == 'OET-RV':

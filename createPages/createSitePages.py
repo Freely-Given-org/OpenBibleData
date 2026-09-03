@@ -112,7 +112,7 @@ from spellCheckEnglish import printSpellCheckSummary
 LAST_MODIFIED_DATE = '2026-09-02' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData (OBD) Create Site Pages"
-PROGRAM_VERSION = '2.3.0'
+PROGRAM_VERSION = '2.3.1'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
@@ -224,7 +224,7 @@ def _createSitePages() -> bool:
             #             state.BBBsToProcess[versionAbbreviation].append( BBB )
             # else: # not selectedVersesOnlyVersions
             if versionAbbreviation not in state.selectedVersesOnlyVersions:
-                state.BBBsToProcess[versionAbbreviation] = state.OET_RV_BOOK_LIST_WITH_FRT if versionAbbreviation=='OET-RV' else list( thisBible.books.keys() )
+                state.BBBsToProcess[versionAbbreviation] = state.OET_RV_BOOK_LIST if versionAbbreviation=='OET-RV' else list( thisBible.books.keys() )
                 if 'OET' in versionAbbreviation:
                     state.BBBsToProcess[versionAbbreviation] = reorderBooksForOETVersions( state.BBBsToProcess[versionAbbreviation] )
                 state.BBBLinks[versionAbbreviation] = []
@@ -1232,7 +1232,7 @@ if __name__ == '__main__':
     fullDemo()
 
     BibleOrgSysGlobals.closedown( PROGRAM_NAME, PROGRAM_VERSION )
-    print( f"\nThis build of the site (which completed) was done with {'STRICT' if BibleOrgSysGlobals.strictCheckingFlag else 'NON-strict'} checking" )
+    print( f"\nThis build of the{' TEST' if state.TEST_MODE_FLAG else ''} site (which completed) was done with {'STRICT' if BibleOrgSysGlobals.strictCheckingFlag else 'NON-strict'} checking" )
     WAS_ENABLED = False # Do this just so the next line displays more readably
     assert WAS_ENABLED, "   and this build (WHICH COMPLETED) was done with ASSERT statements ENABLED."
     print( "   and with assert statements DISABLED." )

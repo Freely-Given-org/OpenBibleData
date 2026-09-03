@@ -811,7 +811,7 @@ where
                         let additional_class = rest_str.replace(' ', "")
                             .replace("king", "King")
                             .replace("land", "Land");
-                        html = rreplace(&html, r#"div class="section""#, &format!(r#"div class="section {additional_class}""#), 1);
+                        html = rreplace(&html, r#"div class="s1""#, &format!(r#"div class="s1 {additional_class}""#), 1);
                         let link_guts = format!(
                             r#"<a title="Go to {rest} information page" href="{}ref/Kingdoms/{additional_class}.htm">{guts}</a>"#,
                             "../".repeat(level),
@@ -1033,7 +1033,7 @@ where
                     )?;
                     let final_html = if marker.starts_with("io") {
                         liven_iors_core(
-                            bos_book_code, segment_type, segment_type, &intro_html, is_single_chapter_book,
+                            version_abbreviation, bos_book_code, segment_type, &intro_html, is_single_chapter_book,
                             &find_section_fn,
                         ).unwrap_or(intro_html)
                     } else {

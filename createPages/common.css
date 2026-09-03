@@ -412,7 +412,23 @@ html[data-theme="dark"] .hebVrb, html[data-theme="dark"] .hebEl,
 html[data-theme="dark"] .hebYhwh, html[data-theme="dark"] span.Strongs,
 html[data-theme="dark"] span.sls, html[data-theme="dark"] p.iex,
 html[data-theme="dark"] span.wrkNameDiffPunct,
-html[data-theme="dark"] div.PromisedLand { color:#1a1a1a; }
+html[data-theme="dark"] div.PromisedLand,
+html[data-theme="dark"] div.FullKingdom,
+html[data-theme="dark"] div.NorthernKingdom,
+html[data-theme="dark"] div.SouthernKingdom,
+html[data-theme="dark"] div.BothKingdoms { color:#1a1a1a; }
+
+/* Kingdom paragraph/heading colours — lighter for dark-mode backgrounds */
+html[data-theme="dark"] p.PromisedLand,
+html[data-theme="dark"] h1.PromisedLand { color:#ffd84a; }
+html[data-theme="dark"] p.FullKingdom,
+html[data-theme="dark"] h1.FullKingdom { color:#7abaff; }
+html[data-theme="dark"] p.NorthernKingdom,
+html[data-theme="dark"] h1.NorthernKingdom { color:#d18aef; }
+html[data-theme="dark"] p.SouthernKingdom,
+html[data-theme="dark"] h1.SouthernKingdom { color:#7ddf7d; }
+html[data-theme="dark"] p.BothKingdoms,
+html[data-theme="dark"] h1.BothKingdoms { color:#f0b866; }
 
 /* span.noLinkYet is a mid-grey box with white text: unreadable in BOTH modes
    (about 2.3:1), so give it dark text in light mode too. */

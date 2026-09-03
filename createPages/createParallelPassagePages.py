@@ -34,6 +34,7 @@ CHANGELOG:
     2026-01-07 Added OET Logo
     2026-08-22 Import convertVerseEntryListToHtml directly from openbibledata_rust (convert.py deleted)
     2026-08-25 The OETHandlers functions are now imported from the Rust openbibledata_rust module (the Python OETHandlers.py was deleted).
+    2026-09-03 Stop applying the Heb/Grk grammatical colourisation classes on parallel-passage pages because their CSS doesn't style them -- the shared dark-mode rules were painting those words unreadably.
 """
 from pathlib import Path
 import os
@@ -577,7 +578,7 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
 {f'{state.JAMES_NOTE_HTML_PARAGRAPH}{NEWLINE}' if 'OET' in thisBible.abbreviation and BBB=='JAM' else ''}{f'{state.OET_UNFINISHED_WARNING_HTML_PARAGRAPH}{NEWLINE}' if 'OET' in thisBible.abbreviation else ''}<h1>{'TEST ' if state.TEST_MODE_FLAG else ''}{sectionName}</h1>'''
         assert '\n\n' not in crossReferencedSectionHtml
         if isinstance( thisBible, ESFMBible.ESFMBible ): # e.g., OET-RV
-            verseEntryList = livenOETWordLinks( BBBLevel, thisBible, (BBB,startC), verseEntryList, state )
+            verseEntryList = livenOETWordLinks( BBBLevel, thisBible, (BBB,startC), verseEntryList, state, colouriseWordClasses=False )
         textHtml = convertVerseEntryListToHtml( BBBLevel, thisBible.abbreviation, (BBB,startC), 'relatedPassage', contextList, verseEntryList, basicOnly=False, state=state )
         # textHtml = livenIORs( BBB, textHtml, sections )
         if thisBible.abbreviation == 'OET-RV':
@@ -739,7 +740,7 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
             sectionHeadingsList.append( (srTidyBbb,srStartC,f'{srTidyBbb} {srStartC}:{srStartV}{f"–{srEndV}" if srEndC==srStartC else f"—{srEndC}:{srEndV}"}') ) # We use en-dash and em-dash onscreen
 
             if isinstance( thisBible, ESFMBible.ESFMBible ): # e.g., OET-RV
-                verseEntryList = livenOETWordLinks( BBBLevel, thisBible, (srBBB,srStartC), verseEntryList, state )
+                verseEntryList = livenOETWordLinks( BBBLevel, thisBible, (srBBB,srStartC), verseEntryList, state, colouriseWordClasses=False )
             textHtml = convertVerseEntryListToHtml( BBBLevel, thisBible.abbreviation, (srBBB,srStartC), 'relatedPassage', contextList, verseEntryList, basicOnly=False, state=state )
             # textHtml = livenIORs( BBB, textHtml, sections )
             if thisBible.abbreviation == 'OET-RV':
@@ -829,7 +830,7 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
                     # lastXrefNT = bos_books_codes_py.is_new_testament_nr( lastXrefBBB )
                     if verseEntryList:
                         if isinstance( thisBible, ESFMBible.ESFMBible ): # e.g., OET-RV
-                            verseEntryList = livenOETWordLinks( BBBLevel, thisBible, (lastXrefBBB,lastXrefC), verseEntryList, state )
+                            verseEntryList = livenOETWordLinks( BBBLevel, thisBible, (lastXrefBBB,lastXrefC), verseEntryList, state, colouriseWordClasses=False )
                         textHtml = convertVerseEntryListToHtml( BBBLevel, thisBible.abbreviation, (lastXrefBBB,lastXrefC), 'relatedPassage', contextList, verseEntryList, basicOnly=False, state=state )
                         # NOTE: textHtml can be empty here
                         # textHtml = livenIORs( BBB, textHtml, sections )

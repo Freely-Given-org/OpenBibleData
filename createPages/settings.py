@@ -53,10 +53,10 @@ import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import dPrint, fnPrint, BOOKLIST_OT39
 
 
-LAST_MODIFIED_DATE = '2026-08-20' # by RJH
+LAST_MODIFIED_DATE = '2026-09-03' # by RJH
 SHORT_PROGRAM_NAME = "settings"
 PROGRAM_NAME = "OpenBibleData (OBD) Settings"
-PROGRAM_VERSION = '1.0.2'
+PROGRAM_VERSION = '1.0.3'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
@@ -71,8 +71,8 @@ class State:
     TEST_MODE_FLAG = True # Writes smaller website subset into DEBUG_DESTINATION_FOLDER_PATH if True
     TEST_OT_BOOK_LIST = ['JNA']
     TEST_DC_BOOK_LIST = []
-    TEST_NT_BOOK_LIST = ['MRK','EPH'] # Shortest gospel
-    NEW_BOOK_IN_TEST_LIST_FLAG = True # So that interlinear, parallel passages, topic, kingdom, and dict & word pages will get rebuilt for TEST_MODE_FLAG
+    TEST_NT_BOOK_LIST = ['MAT','MRK'] # Shortest gospel
+    NEW_BOOK_IN_TEST_LIST_FLAG = False # So that interlinear, parallel passages, topic, kingdom, and dict & word pages will get rebuilt for TEST_MODE_FLAG
 
     # Many of these settings are used to omit some processing so as to get a speedier conclusion for debugging
     LOAD_RESOURCES_FROM_PICKLES_FLAG = True # Might have to disable loading pickles if they need updating (new code or data)
@@ -125,14 +125,14 @@ class State:
                             'JN1','JN2','JN3', 'REV']
     assert len(OET_NT_BOOK_ORDER) == 27
     # Having these books in our book order variables doesn't necessarily mean that the books exist
-    OET_BOOK_ORDER = ['FRT','INT'] + OET_OT_BOOK_ORDER + OET_APOCRYPHA_BOOK_ORDER + OET_NT_BOOK_ORDER + ['XXA','XXB','XXC','XXD','XXE','CNC','GLO','TDX','NDX','OTH','BAK']
+    OET_BOOK_ORDER = ['INT','FRT'] + OET_OT_BOOK_ORDER + OET_APOCRYPHA_BOOK_ORDER + OET_NT_BOOK_ORDER + ['XXA','XXB','XXC','XXD','XXE','CNC','GLO','TDX','NDX','OTH','BAK']
     assert len(OET_BOOK_ORDER) >= 88
 
-    TEST_BOOK_LIST = TEST_OT_BOOK_LIST + TEST_DC_BOOK_LIST + TEST_NT_BOOK_LIST
+    TEST_BOOK_LIST = ['INT','FRT'] + TEST_OT_BOOK_LIST + TEST_DC_BOOK_LIST + TEST_NT_BOOK_LIST
     OET_LV_BOOK_LIST = BOOKLIST_OT39 + OET_NT_BOOK_ORDER
     OET_RV_BOOK_LIST = TEST_BOOK_LIST if TEST_MODE_FLAG else (OET_OT_BOOK_ORDER + OET_RV_DC_BOOK_LIST + OET_NT_BOOK_ORDER)
-    # TODO: What about 'INT' ?
-    OET_RV_BOOK_LIST_WITH_FRT = ['FRT'] + OET_RV_BOOK_LIST
+#     # TODO: What about 'INT' ?
+#     OET_RV_BOOK_LIST_WITH_FRT = ['FRT'] + OET_RV_BOOK_LIST
 
     # The version to link to when the OET doesn't have that book (yet)
     ALTERNATIVE_VERSION = 'WEBBE' # Should be a version with all books present
@@ -479,8 +479,8 @@ class State:
         }
 
     booksToLoad = {
-        'OET': OET_RV_BOOK_LIST_WITH_FRT,
-        'OET-RV': ['ALL'], # Load ALL coz we use related sections anyway OET_RV_BOOK_LIST_WITH_FRT,
+        'OET': OET_RV_BOOK_LIST,
+        'OET-RV': ['ALL'], # Load ALL coz we use related sections anyway OET_RV_BOOK_LIST,
         'OET-LV': OET_LV_BOOK_LIST,
         'ULT': ['ALL'],
         'UST': ['ALL'], # MRK 13:13 gives \\add error (24Jan2023)
@@ -552,10 +552,10 @@ class State:
         'SOTN': ['ALL'],
         'UTN': ['ALL'],
     } if ALL_PRODUCTION_BOOKS_FLAG else {
-        'OET': ['FRT'] + TEST_BOOK_LIST,
-        'OET-RV': ['FRT'] + TEST_BOOK_LIST, #['ALL'], # Load ALL coz we use related sections anyway ['FRT'] + TEST_BOOK_LIST,
+        'OET': TEST_BOOK_LIST,
+        'OET-RV': TEST_BOOK_LIST, #['ALL'], # Load ALL coz we use related sections anyway
         'OET-LV': TEST_BOOK_LIST,
-        'ULT': ['FRT'] + TEST_BOOK_LIST,
+        'ULT': TEST_BOOK_LIST,
         'UST': TEST_BOOK_LIST, # Has no FRT for some reason
         'BSB': TEST_BOOK_LIST,
         'MSB': TEST_BOOK_LIST,

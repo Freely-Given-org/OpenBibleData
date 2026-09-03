@@ -39,6 +39,7 @@ CHANGELOG:
     2026-06-01 Improve unusual book codes (like Yac) and improve navigation
     2026-08-22 Import convertVerseEntryListToHtml directly from openbibledata_rust (convert.py deleted)
     2026-08-25 The OETHandlers functions are now imported from the Rust openbibledata_rust module (the Python OETHandlers.py was deleted).
+    2026-09-03 Stop applying the Heb/Grk grammatical colourisation classes on topic pages because their CSS doesn't style them -- the shared dark-mode rules were painting those words unreadably.
 """
 from pathlib import Path
 import os
@@ -263,8 +264,8 @@ def createTopicPage( level:int, folder:Path, topicNumber:int, state:State ) -> b
             # print( f"{rvVerseEntryList=}" )
             # print( f"{lvVerseEntryList=}" )
             if BBB in rvBible: # TODO: Why is RV handled differently here than LV ???
-                rvVerseEntryList = livenOETWordLinks( level, rvBible, (BBB,C), rvVerseEntryList, state )
-            try: lvVerseEntryList = livenOETWordLinks( level, lvBible, (BBB,C), lvVerseEntryList, state )
+                rvVerseEntryList = livenOETWordLinks( level, rvBible, (BBB,C), rvVerseEntryList, state, colouriseWordClasses=False )
+            try: lvVerseEntryList = livenOETWordLinks( level, lvBible, (BBB,C), lvVerseEntryList, state, colouriseWordClasses=False )
             except KeyError: # Missing book
                 assert not state.ALL_PRODUCTION_BOOKS_FLAG
             rvTextHtml = convertVerseEntryListToHtml( level, rvBible.abbreviation, (BBB,C), 'topicalPassage', rvContextList, rvVerseEntryList, basicOnly=False, state=state )
