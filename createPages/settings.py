@@ -71,8 +71,8 @@ class State:
     SITE_ABBREVIATION = 'OBD'
     SITE_COPYRIGHT = "copyright © 2023–2026"
 
-    OBD_VERSION_NUMBER_STRING = 'v2.3.3' # Incremented on most runs
-    OET_VERSION_NUMBER_STRING = 'v0.48.76' # Incremented on most runs
+    OBD_VERSION_NUMBER_STRING = 'v2.3.6' # Incremented after most updates to OBD web page generation
+    OET_VERSION_NUMBER_STRING = 'v0.48.76' # Incremented on most runs assuming changes to the OET-RV or OET-LV
 
     TEST_MODE_FLAG = True # Writes smaller website subset into DEBUG_DESTINATION_FOLDER_PATH if True
     TEST_OT_BOOK_LIST = ['JNA']

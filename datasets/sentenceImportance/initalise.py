@@ -149,7 +149,7 @@ importantRefsWithRanges = [ # Often quoted and/or memorised by Christians
     'ISA_54:17', 'ISA_55:1-10','ISA_55:12-13', 'ISA_66:8',
     'JER_17:9', 'JER_23:5-6', 'JER_31:31-34', 'JER_33:2-3', 'JER_33:14-18',
     'DAN_7:10', 'DAN_9:5','DAN_9:19','DAN_9:24', 'DAN_12:1','DAN_12:4',
-    'ZEC_12:8-9',
+    'ZEC_12:8-9','ZEC_12:11',
 
     'MAT_4:4', 'MAT_16:1-3', 'MAT_24:32-33','MAT_24:44',
     'LUK_21:28','LUK_24:27',

@@ -38,6 +38,7 @@ CHANGELOG:
     2026-08-22 Import convertVerseEntryListToHtml directly from openbibledata_rust (convert.py deleted)
     2026-08-25 The OETHandlers functions are now imported from the Rust openbibledata_rust module (the Python OETHandlers.py was deleted).
     2026-09-03 Stop applying the Heb/Grk grammatical colourisation classes on book pages because their CSS doesn't style them -- the shared dark-mode rules were painting those words unreadably.
+     2026-09-04 Disable the TEST_MODE 'noLinkYet' highlighting on OET-RV single-column book pages (which have no OET-LV alongside), via addNoLinkYetSpans=False.
 """
 from pathlib import Path
 import os
@@ -148,7 +149,7 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
 {state.OET_UNFINISHED_BOOK_WARNING_HTML_PARAGRAPH}'''
             verseEntryList, contextList = rvBible.getContextVerseData( (BBB,) )
             assert isinstance( rvBible, ESFMBible.ESFMBible )
-            verseEntryList = livenOETWordLinks( level, rvBible, (BBB,), verseEntryList, state, colouriseWordClasses=False )
+            verseEntryList = livenOETWordLinks( level, rvBible, (BBB,), verseEntryList, state, colouriseWordClasses=False, addNoLinkYetSpans=False )
             textHtml = convertVerseEntryListToHtml( level, rvBible.abbreviation, (BBB,), 'book', contextList, verseEntryList, basicOnly=False, state=state )
             # textHtml = livenIORs( BBB, textHtml )
             textHtml = do_OET_RV_HTMLcustomisations( f'BookA={BBB}', textHtml )
@@ -442,7 +443,7 @@ def createBookPages( level:int, folder:Path, thisBible, state:State ) -> list[st
         bkHtml = f'''<p class="bkNav">{bkPrevNav}<span class="bkHead" id="Top">{thisBible.abbreviation} {ourTidyBBB}</span>{bkNextNav}</p>{f'{NEWLINE}{state.JAMES_NOTE_HTML_PARAGRAPH}' if 'OET' in thisBible.abbreviation and BBB=='JAM' else ''}{'' if bos_books_codes_py.is_single_chapter_book(BBB) else f'{NEWLINE}{state.OET_UNFINISHED_BOOK_WARNING_HTML_PARAGRAPH}' if 'OET' in thisBible.abbreviation else state.WHOLE_BOOK_WARNING_HTML_PARAGRAPH}{f'{state.BLACK_LETTER_FONT_HTML_PARAGRAPH}{NEWLINE}' if thisBible.abbreviation=='KJB-1611' else ''}'''
         verseEntryList, contextList = thisBible.getContextVerseData( (BBB,) )
         if isinstance( thisBible, ESFMBible.ESFMBible ):
-            verseEntryList = livenOETWordLinks( level, thisBible, (BBB,), verseEntryList, state, colouriseWordClasses=False )
+            verseEntryList = livenOETWordLinks( level, thisBible, (BBB,), verseEntryList, state, colouriseWordClasses=False, addNoLinkYetSpans=False )
         elif thisBible.abbreviation in ('BSB','MSB'):
             verseEntryList = livenOETCompatibleBereanWordLinks( level, thisBible, BBB, verseEntryList, state, colouriseWordClasses=False )
         textHtml = convertVerseEntryListToHtml( level, thisBible.abbreviation, (BBB,), 'book', contextList, verseEntryList, basicOnly=False, state=state )

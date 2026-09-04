@@ -1052,7 +1052,7 @@ fn postprocess_word_link_entries<'py>(
 #[pyfunction]
 #[pyo3(
     name = "livenOETWordLinks",
-    signature = (level, bibleObject, refTuple, givenEntryList, state, colouriseWordClasses=true)
+    signature = (level, bibleObject, refTuple, givenEntryList, state, colouriseWordClasses=true, addNoLinkYetSpans=true)
 )]
 #[allow(non_snake_case)]
 fn liven_oet_word_links_py<'py>(
@@ -1063,6 +1063,7 @@ fn liven_oet_word_links_py<'py>(
     givenEntryList: &Bound<'py, PyAny>,
     state: &Bound<'py, PyAny>,
     colouriseWordClasses: bool,
+    addNoLinkYetSpans: bool,
 ) -> PyResult<Bound<'py, PyAny>> {
     if !(1..=3).contains(&level) {
         return Err(PyAssertionError::new_err(format!("level={level}")));
@@ -1089,6 +1090,7 @@ fn liven_oet_word_links_py<'py>(
     let mut preprocessed_entries: Vec<Bound<'py, PyAny>> = Vec::with_capacity(16);
     let mut preprocessed_list_object: Option<Bound<'py, PyAny>> = None;
     if test_mode_flag
+        && addNoLinkYetSpans
         && abbreviation == "OET-RV"
         && (bos_books_codes::is_old_testament_nr(&BBB)
             || bos_books_codes::is_new_testament_nr(&BBB))

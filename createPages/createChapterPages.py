@@ -46,6 +46,7 @@ CHANGELOG:
     2026-08-24 Fixed missing last chapter link on book chapter index page, and removed current chapter for other versions as well
     2026-08-25 The OETHandlers functions are now imported from the Rust openbibledata_rust module (the Python OETHandlers.py was deleted).
     2026-09-03 Stop applying the Heb/Grk grammatical colourisation classes (hebVrb, grkVrb, etc.) on chapter pages because their stylesheets (OETChapter.css/BibleChapter.css) don't style them -- the shared dark-mode rules were painting those words unreadably.
+     2026-09-04 Disable the TEST_MODE 'noLinkYet' highlighting on OET-RV single-column chapter pages (which have no OET-LV alongside), via addNoLinkYetSpans=False.
 """
 from pathlib import Path
 import os
@@ -122,7 +123,7 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
             chapterHtml = f'<h1 id="Top">{rvBible.abbreviation} {BBB}</h1>\n'
             verseEntryList, contextList = rvBible.getContextVerseData( (BBB, '-1') )
             if isinstance( rvBible, ESFMBible.ESFMBible ):
-                verseEntryList = livenOETWordLinks( level, rvBible, (BBB,'-1'), verseEntryList, state, colouriseWordClasses=False )
+                verseEntryList = livenOETWordLinks( level, rvBible, (BBB,'-1'), verseEntryList, state, colouriseWordClasses=False, addNoLinkYetSpans=False )
             dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{rvBible.abbreviation} {BBB} {verseEntryList} {contextList}" )
             chapterHtml = f'''{chapterHtml}{convertVerseEntryListToHtml( level, rvBible.abbreviation, (BBB,'-1'), 'chapter', contextList, verseEntryList, basicOnly=False, state=state )}'''
             filename = f'{BBB}.htm'
@@ -559,7 +560,7 @@ def createChapterPages( level:int, folder:Path, thisBible, state:State ) -> list
                     logging.critical( f"No chapter found for {thisBible.abbreviation} {BBB} {C=}" )
                     continue
                 if isinstance( thisBible, ESFMBible.ESFMBible ): # e.g., OET-RV and OET-LV
-                    verseEntryList = livenOETWordLinks( level, thisBible, (BBB,str(c)), verseEntryList, state, colouriseWordClasses=False )
+                    verseEntryList = livenOETWordLinks( level, thisBible, (BBB,str(c)), verseEntryList, state, colouriseWordClasses=False, addNoLinkYetSpans=False )
                 elif thisBible.abbreviation in ('BSB','MSB'):
                     verseEntryList = livenOETCompatibleBereanWordLinks( level, thisBible, BBB, verseEntryList, state, colouriseWordClasses=False )
                 # print( f"createChapterPages for {thisBible.abbreviation} {BBB} {c} {contextList=} {verseEntryList=}" )
@@ -637,7 +638,7 @@ def createChapterPages( level:int, folder:Path, thisBible, state:State ) -> list
             verseEntryList, contextList = thisBible.getContextVerseData( (BBB, '-1') )
             # if thisBible.abbreviation == 'OET-RV' and BBB == 'FRT': print( f"OET-RV FRT has: {verseEntryList=} {[ve for ve in verseEntryList]=}" ); halt
             if isinstance( thisBible, ESFMBible.ESFMBible ):
-                verseEntryList = livenOETWordLinks( level, thisBible, (BBB,'-1'), verseEntryList, state, colouriseWordClasses=False )
+                verseEntryList = livenOETWordLinks( level, thisBible, (BBB,'-1'), verseEntryList, state, colouriseWordClasses=False, addNoLinkYetSpans=False )
             dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{thisBible.abbreviation} {BBB} {verseEntryList} {contextList}" )
             chapterHtml = f'''{chapterHtml}{convertVerseEntryListToHtml( level, thisBible.abbreviation, (BBB,'-1'), 'chapter', contextList, verseEntryList, basicOnly=False, state=state )}'''
             filename = f'{BBB}.htm'

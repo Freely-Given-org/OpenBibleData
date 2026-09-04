@@ -69,6 +69,11 @@ CHANGELOG:
                 see Rust/src/section_numbers.rs) -- the Python function is now a thin wrapper
     2026-08-25 The OETHandlers functions are now imported from the Rust openbibledata_rust module (the Python OETHandlers.py was deleted).
     2026-09-03 Stop applying the Heb/Grk grammatical colourisation classes on section pages because their CSS doesn't style them -- the shared dark-mode rules were painting those words unreadably.
+     2026-09-04 Disable the TEST_MODE 'noLinkYet' highlighting on OET-RV single-column section pages (which have no OET-LV alongside), via addNoLinkYetSpans=False.
+    2026-09-05 Fixed non-OET (e.g., BSB/NET/T4T) section index pages: they used a stale sectionFilename
+                (the last-written section file) and so every index link went to the final section.
+                Extracted createNonOETSectionIndexParagraphs() which links each entry to its own file,
+                and passed bySec/{indexFilename} to makeTop (was bySec/{sectionFilename}).
 """
 from pathlib import Path
 import os
@@ -579,6 +584,29 @@ def createOETSectionPages( level:int, folder:Path, rvBible:ESFMBible, lvBible:ES
 # end of createSectionPages.createOETSectionPages
 
 
+def createNonOETSectionIndexParagraphs( sectionsList, state:State ) -> list[str]:
+    """
+    Build the list of <p class=…> section-link paragraphs for an 'Index of sections'
+        page of a non-OET Bible version (e.g., BSB, NET, T4T…).
+    (The OET pseudo-version's own index is built by createOETSectionPages instead.)
+
+    Each sectionsList entry must be a sectionsListsForSections-style tuple:
+        (n,startC,startV,endC,endV,sectionName,reasonMarker,contextList,verseEntryList,sectionFilename)
+
+    Every paragraph links to its OWN section page (the sectionFilename from its own tuple) --
+        never to a stale last-section filename left over from the section-page creation loop.
+    """
+    sectionHeadingParagraphs = []
+    for _nnn,startC,startV,_endC,_endV,sectionName,reasonMarker,_contextList,_verseEntryList,sectionFilename in sectionsList:
+        # Normalise the raw reason marker (e.g., 's1/c') into a descriptive reason name (e.g., 'Section heading')
+        reasonName = reasonMarker if 'heading' in reasonMarker or reasonMarker not in SECTION_REASON_NAME_DICT else SECTION_REASON_NAME_DICT[reasonMarker]
+        reasonString = '' if reasonName in ('section heading','Section heading') and not state.TEST_MODE_FLAG else f' ({reasonName})' # Suppress '(Section Heading)' appendages in the list
+        pClass = 'sectionHeading' if reasonName in ('section heading','Section heading') else 'alternateHeading'
+        sectionHeadingParagraphs.append( f'''<p class="{pClass}"><a title="View section" href="{sectionFilename}#Top">{'Intro' if startC=='-1' else startC}:{startV} <b>{sectionName}</b>{reasonString}</a></p>''' )
+    return sectionHeadingParagraphs
+# end of createSectionPages.createNonOETSectionIndexParagraphs
+
+
 def createSectionLists( level:int, thisBible, state:State ) -> None:
     """
     Make (or reuse) the state.sectionsListsForSections entries for all books of this Bible version.
@@ -764,7 +792,7 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> list
 <p class="secNav">{sectionIndexLink}{leftLink}{documentLink} {startChapterLink}:{startV}–{endChapterLink}:{endV}{rightLink}{relatedLink}{parallelLink}{interlinearLink}{detailsLink}</p>
 {f'{state.JAMES_NOTE_HTML_PARAGRAPH}{NEWLINE}' if 'OET' in thisBible.abbreviation and BBB=='JAM' else ''}{f'{state.OET_UNFINISHED_WARNING_HTML_PARAGRAPH}{NEWLINE}' if 'OET' in thisBible.abbreviation else ''}{f'{state.BLACK_LETTER_FONT_HTML_PARAGRAPH}{NEWLINE}' if thisBible.abbreviation=='KJB-1611' else ''}<h1>{sectionName}</h1>'''
             if isinstance( thisBible, ESFMBible ): # e.g., OET-RV
-                verseEntryList = livenOETWordLinks( level, thisBible, (BBB,startC), verseEntryList, state, colouriseWordClasses=False )
+                verseEntryList = livenOETWordLinks( level, thisBible, (BBB,startC), verseEntryList, state, colouriseWordClasses=False, addNoLinkYetSpans=False )
             textHtml = convertVerseEntryListToHtml( level, thisBible.abbreviation, (BBB,startC), 'section', contextList, verseEntryList, basicOnly=False, state=state )
             # textHtml = livenIORs( BBB, textHtml, sections )
             if thisBible.abbreviation == 'OET-RV':
@@ -807,10 +835,10 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> list
         rightLink = f' <a title="Next book: {getOETTidyBBB(availableBBBs[BBBindex+1])}" href="{availableBBBs[BBBindex+1]}.htm#Top">→</a>' if BBBindex<len(availableBBBs)-1 else ''
         indexFilename = f'{BBB}.htm'
         indexFilepath = folder.joinpath( indexFilename )
-        top = makeTop( level, thisBible.abbreviation, 'sectionIndex', f'bySec/{sectionFilename}', state ) \
+        top = makeTop( level, thisBible.abbreviation, 'sectionIndex', f'bySec/{indexFilename}', state ) \
                 .replace( '__TITLE__', f"{thisBible.abbreviation} {ourTidyBBB} sections{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
                 .replace( '__KEYWORDS__', f'Bible, {thisBible.abbreviation}, sections, {ourTidyBBB}' ) \
-                .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/bySec/{sectionFilename}#Top">{thisBible.abbreviation}</a>''',
+                .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/bySec/{indexFilename}#Top">{thisBible.abbreviation}</a>''',
                         f'''<a title="Up to {state.BibleNames[thisBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}/">↑{thisBible.abbreviation}</a>''' )
         sectionHtmlBits = [f'<h1>Index of sections for {thisBible.abbreviation} {ourTidyBBB}</h1>']
         if thisBible.abbreviation=='OET-RV' and BBB in state.sectionsListsForHeaders['OET-RV']:
@@ -829,11 +857,8 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> list
                         pClass = f"{pClass} {sectionName.replace( ' ', '' ).replace( 'king', 'King' ).replace( 'land', 'Land' )}"
                     sectionHtmlBits.append( f'''<p class="{pClass}"><a title="View section {sectionNumber}" href="{sectionFilename}#V{startV}">{'Intro' if startC=='-1' else startC}:{startV} <b>{sectionName}</b>{reasonString}</a></p>''' )
         else: # not OET-RV or don't seem to have section headings in state.sectionsListsForHeaders
-            for _nnn,startC,startV,_endC,_endV,sectionName,reasonName,_contextList,_verseEntryList,indexFilename in state.sectionsListsForSections[thisBible.abbreviation][BBB]:
-                reasonString = '' if reasonName=='Section heading' and not state.TEST_MODE_FLAG else f' ({reasonName})' # Suppress '(Section Heading)' appendages in the list
-                # NOTE: word 'Alternate ' is defined in the above OET function at start of main loop
-                sectionHtmlBits.append( f'''<p class="{'alternateHeading' if reasonName.startswith('Alternate ') else 'sectionHeading'}"><a title="View section" href="{sectionFilename}#Top">{'Intro' if startC=='-1' else startC}:{startV} <b>{sectionName}</b>{reasonString}</a></p>''' )
-                # sectionHtml = f'''{sectionHtml}<p class="sectionHeading"><a title="View section" href="{filename}#Top">{'Intro' if startC=='-1' else startC}:{startV} <b>{sectionName}</b>{reasonString}</a></p><!--sectionHeading-->\n'''
+            # NOTE: word 'Alternate ' is handled within the normalised reason names in the helper
+            sectionHtmlBits += createNonOETSectionIndexParagraphs( state.sectionsListsForSections[thisBible.abbreviation][BBB], state )
         sectionHtml = f'''{top}<!--sections page-->
 {navBookListParagraph}
 {f'<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>\n' if 'OET' in thisBible.abbreviation else ''}<p class="pageNav" id="Top">{leftLink}{ourTidyBBB} <a title="Go to bottom of page" href=#Bottom>↓</a>{rightLink}</p>
