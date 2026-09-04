@@ -365,7 +365,7 @@ fn to_roman_numerals_py(num: &Bound<'_, PyAny>) -> PyResult<String> {
 #[pyfunction]
 #[pyo3(
     name = "liven_iors",
-    signature = (version_abbreviation, our_bos_book_code, segment_type, ior_html, is_single_chapter, state=None)
+    signature = (version_abbreviation, our_bos_book_code, segment_type, ior_html, is_single_chapter, level=0, state=None)
 )]
 fn liven_iors_py<'py>(
     _py: Python<'py>,
@@ -374,11 +374,12 @@ fn liven_iors_py<'py>(
     segment_type: &str,
     ior_html: &str,
     is_single_chapter: bool,
+    level: usize,
     state: Option<&Bound<'py, PyAny>>,
 ) -> PyResult<String> {
     let find_section_fn = py_find_section_fn(state);
 
-    match liven_iors_core(version_abbreviation, our_bos_book_code, segment_type, ior_html, is_single_chapter, find_section_fn) {
+    match liven_iors_core(version_abbreviation, our_bos_book_code, segment_type, ior_html, is_single_chapter, level, find_section_fn) {
         Ok(res) => Ok(res),
         Err(IORLinkError::InvalidSegmentType(seg)) => {
             Err(PyValueError::new_err(format!("Unsupported segmentType: {seg}")))

@@ -46,6 +46,7 @@ CHANGELOG:
     2026-02-05 Added RP-GNT to VERSIONS_WITHOUT_NT
     2026-03-27 Added SIL Open Translator’s Notes
     2026-05-30 Added Scriptura Layer-by-layer 'close-but-clear-translations'
+    2026-09-04 Added a separate program version number string in State (to make it easier to increment)
 """
 from pathlib import Path
 
@@ -53,10 +54,10 @@ import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import dPrint, fnPrint, BOOKLIST_OT39
 
 
-LAST_MODIFIED_DATE = '2026-09-03' # by RJH
+LAST_MODIFIED_DATE = '2026-09-04' # by RJH
 SHORT_PROGRAM_NAME = "settings"
 PROGRAM_NAME = "OpenBibleData (OBD) Settings"
-PROGRAM_VERSION = '1.0.3'
+PROGRAM_VERSION = '1.0.4'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
@@ -66,7 +67,12 @@ class State:
     """
     A place to store some of the global stuff that needs to be passed around.
     """
-    OET_VERSION_NUMBER_STRING = 'v0.48.75' # Incremented on most runs
+    SITE_NAME = 'Open Bible Data'
+    SITE_ABBREVIATION = 'OBD'
+    SITE_COPYRIGHT = "copyright © 2023–2026"
+
+    OBD_VERSION_NUMBER_STRING = 'v2.3.3' # Incremented on most runs
+    OET_VERSION_NUMBER_STRING = 'v0.48.76' # Incremented on most runs
 
     TEST_MODE_FLAG = True # Writes smaller website subset into DEBUG_DESTINATION_FOLDER_PATH if True
     TEST_OT_BOOK_LIST = ['JNA']
@@ -93,10 +99,6 @@ class State:
     DEBUG_DESTINATION_FOLDER_PATH = NORMAL_DESTINATION_FOLDER.joinpath( DEBUG_DESTINATION_FOLDER_NAME )
     DESTINATION_FOLDER = DEBUG_DESTINATION_FOLDER_PATH if TEST_MODE_FLAG or BibleOrgSysGlobals.debugFlag \
                             else NORMAL_DESTINATION_FOLDER
-
-    SITE_NAME = 'Open Bible Data'
-    SITE_ABBREVIATION = 'OBD'
-    SITE_COPYRIGHT = "copyright © 2023–2026"
 
     # We use a rough logical, then chronological 'book' order
     # For the OT, we keep SA1/SA2, etc. together (as a single document) rather than splitting them chronologically
@@ -152,7 +154,7 @@ class State:
     OET_UNFINISHED_WARNING_HTML_PARAGRAPH = f'<p class="rem">{OET_UNFINISHED_WARNING_HTML_TEXT}</p>'
     OET_UNFINISHED_BOOK_WARNING_HTML_PARAGRAPH = f'<p class="rem">{OET_UNFINISHED_WARNING_HTML_TEXT} {WHOLE_BOOK_WARNING_TEXT}</p>'
 
-    OET_PARALLEL_PAGE_SINGLE_VERSE_HTML_TEXT = 'This view shows ‘verses’ which are not natural language units and hence sometimes only part of a sentence will be visible—click on any Bible version abbreviation down the left-hand side to see the verse in more of its context. Normally the OET discourages the reading of individual ‘verses’, but this view is only designed as a tool for Bible-translators and others doing comparisons of different translations—the older translations are further down the page (so you can read up from the bottom to trace the English translation history).'
+    OET_PARALLEL_PAGE_SINGLE_VERSE_HTML_TEXT = 'This view shows ‘verses’ which are not necessarily natural language units and hence sometimes only part of a sentence will be visible—click on any Bible version abbreviation down the left-hand side to see the verse in more of its context. Normally the OET discourages the reading of individual ‘verses’, but this view is only designed as a tool for Bible-translators and others doing comparisons of different translations—the older translations are further down the page (so you can read up from the bottom to trace the English translation history).'
     OETS_UNFINISHED_WARNING_HTML_TEXT = 'The OET segments on this page are still early looks into the drafted texts of the <em>Open English Translation</em> of the Bible—please double-check these texts in advance before using in public.'
     # OETS_UNFINISHED_WARNING_HTML_PARAGRAPH = f'<p class="rem">{OETS_UNFINISHED_WARNING_HTML_TEXT}</p>'
 

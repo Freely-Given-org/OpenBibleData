@@ -87,13 +87,13 @@ CHANGELOG:
     2026-08-16 If second paired version is the same as the first, combine them (BSB/MSB & WEBBE/WMBB)
     2026-08-24 Use multiprocessing for creating the per-book parallel verse pages
                 (children return their collected versesWithImages, possibleUnmatchedProperNames,
-                and spell-check results for merging back into the parent state)
-                NOTE: The printed spell-check summary can differ very slightly from sequential
-                builds because the shared word-set warming in spellCheckAndMarkHTMLText
-                is order-dependent -- page output is unaffected
+                    and spell-check results for merging back into the parent state)
+                NOTE: The printed spell-check summary can differ very slightly from sequential builds
+                    because the shared word-set warming in spellCheckAndMarkHTMLText is order-dependent -- page output is unaffected
     2026-08-25 The OETHandlers functions are now imported from the Rust openbibledata_rust module (the Python OETHandlers.py was deleted).
     2026-08-27 Pre-load spell-check dictionaries/names in parent before forking so children don't redundantly reload them per book.
-    2026-09-01 Fixed bad links on second book index page
+    2026-09-01 Fixed bad links on the second book index page
+    2026-09-04 Don't display OET_PARALLEL_PAGE_SINGLE_VERSE_HTML_TEXT etc. if we're displaying the book intro rather than an actual verse
 """
 from pathlib import Path
 import os
@@ -127,10 +127,10 @@ from spellCheckEnglish import spellCheckAndMarkHTMLText, collectSpellCheckResult
 from openbibledata_rust import convertVerseEntryListToHtml, getOETTidyBBB, getOETBookName, livenOETWordLinks, livenOETCompatibleBereanWordLinks, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
-LAST_MODIFIED_DATE = '2026-08-27' # by RJH
+LAST_MODIFIED_DATE = '2026-09-04' # by RJH
 SHORT_PROGRAM_NAME = "createParallelVersePages"
 PROGRAM_NAME = "OpenBibleData createParallelVersePages functions"
-PROGRAM_VERSION = '1.0.6'
+PROGRAM_VERSION = '1.0.7'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -1237,8 +1237,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
 {adjBBBLinksHtml}
 {chapterLinksParagraph}
 {vLinksPar}
-<h1>Parallel {ourTidyBBB} {'Intro' if c==-1 else f'{C}:{V}'}</h1>
-<p class="rem">Note: {state.OET_PARALLEL_PAGE_SINGLE_VERSE_HTML_TEXT} {state.OETS_UNFINISHED_WARNING_HTML_TEXT}</p>
+<h1>Parallel {ourTidyBBB} {'Intro' if c==-1 else f'{C}:{V}'}</h1>{f'\n<p class="rem">Note: {state.OET_PARALLEL_PAGE_SINGLE_VERSE_HTML_TEXT} {state.OETS_UNFINISHED_WARNING_HTML_TEXT}</p>' if c>-1 and v>0 else ''}
 {navLinks.replace('__ID__','Top').replace('__ARROW__','↓').replace('__LINK__','BottomNavs').replace('__WHERE__','bottom')}
 {parallelHtml}
 {navLinks.replace('__ID__','BottomNavs').replace('__ARROW__','↑').replace('__LINK__','Top').replace('__WHERE__','top')}

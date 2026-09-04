@@ -78,6 +78,7 @@ CHANGELOG:
     2026-08-28 Preload all CSS stylesheets in the parent before creating forked workers so
                     they share one copy-on-write cache instead of each re-loading them.
     2026-09-01 Fixed some bad links on the details page(s)
+    2026-09-04 Added a separate program version number string in State
 """
 from pathlib import Path
 import os
@@ -109,10 +110,10 @@ from html import makeTop, makeViewNavListParagraph, makeBottom, checkHtml, prelo
 from spellCheckEnglish import printSpellCheckSummary
 
 
-LAST_MODIFIED_DATE = '2026-09-02' # by RJH
+LAST_MODIFIED_DATE = '2026-09-04' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData (OBD) Create Site Pages"
-PROGRAM_VERSION = '2.3.1'
+PROGRAM_VERSION = '2.3.3'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
@@ -879,7 +880,7 @@ def _createAboutPage( level:int, buildFolder:Path, state:State ) -> bool:
     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Creating {'TEST ' if state.TEST_MODE_FLAG else ''}about page…" )
 
     aboutHTML = f'''<h1 id="Top">About {state.SITE_NAME}</h1>
-<p class="about">{state.SITE_NAME} ({state.SITE_ABBREVIATION} v{PROGRAM_VERSION}) is a large set of static webpages (just under 1.3 million of them) created for several main reasons:</p>
+<p class="about">{state.SITE_NAME} ({state.SITE_ABBREVIATION} {state.OBD_VERSION_NUMBER_STRING}) is a large set of static webpages (just under 1.3 million of them) created for several main reasons:</p>
 <ol>
 <li>As a way to <b>showcase the <em>Open English Translation</em></b> of the Bible which is designed to be read with the <em>Readers’ Version</em> and the very <em>Literal Version</em> side-by-side.
     (Most existing Bible apps don’t allow for this.)
@@ -1148,7 +1149,7 @@ def _createMainIndexPage( level, folder:Path, state:State ) -> bool:
 <p class="note">The <b><a href="ilr/">Interlinear</a> verse</b> view shows the OET-RV and OET-LV aligned with the original Hebrew or Greek words (including a ‘reverse interlinear’).</p>
 <p class="note">The <b><a href="dct/">Dictionary</a></b> link takes you to the <i>Tyndale Bible Dictionary</i>, with UBS dictionaries also coming...</p>
 <p class="note">The <b><a href="Search.htm">Search</a></b> link allows you to find English words (from a range of versions), or even Greek/Hebrew words, within the Bible text.</p>
-<p class="note"><small>Last rebuilt: {date.today()} (with OET {state.OET_VERSION_NUMBER_STRING}) by {PROGRAM_NAME_VERSION}</small></p>
+<p class="note"><small>Last rebuilt: {date.today()} (with OET {state.OET_VERSION_NUMBER_STRING}) by {state.SITE_ABBREVIATION} {SHORT_PROGRAM_NAME} {state.OBD_VERSION_NUMBER_STRING}</small></p>
 {makeBottom( level, None, 'TopIndex' )}'''
     assert checkHtml( 'TopIndex', html )
 

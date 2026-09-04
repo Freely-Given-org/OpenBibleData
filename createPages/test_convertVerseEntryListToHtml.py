@@ -283,6 +283,52 @@ class TestIORLinksInConvert(unittest.TestCase):
         # Must NOT be left as a raw (dead) span.
         self.assertNotIn('<span class="ior">1:1-13</span>', result)
 
+    def test_ior_parallel_verse_segment_to_section(self):
+        """Parallel verse pages: IOR links must point at the OET bySec page."""
+        result = convertVerseEntryListToHtml(
+            level=2, versionAbbreviation='OET-RV',
+            refTuple=('MRK', '1', '1'), segmentType='parallelVerse',
+            contextList=['chapters'], verseEntryList=_io_ior_entries(),
+            basicOnly=False, state=self.state,
+        )
+        self.assertIn(
+            r'<span class="ior"><a title="Jump to section page with reference" href="../../OET/bySec/MRK_S0.htm#Top">1:1-13</a></span>',
+            result,
+        )
+        self.assertNotIn('<span class="ior">1:1-13</span>', result)
+
+    def test_ior_parallel_verse_segment_falls_back_to_chapter(self):
+        """Parallel verse pages without a matching section fall back to the OET byC page."""
+        state = State()
+        state.TEST_MODE_FLAG = True
+        # No section data at all → section lookup fails → chapter link.
+        state.sectionsListsForSections = {'OET-RV': {'MRK': []}}
+        result = convertVerseEntryListToHtml(
+            level=2, versionAbbreviation='OET-RV',
+            refTuple=('MRK', '1', '1'), segmentType='parallelVerse',
+            contextList=['chapters'], verseEntryList=_io_ior_entries(),
+            basicOnly=False, state=state,
+        )
+        self.assertIn(
+            r'<span class="ior"><a title="Jump to chapter page with reference" href="../../OET/byC/MRK_C1.htm#Top">1:1-13</a></span>',
+            result,
+        )
+
+    def test_ior_related_passage_segment(self):
+        """Parallel passage pages: IOR links must prefix '../{bbb}/' so that
+        cross-book references (e.g. a MAT block rendered on a MRK page) resolve."""
+        result = convertVerseEntryListToHtml(
+            level=1, versionAbbreviation='OET-RV',
+            refTuple=('MRK', '1', '1'), segmentType='relatedPassage',
+            contextList=['chapters'], verseEntryList=_io_ior_entries(),
+            basicOnly=False, state=self.state,
+        )
+        self.assertIn(
+            r'<span class="ior"><a title="Jump to section page with reference" href="../MRK/MRK_S0.htm#Top">1:1-13</a></span>',
+            result,
+        )
+        self.assertNotIn('<span class="ior">1:1-13</span>', result)
+
 
 if __name__ == '__main__':
     unittest.main()
