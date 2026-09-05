@@ -110,10 +110,10 @@ from html import makeTop, makeViewNavListParagraph, makeBottom, checkHtml, prelo
 from spellCheckEnglish import printSpellCheckSummary
 
 
-LAST_MODIFIED_DATE = '2026-09-04' # by RJH
+LAST_MODIFIED_DATE = '2026-09-06' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData (OBD) Create Site Pages"
-PROGRAM_VERSION = '2.3.3'
+PROGRAM_VERSION = '1.3.4'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
@@ -969,6 +969,7 @@ def _createNewsPage( level:int, buildFolder:Path, state:State ) -> bool:
     newsHTML = f'''<h1 id="Top">{state.SITE_NAME} News</h1>
 <p class="about">Recent {state.SITE_NAME} ({state.SITE_ABBREVIATION}) site developments:</p>
 <ul>
+<li><b>2026-Sep-5</b>: We added a settings panel to these pages, that now include a DARK mode and LARGE-PRINT options, with other options likely to come as well.</li>
 <li><b>2026-Aug-25</b>: We now include a preliminary draft of unfoldingWord’s <a href="{'../'*level}ref/UHG">Hebrew</a> and <a href="{'../'*level}ref/UGG">Greek</a> grammars in our <a href="{'../'*level}ref">extensive reference section</a>.</li>
 <li><b>2026-Aug-10</b>: We now have a COMPLETE draft of the <em>OET-RV</em> for you to make use of (as we move on to consistency and accuracy checks and updates).</li>
 <li><b>2026-July-6</b>: In cooperation with <a href="https://OpenBibleImages.org">OpenBibleImages.org</a>, we’ve tested some images on <em>OET-RV</em> and parallel verse pages.</li>

@@ -249,6 +249,24 @@ span.synonParr {
     margin-right: 0.35rem;
 }
 
+/* The Psalm chapter number (span.cPsa) is far larger than the verse numbers
+ * (1.6em bold vs 0.5em), so a three-digit number like "149" overflows a fixed
+ * 2.6rem gutter and bangs into the first word of the first verse -- badly with
+ * wide fonts such as DejaVu Serif (~59px for "149"+nbsp vs ~42px of gutter).
+ * Give it its own wider gutter (still rem-rooted, so it scales with the
+ * large-print themes). Width 4rem comfortably holds "150" (the largest Psalm
+ * number) in very wide fonts; margin-left re-balances so the number keeps the
+ * same 0.35rem gap from the verse text. */
+html[data-verses="left"]
+body:is(
+        [data-page-type="book"],[data-page-type="chapter"],[data-page-type="section"],
+        [data-page-type="relatedPassage"],[data-page-type="topicPassages"])
+span.cPsa {
+    width: 4rem;
+    margin-left: -4.35rem;
+    margin-right: 0.35rem;
+}
+
 /* Give the verse/citation paragraphs some side padding so the floated
    verse-number column has room to its left (the gutter). The verse-hosting
    paragraphs share the same gutter; poetry (q1/q2) stays further indented so
@@ -404,6 +422,11 @@ html[data-theme="dark"] span.add_KJB-1611 { color:#b0b0b0; }
 html[data-theme="dark"] span.RVadd { color:#909090; }
 html[data-theme="dark"] span.addReword { text-decoration-color:#b0b0b0; }
 html[data-theme="dark"] p.cNav { color:#1a1a1a; } /* light-blue bar; dark text */
+/* The prev/next chapter arrows (and the other cNav links) would otherwise pick
+   up the dark-mode body link colour (a pale blue) and vanish against the
+   light-blue bar (~1.1:1 contrast, invisible in Firefox). Force them to the
+   same dark colour as the bar's own "PSA 149" label. */
+html[data-theme="dark"] p.cNav a { color:#1a1a1a; }
 
 /* Light-background highlight spans keep their pale boxes; inherit the
    near-white body text in dark mode, so force dark text on them there. */
