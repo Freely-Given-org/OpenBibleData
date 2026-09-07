@@ -969,9 +969,9 @@ def _createNewsPage( level:int, buildFolder:Path, state:State ) -> bool:
     newsHTML = f'''<h1 id="Top">{state.SITE_NAME} News</h1>
 <p class="about">Recent {state.SITE_NAME} ({state.SITE_ABBREVIATION}) site developments:</p>
 <ul>
-<li><b>2026-Sep-5</b>: We added a settings panel to these pages, that now include a DARK mode and LARGE-PRINT options, with other options likely to come as well.</li>
+<li><b>2026-Sep-5</b>: We added a settings panel to these pages, that now includes a DARK mode, plus LARGE-PRINT and other options, with more options & improvements likely to come as well.</li>
 <li><b>2026-Aug-25</b>: We now include a preliminary draft of unfoldingWord’s <a href="{'../'*level}ref/UHG">Hebrew</a> and <a href="{'../'*level}ref/UGG">Greek</a> grammars in our <a href="{'../'*level}ref">extensive reference section</a>.</li>
-<li><b>2026-Aug-10</b>: We now have a COMPLETE draft of the <em>OET-RV</em> for you to make use of (as we move on to consistency and accuracy checks and updates).</li>
+<li><b>2026-Aug-10</b>: We now have a <b>COMPLETE draft</b> of the <em>OET-RV</em> for you to make use of (as we move on to consistency and accuracy checks and updates).</li>
 <li><b>2026-July-6</b>: In cooperation with <a href="https://OpenBibleImages.org">OpenBibleImages.org</a>, we’ve tested some images on <em>OET-RV</em> and parallel verse pages.</li>
 <li><b>2026-Mar-28</b>: We added the <a href="{'../'*level}SOTN/details.htm#Top">SIL Open Translator’s notes</a> to our parallel verse pages for the Messianic Update (NT) books and nine books from the Hebrew Scriptures (OT).</li>
 <li><b>2024-Apr-20</b>: We added the <a href="{'../'*level}AICNT">AI Critical New Testament</a> (AICNT), mainly so that we can start to evaluate (on our <a href="{'../'*level}par/MRK/C1V1.htm#AICNT">Parallel Pages</a>) how well current, so-called ‘AI’ technologies might affect the Bible translation world.</li>

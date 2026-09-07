@@ -16,6 +16,18 @@
 //                                              that mark Jesus'/Yeshua's words
 //                                              (data-wj="red"/"off" -- absent
 //                                               means the default brown)
+//   * features "off" | "on"                 -- default on. "on" (the default)
+//                                              quietens the added-word colouring
+//                                              used by the literal versions:
+//                                              every add* / unusedArticle span
+//                                              inherits the ordinary text colour
+//                                              unless it is also marked "unsure"
+//                                              and the Hebrew parallel-passage
+//                                              markers (≈/^/→) are hidden
+//                                              (data-features="on" -- set in
+//                                               this default state; absent
+//                                               means "show all", the
+//                                               non-default choice)
 //
 // The object persists in localStorage under key `obd-settings` (migrating the
 // earlier separate `obd-theme` / `obd-theme-layout` keys). Before first paint
@@ -41,13 +53,15 @@
         theme: 'system',   // system | light | dark
         verses: 'inline',  // inline  | left
         size: 'standard',  // standard| large | xlarge
-        wj: 'brown'        // brown   | red | off
+        wj: 'brown',       // brown   | red | off
+        features: 'on'     // on      | off
     };
     var ALLOWED = {
         theme: { system: true, light: true, dark: true },
         verses: { inline: true, left: true },
         size: { standard: true, large: true, xlarge: true },
-        wj: { brown: true, red: true, off: true }
+        wj: { brown: true, red: true, off: true },
+        features: { on: true, off: true }
     };
 
     var settings = null; // merged, validated settings object
@@ -159,6 +173,11 @@
         } else {
             document.documentElement.removeAttribute('data-wj');
         }
+        if (settings.features === 'on') {
+            document.documentElement.setAttribute('data-features', 'on');
+        } else {
+            document.documentElement.removeAttribute('data-features');
+        }
         syncPanel();
     }
 
@@ -204,10 +223,15 @@
         '      <label><input type="radio" name="obd-setting-size" value="xlarge">Extra large print</label>' +
         '    </fieldset>' +
         '    <fieldset>' +
-        '      <legend>Jesus&#39; words</legend>' +
+        '      <legend>Jesus’ words</legend>' +
         '      <label><input type="radio" name="obd-setting-wj" value="brown">Brown (default)</label>' +
         '      <label><input type="radio" name="obd-setting-wj" value="red">Red</label>' +
         '      <label><input type="radio" name="obd-setting-wj" value="off">No special colour</label>' +
+        '    </fieldset>' +
+        '    <fieldset>' +
+        '      <legend>Highlight special features</legend>' +
+        '      <label><input type="radio" name="obd-setting-features" value="on">Don’t show marked features (like number/person changes) <span class="settingsNote">(default)</span></label>' +
+        '      <label><input type="radio" name="obd-setting-features" value="off">Show all special OET features</label>' +
         '    </fieldset>' +
         '    <div class="settingsActions">' +
         '      <button type="button" id="obdSettingsReset" class="themeSettings">Set to defaults</button>' +

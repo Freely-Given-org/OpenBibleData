@@ -69,27 +69,73 @@ function hide_show_verses() {
 }
 
 function hide_show_colours() {
-    classes_to_adjust = ['.grkNom','.grkAcc','.grkGen','.grkDat', '.grkVoc','.grkVrb','.grkNeg', '.hebVrb','.hebNeg','.hebEl','.hebYhwh','.noLinkYet'];
-    let btn = document.getElementById('coloursButton');
-    if (btn.style.backgroundColor === 'orange') {
-        for (let cl of classes_to_adjust) {
-            var elements = document.querySelectorAll(cl);
-            for(var i=0; i<elements.length; i++){
-                elements[i].style.backgroundColor = null; // Seems to make it use the CSS again
-                if (cl==='.noLinkYet') elements[i].style.color = 'white';
-            }
-        }
-        btn.style.backgroundColor = null;
-        btn.textContent = 'Hide verse colours';
+    if (colours_hidden()) {
+        show_grammatical_colours();
+        remember_colours_shown();
     } else { // it wasn't already coloured
-        for (let cl of classes_to_adjust) {
-            var elements = document.querySelectorAll(cl);
-            for(var i=0; i<elements.length; i++){
-                elements[i].style.backgroundColor = 'white'; // What if we wanted a dark mode ???
-                if (cl==='.noLinkYet') elements[i].style.color = 'black';
-            }
+        hide_grammatical_colours();
+        remember_colours_hidden();
+    }
+}
+
+// Was the grammatical colouring turned off? Prefer the reader's saved
+// preference (localStorage key obd-colours); if storage is unavailable, fall
+// back to the old check on the button's own highlighted state.
+function colours_hidden() {
+    try {
+        var saved = localStorage.getItem('obd-colours');
+        if (saved === 'hidden' || saved === 'shown') return saved === 'hidden';
+    } catch (e) { /* local storage unavailable -- fall back below */ }
+    var btn = document.getElementById('coloursButton');
+    return !!(btn && btn.style.backgroundColor === 'orange');
+}
+
+function hide_grammatical_colours() {
+    var classes_to_adjust = ['.grkNom','.grkAcc','.grkGen','.grkDat', '.grkVoc','.grkVrb','.grkNeg', '.hebVrb','.hebNeg','.hebEl','.hebYhwh','.noLinkYet'];
+    var btn = document.getElementById('coloursButton');
+    for (let cl of classes_to_adjust) {
+        var elements = document.querySelectorAll(cl);
+        for (var i=0; i<elements.length; i++){
+            elements[i].style.backgroundColor = 'white'; // What if we wanted a dark mode ???
+            if (cl==='.noLinkYet') elements[i].style.color = 'black';
         }
+    }
+    if (btn) {
         btn.style.backgroundColor = 'orange';
         btn.textContent = 'Show verse colours';
     }
+}
+
+function show_grammatical_colours() {
+    var classes_to_adjust = ['.grkNom','.grkAcc','.grkGen','.grkDat', '.grkVoc','.grkVrb','.grkNeg', '.hebVrb','.hebNeg','.hebEl','.hebYhwh','.noLinkYet'];
+    var btn = document.getElementById('coloursButton');
+    for (let cl of classes_to_adjust) {
+        var elements = document.querySelectorAll(cl);
+        for (var i=0; i<elements.length; i++){
+            elements[i].style.backgroundColor = null; // Seems to make it use the CSS again
+            if (cl==='.noLinkYet') elements[i].style.color = 'white';
+        }
+    }
+    if (btn) {
+        btn.style.backgroundColor = null;
+        btn.textContent = 'Hide verse colours';
+    }
+}
+
+function remember_colours_hidden() {
+    try { localStorage.setItem('obd-colours', 'hidden'); } catch (e) { /* ignore */ }
+}
+
+function remember_colours_shown() {
+    try { localStorage.removeItem('obd-colours'); } catch (e) { /* ignore */ }
+}
+
+// Restore the reader's saved colour preference once the page has been parsed.
+function restore_colours() {
+    if (colours_hidden()) hide_grammatical_colours();
+}
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', restore_colours);
+} else {
+    restore_colours();
 }

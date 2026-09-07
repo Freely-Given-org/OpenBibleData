@@ -218,7 +218,7 @@ span.unsure { text-decoration:underline; text-decoration-style: dotted; text-dec
 span.ul { color:darkGrey; }
 /* span.dom { color:Gainsboro; font-size:0.75em; } */
 /* span.schwa { font-size:0.75em; } */
-span.nominaSacra { font-weight:bold; }
+span.nominaSacra { font-weight:560; }
 span.synonParr { vertical-align:super; font-size:0.8em; color:green; } /* Hebrew synonymous parallelism */
 span.antiParr { vertical-align:super; font-size:0.8em; color:orangeRed; } /* Hebrew antithetic parallelism */
 span.synthParr { vertical-align:super; font-size:0.8em; color:blue; } /* Hebrew synthetic parallelism */

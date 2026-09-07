@@ -861,10 +861,12 @@ def createOETReferencePages( level:int, outputFolderPath:Path, state:State ) -> 
     # First make a list of each place the same Greek word (and matching morphology) is used
     state.OETRefData['OTFormUsageDict'], state.OETRefData['OTLemmaRowNumbersDict'] = defaultdict(list), defaultdict(list)
     state.OETRefData['OTWordRowNumbersDict'] = defaultdict(list)
-    # state.OETRefData['OTLemmaFormsDict'] = defaultdict(set)
+    state.OETRefData['OTLemmaFormsDict'] = defaultdict(set)
+    state.OETRefData['OTLemmaFormsCountDict'] = defaultdict(int)
     state.OETRefData['OTFormOETGlossesDict'] = defaultdict(set)
     state.OETRefData['OTFormOETGlossesCountDict'] = defaultdict(int)
     state.OETRefData['OTLemmaOETGlossesDict'] = defaultdict(set)
+    state.OETRefData['OTLemmaOETGlossesCountDict'] = defaultdict(int)
     state.OETRefData['OTLemmasForRootDict'] = defaultdict(set)
     state.OETRefData['OETOTGlossWordDict'] = defaultdict(list)
     state.OETRefData['OTLemmaGlossDict'] = {}
@@ -1257,14 +1259,13 @@ def preprocessHebrewWordsLemmasGlosses( BBBSelection:str|list[str], state ) -> b
                         pass
             # print( f"{_word=} {noCantillations=} {_morphemeRowList=} {lemmaRowList=} {state.OETRefData['OTLemmaRowNumbersDict'][noCantillations]=}" )
             # for lrn in state.OETRefData['OTLemmaRowNumbersDict'][noCantillations]: print( f"  {lrn=}: {state.OETRefData['OTWordRowNumbersDict'][lrn]=}")
-            # if noCantillations == 'נִין': assert False, "We want to stop here"
-            # else:
-            #     state.OETRefData['OTLemmaRowNumbersDict'][noCantillations].append( n )
-            #     state.OETRefData['OTLemmaFormsDict'][noCantillations].add( formMorph2Tuple )
+            state.OETRefData['OTLemmaFormsDict'][noCantillations].add( formMorph2Tuple )
+            state.OETRefData['OTLemmaFormsCountDict'][(noCantillations, *formMorph2Tuple)] += 1
             if gloss:
                 state.OETRefData['OTFormOETGlossesDict'][formMorph2Tuple].add( gloss )
                 state.OETRefData['OTFormOETGlossesCountDict'][(noCantillations, morphology, gloss)] += 1
                 state.OETRefData['OTLemmaOETGlossesDict'][noCantillations].add( gloss )
+                state.OETRefData['OTLemmaOETGlossesCountDict'][(noCantillations, gloss)] += 1
                 if gloss != 'DOM':
                     adjGloss = ( gloss.replace( '\\untr DOM\\untr*', '' ).replace( 'DOM', '' )
                                     .replace( '\\nd ', '' ).replace( '\\nd*', '' )
@@ -2358,6 +2359,11 @@ def tidy_Hebrew_lemma_gloss( engGloss:str ) -> str:
 # end of createOETReferencePages.tidy_Hebrew_lemma_gloss
 
 
+def getFirstHebrewWordNumber( heb:str, morph:str ):
+    return state.OETRefData['OTFormUsageDict'][(heb,morph)][0]
+# end of createOETReferencePages.getFirstHebrewWordNumber
+
+
 def _make_hebrew_lemma_HTML_segment( thisLemmaStr:str, thisLemmaRowsList, level:int, usedMorphologies:set ) -> str:
             """
             The guts of making a Hebrew lemma page (or a section of one for related words).
@@ -2442,19 +2448,18 @@ def create_Hebrew_lemma_page( level:int, lemmaIndex:int, hebLemma:str, prevLink:
         hebLemmaWordRowsList = state.OETRefData['OTWordRowNumbersDict'][lemmaIndex+1]
         # print( f"\n{lemmaIndex=} {len(lemmaList)=} {hebLemma=} {transliteratedLemma=} {state.OETRefData['OTWordRowNumbersDict'][lemmaIndex+1]=}\n{lemmaList[lemmaIndex]=}")
         # if hebLemma == 'בָּרָא': print( f"\ncreate_Hebrew_lemma_pages: lemma {lemmaIndex}: {hebLemma=} {vowellessLemma=} {transliteratedLemma=} {transliteratedVowellessLemma=} ({len(hebLemmaWordRowsList)}) {hebLemmaWordRowsList=}" ); assert False, "We want to stop here"
-        # lemmaFormsList = sorted( state.OETRefData['OTLemmaFormsDict'][hebLemma] )
-        # lemmaOETGlossesList = state.OETRefData['OTLemmaGlossDict'][hebLemma].split( ';' )
-
-        # def getFirstHebrewWordNumber(grk:str,morph:str):
-        #     return state.OETRefData['OTFormUsageDict'][(grk,morph)][0]
+        hebLemmaFormsList = sorted( state.OETRefData['OTLemmaFormsDict'][hebLemma], key=lambda t2: -state.OETRefData['OTLemmaFormsCountDict'][(hebLemma,*t2)] )
+        numHebLemmaOETGlossesList = len( state.OETRefData['OTLemmaOETGlossesDict'][hebLemma] )
+        hebLemmaOETGlossesStrList = [f'‘<b>{lemmaGloss}</b>’({state.OETRefData["OTLemmaOETGlossesCountDict"][(hebLemma,lemmaGloss)]:,})'
+                        for lemmaGloss in sorted( state.OETRefData['OTLemmaOETGlossesDict'][hebLemma], key=lambda lg: -state.OETRefData['OTLemmaOETGlossesCountDict'][(hebLemma,lg)] ) ]
 
         usedMorphologies = set()
 
         lemmasHtml = f'''<h1 id="Top">Hebrew root <small>(lemma)</small> ‘{hebLemma}’ ({transliteratedLemma})</h1>
 <p class="pgNav">{prevLink}<b>{hebLemma}</b> <a title="Go to Hebrew word index" href="index.htm">⌂</a>{nextLink}</p>
-<p class="btnBar"><button type="button" id="wordsButton" title="Hide/Show word lines" onclick="hide_show_words()">Hide words</button> <button type="button" id="versesButton" title="Hide/Show verse lines" onclick="hide_show_verses()">Hide verses</button> <button type="button" id="coloursButton" title="Hide/Show verse colours" onclick="hide_show_colours()">Hide verse colours</button></p>'''
-# <p class="summary">This root form (lemma) ‘{hebLemma}’ is used in {'only one form' if len(lemmaFormsList)==1 else f'{len(lemmaFormsList):,} different forms'} in the Hebrew originals: {', '.join([f'<a title="View Hebrew word form" href="../HebWrd/{getFirstHebrewWordNumber(heb,morph)}.htm#Top">{heb}</a> <small>({morph[4:] if morph.startswith("....") else morph})</small>' for heb,morph in lemmaFormsList])}.</p>
-# <p class="summary">It is glossed in {'only one way' if len(lemmaOETGlossesList)==1 else f'{len(lemmaOETGlossesList):,} different ways'}: ‘<b>{"</b>’, ‘<b>".join(lemmaOETGlossesList)}</b>’.</p>
+<p class="btnBar"><button type="button" id="wordsButton" title="Hide/Show word lines" onclick="hide_show_words()">Hide words</button> <button type="button" id="versesButton" title="Hide/Show verse lines" onclick="hide_show_verses()">Hide verses</button> <button type="button" id="coloursButton" title="Hide/Show verse colours" onclick="hide_show_colours()">Hide verse colours</button></p>
+<p class="summary">This root form (lemma) ‘{hebLemma}’ is used in {'only one form' if len(hebLemmaFormsList)==1 else f'{len(hebLemmaFormsList):,} different forms'} in the Hebrew originals: {', '.join([f'<a title="View Hebrew word form" href="../HebWrd/{getHebrewWordpageFilename(getFirstHebrewWordNumber(heb,morph), state)}#Top">{heb}</a> <small>({state.OETRefData["OTLemmaFormsCountDict"][(hebLemma,heb,morph)]:,}, {morph[4:] if morph.startswith("....") else morph})</small>' for heb,morph in hebLemmaFormsList])}.</p>
+<p class="summary">It is glossed in {'only one way' if numHebLemmaOETGlossesList==1 else f'{numHebLemmaOETGlossesList:,} different ways'}: {tidy_Hebrew_lemma_gloss(', '.join(hebLemmaOETGlossesStrList))}.</p>
 
 
         lemmasHtml = f"{lemmasHtml}\n{_make_hebrew_lemma_HTML_segment(hebLemma, hebLemmaWordRowsList, level, usedMorphologies)}" # Make all the Hebrew lemma pages
