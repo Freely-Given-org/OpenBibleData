@@ -605,6 +605,7 @@ def get_verse_collation_rows(given_collation_rows: list[dict], row_index: int) -
 
 
 NOTES_REGEX = re.compile( r'\\[fx]\s.*?\\[fx]\*', re.DOTALL )
+WJ_BLOCK_REGEX = re.compile( r'\\wj(?!\*).*?\\wj\*', re.DOTALL )
 WORD_NUMBER_REGEX = re.compile( r'¦\d+' )
 MARKUP_TOKEN_REGEX = re.compile( r'\\\+?[a-z0-9]{1,4}\*?' )
 def to_plain_text( text ):
@@ -649,6 +650,18 @@ def deduplicate_staying_ordered( items:list ):
     return result
 # end of initialise.deduplicate_staying_ordered function
 
+def deduplicate_consecutive( items:list ):
+    """
+    Remove items which are duplicates of their immediate predecessor (so the same
+    speaker speaking again after someone else has spoken is kept)
+    """
+    result = []
+    for item in items:
+        if not result or result[-1] != item:
+            result.append( item )
+    return result
+# end of initialise.deduplicate_consecutive function
+
 def detect_other_speakers( plainText:str ) -> list[str]:
     """
     Best-effort detection of other speakers (e.g., Mosheh, David, Yahweh, Yohan, Paul...)
@@ -667,37 +680,40 @@ def detect_other_speakers( plainText:str ) -> list[str]:
 def get_speakers_from_verse_text( rawVerseText:str ) -> str:
     r"""
     Determine who speaks in a verse from its raw ESFM text:
-      * If \wj (words of Yeshua/Jesus) fields wrap the whole verse text
-        (ignoring any footnotes and cross-references) we put 'Yeshua'.
-      * If a verse starts with something like 'Yeshua said, “\wj ...\wj*”'
-        then the narrator speaks first as well, giving '@,Yeshua'.
-      * If a verse ends with something like '“\wj ...\wj*” And then Yeshua left.'
-        then the narrator speaks last as well, giving 'Yeshua,@'.
-      * Otherwise other named speakers are detected from speech attribution
-        patterns, e.g. 'Yohan said, “...”' gives '@,Yohan'.
+      * Each \wj ...\wj* block gives 'Yeshua', and any narration before,
+        between, or after such blocks gives '@' (the narrator) plus other
+        named speakers detected from speech-attribution patterns.
+      * e.g. 'Yeshua said, “\wj ...\wj*”'        gives '@,Yeshua';
+        '“\wj ...\wj*” he answered, “\wj ...\wj*”' gives 'Yeshua,@,Yeshua';
+        '“\wj ...\wj*” And then Yeshua left.'   gives 'Yeshua,@'.
+      * If there are no \wj blocks, a simple '@,...' list of any detected
+        named speakers is returned, e.g. 'Yohan said, “...”' gives '@,Yohan'.
     Returns a comma-separated list where '@' represents the narrator.
     """
     text = NOTES_REGEX.sub( '', rawVerseText ) # Ignore footnotes and cross-references
-    if '\\wj' not in text: # No words of Yeshua to detect
+    if not WJ_BLOCK_REGEX.search( text ): # No words of Yeshua to detect
         names = detect_other_speakers( to_plain_text( text ) )
         return '@' if not names else '@,' + ','.join( names )
 
-    firstWjIndex = text.find( '\\wj' )
-    lastWjCloseIndex = text.rfind( '\\wj*' )
-    if lastWjCloseIndex < 0:
-        lastWjCloseIndex = len( text )
-    beforeText = to_plain_text( text[:firstWjIndex] )
-    afterText = to_plain_text( text[lastWjCloseIndex+len('\\wj*'):] )
-
+    # Step through the verse, alternating between the \wj blocks (words of Yeshua)
+    # and the narrator's narration surrounding them.
     speakers = []
-    if has_narration( beforeText ):
-        speakers.append( '@' ) # The narrator speaks first
-        speakers.extend( detect_other_speakers( beforeText ) )
-    speakers.append( 'Yeshua' )
-    if has_narration( afterText ):
+    previousEnd = 0
+    for match in WJ_BLOCK_REGEX.finditer( text ):
+        wjStart, wjEnd = match.start(), match.end()
+        narrationText = to_plain_text( text[previousEnd:wjStart] )
+        if has_narration( narrationText ):
+            speakers.append( '@' ) # The narrator speaks here
+            # A 'Yeshua' detected in narration right next to a \wj block is just
+            # an attribution ('... answered Yeshua,'), so don't repeat it
+            speakers.extend( name for name in detect_other_speakers( narrationText ) if name != 'Yeshua' )
+        speakers.append( 'Yeshua' )
+        previousEnd = wjEnd
+    trailingText = to_plain_text( text[previousEnd:] )
+    if has_narration( trailingText ):
         speakers.append( '@' ) # The narrator speaks last
-        speakers.extend( detect_other_speakers( afterText ) )
-    return ','.join( deduplicate_staying_ordered( speakers ) )
+        speakers.extend( name for name in detect_other_speakers( trailingText ) if name != 'Yeshua' )
+    return ','.join( deduplicate_consecutive( speakers ) )
 # end of initialise.get_speakers_from_verse_text function
 
 
