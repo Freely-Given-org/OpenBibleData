@@ -51,6 +51,7 @@ CHANGELOG:
     2026-02-10 Upgraded to VLT v3
     2026-04-09 Changed to use getPositiveLeadingInt
     2026-04-19 Added SOTN (SIL Open Translators Notes)
+    2026-09-09 The per-word word-splitting chains and interlinear row builder now call the Rust openbibledata_rust ports
     2026-08-22 Import convertVerseEntryListToHtml directly from openbibledata_rust (convert.py deleted)
     2026-08-25 The OETHandlers functions are now imported from the Rust openbibledata_rust module (the Python OETHandlers.py was deleted).
     2026-09-01 Fixed bad links on second book index page
@@ -75,7 +76,7 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
                     makeTop, makeBottom, makeBookNavListParagraph, checkHtml
 from createSectionPages import findSectionNumber
 from jsonResources import getFormattedSILOpenTranslationNotes
-from openbibledata_rust import convertVerseEntryListToHtml, livenOETWordLinks, getOETBookName, getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename
+from openbibledata_rust import convertVerseEntryListToHtml, livenOETWordLinks, getOETBookName, getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename, splitOETLVInterlinearWords, splitOETRVInterlinearWords, buildInterlinearWordRows
 
 
 LAST_MODIFIED_DATE = '2026-09-01' # by RJH
@@ -369,19 +370,8 @@ def createOETInterlinearVerseInner( level:int, BBB:str, c:int, v:int, state:Stat
         if not fullLVText or '¦' not in fullLVText: continue # no interest to us here
 
         # Remove sentence punctuation, break "chosen/messiah"
-        #   then split into words
-        lvEnglishWordList += ( cleanLVText # This has all formatting (like \\add fields) removed
-                            .replace(',','').replace('.','').replace(':','').replace('?','')
-                            .replace('>','').replace('<','') \
-                            # .replace('\\add ','').replace('\\add*','')
-                            # .replace('\\nd ','').replace('\\nd*','')
-                            # .replace('\\sup ','<sup>').replace('\\sup*','</sup>')
-                            # .replace('\\untr ','').replace('\\untr*','')
-                            .replace('/messiah¦', ' messiah¦')
-                            .replace('_',' ').replace('=',' ').replace('÷',' ')
-                            .replace('   ',' ').replace('  ',' ')
-                            .strip().split( ' ' )
-                            )
+        #   then split into words (Rust port of the per-entry clean/split chain)
+        lvEnglishWordList += splitOETLVInterlinearWords( cleanLVText )
         # print( f"Found {BBB} {c}:{v} {lvVerseEntry=}" )
         ixMarker = fullLVText.index( '¦' )
         if not wordNumberStr: # We only need to find one word number (preferably the first one) here
@@ -397,14 +387,8 @@ def createOETInterlinearVerseInner( level:int, BBB:str, c:int, v:int, state:Stat
         if not fullRVText or '¦' not in fullRVText: continue # no interest to us here
 
         # Remove sentence punctuation,
-        #   then split into words
-        rvEnglishWordList += fullRVText.replace(',','').replace('.','').replace(':','').replace('?','') \
-                            .replace('\\add >','').replace('\\add <','') \
-                            .replace('\\add ','').replace('\\add*','') \
-                            .replace('\\nd ','').replace('\\nd*','') \
-                            .replace('\\sup ','<sup>').replace('\\sup*','</sup>') \
-                            .replace('_',' ').replace('   ',' ').replace('  ',' ') \
-                            .strip().split( ' ' )
+        #   then split into words (Rust port of the per-entry clean/split chain)
+        rvEnglishWordList += splitOETRVInterlinearWords( fullRVText )
 
     # Make the English words into dicts
     lvEnglishWordDict = defaultdict( list )
@@ -453,107 +437,26 @@ def createOETInterlinearVerseInner( level:int, BBB:str, c:int, v:int, state:Stat
     ivHtml = f'''<h2>{'SR Greek' if NT else 'Hebrew'} word order{' <small>(including unused variant words in grey)</small>' if NT and haveVariants else ''}</h2>
 <div class=interlinear><ol class=verse>'''
     if wordNumberStr: # Now we have a word number from the correct verse
-        # Display the interlinear blocks
-        if NT:
-            GreekList = ['''<li><ol class="titles">
-  <li lang="el">Greek word</li>
-  <li lang="el_LEMMA">Greek lemma</li>
-  <li lang="en_TRANS"><b>OET-LV words</b></li>
-  <li lang="en_TRANS"><b>OET-RV words</b></li>
-  <li lang="en_STRONGS">Strongs</li>
-  <li lang="en_MORPH">Role/Morphology</li>
-  <li lang="en_GLOSS">OET Gloss</li>
-  <li lang="en_GLOSS">VLT Gloss</li>
-  <li lang="en_CAPS">CAPS codes</li>
-  <li lang="en_PERCENT">Confidence</li>
-  <li lang="en_TAGS">OET tags</li>
-  <li lang="en_WORDNUM">OET word #</li>
-</ol><!--titles--></li>''']
-            for wordNumber in range( firstWordNumber, lastWordNumber+1 ):
-                # if wordNumber >= len(wordTable): # we must be in one of the last verses of Rev
-                #     break
-                rowStr = wordTable[wordNumber]
-                assert rowStr.startswith( f'{BBB}_{c}:{v}w' )
-                # if not rowStr.startswith( f'{BBB}_{c}:{v}w' ): # gone into the next verse
-                #     break
-                row = rowStr.split( '\t' )
-                assert len(row) == 12
-                #  0    1          2        3           4              5              6          7            8           9     10          11
-                # 'Ref\tGreekWord\tSRLemma\tGreekLemma\tVLTGlossWords\tOETGlossWords\tGlossCaps\tProbability\tStrongsExt\tRole\tMorphology\tTags'
-                if row[11]:
-                    tags = row[11].split( ';' )
-                    for t,tag in enumerate( tags ):
-                        tagPrefix, tag = tag[0], tag[1:]
-                        if tagPrefix == 'P':
-                            tags[t] = f'''Person=<a title="View person details" href="{'../'*level}ref/Per/{tag}.htm#Top">{tag}</a>'''
-                        elif tagPrefix == 'L':
-                            tags[t] = f'''Location=<a title="View place details" href="{'../'*level}ref/Loc/{tag}.htm#Top">{tag}</a>'''
-                    tagsHtml = '; '.join( tags )
-                else: tagsHtml = '-'
-                GreekList.append( f'''<li><ol class="{'word' if row[7]=='X' else 'variant'}">
-  <li lang="el">{row[1]}</li>
-  <li lang="el_LEMMA">{row[2]}</li>
-  <li lang="en_TRANS">{'<span class="untr" title="Word typically omitted from English translations">' if row[4][0]=='¬' else '<b>'}{' '.join(lvEnglishWordDict[wordNumber]) if lvEnglishWordDict[wordNumber] else '-'}{'</span>' if row[4][0]=='¬' else '</b>'}</li>
-  <li lang="en_TRANS"><b>{' '.join(rvEnglishWordDict[wordNumber]) if rvEnglishWordDict[wordNumber] else '-'}</b></li>
-  <li lang="en_STRONGS"><a href="https://BibleHub.com/greek/{row[8][:-1]}.htm">{row[8]}</a></li>
-  <li lang="en_MORPH">{row[9]}{row[10]}</li>
-  <li lang="en_GLOSS">{row[5]}</li>
-  <li lang="en_GLOSS">{row[4]}</li>
-  <li lang="en_CAPS">{row[6] if row[6] else '-'}</li>
-  <li lang="en_TAGS">{tagsHtml}</li>
-  <li lang="en_WORDNUM"><a title="View word details" href="{'../'*level}ref/GrkWrd/{getGreekWordpageFilename(wordNumber, state )}#Top">{wordNumber}</a></li>
-</ol><!--{'word' if row[7]=='X' else 'variant'}--></li>''' )
-            ivHtml = f'{ivHtml}{NEWLINE.join( GreekList )}'
-        else: # OT
-            HebrewList = ['''<li><ol class="titles">
-  <li lang="he">Hebrew word</li>
-  <li lang="he_LEMMA">Hebrew lemma</li>
-  <li lang="en_TRANS"><b>OET-LV words</b></li>
-  <li lang="en_TRANS"><b>OET-RV words</b></li>
-  <li lang="en_STRONGS">Strongs</li>
-  <li lang="en_MORPH">Role/Morphology</li>
-  <li lang="en_GLOSS">Gloss</li>
-  <li lang="en_CAPS">CAPS codes</li>
-  <li lang="en_TAGS">OET tags</li>
-  <li lang="en_WORDNUM">OET word #</li>
-</ol><!--titles--></li>''']
-            firstWordNumber,lastWordNumber = state.OETRefData['word_table_indexes'][wordFileName][f'{BBB}_{C}:{V}']
-            for wordNumber in range( firstWordNumber, lastWordNumber+1 ):
-                # if wordNumber >= len(wordTable): # we must be in one of the last verses of Rev
-                #     break
-                rowStr = wordTable[wordNumber]
-                assert rowStr.startswith( f'{BBB}_{c}:{v}' )
-                # if not rowStr.startswith( f'{BBB}_{c}:{v}w' ): # gone into the next verse
-                #     break
-                row = rowStr.split( '\t' )
-                assert len(row) == 19, f"({len(row)}) {row=}"
-                #  0    1        2                3             4        5           6     7                8                9                          10         11                   12                   13                14          15           16    17       18
-                # 'Ref\tRowType\tMorphemeRowList\tLemmaRowList\tStrongs\tMorphology\tWord\tNoCantillations\tMorphemeGlosses\tContextualMorphemeGlosses\tWordGloss\tContextualWordGloss\tGlossCapitalisation\tGlossPunctuation\tGlossOrder\tGlossInsert\tRole\tNesting\tTags'
-                gloss = row[11] if row[11] else row[10] if row[10] else row[9] if row[9] else row[8]
-                strongsList = [f'<a href="https://BibleHub.com/hebrew/{nn}.htm">{nn}</a>' for nn in row[4].split(',') if nn.isdigit()]
-                if row[18]:
-                    tags = row[18].split( ';' )
-                    for t,tag in enumerate( tags ):
-                        tagPrefix, tag = tag[0], tag[1:]
-                        if tagPrefix == 'P':
-                            tags[t] = f'''Person=<a title="View person details" href="{'../'*level}ref/Per/{tag}.htm#Top">{tag}</a>'''
-                        elif tagPrefix == 'L':
-                            tags[t] = f'''Location=<a title="View place details" href="{'../'*level}ref/Loc/{tag}.htm#Top">{tag}</a>'''
-                    tagsHtml = '; '.join( tags )
-                else: tagsHtml = '-'
-                HebrewList.append( f'''<li><ol class="word">
-  <li lang="he">{row[7]}</li>
-  <li lang="he_LEMMA">{row[2]}</li>
-  <li lang="en_TRANS"><b>{' '.join(lvEnglishWordDict[wordNumber]) if lvEnglishWordDict[wordNumber] else '-'}</b></li>
-  <li lang="en_TRANS"><b>{' '.join(rvEnglishWordDict[wordNumber]) if rvEnglishWordDict[wordNumber] else '-'}</b></li>
-  <li lang="en_STRONGS">{','.join(strongsList)}</li>
-  <li lang="en_MORPH">{row[16]}-{row[5]}</li>
-  <li lang="en_GLOSS">{gloss}</li>
-  <li lang="en_CAPS">{row[12] if row[12] else '-'}</li>
-  <li lang="en_TAGS">{tagsHtml}</li>
-  <li lang="en_WORDNUM"><a title="View word details" href="{'../'*level}ref/HebWrd/{wordNumber}.htm#Top">{wordNumber}</a></li>
-</ol><!--word--></li>''' )
-            ivHtml = f'{ivHtml}{NEWLINE.join( HebrewList )}'
+        # Display the interlinear blocks (per-word rows are built in Rust for speed)
+        firstWordNumber,lastWordNumber = state.OETRefData['word_table_indexes'][wordFileName][f'{BBB}_{C}:{V}']
+        wordRows, wordNumbers, wordpageFilenames = [], [], []
+        for wordNumber in range( firstWordNumber, lastWordNumber+1 ):
+            # if wordNumber >= len(wordTable): # we must be in one of the last verses of Rev
+            #     break
+            rowStr = wordTable[wordNumber]
+            # if not rowStr.startswith( f'{BBB}_{c}:{v}' ): # gone into the next verse
+            #     break
+            wordRows.append( rowStr.split( '\t' ) )
+            wordNumbers.append( wordNumber )
+            wordpageFilenames.append( getGreekWordpageFilename(wordNumber, state ) if NT else f'{wordNumber}.htm' )
+        # The Rust port also emits the title row, tags (Person=/Location=),
+        #   gloss selection, Strongs links, and word-number links
+        ivHtml = f'{ivHtml}{buildInterlinearWordRows( level, NT, wordRows, wordNumbers, wordpageFilenames, lvEnglishWordDict, rvEnglishWordDict )}'
+        # Reproduce an original-code side effect: the reverse-interlinear block below
+        #   reuses `gloss` from the LAST forward OT row (the old forward loop set it)
+        if not NT:
+            lastRow = wordRows[-1]
+            gloss = lastRow[11] if lastRow[11] else lastRow[10] if lastRow[10] else lastRow[9] if lastRow[9] else lastRow[8]
 
     # Now append the OET-RV
 #  <li lang="en_PERCENT">{row[7]+'%' if row[7] else 'V'}</li>

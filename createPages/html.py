@@ -104,6 +104,7 @@ CHANGELOG:
     2026-08-28 Added preloadCSSStyles() so stylesheet caches are built in the parent before
                     forked multiprocessing children are created (they inherit the cache copy-on-write).
     2026-09-09 Handle two consecutive divs in common.css
+    2026-09-09 removeDuplicateCVids and removeDuplicateFNids now call the Rust openbibledata_rust ports
      2026-09-08 Fixed spurious "CSS style not in stylesheet" errors in checkHtmlForMissingStyles:
                 merge common.css into the page's own stylesheet by unioning the element lists
                 (so e.g. span.d from BibleWord.css isn't clobbered by p.d from common.css), and
@@ -307,60 +308,12 @@ def removeDuplicateCVids( html:str ) -> str:
     This function removes the second id field in each case (which should be in the LV text).
 
     # Assert statements are disabled because this function can be quite slow for an entire OET book
+
+    Ported to Rust (openbibledata_rust.remove_duplicate_c_vids) for speed.
     """
     vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Removing duplicate IDs (#CV & #V) for ({len(html):,} chars)…" )
 
-    endIx = 0 # This is where we start searching
-    while True:
-        startVIx = html.find( ' id="V', endIx )
-        if startVIx == -1: startVIx = 99_999_999
-        startCIx = html.find( ' id="C', endIx )
-        if startCIx == -1: startCIx = 99_999_999
-        startIx = min( startVIx, startCIx )
-        if startIx == 99_999_999: break # None / no more
-        endIx = html.find( '>', startIx+8 ) # The end of the first id field found -- any duplicates will be AFTER this
-        # assert endIx != -1
-        idContents = html[startIx:endIx]
-        # print( f"    {startIx} {idContents=}")
-        # assert 7 < len(idContents) < 14, f"{idContents=} {len(idContents)=}"
-        # idCount = html.count( idContents, startIx ) # It's quicker if we don't do this
-        # if startIx == startCIx:
-        #     assert 1 <= idCount <= 2, f"{BBB} {idContents=} {idCount=} {html}"
-        # else: # for #V entries, in large multi-chapter sections there can be several
-        #     assert 1 <= idCount <= 5, f"{BBB} {idContents=} {idCount=} {html}"
-        # if idCount > 1:
-        endHtml = html[endIx:]
-        # NOTE: In a section that includes multiple chapters, we might have multiple 'id="V1"'s
-        # print( f"removeDuplicateCVids {BBB} {idContents=} {startIx=} {endIx=}" )
-        while (endHtmlStartIx := endHtml.find( idContents ) ) != -1:
-            # if endHtmlStartIx == -1: continue # No duplicate found
-            # print( f"removeDuplicateCVidsA {endHtmlStartIx=} '{endHtml[endHtmlStartIx-50:endHtmlStartIx+50]}'" )
-            if ( (idContents.startswith( ' id="C' ) and 'V' not in idContents) # don't want ' id="C1V1'
-            or idContents.startswith( ' id="V' ) ): # Only in side-by-side chapters (not in entire books)
-                # then from something like '<span id="C123"></span>', if we delete the id bit, we get useless '<span></span>'
-                #   so let's delete the whole lot
-                # assert endHtml[endHtmlStartIx-5:endHtmlStartIx] == '<span', f"{endHtml[endHtmlStartIx-10:endHtmlStartIx]=} then {endHtml[endHtmlStartIx:endHtmlStartIx+10]=}"
-                # assert endHtml[endHtmlStartIx+len(idContents):endHtmlStartIx+len(idContents)+8] == '></span>', f"{endHtml[endHtmlStartIx+len(idContents):endHtmlStartIx+len(idContents)+8]=}"
-                if endHtml[endHtmlStartIx-5:endHtmlStartIx] == '<span' \
-                and endHtml[endHtmlStartIx+len(idContents):endHtmlStartIx+len(idContents)+8] == '></span>':
-                    endHtml = f'{endHtml[:endHtmlStartIx-5]}{endHtml[endHtmlStartIx+len(idContents)+8:]}'
-                    html = f'{html[:endIx]}{endHtml}'
-                    # assert '<span></span>' not in html
-                    # print( f"removeDuplicateCVidsB {endHtmlStartIx=}\nendHtml='…{endHtml[endHtmlStartIx-50:endHtmlStartIx+50]}…'\nhtml='…{html[endIx+endHtmlStartIx-50:endIx+endHtmlStartIx+50]}…'" )
-                elif endHtml[endHtmlStartIx-15:endHtmlStartIx] == '<span class="c"' \
-                and endHtml[endHtmlStartIx:].startswith( ' id="C' ):
-                    # print( f"{idContents=} {endHtml[endHtmlStartIx:endHtmlStartIx+30]=}" )
-                    endHtml = f'{endHtml[:endHtmlStartIx]}{endHtml[endHtmlStartIx+len(idContents):]}'
-                    html = f'{html[:endIx]}{endHtml}'
-            else:
-                endHtml = f'{endHtml[:endHtmlStartIx]}{endHtml[endHtmlStartIx+len(idContents):]}'
-                html = f'{html[:endIx]}{endHtml}'
-                # assert '<span></span>' not in html
-                # print( f"removeDuplicateCVidsC {endHtmlStartIx=}\nendHtml='…{endHtml[endHtmlStartIx-50:endHtmlStartIx+50]}…'\nhtml='…{html[endIx+endHtmlStartIx-50:endIx+endHtmlStartIx+50]}…'" )
-        assert html.count( idContents ) == 1, f"{idContents=} {html.count(idContents)=}"
-
-    assert '<span></span>' not in html # it used to be there when we deleted id fields from the already empty spans
-    return html
+    return openbibledata_rust.removeDuplicateCVids( html )
 # end of html.removeDuplicateCVids
 
 def removeDuplicateFNids( where:str, html:str ) -> str:
@@ -371,37 +324,12 @@ def removeDuplicateFNids( where:str, html:str ) -> str:
     This function removes the second id field in each case (which should be in the translated/transliterated footnote).
 
     # Assert statements are disabled because this function can be quite slow for an entire OET book
+
+    Ported to Rust (openbibledata_rust.remove_duplicate_fnids) for speed.
     """
     vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Removing duplicate footnote IDs for {where} ({len(html):,} chars)…" )
 
-    endIx = 0 # This is where we start searching
-    while True:
-        startIx = html.find( ' id="fn', endIx )
-        if startIx == -1: break # None / no more
-        endIx = html.find( '>', startIx+8 ) # The end of the first id field found -- any duplicates will be AFTER this
-        # assert endIx != -1
-        idContents = html[startIx:endIx]
-        # print( f"    {startIx} {idContents=}")
-        # assert 7 < len(idContents) < 14, f"{idContents=} {len(idContents)=}"
-        # idCount = html.count( idContents, startIx ) # It's quicker if we don't do this
-        # if startIx == startCIx:
-        #     assert 1 <= idCount <= 2, f"{BBB} {idContents=} {idCount=} {html}"
-        # else: # for #V entries, in large multi-chapter sections there can be several
-        #     assert 1 <= idCount <= 5, f"{BBB} {idContents=} {idCount=} {html}"
-        # if idCount > 1:
-        endHtml = html[endIx:]
-        # NOTE: In a section that includes multiple chapters, we might have multiple 'id="V1"'s
-        # print( f"removeDuplicateFNids {BBB} {idContents=} {startIx=} {endIx=}" )
-        while (endHtmlStartIx := endHtml.find( idContents ) ) != -1:
-            # if endHtmlStartIx == -1: continue # No duplicate found
-            # print( f"removeDuplicateFNidsA {endHtmlStartIx=} '{endHtml[endHtmlStartIx-50:endHtmlStartIx+50]}'" )
-            endHtml = f'{endHtml[:endHtmlStartIx]}{endHtml[endHtmlStartIx+len(idContents):]}'
-            html = f'{html[:endIx]}{endHtml}'
-            # assert '<span></span>' not in html
-            # print( f"removeDuplicateFNidsC {endHtmlStartIx=}\nendHtml='…{endHtml[endHtmlStartIx-50:endHtmlStartIx+50]}…'\nhtml='…{html[endIx+endHtmlStartIx-50:endIx+endHtmlStartIx+50]}…'" )
-        assert html.count( idContents ) == 1, f"{idContents=} {html.count(idContents)=}"
-
-    return html
+    return openbibledata_rust.removeDuplicateFNids( where, html )
 # end of html.removeDuplicateFNids
 
 

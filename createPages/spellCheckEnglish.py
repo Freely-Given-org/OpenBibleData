@@ -828,7 +828,6 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                 'rejoiceen','shinese','hereging','hesitationsal','kamet','upen','galt','forgetst',
                                     'seventymal','batest','anye',
                                     'lastbaren','ofging','successore','einzog','twofelt','sawet','herbeikam','person)wichte',
-                                    'zerschellen',
                     
                                 'actio', 'agi', 'aliena', 'ambit','ambitio','amputa', 'anima','antiqui','apprehendi', 'argui','ascendi','attende','audi', 'aversio',
                                 'beati','bene','beneficia','bos',
@@ -860,8 +859,8 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                 'tonitrua','utrique',
                                     'res','knowti','boxnis','recordati','clange','reados','sectus','undis',
                                     'lovese','meum','weres','multiformis','professio','reprimandse','halfnt','stringit','sendus','resttionum','namedm','beforeparavi','rightsverit',
-                                    'anathemate','fightrent','anys','habitndum','beforeof','enterings','abs','vis','mindo','mora',
-                                    'hospes','eram','discamus','quolibet',
+                                    'anathemate','fightrent','anys','habitndum','beforeof','enterings','abs','vis','mindo','mora','hospes','eram','discamus',
+                                    'intrent','hellrum',
 
                                 )
                     else 'Info', DEBUGGING_THIS_MODULE, f'''  {word} is suspect @ {location}\n      from {cleanedTextToDisplay=}\n      WHICH GAVE cleanedTextToCheck={_truncate_for_display(cleanedTextToCheck,word)}''' )

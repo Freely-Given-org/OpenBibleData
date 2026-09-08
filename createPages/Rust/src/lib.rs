@@ -1,5 +1,7 @@
 //! PyO3 module exposing OpenBibleData Rust extensions.
 
+use std::sync::{Arc, Mutex};
+
 use pyo3::exceptions::{
     PyAssertionError, PyIndexError, PyKeyError, PyTypeError, PyUnboundLocalError, PyValueError,
 };
@@ -12,6 +14,7 @@ pub mod ior_links;
 pub mod oet_books;
 pub mod oet_handlers;
 pub mod page_chrome;
+pub mod postprocess;
 pub mod roman_numerals;
 pub mod section_numbers;
 pub mod character_formatting;
@@ -95,15 +98,64 @@ fn log_message(py: Python<'_>, level: &str, message: &str) {
 
 // ── Section lookup cache ──────────────────────────────────────────────────
 
+/// Process-global cache of the pre-extracted section-lookup data, keyed on the
+/// identity (memory address) of the `state.sectionsListsForSections` dict.
+///
+/// `convertVerseEntryListToHtml` used to rebuild the whole cache on EVERY call,
+/// i.e., once per verse per Bible version — tens of MB of FFI traversal per
+/// verse.  Workers are forked after the section lists are prebuilt and never
+/// mutate them, so a worker (or the parent) only ever needs to build this once;
+/// an identical dict object is reused for the rest of the process.  If the dict
+/// is ever replaced (new pointer), the next call detects it and rebuilds.
+///
+/// Stored as an `Arc` so that each call cheaply clones the ref-count (not the
+/// data) into the `find_section_fn` closure, avoiding a full cache clone.
+static SECTION_LOOKUP_CACHE: Mutex<Option<(usize, Arc<section_numbers::SectionLookupCache>)>> =
+    Mutex::new(None);
+
+/// Return a reference-counted handle to the section-lookup cache for the given
+/// `state`, building it on first use (or when the dict object changes).
+fn cached_section_lookup_cache(state: Option<&Bound<'_, PyAny>>) -> Option<Arc<section_numbers::SectionLookupCache>> {
+    let state_obj = state?;
+    let identity = state_obj.getattr("sectionsListsForSections").ok()?
+        .as_ptr() as usize;
+
+    {
+        let guard = SECTION_LOOKUP_CACHE.lock().unwrap_or_else(|e| e.into_inner());
+        if let Some((cached_identity, cache)) = guard.as_ref() {
+            if *cached_identity == identity {
+                return Some(cache.clone());
+            }
+        }
+    }
+
+    let built = state_obj.getattr("sectionsListsForSections").ok()
+        .and_then(|sections_lists| build_section_lookup_cache(&sections_lists));
+
+    let mut guard = SECTION_LOOKUP_CACHE.lock().unwrap_or_else(|e| e.into_inner());
+    if let Some((cached_identity, cache)) = guard.as_ref() {
+        // Another call snuck in and rebuilt for this identity while we were
+        // building; reuse it rather than replacing with a duplicate.
+        if *cached_identity == identity {
+            return Some(cache.clone());
+        }
+    }
+    match built {
+        Some(cache) => {
+            let cache = Arc::new(cache);
+            *guard = Some((identity, cache.clone()));
+            Some(cache)
+        }
+        None => None,
+    }
+}
+
 /// Pre-extract section lookup data from `state.sectionsListsForSections` into
 /// a pure-Rust `SectionLookupCache`.  This eliminates per-verse Python
 /// callbacks for section lookups during footnote/cross-reference processing.
 ///
-/// Returns `None` if state is `None` or the attribute is missing.
-fn build_section_lookup_cache(state: Option<&Bound<'_, PyAny>>) -> Option<section_numbers::SectionLookupCache> {
-    let state_obj = state?;
-    let sections_lists = state_obj.getattr("sectionsListsForSections").ok()?;
-
+/// Returns `None` if the dict cannot be iterated.
+fn build_section_lookup_cache(sections_lists: &Bound<'_, PyAny>) -> Option<section_numbers::SectionLookupCache> {
     let mut cache = section_numbers::SectionLookupCache::new();
 
     // Collect version keys first to avoid borrowing issues
@@ -511,12 +563,13 @@ fn convert_verse_entry_list_to_html_py<'py>(
     }
 
     // Build find_section_fn callback — pre-extract section data into Rust
-    // to eliminate per-verse Python callbacks during footnote/xref processing.
-    let section_cache = build_section_lookup_cache(state)
-        .unwrap_or_else(section_numbers::SectionLookupCache::new);
-    let section_cache_rc = std::rc::Rc::new(section_cache);
+    // once per process (see `cached_section_lookup_cache`) to eliminate both
+    // per-verse Python callbacks and per-call cache rebuilds during
+    // footnote/xref processing.
+    let section_cache: Arc<section_numbers::SectionLookupCache> = cached_section_lookup_cache(state)
+        .unwrap_or_else(|| Arc::new(section_numbers::SectionLookupCache::new()));
     let find_section_fn = {
-        let cache = section_cache_rc.clone();
+        let cache = section_cache.clone();
         move |va: &str, bbb: &str, c: &str, v: &str| -> Option<usize> {
             cache.lookup(va, bbb, c, v)
         }
@@ -1462,6 +1515,67 @@ fn find_ol_quote_in_lv_py<'py>(
     }
 }
 
+// ── postprocess.pyfunction wrappers ────────────────────────────────────────
+
+/// PyO3 wrapper for `postprocess::remove_verse_punctuation_for_comparison`.
+#[pyfunction(name = "removeVersePunctuationForComparison")]
+fn remove_verse_punctuation_for_comparison_py(html_text: &str) -> String {
+    postprocess::remove_verse_punctuation_for_comparison(html_text)
+}
+
+/// PyO3 wrapper for `postprocess::remove_greek_punctuation`.
+#[pyfunction(name = "removeGreekPunctuation")]
+fn remove_greek_punctuation_py(greek_text: &str) -> String {
+    postprocess::remove_greek_punctuation(greek_text)
+}
+
+/// PyO3 wrapper for `postprocess::split_oet_lv_interlinear_words`.
+#[pyfunction(name = "splitOETLVInterlinearWords")]
+fn split_oet_lv_interlinear_words_py(clean_text: &str) -> Vec<String> {
+    postprocess::split_oet_lv_interlinear_words(clean_text)
+}
+
+/// PyO3 wrapper for `postprocess::split_oet_rv_interlinear_words`.
+#[pyfunction(name = "splitOETRVInterlinearWords")]
+fn split_oet_rv_interlinear_words_py(full_text: &str) -> Vec<String> {
+    postprocess::split_oet_rv_interlinear_words(full_text)
+}
+
+/// PyO3 wrapper for `postprocess::remove_duplicate_c_vids`.
+#[pyfunction(name = "removeDuplicateCVids")]
+fn remove_duplicate_c_vids_py(html: &str) -> String {
+    postprocess::remove_duplicate_c_vids(html)
+}
+
+/// PyO3 wrapper for `postprocess::remove_duplicate_fnids`.
+#[pyfunction(name = "removeDuplicateFNids")]
+fn remove_duplicate_fnids_py(where_from: &str, html: &str) -> String {
+    postprocess::remove_duplicate_fnids(where_from, html)
+}
+
+/// PyO3 wrapper for `postprocess::build_interlinear_word_rows`.
+#[pyfunction(name = "buildInterlinearWordRows")]
+#[pyo3(signature = (level, nt, rows, word_numbers, wordpage_filenames, lv_english, rv_english))]
+fn build_interlinear_word_rows_py(
+    level: usize,
+    nt: bool,
+    rows: Vec<Vec<String>>,
+    word_numbers: Vec<usize>,
+    wordpage_filenames: Vec<String>,
+    lv_english: std::collections::HashMap<usize, Vec<String>>,
+    rv_english: std::collections::HashMap<usize, Vec<String>>,
+) -> String {
+    postprocess::build_interlinear_word_rows(
+        level,
+        nt,
+        &rows,
+        &word_numbers,
+        &wordpage_filenames,
+        &lv_english,
+        &rv_english,
+    )
+}
+
 #[pymodule]
 fn openbibledata_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(liven_introduction_links_py, m)?)?;
@@ -1483,6 +1597,13 @@ fn openbibledata_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(liven_oet_compatible_berean_word_links_py, m)?)?;
     m.add_function(wrap_pyfunction!(find_ol_quote_in_lv_py, m)?)?;
     m.add_function(wrap_pyfunction!(html_validation::check_html_py, m)?)?;
+    m.add_function(wrap_pyfunction!(remove_verse_punctuation_for_comparison_py, m)?)?;
+    m.add_function(wrap_pyfunction!(remove_greek_punctuation_py, m)?)?;
+    m.add_function(wrap_pyfunction!(split_oet_lv_interlinear_words_py, m)?)?;
+    m.add_function(wrap_pyfunction!(split_oet_rv_interlinear_words_py, m)?)?;
+    m.add_function(wrap_pyfunction!(remove_duplicate_c_vids_py, m)?)?;
+    m.add_function(wrap_pyfunction!(remove_duplicate_fnids_py, m)?)?;
+    m.add_function(wrap_pyfunction!(build_interlinear_word_rows_py, m)?)?;
     m.add_class::<PyPageChromeConfig>()?;
     Ok(())
 }

@@ -93,6 +93,7 @@ CHANGELOG:
     2026-08-25 The OETHandlers functions are now imported from the Rust openbibledata_rust module (the Python OETHandlers.py was deleted).
     2026-08-27 Pre-load spell-check dictionaries/names in parent before forking so children don't redundantly reload them per book.
     2026-09-01 Fixed bad links on the second book index page
+    2026-09-09 removeVersePunctuationForComparison and removeGreekPunctuation now call the Rust openbibledata_rust ports
     2026-09-04 Don't display OET_PARALLEL_PAGE_SINGLE_VERSE_HTML_TEXT etc. if we're displaying the book intro rather than an actual verse
 """
 from pathlib import Path
@@ -124,7 +125,7 @@ from createSectionPages import findSectionNumber
 from createOETReferencePages import OSHB_ADJECTIVE_DICT, OSHB_PARTICLE_DICT, OSHB_NOUN_DICT, OSHB_PREPOSITION_DICT, OSHB_PRONOUN_DICT, OSHB_SUFFIX_DICT
 from spellCheckEnglish import spellCheckAndMarkHTMLText, collectSpellCheckResults, mergeSpellCheckResults, \
                             load_dict_sources, load_OET_LV_names, load_OET_RV_names
-from openbibledata_rust import convertVerseEntryListToHtml, getOETTidyBBB, getOETBookName, livenOETWordLinks, livenOETCompatibleBereanWordLinks, getHebrewWordpageFilename, getGreekWordpageFilename
+from openbibledata_rust import convertVerseEntryListToHtml, getOETTidyBBB, getOETBookName, livenOETWordLinks, livenOETCompatibleBereanWordLinks, getHebrewWordpageFilename, getGreekWordpageFilename, removeVersePunctuationForComparison, removeGreekPunctuation as _removeGreekPunctuationFromRust
 
 
 LAST_MODIFIED_DATE = '2026-09-04' # by RJH
@@ -665,22 +666,8 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                 if state.DO_SPELL_CHECKS_FLAG:
                                     modernisedTextHtml = spellCheckAndMarkHTMLText( versionAbbreviation, parRef, modernisedTextHtml, footnoteFreeTextHtml, state ) # Puts spans around mispellings
 
-                                def removeVersePunctuationForComparison( htmlText:str ) -> str:
-                                    """
-                                    Punctuation was used differently over the centuries, so remove it from the verse
-                                        so we can compare two verses and see if they differ only by punctuation.
-                                    """
-                                    return ( htmlText
-                                            .replace(',','').replace('.','').replace(':','').replace(';','')
-                                            .replace('!','').replace('?','') # Yes, even question mark is added punctuation
-                                            .replace('-','')
-                                            .replace('“','').replace('”','')
-                                            .replace('‘','').replace('’','')
-                                            .replace('(','').replace(')','')
-                                            .replace('¶ ','').replace('¶','')
-                                            .replace('  ',' ') # Around (now-removed) brackets 2Sam 4:10
-                                            )
                                 # end of removeVersePunctuationForComparison function
+                                # (see the Rust port below the module docstring/changelog comment)
 
                                 # if versionAbbreviation == 'BSB':
                                 #     # if parRef in ancientRefsToPrint: print( f"AA {versionAbbreviation} {parRef} ({len(modernisedTextHtml)}) {modernisedTextHtml=}" )
@@ -1318,19 +1305,10 @@ def removeGreekPunctuation( greekText:str ) -> str:
     Converts to lowercase and removes punctuation used in any Greek version.
 
     Used to compare critical Greek versions.
+
+    Ported to Rust (openbibledata_rust.removeGreekPunctuation) for speed.
     """
-    return ( greekText.lower()
-                .replace(',','').replace('.','').replace('!','') # English punctuation marks
-                .replace('?','').replace(';','') # English and Greek question marks
-                .replace(';','').replace('·','').replace('·','').replace(':','') # English and Greek semicolons and colon
-                .replace('(','').replace(')','').replace('[','').replace(']','') # Parentheses and square brackets
-                .replace('“','').replace('”','').replace('‘','').replace('’','') # Double and single typographic quotation marks
-                .replace('⸀','').replace('⸂','').replace('⸃','').replace('⸁','').replace('⸄','').replace('⸅','').replace('⟦','').replace('⟧','')
-                .replace('ʼ','')
-                .replace('˚','') # Used by SR-GNT to mark Nomina Sacra
-                .replace('—',' ').replace('–',' ').replace('…',' ') # Em and en dashes and ellipsis are converted to spaces
-                .replace('   ',' ').replace('  ',' ') # Clean up spaces
-            .strip() )
+    return _removeGreekPunctuationFromRust( greekText ) # The Rust port
 # end of createParallelVersePages.removeGreekPunctuation
 
 
