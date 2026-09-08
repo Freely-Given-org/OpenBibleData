@@ -826,8 +826,8 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                 'Mal','mal','milde','mit','Mord','Natur','nun','nur',
                                 'rede','kam','Korb','ward','Rat','Rede','messen','ging','Halle','und','ster','streng','töte','tun','von','wer','zu','zwo',
                                 'offeringn','finesten',
-                                    'girdlen','oner','aus','whaless','ausyäten',
-                                    'mixede','throughäuert','outträgt','yeartag',
+                                    'overblieb','overen','doubtedst','gaten','liften',
+                                    'upfährt','deepsten','loste',
                     
                                 'actio', 'agi', 'aliena', 'ambit','ambitio','amputa', 'anima','antiqui','apprehendi', 'argui','ascendi','attende','audi', 'aversio',
                                 'beati','bene','beneficia','bos',
@@ -836,7 +836,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                         'conclusi', 'confessio','confusi','confusio','congregati','congregatio','consecrat','consecrati','considerat','consolati','consolatio',
                                             'constituti','contra','contriti','conversa','conversi','conversio','converti',
                                         'cor','correcti','correctio',
-                                    'creat','creati','credi','cruci',        'cultu','cum','cura','curat',
+                                    'creat','creati','credi','credit','cruci',        'cultu','cum','cura','curat',
                                 'dat','dedi','deduc','dei','dem','designat','desolati','det','determinat','devotio',
                                     'diaboli','disco','digni','discretio','distincti','distinctio','divisi','dom','domi','domina',
                                 'ecclesia','ecclesias','editio','ei', 'electi', 'emissa', 'enumerat','esca','evangelica', 'exalta','exaltat','exaltatio','exclamat','expiat','extensio',
@@ -855,10 +855,10 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                     'si','signi','sit','sol','soli','solem','stat','statu', 'subjecti','summo','superstitio',
                                 'tempora','Tod','tradit','traditi','traditio','transito','transmigratio','tres','tribulatio','tributa','trium','tu','tua','tuam','turba',
                                 'usu',      'valle','vani','varie','vas', 'victi','visita','visitat','visitatio','vita', 'Voca','voca',
-                                'l','nos','ut','didrachmas','cypri','dona','befores','believess','descendentes','whichro','plebi','yewels','blasphemare','nati','parvum','acceptam','attendere',
+                                'l','nos','ut','didrachmas','cypri','dona','befores','descendentes','whichro','plebi','yewels','blasphemare','parvum','acceptam','attendere',
                                     'res','knowti','boxnis','recordati','clange','reados','sectus','undis',
                                     'lovese','meum','weres','multiformis','professio','reprimandse','halfnt','stringit','sendus','resttionum','namedm','beforeparavi','rightsverit',
-                                    'anathemate','fightrent','anys','thinkes','habitndum','beforeof','enterings','abs','vis','mindo','silentnte','mora','almss',
+                                    'anathemate','fightrent','anys','thinkes','habitndum','beforeof','enterings','abs','vis','mindo','mora',
                                     'outur','helpndo','honourst',
 
                                 )

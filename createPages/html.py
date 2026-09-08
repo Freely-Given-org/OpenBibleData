@@ -103,6 +103,12 @@ CHANGELOG:
     2026-08-25 The OETHandlers functions are now imported from the Rust openbibledata_rust module (the Python OETHandlers.py was deleted).
     2026-08-28 Added preloadCSSStyles() so stylesheet caches are built in the parent before
                     forked multiprocessing children are created (they inherit the cache copy-on-write).
+    2026-09-09 Handle two consecutive divs in common.css
+     2026-09-08 Fixed spurious "CSS style not in stylesheet" errors in checkHtmlForMissingStyles:
+                merge common.css into the page's own stylesheet by unioning the element lists
+                (so e.g. span.d from BibleWord.css isn't clobbered by p.d from common.css), and
+                treat an empty-string element entry (from generic selectors like '.hebVrb {')
+                as meaning 'any element' when checking each class.
 """
 import logging
 from datetime import datetime
@@ -119,10 +125,10 @@ from settings import State, state
 from openbibledata_rust import getBBBFromOETBookName, checkHtml as _rustCheckHtml
 
 
-LAST_MODIFIED_DATE = '2026-09-04' # by RJH
+LAST_MODIFIED_DATE = '2026-09-08' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
-PROGRAM_VERSION = '1.0.7'
+PROGRAM_VERSION = '1.0.8'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -531,13 +537,21 @@ def loadCSSStyles( lsStylesheetName:str ) -> dict[str,bool|list[str]]:
                     lsStyleDict[className].append( 'p' )
                     lsStyleDict[f'used_{className}'] = False
             elif ssLine.startswith( 'div.' ):
-                className = ssLine[4:].split( ' ', 1 )[0]
+                className, rest = ssLine[4:].split( ' ', 1 )
                 # print( f"    div {className=}")
                 assert ' ' not in className and ',' not in className, f"{className=}"
                 if lsStylesheetName != 'common.css':
                     assert 'div' not in lsStyleDict[className], f"DIV already in {lsStyleDict[className]=} {ssLine=}"
                 lsStyleDict[className].append( 'div' )
                 lsStyleDict[f'used_{className}'] = False
+                if rest.startswith( 'div.' ): # Handle a line like 'div.topLine div.themeControls {'
+                    className = rest[4:].split( ' ', 1 )[0]
+                    # print( f"    div {className=}"); halt
+                    assert ' ' not in className and ',' not in className, f"{className=}"
+                    if lsStylesheetName != 'common.css':
+                        assert 'div' not in lsStyleDict[className], f"DIV already in {lsStyleDict[className]=} {ssLine=}"
+                    lsStyleDict[className].append( 'div' )
+                    lsStyleDict[f'used_{className}'] = False
             elif ssLine.startswith( 'h1.' ) or ssLine.startswith( 'h2.' ):
                 elementName = ssLine[:2]
                 className = ssLine[3:].split( ' ', 1 )[0]
@@ -625,8 +639,20 @@ def checkHtmlForMissingStyles( where:str, htmlToCheck:str ) -> bool:
                 ixStart = line.index( 'href="' )
                 ixEnd = line.index( '">', ixStart+6 )
                 stylesheetName = line[ixStart+6:ixEnd].replace( '../', '' )
-                styleDict.update( loadCSSStyles( stylesheetName ) )
-                styleDict.update( loadCSSStyles( 'common.css' ) )
+                # N.B. We copy the lists here (and merge common.css in without clobbering) because
+                #     dict.update() would otherwise replace e.g. 'd' (['span'] from span.d in
+                #     BibleWord.css) with common.css's ['p'] (from p.d), causing spurious
+                #     "span.d not in BibleWord.css" errors.
+                styleDict = { someClassName: list(someElementList) if not someClassName.startswith( 'used_' ) else someElementList \
+                                    for someClassName,someElementList in loadCSSStyles( stylesheetName ).items() }
+                for someClassName,someElementList in loadCSSStyles( 'common.css' ).items():
+                    if someClassName.startswith( 'used_' ): continue # Keep the used_ flag from the page's own stylesheet
+                    if someClassName not in styleDict:
+                        styleDict[someClassName] = someElementList.copy()
+                    else:
+                        for someElement in someElementList:
+                            if someElement not in styleDict[someClassName]:
+                                styleDict[someClassName].append( someElement )
             # Search.htm has two stylesheets, but we're only interested in the first one
             # elif '</head>' in line:
                 startedCheck = True
@@ -636,7 +662,8 @@ def checkHtmlForMissingStyles( where:str, htmlToCheck:str ) -> bool:
                 for className in classNames.split( ' '):
                     # assert className in styleDict and (elementName in styleDict[className] or '' in styleDict[className]), f"{elementName}.{className} not in {stylesheetName} in {where=}"
                     if className not in styleDict \
-                    or (elementName not in styleDict[className] and '' not in styleDict[className]):
+                    or (elementName not in styleDict[className] and '' not in styleDict[className]): # An empty-string entry means 'any element' (e.g. '.hebVrb {')
+                        # print( f"{elementName=} {className=} {stylesheetName=} {loadCSSStyles( 'common.css' )=}" ); halt
                         msg = f"{elementName}.{className} not in {stylesheetName}"
                         if msg not in COLLECTED_MESSAGES:
                             COLLECTED_MESSAGES.append( msg )
