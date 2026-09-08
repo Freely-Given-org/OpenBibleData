@@ -4,8 +4,10 @@
 ## Introduction
 
 This is a TSV file with at least one entry for every Bible ‘verse’ giving rough indications of
-1/ the **‘importance’** of each verse, 2/ whether or not it **contains textual issues**,
-and 3/ the **‘clarity’ (or ‘understandability’)** of the original Hebrew or Greek text.
+1/ the **‘importance’** of each verse,
+2/ whether or not it **contains textual issues**,
+3/ the **‘clarity’ (or ‘understandability’)** of the original Hebrew or Greek text, and
+4/ the speaker(s) at that point (or the narrator).
 
 Since ‘verses’ are totally artificial units
 (sometimes being only part of a sentence, yet other times containing two or more sentences)
@@ -61,7 +63,7 @@ Hence the clarity values are:
 
 ## TSV format
 
-The first line of the tab-separated data file contains the four column headers:
+The first line of the tab-separated data file contains the six column headers:
 
 **FGRef**: Freely-Given verse reference (see below)
 
@@ -70,6 +72,17 @@ The first line of the tab-separated data file contains the four column headers:
 **TextualIssue**: 0, 1, 2, or 3
 
 **Clarity**: O, U, or C (representing numerical values 0, 1, or 2)
+
+**Speakers**: `@` by default, which represents the narrator (i.e., the writer of the text
+who has no particular speaker). Otherwise this is a comma-separated list of the
+speaker(s) in that verse, e.g. `Yeshua`, `@,Yahweh`, `@,Mosheh`, or `@,David,Natan`.
+This column is (still-preliminary) automatically derived from the OET-RV text:
+`\wj` marks the words of Yeshua (Jesus); USFM `\sp` speaker markers (as used in
+Song of Songs, e.g. 'The bride', 'The groom', and Jeremiah) identify the current
+speaker for the following verses; and speech-attribution patterns like
+'Mosheh said, …' or '…, responded David' are used to spot other named speakers.
+
+**Comment**: (currently unused — normally left empty)
 
 Each line (including the final one) is ended with a single newline character.
 

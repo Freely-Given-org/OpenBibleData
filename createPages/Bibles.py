@@ -78,6 +78,7 @@ CHANGELOG:
                 (Usually it's only reading that we want to temporarily disable, e.g., if indexing code has changed)
     2026-07-04 Added OpenBibleImages and getOpenBibleImages
     2026-08-25 The OETHandlers functions are now imported from the Rust openbibledata_rust module (the Python OETHandlers.py was deleted).
+    2026-09-08 Updated to handle additional Speakers column in our sentenceImportance DB
 """
 from datetime import datetime
 import os, os.path
@@ -113,10 +114,10 @@ from Dict import loadAndIndexUBSGreekDictJSON, loadAndIndexUBSHebrewDictJSON
 from openbibledata_rust import findOLQuoteInLV, getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2026-09-02' # by RJH
+LAST_MODIFIED_DATE = '2026-09-08' # by RJH
 SHORT_PROGRAM_NAME = "Bibles"
 PROGRAM_NAME = "OpenBibleData Bibles handler"
-PROGRAM_VERSION = '1.0.1'
+PROGRAM_VERSION = '1.1.0'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -1808,13 +1809,13 @@ def getVerseMetaInfoHtml( BBB:str, C:str, V:str ) -> str: # html
         # We have to load it on the first call
         with open( VERSE_DETAILS_TABLE_FILEPATH, 'rt', encoding='utf-8' ) as tableFilepath:
             headerLine = tableFilepath.readline().rstrip( '\n' )
-            assert headerLine == 'FGRef	Importance	TextualIssue	Clarity	Comment'
+            assert headerLine == 'FGRef	Importance	TextualIssue	Clarity	Speakers	Comment'
             while True:
                 dataLine = tableFilepath.readline()
                 if not dataLine: break # EOF presumably
                 dataFields = dataLine.rstrip( '\n' ).split( '\t' )
                 assert dataFields[0] not in VERSE_DETAILS_TABLE
-                VERSE_DETAILS_TABLE[dataFields[0]] = (dataFields[1],dataFields[2],dataFields[3])
+                VERSE_DETAILS_TABLE[dataFields[0]] = (dataFields[1],dataFields[2],dataFields[3],dataFields[4]) # Don't bother saving the comments
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Loaded {len(VERSE_DETAILS_TABLE):,} sets of verse details." )
 
     verseDetails = ''
@@ -1860,10 +1861,11 @@ def formatVerseDetailsHtml( verseRef:str ) -> str: # html
     """
     global VERSE_DETAILS_TABLE, TEXTUAL_ISSUE_TABLE, CLARITY_TABLE, IMPORTANCE_TABLE
 
-    importance, textualIssue, clarity = VERSE_DETAILS_TABLE[verseRef]
+    importance, textualIssue, clarity, speakers = VERSE_DETAILS_TABLE[verseRef]
     result = f"{'' if textualIssue=='0' else '<b>'}Text critical issues{'' if textualIssue=='0' else '</b>'}={TEXTUAL_ISSUE_TABLE[textualIssue]} " \
              f"{'' if clarity=='C' else '<b>'}Clarity{'' if clarity=='C' else '</b>'} of original={CLARITY_TABLE[clarity]} " \
-             f"{'' if importance=='M' else '<b>'}Importance to us{'' if importance=='M' else '</b>'}={IMPORTANCE_TABLE[importance]}"
+             f"{'' if importance=='M' else '<b>'}Importance to us{'' if importance=='M' else '</b>'}={IMPORTANCE_TABLE[importance]} " \
+             f"Speaker(s)={speakers.replace( '@', 'Narrator' )}"
 
     verseRefDescription = '' if verseRef[-1].isdigit() else f'Part <b>{verseRef[-1]}</b>: '
     return f"{verseRefDescription}{result}"

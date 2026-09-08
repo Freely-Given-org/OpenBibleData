@@ -663,7 +663,6 @@ def checkHtmlForMissingStyles( where:str, htmlToCheck:str ) -> bool:
                     # assert className in styleDict and (elementName in styleDict[className] or '' in styleDict[className]), f"{elementName}.{className} not in {stylesheetName} in {where=}"
                     if className not in styleDict \
                     or (elementName not in styleDict[className] and '' not in styleDict[className]): # An empty-string entry means 'any element' (e.g. '.hebVrb {')
-                        # print( f"{elementName=} {className=} {stylesheetName=} {loadCSSStyles( 'common.css' )=}" ); halt
                         msg = f"{elementName}.{className} not in {stylesheetName}"
                         if msg not in COLLECTED_MESSAGES:
                             COLLECTED_MESSAGES.append( msg )
