@@ -52,6 +52,7 @@ CHANGELOG:
     2026-04-09 Changed to use getPositiveLeadingInt
     2026-04-19 Added SOTN (SIL Open Translators Notes)
     2026-09-09 The per-word word-splitting chains and interlinear row builder now call the Rust openbibledata_rust ports
+    2026-09-09 Use multiprocessing for the interlinear pages: per-book work is now _createOETInterlinearVersePagesForBook_MP, run by one forked worker per book
     2026-08-22 Import convertVerseEntryListToHtml directly from openbibledata_rust (convert.py deleted)
     2026-08-25 The OETHandlers functions are now imported from the Rust openbibledata_rust module (the Python OETHandlers.py was deleted).
     2026-09-01 Fixed bad links on second book index page
@@ -64,13 +65,14 @@ import os
 import logging
 from collections import defaultdict
 import re
+import multiprocessing
 
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 from bible_organisational_system import getPositiveLeadingInt
 import bos_books_codes_py
 
-from settings import State, CNTR_BOOK_ID_MAP, reorderBooksForOETVersions
+from settings import State, state, CNTR_BOOK_ID_MAP, reorderBooksForOETVersions
 from Bibles import formatUnfoldingWordTranslationNotes, formatTyndaleNotes
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
                     makeTop, makeBottom, makeBookNavListParagraph, checkHtml
@@ -79,7 +81,7 @@ from jsonResources import getFormattedSILOpenTranslationNotes
 from openbibledata_rust import convertVerseEntryListToHtml, livenOETWordLinks, getOETBookName, getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename, splitOETLVInterlinearWords, splitOETRVInterlinearWords, buildInterlinearWordRows
 
 
-LAST_MODIFIED_DATE = '2026-09-01' # by RJH
+LAST_MODIFIED_DATE = '2026-09-09' # by RJH
 SHORT_PROGRAM_NAME = "createOETInterlinearPages"
 PROGRAM_NAME = "OpenBibleData createOETInterlinearPages functions"
 PROGRAM_VERSION = '0.69'
@@ -117,9 +119,26 @@ def createOETInterlinearPages( level:int, folder:Path, state:State ) -> bool:
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Have ilr {len(BBBNextLinks)} book links: {BBBNextLinks}" )
 
     # Now create the actual interlinear pages
+    mpBookParameters = [] # (level, folder, BBB, BBBNextLinks) tuples for the forked workers
     for BBB in state.booksToLoad['OET']:
         if bos_books_codes_py.is_chapter_verse_book( BBB ):
-            createOETInterlinearVersePagesForBook( level, folder, BBB, BBBNextLinks, state )
+            if BibleOrgSysGlobals.maxProcesses > 1 \
+            and not BibleOrgSysGlobals.alreadyMultiprocessing: # Use multiprocessing for these interlinear pages
+                mpBookParameters.append( (level, folder, BBB, BBBNextLinks) )
+            else: # no multiprocessing available -- do this book sequentially
+                createOETInterlinearVersePagesForBook( level, folder, BBB, BBBNextLinks, state )
+    if mpBookParameters:
+        # NOTE: We use an explicit 'fork' context because Python 3.14 changed the default start method
+        #        to 'forkserver' which would NOT inherit our huge module-level state (12 GiB of Bibles).
+        #        Forked children share that memory copy-on-write, so this costs almost nothing extra.
+        # NOTE: Outputs (including error and warning messages) from the various books may be interspersed.
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\nCreating {'TEST ' if state.TEST_MODE_FLAG else ''}interlinear pages for {len(mpBookParameters):,} books using {BibleOrgSysGlobals.maxProcesses:,} forked processes…" )
+        BibleOrgSysGlobals.alreadyMultiprocessing = True
+        with multiprocessing.get_context('fork').Pool( processes=BibleOrgSysGlobals.maxProcesses ) as pool: # start worker processes
+            results = pool.map( _createOETInterlinearVersePagesForBook_MP, mpBookParameters ) # have the pool create the pages
+            assert len(results) == len(mpBookParameters)
+        BibleOrgSysGlobals.alreadyMultiprocessing = False
+        assert all(results)
 
     # Create index page
     filename = 'index.htm'
@@ -143,6 +162,22 @@ def createOETInterlinearPages( level:int, folder:Path, state:State ) -> bool:
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createOETInterlinearPages() finished processing {len(state.allBBBs)} books: {state.allBBBs}" )
     return True
 # end of createOETInterlinearPages.createOETInterlinearPages
+
+
+def _createOETInterlinearVersePagesForBook_MP( parameters ) -> bool:
+    """
+    Multiprocessing version! (forked children inherit our module-level state copy-on-write)
+
+    Parameter is a 4-tuple containing the level, destination folder, BBB book code,
+        and the next-book links.
+    Returns the True result from createOETInterlinearVersePagesForBook.
+    """
+    # fnPrint( DEBUGGING_THIS_MODULE, f"_createOETInterlinearVersePagesForBook_MP( {parameters[:3]}… )" )
+    level, folder, BBB, BBBNextLinks = parameters
+    resultBool = createOETInterlinearVersePagesForBook( level, folder, BBB, BBBNextLinks, state )
+    assert resultBool is True
+    return resultBool
+# end of createOETInterlinearPages._createOETInterlinearVersePagesForBook_MP
 
 
 def createOETInterlinearVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:list[str], state:State ) -> bool:

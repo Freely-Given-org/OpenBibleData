@@ -47,8 +47,10 @@ CHANGELOG:
     2026-08-25 The OETHandlers functions are now imported from the Rust openbibledata_rust module (the Python OETHandlers.py was deleted).
     2026-09-03 Stop applying the Heb/Grk grammatical colourisation classes (hebVrb, grkVrb, etc.) on chapter pages because their stylesheets (OETChapter.css/BibleChapter.css) don't style them -- the shared dark-mode rules were painting those words unreadably.
      2026-09-04 Disable the TEST_MODE 'noLinkYet' highlighting on OET-RV single-column chapter pages (which have no OET-LV alongside), via addNoLinkYetSpans=False.
+     2026-09-09 Use multiprocessing for the OET side-by-side chapter pages: per-book work is now _writeOETSideBySideChapterBook, run by one forked worker per book.
 """
 from pathlib import Path
+import multiprocessing
 import os
 import logging
 
@@ -58,14 +60,14 @@ from bible_organisational_system import InternalBibleEntryList
 import BibleOrgSys.Formats.ESFMBible as ESFMBible
 import bos_books_codes_py
 
-from settings import State, CNTR_BOOK_ID_MAP
+from settings import State, state, CNTR_BOOK_ID_MAP
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
                     makeTop, makeBottom, makeBookNavListParagraph, removeDuplicateCVids, checkHtml
 from Bibles import getBibleMapperMaps, getOpenBibleImages
 from openbibledata_rust import convertVerseEntryListToHtml, livenOETWordLinks, livenOETCompatibleBereanWordLinks, getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
-LAST_MODIFIED_DATE = '2026-09-08' # by RJH
+LAST_MODIFIED_DATE = '2026-09-09' # by RJH
 SHORT_PROGRAM_NAME = "createChapterPages"
 PROGRAM_NAME = "OpenBibleData createChapterPages functions"
 PROGRAM_VERSION = '0.87'
@@ -77,118 +79,105 @@ NEWLINE = '\n'
 
 
 
-def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, state:State ) -> list[str]:
+
+def _writeOETSideBySideChapterBook( level:int, folder:Path, rvBible, lvBible, state:State, BBB:str ) -> tuple[bool,str,list[str]]:
     """
-    The OET is a pseudo-version which includes the OET-RV and OET-LV side-by-side.
+    Write all the OET side-by-side chapter pages (plus the per-book index page) for one book.
 
-    (The actual OET-RV and OET-LV are processed by the regular function below.)
+    This is the per-book body of createOETSideBySideChapterPages.
+    Returns (True, BBB, the list of filenames written).
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"createOETSideBySideChapterPages( {level}, {folder}, {rvBible.abbreviation}, {lvBible.abbreviation} )" )
-
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createOETSideBySideChapterPages( {level}, {folder}, {rvBible.abbreviation}, {lvBible.abbreviation} )…" )
-    try: os.makedirs( folder )
-    except FileExistsError: pass # they were already there
-
-    # allBooksFlag = 'ALL' in state.booksToLoad[rvBible.abbreviation]
-    # BBBsToProcess = reorderBooksForOETVersions( rvBible.books.keys() if allBooksFlag else state.booksToLoad[rvBible.abbreviation] )
-    # rvBooks = rvBible.books.keys() if 'ALL' in state.booksToLoad[rvBible.abbreviation] else state.booksToLoad[rvBible.abbreviation]
-    # lvBooks = lvBible.books.keys() if 'ALL' in state.booksToLoad[lvBible.abbreviation] else state.booksToLoad[lvBible.abbreviation]
-    # BBBsToProcess = reorderBooksForOETVersions( [rvKey for rvKey in rvBooks if rvKey in lvBooks] )
     navBookListParagraph = makeBookNavListParagraph(state.BBBLinks['OET'], 'OET', state )
+    filenames = []
+    vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Creating chapter pages for OET {BBB}…" )
+    NT = bos_books_codes_py.is_new_testament_nr( BBB )
+    ourTidyBBB = getOETTidyBBB( BBB )
+    ourTidyBBBwithNotes = getOETTidyBBB( BBB, addNotes=True )
+    # print( f"{BBB=} {BBBsToProcess}"); print( len(state.BBBsToProcess[thisBible.abbreviation]) )
+    # if not allBooksFlag: rvBible.loadBookIfNecessary( BBB )
+    # lvBible.loadBookIfNecessary( BBB )
 
-    BBBs, filenames = [], []
-    for BBB in state.BBBsToProcess['OET']:
-        vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Creating chapter pages for OET {BBB}…" )
-        NT = bos_books_codes_py.is_new_testament_nr( BBB )
-        ourTidyBBB = getOETTidyBBB( BBB )
-        ourTidyBBBwithNotes = getOETTidyBBB( BBB, addNotes=True )
-        # print( f"{BBB=} {BBBsToProcess}"); print( len(state.BBBsToProcess[thisBible.abbreviation]) )
-        # if not allBooksFlag: rvBible.loadBookIfNecessary( BBB )
-        # lvBible.loadBookIfNecessary( BBB )
-
-        # # TODO: Can we delete all this now???
-        # if lvBible.abbreviation=='OET-LV' \
-        # and BBB in ('INT','NUM','SA1','SA2','CH1','EZR','NEH','JOB','SNG','JER','DAN'):
-        #     logging.critical( f"A Skipped OET chapters difficult book: OET-LV {BBB}")
-        #     continue # Too many problems for now
-        if rvBible.abbreviation in state.booksToLoad \
-        and 'ALL' not in state.booksToLoad[rvBible.abbreviation] \
-        and BBB not in state.booksToLoad[rvBible.abbreviation]:
-            logging.critical( f"B Skipped OET chapters not-included book: OET-RV {BBB}")
-            continue # Only create pages for the requested RV books
-        if BBB in ('INT','FRT'): # We want these, even though the LV doesn't (yet?) have any FRT
-            BBBs.append( BBB )
-            dPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"createChapterPages {rvBible.abbreviation} {rvBible.books[BBB]=}" )
-            vPrint( 'Info', DEBUGGING_THIS_MODULE, f"      Creating (non)chapter pages for {rvBible.abbreviation} {BBB}…" )
-            chapterHtml = f'<h1 id="Top">{rvBible.abbreviation} {BBB}</h1>\n'
-            verseEntryList, contextList = rvBible.getContextVerseData( (BBB, '-1') )
-            if isinstance( rvBible, ESFMBible.ESFMBible ):
-                verseEntryList = livenOETWordLinks( level, rvBible, (BBB,'-1'), verseEntryList, state, colouriseWordClasses=False, addNoLinkYetSpans=False )
-            dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{rvBible.abbreviation} {BBB} {verseEntryList} {contextList}" )
-            chapterHtml = f'''{chapterHtml}{convertVerseEntryListToHtml( level, rvBible.abbreviation, (BBB,'-1'), 'chapter', contextList, verseEntryList, basicOnly=False, state=state )}'''
-            filename = f'{BBB}.htm'
-            filenames.append( filename )
-            # BBBLinks.append( f'''<a title="{bos_books_codes_py.get_english_name_nr(BBB)}" href="{filename}#Top">{ourTidyBBBwithNotes}</a>''' )
-            filepath = folder.joinpath( filename )
-            top = makeTop( level, rvBible.abbreviation, 'chapter', f'byC/{filename}', state ) \
-                    .replace( '__TITLE__', f"{rvBible.abbreviation} {ourTidyBBB}{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
-                    .replace( '__KEYWORDS__', f'Bible, {rvBible.abbreviation}, front matter, chapter, {ourTidyBBB}' ) \
-                    .replace( f'''<a title="{state.BibleNames[rvBible.abbreviation]}" href="{'../'*level}{BibleOrgSysGlobals.makeSafeString(rvBible.abbreviation)}/byC/{filename}#Top">{rvBible.abbreviation}</a>''',
-                              f'''<a title="Up to {state.BibleNames[rvBible.abbreviation]}" href="{'../'*level}{BibleOrgSysGlobals.makeSafeString(rvBible.abbreviation)}/">↑{rvBible.abbreviation}</a>''' )
-            chapterHtml = f'''{top}<!--chapter page-->
+    # # TODO: Can we delete all this now???
+    # if lvBible.abbreviation=='OET-LV' \
+    # and BBB in ('INT','NUM','SA1','SA2','CH1','EZR','NEH','JOB','SNG','JER','DAN'):
+    #     logging.critical( f"A Skipped OET chapters difficult book: OET-LV {BBB}")
+    #     continue # Too many problems for now
+    if rvBible.abbreviation in state.booksToLoad \
+    and 'ALL' not in state.booksToLoad[rvBible.abbreviation] \
+    and BBB not in state.booksToLoad[rvBible.abbreviation]:
+        logging.critical( f"B Skipped OET chapters not-included book: OET-RV {BBB}")
+        return ( True, BBB, [] ) # Skip this book entirely
+    if BBB in ('INT','FRT'): # We want these, even though the LV doesn't (yet?) have any FRT
+        dPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"createChapterPages {rvBible.abbreviation} {rvBible.books[BBB]=}" )
+        vPrint( 'Info', DEBUGGING_THIS_MODULE, f"      Creating (non)chapter pages for {rvBible.abbreviation} {BBB}…" )
+        chapterHtml = f'<h1 id="Top">{rvBible.abbreviation} {BBB}</h1>\n'
+        verseEntryList, contextList = rvBible.getContextVerseData( (BBB, '-1') )
+        if isinstance( rvBible, ESFMBible.ESFMBible ):
+            verseEntryList = livenOETWordLinks( level, rvBible, (BBB,'-1'), verseEntryList, state, colouriseWordClasses=False, addNoLinkYetSpans=False )
+        dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{rvBible.abbreviation} {BBB} {verseEntryList} {contextList}" )
+        chapterHtml = f'''{chapterHtml}{convertVerseEntryListToHtml( level, rvBible.abbreviation, (BBB,'-1'), 'chapter', contextList, verseEntryList, basicOnly=False, state=state )}'''
+        filename = f'{BBB}.htm'
+        filenames.append( filename )
+        # BBBLinks.append( f'''<a title="{bos_books_codes_py.get_english_name_nr(BBB)}" href="{filename}#Top">{ourTidyBBBwithNotes}</a>''' )
+        filepath = folder.joinpath( filename )
+        top = makeTop( level, rvBible.abbreviation, 'chapter', f'byC/{filename}', state ) \
+                .replace( '__TITLE__', f"{rvBible.abbreviation} {ourTidyBBB}{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
+                .replace( '__KEYWORDS__', f'Bible, {rvBible.abbreviation}, front matter, chapter, {ourTidyBBB}' ) \
+                .replace( f'''<a title="{state.BibleNames[rvBible.abbreviation]}" href="{'../'*level}{BibleOrgSysGlobals.makeSafeString(rvBible.abbreviation)}/byC/{filename}#Top">{rvBible.abbreviation}</a>''',
+                          f'''<a title="Up to {state.BibleNames[rvBible.abbreviation]}" href="{'../'*level}{BibleOrgSysGlobals.makeSafeString(rvBible.abbreviation)}/">↑{rvBible.abbreviation}</a>''' )
+        chapterHtml = f'''{top}<!--chapter page-->
 {navBookListParagraph}
 {chapterHtml}
 {makeBottom( level, rvBible.abbreviation, 'chapter' )}'''
-            assert checkHtml( f'{rvBible.abbreviation} {BBB}', chapterHtml )
-            assert not filepath.is_file() # Check that we're not overwriting anything
-            with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
-                cHtmlFile.write( chapterHtml )
-            vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"    {len(chapterHtml):,} characters written to {filepath}" )
-            continue
+        assert checkHtml( f'{rvBible.abbreviation} {BBB}', chapterHtml )
+        assert not filepath.is_file() # Check that we're not overwriting anything
+        with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
+            cHtmlFile.write( chapterHtml )
+        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"    {len(chapterHtml):,} characters written to {filepath}" )
+        return ( True, BBB, filenames ) # Finished the special case book (no chapter/index pages)
 
-        # This code used to prevent building of OET-RV DC books as there's no OET-LV version -- removed 2026-09-02
-        # elif lvBible.abbreviation in state.booksToLoad \
-        # and 'ALL' not in state.booksToLoad[lvBible.abbreviation] \
-        # and BBB not in state.booksToLoad[lvBible.abbreviation]:
-        #     logging.critical( f"C Skipped OET chapters not-included book: OET-LV {BBB}")
-        #     continue # Only create pages for the requested LV books
+    # This code used to prevent building of OET-RV DC books as there's no OET-LV version -- removed 2026-09-02
+    # elif lvBible.abbreviation in state.booksToLoad \
+    # and 'ALL' not in state.booksToLoad[lvBible.abbreviation] \
+    # and BBB not in state.booksToLoad[lvBible.abbreviation]:
+    #     logging.critical( f"C Skipped OET chapters not-included book: OET-LV {BBB}")
+    #     continue # Only create pages for the requested LV books
 
-        BBBs.append( BBB )
 
-        initialChapterLinks = [f'<a title="Choose “book”" href="./">{ourTidyBBBwithNotes}</a>']
-        assert rvBible.getNumVerses( BBB, '-1' ) or BBB in ('INT',) # OET always has intro for its books
-        assert not rvBible.getNumVerses( BBB, '0' ) # OET has no chapter zero
-        if rvBible.discoveryResults[BBB]['haveIntroductoryText']:
-            initialChapterLinks.append( f'<a title="View document introduction" href="{BBB}_Intro.htm#Top">Intro</a>' )
+    initialChapterLinks = [f'<a title="Choose “book”" href="./">{ourTidyBBBwithNotes}</a>']
+    assert rvBible.getNumVerses( BBB, '-1' ) or BBB in ('INT',) # OET always has intro for its books
+    assert not rvBible.getNumVerses( BBB, '0' ) # OET has no chapter zero
+    if rvBible.discoveryResults[BBB]['haveIntroductoryText']:
+        initialChapterLinks.append( f'<a title="View document introduction" href="{BBB}_Intro.htm#Top">Intro</a>' )
 
-        numChapters = rvBible.getNumChapters( BBB )
-        assert numChapters >= 1 # Because only chapter books should get this far
-        if numChapters >= 1:
-            for c in range( -1, numChapters+1 ):
-                vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"      Creating chapter pages for OET {BBB} {c}…" )
+    numChapters = rvBible.getNumChapters( BBB )
+    assert numChapters >= 1 # Because only chapter books should get this far
+    if numChapters >= 1:
+        for c in range( -1, numChapters+1 ):
+            vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"      Creating chapter pages for OET {BBB} {c}…" )
 
-                realChapterLinks = [f'<a title="View chapter page" href="{BBB}_C{ccc}.htm#Top">{'Sg' if BBB=='PSA' else 'C'}{ccc}</a>'
-                                    for ccc in range( 1, numChapters+1 ) if ccc != c]
-                chapterLinksParagraph = f'<p class="chLst">{" ".join( initialChapterLinks+realChapterLinks )}</p><!--chLst-->'
+            realChapterLinks = [f'<a title="View chapter page" href="{BBB}_C{ccc}.htm#Top">{'Sg' if BBB=='PSA' else 'C'}{ccc}</a>'
+                                for ccc in range( 1, numChapters+1 ) if ccc != c]
+            chapterLinksParagraph = f'<p class="chLst">{" ".join( initialChapterLinks+realChapterLinks )}</p><!--chLst-->'
 
-                documentLink = f'<a title="Whole document view" href="../byDoc/{BBB}.htm#Top">{ourTidyBBBwithNotes}</a>'
-                if c == -1: # Intro
-                    leftLink = ''
-                    rightLink = f' <a title="Next chapter" href="{BBB}_C1.htm#Top">►</a>' if c<numChapters else ''
-                elif c == 0:
-                    continue
-                elif c == 1:
-                    leftLink = f'<a title="Previous (book introduction)" href="{BBB}_Intro.htm#Top">◄</a> '
-                    rightLink = f' <a title="Next chapter" href="{BBB}_C{c+1}.htm#Top">►</a>' if c<numChapters else ''
-                else: # c > 1
-                    assert c > 1
-                    leftLink = f'<a title="Previous chapter" href="{BBB}_C{c-1}.htm#Top">◄</a> '
-                    rightLink = f' <a title="Next chapter" href="{BBB}_C{c+1}.htm#Top">►</a>' if c<numChapters else ''
-                parallelLink = f''' <a title="Parallel verse view" href="{'../'*level}par/{BBB}/C{'1' if c==-1 else c}V1.htm#Top">║</a>'''
-                interlinearLink = f''' <a title="Interlinear verse view" href="{'../'*level}ilr/{BBB}/C{'1' if c==-1 else c}V1.htm#Top">═</a>''' if BBB in state.booksToLoad['OET'] else ''
-                detailsLink = f''' <a title="Show details about this work" href="{'../'*(level-1)}details.htm#Top">©</a>'''
-                cNav = f'<p class="cNav">{leftLink}{documentLink} {"Intro" if c==-1 else c}{rightLink}{parallelLink}{interlinearLink}{detailsLink}</p><!--cNav-->'
-                chapterHtml = f'''<h1 id="Top">Open English Translation {ourTidyBBBwithNotes} Introduction</h1>
+            documentLink = f'<a title="Whole document view" href="../byDoc/{BBB}.htm#Top">{ourTidyBBBwithNotes}</a>'
+            if c == -1: # Intro
+                leftLink = ''
+                rightLink = f' <a title="Next chapter" href="{BBB}_C1.htm#Top">►</a>' if c<numChapters else ''
+            elif c == 0:
+                continue
+            elif c == 1:
+                leftLink = f'<a title="Previous (book introduction)" href="{BBB}_Intro.htm#Top">◄</a> '
+                rightLink = f' <a title="Next chapter" href="{BBB}_C{c+1}.htm#Top">►</a>' if c<numChapters else ''
+            else: # c > 1
+                assert c > 1
+                leftLink = f'<a title="Previous chapter" href="{BBB}_C{c-1}.htm#Top">◄</a> '
+                rightLink = f' <a title="Next chapter" href="{BBB}_C{c+1}.htm#Top">►</a>' if c<numChapters else ''
+            parallelLink = f''' <a title="Parallel verse view" href="{'../'*level}par/{BBB}/C{'1' if c==-1 else c}V1.htm#Top">║</a>'''
+            interlinearLink = f''' <a title="Interlinear verse view" href="{'../'*level}ilr/{BBB}/C{'1' if c==-1 else c}V1.htm#Top">═</a>''' if BBB in state.booksToLoad['OET'] else ''
+            detailsLink = f''' <a title="Show details about this work" href="{'../'*(level-1)}details.htm#Top">©</a>'''
+            cNav = f'<p class="cNav">{leftLink}{documentLink} {"Intro" if c==-1 else c}{rightLink}{parallelLink}{interlinearLink}{detailsLink}</p><!--cNav-->'
+            chapterHtml = f'''<h1 id="Top">Open English Translation {ourTidyBBBwithNotes} Introduction</h1>
 {cNav}
 {f'{state.JAMES_NOTE_HTML_PARAGRAPH}{NEWLINE}' if BBB=='JAM' else ''}<div class="RVLVcontainer">
 <h2><a title="View just the Readers’ Version by itself" href="{'../'*level}OET-RV/byC/{BBB}_Intro.htm#Top">Readers’ Version</a></h2>
@@ -197,161 +186,161 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
 {f'{state.JAMES_NOTE_HTML_PARAGRAPH}{NEWLINE}' if BBB=='JAM' else ''}<div class="RVLVcontainer">
 <h2><a title="View just the Readers’ Version by itself" href="{'../'*level}OET-RV/byC/{BBB}_C{c}.htm#Top">Readers’ Version</a></h2>
 <h2><a title="View just the Literal Version by itself" href="{'../'*level}OET-LV/byC/{BBB}_C{c}.htm#Top">Literal Version</a> <button type="button" id="marksButton" title="Hide/Show underline and strike-throughs" onclick="hide_show_marks()">Hide marks</button></h2>'''
-                try: rvVerseEntryList, rvContextList = rvBible.getContextVerseData( (BBB, str(c)) )
-                except KeyError:
-                    if c == 0: continue # Usually no chapter zero
-                    logging.critical( f"No chapter found for {rvBible.abbreviation} {BBB} {c=}" )
-                    assert False, "We want to stop here" # continue
-                assert isinstance( rvBible, ESFMBible.ESFMBible )
-                for rvEntry in rvVerseEntryList:
-                    if rvEntry.getOriginalText():
-                        assert '\\nd \\nd ' not in rvEntry.getOriginalText(), f"rvBible {BBB}_{c} {rvEntry=}"
-                rvVerseEntryList = livenOETWordLinks( level, rvBible, (BBB,str(c)), rvVerseEntryList, state, colouriseWordClasses=False )
-                # print( f"OET-RV {BBB} {c} got {len(rvVerseEntryList)} verse entries, {len(rvContextList)} context entries")
-                try: lvVerseEntryList, lvContextList = lvBible.getContextVerseData( (BBB,str(c)) )
-                except KeyError:
-                    logging.critical( f"createOETSideBySideChapterPages probable versification error for {lvBible.abbreviation} {BBB} {c=}" )
-                    lvVerseEntryList, lvContextList = InternalBibleEntryList(), []
-                except TypeError: # if it returned None
-                    logging.critical( f"createOETSideBySideChapterPages missing book error for {lvBible.abbreviation} {BBB} {c=}" )
-                    lvVerseEntryList, lvContextList = InternalBibleEntryList(), []
-                assert isinstance( lvBible, ESFMBible.ESFMBible )
-                for lvEntry in lvVerseEntryList:
-                    if lvEntry.getOriginalText():
-                        assert '\\nd \\nd ' not in lvEntry.getOriginalText(), f"lvBible {BBB}_{c} {lvEntry=}"
-                if lvVerseEntryList:
-                    lvVerseEntryList = livenOETWordLinks( level, lvBible, (BBB,str(c)), lvVerseEntryList, state, colouriseWordClasses=False )
-                # rvHtml = livenIORs( BBB, convertVerseEntryListToHtml( 'OET', (BBB,c), 'chapter', rvContextList, rvVerseEntryList ), numChapters )
-                # NOTE: We change the version abbreviation here to give the function more indication where we're coming from
-                rvHtml = do_OET_RV_HTMLcustomisations( f'OET-RV1 chapter={BBB}_{c}', convertVerseEntryListToHtml( level, 'OET-RV', (BBB,str(c)), 'chapter', rvContextList, rvVerseEntryList, basicOnly=False, state=state ) )
-                lvHtml = do_OET_LV_HTMLcustomisations( f'OET-LV1 chapter={BBB}_{c}', convertVerseEntryListToHtml( level, 'OET-LV', (BBB,str(c)), 'chapter', lvContextList, lvVerseEntryList, basicOnly=False, state=state ) )
+            try: rvVerseEntryList, rvContextList = rvBible.getContextVerseData( (BBB, str(c)) )
+            except KeyError:
+                if c == 0: continue # Usually no chapter zero
+                logging.critical( f"No chapter found for {rvBible.abbreviation} {BBB} {c=}" )
+                assert False, "We want to stop here" # continue
+            assert isinstance( rvBible, ESFMBible.ESFMBible )
+            for rvEntry in rvVerseEntryList:
+                if rvEntry.getOriginalText():
+                    assert '\\nd \\nd ' not in rvEntry.getOriginalText(), f"rvBible {BBB}_{c} {rvEntry=}"
+            rvVerseEntryList = livenOETWordLinks( level, rvBible, (BBB,str(c)), rvVerseEntryList, state, colouriseWordClasses=False )
+            # print( f"OET-RV {BBB} {c} got {len(rvVerseEntryList)} verse entries, {len(rvContextList)} context entries")
+            try: lvVerseEntryList, lvContextList = lvBible.getContextVerseData( (BBB,str(c)) )
+            except KeyError:
+                logging.critical( f"createOETSideBySideChapterPages probable versification error for {lvBible.abbreviation} {BBB} {c=}" )
+                lvVerseEntryList, lvContextList = InternalBibleEntryList(), []
+            except TypeError: # if it returned None
+                logging.critical( f"createOETSideBySideChapterPages missing book error for {lvBible.abbreviation} {BBB} {c=}" )
+                lvVerseEntryList, lvContextList = InternalBibleEntryList(), []
+            assert isinstance( lvBible, ESFMBible.ESFMBible )
+            for lvEntry in lvVerseEntryList:
+                if lvEntry.getOriginalText():
+                    assert '\\nd \\nd ' not in lvEntry.getOriginalText(), f"lvBible {BBB}_{c} {lvEntry=}"
+            if lvVerseEntryList:
+                lvVerseEntryList = livenOETWordLinks( level, lvBible, (BBB,str(c)), lvVerseEntryList, state, colouriseWordClasses=False )
+            # rvHtml = livenIORs( BBB, convertVerseEntryListToHtml( 'OET', (BBB,c), 'chapter', rvContextList, rvVerseEntryList ), numChapters )
+            # NOTE: We change the version abbreviation here to give the function more indication where we're coming from
+            rvHtml = do_OET_RV_HTMLcustomisations( f'OET-RV1 chapter={BBB}_{c}', convertVerseEntryListToHtml( level, 'OET-RV', (BBB,str(c)), 'chapter', rvContextList, rvVerseEntryList, basicOnly=False, state=state ) )
+            lvHtml = do_OET_LV_HTMLcustomisations( f'OET-LV1 chapter={BBB}_{c}', convertVerseEntryListToHtml( level, 'OET-LV', (BBB,str(c)), 'chapter', lvContextList, lvVerseEntryList, basicOnly=False, state=state ) )
 
-                if c < 1:
-                    rvHtml = f'''<div class="chunkRV">{rvHtml}</div><!--chunkRV-->\n'''
-                    lvHtml = f'''<div class="chunkLV">{lvHtml}</div><!--chunkLV-->\n'''
-                    combinedHtml = f'{rvHtml}{lvHtml}'
-                else: # we have a normal chapter
-                    # Now we have to divide the RV and the LV into an equal number of chunks (so they mostly line up)
-                    rvSections = rvHtml.split( '<div class="section">' )
-                    if not rvSections[0]: rvSections.pop( 0 ) # It must start with a section heading, so remove the first blank 'section'
-                    assert 'bookIntro' not in lvHtml
-                    lvChunks, lvRest = [], lvHtml
-                    # Now try to match the RV sections
-                    for n,rvSectionHtml in enumerate( rvSections ):
-                        # dPrint( 'Info', DEBUGGING_THIS_MODULE, f"\n{BBB} {n}: {rvSectionHtml=}" )
-                        try:
-                            CclassIndex1 = rvSectionHtml.index( 'id="C' )
-                            CclassIndex2 = rvSectionHtml.index( '"', CclassIndex1+4 )
-                            rvStartCV = rvSectionHtml[CclassIndex1+4:CclassIndex2]
-                            CclassIndex8 = rvSectionHtml.rindex( 'id="C' )
-                            CclassIndex9 = rvSectionHtml.index( '"', CclassIndex8+4 )
-                            rvEndCV = rvSectionHtml[CclassIndex8+4:CclassIndex9]
-                            # dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"\n  {BBB} {n:,}: {rvStartCV=} {rvEndCV=}")
-                        except ValueError as e:
-                            dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createOETChapterPages {BBB} {c=} {n:,}/{len(rvSections):,}: No Cid in {rvSectionHtml=} {e=}" )
-                            rvStartCV, rvEndCV = '', 'C1'
-                            # assert False, "We want to stop here"
-                        # dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"""Searching for ' id="{rvEndCV}"' in '{lvRest}'""" )
-                        try:
-                            ixEndCV = lvRest.rindex( f' id="{rvEndCV}"' ) # Versification problem if this fails
-                        except ValueError as e: # this can happen if the section end is part-way through the next chapter
-                            # i.e., the section crosses chapter boundaries
-                            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"  createOETChapterPages {BBB} {c=} {n:,}/{len(rvSections):,}: section seems to cross chapter boundary {rvStartCV=} {rvEndCV=} {e=}")
-                            if BBB == 'MAL' and c==4:
-                                dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createOETChapterPages aborting {BBB} {c=} {n:,}/{len(rvSections):,}" )
-                                lvChunks.append( '<p class="error">Unsolved versification error for Malachi 4!</p><!--error-->' )
-                                break # This versification is giving too many versification problems (with entire c4 missing)
-                            if BBB not in ('JOBx','PSAx','EZEx','JOLx'): # TODO: Not sure what's going on with ms1 and mr in PSA and EZE 4 and Joel 2
-                                if n != len(rvSections)-1: # It should be the final section
-                                    logging.error( f"createOETChapterPagesA {BBB} {c=} {n:,}/{len(rvSections):,} seems to have a versification problem around {rvStartCV=} {rvEndCV=}" )
-                                    while len(lvChunks) < len(rvSections):
-                                        lvChunks.append( f"<p>Oops, missing OET-LV section (probably from a versification error).</p>" )
-                                    break
-                            ixEndCV = len(lvRest) - 1
-                        try: ixNextCV = lvRest.index( f' id="C', ixEndCV+5 )
-                        except ValueError: ixNextCV = len(lvRest) - 1
-                        if lvRest:
-                            # print( f"\n{BBB} {n}: {len(lvRest)=} {lvRest[ixEndCV:ixNextCV]=} {lvRest[ixNextCV:ixNextCV+10]=}" )
-                            # Find our way back to the start of the HTML marker
-                            for x in range( 30 ):
-                                lvIndex8 = ixNextCV - x
-                                if lvRest[lvIndex8] == '<':
-                                    break
-                            else:
-                                dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{lvRest[lvIndex8-50:lvIndex8+50]}")
-                                if DEBUGGING_THIS_MODULE or BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag: not_far_enough
-                                assert False, "We want to stop here"
+            if c < 1:
+                rvHtml = f'''<div class="chunkRV">{rvHtml}</div><!--chunkRV-->\n'''
+                lvHtml = f'''<div class="chunkLV">{lvHtml}</div><!--chunkLV-->\n'''
+                combinedHtml = f'{rvHtml}{lvHtml}'
+            else: # we have a normal chapter
+                # Now we have to divide the RV and the LV into an equal number of chunks (so they mostly line up)
+                rvSections = rvHtml.split( '<div class="section">' )
+                if not rvSections[0]: rvSections.pop( 0 ) # It must start with a section heading, so remove the first blank 'section'
+                assert 'bookIntro' not in lvHtml
+                lvChunks, lvRest = [], lvHtml
+                # Now try to match the RV sections
+                for n,rvSectionHtml in enumerate( rvSections ):
+                    # dPrint( 'Info', DEBUGGING_THIS_MODULE, f"\n{BBB} {n}: {rvSectionHtml=}" )
+                    try:
+                        CclassIndex1 = rvSectionHtml.index( 'id="C' )
+                        CclassIndex2 = rvSectionHtml.index( '"', CclassIndex1+4 )
+                        rvStartCV = rvSectionHtml[CclassIndex1+4:CclassIndex2]
+                        CclassIndex8 = rvSectionHtml.rindex( 'id="C' )
+                        CclassIndex9 = rvSectionHtml.index( '"', CclassIndex8+4 )
+                        rvEndCV = rvSectionHtml[CclassIndex8+4:CclassIndex9]
+                        # dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"\n  {BBB} {n:,}: {rvStartCV=} {rvEndCV=}")
+                    except ValueError as e:
+                        dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createOETChapterPages {BBB} {c=} {n:,}/{len(rvSections):,}: No Cid in {rvSectionHtml=} {e=}" )
+                        rvStartCV, rvEndCV = '', 'C1'
+                        # assert False, "We want to stop here"
+                    # dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"""Searching for ' id="{rvEndCV}"' in '{lvRest}'""" )
+                    try:
+                        ixEndCV = lvRest.rindex( f' id="{rvEndCV}"' ) # Versification problem if this fails
+                    except ValueError as e: # this can happen if the section end is part-way through the next chapter
+                        # i.e., the section crosses chapter boundaries
+                        dPrint( 'Info', DEBUGGING_THIS_MODULE, f"  createOETChapterPages {BBB} {c=} {n:,}/{len(rvSections):,}: section seems to cross chapter boundary {rvStartCV=} {rvEndCV=} {e=}")
+                        if BBB == 'MAL' and c==4:
+                            dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createOETChapterPages aborting {BBB} {c=} {n:,}/{len(rvSections):,}" )
+                            lvChunks.append( '<p class="error">Unsolved versification error for Malachi 4!</p><!--error-->' )
+                            break # This versification is giving too many versification problems (with entire c4 missing)
+                        if BBB not in ('JOBx','PSAx','EZEx','JOLx'): # TODO: Not sure what's going on with ms1 and mr in PSA and EZE 4 and Joel 2
+                            if n != len(rvSections)-1: # It should be the final section
+                                logging.error( f"createOETChapterPagesA {BBB} {c=} {n:,}/{len(rvSections):,} seems to have a versification problem around {rvStartCV=} {rvEndCV=}" )
+                                while len(lvChunks) < len(rvSections):
+                                    lvChunks.append( f"<p>Oops, missing OET-LV section (probably from a versification error).</p>" )
                                 break
-                            # print( f"\n{n}: {lvRest[ixEndCV:lvIndex8]=}" )
-                            lvEndIx = lvIndex8
-                            # TODO: Work out why we need these next two sets of lines
-                            if lvRest[lvEndIx:].startswith( '</span>'): # Occurs at end of MRK (perhaps because of missing SR verses in ending) -- not sure if in other places
-                                dPrint( 'Info', DEBUGGING_THIS_MODULE, f"\nNOTE: Fixed </span> end of {BBB} {rvStartCV=} {rvEndCV=} chunk in OET!!! {lvEndIx=} {ixNextCV=}" )
-                                lvEndIx = ixNextCV + 1
-                            elif lvRest[lvEndIx:].startswith( '</a>'): # Occurs at end of MAT Why????
-                                dPrint( 'Info', DEBUGGING_THIS_MODULE, f"\nNOTE: Fixed </a> end of {BBB} {rvStartCV=} {rvEndCV=} chunk in OET!!! {lvEndIx=} {ixNextCV=}" )
-                                lvEndIx = ixNextCV + 1
-                            lvChunk = lvRest[:lvEndIx]
-
-                            # Make sure that our split was at a sensible place
-                            if ixEndCV < len(lvRest)-1 \
-                            and n < len(rvSections)-1:
-                                rsLvChunk = lvChunk.rstrip()
-                                assert rsLvChunk[-1]=='>' \
-                                or (rsLvChunk[-2]=='>' and rsLvChunk[-1] in '.,?'), f"ASSERT createOETChapterPages {BBB} {c=} {n:,}/{len(rvSections):,}: {lvChunk[-8:]=} {rsLvChunk[-5:]=}"
-
-                            # Handle nb paragraphs
-                            nbStartCount, nbEndCount = lvChunk.count('<p class="nb"'), lvChunk.count('</p><!--nb-->')
-                            if nbStartCount == nbEndCount+1:
-                                # print( f"OET-LV {BBB} {c} chunk #{len(lvChunks)+1} {nbStartCount=} {nbEndCount=}\n{lvChunk=}")
-                                lvChunk = f'{lvChunk}</p><!--nb-->'
-                            elif nbStartCount+1 == nbEndCount:
-                                # print( f"OET-LV {BBB} {c} chunk #{len(lvChunks)+1} {nbStartCount=} {nbEndCount=}\n{lvChunk=}")
-                                lvChunk = f'<p class="nb">{lvChunk}'
-                            else: assert nbStartCount == nbEndCount == 0
-                            # print( f"\nOET-LV {BBB} {c} chunk #{len(lvChunks)+1} was {nbStartCount=} {nbEndCount=}\n{lvChunk=}\n{lvChunk=}" )
-                            assert checkHtml( f'OET-LV {BBB}_C{c} chunk #{len(lvChunks)+1}', lvChunk, segmentOnly=True ), f"OET-LV {BBB} {c}\n{lvChunk=}"
-                            lvChunks.append( lvChunk )
-                            lvRest = lvRest[lvEndIx:]
-                        if not lvRest:
-                            logging.error( f"createOETChapterPagesB {BBB} {c=} {n:,}/{len(rvSections):,} seems to have a versification problem around {rvStartCV=} {rvEndCV=}" )
-                            while len(lvChunks) < len(rvSections):
-                                lvChunks.append( f"<p>Oops, no more OET-LV sections (probably from a versification error).</p>" )
+                        ixEndCV = len(lvRest) - 1
+                    try: ixNextCV = lvRest.index( f' id="C', ixEndCV+5 )
+                    except ValueError: ixNextCV = len(lvRest) - 1
+                    if lvRest:
+                        # print( f"\n{BBB} {n}: {len(lvRest)=} {lvRest[ixEndCV:ixNextCV]=} {lvRest[ixNextCV:ixNextCV+10]=}" )
+                        # Find our way back to the start of the HTML marker
+                        for x in range( 30 ):
+                            lvIndex8 = ixNextCV - x
+                            if lvRest[lvIndex8] == '<':
+                                break
+                        else:
+                            dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{lvRest[lvIndex8-50:lvIndex8+50]}")
+                            if DEBUGGING_THIS_MODULE or BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag: not_far_enough
+                            assert False, "We want to stop here"
                             break
+                        # print( f"\n{n}: {lvRest[ixEndCV:lvIndex8]=}" )
+                        lvEndIx = lvIndex8
+                        # TODO: Work out why we need these next two sets of lines
+                        if lvRest[lvEndIx:].startswith( '</span>'): # Occurs at end of MRK (perhaps because of missing SR verses in ending) -- not sure if in other places
+                            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"\nNOTE: Fixed </span> end of {BBB} {rvStartCV=} {rvEndCV=} chunk in OET!!! {lvEndIx=} {ixNextCV=}" )
+                            lvEndIx = ixNextCV + 1
+                        elif lvRest[lvEndIx:].startswith( '</a>'): # Occurs at end of MAT Why????
+                            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"\nNOTE: Fixed </a> end of {BBB} {rvStartCV=} {rvEndCV=} chunk in OET!!! {lvEndIx=} {ixNextCV=}" )
+                            lvEndIx = ixNextCV + 1
+                        lvChunk = lvRest[:lvEndIx]
 
-                    assert len(lvChunks) == len(rvSections), f"{len(lvChunks)=} {len(rvSections)=}"
+                        # Make sure that our split was at a sensible place
+                        if ixEndCV < len(lvRest)-1 \
+                        and n < len(rvSections)-1:
+                            rsLvChunk = lvChunk.rstrip()
+                            assert rsLvChunk[-1]=='>' \
+                            or (rsLvChunk[-2]=='>' and rsLvChunk[-1] in '.,?'), f"ASSERT createOETChapterPages {BBB} {c=} {n:,}/{len(rvSections):,}: {lvChunk[-8:]=} {rsLvChunk[-5:]=}"
 
-                    # Now put all the chunks together
-                    combinedHtml = ''
-                    for rvSection,lvChunk in zip( rvSections, lvChunks, strict=True ):
-                        if rvSection.startswith( '<div class="rightS1Box">' ):
-                            rvSection = f'<div class="section">{rvSection}' # This got removed above
-                        assert checkHtml( f'OET-RV {BBB}_C{c} section', rvSection, segmentOnly=True )
-                        assert checkHtml( f'OET-LV {BBB}_C{c} chunk', lvChunk, segmentOnly=True ), f"OET-LV {BBB} {c}\n{lvChunk=}"
-                        # Handle footnotes so the same fn1 doesn't occur for both chunks if they both have footnotes
-                        rvSection = rvSection.replace( 'id="footnotes', 'id="footnotesRV' ).replace( 'id="crossRefs', 'id="crossRefsRV' ).replace( 'id="fn', 'id="fnRV' ).replace( 'href="#fn', 'href="#fnRV' )
-                        lvChunk = lvChunk.replace( 'id="footnotes', 'id="footnotesLV' ).replace( 'id="crossRefs', 'id="crossRefsLV' ).replace( 'id="fn', 'id="fnLV' ).replace( 'href="#fn', 'href="#fnLV' )
-                        if combinedHtml: assert combinedHtml.endswith( '\n' ), f"{combinedHtml[-5:]=}"
-                        combinedHtml = f'''{combinedHtml}<div class="chunkRV">{rvSection}</div><!--chunkRV-->
+                        # Handle nb paragraphs
+                        nbStartCount, nbEndCount = lvChunk.count('<p class="nb"'), lvChunk.count('</p><!--nb-->')
+                        if nbStartCount == nbEndCount+1:
+                            # print( f"OET-LV {BBB} {c} chunk #{len(lvChunks)+1} {nbStartCount=} {nbEndCount=}\n{lvChunk=}")
+                            lvChunk = f'{lvChunk}</p><!--nb-->'
+                        elif nbStartCount+1 == nbEndCount:
+                            # print( f"OET-LV {BBB} {c} chunk #{len(lvChunks)+1} {nbStartCount=} {nbEndCount=}\n{lvChunk=}")
+                            lvChunk = f'<p class="nb">{lvChunk}'
+                        else: assert nbStartCount == nbEndCount == 0
+                        # print( f"\nOET-LV {BBB} {c} chunk #{len(lvChunks)+1} was {nbStartCount=} {nbEndCount=}\n{lvChunk=}\n{lvChunk=}" )
+                        assert checkHtml( f'OET-LV {BBB}_C{c} chunk #{len(lvChunks)+1}', lvChunk, segmentOnly=True ), f"OET-LV {BBB} {c}\n{lvChunk=}"
+                        lvChunks.append( lvChunk )
+                        lvRest = lvRest[lvEndIx:]
+                    if not lvRest:
+                        logging.error( f"createOETChapterPagesB {BBB} {c=} {n:,}/{len(rvSections):,} seems to have a versification problem around {rvStartCV=} {rvEndCV=}" )
+                        while len(lvChunks) < len(rvSections):
+                            lvChunks.append( f"<p>Oops, no more OET-LV sections (probably from a versification error).</p>" )
+                        break
+
+                assert len(lvChunks) == len(rvSections), f"{len(lvChunks)=} {len(rvSections)=}"
+
+                # Now put all the chunks together
+                combinedHtml = ''
+                for rvSection,lvChunk in zip( rvSections, lvChunks, strict=True ):
+                    if rvSection.startswith( '<div class="rightS1Box">' ):
+                        rvSection = f'<div class="section">{rvSection}' # This got removed above
+                    assert checkHtml( f'OET-RV {BBB}_C{c} section', rvSection, segmentOnly=True )
+                    assert checkHtml( f'OET-LV {BBB}_C{c} chunk', lvChunk, segmentOnly=True ), f"OET-LV {BBB} {c}\n{lvChunk=}"
+                    # Handle footnotes so the same fn1 doesn't occur for both chunks if they both have footnotes
+                    rvSection = rvSection.replace( 'id="footnotes', 'id="footnotesRV' ).replace( 'id="crossRefs', 'id="crossRefsRV' ).replace( 'id="fn', 'id="fnRV' ).replace( 'href="#fn', 'href="#fnRV' )
+                    lvChunk = lvChunk.replace( 'id="footnotes', 'id="footnotesLV' ).replace( 'id="crossRefs', 'id="crossRefsLV' ).replace( 'id="fn', 'id="fnLV' ).replace( 'href="#fn', 'href="#fnLV' )
+                    if combinedHtml: assert combinedHtml.endswith( '\n' ), f"{combinedHtml[-5:]=}"
+                    combinedHtml = f'''{combinedHtml}<div class="chunkRV">{rvSection}</div><!--chunkRV-->
 <div class="chunkLV">{lvChunk}</div><!--chunkLV-->
 '''
-                combinedHtml = f'{removeDuplicateCVids( combinedHtml )}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="15" style="float:right; margin-left:10px;"></a></div><!--RVLVcontainer-->'
+            combinedHtml = f'{removeDuplicateCVids( combinedHtml )}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="15" style="float:right; margin-left:10px;"></a></div><!--RVLVcontainer-->'
 
-                # Handle BibleMapper maps and notes -- the function handles chapters automatically
-                bmmHtml = getBibleMapperMaps( level, BBB, c, None, None, None, rvBible, state ) # Setting verse to None make it look at chapter level
-                if bmmHtml:
-                    bmmHtml = f'''<div id="BMM" class="parallelBMM"><a title="Go to BMM copyright page" href="{'../'*level}BMM/details.htm#Top">BMM</a> <b><a href="https://BibleMapper.com" target="_blank" rel="noopener noreferrer">BibleMapper.com</a> Maps</b>: {bmmHtml}</div><!--end of BMM-->'''
-                    combinedHtml = f'{combinedHtml}\n<hr style="width:45%;margin-left:0;margin-top: 0.3em">\n{bmmHtml}'
+            # Handle BibleMapper maps and notes -- the function handles chapters automatically
+            bmmHtml = getBibleMapperMaps( level, BBB, c, None, None, None, rvBible, state ) # Setting verse to None make it look at chapter level
+            if bmmHtml:
+                bmmHtml = f'''<div id="BMM" class="parallelBMM"><a title="Go to BMM copyright page" href="{'../'*level}BMM/details.htm#Top">BMM</a> <b><a href="https://BibleMapper.com" target="_blank" rel="noopener noreferrer">BibleMapper.com</a> Maps</b>: {bmmHtml}</div><!--end of BMM-->'''
+                combinedHtml = f'{combinedHtml}\n<hr style="width:45%;margin-left:0;margin-top: 0.3em">\n{bmmHtml}'
 
-                filename = f'{BBB}_Intro.htm' if c==-1 else f'{BBB}_C{c}.htm'
-                filenames.append( filename )
-                filepath = folder.joinpath( filename )
-                top = makeTop( level, 'OET', 'chapter', f'byC/{filename}', state ) \
-                        .replace( '__TITLE__', f"OET {ourTidyBBB} introduction{' TEST' if state.TEST_MODE_FLAG else ''}" if c==-1 else f"OET {ourTidyBBB} chapter {c}{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
-                        .replace( '__KEYWORDS__', f'Bible, OET, Open English Translation, chapter, {ourTidyBBB}' ) \
-                        .replace( f'''<a title="{state.BibleNames['OET']}" href="{'../'*level}OET/byC/{filename}#Top">OET</a>''',
-                                  f'''<a title="Up to {state.BibleNames['OET']}" href="{'../'*level}OET">↑OET</a>''' )
-                chapterHtml = f'''{top}<!--chapter page-->
+            filename = f'{BBB}_Intro.htm' if c==-1 else f'{BBB}_C{c}.htm'
+            filenames.append( filename )
+            filepath = folder.joinpath( filename )
+            top = makeTop( level, 'OET', 'chapter', f'byC/{filename}', state ) \
+                    .replace( '__TITLE__', f"OET {ourTidyBBB} introduction{' TEST' if state.TEST_MODE_FLAG else ''}" if c==-1 else f"OET {ourTidyBBB} chapter {c}{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
+                    .replace( '__KEYWORDS__', f'Bible, OET, Open English Translation, chapter, {ourTidyBBB}' ) \
+                    .replace( f'''<a title="{state.BibleNames['OET']}" href="{'../'*level}OET/byC/{filename}#Top">OET</a>''',
+                              f'''<a title="Up to {state.BibleNames['OET']}" href="{'../'*level}OET">↑OET</a>''' )
+            chapterHtml = f'''{top}<!--chapter page-->
 {navBookListParagraph}
 {chapterLinksParagraph.replace( 'class="chLst">', 'class="chLst" id="chLst">', 1 )}
 <a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
@@ -360,14 +349,14 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
 {cNav}
 {chapterLinksParagraph}
 {makeBottom( level, 'OET', 'chapter' )}'''
-                assert checkHtml( f'OET {BBB}_C{c}', chapterHtml )
-                assert not filepath.is_file() # Check that we're not overwriting anything
-                with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
-                    cHtmlFile.write( chapterHtml )
-                vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(chapterHtml):,} characters written to {filepath}" )
-                vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"      Creating chapter pages for OET {BBB} {c}…" )
-        else: # This book has no chapters
-            assert False, "Obsolete code!"
+            assert checkHtml( f'OET {BBB}_C{c}', chapterHtml )
+            assert not filepath.is_file() # Check that we're not overwriting anything
+            with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
+                cHtmlFile.write( chapterHtml )
+            vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(chapterHtml):,} characters written to {filepath}" )
+            vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"      Creating chapter pages for OET {BBB} {c}…" )
+    else: # This book has no chapters
+        assert False, "Obsolete code!"
 #             assert BBB in ('INT',)
 #             print( f"CAN'T DO '{BBB}' CHAPTER PAGES" ); halt
 #             # TODO: Not completely finished yet
@@ -407,28 +396,88 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
 #             vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"    {len(chapterHtml):,} characters written to {filepath}" )
 #             assert False, "We want to stop here"
 
-        # Now create an index page for this book
-        vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Creating chapter index page for OET {BBB}…" )
-        realChapterLinks = [f'<a title="View chapter page" href="{BBB}_C{ccc}.htm#Top">{'Sg' if BBB=='PSA' else 'C'}{ccc}</a>' for ccc in range(1, numChapters+1)]
-        chapterLinksParagraph = f'<p class="chLst">{" ".join( initialChapterLinks+realChapterLinks )}</p><!--chLst-->'
-        filename = f'{BBB}.htm'
-        filenames.append( filename )
-        filepath = folder.joinpath( filename )
-        top = makeTop( level, 'OET', 'chapter', 'byC/', state ) \
-                .replace( '__TITLE__', f"OET {ourTidyBBB}{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
-                .replace( '__KEYWORDS__', f'Bible, OET, Open English Translation, chapter, {ourTidyBBB}' ) \
-                .replace( f'''<a title="{state.BibleNames['OET']}" href="{'../'*level}OET">OET</a>''', 'OET' )
-        chapterHtml = f'''{top}<!--chapters indexPage-->
+    # Now create an index page for this book
+    vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Creating chapter index page for OET {BBB}…" )
+    realChapterLinks = [f'<a title="View chapter page" href="{BBB}_C{ccc}.htm#Top">{'Sg' if BBB=='PSA' else 'C'}{ccc}</a>' for ccc in range(1, numChapters+1)]
+    chapterLinksParagraph = f'<p class="chLst">{" ".join( initialChapterLinks+realChapterLinks )}</p><!--chLst-->'
+    filename = f'{BBB}.htm'
+    filenames.append( filename )
+    filepath = folder.joinpath( filename )
+    top = makeTop( level, 'OET', 'chapter', 'byC/', state ) \
+            .replace( '__TITLE__', f"OET {ourTidyBBB}{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
+            .replace( '__KEYWORDS__', f'Bible, OET, Open English Translation, chapter, {ourTidyBBB}' ) \
+            .replace( f'''<a title="{state.BibleNames['OET']}" href="{'../'*level}OET">OET</a>''', 'OET' )
+    chapterHtml = f'''{top}<!--chapters indexPage-->
 <a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
 {navBookListParagraph}
 {chapterLinksParagraph}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="15" style="float:right; margin-left:10px;"></a>
 {makeBottom( level, 'OET', 'chapter' )}'''
-        assert checkHtml( 'OETChaptersIndex', chapterHtml )
-        assert not filepath.is_file() # Check that we're not overwriting anything
-        with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
-            cHtmlFile.write( chapterHtml )
-        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(chapterHtml):,} characters written to {filepath}" )
+    assert checkHtml( 'OETChaptersIndex', chapterHtml )
+    assert not filepath.is_file() # Check that we're not overwriting anything
+    with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
+        cHtmlFile.write( chapterHtml )
+    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(chapterHtml):,} characters written to {filepath}" )
 
+    return ( True, BBB, filenames )
+# end of createChapterPages.py._writeOETSideBySideChapterBook
+
+def _createOETSideBySideChapterBook_MP( parameters ) -> tuple[bool,str,list[str]]:
+    """
+    Multiprocessing version! (forked children inherit our module-level state copy-on-write)
+
+    Parameter is a 3-tuple containing the level, destination folder, and BBB.
+    Returns the (True, BBB, filenames) result from _writeOETSideBySideChapterBook.
+    """
+    level, folder, BBB = parameters
+    rvBible = state.preloadedBibles['OET-RV']
+    lvBible = state.preloadedBibles['OET-LV']
+    resultBool, BBBResult, filenames = _writeOETSideBySideChapterBook( level, folder, rvBible, lvBible, state, BBB )
+    assert resultBool is True
+    return ( resultBool, BBBResult, filenames )
+# end of createChapterPages.py._createOETSideBySideChapterBook_MP
+
+
+def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, state:State ) -> list[str]:
+    """
+    The OET is a pseudo-version which includes the OET-RV and OET-LV side-by-side.
+
+    (The actual OET-RV and OET-LV are processed by the regular function below.)
+    """
+    fnPrint( DEBUGGING_THIS_MODULE, f"createOETSideBySideChapterPages( {level}, {folder}, {rvBible.abbreviation}, {lvBible.abbreviation} )" )
+
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createOETSideBySideChapterPages( {level}, {folder}, {rvBible.abbreviation}, {lvBible.abbreviation} )…" )
+    try: os.makedirs( folder )
+    except FileExistsError: pass # they were already there
+
+    navBookListParagraph = makeBookNavListParagraph(state.BBBLinks['OET'], 'OET', state )
+
+    # Now create the actual OET chapter pages (one forked worker per book)
+    BBBs, filenames = [], []
+    mpBookParameters = [] # (level, folder, BBB) tuples for the forked workers
+    for BBB in state.BBBsToProcess['OET']:
+        if BibleOrgSysGlobals.maxProcesses > 1 \
+        and not BibleOrgSysGlobals.alreadyMultiprocessing: # Use multiprocessing for these OET chapter pages
+            mpBookParameters.append( (level, folder, BBB) )
+        else: # no multiprocessing available -- do this book sequentially
+            resultBool, BBBResult, bookFilenames = _writeOETSideBySideChapterBook( level, folder, rvBible, lvBible, state, BBB )
+            assert resultBool is True
+            if bookFilenames:
+                BBBs.append( BBBResult ); filenames.extend( bookFilenames )
+    if mpBookParameters:
+        # NOTE: We use an explicit 'fork' context because Python 3.14 changed the default start method
+        #        to 'forkserver' which would NOT inherit our huge module-level state (12 GiB of Bibles).
+        #        Forked children share that memory copy-on-write, so this costs almost nothing extra.
+        # NOTE: Outputs (including error and warning messages) from the various books may be interspersed.
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\nCreating {'TEST ' if state.TEST_MODE_FLAG else ''}OET chapter pages for {len(mpBookParameters):,} books using {BibleOrgSysGlobals.maxProcesses:,} forked processes…" )
+        BibleOrgSysGlobals.alreadyMultiprocessing = True
+        with multiprocessing.get_context('fork').Pool( processes=BibleOrgSysGlobals.maxProcesses ) as pool: # start worker processes
+            results = pool.map( _createOETSideBySideChapterBook_MP, mpBookParameters ) # have the pool create the chapters
+            assert len(results) == len(mpBookParameters)
+        BibleOrgSysGlobals.alreadyMultiprocessing = False
+        for resultBool, BBBResult, bookFilenames in results:
+            assert resultBool is True
+            if bookFilenames:
+                BBBs.append( BBBResult ); filenames.extend( bookFilenames )
     # Create overall OET chapter index page
     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, "  Creating overall OET chapter index page…" )
     filename = 'index.htm'

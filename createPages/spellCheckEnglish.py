@@ -825,9 +825,9 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                 'ach','alt','dran','ende','irrig','hing','weh','du','Raube','Raub','sie','Tal','tue','fiel','sehe',
                                 'Mal','mal','milde','mit','Mord','Natur','nun','nur',
                                 'rede','kam','Korb','ward','Rat','Rede','messen','ging','Halle','und','ster','streng','töte','tun','von','wer','zu','zwo',
-                                'rejoiceen','shinese','hereging','hesitationsal','kamet','upen','galt','forgetst',
-                                    'seventymal','batest','anye',
-                                    'lastbaren','ofging','successore','einzog','twofelt','sawet','herbeikam','person)wichte',
+                                'ablegen','writet',
+                                    'abovetünchten','killingbeine','justn','showedn','handn',
+                                    'wo','attention‘s','grindn',
                     
                                 'actio', 'agi', 'aliena', 'ambit','ambitio','amputa', 'anima','antiqui','apprehendi', 'argui','ascendi','attende','audi', 'aversio',
                                 'beati','bene','beneficia','bos',
@@ -845,7 +845,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                     'indignati','intellige','intelligi','intentio','introduc','inventi','invoca','invocat','invocatio','Isaia','iter','Ite',
                                 'ja','jus','Justi','justi','justis','justificat',     'legi','legis','liberatio','liberati','liberato','liberat','libera','liber','locus','lux',
                                 'magis','magnifice','magni', 'mane','manifeste','manu', 'mater','materia',
-                                    'media','medici','memor','memoria','menstrua','mens',        'mira','misera',        'moretri','mortali','morti',
+                                    'media','medici','memor','memoria','menstrua','mens',        'mira','misera',        'mora','moretri','mortali','morti',
                                 'nam','narrat','nati','natu','natura','ne','nota','Nota',     'ob','obsessi', 'occasio', 'offen','omnis','operatio','opinio','ora','ori',
                                 'passi','patria','patri','pede','pedes','perpetua','perfecti','persecuti','persecutio',
                                     'pio','plura','polluti','prope','propitiatio','provocat', 'psalmi','psalmis', 'publica',
@@ -855,12 +855,12 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                     'si','signi','sit','sol','soli','solem','stat','statu', 'subjecti','summo','superstitio',
                                 'tempora','Tod','tradit','traditi','traditio','transito','transmigratio','tres','tribulatio','tributa','trium','tu','tua','tuam','turba',
                                 'usu',      'valle','vani','varie','vas', 'victi','visita','visitat','visitatio','vita', 'Voca','voca',
-                                'l','nos','ut','didrachmas','cypri','parvum',
-                                'tonitrua','utrique',
+                                'l','nos','ut','didrachmas','tonitrua','utrique',
+                                'eatns','spernit','disponit','statuas','peacefuls','apparens','oraculi','birthe',
                                     'res','knowti','boxnis','recordati','clange','reados','sectus','undis',
                                     'lovese','meum','weres','multiformis','professio','reprimandse','halfnt','stringit','sendus','resttionum','namedm','beforeparavi','rightsverit',
-                                    'anathemate','fightrent','anys','habitndum','beforeof','enterings','abs','vis','mindo','mora','hospes','eram','discamus',
-                                    'intrent','hellrum',
+                                    'anathemate','fightrent','anys','habitndum','beforeof','enterings','abs','vis','mindo',
+                                    'comeur','duci',
 
                                 )
                     else 'Info', DEBUGGING_THIS_MODULE, f'''  {word} is suspect @ {location}\n      from {cleanedTextToDisplay=}\n      WHICH GAVE cleanedTextToCheck={_truncate_for_display(cleanedTextToCheck,word)}''' )

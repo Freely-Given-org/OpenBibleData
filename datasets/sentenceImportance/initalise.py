@@ -24,7 +24,7 @@
 #   You should have received a copy of the GNU General Public License
 #   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-r"""
+"""
 Module handling SentenceImportance initialisation.
 
 This bit of code is only ever intended to be run once
@@ -57,8 +57,8 @@ CHANGELOG:
     2025-09-11 Find Q footnotes in UHB
     2025-10-13 Find appropriate footnotes in OSHB via OET-LV OT files
     2026-01-05 Handle a range crossing a chapter boundary (using en-dash –)
-    2026-03-29 Update for latest collaction DB from GreekCNTR
-    2026-09-08 Add Speakers column to the output (auto-detected from OET-RV \wj markers, \sp speaker markers, and speech attribution patterns)
+    2026-03-29 Updated for latest collation DB from GreekCNTR
+    2026-09-08 Added Speakers column to the output (auto-detected from OET-RV \\wj markers, \\sp speaker markers, and speech attribution patterns)
 """
 from pathlib import Path
 from csv import  DictReader
@@ -79,7 +79,7 @@ from load import getIndividualQuotedOTRefs, getIndividualQuotingNTRefs
 
 
 
-LAST_MODIFIED_DATE = '2026-09-08' # by RJH
+LAST_MODIFIED_DATE = '2026-09-09' # by RJH
 SHORT_PROGRAM_NAME = "SentenceImportance_initialisation"
 PROGRAM_NAME = "Sentence Importance initialisation"
 PROGRAM_VERSION = '0.29'
@@ -180,7 +180,7 @@ importantRefsWithRanges = [ # Often quoted and/or memorised by Christians
     'HEB_4:12-13', 'HEB_5:12-14', 'HEB_13:9',
     'JAM_1:5',
     'PE1_2:2', 'PE1_2:9-10',
-    'PE2_3:15-16',
+    'PE2_3:10','PE2_3:15-16',
     'JN1_2:19', 'JN1_4:1','JN1_4:4',
     'JN2_1:9',
     'REV_1:17-18', 'REV_3:5', 'REV_13:7', 'REV_20:12','REV_20:15',
