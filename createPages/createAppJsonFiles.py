@@ -35,6 +35,7 @@ main calls fullDemo()
 
 
 CHANGELOG:
+    2026-08-25 The OETHandlers functions are now imported from the Rust openbibledata_rust module (the Python OETHandlers.py was deleted).
 """
 from pathlib import Path
 import os
@@ -53,16 +54,16 @@ import bos_books_codes_py
 from bible_transliterations import transliterate_Hebrew, transliterate_Greek
 
 from settings import State, state, CNTR_BOOK_ID_MAP
-from OETHandlers import getOETTidyBBB, getOETBookName, getHebrewWordpageFilename, getGreekWordpageFilename, livenOETWordLinks
 from createSectionPages import findSectionNumber
 from createOETReferencePages import HebrewWordFileName, convert_Hebrew_word_gloss_spans, tidy_Hebrew_morphology, \
                     GLOSS_TYPE_STRING_DICT,\
                 GreekWordFileName, formatNTContextSpansOETGlossWords, \
                     CNTR_ROLE_NAME_DICT, CNTR_MOOD_NAME_DICT, CNTR_TENSE_NAME_DICT, CNTR_VOICE_NAME_DICT, CNTR_PERSON_NAME_DICT, \
                     CNTR_CASE_NAME_DICT, CNTR_GENDER_NAME_DICT, CNTR_NUMBER_NAME_DICT
+from openbibledata_rust import getOETTidyBBB, getOETBookName, getHebrewWordpageFilename, getGreekWordpageFilename, livenOETWordLinks
 
 
-LAST_MODIFIED_DATE = '2026-04-26' # by RJH
+LAST_MODIFIED_DATE = '2026-08-25' # by RJH
 SHORT_PROGRAM_NAME = "createAppJsonFiles"
 PROGRAM_NAME = "OpenBibleData createAppJsonFiles functions"
 PROGRAM_VERSION = '0.12'
@@ -165,7 +166,7 @@ def create_Hebrew_words_json( level:int, outputFolderPath:Path, state:State ) ->
 # <p class="note"><a href="../Stats/">Bible statistics</a></p>
 # <h1 id="Top">Hebrew Words Index ({len(wordLinksForIndex):,})</h1>
 # <p class="note">{indexText}</p>
-# {makeBottom( level, None, 'wordIndex', state )}'''
+# {makeBottom( level, None, 'wordIndex', )}'''
 #     assert checkHtml( 'wordIndex', indexHtml )
 #     assert not filepath.is_file() # Check that we're not overwriting anything
 #     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
@@ -191,7 +192,7 @@ def create_Hebrew_words_json( level:int, outputFolderPath:Path, state:State ) ->
 # <p class="note"><a href="../Stats/">Bible statistics</a></p>
 # <h1 id="Top">Transliterated Hebrew Words Index ({len(wordLinksForIndex):,})</h1>
 # <p class="note">{indexText}</p>
-# {makeBottom( level, None, 'wordIndex', state )}'''
+# {makeBottom( level, None, 'wordIndex' )}'''
 #     assert checkHtml( 'wordIndex', indexHtml )
 #     assert not filepath.is_file() # Check that we're not overwriting anything
 #     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
@@ -995,7 +996,7 @@ def create_Greek_words_json( level:int, outputFolderPath:Path, state:State ) -> 
 # <p class="note"><a href="../Stats/">Bible statistics</a></p>
 # <h1 id="Top">Greek Words Index ({len(wordLinksForIndex):,})</h1>
 # <p class="note">{indexText}</p>
-# {makeBottom( level, None, 'wordIndex', state )}'''
+# {makeBottom( level, None, 'wordIndex' )}'''
 #     assert checkHtml( 'wordIndex', indexHtml )
 #     assert not filepath.is_file() # Check that we're not overwriting anything
 #     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
@@ -1022,7 +1023,7 @@ def create_Greek_words_json( level:int, outputFolderPath:Path, state:State ) -> 
 # <p class="note"><a href="../Stats/">Bible statistics</a></p>
 # <h1 id="Top">Transliterated Greek Words Index ({len(wordLinksForIndex):,})</h1>
 # <p class="note">{indexText}</p>
-# {makeBottom( level, None, 'wordIndex', state )}'''
+# {makeBottom( level, None, 'wordIndex' )}'''
 #     assert checkHtml( 'wordIndex', indexHtml )
 #     assert not filepath.is_file() # Check that we're not overwriting anything
 #     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
@@ -1122,7 +1123,7 @@ def create_Hebrew_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:
 <p class="btnBar"><button type="button" id="wordsButton" title="Hide/Show verse refs" onclick="hide_show_words()">Hide verse refs</button> <button type="button" id="versesButton" title="Hide/Show verse lines" onclick="hide_show_verses()">Hide verses</button> <button type="button" id="coloursButton" title="Hide/Show verse colours" onclick="hide_show_colours()">Hide verse colours</button></p>
 <p>{middle}</p>{''.join(versesHtml)}
 <p>View on <a href="https://BibleHub.com/hebrew/{strongsNumber}.htm">BibleHub</a>.</p>
-{makeBottom( level, None, 'StrongsPage', state )}'''
+{makeBottom( level, None, 'StrongsPage' )}'''
         # assert checkHtml( 'StrongsPage', pageHtml )
         with open( filepath, 'wt', encoding='utf-8' ) as html_output_file:
             html_output_file.write( pageHtml )
@@ -1149,7 +1150,7 @@ def create_Hebrew_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:
 # <p class="note"><a href="../Stats/">Bible statistics index</a></p>
 # <h1 id="Top">Strongs Hebrew Index ({len(indexList):,})</h1>
 # <ul>{'\n'.join(indexList)}</ul>
-# {makeBottom( level, None, 'StrongsIndex', state )}'''
+# {makeBottom( level, None, 'StrongsIndex' )}'''
 #     assert checkHtml( 'StrongsIndex', indexHtml )
 #     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
 #         indexHtmlFile.write( indexHtml )
@@ -1245,7 +1246,7 @@ def create_Greek_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:B
 <p class="btnBar"><button type="button" id="wordsButton" title="Hide/Show verse refs" onclick="hide_show_words()">Hide verse refs</button> <button type="button" id="versesButton" title="Hide/Show verse lines" onclick="hide_show_verses()">Hide verses</button> <button type="button" id="coloursButton" title="Hide/Show verse colours" onclick="hide_show_colours()">Hide verse colours</button></p>
 <p>{middle}</p>{''.join(versesHtml)}
 <p>View on <a href="https://BibleHub.com/greek/{strongsNumber}.htm">BibleHub</a>.</p>
-{makeBottom( level, None, 'StrongsPage', state )}'''
+{makeBottom( level, None, 'StrongsPage' )}'''
         assert checkHtml( 'StrongsPage', pageHtml )
         with open( filepath, 'wt', encoding='utf-8' ) as html_output_file:
             html_output_file.write( pageHtml )
@@ -1272,7 +1273,7 @@ def create_Greek_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:B
 # <p class="note"><a href="../Stats/">Bible statistics index</a></p>
 # <h1 id="Top">Strongs Greek Index ({len(indexList):,})</h1>
 # <ul>{'\n'.join(indexList)}</ul>
-# {makeBottom( level, None, 'StrongsIndex', state )}'''
+# {makeBottom( level, None, 'StrongsIndex' )}'''
 #     assert checkHtml( 'StrongsIndex', indexHtml )
 #     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
 #         indexHtmlFile.write( indexHtml )

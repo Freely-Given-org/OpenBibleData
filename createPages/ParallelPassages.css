@@ -9,7 +9,10 @@ div.chunkRV {}
 
 div.header {}
 div.footer { margin:50px; }
+div.periph {}
+hr.periph { border:none; border-top:2px solid purple; }
 
+div.topLine {}
 p.site {}
 p.copyright {}
 p.note {}
@@ -123,6 +126,14 @@ p.NorthernKingdom { color:purple; }
 p.SouthernKingdom { color:green; }
 p.BothKingdoms { color:orange; }
 
+/* For /sp in SNG and JER */
+div.groom { background-color:#e6f2ff; }
+div.bride { background-color:#ffe6f7; }
+div.women { background-color:#f2ccff; }
+div.brothers { background-color:#e6f0ff; }
+div.people { background-color:#def078; }
+div.Yirmeyah { background-color:#78def0; }
+
 /* Chapters USFM */
 span.c { font-size:1.1em; color:green; }
 span.cPsa { font-size:1.6em; font-weight:bold; color:green; }
@@ -141,6 +152,7 @@ p.m { margin-top:0.2em; margin-bottom:0.2em; }
 p.mi {}
 p.q1 { margin-left:1em; margin-top:0.2em; margin-bottom:0.2em; }
 p.q2 { margin-left:2em; margin-top:0.2em; margin-bottom:0.2em; }
+p.q3 { margin-left:3em; margin-top:0.2em; margin-bottom:0.2em; }
 p.qa { font-size:0.9em; text-align: right; margin-top:0.2em; margin-bottom:0.1em; } /* Acrostic heading */
 p.nb {}
 
@@ -157,19 +169,19 @@ span.antiParr { vertical-align:super; font-size:0.8em; color:orangeRed; } /* Heb
 span.synthParr { vertical-align:super; font-size:0.8em; color:blue; } /* Hebrew synthetic parallelism */
 
 /* OET add spans */
-span.addArticle { color:bisque; }
+span.addArticle { color:#b55f5f; }
 /* span.unusedArticle { color:lavender; } */
-/* span.addCopula { color:pink; } */
+/* span.addCopula { color:#78aba4; } */
 span.addDirectObject { color:brown; }
 span.addExtra { color:green; }
-span.addElided { color:darkgoldenrod; }
+span.addElided { color:#9c740b; }
 span.addOwner { color:darkOrchid; }
 span.addPronoun { color:darkgreen; }
 span.addReferent { color:darkblue; }
 span.addNumberChange { color:darkcyan; }
-span.addPersonChange { color:darkkhaki; }
+span.addPersonChange { color:#807625; }
 span.addNegated { color:darkred; }
-span.addReword { text-decoration:underline; text-decoration-style: dotted; text-decoration-color:grey; }
+span.addReword { text-decoration:underline; text-decoration-style: dotted; text-decoration-color:#6b6b6b; }
 span.RVadd { color:#505050; } /* Darker than dimGrey which is #696969 (black is #000000) */
 /* span.add { color:grey; } */
 /* span.untr { font-size:0.8em; color:grey; text-decoration:line-through; } */
@@ -179,13 +191,15 @@ span.noLinkYet { background-color:darkgrey; color:white }
 /* span.ul { color:darkGrey; } */
 /* span.dom { color:Gainsboro; font-size:0.75em; } */
 /* span.schwa { font-size:0.75em; } */
-span.nominaSacra { font-weight:bold; }
+span.nominaSacra { font-weight:560; }
 /* span.nd {} */
 /* span.ndORD { font-size:.75em; text-decoration:overline; text-decoration-style:dashed; text-decoration-color:purple; } */
 
 span.OET-RV_verseTextChunk {}
+div.verseText {}
 
 /* USFM footnotes */
+hr.line-before-footnotes { width:60%; margin-left:0; margin-top:0em; margin-bottom:0.2em; border:0; border-top:1px solid green; }
 div.footnotes {}
 p.fn { margin-top:0.2em; margin-bottom:0.2em; font-size:0.75em; }
 span.fnCaller { vertical-align:super; font-size:0.7em; color:green; }
@@ -194,7 +208,7 @@ span.fnRef { font-weight:bold; }
 span.fnText { }
 /* span.fe {} */
 /* span.fk { font-style:italic; font-weight:bold; } */
-/* span.fl { font-style:italic; font-weight:bold; } */
+span.fl { font-style:italic; font-weight:bold; }
 /* span.fm { vertical-align:super; } */
 /* span.fp {} */
 span.fq { font-style:italic; }
@@ -205,6 +219,7 @@ span.ft {}
 span.xt {}
 
 /* USFM cross-references */
+hr.line-before-xrefs { width:30%; margin-left:0; margin-top:0em; margin-bottom:0.2em; border:0; border-top:1px solid blue; }
 div.crossRefs {}
 p.xr { margin-top:0.2em; margin-bottom:0.2em; font-size:0.75em; }
 span.xrCaller { vertical-align:super; font-size:0.7em; color:blue; }

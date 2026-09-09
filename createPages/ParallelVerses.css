@@ -2,6 +2,7 @@ body.container {}
 div.header {}
 div.footer { margin:50px; }
 
+div.topLine {}
 p.site {}
 p.copyright {}
 p.note {}
@@ -64,7 +65,8 @@ p.mt1 + p.mt2, p.mt2 + p.mt1, p.mt2 + p.mt3, p.mt3 + p.mt2, p.mt1 + p.mt3, p.mt3
 p.verseDetails { text-align:right; font-size:0.8em; color:lightseagreen; }
 p.parallelVerse {}
 /* p.moddedVerse { margin-top:-1em; margin-left:3em; font-size:0.8em; } /* includes translations */
-p.closeVerse { margin-top:-1em; }
+p.closeVerse {}
+p.parallelVerse + p.closeVerse { margin-top:-0.8em; }
 
 p.KJB-1611_chapterIntro { font-size:0.8em; color: grey; font-family:UnifrakturCook,"New Rocker","Unifraktur Maguntia","Germania One",Astloch,textura,schwabacher,rotunda,bastarda,blankenburg,cursive; }
 
@@ -97,7 +99,7 @@ span.FBV_verseTextChunk {}
 span.Gnva_verseTextChunk {}
 span.JPS_verseTextChunk {}
 span.KJB-1611_verseTextChunk { font-family:UnifrakturCook,"New Rocker","Unifraktur Maguntia","Germania One",Astloch,textura,schwabacher,rotunda,bastarda,blankenburg,cursive; }
-span.add_KJB-1611 { vertical-align:middle; position:relative; top:-0.1em; font-size:0.8em; color: grey; }
+span.add_KJB-1611 { vertical-align:middle; position:relative; top:-0.1em; font-size:0.8em; color: #6b6b6b; }
 span.KJB-1769_verseTextChunk {}
 span.LEB_verseTextChunk {}
 span.LSV_verseTextChunk {}
@@ -130,6 +132,7 @@ span.WMBB_verseTextChunk {}
 span.WMB_verseTextChunk {}
 span.Wycl_verseTextChunk {}
 span.YLT_verseTextChunk {}
+div.verseText {}
 
 span.Bshps_mod { font-family:sans-serif; font-size:0.85em; }
 span.Cvdl_mod { font-family:sans-serif; font-size:0.85em; }
@@ -168,8 +171,7 @@ p.ip { text-indent:0.5em; margin-top:0.2em; margin-bottom:0.2em; }
 p.im { margin-top:0.2em; margin-bottom:0.2em; }
 span.ior { font-weight:bold; }
 span.bk { font-style:italic; }
-span.sls {}
-
+span.sls { background-color:#fced86; } /* Moff */
 
 /* Chapters USFM */
 span.c { font-size:1.1em; color:green; }
@@ -185,10 +187,11 @@ p.ms1 { text-align:center; font-weight:bold; font-size:1.5em; }
 p.ms2 { text-align:center; font-weight:bold; font-size:1.3em; }
 p.ms1 + p.mr, p.ms2 + p.mr { margin-top:-1.1em; }
 /* div.section {} */
+p.iex { background-color:#dcf5fa; } /* KJB-1611 */
 div.s1 {}
 p.s1 { margin-top:0.1em; margin-bottom:0; font-size:1.2em; font-weight:bold; }
 p.s2 { margin-top:0.1em; margin-bottom:0; font-size:1.1em; font-weight:bold; }
-/* p.mr { margin-top:-0.5em; margin-bottom:0; font-size:1.3em; text-align: center; font-style:italic; } Major section reference range */
+p.mr { margin-top:-0.5em; margin-bottom:0; font-size:1.3em; text-align: center; font-style:italic; } Major section reference range
 /* p.sr { margin-top:0; margin-bottom:0; font-size:0.9em; text-align: center; font-weight:bold; } Section reference range */
 p.r { margin-top:0; margin-bottom:0; font-size:0.75em; text-align: center; font-style:italic; } /* Parallel references */
 p.p { text-indent:0.5em; margin-top:0.2em; margin-bottom:0.2em; }
@@ -201,7 +204,7 @@ span.li3 {} /* Why's this a span??? */
 span.w {}
 
 /* NT spans */
-span.nominaSacra { font-weight:bold; }
+span.nominaSacra { font-weight:560; }
 span.nd { text-decoration:underline; text-decoration-style:double; text-decoration-color:purple; }
 span.ndORD { font-size:.75em; text-decoration:overline; text-decoration-style:dashed; text-decoration-color:purple; }
 span.wj { color:saddlebrown; }
@@ -232,29 +235,31 @@ span.theb { color:grey; } /* transliteration */
 span.tgrk { color:grey; } /* transliteration */
 
 /* OET add spans */
-span.addArticle { color:bisque; }
+span.addArticle { color:#b55f5f; }
 /* span.unusedArticle { color:lavender; } */
-span.addCopula { color:pink; }
+span.addCopula { color:#55847c; }
 span.addDirectObject { color:brown; }
 span.addExtra { color:green; }
-span.addElided { color:darkgoldenrod; }
+span.addElided { color:#9c740b; }
 span.addOwner { color:darkOrchid; }
 span.addPronoun { color:darkgreen; }
 span.addReferent { color:darkblue; }
 span.addNumberChange { color:darkcyan; }
-span.addPersonChange { color:darkkhaki; }
+span.addPersonChange { color:#807625; }
 span.addNegated { color:darkred; }
-span.addReword { text-decoration:underline; text-decoration-style: dotted; text-decoration-color:grey; }
+span.addReword { text-decoration:underline; text-decoration-style: dotted; text-decoration-color:#6b6b6b; }
 span.RVadd { color:#505050; } /* Darker than dimGrey which is #696969 (black is #000000) */
-span.add { color:grey; }
+span.add { color:#6b6b6b; }
 span.untr { font-size:0.8em; color:grey; text-decoration:line-through; }
 span.unsure { text-decoration:underline; text-decoration-style: dotted; text-decoration-color: orange; }
 
 p.key { background-color:seaShell; font-size:0.8em; }
 
 /* USFM footnotes */
-div.footnotes {}
-p.fn { margin-top:0.2em; margin-bottom:0.2em; font-size:0.75em; }
+p.parallelVerse + hr { margin-top:-0.6em; }
+hr.line-before-footnotes { width:60%; margin-left:0; margin-top:0em; margin-bottom:0.2em; border:0; border-top:1px solid green; }
+div.footnotes {} /* margin-top:-0.1em; */
+p.fn { margin-top:0.1em; margin-bottom:0.2em; font-size:0.75em; }
 span.fnCaller { vertical-align:super; font-size:0.7em; color:green; }
 /* span.enCaller { vertical-align:super; font-size:0.7em; color:green; } */
 span.fnRef { font-weight:bold; }
@@ -268,15 +273,19 @@ span.fq { font-style:italic; }
 span.fqa { font-style:italic; }
 span.ft {}
 span.fv { vertical-align:super; }
+span.f {} /* KJB-1611 EST 2:21 Why ??? */
+span.fr {} /* KJB-1611 EST 2:21 Why ??? */
 span.fw {}
 
 /* USFM cross-references */
+hr.line-before-xrefs { width:30%; margin-left:0; margin-top:0em; margin-bottom:0.2em; border:0; border-top:1px solid blue; }
 div.crossRefs {}
 p.xr { margin-top:0.2em; margin-bottom:0.2em; font-size:0.75em; }
 span.xrCaller { vertical-align:super; font-size:0.7em; color:blue; }
 span.xrRef { font-weight:bold; }
 span.xrText {}
 span.xt {}
+span.xo {} /* NET ISA C43 Why ??? */
 
 /* OSHB cases (also used for OET-RV and OET-LV) */
 /* Used in <a> fields and in spans */

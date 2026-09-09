@@ -1,0 +1,510 @@
+/* common.css -- page chrome shared by every OBD page.
+ *
+ * This is the single home for the page chrome that previously appeared
+ * verbatim at the top of each of the nine per-family stylesheets (BibleSite,
+ * BibleChapter, OETChapter, ParallelPassages, ParallelVerses, TopicalPassages,
+ * InterlinearVerse, BibleWord, BibleDict). Those stylesheets retain their
+ * content-specific rules; the shared chrome (head/header/footer/top line,
+ * navigation bars, and the site-wide colour palette) lives here.
+ *
+ * All styles remain defined even when empty (entry "{}") on purpose, so that
+ * users editing with a CSS tool can see which styles are available to change.
+ *
+ * Site-wide colours are exposed as CSS custom properties so that the
+ * settings panel (colour scheme, verse-number position, text size, and the
+ * colour of Jesus'-words spans) can restyle the whole chrome from one place.
+ * The document <html> element carries data-* attributes set by theme.js:
+ *   data-theme     "light" | "dark"          (resolved from the "system"
+ *                                             setting if chosen)
+ *   data-verses    "default" | "left"
+ *   data-size      "large" | "xlarge" (absent otherwise)
+ *   data-wj        "red" | "off" (absent = default brown)
+ *   data-features  "on" (default, quieter reading) or absent (show all
+ *                    special features); see the "Highlight special features"
+ *                    section at the bottom of this stylesheet)
+ */
+
+/* ---- Site-wide colour palette (CSS custom properties) ---- */
+:root {
+    /* Light theme (the default) */
+    color-scheme: light;
+    --chrome-bg-body: #ffffff;
+    --chrome-bg-header: transparent;
+    --chrome-fg-body: #000000;
+    --chrome-fg-link: inherit;
+    --chrome-bg-wrkLst: #904471;
+    --chrome-fg-wrkLst: #98a9d4;
+    --chrome-fg-wrkLst-link: #ffffff;
+    --chrome-bg-viewLst: #936ea1;
+    --chrome-fg-viewLst: #98a9d4;
+    --chrome-fg-viewLst-link: #ffffff;
+    --chrome-bg-bkLst: #f9f871;
+    --chrome-bg-chLst: palegreen;
+    --chrome-bg-vsLst: mistyrose;
+    --chrome-fg-cnav: #98a9d4;
+}
+
+/* Dark theme */
+html[data-theme="dark"] {
+    color-scheme: dark;
+    --chrome-bg-body: #121212;
+    --chrome-bg-header: #1e1e1e;
+    --chrome-fg-body: #e0e0e0;
+    --chrome-fg-link: #a8c7fa;
+    --chrome-bg-wrkLst: #5b2d49;
+    --chrome-fg-wrkLst: #b9c4e8;
+    --chrome-fg-wrkLst-link: #ffffff;
+    --chrome-bg-viewLst: #5f436a;
+    --chrome-fg-viewLst: #b9c4e8;
+    --chrome-fg-viewLst-link: #ffffff;
+    --chrome-bg-bkLst: #7a7838;
+    --chrome-bg-chLst: #2f6b43;
+    --chrome-bg-vsLst: #7a4f52;
+    --chrome-fg-cnav: #b9c4e8;
+}
+
+/* ---- Page chrome ---- */
+/* The per-family stylesheets still own body.container background (e.g. the
+   interlinear powderblue). We set the base text/background on <html> so we
+   don't clobber those; dark mode then overrides body explicitly. */
+html { background-color:var(--chrome-bg-body); color:var(--chrome-fg-body); }
+html[data-theme="dark"] body { background-color:var(--chrome-bg-body); color:var(--chrome-fg-body); }
+div.header {
+    background-color:var(--chrome-bg-header);
+}
+div.footer { margin:50px; }
+
+/* Top line (site name + About/News/OET Key links + Settings button) */
+div.topLine {
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    flex-wrap:wrap;
+}
+div.topLine p.site {}
+div.topLine div.themeControls {
+    display:flex;
+    align-items:center;
+    gap:0.4em;
+    margin-left:auto;
+}
+
+p.copyright {}
+p.note {}
+p.rem { font-size:0.8em; color:grey; }
+
+/* Don't highlight links */
+a { color:var(--chrome-fg-link); text-decoration:none; }
+
+/* Navigational lists at top of page */
+p.wrkLst { background-color:var(--chrome-bg-wrkLst); color:var(--chrome-fg-wrkLst); }
+.wrkLst a { text-decoration:none; color:var(--chrome-fg-wrkLst-link); }
+p.viewLst { background-color:var(--chrome-bg-viewLst); color:var(--chrome-fg-viewLst); }
+.viewLst a { text-decoration:none; color:var(--chrome-fg-viewLst-link); }
+p.bkLst { background-color:var(--chrome-bg-bkLst); }
+.bkLst a { color:inherit; text-decoration:none; }
+p.chLst { background-color:var(--chrome-bg-chLst); }
+.chLst a { text-decoration:none; }
+p.vsLst { background-color:var(--chrome-bg-vsLst); }
+.vsLst a { text-decoration:none; }
+
+p.cNav { font-size:1.8em; background-color:var(--chrome-fg-cnav); }
+p.vNav { font-size:1.8em; }
+p.pgNav { margin-top:0.6em; text-align:center; font-size:1.8em; }
+
+/* ---- Settings button in the top line ----
+ * Explicit, readable colors. We use a fixed dark-on-light button (rather than
+ * variable-driven chrome colors) so its label is never invisible under
+ * color-scheme: dark, which can otherwise make native form controls render
+ * unpredictably. */
+button.themeSettings {
+    color-scheme: light; /* keep the button's native palette light in dark mode too */
+    font-size:0.85em;
+    padding:0.15em 0.5em;
+    border:1px solid #666;
+    border-radius:0.3em;
+    background-color:#ffffff;
+    color:#000000;
+    cursor:pointer;
+}
+button.themeSettings:hover,
+button.themeSettings:focus-visible {
+    border-color:var(--chrome-bg-wrkLst);
+    background-color:#ffffff;
+    color:#000000;
+}
+
+/* ---- Settings panel (injected into each page by theme.js) ----
+ * A fixed full-screen overlay with a centred panel of independent, combinable
+ * options (colour scheme, verse numbers, text size, Jesus'-words colour --
+ * e.g. "Left verse nums" + "Large print" + red words all at once). The panel
+ * follows the site palette/custom properties so it reads correctly in both
+ * light and dark mode. It is hidden by default and shown via the data-open
+ * attribute that theme.js toggles on the overlay. */
+div.settingsPanel {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5em;
+    background: rgba(0, 0, 0, 0.4);
+}
+div.settingsPanel[data-open="true"] { display: flex; }
+div.settingsPanel div.settingsPanel-content {
+    width: min(28em, 100vw - 1.5em);
+    max-height: 90vh;
+    overflow: auto;
+    background-color: var(--chrome-bg-body);
+    color: var(--chrome-fg-body);
+    border: 1px solid var(--chrome-fg-cnav);
+    border-radius: 0.5em;
+    padding: 0.9em 1.4em 1em;
+    box-shadow: 0 0.5em 2em rgba(0, 0, 0, 0.5);
+}
+div.settingsPanel h2 {
+    margin: 0 0 0.6em;
+    font-size: 1.1em;
+}
+div.settingsPanel fieldset {
+    border: 1px solid var(--chrome-fg-cnav);
+    border-radius: 0.4em;
+    margin: 0 0 0.6em;
+    padding: 0.4em 0.7em 0.5em;
+}
+div.settingsPanel legend {
+    padding: 0 0.35em;
+}
+div.settingsPanel label {
+    display: block;
+    margin: 0.2em 0;
+    cursor: pointer;
+}
+div.settingsPanel span.settingsNote {
+    font-size: 0.8em;
+    color: grey;
+}
+div.settingsPanel div.settingsActions {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5em;
+    margin-top: 0.7em;
+}
+
+/* ---- "Left verse nums" theme (data-verses="left") ----
+ * Moves verse (and chapter) numbers into the left margin, keeping the body
+ * text clear of them. Based on the Stylebot example in the OET discussion
+ * (https://github.com/Freely-Given-org/OpenEnglishTranslation--OET/discussions/129).
+ * Applied independently of the light/dark toggle via the data-verses attribute
+ * that theme.js sets on <html>.
+ *
+ * This only makes sense on page types that show a flowing verse number in the
+ * text: book / chapter / section and the OET-RV related & topic verse readers.
+ * It is deliberately NOT applied to parallel-verse, interlinear, or any of the
+ * reference/dictionary/index/site pages (no verse numbers in reading flow).
+ * The generated pages carry a data-page-type attribute on <body> (set by
+ * make_top_core in page_chrome.rs) which scopes the rules below.
+ *
+ * This DOES apply to the OET pseudo-version's two-column pages (the OET-RV /
+ * OET-LV side-by-side view). Unlike the old position:absolute approach (which
+ * escaped the grid cells and piled the numbers up), these floats are anchored
+ * to each paragraph inside its own cell, so each of the two columns gets its
+ * own left gutter. */
+/* Verse (and chapter / Psalm / parallelism) numbers become a fixed left
+ * "gutter" column instead of inline text. Each number is floated left and
+ * cleared, so consecutive numbers that begin on the same line (common when
+ * the window is wide) stack vertically DOWN the gutter rather than rendering
+ * on top of each other (the old position:absolute approach overlapped them).
+ * The paragraph's left padding below reserves room for the column.
+ *
+ * IMPORTANT: the gutter box is sized in `rem` (root-relative), NOT `em`.
+ * `em` would resolve against the verse number's own tiny font-size (0.5em /
+ * 0.7em of the paragraph), collapsing the box to ~13px so two/three-digit
+ * numbers overflow to the left and get clipped at the page edge (losing the
+ * leading digit). Using `rem` keeps the gutter a constant, font-independent
+ * width that comfortably holds three-digit verse numbers like "176". */
+html[data-verses="left"]
+body:is(
+        [data-page-type="book"],[data-page-type="chapter"],[data-page-type="section"],
+        [data-page-type="relatedPassage"],[data-page-type="topicPassages"])
+span.v,
+html[data-verses="left"]
+body:is(
+        [data-page-type="book"],[data-page-type="chapter"],[data-page-type="section"],
+        [data-page-type="relatedPassage"],[data-page-type="topicPassages"])
+span.c,
+html[data-verses="left"]
+body:is(
+        [data-page-type="book"],[data-page-type="chapter"],[data-page-type="section"],
+        [data-page-type="relatedPassage"],[data-page-type="topicPassages"])
+span.cPsa,
+html[data-verses="left"]
+body:is(
+        [data-page-type="book"],[data-page-type="chapter"],[data-page-type="section"],
+        [data-page-type="relatedPassage"],[data-page-type="topicPassages"])
+span.synonParr {
+    float: left;
+    clear: left;
+    width: 2.6rem;
+    text-align: right;
+    margin-left: -2.95rem;
+    margin-right: 0.35rem;
+}
+
+/* The Psalm chapter number (span.cPsa) is far larger than the verse numbers
+ * (1.6em bold vs 0.5em), so a three-digit number like "149" overflows a fixed
+ * 2.6rem gutter and bangs into the first word of the first verse -- badly with
+ * wide fonts such as DejaVu Serif (~59px for "149"+nbsp vs ~42px of gutter).
+ * Give it its own wider gutter (still rem-rooted, so it scales with the
+ * large-print themes). Width 4rem comfortably holds "150" (the largest Psalm
+ * number) in very wide fonts; margin-left re-balances so the number keeps the
+ * same 0.35rem gap from the verse text. */
+html[data-verses="left"]
+body:is(
+        [data-page-type="book"],[data-page-type="chapter"],[data-page-type="section"],
+        [data-page-type="relatedPassage"],[data-page-type="topicPassages"])
+span.cPsa {
+    width: 4rem;
+    margin-left: -4.35rem;
+    margin-right: 0.35rem;
+}
+
+/* Give the verse/citation paragraphs some side padding so the floated
+   verse-number column has room to its left (the gutter). The verse-hosting
+   paragraphs share the same gutter; poetry (q1/q2) stays further indented so
+   its numbers never clip. */
+html[data-verses="left"]
+body:is(
+        [data-page-type="book"],[data-page-type="chapter"],[data-page-type="section"],
+        [data-page-type="relatedPassage"],[data-page-type="topicPassages"])
+p.p,
+html[data-verses="left"]
+body:is(
+        [data-page-type="book"],[data-page-type="chapter"],[data-page-type="section"],
+        [data-page-type="relatedPassage"],[data-page-type="topicPassages"])
+p.m,
+html[data-verses="left"]
+body:is(
+        [data-page-type="book"],[data-page-type="chapter"],[data-page-type="section"],
+        [data-page-type="relatedPassage"],[data-page-type="topicPassages"])
+p.nb,
+html[data-verses="left"]
+body:is(
+        [data-page-type="book"],[data-page-type="chapter"],[data-page-type="section"],
+        [data-page-type="relatedPassage"],[data-page-type="topicPassages"])
+p.d,
+/* Paragraph-less verse flows (OET-LV, BLB, ...) are wrapped (by the Rust
+   converter) in per-verse <div class="verseText"> blocks; they need the same
+   gutter side-padding as the paragraph-hosting verses above. */
+html[data-verses="left"]
+body:is(
+        [data-page-type="book"],[data-page-type="chapter"],[data-page-type="section"],
+        [data-page-type="relatedPassage"],[data-page-type="topicPassages"])
+div.verseText {
+    padding-left: 2.95rem;
+    padding-right: 1.75em;
+}
+html[data-verses="left"]
+body:is(
+        [data-page-type="book"],[data-page-type="chapter"],[data-page-type="section"],
+        [data-page-type="relatedPassage"],[data-page-type="topicPassages"])
+p.q1 { padding-left: 3.7rem; }
+html[data-verses="left"]
+body:is(
+        [data-page-type="book"],[data-page-type="chapter"],[data-page-type="section"],
+        [data-page-type="relatedPassage"],[data-page-type="topicPassages"])
+p.q2 { padding-left: 4.45rem; }
+
+/* ---- "Large print" themes (data-size="large" / "xlarge") ----
+ * All font sizes across the site are em-relative (no px sizes anywhere), so
+ * raising the root <html> font-size scales every page family (chapters,
+ * dictionaries, word pages, indexes, ...) proportionally and uniformly.
+ *
+ * We apply TWO effects, as requested:
+ *   * larger/body fonts get slightly larger (the uniform root scale), and
+ *   * smaller "fine print" fonts (verse numbers, footnote/ref markers, small
+ *     caps, grey notes, ...) get an extra size boost on top of that so they
+ *     remain comfortably readable.
+ * theme.js sets data-size="large" or "xlarge" on <html> for the two print
+ * sizes; it combines independently with the "Left verse nums" theme and every
+ * other setting (they are no longer mutually-exclusive alternatives in a
+ * single dropdown). */
+html[data-size="large"] {
+    font-size: 120%; /* default 16px -> 19.2px; raises all em sizes, base boost */
+}
+html[data-size="xlarge"] {
+    font-size: 145%; /* default 16px -> 23.2px; the extra large print base boost */
+}
+
+/* Extra size boost for the smallest/default-small fonts. These override the
+   per-family default font-size, so combined with the root scale they grow
+   noticeably more than the larger body/heading text above. */
+html[data-size="large"] span.v,
+html[data-size="xlarge"] span.v,
+html[data-size="large"] span.va,
+html[data-size="xlarge"] span.va,
+html[data-size="large"] span.vp,
+html[data-size="xlarge"] span.vp { font-size: 0.8em; }       /* was 0.5em   */
+html[data-size="large"] span.cv,
+html[data-size="xlarge"] span.cv { font-size: 1.15em; }      /* was 0.8em   */
+html[data-size="large"] span.fnCaller,
+html[data-size="xlarge"] span.fnCaller,
+html[data-size="large"] span.xrCaller,
+html[data-size="xlarge"] span.xrCaller { font-size: 1.05em; }/* was 0.7em   */
+html[data-size="large"] p.fn,
+html[data-size="xlarge"] p.fn,
+html[data-size="large"] p.xr,
+html[data-size="xlarge"] p.xr,
+html[data-size="large"] p.r,
+html[data-size="xlarge"] p.r { font-size: 1.1em; }           /* was 0.75em  */
+html[data-size="large"] p.id,
+html[data-size="xlarge"] p.id,
+html[data-size="large"] p.rem,
+html[data-size="xlarge"] p.rem,
+html[data-size="large"] span.rem,
+html[data-size="xlarge"] span.rem,
+html[data-size="large"] span.sc,
+html[data-size="xlarge"] span.sc,
+html[data-size="large"] span.nd,
+html[data-size="xlarge"] span.nd,
+html[data-size="large"] span.ndORD,
+html[data-size="xlarge"] span.ndORD,
+html[data-size="large"] span.untr,
+html[data-size="xlarge"] span.untr,
+html[data-size="large"] p.key,
+html[data-size="xlarge"] p.key,
+html[data-size="large"] p.alternateHeading,
+html[data-size="xlarge"] p.alternateHeading { font-size: 1.15em; } /* was ~0.8em */
+html[data-size="large"] p.qa,
+html[data-size="xlarge"] p.qa,
+html[data-size="large"] p.btnBar,
+html[data-size="xlarge"] p.btnBar,
+html[data-size="large"] p.wordLine,
+html[data-size="xlarge"] p.wordLine,
+html[data-size="large"] p.lemmaLine,
+html[data-size="xlarge"] p.lemmaLine { font-size: 1.2em; }   /* was 0.9em   */
+html[data-size="large"] p.LVVerseText,
+html[data-size="xlarge"] p.LVVerseText,
+html[data-size="large"] p.RVVerseText,
+html[data-size="xlarge"] p.RVVerseText { font-size: 1.05em; }/* was 0.7em   */
+
+/* ---- "Dark mode" character colours (html[data-theme="dark"]) ----
+ * The per-family stylesheets colour the character/semantic spans with fixed
+ * (mostly "dark*") colours that are easy to read on white paper but nearly
+ * invisible on the #121212 dark background. These overrides switch each one to
+ * a lighter variant of the SAME hue (so the classes stay tell-apart), while
+ * the chrome/navigation bars are already handled by the custom properties at
+ * the top of this file. Selectors here have higher specificity than the
+ * family rules, so they win regardless of load order. */
+html[data-theme="dark"] span.addArticle,
+html[data-theme="dark"] span.wj { color:#d0946e; }
+html[data-theme="dark"] span.addCopula { color:#7fc2ba; }
+html[data-theme="dark"] span.addDirectObject { color:#bf8a68; }
+html[data-theme="dark"] span.addExtra,
+html[data-theme="dark"] span.NT,
+html[data-theme="dark"] span.grk,
+html[data-theme="dark"] span.senseNum { color:#6fbe6f; }
+html[data-theme="dark"] span.addElided { color:#d6b04c; }
+html[data-theme="dark"] span.addOwner,
+html[data-theme="dark"] span.qac,
+html[data-theme="dark"] span.aramaic { color:#d1a3ea; }
+html[data-theme="dark"] span.addPronoun { color:#85cc85; }
+html[data-theme="dark"] span.addReferent,
+html[data-theme="dark"] span.cp,
+html[data-theme="dark"] p.cp,
+html[data-theme="dark"] span.latin,
+html[data-theme="dark"] span.synthParr { color:#8db6ff; }
+html[data-theme="dark"] span.addNumberChange { color:#4fb3b3; }
+html[data-theme="dark"] span.addPersonChange { color:#c9bd6e; }
+html[data-theme="dark"] span.addNegated,
+html[data-theme="dark"] span.possibleHilite { color:#e08a8a; }
+html[data-theme="dark"] span.add,
+html[data-theme="dark"] span.addReword,
+html[data-theme="dark"] span.add_KJB-1611 { color:#b0b0b0; }
+html[data-theme="dark"] span.RVadd { color:#909090; }
+html[data-theme="dark"] span.addReword { text-decoration-color:#b0b0b0; }
+html[data-theme="dark"] p.cNav { color:#1a1a1a; } /* light-blue bar; dark text */
+/* The prev/next chapter arrows (and the other cNav links) would otherwise pick
+   up the dark-mode body link colour (a pale blue) and vanish against the
+   light-blue bar (~1.1:1 contrast, invisible in Firefox). Force them to the
+   same dark colour as the bar's own "PSA 149" label. */
+html[data-theme="dark"] p.cNav a { color:#1a1a1a; }
+
+/* Light-background highlight spans keep their pale boxes; inherit the
+   near-white body text in dark mode, so force dark text on them there. */
+html[data-theme="dark"] .grkNom, html[data-theme="dark"] .grkVrb,
+html[data-theme="dark"] .hebVrb, html[data-theme="dark"] .hebEl,
+html[data-theme="dark"] .hebYhwh, html[data-theme="dark"] span.Strongs,
+html[data-theme="dark"] span.sls, html[data-theme="dark"] p.iex,
+html[data-theme="dark"] span.wrkNameDiffPunct,
+html[data-theme="dark"] div.PromisedLand,
+html[data-theme="dark"] div.FullKingdom,
+html[data-theme="dark"] div.NorthernKingdom,
+html[data-theme="dark"] div.SouthernKingdom,
+html[data-theme="dark"] div.BothKingdoms { color:#1a1a1a; }
+
+/* Kingdom paragraph/heading colours — lighter for dark-mode backgrounds */
+html[data-theme="dark"] p.PromisedLand,
+html[data-theme="dark"] h1.PromisedLand { color:#ffd84a; }
+html[data-theme="dark"] p.FullKingdom,
+html[data-theme="dark"] h1.FullKingdom { color:#7abaff; }
+html[data-theme="dark"] p.NorthernKingdom,
+html[data-theme="dark"] h1.NorthernKingdom { color:#d18aef; }
+html[data-theme="dark"] p.SouthernKingdom,
+html[data-theme="dark"] h1.SouthernKingdom { color:#7ddf7d; }
+html[data-theme="dark"] p.BothKingdoms,
+html[data-theme="dark"] h1.BothKingdoms { color:#f0b866; }
+
+/* span.noLinkYet is a mid-grey box with white text: unreadable in BOTH modes
+   (about 2.3:1), so give it dark text in light mode too. */
+span.noLinkYet { color:#1a1a1a; }
+
+/* ---- "Words of Jesus" colour (data-wj) ----
+ * The per-family stylesheets colour span.wj saddlebrown by default. These
+ * overrides are loaded after those family sheets and switch the colour on
+ * preference via the data-wj attribute that theme.js sets on <html>:
+ *   "red" -> classic red-letter colour
+ *   "off" -> no special colour (inherit the surrounding text colour)
+ * A missing attribute means the default brown. This applies site-wide,
+ * including the parallel-verse and interlinear pages that also carry span.wj. */
+html[data-wj="red"] span.wj { color: #cc0000; }
+html[data-theme="dark"][data-wj="red"] span.wj { color: #e54545; } /* lighter red for dark mode */
+html[data-wj="off"] span.wj { color: inherit; }
+
+/* ---- "Highlight special features" mode (data-features="on") ----
+ * Selected from the settings panel and the DEFAULT presentation. It quietens
+ * the added-word colouring used by the literal versions (OET-LV and its
+ * related/topic/word pages): every one of the classes below renders as
+ * ordinary inherited text UNLESS the word is ALSO marked "unsure"
+ * (class="… unsure"), which keeps its special colour so the reader still sees
+ * the dotted-orange uncertain marking. Choosing "Show all special OET features"
+ * in the panel removes the data-features attribute and restores the full
+ * colouring from the family stylesheets. Note that the family stylesheets
+ * (OETChapter.css, ParallelPassages.css, ...) give all these spans their
+ * colours, so these selectors must carry enough specificity to beat them (and
+ * the dark-mode colour overrides above) in any theme. It also hides the three
+ * Hebrew-parallelism marker spans (≈/^/→).
+ *
+ * The "left verse nums" theme (data-verses="left") floats span.synonParr into
+ * the verse gutter with an (0,3,3) rule; when both modes are active the extra
+ * rule below (identical specificity, later in the cascade) wins and hides it. */
+html[data-features="on"] span.addArticle:not(.unsure),
+html[data-features="on"] span.unusedArticle:not(.unsure),
+html[data-features="on"] span.addCopula:not(.unsure),
+html[data-features="on"] span.addDirectObject:not(.unsure),
+html[data-features="on"] span.addExtra:not(.unsure),
+html[data-features="on"] span.addElided:not(.unsure),
+html[data-features="on"] span.addOwner:not(.unsure),
+html[data-features="on"] span.addPronoun:not(.unsure),
+html[data-features="on"] span.addReferent:not(.unsure),
+html[data-features="on"] span.addNumberChange:not(.unsure),
+html[data-features="on"] span.addPersonChange:not(.unsure),
+html[data-features="on"] span.addNegated:not(.unsure) { color: inherit; }
+
+html[data-features="on"] span.synonParr,
+html[data-features="on"] span.antiParr,
+html[data-features="on"] span.synthParr { display: none; }
+html[data-features="on"][data-verses="left"] body span.synonParr,
+html[data-features="on"][data-verses="left"] body span.antiParr,
+html[data-features="on"][data-verses="left"] body span.synthParr { display: none; }

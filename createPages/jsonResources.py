@@ -34,6 +34,7 @@ fullDemo() -> None
 
 
 CHANGELOG:
+    2026-08-25 The OETHandlers functions are now imported from the Rust openbibledata_rust module (the Python OETHandlers.py was deleted).
 """
 from pathlib import Path
 import json
@@ -61,11 +62,11 @@ from bible_transliterations import transliterate_Greek, transliterate_Hebrew
 
 from settings import State
 from html import checkHtml
-from OETHandlers import findLVQuote, getBBBFromOETBookName
+from openbibledata_rust import findOLQuoteInLV, getBBBFromOETBookName
 from Dict import loadAndIndexUBSGreekDictJSON, loadAndIndexUBSHebrewDictJSON
 
 
-LAST_MODIFIED_DATE = '2026-03-28' # by RJH
+LAST_MODIFIED_DATE = '2026-08-25' # by RJH
 SHORT_PROGRAM_NAME = "JSONResources"
 PROGRAM_NAME = "Bible Aquifer JSON resources handler"
 PROGRAM_VERSION = '0.10'

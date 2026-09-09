@@ -5,6 +5,7 @@ body.container { background-color:powderblue; display:grid; }
 div.header {}
 div.footer { margin:50px; }
 
+div.topLine {}
 p.site {}
 p.copyright {}
 p.note {}
@@ -239,7 +240,7 @@ span.li1 {} /* Why's this a span??? */
 span.li2 {} /* Why's this a span??? */
 
 /* NT spans */
-span.nominaSacra { font-weight:bold; }
+span.nominaSacra { font-weight:560; }
 span.nd {}
 span.ndORD { font-size:.75em; text-decoration:overline; text-decoration-style:dashed; text-decoration-color:purple; }
 span.wj { color:saddlebrown; }
@@ -255,25 +256,26 @@ span.antiParr { vertical-align:super; font-size:0.8em; color:orangeRed; } /* Heb
 span.synthParr { vertical-align:super; font-size:0.8em; color:blue; } /* Hebrew synthetic parallelism */
 
 /* OET add spans */
-span.addArticle { color:bisque; } */
+span.addArticle { color:#b55f5f; }
 /* span.unusedArticle { color:lavender; } */
-span.addCopula { color:pink; }
+span.addCopula { color:#55847c; }
 span.addDirectObject { color:brown; }
 span.addExtra { color:green; }
-span.addElided { color:darkgoldenrod; }
+span.addElided { color:#9c740b; }
 span.addOwner { color:darkOrchid; }
 span.addPronoun { color:darkgreen; }
 span.addReferent { color:darkblue; }
 span.addNumberChange { color:darkcyan; }
-span.addPersonChange { color:darkkhaki; }
+span.addPersonChange { color:#807625; }
 span.addNegated { color:darkred; }
-span.addReword { text-decoration:underline; text-decoration-style: dotted; text-decoration-color:grey; }
+span.addReword { text-decoration:underline; text-decoration-style: dotted; text-decoration-color:#6b6b6b; }
 span.RVadd { color:#505050; } /* Darker than dimGrey which is #696969 (black is #000000) */
-span.add { color:grey; }
+span.add { color:#6b6b6b; }
 span.untr { font-size:0.8em; color:grey; text-decoration:line-through; }
 span.unsure { text-decoration:underline; text-decoration-style: dotted; text-decoration-color: orange; }
 
 /* USFM footnotes */
+hr.line-before-footnotes { width:60%; margin-left:0; margin-top:0em; margin-bottom:0.2em; border:0; border-top:1px solid green; }
 div.footnotes {}
 p.fn { margin-top:0.2em; margin-bottom:0.2em; font-size:0.75em; }
 span.fnCaller { vertical-align:super; font-size:0.7em; color:green; }
@@ -342,6 +344,7 @@ span.OET-RV_vdiv.LV {
     display: block;
 }
 span.OET-RV_verseTextChunk {}
+div.verseText {}
 
 /* Translation notes */
 div.UTN {

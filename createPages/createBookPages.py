@@ -35,14 +35,16 @@ CHANGELOG:
     2025-03-24 Liven Readers' Version and Literal Version headings
     2025-09-25 Make all SR-GNT verse text into live links to collation pages
     2026-01-07 Added OET Logo
+    2026-08-22 Import convertVerseEntryListToHtml directly from openbibledata_rust (convert.py deleted)
+    2026-08-25 The OETHandlers functions are now imported from the Rust openbibledata_rust module (the Python OETHandlers.py was deleted).
+    2026-09-03 Stop applying the Heb/Grk grammatical colourisation classes on book pages because their CSS doesn't style them -- the shared dark-mode rules were painting those words unreadably.
+     2026-09-04 Disable the TEST_MODE 'noLinkYet' highlighting on OET-RV single-column book pages (which have no OET-LV alongside), via addNoLinkYetSpans=False.
 """
 from pathlib import Path
 import os
 import re
 import logging
 
-# sys.path.append( '../../BibleOrgSys/BibleOrgSys/' )
-# import BibleOrgSysGlobals
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint, BOOKLIST_OT39, BOOKLIST_NT27
 import BibleOrgSys.Formats.ESFMBible as ESFMBible
@@ -50,23 +52,21 @@ from bible_organisational_system import InternalBibleEntryList
 import bos_books_codes_py
 
 from settings import State, CNTR_BOOK_ID_MAP
-from usfm import convertVerseEntryListToHtml
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
                     makeTop, makeBottom, makeBookNavListParagraph, removeDuplicateCVids, checkHtml
-from OETHandlers import livenOETWordLinks, livenOETCompatibleWordLinks, getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename
+from openbibledata_rust import convertVerseEntryListToHtml, livenOETWordLinks, livenOETCompatibleBereanWordLinks, getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
-LAST_MODIFIED_DATE = '2026-06-28' # by RJH
+LAST_MODIFIED_DATE = '2026-09-02' # by RJH
 SHORT_PROGRAM_NAME = "createBookPages"
 PROGRAM_NAME = "OpenBibleData createBookPages functions"
-PROGRAM_VERSION = '0.69'
+PROGRAM_VERSION = '0.71'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
 
 BACKSLASH = '\\'
 NEWLINE = '\n'
-# EM_SPACE = ' '
 NARROW_NON_BREAK_SPACE = ' '
 
 
@@ -131,7 +131,8 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
         and BBB not in state.booksToLoad[rvBible.abbreviation]:
             logging.critical( f"B Skipped OET chapters not-included book: OET-RV {BBB}")
             continue # Only create pages for the requested RV books
-        if BBB == 'FRT': # We want this, even though the LV doesn't (yet?) have any FRT
+
+        if BBB in ('INT','FRT'): # We want these, even though the LV doesn't (yet?) have any FRT
             vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Creating book page for OET {BBB}…" )
             processedBBBs.append( BBB )
             # iBkList = ['index'] + state.booksToLoad[rvBible.abbreviation]
@@ -148,7 +149,7 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
 {state.OET_UNFINISHED_BOOK_WARNING_HTML_PARAGRAPH}'''
             verseEntryList, contextList = rvBible.getContextVerseData( (BBB,) )
             assert isinstance( rvBible, ESFMBible.ESFMBible )
-            verseEntryList = livenOETWordLinks( level, rvBible, (BBB,), verseEntryList, state )
+            verseEntryList = livenOETWordLinks( level, rvBible, (BBB,), verseEntryList, state, colouriseWordClasses=False, addNoLinkYetSpans=False )
             textHtml = convertVerseEntryListToHtml( level, rvBible.abbreviation, (BBB,), 'book', contextList, verseEntryList, basicOnly=False, state=state )
             # textHtml = livenIORs( BBB, textHtml )
             textHtml = do_OET_RV_HTMLcustomisations( f'BookA={BBB}', textHtml )
@@ -165,22 +166,23 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
             bkHtml = f'''{top}<!--book page-->
 {navBookListParagraph}
 {bkHtml}
-{makeBottom( level, rvBible.abbreviation, 'book', state )}'''
+{makeBottom( level, rvBible.abbreviation, 'book' )}'''
             assert checkHtml( f'OET Book FRT {rvBible.abbreviation} {BBB}', bkHtml )
             assert not filepath.is_file() # Check that we're not overwriting anything
             with open( filepath, 'wt', encoding='utf-8' ) as bkHtmlFile:
                 bkHtmlFile.write( bkHtml )
             vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(bkHtml):,} characters written to {filepath}" )
             continue
-        elif lvBible.abbreviation in state.booksToLoad \
-        and 'ALL' not in state.booksToLoad[lvBible.abbreviation] \
-        and BBB not in state.booksToLoad[lvBible.abbreviation]:
-            logging.critical( f"C Skipped OET chapters not-included book: OET-LV {BBB}")
-            continue # Only create pages for the requested LV books
+
+        # This obsolete code used to prevent building of OET-RV DC books as there's no OET-LV version -- removed 2026-09-02
+        # elif lvBible.abbreviation in state.booksToLoad \
+        # and 'ALL' not in state.booksToLoad[lvBible.abbreviation] \
+        # and BBB not in state.booksToLoad[lvBible.abbreviation]:
+        #     logging.critical( f"C Skipped OET chapters not-included book: OET-LV {BBB}")
+        #     continue # Only create pages for the requested LV books
 
         vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Creating book pages for OET {BBB}…" )
         processedBBBs.append( BBB )
-
         bkIx = iBkList.index( BBB )
         bkPrevNav = f'''<a title="Previous {'(book index)' if bkIx==1 else 'book'}" href="{iBkList[bkIx-1]}.htm#Top">◄</a> ''' if bkIx>0 else ''
         bkNextNav = f' <a title="Next book" href="{iBkList[bkIx+1]}.htm#Top">►</a>' if bkIx<len(iBkList)-1 else ''
@@ -196,10 +198,10 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
             logging.critical( f"createOETBookPages missing book error for {lvBible.abbreviation} {BBB}" )
             lvVerseEntryList, lvContextList = InternalBibleEntryList(), []
         assert isinstance( rvBible, ESFMBible.ESFMBible )
-        rvVerseEntryList = livenOETWordLinks( level, rvBible, (BBB,), rvVerseEntryList, state )
+        rvVerseEntryList = livenOETWordLinks( level, rvBible, (BBB,), rvVerseEntryList, state, colouriseWordClasses=False )
         assert isinstance( lvBible, ESFMBible.ESFMBible )
         if lvVerseEntryList:
-            lvVerseEntryList = livenOETWordLinks( level, lvBible, (BBB,), lvVerseEntryList, state )
+            lvVerseEntryList = livenOETWordLinks( level, lvBible, (BBB,), lvVerseEntryList, state, colouriseWordClasses=False )
         # NOTE: We change the version abbreviation here to give the function more indication where we're coming from
         rvHtml = do_OET_RV_HTMLcustomisations( f'BookA={BBB}', convertVerseEntryListToHtml( level, 'OET-RV', (BBB,), 'book', rvContextList, rvVerseEntryList, basicOnly=False, state=state ) )
         tempLVHtml = convertVerseEntryListToHtml( level, 'OET-LV', (BBB,), 'book', lvContextList, lvVerseEntryList, basicOnly=False, state=state )
@@ -247,10 +249,10 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
 
         if lvVerseEntryList:
             ixBHend = lvHtml.index( '<!--bookHeader-->' ) + 17
-            try: ixBIend = lvHtml.index( '<!--bookIntro-->', ixBHend ) + 16 # No intro expected in OET-LV
-            except ValueError:
-                logging.warning( f"Unable to find end of book Intro {lvHtml[ixBHend:ixBHend+3999]=}" )
-                ixBIend = lvHtml.index( '<span id="C', ixBHend )
+            try: ixBIend = lvHtml.index( '<!--bookIntro-->', ixBHend ) + 16
+            except ValueError: # No intro expected in OET-LV
+                # logging.warning( f"Unable to find end of OET-LV book Intro {lvHtml[ixBHend:ixBHend+3999]=}" )
+                ixBIend = ixBHend # Keep intro chunk empty; the verseText wrapper around the first verse must not be split here
             lvChunks, lvRest = [ lvHtml[:ixBHend], lvHtml[ixBHend:ixBIend] ], lvHtml[ixBIend:]
             # Now try to match the rv sections
             for n,rvSectionHtml in enumerate( rvSections[2:] ): # continuing on AFTER the headers and introduction
@@ -290,13 +292,19 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
                 except ValueError: ixNextCV = len( lvRest ) - 1
                 # print( f"\n{BBB} {n}: {lvRest[ixEndCV:ixNextCV]=} {lvRest[ixNextCV:ixNextCV+10]=}" )
                 # Find our way back to the start of the HTML marker
-                for x in range( 30 ):
+                for x in range( 60 ): # Increased range to reach back past <div class="verseText"> wrappers
                     lvIndex8 = ixNextCV - x
-                    if lvRest[lvIndex8] == '<':
+                    if lvRest[lvIndex8:lvIndex8+4] == '<div':
                         break
                 else:
-                    dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{lvRest[lvIndex8-50:lvIndex8+50]}")
-                    not_far_enough
+                    # Fallback for LV HTML without <div class="verseText"> wrappers
+                    for x in range( 30 ):
+                        lvIndex8 = ixNextCV - x
+                        if lvRest[lvIndex8] == '<':
+                            break
+                    else:
+                        dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{lvRest[lvIndex8-50:lvIndex8+50]}")
+                        not_far_enough
                 # print( f"\n{n}: {lvRest[ixEndCV:lvIndex8]=}" )
                 lvEndIx = lvIndex8
                 # TODO: Work out why we need these next two sets of lines
@@ -348,7 +356,7 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
 <a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
 {bkHtml}
 {removeDuplicateCVids( combinedHtml )}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="15" style="float:right; margin-left:10px;"></a></div><!--RVLVcontainer-->
-{makeBottom( level, 'OET', 'book', state )}'''
+{makeBottom( level, 'OET', 'book' )}'''
         assert checkHtml( f'OET Book {BBB}', bkHtml )
         assert not filepath.is_file() # Check that we're not overwriting anything
         with open( filepath, 'wt', encoding='utf-8' ) as bkHtmlFile:
@@ -370,7 +378,7 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
 <h2>Index of books</h2>
 {navBookListParagraph}
 {state.WHOLE_BOOKS_WARNING_HTML_PARAGRAPH}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="15" style="float:right; margin-left:10px;"></a>
-{makeBottom( level, 'OET', 'bookIndex', state )}'''
+{makeBottom( level, 'OET', 'bookIndex' )}'''
     assert checkHtml( 'OETBooksIndex', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as bkHtmlFile:
@@ -435,9 +443,9 @@ def createBookPages( level:int, folder:Path, thisBible, state:State ) -> list[st
         bkHtml = f'''<p class="bkNav">{bkPrevNav}<span class="bkHead" id="Top">{thisBible.abbreviation} {ourTidyBBB}</span>{bkNextNav}</p>{f'{NEWLINE}{state.JAMES_NOTE_HTML_PARAGRAPH}' if 'OET' in thisBible.abbreviation and BBB=='JAM' else ''}{'' if bos_books_codes_py.is_single_chapter_book(BBB) else f'{NEWLINE}{state.OET_UNFINISHED_BOOK_WARNING_HTML_PARAGRAPH}' if 'OET' in thisBible.abbreviation else state.WHOLE_BOOK_WARNING_HTML_PARAGRAPH}{f'{state.BLACK_LETTER_FONT_HTML_PARAGRAPH}{NEWLINE}' if thisBible.abbreviation=='KJB-1611' else ''}'''
         verseEntryList, contextList = thisBible.getContextVerseData( (BBB,) )
         if isinstance( thisBible, ESFMBible.ESFMBible ):
-            verseEntryList = livenOETWordLinks( level, thisBible, (BBB,), verseEntryList, state )
+            verseEntryList = livenOETWordLinks( level, thisBible, (BBB,), verseEntryList, state, colouriseWordClasses=False, addNoLinkYetSpans=False )
         elif thisBible.abbreviation in ('BSB','MSB'):
-            verseEntryList = livenOETCompatibleWordLinks( level, thisBible, BBB, verseEntryList, state )
+            verseEntryList = livenOETCompatibleBereanWordLinks( level, thisBible, BBB, verseEntryList, state, colouriseWordClasses=False )
         textHtml = convertVerseEntryListToHtml( level, thisBible.abbreviation, (BBB,), 'book', contextList, verseEntryList, basicOnly=False, state=state )
         # textHtml = livenIORs( BBB, textHtml )
         if thisBible.abbreviation == 'OET-RV':
@@ -456,7 +464,6 @@ def createBookPages( level:int, folder:Path, thisBible, state:State ) -> list[st
                 if not match: break
                 C, V = match.group(1), match.group(2)
                 ix = textHtml.index( '<span class="SR-GNT_verseTextChunk">', match.end() ) + 36 # chars in search string
-                # except ValueError: break # None or no more -- shouldn't happen
                 textHtml = f'''{textHtml[:ix]}<a title="Go to the GreekCNTR collation page" href="https://GreekCNTR.org/collation/?v={CNTR_BOOK_ID_MAP[BBB]}{C.zfill(3)}{V.zfill(3)}">{textHtml[ix:].replace( '</span>', '</a></span>', 1 )}'''
                 startIndex = ix + 99 # Approx number of added characters
         bkHtml = f'{bkHtml}{textHtml}'
@@ -472,7 +479,7 @@ def createBookPages( level:int, folder:Path, thisBible, state:State ) -> list[st
         bkHtml = f'''{top}<!--book page-->
 {f'<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>\n' if 'OET' in thisBible.abbreviation else ''}{navBookListParagraph}
 {bkHtml}
-{makeBottom( level, thisBible.abbreviation, 'book', state )}'''
+{makeBottom( level, thisBible.abbreviation, 'book' )}'''
         assert checkHtml( f'Book {thisBible.abbreviation} {BBB}', bkHtml )
         assert not filepath.is_file() # Check that we're not overwriting anything
         with open( filepath, 'wt', encoding='utf-8' ) as bkHtmlFile:
@@ -493,7 +500,7 @@ def createBookPages( level:int, folder:Path, thisBible, state:State ) -> list[st
 <h2>Index of books</h2>
 {navBookListParagraph}
 {state.WHOLE_BOOKS_WARNING_HTML_PARAGRAPH}{f'<a title="See design specs on OET main site" href="https://OpenEnglishTranslation.Bible/Design/{'Readers' if thisBible.abbreviation=='OET-RV' else 'Literal'}Version"><img src="{'../'*level}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="15" style="float:right; margin-left:10px;"></a>' if 'OET' in thisBible.abbreviation else ''}
-{makeBottom( level, thisBible.abbreviation, 'bookIndex', state )}'''
+{makeBottom( level, thisBible.abbreviation, 'bookIndex' )}'''
     assert checkHtml( f'{thisBible.abbreviation} book index', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as bkHtmlFile:

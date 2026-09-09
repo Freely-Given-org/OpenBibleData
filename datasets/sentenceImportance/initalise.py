@@ -24,10 +24,31 @@
 #   You should have received a copy of the GNU General Public License
 #   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""
+r"""
 Module handling SentenceImportance initialisation.
 
 This bit of code is only ever intended to be run once
+
+Sets:
+    Importance
+        V   Vital
+        I   Important
+        M   Medium (default)
+        T   Trivial
+    TextualIssue
+        0   None (default)
+        1   Spelling differences
+        2   Small word differences
+        3   Major issues 
+    Clarity
+        C   Clear (default)
+        U   Unclear
+        O   Obscure
+    Speakers
+        @   Narrator (default)
+        Otherwise there's a comma-separated list of names, e.g. 'Yeshua' or '@,Yahweh'
+
+TODO: Define what versification these references are in
 
 CHANGELOG:
     2024-05-22 Use SR and Translatable SR-GNT collation columns from CNTR
@@ -37,6 +58,7 @@ CHANGELOG:
     2025-10-13 Find appropriate footnotes in OSHB via OET-LV OT files
     2026-01-05 Handle a range crossing a chapter boundary (using en-dash –)
     2026-03-29 Update for latest collaction DB from GreekCNTR
+    2026-09-08 Add Speakers column to the output (auto-detected from OET-RV \wj markers, \sp speaker markers, and speech attribution patterns)
 """
 from pathlib import Path
 from csv import  DictReader
@@ -57,10 +79,10 @@ from load import getIndividualQuotedOTRefs, getIndividualQuotingNTRefs
 
 
 
-LAST_MODIFIED_DATE = '2026-07-09' # by RJH
+LAST_MODIFIED_DATE = '2026-09-08' # by RJH
 SHORT_PROGRAM_NAME = "SentenceImportance_initialisation"
 PROGRAM_NAME = "Sentence Importance initialisation"
-PROGRAM_VERSION = '0.25'
+PROGRAM_VERSION = '0.29'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -79,10 +101,15 @@ BOS_BOOK_ID_MAP = {
 UHB_PATHNAME = Path( '../../copiedBibles/Original/unfoldingWord.org/UHB/' )
 OET_LV_OT_PATHNAME = Path( '../../../OpenEnglishTranslation--OET/derivedTexts/auto_edited_OT_ESFM/' )
 NET_PATHNAME = Path( '../../copiedBibles/English/NET/' )
+OET_RV_PATHNAME = Path( '../../../OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/' )
 
 
 # Default values are M2=Medium/normal importance, 0:no textual issue, C3:clear enough
 defaultImportance, defaultTextualIssue, defaultClarity = 'M', '0', 'C'
+
+# Speakers column: the default '@' represents the narrator (i.e., no particular speaker).
+# Otherwise the column has names separated by commas, e.g. 'Yeshua' or '@,Yahweh'.
+speakersDefault = '@'
 vitalImportanceRefsWithRanges = [ # Often in doctrinal statements
     'GEN_1:1-3', 'GEN_3:16',
     'EXO_20:11',
@@ -104,8 +131,8 @@ vitalImportanceRefsWithRanges = [ # Often in doctrinal statements
 
     'ROM_3:23','ROM_6:23','ROM_8:28', 'ROM_12:2',
     'CO2_5:21','CO2_12:9',
-    'GAL_3:10','GAL_3:13-14','GAL_5:22','GAL_5:23', 'EPH_2:9',
-    'PHP_4:6','PHP_4:7','PHP_4:8', 'PHP_4:13',
+    'GAL_3:10','GAL_3:13-14','GAL_5:22-23', 'EPH_2:9',
+    'PHP_4:6-8', 'PHP_4:13',
     'TI2_3:16-17',
 
     'HEB_11:6','HEB_13:5',
@@ -118,33 +145,45 @@ for ref in vitalImportanceRefsWithRanges:
     assert ref.count( '_' ) == 1, f"vitalImportanceRefsWithRanges {ref=}"
 
 importantRefsWithRanges = [ # Often quoted and/or memorised by Christians
-    'GEN_1:4-31','GEN_2:1-3', # Gen 1:1-3 is above
-    'DEU_29:24-29', 'DEU_30:3-5',
+    'GEN_1:4-31', # Gen 1:1-3 is above
+        'GEN_2:1-3', 'GEN_12:3',
+    'DEU_29:24-29', 'DEU_30:3-5','DEU_30:19',
     'JOS_1:9',
-    'PSA_51:10',
-    'PRO_4:1-7',
+    'EST_4:14',
+    'PSA_9:17', 'PSA_23:1-6', 'PSA_51:5','PSA_51:10', 'PSA_119:89',
+    'PRO_1:7', 'PRO_4:1-7', 'PRO_14:34',
     'ECC_8:15',
-    'ISA_2:2-4','ISA_6:1-8','ISA_11:1-12','ISA_27:6','ISA_28:16','ISA_41:10',
-    'ISA_42:1-9', 'ISA_49:1-13', 'ISA_50:4-11', # The other three servant songs 'ISA_52:13–53:12',
-    'ISA_54:17','ISA_66:8',
-    'JER_23:5-6',
+    'ISA_2:2-4','ISA_6:1-8','ISA_11:1-12','ISA_27:6','ISA_28:16','ISA_41:10', 'ISA_46:9-10',
+    'ISA_42:1-9', 'ISA_48:12-13','ISA_48:16', 'ISA_49:1-13', 'ISA_50:4-11', # The other three servant songs 'ISA_52:13–53:12',
+    'ISA_54:17', 'ISA_55:1-10','ISA_55:12-13', 'ISA_66:8',
+    'JER_17:9', 'JER_23:5-6', 'JER_31:31-34', 'JER_33:2-3', 'JER_33:14-18',
+    'DAN_7:10', 'DAN_9:5','DAN_9:19','DAN_9:24', 'DAN_12:1','DAN_12:4',
+    'ZEC_12:8-9','ZEC_12:11',
 
-    'MAT_4:4',
-    'LUK_24:27',
-    'JHN_1:1-18','JHN_7:16','JHN_16:33','JHN_17:23',
+    'MAT_4:4', 'MAT_16:1-3', 'MAT_24:32-33','MAT_24:44',
+    'LUK_21:28','LUK_24:27',
+    'JHN_1:1-18','JHN_3:18','JHN_6:68-69','JHN_7:16', 'JHN_8:36','JHN_8:58', 'JHN_10:28','JHN_16:33', 'JHN_17:5','JHN_17:23',
     'ACT_2:42',
     'CO1_10:6-11',
-    'ROM_3:19-22','ROM_5:16-21','ROM_15:4','ROM_16:17',
-    'GAL_3:21-22',
-    'EPH_4:14','EPH_6:4',
+    'ROM_3:3-4','ROM_3:19-22', 'ROM_5:8','ROM_5:16-21', 'ROM_10:2','ROM_10:13', 'ROM_13:12', 'ROM_15:4', 'ROM_16:17',
+    'CO1_2:12','CO1_2:14', 'CO1_3:14-15',
+    'CO2_9:7',
+    'GAL_3:21-22','GAL_3:24', 'GAL_6:16',
+    'EPH_2:8','EPH_2:10', 'EPH_4:14','EPH_6:4','EPH_6:10-13','EPH_6:17',
+    'PHP_2:12-13', 'PHP_3:20-21',
+    'COL_3:2',
+    'TH1_1:10','TH1_4:16-17','TH1_5:9',
+    'TH2_2:9-12',
     'TI1_4:13','TI1_4:16','TI1_6:3',
     'TI2_2:15','TI2_4:3-4',
     'TIT_1:9','TIT_2:1',
-    'HEB_4:12-13','HEB_13:9',
-    'PE1_2:2',
+    'HEB_4:12-13', 'HEB_5:12-14', 'HEB_13:9',
+    'JAM_1:5',
+    'PE1_2:2', 'PE1_2:9-10',
     'PE2_3:15-16',
-    'JN1_4:1',
+    'JN1_2:19', 'JN1_4:1','JN1_4:4',
     'JN2_1:9',
+    'REV_1:17-18', 'REV_3:5', 'REV_13:7', 'REV_20:12','REV_20:15',
     ]
 for ref in importantRefsWithRanges:
     assert ref.count( '_' ) == 1, f"importantRefsWithRanges {ref=}"
@@ -171,6 +210,7 @@ obscureClarityRefs = [ # Not really at all sure what the Hebrew or Greek is tryi
     'JOB_29:20','JOB_29:24',
     'PSA_22:16b', 'PSA_35:16a', 'PSA_56:10',
     'SNG_6:12',
+    'JER_48:34','JER_50:36a',
     'MIC_6:14', # Two unknown Hebrew words
     ]
 for ref in obscureClarityRefs:
@@ -213,6 +253,7 @@ unclearClarityRefs = [ # Mostly sure what's in the Hebrew or Greek,
         'ISA_49:17a','ISA_53:11a','ISA_64:5b',
     'JER_1:15b','JER_6:2b','JER_6:18b','JER_6:27','JER_8:8b','JER_10:19','JER_14:18b','JER_15:12','JER_17:3',
         'JER_23:33','JER_23:34','JER_23:35','JER_23:36b','JER_23:37','JER_23:38','JER_23:39','JER_23:40',
+        'JER_31:33b','JER_48:6b','JER_48:9a','JER_51:13b',
     'EZE_8:17b', 'EZE_16:24', 'EZE_21:13', 'EZE_24:12', 'EZE_24:17b', 'EZE_26:20b',
     'DAN_8:12','DAN_8:13a','DAN_11:43b',
     'HOS_11:7b',
@@ -299,7 +340,7 @@ def setup():
 
     # Just do some basic integrity checking
     importanceRefs = vitalImportanceRefs + importantRefs + trivialImportanceRefs
-    assert len( set(importanceRefs) ) == len(importanceRefs) # Otherwise there must be a duplicate
+    assert len( set(importanceRefs) ) == len(importanceRefs), [ref for ref in importanceRefs if importanceRefs.count(ref)>1] # Otherwise there must be a duplicate
     clarityRefs = obscureClarityRefs + unclearClarityRefs
     assert len( set(clarityRefs) ) == len(clarityRefs) # Otherwise there must be a duplicate
     allRefs = importanceRefs + clarityRefs + textualCriticismRefs
@@ -327,6 +368,8 @@ def run() -> bool:
     netBible = USXXMLBible.USXXMLBible( NET_PATHNAME, givenAbbreviation='NET', encoding='utf-8' )
     netBible.loadBooks() # So we can iterate through them all later
 
+    OETRVSpeakersDict = load_OET_RV_speakers()
+
     initialLines, splitVerseSet = load_previous_DB()
 
     collationVerseDict = load_CNTR_collation_DB( splitVerseSet )
@@ -334,7 +377,7 @@ def run() -> bool:
     quotedOTRefs = getIndividualQuotedOTRefs()
     quotingNTRefs = getIndividualQuotingNTRefs()
 
-    return create( initialLines, uhbBible, OETLVOTBible, netBible, collationVerseDict, splitVerseSet, quotedOTRefs, quotingNTRefs )
+    return create( initialLines, uhbBible, OETLVOTBible, netBible, collationVerseDict, splitVerseSet, quotedOTRefs, quotingNTRefs, OETRVSpeakersDict )
 # end of initialise.run()
 
 
@@ -561,14 +604,193 @@ def get_verse_collation_rows(given_collation_rows: list[dict], row_index: int) -
 # end of initialise.get_verse_collation_rows
 
 
-def create( initialTSVLines, HebrewReferenceBible, OET_LT_ReferenceOTBible, EnglishReferenceBible, collationVerseDict, splitVerseSet, individualQuotedOTRefs, individualQuotingNTRefs ) -> bool:
+NOTES_REGEX = re.compile( r'\\[fx]\s.*?\\[fx]\*', re.DOTALL )
+WJ_BLOCK_REGEX = re.compile( r'\\wj(?!\*).*?\\wj\*', re.DOTALL )
+WORD_NUMBER_REGEX = re.compile( r'¦\d+' )
+MARKUP_TOKEN_REGEX = re.compile( r'\\\+?[a-z0-9]{1,4}\*?' )
+def to_plain_text( text ):
+    """
+    Remove USFM markers (and OET-style word-number chips like '¦123')
+    to leave readable text for speaker detection.
+    """
+    text = NOTES_REGEX.sub( ' ', text ) # Remove any footnotes and cross-references
+    text = MARKUP_TOKEN_REGEX.sub( ' ', text )
+    text = WORD_NUMBER_REGEX.sub( ' ', text )
+    text = text.replace( '≈', ' ' ) # OET uses this to mark approximate words added for readability
+    return re.sub( r'\s+', ' ', text ).strip()
+# end of initialise.to_plain_text function
+
+def has_narration( text ) -> bool:
+    """
+    Whether the text contains any real words (rather than just punctuation or quote marks)
+    """
+    return bool( re.search( r'[A-Za-z0-9]', text ) )
+# end of initialise.has_narration function
+
+
+SPEECH_VERBS = 'said|says|speaks|spoke|spoken|questioned|replied|replies|asked|answers?|answered|responded|promised|warned|announced|challenged|calls? out|cried out|tells?|told|declared|shouted|commanded'
+NON_NAME_WORDS = 'Who|What|When|Where|Why|How|Which|The|Then|So|Now|But|And|One|Thus|These|Those|I|We|You|It|He|She|They'
+# e.g., 'Then Yahweh said to Mosheh, ...' or 'Mosheh asked Kayin, ...'
+SPEAKER_ATTRIBUTION_REGEX = re.compile(
+    r'\b(?!(?:'+NON_NAME_WORDS+r')\b)(?<!of\s)([A-Z][A-Za-z\'\-]{1,30})\s+(?:'+SPEECH_VERBS+r')\b[^“”‘’"\n]{0,40}[“”‘’"]' )
+# e.g., '“...”, said David.' or '“...” answered Yeshua,'
+TRAILING_ATTRIBUTION_REGEX = re.compile(
+    r'\b(?:'+SPEECH_VERBS+r')\s+(?!(?:'+NON_NAME_WORDS+r')\b)([A-Z][A-Za-z\'\-]{1,30})\b(?=[.,;:)\]]|$)' )
+
+def deduplicate_staying_ordered( items:list ):
+    """
+    Remove duplicates while maintaining their original order
+    """
+    seen = set()
+    result = []
+    for item in items:
+        if item not in seen:
+            seen.add( item )
+            result.append( item )
+    return result
+# end of initialise.deduplicate_staying_ordered function
+
+def deduplicate_consecutive( items:list ):
+    """
+    Remove items which are duplicates of their immediate predecessor (so the same
+    speaker speaking again after someone else has spoken is kept)
+    """
+    result = []
+    for item in items:
+        if not result or result[-1] != item:
+            result.append( item )
+    return result
+# end of initialise.deduplicate_consecutive function
+
+def detect_other_speakers( plainText:str ) -> list[str]:
+    """
+    Best-effort detection of other speakers (e.g., Mosheh, David, Yahweh, Yohan, Paul...)
+    in a verse's narration text, by looking for attribution patterns like
+    'Mosheh said, “...”' or '“...” replied Yohan,'
+    """
+    found = []
+    for match in SPEAKER_ATTRIBUTION_REGEX.finditer( plainText ):
+        found.append( (match.start(), match.group(1)) )
+    for match in TRAILING_ATTRIBUTION_REGEX.finditer( plainText ):
+        found.append( (match.start(), match.group(1)) )
+    return deduplicate_staying_ordered( [name for _pos, name in sorted(found)] )
+# end of initialise.detect_other_speakers function
+
+
+def get_speakers_from_verse_text( rawVerseText:str ) -> str:
+    r"""
+    Determine who speaks in a verse from its raw ESFM text:
+      * Each \wj ...\wj* block gives 'Yeshua', and any narration before,
+        between, or after such blocks gives '@' (the narrator) plus other
+        named speakers detected from speech-attribution patterns.
+      * e.g. 'Yeshua said, “\wj ...\wj*”'        gives '@,Yeshua';
+        '“\wj ...\wj*” he answered, “\wj ...\wj*”' gives 'Yeshua,@,Yeshua';
+        '“\wj ...\wj*” And then Yeshua left.'   gives 'Yeshua,@'.
+      * If there are no \wj blocks, a simple '@,...' list of any detected
+        named speakers is returned, e.g. 'Yohan said, “...”' gives '@,Yohan'.
+    Returns a comma-separated list where '@' represents the narrator.
+    """
+    text = NOTES_REGEX.sub( '', rawVerseText ) # Ignore footnotes and cross-references
+    if not WJ_BLOCK_REGEX.search( text ): # No words of Yeshua to detect
+        names = detect_other_speakers( to_plain_text( text ) )
+        return '@' if not names else '@,' + ','.join( names )
+
+    # Step through the verse, alternating between the \wj blocks (words of Yeshua)
+    # and the narrator's narration surrounding them.
+    speakers = []
+    previousEnd = 0
+    for match in WJ_BLOCK_REGEX.finditer( text ):
+        wjStart, wjEnd = match.start(), match.end()
+        narrationText = to_plain_text( text[previousEnd:wjStart] )
+        if has_narration( narrationText ):
+            speakers.append( '@' ) # The narrator speaks here
+            # A 'Yeshua' detected in narration right next to a \wj block is just
+            # an attribution ('... answered Yeshua,'), so don't repeat it
+            speakers.extend( name for name in detect_other_speakers( narrationText ) if name != 'Yeshua' )
+        speakers.append( 'Yeshua' )
+        previousEnd = wjEnd
+    trailingText = to_plain_text( text[previousEnd:] )
+    if has_narration( trailingText ):
+        speakers.append( '@' ) # The narrator speaks last
+        speakers.extend( name for name in detect_other_speakers( trailingText ) if name != 'Yeshua' )
+    return ','.join( deduplicate_consecutive( speakers ) )
+# end of initialise.get_speakers_from_verse_text function
+
+
+def load_OET_RV_speakers() -> dict:
+    r"""
+    Read the OET-RV (Readers' Version) files for all Old and New Testament books,
+    keeping track of the chapter (\c) and verse (\v) numbers, and detect the
+    speakers for each verse (see get_speakers_from_verse_text above).
+
+    In a few books (e.g., SNG and JER) a USFM '\sp' marker explicitly states the
+    current speaker, and that name is then used for all following verses until the
+    next '\sp', '\s1' or '\s2' marker.
+
+    Returns a dict of BBB_C:V references to comma-separated speaker lists.
+    (Verses not found in OET-RV default to just the narrator, '@'.)
+    """
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Loading OET-RV speakers data from {OET_RV_PATHNAME}…" )
+    speakersDict = {}
+    for BBB in sorted( bos_books_codes_py.get_all_bos_book_codes() ):
+        if not (bos_books_codes_py.is_old_testament_nr( BBB ) or bos_books_codes_py.is_new_testament_nr( BBB )):
+            continue # We skip deuterocanon and any non-Bible (introductory, etc.) books
+        ESFMFilename = OET_RV_PATHNAME / f'OET-RV_{BBB}.ESFM'
+        if not ESFMFilename.exists():
+            logging.warning( f"Didn't find OET-RV ESFM file {ESFMFilename}" )
+            continue
+        currentChapter = currentVerse = None
+        currentSpeaker = None # Set whenever a '\sp' speaker marker is seen
+        verseSpeaker = None # The '\sp' speaker in effect when the pending verse started
+        verseTextBits = []
+        def flushPendingVerse():
+            """
+            Store the speakers for the currently-pending verse (if there is one)
+            """
+            if currentChapter is not None and currentVerse is not None and verseTextBits:
+                # A '\sp' marker explicitly identifies the speaker, so it takes precedence
+                speakersDict[f'{BBB}_{currentChapter}:{currentVerse}'] = \
+                        verseSpeaker if verseSpeaker else get_speakers_from_verse_text( ' '.join(verseTextBits) )
+        with open( ESFMFilename, 'rt', encoding='utf-8') as ESFMFile:
+            for line in ESFMFile:
+                chapterMatch = re.match( r'^\\c\s+(\d+)', line )
+                if chapterMatch:
+                    flushPendingVerse()
+                    currentChapter = int( chapterMatch.group(1) )
+                    currentVerse = None
+                    verseTextBits = []
+                    continue
+                verseMatch = re.match( r'^\\v\s+(\d+)[a-z]?\s?(.*)$', line )
+                if verseMatch:
+                    flushPendingVerse()
+                    currentVerse = int( verseMatch.group(1) )
+                    verseSpeaker = currentSpeaker # Capture the speaker at the verse start
+                    verseTextBits = [verseMatch.group(2)]
+                    continue
+                sectionMatch = re.match( r'^\\s[12]\s', line )
+                if sectionMatch:
+                    flushPendingVerse()
+                    currentSpeaker = None # A new '\s1'/'\s2' section ends the range of any '\sp' speaker
+                    continue
+                speakerMatch = re.match( r'^\\sp\s+(.+)$', line )
+                if speakerMatch:
+                    currentSpeaker = WORD_NUMBER_REGEX.sub( '', speakerMatch.group(1) ).strip()
+                    continue
+                verseTextBits.append( line.strip() )
+            flushPendingVerse()
+    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  {len(speakersDict):,} OET-RV verses loaded with speaker data." )
+    return speakersDict
+# end of initialise.load_OET_RV_speakers function
+
+
+def create( initialTSVLines, HebrewReferenceBible, OET_LT_ReferenceOTBible, EnglishReferenceBible, collationVerseDict, splitVerseSet, individualQuotedOTRefs, individualQuotingNTRefs, OETRVSpeakersDict ) -> bool:
     """
     """
     BibleOrgSysGlobals.backupAnyExistingFile( TSV_FILENAME, numBackups=3 )
 
     numLinesWritten = 0
     with open( TSV_FILENAME, 'wt', encoding='utf-8') as outputFile:
-        outputFile.write( "FGRef\tImportance\tTextualIssue\tClarity\tComment\n")
+        outputFile.write( "FGRef\tImportance\tTextualIssue\tClarity\tSpeakers\tComment\n")
         numLinesWritten += 1
         for line in initialTSVLines:
             UUU, CV = line.split(' ')
@@ -655,13 +877,14 @@ def create( initialTSVLines, HebrewReferenceBible, OET_LT_ReferenceOTBible, Engl
                     if subRef[-1] == 'b':
                         unclearClarityRefs.remove( fgRef )
 
-                outputFile.write( f"{subRef}\t{importance}\t{textualIssue}\t{clarity}\t{comment}\n" )
+                speakers = OETRVSpeakersDict.get( fgRef, speakersDefault )
+                outputFile.write( f"{subRef}\t{importance}\t{textualIssue}\t{clarity}\t{speakers}\t{comment}\n" )
                 numLinesWritten += 1
 
     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  {numLinesWritten:,} lines written to {TSV_FILENAME}." )
     assert numLinesWritten == 1+NUM_EXPECTED_DATA_LINES+len(splitVerseSet), f"{NUM_EXPECTED_DATA_LINES=:,} {len(splitVerseSet)=:,} {numLinesWritten=:,}"
     assert len(vitalImportanceRefs) == 0, f"({len(vitalImportanceRefs)}) {vitalImportanceRefs=}" # They should all have been used
-    assert len(importantRefs) == 0, f"({len(importantRefs)}) {importantRefs=}" # They should all have been used
+    assert len(importantRefs) == 0, f"({len(importantRefs)}) {importantRefs=}" # They should all have been used (but might have versification issues with Deu 29:29, etc.)
     assert len(trivialImportanceRefs) == 0, f"({len(trivialImportanceRefs)}) {trivialImportanceRefs=}" # They should all have been used
     assert len(obscureClarityRefs) == 0, f"({len(obscureClarityRefs)}) {obscureClarityRefs=}" # They should all have been used
     assert len(unclearClarityRefs) == 0, f"({len(unclearClarityRefs)}) {unclearClarityRefs=}" # They should all have been used

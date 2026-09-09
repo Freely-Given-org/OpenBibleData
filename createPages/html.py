@@ -33,17 +33,7 @@ makeTop( level:int, versionAbbreviation:str|None, pageType:str, versionSpecificF
     This is the HTML <head> segment, including assigning the correct CSS stylesheet.
 
     Note: versionAbbreviation can be None for parallel, interlinear and word pages, etc.
-_makeNavigationLinks( level:int, versionAbbreviation:str|None, pageType:str, versionSpecificFileOrFolderName:str|None, state:State ) -> str
-    Create the navigation that goes before the page content.
-
-    This includes the list of versions, and possibly the "ByDocument/BySection" bar as well.
-        (It doesn't include book, chapter, or verse selector bars.)
-
-    Note: versionAbbreviation can be None for parallel, interlinear and word pages, etc.
-_makeWorkNavListParagraph( level:int, versionAbbreviation:str|None, pageType:str, versionSpecificFileOrFolderName:str|None, state:State ) -> str
-    Create the list of available versions.
-
-    Note: versionAbbreviation can be None for parallel, interlinear and word pages, etc.
+    (Implemented in Rust -- see createPages/Rust/src/page_chrome.rs.)
 makeViewNavListParagraph( level:int, versionAbbreviation:str|None, pageType:str, state:State ) -> str
     Make the "ByDocument/BySection" bar.
 
@@ -96,27 +86,50 @@ CHANGELOG:
     2025-12-19 Fix bug that displayed ' 2 YHN2 JHN)' etc. (losing the opening parenthesis) in the book navigation line
     2026-01-06 Added NNBSpace after parallelism markers at line beginnings
     2026-01-19 Added link to https://OET.Bible
+    2026-08-31 Moved a verse-text chunk's closing </span> before the sentence-break
+        <br> in do_OET_LV_HTMLcustomisations so the tag is no longer left after the
+        <br> (and drop any <br> that would land directly before a newline).
+    2026-08-31 The Rust verse converter now wraps each paragraph-less verse in its
+        own <div class="verseText"> block (closed as "</div><!--verseText-->").  The
+        companion customisation moves any sentence-break <br> that lands before such
+        a block's closing tag to after it, keeping </div><!--verseText--> contiguous
+        and dropping the now-redundant trailing <br>.
     2026-02-03 Allow uncertain ellided markings '\\add ?≡'
     2026-05-09 Upgraded to bos_books_codes_py
     2026-06-11 Handle new % (changed person) \\add format
+    2026-08-22 makeTop and makeViewNavListParagraph now delegate to the Rust openbibledata_rust module (page_chrome);
+                    deleted the superseded Python _makeNavigationLinks and _makeWorkNavListParagraph implementations.
+    2026-08-23 Cached the output of makeBottom (by relying on the global import of state)
+    2026-08-25 The OETHandlers functions are now imported from the Rust openbibledata_rust module (the Python OETHandlers.py was deleted).
+    2026-08-28 Added preloadCSSStyles() so stylesheet caches are built in the parent before
+                    forked multiprocessing children are created (they inherit the cache copy-on-write).
+    2026-09-09 Handle two consecutive divs in common.css
+    2026-09-09 removeDuplicateCVids and removeDuplicateFNids now call the Rust openbibledata_rust ports
+     2026-09-08 Fixed spurious "CSS style not in stylesheet" errors in checkHtmlForMissingStyles:
+                merge common.css into the page's own stylesheet by unioning the element lists
+                (so e.g. span.d from BibleWord.css isn't clobbered by p.d from common.css), and
+                treat an empty-string element entry (from generic selectors like '.hebVrb {')
+                as meaning 'any element' when checking each class.
 """
 import logging
 from datetime import datetime
 import re
 from collections import defaultdict
+from functools import cache
 
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint, BOOKLIST_OT39, BOOKLIST_NT27
 import bos_books_codes_py
+import openbibledata_rust
 
 from settings import State, state
-from OETHandlers import getBBBFromOETBookName
+from openbibledata_rust import getBBBFromOETBookName, checkHtml as _rustCheckHtml
 
 
-LAST_MODIFIED_DATE = '2026-07-06' # by RJH
+LAST_MODIFIED_DATE = '2026-09-08' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
-PROGRAM_VERSION = '1.0.1'
+PROGRAM_VERSION = '1.0.8'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -134,6 +147,24 @@ KNOWN_PAGE_TYPES = ('site', 'TopIndex', 'details', 'AllDetails',
                     'wordIndex','lemmaIndex','morphemeIndex', 'personIndex','locationIndex',
                         'statisticsIndex', 'referenceIndex','StrongsIndex', 'kingdomIndex',
                     'search', 'about', 'news', 'OETKey')
+
+_pageChromeConfigCache = None # (id(state), openbibledata_rust.PageChromeConfig) -- see _getPageChromeConfig
+def _getPageChromeConfig( state:State ):
+    """
+    Return the Rust snapshot of the State data needed by the page-top builders.
+
+    The snapshot (version list, decorations, names, safe names, preloaded
+    book sets, etc.) is extracted once per State object and reused for every
+    page, so generating page tops involves no Python attribute access at all.
+    Assumes those State fields are settled before page creation starts
+    (which Bibles.loadBibles guarantees).
+    """
+    global _pageChromeConfigCache
+    if _pageChromeConfigCache is None or _pageChromeConfigCache[0] != id(state):
+        _pageChromeConfigCache = (id(state), openbibledata_rust.PageChromeConfig(state))
+    return _pageChromeConfigCache[1]
+# end of html._getPageChromeConfig
+
 def makeTop( level:int, versionAbbreviation:str|None, pageType:str, versionSpecificFileOrFolderName:str|None, state:State ) -> str:
     """
     Create the very top part of an HTML page.
@@ -143,213 +174,14 @@ def makeTop( level:int, versionAbbreviation:str|None, pageType:str, versionSpeci
             and including the list of versions underneath that line.
 
     Note: versionAbbreviation can be None for parallel, interlinear and word pages, etc.
+
+    The actual work is done by the Rust make_top in openbibledata_rust.
     """
     fnPrint( DEBUGGING_THIS_MODULE, f"makeTop( {level}, {versionAbbreviation}, {pageType}, {versionSpecificFileOrFolderName} )" )
     assert pageType in KNOWN_PAGE_TYPES, f"makeTop {level=} {versionAbbreviation=} {pageType=}"
 
-    if pageType in ('chapter','section','book'):
-        cssFilename = 'OETChapter.css' if 'OET' in versionAbbreviation else 'BibleChapter.css'
-    elif pageType == 'relatedPassage':
-        cssFilename = 'ParallelPassages.css'
-    elif pageType == 'topicPassages':
-        cssFilename = 'TopicalPassages.css'
-    elif pageType == 'parallelVerse':
-        cssFilename = 'ParallelVerses.css'
-    elif pageType == 'interlinearVerse':
-        cssFilename = 'InterlinearVerse.css'
-    elif pageType in ('word','lemma','morpheme', 'person','location','StrongsPage'):
-        cssFilename = 'BibleWord.css'
-    elif pageType in ('dictionaryLetterIndex', 'dictionaryEntry','dictionaryIntro'):
-        cssFilename = 'BibleDict.css'
-    elif pageType in ('site', 'details','AllDetails', 'search', 'about', 'news', 'OETKey', 'TopIndex',
-                      'kingdom', 'statistics',
-                      'bookIndex','chapterIndex','sectionIndex',
-                      'relatedSectionIndex', 'topicsIndex', 'dictionaryMainIndex','StrongsIndex',
-                      'wordIndex','lemmaIndex','morphemeIndex','personIndex','locationIndex','statisticsIndex','referenceIndex' ):
-        cssFilename = 'BibleSite.css'
-    else: unexpected_page_type
-
-    homeLink = f"{state.SITE_NAME}{' TEST' if state.TEST_MODE_FLAG else ''} Home" if pageType=='TopIndex' else f'''<a href="{'../'*level}index.htm#Top">{state.SITE_NAME}{' TEST' if state.TEST_MODE_FLAG else ''} Home</a>'''
-    aboutLink = 'About' if pageType=='about' else f'''<a href="{'../'*level}About.htm#Top">About</a>'''
-    newsLink = 'News' if pageType=='news' else f'''<a href="{'../'*level}News.htm#Top">News</a>'''
-    OETKeyLink = 'OET Key' if pageType=='OETKey' else f'''<a href="{'../'*level}OETKey.htm#Top">OET Key</a>'''
-    topLink = f'<p class="site">{homeLink}  {aboutLink}  {newsLink}  {OETKeyLink}</p><!--site-->'
-
-    top = f"""<!DOCTYPE html>
-<html lang="en-US">
-<head>
-  <title>__TITLE__</title>
-  <meta charset="utf-8">
-  <meta name="viewport" content="user-scalable=yes, initial-scale=1, minimum-scale=1, width=device-width">
-  <meta name="keywords" content="__KEYWORDS__">
-  <link rel="stylesheet" type="text/css" href="{'../'*level}{cssFilename}">
-  __SCRIPT__
-</head>
-<body class="container"><!--Level{level}-->{topLink}
-"""
-    # Insert second stylesheet if required
-    if pageType == 'OETKey':
-        top = top.replace( '__SCRIPT__', f'''<link rel="stylesheet" type="text/css" href="{'../'*level}OETChapter.css">\n  __SCRIPT__''' )
-    # Insert javascript file(s) if required
-    if (versionAbbreviation and 'OET' in versionAbbreviation and pageType!='sectionIndex') \
-    or pageType in ('parallelVerse','topicPassages'):
-        top = top.replace( '__SCRIPT__', f'''<script src="{'../'*level}Bible.js"></script>\n  __SCRIPT__''' )
-    if 'Dict' in cssFilename or 'Word' in cssFilename:
-        top = top.replace( '__SCRIPT__', f'''<script src="{'../'*level}Dict.js" defer></script>\n  __SCRIPT__''' )
-    if 'Dict' in cssFilename or 'Word' in cssFilename \
-    or pageType in ('chapter','section','sectionIndex','book','parallelVerse','interlinearVerse','relatedPassage','topicPassages','kingdom'):
-        top = top.replace( '__SCRIPT__', f'''<script src="{'../'*level}KB.js" defer></script>\n  __SCRIPT__''' )
-    top = top.replace( '\n  __SCRIPT__', '' )
-
-    return f'{top}{_makeNavigationLinks( level, versionAbbreviation, pageType, versionSpecificFileOrFolderName, state )}'
+    return openbibledata_rust.make_top( _getPageChromeConfig(state), level, pageType, versionAbbreviation, versionSpecificFileOrFolderName )
 # end of html.makeTop
-
-
-def _makeNavigationLinks( level:int, versionAbbreviation:str|None, pageType:str, versionSpecificFileOrFolderName:str|None, state:State ) -> str:
-    """
-    Create the navigation that goes before the page content.
-
-    This includes the list of versions, and possibly the "ByDocument/BySection" bar as well.
-        (It doesn't include book, chapter, or verse selector bars.)
-
-    Note: versionAbbreviation can be None for parallel, interlinear and word pages, etc.
-    """
-    fnPrint( DEBUGGING_THIS_MODULE, f"_makeNavigationLinks( {level}, {versionAbbreviation}, {pageType}, {versionSpecificFileOrFolderName} )" )
-    assert pageType in KNOWN_PAGE_TYPES, f"_makeNavigationLinks {level=} {versionAbbreviation=} {pageType=}"
-
-    versionHtml = _makeWorkNavListParagraph( level, versionAbbreviation, pageType, versionSpecificFileOrFolderName, state )
-    viewHtml = makeViewNavListParagraph( level, versionAbbreviation, pageType, state )
-
-    return f'''<div class="header">{versionHtml}{NEWLINE if viewHtml else ''}{viewHtml}</div><!--header-->'''
-# end of html._makeNavigationLinks
-
-
-def _makeWorkNavListParagraph( level:int, versionAbbreviation:str|None, pageType:str, versionSpecificFileOrFolderName:str|None, state:State ) -> str:
-    """
-    Create the list of available versions.
-
-    Note: versionAbbreviation can be None for parallel, interlinear and word pages, etc.
-    """
-    # DEBUGGING_THIS_MODULE = 99; print()
-    fnPrint( DEBUGGING_THIS_MODULE, f"_makeWorkNavListParagraph( {level}, {versionAbbreviation}, {pageType}, {versionSpecificFileOrFolderName} )" )
-    assert pageType in KNOWN_PAGE_TYPES, f"_makeWorkNavListParagraph {level=} {versionAbbreviation=} {pageType=}"
-
-    # Add all the version abbreviations (except for the versionsWithoutTheirOwnPages)
-    #   with their style decorators
-    #   and with the more specific links if specified.
-    initialVersionList = ['TEST'] if state.TEST_MODE_FLAG else []
-    for loopVersionAbbreviation in state.BibleVersions:
-        if loopVersionAbbreviation in ('TOSN','TTN','SOTN','UTN'): # Skip notes
-            continue
-        if loopVersionAbbreviation in state.versionsWithoutTheirOwnPages: # Skip versions without their own pages
-            continue
-        if state.TEST_VERSIONS_ONLY and loopVersionAbbreviation not in state.TEST_VERSIONS_ONLY:
-            continue
-        # Rather than leave out versions without sections, we will now point them to chapter pages (further below)
-        # if pageType in ('section','sectionIndex'):
-        #     try:
-        #         thisBible = state.preloadedBibles['OET-RV' if loopVersionAbbreviation=='OET' else loopVersionAbbreviation]
-        #         if not thisBible.discoveryResults['ALL']['haveSectionHeadings']:
-        #             continue # skip this one
-        #     except AttributeError: # no discoveryResults
-        #         continue
-
-        # Note: This is not good because not all versions have all books -- we try to fix that below
-        vLink = '../'*level if loopVersionAbbreviation == versionAbbreviation else \
-                f"{'../'*level}{BibleOrgSysGlobals.makeSafeString(loopVersionAbbreviation)}/{versionSpecificFileOrFolderName}" \
-                    if versionSpecificFileOrFolderName else \
-                f"{'../'*level}{BibleOrgSysGlobals.makeSafeString(loopVersionAbbreviation)}"
-        initialVersionList.append( f'{state.BibleVersionDecorations[loopVersionAbbreviation][0]}'
-                            f'<a title="{state.BibleNames[loopVersionAbbreviation]}" '
-                            f'href="{vLink}">{loopVersionAbbreviation}</a>'
-                            f'{state.BibleVersionDecorations[loopVersionAbbreviation][1]}'
-                            )
-    if pageType in ('relatedPassage','relatedSectionIndex'):
-        initialVersionList.append( 'Related' )
-    else: # add a link for related
-        initialVersionList.append( f'''{state.BibleVersionDecorations['Related'][0]}<a title="Single OET-RV section with related verses from other books" href="{'../'*level}rel/">Related</a>{state.BibleVersionDecorations['Related'][1]}''' )
-    if pageType in ('topicPassages','topicsIndex'):
-        initialVersionList.append( 'Topics' )
-    else: # add a link for topics
-        initialVersionList.append( f'''{state.BibleVersionDecorations['Topics'][0]}<a title="Collections of OET passages organised by topic" href="{'../'*level}tpc/">Topics</a>{state.BibleVersionDecorations['Topics'][1]}''' )
-    if pageType == 'parallelVerse':
-        initialVersionList.append( 'Parallel' )
-    else: # add a link for parallel
-        initialVersionList.append( f'''{state.BibleVersionDecorations['Parallel'][0]}<a title="Single verse in many different translations" href="{'../'*level}par/">Parallel</a>{state.BibleVersionDecorations['Parallel'][1]}''' )
-    if pageType == 'interlinearVerse':
-        initialVersionList.append( 'Interlinear' )
-    else: # add a link for interlinear
-        initialVersionList.append( f'''{state.BibleVersionDecorations['Interlinear'][0]}<a title="Single verse in interlinear word view" href="{'../'*level}ilr/">Interlinear</a>{state.BibleVersionDecorations['Interlinear'][1]}''' )
-    if pageType == 'referenceIndex':
-        initialVersionList.append( 'Reference' )
-    else: # add a link for reference
-        initialVersionList.append( f'''{state.BibleVersionDecorations['Reference'][0]}<a title="Reference index" href="{'../'*level}ref/">Reference</a>{state.BibleVersionDecorations['Reference'][1]}''' )
-    if pageType == 'dictionaryMainIndex':
-        initialVersionList.append( 'Dictionary' )
-    else: # add a link for dictionary
-        initialVersionList.append( f'''{state.BibleVersionDecorations['Dictionary'][0]}<a title="Dictionary index" href="{'../'*level}dct/">Dictionary</a>{state.BibleVersionDecorations['Dictionary'][1]}''' )
-    if pageType == 'search':
-        initialVersionList.append( 'Search' )
-    else: # add a link for search
-        initialVersionList.append( f'''{state.BibleVersionDecorations['Search'][0]}<a title="Find Bible words" href="{'../'*level}Search.htm">Search</a>{state.BibleVersionDecorations['Search'][1]}''' )
-
-    # This code tries to adjust links to books which aren't in a version, e.g., UHB has no NT books, SR-GNT and UGNT have no OT books
-    # It does this by adjusting the potential bad link to the next level higher
-    #   except for section pages that don't exist will be changed to chapter pages.
-    newVersionList = []
-    for initial_entry in initialVersionList:
-        # if pageType in ('section','sectionIndex'):
-        #     print( f"  _makeNavigationLinks processing {loopVersionAbbreviation=} from {initial_entry=} ({level=} {versionAbbreviation=} {pageType=} {versionSpecificFileOrFolderName=})" )
-        if '/par/' in initial_entry or '/ilr/' in initial_entry:
-            newVersionList.append( initial_entry )
-            continue # Should always be able to link to these
-        elif '/bySec/' in initial_entry:
-            assert pageType in ('section','sectionIndex')
-            startIndex = initial_entry.index('">') + 2
-            loopVersionAbbreviation = initial_entry[startIndex:initial_entry.index('<',startIndex)]
-            try:
-                thisBible = state.preloadedBibles['OET-RV' if loopVersionAbbreviation=='OET' else loopVersionAbbreviation]
-                haveSectionHeadings = thisBible.discoveryResults['ALL']['haveSectionHeadings']
-            except AttributeError: # no discoveryResults
-                haveSectionHeadings = False
-            if not haveSectionHeadings:
-                initial_entry = initial_entry.replace( '/bySec/', '/byC/' )
-                assert '/S' not in initial_entry.replace('/SLT/','/sLT/').replace('/SR-GNT/','/sR-GNT/').replace('/SA','/sA').replace('/SIR','/sIR').replace('/SUS','/sUS').replace('/SNG','/sNG'), f"Found a possible section reference {initial_entry=}"
-        entryBBB = None
-        for tryBBB in state.allBBBs: # from all loaded versions
-            if f'{tryBBB}.' in initial_entry or f'{tryBBB}_' in initial_entry or f'{tryBBB}/' in initial_entry:
-                assert not entryBBB # Make sure we only found exactly one of them
-                entryBBB = tryBBB
-        if entryBBB:
-            startIndex = initial_entry.index('">') + 2
-            loopVersionAbbreviation = initial_entry[startIndex:initial_entry.index('<',startIndex)]
-            if loopVersionAbbreviation == 'OET': loopVersionAbbreviation = 'OET-RV' # We look here in this case
-            try: thisBible = state.preloadedBibles[loopVersionAbbreviation]
-            except KeyError:
-                assert state.TEST_MODE_FLAG
-                thisBible = []
-            if entryBBB in thisBible:
-                # if pageType in ('section','sectionIndex'): print( f"    Appended {loopVersionAbbreviation} {entryBBB} as is (from {initial_entry})")
-                newVersionList.append( initial_entry )
-                continue # Should always be able to link to these
-            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"      Might not be able to link to {pageType} {loopVersionAbbreviation} {initial_entry}???" )
-            replacement = ''
-            if '/' in versionSpecificFileOrFolderName:
-                ix = versionSpecificFileOrFolderName.index( '/' )
-                if ix>0 and ix<len(versionSpecificFileOrFolderName)-1: # The slash is in the middle -- not at the beginning or the end
-                    replacement = versionSpecificFileOrFolderName[:ix+1]
-                    dPrint( 'Info', DEBUGGING_THIS_MODULE, f"          Can we adapt {pageType} '{versionSpecificFileOrFolderName}' to '{replacement}'" )
-            newEntry = initial_entry.replace( versionSpecificFileOrFolderName, replacement ) # Effectively links to a higher level folder
-            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"       Changed {pageType} link entry to {newEntry}")
-            newVersionList.append( newEntry )
-        else:
-            dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        Couldn't find a BBB so should be able to link ok to {pageType} {initial_entry}" )
-            newVersionList.append( initial_entry )
-
-    assert len(newVersionList) == len(initialVersionList)
-    # if pageType in ('section','sectionIndex'): print( f"_makeWorkNavListParagraph {'\n'.join(newVersionList)}\n from {'\n'.join(initialVersionList)}" ); assert False, "We want to stop here"
-    return f'''<p class="wrkLst">{' '.join(newVersionList)}</p><!--wrkLst-->'''
-# end of html._makeWorkNavListParagraph
 
 
 def makeViewNavListParagraph( level:int, versionAbbreviation:str|None, pageType:str, state:State ) -> str:
@@ -359,30 +191,12 @@ def makeViewNavListParagraph( level:int, versionAbbreviation:str|None, pageType:
     Note: versionAbbreviation can be None for parallel, interlinear and word pages, etc.
         It can also be the 'OET' pseudo version.
         Can return an empty string.
+
+    The actual work is done by the Rust make_view_nav_list in openbibledata_rust.
     """
     fnPrint( DEBUGGING_THIS_MODULE, f"makeViewNavListParagraph( {level}, {versionAbbreviation}, {pageType} )" )
 
-    viewLinks = []
-    if pageType in ('book','section','chapter', 'details',
-                    'workIndex','bookIndex','sectionIndex','chapterIndex') \
-    and versionAbbreviation not in ('PLBL','HAP','TOSN','TTN','TOBD','SOTN','UTN','UBS','THBD','BMM','OBI') \
-    and versionAbbreviation not in state.versionsWithoutTheirOwnPages:
-        if state.TEST_MODE_FLAG: viewLinks.append( 'TEST' )
-        if not versionAbbreviation: versionAbbreviation = 'OET'
-        viewLinks.append( f'''<a title="Select a different version" href="{'../'*level}">{versionAbbreviation}</a>''' )
-        viewLinks.append( f'''<a title="View entire document" href="{'../'*level}{versionAbbreviation}/byDoc/">By Document</a>'''
-                            if 'book' not in pageType else 'By Document' )
-        if state.preloadedBibles['OET-RV' if versionAbbreviation=='OET' else versionAbbreviation].discoveryResults['ALL']['haveSectionHeadings']:
-            viewLinks.append( f'''<a title="View section" href="{'../'*level}{versionAbbreviation}/bySec/">By Section</a>'''
-                            if 'section' not in pageType else 'By Section' )
-        viewLinks.append( f'''<a title="View chapter" href="{'../'*level}{versionAbbreviation}/byC/">By Chapter</a>'''
-                            if 'chapter' not in pageType else 'By Chapter' )
-        viewLinks.append( f'''<a title="View version details" href="{'../'*level}{versionAbbreviation}/details.htm#Top">Details</a>'''
-                            if pageType!='details' else 'Details' )
-        if state.TEST_MODE_FLAG and 'OET' in versionAbbreviation:
-            viewLinks.append( f'''<a title="View verses not included in the OET" href="{'../'*level}OET/missingVerses.htm#Top"><small>Missing verses</small></a>''' )
-
-    return f'''<p class="viewLst">{' '.join(viewLinks)}</p><!--viewLst-->''' if viewLinks else ''
+    return openbibledata_rust.make_view_nav_list( _getPageChromeConfig(state), level, pageType, versionAbbreviation )
 # end of html.makeViewNavListParagraph
 
 
@@ -440,7 +254,7 @@ def makeBookNavListParagraph( linksList:list[str], workAbbrevPlus:str, state:Sta
             adjDisplayText = adjDisplayText.split(' (')[-1].removesuffix(')')
             # print( f"  HEREdd {aLink=} {adjDisplayText=}")
         assert 3 <= len(adjDisplayText) <= 5, f"{len(adjDisplayText)=} {adjDisplayText=}" # it should be a tidyBBB, e.g., 'GEN' or '1 COR'
-        BBB = getBBBFromOETBookName( adjDisplayText, where=f"makeBookNavListParagraph( {workAbbrevPlus} {aLink=} )" )
+        BBB = getBBBFromOETBookName( adjDisplayText, f"makeBookNavListParagraph( {workAbbrevPlus} {aLink=} )" )
         assert bos_books_codes_py.is_valid_bos_book_code( BBB ), f"Bad {BBB=} from {adjDisplayText=} from {aLink=}"
         newALink = f'{aLink[:ixDisplayLinkStart]}{displayText}{aLink[ixDisplayLinkEnd:]}'
         if BBB in ('INT','FRT','OTH','GLS','XXA','XXB','XXC','XXD'):
@@ -459,27 +273,29 @@ def makeBookNavListParagraph( linksList:list[str], workAbbrevPlus:str, state:Sta
 # end of html.makeBookNavListParagraph
 
 
-def makeBottom( level:int, versionAbbreviation:str|None, pageType:str, state:State ) -> str:
+# NOTE: We imported state at the module level so it didn't have to be a parameter
+@cache
+def makeBottom( level:int, versionAbbreviation:str|None, pageType:str ) -> str:
     """
     Create the very bottom part of an HTML page.
     """
     # fnPrint( DEBUGGING_THIS_MODULE, f"makeBottom()" )
     assert pageType in KNOWN_PAGE_TYPES, f"{level=} {pageType=}"
 
-    return _makeFooter( level, versionAbbreviation, pageType, state ) + '</body></html>'
+    return f'{_makeFooter( level, versionAbbreviation, pageType )}</body></html>'
 # end of html.makeBottom
 
-def _makeFooter( level:int, versionAbbreviation:str|None, pageType:str, state:State ) -> str:
+def _makeFooter( level:int, versionAbbreviation:str|None, pageType:str ) -> str:
     """
     Create any links or site map that follow the main content on the page.
     """
-    from createSitePages import PROGRAM_NAME_VERSION as SITE_PROGRAM_NAME_VERSION
+    # from createSitePages import PROGRAM_NAME_VERSION as SITE_PROGRAM_NAME_VERSION
 
     # fnPrint( DEBUGGING_THIS_MODULE, f"_makeFooter()" )
 
     html = f"""<div class="footer" id="footer">
 <p class="copyright" id="Bottom"><small><em>{'TEST ' if state.TEST_MODE_FLAG else ''}{state.SITE_NAME}</em> site {state.SITE_COPYRIGHT} <a href="https://Freely-Given.org">Freely-Given.org</a>.
-<br>Python source code for creating these static pages is available <a href="https://GitHub.com/Freely-Given-org/OpenBibleData">on GitHub</a> under an <a href="https://GitHub.com/Freely-Given-org/OpenBibleData/blob/main/LICENSE">open licence</a>.{f'{datetime.now().strftime('<br> (Page created: %Y-%m-%d %H:%M')} by OBD {SITE_PROGRAM_NAME_VERSION} with OET {state.OET_VERSION_NUMBER_STRING})' if state.TEST_MODE_FLAG else ''}</small></p>
+<br>Python source code for creating these static pages is available <a href="https://GitHub.com/Freely-Given-org/OpenBibleData">on GitHub</a> under an <a href="https://GitHub.com/Freely-Given-org/OpenBibleData/blob/main/LICENSE">open licence</a>.{f'{datetime.now().strftime('<br> (Page created: %Y-%m-%d %H:%M')} by {state.SITE_ABBREVIATION} {state.OBD_VERSION_NUMBER_STRING} with OET {state.OET_VERSION_NUMBER_STRING})' if state.TEST_MODE_FLAG else ''}</small></p>
 <p class="copyright"><small>For Bible data copyrights, see the <a href="{'../'*level}AllDetails.htm#Top">details</a> for each displayed Bible version.</small></p>
 {f'''<p class="note"><a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="20"> </a><small>The <em>Open English Translation (OET)</em> main site is at <a href="https://OpenEnglishTranslation.Bible">OpenEnglishTranslation.Bible</a> or <a href="https://OET.Bible">OET.Bible</a>.</small></p><!--note-->\n''' if not versionAbbreviation or 'OET' not in versionAbbreviation else ''}</div><!--footer-->"""
     return html
@@ -492,60 +308,12 @@ def removeDuplicateCVids( html:str ) -> str:
     This function removes the second id field in each case (which should be in the LV text).
 
     # Assert statements are disabled because this function can be quite slow for an entire OET book
+
+    Ported to Rust (openbibledata_rust.remove_duplicate_c_vids) for speed.
     """
     vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Removing duplicate IDs (#CV & #V) for ({len(html):,} chars)…" )
 
-    endIx = 0 # This is where we start searching
-    while True:
-        startVIx = html.find( ' id="V', endIx )
-        if startVIx == -1: startVIx = 99_999_999
-        startCIx = html.find( ' id="C', endIx )
-        if startCIx == -1: startCIx = 99_999_999
-        startIx = min( startVIx, startCIx )
-        if startIx == 99_999_999: break # None / no more
-        endIx = html.find( '>', startIx+8 ) # The end of the first id field found -- any duplicates will be AFTER this
-        # assert endIx != -1
-        idContents = html[startIx:endIx]
-        # print( f"    {startIx} {idContents=}")
-        # assert 7 < len(idContents) < 14, f"{idContents=} {len(idContents)=}"
-        # idCount = html.count( idContents, startIx ) # It's quicker if we don't do this
-        # if startIx == startCIx:
-        #     assert 1 <= idCount <= 2, f"{BBB} {idContents=} {idCount=} {html}"
-        # else: # for #V entries, in large multi-chapter sections there can be several
-        #     assert 1 <= idCount <= 5, f"{BBB} {idContents=} {idCount=} {html}"
-        # if idCount > 1:
-        endHtml = html[endIx:]
-        # NOTE: In a section that includes multiple chapters, we might have multiple 'id="V1"'s
-        # print( f"removeDuplicateCVids {BBB} {idContents=} {startIx=} {endIx=}" )
-        while (endHtmlStartIx := endHtml.find( idContents ) ) != -1:
-            # if endHtmlStartIx == -1: continue # No duplicate found
-            # print( f"removeDuplicateCVidsA {endHtmlStartIx=} '{endHtml[endHtmlStartIx-50:endHtmlStartIx+50]}'" )
-            if ( (idContents.startswith( ' id="C' ) and 'V' not in idContents) # don't want ' id="C1V1'
-            or idContents.startswith( ' id="V' ) ): # Only in side-by-side chapters (not in entire books)
-                # then from something like '<span id="C123"></span>', if we delete the id bit, we get useless '<span></span>'
-                #   so let's delete the whole lot
-                # assert endHtml[endHtmlStartIx-5:endHtmlStartIx] == '<span', f"{endHtml[endHtmlStartIx-10:endHtmlStartIx]=} then {endHtml[endHtmlStartIx:endHtmlStartIx+10]=}"
-                # assert endHtml[endHtmlStartIx+len(idContents):endHtmlStartIx+len(idContents)+8] == '></span>', f"{endHtml[endHtmlStartIx+len(idContents):endHtmlStartIx+len(idContents)+8]=}"
-                if endHtml[endHtmlStartIx-5:endHtmlStartIx] == '<span' \
-                and endHtml[endHtmlStartIx+len(idContents):endHtmlStartIx+len(idContents)+8] == '></span>':
-                    endHtml = f'{endHtml[:endHtmlStartIx-5]}{endHtml[endHtmlStartIx+len(idContents)+8:]}'
-                    html = f'{html[:endIx]}{endHtml}'
-                    # assert '<span></span>' not in html
-                    # print( f"removeDuplicateCVidsB {endHtmlStartIx=}\nendHtml='…{endHtml[endHtmlStartIx-50:endHtmlStartIx+50]}…'\nhtml='…{html[endIx+endHtmlStartIx-50:endIx+endHtmlStartIx+50]}…'" )
-                elif endHtml[endHtmlStartIx-15:endHtmlStartIx] == '<span class="c"' \
-                and endHtml[endHtmlStartIx:].startswith( ' id="C' ):
-                    # print( f"{idContents=} {endHtml[endHtmlStartIx:endHtmlStartIx+30]=}" )
-                    endHtml = f'{endHtml[:endHtmlStartIx]}{endHtml[endHtmlStartIx+len(idContents):]}'
-                    html = f'{html[:endIx]}{endHtml}'
-            else:
-                endHtml = f'{endHtml[:endHtmlStartIx]}{endHtml[endHtmlStartIx+len(idContents):]}'
-                html = f'{html[:endIx]}{endHtml}'
-                # assert '<span></span>' not in html
-                # print( f"removeDuplicateCVidsC {endHtmlStartIx=}\nendHtml='…{endHtml[endHtmlStartIx-50:endHtmlStartIx+50]}…'\nhtml='…{html[endIx+endHtmlStartIx-50:endIx+endHtmlStartIx+50]}…'" )
-        assert html.count( idContents ) == 1, f"{idContents=} {html.count(idContents)=}"
-
-    assert '<span></span>' not in html # it used to be there when we deleted id fields from the already empty spans
-    return html
+    return openbibledata_rust.removeDuplicateCVids( html )
 # end of html.removeDuplicateCVids
 
 def removeDuplicateFNids( where:str, html:str ) -> str:
@@ -556,412 +324,241 @@ def removeDuplicateFNids( where:str, html:str ) -> str:
     This function removes the second id field in each case (which should be in the translated/transliterated footnote).
 
     # Assert statements are disabled because this function can be quite slow for an entire OET book
+
+    Ported to Rust (openbibledata_rust.remove_duplicate_fnids) for speed.
     """
     vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Removing duplicate footnote IDs for {where} ({len(html):,} chars)…" )
 
-    endIx = 0 # This is where we start searching
-    while True:
-        startIx = html.find( ' id="fn', endIx )
-        if startIx == -1: break # None / no more
-        endIx = html.find( '>', startIx+8 ) # The end of the first id field found -- any duplicates will be AFTER this
-        # assert endIx != -1
-        idContents = html[startIx:endIx]
-        # print( f"    {startIx} {idContents=}")
-        # assert 7 < len(idContents) < 14, f"{idContents=} {len(idContents)=}"
-        # idCount = html.count( idContents, startIx ) # It's quicker if we don't do this
-        # if startIx == startCIx:
-        #     assert 1 <= idCount <= 2, f"{BBB} {idContents=} {idCount=} {html}"
-        # else: # for #V entries, in large multi-chapter sections there can be several
-        #     assert 1 <= idCount <= 5, f"{BBB} {idContents=} {idCount=} {html}"
-        # if idCount > 1:
-        endHtml = html[endIx:]
-        # NOTE: In a section that includes multiple chapters, we might have multiple 'id="V1"'s
-        # print( f"removeDuplicateFNids {BBB} {idContents=} {startIx=} {endIx=}" )
-        while (endHtmlStartIx := endHtml.find( idContents ) ) != -1:
-            # if endHtmlStartIx == -1: continue # No duplicate found
-            # print( f"removeDuplicateFNidsA {endHtmlStartIx=} '{endHtml[endHtmlStartIx-50:endHtmlStartIx+50]}'" )
-            endHtml = f'{endHtml[:endHtmlStartIx]}{endHtml[endHtmlStartIx+len(idContents):]}'
-            html = f'{html[:endIx]}{endHtml}'
-            # assert '<span></span>' not in html
-            # print( f"removeDuplicateFNidsC {endHtmlStartIx=}\nendHtml='…{endHtml[endHtmlStartIx-50:endHtmlStartIx+50]}…'\nhtml='…{html[endIx+endHtmlStartIx-50:endIx+endHtmlStartIx+50]}…'" )
-        assert html.count( idContents ) == 1, f"{idContents=} {html.count(idContents)=}"
-
-    return html
+    return openbibledata_rust.removeDuplicateFNids( where, html )
 # end of html.removeDuplicateFNids
 
 
 # These regexs have an extra bit to also allow for a nl inside the double-quotes (re.MULTILINE didn't seem to work for us)
-classAttributeRegex = re.compile( 'class="([^"]+?)"|class="([^"]+?)$' )
-idAttributeRegex = re.compile( 'id="([^"]+?)"|id="([^"]+?)$' )
-titleAttributeRegex = re.compile( 'title="([^"]+?)"|title="([^"]+?)$' )
+# classAttributeRegex = re.compile( 'class="([^"]+?)"|class="([^"]+?)$' )
+# idAttributeRegex = re.compile( 'id="([^"]+?)"|id="([^"]+?)$' )
+# titleAttributeRegex = re.compile( 'title="([^"]+?)"|title="([^"]+?)$' )
 def checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool:
     """
     Just do some very quick and basic tests
         that our HTML makes some sense.
 
     Throws an AssertError or a ValueError for any problems.
+
+    The core validation logic is implemented in Rust (openbibledata_rust.checkHtml) for speed.
+    This Python wrapper handles:
+      - The wasted <br> fix (mutation of htmlToCheck)
+      - CSS style checking (checkHtmlForMissingStyles)
+      - TopIndex summary output
     """
     fnPrint( DEBUGGING_THIS_MODULE, f"checkHtml( {where}, {len(htmlToCheck)} )" )
 
-    if '\n\n' in htmlToCheck:
-        ix = htmlToCheck.index( '\n\n' )
-        # print( f"checkHtml({where=} {segmentOnly=}) found \\n\\n in …{htmlToCheck[ix-30:ix]}{htmlToCheck[ix:ix+50]}…" )
-        raise ValueError( f"checkHtml({where}) found unexpected double newlines in …{htmlToCheck[ix-30:ix]}{htmlToCheck[ix:ix+50]}…" )
-    if '<br>\n' in htmlToCheck:
-        ix = htmlToCheck.index( '<br>\n' )
-        # print( f"checkHtml({where=} {segmentOnly=}) found <br> in …{htmlToCheck[ix-30:ix]}{htmlToCheck[ix:ix+50]}…" )
-        raise ValueError( f"checkHtml({where}) found <br> followed by unexpected newline in …{htmlToCheck[ix-30:ix]}{htmlToCheck[ix:ix+50]}…" )
-    # if '.\n<br>.\n<br>' in htmlToCheck:
-    #     ix = htmlToCheck.index( '.\n<br>.\n<br>' )
-    #     # print( f"checkHtml({where=} {segmentOnly=}) found <br> in …{htmlToCheck[ix-30:ix]}{htmlToCheck[ix:ix+50]}…" )
-    #     raise ValueError( f"checkHtml({where}) found multiple .\\n<br>s in …{htmlToCheck[ix-30:ix]}{htmlToCheck[ix:ix+50]}…" )
-
-    if ( 'TCNT' not in where and 'TC-GNT' not in where  # These two versions use the '¦' character in their footnotes
-    and not where.startswith('Parallel ') and not where.startswith('End of parallel') ): # and they also appear on parallel pages
-        assert '¦' not in htmlToCheck, f"checkHtml() found unprocessed word number marker in '{where}' {htmlToCheck=}"
-
-    assert '<span class="ul"><span class="ul">' not in htmlToCheck, f'''Nested <span class="ul"><span class="ul"> '{where}' {segmentOnly=} …{htmlToCheck[htmlToCheck.index('<span class="ul"><span class="ul">')-180:htmlToCheck.index('<span class="ul"><span class="ul">')+180]}…'''
-    assert '< /' not in htmlToCheck, f'''Extra space in close span '{where}' {segmentOnly=} …{htmlToCheck[htmlToCheck.index('< /')-180:htmlToCheck.index('< /')+180]}…'''
-    assert '.ht#' not in htmlToCheck
-
-    # Check divisions
-    # We renamed 'div.s1' to 'div.section' then unrenamed it in 2026-06-29
-    # assert '<div class="s1">' not in htmlToCheck, f'''s1 DIVision in '{where}' {segmentOnly=} …{htmlToCheck[htmlToCheck.index('<div class="s1">')-20:htmlToCheck.index('<div class="s1">')+20]}…'''
-    assert '><div class="chunkRV">' not in htmlToCheck, f'''Missing newline in '{where}' {segmentOnly=} …{htmlToCheck[htmlToCheck.index('><div class="chunkRV">')-20:htmlToCheck.index('><div class="chunkRV">')+20]}…'''
-    for divisionName in ('section','s1','chunkRV','rightS1Box','RVLVcontainer'):
-        # NOTE: Some divisions get multiple classes, e.g., '<div class="section PromisedLand">'
-        assert (htmlToCheck.count( f'<div class="{divisionName}">' ) + htmlToCheck.count( f'<div class="{divisionName} ' )) == htmlToCheck.count( f'</div><!--{divisionName}-->' ), \
-            f"Unmatched '{divisionName}' divs: {htmlToCheck.count(f'<div class="{divisionName}">')} != {htmlToCheck.count(f'</div><!--{divisionName}-->')} {where=}"
-
-    for marker,startMarker in (('html','<html'),('head','<head'),('body','<body')):
-        if segmentOnly:
-            assert htmlToCheck.count( startMarker ) == htmlToCheck.count( f'</{marker}>' ), htmlToCheck[htmlToCheck.index(startMarker):]
-        else:
-            assert htmlToCheck.count( startMarker ) == 1, f"checkHtml() found {htmlToCheck.count( startMarker )} '{marker}' markers in '{where}'"
-            assert htmlToCheck.count( f'</{marker}>' ) == 1
-
-    if ('ULT' not in where and 'UST' not in where
-    and 'UTN' not in where and '"UTN"' not in htmlToCheck
-    and 'OEB' not in where
-    # Parallel pages
-    and 'PSA' not in where # uW really messes up \\qs Selah\\qs* amongst other things
-    and 'JOB' not in where # UST I think
-    and 'PRO' not in where # UST I think
-    and 'JOL' not in where # UST I think
-    and 'MAT' not in where # UST I think
-    and 'ROM' not in where # Maybe AICNT Rom 9:32, but probably UST
-    and 'CO2' not in where # Maybe AICNT 2 Cor 8:22, but probably UST
-    and 'GAL' not in where # Maybe AICNT Gal 2:2, but probably UST
-    and 'HEB' not in where # Heb 4:3
-    and 'REV' not in where # Rev 2:9
-    # and 'JOB_17:5' not in where # UST I think
-    # and 'JOB_24:18' not in where # UST maybe or BSB???
-    # and 'JOB_29:12' not in where # UST maybe or BSB???
-    # and 'JOB_30:26' not in where # UST maybe or BSB???
-    # and 'JOB_30:26' not in where # UST maybe or BSB???
-    ):
-        # Check (nested) spans
-        spanNestingLevel = searchStartIndex = 0
-        while True:
-            # print( f"{spanNestingLevel=} {searchStartIndex=} {len(htmlToCheck)=}")
-            spanIx = htmlToCheck.find( '<span', searchStartIndex )
-            if spanIx == -1: spanIx = 99_999_999
-            endSpanIx = htmlToCheck.find( '</span>', searchStartIndex )
-            if endSpanIx == -1: endSpanIx = 99_999_999
-            if spanIx == endSpanIx: # No more spans or end spans
-                assert spanIx == 99_999_999
-                break
-            elif spanIx < endSpanIx: # it's a new span
-                assert spanNestingLevel < 8, f"Too many nested spans {spanNestingLevel} '{where}' {segmentOnly=} {htmlToCheck=}"
-                spanNestingLevel += 1
-                # print( f"Found new span in '{where}' {segmentOnly=} '{'' if spanIx==0 else '…'}{htmlToCheck[spanIx:spanIx+200]}…'"
-                #             if spanNestingLevel == 1 else
-                #        f"Found nested level{spanNestingLevel} span in '{where}' {segmentOnly=} '{'' if spanIx==0 else '…'}{htmlToCheck[spanIx:spanIx+200]}…' then …{htmlToCheck[lastSpanIx:lastSpanIx+200]}" )
-                # lastSpanIx = spanIx
-                searchStartIndex = spanIx + 7
-            else: # endSpanIx < spanIx
-                assert spanNestingLevel > 0, f"Extra close span in '{where}' {segmentOnly=} '{'' if endSpanIx==0 else '…'}{htmlToCheck[endSpanIx:endSpanIx+200]}…'\nfrom {htmlToCheck}"
-                spanNestingLevel -= 1
-                if spanNestingLevel == 0: lastUnnestedSpanIx = spanIx
-                searchStartIndex = endSpanIx + 7
-        assert spanNestingLevel==0, f"\ncheckHTML() found unclosed span in '{where}' {segmentOnly=} '{'' if lastUnnestedSpanIx==0 else '…'}{htmlToCheck[lastUnnestedSpanIx:lastUnnestedSpanIx+300]}…'\nFROM {htmlToCheck=}"
-
-    if not segmentOnly or ('<span class="add"><' not in htmlToCheck and '<span class="add">?<' not in htmlToCheck): # < is one of our add field sub-classifiers
-        assert '<<' not in htmlToCheck, f"<span> '{where}' {segmentOnly=} …{htmlToCheck[htmlToCheck.index('<<')-180:htmlToCheck.index('<<')+180]}…"
-    if not segmentOnly or '<span class="add">>' not in htmlToCheck: # > is one of our add field sub-classifiers
-        if where not in ('UTN ZEP_1:0','Parallel ZEP_1:0'):
-            assert '>>' not in htmlToCheck, f"<span> '{where}' {segmentOnly=} …{htmlToCheck[htmlToCheck.index('>>')-180:htmlToCheck.index('>>')+180]}…"
-    if 'SOTN' not in htmlToCheck: # TODO: Why do SIL notes have unclassed spans? What's the point?
-        assert '<span>' not in htmlToCheck, f"<span> '{where}' {segmentOnly=} …{htmlToCheck[htmlToCheck.index('<span>')-180:htmlToCheck.index('<span>')+180]}…"
-    assert '>span class' not in htmlToCheck, f"'>span class' '{where}' {segmentOnly=} …{htmlToCheck[htmlToCheck.index('>span class')-180:htmlToCheck.index('>span class')+180]}…"
-    for marker,startMarker in (('div','<div'),('p','<p '),('h1','<h1'),('h2','<h2'),('h3','<h3'),('h4','<h4'),
-                               ('span','<span'),
-                               ('ol','<ol'),('ul','<ul'),
-                               ('em','<em>'),('i','<i>'),('b','<b>'),('small','<small '),('sup','<sup>'),('sub','<sub>')):
-        startCount = htmlToCheck.count( startMarker )
-        if startCount and 'UTN' not in where and 'UTN' not in htmlToCheck: # uW UTNs have too many formatting errors to bother checking them + NET ISA 43:24 eBible usfm
-            assert f'<{marker}></{marker}>' not in htmlToCheck, f"Empty <{marker}> field '{where}' {segmentOnly=} …{htmlToCheck[htmlToCheck.index(f'<{marker}></{marker}>')-180:htmlToCheck.index(f'<{marker}></{marker}>')+180]}…"
-        if startMarker.endswith( ' ' ): startCount += htmlToCheck.count( f'<{marker}>' )
-        endMarker = f'</{marker}>'
-        endCount = htmlToCheck.count( endMarker )
-        if startCount != endCount:
-            # try: errMsg = f"Mismatched '{marker}' start and end markers '{where}' {segmentOnly=} {html.count(startMarker)}!={html.count(f'</{marker}>')} …{html[html.index(startMarker):]}"
-            # except ValueError: errMsg = f"Mismatched '{marker}' start and end markers '{where}' {segmentOnly=} {html.count(startMarker)}!={html.count(f'</{marker}>')} {html[:html.index(f'</{marker}>')]}…"
-            # logging.critical( errMsg )
-            ixStartMarker = htmlToCheck.find( startMarker )
-            ixEndMarker = htmlToCheck.find( f'</{marker}>' )
-            ixMinStart = min( 9999999 if ixStartMarker==-1 else ixStartMarker, 9999999 if ixEndMarker==-1 else ixEndMarker )
-            ixRStartMarker = htmlToCheck.rfind( startMarker )
-            ixREndMarker = htmlToCheck.rfind( f'</{marker}>' )
-            ixMinEnd = min( ixRStartMarker, ixREndMarker )
-            logger = logging.critical if 'OET' in where else logging.warning if 'ULT' in where or 'UST' in where else logging.error
-            logger( f"Mismatched '{marker}' start and end markers '{where}' {segmentOnly=} {startCount}!={endCount}"
-                              f" {'…' if ixMinStart>0 else ''}{htmlToCheck[ixMinStart:ixMinEnd+5]}{'…' if ixMinEnd+5<len(htmlToCheck) else ''}" )
-            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"\nMismatched '{marker}' start and end markers '{where}' {segmentOnly=} {startCount}!={endCount}"
-                              f" {'…' if ixMinStart>0 else ''}{htmlToCheck[ixMinStart:ixMinEnd+5]}{'…' if ixMinEnd+5<len(htmlToCheck) else ''}" )
-            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"checkHtml: complete {htmlToCheck=}\n")
-            if state.TEST_MODE_FLAG and ('JOB' not in where and 'OEB' not in where # why are these bad???
-            and 'UTN' not in where and 'ULT' not in where
-            and 'Parallel' not in where and 'Interlinear' not in where ): # Probably it's in UTN on parallel and interlinear pages
-                dPrint( 'Info', DEBUGGING_THIS_MODULE, f"'{where}' {segmentOnly=} {marker=} HTML marker mismatch in {htmlToCheck=}")
-                dPrint( 'Info', DEBUGGING_THIS_MODULE, f"'{where}' {segmentOnly=} {marker=} {startMarker=} {startCount=} {endCount=}")
-                if 'book' not in where.lower():
-                    if 'ULT' not in where and 'UST' not in where and 'NET' not in where: # UST PSA has totally messed up \\qs encoding
-                        logging.critical( f"Mismatched '{marker}' start and end markers '{where}' {segmentOnly=} {startCount}!={endCount}"
-                              f" {'…' if ixMinStart>0 else ''}{htmlToCheck[ixMinStart:ixMinEnd+5]}{'…' if ixMinEnd+5<len(htmlToCheck) else ''}" )
-                        raise AssertionError( f"Mismatched '{marker}' start and end markers '{where}' {segmentOnly=} {startCount}!={endCount}\nfrom {htmlToCheck=}" )
-            # return False # TODO: Why was this here ???
-        # Checked for accidentally doubled nesting
-        if startMarker.endswith( '>' ):
-            assert f'{startMarker}{startMarker}' not in htmlToCheck, f"Doubled {startMarker} in '{where}' {segmentOnly=}"
-            assert f'{startMarker} {startMarker}' not in htmlToCheck, f"Doubled {startMarker} in '{where}' {segmentOnly=}"
-        if marker not in ('span','div','ol','ul'): # nested spans and divs and lists (esp. in dictionary entries) are ok
-            assert f'{endMarker}{endMarker}' not in htmlToCheck, f"Doubled end {endMarker} in '{where}' {segmentOnly=}\n{htmlToCheck=}"
-            assert f'{endMarker} {endMarker}' not in htmlToCheck, f"Doubled end {endMarker} in '{where}' {segmentOnly=}"
-        if marker in ('ol','ul'): # don't want reopened lists
-            assert f'{endMarker}{startMarker}' not in htmlToCheck, f"Reopened {marker} list in '{where}' {segmentOnly=}\n{htmlToCheck=}"
-            assert f'{endMarker}\n{startMarker}' not in htmlToCheck, f"Reopened {marker} list in '{where}' {segmentOnly=}\n{htmlToCheck=}"
-
-    # Should be no <a ...> anchors embedded inside other anchors
-    assert '>a title="' not in htmlToCheck, f"Improperly formed anchor in '{where}' {segmentOnly=}"
-    if not segmentOnly or '<span class="add"><a ' not in htmlToCheck: # Temporary fields can confuse our check, e.g., '<span class="add"><a word</span>'
-        searchStartIndex = 0
-        while True:
-            aIx = htmlToCheck.find( '<a ', searchStartIndex )
-            if aIx == -1: break
-            endIx = htmlToCheck.index( '</a>', aIx+3 )
-            nextAIx = htmlToCheck.find( '<a ', aIx+3 )
-            if nextAIx != -1:
-                assert endIx < nextAIx, f"Nested anchors in '{where}' {segmentOnly=} '{'' if aIx==0 else '…'}{htmlToCheck[aIx:aIx+200]}…'"
-            searchStartIndex = endIx + 4
-
-    if '<li>' in htmlToCheck or '<li ' in htmlToCheck or '</li>' in htmlToCheck:
-        assert '<ol>' in htmlToCheck or '<ol ' in htmlToCheck or '<ul>' in htmlToCheck or '<ul ' in htmlToCheck, f"Missing list OPEN marker in '{where}' {segmentOnly=}\n{htmlToCheck=}"
-        assert '</ol>' in htmlToCheck or '</ul>' in htmlToCheck, f"Missing list CLOSE marker in '{where}' {segmentOnly=}\n{htmlToCheck=}"
-
+    # Fix wasted <br> before close tags (Python-side mutation)
     if '\n<br></p>' in htmlToCheck or '\n<br></span>' in htmlToCheck:
         logging.warning( f"checkHtml '{where}' {segmentOnly=} needed to fix wasted <br> in {htmlToCheck=}" )
         htmlToCheck = htmlToCheck.replace( '\n<br></span></span></p>', '</span></span></p>' ).replace( '\n<br></span></p>', '</span></p>' ).replace( '\n<br></p>', '</p>' )
-    if '\n</a>' in htmlToCheck:
-        logging.critical( f"'{where}' {segmentOnly=} has unexpected newline before anchor close in {htmlToCheck=}" )
-        assert False, "We want to stop here"
 
-    # Check classes
-    searchStartIndex = 0
-    while True:
-        match = classAttributeRegex.search( htmlToCheck, searchStartIndex )
-        if not match:
-            break
-        classGuts = match.group(1) # might be something like 'KJB-1611_verseTextChunk'
-        assert len(classGuts) <= 23, f"'{where}' {segmentOnly=} class is too long ({len(classGuts)}) {classGuts=}"
-        assert '\n' not in classGuts, f"'{where}' {segmentOnly=} Bad class with newline in {classGuts=} FROM {htmlToCheck=}"
-        assert '<' not in classGuts, f"'{where}' {segmentOnly=} Bad class with < in {classGuts=} FROM {htmlToCheck=}"
-        assert '>' not in classGuts, f"'{where}' {segmentOnly=} Bad class with > in {classGuts=} FROM {htmlToCheck=}"
-        searchStartIndex = match.end()
-
-    # Check IDs
-    idDict = {} # Used to make sure that they're all unique
-    searchStartIndex = 0
-    while True:
-        match = idAttributeRegex.search( htmlToCheck, searchStartIndex )
-        if not match:
-            break
-        idGuts = match.group(1) # might be something like 'C18V27' or 'BottomTransliterationsButton' or Tyndale dict 'The18thand19thCenturiesNewDiscoveriesofEarlierManuscriptsandIncreasedKnowledgeoftheOriginalLanguages'
-        assert len(idGuts) <= (100 if where=='DictionaryArticle' else 32), f"'{where}' {segmentOnly=} id is too long ({len(idGuts)}) {idGuts=}"
-        assert ' ' not in idGuts, f"'{where}' {segmentOnly=} Bad id with space in {idGuts=} FROM {htmlToCheck=}"
-        assert '\n' not in idGuts, f"'{where}' {segmentOnly=} Bad id with newline in {idGuts=} FROM {htmlToCheck=}"
-        assert '<' not in idGuts, f"'{where}' {segmentOnly=} Bad id with < in {idGuts=} FROM {htmlToCheck=}"
-        assert '>' not in idGuts, f"'{where}' {segmentOnly=} Bad id with > in {idGuts=} FROM {htmlToCheck=}"
-        if 'OEB' not in where and 'Moff' not in where and 'Wycl' not in where: # OEB SNG,JER and Moff PSA and Wyc SA2 have verse number problems
-            assert idGuts not in idDict, f'''Duplicate id="{idGuts}" FROM '{where}' {segmentOnly=} ‘…{htmlToCheck[max(0,idDict[idGuts][0]-300):idDict[idGuts][1]+300]}…’ THEN FROM ‘…{htmlToCheck[match.start()-300:match.end()+300]}…’'''
-        idDict[idGuts] = (match.start(),match.end())
-        searchStartIndex = match.end()
-    del idDict
-
-    # Check for illegal characters in title popups
-    searchStartIndex = 0
-    while True:
-        match = titleAttributeRegex.search( htmlToCheck, searchStartIndex )
-        if not match:
-            break
-        titleGuts = match.group(1) # Can be an entire footnote or can be a parsing of a word (with some fields still expanded like --fnColon--)
-        assert len(titleGuts) <= (1010 if titleGuts.lstrip().startswith('OSHB ') or titleGuts.startswith('Note') or 'NET' in where or 'TCNT' in where or 'TC-GNT' in where or 'T4T' in where or 'Parallel' in where or 'End of parallel' in where or '1611' in where else 150), f"{where=} {segmentOnly=} title is too long ({len(titleGuts)}) {titleGuts=}"
-        assert '\n' not in titleGuts, f"'{where}' {segmentOnly=} Bad HTML title with newline in {titleGuts=}\nFROM {htmlToCheck=}"
-        assert '<br' not in titleGuts, f"'{where}' {segmentOnly=} Bad HTML title with BR in {titleGuts=}\nFROM {htmlToCheck=}"
-        assert '<span' not in titleGuts, f"'{where}' {segmentOnly=} Bad HTML title with SPAN in {titleGuts=}\nFROM {htmlToCheck=}"
-        assert 'class="' not in titleGuts, f"'{where}' {segmentOnly=} Bad HTML title with CLASS in {titleGuts=}\nFROM {htmlToCheck=}"
-        searchStartIndex = match.end()
-
-    assert '<span class="nd"><span class="nd">' not in htmlToCheck, f"""'{where}' {segmentOnly=} Found {htmlToCheck.count('<span class="nd"><span class="nd">')} doubled ND spans in {htmlToCheck}""" # in case we accidentally apply it twice
+    # Delegate all validation checks to the Rust implementation
+    _rustCheckHtml( where, htmlToCheck, segmentOnly )
 
     if segmentOnly:
         return True
-
-    # The following are not actual HTML errors, but rather, our own processing errors
-    #   (We don't check segments, because some of these things are processed later on)
-    if 'OET' in where or 'Parallel' in where:
-        for char,reason in (('+','added article'),('-','dropped article'),('=','added copula'),('>','implied object'),
-                    ('≡','repeat ellided'),('≡','repeat ellided'),('&','added ‘owner’'),('@','expanded pronoun'),('*','reduced to pronoun'),
-                    ('#','changed number'),('^','used opposite'),('≈','reworded'),('?','unsure'),):
-            if 'NAH_2:7' not in where and 'GAL_5:10' not in where \
-            and 'CO1_10:24' not in where and 'EPH_2:22' not in where: # LEB has 'added text' starting with '='   :)
-                assert f'<span class="add">{char}' not in htmlToCheck, f''''{where}' {segmentOnly=} Missed ADD {reason} in …{htmlToCheck[max(0,htmlToCheck.index(f'<span class="add">{char}')-50):htmlToCheck.index(f'<span class="add">{char}')+100]}…'''
-        # We have to check this one separately: ('<','implied direct object') because it might be the start of the next field
-        searchStartIndex = 0
-        while True:
-            try: ix = htmlToCheck.index( '<span class="add"><', searchStartIndex )
-            except ValueError: # substring not found
-                break
-            next = htmlToCheck[ix+18:ix+50]
-            if not next.startswith( '<a title=' ) and not next.startswith( '<span ' ):
-                raise ValueError( f"Unprocessed add field with {next=} '{where}' {segmentOnly=}" )
-            searchStartIndex = ix + 18
 
     # See if all our classes/styles exist in the stylesheet
     result = checkHtmlForMissingStyles( where, htmlToCheck )
     if where == 'TopIndex': # that's the final page that we build
         # so we output extra info here
-        for mm,msg in enumerate( collectedMsgs, start=1 ):
-            logging.critical( f"Missing CSS style {mm}/{len(collectedMsgs)}: {msg}" )
-        if not state.TEST_MODE_FLAG:
-            for someStylesheetName,someStyleDict in cachedStyleDicts.items():
-                unusedList = [sdKey[5:] for sdKey,sdValue in someStyleDict.items() if sdKey.startswith( 'used_') and not sdValue]
-                if unusedList:
-                    logging.warning( f"UNUSED STYLES in {someStylesheetName} were ({len(unusedList)})/({len(someStyleDict)}) {unusedList=}" )
+        for mm,msg in enumerate( COLLECTED_MESSAGES, start=1 ):
+            logging.critical( f"Missing CSS style {mm}/{len(COLLECTED_MESSAGES)}: {msg}" )
+        # if 1 or not state.TEST_MODE_FLAG:
+        for someStylesheetName,someStyleDict in cachedStyleDicts.items():
+            # Only report stylesheets that were actually used by (parent-side) pages,
+            #   otherwise a stylesheet preloaded for forked children but never used by
+            #   the parent itself would look spuriously all-unused.
+            anyUsed = any( sdValue for sdKey,sdValue in someStyleDict.items() if sdKey.startswith( 'used_' ) )
+            unusedList = [sdKey[5:] for sdKey,sdValue in someStyleDict.items() if sdKey.startswith( 'used_') and not sdValue]
+            if anyUsed and unusedList:
+                logging.warning( f"UNUSED STYLES in {someStylesheetName} were ({len(unusedList)})/({len(someStyleDict)}) {unusedList=}" )
 
     return result
 # end of html.checkHtml
 
+
 classRegex = re.compile( '<([^>]+?) [^>]*?class="([^>"]+?)"' )
 cachedStyleDicts = {}
-collectedMsgs = []
+
+# Every stylesheet that can appear in a page's <head>.
+#   (Hand-kept in step with the Rust css_filename_for mapping in page_chrome.rs.)
+PAGE_STYLESHEET_NAMES = (
+    'OETChapter.css', 'BibleChapter.css',
+    'ParallelPassages.css', 'TopicalPassages.css',
+    'ParallelVerses.css', 'InterlinearVerse.css',
+    'BibleWord.css', 'BibleDict.css', 'BibleSite.css',
+)
+
+def preloadCSSStyles() -> None:
+    """
+    Load every stylesheet into the module-level cache BEFORE any forked
+    multiprocessing children are created.
+
+    Forked children inherit cachedStyleDicts copy-on-write; doing this in the
+    parent means each child (and the parent) shares the same already-parsed
+    dictionaries instead of each re-reading the CSS files independently.
+    """
+    for stylesheetName in PAGE_STYLESHEET_NAMES:
+        loadCSSStyles( stylesheetName )
+# end of html.preloadCSSStyles
+
+
+def loadCSSStyles( lsStylesheetName:str ) -> dict[str,bool|list[str]]:
+    """
+    Load the stylesheet and cache it for next time.
+
+    Adds a used_{} entry (set to False) so we can set at the end,
+        which stylesheet entries are never used.
+    """
+    if lsStylesheetName in cachedStyleDicts:
+        return cachedStyleDicts[lsStylesheetName]
+    
+    dPrint( 'Info', DEBUGGING_THIS_MODULE, f"loadCSSStyles {lsStylesheetName=}" )
+    with open( f'../htmlPages/{lsStylesheetName}' if 'pagefind' in lsStylesheetName else lsStylesheetName, 'rt', encoding='utf-8') as ssFile:
+        lsStyleDict = defaultdict( list )
+        for ssLine in ssFile:
+            if ' + ' in ssLine: continue # Don't need these
+            # print( f"  {ssLine=}" )
+            if ssLine.startswith( 'select.' ):
+                className = ssLine[7:].split( ' ', 1 )[0]
+                if lsStylesheetName == 'common.css':
+                    className = className.removesuffix( ',\n' )
+                print( f"    select {className=}")
+                assert ' ' not in className and ',' not in className, f"{className=}"
+                # assert 'select' not in lsStyleDict[className], f"{lsStylesheetName=} {className=} {lsStyleDict[className]=}"
+                if 'select' not in lsStyleDict[className]:
+                    lsStyleDict[className].append( 'select' )
+                    lsStyleDict[f'used_{className}'] = False
+            elif ssLine.startswith( 'button.' ):
+                className = ssLine[7:].split( '{', 1 )[0].replace(':',',').split( ',', 1 )[0].rstrip()
+                # print( f"    button {className=}")
+                assert ' ' not in className and ',' not in className, f"{className=}"
+                # assert 'button' not in lsStyleDict[className], f"{lsStylesheetName=} {className=} {lsStyleDict[className]=}"
+                if 'button' not in lsStyleDict[className]:
+                    lsStyleDict[className].append( 'button' )
+                    lsStyleDict[f'used_{className}'] = False
+            elif ssLine.startswith( 'span.' ):
+                className = ssLine[5:].split( ' ', 1 )[0]
+                # print( f"    span {className=}")
+                if lsStylesheetName == 'common.css':
+                    className = className.removesuffix( ',\n' )
+                assert ' ' not in className and ',' not in className, f"{className=}"
+                if lsStylesheetName != 'common.css':
+                    assert 'span' not in lsStyleDict[className], f"{lsStylesheetName=} {className=} {lsStyleDict[className]=}"
+                lsStyleDict[className].append( 'span' )
+                lsStyleDict[f'used_{className}'] = False
+            elif ssLine.startswith( 'p.' ):
+                classNames = ssLine[2:].split( ' ', 1 )[0]
+                # print( f"    p {classNames=} {ssLine[len(classNames)+4:]=}")
+                for className in classNames.split( ',' ):
+                    className = className.replace( 'p.', '' )
+                    # if not ssLine[len(className)+4:].startswith( '+ '): # p.mt1 + p.mt2, p.mt2 + p.mt1 { margin-top:-0.5em; }
+                    assert ' ' not in className and ',' not in className, f"{lsStylesheetName=} {className=}"
+                    if lsStylesheetName != 'common.css':
+                        assert 'p' not in lsStyleDict[className], f"{lsStylesheetName=} {className=} {lsStyleDict[className]=}"
+                    lsStyleDict[className].append( 'p' )
+                    lsStyleDict[f'used_{className}'] = False
+            elif ssLine.startswith( 'div.' ):
+                className, rest = ssLine[4:].split( ' ', 1 )
+                # print( f"    div {className=}")
+                assert ' ' not in className and ',' not in className, f"{className=}"
+                if lsStylesheetName != 'common.css':
+                    assert 'div' not in lsStyleDict[className], f"DIV already in {lsStyleDict[className]=} {ssLine=}"
+                lsStyleDict[className].append( 'div' )
+                lsStyleDict[f'used_{className}'] = False
+                if rest.startswith( 'div.' ): # Handle a line like 'div.topLine div.themeControls {'
+                    className = rest[4:].split( ' ', 1 )[0]
+                    # print( f"    div {className=}"); halt
+                    assert ' ' not in className and ',' not in className, f"{className=}"
+                    if lsStylesheetName != 'common.css':
+                        assert 'div' not in lsStyleDict[className], f"DIV already in {lsStyleDict[className]=} {ssLine=}"
+                    lsStyleDict[className].append( 'div' )
+                    lsStyleDict[f'used_{className}'] = False
+            elif ssLine.startswith( 'h1.' ) or ssLine.startswith( 'h2.' ):
+                elementName = ssLine[:2]
+                className = ssLine[3:].split( ' ', 1 )[0]
+                # print( f"    {elementName} {className=}")
+                if className.endswith( ',' ): className = className[:-1] # Can have h1.PromisedLand, p.PromisedLand { color:gold; }
+                assert ' ' not in className and ',' not in className, f"{className=}"
+                assert elementName not in lsStyleDict[className]
+                lsStyleDict[className].append( elementName )
+                lsStyleDict[f'used_{className}'] = False
+            elif ssLine.startswith( 'ol.' ):
+                elementName = ssLine[:2]
+                className = ssLine[3:].split( ' ', 1 )[0]
+                # print( f"    {elementName} {className=}")
+                assert ' ' not in className and ',' not in className, f"{className=}"
+                if className not in ('verse',): # In InterlinearVerse.css these are specified for each language
+                    assert 'ol' not in lsStyleDict[className], f"{className=} {lsStyleDict[className]=} {ssLine=}"
+                if 'ol' not in lsStyleDict[className]:
+                    lsStyleDict[className].append( 'ol' )
+                    lsStyleDict[f'used_{className}'] = False
+            elif ssLine.startswith( 'li.' ):
+                elementName = ssLine[:2]
+                className = ssLine[3:].split( ' ', 1 )[0]
+                # print( f"    {elementName} {className=}")
+                assert ' ' not in className and ',' not in className, f"{className=}"
+                assert elementName not in lsStyleDict[className]
+                lsStyleDict[className].append( elementName )
+                lsStyleDict[f'used_{className}'] = False
+            elif ssLine.startswith( 'body.' ):
+                elementName = ssLine[:4]
+                className = ssLine[5:].split( ' ', 1 )[0]
+                # print( f"    {elementName} {className=}")
+                assert ' ' not in className and ',' not in className, f"{className=}"
+                assert elementName not in lsStyleDict[className]
+                lsStyleDict[className].append( elementName )
+                lsStyleDict[f'used_{className}'] = False
+            elif ssLine.startswith( 'img.' ):
+                elementName = ssLine[:3]
+                className = ssLine[4:].split( ' ', 1 )[0]
+                # print( f"    {elementName} {className=}")
+                assert ' ' not in className and ',' not in className, f"{className=}"
+                assert elementName not in lsStyleDict[className]
+                lsStyleDict[className].append( elementName )
+                lsStyleDict[f'used_{className}'] = False
+            elif ssLine.startswith( 'hr.' ):
+                elementName = ssLine[:2]
+                className = ssLine[3:].split( ' ', 1 )[0]
+                # print( f"    {lsStylesheetName} {elementName} {className=}")
+                assert ' ' not in className and ',' not in className, f"{className=}"
+                assert elementName not in lsStyleDict[className]
+                lsStyleDict[className].append( elementName )
+                lsStyleDict[f'used_{className}'] = False
+            elif ssLine.startswith( 'a.' ):
+                elementName = ssLine[:1]
+                className = ssLine[2:].split( ' ', 1 )[0]
+                # print( f"    {elementName} {className=}")
+                assert ' ' not in className and ',' not in className, f"{className=}"
+                assert elementName not in lsStyleDict[className]
+                lsStyleDict[className].append( elementName )
+                lsStyleDict[f'used_{className}'] = False
+            elif ssLine.startswith( '.' ):
+                className = ssLine[1:].split( ' ', 1 )[0]
+                # print( f"    {className=} {ssLine[len(className)+2:]=}")
+                assert ' ' not in className and ',' not in className, f"{className=}"
+                if not ssLine[len(className)+2:].startswith( 'a {'): # .wrkLst a { text-decoration:none; color:white; }
+                    assert '' not in lsStyleDict[className]
+                    lsStyleDict[className].append( '' )
+                    lsStyleDict[f'used_{className}'] = False
+    # print( f"{lsStylesheetName=} ({len(lsStyleDict)//2}) {lsStyleDict=}" )
+    cachedStyleDicts[lsStylesheetName] = lsStyleDict
+    return lsStyleDict
+# end of loadCSSStyles function
+
+COLLECTED_MESSAGES = []
 def checkHtmlForMissingStyles( where:str, htmlToCheck:str ) -> bool:
     """
     Given an html page,
         determine the stylesheet and load it if not already cached,
         and then check that all classes are in the stylesheet.
     """
-    def loadCSSStyles( lsStylesheetName:str ) -> dict[str,bool|list[str]]:
-        """
-        Load the stylesheet and cache it for next time.
-
-        Adds a used_{} entry (set to False) so we can set at the end,
-            which stylesheet entries are never used.
-        """
-        # print( f"loadCSSStyles {lsStylesheetName=}" )
-        if lsStylesheetName in cachedStyleDicts:
-            return cachedStyleDicts[lsStylesheetName]
-        with open( f'../htmlPages/{lsStylesheetName}' if 'pagefind' in lsStylesheetName else lsStylesheetName, 'rt', encoding='utf-8') as ssFile:
-            lsStyleDict = defaultdict( list )
-            for ssLine in ssFile:
-                if ' + ' in ssLine: continue # Don't need these
-                # print( f"  {ssLine=}" )
-                if ssLine.startswith( 'span.' ):
-                    className = ssLine[5:].split( ' ', 1 )[0]
-                    # print( f"    span {className=}")
-                    assert ' ' not in className and ',' not in className, f"{className=}"
-                    assert 'span' not in lsStyleDict[className], f"{lsStylesheetName=} {className=} {lsStyleDict[className]=}"
-                    lsStyleDict[className].append( 'span' )
-                    lsStyleDict[f'used_{className}'] = False
-                elif ssLine.startswith( 'p.' ):
-                    classNames = ssLine[2:].split( ' ', 1 )[0]
-                    # print( f"    p {classNames=} {ssLine[len(classNames)+4:]=}")
-                    for className in classNames.split( ',' ):
-                        className = className.replace( 'p.', '' )
-                        # if not ssLine[len(className)+4:].startswith( '+ '): # p.mt1 + p.mt2, p.mt2 + p.mt1 { margin-top:-0.5em; }
-                        assert ' ' not in className and ',' not in className, f"{lsStylesheetName=} {className=}"
-                        assert 'p' not in lsStyleDict[className], f"{lsStylesheetName=} {className=} {lsStyleDict[className]=}"
-                        lsStyleDict[className].append( 'p' )
-                        lsStyleDict[f'used_{className}'] = False
-                elif ssLine.startswith( 'div.' ):
-                    className = ssLine[4:].split( ' ', 1 )[0]
-                    # print( f"    div {className=}")
-                    assert ' ' not in className and ',' not in className, f"{className=}"
-                    assert 'div' not in lsStyleDict[className], f"DIV in {lsStyleDict[className]=} {ssLine=}"
-                    lsStyleDict[className].append( 'div' )
-                    lsStyleDict[f'used_{className}'] = False
-                elif ssLine.startswith( 'h1.' ) or ssLine.startswith( 'h2.' ):
-                    elementName = ssLine[:2]
-                    className = ssLine[3:].split( ' ', 1 )[0]
-                    # print( f"    {elementName} {className=}")
-                    assert ' ' not in className and ',' not in className, f"{className=}"
-                    assert elementName not in lsStyleDict[className]
-                    lsStyleDict[className].append( elementName )
-                    lsStyleDict[f'used_{className}'] = False
-                elif ssLine.startswith( 'ol.' ):
-                    className = ssLine[3:].split( ' ', 1 )[0]
-                    # print( f"    ol {className=}")
-                    assert ' ' not in className and ',' not in className, f"{className=}"
-                    if className not in ('verse',): # In InterlinearVerse.css these are specified for each language
-                        assert 'ol' not in lsStyleDict[className], f"{className=} {lsStyleDict[className]=} {ssLine=}"
-                    if 'ol' not in lsStyleDict[className]:
-                        lsStyleDict[className].append( 'ol' )
-                        lsStyleDict[f'used_{className}'] = False
-                elif ssLine.startswith( 'li.' ):
-                    elementName = ssLine[:2]
-                    className = ssLine[3:].split( ' ', 1 )[0]
-                    # print( f"    {elementName} {className=}")
-                    assert ' ' not in className and ',' not in className, f"{className=}"
-                    assert elementName not in lsStyleDict[className]
-                    lsStyleDict[className].append( elementName )
-                    lsStyleDict[f'used_{className}'] = False
-                elif ssLine.startswith( 'body.' ):
-                    elementName = ssLine[:4]
-                    className = ssLine[5:].split( ' ', 1 )[0]
-                    # print( f"    {elementName} {className=}")
-                    assert ' ' not in className and ',' not in className, f"{className=}"
-                    assert elementName not in lsStyleDict[className]
-                    lsStyleDict[className].append( elementName )
-                    lsStyleDict[f'used_{className}'] = False
-                elif ssLine.startswith( 'img.' ):
-                    elementName = ssLine[:3]
-                    className = ssLine[4:].split( ' ', 1 )[0]
-                    # print( f"    {elementName} {className=}")
-                    assert ' ' not in className and ',' not in className, f"{className=}"
-                    assert elementName not in lsStyleDict[className]
-                    lsStyleDict[className].append( elementName )
-                    lsStyleDict[f'used_{className}'] = False
-                elif ssLine.startswith( 'a.' ):
-                    elementName = ssLine[:1]
-                    className = ssLine[2:].split( ' ', 1 )[0]
-                    # print( f"    {elementName} {className=}")
-                    assert ' ' not in className and ',' not in className, f"{className=}"
-                    assert elementName not in lsStyleDict[className]
-                    lsStyleDict[className].append( elementName )
-                    lsStyleDict[f'used_{className}'] = False
-                elif ssLine.startswith( '.' ):
-                    className = ssLine[1:].split( ' ', 1 )[0]
-                    # print( f"    {className=} {ssLine[len(className)+2:]=}")
-                    assert ' ' not in className and ',' not in className, f"{className=}"
-                    if not ssLine[len(className)+2:].startswith( 'a {'): # .wrkLst a { text-decoration:none; color:white; }
-                        assert '' not in lsStyleDict[className]
-                        lsStyleDict[className].append( '' )
-                        lsStyleDict[f'used_{className}'] = False
-        # print( f"{lsStylesheetName=} ({len(lsStyleDict)//2}) {lsStyleDict=}" )
-        cachedStyleDicts[lsStylesheetName] = lsStyleDict
-        return lsStyleDict
-    # end of loadCSSStyles function
-
     startedCheck = False
     styleDict = {}
     for line in htmlToCheck.split( '\n' ):
@@ -970,7 +567,20 @@ def checkHtmlForMissingStyles( where:str, htmlToCheck:str ) -> bool:
                 ixStart = line.index( 'href="' )
                 ixEnd = line.index( '">', ixStart+6 )
                 stylesheetName = line[ixStart+6:ixEnd].replace( '../', '' )
-                styleDict.update( loadCSSStyles( stylesheetName ) )
+                # N.B. We copy the lists here (and merge common.css in without clobbering) because
+                #     dict.update() would otherwise replace e.g. 'd' (['span'] from span.d in
+                #     BibleWord.css) with common.css's ['p'] (from p.d), causing spurious
+                #     "span.d not in BibleWord.css" errors.
+                styleDict = { someClassName: list(someElementList) if not someClassName.startswith( 'used_' ) else someElementList \
+                                    for someClassName,someElementList in loadCSSStyles( stylesheetName ).items() }
+                for someClassName,someElementList in loadCSSStyles( 'common.css' ).items():
+                    if someClassName.startswith( 'used_' ): continue # Keep the used_ flag from the page's own stylesheet
+                    if someClassName not in styleDict:
+                        styleDict[someClassName] = someElementList.copy()
+                    else:
+                        for someElement in someElementList:
+                            if someElement not in styleDict[someClassName]:
+                                styleDict[someClassName].append( someElement )
             # Search.htm has two stylesheets, but we're only interested in the first one
             # elif '</head>' in line:
                 startedCheck = True
@@ -980,11 +590,11 @@ def checkHtmlForMissingStyles( where:str, htmlToCheck:str ) -> bool:
                 for className in classNames.split( ' '):
                     # assert className in styleDict and (elementName in styleDict[className] or '' in styleDict[className]), f"{elementName}.{className} not in {stylesheetName} in {where=}"
                     if className not in styleDict \
-                    or (elementName not in styleDict[className] and '' not in styleDict[className]):
+                    or (elementName not in styleDict[className] and '' not in styleDict[className]): # An empty-string entry means 'any element' (e.g. '.hebVrb {')
                         msg = f"{elementName}.{className} not in {stylesheetName}"
-                        if msg not in collectedMsgs:
-                            collectedMsgs.append( msg )
-                            logging.critical( f"{len(collectedMsgs)}: CSS style {msg} in {where=}" )
+                        if msg not in COLLECTED_MESSAGES:
+                            COLLECTED_MESSAGES.append( msg )
+                            logging.critical( f"{len(COLLECTED_MESSAGES)}: CSS style {msg} in {where=}" )
                     styleDict[f'used_{className}'] = True
 
     # # The unused CSS entries should get less and less with each page checked
@@ -1167,6 +777,26 @@ def do_OET_LV_HTMLcustomisations( where:str, OET_LV_html:str ) -> str:
     # TODO: I was unable to figure out why this is happening to one particular exegesis footnote in 2 Kings 6:25
     # assert '\n<br></p>' not in OET_LV_html and '\n<br></span>' not in OET_LV_html, f"Wasted <br> in {OET_LV_html=}"
     OET_LV_html = OET_LV_html.replace( '\n<br></span></span></p>', '</span></span></p>' ).replace( '\n<br></span></p>', '</span></p>' ).replace( '\n<br></p>', '</p>' )
+    # The punctuation replacement above turns every period into ".\n<br>", so a
+    # sentence that ends a verse-text-chunk leaves the <br> right before that
+    # chunk's closing </span> (e.g. "...them.\n<br></span>"). Move the closing
+    # </span> before the <br> so the span still wraps its text cleanly and the
+    # <br> just breaks the line for the next verse.
+    OET_LV_html = OET_LV_html.replace( '\n<br></span>', '</span>\n<br>' )
+    # Paragraph-less verse flows (OET-LV, BLB, ...) have every verse wrapped by
+    # the Rust converter in its own <div class="verseText"> block (closed as
+    # "</div><!--verseText-->").  The punctuation replacement above can likewise
+    # leave a sentence-ending <br> right before that block's closing tag
+    # (e.g. "...them.</span>\n<br></div><!--verseText-->").  Move the whole
+    # closing block (div + its comment) before the <br> so it stays contiguous;
+    # the trailing <br> is then redundant and dropped by the next replacement.
+    OET_LV_html = OET_LV_html.replace( '\n<br></div><!--verseText-->', '</div><!--verseText-->\n<br>' )
+    # The move above can leave that <br> right before a following newline (e.g.
+    # when the last verse is followed by the footnote <hr>, which starts on its
+    # own line: "...them.</span>\n<br>\n<hr..."). checkHtml rejects a <br> that is
+    # immediately followed by a newline, and such a <br> is redundant anyway
+    # (an empty line), so drop it.
+    OET_LV_html = OET_LV_html.replace( '\n<br>\n', '\n' )
 
     # Tidyup
     if OET_LV_html.endswith( '\n' ): OET_LV_html = OET_LV_html[:-1] # We don't end our html with a newline

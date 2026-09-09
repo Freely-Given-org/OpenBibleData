@@ -32,6 +32,10 @@ CHANGELOG:
     2024-11-20 Try to prevent some duplicate cross-references
     2025-04-25 Allow for /r field that's not a true section reference (e.g., at top of Psalm 43)
     2026-01-07 Added OET Logo
+    2026-08-22 Import convertVerseEntryListToHtml directly from openbibledata_rust (convert.py deleted)
+    2026-08-25 The OETHandlers functions are now imported from the Rust openbibledata_rust module (the Python OETHandlers.py was deleted).
+    2026-09-03 Stop applying the Heb/Grk grammatical colourisation classes on parallel-passage pages because their CSS doesn't style them -- the shared dark-mode rules were painting those words unreadably.
+     2026-09-04 Disable the TEST_MODE 'noLinkYet' highlighting on parallel-passage (rel) pages (OET-RV only, no OET-LV), via addNoLinkYetSpans=False.
 """
 from pathlib import Path
 import os
@@ -44,16 +48,15 @@ from bible_organisational_system import InternalBibleEntryList, getSmallLeadingI
 import bos_books_codes_py
 
 from settings import State, reorderBooksForOETVersions
-from usfm import convertVerseEntryListToHtml
 from Bibles import getVerseDataListForReference
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
                     do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
                     removeDuplicateCVids, \
                     makeTop, makeBottom, makeBookNavListParagraph, checkHtml
-from OETHandlers import livenOETWordLinks, getOETTidyBBB, getOETBookName, getBBBFromOETBookName
+from openbibledata_rust import convertVerseEntryListToHtml, livenOETWordLinks, getOETTidyBBB, getOETBookName, getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2026-06-16' # by RJH
+LAST_MODIFIED_DATE = '2026-08-25' # by RJH
 SHORT_PROGRAM_NAME = "createParallelPassagePages"
 PROGRAM_NAME = "OpenBibleData createParallelPassagePages functions"
 PROGRAM_VERSION = '0.42'
@@ -122,7 +125,7 @@ def createParallelPassagePages( level:int, folder:Path, state:State ) -> bool:
 <h1 id="Top">Related passage pages</h1>
 <h2>Index of books</h2>
 {makeBookNavListParagraph(availableRelatedBBBLinks, 'Related OET-RV', state )}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="15" style="float:right; margin-left:10px;"></a>
-{makeBottom( level, 'OET', 'relatedSectionIndex', state )}'''
+{makeBottom( level, 'OET', 'relatedSectionIndex' )}'''
     assert checkHtml( 'relatedSectionIndex', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
@@ -382,7 +385,7 @@ def createParallelPassagePages( level:int, folder:Path, state:State ) -> bool:
 #         synopticSectionHtml = f'''{top}<!--synoptic section page-->
 # {navBookListParagraph}
 # {removeDuplicateCVids( BBB, synopticSectionHtml )}
-# {makeBottom( BBBLevel, 'relatedPassage', state )}'''
+# {makeBottom( BBBLevel, 'relatedPassage' )}'''
 #         assert checkHtml( f'{thisBible.abbreviation}', synopticSectionHtml )
 #         assert not filepath.is_file() # Check that we're not overwriting anything
 #         with open( filepath, 'wt', encoding='utf-8' ) as sectionHtmlFile:
@@ -408,7 +411,7 @@ def createParallelPassagePages( level:int, folder:Path, state:State ) -> bool:
 #     synopticSectionIndexHtml = f'''{top}<!--sections page-->
 # {navBookListParagraph}
 # {synopticSectionIndexHtml}
-# {makeBottom( BBBLevel, 'relatedSectionIndex', state )}'''
+# {makeBottom( BBBLevel, 'relatedSectionIndex' )}'''
 #     assert checkHtml( f'{thisBible.abbreviation}', synopticSectionIndexHtml )
 #     assert not filepath1.is_file() # Check that we're not overwriting anything
 #     with open( filepath1, 'wt', encoding='utf-8' ) as sectionHtmlFile:
@@ -433,7 +436,7 @@ def createParallelPassagePages( level:int, folder:Path, state:State ) -> bool:
 #     synopticSectionIndexHtml = f'''{top}<!--sections page-->
 # {navBookListParagraph}
 # {synopticSectionIndexHtml}
-# {makeBottom( level, 'relatedSectionIndex', state )}'''
+# {makeBottom( level, 'relatedSectionIndex' )}'''
 #     assert checkHtml( f'{thisBible.abbreviation}', synopticSectionIndexHtml )
 #     assert not filepath2.is_file() # Check that we're not overwriting anything
 #     with open( filepath2, 'wt', encoding='utf-8' ) as sectionHtmlFile:
@@ -576,7 +579,7 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
 {f'{state.JAMES_NOTE_HTML_PARAGRAPH}{NEWLINE}' if 'OET' in thisBible.abbreviation and BBB=='JAM' else ''}{f'{state.OET_UNFINISHED_WARNING_HTML_PARAGRAPH}{NEWLINE}' if 'OET' in thisBible.abbreviation else ''}<h1>{'TEST ' if state.TEST_MODE_FLAG else ''}{sectionName}</h1>'''
         assert '\n\n' not in crossReferencedSectionHtml
         if isinstance( thisBible, ESFMBible.ESFMBible ): # e.g., OET-RV
-            verseEntryList = livenOETWordLinks( BBBLevel, thisBible, (BBB,startC), verseEntryList, state )
+            verseEntryList = livenOETWordLinks( BBBLevel, thisBible, (BBB,startC), verseEntryList, state, colouriseWordClasses=False, addNoLinkYetSpans=False )
         textHtml = convertVerseEntryListToHtml( BBBLevel, thisBible.abbreviation, (BBB,startC), 'relatedPassage', contextList, verseEntryList, basicOnly=False, state=state )
         # textHtml = livenIORs( BBB, textHtml, sections )
         if thisBible.abbreviation == 'OET-RV':
@@ -738,7 +741,7 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
             sectionHeadingsList.append( (srTidyBbb,srStartC,f'{srTidyBbb} {srStartC}:{srStartV}{f"–{srEndV}" if srEndC==srStartC else f"—{srEndC}:{srEndV}"}') ) # We use en-dash and em-dash onscreen
 
             if isinstance( thisBible, ESFMBible.ESFMBible ): # e.g., OET-RV
-                verseEntryList = livenOETWordLinks( BBBLevel, thisBible, (srBBB,srStartC), verseEntryList, state )
+                verseEntryList = livenOETWordLinks( BBBLevel, thisBible, (srBBB,srStartC), verseEntryList, state, colouriseWordClasses=False, addNoLinkYetSpans=False )
             textHtml = convertVerseEntryListToHtml( BBBLevel, thisBible.abbreviation, (srBBB,srStartC), 'relatedPassage', contextList, verseEntryList, basicOnly=False, state=state )
             # textHtml = livenIORs( BBB, textHtml, sections )
             if thisBible.abbreviation == 'OET-RV':
@@ -828,7 +831,7 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
                     # lastXrefNT = bos_books_codes_py.is_new_testament_nr( lastXrefBBB )
                     if verseEntryList:
                         if isinstance( thisBible, ESFMBible.ESFMBible ): # e.g., OET-RV
-                            verseEntryList = livenOETWordLinks( BBBLevel, thisBible, (lastXrefBBB,lastXrefC), verseEntryList, state )
+                            verseEntryList = livenOETWordLinks( BBBLevel, thisBible, (lastXrefBBB,lastXrefC), verseEntryList, state, colouriseWordClasses=False, addNoLinkYetSpans=False )
                         textHtml = convertVerseEntryListToHtml( BBBLevel, thisBible.abbreviation, (lastXrefBBB,lastXrefC), 'relatedPassage', contextList, verseEntryList, basicOnly=False, state=state )
                         # NOTE: textHtml can be empty here
                         # textHtml = livenIORs( BBB, textHtml, sections )
@@ -867,7 +870,7 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
 {navBookListParagraph}
 <a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*BBBLevel}oet-logo-wide.png" alt="OET wide logo"></a>
 {removeDuplicateCVids( crossReferencedSectionHtml ).replace( '../byC/', '../../OET/byC/' )}{f"{NEWLINE}{xrefHtml.replace( '../byC/', '../../OET/byC/' )}" if xrefHtml else ''}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*BBBLevel}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="15" style="float:right; margin-left:10px;"></a>
-{makeBottom( BBBLevel, thisBible.abbreviation, 'relatedPassage', state )}'''
+{makeBottom( BBBLevel, thisBible.abbreviation, 'relatedPassage' )}'''
         assert checkHtml( f'{thisBible.abbreviation} cross-referenced section', crossReferencedSectionHtml )
         assert '.htm#aC' not in crossReferencedSectionHtml and '.htm#bC' not in crossReferencedSectionHtml, crossReferencedSectionHtml
         assert not filepath.is_file(), f"{filepath=}" # Check that we're not overwriting anything
@@ -895,7 +898,7 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
 <a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*BBBLevel}oet-logo-wide.png" alt="OET wide logo"></a>
 {navBookListParagraph}
 {crossReferencedSectionIndexHtml}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*BBBLevel}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="15" style="float:right; margin-left:10px;"></a>
-{makeBottom( BBBLevel, thisBible.abbreviation, 'relatedSectionIndex', state )}'''
+{makeBottom( BBBLevel, thisBible.abbreviation, 'relatedSectionIndex' )}'''
     assert checkHtml( f'{thisBible.abbreviation}', crossReferencedSectionIndexHtml )
     assert not filepath1.is_file() # Check that we're not overwriting anything
     with open( filepath1, 'wt', encoding='utf-8' ) as sectionHtmlFile:
@@ -921,7 +924,7 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
 {navBookListParagraph}
 <a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
 {crossReferencedSectionIndexHtml}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="15" style="float:right; margin-left:10px;"></a>
-{makeBottom( level, thisBible.abbreviation, 'relatedSectionIndex', state )}'''
+{makeBottom( level, thisBible.abbreviation, 'relatedSectionIndex' )}'''
     assert checkHtml( f'{thisBible.abbreviation}', crossReferencedSectionIndexHtml )
     assert not filepath2.is_file() # Check that we're not overwriting anything
     with open( filepath2, 'wt', encoding='utf-8' ) as sectionHtmlFile:

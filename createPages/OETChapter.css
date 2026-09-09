@@ -5,7 +5,9 @@ body.container {}
 div.header {}
 div.footer { margin:50px; }
 div.periph {}
+hr.periph { border:none; border-top:2px solid purple; }
 
+div.topLine {}
 p.site {}
 p.copyright {}
 p.note {}
@@ -126,11 +128,13 @@ div.FullKingdom { background-color:#cce6ff; }
 div.NorthernKingdom { background-color:#ffe6ff; }
 div.SouthernKingdom { background-color:#e6ffe6; }
 div.BothKingdoms { background-color:#fff5e6; }
-/* For /sp in SNG */
+/* For /sp in SNG and JER */
 div.groom { background-color:#e6f2ff; }
 div.bride { background-color:#ffe6f7; }
 div.women { background-color:#f2ccff; }
 div.brothers { background-color:#e6f0ff; }
+div.people { background-color:#def078; }
+div.Yirmeyah { background-color:#78def0; }
 
 /* Chapters USFM */
 span.c { font-size:1.1em; color:green; }
@@ -152,6 +156,7 @@ p.m { margin-top:0.2em; margin-bottom:0.2em; }
 p.mi {}
 p.q1 { margin-left:1em; margin-top:0.2em; margin-bottom:0.2em; }
 p.q2 { margin-left:2em; margin-top:0.2em; margin-bottom:0.2em; }
+p.q3 { margin-left:3em; margin-top:0.2em; margin-bottom:0.2em; } /* Used in SIR C38 */
 p.qa { font-size:0.9em; text-align: right; margin-top:0.2em; margin-bottom:0.1em; } /* Acrostic heading */
 p.nb {}
 
@@ -164,10 +169,13 @@ span.sig { font-family:cursive; }
 span.rem { font-size:0.8em; color:grey; }
 span.wh {}
 
+span.OET-RV_chapterIntro {}
 span.OET-LV_verseTextChunk {}
 span.OET-RV_verseTextChunk {}
+div.verseText {}
 
 /* USFM footnotes */
+hr.line-before-footnotes { width:60%; margin-left:0; margin-top:0em; margin-bottom:0.2em; border:0; border-top:1px solid green; }
 div.footnotes {}
 p.fn { margin-top:0.2em; margin-bottom:0.2em; font-size:0.75em; }
 span.fnCaller { vertical-align:super; font-size:0.7em; color:green; }
@@ -180,6 +188,7 @@ span.fqa {}
 span.fl {}
 
 /* USFM cross-references */
+hr.line-before-xrefs { width:30%; margin-left:0; margin-top:0em; margin-bottom:0.2em; border:0; border-top:1px solid blue; }
 div.crossRefs {}
 p.xr { margin-top:0.2em; margin-bottom:0.2em; font-size:0.75em; }
 span.xrText {}
@@ -189,28 +198,28 @@ span.xrRef { font-weight:bold; }
 span.xt {}
 
 /* OET specialist ADD subfields */
-span.addArticle { color:bisque; }
+span.addArticle { color:#b55f5f; }
 span.unusedArticle { color:lavender; }
-span.addCopula { color:pink; }
+span.addCopula { color:#55847c; }
 span.addDirectObject { color:brown; }
 span.addExtra { color:green; }
-span.addElided { color:darkgoldenrod; }
+span.addElided { color:#9c740b; }
 span.addOwner { color:darkOrchid; }
 span.addPronoun { color:darkgreen; }
 span.addReferent { color:darkblue; }
 span.addNumberChange { color:darkcyan; }
-span.addPersonChange { color:darkkhaki; }
+span.addPersonChange { color:#807625; }
 span.addNegated { color:darkred; }
-span.addReword { text-decoration:underline; text-decoration-style: dotted; text-decoration-color:grey; }
+span.addReword { text-decoration:underline; text-decoration-style: dotted; text-decoration-color:#6b6b6b; }
 span.RVadd { color:#505050; } /* Darker than dimGrey which is #696969 (black is #000000) */
-span.add { color:grey; }
+span.add { color:#6b6b6b; }
 span.untr { font-size:0.8em; color:grey; text-decoration:line-through; }
 span.unsure { text-decoration:underline; text-decoration-style: dotted; text-decoration-color: orange; }
 
 span.ul { color:darkGrey; }
 /* span.dom { color:Gainsboro; font-size:0.75em; } */
 /* span.schwa { font-size:0.75em; } */
-span.nominaSacra { font-weight:bold; }
+span.nominaSacra { font-weight:560; }
 span.synonParr { vertical-align:super; font-size:0.8em; color:green; } /* Hebrew synonymous parallelism */
 span.antiParr { vertical-align:super; font-size:0.8em; color:orangeRed; } /* Hebrew antithetic parallelism */
 span.synthParr { vertical-align:super; font-size:0.8em; color:blue; } /* Hebrew synthetic parallelism */
@@ -254,3 +263,5 @@ h2.mapTitle {}
 p.mapSubtitle {}
 p.mapRefs { font-weight:bold; }
 p.mapDescription {}
+
+p.error { background-color:#fc8686; } /* OET MAL C4 Why??? */

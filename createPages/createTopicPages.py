@@ -37,6 +37,9 @@ CHANGELOG:
     2026-01-07 Added OET Logo
     2026-03-01 Added IMPORTANT people index
     2026-06-01 Improve unusual book codes (like Yac) and improve navigation
+    2026-08-22 Import convertVerseEntryListToHtml directly from openbibledata_rust (convert.py deleted)
+    2026-08-25 The OETHandlers functions are now imported from the Rust openbibledata_rust module (the Python OETHandlers.py was deleted).
+    2026-09-03 Stop applying the Heb/Grk grammatical colourisation classes on topic pages because their CSS doesn't style them -- the shared dark-mode rules were painting those words unreadably.
 """
 from pathlib import Path
 import os
@@ -47,15 +50,14 @@ from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint
 from bible_organisational_system import InternalBibleEntryList
 
 from settings import State
-from usfm import convertVerseEntryListToHtml
 from Bibles import getBibleMapperMaps
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
                     removeDuplicateCVids, \
                     makeTop, makeBottom, checkHtml
-from OETHandlers import livenOETWordLinks, getOETTidyBBB
+from openbibledata_rust import convertVerseEntryListToHtml, livenOETWordLinks, getOETTidyBBB
 
 
-LAST_MODIFIED_DATE = '2026-06-16' # by RJH
+LAST_MODIFIED_DATE = '2026-08-25' # by RJH
 SHORT_PROGRAM_NAME = "createTopicPages"
 PROGRAM_NAME = "OpenBibleData createTopicPages functions"
 PROGRAM_VERSION = '0.37'
@@ -178,7 +180,7 @@ def createTopicPages( level:int, folder:Path, state:State ) -> bool:
 <p>\n{'<br>'.join(topicsHtmlsForIndex)}</p>
 <p class="note">Please contact us at <b>Freely</b> dot <b>Given</b> dot <b>org</b> (at) <b>gmail</b> dot <b>com</b> if there’s any topics that you’d like us to add, or any passages that you’d like us to add to any topic page.</p>
 <a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="15" style="float:right; margin-left:10px;"></a>
-{makeBottom( level, None, 'topicsIndex', state )}'''
+{makeBottom( level, None, 'topicsIndex' )}'''
     assert checkHtml( 'topicsIndex', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
@@ -262,8 +264,8 @@ def createTopicPage( level:int, folder:Path, topicNumber:int, state:State ) -> b
             # print( f"{rvVerseEntryList=}" )
             # print( f"{lvVerseEntryList=}" )
             if BBB in rvBible: # TODO: Why is RV handled differently here than LV ???
-                rvVerseEntryList = livenOETWordLinks( level, rvBible, (BBB,C), rvVerseEntryList, state )
-            try: lvVerseEntryList = livenOETWordLinks( level, lvBible, (BBB,C), lvVerseEntryList, state )
+                rvVerseEntryList = livenOETWordLinks( level, rvBible, (BBB,C), rvVerseEntryList, state, colouriseWordClasses=False )
+            try: lvVerseEntryList = livenOETWordLinks( level, lvBible, (BBB,C), lvVerseEntryList, state, colouriseWordClasses=False )
             except KeyError: # Missing book
                 assert not state.ALL_PRODUCTION_BOOKS_FLAG
             rvTextHtml = convertVerseEntryListToHtml( level, rvBible.abbreviation, (BBB,C), 'topicalPassage', rvContextList, rvVerseEntryList, basicOnly=False, state=state )
@@ -311,7 +313,7 @@ def createTopicPage( level:int, folder:Path, topicNumber:int, state:State ) -> b
 <p class="note"><small>Please contact us at <b>Freely</b> dot <b>Given</b> dot <b>org</b> (at) <b>gmail</b> dot <b>com</b> if there’s any passages that you’d like us to add to this topic page, or any passages that need a little bit more context around them. (We encourage our readers to always view things in their context, so we discourage use of the word ‘verse’, especially in sayings like, “This verse says …”.)</small></p>
 <p class="pageNav">{leftLink} {homeLink} {rightLink}</p>
 <a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="15" style="float:right; margin-left:10px;"></a>
-{makeBottom( level, None, 'topicPassages', state )}'''
+{makeBottom( level, None, 'topicPassages' )}'''
     assert checkHtml( f'{topic} Topic', topicHtml )
     assert '.htm#aC' not in topicHtml and '.htm#bC' not in topicHtml, topicHtml
     assert not filepath.is_file(), f"{filepath=}" # Check that we're not overwriting anything
@@ -394,7 +396,7 @@ def createKingdomPages( level:int, folder:Path, state:State ) -> bool:
 {(KINGDOM_INFO_HTML_DICT['Intro']+NEWLINE) if 'kingdom' in kingdomName else ''}{KINGDOM_INFO_HTML_DICT[kingdomName]}
 </div>
 {kingdomHtml if kingdomHtml else ''}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="15" style="float:right; margin-left:10px;"></a>
-{makeBottom( level, None, 'kingdom', state )}'''
+{makeBottom( level, None, 'kingdom' )}'''
         assert checkHtml( f'{oneWordKingdomName}', html )
         assert not filepath.is_file() # Check that we're not overwriting anything
         with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
@@ -421,7 +423,7 @@ def createKingdomPages( level:int, folder:Path, state:State ) -> bool:
 <h1>Index to ‘Kingdom’ pages</h1>
 <h2>These pages describe the kingdoms after the Israelis entered the ‘promised land’</h2>
 {'\n'.join([f'<div class="{oneWordKingdomName}"><p class="note"><a href="{kFilename}">{kingdomName}</a></p></div>' for kingdomName, oneWordKingdomName, kFilename in indexList])}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="15" style="float:right; margin-left:10px;"></a>
-{makeBottom( level, None, 'kingdomIndex', state )}'''
+{makeBottom( level, None, 'kingdomIndex' )}'''
     assert checkHtml( 'kingdomIndex', html )
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
