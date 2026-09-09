@@ -79,10 +79,10 @@ from load import getIndividualQuotedOTRefs, getIndividualQuotingNTRefs
 
 
 
-LAST_MODIFIED_DATE = '2026-09-09' # by RJH
+LAST_MODIFIED_DATE = '2026-09-10' # by RJH
 SHORT_PROGRAM_NAME = "SentenceImportance_initialisation"
 PROGRAM_NAME = "Sentence Importance initialisation"
-PROGRAM_VERSION = '0.29'
+PROGRAM_VERSION = '0.30'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -719,22 +719,24 @@ def get_speakers_from_verse_text( rawVerseText:str ) -> str:
 
 def load_OET_RV_speakers() -> dict:
     r"""
-    Read the OET-RV (Readers' Version) files for all Old and New Testament books,
+    Read the OET-RV (Readers' Version) files
     keeping track of the chapter (\c) and verse (\v) numbers, and detect the
     speakers for each verse (see get_speakers_from_verse_text above).
 
     In a few books (e.g., SNG and JER) a USFM '\sp' marker explicitly states the
     current speaker, and that name is then used for all following verses until the
-    next '\sp', '\s1' or '\s2' marker.
+    next '\sp' or '\s1' marker.
 
     Returns a dict of BBB_C:V references to comma-separated speaker lists.
     (Verses not found in OET-RV default to just the narrator, '@'.)
     """
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Loading OET-RV speakers data from {OET_RV_PATHNAME}…" )
     speakersDict = {}
-    for BBB in sorted( bos_books_codes_py.get_all_bos_book_codes() ):
-        if not (bos_books_codes_py.is_old_testament_nr( BBB ) or bos_books_codes_py.is_new_testament_nr( BBB )):
-            continue # We skip deuterocanon and any non-Bible (introductory, etc.) books
+    for BBB in bos_books_codes_py.get_all_bos_book_codes():
+        # if not (bos_books_codes_py.is_old_testament_nr( BBB ) or bos_books_codes_py.is_new_testament_nr( BBB )):
+        #     continue # We skip deuterocanon and any non-Bible (introductory, etc.) books
+        if BBB in ('FRT','INT','XXA','XXB','XXC','XXD'):
+            continue # skip non-chapter books
         ESFMFilename = OET_RV_PATHNAME / f'OET-RV_{BBB}.ESFM'
         if not ESFMFilename.exists():
             logging.warning( f"Didn't find OET-RV ESFM file {ESFMFilename}" )
@@ -767,7 +769,7 @@ def load_OET_RV_speakers() -> dict:
                     verseSpeaker = currentSpeaker # Capture the speaker at the verse start
                     verseTextBits = [verseMatch.group(2)]
                     continue
-                sectionMatch = re.match( r'^\\s[12]\s', line )
+                sectionMatch = re.match( r'^\\s[1]\s', line ) # was [12]
                 if sectionMatch:
                     flushPendingVerse()
                     currentSpeaker = None # A new '\s1'/'\s2' section ends the range of any '\sp' speaker

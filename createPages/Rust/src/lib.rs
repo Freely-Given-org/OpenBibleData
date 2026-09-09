@@ -1149,10 +1149,14 @@ fn liven_oet_word_links_py<'py>(
             || bos_books_codes::is_new_testament_nr(&BBB))
     {
         // Highlight all OET-RV words that DON'T have a word link
+        let mut current_verse: Option<String> = None;
         for entry in givenEntryList.try_iter()? {
             let entry = entry?;
             let marker: String = entry.call_method0("getMarker")?.extract()?;
             let original_text = entry_original_text(&entry)?;
+            if marker == "v" && !original_text.trim().is_empty() {
+                current_verse = Some(original_text.trim().to_string());
+            }
             let opening_count = original_text.matches("\\add ").count();
             let closing_count = original_text.matches("\\add*").count();
             if opening_count != closing_count {
@@ -1187,7 +1191,16 @@ fn liven_oet_word_links_py<'py>(
                         continue;
                     }
                     Ok(None) => {}
-                    Err(message) => return Err(err_to_pyerr(message)),
+                    Err(message) => {
+                        let ref_display = ref_elements.join(":");
+                        let context = match current_verse.as_deref() {
+                            Some(verse) if ref_elements.len() < 3 => {
+                                format!("{abbreviation} {ref_display}:{verse}")
+                            }
+                            _ => format!("{abbreviation} {ref_display}"),
+                        };
+                        return Err(err_to_pyerr(format!("{context}: {message}")));
+                    }
                 }
             }
             preprocessed_entries.push(entry);

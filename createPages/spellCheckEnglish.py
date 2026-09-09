@@ -807,8 +807,8 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                         'hautiness','Seraphims','flie','Remaliahs','praye','jubile','inwardes','preuytie','tippe','lowse','owen',
                                         'drinke','euidence','burne','fanne','returne','arme','dismaied',
                                         'wolfe','howle','leendis','abididen','sudenli','scryuen','boord','bischop','balme',
-                                        'compassio','herdst',
-                                        'ark','arcke','arke',
+                                        'compassio','herdst','ark','arcke','arke',
+                                        'judgment','talentes','householdr','baptist','peny','honour','heaue','pur','gehenna','marvelled','lema','chamberlaynes','fastings','walke',
 
                                    ) and 'PSA' not in location ) # coz Wycl versification doesn't usually match anyway
                             or 'twas' in word )
@@ -825,9 +825,9 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                 'ach','alt','dran','ende','irrig','hing','weh','du','Raube','Raub','sie','Tal','tue','fiel','sehe',
                                 'Mal','mal','milde','mit','Mord','Natur','nun','nur',
                                 'rede','kam','Korb','ward','Rat','Rede','messen','ging','Halle','und','ster','streng','töte','tun','von','wer','zu','zwo',
-                                'ablegen','writet',
-                                    'abovetünchten','killingbeine','justn','showedn','handn',
-                                    'wo','attention‘s','grindn',
+                                'feedse','reasonfeste','teachingt','stilln','beshame','girdlet','togeblasen',
+                                    'asleepen','decoratesen',
+                                    'hundredundsiebenundzwanzig','königlich','beugten','submitse','reachte','againstrufen','rideden','stuff)mantel','restedn','hundredundachtzig','scharlakenen','vermochte','likede',
                     
                                 'actio', 'agi', 'aliena', 'ambit','ambitio','amputa', 'anima','antiqui','apprehendi', 'argui','ascendi','attende','audi', 'aversio',
                                 'beati','bene','beneficia','bos',
@@ -855,12 +855,13 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                     'si','signi','sit','sol','soli','solem','stat','statu', 'subjecti','summo','superstitio',
                                 'tempora','Tod','tradit','traditi','traditio','transito','transmigratio','tres','tribulatio','tributa','trium','tu','tua','tuam','turba',
                                 'usu',      'valle','vani','varie','vas', 'victi','visita','visitat','visitatio','vita', 'Voca','voca',
-                                'l','nos','ut','didrachmas','tonitrua','utrique',
-                                'eatns','spernit','disponit','statuas','peacefuls','apparens','oraculi','birthe',
+                                'l','nos','ut','didrachmas','tonitrua','utrique','eatns','statuas','peacefuls','birthe',
+                                'lacrymas','foundo','increduli','receivees',
                                     'res','knowti','boxnis','recordati','clange','reados','sectus','undis',
                                     'lovese','meum','weres','multiformis','professio','reprimandse','halfnt','stringit','sendus','resttionum','namedm','beforeparavi','rightsverit',
-                                    'anathemate','fightrent','anys','habitndum','beforeof','enterings','abs','vis','mindo',
-                                    'comeur','duci',
+                                    'anathemate','fightrent','anys','habitndum','beforeof','enterings','abs','vis','mindo','comeur','duci',
+                                    'miscet','conservis','beforelatos','nece','esuriunt',
+                                    'palatii','queenm','trabem','workos','edictum','muliebrem','acceptedebant','accidentallys','traditum','transferre','legibus','missæ','nece',
 
                                 )
                     else 'Info', DEBUGGING_THIS_MODULE, f'''  {word} is suspect @ {location}\n      from {cleanedTextToDisplay=}\n      WHICH GAVE cleanedTextToCheck={_truncate_for_display(cleanedTextToCheck,word)}''' )

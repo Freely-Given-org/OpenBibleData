@@ -114,10 +114,10 @@ from Dict import loadAndIndexUBSGreekDictJSON, loadAndIndexUBSHebrewDictJSON
 from openbibledata_rust import findOLQuoteInLV, getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2026-09-08' # by RJH
+LAST_MODIFIED_DATE = '2026-09-10' # by RJH
 SHORT_PROGRAM_NAME = "Bibles"
 PROGRAM_NAME = "OpenBibleData Bibles handler"
-PROGRAM_VERSION = '1.1.0'
+PROGRAM_VERSION = '1.1.1'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -559,13 +559,14 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
                     if BBB in state.booksToLoad[versionAbbreviation]:
                         newBooks[BBB] = bookObject
                 thisBible.books = newBooks
-            if versionAbbreviation != 'Moff': # Only has scarce books
-                assert len(thisBible)
+            if versionAbbreviation not in ('Moff','BrLXX','BrTr'): # Only have scarce books
+                assert len(thisBible), f"Couldn't load any books for {versionAbbreviation} {state.booksToLoad[versionAbbreviation]}"
 
         vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Doing discovery for {thisBible.abbreviation} ({thisBible.name}) with {len(thisBible)} books…" )
         thisBible.discover()
         assert 'discoveryResults' in thisBible.__dict__
-        thisBible.makeSectionIndex() # These aren't made automatically by BibleOrgSys
+        if len(thisBible): # makeSectionIndex fails in DEBUG mode if no books were actually loaded
+            thisBible.makeSectionIndex() # These aren't made automatically by BibleOrgSys
 
         if WRITE_PICKLES_FLAG:
             pickleFilename = f"{versionAbbreviation}__{'_'.join(state.TEST_BOOK_LIST)}{state.PICKLE_FILENAME_END}" \

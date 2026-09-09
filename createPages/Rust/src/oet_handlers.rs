@@ -416,7 +416,8 @@ pub fn preprocess_oet_rv_entry(
     let mut change_made = false;
     let mut in_note = false;
 
-    for word_slot in words.iter_mut() {
+    let word_count = words.len();
+    for (word_ix, word_slot) in words.iter_mut().enumerate() {
         let o_word = word_slot.clone();
         let mut new_word;
 
@@ -472,7 +473,7 @@ pub fn preprocess_oet_rv_entry(
                     && !matches!(adj_word.as_str(), "i.e" | "e.g");
                 if needs_alpha_check && !adj_word.chars().all(char::is_alphabetic) {
                     return Err(format!(
-                        "{bbb} prefix={prefix:?} adjWord={adj_word:?} suffix={suffix:?}"
+                        "{marker} entry word {word_ix} of {word_count} '{o_word}' strips to adjWord={adj_word:?} (prefix={prefix:?} suffix={suffix:?}) but is not alphabetic. Full line: {original_text:?}"
                     ));
                 }
                 new_word =
@@ -1536,6 +1537,18 @@ mod tests {
     fn test_preprocess_add_count_imbalance_is_error() {
         assert!(
             preprocess_oet_rv_entry("v~", "\\add hello", "OET-RV", &["GEN", "1", "1"]).is_err()
+        );
+    }
+
+    #[test]
+    fn test_preprocess_non_alphabetic_word_error_has_context() {
+        // A bare en-dash like OET-RV_EST.ESFM 1:19 must fail with enough
+        // context (book+C/V arrive from outside, so the message carries the
+        // word index, the offending word, and the full source line).
+        let result = preprocess_oet_rv_entry("v~", "a – b", "OET-RV", &["EST", "1"]).unwrap_err();
+        assert_eq!(
+            result,
+            "v~ entry word 1 of 3 '–' strips to adjWord=\"–\" (prefix=\"\" suffix=\"\") but is not alphabetic. Full line: \"a – b\""
         );
     }
 
