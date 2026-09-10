@@ -9,6 +9,14 @@
 #
 # These tests exercise the wrappers against real State/Bible objects
 # (loaded from the cached pickles) as well as small stubs for edge cases.
+#
+# CHANGELOG:
+# 2026-09-10: wordlinks are now livented natively in a single pass
+#     (oet_handlers::liven_esfm_word_links), so the §«OrigWord»§ / ►NNNN◄
+#     placeholder round-trip and the Berean loadESFMWordFile-on-demand
+#     plumbing are gone; test_bereanLoadsTablesOnDemand was rewritten as
+#     test_bereanTablesComeFromState to assert no table loading happens
+#     (rows come from state.OETRefData['word_tables']).
 
 import logging
 import unittest
@@ -182,7 +190,11 @@ class TestLivenWordLinks(unittest.TestCase):
         with self.assertRaises(UnboundLocalError):
             livenOETCompatibleBereanWordLinks(2, self.lvBible, 'FRT', entries, State)
 
-    def test_bereanLoadsTablesOnDemand(self):
+    def test_bereanTablesComeFromState(self):
+        # The native livening reads word rows from
+        # state.OETRefData['word_tables'] (the same data the old decode pass
+        # read), so the BibleOrgSys loadESFMWordFile-on-demand plumbing is
+        # gone. ESFMWordTables is still consulted only for its length guard.
         class LazyBible:
             abbreviation = 'OET-RV'
 
@@ -192,16 +204,11 @@ class TestLivenWordLinks(unittest.TestCase):
 
             def loadESFMWordFile(self, filename):
                 self.loadedFiles.append(filename)
-                self.ESFMWordTables[filename] = self.lvBible.ESFMWordTables[filename]
-                columnNames = getattr(self, 'ESFMColumnNameList', {})
-                columnNames[filename] = self.ESFMWordTables[filename][0].split('\t')
-                self.ESFMColumnNameList = columnNames
 
         lazyBible = LazyBible()
-        lazyBible.lvBible = self.lvBible
         entries = self.rvBible.getContextVerseData(('GAL', '1', '3'))[0]
         revisedList = livenOETCompatibleBereanWordLinks(2, lazyBible, 'GAL', entries, State)
-        self.assertEqual(lazyBible.loadedFiles, ['OET-LV_NT_word_table.tsv'])
+        self.assertEqual(lazyBible.loadedFiles, [])
         self.assertIn('<a ', ''.join(entry.getOriginalText() for entry in revisedList))
 
 

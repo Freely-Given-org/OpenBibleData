@@ -15,6 +15,7 @@ pub mod oet_books;
 pub mod oet_handlers;
 pub mod page_chrome;
 pub mod postprocess;
+pub mod reference_pages;
 pub mod roman_numerals;
 pub mod section_numbers;
 pub mod character_formatting;
@@ -1006,100 +1007,6 @@ fn entry_original_text(entry: &Bound<'_, PyAny>) -> PyResult<String> {
     entry.call_method0("getOriginalText")?.extract()
 }
 
-/// Shared second half of livenOETWordLinks / livenOETCompatibleBereanWordLinks:
-/// replace the `§…§ … ►NNNN◄` placeholders with real hrefs, transliterated
-/// titles, and colourisation classes.
-///
-/// Returns the new InternalBibleEntryList (or raises AssertionError
-/// "We want to stop here" when nothing could be processed).
-#[allow(non_snake_case)]
-fn postprocess_word_link_entries<'py>(
-    py: Python<'py>,
-    revised_list: &Bound<'py, PyAny>,
-    bible_abbreviation: &str,
-    BBB: &str,
-    level: usize,
-    word_file_name: &str,
-    state: &Bound<'py, PyAny>,
-    colourise_word_classes: bool,
-) -> PyResult<Bound<'py, PyAny>> {
-    let is_nt = bos_books_codes::is_new_testament_nr(BBB);
-    let table = state
-        .getattr("OETRefData")?
-        .get_item("word_tables")?
-        .get_item(word_file_name)?;
-    let unicodedata = py.import("unicodedata")?;
-
-    let get_row = |number: i64| -> Result<String, String> {
-        table
-            .get_item(number)
-            .map_err(|e| e.to_string())?
-            .extract::<String>()
-            .map_err(|e| e.to_string())
-    };
-    let nfc_normalise = |s: &str| -> String {
-        unicodedata
-            .call_method1("normalize", ("NFC", s))
-            .and_then(|r| r.extract())
-            .unwrap_or_else(|_| s.to_string())
-    };
-
-    let mut updated_entries: Vec<Bound<'py, PyAny>> = Vec::with_capacity(16);
-    for entry in revised_list.try_iter()? {
-        let entry = entry?;
-        let original_text_owned = entry_original_text(&entry)?;
-        if !original_text_owned.contains('§') {
-            updated_entries.push(entry);
-            continue;
-        }
-        match oet_handlers::postprocess_word_link_titles(
-            &original_text_owned,
-            level,
-            is_nt,
-            &get_row,
-            &nfc_normalise,
-            colourise_word_classes,
-        ) {
-            Ok(oet_handlers::TitlePostprocess::Updated { text, transliterations_added, colourisations_added })
-                if transliterations_added > 0 || colourisations_added > 0 =>
-            {
-                log_message(
-                    py,
-                    "info",
-                    &format!(
-                        "Added {transliterations_added} {bible_abbreviation} {BBB} transliterations and {colourisations_added} colourisations to titles."
-                    ),
-                );
-                updated_entries.push(make_new_entry(
-                    py,
-                    &entry.call_method0("getMarker")?.extract::<String>()?,
-                    &entry.call_method0("getOriginalMarker")?.extract::<String>()?,
-                    &text,
-                )?);
-            }
-            Ok(_) => {
-                // No title matched at all (or nothing changed)
-                log_message(
-                    py,
-                    "critical",
-                    &format!(
-                        "ESFMBible.livenESFMWordLinks unable to find wordlink title in '{original_text_owned}'"
-                    ),
-                );
-                updated_entries.push(entry);
-                return Err(PyAssertionError::new_err("We want to stop here"));
-            }
-            Err(message) => return Err(err_to_pyerr(message)),
-        }
-    }
-
-    let list_module = py.import("builtins")?;
-    let python_list = list_module.call_method1("list", (updated_entries,))?;
-    py.import("bible_organisational_system")?
-        .getattr("InternalBibleEntryList")?
-        .call1((python_list,))
-}
-
 /// Livens ESFM wordlinks in the OET versions
 ///     (Rust port of OETHandlers.livenOETWordLinks).
 #[pyfunction]
@@ -1213,21 +1120,88 @@ fn liven_oet_word_links_py<'py>(
         );
     }
 
-    // Liven the word links using the BibleOrgSys method
-    //     We use unusual word pairs in both templates so that we can easily
-    //     find them again in the returned InternalBibleEntryList
-    let kwargs = pyo3::types::PyDict::new(py);
-    kwargs.set_item("linkTemplate", format!("►{{n}}◄"))?;
-    kwargs.set_item("titleTemplate", "§«OrigWord»§")?;
+    // Liven the word links natively. This replaces both the BibleOrgSys
+    //     ESFMBible.livenESFMWordLinks call and the §/► placeholder
+    //     post-processing that used to decode its output again. The word
+    //     rows come straight from state.OETRefData['word_tables'], so no
+    //     link/title templates or column names need to be passed around.
+    let is_nt = bos_books_codes::is_new_testament_nr(&BBB);
+    let word_file_name = if is_nt {
+        "OET-LV_NT_word_table.tsv"
+    } else {
+        "OET-LV_OT_word_table.tsv"
+    };
+    let table = state
+        .getattr("OETRefData")?
+        .get_item("word_tables")?
+        .get_item(word_file_name)?;
+    let unicodedata = py.import("unicodedata")?;
+    let get_row = |number: i64| -> Result<String, String> {
+        table
+            .get_item(number)
+            .map_err(|e| e.to_string())?
+            .extract::<String>()
+            .map_err(|e| e.to_string())
+    };
+    let nfc_normalise = |s: &str| -> String {
+        unicodedata
+            .call_method1("normalize", ("NFC", s))
+            .and_then(|r| r.extract())
+            .unwrap_or_else(|_| s.to_string())
+    };
+
     let verse_list = preprocessed_list_object
         .as_ref()
         .unwrap_or(givenEntryList);
-    let revised_result =
-        bibleObject.call_method("livenESFMWordLinks", (&BBB, verse_list), Some(&kwargs))?;
-    let revised_list = revised_result.get_item(0)?;
+    let mut revised_entries: Vec<Bound<'py, PyAny>> = Vec::with_capacity(16);
+    for entry in verse_list.try_iter()? {
+        let entry = entry?;
+        let marker: String = entry.call_method0("getMarker")?.extract()?;
+        let original_marker: String = entry.call_method0("getOriginalMarker")?.extract()?;
+        let original_text = entry_original_text(&entry)?;
+        if !original_text.contains('¦') {
+            revised_entries.push(entry);
+            continue;
+        }
+        match oet_handlers::liven_esfm_word_links(
+            &original_text,
+            level,
+            is_nt,
+            &get_row,
+            &nfc_normalise,
+            colouriseWordClasses,
+        ) {
+            Ok(oet_handlers::WordlinkOutcome::Livened { text, transliterations_added, colourisations_added }) => {
+                log_message(
+                    py,
+                    "info",
+                    &format!(
+                        "Added {transliterations_added} {abbreviation} {BBB} transliterations and {colourisations_added} colourisations to titles."
+                    ),
+                );
+                revised_entries.push(make_new_entry(py, &marker, &original_marker, &text)?);
+            }
+            Ok(oet_handlers::WordlinkOutcome::Nothing) => {
+                log_message(
+                    py,
+                    "critical",
+                    &format!(
+                        "ESFMBible.livenESFMWordLinks unable to find wordlink in '{original_text}'"
+                    ),
+                );
+                revised_entries.push(entry);
+            }
+            Err(message) => return Err(err_to_pyerr(message)),
+        }
+    }
+    let builtins = py.import("builtins")?;
+    let revised_list_object = py
+        .import("bible_organisational_system")?
+        .getattr("InternalBibleEntryList")?
+        .call1((builtins.call_method1("list", (revised_entries,))?,))?;
 
     // Post-liven sanity checks
-    for revised_entry in revised_list.try_iter()? {
+    for revised_entry in revised_list_object.try_iter()? {
         let revised_entry = revised_entry?;
         let original_text = entry_original_text(&revised_entry)?;
         if !original_text.is_empty() {
@@ -1244,15 +1218,7 @@ fn liven_oet_word_links_py<'py>(
         }
     }
 
-    let is_nt = bos_books_codes::is_new_testament_nr(&BBB);
-    let word_file_name = if is_nt {
-        "OET-LV_NT_word_table.tsv"
-    } else {
-        "OET-LV_OT_word_table.tsv"
-    };
-    postprocess_word_link_entries(
-        py, &revised_list, &abbreviation, &BBB, level, word_file_name, state, colouriseWordClasses,
-    )
+    Ok(revised_list_object)
 }
 
 /// Livens wordlinks in Berean-compatible versions (Rust port of
@@ -1308,29 +1274,29 @@ fn liven_oet_compatible_berean_word_links_py<'py>(
             "local variable 'wordFileName' referenced before assignment",
         ));
     };
-    let word_table = esfm_word_tables.get_item(word_file_name)?;
-    if word_table.is_none() {
-        bibleObject.call_method1("loadESFMWordFile", (word_file_name,))?;
-    }
-    let column_names: Vec<String> = bibleObject
-        .getattr("ESFMColumnNameList")?
-        .get_item(word_file_name)?
-        .extract()?;
-    let table_for_rows = bibleObject
-        .getattr("ESFMWordTables")?
+    let table = state
+        .getattr("OETRefData")?
+        .get_item("word_tables")?
         .get_item(word_file_name)?;
-
+    let unicodedata = py.import("unicodedata")?;
     let get_row = |number: i64| -> Result<String, String> {
-        table_for_rows
+        table
             .get_item(number)
             .map_err(|e| e.to_string())?
             .extract::<String>()
             .map_err(|e| e.to_string())
     };
+    let nfc_normalise = |s: &str| -> String {
+        unicodedata
+            .call_method1("normalize", ("NFC", s))
+            .and_then(|r| r.extract())
+            .unwrap_or_else(|_| s.to_string())
+    };
 
-    // Liven the word links using our port of the BibleOrgSys inner function
-    //     We use unusual word pairs in both templates so that we can easily
-    //     find them again in the returned InternalBibleEntryList
+    // Liven the word links natively. The word rows come straight from
+    //     state.OETRefData['word_tables'] (the same data the old decode pass
+    //     read), so there is no link/title template, column-name or on-demand
+    //     loadESFMWordFile plumbing any more.
     let mut revised_entries: Vec<Bound<'py, PyAny>> = Vec::with_capacity(16);
     for entry in givenEntryList.try_iter()? {
         let entry = entry?;
@@ -1341,18 +1307,25 @@ fn liven_oet_compatible_berean_word_links_py<'py>(
             revised_entries.push(entry);
             continue;
         }
-        match oet_handlers::liven_berean_text(
+        match oet_handlers::liven_esfm_word_links(
             &original_text,
-            BBB,
-            "►{n}◄",
-            Some("§«OrigWord»§"),
-            &column_names,
+            level,
+            is_nt,
             &get_row,
+            &nfc_normalise,
+            colouriseWordClasses,
         ) {
-            Ok(Some(new_text)) => {
-                revised_entries.push(make_new_entry(py, &marker, &original_marker, &new_text)?);
+            Ok(oet_handlers::WordlinkOutcome::Livened { text, transliterations_added, colourisations_added }) => {
+                log_message(
+                    py,
+                    "info",
+                    &format!(
+                        "Added {transliterations_added} {abbreviation} {BBB} transliterations and {colourisations_added} colourisations to titles."
+                    ),
+                );
+                revised_entries.push(make_new_entry(py, &marker, &original_marker, &text)?);
             }
-            Ok(None) => {
+            Ok(oet_handlers::WordlinkOutcome::Nothing) => {
                 log_message(
                     py,
                     "critical",
@@ -1366,7 +1339,7 @@ fn liven_oet_compatible_berean_word_links_py<'py>(
         }
     }
     let builtins = py.import("builtins")?;
-    let revised_list = py
+    let revised_list_object = py
         .import("bible_organisational_system")?
         .getattr("InternalBibleEntryList")?
         .call1((builtins.call_method1("list", (revised_entries,))?,))?;
@@ -1380,9 +1353,7 @@ fn liven_oet_compatible_berean_word_links_py<'py>(
         }
     }
 
-    postprocess_word_link_entries(
-        py, &revised_list, &abbreviation, BBB, level, word_file_name, state, colouriseWordClasses,
-    )
+    Ok(revised_list_object)
 }
 
 /// Given an original language quote, find the matching OET-LV English words
@@ -1617,6 +1588,13 @@ fn openbibledata_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(remove_duplicate_c_vids_py, m)?)?;
     m.add_function(wrap_pyfunction!(remove_duplicate_fnids_py, m)?)?;
     m.add_function(wrap_pyfunction!(build_interlinear_word_rows_py, m)?)?;
+    m.add_function(wrap_pyfunction!(reference_pages::format_nt_spans_gloss_words_py, m)?)?;
+    m.add_function(wrap_pyfunction!(reference_pages::convert_hebrew_word_gloss_spans_py, m)?)?;
+    m.add_function(wrap_pyfunction!(reference_pages::tidy_hebrew_morphology_py, m)?)?;
+    m.add_function(wrap_pyfunction!(reference_pages::tidy_hebrew_lemma_gloss_py, m)?)?;
+    m.add_function(wrap_pyfunction!(reference_pages::tidy_gloss_of_greek_word_py, m)?)?;
+    m.add_function(wrap_pyfunction!(reference_pages::tidy_greek_lemma_gloss_py, m)?)?;
+    m.add_function(wrap_pyfunction!(reference_pages::liven_strongs_refs_py, m)?)?;
     m.add_class::<PyPageChromeConfig>()?;
     Ok(())
 }

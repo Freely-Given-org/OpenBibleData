@@ -128,10 +128,17 @@ CHANGELOG:
                 corresponding UGG grammar page via _link_greek_morphology_desc_to_grammar_pages().
      2026-09-08 Added form and gloss counts summaries to the Hebrew lemma pages (mirroring the
                 Greek lemma pages): new OTLemmaFormsDict/OTLemmaFormsCountDict and
-                OTLemmaGlossesDict/OTLemmaGlossesCountDict are now populated during
+OTLemmaGlossesDict/OTLemmaGlossesCountDict are now populated during
                 preprocessHebrewWordsLemmasGlosses (keyed by lemma, unlike the surface-form-keyed
                 OTLemmaOETGlossesDict), plus a getFirstHebrewWordNumber() helper.
- """
+    2026-09-10 Converted the following per-word helper functions to Rust (openbibledata_rust
+                reference_pages module) with byte-identical behaviour: formatNTSpansGlossWords,
+                convert_Hebrew_word_gloss_spans, tidy_Hebrew_morphology, tidy_Hebrew_lemma_gloss,
+                tidyGlossOfGreekWord, tidy_Greek_lemma_gloss, and _strongs_ref_repl (now the
+                livenStrongsRefs call at the two Strongs-page livening sites).  The OSHB_* and
+                HEBREW_*_TYPE_TABLE constants are still defined here because createParallelVersePages
+                imports six of the OSHB_* dicts, but the Rust module embeds its own copies.
+  """
 from pathlib import Path
 import os
 from collections import defaultdict
@@ -158,10 +165,11 @@ from bible_transliterations import transliterate_Hebrew, transliterate_Greek
 from settings import State, state, CNTR_BOOK_ID_MAP
 from html import makeTop, makeBottom, checkHtml, do_OET_LV_HTMLcustomisations, do_OET_RV_HTMLcustomisations
 from createSectionPages import findSectionNumber
-from openbibledata_rust import convertVerseEntryListToHtml, getOETTidyBBB, getOETBookName, getHebrewWordpageFilename, getGreekWordpageFilename, livenOETWordLinks
+import openbibledata_rust
+from openbibledata_rust import convertVerseEntryListToHtml, getOETTidyBBB, getOETBookName, getHebrewWordpageFilename, getGreekWordpageFilename, livenOETWordLinks, formatNTSpansGlossWords, convertHebrewWordGlossSpans, tidyHebrewMorphology, tidyHebrewLemmaGloss, tidyGlossOfGreekWord, tidyGreekLemmaGloss, livenStrongsRefs
 
 
-LAST_MODIFIED_DATE = '2026-09-08' # by RJH
+LAST_MODIFIED_DATE = '2026-09-10' # by RJH
 SHORT_PROGRAM_NAME = "createOETReferencePages"
 PROGRAM_NAME = "OpenBibleData createOETReferencePages functions"
 PROGRAM_VERSION = '1.0.4'
@@ -1398,14 +1406,7 @@ def formatNTSpansGlossWords( glossWords:str ) -> str:
     #         # print( f"{adjustedGlossWords=}" ); assert False, "We want to stop here"
     # assert adjustedGlossWords.count('/') in (0,2,4), f"{adjustedGlossWords=} from {glossWords=}"
 
-    result = ( adjustedGlossWords
-                .replace( '˱', '<span class="glossPre">', 1 ).replace( '˲', '</span>', 1 )
-                .replace( '˓', '<span class="glossHelper">', 1 ).replace( '˒', '</span>', 1 )
-                .replace( '‹', '<span class="glossPost">', 1 ).replace( '›', '</span>', 1 )
-                .replace('\\add >','<span class="addExtra">').replace('\\add*','</span>')
-                .replace('\\add ','<span class="add">')
-                .replace('\\sup ','<sup>').replace('\\sup*','</sup>')
-            )
+    result = openbibledata_rust.formatNTSpansGlossWords( adjustedGlossWords )
     assert result.count('<span ') == result.count('</span>'), f"{result=} from {glossWords=}"
     assert result.count('<sup>') == result.count('</sup>'), f"{result=} from {glossWords=}"
     assert '\\' not in result, result
@@ -1464,13 +1465,7 @@ def convert_Hebrew_word_gloss_spans( engGloss:str ) -> str:
     """
     """
     assert '<span class="ul">' not in engGloss # already
-    result = ( engGloss
-        .replace( '\\untr ', '<span class="untr">').replace( '\\untr*', '</span>')
-        .replace( '\\nd ', '<span class="nd">').replace( '\\nd*', '</span>')
-        .replace( '\\add >', '<span class="addExtra">').replace( '\\add*', '</span>')
-        .replace( '\\add ', '<span class="addExtra">') # Is this the right class? e.g., engGloss='kor_\\add measures\\add*'
-        .replace( '\\sup ', '<sup>').replace( '\\sup*', '</sup>')
-        .replace( '_', '<span class="ul">_</span>') )
+    result = openbibledata_rust.convertHebrewWordGlossSpans( engGloss )
     assert '\\' not in result, f"convert_Hebrew_word_gloss_spans( {engGloss=} ) -> {result=}"
     return result
 # end of createOETReferencePages.convert_Hebrew_word_gloss_spans
@@ -1587,167 +1582,12 @@ HEBREW_NUMBER_TYPE_TABLE = {
 }
 def tidy_Hebrew_morphology( tHM_rowType:str, tHM_morphology:str ) -> str:
     """
+    Tidy a Hebrew (or Aramaic) OSHB morphology code into HTML with links to the UHG grammar pages.
+        This is now done in Rust (openbibledata_rust.tidyHebrewMorphology); the OSHB_* and
+        HEBREW_*_TYPE_TABLE constants above are still defined here because createParallelVersePages
+        imports six of the OSHB_* dicts.
     """
-    tHM_tidyMorphologyField = ''
-    for tHM_individualMorphology in tHM_morphology.split( ',' ):
-        if tHM_individualMorphology:
-            tHM_tidyMorphology = tHM_individualMorphology
-            tHM_tidyMorphologyField = f'''{tHM_tidyMorphologyField}{'<br> ' if tHM_tidyMorphologyField else ''}<small><a title="Learn more about OSHB morphology" href="https://hb.OpenScriptures.org/HomeFiles/Morph.html">Morphology</a>=<a title="See OSHB morphology codes" href="https://hb.OpenScriptures.org/parsing/HebrewMorphologyCodes.html">{tHM_tidyMorphology}</a></small>'''
-            # print( f"{ref} got '{hebrewWord}' morphology ({len(individualMorphology)}) = '{individualMorphology}' (from ({len(morphology)}) '{morphology}')" )
-            tHM_PoS = tHM_individualMorphology[0] # individualMorphology is variable length, depending on the PoS, etc.
-            tHM_PoS_with_type = tHM_individualMorphology[:2] # Two characters
-            # posField = f'PoS=<b>{OSHB_POS_DICT[PoS]}</b>'
-            tHM_word_details_field = ''
-            if tHM_PoS == 'N': # noun
-                assert len(tHM_individualMorphology) in (2, 5)
-                noun_type = OSHB_NOUN_DICT[tHM_PoS_with_type]
-                try: noun_type_field = HEBREW_NOUN_TYPE_TABLE[noun_type] # returns a link to the UHG
-                except KeyError: noun_type_field = noun_type
-                tHM_word_details_field = f'PoS=<b>{noun_type_field}</b>'
-                if len(tHM_individualMorphology) > 2:
-                    gender_type = OSHB_GENDER_DICT[tHM_individualMorphology[2]]
-                    try: gender_type_field = HEBREW_GENDER_TYPE_TABLE[gender_type] # returns a link to the UHG
-                    except KeyError: gender_type_field = gender_type
-                    number_type = OSHB_NUMBER_DICT[tHM_individualMorphology[3]]
-                    try: number_type_field = HEBREW_NUMBER_TYPE_TABLE[number_type] # returns a link to the UHG
-                    except KeyError: number_type_field = number_type
-                    state_type = OSHB_STATE_DICT[tHM_individualMorphology[4]]
-                    try: state_type_field = HEBREW_STATE_TYPE_TABLE[state_type] # returns a link to the UHG
-                    except KeyError: state_type_field = state_type
-                    tHM_word_details_field = f'{tHM_word_details_field}  Gender={gender_type_field}  Number={number_type_field}  State={state_type_field}'
-
-            elif tHM_PoS == 'V': # verb: Generally verbs require no state. Participles, on the other hand, require no person, though they do take a state.
-                assert 3 <= len(tHM_individualMorphology) <= 7
-                # try:
-                verb_type = OSHB_ARAMAIC_VERB_STEM_DICT[tHM_PoS_with_type] if 'A' in tHM_rowType else OSHB_HEBREW_VERB_STEM_DICT[tHM_PoS_with_type]
-                # except KeyError: # 'Va'
-                #     print( f"Why did tidy_Hebrew_morphology({morphology}) fail with {rowType=} {PoS_with_type=} ???")
-                #     verb_type = f'UNKNOWN {PoS_with_type=}'
-                try: verb_type_field = HEBREW_VERB_TYPE_TABLE[verb_type] # returns a link to the UHG
-                except KeyError: verb_type_field = verb_type
-                conj_type = OSHB_VERB_CONJUGATION_TYPE_DICT[tHM_individualMorphology[2]]
-                try: conj_type_field = HEBREW_CONJUGATION_TYPE_TABLE[conj_type] # returns a link to the UHG
-                except KeyError: conj_type_field = conj_type
-                tHM_word_details_field = f'PoS=<b>{verb_type_field}</b>  Type={conj_type_field}'
-                if len(tHM_individualMorphology) == 6:
-                    if tHM_individualMorphology[2] in 'rs': # active or passive PARTICIPLE (has no person field but does have a state)
-                        state_type = OSHB_STATE_DICT[tHM_individualMorphology[5]]
-                        try: state_type_field = HEBREW_STATE_TYPE_TABLE[state_type] # returns a link to the UHG
-                        except KeyError: state_type_field = state_type
-                        gender_type = OSHB_GENDER_DICT[tHM_individualMorphology[3]]
-                        try: gender_type_field = HEBREW_GENDER_TYPE_TABLE[gender_type] # returns a link to the UHG
-                        except KeyError: gender_type_field = gender_type
-                        number_type = OSHB_NUMBER_DICT[tHM_individualMorphology[4]]
-                        try: number_type_field = HEBREW_NUMBER_TYPE_TABLE[number_type] # returns a link to the UHG
-                        except KeyError: number_type_field = number_type
-                        tHM_word_details_field = f'{tHM_word_details_field}  Gender={gender_type_field}  Number={number_type_field}  State={state_type_field}'
-                    else:
-                        person_type = OSHB_PERSON_DICT[tHM_individualMorphology[3]]
-                        try: person_type_field = HEBREW_PERSON_TYPE_TABLE[person_type] # returns a link to the UHG
-                        except KeyError: person_type_field = person_type
-                        gender_type = OSHB_GENDER_DICT[tHM_individualMorphology[4]]
-                        try: gender_type_field = HEBREW_GENDER_TYPE_TABLE[gender_type] # returns a link to the UHG
-                        except KeyError: gender_type_field = gender_type
-                        number_type = OSHB_NUMBER_DICT[tHM_individualMorphology[5]]
-                        try: number_type_field = HEBREW_NUMBER_TYPE_TABLE[number_type] # returns a link to the UHG
-                        except KeyError: number_type_field = number_type
-                        tHM_word_details_field = f'{tHM_word_details_field}  Person={person_type_field}  Gender={gender_type_field}  Number={number_type_field}'
-                elif len(tHM_individualMorphology) == 7: # then we have a state as well
-                    person_type = OSHB_PERSON_DICT[tHM_individualMorphology[3]]
-                    try: person_type_field = HEBREW_PERSON_TYPE_TABLE[person_type] # returns a link to the UHG
-                    except KeyError: person_type_field = person_type
-                    gender_type = OSHB_GENDER_DICT[tHM_individualMorphology[4]]
-                    try: gender_type_field = HEBREW_GENDER_TYPE_TABLE[gender_type] # returns a link to the UHG
-                    except KeyError: gender_type_field = gender_type
-                    number_type = OSHB_NUMBER_DICT[tHM_individualMorphology[5]]
-                    try: number_type_field = HEBREW_NUMBER_TYPE_TABLE[number_type] # returns a link to the UHG
-                    except KeyError: number_type_field = number_type
-                    state_type = OSHB_STATE_DICT[tHM_individualMorphology[6]]
-                    try: state_type_field = HEBREW_STATE_TYPE_TABLE[state_type] # returns a link to the UHG
-                    except KeyError: state_type_field = state_type
-                    tHM_word_details_field = f'{tHM_word_details_field}  Person={person_type_field}  Gender={gender_type_field}  Number={number_type_field}  State={state_type_field}'
-                elif len(tHM_individualMorphology) == 3:
-                    assert tHM_individualMorphology[2] in 'ac' # infinitive absolute or construct
-                    # We've already got the verb + stem + conjugation type above
-
-            elif tHM_PoS == 'A': # adjective
-                assert len(tHM_individualMorphology) == 5
-                adjective_type = OSHB_ADJECTIVE_DICT[tHM_PoS_with_type]
-                try: adjective_type_field = HEBREW_ADJECTIVE_TYPE_TABLE[adjective_type] # returns a link to the UHG
-                except KeyError: adjective_type_field = adjective_type
-                gender_type = OSHB_GENDER_DICT[tHM_individualMorphology[2]]
-                try: gender_type_field = HEBREW_GENDER_TYPE_TABLE[gender_type] # returns a link to the UHG
-                except KeyError: gender_type_field = gender_type
-                number_type = OSHB_NUMBER_DICT[tHM_individualMorphology[3]]
-                try: number_type_field = HEBREW_NUMBER_TYPE_TABLE[number_type] # returns a link to the UHG
-                except KeyError: number_type_field = number_type
-                state_type = OSHB_STATE_DICT[tHM_individualMorphology[4]]
-                try: state_type_field = HEBREW_STATE_TYPE_TABLE[state_type] # returns a link to the UHG
-                except KeyError: state_type_field = state_type
-                tHM_word_details_field = f'PoS=<b>{adjective_type_field}</b>  Gender={gender_type_field}  Number={number_type_field}  State={state_type_field}'
-            elif tHM_PoS == 'P': # pronoun: person, gender, number and state are the same wherever they apply.
-                assert 2 <= len(tHM_individualMorphology) <= 5
-                pronoun_type = OSHB_PRONOUN_DICT[tHM_PoS_with_type]
-                try: pronoun_type_field = HEBREW_PRONOUN_TYPE_TABLE[pronoun_type] # returns a link to the UHG
-                except KeyError: pronoun_type_field = pronoun_type
-                tHM_word_details_field = f'PoS=<b>{pronoun_type_field}</b>'
-                if len(tHM_individualMorphology) > 2:
-                    person_type = OSHB_PERSON_DICT[tHM_individualMorphology[2]]
-                    try: person_type_field = HEBREW_PERSON_TYPE_TABLE[person_type] # returns a link to the UHG
-                    except KeyError: person_type_field = person_type
-                    gender_type = OSHB_GENDER_DICT[tHM_individualMorphology[3]]
-                    try: gender_type_field = HEBREW_GENDER_TYPE_TABLE[gender_type] # returns a link to the UHG
-                    except KeyError: gender_type_field = gender_type
-                    number_type = OSHB_NUMBER_DICT[tHM_individualMorphology[4]]
-                    try: number_type_field = HEBREW_NUMBER_TYPE_TABLE[number_type] # returns a link to the UHG
-                    except KeyError: number_type_field = number_type
-                    tHM_word_details_field = f'{tHM_word_details_field}  Person={person_type_field}  Gender={gender_type_field}  Number={number_type_field}'
-            elif tHM_PoS == 'T': # particle
-                if len(tHM_individualMorphology) == 1: # e.g., at Aramaic DAN_4:12w11
-                    try: particle_type_field = HEBREW_PARTICLE_TYPE_TABLE['particle'] # returns a link to the UHG
-                    except KeyError: particle_type_field = 'particle'
-                    tHM_word_details_field = f'PoS=<b>{particle_type_field}</b>'
-                else:
-                    assert len(tHM_individualMorphology) == 2
-                    particle_type = OSHB_PARTICLE_DICT[tHM_PoS_with_type]
-                    try: particle_type_field = HEBREW_PARTICLE_TYPE_TABLE[particle_type] # returns a link to the UHG
-                    except KeyError: particle_type_field = particle_type
-                    tHM_word_details_field = f'PoS=<b>{particle_type_field}</b>'
-            elif tHM_PoS == 'R': # preposition: the preposition type is only used when the inseparable preposition is pointed in such a way to indicate the presence of the definite article.
-                assert 1 <= len(tHM_individualMorphology) <= 2, f"'{tHM_PoS}' ({len(tHM_individualMorphology)}) {tHM_individualMorphology=}"
-                preposition_type = OSHB_PREPOSITION_DICT[tHM_PoS_with_type] if len(tHM_individualMorphology)==2 else OSHB_POS_DICT[tHM_PoS]
-                try: preposition_type_field = HEBREW_PREPOSITION_TYPE_TABLE[preposition_type] # returns a link to the UHG
-                except KeyError: preposition_type_field = preposition_type
-                tHM_word_details_field = f'PoS=<b>{preposition_type_field}</b>'
-            elif tHM_PoS == 'S': # suffix
-                assert 2 <= len(tHM_individualMorphology) <= 5
-                suffix_type = OSHB_SUFFIX_DICT[tHM_PoS_with_type]
-                try: suffix_type_field = HEBREW_SUFFIX_TYPE_TABLE[suffix_type] # returns a link to the UHG
-                except KeyError: suffix_type_field = suffix_type
-                tHM_word_details_field = f'PoS=<b>{suffix_type_field}</b>'
-                if len(tHM_individualMorphology) > 2:
-                    person_type = OSHB_PERSON_DICT[tHM_individualMorphology[2]]
-                    try: person_type_field = HEBREW_PERSON_TYPE_TABLE[person_type] # returns a link to the UHG
-                    except KeyError: person_type_field = person_type
-                    gender_type = OSHB_GENDER_DICT[tHM_individualMorphology[3]]
-                    try: gender_type_field = HEBREW_GENDER_TYPE_TABLE[gender_type] # returns a link to the UHG
-                    except KeyError: gender_type_field = gender_type
-                    number_type = OSHB_NUMBER_DICT[tHM_individualMorphology[4]]
-                    try: number_type_field = HEBREW_NUMBER_TYPE_TABLE[number_type] # returns a link to the UHG
-                    except KeyError: number_type_field = number_type
-                    tHM_word_details_field = f'{tHM_word_details_field}  Person={person_type_field}  Gender={gender_type_field}  Number={number_type_field}'
-            else:
-                if tHM_PoS in ('C','D'): # conjunction or adverb
-                    assert len(tHM_individualMorphology) == 1 # We only have the PoS
-                pos_type = OSHB_POS_DICT[tHM_PoS]
-                try: pos_type_field = HEBREW_POS_TYPE_TABLE[pos_type] # returns a link to the UHG
-                except KeyError: pos_type_field = pos_type
-                tHM_word_details_field = f'PoS=<b>{pos_type_field}</b>'
-            tHM_tidyMorphologyField = f'''{'Aramaic ' if 'A' in tHM_rowType else ''}{tHM_tidyMorphologyField} {tHM_word_details_field}'''
-        else: # individualMorphology is blank (AMO_6:14w14)
-            tHM_tidyMorphologyField = '(MISSING)'
-            tHM_word_details_field = '(NONE)'
-    return tHM_tidyMorphologyField
+    return openbibledata_rust.tidyHebrewMorphology( tHM_rowType, tHM_morphology )
 # end of createOETReferencePages.tidy_Hebrew_morphology
 
 
@@ -2356,14 +2196,7 @@ def tidy_Hebrew_lemma_gloss( engGloss:str ) -> str:
     """
     """
     assert '<span class="ul">' not in engGloss # already
-    adjGloss = ( engGloss
-        .replace( '\\untr ', '<span class="untr">').replace( '\\untr*', '</span>')
-        .replace( '\\nd ', '<span class="nd">').replace( '\\nd*', '</span>')
-        .replace( '\\add >', '<span class="addExtra">').replace( '\\add*', '</span>')
-        .replace( '\\add ', '<span class="addExtra">') # Is this the right class? e.g., engGloss='kor_\\add measures\\add*'
-        .replace( '\\sup ', '<sup>').replace( '\\sup*', '</sup>')
-        .replace( '_', '<span class="ul">_</span>')
-        )
+    adjGloss = openbibledata_rust.tidyHebrewLemmaGloss( engGloss )
     assert '\\' not in adjGloss and '>>' not in adjGloss, f"tidy_Hebrew_lemma_gloss( {engGloss=} ) -> {adjGloss=}"
     return adjGloss
 # end of createOETReferencePages.tidy_Hebrew_lemma_gloss
@@ -2958,19 +2791,7 @@ def tidyGlossOfGreekWord( engGloss:str ) -> str:
         assert '<span class="ul">' not in engGloss # already
         assert '\\add -' not in engGloss
         assert '\\add ¿' not in engGloss
-        # .replace( '\\add ¿', '<span class="unusedArticle">' )
-        result = ( engGloss
-            .replace( '\\add +', '<span class="addArticle">' )
-            .replace( '\\add =', '<span class="addCopula">' )
-            #.replace( '\\add <a title', '__PROTECT__' ) # Enable if required
-            .replace( '\\add <', '<span class="addDirectObject">' )
-            #.replace( '__PROTECT__', '\\add <a title' )
-            .replace( '\\add >', '<span class="addExtra">' )
-            .replace( '\\add &', '<span class="addOwner">' )
-            .replace( '\\add ', '<span class="add">').replace( '\\add*', '</span>')
-            .replace( '_', '<span class="ul">_</span>')
-            )
-        return result
+        return openbibledata_rust.tidyGlossOfGreekWord( engGloss )
 # end of createOETReferencePages.tidyGlossOfGreekWord
 
 
@@ -2981,19 +2802,7 @@ def tidy_Greek_lemma_gloss( engGloss:str ) -> str:
             # .replace( '\\nd ', '<span class="nd">').replace( '\\nd*', '</span>') \
             # .replace( '\\add ', '<span class="add">').replace( '\\add*', '</span>') \
         assert '<span class="ul">' not in engGloss # already
-        result = ( engGloss
-            .replace( '\\add +', '<span class="addArticle">' )
-            # .replace( '\\add ¿', '<span class="unusedArticle">' )
-            # .replace( '\\add =', '<span class="addCopula">' )
-            # .replace( '\\add <a title', '__PROTECT__' ) # Enable if required
-            # .replace( '\\add <', '<span class="addDirectObject">' )
-            # .replace( '__PROTECT__', '\\add <a title' )
-            .replace( '\\add >', '<span class="addExtra">' )
-            # .replace( '\\add &', '<span class="addOwner">' )
-            .replace( '\\add ', '<span class="add">').replace( '\\add*', '</span>')
-            # .replace( '_', '<span class="ul">_</span>')
-            )
-        return result
+        return openbibledata_rust.tidyGreekLemmaGloss( engGloss )
 # end of createOETReferencePages.tidy_Greek_lemma_gloss
 
 
@@ -3847,18 +3656,6 @@ def _create_Greek_lemma_page_MP( parameters ): # Used by create_Greek_lemma_page
 
 
 NUM_STRONGS_INDEX_ENTRIES = 60
-STRONGS_NUMBER_REGEX = re.compile( '>[GH][1-9][0-9]{0,4}<' ) # It's inside a span
-STRONGS_FOLDER_DICT = {'G':'GrkStrng', 'H':'HebStrng'}
-
-def _strongs_ref_repl( strongsMatch:re.Match ) -> str:
-    """
-    Hoisted helper (formerly a nested function in both Strongs page creators below) that livens internal
-        Strongs references (like >H1234<) into links to the corresponding Strongs page.
-    """
-    # print( f"     Matched '{strongsMatch.group(0)}' Regex" )
-    strongsLetterAndNumber = strongsMatch.group(0)[1:-1]
-    return f'><a href="../{STRONGS_FOLDER_DICT[strongsLetterAndNumber[0]]}/{strongsLetterAndNumber}.htm#Top">{strongsLetterAndNumber}</a><'
-# end of createOETReferencePages._strongs_ref_repl
 
 _strongsPageBibleLexicon:BibleLexicon|None = None # Set by the create_*_Strongs_pages functions below for access by their forked children
 
@@ -3892,7 +3689,7 @@ def create_Hebrew_Strongs_page( level:int, strongsNumber:int, finalStrongsNumber
 <h2>Brown, Driver, Briggs lexicon entry</h2>
 {bdDrBrEntry}'''
     # Liven internal Strongs references
-    middle = STRONGS_NUMBER_REGEX.sub( _strongs_ref_repl, middle )
+    middle = livenStrongsRefs( middle )
 
     indexEntryHtml = None
     if strongsNumber in (1,finalStrongsNumber) or strongsNumber % indexDistance == 0:
@@ -4064,7 +3861,7 @@ def create_Greek_Strongs_page( level:int, strongsNumber:int, finalStrongsNumber:
 
     middle = bibleLexicon.getStrongsEntryHTML( strongsLetterNumberStr )
     # Liven internal Strongs references
-    if middle: middle = STRONGS_NUMBER_REGEX.sub( _strongs_ref_repl, middle )
+    if middle: middle = livenStrongsRefs( middle )
 
     indexEntryHtml = None
     if strongsNumber in (1,finalStrongsNumber) or strongsNumber % indexDistance == 0:

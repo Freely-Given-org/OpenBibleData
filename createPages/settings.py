@@ -71,11 +71,11 @@ class State:
     SITE_ABBREVIATION = 'OBD'
     SITE_COPYRIGHT = "copyright © 2023–2026"
 
-    OBD_VERSION_NUMBER_STRING = 'v2.3.9' # Incremented after most updates to OBD web page generation
+    OBD_VERSION_NUMBER_STRING = 'v2.3.10' # Incremented after most updates to OBD web page generation
     OET_VERSION_NUMBER_STRING = 'v0.48.77' # Incremented on most runs assuming changes to the OET-RV or OET-LV
 
     TEST_MODE_FLAG = True # Writes smaller website subset into DEBUG_DESTINATION_FOLDER_PATH if True
-    TEST_OT_BOOK_LIST = ['EST'] # ,'PSA'
+    TEST_OT_BOOK_LIST = ['PSA']
     TEST_DC_BOOK_LIST = []
     TEST_NT_BOOK_LIST = ['MAT','MRK'] # Shortest gospel
     NEW_BOOK_IN_TEST_LIST_FLAG = False # So that interlinear, parallel passages, topic, kingdom, and dict & word pages will get rebuilt for TEST_MODE_FLAG

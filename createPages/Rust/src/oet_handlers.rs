@@ -20,6 +20,14 @@
 //! * The OET-RV TEST_MODE preprocessing now leaves any word containing the
 //!   missing/untranslated-verse placeholders `◘`/`◙` untouched (they can sit
 //!   next to a footnote marker, e.g. `◘\f`, and must never be alpha-checked).
+//! * `liven_esfm_word_links` is the native single-pass replacement for BOS
+//!   `ESFMBible.livenESFMWordLinks` plus the old `§…§ / ►NNNN◄` decode pass.
+//!   With the placeholder round-trip gone, the `«OrigWord»` column
+//!   substitution, the `'{n}' in linkTemplate` assert, the §href gap==5
+//!   assert, and the "We want to stop here" path no longer exist (they were
+//!   only ever internal-consistency checks between the two stages), and the
+//!   Berean `loadESFMWordFile`-on-demand plumbing is gone too (it only fed
+//!   the discarded placeholder).
 
 use std::sync::LazyLock;
 
@@ -34,13 +42,6 @@ pub const PASEQ: char = '\u{05C0}';
 /// Narrow non-break space used by `tidy_bbb` inserts.
 pub const NARROW_NON_BREAK_SPACE: char = '\u{202F}';
 
-/// We inserted those § markers via the `titleTemplate='§«OrigWord»§'`.
-static LINKED_WORD_TITLE_REGEX: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r#"="§(.+?)§""#).unwrap());
-/// The ►NNNNN◄ placeholder href inserted by livenESFMWordLinks
-/// (includes the closing double quote).
-static LINKED_HREF_WORD_NUMBER_REGEX: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r#"="►([1-9][0-9]{0,5})◄""#).unwrap());
 /// Note that single words might include a \sup \sup* span as in
 /// 'Aʸsaias/(Yəshaˊə\sup yāh\sup*)¦21767' (handled by the SSsupP substitutions).
 pub static LINKED_WORD_REGEX: LazyLock<Regex> = LazyLock::new(|| {
@@ -506,22 +507,7 @@ pub fn preprocess_oet_rv_entry(
     }
 }
 
-// ── §-title post-processing ─────────────────────────────────────────────────
-
-/// Outcome of post-processing the `§…§` titles inserted by livenESFMWordLinks.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum TitlePostprocess {
-    /// At least one title/href was replaced.
-    Updated {
-        text: String,
-        transliterations_added: usize,
-        colourisations_added: usize,
-    },
-    /// The text contained '§' but nothing matched the title regex.
-    /// (The Python caller logged a critical message and then hit
-    /// `assert False, "We want to stop here"`.)
-    NoTitleMatches,
-}
+// ── ESFM wordlink livening (single-pass) ─────────────────────────────────────
 
 /// Strict version of BOS `getSmallLeadingInt` including its range check:
 /// values outside `[-1..200]` are errors (so real Strong's numbers like
@@ -560,80 +546,88 @@ fn greek_case_class(character: char) -> Option<&'static str> {
     }
 }
 
-/// Find the next occurrence of an ASCII byte at/after `from`
-/// (both given in byte offsets; result is a byte offset).
-fn find_byte(text: &str, byte: u8, from: usize) -> Option<usize> {
-    let start = from.min(text.len());
-    text.as_bytes()[start..]
-        .iter()
-        .position(|&b| b == byte)
-        .map(|index| index + start)
+/// Outcome of livening the `word¦number` links in one entry's text.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum WordlinkOutcome {
+    /// At least one link was made.
+    Livened {
+        text: String,
+        transliterations_added: usize,
+        colourisations_added: usize,
+    },
+    /// No `word¦number` pattern was found (the caller logs a critical
+    /// message and keeps the original entry unchanged).
+    Nothing,
 }
 
-/// Post-process the `§«OrigWord»§ / ►NNNN◄` placeholders left by
-/// livenESFMWordLinks into real hrefs + transliterated titles + colourisation
-/// classes (port of the second half of both `livenOETWordLinks` and
-/// `livenOETCompatibleBereanWordLinks`).
+/// Liven the `word¦number` links in one entry's text, producing the final
+/// word-page anchors directly.
 ///
-/// `get_row` fetches a word-table row by number (NT or OT depending on
-/// `is_nt`); `nfc_normalise` should apply Unicode NFC (passed as a closure so
-/// that this core stays dependency-free).
+/// This is the native OpenBibleData replacement for BOS
+/// `ESFMBible.livenESFMWordLinks` (which the old `livenOETWordLinks` called
+/// with `►{n}◄` / `§«OrigWord»§` placeholder templates) plus the old
+/// `§…§ / ►NNNN◄` post-processing pass. By emitting the final hrefs, titles
+/// and colourisation classes in a single pass, no link/title templates (or
+/// word-table column names) need to be passed around and nothing needs to be
+/// decoded afterwards.
 ///
-/// Position arithmetic note: the Python original reuses match positions from
-/// before an edit on the edited string. All our edits happen strictly after
-/// `title_match.end()`, so those stay valid; and advancing the next search to
-/// the pre-edit `href_match.end()` only ever skips ahead inside the freshly
-/// inserted (pure ASCII) href, never over real content.
-/// `colourise_word_classes` controls whether the grammatical marker classes
-/// (e.g. `hebVrb`/`grkVrb`/`hebEl`/`hebYhwh`/`grkNom`) are added to the word
-/// anchors. Only the page families whose stylesheets actually style those
-/// classes (parallel-verse, interlinear, reference) should pass `true`; the
-/// chapter/book/section/parallel-passage/topic families leave them emitted but
-/// unstyled, and the shared dark-mode rules then paint them unreadably.
-pub fn postprocess_word_link_titles(
+/// For each match the anchor is built exactly as the two-stage version did —
+/// `title` then `href` then (only when `colourise_word_classes`) `class`:
+/// `<a title="…" href="{'../'*level}ref/{GrkWrd|HebWrd}/{filename}#Top"[ class="…"]>word</a>`.
+/// The visible word inside the anchor is the original text untouched, and the
+/// Greek/Hebrew titles and colourisation classes are derived from the word
+/// table row exactly as before (see the colourisation notes in
+/// brightenSRGNT / brightenUHB of createParallelVersePages.py).
+///
+/// `is_nt` picks the `GrkWrd`/`HebWrd` folder and the NT/OT row layout;
+/// `get_row` fetches a word-table row by number; `nfc_normalise` should apply
+/// Unicode NFC (used for the OT title). Returns `Ok(Livened{..})` when at
+/// least one link was made, `Ok(Nothing)` when none could be, or
+/// `Err(message)` on the same assertion failures as the Python original.
+///
+/// The `\sup ` / `\sup*` spanes inside a single word (e.g.
+/// 'Aʸsaias/(Yəshaˊə\sup yāh\sup*)¦21767') are temporarily turned into
+/// ordinary word-formation characters so the regex includes them, then
+/// restored afterwards.
+pub fn liven_esfm_word_links(
     original_text: &str,
     level: usize,
     is_nt: bool,
     get_row: &dyn Fn(i64) -> Result<String, String>,
     nfc_normalise: &dyn Fn(&str) -> String,
     colourise_word_classes: bool,
-) -> Result<TitlePostprocess, String> {
-    let mut text = original_text.to_string();
-    let mut transliterations_added = 0usize;
-    let mut colourisations_added = 0usize;
+) -> Result<WordlinkOutcome, String> {
+    // We have to temporarily make these into normal word-formation chars for
+    // the regex to include them
+    let mut text = original_text
+        .replace("\\sup ", "SSsupP")
+        .replace("\\sup*", "ESsupP");
     let dots = "../".repeat(level);
 
-    loop {
-        // Get out all the information we need
-        let Some(title_match) = LINKED_WORD_TITLE_REGEX.find_at(&text, 0) else {
-            break;
-        };
-        let Some(href_match) = LINKED_HREF_WORD_NUMBER_REGEX.find_at(&text, title_match.end())
-        else {
-            // What went wrong here
-            return Err(
-                "We want to stop here -- no word-number href found after §title§".to_string(),
-            );
-        };
-        // Should be immediately after href
-        if href_match.start() - title_match.end() != 5 {
-            return Err(format!(
-                "AssertionError: expected href immediately after §title§ (gap {} != 5)",
-                href_match.start() - title_match.end()
-            ));
-        }
-        let word_number: i64 = LINKED_HREF_WORD_NUMBER_REGEX
-            .captures_at(&text, href_match.start())
-            .and_then(|captures| captures.get(1)?.as_str().parse().ok())
-            .ok_or_else(|| "Unable to parse word number".to_string())?;
+    // Build the anchors directly. Matches never overlap and an inserted
+    // anchor cannot contain '¦', so scanning once and stitching the untouched
+    // prefixes is equivalent to the old two-stage placeholder round-trip.
+    let mut result = String::with_capacity(text.len() + 64);
+    let mut last_end = 0usize;
+    let mut transliterations_added = 0usize;
+    let mut colourisations_added = 0usize;
+    for captures in LINKED_WORD_REGEX.captures_iter(&text) {
+        let word = captures.get(1).unwrap().as_str();
+        let digits = captures.get(2).unwrap().as_str();
+        let whole_match = captures.get(0).unwrap();
+        let word_number: i64 = digits
+            .parse()
+            .map_err(|e| format!("AssertionError: bad word number '{digits}': {e}"))?;
 
-        // Positions of the title match are preserved across all the edits
-        // below because every edit happens after them.
-        let (title_start, title_end) = (title_match.start(), title_match.end());
+        result.push_str(&text[last_end..whole_match.start()]);
 
-        if is_nt {
-            let row = get_row(word_number)?;
-            let fields: Vec<&str> = row.split('\t').collect();
+        let row = get_row(word_number)?;
+        let fields: Vec<&str> = row.split('\t').collect();
+
+        // Build the row-derived title guts and (optional) colourisation class.
+        // NOTE: We have almost identical colourisation code in brightenSRGNT()
+        //       / brightenUHB() in createParallelVersePages.py
+        let (filename, title_guts, class_name): (String, String, Option<String>) = if is_nt {
             if fields.len() < 12 {
                 return Err(format!(
                     "AssertionError: NT word-table row {word_number} has {} tab-separated fields, expected 12",
@@ -646,23 +640,10 @@ pub fn postprocess_word_link_titles(
             let role_letter = fields[9];
             let morphology = fields[10];
 
-            // Put in the correct word link
             let filename = greek_wordpage_filename_from_row(&row)?;
-            let new_href = format!("=\"{dots}ref/GrkWrd/{filename}#Top\"");
-            let href_end = href_match.end();
-            text = format!(
-                "{}{}{}",
-                &text[..href_match.start()],
-                new_href,
-                &text[href_end..]
-            );
 
-            // Do colourisation
-            // NOTE: We have almost identical code in brightenSRGNT()
-            //       in createParallelVersePages.py
-            let mut case_class_name: Option<String> = None;
-            if colourise_word_classes {
-                case_class_name = if role_letter == "V" {
+            let nt_class: Option<String> = if colourise_word_classes {
+                if role_letter == "V" {
                     Some("grkVrb".to_string())
                 } else if extended_strongs == "37560" {
                     // Greek 'οὐ' (ou) 'not'
@@ -674,33 +655,23 @@ pub fn postprocess_word_link_titles(
                     if fourth_char != '·' {
                         // (Middle dot) Two words in table have morphology of
                         // 'None' Jhn 5:27 w2
-                        let class = greek_case_class(fourth_char).ok_or_else(|| {
-                            format!(
-                                "KeyError: unknown Greek case character '{fourth_char}' in morphology '{morphology}'"
-                            )
-                        })?;
-                        Some(format!("grk{class}"))
+                        greek_case_class(fourth_char)
+                            .map(|class| format!("grk{class}"))
+                            .ok_or_else(|| {
+                                format!(
+                                    "KeyError: unknown Greek case character '{fourth_char}' in morphology '{morphology}'"
+                                )
+                            })
+                            .map(Some)?
                     } else {
                         None
                     }
                 } else {
                     None
-                };
-            }
-
-            if let Some(class_name) = case_class_name {
-                // Add a class to the anchor for the English word
-                // (Allow for '#Top"' -- hence +5)
-                let anchor_end_index = find_byte(&text, b'>', href_end + 5)
-                    .ok_or_else(|| "ValueError: '>' not found in wordlink anchor".to_string())?;
-                colourisations_added += 1;
-                text = format!(
-                    "{} class=\"{}\"{}",
-                    &text[..anchor_end_index],
-                    class_name,
-                    &text[anchor_end_index..]
-                );
-            }
+                }
+            } else {
+                None
+            };
 
             let transliterated_word = bible_transliterations::transliterate_greek(greek_word);
             let stripped_morphology = morphology.strip_prefix("····").unwrap_or(morphology);
@@ -709,21 +680,11 @@ pub fn postprocess_word_link_titles(
             } else {
                 format!(" from {sr_lemma}")
             };
-            let new_title_guts = format!(
-                "=\"{greek_word} ({transliterated_word}, {stripped_morphology}){from_part}\""
+            let title_guts = format!(
+                "{greek_word} ({transliterated_word}, {stripped_morphology}){from_part}"
             );
-            text = format!(
-                "{}{}{}",
-                &text[..title_start],
-                new_title_guts,
-                &text[title_end..]
-            );
-
-            transliterations_added += 1;
+            (filename, title_guts, nt_class)
         } else {
-            // OT
-            let row = get_row(word_number)?;
-            let fields: Vec<&str> = row.split('\t').collect();
             if fields.len() < 19 {
                 return Err(format!(
                     "AssertionError: OT word-table row {word_number} has {} tab-separated fields, expected 19",
@@ -736,16 +697,7 @@ pub fn postprocess_word_link_titles(
             let morphology = fields[5];
             let no_cantillations = fields[7];
 
-            // Put in the correct word link
             let filename = hebrew_wordpage_filename_from_row(&row)?;
-            let new_href = format!("=\"{dots}ref/HebWrd/{filename}#Top\"");
-            let href_end = href_match.end();
-            text = format!(
-                "{}{}{}",
-                &text[..href_match.start()],
-                new_href,
-                &text[href_end..]
-            );
 
             // Need to split at commas for correct transliteration
             let transliterated_word = no_cantillations
@@ -753,17 +705,18 @@ pub fn postprocess_word_link_titles(
                 .map(|part| bible_transliterations::transliterate_hebrew(part, false))
                 .collect::<Vec<String>>()
                 .join(",");
-            // Protect it so not adjusted in the title field
+            // Protect it so it's not adjusted in the title field
             let transliterated_word_for_title = transliterated_word.replace('ə', "~~SCHWA~~");
+            let normalised_no_cantillations = nfc_normalise(no_cantillations);
+            let title_guts = format!(
+                "{normalised_no_cantillations} ({transliterated_word_for_title}, {morphology})"
+            );
 
-            // Do colourisation
-            // NOTE: We have almost identical code in brightenUHB()
-            //       in createParallelVersePages.py
-            let mut case_class_name: Option<&'static str> = None;
+            let mut ot_class: Option<&'static str> = None;
             if colourise_word_classes {
                 for sub_morphology in morphology.split(',') {
                     if sub_morphology.starts_with('V') {
-                        case_class_name = Some("hebVrb");
+                        ot_class = Some("hebVrb");
                         break;
                     }
                 }
@@ -775,153 +728,53 @@ pub fn postprocess_word_link_titles(
                     };
                     if sub_strong_int == 369 || sub_strong_int == 3808 {
                         // Hebrew 'אַיִן' 'ayin' 'no', or 'לֹא' (lo) 'not'
-                        case_class_name = Some("hebNeg");
+                        ot_class = Some("hebNeg");
                         break;
                     }
                     if sub_strong_int == 430 || sub_strong_int == 410 || sub_strong_int == 433 {
                         // Hebrew 'אֱלֹהִים' 'ʼelohīm', 'אֵל' 'El'
-                        case_class_name = Some("hebEl");
+                        ot_class = Some("hebEl");
                         break;
                     }
                     if sub_strong_int == 3068 || sub_strong_int == 3050 {
                         // Hebrew 'יְהוָה' 'Yahweh', 'יָהּ' 'Yah'
-                        case_class_name = Some("hebYhwh");
+                        ot_class = Some("hebYhwh");
                         break;
                     }
                 }
             }
 
-            if let Some(class_name) = case_class_name {
-                // Add a class to the anchor for the English word
-                // (Allow for '#Top"' -- hence +5)
-                let anchor_end_index = find_byte(&text, b'>', href_end + 5)
-                    .ok_or_else(|| "ValueError: '>' not found in wordlink anchor".to_string())?;
-                colourisations_added += 1;
-                text = format!(
-                    "{} class=\"{}\"{}",
-                    &text[..anchor_end_index],
-                    class_name,
-                    &text[anchor_end_index..]
-                );
-            }
+            (filename, title_guts, ot_class.map(str::to_string))
+        };
 
-            let normalised_no_cantillations = nfc_normalise(no_cantillations);
-            let new_title_guts = format!(
-                "=\"{normalised_no_cantillations} ({transliterated_word_for_title}, {morphology})\""
-            );
-            text = format!(
-                "{}{}{}",
-                &text[..title_start],
-                new_title_guts,
-                &text[title_end..]
-            );
-
-            transliterations_added += 1;
+        let class_attr = class_name
+            .as_ref()
+            .map(|class| format!(" class=\"{class}\""))
+            .unwrap_or_default();
+        result.push_str(&format!(
+            "<a title=\"{title_guts}\" href=\"{dots}ref/{}{filename}#Top\"{class_attr}>{word}</a>",
+            if is_nt { "GrkWrd/" } else { "HebWrd/" },
+        ));
+        transliterations_added += 1;
+        if class_name.is_some() {
+            colourisations_added += 1;
         }
+        last_end = whole_match.end();
     }
+    result.push_str(&text[last_end..]);
+    // Restores our 'hidden' HTML markup
+    text = result.replace("SSsupP", "\\sup ").replace("ESsupP", "\\sup*");
 
     if transliterations_added > 0 || colourisations_added > 0 {
-        Ok(TitlePostprocess::Updated {
+        Ok(WordlinkOutcome::Livened {
             text,
             transliterations_added,
             colourisations_added,
         })
     } else {
-        Ok(TitlePostprocess::NoTitleMatches)
+        Ok(WordlinkOutcome::Nothing)
     }
 }
-
-// ── Berean-compatible ESFM wordlink livening ────────────────────────────────
-
-/// Liven the `word¦number` links in one entry's text exactly like
-/// ESFMBible.livenESFMWordLinks does (this is the port of the nested
-/// `livenESFMCompatibleBereanWordLinks` inner function body).
-///
-/// Returns `Ok(Some(new_text))` when links were added, `Ok(None)` when no
-/// link could be made (the Python caller logs a critical message and keeps
-/// the original entry), or `Err(message)` on assertion failures.
-///
-/// `column_names` are the word-table column names used to substitute
-/// `«ColumnName»` placeholders in `title_template`; `get_row` fetches rows.
-pub fn liven_berean_text(
-    original_text: &str,
-    bbb: &str,
-    link_template: &str,
-    title_template: Option<&str>,
-    column_names: &[String],
-    get_row: &dyn Fn(i64) -> Result<String, String>,
-) -> Result<Option<String>, String> {
-    if !link_template.contains("{n}") {
-        return Err("AssertionError: '{n}' missing from linkTemplate".to_string());
-    }
-    // We have to temporarily make these into normal word-formation chars for
-    // the regex to include them
-    let mut text = original_text
-        .replace("\\sup ", "SSsupP")
-        .replace("\\sup*", "ESsupP");
-    let mut count = 0usize;
-    let mut search_start = 0usize;
-    while let Some(found) = LINKED_WORD_REGEX.find_at(&text, search_start) {
-        let captures = LINKED_WORD_REGEX
-            .captures_at(&text, found.start())
-            .ok_or_else(|| "Unable to read word-link capture groups".to_string())?;
-        // Copy everything we need out of the borrow before editing the text
-        let whole_start = captures.get(0).unwrap().start();
-        let whole_end = captures.get(0).unwrap().end();
-        let word = captures.get(1).unwrap().as_str().to_string();
-        let digits = captures.get(2).unwrap().as_str().to_string();
-        if !py_is_digit(&digits) {
-            return Err(format!("AssertionError: bad word number '{digits}'"));
-        }
-
-        let mut title_html = match title_template {
-            Some(template) => format!(
-                "title=\"{}\" ",
-                template
-                    .replace("{W}", &word)
-                    .replace("{BBB}", bbb)
-                    .replace("{n}", &digits)
-            ),
-            None => String::new(),
-        };
-        if !title_html.is_empty() && title_template.is_some_and(|tt| tt.contains('«')) {
-            let row_number: i64 = digits.parse().map_err(|e| format!("{e}"))?;
-            let row = get_row(row_number)?;
-            let row_columns: Vec<&str> = row.split('\t').collect();
-            for (cc, column_name) in column_names.iter().enumerate() {
-                let Some(replacement) = row_columns.get(cc) else {
-                    return Err(format!(
-                        "IndexError: word table row {row_number} has {} columns, needed {}",
-                        row_columns.len(),
-                        cc + 1
-                    ));
-                };
-                title_html = title_html.replace(&format!("«{column_name}»"), replacement);
-            }
-        }
-        let processed_link = link_template
-            .replace("{W}", &word)
-            .replace("{BBB}", bbb)
-            .replace("{n}", &digits);
-        text = format!(
-            "{}<a {title_html}href=\"{processed_link}\">{word}</a>{}",
-            &text[..whole_start],
-            &text[whole_end..]
-        );
-        // We've added at least that many characters
-        search_start = whole_end + link_template.len() + title_html.len() + 4;
-        count += 1;
-    }
-    // Restores our 'hidden' HTML markup
-    text = text.replace("SSsupP", "\\sup ").replace("ESsupP", "\\sup*");
-
-    if count > 0 {
-        Ok(Some(text))
-    } else {
-        Ok(None)
-    }
-}
-
 // ── findOLQuoteInLV core ────────────────────────────────────────────────────
 
 /// What `findOLQuoteInLV` should do after the core matcher ran.
@@ -1552,7 +1405,7 @@ mod tests {
         );
     }
 
-    // ── §-title post-processing ─────────────────────────────────────────────
+// ── native single-pass ESFM wordlink livening ──────────────────────────
 
     fn nt_row(ref_: &str, greek: &str, lemma: &str, prob: &str, strongs: &str, role: &str, morph: &str) -> String {
         // Real NT layout: 0Ref 1GreekWord 2SRLemma 3GreekLemma 4VLTGlossWords
@@ -1585,40 +1438,39 @@ mod tests {
     }
 
     #[test]
-    fn test_postprocess_nt_basic() {
+    fn test_liven_wordlink_nt_basic() {
+        // 'And¦11' becomes the anchor exactly as the old two-stage version
+        // produced it (title then href then class, from the word-table row).
         let row = nt_row("MRK_1:1w1", "καὶ", "kai", "1", "24560", "C", "ABCDGfghi");
         let get_row = make_get_row(vec![(11, row)]);
-        let text = "<a title=\"§καὶ§\" href=\"►11◄\">And</a>";
-        match postprocess_word_link_titles(text, 1, true, &get_row, &IDENTITY_NFC, true).unwrap() {
-            TitlePostprocess::Updated { text, transliterations_added, colourisations_added } => {
-                assert_eq!(transliterations_added, 1);
-                assert_eq!(colourisations_added, 1);
-                // morphology[4] == 'G' -> grkGen; kai == kai -> no 'from'
-                assert_eq!(
-                    text,
-                    "<a title=\"καὶ (kai, ABCDGfghi)\" href=\"../ref/GrkWrd/MRKc1v1w1.htm#Top\" class=\"grkGen\">And</a>"
-                );
-            }
-            other => panic!("Expected Updated, got {other:?}"),
-        }
+        let outcome = liven_esfm_word_links("And¦11", 1, true, &get_row, &IDENTITY_NFC, true).unwrap();
+        let WordlinkOutcome::Livened { text, transliterations_added, colourisations_added } = outcome
+        else {
+            panic!("Expected Livened, got {outcome:?}");
+        };
+        assert_eq!(transliterations_added, 1);
+        // morphology[4] == 'G' -> grkGen; kai == kai -> no 'from'
+        assert_eq!(
+            text,
+            "<a title=\"καὶ (kai, ABCDGfghi)\" href=\"../ref/GrkWrd/MRKc1v1w1.htm#Top\" class=\"grkGen\">And</a>"
+        );
+        assert_eq!(colourisations_added, 1);
     }
 
     #[test]
-    fn test_postprocess_nt_from_sr_lemma() {
+    fn test_liven_wordlink_nt_from_sr_lemma() {
         let row = nt_row("MRK_1:1w1", "καὶ", "kaí", "1", "24560", "N", "None");
         let get_row = make_get_row(vec![(11, row)]);
-        let text = "x<a title=\"§καὶ§\" href=\"►11◄\">And</a>y";
-        match postprocess_word_link_titles(text, 2, true, &get_row, &IDENTITY_NFC, true).unwrap() {
-            TitlePostprocess::Updated { text, .. } => assert_eq!(
-                text,
-                "x<a title=\"καὶ (kai, None) from kaí\" href=\"../../ref/GrkWrd/MRKc1v1w1.htm#Top\">And</a>y"
-            ),
-            other => panic!("Expected Updated, got {other:?}"),
-        }
+        let outcome = liven_esfm_word_links("And¦11", 2, true, &get_row, &IDENTITY_NFC, true).unwrap();
+        let WordlinkOutcome::Livened { text, .. } = outcome else { panic!("Expected Livened") };
+        assert_eq!(
+            text,
+            "<a title=\"καὶ (kai, None) from kaí\" href=\"../../ref/GrkWrd/MRKc1v1w1.htm#Top\">And</a>"
+        );
     }
 
     #[test]
-    fn test_postprocess_nt_colour_classes() {
+    fn test_liven_wordlink_nt_colour_classes() {
         for (role, strongs, morph, expected_class) in [
             ("V", "12345", "ABCDGfghi", Some("grkVrb")),
             ("N", "37560", "ABCDGfghi", Some("grkNeg")),
@@ -1628,11 +1480,10 @@ mod tests {
         ] {
             let row = nt_row("MRK_1:1w1", "καὶ", "kai", "1", strongs, role, morph);
             let get_row = make_get_row(vec![(11, row)]);
-            let text = "<a title=\"§καὶ§\" href=\"►11◄\">And</a>";
             let outcome =
-                postprocess_word_link_titles(text, 1, true, &get_row, &IDENTITY_NFC, true).unwrap();
-            let TitlePostprocess::Updated { text, colourisations_added, .. } = outcome else {
-                panic!("Expected Updated for {expected_class:?}");
+                liven_esfm_word_links("And¦11", 1, true, &get_row, &IDENTITY_NFC, true).unwrap();
+            let WordlinkOutcome::Livened { text, colourisations_added, .. } = outcome else {
+                panic!("Expected Livened for {expected_class:?}");
             };
             match expected_class {
                 Some(class) => {
@@ -1648,70 +1499,74 @@ mod tests {
     }
 
     #[test]
-    fn test_postprocess_two_anchors() {
+    fn test_liven_wordlink_two_anchors() {
         let row1 = nt_row("MRK_1:1w1", "καὶ", "kai", "1", "24560", "C", "None");
         let row2 = nt_row("MRK_1:1w2", "δὲ", "de", "1", "11610", "C", "None");
         let get_row = make_get_row(vec![(11, row1), (12, row2)]);
-        let text = "<a title=\"§καὶ§\" href=\"►11◄\">And</a> <a title=\"§δὲ§\" href=\"►12◄\">but</a>";
-        let outcome = postprocess_word_link_titles(text, 1, true, &get_row, &IDENTITY_NFC, true).unwrap();
-        let TitlePostprocess::Updated { text, transliterations_added, .. } = outcome else {
-            panic!("Expected Updated");
+        let outcome = liven_esfm_word_links(
+            "And¦11 but¦12",
+            1, true, &get_row, &IDENTITY_NFC, true,
+        ).unwrap();
+        let WordlinkOutcome::Livened { text, transliterations_added, .. } = outcome else {
+            panic!("Expected Livened");
         };
         assert_eq!(transliterations_added, 2);
-        assert!(text.contains("(de, None)"));
-        assert!(text.contains("(kai, None)"));
+        assert!(text.contains("(de, None)"), "{text}");
+        assert!(text.contains("(kai, None)"), "{text}");
+        assert!(
+            text.contains(">And</a> <a title=\"δὲ (de, None)\""),
+            "{text}"
+        );
+        assert!(text.contains(">but</a>"), "{text}");
     }
 
     #[test]
-    fn test_postprocess_no_colourise_skips_classes() {
+    fn test_liven_wordlink_no_colourise_skips_classes() {
         // With colourise_word_classes=false, no grammatical marker classes are
         // added to the anchors, but transliteration still happens.
         let row = nt_row("MRK_1:1w1", "καὶ", "kai", "1", "24560", "V", "ABCDGfghi");
         let get_row = make_get_row(vec![(11, row)]);
-        let text = "<a title=\"§καὶ§\" href=\"►11◄\">And</a>";
         let outcome =
-            postprocess_word_link_titles(text, 1, true, &get_row, &IDENTITY_NFC, false).unwrap();
-        let TitlePostprocess::Updated { text, transliterations_added, colourisations_added } =
-            outcome
+            liven_esfm_word_links("And¦11", 1, true, &get_row, &IDENTITY_NFC, false).unwrap();
+        let WordlinkOutcome::Livened { text, transliterations_added, colourisations_added } = outcome
         else {
-            panic!("Expected Updated");
+            panic!("Expected Livened");
         };
         assert_eq!(transliterations_added, 1);
         assert_eq!(colourisations_added, 0);
         assert!(!text.contains("class=\"grk"), "{text}");
-        assert!(text.contains("(kai, ABCDGfghi)"), "{text}");
+        assert_eq!(text, "<a title=\"καὶ (kai, ABCDGfghi)\" href=\"../ref/GrkWrd/MRKc1v1w1.htm#Top\">And</a>");
     }
 
     #[test]
-    fn test_postprocess_ot_basic() {
+    fn test_liven_wordlink_ot_basic() {
         let row = ot_row("GEN_1:1w2", "WORD", "הָאָרֶץ").replacen("\tMO\t", "\tV-qwc-3ms\t", 1);
         let get_row = make_get_row(vec![(21, row)]);
-        let text = "<a title=\"§הָאָרֶץ§\" href=\"►21◄\">earth</a>";
-        match postprocess_word_link_titles(text, 1, false, &get_row, &IDENTITY_NFC, true).unwrap() {
-            TitlePostprocess::Updated { text, transliterations_added, colourisations_added } => {
-                assert_eq!(transliterations_added, 1);
-                assert_eq!(colourisations_added, 1); // verb morphology
-                assert!(text.starts_with("<a title=\""), "{text}");
-                assert!(text.contains("../ref/HebWrd/GENc1v1w2.htm#Top"), "{text}");
-                assert!(text.contains("class=\"hebVrb\""), "{text}");
-            }
-            other => panic!("Expected Updated, got {other:?}"),
-        }
+        let outcome =
+            liven_esfm_word_links("earth¦21", 1, false, &get_row, &IDENTITY_NFC, true).unwrap();
+        let WordlinkOutcome::Livened { text, transliterations_added, colourisations_added } = outcome
+        else {
+            panic!("Expected Livened");
+        };
+        assert_eq!(transliterations_added, 1);
+        assert_eq!(colourisations_added, 1); // verb morphology
+        assert!(text.starts_with("<a title=\""), "{text}");
+        assert!(text.contains("../ref/HebWrd/GENc1v1w2.htm#Top"), "{text}");
+        assert!(text.contains("class=\"hebVrb\""), "{text}");
     }
 
     #[test]
-    fn test_postprocess_ot_strongs_over_200_never_colours() {
+    fn test_liven_wordlink_ot_strongs_over_200_never_colours() {
         // Faithful quirk: BOS getSmallLeadingInt raises above 200, so
         // '3068' can never trigger the hebYhwh class
         for strongs in ["3068", "3808", "430", "H3068"] {
             let row = ot_row("GEN_1:1w2", "WORD", "x")
                 .replacen("\tST\t", &format!("\t{strongs}\t"), 1);
             let get_row = make_get_row(vec![(21, row)]);
-            let text = "<a title=\"§הָאָרֶץ§\" href=\"►21◄\">earth</a>";
             let outcome =
-                postprocess_word_link_titles(text, 1, false, &get_row, &IDENTITY_NFC, true).unwrap();
-            let TitlePostprocess::Updated { text, colourisations_added, .. } = outcome else {
-                panic!("Expected Updated");
+                liven_esfm_word_links("earth¦21", 1, false, &get_row, &IDENTITY_NFC, true).unwrap();
+            let WordlinkOutcome::Livened { text, colourisations_added, .. } = outcome else {
+                panic!("Expected Livened");
             };
             assert_eq!(colourisations_added, 0, "{strongs}");
             assert!(!text.contains("hebNeg"), "{text}");
@@ -1719,127 +1574,74 @@ mod tests {
     }
 
     #[test]
-    fn test_postprocess_ot_schwa_protection() {
+    fn test_liven_wordlink_ot_schwa_protection() {
         // No Hebrew characters means transliteration returns input unchanged,
         // so we can predictably test the schwa protection
         let row = ot_row("GEN_1:1w2", "WORD", "əə").replacen("\tMO\t", "\tN-x\t", 1);
         let get_row = make_get_row(vec![(21, row)]);
-        let text = "<a title=\"§x§\" href=\"►21◄\">earth</a>";
-        let outcome = postprocess_word_link_titles(text, 1, false, &get_row, &IDENTITY_NFC, true).unwrap();
-        let TitlePostprocess::Updated { text, .. } = outcome else { panic!() };
+        let outcome =
+            liven_esfm_word_links("earth¦21", 1, false, &get_row, &IDENTITY_NFC, true).unwrap();
+        let WordlinkOutcome::Livened { text, .. } = outcome else { panic!() };
         assert!(text.contains("(~~SCHWA~~~~SCHWA~~, N-x)"), "{text}");
     }
 
     #[test]
-    fn test_postprocess_no_title_matches() {
-        let get_row = make_get_row(vec![]);
-        let outcome = postprocess_word_link_titles("plain § text", 1, true, &get_row, &IDENTITY_NFC, true).unwrap();
-        assert_eq!(outcome, TitlePostprocess::NoTitleMatches);
+    fn test_liven_wordlink_sup_hiding_round_trip() {
+        // A single word could include a \sup \sup* span; the substitution must
+        // let the regex include it and then restore the markup in the output.
+        let row = nt_row("MRK_1:1w1", "καὶ", "kai", "1", "24560", "N", "None");
+        let get_row = make_get_row(vec![(13, row)]);
+        let outcome =
+            liven_esfm_word_links("\\sup x\\sup*y¦13", 1, true, &get_row, &IDENTITY_NFC, true).unwrap();
+        let WordlinkOutcome::Livened { text, .. } = outcome else { panic!("Expected Livened") };
+        assert_eq!(
+            text,
+            "<a title=\"καὶ (kai, None)\" href=\"../ref/GrkWrd/MRKc1v1w1.htm#Top\">\\sup x\\sup*y</a>"
+        );
     }
 
     #[test]
-    fn test_postprocess_missing_href_is_error() {
+    fn test_liven_wordlink_nothing_when_no_match() {
+        let get_row = make_get_row(vec![]);
+        assert_eq!(
+            liven_esfm_word_links("plain text", 1, true, &get_row, &IDENTITY_NFC, true).unwrap(),
+            WordlinkOutcome::Nothing
+        );
+        // '0' doesn't match [1-9]… so this is also Nothing (unchanged entry)
+        assert_eq!(
+            liven_esfm_word_links("bad¦0 number", 1, true, &get_row, &IDENTITY_NFC, true).unwrap(),
+            WordlinkOutcome::Nothing
+        );
+    }
+
+    #[test]
+    fn test_liven_wordlink_row_missing_is_error() {
         let get_row = make_get_row(vec![]);
         assert!(
-            postprocess_word_link_titles("<a title=\"§καὶ§\"", 1, true, &get_row, &IDENTITY_NFC, true)
-                .is_err()
+            liven_esfm_word_links("x¦99", 1, true, &get_row, &IDENTITY_NFC, true).is_err()
         );
     }
 
     #[test]
-    fn test_postprocess_bad_gap_is_error() {
-        let get_row = make_get_row(vec![]);
-        // Gap of 4 ('href') -- must fail the ==5 assert
-        assert!(
-            postprocess_word_link_titles(
-                "<a title=\"§καὶ§\"href=\"►11◄\"",
-                1, true, &get_row, &IDENTITY_NFC, true
-            )
-            .is_err()
-        );
+    fn test_liven_wordlink_short_greek_morphology_is_error() {
+        // morphology 'AB' has no fifth character -> IndexError (faithful)
+        let row = nt_row("MRK_1:1w1", "καὶ", "kai", "1", "24560", "N", "AB");
+        let get_row = make_get_row(vec![(11, row)]);
+        let err = liven_esfm_word_links("x¦11", 1, true, &get_row, &IDENTITY_NFC, true).unwrap_err();
+        assert_eq!(err, "IndexError: morphology 'AB' has no fifth character");
     }
 
-    // ── Berean-compatible livening ──────────────────────────────────────────
-
     #[test]
-    fn test_liven_berean_basic() {
-        // NOTE: because the title template contains '«', livenESFMWordLinks
-        // fetches the word-table row even though 'OrigWord' is not a real
-        // column -- so the row must exist (faithful behaviour).
-        let row = "MRK_1:1w2\tκόσμος\tworld".to_string();
-        let get_row = make_get_row(vec![(12, row)]);
-        let result = liven_berean_text(
-            "word¦12 rest",
-            "MRK",
-            "►{n}◄",
-            Some("§«OrigWord»§"),
-            &[],
-            &get_row,
-        )
-        .unwrap();
+    fn test_liven_wordlink_unknown_greek_case_is_error() {
+        // fifth character 'X' is not a known case -> KeyError (faithful)
+        let row = nt_row("MRK_1:1w1", "καὶ", "kai", "1", "24560", "N", "ABCDGfghi").replacen("ABCDGfghi", "ABCDXfghi", 1);
+        let get_row = make_get_row(vec![(11, row)]);
+        let err = liven_esfm_word_links("x¦11", 1, true, &get_row, &IDENTITY_NFC, true).unwrap_err();
         assert_eq!(
-            result.unwrap(),
-            "<a title=\"§«OrigWord»§\" href=\"►12◄\">word</a> rest"
+            err,
+            "KeyError: unknown Greek case character 'X' in morphology 'ABCDXfghi'"
         );
     }
-
-    #[test]
-    fn test_liven_berean_column_substitution() {
-        let row = "GEN_1:1w1\tבְּרֵאשִׁית\tbeginning".to_string();
-        let get_row = make_get_row(vec![(5, row)]);
-        let columns = vec!["ref".to_string(), "word".to_string(), "gloss".to_string()];
-        let result = liven_berean_text(
-            "In-the-beginning¦5",
-            "GEN",
-            "►{n}◄",
-            Some("«word» (§«OrigWord»§)"),
-            &columns,
-            &get_row,
-        )
-        .unwrap();
-        assert_eq!(
-            result.unwrap(),
-            "<a title=\"בְּרֵאשִׁית (§«OrigWord»§)\" href=\"►5◄\">In-the-beginning</a>"
-        );
-    }
-
-    #[test]
-    fn test_liven_berean_sup_hiding_round_trip() {
-        let get_row = make_get_row(vec![]);
-        let result = liven_berean_text(
-            "\\sup x\\sup*y¦13",
-            "MRK",
-            "►{n}◄",
-            None,
-            &[],
-            &get_row,
-        )
-        .unwrap();
-        assert_eq!(
-            result.unwrap(),
-            "<a href=\"►13◄\">\\sup x\\sup*y</a>"
-        );
-    }
-
-    #[test]
-    fn test_liven_berean_no_links_found() {
-        let get_row = make_get_row(vec![]);
-        assert_eq!(
-            liven_berean_text("plain text", "MRK", "►{n}◄", None, &[], &get_row).unwrap(),
-            None
-        );
-        assert_eq!(
-            liven_berean_text("bad¦0 number", "MRK", "►{n}◄", None, &[], &get_row).unwrap(),
-            None // '0' doesn't match [1-9]…
-        );
-    }
-
-    #[test]
-    fn test_liven_berean_requires_n_placeholder() {
-        let get_row = make_get_row(vec![]);
-        assert!(liven_berean_text("x¦1", "MRK", "no-placeholder", None, &[], &get_row).is_err());
-    }
-
     // ── findOLQuoteInLV core ────────────────────────────────────────────────
 
 
