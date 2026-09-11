@@ -1,5 +1,11 @@
 //! PyO3 module exposing OpenBibleData Rust extensions.
 
+/// Use a faster/scalable allocator for this cdylib's Rust allocations when the
+/// `allocator-mimalloc` cargo feature is enabled (default: off).
+#[cfg(feature = "allocator-mimalloc")]
+#[global_allocator]
+static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
+
 use std::sync::{Arc, Mutex};
 
 use pyo3::exceptions::{

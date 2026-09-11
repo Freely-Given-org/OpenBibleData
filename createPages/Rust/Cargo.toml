@@ -18,5 +18,10 @@ bos-internals = { path = "../../../BibleOrgSys/Rust/bos-internals" }
 bos_books_codes = { path = "../../../BibleOrgSys/Rust/bos_books_codes" }
 usfm_markers = { path = "../../../BibleOrgSys/Rust/usfm_markers" }
 bible-transliterations = { path = "../../../BibleTransliterations/Rust" }
+mimalloc = { version = "0.1", optional = true }
+
+[features]
+default = []
+allocator-mimalloc = ["dep:mimalloc"]
 
 [dev-dependencies]

@@ -39,6 +39,12 @@
 //!              verse nums" gutter) can target.  basic_only flows are unchanged.
 //!              The wrapper is opened in the "v" handler and closed by the
 //!              adjacent "v~" handler, so it never spans a block boundary.
+//!  2026-09-11: '\rem' (and '\id') inside an open paragraph is now rendered as
+//!              its own <p class="rem"> block instead of an inline
+//!              <span class="rem"> (e.g. the Mark 16:8 longer-ending note).
+//!              The interrupted paragraph is closed first and only re-opened
+//!              when actual verse content ('v'/'v~') follows the remark, so a
+//!              trailing empty <p> is avoided.
 
 use crate::character_formatting::convert_usfm_character_formatting;
 use crate::constants::*;
@@ -1270,10 +1276,22 @@ where
                             version_abbreviation, bos_book_code, segment_type, &display_rest, basic_only,
                             &mut state.background_colour,
                         )?;
-                        if state.in_paragraph.is_some() {
-                            html.push_str(&(format!(r#"<span class="{marker}">{guts}</span>"#) + "\n"));
-                        } else {
-                            html.push_str(&(format!(r#"<p class="{marker}">{guts}</p><!--{marker}-->"#) + "\n"));
+                        let saved_para = state.in_paragraph.take();
+                        if let Some(ref_ip) = &saved_para {
+                            html.push_str(&format!("</p><!--{ip}-->\n", ip = ref_ip));
+                        }
+                        html.push_str(&(format!(r#"<p class="{marker}">{guts}</p><!--{marker}-->"#) + "\n"));
+                        // Re-open the interrupted paragraph only if verse content
+                        // actually follows this remark (see the Mark 16:8 longer
+                        // ending note); otherwise the next marker (paragraph end,
+                        // new \p, \s1, \c, ...) will handle things itself and we'd
+                        // only leave an empty <p> behind.
+                        let content_follows = verse_entries.get(vel_index + 1).is_some_and(|next| {
+                            matches!(next.marker.as_str(), "v" | "v~")
+                        });
+                        if let (Some(ip), true) = (saved_para, content_follows) {
+                            html.push_str(&(format!(r#"<p class="{ip}">"#) + "\n"));
+                            state.in_paragraph = Some(ip);
                         }
                     }
                 }
@@ -1892,5 +1910,79 @@ mod tests {
         );
         // The actual verse text should still come through from the v~ entry.
         assert!(result.contains("Now we offer praise."), "expected verse text, got:\n{result}");
+    }
+
+    #[test]
+    fn test_rem_inside_paragraph_emits_p_not_span() {
+        // Regression: a \rem marker encountered while inside an open paragraph
+        // (e.g. the Mark 16:8 longer-ending note) used to be emitted as a
+        // `<span class="rem">` inline inside the paragraph. It must instead be
+        // its own block paragraph: the surrounding paragraph is closed and the
+        // `<p class="rem">` emitted. If no verse content follows the remark the
+        // paragraph is left closed (no empty <p>).
+        let entries = vec![
+            VerseEntry { marker: "p".into(), full_text: String::new(), clean_text: String::new() },
+            VerseEntry { marker: "v".into(), full_text: "8".into(), clean_text: "8".into() },
+            VerseEntry { marker: "v~".into(), full_text: "So they left the chamber.".into(), clean_text: "So they left the chamber.".into() },
+            VerseEntry { marker: "rem".into(), full_text: "It's not certain whether or not the longer ending was penned by Markos.".into(), clean_text: "It's not certain whether or not the longer ending was penned by Markos.".into() },
+            VerseEntry { marker: "\u{AC}v".into(), full_text: String::new(), clean_text: String::new() },
+        ];
+        let result = convert_verse_entry_list_to_html_core(
+            2, "OET-RV", "MRK", Some("16"), Some("8"),
+            "section", &[], &entries, false, false,
+            no_op_char_fmt, no_op_fig, no_op_sect, no_op_avail, no_op_obi, no_op_check,
+        ).unwrap();
+        assert!(
+            !result.contains("<span class=\"rem\">"),
+            "rem must not be an inline span, got:\n{result}"
+        );
+        assert!(
+            result.contains("<p class=\"rem\">") && result.contains("longer ending was penned by Markos."),
+            "expected a <p class=\"rem\">, got:\n{result}"
+        );
+        let first_close = result.find("</p><!--p-->").expect("paragraph should be closed before rem");
+        let rem_start = result.find("<p class=\"rem\">").expect("rem paragraph should be present");
+        let rem_end = result.find("</p><!--rem-->").expect("rem paragraph should be closed");
+        assert!(first_close < rem_start, "paragraph closed before rem paragraph:\n{result}");
+        assert!(rem_start < rem_end, "rem paragraph self-contained:\n{result}");
+        // No verse content follows the remark (only \AC v), so the paragraph
+        // must NOT be re-opened into an empty <p>.
+        let after_rem = &result[rem_end + "</p><!--rem-->".len()..];
+        assert!(
+            !after_rem.contains("<p class=\"p\">"),
+            "paragraph should not be re-opened with no following verse content:\n{result}"
+        );
+    }
+
+    #[test]
+    fn test_rem_reopens_paragraph_when_verse_content_follows() {
+        // If actual verse text continues straight after a \rem (no intervening
+        // \p), the interrupted paragraph should be re-opened so that text stays
+        // in its original paragraph grouping.
+        let entries = vec![
+            VerseEntry { marker: "p".into(), full_text: String::new(), clean_text: String::new() },
+            VerseEntry { marker: "v".into(), full_text: "5".into(), clean_text: "5".into() },
+            VerseEntry { marker: "v~".into(), full_text: "They ran outside.".into(), clean_text: "They ran outside.".into() },
+            VerseEntry { marker: "\u{AC}v".into(), full_text: String::new(), clean_text: String::new() },
+            VerseEntry { marker: "rem".into(), full_text: "A later note about this verse.".into(), clean_text: "A later note about this verse.".into() },
+            VerseEntry { marker: "v".into(), full_text: "6".into(), clean_text: "6".into() },
+            VerseEntry { marker: "v~".into(), full_text: "They told everyone what they saw.".into(), clean_text: "They told everyone what they saw.".into() },
+            VerseEntry { marker: "\u{AC}v".into(), full_text: String::new(), clean_text: String::new() },
+        ];
+        let result = convert_verse_entry_list_to_html_core(
+            2, "OET-RV", "MRK", Some("16"), Some("8"),
+            "section", &[], &entries, false, false,
+            no_op_char_fmt, no_op_fig, no_op_sect, no_op_avail, no_op_obi, no_op_check,
+        ).unwrap();
+        let rem_end = result.find("</p><!--rem-->").expect("rem paragraph should be present");
+        let after_rem = &result[rem_end + "</p><!--rem-->".len()..];
+        assert!(
+            after_rem.contains("<p class=\"p\">"),
+            "paragraph should be re-opened before continuing verse text, got:\n{result}"
+        );
+        assert!(
+            after_rem.contains("They told everyone what they saw."),
+            "continuing verse text expected:\n{result}"
+        );
     }
 }
