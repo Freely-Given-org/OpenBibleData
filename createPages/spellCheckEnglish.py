@@ -1,7 +1,7 @@
 #!/usr/bin/env -S uv run
 # -\*- coding: utf-8 -\*-
 # SPDX-FileCopyrightText: © 2023 Robert Hunt <Freely.Given.org+OBD@gmail.com>
-# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: CC0-1.0
 #
 # spellCheckEnglish.py
 #
@@ -37,10 +37,13 @@ CHANGELOG:
     2026-06-11 Handle new % (changed person) \\add format
     2026-08-24 Added collectSpellCheckResults and mergeSpellCheckResults so that results collected by forked multiprocessing children can be merged back into the parent
     2026-08-25 Added the six missing 'unsure' addPersonChange/addNegated/etc. span replacements (html.py had been emitting them with title attributes since 2026-08-22)
-    2026-08-27 Truncate spelling error messages if they're too long"""
+    2026-08-27 Truncate spelling error messages if they're too long
+    2026-09-11 Tolerate dictionary entries that are missing their '\\lg ' language line (skip them with a warning) and handle running from a different folder
+"""
 from pathlib import Path
 from csv import  DictReader
 from collections import defaultdict
+import logging
 import re
 
 from BibleOrgSys import BibleOrgSysGlobals
@@ -48,21 +51,21 @@ from BibleOrgSys.BibleOrgSysGlobals import vPrint, fnPrint, dPrint, rreplace
 import bos_books_codes_py
 
 
-LAST_MODIFIED_DATE = '2026-09-01' # by RJH
+LAST_MODIFIED_DATE = '2026-09-11' # by RJH
 SHORT_PROGRAM_NAME = "spellCheckEnglish"
 PROGRAM_NAME = "English Bible Spell Check"
-PROGRAM_VERSION = '0.67'
+PROGRAM_VERSION = '0.68'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
 
 
-TED_DICT_FOLDERPATH = Path( '../../../Documents/RobH123/TED_Dict/sourceDicts/')
+TED_DICT_FOLDERPATH = Path(__file__).parent.joinpath( '../../../Documents/RobH123/TED_Dict/sourceDicts/').resolve()
 assert TED_DICT_FOLDERPATH.is_dir()
-OET_LV_NAMES_TSV_FILEPATH = Path( '../../OpenEnglishTranslation--OET/derivedTexts/OET-LV_names_table.tsv' )
+OET_LV_NAMES_TSV_FILEPATH = Path(__file__).parent.joinpath( '../../OpenEnglishTranslation--OET/derivedTexts/OET-LV_names_table.tsv' ).resolve()
 assert OET_LV_NAMES_TSV_FILEPATH.is_file()
 EXPECTED_OET_LV_NAMES_TSV_HEADER = 'TraditionalName\tLVName'
-OET_RV_NAMES_TSV_FILEPATH = Path( '../../OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/OET-RV_names_table.tsv' )
+OET_RV_NAMES_TSV_FILEPATH = Path(__file__).parent.joinpath( '../../OpenEnglishTranslation--OET/translatedTexts/ReadersVersion/OET-RV_names_table.tsv' ).resolve()
 assert OET_RV_NAMES_TSV_FILEPATH.is_file()
 EXPECTED_OET_RV_NAMES_TSV_HEADER = 'TraditionalName\tRVName\tExplained\tComment'
 
@@ -356,7 +359,9 @@ def load_dict_sources() -> bool:
             if '*' in word:
                 word, subscript = word.split( '*', 1 )
                 assert subscript.isdigit()
-            assert entryLines[1].startswith( '\\lg ')
+            if len( entryLines ) < 2 or not entryLines[1].startswith( '\\lg '):
+                logging.warning( f"Skipping {dictFilename} entry without a '\\lg ' language line: {word!r}")
+                continue
             language = entryLines[1][4:]
             mispelling = False
             for entryLine in entryLines[2:]:
@@ -825,12 +830,12 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                 'ach','alt','dran','ende','irrig','hing','weh','du','Raube','Raub','sie','Tal','tue','fiel','sehe',
                                 'Mal','mal','milde','mit','Mord','Natur','nun','nur',
                                 'rede','kam','Korb','ward','Rat','Rede','messen','ging','Halle','und','ster','streng','töte','tun','von','wer','zu','zwo',
-                                'feedse','reasonfeste','teachingt','beshame','girdlet','togeblasen',
-                                'risingen','stronglich','injusticeen','diapers',
-                                    'hundredundsiebenundzwanzig','submitse','reachte','againstrufen','rideden','restedn','hundredundachtzig','likede','changern','bloodacker',
-                                    'especiallyen','persuadeden','los','thornskrone','inherite','retaineden',
+                                'risingen','stronglich','injusticeen',
+                                'downkam','contentiousr','erbeten','upgehet','twoschneidig','zwang',
+                                    'hundredundsiebenundzwanzig','submitse','reachte','againstrufen','rideden','restedn','hundredundachtzig','likede',
+                                    'Merket',
                     
-                                'actio', 'agi', 'aliena', 'ambit','ambitio','amputa', 'anima','antiqui','apprehendi', 'argui','ascendi','attende','audi', 'aversio',
+                                'abs','actio', 'agi', 'aliena', 'ambit','ambitio','amputa', 'anima','antiqui','apprehendi', 'argui','ascendi','attende','audi', 'aversio',
                                 'beati','bene','beneficia','bos',
                                 'ca','calami','capti',       'celebrat','centurio',     'Christi',      'circumcisio','cis',        'cognitio','cogniti','complet',
                                         'commemorat','communio','competit',
@@ -844,26 +849,26 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                 'fac','falli', 'fel', 'figura','Finis','finis','fornicatio','forti','fugit','fur',     'generat','generatio',     'hellor','hoc','humili','humiliati',
                                 'ibi', 'illum','illuminat','illuminati','illuminatio', 'ima','impie', 'infirmi','inscriptio','insinuat','instructi',
                                     'indignati','intellige','intelligi','intentio','introduc','inventi','invoca','invocat','invocatio','Isaia','iter','Ite',
-                                'ja','jus','Justi','justi','justis','justificat',     'legi','legis','liberatio','liberati','liberato','liberat','libera','liber','locus','lux',
-                                'magis','magnifice','magni', 'mane','manifeste','manu', 'mater','materia',
+                                'ja','jus','Justi','justi','justis','justificat',     'legi','legis','liberatio','liberati','liberato','liberat','libera','liber','locus','luna','lux',
+                                'magis','magnifice','magni', 'mane','manifeste','manu', 'mari','mater','materia',
                                     'media','medici','memor','memoria','menstrua','mens',        'mira','misera',        'mora','moretri','mortali','morti',
                                 'nam','narrat','nati','natu','natura','ne','nece', 'nota','Nota',     'ob','obsessi', 'occasio', 'offen','omnis','operatio','opinio','ora','ori',
                                 'passi','patria','patri','pede','pedes','perpetua','perfecti','persecuti','persecutio',
                                     'pinna','pio','plura','polluti','prope','propitiatio','provocat', 'psalmi','psalmis', 'publica',
-                                'questio','qui',        'rea','redempti','rege','regi','regio','regula','remun','remunerat','rei','repente','reprobat','ros',
+                                'questio','qui',        'rea','redempti','referri','rege','regi','regio','regula','remun','remunerat','rei','repente','reprobat','ros',
                                 'salva','salvat','salvati','sanctifi','sanctificati',
                                     'securi','separat','separati','seu','serva','servit','sex','sexta',
                                     'si','signi','sit','sol','soli','solem','stat','statu', 'subjecti','summo','superstitio',
                                 'tempora','Tod','tradit','traditi','traditio','transito','transmigratio','tres','tribulatio','tributa','trium','tu','tua','tuam','turba',
-                                'usu',      'valle','vani','varie','vas', 'victi','visita','visitat','visitatio','vita', 'Voca','voca',
+                                'usu',      'valle','vani','varie','vas', 'venerat', 'victi','visita','visitat','visitatio','vita', 'Voca','voca',
                                 'l','nos','ut','didrachmas','tonitrua','utrique','eatns','statuas','peacefuls','birthe',
-                                'foundo',
-                                'upt','knowis','rogavit',
+                                'upt','knowis',
+                                'hypocrita','sleeperunt','doorm','perhibet','conditionis','pertineat',
                                     'palatii','queenm','trabem','workos','edictum','muliebrem','acceptedebant','accidentallys','traditum','transferre','missæ','nece',
                                     'res','knowti','boxnis','recordati','clange','reados','sectus','undis',
                                     'lovese','meum','weres','multiformis','professio','reprimandse','halfnt','stringit','sendus','resttionum','namedm','beforeparavi','rightsverit',
-                                    'anathemate','fightrent','anys','habitndum','beforeof','enterings','abs','vis','comeur','duci','thirstunt','tecto','innotuit','adyicientur',
-                                    'differentæ',
+                                    'anathemate','fightrent','anys','habitndum','beforeof','enterings','vis','healthya','mindon','miserablees','palea','baß',
+                                    'adoptionis',
 
                                 )
                     else 'Info', DEBUGGING_THIS_MODULE, f'''  {word} is suspect @ {location}\n      from {cleanedTextToDisplay=}\n      WHICH GAVE cleanedTextToCheck={_truncate_for_display(cleanedTextToCheck,word)}''' )
@@ -1025,4 +1030,22 @@ def mergeSpellCheckResults( collectedResults ) -> None:
         TOTAL_LATIN_MISSPELLING_COUNT += collectedTotalLatinMisspellingCount
 # end of spellCheckEnglish.mergeSpellCheckResults
 
+if __name__ == '__main__':
+    from multiprocessing import set_start_method, freeze_support
+    from settings import state
+
+    set_start_method('fork') # The default was changed on POSIX systems from 'fork' to 'forkserver' in Python3.14
+    freeze_support() # Multiprocessing support for frozen Windows executables
+
+    # Configure basic Bible Organisational System (BOS) set-up
+    parser = BibleOrgSysGlobals.setup( SHORT_PROGRAM_NAME, PROGRAM_VERSION, LAST_MODIFIED_DATE )
+    BibleOrgSysGlobals.addStandardOptionsAndProcess( parser )
+
+    originalHTMLTextForDebugging = '<p class="p">This is a text text paragraf with a badd word in it.</p>'
+    HTMLTextToCheck = originalHTMLTextForDebugging
+    result = spellCheckAndMarkHTMLText( 'OET-RV', 'MRK_1', HTMLTextToCheck, originalHTMLTextForDebugging, state )
+    print( f"{result=}")
+    assert result == '<p class="p">This is a <span title="Possible duplicated word" class="duplicate">text</span> <span title="Possible duplicated word" class="duplicate">text</span> <span title="Possible misspelt word" class="spelling">paragraf</span> with a <span title="Possible misspelt word" class="spelling">badd</span> word in it.</p>'
+
+    BibleOrgSysGlobals.closedown( PROGRAM_NAME, PROGRAM_VERSION )
 # end of spellCheckEnglish.py

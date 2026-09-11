@@ -1,7 +1,7 @@
 #!/usr/bin/env -S uv run
 # -\*- coding: utf-8 -\*-
 # SPDX-FileCopyrightText: © 2023 Robert Hunt <Freely.Given.org+OBD@gmail.com>
-# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: CC0-1.0
 #
 # createOETReferencePages.py
 #
@@ -9,20 +9,8 @@
 #
 # Copyright (C) 2023-2026 Robert Hunt
 # Author: Robert Hunt <Freely.Given.org+OBD@gmail.com>
-# License: See gpl-3.0.txt
-#
-#   This program is free software: you can redistribute it and/or modify
-#   it under the terms of the GNU General Public License as published by
-#   the Free Software Foundation, either version 3 of the License, or
-#   (at your option) any later version.
-#
-#   This program is distributed in the hope that it will be useful,
-#   but WITHOUT ANY WARRANTY; without even the implied warranty of
-#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#   GNU General Public License for more details.
-#
-#   You should have received a copy of the GNU General Public License
-#   along with this program.  If not, see <https://www.gnu.org/licenses/>.
+# This source code is marked with CC0 1.0 Universal. 
+#    To view a copy of this license, visit http://creativecommons.org
 
 """
 Module handling createOETReferencePages functions.
@@ -138,6 +126,7 @@ OTLemmaGlossesDict/OTLemmaGlossesCountDict are now populated during
                 livenStrongsRefs call at the two Strongs-page livening sites).  The OSHB_* and
                 HEBREW_*_TYPE_TABLE constants are still defined here because createParallelVersePages
                 imports six of the OSHB_* dicts, but the Rust module embeds its own copies.
+    2026-09-11  Changed formatting of nomina sacra span
   """
 from pathlib import Path
 import os
@@ -169,10 +158,10 @@ import openbibledata_rust
 from openbibledata_rust import convertVerseEntryListToHtml, getOETTidyBBB, getOETBookName, getHebrewWordpageFilename, getGreekWordpageFilename, livenOETWordLinks, formatNTSpansGlossWords, convertHebrewWordGlossSpans, tidyHebrewMorphology, tidyHebrewLemmaGloss, tidyGlossOfGreekWord, tidyGreekLemmaGloss, livenStrongsRefs
 
 
-LAST_MODIFIED_DATE = '2026-09-10' # by RJH
+LAST_MODIFIED_DATE = '2026-09-11' # by RJH
 SHORT_PROGRAM_NAME = "createOETReferencePages"
 PROGRAM_NAME = "OpenBibleData createOETReferencePages functions"
-PROGRAM_VERSION = '1.0.4'
+PROGRAM_VERSION = '1.0.5'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -3070,7 +3059,7 @@ def create_Greek_word_page( level:int, gg:int, columns_string:str, prevLink:str,
             roleField = f' Word role=<b>{roleNameField}</b>'
             usedRoleLetters.add( roleLetter )
 
-        nominaSacraField = 'Marked with <b>Nomina Sacra</b>' if 'N' in glossCaps else ''
+        nominaSacraField = 'Marked with <span class="nominaSacra">Nomina Sacra</span>' if 'N' in glossCaps else ''
 
         # probabilityField = f'<small>(P={probability}%)</small> ' if probability else ''
 

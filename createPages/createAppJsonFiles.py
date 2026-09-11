@@ -1,7 +1,7 @@
 #!/usr/bin/env -S uv run
 # -\*- coding: utf-8 -\*-
 # SPDX-FileCopyrightText: © 2023 Robert Hunt <Freely.Given.org+OBD@gmail.com>
-# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: CC0-1.0
 #
 # createAppJsonFiles.py
 #
@@ -9,20 +9,8 @@
 #
 # Copyright (C) 2026 Robert Hunt
 # Author: Robert Hunt <Freely.Given.org+OBD@gmail.com>
-# License: See gpl-3.0.txt
-#
-#   This program is free software: you can redistribute it and/or modify
-#   it under the terms of the GNU General Public License as published by
-#   the Free Software Foundation, either version 3 of the License, or
-#   (at your option) any later version.
-#
-#   This program is distributed in the hope that it will be useful,
-#   but WITHOUT ANY WARRANTY; without even the implied warranty of
-#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#   GNU General Public License for more details.
-#
-#   You should have received a copy of the GNU General Public License
-#   along with this program.  If not, see <https://www.gnu.org/licenses/>.
+# This source code is marked with CC0 1.0 Universal. 
+#    To view a copy of this license, visit http://creativecommons.org
 
 """
 Module handling createAppJsonFiles functions
@@ -36,6 +24,7 @@ main calls fullDemo()
 
 CHANGELOG:
     2026-08-25 The OETHandlers functions are now imported from the Rust openbibledata_rust module (the Python OETHandlers.py was deleted).
+    2026-09-11 Changed nomina sacra format from bold to underline
 """
 from pathlib import Path
 import os
@@ -63,10 +52,10 @@ from createOETReferencePages import HebrewWordFileName, convert_Hebrew_word_glos
 from openbibledata_rust import getOETTidyBBB, getOETBookName, getHebrewWordpageFilename, getGreekWordpageFilename, livenOETWordLinks
 
 
-LAST_MODIFIED_DATE = '2026-08-25' # by RJH
+LAST_MODIFIED_DATE = '2026-09-11' # by RJH
 SHORT_PROGRAM_NAME = "createAppJsonFiles"
 PROGRAM_NAME = "OpenBibleData createAppJsonFiles functions"
-PROGRAM_VERSION = '0.12'
+PROGRAM_VERSION = '0.13'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -714,7 +703,7 @@ def create_Greek_words_json( level:int, outputFolderPath:Path, state:State ) -> 
             usedRoleLetters.add( roleLetter )
             jsonDict['word_role'] = roleName
 
-        nominaSacraField = 'Marked with <b>Nomina Sacra</b>' if 'N' in glossCaps else ''
+        nominaSacraField = 'Marked with <u>Nomina Sacra</u>' if 'N' in glossCaps else ''
         jsonDict['nomina_sacra'] = 'N' in glossCaps
 
         # morphologyField =

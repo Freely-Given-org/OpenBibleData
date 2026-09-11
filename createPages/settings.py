@@ -1,7 +1,7 @@
 #!/usr/bin/env -S uv run
 # -\*- coding: utf-8 -\*-
 # SPDX-FileCopyrightText: © 2023 Robert Hunt <Freely.Given.org+OBD@gmail.com>
-# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: CC0-1.0
 #
 # settings.py
 #
@@ -9,20 +9,8 @@
 #
 # Copyright (C) 2023-2026 Robert Hunt
 # Author: Robert Hunt <Freely.Given.org+OBD@gmail.com>
-# License: See gpl-3.0.txt
-#
-#   This program is free software: you can redistribute it and/or modify
-#   it under the terms of the GNU General Public License as published by
-#   the Free Software Foundation, either version 3 of the License, or
-#   (at your option) any later version.
-#
-#   This program is distributed in the hope that it will be useful,
-#   but WITHOUT ANY WARRANTY; without even the implied warranty of
-#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#   GNU General Public License for more details.
-#
-#   You should have received a copy of the GNU General Public License
-#   along with this program.  If not, see <https://www.gnu.org/licenses/>.
+# This source code is marked with CC0 1.0 Universal. 
+#    To view a copy of this license, visit http://creativecommons.org
 
 """
 Module handling settings functions.
@@ -71,8 +59,8 @@ class State:
     SITE_ABBREVIATION = 'OBD'
     SITE_COPYRIGHT = "copyright © 2023–2026"
 
-    OBD_VERSION_NUMBER_STRING = 'v2.3.10' # Incremented after most updates to OBD web page generation
-    OET_VERSION_NUMBER_STRING = 'v0.48.77' # Incremented on most runs assuming changes to the OET-RV or OET-LV
+    OBD_VERSION_NUMBER_STRING = 'v2.3.10' # Incremented after most updates to OBD web page generation code
+    OET_VERSION_NUMBER_STRING = 'v0.48.77' # Incremented on most runs when there's been changes or updates to the text of the OET-RV or OET-LV
 
     TEST_MODE_FLAG = True # Writes smaller website subset into DEBUG_DESTINATION_FOLDER_PATH if True
     TEST_OT_BOOK_LIST = ['PSA']
