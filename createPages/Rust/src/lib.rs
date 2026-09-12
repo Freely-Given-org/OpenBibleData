@@ -29,6 +29,7 @@ pub mod html_validation;
 pub mod xref_links;
 pub mod verse_to_html;
 pub mod verse_entry_list;
+pub mod word_table_snapshot;
 
 pub use intro_links::{liven_introduction_links_core, IntroLinkError};
 pub use ior_links::{liven_iors_core, IORLinkError};
