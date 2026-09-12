@@ -1144,6 +1144,9 @@ fn liven_oet_word_links_py<'py>(
         .get_item(word_file_name)?;
     let unicodedata = py.import("unicodedata")?;
     let get_row = |number: i64| -> Result<String, String> {
+        if let Some(fields) = word_table_snapshot::get_snapshot_row(&word_file_name, number) {
+            return Ok(fields.join("\t"));
+        }
         table
             .get_item(number)
             .map_err(|e| e.to_string())?
@@ -1287,6 +1290,9 @@ fn liven_oet_compatible_berean_word_links_py<'py>(
         .get_item(word_file_name)?;
     let unicodedata = py.import("unicodedata")?;
     let get_row = |number: i64| -> Result<String, String> {
+        if let Some(fields) = word_table_snapshot::get_snapshot_row(&word_file_name, number) {
+            return Ok(fields.join("\t"));
+        }
         table
             .get_item(number)
             .map_err(|e| e.to_string())?
@@ -1595,6 +1601,7 @@ fn openbibledata_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(remove_duplicate_c_vids_py, m)?)?;
     m.add_function(wrap_pyfunction!(remove_duplicate_fnids_py, m)?)?;
     m.add_function(wrap_pyfunction!(build_interlinear_word_rows_py, m)?)?;
+    m.add_function(wrap_pyfunction!(word_table_snapshot::build_word_table_snapshot_py, m)?)?;
     m.add_function(wrap_pyfunction!(reference_pages::format_nt_spans_gloss_words_py, m)?)?;
     m.add_function(wrap_pyfunction!(reference_pages::convert_hebrew_word_gloss_spans_py, m)?)?;
     m.add_function(wrap_pyfunction!(reference_pages::tidy_hebrew_morphology_py, m)?)?;

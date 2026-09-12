@@ -22,9 +22,16 @@ pub fn convert_usfm_character_formatting(
     let mut html = usfm_field.replace("\\+", "\\");
     let mut files_to_copy: Vec<(String, String)> = Vec::new();
 
-    // Validation
-    if !usfm_field.contains("\\add <<") && !usfm_field.contains("\\add ?<<") {
-        assert!(!usfm_field.contains("<<"), "Unexpected << in usfm_field");
+    // Validation: the `\add <<` / `\add ?<<` direct-object convention is only
+    //   recognised after the `\+` embedded-marker form has been normalised to
+    //   `\` above (OET-RV sources use `\+add`, so `\+add <<span …` must be
+    //   allowed once it reads `\add <<span …`). TEST_MODE OET-RV preprocessing
+    //   (preprocess_oet_rv_entry) legitimately produces `\+add <` + a
+    //   `<span class="noLinkYet">` when a `<word` inside `\add <word\add*` has
+    //   no word link yet — that `<<` reaches do_OET_RV_HTMLcustomisations as
+    //   `<span class="add"><<span …` and becomes an addDirectObject span.
+    if !html.contains("\\add <<") && !html.contains("\\add ?<<") {
+        assert!(!html.contains("<<"), "Unexpected << in usfm_field");
     }
 
     // === Handle verse colouring in OET-RV Psalms/Songs ===
@@ -462,4 +469,61 @@ fn process_untranslated_words(html: &str) -> String {
     }
 
     result
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn convert(field: &str) -> String {
+        let mut background_colour = None;
+        convert_usfm_character_formatting(
+            "OET-RV",
+            "MRK",
+            "chapter",
+            field,
+            false,
+            &mut background_colour,
+            &["add".to_string()],
+            &[],
+            false,
+            1,
+        )
+        .html
+    }
+
+    #[test]
+    fn test_add_direct_object_marker_plus_no_link_yet_span_allowed() {
+        // Regression (OET-RV_MRK.ESFM line 507, MRK 7:11): TEST_MODE OET-RV
+        // preprocessing wraps the unlinked word inside `\add <to God\add*` in
+        // a noLinkYet span, producing `\+add <<span class="noLinkYet">`. The
+        // `\+` is normalised to `\` first, so the `<` marker + `<span` must
+        // not trip the `<<` validation -- it becomes addDirectObject later.
+        let html = convert("\\+add <<span class=\"noLinkYet\">to</span> <span class=\"noLinkYet\">God</span>\\+add*");
+        assert_eq!(html, "<span class=\"add\"><<span class=\"noLinkYet\">to</span> <span class=\"noLinkYet\">God</span></span>");
+    }
+
+    #[test]
+    fn test_add_direct_object_marker_plain_add_form_allowed() {
+        // The same `\add <word` construct in its plain (non-`\+`) form
+        // (e.g. OET-RV_MRK.ESFM line 117, MRK 1:41) is untouched by TEST_MODE
+        // only when the word is linked -- here unlinked it would also be
+        // wrapped, so the plain form is allowed too.
+        let html = convert("\\add <him\\add*");
+        assert_eq!(html, "<span class=\"add\"><him</span>");
+    }
+
+    #[test]
+    fn test_legit_double_angle_add_convention_allowed() {
+        let html = convert("\\add <<Adonai\\add*");
+        assert_eq!(html, "<span class=\"add\"><<Adonai</span>");
+        let html = convert("\\add ?<<Adonai\\add*");
+        assert_eq!(html, "<span class=\"add\">?<<Adonai</span>");
+    }
+
+    #[test]
+    #[should_panic(expected = "Unexpected << in usfm_field")]
+    fn test_stray_double_angle_still_rejected() {
+        convert("sometext << corrupt\\add*");
+    }
 }
