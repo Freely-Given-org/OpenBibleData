@@ -79,7 +79,7 @@ span.add { color:#6b6b6b; }
 span.untr { font-size:0.8em; color:grey; text-decoration:line-through; }
 span.unsure { text-decoration:underline; text-decoration-style: dotted; text-decoration-color: orange; }
 span.noLinkYet { background-color:darkgrey; color:white }
-span.nominaSacra { font-weight:560; }
+span.nominaSacra { text-decoration: underline; text-underline-offset: 0px; text-decoration-color: #575959; } /* text-decoration-thickness: 1px; text-decoration-skip-ink: auto; font-weight: 560; */
 span.synonParr { vertical-align:super; font-size:0.8em; color:green; } /* Hebrew synonymous parallelism */
 span.antiParr { vertical-align:super; font-size:0.8em; color:orangeRed; } /* Hebrew antithetic parallelism */
 span.synthParr { vertical-align:super; font-size:0.8em; color:blue; } /* Hebrew synthetic parallelism */

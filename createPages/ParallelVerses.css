@@ -204,7 +204,7 @@ span.li3 {} /* Why's this a span??? */
 span.w {}
 
 /* NT spans */
-span.nominaSacra { font-weight:560; }
+span.nominaSacra { text-decoration: underline; text-underline-offset: 0px; text-decoration-color: #575959; } /* text-decoration-thickness: 1px; text-decoration-skip-ink: auto; font-weight: 560; */
 span.nd { text-decoration:underline; text-decoration-style:double; text-decoration-color:purple; }
 span.ndORD { font-size:.75em; text-decoration:overline; text-decoration-style:dashed; text-decoration-color:purple; }
 span.wj { color:saddlebrown; }

@@ -191,7 +191,7 @@ span.noLinkYet { background-color:darkgrey; color:white }
 /* span.ul { color:darkGrey; } */
 /* span.dom { color:Gainsboro; font-size:0.75em; } */
 /* span.schwa { font-size:0.75em; } */
-span.nominaSacra { font-weight:560; }
+span.nominaSacra { text-decoration: underline; text-underline-offset: 0px; text-decoration-color: #575959; } /* text-decoration-thickness: 1px; text-decoration-skip-ink: auto; font-weight: 560; */
 /* span.nd {} */
 /* span.ndORD { font-size:.75em; text-decoration:overline; text-decoration-style:dashed; text-decoration-color:purple; } */
 
