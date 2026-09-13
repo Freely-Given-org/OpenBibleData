@@ -83,7 +83,7 @@ import bos_books_codes_py
 
 from settings import State, state, reorderBooksForOETVersions
 from Bibles import preloadVersions
-from openbibledata_rust import getOETTidyBBB, getOETBookName
+from openbibledata_rust import getOETTidyBBB, getOETBookName, build_word_table_snapshot_py
 from createBookPages import createOETBookPages, createBookPages
 from createChapterPages import createOETSideBySideChapterPages, createChapterPages
 from createSectionPages import createOETSectionLists, createOETSectionPages, createSectionLists, createSectionPages
@@ -263,6 +263,7 @@ def _createSitePages() -> bool:
         #   multiprocessing children are created, so they all inherit the same
         #   already-cached CSS instead of each re-reading the files independently.
         preloadCSSStyles()
+        build_word_table_snapshot_py( state ) # Build the COW word-table snapshot in the PARENT BEFORE forking any multiprocessing children, so every forked worker inherits the identical pre-split row cache instead of each re-splitting the word tables independently.
         if 'OET' in state.BibleVersions: # this is a special case
             vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Creating {'TEST ' if state.TEST_MODE_FLAG else ''}version pages for OET…" )
             versionFolder = state.TEMP_BUILD_FOLDER.joinpath( f'OET/' )
