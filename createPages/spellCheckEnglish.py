@@ -830,8 +830,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                 'ach','alt','dran','ende','irrig','hing','weh','du','Raube','Raub','sie','Tal','tue','fiel','sehe',
                                 'Mal','mal','milde','mit','Mord','Natur','nun','nur',
                                 'rede','kam','Korb','ward','Rat','Rede','messen','ging','Halle','und','ster','streng','töte','tun','von','wer','zu','zwo',
-                                'poors','poorpits','poorpit','one)n','stronglich','tokam','bendse','foreheadbänder',
-                                    'Du',"God'sfürchtigen",'Behüte','Raubes',
+                                'escapeen','upkam','myte','chariotburg','brightn','tellergeist',
                     
                                 'abs','actio', 'agi', 'aliena', 'ambit','ambitio','amputa', 'anima','antiqui','apprehendi', 'argui','ascendi','attende','audi', 'aversio',
                                 'beati','bene','beneficia','bos',
@@ -861,13 +860,11 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                 'usu',      'valle','vani','varie','vas', 'venerat', 'victi','vis','visita','visitat','visitatio','vita', 'Voca','voca',
                                 '','',
                                 'l','nos','ut','didrachmas',
-                                'doem','liceat',
-                                    'palatii','queenm','edictum','muliebrem','acceptedebant','accidentallys','traditum','transferre','missæ','nece',
-                                    'res','knowti','boxnis','recordati','clange','reados','sectus','undis',
-                                    'lovese','meum','weres','multiformis','professio','reprimandse','halfnt','stringit','sendus','resttionum','namedm','beforeparavi','rightsverit',
+                                'augmentum','sayus','eatt','inobedience','meaningm','nudi','temporali','justificationem','killur',
+                                    'res','knowti','clange','reados','sectus','undis',
+                                    'lovese','meum','weres','multiformis','professio','','halfnt','stringit','sendus','resttionum','namedm','beforeparavi','rightsverit',
                                     'anathemate','fightrent','anys','habitndum',
-                                    'desperatio','threem','fundamento','weaktur','immemor','boastingm','loveem',
-                                    'cleansa','milkntium','lata','beforevalet','waitingur',
+                                    'equaltate','perfectio','leve','canit',
 
                                 )
                     else 'Info', DEBUGGING_THIS_MODULE, f'''  {word} is suspect @ {location}\n      from {cleanedTextToDisplay=}\n      WHICH GAVE cleanedTextToCheck={_truncate_for_display(cleanedTextToCheck,word)}''' )

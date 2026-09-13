@@ -96,7 +96,11 @@ pub fn build_word_table_snapshot_py<'py>(state: &Bound<'py, PyAny>) -> PyResult<
             for (index, row_item) in table.try_iter()?.enumerate() {
                 let row_item = row_item?;
                 let row: String = row_item.extract()?;
-                word_table.insert(index as i64 + 1, row.split('\t').map(str::to_string).collect());
+                // Sequence branch: the Python closure reads the table 0-based
+                //     (header at index 0, word N at list index N), so the snapshot
+                //     must key by the RAW index -- the earlier `+ 1` shifted every
+                //     key by one, mapping word 1 lookups onto the header row.
+                word_table.insert(index as i64, row.split('\t').map(str::to_string).collect());
             }
         }
         snapshot.insert(word_file_name, word_table);
