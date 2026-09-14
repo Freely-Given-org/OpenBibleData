@@ -45,6 +45,12 @@
 //!              The interrupted paragraph is closed first and only re-opened
 //!              when actual verse content ('v'/'v~') follows the remark, so a
 //!              trailing empty <p> is avoided.
+//!  2026-09-14: Parallel/interlinear verse-range branch now shows the full
+//!              bridged range once as a single styled verse number (e.g.
+//!              `<span class="v">21-22</span>`).  Previously it emitted the raw
+//!              range text "21-22" PLUS a span containing only the first number,
+//!              so the second number ("22") never appeared and the first was
+//!              shown twice.
 
 use crate::character_formatting::convert_usfm_character_formatting;
 use crate::constants::*;
@@ -561,7 +567,7 @@ where
                                 html.push(' ');
                             }
                             html.push_str(&format!(
-                                r#"{rest_str}<span class="v">{v1}</span>{THIN_SPACE}"#
+                                r#"<span class="v">{v}</span>{THIN_SPACE}"#
                             ));
                         } else {
                             let id_v1 = if segment_type == "dictVerse" { "" } else { &format!(" id=\"C{c}V{v1}\"") };
@@ -1910,6 +1916,36 @@ mod tests {
         );
         // The actual verse text should still come through from the v~ entry.
         assert!(result.contains("Now we offer praise."), "expected verse text, got:\n{result}");
+    }
+
+    #[test]
+    fn test_parallel_verse_range_displays_all_numbers_without_duplication() {
+        // Regression: on parallel and interlinear verse pages, a bridged verse
+        // range (`\v 21-22`) used to be emitted as the raw range text ("21-22")
+        // PLUS a `<span class="v">21</span>` showing only the first number:
+        //   …</span> 21-22<span class="v">21</span> <span class="OET-RV_verseTextChunk">…
+        // So the second number ("22") never appeared at all and the first was
+        // shown twice.  Now the whole range is shown once, styled as a verse
+        // number, and the text still comes from the following 'v~' entry.
+        let entries = vec![
+            VerseEntry { marker: "v".into(), full_text: "21-22".into(), clean_text: "21-22".into() },
+            VerseEntry { marker: "v~".into(), full_text: "That's because evil thoughts come from inside people's hearts.".into(), clean_text: "That's because evil thoughts come from inside people's hearts.".into() },
+            VerseEntry { marker: "\u{AC}v".into(), full_text: String::new(), clean_text: String::new() },
+        ];
+        let result = convert_verse_entry_list_to_html_core(
+            2, "OET-RV", "MRK", Some("7"), Some("21"),
+            "parallelVerse", &["p"], &entries, false, false,
+            no_op_char_fmt, no_op_fig, no_op_sect, no_op_avail, no_op_obi, no_op_check,
+        ).unwrap();
+        // Both bridged numbers appear once, together, styled as a verse number.
+        assert!(result.contains("<span class=\"v\">21-22</span>"),
+            "expected a single styled range number, got:\n{result}");
+        // The range must NOT be repeated as a raw text node before the span.
+        assert!(!result.contains("21-22<span class=\"v\">"),
+            "verse range number was emitted as stray text too: {result}");
+        // The verse text still comes through from the v~ entry.
+        assert!(result.contains("evil thoughts come from inside people"),
+            "expected verse text, got:\n{result}");
     }
 
     #[test]

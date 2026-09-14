@@ -51,10 +51,10 @@ from BibleOrgSys.BibleOrgSysGlobals import vPrint, fnPrint, dPrint, rreplace
 import bos_books_codes_py
 
 
-LAST_MODIFIED_DATE = '2026-09-11' # by RJH
+LAST_MODIFIED_DATE = '2026-09-14' # by RJH
 SHORT_PROGRAM_NAME = "spellCheckEnglish"
 PROGRAM_NAME = "English Bible Spell Check"
-PROGRAM_VERSION = '0.68'
+PROGRAM_VERSION = '0.69'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -797,7 +797,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                    'tashcheth','kindreds','tho','ynne','oute','wrooth','thei','hade','ioiyng',
                                    'diy','stablish','puplis','nyle','hertli','eet','saten','gileful','hertli','greces',
                                    'welde','moun','chees','bitake','Cursid','comen','wite','kitte','sien','kepen',
-                                   'standerd','purifie','ramme','blossome','beeues','polle','separateth','redeeme','halfe','awayn',
+                                   'standerd','penie','peny','purifie','ramme','blossome','beeues','polle','separateth','redeeme','halfe','awayn',
                                    'meynee','silverne','wem','heardn','herde','scall','hilide','wolden','brasun','thes','childed',
                                    'horon','gilead','edom',
                                         'thirtie','releasen','jealousi','fer','whereinto','euen','summe','defie',
@@ -813,13 +813,13 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                         'drinke','euidence','burne','fanne','returne','arme','dismaied',
                                         'wolfe','howle','leendis','abididen','sudenli','scryuen','boord','bischop','balme',
                                         'compassio','herdst','ark','arcke','arke',
-                                        'judgment','talentes','householdr','baptist','peny','honour','heaue','pur','gehenna','marvelled','lema','chamberlaynes','fastings','walke',
+                                        'judgment','talentes','householdr','baptist','honour','heaue','pur','gehenna','marvelled','chamberlaynes','fastings','walke',
 
                                    ) and 'PSA' not in location ) # coz Wycl versification doesn't usually match anyway
                             or 'twas' in word )
                         and word not in ('OK','NOT','SURE','TOO','LITERAL')
-                    # else 'Info', DEBUGGING_THIS_MODULE, f'''  {word} ({wordSetName}) is suspect @ {location}\nfrom {originalHTMLTextForDebugging=}\nfrom {cleanedTextToDisplay=}\nWHICH GAVE {cleanedTextToCheck=}''' )
-                    else 'Info', DEBUGGING_THIS_MODULE, f'''  {word} ({wordSetName}) is suspect @ {location}\n      from {cleanedTextToDisplay=}\n      WHICH GAVE cleanedTextToCheck={_truncate_for_display(cleanedTextToCheck,word)}''' )
+                    # else 'Info', DEBUGGING_THIS_MODULE, f'''  '{word}' ({wordSetName}) is suspect @ {location}\nfrom {originalHTMLTextForDebugging=}\nfrom {cleanedTextToDisplay=}\nWHICH GAVE {cleanedTextToCheck=}''' )
+                    else 'Info', DEBUGGING_THIS_MODULE, f'''  '{word}' ({wordSetName}) is suspect @ {location}\n      from {cleanedTextToDisplay=}\n      WHICH GAVE cleanedTextToCheck={_truncate_for_display(cleanedTextToCheck,word)}''' )
             else: # Luth or ClVg
                 cleanedTextToDisplay = cleanedTextToDisplay.replace('<span class="ClVg_verseTextChunk">','').replace('<div id="footnotesClVg" class="footnotes">\n','').replace('  ',' ').replace(' ',' ')
                 vPrint( 'Normal' if word.upper()==word
@@ -831,6 +831,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                 'Mal','mal','milde','mit','Mord','Natur','nun','nur',
                                 'rede','kam','Korb','ward','Rat','Rede','messen','ging','Halle','und','ster','streng','töte','tun','von','wer','zu','zwo',
                                 'escapeen','upkam','myte','chariotburg','brightn','tellergeist',
+                                    'Betet',
                     
                                 'abs','actio', 'agi', 'aliena', 'ambit','ambitio','amputa', 'anima','antiqui','apprehendi', 'argui','ascendi','attende','audi', 'aversio',
                                 'beati','bene','beneficia','bos',
@@ -846,7 +847,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                 'fac','falli', 'fel', 'figura','Finis','finis','fornicatio','forti','fugit','fur',     'generat','generatio',     'hellor','hoc','humili','humiliati',
                                 'ibi', 'illum','illuminat','illuminati','illuminatio', 'ima','impie', 'infirmi','inscriptio','insinuat','instructi',
                                     'indignati','intellige','intelligi','intentio','introduc','inventi','invoca','invocat','invocatio','Isaia','iter','Ite',
-                                'ja','jus','Justi','justi','justis','justificat',     'legi','legis','liberatio','liberati','liberato','liberat','libera','liber','locus','luna','lux',
+                                'ja','jus','Justi','justi','justis','justificat',     'legi','legis','leve','liberatio','liberati','liberato','liberat','libera','liber','locus','luna','lux',
                                 'magis','magnifice','magni', 'mane','manifeste','manu', 'mari','mater','materia',
                                     'media','medici','memor','memoria','menstrua','mens','menti','mentio',       'mira','misera','miseri',       'mora','moretri','mortali','morti',
                                 'nam','narrat','nati','natu','natura','ne','nece', 'nota','Nota',     'ob','obsessi', 'occasio', 'offen','omnis','operatio','opinio','ora','ori',
@@ -858,16 +859,14 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                     'si','signi','sit','sol','soli','solem','stat','statu', 'subjecti','summo','superstitio',
                                 'tempora','Tod','tradit','traditi','traditio','transito','transmigratio','tres','tribulatio','tributa','trium','tu','tua','tuam','turba',
                                 'usu',      'valle','vani','varie','vas', 'venerat', 'victi','vis','visita','visitat','visitatio','vita', 'Voca','voca',
-                                '','',
                                 'l','nos','ut','didrachmas',
-                                'augmentum','sayus','eatt','inobedience','meaningm','nudi','temporali','justificationem','killur',
-                                    'res','knowti','clange','reados','sectus','undis',
-                                    'lovese','meum','weres','multiformis','professio','','halfnt','stringit','sendus','resttionum','namedm','beforeparavi','rightsverit',
-                                    'anathemate','fightrent','anys','habitndum',
-                                    'equaltate','perfectio','leve','canit',
+                                'augmentum','sayus','eatt','inobedience','nudi','justificationem','killur',
+                                    'res','meum','professio','namedm','rightsverit','anathemate','fightrent','anys','perfectio',
+                                    'cruciatibus','believedis','knowns','confitens','spina','blasphemat','beforevisa',
+                                    'invitesos','crushur','avertantur','sudore',
 
                                 )
-                    else 'Info', DEBUGGING_THIS_MODULE, f'''  {word} is suspect @ {location}\n      from {cleanedTextToDisplay=}\n      WHICH GAVE cleanedTextToCheck={_truncate_for_display(cleanedTextToCheck,word)}''' )
+                    else 'Info', DEBUGGING_THIS_MODULE, f'''  '{word}' is suspect @ {location}\n      from {cleanedTextToDisplay=}\n      WHICH GAVE cleanedTextToCheck={_truncate_for_display(cleanedTextToCheck,word)}''' )
             if versionAbbreviation == 'Luth':
                 # if word=='alle': print( f"\n\nLUTH 'alle' from {originalHTMLTextForDebugging}\n{HTMLTextToCheck=}\n{cleanedTextToCheck=}\n{cleanedTextToDisplay}\n" )
                 BAD_GERMAN_WORD_SET.add( word )
