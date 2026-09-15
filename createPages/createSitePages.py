@@ -67,6 +67,7 @@ CHANGELOG:
                     they share one copy-on-write cache instead of each re-loading them.
     2026-09-01 Fixed some bad links on the details page(s)
     2026-09-04 Added a separate program version number string in State
+    2026-09-16 Replace assert quirk on program completion with a better summary
 """
 from pathlib import Path
 import os
@@ -98,10 +99,10 @@ from html import makeTop, makeViewNavListParagraph, makeBottom, checkHtml, prelo
 from spellCheckEnglish import printSpellCheckSummary
 
 
-LAST_MODIFIED_DATE = '2026-09-06' # by RJH
+LAST_MODIFIED_DATE = '2026-09-16' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData (OBD) Create Site Pages"
-PROGRAM_VERSION = '1.3.4'
+PROGRAM_VERSION = '1.3.5'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
@@ -1223,8 +1224,7 @@ if __name__ == '__main__':
     fullDemo()
 
     BibleOrgSysGlobals.closedown( PROGRAM_NAME, PROGRAM_VERSION )
-    print( f"\nThis build of the{' TEST' if state.TEST_MODE_FLAG else ''} site (which completed) was done with {'STRICT' if BibleOrgSysGlobals.strictCheckingFlag else 'NON-strict'} checking" )
-    WAS_ENABLED = False # Do this just so the next line displays more readably
-    assert WAS_ENABLED, "   and this build (WHICH COMPLETED) was done with ASSERT statements ENABLED."
-    print( "   and with assert statements DISABLED." )
+    print( f"\nThis build of the{' TEST' if state.TEST_MODE_FLAG else ''} site (which completed) was done with\n"
+           f"    {'STRICT' if BibleOrgSysGlobals.strictCheckingFlag else 'NON-strict'} BibleOrgSys checking and with asserts {f'ENABLED' if __debug__ else 'DISABLED'}.\n"
+           f"  Word pages {f'were' if state.REUSE_EXISTING_WORD_PAGES_FLAG else 'WERE NOT'} built." )
 # end of createSitePages.py

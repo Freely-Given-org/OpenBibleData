@@ -39,6 +39,7 @@ do_OET_RV_HTMLcustomisations( OET_RV_html:str ) -> str
 do_OET_LV_HTMLcustomisations( OET_LV_html:str ) -> str
 do_LSV_HTMLcustomisations( LSV_html:str ) -> str
 do_T4T_HTMLcustomisations( T4T_html:str ) -> str
+    (These four are implemented in Rust -- see createPages/Rust/src/html_customisations.rs.)
 briefDemo() -> None
 fullDemo() -> None
 main calls fullDemo()
@@ -98,6 +99,11 @@ CHANGELOG:
                 (so e.g. span.d from BibleWord.css isn't clobbered by p.d from common.css), and
                 treat an empty-string element entry (from generic selectors like '.hebVrb {')
                 as meaning 'any element' when checking each class.
+    2026-09-16 do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations
+                and do_T4T_HTMLcustomisations now delegate to the Rust byte-identical ports in
+                createPages/Rust/src/html_customisations.rs; the superseded Python implementations
+                (and the RV_ADD_REGEX, digitPunctDigitRegex and T4T_FOS_TYPES helpers they needed)
+                were removed.
 """
 import logging
 from datetime import datetime
@@ -112,6 +118,12 @@ import openbibledata_rust
 
 from settings import State, state
 from openbibledata_rust import getBBBFromOETBookName, checkHtml as _rustCheckHtml
+from openbibledata_rust import (
+    do_OET_RV_HTMLcustomisations as _rustDo_OET_RV_HTMLcustomisations,
+    do_OET_LV_HTMLcustomisations as _rustDo_OET_LV_HTMLcustomisations,
+    do_LSV_HTMLcustomisations as _rustDo_LSV_HTMLcustomisations,
+    do_T4T_HTMLcustomisations as _rustDo_T4T_HTMLcustomisations,
+)
 
 
 LAST_MODIFIED_DATE = '2026-09-08' # by RJH
@@ -610,7 +622,6 @@ def convert_adds_to_italics( htmlSegment:str, where:str|None=None ) -> str:
 # end of html.convert_adds_to_italics
 
 
-RV_ADD_REGEX = re.compile( '<span class="RVadd">' )
 def do_OET_RV_HTMLcustomisations( where:str, OET_RV_html:str ) -> str:
     """
     OET-RV is formatted in paragraphs.
@@ -620,84 +631,10 @@ def do_OET_RV_HTMLcustomisations( where:str, OET_RV_html:str ) -> str:
 
     See https://OpenEnglishTranslation.Bible/Resources/Formats for descriptions of add subfields.
     """
-    # assert '<span class="add">+' not in OET_RV_html # Only expected in OET-LV
-    # assert '<span class="add">-' not in OET_RV_html # Only expected in OET-LV # WE ALLOW IT NOW as HYPHEN (not as a special char)
-    assert '<span class="add">=' not in OET_RV_html # Only expected in OET-LV
-    # assert '<span class="add">?≡' not in OET_RV_html # Doesn't make sense -- used in PRO_21:18
-    # assert checkHtml( where, OET_RV_html, segmentOnly=True)
-
-    # testResult = (OET_RV_html \
-    #         # Adjust specialised add markers
-    #         .replace( '<span class="add">?<a title=', '<span class="RVadd unsure" title="added info (less certain)"><a title=' ) # Only happens in '\add ?' then a word that got a word number on it
-    #         .replace( '<span class="add">?<span', '<span class="RVadd unsure" title="added info (less certain)"><span' ) # Only happens in TEST_MODE with noLinkYet spans
-    #         .replace( '<span class="add">?<', '<span class="addDirectObject unsure" title="added direct object (less certain)">' )
-    #         .replace( '<span class="add"><span ', '__PROTECT_SPAN__' )
-    #         .replace( '<span class="add"><a title', '__PROTECT_A__' )
-    #         .replace( '<span class="add"><', '<span class="addDirectObject" title="added direct object">' )
-    #         .replace( '__PROTECT_A__', '<span class="add"><a title' )
-    #         .replace( '__PROTECT_SPAN__', '<span class="add"><span ' )
-    #         )
-    # if where == 'ParallelVerseTxt=JOB_24:1': print( f"{testResult=}\nfrom {OET_RV_html=}" )
-    # assert checkHtml( where, testResult, segmentOnly=True)
-
-    result = (OET_RV_html \
-            # Adjust specialised add markers
-            .replace( '<span class="add">?<a title=', '<span class="RVadd unsure" title="added info (less certain)"><a title=' ) # Only happens in '\add ?' then a word that got a word number on it
-            .replace( '<span class="add">?<span', '<span class="RVadd unsure" title="added info (less certain)"><span' ) # Only happens in TEST_MODE with noLinkYet spans
-            .replace( '<span class="add">?<', '<span class="addDirectObject unsure" title="added direct object (less certain)">' )
-            .replace( '<span class="add"><span ', '__PROTECT_SPAN__' )
-            .replace( '<span class="add"><a title', '__PROTECT_A__' )
-            .replace( '<span class="add"><', '<span class="addDirectObject" title="added direct object">' )
-            .replace( '__PROTECT_A__', '<span class="add"><a title' )
-            .replace( '__PROTECT_SPAN__', '<span class="add"><span ' )
-            .replace( '<span class="add">?>', '<span class="addExtra unsure" title="added implied info (less certain)">' )
-            .replace( '<span class="add">>', '<span class="addExtra" title="added implied info">' )
-            .replace( '<span class="add">?+', '<span class="addArticle unsure" title="added article (less certain)">' )
-            .replace( '<span class="add">+', '<span class="addArticle" title="added article">' )
-            .replace( '<span class="add">?≡', '<span class="addElided unsure" title="added elided info (less certain)">' )
-            .replace( '<span class="add">≡', '<span class="addElided" title="added elided info">' )
-            .replace( '<span class="add">?&', '<span class="addOwner unsure" title="added ‘owner’ (less certain)">' )
-            .replace( '<span class="add">&', '<span class="addOwner" title="added ‘owner’">' )
-            .replace( '<span class="add">?@', '<span class="addReferent unsure" title="inserted referent (less certain)">' )
-            .replace( '<span class="add">@', '<span class="addReferent" title="inserted referent">' )
-            .replace( '<span class="add">?*', '<span class="addPronoun unsure" title="used pronoun (less certain)">' )
-            .replace( '<span class="add">*', '<span class="addPronoun" title="used pronoun">' )
-            .replace( '<span class="add">?#', '<span class="addNumberChange unsure" title="changed number (less certain)">' )
-            .replace( '<span class="add">#', '<span class="addNumberChange" title="changed number">' )
-            .replace( '<span class="add">?%', '<span class="addPersonChange unsure" title="changed person (less certain)">' )
-            .replace( '<span class="add">%', '<span class="addPersonChange" title="changed person">' )
-            .replace( '<span class="add">?^', '<span class="addNegated unsure" title="negated (less certain)">' )
-            .replace( '<span class="add">^', '<span class="addNegated" title="negated">' )
-            .replace( '<span class="add">?≈', '<span class="addReword unsure" title="reworded (less certain)">' )
-            .replace( '<span class="add">≈', '<span class="addReword" title="reworded">' )
-            .replace( '<span class="add">?', '<span class="RVadd unsure" title="added info (less certain)">' )
-            .replace( '<span class="add">', '<span class="RVadd" title="added info">' )
-            .replace( '≈', '<span class="synonParr" title="synonymous parallelism">≈ </span>')
-            .replace( '^', '<span class="antiParr" title="antithetic parallelism">^ </span>')
-            .replace( '→', '<span class="synthParr" title="synthetic parallelism">→ </span>')
-            )
-    
-    # Just do an additional check inside '<span class="RVadd">' spans
-    startSearchIndex = 0
-    for _safetyCount in range( 3_000 ): # 2_000 wasn't enough
-        match = RV_ADD_REGEX.search( result, startSearchIndex )
-        if not match: break
-        startSearchIndex = match.end()
-        # print( f"{startSearchIndex=} {nextChar=} {result[match.start():match.start()+30]}" )
-        nextChars = result[startSearchIndex:]
-        if not ( nextChars.startswith( '<a title' )
-                or nextChars.startswith( '<span class="wj">' ) or nextChars.startswith( '<span class="nominaSacra">') ):
-            nextChar = result[startSearchIndex]
-            # NOTE: 1/ 2/ 3/ are used in OET-RV EXO 23
-            assert nextChar.isalpha() or nextChar in '(,‘’—123☺', f"{startSearchIndex=} {nextChar=} {result[match.start():match.start()+80]}"
-    else: NOT_ENOUGH_LOOPS
-
-    assert checkHtml( where, result, segmentOnly=True)
-    return result
+    return _rustDo_OET_RV_HTMLcustomisations( where, OET_RV_html )
 # end of html.do_OET_RV_HTMLcustomisations
 
 
-digitPunctDigitRegex = re.compile( '[0-9][:.][0-9]' )
 def do_OET_LV_HTMLcustomisations( where:str, OET_LV_html:str ) -> str:
     """
     OET-LV is often formatted as a new line for each sentence.
@@ -707,96 +644,7 @@ def do_OET_LV_HTMLcustomisations( where:str, OET_LV_html:str ) -> str:
 
     See https://OpenEnglishTranslation.Bible/Resources/Formats for descriptions of add subfields.
     """
-    assert '<br>\n' not in OET_LV_html
-    assert '\n<br></p>' not in OET_LV_html and '\n<br></span>' not in OET_LV_html, f"Wasted <br> in {OET_LV_html=}"
-
-    # Preserve the colon in times like 12:30 and in C:V and v0.1 fields
-    searchStartIndex = 0
-    while True: # Look for links that we could maybe liven
-        match = digitPunctDigitRegex.search( OET_LV_html, searchStartIndex )
-        if not match:
-            break
-        guts = match.group(0) # Entire match
-        assert len(guts)==3 and (guts.count(':') + guts.count('.'))==1
-        OET_LV_html = f'''{OET_LV_html[:match.start()]}{guts.replace(':','~~COLON~~',1).replace('.','~~PERIOD~~',1)}{OET_LV_html[match.end():]}'''
-        searchStartIndex = match.end() + 8 # We've added that many characters
-
-    assert '<span class="add">-' not in OET_LV_html # Only expected in OET-RV
-    assert '<span class="add">*' not in OET_LV_html # Only expected in OET-RV
-    assert '<span class="add">@' not in OET_LV_html # Only expected in OET-RV
-    assert '<span class="add">~' not in OET_LV_html # Only expected in OET-RV
-    assert '<span class="add">≈' not in OET_LV_html # Only expected in OET-RV
-    assert '<span class="add">?' not in OET_LV_html # Only expected in OET-RV
-            # .replace( '<span class="add">-', '<span class="unusedArticle">' )
-    OET_LV_html = (OET_LV_html \
-            # Protect fields we need to preserve
-            .replace( '_V', '~~ULINE~~V' ).replace( '_verseText', '~~ULINE~~verseText' )
-            .replace( '<!--', '~~COMMENT~~' )
-            .replace( '../', '~~PERIOD~~~~PERIOD~~/' ) # Protect paths like ../../somewhere.htm
-            .replace( '.htm', '~~PERIOD~~htm' ).replace( 'https:', 'https~~COLON~~' )
-            .replace( '.org', '~~PERIOD~~org' ).replace( '.tsv', '~~PERIOD~~tsv' )
-            # .replace( 'v0.', 'v0~~PERIOD~~' )
-            .replace( '.\\f*', '~~PERIOD~~\\f*' ).replace( 'Note:', 'Note~~COLON~~').replace( '."', '~~PERIOD~~"' ) # These last two are inside the footnote callers
-            # In <hr>
-            .replace( 'width:', 'width~~COLON~~' ).replace( 'margin-left:', 'margin-left~~COLON~~' ).replace( 'margin-top:', 'margin-top~~COLON~~' )
-            # Make each sentence start a new line
-            .replace( '.', '.\n<br>' ).replace( '?', '?\n<br>' ) # NOTE: DANGEROUS if periods in HMTL title fields (like morphology), etc.
-            .replace( '!', '!\n<br>' ).replace( ':', ':\n<br>' )
-            # Adjust specialised add markers
-            .replace( '<span class="add">+', '<span class="addArticle">' )
-            .replace( '<span class="add">=', '<span class="addCopula">' )
-            .replace( '<span class="add"><a title', '~~PROTECT~~' )
-            .replace( '<span class="add"><', '<span class="addDirectObject">' )
-            .replace( '~~PROTECT~~', '<span class="add"><a title' )
-            .replace( '<span class="add">>', '<span class="addExtra">' )
-            .replace( '<span class="add">&', '<span class="addOwner">' )
-            # Put all underlines into a span with a class (then we will have a button to hide them)
-            .replace( '="', '~~EQUAL"' ) # Protect class=, id=, etc.
-            .replace( '=', '_' ).replace( '÷', '_' ) # For OT morphemes
-            .replace( '~~EQUAL"', '="' ) # Unprotect class=, id=, etc.
-            .replace( '_', '<span class="ul">_</span>') # THIS IS ONE THAT CAN OVERREACH
-            # Now unprotect everything again
-            .replace( '--fnUNDERLINE--', '_' ).replace( '--fnEQUAL--', '=' ).replace( '--fnCOLON--', ':' ).replace( '--fnPERIOD--', '.' ) # Unprotect sanitised footnotes (see usfm.py)
-            .replace( '~~COMMENT~~', '<!--' )
-            .replace( '~~ULINE~~', '_' ).replace( '~~COLON~~', ':' ).replace( '~~PERIOD~~', '.' )
-            # TODO: Not sure that this is the best place to do this next one for the OT
-            .replace( ' DOM ',' <span class="dom">DOM</span> ')
-            )
-    # TODO: I was unable to figure out why this is happening to one particular exegesis footnote in 2 Kings 6:25
-    # assert '\n<br></p>' not in OET_LV_html and '\n<br></span>' not in OET_LV_html, f"Wasted <br> in {OET_LV_html=}"
-    OET_LV_html = OET_LV_html.replace( '\n<br></span></span></p>', '</span></span></p>' ).replace( '\n<br></span></p>', '</span></p>' ).replace( '\n<br></p>', '</p>' )
-    # The punctuation replacement above turns every period into ".\n<br>", so a
-    # sentence that ends a verse-text-chunk leaves the <br> right before that
-    # chunk's closing </span> (e.g. "...them.\n<br></span>"). Move the closing
-    # </span> before the <br> so the span still wraps its text cleanly and the
-    # <br> just breaks the line for the next verse.
-    OET_LV_html = OET_LV_html.replace( '\n<br></span>', '</span>\n<br>' )
-    # Paragraph-less verse flows (OET-LV, BLB, ...) have every verse wrapped by
-    # the Rust converter in its own <div class="verseText"> block (closed as
-    # "</div><!--verseText-->").  The punctuation replacement above can likewise
-    # leave a sentence-ending <br> right before that block's closing tag
-    # (e.g. "...them.</span>\n<br></div><!--verseText-->").  Move the whole
-    # closing block (div + its comment) before the <br> so it stays contiguous;
-    # the trailing <br> is then redundant and dropped by the next replacement.
-    OET_LV_html = OET_LV_html.replace( '\n<br></div><!--verseText-->', '</div><!--verseText-->\n<br>' )
-    # The move above can leave that <br> right before a following newline (e.g.
-    # when the last verse is followed by the footnote <hr>, which starts on its
-    # own line: "...them.</span>\n<br>\n<hr..."). checkHtml rejects a <br> that is
-    # immediately followed by a newline, and such a <br> is redundant anyway
-    # (an empty line), so drop it.
-    OET_LV_html = OET_LV_html.replace( '\n<br>\n', '\n' )
-
-    # Tidyup
-    if OET_LV_html.endswith( '\n' ): OET_LV_html = OET_LV_html[:-1] # We don't end our html with a newline
-    if OET_LV_html.endswith( '<br>' ):
-        OET_LV_html = OET_LV_html[:-4] # We don't end our html with a newline
-        if OET_LV_html[-1] == '\n': OET_LV_html = OET_LV_html[:-1] # We don't end our html with a newline
-
-    # assert '+' not in html, f"{html[html.index('+')-20:html.index('+')+30]}"
-    # assert '^' not in html, f"{html[html.index('^')-20:html.index('^')+30]}"
-    # assert '<span class="add">' not in html, f'''{html[html.index('<span class="add">')-20:html.index('<span class="add">')+50]}'''
-    assert checkHtml( f"do_OET_LV_HTMLcustomisations {where=}", OET_LV_html, segmentOnly=True )
-    return OET_LV_html
+    return _rustDo_OET_LV_HTMLcustomisations( where, OET_LV_html )
 # end of html.do_OET_LV_HTMLcustomisations
 
 
@@ -807,14 +655,10 @@ def do_LSV_HTMLcustomisations( where:str, LSV_html:str ) -> str:
 
     We need to change the two parallel lines to <br>.
     """
-    return LSV_html.replace( ' || ', '<br>' ).replace( '||', '<br>' ) # Second one catches any source inconsistencies
+    return _rustDo_LSV_HTMLcustomisations( where, LSV_html )
 # end of html.do_LSV_HTMLcustomisations
 
 
-T4T_FOS_TYPES = ( ('APO','apostrophe'), ('CHI','chiasmus'), ('DOU','doublet'), ('EUP','euphemism'),
-                ('HEN','hendiadys'), ('HYP','hyperbole'), ('IDM','idiom'), ('IRO','irony'), ('LIT','litotes'),
-                ('MET','metaphor'), ('MTY','metonymy'), ('PRS','personification'), ('RHQ','rhetorical question'),
-                ('SIM','simile'), ('SYM','symbol'), ('SAR','sarcasm'), ('SYN','synecdoche'), ('TRI','triple') )
 def do_T4T_HTMLcustomisations( where:str, T4T_html:str ) -> str:
     """
     T4T has:
@@ -840,33 +684,7 @@ def do_T4T_HTMLcustomisations( where:str, T4T_html:str ) -> str:
             [TRI] = triple
     It also has things like [EUP, MTY] and [EUP/MTY]
     """
-    if '[' in T4T_html or ']' in T4T_html:
-        T4T_html = (T4T_html
-                    .replace( '[SIL]', '[SIM]' ) # Error in Psa 63:1
-                    .replace( 'birth MET]', 'birth [MET]' ) # Error in Mat 24:8
-                    )
-        for FoS,fosType in T4T_FOS_TYPES:
-            fullFoS = f'[{FoS}]'
-            T4T_html = T4T_html.replace( fullFoS, f'<span class="t4tFoS" title="{fosType} (figure of speech)">LEFTBRACKET{FoS}RIGHTBRACKET</span>' )
-        if '[' in T4T_html: # still (we don't want to run these nested loops unnecessarily, especially for something that occurs relatively rarely)
-            for FoS1,fosType1 in T4T_FOS_TYPES:
-                for FoS2,fosType2 in T4T_FOS_TYPES:
-                    if FoS2 != FoS1:
-                        # T4T is not consistent here in use of commas and forward slashes
-                        fullFoSs = f'[{FoS1}, {FoS2}]'
-                        T4T_html = T4T_html.replace( fullFoSs, f'LEFTBRACKET<span class="t4tFoS" title="{fosType1} (figure of speech)">{FoS1}</span>, <span class="t4tFoS" title="{fosType2} (figure of speech)">{FoS2}</span>RIGHTBRACKET' )
-                        fullFoSs = f'[{FoS1}/{FoS2}]'
-                        T4T_html = T4T_html.replace( fullFoSs, f'LEFTBRACKET<span class="t4tFoS" title="{fosType1} (figure of speech)">{FoS1}</span>/<span class="t4tFoS" title="{fosType2} (figure of speech)">{FoS2}</span>RIGHTBRACKET' )
-            # Double-check that we got them all
-            for FoS1,fosType1 in T4T_FOS_TYPES:
-                for FoS2,fosType2 in T4T_FOS_TYPES:
-                    if FoS2 != FoS1:
-                        # if 'GEN_13' not in where and 'GEN_25' not in where and 'GEN_48' not in where \
-                        # and 'MRK_2' not in where and 'MRK_16' not in where:
-                        assert f'[{FoS1}' not in T4T_html, f"[{FoS1} {where} {T4T_html}"
-                        assert f'{FoS2}]' not in T4T_html, f"{FoS2}] {where} {T4T_html}"
-        T4T_html = T4T_html.replace( 'LEFTBRACKET', '[' ).replace( 'RIGHTBRACKET', ']' )
-    return T4T_html.replace( '◄', '<span title="alternative translation">◄</span>' )
+    return _rustDo_T4T_HTMLcustomisations( where, T4T_html )
 # end of html.do_T4T_HTMLcustomisations
 
 

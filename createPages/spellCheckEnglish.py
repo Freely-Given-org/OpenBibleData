@@ -860,10 +860,9 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                 'tempora','Tod','tradit','traditi','traditio','transito','transmigratio','tres','tribulatio','tributa','trium','tu','tua','tuam','turba',
                                 'usu',      'valle','vani','varie','vas', 'venerat', 'victi','vis','visita','visitat','visitatio','vita', 'Voca','voca',
                                 'l','nos','ut','didrachmas',
-                                'beque','hac','everyoneque','internæ','mentiri','testimonys',
-                                    'res','meum','professio','namedm','','anathemate','','anys','perfectio',
-                                    'cleannis','volui','surviveur',
-                                    'audent','sexagesimum','sini',
+                                'hac','everyoneque','mentiri','testimonys',
+                                    'res','meum','professio','namedm','anathemate','anys','perfectio','begnia','crushedt','redemptio','mysteryus','illuminationm',
+                                    'separabit','kidss','comparesus','confutantur','discernat',
 
                                 )
                     else 'Info', DEBUGGING_THIS_MODULE, f'''  '{word}' is suspect @ {location}\n      from {cleanedTextToDisplay=}\n      WHICH GAVE cleanedTextToCheck={_truncate_for_display(cleanedTextToCheck,word)}''' )

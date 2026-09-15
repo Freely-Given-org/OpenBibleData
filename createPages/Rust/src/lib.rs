@@ -10,7 +10,8 @@ use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex, OnceLock};
 
 use pyo3::exceptions::{
-    PyAssertionError, PyIndexError, PyKeyError, PyTypeError, PyUnboundLocalError, PyValueError,
+    PyAssertionError, PyIndexError, PyKeyError, PyNameError, PyTypeError, PyUnboundLocalError,
+    PyValueError,
 };
 use pyo3::prelude::*;
 use pyo3::types::PyAny;
@@ -26,6 +27,7 @@ pub mod reference_pages;
 pub mod roman_numerals;
 pub mod section_numbers;
 pub mod character_formatting;
+pub mod html_customisations;
 pub mod html_validation;
 pub mod xref_links;
 pub mod verse_to_html;
@@ -1081,6 +1083,8 @@ fn err_to_pyerr(message: String) -> PyErr {
         PyValueError::new_err(rest.trim_start().to_string())
     } else if let Some(rest) = message.strip_prefix("UnboundLocalError:") {
         PyUnboundLocalError::new_err(rest.trim_start().to_string())
+    } else if let Some(rest) = message.strip_prefix("NameError:") {
+        PyNameError::new_err(rest.trim_start().to_string())
     } else {
         PyValueError::new_err(message)
     }
@@ -1765,6 +1769,34 @@ fn build_interlinear_word_rows_py(
     )
 }
 
+/// PyO3 wrapper for `html_customisations::do_oet_rv_html_customisations`.
+#[pyfunction(name = "do_OET_RV_HTMLcustomisations", signature = (where_, html))]
+#[allow(non_snake_case)]
+fn do_oet_rv_html_customisations_py(where_: &str, html: &str) -> PyResult<String> {
+    html_customisations::do_oet_rv_html_customisations(where_, html).map_err(err_to_pyerr)
+}
+
+/// PyO3 wrapper for `html_customisations::do_oet_lv_html_customisations`.
+#[pyfunction(name = "do_OET_LV_HTMLcustomisations", signature = (where_, html))]
+#[allow(non_snake_case)]
+fn do_oet_lv_html_customisations_py(where_: &str, html: &str) -> PyResult<String> {
+    html_customisations::do_oet_lv_html_customisations(where_, html).map_err(err_to_pyerr)
+}
+
+/// PyO3 wrapper for `html_customisations::do_lsv_html_customisations`.
+#[pyfunction(name = "do_LSV_HTMLcustomisations", signature = (where_, html))]
+#[allow(non_snake_case)]
+fn do_lsv_html_customisations_py(where_: &str, html: &str) -> String {
+    html_customisations::do_lsv_html_customisations(where_, html)
+}
+
+/// PyO3 wrapper for `html_customisations::do_t4t_html_customisations`.
+#[pyfunction(name = "do_T4T_HTMLcustomisations", signature = (where_, html))]
+#[allow(non_snake_case)]
+fn do_t4t_html_customisations_py(where_: &str, html: &str) -> PyResult<String> {
+    html_customisations::do_t4t_html_customisations(where_, html).map_err(err_to_pyerr)
+}
+
 #[pymodule]
 fn openbibledata_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(liven_introduction_links_py, m)?)?;
@@ -1794,6 +1826,10 @@ fn openbibledata_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(remove_duplicate_fnids_py, m)?)?;
     m.add_function(wrap_pyfunction!(build_interlinear_word_rows_py, m)?)?;
     m.add_function(wrap_pyfunction!(word_table_snapshot::build_word_table_snapshot_py, m)?)?;
+    m.add_function(wrap_pyfunction!(do_oet_rv_html_customisations_py, m)?)?;
+    m.add_function(wrap_pyfunction!(do_oet_lv_html_customisations_py, m)?)?;
+    m.add_function(wrap_pyfunction!(do_lsv_html_customisations_py, m)?)?;
+    m.add_function(wrap_pyfunction!(do_t4t_html_customisations_py, m)?)?;
     m.add_function(wrap_pyfunction!(reference_pages::format_nt_spans_gloss_words_py, m)?)?;
     m.add_function(wrap_pyfunction!(reference_pages::convert_hebrew_word_gloss_spans_py, m)?)?;
     m.add_function(wrap_pyfunction!(reference_pages::tidy_hebrew_morphology_py, m)?)?;

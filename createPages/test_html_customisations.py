@@ -4,10 +4,19 @@
 # test_html_customisations.py
 #
 # Tests for the html.py customisation functions.
+#
+# do_OET_RV_*, do_OET_LV_*, do_LSV_* and do_T4T_* now delegate to byte-identical
+# Rust ports (createPages/Rust/src/html_customisations.rs); the expected outputs
+# below were captured from the Python originals so they pin the byte-identity.
 
 import unittest
 
-from html import do_OET_LV_HTMLcustomisations
+from html import (
+    do_OET_RV_HTMLcustomisations,
+    do_OET_LV_HTMLcustomisations,
+    do_LSV_HTMLcustomisations,
+    do_T4T_HTMLcustomisations,
+)
 
 
 class TestOETLVVerseChunkClosingSpanPlacement(unittest.TestCase):
@@ -73,6 +82,99 @@ class TestOETLVVerseTextDivBrPlacement(unittest.TestCase):
         self.assertNotIn(f'<br>{NEWLINE}</div><!--verseText-->', out)
         # The <div> blocks remain balanced.
         self.assertEqual(out.count('<div class="verseText">'), out.count("</div><!--verseText-->"))
+
+
+class TestOETRVHTMLcustomisations(unittest.TestCase):
+    """OET-RV '/add' subfield markers and poetry parallelism symbols."""
+
+    def test_plain_add(self):
+        self.assertEqual(
+            do_OET_RV_HTMLcustomisations('test', '<span class="add">word</span>'),
+            '<span class="RVadd" title="added info">word</span>')
+
+    def test_unsure_add(self):
+        self.assertEqual(
+            do_OET_RV_HTMLcustomisations('test', '<span class="add">?<a title="x">w</a></span>'),
+            '<span class="RVadd unsure" title="added info (less certain)"><a title="x">w</a></span>')
+
+    def test_direct_object(self):
+        self.assertEqual(
+            do_OET_RV_HTMLcustomisations('test', '<span class="add"><strong>x</strong></span>'),
+            '<span class="addDirectObject" title="added direct object">strong>x</strong></span>')
+
+    def test_symbol_chain(self):
+        input_html = ('<span class="add">?><span class="add">><span class="add">?+'
+                      '<span class="add">+</span></span></span></span>')
+        expected = ('<span class="addExtra unsure" title="added implied info (less certain)">'
+                    '<span class="addExtra" title="added implied info">'
+                    '<span class="addArticle unsure" title="added article (less certain)">'
+                    '<span class="addArticle" title="added article"></span></span></span></span>')
+        self.assertEqual(do_OET_RV_HTMLcustomisations('test', input_html), expected)
+
+    def test_parallelism_markers(self):
+        out = do_OET_RV_HTMLcustomisations('test', '≈ and ^ and →')
+        nnbs = '\u202f'
+        self.assertIn(f'<span class="synonParr" title="synonymous parallelism">≈{nnbs}</span>', out)
+        self.assertIn(f'<span class="antiParr" title="antithetic parallelism">^{nnbs}</span>', out)
+        self.assertIn(f'<span class="synthParr" title="synthetic parallelism">→{nnbs}</span>', out)
+
+    def test_preexisting_rvadd_left_untouched(self):
+        self.assertEqual(
+            do_OET_RV_HTMLcustomisations('test', '<span class="RVadd"><span class="wj">w</span></span>'),
+            '<span class="RVadd"><span class="wj">w</span></span>')
+
+
+class TestOETLVHTMLcustomisations(unittest.TestCase):
+    """OET-LV sentence-per-line breaking with field protection."""
+
+    def test_digit_punct_digit_preserved(self):
+        self.assertEqual(do_OET_LV_HTMLcustomisations('test', '12:30 and JOB_1:2 and v0.1'),
+                         '12:30 and JOB<span class="ul">_</span>1:2 and v0.1')
+
+    def test_paths_and_backslash_f_preserved(self):
+        self.assertEqual(
+            do_OET_LV_HTMLcustomisations('test', r'../x.htm and ../../y.org/index.html and data.tsv and z.\f*'),
+            r'../x.htm and ../../y.org/index.html and data.tsv and z.\f*')
+
+    def test_add_markers(self):
+        input_html = ('<span class="add">+art</span><span class="add">=cop</span>'
+                      '<span class="add"><a title="x">deep</a></span><span class="add"><x></span>'
+                      '<span class="add">>extra</span><span class="add">&own</span>')
+        expected = ('<span class="addArticle">art</span><span class="addCopula">cop</span>'
+                    '<span class="add"><a title="x">deep</a></span>'
+                    '<span class="addDirectObject">x></span>'
+                    '<span class="addExtra">extra</span><span class="addOwner">own</span>')
+        self.assertEqual(do_OET_LV_HTMLcustomisations('test', input_html), expected)
+
+
+class TestLSVHTMLcustomisations(unittest.TestCase):
+    """LSV parallel lines ' || ' become <br>."""
+
+    def test_spaced_double_pipes(self):
+        self.assertEqual(do_LSV_HTMLcustomisations('test', 'a || b'), 'a<br>b')
+
+    def test_tight_double_pipes(self):
+        self.assertEqual(do_LSV_HTMLcustomisations('test', 'x||y'), 'x<br>y')
+
+
+class TestT4THTMLcustomisations(unittest.TestCase):
+    """T4T figure-of-speech codes and '◄' alternative markers."""
+
+    def test_single_fos(self):
+        self.assertEqual(
+            do_T4T_HTMLcustomisations('test', 'world [SYM] so much'),
+            'world <span class="t4tFoS" title="symbol (figure of speech)">[SYM]</span> so much')
+
+    def test_fos_pair(self):
+        self.assertEqual(
+            do_T4T_HTMLcustomisations('test', '[APO, CHI]'),
+            '[<span class="t4tFoS" title="apostrophe (figure of speech)">APO</span>, '
+            '<span class="t4tFoS" title="chiasmus (figure of speech)">CHI</span>]')
+
+    def test_alternative_marker(self):
+        self.assertEqual(
+            do_T4T_HTMLcustomisations('test', 'No figures here. ◄'),
+            'No figures here. <span title="alternative translation">◄</span>')
 
 
 if __name__ == '__main__':
