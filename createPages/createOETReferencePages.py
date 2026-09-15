@@ -127,6 +127,7 @@ OTLemmaGlossesDict/OTLemmaGlossesCountDict are now populated during
                 HEBREW_*_TYPE_TABLE constants are still defined here because createParallelVersePages
                 imports six of the OSHB_* dicts, but the Rust module embeds its own copies.
     2026-09-11  Changed formatting of nomina sacra span
+    2026-09-15 ESFM word-link livening is now fused (single-pass) into openbibledata_rust.convertVerseEntryListToHtml via its new livenWordLinks kwarg, so the old livenOETWordLinks pre-calls in get_OET_LV_verse_HTML/get_OET_RV_verse_HTML have been removed.
   """
 from pathlib import Path
 import os
@@ -155,7 +156,7 @@ from settings import State, state, CNTR_BOOK_ID_MAP
 from html import makeTop, makeBottom, checkHtml, do_OET_LV_HTMLcustomisations, do_OET_RV_HTMLcustomisations
 from createSectionPages import findSectionNumber
 import openbibledata_rust
-from openbibledata_rust import convertVerseEntryListToHtml, getOETTidyBBB, getOETBookName, getHebrewWordpageFilename, getGreekWordpageFilename, livenOETWordLinks, formatNTSpansGlossWords, convertHebrewWordGlossSpans, tidyHebrewMorphology, tidyHebrewLemmaGloss, tidyGlossOfGreekWord, tidyGreekLemmaGloss, livenStrongsRefs
+from openbibledata_rust import convertVerseEntryListToHtml, getOETTidyBBB, getOETBookName, getHebrewWordpageFilename, getGreekWordpageFilename, formatNTSpansGlossWords, convertHebrewWordGlossSpans, tidyHebrewMorphology, tidyHebrewLemmaGloss, tidyGlossOfGreekWord, tidyGreekLemmaGloss, livenStrongsRefs
 
 
 LAST_MODIFIED_DATE = '2026-09-11' # by RJH
@@ -1590,9 +1591,8 @@ def get_OET_LV_verse_HTML( level:int, BBB:str, C:str, V:str ) -> str:
     thisBible = state.preloadedBibles['OET-LV']
     try: verseEntryList, contextList = thisBible.getContextVerseData( (BBB,C,V) ) # Can return None if the book doesn't exist, but that shouldn't happen here
     except KeyError: return ''
-    verseEntryList = livenOETWordLinks( level, thisBible, (BBB,C,V), verseEntryList, state ) 
     # 'dictVerse' causes all footnotes and xrefs to be fully removed
-    textHtml = convertVerseEntryListToHtml( level, 'OET-LV', (BBB,C,V), 'dictVerse', contextList, verseEntryList, basicOnly=True, state=state )
+    textHtml = convertVerseEntryListToHtml( level, 'OET-LV', (BBB,C,V), 'dictVerse', contextList, verseEntryList, basicOnly=True, state=state, livenWordLinks=True )
     assert 'footnotes' not in textHtml and 'fnCaller' not in textHtml
     assert ' </span>' not in textHtml, f"OET-LV {BBB}_{C}:{V} {textHtml=}"
     textHtml = do_OET_LV_HTMLcustomisations( f"DictVerse={BBB}_{C}:{V}", textHtml ).replace( '<br>', ' ' ) # Replace newline (between sentences) with em-space to make these verses display more compactly
@@ -1609,9 +1609,8 @@ def get_OET_RV_verse_HTML( level:int, BBB:str, C:str, V:str ) -> str:
     thisBible = state.preloadedBibles['OET-RV']
     try: verseEntryList, contextList = thisBible.getContextVerseData( (BBB,C,V) )
     except KeyError: return ''
-    verseEntryList = livenOETWordLinks( level, thisBible, (BBB,C,V), verseEntryList, state )
     # 'dictVerse' causes all footnotes and xrefs to be fully removed
-    textHtml = convertVerseEntryListToHtml( level, 'OET-RV', (BBB,C,V), 'dictVerse', contextList, verseEntryList, basicOnly=True, state=state )
+    textHtml = convertVerseEntryListToHtml( level, 'OET-RV', (BBB,C,V), 'dictVerse', contextList, verseEntryList, basicOnly=True, state=state, livenWordLinks=True )
     assert 'footnotes' not in textHtml and 'fnCaller' not in textHtml
     assert ' </span>' not in textHtml, f"OET-RV {BBB}_{C}:{V} {textHtml=}"
     textHtml = do_OET_RV_HTMLcustomisations( f"DictVerse={BBB}_{C}:{V}", textHtml )

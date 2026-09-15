@@ -44,6 +44,7 @@ CHANGELOG:
     2026-08-22 Import convertVerseEntryListToHtml directly from openbibledata_rust (convert.py deleted)
     2026-08-25 The OETHandlers functions are now imported from the Rust openbibledata_rust module (the Python OETHandlers.py was deleted).
     2026-09-01 Fixed bad links on second book index page
+    2026-09-15 ESFM word-link livening is now fused (single-pass) into openbibledata_rust.convertVerseEntryListToHtml via its new livenWordLinks/addNoLinkYetSpans keyword args. The RV interlinear call explicitly passes addNoLinkYetSpans=False to replicate the old quirk where lvBible was (wrongly) passed to the liven, disabling the TEST_MODE OET-RV noLinkYet gate.
 
 TODO:
     Add colour keys for LV and RV words
@@ -66,7 +67,7 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
                     makeTop, makeBottom, makeBookNavListParagraph, checkHtml
 from createSectionPages import findSectionNumber
 from jsonResources import getFormattedSILOpenTranslationNotes
-from openbibledata_rust import convertVerseEntryListToHtml, livenOETWordLinks, getOETBookName, getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename, splitOETLVInterlinearWords, splitOETRVInterlinearWords, buildInterlinearWordRows
+from openbibledata_rust import convertVerseEntryListToHtml, getOETBookName, getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename, splitOETLVInterlinearWords, splitOETRVInterlinearWords, buildInterlinearWordRows
 
 
 LAST_MODIFIED_DATE = '2026-09-09' # by RJH
@@ -347,8 +348,7 @@ def createOETInterlinearVerseInner( level:int, BBB:str, c:int, v:int, state:Stat
 
     try:
         lvVerseEntryList, lvContextList = lvBible.getContextVerseData( (BBB,C,V) )
-        livenedLvVerseEntryList = livenOETWordLinks( level, lvBible, (BBB,C,V), lvVerseEntryList, state )
-        lvTextHtml = do_OET_LV_HTMLcustomisations( f'Interlinear={BBB}_{C}:{V}', convertVerseEntryListToHtml( level, 'OET-LV', (BBB,C,V), 'interlinearVerse', lvContextList, livenedLvVerseEntryList, basicOnly=True, state=state ) )
+        lvTextHtml = do_OET_LV_HTMLcustomisations( f'Interlinear={BBB}_{C}:{V}', convertVerseEntryListToHtml( level, 'OET-LV', (BBB,C,V), 'interlinearVerse', lvContextList, lvVerseEntryList, basicOnly=True, state=state, livenWordLinks=True ) )
         lvTextHtml = lvTextHtml.replace( 'id="footnotes', 'id="footnotesLV' ).replace( 'id="crossRefs', 'id="crossRefsLV' ).replace( 'id="fn', 'id="fnLV' ).replace( 'href="#fn', 'href="#fnLV' )
         lvHtml = f'''<div class="LV"><p class="LV"><span class="wrkName"><a title="View {state.BibleNames['OET']} section" href="{'../'*level}OET/bySec/{BBB}_S{sectionNumber}.htm#V{V}">OET</a> (<a title="{state.BibleNames['OET-LV']}" href="{'../'*level}OET-LV/byC/{BBB}_C{C}.htm#V{V}">OET-LV</a>)</span> {lvTextHtml}</p></div><!--LV-->'''
     except (KeyError, TypeError):
@@ -362,8 +362,9 @@ def createOETInterlinearVerseInner( level:int, BBB:str, c:int, v:int, state:Stat
         lvVerseEntryList = []
     try:
         rvVerseEntryList, rvContextList = rvBible.getContextVerseData( (BBB,C,V) )
-        livenedRvVerseEntryList = livenOETWordLinks( level, lvBible, (BBB,C,V), rvVerseEntryList, state )
-        rvTextHtml = do_OET_RV_HTMLcustomisations( f'Interlinear={BBB}_{C}:{V}', convertVerseEntryListToHtml( level, 'OET-RV', (BBB,C,V), 'interlinearVerse', rvContextList, livenedRvVerseEntryList, basicOnly=True, state=state ) )
+        # NOTE: The old code used lvBible for the liven (a quirk), so no TEST_MODE OET-RV
+        # noLinkYet highlighting/preprocessing ever ran here -- we replicate that with addNoLinkYetSpans=False.
+        rvTextHtml = do_OET_RV_HTMLcustomisations( f'Interlinear={BBB}_{C}:{V}', convertVerseEntryListToHtml( level, 'OET-RV', (BBB,C,V), 'interlinearVerse', rvContextList, rvVerseEntryList, basicOnly=True, state=state, livenWordLinks=True, addNoLinkYetSpans=False ) )
         rvTextHtml = rvTextHtml.replace( 'id="footnotes', 'id="footnotesRV' ).replace( 'id="crossRefs', 'id="crossRefsRV' ).replace( 'id="fn', 'id="fnRV' ).replace( 'href="#fn', 'href="#fnRV' )
         rvHtml = f'''<div class="RV"><p class="RV"><span class="wrkName"><a title="View {state.BibleNames['OET']} section" href="{'../'*level}OET/bySec/{BBB}_S{sectionNumber}.htm#V{V}">OET</a> (<a title="{state.BibleNames['OET-RV']}" href="{'../'*level}OET-RV/bySec/{BBB}_S{sectionNumber}.htm#V{V}">OET-RV</a>)</span> {rvTextHtml}</p></div><!--RV-->'''
     except (KeyError, TypeError):

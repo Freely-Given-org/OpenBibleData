@@ -49,7 +49,7 @@ from createOETReferencePages import HebrewWordFileName, convert_Hebrew_word_glos
                 GreekWordFileName, formatNTContextSpansOETGlossWords, \
                     CNTR_ROLE_NAME_DICT, CNTR_MOOD_NAME_DICT, CNTR_TENSE_NAME_DICT, CNTR_VOICE_NAME_DICT, CNTR_PERSON_NAME_DICT, \
                     CNTR_CASE_NAME_DICT, CNTR_GENDER_NAME_DICT, CNTR_NUMBER_NAME_DICT
-from openbibledata_rust import getOETTidyBBB, getOETBookName, getHebrewWordpageFilename, getGreekWordpageFilename, livenOETWordLinks
+from openbibledata_rust import getOETTidyBBB, getOETBookName, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
 LAST_MODIFIED_DATE = '2026-09-11' # by RJH

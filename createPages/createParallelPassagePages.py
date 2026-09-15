@@ -24,6 +24,7 @@ CHANGELOG:
     2026-08-25 The OETHandlers functions are now imported from the Rust openbibledata_rust module (the Python OETHandlers.py was deleted).
     2026-09-03 Stop applying the Heb/Grk grammatical colourisation classes on parallel-passage pages because their CSS doesn't style them -- the shared dark-mode rules were painting those words unreadably.
      2026-09-04 Disable the TEST_MODE 'noLinkYet' highlighting on parallel-passage (rel) pages (OET-RV only, no OET-LV), via addNoLinkYetSpans=False.
+    2026-09-15 ESFM word-link livening is now fused (single-pass) into openbibledata_rust.convertVerseEntryListToHtml via its new livenWordLinks/colouriseWordClasses/addNoLinkYetSpans keyword args, so the old livenOETWordLinks calls in the three parallel-passage hot paths have been removed.
 """
 from pathlib import Path
 import os
@@ -41,7 +42,7 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
                     do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
                     removeDuplicateCVids, \
                     makeTop, makeBottom, makeBookNavListParagraph, checkHtml
-from openbibledata_rust import convertVerseEntryListToHtml, livenOETWordLinks, getOETTidyBBB, getOETBookName, getBBBFromOETBookName
+from openbibledata_rust import convertVerseEntryListToHtml, getOETTidyBBB, getOETBookName, getBBBFromOETBookName
 
 
 LAST_MODIFIED_DATE = '2026-08-25' # by RJH
@@ -566,9 +567,7 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
 <p class="secNav">{sectionIndexLink}{leftLink}{documentLink} {startChapterLink}:{startV}–{endChapterLink}:{endV}{rightLink}{parallelLink}{interlinearLink}{detailsLink}</p>
 {f'{state.JAMES_NOTE_HTML_PARAGRAPH}{NEWLINE}' if 'OET' in thisBible.abbreviation and BBB=='JAM' else ''}{f'{state.OET_UNFINISHED_WARNING_HTML_PARAGRAPH}{NEWLINE}' if 'OET' in thisBible.abbreviation else ''}<h1>{'TEST ' if state.TEST_MODE_FLAG else ''}{sectionName}</h1>'''
         assert '\n\n' not in crossReferencedSectionHtml
-        if isinstance( thisBible, ESFMBible.ESFMBible ): # e.g., OET-RV
-            verseEntryList = livenOETWordLinks( BBBLevel, thisBible, (BBB,startC), verseEntryList, state, colouriseWordClasses=False, addNoLinkYetSpans=False )
-        textHtml = convertVerseEntryListToHtml( BBBLevel, thisBible.abbreviation, (BBB,startC), 'relatedPassage', contextList, verseEntryList, basicOnly=False, state=state )
+        textHtml = convertVerseEntryListToHtml( BBBLevel, thisBible.abbreviation, (BBB,startC), 'relatedPassage', contextList, verseEntryList, basicOnly=False, state=state, livenWordLinks=isinstance( thisBible, ESFMBible.ESFMBible ), colouriseWordClasses=False, addNoLinkYetSpans=False )
         # textHtml = livenIORs( BBB, textHtml, sections )
         if thisBible.abbreviation == 'OET-RV':
             textHtml = do_OET_RV_HTMLcustomisations( f'ParallelPassageA={BBB}_{startC}', textHtml )
@@ -728,9 +727,7 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
                     else: need_to_increase_safety_count2
             sectionHeadingsList.append( (srTidyBbb,srStartC,f'{srTidyBbb} {srStartC}:{srStartV}{f"–{srEndV}" if srEndC==srStartC else f"—{srEndC}:{srEndV}"}') ) # We use en-dash and em-dash onscreen
 
-            if isinstance( thisBible, ESFMBible.ESFMBible ): # e.g., OET-RV
-                verseEntryList = livenOETWordLinks( BBBLevel, thisBible, (srBBB,srStartC), verseEntryList, state, colouriseWordClasses=False, addNoLinkYetSpans=False )
-            textHtml = convertVerseEntryListToHtml( BBBLevel, thisBible.abbreviation, (srBBB,srStartC), 'relatedPassage', contextList, verseEntryList, basicOnly=False, state=state )
+            textHtml = convertVerseEntryListToHtml( BBBLevel, thisBible.abbreviation, (srBBB,srStartC), 'relatedPassage', contextList, verseEntryList, basicOnly=False, state=state, livenWordLinks=isinstance( thisBible, ESFMBible.ESFMBible ), colouriseWordClasses=False, addNoLinkYetSpans=False )
             # textHtml = livenIORs( BBB, textHtml, sections )
             if thisBible.abbreviation == 'OET-RV':
                 textHtml = do_OET_RV_HTMLcustomisations( f'ParallelPassageB={srBBB}_{srStartC}', textHtml )
@@ -818,9 +815,7 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
                     lastXrefBBB, lastXrefC, verseEntryList, contextList = getVerseDataListForReference( collectedVerseCrossReference, thisBible, lastXrefBBB, lastXrefC )
                     # lastXrefNT = bos_books_codes_py.is_new_testament_nr( lastXrefBBB )
                     if verseEntryList:
-                        if isinstance( thisBible, ESFMBible.ESFMBible ): # e.g., OET-RV
-                            verseEntryList = livenOETWordLinks( BBBLevel, thisBible, (lastXrefBBB,lastXrefC), verseEntryList, state, colouriseWordClasses=False, addNoLinkYetSpans=False )
-                        textHtml = convertVerseEntryListToHtml( BBBLevel, thisBible.abbreviation, (lastXrefBBB,lastXrefC), 'relatedPassage', contextList, verseEntryList, basicOnly=False, state=state )
+                        textHtml = convertVerseEntryListToHtml( BBBLevel, thisBible.abbreviation, (lastXrefBBB,lastXrefC), 'relatedPassage', contextList, verseEntryList, basicOnly=False, state=state, livenWordLinks=isinstance( thisBible, ESFMBible.ESFMBible ), colouriseWordClasses=False, addNoLinkYetSpans=False )
                         # NOTE: textHtml can be empty here
                         # textHtml = livenIORs( BBB, textHtml, sections )
                         if thisBible.abbreviation == 'OET-RV':

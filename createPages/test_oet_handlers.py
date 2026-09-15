@@ -11,6 +11,9 @@
 # (loaded from the cached pickles) as well as small stubs for edge cases.
 #
 # CHANGELOG:
+# 2026-09-14: livenOETWordLinks and livenOETCompatibleBereanWordLinks now share
+#     one Rust implementation in lib.rs; the UnboundLocalError quirk for
+#     non-OT/NT books was dropped (FRT now passes through unchanged).
 # 2026-09-10: wordlinks are now livented natively in a single pass
 #     (oet_handlers::liven_esfm_word_links), so the §«OrigWord»§ / ►NNNN◄
 #     placeholder round-trip and the Berean loadESFMWordFile-on-demand
@@ -184,11 +187,12 @@ class TestLivenWordLinks(unittest.TestCase):
         self.assertIn('<a ', joinedText)
         self.assertIn('title="', joinedText)
 
-    def test_bereanInvalidBookUnbound(self):
-        # Faithfully replicates the Python UnboundLocalError for non-OT/NT books
-        entries = self.rvBible.getContextVerseData(('MRK', '1', '1'))[0]
-        with self.assertRaises(UnboundLocalError):
-            livenOETCompatibleBereanWordLinks(2, self.lvBible, 'FRT', entries, State)
+    def test_bereanNonCanonicalBookPassesThrough(self):
+        # Non-OT/NT books no longer raise (the old UnboundLocalError quirk is
+        # gone); they fall back to the OT word table, which is never queried
+        # when no entry carries a '¦' wordlink, so the list passes through.
+        revisedList = livenOETCompatibleBereanWordLinks(2, self.lvBible, 'FRT', [], State)
+        self.assertEqual(len(revisedList), 0)
 
     def test_bereanTablesComeFromState(self):
         # The native livening reads word rows from

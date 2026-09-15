@@ -28,6 +28,7 @@ CHANGELOG:
     2026-09-03 Stop applying the Heb/Grk grammatical colourisation classes on book pages because their CSS doesn't style them -- the shared dark-mode rules were painting those words unreadably.
      2026-09-04 Disable the TEST_MODE 'noLinkYet' highlighting on OET-RV single-column book pages (which have no OET-LV alongside), via addNoLinkYetSpans=False.
      2026-09-09 Use multiprocessing for the OET side-by-side book pages: per-book work is now _createOETBookPagesForBook, run by one forked worker per book.
+    2026-09-15 ESFM word-link livening is now fused (single-pass) into openbibledata_rust.convertVerseEntryListToHtml via its new livenWordLinks/colouriseWordClasses/addNoLinkYetSpans keyword args, so the old livenOETWordLinks/livenOETCompatibleBereanWordLinks calls in the book-page hot paths have been removed.
 """
 from pathlib import Path
 import multiprocessing
@@ -44,7 +45,7 @@ import bos_books_codes_py
 from settings import State, state, CNTR_BOOK_ID_MAP
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
                     makeTop, makeBottom, makeBookNavListParagraph, removeDuplicateCVids, checkHtml
-from openbibledata_rust import convertVerseEntryListToHtml, livenOETWordLinks, livenOETCompatibleBereanWordLinks, getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename
+from openbibledata_rust import convertVerseEntryListToHtml, getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
 LAST_MODIFIED_DATE = '2026-09-09' # by RJH
@@ -122,8 +123,7 @@ def _createOETBookPagesForBook( level:int, folder:Path, rvBible, lvBible, state:
 {state.OET_UNFINISHED_BOOK_WARNING_HTML_PARAGRAPH}'''
         verseEntryList, contextList = rvBible.getContextVerseData( (BBB,) )
         assert isinstance( rvBible, ESFMBible.ESFMBible )
-        verseEntryList = livenOETWordLinks( level, rvBible, (BBB,), verseEntryList, state, colouriseWordClasses=False, addNoLinkYetSpans=False )
-        textHtml = convertVerseEntryListToHtml( level, rvBible.abbreviation, (BBB,), 'book', contextList, verseEntryList, basicOnly=False, state=state )
+        textHtml = convertVerseEntryListToHtml( level, rvBible.abbreviation, (BBB,), 'book', contextList, verseEntryList, basicOnly=False, state=state, livenWordLinks=True, colouriseWordClasses=False, addNoLinkYetSpans=False )
         # textHtml = livenIORs( BBB, textHtml )
         textHtml = do_OET_RV_HTMLcustomisations( f'BookA={BBB}', textHtml )
         bkHtml = f'{bkHtml}{textHtml}'
@@ -170,13 +170,10 @@ def _createOETBookPagesForBook( level:int, folder:Path, rvBible, lvBible, state:
         logging.critical( f"createOETBookPages missing book error for {lvBible.abbreviation} {BBB}" )
         lvVerseEntryList, lvContextList = InternalBibleEntryList(), []
     assert isinstance( rvBible, ESFMBible.ESFMBible )
-    rvVerseEntryList = livenOETWordLinks( level, rvBible, (BBB,), rvVerseEntryList, state, colouriseWordClasses=False )
     assert isinstance( lvBible, ESFMBible.ESFMBible )
-    if lvVerseEntryList:
-        lvVerseEntryList = livenOETWordLinks( level, lvBible, (BBB,), lvVerseEntryList, state, colouriseWordClasses=False )
     # NOTE: We change the version abbreviation here to give the function more indication where we're coming from
-    rvHtml = do_OET_RV_HTMLcustomisations( f'BookA={BBB}', convertVerseEntryListToHtml( level, 'OET-RV', (BBB,), 'book', rvContextList, rvVerseEntryList, basicOnly=False, state=state ) )
-    tempLVHtml = convertVerseEntryListToHtml( level, 'OET-LV', (BBB,), 'book', lvContextList, lvVerseEntryList, basicOnly=False, state=state )
+    rvHtml = do_OET_RV_HTMLcustomisations( f'BookA={BBB}', convertVerseEntryListToHtml( level, 'OET-RV', (BBB,), 'book', rvContextList, rvVerseEntryList, basicOnly=False, state=state, livenWordLinks=True, colouriseWordClasses=False ) )
+    tempLVHtml = convertVerseEntryListToHtml( level, 'OET-LV', (BBB,), 'book', lvContextList, lvVerseEntryList, basicOnly=False, state=state, livenWordLinks=True, colouriseWordClasses=False )
     # if '+' in tempLVHtml: print( f"HAVE_PLUS {tempLVHtml[max(0,tempLVHtml.index('+')-30):tempLVHtml.index('+')+90]}" )
     # if '^' in tempLVHtml: print( f"HAVE_HAT {tempLVHtml[max(0,tempLVHtml.index('^')-30):tempLVHtml.index('^')+90]}" )
     # if '~' in tempLVHtml: print( f"HAVE_SQUIG {tempLVHtml[max(0,tempLVHtml.index('~')-30):tempLVHtml.index('~')+90]}" )
@@ -472,11 +469,7 @@ def createBookPages( level:int, folder:Path, thisBible, state:State ) -> list[st
 
         bkHtml = f'''<p class="bkNav">{bkPrevNav}<span class="bkHead" id="Top">{thisBible.abbreviation} {ourTidyBBB}</span>{bkNextNav}</p>{f'{NEWLINE}{state.JAMES_NOTE_HTML_PARAGRAPH}' if 'OET' in thisBible.abbreviation and BBB=='JAM' else ''}{'' if bos_books_codes_py.is_single_chapter_book(BBB) else f'{NEWLINE}{state.OET_UNFINISHED_BOOK_WARNING_HTML_PARAGRAPH}' if 'OET' in thisBible.abbreviation else state.WHOLE_BOOK_WARNING_HTML_PARAGRAPH}{f'{state.BLACK_LETTER_FONT_HTML_PARAGRAPH}{NEWLINE}' if thisBible.abbreviation=='KJB-1611' else ''}'''
         verseEntryList, contextList = thisBible.getContextVerseData( (BBB,) )
-        if isinstance( thisBible, ESFMBible.ESFMBible ):
-            verseEntryList = livenOETWordLinks( level, thisBible, (BBB,), verseEntryList, state, colouriseWordClasses=False, addNoLinkYetSpans=False )
-        elif thisBible.abbreviation in ('BSB','MSB'):
-            verseEntryList = livenOETCompatibleBereanWordLinks( level, thisBible, BBB, verseEntryList, state, colouriseWordClasses=False )
-        textHtml = convertVerseEntryListToHtml( level, thisBible.abbreviation, (BBB,), 'book', contextList, verseEntryList, basicOnly=False, state=state )
+        textHtml = convertVerseEntryListToHtml( level, thisBible.abbreviation, (BBB,), 'book', contextList, verseEntryList, basicOnly=False, state=state, livenWordLinks=isinstance( thisBible, ESFMBible.ESFMBible ) or thisBible.abbreviation in ('BSB','MSB'), colouriseWordClasses=False, addNoLinkYetSpans=False )
         # textHtml = livenIORs( BBB, textHtml )
         if thisBible.abbreviation == 'OET-RV':
             textHtml = f'''{do_OET_RV_HTMLcustomisations( f'BookB={BBB}', textHtml )}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="15" style="float:right; margin-left:10px;"></a>'''

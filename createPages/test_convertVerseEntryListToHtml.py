@@ -5,11 +5,19 @@
 #
 # Integration tests for the full convertVerseEntryListToHtml pipeline,
 # verifying that the Rust implementation works correctly end-to-end.
+#
+# CHANGELOG:
+#   2026-09-15 Added TestFusedLiveningEquivalence: the fused livenWordLinks=True
+#                path inside convertVerseEntryListToHtml must produce byte-identical
+#                HTML to the old two-step livenOETWordLinks/livenOETCompatibleBereanWordLinks
+#                then convert sequence.
 
 import unittest
 from BibleOrgSys.Internals.InternalBible import InternalBibleEntryList, InternalBibleEntry
 from settings import State
-from openbibledata_rust import convertVerseEntryListToHtml
+from Bibles import preloadVersions
+from openbibledata_rust import (convertVerseEntryListToHtml, livenOETWordLinks,
+                                livenOETCompatibleBereanWordLinks)
 
 
 def make_entry( marker: str, original_text: str, clean_text: str | None = None ) -> InternalBibleEntry:
@@ -230,6 +238,77 @@ class TestRustConvertVerseEntryListToHtml(unittest.TestCase):
         )
         self.assertIn('<span class="noLinkYet">to</span>', result)
         self.assertIn('<span class="noLinkYet">God</span>', result)
+
+
+# ── Fused livening equivalence ─────────────────────────────────────────────────
+
+class TestFusedLiveningEquivalence(unittest.TestCase):
+    """The fused livenWordLinks=True path inside convertVerseEntryListToHtml must
+    produce byte-identical HTML to the old two-step
+    livenOETWordLinks/livenOETCompatibleBereanWordLinks-then-convert sequence."""
+
+    @classmethod
+    def setUpClass(cls):
+        preloadVersions(State)
+        cls.rvBible = State.preloadedBibles['OET-RV']
+        cls.lvBible = State.preloadedBibles['OET-LV']
+        if not hasattr(State, 'OETRefData') or 'word_tables' not in State.OETRefData:
+            State.OETRefData = {'word_tables': {}}
+        for wordTableFilename in cls.lvBible.ESFMWordTables:
+            if cls.lvBible.ESFMWordTables[wordTableFilename] is None:
+                cls.lvBible.loadESFMWordFile(wordTableFilename)
+            State.OETRefData['word_tables'][wordTableFilename] = cls.lvBible.ESFMWordTables[wordTableFilename]
+
+    def _convert(self, level, refTuple, segmentType, versionAbbreviation, entries, contextList, livenWordLinks):
+        return convertVerseEntryListToHtml(
+            level=level, versionAbbreviation=versionAbbreviation,
+            refTuple=refTuple, segmentType=segmentType,
+            contextList=contextList, verseEntryList=entries,
+            basicOnly=False, state=State, livenWordLinks=livenWordLinks,
+        )
+
+    def _assertEquivalence(self, level, bible, refTuple, segmentType, versionAbbreviation):
+        foot, fcontext = bible.getContextVerseData(refTuple)
+        oldHtml = self._convert(level, refTuple, segmentType, versionAbbreviation,
+                                livenOETWordLinks(level, bible, refTuple, foot, State),
+                                fcontext, livenWordLinks=False)
+        head, hcontext = bible.getContextVerseData(refTuple)
+        newHtml = self._convert(level, refTuple, segmentType, versionAbbreviation,
+                                head, hcontext, livenWordLinks=True)
+        self.assertEqual(oldHtml, newHtml)
+        self.assertIn('<a ', newHtml)  # some wordlink actually occurred
+        self.assertNotIn('\u00a6', newHtml)  # no un-livened ¦ markers left
+
+    def test_oet_rv_parallel_verse(self):
+        """OET-RV single verse (NT, TEST_MODE noLinkYet preprocessing active)."""
+        self._assertEquivalence(2, self.rvBible, ('GAL', '1', '3'), 'parallelVerse', 'OET-RV')
+
+    def test_oet_lv_parallel_verse(self):
+        """OET-LV single verse (OT)."""
+        self._assertEquivalence(2, self.lvBible, ('PSA', '23', '1'), 'parallelVerse', 'OET-LV')
+
+    def test_oet_rv_chapter(self):
+        """OET-RV chapter segment (exercises the TEST_MODE preprocessing pass)."""
+        self._assertEquivalence(1, self.rvBible, ('MRK', '1'), 'chapter', 'OET-RV')
+
+    def test_oet_lv_chapter(self):
+        """OET-LV chapter segment."""
+        self._assertEquivalence(1, self.lvBible, ('PSA', '23'), 'chapter', 'OET-LV')
+
+    def test_berean_compatible_equiv(self):
+        """The OET-compatible Berean path must also match (BSB/MSB use the same
+        fused liven once the call sites pass livenWordLinks=True). We use the
+        'BSB' abbreviation here (as the real BSB/MSB call sites do), which keeps
+        the OET-RV-only TEST_MODE noLinkYet gate off in both paths."""
+        refTuple = ('MRK', '1', '1')
+        entries, contextList = self.rvBible.getContextVerseData(refTuple)
+        oldHtml = self._convert(1, refTuple, 'parallelVerse', 'BSB',
+                                livenOETCompatibleBereanWordLinks(1, self.rvBible, 'MRK', entries, State),
+                                contextList, livenWordLinks=False)
+        entries, contextList = self.rvBible.getContextVerseData(refTuple)
+        newHtml = self._convert(1, refTuple, 'parallelVerse', 'BSB',
+                                entries, contextList, livenWordLinks=True)
+        self.assertEqual(oldHtml, newHtml)
 
 
 # ── IOR (Introduction Outline Reference) livening ─────────────────────────────

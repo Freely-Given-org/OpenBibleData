@@ -28,6 +28,7 @@ CHANGELOG:
     2026-08-22 Import convertVerseEntryListToHtml directly from openbibledata_rust (convert.py deleted)
     2026-08-25 The OETHandlers functions are now imported from the Rust openbibledata_rust module (the Python OETHandlers.py was deleted).
     2026-09-03 Stop applying the Heb/Grk grammatical colourisation classes on topic pages because their CSS doesn't style them -- the shared dark-mode rules were painting those words unreadably.
+    2026-09-15 ESFM word-link livening is now fused (single-pass) into openbibledata_rust.convertVerseEntryListToHtml via its new livenWordLinks/colouriseWordClasses keyword args, so the old livenOETWordLinks calls in the topical-passage hot paths have been removed.
 """
 from pathlib import Path
 import os
@@ -42,7 +43,7 @@ from Bibles import getBibleMapperMaps
 from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
                     removeDuplicateCVids, \
                     makeTop, makeBottom, checkHtml
-from openbibledata_rust import convertVerseEntryListToHtml, livenOETWordLinks, getOETTidyBBB
+from openbibledata_rust import convertVerseEntryListToHtml, getOETTidyBBB
 
 
 LAST_MODIFIED_DATE = '2026-08-25' # by RJH
@@ -251,17 +252,12 @@ def createTopicPage( level:int, folder:Path, topicNumber:int, state:State ) -> b
                 startV = Vs # Used to build the HTML anchor below
             # print( f"{rvVerseEntryList=}" )
             # print( f"{lvVerseEntryList=}" )
-            if BBB in rvBible: # TODO: Why is RV handled differently here than LV ???
-                rvVerseEntryList = livenOETWordLinks( level, rvBible, (BBB,C), rvVerseEntryList, state, colouriseWordClasses=False )
-            try: lvVerseEntryList = livenOETWordLinks( level, lvBible, (BBB,C), lvVerseEntryList, state, colouriseWordClasses=False )
-            except KeyError: # Missing book
-                assert not state.ALL_PRODUCTION_BOOKS_FLAG
-            rvTextHtml = convertVerseEntryListToHtml( level, rvBible.abbreviation, (BBB,C), 'topicalPassage', rvContextList, rvVerseEntryList, basicOnly=False, state=state )
+            rvTextHtml = convertVerseEntryListToHtml( level, rvBible.abbreviation, (BBB,C), 'topicalPassage', rvContextList, rvVerseEntryList, basicOnly=False, state=state, livenWordLinks=BBB in rvBible, colouriseWordClasses=False )
             # rvTextHtml = livenIORs( BBB, rvTextHtml, sections )
             rvTextHtml = do_OET_RV_HTMLcustomisations( f'Topic={topic}@{BBB}_{C}', rvTextHtml )
 
             if lvVerseEntryList:
-                lvTextHtml = convertVerseEntryListToHtml( level, lvBible.abbreviation, (BBB,C), 'topicalPassage', lvContextList, lvVerseEntryList, basicOnly=False, state=state )
+                lvTextHtml = convertVerseEntryListToHtml( level, lvBible.abbreviation, (BBB,C), 'topicalPassage', lvContextList, lvVerseEntryList, basicOnly=False, state=state, livenWordLinks=True, colouriseWordClasses=False )
                 # lvTextHtml = livenIORs( BBB, lvTextHtml, sections )
                 lvTextHtml = do_OET_LV_HTMLcustomisations( f'Topic={topic}@{BBB}_{C}', lvTextHtml )
             else: # We didn't get any LV data

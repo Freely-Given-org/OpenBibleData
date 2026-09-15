@@ -6,7 +6,8 @@
 #[global_allocator]
 static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
-use std::sync::{Arc, Mutex};
+use std::collections::{HashMap, HashSet};
+use std::sync::{Arc, Mutex, OnceLock};
 
 use pyo3::exceptions::{
     PyAssertionError, PyIndexError, PyKeyError, PyTypeError, PyUnboundLocalError, PyValueError,
@@ -62,6 +63,52 @@ fn py_find_section_fn<'s>(
     }
 }
 
+/// Cached snapshot of `state.booksToLoad` (which versions are loaded and, for
+/// each version, which books — including `"ALL"`), so the `\r`-field
+/// availability checks don't re-traverse the Python dict on every reference.
+///
+/// Mirrors the `SECTION_LOOKUP_CACHE` pattern: keyed on the identity (memory
+/// address) of the `booksToLoad` dict, rebuilt only when that object is
+/// replaced. Falls back to the original permissive behaviour (always true)
+/// whenever the snapshot can't be built.
+static BOOK_AVAILABILITY_CACHE: Mutex<
+    Option<(
+        usize,
+        HashSet<String>,
+        HashSet<String>,
+        HashMap<(String, String), bool>,
+    )>,
+> = Mutex::new(None);
+
+/// Extract `(known_versions, all_versions, allowed_books)` from the Python
+/// `booksToLoad` dict (version → set of BOS book codes, or `"ALL"`).
+fn build_book_availability_snapshot(
+    books_to_load: &Bound<'_, PyAny>,
+) -> Option<(
+    HashSet<String>,
+    HashSet<String>,
+    HashMap<(String, String), bool>,
+)> {
+    let mut known_versions = HashSet::new();
+    let mut all_versions = HashSet::new();
+    let mut allowed = HashMap::new();
+    for key_item in books_to_load.try_iter().ok()?.flatten() {
+        let version: String = key_item.extract().ok()?;
+        let book_list = books_to_load.get_item(&version).ok()?;
+        known_versions.insert(version.clone());
+        for book_item in book_list.try_iter().ok()?.flatten() {
+            if let Ok(book) = book_item.extract::<String>() {
+                if book == "ALL" {
+                    all_versions.insert(version.clone());
+                } else {
+                    allowed.insert((version.clone(), book), true);
+                }
+            }
+        }
+    }
+    Some((known_versions, all_versions, allowed))
+}
+
 /// Build a book-availability callback that checks the optional State object's
 /// `booksToLoad` (mirroring Python's
 /// `'ALL' in state.booksToLoad[vAbbr] or bos_book_code in state.booksToLoad[vAbbr]`).
@@ -72,27 +119,43 @@ fn py_is_book_available_fn<'s>(
     state: Option<&'s Bound<'_, PyAny>>,
 ) -> impl Fn(&str, &str) -> bool + Clone + 's {
     move |v_abbr: &str, bos_book_code: &str| -> bool {
-        if let Some(state_obj) = state {
-            let books_to_load = match state_obj.getattr("booksToLoad") {
-                Ok(btl) if !btl.is_none() => btl,
-                _ => return true, // can't determine -- stay permissive
-            };
-            let book_list = match books_to_load.get_item(v_abbr) {
-                Ok(list) if !list.is_none() => list,
-                _ => return true,
-            };
-            if let Ok(iter) = book_list.try_iter() {
-                for item in iter.flatten() {
-                    if let Ok(entry) = item.extract::<String>() {
-                        if entry == "ALL" || entry == bos_book_code {
-                            return true;
-                        }
-                    }
+        let state_obj = match state {
+            Some(s) => s,
+            None => return true, // no State supplied -- stay permissive
+        };
+        let books_to_load = match state_obj.getattr("booksToLoad") {
+            Ok(btl) if !btl.is_none() => btl,
+            _ => return true, // can't determine -- stay permissive
+        };
+        let identity = books_to_load.as_ptr() as usize;
+
+        #[allow(clippy::mutable_key_type)]
+        let mut guard = BOOK_AVAILABILITY_CACHE
+            .lock()
+            .unwrap_or_else(|p| p.into_inner());
+        let needs_rebuild = match &*guard {
+            Some((cached_identity, ..)) => *cached_identity != identity,
+            None => true,
+        };
+        if needs_rebuild {
+            *guard = build_book_availability_snapshot(&books_to_load)
+                .map(|(known_versions, all_versions, allowed)| (identity, known_versions, all_versions, allowed));
+        }
+        match &*guard {
+            Some((_, known_versions, all_versions, allowed)) => {
+                if !known_versions.contains(v_abbr) {
+                    true // version not listed -- permissive (matches original behaviour)
+                } else if all_versions.contains(v_abbr) {
+                    true // 'ALL' in state.booksToLoad[vAbbr]
+                } else {
+                    allowed
+                        .get(&(v_abbr.to_string(), bos_book_code.to_string()))
+                        .copied()
+                        .unwrap_or(false)
                 }
             }
-            return false;
+            None => true, // couldn't build a snapshot -- stay permissive
         }
-        true
     }
 }
 
@@ -516,9 +579,13 @@ fn convert_usfm_character_formatting_py(
     verseEntryList=None,
     basicOnly=false,
     state=None,
+    livenWordLinks=false,
+    colouriseWordClasses=true,
+    addNoLinkYetSpans=true,
 ))]
 #[allow(non_snake_case)]
 fn convert_verse_entry_list_to_html_py<'py>(
+    py: Python<'py>,
     level: usize,
     versionAbbreviation: &str,
     refTuple: Vec<String>,
@@ -527,6 +594,9 @@ fn convert_verse_entry_list_to_html_py<'py>(
     verseEntryList: Option<Vec<Bound<'py, PyAny>>>,
     basicOnly: bool,
     state: Option<&Bound<'py, PyAny>>,
+    livenWordLinks: bool,
+    colouriseWordClasses: bool,
+    addNoLinkYetSpans: bool,
 ) -> PyResult<String> {
     let context_list = contextList.unwrap_or_default();
     let verse_entries = verseEntryList.unwrap_or_default();
@@ -552,11 +622,69 @@ fn convert_verse_entry_list_to_html_py<'py>(
         None => None,
     };
 
+    // Optional single-pass ESFM word-link livening, fused into the extraction
+    // pass below so the OET / BSB / MSB texts are traversed and livened just
+    // once (previously the liven functions returned a whole new Python entry
+    // list that convertVerseEntryListToHtml then re-traversed).
+    let mut liven_ctx: Option<FusedLivenContext> = None;
+    if livenWordLinks {
+        let state_obj = state.ok_or_else(|| {
+            PyValueError::new_err(
+                "convertVerseEntryListToHtml(livenWordLinks=True) requires a State object",
+            )
+        })?;
+        if !(1..=3).contains(&level) {
+            return Err(PyAssertionError::new_err(format!("level={level}")));
+        }
+        let test_mode_flag: bool = state_obj
+            .getattr("TEST_MODE_FLAG")
+            .and_then(|v| v.extract())
+            .unwrap_or(false);
+        let is_nt = bos_books_codes::is_new_testament_nr(bos_book_code);
+        let word_file_name = if is_nt {
+            "OET-LV_NT_word_table.tsv"
+        } else {
+            "OET-LV_OT_word_table.tsv"
+        };
+        let table = state_obj
+            .getattr("OETRefData")?
+            .get_item("word_tables")?
+            .get_item(word_file_name)?;
+        let unicodedata = py.import("unicodedata")?;
+        let get_row: Box<dyn Fn(i64) -> Result<String, String>> = Box::new(move |number| {
+            if let Some(fields) = word_table_snapshot::get_snapshot_row(word_file_name, number) {
+                return Ok(fields.join("\t"));
+            }
+            table
+                .get_item(number)
+                .map_err(|e| e.to_string())?
+                .extract::<String>()
+                .map_err(|e| e.to_string())
+        });
+        let nfc_normalise: Box<dyn Fn(&str) -> String> =
+            Box::new(move |s: &str| -> String { cached_nfc_normalise(&unicodedata, s) });
+        let wants_no_link_yet_highlighting = test_mode_flag
+            && addNoLinkYetSpans
+            && versionAbbreviation == "OET-RV"
+            && (bos_books_codes::is_old_testament_nr(bos_book_code)
+                || bos_books_codes::is_new_testament_nr(bos_book_code));
+        liven_ctx = Some(FusedLivenContext {
+            level,
+            is_nt,
+            get_row,
+            nfc_normalise,
+            colourise_word_classes: colouriseWordClasses,
+            wants_no_link_yet_highlighting,
+        });
+    }
+
     // Extract verse entries — accept both InternalBibleEntry (methods) and simple objects (attributes)
     let mut entries = Vec::with_capacity(verse_entries.len());
+    let mut current_verse: Option<String> = None;
     for py_entry in &verse_entries {
         // Try InternalBibleEntry methods first, fall back to attributes
-        let (marker, full_text, clean_text) = if let Ok(m) = py_entry.call_method0("getMarker") {
+        let (marker, mut full_text, clean_text) = if let Ok(m) = py_entry.call_method0("getMarker")
+        {
             let marker: String = m.extract()?;
             let full_text: String = py_entry.call_method0("getFullText")?.extract()?;
             let clean_text: String = py_entry.call_method0("getCleanText")?.extract()?;
@@ -567,7 +695,85 @@ fn convert_verse_entry_list_to_html_py<'py>(
             let clean_text: String = py_entry.getattr("clean_text")?.extract()?;
             (marker, full_text, clean_text)
         };
-        entries.push(verse_entry_list::VerseEntry { marker, full_text, clean_text });
+
+        if let Some(lctx) = &liven_ctx {
+            // Mirror the entry-by-entry checks/preprocessing/livening of
+            // liven_oet_word_links_impl (same messages, same ordering).
+            if marker == "v" && !full_text.trim().is_empty() {
+                current_verse = Some(full_text.trim().to_string());
+            }
+            let opening_count = full_text.matches("\\add ").count();
+            let closing_count = full_text.matches("\\add*").count();
+            if opening_count != closing_count {
+                return Err(PyAssertionError::new_err(format!(
+                    "Bad add open/close counts in OET {versionAbbreviation} {bos_book_code} {marker} line: {opening_count} != {closing_count}"
+                )));
+            }
+            if !full_text.is_empty() && marker == "v~" {
+                if full_text.contains("\\nd \\nd ") {
+                    return Err(PyAssertionError::new_err(format!(
+                        "Double nd in {versionAbbreviation} {bos_book_code} {marker:?} {full_text:?}"
+                    )));
+                }
+            }
+
+            let mut next_text = full_text.clone();
+            if lctx.wants_no_link_yet_highlighting && marker == "v~" && !full_text.is_empty() {
+                let ref_strings: Vec<&str> = refTuple.iter().map(String::as_str).collect();
+                match oet_handlers::preprocess_oet_rv_entry(
+                    &marker,
+                    &full_text,
+                    versionAbbreviation,
+                    &ref_strings,
+                ) {
+                    Ok(Some(new_text)) => next_text = new_text,
+                    Ok(None) => {}
+                    Err(message) => {
+                        let ref_display = refTuple.join(":");
+                        let context = match current_verse.as_deref() {
+                            Some(verse) if refTuple.len() < 3 => {
+                                format!("{versionAbbreviation} {ref_display}:{verse}")
+                            }
+                            _ => format!("{versionAbbreviation} {ref_display}"),
+                        };
+                        return Err(err_to_pyerr(format!("{context}: {message}")));
+                    }
+                }
+            }
+            if next_text.contains('¦') {
+                if let Some(livened_text) = liven_fused_entry_text(
+                    py,
+                    lctx,
+                    versionAbbreviation,
+                    bos_book_code,
+                    &next_text,
+                )? {
+                    next_text = livened_text;
+                }
+            }
+            full_text = next_text;
+
+            // Post-liven sanity checks over the revised text (as in
+            // liven_oet_word_links_impl).
+            if !full_text.is_empty() {
+                if full_text.contains("\\nd \\nd ") {
+                    return Err(PyAssertionError::new_err("'\\nd \\nd ' found in text"));
+                }
+                let opening_count = full_text.matches("\\add ").count();
+                let closing_count = full_text.matches("\\add*").count();
+                if opening_count != closing_count {
+                    return Err(PyAssertionError::new_err(format!(
+                        "Bad add open/close counts in OET {versionAbbreviation} {bos_book_code} line: {opening_count} != {closing_count} {full_text:?}"
+                    )));
+                }
+            }
+        }
+
+        entries.push(verse_entry_list::VerseEntry {
+            marker,
+            full_text,
+            clean_text,
+        });
     }
 
     // Build find_section_fn callback — pre-extract section data into Rust
@@ -1014,125 +1220,203 @@ fn entry_original_text(entry: &Bound<'_, PyAny>) -> PyResult<String> {
     entry.call_method0("getOriginalText")?.extract()
 }
 
-/// Livens ESFM wordlinks in the OET versions
-///     (Rust port of OETHandlers.livenOETWordLinks).
-#[pyfunction]
-#[pyo3(
-    name = "livenOETWordLinks",
-    signature = (level, bibleObject, refTuple, givenEntryList, state, colouriseWordClasses=true, addNoLinkYetSpans=true)
-)]
-#[allow(non_snake_case)]
-fn liven_oet_word_links_py<'py>(
+/// Process-global cache of `unicodedata.normalize('NFC', s)` results, so the
+/// very frequent OT word-title lookups (which normalise a small set of
+/// repeated Hebrew word forms, each repeatedly) collapse to a handful of
+/// Python calls per process instead of one per matched OT word.
+static NFC_NORMALISE_CACHE: OnceLock<Mutex<HashMap<String, String>>> = OnceLock::new();
+
+fn cached_nfc_normalise(unicodedata: &Bound<'_, PyAny>, s: &str) -> String {
+    let cache = NFC_NORMALISE_CACHE.get_or_init(|| Mutex::new(HashMap::new()));
+    if let Ok(guard) = cache.lock() {
+        if let Some(cached) = guard.get(s) {
+            return cached.clone();
+        }
+    }
+    let result: String = unicodedata
+        .call_method1("normalize", ("NFC", s))
+        .and_then(|r| r.extract())
+        .unwrap_or_else(|_| s.to_string());
+    if let Ok(mut guard) = cache.lock() {
+        if guard.len() < 50_000 {
+            guard.insert(s.to_string(), result.clone());
+        }
+    }
+    result
+}
+
+/// Borrowed state shared by the single-pass ESFM word-link livening, used
+/// directly inside `convertVerseEntryListToHtml` (so the OET / BSB / MSB
+/// texts are livened during the same traversal that extracts the entries,
+/// without building intermediate Python `InternalBibleEntry` objects).
+struct FusedLivenContext<'a> {
+    level: usize,
+    is_nt: bool,
+    get_row: Box<dyn Fn(i64) -> Result<String, String> + 'a>,
+    nfc_normalise: Box<dyn Fn(&str) -> String + 'a>,
+    colourise_word_classes: bool,
+    wants_no_link_yet_highlighting: bool,
+}
+
+/// Liven the `word¦number` links in one entry's text, returning the
+/// replacement text (`Ok(None)` when no link could be made, so the caller
+/// keeps the original text — matching the standalone wrappers' behaviour).
+fn liven_fused_entry_text<'py>(
+    py: Python<'py>,
+    ctx: &FusedLivenContext<'_>,
+    abbreviation: &str,
+    bbb: &str,
+    text: &str,
+) -> PyResult<Option<String>> {
+    match oet_handlers::liven_esfm_word_links(
+        text,
+        ctx.level,
+        ctx.is_nt,
+        ctx.get_row.as_ref(),
+        ctx.nfc_normalise.as_ref(),
+        ctx.colourise_word_classes,
+    ) {
+        Ok(oet_handlers::WordlinkOutcome::Livened {
+            text,
+            transliterations_added,
+            colourisations_added,
+        }) => {
+            log_message(
+                py,
+                "info",
+                &format!(
+                    "Added {transliterations_added} {abbreviation} {bbb} transliterations and {colourisations_added} colourisations to titles."
+                ),
+            );
+            Ok(Some(text))
+        }
+        Ok(oet_handlers::WordlinkOutcome::Nothing) => {
+            log_message(
+                py,
+                "critical",
+                &format!("ESFMBible.livenESFMWordLinks unable to find wordlink in '{text}'"),
+            );
+            Ok(None)
+        }
+        Err(message) => Err(err_to_pyerr(message)),
+    }
+}
+
+/// Liven ESFM `word¦number` links in a list of Bible entries using the word
+/// tables from `state.OETRefData['word_tables']` — the shared implementation
+/// behind both `livenOETWordLinks` and `livenOETCompatibleBereanWordLinks`.
+///
+/// `ref_tuple` is only supplied by `livenOETWordLinks`, and is only consulted
+/// to drive the TEST_MODE-only "no link yet" highlighting pass for OET-RV
+/// (which additionally requires `add_no_link_yet_spans`). The Berean-compatible
+/// caller passes `None` and never runs that pass.
+fn liven_oet_word_links_impl<'py>(
     py: Python<'py>,
     level: usize,
-    bibleObject: &Bound<'py, PyAny>,
-    refTuple: &Bound<'py, PyAny>,
-    givenEntryList: &Bound<'py, PyAny>,
+    bible_object: &Bound<'py, PyAny>,
+    ref_tuple: Option<&Bound<'py, PyAny>>,
+    bbb: &str,
+    given_entry_list: &Bound<'py, PyAny>,
     state: &Bound<'py, PyAny>,
-    colouriseWordClasses: bool,
-    addNoLinkYetSpans: bool,
+    colourise_word_classes: bool,
+    add_no_link_yet_spans: bool,
 ) -> PyResult<Bound<'py, PyAny>> {
     if !(1..=3).contains(&level) {
         return Err(PyAssertionError::new_err(format!("level={level}")));
     }
-    let word_tables_count: usize = bibleObject
-        .getattr("ESFMWordTables")?
-        .len()?;
+    let word_tables_count: usize = bible_object.getattr("ESFMWordTables")?.len()?;
     if word_tables_count != 2 {
         return Err(PyAssertionError::new_err(format!(
             "len(bibleObject.ESFMWordTables)={word_tables_count}"
         )));
     }
-    if !refTuple.is_instance_of::<pyo3::types::PyTuple>() {
-        return Err(PyTypeError::new_err("refTuple must be a tuple"));
-    }
-    let BBB: String = refTuple.get_item(0)?.extract()?;
 
-    let abbreviation: String = bibleObject.getattr("abbreviation")?.extract()?;
+    let abbreviation: String = bible_object.getattr("abbreviation")?.extract()?;
     let test_mode_flag: bool = state
         .getattr("TEST_MODE_FLAG")
         .and_then(|v| v.extract())
         .unwrap_or(false);
 
-    let mut preprocessed_entries: Vec<Bound<'py, PyAny>> = Vec::with_capacity(16);
-    let mut preprocessed_list_object: Option<Bound<'py, PyAny>> = None;
-    if test_mode_flag
-        && addNoLinkYetSpans
+    // TEST_MODE-only OET-RV pass: highlight all OET-RV words that DON'T have a
+    // word link by wrapping them in <span class="noLinkYet">…</span>.
+    let wants_no_link_yet_highlighting = test_mode_flag
+        && add_no_link_yet_spans
         && abbreviation == "OET-RV"
-        && (bos_books_codes::is_old_testament_nr(&BBB)
-            || bos_books_codes::is_new_testament_nr(&BBB))
-    {
-        // Highlight all OET-RV words that DON'T have a word link
-        let mut current_verse: Option<String> = None;
-        for entry in givenEntryList.try_iter()? {
-            let entry = entry?;
-            let marker: String = entry.call_method0("getMarker")?.extract()?;
-            let original_text = entry_original_text(&entry)?;
-            if marker == "v" && !original_text.trim().is_empty() {
-                current_verse = Some(original_text.trim().to_string());
-            }
-            let opening_count = original_text.matches("\\add ").count();
-            let closing_count = original_text.matches("\\add*").count();
-            if opening_count != closing_count {
-                return Err(PyAssertionError::new_err(format!(
-                    "Bad add open/close counts in OET {abbreviation} {BBB} {marker} line: {opening_count} != {closing_count}"
-                )));
-            }
-            if !original_text.is_empty() && marker == "v~" {
-                if original_text.contains("\\nd \\nd ") {
+        && (bos_books_codes::is_old_testament_nr(bbb)
+            || bos_books_codes::is_new_testament_nr(bbb));
+    let mut preprocessed_list_object: Option<Bound<'py, PyAny>> = None;
+    if let Some(ref_tuple_obj) = ref_tuple {
+        if wants_no_link_yet_highlighting {
+            let mut preprocessed_entries: Vec<Bound<'py, PyAny>> = Vec::with_capacity(16);
+            let mut current_verse: Option<String> = None;
+            for entry in given_entry_list.try_iter()? {
+                let entry = entry?;
+                let marker: String = entry.call_method0("getMarker")?.extract()?;
+                let original_text = entry_original_text(&entry)?;
+                if marker == "v" && !original_text.trim().is_empty() {
+                    current_verse = Some(original_text.trim().to_string());
+                }
+                let opening_count = original_text.matches("\\add ").count();
+                let closing_count = original_text.matches("\\add*").count();
+                if opening_count != closing_count {
                     return Err(PyAssertionError::new_err(format!(
-                        "Double nd in {abbreviation} {BBB} {marker:?} {original_text:?}"
+                        "Bad add open/close counts in OET {abbreviation} {bbb} {marker} line: {opening_count} != {closing_count}"
                     )));
                 }
-                let ref_elements: Vec<String> = refTuple
-                    .try_iter()?
-                    .map(|item| item.and_then(|i| i.extract()))
-                    .collect::<PyResult<Vec<String>>>()?;
-                let ref_strings: Vec<&str> = ref_elements.iter().map(String::as_str).collect();
-                match oet_handlers::preprocess_oet_rv_entry(
-                    &marker,
-                    &original_text,
-                    &abbreviation,
-                    &ref_strings,
-                ) {
-                    Ok(Some(new_text)) => {
-                        preprocessed_entries.push(make_new_entry(
-                            py,
-                            &marker,
-                            &entry.call_method0("getOriginalMarker")?.extract::<String>()?,
-                            &new_text,
-                        )?);
-                        continue;
+                if !original_text.is_empty() && marker == "v~" {
+                    if original_text.contains("\\nd \\nd ") {
+                        return Err(PyAssertionError::new_err(format!(
+                            "Double nd in {abbreviation} {bbb} {marker:?} {original_text:?}"
+                        )));
                     }
-                    Ok(None) => {}
-                    Err(message) => {
-                        let ref_display = ref_elements.join(":");
-                        let context = match current_verse.as_deref() {
-                            Some(verse) if ref_elements.len() < 3 => {
-                                format!("{abbreviation} {ref_display}:{verse}")
-                            }
-                            _ => format!("{abbreviation} {ref_display}"),
-                        };
-                        return Err(err_to_pyerr(format!("{context}: {message}")));
+                    let ref_elements: Vec<String> = ref_tuple_obj
+                        .try_iter()?
+                        .map(|item| item.and_then(|i| i.extract()))
+                        .collect::<PyResult<Vec<String>>>()?;
+                    let ref_strings: Vec<&str> = ref_elements.iter().map(String::as_str).collect();
+                    match oet_handlers::preprocess_oet_rv_entry(
+                        &marker,
+                        &original_text,
+                        &abbreviation,
+                        &ref_strings,
+                    ) {
+                        Ok(Some(new_text)) => {
+                            preprocessed_entries.push(make_new_entry(
+                                py,
+                                &marker,
+                                &entry.call_method0("getOriginalMarker")?.extract::<String>()?,
+                                &new_text,
+                            )?);
+                            continue;
+                        }
+                        Ok(None) => {}
+                        Err(message) => {
+                            let ref_display = ref_elements.join(":");
+                            let context = match current_verse.as_deref() {
+                                Some(verse) if ref_elements.len() < 3 => {
+                                    format!("{abbreviation} {ref_display}:{verse}")
+                                }
+                                _ => format!("{abbreviation} {ref_display}"),
+                            };
+                            return Err(err_to_pyerr(format!("{context}: {message}")));
+                        }
                     }
                 }
+                preprocessed_entries.push(entry);
             }
-            preprocessed_entries.push(entry);
+            let builtins = py.import("builtins")?;
+            preprocessed_list_object = Some(
+                py.import("bible_organisational_system")?
+                    .getattr("InternalBibleEntryList")?
+                    .call1((builtins.call_method1("list", (preprocessed_entries,))?,))?,
+            );
         }
-        let builtins = py.import("builtins")?;
-        preprocessed_list_object = Some(
-            py.import("bible_organisational_system")?
-                .getattr("InternalBibleEntryList")?
-                .call1((builtins.call_method1("list", (preprocessed_entries,))?,))?,
-        );
     }
 
-    // Liven the word links natively. This replaces both the BibleOrgSys
-    //     ESFMBible.livenESFMWordLinks call and the §/► placeholder
-    //     post-processing that used to decode its output again. The word
-    //     rows come straight from state.OETRefData['word_tables'], so no
-    //     link/title templates or column names need to be passed around.
-    let is_nt = bos_books_codes::is_new_testament_nr(&BBB);
+    // Liven the word links natively. The word rows come straight from
+    // state.OETRefData['word_tables'], so no link/title templates or column
+    // names need to be passed around.
+    let is_nt = bos_books_codes::is_new_testament_nr(bbb);
     let word_file_name = if is_nt {
         "OET-LV_NT_word_table.tsv"
     } else {
@@ -1153,16 +1437,19 @@ fn liven_oet_word_links_py<'py>(
             .extract::<String>()
             .map_err(|e| e.to_string())
     };
-    let nfc_normalise = |s: &str| -> String {
-        unicodedata
-            .call_method1("normalize", ("NFC", s))
-            .and_then(|r| r.extract())
-            .unwrap_or_else(|_| s.to_string())
+    let nfc_normalise = |s: &str| -> String { cached_nfc_normalise(&unicodedata, s) };
+    let liven_ctx = FusedLivenContext {
+        level,
+        is_nt,
+        get_row: Box::new(get_row),
+        nfc_normalise: Box::new(nfc_normalise),
+        colourise_word_classes,
+        wants_no_link_yet_highlighting: false,
     };
 
     let verse_list = preprocessed_list_object
         .as_ref()
-        .unwrap_or(givenEntryList);
+        .unwrap_or(given_entry_list);
     let mut revised_entries: Vec<Bound<'py, PyAny>> = Vec::with_capacity(16);
     for entry in verse_list.try_iter()? {
         let entry = entry?;
@@ -1173,35 +1460,12 @@ fn liven_oet_word_links_py<'py>(
             revised_entries.push(entry);
             continue;
         }
-        match oet_handlers::liven_esfm_word_links(
-            &original_text,
-            level,
-            is_nt,
-            &get_row,
-            &nfc_normalise,
-            colouriseWordClasses,
-        ) {
-            Ok(oet_handlers::WordlinkOutcome::Livened { text, transliterations_added, colourisations_added }) => {
-                log_message(
-                    py,
-                    "info",
-                    &format!(
-                        "Added {transliterations_added} {abbreviation} {BBB} transliterations and {colourisations_added} colourisations to titles."
-                    ),
-                );
-                revised_entries.push(make_new_entry(py, &marker, &original_marker, &text)?);
-            }
-            Ok(oet_handlers::WordlinkOutcome::Nothing) => {
-                log_message(
-                    py,
-                    "critical",
-                    &format!(
-                        "ESFMBible.livenESFMWordLinks unable to find wordlink in '{original_text}'"
-                    ),
-                );
-                revised_entries.push(entry);
-            }
-            Err(message) => return Err(err_to_pyerr(message)),
+        if let Some(livened_text) =
+            liven_fused_entry_text(py, &liven_ctx, &abbreviation, bbb, &original_text)?
+        {
+            revised_entries.push(make_new_entry(py, &marker, &original_marker, &livened_text)?);
+        } else {
+            revised_entries.push(entry);
         }
     }
     let builtins = py.import("builtins")?;
@@ -1210,7 +1474,7 @@ fn liven_oet_word_links_py<'py>(
         .getattr("InternalBibleEntryList")?
         .call1((builtins.call_method1("list", (revised_entries,))?,))?;
 
-    // Post-liven sanity checks
+    // Post-liven sanity checks over the REVISED entries
     for revised_entry in revised_list_object.try_iter()? {
         let revised_entry = revised_entry?;
         let original_text = entry_original_text(&revised_entry)?;
@@ -1222,13 +1486,49 @@ fn liven_oet_word_links_py<'py>(
             let closing_count = original_text.matches("\\add*").count();
             if opening_count != closing_count {
                 return Err(PyAssertionError::new_err(format!(
-                    "Bad add open/close counts in OET {abbreviation} {BBB} line: {opening_count} != {closing_count} {original_text:?}"
+                    "Bad add open/close counts in OET {abbreviation} {bbb} line: {opening_count} != {closing_count} {original_text:?}"
                 )));
             }
         }
     }
 
     Ok(revised_list_object)
+}
+
+/// Livens ESFM wordlinks in the OET versions
+///     (Rust port of OETHandlers.livenOETWordLinks).
+#[pyfunction]
+#[pyo3(
+    name = "livenOETWordLinks",
+    signature = (level, bibleObject, refTuple, givenEntryList, state, colouriseWordClasses=true, addNoLinkYetSpans=true)
+)]
+#[allow(non_snake_case)]
+fn liven_oet_word_links_py<'py>(
+    py: Python<'py>,
+    level: usize,
+    bibleObject: &Bound<'py, PyAny>,
+    refTuple: &Bound<'py, PyAny>,
+    givenEntryList: &Bound<'py, PyAny>,
+    state: &Bound<'py, PyAny>,
+    colouriseWordClasses: bool,
+    addNoLinkYetSpans: bool,
+) -> PyResult<Bound<'py, PyAny>> {
+    if !refTuple.is_instance_of::<pyo3::types::PyTuple>() {
+        return Err(PyTypeError::new_err("refTuple must be a tuple"));
+    }
+    let BBB: String = refTuple.get_item(0)?.extract()?;
+
+    liven_oet_word_links_impl(
+        py,
+        level,
+        bibleObject,
+        Some(refTuple),
+        &BBB,
+        givenEntryList,
+        state,
+        colouriseWordClasses,
+        addNoLinkYetSpans,
+    )
 }
 
 /// Livens wordlinks in Berean-compatible versions (Rust port of
@@ -1248,125 +1548,17 @@ fn liven_oet_compatible_berean_word_links_py<'py>(
     state: &Bound<'py, PyAny>,
     colouriseWordClasses: bool,
 ) -> PyResult<Bound<'py, PyAny>> {
-    if !(1..=3).contains(&level) {
-        return Err(PyAssertionError::new_err(format!("level={level}")));
-    }
-    let esfm_word_tables = bibleObject.getattr("ESFMWordTables")?;
-    let word_tables_count: usize = esfm_word_tables.len()?;
-    if word_tables_count != 2 {
-        return Err(PyAssertionError::new_err(format!(
-            "len(bibleObject.ESFMWordTables)={word_tables_count}"
-        )));
-    }
-    let abbreviation: String = bibleObject.getattr("abbreviation")?.extract()?;
-
-    // Pre-liven double-nd check over the GIVEN entries
-    for entry in givenEntryList.try_iter()? {
-        let entry = entry?;
-        let original_text = entry_original_text(&entry)?;
-        if !original_text.is_empty() && original_text.contains("\\nd \\nd ") {
-            return Err(PyAssertionError::new_err(format!(
-                "Double nd in {abbreviation} {BBB} {original_text:?}"
-            )));
-        }
-    }
-
-    // Determine which word table to use (faithful quirk: any other book
-    // leaves the variable unbound -- UnboundLocalError)
-    let is_ot = bos_books_codes::is_old_testament_nr(BBB);
-    let is_nt = bos_books_codes::is_new_testament_nr(BBB);
-    let word_file_name = if is_ot {
-        "OET-LV_OT_word_table.tsv"
-    } else if is_nt {
-        "OET-LV_NT_word_table.tsv"
-    } else {
-        return Err(PyUnboundLocalError::new_err(
-            "local variable 'wordFileName' referenced before assignment",
-        ));
-    };
-    let table = state
-        .getattr("OETRefData")?
-        .get_item("word_tables")?
-        .get_item(word_file_name)?;
-    let unicodedata = py.import("unicodedata")?;
-    let get_row = |number: i64| -> Result<String, String> {
-        if let Some(fields) = word_table_snapshot::get_snapshot_row(&word_file_name, number) {
-            return Ok(fields.join("\t"));
-        }
-        table
-            .get_item(number)
-            .map_err(|e| e.to_string())?
-            .extract::<String>()
-            .map_err(|e| e.to_string())
-    };
-    let nfc_normalise = |s: &str| -> String {
-        unicodedata
-            .call_method1("normalize", ("NFC", s))
-            .and_then(|r| r.extract())
-            .unwrap_or_else(|_| s.to_string())
-    };
-
-    // Liven the word links natively. The word rows come straight from
-    //     state.OETRefData['word_tables'] (the same data the old decode pass
-    //     read), so there is no link/title template, column-name or on-demand
-    //     loadESFMWordFile plumbing any more.
-    let mut revised_entries: Vec<Bound<'py, PyAny>> = Vec::with_capacity(16);
-    for entry in givenEntryList.try_iter()? {
-        let entry = entry?;
-        let marker: String = entry.call_method0("getMarker")?.extract()?;
-        let original_marker: String = entry.call_method0("getOriginalMarker")?.extract()?;
-        let original_text = entry_original_text(&entry)?;
-        if !original_text.contains('¦') {
-            revised_entries.push(entry);
-            continue;
-        }
-        match oet_handlers::liven_esfm_word_links(
-            &original_text,
-            level,
-            is_nt,
-            &get_row,
-            &nfc_normalise,
-            colouriseWordClasses,
-        ) {
-            Ok(oet_handlers::WordlinkOutcome::Livened { text, transliterations_added, colourisations_added }) => {
-                log_message(
-                    py,
-                    "info",
-                    &format!(
-                        "Added {transliterations_added} {abbreviation} {BBB} transliterations and {colourisations_added} colourisations to titles."
-                    ),
-                );
-                revised_entries.push(make_new_entry(py, &marker, &original_marker, &text)?);
-            }
-            Ok(oet_handlers::WordlinkOutcome::Nothing) => {
-                log_message(
-                    py,
-                    "critical",
-                    &format!(
-                        "ESFMBible.livenESFMWordLinks unable to find wordlink in '{original_text}'"
-                    ),
-                );
-                revised_entries.push(entry);
-            }
-            Err(message) => return Err(err_to_pyerr(message)),
-        }
-    }
-    let builtins = py.import("builtins")?;
-    let revised_list_object = py
-        .import("bible_organisational_system")?
-        .getattr("InternalBibleEntryList")?
-        .call1((builtins.call_method1("list", (revised_entries,))?,))?;
-
-    // NOTE (faithful): the original checks the GIVEN list here, not the
-    // revised one -- preserved as-is.
-    for given_entry in givenEntryList.try_iter()? {
-        let original_text = entry_original_text(&given_entry?)?;
-        if !original_text.is_empty() && original_text.contains("\\nd \\nd ") {
-            return Err(PyAssertionError::new_err("'\\nd \\nd ' found in text"));
-        }
-    }
-
-    Ok(revised_list_object)
+    liven_oet_word_links_impl(
+        py,
+        level,
+        bibleObject,
+        None,
+        BBB,
+        givenEntryList,
+        state,
+        colouriseWordClasses,
+        false,
+    )
 }
 
 /// Given an original language quote, find the matching OET-LV English words

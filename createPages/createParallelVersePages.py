@@ -83,6 +83,7 @@ CHANGELOG:
     2026-09-01 Fixed bad links on the second book index page
     2026-09-09 removeVersePunctuationForComparison and removeGreekPunctuation now call the Rust openbibledata_rust ports
     2026-09-04 Don't display OET_PARALLEL_PAGE_SINGLE_VERSE_HTML_TEXT etc. if we're displaying the book intro rather than an actual verse
+    2026-09-15 ESFM word-link livening is now fused (single-pass) into openbibledata_rust.convertVerseEntryListToHtml via its new livenWordLinks kwarg, so the old livenOETWordLinks/livenOETCompatibleBereanWordLinks calls in the parallel-verse hot path have been removed.
 """
 from pathlib import Path
 import os
@@ -113,7 +114,7 @@ from createSectionPages import findSectionNumber
 from createOETReferencePages import OSHB_ADJECTIVE_DICT, OSHB_PARTICLE_DICT, OSHB_NOUN_DICT, OSHB_PREPOSITION_DICT, OSHB_PRONOUN_DICT, OSHB_SUFFIX_DICT
 from spellCheckEnglish import spellCheckAndMarkHTMLText, collectSpellCheckResults, mergeSpellCheckResults, \
                             load_dict_sources, load_OET_LV_names, load_OET_RV_names
-from openbibledata_rust import convertVerseEntryListToHtml, getOETTidyBBB, getOETBookName, livenOETWordLinks, livenOETCompatibleBereanWordLinks, getHebrewWordpageFilename, getGreekWordpageFilename, removeVersePunctuationForComparison, removeGreekPunctuation as _removeGreekPunctuationFromRust
+from openbibledata_rust import convertVerseEntryListToHtml, getOETTidyBBB, getOETBookName, getHebrewWordpageFilename, getGreekWordpageFilename, removeVersePunctuationForComparison, removeGreekPunctuation as _removeGreekPunctuationFromRust
 
 
 LAST_MODIFIED_DATE = '2026-09-04' # by RJH
@@ -520,10 +521,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                             oetRvPsaHasD = True
                                             break
                                     # We want to save
-                                verseEntryList = livenOETWordLinks( BBBLevel, thisBible, (BBB,C,V), verseEntryList, state )
-                            elif thisBible.abbreviation in ('BSB','MSB'):
-                                verseEntryList = livenOETCompatibleBereanWordLinks( BBBLevel, thisBible, BBB, verseEntryList, state )
-                            textHtml = convertVerseEntryListToHtml( BBBLevel, versionAbbreviation, (BBB,C,V), 'parallelVerse', contextList, verseEntryList, basicOnly=(c!=-1), state=state )
+                            textHtml = convertVerseEntryListToHtml( BBBLevel, versionAbbreviation, (BBB,C,V), 'parallelVerse', contextList, verseEntryList, basicOnly=(c!=-1), state=state, livenWordLinks=('OET' in versionAbbreviation) or thisBible.abbreviation in ('BSB','MSB') )
                             if versionAbbreviation == 'OET-RV': # This is the only parallel version with cross-references included
                                 footnoteFreeTextHtml = footnotesHtml = '' # Any footnotes have been left in textHtml so no need for a separate container
                             else: # no cross-references were asked for here for other version
