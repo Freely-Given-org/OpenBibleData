@@ -294,7 +294,7 @@ pub fn make_top_core(
     // Insert javascript file(s) if required
     let wants_bible_js = (version_abbreviation.is_some_and(|va| va.contains("OET"))
         && page_type != "sectionIndex")
-        || page_type == "parallelVerse"
+        || page_type == "parallelVerse" || page_type == "simpleVerse"
         || page_type == "topicPassages";
     if wants_bible_js {
         top = top.replacen(
@@ -655,9 +655,10 @@ mod tests {
                 ("T4T", plain.clone()),
                 ("LSV", plain.clone()),
                 ("Related", bold.clone()),
-                ("Topics", bold.clone()),
                 ("Parallel", bold.clone()),
                 ("Interlinear", bold.clone()),
+                ("Simple", bold.clone()),
+                ("Topics", bold.clone()),
                 ("Reference", bold.clone()),
                 ("Dictionary", bold.clone()),
                 ("Search", bold.clone()),
@@ -736,7 +737,7 @@ mod tests {
         // a data-layout="RVLV" exclusion marker on <body> any more.
         for (va, pt) in [
             ("OET", "book"), ("OET", "chapter"), ("OET", "section"),
-            ("OET", "sectionIndex"), ("OET", "parallelVerse"),
+            ("OET", "sectionIndex"), ("OET", "parallelVerse"), ("OET", "simpleVerse"),
             ("OET", "interlinearVerse"), ("OET", "relatedPassage"),
             ("OET", "topicPassages"), ("OET-RV", "chapter"),
             ("OET-LV", "chapter"), ("UHB", "chapter"), ("OET", "OETKey"),

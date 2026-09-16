@@ -64,9 +64,11 @@ p.mt1 + p.mt2, p.mt2 + p.mt1, p.mt2 + p.mt3, p.mt3 + p.mt2, p.mt1 + p.mt3, p.mt3
 
 p.verseDetails { text-align:right; font-size:0.8em; color:lightseagreen; }
 p.parallelVerse {}
-p.simpleVerse { margin-top:0.5em; margin-bottom:0.5em; padding-left:2em; text-indent:-2em; } /* Make the margins closer than the defaults of 1em each and do a hanging indent */
 p.closeVerse {}
-p.parallelVerse + p.closeVerse, p.simpleVerse + p.closeVerse { margin-top:-0.8em; }
+p.parallelVerse + p.closeVerse { margin-top:-0.8em; }
+p.simpleVerse { margin-top:0.5em; margin-bottom:0.5em; padding-left:2em; text-indent:-2em; line-height: 1.1; } /* Make the margins closer than the defaults of 1em each and do a hanging indent with less leading */
+p.closeSimpleVerse { margin-top:0.5em; margin-bottom:0.5em; padding-left:2em; text-indent:-2em; line-height: 1.1; } /* Make the margins closer than the defaults of 1em each and do a hanging indent with less leading */
+p.simpleVerse + p.closeSimpleVerse { margin-top:-0.5em; }
 
 p.KJB-1611_chapterIntro { font-size:0.8em; color: grey; font-family:UnifrakturCook,"New Rocker","Unifraktur Maguntia","Germania One",Astloch,textura,schwabacher,rotunda,bastarda,blankenburg,cursive; }
 
@@ -198,9 +200,9 @@ p.p { text-indent:0.5em; margin-top:0.2em; margin-bottom:0.2em; }
 p.q1 { margin-left:1em; margin-top:0.2em; margin-bottom:0.2em; }
 p.q2 { margin-left:2em; margin-top:0.2em; margin-bottom:0.2em; }
 /* p.m {  } */
-span.li1 {} /* Why's this a span??? */
-span.li2 {} /* Why's this a span??? */
-span.li3 {} /* Why's this a span??? */
+span.li1 {}
+span.li2 {}
+span.li3 {}
 span.w {}
 
 /* NT spans */

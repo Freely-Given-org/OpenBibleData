@@ -830,8 +830,8 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                 'ach','alt','dran','ende','irrig','hing','weh','du','Raube','Raub','sie','Tal','tue','fiel','sehe',
                                 'Mal','mal','milde','mit','Mord','Natur','nun','nur',
                                 'rede','kam','Korb','ward','Rat','Rede','messen','Mose','ging','Halle','und','ster','streng','töte','tun','von','wer','zu','zwo',
-                                'complainse','hundredundsechzig',
-                                    'Manasse','Syrern','Suchoth','Esrahiten',
+                                'mountainss','mountainsn','strikee','presentr','diapers','twoschneidig','sleepkammer','fastinge','went‘s','beashamed',
+                                    'Suchoth','Esrahiten',
                     
                                 'abs','actio', 'adultera','agi', 'aliena', 'ambit','ambitio','amputa', 'anima','antiqui','apprehendi', 'argui','ascendi','attende','audi', 'aversio',
                                 'beati','bene','beneficia','bos',
@@ -844,7 +844,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                 'dat','dedi','deduc','dei','dem','designat','desolati','det','determinat','devotio',
                                     'diaboli','disco','digni','discretio','dissipati','distincti','distinctio','divisi','dom','domi','domina','dona',
                                 'ecclesia','ecclesias','editio','ei', 'electi', 'emissa', 'enumerat','esca','evangelica', 'exalta','exaltat','exaltatio','exclamat','expiat','extensio',
-                                'fac','falli', 'fel', 'figura','Finis','finis','fornicatio','forti','fugit','fur',     'generat','generatio',     'hellor','hoc','humili','humiliati',
+                                'fac','falli', 'fel', 'figura','Finis','finis','fornicatio','forti','fugit','fur',     'generat','generatio',     'hac','hellor','hoc','humili','humiliati',
                                 'ibi', 'illum','illuminat','illuminati','illuminatio', 'ima','impie', 'infirmi','inscriptio','insinuat','instructi',
                                     'indignati','intellige','intelligi','intentio','introduc','inventi','invoca','invocat','invocatio','Isaia','iter','Ite',
                                 'ja','jus','Justi','justi','justis','justificat',     'legi','legis','leve','liberatio','liberati','liberato','liberat','libera','liber','locus','luna','lux',
@@ -860,10 +860,10 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                 'tempora','Tod','tradit','traditi','traditio','transito','transmigratio','tres','tribulatio','tributa','trium','tu','tua','tuam','turba',
                                 'usu',      'valle','vani','varie','vas', 'venerat', 'victi','vis','visita','visitat','visitatio','vita', 'Voca','voca',
                                 'l','nos','ut','didrachmas',
-                                'hac','everyoneque','testimonys',
-                                    'res','meum','professio','namedm','anathemate','anys','perfectio',
-                                    'flagello','retributio','adorat','accusent','chosesti',
-                                    'exaltentur','exasperant',
+                                'everyoneque',
+                                'ausus','beque','thereita','pravorum','castitate','profecto','arbitror','infidelitym','consecutus',
+                                    'res','meum','professio','namedm','anathemate','anys','perfectio','adorat','accusent','chosesti',
+                                    'placebit','novellum',
 
                                 )
                     else 'Info', DEBUGGING_THIS_MODULE, f'''  '{word}' is suspect @ {location}\n      from {cleanedTextToDisplay=}\n      WHICH GAVE cleanedTextToCheck={_truncate_for_display(cleanedTextToCheck,word)}''' )

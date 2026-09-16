@@ -59,7 +59,7 @@ class State:
     SITE_ABBREVIATION = 'OBD'
     SITE_COPYRIGHT = "copyright © 2023–2026"
 
-    OBD_VERSION_NUMBER_STRING = 'v2.4.0' # Incremented after most updates to OBD web page generation code
+    OBD_VERSION_NUMBER_STRING = 'v2.4.1' # Incremented after most updates to OBD web page generation code
     OET_VERSION_NUMBER_STRING = 'v0.48.79' # Incremented on most runs when there's been changes or updates to the text of the OET-RV or OET-LV
 
     TEST_MODE_FLAG = True # Writes smaller website subset into DEBUG_DESTINATION_FOLDER_PATH if True
@@ -72,7 +72,7 @@ class State:
     LOAD_RESOURCES_FROM_PICKLES_FLAG = True # Might have to disable loading pickles if they need updating (new code or data)
     TEST_VERSIONS_ONLY = None #['OET','OET-RV','OET-LV', 'KJB-1611', 'TOSN','UTN'] # Usually None. Also stops actual site being built
     ALL_PRODUCTION_BOOKS_FLAG = not TEST_MODE_FLAG # If set to False, uses the TEST book list (with many less books) for a faster test build
-    CREATE_PARALLEL_VERSE_PAGES = 'FIRST' # 'FIRST','LAST', or None -- usually 'LAST' -- depending on debugging needs
+    CREATE_PARALLEL_VERSE_PAGES = 'LAST' # 'FIRST','LAST', or None -- usually 'LAST' -- depending on debugging needs
     CREATE_BOOK_AND_OTHER_PAGES_FLAG = True # Can be turned off for debugging
     DO_SPELL_CHECKS_FLAG = True # On parallel pages
     REUSE_EXISTING_WORD_PAGES_FLAG = TEST_MODE_FLAG and not NEW_BOOK_IN_TEST_LIST_FLAG # Don't recreate word pages (dangerous for main site coz no ilr!!!)

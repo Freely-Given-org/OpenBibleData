@@ -179,7 +179,7 @@ def createParallelVersePages( level:int, folder:Path, state:State ) -> bool:
             ourTidyBBBwithNotes = getOETTidyBBB( BBB, addNotes=True )
             BBBLinks.append( f'''<a title="{getOETBookName(BBB)}" href="{BBB}/index.htm#Top">{ourTidyBBBwithNotes}</a>''' )
             BBBNextLinks.append( f'''<a title="{getOETBookName(BBB)}" href="../{BBB}/index.htm#Top">{ourTidyBBBwithNotes}</a>''' )
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Have par {len(BBBNextLinks)} book links: {BBBNextLinks}" )
+    vPrint( 'Info', DEBUGGING_THIS_MODULE, f"Have par {len(BBBNextLinks)} book links: {BBBNextLinks}" )
 
     # Now create the actual parallel pages
     state.versesWithImages = defaultdict( list )
@@ -231,6 +231,7 @@ def createParallelVersePages( level:int, folder:Path, state:State ) -> bool:
     indexHtml = f'''{top}<h1 id="Top">Parallel verse pages</h1>
 <p class="note">Each page only contains a single verse with minimal formatting, but displays it in a large number of different versions to enable analysis of different translation decisions. Study notes, theme notes, and translation notes will also be displayed, although not every verse has these.</p>
 <p class="note">Generally the older versions are nearer the bottom, and so reading from the bottom to the top can show how many English vocabulary and punctuation decisions propagated from one version to another.</p>
+<p class="note">If you're looking for a less complex list, our simpler <a href="{'../'*level}lst/">verse list pages</a> have less extra information making them simpler to parse and compare.</p>
 <h2>Index of books</h2>
 {makeBookNavListParagraph( BBBLinks, 'ParallelIndex', state )}
 <p class="note"><small>Note: We would like to display more English Bible versions on these parallel pages to assist Bible translation research, but copyright restrictions from the commercial Bible industry and refusals from publishers greatly limit this. (See the <a href="https://SellingJesus.org/graphics">Selling Jesus</a> website for more information on this problem.)</small></p>
