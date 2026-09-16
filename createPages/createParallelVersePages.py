@@ -20,9 +20,6 @@ createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:list[
 getPlainText( givenVerseEntryList ) -> str
     Takes a verseEntryList and converts it to a string of plain text words.
     Used to compare critical Greek versions.
-removeGreekPunctuation( greekText:str ) -> str
-    Converts to lowercase and removes punctuation used in any Greek version.
-    Used to compare critical Greek versions.
 brightenSRGNT( BBB:str, C:str, V:str, brightenTextHtml:str, verseEntryList, state:State ) -> tuple[str,list[str]]
     Take the SR-GNT text (which includes punctuation and might also include <br> characters)
         and mark the role participants
@@ -82,7 +79,7 @@ CHANGELOG:
     2026-08-27 Pre-load spell-check dictionaries/names in parent before forking so children don't redundantly reload them per book.
     2026-09-01 Fixed bad links on the second book index page
     2026-09-09 removeVersePunctuationForComparison and removeGreekPunctuation now call the Rust openbibledata_rust ports
-    2026-09-04 Don't display OET_PARALLEL_PAGE_SINGLE_VERSE_HTML_TEXT etc. if we're displaying the book intro rather than an actual verse
+    2026-09-04 Don't display PARALLEL_VERSE_PAGE_SINGLE_VERSE_HTML_TEXT etc. if we're displaying the book intro rather than an actual verse
     2026-09-15 ESFM word-link livening is now fused (single-pass) into openbibledata_rust.convertVerseEntryListToHtml via its new livenWordLinks kwarg, so the old livenOETWordLinks/livenOETCompatibleBereanWordLinks calls in the parallel-verse hot path have been removed.
 """
 from pathlib import Path
@@ -114,13 +111,13 @@ from createSectionPages import findSectionNumber
 from createOETReferencePages import OSHB_ADJECTIVE_DICT, OSHB_PARTICLE_DICT, OSHB_NOUN_DICT, OSHB_PREPOSITION_DICT, OSHB_PRONOUN_DICT, OSHB_SUFFIX_DICT
 from spellCheckEnglish import spellCheckAndMarkHTMLText, collectSpellCheckResults, mergeSpellCheckResults, \
                             load_dict_sources, load_OET_LV_names, load_OET_RV_names
-from openbibledata_rust import convertVerseEntryListToHtml, getOETTidyBBB, getOETBookName, getHebrewWordpageFilename, getGreekWordpageFilename, removeVersePunctuationForComparison, removeGreekPunctuation as _removeGreekPunctuationFromRust
+from openbibledata_rust import convertVerseEntryListToHtml, getOETTidyBBB, getOETBookName, getHebrewWordpageFilename, getGreekWordpageFilename, removeVersePunctuationForComparison, removeGreekPunctuation
 
 
-LAST_MODIFIED_DATE = '2026-09-04' # by RJH
+LAST_MODIFIED_DATE = '2026-09-16' # by RJH
 SHORT_PROGRAM_NAME = "createParallelVersePages"
 PROGRAM_NAME = "OpenBibleData createParallelVersePages functions"
-PROGRAM_VERSION = '1.0.7'
+PROGRAM_VERSION = '1.0.8'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -408,7 +405,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                 prefix = f'<b><sup>{prefix}</sup></b>'
                             if verseText.startswith( '\\s1 ' ):
                                 verseText.replace( '\\s1 ', '\\s1 <b>', 1 ).replace( '\n', '</b>\n', 1 )
-                            verseText = ENTIRE_FOOTNOTE_REGEX.sub( '*', verseText ) # Just leave an asterisk where the footnotes were
+                            verseText = ENTIRE_FOOTNOTE_REGEX.sub( '<sup>†</sup>', verseText ) # Just leave a mark where the footnotes were
                             vHtml = f'{prefix}{verseText}' \
                                 .replace( '\\p ', '\n<br>¶&nbsp;' ) \
                                 .replace( '\\q1 ', '\n<br>&nbsp;&nbsp;' ) \
@@ -440,6 +437,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                 vHtml = vHtml.removeprefix( possiblePrefix )
                             # if versionAbbreviation=='CSB' and BBB=='RUT' and C=='2' and 'ORD' in verseText: print( f"{versionAbbreviation} {parRef} {vHtml=}" ); assert False, "We want to stop here"
                             assert '\\' not in vHtml, f"{versionAbbreviation} {parRef} {vHtml=}"
+                            assert '*' not in vHtml, f"{versionAbbreviation} {parRef} {vHtml=}"
                             assert '<br><br>' not in vHtml, f"{versionAbbreviation} {parRef} {vHtml=}"
                             if versionAbbreviation == 'SLBL': # We provide a direct link to their website
                                 vHtml = f'{vHtml} <a title="Go to the SLBL translation" href="https://psalms.scriptura.org/w/Psalm_Overview_{C}#Close-but-Clear_Translation">‡</a>'
@@ -524,7 +522,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                             textHtml = convertVerseEntryListToHtml( BBBLevel, versionAbbreviation, (BBB,C,V), 'parallelVerse', contextList, verseEntryList, basicOnly=(c!=-1), state=state, livenWordLinks=('OET' in versionAbbreviation) or thisBible.abbreviation in ('BSB','MSB') )
                             if versionAbbreviation == 'OET-RV': # This is the only parallel version with cross-references included
                                 footnoteFreeTextHtml = footnotesHtml = '' # Any footnotes have been left in textHtml so no need for a separate container
-                            else: # no cross-references were asked for here for other version
+                            else: # no cross-references were asked for here for other versions
                                         # An exception is https://Freely-Given.org/OBD/KJB-1611/byC/ESG_Intro.htm#Top
                                 assert textHtml.count('<hr ')<(3 if versionAbbreviation=='KJB-1611' else 2), f"{versionAbbreviation} {BBB} {C}:{V} ({textHtml.count('<hr ')}) {textHtml=}"
                                 textHtml, footnoteFreeTextHtml, footnotesHtml = handleAndExtractFootnotes( versionAbbreviation, textHtml )
@@ -1210,7 +1208,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
 {adjBBBLinksHtml}
 {chapterLinksParagraph}
 {vLinksPar}
-<h1>Parallel {ourTidyBBB} {'Intro' if c==-1 else f'{C}:{V}'}</h1>{f'\n<p class="rem">Note: {state.OET_PARALLEL_PAGE_SINGLE_VERSE_HTML_TEXT} {state.OETS_UNFINISHED_WARNING_HTML_TEXT}</p>' if c>-1 and v>0 else ''}
+<h1>Parallel {ourTidyBBB} {'Intro' if c==-1 else f'{C}:{V}'}</h1>{f'\n<p class="rem">Note: {state.PARALLEL_VERSE_PAGE_SINGLE_VERSE_HTML_TEXT} {state.OETS_UNFINISHED_WARNING_HTML_TEXT}</p>' if c>-1 and v>0 else ''}
 {navLinks.replace('__ID__','Top').replace('__ARROW__','↓').replace('__LINK__','BottomNavs').replace('__WHERE__','bottom')}
 {parallelHtml}
 {navLinks.replace('__ID__','BottomNavs').replace('__ARROW__','↑').replace('__LINK__','Top').replace('__WHERE__','top')}
@@ -1286,16 +1284,16 @@ def getPlainText( givenVerseEntryList ) -> str:
 # end of createParallelVersePages.getPlainText
 
 
-def removeGreekPunctuation( greekText:str ) -> str:
-    """
-    Converts to lowercase and removes punctuation used in any Greek version.
+# def removeGreekPunctuation( greekText:str ) -> str:
+#     """
+#     Converts to lowercase and removes punctuation used in any Greek version.
 
-    Used to compare critical Greek versions.
+#     Used to compare critical Greek versions.
 
-    Ported to Rust (openbibledata_rust.removeGreekPunctuation) for speed.
-    """
-    return _removeGreekPunctuationFromRust( greekText ) # The Rust port
-# end of createParallelVersePages.removeGreekPunctuation
+#     Ported to Rust (openbibledata_rust.removeGreekPunctuation) for speed.
+#     """
+#     return _removeGreekPunctuationFromRust( greekText ) # The Rust port
+# # end of createParallelVersePages.removeGreekPunctuation
 
 
 GREEK_CASE_CLASS_DICT = { 'N':'Nom','n':'Nom', 'G':'Gen','g':'Gen', 'A':'Acc','a':'Acc', 'D':'Dat','d':'Dat', 'V':'Voc','v':'Voc', }
@@ -1922,6 +1920,8 @@ def rememberPossibleUnmatchedProperNames( parRef:str, thisVerseEntryList, state:
                     if not foundAny:
                         state.possibleUnmatchedProperNames.add( word )
 # end of createParallelVersePages.brightenUHB
+
+
 
 def briefDemo() -> None:
     """

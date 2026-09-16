@@ -104,6 +104,7 @@ CHANGELOG:
                 createPages/Rust/src/html_customisations.rs; the superseded Python implementations
                 (and the RV_ADD_REGEX, digitPunctDigitRegex and T4T_FOS_TYPES helpers they needed)
                 were removed.
+    2026-09-16 Updated for new VerseList pages
 """
 import logging
 from datetime import datetime
@@ -126,10 +127,10 @@ from openbibledata_rust import (
 )
 
 
-LAST_MODIFIED_DATE = '2026-09-08' # by RJH
+LAST_MODIFIED_DATE = '2026-09-16' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
-PROGRAM_VERSION = '1.0.8'
+PROGRAM_VERSION = '1.0.9'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -141,7 +142,7 @@ KNOWN_PAGE_TYPES = ('site', 'TopIndex', 'details', 'AllDetails',
                     'book','bookIndex', 'chapter','chapterIndex', 'section','sectionIndex',
                     'relatedPassage','relatedSectionIndex',
                     'topicPassages','topicsIndex', 'kingdom',
-                    'parallelVerse', 'interlinearVerse',
+                    'parallelVerse', 'interlinearVerse', 'simpleVerse',
                     'dictionaryMainIndex','dictionaryLetterIndex','dictionaryEntry','dictionaryIntro',
                     'word','lemma','morpheme', 'person','location', 'statistics', 'StrongsPage',
                     'wordIndex','lemmaIndex','morphemeIndex', 'personIndex','locationIndex',
@@ -200,7 +201,7 @@ def makeViewNavListParagraph( level:int, versionAbbreviation:str|None, pageType:
 # end of html.makeViewNavListParagraph
 
 
-HTML_PLUS_LIST = ['ParallelVerse','InterlinearVerse', 'ParallelIndex','InterlinearIndex']
+HTML_PLUS_LIST = ['ParallelVerse','InterlinearVerse','VerseList', 'ParallelIndex','InterlinearIndex','VerseListIndex']
 OET_HTML_PLUS_LIST = ['OET'] + HTML_PLUS_LIST
 def makeBookNavListParagraph( linksList:list[str], workAbbrevPlus:str, state:State ) -> str:
     """

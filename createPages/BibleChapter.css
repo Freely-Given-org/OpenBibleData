@@ -1,4 +1,5 @@
 /* Also used for sections and documents */
+/* Not used for OET (two column), or OET-RV or OET-LV which might have section headings in boxes
 /* Paratext stylesheet is at https://github.com/ubsicap/usfm/blob/master/sty/usfm.sty */
 
 body.container {}
@@ -101,12 +102,12 @@ p.ms1 + p.mr, p.ms2 + p.mr { margin-top:-1.1em; }
 p.mr { margin-top:0; margin-bottom:0.2em; font-size:1.3em; text-align: center; font-style:italic; } /* Major section reference range */
 /* div.section {} */
 div.s1 {}
-p.s1 { margin-top:0.1em; margin-bottom:0; font-size:1.2em; font-weight:bold; }
+p.s1 { margin-top:1em; margin-bottom:0; font-size:1.2em; font-weight:bold; }
 p.s2 { margin-top:0.1em; margin-bottom:0; font-size:1.1em; font-weight:bold; }
 p.s3 { margin-top:0.1em; margin-bottom:0; font-size:1.06em; font-weight:bold; }
 p.s4 { margin-top:0.1em; margin-bottom:0; font-size:1.03em; font-weight:bold; }
 p.sr { margin-top:0; margin-bottom:0; font-size:0.9em; text-align: center; font-weight:bold; } /* Section reference range */
-p.r { margin-top:0; margin-bottom:0; font-size:0.75em; font-style:italic; } /* Parallel references */
+p.r { margin-top:0; margin-bottom:1em; font-size:0.75em; font-style:italic; } /* Parallel references */
 p.cl { margin-top:2.0em; margin-bottom:0; text-align:center; font-size:1.2em; }
 p.d { font-style:italic; }
 p.sp { font-weight:bold; } /* Speaker */

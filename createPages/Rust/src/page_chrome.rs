@@ -14,13 +14,14 @@ use std::collections::{HashMap, HashSet};
 /// Separator used by Python's `'…'.join()` calls in html.py (EM SPACE).
 const EM_SPACE: &str = "\u{2003}";
 
-const NAV_LINK_PAGE_TYPES_FOR_KB_JS: [&str; 9] = [
+const NAV_LINK_PAGE_TYPES_FOR_KB_JS: [&str; 10] = [
     "chapter",
     "section",
     "sectionIndex",
     "book",
     "parallelVerse",
     "interlinearVerse",
+    "simpleVerse",
     "relatedPassage",
     "topicPassages",
     "kingdom",
@@ -153,7 +154,7 @@ fn css_filename_for(page_type: &str, version_abbreviation: Option<&str>) -> Resu
         }
         "relatedPassage" => "ParallelPassages.css",
         "topicPassages" => "TopicalPassages.css",
-        "parallelVerse" => "ParallelVerses.css",
+        "parallelVerse" | "simpleVerse" => "ParallelVerses.css",
         "interlinearVerse" => "InterlinearVerse.css",
         "word" | "lemma" | "morpheme" | "person" | "location" | "StrongsPage" => "BibleWord.css",
         "dictionaryLetterIndex" | "dictionaryEntry" | "dictionaryIntro" => "BibleDict.css",
@@ -412,13 +413,6 @@ fn work_nav_list_core(
     )?;
     append_pseudo_link(
         &mut initial_version_list,
-        &["topicPassages", "topicsIndex"],
-        "Topics",
-        "Collections of OET passages organised by topic",
-        "tpc/",
-    )?;
-    append_pseudo_link(
-        &mut initial_version_list,
         &["parallelVerse"],
         "Parallel",
         "Single verse in many different translations",
@@ -430,6 +424,20 @@ fn work_nav_list_core(
         "Interlinear",
         "Single verse in interlinear word view",
         "ilr/",
+    )?;
+    append_pseudo_link(
+        &mut initial_version_list,
+        &["simpleVerse"],
+        "Simple",
+        "Single verse in simple list view",
+        "lst/",
+    )?;
+    append_pseudo_link(
+        &mut initial_version_list,
+        &["topicPassages", "topicsIndex"],
+        "Topics",
+        "Collections of OET passages organised by topic",
+        "tpc/",
     )?;
     append_pseudo_link(
         &mut initial_version_list,

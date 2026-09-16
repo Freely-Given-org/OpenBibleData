@@ -90,6 +90,7 @@ from createChapterPages import createOETSideBySideChapterPages, createChapterPag
 from createSectionPages import createOETSectionLists, createOETSectionPages, createSectionLists, createSectionPages
 from createParallelPassagePages import createParallelPassagePages
 from createParallelVersePages import createParallelVersePages
+from createVerseListPages import createVerseListPages
 from createTopicPages import createTopicPages, createKingdomPages
 from createOETInterlinearPages import createOETInterlinearPages
 from createOETReferencePages import createOETReferencePages
@@ -102,7 +103,7 @@ from spellCheckEnglish import printSpellCheckSummary
 LAST_MODIFIED_DATE = '2026-09-16' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData (OBD) Create Site Pages"
-PROGRAM_VERSION = '1.3.5'
+PROGRAM_VERSION = '1.4.0'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
@@ -239,6 +240,7 @@ def _createSitePages() -> bool:
     # TODO: We could use multiprocessing to do all these at once
     #   (except that state is quite huge with all preloaded versions and hence expensive to pickle)
     if state.CREATE_PARALLEL_VERSE_PAGES == 'FIRST':
+        createVerseListPages( 1, state.TEMP_BUILD_FOLDER.joinpath('lst/'), state )
         createParallelVersePages( 1, state.TEMP_BUILD_FOLDER.joinpath('par/'), state )
     elif not state.CREATE_PARALLEL_VERSE_PAGES:
         vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"NOT GENERATING {'TEST ' if state.TEST_MODE_FLAG else ''}parallel verse pages." )
@@ -344,6 +346,7 @@ def _createSitePages() -> bool:
             assert all(results)
 
     if state.CREATE_PARALLEL_VERSE_PAGES == 'LAST':
+        createVerseListPages( 1, state.TEMP_BUILD_FOLDER.joinpath('lst/'), state )
         createParallelVersePages( 1, state.TEMP_BUILD_FOLDER.joinpath('par/'), state )
     elif not state.CREATE_PARALLEL_VERSE_PAGES:
         vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"NOT GENERATING {'TEST ' if state.TEST_MODE_FLAG else ''}parallel verse pages." )
@@ -463,6 +466,8 @@ def _cleanHTMLFolders( folder:Path, state:State ) -> bool:
     except FileNotFoundError: pass
     if state.CREATE_PARALLEL_VERSE_PAGES is not None:
         try: shutil.rmtree( folder.joinpath( 'par/' ) )
+        except FileNotFoundError: pass
+        try: shutil.rmtree( folder.joinpath( 'lst/' ) )
         except FileNotFoundError: pass
     if folder == state.TEMP_BUILD_FOLDER \
     or not state.REUSE_EXISTING_WORD_PAGES_FLAG: # Leave the existing folders there if we're not rebuilding these reference pages
@@ -1226,5 +1231,5 @@ if __name__ == '__main__':
     BibleOrgSysGlobals.closedown( PROGRAM_NAME, PROGRAM_VERSION )
     print( f"\nThis build of the{' TEST' if state.TEST_MODE_FLAG else ''} site (which completed) was done with\n"
            f"    {'STRICT' if BibleOrgSysGlobals.strictCheckingFlag else 'NON-strict'} BibleOrgSys checking and with asserts {f'ENABLED' if __debug__ else 'DISABLED'}.\n"
-           f"  Word pages {f'were' if state.REUSE_EXISTING_WORD_PAGES_FLAG else 'WERE NOT'} built." )
+           f"  Word pages and other reference pages {f'WERE NOT' if state.REUSE_EXISTING_WORD_PAGES_FLAG else 'WERE'} built." )
 # end of createSitePages.py

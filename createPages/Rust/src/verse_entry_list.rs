@@ -554,7 +554,7 @@ where
                     state.in_verse_div = true;
                 }
                 // Show verse numbers except for single parallel/interlinear verses
-                if !(segment_type == "parallelVerse" || segment_type == "interlinearVerse")
+                if !(segment_type == "parallelVerse" || segment_type == "interlinearVerse" || segment_type == "simpleVerse")
                     || v.contains('-')
                 {
                     if !v.is_empty() && v.contains('-') {
@@ -562,7 +562,7 @@ where
                         let parts: Vec<&str> = v.splitn(2, '-').collect();
                         let v1 = parts[0];
                         let v2 = if parts.len() > 1 { parts[1] } else { "" };
-                        if segment_type == "parallelVerse" || segment_type == "interlinearVerse" {
+                        if segment_type == "parallelVerse" || segment_type == "interlinearVerse" || segment_type == "simpleVerse" {
                             if !html.ends_with('>') {
                                 html.push(' ');
                             }
@@ -910,7 +910,7 @@ where
                         version_abbreviation, bos_book_code, segment_type, rest_str, basic_only,
                         &mut state.background_colour,
                     )?;
-                    let c_bit = if state.c_printed || segment_type == "parallelVerse" || segment_type == "interlinearVerse" {
+                    let c_bit = if state.c_printed || segment_type == "parallelVerse" || segment_type == "interlinearVerse" || segment_type == "simpleVerse" {
                         String::new()
                     } else {
                         let psa_class = if bos_book_code == "PSA" { "cPsa" } else { "c" };
@@ -1376,7 +1376,7 @@ where
     }
 
     // --- Handle footnotes and cross-references ---
-    let _path_prefix = if segment_type == "parallelVerse" || segment_type == "interlinearVerse" {
+    let _path_prefix = if segment_type == "parallelVerse" || segment_type == "interlinearVerse" || segment_type == "simpleVerse" {
         "../../OET/byC/"
     } else if segment_type == "topicalPassage" {
         "../OET/byC/"
