@@ -12,6 +12,12 @@
 //!     (port of `html.do_LSV_HTMLcustomisations`).
 //!   * `do_t4t_html_customisations` — T4T figure-of-speech `[SIM]`-style codes
 //!     (port of `html.do_T4T_HTMLcustomisations`).
+//!   * `do_convert_adds_to_italics` — hardwires `/add` words in non-OET
+//!     versions to italics (port of `html.convert_adds_to_italics`).
+//!   * `do_handle_and_extract_footnotes` — splits off a verse's footnotes
+//!     division, namespacing its footnote ids/hrefs per version and stripping
+//!     the footnote callers from the footnote-free copy (port of
+//!     `html.handleAndExtractFootnotes`).
 //!
 //! All `.replace()` chains preserve Python's `str.replace` semantics (replace
 //! every non-overlapping occurrence, left-to-right) — Rust's `str::replace`
@@ -29,9 +35,12 @@
 //!
 //! Changelog:
 //!   2026-09-16: Initial port of the four customisation functions.
+//!   2026-09-17: Ported convert_adds_to_italics and handleAndExtractFootnotes.
 
 use crate::html_validation::check_html;
 use bos_internals::have_strict_checking_flag;
+use once_cell::sync::Lazy;
+use regex::Regex;
 
 // ── T4T figure-of-speech codes (order matters for the replace chains) ───────
 const T4T_FOS_TYPES: [(&str, &str); 18] = [
@@ -442,6 +451,165 @@ pub fn do_t4t_html_customisations(where_: &str, html: &str) -> Result<String, St
     Ok(t4t_html.replace('◄', "<span title=\"alternative translation\">◄</span>"))
 }
 
+// ── convert_adds_to_italics ──────────────────────────────────────────────────
+/// Port of `html.convert_adds_to_italics`: hardwires added words (`<add>`) in
+/// non-OET versions to italics.
+///
+/// The Python `for … else: not_enough_loops` trip fires a `NameError` whenever
+/// 30+ `<span class="add">` fields survive the loop (the `else` runs only if
+/// the loop never found `ix == -1`).  Like the `NOT_ENOUGH_LOOPS` error it is a
+/// plain runtime error, not an assert, so it fires in every build mode.
+pub fn do_convert_adds_to_italics(html_segment: &str) -> Result<String, String> {
+    // Py for _cati_safetyCheck in range(30):
+    //     ix = htmlSegment.find('<span class="add">')
+    //     if ix == -1: break
+    //     htmlSegment = htmlSegment.replace('<span class="add">', '<i>', 1)
+    //     htmlSegment = f"{htmlSegment[:ix]}{htmlSegment[ix:].replace('</span>','</i>',1)}"
+    // else: not_enough_loops
+    let mut result = html_segment.to_string();
+    let mut loop_exhausted = true;
+    for _ in 0..30 {
+        let Some(ix) = result.find("<span class=\"add\">") else {
+            loop_exhausted = false;
+            break;
+        };
+        // Python's replace(..., 1) replaces only the first occurrence; so does
+        // Rust's replacen(..., 1).
+        result = result.replacen("<span class=\"add\">", "<i>", 1);
+        // Replace the first '</span>' at/after `ix` — this add's own closing
+        // tag — with '</i>'.  `ix` is a character boundary (it points at the
+        // ASCII '<'), so byte slicing lines up with Python's char indexing,
+        // and every '<' '</span>' marker is ASCII, so byte == char for them.
+        // An unterminated add leaves a plain no-op, exactly as in Python.
+        if let Some(jx) = result[ix..].find("</span>") {
+            result.replace_range(ix + jx..ix + jx + 7, "</i>");
+        }
+    }
+    if loop_exhausted {
+        Err("NameError: name 'not_enough_loops' is not defined".to_string())
+    } else {
+        Ok(result)
+    }
+}
+
+// ── handleAndExtractFootnotes ────────────────────────────────────────────────
+/// Python `re` engine: `<span class="fnCaller">.+?</span>` — `.` excludes `\n`
+/// and `+` is lazy, which is exactly `regex`'s default (non-DOTALL) dot.  Both
+/// engines walk left-to-right over non-overlapping matches.
+static FNCALLER_REGEX: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r#"<span class="fnCaller">.+?</span>"#).expect("fnCaller regex"));
+
+/// Emulate Python's `repr()` for a `str` so assert messages read identically
+/// to the Python originals (`f'{x=}'` renders `x='...'` with shows repr).
+/// Printable Unicode (incl. Hebrew/Arabic/CJK) is passed through unchanged.
+fn py_repr(text: &str) -> String {
+    let mut out = String::with_capacity(text.len() + 2);
+    out.push('\'');
+    for ch in text.chars() {
+        match ch {
+            '\\' => out.push_str("\\\\"),
+            '\'' => out.push_str("\\'"),
+            '\n' => out.push_str("\\n"),
+            '\r' => out.push_str("\\r"),
+            '\t' => out.push_str("\\t"),
+            c if (c as u32) < 0x20 || c == '\u{7f}' => {
+                out.push_str(&format!("\\x{:02x}", c as u32));
+            }
+            c if c.is_control() => out.push_str(&format!("\\u{:04x}", c as u32)),
+            c => out.push(c),
+        }
+    }
+    out.push('\'');
+    out
+}
+
+/// Port of `html.handleAndExtractFootnotes`: given a verse's HTML that may
+/// contain a footnotes division, separates out the footnotes and returns
+/// `(verse_html, footnote_free_verse_html, footnotes_html)`.
+///
+/// The Python `assert`s here are substantive data-integrity checks (footnote
+/// `<hr ` / `<div` balance, stray-`<hr` detection, the "We want to stop here"
+/// trap), so they are gated on strict checking exactly like the Python
+/// originals: OBD enables them with `-c/--strict` (`BibleOrgSysGlobals`
+/// `setStrictCheckingFlag()` → `set_rust_strict_checking(True)`), and they
+/// stay inert otherwise to match `python -O`.
+pub fn do_handle_and_extract_footnotes(
+    version_abbreviation: &str,
+    verse_html_input: &str,
+) -> Result<(String, String, String), String> {
+    let strict = have_strict_checking_flag() || cfg!(debug_assertions);
+    let mut verse_html = verse_html_input.to_string();
+
+    if verse_html.contains("<div id=\"footnotes\" class=\"footnotes\">") {
+        let hr_count = verse_html.matches("<hr ").count();
+        if strict {
+            // Py: assert verseHtml.count('<hr ') >= 1, f'{versionAbbreviation} ({...}) {verseHtml=}'
+            if hr_count < 1 {
+                return Err(format!(
+                    "AssertionError: {version_abbreviation} ({hr_count}) verseHtml={}",
+                    py_repr(&verse_html)
+                ));
+            }
+            // Py: assert '<div id="crossRefs" class="crossRefs">' in verseHtml, ...
+            if hr_count > 1 && !verse_html.contains("<div id=\"crossRefs\" class=\"crossRefs\">") {
+                return Err(format!(
+                    "AssertionError: {version_abbreviation} ({hr_count}) verseHtml={}",
+                    py_repr(&verse_html)
+                ));
+            }
+            // Py: assert verseHtml.count('</div>') == verseHtml.count('<div ')
+            if verse_html.matches("</div>").count() != verse_html.matches("<div ").count() {
+                return Err("AssertionError:".to_string());
+            }
+        }
+
+        // Namespace this verse's footnote ids/hrefs per version so the same
+        // fn1 doesn't collide across versions on a parallel page.
+        verse_html = verse_html
+            .replace(
+                "id=\"footnotes",
+                &format!("id=\"footnotes{version_abbreviation}"),
+            )
+            .replace("id=\"fn", &format!("id=\"fn{version_abbreviation}"))
+            .replace("href=\"#fn", &format!("href=\"#fn{version_abbreviation}"));
+
+        // Py: verseHtml, footnoteHtml = verseHtml.split( '<hr ', 1 )
+        let split_at = verse_html.find("<hr ").ok_or_else(|| {
+            // Never an assert: under python -O this is the same ValueError that
+            // split() raises when the '<hr ' separator is missing.
+            "ValueError: not enough values to unpack (expected 2, got 1)".to_string()
+        })?;
+        let footnote_html = verse_html[split_at + "<hr ".len()..].to_string();
+        verse_html = verse_html[..split_at].to_string();
+
+        // Py: verseHtml.rstrip()
+        verse_html = verse_html.trim_end().to_string();
+
+        // Py: footnoteFreeVerseHtml, numFootnotesRemoved = footnoteRegex.subn( '', verseHtml )
+        //     (the removal count is computed but never used)
+        let footnote_free_verse_html = FNCALLER_REGEX.replace_all(&verse_html, "").to_string();
+
+        Ok((verse_html, footnote_free_verse_html, format!("<hr {footnote_html}")))
+    } else {
+        if verse_html.contains("class=\"footnotes\"") {
+            // Py: print( "{versionAbbreviation} {verseHtml=}" ); assert False, "We want to stop here"
+            eprintln!("{{versionAbbreviation}} {{verseHtml=}}");
+            if strict {
+                return Err("AssertionError: We want to stop here".to_string());
+            }
+        }
+        if strict && version_abbreviation != "OET-RV" && verse_html.contains("<hr ") {
+            // Py: assert '<hr ' not in verseHtml, f'{versionAbbreviation=} {verseHtml=}'
+            return Err(format!(
+                "AssertionError: versionAbbreviation={} verseHtml={}",
+                py_repr(version_abbreviation),
+                py_repr(&verse_html)
+            ));
+        }
+        Ok((verse_html.clone(), verse_html, String::new()))
+    }
+}
+
 // ── Unit tests ──────────────────────────────────────────────────────────────
 // Expected outputs below were captured from the Python originals
 // (Python asserts active → every "Ok" fixture also passes a strict
@@ -715,5 +883,166 @@ mod tests {
         // Py: assert f'{FoS2}]' not in T4T_html  (leaves an 'EUP]' behind)
         let err = do_t4t_html_customisations("T", "divided [EUP, MTY/EUP] mid").unwrap_err();
         assert!(err.contains("AssertionError"), "got {err:?}");
+    }
+
+    // -- convert_adds_to_italics --
+    #[test]
+    fn cati_plain_add() {
+        assert_eq!(
+            do_convert_adds_to_italics(r#"<span class="add">word</span>"#).expect("no-op"),
+            r#"<i>word</i>"#
+        );
+    }
+
+    #[test]
+    fn cati_multiple_adds() {
+        assert_eq!(
+            do_convert_adds_to_italics(
+                r#"a<span class="add">one</span>b<span class="add">two</span>c"#
+            )
+            .expect("no-op"),
+            r#"a<i>one</i>b<i>two</i>c"#
+        );
+    }
+
+    #[test]
+    fn cati_multibyte_before_add() {
+        // ix is a byte index found by find(); the slice result[ix..] must not
+        // split a UTF-8 sequence when multibyte chars precede the marker.
+        assert_eq!(
+            do_convert_adds_to_italics("בְּרֵאשִׁית <span class=\"add\">x</span>")
+                .expect("no-op"),
+            "בְּרֵאשִׁית <i>x</i>"
+        );
+    }
+
+    #[test]
+    fn cati_unterminated_add_keeps_markers() {
+        // No closing '</span>' → Python's inner replace is a no-op; so is ours.
+        assert_eq!(
+            do_convert_adds_to_italics("x<span class=\"add\">y").expect("no-op"),
+            "x<i>y"
+        );
+    }
+
+    #[test]
+    fn cati_twenty_nine_adds_ok() {
+        let input = r#"<span class="add">a</span>"#.repeat(29);
+        let out = do_convert_adds_to_italics(&input).expect("29 adds is fine");
+        assert_eq!(out, "<i>a</i>".repeat(29));
+    }
+
+    #[test]
+    fn cati_thirty_adds_fires_name_error() {
+        // Py: `for-else: not_enough_loops` — a plain NameError (not an assert),
+        // so it fires even under python -O / non-strict builds.
+        let input = r#"<span class="add">a</span>"#.repeat(30);
+        let err = do_convert_adds_to_italics(&input).unwrap_err();
+        assert_eq!(err, "NameError: name 'not_enough_loops' is not defined");
+    }
+
+    // -- handleAndExtractFootnotes --
+    fn han(input: &str) -> (String, String, String) {
+        do_handle_and_extract_footnotes("ABC", input).expect("should succeed")
+    }
+
+    #[test]
+    fn han_no_footnotes_div_passthrough() {
+        assert_eq!(
+            han("plain verse text"),
+            ("plain verse text".to_string(), "plain verse text".to_string(), String::new())
+        );
+    }
+
+    #[test]
+    fn han_full_split_and_namespacing() {
+        let input = concat!(
+            "text <span class=\"fnCaller\">[<a title=\"K\" href=\"#fnUHB1\">fn</a>]</span>\n",
+            "<div id=\"footnotes\" class=\"footnotes\">\n",
+            "<hr class=\"none\">\n",
+            "<div id=\"fnUHB1\">1</div>\n",
+            "</div>\n",
+        );
+        let (verse_html, footnote_free, footnotes_html) = han(input);
+        // fnCaller stays in the main text; footnote ids/hrefs are namespaced.
+        assert_eq!(
+            verse_html,
+            concat!(
+                "text <span class=\"fnCaller\">[<a title=\"K\" href=\"#fnABCUHB1\">fn</a>]</span>\n",
+                "<div id=\"footnotesABC\" class=\"footnotes\">",
+            )
+        );
+        // The free-text copy has the callers stripped…
+        assert_eq!(
+            footnote_free,
+            concat!("text \n", "<div id=\"footnotesABC\" class=\"footnotes\">",)
+        );
+        assert_eq!(footnotes_html, "<hr class=\"none\">\n<div id=\"fnABCUHB1\">1</div>\n</div>\n");
+    }
+
+    #[test]
+    fn han_fncaller_across_newline_not_removed() {
+        // Python's '.' excludes '\n', so a caller spanning lines is untouched.
+        let input = concat!(
+            "a<span class=\"fnCaller\">one\ntwo</span>b\n",
+            "<div id=\"footnotes\" class=\"footnotes\">\n<hr x>\n</div>\n",
+        );
+        let (verse_html, footnote_free, _footnotes_html) = han(input);
+        assert!(verse_html.contains("<span class=\"fnCaller\">one\ntwo</span>"), "got {verse_html:?}");
+        assert!(footnote_free.contains("<span class=\"fnCaller\">one\ntwo</span>"), "got {footnote_free:?}");
+    }
+
+    #[test]
+    fn han_missing_hr_fires_assert() {
+        // Py: assert verseHtml.count('<hr ') >= 1, f'{versionAbbreviation} ({...}) {verseHtml=}'
+        //     (fires here in strict mode; under python -O this same input reaches the
+        //     split's ValueError — covered by the non-strict Python harness)
+        let err = do_handle_and_extract_footnotes(
+            "ABC",
+            "<div id=\"footnotes\" class=\"footnotes\">\n</div>\n",
+        )
+        .unwrap_err();
+        assert_eq!(
+            err,
+            "AssertionError: ABC (0) verseHtml='<div id=\"footnotes\" class=\"footnotes\">\\n</div>\\n'"
+        );
+    }
+
+    #[test]
+    fn han_unbalanced_divs_fires_assert() {
+        // Py: assert verseHtml.count('</div>') == verseHtml.count('<div ')
+        let err = do_handle_and_extract_footnotes(
+            "ABC",
+            "<div id=\"footnotes\" class=\"footnotes\">\n<hr x>\n</div></div>\n",
+        )
+        .unwrap_err();
+        assert_eq!(err, "AssertionError:");
+    }
+
+    #[test]
+    fn han_stray_hr_in_non_oetrv_fires_assert() {
+        // Py: assert '<hr ' not in verseHtml, f'{versionAbbreviation=} {verseHtml=}'
+        let err = do_handle_and_extract_footnotes("ABC", "stray <hr here").unwrap_err();
+        assert_eq!(
+            err,
+            "AssertionError: versionAbbreviation='ABC' verseHtml='stray <hr here'"
+        );
+    }
+
+    #[test]
+    fn han_stray_hr_in_oetrv_allowed() {
+        // The stray-'<hr' assert is skipped for OET-RV.
+        assert_eq!(
+            do_handle_and_extract_footnotes("OET-RV", "stray <hr here")
+                .expect("OET-RV allows stray hr"),
+            ("stray <hr here".to_string(), "stray <hr here".to_string(), String::new())
+        );
+    }
+
+    #[test]
+    fn han_we_want_to_stop_here_trap() {
+        // 'class="footnotes"' present but the full footnotes-div is not.
+        let err = do_handle_and_extract_footnotes("ABC", "x class=\"footnotes\" y").unwrap_err();
+        assert_eq!(err, "AssertionError: We want to stop here");
     }
 }

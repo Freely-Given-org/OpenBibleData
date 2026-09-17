@@ -81,6 +81,9 @@ CHANGELOG:
     2026-09-09 removeVersePunctuationForComparison and removeGreekPunctuation now call the Rust openbibledata_rust ports
     2026-09-04 Don't display PARALLEL_VERSE_PAGE_SINGLE_VERSE_HTML_TEXT etc. if we're displaying the book intro rather than an actual verse
     2026-09-15 ESFM word-link livening is now fused (single-pass) into openbibledata_rust.convertVerseEntryListToHtml via its new livenWordLinks kwarg, so the old livenOETWordLinks/livenOETCompatibleBereanWordLinks calls in the parallel-verse hot path have been removed.
+    2026-09-17 Pre-load the sentenceImportance table in the parent before forking so the
+                forked per-book workers inherit it copy-on-write and it's loaded/reported once
+                (instead of once per worker).
 """
 from pathlib import Path
 import os
@@ -202,6 +205,7 @@ def createParallelVersePages( level:int, folder:Path, state:State ) -> bool:
             load_dict_sources()
             load_OET_LV_names()
             load_OET_RV_names()
+        getVerseMetaInfoHtml( 'GEN', '1', '1' ) # Pre-load the sentenceImportance table in the parent before forking (so the workers inherit it copy-on-write too, and it's only loaded + reported once)
         # NOTE: We use an explicit 'fork' context because Python 3.14 changed the default start method
         #        to 'forkserver' which would NOT inherit our huge module-level state (12 GiB of Bibles).
         #        Forked children share that memory copy-on-write, so this costs almost nothing extra.

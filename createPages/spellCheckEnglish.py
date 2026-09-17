@@ -862,8 +862,8 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                 'l','nos','ut','didrachmas',
                                 'everyoneque',
                                 'ausus','beque','thereita','pravorum','castitate','profecto','arbitror','infidelitym','consecutus',
-                                    'res','meum','professio','namedm','anathemate','anys','perfectio','adorat','accusent','chosesti',
-                                    'placebit','novellum',
+                                    'res','meum','professio','namedm','anathemate','anys','perfectio','accusent','chosesti',
+                                    'defencem','theserentes',
 
                                 )
                     else 'Info', DEBUGGING_THIS_MODULE, f'''  '{word}' is suspect @ {location}\n      from {cleanedTextToDisplay=}\n      WHICH GAVE cleanedTextToCheck={_truncate_for_display(cleanedTextToCheck,word)}''' )

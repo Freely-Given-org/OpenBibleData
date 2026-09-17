@@ -29,6 +29,7 @@ pub mod section_numbers;
 pub mod character_formatting;
 pub mod html_customisations;
 pub mod html_validation;
+pub mod missing_styles;
 pub mod xref_links;
 pub mod verse_to_html;
 pub mod verse_entry_list;
@@ -1797,6 +1798,52 @@ fn do_t4t_html_customisations_py(where_: &str, html: &str) -> PyResult<String> {
     html_customisations::do_t4t_html_customisations(where_, html).map_err(err_to_pyerr)
 }
 
+/// PyO3 wrapper for `html_customisations::do_convert_adds_to_italics`.
+#[pyfunction(name = "convertAddsToItalics", signature = (htmlSegment))]
+#[allow(non_snake_case)]
+fn do_convert_adds_to_italics_py(htmlSegment: &str) -> PyResult<String> {
+    html_customisations::do_convert_adds_to_italics(htmlSegment).map_err(err_to_pyerr)
+}
+
+/// PyO3 wrapper for `html_customisations::do_handle_and_extract_footnotes`.
+#[pyfunction(
+    name = "handleAndExtractFootnotes",
+    signature = (versionAbbreviation, verseHtml)
+)]
+#[allow(non_snake_case)]
+fn do_handle_and_extract_footnotes_py(
+    versionAbbreviation: &str,
+    verseHtml: &str,
+) -> PyResult<(String, String, String)> {
+    html_customisations::do_handle_and_extract_footnotes(versionAbbreviation, verseHtml)
+        .map_err(err_to_pyerr)
+}
+
+/// Toggle strict checking inside *this* extension module (each PyO3 cdylib has
+/// its own copy of the `bos-internals` static, so BibleOrgSys's own module
+/// cannot reach us).  OBD calls this from `BibleOrgSysGlobals.setStrictCheckingFlag`.
+#[pyfunction(name = "setStrictCheckingFlag", signature = (newValue))]
+#[allow(non_snake_case)]
+fn set_strict_checking_flag_py(newValue: bool) {
+    bos_internals::set_strict_checking_flag(newValue);
+}
+
+/// PyO3 wrapper for `missing_styles::check_html_for_missing_styles`.
+///
+/// Returns the list of missing `(elementName, className, stylesheetName)`
+/// triples for Python to report (byte-identical messages to the old code).
+#[pyfunction(name = "checkHtmlForMissingStyles", signature = (where_, html_to_check))]
+#[allow(non_snake_case)]
+fn check_html_for_missing_styles_py(where_: &str, html_to_check: &str) -> PyResult<Vec<(String, String, String)>> {
+    missing_styles::check_html_for_missing_styles(where_, html_to_check).map_err(err_to_pyerr)
+}
+
+/// PyO3 wrapper for `missing_styles::preload_css_styles`.
+#[pyfunction(name = "preloadCSSStyles", signature = ())]
+fn preload_css_styles_py() -> PyResult<()> {
+    missing_styles::preload_css_styles().map_err(err_to_pyerr)
+}
+
 #[pymodule]
 fn openbibledata_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(liven_introduction_links_py, m)?)?;
@@ -1830,6 +1877,8 @@ fn openbibledata_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(do_oet_lv_html_customisations_py, m)?)?;
     m.add_function(wrap_pyfunction!(do_lsv_html_customisations_py, m)?)?;
     m.add_function(wrap_pyfunction!(do_t4t_html_customisations_py, m)?)?;
+    m.add_function(wrap_pyfunction!(do_convert_adds_to_italics_py, m)?)?;
+    m.add_function(wrap_pyfunction!(do_handle_and_extract_footnotes_py, m)?)?;
     m.add_function(wrap_pyfunction!(reference_pages::format_nt_spans_gloss_words_py, m)?)?;
     m.add_function(wrap_pyfunction!(reference_pages::convert_hebrew_word_gloss_spans_py, m)?)?;
     m.add_function(wrap_pyfunction!(reference_pages::tidy_hebrew_morphology_py, m)?)?;
@@ -1837,6 +1886,9 @@ fn openbibledata_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(reference_pages::tidy_gloss_of_greek_word_py, m)?)?;
     m.add_function(wrap_pyfunction!(reference_pages::tidy_greek_lemma_gloss_py, m)?)?;
     m.add_function(wrap_pyfunction!(reference_pages::liven_strongs_refs_py, m)?)?;
+    m.add_function(wrap_pyfunction!(set_strict_checking_flag_py, m)?)?;
+    m.add_function(wrap_pyfunction!(check_html_for_missing_styles_py, m)?)?;
+    m.add_function(wrap_pyfunction!(preload_css_styles_py, m)?)?;
     m.add_class::<PyPageChromeConfig>()?;
     Ok(())
 }

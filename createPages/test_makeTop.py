@@ -33,6 +33,14 @@ CHANGELOG:
         independent, combinable options: colour scheme, verse-number position,
         text size, Jesus'-words colour) is injected at run-time by theme.js and
         persists as JSON under localStorage key `obd-settings`.
+    2026-09-17 Updated the frozen _ref_makeTop/_ref_makeWorkNavListParagraph spec
+        to the deliberately-changed chrome: 'simpleVerse' is now a full page type
+        (ParallelVerses.css, Bible.js inline + KB.js defer like 'parallelVerse'),
+        the work bar carries a "Simple" pseudo link (simple-list verse view,
+        'lst/') after "Interlinear", and the entry order matches the Rust
+        page-chrome port (Related, Parallel, Interlinear, Simple, Topics,
+        Reference, Dictionary, Search). 'simpleVerse' was added to the CASES
+        matrix.
 """
 import unittest
 
@@ -73,7 +81,7 @@ def _ref_makeTop( level:int, versionAbbreviation:str|None, pageType:str, version
         cssFilename = 'ParallelPassages.css'
     elif pageType == 'topicPassages':
         cssFilename = 'TopicalPassages.css'
-    elif pageType == 'parallelVerse':
+    elif pageType in ('parallelVerse','simpleVerse'):
         cssFilename = 'ParallelVerses.css'
     elif pageType == 'interlinearVerse':
         cssFilename = 'InterlinearVerse.css'
@@ -128,12 +136,12 @@ def _ref_makeTop( level:int, versionAbbreviation:str|None, pageType:str, version
         top = top.replace( '__SCRIPT__', f'''<link rel="stylesheet" type="text/css" href="{'../'*level}OETChapter.css">\n  __SCRIPT__''' )
     # Insert javascript file(s) if required
     if (versionAbbreviation and 'OET' in versionAbbreviation and pageType!='sectionIndex') \
-    or pageType in ('parallelVerse','topicPassages'):
+    or pageType in ('parallelVerse','simpleVerse','topicPassages'):
         top = top.replace( '__SCRIPT__', f'''<script src="{'../'*level}Bible.js"></script>\n  __SCRIPT__''' )
     if 'Dict' in cssFilename or 'Word' in cssFilename:
         top = top.replace( '__SCRIPT__', f'''<script src="{'../'*level}Dict.js" defer></script>\n  __SCRIPT__''' )
     if 'Dict' in cssFilename or 'Word' in cssFilename \
-    or pageType in ('chapter','section','sectionIndex','book','parallelVerse','interlinearVerse','relatedPassage','topicPassages','kingdom'):
+    or pageType in ('chapter','section','sectionIndex','book','parallelVerse','interlinearVerse','simpleVerse','relatedPassage','topicPassages','kingdom'):
         top = top.replace( '__SCRIPT__', f'''<script src="{'../'*level}KB.js" defer></script>\n  __SCRIPT__''' )
     top = top.replace( '\n  __SCRIPT__', '' )
 
@@ -204,10 +212,6 @@ def _ref_makeWorkNavListParagraph( level:int, versionAbbreviation:str|None, page
         initialVersionList.append( 'Related' )
     else: # add a link for related
         initialVersionList.append( f'''{state.BibleVersionDecorations['Related'][0]}<a title="Single OET-RV section with related verses from other books" href="{'../'*level}rel/">Related</a>{state.BibleVersionDecorations['Related'][1]}''' )
-    if pageType in ('topicPassages','topicsIndex'):
-        initialVersionList.append( 'Topics' )
-    else: # add a link for topics
-        initialVersionList.append( f'''{state.BibleVersionDecorations['Topics'][0]}<a title="Collections of OET passages organised by topic" href="{'../'*level}tpc/">Topics</a>{state.BibleVersionDecorations['Topics'][1]}''' )
     if pageType == 'parallelVerse':
         initialVersionList.append( 'Parallel' )
     else: # add a link for parallel
@@ -216,6 +220,14 @@ def _ref_makeWorkNavListParagraph( level:int, versionAbbreviation:str|None, page
         initialVersionList.append( 'Interlinear' )
     else: # add a link for interlinear
         initialVersionList.append( f'''{state.BibleVersionDecorations['Interlinear'][0]}<a title="Single verse in interlinear word view" href="{'../'*level}ilr/">Interlinear</a>{state.BibleVersionDecorations['Interlinear'][1]}''' )
+    if pageType == 'simpleVerse':
+        initialVersionList.append( 'Simple' )
+    else: # add a link for the simple-list verse view
+        initialVersionList.append( f'''{state.BibleVersionDecorations['Simple'][0]}<a title="Single verse in simple list view" href="{'../'*level}lst/">Simple</a>{state.BibleVersionDecorations['Simple'][1]}''' )
+    if pageType in ('topicPassages','topicsIndex'):
+        initialVersionList.append( 'Topics' )
+    else: # add a link for topics
+        initialVersionList.append( f'''{state.BibleVersionDecorations['Topics'][0]}<a title="Collections of OET passages organised by topic" href="{'../'*level}tpc/">Topics</a>{state.BibleVersionDecorations['Topics'][1]}''' )
     if pageType == 'referenceIndex':
         initialVersionList.append( 'Reference' )
     else: # add a link for reference
@@ -363,7 +375,7 @@ CASES = []
 for __level in (0, 1, 2):
     for __va in ('OET-RV', 'UHB', 'SR-GNT', 'T4T', 'LSV', None):
         for __pt in ('chapter', 'section', 'book', 'sectionIndex',
-                     'parallelVerse', 'interlinearVerse', 'relatedPassage',
+                     'parallelVerse', 'interlinearVerse', 'simpleVerse', 'relatedPassage',
                      'topicPassages', 'word', 'dictionaryEntry', 'TopIndex',
                      'about', 'news', 'OETKey', 'search'):
             for __ff in ('byC/GEN_C1.htm', 'bySec/MRK_S5.htm', 'GAL_3_16.htm',

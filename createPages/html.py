@@ -40,6 +40,10 @@ do_OET_LV_HTMLcustomisations( OET_LV_html:str ) -> str
 do_LSV_HTMLcustomisations( LSV_html:str ) -> str
 do_T4T_HTMLcustomisations( T4T_html:str ) -> str
     (These four are implemented in Rust -- see createPages/Rust/src/html_customisations.rs.)
+convert_adds_to_italics( htmlSegment:str, where:str|None=None ) -> str
+    (Implemented in Rust -- see createPages/Rust/src/html_customisations.rs.)
+handleAndExtractFootnotes( versionAbbreviation:str, verseHtml:str ) -> tuple[str,str,str]
+    (Implemented in Rust -- see createPages/Rust/src/html_customisations.rs.)
 briefDemo() -> None
 fullDemo() -> None
 main calls fullDemo()
@@ -105,10 +109,16 @@ CHANGELOG:
                 (and the RV_ADD_REGEX, digitPunctDigitRegex and T4T_FOS_TYPES helpers they needed)
                 were removed.
     2026-09-16 Updated for new VerseList pages
+    2026-09-17 convert_adds_to_italics and handleAndExtractFootnotes now delegate to the Rust
+                byte-identical ports in createPages/Rust/src/html_customisations.rs; the
+                superseded Python implementations (and the footnoteRegex helper) were removed.
+     2026-09-17 checkHtmlForMissingStyles now delegates to the Rust byte-identical port in
+                createPages/Rust/src/missing_styles.rs (which also owns the stylesheet
+                parsing/merging and a per-line class scan); the Python classRegex helper was
+                removed. preloadCSSStyles() now also warms the Rust-side caches.
 """
 import logging
 from datetime import datetime
-import re
 from collections import defaultdict
 from functools import cache
 
@@ -124,13 +134,17 @@ from openbibledata_rust import (
     do_OET_LV_HTMLcustomisations as _rustDo_OET_LV_HTMLcustomisations,
     do_LSV_HTMLcustomisations as _rustDo_LSV_HTMLcustomisations,
     do_T4T_HTMLcustomisations as _rustDo_T4T_HTMLcustomisations,
+    convertAddsToItalics as _rustDo_convertAddsToItalics,
+    handleAndExtractFootnotes as _rustDo_handleAndExtractFootnotes,
+    checkHtmlForMissingStyles as _rustCheckHtmlForMissingStyles,
+    preloadCSSStyles as _rustPreloadCSSStyles,
 )
 
 
-LAST_MODIFIED_DATE = '2026-09-16' # by RJH
+LAST_MODIFIED_DATE = '2026-09-17' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
-PROGRAM_VERSION = '1.0.9'
+PROGRAM_VERSION = '1.0.10'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -384,7 +398,6 @@ def checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool:
 # end of html.checkHtml
 
 
-classRegex = re.compile( '<([^>]+?) [^>]*?class="([^>"]+?)"' )
 cachedStyleDicts = {}
 
 # Every stylesheet that can appear in a page's <head>.
@@ -407,6 +420,8 @@ def preloadCSSStyles() -> None:
     """
     for stylesheetName in PAGE_STYLESHEET_NAMES:
         loadCSSStyles( stylesheetName )
+    # Also warm the Rust-side stylesheet caches (the actual scan now runs there)
+    _rustPreloadCSSStyles()
 # end of html.preloadCSSStyles
 
 
@@ -559,50 +574,16 @@ def checkHtmlForMissingStyles( where:str, htmlToCheck:str ) -> bool:
     Given an html page,
         determine the stylesheet and load it if not already cached,
         and then check that all classes are in the stylesheet.
+
+    The CSS parsing, page+common.css merging, and per-line class scanning are
+    implemented in Rust (openbibledata_rust.checkHtmlForMissingStyles) for speed;
+    this wrapper reports the missing (element.class) pairs it returns.
     """
-    startedCheck = False
-    styleDict = {}
-    for line in htmlToCheck.split( '\n' ):
-        if not startedCheck or where=='OETKey': # OETKey has two stylesheets
-            if 'rel="stylesheet"' in line:
-                ixStart = line.index( 'href="' )
-                ixEnd = line.index( '">', ixStart+6 )
-                stylesheetName = line[ixStart+6:ixEnd].replace( '../', '' )
-                # N.B. We copy the lists here (and merge common.css in without clobbering) because
-                #     dict.update() would otherwise replace e.g. 'd' (['span'] from span.d in
-                #     BibleWord.css) with common.css's ['p'] (from p.d), causing spurious
-                #     "span.d not in BibleWord.css" errors.
-                styleDict = { someClassName: list(someElementList) if not someClassName.startswith( 'used_' ) else someElementList \
-                                    for someClassName,someElementList in loadCSSStyles( stylesheetName ).items() }
-                for someClassName,someElementList in loadCSSStyles( 'common.css' ).items():
-                    if someClassName.startswith( 'used_' ): continue # Keep the used_ flag from the page's own stylesheet
-                    if someClassName not in styleDict:
-                        styleDict[someClassName] = someElementList.copy()
-                    else:
-                        for someElement in someElementList:
-                            if someElement not in styleDict[someClassName]:
-                                styleDict[someClassName].append( someElement )
-            # Search.htm has two stylesheets, but we're only interested in the first one
-            # elif '</head>' in line:
-                startedCheck = True
-        else: # startedCheck
-            for elementName,classNames in classRegex.findall( line ):
-                # print( f"  {elementName=} {classNames=}" )
-                for className in classNames.split( ' '):
-                    # assert className in styleDict and (elementName in styleDict[className] or '' in styleDict[className]), f"{elementName}.{className} not in {stylesheetName} in {where=}"
-                    if className not in styleDict \
-                    or (elementName not in styleDict[className] and '' not in styleDict[className]): # An empty-string entry means 'any element' (e.g. '.hebVrb {')
-                        msg = f"{elementName}.{className} not in {stylesheetName}"
-                        if msg not in COLLECTED_MESSAGES:
-                            COLLECTED_MESSAGES.append( msg )
-                            logging.critical( f"{len(COLLECTED_MESSAGES)}: CSS style {msg} in {where=}" )
-                    styleDict[f'used_{className}'] = True
-
-    # # The unused CSS entries should get less and less with each page checked
-    # unusedList = [sdKey[5:] for sdKey,sdValue in styleDict.items() if sdKey.startswith( 'used_') and not sdValue]
-    # if unusedList and len(unusedList) < len(styleDict)//6:
-    #     print( f"{stylesheetName} {where=} ({len(unusedList)})/({len(styleDict)}) {unusedList=}" )
-
+    for elementName,className,stylesheetName in _rustCheckHtmlForMissingStyles( where, htmlToCheck ):
+        msg = f"{elementName}.{className} not in {stylesheetName}"
+        if msg not in COLLECTED_MESSAGES:
+            COLLECTED_MESSAGES.append( msg )
+            logging.critical( f"{len(COLLECTED_MESSAGES)}: CSS style {msg} in {where=}" )
     return True
 # end of html.checkHtmlForMissingStyles
 
@@ -611,15 +592,7 @@ def convert_adds_to_italics( htmlSegment:str, where:str|None=None ) -> str:
     """
     """
     # Hardwire added words in non-OET versions to italics
-    for _cati_safetyCheck in range( 30 ): # 20 was too few (because this might include an intro paragraph)
-        ix = htmlSegment.find( '<span class="add">' )
-        if ix == -1: break
-        htmlSegment = htmlSegment.replace( '<span class="add">', '<i>', 1 )
-        # TODO: What if there was another span inside the add field ???
-        htmlSegment = f"{htmlSegment[:ix]}{htmlSegment[ix:].replace('</span>','</i>',1)}"
-    else: not_enough_loops
-
-    return htmlSegment
+    return _rustDo_convertAddsToItalics( htmlSegment )
 # end of html.convert_adds_to_italics
 
 
@@ -689,8 +662,6 @@ def do_T4T_HTMLcustomisations( where:str, T4T_html:str ) -> str:
 # end of html.do_T4T_HTMLcustomisations
 
 
-# <span class="fnCaller">[<a title="Note: K אחד" href="#fnUHB4">fn</a>]</span>
-footnoteRegex = re.compile( '<span class="fnCaller">.+?</span>' )
 def handleAndExtractFootnotes( versionAbbreviation:str, verseHtml:str ) -> tuple[str,str,str]:
     """
     Given verseHtml that may contain a footnotes division,
@@ -699,32 +670,7 @@ def handleAndExtractFootnotes( versionAbbreviation:str, verseHtml:str ) -> tuple
     If there's also cross-references, they won't be split off separately.
         (If they occur after the footnotes, then they'll be included with the footnotes.)
     """
-    if '<div id="footnotes" class="footnotes">' in verseHtml:
-        assert verseHtml.count('<hr ') >= 1, f"{versionAbbreviation} ({verseHtml.count('<hr ')}) {verseHtml=}"
-        if verseHtml.count('<hr ') > 1:
-            assert '<div id="crossRefs" class="crossRefs">' in verseHtml, f"{versionAbbreviation} ({verseHtml.count('<hr ')}) {verseHtml=}"
-        assert verseHtml.count('</div>') == verseHtml.count( '<div ' )
-
-        # Handle footnotes so the same fn1 doesn't occur for multiple versions
-        verseHtml = verseHtml.replace( 'id="footnotes', f'id="footnotes{versionAbbreviation}' ).replace( 'id="fn', f'id="fn{versionAbbreviation}' ).replace( 'href="#fn', f'href="#fn{versionAbbreviation}' )
-
-        verseHtml, footnoteHtml = verseHtml.split( '<hr ', 1 ) # Split at the first horizontal rule
-        # try: verseHtml, footnoteHtml = verseHtml.split( '<hr ' )
-        # except ValueError as err: # usually too many values to unpack
-        #     ix1 = verseHtml.index( '<hr ' )
-        #     ix2 = verseHtml.index( '<hr ', ix1+5 )
-        #     logging.critical( f"Too many parts: '{versionAbbreviation} {verseHtml[ix1:ix1+30]}'  and also  '{verseHtml[ix2:ix2+30]}'")
-        #     return verseHtml, verseHtml, ''
-
-        verseHtml = verseHtml.rstrip()
-        footnoteFreeVerseHtml, numFootnotesRemoved = footnoteRegex.subn( '', verseHtml )
-        # print( f"{numFootnotesRemoved} footnotes removed from {versionAbbreviation} {verseHtml=} gives {footnoteFreeVerseHtml=}")
-        return verseHtml, footnoteFreeVerseHtml, f'<hr {footnoteHtml}'
-    else:
-        if 'class="footnotes"' in verseHtml: print( "{versionAbbreviation} {verseHtml=}" ); assert False, "We want to stop here"
-        if versionAbbreviation != 'OET-RV':
-            assert '<hr ' not in verseHtml, f"{versionAbbreviation=} {verseHtml=}"
-        return verseHtml, verseHtml, ''
+    return _rustDo_handleAndExtractFootnotes( versionAbbreviation, verseHtml )
 # end of createParallelVersePages.handleAndExtractFootnotes
 
 

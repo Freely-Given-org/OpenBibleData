@@ -11,12 +11,25 @@
 
 import unittest
 
+from openbibledata_rust import setStrictCheckingFlag
 from html import (
     do_OET_RV_HTMLcustomisations,
     do_OET_LV_HTMLcustomisations,
     do_LSV_HTMLcustomisations,
     do_T4T_HTMLcustomisations,
+    convert_adds_to_italics,
+    handleAndExtractFootnotes,
 )
+
+
+class StrictCheckMixin:
+    """Helpers to toggle the Rust extension's strict-checking static."""
+
+    def setUp(self):
+        setStrictCheckingFlag(False)
+
+    def tearDown(self):
+        setStrictCheckingFlag(False)
 
 
 class TestOETLVVerseChunkClosingSpanPlacement(unittest.TestCase):
@@ -175,6 +188,102 @@ class TestT4THTMLcustomisations(unittest.TestCase):
         self.assertEqual(
             do_T4T_HTMLcustomisations('test', 'No figures here. ◄'),
             'No figures here. <span title="alternative translation">◄</span>')
+
+
+class TestConvertAddsToItalics(StrictCheckMixin, unittest.TestCase):
+    """html.convert_adds_to_italics → Rust convertAddsToItalics."""
+
+    def test_plain_add(self):
+        self.assertEqual(convert_adds_to_italics('<span class="add">word</span>'), '<i>word</i>')
+
+    def test_multiple_adds(self):
+        self.assertEqual(
+            convert_adds_to_italics('a<span class="add">one</span>b<span class="add">two</span>c'),
+            'a<i>one</i>b<i>two</i>c')
+
+    def test_no_adds_untouched(self):
+        self.assertEqual(convert_adds_to_italics('plain text'), 'plain text')
+
+    def test_root_add(self):
+        self.assertEqual(
+            convert_adds_to_italics('בְּרֵאשִׁית <span class="add">x</span>'),
+            'בְּרֵאשִׁית <i>x</i>')
+
+    def test_thirty_adds_name_error(self):
+        # Py for-else `not_enough_loops` — a NameError in every build mode.
+        with self.assertRaises(NameError):
+            convert_adds_to_italics('<span class="add">a</span>' * 30)
+
+
+class TestHandleAndExtractFootnotes(StrictCheckMixin, unittest.TestCase):
+    """html.handleAndExtractFootnotes → Rust handleAndExtractFootnotes."""
+
+    def test_no_footnotes_passthrough(self):
+        self.assertEqual(handleAndExtractFootnotes('ABC', 'plain'), ('plain', 'plain', ''))
+
+    def test_full_split_and_namespacing(self):
+        verse, free, notes = handleAndExtractFootnotes(
+            'ABC',
+            't <span class="fnCaller">[<a title="K" href="#fnUHB1">fn</a>]</span>\n'
+            '<div id="footnotes" class="footnotes">\n<hr class="none">\n'
+            '<div id="fnUHB1">1</div>\n</div>\n',
+        )
+        self.assertEqual(
+            verse,
+            't <span class="fnCaller">[<a title="K" href="#fnABCUHB1">fn</a>]</span>\n'
+            '<div id="footnotesABC" class="footnotes">')
+        self.assertEqual(
+            free,
+            't \n<div id="footnotesABC" class="footnotes">')
+        self.assertEqual(notes, '<hr class="none">\n<div id="fnABCUHB1">1</div>\n</div>\n')
+
+    def test_fncaller_across_newline_survives(self):
+        # Python's '.' excludes '\n', so a multiline caller is not stripped.
+        verse, free, _ = handleAndExtractFootnotes(
+            'ABC',
+            'a<span class="fnCaller">one\ntwo</span>b\n'
+            '<div id="footnotes" class="footnotes">\n<hr x>\n</div>\n',
+        )
+        self.assertIn('<span class="fnCaller">one\ntwo</span>', verse)
+        self.assertIn('<span class="fnCaller">one\ntwo</span>', free)
+
+    def test_strict_missing_hr_assert(self):
+        setStrictCheckingFlag(True)
+        with self.assertRaises(AssertionError):
+            handleAndExtractFootnotes('ABC', '<div id="footnotes" class="footnotes">\n</div>\n')
+
+    def test_strict_unbalanced_divs_assert(self):
+        setStrictCheckingFlag(True)
+        with self.assertRaises(AssertionError):
+            handleAndExtractFootnotes('ABC', '<div id="footnotes" class="footnotes">\n<hr x>\n</div></div>\n')
+
+    def test_strict_stray_hr_non_oetrv_assert(self):
+        setStrictCheckingFlag(True)
+        with self.assertRaises(AssertionError):
+            handleAndExtractFootnotes('ABC', 'stray <hr here')
+
+    def test_strict_stray_hr_oetrv_allowed(self):
+        setStrictCheckingFlag(True)
+        self.assertEqual(
+            handleAndExtractFootnotes('OET-RV', 'stray <hr here'),
+            ('stray <hr here', 'stray <hr here', ''))
+
+    def test_strict_stop_here_trap(self):
+        setStrictCheckingFlag(True)
+        with self.assertRaises(AssertionError):
+            handleAndExtractFootnotes('ABC', 'x class="footnotes" y')
+
+    def test_non_strict_missing_hr_value_error(self):
+        # With asserts off (matching python -O) the split() ValueError surfaces.
+        setStrictCheckingFlag(False)
+        with self.assertRaises(ValueError):
+            handleAndExtractFootnotes('ABC', '<div id="footnotes" class="footnotes">\n</div>\n')
+
+    def test_non_strict_stray_hr_allowed(self):
+        setStrictCheckingFlag(False)
+        self.assertEqual(
+            handleAndExtractFootnotes('ABC', 'stray <hr here'),
+            ('stray <hr here', 'stray <hr here', ''))
 
 
 if __name__ == '__main__':

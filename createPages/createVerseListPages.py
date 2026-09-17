@@ -26,6 +26,9 @@ main calls fullDemo()
 
 CHANGELOG:
     2026-09-16 Adapted from a copy of createParallelVersePages.py
+    2026-09-17 Pre-load the sentenceImportance table in the parent before forking so the
+                forked per-book workers inherit it copy-on-write and it's loaded/reported once
+                (instead of once per worker).
 """
 from pathlib import Path
 import os
@@ -118,6 +121,7 @@ def createVerseListPages( level:int, folder:Path, state:State ) -> bool:
         # Each forked child inherits these via copy-on-write, so the lazy-load guard inside
         # spellCheckAndMarkHTMLText() (which checks len(AMERICAN_WORD_SET) < 10_000) will be
         # False in every child — avoiding redundant file I/O per book.
+        getVerseMetaInfoHtml( 'GEN', '1', '1' ) # Pre-load the sentenceImportance table in the parent before forking (so the workers inherit it copy-on-write too, and it's only loaded + reported once)
         # NOTE: We use an explicit 'fork' context because Python 3.14 changed the default start method
         #        to 'forkserver' which would NOT inherit our huge module-level state (12 GiB of Bibles).
         #        Forked children share that memory copy-on-write, so this costs almost nothing extra.
@@ -143,7 +147,7 @@ def createVerseListPages( level:int, folder:Path, state:State ) -> bool:
     indexHtml = f'''{top}<h1 id="Top">Simple verse list pages</h1>
 <p class="note">Each page only contains a single verse with minimal formatting, but displays it in a large number of different versions to enable analysis of different renderings.</p>
 <p class="note">Generally the older versions are nearer the bottom, and so reading from the bottom to the top can show how many English vocabulary and punctuation decisions propagated from one version to another.</p>
-<p class="note">If you're a Bible translator or doing serious study, our fuller <a href="{'../'*level}par/">parallel verse pages</a> have more detailed information including study notes, them notes, and translation notes, etc.</p>
+<p class="note">If you’re a Bible translator or doing serious study, our fuller <a href="{'../'*level}par/">parallel verse pages</a> have more detailed information including study notes, them notes, and translation notes, etc.</p>
 <h2>Index of books</h2>
 {makeBookNavListParagraph( BBBLinks, 'VerseListIndex', state )}
 <p class="note"><small>Note: We would like to display more English Bible versions on these verse list pages to assist our users, but copyright restrictions from the commercial Bible industry and refusals from publishers greatly limit this. (See the <a href="https://SellingJesus.org/graphics">Selling Jesus</a> website for more information on this problem.)</small></p>
