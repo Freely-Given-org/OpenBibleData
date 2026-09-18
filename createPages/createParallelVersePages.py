@@ -117,10 +117,10 @@ from spellCheckEnglish import spellCheckAndMarkHTMLText, collectSpellCheckResult
 from openbibledata_rust import convertVerseEntryListToHtml, getOETTidyBBB, getOETBookName, getHebrewWordpageFilename, getGreekWordpageFilename, removeVersePunctuationForComparison, removeGreekPunctuation
 
 
-LAST_MODIFIED_DATE = '2026-09-17' # by RJH
+LAST_MODIFIED_DATE = '2026-09-18' # by RJH
 SHORT_PROGRAM_NAME = "createParallelVersePages"
 PROGRAM_NAME = "OpenBibleData createParallelVersePages functions"
-PROGRAM_VERSION = '1.0.9'
+PROGRAM_VERSION = '1.0.10'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -811,7 +811,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                     # if parRef == 'PSA_68:6': assert False, "We want to stop here"
                                 if modernisedTextDiffers or 'KJB-1769 above' in modernisedTextHtml:
                                     # if parRef in ancientRefsToPrint: print( f"YY {versionAbbreviation} {parRef} {modernisedTextDiffers=} {modernisedTextHtml=}" )
-                                    textHtml = f'''{textHtml}<br>   ({modernisedTextHtml.replace('<br>','<br>   ')})'''
+                                    textHtml = f'''{textHtml}\n<br>   ({modernisedTextHtml.replace('<br>','<br>   ')})'''
                                 # elif versionAbbreviation=='KJB-1611' and parRef in ancientRefsToPrint: print( f"ZZ {versionAbbreviation} {parRef} {modernisedTextDiffers=} ({len(cleanedModernisedTextHtml)}) {cleanedModernisedTextHtml=} ({len(modernisedTextHtml)}) {modernisedTextHtml=}" )
                             elif versionAbbreviation in ('Luth','ClVg'):
                                 translateFunction = translateGerman if versionAbbreviation=='Luth' else translateLatin
@@ -833,11 +833,11 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                     # assert '</p>' not in textHtml
                                     if '<div ' in textHtml: # it might have had footnotes in a <div>, but we want the transliteration BEFORE the footnotes
                                         assert '</div>' in textHtml
-                                        textHtml = textHtml.replace( '<hr', f'''<br>   ({adjustedForeignTextHtml.replace('<br>','<br>   ')})<hr''' ) \
-                                                    if '<hr ' in textHtml else f'''{textHtml}<br>   ({adjustedForeignTextHtml.replace('<br>','<br>   ')})'''
+                                        textHtml = textHtml.replace( '<hr', f'''\n<br>   ({adjustedForeignTextHtml.replace('<br>','<br>   ')})<hr''' ) \
+                                                    if '<hr ' in textHtml else f'''{textHtml}\n<br>   ({adjustedForeignTextHtml.replace('<br>','<br>   ')})'''
                                     else: # no <div>s so should be ok to add a span
                                         assert '</div>' not in textHtml
-                                        textHtml = f'''{textHtml}<br>   ({adjustedForeignTextHtml.replace('<br>','<br>   ')})'''
+                                        textHtml = f'''{textHtml}\n<br>   ({adjustedForeignTextHtml.replace('<br>','<br>   ')})'''
                             elif versionAbbreviation == 'SR-GNT':
                                 SRtranscription = grammaticalKeysHtmlList = None
                                 if C!='-1' and V!='0' and textHtml:

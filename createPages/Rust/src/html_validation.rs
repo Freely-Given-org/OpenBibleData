@@ -74,17 +74,19 @@ pub fn check_html(html: &str, where_: &str, segment_only: bool) -> HtmlCheckResu
         return Err(format!(
             "checkHtml({}) found unexpected double newlines in {}",
             where_,
-            snippet(html, ix, 30, 50),
+            snippet(html, ix, 40, 80),
         ));
     }
 
     // ── 2. <br> followed by newline ────────────────────────────────────────
     if let Some(ix) = html.find("<br>\n") {
-        return Err(format!(
-            "checkHtml({}) found <br> followed by unexpected newline in {}",
-            where_,
-            snippet(html, ix, 30, 50),
-        ));
+        if !html[ix+5..].starts_with("<br>") {
+            return Err(format!(
+                "checkHtml({}) found <br> followed by unexpected newline in {}",
+                where_,
+                snippet(html, ix, 40, 80),
+            ));
+        }
     }
 
     // ── 2b. <br> immediately before a closing </span> ──────────────────────
@@ -95,7 +97,7 @@ pub fn check_html(html: &str, where_: &str, segment_only: bool) -> HtmlCheckResu
         return Err(format!(
             "checkHtml({}) found <br> immediately before </span> in {}",
             where_,
-            snippet(html, ix, 30, 50),
+            snippet(html, ix, 40, 80),
         ));
     }
 

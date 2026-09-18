@@ -830,7 +830,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                 'ach','alt','dran','ende','irrig','hing','weh','du','Raube','Raub','sie','Tal','tue','fiel','sehe',
                                 'Mal','mal','milde','mit','Mord','Natur','nun','nur',
                                 'rede','kam','Korb','ward','Rat','Rede','messen','Mose','ging','Halle','und','ster','streng','töte','tun','von','wer','zu','zwo',
-                                'twoschneidig',
+                                'yourthalben','flowerswerk','eradicatete','angerede','trink','could‘s','ise','hiddenen','managedn','fishtor',
                                     'Suchoth','Esrahiten',
                     
                                 'abs','actio', 'adultera','agi', 'aliena', 'ambit','ambitio','amputa', 'anima','antiqui','apprehendi', 'argui','ascendi','attende','audi', 'aversio',
@@ -841,12 +841,12 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                             'constituti','contaminat','contra','contriti','conversa','conversi','conversio','converti',
                                         'cor','correcti','correctio',
                                     'creat','creati','credi','credit','cruci',        'cultu','cum','cura','curat',
-                                'dat','dedi','deduc','dei','dem','designat','desolati','det','determinat','devotio',
+                                'dari','dat','dedi','deduc','dei','dem','designat','desolati','det','determinat','devotio',
                                     'diaboli','disco','digni','discretio','dissipati','distincti','distinctio','divisi','dom','domi','domina','dona',
                                 'ecclesia','ecclesias','editio','ei', 'electi', 'emissa', 'enumerat','esca','evangelica', 'exalta','exaltat','exaltatio','exclamat','expiat','extensio',
                                 'fac','falli', 'fel', 'figura','Finis','finis','fornicatio','forti','fugit','fur',     'generat','generatio',     'hac','hellor','hoc','humili','humiliati',
                                 'ibi', 'illum','illuminat','illuminati','illuminatio', 'ima','impie', 'infirmi','inscriptio','insinuat','instructi',
-                                    'indignati','intellige','intelligi','intentio','introduc','inventi','invoca','invocat','invocatio','Isaia','iter','Ite',
+                                    'indignati','intellige','intelligi','intentio','introduc','inventi','invoca','invocat','invocatio','irritat','Isaia','iter','Ite',
                                 'ja','jus','Justi','justi','justis','justificat',     'legi','legis','leve','liberatio','liberati','liberato','liberat','libera','liber','locus','luna','lux',
                                 'magis','magnifice','magni', 'mane','manifeste','manu', 'mari','mater','materia',
                                     'media','medici','memor','memoria','menstrua','mens','menti','mentio',       'mira','misera','miseri',       'mora','moretri','mortali','morti', 'mysterio',
@@ -860,8 +860,9 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                 'tempora','Tod','tradit','traditi','traditio','transito','transmigratio','tres','tribulatio','tributa','trium','tu','tua','tuam','turba',
                                 'usu',      'valle','vani','varie','vas', 'venerat', 'victi','vis','visita','visitat','visitatio','vita', 'Voca','voca',
                                 'l','nos','ut',
-                                    'perfectio','irritat','devoti',
-                                    'patriarcha','territi','reddant','levi','senserunt','nato',
+                                'rethey','sentque','putque',
+                                    'devoti','levi','nato','puro','praysur','soliditas','confuset',
+                                    'remissione','mortalitatem',
 
                                 )
                     else 'Info', DEBUGGING_THIS_MODULE, f'''  '{word}' is suspect @ {location}\n      from {cleanedTextToDisplay=}\n      WHICH GAVE cleanedTextToCheck={_truncate_for_display(cleanedTextToCheck,word)}''' )

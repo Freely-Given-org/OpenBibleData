@@ -51,6 +51,13 @@
 //!              range text "21-22" PLUS a span containing only the first number,
 //!              so the second number ("22") never appeared and the first was
 //!              shown twice.
+//!  2026-09-18: basic-mode USFM paragraph markers ('p','q1',…,'m') now put the
+//!              emitted <br> at the start of a new line (\n<br>…) instead of
+//!              leaving '<br> ¶' stranded at the end of the previous line —
+//!              matching OBD's usual \n<br> convention (which the global
+//!              "<br>\n"→"\n<br>" cleanup can't catch here because the
+//!              pilcrow/indent sit between <br> and the newline).  Rendered
+//!              output is unchanged (whitespace collapses in HTML).
 
 use crate::character_formatting::convert_usfm_character_formatting;
 use crate::constants::*;
@@ -692,12 +699,13 @@ where
                 if basic_only {
                     if !html.is_empty() {
                         let indent = if marker.contains('1') { "\u{2002}" }
-                            else if marker.contains('2') { "\u{2003}" }
-                            else { "\u{00A0}" };
+                        else if marker.contains('2') { "\u{2003}" }
+                        else { "\u{00A0}" };
                         let pilcrow = if marker.contains('p') { "\u{00B6}" }
-                            else if marker.contains('q') { "\u{21D4}" }
-                            else { "\u{00A7}" };
-                        html.push_str(&format!("<br>{indent}{pilcrow}{NARROW_NON_BREAK_SPACE}\n"));
+                        else if marker.contains('q') { "\u{21D4}" }
+                        else { "\u{00A7}" };
+                        if !html.ends_with("\n") { html.push_str("\n"); }
+                        html.push_str(&format!("<br>{indent}{pilcrow}{NARROW_NON_BREAK_SPACE}"));
                     }
                 } else if version_abbreviation != "OET-LV" {
                     html.push_str(&(format!(r#"<p class="{marker}">"#) + "\n"));
@@ -1024,6 +1032,7 @@ where
 
             // ── Break markers ──
             "b" | "ib" => {
+                if !html.is_empty() && !html.ends_with("\n") { html.push_str("\n"); }
                 html.push_str("<br>");
             }
             "pb" => {
@@ -1092,7 +1101,7 @@ where
                     if state.in_list_entry != ListEntry::None {
                         state.open_enclosing_items += 1;
                     }
-                    html.push_str(&format!("\n{}<ul>\n", " ".repeat(list_level - 1)));
+                    html.push_str(&format!("{}<ul>\n", " ".repeat(list_level - 1)));
                     state.in_list = Some(format!("ul_{}", list_level));
                 }
             }
@@ -1128,7 +1137,7 @@ where
                         version_abbreviation, bos_book_code, segment_type, rest_str, basic_only,
                         &mut state.background_colour,
                     )?;
-                    let br = if html.is_empty() { "" } else { "<br>" };
+                    let br = if html.is_empty() { "" } else if html.ends_with('\n') { "<br>" } else { "\n<br>" };
                     html.push_str(&format!("{br}{indent}<span class=\"{marker}\">\u{2022}{spacing}{guts}</span>\n"));
                 } else {
                     let mut current_level = match &state.in_list {
@@ -1136,7 +1145,7 @@ where
                         None => 0,
                     };
                     if marker_level > current_level {
-                        html.push_str(&format!("\n{}<ul>\n", " ".repeat(marker_level - 1)));
+                        html.push_str(&format!("{}<ul>\n", " ".repeat(marker_level - 1)));
                         state.in_list = Some(format!("ul_{}", current_level + 1));
                     } else if marker_level < current_level {
                         // Close the still-open previous <li> BEFORE the </ul>(s),
@@ -1391,6 +1400,9 @@ where
 
     // --- Final cleanups ---
     if basic_only {
+        while html.contains("<br>\n<br>") {
+            html = html.replace("<br>\n<br>", "<br>");
+        }
         while html.contains("<br><br>") {
             html = html.replace("<br><br>", "<br>");
         }
@@ -1401,7 +1413,7 @@ where
             html = html[..html.len() - 4].to_string();
         }
     }
-    html = html.replace("<br>\n", "\n<br>");
+    // html = html.replace("<br>\n", "\n<br>");
     html = html.replace("\n\n", "\n");
     while html.ends_with('\n') {
         html.pop();

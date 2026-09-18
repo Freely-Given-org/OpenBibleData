@@ -115,7 +115,7 @@ vitalImportanceRefsWithRanges = [ # Often in doctrinal statements
     'MAL_3:8-10',
 
     'MAT_6:33', 'MAT_24:35', 'MAT_28:19-20',
-    'JHN_3:16','JHN_5:24','JHN_11:25','JHN_20:31',
+    'JHN_1:1-5','JHN_3:16', 'JHN_5:24', 'JHN_11:25', 'JHN_20:31',
 
     'ROM_3:23','ROM_6:23','ROM_8:28', 'ROM_12:2',
     'CO2_5:21','CO2_12:9',
@@ -150,7 +150,7 @@ importantRefsWithRanges = [ # Often quoted and/or memorised by Christians
 
     'MAT_4:4', 'MAT_16:1-3', 'MAT_24:32-33','MAT_24:44',
     'LUK_21:28','LUK_24:27',
-    'JHN_1:1-18','JHN_3:18','JHN_6:68-69','JHN_7:16', 'JHN_8:36','JHN_8:58', 'JHN_10:18','JHN_10:28','JHN_16:33', 'JHN_17:5','JHN_17:23',
+    'JHN_1:6-18', 'JHN_3:18','JHN_6:68-69','JHN_7:16', 'JHN_8:36','JHN_8:58', 'JHN_10:18','JHN_10:28','JHN_16:33', 'JHN_17:5','JHN_17:23',
     'ACT_2:42', 'ACt_15:10',
     'CO1_10:6-11',
     'ROM_3:3-4','ROM_3:19-22', 'ROM_5:8','ROM_5:16-21', 'ROM_8:3', 'ROM_10:2','ROM_10:13', 'ROM_11:1-2','ROM_11:11-12','ROM_11:29', 'ROM_13:12', 'ROM_15:4', 'ROM_16:17',

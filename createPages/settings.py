@@ -62,17 +62,17 @@ class State:
     OBD_VERSION_NUMBER_STRING = 'v2.4.3' # Incremented after most updates to OBD web page generation code
     OET_VERSION_NUMBER_STRING = 'v0.48.79' # Incremented on most runs when there's been changes or updates to the text of the OET-RV or OET-LV
 
-    TEST_MODE_FLAG = False # Writes smaller website subset into DEBUG_DESTINATION_FOLDER_PATH if True
+    TEST_MODE_FLAG = True # Writes smaller website subset into DEBUG_DESTINATION_FOLDER_PATH if True
     TEST_OT_BOOK_LIST = ['PSA']
     TEST_DC_BOOK_LIST = []
     TEST_NT_BOOK_LIST = ['MAT','MRK'] # Shortest gospel
-    NEW_BOOK_IN_TEST_LIST_FLAG = False # So that interlinear, parallel passages, topic, kingdom, and dict & word pages will get rebuilt for TEST_MODE_FLAG
+    NEW_BOOK_IN_TEST_LIST_FLAG = True # So that interlinear, parallel passages, topic, kingdom, and dict & word pages will get rebuilt for TEST_MODE_FLAG
 
     # Many of these settings are used to omit some processing so as to get a speedier conclusion for debugging
     LOAD_RESOURCES_FROM_PICKLES_FLAG = True # Might have to disable loading pickles if they need updating (new code or data)
     TEST_VERSIONS_ONLY = None #['OET','OET-RV','OET-LV', 'KJB-1611', 'TOSN','UTN'] # Usually None. Also stops actual site being built
     ALL_PRODUCTION_BOOKS_FLAG = not TEST_MODE_FLAG # If set to False, uses the TEST book list (with many less books) for a faster test build
-    CREATE_PARALLEL_VERSE_PAGES = 'LAST' # 'FIRST','LAST', or None -- usually 'LAST' -- depending on debugging needs
+    CREATE_PARALLEL_VERSE_PAGES = 'FIRST' # 'FIRST','LAST', or None -- usually 'LAST' -- depending on debugging needs
     CREATE_BOOK_AND_OTHER_PAGES_FLAG = True # Can be turned off for debugging
     DO_SPELL_CHECKS_FLAG = True # On parallel pages
     REUSE_EXISTING_WORD_PAGES_FLAG = TEST_MODE_FLAG and not NEW_BOOK_IN_TEST_LIST_FLAG # Don't recreate word pages (dangerous for main site coz no ilr!!!)

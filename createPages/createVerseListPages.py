@@ -586,7 +586,7 @@ def createVerseListPagesForBook( level:int, folder:Path, BBB:str, BBBLinks:list[
                                     modernisedTextHtml = modernisedTextHtml.replace( '_verseTextChunk"', '_mod"' )
                                     # if '<div' in modernisedTextHtml: # Shouldn't put a div inside a span!
                                     #     assert C=='-1' and V=='0'
-                                    #     textHtml = f'''{textHtml}<br>   ({modernisedTextHtml.replace('<br>','<br>   ')})''' # Typically a book heading
+                                    #     textHtml = f'''{textHtml}<br>  ({modernisedTextHtml.replace('<br>','<br>  ')})''' # Typically a book heading
                                     # else: # no div
                                 if versionAbbreviation=='KJB-1611' and not modernisedTextHtml.startswith('<small>') and not parRef.endswith( ':0' ): # Don't include chapter intros
                                     if debugKJBCompareBit:
@@ -668,7 +668,7 @@ def createVerseListPagesForBook( level:int, folder:Path, BBB:str, BBBLinks:list[
                                     # if parRef == 'PSA_68:6': assert False, "We want to stop here"
                                 if modernisedTextDiffers or 'KJB-1769 above' in modernisedTextHtml:
                                     # if parRef in ancientRefsToPrint: print( f"YY {versionAbbreviation} {parRef} {modernisedTextDiffers=} {modernisedTextHtml=}" )
-                                    textHtml = f'''{textHtml}<br>   ({modernisedTextHtml.replace('<br>','<br>   ')})'''
+                                    textHtml = f'''{textHtml}<BR>  ({modernisedTextHtml.replace('<br>','  ')})'''
                                 # elif versionAbbreviation=='KJB-1611' and parRef in ancientRefsToPrint: print( f"ZZ {versionAbbreviation} {parRef} {modernisedTextDiffers=} ({len(cleanedModernisedTextHtml)}) {cleanedModernisedTextHtml=} ({len(modernisedTextHtml)}) {modernisedTextHtml=}" )
                             elif versionAbbreviation in ('Luth','ClVg'):
                                 translateFunction = translateGerman if versionAbbreviation=='Luth' else translateLatin
@@ -684,11 +684,11 @@ def createVerseListPagesForBook( level:int, folder:Path, BBB:str, BBBLinks:list[
                                     # assert '</p>' not in textHtml
                                     if '<div ' in textHtml: # it might have had footnotes in a <div>, but we want the transliteration BEFORE the footnotes
                                         assert '</div>' in textHtml
-                                        textHtml = textHtml.replace( '<hr', f'''<br>   ({adjustedForeignTextHtml.replace('<br>','<br>   ')})<hr''' ) \
-                                                    if '<hr ' in textHtml else f'''{textHtml}<br>   ({adjustedForeignTextHtml.replace('<br>','<br>   ')})'''
+                                        textHtml = textHtml.replace( '<hr', f'''<BR>  ({adjustedForeignTextHtml.replace('<br>','  ')})<hr''' ) \
+                                                    if '<hr ' in textHtml else f'''{textHtml}<BR>  ({adjustedForeignTextHtml.replace('<br>','  ')})'''
                                     else: # no <div>s so should be ok to add a span
                                         assert '</div>' not in textHtml
-                                        textHtml = f'''{textHtml}<br>   ({adjustedForeignTextHtml.replace('<br>','<br>   ')})'''
+                                        textHtml = f'''{textHtml}<BR>  ({adjustedForeignTextHtml.replace('<br>','  ')})'''
                             elif versionAbbreviation == 'SR-GNT':
                                 SRtranscription = grammaticalKeysHtmlList = None
                                 # if C!='-1' and V!='0' and textHtml:
@@ -723,7 +723,7 @@ def createVerseListPagesForBook( level:int, folder:Path, BBB:str, BBBLinks:list[
                                     textHtml = f'{textHtml} <a title="Go to the GreekCNTR collation page" href="{collationHref}">‡</a>'
                                 if SRtranscription:
                                     textHtml = f'''{textHtml}
-<br>   ({SRtranscription.replace('<br>','<br>   ')})'''
+<BR>  ({SRtranscription.replace('<br>','  ')})'''
                                 textHtml = f'{textHtml}{keysHtml}'
 
                             elif versionAbbreviation == 'UHB':
@@ -763,18 +763,24 @@ def createVerseListPagesForBook( level:int, folder:Path, BBB:str, BBBLinks:list[
 
                             if textHtml:
                                 # Try to keep all these simple verses on one line
-                                if versionAbbreviation=='T4T' and parRef == 'EZR_2:55': print( f"A {textHtml=}" )
-                                textHtml = textHtml.replace( '\n<br>&nbsp;&nbsp;&nbsp;&nbsp;', ' ' ).replace( '\n<br>&nbsp;&nbsp;', ' ' ) \
-                                                .replace( '<br> ⇔ \n', ' ⇔ ' ).replace( '<br> ⇔ \n', ' ⇔  ') \
+                                # if versionAbbreviation=='OET-RV' and parRef == 'MRK_8:29': print( f"A {versionAbbreviation} {parRef} {textHtml=}" )
+                                print( f"\nA {versionAbbreviation} {parRef} {textHtml=}" )
+                                # for ve in verseEntryList:
+                                #     print( f"  {ve=}" )
+                                textHtml = textHtml.replace( '<br> ¶', ' ¶' ) \
+                                                .replace( '\n<br>&nbsp;&nbsp;&nbsp;&nbsp;', ' ' ).replace( '\n<br>&nbsp;&nbsp;', ' ' ) \
+                                                .replace( '\n<br> ⇔ ', ' ⇔ ' ).replace( '\n<br> ⇔ ', ' ⇔  ') \
                                                 .replace( '\n<br>  <ul>', '' ).replace( '\n<br> <ul>', '' ) \
                                                     .replace( '<ul>', '' ).replace( '</ul>', '' ) \
                                                     .replace( '<br>\xa0<span class="li', ' <span class="li' ) \
-                                                .replace( '<br>\n<br>', '\n<br>' ).replace( '\n<br>\n', '' ).replace( '<br><br>', '<br>' ).replace( '<br>\n', '<br>' ) \
+                                                .replace( '\n<br>\n<br>', ' ' ).replace( '\n<br>', ' ' ) \
                                                 .replace( '\n\n', '\n' ).replace( ' \n', '\n' ).replace( '\n\n', '\n' ) \
                                                 .replace( '   ', ' ' ).replace( '  ', ' ' )
-                                if versionAbbreviation=='T4T' and parRef == 'EZR_2:55': print( f"B {textHtml=}" )
+                                if versionAbbreviation=='OET-RV' and parRef == 'MRK_8:29': print( f"B {versionAbbreviation} {parRef} {textHtml=}" )
+                                if c != -1: assert '<br>' not in textHtml, f"C {versionAbbreviation} {parRef} {textHtml=}"
                                 for possibleSuffix in ('\n', ' '):
                                     textHtml = textHtml.removesuffix( possibleSuffix )
+                                textHtml = textHtml.replace( '<BR>', '\n<br>' ) # Before modernisedText
                                 assert checkHtml( f'VerseList textHtml {versionAbbreviation} {parRef}', textHtml, segmentOnly=True )
                                 # if parRef in ancientRefsToPrint: print( f"aaaa {versionAbbreviation} {parRef} Got {textHtml=}" )
                                 assert not textHtml.endswith( '\n' ), f"{versionAbbreviation} {parRef} {textHtml[-30:]=}"

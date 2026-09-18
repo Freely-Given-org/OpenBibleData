@@ -240,6 +240,7 @@ def _createSitePages() -> bool:
     # TODO: We could use multiprocessing to do all these at once
     #   (except that state is quite huge with all preloaded versions and hence expensive to pickle)
     if state.CREATE_PARALLEL_VERSE_PAGES == 'FIRST':
+        createVerseListPages( 1, state.TEMP_BUILD_FOLDER.joinpath('lst/'), state )
         createParallelVersePages( 1, state.TEMP_BUILD_FOLDER.joinpath('par/'), state )
     elif not state.CREATE_PARALLEL_VERSE_PAGES:
         vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"NOT GENERATING {'TEST ' if state.TEST_MODE_FLAG else ''}parallel verse pages." )
@@ -351,7 +352,7 @@ def _createSitePages() -> bool:
     elif state.CREATE_PARALLEL_VERSE_PAGES != 'FIRST': have_invalid_value
 
     if not state.REUSE_EXISTING_WORD_PAGES_FLAG:
-        createVerseListPages( 1, state.TEMP_BUILD_FOLDER.joinpath('lst/'), state )
+        # createVerseListPages( 1, state.TEMP_BUILD_FOLDER.joinpath('lst/'), state )
         createOETInterlinearPages( 1, state.TEMP_BUILD_FOLDER.joinpath('ilr/'), state )
         createParallelPassagePages( 1, state.TEMP_BUILD_FOLDER.joinpath('rel/'), state )
         createTopicPages( 1, state.TEMP_BUILD_FOLDER.joinpath('tpc/'), state )

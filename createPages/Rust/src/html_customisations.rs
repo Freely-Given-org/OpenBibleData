@@ -390,7 +390,7 @@ pub fn do_oet_lv_html_customisations(where_: &str, html: &str) -> Result<String,
 /// Byte-identical port of `html.do_LSV_HTMLcustomisations`: change the two
 /// parallel lines (` || `) to `<br>`.
 pub fn do_lsv_html_customisations(_where_: &str, html: &str) -> String {
-    html.replace(" || ", "<br>").replace("||", "<br>") // Second one catches any source inconsistencies
+    html.replace(" || ", "\n<br>").replace("||", "\n<br>") // Second one catches any source inconsistencies
 }
 
 // ── do_T4T_HTMLcustomisations ───────────────────────────────────────────────
