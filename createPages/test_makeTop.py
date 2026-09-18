@@ -216,14 +216,14 @@ def _ref_makeWorkNavListParagraph( level:int, versionAbbreviation:str|None, page
         initialVersionList.append( 'Parallel' )
     else: # add a link for parallel
         initialVersionList.append( f'''{state.BibleVersionDecorations['Parallel'][0]}<a title="Single verse in many different translations" href="{'../'*level}par/">Parallel</a>{state.BibleVersionDecorations['Parallel'][1]}''' )
-    if pageType == 'interlinearVerse':
-        initialVersionList.append( 'Interlinear' )
-    else: # add a link for interlinear
-        initialVersionList.append( f'''{state.BibleVersionDecorations['Interlinear'][0]}<a title="Single verse in interlinear word view" href="{'../'*level}ilr/">Interlinear</a>{state.BibleVersionDecorations['Interlinear'][1]}''' )
     if pageType == 'simpleVerse':
         initialVersionList.append( 'Simple' )
     else: # add a link for the simple-list verse view
         initialVersionList.append( f'''{state.BibleVersionDecorations['Simple'][0]}<a title="Single verse in simple list view" href="{'../'*level}lst/">Simple</a>{state.BibleVersionDecorations['Simple'][1]}''' )
+    if pageType == 'interlinearVerse':
+        initialVersionList.append( 'Interlinear' )
+    else: # add a link for interlinear
+        initialVersionList.append( f'''{state.BibleVersionDecorations['Interlinear'][0]}<a title="Single verse in interlinear word view" href="{'../'*level}ilr/">Interlinear</a>{state.BibleVersionDecorations['Interlinear'][1]}''' )
     if pageType in ('topicPassages','topicsIndex'):
         initialVersionList.append( 'Topics' )
     else: # add a link for topics

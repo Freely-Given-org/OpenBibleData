@@ -135,7 +135,7 @@ p.iex { background-color:#dcf5fa; } /* KJB-1611 */
 p.nb {}
 
 span.nd {}
-span.ndORD { font-size:.75em; text-decoration:overline; text-decoration-style:dashed; text-decoration-color:purple; }
+span.ndORD { font-size:.75em; } /* text-decoration:overline; text-decoration-style:dashed; text-decoration-color:purple; } */
 span.wj { color:saddlebrown; }
 span.qt { font-style:italic; }
 span.sc { font-size:0.8em; } /* Small caps */

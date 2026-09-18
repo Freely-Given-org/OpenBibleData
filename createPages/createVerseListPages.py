@@ -60,10 +60,10 @@ from createOETReferencePages import OSHB_ADJECTIVE_DICT, OSHB_PARTICLE_DICT, OSH
 from openbibledata_rust import convertVerseEntryListToHtml, getOETTidyBBB, getOETBookName, removeVersePunctuationForComparison, removeGreekPunctuation
 
 
-LAST_MODIFIED_DATE = '2026-09-17' # by RJH
+LAST_MODIFIED_DATE = '2026-09-18' # by RJH
 SHORT_PROGRAM_NAME = "createVerseListPages"
 PROGRAM_NAME = "OpenBibleData createVerseListPages functions"
-PROGRAM_VERSION = '0.2.0'
+PROGRAM_VERSION = '0.2.2'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -275,9 +275,10 @@ def createVerseListPagesForBook( level:int, folder:Path, BBB:str, BBBLinks:list[
                 rightVLink = f' <a title="Next page is first chapter intro" href="C1V0.htm#__ID__">→</a>' if c==-1 \
                         else f' <a title="Next verse" href="C{C}V{v+1}.htm#__ID__">→</a>' if v<numVerses \
                         else ''
+                parallelLink = f''' <a title="Parallel verse view" href="{'../'*BBBLevel}par/{BBB}/C{C}V{v}.htm#Top">║</a>'''
                 interlinearLink = f''' <a title="Interlinear verse view" href="{'../'*BBBLevel}ilr/{BBB}/C{C}V{V}.htm#Top">═</a>''' if BBB in state.booksToLoad['OET'] else ''
-                navLinks = f'<p id="__ID__" class="vNav">{leftCLink}{leftVLink}{ourTidyBbb} Book Introductions <a title="Go to __WHERE__ of page" href="#__LINK__">__ARROW__</a>{rightVLink}{rightCLink}{interlinearLink}{detailsLink}</p>' if c==-1 \
-                        else f'<p id="__ID__" class="vNav">{introLink}{leftCLink}{leftVLink}{ourTidyBbb} {C}:{V} <a title="Go to __WHERE__ of page" href="#__LINK__">__ARROW__</a>{rightVLink}{rightCLink}{interlinearLink}{detailsLink}</p>'
+                navLinks = f'<p id="__ID__" class="vNav">{leftCLink}{leftVLink}{ourTidyBbb} Book Introductions <a title="Go to __WHERE__ of page" href="#__LINK__">__ARROW__</a>{rightVLink}{rightCLink}{parallelLink}{interlinearLink}{detailsLink}</p>' if c==-1 \
+                        else f'<p id="__ID__" class="vNav">{introLink}{leftCLink}{leftVLink}{ourTidyBbb} {C}:{V} <a title="Go to __WHERE__ of page" href="#__LINK__">__ARROW__</a>{rightVLink}{rightCLink}{parallelLink}{interlinearLink}{detailsLink}</p>'
 
                 debugKJBCompareBit = False #parRef == 'PSA_68:6'
                 ancientRefsToPrint = () # ('SA1_31:13',) # For debugging
@@ -337,8 +338,8 @@ def createVerseListPagesForBook( level:int, folder:Path, BBB:str, BBBLinks:list[
                                     .replace( '\\nd ', '<span class="nd">' ).replace( '\\nd*', '</span>' ) \
                                 .replace( '\\wj ', '<span class="wj">' ).replace( '\\wj*', '</span>' ) \
                                 .replace( '\\qs ', '<span class="qs">' ).replace( '\\qs*', '</span>' )
-                            for possiblePrefix in (' ','\n',' ','<br>',' ','\n',' '): # only leave these if they're in the middle of the verse
-                                vHtml = vHtml.removeprefix( possiblePrefix )
+                            # for possiblePrefix in (' ','\n',' ','<br>',' ','\n',' '): # only leave these if they're in the middle of the verse
+                            vHtml = vHtml.lstrip().removeprefix( '<br>' ).lstrip()
                             assert '\\' not in vHtml, f"{versionAbbreviation} {parRef} {vHtml=}"
                             assert '*' not in vHtml, f"{versionAbbreviation} {parRef} {vHtml=}"
                             assert '<br><br>' not in vHtml, f"{versionAbbreviation} {parRef} {vHtml=}"
@@ -762,11 +763,16 @@ def createVerseListPagesForBook( level:int, folder:Path, BBB:str, BBBLinks:list[
 
                             if textHtml:
                                 # Try to keep all these simple verses on one line
+                                if versionAbbreviation=='T4T' and parRef == 'EZR_2:55': print( f"A {textHtml=}" )
                                 textHtml = textHtml.replace( '\n<br>&nbsp;&nbsp;&nbsp;&nbsp;', ' ' ).replace( '\n<br>&nbsp;&nbsp;', ' ' ) \
                                                 .replace( '<br> ⇔ \n', ' ⇔ ' ).replace( '<br> ⇔ \n', ' ⇔  ') \
-                                                .replace( '<ul>', '' ).replace( '</ul>', '' ).replace( '<br> <span class="li', ' <span class="li' ) \
-                                                .replace( '<br>\n<br>', '<br>' ) \
-                                                .replace( '\n\n', '\n' ).replace( ' \n', '\n' ).replace( '\n\n', '\n' ).replace( '   ', ' ' ).replace( '  ', ' ' )
+                                                .replace( '\n<br>  <ul>', '' ).replace( '\n<br> <ul>', '' ) \
+                                                    .replace( '<ul>', '' ).replace( '</ul>', '' ) \
+                                                    .replace( '<br>\xa0<span class="li', ' <span class="li' ) \
+                                                .replace( '<br>\n<br>', '\n<br>' ).replace( '\n<br>\n', '' ).replace( '<br><br>', '<br>' ).replace( '<br>\n', '<br>' ) \
+                                                .replace( '\n\n', '\n' ).replace( ' \n', '\n' ).replace( '\n\n', '\n' ) \
+                                                .replace( '   ', ' ' ).replace( '  ', ' ' )
+                                if versionAbbreviation=='T4T' and parRef == 'EZR_2:55': print( f"B {textHtml=}" )
                                 for possibleSuffix in ('\n', ' '):
                                     textHtml = textHtml.removesuffix( possibleSuffix )
                                 assert checkHtml( f'VerseList textHtml {versionAbbreviation} {parRef}', textHtml, segmentOnly=True )

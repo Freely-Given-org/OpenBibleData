@@ -22,6 +22,15 @@
  *   data-features  "on" (default, quieter reading) or absent (show all
  *                    special features); see the "Highlight special features"
  *                    section at the bottom of this stylesheet)
+ *   data-par-fields  "hide" -- hide the historical-translations block
+ *                    (div.hideables) on parallel verse pages; absent = show
+ *   data-par-translit "hide" -- hide the transliteration / modernised-spelling
+ *                    spans on parallel verse pages; absent = show
+ *   data-par-colours "hidden" -- remove the grammatical word highlighting;
+ *                    absent = show
+ * The three data-par-* attributes mirror the small ↕ / ⱦ / C buttons on the
+ * parallel verse pages; see the "Parallel verse display toggles" section at
+ * the bottom of this stylesheet.
  */
 
 /* ---- Site-wide colour palette (CSS custom properties) ---- */
@@ -508,3 +517,56 @@ html[data-features="on"] span.synthParr { display: none; }
 html[data-features="on"][data-verses="left"] body span.synonParr,
 html[data-features="on"][data-verses="left"] body span.antiParr,
 html[data-features="on"][data-verses="left"] body span.synthParr { display: none; }
+
+/* ---- Parallel verse display toggles (data-par-fields / -translit / -colours) ----
+ * These three data-* attributes are set on <html> by theme.js's settings panel
+ * and by the small ↕ / ⱦ / C buttons on the Historical ⟷ Verse pages. When
+ * present they mirror what those buttons do, so the state set anywhere
+ * persists across pages and sessions. See also hide_show_fields() /
+ * hide_show_transliterations() / hide_show_colours() in Bible.js, which now
+ * delegate to theme.js (window.OBDSettings) rather than restyling inline. */
+
+/* The historical-translations (parallel-verse) block. */
+html[data-par-fields="hide"] div.hideables { display: none; }
+
+/* The transliteration / modernised-spelling lines on parallel verse pages.
+ * The class name list matches the spans created by createParallelVersePages.py
+ * (and the fallback list in Bible.js): modernised spellings (…_mod) plus the
+ * _trans spans inserted in the Hebrew/Greek source lines. */
+html[data-par-translit="hide"] span.SR-GNT_trans,
+html[data-par-translit="hide"] span.UGNT_trans,
+html[data-par-translit="hide"] span.SBL-GNT_trans,
+html[data-par-translit="hide"] span.TC-GNT_trans,
+html[data-par-translit="hide"] span.RP-GNT_trans,
+html[data-par-translit="hide"] span.BrLXX_trans,
+html[data-par-translit="hide"] span.UHB_trans,
+html[data-par-translit="hide"] span.ClVg_trans,
+html[data-par-translit="hide"] span.Luth_trans,
+html[data-par-translit="hide"] span.Wycl_mod,
+html[data-par-translit="hide"] span.TNT_mod,
+html[data-par-translit="hide"] span.Cvdl_mod,
+html[data-par-translit="hide"] span.Gnva_mod,
+html[data-par-translit="hide"] span.Bshps_mod,
+html[data-par-translit="hide"] span.KJB-1611_mod,
+html[data-par-translit="hide"] span.KJB-1769_mod,
+html[data-par-translit="hide"] span.RV_mod { display: none; }
+
+/* The grammatical word highlighting (word colour backgrounds) on OET chapter,
+ * parallel verse, word, and dictionary pages (khaki / lightgreen / powderBlue
+ * / paleGreen ... from the family stylesheets). Keeping the normal text colour
+ * but dropping the background produces the polished plain look without needing
+ * per-family overrides; the dark-mode text-colour override above still applies,
+ * so a white background stays readable in both themes. The class list matches
+ * the colours.hide_grammatical_colours() functions in Dict.js / Bible.js. */
+html[data-par-colours="hidden"] span.grkNom,
+html[data-par-colours="hidden"] span.grkAcc,
+html[data-par-colours="hidden"] span.grkGen,
+html[data-par-colours="hidden"] span.grkDat,
+html[data-par-colours="hidden"] span.grkVoc,
+html[data-par-colours="hidden"] span.grkVrb,
+html[data-par-colours="hidden"] span.grkNeg,
+html[data-par-colours="hidden"] span.hebVrb,
+html[data-par-colours="hidden"] span.hebNeg,
+html[data-par-colours="hidden"] span.hebEl,
+html[data-par-colours="hidden"] span.hebYhwh,
+html[data-par-colours="hidden"] span.noLinkYet { background-color: white; }

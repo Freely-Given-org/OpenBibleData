@@ -69,6 +69,13 @@ function hide_show_verses() {
 }
 
 function hide_show_colours() {
+    if (window.OBDSettings) {
+        // theme.js owns the state: the settings panel, the CSS (data-par-colours)
+        // and this button all agree and persist across pages and sessions.
+        OBDSettings.set('parColours', colours_hidden() ? 'shown' : 'hidden');
+        return;
+    }
+    // Legacy fallback for pages without theme.js: toggle inline, as before.
     if (colours_hidden()) {
         show_grammatical_colours();
         remember_colours_shown();
@@ -78,10 +85,15 @@ function hide_show_colours() {
     }
 }
 
-// Was the grammatical colouring turned off? Prefer the reader's saved
-// preference (localStorage key obd-colours); if storage is unavailable, fall
-// back to the old check on the button's own highlighted state.
+// Was the grammatical colouring turned off? Prefer the shared settings object
+// managed by theme.js (localStorage key obd-settings, mirroring the settings
+// panel); if that is unavailable, fall back to the older obd-colours key and
+// then to the button's own highlighted state.
 function colours_hidden() {
+    if (window.OBDSettings) {
+        var shared = OBDSettings.get('parColours');
+        if (shared === 'hidden' || shared === 'shown') return shared === 'hidden';
+    }
     try {
         var saved = localStorage.getItem('obd-colours');
         if (saved === 'hidden' || saved === 'shown') return saved === 'hidden';
@@ -91,8 +103,17 @@ function colours_hidden() {
 }
 
 function hide_grammatical_colours() {
-    var classes_to_adjust = ['.grkNom','.grkAcc','.grkGen','.grkDat', '.grkVoc','.grkVrb','.grkNeg', '.hebVrb','.hebNeg','.hebEl','.hebYhwh','.noLinkYet'];
     var btn = document.getElementById('coloursButton');
+    if (window.OBDSettings) {
+        // theme.js + common.css handle the spans via data-par-colours; here we
+        // just mirror the state onto the button as before.
+        if (btn) {
+            btn.style.backgroundColor = 'orange';
+            btn.textContent = 'Show verse colours';
+        }
+        return;
+    }
+    var classes_to_adjust = ['.grkNom','.grkAcc','.grkGen','.grkDat', '.grkVoc','.grkVrb','.grkNeg', '.hebVrb','.hebNeg','.hebEl','.hebYhwh','.noLinkYet'];
     for (let cl of classes_to_adjust) {
         var elements = document.querySelectorAll(cl);
         for (var i=0; i<elements.length; i++){
@@ -107,8 +128,17 @@ function hide_grammatical_colours() {
 }
 
 function show_grammatical_colours() {
-    var classes_to_adjust = ['.grkNom','.grkAcc','.grkGen','.grkDat', '.grkVoc','.grkVrb','.grkNeg', '.hebVrb','.hebNeg','.hebEl','.hebYhwh','.noLinkYet'];
     var btn = document.getElementById('coloursButton');
+    if (window.OBDSettings) {
+        // Removes the orange button highlight; the CSS data-par-colours
+        // attribute is cleared by theme.js, restoring the backgrounds.
+        if (btn) {
+            btn.style.backgroundColor = null;
+            btn.textContent = 'Hide verse colours';
+        }
+        return;
+    }
+    var classes_to_adjust = ['.grkNom','.grkAcc','.grkGen','.grkDat', '.grkVoc','.grkVrb','.grkNeg', '.hebVrb','.hebNeg','.hebEl','.hebYhwh','.noLinkYet'];
     for (let cl of classes_to_adjust) {
         var elements = document.querySelectorAll(cl);
         for (var i=0; i<elements.length; i++){

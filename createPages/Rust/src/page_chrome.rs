@@ -420,17 +420,17 @@ fn work_nav_list_core(
     )?;
     append_pseudo_link(
         &mut initial_version_list,
-        &["interlinearVerse"],
-        "Interlinear",
-        "Single verse in interlinear word view",
-        "ilr/",
-    )?;
-    append_pseudo_link(
-        &mut initial_version_list,
         &["simpleVerse"],
         "Simple",
         "Single verse in simple list view",
         "lst/",
+    )?;
+    append_pseudo_link(
+        &mut initial_version_list,
+        &["interlinearVerse"],
+        "Interlinear",
+        "Single verse in interlinear word view",
+        "ilr/",
     )?;
     append_pseudo_link(
         &mut initial_version_list,

@@ -37,7 +37,7 @@
 //!   2026-09-16: Initial port of the four customisation functions.
 //!   2026-09-17: Ported convert_adds_to_italics and handleAndExtractFootnotes.
 
-use crate::html_validation::check_html;
+use crate::html_validation::{check_html, py_repr};
 use bos_internals::have_strict_checking_flag;
 use once_cell::sync::Lazy;
 use regex::Regex;
@@ -498,30 +498,6 @@ pub fn do_convert_adds_to_italics(html_segment: &str) -> Result<String, String> 
 /// engines walk left-to-right over non-overlapping matches.
 static FNCALLER_REGEX: Lazy<Regex> =
     Lazy::new(|| Regex::new(r#"<span class="fnCaller">.+?</span>"#).expect("fnCaller regex"));
-
-/// Emulate Python's `repr()` for a `str` so assert messages read identically
-/// to the Python originals (`f'{x=}'` renders `x='...'` with shows repr).
-/// Printable Unicode (incl. Hebrew/Arabic/CJK) is passed through unchanged.
-fn py_repr(text: &str) -> String {
-    let mut out = String::with_capacity(text.len() + 2);
-    out.push('\'');
-    for ch in text.chars() {
-        match ch {
-            '\\' => out.push_str("\\\\"),
-            '\'' => out.push_str("\\'"),
-            '\n' => out.push_str("\\n"),
-            '\r' => out.push_str("\\r"),
-            '\t' => out.push_str("\\t"),
-            c if (c as u32) < 0x20 || c == '\u{7f}' => {
-                out.push_str(&format!("\\x{:02x}", c as u32));
-            }
-            c if c.is_control() => out.push_str(&format!("\\u{:04x}", c as u32)),
-            c => out.push(c),
-        }
-    }
-    out.push('\'');
-    out
-}
 
 /// Port of `html.handleAndExtractFootnotes`: given a verse's HTML that may
 /// contain a footnotes division, separates out the footnotes and returns

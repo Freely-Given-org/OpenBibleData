@@ -117,7 +117,7 @@ span.StrongsRef {}
 
 /* NT spans */
 span.nd {}
-span.ndORD { font-size:.75em; text-decoration:overline; text-decoration-style:dashed; text-decoration-color:purple; }
+span.ndORD { font-size:.75em; } /* text-decoration:overline; text-decoration-style:dashed; text-decoration-color:purple; } */
 span.sig { font-family:cursive; }
 
 span.ul { color:darkGrey; }

@@ -100,7 +100,7 @@ from html import makeTop, makeViewNavListParagraph, makeBottom, checkHtml, prelo
 from spellCheckEnglish import printSpellCheckSummary
 
 
-LAST_MODIFIED_DATE = '2026-09-16' # by RJH
+LAST_MODIFIED_DATE = '2026-09-17' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData (OBD) Create Site Pages"
 PROGRAM_VERSION = '1.4.0'
@@ -240,7 +240,6 @@ def _createSitePages() -> bool:
     # TODO: We could use multiprocessing to do all these at once
     #   (except that state is quite huge with all preloaded versions and hence expensive to pickle)
     if state.CREATE_PARALLEL_VERSE_PAGES == 'FIRST':
-        createVerseListPages( 1, state.TEMP_BUILD_FOLDER.joinpath('lst/'), state )
         createParallelVersePages( 1, state.TEMP_BUILD_FOLDER.joinpath('par/'), state )
     elif not state.CREATE_PARALLEL_VERSE_PAGES:
         vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"NOT GENERATING {'TEST ' if state.TEST_MODE_FLAG else ''}parallel verse pages." )
@@ -346,13 +345,13 @@ def _createSitePages() -> bool:
             assert all(results)
 
     if state.CREATE_PARALLEL_VERSE_PAGES == 'LAST':
-        createVerseListPages( 1, state.TEMP_BUILD_FOLDER.joinpath('lst/'), state )
         createParallelVersePages( 1, state.TEMP_BUILD_FOLDER.joinpath('par/'), state )
     elif not state.CREATE_PARALLEL_VERSE_PAGES:
         vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"NOT GENERATING {'TEST ' if state.TEST_MODE_FLAG else ''}parallel verse pages." )
     elif state.CREATE_PARALLEL_VERSE_PAGES != 'FIRST': have_invalid_value
 
     if not state.REUSE_EXISTING_WORD_PAGES_FLAG:
+        createVerseListPages( 1, state.TEMP_BUILD_FOLDER.joinpath('lst/'), state )
         createOETInterlinearPages( 1, state.TEMP_BUILD_FOLDER.joinpath('ilr/'), state )
         createParallelPassagePages( 1, state.TEMP_BUILD_FOLDER.joinpath('rel/'), state )
         createTopicPages( 1, state.TEMP_BUILD_FOLDER.joinpath('tpc/'), state )
@@ -467,10 +466,10 @@ def _cleanHTMLFolders( folder:Path, state:State ) -> bool:
     if state.CREATE_PARALLEL_VERSE_PAGES is not None:
         try: shutil.rmtree( folder.joinpath( 'par/' ) )
         except FileNotFoundError: pass
-        try: shutil.rmtree( folder.joinpath( 'lst/' ) )
-        except FileNotFoundError: pass
     if folder == state.TEMP_BUILD_FOLDER \
     or not state.REUSE_EXISTING_WORD_PAGES_FLAG: # Leave the existing folders there if we're not rebuilding these reference pages
+        try: shutil.rmtree( folder.joinpath( 'lst/' ) )
+        except FileNotFoundError: pass
         try: shutil.rmtree( folder.joinpath( 'ilr/' ) )
         except FileNotFoundError: pass
         try: shutil.rmtree( folder.joinpath( 'rel/' ) )

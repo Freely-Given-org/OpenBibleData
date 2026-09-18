@@ -825,12 +825,12 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                 vPrint( 'Normal' if word.upper()==word
                        or word in ( #  \d{1,3}\), \(
                                 'an','Arche','arg','aß','Bart','Bild','bis','bittern', 'Chor', 'wir','dem','des','Du','du',
-                                    'für', 'hin','heb','hub','ich','ist','ja','alle','las','lag','litt',
+                                    'für', 'Gabe', 'hin','heb','hub','ich','ist','ja','alle','las','lag','litt',
                                 'one)r','one)n','ones)r','ones)s','ones)n','one)s',
                                 'ach','alt','dran','ende','irrig','hing','weh','du','Raube','Raub','sie','Tal','tue','fiel','sehe',
                                 'Mal','mal','milde','mit','Mord','Natur','nun','nur',
                                 'rede','kam','Korb','ward','Rat','Rede','messen','Mose','ging','Halle','und','ster','streng','töte','tun','von','wer','zu','zwo',
-                                'mountainss','mountainsn','strikee','presentr','diapers','twoschneidig','sleepkammer','fastinge','went‘s','beashamed',
+                                'twoschneidig',
                                     'Suchoth','Esrahiten',
                     
                                 'abs','actio', 'adultera','agi', 'aliena', 'ambit','ambitio','amputa', 'anima','antiqui','apprehendi', 'argui','ascendi','attende','audi', 'aversio',
@@ -851,7 +851,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                 'magis','magnifice','magni', 'mane','manifeste','manu', 'mari','mater','materia',
                                     'media','medici','memor','memoria','menstrua','mens','menti','mentio',       'mira','misera','miseri',       'mora','moretri','mortali','morti', 'mysterio',
                                 'nam','narrat','nati','natu','natura','ne','nece', 'nota','Nota',     'ob','obsessi', 'occasio', 'offen','omnis','operatio','opinio','ora','ori',
-                                'passi','patria','patri','pede','pedes','perpetua','perfecti','persecuti','persecutio',
+                                'passi','pater','patria','patri','pede','pedes','perpetua','perfecti','persecuti','persecutio',
                                     'pinna','pio','plura','polluti','portio','prope','propitiatio','provocat', 'psalmi','psalmis', 'publica',
                                 'questio','qui',        'rea','redempti','referri','rege','regi','regio','regula','remun','remunerat','rei','repente','reprobat','ros',
                                 'salva','salvat','salvati','sanctifi','sanctificati',
@@ -859,11 +859,9 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                     'si','signi','simplici','sit','sol','soli','solem','stat','statu', 'subjecti','summo','superstitio',
                                 'tempora','Tod','tradit','traditi','traditio','transito','transmigratio','tres','tribulatio','tributa','trium','tu','tua','tuam','turba',
                                 'usu',      'valle','vani','varie','vas', 'venerat', 'victi','vis','visita','visitat','visitatio','vita', 'Voca','voca',
-                                'l','nos','ut','didrachmas',
-                                'everyoneque',
-                                'ausus','beque','thereita','pravorum','castitate','profecto','arbitror','infidelitym','consecutus',
-                                    'res','meum','professio','namedm','anathemate','anys','perfectio','accusent','chosesti',
-                                    'defencem','theserentes',
+                                'l','nos','ut',
+                                    'perfectio','irritat','devoti',
+                                    'patriarcha','territi','reddant','levi','senserunt','nato',
 
                                 )
                     else 'Info', DEBUGGING_THIS_MODULE, f'''  '{word}' is suspect @ {location}\n      from {cleanedTextToDisplay=}\n      WHICH GAVE cleanedTextToCheck={_truncate_for_display(cleanedTextToCheck,word)}''' )

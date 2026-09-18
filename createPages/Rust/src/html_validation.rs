@@ -23,11 +23,37 @@ static TITLE_ATTR_RE: Lazy<Regex> =
 pub type HtmlCheckResult = Result<(), String>;
 
 // ── Helpers ────────────────────────────────────────────────────────────────
-/// Return a short context snippet around `ix` in `s`.
+/// Emulate Python's `repr()` for a `str` so error messages read identically
+/// to the Python originals (`f'{x=}'` renders `x='...'` with shows repr).
+/// Printable Unicode (incl. Hebrew/Arabic/CJK) is passed through unchanged.
+pub(crate) fn py_repr(text: &str) -> String {
+    let mut out = String::with_capacity(text.len() + 2);
+    out.push('\'');
+    for ch in text.chars() {
+        match ch {
+            '\\' => out.push_str("\\\\"),
+            '\'' => out.push_str("\\'"),
+            '\n' => out.push_str("\\n"),
+            '\r' => out.push_str("\\r"),
+            '\t' => out.push_str("\\t"),
+            c if (c as u32) < 0x20 || c == '\u{7f}' => {
+                out.push_str(&format!("\\x{:02x}", c as u32));
+            }
+            c if c.is_control() => out.push_str(&format!("\\u{:04x}", c as u32)),
+            c => out.push(c),
+        }
+    }
+    out.push('\'');
+    out
+}
+
+/// Return a short context snippet around `ix` in `s`, rendered with `py_repr`
+/// so that whitespace (newlines, tabs, etc.) is visible in the error message
+/// instead of being indistinguishable on the terminal.
 fn snippet(s: &str, ix: usize, before: usize, after: usize) -> String {
     let start = ix.saturating_sub(before);
     let end = (ix + after).min(s.len());
-    format!("…{}…", &s[start..end])
+    py_repr(&format!("…{}…", &s[start..end]))
 }
 
 /// Count non-overlapping occurrences of `needle` in `haystack`.
@@ -714,6 +740,9 @@ mod tests {
     #[test]
     fn test_br_newline() {
         assert!(!ok("<html><head></head><body><br>\n</body></html>"));
+        // The snippet must use repr() escaping so the newline is visible.
+        let msg = err("<html><head></head><body><br>\n</body></html>");
+        assert!(msg.contains("\\n"), "message should show escaped newline: {msg}");
     }
 
     // -- <br></span> --
