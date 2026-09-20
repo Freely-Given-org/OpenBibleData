@@ -67,10 +67,10 @@ from load import getIndividualQuotedOTRefs, getIndividualQuotingNTRefs
 
 
 
-LAST_MODIFIED_DATE = '2026-09-10' # by RJH
+LAST_MODIFIED_DATE = '2026-09-20' # by RJH
 SHORT_PROGRAM_NAME = "SentenceImportance_initialisation"
 PROGRAM_NAME = "Sentence Importance initialisation"
-PROGRAM_VERSION = '0.30'
+PROGRAM_VERSION = '0.31'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -123,7 +123,7 @@ vitalImportanceRefsWithRanges = [ # Often in doctrinal statements
     'PHP_4:6-8', 'PHP_4:13',
     'TI2_3:16-17',
 
-    'HEB_11:6','HEB_13:5',
+    'HEB_11:1','HEB_11:6','HEB_13:5',
     'PE1_3:15', 'PE1_5:7',
     'PE2_1:19-21',
 
@@ -151,7 +151,7 @@ importantRefsWithRanges = [ # Often quoted and/or memorised by Christians
     'MAT_4:4', 'MAT_16:1-3', 'MAT_24:32-33','MAT_24:44',
     'LUK_21:28','LUK_24:27',
     'JHN_1:6-18', 'JHN_3:18','JHN_6:68-69','JHN_7:16', 'JHN_8:36','JHN_8:58', 'JHN_10:18','JHN_10:28','JHN_16:33', 'JHN_17:5','JHN_17:23',
-    'ACT_2:42', 'ACt_15:10',
+    'ACT_2:42', 'ACT_15:10',
     'CO1_10:6-11',
     'ROM_3:3-4','ROM_3:19-22', 'ROM_5:8','ROM_5:16-21', 'ROM_8:3', 'ROM_10:2','ROM_10:13', 'ROM_11:1-2','ROM_11:11-12','ROM_11:29', 'ROM_13:12', 'ROM_15:4', 'ROM_16:17',
     'CO1_2:12','CO1_2:14', 'CO1_3:14-15', 'CO1_15:58',
@@ -165,7 +165,7 @@ importantRefsWithRanges = [ # Often quoted and/or memorised by Christians
     'TI1_4:13','TI1_4:16','TI1_6:3',
     'TI2_2:15','TI2_4:3-4',
     'TIT_1:9','TIT_2:1',
-    'HEB_4:12-13', 'HEB_5:12-14', 'HEB_13:9',
+    'HEB_4:12-13', 'HEB_5:12-14', 'HEB_11:2-5','HEB_11:7-40', 'HEB_13:9',
     'JAM_1:5',
     'PE1_2:2', 'PE1_2:9-10',
     'PE2_3:10','PE2_3:15-16',

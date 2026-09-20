@@ -781,10 +781,10 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                                     modernisedTextHtml = f"{modernisedTextHtml[:changeIndex]}{modernisedTextHtml[changeIndex:].replace('<span title="Possible misspelt word" class="spelling">', 'MMMMM' ).replace('<span','SSSSS').replace('</span>','EEEEEEE').replace( wordModTxt, f'<spanSPAN1>{wordModTxt}</span>' if doneHighlight else f'<spanSPAN2>{wordModTxt}</span>', 1 )}"
                                                     changeIndex += len( '<spanSPANx></span>' ) # Number of added characters = 18
                                                     doneHighlight = True
-                                                elif modernisedTextHtml.count(wordModTxt)==1 \
+                                                elif (modernisedTextHtml.count(wordModTxt)==1 and wordModTxt!='<br>') \
                                                 or (len(wordModTxt)>0 and modernisedTextHtml.count(f' {wordModTxt}')==modernisedTextHtml.count(wordModTxt) and modernisedTextHtml.count(f'{wordModTxt} ')==modernisedTextHtml.count(wordModTxt) ): # Shorter words can occur inside other words too often
                                                     modernisedTextHtml = ( f"{modernisedTextHtml[:changeIndex]}{modernisedTextHtml[changeIndex:].replace('<span title="Possible misspelt word" class="spelling">', 'MMMMM' ).replace('<span','SSSSS').replace('</span>','EEEEEEE').replace( wordModTxt, f'<spanSPAN1>{wordModTxt}</span>'
-                                                             if modernisedTextHtml[changeIndex:].count(wordModTxt)==1 and not doneHighlight # Consecutive words might be just out of step
+                                                            if modernisedTextHtml[changeIndex:].count(wordModTxt)==1 and not doneHighlight # Consecutive words might be just out of step
                                                                                                         else f'<spanSPAN2>{wordModTxt}</span>')}" )
                                                     changeIndex += len( '<spanSPANx></span>' ) # Number of added characters = 18
                                                     doneHighlight = True

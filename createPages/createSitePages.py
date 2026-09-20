@@ -100,10 +100,10 @@ from html import makeTop, makeViewNavListParagraph, makeBottom, checkHtml, prelo
 from spellCheckEnglish import printSpellCheckSummary
 
 
-LAST_MODIFIED_DATE = '2026-09-17' # by RJH
+LAST_MODIFIED_DATE = '2026-09-19' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData (OBD) Create Site Pages"
-PROGRAM_VERSION = '1.4.0'
+PROGRAM_VERSION = '1.4.2'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
@@ -240,7 +240,6 @@ def _createSitePages() -> bool:
     # TODO: We could use multiprocessing to do all these at once
     #   (except that state is quite huge with all preloaded versions and hence expensive to pickle)
     if state.CREATE_PARALLEL_VERSE_PAGES == 'FIRST':
-        createVerseListPages( 1, state.TEMP_BUILD_FOLDER.joinpath('lst/'), state )
         createParallelVersePages( 1, state.TEMP_BUILD_FOLDER.joinpath('par/'), state )
     elif not state.CREATE_PARALLEL_VERSE_PAGES:
         vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"NOT GENERATING {'TEST ' if state.TEST_MODE_FLAG else ''}parallel verse pages." )
@@ -352,7 +351,7 @@ def _createSitePages() -> bool:
     elif state.CREATE_PARALLEL_VERSE_PAGES != 'FIRST': have_invalid_value
 
     if not state.REUSE_EXISTING_WORD_PAGES_FLAG:
-        # createVerseListPages( 1, state.TEMP_BUILD_FOLDER.joinpath('lst/'), state )
+        createVerseListPages( 1, state.TEMP_BUILD_FOLDER.joinpath('lst/'), state )
         createOETInterlinearPages( 1, state.TEMP_BUILD_FOLDER.joinpath('ilr/'), state )
         createParallelPassagePages( 1, state.TEMP_BUILD_FOLDER.joinpath('rel/'), state )
         createTopicPages( 1, state.TEMP_BUILD_FOLDER.joinpath('tpc/'), state )
@@ -964,7 +963,8 @@ def _createNewsPage( level:int, buildFolder:Path, state:State ) -> bool:
     newsHTML = f'''<h1 id="Top">{state.SITE_NAME} News</h1>
 <p class="about">Recent {state.SITE_NAME} ({state.SITE_ABBREVIATION}) site developments:</p>
 <ul>
-<li><b>2026-Sep-5</b>: We added a settings panel to these pages, that now includes a DARK mode, plus LARGE-PRINT and other options, with more options & improvements likely to come as well.</li>
+<li><b>2026-Sep-19</b>: We added a more concise <a href="{'../'*level}lst/MRK/C1V1.htm#Top">‘simple verse list’</a> mode to display a list of verses with less formatting and whitespace, for easier comparisons of renderings (and probably easier copying/pasting as well).</li>
+<li><b>2026-Sep-5</b>: We added a pop-up settings panel to these pages, that now includes a DARK mode, plus LARGE-PRINT and other options, with more options & improvements likely to come as well.</li>
 <li><b>2026-Aug-25</b>: We now include a preliminary draft of unfoldingWord’s <a href="{'../'*level}ref/UHG">Hebrew</a> and <a href="{'../'*level}ref/UGG">Greek</a> grammars in our <a href="{'../'*level}ref">extensive reference section</a>.</li>
 <li><b>2026-Aug-10</b>: We now have a <b>COMPLETE draft</b> of the <em>OET-RV</em> for you to make use of (as we move on to consistency and accuracy checks and updates).</li>
 <li><b>2026-July-6</b>: In cooperation with <a href="https://OpenBibleImages.org">OpenBibleImages.org</a>, we’ve tested some images on <em>OET-RV</em> and parallel verse pages.</li>
@@ -1229,7 +1229,7 @@ if __name__ == '__main__':
     fullDemo()
 
     BibleOrgSysGlobals.closedown( PROGRAM_NAME, PROGRAM_VERSION )
-    print( f"\nThis build of the{' TEST' if state.TEST_MODE_FLAG else ''} site (which completed) was done with\n"
-           f"    {'STRICT' if BibleOrgSysGlobals.strictCheckingFlag else 'NON-strict'} BibleOrgSys checking and with asserts {f'ENABLED' if __debug__ else 'DISABLED'}.\n"
+    print( f"\nThis build of the{' TEST' if state.TEST_MODE_FLAG else ''} site (which completed) was done using {'a single process' if BibleOrgSysGlobals.maxProcesses==1 else f'{BibleOrgSysGlobals.maxProcesses} processes'}\n"
+           f"    with {'STRICT' if BibleOrgSysGlobals.strictCheckingFlag else 'NON-strict'} BibleOrgSys checking and with asserts {f'ENABLED' if __debug__ else 'DISABLED'}.\n"
            f"  Word pages and other reference pages {f'WERE NOT' if state.REUSE_EXISTING_WORD_PAGES_FLAG else 'WERE'} built." )
 # end of createSitePages.py

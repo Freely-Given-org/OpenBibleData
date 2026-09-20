@@ -638,7 +638,7 @@ def createVerseListPagesForBook( level:int, folder:Path, BBB:str, BBBLinks:list[
                                                     modernisedTextHtml = f"{modernisedTextHtml[:changeIndex]}{modernisedTextHtml[changeIndex:].replace('<span title="Possible misspelt word" class="spelling">', 'MMMMM' ).replace('<span','SSSSS').replace('</span>','EEEEEEE').replace( wordModTxt, f'<spanSPAN1>{wordModTxt}</span>' if doneHighlight else f'<spanSPAN2>{wordModTxt}</span>', 1 )}"
                                                     changeIndex += len( '<spanSPANx></span>' ) # Number of added characters = 18
                                                     doneHighlight = True
-                                                elif modernisedTextHtml.count(wordModTxt)==1 \
+                                                elif (modernisedTextHtml.count(wordModTxt)==1 and wordModTxt!='<br>') \
                                                 or (len(wordModTxt)>0 and modernisedTextHtml.count(f' {wordModTxt}')==modernisedTextHtml.count(wordModTxt) and modernisedTextHtml.count(f'{wordModTxt} ')==modernisedTextHtml.count(wordModTxt) ): # Shorter words can occur inside other words too often
                                                     modernisedTextHtml = ( f"{modernisedTextHtml[:changeIndex]}{modernisedTextHtml[changeIndex:].replace('<span title="Possible misspelt word" class="spelling">', 'MMMMM' ).replace('<span','SSSSS').replace('</span>','EEEEEEE').replace( wordModTxt, f'<spanSPAN1>{wordModTxt}</span>'
                                                              if modernisedTextHtml[changeIndex:].count(wordModTxt)==1 and not doneHighlight # Consecutive words might be just out of step
@@ -764,19 +764,21 @@ def createVerseListPagesForBook( level:int, folder:Path, BBB:str, BBBLinks:list[
                             if textHtml:
                                 # Try to keep all these simple verses on one line
                                 # if versionAbbreviation=='OET-RV' and parRef == 'MRK_8:29': print( f"A {versionAbbreviation} {parRef} {textHtml=}" )
-                                print( f"\nA {versionAbbreviation} {parRef} {textHtml=}" )
+                                # print( f"\nA {versionAbbreviation} {parRef} {textHtml=}" )
                                 # for ve in verseEntryList:
                                 #     print( f"  {ve=}" )
                                 textHtml = textHtml.replace( '<br> ¶', ' ¶' ) \
                                                 .replace( '\n<br>&nbsp;&nbsp;&nbsp;&nbsp;', ' ' ).replace( '\n<br>&nbsp;&nbsp;', ' ' ) \
-                                                .replace( '\n<br> ⇔ ', ' ⇔ ' ).replace( '\n<br> ⇔ ', ' ⇔  ') \
+                                                .replace( '\n<br> ⇔ ', ' ⇔ ' ).replace( '\n<br> ⇔ ', ' ⇔ ') \
+                                                .replace( '\n<br>\xa0⇔\u202f', '\xa0⇔\u202f' ).replace( '\n<br>\xa0¶\u202f', '\xa0¶\u202f' ) \
                                                 .replace( '\n<br>  <ul>', '' ).replace( '\n<br> <ul>', '' ) \
                                                     .replace( '<ul>', '' ).replace( '</ul>', '' ) \
-                                                    .replace( '<br>\xa0<span class="li', ' <span class="li' ) \
-                                                .replace( '\n<br>\n<br>', ' ' ).replace( '\n<br>', ' ' ) \
+                                                    .replace( '<br>\xa0<span class="li', ' <span class="li' )
+                                # if '<br>' in textHtml: print( f"\nB {versionAbbreviation} {parRef} {textHtml=}" )
+                                textHtml = textHtml.replace( '\n<br>\n<br>', ' ' ).replace( '\n<br>', ' ' ) \
                                                 .replace( '\n\n', '\n' ).replace( ' \n', '\n' ).replace( '\n\n', '\n' ) \
                                                 .replace( '   ', ' ' ).replace( '  ', ' ' )
-                                if versionAbbreviation=='OET-RV' and parRef == 'MRK_8:29': print( f"B {versionAbbreviation} {parRef} {textHtml=}" )
+                                # if versionAbbreviation=='OET-RV' and parRef == 'MRK_8:29': print( f"C {versionAbbreviation} {parRef} {textHtml=}" )
                                 if c != -1: assert '<br>' not in textHtml, f"C {versionAbbreviation} {parRef} {textHtml=}"
                                 for possibleSuffix in ('\n', ' '):
                                     textHtml = textHtml.removesuffix( possibleSuffix )
