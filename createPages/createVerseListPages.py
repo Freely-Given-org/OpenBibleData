@@ -9,7 +9,7 @@
 #
 # Copyright (C) 2026 Robert Hunt
 # Author: Robert Hunt <Freely.Given.org+OBD@gmail.com>
-# This source code is marked with CC0 1.0 Universal. 
+# This source code is marked with CC0 1.0 Universal.
 #    To view a copy of this license, visit http://creativecommons.org
 
 """
@@ -145,10 +145,10 @@ def createVerseListPages( level:int, folder:Path, state:State ) -> bool:
             .replace( '__KEYWORDS__', 'Bible, parallel, verse, list, view, display, index' )
     # WAS state.BBBLinks['OET-RV'] as first parameter to makeBookNavListParagraph() but that didn't display other books
     indexHtml = f'''{top}<h1 id="Top">Simple verse list pages</h1>
+<h2>Index of books</h2>
 <p class="note">Each page only contains a single verse with minimal formatting, but displays it in a large number of different versions to enable analysis of different renderings.</p>
 <p class="note">Generally the older versions are nearer the bottom, and so reading from the bottom to the top can show how many English vocabulary and punctuation decisions propagated from one version to another.</p>
 <p class="note">If you’re a Bible translator or doing serious study, our fuller <a href="{'../'*level}par/">parallel verse pages</a> have more detailed information including study notes, them notes, and translation notes, etc.</p>
-<h2>Index of books</h2>
 {makeBookNavListParagraph( BBBLinks, 'VerseListIndex', state )}
 <p class="note"><small>Note: We would like to display more English Bible versions on these verse list pages to assist our users, but copyright restrictions from the commercial Bible industry and refusals from publishers greatly limit this. (See the <a href="https://SellingJesus.org/graphics">Selling Jesus</a> website for more information on this problem.)</small></p>
 {makeBottom( level, None, 'simpleVerse' )}'''

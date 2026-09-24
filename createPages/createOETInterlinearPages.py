@@ -9,7 +9,7 @@
 #
 # Copyright (C) 2023-2026 Robert Hunt
 # Author: Robert Hunt <Freely.Given.org+OBD@gmail.com>
-# This source code is marked with CC0 1.0 Universal. 
+# This source code is marked with CC0 1.0 Universal.
 #    To view a copy of this license, visit http://creativecommons.org
 
 """
@@ -138,8 +138,8 @@ def createOETInterlinearPages( level:int, folder:Path, state:State ) -> bool:
     indexHtml = f'''{top}
 <a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
 <h1 id="Top">OET interlinear verse pages</h1>
-<p class="note">These pages show single OET verses with each Hebrew or Greek word aligned with the English word(s) that it was translated to, along with any translation notes and study notes for the verse. Finally, at the bottom of each page there's a <em>Reverse Interlinear</em> with the same information but in English word order.</p><!--note-->
 <h2>Index of books</h2>
+<p class="note">These pages show single OET verses with each Hebrew or Greek word aligned with the English word(s) that it was translated to, along with any translation notes and study notes for the verse. Finally, at the bottom of each page there's a <em>Reverse Interlinear</em> with the same information but in English word order.</p><!--note-->
 {makeBookNavListParagraph(state.BBBLinks['OET-RV'], 'InterlinearIndex', state )}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="15" style="float:right; margin-left:10px;"></a>
 {makeBottom( level, None, 'interlinearVerse' )}'''
     assert checkHtml( 'interlinearIndex', indexHtml )
@@ -610,7 +610,7 @@ def createOETInterlinearVerseInner( level:int, BBB:str, c:int, v:int, state:Stat
 <p class="note"><small><b>Note</b>: The OET-RV is still only a first draft, and so far only a few words have been (mostly automatically) matched to the Hebrew or Greek words that they’re translated from.</small></p><!--note-->
 <p class="thanks"><b>Acknowledgements</b>: {f'The SR Greek text, lemmas, morphology, and VLT gloss are all thanks to the <a href="https://GreekCNTR.org/collation/index.htm?v={CNTR_BOOK_ID_MAP[BBB]}{C.zfill(3)}{V.zfill(3)}">CNTR</a>.</p>' if bos_books_codes_py.is_new_testament_nr( BBB )
                                        else f'The Hebrew text, lemmas, and morphology are all thanks to the <a href="https://hb.openscriptures.org/">OSHB</a> and some of the glosses are from <a href="https://GitHub.com/Clear-Bible/macula-hebrew">Macula Hebrew</a>.'}'''
-    
+
     # ivHtml = ivHtml.replace( '<br>\n' , '\n<br>' ) # Make sure it follows our convention (just for tidyness and consistency)
     while '\n\n' in ivHtml: ivHtml = ivHtml.replace( '\n\n', '\n' ) # Remove useless extra newline characters
     # dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\n\n{ivHtml=}" )

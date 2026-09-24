@@ -568,21 +568,12 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
 
         crossReferencedSectionHtml = f'''<h1 id="Top"><span title="{state.BibleNames[thisBible.abbreviation]}">{thisBible.abbreviation}</span> by cross-referenced section {ourTidyBBB} {'Intro' if startC=='-1' else startC}:{startV}</h1>
 <p class="secNav">{sectionIndexLink}{leftLink}{documentLink} {startChapterLink}:{startV}–{endChapterLink}:{endV}{rightLink}{parallelLink}{interlinearLink}{detailsLink}</p>
-{f'{state.JAMES_NAME_NOTE_HTML_PARAGRAPH}{NEWLINE}' if 'OET' in thisBible.abbreviation and BBB=='JAM' else ''}{f'{state.RV_ONLY_WARNING_HTML_PARAGRAPH}{NEWLINE}' if 'OET' in thisBible.abbreviation else ''}<h1>{'TEST ' if state.TEST_MODE_FLAG else ''}{sectionName}</h1>'''
+{f'{state.JAMES_NAME_NOTE_HTML_PARAGRAPH}{NEWLINE}' if BBB=='JAM' else ''}{state.RV_ONLY_WARNING_HTML_PARAGRAPH}
+<h1>{'TEST ' if state.TEST_MODE_FLAG else ''}{sectionName}</h1>'''
         assert '\n\n' not in crossReferencedSectionHtml
         textHtml = convertVerseEntryListToHtml( BBBLevel, thisBible.abbreviation, (BBB,startC), 'relatedPassage', contextList, verseEntryList, basicOnly=False, state=state, livenWordLinks=isinstance( thisBible, ESFMBible.ESFMBible ), colouriseWordClasses=False, addNoLinkYetSpans=False )
         # textHtml = livenIORs( BBB, textHtml, sections )
-        if thisBible.abbreviation == 'OET-RV':
-            textHtml = do_OET_RV_HTMLcustomisations( f'ParallelPassageA={BBB}_{startC}', textHtml )
-        elif thisBible.abbreviation == 'OET-LV':
-            never
-            textHtml = do_OET_LV_HTMLcustomisations( f'ParallelPassageA={BBB}_{startC}', textHtml )
-        elif thisBible.abbreviation == 'LSV':
-            never
-            textHtml = do_LSV_HTMLcustomisations( f'ParallelPassageA={BBB}_{startC}', textHtml )
-        elif thisBible.abbreviation == 'T4T':
-            never
-            textHtml = do_T4T_HTMLcustomisations( f'ParallelPassageA={BBB}_{startC}', textHtml )
+        textHtml = do_OET_RV_HTMLcustomisations( f'ParallelPassageA={BBB}_{startC}', textHtml )
 
         sectionHeadingsList = [(ourTidyBbb,startC,f'{ourTidyBbb} {startC}:{startV}{f"–{endV}" if endC==startC else f"—{endC}:{endV}"}')] # We use en-dash and em-dash onscreen
         sectionHtmlList = [textHtml]
@@ -735,17 +726,7 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
 
             textHtml = convertVerseEntryListToHtml( BBBLevel, thisBible.abbreviation, (srBBB,srStartC), 'relatedPassage', contextList, verseEntryList, basicOnly=False, state=state, livenWordLinks=isinstance( thisBible, ESFMBible.ESFMBible ), colouriseWordClasses=False, addNoLinkYetSpans=False )
             # textHtml = livenIORs( BBB, textHtml, sections )
-            if thisBible.abbreviation == 'OET-RV':
-                textHtml = do_OET_RV_HTMLcustomisations( f'ParallelPassageB={srBBB}_{srStartC}', textHtml )
-            elif thisBible.abbreviation == 'OET-LV':
-                never
-                textHtml = do_OET_LV_HTMLcustomisations( f'ParallelPassageB={srBBB}_{srStartC}', textHtml )
-            elif thisBible.abbreviation == 'LSV':
-                never
-                textHtml = do_LSV_HTMLcustomisations( f'ParallelPassageB={srBBB}_{srStartC}', textHtml )
-            elif thisBible.abbreviation == 'T4T':
-                never
-                textHtml = do_T4T_HTMLcustomisations( f'ParallelPassageB={srBBB}_{srStartC}', textHtml )
+            textHtml = do_OET_RV_HTMLcustomisations( f'ParallelPassageB={srBBB}_{srStartC}', textHtml )
             sectionHtmlList.append( textHtml )
 
         # Now we need to create the division containing all the columns
@@ -888,7 +869,7 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
         # sectionHtml = f'''{sectionHtml}<p class="sectionHeading"><a title="View section" href="{filename}#Top">{'Intro' if startC=='-1' else startC}:{startV} <b>{sectionName}</b>{reasonString}</a></p>'''
     crossReferencedSectionIndexHtml = f'''{top}<!--sections page-->
 <a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*BBBLevel}oet-logo-wide.png" alt="OET wide logo"></a>
-{navBookListParagraph}{f'{state.JAMES_NAME_NOTE_HTML_PARAGRAPH}{NEWLINE}' if 'OET' in thisBible.abbreviation and BBB=='JAM' else ''}{f'{state.RV_ONLY_WARNING_HTML_PARAGRAPH}{NEWLINE}' if 'OET' in thisBible.abbreviation else ''}
+{navBookListParagraph}{f'{state.JAMES_NAME_NOTE_HTML_PARAGRAPH}{NEWLINE}' if BBB=='JAM' else ''}{state.RV_ONLY_WARNING_HTML_PARAGRAPH}
 {crossReferencedSectionIndexHtml}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*BBBLevel}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="15" style="float:right; margin-left:10px;"></a>
 {makeBottom( BBBLevel, thisBible.abbreviation, 'relatedSectionIndex' )}'''
     assert checkHtml( f'{thisBible.abbreviation}', crossReferencedSectionIndexHtml )
@@ -913,7 +894,7 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
         crossReferencedSectionIndexHtml = f'''{crossReferencedSectionIndexHtml}<p class="{'alternateHeading' if reasonName.startswith('Alternate ') else 'sectionHeading'}"><a title="View section" href="{BBB}/{sFilename}#Top">{'Intro' if startC=='-1' else startC}:{startV} <b>{sectionName}</b>{reasonString}</a></p>'''
         # sectionHtml = f'''{sectionHtml}<p class="sectionHeading"><a title="View section" href="{filename}#Top">{'Intro' if startC=='-1' else startC}:{startV} <b>{sectionName}</b>{reasonString}</a></p>'''
     crossReferencedSectionIndexHtml = f'''{top}<!--sections page-->
-{navBookListParagraph}{f'{state.JAMES_NAME_NOTE_HTML_PARAGRAPH}{NEWLINE}' if 'OET' in thisBible.abbreviation and BBB=='JAM' else ''}{f'{state.RV_ONLY_WARNING_HTML_PARAGRAPH}{NEWLINE}' if 'OET' in thisBible.abbreviation else ''}
+{navBookListParagraph}{f'{state.JAMES_NAME_NOTE_HTML_PARAGRAPH}{NEWLINE}' if BBB=='JAM' else ''}{state.RV_ONLY_WARNING_HTML_PARAGRAPH}
 <a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
 {crossReferencedSectionIndexHtml}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="15" style="float:right; margin-left:10px;"></a>
 {makeBottom( level, thisBible.abbreviation, 'relatedSectionIndex' )}'''
