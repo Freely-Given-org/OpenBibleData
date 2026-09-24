@@ -115,6 +115,7 @@ def _writeOETSideBySideChapterBook( level:int, folder:Path, rvBible, lvBible, st
                           f'''<a title="Up to {state.BibleNames[rvBible.abbreviation]}" href="{'../'*level}{BibleOrgSysGlobals.makeSafeString(rvBible.abbreviation)}/">↑{rvBible.abbreviation}</a>''' )
         chapterHtml = f'''{top}<!--chapter page-->
 {navBookListParagraph}
+{state.OET_UNFINISHED_WARNING_HTML_PARAGRAPH}
 {chapterHtml}
 {makeBottom( level, rvBible.abbreviation, 'chapter' )}'''
         assert checkHtml( f'{rvBible.abbreviation} {BBB}', chapterHtml )
@@ -167,6 +168,7 @@ def _writeOETSideBySideChapterBook( level:int, folder:Path, rvBible, lvBible, st
             cNav = f'<p class="cNav">{leftLink}{documentLink} {"Intro" if c==-1 else c}{rightLink}{parallelLink}{interlinearLink}{detailsLink}</p><!--cNav-->'
             chapterHtml = f'''<h1 id="Top">Open English Translation {ourTidyBBBwithNotes} Introduction</h1>
 {cNav}
+{state.OET_UNFINISHED_WARNING_HTML_PARAGRAPH}
 {f'{state.JAMES_NAME_NOTE_HTML_PARAGRAPH}{NEWLINE}' if BBB=='JAM' else ''}<div class="RVLVcontainer">
 <h2><a title="View just the Readers’ Version by itself" href="{'../'*level}OET-RV/byC/{BBB}_Intro.htm#Top">Readers’ Version</a></h2>
 <h2><a title="View just the Literal Version by itself" href="{'../'*level}OET-LV/byC/{BBB}_Intro.htm#Top">Literal Version</a></h2>''' if c==-1 else f'''<h1 id="Top">Open English Translation {ourTidyBBBwithNotes} Chapter {c}</h1>
@@ -395,6 +397,7 @@ def _writeOETSideBySideChapterBook( level:int, folder:Path, rvBible, lvBible, st
     chapterHtml = f'''{top}<!--chapters indexPage-->
 <a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
 {navBookListParagraph}
+{state.OET_UNFINISHED_WARNING_HTML_PARAGRAPH}
 {chapterLinksParagraph}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="15" style="float:right; margin-left:10px;"></a>
 {makeBottom( level, 'OET', 'chapter' )}'''
     assert checkHtml( 'OETChaptersIndex', chapterHtml )
@@ -477,6 +480,7 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
 <a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
 <h1 id="Top">OET chapter pages</h1>
 <h2>Index of books</h2>
+{state.OET_UNFINISHED_WARNING_HTML_PARAGRAPH}
 {navBookListParagraph}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="15" style="float:right; margin-left:10px;"></a>
 {makeBottom( level, 'OET', 'chapterIndex' )}'''
     assert checkHtml( 'OETBooksIndex', indexHtml )

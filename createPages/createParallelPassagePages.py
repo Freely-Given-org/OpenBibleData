@@ -114,6 +114,7 @@ def createParallelPassagePages( level:int, folder:Path, state:State ) -> bool:
     indexHtml = f'''{top}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
 <h1 id="Top">Related passage pages</h1>
 <h2>Index of books</h2>
+{state.OET_UNFINISHED_WARNING_HTML_PARAGRAPH}
 {makeBookNavListParagraph(availableRelatedBBBLinks, 'Related OET-RV', state )}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="15" style="float:right; margin-left:10px;"></a>
 {makeBottom( level, 'OET', 'relatedSectionIndex' )}'''
     assert checkHtml( 'relatedSectionIndex', indexHtml )

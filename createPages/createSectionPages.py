@@ -536,6 +536,7 @@ def createOETSectionPages( level:int, folder:Path, rvBible:ESFMBible, lvBible:ES
 <a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
 <p class="pageNav" id="Top">{leftLink}{getOETTidyBBB( BBB, titleCase=True, allowFourChars=True, insertChar=' ', addNotes=True)} <a title="Go to bottom of page" href=#Bottom>↓</a>{rightLink}</p>
 {sectionChapterLinksParagraph.replace( 'class="chLst">', 'class="chLst" id="chLst">', 1 )}
+{state.OET_UNFINISHED_WARNING_HTML_PARAGRAPH}
 {'\n'.join( sectionHtmlBits )}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="15" style="float:right; margin-left:10px;"></a>
 {sectionChapterLinksParagraph}
 <p class="pageNav">{leftLink}{getOETTidyBBB( BBB, titleCase=True, allowFourChars=True, insertChar=' ', addNotes=True)} <a title="Go to top of page" href=#Top>↑</a>{rightLink}</p>
@@ -557,6 +558,7 @@ def createOETSectionPages( level:int, folder:Path, rvBible:ESFMBible, lvBible:ES
     indexHtml = f'''{top}
 <a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
 <h1 id="Top">OET section pages</h1>
+{state.OET_UNFINISHED_WARNING_HTML_PARAGRAPH}
 <h2>Index of OET books</h2>
 {navBookListParagraph}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="15" style="float:right; margin-left:10px;"></a>
 {makeBottom( level, 'OET', 'sectionIndex' )}'''
