@@ -9,7 +9,7 @@
 #
 # Copyright (C) 2023-2026 Robert Hunt
 # Author: Robert Hunt <Freely.Given.org+OBD@gmail.com>
-# This source code is marked with CC0 1.0 Universal. 
+# This source code is marked with CC0 1.0 Universal.
 #    To view a copy of this license, visit http://creativecommons.org
 
 """
@@ -34,9 +34,10 @@ CHANGELOG:
     2026-08-24 Fixed missing last chapter link on book chapter index page, and removed current chapter for other versions as well
     2026-08-25 The OETHandlers functions are now imported from the Rust openbibledata_rust module (the Python OETHandlers.py was deleted).
     2026-09-03 Stop applying the Heb/Grk grammatical colourisation classes (hebVrb, grkVrb, etc.) on chapter pages because their stylesheets (OETChapter.css/BibleChapter.css) don't style them -- the shared dark-mode rules were painting those words unreadably.
-     2026-09-04 Disable the TEST_MODE 'noLinkYet' highlighting on OET-RV single-column chapter pages (which have no OET-LV alongside), via addNoLinkYetSpans=False.
-     2026-09-09 Use multiprocessing for the OET side-by-side chapter pages: per-book work is now _writeOETSideBySideChapterBook, run by one forked worker per book.
+    2026-09-04 Disable the TEST_MODE 'noLinkYet' highlighting on OET-RV single-column chapter pages (which have no OET-LV alongside), via addNoLinkYetSpans=False.
+    2026-09-09 Use multiprocessing for the OET side-by-side chapter pages: per-book work is now _writeOETSideBySideChapterBook, run by one forked worker per book.
     2026-09-15 ESFM word-link livening is now fused (single-pass) into openbibledata_rust.convertVerseEntryListToHtml via its new livenWordLinks/colouriseWordClasses/addNoLinkYetSpans keyword args, so the old livenOETWordLinks/livenOETCompatibleBereanWordLinks calls in the chapter-page hot paths have been removed.
+    2026-09-24 Added extra warnings when OET-RV or OET-LV are shown alone
 """
 from pathlib import Path
 import multiprocessing
@@ -56,10 +57,10 @@ from Bibles import getBibleMapperMaps, getOpenBibleImages
 from openbibledata_rust import convertVerseEntryListToHtml, getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
-LAST_MODIFIED_DATE = '2026-09-09' # by RJH
+LAST_MODIFIED_DATE = '2026-09-24' # by RJH
 SHORT_PROGRAM_NAME = "createChapterPages"
 PROGRAM_NAME = "OpenBibleData createChapterPages functions"
-PROGRAM_VERSION = '0.87'
+PROGRAM_VERSION = '0.88'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -166,11 +167,11 @@ def _writeOETSideBySideChapterBook( level:int, folder:Path, rvBible, lvBible, st
             cNav = f'<p class="cNav">{leftLink}{documentLink} {"Intro" if c==-1 else c}{rightLink}{parallelLink}{interlinearLink}{detailsLink}</p><!--cNav-->'
             chapterHtml = f'''<h1 id="Top">Open English Translation {ourTidyBBBwithNotes} Introduction</h1>
 {cNav}
-{f'{state.JAMES_NOTE_HTML_PARAGRAPH}{NEWLINE}' if BBB=='JAM' else ''}<div class="RVLVcontainer">
+{f'{state.JAMES_NAME_NOTE_HTML_PARAGRAPH}{NEWLINE}' if BBB=='JAM' else ''}<div class="RVLVcontainer">
 <h2><a title="View just the Readers’ Version by itself" href="{'../'*level}OET-RV/byC/{BBB}_Intro.htm#Top">Readers’ Version</a></h2>
 <h2><a title="View just the Literal Version by itself" href="{'../'*level}OET-LV/byC/{BBB}_Intro.htm#Top">Literal Version</a></h2>''' if c==-1 else f'''<h1 id="Top">Open English Translation {ourTidyBBBwithNotes} Chapter {c}</h1>
 {cNav}
-{f'{state.JAMES_NOTE_HTML_PARAGRAPH}{NEWLINE}' if BBB=='JAM' else ''}<div class="RVLVcontainer">
+{f'{state.JAMES_NAME_NOTE_HTML_PARAGRAPH}{NEWLINE}' if BBB=='JAM' else ''}<div class="RVLVcontainer">
 <h2><a title="View just the Readers’ Version by itself" href="{'../'*level}OET-RV/byC/{BBB}_C{c}.htm#Top">Readers’ Version</a></h2>
 <h2><a title="View just the Literal Version by itself" href="{'../'*level}OET-LV/byC/{BBB}_C{c}.htm#Top">Literal Version</a> <button type="button" id="marksButton" title="Hide/Show underline and strike-throughs" onclick="hide_show_marks()">Hide marks</button></h2>'''
             try: rvVerseEntryList, rvContextList = rvBible.getContextVerseData( (BBB, str(c)) )
@@ -581,9 +582,9 @@ def createChapterPages( level:int, folder:Path, thisBible, state:State ) -> list
                 detailsLink = f''' <a title="Show details about this work" href="{'../'*(level-1)}details.htm#Top">©</a>'''
                 cNav = f'<p class="cNav">{oetLink}{leftLink}{documentLink} {"Intro" if c==-1 else c}{rightLink}{parallelLink}{interlinearLink}{detailsLink}</p><!--cNav-->'
                 chapterHtml = f'''<h1 id="Top">{thisBible.abbreviation} {ourTidyBBB} Introduction</h1>
-{cNav}{f'{NEWLINE}{state.JAMES_NOTE_HTML_PARAGRAPH}' if 'OET' in thisBible.abbreviation and BBB=='JAM' else ''}{f'{NEWLINE}{state.OET_UNFINISHED_WARNING_HTML_PARAGRAPH}' if 'OET' in thisBible.abbreviation else ''}{f'{state.BLACK_LETTER_FONT_HTML_PARAGRAPH}{NEWLINE}' if thisBible.abbreviation=='KJB-1611' else ''}''' \
+{cNav}{f'{NEWLINE}{state.JAMES_NAME_NOTE_HTML_PARAGRAPH}' if 'OET' in thisBible.abbreviation and BBB=='JAM' else ''}{f'{NEWLINE}{state.RV_ONLY_WARNING_HTML_PARAGRAPH}' if thisBible.abbreviation=='OET-RV' else f'{NEWLINE}{state.LV_ONLY_WARNING_HTML_PARAGRAPH}' if thisBible.abbreviation=='OET-LV' else ''}{f'{state.BLACK_LETTER_FONT_HTML_PARAGRAPH}{NEWLINE}' if thisBible.abbreviation=='KJB-1611' else ''}''' \
     if c==-1 else f'''<h1 id="Top">{thisBible.abbreviation} {ourTidyBBB} Chapter {C}</h1>
-{cNav}{f'{NEWLINE}{state.JAMES_NOTE_HTML_PARAGRAPH}' if 'OET' in thisBible.abbreviation and BBB=='JAM' else ''}{f'{NEWLINE}{state.OET_UNFINISHED_WARNING_HTML_PARAGRAPH}' if 'OET' in thisBible.abbreviation else ''}{f'{state.BLACK_LETTER_FONT_HTML_PARAGRAPH}{NEWLINE}' if thisBible.abbreviation=='KJB-1611' else ''}'''
+{cNav}{f'{NEWLINE}{state.JAMES_NAME_NOTE_HTML_PARAGRAPH}' if 'OET' in thisBible.abbreviation and BBB=='JAM' else ''}{f'{NEWLINE}{state.RV_ONLY_WARNING_HTML_PARAGRAPH}' if thisBible.abbreviation=='OET-RV' else f'{NEWLINE}{state.LV_ONLY_WARNING_HTML_PARAGRAPH}' if thisBible.abbreviation=='OET-RV' else ''}{f'{state.BLACK_LETTER_FONT_HTML_PARAGRAPH}{NEWLINE}' if thisBible.abbreviation=='KJB-1611' else ''}'''
                 if thisBible.abbreviation == 'OET-LV':
                     chapterHtml = f'''{chapterHtml}<div class="buttons">
     <button type="button" id="marksButton" title="Hide/Show underline and strike-throughs" onclick="hide_show_marks()">Hide marks</button>

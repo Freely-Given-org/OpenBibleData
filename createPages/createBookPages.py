@@ -9,7 +9,7 @@
 #
 # Copyright (C) 2023-2026 Robert Hunt
 # Author: Robert Hunt <Freely.Given.org+OBD@gmail.com>
-# This source code is marked with CC0 1.0 Universal. 
+# This source code is marked with CC0 1.0 Universal.
 #    To view a copy of this license, visit http://creativecommons.org
 
 """
@@ -26,9 +26,10 @@ CHANGELOG:
     2026-08-22 Import convertVerseEntryListToHtml directly from openbibledata_rust (convert.py deleted)
     2026-08-25 The OETHandlers functions are now imported from the Rust openbibledata_rust module (the Python OETHandlers.py was deleted).
     2026-09-03 Stop applying the Heb/Grk grammatical colourisation classes on book pages because their CSS doesn't style them -- the shared dark-mode rules were painting those words unreadably.
-     2026-09-04 Disable the TEST_MODE 'noLinkYet' highlighting on OET-RV single-column book pages (which have no OET-LV alongside), via addNoLinkYetSpans=False.
-     2026-09-09 Use multiprocessing for the OET side-by-side book pages: per-book work is now _createOETBookPagesForBook, run by one forked worker per book.
+    2026-09-04 Disable the TEST_MODE 'noLinkYet' highlighting on OET-RV single-column book pages (which have no OET-LV alongside), via addNoLinkYetSpans=False.
+    2026-09-09 Use multiprocessing for the OET side-by-side book pages: per-book work is now _createOETBookPagesForBook, run by one forked worker per book.
     2026-09-15 ESFM word-link livening is now fused (single-pass) into openbibledata_rust.convertVerseEntryListToHtml via its new livenWordLinks/colouriseWordClasses/addNoLinkYetSpans keyword args, so the old livenOETWordLinks/livenOETCompatibleBereanWordLinks calls in the book-page hot paths have been removed.
+    2026-09-24 Added extra warnings when OET-RV or OET-LV are shown alone
 """
 from pathlib import Path
 import multiprocessing
@@ -48,10 +49,10 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_
 from openbibledata_rust import convertVerseEntryListToHtml, getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
-LAST_MODIFIED_DATE = '2026-09-09' # by RJH
+LAST_MODIFIED_DATE = '2026-09-24' # by RJH
 SHORT_PROGRAM_NAME = "createBookPages"
 PROGRAM_NAME = "OpenBibleData createBookPages functions"
-PROGRAM_VERSION = '0.71'
+PROGRAM_VERSION = '0.72'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -119,7 +120,7 @@ def _createOETBookPagesForBook( level:int, folder:Path, rvBible, lvBible, state:
             bkNextNav = f' <a title="Next (first existing book)" href="{iBkList[1]}.htm#Top">►</a>'
 
         bkHtml = f'''<p class="bkNav">{bkPrevNav}<span class="bkHead" id="Top">{rvBible.abbreviation} {ourTidyBBBwithNotes}</span>{bkNextNav}</p>
-{state.JAMES_NOTE_HTML_PARAGRAPH}
+{state.JAMES_NAME_NOTE_HTML_PARAGRAPH}
 {state.OET_UNFINISHED_BOOK_WARNING_HTML_PARAGRAPH}'''
         verseEntryList, contextList = rvBible.getContextVerseData( (BBB,) )
         assert isinstance( rvBible, ESFMBible.ESFMBible )
@@ -160,7 +161,7 @@ def _createOETBookPagesForBook( level:int, folder:Path, rvBible, lvBible, state:
     bkNextNav = f' <a title="Next book" href="{iBkList[bkIx+1]}.htm#Top">►</a>' if bkIx<len(iBkList)-1 else ''
 
     bkHtml = f'''<p class="bkNav">{bkPrevNav}<span class="bkHead" id="Top">Open English Translation {ourTidyBBBwithNotes}</span>{bkNextNav}</p>
-{f'{state.JAMES_NOTE_HTML_PARAGRAPH}{NEWLINE}' if BBB=='JAM' else ''}{state.OET_UNFINISHED_BOOK_WARNING_HTML_PARAGRAPH}
+{f'{state.JAMES_NAME_NOTE_HTML_PARAGRAPH}{NEWLINE}' if BBB=='JAM' else ''}{state.OET_UNFINISHED_BOOK_WARNING_HTML_PARAGRAPH}
 <div class="RVLVcontainer">
 <h2><a title="View just the Readers’ Version by itself" href="{'../'*level}OET-RV/byDoc/{BBB}.htm#Top">Readers’ Version</a></h2>
 <h2><a title="View just the Literal Version by itself" href="{'../'*level}OET-LV/byDoc/{BBB}.htm#Top">Literal Version</a> <button type="button" id="marksButton" title="Hide/Show underline and strike-throughs" onclick="hide_show_marks()">Hide marks</button></h2>'''
@@ -467,7 +468,7 @@ def createBookPages( level:int, folder:Path, thisBible, state:State ) -> list[st
             bkPrevNav = f'''<a title="Previous (book index)" href="index.htm#Top">◄</a> '''
             bkNextNav = f' <a title="Next (first existing book)" href="{iBkList[1]}.htm#Top">►</a>'
 
-        bkHtml = f'''<p class="bkNav">{bkPrevNav}<span class="bkHead" id="Top">{thisBible.abbreviation} {ourTidyBBB}</span>{bkNextNav}</p>{f'{NEWLINE}{state.JAMES_NOTE_HTML_PARAGRAPH}' if 'OET' in thisBible.abbreviation and BBB=='JAM' else ''}{'' if bos_books_codes_py.is_single_chapter_book(BBB) else f'{NEWLINE}{state.OET_UNFINISHED_BOOK_WARNING_HTML_PARAGRAPH}' if 'OET' in thisBible.abbreviation else state.WHOLE_BOOK_WARNING_HTML_PARAGRAPH}{f'{state.BLACK_LETTER_FONT_HTML_PARAGRAPH}{NEWLINE}' if thisBible.abbreviation=='KJB-1611' else ''}'''
+        bkHtml = f'''<p class="bkNav">{bkPrevNav}<span class="bkHead" id="Top">{thisBible.abbreviation} {ourTidyBBB}</span>{bkNextNav}</p>{f'{NEWLINE}{state.JAMES_NAME_NOTE_HTML_PARAGRAPH}' if 'OET' in thisBible.abbreviation and BBB=='JAM' else ''}{'' if bos_books_codes_py.is_single_chapter_book(BBB) else f'{NEWLINE}{state.OET_UNFINISHED_BOOK_WARNING_HTML_PARAGRAPH}' if thisBible.abbreviation=='OET' else f'{NEWLINE}{state.RV_ONLY_BOOK_WARNING_HTML_PARAGRAPH}' if thisBible.abbreviation=='OET-RV' else f'{NEWLINE}{state.LV_ONLY_BOOK_WARNING_HTML_PARAGRAPH}' if thisBible.abbreviation=='OET-LV' else state.WHOLE_BOOK_WARNING_HTML_PARAGRAPH}{f'{state.BLACK_LETTER_FONT_HTML_PARAGRAPH}{NEWLINE}' if thisBible.abbreviation=='KJB-1611' else ''}'''
         verseEntryList, contextList = thisBible.getContextVerseData( (BBB,) )
         textHtml = convertVerseEntryListToHtml( level, thisBible.abbreviation, (BBB,), 'book', contextList, verseEntryList, basicOnly=False, state=state, livenWordLinks=isinstance( thisBible, ESFMBible.ESFMBible ) or thisBible.abbreviation in ('BSB','MSB'), colouriseWordClasses=False, addNoLinkYetSpans=False )
         # textHtml = livenIORs( BBB, textHtml )

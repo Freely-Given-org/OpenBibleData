@@ -9,7 +9,7 @@
 #
 # Copyright (C) 2024-2026 Robert Hunt
 # Author: Robert Hunt <Freely.Given.org+OBD@gmail.com>
-# This source code is marked with CC0 1.0 Universal. 
+# This source code is marked with CC0 1.0 Universal.
 #    To view a copy of this license, visit http://creativecommons.org
 
 """
@@ -23,8 +23,9 @@ CHANGELOG:
     2026-08-22 Import convertVerseEntryListToHtml directly from openbibledata_rust (convert.py deleted)
     2026-08-25 The OETHandlers functions are now imported from the Rust openbibledata_rust module (the Python OETHandlers.py was deleted).
     2026-09-03 Stop applying the Heb/Grk grammatical colourisation classes on parallel-passage pages because their CSS doesn't style them -- the shared dark-mode rules were painting those words unreadably.
-     2026-09-04 Disable the TEST_MODE 'noLinkYet' highlighting on parallel-passage (rel) pages (OET-RV only, no OET-LV), via addNoLinkYetSpans=False.
+    2026-09-04 Disable the TEST_MODE 'noLinkYet' highlighting on parallel-passage (rel) pages (OET-RV only, no OET-LV), via addNoLinkYetSpans=False.
     2026-09-15 ESFM word-link livening is now fused (single-pass) into openbibledata_rust.convertVerseEntryListToHtml via its new livenWordLinks/colouriseWordClasses/addNoLinkYetSpans keyword args, so the old livenOETWordLinks calls in the three parallel-passage hot paths have been removed.
+    2026-09-24 Added extra warning as OET-RV is shown alone here
 """
 from pathlib import Path
 import os
@@ -45,10 +46,10 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
 from openbibledata_rust import convertVerseEntryListToHtml, getOETTidyBBB, getOETBookName, getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2026-08-25' # by RJH
+LAST_MODIFIED_DATE = '2026-09-24' # by RJH
 SHORT_PROGRAM_NAME = "createParallelPassagePages"
 PROGRAM_NAME = "OpenBibleData createParallelPassagePages functions"
-PROGRAM_VERSION = '0.42'
+PROGRAM_VERSION = '0.43'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -565,7 +566,7 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
 
         crossReferencedSectionHtml = f'''<h1 id="Top"><span title="{state.BibleNames[thisBible.abbreviation]}">{thisBible.abbreviation}</span> by cross-referenced section {ourTidyBBB} {'Intro' if startC=='-1' else startC}:{startV}</h1>
 <p class="secNav">{sectionIndexLink}{leftLink}{documentLink} {startChapterLink}:{startV}–{endChapterLink}:{endV}{rightLink}{parallelLink}{interlinearLink}{detailsLink}</p>
-{f'{state.JAMES_NOTE_HTML_PARAGRAPH}{NEWLINE}' if 'OET' in thisBible.abbreviation and BBB=='JAM' else ''}{f'{state.OET_UNFINISHED_WARNING_HTML_PARAGRAPH}{NEWLINE}' if 'OET' in thisBible.abbreviation else ''}<h1>{'TEST ' if state.TEST_MODE_FLAG else ''}{sectionName}</h1>'''
+{f'{state.JAMES_NAME_NOTE_HTML_PARAGRAPH}{NEWLINE}' if 'OET' in thisBible.abbreviation and BBB=='JAM' else ''}{f'{state.RV_ONLY_WARNING_HTML_PARAGRAPH}{NEWLINE}' if 'OET' in thisBible.abbreviation else ''}<h1>{'TEST ' if state.TEST_MODE_FLAG else ''}{sectionName}</h1>'''
         assert '\n\n' not in crossReferencedSectionHtml
         textHtml = convertVerseEntryListToHtml( BBBLevel, thisBible.abbreviation, (BBB,startC), 'relatedPassage', contextList, verseEntryList, basicOnly=False, state=state, livenWordLinks=isinstance( thisBible, ESFMBible.ESFMBible ), colouriseWordClasses=False, addNoLinkYetSpans=False )
         # textHtml = livenIORs( BBB, textHtml, sections )

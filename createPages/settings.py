@@ -9,7 +9,7 @@
 #
 # Copyright (C) 2023-2026 Robert Hunt
 # Author: Robert Hunt <Freely.Given.org+OBD@gmail.com>
-# This source code is marked with CC0 1.0 Universal. 
+# This source code is marked with CC0 1.0 Universal.
 #    To view a copy of this license, visit http://creativecommons.org
 
 """
@@ -35,6 +35,7 @@ CHANGELOG:
     2026-03-27 Added SIL Open Translator’s Notes
     2026-05-30 Added Scriptura Layer-by-layer 'close-but-clear-translations'
     2026-09-04 Added a separate program version number string in State (to make it easier to increment)
+    2026-09-24 Added RV-only and LV-only warnings
 """
 from pathlib import Path
 
@@ -42,10 +43,10 @@ import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import dPrint, fnPrint, BOOKLIST_OT39
 
 
-LAST_MODIFIED_DATE = '2026-09-16' # by RJH
+LAST_MODIFIED_DATE = '2026-09-24' # by RJH
 SHORT_PROGRAM_NAME = "settings"
 PROGRAM_NAME = "OpenBibleData (OBD) Settings"
-PROGRAM_VERSION = '1.0.5'
+PROGRAM_VERSION = '1.1.0'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
@@ -59,10 +60,10 @@ class State:
     SITE_ABBREVIATION = 'OBD'
     SITE_COPYRIGHT = "copyright © 2023–2026"
 
-    OBD_VERSION_NUMBER_STRING = 'v2.4.4' # Incremented after most updates to OBD web page generation code
-    OET_VERSION_NUMBER_STRING = 'v0.48.81' # Incremented on most runs when there's been changes or updates to the text of the OET-RV or OET-LV
+    OBD_VERSION_NUMBER_STRING = 'v2.4.5' # Incremented after most updates to OBD web page generation code
+    OET_VERSION_NUMBER_STRING = 'v0.48.82' # Incremented on most runs when there's been changes or updates to the text of the OET-RV or OET-LV
 
-    TEST_MODE_FLAG = False # Writes smaller website subset into DEBUG_DESTINATION_FOLDER_PATH if True
+    TEST_MODE_FLAG = True # Writes smaller website subset into DEBUG_DESTINATION_FOLDER_PATH if True
     TEST_OT_BOOK_LIST = ['PSA']
     TEST_DC_BOOK_LIST = []
     TEST_NT_BOOK_LIST = ['MAT','MRK'] # Shortest gospel
@@ -141,13 +142,20 @@ class State:
     OET_UNFINISHED_WARNING_HTML_TEXT = 'This is still an early look into the drafted text of the <em>Open English Translation</em> of the Bible. Please double-check the text in advance before using in public.'
     OET_UNFINISHED_WARNING_HTML_PARAGRAPH = f'<p class="rem">{OET_UNFINISHED_WARNING_HTML_TEXT}</p>'
     OET_UNFINISHED_BOOK_WARNING_HTML_PARAGRAPH = f'<p class="rem">{OET_UNFINISHED_WARNING_HTML_TEXT} {WHOLE_BOOK_WARNING_TEXT}</p>'
-    OETS_UNFINISHED_WARNING_HTML_TEXT = 'The OET segments on this page are still early looks into the drafted texts of the <em>Open English Translation</em> of the Bible—please double-check these texts in advance before using in public.'
 
+    RV_ONLY_WARNING_TEXT = "This OET Readers’ Version was designed to be used with the Literal Version alongside, so you won’t get the best understanding from this single viewpoint."
+    RV_ONLY_WARNING_HTML_PARAGRAPH = f'<p class="rem">{RV_ONLY_WARNING_TEXT} {OET_UNFINISHED_WARNING_HTML_TEXT}</p>'
+    RV_ONLY_BOOK_WARNING_HTML_PARAGRAPH = f'<p class="rem">{RV_ONLY_WARNING_TEXT} {OET_UNFINISHED_WARNING_HTML_TEXT} {WHOLE_BOOK_WARNING_TEXT}</p>'
+    LV_ONLY_WARNING_TEXT = "This OET (very) Literal Version was designed to be used as a view into the original language words, so as to be an aid to understanding the source text for the Readers’ Version, so you won’t get the best understanding from this single viewpoint."
+    LV_ONLY_WARNING_HTML_PARAGRAPH = f'<p class="rem">{LV_ONLY_WARNING_TEXT} {OET_UNFINISHED_WARNING_HTML_TEXT}</p>'
+    LV_ONLY_BOOK_WARNING_HTML_PARAGRAPH = f'<p class="rem">{LV_ONLY_WARNING_TEXT} {OET_UNFINISHED_WARNING_HTML_TEXT} {WHOLE_BOOK_WARNING_TEXT}</p>'
+
+    OETS_UNFINISHED_WARNING_HTML_TEXT = 'The OET segments on this page are still early looks into the drafted texts of the <em>Open English Translation</em> of the Bible—please double-check these texts in advance before using in public.'
     PARALLEL_VERSE_PAGE_SINGLE_VERSE_HTML_TEXT = 'This view shows ‘verses’ which are not necessarily natural language units and hence sometimes only part of a sentence will be visible—click on any Bible version abbreviation down the left-hand side to see the verse in more of its context. Normally the OET discourages the reading of individual ‘verses’, but this view is only designed as a tool for Bible-translators and others doing comparisons of different translations—the older translations are further down the page (so you can read up from the bottom to trace the English translation history).'
     VERSE_LIST_PAGE_SINGLE_VERSE_HTML_TEXT = 'This view shows ‘verses’ which are not necessarily natural language units and hence sometimes only part of a sentence will be visible—click on any Bible version abbreviation down the left-hand side to see the verse in more of its context. Normally the OET discourages the reading of individual ‘verses’, but this view is only designed as a tool for doing comparisons of different translations—the older translations are further down the page (so you can read up from the bottom to trace the English translation history).'
 
-    JAMES_NOTE_HTML_TEXT = 'Note that the <em>OET</em> uses ‘Yacob’ for ‘The Letter of Jacob’ (wrongly called ‘James’ in older Bibles).'
-    JAMES_NOTE_HTML_PARAGRAPH = f'<p class="rem">{JAMES_NOTE_HTML_TEXT}</p>'
+    JAMES_NAME_NOTE_HTML_TEXT = 'Note that the <em>OET</em> uses ‘Yacob’ for ‘The Letter of Jacob’ (wrongly called ‘James’ in older Bibles).'
+    JAMES_NAME_NOTE_HTML_PARAGRAPH = f'<p class="rem">{JAMES_NAME_NOTE_HTML_TEXT}</p>'
 
     BLACK_LETTER_FONT_HTML_TEXT = 'Note that this page will look best (more authentic) if you’ve downloaded a black-letter font like <a href="https://fonts.google.com/specimen/UnifrakturCook">Google’s UnifrakturCook</a>.'
     BLACK_LETTER_FONT_HTML_PARAGRAPH = f'<p class="rem">{BLACK_LETTER_FONT_HTML_TEXT}</p>'

@@ -9,7 +9,7 @@
 #
 # Copyright (C) 2023-2026 Robert Hunt
 # Author: Robert Hunt <Freely.Given.org+OBD@gmail.com>
-# This source code is marked with CC0 1.0 Universal. 
+# This source code is marked with CC0 1.0 Universal.
 #    To view a copy of this license, visit http://creativecommons.org
 
 """
@@ -57,12 +57,13 @@ CHANGELOG:
                 see Rust/src/section_numbers.rs) -- the Python function is now a thin wrapper
     2026-08-25 The OETHandlers functions are now imported from the Rust openbibledata_rust module (the Python OETHandlers.py was deleted).
     2026-09-03 Stop applying the Heb/Grk grammatical colourisation classes on section pages because their CSS doesn't style them -- the shared dark-mode rules were painting those words unreadably.
-     2026-09-04 Disable the TEST_MODE 'noLinkYet' highlighting on OET-RV single-column section pages (which have no OET-LV alongside), via addNoLinkYetSpans=False.
+    2026-09-04 Disable the TEST_MODE 'noLinkYet' highlighting on OET-RV single-column section pages (which have no OET-LV alongside), via addNoLinkYetSpans=False.
     2026-09-05 Fixed non-OET (e.g., BSB/NET/T4T) section index pages: they used a stale sectionFilename
                 (the last-written section file) and so every index link went to the final section.
                 Extracted createNonOETSectionIndexParagraphs() which links each entry to its own file,
                 and passed bySec/{indexFilename} to makeTop (was bySec/{sectionFilename}).
     2026-09-15 ESFM word-link livening is now fused (single-pass) into openbibledata_rust.convertVerseEntryListToHtml via its new livenWordLinks/colouriseWordClasses/addNoLinkYetSpans keyword args, so the old livenOETWordLinks/livenOETCompatibleBereanWordLinks calls have been removed. (Section lists now store un-livened entries; livening happens once, at the page-creation convert — the old code livened twice, at list-build and again (no-op) at page-build.)
+    2026-09-24 Added extra warnings when OET-RV or OET-LV are shown alone
 """
 from pathlib import Path
 import os
@@ -83,10 +84,10 @@ from Bibles import getBibleMapperMaps, getOpenBibleImages
 from openbibledata_rust import convertVerseEntryListToHtml, findSectionNumber as rustFindSectionNumber, getOETTidyBBB
 
 
-LAST_MODIFIED_DATE = '2026-09-02' # by RJH
+LAST_MODIFIED_DATE = '2026-09-24' # by RJH
 SHORT_PROGRAM_NAME = "createSectionPages"
 PROGRAM_NAME = "OpenBibleData createSectionPages functions"
-PROGRAM_VERSION = '0.95'
+PROGRAM_VERSION = '0.96'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -771,7 +772,7 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> list
 
             sectionHtml = f'''<h1><span title="{state.BibleNames[thisBible.abbreviation]}">{thisBible.abbreviation}</span> by section {ourTidyBBB} {'Intro' if startC=='-1' else startC}:{startV}</h1>
 <p class="secNav">{sectionIndexLink}{leftLink}{documentLink} {startChapterLink}:{startV}–{endChapterLink}:{endV}{rightLink}{relatedLink}{parallelLink}{interlinearLink}{detailsLink}</p>
-{f'{state.JAMES_NOTE_HTML_PARAGRAPH}{NEWLINE}' if 'OET' in thisBible.abbreviation and BBB=='JAM' else ''}{f'{state.OET_UNFINISHED_WARNING_HTML_PARAGRAPH}{NEWLINE}' if 'OET' in thisBible.abbreviation else ''}{f'{state.BLACK_LETTER_FONT_HTML_PARAGRAPH}{NEWLINE}' if thisBible.abbreviation=='KJB-1611' else ''}<h1>{sectionName}</h1>'''
+{f'{state.JAMES_NAME_NOTE_HTML_PARAGRAPH}{NEWLINE}' if 'OET' in thisBible.abbreviation and BBB=='JAM' else ''}{f'{state.RV_ONLY_WARNING_HTML_PARAGRAPH}{NEWLINE}' if thisBible.abbreviation=='OET-RV' else f'{state.LV_ONLY_WARNING_HTML_PARAGRAPH}{NEWLINE}' if thisBible.abbreviation=='OET-LV' else else ''}{f'{state.BLACK_LETTER_FONT_HTML_PARAGRAPH}{NEWLINE}' if thisBible.abbreviation=='KJB-1611' else ''}<h1>{sectionName}</h1>'''
             textHtml = convertVerseEntryListToHtml( level, thisBible.abbreviation, (BBB,startC), 'section', contextList, verseEntryList, basicOnly=False, state=state, livenWordLinks=isinstance( thisBible, ESFMBible ) or thisBible.abbreviation in ('BSB','MSB'), colouriseWordClasses=False, addNoLinkYetSpans=False )
             # textHtml = livenIORs( BBB, textHtml, sections )
             if thisBible.abbreviation == 'OET-RV':
