@@ -772,7 +772,7 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> list
 
             sectionHtml = f'''<h1><span title="{state.BibleNames[thisBible.abbreviation]}">{thisBible.abbreviation}</span> by section {ourTidyBBB} {'Intro' if startC=='-1' else startC}:{startV}</h1>
 <p class="secNav">{sectionIndexLink}{leftLink}{documentLink} {startChapterLink}:{startV}–{endChapterLink}:{endV}{rightLink}{relatedLink}{parallelLink}{interlinearLink}{detailsLink}</p>
-{f'{state.JAMES_NAME_NOTE_HTML_PARAGRAPH}{NEWLINE}' if 'OET' in thisBible.abbreviation and BBB=='JAM' else ''}{f'{state.RV_ONLY_WARNING_HTML_PARAGRAPH}{NEWLINE}' if thisBible.abbreviation=='OET-RV' else f'{state.LV_ONLY_WARNING_HTML_PARAGRAPH}{NEWLINE}' if thisBible.abbreviation=='OET-LV' else else ''}{f'{state.BLACK_LETTER_FONT_HTML_PARAGRAPH}{NEWLINE}' if thisBible.abbreviation=='KJB-1611' else ''}<h1>{sectionName}</h1>'''
+{f'{state.JAMES_NAME_NOTE_HTML_PARAGRAPH}{NEWLINE}' if 'OET' in thisBible.abbreviation and BBB=='JAM' else ''}{f'{state.RV_ONLY_WARNING_HTML_PARAGRAPH}{NEWLINE}' if thisBible.abbreviation=='OET-RV' else f'{state.LV_ONLY_WARNING_HTML_PARAGRAPH}{NEWLINE}' if thisBible.abbreviation=='OET-LV' else ''}{f'{state.BLACK_LETTER_FONT_HTML_PARAGRAPH}{NEWLINE}' if thisBible.abbreviation=='KJB-1611' else ''}<h1>{sectionName}</h1>'''
             textHtml = convertVerseEntryListToHtml( level, thisBible.abbreviation, (BBB,startC), 'section', contextList, verseEntryList, basicOnly=False, state=state, livenWordLinks=isinstance( thisBible, ESFMBible ) or thisBible.abbreviation in ('BSB','MSB'), colouriseWordClasses=False, addNoLinkYetSpans=False )
             # textHtml = livenIORs( BBB, textHtml, sections )
             if thisBible.abbreviation == 'OET-RV':
@@ -842,7 +842,7 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> list
         sectionHtml = f'''{top}<!--sections page-->
 {navBookListParagraph}
 {f'<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>\n' if 'OET' in thisBible.abbreviation else ''}<p class="pageNav" id="Top">{leftLink}{ourTidyBBB} <a title="Go to bottom of page" href=#Bottom>↓</a>{rightLink}</p>
-{sectionChapterLinksParagraph.replace( 'class="chLst">', 'class="chLst" id="chLst">', 1 )}
+{sectionChapterLinksParagraph.replace( 'class="chLst">', 'class="chLst" id="chLst">', 1 )}{f'{state.JAMES_NAME_NOTE_HTML_PARAGRAPH}{NEWLINE}' if 'OET' in thisBible.abbreviation and BBB=='JAM' else ''}{f'{state.RV_ONLY_WARNING_HTML_PARAGRAPH}{NEWLINE}' if thisBible.abbreviation=='OET-RV' else f'{state.LV_ONLY_WARNING_HTML_PARAGRAPH}{NEWLINE}' if thisBible.abbreviation=='OET-LV' else ''}{f'{state.BLACK_LETTER_FONT_HTML_PARAGRAPH}{NEWLINE}' if thisBible.abbreviation=='KJB-1611' else ''}
 {'\n'.join( sectionHtmlBits )}
 {sectionChapterLinksParagraph}
 <p class="pageNav">{leftLink}{ourTidyBBB} <a title="Go to top of page" href=#Top>↑</a>{rightLink}</p>
@@ -862,7 +862,7 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> list
             .replace( '__KEYWORDS__', f'Bible, {thisBible.abbreviation}, sections, books' ) \
             .replace( f'''<a title="{state.BibleNames[thisBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisBible.abbreviation)}">{thisBible.abbreviation}</a>''', thisBible.abbreviation )
     indexHtml = f'''{top}
-{f'<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>\n' if 'OET' in thisBible.abbreviation else ''}<h1 id="Top">{thisBible.abbreviation} section pages</h1>
+{f'<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>\n' if 'OET' in thisBible.abbreviation else ''}<h1 id="Top">{thisBible.abbreviation} section pages</h1>{f'{state.JAMES_NAME_NOTE_HTML_PARAGRAPH}{NEWLINE}' if 'OET' in thisBible.abbreviation and BBB=='JAM' else ''}{f'{state.RV_ONLY_WARNING_HTML_PARAGRAPH}{NEWLINE}' if thisBible.abbreviation=='OET-RV' else f'{state.LV_ONLY_WARNING_HTML_PARAGRAPH}{NEWLINE}' if thisBible.abbreviation=='OET-LV' else ''}{f'{state.BLACK_LETTER_FONT_HTML_PARAGRAPH}{NEWLINE}' if thisBible.abbreviation=='KJB-1611' else ''}
 <h2>Index of {thisBible.abbreviation} books</h2>
 {navBookListParagraph}
 {makeBottom( level, thisBible.abbreviation, 'sectionIndex' )}'''
