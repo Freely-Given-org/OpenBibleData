@@ -171,8 +171,10 @@ def _writeOETSideBySideChapterBook( level:int, folder:Path, rvBible, lvBible, st
 {state.OET_UNFINISHED_WARNING_HTML_PARAGRAPH}
 {f'{state.JAMES_NAME_NOTE_HTML_PARAGRAPH}{NEWLINE}' if BBB=='JAM' else ''}<div class="RVLVcontainer">
 <h2><a title="View just the Readers’ Version by itself" href="{'../'*level}OET-RV/byC/{BBB}_Intro.htm#Top">Readers’ Version</a></h2>
-<h2><a title="View just the Literal Version by itself" href="{'../'*level}OET-LV/byC/{BBB}_Intro.htm#Top">Literal Version</a></h2>''' if c==-1 else f'''<h1 id="Top">Open English Translation {ourTidyBBBwithNotes} Chapter {c}</h1>
+<h2><a title="View just the Literal Version by itself" href="{'../'*level}OET-LV/byC/{BBB}_Intro.htm#Top">Literal Version</a></h2>''' \
+            if c==-1 else f'''<h1 id="Top">Open English Translation {ourTidyBBBwithNotes} Chapter {c}</h1>
 {cNav}
+{state.OET_UNFINISHED_WARNING_HTML_PARAGRAPH}
 {f'{state.JAMES_NAME_NOTE_HTML_PARAGRAPH}{NEWLINE}' if BBB=='JAM' else ''}<div class="RVLVcontainer">
 <h2><a title="View just the Readers’ Version by itself" href="{'../'*level}OET-RV/byC/{BBB}_C{c}.htm#Top">Readers’ Version</a></h2>
 <h2><a title="View just the Literal Version by itself" href="{'../'*level}OET-LV/byC/{BBB}_C{c}.htm#Top">Literal Version</a> <button type="button" id="marksButton" title="Hide/Show underline and strike-throughs" onclick="hide_show_marks()">Hide marks</button></h2>'''
