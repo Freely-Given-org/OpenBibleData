@@ -523,7 +523,7 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
                 oText = entry.getOriginalText()
                 if oText and '\\x ' in oText: # then extract a list of verse cross-references
                     startIndex = 0
-                    for _safetyCount in range( 4 ): # 3 wasn't enough for JDE
+                    for _safetyCount in range( 6 ): # 5 wasn't enough for MRK
                         try: xStartIx = oText.index( '\\x ', startIndex )
                         except ValueError: break
                         xtIx = oText.index( '\\xt ', xStartIx+6 )
@@ -713,7 +713,7 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
                 #     lastV = oText
                 if oText and '\\x ' in oText: # then extract a list of verse cross-references
                     startIndex = 0
-                    for _safetyCount2 in range( 4 ):
+                    for _safetyCount2 in range( 6 ): # 5 wasn't enough for MRK
                         try: xStartIx = oText.index( '\\x ', startIndex )
                         except ValueError: break
                         xtIx = oText.index( '\\xt ', xStartIx+6 )
