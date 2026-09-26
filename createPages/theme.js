@@ -20,14 +20,20 @@
 //                                              quietens the added-word colouring
 //                                              used by the literal versions:
 //                                              every add* / unusedArticle span
-//                                              inherits the ordinary text colour
-//                                              unless it is also marked "unsure"
-//                                              and the Hebrew parallel-passage
-//                                              markers (≈/^/→) are hidden
+//                                              (including addTradName) inherits
+//                                              the ordinary text colour unless it
+//                                              is also marked "unsure", and the
+//                                              Hebrew parallel-passage markers
+//                                              (≈/^/→) are hidden
 //                                              (data-features="on" -- set in
 //                                               this default state; absent
 //                                               means "show all", the
-//                                               non-default choice)
+//                                               non-default choice).
+//                                              Note: addTradName spans (\add !)
+//                                              are NOT hidden in this mode; they
+//                                              remain visible but lose their purple
+//                                              colour, matching the treatment of
+//                                              all other add* spans.
 //   * parFields "show" | "hide"             -- the historical-translations block
 //                                              (div.hideables) on parallel verse
 //                                              pages (data-par-fields="hide"

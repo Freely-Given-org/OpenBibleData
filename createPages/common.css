@@ -494,7 +494,9 @@ html[data-wj="off"] span.wj { color: inherit; }
  * (OETChapter.css, ParallelPassages.css, ...) give all these spans their
  * colours, so these selectors must carry enough specificity to beat them (and
  * the dark-mode colour overrides above) in any theme. It also hides the three
- * Hebrew-parallelism marker spans (≈/^/→).
+ * Hebrew-parallelism marker spans (≈/^/→). The addTradName spans (\add !)
+ * remain visible but lose their purple colour, matching the treatment of all
+ * other add* spans.
  *
  * The "left verse nums" theme (data-verses="left") floats span.synonParr into
  * the verse gutter with an (0,3,3) rule; when both modes are active the extra
@@ -510,8 +512,8 @@ html[data-features="on"] span.addPronoun:not(.unsure),
 html[data-features="on"] span.addReferent:not(.unsure),
 html[data-features="on"] span.addNumberChange:not(.unsure),
 html[data-features="on"] span.addPersonChange:not(.unsure),
-html[data-features="on"] span.addNegated:not(.unsure) { color: inherit; }
-html[data-features="on"] span.addTradName:not(.unsure),
+html[data-features="on"] span.addNegated:not(.unsure),
+html[data-features="on"] span.addTradName:not(.unsure) { color: inherit; }
 
 html[data-features="on"] span.synonParr,
 html[data-features="on"] span.antiParr,
