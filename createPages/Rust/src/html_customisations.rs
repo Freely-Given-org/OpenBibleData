@@ -161,6 +161,11 @@ pub fn do_oet_rv_html_customisations(where_: &str, html: &str) -> Result<String,
             r#"<span class="addNegated unsure" title="negated (less certain)">"#,
         )
         .replace(r#"<span class="add">^"#, r#"<span class="addNegated" title="negated">"#)
+        // .replace(
+        //     r#"<span class="add">?!"#,
+        //     r#"<span class="addTradName unsure" title="traditional name (less certain)">"#,
+        // )
+        .replace(r#"<span class="add">!"#, r#"<span class="addTradName" title="traditional name">"#)
         .replace(
             r#"<span class="add">?≈"#,
             r#"<span class="addReword unsure" title="reworded (less certain)">"#,

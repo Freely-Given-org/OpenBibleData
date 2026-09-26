@@ -39,6 +39,7 @@ CHANGELOG:
     2026-08-25 Added the six missing 'unsure' addPersonChange/addNegated/etc. span replacements (html.py had been emitting them with title attributes since 2026-08-22)
     2026-08-27 Truncate spelling error messages if they're too long
     2026-09-11 Tolerate dictionary entries that are missing their '\\lg ' language line (skip them with a warning) and handle running from a different folder
+    2026-09-25 Handle tradName fields
 """
 from pathlib import Path
 from csv import  DictReader
@@ -51,10 +52,10 @@ from BibleOrgSys.BibleOrgSysGlobals import vPrint, fnPrint, dPrint, rreplace
 import bos_books_codes_py
 
 
-LAST_MODIFIED_DATE = '2026-09-14' # by RJH
+LAST_MODIFIED_DATE = '2026-09-25' # by RJH
 SHORT_PROGRAM_NAME = "spellCheckEnglish"
 PROGRAM_NAME = "English Bible Spell Check"
-PROGRAM_VERSION = '0.69'
+PROGRAM_VERSION = '0.70'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -570,6 +571,8 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                     .replace( '<span class="addPronoun unsure" title="used pronoun (less certain)">', '' )
                     .replace( '<span class="addReferent" title="inserted referent">', '' )
                     .replace( '<span class="addReferent unsure" title="inserted referent (less certain)">', '' )
+                    .replace( '<span class="addTradName" title="traditional name">', '' )
+                    # .replace( '<span class="addTradName unsure" title="traditional name (less certain)">', '' )
                     .replace( '<span class="addReword" title="reworded">', '' )
                     .replace( '<span class="addReword unsure" title="reworded (less certain)">', '' )
                     .replace( '<span class="RVadd unsure" title="added info (less certain)">', '' ) # (plain) RVadd is removed by RegEx
@@ -831,7 +834,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                 'Mal','mal','milde','mit','Mord','Natur','nun','nur',
                                 'rede','kam','Korb','ward','Rat','Rede','messen','Mose','ging','Halle','und','ster','streng','töte','tun','von','wer','zu','zwo',
                                 'denyt',
-                    
+
                                 'abs','actio', 'adultera','agi', 'aliena', 'ambit','ambitio','amputa', 'anima','antiqui','apprehendi', 'argui','ascendi','attende','audi', 'aversio',
                                 'beati','bene','beneficia','bos',
                                 'ca','calami','capti',       'celebrat','centurio',     'Christi',      'circumcisio','cis',        'cognitio','cogniti','complet',

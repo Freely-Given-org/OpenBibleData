@@ -111,7 +111,7 @@ def removeAddSpanFormatting( headingTextHtml:str ) -> str:
         and any specialised exegesis prefix character (like # for 'changed number').
         (That specialised formatting isn't relevant in the section lists displayed on the index pages.)
     """
-    cleanedTextHtml = re.sub( r'<span class="add">\??[-+=≡&@*#%^≈>]?(.*?)</span>', r'\1', headingTextHtml )
+    cleanedTextHtml = re.sub( r'<span class="add">\??[-+=≡&@*#%^!≈>]?(.*?)</span>', r'\1', headingTextHtml )
     assert '<span class="add' not in cleanedTextHtml, f"Unhandled add segment: {headingTextHtml=} -> {cleanedTextHtml=}"
     return cleanedTextHtml
 # end of createSectionPages.removeAddSpanFormatting

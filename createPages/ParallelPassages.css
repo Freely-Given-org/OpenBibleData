@@ -181,6 +181,7 @@ span.addReferent { color:darkblue; }
 span.addNumberChange { color:darkcyan; }
 span.addPersonChange { color:#807625; }
 span.addNegated { color:darkred; }
+span.addTradName { color:purple; }
 span.addReword { text-decoration:underline; text-decoration-style: dotted; text-decoration-color:#6b6b6b; }
 span.RVadd { color:#505050; } /* Darker than dimGrey which is #696969 (black is #000000) */
 /* span.add { color:grey; } */

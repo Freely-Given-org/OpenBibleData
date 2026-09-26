@@ -427,6 +427,7 @@ html[data-theme="dark"] span.synthParr { color:#8db6ff; }
 html[data-theme="dark"] span.addNumberChange { color:#4fb3b3; }
 html[data-theme="dark"] span.addPersonChange { color:#c9bd6e; }
 html[data-theme="dark"] span.addNegated,
+html[data-theme="dark"] span.addTradName,
 html[data-theme="dark"] span.possibleHilite { color:#e08a8a; }
 html[data-theme="dark"] span.add,
 html[data-theme="dark"] span.addReword,
@@ -510,6 +511,7 @@ html[data-features="on"] span.addReferent:not(.unsure),
 html[data-features="on"] span.addNumberChange:not(.unsure),
 html[data-features="on"] span.addPersonChange:not(.unsure),
 html[data-features="on"] span.addNegated:not(.unsure) { color: inherit; }
+html[data-features="on"] span.addTradName:not(.unsure),
 
 html[data-features="on"] span.synonParr,
 html[data-features="on"] span.antiParr,
