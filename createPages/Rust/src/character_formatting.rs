@@ -27,9 +27,12 @@ pub fn convert_usfm_character_formatting(
     //   `\` above (OET-RV sources use `\+add`, so `\+add <<span …` must be
     //   allowed once it reads `\add <<span …`). TEST_MODE OET-RV preprocessing
     //   (preprocess_oet_rv_entry) legitimately produces `\+add <` + a
-    //   `<span class="noLinkYet">` when a `<word` inside `\add <word\add*` has
-    //   no word link yet — that `<<` reaches do_OET_RV_HTMLcustomisations as
-    //   `<span class="add"><<span …` and becomes an addDirectObject span.
+    //   `<span class="noLinkYet">` when a `<word` inside the addDirectObject
+    //   form `\add <word\add*` has no word link yet — that `<<` reaches
+    //   do_OET_RV_HTMLcustomisations as `<span class="add"><<span …` and becomes
+    //   an addDirectObject span. Plain `\add word\add*` spans no longer get
+    //   noLinkYet spans at all (their words can never be linked), so this only
+    //   arises for the special-formatting forms.
     if !html.contains("\\add <<") && !html.contains("\\add ?<<") {
         assert!(!html.contains("<<"), "Unexpected << in usfm_field");
     }

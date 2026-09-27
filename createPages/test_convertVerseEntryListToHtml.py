@@ -218,13 +218,17 @@ class TestRustConvertVerseEntryListToHtml(unittest.TestCase):
         self.assertIn('id="V1"', result)  # Anchor added because PHM is a single chapter book
 
     def test_oet_rv_add_direct_object_marker_no_link_yet_does_not_panic(self):
-        """Regression (OET-RV_MRK.ESFM line 507, MRK 7:11): OET-RV TEST_MODE
-        preprocessing wraps an unlinked word inside a `\add <word\add*`
-        direct-object marker in a `<span class="noLinkYet">…</span>`, producing
-        `\+add <<span class="noLinkYet">`. The `\+` embedded-marker form is
-        normalised to `\` before the `<<` validation, so this flows through
-        character formatting and do_OET_RV_HTMLcustomisations as an
-        addDirectObject span instead of panicking with 'Unexpected <<'."""
+        """Regression (OET-RV_MRK.ESFM lines 506-507, MRK 7:11-12): OET-RV
+        TEST_MODE preprocessing wraps an unlinked word inside an `\add` span
+        that opens with one of OET's special formatting characters — here the
+        addDirectObject `\add <word\add*` — in a
+        `<span class="noLinkYet">…</span>`, producing `\+add <<span class=
+        "noLinkYet">`. The `\+` embedded-marker form is normalised to `\` before
+        the `<<` validation, so this flows through character formatting and
+        do_OET_RV_HTMLcustomisations as an addDirectObject span instead of
+        panicking with 'Unexpected <<'. (Plain `\add word\add*` spans never
+        reach here: their words can never be word-linked, so TEST_MODE leaves
+        them alone rather than marking them as unlinked.)"""
         entries = [
             _SimpleEntry('v', '11'),
             _SimpleEntry('v~', '\\wj But \\+add <<span class="noLinkYet">to</span> <span class="noLinkYet">God</span>\\+add*’,\\wj*'),

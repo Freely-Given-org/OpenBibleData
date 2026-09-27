@@ -20,6 +20,14 @@
 //! * The OET-RV TEST_MODE preprocessing now leaves any word containing the
 //!   missing/untranslated-verse placeholders `◘`/`◙` untouched (they can sit
 //!   next to a footnote marker, e.g. `◘\f`, and must never be alpha-checked).
+//! * The OET-RV TEST_MODE preprocessing no longer highlights words inside a
+//!   "straight" `\add …\add*` span as unlinked. The OET-RV linker never puts a
+//!   word link in plain added text (verified against every `\add` span in
+//!   `OET-RV_*.ESFM`), so flagging those words only produced highlighting that
+//!   no amount of manual linking could ever resolve. Spans that open with one
+//!   of OET's "level 2" special formatting characters (`\add ≈…`, `\add !…`,
+//!   `\add #…`, …) DO routinely carry word links, so those are still
+//!   highlighted — see `ADD_SPECIAL_FORMATTING_CHARS`.
 //! * `liven_esfm_word_links` is the native single-pass replacement for BOS
 //!   `ESFMBible.livenESFMWordLinks` plus the old `§…§ / ►NNNN◄` decode pass.
 //!   With the placeholder round-trip gone, the `«OrigWord»` column
@@ -375,6 +383,117 @@ fn in_no_link_yet_exception_list(reference_tuple: &[&str]) -> bool {
     NO_LINK_YET_EXCEPTION_LIST.iter().any(|entry| *entry == reference_tuple)
 }
 
+/// OET-RV `\add` "level 2" special formatting characters — the first character
+/// of an added text when the translator wants to say more than "this text was
+/// added". These are exactly the ones `do_oet_rv_html_customisations` rewrites
+/// into `addArticle`/`addTradName`/`addDirectObject`/… spans, plus `>` which the
+/// OET-RV sources also use. Text introduced by one of them routinely carries
+/// word links (`\add ≈Jewish¦88463 meeting¦88463 halls¦88463\add*` and
+/// `\add !(Israel¦83035)\add*` are both real lines), so words there still get
+/// highlighted as unlinked. Plain `\add <words>\add*` spans never do.
+const ADD_SPECIAL_FORMATTING_CHARS: &[char] =
+    &['!', '#', '%', '&', '*', '+', '<', '>', '?', '@', '^', '≈', '≡'];
+
+/// An `\add` / `\+add` marker found inside a whitespace-delimited word.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum AddMarker {
+    /// A plain `\add ` — added text, which the OET-RV linker never word-links.
+    OpenPlain,
+    /// A `\add ` whose content opens with one of `ADD_SPECIAL_FORMATTING_CHARS`.
+    OpenSpecial,
+    /// A `\add*` / `\+add*` closer.
+    Close,
+}
+
+/// Find the `\add` / `\+add` markers in one whitespace-delimited word, in
+/// source order, paired with the byte offset just past each marker.
+///
+/// `body_first_char` is the first character of the text following this word.
+/// An opening marker is a word all by itself (`\add the sky\add*` splits into
+/// `\add`, `the`, `sky\add*`), so the special-formatting character that decides
+/// whether the span can hold word links belongs to the *next* word.
+fn scan_add_markers(word: &str, body_first_char: Option<char>) -> Vec<(usize, AddMarker)> {
+    let bytes = word.as_bytes();
+    let mut found: Vec<(usize, AddMarker)> = Vec::new();
+    let mut i = 0;
+    while i < bytes.len() {
+        if bytes[i] != b'\\' {
+            i += 1;
+            continue;
+        }
+        let mut after_marker = i + 1;
+        if bytes.get(after_marker) == Some(&b'+') {
+            after_marker += 1;
+        }
+        if bytes.get(after_marker..after_marker + 3) != Some(b"add".as_slice()) {
+            i += 1;
+            continue;
+        }
+        after_marker += 3;
+        match bytes.get(after_marker) {
+            // `\add*` / `\+add*` — the closer of a plain add
+            Some(b'*') => {
+                found.push((after_marker + 1, AddMarker::Close));
+                i = after_marker + 1;
+            }
+            // A `\add` glued straight onto its text is deliberately not
+            // tracked: the OET-RV sources only ever open an add with a marker
+            // of its own (`\add ` / `\+add `, never `\add#` or `\addword`), and
+            // treating an add as opened that we never see closed would silently
+            // stop highlighting the rest of the verse. Leaving it untracked
+            // just highlights a few words that perhaps didn't need it.
+            Some(_) => i = after_marker,
+            // End of the word, so the marker is followed by whitespace and any
+            // special-formatting character starts the following word.
+            None => {
+                let special =
+                    body_first_char.is_some_and(|c| ADD_SPECIAL_FORMATTING_CHARS.contains(&c));
+                found.push((
+                    after_marker,
+                    if special {
+                        AddMarker::OpenSpecial
+                    } else {
+                        AddMarker::OpenPlain
+                    },
+                ));
+                i = after_marker;
+            }
+        }
+    }
+    found
+}
+
+fn apply_add_marker(add_stack: &mut Vec<bool>, marker: AddMarker) {
+    match marker {
+        AddMarker::OpenPlain => add_stack.push(true),
+        AddMarker::OpenSpecial => add_stack.push(false),
+        AddMarker::Close => {
+            add_stack.pop();
+        }
+    }
+}
+
+/// Apply the markers of one word that end before `before_pos` and report how
+/// many were applied, so the caller can apply the remainder itself. This lets
+/// us decide about the word's core (which sits between the leading and
+/// trailing markers) using the `\add` state that is current at that point.
+/// Pass `usize::MAX` to apply every marker in the word.
+fn apply_add_markers_before(
+    add_stack: &mut Vec<bool>,
+    markers: &[(usize, AddMarker)],
+    before_pos: usize,
+) -> usize {
+    let mut applied = 0;
+    for &(pos, marker) in markers {
+        if pos >= before_pos {
+            break;
+        }
+        apply_add_marker(add_stack, marker);
+        applied += 1;
+    }
+    applied
+}
+
 /// Check `\add …\add*` balance like the original asserts do.
 fn check_add_counts(text: &str, abbreviation: &str, bbb: &str, marker: &str) -> Result<(), String> {
     let opening_count = text.matches("\\add ").count();
@@ -416,16 +535,23 @@ pub fn preprocess_oet_rv_entry(
         .collect();
     let mut change_made = false;
     let mut in_note = false;
+    // Enclosing `\add` spans, `true` when the span is a plain one. OET-RV
+    // never nests `\add`s (peak depth is 1 in every file), but a stack means
+    // an inner special-form span correctly wins over an outer plain one.
+    let mut add_stack: Vec<bool> = Vec::new();
 
     let word_count = words.len();
-    for (word_ix, word_slot) in words.iter_mut().enumerate() {
-        let o_word = word_slot.clone();
+    for word_ix in 0..word_count {
+        let o_word = words[word_ix].clone();
+        let add_markers =
+            scan_add_markers(&o_word, words.get(word_ix + 1).and_then(|w| w.chars().next()));
         let mut new_word;
 
         // There's a cross-ref butted up to the left of a word
         // TODO: For now we'll take the easy way and just skip it
         if o_word.contains("\\x*") && !o_word.starts_with("\\x*") && !o_word.ends_with("\\x*") {
             in_note = false;
+            apply_add_markers_before(&mut add_stack, &add_markers, usize::MAX);
             continue;
         }
 
@@ -439,6 +565,7 @@ pub fn preprocess_oet_rv_entry(
             // missing/untranslated-verse placeholders, which can sit next to a
             // footnote marker like '\f' -- they must never be alpha-checked)
             new_word = o_word.clone();
+            apply_add_markers_before(&mut add_stack, &add_markers, usize::MAX);
         } else if !in_no_link_yet_exception_list(ref_tuple) {
             let mut prefix = String::new();
             let mut suffix = String::new();
@@ -463,8 +590,21 @@ pub fn preprocess_oet_rv_entry(
                     }
                 }
             }
+            // The word we would wrap is the core of the word, i.e. the bytes
+            // between `prefix` and `suffix`, so only the markers before it have
+            // happened by the time we decide; the rest come afterwards.
+            let core_end = prefix.len() + adj_word.len();
+            let markers_seen = apply_add_markers_before(&mut add_stack, &add_markers, core_end);
+            // Words inside a plain `\add …\add*` span can never be linked (the
+            // OET-RV linker never links added text), so highlighting them would
+            // only ever produce a span the translator can't resolve.
+            let in_plain_add = add_stack.last().copied().unwrap_or(false);
             new_word = o_word.clone();
-            if !adj_word.is_empty() && !adj_word.starts_with('\\') && !py_is_digit(&adj_word) {
+            if !in_plain_add
+                && !adj_word.is_empty()
+                && !adj_word.starts_with('\\')
+                && !py_is_digit(&adj_word)
+            {
                 let needs_alpha_check = !adj_word.contains('\'')
                     && !adj_word.contains(',')
                     && !adj_word.contains('-')
@@ -481,13 +621,17 @@ pub fn preprocess_oet_rv_entry(
                     format!("{prefix}<span class=\"noLinkYet\">{adj_word}</span>{suffix}");
                 change_made = true;
             }
+            for &(_, marker) in &add_markers[markers_seen..] {
+                apply_add_marker(&mut add_stack, marker);
+            }
         } else {
             // Reference is in the exception list -- leave it alone
             new_word = o_word.clone();
+            apply_add_markers_before(&mut add_stack, &add_markers, usize::MAX);
         }
 
-        *word_slot = new_word;
-        let updated = word_slot.as_str();
+        words[word_ix] = new_word;
+        let updated = words[word_ix].as_str();
         if updated.ends_with("\\x") || updated.ends_with("\\f") || updated.ends_with("\\fig") {
             in_note = true;
         } else if updated.ends_with("\\x*")
@@ -1391,6 +1535,114 @@ mod tests {
         assert!(
             preprocess_oet_rv_entry("v~", "\\add hello", "OET-RV", &["GEN", "1", "1"]).is_err()
         );
+    }
+
+    #[test]
+    fn test_preprocess_plain_add_words_not_highlighted() {
+        // The OET-RV linker never puts a word link inside a plain
+        // `\add …\add*` span, so nothing here is fixable by manual linking.
+        assert_eq!(
+            preprocess_oet_rv_entry(
+                "v~",
+                "\\add into the sky\\add*",
+                "OET-RV",
+                &["ACT", "1", "2"]
+            )
+            .unwrap(),
+            None
+        );
+        // The `\+add` (embedded-marker) spelling behaves the same way
+        assert_eq!(
+            preprocess_oet_rv_entry(
+                "v~",
+                "\\+add through the veil\\+add*",
+                "OET-RV",
+                &["ACT", "1", "2"]
+            )
+            .unwrap(),
+            None
+        );
+        // Markers butted against the surrounding text
+        assert_eq!(
+            preprocess_oet_rv_entry(
+                "v~",
+                "all across \\add the provinces of\\add* Yudea",
+                "OET-RV",
+                &["ACT", "1", "8"]
+            )
+            .unwrap()
+            .unwrap(),
+            "<span class=\"noLinkYet\">all</span> <span class=\"noLinkYet\">across</span> \
+             \\add the provinces of\\add* <span class=\"noLinkYet\">Yudea</span>"
+        );
+    }
+
+    #[test]
+    fn test_preprocess_add_state_closes_so_later_words_are_highlighted() {
+        let result = preprocess_oet_rv_entry(
+            "v~",
+            "\\add plain words\\add* \\+add more plain\\+add* linked",
+            "OET-RV",
+            &["ACT", "1", "2"],
+        )
+        .unwrap();
+        assert_eq!(
+            result.unwrap(),
+            "\\add plain words\\add* \\+add more plain\\+add* <span class=\"noLinkYet\">linked</span>"
+        );
+    }
+
+    #[test]
+    fn test_preprocess_special_form_add_words_still_highlighted() {
+        // '≈' (reworded) and '#' (number change) adds DO get word links in the
+        // OET-RV sources (e.g. OET-RV_MRK.ESFM 7:12, `\+add ≈actively
+        // discouraging\+add* \+add #them\+add*`), so their words must still be
+        // highlighted.
+        let result = preprocess_oet_rv_entry(
+            "v~",
+            "\\add ≈reworded text\\add* \\add #the clouds\\add*",
+            "OET-RV",
+            &["MRK", "7", "12"],
+        )
+        .unwrap();
+        assert_eq!(
+            result.unwrap(),
+            "\\add ≈<span class=\"noLinkYet\">reworded</span> \
+             <span class=\"noLinkYet\">text</span>\\add* \
+             \\add #<span class=\"noLinkYet\">the</span> \
+             <span class=\"noLinkYet\">clouds</span>\\add*"
+        );
+    }
+
+    #[test]
+    fn test_preprocess_add_direct_object_marker_still_highlighted() {
+        // `\add <` is the addDirectObject special-formatting character, so the
+        // `<` is content, not part of the marker -- and this is the case that
+        // produces the `<<` that character_formatting.rs has to allow for.
+        let result =
+            preprocess_oet_rv_entry("v~", "\\add <Adonai\\add*", "OET-RV", &["PSA", "23", "1"])
+                .unwrap();
+        assert_eq!(
+            result.unwrap(),
+            "\\add <<span class=\"noLinkYet\">Adonai</span>\\add*"
+        );
+    }
+
+    #[test]
+    fn test_scan_add_markers_reads_both_marker_spellings() {
+        assert_eq!(scan_add_markers("\\add", Some('t')), vec![(4, AddMarker::OpenPlain)]);
+        assert_eq!(scan_add_markers("\\+add", Some('t')), vec![(5, AddMarker::OpenPlain)]);
+        assert_eq!(scan_add_markers("\\add", Some('≈')), vec![(4, AddMarker::OpenSpecial)]);
+        // Close then open again, as in `\add*\add ` (2509 lines of OET-RV)
+        assert_eq!(
+            scan_add_markers("\\add*\\add", Some('t')),
+            vec![(5, AddMarker::Close), (9, AddMarker::OpenPlain)]
+        );
+        assert_eq!(scan_add_markers("\\add*", None), vec![(5, AddMarker::Close)]);
+        // A marker glued onto its text isn't tracked, so a stray one can never
+        // leave an add open for the rest of the verse
+        assert_eq!(scan_add_markers("\\add≈foo", Some('t')), Vec::new());
+        assert_eq!(scan_add_markers("plain", None), Vec::new());
     }
 
     #[test]
