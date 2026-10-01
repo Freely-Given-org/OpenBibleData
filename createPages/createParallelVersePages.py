@@ -107,7 +107,8 @@ from settings import State, state, CNTR_BOOK_ID_MAP, reorderBooksForOETVersions
 from Bibles import formatTyndaleBookIntro, formatUnfoldingWordTranslationNotes, formatTyndaleNotes, \
                     getBibleMapperMaps, getOpenBibleImages, getVerseMetaInfoHtml
 from jsonResources import getFormattedSILOpenTranslationNotes
-from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
+from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
+                    do_GHT_HTMLcustomisations, do_LSV_HTMLcustomisations, do_T4T_HTMLcustomisations, \
                     handleAndExtractFootnotes, convert_adds_to_italics, removeDuplicateFNids, \
                     makeTop, makeBottom, makeBookNavListParagraph, checkHtml
 from createSectionPages import findSectionNumber
@@ -117,10 +118,10 @@ from spellCheckEnglish import spellCheckAndMarkHTMLText, collectSpellCheckResult
 from openbibledata_rust import convertVerseEntryListToHtml, getOETTidyBBB, getOETBookName, getHebrewWordpageFilename, getGreekWordpageFilename, removeVersePunctuationForComparison, removeGreekPunctuation
 
 
-LAST_MODIFIED_DATE = '2026-09-18' # by RJH
+LAST_MODIFIED_DATE = '2026-10-01' # by RJH
 SHORT_PROGRAM_NAME = "createParallelVersePages"
 PROGRAM_NAME = "OpenBibleData createParallelVersePages functions"
-PROGRAM_VERSION = '1.0.10'
+PROGRAM_VERSION = '1.0.11'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -392,7 +393,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                     if versionAbbreviation in ('TOSN','TTN','SOTN','UTN'):
                         continue # We handle the notes separately at the end
 
-                    if not doneHideablesDiv and versionAbbreviation not in ('OET-RV','OET-LV', 'SR-GNT','UHB', 'BrLXX','BrTr','NETS', 'ULT','UST', 'NET', 'BSB','MSB','BLB'):
+                    if not doneHideablesDiv and versionAbbreviation not in ('OET-RV','OET-LV', 'SR-GNT','UHB', 'BrLXX','BrTr','NETS', 'GHT', 'ULT','UST', 'NET', 'BSB','MSB','BLB'):
                         assert not parallelHtml.endswith( '\n' )
                         parallelHtml = f'{parallelHtml}\n<div class="hideables">\n<hr style="width:60%;margin-left:0;margin-top: 0.3em">'
                         doneHideablesDiv = True
@@ -568,6 +569,8 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                 assert checkHtml( f"OET-LV parallel AAA for {parRef}", textHtml, segmentOnly=True ); assert checkHtml( f"OET-LV parallel BBB for {parRef}", footnoteFreeTextHtml, segmentOnly=True ); assert checkHtml( f"OET-LV parallel CCC for {parRef}", footnotesHtml, segmentOnly=True )
                                 # assert textHtml.count('<span class="ul">_</span>HNcbsa') < 2, f'''Here2 ({textHtml.count('<span class="ul">_</span>HNcbsa')}) {textHtml=}'''
                                 # if BBB=='MRK' and C=='7' and V=='16': print( f"DDD {parRef} {versionAbbreviation} {textHtml=}" )
+                            elif versionAbbreviation == 'GHT':
+                                textHtml = do_GHT_HTMLcustomisations( f'ParallelVerseTxt={parRef}', textHtml )
                             elif versionAbbreviation == 'BSB': # assuming BSB comes BEFORE MSB
                                 textHtmlBSB = textHtml
                                 footnotesHtmlSaved = footnotesHtml # Save it for later comparison

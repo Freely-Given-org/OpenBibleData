@@ -9,7 +9,7 @@
 #
 # Copyright (C) 2023-2026 Robert Hunt
 # Author: Robert Hunt <Freely.Given.org+OBD@gmail.com>
-# This source code is marked with CC0 1.0 Universal. 
+# This source code is marked with CC0 1.0 Universal.
 #    To view a copy of this license, visit http://creativecommons.org
 
 """
@@ -141,10 +141,10 @@ from openbibledata_rust import (
 )
 
 
-LAST_MODIFIED_DATE = '2026-09-17' # by RJH
+LAST_MODIFIED_DATE = '2026-10-01' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
-PROGRAM_VERSION = '1.0.10'
+PROGRAM_VERSION = '1.0.11'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -378,6 +378,9 @@ def checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool:
     if segmentOnly:
         return True
 
+    assert htmlToCheck.count( ' id="Top"' ) == 1, f"{htmlToCheck.count(' id="Top"')} Tops"
+    assert htmlToCheck.count( ' id="Bottom"' ) <= 1, f"{htmlToCheck.count(' id="Bottom"')} Bottoms"
+
     # See if all our classes/styles exist in the stylesheet
     result = checkHtmlForMissingStyles( where, htmlToCheck )
     if where == 'TopIndex': # that's the final page that we build
@@ -434,7 +437,7 @@ def loadCSSStyles( lsStylesheetName:str ) -> dict[str,bool|list[str]]:
     """
     if lsStylesheetName in cachedStyleDicts:
         return cachedStyleDicts[lsStylesheetName]
-    
+
     dPrint( 'Info', DEBUGGING_THIS_MODULE, f"loadCSSStyles {lsStylesheetName=}" )
     with open( f'../htmlPages/{lsStylesheetName}' if 'pagefind' in lsStylesheetName else lsStylesheetName, 'rt', encoding='utf-8') as ssFile:
         lsStyleDict = defaultdict( list )
@@ -620,6 +623,30 @@ def do_OET_LV_HTMLcustomisations( where:str, OET_LV_html:str ) -> str:
     """
     return _rustDo_OET_LV_HTMLcustomisations( where, OET_LV_html )
 # end of html.do_OET_LV_HTMLcustomisations
+
+
+def do_GHT_HTMLcustomisations( where:str, GHT_html:str ) -> str:
+    """
+    Mark dative and genitive portions
+    """
+    searchIx = 0
+    while True:
+        startIx = GHT_html.find( 'to{', searchIx )
+        if startIx == -1: break
+        endIx = GHT_html.find( '}', startIx+3 )
+        GHT_html = f'{GHT_html[:startIx]}<span class="grkDat">{GHT_html[startIx:endIx]}</span>{GHT_html[endIx+1:]}'
+        searchIx = endIx + 27 # Aprox num of added chars
+
+    searchIx = 0
+    while True:
+        startIx = GHT_html.find( 'of{', searchIx )
+        if startIx == -1: break
+        endIx = GHT_html.find( '}', startIx+3 )
+        GHT_html = f'{GHT_html[:startIx]}<span class="grkGen">{GHT_html[startIx:endIx]}</span>{GHT_html[endIx+1:]}'
+        searchIx = endIx + 27 # Aprox num of added chars
+
+    return GHT_html
+# end of html.do_GHT_HTMLcustomisations
 
 
 def do_LSV_HTMLcustomisations( where:str, LSV_html:str ) -> str:
