@@ -36,6 +36,7 @@ CHANGELOG:
     2026-05-30 Added Scriptura Layer-by-layer 'close-but-clear-translations'
     2026-09-04 Added a separate program version number string in State (to make it easier to increment)
     2026-09-24 Added RV-only and LV-only warnings
+    2026-10-01 Added GHT
 """
 from pathlib import Path
 
@@ -60,7 +61,7 @@ class State:
     SITE_ABBREVIATION = 'OBD'
     SITE_COPYRIGHT = "copyright © 2023–2026"
 
-    OBD_VERSION_NUMBER_STRING = 'v2.5.1' # Incremented after most updates to OBD web page generation code
+    OBD_VERSION_NUMBER_STRING = 'v2.6.0' # Incremented after most updates to OBD web page generation code
     OET_VERSION_NUMBER_STRING = 'v0.48.85' # Incremented on most runs when there's been changes or updates to the text of the OET-RV or OET-LV
 
     TEST_MODE_FLAG = True # Writes smaller website subset into DEBUG_DESTINATION_FOLDER_PATH if True
@@ -129,7 +130,7 @@ class State:
     ALTERNATIVE_VERSION = 'WEBBE' # Should be a version with all books present
 
     VERSIONS_WITHOUT_NT = ['UHB','JPS', 'BrLXX','BrTr']
-    VERSIONS_WITHOUT_OT = ['BLB','AICNT','TCNT','TNT','Wymth', 'SR-GNT','UGNT','SBL-GNT','RP-GNT','TC-GNT']
+    VERSIONS_WITHOUT_OT = ['GHT','BLB','AICNT','TCNT','TNT','Wymth', 'SR-GNT','UGNT','SBL-GNT','RP-GNT','TC-GNT']
     VERSIONS_WITH_APOCRYPHA = ( 'OET-RV', 'WEBBE','WEBBM', 'DRA', 'RV', 'KJB-1769','KJB-1611', 'Wycl', 'BrLXX','BrTr' )
     ENGLISH_VERSIONS_WITH_MODERNISED_TEXT = ( 'RV', 'KJB-1769','KJB-1611', 'Bshps','Gnva','Cvdl', 'TNT','Wycl' )
 
@@ -171,7 +172,7 @@ class State:
     #           and 'SOTN' is not included
     BibleVersions = ['OET',
         'OET-RV','OET-LV',
-        'AHB', 'SLBL', 'ULT','UST', 'NET', # We move NET up nearer the top for TEST_MODE_FLAG
+        'AHB', 'SLBL', 'GHT', 'ULT','UST', 'NET', # We move NET up nearer the top for TEST_MODE_FLAG
         'BSB','MSB','BLB',
         'AICNT','OEB','ISV','CSB','NLT',
         'NIV','CEV','ESV','NASB','LSB',
@@ -187,7 +188,7 @@ class State:
         ] if TEST_MODE_FLAG else \
         ['OET',
         'OET-RV','OET-LV',
-        'AHB', 'SLBL', 'ULT','UST',
+        'AHB', 'SLBL', 'GHT', 'ULT','UST',
         'BSB','MSB','BLB',
         'AICNT','OEB','ISV','CSB','NLT',
         'NIV','CEV','ESV','NASB','LSB',
@@ -216,7 +217,7 @@ class State:
 
     # NOTE: We don't display the versionsWithoutTheirOwnPages, so don't need/allow decorations for them
     BibleVersionDecorations = { 'OET':('<b>','</b>'),'OET-RV':('<b>','</b>'),'OET-LV':('<b>','</b>'),
-        'ULT':('',''),'UST':('',''),
+        'GHT':('',''), 'ULT':('',''),'UST':('',''),
         'BSB':('',''),'MSB':('<small>','</small>'),'BLB':('',''),
         'AICNT':('',''), 'OEB':('',''), 'ISV':('',''),
         'WEBBE':('',''),'WMBB':('',''), 'NET':('',''), 'LSV':('',''), 'FBV':('',''), 'TCNT':('<small>','</small>'), 'T4T':('',''),'LEB':('',''),'BBE':('',''),
@@ -244,6 +245,7 @@ class State:
         'UHB': '../copiedBibles/Original/unfoldingWord.org/UHB/',
         # NOTE: The program will still run if some of these below are commented out or removed
         # (e.g., this can be done quickly for a faster test run)
+        'GHT': '../../Forked/ght-formats/ght_usfm/',
         'ULT': '../copiedBibles/English/unfoldingWord.org/ULT/',
         'UST': '../copiedBibles/English/unfoldingWord.org/UST/',
         # 'BSB': '../copiedBibles/English/Berean.Bible/BSB/bsb_tables.exported.modified.tsv',
@@ -318,6 +320,7 @@ class State:
         'OET': 'Open English Translation (2030)',
         'OET-RV': 'Open English Translation—Readers’ Version (2030)',
         'OET-LV': 'Open English Translation—Literal Version (2026)',
+        'GHT': 'Garth’s Hyper-literal Translation (2025)',
         'ULT': 'unfoldingWord® Literal Text (2023)',
         'UST': 'unfoldingWord® Simplified Text (2023)',
         'BSB': 'Berean Study/Standard Bible (v3, 2025)',
@@ -400,6 +403,7 @@ class State:
         'OET': 'EN-UK',
         'OET-RV': 'EN-UK',
         'OET-LV': 'EN-UK',
+        'GHT': 'EN-USA',
         'ULT': 'EN-USA',
         'UST': 'EN-USA',
         'BSB': 'EN-USA',
@@ -481,6 +485,7 @@ class State:
         'OET': OET_RV_BOOK_LIST,
         'OET-RV': ['ALL'], # Load ALL coz we use related sections anyway OET_RV_BOOK_LIST,
         'OET-LV': OET_LV_BOOK_LIST,
+        'GHT': ['ALL'],
         'ULT': ['ALL'],
         'UST': ['ALL'], # MRK 13:13 gives \\add error (24Jan2023)
         'BSB': ['ALL'],
@@ -554,6 +559,7 @@ class State:
         'OET': TEST_BOOK_LIST,
         'OET-RV': TEST_BOOK_LIST, #['ALL'], # Load ALL coz we use related sections anyway
         'OET-LV': TEST_BOOK_LIST,
+        'GHT': TEST_NT_BOOK_LIST,
         'ULT': TEST_BOOK_LIST,
         'UST': TEST_BOOK_LIST, # Has no FRT for some reason
         'BSB': TEST_BOOK_LIST,
@@ -649,6 +655,10 @@ We are very grateful to Dr. Alan Bunning of the <a href="https://GreekCNTR.org">
 The Old Testament Hebrew text (and the morphology analysis) is adapted from the work of the <a href="https://hb.OpenScriptures.org/">Open Scriptures Hebrew Bible</a> team.
 We’re also grateful to the <a href="https://www.Biblica.com/clear/">Biblica Clear Bible team</a> who provide the pronoun referential information as part of their <a href="https://GitHub.com/Clear-Bible/macula-greek">Macula Greek</a> project and also some of the OT glosses as part of their <a href="https://GitHub.com/Clear-Bible/macula-hebrew">Macula Hebrew</a> project.</p>''',
                 'notes' : '''<p class="note">Note that the <em>OET-LV</em> is VERY literal (even including Hebrew and Greek words that are not normally translated into English) because it’s designed to be used in conjunction with our <em>Readers’ Version</em>.</p><!--note-->''' },
+        'GHT': {'about': '<p class="about">Garth’s Hyper-literal Translation (2025).</p>',
+                'copyright': '<p class="copyright">None claimed. Public domain.</p>',
+                'licence': '<p class="licence">Public domain. No licence required.</p>',
+                'acknowledgements': '<p class="acknwldg">Thanks to <a href="https://www.WiebeFamily.org/interest.htm">Garth Wiebe</a> for creating this hyper-literal New Testament translation to be ‘faithful to the original Greek text’, and for placing it into the public domain for easy access and use. Also to son, <a href="https://ghukek.com/ght.html">Nathan</a> for making it available in <a href="https://github.com/Ghukek/ght-formats">USFM format<a/>.</p>' },
         'ULT': {'about': '<p class="about">unfoldingWord® Literal Text (2023), originally derived from the 1901 ASV.</p>',
                 'copyright': '<p class="copyright">Copyright © 2023 by unfoldingWord.</p>',
                 'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
@@ -658,7 +668,7 @@ We’re also grateful to the <a href="https://www.Biblica.com/clear/">Biblica Cl
                 'licence': '<p class="licence"><a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>',
                 'acknowledgements': '<p class="acknwldg">Thanks to <a href="https://www.unfoldingword.org/">unfoldingWord</a> for creating this specialised Bible translation which is designed to be a tool for Bible translators.</p>' },
         'BSB': {'about': '<p class="about">Berean Standard Bible (Version 3, 2025).</p>',
-                'copyright': '<p class="copyright"><a href="https://berean.bible/terms.htm">Public domain</a>.</p>',
+                'copyright': '<p class="copyright"><a href="https://berean.bible/terms.htm">None claimed. Public domain</a>.</p>',
                 'licence': '<p class="licence"><a href="https://creativecommons.org/publicdomain/zero/1.0/">CC0</a> licence. All uses are freely permitted.</p>',
                 'acknowledgements': '<p class="acknwldg">Thanks to John Isett and <a href="https://BibleHub.com/">BibleHub</a> for the <a href="https://berean.bible/">BSB</a>.</p>',
                 'notes': '<p class="note">According to Dr. Gray Hill, the BSB (originally called ‘The Berean Study Bible’) is intentionally designed <a href="https://www.youtube.com/watch?v=qX-2IMNzUbE">to preserve past traditions</a>. (Full video <a href="https://www.youtube.com/watch?v=hKooIYSq8Ys">here</a>.)</p><!--note-->' },
@@ -805,7 +815,7 @@ However, Moffat wasn’t just a <em>follow the crowd</em> person, so he’s like
                 'acknowledgements': '<p class="acknwldg">(coming).</p>' },
         'Wymth': {'about': '<p class="about">Weymouth New Testament (1903). Also known as “The New Testament in Modern Speech” or “The Modern Speech New Testament”.</p>',
                 'copyright': '<p class="copyright">Copyright © 1903.</p>',
-                'licence': '<p class="licence">Copyright expired. Public domain.</p>',
+                'licence': '<p class="licence">Copyright expired. Public domain. No licence required.</p>',
                 'acknowledgements': '''<p class="acknwldg">Thanks to Richard Weymouth for his work 120 years ago to bring English Bible translations back to the modern English of the time—the end of the 19th century and start of the 20th.
 (Our own <a href="https://OpenEnglishTranslation.Bible">Open English Translation</a> continues this concept, but now into the 21st century.)</p>''',
                 'notes': '''<p class="note">See <a href="https://en.wikipedia.org/wiki/Weymouth_New_Testament">Wikipedia</a> and <a href="https://www.bible-researcher.com/weymouth.html">here</a>.</p>''' },
