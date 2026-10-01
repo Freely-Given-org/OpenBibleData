@@ -9,7 +9,7 @@
 #
 # Copyright (C) 2023-2026 Robert Hunt
 # Author: Robert Hunt <Freely.Given.org+OBD@gmail.com>
-# This source code is marked with CC0 1.0 Universal. 
+# This source code is marked with CC0 1.0 Universal.
 #    To view a copy of this license, visit http://creativecommons.org
 
 """
@@ -128,6 +128,7 @@ OTLemmaGlossesDict/OTLemmaGlossesCountDict are now populated during
                 imports six of the OSHB_* dicts, but the Rust module embeds its own copies.
     2026-09-11  Changed formatting of nomina sacra span
     2026-09-15 ESFM word-link livening is now fused (single-pass) into openbibledata_rust.convertVerseEntryListToHtml via its new livenWordLinks kwarg, so the old livenOETWordLinks pre-calls in get_OET_LV_verse_HTML/get_OET_RV_verse_HTML have been removed.
+    2026-09-30 Sort all Heb & Grk word & lemma index pages (again???)
   """
 from pathlib import Path
 import os
@@ -159,10 +160,10 @@ import openbibledata_rust
 from openbibledata_rust import convertVerseEntryListToHtml, getOETTidyBBB, getOETBookName, getHebrewWordpageFilename, getGreekWordpageFilename, formatNTSpansGlossWords, convertHebrewWordGlossSpans, tidyHebrewMorphology, tidyHebrewLemmaGloss, tidyGlossOfGreekWord, tidyGreekLemmaGloss, livenStrongsRefs
 
 
-LAST_MODIFIED_DATE = '2026-09-11' # by RJH
+LAST_MODIFIED_DATE = '2026-09-30' # by RJH
 SHORT_PROGRAM_NAME = "createOETReferencePages"
 PROGRAM_NAME = "OpenBibleData createOETReferencePages functions"
-PROGRAM_VERSION = '1.0.5'
+PROGRAM_VERSION = '1.0.6'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -1715,6 +1716,7 @@ def create_Hebrew_word_pages( level:int, outputFolderPath:Path, state:State ) ->
     top = makeTop( level, None, 'wordIndex', None, state ) \
             .replace( '__TITLE__', f"Hebrew Words Index{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, Hebrew, words' )
+    wordLinksForIndex.sort(key=lambda x: x.split('>')[1].split('<')[0])
     indexText = ' '.join( wordLinksForIndex )
     indexHtml = f'''{top}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
 <p class="note"><b><a href="../">Reference lists contents page</a></b></p>
@@ -2634,6 +2636,7 @@ def create_Hebrew_lemma_pages( level:int, outputFolderPath:Path, state:State ) -
     top = makeTop( level, None, 'lemmaIndex', None, state ) \
             .replace( '__TITLE__', f"Hebrew Lemma Index{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, Hebrew, lemmas' )
+    lemmaLinks.sort(key=lambda x: x.split('>')[1].split('<')[0])
     indexText = ' '.join( lemmaLinks )
     indexHtml = f'''{top}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
 <p class="note"><b><a href="../">Reference lists contents page</a></b></p>
@@ -2947,6 +2950,7 @@ def create_Greek_word_pages( level:int, outputFolderPath:Path, state:State ) -> 
     top = makeTop( level, None, 'wordIndex', None, state ) \
             .replace( '__TITLE__', f"Greek Words Index{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, Greek, words' )
+    wordLinksForIndex.sort(key=lambda x: x.split('>')[1].split('<')[0])
     indexText = ' '.join( wordLinksForIndex )
     indexHtml = f'''{top}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
 <p class="note"><b><a href="../">Reference lists contents page</a></b></p>
