@@ -129,6 +129,7 @@ OTLemmaGlossesDict/OTLemmaGlossesCountDict are now populated during
     2026-09-11  Changed formatting of nomina sacra span
     2026-09-15 ESFM word-link livening is now fused (single-pass) into openbibledata_rust.convertVerseEntryListToHtml via its new livenWordLinks kwarg, so the old livenOETWordLinks pre-calls in get_OET_LV_verse_HTML/get_OET_RV_verse_HTML have been removed.
     2026-09-30 Sort all Heb & Grk word & lemma index pages (again???)
+    2026-10-01 Ensure that all index pages dispay at #Top
   """
 from pathlib import Path
 import os
@@ -160,10 +161,10 @@ import openbibledata_rust
 from openbibledata_rust import convertVerseEntryListToHtml, getOETTidyBBB, getOETBookName, getHebrewWordpageFilename, getGreekWordpageFilename, formatNTSpansGlossWords, convertHebrewWordGlossSpans, tidyHebrewMorphology, tidyHebrewLemmaGloss, tidyGlossOfGreekWord, tidyGreekLemmaGloss, livenStrongsRefs
 
 
-LAST_MODIFIED_DATE = '2026-09-30' # by RJH
+LAST_MODIFIED_DATE = '2026-10-01' # by RJH
 SHORT_PROGRAM_NAME = "createOETReferencePages"
 PROGRAM_NAME = "OpenBibleData createOETReferencePages functions"
-PROGRAM_VERSION = '1.0.6'
+PROGRAM_VERSION = '1.0.7'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -948,15 +949,15 @@ def createOETReferencePages( level:int, outputFolderPath:Path, state:State ) -> 
     indexHtml = f'''{top}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
 <h1 id="Top">Reference lists main contents page</h1>
 <h2>{state.SITE_NAME}</h2>
-<p class="note"><a href="HebWrd/">Hebrew words index</a> <a href="HebWrd/transIndex.htm">Transliterated Hebrew words index</a></p>
-<p class="note"><a href="HebLem/">Hebrew lemmas index</a> <a href="HebLem/transIndex.htm">Transliterated Hebrew lemmas index</a></p>
-<p class="note"><a href="HebStrng/">Hebrew Strongs numbers index</a> <a href="UHG/">Hebrew grammar index</a></p>
-<p class="note"><a href="GrkWrd/">Greek words index</a> <a href="GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
-<p class="note"><a href="GrkLem/">Greek lemmas index</a> <a href="GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
-<p class="note"><a href="GrkStrng/">Greek Strongs numbers index</a> <a href="UGG/">Greek grammar index</a></p>
-<p class="note"><a href="Per/importantPeopleAlphabeticalIndex.htm">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm">Important people chronological index</a> <a href="Per/">All people index</a> <a href="Loc/">Locations index</a></p>
-<p class="note"><a href="Kingdoms/">Promised land kingdoms index</a></p>
-<p class="note"><a href="Stats/">Bible statistics</a></p>
+<p class="note"><a href="HebWrd/index.htm#Top">Hebrew words index</a> <a href="HebWrd/transIndex.htm#Top">Transliterated Hebrew words index</a></p>
+<p class="note"><a href="HebLem/index.htm#Top">Hebrew lemmas index</a> <a href="HebLem/transIndex.htm#Top">Transliterated Hebrew lemmas index</a></p>
+<p class="note"><a href="HebStrng/index.htm#Top">Hebrew Strongs numbers index</a> <a href="UHG/index.htm#Top">Hebrew grammar index</a></p>
+<p class="note"><a href="GrkWrd/index.htm#Top">Greek words index</a> <a href="GrkWrd/transIndex.htm#Top">Transliterated Greek words index</a></p>
+<p class="note"><a href="GrkLem/index.htm#Top">Greek lemmas index</a> <a href="GrkLem/transIndex.htm#Top">Transliterated Greek lemmas index</a></p>
+<p class="note"><a href="GrkStrng/index.htm#Top">Greek Strongs numbers index</a> <a href="UGG/index.htm#Top">Greek grammar index</a></p>
+<p class="note"><a href="Per/importantPeopleAlphabeticalIndex.htm#Top">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm#Top">Important people chronological index</a> <a href="Per/index.htm#Top">All people index</a> <a href="Loc/index.htm#Top">Locations index</a></p>
+<p class="note"><a href="Kingdoms/index.htm#Top">Promised land kingdoms index</a></p>
+<p class="note"><a href="Stats/index.htm#Top">Bible statistics</a></p>
 {makeBottom( level, None, 'referenceIndex' )}'''
     assert checkHtml( 'referenceIndex', indexHtml )
     assert not filepath.is_file() # Check that we're not overwriting anything
@@ -1719,16 +1720,16 @@ def create_Hebrew_word_pages( level:int, outputFolderPath:Path, state:State ) ->
     wordLinksForIndex.sort(key=lambda x: x.split('>')[1].split('<')[0])
     indexText = ' '.join( wordLinksForIndex )
     indexHtml = f'''{top}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
-<p class="note"><b><a href="../">Reference lists contents page</a></b></p>
-<p class="note"><span class="selectedBook">Hebrew words index</span> <a href="transIndex.htm">Transliterated Hebrew words index</a></p>
-<p class="note"><a href="../HebLem/">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm">Transliterated Hebrew lemmas index</a></p>
-<p class="note"><a href="../HebStrng/">Hebrew Strongs numbers index</a> <a href="../UHG/">Hebrew grammar index</a></p>
-<p class="note"><a href="../GrkWrd/">Greek words index</a> <a href="../GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
-<p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
-<p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a> <a href="../UGG/">Greek grammar index</a></p>
-<p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm">Important people chronological index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
-<p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
-<p class="note"><a href="../Stats/">Bible statistics</a></p>
+<p class="note"><b><a href="../index.htm#Top">Reference lists contents page</a></b></p>
+<p class="note"><span class="selectedBook">Hebrew words index</span> <a href="transIndex.htm#Top">Transliterated Hebrew words index</a></p>
+<p class="note"><a href="../HebLem/index.htm#Top">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm#Top">Transliterated Hebrew lemmas index</a></p>
+<p class="note"><a href="../HebStrng/index.htm#Top">Hebrew Strongs numbers index</a> <a href="../UHG/index.htm#Top">Hebrew grammar index</a></p>
+<p class="note"><a href="../GrkWrd/index.htm#Top">Greek words index</a> <a href="../GrkWrd/transIndex.htm#Top">Transliterated Greek words index</a></p>
+<p class="note"><a href="../GrkLem/index.htm#Top">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm#Top">Transliterated Greek lemmas index</a></p>
+<p class="note"><a href="../GrkStrng/index.htm#Top">Greek Strongs numbers index</a> <a href="../UGG/index.htm#Top">Greek grammar index</a></p>
+<p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm#Top">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm#Top">Important people chronological index</a> <a href="../Per/index.htm#Top">All people index</a> <a href="../Loc/index.htm#Top">Locations index</a></p>
+<p class="note"><a href="../Kingdoms/index.htm#Top">Promised land kingdoms index</a></p>
+<p class="note"><a href="../Stats/index.htm#Top">Bible statistics</a></p>
 <h1 id="Top">Hebrew Words Index ({len(wordLinksForIndex):,})</h1>
 <p class="note">{indexText}</p>
 {makeBottom( level, None, 'wordIndex' )}'''
@@ -1745,16 +1746,16 @@ def create_Hebrew_word_pages( level:int, outputFolderPath:Path, state:State ) ->
             .replace( '__KEYWORDS__', 'Bible, Hebrew, words, transliterated' )
     indexText = transliterate_Hebrew( indexText )
     indexHtml = f'''{top}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
-<p class="note"><b><a href="../">Reference lists contents page</a></b></p>
+<p class="note"><b><a href="../index.htm#Top">Reference lists contents page</a></b></p>
 <p class="note"><a href="index.htm">Hebrew words index</a> <span class="selectedBook">Transliterated Hebrew words index</span></p>
-<p class="note"><a href="../HebLem/">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm">Transliterated Hebrew lemmas index</a></p>
-<p class="note"><a href="../HebStrng/">Hebrew Strongs numbers index</a> <a href="../UHG/">Hebrew grammar index</a></p>
-<p class="note"><a href="../GrkWrd/">Greek words index</a> <a href="../GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
-<p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
-<p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a> <a href="../UGG/">Greek grammar index</a></p>
-<p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm">Important people chronological index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
-<p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
-<p class="note"><a href="../Stats/">Bible statistics</a></p>
+<p class="note"><a href="../HebLem/index.htm#Top">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm#Top">Transliterated Hebrew lemmas index</a></p>
+<p class="note"><a href="../HebStrng/index.htm#Top">Hebrew Strongs numbers index</a> <a href="../UHG/index.htm#Top">Hebrew grammar index</a></p>
+<p class="note"><a href="../GrkWrd/index.htm#Top">Greek words index</a> <a href="../GrkWrd/transIndex.htm#Top">Transliterated Greek words index</a></p>
+<p class="note"><a href="../GrkLem/index.htm#Top">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm#Top">Transliterated Greek lemmas index</a></p>
+<p class="note"><a href="../GrkStrng/index.htm#Top">Greek Strongs numbers index</a> <a href="../UGG/index.htm#Top">Greek grammar index</a></p>
+<p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm#Top">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm#Top">Important people chronological index</a> <a href="../Per/index.htm#Top">All people index</a> <a href="../Loc/index.htm#Top">Locations index</a></p>
+<p class="note"><a href="../Kingdoms/index.htm#Top">Promised land kingdoms index</a></p>
+<p class="note"><a href="../Stats/index.htm#Top">Bible statistics</a></p>
 <h1 id="Top">Transliterated Hebrew Words Index ({len(wordLinksForIndex):,})</h1>
 <p class="note">{indexText}</p>
 {makeBottom( level, None, 'wordIndex' )}'''
@@ -2639,16 +2640,16 @@ def create_Hebrew_lemma_pages( level:int, outputFolderPath:Path, state:State ) -
     lemmaLinks.sort(key=lambda x: x.split('>')[1].split('<')[0])
     indexText = ' '.join( lemmaLinks )
     indexHtml = f'''{top}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
-<p class="note"><b><a href="../">Reference lists contents page</a></b></p>
-<p class="note"><a href="../HebWrd/">Hebrew words index</a> <a href="../HebWrd/transIndex.htm">Transliterated Hebrew words index</a></p>
-<p class="note"><span class="selectedBook">Hebrew lemmas index</span> <a href="transIndex.htm">Transliterated Hebrew lemmas index</a></p>
-<p class="note"><a href="../HebStrng/">Hebrew Strongs numbers index</a> <a href="../UHG/">Hebrew grammar index</a></p>
-<p class="note"><a href="../GrkWrd/">Greek words index</a> <a href="../GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
-<p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
-<p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a> <a href="../UGG/">Greek grammar index</a></p>
-<p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm">Important people chronological index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
-<p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
-<p class="note"><a href="../Stats/">Bible statistics</a></p>
+<p class="note"><b><a href="../index.htm#Top">Reference lists contents page</a></b></p>
+<p class="note"><a href="../HebWrd/index.htm#Top">Hebrew words index</a> <a href="../HebWrd/transIndex.htm#Top">Transliterated Hebrew words index</a></p>
+<p class="note"><span class="selectedBook">Hebrew lemmas index</span> <a href="transIndex.htm#Top">Transliterated Hebrew lemmas index</a></p>
+<p class="note"><a href="../HebStrng/index.htm#Top">Hebrew Strongs numbers index</a> <a href="../UHG/index.htm#Top">Hebrew grammar index</a></p>
+<p class="note"><a href="../GrkWrd/index.htm#Top">Greek words index</a> <a href="../GrkWrd/transIndex.htm#Top">Transliterated Greek words index</a></p>
+<p class="note"><a href="../GrkLem/index.htm#Top">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm#Top">Transliterated Greek lemmas index</a></p>
+<p class="note"><a href="../GrkStrng/index.htm#Top">Greek Strongs numbers index</a> <a href="../UGG/index.htm#Top">Greek grammar index</a></p>
+<p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm#Top">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm#Top">Important people chronological index</a> <a href="../Per/index.htm#Top">All people index</a> <a href="../Loc/index.htm#Top">Locations index</a></p>
+<p class="note"><a href="../Kingdoms/index.htm#Top">Promised land kingdoms index</a></p>
+<p class="note"><a href="../Stats/index.htm#Top">Bible statistics</a></p>
 <h1 id="Top">Hebrew Lemmas Index ({len(lemmaLinks):,})</h1>
 <p class="note">{indexText}</p>
 {makeBottom( level, None, 'lemmaIndex' )}'''
@@ -2666,16 +2667,16 @@ def create_Hebrew_lemma_pages( level:int, outputFolderPath:Path, state:State ) -
             .replace( '__KEYWORDS__', 'Bible, Hebrew, lemmas' )
     indexText = transliterate_Hebrew( indexText )
     indexHtml = f'''{top}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
-<p class="note"><b><a href="../">Reference lists contents page</a></b></p>
-<p class="note"><a href="../HebWrd/">Hebrew words index</a> <a href="../HebWrd/transIndex.htm">Transliterated Hebrew words index</a></p>
+<p class="note"><b><a href="../index.htm#Top">Reference lists contents page</a></b></p>
+<p class="note"><a href="../HebWrd/index.htm#Top">Hebrew words index</a> <a href="../HebWrd/transIndex.htm#Top">Transliterated Hebrew words index</a></p>
 <p class="note"><a href="index.htm">Hebrew lemmas index</a> <span class="selectedBook">Transliterated Hebrew lemmas index</span></p>
-<p class="note"><a href="../HebStrng/">Hebrew Strongs numbers index</a> <a href="../UHG/">Hebrew grammar index</a></p>
-<p class="note"><a href="../GrkWrd/">Greek words index</a> <a href="../GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
-<p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
-<p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a> <a href="../UGG/">Greek grammar index</a></p>
-<p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm">Important people chronological index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
-<p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
-<p class="note"><a href="../Stats/">Bible statistics</a></p>
+<p class="note"><a href="../HebStrng/index.htm#Top">Hebrew Strongs numbers index</a> <a href="../UHG/index.htm#Top">Hebrew grammar index</a></p>
+<p class="note"><a href="../GrkWrd/index.htm#Top">Greek words index</a> <a href="../GrkWrd/transIndex.htm#Top">Transliterated Greek words index</a></p>
+<p class="note"><a href="../GrkLem/index.htm#Top">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm#Top">Transliterated Greek lemmas index</a></p>
+<p class="note"><a href="../GrkStrng/index.htm#Top">Greek Strongs numbers index</a> <a href="../UGG/index.htm#Top">Greek grammar index</a></p>
+<p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm#Top">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm#Top">Important people chronological index</a> <a href="../Per/index.htm#Top">All people index</a> <a href="../Loc/index.htm#Top">Locations index</a></p>
+<p class="note"><a href="../Kingdoms/index.htm#Top">Promised land kingdoms index</a></p>
+<p class="note"><a href="../Stats/index.htm#Top">Bible statistics</a></p>
 <h1 id="Top">Transliterated Hebrew Lemmas Index ({len(lemmaLinks):,})</h1>
 <p class="note">{indexText}</p>
 {makeBottom( level, None, 'lemmaIndex' )}'''
@@ -2953,16 +2954,16 @@ def create_Greek_word_pages( level:int, outputFolderPath:Path, state:State ) -> 
     wordLinksForIndex.sort(key=lambda x: x.split('>')[1].split('<')[0])
     indexText = ' '.join( wordLinksForIndex )
     indexHtml = f'''{top}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
-<p class="note"><b><a href="../">Reference lists contents page</a></b></p>
-<p class="note"><a href="../HebWrd/">Hebrew words index</a> <a href="../HebWrd/transIndex.htm">Transliterated Hebrew words index</a></p>
-<p class="note"><a href="../HebLem/">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm">Transliterated Hebrew lemmas index</a></p>
-<p class="note"><a href="../HebStrng/">Hebrew Strongs numbers index</a> <a href="../UHG/">Hebrew grammar index</a></p>
-<p class="note"><span class="selectedBook">Greek words index</span> <a href="transIndex.htm">Transliterated Greek words index</a></p>
-<p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
-<p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a> <a href="../UGG/">Greek grammar index</a></p>
-<p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm">Important people chronological index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
-<p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
-<p class="note"><a href="../Stats/">Bible statistics</a></p>
+<p class="note"><b><a href="../index.htm#Top">Reference lists contents page</a></b></p>
+<p class="note"><a href="../HebWrd/index.htm#Top">Hebrew words index</a> <a href="../HebWrd/transIndex.htm#Top">Transliterated Hebrew words index</a></p>
+<p class="note"><a href="../HebLem/index.htm#Top">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm#Top">Transliterated Hebrew lemmas index</a></p>
+<p class="note"><a href="../HebStrng/index.htm#Top">Hebrew Strongs numbers index</a> <a href="../UHG/index.htm#Top">Hebrew grammar index</a></p>
+<p class="note"><span class="selectedBook">Greek words index</span> <a href="transIndex.htm#Top">Transliterated Greek words index</a></p>
+<p class="note"><a href="../GrkLem/index.htm#Top">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm#Top">Transliterated Greek lemmas index</a></p>
+<p class="note"><a href="../GrkStrng/index.htm#Top">Greek Strongs numbers index</a> <a href="../UGG/index.htm#Top">Greek grammar index</a></p>
+<p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm#Top">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm#Top">Important people chronological index</a> <a href="../Per/index.htm#Top">All people index</a> <a href="../Loc/index.htm#Top">Locations index</a></p>
+<p class="note"><a href="../Kingdoms/index.htm#Top">Promised land kingdoms index</a></p>
+<p class="note"><a href="../Stats/index.htm#Top">Bible statistics</a></p>
 <h1 id="Top">Greek Words Index ({len(wordLinksForIndex):,})</h1>
 <p class="note">{indexText}</p>
 {makeBottom( level, None, 'wordIndex' )}'''
@@ -2980,16 +2981,16 @@ def create_Greek_word_pages( level:int, outputFolderPath:Path, state:State ) -> 
             .replace( '__KEYWORDS__', 'Bible, Greek, words, transliterated' )
     indexText = transliterate_Greek( indexText )
     indexHtml = f'''{top}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
-<p class="note"><b><a href="../">Reference lists contents page</a></b></p>
-<p class="note"><a href="../HebWrd/">Hebrew words index</a> <a href="../HebWrd/transIndex.htm">Transliterated Hebrew words index</a></p>
-<p class="note"><a href="../HebLem/">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm">Transliterated Hebrew lemmas index</a></p>
-<p class="note"><a href="../HebStrng/">Hebrew Strongs numbers index</a> <a href="../UHG/">Hebrew grammar index</a></p>
+<p class="note"><b><a href="../index.htm#Top">Reference lists contents page</a></b></p>
+<p class="note"><a href="../HebWrd/index.htm#Top">Hebrew words index</a> <a href="../HebWrd/transIndex.htm#Top">Transliterated Hebrew words index</a></p>
+<p class="note"><a href="../HebLem/index.htm#Top">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm#Top">Transliterated Hebrew lemmas index</a></p>
+<p class="note"><a href="../HebStrng/index.htm#Top">Hebrew Strongs numbers index</a> <a href="../UHG/index.htm#Top">Hebrew grammar index</a></p>
 <p class="note"><a href="index.htm">Greek words index</a> <span class="selectedBook">Transliterated Greek words index</span></p>
-<p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
-<p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a> <a href="../UGG/">Greek grammar index</a></p>
-<p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm">Important people chronological index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
-<p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
-<p class="note"><a href="../Stats/">Bible statistics</a></p>
+<p class="note"><a href="../GrkLem/index.htm#Top">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm#Top">Transliterated Greek lemmas index</a></p>
+<p class="note"><a href="../GrkStrng/index.htm#Top">Greek Strongs numbers index</a> <a href="../UGG/index.htm#Top">Greek grammar index</a></p>
+<p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm#Top">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm#Top">Important people chronological index</a> <a href="../Per/index.htm#Top">All people index</a> <a href="../Loc/index.htm#Top">Locations index</a></p>
+<p class="note"><a href="../Kingdoms/index.htm#Top">Promised land kingdoms index</a></p>
+<p class="note"><a href="../Stats/index.htm#Top">Bible statistics</a></p>
 <h1 id="Top">Transliterated Greek Words Index ({len(wordLinksForIndex):,})</h1>
 <p class="note">{indexText}</p>
 {makeBottom( level, None, 'wordIndex' )}'''
@@ -3445,16 +3446,16 @@ def create_Greek_lemma_pages( level:int, outputFolderPath:Path, state:State ) ->
             .replace( '__KEYWORDS__', 'Bible, Greek, lemmas' )
     indexText = ' '.join( lemmaLinks )
     indexHtml = f'''{top}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
-<p class="note"><b><a href="../">Reference lists contents page</a></b></p>
-<p class="note"><a href="../HebWrd/">Hebrew words index</a> <a href="../HebWrd/transIndex.htm">Transliterated Hebrew words index</a></p>
-<p class="note"><a href="../HebLem/">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm">Transliterated Hebrew lemmas index</a></p>
-<p class="note"><a href="../HebStrng/">Hebrew Strongs numbers index</a> <a href="../UHG/">Hebrew grammar index</a></p>
-<p class="note"><a href="../GrkWrd/">Greek words index</a> <a href="../GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
-<p class="note"><span class="selectedBook">Greek lemmas index</span> <a href="transIndex.htm">Transliterated Greek lemmas index</a></p>
-<p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a> <a href="../UGG/">Greek grammar index</a></p>
-<p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm">Important people chronological index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
-<p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
-<p class="note"><a href="../Stats/">Bible statistics</a></p>
+<p class="note"><b><a href="../index.htm#Top">Reference lists contents page</a></b></p>
+<p class="note"><a href="../HebWrd/index.htm#Top">Hebrew words index</a> <a href="../HebWrd/transIndex.htm#Top">Transliterated Hebrew words index</a></p>
+<p class="note"><a href="../HebLem/index.htm#Top">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm#Top">Transliterated Hebrew lemmas index</a></p>
+<p class="note"><a href="../HebStrng/index.htm#Top">Hebrew Strongs numbers index</a> <a href="../UHG/index.htm#Top">Hebrew grammar index</a></p>
+<p class="note"><a href="../GrkWrd/index.htm#Top">Greek words index</a> <a href="../GrkWrd/transIndex.htm#Top">Transliterated Greek words index</a></p>
+<p class="note"><span class="selectedBook">Greek lemmas index</span> <a href="transIndex.htm#Top">Transliterated Greek lemmas index</a></p>
+<p class="note"><a href="../GrkStrng/index.htm#Top">Greek Strongs numbers index</a> <a href="../UGG/index.htm#Top">Greek grammar index</a></p>
+<p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm#Top">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm#Top">Important people chronological index</a> <a href="../Per/index.htm#Top">All people index</a> <a href="../Loc/index.htm#Top">Locations index</a></p>
+<p class="note"><a href="../Kingdoms/index.htm#Top">Promised land kingdoms index</a></p>
+<p class="note"><a href="../Stats/index.htm#Top">Bible statistics</a></p>
 <h1 id="Top">Greek Lemmas Index ({len(lemmaLinks):,})</h1>
 <p class="note">{indexText}</p>
 {makeBottom( level, None, 'lemmaIndex' )}'''
@@ -3472,16 +3473,16 @@ def create_Greek_lemma_pages( level:int, outputFolderPath:Path, state:State ) ->
             .replace( '__KEYWORDS__', 'Bible, Greek, lemmas, transliterated' )
     indexText = transliterate_Greek( indexText)
     indexHtml = f'''{top}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
-<p class="note"><b><a href="../">Reference lists contents page</a></b></p>
-<p class="note"><a href="../HebWrd/">Hebrew words index</a> <a href="../HebWrd/transIndex.htm">Transliterated Hebrew words index</a></p>
-<p class="note"><a href="../HebLem/">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm">Transliterated Hebrew lemmas index</a></p>
-<p class="note"><a href="../HebStrng/">Hebrew Strongs numbers index</a> <a href="../UHG/">Hebrew grammar index</a></p>
-<p class="note"><a href="../GrkWrd/">Greek words index</a> <a href="../GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
+<p class="note"><b><a href="../index.htm#Top">Reference lists contents page</a></b></p>
+<p class="note"><a href="../HebWrd/index.htm#Top">Hebrew words index</a> <a href="../HebWrd/transIndex.htm#Top">Transliterated Hebrew words index</a></p>
+<p class="note"><a href="../HebLem/index.htm#Top">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm#Top">Transliterated Hebrew lemmas index</a></p>
+<p class="note"><a href="../HebStrng/index.htm#Top">Hebrew Strongs numbers index</a> <a href="../UHG/index.htm#Top">Hebrew grammar index</a></p>
+<p class="note"><a href="../GrkWrd/index.htm#Top">Greek words index</a> <a href="../GrkWrd/transIndex.htm#Top">Transliterated Greek words index</a></p>
 <p class="note"><a href="index.htm">Greek lemmas index</a> <span class="selectedBook">Transliterated Greek lemmas index</span></p>
-<p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a> <a href="../UGG/">Greek grammar index</a></p>
-<p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm">Important people chronological index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
-<p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
-<p class="note"><a href="../Stats/">Bible statistics</a></p>
+<p class="note"><a href="../GrkStrng/index.htm#Top">Greek Strongs numbers index</a> <a href="../UGG/index.htm#Top">Greek grammar index</a></p>
+<p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm#Top">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm#Top">Important people chronological index</a> <a href="../Per/index.htm#Top">All people index</a> <a href="../Loc/index.htm#Top">Locations index</a></p>
+<p class="note"><a href="../Kingdoms/index.htm#Top">Promised land kingdoms index</a></p>
+<p class="note"><a href="../Stats/index.htm#Top">Bible statistics</a></p>
 <h1 id="Top">Greek Lemmas Index ({len(lemmaLinks):,})</h1>
 <p class="note">{indexText}</p>
 {makeBottom( level, None, 'lemmaIndex' )}'''
@@ -3711,16 +3712,16 @@ def create_Hebrew_Strongs_page( level:int, strongsNumber:int, finalStrongsNumber
                 versesHtml.append( f'''\n<p class="vRef">{sBBB} {sC}:{sV}</p>{f'\n{sOET_LV_verse_HTML}' if sOET_LV_verse_HTML else ''}{f'\n{sOET_RV_verse_HTML}' if sOET_RV_verse_HTML else ''}''' )
 
     pageHtml = f'''{top}
-<p class="note"><b><a href="../">Reference lists contents page</a></b></p>
-<p class="note"><a href="../HebWrd/">Hebrew words index</a> <a href="../HebWrd/transIndex.htm">Transliterated Hebrew words index</a></p>
-<p class="note"><a href="../HebLem/">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm">Transliterated Hebrew lemmas index</a></p>
-<p class="note"><a href="../HebStrng/">Hebrew Strongs numbers index</a> <a href="../UHG/">Hebrew grammar index</a></p>
-<p class="note"><a href="../GrkWrd/">Greek words index</a> <a href="../GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
-<p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
-<p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a> <a href="../UGG/">Greek grammar index</a></p>
-<p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm">Important people chronological index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
-<p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
-<p class="note"><a href="../Stats/">Bible statistics index</a></p>
+<p class="note"><b><a href="../index.htm#Top">Reference lists contents page</a></b></p>
+<p class="note"><a href="../HebWrd/index.htm#Top">Hebrew words index</a> <a href="../HebWrd/transIndex.htm#Top">Transliterated Hebrew words index</a></p>
+<p class="note"><a href="../HebLem/index.htm#Top">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm#Top">Transliterated Hebrew lemmas index</a></p>
+<p class="note"><a href="../HebStrng/index.htm#Top">Hebrew Strongs numbers index</a> <a href="../UHG/index.htm#Top">Hebrew grammar index</a></p>
+<p class="note"><a href="../GrkWrd/index.htm#Top">Greek words index</a> <a href="../GrkWrd/transIndex.htm#Top">Transliterated Greek words index</a></p>
+<p class="note"><a href="../GrkLem/index.htm#Top">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm#Top">Transliterated Greek lemmas index</a></p>
+<p class="note"><a href="../GrkStrng/index.htm#Top">Greek Strongs numbers index</a> <a href="../UGG/index.htm#Top">Greek grammar index</a></p>
+<p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm#Top">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm#Top">Important people chronological index</a> <a href="../Per/index.htm#Top">All people index</a> <a href="../Loc/index.htm#Top">Locations index</a></p>
+<p class="note"><a href="../Kingdoms/index.htm#Top">Promised land kingdoms index</a></p>
+<p class="note"><a href="../Stats/index.htm#Top">Bible statistics index</a></p>
 <h1 id="Top">Strongs {strongsLetterNumberStr}</h1>
 <p class="pgNav">{prevLink}<b>{strongsLetterNumberStr}</b> <a title="Go to Hebrew Strongs index" href="index.htm">⌂</a>{nextLink}</p>
 <p class="btnBar"><button type="button" id="wordsButton" title="Hide/Show verse refs" onclick="hide_show_words()">Hide verse refs</button> <button type="button" id="versesButton" title="Hide/Show verse lines" onclick="hide_show_verses()">Hide verses</button> <button type="button" id="coloursButton" title="Hide/Show verse colours" onclick="hide_show_colours()">Hide verse colours</button></p>
@@ -3807,16 +3808,16 @@ def create_Hebrew_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:
             .replace( '__TITLE__', f"Strongs Hebrew Index{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, Strongs, Hebrew, index' )
     indexHtml = f'''{top}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
-<p class="note"><b><a href="../">Reference lists contents page</a></b></p>
-<p class="note"><a href="../HebWrd/">Hebrew words index</a> <a href="../HebWrd/transIndex.htm">Transliterated Hebrew words index</a></p>
-<p class="note"><a href="../HebLem/">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm">Transliterated Hebrew lemmas index</a></p>
-<p class="note"><span class="selectedBook">Hebrew Strongs numbers index</span> <a href="../UHG/">Hebrew grammar index</a></p>
-<p class="note"><a href="../GrkWrd/">Greek words index</a> <a href="../GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
-<p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
-<p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a> <a href="../UGG/">Greek grammar index</a></p>
-<p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm">Important people chronological index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
-<p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
-<p class="note"><a href="../Stats/">Bible statistics index</a></p>
+<p class="note"><b><a href="../index.htm#Top">Reference lists contents page</a></b></p>
+<p class="note"><a href="../HebWrd/index.htm#Top">Hebrew words index</a> <a href="../HebWrd/transIndex.htm#Top">Transliterated Hebrew words index</a></p>
+<p class="note"><a href="../HebLem/index.htm#Top">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm#Top">Transliterated Hebrew lemmas index</a></p>
+<p class="note"><span class="selectedBook">Hebrew Strongs numbers index</span> <a href="../UHG/index.htm#Top">Hebrew grammar index</a></p>
+<p class="note"><a href="../GrkWrd/index.htm#Top">Greek words index</a> <a href="../GrkWrd/transIndex.htm#Top">Transliterated Greek words index</a></p>
+<p class="note"><a href="../GrkLem/index.htm#Top">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm#Top">Transliterated Greek lemmas index</a></p>
+<p class="note"><a href="../GrkStrng/index.htm#Top">Greek Strongs numbers index</a> <a href="../UGG/index.htm#Top">Greek grammar index</a></p>
+<p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm#Top">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm#Top">Important people chronological index</a> <a href="../Per/index.htm#Top">All people index</a> <a href="../Loc/index.htm#Top">Locations index</a></p>
+<p class="note"><a href="../Kingdoms/index.htm#Top">Promised land kingdoms index</a></p>
+<p class="note"><a href="../Stats/index.htm#Top">Bible statistics index</a></p>
 <h1 id="Top">Strongs Hebrew Index ({len(indexList):,})</h1>
 <ul>{'\n'.join(indexList)}</ul>
 {makeBottom( level, None, 'StrongsIndex' )}'''
@@ -3884,16 +3885,16 @@ def create_Greek_Strongs_page( level:int, strongsNumber:int, finalStrongsNumber:
                 versesHtml.append( f'''\n<p class="vRef">{sBBB} {sC}:{sV}</p>{f'\n{sOET_LV_verse_HTML}' if sOET_LV_verse_HTML else ''}{f'\n{sOET_RV_verse_HTML}' if sOET_RV_verse_HTML else ''}''' )
 
     pageHtml = f'''{top}
-<p class="note"><b><a href="../">Reference lists contents page</a></b></p>
-<p class="note"><a href="../HebWrd/">Hebrew words index</a> <a href="../HebWrd/transIndex.htm">Transliterated Hebrew words index</a></p>
-<p class="note"><a href="../HebLem/">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm">Transliterated Hebrew lemmas index</a></p>
-<p class="note"><a href="../HebStrng/">Hebrew Strongs numbers index</a> <a href="../UHG/">Hebrew grammar index</a></p>
-<p class="note"><a href="../GrkWrd/">Greek words index</a> <a href="../GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
-<p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
-<p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a> <a href="../UGG/">Greek grammar index</a></p>
-<p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm">Important people chronological index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
-<p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
-<p class="note"><a href="../Stats/">Bible statistics index</a></p>
+<p class="note"><b><a href="../index.htm#Top">Reference lists contents page</a></b></p>
+<p class="note"><a href="../HebWrd/index.htm#Top">Hebrew words index</a> <a href="../HebWrd/transIndex.htm#Top">Transliterated Hebrew words index</a></p>
+<p class="note"><a href="../HebLem/index.htm#Top">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm#Top">Transliterated Hebrew lemmas index</a></p>
+<p class="note"><a href="../HebStrng/index.htm#Top">Hebrew Strongs numbers index</a> <a href="../UHG/index.htm#Top">Hebrew grammar index</a></p>
+<p class="note"><a href="../GrkWrd/index.htm#Top">Greek words index</a> <a href="../GrkWrd/transIndex.htm#Top">Transliterated Greek words index</a></p>
+<p class="note"><a href="../GrkLem/index.htm#Top">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm#Top">Transliterated Greek lemmas index</a></p>
+<p class="note"><a href="../GrkStrng/index.htm#Top">Greek Strongs numbers index</a> <a href="../UGG/index.htm#Top">Greek grammar index</a></p>
+<p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm#Top">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm#Top">Important people chronological index</a> <a href="../Per/index.htm#Top">All people index</a> <a href="../Loc/index.htm#Top">Locations index</a></p>
+<p class="note"><a href="../Kingdoms/index.htm#Top">Promised land kingdoms index</a></p>
+<p class="note"><a href="../Stats/index.htm#Top">Bible statistics index</a></p>
 <h1 id="Top">Strongs {strongsLetterNumberStr}</h1>
 <p class="pgNav">{prevLink}<b>{strongsLetterNumberStr}</b> <a title="Go to Greek Strongs index" href="index.htm">⌂</a>{nextLink}</p>
 <p class="btnBar"><button type="button" id="wordsButton" title="Hide/Show verse refs" onclick="hide_show_words()">Hide verse refs</button> <button type="button" id="versesButton" title="Hide/Show verse lines" onclick="hide_show_verses()">Hide verses</button> <button type="button" id="coloursButton" title="Hide/Show verse colours" onclick="hide_show_colours()">Hide verse colours</button></p>
@@ -3980,16 +3981,16 @@ def create_Greek_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:B
             .replace( '__TITLE__', f"Strongs Greek Index{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, Strongs, Greek, index' )
     indexHtml = f'''{top}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
-<p class="note"><b><a href="../">Reference lists contents page</a></b></p>
-<p class="note"><a href="../HebWrd/">Hebrew words index</a> <a href="../HebWrd/transIndex.htm">Transliterated Hebrew words index</a></p>
-<p class="note"><a href="../HebLem/">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm">Transliterated Hebrew lemmas index</a></p>
-<p class="note"><a href="../HebStrng/">Hebrew Strongs numbers index</a> <a href="../UHG/">Hebrew grammar index</a></p>
-<p class="note"><a href="../GrkWrd/">Greek words index</a> <a href="../GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
-<p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
-<p class="note"><span class="selectedBook">Greek Strongs numbers index</span> <a href="../UGG/">Greek grammar index</a></p>
-<p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm">Important people chronological index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
-<p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
-<p class="note"><a href="../Stats/">Bible statistics index</a></p>
+<p class="note"><b><a href="../index.htm#Top">Reference lists contents page</a></b></p>
+<p class="note"><a href="../HebWrd/index.htm#Top">Hebrew words index</a> <a href="../HebWrd/transIndex.htm#Top">Transliterated Hebrew words index</a></p>
+<p class="note"><a href="../HebLem/index.htm#Top">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm#Top">Transliterated Hebrew lemmas index</a></p>
+<p class="note"><a href="../HebStrng/index.htm#Top">Hebrew Strongs numbers index</a> <a href="../UHG/index.htm#Top">Hebrew grammar index</a></p>
+<p class="note"><a href="../GrkWrd/index.htm#Top">Greek words index</a> <a href="../GrkWrd/transIndex.htm#Top">Transliterated Greek words index</a></p>
+<p class="note"><a href="../GrkLem/index.htm#Top">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm#Top">Transliterated Greek lemmas index</a></p>
+<p class="note"><span class="selectedBook">Greek Strongs numbers index</span> <a href="../UGG/index.htm#Top">Greek grammar index</a></p>
+<p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm#Top">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm#Top">Important people chronological index</a> <a href="../Per/index.htm#Top">All people index</a> <a href="../Loc/index.htm#Top">Locations index</a></p>
+<p class="note"><a href="../Kingdoms/index.htm#Top">Promised land kingdoms index</a></p>
+<p class="note"><a href="../Stats/index.htm#Top">Bible statistics index</a></p>
 <h1 id="Top">Strongs Greek Index ({len(indexList):,})</h1>
 <ul>{'\n'.join(indexList)}</ul>
 {makeBottom( level, None, 'StrongsIndex' )}'''
@@ -4058,7 +4059,7 @@ def create_person_pages( level:int, outputFolderPath:Path, state:State ) -> int:
                                     .replace( '__TITLE__', f"{personName}{' TEST' if state.TEST_MODE_FLAG else ''}" )
                                     .replace( '__KEYWORDS__', 'Bible, word' )
                                     }
-<p class="prevNextLinks">{previousLink} <a title="Go to important people alphabetical index" href="importantPeopleAlphabeticalIndex.htm">IA</a> <a title="Go to important people chronological index" href="importantPeoplechronologicalIndex.htm">IC</a> <a title="Go to all people index" href="index.htm">⌂</a> {nextLink}</p>
+<p class="prevNextLinks">{previousLink} <a title="Go to important people alphabetical index" href="importantPeopleAlphabeticalIndex.htm#Top">IA</a> <a title="Go to important people chronological index" href="importantPeoplechronologicalIndex.htm#Top">IC</a> <a title="Go to all people index" href="index.htm">⌂</a> {nextLink}</p>
 {bodyHtml}
 <p class="thanks"><small>Grateful thanks to <a href="https://Viz.Bible">Viz.Bible</a> for these links and this data.</small></p>
 {makeBottom( level, None, 'person' )}'''
@@ -4076,16 +4077,16 @@ def create_person_pages( level:int, outputFolderPath:Path, state:State ) -> int:
             .replace( '__TITLE__', f"All Bible People Index{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, person, people' )
     indexHtml = f'''{top}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
-<p class="note"><b><a href="../">Reference lists contents page</a></b></p>
-<p class="note"><a href="../HebWrd/">Hebrew words index</a> <a href="../HebWrd/transIndex.htm">Transliterated Hebrew words index</a></p>
-<p class="note"><a href="../HebLem/">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm">Transliterated Hebrew lemmas index</a></p>
-<p class="note"><a href="../HebStrng/">Hebrew Strongs numbers index</a> <a href="../UHG/">Hebrew grammar index</a></p>
-<p class="note"><a href="../GrkWrd/">Greek words index</a> <a href="../GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
-<p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
-<p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a> <a href="../UGG/">Greek grammar index</a></p>
-<p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm">Important people chronological index</a> <span class="selectedBook">All people index</span> <a href="../Loc/">Locations index</a></p>
-<p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
-<p class="note"><a href="../Stats/">Bible statistics</a></p>
+<p class="note"><b><a href="../index.htm#Top">Reference lists contents page</a></b></p>
+<p class="note"><a href="../HebWrd/index.htm#Top">Hebrew words index</a> <a href="../HebWrd/transIndex.htm#Top">Transliterated Hebrew words index</a></p>
+<p class="note"><a href="../HebLem/index.htm#Top">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm#Top">Transliterated Hebrew lemmas index</a></p>
+<p class="note"><a href="../HebStrng/index.htm#Top">Hebrew Strongs numbers index</a> <a href="../UHG/index.htm#Top">Hebrew grammar index</a></p>
+<p class="note"><a href="../GrkWrd/index.htm#Top">Greek words index</a> <a href="../GrkWrd/transIndex.htm#Top">Transliterated Greek words index</a></p>
+<p class="note"><a href="../GrkLem/index.htm#Top">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm#Top">Transliterated Greek lemmas index</a></p>
+<p class="note"><a href="../GrkStrng/index.htm#Top">Greek Strongs numbers index</a> <a href="../UGG/index.htm#Top">Greek grammar index</a></p>
+<p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm#Top">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm#Top">Important people chronological index</a> <span class="selectedBook">All people index</span> <a href="../Loc/index.htm#Top">Locations index</a></p>
+<p class="note"><a href="../Kingdoms/index.htm#Top">Promised land kingdoms index</a></p>
+<p class="note"><a href="../Stats/index.htm#Top">Bible statistics</a></p>
 <h1 id="Top">All Bible People Index ({len(personLinks):,})</h1>
 <p class="note">{' '.join(personLinks)}</p>
 {makeBottom( level, None, 'personIndex' )}'''
@@ -4161,16 +4162,16 @@ def create_important_person_pages( level:int, outputFolderPath:Path, state:State
             .replace( '__TITLE__', f"Important Bible People Chronological Index{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, person, people' )
     indexHtml = f'''{top}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
-<p class="note"><b><a href="../">Reference lists contents page</a></b></p>
-<p class="note"><a href="../HebWrd/">Hebrew words index</a> <a href="../HebWrd/transIndex.htm">Transliterated Hebrew words index</a></p>
-<p class="note"><a href="../HebLem/">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm">Transliterated Hebrew lemmas index</a></p>
-<p class="note"><a href="../HebStrng/">Hebrew Strongs numbers index</a> <a href="../UHG/">Hebrew grammar index</a></p>
-<p class="note"><a href="../GrkWrd/">Greek words index</a> <a href="../GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
-<p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
-<p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a> <a href="../UGG/">Greek grammar index</a></p>
-<p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm">Important people alphabetical index</a> <span class="selectedBook">Important people chronological index</span> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
-<p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
-<p class="note"><a href="../Stats/">Bible statistics</a></p>
+<p class="note"><b><a href="../index.htm#Top">Reference lists contents page</a></b></p>
+<p class="note"><a href="../HebWrd/index.htm#Top">Hebrew words index</a> <a href="../HebWrd/transIndex.htm#Top">Transliterated Hebrew words index</a></p>
+<p class="note"><a href="../HebLem/index.htm#Top">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm#Top">Transliterated Hebrew lemmas index</a></p>
+<p class="note"><a href="../HebStrng/index.htm#Top">Hebrew Strongs numbers index</a> <a href="../UHG/index.htm#Top">Hebrew grammar index</a></p>
+<p class="note"><a href="../GrkWrd/index.htm#Top">Greek words index</a> <a href="../GrkWrd/transIndex.htm#Top">Transliterated Greek words index</a></p>
+<p class="note"><a href="../GrkLem/index.htm#Top">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm#Top">Transliterated Greek lemmas index</a></p>
+<p class="note"><a href="../GrkStrng/index.htm#Top">Greek Strongs numbers index</a> <a href="../UGG/index.htm#Top">Greek grammar index</a></p>
+<p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm#Top">Important people alphabetical index</a> <span class="selectedBook">Important people chronological index</span> <a href="../Per/index.htm#Top">All people index</a> <a href="../Loc/index.htm#Top">Locations index</a></p>
+<p class="note"><a href="../Kingdoms/index.htm#Top">Promised land kingdoms index</a></p>
+<p class="note"><a href="../Stats/index.htm#Top">Bible statistics</a></p>
 <h1 id="Top">Important Bible People Chronological Index ({len(IMPORTANT_PEOPLE_ALPHABETICAL_LIST):,})</h1>
 {'\n'.join(personLinksStrings)}
 {makeBottom( level, None, 'personIndex' )}'''
@@ -4222,16 +4223,16 @@ def create_important_person_pages( level:int, outputFolderPath:Path, state:State
             .replace( '__TITLE__', f"Important Bible People Alphabetical Index{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, person, people' )
     indexHtml = f'''{top}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
-<p class="note"><b><a href="../">Reference lists contents page</a></b></p>
-<p class="note"><a href="../HebWrd/">Hebrew words index</a> <a href="../HebWrd/transIndex.htm">Transliterated Hebrew words index</a></p>
-<p class="note"><a href="../HebLem/">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm">Transliterated Hebrew lemmas index</a></p>
-<p class="note"><a href="../HebStrng/">Hebrew Strongs numbers index</a> <a href="../UHG/">Hebrew grammar index</a></p>
-<p class="note"><a href="../GrkWrd/">Greek words index</a> <a href="../GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
-<p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
-<p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a> <a href="../UGG/">Greek grammar index</a></p>
-<p class="note"><span class="selectedBook">Important people alphabetical index</span> <a href="../Per/importantPeopleChronologicalIndex.htm">Important people chronological index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
-<p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
-<p class="note"><a href="../Stats/">Bible statistics</a></p>
+<p class="note"><b><a href="../index.htm#Top">Reference lists contents page</a></b></p>
+<p class="note"><a href="../HebWrd/index.htm#Top">Hebrew words index</a> <a href="../HebWrd/transIndex.htm#Top">Transliterated Hebrew words index</a></p>
+<p class="note"><a href="../HebLem/index.htm#Top">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm#Top">Transliterated Hebrew lemmas index</a></p>
+<p class="note"><a href="../HebStrng/index.htm#Top">Hebrew Strongs numbers index</a> <a href="../UHG/index.htm#Top">Hebrew grammar index</a></p>
+<p class="note"><a href="../GrkWrd/index.htm#Top">Greek words index</a> <a href="../GrkWrd/transIndex.htm#Top">Transliterated Greek words index</a></p>
+<p class="note"><a href="../GrkLem/index.htm#Top">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm#Top">Transliterated Greek lemmas index</a></p>
+<p class="note"><a href="../GrkStrng/index.htm#Top">Greek Strongs numbers index</a> <a href="../UGG/index.htm#Top">Greek grammar index</a></p>
+<p class="note"><span class="selectedBook">Important people alphabetical index</span> <a href="../Per/importantPeopleChronologicalIndex.htm#Top">Important people chronological index</a> <a href="../Per/index.htm#Top">All people index</a> <a href="../Loc/index.htm#Top">Locations index</a></p>
+<p class="note"><a href="../Kingdoms/index.htm#Top">Promised land kingdoms index</a></p>
+<p class="note"><a href="../Stats/index.htm#Top">Bible statistics</a></p>
 <h1 id="Top">Important Bible People Alphabetical Index ({len(IMPORTANT_PEOPLE_ALPHABETICAL_LIST):,})</h1>
 <p class="note">{personLinksString}</p>
 {makeBottom( level, None, 'personIndex' )}'''
@@ -4311,16 +4312,16 @@ def create_location_pages( level:int, outputFolderPath:Path, state:State ) -> in
             .replace( '__TITLE__', f"Bible Location Index{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, location, locations, place, places' )
     indexHtml = f'''{top}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
-<p class="note"><b><a href="../">Reference lists contents page</a></b></p>
-<p class="note"><a href="../HebWrd/">Hebrew words index</a> <a href="../HebWrd/transIndex.htm">Transliterated Hebrew words index</a></p>
-<p class="note"><a href="../HebLem/">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm">Transliterated Hebrew lemmas index</a></p>
-<p class="note"><a href="../HebStrng/">Hebrew Strongs numbers index</a> <a href="../UHG/">Hebrew grammar index</a></p>
-<p class="note"><a href="../GrkWrd/">Greek words index</a> <a href="../GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
-<p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
-<p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a> <a href="../UGG/">Greek grammar index</a></p>
-<p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm">Important people chronological index</a> <a href="../Per/">All people index</a> <span class="selectedBook">Locations index</span></p>
-<p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
-<p class="note"><a href="../Stats/">Bible statistics</a></p>
+<p class="note"><b><a href="../index.htm#Top">Reference lists contents page</a></b></p>
+<p class="note"><a href="../HebWrd/index.htm#Top">Hebrew words index</a> <a href="../HebWrd/transIndex.htm#Top">Transliterated Hebrew words index</a></p>
+<p class="note"><a href="../HebLem/index.htm#Top">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm#Top">Transliterated Hebrew lemmas index</a></p>
+<p class="note"><a href="../HebStrng/index.htm#Top">Hebrew Strongs numbers index</a> <a href="../UHG/index.htm#Top">Hebrew grammar index</a></p>
+<p class="note"><a href="../GrkWrd/index.htm#Top">Greek words index</a> <a href="../GrkWrd/transIndex.htm#Top">Transliterated Greek words index</a></p>
+<p class="note"><a href="../GrkLem/index.htm#Top">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm#Top">Transliterated Greek lemmas index</a></p>
+<p class="note"><a href="../GrkStrng/index.htm#Top">Greek Strongs numbers index</a> <a href="../UGG/index.htm#Top">Greek grammar index</a></p>
+<p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm#Top">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm#Top">Important people chronological index</a> <a href="../Per/index.htm#Top">All people index</a> <span class="selectedBook">Locations index</span></p>
+<p class="note"><a href="../Kingdoms/index.htm#Top">Promised land kingdoms index</a></p>
+<p class="note"><a href="../Stats/index.htm#Top">Bible statistics</a></p>
 <h1 id="Top">Bible Locations Index ({len(locationLinks):,})</h1>
 <p class="note">{' '.join(locationLinks)}</p>
 {makeBottom( level, None, 'locationIndex' )}'''
@@ -4427,16 +4428,16 @@ def create_statistics_pages( level:int, outputFolderPath:Path, state:State ) -> 
 </table>'''
 
     pageHtml = f'''{top}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
-<p class="note"><b><a href="../">Reference lists contents page</a></b></p>
-<p class="note"><a href="../HebWrd/">Hebrew words index</a> <a href="../HebWrd/transIndex.htm">Transliterated Hebrew words index</a></p>
-<p class="note"><a href="../HebLem/">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm">Transliterated Hebrew lemmas index</a></p>
-<p class="note"><a href="../HebStrng/">Hebrew Strongs numbers index</a> <a href="../UHG/">Hebrew grammar index</a></p>
-<p class="note"><a href="../GrkWrd/">Greek words index</a> <a href="../GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
-<p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
-<p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a> <a href="../UGG/">Greek grammar index</a></p>
-<p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm">Important people chronological index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
-<p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
-<p class="note"><a href="../Stats/">Bible statistics index</a></p>
+<p class="note"><b><a href="../index.htm#Top">Reference lists contents page</a></b></p>
+<p class="note"><a href="../HebWrd/index.htm#Top">Hebrew words index</a> <a href="../HebWrd/transIndex.htm#Top">Transliterated Hebrew words index</a></p>
+<p class="note"><a href="../HebLem/index.htm#Top">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm#Top">Transliterated Hebrew lemmas index</a></p>
+<p class="note"><a href="../HebStrng/index.htm#Top">Hebrew Strongs numbers index</a> <a href="../UHG/index.htm#Top">Hebrew grammar index</a></p>
+<p class="note"><a href="../GrkWrd/index.htm#Top">Greek words index</a> <a href="../GrkWrd/transIndex.htm#Top">Transliterated Greek words index</a></p>
+<p class="note"><a href="../GrkLem/index.htm#Top">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm#Top">Transliterated Greek lemmas index</a></p>
+<p class="note"><a href="../GrkStrng/index.htm#Top">Greek Strongs numbers index</a> <a href="../UGG/index.htm#Top">Greek grammar index</a></p>
+<p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm#Top">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm#Top">Important people chronological index</a> <a href="../Per/index.htm#Top">All people index</a> <a href="../Loc/index.htm#Top">Locations index</a></p>
+<p class="note"><a href="../Kingdoms/index.htm#Top">Promised land kingdoms index</a></p>
+<p class="note"><a href="../Stats/index.htm#Top">Bible statistics index</a></p>
 <h1 id="Top">Bible Chapters and Verses—Traditional Western Protestant</h1>
 {chapters66Html}
 <h1>Bible Chapters and Verses—Traditional Western Protestant</h1>
@@ -4462,15 +4463,15 @@ def create_statistics_pages( level:int, outputFolderPath:Path, state:State ) -> 
             .replace( '__TITLE__', f"Bible Statistics Index{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', 'Bible, statistics, number, chapters, verses' )
     indexHtml = f'''{top}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
-<p class="note"><b><a href="../">Reference lists contents page</a></b></p>
-<p class="note"><a href="../HebWrd/">Hebrew words index</a> <a href="../HebWrd/transIndex.htm">Transliterated Hebrew words index</a></p>
-<p class="note"><a href="../HebLem/">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm">Transliterated Hebrew lemmas index</a></p>
-<p class="note"><a href="../HebStrng/">Hebrew Strongs numbers index</a> <a href="../UHG/">Hebrew grammar index</a></p>
-<p class="note"><a href="../GrkWrd/">Greek words index</a> <a href="../GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
-<p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
-<p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a> <a href="../UGG/">Greek grammar index</a></p>
-<p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm">Important people chronological index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
-<p class="note"><a href="../Kingdoms/">Promised land kingdoms index</a></p>
+<p class="note"><b><a href="../index.htm#Top">Reference lists contents page</a></b></p>
+<p class="note"><a href="../HebWrd/index.htm#Top">Hebrew words index</a> <a href="../HebWrd/transIndex.htm#Top">Transliterated Hebrew words index</a></p>
+<p class="note"><a href="../HebLem/index.htm#Top">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm#Top">Transliterated Hebrew lemmas index</a></p>
+<p class="note"><a href="../HebStrng/index.htm#Top">Hebrew Strongs numbers index</a> <a href="../UHG/index.htm#Top">Hebrew grammar index</a></p>
+<p class="note"><a href="../GrkWrd/index.htm#Top">Greek words index</a> <a href="../GrkWrd/transIndex.htm#Top">Transliterated Greek words index</a></p>
+<p class="note"><a href="../GrkLem/index.htm#Top">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm#Top">Transliterated Greek lemmas index</a></p>
+<p class="note"><a href="../GrkStrng/index.htm#Top">Greek Strongs numbers index</a> <a href="../UGG/index.htm#Top">Greek grammar index</a></p>
+<p class="note"><a href="../Per/importantPeopleAlphabeticalIndex.htm#Top">Important people alphabetical index</a> <a href="../Per/importantPeopleChronologicalIndex.htm#Top">Important people chronological index</a> <a href="../Per/index.htm#Top">All people index</a> <a href="../Loc/index.htm#Top">Locations index</a></p>
+<p class="note"><a href="../Kingdoms/index.htm#Top">Promised land kingdoms index</a></p>
 <p class="note"><span class="selectedBook">Bible statistics index</span></p>
 <h1 id="Top">Bible Statistics Index</h1>
 <p class="note"><a href="Chapters.htm">Bible chapters and verses</a></p>
