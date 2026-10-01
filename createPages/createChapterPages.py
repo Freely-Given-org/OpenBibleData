@@ -57,10 +57,10 @@ from Bibles import getBibleMapperMaps, getOpenBibleImages
 from openbibledata_rust import convertVerseEntryListToHtml, getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
-LAST_MODIFIED_DATE = '2026-09-24' # by RJH
+LAST_MODIFIED_DATE = '2026-10-01' # by RJH
 SHORT_PROGRAM_NAME = "createChapterPages"
 PROGRAM_NAME = "OpenBibleData createChapterPages functions"
-PROGRAM_VERSION = '0.88'
+PROGRAM_VERSION = '0.89'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -399,7 +399,7 @@ def _writeOETSideBySideChapterBook( level:int, folder:Path, rvBible, lvBible, st
     chapterHtml = f'''{top}<!--chapters indexPage-->
 <a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
 {navBookListParagraph}
-{state.OET_UNFINISHED_WARNING_HTML_PARAGRAPH}
+{state.OET_UNFINISHED_WARNING_HTML_PARAGRAPH.replace( '<p class="rem">', '<p class="rem" id="Top">', 1 )}
 {chapterLinksParagraph}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="15" style="float:right; margin-left:10px;"></a>
 {makeBottom( level, 'OET', 'chapter' )}'''
     assert checkHtml( 'OETChaptersIndex', chapterHtml )

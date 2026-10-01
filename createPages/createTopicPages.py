@@ -287,7 +287,7 @@ def createTopicPage( level:int, folder:Path, topicNumber:int, state:State ) -> b
             .replace( '__TITLE__', f"{topic}{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', f'Bible, topic, {topic.replace(' ',', ')}' )
             # .replace( f'''<a title="{state.BibleNames[thisRvBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisRvBible.abbreviation)}/rel/{sFilename}#Top">{thisRvBible.abbreviation}</a>''',
-            #         f'''<a title="Up to {state.BibleNames[thisRvBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisRvBible.abbreviation)}/">↑{thisRvBible.abbreviation}</a>''' )
+            #         f'''<a title="Up to {state.BibleNames[thisRvBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisRvBible.abbreviation)}/index.htm#Top">↑{thisRvBible.abbreviation}</a>''' )
     topicHtml = f'''{top}<!--topic page-->
 <a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
 <p class="pageNav">{leftLink} {homeLink} {rightLink}</p>
@@ -394,16 +394,16 @@ def createKingdomPages( level:int, folder:Path, state:State ) -> bool:
             .replace( '__TITLE__', f"Kingdoms index{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
             .replace( '__KEYWORDS__', f'Bible, kingdoms, Israel, Judah' )
     indexHtml = f'''{top}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
-<p class="note"><b><a href="../">Reference lists contents page</a></b></p>
-<p class="note"><a href="../HebWrd/">Hebrew words index</a> <a href="../HebWrd/transIndex.htm">Transliterated Hebrew words index</a></p>
-<p class="note"><a href="../HebLem/">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm">Transliterated Hebrew lemmas index</a></p>
-<p class="note"><a href="../HebStrng/">Hebrew Strongs numbers index</a></p>
-<p class="note"><a href="../GrkWrd/">Greek words index</a> <a href="../GrkWrd/transIndex.htm">Transliterated Greek words index</a></p>
-<p class="note"><a href="../GrkLem/">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm">Transliterated Greek lemmas index</a></p>
-<p class="note"><a href="../GrkStrng/">Greek Strongs numbers index</a></p>
-<p class="note"><a href="../Per/importantIndex.htm">Important people index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
+<p class="note"><b><a href="../index.htm#Top">Reference lists contents page</a></b></p>
+<p class="note"><a href="../HebWrd/index.htm#Top">Hebrew words index</a> <a href="../HebWrd/transIndex.htm#Top">Transliterated Hebrew words index</a></p>
+<p class="note"><a href="../HebLem/index.htm#Top">Hebrew lemmas index</a> <a href="../HebLem/transIndex.htm#Top">Transliterated Hebrew lemmas index</a></p>
+<p class="note"><a href="../HebStrng/index.htm#Top">Hebrew Strongs numbers index</a></p>
+<p class="note"><a href="../GrkWrd/index.htm#Top">Greek words index</a> <a href="../GrkWrd/transIndex.htm#Top">Transliterated Greek words index</a></p>
+<p class="note"><a href="../GrkLem/index.htm#Top">Greek lemmas index</a> <a href="../GrkLem/transIndex.htm#Top">Transliterated Greek lemmas index</a></p>
+<p class="note"><a href="../GrkStrng/index.htm#Top">Greek Strongs numbers index</a></p>
+<p class="note"><a href="../Per/importantIndex.htm#Top">Important people index</a> <a href="../Per/index.htm#Top">All people index</a> <a href="../Loc/index.htm#Top">Locations index</a></p>
 <p class="note"><span class="selectedBook">Promised land kingdoms index</span></p>
-<p class="note"><a href="../Stats/">Bible statistics</a></p>
+<p class="note"><a href="../Stats/index.htm#Top">Bible statistics</a></p>
 <h1 id="Top">Index to ‘Kingdom’ pages</h1>
 <h2>These pages describe the kingdoms after the Israelis entered the ‘promised land’</h2>
 {'\n'.join([f'<div class="{oneWordKingdomName}"><p class="note"><a href="{kFilename}">{kingdomName}</a></p></div>' for kingdomName, oneWordKingdomName, kFilename in indexList])}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="15" style="float:right; margin-left:10px;"></a>

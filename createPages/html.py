@@ -144,7 +144,7 @@ from openbibledata_rust import (
 LAST_MODIFIED_DATE = '2026-10-01' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
-PROGRAM_VERSION = '1.0.11'
+PROGRAM_VERSION = '1.0.12'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -378,8 +378,8 @@ def checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool:
     if segmentOnly:
         return True
 
-    assert htmlToCheck.count( ' id="Top"' ) == 1, f"{htmlToCheck.count(' id="Top"')} Tops"
-    assert htmlToCheck.count( ' id="Bottom"' ) <= 1, f"{htmlToCheck.count(' id="Bottom"')} Bottoms"
+    assert htmlToCheck.count( ' id="Top"' ) == 1, f"{htmlToCheck.count(' id="Top"')} Tops in {where}"
+    assert htmlToCheck.count( ' id="Bottom"' ) <= 1, f"{htmlToCheck.count(' id="Bottom"')} Bottoms in {where}"
 
     # See if all our classes/styles exist in the stylesheet
     result = checkHtmlForMissingStyles( where, htmlToCheck )
@@ -634,7 +634,7 @@ def do_GHT_HTMLcustomisations( where:str, GHT_html:str ) -> str:
         startIx = GHT_html.find( 'to{', searchIx )
         if startIx == -1: break
         endIx = GHT_html.find( '}', startIx+3 )
-        GHT_html = f'{GHT_html[:startIx]}<span class="grkDat">{GHT_html[startIx:endIx]}</span>{GHT_html[endIx+1:]}'
+        GHT_html = f'{GHT_html[:startIx]}<span class="grkDat">{GHT_html[startIx:endIx+1]}</span>{GHT_html[endIx+1:]}'
         searchIx = endIx + 27 # Aprox num of added chars
 
     searchIx = 0
@@ -642,10 +642,11 @@ def do_GHT_HTMLcustomisations( where:str, GHT_html:str ) -> str:
         startIx = GHT_html.find( 'of{', searchIx )
         if startIx == -1: break
         endIx = GHT_html.find( '}', startIx+3 )
-        GHT_html = f'{GHT_html[:startIx]}<span class="grkGen">{GHT_html[startIx:endIx]}</span>{GHT_html[endIx+1:]}'
+        GHT_html = f'{GHT_html[:startIx]}<span class="grkGen">{GHT_html[startIx:endIx+1]}</span>{GHT_html[endIx+1:]}'
         searchIx = endIx + 27 # Aprox num of added chars
 
-    return GHT_html
+    return GHT_html \
+        .replace( 'Not ', '<span class="grkNeg">Not</span> ' ).replace( 'Not[', '<span class="grkNeg">Not</span>[' )
 # end of html.do_GHT_HTMLcustomisations
 
 
