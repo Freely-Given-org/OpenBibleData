@@ -9,7 +9,7 @@
 #
 # Copyright (C) 2024-2026 Robert Hunt
 # Author: Robert Hunt <Freely.Given.org+OBD@gmail.com>
-# This source code is marked with CC0 1.0 Universal. 
+# This source code is marked with CC0 1.0 Universal.
 #    To view a copy of this license, visit http://creativecommons.org
 
 """
@@ -285,13 +285,13 @@ def createTopicPage( level:int, folder:Path, topicNumber:int, state:State ) -> b
     filepath = folder.joinpath( topicFilename )
     top = makeTop( level, None, 'topicPassages', None, state ) \
             .replace( '__TITLE__', f"{topic}{' TEST' if state.TEST_MODE_FLAG else ''}" ) \
-            .replace( '__KEYWORDS__', f'Bible, topic, {topic.replace(' ',', ')}' ) 
+            .replace( '__KEYWORDS__', f'Bible, topic, {topic.replace(' ',', ')}' )
             # .replace( f'''<a title="{state.BibleNames[thisRvBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisRvBible.abbreviation)}/rel/{sFilename}#Top">{thisRvBible.abbreviation}</a>''',
             #         f'''<a title="Up to {state.BibleNames[thisRvBible.abbreviation]}" href="{'../'*2}{BibleOrgSysGlobals.makeSafeString(thisRvBible.abbreviation)}/">↑{thisRvBible.abbreviation}</a>''' )
     topicHtml = f'''{top}<!--topic page-->
 <a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
 <p class="pageNav">{leftLink} {homeLink} {rightLink}</p>
-<h1>{topic}</h1>
+<h1 id="Top">{topic}</h1>
 <p>This page contains selected passages from the <em>Open English Translation</em> with the passage from the <em>OET Readers’ Version</em> on the left, and the <em>OET Literal Version</em> on the right. Minimal commentary is included (only some headings)—our aim is simply to conveniently list the passages in one place so that our readers can make up their own minds about what the writer of the passage was intending to communicate.</p>
 {removeDuplicateCVids(combinedHtml)}
 <p class="note"><small>Please contact us at <b>Freely</b> dot <b>Given</b> dot <b>org</b> (at) <b>gmail</b> dot <b>com</b> if there’s any passages that you’d like us to add to this topic page, or any passages that need a little bit more context around them. (We encourage our readers to always view things in their context, so we discourage use of the word ‘verse’, especially in sayings like, “This verse says …”.)</small></p>
@@ -404,7 +404,7 @@ def createKingdomPages( level:int, folder:Path, state:State ) -> bool:
 <p class="note"><a href="../Per/importantIndex.htm">Important people index</a> <a href="../Per/">All people index</a> <a href="../Loc/">Locations index</a></p>
 <p class="note"><span class="selectedBook">Promised land kingdoms index</span></p>
 <p class="note"><a href="../Stats/">Bible statistics</a></p>
-<h1>Index to ‘Kingdom’ pages</h1>
+<h1 id="Top">Index to ‘Kingdom’ pages</h1>
 <h2>These pages describe the kingdoms after the Israelis entered the ‘promised land’</h2>
 {'\n'.join([f'<div class="{oneWordKingdomName}"><p class="note"><a href="{kFilename}">{kingdomName}</a></p></div>' for kingdomName, oneWordKingdomName, kFilename in indexList])}<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img src="{'../'*level}OET-LogoMark-RGB-FullColor.png" alt="OET logo mark" height="15" style="float:right; margin-left:10px;"></a>
 {makeBottom( level, None, 'kingdomIndex' )}'''
