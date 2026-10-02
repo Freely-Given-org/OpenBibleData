@@ -647,7 +647,7 @@ def createChapterPages( level:int, folder:Path, thisBible, state:State ) -> list
             vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Creating chapter index page for {thisBible.abbreviation} {BBB}…" )
             realChapterLinks = [f'<a title="View chapter page" href="{BBB}_C{ccc}.htm#Top">{'Sg' if BBB=='PSA' else 'C'}{ccc}</a>'
                                 for ccc in range( 1, numChapters+1 ) if thisBible.getNumVerses( BBB, c )] # make sure it's a normal chapter, e.g., in ESG book which lacks chapters 1-9
-            chapterLinksParagraph = f'<p class="chLst">{" ".join( initialChapterLinks+realChapterLinks )}</p><!--chLst-->'
+            chapterLinksParagraph = f'<p class="chLst" id="Top">{" ".join( initialChapterLinks+realChapterLinks )}</p><!--chLst-->'
             filename = f'{BBB}.htm'
             filenames.append( filename )
             filepath = folder.joinpath( filename )
@@ -660,7 +660,7 @@ def createChapterPages( level:int, folder:Path, thisBible, state:State ) -> list
 {f'<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>\n' if 'OET' in thisBible.abbreviation else ''}{navBookListParagraph}{f'{NEWLINE}{state.JAMES_NAME_NOTE_HTML_PARAGRAPH}' if 'OET' in thisBible.abbreviation and BBB=='JAM' else ''}{f'{NEWLINE}{state.RV_ONLY_WARNING_HTML_PARAGRAPH}' if thisBible.abbreviation=='OET-RV' else f'{NEWLINE}{state.LV_ONLY_WARNING_HTML_PARAGRAPH}' if thisBible.abbreviation=='OET-LV' else ''}{f'{NEWLINE}{state.BLACK_LETTER_FONT_HTML_PARAGRAPH}' if thisBible.abbreviation=='KJB-1611' else ''}
 {chapterLinksParagraph}
 {makeBottom( level, thisBible.abbreviation, 'chapter' )}'''
-            assert checkHtml( f'{thisBible.abbreviation}  chapter index', chapterHtml )
+            assert checkHtml( f'{thisBible.abbreviation} chapter index', chapterHtml )
             assert not filepath.is_file() # Check that we're not overwriting anything
             with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
                 cHtmlFile.write( chapterHtml )

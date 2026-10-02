@@ -9,7 +9,7 @@
 #
 # Copyright (C) 2023-2026 Robert Hunt
 # Author: Robert Hunt <Freely.Given.org+OBD@gmail.com>
-# This source code is marked with CC0 1.0 Universal. 
+# This source code is marked with CC0 1.0 Universal.
 #    To view a copy of this license, visit http://creativecommons.org
 
 """
@@ -100,10 +100,10 @@ from html import makeTop, makeViewNavListParagraph, makeBottom, checkHtml, prelo
 from spellCheckEnglish import printSpellCheckSummary
 
 
-LAST_MODIFIED_DATE = '2026-09-19' # by RJH
+LAST_MODIFIED_DATE = '2026-10-01' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData (OBD) Create Site Pages"
-PROGRAM_VERSION = '1.4.2'
+PROGRAM_VERSION = '1.4.3'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False # Adds debugging output
@@ -963,6 +963,7 @@ def _createNewsPage( level:int, buildFolder:Path, state:State ) -> bool:
     newsHTML = f'''<h1 id="Top">{state.SITE_NAME} News</h1>
 <p class="about">Recent {state.SITE_NAME} ({state.SITE_ABBREVIATION}) site developments:</p>
 <ul>
+<li><b>2026-Oct-1</b>: We added <em>Garth’s Hyper-literal Translation</em> as a helpful tool to look into the New Testament Greek.</li>
 <li><b>2026-Sep-19</b>: We added a more concise <a href="{'../'*level}lst/MRK/C1V1.htm#Top">‘simple verse list’</a> mode to display a list of verses with less formatting and whitespace, for easier comparisons of renderings (and probably easier copying/pasting as well).</li>
 <li><b>2026-Sep-5</b>: We added a pop-up settings panel to these pages, that now includes a DARK mode, plus LARGE-PRINT and other options, with more options & improvements likely to come as well.</li>
 <li><b>2026-Aug-25</b>: We now include a preliminary draft of unfoldingWord’s <a href="{'../'*level}ref/UHG">Hebrew</a> and <a href="{'../'*level}ref/UGG">Greek</a> grammars in our <a href="{'../'*level}ref">extensive reference section</a>.</li>
