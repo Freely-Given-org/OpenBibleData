@@ -9,7 +9,7 @@
 #
 # Copyright (C) 2024-2026 Robert Hunt
 # Author: Robert Hunt <Freely.Given.org+OBD@gmail.com>
-# This source code is marked with CC0 1.0 Universal. 
+# This source code is marked with CC0 1.0 Universal.
 #    To view a copy of this license, visit http://creativecommons.org
 
 """
@@ -27,7 +27,7 @@ Sets:
         0   None (default)
         1   Spelling differences
         2   Small word differences
-        3   Major issues 
+        3   Major issues
     Clarity
         C   Clear (default)
         U   Unclear
@@ -47,6 +47,7 @@ CHANGELOG:
     2026-01-05 Handle a range crossing a chapter boundary (using en-dash –)
     2026-03-29 Updated for latest collation DB from GreekCNTR
     2026-09-08 Added Speakers column to the output (auto-detected from OET-RV \\wj markers, \\sp speaker markers, and speech attribution patterns)
+    2026-10-03 More updates to tables
 """
 from pathlib import Path
 from csv import  DictReader
@@ -67,10 +68,10 @@ from load import getIndividualQuotedOTRefs, getIndividualQuotingNTRefs
 
 
 
-LAST_MODIFIED_DATE = '2026-09-20' # by RJH
+LAST_MODIFIED_DATE = '2026-10-03' # by RJH
 SHORT_PROGRAM_NAME = "SentenceImportance_initialisation"
 PROGRAM_NAME = "Sentence Importance initialisation"
-PROGRAM_VERSION = '0.31'
+PROGRAM_VERSION = '0.40'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -99,35 +100,45 @@ defaultImportance, defaultTextualIssue, defaultClarity = 'M', '0', 'C'
 # Otherwise the column has names separated by commas, e.g. 'Yeshua' or '@,Yahweh'.
 speakersDefault = '@'
 vitalImportanceRefsWithRanges = [ # Often in doctrinal statements
-    'GEN_1:1-3', 'GEN_3:16',
-    'EXO_20:11',
+    'GEN_1:1-3', 'GEN_3:15', 'GEN_3:16', # Gen 3:15 is the protoevangelium
+    'EXO_3:14', 'EXO_20:11', # EXO 3:14 'I AM WHO I AM' -- God's self-revelation
     'DEU_4:6', 'DEU_6:4-5', 'DEU_9:4', 'DEU_31:6',
     'CH2_7:14',
-    'PSA_22:1-2','PSA_22:7-18', 'PSA_46:1',
+    'PSA_19:7-11', 'PSA_22:1-2','PSA_22:7-18', 'PSA_46:1',
     'PRO_3:5','PRO_3:6',
+    'ISA_7:14', # The virgin birth prophecy
     'ISA_9:6-7',
     'ISA_52:13–53:12', # The fourth and best-known servant song
     'ISA_55:11',
     'JER_29:11-13',
     'DAN_7:13-14',
     'MIC_5:2','MIC_6:8',
+    'HAB_2:4', # 'The just shall live by faith' -- key to the Reformation
     'ZEC_12:10',
     'MAL_3:8-10',
 
-    'MAT_6:33', 'MAT_24:35', 'MAT_28:19-20',
-    'JHN_1:1-5','JHN_3:16', 'JHN_5:24', 'JHN_11:25', 'JHN_20:31',
+    'MAT_3:16-17', 'MAT_6:33', 'MAT_24:35', 'MAT_28:19-20', # MAT 3:16-17 Trinitarian baptism
+    'MAT_22:37-40', # The Great Commandment
+    'MAT_26:26-29', # The institution of the Lord's Supper
+    'JHN_1:1-5','JHN_3:3','JHN_3:16', 'JHN_5:24', 'JHN_11:25', 'JHN_20:31',
+    'JHN_10:30','JHN_14:6', 'JHN_14:9', 'JHN_17:17', # Key Christology/sanctification statements
+    'ACT_1:11', 'ACT_4:12', # Ascension/return promise; salvation in no other name
 
-    'ROM_3:23','ROM_6:23','ROM_8:28', 'ROM_12:2',
-    'CO2_5:21','CO2_12:9',
+    'ROM_1:16', 'ROM_3:23','ROM_5:1','ROM_6:23', 'ROM_8:1','ROM_8:28', 'ROM_8:38-39', 'ROM_10:9-10', 'ROM_12:2',
+    'CO1_13:4-8', 'CO1_15:3-4', 'CO1_15:17', 'CO1_15:20', # The gospel and the resurrection
+    'CO2_5:21','CO2_12:9', 'CO2_13:14', # 2 Cor 13:14 Trinitarian benediction
     'GAL_3:10','GAL_3:13-14','GAL_5:22-23', 'EPH_2:9',
-    'PHP_4:6-8', 'PHP_4:13',
+    'PHP_2:6-11', 'PHP_4:6-8', 'PHP_4:13', # PHP 2:6-11 the Christ hymn
+    'COL_1:15-20', 'COL_2:9', # The Christ hymn and the fullness of the deity
+    'TI1_1:15', # 'Christ Jesus came into the world to save sinners'
     'TI2_3:16-17',
 
-    'HEB_11:1','HEB_11:6','HEB_13:5',
-    'PE1_3:15', 'PE1_5:7',
+    'HEB_1:3', 'HEB_11:1','HEB_11:6','HEB_13:5',
+    'PE1_2:24', 'PE1_3:15', 'PE1_5:7',
     'PE2_1:19-21',
 
-    'JN1_5:11-13',
+    'JN1_1:9', 'JN1_4:8', 'JN1_5:11-13', # 1 John 1:9 confession; 4:8 'God is love'
+    'REV_21:4', # Consummation -- no more death, mourning, crying or pain
     ]
 for ref in vitalImportanceRefsWithRanges:
     assert ref.count( '_' ) == 1, f"vitalImportanceRefsWithRanges {ref=}"
@@ -138,24 +149,24 @@ importantRefsWithRanges = [ # Often quoted and/or memorised by Christians
     'DEU_29:24-29', 'DEU_30:3-5','DEU_30:19',
     'JOS_1:9',
     'EST_4:14',
-    'PSA_9:17', 'PSA_23:1-6', 'PSA_51:5','PSA_51:10', 'PSA_119:89',
+    'PSA_9:17', 'PSA_23:1-6', 'PSA_51:5','PSA_51:10', 'PSA_119:89', 'PSA_119:105',
     'PRO_1:7', 'PRO_4:1-7', 'PRO_14:34',
     'ECC_8:15',
-    'ISA_2:2-4','ISA_6:1-8','ISA_11:1-12','ISA_27:6','ISA_28:16','ISA_41:10', 'ISA_46:9-10',
+    'ISA_2:2-4','ISA_6:1-8','ISA_11:1-12','ISA_27:6','ISA_28:16','ISA_40:31','ISA_41:10', 'ISA_46:9-10',
     'ISA_42:1-9', 'ISA_48:12-13','ISA_48:16', 'ISA_49:1-13', 'ISA_50:4-11', # The other three servant songs 'ISA_52:13–53:12',
     'ISA_54:17', 'ISA_55:1-10','ISA_55:12-13', 'ISA_66:8',
     'JER_17:9', 'JER_23:5-6', 'JER_31:31-34', 'JER_33:2-3', 'JER_33:14-18',
     'DAN_7:10', 'DAN_9:5','DAN_9:19','DAN_9:24', 'DAN_12:1','DAN_12:4',
     'ZEC_12:8-9','ZEC_12:11',
 
-    'MAT_4:4', 'MAT_16:1-3', 'MAT_24:32-33','MAT_24:44',
+    'MAT_1:23', # Immanuel
+    'MAT_4:4', 'MAT_5:3-12', 'MAT_16:1-3', 'MAT_24:32-33','MAT_24:44', # MAT 5:3-12 the Beatitudes
     'LUK_21:28','LUK_24:27',
     'JHN_1:6-18', 'JHN_3:18','JHN_6:68-69','JHN_7:16', 'JHN_8:36','JHN_8:58', 'JHN_10:18','JHN_10:28','JHN_16:33', 'JHN_17:5','JHN_17:23',
-    'ACT_2:42', 'ACT_15:10',
-    'CO1_10:6-11',
+    'ACT_2:38', 'ACT_2:42', 'ACT_15:10', 'ACT_16:31', # ACT 2:38 baptism; ACT 16:31 'Believe on the Lord Jesus Christ'
+    'CO1_6:19-20', 'CO1_10:6-11','CO1_2:12','CO1_2:14', 'CO1_3:14-15', 'CO1_15:58', # 1 Cor 6:19-20 body as God's temple
     'ROM_3:3-4','ROM_3:19-22', 'ROM_5:8','ROM_5:16-21', 'ROM_8:3', 'ROM_10:2','ROM_10:13', 'ROM_11:1-2','ROM_11:11-12','ROM_11:29', 'ROM_13:12', 'ROM_15:4', 'ROM_16:17',
-    'CO1_2:12','CO1_2:14', 'CO1_3:14-15', 'CO1_15:58',
-    'CO2_9:7',
+    'CO2_5:17','CO2_9:7', # 2 Cor 5:17 new creation
     'GAL_3:21-22','GAL_3:24', 'GAL_6:16',
     'EPH_2:8','EPH_2:10', 'EPH_4:14','EPH_6:4','EPH_6:10-13','EPH_6:17',
     'PHP_2:12-13', 'PHP_3:20-21',
@@ -165,8 +176,8 @@ importantRefsWithRanges = [ # Often quoted and/or memorised by Christians
     'TI1_4:13','TI1_4:16','TI1_6:3',
     'TI2_2:15','TI2_4:3-4',
     'TIT_1:9','TIT_2:1',
-    'HEB_4:12-13', 'HEB_5:12-14', 'HEB_11:2-5','HEB_11:7-40', 'HEB_13:9',
-    'JAM_1:5',
+    'HEB_4:12-13', 'HEB_5:12-14', 'HEB_9:22', 'HEB_11:2-5','HEB_11:7-40', 'HEB_13:9',
+    'JAM_1:5', 'JAM_2:14-26', # JAM 2:14-26 faith without works
     'PE1_2:2', 'PE1_2:9-10',
     'PE2_3:10','PE2_3:15-16',
     'JN1_2:19', 'JN1_4:1','JN1_4:4',
@@ -176,19 +187,34 @@ importantRefsWithRanges = [ # Often quoted and/or memorised by Christians
 for ref in importantRefsWithRanges:
     assert ref.count( '_' ) == 1, f"importantRefsWithRanges {ref=}"
 
-listsOfNames = ['KI1_4:2','KI1_4:3','KI1_4:4','KI1_4:5','KI1_4:6',
-                'KI1_4:8','KI1_4:9','KI1_4:10','KI1_4:11','KI1_4:12','KI1_4:13','KI1_4:14','KI1_4:15','KI1_4:16','KI1_4:17','KI1_4:18','KI1_4:19',
-                ]
+listsOfNames = [ # Long lists of people's names (genealogies, censuses, rosters) -- classic preaching-skips
+    'KI1_4:2-19', # Solomon's officials
+    'NUM_1:1-54', # The census at Sinai
+    'NUM_26:1-65', # The second census on the plains of Moab
+    'NUM_7:10-88', # The twelve tribal leaders' offerings, repeated verbatim
+    'JOS_12:9-24', # The list of conquered kings
+    'JOS_15:21-62','JOS_16:5-10','JOS_17:11-13','JOS_18:11-28','JOS_19:1-48', # Town rosters for each tribe
+    'JOS_21:1-42', # The cities given to the Levites
+    'CH1_1:1–9:34', # Nine chapters of genealogies from Adam down to post-exilic Jews
+    'CH1_23:1–26:32', # The Levitical duty rosters
+    'EZR_2:2-70', # The returning exiles and their goods (NEH 7 is the same list)
+    'NEH_7:5-73', # Duplicate of the EZR 2 roster
+    'NEH_11:3-36', # Who lived in Jerusalem and the towns
+    'NEH_12:1-26', # The priests and Levites of the return
+    ]
 for ref in listsOfNames:
     assert ref.count( '_' ) == 1, f"listsOfNames {ref=}"
 
 trivialImportanceRefs = listsOfNames + [
     'EXO_16:36',
+    # Purim casualty tallies, including the list of Haman's sons
+    'EST_9:6-16',
     # Jdg 5 is Deborah and Barak's song
-    'JDG_5:1','JDG_5:2','JDG_5:3','JDG_5:4','JDG_5:5','JDG_5:6','JDG_5:7','JDG_5:8','JDG_5:9','JDG_5:10',
-        'JDG_5:11','JDG_5:12','JDG_5:13','JDG_5:14','JDG_5:15','JDG_5:16','JDG_5:17','JDG_5:18','JDG_5:19','JDG_5:20',
-        'JDG_5:21','JDG_5:22','JDG_5:23','JDG_5:24','JDG_5:25','JDG_5:26','JDG_5:27','JDG_5:28','JDG_5:29','JDG_5:30',
-        'JDG_5:31a',
+    'JDG_5:1-31',
+    # OT sacrificial festival calendar and the rarely-
+    # preached skin, mildew and body-discharge laws
+    'NUM_28:1–29:40',
+    'LEV_13:1-59', 'LEV_14:33-57', 'LEV_15:1-33',
     ]
 for ref in trivialImportanceRefs:
     assert ref.count( '_' ) == 1, f"trivialImportanceRefs {ref=}"
@@ -260,6 +286,10 @@ textualCriticismRefs = [ # Hebrew or Greek original manuscripts vary
     'CH1_24:26', # Beno
     'JOB_39:13a','JOB_39:13b','JOB_39:14','JOB_39:15','JOB_39:16','JOB_39:17','JOB_39:18', # Ostrich section
     'ISA_21:8a', # lion
+    'MAT_6:13', # End of Lord's Prayer doxology omitted in some witnesses
+    'MRK_16:9-20', # Mark's longer ending
+    'JHN_7:53–8:11', # The woman caught in adultery
+    'JN1_5:7-8', # Comma Johanneum
     ]
 for ref in textualCriticismRefs:
     assert ref.count( '_' ) == 1, f"textualCriticismRefs {ref=}"
@@ -269,7 +299,7 @@ def setup():
     """
     Docstring for setup
     """
-    global allRefs, vitalImportanceRefs, importantRefs
+    global allRefs, vitalImportanceRefs, importantRefs, trivialImportanceRefs, textualCriticismRefs
     genericBibleOrganisationalSystem = BibleOrganisationalSystem( 'GENERIC-KJV-ENG' )
 
     # Handle ranges in some lists
@@ -294,7 +324,7 @@ def setup():
             for newC in range( intC1+1, intC2+1 ):
                 numVerses = genericBibleOrganisationalSystem.getNumVerses( BBB, str(newC) )
                 for newV in range( 1, numVerses+1 ):
-                    newList.append( f'{BBB}_{C1}:{newV}' )
+                    newList.append( f'{BBB}_{newC}:{newV}' )
                     if newC==intC2 and newV==int(V2):
                         break # Reached the desired verse in the final chapter
         else: newList.append( entry )
@@ -320,13 +350,43 @@ def setup():
             for newC in range( intC1+1, intC2+1 ):
                 numVerses = genericBibleOrganisationalSystem.getNumVerses( BBB, str(newC) )
                 for newV in range( 1, numVerses+1 ):
-                    newList.append( f'{BBB}_{C1}:{newV}' )
+                    newList.append( f'{BBB}_{newC}:{newV}' )
                     if newC==intC2 and newV==int(V2):
                         break # Reached the desired verse in the final chapter
         else: newList.append( entry )
     importantRefs = newList
 
     # Just do some basic integrity checking
+    # Expand chapter ranges (both '–' cross-chapter and '-' in-chapter forms)
+    def _expandRanges( entries ):
+        expanded = []
+        for entry in entries:
+            if '–' in entry:
+                BBB,CVCV = entry.split( '_' )
+                CV1,CV2 = CVCV.split( '–' )
+                C1,V1 = CV1.split( ':' )
+                C2,V2 = CV2.split( ':' )
+                numVerses = genericBibleOrganisationalSystem.getNumVerses( BBB, C1 )
+                for newV in range( int(V1), numVerses+1 ):
+                    expanded.append( f'{BBB}_{C1}:{newV}' )
+                for newC in range( int(C1)+1, int(C2)+1 ):
+                    numVerses = genericBibleOrganisationalSystem.getNumVerses( BBB, str(newC) )
+                    for newV in range( 1, numVerses+1 ):
+                        expanded.append( f'{BBB}_{newC}:{newV}' )
+                        if newC==int(C2) and newV==int(V2):
+                            break
+            elif entry.count( '-' ) == 1:
+                BBB,CVV = entry.split( '_' )
+                C,VV = CVV.split( ':' )
+                V1,V2 = VV.split( '-' )
+                for newV in range( int(V1), int(V2)+1 ):
+                    expanded.append( f'{BBB}_{C}:{newV}' )
+            else: expanded.append( entry )
+        return expanded
+
+    trivialImportanceRefs = _expandRanges( trivialImportanceRefs )
+    textualCriticismRefs = _expandRanges( textualCriticismRefs )
+
     importanceRefs = vitalImportanceRefs + importantRefs + trivialImportanceRefs
     assert len( set(importanceRefs) ) == len(importanceRefs), [ref for ref in importanceRefs if importanceRefs.count(ref)>1] # Otherwise there must be a duplicate
     clarityRefs = obscureClarityRefs + unclearClarityRefs
