@@ -49,10 +49,10 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_
 from openbibledata_rust import convertVerseEntryListToHtml, getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
-LAST_MODIFIED_DATE = '2026-09-24' # by RJH
+LAST_MODIFIED_DATE = '2026-10-02' # by RJH
 SHORT_PROGRAM_NAME = "createBookPages"
 PROGRAM_NAME = "OpenBibleData createBookPages functions"
-PROGRAM_VERSION = '0.72'
+PROGRAM_VERSION = '0.73'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -240,7 +240,7 @@ def _createOETBookPagesForBook( level:int, folder:Path, rvBible, lvBible, state:
                 dPrint( 'Info', DEBUGGING_THIS_MODULE, f"  createOETBookPages {BBB} {n:,}: No Cid in {rvSectionHtml=}" )
                 rvStartCV, rvEndCV = '', 'C1'
                 # assert False, "We want to stop here"
-            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"""\nSearching for OET-RV {BBB} ' id="{rvEndCV}"' in '{lvRest}'""" )
+            #dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"""\nSearching for OET-RV {BBB} ' id="{rvEndCV}"' in '{lvRest}'""" )
             try: ixEndCV = lvRest.rindex( f' id="{rvEndCV}"' )
             except ValueError: # Versification problem if this fails
                 logging.error( f"{BBB} Possible OET versification problem around {rvEndCV} -- we'll try to handle it." )
