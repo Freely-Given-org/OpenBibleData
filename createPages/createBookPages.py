@@ -226,7 +226,7 @@ def _createOETBookPagesForBook( level:int, folder:Path, rvBible, lvBible, state:
         lvChunks, lvRest = [ lvHtml[:ixBHend], lvHtml[ixBHend:ixBIend] ], lvHtml[ixBIend:]
         # Now try to match the rv sections
         for n,rvSectionHtml in enumerate( rvSections[2:] ): # continuing on AFTER the headers and introduction
-            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"\n{BBB} {n}: {rvSectionHtml=}/{len(rvSections)-2}" )
+            dPrint( 'Never', DEBUGGING_THIS_MODULE, f"\n_createOETBookPagesForBook {BBB} {n}: {rvSectionHtml=}/{len(rvSections)-2}" )
             assert rvSectionHtml
             try:
                 CclassIndex1 = rvSectionHtml.index( 'id="C' )
@@ -240,7 +240,7 @@ def _createOETBookPagesForBook( level:int, folder:Path, rvBible, lvBible, state:
                 dPrint( 'Info', DEBUGGING_THIS_MODULE, f"  createOETBookPages {BBB} {n:,}: No Cid in {rvSectionHtml=}" )
                 rvStartCV, rvEndCV = '', 'C1'
                 # assert False, "We want to stop here"
-            #dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"""\nSearching for OET-RV {BBB} ' id="{rvEndCV}"' in '{lvRest}'""" )
+            dPrint( 'Never', DEBUGGING_THIS_MODULE, f"""\n_createOETBookPagesForBook: searching for OET-RV {BBB} ' id="{rvEndCV}"' in '{lvRest}'""" )
             try: ixEndCV = lvRest.rindex( f' id="{rvEndCV}"' )
             except ValueError: # Versification problem if this fails
                 logging.error( f"{BBB} Possible OET versification problem around {rvEndCV} -- we'll try to handle it." )

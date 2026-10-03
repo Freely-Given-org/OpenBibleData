@@ -116,6 +116,7 @@ CHANGELOG:
                 createPages/Rust/src/missing_styles.rs (which also owns the stylesheet
                 parsing/merging and a per-line class scan); the Python classRegex helper was
                 removed. preloadCSSStyles() now also warms the Rust-side caches.
+    2026-10-03 Added do_GHT_HTMLcustomisations( where:str, GHT_html:str ) -> str
 """
 import logging
 from datetime import datetime
@@ -141,7 +142,7 @@ from openbibledata_rust import (
 )
 
 
-LAST_MODIFIED_DATE = '2026-10-01' # by RJH
+LAST_MODIFIED_DATE = '2026-10-03' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
 PROGRAM_VERSION = '1.0.12'
@@ -630,20 +631,24 @@ def do_GHT_HTMLcustomisations( where:str, GHT_html:str ) -> str:
     Mark dative and genitive portions
     """
     searchIx = 0
-    for _x1 in range( 5 ):
+    for _x1 in range( 15 ):
         startIx = GHT_html.find( 'to{', searchIx )
         if startIx == -1: break
         endIx = GHT_html.find( '}', startIx+3 )
+        if endIx == -1: #it probably closes in the next verse
+            endIx = len( GHT_html )
         # We add in a space before the opening curly bracket
         GHT_html = f'{GHT_html[:startIx]}<span class="grkDat">to {GHT_html[startIx+2:endIx+1]}</span>{GHT_html[endIx+1:]}'
         searchIx = endIx + 27 # Aprox num of added chars
     else: print( f"do_GHT_HTMLcustomisations {where=}" ); need_to_expand_x1_range
 
     searchIx = 0
-    for _x2 in range( 5 ):
+    for _x2 in range( 15 ):
         startIx = GHT_html.find( 'of{', searchIx )
         if startIx == -1: break
         endIx = GHT_html.find( '}', startIx+3 )
+        if endIx == -1: #it probably closes in the next verse, e.g., Rev 1:10
+            endIx = len( GHT_html )
         # We add in a space before the opening curly bracket
         GHT_html = f'{GHT_html[:startIx]}<span class="grkGen">of {GHT_html[startIx+2:endIx+1]}</span>{GHT_html[endIx+1:]}'
         searchIx = endIx + 27 # Aprox num of added chars

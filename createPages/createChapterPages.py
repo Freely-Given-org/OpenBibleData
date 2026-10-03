@@ -98,7 +98,7 @@ def _writeOETSideBySideChapterBook( level:int, folder:Path, rvBible, lvBible, st
         logging.critical( f"B Skipped OET chapters not-included book: OET-RV {BBB}")
         return ( True, BBB, [] ) # Skip this book entirely
     if BBB in ('INT','FRT'): # We want these, even though the LV doesn't (yet?) have any FRT
-        dPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"createChapterPages {rvBible.abbreviation} {rvBible.books[BBB]=}" )
+        dPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"_writeOETSideBySideChapterBook {rvBible.abbreviation} {rvBible.books[BBB]=}" )
         vPrint( 'Info', DEBUGGING_THIS_MODULE, f"      Creating (non)chapter pages for {rvBible.abbreviation} {BBB}…" )
         chapterHtml = f'<h1 id="Top">{rvBible.abbreviation} {BBB}</h1>\n'
         verseEntryList, contextList = rvBible.getContextVerseData( (BBB, '-1') )

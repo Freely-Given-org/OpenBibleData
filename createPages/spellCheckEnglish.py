@@ -52,10 +52,10 @@ from BibleOrgSys.BibleOrgSysGlobals import vPrint, fnPrint, dPrint, rreplace
 import bos_books_codes_py
 
 
-LAST_MODIFIED_DATE = '2026-09-25' # by RJH
+LAST_MODIFIED_DATE = '2026-10-03' # by RJH
 SHORT_PROGRAM_NAME = "spellCheckEnglish"
 PROGRAM_NAME = "English Bible Spell Check"
-PROGRAM_VERSION = '0.70'
+PROGRAM_VERSION = '0.71'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -821,8 +821,8 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                    ) and 'PSA' not in location ) # coz Wycl versification doesn't usually match anyway
                             or 'twas' in word )
                         and word not in ('OK','NOT','SURE','TOO','LITERAL')
-                    # else 'Info', DEBUGGING_THIS_MODULE, f'''  '{word}' ({wordSetName}) is suspect @ {location}\nfrom {originalHTMLTextForDebugging=}\nfrom {cleanedTextToDisplay=}\nWHICH GAVE {cleanedTextToCheck=}''' )
-                    else 'Info', DEBUGGING_THIS_MODULE, f'''  '{word}' ({wordSetName}) is suspect @ {location}\n      from {cleanedTextToDisplay=}\n      WHICH GAVE cleanedTextToCheck={_truncate_for_display(cleanedTextToCheck,word)}''' )
+                    # else 'Info', DEBUGGING_THIS_MODULE, f'''  '{word}' ({wordSetName}) IS SUSPECT @ {location}\nfrom {originalHTMLTextForDebugging=}\nfrom {cleanedTextToDisplay=}\nwhich gave {cleanedTextToCheck=}''' )
+                    else 'Info', DEBUGGING_THIS_MODULE, f'''  '{word}' ({wordSetName}) IS SUSPECT @ {location}\n      from {cleanedTextToDisplay=}\n      which gave cleanedTextToCheck={_truncate_for_display(cleanedTextToCheck,word)}''' )
             else: # Luth or ClVg
                 cleanedTextToDisplay = cleanedTextToDisplay.replace('<span class="ClVg_verseTextChunk">','').replace('<div id="footnotesClVg" class="footnotes">\n','').replace('  ',' ').replace(' ',' ')
                 vPrint( 'Normal' if word.upper()==word
@@ -866,7 +866,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                     'susis','inedia','esurientem','hactenus','fruitio','silentnt','regenerati','confiteatur','deprimit','admirationem','workum',
 
                                 )
-                    else 'Info', DEBUGGING_THIS_MODULE, f'''  '{word}' is suspect @ {location}\n      from {cleanedTextToDisplay=}\n      WHICH GAVE cleanedTextToCheck={_truncate_for_display(cleanedTextToCheck,word)}''' )
+                    else 'Info', DEBUGGING_THIS_MODULE, f'''  '{word}' IS SUSPECT @ {location}\n      from {cleanedTextToDisplay=}\n      which gave cleanedTextToCheck={_truncate_for_display(cleanedTextToCheck,word)}''' )
             if versionAbbreviation == 'Luth':
                 # if word=='alle': print( f"\n\nLUTH 'alle' from {originalHTMLTextForDebugging}\n{HTMLTextToCheck=}\n{cleanedTextToCheck=}\n{cleanedTextToDisplay}\n" )
                 BAD_GERMAN_WORD_SET.add( word )
