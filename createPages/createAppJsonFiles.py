@@ -73,7 +73,7 @@ def createAppJsonFiles( level:int, outputFolderPath:Path, state:State ) -> bool:
 
     Sadly, there's almost identical code in make_table_pages() in OET convert_OET-LV_to_simple_HTML.py
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"createAppJsonFiles( {level}, {outputFolderPath}, {state.BibleVersions} )" )
+    if BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 5: fnPrint( DEBUGGING_THIS_MODULE, f"createAppJsonFiles( {level}, {outputFolderPath}, {state.BibleVersions} )" )
 
     try: os.makedirs( outputFolderPath )
     except FileExistsError: pass # it was already there
@@ -103,7 +103,7 @@ used_word_filenames = []
 def create_Hebrew_words_json( level:int, outputFolderPath:Path, state:State ) -> None:
     """
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"create_Hebrew_words_json( {outputFolderPath}, {state.BibleVersions} )" )
+    if BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 5: fnPrint( DEBUGGING_THIS_MODULE, f"create_Hebrew_words_json( {outputFolderPath}, {state.BibleVersions} )" )
     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Checking/Making {len(state.OETRefData['word_tables'][HebrewWordFileName])-1:,} Hebrew json files…" )
 
     try: os.makedirs( outputFolderPath )
@@ -193,8 +193,8 @@ def create_Hebrew_words_json( level:int, outputFolderPath:Path, state:State ) ->
 def create_Hebrew_word_json( level:int, hh:int, hebrewWord:str, columns_string:str, outputFolderPath:Path, word_output_filename:Path, state:State ) -> bool:
     """
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"create_Hebrew_word_json( {level}, {hh}, {hebrewWord}, ..., {word_output_filename} ... )" )
-    dPrint( 'Normal' if BibleOrgSysGlobals.alreadyMultiprocessing else 'Verbose', DEBUGGING_THIS_MODULE, f"Word {hh}: {columns_string}" )
+    if BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 5: fnPrint( DEBUGGING_THIS_MODULE, f"create_Hebrew_word_json( {level}, {hh}, {hebrewWord}, ..., {word_output_filename} ... )" )
+    if BibleOrgSysGlobals.verbosityLevel >= 2: dPrint( 'Normal' if BibleOrgSysGlobals.alreadyMultiprocessing else 'Verbose', DEBUGGING_THIS_MODULE, f"Word {hh}: {columns_string}" )
     assert hebrewWord
     # print( f"create_Hebrew_word_json( ..., {hh}, {hebrewWord}, ..., {word_output_filename} ... )" )
 
@@ -597,7 +597,7 @@ def create_Hebrew_word_json( level:int, hh:int, hebrewWord:str, columns_string:s
 def create_Greek_words_json( level:int, outputFolderPath:Path, state:State ) -> None:
     """
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"create_Greek_words_json( {outputFolderPath}, {state.BibleVersions} )" )
+    if BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 5: fnPrint( DEBUGGING_THIS_MODULE, f"create_Greek_words_json( {outputFolderPath}, {state.BibleVersions} )" )
 
     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Checking/Making {len(state.OETRefData['word_tables'][GreekWordFileName])-1:,} Greek json files…" )
 

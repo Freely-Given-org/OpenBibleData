@@ -854,7 +854,7 @@ def createOETReferencePages( level:int, outputFolderPath:Path, state:State ) -> 
 
     Sadly, there's almost identical code in make_table_pages() in OET convert_OET-LV_to_simple_HTML.py
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"createOETReferencePages( {level}, {outputFolderPath}, {state.BibleVersions} )" )
+    if BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 5: fnPrint( DEBUGGING_THIS_MODULE, f"createOETReferencePages( {level}, {outputFolderPath}, {state.BibleVersions} )" )
 
     try: os.makedirs( outputFolderPath )
     except FileExistsError: pass # it was already there
@@ -1298,7 +1298,7 @@ def preprocessHebrewWordsLemmasGlosses( BBBSelection:str|list[str], state ) -> b
                                                                 'man','men','woman','women','son','daughter',
                                                                 'cubits','times','portion',
                                                                 'belongs','belonged'):
-                                    dPrint( 'Info', DEBUGGING_THIS_MODULE, f"      preprocessHebrewWordsLemmasGlosses is ignoring {someGlossWord=} (assumed to be an added word) from {gloss=}")
+                                    if BibleOrgSysGlobals.verbosityLevel >= 3: dPrint( 'Info', DEBUGGING_THIS_MODULE, f"      preprocessHebrewWordsLemmasGlosses is ignoring {someGlossWord=} (assumed to be an added word) from {gloss=}")
                                 continue
                             if someGlossWord not in COMMON_ENGLISH_WORDS_LIST \
                             or someGlossWord == adjGloss: # it's the entire gloss
@@ -1372,7 +1372,7 @@ def preprocessGreekWordsLemmasGlosses( BBBSelection:str|list[str], state ) -> bo
                 if SRLemma in state.OETRefData['NTGreekLemmaDict']:
                     # assert state.OETRefData['NTGreekLemmaDict'][SRLemma] == GrkLemma, f"{n=} {_ref} {SRLemma=} {GrkLemma=} {state.OETRefData['NTGreekLemmaDict'][SRLemma]=}"
                     if state.OETRefData['NTGreekLemmaDict'][SRLemma] != GrkLemma:
-                        dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"    {n=} {ref} {SRLemma=} {GrkLemma=} {state.OETRefData['NTGreekLemmaDict'][SRLemma]=}" )
+                        if BibleOrgSysGlobals.verbosityLevel >= 4: dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"    {n=} {ref} {SRLemma=} {GrkLemma=} {state.OETRefData['NTGreekLemmaDict'][SRLemma]=}" )
                 state.OETRefData['NTGreekLemmaDict'][SRLemma] = GrkLemma
             state.OETRefData['NTStrongsRefs'][extendedStrongs[:-1]].add( vRef ) # We drop the final digit
         elif processBBB and started:
@@ -1641,7 +1641,7 @@ used_word_filenames = []
 def create_Hebrew_word_pages( level:int, outputFolderPath:Path, state:State ) -> None:
     """
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"create_Hebrew_word_pages( {outputFolderPath}, {state.BibleVersions} )" )
+    if BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 5: fnPrint( DEBUGGING_THIS_MODULE, f"create_Hebrew_word_pages( {outputFolderPath}, {state.BibleVersions} )" )
     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Checking/Making{'' if not state.TEST_MODE_FLAG or state.ALL_TEST_REFERENCE_PAGES_FLAG else ' up to'} {len(state.OETRefData['word_tables'][HebrewWordFileName])-1:,} Hebrew word pages…" )
 
     try: os.makedirs( outputFolderPath )
@@ -1778,7 +1778,7 @@ def create_Hebrew_word_page( level:int, hh:int, hebrewWord:str, columns_string:s
         are appended to them (and merged into state by the parent process)
         instead of being added directly to the state sets (which child changes would be lost).
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"create_Hebrew_word_page( {level}, {hh}, {hebrewWord}, ..., {word_output_filename} ... )" )
+    if BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 5: fnPrint( DEBUGGING_THIS_MODULE, f"create_Hebrew_word_page( {level}, {hh}, {hebrewWord}, ..., {word_output_filename} ... )" )
     # dPrint( 'Normal' if BibleOrgSysGlobals.alreadyMultiprocessing else 'Verbose', DEBUGGING_THIS_MODULE, f"Word {hh}: {columns_string}" )
     assert hebrewWord
     # print( f"create_Hebrew_word_page( ..., {hh}, {hebrewWord}, ..., {word_output_filename} ... )" )
@@ -2072,7 +2072,7 @@ f''' {oTranslation} <a title="Go to Open Scriptures Hebrew verse page" href=
                     else:
                         # print( f"This one {n=} similarWord={mainGlossWord=} was in ({len(nList)})" )
                         if len(nList)>400:
-                            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"preprocessHebrewWordsLemmasGlosses has EXCESSIVE {len(nList):,} entries for {mainGlossWord=} from {similarWord=}")
+                            if BibleOrgSysGlobals.verbosityLevel >= 3: dPrint( 'Info', DEBUGGING_THIS_MODULE, f"preprocessHebrewWordsLemmasGlosses has EXCESSIVE {len(nList):,} entries for {mainGlossWord=} from {similarWord=}")
                     for thisN in nList:
                         # if thisN == hh: continue # That's the current word row
                         eWordRef, eRowType, eMorphemeRowList, eLemmaRowList, eStrongs, eMorphology, eWord, eNoCantillations, eMorphemeGlosses, eContextualMorphemeGlosses, eWordGloss, eContextualWordGloss, eGlossCapitalisation, eGlossPunctuation, eGlossOrder, eGlossInsert, eRole, eNesting, eTags = state.OETRefData['word_tables'][HebrewWordFileName][thisN].split( '\t' )
@@ -2271,7 +2271,7 @@ def create_Hebrew_lemma_page( level:int, lemmaIndex:int, hebLemma:str, prevLink:
         Assumes any TEST_MODE filtering has already been done by the caller.
         Returns True when the page has been written.
         """
-        fnPrint( DEBUGGING_THIS_MODULE, f"create_Hebrew_lemma_page( {lemmaIndex} {hebLemma=} )" )
+        if BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 5: fnPrint( DEBUGGING_THIS_MODULE, f"create_Hebrew_lemma_page( {lemmaIndex} {hebLemma=} )" )
         lemmaList = list( state.OETRefData['OTLemmaGlossDict'] ) # was a local of create_Hebrew_lemma_pages before the multiprocessing extraction
         transliteratedLemma = transliterate_Hebrew( hebLemma )
         if transliteratedLemma == 'pitgām': # One is at ll=5803 hebLemma='פִּתְגָם' ll=5804 hebLemma='פִּתְגָּם'
@@ -2561,7 +2561,7 @@ def create_Hebrew_lemma_pages( level:int, outputFolderPath:Path, state:State ) -
     TODO: Why does this take so long to run???
     TODO: Add related lemma info (not just prefixed ones, but adding synonyms, etc.)
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"create_Hebrew_lemma_pages( {outputFolderPath}, {state.BibleVersions} )" )
+    if BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 5: fnPrint( DEBUGGING_THIS_MODULE, f"create_Hebrew_lemma_pages( {outputFolderPath}, {state.BibleVersions} )" )
     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Checking/Making{'' if not state.TEST_MODE_FLAG or state.ALL_TEST_REFERENCE_PAGES_FLAG else ' up to'} {len(state.OETRefData['OTLemmaGlossDict']):,} Hebrew lemma pages…" )
 
     try: os.makedirs( outputFolderPath )
@@ -2861,7 +2861,7 @@ def _make_greek_lemma_HTML_segment( thisLemmaStr:str, thisLemmaRowsList, level:i
 def create_Greek_word_pages( level:int, outputFolderPath:Path, state:State ) -> None:
     """
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"create_Greek_word_pages( {outputFolderPath}, {state.BibleVersions} )" )
+    if BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 5: fnPrint( DEBUGGING_THIS_MODULE, f"create_Greek_word_pages( {outputFolderPath}, {state.BibleVersions} )" )
 
     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Checking/Making {len(state.OETRefData['word_tables'][GreekWordFileName])-1:,} Greek word pages…" )
 
@@ -3013,7 +3013,7 @@ def create_Greek_word_page( level:int, gg:int, columns_string:str, prevLink:str,
         Assumes any TEST_MODE filtering has already been done by the caller.
         Returns True when the page has been written.
         """
-        fnPrint( DEBUGGING_THIS_MODULE, f"create_Greek_word_page( {level}, {gg}, ..., {output_filename} ... )" )
+        if BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 5: fnPrint( DEBUGGING_THIS_MODULE, f"create_Greek_word_page( {level}, {gg}, ..., {output_filename} ... )" )
         usedRoleLetters, usedMorphologies = set(), set()
 
         ref, greekWord, SRLemma, GrkLemma, VLTGlossWordsStr, OETGlossWordsStr, glossCaps, probability, extendedStrongs, roleLetter, morphology, tagsStr = columns_string.split( '\t' )
@@ -3265,7 +3265,7 @@ f''' {translation} <a title="Go to Statistical Restoration Greek page" href=
                     if len(nList) > 1:
                         if similarWord==mainGlossWord: assert gg in nList
                         if len(nList)>400:
-                            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"create_Greek_word_pages has EXCESSIVE {len(nList):,} entries for '{mainGlossWord}' from {similarWord=}")
+                            if BibleOrgSysGlobals.verbosityLevel >= 3: dPrint( 'Info', DEBUGGING_THIS_MODULE, f"create_Greek_word_pages has EXCESSIVE {len(nList):,} entries for '{mainGlossWord}' from {similarWord=}")
                         for thisN in nList:
                             # if thisN == gg: continue # That's the current word row
                             eWordRef, eGreekWord, eSRLemma, _eGrkLemma, _eVLTGlossWordsStr, _eOETGlossWordsStr, _eGlossCaps, _eProbability, _eExtendedStrongs, eRoleLetter, eMorphology, _eTagsStr = state.OETRefData['word_tables'][GreekWordFileName][thisN].split( '\t' )
@@ -3365,7 +3365,7 @@ def create_Greek_lemma_pages( level:int, outputFolderPath:Path, state:State ) ->
 
     TODO: Add related lemma info (not just prefixed ones, but adding synonyms, etc.)
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"create_Greek_lemma_pages( {outputFolderPath}, {state.BibleVersions} )" )
+    if BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 5: fnPrint( DEBUGGING_THIS_MODULE, f"create_Greek_lemma_pages( {outputFolderPath}, {state.BibleVersions} )" )
     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Making {len(state.OETRefData['NTLemmaDict']):,} Greek lemma pages…" )
 
     try: os.makedirs( outputFolderPath )
@@ -3503,7 +3503,7 @@ def create_Greek_lemma_page( level:int, lemmaIndex:int, lemma:str, prevLink:str,
         Assumes any TEST_MODE filtering has already been done by the caller.
         Returns True when the page has been written.
         """
-        fnPrint( DEBUGGING_THIS_MODULE, f"create_Greek_lemma_page( {level}, {lemmaIndex}, {lemma}, ..., {output_filename} ... )" )
+        if BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 5: fnPrint( DEBUGGING_THIS_MODULE, f"create_Greek_lemma_page( {level}, {lemmaIndex}, {lemma}, ..., {output_filename} ... )" )
         lemmaList = sorted( [lemma for lemma in state.OETRefData['NTLemmaDict']] ) # was a local of create_Greek_lemma_pages before the multiprocessing extraction
         grkLemma = state.OETRefData['NTGreekLemmaDict'][lemma]
         grkLemmaWordRowsList = state.OETRefData['NTLemmaDict'][lemma]
@@ -4491,7 +4491,7 @@ def livenMD( level:int, mdText:str ) -> str:
         from person and location pages
         and convert them to HTML links.
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"livenMD( {level}, {mdText[:140]}… )" )
+    if BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 5: fnPrint( DEBUGGING_THIS_MODULE, f"livenMD( {level}, {mdText[:140]}… )" )
 
     # Firstly, try to improve the overall formatting
     mdText = mdText.replace( '\n\n', '</p><p class="markdown">' ).replace( '\n', '<br>' )
@@ -4504,7 +4504,7 @@ def livenMD( level:int, mdText:str ) -> str:
         match = mdLinkRegex.search( mdText, searchStartIndex )
         if not match:
             break
-        dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  {match=} {match.groups()=}" )
+        if BibleOrgSysGlobals.verbosityLevel >= 4: dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  {match=} {match.groups()=}" )
         readableRef, mdLinkTarget = match.group(1), match.group(2)
         mdLinkTarget = mdLinkTarget.split( '#', 1 )[1]
         if mdLinkTarget.count( '.' ) == 2: # Then it's almost certainly an OSIS B/C/V ref

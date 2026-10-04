@@ -87,7 +87,7 @@ NARROW_NON_BREAK_SPACE = ' '
 def createOETInterlinearPages( level:int, folder:Path, state:State ) -> bool:
     """
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"createOETInterlinearPages( {level}, {folder}, ... )" )
+    if BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 5: fnPrint( DEBUGGING_THIS_MODULE, f"createOETInterlinearPages( {level}, {folder}, ... )" )
     assert level == 1
 
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\ncreateOETInterlinearPages( {level}, {folder}, {state.BibleVersions} )" )
@@ -174,7 +174,7 @@ def createOETInterlinearVersePagesForBook( level:int, folder:Path, BBB:str, BBBL
     Create a page for every Bible verse
         displaying the interlinear verses.
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"createOETInterlinearVersePagesForBook( {level}, {folder}, {BBB}, {BBBLinks}, {state.BibleVersions} )" )
+    if BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 5: fnPrint( DEBUGGING_THIS_MODULE, f"createOETInterlinearVersePagesForBook( {level}, {folder}, {BBB}, {BBBLinks}, {state.BibleVersions} )" )
     assert level == 1
     BBBFolder = folder.joinpath(f'{BBB}/')
     BBBLevel = level + 1
@@ -267,7 +267,7 @@ def createOETInterlinearVersePagesForBook( level:int, folder:Path, BBB:str, BBBL
                 vLinks.append( f'<a title="Go to interlinear verse page" href="{filename}#Top">{C}:{v}</a>' )
             lastNumVerses = numVerses # for the previous chapter
     else:
-        dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"createOETInterlinearVersePagesForBook {BBB} has {numChapters} chapters!!!" )
+        if BibleOrgSysGlobals.verbosityLevel >= 4: dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"createOETInterlinearVersePagesForBook {BBB} has {numChapters} chapters!!!" )
         assert BBB in ('INT','FRT',)
         # dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"createOETInterlinearVersePagesForBook {thisBible.books[BBB]=}" )
 
@@ -324,7 +324,7 @@ def createOETInterlinearVerseInner( level:int, BBB:str, c:int, v:int, state:Stat
     """
     Create an interlinear page for the Bible verse.
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"createOETInterlinearVerseInner( {level}, {BBB} {c}:{v}, … )" )
+    if BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 5: fnPrint( DEBUGGING_THIS_MODULE, f"createOETInterlinearVerseInner( {level}, {BBB} {c}:{v}, … )" )
 
     vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"createOETInterlinearVerseInner {level}, {BBB} {c}:{v}, …" )
 

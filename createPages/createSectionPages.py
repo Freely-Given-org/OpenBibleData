@@ -280,7 +280,7 @@ def createOETSectionLists( rvBible:ESFMBible, state:State ) -> bool:
             lastV = lastMarker = None
             for entry in rvVerseEntryList:
                 marker, text = entry.getMarker(), entry.getOriginalText()
-                dPrint( 'Info', DEBUGGING_THIS_MODULE, f"createOETSectionLists {marker=} {text=} {lastMarker=}" )
+                if BibleOrgSysGlobals.verbosityLevel >= 3: dPrint( 'Info', DEBUGGING_THIS_MODULE, f"createOETSectionLists {marker=} {text=} {lastMarker=}" )
                 if marker == 'v':
                     assert text != lastV, f"OET-RV {BBB} {startCV=} {text=} {lastV=}"
                     lastV = text
@@ -297,7 +297,7 @@ def createOETSectionLists( rvBible:ESFMBible, state:State ) -> bool:
         assert len(state.sectionsListsForHeaders['OET-RV'][BBB]) >= len(state.sectionsListsForSections['OET-RV'][BBB])
 
         if additionalSectionHeadingsDict: # Handle left-over additions
-            dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"OET-RV {BBB} didn't originally use {additionalSectionHeadingsDict=}")
+            if BibleOrgSysGlobals.verbosityLevel >= 2: dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"OET-RV {BBB} didn't originally use {additionalSectionHeadingsDict=}")
             for (addC,addV),additionalFieldList in additionalSectionHeadingsDict.copy().items():
                 # print( f"{c}:{v} {additionalFieldList}" )
                 for additionalMarker,additionalFieldText in additionalFieldList:
@@ -305,7 +305,7 @@ def createOETSectionLists( rvBible:ESFMBible, state:State ) -> bool:
                     state.sectionsListsForHeaders['OET-RV'][BBB].append( (addC,addV,additionalFieldText,additionalMarkerTextName,sectionFilename) )
                 del additionalSectionHeadingsDict[(addC,addV)]
             if additionalSectionHeadingsDict:
-                dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"{BBB} didn't use {additionalSectionHeadingsDict=}")
+                if BibleOrgSysGlobals.verbosityLevel >= 2: dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"{BBB} didn't use {additionalSectionHeadingsDict=}")
                 assert False, "We want to stop here"
         assert len(state.sectionsListsForHeaders['OET-RV'][BBB]) >= len(bkObject._SectionIndex), f"{BBB}: {len(state.sectionsListsForHeaders['OET-RV'][BBB])=} {len(bkObject._SectionIndex)=}"
 
@@ -369,7 +369,7 @@ def createOETSectionPages( level:int, folder:Path, rvBible:ESFMBible, lvBible:ES
         #     logging.critical( f"C Skipped OET sections not-included book: OET-LV {BBB}")
         #     continue # Only create pages for the requested LV books
 
-        dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{rvBible.abbreviation} {type(rvBible[BBB]._SectionIndex)=} {rvBible[BBB]._SectionIndex=}" )
+        if BibleOrgSysGlobals.verbosityLevel >= 4: dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{rvBible.abbreviation} {type(rvBible[BBB]._SectionIndex)=} {rvBible[BBB]._SectionIndex=}" )
         if not rvBible[BBB]._SectionIndex: # no sections in this book, e.g., FRT
             continue
 
@@ -636,7 +636,7 @@ def createSectionLists( level:int, thisBible, state:State ) -> None:
                 sectionName = removeAddSpanFormatting( sectionName )
             if 'OET' in thisBible.abbreviation:
                 sectionName = sectionName.replace( "'", "’" ) # Replace apostrophes
-            dPrint( 'Verbose', DEBUGGING_THIS_MODULE,  f"{sectionName=} {reasonMarker=}" )
+            if BibleOrgSysGlobals.verbosityLevel >= 4: dPrint( 'Verbose', DEBUGGING_THIS_MODULE,  f"{sectionName=} {reasonMarker=}" )
             # reasonName = SECTION_REASON_NAME_DICT[reasonMarker]
             startC,startV = startCV
             endC,endV = sectionIndexEntry.getEndCV()
@@ -712,7 +712,7 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> list
             sectionChapterLinksParagraph = ''
         sectionChapterLinksParagraph = f'<p class="chLst">{" ".join( sectionChapterLinks )}</p><!--chLst-->'
 
-        dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{thisBible.abbreviation} {type(thisBible[BBB]._SectionIndex)=} {thisBible[BBB]._SectionIndex=}" )
+        if BibleOrgSysGlobals.verbosityLevel >= 4: dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{thisBible.abbreviation} {type(thisBible[BBB]._SectionIndex)=} {thisBible[BBB]._SectionIndex=}" )
         if not thisBible[BBB]._SectionIndex: # no sections in this book, e.g., FRT
             vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"No section headings in {thisBible.abbreviation} {BBB} -- skipping section pages" )
             sectionFilename = f'{BBB}.htm'

@@ -137,7 +137,7 @@ WJ = '\u2060' # word joiner (makes Hebrew displays on console ugly and hard to r
 def createParallelVersePages( level:int, folder:Path, state:State ) -> bool:
     """
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"createParallelVersePages( {level}, {folder}, {state.BibleVersions} )" )
+    if BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 5: fnPrint( DEBUGGING_THIS_MODULE, f"createParallelVersePages( {level}, {folder}, {state.BibleVersions} )" )
     assert level == 1
 
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\ncreateParallelVersePages( {level}, {folder}, {state.BibleVersions} )" )
@@ -282,7 +282,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
     Create a page for every Bible verse
         displaying the verse for every available version.
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"createParallelVersePagesForBook( {level}, {folder}, {BBB}, {BBBLinks}, {state.BibleVersions} )" )
+    if BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 5: fnPrint( DEBUGGING_THIS_MODULE, f"createParallelVersePagesForBook( {level}, {folder}, {BBB}, {BBBLinks}, {state.BibleVersions} )" )
     BBBFolder = folder.joinpath(f'{BBB}/')
     BBBLevel = level + 1
     isOT = bos_books_codes_py.is_old_testament_nr( BBB )
@@ -1237,7 +1237,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                     break # no need to loop -- we handle the entire intro in one go
             lastNumVerses = numVerses # for the previous chapter
     else:
-        dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"createParallelVersePagesForBook {BBB} has {numChapters} chapters!!!" )
+        if BibleOrgSysGlobals.verbosityLevel >= 4: dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"createParallelVersePagesForBook {BBB} has {numChapters} chapters!!!" )
         assert BBB in ('INT','FRT',)
         # dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"createParallelVersePagesForBook {thisBible.books[BBB]=}" )
 
@@ -1500,7 +1500,7 @@ def brightenUHB( BBB:str, C:str, V:str, brightenUHBTextHtml:str, verseEntryList,
             but there are also word entries without a colon in strongs, yet one in the morphology!!!
     """
     UHBRef = f'{BBB}_{C}:{V}'
-    fnPrint( DEBUGGING_THIS_MODULE, f"brightenUHB( {UHBRef} {brightenUHBTextHtml}, {verseEntryList}, … )" )
+    if BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 5: fnPrint( DEBUGGING_THIS_MODULE, f"brightenUHB( {UHBRef} {brightenUHBTextHtml}, {verseEntryList}, … )" )
 
     wordFileName = 'OET-LV_OT_word_table.tsv'
 
@@ -1629,7 +1629,7 @@ def brightenUHB( BBB:str, C:str, V:str, brightenUHBTextHtml:str, verseEntryList,
         for _safetyCount1 in range( len(strippedHebWords)+1 ):
             assert checkHtml( f'Extras loop top for brightenedUHB {UHBRef} {_safetyCount1=}', brightenUHBTextHtml, segmentOnly=True )
             rawHebWord = strippedHebWords[verseWordNumberIndex]
-            dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"Start of {UHBRef} loop1 {_safetyCount1=} {verseWordNumberIndex=} {rawHebWord=}" )
+            if BibleOrgSysGlobals.verbosityLevel >= 4: dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"Start of {UHBRef} loop1 {_safetyCount1=} {verseWordNumberIndex=} {rawHebWord=}" )
             # assert 'span' not in rawHebWord # No longer true now that we have footnotes included for display
             if rawHebWord.startswith( '\n' ):
                 assert UHBRef in ('NUM_26:1','SA1_20:42'), f"brightenUHB {UHBRef} {rawHebWord=} from {brightenUHBTextHtml=}"
@@ -1646,7 +1646,7 @@ def brightenUHB( BBB:str, C:str, V:str, brightenUHBTextHtml:str, verseEntryList,
                 searchStartIndex += 1
                 extraIndexOffset -= 1 # Stops the extras from advancing
                 continue # nothing more to do in this loop
-            dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  About to search for {rawHebWord=} in {searchStartIndex=} {brightenUHBTextHtml[searchStartIndex:]=} {brightenUHBTextHtml[searchStartIndex:].count(rawHebWord)=}")
+            if BibleOrgSysGlobals.verbosityLevel >= 4: dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  About to search for {rawHebWord=} in {searchStartIndex=} {brightenUHBTextHtml[searchStartIndex:]=} {brightenUHBTextHtml[searchStartIndex:].count(rawHebWord)=}")
             try: ixRawHebWord = brightenUHBTextHtml.index( rawHebWord, searchStartIndex )
             except ValueError as e:
                 logging.critical( f"brightenUHB {UHBRef} couldn't find {rawHebWord=} {searchStartIndex=} in {brightenUHBTextHtml}, {verseEntryList}: {e}" )
@@ -1655,7 +1655,7 @@ def brightenUHB( BBB:str, C:str, V:str, brightenUHBTextHtml:str, verseEntryList,
                 if verseWordNumberIndex >= len(strippedHebWords):
                     break
                 continue # TODO: Why did this happen?
-            dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  aE {verseWordNumberIndex=} ({len(rawHebWord)}) {rawHebWord=} {searchStartIndex=} {ixRawHebWord=} {extraIndexOffset=}")
+            if BibleOrgSysGlobals.verbosityLevel >= 4: dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  aE {verseWordNumberIndex=} ({len(rawHebWord)}) {rawHebWord=} {searchStartIndex=} {ixRawHebWord=} {extraIndexOffset=}")
             assert ixRawHebWord != -1
             simpleHebWord = rawHebWord.lstrip( '“‘˚(' ) # TODO: Why do we need to do this again? Seems redundant
             # print( f"({len(simpleHebWord)}) {simpleHebWord=}" )
@@ -1811,7 +1811,7 @@ def rememberPossibleUnmatchedProperNames( parRef:str, thisVerseEntryList, state:
     """
     Was 1,650
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"rememberPossibleUnmatchedProperNames( {parRef} {thisVerseEntryList}, … )" )
+    if BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 5: fnPrint( DEBUGGING_THIS_MODULE, f"rememberPossibleUnmatchedProperNames( {parRef} {thisVerseEntryList}, … )" )
 
     for verseEntry in thisVerseEntryList:
         marker, verseText = verseEntry.getMarker(), verseEntry.getCleanText()
