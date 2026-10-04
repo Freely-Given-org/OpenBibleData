@@ -348,6 +348,7 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                 logging.error( f"createParallelVersePagesForBook: no verses found for {BBB} {C}" )
                 continue
             oetRvPsaHasD = False
+            verseEntriesForChapterMap = {} # (versionAbbreviation, C) -> {V: (entries, context)} bulk-fetched per chapter
             for v in range( 0, numVerses+1 ):
                 V = str( v )
                 parRef = f'{BBB}_{C}:{V}'
@@ -460,7 +461,13 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                 # For these Psalms, the OET-LV calls the \\d field, verse 1, so everything is one verse out
                                 verseEntryList, contextList = thisBible.getContextVerseDataRange( (BBB, C, V), (BBB, C, '2') ) if v==1 else thisBible.getContextVerseData( (BBB, C, str(v+1)) )
                             else: # the normal, common case
-                                verseEntryList, contextList = thisBible.getContextVerseData( (BBB,C) if c==-1 else (BBB, C, V) )
+                                if c == -1: # book intro — fetch once per chapter below
+                                    verseEntryList, contextList = thisBible.getContextVerseData( (BBB,'-1') )
+                                else:
+                                    cacheKey = (versionAbbreviation, C)
+                                    if cacheKey not in verseEntriesForChapterMap:
+                                        verseEntriesForChapterMap[cacheKey] = thisBible.books[BBB]._CVIndex.getChapterVerseEntriesWithContext( C )
+                                    verseEntryList, contextList = verseEntriesForChapterMap[cacheKey][V]  # raises KeyError if the verse is missing, same as getContextVerseData
                                 # if 'OET' in versionAbbreviation and BBB=='JER' and c==1 and V!='0':
                                 #     print( f"{versionAbbreviation} {parRef=} {contextList=} verseEntryList:")
                                 #     for eee,entry in enumerate( verseEntryList ):
@@ -1279,15 +1286,7 @@ def getPlainText( givenVerseEntryList ) -> str:
 
     Used to compare critical Greek versions.
     """
-    plainTextStringBits = []
-    for entry in givenVerseEntryList:
-        # print( entry )
-        marker, cleanText = entry.getMarker(), entry.getCleanText()
-        # if not cleanText and marker[0]!='¬' and marker not in ('p',): print( f"getPlainText {marker=} {cleanText=}")
-        if marker == 'v~':
-            plainTextStringBits.append( cleanText )
-
-    return ' '.join( plainTextStringBits )
+    return givenVerseEntryList.plain_text( 'v~' )
 # end of createParallelVersePages.getPlainText
 
 

@@ -256,6 +256,7 @@ def createVerseListPagesForBook( level:int, folder:Path, BBB:str, BBBLinks:list[
                 logging.error( f"createVerseListPagesForBook: no verses found for {BBB} {C}" )
                 continue
             oetRvPsaHasD = False
+            verseEntriesForChapterMap = {} # (versionAbbreviation, C) -> {V: (entries, context)} bulk-fetched per chapter
             for v in range( 0, numVerses+1 ):
                 V = str( v )
                 parRef = f'{BBB}_{C}:{V}'
@@ -357,7 +358,13 @@ def createVerseListPagesForBook( level:int, folder:Path, BBB:str, BBBLinks:list[
                                 # For these Psalms, the OET-LV calls the \\d field, verse 1, so everything is one verse out
                                 verseEntryList, contextList = thisBible.getContextVerseDataRange( (BBB, C, V), (BBB, C, '2') ) if v==1 else thisBible.getContextVerseData( (BBB, C, str(v+1)) )
                             else: # the normal, common case
-                                verseEntryList, contextList = thisBible.getContextVerseData( (BBB,C) if c==-1 else (BBB, C, V) )
+                                if c == -1: # book intro — fetch once per chapter below
+                                    verseEntryList, contextList = thisBible.getContextVerseData( (BBB,'-1') )
+                                else:
+                                    cacheKey = (versionAbbreviation, C)
+                                    if cacheKey not in verseEntriesForChapterMap:
+                                        verseEntriesForChapterMap[cacheKey] = thisBible.books[BBB]._CVIndex.getChapterVerseEntriesWithContext( C )
+                                    verseEntryList, contextList = verseEntriesForChapterMap[cacheKey][V]  # raises KeyError if the verse is missing, same as getContextVerseData
                                 # if 'OET' in versionAbbreviation and BBB=='JER' and c==1 and V!='0':
                                 #     print( f"{versionAbbreviation} {parRef=} {contextList=} verseEntryList:")
                                 #     for eee,entry in enumerate( verseEntryList ):
