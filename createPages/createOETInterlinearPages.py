@@ -450,6 +450,7 @@ def createOETInterlinearVerseInner( level:int, BBB:str, c:int, v:int, state:Stat
             rvEnglishWordDict[number].append( word )
 
     if NT: # See if we have variants
+        # word_table_indexes[wordTableName][BCV] -> (firstRowIndex, lastRowIndex): inclusive row numbers of this verse's rows in state.OETRefData['word_tables'] (built in Rust, see createSitePages)
         firstWordNumber,lastWordNumber = state.OETRefData['word_table_indexes'][wordFileName][f'{BBB}_{C}:{V}']
         haveVariants = False
         for wordNumber in range( firstWordNumber, lastWordNumber+1 ):
@@ -462,6 +463,7 @@ def createOETInterlinearVerseInner( level:int, BBB:str, c:int, v:int, state:Stat
     ivHtml = f'''<h2>{'SR Greek' if NT else 'Hebrew'} word order{' <small>(including unused variant words in grey)</small>' if NT and haveVariants else ''}</h2>
 <div class=interlinear><ol class=verse>'''
     if wordNumberStr: # Now we have a word number from the correct verse
+        # word_table_indexes[wordTableName][BCV] -> (firstRowIndex, lastRowIndex): inclusive row numbers of this verse's rows in state.OETRefData['word_tables'] (built in Rust, see createSitePages)
         # Display the interlinear blocks (per-word rows are built in Rust for speed)
         firstWordNumber,lastWordNumber = state.OETRefData['word_table_indexes'][wordFileName][f'{BBB}_{C}:{V}']
         wordRows, wordNumbers, wordpageFilenames = [], [], []

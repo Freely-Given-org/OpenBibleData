@@ -35,6 +35,7 @@ pub mod verse_to_html;
 pub mod verse_entry_list;
 pub mod word_table_snapshot;
 pub mod greek_hebrew;
+pub mod bcv_index;
 
 pub use intro_links::{liven_introduction_links_core, IntroLinkError};
 pub use ior_links::{liven_iors_core, IORLinkError};
@@ -1892,6 +1893,7 @@ fn openbibledata_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(remove_hebrew_cantillation_marks_py, m)?)?;
     m.add_function(wrap_pyfunction!(remove_hebrew_vowel_pointing_py, m)?)?;
     m.add_function(wrap_pyfunction!(remove_hebrew_other_marks_py, m)?)?;
+    m.add_function(wrap_pyfunction!(bcv_index::build_word_table_index_py, m)?)?;
     m.add_function(wrap_pyfunction!(split_oet_lv_interlinear_words_py, m)?)?;
     m.add_function(wrap_pyfunction!(split_oet_rv_interlinear_words_py, m)?)?;
     m.add_function(wrap_pyfunction!(remove_duplicate_c_vids_py, m)?)?;

@@ -1336,6 +1336,7 @@ def brightenSRGNT( BBB:str, C:str, V:str, brightenTextHtml:str, verseEntryList, 
     strippedGrkWords = [punctuatedGrkWord.lstrip( '“‘˚(' ).rstrip( '.,?!:’ ”·;)–…' ) for punctuatedGrkWord in punctuatedGrkWords] # Includes (now) space between speech closing marks
 
     # Match Greek words to word numbers
+    # word_table_indexes[wordTableName][BCV] -> (firstRowIndex, lastRowIndex): inclusive row numbers of this verse's rows in state.OETRefData['word_tables'] (built in Rust, see createSitePages)
     firstWordNumber,lastWordNumber = state.OETRefData['word_table_indexes'][wordFileName][brRef]
     currentWordNumber = firstWordNumber
     grkWordNumbers = []
@@ -1589,6 +1590,7 @@ def brightenUHB( BBB:str, C:str, V:str, brightenUHBTextHtml:str, verseEntryList,
         strippedHebWords.append( punctuatedHebWord.lstrip( '“‘˚(' ).rstrip( '.,?!:”’·;)–…׃') ) # Last rstrip one is 'sof pasuq' and 'pe' & 'samekh' Hebrew characters
     # print( f"  brightenUHB strippedHebWords={str(strippedHebWords).replace(WJ,'')}" )
 
+    # word_table_indexes[wordTableName][BCV] -> (firstRowIndex, lastRowIndex): inclusive row numbers of this verse's rows in state.OETRefData['word_tables'] (built in Rust, see createSitePages)
     # Match Hebrew words to word numbers -- we use the original numbering which is marked as variant in UHB
     try: firstWordNumber,lastWordNumber = state.OETRefData['word_table_indexes'][wordFileName][f'{BBB}_{vC}:{vV}']
     except KeyError as e:

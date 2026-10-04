@@ -920,7 +920,7 @@ def createOETReferencePages( level:int, outputFolderPath:Path, state:State ) -> 
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      create_Greek_lemma_pages() took {(time()-startTime)/60:.1f} minutes.")
     del state.OETRefData['NTLemmaFormsCountDict'], state.OETRefData['NTLemmaOETGlossesCountDict']
 
-    bibleLexicon = BibleLexicon.BibleLexicon()
+    bibleLexicon = BibleLexicon.getBibleLexicon()
     startTime = time()
     create_Hebrew_Strongs_pages( level+1, outputFolderPath.joinpath( 'HebStrng/' ), bibleLexicon, state )
     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      create_Hebrew_Strongs_pages() took {(time()-startTime)/60:.1f} minutes.")

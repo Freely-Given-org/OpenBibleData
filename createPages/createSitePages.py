@@ -84,7 +84,7 @@ import bos_books_codes_py
 
 from settings import State, state, reorderBooksForOETVersions
 from Bibles import preloadVersions
-from openbibledata_rust import getOETTidyBBB, getOETBookName, build_word_table_snapshot_py
+from openbibledata_rust import getOETTidyBBB, getOETBookName, build_word_table_snapshot_py, build_word_table_index
 from createBookPages import createOETBookPages, createBookPages
 from createChapterPages import createOETSideBySideChapterPages, createChapterPages
 from createSectionPages import createOETSectionLists, createOETSectionPages, createSectionLists, createSectionPages
@@ -155,20 +155,19 @@ def _createSitePages() -> bool:
             assert columnHeaders == 'Ref\tGreekWord\tSRLemma\tGreekLemma\tVLTGlossWords\tOETGlossWords\tGlossCaps\tProbability\tStrongsExt\tRole\tMorphology\tTags' # If not, probably need to fix some stuff
 
     # Make a BCV index to the OET word tables
+    #   Each OET-LV word table is a list of raw TSV row strings (row 0 is the header).
+    #   For every row there's a 'Ref' field like 'MAT_1:1w3'; the BCV key is the part
+    #   before the first 'w' (e.g. 'MAT_1:1').
+    #   word_table_indexes[table]['MAT_1:1'] == (firstRowIndexInTable, lastRowIndexInTable)
+    #   of the run of consecutive rows covering that verse (inclusive, using the table's
+    #   natural index including the header row at index 0).
+    #   This index is consumed at points of use in createOETInterlinearPages and
+    #   createParallelVersePages to find the word rows for a given verse.
+    #   Built in Rust (bcv_index.rs → openbibledata_rust.build_word_table_index) —
+    #   byte-identical to the old Python loop it replaces.
     state.OETRefData['word_table_indexes'] = {}
     for wordTableFilename in lvBible.ESFMWordTables:
-        state.OETRefData['word_table_indexes'][wordTableFilename] = {}
-        lastBCVref = None
-        startIx = 1
-        for n, columns_string in enumerate( state.OETRefData['word_tables'][wordTableFilename][1:], start=1 ):
-            wordRef = columns_string.split( '\t', 1 )[0] # Something like 'MAT_1:1w1'
-            BCVref = wordRef.split( 'w', 1 )[0] # Something like 'MAT_1:1'
-            if BCVref != lastBCVref:
-                if lastBCVref is not None:
-                    state.OETRefData['word_table_indexes'][wordTableFilename][lastBCVref] = (startIx,n-1)
-                startIx = n
-                lastBCVref = BCVref
-        state.OETRefData['word_table_indexes'][wordTableFilename][lastBCVref] = (startIx,n) # Save the final one
+        state.OETRefData['word_table_indexes'][wordTableFilename] = build_word_table_index( state.OETRefData['word_tables'][wordTableFilename] )
 
     # Determine our inclusive list of books for all versions
     allBBBs = set()
