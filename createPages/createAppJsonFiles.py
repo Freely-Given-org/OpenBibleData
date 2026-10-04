@@ -36,7 +36,7 @@ from time import time
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint, BOOKLIST_OT39, BOOKLIST_NT27, BOOKLIST_66
 from BibleOrgSys.Reference.BibleVersificationSystems import BibleVersificationSystem
-from BibleOrgSys.OriginalLanguages import Hebrew, BibleLexicon
+from BibleOrgSys.OriginalLanguages import BibleLexicon
 from bible_organisational_system import getPositiveLeadingInt
 import bos_books_codes_py
 

@@ -148,7 +148,7 @@ from docutils import nodes
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint, BOOKLIST_OT39, BOOKLIST_NT27, BOOKLIST_66
 from BibleOrgSys.Reference.BibleVersificationSystems import BibleVersificationSystem
-from BibleOrgSys.OriginalLanguages import Hebrew, BibleLexicon
+from BibleOrgSys.OriginalLanguages import BibleLexicon
 from bible_organisational_system import getPositiveLeadingInt
 import bos_books_codes_py
 
@@ -158,7 +158,7 @@ from settings import State, state, CNTR_BOOK_ID_MAP
 from html import makeTop, makeBottom, checkHtml, do_OET_LV_HTMLcustomisations, do_OET_RV_HTMLcustomisations
 from createSectionPages import findSectionNumber
 import openbibledata_rust
-from openbibledata_rust import convertVerseEntryListToHtml, getOETTidyBBB, getOETBookName, getHebrewWordpageFilename, getGreekWordpageFilename, formatNTSpansGlossWords, convertHebrewWordGlossSpans, tidyHebrewMorphology, tidyHebrewLemmaGloss, tidyGlossOfGreekWord, tidyGreekLemmaGloss, livenStrongsRefs
+from openbibledata_rust import convertVerseEntryListToHtml, getOETTidyBBB, getOETBookName, getHebrewWordpageFilename, getGreekWordpageFilename, formatNTSpansGlossWords, convertHebrewWordGlossSpans, tidyHebrewMorphology, tidyHebrewLemmaGloss, tidyGlossOfGreekWord, tidyGreekLemmaGloss, livenStrongsRefs, removeHebrewVowelPointing as _removeHebrewVowelPointing, removeHebrewOtherMarks
 
 
 LAST_MODIFIED_DATE = '2026-10-01' # by RJH
@@ -4528,9 +4528,7 @@ def removeHebrewVowelPointing( text:str ) -> str:
     """
     Return the text with vowel pointing removed.
     """
-    h = Hebrew.Hebrew( text )
-    resultA = h.removeVowelPointing( removeMetegOrSiluq=True )
-    return h.removeOtherMarks( resultA, removeSinShinDots=False )
+    return removeHebrewOtherMarks( _removeHebrewVowelPointing( text, removeMetegOrSiluq=True ), removeSinShinDots=False )
 # end of apply_Clear_Macula_OT_glosses.removeHebrewVowelPointing
 
 

@@ -40,7 +40,6 @@ from collections import defaultdict
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint, rreplace, BOOKLIST_66
 import BibleOrgSys.Formats.ESFMBible as ESFMBible
-import BibleOrgSys.OriginalLanguages.Greek as Greek
 from BibleOrgSys.Reference.OldBiblicalEnglish import moderniseEnglishWords
 from BibleOrgSys.Reference.EuropeanToEnglish import translateGerman, translateLatin
 from bible_organisational_system import getSmallLeadingInt
@@ -57,7 +56,7 @@ from createSectionPages import findSectionNumber
 from createOETReferencePages import OSHB_ADJECTIVE_DICT, OSHB_PARTICLE_DICT, OSHB_NOUN_DICT, OSHB_PREPOSITION_DICT, OSHB_PRONOUN_DICT, OSHB_SUFFIX_DICT
 # from spellCheckEnglish import spellCheckAndMarkHTMLText, collectSpellCheckResults, mergeSpellCheckResults, \
 #                             load_OET_LV_names, load_OET_RV_names
-from openbibledata_rust import convertVerseEntryListToHtml, getOETTidyBBB, getOETBookName, removeVersePunctuationForComparison, removeGreekPunctuation
+from openbibledata_rust import convertVerseEntryListToHtml, getOETTidyBBB, getOETBookName, removeVersePunctuationForComparison, removeGreekPunctuation, removeGreekAccents
 
 
 LAST_MODIFIED_DATE = '2026-09-18' # by RJH
@@ -405,9 +404,8 @@ def createVerseListPagesForBook( level:int, folder:Path, BBB:str, BBBLinks:list[
                                     plainGreekText = plainGreekText.replace('1','').replace('2','') # 1 Cor 12:10
                                 greekWords[versionAbbreviation] = plainGreekText
                                 greekWords[f'{versionAbbreviation}_NoPunct'] = removeGreekPunctuation(  greekWords[versionAbbreviation] )
-                                greekClass = Greek.Greek( greekWords[f'{versionAbbreviation}_NoPunct'] )
                                 try:
-                                    greekWords[f'{versionAbbreviation}_NoAccents'] = greekClass.removeAccents()
+                                    greekWords[f'{versionAbbreviation}_NoAccents'] = removeGreekAccents( greekWords[f'{versionAbbreviation}_NoPunct'] )
                                 except Exception as exc:
                                     # print( f"\n{parRef} {versionAbbreviation}\n{greekWords[f'{versionAbbreviation}_NoPunct']=}" )
                                     raise exc

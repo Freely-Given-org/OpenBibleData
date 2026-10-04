@@ -34,6 +34,7 @@ pub mod xref_links;
 pub mod verse_to_html;
 pub mod verse_entry_list;
 pub mod word_table_snapshot;
+pub mod greek_hebrew;
 
 pub use intro_links::{liven_introduction_links_core, IntroLinkError};
 pub use ior_links::{liven_iors_core, IORLinkError};
@@ -1723,6 +1724,26 @@ fn remove_greek_punctuation_py(greek_text: &str) -> String {
     postprocess::remove_greek_punctuation(greek_text)
 }
 
+#[pyfunction(name = "removeGreekAccents")]
+fn remove_greek_accents_py(text: &str) -> String {
+    greek_hebrew::strip_greek_accents(text)
+}
+
+#[pyfunction(name = "removeHebrewCantillationMarks", signature = (text, removeMetegOrSiluq = false))]
+fn remove_hebrew_cantillation_marks_py(text: &str, removeMetegOrSiluq: bool) -> String {
+    greek_hebrew::remove_hebrew_cantillation_marks(text, removeMetegOrSiluq)
+}
+
+#[pyfunction(name = "removeHebrewVowelPointing", signature = (text, removeMetegOrSiluq = false))]
+fn remove_hebrew_vowel_pointing_py(text: &str, removeMetegOrSiluq: bool) -> String {
+    greek_hebrew::remove_hebrew_vowel_pointing(text, removeMetegOrSiluq)
+}
+
+#[pyfunction(name = "removeHebrewOtherMarks", signature = (text, removeSinShinDots = true))]
+fn remove_hebrew_other_marks_py(text: &str, removeSinShinDots: bool) -> String {
+    greek_hebrew::remove_hebrew_other_marks(text, removeSinShinDots)
+}
+
 /// PyO3 wrapper for `postprocess::split_oet_lv_interlinear_words`.
 #[pyfunction(name = "splitOETLVInterlinearWords")]
 fn split_oet_lv_interlinear_words_py(clean_text: &str) -> Vec<String> {
@@ -1867,6 +1888,10 @@ fn openbibledata_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(html_validation::check_html_py, m)?)?;
     m.add_function(wrap_pyfunction!(remove_verse_punctuation_for_comparison_py, m)?)?;
     m.add_function(wrap_pyfunction!(remove_greek_punctuation_py, m)?)?;
+    m.add_function(wrap_pyfunction!(remove_greek_accents_py, m)?)?;
+    m.add_function(wrap_pyfunction!(remove_hebrew_cantillation_marks_py, m)?)?;
+    m.add_function(wrap_pyfunction!(remove_hebrew_vowel_pointing_py, m)?)?;
+    m.add_function(wrap_pyfunction!(remove_hebrew_other_marks_py, m)?)?;
     m.add_function(wrap_pyfunction!(split_oet_lv_interlinear_words_py, m)?)?;
     m.add_function(wrap_pyfunction!(split_oet_rv_interlinear_words_py, m)?)?;
     m.add_function(wrap_pyfunction!(remove_duplicate_c_vids_py, m)?)?;

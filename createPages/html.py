@@ -631,7 +631,7 @@ def do_GHT_HTMLcustomisations( where:str, GHT_html:str ) -> str:
     Mark dative and genitive portions
     """
     searchIx = 0
-    for _x1 in range( 15 ):
+    for _x1 in range( 14 ):
         startIx = GHT_html.find( 'to{', searchIx )
         if startIx == -1: break
         endIx = GHT_html.find( '}', startIx+3 )
@@ -643,7 +643,7 @@ def do_GHT_HTMLcustomisations( where:str, GHT_html:str ) -> str:
     else: print( f"do_GHT_HTMLcustomisations {where=}" ); need_to_expand_x1_range
 
     searchIx = 0
-    for _x2 in range( 15 ):
+    for _x2 in range( 18 ): # Luk 3:1 has 17 genitives
         startIx = GHT_html.find( 'of{', searchIx )
         if startIx == -1: break
         endIx = GHT_html.find( '}', startIx+3 )

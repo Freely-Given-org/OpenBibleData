@@ -95,7 +95,6 @@ from collections import defaultdict
 import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import fnPrint, vPrint, dPrint, rreplace, BOOKLIST_66
 import BibleOrgSys.Formats.ESFMBible as ESFMBible
-import BibleOrgSys.OriginalLanguages.Greek as Greek
 from BibleOrgSys.Reference.OldBiblicalEnglish import moderniseEnglishWords
 from BibleOrgSys.Reference.EuropeanToEnglish import translateGerman, translateLatin
 from bible_organisational_system import getSmallLeadingInt
@@ -115,7 +114,7 @@ from createSectionPages import findSectionNumber
 from createOETReferencePages import OSHB_ADJECTIVE_DICT, OSHB_PARTICLE_DICT, OSHB_NOUN_DICT, OSHB_PREPOSITION_DICT, OSHB_PRONOUN_DICT, OSHB_SUFFIX_DICT
 from spellCheckEnglish import spellCheckAndMarkHTMLText, collectSpellCheckResults, mergeSpellCheckResults, \
                             load_dict_sources, load_OET_LV_names, load_OET_RV_names
-from openbibledata_rust import convertVerseEntryListToHtml, getOETTidyBBB, getOETBookName, getHebrewWordpageFilename, getGreekWordpageFilename, removeVersePunctuationForComparison, removeGreekPunctuation
+from openbibledata_rust import convertVerseEntryListToHtml, getOETTidyBBB, getOETBookName, getHebrewWordpageFilename, getGreekWordpageFilename, removeVersePunctuationForComparison, removeGreekPunctuation, removeGreekAccents
 
 
 LAST_MODIFIED_DATE = '2026-10-01' # by RJH
@@ -508,9 +507,8 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                                     plainGreekText = plainGreekText.replace('1','').replace('2','') # 1 Cor 12:10
                                 greekWords[versionAbbreviation] = plainGreekText
                                 greekWords[f'{versionAbbreviation}_NoPunct'] = removeGreekPunctuation(  greekWords[versionAbbreviation] )
-                                greekClass = Greek.Greek( greekWords[f'{versionAbbreviation}_NoPunct'] )
                                 try:
-                                    greekWords[f'{versionAbbreviation}_NoAccents'] = greekClass.removeAccents()
+                                    greekWords[f'{versionAbbreviation}_NoAccents'] = removeGreekAccents( greekWords[f'{versionAbbreviation}_NoPunct'] )
                                 except Exception as exc:
                                     # print( f"\n{parRef} {versionAbbreviation}\n{greekWords[f'{versionAbbreviation}_NoPunct']=}" )
                                     raise exc
@@ -1354,9 +1352,7 @@ def brightenSRGNT( BBB:str, C:str, V:str, brightenTextHtml:str, verseEntryList, 
         assert probability=='X', f"  {ref} {greekWord=} {currentWordNumber=} {probability=}"
         if not greekWord.startswith('κρ') and not greekWord.startswith('μακρ') and not greekWord.startswith('γενν'): # Seems there were some spelling changes
             # and greekWord not in ('κράββατον','κράββατόν'):
-            w1, w2 = Greek.Greek( greekWord.lower() ), Greek.Greek( strippedGrkWord.lower() )
-            # if greekWord.lower() != strippedGrkWord.lower():
-            if w1.removeAccents() != w2.removeAccents():
+            if removeGreekAccents( greekWord.lower() ) != removeGreekAccents( strippedGrkWord.lower() ):
                 logging.critical( f"Unable to find word number for {brRef} {currentWordNumber=} {greekWord=} {strippedGrkWord=} {len(punctuatedGrkWords)=} {len(grkWordNumbers)=}" )
                 break # We failed to match -- it's not critical so we'll just stop here (meaning we won't have all the word numbers for this verse)
             # assert greekWord.lower() == strippedGrkWord.lower(), f"{brRef} {currentWordNumber=} {greekWord=} {strippedGrkWord=} {len(punctuatedGrkWords)=} {grkWordNumbers=}"
