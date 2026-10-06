@@ -117,7 +117,7 @@ from spellCheckEnglish import spellCheckAndMarkHTMLText, collectSpellCheckResult
 from openbibledata_rust import convertVerseEntryListToHtml, getOETTidyBBB, getOETBookName, getHebrewWordpageFilename, getGreekWordpageFilename, removeVersePunctuationForComparison, removeGreekPunctuation, removeGreekAccents
 
 
-LAST_MODIFIED_DATE = '2026-10-01' # by RJH
+LAST_MODIFIED_DATE = '2026-10-06' # by RJH
 SHORT_PROGRAM_NAME = "createParallelVersePages"
 PROGRAM_NAME = "OpenBibleData createParallelVersePages functions"
 PROGRAM_VERSION = '1.0.11'
@@ -140,7 +140,8 @@ def createParallelVersePages( level:int, folder:Path, state:State ) -> bool:
     if BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 5: fnPrint( DEBUGGING_THIS_MODULE, f"createParallelVersePages( {level}, {folder}, {state.BibleVersions} )" )
     assert level == 1
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\ncreateParallelVersePages( {level}, {folder}, {state.BibleVersions} )" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\ncreateParallelVersePages( {level}, {folder}, {state.BibleVersions} )" )
     try: os.makedirs( folder )
     except FileExistsError: pass # they were already there
 
@@ -169,11 +170,14 @@ def createParallelVersePages( level:int, folder:Path, state:State ) -> bool:
             if versionAbbreviation not in state.versionComments: state.versionComments[versionAbbreviation] = {}
             assert verseRef not in state.versionComments[versionAbbreviation] # or this duplicate would be lost
             state.versionComments[versionAbbreviation][verseRef] = (optionalTextSegment,comment)
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Loaded {ll:,} version comments for {len(state.versionComments)} different versions." )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Loaded {ll:,} version comments for {len(state.versionComments)} different versions." )
 
     # Prepare the book links
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Discovered par {len(state.allBBBs)} books across {len(state.preloadedBibles)} versions: {state.allBBBs}" )
-    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"Reordered to par {len(reorderBooksForOETVersions(state.allBBBs))} books across {len(state.preloadedBibles)} versions: {reorderBooksForOETVersions(state.allBBBs)}" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Discovered par {len(state.allBBBs)} books across {len(state.preloadedBibles)} versions: {state.allBBBs}" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"Reordered to par {len(reorderBooksForOETVersions(state.allBBBs))} books across {len(state.preloadedBibles)} versions: {reorderBooksForOETVersions(state.allBBBs)}" )
     BBBLinks, BBBNextLinks = [], []
     for BBB in reorderBooksForOETVersions( state.allBBBs ):
         # Removes INT, FRT, GLS, XXA, XXB, XXC, XXD, OTH, BAK
@@ -182,7 +186,8 @@ def createParallelVersePages( level:int, folder:Path, state:State ) -> bool:
             ourTidyBBBwithNotes = getOETTidyBBB( BBB, addNotes=True )
             BBBLinks.append( f'''<a title="{getOETBookName(BBB)}" href="{BBB}/index.htm#Top">{ourTidyBBBwithNotes}</a>''' )
             BBBNextLinks.append( f'''<a title="{getOETBookName(BBB)}" href="../{BBB}/index.htm#Top">{ourTidyBBBwithNotes}</a>''' )
-    vPrint( 'Info', DEBUGGING_THIS_MODULE, f"Have par {len(BBBNextLinks)} book links: {BBBNextLinks}" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 3:
+        vPrint( 'Info', DEBUGGING_THIS_MODULE, f"Have par {len(BBBNextLinks)} book links: {BBBNextLinks}" )
 
     # Now create the actual parallel pages
     state.versesWithImages = defaultdict( list )
@@ -210,20 +215,23 @@ def createParallelVersePages( level:int, folder:Path, state:State ) -> bool:
         #        to 'forkserver' which would NOT inherit our huge module-level state (12 GiB of Bibles).
         #        Forked children share that memory copy-on-write, so this costs almost nothing extra.
         # NOTE: Outputs (including error and warning messages) from the various books may be interspersed.
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\nCreating {'TEST ' if state.TEST_MODE_FLAG else ''}parallel verse pages for {len(mpBookParameters):,} books using {BibleOrgSysGlobals.maxProcesses:,} forked processes…" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\nCreating {'TEST ' if state.TEST_MODE_FLAG else ''}parallel verse pages for {len(mpBookParameters):,} books using {BibleOrgSysGlobals.maxProcesses:,} forked processes…" )
         BibleOrgSysGlobals.alreadyMultiprocessing = True
         with multiprocessing.get_context('fork').Pool( processes=BibleOrgSysGlobals.maxProcesses, maxtasksperchild=1 ) as pool: # start worker processes (maxtasksperchild=1 so each worker starts with fresh spell-check accumulators)
             results = pool.map( _createParallelVersePagesForBook_MP, mpBookParameters ) # have the pool create the pages
             assert len(results) == len(mpBookParameters)
         BibleOrgSysGlobals.alreadyMultiprocessing = False
         # Merge back into OUR state what the children collected for us (their state changes died when they exited)
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Collecting {'TEST ' if state.TEST_MODE_FLAG else ''}parallel verse page results after processing {len(mpBookParameters):,} books using {BibleOrgSysGlobals.maxProcesses:,} forked processes…" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Collecting {'TEST ' if state.TEST_MODE_FLAG else ''}parallel verse page results after processing {len(mpBookParameters):,} books using {BibleOrgSysGlobals.maxProcesses:,} forked processes…" )
         for resultBool, BBB, versesWithImagesList, possibleUnmatchedProperNamesSet, spellCheckResults in results:
             assert resultBool is True
             if versesWithImagesList: state.versesWithImages[BBB].extend( versesWithImagesList )
             state.possibleUnmatchedProperNames.update( possibleUnmatchedProperNamesSet )
             mergeSpellCheckResults( spellCheckResults )
-    vPrint( 'Info', DEBUGGING_THIS_MODULE, f"\nPossible Unmatched Proper Names ({len(state.possibleUnmatchedProperNames):,}) {sorted(state.possibleUnmatchedProperNames)}" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 3:
+        vPrint( 'Info', DEBUGGING_THIS_MODULE, f"\nPossible Unmatched Proper Names ({len(state.possibleUnmatchedProperNames):,}) {sorted(state.possibleUnmatchedProperNames)}" )
 
     # Create index page
     filename = 'index.htm'
@@ -244,9 +252,11 @@ def createParallelVersePages( level:int, folder:Path, state:State ) -> bool:
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
         indexHtmlFile.write( indexHtml )
-    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createParallelVersePages() finished processing {len(state.allBBBs)} books: {state.allBBBs}" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createParallelVersePages() finished processing {len(state.allBBBs)} books: {state.allBBBs}" )
 
     return True
 # end of createParallelVersePages.createParallelVersePages
@@ -289,7 +299,8 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
     isDC = bos_books_codes_py.is_deuterocanon_nr( BBB )
     isNT = bos_books_codes_py.is_new_testament_nr( BBB )
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createParallelVersePagesForBook {BBBLevel}, {BBBFolder}, {BBB} from {len(BBBLinks)} books, {len(state.BibleVersions)} versions…" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createParallelVersePagesForBook {BBBLevel}, {BBBFolder}, {BBB} from {len(BBBLinks)} books, {len(state.BibleVersions)} versions…" )
     try: os.makedirs( BBBFolder )
     except FileExistsError: pass # they were already there
 
@@ -332,7 +343,8 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
         for c in range( -1, numChapters+1 ):
             C = str( c )
             adjC = 'Intro' if c==-1 else f'C{C}'
-            vPrint( 'Info', DEBUGGING_THIS_MODULE, f"      Creating {'TEST ' if state.TEST_MODE_FLAG else ''}parallel pages for {BBB} {C}…" )
+            if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 3:
+                vPrint( 'Info', DEBUGGING_THIS_MODULE, f"      Creating {'TEST ' if state.TEST_MODE_FLAG else ''}parallel pages for {BBB} {C}…" )
 
             chapterLinksParagraph = f'''<p class="chLst" id="chLst">{ourTidyBBBwithNotes} {' '.join( introLinks + [f'<a title="Go to parallel verse page" href="C{ps}V1.htm#vsLst">Sg{ps}</a>' for ps in range(1,numChapters+1) if ps!=c] )}</p><!--chLst-->''' \
                 if BBB=='PSA' else \
@@ -379,7 +391,8 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                 parallelHtml = getVerseMetaInfoHtml( BBB, C, V )
                 for versionAbbreviation in parallelVersions: # our adjusted order
                     if versionAbbreviation == 'OET': continue # Skip this pseudo-version as we have both OET-RV and OET-LV instead
-                    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"    createParallelVersePagesForBook {parRef} processing {versionAbbreviation}…" )
+                    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+                        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"    createParallelVersePagesForBook {parRef} processing {versionAbbreviation}…" )
                     assert not parallelHtml.endswith( '\n' )
 
                     if state.TEST_VERSIONS_ONLY and versionAbbreviation not in state.TEST_VERSIONS_ONLY:
@@ -1231,7 +1244,8 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
                 assert not filepath.is_file() # Check that we're not overwriting anything
                 with open( filepath, 'wt', encoding='utf-8' ) as pHtmlFile:
                     pHtmlFile.write( parallelHtml )
-                vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(parallelHtml):,} characters written to {filepath}" )
+                if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+                    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(parallelHtml):,} characters written to {filepath}" )
                 vLinksList.append( f'<a title="Go to parallel verse page" href="{filename}#Top">{C}:{V}</a>' )
                 if c == -1: # then we're doing the book intro
                     break # no need to loop -- we handle the entire intro in one go
@@ -1253,7 +1267,8 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
     assert checkHtml( 'parallelIndex', indexHtml )
     with open( filepath1, 'wt', encoding='utf-8' ) as indexHtmlFile:
         indexHtmlFile.write( indexHtml )
-    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath1}" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath1}" )
 
     # Write a second copy of the index page up a level
     # newBBBVLinks = []
@@ -1273,9 +1288,11 @@ def createParallelVersePagesForBook( level:int, folder:Path, BBB:str, BBBLinks:l
     assert checkHtml( 'parallelIndex', indexHtml )
     with open( filepath2, 'wt', encoding='utf-8' ) as indexHtmlFile:
         indexHtmlFile.write( indexHtml )
-    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath2}" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath2}" )
 
-    vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  createParallelVersePagesForBook() finished processing {len(vLinksList):,} {BBB} verses." )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 3:
+        vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  createParallelVersePagesForBook() finished processing {len(vLinksList):,} {BBB} verses." )
     return True
 # end of createParallelVersePages.createParallelVersePagesForBook
 

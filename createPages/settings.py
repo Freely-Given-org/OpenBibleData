@@ -44,7 +44,7 @@ import BibleOrgSys.BibleOrgSysGlobals as BibleOrgSysGlobals
 from BibleOrgSys.BibleOrgSysGlobals import dPrint, fnPrint, BOOKLIST_OT39
 
 
-LAST_MODIFIED_DATE = '2026-09-24' # by RJH
+LAST_MODIFIED_DATE = '2026-10-06' # by RJH
 SHORT_PROGRAM_NAME = "settings"
 PROGRAM_NAME = "OpenBibleData (OBD) Settings"
 PROGRAM_VERSION = '1.1.0'
@@ -68,7 +68,7 @@ class State:
     TEST_OT_BOOK_LIST = ['PSA']
     TEST_DC_BOOK_LIST = []
     TEST_NT_BOOK_LIST = ['MAT','MRK'] # Shortest gospel
-    NEW_BOOK_IN_TEST_LIST_FLAG = True # So that interlinear, parallel passages, topic, kingdom, and dict & word pages will get rebuilt for TEST_MODE_FLAG
+    NEW_BOOK_IN_TEST_LIST_FLAG = False # So that interlinear, parallel passages, topic, kingdom, and dict & word pages will get rebuilt for TEST_MODE_FLAG
 
     # Many of these settings are used to omit some processing so as to get a speedier conclusion for debugging
     LOAD_RESOURCES_FROM_PICKLES_FLAG = True # Might have to disable loading pickles if they need updating (new code or data)
@@ -1018,7 +1018,8 @@ def reorderBooksForOETVersions( givenBookList:list[str] ) -> list[str]:
     OET OT needs to put EZR NEH after MAL
     OET NT needs to put JHN and MRK before MAT
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"reorderBooksForOETVersions( {type(givenBookList)} ({len(givenBookList)}) {givenBookList} )" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag:
+        fnPrint( DEBUGGING_THIS_MODULE, f"reorderBooksForOETVersions( {type(givenBookList)} ({len(givenBookList)}) {givenBookList} )" )
 
 #     newBookList = []
 #     for BBB in state.OET_BOOK_ORDER:

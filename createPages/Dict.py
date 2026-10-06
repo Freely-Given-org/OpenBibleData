@@ -50,7 +50,7 @@ from html import makeTop, makeBottom, checkHtml
 from openbibledata_rust import getOETTidyBBB
 
 
-LAST_MODIFIED_DATE = '2026-08-25' # by RJH
+LAST_MODIFIED_DATE = '2026-10-06' # by RJH
 SHORT_PROGRAM_NAME = "Dictionary"
 PROGRAM_NAME = "OpenBibleData Dictionary handler"
 PROGRAM_VERSION = '0.48'
@@ -64,19 +64,23 @@ NEWLINE = '\n'
 def loadTyndaleOpenBibleDictXML( abbrev:str, folderpath ) -> None:
     """
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"loadTyndaleOpenBibleDictXML( '{abbrev}', '{folderpath}', ... )")
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag:
+        fnPrint( DEBUGGING_THIS_MODULE, f"loadTyndaleOpenBibleDictXML( '{abbrev}', '{folderpath}', ... )")
     state.TOBDData = {}
     state.TOBDData['Letters'], state.TOBDData['Articles'], state.TOBDData['Textboxes'], state.TOBDData['Maps'] = {}, {}, {}, {}
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Preloading Tyndale Open Bible Dictionary from {folderpath}…" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Preloading Tyndale Open Bible Dictionary from {folderpath}…" )
     for letter in 'ABCDEFGHIJKLMNOPQRSTUVWXZ': # Y is ommitted
         if letter=='X': letter = 'XY'
         loadDictLetterXML( letter, folderpath )
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  loadTyndaleOpenBibleDictXML() loaded {len(state.TOBDData['Letters']):,} letter sets with {len(state.TOBDData['Articles']):,} total articles." )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  loadTyndaleOpenBibleDictXML() loaded {len(state.TOBDData['Letters']):,} letter sets with {len(state.TOBDData['Articles']):,} total articles." )
 
 
     # Now load the introduction
-    vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Preloading Tyndale Open Bible Dictionary introduction from {folderpath}…" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 3:
+        vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Preloading Tyndale Open Bible Dictionary introduction from {folderpath}…" )
     XML_filepath = os.path.join( folderpath, '_INTRODUCTION.xml' )
 
     loadErrors:list[str] = []
@@ -98,7 +102,8 @@ def loadTyndaleOpenBibleDictXML( abbrev:str, folderpath ) -> None:
 
         for element in XMLTree:
             location = f"{topLocation}-{element.tag}"
-            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"{element} {element.text=}" )
+            if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 3:
+                dPrint( 'Info', DEBUGGING_THIS_MODULE, f"{element} {element.text=}" )
             BibleOrgSysGlobals.checkXMLNoText( element, location, '1wk8', loadErrors )
             BibleOrgSysGlobals.checkXMLNoTail( element, location, '1wk8', loadErrors )
             assert element.tag == 'item'
@@ -118,7 +123,8 @@ def loadTyndaleOpenBibleDictXML( abbrev:str, folderpath ) -> None:
             title = None
             thisEntry = ''
             for subelement in element:
-                dPrint( 'Info', DEBUGGING_THIS_MODULE, f"{subelement} {subelement.text=}" )
+                if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 3:
+                    dPrint( 'Info', DEBUGGING_THIS_MODULE, f"{subelement} {subelement.text=}" )
                 sublocation = f"{location}-{subelement.tag}"
                 BibleOrgSysGlobals.checkXMLNoAttributes( subelement, sublocation, '1wk8', loadErrors )
                 BibleOrgSysGlobals.checkXMLNoTail( subelement, sublocation, '1wk8', loadErrors )
@@ -180,7 +186,8 @@ def loadTyndaleOpenBibleDictXML( abbrev:str, folderpath ) -> None:
 
 
     # Now load the textboxes
-    vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Preloading Tyndale Open Bible Dictionary textboxes from {folderpath}…" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 3:
+        vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Preloading Tyndale Open Bible Dictionary textboxes from {folderpath}…" )
     XML_filepath = os.path.join( folderpath, 'Textboxes/', 'Textboxes.xml' )
 
     loadErrors:list[str] = []
@@ -202,7 +209,8 @@ def loadTyndaleOpenBibleDictXML( abbrev:str, folderpath ) -> None:
 
         for element in XMLTree:
             location = f"{topLocation}-{element.tag}"
-            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"{element} {element.text=}" )
+            if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 3:
+                dPrint( 'Info', DEBUGGING_THIS_MODULE, f"{element} {element.text=}" )
             BibleOrgSysGlobals.checkXMLNoText( element, location, '1wk8', loadErrors )
             BibleOrgSysGlobals.checkXMLNoTail( element, location, '1wk8', loadErrors )
             assert element.tag == 'item'
@@ -225,7 +233,8 @@ def loadTyndaleOpenBibleDictXML( abbrev:str, folderpath ) -> None:
             title = None
             thisEntry = ''
             for subelement in element:
-                dPrint( 'Info', DEBUGGING_THIS_MODULE, f"{subelement} {subelement.text=}" )
+                if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 3:
+                    dPrint( 'Info', DEBUGGING_THIS_MODULE, f"{subelement} {subelement.text=}" )
                 sublocation = f"{location}-{subelement.tag}"
                 BibleOrgSysGlobals.checkXMLNoAttributes( subelement, sublocation, '1wk8', loadErrors )
                 BibleOrgSysGlobals.checkXMLNoTail( subelement, sublocation, '1wk8', loadErrors )
@@ -276,10 +285,12 @@ def loadTyndaleOpenBibleDictXML( abbrev:str, folderpath ) -> None:
             # print( f"Textbox {thisEntry=}" )
             assert name not in state.TOBDData['Textboxes']
             state.TOBDData['Textboxes'][name] = thisEntry
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Loaded Tyndale Open Bible Dictionary {len(state.TOBDData['Textboxes']):,} textboxes from {folderpath}." )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Loaded Tyndale Open Bible Dictionary {len(state.TOBDData['Textboxes']):,} textboxes from {folderpath}." )
 
     # Now load the maps
-    vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Preloading Tyndale Open Bible Dictionary maps from {folderpath}…" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 3:
+        vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Preloading Tyndale Open Bible Dictionary maps from {folderpath}…" )
     XML_filepath = os.path.join( folderpath, 'Maps/', 'Maps.xml' )
 
     loadErrors:list[str] = []
@@ -301,7 +312,8 @@ def loadTyndaleOpenBibleDictXML( abbrev:str, folderpath ) -> None:
 
         for element in XMLTree:
             location = f"{topLocation}-{element.tag}"
-            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"{element} {element.text=}" )
+            if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 3:
+                dPrint( 'Info', DEBUGGING_THIS_MODULE, f"{element} {element.text=}" )
             BibleOrgSysGlobals.checkXMLNoText( element, location, '1wk8', loadErrors )
             BibleOrgSysGlobals.checkXMLNoTail( element, location, '1wk8', loadErrors )
             assert element.tag == 'item'
@@ -324,7 +336,8 @@ def loadTyndaleOpenBibleDictXML( abbrev:str, folderpath ) -> None:
             title = None
             thisEntry = ''
             for subelement in element:
-                dPrint( 'Info', DEBUGGING_THIS_MODULE, f"{subelement} {subelement.text=}" )
+                if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 3:
+                    dPrint( 'Info', DEBUGGING_THIS_MODULE, f"{subelement} {subelement.text=}" )
                 sublocation = f"{location}-{subelement.tag}"
                 BibleOrgSysGlobals.checkXMLNoAttributes( subelement, sublocation, '1wk8', loadErrors )
                 BibleOrgSysGlobals.checkXMLNoTail( subelement, sublocation, '1wk8', loadErrors )
@@ -372,16 +385,19 @@ def loadTyndaleOpenBibleDictXML( abbrev:str, folderpath ) -> None:
             # print( f"Map {thisEntry=}" )
             assert name not in state.TOBDData['Maps']
             state.TOBDData['Maps'][name] = thisEntry
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Loaded Tyndale Open Bible Dictionary {len(state.TOBDData['Maps']):,} maps from {folderpath}." )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Loaded Tyndale Open Bible Dictionary {len(state.TOBDData['Maps']):,} maps from {folderpath}." )
 # end of Dict.loadTyndaleOpenBibleDictXML
 
 
 def loadDictLetterXML( letter:str, folderpath ) -> None:
     """
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"loadDictLetterXML( '{letter}', '{folderpath}', ... )")
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag:
+        fnPrint( DEBUGGING_THIS_MODULE, f"loadDictLetterXML( '{letter}', '{folderpath}', ... )")
 
-    vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Preloading Tyndale Open Bible Dictionary '{letter}' from {folderpath}…" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 3:
+        vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Preloading Tyndale Open Bible Dictionary '{letter}' from {folderpath}…" )
     XML_filepath = os.path.join( folderpath, 'Articles/', f'{letter}.xml')
 
     loadErrors:list[str] = []
@@ -405,7 +421,8 @@ def loadDictLetterXML( letter:str, folderpath ) -> None:
         state.TOBDData['Letters'][letter] = []
         for element in XMLTree:
             location = f"{topLocation}-{element.tag}"
-            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"{element} {element.text=}" )
+            if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 3:
+                dPrint( 'Info', DEBUGGING_THIS_MODULE, f"{element} {element.text=}" )
             BibleOrgSysGlobals.checkXMLNoTail( element, location, '1wk8', loadErrors )
             assert element.tag == 'item'
             # Process the attributes first
@@ -466,7 +483,8 @@ def loadDictLetterXML( letter:str, folderpath ) -> None:
                 title = None
                 thisEntry = ''
                 for subelement in element:
-                    dPrint( 'Info', DEBUGGING_THIS_MODULE, f"{subelement} {subelement.text=}" )
+                    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 3:
+                        dPrint( 'Info', DEBUGGING_THIS_MODULE, f"{subelement} {subelement.text=}" )
                     sublocation = f"{location}-{subelement.tag}"
                     BibleOrgSysGlobals.checkXMLNoAttributes( subelement, sublocation, '1wk8', loadErrors )
                     BibleOrgSysGlobals.checkXMLNoTail( subelement, sublocation, '1wk8', loadErrors )
@@ -550,7 +568,8 @@ def loadDictLetterXML( letter:str, folderpath ) -> None:
                     assert name not in state.TOBDData['Articles']
                     state.TOBDData['Articles'][name] = thisEntry
 
-    vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    loadDictLetterXML() loaded {len(state.TOBDData['Letters'][letter]):,} '{letter}' dict entries." )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 3:
+        vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    loadDictLetterXML() loaded {len(state.TOBDData['Letters'][letter]):,} '{letter}' dict entries." )
 # end of Dict.loadDictLetterXML
 
 
@@ -559,9 +578,11 @@ def createTyndaleDictPages( level:int, outputFolderPath, state:State ) -> bool:
     """
     from Bibles import fixTyndaleBRefs
 
-    fnPrint( DEBUGGING_THIS_MODULE, f"createTyndaleDictPages( '{level}', '{outputFolderPath}', ... )")
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag:
+        fnPrint( DEBUGGING_THIS_MODULE, f"createTyndaleDictPages( '{level}', '{outputFolderPath}', ... )")
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, "\nCreating Tyndale Open Bible Dict pages…" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, "\nCreating Tyndale Open Bible Dict pages…" )
 
     try: os.makedirs( outputFolderPath )
     except FileExistsError: pass # it was already there
@@ -577,7 +598,8 @@ def createTyndaleDictPages( level:int, outputFolderPath, state:State ) -> bool:
     # Make dictionary article pages
     articleList = [a for a in state.TOBDData['Articles']]
     for j,(articleLinkName,article) in enumerate( state.TOBDData['Articles'].items() ):
-        dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"Making article page for '{articleLinkName}'…" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 4:
+            dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"Making article page for '{articleLinkName}'…" )
         leftLink = f'''<a title="Previous article" href="{articleList[j-1]}.htm#__ID__">←</a> ''' if j>0 else ''
         rightLink = f''' <a title="Next article" href="{articleList[j+1]}.htm#__ID__">→</a>''' if j<len(articleList)-1 else ''
         navLinks = f'<p id="__ID__" class="dNav">{introLink} {leftLink}{indexLink}{rightLink} {TOBD_detailsLink}</p>'
@@ -606,12 +628,14 @@ def createTyndaleDictPages( level:int, outputFolderPath, state:State ) -> bool:
         assert not filepath.is_file() # Check that we're not overwriting anything
         with open( filepath, 'wt', encoding='utf-8' ) as articleHtmlFile:
             articleHtmlFile.write( articleHtml )
-        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(articleHtml):,} characters written to {filepath}" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+            vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(articleHtml):,} characters written to {filepath}" )
 
     # Make letter index pages
     letterList = [l for l in state.TOBDData['Letters']]
     for j,(letter,articleList) in enumerate( state.TOBDData['Letters'].items() ):
-        dPrint( 'Info', DEBUGGING_THIS_MODULE, f"Making letter summary page for '{letter}'…" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 3:
+            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"Making letter summary page for '{letter}'…" )
         leftLink = f'''<a title="Previous letter" href="index_{letterList[j-1]}.htm#__ID__">←</a> ''' if j>0 else ''
         rightLink = f''' <a title="Next letter" href="index_{letterList[j+1]}.htm#__ID__">→</a>''' if j<len(letterList)-1 else ''
         navLinks = f'<p id="__ID__" class="dNav">{leftLink}{indexLink} {introLink}{rightLink} {TOBD_detailsLink}</p>'
@@ -640,7 +664,8 @@ def createTyndaleDictPages( level:int, outputFolderPath, state:State ) -> bool:
         assert not filepath.is_file() # Check that we're not overwriting anything
         with open( filepath, 'wt', encoding='utf-8' ) as letterIndexHtmlFile:
             letterIndexHtmlFile.write( letterIndexHtml )
-        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(letterIndexHtml):,} characters written to {filepath}" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+            vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(letterIndexHtml):,} characters written to {filepath}" )
 
     # Make intro page
     filename = 'intro.htm'
@@ -657,7 +682,8 @@ even though it was originally designed to supplement the <i>New Living Translati
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as introHtmlFile:
         introHtmlFile.write( introHtml )
-    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(introHtml):,} characters written to {filepath}" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(introHtml):,} characters written to {filepath}" )
 
     # Make overall index
     filename = 'index.htm'
@@ -681,9 +707,11 @@ even though it was originally designed to supplement the <i>New Living Translati
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
         indexHtmlFile.write( indexHtml )
-    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Created {len(state.TOBDData['Articles']):,} Tyndale Bible Dict articles pages." )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Created {len(state.TOBDData['Articles']):,} Tyndale Bible Dict articles pages." )
     return True
 # end of Dict.createTyndaleDictPages
 
@@ -694,7 +722,8 @@ def fixTyndaleDictItemRefs( abbrev:str, level:int, articleLinkName:str, html:str
 
     Livens links between articles
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"fixTyndaleDictItemRefs( {abbrev}, {level}, {articleLinkName} {html}, ... )")
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag:
+        fnPrint( DEBUGGING_THIS_MODULE, f"fixTyndaleDictItemRefs( {abbrev}, {level}, {articleLinkName} {html}, ... )")
 
     # Fix their links like '<a href="?item=MarriageMarriageCustoms_Article_TyndaleOpenBibleDictionary">Marriage, Marriage Customs</a>'
     searchStartIndex = 0
@@ -733,7 +762,8 @@ def livenTyndaleTextboxRefs( abbrev:str, level:int, articleLinkName:str, html:st
     to
         htmlSegment = f'''<div class="Textbox>{TOBDData['Textboxes'][iiName]}</div><!--end of Textbox-->'''
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"livenTyndaleTextboxRefs( {abbrev}, {level}, {articleLinkName} {html}, ... )")
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag:
+        fnPrint( DEBUGGING_THIS_MODULE, f"livenTyndaleTextboxRefs( {abbrev}, {level}, {articleLinkName} {html}, ... )")
 
     # Fails on AntilegomenaTheBooksThatDidnTMakeIt
     tbSearchStartIndex = 0
@@ -756,7 +786,8 @@ def livenTyndaleTextboxRefs( abbrev:str, level:int, articleLinkName:str, html:st
                 if textboxName[ixS+1].isupper():
                     textboxName = f'{textboxName[:ixS]}s{textboxName[ixS+1:]}' # Convert things like AbrahamSBosom to a lowercase s
                     textboxData = state.TOBDData['Textboxes'][textboxName]
-                    vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Fixed S {articleLinkName=} {textboxName=}")
+                    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 3:
+                        vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Fixed S {articleLinkName=} {textboxName=}")
                     fixed = True
                     break
                 sSearchStartIndex = ixS + 1
@@ -770,7 +801,8 @@ def livenTyndaleTextboxRefs( abbrev:str, level:int, articleLinkName:str, html:st
                     if textboxName[ixT+1].isupper():
                         textboxName = f'{textboxName[:ixT]}t{textboxName[ixT+1:]}' # Convert things like AntilegomenaTheBooksThatDidnTMakeIt to lowercase t
                         textboxData = state.TOBDData['Textboxes'][textboxName]
-                        vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Fixed T {articleLinkName=} {textboxName=}")
+                        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 3:
+                            vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Fixed T {articleLinkName=} {textboxName=}")
                         fixed = True
                     tSearchStartIndex = ixT + 1
                 else: tSearch_needs_more_loops
@@ -797,7 +829,8 @@ def livenTyndaleMapRefs( abbrev:str, level:int, articleLinkName:str, html:str, s
     to
         htmlSegment = f'''<div class="Textbox>{TOBDData['Textboxes'][iiName]}</div><!--end of Textbox-->'''
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"livenTyndaleMapRefs( {abbrev}, {level}, {articleLinkName} {html}, ... )")
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag:
+        fnPrint( DEBUGGING_THIS_MODULE, f"livenTyndaleMapRefs( {abbrev}, {level}, {articleLinkName} {html}, ... )")
 
     searchStartIndex = 0
     for _safetyCount in range( 5 ): # 4 was too few
@@ -825,9 +858,11 @@ def loadAndIndexUBSGreekDictJSON( abbrev:str, folderpath ) -> None:
     """
     """
     # print( f"loadAndIndexUBSGreekDictJSON( '{abbrev}', {type(folderpath)} {folderpath=}, ... )" )
-    fnPrint( DEBUGGING_THIS_MODULE, f"loadAndIndexUBSGreekDictJSON( '{abbrev}', '{folderpath}', ... )")
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag:
+        fnPrint( DEBUGGING_THIS_MODULE, f"loadAndIndexUBSGreekDictJSON( '{abbrev}', '{folderpath}', ... )")
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Preloading UBS Dictionary of the Greek New Testament from {folderpath}…" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Preloading UBS Dictionary of the Greek New Testament from {folderpath}…" )
     filepath = os.path.join( folderpath, 'UBSGreekNTDic-v1.0-en.JSON')
     # print( f"{filepath=}" )
     with open( filepath, 'rt', encoding='utf-8' ) as json_file:
@@ -863,16 +898,19 @@ def loadAndIndexUBSGreekDictJSON( abbrev:str, folderpath ) -> None:
         state.UBS_GNT_DATA.append( entry )
     del tempList
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  loadAndIndexUBSGreekDictJSON() loaded {len(state.UBS_GNT_DATA):,} GNT Dictionary entries." )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  loadAndIndexUBSGreekDictJSON() loaded {len(state.UBS_GNT_DATA):,} GNT Dictionary entries." )
 # end of Bibles.loadAndIndexUBSGreekDictJSON
 
 
 def loadAndIndexUBSHebrewDictJSON( abbrev:str, folderpath ) -> None:
     """
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"loadAndIndexUBSHebrewDictJSON( '{abbrev}', '{folderpath}', ... )")
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag:
+        fnPrint( DEBUGGING_THIS_MODULE, f"loadAndIndexUBSHebrewDictJSON( '{abbrev}', '{folderpath}', ... )")
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Preloading UBS Dictionary of the Biblical Hebrew from {folderpath}…" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Preloading UBS Dictionary of the Biblical Hebrew from {folderpath}…" )
     filepath = os.path.join( folderpath, 'UBSHebrewDicLexicalDomains-v0.9.1-en.JSON')
     # print( f"{filepath=}" )
     with open( filepath, 'rt', encoding='utf-8' ) as json_file:
@@ -885,7 +923,8 @@ def loadAndIndexUBSHebrewDictJSON( abbrev:str, folderpath ) -> None:
     # print( f"{abbrev} domain entry 0/{len(UBS_HEB_DOMAIN_DATA)}: {UBS_HEB_DOMAIN_DATA[0]=}")
     # print( f"{abbrev} domain entry 1/{len(UBS_HEB_DOMAIN_DATA)}: {UBS_HEB_DOMAIN_DATA[1]=}")
     # print( f"{abbrev} domain entry -1/{len(UBS_HEB_DOMAIN_DATA)}: {UBS_HEB_DOMAIN_DATA[-1]=}")
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  loadAndIndexUBSHebrewDictJSON() loaded {len(state.UBS_HEB_DOMAIN_DATA):,} HEB Domain entries." )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  loadAndIndexUBSHebrewDictJSON() loaded {len(state.UBS_HEB_DOMAIN_DATA):,} HEB Domain entries." )
 
     filepath = os.path.join( folderpath, 'UBSHebrewDic-v0.9.1-en.JSON')
     # print( f"{filepath=}" )
@@ -916,22 +955,26 @@ def loadAndIndexUBSHebrewDictJSON( abbrev:str, folderpath ) -> None:
                     for c, comment in enumerate( inflection['Comments'][:]): # Use a copy coz we're going to delete stuff
                         # print( f"      {c}: {type(comment)} {comment=}" )
                         if comment['LanguageCode'] == 'zhT':
-                            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"        Deleting {c}: {type(comment)} {comment=}" )
+                            if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+                                vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"        Deleting {c}: {type(comment)} {comment=}" )
                             inflection['Comments'].pop( c )
                             # print( f"  {n}: {entry}")
         state.UBS_HEB_DATA.append( entry )
     del tempList
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  loadAndIndexUBSHebrewDictJSON() loaded {len(state.UBS_HEB_DATA):,} HEB Dictionary entries." )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  loadAndIndexUBSHebrewDictJSON() loaded {len(state.UBS_HEB_DATA):,} HEB Dictionary entries." )
 # end of Bibles.loadAndIndexUBSHebrewDictJSON
 
 
 def createUBSDictionaryPages( level, outputFolderPath, state:State ) -> None:
     """
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"createUBSDictionaryPages( {level}, '{outputFolderPath}', ... )")
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag:
+        fnPrint( DEBUGGING_THIS_MODULE, f"createUBSDictionaryPages( {level}, '{outputFolderPath}', ... )")
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, "\nCreating UBS Dict pages…" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, "\nCreating UBS Dict pages…" )
 
     try: os.makedirs( outputFolderPath )
     except FileExistsError: pass # it was already there
@@ -966,9 +1009,11 @@ def getLexReferencesHtmlList( level, lexRefs ) -> list[str]:
 def createUBSGreekDictionaryPages( level, outputFolderPath, state:State ) -> None:
     """
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"createUBSGreekDictionaryPages( {level}, '{outputFolderPath}', ... )")
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag:
+        fnPrint( DEBUGGING_THIS_MODULE, f"createUBSGreekDictionaryPages( {level}, '{outputFolderPath}', ... )")
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, "  Creating UBS Greek Bible Dict pages…" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, "  Creating UBS Greek Bible Dict pages…" )
 
     try: os.makedirs( outputFolderPath )
     except FileExistsError: pass # it was already there
@@ -981,7 +1026,8 @@ def createUBSGreekDictionaryPages( level, outputFolderPath, state:State ) -> Non
     lemmaList = [a['Lemma'] for a in state.UBS_GNT_DATA]
     for e,entry in enumerate( state.UBS_GNT_DATA ): # each entry is a dict
         lemma = entry['Lemma']
-        dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"Making article page for '{lemma}'…" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 4:
+            dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"Making article page for '{lemma}'…" )
         leftLink = f'''<a title="Previous article" href="{lemmaList[e-1]}.htm#__ID__">←</a> ''' if e>0 else ''
         rightLink = f''' <a title="Next article" href="{lemmaList[e+1]}.htm#__ID__">→</a>''' if e<len(lemmaList)-1 else ''
         navLinks = f'<p id="__ID__" class="dNav">{introLink} {leftLink}{indexLink}{rightLink} {detailsLink}</p>'
@@ -1037,7 +1083,8 @@ def createUBSGreekDictionaryPages( level, outputFolderPath, state:State ) -> Non
         assert not filepath.is_file() # Check that we're not overwriting anything
         with open( filepath, 'wt', encoding='utf-8' ) as articleHtmlFile:
             articleHtmlFile.write( articleHtml )
-        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(articleHtml):,} characters written to {filepath}" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+            vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(articleHtml):,} characters written to {filepath}" )
 # end of Bibles.createUBSGreekDictionaryPages
 
 
@@ -1045,9 +1092,11 @@ def createUBSHebrewDictionaryPages( level, outputFolderPath, state:State ) -> No
     """
     """
 
-    fnPrint( DEBUGGING_THIS_MODULE, f"createUBSHebrewDictionaryPages( {level}, '{outputFolderPath}', ... )")
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag:
+        fnPrint( DEBUGGING_THIS_MODULE, f"createUBSHebrewDictionaryPages( {level}, '{outputFolderPath}', ... )")
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, "  Creating UBS Hebrew Bible Dict pages…" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, "  Creating UBS Hebrew Bible Dict pages…" )
 
     try: os.makedirs( outputFolderPath )
     except FileExistsError: pass # it was already there
@@ -1060,7 +1109,8 @@ def createUBSHebrewDictionaryPages( level, outputFolderPath, state:State ) -> No
     lemmaList = [a['Lemma'] for a in state.UBS_HEB_DATA]
     for e,entry in enumerate( state.UBS_HEB_DATA ): # each entry is a dict
         lemma = entry['Lemma']
-        dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"Making article page for '{lemma}'…" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 4:
+            dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"Making article page for '{lemma}'…" )
         leftLink = f'''<a title="Previous article" href="{lemmaList[e-1]}.htm#__ID__">←</a> ''' if e>0 else ''
         rightLink = f''' <a title="Next article" href="{lemmaList[e+1]}.htm#__ID__">→</a>''' if e<len(lemmaList)-1 else ''
         navLinks = f'<p id="__ID__" class="dNav">{introLink} {leftLink}{indexLink}{rightLink} {detailsLink}</p>'
@@ -1116,7 +1166,8 @@ def createUBSHebrewDictionaryPages( level, outputFolderPath, state:State ) -> No
         assert not filepath.is_file() # Check that we're not overwriting anything
         with open( filepath, 'wt', encoding='utf-8' ) as articleHtmlFile:
             articleHtmlFile.write( articleHtml )
-        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(articleHtml):,} characters written to {filepath}" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+            vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(articleHtml):,} characters written to {filepath}" )
 # end of Bibles.createUBSHebrewDictionaryPages
 
 

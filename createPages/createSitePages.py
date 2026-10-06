@@ -100,7 +100,7 @@ from html import makeTop, makeViewNavListParagraph, makeBottom, checkHtml, prelo
 from spellCheckEnglish import printSpellCheckSummary
 
 
-LAST_MODIFIED_DATE = '2026-10-01' # by RJH
+LAST_MODIFIED_DATE = '2026-10-06' # by RJH
 SHORT_PROGRAM_NAME = "createSitePages"
 PROGRAM_NAME = "OpenBibleData (OBD) Create Site Pages"
 PROGRAM_VERSION = '1.4.3'
@@ -115,10 +115,13 @@ def _createSitePages() -> bool:
     """
     Build all the pages in a temporary location
     """
-    fnPrint( DEBUGGING_THIS_MODULE, "_createSitePages()")
-    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"_createSitePages() running in {'TEST' if state.TEST_MODE_FLAG else 'production'} mode with {'all production books' if state.ALL_PRODUCTION_BOOKS_FLAG else 'reduced books being loaded'} for {f'{len(state.TEST_VERSIONS_ONLY)}/' if state.TEST_VERSIONS_ONLY else ''}{len(state.BibleLocations):,} Bible versions…" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag:
+        fnPrint( DEBUGGING_THIS_MODULE, "_createSitePages()")
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 1:
+        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"_createSitePages() running in {'TEST' if state.TEST_MODE_FLAG else 'production'} mode with {'all production books' if state.ALL_PRODUCTION_BOOKS_FLAG else 'reduced books being loaded'} for {f'{len(state.TEST_VERSIONS_ONLY)}/' if state.TEST_VERSIONS_ONLY else ''}{len(state.BibleLocations):,} Bible versions…" )
     if state.TEST_MODE_FLAG:
-        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"    {state.TEST_BOOK_LIST=}" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 1:
+            vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"    {state.TEST_BOOK_LIST=}" )
 
     try: os.makedirs( state.TEMP_BUILD_FOLDER )
     except FileExistsError:
@@ -131,7 +134,8 @@ def _createSitePages() -> bool:
                                             else BOOKLIST_NT27 if state.booksToLoad[versionAbbreviation]==['NT'] \
                                             else state.booksToLoad[versionAbbreviation] # NOTE: We don't replace ['ALL'] because that is 'all available', including 'FRT','XXA', etc.
     numLoadedVersions = preloadVersions( state )
-    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nPreloaded {len(state.preloadedBibles)} Bible versions: {list(state.preloadedBibles.keys())}" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 1:
+        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nPreloaded {len(state.preloadedBibles)} Bible versions: {list(state.preloadedBibles.keys())}" )
     # preloadUwTranslationNotes( state )
     # fillSelectedVerses( state )
 
@@ -183,7 +187,8 @@ def _createSitePages() -> bool:
                         allBBBs.add( BBB )
     # Now put them in the proper print order
     state.allBBBs = bos_books_codes_py.get_sequence_list( list(allBBBs) )
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\nDiscovered {len(state.allBBBs)} books across {len(state.preloadedBibles)} versions: {state.allBBBs}" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\nDiscovered {len(state.allBBBs)} books across {len(state.preloadedBibles)} versions: {state.allBBBs}" )
 
     # Determine our list of books to process for each version
     state.BBBsToProcess, state.BBBLinks = {}, {}
@@ -241,7 +246,8 @@ def _createSitePages() -> bool:
     if state.CREATE_PARALLEL_VERSE_PAGES == 'FIRST':
         createParallelVersePages( 1, state.TEMP_BUILD_FOLDER.joinpath('par/'), state )
     elif not state.CREATE_PARALLEL_VERSE_PAGES:
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"NOT GENERATING {'TEST ' if state.TEST_MODE_FLAG else ''}parallel verse pages." )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"NOT GENERATING {'TEST ' if state.TEST_MODE_FLAG else ''}parallel verse pages." )
     elif state.CREATE_PARALLEL_VERSE_PAGES != 'LAST': have_invalid_value
 
     if state.CREATE_BOOK_AND_OTHER_PAGES_FLAG:
@@ -253,7 +259,8 @@ def _createSitePages() -> bool:
             and versionAbbreviation in state.versionsWithoutTheirOwnPages: continue # We don't worry about these few selected verses here
             assert 'discoveryResults' in thisBible.__dict__
             if 'haveSectionHeadings' not in thisBible.discoveryResults['ALL']: # probably we have no books that actually loaded
-                dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Adding discoveryResults 'haveSectionHeadings' for {thisBible.abbreviation}: no books loaded?" )
+                if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 2:
+                    dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Adding discoveryResults 'haveSectionHeadings' for {thisBible.abbreviation}: no books loaded?" )
                 thisBible.discoveryResults['ALL']['haveSectionHeadings'] = False # We need this in several places
             if versionAbbreviation not in ('TOSN','TTN','SOTN','UTN') \
             and thisBible.discoveryResults['ALL']['haveSectionHeadings']:
@@ -266,7 +273,8 @@ def _createSitePages() -> bool:
         preloadCSSStyles()
         build_word_table_snapshot_py( state ) # Build the COW word-table snapshot in the PARENT BEFORE forking any multiprocessing children, so every forked worker inherits the identical pre-split row cache instead of each re-splitting the word tables independently.
         if 'OET' in state.BibleVersions: # this is a special case
-            vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Creating {'TEST ' if state.TEST_MODE_FLAG else ''}version pages for OET…" )
+            if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 1:
+                vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Creating {'TEST ' if state.TEST_MODE_FLAG else ''}version pages for OET…" )
             versionFolder = state.TEMP_BUILD_FOLDER.joinpath( f'OET/' )
             _createOETVersionPages( 1, versionFolder, state.preloadedBibles['OET-RV'], state.preloadedBibles['OET-LV'], state )
             _createOETMissingVersesPage( 1, versionFolder )
@@ -287,7 +295,8 @@ def _createSitePages() -> bool:
                 assert not filepath.is_file() # Check that we're not overwriting anything
                 with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
                     indexHtmlFile.write( f'''{top}{indexHtml}\n<p class="note"><a href="details.htm">See copyright details.</p><!--note-->\n{makeBottom( 1, None, 'site' )}''' )
-                vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"    {len(indexHtml):,} characters written to {filepath}" )
+                if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+                    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"    {len(indexHtml):,} characters written to {filepath}" )
             else: # these versions should have the full pages
                 if versionAbbreviation == 'TTN': continue # Not actually a Bible version
                 if not state.TEST_MODE_FLAG or versionAbbreviation not in ('OEB','WEBBE','WMBB','NET','LSV','FBV','TCNT','T4T','LEB',
@@ -298,7 +307,8 @@ def _createSitePages() -> bool:
                     and not BibleOrgSysGlobals.alreadyMultiprocessing: # Use multiprocessing for these full version pages
                         mpParameters.append( (versionAbbreviation,) )
                     else: # no multiprocessing available -- do this version sequentially
-                        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Creating {'TEST ' if state.TEST_MODE_FLAG else ''}version pages for {thisBible.abbreviation} ({thisBible.name})…" )
+                        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 1:
+                            vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Creating {'TEST ' if state.TEST_MODE_FLAG else ''}version pages for {thisBible.abbreviation} ({thisBible.name})…" )
                         versionFolder = state.TEMP_BUILD_FOLDER.joinpath( f'{thisBible.abbreviation}/' )
                         _createVersionPages( 1, versionFolder, thisBible, state )
         if mpParameters:
@@ -306,7 +316,8 @@ def _createSitePages() -> bool:
             #        to 'forkserver' which would NOT inherit our huge module-level state (12 GiB of Bibles).
             #        Forked children share that memory copy-on-write, so this costs almost nothing extra.
             # NOTE: Outputs (including error and warning messages) from the various versions may be interspersed.
-            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\nCreating {'TEST ' if state.TEST_MODE_FLAG else ''}version pages for {len(mpParameters):,} versions using {BibleOrgSysGlobals.maxProcesses:,} forked processes…" )
+            if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+                vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\nCreating {'TEST ' if state.TEST_MODE_FLAG else ''}version pages for {len(mpParameters):,} versions using {BibleOrgSysGlobals.maxProcesses:,} forked processes…" )
             BibleOrgSysGlobals.alreadyMultiprocessing = True
             with multiprocessing.get_context('fork').Pool( processes=BibleOrgSysGlobals.maxProcesses ) as pool: # start worker processes
                 results = pool.map( _createVersionPages_MP, mpParameters ) # have the pool create the pages
@@ -335,7 +346,8 @@ def _createSitePages() -> bool:
         if mpSectionParameters:
             # NOTE: The section lists were prebuilt sequentially by the earlier pass above,
             #        so the forked children only need to read them while writing each version's own bySec/ folder.
-            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\nCreating {'TEST ' if state.TEST_MODE_FLAG else ''}section pages for {len(mpSectionParameters):,} versions using {BibleOrgSysGlobals.maxProcesses:,} forked processes…" )
+            if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+                vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\nCreating {'TEST ' if state.TEST_MODE_FLAG else ''}section pages for {len(mpSectionParameters):,} versions using {BibleOrgSysGlobals.maxProcesses:,} forked processes…" )
             BibleOrgSysGlobals.alreadyMultiprocessing = True
             with multiprocessing.get_context('fork').Pool( processes=BibleOrgSysGlobals.maxProcesses ) as pool: # start worker processes
                 results = pool.map( _createSectionPages_MP, mpSectionParameters ) # have the pool create the pages
@@ -346,7 +358,8 @@ def _createSitePages() -> bool:
     if state.CREATE_PARALLEL_VERSE_PAGES == 'LAST':
         createParallelVersePages( 1, state.TEMP_BUILD_FOLDER.joinpath('par/'), state )
     elif not state.CREATE_PARALLEL_VERSE_PAGES:
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"NOT GENERATING {'TEST ' if state.TEST_MODE_FLAG else ''}parallel verse pages." )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"NOT GENERATING {'TEST ' if state.TEST_MODE_FLAG else ''}parallel verse pages." )
     elif state.CREATE_PARALLEL_VERSE_PAGES != 'FIRST': have_invalid_value
 
     if not state.REUSE_EXISTING_WORD_PAGES_FLAG:
@@ -361,7 +374,8 @@ def _createSitePages() -> bool:
         createAppJsonFiles( 1, state.TEMP_BUILD_FOLDER.joinpath('app/'), state )
     else:
         # Don't rebuild these reference pages -- we'll reuse the existing folders full of pages
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\nNOT GENERATING new {'TEST ' if state.TEST_MODE_FLAG else ''}reference pages (Interlinear & parallel passages, topic and kingdom pages, OET html & json word pages, UBS dict, Tyndale Dict)." )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\nNOT GENERATING new {'TEST ' if state.TEST_MODE_FLAG else ''}reference pages (Interlinear & parallel passages, topic and kingdom pages, OET html & json word pages, UBS dict, Tyndale Dict)." )
 
     _createDetailsPages( 0, state.TEMP_BUILD_FOLDER, state )
     _createSearchPage( 0, state.TEMP_BUILD_FOLDER, state )
@@ -376,7 +390,8 @@ def _createSitePages() -> bool:
     if state.CREATE_PARALLEL_VERSE_PAGES and state.DO_SPELL_CHECKS_FLAG:
         printSpellCheckSummary( state ) # Collected while making parallel verse pages
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\n{state.TEMP_BUILD_FOLDER} is {_getFolderSize(state.TEMP_BUILD_FOLDER)//1_000_000:,} MB" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\n{state.TEMP_BUILD_FOLDER} is {_getFolderSize(state.TEMP_BUILD_FOLDER)//1_000_000:,} MB" )
 
     if state.UPDATE_ACTUAL_SITE_WHEN_BUILT_FLAG and not state.TEST_VERSIONS_ONLY and state.CREATE_PARALLEL_VERSE_PAGES:
         # Clean away any existing folders so we can copy in the newly built stuff
@@ -386,14 +401,17 @@ def _createSitePages() -> bool:
             _cleanHTMLFolders( state.DESTINATION_FOLDER, state )
 
         try: # Now move the site from our temporary build location to overwrite the destination location
-            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Moving files and folders from {state.TEMP_BUILD_FOLDER}/ to {state.DESTINATION_FOLDER}/…" )
+            if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+                vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Moving files and folders from {state.TEMP_BUILD_FOLDER}/ to {state.DESTINATION_FOLDER}/…" )
             count = 0
             for fileOrFolderPath in glob.glob( f'{state.TEMP_BUILD_FOLDER}/*' ):
-                vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Moving {fileOrFolderPath} to {state.DESTINATION_FOLDER}/…" )
+                if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 3:
+                    vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Moving {fileOrFolderPath} to {state.DESTINATION_FOLDER}/…" )
                 # Note: shutil.copy2 is the same as copy but keeps metadata like creation and modification times
                 shutil.move( fileOrFolderPath, f'{state.DESTINATION_FOLDER}/', copy_function=shutil.copy2)
                 count += 1
-            vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Moved {count:,} folders and files into {state.DESTINATION_FOLDER}/." )
+            if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 1:
+                vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Moved {count:,} folders and files into {state.DESTINATION_FOLDER}/." )
         except Exception as e:
             logging.critical( f"Oops, something went wrong copying folders/files into {state.DESTINATION_FOLDER}/: {e} with {fileOrFolderPath=}" )
 
@@ -402,24 +420,28 @@ def _createSitePages() -> bool:
             TOBDmapDestinationFolder = state.DESTINATION_FOLDER.joinpath( 'dct/' )
             try: os.makedirs( TOBDmapDestinationFolder )
             except FileExistsError: pass # it was already there
-            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Copying TOBD maps from {TOBDmapSourceFolder} to {TOBDmapDestinationFolder}/…" )
+            if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+                vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Copying TOBD maps from {TOBDmapSourceFolder} to {TOBDmapDestinationFolder}/…" )
             count = 0
             for imgFilepath in glob.glob( f'{TOBDmapSourceFolder}/*.png' ):
-                vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Copying {imgFilepath} to {TOBDmapDestinationFolder}/…" )
+                if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 3:
+                    vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Copying {imgFilepath} to {TOBDmapDestinationFolder}/…" )
                 # Note: shutil.copy2 is the same as copy but keeps metadata like creation and modification times
                 try:
                     shutil.copy2( imgFilepath, f'{TOBDmapDestinationFolder}/' )
                     count += 1
                 except FileNotFoundError as e:
                     logging.critical( f"TOBD image file problem: {e}" )
-            vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Copied {count:,} maps into {TOBDmapDestinationFolder}/." )
+            if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 1:
+                vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Copied {count:,} maps into {TOBDmapDestinationFolder}/." )
         except Exception as e:
             logging.critical( f"Oops, something went wrong copying image files into {state.DESTINATION_FOLDER}/: {e} with {imgFilepath=}" )
 
         try: # We need to copy the .css and .js files across
             count = 0
             for filepath in glob.glob( '*.css' ):
-                vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Copying {filepath}…" )
+                if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 3:
+                    vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Copying {filepath}…" )
                 # Note: shutil.copy2 is the same as copy but keeps metadata like creation and modification times
                 shutil.copy2( filepath, state.DESTINATION_FOLDER )
                 count += 1
@@ -428,17 +450,22 @@ def _createSitePages() -> bool:
             shutil.copy2( 'KB.js', state.DESTINATION_FOLDER )
             shutil.copy2( 'theme.js', state.DESTINATION_FOLDER )
             count += 3
-            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Copied {count:,} stylesheets and scripts into {state.DESTINATION_FOLDER}/." )
+            if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+                vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Copied {count:,} stylesheets and scripts into {state.DESTINATION_FOLDER}/." )
         except Exception as e:
             logging.critical( f"Oops, something went wrong copying aux files into {state.DESTINATION_FOLDER}/: {e} with {filepath=}" )
 
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f'''\nNOW RUN "npx pagefind --glob "{{OET,par}}/**/*.{{htm}}" --site ../htmlPages{f'/{state.DEBUG_DESTINATION_FOLDER_NAME}' if state.TEST_MODE_FLAG else ''}/" to create search index!''' )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f'''\nNOW RUN "npx pagefind --glob "{{OET,par}}/**/*.{{htm}}" --site ../htmlPages{f'/{state.DEBUG_DESTINATION_FOLDER_NAME}' if state.TEST_MODE_FLAG else ''}/" to create search index!''' )
     else:
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"NOT UPDATING the actual {'TEST ' if state.TEST_MODE_FLAG else ''}site{'' if state.UPDATE_ACTUAL_SITE_WHEN_BUILT_FLAG else ' (as requested)'}." )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"NOT UPDATING the actual {'TEST ' if state.TEST_MODE_FLAG else ''}site{'' if state.UPDATE_ACTUAL_SITE_WHEN_BUILT_FLAG else ' (as requested)'}." )
         if state.TEST_VERSIONS_ONLY:
-            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  (because {state.TEST_VERSIONS_ONLY=})" )
+            if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+                vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  (because {state.TEST_VERSIONS_ONLY=})" )
         if not state.CREATE_PARALLEL_VERSE_PAGES:
-            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  (because no parallel verse pages were built)" )
+            if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+                vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  (because no parallel verse pages were built)" )
 
     return True
 # end of createSitePages._createSitePages
@@ -447,8 +474,10 @@ def _createSitePages() -> bool:
 def _cleanHTMLFolders( folder:Path, state:State ) -> bool:
     """
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"_cleanHTMLFolders( {folder} )")
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Cleaning away any existing folders at {folder}/…")
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag:
+        fnPrint( DEBUGGING_THIS_MODULE, f"_cleanHTMLFolders( {folder} )")
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Cleaning away any existing folders at {folder}/…")
 
     try: os.unlink( folder.joinpath( 'index.htm' ) )
     except FileNotFoundError: pass
@@ -484,7 +513,8 @@ def _cleanHTMLFolders( folder:Path, state:State ) -> bool:
         try: shutil.rmtree( folder.joinpath( 'dct/' ) )
         except FileNotFoundError: pass
     for versionAbbreviation in state.allPossibleBibleVersions + ['PLBL','HAP','SOTN','UTN','TOSN','TOBD','UBS','THBD','BMM','OBI']:
-        vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Removing tree at {folder.joinpath( f'{versionAbbreviation}/' )}/…")
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 3:
+            vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Removing tree at {folder.joinpath( f'{versionAbbreviation}/' )}/…")
         try: shutil.rmtree( folder.joinpath( f'{versionAbbreviation}/' ) )
         except FileNotFoundError: pass
     return True
@@ -494,9 +524,12 @@ def _cleanHTMLFolders( folder:Path, state:State ) -> bool:
 def _createOETVersionPages( level:int, folder:Path, rvBible, lvBible, state:State ) -> bool:
     """
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"_createOETVersionPages( {level}, {folder}, {rvBible.abbreviation}, {lvBible.abbreviation} )")
-    dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{rvBible.discoveryResults['ALL']['haveSectionHeadings']=}" )
-    dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{lvBible.discoveryResults['ALL']['haveSectionHeadings']=}" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag:
+        fnPrint( DEBUGGING_THIS_MODULE, f"_createOETVersionPages( {level}, {folder}, {rvBible.abbreviation}, {lvBible.abbreviation} )")
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 4:
+        dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{rvBible.discoveryResults['ALL']['haveSectionHeadings']=}" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 4:
+        dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{lvBible.discoveryResults['ALL']['haveSectionHeadings']=}" )
     createOETSideBySideChapterPages( level+1, folder.joinpath('byC/'), rvBible, lvBible, state )
     createOETBookPages( level+1, folder.joinpath('byDoc/'), rvBible, lvBible, state )
 
@@ -521,7 +554,8 @@ def _createOETVersionPages( level:int, folder:Path, rvBible, lvBible, state:Stat
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
         indexHtmlFile.write( f'''{top}{indexHtml}
 {makeBottom( level, None, 'site' )}''' )
-    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"    {len(indexHtml):,} characters written to {filepath}" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"    {len(indexHtml):,} characters written to {filepath}" )
     return True
 # end of createSitePages._createOETVersionPages
 
@@ -560,9 +594,11 @@ def _createVersionPages( level:int, folder:Path, thisBible, state:State ) -> boo
     Create a page for the given Bible version
         that then allows the user to choose by document/section/chapter or display version details
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"_createVersionPages( {level}, {folder}, {thisBible.abbreviation} )")
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag:
+        fnPrint( DEBUGGING_THIS_MODULE, f"_createVersionPages( {level}, {folder}, {thisBible.abbreviation} )")
 
-    dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{thisBible.discoveryResults['ALL']['haveSectionHeadings']=}" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 4:
+        dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{thisBible.discoveryResults['ALL']['haveSectionHeadings']=}" )
     createChapterPages( level+1, folder.joinpath('byC/'), thisBible, state )
     createBookPages( level+1, folder.joinpath('byDoc/'), thisBible, state )
 
@@ -585,7 +621,8 @@ def _createVersionPages( level:int, folder:Path, thisBible, state:State ) -> boo
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
         indexHtmlFile.write( f'''{top}{indexHtml}{makeBottom( level, None, 'site' )}''' )
-    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"    {len(indexHtml):,} characters written to {filepath}" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"    {len(indexHtml):,} characters written to {filepath}" )
     return True
 # end of createSitePages._createVersionPages
 
@@ -638,7 +675,8 @@ especially in the New Testament era where scribes often were not professionals.<
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
         indexHtmlFile.write( f'''{top}{textHtml}{makeBottom( level, None, 'site' )}''' )
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    {len(textHtml):,} characters written to {filepath}" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    {len(textHtml):,} characters written to {filepath}" )
     return True
 # end of createSitePages._createOETMissingVersesPage
 
@@ -648,8 +686,10 @@ def _createDetailsPages( level:int, buildFolder:Path, state:State ) -> bool:
     Creates and saves details (copyright, licence, etc.) pages for each version
         plus a summary page of all the versions.
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"_createDetailsPages( {level}, {buildFolder}, {state.BibleVersions} )" )
-    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nCreating {'TEST ' if state.TEST_MODE_FLAG else ''}details pages for {len(state.BibleVersions)} versions (plus All Details page)…" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag:
+        fnPrint( DEBUGGING_THIS_MODULE, f"_createDetailsPages( {level}, {buildFolder}, {state.BibleVersions} )" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 1:
+        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nCreating {'TEST ' if state.TEST_MODE_FLAG else ''}details pages for {len(state.BibleVersions)} versions (plus All Details page)…" )
 
     allDetailsHTML = ''
     for versionAbbreviation in ['OET'] + [versAbbrev for versAbbrev in state.preloadedBibles] + ['SOTN','UBS','THBD','PLBL','HAP','BMM','OBI']:
@@ -798,7 +838,8 @@ def _createDetailsPages( level:int, buildFolder:Path, state:State ) -> bool:
         assert not filepath.is_file(), f"{filepath=}" # Check that we're not overwriting anything
         with open( filepath, 'wt', encoding='utf-8' ) as htmlFile:
             htmlFile.write( html )
-        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  {len(html):,} characters written to {filepath}" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+            vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  {len(html):,} characters written to {filepath}" )
 
     # Make a summary page with details for all versions
     topHtml = makeTop( level, None, 'AllDetails', 'details.htm', state ) \
@@ -825,7 +866,8 @@ and what we hope to start to change with this <b>free and open <em>Open English 
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as htmlFile:
         htmlFile.write( html )
-    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  {len(html):,} characters written to {filepath}" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  {len(html):,} characters written to {filepath}" )
 # end of createSitePages._createDetailsPages
 
 
@@ -835,8 +877,10 @@ def _createSearchPage( level:int, buildFolder:Path, state:State ) -> bool:
 
     We use https://pagefind.app/
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"_createSearchPage( {level}, {buildFolder}, {state.BibleVersions} )" )
-    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nCreating {'TEST ' if state.TEST_MODE_FLAG else ''}search page…" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag:
+        fnPrint( DEBUGGING_THIS_MODULE, f"_createSearchPage( {level}, {buildFolder}, {state.BibleVersions} )" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 1:
+        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nCreating {'TEST ' if state.TEST_MODE_FLAG else ''}search page…" )
 
     searchHTML = f'''<h1 id="Top">Search {state.SITE_NAME}</h1>
 <p class="note">Searching should find English and Latin words, plus Hebrew and Greek words and their English transliterations.</p>
@@ -861,7 +905,8 @@ def _createSearchPage( level:int, buildFolder:Path, state:State ) -> bool:
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as htmlFile:
         htmlFile.write( html )
-    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  {len(html):,} characters written to {filepath}" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  {len(html):,} characters written to {filepath}" )
 # end of createSitePages._createSearchPage
 
 
@@ -869,8 +914,10 @@ def _createAboutPage( level:int, buildFolder:Path, state:State ) -> bool:
     """
     Creates and saves the About OBD page.
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"_createAboutPage( {level}, {buildFolder}, {state.BibleVersions} )" )
-    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Creating {'TEST ' if state.TEST_MODE_FLAG else ''}about page…" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag:
+        fnPrint( DEBUGGING_THIS_MODULE, f"_createAboutPage( {level}, {buildFolder}, {state.BibleVersions} )" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 1:
+        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Creating {'TEST ' if state.TEST_MODE_FLAG else ''}about page…" )
 
     aboutHTML = f'''<h1 id="Top">About {state.SITE_NAME}</h1>
 <p class="about">{state.SITE_NAME} ({state.SITE_ABBREVIATION} {state.OBD_VERSION_NUMBER_STRING}) is a large set of static webpages (just under 1.3 million of them) created for several main reasons:</p>
@@ -948,7 +995,8 @@ def _createAboutPage( level:int, buildFolder:Path, state:State ) -> bool:
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as htmlFile:
         htmlFile.write( html )
-    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  {len(html):,} characters written to {filepath}" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  {len(html):,} characters written to {filepath}" )
 # end of createSitePages._createAboutPage
 
 
@@ -956,8 +1004,10 @@ def _createNewsPage( level:int, buildFolder:Path, state:State ) -> bool:
     """
     Creates and saves the OBD News page.
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"_createNewsPage( {level}, {buildFolder}, {state.BibleVersions} )" )
-    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Creating {'TEST ' if state.TEST_MODE_FLAG else ''}news page…" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag:
+        fnPrint( DEBUGGING_THIS_MODULE, f"_createNewsPage( {level}, {buildFolder}, {state.BibleVersions} )" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 1:
+        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Creating {'TEST ' if state.TEST_MODE_FLAG else ''}news page…" )
 
     newsHTML = f'''<h1 id="Top">{state.SITE_NAME} News</h1>
 <p class="about">Recent {state.SITE_NAME} ({state.SITE_ABBREVIATION}) site developments:</p>
@@ -988,7 +1038,8 @@ def _createNewsPage( level:int, buildFolder:Path, state:State ) -> bool:
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as htmlFile:
         htmlFile.write( html )
-    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  {len(html):,} characters written to {filepath}" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  {len(html):,} characters written to {filepath}" )
 # end of createSitePages._createNewsPage
 
 
@@ -996,8 +1047,10 @@ def _createOETKeyPage( level:int, buildFolder:Path, state:State ) -> bool:
     """
     Creates and saves the About OBD page.
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"_createOETKeyPage( {level}, {buildFolder}, {state.BibleVersions} )" )
-    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Creating {'TEST ' if state.TEST_MODE_FLAG else ''}OET Key page…" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag:
+        fnPrint( DEBUGGING_THIS_MODULE, f"_createOETKeyPage( {level}, {buildFolder}, {state.BibleVersions} )" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 1:
+        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Creating {'TEST ' if state.TEST_MODE_FLAG else ''}OET Key page…" )
 
     keyHTML = f'''<a title="Go to OET main site" href="https://OpenEnglishTranslation.Bible"><img class="OETWideLogo" src="{'../'*level}oet-logo-wide.png" alt="OET wide logo"></a>
 <h1 id="Top">Key to the <em>Open English Translation</em></h1>
@@ -1116,7 +1169,8 @@ The reason why such verses are not included is usually because the original lang
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as htmlFile:
         htmlFile.write( html )
-    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  {len(html):,} characters written to {filepath}" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  {len(html):,} characters written to {filepath}" )
 # end of createSitePages._createOETKeyPage
 
 
@@ -1124,10 +1178,12 @@ def _createMainIndexPage( level, folder:Path, state:State ) -> bool:
     """
     Creates and saves the main index page.
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"_createMainIndexPage( {level}, {folder}, {state.BibleVersions} )" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag:
+        fnPrint( DEBUGGING_THIS_MODULE, f"_createMainIndexPage( {level}, {folder}, {state.BibleVersions} )" )
 
     # Create the very top level index file
-    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Creating {'TEST ' if state.TEST_MODE_FLAG else ''}main index page for {len(state.BibleVersions)} versions…" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 1:
+        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Creating {'TEST ' if state.TEST_MODE_FLAG else ''}main index page for {len(state.BibleVersions)} versions…" )
     html = makeTop( level, None, 'TopIndex', None, state ) \
             .replace( '__TITLE__', f'TEST {state.SITE_NAME} Home' if state.TEST_MODE_FLAG else f'{state.SITE_NAME} Home') \
             .replace( '__KEYWORDS__', f'Bible, translation, English, OET, OETBible, {state.SITE_ABBREVIATION}, {state.SITE_NAME}' )
@@ -1153,7 +1209,8 @@ def _createMainIndexPage( level, folder:Path, state:State ) -> bool:
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as htmlFile:
         htmlFile.write( html )
-    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  {len(html):,} characters written to {filepath}" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  {len(html):,} characters written to {filepath}" )
 
 #     # Create the versions index file (in case it's needed)
 #     vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Creating versions {'TEST ' if state.TEST_MODE_FLAG else ''}index page for {len(state.BibleVersions)} versions…" )

@@ -435,11 +435,53 @@ html[data-theme="dark"] span.add_KJB-1611 { color:#b0b0b0; }
 html[data-theme="dark"] span.RVadd { color:#909090; }
 html[data-theme="dark"] span.addReword { text-decoration-color:#b0b0b0; }
 html[data-theme="dark"] p.cNav { color:#1a1a1a; } /* light-blue bar; dark text */
-/* The prev/next chapter arrows (and the other cNav links) would otherwise pick
-   up the dark-mode body link colour (a pale blue) and vanish against the
-   light-blue bar (~1.1:1 contrast, invisible in Firefox). Force them to the
-   same dark colour as the bar's own "PSA 149" label. */
 html[data-theme="dark"] p.cNav a { color:#1a1a1a; }
+
+/* Text colours the family stylesheets hard-code for white paper. Many of
+   these (greens, blues, purple, saddlebrown, sienna, indigo, olive, ...)
+   sit at ~2:1 on the #121212 dark background, so lighten each to a variant
+   of the SAME hue, mirroring the treatment of the add* spans above. */
+html[data-theme="dark"] span.c,
+html[data-theme="dark"] span.cPsa,
+html[data-theme="dark"] span.fnCaller,
+html[data-theme="dark"] span.synonParr { color:#7ddf7d; }
+html[data-theme="dark"] span.ca,
+html[data-theme="dark"] span.fn,
+html[data-theme="dark"] span.xrCaller { color:#7abaff; }
+html[data-theme="dark"] span.v,
+html[data-theme="dark"] span.hilite { color:#ff7070; }
+html[data-theme="dark"] span.va { color:#ff7d92; }
+html[data-theme="dark"] span.vp,
+html[data-theme="dark"] span.XX { color:#c792ea; }
+html[data-theme="dark"] span.OT,
+html[data-theme="dark"] span.d,
+html[data-theme="dark"] span.glossPost,
+html[data-theme="dark"] span.sn-excerpt,
+html[data-theme="dark"] span.sn-excerpt-sc,
+html[data-theme="dark"] span.sn-excerpt-roman,
+html[data-theme="dark"] p.Trans { color:#d8a37a; }
+html[data-theme="dark"] span.ul { color:#9e9e9e; }
+html[data-theme="dark"] span.greek { color:#6fbe6f; }
+html[data-theme="dark"] span.t4tFoS { color:#6fc7a8; }
+html[data-theme="dark"] span.glossHelper { color:#b0b0b0; }
+html[data-theme="dark"] span.spelling { color:#e89ce8; }
+html[data-theme="dark"] p.OL { color:#a8a8f0; }
+html[data-theme="dark"] span.nominaSacra { text-decoration-color:#b0b0b0; }
+
+/* Interlinear verse lists: the lemma transliterations, Strong's numbers,
+   section percentages and Microsoft tags use grey/green/olive/saddleBrown,
+   all of which nearly vanish on the dark body background. */
+html[data-theme="dark"] ol.verse li[lang=he_LEMMA],
+html[data-theme="dark"] ol.verse li[lang=el_LEMMA] { color:#b0b0b0; }
+html[data-theme="dark"] ol.verse li[lang=en_STRONGS],
+html[data-theme="dark"] ol.verse li[lang=en_STRONGS] a:link { color:#7ddf7d; }
+html[data-theme="dark"] ol.verse li[lang=en_PERCENT] { color:#bdbd6a; }
+html[data-theme="dark"] ol.verse li[lang=en_TAGS] { color:#d8a37a; }
+
+/* Interlinear word table: the family sheet stripes rows #eee/#fff; with the
+   inherited light dark-mode text that is white-on-white. Darken the stripes. */
+html[data-theme="dark"] table tr:nth-child(even) { background-color:#2a2a2a; }
+html[data-theme="dark"] table tr:nth-child(odd) { background-color:#1d1d1d; }
 
 /* Light-background highlight spans keep their pale boxes; inherit the
    near-white body text in dark mode, so force dark text on them there. */
@@ -452,23 +494,47 @@ html[data-theme="dark"] div.PromisedLand,
 html[data-theme="dark"] div.FullKingdom,
 html[data-theme="dark"] div.NorthernKingdom,
 html[data-theme="dark"] div.SouthernKingdom,
-html[data-theme="dark"] div.BothKingdoms { color:#1a1a1a; }
+html[data-theme="dark"] div.BothKingdoms,
+html[data-theme="dark"] .grkAcc, html[data-theme="dark"] .grkGen,
+html[data-theme="dark"] .grkDat, html[data-theme="dark"] .grkVoc,
+html[data-theme="dark"] .grkNeg, html[data-theme="dark"] .hebNeg,
+html[data-theme="dark"] span.POS, html[data-theme="dark"] span.ref,
+html[data-theme="dark"] div.Textbox, html[data-theme="dark"] div.Mapbox,
+html[data-theme="dark"] p.key, html[data-theme="dark"] p.editorsNote,
+html[data-theme="dark"] div.groom, html[data-theme="dark"] div.bride,
+html[data-theme="dark"] div.women, html[data-theme="dark"] div.brothers,
+html[data-theme="dark"] div.people, html[data-theme="dark"] div.Yirmeyah,
+html[data-theme="dark"] span.zr, html[data-theme="dark"] span.zrhilite,
+html[data-theme="dark"] span.z1, html[data-theme="dark"] span.z1hilite,
+html[data-theme="dark"] span.z2, html[data-theme="dark"] span.z2hilite,
+html[data-theme="dark"] span.z3, html[data-theme="dark"] span.z3hilite,
+html[data-theme="dark"] span.z4, html[data-theme="dark"] span.z4hilite,
+html[data-theme="dark"] span.wrkNameDiffAccents,
+html[data-theme="dark"] span.wrkNameDiffText,
+html[data-theme="dark"] span.diffGrkWord { color:#1a1a1a; }
 
-/* Kingdom paragraph/heading colours — lighter for dark-mode backgrounds */
+/* Kingdom paragraph/heading colours. The pale div.*Kingdom backgrounds keep
+   their light fills in both themes, so headings sitting inside them need a
+   DARK colour, just like the forced dark text below; a lighter heading colour
+   (as previously listed here) left them light-on-pale (~1.6:1) in dark mode.
+   Headings outside a pale box inherit the surrounding (dark-aware) text
+   colour, which also reads correctly. */
 html[data-theme="dark"] p.PromisedLand,
-html[data-theme="dark"] h1.PromisedLand { color:#ffd84a; }
+html[data-theme="dark"] h1.PromisedLand,
 html[data-theme="dark"] p.FullKingdom,
-html[data-theme="dark"] h1.FullKingdom { color:#7abaff; }
+html[data-theme="dark"] h1.FullKingdom,
 html[data-theme="dark"] p.NorthernKingdom,
-html[data-theme="dark"] h1.NorthernKingdom { color:#d18aef; }
+html[data-theme="dark"] h1.NorthernKingdom,
 html[data-theme="dark"] p.SouthernKingdom,
-html[data-theme="dark"] h1.SouthernKingdom { color:#7ddf7d; }
+html[data-theme="dark"] h1.SouthernKingdom,
 html[data-theme="dark"] p.BothKingdoms,
-html[data-theme="dark"] h1.BothKingdoms { color:#f0b866; }
+html[data-theme="dark"] h1.BothKingdoms { color: inherit; }
 
-/* span.noLinkYet is a mid-grey box with white text: unreadable in BOTH modes
-   (about 2.3:1), so give it dark text in light mode too. */
-span.noLinkYet { color:#1a1a1a; }
+/* span.noLinkYet is a grey box: the family stylesheets give it white text on
+   darkgrey (~3.6:1), unreadable in BOTH modes. Force a light grey fill with
+   dark text here. body-prefix raises specificity above the per-family
+   `span.noLinkYet` rule regardless of stylesheet merge order. */
+body span.noLinkYet { background-color:#b7b7b7; color:#1a1a1a; }
 
 /* ---- "Words of Jesus" colour (data-wj) ----
  * The per-family stylesheets colour span.wj saddlebrown by default. These

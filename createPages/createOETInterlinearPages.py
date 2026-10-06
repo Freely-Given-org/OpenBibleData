@@ -70,7 +70,7 @@ from jsonResources import getFormattedSILOpenTranslationNotes
 from openbibledata_rust import convertVerseEntryListToHtml, getOETBookName, getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename, splitOETLVInterlinearWords, splitOETRVInterlinearWords, buildInterlinearWordRows
 
 
-LAST_MODIFIED_DATE = '2026-09-17' # by RJH
+LAST_MODIFIED_DATE = '2026-10-06' # by RJH
 SHORT_PROGRAM_NAME = "createOETInterlinearPages"
 PROGRAM_NAME = "OpenBibleData createOETInterlinearPages functions"
 PROGRAM_VERSION = '0.70'
@@ -90,13 +90,16 @@ def createOETInterlinearPages( level:int, folder:Path, state:State ) -> bool:
     if BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 5: fnPrint( DEBUGGING_THIS_MODULE, f"createOETInterlinearPages( {level}, {folder}, ... )" )
     assert level == 1
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\ncreateOETInterlinearPages( {level}, {folder}, {state.BibleVersions} )" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\ncreateOETInterlinearPages( {level}, {folder}, {state.BibleVersions} )" )
     try: os.makedirs( folder )
     except FileExistsError: pass # they were already there
 
     # Prepare the book links
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\nDiscovered ilr {len(state.allBBBs)} books across {len(state.preloadedBibles)} versions: {state.allBBBs}" )
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Reordered to ilr {len(reorderBooksForOETVersions(state.allBBBs))} books across {len(state.preloadedBibles)} versions: {reorderBooksForOETVersions(state.allBBBs)}" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\nDiscovered ilr {len(state.allBBBs)} books across {len(state.preloadedBibles)} versions: {state.allBBBs}" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Reordered to ilr {len(reorderBooksForOETVersions(state.allBBBs))} books across {len(state.preloadedBibles)} versions: {reorderBooksForOETVersions(state.allBBBs)}" )
     BBBLinks, BBBNextLinks = [], []
     for BBB in reorderBooksForOETVersions( state.allBBBs ):
         # Removes INT, FRT, GLS, XXA, XXB, XXC, XXD, OTH, BAK
@@ -105,7 +108,8 @@ def createOETInterlinearPages( level:int, folder:Path, state:State ) -> bool:
             ourTidyBBBwithNotes = getOETTidyBBB( BBB, addNotes=True )
             BBBLinks.append( f'''<a title="{getOETBookName(BBB)}" href="{BBB}/index.htm#Top">{ourTidyBBBwithNotes}</a>''' )
             BBBNextLinks.append( f'''<a title="{getOETBookName(BBB)}" href="../{BBB}/index.htm#Top">{ourTidyBBBwithNotes}</a>''' )
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Have ilr {len(BBBNextLinks)} book links: {BBBNextLinks}" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Have ilr {len(BBBNextLinks)} book links: {BBBNextLinks}" )
 
     # Now create the actual interlinear pages
     mpBookParameters = [] # (level, folder, BBB, BBBNextLinks) tuples for the forked workers
@@ -121,7 +125,8 @@ def createOETInterlinearPages( level:int, folder:Path, state:State ) -> bool:
         #        to 'forkserver' which would NOT inherit our huge module-level state (12 GiB of Bibles).
         #        Forked children share that memory copy-on-write, so this costs almost nothing extra.
         # NOTE: Outputs (including error and warning messages) from the various books may be interspersed.
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\nCreating {'TEST ' if state.TEST_MODE_FLAG else ''}interlinear pages for {len(mpBookParameters):,} books using {BibleOrgSysGlobals.maxProcesses:,} forked processes…" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\nCreating {'TEST ' if state.TEST_MODE_FLAG else ''}interlinear pages for {len(mpBookParameters):,} books using {BibleOrgSysGlobals.maxProcesses:,} forked processes…" )
         BibleOrgSysGlobals.alreadyMultiprocessing = True
         with multiprocessing.get_context('fork').Pool( processes=BibleOrgSysGlobals.maxProcesses ) as pool: # start worker processes
             results = pool.map( _createOETInterlinearVersePagesForBook_MP, mpBookParameters ) # have the pool create the pages
@@ -146,9 +151,11 @@ def createOETInterlinearPages( level:int, folder:Path, state:State ) -> bool:
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
         indexHtmlFile.write( indexHtml )
-    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createOETInterlinearPages() finished processing {len(state.allBBBs)} books: {state.allBBBs}" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createOETInterlinearPages() finished processing {len(state.allBBBs)} books: {state.allBBBs}" )
     return True
 # end of createOETInterlinearPages.createOETInterlinearPages
 
@@ -179,7 +186,8 @@ def createOETInterlinearVersePagesForBook( level:int, folder:Path, BBB:str, BBBL
     BBBFolder = folder.joinpath(f'{BBB}/')
     BBBLevel = level + 1
 
-    vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  createOETInterlinearVersePagesForBook {BBBLevel}, {BBBFolder}, {BBB} from {len(BBBLinks)} books, {len(state.BibleVersions)} versions…" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 3:
+        vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  createOETInterlinearVersePagesForBook {BBBLevel}, {BBBFolder}, {BBB} from {len(BBBLinks)} books, {len(state.BibleVersions)} versions…" )
     try: os.makedirs( BBBFolder )
     except FileExistsError: pass # they were already there
 
@@ -219,7 +227,8 @@ def createOETInterlinearVersePagesForBook( level:int, folder:Path, BBB:str, BBBL
         lastNumVerses = 0
         for c in range( 1, numChapters+1 ):
             C = str( c )
-            vPrint( 'Info', DEBUGGING_THIS_MODULE, f"      Creating interlinear pages for {BBB} {C}…" )
+            if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 3:
+                vPrint( 'Info', DEBUGGING_THIS_MODULE, f"      Creating interlinear pages for {BBB} {C}…" )
             numVerses = referenceBible.getNumVerses( BBB, c )
             if numVerses is None: # something unusual
                 logging.error( f"createOETInterlinearVersePagesForBook: no verses found for {BBB} {C}" )
@@ -263,7 +272,8 @@ def createOETInterlinearVersePagesForBook( level:int, folder:Path, BBB:str, BBBL
                 assert not filepath.is_file() # Check that we're not overwriting anything
                 with open( filepath, 'wt', encoding='utf-8' ) as iHtmlFile:
                     iHtmlFile.write( iHtml )
-                vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(iHtml):,} characters written to {filepath}" )
+                if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+                    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(iHtml):,} characters written to {filepath}" )
                 vLinks.append( f'<a title="Go to interlinear verse page" href="{filename}#Top">{C}:{v}</a>' )
             lastNumVerses = numVerses # for the previous chapter
     else:
@@ -291,7 +301,8 @@ f'''<p class="chLst" id="chLst">{ourTidyBbb if ourTidyBbb!='Yac' else 'Yacob/(Ja
     assert checkHtml( 'interlinearIndex', indexHtml )
     with open( filepath1, 'wt', encoding='utf-8' ) as indexHtmlFile:
         indexHtmlFile.write( indexHtml )
-    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath1}" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath1}" )
 
     # Write a second copy of the index page up a level
     filename2 = f'{BBB}.htm'
@@ -313,9 +324,11 @@ f'''<p class="chLst" id="chLst">{ourTidyBbb if ourTidyBbb!='Yac' else 'Yacob/(Ja
     assert checkHtml( 'interlinearIndex', indexHtml )
     with open( filepath2, 'wt', encoding='utf-8' ) as indexHtmlFile:
         indexHtmlFile.write( indexHtml )
-    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath2}" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath2}" )
 
-    vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  createOETInterlinearVersePagesForBook() finished processing {len(vLinks):,} {BBB} verses." )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 3:
+        vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  createOETInterlinearVersePagesForBook() finished processing {len(vLinks):,} {BBB} verses." )
     return True
 # end of html.createOETInterlinearVersePagesForBook
 
@@ -326,7 +339,8 @@ def createOETInterlinearVerseInner( level:int, BBB:str, c:int, v:int, state:Stat
     """
     if BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 5: fnPrint( DEBUGGING_THIS_MODULE, f"createOETInterlinearVerseInner( {level}, {BBB} {c}:{v}, … )" )
 
-    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"createOETInterlinearVerseInner {level}, {BBB} {c}:{v}, …" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"createOETInterlinearVerseInner {level}, {BBB} {c}:{v}, …" )
 
     NT = bos_books_codes_py.is_new_testament_nr( BBB )
     wordFileName = 'OET-LV_NT_word_table.tsv' if NT else 'OET-LV_OT_word_table.tsv'

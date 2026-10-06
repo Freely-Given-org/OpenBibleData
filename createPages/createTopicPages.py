@@ -46,7 +46,7 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
 from openbibledata_rust import convertVerseEntryListToHtml, getOETTidyBBB
 
 
-LAST_MODIFIED_DATE = '2026-08-25' # by RJH
+LAST_MODIFIED_DATE = '2026-10-06' # by RJH
 SHORT_PROGRAM_NAME = "createTopicPages"
 PROGRAM_NAME = "OpenBibleData createTopicPages functions"
 PROGRAM_VERSION = '0.37'
@@ -137,10 +137,12 @@ def createTopicPages( level:int, folder:Path, state:State ) -> bool:
     """
     """
     global TOPIC_LIST
-    fnPrint( DEBUGGING_THIS_MODULE, f"createTopicPages( {level}, {folder}, {state.BibleVersions} )" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag:
+        fnPrint( DEBUGGING_THIS_MODULE, f"createTopicPages( {level}, {folder}, {state.BibleVersions} )" )
     assert level == 1
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\ncreateTopicPages( {level}, {folder} with {state.booksToLoad['OET']} )" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\ncreateTopicPages( {level}, {folder} with {state.booksToLoad['OET']} )" )
     try: os.makedirs( folder )
     except FileExistsError: pass # they were already there
 
@@ -174,9 +176,11 @@ def createTopicPages( level:int, folder:Path, state:State ) -> bool:
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
         indexHtmlFile.write( indexHtml )
-    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createTopicPages() finished processing {len(TOPIC_TABLE)} topics: {str(TOPIC_TABLE.keys()).replace('dict_keys([','').replace('])','')}" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createTopicPages() finished processing {len(TOPIC_TABLE)} topics: {str(TOPIC_TABLE.keys()).replace('dict_keys([','').replace('])','')}" )
     return True
 # end of createTopicPages.createTopicPages
 
@@ -190,11 +194,13 @@ def createTopicPage( level:int, folder:Path, topicNumber:int, state:State ) -> b
     Note: The above refsList can include Bible refs, e,g, 'MRK_1:2', and word refs, e.g., 'HebLem/nāḩam'
             as well as headings, e.g., 'H3 Only God can do that'
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"createTopicPage( {level}, {folder}, {topicNumber} {state.BibleVersions} )" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag:
+        fnPrint( DEBUGGING_THIS_MODULE, f"createTopicPage( {level}, {folder}, {topicNumber} {state.BibleVersions} )" )
 
     topic,topicFilename,refsList = TOPIC_LIST[topicNumber]
 
-    vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  createTopicPage for '{topic}' ({topicFilename}) with {len(refs)} Bible passages…" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 3:
+        vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  createTopicPage for '{topic}' ({topicFilename}) with {len(refs)} Bible passages…" )
     rvBible, lvBible = state.preloadedBibles['OET-RV'], state.preloadedBibles['OET-LV']
 
     leftLink = f'<a title="Previous kingdom" href="{TOPIC_LIST[topicNumber-1][1]}#Top">←</a> ' if topicNumber>0 else ''
@@ -203,7 +209,8 @@ def createTopicPage( level:int, folder:Path, topicNumber:int, state:State ) -> b
 
     combinedHtmlChunks = []
     for rr,ref in enumerate( refsList, start=1 ):
-        dPrint( 'Never', DEBUGGING_THIS_MODULE, f"  {rr} ‘{topic}’ {ref=}")
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 5:
+            dPrint( 'Never', DEBUGGING_THIS_MODULE, f"  {rr} ‘{topic}’ {ref=}")
         if ref.startswith( 'H3 '): # Then it's a heading (we'll remove this initial part of the string)
             combinedHtmlChunks.append( f'''<h3>{ref[3:]}</h3>
 <h3> </h3>''' ) # Second one is to keep the number of columns matched - put a space in so checkHTML accepts it
@@ -303,9 +310,11 @@ def createTopicPage( level:int, folder:Path, topicNumber:int, state:State ) -> b
     assert not filepath.is_file(), f"{filepath=}" # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as topicHtmlFile:
         topicHtmlFile.write( topicHtml )
-    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(topicHtml):,} characters written to {filepath}" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(topicHtml):,} characters written to {filepath}" )
 
-    vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    createTopicPage() finished processing '{topic}' with {len(refs):,} references." )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 3:
+        vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    createTopicPage() finished processing '{topic}' with {len(refs):,} references." )
     return True
 # end of createTopicPages.createTopicPage
 
@@ -341,9 +350,11 @@ This kingdom of Yehudah continued to be ruled by David’s descendants, although
 def createKingdomPages( level:int, folder:Path, state:State ) -> bool:
     """
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"createKingdomPages( {level}, {folder}, {state.BibleVersions} )" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag:
+        fnPrint( DEBUGGING_THIS_MODULE, f"createKingdomPages( {level}, {folder}, {state.BibleVersions} )" )
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\ncreateKingdomPages( {level}, {folder} )" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\ncreateKingdomPages( {level}, {folder} )" )
     try: os.makedirs( folder )
     except FileExistsError: pass # they were already there
 
@@ -363,12 +374,14 @@ def createKingdomPages( level:int, folder:Path, state:State ) -> bool:
         # Handle BibleMapper maps and notes
         kingdomHtml = ''
         for mm, (BBB,C,V) in enumerate( mapRefList ):
-            dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"    Checking {oneWordKingdomName} maps at {BBB} {C}:{V}…" )
+            if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 4:
+                dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"    Checking {oneWordKingdomName} maps at {BBB} {C}:{V}…" )
             # This can fail if not all books are loaded, e.g., in TEST_MODE_FLAG
             bmmHtml = getBibleMapperMaps( level, BBB, C, V, None, None, state.preloadedBibles['OET-RV'], state )
             # assert bmmHtml, f"{kk=} {kingdomName=} {mapRefList=} {mm=} {BBB} {C}:{V}"
             if bmmHtml:
-                dPrint( 'Info', DEBUGGING_THIS_MODULE, f"     Got some map HTML for {oneWordKingdomName} using {BBB} {C}:{V}" )
+                if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 3:
+                    dPrint( 'Info', DEBUGGING_THIS_MODULE, f"     Got some map HTML for {oneWordKingdomName} using {BBB} {C}:{V}" )
                 bmmHtml = f'''<div {'id="BMM" ' if mm==0 else ''}class="parallelBMM"><a title="Go to BMM copyright page" href="{'../'*level}BMM/details.htm#Top">BMM</a> <b><a href="https://BibleMapper.com" target="_blank" rel="noopener noreferrer">BibleMapper.com</a> Maps</b>: {bmmHtml}</div><!--end of BMM-->'''
                 if not kingdomHtml:
                     kingdomHtml = '<hr style="width:50%;margin-left:0;margin-top: 0.3em">'
@@ -385,7 +398,8 @@ def createKingdomPages( level:int, folder:Path, state:State ) -> bool:
         assert not filepath.is_file() # Check that we're not overwriting anything
         with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
             indexHtmlFile.write( html )
-        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(html):,} characters written to {filepath}" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+            vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(html):,} characters written to {filepath}" )
 
     # Now make an index page
     filename = f'index.htm'
@@ -412,9 +426,11 @@ def createKingdomPages( level:int, folder:Path, state:State ) -> bool:
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
         indexHtmlFile.write( indexHtml )
-    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(html):,} characters written to {filepath}" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(html):,} characters written to {filepath}" )
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createKingdomPages() finished processing {len(KINGDOM_LIST)} kingdom pages plus index." )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createKingdomPages() finished processing {len(KINGDOM_LIST)} kingdom pages plus index." )
     return True
 # end of createTopicPages.createKingdomPages
 

@@ -49,7 +49,7 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, do_
 from openbibledata_rust import convertVerseEntryListToHtml, getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
-LAST_MODIFIED_DATE = '2026-10-02' # by RJH
+LAST_MODIFIED_DATE = '2026-10-06' # by RJH
 SHORT_PROGRAM_NAME = "createBookPages"
 PROGRAM_NAME = "OpenBibleData createBookPages functions"
 PROGRAM_VERSION = '0.73'
@@ -73,7 +73,8 @@ def _createOETBookPagesForBook( level:int, folder:Path, rvBible, lvBible, state:
     navBookListParagraph = makeBookNavListParagraph(state.BBBLinks['OET'], 'OET', state )
     iBkList = ['index'] + state.BBBsToProcess['OET']
     processedFilenames = []
-    dPrint( 'Info', DEBUGGING_THIS_MODULE, f"    createOETBookPages {BBB=} {state.BBBsToProcess['OET']} out of {len(state.BBBsToProcess['OET'])}" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 3:
+        dPrint( 'Info', DEBUGGING_THIS_MODULE, f"    createOETBookPages {BBB=} {state.BBBsToProcess['OET']} out of {len(state.BBBsToProcess['OET'])}" )
     NT = bos_books_codes_py.is_new_testament_nr( BBB )
     ourTidyBBB = getOETTidyBBB( BBB )
     ourTidyBBBwithNotes = getOETTidyBBB( BBB, addNotes=True )
@@ -109,7 +110,8 @@ def _createOETBookPagesForBook( level:int, folder:Path, rvBible, lvBible, state:
         return ( True, BBB, [] ) # Skip this book entirely
 
     if BBB in ('INT','FRT'): # We want these, even though the LV doesn't (yet?) have any FRT
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Creating book page for OET {BBB}…" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Creating book page for OET {BBB}…" )
         # iBkList = ['index'] + state.booksToLoad[rvBible.abbreviation]
         try: # May give ValueError if this book doesn't not occur in this translation
             bkIx = iBkList.index( BBB )
@@ -145,7 +147,8 @@ def _createOETBookPagesForBook( level:int, folder:Path, rvBible, lvBible, state:
         assert not filepath.is_file() # Check that we're not overwriting anything
         with open( filepath, 'wt', encoding='utf-8' ) as bkHtmlFile:
             bkHtmlFile.write( bkHtml )
-        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(bkHtml):,} characters written to {filepath}" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+            vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(bkHtml):,} characters written to {filepath}" )
         return ( True, BBB, processedFilenames ) # Finished the special case book (no full-book page)
 
     # This obsolete code used to prevent building of OET-RV DC books as there's no OET-LV version -- removed 2026-09-02
@@ -155,7 +158,8 @@ def _createOETBookPagesForBook( level:int, folder:Path, rvBible, lvBible, state:
     #     logging.critical( f"C Skipped OET chapters not-included book: OET-LV {BBB}")
     #     continue # Only create pages for the requested LV books
 
-    vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Creating book pages for OET {BBB}…" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 3:
+        vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Creating book pages for OET {BBB}…" )
     bkIx = iBkList.index( BBB )
     bkPrevNav = f'''<a title="Previous {'(book index)' if bkIx==1 else 'book'}" href="{iBkList[bkIx-1]}.htm#Top">◄</a> ''' if bkIx>0 else ''
     bkNextNav = f' <a title="Next book" href="{iBkList[bkIx+1]}.htm#Top">►</a>' if bkIx<len(iBkList)-1 else ''
@@ -213,7 +217,8 @@ def _createOETBookPagesForBook( level:int, folder:Path, rvBible, lvBible, state:
     # print( f"{BBB} ({len(rvSections2)=}) {[(n,len(x),x[:15] if len(x)>200 else x) for n,x in enumerate(rvSections2)]}" )
     # assert len(rvSections2)==len(rvSections), f"{BBB} {len(rvSections)=} {len(rvSections2)=}"
     if len(rvSections2) != len(rvSections):
-        dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"OET {BBB} Mismatched number of sections: {len(rvSections)=} vs {len(rvSections2)=}")
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 2:
+            dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"OET {BBB} Mismatched number of sections: {len(rvSections)=} vs {len(rvSections2)=}")
     rvSections = rvSections2 # Let's use the new system
     # if BBB == 'DAN': stop_for_Daniel
 
@@ -226,7 +231,8 @@ def _createOETBookPagesForBook( level:int, folder:Path, rvBible, lvBible, state:
         lvChunks, lvRest = [ lvHtml[:ixBHend], lvHtml[ixBHend:ixBIend] ], lvHtml[ixBIend:]
         # Now try to match the rv sections
         for n,rvSectionHtml in enumerate( rvSections[2:] ): # continuing on AFTER the headers and introduction
-            dPrint( 'Never', DEBUGGING_THIS_MODULE, f"\n_createOETBookPagesForBook {BBB} {n}: {rvSectionHtml=}/{len(rvSections)-2}" )
+            if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 5:
+                dPrint( 'Never', DEBUGGING_THIS_MODULE, f"\n_createOETBookPagesForBook {BBB} {n}: {rvSectionHtml=}/{len(rvSections)-2}" )
             assert rvSectionHtml
             try:
                 CclassIndex1 = rvSectionHtml.index( 'id="C' )
@@ -237,10 +243,12 @@ def _createOETBookPagesForBook( level:int, folder:Path, rvBible, lvBible, state:
                 rvEndCV = rvSectionHtml[CclassIndex8+4:CclassIndex9]
                 # dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"\n  {BBB} {n:,}: {rvStartCV=} {rvEndCV=}")
             except ValueError:
-                dPrint( 'Info', DEBUGGING_THIS_MODULE, f"  createOETBookPages {BBB} {n:,}: No Cid in {rvSectionHtml=}" )
+                if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 3:
+                    dPrint( 'Info', DEBUGGING_THIS_MODULE, f"  createOETBookPages {BBB} {n:,}: No Cid in {rvSectionHtml=}" )
                 rvStartCV, rvEndCV = '', 'C1'
                 # assert False, "We want to stop here"
-            dPrint( 'Never', DEBUGGING_THIS_MODULE, f"""\n_createOETBookPagesForBook: searching for OET-RV {BBB} ' id="{rvEndCV}"' in '{lvRest}'""" )
+            if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 5:
+                dPrint( 'Never', DEBUGGING_THIS_MODULE, f"""\n_createOETBookPagesForBook: searching for OET-RV {BBB} ' id="{rvEndCV}"' in '{lvRest}'""" )
             try: ixEndCV = lvRest.rindex( f' id="{rvEndCV}"' )
             except ValueError: # Versification problem if this fails
                 logging.error( f"{BBB} Possible OET versification problem around {rvEndCV} -- we'll try to handle it." )
@@ -273,16 +281,19 @@ def _createOETBookPagesForBook( level:int, folder:Path, rvBible, lvBible, state:
                     if lvRest[lvIndex8] == '<':
                         break
                 else:
-                    dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{lvRest[lvIndex8-50:lvIndex8+50]}")
+                    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 4:
+                        dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{lvRest[lvIndex8-50:lvIndex8+50]}")
                     not_far_enough
             # print( f"\n{n}: {lvRest[ixEndCV:lvIndex8]=}" )
             lvEndIx = lvIndex8
             # TODO: Work out why we need these next two sets of lines
             if lvRest[lvEndIx:].startswith( '</span>'): # Occurs at end of MRK (perhaps because of missing SR verses in ending) -- not sure if in other places
-                dPrint( 'Info', DEBUGGING_THIS_MODULE, f"\nNOTE: Fixed </span> end of {BBB} {rvStartCV=} {rvEndCV=} chunk in OET!!! {lvEndIx=} {ixNextCV=}" )
+                if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 3:
+                    dPrint( 'Info', DEBUGGING_THIS_MODULE, f"\nNOTE: Fixed </span> end of {BBB} {rvStartCV=} {rvEndCV=} chunk in OET!!! {lvEndIx=} {ixNextCV=}" )
                 lvEndIx = ixNextCV + 1
             elif lvRest[lvEndIx:].startswith( '</a>'): # Occurs at end of MAT Why????
-                dPrint( 'Info', DEBUGGING_THIS_MODULE, f"\nNOTE: Fixed </a> end of {BBB} {rvStartCV=} {rvEndCV=} chunk in OET!!! {lvEndIx=} {ixNextCV=}" )
+                if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 3:
+                    dPrint( 'Info', DEBUGGING_THIS_MODULE, f"\nNOTE: Fixed </a> end of {BBB} {rvStartCV=} {rvEndCV=} chunk in OET!!! {lvEndIx=} {ixNextCV=}" )
                 lvEndIx = ixNextCV + 1
             lvChunk = lvRest[:lvEndIx]
             # Make sure that our split was at a sensible place
@@ -331,7 +342,8 @@ def _createOETBookPagesForBook( level:int, folder:Path, rvBible, lvBible, state:
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as bkHtmlFile:
         bkHtmlFile.write( bkHtml )
-    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(bkHtml):,} characters written to {filepath}" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(bkHtml):,} characters written to {filepath}" )
 
     return ( True, BBB, processedFilenames )
 # end of createBookPages.py._createOETBookPagesForBook
@@ -356,9 +368,11 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
     """
     The OET is a pseudo-version which includes the OET-RV and OET-LV side-by-side.
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"createOETBookPages( {level}, {folder}, {rvBible.abbreviation}, {lvBible.abbreviation} )" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag:
+        fnPrint( DEBUGGING_THIS_MODULE, f"createOETBookPages( {level}, {folder}, {rvBible.abbreviation}, {lvBible.abbreviation} )" )
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createOETBookPages( {level}, {folder}, {rvBible.abbreviation}, {lvBible.abbreviation} )…" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createOETBookPages( {level}, {folder}, {rvBible.abbreviation}, {lvBible.abbreviation} )…" )
     try: os.makedirs( folder )
     except FileExistsError: pass # they were already there
 
@@ -381,7 +395,8 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
         #        to 'forkserver' which would NOT inherit our huge module-level state (12 GiB of Bibles).
         #        Forked children share that memory copy-on-write, so this costs almost nothing extra.
         # NOTE: Outputs (including error and warning messages) from the various books may be interspersed.
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\nCreating {'TEST ' if state.TEST_MODE_FLAG else ''}OET book pages for {len(mpBookParameters):,} books using {BibleOrgSysGlobals.maxProcesses:,} forked processes…" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\nCreating {'TEST ' if state.TEST_MODE_FLAG else ''}OET book pages for {len(mpBookParameters):,} books using {BibleOrgSysGlobals.maxProcesses:,} forked processes…" )
         BibleOrgSysGlobals.alreadyMultiprocessing = True
         with multiprocessing.get_context('fork').Pool( processes=BibleOrgSysGlobals.maxProcesses ) as pool: # start worker processes
             results = pool.map( _createOETBookPagesForBook_MP, mpBookParameters ) # have the pool create the books
@@ -412,9 +427,11 @@ def createOETBookPages( level:int, folder:Path, rvBible, lvBible, state:State ) 
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as bkHtmlFile:
         bkHtmlFile.write( indexHtml )
-    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createOETBookPages() finished processing {len(processedBBBs)} OET books: {processedBBBs}." )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createOETBookPages() finished processing {len(processedBBBs)} OET books: {processedBBBs}." )
     return processedFilenames
 # end of createBookPages.createOETBookPages
 
@@ -425,9 +442,11 @@ def createBookPages( level:int, folder:Path, thisBible, state:State ) -> list[st
     This creates a page for each book for all versions other than 'OET'
                                 which is considerably more complex (above).
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"createBookPages( {level}, {folder}, {thisBible.abbreviation} )" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag:
+        fnPrint( DEBUGGING_THIS_MODULE, f"createBookPages( {level}, {folder}, {thisBible.abbreviation} )" )
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createBookPages( {level}, {folder}, {thisBible.abbreviation} )…" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createBookPages( {level}, {folder}, {thisBible.abbreviation} )…" )
     try: os.makedirs( folder )
     except FileExistsError: pass # they were already there
 
@@ -458,7 +477,8 @@ def createBookPages( level:int, folder:Path, thisBible, state:State ) -> list[st
             logging.error( f"VV Skipped difficult book: {thisBible.abbreviation} {BBB}")
             continue # Only create pages for the requested books
 
-        vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Creating book pages for {thisBible.abbreviation} {BBB}…" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 3:
+            vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Creating book pages for {thisBible.abbreviation} {BBB}…" )
         processedBBBs.append( BBB )
 
         try: # May give ValueError if this book doesn't not occur in this translation
@@ -509,7 +529,8 @@ def createBookPages( level:int, folder:Path, thisBible, state:State ) -> list[st
         assert not filepath.is_file() # Check that we're not overwriting anything
         with open( filepath, 'wt', encoding='utf-8' ) as bkHtmlFile:
             bkHtmlFile.write( bkHtml )
-        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(bkHtml):,} characters written to {filepath}" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+            vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(bkHtml):,} characters written to {filepath}" )
 
     # Now create an overall index page
     filename = 'index.htm'
@@ -530,9 +551,11 @@ def createBookPages( level:int, folder:Path, thisBible, state:State ) -> list[st
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as bkHtmlFile:
         bkHtmlFile.write( indexHtml )
-    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createBookPages() finished processing {len(processedBBBs)} {thisBible.abbreviation} books: {processedBBBs}." )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createBookPages() finished processing {len(processedBBBs)} {thisBible.abbreviation} books: {processedBBBs}." )
     return processedFilenames
 # end of createBookPages.createBookPages
 

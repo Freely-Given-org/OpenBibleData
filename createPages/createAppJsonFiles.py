@@ -52,7 +52,7 @@ from createOETReferencePages import HebrewWordFileName, convert_Hebrew_word_glos
 from openbibledata_rust import getOETTidyBBB, getOETBookName, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
-LAST_MODIFIED_DATE = '2026-09-11' # by RJH
+LAST_MODIFIED_DATE = '2026-10-06' # by RJH
 SHORT_PROGRAM_NAME = "createAppJsonFiles"
 PROGRAM_NAME = "OpenBibleData createAppJsonFiles functions"
 PROGRAM_VERSION = '0.13'
@@ -78,14 +78,17 @@ def createAppJsonFiles( level:int, outputFolderPath:Path, state:State ) -> bool:
     try: os.makedirs( outputFolderPath )
     except FileExistsError: pass # it was already there
 
-    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nCreating {'TEST ' if state.TEST_MODE_FLAG else ''}reference json word files for OET…" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 1:
+        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nCreating {'TEST ' if state.TEST_MODE_FLAG else ''}reference json word files for OET…" )
 
     startTime = time()
     create_Hebrew_words_json( level+1, outputFolderPath.joinpath( 'HebWrd/' ), state )
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      create_Hebrew_words_json() took {(time()-startTime)/60:.1f} minutes.")
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      create_Hebrew_words_json() took {(time()-startTime)/60:.1f} minutes.")
     startTime = time()
     create_Greek_words_json( level+1, outputFolderPath.joinpath( 'GrkWrd/' ), state )
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      create_Greek_words_json() took {(time()-startTime)/60:.1f} minutes.")
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      create_Greek_words_json() took {(time()-startTime)/60:.1f} minutes.")
 
     # bibleLexicon = BibleLexicon.BibleLexicon()
     # create_Hebrew_Strongs_pages( level+1, outputFolderPath.joinpath( 'HebStrng/' ), bibleLexicon, state )
@@ -104,7 +107,8 @@ def create_Hebrew_words_json( level:int, outputFolderPath:Path, state:State ) ->
     """
     """
     if BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 5: fnPrint( DEBUGGING_THIS_MODULE, f"create_Hebrew_words_json( {outputFolderPath}, {state.BibleVersions} )" )
-    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Checking/Making {len(state.OETRefData['word_tables'][HebrewWordFileName])-1:,} Hebrew json files…" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 1:
+        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Checking/Making {len(state.OETRefData['word_tables'][HebrewWordFileName])-1:,} Hebrew json files…" )
 
     try: os.makedirs( outputFolderPath )
     except FileExistsError: pass # it was already there
@@ -115,7 +119,8 @@ def create_Hebrew_words_json( level:int, outputFolderPath:Path, state:State ) ->
     for hh, columns_string in enumerate( state.OETRefData['word_tables'][HebrewWordFileName][1:], start=1 ):
         if not columns_string: continue # a blank line (esp. at end)
         if numWordPagesMade>0 and hh % 50_000 == 0:
-            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      {numWordPagesMade+1:,} made out of {f'{hh:,} out of ' if hh!=numWordPagesMade+1 else ''}{len(state.OETRefData['word_tables'][HebrewWordFileName])-1:,}…" )
+            if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+                vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      {numWordPagesMade+1:,} made out of {f'{hh:,} out of ' if hh!=numWordPagesMade+1 else ''}{len(state.OETRefData['word_tables'][HebrewWordFileName])-1:,}…" )
         # output_filename = getHebrewWordpageFilename( hh, state )
         output_filename = f'{hh}.json'
         if DEBUGGING_THIS_MODULE or BibleOrgSysGlobals.debugFlag: # NOTE: This makes the function MUCH slower
@@ -134,7 +139,8 @@ def create_Hebrew_words_json( level:int, outputFolderPath:Path, state:State ) ->
             numWordPagesMade += 1
 
     # vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f'''    Created {numWordPagesMade:,}{f"/{len(state.OETRefData['word_tables'][HebrewWordFileName])-1:,}" if numWordPagesMade < len(state.OETRefData['word_tables'][HebrewWordFileName])-1 else ''} Hebrew json word files (using {len(state.OETRefData['usedHebLemmasSet']):,} Hebrew lemmas).''' )
-    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f'''    Created {numWordPagesMade:,}{f"/{len(state.OETRefData['word_tables'][HebrewWordFileName])-1:,}" if numWordPagesMade < len(state.OETRefData['word_tables'][HebrewWordFileName])-1 else ''} Hebrew json word files.''' )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 1:
+        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f'''    Created {numWordPagesMade:,}{f"/{len(state.OETRefData['word_tables'][HebrewWordFileName])-1:,}" if numWordPagesMade < len(state.OETRefData['word_tables'][HebrewWordFileName])-1 else ''} Hebrew json word files.''' )
 
 #     # Create index page for this folder
 #     filepath = outputFolderPath.joinpath( 'index.htm' )
@@ -599,7 +605,8 @@ def create_Greek_words_json( level:int, outputFolderPath:Path, state:State ) -> 
     """
     if BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 5: fnPrint( DEBUGGING_THIS_MODULE, f"create_Greek_words_json( {outputFolderPath}, {state.BibleVersions} )" )
 
-    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Checking/Making {len(state.OETRefData['word_tables'][GreekWordFileName])-1:,} Greek json files…" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 1:
+        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Checking/Making {len(state.OETRefData['word_tables'][GreekWordFileName])-1:,} Greek json files…" )
 
     try: os.makedirs( outputFolderPath )
     except FileExistsError: pass # it was already there
@@ -638,7 +645,8 @@ def create_Greek_words_json( level:int, outputFolderPath:Path, state:State ) -> 
     state.OETRefData['usedGrkLemmas'], state.OETRefData['usedGrkStrongs'] = set(), set() # Used in next functions to make lemma and Strongs pages
     for gg, columns_string in enumerate( state.OETRefData['word_tables'][GreekWordFileName][1:], start=1 ):
         if gg % 40_000 == 0:
-            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      {numWordPagesMade+1:,} made out of {f'{gg:,} out of ' if gg!=numWordPagesMade+1 else ''}{len(state.OETRefData['word_tables'][GreekWordFileName])-1:,}…" )
+            if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+                vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      {numWordPagesMade+1:,} made out of {f'{gg:,} out of ' if gg!=numWordPagesMade+1 else ''}{len(state.OETRefData['word_tables'][GreekWordFileName])-1:,}…" )
         if not columns_string: continue # a blank line (esp. at end)
         # print( f"Word {gg}: {columns_string}" )
 
@@ -963,7 +971,8 @@ def create_Greek_words_json( level:int, outputFolderPath:Path, state:State ) -> 
         # vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"      Wrote {len(wordsHtml):,} characters to {output_filename}" )
         # wordLinksForIndex.append( f'<a href="{output_filename}">{greekWord}</a>')
         numWordPagesMade += 1
-    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f'''    Created {numWordPagesMade:,}{f"/{len(state.OETRefData['word_tables'][GreekWordFileName])-1:,}" if numWordPagesMade < len(state.OETRefData['word_tables'][GreekWordFileName])-1 else ''} Greek json files (using {len(state.OETRefData['usedGrkLemmas']):,} Greek lemmas).''' )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 1:
+        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f'''    Created {numWordPagesMade:,}{f"/{len(state.OETRefData['word_tables'][GreekWordFileName])-1:,}" if numWordPagesMade < len(state.OETRefData['word_tables'][GreekWordFileName])-1 else ''} Greek json files (using {len(state.OETRefData['usedGrkLemmas']):,} Greek lemmas).''' )
 
 #     # Create index page for this folder
 #     filename = 'index.htm'
@@ -1027,7 +1036,8 @@ STRONGS_FOLDER_DICT = {'G':'GrkStrng', 'H':'HebStrng'}
 def create_Hebrew_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:BibleLexicon, state:State ) -> int:
     """
     """
-    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Making Hebrew Strongs pages…" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 1:
+        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Making Hebrew Strongs pages…" )
 
     try: os.makedirs( outputFolderPath )
     except FileExistsError: pass # it was already there
@@ -1116,9 +1126,11 @@ def create_Hebrew_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:
         # assert checkHtml( 'StrongsPage', pageHtml )
         with open( filepath, 'wt', encoding='utf-8' ) as html_output_file:
             html_output_file.write( pageHtml )
-        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  Wrote {len(pageHtml):,} characters to {output_filename}" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+            vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  Wrote {len(pageHtml):,} characters to {output_filename}" )
         numPagesMade += 1
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Made {numPagesMade:,} {f'out of {finalStrongsNumber:,} ' if numPagesMade<finalStrongsNumber else ''}Hebrew Strongs pages." )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Made {numPagesMade:,} {f'out of {finalStrongsNumber:,} ' if numPagesMade<finalStrongsNumber else ''}Hebrew Strongs pages." )
 
 #     # Create index page for this Strongs folder
 #     filename = 'index.htm'
@@ -1153,7 +1165,8 @@ def create_Hebrew_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:
 def create_Greek_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:BibleLexicon, state:State ) -> int:
     """
     """
-    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Making Greek Strongs pages…" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 1:
+        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Making Greek Strongs pages…" )
 
     try: os.makedirs( outputFolderPath )
     except FileExistsError: pass # it was already there
@@ -1239,9 +1252,11 @@ def create_Greek_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:B
         assert checkHtml( 'StrongsPage', pageHtml )
         with open( filepath, 'wt', encoding='utf-8' ) as html_output_file:
             html_output_file.write( pageHtml )
-        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  Wrote {len(pageHtml):,} characters to {output_filename}" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+            vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  Wrote {len(pageHtml):,} characters to {output_filename}" )
         numPagesMade += 1
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Made {numPagesMade:,} {f'out of {finalStrongsNumber:,} ' if numPagesMade<finalStrongsNumber else ''}Greek Strongs pages." )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Made {numPagesMade:,} {f'out of {finalStrongsNumber:,} ' if numPagesMade<finalStrongsNumber else ''}Greek Strongs pages." )
 
 #     # Create index page for this Strongs folder
 #     filename = 'index.htm'

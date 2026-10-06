@@ -54,7 +54,7 @@ from openbibledata_rust import findOLQuoteInLV, getBBBFromOETBookName
 from Dict import loadAndIndexUBSGreekDictJSON, loadAndIndexUBSHebrewDictJSON
 
 
-LAST_MODIFIED_DATE = '2026-08-25' # by RJH
+LAST_MODIFIED_DATE = '2026-10-06' # by RJH
 SHORT_PROGRAM_NAME = "JSONResources"
 PROGRAM_NAME = "Bible Aquifer JSON resources handler"
 PROGRAM_VERSION = '0.10'
@@ -88,7 +88,8 @@ def load_SIL_OTN( BBB:str, state:State ) -> str | None:
         # print( f"  Got {filename=}" )
         filepath = Path(state.BibleLocations['SOTN']).joinpath( filename)
         # print( f"  Got {filepath=}" )
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Loading {BBB} SIL Open Translator’s Notes{' in TEST mode' if state.TEST_MODE_FLAG else ''} from {filepath}…" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Loading {BBB} SIL Open Translator’s Notes{' in TEST mode' if state.TEST_MODE_FLAG else ''} from {filepath}…" )
         try:
             with open( filepath, 'rt', encoding='utf-8' ) as jsonFile:
                 bookJsonData = json.load( jsonFile )
@@ -108,7 +109,8 @@ def load_SIL_OTN( BBB:str, state:State ) -> str | None:
             c, v = int(chapterNumber), int(verseNumber)
             indexedBookJsonData[(str(c),str(v))] = entryDict
         state.SOTN[BBB] = ('Loaded',indexedBookJsonData)
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Loaded {BBB} {len(indexedBookJsonData)=:,} JSON entries" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Loaded {BBB} {len(indexedBookJsonData)=:,} JSON entries" )
         return indexedBookJsonData
 
     # This book was already loaded and indexed
@@ -123,12 +125,14 @@ def getFormattedSILOpenTranslationNotes( level:int, BBB:str, C:str, V:str, where
     bookJson = load_SIL_OTN( BBB, state )
     if not bookJson: return None
 
-    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"getFormattedSILOpenTranslationNotes( {level=} {BBB} {C}:{V}, {where} ... )" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"getFormattedSILOpenTranslationNotes( {level=} {BBB} {C}:{V}, {where} ... )" )
     if (C,V) == ('1','1'): dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  Have {len(bookJson):,} JSON entries for {BBB}" )
 
     try: jsonEntry = bookJson[(C,V)]
     except KeyError: # e.g., for introductions, etc.
-        vPrint( 'Info', DEBUGGING_THIS_MODULE, f"   WARNING: No SIL OTN data for {BBB} {C}:{V}" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 3:
+            vPrint( 'Info', DEBUGGING_THIS_MODULE, f"   WARNING: No SIL OTN data for {BBB} {C}:{V}" )
         return None
 
     # The content field seems to be already formatted as an HTML div, etc.,

@@ -143,7 +143,7 @@ function show_grammatical_colours() {
         var elements = document.querySelectorAll(cl);
         for (var i=0; i<elements.length; i++){
             elements[i].style.backgroundColor = null; // Seems to make it use the CSS again
-            if (cl==='.noLinkYet') elements[i].style.color = 'white';
+            if (cl==='.noLinkYet') elements[i].style.color = null; // Back to the CSS rule (dark-mode aware)
         }
     }
     if (btn) {

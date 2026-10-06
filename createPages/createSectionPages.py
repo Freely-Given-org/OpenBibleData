@@ -84,7 +84,7 @@ from Bibles import getBibleMapperMaps, getOpenBibleImages
 from openbibledata_rust import convertVerseEntryListToHtml, findSectionNumber as rustFindSectionNumber, getOETTidyBBB
 
 
-LAST_MODIFIED_DATE = '2026-09-24' # by RJH
+LAST_MODIFIED_DATE = '2026-10-06' # by RJH
 SHORT_PROGRAM_NAME = "createSectionPages"
 PROGRAM_NAME = "OpenBibleData createSectionPages functions"
 PROGRAM_VERSION = '0.96'
@@ -332,7 +332,8 @@ def createOETSectionPages( level:int, folder:Path, rvBible:ESFMBible, lvBible:ES
     """
     The OET is a pseudo-version which includes the OET-RV and OET-LV side-by-side.
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"createOETSectionPages( {level}, {folder}, {rvBible.abbreviation}, {lvBible.abbreviation} )" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag:
+        fnPrint( DEBUGGING_THIS_MODULE, f"createOETSectionPages( {level}, {folder}, {rvBible.abbreviation}, {lvBible.abbreviation} )" )
     assert rvBible.discoveryResults['ALL']['haveSectionHeadings']
     assert not lvBible.discoveryResults['ALL']['haveSectionHeadings']
 
@@ -415,7 +416,8 @@ def createOETSectionPages( level:int, folder:Path, rvBible:ESFMBible, lvBible:ES
         #     state.sectionsListsForSections['OET-RV'][BBB].append( (startC,startV,endC,endV,sectionName,reasonName,rvContextList,rvVerseEntryList,sectionFilename) )
 
         # Now, make the actual section pages
-        vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Creating section pages for OET {BBB}…" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 3:
+            vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Creating section pages for OET {BBB}…" )
         # numExtrasSkipped = 0
         documentLink = f'<a title="Whole document view" href="../byDoc/{BBB}.htm#Top">{ourTidyBBBwithNotes}</a>'
         sectionIndexLink = f'<a title="Go up to OET section index" href="{BBB}.htm#Top">⌂</a> '
@@ -502,7 +504,8 @@ def createOETSectionPages( level:int, folder:Path, rvBible:ESFMBible, lvBible:ES
             assert not filepath.is_file() # Check that we're not overwriting anything
             with open( filepath, 'wt', encoding='utf-8' ) as sectionHtmlFile:
                 sectionHtmlFile.write( sectionHtml )
-            vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(sectionHtml):,} characters written to {filepath}" )
+            if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+                vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(sectionHtml):,} characters written to {filepath}" )
 
         # Now make the section index file for this book
         BBBindex = availableBBBs.index( BBB )
@@ -545,7 +548,8 @@ def createOETSectionPages( level:int, folder:Path, rvBible:ESFMBible, lvBible:ES
         assert not indexFilepath.is_file() # Check that we're not overwriting anything
         with open( indexFilepath, 'wt', encoding='utf-8' ) as sectionHtmlFile:
             sectionHtmlFile.write( sectionHtml )
-        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(sectionHtml):,} characters written to {indexFilepath}" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+            vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(sectionHtml):,} characters written to {indexFilepath}" )
 
     # Now a single overall index page for sections
     indexFilename = 'index.htm'
@@ -566,9 +570,11 @@ def createOETSectionPages( level:int, folder:Path, rvBible:ESFMBible, lvBible:ES
     assert not indexFilepath.is_file() # Check that we're not overwriting anything
     with open( indexFilepath, 'wt', encoding='utf-8' ) as sectionHtmlFile:
         sectionHtmlFile.write( indexHtml )
-    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {indexFilepath}" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {indexFilepath}" )
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createOETSectionPages() finished processing {len(availableBBBs)} OET books: {availableBBBs}." )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createOETSectionPages() finished processing {len(availableBBBs)} OET books: {availableBBBs}." )
 # end of createSectionPages.createOETSectionPages
 
 
@@ -605,7 +611,8 @@ def createSectionLists( level:int, thisBible, state:State ) -> None:
         but any changes they make to their copy are lost when they exit).
     Books already present in the lists are skipped, so calling this a second time is cheap.
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"createSectionLists( {level}, {thisBible.abbreviation} )" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag:
+        fnPrint( DEBUGGING_THIS_MODULE, f"createSectionLists( {level}, {thisBible.abbreviation} )" )
     thisBibleBooksToLoad = state.booksToLoad[thisBible.abbreviation]
 
     # Firstly make our list of section headings
@@ -652,11 +659,13 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> list
     This creates a page for each section for all versions other than 'OET' (dual columns)
                                 which is considerably more complex (above).
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"createSectionPages( {level}, {folder}, {thisBible.abbreviation} )" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag:
+        fnPrint( DEBUGGING_THIS_MODULE, f"createSectionPages( {level}, {folder}, {thisBible.abbreviation} )" )
     assert thisBible.abbreviation != 'OET'
     assert thisBible.discoveryResults['ALL']['haveSectionHeadings']
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createSectionPages( {level}, {folder}, {thisBible.abbreviation} )…" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createSectionPages( {level}, {folder}, {thisBible.abbreviation} )…" )
     try: os.makedirs( folder )
     except FileExistsError: pass # they were already there
 
@@ -714,7 +723,8 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> list
 
         if BibleOrgSysGlobals.verbosityLevel >= 4: dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{thisBible.abbreviation} {type(thisBible[BBB]._SectionIndex)=} {thisBible[BBB]._SectionIndex=}" )
         if not thisBible[BBB]._SectionIndex: # no sections in this book, e.g., FRT
-            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"No section headings in {thisBible.abbreviation} {BBB} -- skipping section pages" )
+            if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+                vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"No section headings in {thisBible.abbreviation} {BBB} -- skipping section pages" )
             sectionFilename = f'{BBB}.htm'
             filepath = folder.joinpath( sectionFilename )
             top = makeTop( level, thisBible.abbreviation, 'section', f'bySec/{sectionFilename}', state ) \
@@ -732,7 +742,8 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> list
             assert not filepath.is_file() # Check that we're not overwriting anything
             with open( filepath, 'wt', encoding='utf-8' ) as sectionHtmlFile:
                 sectionHtmlFile.write( sectionHtml )
-            vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(sectionHtml):,} characters written to {filepath}" )
+            if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+                vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(sectionHtml):,} characters written to {filepath}" )
             continue
 
         # First, get our list of sections
@@ -751,7 +762,8 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> list
         #     state.sectionsListsForSections[thisBible.abbreviation][BBB].append( (startC,startV,endC,endV,sectionName,reasonName,contextList,verseEntryList,sectionFilename) )
 
         # Now, make the actual pages
-        vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Creating section pages for {thisBible.abbreviation} {BBB}…" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 3:
+            vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Creating section pages for {thisBible.abbreviation} {BBB}…" )
         documentLink = f'<a title="Whole document view" href="../byDoc/{BBB}.htm#Top">{ourTidyBBB}</a>'
         sectionIndexLink = f'<a title="Go up to section index" href="{BBB}.htm#Top">⌂</a> '
         detailsLink = f''' <a title="Show details about this work" href="{'../'*(level-1)}details.htm#Top">©</a>'''
@@ -809,7 +821,8 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> list
             assert not filepath.is_file() # Check that we're not overwriting anything
             with open( filepath, 'wt', encoding='utf-8' ) as sectionHtmlFile:
                 sectionHtmlFile.write( sectionHtml )
-            vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(sectionHtml):,} characters written to {filepath}" )
+            if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+                vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(sectionHtml):,} characters written to {filepath}" )
 
         # Now make the section index file for this book
         BBBindex = availableBBBs.index( BBB )
@@ -853,7 +866,8 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> list
         assert not indexFilepath.is_file() # Check that we're not overwriting anything
         with open( indexFilepath, 'wt', encoding='utf-8' ) as sectionHtmlFile:
             sectionHtmlFile.write( sectionHtml )
-        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(sectionHtml):,} characters written to {indexFilepath}" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+            vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(sectionHtml):,} characters written to {indexFilepath}" )
 
     # Now an overall index for sections
     sectionFilename = 'index.htm'
@@ -872,9 +886,11 @@ def createSectionPages( level:int, folder:Path, thisBible, state:State ) -> list
     assert not indexFilepath.is_file() # Check that we're not overwriting anything
     with open( indexFilepath, 'wt', encoding='utf-8' ) as sectionHtmlFile:
         sectionHtmlFile.write( indexHtml )
-    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {indexFilepath}" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {indexFilepath}" )
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createSectionPages() finished processing {len(availableBBBs)} {thisBible.abbreviation} books: {availableBBBs}." )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createSectionPages() finished processing {len(availableBBBs)} {thisBible.abbreviation} books: {availableBBBs}." )
     # return filenames
 # end of createSectionPages.createSectionPages
 
@@ -890,7 +906,8 @@ def findSectionNumber( versionAbbreviation:str, refBBB:str, refC:str, refV:str, 
         (including the Rust livening code that calls back into this module)
         can keep using exactly the same interface.
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"findSectionNumber( {versionAbbreviation}, {refBBB} {refC}:{refV} )" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag:
+        fnPrint( DEBUGGING_THIS_MODULE, f"findSectionNumber( {versionAbbreviation}, {refBBB} {refC}:{refV} )" )
     return rustFindSectionNumber( versionAbbreviation, refBBB, refC, refV, state )
 # end of createSectionPages.findSectionNumber
 

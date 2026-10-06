@@ -68,7 +68,7 @@ from load import getIndividualQuotedOTRefs, getIndividualQuotingNTRefs
 
 
 
-LAST_MODIFIED_DATE = '2026-10-03' # by RJH
+LAST_MODIFIED_DATE = '2026-10-06' # by RJH
 SHORT_PROGRAM_NAME = "SentenceImportance_initialisation"
 PROGRAM_NAME = "Sentence Importance initialisation"
 PROGRAM_VERSION = '0.40'
@@ -433,18 +433,21 @@ def load_previous_DB():
     """
     Load our previous DB
     """
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Loading original {TSV_FILENAME}…" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Loading original {TSV_FILENAME}…" )
     with open( TSV_FILENAME, 'rt', encoding='utf-8') as inputTSVFile:
         initialTSVLines = inputTSVFile.read().rstrip().split( '\n' )
     assert len(initialTSVLines) == NUM_EXPECTED_DATA_LINES, f"{NUM_EXPECTED_DATA_LINES=:,} {len(initialTSVLines)=:,}"
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  {len(initialTSVLines):,} initial lines loaded from original {TSV_FILENAME}." )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  {len(initialTSVLines):,} initial lines loaded from original {TSV_FILENAME}." )
 
     # Find the list of verses which must be split
     splitVerseSet = set()
     for ref in allRefs:
         if ref[-1] in 'ab':
             splitVerseSet.add( ref[:-1] )
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"{len(splitVerseSet):,} verses need to be split." )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"{len(splitVerseSet):,} verses need to be split." )
     return initialTSVLines, splitVerseSet
 # end of initialise.load_previous_DB()
 
@@ -453,13 +456,15 @@ def load_CNTR_collation_DB( splitVerseSet ):
     """
     Load the CNTR-GNT collation DB
     """
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Loading {COLLATION_PATHNAME}…" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Loading {COLLATION_PATHNAME}…" )
     with open( COLLATION_PATHNAME, 'rt', encoding='utf-8') as input_csv_file:
         csv_lines = input_csv_file.readlines()
 
     # Remove any BOM
     if csv_lines[0].startswith("\ufeff"):
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, "  Handling Byte Order Marker (BOM) at start of collation CSV file…")
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, "  Handling Byte Order Marker (BOM) at start of collation CSV file…")
         csv_lines[0] = csv_lines[0][1:]
 
     # Get the headers before we start
@@ -476,9 +481,11 @@ def load_CNTR_collation_DB( splitVerseSet ):
     dict_reader = DictReader(csv_lines)
     for n, row in enumerate(dict_reader):
         if len(row) != NUM_EXPECTED_COLLATION_COLUMNS:
-            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Collation line {n} has {len(row)} columns instead of {NUM_EXPECTED_COLLATION_COLUMNS}!!!")
+            if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+                vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Collation line {n} has {len(row)} columns instead of {NUM_EXPECTED_COLLATION_COLUMNS}!!!")
         collation_csv_rows.append(row)
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  {len(collation_csv_rows):,} collation data lines loaded from {COLLATION_PATHNAME}." )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  {len(collation_csv_rows):,} collation data lines loaded from {COLLATION_PATHNAME}." )
 
     collationVerseDict = {}
     last_book_number = 39 # Start here coz we only do NT
@@ -572,7 +579,8 @@ def get_OSHB_reference_text_critical_footnote_score( OETLV_ReferenceOTBible, BBB
                     # print( f"get_OSHB_reference_text_critical_footnote_score for {BBB}_{C}:{V} got {fnText=}" )
                     if (('differ' in fnText or 'error' in fnText) and 'punctuation' not in fnText) \
                     or 'anomalous' in fnText:
-                        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  get_OSHB_reference_text_critical_footnote_score for {BBB}_{C}:{V} accepted {fnText=}" )
+                        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+                            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  get_OSHB_reference_text_critical_footnote_score for {BBB}_{C}:{V} accepted {fnText=}" )
                         havePossibleBHSReference = True
                         break
                 startIndex = match.end()
@@ -778,7 +786,8 @@ def load_OET_RV_speakers() -> dict:
     Returns a dict of BBB_C:V references to comma-separated speaker lists.
     (Verses not found in OET-RV default to just the narrator, '@'.)
     """
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Loading OET-RV speakers data from {OET_RV_PATHNAME}…" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Loading OET-RV speakers data from {OET_RV_PATHNAME}…" )
     speakersDict = {}
     for BBB in bos_books_codes_py.get_all_bos_book_codes():
         # if not (bos_books_codes_py.is_old_testament_nr( BBB ) or bos_books_codes_py.is_new_testament_nr( BBB )):
@@ -828,7 +837,8 @@ def load_OET_RV_speakers() -> dict:
                     continue
                 verseTextBits.append( line.strip() )
             flushPendingVerse()
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  {len(speakersDict):,} OET-RV verses loaded with speaker data." )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  {len(speakersDict):,} OET-RV verses loaded with speaker data." )
     return speakersDict
 # end of initialise.load_OET_RV_speakers function
 
@@ -868,15 +878,18 @@ def create( initialTSVLines, HebrewReferenceBible, OET_LT_ReferenceOTBible, Engl
                     if textualIssue==defaultTextualIssue: # default is '0'
                         textualIssue = '2' # textualIssue ranges from 0 (None) to 4 (Major)
                     elif textualIssue == '1':
-                        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Increased {subRef} TC from 1 to 2")
+                        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+                            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Increased {subRef} TC from 1 to 2")
                         textualIssue = '2' # textualIssue ranges from 0 (None) to 4 (Major)
                     else:
-                        vPrint( 'Info', DEBUGGING_THIS_MODULE, f"{subRef} TC was already {textualIssue}")
+                        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 3:
+                            vPrint( 'Info', DEBUGGING_THIS_MODULE, f"{subRef} TC was already {textualIssue}")
                 elif oshb_TC_footnote_value==1 or eng_TC_footnote_value==1:
                     if textualIssue==defaultTextualIssue: # default is '0'
                         textualIssue = '1' # textualIssue ranges from 0 (None) to 4 (Major)
                     else:
-                        vPrint( 'Info', DEBUGGING_THIS_MODULE, f"{subRef} TC was already {textualIssue}")
+                        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 3:
+                            vPrint( 'Info', DEBUGGING_THIS_MODULE, f"{subRef} TC was already {textualIssue}")
 
                 # Look at importance Trival/Medium/Important/Vital
                 if subRef in vitalImportanceRefs:
@@ -931,7 +944,8 @@ def create( initialTSVLines, HebrewReferenceBible, OET_LT_ReferenceOTBible, Engl
                 outputFile.write( f"{subRef}\t{importance}\t{textualIssue}\t{clarity}\t{speakers}\t{comment}\n" )
                 numLinesWritten += 1
 
-    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  {numLinesWritten:,} lines written to {TSV_FILENAME}." )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 1:
+        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  {numLinesWritten:,} lines written to {TSV_FILENAME}." )
     assert numLinesWritten == 1+NUM_EXPECTED_DATA_LINES+len(splitVerseSet), f"{NUM_EXPECTED_DATA_LINES=:,} {len(splitVerseSet)=:,} {numLinesWritten=:,}"
     assert len(vitalImportanceRefs) == 0, f"({len(vitalImportanceRefs)}) {vitalImportanceRefs=}" # They should all have been used
     assert len(importantRefs) == 0, f"({len(importantRefs)}) {importantRefs=}" # They should all have been used (but might have versification issues with Deu 29:29, etc.)

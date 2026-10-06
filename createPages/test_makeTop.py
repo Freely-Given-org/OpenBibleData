@@ -72,7 +72,8 @@ def _ref_makeTop( level:int, versionAbbreviation:str|None, pageType:str, version
 
     Note: versionAbbreviation can be None for parallel, interlinear and word pages, etc.
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"makeTop( {level}, {versionAbbreviation}, {pageType}, {versionSpecificFileOrFolderName} )" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag:
+        fnPrint( DEBUGGING_THIS_MODULE, f"makeTop( {level}, {versionAbbreviation}, {pageType}, {versionSpecificFileOrFolderName} )" )
     assert pageType in KNOWN_PAGE_TYPES, f"makeTop {level=} {versionAbbreviation=} {pageType=}"
 
     if pageType in ('chapter','section','book'):
@@ -158,7 +159,8 @@ def _ref_makeNavigationLinks( level:int, versionAbbreviation:str|None, pageType:
 
     Note: versionAbbreviation can be None for parallel, interlinear and word pages, etc.
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"_ref_makeNavigationLinks( {level}, {versionAbbreviation}, {pageType}, {versionSpecificFileOrFolderName} )" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag:
+        fnPrint( DEBUGGING_THIS_MODULE, f"_ref_makeNavigationLinks( {level}, {versionAbbreviation}, {pageType}, {versionSpecificFileOrFolderName} )" )
     assert pageType in KNOWN_PAGE_TYPES, f"_ref_makeNavigationLinks {level=} {versionAbbreviation=} {pageType=}"
 
     versionHtml = _ref_makeWorkNavListParagraph( level, versionAbbreviation, pageType, versionSpecificFileOrFolderName, state )
@@ -175,7 +177,8 @@ def _ref_makeWorkNavListParagraph( level:int, versionAbbreviation:str|None, page
     Note: versionAbbreviation can be None for parallel, interlinear and word pages, etc.
     """
     # DEBUGGING_THIS_MODULE = 99; print()
-    fnPrint( DEBUGGING_THIS_MODULE, f"_ref_makeWorkNavListParagraph( {level}, {versionAbbreviation}, {pageType}, {versionSpecificFileOrFolderName} )" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag:
+        fnPrint( DEBUGGING_THIS_MODULE, f"_ref_makeWorkNavListParagraph( {level}, {versionAbbreviation}, {pageType}, {versionSpecificFileOrFolderName} )" )
     assert pageType in KNOWN_PAGE_TYPES, f"_ref_makeWorkNavListParagraph {level=} {versionAbbreviation=} {pageType=}"
 
     # Add all the version abbreviations (except for the versionsWithoutTheirOwnPages)
@@ -280,18 +283,22 @@ def _ref_makeWorkNavListParagraph( level:int, versionAbbreviation:str|None, page
                 # if pageType in ('section','sectionIndex'): print( f"    Appended {loopVersionAbbreviation} {entryBBB} as is (from {initial_entry})")
                 newVersionList.append( initial_entry )
                 continue # Should always be able to link to these
-            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"      Might not be able to link to {pageType} {loopVersionAbbreviation} {initial_entry}???" )
+            if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 3:
+                dPrint( 'Info', DEBUGGING_THIS_MODULE, f"      Might not be able to link to {pageType} {loopVersionAbbreviation} {initial_entry}???" )
             replacement = ''
             if '/' in versionSpecificFileOrFolderName:
                 ix = versionSpecificFileOrFolderName.index( '/' )
                 if ix>0 and ix<len(versionSpecificFileOrFolderName)-1: # The slash is in the middle -- not at the beginning or the end
                     replacement = versionSpecificFileOrFolderName[:ix+1]
-                    dPrint( 'Info', DEBUGGING_THIS_MODULE, f"          Can we adapt {pageType} '{versionSpecificFileOrFolderName}' to '{replacement}'" )
+                    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 3:
+                        dPrint( 'Info', DEBUGGING_THIS_MODULE, f"          Can we adapt {pageType} '{versionSpecificFileOrFolderName}' to '{replacement}'" )
             newEntry = initial_entry.replace( versionSpecificFileOrFolderName, replacement ) # Effectively links to a higher level folder
-            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"       Changed {pageType} link entry to {newEntry}")
+            if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 3:
+                dPrint( 'Info', DEBUGGING_THIS_MODULE, f"       Changed {pageType} link entry to {newEntry}")
             newVersionList.append( newEntry )
         else:
-            dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        Couldn't find a BBB so should be able to link ok to {pageType} {initial_entry}" )
+            if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 4:
+                dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        Couldn't find a BBB so should be able to link ok to {pageType} {initial_entry}" )
             newVersionList.append( initial_entry )
 
     assert len(newVersionList) == len(initialVersionList)
@@ -308,7 +315,8 @@ def _ref_makeViewNavListParagraph( level:int, versionAbbreviation:str|None, page
         It can also be the 'OET' pseudo version.
         Can return an empty string.
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"_ref_makeViewNavListParagraph( {level}, {versionAbbreviation}, {pageType} )" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag:
+        fnPrint( DEBUGGING_THIS_MODULE, f"_ref_makeViewNavListParagraph( {level}, {versionAbbreviation}, {pageType} )" )
 
     viewLinks = []
     if pageType in ('book','section','chapter', 'details',

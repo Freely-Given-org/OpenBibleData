@@ -161,7 +161,7 @@ import openbibledata_rust
 from openbibledata_rust import convertVerseEntryListToHtml, getOETTidyBBB, getOETBookName, getHebrewWordpageFilename, getGreekWordpageFilename, formatNTSpansGlossWords, convertHebrewWordGlossSpans, tidyHebrewMorphology, tidyHebrewLemmaGloss, tidyGlossOfGreekWord, tidyGreekLemmaGloss, livenStrongsRefs, removeHebrewVowelPointing as _removeHebrewVowelPointing, removeHebrewOtherMarks
 
 
-LAST_MODIFIED_DATE = '2026-10-01' # by RJH
+LAST_MODIFIED_DATE = '2026-10-06' # by RJH
 SHORT_PROGRAM_NAME = "createOETReferencePages"
 PROGRAM_NAME = "OpenBibleData createOETReferencePages functions"
 PROGRAM_VERSION = '1.0.7'
@@ -859,9 +859,11 @@ def createOETReferencePages( level:int, outputFolderPath:Path, state:State ) -> 
     try: os.makedirs( outputFolderPath )
     except FileExistsError: pass # it was already there
 
-    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nCreating {'TEST ' if state.TEST_MODE_FLAG else ''}reference pages for OET…" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 1:
+        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"\nCreating {'TEST ' if state.TEST_MODE_FLAG else ''}reference pages for OET…" )
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Preprocessing OT word forms for OET…" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Preprocessing OT word forms for OET…" )
     # Here we create our Dicts and Lists that we'll make the reference pages from
     # First make a list of each place the same Greek word (and matching morphology) is used
     state.OETRefData['OTFormUsageDict'], state.OETRefData['OTLemmaRowNumbersDict'] = defaultdict(list), defaultdict(list)
@@ -884,17 +886,20 @@ def createOETReferencePages( level:int, outputFolderPath:Path, state:State ) -> 
     #     print( f"{ss} {sKey=} {refs=}")
     startTime = time()
     create_Hebrew_word_pages( level+1, outputFolderPath.joinpath( 'HebWrd/' ), state )
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      create_Hebrew_word_pages() took {(time()-startTime)/60:.1f} minutes.")
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      create_Hebrew_word_pages() took {(time()-startTime)/60:.1f} minutes.")
     startTime = time()
     create_Hebrew_lemma_pages( level+1, outputFolderPath.joinpath( 'HebLem/' ), state )
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      create_Hebrew_lemma_pages() took {(time()-startTime)/60:.1f} minutes.")
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      create_Hebrew_lemma_pages() took {(time()-startTime)/60:.1f} minutes.")
     # Don't delete these as they're now required for creating the JSON word files for Bibleside reference pages
     # del state.OETRefData['OTFormUsageDict'], state.OETRefData['OTLemmaRowNumbersDict'], state.OETRefData['OTWordRowNumbersDict']
     # del state.OETRefData['OTFormOETGlossesDict'], state.OETRefData['OTLemmaOETGlossesDict'], state.OETRefData['OTLemmasForRootDict']
     # del state.OETRefData['OETOTGlossWordDict'], state.OETRefData['OTLemmaGlossDict']
     del state.OETRefData['OTFormOETGlossesCountDict']
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Preprocessing NT word forms for OET…" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Preprocessing NT word forms for OET…" )
     state.OETRefData['NTFormUsageDict'], state.OETRefData['NTLemmaDict'] = defaultdict(list), defaultdict(list)
     state.OETRefData['NTLemmaFormsDict'] = defaultdict(set)
     state.OETRefData['NTLemmaFormsCountDict'] = defaultdict(int)
@@ -913,22 +918,26 @@ def createOETReferencePages( level:int, outputFolderPath:Path, state:State ) -> 
     # if state.TEST_MODE_FLAG: vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      preprocessGreekWordsLemmasGlosses() took {(time()-startTime)/60:.2f} minutes.")
     startTime = time()
     create_Greek_word_pages( level+1, outputFolderPath.joinpath( 'GrkWrd/' ), state )
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      create_Greek_word_pages() took {(time()-startTime)/60:.1f} minutes.")
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      create_Greek_word_pages() took {(time()-startTime)/60:.1f} minutes.")
     del state.OETRefData['NTFormOETGlossesCountDict']
     startTime = time()
     create_Greek_lemma_pages( level+1, outputFolderPath.joinpath( 'GrkLem/' ), state )
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      create_Greek_lemma_pages() took {(time()-startTime)/60:.1f} minutes.")
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      create_Greek_lemma_pages() took {(time()-startTime)/60:.1f} minutes.")
     del state.OETRefData['NTLemmaFormsCountDict'], state.OETRefData['NTLemmaOETGlossesCountDict']
 
     bibleLexicon = BibleLexicon.getBibleLexicon()
     startTime = time()
     create_Hebrew_Strongs_pages( level+1, outputFolderPath.joinpath( 'HebStrng/' ), bibleLexicon, state )
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      create_Hebrew_Strongs_pages() took {(time()-startTime)/60:.1f} minutes.")
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      create_Hebrew_Strongs_pages() took {(time()-startTime)/60:.1f} minutes.")
     # Don't delete these as they're now required for creating the JSON word files for Bibleside reference pages
     # del state.OETRefData['OTStrongsRefs']
     startTime = time()
     create_Greek_Strongs_pages( level+1, outputFolderPath.joinpath( 'GrkStrng/' ), bibleLexicon, state )
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      create_Greek_Strongs_pages() took {(time()-startTime)/60:.1f} minutes.")
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      create_Greek_Strongs_pages() took {(time()-startTime)/60:.1f} minutes.")
     # del state.OETRefData['NTStrongsRefs']
 
     create_Hebrew_grammar_pages( level+1, outputFolderPath.joinpath( 'UHG/' ), state )
@@ -963,7 +972,8 @@ def createOETReferencePages( level:int, outputFolderPath:Path, state:State ) -> 
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
         indexHtmlFile.write( indexHtml )
-    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
 
     # del state.OETRefData # No longer needed
     return True
@@ -975,7 +985,8 @@ def create_Hebrew_grammar_pages( level:int, outputFolderPath:Path, state:State )
     Take the unfoldingWord Grammar which is rST files (with many errors)
         and convert them to HTML using the docutils library
     """
-    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Making Hebrew grammar pages…" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 1:
+        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Making Hebrew grammar pages…" )
 
     try: os.makedirs( outputFolderPath )
     except FileExistsError: pass # it was already there
@@ -1064,7 +1075,8 @@ def create_Hebrew_grammar_pages( level:int, outputFolderPath:Path, state:State )
             uhgHtmlFile.write( html_text )
         num_pages += 1
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Wrote {num_pages:,} Hebrew grammar pages." )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Wrote {num_pages:,} Hebrew grammar pages." )
     return True
 # end of createOETReferencePages.create_Hebrew_grammar_pages
 
@@ -1074,7 +1086,8 @@ def create_Greek_grammar_pages( level:int, outputFolderPath:Path, state:State ) 
     Take the unfoldingWord Grammar which is rST files (with many errors)
         and convert them to HTML using the docutils library
     """
-    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Making Greek grammar pages…" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 1:
+        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Making Greek grammar pages…" )
 
     try: os.makedirs( outputFolderPath )
     except FileExistsError: pass # it was already there
@@ -1175,7 +1188,8 @@ def create_Greek_grammar_pages( level:int, outputFolderPath:Path, state:State ) 
             uggHtmlFile.write( html_text )
         num_pages += 1
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Wrote {num_pages:,} Greek grammar pages." )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Wrote {num_pages:,} Greek grammar pages." )
     return True
 # end of createOETReferencePages.create_Greek_grammar_pages
 
@@ -1642,7 +1656,8 @@ def create_Hebrew_word_pages( level:int, outputFolderPath:Path, state:State ) ->
     """
     """
     if BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 5: fnPrint( DEBUGGING_THIS_MODULE, f"create_Hebrew_word_pages( {outputFolderPath}, {state.BibleVersions} )" )
-    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Checking/Making{'' if not state.TEST_MODE_FLAG or state.ALL_TEST_REFERENCE_PAGES_FLAG else ' up to'} {len(state.OETRefData['word_tables'][HebrewWordFileName])-1:,} Hebrew word pages…" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 1:
+        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Checking/Making{'' if not state.TEST_MODE_FLAG or state.ALL_TEST_REFERENCE_PAGES_FLAG else ' up to'} {len(state.OETRefData['word_tables'][HebrewWordFileName])-1:,} Hebrew word pages…" )
 
     try: os.makedirs( outputFolderPath )
     except FileExistsError: pass # it was already there
@@ -1656,8 +1671,10 @@ def create_Hebrew_word_pages( level:int, outputFolderPath:Path, state:State ) ->
         # NOTE: We use an explicit 'fork' context because Python 3.14 changed the default start method
         #        to 'forkserver' which would NOT inherit our huge module-level state (12 GiB of Bibles).
         #        Forked children share that memory copy-on-write, so this costs almost nothing extra.
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Creating{'' if not state.TEST_MODE_FLAG or state.ALL_TEST_REFERENCE_PAGES_FLAG else ' up to'} {len(state.OETRefData['word_tables'][HebrewWordFileName])-1:,} Hebrew word pages using {BibleOrgSysGlobals.maxProcesses} forked processes…" )
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, "    NOTE: Outputs (including error and warning messages) from various words may be interspersed." )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Creating{'' if not state.TEST_MODE_FLAG or state.ALL_TEST_REFERENCE_PAGES_FLAG else ' up to'} {len(state.OETRefData['word_tables'][HebrewWordFileName])-1:,} Hebrew word pages using {BibleOrgSysGlobals.maxProcesses} forked processes…" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, "    NOTE: Outputs (including error and warning messages) from various words may be interspersed." )
 
         parameters, taskMetaList = [], []
         for hh, columns_string in enumerate( state.OETRefData['word_tables'][HebrewWordFileName][1:], start=1 ):
@@ -1681,7 +1698,8 @@ def create_Hebrew_word_pages( level:int, outputFolderPath:Path, state:State ) ->
             results = pool.map( _create_Hebrew_word_page_MP, parameters ) # have the pool do our loads
             assert len(results) == len(parameters)
         BibleOrgSysGlobals.alreadyMultiprocessing = False
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Collecting{'' if not state.TEST_MODE_FLAG or state.ALL_TEST_REFERENCE_PAGES_FLAG else ' up to'} {len(parameters):,} Hebrew word page results…" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Collecting{'' if not state.TEST_MODE_FLAG or state.ALL_TEST_REFERENCE_PAGES_FLAG else ' up to'} {len(parameters):,} Hebrew word page results…" )
         for (result, usedStrongsNumbers, usedLemmas), (rowType,hebrewWord,output_filename) in zip( results, taskMetaList ):
             state.OETRefData['usedHebStrongsSet'].update( usedStrongsNumbers ) # Used in next function to make Strongs pages
             state.OETRefData['usedHebLemmasSet'].update( usedLemmas ) # Used in next function to make lemma pages
@@ -1693,7 +1711,8 @@ def create_Hebrew_word_pages( level:int, outputFolderPath:Path, state:State ) ->
         for hh, columns_string in enumerate( state.OETRefData['word_tables'][HebrewWordFileName][1:], start=1 ):
             if not columns_string: continue # a blank line (esp. at end)
             if numWordPagesMade>0 and hh % 50_000 == 0:
-                vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      {numWordPagesMade+1:,} made out of {f'{hh:,} out of ' if hh!=numWordPagesMade+1 else ''}{len(state.OETRefData['word_tables'][HebrewWordFileName])-1:,}…" )
+                if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+                    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      {numWordPagesMade+1:,} made out of {f'{hh:,} out of ' if hh!=numWordPagesMade+1 else ''}{len(state.OETRefData['word_tables'][HebrewWordFileName])-1:,}…" )
             output_filename = getHebrewWordpageFilename( hh, state )
             if DEBUGGING_THIS_MODULE or BibleOrgSysGlobals.debugFlag: # NOTE: This makes the function MUCH slower
                 # Check that we're not creating any duplicate filenames (that will then be overwritten)
@@ -1710,7 +1729,8 @@ def create_Hebrew_word_pages( level:int, outputFolderPath:Path, state:State ) ->
                     wordLinksForIndex.append( f'<a href="{output_filename}">{hebrewWord}</a>')
                 numWordPagesMade += 1
 
-    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f'''    Created {numWordPagesMade:,}{f"/{len(state.OETRefData['word_tables'][HebrewWordFileName])-1:,}" if numWordPagesMade < len(state.OETRefData['word_tables'][HebrewWordFileName])-1 else ''} Hebrew word pages (using {len(state.OETRefData['usedHebLemmasSet']):,} Hebrew lemmas).''' )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 1:
+        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f'''    Created {numWordPagesMade:,}{f"/{len(state.OETRefData['word_tables'][HebrewWordFileName])-1:,}" if numWordPagesMade < len(state.OETRefData['word_tables'][HebrewWordFileName])-1 else ''} Hebrew word pages (using {len(state.OETRefData['usedHebLemmasSet']):,} Hebrew lemmas).''' )
 
     # Create index page for this folder
     filepath = outputFolderPath.joinpath( 'index.htm' )
@@ -1737,7 +1757,8 @@ def create_Hebrew_word_pages( level:int, outputFolderPath:Path, state:State ) ->
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
         indexHtmlFile.write( indexHtml )
-    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
 
     # Create transliterated index page for this folder
     filepath = outputFolderPath.joinpath( 'transIndex.htm' )
@@ -1763,7 +1784,8 @@ def create_Hebrew_word_pages( level:int, outputFolderPath:Path, state:State ) ->
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
         indexHtmlFile.write( indexHtml )
-    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
 # end of createOETReferencePages.create_Hebrew_word_pages
 
 
@@ -2178,7 +2200,8 @@ f''' <a title="Go to Open Scriptures Hebrew verse page" href="https://hb.OpenS
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as html_output_file:
         html_output_file.write( wordsHtml )
-    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"      Wrote {len(wordsHtml):,} characters to {word_output_filename}" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"      Wrote {len(wordsHtml):,} characters to {word_output_filename}" )
     return True
 # end of createOETReferencePages.create_Hebrew_word_page
 
@@ -2562,7 +2585,8 @@ def create_Hebrew_lemma_pages( level:int, outputFolderPath:Path, state:State ) -
     TODO: Add related lemma info (not just prefixed ones, but adding synonyms, etc.)
     """
     if BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 5: fnPrint( DEBUGGING_THIS_MODULE, f"create_Hebrew_lemma_pages( {outputFolderPath}, {state.BibleVersions} )" )
-    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Checking/Making{'' if not state.TEST_MODE_FLAG or state.ALL_TEST_REFERENCE_PAGES_FLAG else ' up to'} {len(state.OETRefData['OTLemmaGlossDict']):,} Hebrew lemma pages…" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 1:
+        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Checking/Making{'' if not state.TEST_MODE_FLAG or state.ALL_TEST_REFERENCE_PAGES_FLAG else ' up to'} {len(state.OETRefData['OTLemmaGlossDict']):,} Hebrew lemma pages…" )
 
     try: os.makedirs( outputFolderPath )
     except FileExistsError: pass # it was already there
@@ -2609,27 +2633,32 @@ def create_Hebrew_lemma_pages( level:int, outputFolderPath:Path, state:State ) -
         # NOTE: We use an explicit 'fork' context because Python 3.14 changed the default start method
         #        to 'forkserver' which would NOT inherit our huge module-level state (12 GiB of Bibles).
         #        Forked children share that memory copy-on-write, so this costs almost nothing extra.
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Creating{'' if not state.TEST_MODE_FLAG or state.ALL_TEST_REFERENCE_PAGES_FLAG else ' up to'} {len(parameters):,} Hebrew lemma pages using {BibleOrgSysGlobals.maxProcesses} forked processes…" )
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, "    NOTE: Outputs (including error and warning messages) from various lemmas may be interspersed." )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Creating{'' if not state.TEST_MODE_FLAG or state.ALL_TEST_REFERENCE_PAGES_FLAG else ' up to'} {len(parameters):,} Hebrew lemma pages using {BibleOrgSysGlobals.maxProcesses} forked processes…" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, "    NOTE: Outputs (including error and warning messages) from various lemmas may be interspersed." )
         BibleOrgSysGlobals.alreadyMultiprocessing = True
         with multiprocessing.get_context('fork').Pool( processes=BibleOrgSysGlobals.maxProcesses ) as pool: # start worker processes
             results = pool.map( _create_Hebrew_lemma_page_MP, parameters ) # have the pool do our loads
             assert len(results) == len(parameters)
         BibleOrgSysGlobals.alreadyMultiprocessing = False
     else: # no multi-processing
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Creating {len(parameters):,} Hebrew lemma pages sequentially…" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Creating {len(parameters):,} Hebrew lemma pages sequentially…" )
         results = []
         for n,oneParameterSet in enumerate( parameters, start=1 ):
             results.append( create_Hebrew_lemma_page( *oneParameterSet ) )
             if n % 500 == 0:
-                vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      {n:,} made out of {len(parameters):,}…" )
+                if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+                    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      {n:,} made out of {len(parameters):,}…" )
 
     for n,(result,(ll_output_filename,hebLemma)) in enumerate( zip(results,taskMetaList), start=1 ):
         assert result, f"{n} {ll_output_filename} {hebLemma}"
         lemmaLinks.append( f'<a href="{ll_output_filename}">{hebLemma}</a>')
         # if n % 2_000 == 0:
         #     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      {n:,} lemma page links collected out of {len(taskMetaList):,}…" )
-    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f'''    Created {len(lemmaLinks):,}{f"/{len(state.OETRefData['OTLemmaGlossDict']):,}" if len(lemmaLinks) < len(state.OETRefData['OTLemmaGlossDict']) else ''} Hebrew lemma pages.''' )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 1:
+        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f'''    Created {len(lemmaLinks):,}{f"/{len(state.OETRefData['OTLemmaGlossDict']):,}" if len(lemmaLinks) < len(state.OETRefData['OTLemmaGlossDict']) else ''} Hebrew lemma pages.''' )
 
     # Create index page for this folder
     filename = 'index.htm'
@@ -2657,7 +2686,8 @@ def create_Hebrew_lemma_pages( level:int, outputFolderPath:Path, state:State ) -
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
         indexHtmlFile.write( indexHtml )
-    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
 
     # Create transliterated index page for this folder
     filename = 'transIndex.htm'
@@ -2684,7 +2714,8 @@ def create_Hebrew_lemma_pages( level:int, outputFolderPath:Path, state:State ) -
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
         indexHtmlFile.write( indexHtml )
-    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
 
     del state.OETRefData['usedHebLemmasSet']
 # end of createOETReferencePages.create_Hebrew_lemma_pages
@@ -2863,7 +2894,8 @@ def create_Greek_word_pages( level:int, outputFolderPath:Path, state:State ) -> 
     """
     if BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 5: fnPrint( DEBUGGING_THIS_MODULE, f"create_Greek_word_pages( {outputFolderPath}, {state.BibleVersions} )" )
 
-    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Checking/Making {len(state.OETRefData['word_tables'][GreekWordFileName])-1:,} Greek word pages…" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 1:
+        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Checking/Making {len(state.OETRefData['word_tables'][GreekWordFileName])-1:,} Greek word pages…" )
 
     try: os.makedirs( outputFolderPath )
     except FileExistsError: pass # it was already there
@@ -2920,14 +2952,17 @@ def create_Greek_word_pages( level:int, outputFolderPath:Path, state:State ) -> 
         # NOTE: We use an explicit 'fork' context because Python 3.14 changed the default start method
         #        to 'forkserver' which would NOT inherit our huge module-level state (12 GiB of Bibles).
         #        Forked children share that memory copy-on-write, so this costs almost nothing extra.
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Creating {len(parameters):,} Greek word pages using {BibleOrgSysGlobals.maxProcesses} forked processes…" )
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, "    NOTE: Outputs (including error and warning messages) from various words may be interspersed." )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Creating {len(parameters):,} Greek word pages using {BibleOrgSysGlobals.maxProcesses} forked processes…" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, "    NOTE: Outputs (including error and warning messages) from various words may be interspersed." )
         BibleOrgSysGlobals.alreadyMultiprocessing = True
         with multiprocessing.get_context('fork').Pool( processes=BibleOrgSysGlobals.maxProcesses ) as pool: # start worker processes
             results = pool.map( _create_Greek_word_page_MP, parameters ) # have the pool do our loads
             assert len(results) == len(parameters)
         BibleOrgSysGlobals.alreadyMultiprocessing = False
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Collecting{'' if not state.TEST_MODE_FLAG or state.ALL_TEST_REFERENCE_PAGES_FLAG else ' up to'} {len(parameters):,} Greek word page results…" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Collecting{'' if not state.TEST_MODE_FLAG or state.ALL_TEST_REFERENCE_PAGES_FLAG else ' up to'} {len(parameters):,} Greek word page results…" )
         for n,((result, usedStrongsNumbers, usedLemmas),(output_filename,greekWord)) in enumerate( zip(results,taskMetaList), start=1 ):
             assert result, f"{n} {output_filename} {greekWord}"
             state.OETRefData['usedGrkStrongs'].update( usedStrongsNumbers ) # Used in next function to make Strongs pages
@@ -2935,15 +2970,18 @@ def create_Greek_word_pages( level:int, outputFolderPath:Path, state:State ) -> 
             wordLinksForIndex.append( f'<a href="{output_filename}">{greekWord}</a>')
             numWordPagesMade += 1
     else: # no multi-processing
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Creating {len(parameters):,} Greek word pages sequentially…" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Creating {len(parameters):,} Greek word pages sequentially…" )
         for n,oneParameterSet in enumerate( parameters, start=1 ):
             output_filename, greekWord = taskMetaList[n-1]
             if create_Greek_word_page( *oneParameterSet, state ):
                 wordLinksForIndex.append( f'<a href="{output_filename}">{greekWord}</a>')
                 numWordPagesMade += 1
             if n % 40_000 == 0:
-                vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      {numWordPagesMade:,} made out of {len(parameters):,}…" )
-    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f'''      Created {numWordPagesMade:,}{f"/{len(state.OETRefData['word_tables'][GreekWordFileName])-1:,}" if numWordPagesMade < len(state.OETRefData['word_tables'][GreekWordFileName])-1 else ''} Greek word pages (using {len(state.OETRefData['usedGrkLemmas']):,} Greek lemmas).''' )
+                if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+                    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      {numWordPagesMade:,} made out of {len(parameters):,}…" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 1:
+        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f'''      Created {numWordPagesMade:,}{f"/{len(state.OETRefData['word_tables'][GreekWordFileName])-1:,}" if numWordPagesMade < len(state.OETRefData['word_tables'][GreekWordFileName])-1 else ''} Greek word pages (using {len(state.OETRefData['usedGrkLemmas']):,} Greek lemmas).''' )
 
     # Create index page for this folder
     filename = 'index.htm'
@@ -2971,7 +3009,8 @@ def create_Greek_word_pages( level:int, outputFolderPath:Path, state:State ) -> 
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
         indexHtmlFile.write( indexHtml )
-    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
 
     # Create a transliterated index page for this folder
     filename = 'transIndex.htm'
@@ -2998,7 +3037,8 @@ def create_Greek_word_pages( level:int, outputFolderPath:Path, state:State ) -> 
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
         indexHtmlFile.write( indexHtml )
-    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
 # end of createOETReferencePages.create_Greek_word_pages
 
 
@@ -3340,7 +3380,8 @@ f''' <a title="Go to Statistical Restoration Greek page" href="https://GreekCN
         assert not filepath.is_file(), f"{filepath=}" # Check that we're not overwriting anything
         with open( filepath, 'wt', encoding='utf-8' ) as html_output_file:
             html_output_file.write( wordsHtml )
-        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"      Wrote {len(wordsHtml):,} characters to {output_filename}" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+            vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"      Wrote {len(wordsHtml):,} characters to {output_filename}" )
         return True
 # end of createOETReferencePages.create_Greek_word_page
 
@@ -3366,7 +3407,8 @@ def create_Greek_lemma_pages( level:int, outputFolderPath:Path, state:State ) ->
     TODO: Add related lemma info (not just prefixed ones, but adding synonyms, etc.)
     """
     if BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 5: fnPrint( DEBUGGING_THIS_MODULE, f"create_Greek_lemma_pages( {outputFolderPath}, {state.BibleVersions} )" )
-    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Making {len(state.OETRefData['NTLemmaDict']):,} Greek lemma pages…" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 1:
+        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Making {len(state.OETRefData['NTLemmaDict']):,} Greek lemma pages…" )
 
     try: os.makedirs( outputFolderPath )
     except FileExistsError: pass # it was already there
@@ -3416,27 +3458,32 @@ def create_Greek_lemma_pages( level:int, outputFolderPath:Path, state:State ) ->
         # NOTE: We use an explicit 'fork' context because Python 3.14 changed the default start method
         #        to 'forkserver' which would NOT inherit our huge module-level state (12 GiB of Bibles).
         #        Forked children share that memory copy-on-write, so this costs almost nothing extra.
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Creating {len(parameters):,} Greek lemma pages using {BibleOrgSysGlobals.maxProcesses} forked processes…" )
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, "    NOTE: Outputs (including error and warning messages) from various lemmas may be interspersed." )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Creating {len(parameters):,} Greek lemma pages using {BibleOrgSysGlobals.maxProcesses} forked processes…" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, "    NOTE: Outputs (including error and warning messages) from various lemmas may be interspersed." )
         BibleOrgSysGlobals.alreadyMultiprocessing = True
         with multiprocessing.get_context('fork').Pool( processes=BibleOrgSysGlobals.maxProcesses ) as pool: # start worker processes
             results = pool.map( _create_Greek_lemma_page_MP, parameters ) # have the pool do our loads
             assert len(results) == len(parameters)
         BibleOrgSysGlobals.alreadyMultiprocessing = False
     else: # no multi-processing
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Creating {len(parameters):,} Greek lemma pages sequentially…" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Creating {len(parameters):,} Greek lemma pages sequentially…" )
         results = []
         for n,oneParameterSet in enumerate( parameters, start=1 ):
             results.append( create_Greek_lemma_page( *oneParameterSet ) )
             if n % 500 == 0:
-                vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      {n:,} made out of {len(parameters):,}…" )
+                if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+                    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      {n:,} made out of {len(parameters):,}…" )
 
     for n,(result,(output_filename,lemma)) in enumerate( zip(results,taskMetaList), start=1 ):
         assert result, f"{n} {output_filename} {lemma}"
         lemmaLinks.append( f'<a href="{output_filename}">{lemma}</a>')
         # if n % 1_000 == 0:
         #     vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"      {n:,} lemma page links collected out of {len(taskMetaList):,}…" )
-    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"      Created {len(lemmaLinks):,}{f'/{len(lemmaList):,}' if len(lemmaLinks) < len(lemmaList) else ''} Greek lemma pages." )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 1:
+        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"      Created {len(lemmaLinks):,}{f'/{len(lemmaList):,}' if len(lemmaLinks) < len(lemmaList) else ''} Greek lemma pages." )
 
     # Create index page for this folder
     filename = 'index.htm'
@@ -3463,7 +3510,8 @@ def create_Greek_lemma_pages( level:int, outputFolderPath:Path, state:State ) ->
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
         indexHtmlFile.write( indexHtml )
-    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
 
     # Create transliterated index page for this folder
     filename = 'transIndex.htm'
@@ -3490,7 +3538,8 @@ def create_Greek_lemma_pages( level:int, outputFolderPath:Path, state:State ) ->
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
         indexHtmlFile.write( indexHtml )
-    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
 
     del state.OETRefData['usedGrkLemmas']
 # end of createOETReferencePages.create_Greek_lemma_pages
@@ -3628,7 +3677,8 @@ def create_Greek_lemma_page( level:int, lemmaIndex:int, lemma:str, prevLink:str,
         assert not filepath.is_file() # Check that we're not overwriting anything
         with open( filepath, 'wt', encoding='utf-8' ) as html_output_file:
             html_output_file.write( lemmasHtml )
-        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  Wrote {len(lemmasHtml):,} characters to {output_filename}" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+            vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  Wrote {len(lemmasHtml):,} characters to {output_filename}" )
         return True
 # end of createOETReferencePages.create_Greek_lemma_page
 
@@ -3731,7 +3781,8 @@ def create_Hebrew_Strongs_page( level:int, strongsNumber:int, finalStrongsNumber
     assert checkHtml( 'StrongsPage', pageHtml )
     with open( filepath, 'wt', encoding='utf-8' ) as html_output_file:
         html_output_file.write( pageHtml )
-    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  Wrote {len(pageHtml):,} characters to {output_filename}" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  Wrote {len(pageHtml):,} characters to {output_filename}" )
 
     return True, indexEntryHtml
 # end of createOETReferencePages.create_Hebrew_Strongs_page
@@ -3751,7 +3802,8 @@ def _create_Hebrew_Strongs_page_MP( parameters ):
 def create_Hebrew_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:BibleLexicon, state:State ) -> int:
     """
     """
-    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Making Hebrew Strongs pages…" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 1:
+        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Making Hebrew Strongs pages…" )
 
     try: os.makedirs( outputFolderPath )
     except FileExistsError: pass # it was already there
@@ -3769,8 +3821,10 @@ def create_Hebrew_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:
         # NOTE: We use an explicit 'fork' context because Python 3.14 changed the default start method
         #        to 'forkserver' which would NOT inherit our huge module-level state (12 GiB of Bibles).
         #        Forked children share that memory copy-on-write, so this costs almost nothing extra.
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Creating{'' if not state.TEST_MODE_FLAG or state.ALL_TEST_REFERENCE_PAGES_FLAG else ' up to'} {finalStrongsNumber:,} Hebrew Strongs pages using {BibleOrgSysGlobals.maxProcesses} forked processes…" )
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, "    NOTE: Outputs (including error and warning messages) from various words may be interspersed." )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Creating{'' if not state.TEST_MODE_FLAG or state.ALL_TEST_REFERENCE_PAGES_FLAG else ' up to'} {finalStrongsNumber:,} Hebrew Strongs pages using {BibleOrgSysGlobals.maxProcesses} forked processes…" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, "    NOTE: Outputs (including error and warning messages) from various words may be interspersed." )
 
         parameters, taskMetaList = [], []
         for strongsNumber in range( 1, finalStrongsNumber+1 ):
@@ -3799,7 +3853,8 @@ def create_Hebrew_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:
             if result: numPagesMade += 1
             if indexEntryHtml is not None: indexList.append( indexEntryHtml )
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Made {numPagesMade:,} {f'out of {finalStrongsNumber:,} ' if numPagesMade<finalStrongsNumber else ''}Hebrew Strongs pages." )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Made {numPagesMade:,} {f'out of {finalStrongsNumber:,} ' if numPagesMade<finalStrongsNumber else ''}Hebrew Strongs pages." )
 
     # Create index page for this Strongs folder
     filename = 'index.htm'
@@ -3824,7 +3879,8 @@ def create_Hebrew_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:
     assert checkHtml( 'StrongsIndex', indexHtml )
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
         indexHtmlFile.write( indexHtml )
-    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
 
     try: del state.OETRefData['usedHebStrongsSet']
     except KeyError: pass # ignore if it never existed
@@ -3904,7 +3960,8 @@ def create_Greek_Strongs_page( level:int, strongsNumber:int, finalStrongsNumber:
     assert checkHtml( 'StrongsPage', pageHtml )
     with open( filepath, 'wt', encoding='utf-8' ) as html_output_file:
         html_output_file.write( pageHtml )
-    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  Wrote {len(pageHtml):,} characters to {output_filename}" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  Wrote {len(pageHtml):,} characters to {output_filename}" )
 
     return True, indexEntryHtml
 # end of createOETReferencePages.create_Greek_Strongs_page
@@ -3924,7 +3981,8 @@ def _create_Greek_Strongs_page_MP( parameters ):
 def create_Greek_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:BibleLexicon, state:State ) -> int:
     """
     """
-    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Making Greek Strongs pages…" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 1:
+        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Making Greek Strongs pages…" )
 
     try: os.makedirs( outputFolderPath )
     except FileExistsError: pass # it was already there
@@ -3942,8 +4000,10 @@ def create_Greek_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:B
         # NOTE: We use an explicit 'fork' context because Python 3.14 changed the default start method
         #        to 'forkserver' which would NOT inherit our huge module-level state (12 GiB of Bibles).
         #        Forked children share that memory copy-on-write, so this costs almost nothing extra.
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Creating{'' if not state.TEST_MODE_FLAG or state.ALL_TEST_REFERENCE_PAGES_FLAG else ' up to'} {finalStrongsNumber:,} Greek Strongs pages using {BibleOrgSysGlobals.maxProcesses} forked processes…" )
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, "    NOTE: Outputs (including error and warning messages) from various words may be interspersed." )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Creating{'' if not state.TEST_MODE_FLAG or state.ALL_TEST_REFERENCE_PAGES_FLAG else ' up to'} {finalStrongsNumber:,} Greek Strongs pages using {BibleOrgSysGlobals.maxProcesses} forked processes…" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, "    NOTE: Outputs (including error and warning messages) from various words may be interspersed." )
 
         parameters, taskMetaList = [], []
         for strongsNumber in range( 1, finalStrongsNumber+1 ):
@@ -3972,7 +4032,8 @@ def create_Greek_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:B
             if result: numPagesMade += 1
             if indexEntryHtml is not None: indexList.append( indexEntryHtml )
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Made {numPagesMade:,} {f'out of {finalStrongsNumber:,} ' if numPagesMade<finalStrongsNumber else ''}Greek Strongs pages." )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Made {numPagesMade:,} {f'out of {finalStrongsNumber:,} ' if numPagesMade<finalStrongsNumber else ''}Greek Strongs pages." )
 
     # Create index page for this Strongs folder
     filename = 'index.htm'
@@ -3997,7 +4058,8 @@ def create_Greek_Strongs_pages( level:int, outputFolderPath:Path, bibleLexicon:B
     assert checkHtml( 'StrongsIndex', indexHtml )
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
         indexHtmlFile.write( indexHtml )
-    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
 
     try: del state.OETRefData['usedGrkStrongs']
     except KeyError: pass # ignore if it never existed
@@ -4014,14 +4076,16 @@ def create_person_pages( level:int, outputFolderPath:Path, state:State ) -> int:
 
     There's almost identical code in createOETReferencePages() in OpenBibleData createOETReferencePages.py (sadly)
     """
-    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Making person pages…" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 1:
+        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Making person pages…" )
 
     try: os.makedirs( outputFolderPath )
     except FileExistsError: pass # it was already there
 
     with open( THEOGRAPHIC_INPUT_FOLDER_PATH.joinpath( 'normalised_People.json' ), 'rb' ) as people_file:
         peopleDict = json.load( people_file )
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Loaded {len(peopleDict):,} person entries." )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Loaded {len(peopleDict):,} person entries." )
 
     # Firstly, make a list of all the keys
     peopleKeys = []
@@ -4067,7 +4131,8 @@ def create_person_pages( level:int, outputFolderPath:Path, state:State ) -> int:
         assert not filepath.is_file() # Check that we're not overwriting anything
         with open( filepath, 'wt', encoding='utf-8' ) as html_output_file:
             html_output_file.write( html )
-        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  Wrote {len(html):,} characters to {output_filename}" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+            vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  Wrote {len(html):,} characters to {output_filename}" )
         personLinks.append( f'<a href="{output_filename}">{personName}</a>')
 
     # Create index page for this folder
@@ -4094,7 +4159,8 @@ def create_person_pages( level:int, outputFolderPath:Path, state:State ) -> int:
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
         indexHtmlFile.write( indexHtml )
-    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
 # end of createOETReferencePages.create_person_pages function
 
 
@@ -4105,7 +4171,8 @@ def create_important_person_pages( level:int, outputFolderPath:Path, state:State
     This includes links to the person pages (made above)
         PLUS to the first appropriate OET sections
     """
-    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Making important person pages…" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 1:
+        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Making important person pages…" )
 
     try: os.makedirs( outputFolderPath )
     except FileExistsError: pass # it was already there
@@ -4113,7 +4180,8 @@ def create_important_person_pages( level:int, outputFolderPath:Path, state:State
     # Firstly, make a list of all the Theographic keys
     with open( THEOGRAPHIC_INPUT_FOLDER_PATH.joinpath( 'normalised_People.json' ), 'rb' ) as people_file:
         peopleDict = json.load( people_file )
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Loaded {len(peopleDict):,} person entries." )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Loaded {len(peopleDict):,} person entries." )
     peopleKeys = []
     for personKey in peopleDict:
         if personKey == '__HEADERS__': continue
@@ -4179,7 +4247,8 @@ def create_important_person_pages( level:int, outputFolderPath:Path, state:State
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
         indexHtmlFile.write( indexHtml )
-    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
 
 
     # Now make the important people ALPHABETICAL list
@@ -4240,7 +4309,8 @@ def create_important_person_pages( level:int, outputFolderPath:Path, state:State
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
         indexHtmlFile.write( indexHtml )
-    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
 # end of createOETReferencePages.create_important_person_pages function
 
 
@@ -4250,14 +4320,16 @@ def create_location_pages( level:int, outputFolderPath:Path, state:State ) -> in
 
     There's almost identical code in createOETReferencePages() in OpenBibleData createOETReferencePages.py (sadly)
     """
-    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Making location pages…" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 1:
+        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Making location pages…" )
 
     try: os.makedirs( outputFolderPath )
     except FileExistsError: pass # it was already there
 
     with open( THEOGRAPHIC_INPUT_FOLDER_PATH.joinpath( 'normalised_Places.json' ), 'rb' ) as locations_file:
         locationsDict = json.load( locations_file )
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Loaded {len(locationsDict):,} location entries." )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    Loaded {len(locationsDict):,} location entries." )
 
     # Firstly, make a list of all the keys
     placeKeys = []
@@ -4302,7 +4374,8 @@ def create_location_pages( level:int, outputFolderPath:Path, state:State ) -> in
         assert not filepath.is_file() # Check that we're not overwriting anything
         with open( filepath, 'wt', encoding='utf-8' ) as html_output_file:
             html_output_file.write( html )
-        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  Wrote {len(html):,} characters to {output_filename}" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+            vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  Wrote {len(html):,} characters to {output_filename}" )
         locationLinks.append( f'<a href="{output_filename}">{placeName}</a>')
 
     # Create index page for this folder
@@ -4329,14 +4402,16 @@ def create_location_pages( level:int, outputFolderPath:Path, state:State ) -> in
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
         indexHtmlFile.write( indexHtml )
-    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
 # end of createOETReferencePages.create_location_pages function
 
 
 def create_statistics_pages( level:int, outputFolderPath:Path, state:State ) -> int:
     """
     """
-    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Making statistics pages…" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 1:
+        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"  Making statistics pages…" )
 
     try: os.makedirs( outputFolderPath )
     except FileExistsError: pass # it was already there
@@ -4454,7 +4529,8 @@ def create_statistics_pages( level:int, outputFolderPath:Path, state:State ) -> 
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as html_output_file:
         html_output_file.write( pageHtml )
-    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  Wrote {len(pageHtml):,} characters to {output_filename}" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"  Wrote {len(pageHtml):,} characters to {output_filename}" )
 
     # Create index page for this folder
     filename = 'index.htm'
@@ -4480,7 +4556,8 @@ def create_statistics_pages( level:int, outputFolderPath:Path, state:State ) -> 
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
         indexHtmlFile.write( indexHtml )
-    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
 # end of createOETReferencePages.create_statistics_pages function
 
 

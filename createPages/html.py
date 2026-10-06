@@ -142,7 +142,7 @@ from openbibledata_rust import (
 )
 
 
-LAST_MODIFIED_DATE = '2026-10-03' # by RJH
+LAST_MODIFIED_DATE = '2026-10-06' # by RJH
 SHORT_PROGRAM_NAME = "html"
 PROGRAM_NAME = "OpenBibleData HTML functions"
 PROGRAM_VERSION = '1.0.12'
@@ -193,7 +193,8 @@ def makeTop( level:int, versionAbbreviation:str|None, pageType:str, versionSpeci
 
     The actual work is done by the Rust make_top in openbibledata_rust.
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"makeTop( {level}, {versionAbbreviation}, {pageType}, {versionSpecificFileOrFolderName} )" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag:
+        fnPrint( DEBUGGING_THIS_MODULE, f"makeTop( {level}, {versionAbbreviation}, {pageType}, {versionSpecificFileOrFolderName} )" )
     assert pageType in KNOWN_PAGE_TYPES, f"makeTop {level=} {versionAbbreviation=} {pageType=}"
 
     return openbibledata_rust.make_top( _getPageChromeConfig(state), level, pageType, versionAbbreviation, versionSpecificFileOrFolderName )
@@ -210,7 +211,8 @@ def makeViewNavListParagraph( level:int, versionAbbreviation:str|None, pageType:
 
     The actual work is done by the Rust make_view_nav_list in openbibledata_rust.
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"makeViewNavListParagraph( {level}, {versionAbbreviation}, {pageType} )" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag:
+        fnPrint( DEBUGGING_THIS_MODULE, f"makeViewNavListParagraph( {level}, {versionAbbreviation}, {pageType} )" )
 
     return openbibledata_rust.make_view_nav_list( _getPageChromeConfig(state), level, pageType, versionAbbreviation )
 # end of html.makeViewNavListParagraph
@@ -227,7 +229,8 @@ def makeBookNavListParagraph( linksList:list[str], workAbbrevPlus:str, state:Sta
 
     workAbbrevPlus is where we're coming from, and can contain a version abbreviation or something like 'interlinearVerse'
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"makeBookNavListParagraph( {linksList}, {workAbbrevPlus}, ... )" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag:
+        fnPrint( DEBUGGING_THIS_MODULE, f"makeBookNavListParagraph( {linksList}, {workAbbrevPlus}, ... )" )
     assert workAbbrevPlus in state.preloadedBibles \
         or workAbbrevPlus in OET_HTML_PLUS_LIST \
         or workAbbrevPlus == 'Related OET-RV', workAbbrevPlus
@@ -327,7 +330,8 @@ def removeDuplicateCVids( html:str ) -> str:
 
     Ported to Rust (openbibledata_rust.remove_duplicate_c_vids) for speed.
     """
-    vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Removing duplicate IDs (#CV & #V) for ({len(html):,} chars)…" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 3:
+        vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Removing duplicate IDs (#CV & #V) for ({len(html):,} chars)…" )
 
     return openbibledata_rust.removeDuplicateCVids( html )
 # end of html.removeDuplicateCVids
@@ -343,7 +347,8 @@ def removeDuplicateFNids( where:str, html:str ) -> str:
 
     Ported to Rust (openbibledata_rust.remove_duplicate_fnids) for speed.
     """
-    vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Removing duplicate footnote IDs for {where} ({len(html):,} chars)…" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 3:
+        vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Removing duplicate footnote IDs for {where} ({len(html):,} chars)…" )
 
     return openbibledata_rust.removeDuplicateFNids( where, html )
 # end of html.removeDuplicateFNids
@@ -366,7 +371,8 @@ def checkHtml( where:str, htmlToCheck:str, segmentOnly:bool=False ) -> bool:
       - CSS style checking (checkHtmlForMissingStyles)
       - TopIndex summary output
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"checkHtml( {where}, {len(htmlToCheck)} )" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag:
+        fnPrint( DEBUGGING_THIS_MODULE, f"checkHtml( {where}, {len(htmlToCheck)} )" )
 
     # Fix wasted <br> before close tags (Python-side mutation)
     if '\n<br></p>' in htmlToCheck or '\n<br></span>' in htmlToCheck:
@@ -439,7 +445,8 @@ def loadCSSStyles( lsStylesheetName:str ) -> dict[str,bool|list[str]]:
     if lsStylesheetName in cachedStyleDicts:
         return cachedStyleDicts[lsStylesheetName]
 
-    dPrint( 'Info', DEBUGGING_THIS_MODULE, f"loadCSSStyles {lsStylesheetName=}" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 3:
+        dPrint( 'Info', DEBUGGING_THIS_MODULE, f"loadCSSStyles {lsStylesheetName=}" )
     with open( f'../htmlPages/{lsStylesheetName}' if 'pagefind' in lsStylesheetName else lsStylesheetName, 'rt', encoding='utf-8') as ssFile:
         lsStyleDict = defaultdict( list )
         for ssLine in ssFile:

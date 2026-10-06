@@ -5,7 +5,14 @@ function hide_show_marks() {
         for (let cl of classes_to_adjust) {
             let elements_to_adjust = document.getElementsByClassName(cl);
             for (let i=0; i<elements_to_adjust.length; i++) {
-                if (cl == 'ul') elements_to_adjust[i].style.color = 'white'; // We don't want to lose the space
+                if (cl == 'ul') {
+                    // Hide by matching the page background so the space is
+                    // kept but the marks vanish; dark-mode aware (the page
+                    // background is #121212 there, so plain white would
+                    // make the "hidden" marks reappear as white text).
+                    elements_to_adjust[i].style.color =
+                        (document.documentElement.getAttribute('data-theme') === 'dark') ? '#121212' : 'white';
+                }
                 else if (cl == 'untr') elements_to_adjust[i].style.textDecoration = 'none'; // Remove the strikeout
                 // else elements_to_adjust[i].style.visibility = 'hidden';
                 else elements_to_adjust[i].style.display = 'none';
@@ -16,7 +23,7 @@ function hide_show_marks() {
         for (let cl of classes_to_adjust) {
             let elements_to_adjust = document.getElementsByClassName(cl);
             for (let i=0; i<elements_to_adjust.length; i++) {
-                if (cl == 'ul') elements_to_adjust[i].style.color = 'darkGrey'; // Should match the span.ul color in the CSS
+                if (cl == 'ul') elements_to_adjust[i].style.color = null; // Back to the CSS rule (dark-mode aware)
                 else if (cl == 'untr') elements_to_adjust[i].style.textDecoration = 'line-through';
                 // else elements_to_adjust[i].style.visibility = 'visible';
                 else elements_to_adjust[i].style.display = 'revert';

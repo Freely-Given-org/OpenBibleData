@@ -57,7 +57,7 @@ from Bibles import getBibleMapperMaps, getOpenBibleImages
 from openbibledata_rust import convertVerseEntryListToHtml, getOETTidyBBB, getHebrewWordpageFilename, getGreekWordpageFilename
 
 
-LAST_MODIFIED_DATE = '2026-10-01' # by RJH
+LAST_MODIFIED_DATE = '2026-10-06' # by RJH
 SHORT_PROGRAM_NAME = "createChapterPages"
 PROGRAM_NAME = "OpenBibleData createChapterPages functions"
 PROGRAM_VERSION = '0.89'
@@ -79,7 +79,8 @@ def _writeOETSideBySideChapterBook( level:int, folder:Path, rvBible, lvBible, st
     """
     navBookListParagraph = makeBookNavListParagraph(state.BBBLinks['OET'], 'OET', state )
     filenames = []
-    vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Creating chapter pages for OET {BBB}…" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 3:
+        vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Creating chapter pages for OET {BBB}…" )
     NT = bos_books_codes_py.is_new_testament_nr( BBB )
     ourTidyBBB = getOETTidyBBB( BBB )
     ourTidyBBBwithNotes = getOETTidyBBB( BBB, addNotes=True )
@@ -98,11 +99,14 @@ def _writeOETSideBySideChapterBook( level:int, folder:Path, rvBible, lvBible, st
         logging.critical( f"B Skipped OET chapters not-included book: OET-RV {BBB}")
         return ( True, BBB, [] ) # Skip this book entirely
     if BBB in ('INT','FRT'): # We want these, even though the LV doesn't (yet?) have any FRT
-        dPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"_writeOETSideBySideChapterBook {rvBible.abbreviation} {rvBible.books[BBB]=}" )
-        vPrint( 'Info', DEBUGGING_THIS_MODULE, f"      Creating (non)chapter pages for {rvBible.abbreviation} {BBB}…" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 1:
+            dPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"_writeOETSideBySideChapterBook {rvBible.abbreviation} {rvBible.books[BBB]=}" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 3:
+            vPrint( 'Info', DEBUGGING_THIS_MODULE, f"      Creating (non)chapter pages for {rvBible.abbreviation} {BBB}…" )
         chapterHtml = f'<h1 id="Top">{rvBible.abbreviation} {BBB}</h1>\n'
         verseEntryList, contextList = rvBible.getContextVerseData( (BBB, '-1') )
-        dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{rvBible.abbreviation} {BBB} {verseEntryList} {contextList}" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 4:
+            dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{rvBible.abbreviation} {BBB} {verseEntryList} {contextList}" )
         chapterHtml = f'''{chapterHtml}{convertVerseEntryListToHtml( level, rvBible.abbreviation, (BBB,'-1'), 'chapter', contextList, verseEntryList, basicOnly=False, state=state, livenWordLinks=isinstance( rvBible, ESFMBible.ESFMBible ), colouriseWordClasses=False, addNoLinkYetSpans=False )}'''
         filename = f'{BBB}.htm'
         filenames.append( filename )
@@ -122,7 +126,8 @@ def _writeOETSideBySideChapterBook( level:int, folder:Path, rvBible, lvBible, st
         assert not filepath.is_file() # Check that we're not overwriting anything
         with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
             cHtmlFile.write( chapterHtml )
-        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"    {len(chapterHtml):,} characters written to {filepath}" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+            vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"    {len(chapterHtml):,} characters written to {filepath}" )
         return ( True, BBB, filenames ) # Finished the special case book (no chapter/index pages)
 
     # This code used to prevent building of OET-RV DC books as there's no OET-LV version -- removed 2026-09-02
@@ -143,7 +148,8 @@ def _writeOETSideBySideChapterBook( level:int, folder:Path, rvBible, lvBible, st
     assert numChapters >= 1 # Because only chapter books should get this far
     if numChapters >= 1:
         for c in range( -1, numChapters+1 ):
-            vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"      Creating chapter pages for OET {BBB} {c}…" )
+            if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+                vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"      Creating chapter pages for OET {BBB} {c}…" )
 
             realChapterLinks = [f'<a title="View chapter page" href="{BBB}_C{ccc}.htm#Top">{'Sg' if BBB=='PSA' else 'C'}{ccc}</a>'
                                 for ccc in range( 1, numChapters+1 ) if ccc != c]
@@ -226,7 +232,8 @@ def _writeOETSideBySideChapterBook( level:int, folder:Path, rvBible, lvBible, st
                         rvEndCV = rvSectionHtml[CclassIndex8+4:CclassIndex9]
                         # dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"\n  {BBB} {n:,}: {rvStartCV=} {rvEndCV=}")
                     except ValueError as e:
-                        dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createOETChapterPages {BBB} {c=} {n:,}/{len(rvSections):,}: No Cid in {rvSectionHtml=} {e=}" )
+                        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 2:
+                            dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createOETChapterPages {BBB} {c=} {n:,}/{len(rvSections):,}: No Cid in {rvSectionHtml=} {e=}" )
                         rvStartCV, rvEndCV = '', 'C1'
                         # assert False, "We want to stop here"
                     # dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"""Searching for ' id="{rvEndCV}"' in '{lvRest}'""" )
@@ -234,9 +241,11 @@ def _writeOETSideBySideChapterBook( level:int, folder:Path, rvBible, lvBible, st
                         ixEndCV = lvRest.rindex( f' id="{rvEndCV}"' ) # Versification problem if this fails
                     except ValueError as e: # this can happen if the section end is part-way through the next chapter
                         # i.e., the section crosses chapter boundaries
-                        dPrint( 'Info', DEBUGGING_THIS_MODULE, f"  createOETChapterPages {BBB} {c=} {n:,}/{len(rvSections):,}: section seems to cross chapter boundary {rvStartCV=} {rvEndCV=} {e=}")
+                        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 3:
+                            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"  createOETChapterPages {BBB} {c=} {n:,}/{len(rvSections):,}: section seems to cross chapter boundary {rvStartCV=} {rvEndCV=} {e=}")
                         if BBB == 'MAL' and c==4:
-                            dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createOETChapterPages aborting {BBB} {c=} {n:,}/{len(rvSections):,}" )
+                            if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 2:
+                                dPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createOETChapterPages aborting {BBB} {c=} {n:,}/{len(rvSections):,}" )
                             lvChunks.append( '<p class="error">Unsolved versification error for Malachi 4!</p><!--error-->' )
                             break # This versification is giving too many versification problems (with entire c4 missing)
                         if BBB not in ('JOBx','PSAx','EZEx','JOLx'): # TODO: Not sure what's going on with ms1 and mr in PSA and EZE 4 and Joel 2
@@ -256,7 +265,8 @@ def _writeOETSideBySideChapterBook( level:int, folder:Path, rvBible, lvBible, st
                             if lvRest[lvIndex8] == '<':
                                 break
                         else:
-                            dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{lvRest[lvIndex8-50:lvIndex8+50]}")
+                            if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 4:
+                                dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{lvRest[lvIndex8-50:lvIndex8+50]}")
                             if DEBUGGING_THIS_MODULE or BibleOrgSysGlobals.strictCheckingFlag or BibleOrgSysGlobals.debugFlag: not_far_enough
                             assert False, "We want to stop here"
                             break
@@ -264,10 +274,12 @@ def _writeOETSideBySideChapterBook( level:int, folder:Path, rvBible, lvBible, st
                         lvEndIx = lvIndex8
                         # TODO: Work out why we need these next two sets of lines
                         if lvRest[lvEndIx:].startswith( '</span>'): # Occurs at end of MRK (perhaps because of missing SR verses in ending) -- not sure if in other places
-                            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"\nNOTE: Fixed </span> end of {BBB} {rvStartCV=} {rvEndCV=} chunk in OET!!! {lvEndIx=} {ixNextCV=}" )
+                            if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 3:
+                                dPrint( 'Info', DEBUGGING_THIS_MODULE, f"\nNOTE: Fixed </span> end of {BBB} {rvStartCV=} {rvEndCV=} chunk in OET!!! {lvEndIx=} {ixNextCV=}" )
                             lvEndIx = ixNextCV + 1
                         elif lvRest[lvEndIx:].startswith( '</a>'): # Occurs at end of MAT Why????
-                            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"\nNOTE: Fixed </a> end of {BBB} {rvStartCV=} {rvEndCV=} chunk in OET!!! {lvEndIx=} {ixNextCV=}" )
+                            if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 3:
+                                dPrint( 'Info', DEBUGGING_THIS_MODULE, f"\nNOTE: Fixed </a> end of {BBB} {rvStartCV=} {rvEndCV=} chunk in OET!!! {lvEndIx=} {ixNextCV=}" )
                             lvEndIx = ixNextCV + 1
                         lvChunk = lvRest[:lvEndIx]
 
@@ -342,8 +354,10 @@ def _writeOETSideBySideChapterBook( level:int, folder:Path, rvBible, lvBible, st
             assert not filepath.is_file() # Check that we're not overwriting anything
             with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
                 cHtmlFile.write( chapterHtml )
-            vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(chapterHtml):,} characters written to {filepath}" )
-            vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"      Creating chapter pages for OET {BBB} {c}…" )
+            if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+                vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(chapterHtml):,} characters written to {filepath}" )
+            if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+                vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"      Creating chapter pages for OET {BBB} {c}…" )
     else: # This book has no chapters
         assert False, "Obsolete code!"
 #             assert BBB in ('INT',)
@@ -386,7 +400,8 @@ def _writeOETSideBySideChapterBook( level:int, folder:Path, rvBible, lvBible, st
 #             assert False, "We want to stop here"
 
     # Now create an index page for this book
-    vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Creating chapter index page for OET {BBB}…" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 3:
+        vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Creating chapter index page for OET {BBB}…" )
     realChapterLinks = [f'<a title="View chapter page" href="{BBB}_C{ccc}.htm#Top">{'Sg' if BBB=='PSA' else 'C'}{ccc}</a>' for ccc in range(1, numChapters+1)]
     chapterLinksParagraph = f'<p class="chLst">{" ".join( initialChapterLinks+realChapterLinks )}</p><!--chLst-->'
     filename = f'{BBB}.htm'
@@ -406,7 +421,8 @@ def _writeOETSideBySideChapterBook( level:int, folder:Path, rvBible, lvBible, st
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
         cHtmlFile.write( chapterHtml )
-    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(chapterHtml):,} characters written to {filepath}" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(chapterHtml):,} characters written to {filepath}" )
 
     return ( True, BBB, filenames )
 # end of createChapterPages.py._writeOETSideBySideChapterBook
@@ -433,9 +449,11 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
 
     (The actual OET-RV and OET-LV are processed by the regular function below.)
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"createOETSideBySideChapterPages( {level}, {folder}, {rvBible.abbreviation}, {lvBible.abbreviation} )" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag:
+        fnPrint( DEBUGGING_THIS_MODULE, f"createOETSideBySideChapterPages( {level}, {folder}, {rvBible.abbreviation}, {lvBible.abbreviation} )" )
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createOETSideBySideChapterPages( {level}, {folder}, {rvBible.abbreviation}, {lvBible.abbreviation} )…" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createOETSideBySideChapterPages( {level}, {folder}, {rvBible.abbreviation}, {lvBible.abbreviation} )…" )
     try: os.makedirs( folder )
     except FileExistsError: pass # they were already there
 
@@ -458,7 +476,8 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
         #        to 'forkserver' which would NOT inherit our huge module-level state (12 GiB of Bibles).
         #        Forked children share that memory copy-on-write, so this costs almost nothing extra.
         # NOTE: Outputs (including error and warning messages) from the various books may be interspersed.
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\nCreating {'TEST ' if state.TEST_MODE_FLAG else ''}OET chapter pages for {len(mpBookParameters):,} books using {BibleOrgSysGlobals.maxProcesses:,} forked processes…" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\nCreating {'TEST ' if state.TEST_MODE_FLAG else ''}OET chapter pages for {len(mpBookParameters):,} books using {BibleOrgSysGlobals.maxProcesses:,} forked processes…" )
         BibleOrgSysGlobals.alreadyMultiprocessing = True
         with multiprocessing.get_context('fork').Pool( processes=BibleOrgSysGlobals.maxProcesses ) as pool: # start worker processes
             results = pool.map( _createOETSideBySideChapterBook_MP, mpBookParameters ) # have the pool create the chapters
@@ -469,7 +488,8 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
             if bookFilenames:
                 BBBs.append( BBBResult ); filenames.extend( bookFilenames )
     # Create overall OET chapter index page
-    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, "  Creating overall OET chapter index page…" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, "  Creating overall OET chapter index page…" )
     filename = 'index.htm'
     filenames.append( filename )
     filepath = folder.joinpath( filename )
@@ -489,9 +509,11 @@ def createOETSideBySideChapterPages( level:int, folder:Path, rvBible, lvBible, s
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
         cHtmlFile.write( indexHtml )
-    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createOETSideBySideChapterPages() finished processing {len(BBBs)} OET books: {BBBs}." )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createOETSideBySideChapterPages() finished processing {len(BBBs)} OET books: {BBBs}." )
     return filenames
 # end of createChapterPages.createOETSideBySideChapterPages
 
@@ -501,9 +523,11 @@ def createChapterPages( level:int, folder:Path, thisBible, state:State ) -> list
     This creates a page for each chapter for all versions
         other than 'OET' which is considerably more complex (above).
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"createChapterPages( {level}, {folder}, {thisBible.abbreviation} )" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag:
+        fnPrint( DEBUGGING_THIS_MODULE, f"createChapterPages( {level}, {folder}, {thisBible.abbreviation} )" )
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createChapterPages( {level}, {folder}, {thisBible.abbreviation} )…" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createChapterPages( {level}, {folder}, {thisBible.abbreviation} )…" )
     try: os.makedirs( folder )
     except FileExistsError: pass # they were already there
 
@@ -517,7 +541,8 @@ def createChapterPages( level:int, folder:Path, thisBible, state:State ) -> list
 
     BBBs, filenames = [], []
     for BBB in state.BBBsToProcess[thisBible.abbreviation]:
-        vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Creating chapter pages for {thisBible.abbreviation} {BBB}…" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 3:
+            vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Creating chapter pages for {thisBible.abbreviation} {BBB}…" )
         NT = bos_books_codes_py.is_new_testament_nr( BBB )
         ourTidyBBB = getOETTidyBBB( BBB )
         # print( f"{BBB=} {state.BBBsToProcess[thisBible.abbreviation]}"); print( len(state.BBBsToProcess[thisBible.abbreviation]) )
@@ -565,7 +590,8 @@ def createChapterPages( level:int, folder:Path, thisBible, state:State ) -> list
                 except KeyError:
                     logging.critical( f"Can't get number of verses for {thisBible.abbreviation} {BBB} {C}")
                     continue
-                vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"      Creating chapter pages for {thisBible.abbreviation} {BBB} {C}…" )
+                if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+                    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"      Creating chapter pages for {thisBible.abbreviation} {BBB} {C}…" )
                 oetLink = f'''<a title="Full OET side-by-side view" href="{'../'*level}OET/byC/{f'{BBB}_Intro' if c==-1 else f'{BBB}_C{C}'}.htm#Top"><small>OET</small></a> ''' if thisBible.abbreviation in ('OET-RV','OET-LV') else ''
                 if c == -1:
                     leftLink = ''
@@ -641,10 +667,12 @@ def createChapterPages( level:int, folder:Path, thisBible, state:State ) -> list
                 assert not filepath.is_file() # Check that we're not overwriting anything
                 with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
                     cHtmlFile.write( chapterHtml )
-                vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(chapterHtml):,} characters written to {filepath}" )
+                if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+                    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(chapterHtml):,} characters written to {filepath}" )
 
             # Now create an index page for this book
-            vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Creating chapter index page for {thisBible.abbreviation} {BBB}…" )
+            if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 3:
+                vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Creating chapter index page for {thisBible.abbreviation} {BBB}…" )
             realChapterLinks = [f'<a title="View chapter page" href="{BBB}_C{ccc}.htm#Top">{'Sg' if BBB=='PSA' else 'C'}{ccc}</a>'
                                 for ccc in range( 1, numChapters+1 ) if thisBible.getNumVerses( BBB, c )] # make sure it's a normal chapter, e.g., in ESG book which lacks chapters 1-9
             chapterLinksParagraph = f'<p class="chLst" id="Top">{" ".join( initialChapterLinks+realChapterLinks )}</p><!--chLst-->'
@@ -664,17 +692,22 @@ def createChapterPages( level:int, folder:Path, thisBible, state:State ) -> list
             assert not filepath.is_file() # Check that we're not overwriting anything
             with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
                 cHtmlFile.write( chapterHtml )
-            vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(chapterHtml):,} characters written to {filepath}" )
+            if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+                vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(chapterHtml):,} characters written to {filepath}" )
 
         else: # a non-chapter book
-            dPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"createChapterPages {thisBible.abbreviation} {BBB} has {numChapters} chapters!!!" )
+            if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 1:
+                dPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"createChapterPages {thisBible.abbreviation} {BBB} has {numChapters} chapters!!!" )
             assert BBB in ('INT','FRT','OTH','GLS','XXA','XXB','XXC','XXD')
-            dPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"createChapterPages {thisBible.abbreviation} {thisBible.books[BBB]=}" )
-            vPrint( 'Info', DEBUGGING_THIS_MODULE, f"      Creating (non)chapter pages for {thisBible.abbreviation} {BBB}…" )
+            if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 1:
+                dPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"createChapterPages {thisBible.abbreviation} {thisBible.books[BBB]=}" )
+            if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 3:
+                vPrint( 'Info', DEBUGGING_THIS_MODULE, f"      Creating (non)chapter pages for {thisBible.abbreviation} {BBB}…" )
             chapterHtml = f'<h1 id="Top">{thisBible.abbreviation} {BBB}</h1>\n'
             verseEntryList, contextList = thisBible.getContextVerseData( (BBB, '-1') )
             # if thisBible.abbreviation == 'OET-RV' and BBB == 'FRT': print( f"OET-RV FRT has: {verseEntryList=} {[ve for ve in verseEntryList]=}" ); halt
-            dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{thisBible.abbreviation} {BBB} {verseEntryList} {contextList}" )
+            if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 4:
+                dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"{thisBible.abbreviation} {BBB} {verseEntryList} {contextList}" )
             chapterHtml = f'''{chapterHtml}{convertVerseEntryListToHtml( level, thisBible.abbreviation, (BBB,'-1'), 'chapter', contextList, verseEntryList, basicOnly=False, state=state, livenWordLinks=isinstance( thisBible, ESFMBible.ESFMBible ), colouriseWordClasses=False, addNoLinkYetSpans=False )}'''
             filename = f'{BBB}.htm'
             filenames.append( filename )
@@ -692,7 +725,8 @@ def createChapterPages( level:int, folder:Path, thisBible, state:State ) -> list
             assert not filepath.is_file() # Check that we're not overwriting anything
             with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
                 cHtmlFile.write( chapterHtml )
-            vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"    {len(chapterHtml):,} characters written to {filepath}" )
+            if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+                vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"    {len(chapterHtml):,} characters written to {filepath}" )
 
     # Create overall chapter index page
     filename = 'index.htm'
@@ -712,9 +746,11 @@ def createChapterPages( level:int, folder:Path, thisBible, state:State ) -> list
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as cHtmlFile:
         cHtmlFile.write( indexHtml )
-    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createChapterPages() finished processing {len(BBBs)} {thisBible.abbreviation} books: {BBBs}…" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createChapterPages() finished processing {len(BBBs)} {thisBible.abbreviation} books: {BBBs}…" )
     return filenames
 # end of createChapterPages.createChapterPages
 

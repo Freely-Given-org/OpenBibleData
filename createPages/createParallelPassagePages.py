@@ -46,7 +46,7 @@ from html import do_OET_RV_HTMLcustomisations, do_OET_LV_HTMLcustomisations, \
 from openbibledata_rust import convertVerseEntryListToHtml, getOETTidyBBB, getOETBookName, getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2026-09-24' # by RJH
+LAST_MODIFIED_DATE = '2026-10-06' # by RJH
 SHORT_PROGRAM_NAME = "createParallelPassagePages"
 PROGRAM_NAME = "OpenBibleData createParallelPassagePages functions"
 PROGRAM_VERSION = '0.43'
@@ -67,10 +67,12 @@ PARALLEL_VERSE_TABLE = {}
 def createParallelPassagePages( level:int, folder:Path, state:State ) -> bool:
     """
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"createParallelPassagePages( {level}, {folder}, {state.BibleVersions} )" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag:
+        fnPrint( DEBUGGING_THIS_MODULE, f"createParallelPassagePages( {level}, {folder}, {state.BibleVersions} )" )
     assert level == 1
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\ncreateParallelPassagePages( {level}, {folder}, {state.BibleVersions} )" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\ncreateParallelPassagePages( {level}, {folder}, {state.BibleVersions} )" )
     try: os.makedirs( folder )
     except FileExistsError: pass # they were already there
 
@@ -121,9 +123,11 @@ def createParallelPassagePages( level:int, folder:Path, state:State ) -> bool:
     assert not filepath.is_file() # Check that we're not overwriting anything
     with open( filepath, 'wt', encoding='utf-8' ) as indexHtmlFile:
         indexHtmlFile.write( indexHtml )
-    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(indexHtml):,} characters written to {filepath}" )
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createParallelPassagePages() finished processing {len(state.allBBBs)} books: {state.allBBBs}" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createParallelPassagePages() finished processing {len(state.allBBBs)} books: {state.allBBBs}" )
     return True
 # end of createParallelPassagePages.createParallelPassagePages
 
@@ -445,7 +449,8 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
 
     Also, display verse cross-references at the bottom.
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"createSectionCrossReferencePagesForBook( {level}, {folder}, {thisBible.abbreviation}, {BBB}, {BBBLinks}, {state.BibleVersions} )" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag:
+        fnPrint( DEBUGGING_THIS_MODULE, f"createSectionCrossReferencePagesForBook( {level}, {folder}, {thisBible.abbreviation}, {BBB}, {BBBLinks}, {state.BibleVersions} )" )
     assert thisBible.abbreviation == 'OET-RV'
 
     BBBFolder = folder.joinpath(f'{BBB}/')
@@ -453,7 +458,8 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
     NT = bos_books_codes_py.is_new_testament_nr( BBB )
 
 
-    vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  createSectionCrossReferencePagesForBook {BBBLevel}, {BBBFolder}, {BBB} from {len(BBBLinks)} books, {len(state.BibleVersions)} versions…" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 3:
+        vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  createSectionCrossReferencePagesForBook {BBBLevel}, {BBBFolder}, {BBB} from {len(BBBLinks)} books, {len(state.BibleVersions)} versions…" )
     try: os.makedirs( BBBFolder )
     except FileExistsError: pass # they were already there
 
@@ -487,7 +493,8 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
         availableSections = state.sectionsListsForSections[thisBible.abbreviation][BBB]
 
     # Now, make the actual pages
-    vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Creating section cross-reference pages for {thisBible.abbreviation} {BBB}…" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 3:
+        vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    Creating section cross-reference pages for {thisBible.abbreviation} {BBB}…" )
     sectionIndexLink = '<a title="Go up to OET-RV related-section index" href="index.htm#Top">⌂</a> '
     detailsLink = f''' <a title="Show details about this work" href="{'../'*(BBBLevel)}OET-RV/details.htm#Top">©</a>'''
     usedParallels = []
@@ -553,7 +560,8 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
             else:
                 logging.warning( f"{sr} {BBB} {startC}:{startV} {sectionReferences=} got {sectionReference=} {bookAbbreviation=}" )
                 hadXrefException = True
-        dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"      Got BBB set for {BBB} {startC}:{startV} {sectionReferences=} {crossReferencesBBBList=} {crossReferencesCVList=}" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 4:
+            dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"      Got BBB set for {BBB} {startC}:{startV} {sectionReferences=} {crossReferencesBBBList=} {crossReferencesCVList=}" )
         assert len(crossReferencesBBBList) == len(crossReferencesCVList) == len(sectionReferences) or hadXrefException
         crossReferencesBBBSet = set( crossReferencesBBBList ) # Some books might appear more than once
         # assert BBB not in crossReferencesBBBSet # Not necessarily true
@@ -583,7 +591,8 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
         # Ok, now actually form the parallel sections
         nextXrFnLetter = 'b'
         for srBBB,srCVpart in zip( crossReferencesBBBList, crossReferencesCVList, strict=True ):
-            dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"Parallel sections loop for {BBB} {startC}:{startV} -> {srBBB=} {srCVpart=}")
+            if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 4:
+                dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"Parallel sections loop for {BBB} {startC}:{startV} -> {srBBB=} {srCVpart=}")
             if srBBB not in thisBible: # don't force that book to be loaded
                 continue
 
@@ -759,7 +768,8 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
         # Now list all the combined cross-references with their passages
         xrefHtml = ''
         if collectedVerseCrossReferences:
-            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"      {BBB} {startC}:{startV} collectedVerseCrossReferences = ({len(collectedVerseCrossReferences)}) {collectedVerseCrossReferences}" )
+            if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 3:
+                dPrint( 'Info', DEBUGGING_THIS_MODULE, f"      {BBB} {startC}:{startV} collectedVerseCrossReferences = ({len(collectedVerseCrossReferences)}) {collectedVerseCrossReferences}" )
             splitUpCollectedVerseCrossReferences = []
             for collectedVerseCrossReference in collectedVerseCrossReferences:
                 if not splitUpCollectedVerseCrossReferences \
@@ -767,7 +777,8 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
                     # This is the first crossReference but doesn't start with something like '3 Jn'
                     firstPart = collectedVerseCrossReference.split( ' ')[0]
                     attemptedBBB = getBBBFromOETBookName( firstPart, f"createSectionCrossReferencePagesForBook( {thisBible.abbreviation}, {BBB}, {BBBLinks}, {state.BibleVersions} ) {collectedVerseCrossReference=}" )
-                    dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {collectedVerseCrossReference=} {firstPart=} {attemptedBBB=}" )
+                    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 4:
+                        dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {collectedVerseCrossReference=} {firstPart=} {attemptedBBB=}" )
                     # if attemptedBBB is None and thisBible.abbreviation=='OET-RV' and firstPart[0]=='Y':
                     #     # Maybe we need to convert something like Yoel to Joel
                     #     attemptedBBB = bos_books_codes_py.english_name_to_bos_book_code( f'J{firstPart[1:]}' )
@@ -779,7 +790,8 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
                     splitUpCollectedVerseCrossReferences += collectedVerseCrossReference.split( '; ' )
                 except ValueError: # No semicolon
                     splitUpCollectedVerseCrossReferences.append( collectedVerseCrossReference )
-            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"      ({len(splitUpCollectedVerseCrossReferences)}) {splitUpCollectedVerseCrossReferences=}" )
+            if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 3:
+                dPrint( 'Info', DEBUGGING_THIS_MODULE, f"      ({len(splitUpCollectedVerseCrossReferences)}) {splitUpCollectedVerseCrossReferences=}" )
             doneCrossReferences = []
             lastXrefBBB = lastXrefC = None
             # Seems that the max is 71
@@ -850,7 +862,8 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
         assert not filepath.is_file(), f"{filepath=}" # Check that we're not overwriting anything
         with open( filepath, 'wt', encoding='utf-8' ) as sectionHtmlFile:
             sectionHtmlFile.write( crossReferencedSectionHtml )
-        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(crossReferencedSectionHtml):,} characters written to {filepath}" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+            vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(crossReferencedSectionHtml):,} characters written to {filepath}" )
 
     # Create index page for this book
     # Now make the section index file for this book
@@ -877,7 +890,8 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
     assert not filepath1.is_file() # Check that we're not overwriting anything
     with open( filepath1, 'wt', encoding='utf-8' ) as sectionHtmlFile:
         sectionHtmlFile.write( crossReferencedSectionIndexHtml )
-    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(crossReferencedSectionIndexHtml):,} characters written to {filepath1}" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(crossReferencedSectionIndexHtml):,} characters written to {filepath1}" )
 
     # Write a second copy of the index page up a level
     filename2 = f'{BBB}.htm'
@@ -903,7 +917,8 @@ def createSectionCrossReferencePagesForBook( level:int, folder:Path, thisBible, 
     assert not filepath2.is_file() # Check that we're not overwriting anything
     with open( filepath2, 'wt', encoding='utf-8' ) as sectionHtmlFile:
         sectionHtmlFile.write( crossReferencedSectionIndexHtml )
-    vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(crossReferencedSectionIndexHtml):,} characters written to {filepath2}" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+        vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"        {len(crossReferencedSectionIndexHtml):,} characters written to {filepath2}" )
 
     # vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  createSectionCrossReferencePagesForBook() finished processing {len(vLinks):,} {BBB} verses." )
     return True

@@ -52,7 +52,7 @@ from BibleOrgSys.BibleOrgSysGlobals import vPrint, fnPrint, dPrint, rreplace
 import bos_books_codes_py
 
 
-LAST_MODIFIED_DATE = '2026-10-03' # by RJH
+LAST_MODIFIED_DATE = '2026-10-06' # by RJH
 SHORT_PROGRAM_NAME = "spellCheckEnglish"
 PROGRAM_NAME = "English Bible Spell Check"
 PROGRAM_VERSION = '0.71'
@@ -279,14 +279,17 @@ def load_OET_LV_names() -> bool:
     """
     Load the names we use from the tsv names table
     """
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Loading {OET_LV_NAMES_TSV_FILEPATH}…" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Loading {OET_LV_NAMES_TSV_FILEPATH}…" )
     with open( OET_LV_NAMES_TSV_FILEPATH, 'rt', encoding='utf-8') as inputTSVFile:
         initialTSVLines = inputTSVFile.read().rstrip().split( '\n' )
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  {len(initialTSVLines):,} lines loaded from {OET_LV_NAMES_TSV_FILEPATH.name}.\n" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  {len(initialTSVLines):,} lines loaded from {OET_LV_NAMES_TSV_FILEPATH.name}.\n" )
 
     # Remove any BOM
     if initialTSVLines[0].startswith("\ufeff"):
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, "  Handling Byte Order Marker (BOM) at start of TSV file…")
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, "  Handling Byte Order Marker (BOM) at start of TSV file…")
         initialTSVLines[0] = initialTSVLines[0][1:]
     assert initialTSVLines[0] == EXPECTED_OET_LV_NAMES_TSV_HEADER
 
@@ -300,7 +303,8 @@ def load_OET_LV_names() -> bool:
                 OET_LV_NAMES_SET.add( rvNameBit )
 
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Loaded {len(OET_LV_NAMES_SET):,} OET-LV names." )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Loaded {len(OET_LV_NAMES_SET):,} OET-LV names." )
     # print( list(OET_LV_NAMES_SET)[:10]); assert False, "We want to stop here"
     return True
 # end of spellCheckEnglish.load_OET_LV_names
@@ -311,14 +315,17 @@ def load_OET_RV_names() -> bool:
     """
     Load the names we use from the tsv names table
     """
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Loading {OET_RV_NAMES_TSV_FILEPATH}…" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Loading {OET_RV_NAMES_TSV_FILEPATH}…" )
     with open( OET_RV_NAMES_TSV_FILEPATH, 'rt', encoding='utf-8') as inputTSVFile:
         initialTSVLines = inputTSVFile.read().rstrip().split( '\n' )
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  {len(initialTSVLines):,} lines loaded from {OET_RV_NAMES_TSV_FILEPATH.name}.\n" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  {len(initialTSVLines):,} lines loaded from {OET_RV_NAMES_TSV_FILEPATH.name}.\n" )
 
     # Remove any BOM
     if initialTSVLines[0].startswith("\ufeff"):
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, "  Handling Byte Order Marker (BOM) at start of TSV file…")
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, "  Handling Byte Order Marker (BOM) at start of TSV file…")
         initialTSVLines[0] = initialTSVLines[0][1:]
     assert initialTSVLines[0] == EXPECTED_OET_RV_NAMES_TSV_HEADER
 
@@ -332,7 +339,8 @@ def load_OET_RV_names() -> bool:
                 OET_RV_NAMES_SET.add( rvNameBit )
 
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Loaded {len(OET_RV_NAMES_SET):,} OET-RV names." )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Loaded {len(OET_RV_NAMES_SET):,} OET-RV names." )
     # print( list(OET_RV_NAMES_SET)[:10]); assert False, "We want to stop here"
     return True
 # end of spellCheckEnglish.load_OET_RV_names
@@ -344,7 +352,8 @@ def load_dict_sources() -> bool:
     Load the words from the SIL Toolbox source files.
     """
     global AMERICAN_WORD_SET, BRITISH_WORD_SET
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Load English and Bible words from source dictionaries in {TED_DICT_FOLDERPATH}…" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Load English and Bible words from source dictionaries in {TED_DICT_FOLDERPATH}…" )
 
     AMERICAN_WORD_SET, BRITISH_WORD_SET = set(INITIAL_BIBLE_WORD_SET), set(INITIAL_BIBLE_WORD_SET)
     for dictFilename in ('EnglishDict.db','BibleDict.db'):
@@ -384,7 +393,8 @@ def load_dict_sources() -> bool:
         #             assert subscript.isdigit()
         #         BIBLE_WORD_SET.add( word )
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Loaded {len(AMERICAN_WORD_SET):,} American and {len(BRITISH_WORD_SET):,} British and Bible words." )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Loaded {len(AMERICAN_WORD_SET):,} American and {len(BRITISH_WORD_SET):,} British and Bible words." )
     # print( BIBLE_WORD_LIST[:10]); assert False, "We want to stop here"
     return True
 # end of spellCheckEnglish.load_dict_sources
@@ -792,81 +802,83 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                                                             .replace('</p>\n</div><!--footnotes-->','')
             if versionAbbreviation not in ('Luth','ClVg'): # native or modernised English
                 cleanedTextToDisplay = cleanedTextToDisplay.replace('<span class="LEB_verseTextChunk">','').replace('<span class="Wycl_verseTextChunk">','')
-                vPrint( 'Normal' if (word.upper()==word and (versionAbbreviation not in ('LSV','OET-LV'))
-                            or (word in ('s','heretage','yelde','deme','maden','virtuees','el','aha','drede','yee',
-                                   'fortyth','fulness','digged',"'And",'baptized','holden','hous','stedfast','hee',
-                                   'schent','knowe','madist','clepe','veyn','hopide','thouyten','redy','spaken','sixtie',
-                                   'silf','nedi','modir','sunne','hygh','i','sprete','wyn','ethir','zobah','hode','honde','equite',
-                                   'tashcheth','kindreds','tho','ynne','oute','wrooth','thei','hade','ioiyng',
-                                   'diy','stablish','puplis','nyle','hertli','eet','saten','gileful','hertli','greces',
-                                   'welde','moun','chees','bitake','Cursid','comen','wite','kitte','sien','kepen',
-                                   'standerd','penie','peny','purifie','ramme','blossome','beeues','polle','separateth','redeeme','halfe','awayn',
-                                   'meynee','silverne','wem','heardn','herde','scall','hilide','wolden','brasun','thes','childed',
-                                   'horon','gilead','edom',
-                                        'thirtie','releasen','jealousi','fer','whereinto','euen','summe','defie',
-                                        'hile','drooue','woodness','lomb','stonde','kynde',
-                                        'yt','sounde','blinde','broughtst','aud','Candlesticke','prophecie',
-                                        'subarbis','lepre','breede','hilid','armeris',
-                                        'warpe','woofe','baken','goate','Uaile','kil','kinde','foules','finnes',
-                                        'Owle','looke','nakednes','sheafe','willowes','Edoma','swines','bewaile','creepe',
-                                        'iubilee','cleene','ayenbouyt','trespas','dow','quyk','comelyngis',
-                                        'comeling','biere','buk','schuldur','lowere','vowes','vyndage','wexith','membris','skinne','haire','steale','grinde',
-                                        'unclenness','Owle','scabbe','darke','plaister','bondmaids','towe','hautines',
-                                        'hautiness','Seraphims','flie','Remaliahs','praye','jubile','inwardes','preuytie','tippe','lowse','owen',
-                                        'drinke','euidence','burne','fanne','returne','arme','dismaied',
-                                        'wolfe','howle','leendis','abididen','sudenli','scryuen','boord','bischop','balme',
-                                        'compassio','herdst','ark','arcke','arke',
-                                        'judgment','talentes','householdr','baptist','honour','heaue','pur','gehenna','marvelled','chamberlaynes','fastings','walke',
+                if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+                    vPrint( 'Normal' if (word.upper()==word and (versionAbbreviation not in ('LSV','OET-LV'))
+                                or (word in ('s','heretage','yelde','deme','maden','virtuees','el','aha','drede','yee',
+                                       'fortyth','fulness','digged',"'And",'baptized','holden','hous','stedfast','hee',
+                                       'schent','knowe','madist','clepe','veyn','hopide','thouyten','redy','spaken','sixtie',
+                                       'silf','nedi','modir','sunne','hygh','i','sprete','wyn','ethir','zobah','hode','honde','equite',
+                                       'tashcheth','kindreds','tho','ynne','oute','wrooth','thei','hade','ioiyng',
+                                       'diy','stablish','puplis','nyle','hertli','eet','saten','gileful','hertli','greces',
+                                       'welde','moun','chees','bitake','Cursid','comen','wite','kitte','sien','kepen',
+                                       'standerd','penie','peny','purifie','ramme','blossome','beeues','polle','separateth','redeeme','halfe','awayn',
+                                       'meynee','silverne','wem','heardn','herde','scall','hilide','wolden','brasun','thes','childed',
+                                       'horon','gilead','edom',
+                                            'thirtie','releasen','jealousi','fer','whereinto','euen','summe','defie',
+                                            'hile','drooue','woodness','lomb','stonde','kynde',
+                                            'yt','sounde','blinde','broughtst','aud','Candlesticke','prophecie',
+                                            'subarbis','lepre','breede','hilid','armeris',
+                                            'warpe','woofe','baken','goate','Uaile','kil','kinde','foules','finnes',
+                                            'Owle','looke','nakednes','sheafe','willowes','Edoma','swines','bewaile','creepe',
+                                            'iubilee','cleene','ayenbouyt','trespas','dow','quyk','comelyngis',
+                                            'comeling','biere','buk','schuldur','lowere','vowes','vyndage','wexith','membris','skinne','haire','steale','grinde',
+                                            'unclenness','Owle','scabbe','darke','plaister','bondmaids','towe','hautines',
+                                            'hautiness','Seraphims','flie','Remaliahs','praye','jubile','inwardes','preuytie','tippe','lowse','owen',
+                                            'drinke','euidence','burne','fanne','returne','arme','dismaied',
+                                            'wolfe','howle','leendis','abididen','sudenli','scryuen','boord','bischop','balme',
+                                            'compassio','herdst','ark','arcke','arke',
+                                            'judgment','talentes','householdr','baptist','honour','heaue','pur','gehenna','marvelled','chamberlaynes','fastings','walke',
 
-                                   ) and 'PSA' not in location ) # coz Wycl versification doesn't usually match anyway
-                            or 'twas' in word )
-                        and word not in ('OK','NOT','SURE','TOO','LITERAL')
-                    # else 'Info', DEBUGGING_THIS_MODULE, f'''  '{word}' ({wordSetName}) IS SUSPECT @ {location}\nfrom {originalHTMLTextForDebugging=}\nfrom {cleanedTextToDisplay=}\nwhich gave {cleanedTextToCheck=}''' )
-                    else 'Info', DEBUGGING_THIS_MODULE, f'''  '{word}' ({wordSetName}) IS SUSPECT @ {location}\n      from {cleanedTextToDisplay=}\n      which gave cleanedTextToCheck={_truncate_for_display(cleanedTextToCheck,word)}''' )
+                                       ) and 'PSA' not in location ) # coz Wycl versification doesn't usually match anyway
+                                or 'twas' in word )
+                            and word not in ('OK','NOT','SURE','TOO','LITERAL')
+                        # else 'Info', DEBUGGING_THIS_MODULE, f'''  '{word}' ({wordSetName}) IS SUSPECT @ {location}\nfrom {originalHTMLTextForDebugging=}\nfrom {cleanedTextToDisplay=}\nwhich gave {cleanedTextToCheck=}''' )
+                        else 'Info', DEBUGGING_THIS_MODULE, f'''  '{word}' ({wordSetName}) IS SUSPECT @ {location}\n      from {cleanedTextToDisplay=}\n      which gave cleanedTextToCheck={_truncate_for_display(cleanedTextToCheck,word)}''' )
             else: # Luth or ClVg
                 cleanedTextToDisplay = cleanedTextToDisplay.replace('<span class="ClVg_verseTextChunk">','').replace('<div id="footnotesClVg" class="footnotes">\n','').replace('  ',' ').replace(' ',' ')
-                vPrint( 'Normal' if word.upper()==word
-                       or word in ( #  \d{1,3}\), \(
-                                'an','Arche','arg','aß','Bart','Bild','bis','bittern', 'Chor', 'wir','dem','des','Du','du',
-                                    'für', 'Gabe', 'hin','heb','hub','ich','ist','ja','alle','las','lag','litt',
-                                'one)r','one)n','ones)r','ones)s','ones)n','one)s',
-                                'ach','alt','dran','ende','irrig','hing','weh','du','Raube','Raub','sie','Tal','tue','fiel','sehe',
-                                'Mal','mal','milde','mit','Mord','Natur','nun','nur',
-                                'rede','kam','Korb','ward','Rat','Rede','messen','Mose','ging','Halle','und','ster','streng','töte','tun','von','wer','zu','zwo',
-                                'denyt',
+                if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+                    vPrint( 'Normal' if word.upper()==word
+                           or word in ( #  \d{1,3}\), \(
+                                    'an','Arche','arg','aß','Bart','Bild','bis','bittern', 'Chor', 'wir','dem','des','Du','du',
+                                        'für', 'Gabe', 'hin','heb','hub','ich','ist','ja','alle','las','lag','litt',
+                                    'one)r','one)n','ones)r','ones)s','ones)n','one)s',
+                                    'ach','alt','dran','ende','irrig','hing','weh','du','Raube','Raub','sie','Tal','tue','fiel','sehe',
+                                    'Mal','mal','milde','mit','Mord','Natur','nun','nur',
+                                    'rede','kam','Korb','ward','Rat','Rede','messen','Mose','ging','Halle','und','ster','streng','töte','tun','von','wer','zu','zwo',
+                                    'denyt',
 
-                                'abs','actio', 'adultera','agi', 'aliena', 'ambit','ambitio','amputa', 'anima','antiqui','apprehendi', 'argui','ascendi','attende','audi', 'aversio',
-                                'beati','bene','beneficia','bos',
-                                'ca','calami','capti',       'celebrat','centurio',     'Christi',      'circumcisio','cis',        'cognitio','cogniti','complet',
-                                        'commemorat','communio','competit',
-                                        'conclusi', 'confessio','confusi','confusio','congregati','congregatio','conjuncti','consecrat','consecrati','considerat','consolati','consolatio',
-                                            'constituti','contaminat','contra','contriti','conversa','conversi','conversio','converti',
-                                        'cor','correcti','correctio',
-                                    'creat','creati','credi','credit','cruci',        'cultu','cum','cura','curat',
-                                'dari','dat','dedi','deduc','dei','dem','designat','desolati','det','determinat','devoti','devotio',
-                                    'diaboli','disco','digni','discretio','dissipati','distincti','distinctio','divisi','dom','domi','domina','dona',
-                                'ecclesia','ecclesias','editio','ei', 'electi', 'emissa', 'enumerat','esca','evangelica', 'exalta','exaltat','exaltatio','exclamat','expiat','extensio',
-                                'fac','falli', 'fel', 'figura','Finis','finis','fornicati','fornicatio','forti','fugit','fur',     'generat','generatio',     'hac','hellor','hoc','humili','humiliati',
-                                'ibi', 'illum','illuminat','illuminati','illuminatio', 'ima','impie', 'infirmi','inscriptio','insinuat','instructi',
-                                    'indignati','intellige','intelligi','intentio','introduc','inventi','invoca','invocat','invocatio','irritat','Isaia','iter','Ite',
-                                'ja','jus','Justi','justi','justis','justificat',     'legi','legis','leve','Leva','liberatio','liberati','liberato','liberat','libera','liber','locus','luna','lux',
-                                'magis','magnifice','magni', 'mane','manifeste','manu', 'mari','mater','materia',
-                                    'media','medici','memor','memoria','menstrua','mens','menti','mentio',       'mira','misera','miseri',       'mora','moretri','mortali','morti', 'mysterio',
-                                'nam','narrat','nati','natu','natura','ne','nece', 'nota','Nota',     'ob','obsessi', 'occasio', 'offen','omnis','operatio','opinio','ora','ori',
-                                'passi','pater','patria','patri','pede','pedes','perpetua','perfecti','persecuti','persecutio',
-                                    'pinna','pio','plura','polluti','portio','prope','propitiatio','provocat', 'psalmi','psalmis', 'publica',
-                                'questio','qui',        'rea','redempti','referri','rege','regi','regio','regula','remun','remunerat','rei','repente','reprobat','ros',
-                                'salva','salvat','salvati','sanctifi','sanctificati',   'scandali',
-                                    'securi','separat','separati','seu','serva','servit','sex','sexta',
-                                    'si','signi','simplici','sit','sol','soli','solem','stat','statu', 'subjecti','summo','superstitio',
-                                'tempora','Tod','tradit','traditi','traditio','transito','transmigratio','tres','tribulatio','tributa','trium','tu','tua','tuam','turba',
-                                'usu',      'valle','vani','varie','vas', 'venerat', 'victi','vis','visita','visitat','visitatio','vita', 'Voca','voca',
-                                'l','nos','ut',
-                                'rethey','becausegentos','leados',
-                                    'susis','inedia','esurientem','hactenus','fruitio','silentnt','regenerati','confiteatur','deprimit','admirationem','workum',
+                                    'abs','actio', 'adultera','agi', 'aliena', 'ambit','ambitio','amputa', 'anima','antiqui','apprehendi', 'argui','ascendi','attende','audi', 'aversio',
+                                    'beati','bene','beneficia','bos',
+                                    'ca','calami','capti',       'celebrat','centurio',     'Christi',      'circumcisio','cis',        'cognitio','cogniti','complet',
+                                            'commemorat','communio','competit',
+                                            'conclusi', 'confessio','confusi','confusio','congregati','congregatio','conjuncti','consecrat','consecrati','considerat','consolati','consolatio',
+                                                'constituti','contaminat','contra','contriti','conversa','conversi','conversio','converti',
+                                            'cor','correcti','correctio',
+                                        'creat','creati','credi','credit','cruci',        'cultu','cum','cura','curat',
+                                    'dari','dat','dedi','deduc','dei','dem','designat','desolati','det','determinat','devoti','devotio',
+                                        'diaboli','disco','digni','discretio','dissipati','distincti','distinctio','divisi','dom','domi','domina','dona',
+                                    'ecclesia','ecclesias','editio','ei', 'electi', 'emissa', 'enumerat','esca','evangelica', 'exalta','exaltat','exaltatio','exclamat','expiat','extensio',
+                                    'fac','falli', 'fel', 'figura','Finis','finis','fornicati','fornicatio','forti','fugit','fur',     'generat','generatio',     'hac','hellor','hoc','humili','humiliati',
+                                    'ibi', 'illum','illuminat','illuminati','illuminatio', 'ima','impie', 'infirmi','inscriptio','insinuat','instructi',
+                                        'indignati','intellige','intelligi','intentio','introduc','inventi','invoca','invocat','invocatio','irritat','Isaia','iter','Ite',
+                                    'ja','jus','Justi','justi','justis','justificat',     'legi','legis','leve','Leva','liberatio','liberati','liberato','liberat','libera','liber','locus','luna','lux',
+                                    'magis','magnifice','magni', 'mane','manifeste','manu', 'mari','mater','materia',
+                                        'media','medici','memor','memoria','menstrua','mens','menti','mentio',       'mira','misera','miseri',       'mora','moretri','mortali','morti', 'mysterio',
+                                    'nam','narrat','nati','natu','natura','ne','nece', 'nota','Nota',     'ob','obsessi', 'occasio', 'offen','omnis','operatio','opinio','ora','ori',
+                                    'passi','pater','patria','patri','pede','pedes','perpetua','perfecti','persecuti','persecutio',
+                                        'pinna','pio','plura','polluti','portio','prope','propitiatio','provocat', 'psalmi','psalmis', 'publica',
+                                    'questio','qui',        'rea','redempti','referri','rege','regi','regio','regula','remun','remunerat','rei','repente','reprobat','ros',
+                                    'salva','salvat','salvati','sanctifi','sanctificati',   'scandali',
+                                        'securi','separat','separati','seu','serva','servit','sex','sexta',
+                                        'si','signi','simplici','sit','sol','soli','solem','stat','statu', 'subjecti','summo','superstitio',
+                                    'tempora','Tod','tradit','traditi','traditio','transito','transmigratio','tres','tribulatio','tributa','trium','tu','tua','tuam','turba',
+                                    'usu',      'valle','vani','varie','vas', 'venerat', 'victi','vis','visita','visitat','visitatio','vita', 'Voca','voca',
+                                    'l','nos','ut',
+                                    'rethey','becausegentos','leados',
+                                        'susis','inedia','esurientem','hactenus','fruitio','silentnt','regenerati','confiteatur','deprimit','admirationem','workum',
 
-                                )
-                    else 'Info', DEBUGGING_THIS_MODULE, f'''  '{word}' IS SUSPECT @ {location}\n      from {cleanedTextToDisplay=}\n      which gave cleanedTextToCheck={_truncate_for_display(cleanedTextToCheck,word)}''' )
+                                    )
+                        else 'Info', DEBUGGING_THIS_MODULE, f'''  '{word}' IS SUSPECT @ {location}\n      from {cleanedTextToDisplay=}\n      which gave cleanedTextToCheck={_truncate_for_display(cleanedTextToCheck,word)}''' )
             if versionAbbreviation == 'Luth':
                 # if word=='alle': print( f"\n\nLUTH 'alle' from {originalHTMLTextForDebugging}\n{HTMLTextToCheck=}\n{cleanedTextToCheck=}\n{cleanedTextToDisplay}\n" )
                 BAD_GERMAN_WORD_SET.add( word )
@@ -892,15 +904,18 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                 if versionAbbreviation not in ('KJB-1611',) \
                 or bos_books_codes_py.is_deuterocanon_nr(BBB): # We don't do this coz for KJB-1611 (except Apocrypha) it messes up later addition of hilites
                     if checkedHTMLText.count( word ) == 1:
-                        dPrint( 'Info', DEBUGGING_THIS_MODULE, f"MARKING {versionAbbreviation} {word=} in {ref} {checkedHTMLText=}" )
+                        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 3:
+                            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"MARKING {versionAbbreviation} {word=} in {ref} {checkedHTMLText=}" )
                         checkedHTMLText = checkedHTMLText.replace( word, f'<span title="Possible misspelt word" class="spelling">{word}</span>', 1 )
                     elif versionAbbreviation=='OET-RV' and checkedHTMLText.count( word )==2 and len(word)>4: # The OET-RV text has footnotes included
                         # We want to be certain to replace the word in the actual footnote text, not in the caller popup
-                        dPrint( 'Info', DEBUGGING_THIS_MODULE, f"MARKING {versionAbbreviation} {word=} in {ref} {checkedHTMLText=}" )
+                        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 3:
+                            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"MARKING {versionAbbreviation} {word=} in {ref} {checkedHTMLText=}" )
                         checkedHTMLText = rreplace( checkedHTMLText, word, f'<span title="Possible misspelt word" class="spelling">{word}</span>', 1 )
             MISPELLING_VERSION_REF_DICT[versionAbbreviation].append( (word,ref) ) # We can save these to disk later
         if word==lastWord and word not in ('had','that','ad','sie'):
-            vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f'''    Possible duplicated {word=} @ {location} with "{lastLastWord} {lastWord} {word} {nextWord}"''' )
+            if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 4:
+                vPrint( 'Verbose', DEBUGGING_THIS_MODULE, f'''    Possible duplicated {word=} @ {location} with "{lastLastWord} {lastWord} {word} {nextWord}"''' )
             dupWord = f'{word} {word}'
             if versionAbbreviation == 'Luth':
                 BAD_GERMAN_WORD_SET.add( dupWord )
@@ -913,7 +928,8 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                 BAD_ENGLISH_WORD_LIST.append( (dupWord,location) )
             if checkedHTMLText.count( word ) == 2:
                 if versionAbbreviation not in ('KJB-1611',): # We don't do yet this coz it messes up later addition of hilites
-                    dPrint( 'Info', DEBUGGING_THIS_MODULE, f"MARKING {versionAbbreviation} {word=} in {ref} {checkedHTMLText=}" )
+                    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 3:
+                        dPrint( 'Info', DEBUGGING_THIS_MODULE, f"MARKING {versionAbbreviation} {word=} in {ref} {checkedHTMLText=}" )
                     checkedHTMLText = checkedHTMLText.replace( word, f'<span title="Possible duplicated word" class="duplicate">{word}</span>', 2 )
         lastLastWord = lastWord
         lastWord = word
@@ -926,7 +942,8 @@ def printSpellCheckSummary( state ) -> None:
     """
     Prints some summary results
     """
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, "\n\nSpell-check results:" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, "\n\nSpell-check results:" )
 
     ethSet = set()
     for versionAbbreviation in MISPELLING_VERSION_REF_DICT:
@@ -934,20 +951,27 @@ def printSpellCheckSummary( state ) -> None:
             for word,_ref in MISPELLING_VERSION_REF_DICT[versionAbbreviation]:
                 if word.endswith( 'eth' ) or word.endswith( 'est' ):
                     ethSet.add( word )
-    vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  ALL English -eth or -est misspelt words: ({len(ethSet):,}) {sorted(ethSet)}\n" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 3:
+        vPrint( 'Info', DEBUGGING_THIS_MODULE, f"  ALL English -eth or -est misspelt words: ({len(ethSet):,}) {sorted(ethSet)}\n" )
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  TOTAL ENGLISH WORDS CHECKED = {TOTAL_ENGLISH_WORDS_CHECKED_COUNT:,} BAD_ENGLISH WORDS {len(BAD_ENGLISH_WORD_LIST):,} {len(BAD_ENGLISH_WORD_LIST)*100/TOTAL_ENGLISH_WORDS_CHECKED_COUNT:.2f}% ({len(BAD_ENGLISH_WORD_SET):,} unique){f': {BAD_ENGLISH_WORD_SET}' if BibleOrgSysGlobals.verbosityLevel>2 else ''}" )
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    TOTAL BAD ENGLISH WORDS = {TOTAL_ENGLISH_MISSPELLING_COUNT:,} WORST ENGLISH WORDS {[(k, BAD_ENGLISH_COUNTS[k]) for k in sorted(BAD_ENGLISH_COUNTS, key=BAD_ENGLISH_COUNTS.get, reverse=True) if k.islower()][:14]}" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  TOTAL ENGLISH WORDS CHECKED = {TOTAL_ENGLISH_WORDS_CHECKED_COUNT:,} BAD_ENGLISH WORDS {len(BAD_ENGLISH_WORD_LIST):,} {len(BAD_ENGLISH_WORD_LIST)*100/TOTAL_ENGLISH_WORDS_CHECKED_COUNT:.2f}% ({len(BAD_ENGLISH_WORD_SET):,} unique){f': {BAD_ENGLISH_WORD_SET}' if BibleOrgSysGlobals.verbosityLevel>2 else ''}" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    TOTAL BAD ENGLISH WORDS = {TOTAL_ENGLISH_MISSPELLING_COUNT:,} WORST ENGLISH WORDS {[(k, BAD_ENGLISH_COUNTS[k]) for k in sorted(BAD_ENGLISH_COUNTS, key=BAD_ENGLISH_COUNTS.get, reverse=True) if k.islower()][:14]}" )
     if TOTAL_GERMAN_WORDS_CHECKED_COUNT > 0:
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  TOTAL GERMAN WORDS CHECKED = {TOTAL_GERMAN_WORDS_CHECKED_COUNT:,} BAD_GERMAN WORDS {len(BAD_GERMAN_WORD_LIST):,} {len(BAD_GERMAN_WORD_LIST)*100/TOTAL_GERMAN_WORDS_CHECKED_COUNT:.1f}% ({len(BAD_GERMAN_WORD_SET):,} unique){f': {BAD_GERMAN_WORD_SET}' if BibleOrgSysGlobals.verbosityLevel>2 else ''}" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  TOTAL GERMAN WORDS CHECKED = {TOTAL_GERMAN_WORDS_CHECKED_COUNT:,} BAD_GERMAN WORDS {len(BAD_GERMAN_WORD_LIST):,} {len(BAD_GERMAN_WORD_LIST)*100/TOTAL_GERMAN_WORDS_CHECKED_COUNT:.1f}% ({len(BAD_GERMAN_WORD_SET):,} unique){f': {BAD_GERMAN_WORD_SET}' if BibleOrgSysGlobals.verbosityLevel>2 else ''}" )
         GermanWordsToShow = [(k, BAD_GERMAN_COUNTS[k]) for k in sorted(BAD_GERMAN_COUNTS, key=BAD_GERMAN_COUNTS.get, reverse=True) if k.islower()][:13]
         if len(GermanWordsToShow) < 12: # Show captalised words then (although they will include names / proper nouns)
             GermanWordsToShow = [(k, BAD_GERMAN_COUNTS[k]) for k in sorted(BAD_GERMAN_COUNTS, key=BAD_GERMAN_COUNTS.get, reverse=True)
                                  if k not in ('Tsevaot','Yeremia','Yohannes','Yoyakims')][:13]
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    TOTAL BAD GERMAN WORDS = {TOTAL_GERMAN_MISSPELLING_COUNT:,} WORST GERMAN WORDS {GermanWordsToShow}" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    TOTAL BAD GERMAN WORDS = {TOTAL_GERMAN_MISSPELLING_COUNT:,} WORST GERMAN WORDS {GermanWordsToShow}" )
     if TOTAL_LATIN_WORDS_CHECKED_COUNT > 0:
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  TOTAL LATIN WORDS CHECKED = {TOTAL_LATIN_WORDS_CHECKED_COUNT:,} BAD_LATIN WORDS {len(BAD_LATIN_WORD_LIST):,} = {len(BAD_LATIN_WORD_LIST)*100/TOTAL_LATIN_WORDS_CHECKED_COUNT:.1f}% ({len(BAD_LATIN_WORD_SET):,} unique){f': {BAD_LATIN_WORD_SET}' if BibleOrgSysGlobals.verbosityLevel>2 else ''}" )
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    TOTAL BAD LATIN WORDS = {TOTAL_LATIN_MISSPELLING_COUNT:,} WORST LATIN WORDS {[(k, BAD_LATIN_COUNTS[k]) for k in sorted(BAD_LATIN_COUNTS, key=BAD_LATIN_COUNTS.get, reverse=True) if k.islower()][:13]}\n" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  TOTAL LATIN WORDS CHECKED = {TOTAL_LATIN_WORDS_CHECKED_COUNT:,} BAD_LATIN WORDS {len(BAD_LATIN_WORD_LIST):,} = {len(BAD_LATIN_WORD_LIST)*100/TOTAL_LATIN_WORDS_CHECKED_COUNT:.1f}% ({len(BAD_LATIN_WORD_SET):,} unique){f': {BAD_LATIN_WORD_SET}' if BibleOrgSysGlobals.verbosityLevel>2 else ''}" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    TOTAL BAD LATIN WORDS = {TOTAL_LATIN_MISSPELLING_COUNT:,} WORST LATIN WORDS {[(k, BAD_LATIN_COUNTS[k]) for k in sorted(BAD_LATIN_COUNTS, key=BAD_LATIN_COUNTS.get, reverse=True) if k.islower()][:13]}\n" )
 
     # for versionAbbreviation in ('OET-RV'Hebrew words index,): # Just out of curiousity # ,'OET-LV', 'ULT','UST'
     #     print( f"\n{versionAbbreviation} [Using {state.BibleLanguages[versionAbbreviation]} dictionary] ({len(MISPELLING_VERSION_REF_DICT[versionAbbreviation]):,}) {MISPELLING_VERSION_REF_DICT[versionAbbreviation]}\n")
@@ -959,13 +983,16 @@ def printSpellCheckSummary( state ) -> None:
         sortedDict = sorted( badDict.items(), key=lambda item: item[1], reverse=True )
         displayList = [wordCountTuple for wordCountTuple in sortedDict if wordCountTuple[0].islower() and (wordCountTuple[1]>(len(sortedDict)//20) or len(sortedDict)<25)]
         if len(displayList)<25 and len(displayList)<len(sortedDict): displayList += [wordCountTuple for wordCountTuple in sortedDict[:25]] # Could cause some duplicates
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\n{versionAbbreviation} (using {state.BibleLanguages[versionAbbreviation]} dictionary) from {len(MISPELLING_VERSION_REF_DICT[versionAbbreviation]):,} refs got {len(sortedDict):,} unique words (showing {len(displayList):,}): {displayList}\n")
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\n{versionAbbreviation} (using {state.BibleLanguages[versionAbbreviation]} dictionary) from {len(MISPELLING_VERSION_REF_DICT[versionAbbreviation]):,} refs got {len(sortedDict):,} unique words (showing {len(displayList):,}): {displayList}\n")
 
     totalWordsWithRef = 0
     for versionAbbreviation in MISPELLING_VERSION_REF_DICT:
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    {versionAbbreviation} misspelt words (with references) = {len(MISPELLING_VERSION_REF_DICT[versionAbbreviation]):,}" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"    {versionAbbreviation} misspelt words (with references) = {len(MISPELLING_VERSION_REF_DICT[versionAbbreviation]):,}" )
         totalWordsWithRef += len( MISPELLING_VERSION_REF_DICT[versionAbbreviation] )
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  TOTAL misspelt words (with references) = {totalWordsWithRef:,}" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  TOTAL misspelt words (with references) = {totalWordsWithRef:,}" )
 # end of spellCheckEnglish.printSpellCheckSummary()
 
 

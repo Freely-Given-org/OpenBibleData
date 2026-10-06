@@ -102,7 +102,7 @@ from Dict import loadAndIndexUBSGreekDictJSON, loadAndIndexUBSHebrewDictJSON
 from openbibledata_rust import findOLQuoteInLV, getBBBFromOETBookName
 
 
-LAST_MODIFIED_DATE = '2026-09-10' # by RJH
+LAST_MODIFIED_DATE = '2026-10-06' # by RJH
 SHORT_PROGRAM_NAME = "Bibles"
 PROGRAM_NAME = "OpenBibleData Bibles handler"
 PROGRAM_VERSION = '1.1.1'
@@ -127,9 +127,11 @@ def preloadVersions( state:State ) -> int:
 
     Note this has a side-effect of removing unused entries from state.BibleVersions.
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"preloadVersions( {state.BibleVersions} )" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag:
+        fnPrint( DEBUGGING_THIS_MODULE, f"preloadVersions( {state.BibleVersions} )" )
 
-    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"{datetime.now().strftime('%H:%M')} Preloading {state.BibleVersions}{' in TEST mode' if state.TEST_MODE_FLAG else ''}…" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 1:
+        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"{datetime.now().strftime('%H:%M')} Preloading {state.BibleVersions}{' in TEST mode' if state.TEST_MODE_FLAG else ''}…" )
 
     for versionAbbreviation in state.BibleVersions[:]: # copy because we'll be deleting some entries as we go
         if state.TEST_VERSIONS_ONLY and versionAbbreviation not in state.TEST_VERSIONS_ONLY:
@@ -156,33 +158,41 @@ def preloadVersions( state:State ) -> int:
                                 if state.TEST_MODE_FLAG or not state.ALL_PRODUCTION_BOOKS_FLAG \
                                 else f'{versionAbbreviation}{state.PICKLE_FILENAME_END}'
                 pickleFolderPath = folderOrFileLocationPath if folderOrFileLocationPath.is_dir() else folderOrFileLocationPath.parent
-                vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\nLooking for {f"'{pickleFilename}'" if BibleOrgSysGlobals.verbosityLevel>1 else 'pickle'} file for ‘{versionAbbreviation}’{f' in {pickleFolderPath}/' if BibleOrgSysGlobals.verbosityLevel>2 else ''} …" )
+                if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+                    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\nLooking for {f"'{pickleFilename}'" if BibleOrgSysGlobals.verbosityLevel>1 else 'pickle'} file for ‘{versionAbbreviation}’{f' in {pickleFolderPath}/' if BibleOrgSysGlobals.verbosityLevel>2 else ''} …" )
                 pickleFilePath = pickleFolderPath.joinpath( pickleFilename )
-                dPrint( 'Never', DEBUGGING_THIS_MODULE, f"{folderOrFileLocationPath=} {pickleFilename=} {pickleFolderPath=} {pickleFilePath=}" )
+                if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 5:
+                    dPrint( 'Never', DEBUGGING_THIS_MODULE, f"{folderOrFileLocationPath=} {pickleFilename=} {pickleFolderPath=} {pickleFilePath=}" )
                 if pickleFilePath.is_file():
                     pickleIsObsolete = False
                     pickleMTime = pickleFilePath.stat().st_mtime # A large integer
-                    dPrint( 'Info', DEBUGGING_THIS_MODULE, f"preloadVersions found {pickleFilename=}" )
+                    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 3:
+                        dPrint( 'Info', DEBUGGING_THIS_MODULE, f"preloadVersions found {pickleFilename=}" )
                     for somePath in pickleFolderPath.iterdir():
-                        dPrint( 'Never', DEBUGGING_THIS_MODULE, f"{pickleFolderPath=} {somePath=} {type(somePath)=}" )
+                        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 5:
+                            dPrint( 'Never', DEBUGGING_THIS_MODULE, f"{pickleFolderPath=} {somePath=} {type(somePath)=}" )
                         if somePath.is_file() and not str(somePath).endswith( state.PICKLE_FILENAME_END ):
                             fileMTime = somePath.stat().st_mtime # A large integer
                             if fileMTime > pickleMTime:
                                 pickleIsObsolete = True
-                                vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} pickle is obsolete because {somePath.name} is more recent." )
+                                if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+                                    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} pickle is obsolete because {somePath.name} is more recent." )
                                 break
                         elif versionAbbreviation == 'OET-LV': # This one has the OT and the NT in separate folders
                             if str(somePath).endswith ('derivedTexts/auto_edited_OT_ESFM') or str(somePath).endswith ('derivedTexts/auto_edited_VLT_ESFM'):
                                 for someSubPath in somePath.iterdir():
-                                    dPrint( 'Never', DEBUGGING_THIS_MODULE, f"Checking file-times in {somePath=} {someSubPath=} {type(someSubPath)=}" )
+                                    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 5:
+                                        dPrint( 'Never', DEBUGGING_THIS_MODULE, f"Checking file-times in {somePath=} {someSubPath=} {type(someSubPath)=}" )
                                     if someSubPath.is_file() and not str(someSubPath).endswith( state.PICKLE_FILENAME_END ):
                                         fileMTime = someSubPath.stat().st_mtime # A large integer
                                         if fileMTime > pickleMTime:
                                             pickleIsObsolete = True
-                                            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} pickle is obsolete because {someSubPath.name} is more recent." )
+                                            if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+                                                vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} pickle is obsolete because {someSubPath.name} is more recent." )
                                             break
                         else:
-                            dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"Ignoring pickle file or folder {somePath=} {somePath.name=}")
+                            if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 4:
+                                dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"Ignoring pickle file or folder {somePath=} {somePath.name=}")
                     if not pickleIsObsolete:
                         try:
                             if versionAbbreviation == 'TOSN':
@@ -199,14 +209,16 @@ def preloadVersions( state:State ) -> int:
                                     state.UBS_HEB_DATA = pickle.load( pickleInputFile )
                                     state.UBS_HEB_ID_INDEX = pickle.load( pickleInputFile )
                                     state.UBS_HEB_LEMMA_INDEX = pickle.load( pickleInputFile )
-                                vPrint( 'Quiet', DEBUGGING_THIS_MODULE, "preloadVersions() loaded pickled TOSN and UBS reference data" )
+                                if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 1:
+                                    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, "preloadVersions() loaded pickled TOSN and UBS reference data" )
                                 state.BibleVersions.remove( versionAbbreviation )
                                 continue
                             else: # for Bibles
                                 newBibleObj = BibleOrgSysGlobals.unpickleObject( pickleFilename, pickleFolderPath )
                                 # dPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"newObj is {newBibleObj}" )
                                 # dPrint( 'Info', DEBUGGING_THIS_MODULE, f"  Loaded {versionAbbreviation} {type(newBibleObj)} pickle file: {pickleFilename}." )
-                                vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"preloadVersions() loaded pickled {newBibleObj if BibleOrgSysGlobals.verbosityLevel>=2 else versionAbbreviation}" )
+                                if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 1:
+                                    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"preloadVersions() loaded pickled {newBibleObj if BibleOrgSysGlobals.verbosityLevel>=2 else versionAbbreviation}" )
                                 assert 'discoveryResults' in newBibleObj.__dict__ # .discover() should have been called before it was saved
                                 state.preloadedBibles[versionAbbreviation] = newBibleObj
                                 continue
@@ -221,7 +233,8 @@ def preloadVersions( state:State ) -> int:
                         except EOFError:
                             logging.critical( f"Failed to load {versionAbbreviation} pickle file: Ran out of input from {pickleFilename} in {pickleFolderPath}")
                 else:
-                    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  No pickle file for {versionAbbreviation}." )
+                    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+                        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  No pickle file for {versionAbbreviation}." )
 
         if versionAbbreviation == 'OET-LV':
             # Load the OT and NT from separate folders, and then combine them into one ESFM Bible object
@@ -249,10 +262,12 @@ def preloadVersions( state:State ) -> int:
             thisBible.sourceFolder = None
             del thisBibleNT
             state.preloadedBibles['OET-LV'] = thisBible
-            vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Doing discovery for {thisBible.abbreviation} ({thisBible.name})…" )
+            if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 1:
+                vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Doing discovery for {thisBible.abbreviation} ({thisBible.name})…" )
             thisBible.discover()
             thisBible.makeSectionIndex() # For OET-LV -- this isn't made automatically by BibleOrgSys
-            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"preloadVersions() loaded {thisBible}" )
+            if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+                vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"preloadVersions() loaded {thisBible}" )
 
             if WRITE_PICKLES_FLAG:
                 pickleFilename = f"OET-LV__{'_'.join(state.TEST_BOOK_LIST)}{state.PICKLE_FILENAME_END}" \
@@ -261,7 +276,8 @@ def preloadVersions( state:State ) -> int:
                 pickleFolderPath = state.BibleLocations['OET-LV']
                 try:
                     thisBible.pickle( pickleFilename, pickleFolderPath )
-                    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Saved pickle file: {pickleFilename}.\n" )
+                    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+                        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Saved pickle file: {pickleFilename}.\n" )
                 except TypeError:
                     logging.critical( f"Warning: Unable to pickle OET-LV Bible to {pickleFilename}" )
                     # But we ignore it (the program will just run slower again next time when it reloads the Bible)
@@ -289,7 +305,8 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
     """
     from Dict import loadTyndaleOpenBibleDictXML
 
-    fnPrint( DEBUGGING_THIS_MODULE, f"preloadVersion( ‘{versionAbbreviation}’, '{folderOrFileLocation}', … ){' in TEST mode' if state.TEST_MODE_FLAG else ''}" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag:
+        fnPrint( DEBUGGING_THIS_MODULE, f"preloadVersion( ‘{versionAbbreviation}’, '{folderOrFileLocation}', … ){' in TEST mode' if state.TEST_MODE_FLAG else ''}" )
     versionName = state.BibleNames[versionAbbreviation]
 
     # if versionAbbreviation in ('BSB',): # Single TSV .txt file
@@ -300,7 +317,8 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
     #     print( f"{versionAbbreviation} loaded ({len(thisBible.books.keys())}) {thisBible.books.keys()}" )
     if versionAbbreviation in ('SBL-GNT','RP-GNT') \
     or (versionAbbreviation in ('BSB',) and folderOrFileLocation.endswith('.tsv')): # Single (BSB) or multiple (SBL-GNT) TSV (possibly .txt) file(s)
-        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Loading ‘{versionAbbreviation}’ CSV/TSV Bible{' in TEST mode' if state.TEST_MODE_FLAG else ''}…" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 1:
+            vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Loading ‘{versionAbbreviation}’ CSV/TSV Bible{' in TEST mode' if state.TEST_MODE_FLAG else ''}…" )
         thisBible = CSVBible.CSVBible( folderOrFileLocation, givenName=versionName,
                                             givenAbbreviation=versionAbbreviation, encoding='utf-8' )
         if 'ALL' in state.booksToLoad[versionAbbreviation]:
@@ -315,7 +333,8 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
                 booksToLoad += BOOKLIST_NT27
             print( f"{versionAbbreviation} {booksToLoad=}")
             thisBible.loadSpecifiedBooks( booksToLoad )
-        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} loaded ({len(thisBible.books.keys())}) {list(thisBible.books.keys())}" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 1:
+            vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} loaded ({len(thisBible.books.keys())}) {list(thisBible.books.keys())}" )
 
         if versionAbbreviation == 'BSB':
             # Transform the CSVBible object into a ESFMBible object so that it can have wordtable references added
@@ -339,7 +358,8 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
             thisBible = thisESFMBible
 
     elif versionAbbreviation == 'MSB': # Special case -- two custom TSVs
-        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Loading ‘{versionAbbreviation}’ TSV Bible{' in TEST mode' if state.TEST_MODE_FLAG else ''}…" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 1:
+            vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Loading ‘{versionAbbreviation}’ TSV Bible{' in TEST mode' if state.TEST_MODE_FLAG else ''}…" )
         # print( f"{folderOrFileLocation=}" )
         assert isinstance( folderOrFileLocation, tuple ) and len(folderOrFileLocation) == 3 # Folder, then two filenames
 
@@ -350,7 +370,8 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
         else: # selected books only
             print( f"{versionAbbreviation} OT {state.booksToLoad[versionAbbreviation]=}")
             thisBibleOT.loadSpecifiedBooks( state.booksToLoad[versionAbbreviation] )
-        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} OT loaded ({len(thisBibleOT.books.keys())}) {list(thisBibleOT.books.keys())}" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 1:
+            vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} OT loaded ({len(thisBibleOT.books.keys())}) {list(thisBibleOT.books.keys())}" )
         thisBibleNT = CSVBible.CSVBible( folderOrFileLocation[2], givenName=versionName,
                                             givenAbbreviation=versionAbbreviation, encoding='utf-8' )
         if 'ALL' in state.booksToLoad[versionAbbreviation] or 'NT' in state.booksToLoad[versionAbbreviation]:
@@ -358,7 +379,8 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
         else: # selected books only
             print( f"{versionAbbreviation} NT {state.booksToLoad[versionAbbreviation]=}")
             thisBibleNT.loadSpecifiedBooks( state.booksToLoad[versionAbbreviation] )
-        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} NT loaded ({len(thisBibleNT.books.keys())}) {list(thisBibleNT.books.keys())}" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 1:
+            vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} NT loaded ({len(thisBibleNT.books.keys())}) {list(thisBibleNT.books.keys())}" )
 
         # Now combine the OT and NT into one ESFM Bible
         thisBible = ESFMBible.ESFMBible( None )
@@ -385,31 +407,39 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
         thisBible.lookForAuxiliaryFilenames()
 
         del thisBibleOT, thisBibleNT
-        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} loaded ({len(thisBible.books.keys())}) {list(thisBible.books.keys())}" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 1:
+            vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} loaded ({len(thisBible.books.keys())}) {list(thisBible.books.keys())}" )
 
     elif versionAbbreviation == 'LEB': # Custom XML
-        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Loading ‘{versionAbbreviation}’ XML Bible{' in TEST mode' if state.TEST_MODE_FLAG else ''}…" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 1:
+            vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Loading ‘{versionAbbreviation}’ XML Bible{' in TEST mode' if state.TEST_MODE_FLAG else ''}…" )
         thisBible = LEBXMLBible.LEBXMLBible( folderOrFileLocation, givenName=versionName,
                                             givenAbbreviation=versionAbbreviation, encoding='utf-8' )
         thisBible.loadBooks() # So we can iterate through them all later
-        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} loaded ({len(thisBible.books.keys())}) {list(thisBible.books.keys())}" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 1:
+            vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} loaded ({len(thisBible.books.keys())}) {list(thisBible.books.keys())}" )
 
     elif versionAbbreviation in ('BLB','Cvdl','Bshps','SLT'): # Custom VPL
-        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Loading ‘{versionAbbreviation}’ VPL Bible{' in TEST mode' if state.TEST_MODE_FLAG else ''}…" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 1:
+            vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Loading ‘{versionAbbreviation}’ VPL Bible{' in TEST mode' if state.TEST_MODE_FLAG else ''}…" )
         thisBible = VPLBible.VPLBible( folderOrFileLocation, givenName=versionName,
                                             givenAbbreviation=versionAbbreviation, encoding='utf-8' )
         thisBible.load() # So we can iterate through them all later
-        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} loaded ({len(thisBible.books.keys())}) {list(thisBible.books.keys())}" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 1:
+            vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} loaded ({len(thisBible.books.keys())}) {list(thisBible.books.keys())}" )
 
     elif 'Zefania' in folderOrFileLocation: # Zefania XML
-        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Loading ‘{versionAbbreviation}’ Zefania XML Bible{' in TEST mode' if state.TEST_MODE_FLAG else ''}…" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 1:
+            vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Loading ‘{versionAbbreviation}’ Zefania XML Bible{' in TEST mode' if state.TEST_MODE_FLAG else ''}…" )
         thisBible = ZefaniaXMLBible.ZefaniaXMLBible( folderOrFileLocation, givenName=versionName,
                                             givenAbbreviation=versionAbbreviation, encoding='utf-8' )
         thisBible.loadBooks() # So we can iterate through them all later
-        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} loaded ({len(thisBible.books.keys())}) {list(thisBible.books.keys())}" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 1:
+            vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} loaded ({len(thisBible.books.keys())}) {list(thisBible.books.keys())}" )
 
     elif 'OET' in versionAbbreviation or 'ESFM' in folderOrFileLocation: # ESFM
-        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Preloading ‘{versionAbbreviation}’ ESFM Bible{' in TEST mode' if state.TEST_MODE_FLAG else ''}…" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 1:
+            vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Preloading ‘{versionAbbreviation}’ ESFM Bible{' in TEST mode' if state.TEST_MODE_FLAG else ''}…" )
         thisBible = ESFMBible.ESFMBible( folderOrFileLocation, givenName=versionName, givenAbbreviation=versionAbbreviation )
         thisBible.loadAuxiliaryFiles = True
         if 'ALL' in state.booksToLoad[versionAbbreviation]:
@@ -421,7 +451,8 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
             thisBible.lookForAuxiliaryFilenames()
 
     elif versionAbbreviation == 'UTN':
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Preloading uW translation notes{' in TEST mode' if state.TEST_MODE_FLAG else ''}…" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Preloading uW translation notes{' in TEST mode' if state.TEST_MODE_FLAG else ''}…" )
         thisBible = uWNotesBible.uWNotesBible( state.BibleLocations[versionAbbreviation], givenName='uWTranslationNotes',
                                             givenAbbreviation='UTN', encoding='utf-8' )
         # thisBible.loadBooks() # So we can iterate through them all later
@@ -437,19 +468,23 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
         sourceFolder = state.BibleLocations[versionAbbreviation]
 
         # We sneak in some extra loads here
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Preloading Tyndale book intros from {sourceFolder}…" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Preloading Tyndale book intros from {sourceFolder}…" )
         sourceFilename = 'BookIntros.xml'
         thisExtraAbbreviation = 'TBI'
         state.TyndaleBookIntrosDict = loadTyndaleBookIntrosXML( thisExtraAbbreviation, os.path.join( sourceFolder, sourceFilename ) )
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Preloading Tyndale book intro summaries from {sourceFolder}…" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Preloading Tyndale book intro summaries from {sourceFolder}…" )
         sourceFilename = 'BookIntroSummaries.xml'
         thisExtraAbbreviation = 'TBIS'
         state.TyndaleBookIntroSummariesDict = loadTyndaleBookIntrosXML( thisExtraAbbreviation, os.path.join( sourceFolder, sourceFilename ) )
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Preloading Tyndale Open Bible Dictionary from {sourceFolder}…" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Preloading Tyndale Open Bible Dictionary from {sourceFolder}…" )
         thisExtraAbbreviation = 'TOBD'
         loadTyndaleOpenBibleDictXML( thisExtraAbbreviation, os.path.join( sourceFolder, '../OBD/' ) )
 
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Preloading Tyndale theme notes from {sourceFolder}…" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Preloading Tyndale theme notes from {sourceFolder}…" )
         sourceFilename = 'ThemeNotes.xml'
         thisExtraAbbreviation = 'TTN'
         thisBible = TyndaleNotesBible.TyndaleNotesBible( os.path.join( sourceFolder, sourceFilename ), givenName='TyndaleThemeNotes',
@@ -460,7 +495,8 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
             assert 'discoveryResults' in thisBible.__dict__
             state.preloadedBibles[thisExtraAbbreviation] = thisBible
 
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Preloading Tyndale study notes from {sourceFolder}…" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"Preloading Tyndale study notes from {sourceFolder}…" )
         sourceFilename = 'StudyNotes.xml'
         thisBible = TyndaleNotesBible.TyndaleNotesBible( os.path.join( sourceFolder, sourceFilename ), givenName='TyndaleStudyNotes',
                                             givenAbbreviation='TOSN', encoding='utf-8' )
@@ -487,7 +523,8 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
                 pickle.dump( state.UBS_HEB_LEMMA_INDEX, pickleOutputFile )
 
     elif versionAbbreviation in ('NET',) and 'eBible.org' not in folderOrFileLocation: # USX
-        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Preloading ‘{versionAbbreviation}’ USX Bible{' in TEST mode' if state.TEST_MODE_FLAG else ''}…" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 1:
+            vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Preloading ‘{versionAbbreviation}’ USX Bible{' in TEST mode' if state.TEST_MODE_FLAG else ''}…" )
         thisBible = USXXMLBible.USXXMLBible( folderOrFileLocation, givenName=versionName, givenAbbreviation=versionAbbreviation,
                                             encoding='utf-8' )
         if state.booksToLoad[versionAbbreviation] in (['ALL'],['OT'],['NT']):
@@ -500,7 +537,8 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
                 thisBible.loadBookIfNecessary( BBB )
 
     elif versionAbbreviation in ('BSB',) and 'PTX' in folderOrFileLocation: # Paratext
-        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Preloading ‘{versionAbbreviation}’ PTX Bible{' in TEST mode' if state.TEST_MODE_FLAG else ''}…" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 1:
+            vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Preloading ‘{versionAbbreviation}’ PTX Bible{' in TEST mode' if state.TEST_MODE_FLAG else ''}…" )
         thisBible = PTX8Bible.PTX8Bible( folderOrFileLocation, givenName=versionName, givenAbbreviation=versionAbbreviation,
                                             encoding='utf-8' )
         if state.booksToLoad[versionAbbreviation] in (['ALL'],['OT'],['NT']):
@@ -513,14 +551,16 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
                 thisBible.loadBookIfNecessary( BBB )
 
     elif versionAbbreviation in state.selectedVersesOnlyVersions: # small numbers of sample verses
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\nLoading ‘{versionAbbreviation}’ sample verses…" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"\nLoading ‘{versionAbbreviation}’ sample verses…" )
         thisBible = loadSelectedVersesFile( folderOrFileLocation, givenName=versionName,
                                             givenAbbreviation=versionAbbreviation, encoding='utf-8' )
         # NOTE: thisBible is NOT a Bible object here!!!
         # vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"{versionAbbreviation} loaded ({len(thisBible.books.keys())}) {list(thisBible.books.keys())}" )
 
     else: # USFM
-        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Preloading ‘{versionAbbreviation}’ USFM Bible{' in TEST mode' if state.TEST_MODE_FLAG else ''}…" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 1:
+            vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Preloading ‘{versionAbbreviation}’ USFM Bible{' in TEST mode' if state.TEST_MODE_FLAG else ''}…" )
         thisBible = USFMBible.USFMBible( folderOrFileLocation, givenName=versionName, givenAbbreviation=versionAbbreviation,
                                             encoding='utf-8' )
         if state.booksToLoad[versionAbbreviation] in (['ALL'],['OT'],['NT']):
@@ -531,7 +571,8 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
             thisBible.preload()
             for BBB in state.booksToLoad[versionAbbreviation]:
                 thisBible.loadBookIfNecessary( BBB )
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  preloadVersion() loaded {len(thisBible):,} {versionAbbreviation} verses" if versionAbbreviation in state.selectedVersesOnlyVersions else f"preloadVersion() loaded {thisBible}" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  preloadVersion() loaded {len(thisBible):,} {versionAbbreviation} verses" if versionAbbreviation in state.selectedVersesOnlyVersions else f"preloadVersion() loaded {thisBible}" )
 
     if ( versionAbbreviation not in state.selectedVersesOnlyVersions # they're dicts not Bible objects
     #and 'Zefania' not in folderOrFileLocation # TODO: these don't work for some reason
@@ -541,7 +582,8 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
         if state.booksToLoad[versionAbbreviation] != ['ALL']:
             # Remove unwanted books in this Bible
             if len(thisBible) > len(state.booksToLoad[versionAbbreviation]):
-                vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Reducing {thisBible.abbreviation} {len(thisBible)} books down to {len(state.booksToLoad[versionAbbreviation])}…" )
+                if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 1:
+                    vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Reducing {thisBible.abbreviation} {len(thisBible)} books down to {len(state.booksToLoad[versionAbbreviation])}…" )
                 newBooks = {}
                 for BBB,bookObject in thisBible.books.items():
                     if BBB in state.booksToLoad[versionAbbreviation]:
@@ -550,7 +592,8 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
             if versionAbbreviation not in ('Moff','BrLXX','BrTr'): # Only have scarce books
                 assert len(thisBible), f"Couldn't load any books for {versionAbbreviation} {state.booksToLoad[versionAbbreviation]}"
 
-        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Doing discovery for {thisBible.abbreviation} ({thisBible.name}) with {len(thisBible)} books…" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 1:
+            vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Doing discovery for {thisBible.abbreviation} ({thisBible.name}) with {len(thisBible)} books…" )
         thisBible.discover()
         assert 'discoveryResults' in thisBible.__dict__
         if len(thisBible): # makeSectionIndex fails in DEBUG mode if no books were actually loaded
@@ -566,7 +609,8 @@ def preloadVersion( versionAbbreviation:str, folderOrFileLocation:str, state:Sta
                     pickleFolderPath = folderOrFileLocation[0]
             try:
                 thisBible.pickle( pickleFilename, pickleFolderPath )
-                vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Saved pickle file: {pickleFilename}.\n" )
+                if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+                    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  Saved pickle file: {pickleFilename}.\n" )
             except TypeError:
                 logging.critical( f"Warning: Unable to pickle {versionAbbreviation} Bible to {pickleFilename}" )
                 # But we ignore it (the program will just run slower again next time when it reloads the Bible)
@@ -597,7 +641,8 @@ def loadTyndaleBookIntrosXML( abbrev:str, XML_filepath ) -> dict[str,str]:
     """
     Load the Tyndale book intros or book intro summaries from the XML file
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"loadTyndaleBookIntrosXML( {abbrev}, {XML_filepath} )" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag:
+        fnPrint( DEBUGGING_THIS_MODULE, f"loadTyndaleBookIntrosXML( {abbrev}, {XML_filepath} )" )
 
     dataDict = {}
     loadErrors:list[str] = []
@@ -619,7 +664,8 @@ def loadTyndaleBookIntrosXML( abbrev:str, XML_filepath ) -> dict[str,str]:
 
         for element in XMLTree:
             location = f"{topLocation}-{element.tag}"
-            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"{element} {element.text=}" )
+            if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 3:
+                dPrint( 'Info', DEBUGGING_THIS_MODULE, f"{element} {element.text=}" )
             BibleOrgSysGlobals.checkXMLNoTail( element, location, '1wk8', loadErrors )
             assert element.tag == 'item'
             # Process the attributes first
@@ -642,7 +688,8 @@ def loadTyndaleBookIntrosXML( abbrev:str, XML_filepath ) -> dict[str,str]:
             title = None
             thisEntry = ''
             for subelement in element:
-                dPrint( 'Info', DEBUGGING_THIS_MODULE, f"{subelement} {subelement.text=}" )
+                if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 3:
+                    dPrint( 'Info', DEBUGGING_THIS_MODULE, f"{subelement} {subelement.text=}" )
                 sublocation = f"{location}-{subelement.tag}"
                 BibleOrgSysGlobals.checkXMLNoAttributes( subelement, sublocation, '1wk8', loadErrors )
                 BibleOrgSysGlobals.checkXMLNoTail( subelement, sublocation, '1wk8', loadErrors )
@@ -710,7 +757,8 @@ def loadTyndaleBookIntrosXML( abbrev:str, XML_filepath ) -> dict[str,str]:
             if thisEntry:
                 dataDict[BBB] = thisEntry
 
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"loadTyndaleBookIntrosXML() loaded {len(dataDict):,} {abbrev} book intros." )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"loadTyndaleBookIntrosXML() loaded {len(dataDict):,} {abbrev} book intros." )
     return dataDict
 # end of Bibles.loadTyndaleBookIntrosXML
 
@@ -718,7 +766,8 @@ def loadTyndaleBookIntrosXML( abbrev:str, XML_filepath ) -> dict[str,str]:
 def formatTyndaleBookIntro( abbrev:str, level:int, BBB:str, segmentType:str, state:State ) -> str:
     """
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"formatTyndaleBookIntro( {abbrev}, {BBB}, … )" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag:
+        fnPrint( DEBUGGING_THIS_MODULE, f"formatTyndaleBookIntro( {abbrev}, {BBB}, … )" )
     assert abbrev in ('TBI','TBIS')
     assert segmentType == 'parallelVerse'
 
@@ -743,7 +792,8 @@ def formatTyndaleNotes( abbrev:str, level:int, BBB:str, C:str, V:str, segmentTyp
     These are mostly HTML now artificially encoded inside USFM fields.
     """
     ftnRef = f'{BBB}_{C}:{V}'
-    fnPrint( DEBUGGING_THIS_MODULE, f"formatTyndaleNotes( {ftnRef}, {segmentType=} )" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag:
+        fnPrint( DEBUGGING_THIS_MODULE, f"formatTyndaleNotes( {ftnRef}, {segmentType=} )" )
     assert abbrev in ('TOSN','TTN')
     assert segmentType in ('parallelVerse','interlinearVerse')
 
@@ -820,7 +870,8 @@ def formatTyndaleNotes( abbrev:str, level:int, BBB:str, C:str, V:str, segmentTyp
                 nHtml = f'{nHtml}</ol>'
                 inList = False
         elif marker not in ('id','usfm','ide','intro','chapters','c','c#','c~','v','v=', '¬s1'):
-            dPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"{abbrev} {ftnRef} {marker}={rest}" )
+            if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 1:
+                dPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"{abbrev} {ftnRef} {marker}={rest}" )
             logging.critical( f"Unknown Tyndale notes marker: {abbrev} {ftnRef} {marker}={rest}" )
             unknown_Tyndale_notes_marker
         assert '<class=' not in nHtml, f"{marker=} {rest=} {lastMarker=} {nHtml=}"
@@ -844,7 +895,8 @@ def fixTyndaleBRefs( abbrev:str, level:int, BBBorArticleName:str, C:str, V:str, 
     """
     Most of the parameters are for info messages only
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"fixTyndaleBRefs( {abbrev}, {level}, {BBBorArticleName} {C}:{V} {html}, … )" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag:
+        fnPrint( DEBUGGING_THIS_MODULE, f"fixTyndaleBRefs( {abbrev}, {level}, {BBBorArticleName} {C}:{V} {html}, … )" )
 
     # Fix their links like '<a href="?bref=Mark.4.14-20">4:14-20</a>'
     # Doesn't yet handle links like '(see “<a href="?item=FollowingJesus_ThemeNote_Filament">Following Jesus</a>” Theme Note)'
@@ -972,7 +1024,8 @@ def formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segme
     TODO: Get the English quote (ULT, OET-LV???) from the Greek words
     """
     utnRef = f'{BBB}_{C}:{V}'
-    fnPrint( DEBUGGING_THIS_MODULE, f"formatUnfoldingWordTranslationNotes( {level}, {utnRef}, {segmentType=} )" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag:
+        fnPrint( DEBUGGING_THIS_MODULE, f"formatUnfoldingWordTranslationNotes( {level}, {utnRef}, {segmentType=} )" )
     assert segmentType in ('parallelVerse','interlinearVerse')
 
     try:
@@ -1004,9 +1057,11 @@ def formatUnfoldingWordTranslationNotes( level:int, BBB:str, C:str, V:str, segme
             assert rest
             # print( f"UTN {utnRef} ignored {marker}='{rest}'" )
             continue # not used here
-        dPrint( 'Never', DEBUGGING_THIS_MODULE, f"UTN {utnRef} {marker}='{rest}'" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 5:
+            dPrint( 'Never', DEBUGGING_THIS_MODULE, f"UTN {utnRef} {marker}='{rest}'" )
         if rest is None:
-            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"formatUnfoldingWordTranslationNotes( {utnRef}, {segmentType=} ) skipped UTN {marker}='{rest}'" )
+            if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 3:
+                dPrint( 'Info', DEBUGGING_THIS_MODULE, f"formatUnfoldingWordTranslationNotes( {utnRef}, {segmentType=} ) skipped UTN {marker}='{rest}'" )
             lastMarker = marker
             continue
         assert rest == entry.getFullText().rstrip(), f"UTN {utnRef} {marker}='{rest}' ft='{entry.getFullText()}'" # Just checking that we're not missing anything here
@@ -1304,8 +1359,10 @@ def loadSelectedVersesFile( fileLocation, givenName:str, givenAbbreviation:str, 
 
     Usually they only contain some small number of verses, e.g., 200 - 500 (cf NT. = 8,000, Bible = 31,000)
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"loadSelectedVersesFile( {fileLocation}, {givenName}, {givenAbbreviation}, {encoding} )" )
-    vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  loadSelectedVersesFile() loading {givenAbbreviation} ({givenName}) verse entries from {fileLocation}…" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag:
+        fnPrint( DEBUGGING_THIS_MODULE, f"loadSelectedVersesFile( {fileLocation}, {givenName}, {givenAbbreviation}, {encoding} )" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  loadSelectedVersesFile() loading {givenAbbreviation} ({givenName}) verse entries from {fileLocation}…" )
     # assert givenAbbreviation in state.selectedVersesOnlyVersions
 
     verseTable = {}
@@ -1329,7 +1386,8 @@ def loadSelectedVersesFile( fileLocation, givenName:str, givenAbbreviation:str, 
                                         .replace('\\n','\n').replace('\\\\','\\') # See https://en.wikipedia.org/wiki/Tab-separated_values
                                         .replace('__ND__','\\nd') )
 
-    vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    loadSelectedVersesFile() loaded {len(verseTable):,} {givenAbbreviation} verse entries from {fileLocation}." )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 3:
+        vPrint( 'Info', DEBUGGING_THIS_MODULE, f"    loadSelectedVersesFile() loaded {len(verseTable):,} {givenAbbreviation} verse entries from {fileLocation}." )
     return verseTable
 # end of Bibles.loadSelectedVersesFile
 
@@ -1340,14 +1398,16 @@ def getVerseDataListForReference( givenRefString:str, thisBible:Bible, lastBBB:s
 
     Returns verseEntryList and contextList.
     """
-    fnPrint( DEBUGGING_THIS_MODULE, f"getVerseDataListForReference( {givenRefString}, {thisBible.abbreviation}, {lastBBB=}, {lastC=} )" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag:
+        fnPrint( DEBUGGING_THIS_MODULE, f"getVerseDataListForReference( {givenRefString}, {thisBible.abbreviation}, {lastBBB=}, {lastC=} )" )
 
     # TODO: Most of this next block of code should really be in BibleOrgSys
     adjRefString = givenRefString.replace( ' (LXX)', '' )
     if '(' in adjRefString and ')' in adjRefString: # Remove xref comment
         assert adjRefString.count('(')==1 and adjRefString.count(')')==1
         adjRefString = f"{adjRefString[:adjRefString.index('(')]}{adjRefString[adjRefString.index(')')+1:]}".strip()
-        dPrint( 'Info', DEBUGGING_THIS_MODULE, f"{givenRefString=} {adjRefString=}")
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 3:
+            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"{givenRefString=} {adjRefString=}")
     if thisBible.abbreviation == 'OET-RV':
         adjRefString = adjRefString.replace( 'Quoted by ', '' )
     if ' ' not in adjRefString: adjRefString = f'{lastBBB} {adjRefString}'
@@ -1410,11 +1470,13 @@ def getVerseDataListForReference( givenRefString:str, thisBible:Bible, lastBBB:s
                     if '-' not in part1 and '-' in part2:
                         refStartC,refStartV = part1.split( ':' )
                         assert refStartC.isdigit() and refStartV.isdigit()
-                        dPrint( 'Info', DEBUGGING_THIS_MODULE, f"{refBBB} {refStartC}:{refStartV}")
+                        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 3:
+                            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"{refBBB} {refStartC}:{refStartV}")
                         verseEntryList, contextList = thisBible.getContextVerseData( (refBBB,refStartC,refStartV) )
                         refStartV2, refEndV = part2.split( '-' )
                         assert refStartV2.isdigit() and refEndV.isdigit()
-                        dPrint( 'Info', DEBUGGING_THIS_MODULE, f"{refBBB} {refStartC}:{refStartV2}-{refEndV}")
+                        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 3:
+                            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"{refBBB} {refStartC}:{refStartV2}-{refEndV}")
                         thisVerseEntryList, _contextList = thisBible.getContextVerseDataRange( (refBBB,refStartC,refStartV2), (refBBB,refStartC,refEndV) )
                         verseEntryList += thisVerseEntryList
                     else: unknownCommaRef1a
@@ -1512,10 +1574,12 @@ def getBibleMapperMaps( level:int, BBB:str, startC:str, startV:str|None, endC:st
     """
     global BMM_INDEX, BMM_TEXT_CACHE
 
-    fnPrint( DEBUGGING_THIS_MODULE, f"getBibleMapperMaps( {level}, {BBB} {startC}:{startV}–{endC}:{endV} ) with {len(BMM_INDEX):,} index entries loaded" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag:
+        fnPrint( DEBUGGING_THIS_MODULE, f"getBibleMapperMaps( {level}, {BBB} {startC}:{startV}–{endC}:{endV} ) with {len(BMM_INDEX):,} index entries loaded" )
 
     if not BMM_INDEX:
-        vPrint( 'Info', DEBUGGING_THIS_MODULE, f"getBibleMapperMaps( {level}, {startC}:{startV}–{endC}:{endV} ) needs to load map index…")
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 3:
+            vPrint( 'Info', DEBUGGING_THIS_MODULE, f"getBibleMapperMaps( {level}, {startC}:{startV}–{endC}:{endV} ) needs to load map index…")
         mapIndexFilepath = Path( '../copiedBibles/maps/mapIndex.tsv' )
         with open( mapIndexFilepath, 'rt', encoding='utf-8' ) as tsvFile:
             for line in tsvFile: # Five-column TSV
@@ -1567,7 +1631,8 @@ def getBibleMapperMaps( level:int, BBB:str, startC:str, startV:str|None, endC:st
                 for mapC in chapters:
                     BMM_INDEX[f'{mapBBB}_{mapC}:None'].add( (mapName,hiResMapFilename,lowResMapFilename,supplementaryMapFilename) )
         # print( f"({len(BMM_INDEX)}) {BMM_INDEX.keys()=}" )
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  getBibleMapperMaps() loaded {len(BMM_INDEX):,} verse and chapter entries.")
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  getBibleMapperMaps() loaded {len(BMM_INDEX):,} verse and chapter entries.")
 
     # First get the range of verses that we want to scan and collect all the map filenames for that set
     mapFilenamesSet = set()
@@ -1586,17 +1651,20 @@ def getBibleMapperMaps( level:int, BBB:str, startC:str, startV:str|None, endC:st
                     mapFilenamesSet.update( BMM_INDEX[desiredKey] )
 
     if not mapFilenamesSet: # No maps for this reference / reference range (or book not loaded in referenceBible TEST_MODE_FLAG)
-        dPrint( 'Info', DEBUGGING_THIS_MODULE, f"    getBibleMapperMaps: No maps available for reference {BBB} {startC}:{startV}–{endC}:{endV} with {len(BMM_INDEX):,} index entries loaded" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 3:
+            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"    getBibleMapperMaps: No maps available for reference {BBB} {startC}:{startV}–{endC}:{endV} with {len(BMM_INDEX):,} index entries loaded" )
         return ''
 
     destinationFolderpath = state.TEMP_BUILD_FOLDER. joinpath( 'BMM/' )
     try: os.makedirs( destinationFolderpath )
     except FileExistsError: pass
 
-    dPrint( 'Info', DEBUGGING_THIS_MODULE, f"getBibleMapperMaps( {level}, {startC}:{startV}–{endC}:{endV} ) got {mapFilenamesSet=}" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 3:
+        dPrint( 'Info', DEBUGGING_THIS_MODULE, f"getBibleMapperMaps( {level}, {startC}:{startV}–{endC}:{endV} ) got {mapFilenamesSet=}" )
     ourHtml = ''
     for mapName,hiResFilename,loResFilename,supplementaryFilename in mapFilenamesSet:
-        dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"getBibleMapperMaps( {level}, {startC}:{startV}–{endC}:{endV} ) got {hiResFilename=}" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 4:
+            dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"getBibleMapperMaps( {level}, {startC}:{startV}–{endC}:{endV} ) got {hiResFilename=}" )
 
         try: htmlTextSegment = BMM_TEXT_CACHE[hiResFilename]
         except KeyError: # not cached yet
@@ -1657,12 +1725,14 @@ def getOpenBibleImages( level:int, segmentType:str, BBB:str, startC:str, startV:
     """
     global OBI_IMAGE_LIST, OBI_ALL_VERSES_INDEX, OBI_FIRST_VERSES_INDEX
 
-    fnPrint( DEBUGGING_THIS_MODULE, f"getOpenBibleImages( {level} {segmentType=} {BBB} {startC}:{startV}–{endC}:{endV} ) with {len(OBI_ALL_VERSES_INDEX):,} index entries loaded" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag:
+        fnPrint( DEBUGGING_THIS_MODULE, f"getOpenBibleImages( {level} {segmentType=} {BBB} {startC}:{startV}–{endC}:{endV} ) with {len(OBI_ALL_VERSES_INDEX):,} index entries loaded" )
     assert segmentType in ('verse','chapter','section','book','relatedPassage'), f"{segmentType=}"
     # print( f"getOpenBibleImages( {level} {segmentType=} {BBB} {startC}:{startV}–{endC}:{endV} ) with {len(OBI_ALL_VERSES_INDEX):,} index entries loaded" )
 
     if not OBI_ALL_VERSES_INDEX:
-        vPrint( 'Info', DEBUGGING_THIS_MODULE, f"getOpenBibleImages() needs to load image index…")
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 3:
+            vPrint( 'Info', DEBUGGING_THIS_MODULE, f"getOpenBibleImages() needs to load image index…")
         imageIndexFilepath = Path( '../copiedBibles/images/imageIndex.tsv' )
         with open( imageIndexFilepath, 'rt', encoding='utf-8' ) as tsvFile:
             for line in tsvFile: # Five-column TSV
@@ -1722,7 +1792,8 @@ def getOpenBibleImages( level:int, segmentType:str, BBB:str, startC:str, startV:
                 for imageC in chapters:
                     OBI_ALL_VERSES_INDEX[f'{imageBBB}_{imageC}:None'].add( imageListIndex )
         # print( f"({len(OBI_INDEX)}) {OBI_INDEX.keys()=}" )
-        vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  getOpenBibleImages() loaded {len(OBI_FIRST_VERSES_INDEX):,} first and {len(OBI_ALL_VERSES_INDEX):,} total verse and chapter entries for {len(OBI_IMAGE_LIST):,} images.")
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 2:
+            vPrint( 'Normal', DEBUGGING_THIS_MODULE, f"  getOpenBibleImages() loaded {len(OBI_FIRST_VERSES_INDEX):,} first and {len(OBI_ALL_VERSES_INDEX):,} total verse and chapter entries for {len(OBI_IMAGE_LIST):,} images.")
 
     indexToUse = OBI_ALL_VERSES_INDEX if segmentType == 'verse' else OBI_FIRST_VERSES_INDEX
 
@@ -1743,18 +1814,21 @@ def getOpenBibleImages( level:int, segmentType:str, BBB:str, startC:str, startV:
                     imageFilenamesSet.update( indexToUse[desiredKey] )
 
     if not imageFilenamesSet: # No images for this reference / reference range (or book not loaded in referenceBible TEST_MODE_FLAG)
-        dPrint( 'Info', DEBUGGING_THIS_MODULE, f"    getOpenBibleImages: No images available for reference {BBB} {startC}:{startV}–{endC}:{endV} with {len(OBI_ALL_VERSES_INDEX):,} index entries loaded" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 3:
+            dPrint( 'Info', DEBUGGING_THIS_MODULE, f"    getOpenBibleImages: No images available for reference {BBB} {startC}:{startV}–{endC}:{endV} with {len(OBI_ALL_VERSES_INDEX):,} index entries loaded" )
         return ''
 
     destinationFolderpath = state.TEMP_BUILD_FOLDER. joinpath( 'OBI/' )
     try: os.makedirs( destinationFolderpath )
     except FileExistsError: pass
 
-    dPrint( 'Info', DEBUGGING_THIS_MODULE, f"getOpenBibleImages( {level}, {startC}:{startV}–{endC}:{endV} ) got {imageFilenamesSet=}" )
+    if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 3:
+        dPrint( 'Info', DEBUGGING_THIS_MODULE, f"getOpenBibleImages( {level}, {startC}:{startV}–{endC}:{endV} ) got {imageFilenamesSet=}" )
     ourHtml = ''
     for imageListIndex in imageFilenamesSet:
         imageRefsRange, primeRef, hiResFilename, loResFilename, altText, optionalComment = OBI_IMAGE_LIST[imageListIndex]
-        dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"getOpenBibleImages( {level}, {startC}:{startV}–{endC}:{endV} ) got {hiResFilename=}" )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.debugFlag or BibleOrgSysGlobals.verbosityLevel >= 4:
+            dPrint( 'Verbose', DEBUGGING_THIS_MODULE, f"getOpenBibleImages( {level}, {startC}:{startV}–{endC}:{endV} ) got {hiResFilename=}" )
 
         if loResFilename: # Display the low-res image but link it to the hi-res one
             imageFilename = loResFilename
@@ -1805,7 +1879,8 @@ def getVerseMetaInfoHtml( BBB:str, C:str, V:str ) -> str: # html
                 dataFields = dataLine.rstrip( '\n' ).split( '\t' )
                 assert dataFields[0] not in VERSE_DETAILS_TABLE
                 VERSE_DETAILS_TABLE[dataFields[0]] = (dataFields[1],dataFields[2],dataFields[3],dataFields[4]) # Don't bother saving the comments
-        vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Loaded {len(VERSE_DETAILS_TABLE):,} sets of verse details." )
+        if (DEBUGGING_THIS_MODULE) or BibleOrgSysGlobals.verbosityLevel >= 1:
+            vPrint( 'Quiet', DEBUGGING_THIS_MODULE, f"Loaded {len(VERSE_DETAILS_TABLE):,} sets of verse details." )
 
     verseDetails = ''
     ref = f'{BBB}_{C}:{V}'
