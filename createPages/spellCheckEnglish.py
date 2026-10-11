@@ -40,6 +40,7 @@ CHANGELOG:
     2026-08-27 Truncate spelling error messages if they're too long
     2026-09-11 Tolerate dictionary entries that are missing their '\\lg ' language line (skip them with a warning) and handle running from a different folder
     2026-09-25 Handle tradName fields
+    2026-10-11 Handle addOwner span in OET-LV
 """
 from pathlib import Path
 from csv import  DictReader
@@ -52,10 +53,10 @@ from BibleOrgSys.BibleOrgSysGlobals import vPrint, fnPrint, dPrint, rreplace
 import bos_books_codes_py
 
 
-LAST_MODIFIED_DATE = '2026-10-06' # by RJH
+LAST_MODIFIED_DATE = '2026-10-11' # by RJH
 SHORT_PROGRAM_NAME = "spellCheckEnglish"
 PROGRAM_NAME = "English Bible Spell Check"
-PROGRAM_VERSION = '0.71'
+PROGRAM_VERSION = '0.72'
 PROGRAM_NAME_VERSION = f'{SHORT_PROGRAM_NAME} v{PROGRAM_VERSION}'
 
 DEBUGGING_THIS_MODULE = False
@@ -615,7 +616,7 @@ def spellCheckAndMarkHTMLText( versionAbbreviation:str, ref:str, HTMLTextToCheck
                         'fn',
                         ):
         cleanedTextToCheck =  cleanedTextToCheck.replace( f'<p class="{paragraphMarker}">', '' ).replace( f'<!--{paragraphMarker}-->', '' )
-    for spanMarker in ('add','addArticle','addExtra','addCopula','addDirectObject', # TODO: Why don't these have title fields???
+    for spanMarker in ('add','addArticle','addExtra','addCopula','addDirectObject','addOwner', # TODO: Why don't these have title fields??? Coz they're in the OET-LV
                        'untr','nominaSacra',
                        'ior', 'vp',
                        'nd','wj','d','bk','qt','sc',
